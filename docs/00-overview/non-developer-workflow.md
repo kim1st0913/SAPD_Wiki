@@ -22,7 +22,7 @@
 
 输出：
 
-- `docs/sample-file-inventory.md`
+- `docs/03-import-etl/sample-file-inventory.md`
 - 后续可生成 `knowledge_asset_inventory.xlsx`
 
 你要准备：
@@ -35,7 +35,7 @@
 可以对 Codex 说：
 
 ```text
-请根据 docs/sample-file-inventory.md，帮我设计知识资产盘点表，并告诉我每个字段怎么填。
+请根据 docs/03-import-etl/sample-file-inventory.md，帮我设计知识资产盘点表，并告诉我每个字段怎么填。
 ```
 
 ### 第 2 周：知识对象建模
@@ -77,7 +77,7 @@
 可以对 Codex 说：
 
 ```text
-请根据 docs/data-dictionary-template.md，为这些知识对象生成字段字典，标明字段类型、是否必填、是否唯一、是否用于搜索筛选导出。
+请根据 docs/02-data-model/data-dictionary-template.md，为这些知识对象生成字段字典，标明字段类型、是否必填、是否唯一、是否用于搜索筛选导出。
 ```
 
 ### 第 4 周：样本文件映射
@@ -101,10 +101,10 @@
 
 开发输入至少包括：
 
-- `docs/project-plan.md`
-- `docs/sample-file-inventory.md`
-- `docs/data-dictionary-template.md`
-- `docs/import-rules.md`
+- `docs/00-overview/project-roadmap.md`
+- `docs/03-import-etl/sample-file-inventory.md`
+- `docs/02-data-model/data-dictionary-template.md`
+- `docs/03-import-etl/import-rules.md`
 - 5 到 10 个样例文件
 
 可以对 Codex 说：
@@ -130,7 +130,7 @@
 ### 任务 1：建立项目骨架
 
 ```text
-请根据 docs/project-plan.md 建立本地结构化知识库系统工程骨架。
+请根据 docs/00-overview/project-roadmap.md 建立本地结构化知识库系统工程骨架。
 要求：
 1. 使用 Tauri + React + SQLite；
 2. 建立 docs、etl、config、data、packages、migrations、tests 等目录；

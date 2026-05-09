@@ -9,16 +9,16 @@
 - Status: phase_1_data_definition
 - Started: 2026-05-09
 - Current phase: Phase 1 - 数据发现与字段定义
-- Primary reference: `work-knowledge-base-project-plan.md`
+- Primary reference: `docs/00-overview/project-roadmap.md`
 
 ## Phases
 
 | Phase | Name | Status | Output |
 |---|---|---|---|
-| 0 | 需求澄清与项目规划 | complete | `AGENTS.md`, `docs/project-plan.md`, planning files |
+| 0 | 需求澄清与项目规划 | complete | `AGENTS.md`, overview docs, planning files |
 | 1 | 数据发现与字段定义 | in_progress | knowledge asset inventory, knowledge objects, field dictionary, mapping rules |
 | 2 | 工程骨架 | in_progress | README, `.gitignore`, directory structure |
-| 3 | 数据模型设计 | pending | `docs/data-model.md`, SQLite schema, migrations |
+| 3 | 数据模型设计 | pending | `docs/02-data-model/data-model.md`, SQLite schema, migrations |
 | 4 | 导入 MVP | pending | Excel + Markdown/DOCX import prototype |
 | 5 | 知识浏览与搜索 | pending | list/detail/search/tag/category pages |
 | 6 | 导出与备份 | pending | CSV/JSON/Excel/ZIP export |
@@ -32,8 +32,8 @@
 - [x] Read existing project concept document.
 - [x] Create planning files for persistent Codex workflow.
 - [x] Create `AGENTS.md` for future Codex behavior.
-- [x] Create formal `docs/project-plan.md`.
-- [x] Create lightweight `docs/architecture.md`.
+- [x] Create formal overview docs.
+- [x] Create lightweight `docs/01-architecture/architecture.md`.
 - [x] Add pre-development data definition and ETL planning guidance.
 - [x] Create practical data definition and import rule documents.
 - [x] Integrate supplemental non-developer implementation guide.
@@ -43,7 +43,7 @@
 ## Phase 1 Tasks
 
 - [ ] Prepare 5 to 10 representative sample files.
-- [ ] Fill `docs/sample-file-inventory.md`.
+- [ ] Fill `docs/03-import-etl/sample-file-inventory.md`.
 - [ ] Identify first V1 knowledge object types.
 - [ ] Draft first field dictionary from actual sample files.
 - [ ] Draft first mapping rules from actual sample files.
@@ -85,10 +85,10 @@
 ## Next Recommended Actions
 
 1. 让用户准备 5 到 10 个代表性样例文件。
-2. 完成知识资产盘点，先用 `docs/sample-file-inventory.md`，后续可生成 `knowledge_asset_inventory.xlsx`。
-3. 完成知识对象定义，先用 `docs/data-dictionary-template.md`，后续可生成 `knowledge_objects.xlsx`。
+2. 完成知识资产盘点，先用 `docs/03-import-etl/sample-file-inventory.md`，后续可生成 `knowledge_asset_inventory.xlsx`。
+3. 完成知识对象定义，先用 `docs/02-data-model/data-dictionary-template.md`，后续可生成 `knowledge_objects.xlsx`。
 4. 完成字段字典，后续可生成 `field_dictionary.xlsx`。
-5. 完成映射规则，先用 `docs/import-rules.md`，后续可生成 `mapping_rules.xlsx`。
+5. 完成映射规则，先用 `docs/03-import-etl/import-rules.md`，后续可生成 `mapping_rules.xlsx`。
 6. 再创建工程骨架和实现数据库导入 MVP。
 
 ## Errors Encountered

@@ -5,7 +5,6 @@
 当前可先阅读：
 
 - `README.md`
-- `docs/non-developer-codex-workflow.md`
-- `docs/data-definition-guide.md`
-- `docs/sample-file-inventory.md`
-
+- `docs/00-overview/non-developer-workflow.md`
+- `docs/02-data-model/data-definition-guide.md`
+- `docs/03-import-etl/sample-file-inventory.md`

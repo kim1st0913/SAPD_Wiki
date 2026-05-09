@@ -4,10 +4,10 @@
 
 当前权威输入：
 
-- `docs/data-definition-guide.md`
-- `docs/data-dictionary-template.md`
-- `docs/import-rules.md`
-- `docs/sample-file-inventory.md`
+- `docs/02-data-model/data-definition-guide.md`
+- `docs/02-data-model/data-dictionary-template.md`
+- `docs/03-import-etl/import-rules.md`
+- `docs/03-import-etl/sample-file-inventory.md`
 - `task_plan.md`
 
 ## 当前原则
@@ -27,4 +27,3 @@ Phase 3 将补充：
 - staging 表说明；
 - FTS 全文索引说明；
 - migration SQL 文件清单。
-

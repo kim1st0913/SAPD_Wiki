@@ -19,7 +19,7 @@
 架构判断：
 
 - V1 使用 SQLite 和本地文件存储。
-- V1 技术选型以 `docs/technology-decisions.md` 为准。
+- V1 技术选型以 `docs/01-architecture/technology-decisions.md` 为准。
 - ETL 可以用 Python 或 Node.js 脚本解析文件并写入 SQLite。
 - V1 阶段 SQLite FTS5 足够承担基础全文检索。
 - DuckDB、图数据库和 RAG 应作为后续增强，不作为 V1 基础。
@@ -38,9 +38,9 @@
 
 推荐近期文档：
 
-- `docs/data-model.md`：Phase 3 详细设计，当前已建立占位文档。
-- `docs/import-rules.md`
-- `docs/sample-file-inventory.md`
+- `docs/02-data-model/data-model.md`：Phase 3 详细设计，当前已建立占位文档。
+- `docs/03-import-etl/import-rules.md`
+- `docs/03-import-etl/sample-file-inventory.md`
 - `README.md`
 - `.gitignore`
 
@@ -65,10 +65,10 @@
 
 需要新增或修订的文档：
 
-- `docs/data-definition-guide.md`
-- `docs/data-dictionary-template.md`
-- `docs/import-rules.md`
-- `docs/sample-file-inventory.md`
+- `docs/02-data-model/data-definition-guide.md`
+- `docs/02-data-model/data-dictionary-template.md`
+- `docs/03-import-etl/import-rules.md`
+- `docs/03-import-etl/sample-file-inventory.md`
 
 ## 2026-05-09 补充实施指南发现
 

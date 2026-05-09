@@ -28,7 +28,7 @@
 - `task_plan.md`：阶段计划、任务状态、风险和决策；
 - `findings.md`：调研结论、需求发现、技术判断；
 - `progress.md`：每次工作记录、文件变更、验证结果；
-- `docs/project-plan.md`：面向用户和开发过程的正式项目计划。
+- `docs/00-overview/project-roadmap.md`：面向用户和开发过程的阶段路线。
 
 在做任何较大的实现、重构或技术选型前，先读取上述文件，避免偏离项目目标。
 
@@ -65,12 +65,12 @@ V1 不应一开始追求所有格式深度解析。优先跑通：
 
 相关文档：
 
-- `docs/data-definition-guide.md`
-- `docs/data-dictionary-template.md`
-- `docs/sample-file-inventory.md`
-- `docs/import-rules.md`
-- `docs/non-developer-codex-workflow.md`
-- `docs/technology-decisions.md`
+- `docs/00-overview/non-developer-workflow.md`
+- `docs/02-data-model/data-definition-guide.md`
+- `docs/02-data-model/data-dictionary-template.md`
+- `docs/03-import-etl/sample-file-inventory.md`
+- `docs/03-import-etl/import-rules.md`
+- `docs/01-architecture/technology-decisions.md`
 
 ## 核心数据设计约束
 
@@ -141,12 +141,12 @@ SAPD_Wiki/
 ├── findings.md
 ├── progress.md
 ├── docs/
-│   ├── project-plan.md
-│   ├── architecture.md
-│   ├── data-model.md
-│   ├── import-rules.md
-│   ├── sample-file-inventory.md
-│   └── non-developer-codex-workflow.md
+│   ├── 00-overview/
+│   ├── 01-architecture/
+│   ├── 02-data-model/
+│   ├── 03-import-etl/
+│   ├── 04-user-guide/
+│   └── 05-archive/
 ├── apps/
 │   └── desktop/
 ├── packages/

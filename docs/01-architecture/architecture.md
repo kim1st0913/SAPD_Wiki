@@ -18,7 +18,7 @@
 
 ## 2. 当前架构原则
 
-- 技术选型以 `docs/technology-decisions.md` 为集中记录。
+- 技术选型以 `docs/01-architecture/technology-decisions.md` 为集中记录。
 - 先完成数据定义，再开发功能。
 - 先支持最小闭环，再扩展更多文件类型。
 - 原始文件必须保留，结构化数据必须可追溯来源。
@@ -145,9 +145,9 @@
 
 主要输入：
 
-- `docs/sample-file-inventory.md`
-- `docs/data-dictionary-template.md`
-- `docs/import-rules.md`
+- `docs/03-import-etl/sample-file-inventory.md`
+- `docs/02-data-model/data-dictionary-template.md`
+- `docs/03-import-etl/import-rules.md`
 - 样例文件
 
 主要输出：
@@ -371,8 +371,8 @@
 输入：
 
 - 样例文件；
-- `docs/sample-file-inventory.md`
-- `docs/data-dictionary-template.md`
+- `docs/03-import-etl/sample-file-inventory.md`
+- `docs/02-data-model/data-dictionary-template.md`
 
 输出：
 
@@ -421,7 +421,7 @@
 
 输出：
 
-- `docs/data-model.md`
+- `docs/02-data-model/data-model.md`
 - migration SQL；
 - 数据库说明。
 
@@ -541,8 +541,8 @@
 下一步不应马上开发，而应开始：
 
 1. 准备 5 到 10 个代表性样例文件；
-2. 使用 `docs/sample-file-inventory.md` 做知识资产盘点；
+2. 使用 `docs/03-import-etl/sample-file-inventory.md` 做知识资产盘点；
 3. 根据样例文件识别第一批知识对象；
-4. 使用 `docs/data-dictionary-template.md` 形成字段字典；
-5. 使用 `docs/import-rules.md` 形成第一批映射规则；
+4. 使用 `docs/02-data-model/data-dictionary-template.md` 形成字段字典；
+5. 使用 `docs/03-import-etl/import-rules.md` 形成第一批映射规则；
 6. 由主控 Agent 判断是否进入工程骨架阶段。

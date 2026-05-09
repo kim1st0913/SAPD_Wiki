@@ -154,3 +154,33 @@ Actions completed:
 Repository:
 
 - `https://github.com/kim1st0913/SAPD_Wiki`
+
+## 2026-05-09 Documentation Structure Refactor
+
+User asked for a final review of the documentation reduction proposal and approved execution.
+
+Actions completed:
+
+- Kept root working-memory files in place: `README.md`, `AGENTS.md`, `task_plan.md`, `findings.md`, `progress.md`.
+- Reorganized `docs/` into topic-based sections:
+  - `docs/00-overview/`
+  - `docs/01-architecture/`
+  - `docs/02-data-model/`
+  - `docs/03-import-etl/`
+  - `docs/04-user-guide/`
+  - `docs/05-archive/old-plans/`
+  - `docs/05-archive/closed-issues/`
+- Created `docs/00-overview/project-vision.md`.
+- Created `docs/00-overview/project-roadmap.md`.
+- Moved active architecture, data-model, import/ETL, workflow and user-guide documents into their topic directories.
+- Archived old planning files under `docs/05-archive/old-plans/`.
+- Archived the closed review issue list under `docs/05-archive/closed-issues/`.
+- Rewrote `README.md` as the primary human navigation entry.
+- Updated active references in `AGENTS.md`, `task_plan.md`, `findings.md`, and current docs.
+
+Result:
+
+- Long-term vision now lives in `docs/00-overview/project-vision.md`.
+- Stage roadmap now lives in `docs/00-overview/project-roadmap.md`.
+- Current work remains in `task_plan.md`.
+- Historical material is clearly archived.

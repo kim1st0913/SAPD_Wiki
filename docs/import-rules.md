@@ -64,7 +64,7 @@
 | XLSX-004 | `*能力*` | 能力清单 | 成熟度 | capability | maturity_level | normalize_level | 否 |
 | XLSX-005 | `*能力*` | 能力清单 | 说明 | capability | content | keep_text | 否 |
 
-## 5.1 安全能力成熟度评估表示例
+### 5.1 安全能力成熟度评估表示例
 
 一个 Excel 行不一定只生成一个对象。比如“安全能力成熟度评估表.xlsx”可以拆成能力项、指标项、评估结果、改进任务和关系。
 

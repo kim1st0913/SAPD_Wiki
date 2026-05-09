@@ -28,7 +28,7 @@ Verification:
 
 - File creation completed by patch.
 - Confirmed expected files exist in the project root and `docs/`.
-- `git status --short` reported the directory is not currently a Git repository; Git initialization should be handled in Phase 1.
+- `git status --short` reported the directory was not currently a Git repository at that time; this was later superseded by the GitHub upload preparation work, which initialized Git and created commits.
 
 ## 2026-05-09 Continued
 
@@ -54,7 +54,7 @@ Next actions:
 
 ## 2026-05-09 Supplemental Guide Integrated
 
-User provided `/Users/kim1st/Documents/kim note/non-developer-knowledge-base-implementation-guide.md`.
+User provided a supplemental non-developer implementation guide.
 
 Actions completed:
 
@@ -118,3 +118,26 @@ Next actions:
 
 - User needs to run `gh auth login` and complete GitHub authentication.
 - After authentication, create a private GitHub repository and push branch `main`.
+
+## 2026-05-09 Issue Review Fixes
+
+User reviewed generated documents and added `docs/issues.md`.
+
+Actions completed:
+
+- Read `docs/issues.md`.
+- Fixed phase plan inconsistency by making `task_plan.md` the only authoritative phase table.
+- Updated `docs/project-plan.md` to align with `task_plan.md`.
+- Added placeholders for `docs/data-model.md` and `docs/user-guide.md`.
+- Added `docs/technology-decisions.md` as the central technology decision record.
+- Converted `findings.md` to Chinese and removed local absolute source path.
+- Updated `docs/import-rules.md` heading level for the maturity assessment example.
+- Added template status note to `docs/sample-file-inventory.md`.
+- Added historical-reference notice to `work-knowledge-base-project-plan.md`.
+- Changed `work-knowledge-base-project-plan.md` permission from `600` to `644`.
+- Updated `docs/issues.md` statuses to `已修复` with repair notes.
+
+Next actions:
+
+- Commit the issue-review fixes.
+- Complete GitHub authentication and push to a private GitHub repository.

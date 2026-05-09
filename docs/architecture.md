@@ -18,6 +18,7 @@
 
 ## 2. 当前架构原则
 
+- 技术选型以 `docs/technology-decisions.md` 为集中记录。
 - 先完成数据定义，再开发功能。
 - 先支持最小闭环，再扩展更多文件类型。
 - 原始文件必须保留，结构化数据必须可追溯来源。
@@ -545,4 +546,3 @@
 4. 使用 `docs/data-dictionary-template.md` 形成字段字典；
 5. 使用 `docs/import-rules.md` 形成第一批映射规则；
 6. 由主控 Agent 判断是否进入工程骨架阶段。
-

@@ -6,18 +6,18 @@
 
 ## Current Status
 
-- Status: planning
+- Status: phase_1_data_definition
 - Started: 2026-05-09
-- Current phase: Phase 0 - 需求澄清与项目规划
+- Current phase: Phase 1 - 数据发现与字段定义
 - Primary reference: `work-knowledge-base-project-plan.md`
 
 ## Phases
 
 | Phase | Name | Status | Output |
 |---|---|---|---|
-| 0 | 需求澄清与项目规划 | in_progress | `AGENTS.md`, `docs/project-plan.md`, planning files |
-| 1 | 数据发现与字段定义 | pending | knowledge asset inventory, knowledge objects, field dictionary, mapping rules |
-| 2 | 工程骨架 | pending | README, `.gitignore`, directory structure |
+| 0 | 需求澄清与项目规划 | complete | `AGENTS.md`, `docs/project-plan.md`, planning files |
+| 1 | 数据发现与字段定义 | in_progress | knowledge asset inventory, knowledge objects, field dictionary, mapping rules |
+| 2 | 工程骨架 | in_progress | README, `.gitignore`, directory structure |
 | 3 | 数据模型设计 | pending | `docs/data-model.md`, SQLite schema, migrations |
 | 4 | 导入 MVP | pending | Excel + Markdown/DOCX import prototype |
 | 5 | 知识浏览与搜索 | pending | list/detail/search/tag/category pages |
@@ -37,8 +37,17 @@
 - [x] Add pre-development data definition and ETL planning guidance.
 - [x] Create practical data definition and import rule documents.
 - [x] Integrate supplemental non-developer implementation guide.
-- [ ] Confirm V1 sample file types and real data examples with user.
-- [ ] Decide whether GitHub repository should store only code/config or also sample data.
+- [x] Decide initial GitHub storage boundary: commit docs/config/templates, ignore raw data/databases/exports by default.
+- [x] Move sample file confirmation into Phase 1 because it depends on actual user-provided examples.
+
+## Phase 1 Tasks
+
+- [ ] Prepare 5 to 10 representative sample files.
+- [ ] Fill `docs/sample-file-inventory.md`.
+- [ ] Identify first V1 knowledge object types.
+- [ ] Draft first field dictionary from actual sample files.
+- [ ] Draft first mapping rules from actual sample files.
+- [ ] Decide which sample files are safe to commit and which must stay local.
 
 ## Key Decisions
 

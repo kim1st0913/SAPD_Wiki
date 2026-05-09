@@ -70,6 +70,7 @@ V1 不应一开始追求所有格式深度解析。优先跑通：
 - `docs/sample-file-inventory.md`
 - `docs/import-rules.md`
 - `docs/non-developer-codex-workflow.md`
+- `docs/technology-decisions.md`
 
 ## 核心数据设计约束
 
@@ -144,7 +145,8 @@ SAPD_Wiki/
 │   ├── architecture.md
 │   ├── data-model.md
 │   ├── import-rules.md
-│   └── user-guide.md
+│   ├── sample-file-inventory.md
+│   └── non-developer-codex-workflow.md
 ├── apps/
 │   └── desktop/
 ├── packages/

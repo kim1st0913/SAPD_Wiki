@@ -94,3 +94,27 @@ Next actions:
 
 - Begin Phase 1 with knowledge asset inventory and sample files.
 - Use the architecture file as the boundary document before splitting work across specialist Agents.
+
+## 2026-05-09 GitHub Upload Preparation
+
+User asked to upload the project folder to GitHub.
+
+Actions completed:
+
+- Added `.gitignore` to prevent future raw data, databases, exports, local caches and environment files from being committed accidentally.
+- Added `README.md` with project overview and key document links.
+- Initialized a local Git repository.
+- Renamed the local branch to `main`.
+- Set local repository commit identity to `kim1st <kim1st@users.noreply.github.com>`.
+- Created initial commit `53ecc1f Initial knowledge base planning docs`.
+- Installed GitHub CLI `gh` with Homebrew.
+- Checked GitHub authentication status.
+
+Blocker:
+
+- `gh auth status` reports no GitHub account is logged in on this machine.
+
+Next actions:
+
+- User needs to run `gh auth login` and complete GitHub authentication.
+- After authentication, create a private GitHub repository and push branch `main`.

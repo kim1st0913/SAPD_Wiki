@@ -1,5 +1,6 @@
 # Local knowledge base data
 data/raw/
+data/raw-samples/
 data/processed/
 data/database/
 data/previews/
@@ -43,4 +44,3 @@ Thumbs.db
 # Local environment files
 .env
 .env.*
-

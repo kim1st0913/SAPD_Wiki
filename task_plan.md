@@ -42,7 +42,8 @@
 
 ## Phase 1 Tasks
 
-- [ ] Prepare 5 to 10 representative sample files.
+- [x] Create local `data/raw-samples/` folder for unsynced sample files.
+- [ ] Prepare first batch sample files: 1 PPT, 1 Excel with 3 sheets, 1 multi-page Draw.io.
 - [ ] Fill `docs/03-import-etl/sample-file-inventory.md`.
 - [ ] Identify first V1 knowledge object types.
 - [ ] Draft first field dictionary from actual sample files.

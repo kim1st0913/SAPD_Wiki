@@ -184,3 +184,23 @@ Result:
 - Stage roadmap now lives in `docs/00-overview/project-roadmap.md`.
 - Current work remains in `task_plan.md`.
 - Historical material is clearly archived.
+
+## 2026-05-09 Phase 1 Sample Folder Prepared
+
+User decided the first sample batch will include:
+
+- 1 PPT file for knowledge-base usage instructions, including basics and page introductions.
+- 1 Excel file with 3 sheets.
+- 1 multi-page Draw.io file.
+
+Actions completed:
+
+- Created local folder `data/raw-samples/`.
+- Added `data/raw-samples/` to `.gitignore` so sample files are not synced to GitHub.
+- Updated `docs/03-import-etl/sample-file-inventory.md` with initial planned sample rows.
+- Updated `task_plan.md` Phase 1 tasks.
+
+Next actions:
+
+- User should place the PPT, Excel and Draw.io files into `data/raw-samples/`.
+- After files are placed, run Phase 1 knowledge asset inventory.

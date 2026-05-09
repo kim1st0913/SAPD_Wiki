@@ -1,0 +1,46 @@
+# Local knowledge base data
+data/raw/
+data/processed/
+data/database/
+data/previews/
+data/exports/
+
+# Local databases and backups
+*.db
+*.sqlite
+*.sqlite3
+*.bak
+*.backup
+*.zip
+
+# Generated spreadsheet configuration outputs
+knowledge_asset_inventory.xlsx
+knowledge_objects.xlsx
+field_dictionary.xlsx
+mapping_rules.xlsx
+
+# Node / frontend build artifacts
+node_modules/
+dist/
+build/
+.vite/
+
+# Tauri / Rust build artifacts
+target/
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Local environment files
+.env
+.env.*
+

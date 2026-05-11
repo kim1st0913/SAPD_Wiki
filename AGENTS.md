@@ -26,13 +26,22 @@
 项目根目录应维护：
 
 - `task_plan.md`：阶段计划、任务状态、风险和决策；
-- `findings.md`：调研结论、需求发现、技术判断；
-- `progress.md`：每次工作记录、文件变更、验证结果；
+- `findings.md`：当前关键决策、重要风险和历史记录索引；
+- `findings-history/`：历史发现归档，按月维护；
+- `progress.md`：执行日志、文件变更、命令和验证结果；
 - `docs/00-overview/project-roadmap.md`：面向用户和开发过程的阶段路线。
 
 在做任何较大的实现、重构或技术选型前，先读取上述文件，避免偏离项目目标。
 
 `progress.md` 面向用户阅读，默认使用中文记录；代码标识、文件名、命令、对象 `type` 等保留英文原文。
+
+轻量治理规则：
+
+- `findings.md` 不再承载长篇过程记录，只保留当前有效决策、风险和历史链接。
+- 长期历史发现按月归档到 `findings-history/`。
+- `progress.md` 只记录做了什么、改了哪些文件、执行了哪些命令、验证是否通过和输出结果。
+- 架构 reasoning、schema reasoning、ETL strategy、data governance 决策应写入对应 docs 或治理文档，不继续堆进 `progress.md`。
+- 当前治理入口为 `docs/07-governance/governance-index.md`；数据治理规则以 `docs/07-governance/data-governance.md` 为准。
 
 ## 问题维护规则
 

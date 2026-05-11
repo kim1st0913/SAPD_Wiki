@@ -8,7 +8,7 @@
 
 - Status: phase_5_second_batch_management_module_verified
 - Started: 2026-05-09
-- Current phase: Phase 5 - 能力目录与安全工作职能浏览 MVP（第二批本地验收完成）
+- Current phase: Governance P0 - 轻量治理落地完成
 - Primary reference: `docs/00-overview/project-roadmap.md`
 
 ## Phases
@@ -26,6 +26,7 @@
 | 8 | 更新审查与关系管理 | pending | diff, conflict review, relations |
 | 9 | 打包交付 | pending | local packaged app and user guide |
 | 10 | AI/RAG 增强 | optional | semantic search and cited Q&A |
+| G0 | 轻量治理 | complete | governance index, data governance, findings index |
 
 ## Phase 0 Tasks
 
@@ -185,6 +186,16 @@ Issue tracking rule:
 
 - All bugs and issues are maintained in `docs/06-implementation/open-issues.md`.
 - Fixed issues must be marked as `已修复` in that file.
+
+## Governance P0 Tasks
+
+- [x] Confirm lightweight governance approach instead of full governance document suite.
+- [x] Add `docs/07-governance/governance-index.md`.
+- [x] Add `docs/07-governance/data-governance.md`.
+- [x] Archive old `findings.md` content to `findings-history/2026-05.md`.
+- [x] Convert root `findings.md` into a lightweight index.
+- [x] Update `AGENTS.md` and `README.md` to point to the governance entry.
+- [x] Clarify `progress.md` responsibility as execution log only.
 
 ## Errors Encountered
 

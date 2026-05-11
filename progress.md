@@ -1191,3 +1191,28 @@ Validation notes:
 - 已将 `OI-010` 的来源结论、修复前 17 条核对表、已确认修复规则和规则落地状态合并进 `docs/06-implementation/open-issues.md` 的 `OI-010` 条目。
 - 已删除临时 `OI-010` 核对清单文件。
 - 后续所有 bug、数据问题、页面问题和待确认事项仍以 `docs/06-implementation/open-issues.md` 为唯一权威入口。
+
+## 2026-05-11 轻量治理 P0 落地
+
+用户确认：
+
+- 当前阶段采用轻治理、渐进治理，不一次性建立完整治理六件套。
+
+已完成：
+
+- 新增 `docs/07-governance/governance-index.md`。
+- 新增 `docs/07-governance/data-governance.md`。
+- 新增 `findings-history/2026-05.md`，归档原 `findings.md` 的完整历史内容。
+- 将根目录 `findings.md` 改为索引页，只保留当前关键决策、重要风险、最近发现和历史链接。
+- 更新 `AGENTS.md`，明确：
+  - `findings.md` 不再承载长篇过程记录；
+  - `progress.md` 只记录执行日志、文件变更、命令、验证结果和输出；
+  - 数据治理规则以 `docs/07-governance/data-governance.md` 为准。
+- 更新 `README.md`，新增治理文档入口。
+- 更新 `task_plan.md`，新增并完成 `Governance P0 Tasks`。
+
+验证结果：
+
+- 已确认新增治理文档存在。
+- 已确认原 `findings.md` 内容已归档到 `findings-history/2026-05.md`。
+- 本次为文档治理调整，未修改运行代码。

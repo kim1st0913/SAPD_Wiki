@@ -51,6 +51,11 @@
 - `docs/06-implementation/local-data-layout.md`：本地数据目录约定。
 - `docs/06-implementation/open-issues.md`：当前所有 bug、数据问题、页面问题和待确认事项的唯一维护文件。
 
+### 治理
+
+- `docs/07-governance/governance-index.md`：轻量治理入口。
+- `docs/07-governance/data-governance.md`：数据标准化、去重、冲突、旧对象停用、验证等级和 metadata 字段升级规则。
+
 ### 用户说明
 
 - `docs/04-user-guide/user-guide.md`：用户指南。
@@ -65,8 +70,9 @@
 
 - `AGENTS.md`：Codex / Agent 工作规则。
 - `task_plan.md`：当前任务权威表。
-- `findings.md`：关键发现和决策记录。
-- `progress.md`：工作进度记录。
+- `findings.md`：当前关键决策、重要风险和历史记录索引。
+- `findings-history/`：历史发现归档。
+- `progress.md`：执行日志、文件变更、命令和验证结果。
 - `docs/06-implementation/open-issues.md`：bug 和问题清单；修复后也在这里改状态。
 
 ## 本地命令

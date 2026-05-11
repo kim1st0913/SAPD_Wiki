@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
@@ -360,11 +361,13 @@ def parse_scene_sheet(workbook) -> ParseResult:
             result.relations.append(_relation(info_obj.key, "belongs_to", env.key, "属于", source=info_obj.sources[0]))
         result.objects.append(info_obj)
 
+        scope_objects: list[ObjectCandidate] = []
         for scope_code, scope_title in split_scope_values(last_scopes):
             if not scope_title and not scope_code:
                 continue
             scope = _object("scope_type", scope_title or scope_code or "", code=scope_code, source=_source(sheet_name, row_index, "作用域", _coord(row[4]), last_scopes))
             result.objects.append(scope)
+            scope_objects.append(scope)
             result.relations.append(_relation(info_obj.key, "applies_to_scope", scope.key, "适用于作用域", source=scope.sources[0]))
 
         service = None
@@ -380,6 +383,8 @@ def parse_scene_sheet(workbook) -> ParseResult:
             )
             result.objects.append(service)
             result.relations.append(_relation(service.key, "protects_object", info_obj.key, "作用于信息化对象", source=service.sources[0]))
+            for scope in scope_objects:
+                result.relations.append(_relation(service.key, "applies_to_scope", scope.key, "适用于作用域", source=service.sources[0]))
 
         module = None
         if not is_blank_or_placeholder(module_raw):
@@ -395,12 +400,65 @@ def parse_scene_sheet(workbook) -> ParseResult:
     return result
 
 
+def parse_environment_scope_sheet(workbook) -> ParseResult:
+    sheet_name = "信息化环境-信息化对象-安全作用域映射"
+    ws = workbook[sheet_name]
+    result = ParseResult()
+    last_environment = ""
+    for row_index, row in enumerate(ws.iter_rows(min_row=3), start=3):
+        if _cell_text(row, 1):
+            last_environment = _cell_text(row, 1)
+        object_title = _cell_text(row, 2)
+        scopes_raw = _cell_raw(row, 3)
+        if not object_title:
+            continue
+        if not last_environment:
+            result.validations.append(ValidationMessage("error", sheet_name, row_index, f"信息化对象缺少信息化环境：{object_title}"))
+            continue
+        environment = _object(
+            "information_environment",
+            last_environment,
+            metadata={"display_order": row_index},
+            source=_source(sheet_name, row_index, "信息化环境", _coord(row[1]), _cell_raw(row, 1) or last_environment),
+        )
+        information_object = _object(
+            "information_object",
+            object_title,
+            qualifier=last_environment,
+            metadata={"information_environment": last_environment, "display_order": row_index},
+            source=_source(sheet_name, row_index, "信息化对象", _coord(row[2]), _cell_raw(row, 2)),
+        )
+        result.objects.extend([environment, information_object])
+        result.relations.append(_relation(information_object.key, "belongs_to", environment.key, "属于信息化环境", source=information_object.sources[0]))
+        for scope_code, scope_title in split_scope_values(scopes_raw):
+            if not scope_code and not scope_title:
+                continue
+            scope = _object(
+                "scope_type",
+                scope_title or scope_code or "",
+                code=scope_code,
+                metadata={"display_order": row_index},
+                source=_source(sheet_name, row_index, "安全能力作用域", _coord(row[3]), scopes_raw),
+            )
+            result.objects.append(scope)
+            result.relations.append(_relation(information_object.key, "applies_to_scope", scope.key, "适用于作用域", source=scope.sources[0]))
+    return result
+
+
 SECOND_BATCH_SHEETS = [
     "安全能力-安全工作",
     "安全能力-安全管理元素（high level）",
     "安全职能流程清单（完善L4）",
     "安全工作职能清单",
     "gartner工作岗位参考",
+]
+
+
+THIRD_BATCH_SHEETS = [
+    "LC-DT 数据生命周期",
+    "LC-DT 数据生命周期场景目录",
+    "LC-AP 应用安全开发生命周期",
+    "LC-AP 应用安全开发生命周期元素目录",
 ]
 
 
@@ -438,6 +496,40 @@ def _gbt_category_from_title(title: str, fallback: str = "") -> str:
     if "-" in title:
         return normalize_text(title.split("-", 1)[0])
     return fallback
+
+
+def _lifecycle_process_code(prefix: str, order: object) -> str | None:
+    text = normalize_text(order)
+    if not text:
+        return None
+    try:
+        number = int(float(text))
+    except ValueError:
+        return f"{prefix}-{text}"
+    return f"{prefix}-{number:02d}"
+
+
+def _split_lines(value: object) -> list[str]:
+    return split_multivalue_text(value, split_on_ideographic_comma=False)
+
+
+def _split_numbered_items(value: object) -> list[tuple[str, str]]:
+    text = str(value or "").replace("\xa0", " ").strip()
+    if is_blank_or_placeholder(text):
+        return []
+    matches = list(re.finditer(r"(?m)(\d+)[.．、]\s*", text))
+    if not matches:
+        normalized = normalize_text(text)
+        return [("1", normalized)] if normalized else []
+
+    items: list[tuple[str, str]] = []
+    for index, match in enumerate(matches):
+        start = match.end()
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        item_text = normalize_text(text[start:end])
+        if item_text and not is_blank_or_placeholder(item_text):
+            items.append((match.group(1), item_text))
+    return items
 
 
 def _build_work_function_lookup(workbook) -> dict[str, dict[str, str | None]]:
@@ -840,6 +932,239 @@ def parse_gartner_role_reference_sheet(workbook) -> ParseResult:
     return result
 
 
+def parse_data_lifecycle_sheet(workbook) -> ParseResult:
+    sheet_name = "LC-DT 数据生命周期"
+    ws = workbook[sheet_name]
+    result = ParseResult()
+    for row_index, row in enumerate(ws.iter_rows(min_row=3), start=3):
+        order = _cell_raw(row, 1)
+        process_title = _cell_text(row, 2)
+        if not process_title:
+            continue
+        process = _object(
+            "lifecycle_process",
+            process_title,
+            code=_lifecycle_process_code("DT", order),
+            qualifier="data",
+            metadata={"lifecycle_type": "data", "order": order},
+            source=_source(sheet_name, row_index, "过程", _coord(row[2]), _cell_raw(row, 2)),
+        )
+        result.objects.append(process)
+
+        for service_raw in _split_lines(_cell_raw(row, 3)):
+            parts = service_parts(service_raw)
+            service = _object(
+                "security_technical_service",
+                parts["title"] or service_raw,
+                code=parts["code"],
+                category=parts["scope_code"],
+                metadata={
+                    "scope_code": parts["scope_code"],
+                    "capability_focus_code": parts["capability_focus_code"],
+                    "lifecycle_type": "data",
+                },
+                source=_source(sheet_name, row_index, "安全技术服务设计", _coord(row[3]), service_raw),
+            )
+            result.objects.append(service)
+            result.relations.append(_relation(service.key, "maps_to_lifecycle", process.key, "映射到生命周期", source=service.sources[0]))
+
+        for module_raw in _split_lines(_cell_raw(row, 4)):
+            module = _object(
+                "security_technology_module",
+                module_raw,
+                metadata={"lifecycle_type": "data"},
+                source=_source(sheet_name, row_index, "安全技术模块设计", _coord(row[4]), module_raw),
+            )
+            result.objects.append(module)
+            result.relations.append(_relation(module.key, "maps_to_lifecycle", process.key, "映射到生命周期", source=module.sources[0]))
+    return result
+
+
+def parse_data_lifecycle_scene_sheet(workbook) -> ParseResult:
+    sheet_name = "LC-DT 数据生命周期场景目录"
+    ws = workbook[sheet_name]
+    result = ParseResult()
+    last_order: object = None
+    last_process_title = ""
+    last_process_description = ""
+    for row_index, row in enumerate(ws.iter_rows(min_row=3), start=3):
+        if _cell_text(row, 1):
+            last_order = _cell_raw(row, 1)
+        if _cell_text(row, 2):
+            last_process_title = _cell_text(row, 2)
+        if _cell_text(row, 3):
+            last_process_description = _cell_text(row, 3)
+        scene_code = normalize_text(_cell_raw(row, 4))
+        scene_title = _cell_text(row, 5)
+        if not scene_code and not scene_title:
+            continue
+        if not last_process_title:
+            result.validations.append(ValidationMessage("error", sheet_name, row_index, "生命周期场景缺少上级过程"))
+            continue
+        if not scene_title:
+            result.validations.append(ValidationMessage("error", sheet_name, row_index, f"生命周期场景 {scene_code} 缺少标题"))
+            continue
+        process = _object(
+            "lifecycle_process",
+            last_process_title,
+            code=_lifecycle_process_code("DT", last_order),
+            description=last_process_description,
+            qualifier="data",
+            metadata={"lifecycle_type": "data", "order": last_order},
+            source=_source(sheet_name, row_index, "过程", _coord(row[2]), _cell_raw(row, 2) or last_process_title),
+        )
+        scene = _object(
+            "lifecycle_scene",
+            scene_title,
+            code=scene_code,
+            qualifier="data",
+            metadata={"lifecycle_type": "data", "process_title": last_process_title},
+            source=_source(sheet_name, row_index, "场景划分", _coord(row[5]), _cell_raw(row, 5)),
+        )
+        result.objects.extend([process, scene])
+        result.relations.append(_relation(process.key, "has_scene", scene.key, "包含场景", source=scene.sources[0]))
+    return result
+
+
+def parse_application_security_lifecycle_sheet(workbook) -> ParseResult:
+    sheet_name = "LC-AP 应用安全开发生命周期"
+    ws = workbook[sheet_name]
+    result = ParseResult()
+    development_types = ["自研应用", "定制应用", "外购应用", "SaaS应用"]
+    for order, (row_index, row) in enumerate(enumerate(ws.iter_rows(min_row=4), start=4), start=1):
+        process_title = _cell_text(row, 1)
+        if not process_title:
+            continue
+        goal = _cell_text(row, 2)
+        main_activities = _split_lines(_cell_raw(row, 3))
+        lifecycle_ref = _cell_text(row, 4)
+        activity_definition = _cell_text(row, 5)
+        policy_raw = _cell_raw(row, 6)
+        policy_ref = _cell_text(row, 7)
+        process = _object(
+            "lifecycle_process",
+            process_title,
+            code=_lifecycle_process_code("AP", order),
+            description=goal,
+            qualifier="application_security_development",
+            metadata={
+                "lifecycle_type": "application_security_development",
+                "order": order,
+                "goal": goal,
+                "main_activities": main_activities,
+                "reference_source": lifecycle_ref,
+            },
+            source=_source(sheet_name, row_index, "阶段（L3流程）", _coord(row[1]), _cell_raw(row, 1)),
+        )
+        result.objects.append(process)
+
+        policy_relation_source_key = process.key
+        if activity_definition and not is_blank_or_placeholder(activity_definition):
+            activity = _object(
+                "security_activity",
+                f"{process_title}安全活动",
+                description=activity_definition,
+                qualifier=process_title,
+                metadata={"lifecycle_type": "application_security_development", "process_title": process_title, "reference_source": policy_ref},
+                source=_source(sheet_name, row_index, "安全活动定义", _coord(row[5]), _cell_raw(row, 5)),
+            )
+            result.objects.append(activity)
+            result.relations.append(_relation(process.key, "has_activity", activity.key, "包含活动", source=activity.sources[0]))
+            policy_relation_source_key = activity.key
+
+        for sequence, policy_text in _split_numbered_items(policy_raw):
+            policy = _object(
+                "security_policy_requirement",
+                policy_text[:80],
+                code=f"AP-{order:02d}-{int(sequence):02d}" if sequence.isdigit() else f"AP-{order:02d}-{sequence}",
+                description=policy_text,
+                qualifier=process_title,
+                metadata={"lifecycle_type": "application_security_development", "process_title": process_title, "sequence": sequence, "reference_source": policy_ref},
+                source=_source(sheet_name, row_index, "安全活动对应安全策略", _coord(row[6]), policy_text),
+            )
+            result.objects.append(policy)
+            result.relations.append(_relation(policy_relation_source_key, "requires_policy", policy.key, "要求策略", source=policy.sources[0]))
+
+        for offset, development_type in enumerate(development_types, start=8):
+            if not _cell_text(row, offset):
+                continue
+            dev_type = _object(
+                "software_development_type",
+                development_type,
+                source=_source(sheet_name, row_index, "软件开发模式", _coord(row[offset]), _cell_raw(row, offset)),
+            )
+            result.objects.append(dev_type)
+            result.relations.append(_relation(process.key, "applies_to_development_type", dev_type.key, "适用于开发类型", source=dev_type.sources[0]))
+
+        for service_title in _split_lines(_cell_raw(row, 12)):
+            service = _object(
+                "security_technical_service",
+                service_title,
+                category="开发技术服务",
+                metadata={"lifecycle_type": "application_security_development", "service_source": "development_service"},
+                source=_source(sheet_name, row_index, "开发技术服务", _coord(row[12]), service_title),
+            )
+            result.objects.append(service)
+            result.relations.append(_relation(process.key, "uses_service", service.key, "使用服务", source=service.sources[0]))
+
+        for product_title in _split_lines(_cell_raw(row, 13)):
+            product = _object(
+                "product",
+                product_title,
+                category="实际产品示例",
+                metadata={"lifecycle_type": "application_security_development"},
+                source=_source(sheet_name, row_index, "实际产品示例", _coord(row[13]), product_title),
+            )
+            result.objects.append(product)
+            result.relations.append(_relation(process.key, "uses_product", product.key, "使用产品示例", source=product.sources[0]))
+    return result
+
+
+def parse_application_lifecycle_element_sheet(workbook) -> ParseResult:
+    sheet_name = "LC-AP 应用安全开发生命周期元素目录"
+    ws = workbook[sheet_name]
+    result = ParseResult()
+
+    for row_index, row in enumerate(ws.iter_rows(min_row=4, max_row=7), start=4):
+        title = _cell_text(row, 1)
+        description = _cell_text(row, 2)
+        if not title:
+            continue
+        result.objects.append(
+            _object(
+                "software_development_type",
+                title,
+                description=description,
+                source=_source(sheet_name, row_index, "类型", _coord(row[1]), _cell_raw(row, 1)),
+            )
+        )
+
+    last_system_type: ObjectCandidate | None = None
+    for row_index, row in enumerate(ws.iter_rows(min_row=13), start=13):
+        system_title = _cell_text(row, 1)
+        system_description = _cell_text(row, 2)
+        component_title = _cell_text(row, 3)
+        if system_title:
+            last_system_type = _object(
+                "application_system_type",
+                system_title,
+                description=system_description,
+                source=_source(sheet_name, row_index, "应用系统", _coord(row[1]), _cell_raw(row, 1)),
+            )
+            result.objects.append(last_system_type)
+        if component_title and last_system_type:
+            component = _object(
+                "application_component",
+                component_title,
+                qualifier=last_system_type.title,
+                metadata={"application_system_type": last_system_type.title},
+                source=_source(sheet_name, row_index, "应用组件", _coord(row[3]), _cell_raw(row, 3)),
+            )
+            result.objects.append(component)
+            result.relations.append(_relation(last_system_type.key, "has_component", component.key, "包含组件", source=component.sources[0]))
+    return result
+
+
 def parse_second_batch_sheets(path: str | Path, sheets: list[str] | None = None) -> ParseResult:
     selected = sheets or SECOND_BATCH_SHEETS
     workbook = _load_workbook(path)
@@ -863,10 +1188,32 @@ def parse_second_batch_sheets(path: str | Path, sheets: list[str] | None = None)
         workbook.close()
 
 
+def parse_third_batch_sheets(path: str | Path, sheets: list[str] | None = None) -> ParseResult:
+    selected = sheets or THIRD_BATCH_SHEETS
+    workbook = _load_workbook(path)
+    try:
+        result = ParseResult()
+        parsers = {
+            "LC-DT 数据生命周期": parse_data_lifecycle_sheet,
+            "LC-DT 数据生命周期场景目录": parse_data_lifecycle_scene_sheet,
+            "LC-AP 应用安全开发生命周期": parse_application_security_lifecycle_sheet,
+            "LC-AP 应用安全开发生命周期元素目录": parse_application_lifecycle_element_sheet,
+        }
+        for sheet_name in selected:
+            if sheet_name not in workbook.sheetnames:
+                result.validations.append(ValidationMessage("error", sheet_name, None, "缺少第三批 Sheet"))
+                continue
+            result.extend(parsers[sheet_name](workbook))
+        return result
+    finally:
+        workbook.close()
+
+
 def parse_core_sheets(path: str | Path, sheets: list[str] | None = None) -> ParseResult:
     selected = sheets or [
         "安全能力目录",
         "安全能力作用域目录",
+        "信息化环境-信息化对象-安全作用域映射",
         "安全能力-安全技术服务",
         "安全技术模块清单",
         "作用域-安全技术服务-安全技术模块映射",
@@ -874,6 +1221,7 @@ def parse_core_sheets(path: str | Path, sheets: list[str] | None = None) -> Pars
     parsers = {
         "安全能力目录": parse_capability_sheet,
         "安全能力作用域目录": parse_scope_sheet,
+        "信息化环境-信息化对象-安全作用域映射": parse_environment_scope_sheet,
         "安全能力-安全技术服务": parse_service_sheet,
         "安全技术模块清单": parse_module_sheet,
         "作用域-安全技术服务-安全技术模块映射": parse_scene_sheet,

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SAPD Wiki 能力目录</title>
+    <title>SAPD Wiki 关系工作台</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -13,25 +13,54 @@
           <div class="brand-mark">S</div>
           <div>
             <h1>SAPD Wiki</h1>
-            <p>能力目录浏览</p>
+            <p>业务关系工作台</p>
           </div>
         </div>
         <div class="search-wrap">
           <span class="search-icon" aria-hidden="true">⌕</span>
-          <input id="searchInput" type="search" placeholder="搜索能力、关注点、技术服务或编码" />
+          <input id="searchInput" type="search" placeholder="搜索能力、对象、作用域、服务、流程或模块" />
         </div>
         <div class="metrics" id="metrics"></div>
       </header>
 
-      <nav class="module-tabs" aria-label="知识模块">
-        <button id="capabilityTab" class="module-tab active" type="button" data-view="capabilities">能力目录</button>
-        <button id="sourceTab" class="module-tab" type="button" data-view="sources">知识来源</button>
+      <nav class="module-tabs" aria-label="业务关系模块">
+        <button id="overviewTab" class="module-tab active" type="button" data-view="overview">关系总览</button>
+        <button id="capabilityTab" class="module-tab" type="button" data-view="capabilities">能力维度</button>
+        <button id="environmentTab" class="module-tab" type="button" data-view="environment">信息化环境维度</button>
+        <button id="devLifecycleTab" class="module-tab" type="button" data-view="dev-lifecycle">安全开发维度</button>
+        <button id="dataLifecycleTab" class="module-tab" type="button" data-view="data-lifecycle">数据生命周期维度</button>
+        <button id="maintenanceTab" class="module-tab" type="button" data-view="maintenance">专项知识维护</button>
+        <button id="contentTab" class="module-tab" type="button" data-view="content">说明与视图</button>
       </nav>
 
-      <main id="capabilityWorkspace" class="workspace">
+      <main id="overviewWorkspace" class="overview-workspace">
+        <section class="overview-map-pane">
+          <div class="pane-head">
+            <h2>业务关系地图</h2>
+            <span class="type-pill">关系优先</span>
+          </div>
+          <div id="overviewMap" class="overview-map"></div>
+        </section>
+        <section class="overview-coverage-pane">
+          <div class="pane-head">
+            <h2>关系覆盖统计</h2>
+            <span id="overviewGeneratedAt" class="type-pill">待加载</span>
+          </div>
+          <div id="overviewCoverage" class="overview-coverage"></div>
+        </section>
+        <aside class="overview-issue-pane">
+          <div class="pane-head">
+            <h2>待确认数据</h2>
+            <span class="count-pill">契约</span>
+          </div>
+          <div id="overviewIssues" class="overview-issues"></div>
+        </aside>
+      </main>
+
+      <main id="capabilityWorkspace" class="workspace is-hidden">
         <aside class="tree-pane">
           <div class="pane-head">
-            <h2>能力树</h2>
+            <h2>能力树工作台</h2>
             <button id="resetButton" type="button" title="重置选择">↺</button>
           </div>
           <div id="tree" class="tree"></div>
@@ -39,34 +68,117 @@
 
         <section class="detail-pane">
           <div class="pane-head">
-            <h2>节点详情</h2>
+            <h2>关系详情</h2>
             <span id="selectedType" class="type-pill">未选择</span>
           </div>
-          <div id="detail" class="detail"></div>
+          <div class="relation-mode-strip" aria-label="能力关系视图入口">
+            <button type="button" class="relation-mode-button active">能力树工作台</button>
+            <button type="button" class="relation-mode-button" disabled>能力-服务-作用域矩阵</button>
+            <button type="button" class="relation-mode-button" disabled>能力-流程-职能矩阵</button>
+            <button type="button" class="relation-mode-button" disabled>能力-模块关系链</button>
+          </div>
+          <div id="detail" class="detail with-mode-strip"></div>
         </section>
 
         <aside class="relation-pane">
           <div class="pane-head">
-            <h2>关联服务</h2>
+            <h2>服务与作用域</h2>
             <span id="serviceCount" class="count-pill">0</span>
           </div>
           <div id="services" class="services"></div>
         </aside>
       </main>
 
-      <main id="sourceWorkspace" class="source-workspace is-hidden">
+      <main id="environmentWorkspace" class="environment-workspace is-hidden">
+        <section class="environment-catalog-pane">
+          <div class="pane-head">
+            <h2>环境对象树</h2>
+            <span id="environmentCount" class="count-pill">0</span>
+          </div>
+          <div class="source-catalog-tools">
+            <input id="environmentSearchInput" type="search" placeholder="搜索环境、对象、作用域、服务或模块" />
+          </div>
+          <div id="environmentTree" class="environment-tree"></div>
+        </section>
+
+        <section class="environment-detail-pane">
+          <div class="pane-head">
+            <h2>连续映射详情</h2>
+            <span class="type-pill">对象 → 作用域 → 服务 → 模块</span>
+          </div>
+          <div id="environmentDetail" class="environment-detail"></div>
+        </section>
+      </main>
+
+      <main id="devLifecycleWorkspace" class="lifecycle-workspace is-hidden">
+        <aside class="lifecycle-nav-pane">
+          <div class="pane-head">
+            <h2>安全开发维度</h2>
+            <span id="devLifecycleCount" class="count-pill">0</span>
+          </div>
+          <div id="devLifecycleNav" class="lifecycle-nav"></div>
+        </aside>
+        <section class="lifecycle-main-pane">
+          <div class="pane-head">
+            <h2>LC-AP 生命周期泳道</h2>
+            <span class="type-pill">阶段 / 活动 / 策略</span>
+          </div>
+          <div id="devLifecycleLane" class="lifecycle-lane"></div>
+        </section>
+        <aside class="lifecycle-detail-pane">
+          <div class="pane-head">
+            <h2>阶段关系详情</h2>
+            <span id="devLifecycleType" class="type-pill">占位</span>
+          </div>
+          <div id="devLifecycleDetail" class="lifecycle-detail"></div>
+        </aside>
+      </main>
+
+      <main id="dataLifecycleWorkspace" class="lifecycle-workspace is-hidden">
+        <aside class="lifecycle-nav-pane">
+          <div class="pane-head">
+            <h2>数据生命周期维度</h2>
+            <span id="dataLifecycleCount" class="count-pill">0</span>
+          </div>
+          <div id="dataLifecycleNav" class="lifecycle-nav"></div>
+        </aside>
+        <section class="lifecycle-main-pane">
+          <div class="pane-head">
+            <h2>LC-DT 过程矩阵</h2>
+            <span class="type-pill">过程 / 场景 / 服务 / 模块</span>
+          </div>
+          <div id="dataLifecycleMatrix" class="lifecycle-lane"></div>
+        </section>
+        <aside class="lifecycle-detail-pane">
+          <div class="pane-head">
+            <h2>过程关系详情</h2>
+            <span id="dataLifecycleType" class="type-pill">占位</span>
+          </div>
+          <div id="dataLifecycleDetail" class="lifecycle-detail"></div>
+        </aside>
+      </main>
+
+      <main id="maintenanceWorkspace" class="source-workspace is-hidden">
         <aside class="source-nav-pane">
           <div class="pane-head">
-            <h2>知识来源</h2>
+            <h2>专项知识维护</h2>
           </div>
-          <div class="source-nav" aria-label="知识来源二级页面">
-            <button id="workFunctionsPageTab" class="source-nav-button active" type="button" data-source-page="work-functions">
-              <span>安全工作职能</span>
-              <strong id="workFunctionCount">0</strong>
+          <div class="source-nav" aria-label="专项知识维护二级页面">
+            <button id="scopesPageTab" class="source-nav-button active" type="button" data-source-page="scopes">
+              <span>作用域清单</span>
+              <strong id="scopeCount">0</strong>
             </button>
             <button id="processesPageTab" class="source-nav-button" type="button" data-source-page="processes">
-              <span>安全流程</span>
+              <span>流程清单</span>
               <strong id="processCount">0</strong>
+            </button>
+            <button id="workFunctionsPageTab" class="source-nav-button" type="button" data-source-page="work-functions">
+              <span>职能清单</span>
+              <strong id="workFunctionCount">0</strong>
+            </button>
+            <button id="modulesPageTab" class="source-nav-button" type="button" data-source-page="modules">
+              <span>安全技术模块清单</span>
+              <strong id="moduleCount">0</strong>
             </button>
             <button id="standardsPageTab" class="source-nav-button" type="button" data-source-page="standards">
               <span>标准与规范参考</span>
@@ -81,21 +193,57 @@
 
         <section id="sourceCatalogPane" class="source-catalog-pane">
           <div class="pane-head">
-            <h2 id="sourcePageTitle">安全工作职能</h2>
+            <h2 id="sourcePageTitle">作用域清单</h2>
             <span id="sourcePageCount" class="count-pill">0</span>
           </div>
           <div class="source-catalog-tools">
-            <input id="sourceSearchInput" type="search" placeholder="搜索名称、编码、分组或来源" />
+            <input id="sourceSearchInput" type="search" placeholder="搜索名称、编码、分组或关系" />
           </div>
           <div id="sourceList" class="source-list-pane"></div>
         </section>
 
         <section id="sourceDetailPane" class="source-detail-pane">
           <div class="pane-head">
-            <h2>实体详情</h2>
+            <h2>实体关系详情</h2>
             <span id="sourceDetailType" class="type-pill">未选择</span>
           </div>
           <div id="sourceDetail" class="source-detail-content"></div>
+        </section>
+      </main>
+
+      <main id="contentWorkspace" class="content-workspace is-hidden">
+        <aside class="content-nav-pane">
+          <div class="pane-head">
+            <h2>说明与视图</h2>
+          </div>
+          <div class="source-nav" aria-label="说明与视图二级页面">
+            <button id="htmlDocsTab" class="source-nav-button active" type="button" data-content-page="html">
+              <span>HTML 知识说明</span>
+              <strong id="htmlDocCount">0</strong>
+            </button>
+            <button id="drawioViewsTab" class="source-nav-button" type="button" data-content-page="drawio">
+              <span>Draw.io 只读图</span>
+              <strong id="drawioViewCount">0</strong>
+            </button>
+            <button id="pptGuideTab" class="source-nav-button" type="button" data-content-page="ppt">
+              <span>PPT 使用说明</span>
+              <strong id="pptGuideCount">0</strong>
+            </button>
+          </div>
+        </aside>
+        <section class="content-list-pane">
+          <div class="pane-head">
+            <h2 id="contentPageTitle">HTML 知识说明</h2>
+            <span id="contentPageCount" class="count-pill">0</span>
+          </div>
+          <div id="contentList" class="content-list"></div>
+        </section>
+        <section class="content-detail-pane">
+          <div class="pane-head">
+            <h2>内容详情</h2>
+            <span id="contentDetailType" class="type-pill">未选择</span>
+          </div>
+          <div id="contentDetail" class="content-detail"></div>
         </section>
       </main>
     </div>

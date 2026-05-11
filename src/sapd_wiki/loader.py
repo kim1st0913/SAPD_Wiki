@@ -12,6 +12,7 @@ class ApproveSummary:
     import_job_id: str
     items_created: int
     items_updated: int
+    items_deprecated: int
     relations_created: int
     source_references_created: int
     warnings: list[str]
@@ -21,6 +22,7 @@ class ApproveSummary:
             "import_job_id": self.import_job_id,
             "items_created": self.items_created,
             "items_updated": self.items_updated,
+            "items_deprecated": self.items_deprecated,
             "relations_created": self.relations_created,
             "source_references_created": self.source_references_created,
             "warnings": self.warnings,
@@ -42,13 +44,61 @@ def _item_key_from_row(row: sqlite3.Row) -> str:
     return metadata.get("object_key") or "::".join([row["type"], row["code"] or "", row["title"]])
 
 
-def _find_item_by_key(conn: sqlite3.Connection, key: str) -> str | None:
-    rows = conn.execute("SELECT id, type, code, title, metadata_json FROM knowledge_items").fetchall()
+def _item_key_from_item(row: sqlite3.Row) -> str:
+    metadata = _loads(row["metadata_json"], {})
+    return metadata.get("object_key") or "::".join([row["type"], row["code"] or "", row["title"]])
+
+
+def _is_manual_protected(metadata: dict[str, Any]) -> bool:
+    return bool(
+        metadata.get("manual_protected")
+        or metadata.get("manual_override")
+        or metadata.get("manual_edit")
+        or metadata.get("source_mode") == "manual"
+        or metadata.get("managed_by") == "manual"
+    )
+
+
+def _source_sheets_from_staging(rows: list[sqlite3.Row]) -> set[str]:
+    sheets: set[str] = set()
+    for row in rows:
+        for source in _loads(row["source_reference_json"], []):
+            sheet = source.get("source_sheet")
+            if sheet:
+                sheets.add(sheet)
+    return sheets
+
+
+def _has_blocking_validations(job: sqlite3.Row) -> bool:
+    payload = _loads(job["summary_json"], {})
+    validations = payload.get("stage_summary", {}).get("validations", [])
+    return any(message.get("level") in {"error", "blocking"} for message in validations)
+
+
+def _find_item_by_key(conn: sqlite3.Connection, key: str, *, include_deprecated: bool = False) -> str | None:
+    where_clause = "" if include_deprecated else "WHERE status = 'active'"
+    rows = conn.execute(
+        f"SELECT id, type, code, title, metadata_json FROM knowledge_items {where_clause}"
+    ).fetchall()
     for row in rows:
         metadata = _loads(row["metadata_json"], {})
         row_key = metadata.get("object_key") or "::".join([row["type"], row["code"] or "", row["title"]])
         if row_key == key:
             return row["id"]
+    return None
+
+
+def _validated_matched_item_id(conn: sqlite3.Connection, matched_item_id: str | None, item_key: str) -> str | None:
+    if not matched_item_id:
+        return None
+    row = conn.execute(
+        "SELECT id, type, code, title, metadata_json FROM knowledge_items WHERE id = ?",
+        (matched_item_id,),
+    ).fetchone()
+    if not row:
+        return None
+    if _item_key_from_item(row) == item_key:
+        return matched_item_id
     return None
 
 
@@ -116,10 +166,95 @@ def _record_review_decision(
     )
 
 
+def _deprecate_stale_items(
+    conn: sqlite3.Connection,
+    *,
+    import_job_id: str,
+    source_file_path: str | None,
+    current_item_keys: set[str],
+    current_item_types: set[str],
+    source_sheets: set[str],
+) -> int:
+    if not source_file_path or not current_item_keys or not current_item_types or not source_sheets:
+        return 0
+
+    type_placeholders = ", ".join("?" for _ in current_item_types)
+    sheet_placeholders = ", ".join("?" for _ in source_sheets)
+    params = [
+        *sorted(current_item_types),
+        *sorted(source_sheets),
+        source_file_path,
+        source_file_path,
+    ]
+    candidates = conn.execute(
+        f"""
+        SELECT DISTINCT item.id, item.type, item.code, item.title, item.status, item.metadata_json
+        FROM knowledge_items AS item
+        LEFT JOIN source_files AS item_source ON item_source.id = item.source_file_id
+        JOIN source_references AS refs
+          ON refs.target_type = 'item'
+         AND refs.target_id = item.id
+        JOIN source_files AS ref_source ON ref_source.id = refs.source_file_id
+        WHERE item.status = 'active'
+          AND item.type IN ({type_placeholders})
+          AND refs.source_sheet IN ({sheet_placeholders})
+          AND (item_source.file_path = ? OR ref_source.file_path = ?)
+        """,
+        params,
+    ).fetchall()
+
+    count = 0
+    for row in candidates:
+        item_key = _item_key_from_item(row)
+        if item_key in current_item_keys:
+            continue
+        metadata = _loads(row["metadata_json"], {})
+        if _is_manual_protected(metadata):
+            continue
+        conn.execute(
+            """
+            UPDATE knowledge_items
+            SET status = 'deprecated', updated_at = datetime('now')
+            WHERE id = ?
+            """,
+            (row["id"],),
+        )
+        conn.execute(
+            """
+            INSERT INTO change_logs (id, target_type, target_id, change_type, before_json, after_json, import_job_id)
+            VALUES (?, 'item', ?, 'deprecate', ?, ?, ?)
+            """,
+            (
+                str(uuid.uuid4()),
+                row["id"],
+                _dumps(
+                    {
+                        "status": row["status"],
+                        "type": row["type"],
+                        "code": row["code"],
+                        "title": row["title"],
+                        "object_key": item_key,
+                    }
+                ),
+                _dumps(
+                    {
+                        "status": "deprecated",
+                        "reason": "not_found_in_same_source_sheet_reimport",
+                        "source_file_path": source_file_path,
+                        "source_sheets": sorted(source_sheets),
+                    }
+                ),
+                import_job_id,
+            ),
+        )
+        count += 1
+    return count
+
+
 def approve_import(conn: sqlite3.Connection, import_job_id: str) -> ApproveSummary:
     job = conn.execute(
         """
-        SELECT import_jobs.*, source_files.file_hash
+        SELECT import_jobs.*, source_files.file_hash, source_files.file_path AS source_file_path
         FROM import_jobs
         JOIN source_files ON source_files.id = import_jobs.source_file_id
         WHERE import_jobs.id = ?
@@ -134,6 +269,8 @@ def approve_import(conn: sqlite3.Connection, import_job_id: str) -> ApproveSumma
     items_updated = 0
     source_refs_created = 0
     warnings: list[str] = []
+    current_item_keys: set[str] = set()
+    current_item_types: set[str] = set()
 
     staging_items = conn.execute(
         "SELECT * FROM staging_items WHERE import_job_id = ? AND validation_status != 'error'",
@@ -143,13 +280,18 @@ def approve_import(conn: sqlite3.Connection, import_job_id: str) -> ApproveSumma
     for row in staging_items:
         metadata = _loads(row["metadata_json"], {})
         item_key = _item_key_from_row(row)
-        item_id = row["matched_item_id"] or _find_item_by_key(conn, item_key)
+        item_id = _validated_matched_item_id(conn, row["matched_item_id"], item_key) or _find_item_by_key(
+            conn,
+            item_key,
+            include_deprecated=True,
+        )
         if item_id:
             conn.execute(
                 """
                 UPDATE knowledge_items
                 SET code = COALESCE(?, code),
                     title = ?, description = COALESCE(?, description), category = COALESCE(?, category),
+                    status = 'active',
                     source_file_id = ?,
                     source_hash = ?,
                     metadata_json = ?, updated_at = datetime('now')
@@ -194,6 +336,8 @@ def approve_import(conn: sqlite3.Connection, import_job_id: str) -> ApproveSumma
             change_type = "create"
 
         item_map[item_key] = item_id
+        current_item_keys.add(item_key)
+        current_item_types.add(row["type"])
         source_refs = _loads(row["source_reference_json"], [])
         source_refs_created += _write_source_refs(
             conn,
@@ -316,6 +460,19 @@ def approve_import(conn: sqlite3.Connection, import_job_id: str) -> ApproveSumma
             decision="approve",
         )
 
+    items_deprecated = 0
+    if _has_blocking_validations(job):
+        warnings.append("本次导入存在 error/blocking 校验信息，已跳过旧对象自动停用。")
+    else:
+        items_deprecated = _deprecate_stale_items(
+            conn,
+            import_job_id=import_job_id,
+            source_file_path=job["source_file_path"],
+            current_item_keys=current_item_keys,
+            current_item_types=current_item_types,
+            source_sheets=_source_sheets_from_staging(staging_items),
+        )
+
     conn.execute(
         """
         UPDATE import_jobs
@@ -328,6 +485,7 @@ def approve_import(conn: sqlite3.Connection, import_job_id: str) -> ApproveSumma
         import_job_id=import_job_id,
         items_created=items_created,
         items_updated=items_updated,
+        items_deprecated=items_deprecated,
         relations_created=relations_created,
         source_references_created=source_refs_created,
         warnings=warnings,

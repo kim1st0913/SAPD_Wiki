@@ -88,24 +88,24 @@
 
 ## 6. 旧对象停用规则
 
-当前问题：
+已确认规则：
 
-- `OI-013` 记录了源数据修正后旧对象不会自动停用的通用问题。
-
-临时规则：
-
-- 用户明确确认的历史错误对象，可以局部标记为 `deprecated`。
 - 前端导出只展示 `active` 对象和 active 端点关系。
+- 用户明确确认的历史错误对象，可以局部标记为 `deprecated`。
+- 同一来源文件、同一 Sheet 全量同步时，本次未出现、且非人工维护保护对象的旧 ETL 对象，自动标记为 `deprecated`。
+- 如果曾经被停用的 ETL 对象重新出现在来源 Sheet 中，审批入库时恢复为 `active`。
+- 自动停用必须写入 `change_logs`，并保留 `import_job_id`、来源文件路径、来源 Sheet 和停用原因。
 
-待确认通用规则：
+保护规则：
 
-```text
-同一来源 Sheet 全量同步时，
-本次未出现、且非人工维护保护对象的旧 ETL 对象，
-可自动标记为 deprecated。
-```
+- `metadata_json` 中存在 `manual_protected`、`manual_override`、`manual_edit`、`source_mode = manual` 或 `managed_by = manual` 的对象，不允许自动停用。
+- 本次导入存在 `error` 或 `blocking` 校验信息时，跳过旧对象自动停用，避免因解析不完整导致误停用。
+- 自动停用只在当前导入实际覆盖的 Sheet 范围内生效，不跨 Sheet 推断。
 
-该规则正式实现前，不能批量停用未确认对象。
+实现状态：
+
+- `OI-013` 已落地 MVP 机制。
+- 当前实现以来源文件路径、来源 Sheet、对象类型和 `object_key` 判断旧对象是否消失。
 
 ## 7. Stable ID Rules
 
@@ -191,7 +191,29 @@
 
 后续对象类型继续增加后，再评估是否新增 `frontend/schema/` 配置层。
 
-## 11. 维护规则
+## 11. 错误数据处理流程
+
+未来数据导入遇到错误数据时，按以下流程处理：
+
+| 步骤 | 处理方式 | 输出 |
+|---|---|---|
+| 1. 暂存 | Excel、PPT、Draw.io、DOCX 等来源先进入 staging 或登记表，不直接覆盖正式库 | `import_jobs`、`staging_items`、`staging_relations` |
+| 2. 校验 | ETL 输出 `ok`、`warning`、`error`、`blocking` 等等级 | 导入摘要、warning review、问题记录 |
+| 3. 分类 | 判断是源数据错误、ETL 规则缺失、模型设计缺口，还是业务可接受差异 | `open-issues.md` |
+| 4. 修复 | 源数据错误优先修 Excel；规则缺失再修 ETL；模型缺口先补设计再编码 | 源文件修订或代码修订 |
+| 5. 复导 | 重新 staging，检查 validation 和差异结果 | 新 import job |
+| 6. 审批 | 确认无阻断问题后 approve，正式表更新、旧对象停用或恢复 | `knowledge_items`、`knowledge_relations`、`change_logs` |
+| 7. 验证 | 重新导出前端 JSON 或清单，检查页面和统计 | 导出文件、验证记录 |
+
+处理原则：
+
+- `error` 和 `blocking` 优先修复，不进入正式审批。
+- `warning` 可以审批，但必须在报告或 `open-issues.md` 中留痕。
+- 源数据错误由用户修正源 Excel 后复导，系统通过同来源 Sheet 同步机制处理旧对象停用。
+- ETL 规则错误由代码修复，并在 `data-governance.md` 或映射规则文档中沉淀稳定规则。
+- 业务接受的差异标记为 `business_accept`，后续不再作为 bug 反复处理。
+
+## 12. 维护规则
 
 - 本文档记录稳定规则，不记录每次执行日志。
 - 执行日志写入 `progress.md`。

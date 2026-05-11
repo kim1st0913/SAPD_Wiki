@@ -1216,3 +1216,530 @@ Validation notes:
 - 已确认新增治理文档存在。
 - 已确认原 `findings.md` 内容已归档到 `findings-history/2026-05.md`。
 - 本次为文档治理调整，未修改运行代码。
+
+## 2026-05-11 修复 OI-013 旧对象生命周期机制
+
+用户要求：
+
+- 执行源数据修正后的旧对象停用修复。
+- 同时考虑后续数据导入、错误数据出现后的报错机制、修复方法和处理方式。
+
+已完成：
+
+- 修改 `src/sapd_wiki/loader.py`：
+  - `approve-import` 审批时收集本次 staging 的对象 `object_key`、对象类型和来源 Sheet；
+  - 对同一来源文件路径、同一来源 Sheet、同类对象中，本次未出现且非人工保护的旧 active 对象，自动标记为 `deprecated`；
+  - 自动停用写入 `change_logs`，记录 `import_job_id`、来源文件路径、来源 Sheet 和停用原因；
+  - 当导入摘要中存在 `error` 或 `blocking` 校验信息时，跳过旧对象自动停用，避免解析不完整导致误停用；
+  - 已停用的 ETL 对象如果重新出现在来源 Sheet 中，审批入库时恢复为 `active`；
+  - 关系端点匹配默认只使用 active 对象，避免新关系挂到 deprecated 对象。
+- 修改 `src/sapd_wiki/cli.py`：
+  - `approve-import` 输出新增 `items_deprecated`。
+- 修改 `docs/07-governance/data-governance.md`：
+  - 将旧对象停用规则从待确认改为已确认并实现；
+  - 新增错误数据处理流程，明确暂存、校验、分类、修复、复导、审批和验证。
+- 修改 `docs/06-implementation/open-issues.md`：
+  - 将 `OI-013` 状态改为 `已修复`；
+  - 记录修复说明和验证结果。
+- 更新 `findings.md` 和 `task_plan.md`：
+  - 将旧对象生命周期从当前风险调整为已落地 MVP 机制；
+  - 下一步重新聚焦剩余 Excel Sheet 建模和批次导入验收。
+
+验证结果：
+
+- `PYTHONPATH=src /Users/kim1st/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3 -m compileall src` 通过。
+- 使用临时数据库 `/private/tmp/sapd_oi013_b.sqlite3` 验证：
+  - 首次导入 `安全工作职能清单`：`items_created: 160`，`items_deprecated: 0`；
+  - 手工模拟同来源旧错误对象 `旧错误职能`；
+  - 复导同一 Sheet 后：`items_updated: 160`，`items_deprecated: 1`；
+  - 查询模拟旧对象状态为 `deprecated`。
+  - 将一个正式来源对象临时设为 `deprecated` 后再次复导，审批后该对象恢复为 `active`。
+
+后续注意：
+
+- 若某个来源 Sheet 后续不是全量同步，而是增量补丁，必须先在 `open-issues.md` 建立问题并定义导入策略，不能直接套用自动停用规则。
+
+## 2026-05-11 第三批生命周期 Sheet 建模启动
+
+用户要求：
+
+- 继续执行下一步工作。
+
+主控检查：
+
+- 已复查 `docs/06-implementation/open-issues.md`，当前没有 `处理中`、`未修复` 或 P0 阻断问题。
+- 第三批按既定批次处理 4 个生命周期 Sheet：
+  - `LC-DT 数据生命周期`
+  - `LC-DT 数据生命周期场景目录`
+  - `LC-AP 应用安全开发生命周期`
+  - `LC-AP 应用安全开发生命周期元素目录`
+
+已完成：
+
+- 使用 `inspect-excel` 确认当前工作簿仍为 26 个 Sheet。
+- 抽样读取第三批 4 个 Sheet 的表头、行数和关键内容：
+  - `LC-DT 数据生命周期`：8 个数据生命周期过程，包含安全技术服务设计和安全技术模块设计；
+  - `LC-DT 数据生命周期场景目录`：36 个数据生命周期场景；
+  - `LC-AP 应用安全开发生命周期`：应用安全开发阶段、阶段目标、主要活动、安全活动、安全策略、开发技术服务、产品示例；
+  - `LC-AP 应用安全开发生命周期元素目录`：软件开发类型、应用系统类型和应用组件字典。
+- 新增 `docs/03-import-etl/third-batch-data-contract.md`：
+  - 定义第三批范围、对象契约、关系契约、解析规则、前端边界、验收标准和 Agent 分工。
+- 更新 `docs/02-data-model/data-model.md`：
+  - 新增 `lifecycle_process`、`lifecycle_scene`、`security_activity`、`security_policy_requirement`、`software_development_type`、`application_system_type`、`application_component`；
+  - 新增第三批关系类型。
+- 更新 `docs/02-data-model/field-dictionary-draft.md`：
+  - 补充第三批 Sheet 范围、对象字段和关系字段。
+- 更新 `docs/03-import-etl/mapping-rules-draft.md`：
+  - 补充 LC-DT、LC-AP 4 个 Sheet 的映射规则草案。
+- 更新 `task_plan.md`：
+  - 当前阶段切换为第三批生命周期 Sheet 建模；
+  - 下一步聚焦第三批 ETL parser、staging 和 warning review。
+
+下一步：
+
+- 实现第三批 ETL parser。
+- 先只做 staging 和验证，不直接改前端页面。
+
+## 2026-05-11 第三批生命周期 ETL 实现与审批入库
+
+已完成：
+
+- 修改 `src/sapd_wiki/parsers.py`：
+  - 新增 `THIRD_BATCH_SHEETS`；
+  - 新增 `parse_data_lifecycle_sheet`；
+  - 新增 `parse_data_lifecycle_scene_sheet`；
+  - 新增 `parse_application_security_lifecycle_sheet`；
+  - 新增 `parse_application_lifecycle_element_sheet`；
+  - 新增 `parse_third_batch_sheets`；
+  - 支持多行拆分、编号策略拆分、空白向下继承和第三批对象/关系候选生成。
+- 修改 `src/sapd_wiki/cli.py`：
+  - `stage-excel --sheets third-batch` 已接入第三批 4 个 Sheet。
+
+第三批 staging：
+
+- 导入任务：`d8bb7ac6-4eb8-4a50-883f-98c3b0fbf5fa`
+- `objects_total: 342`
+- `objects_staged: 224`
+- `relations_total: 283`
+- `relations_staged: 283`
+- `validations: none`
+
+第三批 staging 对象统计：
+
+| type | 数量 |
+|---|---:|
+| lifecycle_process | 16 |
+| lifecycle_scene | 36 |
+| security_activity | 6 |
+| security_policy_requirement | 76 |
+| software_development_type | 4 |
+| application_system_type | 3 |
+| application_component | 13 |
+| security_technical_service | 40 |
+| security_technology_module | 16 |
+| product | 14 |
+
+第三批审批结果：
+
+- `items_created: 186`
+- `items_updated: 38`
+- `items_deprecated: 0`
+- `relations_created: 281`
+- `warnings: none`
+
+导出结果：
+
+- `data/exports/import-review-latest/import-result-report-d8bb7ac6.md`
+- `data/exports/import-review-latest/warning-review-d8bb7ac6.csv`，0 条 warning
+- `data/exports/import-review-latest/import-summary-d8bb7ac6.json`
+- `data/exports/items-latest/knowledge-items.json`
+- `data/exports/items-latest/knowledge-items.csv`
+- `data/exports/relations-latest/knowledge-relations.json`
+- `data/exports/relations-latest/knowledge-relations.csv`
+
+当前正式库统计：
+
+- `knowledge_items: 1309`
+- `knowledge_relations: 4654`
+- 第三批核心对象：
+  - `lifecycle_process: 16`
+  - `lifecycle_scene: 36`
+  - `security_activity: 6`
+  - `security_policy_requirement: 76`
+  - `software_development_type: 4`
+  - `application_system_type: 3`
+  - `application_component: 13`
+
+验证结果：
+
+- `PYTHONPATH=src /Users/kim1st/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3 -m compileall src` 通过。
+- `git diff --check` 通过。
+
+下一步：
+
+- 扩展导出 JSON，为前端生命周期页面准备 `lifecycle-knowledge.json`。
+- 然后启动或分配 Frontend Worker 实现 `生命周期` 页面。
+
+## 2026-05-11 补充安全作用域和安全技术模块独立页面
+
+用户指出：
+
+- `安全能力作用域目录`、`安全技术模块清单` 当前如何在系统中展示需要明确；
+- 这两个原始表应该作为 `知识来源` 下的独立维护页面。
+
+当前判断：
+
+- 修复前，`安全能力作用域目录` 主要作为能力详情的作用域和服务关联展示；
+- `安全技术模块清单` 主要作为能力详情中的技术模块、安全系统、产品等关联展示；
+- 二者都没有作为 `知识来源` 的独立二级页面维护。
+
+已完成：
+
+- 修改 `src/sapd_wiki/exports.py`：
+  - `management-knowledge.json` 新增 `scope_types`；
+  - `management-knowledge.json` 新增 `security_technology_modules`；
+  - 安全作用域携带关联安全技术服务、信息化对象和来源追踪；
+  - 安全技术模块携带关联安全系统、技术服务、产品、信息化环境和来源追踪。
+- 修改 `frontend/capability-browser/index.html`：
+  - `知识来源` 导航新增 `安全作用域`；
+  - `知识来源` 导航新增 `安全技术模块`。
+- 修改 `frontend/capability-browser/app.js`：
+  - 新增两个页面的计数、清单、搜索和详情展示；
+  - 复用现有三栏工作台布局。
+- 修改 `docs/06-implementation/open-issues.md`：
+  - 新增并关闭 `OI-016`；
+  - 新增 `OI-017`，记录 `安全技术模块清单!D384:D393` 出现疑似数字标题模块 `98`，等待用户确认源数据。
+
+验证结果：
+
+- `PYTHONPATH=src /Users/kim1st/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3 -m compileall src` 通过。
+- `/Users/kim1st/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node --check frontend/capability-browser/app.js` 通过。
+- 已重新导出 `frontend/capability-browser/public/data/management-knowledge.json`：
+  - `scope_types: 10`
+  - `security_technology_modules: 166`
+- `git diff --check` 通过。
+
+待用户确认：
+
+- `OI-017`：请检查原始 Excel `安全技术模块清单` 第 384 至 393 行 D 列，确认 `98` 是否为真实模块名称。
+
+## 2026-05-11 启动数据处理与关系化前端双轨并行
+
+用户确认“开始双轨并行”，并希望之前的数据处理和前端同步推进。
+
+已完成：
+
+- 读取当前 `task_plan.md`、`progress.md`、`findings.md` 和统一问题清单。
+- 确认旧下一步“生命周期页面”暂时后置，当前优先级改为关系化前端与数据导出同步。
+- 新增 `docs/04-frontend/frontend-redesign-brief.md`，作为主控 Agent、ETL/Data Worker 和 Frontend Worker 的共同任务书。
+- 更新 `README.md`，增加前端关系化重构任务书入口。
+- 更新 `task_plan.md`，将当前阶段调整为 `Phase 5 - 数据处理与关系化前端双轨并行`。
+- 在 `docs/06-implementation/open-issues.md` 中新增：
+  - `OI-018`：前端整体过度卡片化，无法有效排查知识关系；
+  - `OI-019`：安全能力作用域目录需要按原始表格样式展示；
+  - `OI-020`：信息化环境-信息化对象-安全作用域映射缺少一级页面和连续映射展示；
+  - `OI-021`：能力详情中流程与组织职能相关方重复显示。
+
+下一步：
+
+- 启动 ETL/Data Worker，负责连续映射导出和流程/职能去重。
+- 启动 Frontend Worker，负责关系化前端工作台重构。
+- 主控 Agent 集成两个 worker 的输出并统一验证。
+
+主控复盘：
+
+- 用户指出应优先复用之前已经存在的 3 个 Agent，尤其是此前承担 ETL 的 Agent。
+- 检查 `progress.md` 后确认：之前第二批并行 Worker 只记录了逻辑角色，没有记录可恢复的 `agent_id`，因此本次无法可靠恢复旧 Agent。
+- 本次已启动的新 Worker 需要记录 ID，后续同一线程或同类任务优先复用，不再无依据地新开。
+
+当前 Worker 登记：
+
+| 角色 | agent_id | 当前任务 | 状态 |
+|---|---|---|---|
+| ETL/Data Worker | `019e1618-b647-7e22-b2d3-640aab3cfb8f` | 信息化对象连续映射导出、流程/职能去重 | 运行中 |
+| Frontend Worker | `019e1618-b692-7e83-bc4c-7829ef81c985` | 关系化前端工作台重构 | 运行中 |
+
+后续规则：
+
+- 如果已有同职责 Worker 的 `agent_id` 可用，主控 Agent 应优先 `resume_agent` 或继续给该 Worker 派发任务。
+- 只有当旧 Worker 不可恢复、上下文明显过期、职责边界变化很大，或需要并行处理不同写入范围时，才新开 Worker。
+
+## 2026-05-11 双轨并行集成与前端收口
+
+ETL/Data Worker 返回结果：
+
+- Worker `019e1618-b647-7e22-b2d3-640aab3cfb8f` 完成数据线任务。
+- 修改范围遵守边界，仅涉及 `src/sapd_wiki/parsers.py`、`src/sapd_wiki/exports.py`、`src/sapd_wiki/loader.py`。
+- 已完成：
+  - `信息化环境-信息化对象-安全作用域映射` 解析；
+  - `信息化环境 -> 信息化对象 -> 安全作用域 -> 安全技术服务 -> 安全技术模块/措施 -> 安全系统/产品` 连续映射导出；
+  - `capability-tree.json` 中流程映射去重；
+  - `management-knowledge.json` 中 `environment_scope_tree` 导出。
+
+Frontend Worker 处理情况：
+
+- 原 Frontend Worker `019e1618-b692-7e83-bc4c-7829ef81c985` 修改了前端文件，但未在等待窗口内回报；主控已关闭该 Worker。
+- 后续 Frontend Repair/Verify Worker `019e1629-0cf4-7e01-a61d-9b53b3556401` 仍未及时回报；主控已关闭该 Worker。
+- 主控 Agent 接管前端收口，保留已有改动并完成：
+  - 表格式来源行点击详情修复；
+  - 安全作用域、技术模块表格式展示样式；
+  - 信息化对象连续映射页面样式；
+  - 流程 L4 占位和组织职能相关方样式。
+
+集成输出：
+
+- 重新导出 `frontend/capability-browser/public/data/capability-tree.json`。
+- 重新导出 `frontend/capability-browser/public/data/management-knowledge.json`。
+- 更新 `docs/06-implementation/open-issues.md`：
+  - `OI-018` 改为 `待确认`；
+  - `OI-019` 改为 `待确认`；
+  - `OI-020` 改为 `待确认`；
+  - `OI-021` 改为 `待确认`。
+- 更新 `task_plan.md`，双轨并行任务技术集成完成。
+
+验证结果：
+
+- `/Users/kim1st/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node --check frontend/capability-browser/app.js` 通过。
+- `PYTHONPATH=src /Users/kim1st/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3 -m compileall src` 通过。
+- `git diff --check` 通过。
+- `python scripts/sapd_wiki.py export-capability-tree` 因本机无 `python` 命令失败；已用运行时 `python3` 重跑成功。
+- 重新导出的 `management-knowledge.json` 统计：
+  - `information_environments: 10`
+  - `information_objects: 96`
+  - `environment_scope_mappings: 136`
+  - `environment_service_mappings: 571`
+  - `environment_module_mappings: 2215`
+- 重新导出的 `capability-tree.json` 统计：
+  - `categories: 3`
+  - `domains: 10`
+  - `capabilities: 32`
+  - `focuses: 91`
+  - `services: 159`
+  - `unlinked_focuses: 0`
+- Node 脚本检查：
+  - 信息化对象缺失 ID 数量：0；
+  - 信息化对象空作用域映射数量：0；
+  - 同一关注点内重复流程 key 数量：0；
+  - `process_mappings: 92`。
+- 本地静态服务 `http://127.0.0.1:5180/` 已启动并返回 HTTP 200。
+
+待用户确认：
+
+- 浏览器中检查 `信息化对象` 一级页面是否符合连续映射排查需求。
+- 检查 `知识来源 > 安全作用域` 是否符合原始表格核对习惯。
+- 检查能力详情里的流程与组织职能相关方是否已经不重复、且 L4 占位显示合理。
+
+## 2026-05-11 修正前端重构目标
+
+用户修正前端目标：
+
+- 前端不应以“一个知识对象来自哪个原始 Sheet、哪一行、哪个字段”为主要关注点；
+- 应按现有表格构建关系；
+- 需要以能力维度、信息化环境维度、安全开发维度、数据生命周期维度等建立多个关系展现页面；
+- 作用域、流程清单、职能清单、安全技术模块清单等应作为专项知识维护页面；
+- 后续页面还要支持 HTML 知识说明、Draw.io 图和 PPT 使用说明；
+- 不要卡片式，要突出关系模式 UI；
+- 应由单独的 Frontend Design Owner 子 Agent 接管全部前端设计。
+
+已完成：
+
+- 重新阅读 `前端优化建议.md`；
+- 重写 `docs/04-frontend/frontend-redesign-brief.md`：
+  - 将来源追踪从前端主目标降为底层治理能力；
+  - 明确能力维度、信息化环境维度、安全开发维度、数据生命周期维度；
+  - 明确专项知识维护页面；
+  - 明确 HTML、Draw.io、PPT 后续内容型页面入口；
+  - 明确 Frontend Design Owner 是前端设计和实现唯一负责人。
+- 更新 `docs/06-implementation/open-issues.md`：
+  - 将 `OI-018` 重新置为 `处理中`，按修正后的关系化目标继续处理；
+  - 新增 `OI-022`，记录需要 Frontend Design Owner 接管前端设计。
+- 更新 `task_plan.md`，增加 Frontend Design Owner 的信息架构输出任务。
+
+下一步：
+
+- 启动 Frontend Design Owner，先输出统一前端信息架构和页面设计方案，不直接改代码。
+- 主控 Agent 审核方案后，再决定下一轮前端实现批次。
+
+当前 Frontend Design Owner 登记：
+
+| 角色 | agent_id | 当前任务 | 状态 |
+|---|---|---|---|
+| Frontend Design Owner | `019e163e-4728-7f73-8746-00183d43ece5` | 输出统一前端信息架构方案，只修改 `docs/04-frontend/frontend-information-architecture.md` | 运行中 |
+
+## 2026-05-11 Frontend Design Owner 信息架构输出审阅
+
+Frontend Design Owner `019e163e-4728-7f73-8746-00183d43ece5` 已完成第一版信息架构方案。
+
+新增文件：
+
+- `docs/04-frontend/frontend-information-architecture.md`
+
+主控审阅结论：
+
+- 方案符合用户修正后的方向：
+  - 前端从“来源追踪优先”改为“业务关系优先”；
+  - 顶层结构改为关系总览、能力维度、信息化环境维度、安全开发维度、数据生命周期维度、专项知识维护、说明与视图；
+  - `知识来源` 下一轮建议正式重构为 `专项知识维护`；
+  - UI 模式明确禁止卡片墙，优先树表、矩阵、关系链、泳道、分组清单、局部关系图、类 Excel 表格；
+  - HTML 知识说明、Draw.io 只读图、PPT 使用说明统一进入 `说明与视图`。
+- 方案遵守边界，只新增前端信息架构文档，未修改前端代码、ETL 代码、主控计划或 issue 文件。
+
+已完成主控同步：
+
+- 更新 `docs/06-implementation/open-issues.md`：
+  - `OI-022` 标记为 `已修复`；
+  - 新增 `OI-023`，收敛 FE-IA-001 至 FE-IA-010 的数据契约待确认问题。
+- 更新 `task_plan.md`：
+  - 标记 Frontend Design Owner 信息架构输出完成；
+  - 下一步改为先确认 FE-IA 数据契约，再启动下一轮前端实现。
+
+下一步建议：
+
+- 先由用户确认 `OI-023` 中 10 个 FE-IA 口径，尤其是顶层导航命名、`知识来源` 是否改为 `专项知识维护`、生命周期数据是否统一导出为 `lifecycle-knowledge.json`。
+- 确认后再让 Frontend Design Owner 进入代码实现阶段。
+
+## 2026-05-11 FE-IA 口径确认
+
+用户确认：
+
+- 同意 `OI-023` 中 1-10 条建议。
+
+已固化口径：
+
+- 顶层导航正式采用 7 个一级页面：关系总览、能力维度、信息化环境维度、安全开发维度、数据生命周期维度、专项知识维护、说明与视图。
+- `知识来源` 正式改名为 `专项知识维护`。
+- 能力关注点到作用域由 ETL 显式导出，不让前端从服务关系反推。
+- 服务到模块、系统、产品输出统一索引。
+- L4 关键活动空值由 ETL 输出显式 `missing` 状态，前端显示 `待补充`。
+- `environment_segment` 先作为辅助字段展示，不作为默认主层级。
+- LC-AP / LC-DT 统一导出为 `lifecycle-knowledge.json`。
+- HTML、Draw.io、PPT 统一导出为 `content-views.json`。
+- Draw.io 首版使用 SVG/PNG 静态预览，保留原 `.drawio` 文件路径，不做在线编辑。
+- PPT 使用说明首版按页展示，后续再增加章节分组。
+
+已完成：
+
+- 更新 `docs/06-implementation/open-issues.md`，将 `OI-023` 标记为 `已修复`。
+- 更新 `docs/04-frontend/frontend-information-architecture.md`，将“仍需确认”改为“已确认前端与 ETL 口径”。
+- 更新 `task_plan.md`，将 FE-IA 数据契约确认任务标记完成，并新增下一轮 ETL/前端实现任务。
+
+下一步：
+
+- 复用 ETL/Data Worker 补齐显式关系和新 JSON 导出。
+- 复用 Frontend Design Owner 实现 7 个一级页面骨架和 `专项知识维护` 命名调整。
+
+## 2026-05-11 子 Agent 稳定性问题修正
+
+用户指出：
+
+- 能看到子 Agent 仍在工作；
+- 主控 Agent 不应因为等待超时就急于打断；
+- Epicurus 此前已经完成设计任务，后续是否继续使用需要更清晰的任务边界；
+- 多次出现主控误判“无响应”的情况，需要明确修正 Agent 稳定性。
+
+主控复盘：
+
+- `wait_agent` 超时只表示当前等待窗口没有拿到最终结果，不等于子 Agent 无响应。
+- 主控此前把等待超时、状态请求未立即返回、以及前端文件处于重构中间态，过快解释成“失控”。
+- 这是主控调度错误，不应归因于子 Agent。
+- 对前端重构这类较长任务，应采用更长等待、明确 checkpoint 和状态请求，而不是频繁打断。
+
+已完成修正：
+
+- 更新 `docs/07-governance/governance-index.md`，新增 Worker 稳定性与打断规则。
+- 更新 `docs/06-implementation/open-issues.md`，新增并关闭 `OI-024：主控 Agent 过早判断子 Agent 无响应`。
+
+后续执行规则：
+
+- 不再仅凭 `wait_agent` 超时判断 Worker 无响应。
+- Worker 显示运行中时，默认视为仍在工作。
+- 主控可以发状态请求，但不能因为短时间未回就关闭 Worker。
+- 关闭 Worker 前必须记录原因、等待时长、状态请求和文件风险。
+- 前端重构中出现临时文件删除/迁移状态，应先视为中间态，除非已经明确违反边界或持续造成运行阻断。
+- 已完成设计任务的 Frontend Design Owner 如果继续进入代码实现，必须由主控明确这是新任务，并给出新的边界和验收标准。
+
+当前处理：
+
+- 暂停继续派发、打断或关闭任何子 Agent。
+- 暂停继续处理前端文件，先完成稳定性规则修正。
+
+## 2026-05-11 恢复前端可运行基线并集成新数据导出
+
+用户要求执行下一步。
+
+当前真实状态确认：
+
+- ETL/Data Worker 已完成本轮数据导出补齐；
+- Frontend Design Owner 的代码实现没有形成完整可运行结果；
+- `frontend/capability-browser/app.js` 一度处于删除状态，页面不可运行；
+- 前端实现线需要先恢复可运行基线，而不是继续扩大重构。
+
+已完成：
+
+- 将 ETL/Data Worker 输出复制到前端 public 数据目录：
+  - `frontend/capability-browser/public/data/capability-tree.json`
+  - `frontend/capability-browser/public/data/management-knowledge.json`
+  - `frontend/capability-browser/public/data/lifecycle-knowledge.json`
+  - `frontend/capability-browser/public/data/content-views.json`
+- 重建 `frontend/capability-browser/app.js`，恢复前端入口脚本。
+- 保留现有 7 个一级页面骨架：
+  - 关系总览
+  - 能力维度
+  - 信息化环境维度
+  - 安全开发维度
+  - 数据生命周期维度
+  - 专项知识维护
+  - 说明与视图
+- 将 `知识来源` 页面语义调整为 `专项知识维护`。
+- 补充 `frontend/capability-browser/styles.css` 中关系总览、生命周期、内容视图和矩阵/泳道相关的基础样式。
+
+验证结果：
+
+- `/Users/kim1st/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node --check frontend/capability-browser/app.js` 通过。
+- `PYTHONPATH=src /Users/kim1st/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3 -m compileall src` 通过。
+- `git diff --check` 通过。
+- 本地服务 `http://127.0.0.1:5180/` 返回 HTTP 200。
+- 前端 public 数据统计：
+  - `capability-tree.json`: `focus_scope_mappings: 157`、`services: 159`
+  - `management-knowledge.json`: `service_module_index: 208`、`process_activity_missing: 88`
+  - `lifecycle-knowledge.json`: `application_processes: 8`、`data_processes: 8`、`lifecycle_scenes: 36`
+  - `content-views.json`: `html_documents: 0`、`diagram_views: 1`、`guide_pages: 1`
+
+当前结论：
+
+- 前端已从“入口脚本缺失”恢复为可运行基线。
+- 当前是 7 个一级页面骨架版，不是最终 UI。
+- 下一步应让用户先检查页面能否打开和导航是否符合预期，再选一个页面深入实现，建议优先 `能力维度` 或 `信息化环境维度`。
+
+## 2026-05-11 前端核对效率修复：调宽、筛选、作用域清单
+
+用户提出三项前端问题：
+
+- 每一块区域要支持人工调整宽度；
+- 表格每一列要支持宽度调整，表头要支持筛选、过滤；
+- `作用域清单` 中 `未分类` 改为 `网络空间`，增加 `描述` 列，实体关系详情不需要展示关系信息；
+- 所有页面的实体关系详情默认宽度调整为当前约 1/2。
+
+已完成：
+
+- 在全部一级工作区增加列宽拖拽分隔条。
+- 调整右侧详情栏默认宽度，给中间关系表格和链路展示释放空间。
+- 在 `专项知识维护` 表格增加表头筛选输入框。
+- 在 `专项知识维护` 表格增加列宽拖拽。
+- `作用域清单` 表格调整为 `分组 / 编码/类型 / 名称 / 描述 / 来源`。
+- 作用域无分组或原 `未分类` 统一显示为 `网络空间`。
+- 作用域详情页取消 `关系` 区域，只保留分组、层级、来源等核对信息。
+- 在统一问题清单新增并关闭 `OI-025`。
+
+验证结果：
+
+- `node --check frontend/capability-browser/app.js` 通过。
+- `git diff --check` 通过。
+- 本地 `http://127.0.0.1:5180/` 返回 HTTP 200。
+- 浏览器已确认 `专项知识维护 > 作用域清单` 中：
+  - 表头逐列筛选已出现；
+  - `描述` 列已出现；
+  - 原 `未分类` 口径已显示为 `网络空间`；
+  - 来源列不再优先显示服务关系；
+  - 右侧实体关系详情默认宽度已明显缩窄。
+- 仍需用户实际拖拽确认区域宽度和列宽调整手感。

@@ -354,6 +354,84 @@
 |---|---|---|---|---|
 | MAP-GARTNER-R001 | work_function | references_role | work_role_reference | 第二批不自动生成，仅为后续人工维护预留 |
 
+### 5.11 LC-DT 数据生命周期
+
+数据起始行：第 3 行。每行代表一个数据生命周期过程。
+
+| 规则编号 | 来源列 | 目标对象 | 目标字段 | 转换规则 | 必填 | 说明 |
+|---|---|---|---|---|---|---|
+| MAP-LCDT-001 | 序号 | lifecycle_process | order | T-TRIM | 是 | 过程顺序 |
+| MAP-LCDT-002 | 过程 | lifecycle_process | title | T-TRIM | 是 | 如采集、传输、存储 |
+| MAP-LCDT-003 | 安全技术服务设计 | security_technical_service / relation | code / title | T-SPLIT-LINES + T-SPLIT-CODE-TITLE | 否 | 一格多行，优先匹配已有服务 |
+| MAP-LCDT-004 | 安全技术模块设计 | security_technology_module / relation | title | T-SPLIT-LINES | 否 | 一格多行，优先匹配已有模块 |
+
+关系生成：
+
+| 规则编号 | 起点 | 关系 | 终点 | 条件 |
+|---|---|---|---|---|
+| MAP-LCDT-R001 | security_technical_service | maps_to_lifecycle | lifecycle_process | 服务非空 |
+| MAP-LCDT-R002 | security_technology_module | maps_to_lifecycle | lifecycle_process | 模块非空 |
+
+### 5.12 LC-DT 数据生命周期场景目录
+
+数据起始行：第 3 行。过程列存在空白延续行，需要继承上一条过程。
+
+| 规则编号 | 来源列 | 目标对象 | 目标字段 | 转换规则 | 必填 | 说明 |
+|---|---|---|---|---|---|---|
+| MAP-LCDT-SCENE-001 | 序号 | lifecycle_process | order | T-FILL-DOWN + T-TRIM | 是 | 与 LC-DT 过程对齐 |
+| MAP-LCDT-SCENE-002 | 过程 | lifecycle_process | title | T-FILL-DOWN + T-TRIM | 是 | 如采集、传输 |
+| MAP-LCDT-SCENE-003 | 过程定义 | lifecycle_process | description | T-FILL-DOWN + T-TRIM | 否 | 补充过程定义 |
+| MAP-LCDT-SCENE-004 | 场景划分编号 | lifecycle_scene | scene_code | T-TRIM | 是 | 如 1.1、2.7 |
+| MAP-LCDT-SCENE-005 | 场景划分名称 | lifecycle_scene | title | T-TRIM | 是 | 具体场景名称 |
+
+关系生成：
+
+| 规则编号 | 起点 | 关系 | 终点 | 条件 |
+|---|---|---|---|---|
+| MAP-LCDT-SCENE-R001 | lifecycle_process | has_scene | lifecycle_scene | 过程和场景均存在 |
+
+### 5.13 LC-AP 应用安全开发生命周期
+
+数据起始行：第 4 行。每行代表一个应用安全开发阶段，阶段下包含主要活动、安全活动、安全策略、开发类型、开发技术服务和产品示例。
+
+| 规则编号 | 来源列 | 目标对象 | 目标字段 | 转换规则 | 必填 | 说明 |
+|---|---|---|---|---|---|---|
+| MAP-LCAP-001 | 阶段（L3流程） | lifecycle_process | title | T-TRIM | 是 | 应用安全开发阶段 |
+| MAP-LCAP-002 | 阶段目标 | lifecycle_process | goal / description | T-TRIM | 否 | 阶段目标进入 metadata 或 description |
+| MAP-LCAP-003 | 阶段主要活动（L4流程活动） | lifecycle_process / security_activity | metadata_json.main_activities | T-SPLIT-LINES | 否 | 先保留原始活动列表，非安全活动不拆成 process_activity |
+| MAP-LCAP-004 | 参考来源 | lifecycle_process / security_activity | metadata_json.reference_source | T-TRIM | 否 | GB/T 8566 或 T/ISC 来源 |
+| MAP-LCAP-005 | 安全活动定义 | security_activity | title / description | T-TRIM | 否 | 非 `/` 时生成安全活动 |
+| MAP-LCAP-006 | 安全活动对应安全策略 | security_policy_requirement | sequence / title / text | T-SPLIT-NUMBERED-LIST | 否 | 按编号拆分策略条目 |
+| MAP-LCAP-007 | 软件开发模式 | software_development_type / relation | title | T-COLUMN-BOOLEAN | 否 | 自研、定制、外购、SaaS 列被标记时生成适用关系 |
+| MAP-LCAP-008 | 开发技术服务 | security_technical_service / relation | title | T-SPLIT-LINES | 否 | 可复用已有服务，也允许新增开发技术服务对象 |
+| MAP-LCAP-009 | 实际产品示例 | product / relation | title | T-SPLIT-LINES | 否 | 作为产品示例，不代表正式产品库完整性 |
+
+关系生成：
+
+| 规则编号 | 起点 | 关系 | 终点 | 条件 |
+|---|---|---|---|---|
+| MAP-LCAP-R001 | lifecycle_process | has_activity | security_activity | 安全活动定义非空且不为 `/` |
+| MAP-LCAP-R002 | security_activity | requires_policy | security_policy_requirement | 策略条目非空 |
+| MAP-LCAP-R003 | lifecycle_process / security_activity | applies_to_development_type | software_development_type | 对应开发模式列有标记 |
+| MAP-LCAP-R004 | lifecycle_process / security_activity | uses_service | security_technical_service | 开发技术服务非空 |
+| MAP-LCAP-R005 | lifecycle_process / security_activity | uses_product | product | 产品示例非空 |
+
+### 5.14 LC-AP 应用安全开发生命周期元素目录
+
+该 Sheet 包含两个字典区块：软件开发类型目录、应用系统类型目录。
+
+| 规则编号 | 来源区域 | 目标对象 | 目标字段 | 转换规则 | 必填 | 说明 |
+|---|---|---|---|---|---|---|
+| MAP-LCAP-ELEM-001 | 软件开发类型目录 | software_development_type | title / description | T-BLOCK-PARSE + T-TRIM | 是 | 自研、定制、外购、SaaS |
+| MAP-LCAP-ELEM-002 | 应用系统类型目录 | application_system_type | title / description | T-BLOCK-PARSE + T-FILL-DOWN | 是 | 传统应用、微服务应用、中台类应用 |
+| MAP-LCAP-ELEM-003 | 应用系统类型目录 | application_component | title | T-BLOCK-PARSE + T-TRIM | 否 | 组件列需要继承应用系统类型 |
+
+关系生成：
+
+| 规则编号 | 起点 | 关系 | 终点 | 条件 |
+|---|---|---|---|---|
+| MAP-LCAP-ELEM-R001 | application_system_type | has_component | application_component | 组件非空 |
+
 ## 6. 导入预览需要展示的内容
 
 第一版导入预览不需要复杂，但必须让用户看清楚将发生什么。
@@ -388,7 +466,7 @@
 | 批次 | Sheet 类型 | 目标 |
 |---|---|---|
 | 第二批 | 安全工作、管理元素、流程、职能、Gartner 岗位参考 | 扩展 `security_work`、`process_*`、`work_function_*`、`gbt_42446_task_reference`、`work_role_reference` |
-| 第三批 | LC-DT、LC-AP 生命周期相关 Sheet | 扩展 Lifecycle、LifecycleScene、ApplicationType 对象 |
+| 第三批 | LC-DT、LC-AP 生命周期相关 Sheet | 扩展 `lifecycle_process`、`lifecycle_scene`、`security_activity`、`security_policy_requirement`、`software_development_type`、`application_system_type`、`application_component` |
 | 第四批 | 标准框架、制度、控制项 | 扩展 StandardFramework、StandardControl、PolicyItem 对象 |
 | 第五批 | 目录、版本控制、引用性 Sheet | 支持页面导航、版本追踪、数据维护 |
 

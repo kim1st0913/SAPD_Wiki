@@ -161,6 +161,13 @@ V1 对象类型：
 | work_task | 工作任务 | 第二批 | 工作职能承担的具体任务 |
 | gbt_42446_task_reference | GB/T 42446-2023 工作任务引用 | 第二批 | 外部标准中的工作类别和任务 |
 | work_role_reference | 岗位参考 | 第二批 | Gartner 安全岗位/角色参考 |
+| lifecycle_process | 生命周期过程/阶段 | 第三批 | 数据生命周期过程或应用安全开发阶段 |
+| lifecycle_scene | 数据生命周期场景 | 第三批 | 数据生命周期过程下的具体场景 |
+| security_activity | 安全活动 | 第三批 | 应用安全开发阶段下的安全活动 |
+| security_policy_requirement | 安全策略要求 | 第三批 | 应用安全开发阶段或活动对应的策略条目 |
+| software_development_type | 软件开发类型 | 第三批 | 自研、定制、外购、SaaS 等 |
+| application_system_type | 应用系统类型 | 第三批 | 传统应用、微服务应用、中台类应用等 |
+| application_component | 应用组件 | 第三批 | 应用系统类型下的组件层级 |
 | standard_framework | 标准框架 | 后续 | ISO、CSF、等保、CIS 等 |
 | standard_control | 标准控制项 | 后续 | 标准控制条目 |
 | guide_section | 使用说明章节 | 后续 | 来自 PPT |
@@ -204,6 +211,13 @@ V1 对象类型：
 | performs_task | 承担任务 | 工作职能 | 工作任务 |
 | maps_to_gbt_task | 映射到 GB/T 工作任务 | 工作职能 | GB/T 42446-2023 工作任务引用 |
 | references_role | 参考岗位 | 工作职能 | Gartner 岗位参考，第二批暂不自动生成 |
+| has_scene | 包含场景 | 生命周期过程 | 生命周期场景 |
+| maps_to_lifecycle | 映射到生命周期 | 安全技术服务/安全技术模块 | 生命周期过程 |
+| requires_policy | 要求策略 | 生命周期过程/安全活动 | 安全策略要求 |
+| applies_to_development_type | 适用于开发类型 | 生命周期过程/安全活动 | 软件开发类型 |
+| uses_service | 使用服务 | 生命周期过程/安全活动 | 安全技术服务 |
+| uses_product | 使用产品示例 | 生命周期过程/安全活动 | 产品 |
+| has_component | 包含组件 | 应用系统类型 | 应用组件 |
 
 ### 4.5 source_reference 来源引用
 
@@ -382,7 +396,7 @@ PPT 和 Draw.io 后续页面：
 |---|---|---|
 | 第一批 | 5 个核心 Sheet | 能力、作用域、服务、模块、系统、产品、环境、对象、关系 |
 | 第二批 | 安全能力-安全工作、安全能力-安全管理元素（high level）、安全职能流程清单（完善L4）、安全工作职能清单、gartner工作岗位参考 | security_work、process_domain、process_group、process_reference、process_activity、work_function_layer、work_function_group、work_function、work_task、gbt_42446_task_reference、work_role_reference |
-| 第三批 | LC-DT、LC-AP 生命周期相关 Sheet | lifecycle、lifecycle_stage、security_activity |
+| 第三批 | LC-DT、LC-AP 生命周期相关 Sheet | lifecycle_process、lifecycle_scene、security_activity、security_policy_requirement、software_development_type、application_system_type、application_component |
 | 第四批 | 安全能力-网络安全制度、框架映射和各标准框架 Sheet | standard_framework、standard_control、policy_item |
 | 第五批 | 目录、版本控制记录 | navigation_entry、source_version、release_note |
 

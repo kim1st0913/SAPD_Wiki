@@ -51,6 +51,10 @@
 - `docs/06-implementation/local-data-layout.md`：本地数据目录约定。
 - `docs/06-implementation/open-issues.md`：当前所有 bug、数据问题、页面问题和待确认事项的唯一维护文件。
 
+### 前端与展示
+
+- `docs/04-frontend/frontend-redesign-brief.md`：关系化前端重构任务书，定义 ETL/Data Worker 与 Frontend Worker 的同步契约。
+
 ### 治理
 
 - `docs/07-governance/governance-index.md`：轻量治理入口。

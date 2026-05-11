@@ -6,9 +6,9 @@
 
 ## Current Status
 
-- Status: phase_5_second_batch_management_module_verified
+- Status: phase_5_dual_track_data_frontend_sync_started
 - Started: 2026-05-09
-- Current phase: Governance P0 - 轻量治理落地完成
+- Current phase: Phase 5 - 数据处理与关系化前端双轨并行
 - Primary reference: `docs/00-overview/project-roadmap.md`
 
 ## Phases
@@ -89,6 +89,23 @@
 - [x] Export frontend-ready `capability-tree.json`.
 - [x] Create first local capability browser frontend.
 - [x] Verify local page loads in Chrome.
+
+## Phase 5 Dual-Track Data/Frontend Tasks
+
+- [x] Confirm that frontend must move from card-centric display to relation-centric data review workbench.
+- [x] Create `docs/04-frontend/frontend-redesign-brief.md` as the shared contract for Master, ETL/Data Worker and Frontend Worker.
+- [x] ETL/Data Worker: verify and complete `信息化环境-信息化对象-安全作用域映射` and continuous scope-service-module-system export.
+- [x] ETL/Data Worker: remove duplicate process/stakeholder display causes in `capability-tree.json`.
+- [x] Frontend Worker/Main: redesign `frontend/capability-browser/` around tables, mapping chains and relation workbench.
+- [x] Master Agent: integrate worker outputs, update unified issues and run local verification.
+- [x] Revise frontend target: business relationship dimensions are primary; source row/field tracing is secondary.
+- [x] Frontend Design Owner: produce a unified frontend information architecture for capability, environment, security development, data lifecycle, specialist maintenance, HTML explanation and Draw.io/PPT views.
+- [x] Master Agent: review Frontend Design Owner output and record open data-contract questions.
+- [x] Confirm FE-IA data-contract questions before the next frontend implementation batch.
+- [x] ETL/Data Worker: export explicit focus-scope mappings, service indexes, lifecycle knowledge and content view stubs.
+- [x] Frontend/Main: restore a runnable 7-page relation-oriented navigation skeleton and rename `知识来源` to `专项知识维护`.
+- [x] Master Agent: integrate ETL and frontend outputs, then run local verification.
+- [ ] User review: inspect the restored 7-page frontend baseline and identify the next focused frontend page to deepen.
 
 ## Phase 1 Remaining Sheet Modeling Tasks
 
@@ -177,10 +194,10 @@ Current local export files:
 
 ## Next Recommended Actions
 
-1. Review the local page at `http://127.0.0.1:5174/?v=4`, especially the new `知识来源` second-level pages.
-2. Resolve `OI-010`: analyze why `网络安全执行层` still has `未分组` records and decide source-data cleanup vs ETL inheritance.
-3. Confirm whether `安全流程` page should show only L3 in the first version, or reserve visible empty L4 sections for future completion.
-4. After `OI-010` is resolved, decide the next Excel batch for modeling and coding.
+1. 由 ETL/Data Worker 完成信息化对象、作用域、服务、模块、系统连续映射导出。
+2. 由 Frontend Worker 按 `docs/04-frontend/frontend-redesign-brief.md` 重构前端关系工作台。
+3. 主控 Agent 集成两个 worker 的输出，统一更新 `open-issues.md` 和 `progress.md`。
+4. 用户确认关系化前端后，再恢复第三批生命周期页面和后续第四批 Sheet 建模。
 
 Issue tracking rule:
 

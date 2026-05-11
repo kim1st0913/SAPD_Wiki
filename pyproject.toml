@@ -1,0 +1,16 @@
+[project]
+name = "sapd-wiki"
+version = "0.1.0"
+description = "Local structured knowledge base import MVP for SAPD Wiki."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "openpyxl>=3.1.0",
+]
+
+[project.scripts]
+sapd-wiki = "sapd_wiki.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+

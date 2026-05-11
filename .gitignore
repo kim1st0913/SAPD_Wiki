@@ -20,6 +20,10 @@ knowledge_objects.xlsx
 field_dictionary.xlsx
 mapping_rules.xlsx
 
+# Generated frontend data
+frontend/capability-browser/public/data/*.json
+frontend/capability-browser/public/data/assets/
+
 # Node / frontend build artifacts
 node_modules/
 dist/

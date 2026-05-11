@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SAPD Wiki 能力目录</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark">S</div>
+          <div>
+            <h1>SAPD Wiki</h1>
+            <p>能力目录浏览</p>
+          </div>
+        </div>
+        <div class="search-wrap">
+          <span class="search-icon" aria-hidden="true">⌕</span>
+          <input id="searchInput" type="search" placeholder="搜索能力、关注点、技术服务或编码" />
+        </div>
+        <div class="metrics" id="metrics"></div>
+      </header>
+
+      <nav class="module-tabs" aria-label="知识模块">
+        <button id="capabilityTab" class="module-tab active" type="button" data-view="capabilities">能力目录</button>
+        <button id="sourceTab" class="module-tab" type="button" data-view="sources">知识来源</button>
+      </nav>
+
+      <main id="capabilityWorkspace" class="workspace">
+        <aside class="tree-pane">
+          <div class="pane-head">
+            <h2>能力树</h2>
+            <button id="resetButton" type="button" title="重置选择">↺</button>
+          </div>
+          <div id="tree" class="tree"></div>
+        </aside>
+
+        <section class="detail-pane">
+          <div class="pane-head">
+            <h2>节点详情</h2>
+            <span id="selectedType" class="type-pill">未选择</span>
+          </div>
+          <div id="detail" class="detail"></div>
+        </section>
+
+        <aside class="relation-pane">
+          <div class="pane-head">
+            <h2>关联服务</h2>
+            <span id="serviceCount" class="count-pill">0</span>
+          </div>
+          <div id="services" class="services"></div>
+        </aside>
+      </main>
+
+      <main id="sourceWorkspace" class="source-workspace is-hidden">
+        <aside class="source-nav-pane">
+          <div class="pane-head">
+            <h2>知识来源</h2>
+          </div>
+          <div class="source-nav" aria-label="知识来源二级页面">
+            <button id="workFunctionsPageTab" class="source-nav-button active" type="button" data-source-page="work-functions">
+              <span>安全工作职能</span>
+              <strong id="workFunctionCount">0</strong>
+            </button>
+            <button id="processesPageTab" class="source-nav-button" type="button" data-source-page="processes">
+              <span>安全流程</span>
+              <strong id="processCount">0</strong>
+            </button>
+            <button id="standardsPageTab" class="source-nav-button" type="button" data-source-page="standards">
+              <span>标准与规范参考</span>
+              <strong id="standardCount">0</strong>
+            </button>
+            <button id="rolesPageTab" class="source-nav-button" type="button" data-source-page="roles">
+              <span>岗位参考</span>
+              <strong id="roleCount">0</strong>
+            </button>
+          </div>
+        </aside>
+
+        <section id="sourceCatalogPane" class="source-catalog-pane">
+          <div class="pane-head">
+            <h2 id="sourcePageTitle">安全工作职能</h2>
+            <span id="sourcePageCount" class="count-pill">0</span>
+          </div>
+          <div class="source-catalog-tools">
+            <input id="sourceSearchInput" type="search" placeholder="搜索名称、编码、分组或来源" />
+          </div>
+          <div id="sourceList" class="source-list-pane"></div>
+        </section>
+
+        <section id="sourceDetailPane" class="source-detail-pane">
+          <div class="pane-head">
+            <h2>实体详情</h2>
+            <span id="sourceDetailType" class="type-pill">未选择</span>
+          </div>
+          <div id="sourceDetail" class="source-detail-content"></div>
+        </section>
+      </main>
+    </div>
+    <script src="./app.js"></script>
+  </body>
+</html>

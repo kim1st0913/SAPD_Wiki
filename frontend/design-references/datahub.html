@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>参考页 2 - DataHub 风格</title>
+    <link rel="stylesheet" href="./reference-style.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="mark">DH</div>
+          <div>
+            <h1>DataHub 式实体中心</h1>
+            <p>统一实体页、域、所有者、关系与治理状态</p>
+          </div>
+        </div>
+        <input class="global-search" value="网络安全合规审查" aria-label="全局搜索" />
+        <div class="top-actions">
+          <button class="ghost-button">订阅变更</button>
+          <button class="primary-button">查看关系图</button>
+        </div>
+      </header>
+
+      <main class="catalog-hero">
+        <section class="wide-detail">
+          <div class="pane-head">
+            <h2>实体主页</h2>
+            <span class="tag">Process Reference</span>
+          </div>
+          <div class="detail-body">
+            <div class="code">M-SA.RE-02</div>
+            <h2 class="detail-title">网络安全合规审查流程</h2>
+            <p class="detail-subtitle">DataHub 的启发是把能力、流程、职能、标准都当作“实体”，实体页内部再拆 Overview、Relations、Lineage、Source、Quality。</p>
+            <div class="metric-grid">
+              <div class="metric-card"><strong>9</strong><span>相关职能</span></div>
+              <div class="metric-card"><strong>3</strong><span>关联能力</span></div>
+              <div class="metric-card"><strong>2</strong><span>标准引用</span></div>
+              <div class="metric-card"><strong>0</strong><span>待修复问题</span></div>
+            </div>
+            <div class="tabs">
+              <button class="tab active">Overview</button>
+              <button class="tab">Relations</button>
+              <button class="tab">Lineage</button>
+              <button class="tab">Source</button>
+            </div>
+            <div class="split-list">
+              <section>
+                <h3 class="section-title">上游知识</h3>
+                <table class="entity-table">
+                  <tbody>
+                    <tr><td class="code">M-SA.RE</td><td>安全合规管理能力</td><td><span class="tag">能力</span></td></tr>
+                    <tr><td class="code">安全管理元素</td><td>能力-流程映射</td><td><span class="tag">来源</span></td></tr>
+                    <tr><td class="code">GB/T</td><td>网络安全管理参考</td><td><span class="tag">标准</span></td></tr>
+                  </tbody>
+                </table>
+              </section>
+              <section>
+                <h3 class="section-title">下游知识</h3>
+                <table class="entity-table">
+                  <tbody>
+                    <tr><td class="code">75</td><td>合规管理职能</td><td><span class="tag">职能</span></td></tr>
+                    <tr><td class="code">-</td><td>网络安全制度持续管理流程</td><td><span class="tag">同组流程</span></td></tr>
+                    <tr><td class="code">-</td><td>个人隐私保护管理流程</td><td><span class="tag">同组流程</span></td></tr>
+                  </tbody>
+                </table>
+              </section>
+            </div>
+            <div class="section">
+              <h3>治理状态</h3>
+              <div class="quality-list">
+                <div class="quality-item"><span class="dot"></span><span>来源引用完整</span><strong>通过</strong></div>
+                <div class="quality-item"><span class="dot warn"></span><span>L4关键活动尚未补充</span><strong>待补</strong></div>
+                <div class="quality-item"><span class="dot"></span><span>关联职能均为 active</span><strong>通过</strong></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <aside class="insight-pane">
+          <div class="pane-head">
+            <h2>探索入口</h2>
+          </div>
+          <div class="insight-body">
+            <button class="nav-item active"><span>我的常看实体</span><strong>12</strong></button>
+            <button class="nav-item"><span>最近导入</span><strong>537</strong></button>
+            <button class="nav-item"><span>待治理问题</span><strong>17</strong></button>
+            <button class="nav-item"><span>关系查询</span><strong>5类</strong></button>
+            <div class="section">
+              <h3>适合 SAPD Wiki 的落法</h3>
+              <p class="detail-subtitle">建立统一“实体详情页”，避免每类对象各做一套页面。能力、流程、职能、标准、岗位都复用同一详情框架。</p>
+              <a class="doc-link" href="../../docs/04-user-guide/frontend-design-references.md">查看本项目设计参考文档</a>
+            </div>
+          </div>
+        </aside>
+      </main>
+    </div>
+  </body>
+</html>

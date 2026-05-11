@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>参考页 3 - Backstage Catalog 风格</title>
+    <link rel="stylesheet" href="./reference-style.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="mark">BC</div>
+          <div>
+            <h1>Backstage Catalog 式资源清单</h1>
+            <p>表格优先、筛选优先、详情页签化</p>
+          </div>
+        </div>
+        <input class="global-search" value="type:work_function owner:执行层" aria-label="全局搜索" />
+        <div class="top-actions">
+          <button class="ghost-button">批量导出</button>
+          <button class="primary-button">打开详情</button>
+        </div>
+      </header>
+
+      <main class="layout">
+        <aside class="rail">
+          <div class="pane-head">
+            <h2>筛选</h2>
+          </div>
+          <div class="rail-body">
+            <div class="filters">
+              <label class="filter-row"><span>Kind</span><select><option>WorkFunction</option></select></label>
+              <label class="filter-row"><span>Layer</span><select><option>网络安全执行层</option></select></label>
+              <label class="filter-row"><span>Group</span><select><option>未分组</option></select></label>
+              <label class="filter-row"><span>Status</span><select><option>待治理</option></select></label>
+            </div>
+            <button class="nav-item active"><span>待补分组</span><strong>17</strong></button>
+            <button class="nav-item"><span>缺编码</span><strong>17</strong></button>
+            <button class="nav-item"><span>疑似拆词</span><strong>3</strong></button>
+            <button class="nav-item"><span>疑似错字</span><strong>1</strong></button>
+          </div>
+        </aside>
+
+        <section class="list-pane">
+          <div class="pane-head">
+            <h2>Catalog</h2>
+            <span class="count-pill">17</span>
+          </div>
+          <div class="list-body">
+            <table class="entity-table">
+              <thead>
+                <tr><th>Kind</th><th>Name</th><th>Layer</th><th>Issue</th></tr>
+              </thead>
+              <tbody>
+                <tr class="active"><td class="code">WorkFunction</td><td><span class="entity-title">安全时间响应处置职能</span></td><td>执行层</td><td><span class="tag">疑似错字</span></td></tr>
+                <tr><td class="code">WorkFunction</td><td><span class="entity-title">安全实施职能（方案设计</span></td><td>执行层</td><td><span class="tag">疑似拆词</span></td></tr>
+                <tr><td class="code">WorkFunction</td><td><span class="entity-title">技术实施）</span></td><td>执行层</td><td><span class="tag">疑似拆词</span></td></tr>
+                <tr><td class="code">WorkFunction</td><td><span class="entity-title">身份</span></td><td>执行层</td><td><span class="tag">疑似拆词</span></td></tr>
+                <tr><td class="code">WorkFunction</td><td><span class="entity-title">IT资产运营职能</span></td><td>执行层</td><td><span class="tag">缺分组</span></td></tr>
+                <tr><td class="code">WorkFunction</td><td><span class="entity-title">凭证及访问管理运营职能</span></td><td>执行层</td><td><span class="tag">缺分组</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="detail-pane">
+          <div class="pane-head">
+            <h2>Entity</h2>
+            <span class="tag">Need Review</span>
+          </div>
+          <div class="detail-body">
+            <div class="code">WorkFunction / 无编码</div>
+            <h2 class="detail-title">安全时间响应处置职能</h2>
+            <p class="detail-subtitle">Backstage 的启发是目录页先做“可扫描表格”，详情页再承载说明、关系和文档。这样适合处理 OI-010 这种需要逐条治理的数据。</p>
+            <div class="tabs">
+              <button class="tab active">Overview</button>
+              <button class="tab">Relations</button>
+              <button class="tab">Source</button>
+              <button class="tab">Review</button>
+            </div>
+            <div class="metadata-grid">
+              <div class="metadata-cell"><strong>网络安全执行层</strong><span>Layer</span></div>
+              <div class="metadata-cell"><strong>未分组</strong><span>Group</span></div>
+              <div class="metadata-cell"><strong>第 55、56、57 行</strong><span>来源行</span></div>
+              <div class="metadata-cell"><strong>建议核对</strong><span>处理状态</span></div>
+            </div>
+            <div class="section">
+              <h3>治理动作</h3>
+              <div class="quality-list">
+                <div class="quality-item"><span class="dot warn"></span><span>确认是否为“安全事件响应处置职能”</span><strong>待确认</strong></div>
+                <div class="quality-item"><span class="dot warn"></span><span>确认所属职能组</span><strong>待确认</strong></div>
+                <div class="quality-item"><span class="dot"></span><span>确认后由 ETL 合并或停用旧对象</span><strong>可执行</strong></div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

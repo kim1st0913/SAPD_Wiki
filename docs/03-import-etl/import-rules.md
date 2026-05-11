@@ -2,6 +2,12 @@
 
 本文件定义多来源文件如何进入知识库。它是开发前必须先稳定的规则文件。
 
+当前具体映射规则草案见：
+
+- `docs/03-import-etl/mapping-rules-draft.md`：第一批 5 个核心 Excel Sheet 的对象、字段和关系映射规则。
+- `docs/03-import-etl/remaining-21-sheets-modeling.md`：剩余 21 个 Excel Sheet 的分组、对象、关系和批次草案。
+- `docs/03-import-etl/excel-import-mvp-design.md`：Excel 导入 MVP 的模块、流程和验收标准。
+
 ## 1. 导入原则
 
 - 原始文件必须保留。
@@ -171,10 +177,11 @@
 第一版导入功能只要做到：
 
 - 能选择一个 Excel 文件；
-- 能识别一个指定 Sheet；
+- 能识别第一批 5 个核心 Sheet；
 - 能按映射规则把每行变成知识条目；
 - 能记录来源文件、hash、sheet、行号；
-- 能发现标题为空的错误；
+- 能发现标题为空、编码缺失、编码不一致等错误或警告；
 - 能先进入导入预览；
 - 用户确认后写入 SQLite；
+- 能做基础查询；
 - 能导出导入结果为 CSV/JSON。

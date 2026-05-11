@@ -6,9 +6,9 @@
 
 ## Current Status
 
-- Status: phase_1_data_definition
+- Status: phase_5_second_batch_management_module_verified
 - Started: 2026-05-09
-- Current phase: Phase 1 - 数据发现与字段定义
+- Current phase: Phase 5 - 能力目录与安全工作职能浏览 MVP（第二批本地验收完成）
 - Primary reference: `docs/00-overview/project-roadmap.md`
 
 ## Phases
@@ -18,8 +18,8 @@
 | 0 | 需求澄清与项目规划 | complete | `AGENTS.md`, overview docs, planning files |
 | 1 | 数据发现与字段定义 | in_progress | knowledge asset inventory, knowledge objects, field dictionary, mapping rules |
 | 2 | 工程骨架 | in_progress | README, `.gitignore`, directory structure |
-| 3 | 数据模型设计 | pending | `docs/02-data-model/data-model.md`, SQLite schema, migrations |
-| 4 | 导入 MVP | pending | Excel + Markdown/DOCX import prototype |
+| 3 | 数据模型设计 | complete | `docs/02-data-model/data-model.md`, SQLite schema, migrations |
+| 4 | 导入 MVP | in_progress | Excel + Markdown/DOCX import prototype |
 | 5 | 知识浏览与搜索 | pending | list/detail/search/tag/category pages |
 | 6 | 导出与备份 | pending | CSV/JSON/Excel/ZIP export |
 | 7 | 多格式增强 | pending | PPT and Draw.io parsing/preview |
@@ -43,12 +43,105 @@
 ## Phase 1 Tasks
 
 - [x] Create local `data/raw-samples/` folder for unsynced sample files.
-- [ ] Prepare first batch sample files: 1 PPT, 1 Excel with 3 sheets, 1 multi-page Draw.io.
-- [ ] Fill `docs/03-import-etl/sample-file-inventory.md`.
-- [ ] Identify first V1 knowledge object types.
-- [ ] Draft first field dictionary from actual sample files.
-- [ ] Draft first mapping rules from actual sample files.
-- [ ] Decide which sample files are safe to commit and which must stay local.
+- [x] Prepare first batch sample files: 1 PPT, 1 Excel workbook, 1 multi-page Draw.io.
+- [x] Fill `docs/03-import-etl/sample-file-inventory.md`.
+- [x] Identify first V1 knowledge object types.
+- [x] Draft first field dictionary from actual sample files.
+- [x] Draft first mapping rules from actual sample files.
+- [x] Draft first logical data model from field dictionary and mapping rules.
+- [x] Plan later expansion batches for all 26 Excel sheets.
+- [x] Decide which sample files are safe to commit and which must stay local.
+
+## Phase 3 Tasks
+
+- [x] Draft logical data model.
+- [x] Draft SQLite schema design.
+- [x] Generate actual SQLite migration SQL.
+- [x] Decide database file location and local app data directory.
+- [x] Define seed/test fixture strategy without committing raw samples.
+
+## Phase 4 Tasks
+
+- [x] Draft Excel import MVP design.
+- [x] Create import MVP engineering skeleton.
+- [x] Implement migration runner and local database initialization.
+- [x] Implement source file registration.
+- [x] Implement Excel workbook reader.
+- [x] Implement first parser for `安全能力目录`.
+- [x] Generate capability object candidates and relation candidates.
+- [x] Write first staging preview for capability objects and `belongs_to` relations.
+- [x] Add validation report output for missing titles/codes and duplicate/inconsistent service codes.
+- [x] Implement 5 core Sheet parsers.
+- [x] Implement staging item/relation writer.
+- [x] Implement import preview and validation report.
+- [x] Implement review-approved load into formal tables.
+- [x] Implement basic local query commands.
+- [x] Create warning review checklist for the first approved import.
+- [x] Implement JSON/CSV export commands for items and relations.
+- [x] Generate first local import result report under `data/exports/`.
+- [x] Rebuild local SQLite database cleanly from the corrected Excel.
+- [x] Generate fresh official import report with `validations: none`.
+
+## Phase 5 Preparation Tasks
+
+- [x] Draft first capability browser page design.
+- [x] Export frontend-ready `capability-tree.json`.
+- [x] Create first local capability browser frontend.
+- [x] Verify local page loads in Chrome.
+
+## Phase 1 Remaining Sheet Modeling Tasks
+
+- [x] Scan all 26 Excel sheets and identify the 21 sheets not in the first ETL batch.
+- [x] Group the remaining 21 sheets by theme and implementation priority.
+- [x] Draft object types and relation types for the remaining 21 sheets.
+- [x] Recommend the second implementation batch before parallel coding starts.
+- [x] User clarified the second batch scope as 5 sheets: security work, high-level management elements, process list, work function list, and Gartner role reference.
+- [x] Draft second-batch field dictionary and mapping rules for the 5 confirmed sheets.
+- [x] Update the logical data model with second-batch object and relation types.
+- [x] Define second-batch data contract and acceptance criteria.
+- [x] Decide parallel coding split for second-batch ETL, frontend module, and export updates.
+- [x] Integrate second-batch ETL, frontend, and export worker outputs.
+- [x] Run second-batch local import/export verification.
+- [x] Update issue tracker and progress after second-batch verification.
+
+## Phase 4 Current Local Verification
+
+Latest first-batch clean approved import job:
+
+- `e3a30211-a138-4bd7-80af-66e5ddff4bb5`
+
+Latest second-batch approved import job:
+
+- `a4b77945-380e-457d-b87f-7ba05b5dcf01`
+
+Current local database summary:
+
+| Table | Count |
+|---|---:|
+| source_files | 1 |
+| import_jobs | 2 |
+| staging_items | 1244 |
+| staging_relations | 4195 |
+| knowledge_items | 1122 |
+| knowledge_relations | 4195 |
+| source_references | 14973 |
+| review_decisions | 5439 |
+| change_logs | 5439 |
+
+Current local export files:
+
+| File | Purpose |
+|---|---|
+| `data/exports/items-latest/knowledge-items.csv` | Knowledge item review in spreadsheet tools |
+| `data/exports/items-latest/knowledge-items.json` | Knowledge item machine-readable export |
+| `data/exports/relations-latest/knowledge-relations.csv` | Knowledge relation review in spreadsheet tools |
+| `data/exports/relations-latest/knowledge-relations.json` | Knowledge relation machine-readable export |
+| `data/exports/import-review-latest/import-summary-e3a30211.json` | Import job summary |
+| `data/exports/import-review-latest/import-result-report-e3a30211.md` | Human-readable import result report |
+| `data/exports/import-review-latest/warning-review-e3a30211.csv` | Warning review checklist, now 0 rows |
+| `frontend/capability-browser/public/data/capability-tree.json` | Frontend data with capability tree plus security work and process mappings |
+| `frontend/capability-browser/public/data/management-knowledge.json` | Frontend data for security work functions, GB/T references, Gartner roles and image assets |
+| `data/exports/second-batch-summary-latest/second-batch-summary.json` | Second-batch verification summary |
 
 ## Key Decisions
 
@@ -67,8 +160,6 @@
 
 | Question | Why It Matters |
 |---|---|
-| 第一批样例文件有哪些？ | 决定字段模型和导入规则 |
-| 主要知识类型有哪些？ | 决定 `knowledge_item.type` 和页面模板 |
 | 数据是否包含敏感资料？ | 决定 `.gitignore` 和 GitHub 存储边界 |
 | 是否需要 Windows/macOS 双平台打包？ | 影响 Tauri 配置和测试方式 |
 | 导出最常用格式是什么？ | 决定 V1 导出优先级 |
@@ -85,12 +176,15 @@
 
 ## Next Recommended Actions
 
-1. 让用户准备 5 到 10 个代表性样例文件。
-2. 完成知识资产盘点，先用 `docs/03-import-etl/sample-file-inventory.md`，后续可生成 `knowledge_asset_inventory.xlsx`。
-3. 完成知识对象定义，先用 `docs/02-data-model/data-dictionary-template.md`，后续可生成 `knowledge_objects.xlsx`。
-4. 完成字段字典，后续可生成 `field_dictionary.xlsx`。
-5. 完成映射规则，先用 `docs/03-import-etl/import-rules.md`，后续可生成 `mapping_rules.xlsx`。
-6. 再创建工程骨架和实现数据库导入 MVP。
+1. Review the local page at `http://127.0.0.1:5174/?v=4`, especially the new `知识来源` second-level pages.
+2. Resolve `OI-010`: analyze why `网络安全执行层` still has `未分组` records and decide source-data cleanup vs ETL inheritance.
+3. Confirm whether `安全流程` page should show only L3 in the first version, or reserve visible empty L4 sections for future completion.
+4. After `OI-010` is resolved, decide the next Excel batch for modeling and coding.
+
+Issue tracking rule:
+
+- All bugs and issues are maintained in `docs/06-implementation/open-issues.md`.
+- Fixed issues must be marked as `已修复` in that file.
 
 ## Errors Encountered
 

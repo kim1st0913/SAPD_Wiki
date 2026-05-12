@@ -107,6 +107,19 @@
 - [x] Master Agent: integrate ETL and frontend outputs, then run local verification.
 - [ ] User review: inspect the restored 7-page frontend baseline and identify the next focused frontend page to deepen.
 
+## Phase 5 Backend/Frontend Separation Tasks
+
+- [x] Define backend logic and interface architecture in `docs/01-architecture/backend-interface-design.md`.
+- [x] Define field-level API contract in `docs/01-architecture/api-field-contract.md`.
+- [x] Update frontend design documents to follow backend/API contract and `dataClient` boundary.
+- [x] Confirm backend owns ETL, normalization, master data, relation generation, validation and frontend projection export.
+- [x] Confirm frontend owns navigation, table/matrix/relation-chain rendering, filtering, resizing and detail interaction only.
+- [x] Confirm static JSON is the MVP API contract, with future `/api/v1/*` local API preserving the same semantics.
+- [ ] Add or refactor frontend `dataClient` so pages do not directly scatter business data fetching and shaping logic.
+- [ ] Align current frontend JSON exports with the documented backend interface contract.
+- [x] Review the Frontend Design Agent output against `chatgpt ui code.md`, `frontend-redesign-brief.md` and `backend-interface-design.md`.
+- [ ] User confirms the first refactored capability relationship workspace before broadening to all pages.
+
 ## Phase 1 Remaining Sheet Modeling Tasks
 
 - [x] Scan all 26 Excel sheets and identify the 21 sheets not in the first ETL batch.
@@ -121,30 +134,39 @@
 - [x] Integrate second-batch ETL, frontend, and export worker outputs.
 - [x] Run second-batch local import/export verification.
 - [x] Update issue tracker and progress after second-batch verification.
+- [x] Create completed mapped Sheet business confirmation checklist.
+- [x] User confirmed first-batch core Sheet business meaning, primary keys and relation cardinality.
+- [x] Reimport first-batch core Sheets after user source updates and refresh frontend JSON exports.
+- [x] Reimport third-batch LC-AP after user fixed duplicate policy sequence numbers.
+- [ ] User confirms completed mapped Sheet business meaning, primary keys and relation cardinality.
 
 ## Phase 4 Current Local Verification
 
 Latest first-batch clean approved import job:
 
-- `e3a30211-a138-4bd7-80af-66e5ddff4bb5`
+- `7ac14b99-3827-46e1-9e3b-aa557ed637b7`
 
 Latest second-batch approved import job:
 
 - `a4b77945-380e-457d-b87f-7ba05b5dcf01`
 
+Latest third-batch approved import job:
+
+- `79a17f64-3790-469b-b72e-5af72de1985b`
+
 Current local database summary:
 
 | Table | Count |
 |---|---:|
-| source_files | 1 |
-| import_jobs | 2 |
-| staging_items | 1244 |
-| staging_relations | 4195 |
-| knowledge_items | 1122 |
-| knowledge_relations | 4195 |
-| source_references | 14973 |
-| review_decisions | 5439 |
-| change_logs | 5439 |
+| source_files | 6 |
+| import_jobs | 17 |
+| staging_items | 7954 |
+| staging_relations | 25323 |
+| knowledge_items | 1649 |
+| knowledge_relations | 7352 |
+| source_references | 97056 |
+| review_decisions | 33277 |
+| change_logs | 15676 |
 
 Current local export files:
 
@@ -194,10 +216,10 @@ Current local export files:
 
 ## Next Recommended Actions
 
-1. 由 ETL/Data Worker 完成信息化对象、作用域、服务、模块、系统连续映射导出。
-2. 由 Frontend Worker 按 `docs/04-frontend/frontend-redesign-brief.md` 重构前端关系工作台。
-3. 主控 Agent 集成两个 worker 的输出，统一更新 `open-issues.md` 和 `progress.md`。
-4. 用户确认关系化前端后，再恢复第三批生命周期页面和后续第四批 Sheet 建模。
+1. 主控 Agent 固化后端接口与静态 JSON 契约，避免前端继续承担业务推断逻辑。
+2. Frontend Design Agent 参考 `chatgpt ui code.md` 和 `impeccable` 设计原则，先重构能力维度关系页。
+3. 主控 Agent 验收前端输出，确认没有改动 ETL/数据库边界，并同步 `open-issues.md` 和 `progress.md`。
+4. 用户确认能力维度关系页后，再继续第二批、第三批已导入 Sheet 的业务含义复核和前端投影补齐。
 
 Issue tracking rule:
 

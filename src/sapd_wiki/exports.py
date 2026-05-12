@@ -343,18 +343,25 @@ def export_relations(
     output_dir: str | Path | None = None,
     relation_type: str | None = None,
     fmt: str = "all",
+    include_deprecated: bool = False,
 ) -> dict[str, Any]:
     export_dir = _ensure_dir(output_dir)
-    params: tuple[Any, ...] = ()
-    where = ""
+    params: list[Any] = []
+    where_clauses: list[str] = []
     if relation_type:
-        where = "WHERE relation.relation_type = ?"
-        params = (relation_type,)
+        where_clauses.append("relation.relation_type = ?")
+        params.append(relation_type)
+    if not include_deprecated:
+        where_clauses.append("source.status = 'active'")
+        where_clauses.append("target.status = 'active'")
+    where = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
     rows = conn.execute(
         f"""
         SELECT relation.id, relation.relation_type, relation.relation_label, relation.confidence,
                source.type AS source_type, source.code AS source_code, source.title AS source_title,
+               source.status AS source_status,
                target.type AS target_type, target.code AS target_code, target.title AS target_title,
+               target.status AS target_status,
                relation.source_file_id, relation.import_job_id, relation.metadata_json,
                relation.created_at, relation.updated_at
         FROM knowledge_relations AS relation
@@ -363,7 +370,7 @@ def export_relations(
         {where}
         ORDER BY relation.relation_type, source.type, source.code, source.title, target.type, target.code, target.title
         """,
-        params,
+        tuple(params),
     ).fetchall()
     data = [dict(row) for row in rows]
     base_name = f"knowledge-relations-{relation_type}" if relation_type else "knowledge-relations"
@@ -385,9 +392,11 @@ def export_relations(
                 "source_type",
                 "source_code",
                 "source_title",
+                "source_status",
                 "target_type",
                 "target_code",
                 "target_title",
+                "target_status",
                 "source_file_id",
                 "import_job_id",
                 "metadata_json",

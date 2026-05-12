@@ -1726,7 +1726,7 @@ Frontend Design Owner `019e163e-4728-7f73-8746-00183d43ece5` 已完成第一版�
 - 调整右侧详情栏默认宽度，给中间关系表格和链路展示释放空间。
 - 在 `专项知识维护` 表格增加表头筛选输入框。
 - 在 `专项知识维护` 表格增加列宽拖拽。
-- `作用域清单` 表格调整为 `分组 / 编码/类型 / 名称 / 描述 / 来源`。
+- `作用域清单` 表格调整为 `分组 / 编码/类型 / 名称 / 描述` 等业务字段；来源展示已在后续 `OI-026` 中移除。
 - 作用域无分组或原 `未分类` 统一显示为 `网络空间`。
 - 作用域详情页取消 `关系` 区域，只保留分组、层级、来源等核对信息。
 - 在统一问题清单新增并关闭 `OI-025`。
@@ -1740,6 +1740,472 @@ Frontend Design Owner `019e163e-4728-7f73-8746-00183d43ece5` 已完成第一版�
   - 表头逐列筛选已出现；
   - `描述` 列已出现；
   - 原 `未分类` 口径已显示为 `网络空间`；
-  - 来源列不再优先显示服务关系；
+  - 来源信息已按后续 `OI-026` 从展示层移除；
   - 右侧实体关系详情默认宽度已明显缩窄。
 - 仍需用户实际拖拽确认区域宽度和列宽调整手感。
+
+## 2026-05-11 前端去来源化展示
+
+用户明确新口径：
+
+- 系统所有页面不用再展示来源；
+- 前端应展示数据处理、映射、关联好的结果；
+- 或者展示单独的数据清单；
+- 原始 Sheet、行号、单元格等来源信息对当前查看无意义，并影响关系核对。
+
+已完成：
+
+- 从前端展示层移除 `来源` 列。
+- 从右侧实体关系详情中移除来源卡片。
+- `专项知识维护` 中纯数据清单页只保留 `分组 / 编码或类型 / 名称 / 描述`。
+- 有业务关联的清单页显示 `关联结果`，不再用来源作为空关系兜底。
+- 在统一问题清单新增并关闭 `OI-026`。
+
+说明：
+
+- 数据层仍保留 source metadata，便于以后 ETL 报错、治理追踪、人工排错。
+- 默认 UI 不再展示 source metadata。
+
+验证结果：
+
+- `node --check frontend/capability-browser/app.js` 通过。
+- `git diff --check` 通过。
+- `rg -n "来源" frontend/capability-browser/app.js frontend/capability-browser/index.html` 无匹配。
+- 浏览器已确认 `专项知识维护 > 作用域清单` 不再显示来源列，右侧实体关系详情不再显示来源卡片。
+
+## 2026-05-11 已导入数据复核
+
+用户要求暂停前端优化，重新检查已导入数据是否仍有未修复 issue。
+
+复核范围：
+
+- 统一问题清单 `docs/06-implementation/open-issues.md`。
+- 当前 SQLite 数据库 `data/database/sapd_wiki.sqlite3`。
+- 最近 import job、正式表、source reference、通用导出风险。
+- 已知问题 `OI-017`、`OI-010`、`OI-013` 相关数据状态。
+
+检查结果：
+
+- 最新已审批导入任务为 `552e1ee4-6060-4716-b68c-259a116d1555`，`stage_summary.validations` 为空数组。
+- 当前正式表统计：
+  - `knowledge_items`: 1375
+  - `knowledge_relations`: 4811
+  - `source_references`: 34583
+- warning review 文件均只有表头，当前没有导入 warning 明细。
+- 已确认无以下问题：
+  - orphan relation：0
+  - 重复 relation：0
+  - active 空标题或 `...` / `…` 占位标题：0
+  - active `work_function` 无编码：0
+  - active `work_function` 未分组：0
+  - active 能力目录节点未挂接：0
+  - active item 缺 source reference：0
+  - relation 缺 source reference：0
+
+新发现或仍未修复的数据问题：
+
+- `OI-017` 仍待确认：`安全技术模块清单` 中存在疑似数字标题对象：
+  - `security_system` 标题 `29`，来源 `安全技术模块清单!C384:C403`
+  - `security_technology_module` 标题 `98`，来源 `安全技术模块清单!D384:D403`
+- 新增 `OI-027`：active 数据中存在同编码多对象：
+  - `security_technical_service`：23 组重复编码，涉及 49 个 active 对象
+  - `security_policy_requirement`：2 组重复编码，涉及 4 个 active 对象
+- 新增 `OI-028`：正式关系表中仍有 212 条关系指向 deprecated 对象：
+  - `stakeholder_by`：190 条
+  - `belongs_to_layer`：22 条
+
+处理动作：
+
+- 更新 `docs/06-implementation/open-issues.md`：
+  - 扩展 `OI-017`，把 `29` 和 `98` 一并纳入数字标题对象复核；
+  - 新增 `OI-027`；
+  - 新增 `OI-028`。
+
+当前判断：
+
+- 当前导入流程没有新的 parser validation 错误。
+- 仍有 3 个数据类问题需要后续确认或修复：`OI-017`、`OI-027`、`OI-028`。
+- `OI-018`、`OI-019`、`OI-020`、`OI-021` 主要是前端展示或用户确认事项，本轮不继续处理。
+
+## 2026-05-11 Issue 口径修正与已映射表业务复核清单
+
+用户补充确认：
+
+- `OI-017` 中 `安全技术模块清单` C 列 `29` 和 D 列 `98` 是统计和，不是安全系统或安全技术模块。
+- `OI-027` 中，同一个安全技术服务可以映射到同一个安全系统，服务-系统多对多关系本身是正确业务逻辑。
+- `OI-028` 需要举例说明具体是哪部分历史关系。
+- 后续每建模或导入一张原始表前，都必须先确认业务含义、主键、与其他表的关系，以及一对多/多对一/多对多关系。
+- 已经完成映射的原始表，也需要再做一次业务确认，以便前端逻辑设计和展示。
+
+已完成：
+
+- 修正 `src/sapd_wiki/parsers.py`：
+  - `安全技术模块清单` 中 C / D 列为纯数字统计值时，整行跳过；
+  - 不再生成 `security_system 29` 或 `security_technology_module 98`；
+  - 避免统计行沿用上一行 fill-down 值。
+- 备份数据库：
+  - `data/database/backups/sapd_wiki-before-oi017-summary-skip-20260511.sqlite3`
+- 重新 stage / approve 核心 Sheet：
+  - import job `19e73f99-564d-4e70-907c-8479b971b0a6`
+  - `validations: []`
+  - `warnings: []`
+  - `items_deprecated: 2`
+- 重新导出：
+  - `frontend/capability-browser/public/data/capability-tree.json`
+  - `frontend/capability-browser/public/data/management-knowledge.json`
+  - `frontend/capability-browser/public/data/lifecycle-knowledge.json`
+  - `frontend/capability-browser/public/data/content-views.json`
+  - `data/exports/items-latest/knowledge-items.*`
+  - `data/exports/relations-latest/knowledge-relations.*`
+- 新增 `docs/03-import-etl/completed-sheet-business-confirmation.md`：
+  - 覆盖第一批核心 Sheet、第二批管理与职能 Sheet、第三批生命周期 Sheet；
+  - 列出每张表的业务含义、当前对象、主键/稳定身份、关系基数和待确认问题。
+- 更新 `docs/07-governance/data-governance.md`：
+  - 新增“原始表建模确认规则”。
+- 更新 `docs/06-implementation/open-issues.md`：
+  - `OI-017` 改为 `已修复`；
+  - `OI-027` 补充 `security_policy_requirement` 来源说明；
+  - `OI-028` 补充具体历史关系示例。
+- 更新 `task_plan.md`：
+  - 增加已完成映射 Sheet 业务确认清单任务。
+
+验证结果：
+
+- SQLite 查询确认 `security_system 29` 和 `security_technology_module 98` 均为 `deprecated`。
+- `management-knowledge.json` 中 active `security_technology_modules` 为 165。
+- `python -m compileall src` 通过。
+- `node --check frontend/capability-browser/app.js` 通过。
+- `git diff --check` 通过。
+
+仍待用户确认：
+
+- `security_policy_requirement` 中 `LC-AP 应用安全开发生命周期!G6` 的原始编号 `14.`、`15.` 各出现两次，是否需要修源表编号，还是允许前端显示复合标识。
+- 安全技术服务编码是否全局唯一；如果不是，需要确认服务主键是否为 `作用域 + 能力关注点 + 服务编码 + 标题` 或其他复合键。
+- deprecated 对象的历史关系是否应从通用全量导出默认隐藏，或保留为历史审计数据。
+
+## 2026-05-11 第一批业务表确认、源数据复导与剩余数据问题收口
+
+用户补充确认：
+
+- `OI-027` 中 `LC-AP` 策略要求重复编号是源数据错误，已把第二个 `14`、`15` 修正为 `16`、`17`，最后一个值修正为 `18`。
+- `OI-028` 按最合理方式处理：数据库保留历史，默认关系导出只导出 active 端点关系，审计时单独导出历史关系。
+- 第一批 6 张表的业务含义、主键和关系基数已确认：
+  - `安全能力目录` / `安全能力-关注点` 是后续映射基础；
+  - `安全能力作用域目录` 是作用域主数据来源，按原表样式展示；
+  - `信息化环境-信息化对象-安全作用域映射` 是环境 -> 对象 -> 作用域的 1:N 关系；
+  - `安全能力-安全技术服务` 表达不同作用域下关注点具备的安全技术服务，服务编码全局唯一；
+  - `安全技术模块清单` 是系统分类 -> 系统 -> 模块主数据，模块与服务/产品为 N:M；
+  - `作用域-安全技术服务-安全技术模块映射` 是对象/作用域 -> 服务 -> 模块 -> 系统/产品的连续映射。
+
+已完成：
+
+- 更新 `docs/03-import-etl/completed-sheet-business-confirmation.md`：
+  - 将第一批 6 张表改为已确认业务口径；
+  - 新增第一批前端展示口径；
+  - 把 `LC-AP` 策略重复编号、deprecated 关系导出、专项维护页展示口径纳入已确认事项。
+- 更新 `docs/07-governance/data-governance.md`：
+  - 补充安全技术服务编码全局唯一规则；
+  - 补充前端默认不展示来源行列，优先展示业务关系和关系链路。
+- 修正代码：
+  - `src/sapd_wiki/parsers.py` 跳过 `安全技术模块清单` C/D 列纯数字统计值，并支持 `LC-AP` 无标点编号如 `16 应定期...`；
+  - `src/sapd_wiki/transformers.py` 支持把 `I-AP&AD.SA-01` 规范为 `I-AP&T-AD.SA-01`；
+  - `src/sapd_wiki/candidates.py` 将 `security_technical_service` 设为编码唯一对象；
+  - `src/sapd_wiki/exports.py` 与 `src/sapd_wiki/cli.py` 增加 active 端点默认关系导出和 `--include-deprecated` 审计开关。
+- 备份数据库：
+  - `data/database/backups/sapd_wiki-before-oi017-summary-skip-20260511.sqlite3`
+  - `data/database/backups/sapd_wiki-before-first-batch-confirmation-20260511.sqlite3`
+- 重新导入并审批：
+  - 核心 Sheet import job `0762309c-1d65-4ae0-9619-1c01a375ce48`，`validations: []`，`warnings: []`；
+  - 第三批 `LC-AP` import job `83424e80-d875-4b97-bba9-8753bd0dc16b`，`validations: []`，`warnings: []`。
+- 重新导出：
+  - `frontend/capability-browser/public/data/capability-tree.json`
+  - `frontend/capability-browser/public/data/management-knowledge.json`
+  - `frontend/capability-browser/public/data/lifecycle-knowledge.json`
+  - `frontend/capability-browser/public/data/content-views.json`
+  - `data/exports/items-latest/knowledge-items.*`
+  - `data/exports/relations-latest/knowledge-relations.*`
+  - `data/exports/relations-with-history-latest/knowledge-relations.*`
+- 更新 `docs/06-implementation/open-issues.md`：
+  - `OI-017`：已修复，C/D 列数字统计值不再生成 active 对象；
+  - `OI-027`：策略编号重复已修复，安全技术服务 active 同编码多对象已清零；仍保留同编码不同标题的源数据冲突报告待用户核对；
+  - `OI-028`：已修复，默认关系导出只含 active 端点；
+  - `OI-029`：新增信息化对象同名 active 对象问题，等待用户核对。
+
+验证结果：
+
+- `security_system 29` 和 `security_technology_module 98` 已为 `deprecated`。
+- active `security_policy_requirement` 重复编码组数为 0。
+- active 同编码多对象数量为 0。
+- 默认 active 端点关系导出为 4615 条；含历史审计关系导出为 6648 条。
+- `data/exports/data-quality/security-technical-service-code-conflicts.csv`：22 个冲突编码，284 条来源记录。
+- `data/exports/data-quality/security-technical-service-code-conflict-summary.csv` / `.md`：已把 284 条明细压缩成 22 行人工核对表。
+- `data/exports/data-quality/information-object-duplicate-titles.csv`：8 组同名 active `information_object`，24 个对象，89 行来源记录。
+
+仍待用户确认：
+
+- `OI-027` 中安全技术服务同编码不同标题的源数据冲突，需核对 `data/exports/data-quality/security-technical-service-code-conflicts.csv`。
+- `OI-029` 中同名信息化对象是否为源数据错误、对象分类字段误用，还是允许跨环境复用，需核对 `data/exports/data-quality/information-object-duplicate-titles.csv`。
+
+## 2026-05-12 OI-027 权威来源规则落地与复导
+
+用户补充确认：
+
+- 原始 Excel 已修正。
+- `安全能力-安全技术服务` 中的安全技术服务编号和名称是准确值。
+- 同编码服务在其他表中出现时，只表示映射关系，不应覆盖标准服务名称。
+
+已完成：
+
+- 备份数据库：
+  - `data/database/backups/sapd_wiki-before-oi027-authoritative-service-reimport-20260512-002207.sqlite3`
+- 修正 ETL：
+  - `security_technical_service` 继续按编码全局唯一；
+  - `安全技术模块清单`、`作用域-安全技术服务-安全技术模块映射`、`LC-DT 数据生命周期` 中同编码服务统一取 `安全能力-安全技术服务` 的标准名称；
+  - 新增服务名称规范化，重复尾部括号只保留一次，例如 `（签名验签）（签名验签）` 规范为 `（签名验签）`。
+- 重新导入并审批：
+  - 核心 Sheet import job `c00c291f-4682-4a1a-8862-91cd0fe1a570`，`validations: []`，`warnings: []`；
+  - 第三批 import job `79a17f64-3790-469b-b72e-5af72de1985b`，`validations: []`，`warnings: []`。
+- 重新导出：
+  - `frontend/capability-browser/public/data/capability-tree.json`
+  - `frontend/capability-browser/public/data/management-knowledge.json`
+  - `frontend/capability-browser/public/data/lifecycle-knowledge.json`
+  - `frontend/capability-browser/public/data/content-views.json`
+  - `data/exports/items-latest/knowledge-items.*`
+  - `data/exports/relations-latest/knowledge-relations.*`
+  - `data/exports/relations-with-history-latest/knowledge-relations.*`
+  - `data/exports/import-review-latest/import-result-report-c00c291f.md`
+  - `data/exports/import-review-latest/import-result-report-79a17f64.md`
+- 更新文档：
+  - `docs/06-implementation/open-issues.md` 中 `OI-027` 改为 `已修复`；
+  - `docs/07-governance/data-governance.md` 增加安全技术服务权威来源规则；
+  - `docs/03-import-etl/completed-sheet-business-confirmation.md` 更新第一批确认口径；
+  - `task_plan.md` 更新最新导入任务和数据库统计。
+
+验证结果：
+
+- active `security_technical_service` 同编码多对象数量为 0。
+- active `security_policy_requirement` 重复编码组数量为 0。
+- 抽查标准名称已正确：
+  - `I-AP&T-AS.CG-02` -> `应用程序完整性校验（含操作签名验签）`
+  - `I-AP&T-PD.TP-02` -> `应用异常特征检测（API、Web应用）`
+  - `I-DI&T-AS.CG-02` -> `数据完整性校验（签名验签）`
+  - `I-NT&T-AD.SA-01` -> `网络高级威胁检测（启发式、行为式）`
+  - `I-OS&T-AS.DS-03` -> `组件安全管理`
+- `data/exports/data-quality/security-technical-service-code-conflict-summary.md` 结论为已修复，冲突记录数为 0。
+
+仍待确认：
+
+- `OI-029` 信息化对象同名 active 对象仍待用户核对。
+
+## 2026-05-12 OI-029 信息化对象两表一致性检查
+
+用户补充确认：
+
+- `信息化环境-信息化对象-安全作用域映射` 和 `作用域-安全技术服务-安全技术模块映射` 中的信息化对象应使用同一套主数据。
+- 用户已确认两张表里的信息化对象数据现在应该一致。
+
+检查结果：
+
+- 按最新原始 Excel 正确列位解析：
+  - `B=信息化环境`
+  - `C=环境分段/子类`
+  - `D=信息化对象`
+  - `E=作用域`
+  - `F=安全技术服务`
+- 两张表均为 754 条有效业务行。
+- 两张表均为 66 个 `信息化环境/环境分段/信息化对象` 三元组。
+- 两张表均为 49 个唯一信息化对象名称。
+- 对象名称集合差异为 0。
+- 三元组集合差异为 0。
+- `对象 + 作用域 + 安全技术服务` 组合差异为 0。
+
+结论：
+
+- 原始数据当前没有发现两表不一致问题。
+- `OI-029` 根因转为 ETL 规则问题：
+  - `信息化环境-信息化对象-安全作用域映射` parser 仍按旧列位读取；
+  - `information_object` 当前仍按环境/分段拆分对象身份；
+  - 应修正为两张表共用 `information_object` 主数据，按对象名称全局去重。
+
+已更新：
+
+- `docs/06-implementation/open-issues.md` 中 `OI-029` 状态改为 `处理中`，并记录最新根因和验证结果。
+
+## 2026-05-12 OI-029 ETL 修复与复导
+
+已完成：
+
+- 修正 `src/sapd_wiki/parsers.py`：
+  - `信息化环境-信息化对象-安全作用域映射` 改为按当前源表列位读取：`B=信息化环境`、`C=环境分段/子类`、`D=信息化对象`、`E=作用域`、`F=安全技术服务`；
+  - `信息化环境-信息化对象-安全作用域映射` 中的安全技术服务也生成 `protects_object` 与 `applies_to_scope` 关系；
+  - `信息化环境-信息化对象-安全作用域映射` 与 `作用域-安全技术服务-安全技术模块映射` 共用 `information_object` 主数据；
+  - `information_object` 按对象名称全局去重，环境/分段不再参与对象主键。
+- 备份数据库：
+  - `data/database/backups/sapd_wiki-before-oi029-information-object-etl-20260512.sqlite3`
+- 重新导入核心 Sheet：
+  - import job `7ac14b99-3827-46e1-9e3b-aa557ed637b7`
+  - `validations: []`
+  - `warnings: []`
+  - `items_created: 49`
+  - `items_updated: 626`
+  - `items_deprecated: 100`
+  - `relations_created: 686`
+- 重新导出：
+  - `frontend/capability-browser/public/data/capability-tree.json`
+  - `frontend/capability-browser/public/data/management-knowledge.json`
+  - `frontend/capability-browser/public/data/lifecycle-knowledge.json`
+  - `frontend/capability-browser/public/data/content-views.json`
+  - `data/exports/items-latest/knowledge-items.*`
+  - `data/exports/relations-latest/knowledge-relations.*`
+  - `data/exports/relations-with-history-latest/knowledge-relations.*`
+  - `data/exports/import-review-latest/import-result-report-7ac14b99.md`
+  - `data/exports/data-quality/information-object-duplicate-titles.csv`
+  - `data/exports/data-quality/information-object-duplicate-titles.md`
+- 更新文档：
+  - `docs/06-implementation/open-issues.md` 中 `OI-029` 改为 `已修复`；
+  - `docs/07-governance/data-governance.md` 补充 `information_object` 主数据规则；
+  - `docs/03-import-etl/completed-sheet-business-confirmation.md` 更新两张信息化对象表的业务口径；
+  - `task_plan.md` 更新最新导入任务和数据库统计。
+
+验证结果：
+
+- active `information_object` 数量为 49。
+- active `information_object` distinct title 数量为 49。
+- active 同名 `information_object` 重复数量为 0。
+- `information-object-duplicate-titles.csv` 仅剩表头。
+- `management-knowledge.json` 统计：
+  - `information_environments: 10`
+  - `information_objects: 66`
+  - `environment_scope_mappings: 96`
+  - `environment_service_mappings: 1256`
+  - `environment_module_mappings: 4895`
+
+说明：
+
+- `management-knowledge.json` 中 `information_objects: 66` 是按环境/分段展示的对象条目数，不是主数据条数；主数据条数以数据库 active `information_object = 49` 为准。
+
+## 2026-05-12 后端接口边界与前端重构调度
+
+用户要求主控 Agent review 当前进度和计划，并明确前后端分离：后端逻辑和接口架构需要形成设计文档，前端则参考用户提供的 `chatgpt ui code.md` 与 `impeccable` 设计原则继续重构。
+
+已完成：
+
+- 阅读当前计划、问题和前端任务文档：
+  - `task_plan.md`
+  - `findings.md`
+  - `docs/06-implementation/open-issues.md`
+  - `docs/04-frontend/frontend-redesign-brief.md`
+  - `docs/04-frontend/frontend-information-architecture.md`
+  - `frontend/capability-browser/README.md`
+  - `frontend/capability-browser/index.html`
+  - `frontend/capability-browser/styles.css`
+  - `frontend/capability-browser/app.js`
+- 新增 `docs/01-architecture/backend-interface-design.md`：
+  - 明确后端负责来源登记、ETL、标准化、主数据、关系生成、校验、staging、正式入库、查询投影和导出；
+  - 明确前端负责页面导航、树/表格/矩阵/关系链/详情面板、筛选、拖拽调宽和交互；
+  - 明确当前静态 JSON 是 MVP API 契约，后续本地 `/api/v1/*` 应保持同一语义；
+  - 定义能力维度、信息化环境维度、专项知识维护、生命周期、内容视图、导入审查、数据质量和导出接口方向；
+  - 明确前端默认不展示来源证据，来源只用于审计和数据排查。
+- 更新 `docs/01-architecture/architecture.md`：
+  - 增加后端逻辑边界和前后端接口契约入口，指向 `docs/01-architecture/backend-interface-design.md`。
+- 更新 `task_plan.md`：
+  - 新增 `Phase 5 Backend/Frontend Separation Tasks`；
+  - 更新下一步推荐工作为“接口契约固化 -> 能力维度关系页重构 -> 主控验收 -> 已导入 Sheet 业务复核”。
+- 更新 `docs/06-implementation/open-issues.md`：
+  - `OI-018` 补充后端接口设计文档和当前前端重构处理方式；
+  - `OI-024` 补充同一阶段优先复用同一个 Frontend Design Agent 的执行规则。
+
+Agent 管理修正：
+
+- 本轮已启动的 `Herschel` 固定作为 Frontend Design Agent，负责 `frontend/capability-browser/` 前端重构。
+- 主控 Agent 不再启动新的前端 Agent，不因短等待窗口未返回就判断 Agent 失效。
+- 主控 Agent 当前只负责接口文档、计划/issue 同步和最终验收，不并行改同一批前端文件。
+
+下一步：
+
+- 等待并验收 `Herschel` 的前端输出；
+- 验收重点是是否参考 `chatgpt ui code.md` 做到关系工作台，而不是卡片墙；
+- 若前端需要新增数据字段，由主控先调整后端 JSON/API 契约，再交给 ETL/Data 线处理。
+
+验证结果：
+
+- `git diff --check` 通过。
+
+## 2026-05-12 Frontend Design Agent 输出验收
+
+`Herschel` 已完成前端重构并回报，实际修改范围只包含：
+
+- `frontend/capability-browser/index.html`
+- `frontend/capability-browser/styles.css`
+- `frontend/capability-browser/app.js`
+- `frontend/capability-browser/README.md`
+
+主控验收结果：
+
+- 未发现 `Herschel` 修改 `src/`、`docs/`、`data/`、`task_plan.md`、`progress.md`、`open-issues.md`。
+- 前端从顶部横向 tab 改为左侧主导航，保留 7 个页面入口。
+- 能力维度强化为树、矩阵、关系链和窄详情面板。
+- 能力关系矩阵新增表头筛选和列宽拖拽。
+- 保留既有区域拖拽、专项表格筛选、专项表格列宽拖拽和静态 JSON 加载方式。
+- `impeccable` 项目内 `.agents` loader 不存在，前端 Agent 按 fallback 使用其产品 UI 原则继续执行。
+
+验证结果：
+
+- `node --check frontend/capability-browser/app.js` 通过。
+- `git diff --check` 通过。
+- `rg -n "来源|sourceSummary|source evidence|Source" frontend/capability-browser/index.html frontend/capability-browser/app.js frontend/capability-browser/styles.css` 无命中。
+- 旧 `8000` 端口存在不可访问的 Python 监听，主控未杀进程，改用 `8001` 启动新的本地静态服务。
+- 当前预览地址：`http://127.0.0.1:8001/`
+- 以同权限层验证：
+  - `http://127.0.0.1:8001/` 返回 HTTP 200；
+  - `http://127.0.0.1:8001/styles.css` 返回 HTTP 200；
+  - `http://127.0.0.1:8001/app.js` 返回 HTTP 200；
+  - `http://127.0.0.1:8001/public/data/capability-tree.json` 返回 HTTP 200。
+
+问题状态更新：
+
+- `OI-018` 从 `处理中` 改为 `待确认`，等待用户浏览确认前端关系工作台方向。
+
+Agent 管理说明：
+
+- 主控未关闭 `Herschel`。
+- 用户界面如仍显示 `Herschel` 执行中，以子 Agent 回报和主控 wait 结果为准：本轮任务已完成；本地服务进程不等同于子 Agent 仍在编码。
+
+## 2026-05-12 字段级 API 契约与前端设计文档同步
+
+用户要求生成完整接口文档，并明确接口字段；随后要求接口文档完成后同步 GitHub，同时确认前后端分离后前端设计文档是否有更新。
+
+已完成：
+
+- 新增 `docs/01-architecture/api-field-contract.md`：
+  - 定义通用响应结构、错误响应、通用对象字段、来源字段、校验问题字段；
+  - 定义当前静态 JSON 与未来 `/api/v1/*` 接口的对应关系；
+  - 定义系统状态、能力维度、信息化环境维度、专项知识维护、标准与岗位参考、生命周期、内容视图、导入、数据质量和导出接口字段；
+  - 定义字段成熟度和前端接入规则；
+  - 明确下一步先建立前端 `dataClient`，再继续扩展页面。
+- 更新 `docs/01-architecture/backend-interface-design.md`：
+  - 增加字段级契约入口，说明字段以 `api-field-contract.md` 为准。
+- 更新 `docs/04-frontend/frontend-redesign-brief.md`：
+  - 明确前端必须以 `backend-interface-design.md` 和 `api-field-contract.md` 为数据边界；
+  - 明确页面组件通过 `dataClient` 消费字段契约；
+  - 明确前端不得自行合并对象、纠正编码或推断主数据；
+  - 明确来源字段默认不展示。
+- 更新 `docs/04-frontend/frontend-information-architecture.md`：
+  - 新增“前后端分离后的数据接入方式”；
+  - 明确当前 MVP 为 `public/data/*.json -> dataClient -> 页面组件`；
+  - 明确未来本地 API 为 `/api/v1/* -> dataClient -> 页面组件`；
+  - 将来源证据调整为导入审查、数据质量排查或调试模式下查看，不作为默认业务页面字段。
+- 更新 `task_plan.md`：
+  - 将字段级 API 契约和前端设计文档同步纳入 Phase 5 已完成任务。
+
+回答用户问题：
+
+- 前端设计文档已经同步更新。
+- 更新文件为：
+  - `docs/04-frontend/frontend-redesign-brief.md`
+  - `docs/04-frontend/frontend-information-architecture.md`
+
+下一步：
+
+- 运行文档和脚本验证；
+- 统一提交并推送到 GitHub。

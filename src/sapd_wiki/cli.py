@@ -328,7 +328,13 @@ def cmd_export_relations(args: argparse.Namespace) -> int:
     db_path = resolve_project_path(args.db)
     run_migrations(db_path)
     with connect(db_path) as conn:
-        result = export_relations(conn, output_dir=args.output_dir, relation_type=args.type, fmt=args.format)
+        result = export_relations(
+            conn,
+            output_dir=args.output_dir,
+            relation_type=args.type,
+            fmt=args.format,
+            include_deprecated=args.include_deprecated,
+        )
     _print_export_result(result)
     return 0
 
@@ -508,6 +514,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     export_relations_cmd = subparsers.add_parser("export-relations", help="Export knowledge relations to CSV/JSON.")
     export_relations_cmd.add_argument("--type", help="Filter by relation type.")
+    export_relations_cmd.add_argument(
+        "--include-deprecated",
+        action="store_true",
+        help="Include relations whose source or target item is deprecated. Defaults to active endpoints only.",
+    )
     export_relations_cmd.add_argument(
         "--format",
         choices=["csv", "json", "all"],

@@ -8,7 +8,14 @@ from .assets import extract_excel_sheet_images
 from .candidates import ObjectCandidate, ParseResult, RelationCandidate, SourceRef, ValidationMessage, item_key, normalize_text
 from .excel_reader import _load_openpyxl
 from .paths import resolve_project_path
-from .transformers import is_blank_or_placeholder, service_parts, split_code_title, split_multivalue_text, split_scope_values
+from .transformers import (
+    is_blank_or_placeholder,
+    normalize_service_title,
+    service_parts,
+    split_code_title,
+    split_multivalue_text,
+    split_scope_values,
+)
 
 
 def _source(sheet: str, row: int, column: str | None, cell: str | None, raw_value: object) -> SourceRef:
@@ -23,6 +30,11 @@ def _source(sheet: str, row: int, column: str | None, cell: str | None, raw_valu
 
 def _coord(cell: object) -> str | None:
     return getattr(cell, "coordinate", None)
+
+
+def _is_numeric_summary_value(value: object) -> bool:
+    text = normalize_text(value)
+    return bool(re.fullmatch(r"\d+(?:\.\d+)?", text))
 
 
 def _object(
@@ -228,7 +240,7 @@ def parse_service_sheet(workbook) -> ParseResult:
             header_code, header_title = scope_headers[col]
             parts = service_parts(cell.value, fallback_scope_code=header_code, fallback_focus_code=focus_code)
             service_code = parts["code"]
-            service_title = parts["title"] or normalize_text(cell.value)
+            service_title = normalize_service_title(parts["title"] or normalize_text(cell.value))
             scope_code = parts["scope_code"] or header_code
             scope_title = "全部作用域" if scope_code == "ALL" else (header_title or scope_code or "")
             if not service_code:
@@ -264,7 +276,45 @@ def parse_service_sheet(workbook) -> ParseResult:
     return result
 
 
-def parse_module_sheet(workbook) -> ParseResult:
+def _build_authoritative_service_titles(workbook) -> dict[str, str]:
+    sheet_name = "安全能力-安全技术服务"
+    if sheet_name not in workbook.sheetnames:
+        return {}
+    ws = workbook[sheet_name]
+    titles: dict[str, str] = {}
+    scope_headers: dict[int, tuple[str | None, str]] = {}
+    for col in range(7, 14):
+        scope_headers[col] = split_code_title(ws.cell(row=3, column=col).value)
+
+    for row_index, row in enumerate(ws.iter_rows(min_row=4), start=4):
+        focus_code = normalize_text(row[4].value)
+        if not focus_code:
+            continue
+        for col in range(7, 14):
+            cell = row[col - 1]
+            if is_blank_or_placeholder(cell.value):
+                continue
+            header_code, _header_title = scope_headers[col]
+            parts = service_parts(cell.value, fallback_scope_code=header_code, fallback_focus_code=focus_code)
+            service_code = parts["code"]
+            if not service_code:
+                continue
+            titles[service_code] = normalize_service_title(parts["title"] or normalize_text(cell.value))
+    return titles
+
+
+def _service_title(
+    parts: dict[str, str | None],
+    raw_value: object,
+    authoritative_service_titles: dict[str, str] | None = None,
+) -> str:
+    code = parts.get("code")
+    if code and authoritative_service_titles and code in authoritative_service_titles:
+        return authoritative_service_titles[code]
+    return normalize_service_title(parts.get("title") or normalize_text(raw_value))
+
+
+def parse_module_sheet(workbook, authoritative_service_titles: dict[str, str] | None = None) -> ParseResult:
     sheet_name = "安全技术模块清单"
     ws = workbook[sheet_name]
     result = ParseResult()
@@ -274,6 +324,8 @@ def parse_module_sheet(workbook) -> ParseResult:
     last_definition = ""
     last_product = ""
     for row_index, row in enumerate(ws.iter_rows(min_row=3), start=3):
+        if _is_numeric_summary_value(row[2].value) or _is_numeric_summary_value(row[3].value):
+            continue
         if normalize_text(row[1].value):
             last_category = normalize_text(row[1].value)
         if normalize_text(row[2].value):
@@ -307,7 +359,7 @@ def parse_module_sheet(workbook) -> ParseResult:
             parts = service_parts(service_raw)
             service = _object(
                 "security_technical_service",
-                parts["title"] or normalize_text(service_raw),
+                _service_title(parts, service_raw, authoritative_service_titles),
                 code=parts["code"],
                 category=parts["scope_code"],
                 metadata={"scope_code": parts["scope_code"], "capability_focus_code": parts["capability_focus_code"]},
@@ -318,7 +370,7 @@ def parse_module_sheet(workbook) -> ParseResult:
     return result
 
 
-def parse_scene_sheet(workbook) -> ParseResult:
+def parse_scene_sheet(workbook, authoritative_service_titles: dict[str, str] | None = None) -> ParseResult:
     sheet_name = "作用域-安全技术服务-安全技术模块映射"
     ws = workbook[sheet_name]
     result = ParseResult()
@@ -348,8 +400,7 @@ def parse_scene_sheet(workbook) -> ParseResult:
         info_obj = _object(
             "information_object",
             last_object,
-            qualifier=last_segment or last_environment,
-            metadata={"environment": last_environment, "environment_segment": last_segment},
+            metadata={"source_role": "information_object"},
             source=_source(sheet_name, row_index, "信息化对象", _coord(row[3]), last_object),
         )
         result.objects.append(env)
@@ -375,7 +426,7 @@ def parse_scene_sheet(workbook) -> ParseResult:
             parts = service_parts(service_raw)
             service = _object(
                 "security_technical_service",
-                parts["title"] or normalize_text(service_raw),
+                _service_title(parts, service_raw, authoritative_service_titles),
                 code=parts["code"],
                 category=parts["scope_code"],
                 metadata={"scope_code": parts["scope_code"], "capability_focus_code": parts["capability_focus_code"]},
@@ -400,20 +451,28 @@ def parse_scene_sheet(workbook) -> ParseResult:
     return result
 
 
-def parse_environment_scope_sheet(workbook) -> ParseResult:
+def parse_environment_scope_sheet(workbook, authoritative_service_titles: dict[str, str] | None = None) -> ParseResult:
     sheet_name = "信息化环境-信息化对象-安全作用域映射"
     ws = workbook[sheet_name]
     result = ParseResult()
     last_environment = ""
+    last_segment = ""
+    last_object = ""
+    last_scopes = ""
     for row_index, row in enumerate(ws.iter_rows(min_row=3), start=3):
         if _cell_text(row, 1):
             last_environment = _cell_text(row, 1)
-        object_title = _cell_text(row, 2)
-        scopes_raw = _cell_raw(row, 3)
-        if not object_title:
+        if _cell_text(row, 2):
+            last_segment = _cell_text(row, 2)
+        if _cell_text(row, 3):
+            last_object = _cell_text(row, 3)
+        if _cell_text(row, 4):
+            last_scopes = _cell_raw(row, 4)
+        service_raw = _cell_raw(row, 5)
+        if not last_object:
             continue
         if not last_environment:
-            result.validations.append(ValidationMessage("error", sheet_name, row_index, f"信息化对象缺少信息化环境：{object_title}"))
+            result.validations.append(ValidationMessage("error", sheet_name, row_index, f"信息化对象缺少信息化环境：{last_object}"))
             continue
         environment = _object(
             "information_environment",
@@ -421,16 +480,31 @@ def parse_environment_scope_sheet(workbook) -> ParseResult:
             metadata={"display_order": row_index},
             source=_source(sheet_name, row_index, "信息化环境", _coord(row[1]), _cell_raw(row, 1) or last_environment),
         )
+        segment = None
+        if last_segment:
+            segment = _object(
+                "environment_segment",
+                last_segment,
+                qualifier=last_environment,
+                metadata={"information_environment": last_environment, "display_order": row_index},
+                source=_source(sheet_name, row_index, "环境分段", _coord(row[2]), _cell_raw(row, 2) or last_segment),
+            )
         information_object = _object(
             "information_object",
-            object_title,
-            qualifier=last_environment,
-            metadata={"information_environment": last_environment, "display_order": row_index},
-            source=_source(sheet_name, row_index, "信息化对象", _coord(row[2]), _cell_raw(row, 2)),
+            last_object,
+            metadata={"source_role": "information_object", "display_order": row_index},
+            source=_source(sheet_name, row_index, "信息化对象", _coord(row[3]), _cell_raw(row, 3) or last_object),
         )
         result.objects.extend([environment, information_object])
-        result.relations.append(_relation(information_object.key, "belongs_to", environment.key, "属于信息化环境", source=information_object.sources[0]))
-        for scope_code, scope_title in split_scope_values(scopes_raw):
+        if segment:
+            result.objects.append(segment)
+            result.relations.append(_relation(segment.key, "belongs_to", environment.key, "属于信息化环境", source=segment.sources[0]))
+            result.relations.append(_relation(information_object.key, "belongs_to", segment.key, "属于环境分段", source=information_object.sources[0]))
+        else:
+            result.relations.append(_relation(information_object.key, "belongs_to", environment.key, "属于信息化环境", source=information_object.sources[0]))
+
+        scope_objects: list[ObjectCandidate] = []
+        for scope_code, scope_title in split_scope_values(last_scopes):
             if not scope_code and not scope_title:
                 continue
             scope = _object(
@@ -438,10 +512,26 @@ def parse_environment_scope_sheet(workbook) -> ParseResult:
                 scope_title or scope_code or "",
                 code=scope_code,
                 metadata={"display_order": row_index},
-                source=_source(sheet_name, row_index, "安全能力作用域", _coord(row[3]), scopes_raw),
+                source=_source(sheet_name, row_index, "安全能力作用域", _coord(row[4]), last_scopes),
             )
             result.objects.append(scope)
+            scope_objects.append(scope)
             result.relations.append(_relation(information_object.key, "applies_to_scope", scope.key, "适用于作用域", source=scope.sources[0]))
+
+        if not is_blank_or_placeholder(service_raw):
+            parts = service_parts(service_raw)
+            service = _object(
+                "security_technical_service",
+                _service_title(parts, service_raw, authoritative_service_titles),
+                code=parts["code"],
+                category=parts["scope_code"],
+                metadata={"scope_code": parts["scope_code"], "capability_focus_code": parts["capability_focus_code"]},
+                source=_source(sheet_name, row_index, "安全技术服务", _coord(row[5]), service_raw),
+            )
+            result.objects.append(service)
+            result.relations.append(_relation(service.key, "protects_object", information_object.key, "作用于信息化对象", source=service.sources[0]))
+            for scope in scope_objects:
+                result.relations.append(_relation(service.key, "applies_to_scope", scope.key, "适用于作用域", source=service.sources[0]))
     return result
 
 
@@ -517,7 +607,7 @@ def _split_numbered_items(value: object) -> list[tuple[str, str]]:
     text = str(value or "").replace("\xa0", " ").strip()
     if is_blank_or_placeholder(text):
         return []
-    matches = list(re.finditer(r"(?m)(\d+)[.．、]\s*", text))
+    matches = list(re.finditer(r"(?m)^\s*(\d+)(?:[.．、]|\s+)\s*", text))
     if not matches:
         normalized = normalize_text(text)
         return [("1", normalized)] if normalized else []
@@ -932,7 +1022,7 @@ def parse_gartner_role_reference_sheet(workbook) -> ParseResult:
     return result
 
 
-def parse_data_lifecycle_sheet(workbook) -> ParseResult:
+def parse_data_lifecycle_sheet(workbook, authoritative_service_titles: dict[str, str] | None = None) -> ParseResult:
     sheet_name = "LC-DT 数据生命周期"
     ws = workbook[sheet_name]
     result = ParseResult()
@@ -955,7 +1045,7 @@ def parse_data_lifecycle_sheet(workbook) -> ParseResult:
             parts = service_parts(service_raw)
             service = _object(
                 "security_technical_service",
-                parts["title"] or service_raw,
+                _service_title(parts, service_raw, authoritative_service_titles),
                 code=parts["code"],
                 category=parts["scope_code"],
                 metadata={
@@ -1193,8 +1283,9 @@ def parse_third_batch_sheets(path: str | Path, sheets: list[str] | None = None) 
     workbook = _load_workbook(path)
     try:
         result = ParseResult()
+        authoritative_service_titles = _build_authoritative_service_titles(workbook)
         parsers = {
-            "LC-DT 数据生命周期": parse_data_lifecycle_sheet,
+            "LC-DT 数据生命周期": lambda wb: parse_data_lifecycle_sheet(wb, authoritative_service_titles),
             "LC-DT 数据生命周期场景目录": parse_data_lifecycle_scene_sheet,
             "LC-AP 应用安全开发生命周期": parse_application_security_lifecycle_sheet,
             "LC-AP 应用安全开发生命周期元素目录": parse_application_lifecycle_element_sheet,
@@ -1221,19 +1312,29 @@ def parse_core_sheets(path: str | Path, sheets: list[str] | None = None) -> Pars
     parsers = {
         "安全能力目录": parse_capability_sheet,
         "安全能力作用域目录": parse_scope_sheet,
-        "信息化环境-信息化对象-安全作用域映射": parse_environment_scope_sheet,
+        "信息化环境-信息化对象-安全作用域映射": None,
         "安全能力-安全技术服务": parse_service_sheet,
-        "安全技术模块清单": parse_module_sheet,
-        "作用域-安全技术服务-安全技术模块映射": parse_scene_sheet,
+        "安全技术模块清单": None,
+        "作用域-安全技术服务-安全技术模块映射": None,
     }
     workbook = _load_workbook(path)
     try:
         result = ParseResult()
+        authoritative_service_titles = _build_authoritative_service_titles(workbook)
+        parsers["信息化环境-信息化对象-安全作用域映射"] = (
+            lambda wb: parse_environment_scope_sheet(wb, authoritative_service_titles)
+        )
+        parsers["安全技术模块清单"] = lambda wb: parse_module_sheet(wb, authoritative_service_titles)
+        parsers["作用域-安全技术服务-安全技术模块映射"] = lambda wb: parse_scene_sheet(wb, authoritative_service_titles)
         for sheet_name in selected:
             if sheet_name not in workbook.sheetnames:
                 result.validations.append(ValidationMessage("error", sheet_name, None, "缺少核心 Sheet"))
                 continue
-            result.extend(parsers[sheet_name](workbook))
+            parser = parsers[sheet_name]
+            if parser is None:
+                result.validations.append(ValidationMessage("error", sheet_name, None, "缺少核心 Sheet 解析器"))
+                continue
+            result.extend(parser(workbook))
         return result
     finally:
         workbook.close()

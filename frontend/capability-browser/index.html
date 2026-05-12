@@ -7,31 +7,64 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <div id="app">
-      <header class="topbar">
+    <div id="app" class="app-shell">
+      <aside class="app-sidebar" aria-label="SAPD Wiki 主导航">
         <div class="brand">
           <div class="brand-mark">S</div>
           <div>
             <h1>SAPD Wiki</h1>
-            <p>业务关系工作台</p>
+            <p>本地业务关系工作台</p>
           </div>
         </div>
-        <div class="search-wrap">
-          <span class="search-icon" aria-hidden="true">⌕</span>
-          <input id="searchInput" type="search" placeholder="搜索能力、对象、作用域、服务、流程或模块" />
-        </div>
-        <div class="metrics" id="metrics"></div>
-      </header>
 
-      <nav class="module-tabs" aria-label="业务关系模块">
-        <button id="overviewTab" class="module-tab active" type="button" data-view="overview">关系总览</button>
-        <button id="capabilityTab" class="module-tab" type="button" data-view="capabilities">能力维度</button>
-        <button id="environmentTab" class="module-tab" type="button" data-view="environment">信息化环境维度</button>
-        <button id="devLifecycleTab" class="module-tab" type="button" data-view="dev-lifecycle">安全开发维度</button>
-        <button id="dataLifecycleTab" class="module-tab" type="button" data-view="data-lifecycle">数据生命周期维度</button>
-        <button id="maintenanceTab" class="module-tab" type="button" data-view="maintenance">专项知识维护</button>
-        <button id="contentTab" class="module-tab" type="button" data-view="content">说明与视图</button>
-      </nav>
+        <nav class="module-tabs" aria-label="业务关系模块">
+          <div class="nav-group-label">关系视图</div>
+          <button id="overviewTab" class="module-tab active" type="button" data-view="overview">
+            <span class="nav-symbol">⌁</span><span>关系总览</span><small>Overview</small>
+          </button>
+          <button id="capabilityTab" class="module-tab" type="button" data-view="capabilities">
+            <span class="nav-symbol">▣</span><span>能力维度</span><small>Capability</small>
+          </button>
+          <button id="environmentTab" class="module-tab" type="button" data-view="environment">
+            <span class="nav-symbol">◫</span><span>信息化环境维度</span><small>Environment</small>
+          </button>
+          <button id="devLifecycleTab" class="module-tab" type="button" data-view="dev-lifecycle">
+            <span class="nav-symbol">◇</span><span>安全开发维度</span><small>LC-AP</small>
+          </button>
+          <button id="dataLifecycleTab" class="module-tab" type="button" data-view="data-lifecycle">
+            <span class="nav-symbol">◎</span><span>数据生命周期维度</span><small>LC-DT</small>
+          </button>
+
+          <div class="nav-group-label">知识维护</div>
+          <button id="maintenanceTab" class="module-tab" type="button" data-view="maintenance">
+            <span class="nav-symbol">☷</span><span>专项知识维护</span><small>Tables</small>
+          </button>
+          <button id="contentTab" class="module-tab" type="button" data-view="content">
+            <span class="nav-symbol">□</span><span>说明与视图</span><small>Views</small>
+          </button>
+        </nav>
+
+        <div class="sidebar-status">
+          <span>运行模式</span>
+          <strong>本地静态页面</strong>
+          <small>读取导出的 JSON 数据，不依赖在线服务</small>
+        </div>
+      </aside>
+
+      <div class="app-main">
+        <header class="topbar">
+          <div class="page-context">
+            <span>Relationship Workspace</span>
+            <strong>树、矩阵、关系链与详情面板</strong>
+          </div>
+          <div class="search-wrap">
+            <span class="search-icon" aria-hidden="true">⌕</span>
+            <input id="searchInput" type="search" placeholder="搜索能力、对象、作用域、服务、流程或模块" />
+          </div>
+          <div class="metrics" id="metrics"></div>
+        </header>
+
+        <section class="workspace-stage">
 
       <main id="overviewWorkspace" class="overview-workspace">
         <section class="overview-map-pane">
@@ -57,35 +90,39 @@
         </aside>
       </main>
 
-      <main id="capabilityWorkspace" class="workspace is-hidden">
-        <aside class="tree-pane">
+      <main id="capabilityWorkspace" class="capability-workspace is-hidden">
+        <aside class="capability-tree-pane">
           <div class="pane-head">
-            <h2>能力树工作台</h2>
+            <h2>能力维度树</h2>
             <button id="resetButton" type="button" title="重置选择">↺</button>
           </div>
           <div id="tree" class="tree"></div>
         </aside>
 
-        <section class="detail-pane">
-          <div class="pane-head">
-            <h2>关系详情</h2>
-            <span id="selectedType" class="type-pill">未选择</span>
+        <section class="capability-relation-pane">
+          <div class="capability-workbench-head">
+            <div>
+              <p class="eyebrow">Capability Relationship Workspace</p>
+              <h2>能力维度关系页</h2>
+            </div>
+            <div class="capability-workbench-tools">
+              <input id="capabilitySearchInput" type="search" placeholder="搜索能力、服务、作用域、流程、模块" />
+              <span class="filter-chip">关注点</span>
+              <span class="filter-chip">服务</span>
+              <span class="filter-chip">流程</span>
+              <span class="filter-chip">模块</span>
+            </div>
           </div>
-          <div class="relation-mode-strip" aria-label="能力关系视图入口">
-            <button type="button" class="relation-mode-button active">能力树工作台</button>
-            <button type="button" class="relation-mode-button" disabled>能力-服务-作用域矩阵</button>
-            <button type="button" class="relation-mode-button" disabled>能力-流程-职能矩阵</button>
-            <button type="button" class="relation-mode-button" disabled>能力-模块关系链</button>
-          </div>
-          <div id="detail" class="detail with-mode-strip"></div>
+          <div id="detail" class="capability-relation-workspace"></div>
         </section>
 
-        <aside class="relation-pane">
+        <aside class="capability-detail-pane">
           <div class="pane-head">
-            <h2>服务与作用域</h2>
+            <h2>选中对象详情</h2>
+            <span id="selectedType" class="type-pill">未选择</span>
             <span id="serviceCount" class="count-pill">0</span>
           </div>
-          <div id="services" class="services"></div>
+          <div id="services" class="capability-object-detail"></div>
         </aside>
       </main>
 
@@ -246,6 +283,8 @@
           <div id="contentDetail" class="content-detail"></div>
         </section>
       </main>
+        </section>
+      </div>
     </div>
     <script src="./app.js"></script>
   </body>

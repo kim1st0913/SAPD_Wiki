@@ -16,6 +16,7 @@ CODE_IDENTITY_TYPES = {
     "capability",
     "capability_focus",
     "scope_type",
+    "security_technical_service",
 }
 
 

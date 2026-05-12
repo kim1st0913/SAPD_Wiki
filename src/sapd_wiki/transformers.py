@@ -8,6 +8,10 @@ from .candidates import normalize_text
 CODE_AT_END_RE = re.compile(r"^(?P<title>.+?)\s+(?P<code>[A-Z]{1,3}(?:-[A-Z]{2,3})+(?:\.[A-Z]{2})?(?:-\d{2})?)$")
 CODE_AT_START_RE = re.compile(r"^(?P<code>[A-Z]{1,3}(?:-[A-Z]{2,3})*(?:\.[A-Z]{2})?(?:-\d{2})?)\s*(?P<title>.*)$")
 SERVICE_CODE_RE = re.compile(r"^(?P<code>(?:[A-Z]{1,3}-[A-Z]{2,3}|ALL)&[A-Z]{1,3}(?:-[A-Z]{2,3})+\.[A-Z]{2}-\d{2})\s*(?P<title>.*)$")
+SERVICE_CODE_SHORT_FOCUS_RE = re.compile(
+    r"^(?P<scope>(?:[A-Z]{1,3}-[A-Z]{2,3}|ALL))&(?P<focus>(?:(?:[GMT])-)?[A-Z]{2,3}(?:-[A-Z]{2,3})?\.[A-Z]{2}-\d{2})\s*(?P<title>.*)$"
+)
+REPEATED_TRAILING_PAREN_RE = re.compile(r"^(?P<prefix>.+?)(?P<paren>（[^（）]+）)(?P=paren)$")
 
 
 def is_blank_or_placeholder(value: object) -> bool:
@@ -49,6 +53,13 @@ def split_code_title(value: object) -> tuple[str | None, str]:
     if service_match:
         return service_match.group("code"), service_match.group("title").strip()
 
+    short_service_match = SERVICE_CODE_SHORT_FOCUS_RE.match(text)
+    if short_service_match:
+        focus_code = short_service_match.group("focus")
+        if not re.match(r"^[GMT]-", focus_code):
+            focus_code = f"T-{focus_code}"
+        return f"{short_service_match.group('scope')}&{focus_code}", short_service_match.group("title").strip()
+
     start_match = CODE_AT_START_RE.match(text)
     if start_match and start_match.group("title"):
         return start_match.group("code"), start_match.group("title").strip()
@@ -58,6 +69,15 @@ def split_code_title(value: object) -> tuple[str | None, str]:
         return end_match.group("code"), end_match.group("title").strip()
 
     return None, text
+
+
+def normalize_service_title(value: object) -> str:
+    title = normalize_text(value)
+    while True:
+        match = REPEATED_TRAILING_PAREN_RE.match(title)
+        if not match:
+            return title
+        title = f"{match.group('prefix')}{match.group('paren')}"
 
 
 def split_scope_values(value: object) -> list[tuple[str | None, str]]:

@@ -23,7 +23,6 @@
               <th>关联安全技术措施数</th>
               <th>关联作用域数</th>
               <th>关联信息化对象数</th>
-              <th>状态</th>
             </tr>
           </thead>
           <tbody>
@@ -37,7 +36,6 @@
                     <td>${utils.escapeHtml(valueText(row.measureCount))}</td>
                     <td>${utils.escapeHtml(valueText(row.scopeCount))}</td>
                     <td>${utils.escapeHtml(valueText(row.informationObjectCount))}</td>
-                    <td><span class="relation-chip">${utils.escapeHtml(valueText(row.status))}</span></td>
                   </tr>
                 `,
               )

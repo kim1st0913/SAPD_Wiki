@@ -181,7 +181,7 @@ function renderOverview() {
     "overviewMap",
     `
       <div class="relation-map">
-        ${["能力维度", "信息化环境维度", "安全开发维度", "数据生命周期维度", "专项知识维护", "说明与视图"]
+        ${["安全能力映射", "信息化环境维度", "安全开发维度", "数据生命周期维度", "专项知识维护", "说明与视图"]
           .map((item) => `<div class="relation-node">${escapeHtml(item)}</div>`)
           .join("")}
       </div>
@@ -204,7 +204,6 @@ function renderOverview() {
     "overviewIssues",
     `
       <div class="issue-list">
-        <div><strong>L4关键活动</strong><span>${stats.management.process_activity_missing || 0} 条待补充</span></div>
         <div><strong>内容视图</strong><span>HTML / Draw.io / PPT 已预留入口</span></div>
         <div><strong>前端策略</strong><span>关系、矩阵、树表优先</span></div>
       </div>

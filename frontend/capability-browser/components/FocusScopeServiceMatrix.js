@@ -7,7 +7,12 @@
     if (!rows.length) return `<span class="empty-inline">${utils.escapeHtml(empty)}</span>`;
     const visible = rows.slice(0, limit);
     const more = rows.length - visible.length;
-    return `${visible.map((item) => `<span class="relation-chip">${utils.escapeHtml(utils.titleOf(item))}</span>`).join("")}${more > 0 ? `<span class="relation-chip muted">+${more}</span>` : ""}`;
+    return `${visible
+      .map((item) => {
+        const kind = item.kind || item.objectKind || "";
+        return `<span class="relation-chip ${kind.includes("措施") ? "measure-chip" : kind.includes("说明") ? "note-chip" : ""}">${kind ? `<em>${utils.escapeHtml(kind)}</em>` : ""}${utils.escapeHtml(utils.titleOf(item))}</span>`;
+      })
+      .join("")}${more > 0 ? `<span class="relation-chip muted">+${more}</span>` : ""}`;
   }
 
   function exceptionDetails(row) {

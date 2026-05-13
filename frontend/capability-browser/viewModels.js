@@ -115,6 +115,56 @@
     );
   }
 
+  function entityTokens(item) {
+    return [item?.id, item?.code, item?.title, item?.name].map(text).map((value) => value.trim()).filter(Boolean);
+  }
+
+  function entityTokenMatches(left, right) {
+    const tokens = new Set(entityTokens(left));
+    return entityTokens(right).some((token) => tokens.has(token));
+  }
+
+  function measuresForServicesAndScope(management, services, scope) {
+    const serviceRows = list(services).filter(isApplicableService);
+    if (!serviceRows.length) return [];
+    return uniqueBy(
+      list(management?.security_technical_measures).filter((measure) => {
+        const relatedServices = [
+          ...list(measure.related_services),
+          ...list(measure.services),
+          ...list(measure.technical_services),
+          ...list(measure.related_service_names).map((title) => ({ title })),
+        ];
+        const relatedScopes = [
+          ...list(measure.applicable_scopes),
+          ...list(measure.scopes),
+          ...list(measure.scope_types),
+          ...list(measure.related_scope_names).map((title) => ({ title })),
+        ];
+        const serviceMatched = relatedServices.some((measureService) => serviceRows.some((service) => entityTokenMatches(measureService, service)));
+        const scopeMatched = !scope || !relatedScopes.length || relatedScopes.some((measureScope) => entityTokenMatches(measureScope, scope));
+        return serviceMatched && scopeMatched;
+      }),
+      (measure) => measure.id || measure.name || measure.title,
+    );
+  }
+
+  function compactTechnicalObject(item, fallbackKind = "安全技术模块") {
+    const compact = compactEntity(item, "待补充");
+    const status = text(item?.status || compact?.status).trim().toLowerCase();
+    const isMeasure = item?.type === "security_technical_measure" || item?.name || item?.measureName;
+    const kind = isMeasure
+      ? status === "pending" || status === "待确认"
+        ? "说明类 / 待确认"
+        : "安全技术措施"
+      : fallbackKind;
+    return {
+      ...compact,
+      objectKind: kind,
+      kind,
+    };
+  }
+
   function stakeholdersFromMappings(processMappings) {
     return uniqueBy(
       list(processMappings).flatMap((mapping) =>
@@ -219,13 +269,18 @@
         const isAmbiguous = candidateServices.length > 1;
         const confirmedServices = isAmbiguous ? [] : candidateServices;
         const modules = isAmbiguous ? [] : modulesForServices(management, confirmedServices);
+        const measures = isAmbiguous ? [] : measuresForServicesAndScope(management, confirmedServices, group.scope);
+        const technicalObjects = [
+          ...modules.map((module) => compactTechnicalObject(module, "安全技术模块")),
+          ...measures.map((measure) => compactTechnicalObject({ ...measure, type: "security_technical_measure" }, "安全技术措施")),
+        ];
         const status = isAmbiguous ? "ambiguous_service_mapping" : confirmedServices.length ? "covered" : "no_service";
         return {
           focus: compactEntity(group.focus),
           scope: compactEntity(group.scope, "未命名作用域"),
           services: confirmedServices.map(compactEntity),
           candidateServices: candidateServices.map(compactEntity),
-          modules: modules.map(compactEntity),
+          modules: technicalObjects,
           serviceCount: group.serviceCount || candidateServices.length,
           status,
           exceptionType: isAmbiguous ? "ambiguous_service_mapping" : "",
@@ -804,10 +859,8 @@
           query,
           row.scenario,
           row.code,
-          row.type,
           row.title,
           row.description,
-          row.status,
           ...row.linkedServices.map(titleOf),
           ...row.informationObjects.map(titleOf),
         ),
@@ -819,7 +872,6 @@
         scenarios: countLinked(rows.map((row) => ({ title: row.scenario }))),
         linkedServices: rows.reduce((sum, row) => sum + row.serviceCount, 0),
         linkedObjects: rows.reduce((sum, row) => sum + row.informationObjectCount, 0),
-        missingFields: rows.filter((row) => row.status === "待补充").length,
       },
       emptyState: rows.length ? "" : "暂无作用域数据，请确认 ETL 是否已导出 scope_types。",
     };
@@ -1033,10 +1085,8 @@
         description: row.description,
         facts: [
           { label: "情景", value: row.scenario },
-          { label: "作用域类型", value: row.type },
           { label: "关联技术服务", value: row.serviceCount },
           { label: "关联信息化对象", value: row.informationObjectCount },
-          { label: "状态", value: row.status },
         ],
         sections: [
           { title: "关联安全技术服务", items: row.linkedServices },
@@ -1057,7 +1107,6 @@
           { label: "L4 状态", value: row.l4ActivityStatus },
           { label: "关联关注点", value: row.relatedFocusCount },
           { label: "关联安全职能", value: row.securityFunctionCount },
-          { label: "状态", value: row.status },
         ],
         sections: [
           { title: "L4 关键活动", items: row.activities },
@@ -1077,7 +1126,6 @@
           { label: "职能组", value: row.functionGroup },
           { label: "关联安全工作", value: row.securityWorkCount },
           { label: "关联流程", value: row.processCount },
-          { label: "状态", value: row.status },
         ],
         sections: [
           { title: "关联安全工作", items: row.tasks },
@@ -1099,7 +1147,6 @@
           { label: "关联安全技术措施", value: row.measureCount },
           { label: "关联作用域", value: row.scopeCount },
           { label: "关联信息化对象", value: row.informationObjectCount },
-          { label: "状态", value: row.status },
         ],
         sections: [
           { title: "关联安全技术服务", items: row.linkedServices },
@@ -1121,7 +1168,6 @@
           { label: "分类", value: row.category },
           { label: "关联安全职能", value: row.linkedSecurityFunctions },
           { label: "关联流程", value: row.linkedProcesses },
-          { label: "状态", value: row.status },
         ],
         sections: [],
         sourceEvidence,
@@ -1137,7 +1183,6 @@
         { label: "适用作用域", value: measureEntityCountLabel(row.applicableScopes) },
         { label: "关联信息化环境", value: measureEntityCountLabel(row.relatedEnvironments) },
         { label: "关联信息化对象", value: measureEntityCountLabel(row.relatedEnvironmentObjects) },
-        { label: "状态", value: row.status },
       ],
       sections: [
         { title: "关联安全技术服务", items: row.linkedServices },
@@ -1276,6 +1321,7 @@
               query,
               environment.title,
               environment.description,
+              ...list(object.segments).map(titleOf),
               object.title,
               object.description,
               ...list(object.scope_mappings).map((mapping) => titleOf(mapping.scope)),
@@ -1292,12 +1338,35 @@
             serviceCount: Number(object.service_count ?? 0) || 0,
             moduleCount: Number(object.module_count ?? 0) || 0,
           }));
+        const segmentsById = new Map();
+        for (const object of objects) {
+          const segments = list(object.segments).length ? list(object.segments) : [{ id: `${environment.id}:segment:unclassified`, title: "未定义环境子类" }];
+          for (const segment of segments) {
+            const segmentId = segment.id || `${environment.id}:segment:${segment.title || "unclassified"}`;
+            const segmentRow =
+              segmentsById.get(segmentId) || {
+                id: segmentId,
+                environmentId: environment.id,
+                type: "environment_segment",
+                title: titleOf(segment, "未定义环境子类"),
+                description: segment.description || "",
+                objectCount: 0,
+                objects: [],
+              };
+            segmentRow.objects.push(object);
+            segmentRow.objectCount = segmentRow.objects.length;
+            segmentsById.set(segmentId, segmentRow);
+          }
+        }
+        const segments = [...segmentsById.values()].sort((left, right) => left.title.localeCompare(right.title, "zh-Hans-CN"));
         return {
           id: environment.id,
           type: "information_environment",
           title: titleOf(environment, "未命名环境"),
           description: environment.description || "",
           objectCount: objects.length,
+          segmentCount: segments.length,
+          segments,
           objects,
         };
       })
@@ -1336,19 +1405,25 @@
       : { selectionType: "environment", environment: fallback.environment, object: null, objects: fallback.objects };
   }
 
-  function buildEnvironmentScopeServiceRows(selectedObject, showObjectColumn) {
+  function buildEnvironmentScopeServiceRows(management, selectedObject, showObjectColumn) {
     if (!selectedObject) return [];
     return list(selectedObject.scope_mappings).map((mapping) => {
       const services = uniqueBy(list(mapping.services), (service) => service.id || service.code || service.title);
       const modules = uniqueBy(services.flatMap((service) => list(service.modules)), (module) => module.id || module.code || module.title);
+      const measures = measuresForServicesAndScope(management, services, mapping.scope);
+      const technicalObjects = [
+        ...modules.map((module) => compactTechnicalObject(module, "安全技术模块")),
+        ...measures.map((measure) => compactTechnicalObject({ ...measure, type: "security_technical_measure" }, "安全技术措施")),
+      ];
       const hasServices = services.length > 0;
-      const hasModules = modules.length > 0;
+      const hasModules = technicalObjects.length > 0;
       return {
         id: [showObjectColumn ? selectedObject.id : "", mapping.scope?.id || mapping.scope?.code || mapping.scope?.title || "scope"].filter(Boolean).join("::"),
         object: showObjectColumn ? compactEntity(selectedObject, "未命名对象") : null,
+        segments: list(selectedObject.segments).map(compactEntity),
         scope: compactEntity(mapping.scope, "未命名作用域"),
         services: services.map(compactEntity),
-        modules: modules.map(compactEntity),
+        modules: technicalObjects,
         coverageStatus: hasServices && hasModules ? "已覆盖" : hasServices ? "模块待补充" : "不适用",
         note: hasServices ? (hasModules ? "已建立服务与模块/措施映射。" : "已有安全技术服务，安全技术模块/措施待补充。") : "该对象在此作用域下无适用安全技术服务。",
       };
@@ -1357,7 +1432,7 @@
 
   function buildEnvironmentLocalRelationNotes({ selectionType, selectedEnvironment, selectedObject, summary, detailPanel }) {
     const scopeSubject = selectionType === "environment" ? "当前环境下的信息化对象" : "当前信息化对象";
-    const segmentText = list(detailPanel.segments).length ? list(detailPanel.segments).map(titleOf).join("、") : "暂无环境分段";
+    const segmentText = list(detailPanel.segments).length ? list(detailPanel.segments).map(titleOf).join("、") : "暂无环境子类";
     return [
       {
         title: "关系主链路",
@@ -1365,11 +1440,11 @@
       },
       {
         title: "覆盖口径",
-        body: `共 ${summary.scopeCount} 个作用域、${summary.serviceCount} 个安全技术服务、${summary.moduleCount} 个技术模块/措施；${summary.notApplicableCount} 个作用域无适用服务，${summary.missingModuleCount} 个作用域模块/措施待补充。`,
+        body: `共 ${summary.scopeCount} 个作用域、${summary.serviceCount} 个安全技术服务、${summary.moduleCount} 个技术模块/措施；${summary.notApplicableCount} 个作用域无适用服务。`,
       },
       {
-        title: "环境分段",
-        body: selectedObject ? `${titleOf(selectedObject)} 的环境分段：${segmentText}。该字段只作为辅助信息，不作为默认主层级。` : `${titleOf(selectedEnvironment)} 下当前未选中单一对象，表格展示该环境内对象的合并映射。`,
+        title: "环境子类",
+        body: selectedObject ? `${titleOf(selectedObject)} 所属环境子类：${segmentText}。环境子类是信息化环境下的正式层级。` : `${titleOf(selectedEnvironment)} 下按环境子类组织信息化对象，表格展示该环境内对象的合并映射。`,
       },
     ];
   }
@@ -1396,8 +1471,8 @@
     const selectedObject = selected?.object ? compactEntity(selected.object, "未命名对象") : null;
     const isEnvironmentSelection = selected?.selectionType === "environment";
     const scopeServiceRows = isEnvironmentSelection
-      ? list(selected?.objects).flatMap((object) => buildEnvironmentScopeServiceRows(object, true))
-      : buildEnvironmentScopeServiceRows(selected?.object, false);
+      ? list(selected?.objects).flatMap((object) => buildEnvironmentScopeServiceRows(management, object, true))
+      : buildEnvironmentScopeServiceRows(management, selected?.object, false);
     const summary = {
       objectCount: navigationTree.reduce((sum, environment) => sum + list(environment.objects).length, 0),
       selectedObjectCount: isEnvironmentSelection ? list(selected?.objects).length : selectedObject ? 1 : 0,
@@ -1406,7 +1481,6 @@
       moduleCount: uniqueBy(scopeServiceRows.flatMap((row) => row.modules), (module) => module.id || module.code || module.title).length,
       notApplicableCount: scopeServiceRows.filter((row) => !row.services.length).length,
       missingModuleCount: scopeServiceRows.filter((row) => row.services.length && !row.modules.length).length,
-      status: scopeServiceRows.some((row) => row.coverageStatus === "模块待补充") ? "待完善" : "正常",
     };
     const detailPanel = {
       environment: selectedEnvironment,

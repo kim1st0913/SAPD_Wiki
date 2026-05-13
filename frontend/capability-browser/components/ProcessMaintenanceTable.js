@@ -24,7 +24,6 @@
               <th>描述</th>
               <th>关联关注点数</th>
               <th>关联安全职能数</th>
-              <th>状态</th>
             </tr>
           </thead>
           <tbody>
@@ -39,7 +38,6 @@
                     <td>${cell(row.description)}</td>
                     <td>${cell(row.relatedFocusCount)}</td>
                     <td>${cell(row.securityFunctionCount)}</td>
-                    <td><span class="relation-chip">${cell(row.status)}</span></td>
                   </tr>
                 `,
               )

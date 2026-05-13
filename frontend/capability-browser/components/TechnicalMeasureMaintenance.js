@@ -19,7 +19,6 @@
           ${summaryBadge("措施", summary.totalMeasures ?? rows.length)}
           ${summaryBadge("关联服务", summary.linkedServices ?? 0)}
           ${summaryBadge("关联模块", summary.linkedModules ?? 0)}
-          ${summaryBadge("待补充", summary.missingMappings ?? 0)}
         </div>
         ${
           rows.length

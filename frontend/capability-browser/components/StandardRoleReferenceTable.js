@@ -19,7 +19,6 @@
             <td>${utils.escapeHtml(valueText(row.description))}</td>
             <td>${utils.escapeHtml(valueText(row.linkedSecurityFunctions))}</td>
             <td>${utils.escapeHtml(valueText(row.linkedProcesses))}</td>
-            <td><span class="relation-chip">${utils.escapeHtml(valueText(row.status))}</span></td>
           </tr>
         `,
       )
@@ -38,7 +37,6 @@
             <td>${utils.escapeHtml(valueText(row.description))}</td>
             <td>${utils.escapeHtml(valueText(row.linkedSecurityFunctions))}</td>
             <td>${utils.escapeHtml(valueText(row.linkedProcesses))}</td>
-            <td><span class="relation-chip">${utils.escapeHtml(valueText(row.status))}</span></td>
           </tr>
         `,
       )
@@ -78,13 +76,13 @@
         ${renderTable({
           title: "标准任务参考",
           empty: "暂无 GB/T 42446 任务参考数据。",
-          headers: ["标准来源", "任务分类", "任务名称", "任务说明", "关联安全职能", "关联流程", "状态"],
+          headers: ["标准来源", "任务分类", "任务名称", "任务说明", "关联安全职能", "关联流程"],
           body: renderStandardRows(standards, selectedId),
         })}
         ${renderTable({
           title: "岗位参考",
           empty: "暂无 Gartner 岗位参考数据。",
-          headers: ["岗位来源", "岗位分类", "岗位名称", "岗位说明", "关联安全职能", "关联流程", "状态"],
+          headers: ["岗位来源", "岗位分类", "岗位名称", "岗位说明", "关联安全职能", "关联流程"],
           body: renderRoleRows(roles, selectedId),
         })}
       </div>

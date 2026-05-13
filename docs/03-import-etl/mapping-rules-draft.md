@@ -57,6 +57,7 @@
 | T-KEEP-RAW | 保留原始值 | 任意单元格 | raw_value | 所有导入记录保留原文 |
 | T-MERGED-HEADER | 合并表头识别 | 表头行有空列或合并区域 | 按列位和上级表头组合识别 | 用于 `安全工作职能清单` 的 GB/T 42446-2023 区域 |
 | T-SPLIT-MULTI | 拆多值 | 一个单元格多个职能/流程 | 多条对象或关系 | 用于组织职能相关方和流程参考 |
+| T-G-COLUMN-SPLIT | 按 G 列语义分流 | `安全技术模块/措施` 列同时含模块、措施、说明类 | 浅蓝底为安全技术模块；浅灰底为安全技术措施；`N/A(...)` 为说明类 / pending；`/` 不生成对象 | 用于 `作用域-安全技术服务-安全技术模块映射` |
 
 ## 4. 对象匹配和去重键
 
@@ -222,6 +223,15 @@
 
 已确认命名：第 3 列无表头，第一批命名为 `environment_segment`。
 
+G 列 `安全技术模块/措施` 不是单一对象来源，必须按原表语义分流：
+
+- 浅蓝底：安全技术模块，映射为 `security_technology_module`。
+- 浅灰底或说明类内容：安全技术措施，映射为 `security_technical_measure` 或进入说明类 / 待确认项。
+- `N/A(...)`、`N/A（...）` 等说明类内容不得作为正常措施，应标记为 `pending` / 说明类。
+- `/` 表示该关注点在该作用域下无适用安全技术服务，不生成安全技术服务，也不生成安全技术措施。
+- 安全技术模块与安全技术措施是不同对象：模块偏能力构件 / 技术模块，措施偏具体控制措施 / 实施措施 / 技术措施。
+- 不可靠映射不得伪造关联；无法归类时进入待确认问题。
+
 | 规则编号 | 来源列 | 目标对象 | 目标字段 | 转换规则 | 必填 | 说明 |
 |---|---|---|---|---|---|---|
 | MAP-SCENE-001 | 信息化环境 | information_environment | title | T-FILL-DOWN + T-TRIM | 是 | 如“网络周界” |
@@ -229,7 +239,8 @@
 | MAP-SCENE-003 | 信息化对象 | information_object | title | T-FILL-DOWN + T-TRIM | 是 | 如“互联网入口边界” |
 | MAP-SCENE-004 | 作用域 | scope_type | code / title | T-SPLIT-SCOPE + T-SCOPE-CODE | 否 | 多作用域拆分 |
 | MAP-SCENE-005 | 安全技术服务 | security_technical_service | code / title | T-CODE-TITLE | 是 | 匹配已有服务，缺失则生成待确认服务 |
-| MAP-SCENE-006 | 安全技术模块/措施 | security_technology_module | title | T-TRIM | 否 | 匹配已有模块，缺失则生成待确认模块 |
+| MAP-SCENE-006 | 安全技术模块/措施 | security_technology_module | title | T-G-COLUMN-SPLIT + T-TRIM | 否 | 仅浅蓝底模块值映射；匹配已有模块，缺失则待确认 |
+| MAP-SCENE-006A | 安全技术模块/措施 | security_technical_measure | name | T-G-COLUMN-SPLIT + T-TRIM | 否 | 浅灰底措施值映射；说明类标记 pending |
 | MAP-SCENE-007 | 安全系统 | security_system | title | T-FILL-DOWN + T-TRIM | 否 | 匹配已有系统 |
 
 关系生成：
@@ -244,6 +255,9 @@
 | MAP-SCENE-R006 | security_technology_module | implements_service | security_technical_service | 模块和服务均存在 |
 | MAP-SCENE-R007 | security_technology_module | part_of_system | security_system | 模块和系统均存在 |
 | MAP-SCENE-R008 | security_technology_module | deployed_in_environment | information_environment | 模块和环境均存在 |
+| MAP-SCENE-R009 | security_technical_measure | supports_service | security_technical_service | 措施和服务均可靠存在 |
+| MAP-SCENE-R010 | security_technical_measure | applies_to_scope | scope_type | 措施和作用域均可靠存在 |
+| MAP-SCENE-R011 | security_technical_measure | applies_to_environment_object | information_object | 措施和信息化对象均可靠存在 |
 
 校验规则：
 
@@ -252,7 +266,9 @@
 | MAP-SCENE-V001 | 信息化环境不能为空 | 进入错误列表 |
 | MAP-SCENE-V002 | 信息化对象不能为空 | 进入错误列表 |
 | MAP-SCENE-V003 | 服务无法匹配已有服务 | 生成待确认服务，并进入提醒列表 |
-| MAP-SCENE-V004 | 模块无法匹配已有模块 | 生成待确认模块，并进入提醒列表 |
+| MAP-SCENE-V004 | 浅蓝底模块无法匹配已有模块 | 生成待确认模块，并进入提醒列表 |
+| MAP-SCENE-V005 | G 列无法判断模块 / 措施 / 说明类 | 不生成正式对象，进入待确认问题 |
+| MAP-SCENE-V006 | `/` 对应行生成了服务或措施 | 阻断导出或进入错误列表 |
 
 ### 5.6 安全能力-安全工作
 

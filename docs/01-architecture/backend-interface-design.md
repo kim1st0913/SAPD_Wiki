@@ -325,8 +325,19 @@ frontend/capability-browser/public/data/
 | `GET /api/v1/maintenance/processes` | 安全职能流程清单 |
 | `GET /api/v1/maintenance/work-functions` | 安全工作职能清单 |
 | `GET /api/v1/maintenance/technology-modules` | 安全技术模块清单 |
+| `GET /api/v1/maintenance/technical-measures` | 安全技术措施清单 |
+| `GET /api/v1/maintenance/technical-measures/{id}` | 单个安全技术措施详情 |
 | `GET /api/v1/references/standards` | 标准引用，如 GB/T 42446-2023 |
 | `GET /api/v1/references/roles` | Gartner 等岗位参考 |
+
+安全技术措施读取说明：
+
+- 当前静态数据阶段由 `dataClient.getMaintenanceTechnologyMeasures()` 从 `management-knowledge.json` 顶层 `security_technical_measures` 读取。
+- 未来本地 API 推荐使用 `GET /api/v1/maintenance/technical-measures` 返回列表，使用 `GET /api/v1/maintenance/technical-measures/{id}` 返回单个措施详情。
+- 返回对象必须符合 `docs/01-architecture/api-field-contract.md` 中 `SecurityTechnicalMeasure` 契约。
+- 后端不得把 `security_technology_modules` 中的安全技术模块直接返回为安全技术措施。
+- 后端不得把安全系统或产品返回为安全技术措施。
+- `sources` 是来源证据字段，不是主展示字段；`sheet`、`row`、`column`、`raw_value`、`source_file`、`import_id`、`source_id`、`generated_at` 等非业务字段只能进入来源证据区，默认折叠。
 
 ### 6.5 生命周期维度
 
@@ -387,6 +398,7 @@ frontend/capability-browser/public/data/
 | `/api/v1/maintenance/processes` | `management-knowledge.json` |
 | `/api/v1/maintenance/work-functions` | `management-knowledge.json` |
 | `/api/v1/maintenance/scopes` | `management-knowledge.json` 或后续 `maintenance-knowledge.json` |
+| `/api/v1/maintenance/technical-measures` | `management-knowledge.json` 顶层 `security_technical_measures` |
 | `/api/v1/lifecycle/application` | `lifecycle-knowledge.json` |
 | `/api/v1/lifecycle/data` | `lifecycle-knowledge.json` |
 | `/api/v1/content/guide-pages` | `content-views.json` |

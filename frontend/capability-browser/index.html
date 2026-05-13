@@ -55,12 +55,13 @@
         <header class="topbar">
           <div class="page-context">
             <span>Relationship Workspace</span>
-            <strong>树、矩阵、关系链与详情面板</strong>
+            <strong>树、矩阵、技术/管理并列映射</strong>
           </div>
           <div class="search-wrap">
             <span class="search-icon" aria-hidden="true">⌕</span>
             <input id="searchInput" type="search" placeholder="搜索能力、对象、作用域、服务、流程或模块" />
           </div>
+          <div id="localModeStatus" class="topbar-status" aria-label="本地运行状态"></div>
           <div class="metrics" id="metrics"></div>
         </header>
 
@@ -103,7 +104,7 @@
           <div class="capability-workbench-head">
             <div>
               <p class="eyebrow">Capability Relationship Workspace</p>
-              <h2>能力维度关系页</h2>
+              <h2>当前关注点工作台</h2>
             </div>
             <div class="capability-workbench-tools">
               <input id="capabilitySearchInput" type="search" placeholder="搜索能力、服务、作用域、流程、模块" />
@@ -115,15 +116,6 @@
           </div>
           <div id="detail" class="capability-relation-workspace"></div>
         </section>
-
-        <aside class="capability-detail-pane">
-          <div class="pane-head">
-            <h2>选中对象详情</h2>
-            <span id="selectedType" class="type-pill">未选择</span>
-            <span id="serviceCount" class="count-pill">0</span>
-          </div>
-          <div id="services" class="capability-object-detail"></div>
-        </aside>
       </main>
 
       <main id="environmentWorkspace" class="environment-workspace is-hidden">
@@ -200,7 +192,7 @@
           <div class="pane-head">
             <h2>专项知识维护</h2>
           </div>
-          <div class="source-nav" aria-label="专项知识维护二级页面">
+          <div id="maintenanceNavigation" class="source-nav" aria-label="专项知识维护二级页面">
             <button id="scopesPageTab" class="source-nav-button active" type="button" data-source-page="scopes">
               <span>作用域清单</span>
               <strong id="scopeCount">0</strong>
@@ -217,13 +209,13 @@
               <span>安全技术模块清单</span>
               <strong id="moduleCount">0</strong>
             </button>
-            <button id="standardsPageTab" class="source-nav-button" type="button" data-source-page="standards">
-              <span>标准与规范参考</span>
-              <strong id="standardCount">0</strong>
+            <button id="measuresPageTab" class="source-nav-button" type="button" data-source-page="measures">
+              <span>安全技术措施清单</span>
+              <strong id="measureCount">0</strong>
             </button>
-            <button id="rolesPageTab" class="source-nav-button" type="button" data-source-page="roles">
-              <span>岗位参考</span>
-              <strong id="roleCount">0</strong>
+            <button id="referencesPageTab" class="source-nav-button" type="button" data-source-page="references">
+              <span>标准与岗位参考</span>
+              <strong id="referenceCount">0</strong>
             </button>
           </div>
         </aside>
@@ -286,6 +278,30 @@
         </section>
       </div>
     </div>
+    <script src="./dataClient.js"></script>
+    <script src="./viewModels.js"></script>
+    <script src="./components/AppShell.js"></script>
+    <script src="./components/StatusBadge.js"></script>
+    <script src="./components/SourceEvidencePanel.js"></script>
+    <script src="./components/DimensionTree.js"></script>
+    <script src="./components/FocusOverview.js"></script>
+    <script src="./components/FocusScopeServiceMatrix.js"></script>
+    <script src="./components/FocusManagementMapping.js"></script>
+    <script src="./components/EnvironmentTree.js"></script>
+    <script src="./components/EnvironmentRelationshipOverview.js"></script>
+    <script src="./components/EnvironmentScopeServiceMatrix.js"></script>
+    <script src="./components/EnvironmentDetailPanel.js"></script>
+    <script src="./components/MaintenanceNavigation.js"></script>
+    <script src="./components/MaintenanceShell.js"></script>
+    <script src="./components/ScopeMaintenanceTable.js"></script>
+    <script src="./components/ProcessMaintenanceTable.js"></script>
+    <script src="./components/WorkFunctionMaintenanceTable.js"></script>
+    <script src="./components/TechnologyModuleMaintenanceTable.js"></script>
+    <script src="./components/TechnicalMeasureMaintenanceTable.js"></script>
+    <script src="./components/StandardRoleReferenceTable.js"></script>
+    <script src="./components/MaintenanceDetailPanel.js"></script>
+    <script src="./components/TechnicalMeasureMaintenance.js"></script>
+    <script src="./components/DetailInspector.js"></script>
     <script src="./app.js"></script>
   </body>
 </html>

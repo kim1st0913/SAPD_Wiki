@@ -678,7 +678,52 @@
 | `environments` | array<KnowledgeObjectRef> | 是 | 适用环境 |
 | `sources` | array<SourceReference> | 否 | 来源 |
 
-### 9.5 `GET /api/v1/maintenance/service-module-index`
+### 9.5 `GET /api/v1/maintenance/technical-measures`
+
+当前静态字段：`management-knowledge.json.security_technical_measures`
+
+用途：安全技术措施清单。主对象是“安全技术措施”，不同于 `security_technology_modules`。安全技术模块偏能力构件或技术模块，安全技术措施偏具体控制措施、实施措施或技术措施。
+
+当前前端主展示列：
+
+1. 序号：前端按当前排序生成，不使用后端 `id`。
+2. 安全技术措施：来自 `name`。
+3. 关联安全技术服务：来自 `related_service_names`。
+4. 适用作用域：来自 `related_scope_names`。
+5. 关联信息化环境：来自 `related_environment_names`。
+6. 关联信息化对象：来自 `related_environment_object_names`。
+
+`SecurityTechnicalMeasure` 字段：
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `id` | string | 是 | 稳定 ID |
+| `type` | string | 否 | 建议为 `security_technical_measure` |
+| `name` | string | 是 | 安全技术措施名称，主显示字段，不得为空 |
+| `category` | string/null | 否 | 措施分类；无法可靠获得时为 null 或 `待补充`，不得编造 |
+| `related_service_ids` | array<string> | 是 | 关联安全技术服务 ID，支持 1:N / N:M |
+| `related_service_names` | array<string> | 是 | 关联安全技术服务名称，支持 1:N / N:M |
+| `related_scope_ids` | array<string> | 是 | 适用作用域 ID，支持 1:N / N:M |
+| `related_scope_names` | array<string> | 是 | 适用作用域名称，支持 1:N / N:M |
+| `related_environment_names` | array<string> | 是 | 关联信息化环境名称，支持 1:N / N:M；无法可靠推导时为空数组 |
+| `related_environment_object_names` | array<string> | 是 | 关联信息化对象名称，支持 1:N / N:M；无法可靠推导时为空数组 |
+| `related_module_ids` | array<string> | 否 | 关联安全技术模块 ID；仅在可靠映射时输出 |
+| `related_module_names` | array<string> | 否 | 关联安全技术模块名称；仅在可靠映射时输出 |
+| `related_capability_focus_ids` | array<string> | 否 | 关联能力关注点 ID；仅在可靠映射时输出 |
+| `related_capability_focus_names` | array<string> | 否 | 关联能力关注点名称；仅在可靠映射时输出 |
+| `status` | string/null | 否 | `normal`、`pending`、`missing` 或说明类状态 |
+| `sources` | array<SourceReference> | 否 | 来源证据，仅用于 SourceEvidencePanel 或来源证据区，默认折叠 |
+
+字段边界：
+
+- `security_technical_measures` 位于 `management-knowledge.json` 顶层。
+- 后端不得把安全技术模块直接当作安全技术措施返回。
+- 后端不得把安全系统或产品当作安全技术措施返回。
+- `related_service_names`、`related_scope_names`、`related_environment_names`、`related_environment_object_names` 都必须按数组保留多值关系，不得压成单值。
+- `sources` 只用于来源证据，默认折叠，不进入主表列、概览区或筛选主维度。
+- `sheet`、`row`、`column`、`raw_value`、`source_file`、`import_id`、`source_id`、`generated_at` 等非业务字段不得进入主展示区。
+
+### 9.6 `GET /api/v1/maintenance/service-module-index`
 
 当前静态字段：`management-knowledge.json.service_module_index`
 

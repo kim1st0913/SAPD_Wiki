@@ -2209,3 +2209,371 @@ Agent 管理说明：
 
 - 运行文档和脚本验证；
 - 统一提交并推送到 GitHub。
+
+## 2026-05-12 修正能力维度技术服务映射口径
+
+用户明确：原表中 `/` 表示该关注点在该作用域下没有安全技术服务，不是待补充。
+
+已完成：
+
+- 修正 `src/sapd_wiki/exports.py`：
+  - 能力维度 `scope_mappings` 只使用 `安全能力-安全技术服务` 权威表中的服务自身作用域；
+  - 下游表中的 `安全技术服务 -> 作用域` 关系不再反向补入能力维度；
+  - 服务详情中的 `scopes` 也只保留权威作用域。
+- 修正 `src/sapd_wiki/parsers.py`：
+  - `/` 单元格转为 `no_service_in_scope` 关系；
+  - 该关系用于表示 `关注点 + 作用域` 明确无安全技术服务。
+- 重新执行核心 Sheet 导入：
+  - staging import job：`98e896b6-1ecb-42a3-897b-51ee5a854e96`；
+  - staging 识别 `no_service_in_scope: 223`；
+  - approve 新增关系 `223` 条，warnings 为空。
+- 修正前端能力维度文案：
+  - 空服务口径从 `待补充` 调整为 `无服务`；
+  - 概览区增加 `无服务作用域` 统计；
+  - 顶部摘要增加 `无服务` 统计；
+  - 删除无业务含义的 `技术映射`、`管理映射`切换按钮。
+- 更新 `docs/06-implementation/open-issues.md`：
+  - `OI-030` 状态调整为 `已修复`；
+  - 补充 `/` 的业务含义和后端导出修复方式。
+  - `OI-031` 状态调整为 `已修复`。
+
+验证结果：
+
+- 已重新导出 `frontend/capability-browser/public/data/capability-tree.json`。
+- 导出统计：`services: 157`，`focus_scope_mappings: 374`。
+- 显式 `无服务` 映射：`217` 条。
+- 检查同一 `关注点 + 作用域` 下多个服务：`0` 条。
+- 抽查 `T-AS.AD-02 + I-DI 数据与信息`：仅保留 `I-DI&T-AS.AD-02 冗余存储`。
+- 抽查原表 `T-AS.AD-02 + I-US 用户`：值为 `/`，导出为 `status: no_service`，来源包含 `G5:/`。
+- `python3 -m py_compile src/sapd_wiki/parsers.py src/sapd_wiki/exports.py` 通过。
+- `node --check frontend/capability-browser/viewModels.js` 和相关组件检查通过。
+
+## 2026-05-12 追踪 `终端安全工作区` 来源
+
+用户在能力维度页面发现 `T-AS.AD-01 + I-OS 操作系统` 的 `技术模块/措施` 列出现 `终端安全工作区`，但在原始表中未找到对应主数据。
+
+追踪结果：
+
+- `终端安全工作区` 来自 `作用域-安全技术服务-安全技术模块映射` 第 620 行，`G620`。
+- `安全技术模块清单` 中同一服务 `I-OS&T-AS.AD-01 主机/终端安全工作区划分` 对应两条模块主数据：
+  - 第 26 行 `D26`：`安全工作区`；
+  - 第 294 行 `D294`：`移动终端安全工作区`。
+- `安全技术模块清单` 中未找到 `终端安全工作区`。
+- 已新增 `OI-032`，记录为待确认的数据契约问题：当前页面把映射表中的自由文本模块/措施与标准技术模块混在同一列展示。
+
+## 2026-05-12 检查 `/` 无服务映射与 G 列底色
+
+用户要求继续检查 `安全能力-安全技术服务` 中是否仍有 `/` 未完成映射，并确认 `作用域-安全技术服务-安全技术模块映射` 的 G 列是否能识别浅蓝色和浅灰色底色。
+
+检查结果：
+
+- `安全能力-安全技术服务` 原始 `/` 单元格：228 个。
+- 已导出 `status: no_service`：217 个。
+- 尚未完成显式 `无服务` 映射：11 个。
+- 未完成映射集中在：
+  - `T-AS.DS-01` 到 `T-AS.DS-06` 的 `I-OS` 作用域；
+  - `T-PD.TP-05` 的 `I-PE` 作用域；
+  - `T-AD.IR-02` 的 `I-HD`、`I-PE` 作用域；
+  - `T-AD.SV-02` 的 `I-HD`、`I-PE` 作用域。
+- 已将 `OI-031` 状态从 `已修复` 调整为 `部分修复`，并补充 11 个未完成映射。
+
+G 列底色检查结果：
+
+- 可以识别底色。
+- `作用域-安全技术服务-安全技术模块映射` 的 G 列存在 3 组填充样式：
+  - 浅蓝色样式：198 行；
+  - 浅灰色样式：138 行；
+  - 特殊深色样式：2 行，行号为 60、338。
+- 按 `安全技术模块清单` D 列作为唯一模块主数据，G 列存在 61 个唯一非主数据值、228 次命中。
+- 已更新 `OI-032`，补充底色识别结果和主数据一致性统计。
+
+用户进一步确认 G 列底色业务含义：
+
+- 浅蓝色：安全技术模块，应与 `安全技术模块清单` D 列安全技术模块完成映射。
+- 浅灰色：安全技术措施，没有单独维护原始表，建议在专项知识维护中增加页面单独维护展示。
+
+按新口径重新统计：
+
+- 浅蓝色安全技术模块：198 行。
+- 浅灰色安全技术措施：138 行。
+- 特殊说明类：2 行。
+- 浅蓝色未匹配 `安全技术模块清单` D 列的唯一值：32 个。
+- 浅蓝色未匹配命中次数：88 次。
+- 已更新 `OI-032`，将“浅灰色不匹配”从模块主数据错误中剥离，改为安全技术措施口径。
+- 新增 `OI-033`：后续新增安全技术措施专项维护页面。
+
+用户补充部分数据修正与例外映射规则后，重新检查 `OI-032`：
+
+- 浅蓝色安全技术模块行：197 行。
+- 按用户确认的相似映射和例外规则归并后，仍未匹配唯一值：3 个。
+- 仍未匹配命中次数：5 次。
+- 剩余待确认：
+  - `数据脱敏(应用自带或SDK嵌入)`：3 次，行号 `165,231,389`，参考 `数据脱敏(去标识化)`；
+  - `应用程序控制`：1 次，行号 `734`；
+  - `文件完整性监控`：1 次，行号 `735`。
+- 已更新 `OI-032` 的重新计算结果。
+
+用户二次确认 `OI-032` 剩余项处理方式：
+
+- 原第 3 项 `虚拟主机部署:主机安全管理 容器环境部署:容器镜像安全` 无问题，解析为 `主机安全管理` 与 `容器镜像安全`。
+- 原第 8 项 `零信任访问代理 ... 零信任访问控制台` 无问题，解析为 `零信任访问代理` 与 `零信任访问控制台`。
+- 原第 25 项 `单向光闸 双向网闸` 无问题，解析为 `单向光闸` 与 `双向网闸`。
+- `数据脱敏(应用自带或SDK嵌入)` 直接映射到 `数据脱敏(去标识化)`。
+- `应用程序控制` 修正为 `主机安全管理`。
+- `文件完整性监控` 修正为 `主机入侵防御（HIPS）`。
+
+再次检查结果：
+
+- 浅蓝色安全技术模块行：197 行。
+- 浅蓝色安全技术模块 token：197 个。
+- 未匹配唯一值：0 个。
+- 未匹配命中次数：0 次。
+- 已将 `OI-032` 状态调整为 `已修复`。
+
+## 2026-05-12 修正能力维度技术视角派生列
+
+用户指出能力维度技术视角中的 `覆盖状态` 和 `说明` 两列需要确认来源与业务含义。
+
+确认结果：
+
+- `覆盖状态` 不是原始表字段，是前端根据是否存在非空安全技术服务派生出的显示状态。
+- `说明` 不是原始表字段，是前端为 `/` 无服务和映射异常生成的解释文本。
+- 两列无独立业务属性，不应作为技术视角表格列展示。
+
+已完成：
+
+- 修正 `frontend/capability-browser/components/FocusScopeServiceMatrix.js`：
+  - 删除 `覆盖状态` 列；
+  - 删除 `说明` 列；
+  - 技术视角表格仅保留 `作用域`、`安全技术服务`、`技术模块/措施`；
+  - `映射异常` 保留在 `安全技术服务` 单元格内展示候选服务详情。
+- 修正 `frontend/capability-browser/viewModels.js`：
+  - 移除技术映射行中的 `coverageStatus` 和 `note` 派生展示字段。
+- 更新 `docs/06-implementation/open-issues.md`：
+  - 新增 `OI-034` 并标记为 `已修复`；
+  - 将 `OI-033` 调整为 `部分修复`，记录安全技术措施前端入口已完成、ETL 数据仍待后续补齐。
+
+验证结果：
+
+- `node --check frontend/capability-browser/app.js` 通过。
+- `node --check frontend/capability-browser/viewModels.js` 通过。
+- `node --check frontend/capability-browser/dataClient.js` 通过。
+- `node --check frontend/capability-browser/components/*.js` 通过。
+- `git diff --check` 通过。
+
+## 2026-05-13 修正安全技术措施导出口径
+
+用户确认安全技术措施清单的数据处理规则：
+
+- 10 条 `N/A(...)` 说明类数据应进入安全技术措施清单；
+- 导出时去掉外层 `N/A` 与括号，只保留括号内措施名称；
+- `分类` 没有独立原始字段，不新增推断分类，所有措施分类暂为空；
+- `N/A(...)` 说明类语义不进入分类字段，仅通过 `status=pending` 保留为待确认状态；
+- 安全技术措施不关联安全技术模块；
+- 操作系统、云平台、应用系统、数据库系统自带能力类对象可作为措施保留；
+- `17/29` 按 `29` 为准、`19/30` 按 `19` 为准，用户已修复原始数据；
+- 带 `(无部分服务)` 的措施名称完整保留。
+
+已完成：
+
+- 修正 `src/sapd_wiki/exports.py`：
+  - `N/A(...)` 名称导出时去包装；
+  - 保留 `N/A(...)` 的待确认状态，导出为 `category=null`、`status=pending`；
+  - 不生成安全技术模块关联。
+- 重新导出 `frontend/capability-browser/public/data/management-knowledge.json`。
+- 更新 `docs/06-implementation/open-issues.md`：
+  - `OI-033` 状态调整为 `已修复`；
+  - 记录安全技术措施导出口径和验证结果。
+
+验证结果：
+
+- `python3 -m py_compile src/sapd_wiki/exports.py` 通过。
+- `python3 scripts/sapd_wiki.py export-management-knowledge --output frontend/capability-browser/public/data/management-knowledge.json` 通过。
+- 重新导出后 `security_technical_measures` 为 29 条。
+- 分类字段填充值为 0 条。
+- 其中 `pending` 为 10 条。
+- 安全技术模块关联为 0 条，符合“不关联数据模块”的口径。
+- `git diff --check` 通过。
+
+## 2026-05-13 重新 ETL 安全技术措施相关数据
+
+用户要求重新 ETL 安全技术措施相关数据。
+
+已完成：
+
+- 重新执行 `stage-excel "data/raw-samples/wiki sample.xlsx" --sheets all --sensitive-level confidential`。
+- 新 staging/import job：`9afb8c92-462d-4c05-827d-d2ffa57af6a2`。
+- 审批导入任务：
+  - 新增对象：2；
+  - 更新对象：658；
+  - 停用旧对象：17；
+  - 新增关系：53；
+  - warning：0。
+- 重新导出：
+  - `frontend/capability-browser/public/data/capability-tree.json`；
+  - `frontend/capability-browser/public/data/management-knowledge.json`。
+- 更新 `task_plan.md` 中最新第一批 clean approved import job 为 `9afb8c92-462d-4c05-827d-d2ffa57af6a2`。
+
+重新导出结果：
+
+- `security_technical_measures`：29 条；
+- `pending`：10 条；
+- 分类填充值：0 条；
+- 安全技术模块关联：0 条。
+
+说明：
+
+- 当前源 Excel 经正式 ETL 后仍导出 29 个唯一安全技术措施；
+- 原因是安全技术措施按“同名措施 + 同分类”去重合并，而当前分类统一为空；
+- 如果业务期望 31 条，需要继续核对是否存在同名但业务上应拆分的措施。
+
+验证结果：
+
+- `git diff --check` 通过。
+
+## 2026-05-13 Step 6.7 前端整体回归
+
+用户要求执行 Step 6.7：前端整体回归 + 遗留问题清单冻结。
+
+范围控制：
+
+- 仅检查和必要小修 `frontend/capability-browser/`；
+- 未进入 Step 7；
+- 未做视觉重构或 Impeccable polish；
+- 未修改后端、ETL、数据模型。
+
+必要小修：
+
+- 修正 `frontend/capability-browser/app.js`：
+  - 总览页不再把 `generated_at` 作为主展示字段；
+  - 原位置改为固定展示 `本地数据`。
+
+回归页面：
+
+- 总览；
+- 能力维度；
+- 信息化环境维度；
+- 专项知识维护：
+  - 作用域清单；
+  - 流程清单；
+  - 职能清单；
+  - 安全技术模块清单；
+  - 安全技术措施清单；
+  - 标准与岗位参考。
+
+Playwright 回归结果：
+
+- 控制台错误：0；
+- 总览页未主展示 `generated_at`；
+- 能力维度技术视角和管理视角均可见；
+- 信息化环境维度对象树和映射表可打开；
+- 专项知识维护 6 个页面均可打开；
+- 安全技术措施清单当前显示 29 条；
+- 安全技术措施清单表头为：
+  - 序号；
+  - 安全技术措施；
+  - 关联安全技术服务；
+  - 适用作用域；
+  - 关联信息化环境；
+  - 关联信息化对象。
+- 未发现 `undefined`、`null`、`NaN`、`[object Object]`；
+- 未发现主展示区泄露 `sheet`、`row`、`column`、`raw_value`、`source_file`、`import_id`、`source_id`、`generated_at` 等非业务字段；
+- `SourceEvidencePanel` 默认折叠。
+
+验收命令：
+
+- `node --check frontend/capability-browser/dataClient.js` 通过；
+- `node --check frontend/capability-browser/viewModels.js` 通过；
+- `node --check frontend/capability-browser/app.js` 通过；
+- `node --check frontend/capability-browser/components/*.js` 通过；
+- `git diff --check` 通过；
+- Playwright 页面切换回归通过。
+
+遗留问题冻结：
+
+- `api-field-contract.md` 尚未补充 `security_technical_measures` 字段契约；
+- `backend-interface-design.md` 尚未补充安全技术措施接口/字段说明；
+- `frontend-redesign-brief.md` 与 `frontend-information-architecture.md` 尚未补充安全技术措施页面说明；
+- `src/sapd_wiki/parsers.py` 与 `docs/03-import-etl/mapping-rules-draft.md` 仍存在把 G 列 `安全技术模块/措施` 按 `security_technology_module` 处理的历史口径记录，需要后续统一；
+- 首页 `generated_at` 主展示风险已在本轮前端修复。
+
+## 2026-05-13 Step 6.8 冻结遗留问题逐项关闭
+
+用户要求逐项关闭 Step 6.7 冻结的 4 个遗留问题。
+
+范围控制：
+
+- 未进入 Step 7；
+- 未修改前端页面逻辑或视觉；
+- 未做安全开发维度、数据生命周期维度或 Impeccable polish；
+- 未做大规模 ETL 重构。
+
+关闭结果：
+
+1. `api-field-contract.md` 已补充 `security_technical_measures` 字段契约：
+   - 明确数据位于 `management-knowledge.json` 顶层；
+   - 明确主对象是“安全技术措施”，不同于 `security_technology_modules`；
+   - 明确当前前端 6 列展示口径；
+   - 明确 `related_service_names`、`related_scope_names`、`related_environment_names`、`related_environment_object_names` 支持 1:N / N:M；
+   - 明确 `sources` 仅进入来源证据，默认折叠；
+   - 明确 `sheet`、`row`、`column`、`raw_value`、`generated_at` 等非业务字段不得进入主展示区。
+2. `backend-interface-design.md` 已补充安全技术措施读取和未来接口说明：
+   - 当前静态阶段由 `dataClient.getMaintenanceTechnologyMeasures()` 读取；
+   - 未来接口建议为 `GET /api/v1/maintenance/technical-measures` 和 `GET /api/v1/maintenance/technical-measures/{id}`；
+   - 明确不得把安全技术模块、系统或产品返回为安全技术措施。
+3. `frontend-redesign-brief.md` 和 `frontend-information-architecture.md` 已补充安全技术措施页面说明：
+   - 页面位于“专项知识维护”；
+   - 定位为维护和核对安全技术措施，不是来源文件浏览器；
+   - 明确不同于安全技术模块清单；
+   - 明确当前 6 列主表和多值关系展示边界；
+   - 明确来源证据默认折叠，非业务字段不得主展示。
+4. G 列 `安全技术模块/措施` 历史口径已收口：
+   - `mapping-rules-draft.md` 已新增 `T-G-COLUMN-SPLIT`；
+   - 明确 G 列需要分流为安全技术模块、安全技术措施、说明类 / 待确认项；
+   - 明确 `/` 不生成安全技术服务，也不生成安全技术措施；
+   - `parsers.py` 已做最小修正：只有浅蓝底 G 列值继续作为 `security_technology_module` 解析，浅灰措施或说明类不再伪造成模块。
+
+验证结果：
+
+- `python3 -m py_compile src/sapd_wiki/parsers.py` 通过；
+- `git diff --check` 通过。
+
+结论：
+
+- Step 6.7 冻结的 4 个遗留问题均已关闭；
+- 可以进入 Step 7.0，但需由用户确认后再开始。
+
+## 2026-05-13 项目计划同步与 ChatGPT Review 资料生成
+
+用户要求按项目计划执行下一步，并明确：
+
+- `Step 7.0` 是外部 ChatGPT 自己的临时编码 / review 语境；
+- 不建议直接纳入既有正式项目计划；
+- 除非外部建议与项目主线有明确共通性，才由主控 Agent 整合进正式计划；
+- 本轮完成后，需要把最新计划同步给 ChatGPT 帮助 review。
+
+已完成：
+
+1. 更新 `task_plan.md`：
+   - 当前状态调整为 `phase_5_contracts_and_frontend_baseline_ready_for_business_review`；
+   - 当前阶段调整为“关系化前端基线、接口契约与业务含义复核”；
+   - 将 Phase 5 标记为进行中；
+   - 将 `dataClient`、静态 JSON 接口契约对齐、能力维度前端技术基线回归标记为已完成；
+   - 新增外部 review / ChatGPT handoff 边界；
+   - 下一步推荐调整为“已完成映射 Sheet 的业务含义复核 + 前端关系展示校正”。
+2. 更新 `docs/00-overview/project-roadmap.md`：
+   - 将 Phase 3 标记为已完成；
+   - 将 Phase 4、Phase 5 标记为进行中；
+   - 补充 Phase 5 当前实际进展；
+   - 明确正式 Phase 7 多格式增强不同于外部 ChatGPT UI prototype / 临时编码步骤。
+3. 更新 `findings.md`：
+   - 新增关键决策：外部 ChatGPT 协作只作为输入，不自动进入正式项目 Phase。
+4. 新增 `docs/00-overview/current-plan-for-chatgpt-review.md`：
+   - 用于同步给 ChatGPT 做外部 review；
+   - 汇总当前定位、边界、已完成内容、当前不建议做的事、下一步主线和希望 ChatGPT review 的问题。
+
+当前下一步：
+
+- 用户可先把 `docs/00-overview/current-plan-for-chatgpt-review.md` 同步给 ChatGPT；
+- 等外部 review 返回后，主控 Agent 再判断是否调整正式计划；
+- 若无重大调整，下一轮进入“已完成映射 Sheet 的业务含义复核”。

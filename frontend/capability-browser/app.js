@@ -7,14 +7,14 @@ const state = {
   activeMaintenancePage: "scopes",
   activeContentPage: "html",
   selectedCapabilityId: null,
+  selectedEnvironmentId: null,
   selectedEnvironmentObjectId: null,
+  selectedEnvironmentRowId: null,
   selectedDevProcessId: null,
   selectedDataProcessId: null,
   selectedMaintenanceId: null,
   selectedContentId: null,
   search: "",
-  maintenanceFilters: {},
-  maintenanceColumnWidths: [150, 150, 240, 280, 220],
   relationshipFilters: {},
   relationshipColumnWidths: [190, 180, 150, 160, 160, 150, 130, 160],
 };
@@ -58,78 +58,6 @@ function pillList(items, empty = "暂无") {
   return rows.map((item) => `<span class="stakeholder-pill">${escapeHtml(titleOf(item))}</span>`).join("");
 }
 
-function scopeGroup(scope) {
-  const group = text(scope?.scenario || scope?.category).trim();
-  return group && group !== "未分类" ? group : "网络空间";
-}
-
-function maintenanceTableColumns() {
-  const baseColumns = [
-    { key: "group", label: "分组" },
-    { key: "code", label: "编码/类型" },
-    { key: "title", label: "名称" },
-    { key: "description", label: "描述" },
-  ];
-  if (["processes", "work-functions", "modules"].includes(state.activeMaintenancePage)) {
-    return [...baseColumns, { key: "relation", label: "关联结果" }];
-  }
-  return baseColumns;
-}
-
-function maintenanceColumnTemplate() {
-  const widths = state.maintenanceColumnWidths;
-  return maintenanceTableColumns().map((_, index) => `${Math.max(90, widths[index] || 160)}px`).join(" ");
-}
-
-function maintenanceCellValue(row, key) {
-  if (key === "code") return row.code || row.type;
-  if (key === "description") return row.description || "";
-  if (key === "relation") return list(row.relations).slice(0, 2).join("；") || "暂无关联";
-  return row[key] || "";
-}
-
-function relationshipMatrixColumns() {
-  return [
-    { key: "focus", label: "能力关注点" },
-    { key: "services", label: "安全技术服务" },
-    { key: "scopes", label: "作用域" },
-    { key: "processGroups", label: "L2流程组" },
-    { key: "processReferences", label: "L3流程" },
-    { key: "activities", label: "L4关键活动" },
-    { key: "stakeholders", label: "职能层" },
-    { key: "modules", label: "技术模块" },
-  ];
-}
-
-function relationshipCellValue(row, key) {
-  if (key === "focus") return [row.focus?.code, row.focus?.title, row.focus?.description].filter(Boolean).join(" ");
-  if (key === "activities") return row.activities.length ? row.activities.map(titleOf).join("；") : row.hasMissingActivity ? "待补充" : "";
-  if (key === "stakeholders") return row.stakeholders.map((stakeholder) => stakeholder.layer || titleOf(stakeholder)).join("；");
-  return list(row[key]).map(titleOf).join("；");
-}
-
-function filterRelationshipRows(rows) {
-  const filters = state.relationshipFilters || {};
-  return rows.filter((row) =>
-    relationshipMatrixColumns().every((column) => {
-      const filter = text(filters[column.key]).trim().toLowerCase();
-      if (!filter) return true;
-      return relationshipCellValue(row, column.key).toLowerCase().includes(filter);
-    }),
-  );
-}
-
-function filterMaintenanceRows(rows) {
-  const filters = state.maintenanceFilters || {};
-  return rows.filter((row) =>
-    maintenanceTableColumns().every((column) => {
-      const filter = text(filters[column.key]).trim().toLowerCase();
-      if (!filter) return true;
-      return maintenanceCellValue(row, column.key).toLowerCase().includes(filter);
-    }),
-  );
-}
-
 function flattenCapabilities() {
   const rows = [];
   for (const category of list(state.capability?.categories)) {
@@ -165,39 +93,6 @@ function compactChips(items, empty = "暂无", limit = 3) {
   const visible = rows.slice(0, limit);
   const more = rows.length - visible.length;
   return `${visible.map((item) => `<span class="relation-chip">${escapeHtml(titleOf(item))}</span>`).join("")}${more > 0 ? `<span class="relation-chip muted">+${more}</span>` : ""}`;
-}
-
-function serviceModuleIndex(service) {
-  return list(state.management?.service_module_index).find((entry) => {
-    const entryService = entry.service || {};
-    return (service?.id && entryService.id === service.id) || (service?.code && entryService.code === service.code) || (service?.title && entryService.title === service.title);
-  });
-}
-
-function modulesForServices(services) {
-  return uniqueBy(
-    list(services).flatMap((service) => list(serviceModuleIndex(service)?.modules)),
-    (module) => module.id || module.code || module.title,
-  );
-}
-
-function systemsProductsForServices(services) {
-  return uniqueBy(
-    list(services).flatMap((service) => {
-      const entry = serviceModuleIndex(service) || {};
-      return [...list(entry.systems), ...list(entry.products)];
-    }),
-    (item) => item.id || item.code || item.title || item.name,
-  );
-}
-
-function stakeholdersFromMappings(processMappings) {
-  return uniqueBy(
-    list(processMappings).flatMap((mapping) =>
-      Object.entries(mapping.stakeholders || {}).flatMap(([layer, stakeholders]) => list(stakeholders).map((stakeholder) => ({ ...stakeholder, layer }))),
-    ),
-    (stakeholder) => `${stakeholder.layer}:${stakeholder.id || stakeholder.code || stakeholder.title}`,
-  );
 }
 
 function findCapabilityItemAndFocuses(targetId) {
@@ -250,233 +145,6 @@ function capabilityPathForFocus(focusId) {
   return {};
 }
 
-function laneItems(items, empty = "暂无") {
-  const rows = list(items).filter(Boolean);
-  if (!rows.length) return `<div class="path-item muted">${escapeHtml(empty)}</div>`;
-  return rows
-    .slice(0, 6)
-    .map((item) => `<div class="path-item"><strong>${escapeHtml(item.code || item.layer || "")}</strong><span>${escapeHtml(titleOf(item))}</span></div>`)
-    .join("");
-}
-
-function renderCapabilityPathMap(row) {
-  if (!row) return emptyState("暂无能力链路");
-  const path = capabilityPathForFocus(row.focus.id);
-  const layerItems = uniqueBy(
-    row.stakeholders.map((stakeholder) => ({ layer: stakeholder.layer, title: `${stakeholder.layer}：${stakeholder.title || stakeholder.name || "未命名职能"}` })),
-    (item) => item.title,
-  );
-  const workItems = row.activities.length
-    ? row.activities
-    : row.hasMissingActivity
-      ? [{ title: "L4关键活动：待补充" }]
-      : [];
-  const lanes = [
-    { label: "1. 能力分类", tone: "blue", items: [path.category] },
-    { label: "2. 单一能力", tone: "navy", items: [path.capability] },
-    { label: "3. 关注点", tone: "purple", items: [row.focus] },
-    { label: "4. 对应的技术服务", tone: "green", items: row.services },
-    { label: "5. 对应的管理职能", tone: "orange", items: layerItems },
-    { label: "6. 管理工作", tone: "teal", items: workItems },
-    { label: "7. 管理流程", tone: "indigo", items: row.processReferences },
-  ];
-  return `
-    <section class="capability-path-map">
-      <div class="matrix-section-head">
-        <div>
-          <h3>安全能力维度映射图</h3>
-          <p>从能力分类、关注点到技术服务、管理职能、管理工作和管理流程的全链路映射</p>
-        </div>
-      </div>
-      <div class="path-lanes">
-        ${lanes
-          .map(
-            (lane, index) => `
-              <section class="path-lane ${lane.tone}">
-                <h4>${escapeHtml(lane.label)}</h4>
-                <div class="path-item-list">${laneItems(lane.items)}</div>
-              </section>
-              ${index < lanes.length - 1 ? '<div class="path-arrow">→</div>' : ""}
-            `,
-          )
-          .join("")}
-      </div>
-    </section>
-  `;
-}
-
-function capabilityRelationRows(selectedId) {
-  const { focuses } = findCapabilityItemAndFocuses(selectedId);
-  return focuses.map((focus) => {
-    const services = uniqueBy(focus.services, (service) => service.id || service.code || service.title);
-    const scopes = uniqueBy([...list(focus.scope_mappings).map((mapping) => mapping.scope), ...services.flatMap((service) => list(service.scopes))], (scope) => scope?.id || scope?.code || scope?.title);
-    const processMappings = list(focus.process_mappings);
-    return {
-      focus,
-      services,
-      scopes,
-      processGroups: uniqueBy(processMappings.map((mapping) => mapping.process_group), (item) => item?.id || item?.title),
-      processReferences: uniqueBy(processMappings.map((mapping) => mapping.process_reference), (item) => item?.id || item?.title),
-      activities: processMappings.flatMap((mapping) => list(mapping.activities)),
-      hasMissingActivity: processMappings.some((mapping) => mapping.missing_activity || mapping.activity_status === "missing"),
-      stakeholders: stakeholdersFromMappings(processMappings),
-      modules: modulesForServices(services),
-      systemsProducts: systemsProductsForServices(services),
-      processMappings,
-    };
-  });
-}
-
-function renderEnvironmentPathMap(selected) {
-  if (!selected) return "";
-  const scopeMappings = list(selected.object.scope_mappings);
-  const scopes = uniqueBy(scopeMappings.map((mapping) => mapping.scope), (scope) => scope?.id || scope?.code || scope?.title);
-  const services = uniqueBy(scopeMappings.flatMap((mapping) => list(mapping.services)), (service) => service.id || service.code || service.title);
-  const modules = uniqueBy(services.flatMap((service) => list(service.modules)), (module) => module.id || module.code || module.title);
-  const systemsProducts = uniqueBy(
-    modules.flatMap((module) => [...list(module.systems), ...list(module.products)]),
-    (item) => item.id || item.code || item.title || item.name,
-  );
-  const lanes = [
-    { label: "1. 信息化环境", tone: "blue", items: [selected.environment] },
-    { label: "2. 信息化对象", tone: "teal", items: [selected.object] },
-    { label: "3. 安全作用域", tone: "green", items: scopes },
-    { label: "4. 安全技术服务", tone: "amber", items: services },
-    { label: "5. 安全技术模块/措施", tone: "orange", items: modules },
-    { label: "6. 安全系统/产品", tone: "purple", items: systemsProducts },
-  ];
-  return `
-    <section class="capability-path-map environment-path-map">
-      <div class="matrix-section-head">
-        <div>
-          <h3>信息化环境关联映射图</h3>
-          <p>从环境到对象、作用域、技术服务、模块/措施、系统/产品的纵向映射</p>
-        </div>
-      </div>
-      <div class="path-lanes environment-lanes">
-        ${lanes
-          .map(
-            (lane, index) => `
-              <section class="path-lane ${lane.tone}">
-                <h4>${escapeHtml(lane.label)}</h4>
-                <div class="path-item-list">${laneItems(lane.items)}</div>
-              </section>
-              ${index < lanes.length - 1 ? '<div class="path-arrow">→</div>' : ""}
-            `,
-          )
-          .join("")}
-      </div>
-    </section>
-  `;
-}
-
-function environmentRows() {
-  return list(state.management?.environment_scope_tree).flatMap((environment) =>
-    list(environment.objects).map((object) => ({
-      environment,
-      object,
-      id: object.id || `${environment.title}:${object.title}`,
-      searchText: [
-        environment.title,
-        object.title,
-        object.environment_segment,
-        ...list(object.scope_mappings).map((mapping) => titleOf(mapping.scope)),
-        ...list(object.scope_mappings).flatMap((mapping) => list(mapping.services).map(titleOf)),
-      ].join(" "),
-    })),
-  );
-}
-
-function maintenanceRows() {
-  const page = state.activeMaintenancePage;
-  if (page === "scopes") {
-    return list(state.management?.scope_types).map((scope) => ({
-      id: scope.id,
-      type: "作用域",
-      code: scope.code,
-      title: scope.title,
-      group: scopeGroup(scope),
-      description: scope.description,
-      sources: scope.sources,
-      relations: [
-        ...list(scope.services).map((service) => `服务：${titleOf(service)}`),
-        ...list(scope.information_objects).map((object) => `对象：${titleOf(object)}`),
-      ],
-    }));
-  }
-  if (page === "processes") {
-    return list(state.management?.security_processes).flatMap((domain) =>
-      list(domain.groups).flatMap((group) =>
-        list(group.references).map((reference) => ({
-          id: reference.id,
-          type: "流程",
-          code: reference.capability_focus_code || reference.code,
-          title: reference.title,
-          group: group.title,
-          layer: [domain.code, domain.title].filter(Boolean).join(" "),
-          description: reference.description,
-          sources: reference.sources,
-          relations: list(reference.stakeholders).map((stakeholder) => `职能：${titleOf(stakeholder)}`),
-        })),
-      ),
-    );
-  }
-  if (page === "work-functions") {
-    return list(state.management?.work_function_layers).flatMap((layer) =>
-      list(layer.groups).flatMap((group) =>
-        list(group.functions).map((fn) => ({
-          id: fn.id,
-          type: "职能",
-          code: fn.code,
-          title: fn.title,
-          group: group.title,
-          layer: layer.title,
-          description: fn.description,
-          sources: fn.sources,
-          relations: [...list(fn.tasks).map((task) => `任务：${titleOf(task)}`), ...list(fn.gbt_42446_refs).map((ref) => `GB/T：${titleOf(ref)}`)],
-        })),
-      ),
-    );
-  }
-  if (page === "modules") {
-    return list(state.management?.security_technology_modules).map((module) => ({
-      id: module.id,
-      type: "技术模块",
-      code: module.code,
-      title: module.title,
-      group: module.category || "未分类",
-      description: module.description,
-      sources: module.sources,
-      relations: [
-        ...list(module.systems).map((system) => `系统：${titleOf(system)}`),
-        ...list(module.services).map((service) => `服务：${titleOf(service)}`),
-        ...list(module.products).map((product) => `产品：${titleOf(product)}`),
-        ...list(module.environments).map((environment) => `环境：${titleOf(environment)}`),
-      ],
-    }));
-  }
-  if (page === "standards") {
-    return list(state.management?.gbt_42446_references).map((ref) => ({
-      id: ref.id,
-      type: "标准",
-      title: ref.title,
-      group: ref.category || "未分类",
-      description: ref.description,
-      sources: ref.sources,
-      relations: [],
-    }));
-  }
-  return list(state.management?.gartner_roles).map((role) => ({
-    id: role.id,
-    type: "岗位",
-    title: role.title,
-    group: role.category || "未分类",
-    description: role.description,
-    sources: role.sources,
-    relations: [],
-  }));
-}
-
 function lifecycleProcesses(kind) {
   if (kind === "dev") return list(state.lifecycle?.application_security_development?.processes);
   return list(state.lifecycle?.data_lifecycle?.processes);
@@ -508,7 +176,7 @@ function renderOverview() {
     lifecycle: state.lifecycle?.stats || {},
     content: state.content?.stats || {},
   };
-  setText("overviewGeneratedAt", state.capability?.generated_at || "已加载");
+  setText("overviewGeneratedAt", "本地数据");
   setHtml(
     "overviewMap",
     `
@@ -544,237 +212,105 @@ function renderOverview() {
   );
 }
 
+function mountAppShellComponents() {
+  const components = window.sapdComponents || {};
+  components.AppShell?.mountCapabilityWorkspace($("capabilityWorkspace"));
+  if ($("localModeStatus")) setHtml("localModeStatus", components.AppShell?.renderLocalModeStatus?.() || '<span class="type-pill">本地模式</span>');
+}
+
+function renderLocalRelationshipNotes(notes) {
+  const rows = list(notes);
+  if (!rows.length) return emptyState("暂无局部关系说明");
+  return `
+    <section class="local-relationship-notes">
+      <div class="matrix-section-head">
+        <div>
+          <h3>当前关注点局部关系说明</h3>
+          <p>仅说明当前对象的局部关系，不作为单线性链路展示</p>
+        </div>
+      </div>
+      <div class="local-note-list">
+        ${rows.map((note) => `<div class="local-note"><strong>${escapeHtml(note.title)}</strong><span>${escapeHtml(note.body)}</span></div>`).join("")}
+      </div>
+    </section>
+  `;
+}
+
 function renderCapabilities() {
-  const rows = flattenCapabilities().filter((row) => matchesSearch(row.level, row.item.code, row.item.title, row.item.description));
-  if (!state.selectedCapabilityId) state.selectedCapabilityId = focusRows()[0]?.item.id || rows[0]?.item.id || null;
-  const levelClass = { 分类: "tree-level-0", L1: "tree-level-1", L2: "tree-level-2", 关注点: "tree-level-3" };
-  setHtml(
-    "tree",
-    rows
-      .map(({ level, item }) => `
-        <button class="tree-row tree-node-row ${levelClass[level] || ""} ${item.id === state.selectedCapabilityId ? "active" : ""}" type="button" data-capability-id="${escapeHtml(item.id)}">
-          <span class="node-level-label">${escapeHtml(level)}</span>
-          <span class="node-code">${escapeHtml(item.code || "")}</span>
-          <span class="node-title">${escapeHtml(item.title || "未命名")}</span>
-        </button>
-      `)
-      .join("") || emptyState("没有匹配的能力"),
-  );
-  const selected = rows.find((row) => row.item.id === state.selectedCapabilityId)?.item || focusRows()[0]?.item;
-  if (!selected) {
-    setHtml("detail", emptyState("暂无能力关系数据"));
-    setHtml("services", emptyState("暂无对象详情"));
-    setText("serviceCount", 0);
+  const viewModels = window.sapdViewModels;
+  const components = window.sapdComponents || {};
+  if (!viewModels?.buildCapabilityWorkspaceViewModel) {
+    setHtml("detail", emptyState("能力视图模型未加载"));
     return;
   }
-  const matrixColumns = relationshipMatrixColumns();
-  const matrixRows = filterRelationshipRows(
-    capabilityRelationRows(selected.id).filter((row) =>
-      matchesSearch(
-        row.focus.code,
-        row.focus.title,
-        ...row.services.map(titleOf),
-        ...row.scopes.map(titleOf),
-        ...row.processGroups.map(titleOf),
-        ...row.processReferences.map(titleOf),
-        ...row.modules.map(titleOf),
-      ),
-    ),
-  );
-  const selectedFocusRow = matrixRows.find((row) => row.focus.id === selected.id) || matrixRows[0];
-  const selectedDetail = selected.type === "capability_focus" ? selected : selectedFocusRow?.focus || selected;
-  const detailServices = selectedDetail.type === "capability_focus" ? uniqueBy(selectedDetail.services, (service) => service.id || service.code || service.title) : [];
-  const detailProcesses = selectedDetail.type === "capability_focus" ? list(selectedDetail.process_mappings) : [];
-  const detailModules = selectedDetail.type === "capability_focus" ? modulesForServices(detailServices) : [];
-  const chainFocus = selectedFocusRow || (selectedDetail.type === "capability_focus" ? capabilityRelationRows(selectedDetail.id)[0] : null);
-  setText("selectedType", selectedDetail.type || selected.type || "能力对象");
+  const viewModel = viewModels.buildCapabilityWorkspaceViewModel({
+    capabilityTree: state.capability,
+    management: state.management,
+    selectedCapabilityId: state.selectedCapabilityId,
+    search: state.search,
+    relationshipFilters: state.relationshipFilters,
+  });
+  if (!state.selectedCapabilityId) state.selectedCapabilityId = viewModel.selectedCapability?.id || null;
+  setHtml("tree", components.DimensionTree?.render({ navigationTree: viewModel.navigationTree, selectedCapabilityId: state.selectedCapabilityId }) || emptyState("能力树组件未加载"));
+  setHtml("capabilitySummary", components.AppShell?.renderCapabilitySummary?.(viewModel.relationshipSummary) || "");
+  const selected = viewModel.selectedCapability;
+  if (!selected) {
+    setHtml("detail", emptyState("暂无能力关系数据"));
+    return;
+  }
+  const detailInspector = viewModel.detailInspector;
   setHtml(
     "detail",
     `
-      ${renderCapabilityPathMap(chainFocus)}
-      <section class="relationship-matrix-section">
-        <div class="matrix-section-head">
-          <div>
-            <h3>能力关系矩阵</h3>
-            <p>能力关注点、服务、作用域、流程、职能层和技术模块的映射结果</p>
-          </div>
-          <span>${matrixRows.length} 条关注点</span>
-        </div>
-        <div class="relationship-matrix-scroll">
-          <table class="relationship-matrix-table">
-            <colgroup>
-              ${matrixColumns.map((_, index) => `<col data-relation-column-index="${index}" style="width: ${Math.max(110, state.relationshipColumnWidths[index] || 150)}px" />`).join("")}
-            </colgroup>
-            <thead>
-              <tr>
-                ${matrixColumns
-                  .map(
-                    (column, index) => `
-                      <th>
-                        <span class="relationship-head-cell">
-                          <strong>${escapeHtml(column.label)}</strong>
-                          <input type="search" data-relation-filter="${escapeHtml(column.key)}" value="${escapeHtml(state.relationshipFilters[column.key] || "")}" placeholder="筛选" />
-                          <i class="relationship-column-resizer" data-relation-column-index="${index}" aria-hidden="true"></i>
-                        </span>
-                      </th>
-                    `,
-                  )
-                  .join("")}
-              </tr>
-            </thead>
-            <tbody>
-              ${
-                matrixRows
-                  .map(
-                    (row) => `
-                      <tr class="${row.focus.id === selectedDetail.id ? "active" : ""}" data-capability-id="${escapeHtml(row.focus.id)}">
-                        <td>
-                          <details class="focus-inline-detail">
-                            <summary><strong>${escapeHtml(row.focus.code || "无编码")}</strong><span>${escapeHtml(row.focus.title || "未命名关注点")}</span></summary>
-                            <p>${escapeHtml(row.focus.description || "暂无描述")}</p>
-                          </details>
-                        </td>
-                        <td>${compactChips(row.services, "暂无服务")}</td>
-                        <td>${compactChips(row.scopes, "暂无作用域")}</td>
-                        <td>${compactChips(row.processGroups, "暂无流程组")}</td>
-                        <td>${compactChips(row.processReferences, "暂无流程")}</td>
-                        <td>${
-                          row.activities.length
-                            ? compactChips(row.activities, "暂无活动")
-                            : row.hasMissingActivity
-                              ? '<span class="missing-pill">待补充</span>'
-                              : '<span class="empty-inline">暂无</span>'
-                        }</td>
-                        <td>${compactChips(row.stakeholders.map((stakeholder) => stakeholder.layer), "暂无职能层")}</td>
-                        <td>${compactChips(row.modules, "暂无模块")}</td>
-                      </tr>
-                    `,
-                  )
-                  .join("") || '<tr><td colspan="8"><div class="reference-empty">暂无匹配关系</div></td></tr>'
-              }
-            </tbody>
-          </table>
-        </div>
-      </section>
-      <section class="relationship-chain-section">
-        <div class="matrix-section-head">
-          <div>
-            <h3>关系链</h3>
-            <p>按当前选中关注点展示服务、作用域、模块和系统/产品链路</p>
-          </div>
-        </div>
-        ${
-          chainFocus
-            ? `
-              <div class="relationship-chain">
-                <div class="chain-node"><span>能力关注点</span><strong>${escapeHtml(chainFocus.focus.code || "无编码")}</strong><small>${escapeHtml(chainFocus.focus.title || "未命名")}</small></div>
-                <div class="chain-arrow">→</div>
-                <div class="chain-node"><span>安全技术服务</span><strong>${chainFocus.services.length}</strong><small>${escapeHtml(chainFocus.services.slice(0, 2).map(titleOf).join("、") || "暂无")}</small></div>
-                <div class="chain-arrow">→</div>
-                <div class="chain-node"><span>作用域</span><strong>${chainFocus.scopes.length}</strong><small>${escapeHtml(chainFocus.scopes.slice(0, 2).map(titleOf).join("、") || "暂无")}</small></div>
-                <div class="chain-arrow">→</div>
-                <div class="chain-node"><span>技术模块</span><strong>${chainFocus.modules.length}</strong><small>${escapeHtml(chainFocus.modules.slice(0, 2).map(titleOf).join("、") || "暂无")}</small></div>
-                <div class="chain-arrow">→</div>
-                <div class="chain-node"><span>系统/产品</span><strong>${chainFocus.systemsProducts.length}</strong><small>${escapeHtml(chainFocus.systemsProducts.slice(0, 2).map(titleOf).join("、") || "暂无")}</small></div>
-              </div>
-            `
-            : emptyState("暂无关系链")
-        }
-      </section>
-    `,
-  );
-  setText("serviceCount", detailServices.length);
-  setHtml(
-    "services",
-    `
-      <div class="detail-code">${escapeHtml(selectedDetail.code || "无编码")}</div>
-      <h2 class="source-entity-title">${escapeHtml(selectedDetail.title || "未命名")}</h2>
-      <p class="source-entity-desc">${escapeHtml(selectedDetail.description || "暂无描述")}</p>
-      <h3 class="section-title">相关服务</h3>
-      <div class="source-chip-row">${compactChips(detailServices, "暂无服务", 8)}</div>
-      <h3 class="section-title">流程与职能层</h3>
-      <div class="process-list">
-        ${
-          detailProcesses.length
-            ? detailProcesses
-                .map((mapping) => `
-                  <article class="process-card compact">
-                    <div class="process-head">
-                      <span>L2流程组：${escapeHtml(titleOf(mapping.process_group, "未关联流程组"))}</span>
-                      <strong>L3流程：${escapeHtml(titleOf(mapping.process_reference, "待补充"))}</strong>
-                    </div>
-                    <div class="l4-placeholder"><strong>L4关键活动</strong><span>${escapeHtml(mapping.activity_status_label || "待补充")}</span></div>
-                    <div class="stakeholder-grid">${["决策层", "管理层", "执行层", "监督层"]
-                      .map((layer) => `<div class="stakeholder-row"><strong>${layer}</strong><div>${pillList(mapping.stakeholders?.[layer])}</div></div>`)
-                      .join("")}</div>
-                  </article>
-                `)
-                .join("")
-            : emptyState("暂无流程关系", "")
-        }
+      ${components.FocusOverview?.render({ focusOverview: viewModel.focusOverview }) || emptyState("关注点概览组件未加载")}
+      <div class="parallel-mapping-grid">
+        ${components.FocusScopeServiceMatrix?.render({ rows: viewModel.technicalMappingRows }) || emptyState("技术映射组件未加载")}
+        ${components.FocusManagementMapping?.render({ rows: viewModel.managementMappingRows }) || emptyState("管理映射组件未加载")}
       </div>
-      <h3 class="section-title">技术模块</h3>
-      <div class="source-chip-row">${compactChips(detailModules, "暂无模块", 8)}</div>
+      ${renderLocalRelationshipNotes(viewModel.localRelationshipNotes)}
+      ${components.SourceEvidencePanel ? components.SourceEvidencePanel.render(detailInspector.sourceEvidence) : ""}
     `,
   );
 }
 
 function renderEnvironment() {
-  const rows = environmentRows().filter((row) => matchesSearch(row.searchText));
-  if (!state.selectedEnvironmentObjectId) state.selectedEnvironmentObjectId = rows[0]?.id || null;
-  setText("environmentCount", rows.length);
-  const grouped = rows.reduce((groups, row) => {
-    const key = row.environment.title || "未分组环境";
-    groups[key] = groups[key] || [];
-    groups[key].push(row);
-    return groups;
-  }, {});
+  const viewModels = window.sapdViewModels;
+  const components = window.sapdComponents || {};
+  if (!viewModels?.buildEnvironmentWorkspaceViewModel) {
+    setHtml("environmentDetail", emptyState("信息化环境视图模型未加载"));
+    return;
+  }
+  const viewModel = viewModels.buildEnvironmentWorkspaceViewModel({
+    management: state.management,
+    selectedObjectId: state.selectedEnvironmentObjectId,
+    selectedEnvironmentId: state.selectedEnvironmentId,
+    search: state.search,
+  });
+  if (viewModel.selectedEnvironment?.id && state.selectedEnvironmentId !== viewModel.selectedEnvironment.id) {
+    state.selectedEnvironmentId = viewModel.selectedEnvironment.id;
+  }
+  if (viewModel.selectedObject?.id && state.selectedEnvironmentObjectId !== viewModel.selectedObject.id) {
+    state.selectedEnvironmentObjectId = viewModel.selectedObject.id;
+  }
+  setText("environmentCount", viewModel.relationshipSummary.objectCount || 0);
   setHtml(
     "environmentTree",
-    Object.entries(grouped)
-      .map(([environment, objectRows]) => `
-        <section class="environment-group">
-          <div class="environment-group-head"><strong>${escapeHtml(environment)}</strong><span>${objectRows.length}</span></div>
-          <div class="environment-object-list">
-            ${objectRows
-              .map((row) => `<button class="environment-object-row ${row.id === state.selectedEnvironmentObjectId ? "active" : ""}" type="button" data-environment-object-id="${escapeHtml(row.id)}"><strong>${escapeHtml(row.object.title || "未命名对象")}</strong><span>${escapeHtml(list(row.object.scope_mappings).map((mapping) => titleOf(mapping.scope)).join("、") || "暂无作用域")}</span></button>`)
-              .join("")}
-          </div>
-        </section>
-      `)
-      .join("") || emptyState("暂无信息化对象"),
+    components.EnvironmentTree?.render({
+      navigationTree: viewModel.navigationTree,
+      selectedEnvironmentId: state.selectedEnvironmentId,
+      selectedObjectId: state.selectedEnvironmentObjectId,
+    }) || emptyState("环境对象树组件未加载"),
   );
-  const selected = rows.find((row) => row.id === state.selectedEnvironmentObjectId) || rows[0];
-  if (!selected) {
-    setHtml("environmentDetail", emptyState("请选择信息化对象"));
+  if (!viewModel.selectedEnvironment) {
+    setHtml("environmentDetail", emptyState("请选择信息化环境或对象"));
     return;
   }
   setHtml(
     "environmentDetail",
     `
-      <div class="source-entity-code">${escapeHtml(selected.environment.title || "信息化环境")}</div>
-      <h2 class="source-entity-title">${escapeHtml(selected.object.title || "未命名对象")}</h2>
-      <p class="source-entity-desc">环境片区：${escapeHtml(selected.object.environment_segment || "辅助字段，当前不作为主层级")}</p>
-      ${renderEnvironmentPathMap(selected)}
-      <div class="scope-chain-list">
-        ${list(selected.object.scope_mappings)
-          .map((mapping) => `
-            <section class="scope-chain">
-              <h3>${escapeHtml(codeTitle(mapping.scope, "未命名作用域"))}</h3>
-              ${list(mapping.services)
-                .map((service) => `
-                  <article class="chain-service">
-                    <div><strong>${escapeHtml(codeTitle(service, "未命名服务"))}</strong><span>安全技术服务</span></div>
-                    <div class="chain-module-list">
-                      ${list(service.modules).map((module) => `<div class="chain-module"><strong>${escapeHtml(titleOf(module))}</strong><span>${escapeHtml(list(module.systems).map(titleOf).join("、") || "未归属系统")}</span></div>`).join("") || '<div class="chain-module muted">暂无模块</div>'}
-                    </div>
-                  </article>
-                `)
-                .join("") || '<div class="reference-empty">暂无服务映射</div>'}
-            </section>
-          `)
-          .join("")}
-      </div>
+      ${components.EnvironmentRelationshipOverview?.render({ viewModel }) || emptyState("环境概览组件未加载")}
+      ${components.EnvironmentScopeServiceMatrix?.render({ rows: viewModel.scopeServiceRows, showObjectColumn: viewModel.detailPanel?.showObjectColumn, selectedRowId: state.selectedEnvironmentRowId }) || emptyState("环境映射表组件未加载")}
+      ${components.EnvironmentDetailPanel?.render({ localRelationNotes: viewModel.localRelationNotes, sourceEvidence: viewModel.sourceEvidence }) || ""}
     `,
   );
 }
@@ -824,77 +360,54 @@ function renderLifecycle(kind) {
 }
 
 function renderMaintenance() {
-  const allRows = maintenanceRows();
-  const rows = filterMaintenanceRows(allRows).filter((row) => matchesSearch(row.code, row.title, row.group, row.layer, row.description, ...list(row.relations)));
-  if (!state.selectedMaintenanceId || !rows.some((row) => row.id === state.selectedMaintenanceId)) state.selectedMaintenanceId = rows[0]?.id || null;
-  const pageTitles = {
-    scopes: "作用域清单",
-    processes: "流程清单",
-    "work-functions": "职能清单",
-    modules: "安全技术模块清单",
-    standards: "标准与规范参考",
-    roles: "岗位参考",
-  };
-  setText("scopeCount", list(state.management?.scope_types).length);
-  setText("processCount", list(state.management?.security_processes).flatMap((domain) => list(domain.groups).flatMap((group) => list(group.references))).length);
-  setText("workFunctionCount", list(state.management?.work_function_layers).flatMap((layer) => list(layer.groups).flatMap((group) => list(group.functions))).length);
-  setText("moduleCount", list(state.management?.security_technology_modules).length);
-  setText("standardCount", list(state.management?.gbt_42446_references).length);
-  setText("roleCount", list(state.management?.gartner_roles).length);
-  setText("sourcePageTitle", pageTitles[state.activeMaintenancePage] || "专项知识维护");
-  setText("sourcePageCount", rows.length);
-  const columns = maintenanceTableColumns();
-  const columnTemplate = maintenanceColumnTemplate();
+  const viewModels = window.sapdViewModels;
+  const components = window.sapdComponents || {};
+  if (!viewModels?.buildMaintenanceWorkspaceViewModel) {
+    setHtml("sourceList", emptyState("专项维护视图模型未加载"));
+    return;
+  }
+  const viewModel = viewModels.buildMaintenanceWorkspaceViewModel({
+    management: state.management,
+    section: state.activeMaintenancePage,
+    selectedId: state.selectedMaintenanceId,
+    search: state.search,
+  });
+  state.activeMaintenancePage = viewModel.section;
+  state.selectedMaintenanceId = viewModel.selectedId;
+  setHtml("maintenanceNavigation", components.MaintenanceNavigation?.render({ navigationItems: viewModel.navigationItems }) || "");
+  setText("sourcePageTitle", viewModel.page?.title || "专项知识维护");
+  setText("sourcePageCount", viewModel.rows.length);
+  let tableHtml = `<div class="maintenance-empty-state">${escapeHtml(viewModel.emptyState || "该专项页面将在后续阶段接入。")}</div>`;
+  if (viewModel.section === "scopes") {
+    tableHtml = components.ScopeMaintenanceTable?.render({ rows: viewModel.rows, selectedId: viewModel.selectedId, emptyState: viewModel.emptyState }) || tableHtml;
+  } else if (viewModel.section === "processes") {
+    tableHtml = components.ProcessMaintenanceTable?.render({ rows: viewModel.rows, selectedId: viewModel.selectedId, emptyState: viewModel.emptyState }) || tableHtml;
+  } else if (viewModel.section === "work-functions") {
+    tableHtml = components.WorkFunctionMaintenanceTable?.render({ rows: viewModel.rows, selectedId: viewModel.selectedId, emptyState: viewModel.emptyState }) || tableHtml;
+  } else if (viewModel.section === "modules") {
+    tableHtml = components.TechnologyModuleMaintenanceTable?.render({ rows: viewModel.rows, selectedId: viewModel.selectedId, emptyState: viewModel.emptyState }) || tableHtml;
+  } else if (viewModel.section === "measures") {
+    tableHtml = components.TechnicalMeasureMaintenanceTable?.render({ rows: viewModel.rows, selectedId: viewModel.selectedId, emptyState: viewModel.emptyState }) || tableHtml;
+  } else if (viewModel.section === "references") {
+    tableHtml =
+      components.StandardRoleReferenceTable?.render({
+        standardRows: viewModel.standardRows,
+        roleRows: viewModel.roleRows,
+        selectedId: viewModel.selectedId,
+        emptyState: viewModel.emptyState,
+      }) || tableHtml;
+  }
   setHtml(
     "sourceList",
-    `<div class="source-sheet-table" style="--source-columns: ${escapeHtml(columnTemplate)}">
-      <div class="source-sheet-row source-sheet-head">
-        ${columns
-          .map(
-            (column, index) => `
-              <span class="source-head-cell">
-                <strong>${escapeHtml(column.label)}</strong>
-                <input type="search" data-maint-filter="${escapeHtml(column.key)}" value="${escapeHtml(state.maintenanceFilters[column.key] || "")}" placeholder="筛选" />
-                <i class="column-resizer" data-column-index="${index}" aria-hidden="true"></i>
-              </span>
-            `,
-          )
-          .join("")}
-      </div>
-      ${rows
-        .map(
-          (row) => `<button class="source-sheet-row ${row.id === state.selectedMaintenanceId ? "active" : ""}" type="button" data-maintenance-id="${escapeHtml(row.id)}">
-            ${columns.map((column) => `<span>${escapeHtml(maintenanceCellValue(row, column.key) || "暂无")}</span>`).join("")}
-          </button>`,
-        )
-        .join("")}
-    </div>`,
+    `
+      ${components.MaintenanceShell?.render({ viewModel }) || ""}
+      ${tableHtml || ""}
+    `,
   );
-  const selected = rows.find((row) => row.id === state.selectedMaintenanceId);
-  setText("sourceDetailType", selected?.type || "未选择");
-  const shouldShowRelations = ["processes", "work-functions", "modules"].includes(state.activeMaintenancePage);
-  const relationSection =
-    selected && shouldShowRelations
-      ? `
-        <h3 class="section-title">关联结果</h3>
-        <div class="source-chip-row">${pillList(selected.relations, "暂无关联")}</div>
-      `
-      : "";
+  setText("sourceDetailType", viewModel.detailPanel?.type || "未选择");
   setHtml(
     "sourceDetail",
-    selected
-      ? `
-        <div class="source-entity-code">${escapeHtml(selected.code || selected.type)}</div>
-        <h2 class="source-entity-title">${escapeHtml(selected.title || "未命名")}</h2>
-        <p class="source-entity-desc">${escapeHtml(selected.description || "暂无说明")}</p>
-        <div class="source-entity-grid">
-          <div><span>类型</span><strong>${escapeHtml(selected.type || "专项对象")}</strong></div>
-          <div><span>分组</span><strong>${escapeHtml(selected.group || "未分组")}</strong></div>
-          <div><span>层级</span><strong>${escapeHtml(selected.layer || "专项")}</strong></div>
-        </div>
-        ${relationSection}
-      `
-      : emptyState("请选择专项对象"),
+    components.MaintenanceDetailPanel?.render({ detailPanel: viewModel.detailPanel }) || emptyState("请选择专项对象"),
   );
 }
 
@@ -926,8 +439,8 @@ function defaultWorkspaceWidths(workspace, panes) {
   const handlesWidth = 6 * (panes.length - 1);
   const total = Math.max(480, workspace.clientWidth - handlesWidth);
   const rest = (...fixed) => Math.max(220, total - fixed.reduce((sum, value) => sum + value, 0));
-  if (workspace.id === "capabilityWorkspace") return [300, rest(300, 330), 330];
-  if (workspace.id === "environmentWorkspace") return [rest(320), 320];
+  if (workspace.id === "capabilityWorkspace") return [310, rest(310)];
+  if (workspace.id === "environmentWorkspace") return [300, rest(300)];
   if (workspace.id === "devLifecycleWorkspace" || workspace.id === "dataLifecycleWorkspace") return [270, rest(270, 220), 220];
   if (workspace.id === "maintenanceWorkspace") return [220, rest(220, 260), 260];
   if (workspace.id === "contentWorkspace") return [220, rest(220, 260), 260];
@@ -991,38 +504,11 @@ function beginWorkspaceResize(event, handle) {
   document.addEventListener("pointerup", onUp, { once: true });
 }
 
-function applyMaintenanceColumnWidths() {
-  const table = $("sourceList")?.querySelector(".source-sheet-table");
-  if (table) table.style.setProperty("--source-columns", maintenanceColumnTemplate());
-}
-
 function applyRelationshipColumnWidths() {
   document.querySelectorAll(".relationship-matrix-table col[data-relation-column-index]").forEach((column) => {
     const index = Number(column.dataset.relationColumnIndex);
     if (!Number.isNaN(index)) column.style.width = `${Math.max(110, state.relationshipColumnWidths[index] || 150)}px`;
   });
-}
-
-function beginMaintenanceColumnResize(event, handle) {
-  const index = Number(handle.dataset.columnIndex);
-  if (Number.isNaN(index)) return;
-  event.preventDefault();
-  event.stopPropagation();
-  const startX = event.clientX;
-  const startWidths = [...state.maintenanceColumnWidths];
-  document.body.classList.add("is-resizing");
-  const onMove = (moveEvent) => {
-    const delta = moveEvent.clientX - startX;
-    state.maintenanceColumnWidths[index] = Math.max(90, startWidths[index] + delta);
-    applyMaintenanceColumnWidths();
-  };
-  const onUp = () => {
-    document.body.classList.remove("is-resizing");
-    document.removeEventListener("pointermove", onMove);
-    document.removeEventListener("pointerup", onUp);
-  };
-  document.addEventListener("pointermove", onMove);
-  document.addEventListener("pointerup", onUp, { once: true });
 }
 
 function beginRelationshipColumnResize(event, handle) {
@@ -1162,48 +648,36 @@ function bindEvents() {
     renderEnvironment();
   });
   $("environmentTree")?.addEventListener("click", (event) => {
-    const row = event.target.closest("[data-environment-object-id]");
+    const objectRow = event.target.closest("[data-environment-object-id]");
+    const environmentRow = event.target.closest("[data-environment-id]");
+    if (!objectRow && !environmentRow) return;
+    state.selectedEnvironmentId = environmentRow?.dataset.environmentId || null;
+    state.selectedEnvironmentObjectId = objectRow?.dataset.environmentObjectId || null;
+    state.selectedEnvironmentRowId = null;
+    renderEnvironment();
+  });
+  $("environmentDetail")?.addEventListener("click", (event) => {
+    const row = event.target.closest("[data-environment-row-id]");
     if (!row) return;
-    state.selectedEnvironmentObjectId = row.dataset.environmentObjectId;
+    state.selectedEnvironmentRowId = row.dataset.environmentRowId;
     renderEnvironment();
   });
   $("sourceSearchInput")?.addEventListener("input", (event) => {
     state.search = event.target.value.trim();
     renderMaintenance();
   });
-  document.querySelectorAll("[data-source-page]").forEach((button) =>
-    button.addEventListener("click", () => {
-      state.activeMaintenancePage = button.dataset.sourcePage;
-      state.selectedMaintenanceId = null;
-      state.maintenanceFilters = {};
-      document.querySelectorAll("[data-source-page]").forEach((item) => item.classList.toggle("active", item === button));
-      renderMaintenance();
-    }),
-  );
+  $("maintenanceNavigation")?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-source-page]");
+    if (!button) return;
+    state.activeMaintenancePage = button.dataset.sourcePage;
+    state.selectedMaintenanceId = null;
+    renderMaintenance();
+  });
   $("sourceList")?.addEventListener("click", (event) => {
     const row = event.target.closest("[data-maintenance-id]");
     if (!row) return;
     state.selectedMaintenanceId = row.dataset.maintenanceId;
     renderMaintenance();
-  });
-  $("sourceList")?.addEventListener("input", (event) => {
-    const input = event.target.closest("[data-maint-filter]");
-    if (!input) return;
-    state.maintenanceFilters[input.dataset.maintFilter] = input.value;
-    const field = input.dataset.maintFilter;
-    const cursor = input.selectionStart;
-    renderMaintenance();
-    requestAnimationFrame(() => {
-      const nextInput = $(`sourceList`)?.querySelector(`[data-maint-filter="${field}"]`);
-      if (nextInput) {
-        nextInput.focus();
-        nextInput.setSelectionRange(cursor, cursor);
-      }
-    });
-  });
-  $("sourceList")?.addEventListener("pointerdown", (event) => {
-    const handle = event.target.closest(".column-resizer");
-    if (handle) beginMaintenanceColumnResize(event, handle);
   });
   document.addEventListener("pointerdown", (event) => {
     const handle = event.target.closest(".workspace-resizer");
@@ -1235,23 +709,20 @@ function bindEvents() {
   );
 }
 
-async function fetchJson(path, fallback = null) {
-  try {
-    const response = await fetch(path, { cache: "no-store" });
-    if (!response.ok) return fallback;
-    return await response.json();
-  } catch {
-    return fallback;
-  }
-}
-
 async function init() {
-  [state.capability, state.management, state.lifecycle, state.content] = await Promise.all([
-    fetchJson("./public/data/capability-tree.json", { stats: {}, categories: [] }),
-    fetchJson("./public/data/management-knowledge.json", { stats: {} }),
-    fetchJson("./public/data/lifecycle-knowledge.json", { stats: {} }),
-    fetchJson("./public/data/content-views.json", { stats: {}, html_documents: [], diagram_views: [], guide_pages: [] }),
+  const dataClient = window.sapdDataClient;
+  if (!dataClient) throw new Error("SAPD Wiki dataClient 未加载");
+  const [capability, management, lifecycle, content] = await Promise.all([
+    dataClient.getCapabilityTree(),
+    dataClient.getManagementKnowledge(),
+    dataClient.getLifecycleKnowledge(),
+    dataClient.getContentViews(),
   ]);
+  state.capability = capability.data;
+  state.management = management.data;
+  state.lifecycle = lifecycle.data;
+  state.content = content.data;
+  mountAppShellComponents();
   bindEvents();
   setActiveView("overview");
 }

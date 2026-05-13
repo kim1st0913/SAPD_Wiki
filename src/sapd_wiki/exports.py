@@ -1,15 +1,20 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
+import re
 import shutil
 import sqlite3
+import zipfile
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from xml.etree import ElementTree as ET
 
 from .paths import PROJECT_ROOT, resolve_project_path
 from .queries import item_counts_by_type, relation_counts_by_type, table_counts
+from .transformers import is_blank_or_placeholder, service_parts, split_multivalue_text, split_scope_values
 
 
 DEFAULT_EXPORT_DIR = PROJECT_ROOT / "data" / "exports"
@@ -41,6 +46,7 @@ SECOND_BATCH_RELATION_TYPES = (
 )
 
 SOURCE_PAGE_ITEM_TYPES = SECOND_BATCH_ITEM_TYPES + (
+    "capability_focus",
     "scope_type",
     "security_technical_service",
     "security_technology_module",
@@ -53,6 +59,7 @@ SOURCE_PAGE_ITEM_TYPES = SECOND_BATCH_ITEM_TYPES + (
 
 SOURCE_PAGE_RELATION_TYPES = SECOND_BATCH_RELATION_TYPES + (
     "applies_to_scope",
+    "no_service_in_scope",
     "implements_service",
     "part_of_system",
     "maps_to_product",
@@ -106,6 +113,17 @@ LIFECYCLE_RELATION_TYPES = (
 )
 
 STAKEHOLDER_LAYERS = ("决策层", "管理层", "执行层", "监督层")
+
+SCENE_TECHNICAL_MAPPING_SHEET = "作用域-安全技术服务-安全技术模块映射"
+TECHNICAL_MEASURE_SOURCE_COLUMN = "安全技术模块/措施"
+XLSX_MAIN_NS = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+XLSX_REL_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+XLSX_PACKAGE_REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships"
+XLSX_NS = {
+    "m": XLSX_MAIN_NS,
+    "r": XLSX_REL_NS,
+    "pr": XLSX_PACKAGE_REL_NS,
+}
 
 
 def _ensure_dir(path: str | Path | None) -> Path:
@@ -541,6 +559,11 @@ def export_capability_tree(
         """
     ).fetchall()
     items = {row["id"]: dict(row) for row in item_rows}
+    scope_id_by_code = {
+        item["code"]: item_id
+        for item_id, item in items.items()
+        if item["type"] == "scope_type" and item.get("code")
+    }
     refs = _source_reference_map(conn, "item")
     relation_refs = _source_reference_map(conn, "relation")
 
@@ -549,6 +572,8 @@ def export_capability_tree(
     scopes_by_service: dict[str, list[str]] = {}
     support_relation_by_focus_service: dict[tuple[str, str], str] = {}
     scope_relation_by_service_scope: dict[tuple[str, str], str] = {}
+    no_service_scopes_by_focus: dict[str, list[str]] = {}
+    no_service_relation_by_focus_scope: dict[tuple[str, str], str] = {}
     capability_process_groups: dict[str, list[dict[str, Any]]] = {}
     focus_process_refs: dict[str, list[dict[str, Any]]] = {}
     process_group_by_reference: dict[str, str] = {}
@@ -583,6 +608,9 @@ def export_capability_tree(
         elif relation_type == "applies_to_scope" and source_type == "security_technical_service" and target_type == "scope_type":
             scopes_by_service.setdefault(source_id, []).append(target_id)
             scope_relation_by_service_scope[(source_id, target_id)] = row["id"]
+        elif relation_type == "no_service_in_scope" and source_type == "capability_focus" and target_type == "scope_type":
+            no_service_scopes_by_focus.setdefault(source_id, []).append(target_id)
+            no_service_relation_by_focus_scope[(source_id, target_id)] = row["id"]
         elif relation_type == "maps_to_process":
             relation = dict(row)
             if source_type == "capability" and target_type == "process_group":
@@ -608,6 +636,18 @@ def export_capability_tree(
             return (0 if tree_order < 10**9 else 1, tree_order, item["code"] or "", item["title"])
 
         return sorted(set(ids), key=sort_key)
+
+    def authoritative_scope_id_for_service(service_id: str) -> str | None:
+        service = items.get(service_id)
+        if not service:
+            return None
+        metadata = _metadata(service)
+        scope_code = (
+            metadata.get("scope_code")
+            or service.get("category")
+            or ((service.get("code") or "").split("&", 1)[0] if service.get("code") else None)
+        )
+        return scope_id_by_code.get(scope_code) if scope_code else None
 
     linked_focus_ids: set[str] = set()
 
@@ -715,30 +755,44 @@ def export_capability_tree(
         for service_id in service_ids:
             if service_id not in items:
                 continue
-            for scope_id in scopes_by_service.get(service_id, []):
-                if scope_id not in items:
-                    continue
-                entry = mappings.setdefault(
-                    scope_id,
-                    {
-                        "scope": _brief_item(items[scope_id], refs),
-                        "services": [],
-                        "sources": [],
-                    },
-                )
-                service_payload = _brief_item(items[service_id], refs)
-                if service_payload and service_payload not in entry["services"]:
-                    entry["services"].append(service_payload)
-                entry["sources"] = _combine_sources(
-                    entry["sources"],
-                    relation_refs.get(support_relation_by_focus_service.get((focus_id, service_id))),
-                    relation_refs.get(scope_relation_by_service_scope.get((service_id, scope_id))),
+            scope_id = authoritative_scope_id_for_service(service_id)
+            if not scope_id or scope_id not in items:
+                continue
+            entry = mappings.setdefault(
+                scope_id,
+                {
+                    "scope": _brief_item(items[scope_id], refs),
+                    "services": [],
+                    "sources": [],
+                    "status": "covered",
+                },
+            )
+            service_payload = _brief_item(items[service_id], refs)
+            if service_payload and service_payload not in entry["services"]:
+                entry["services"].append(service_payload)
+            entry["sources"] = _combine_sources(
+                entry["sources"],
+                relation_refs.get(support_relation_by_focus_service.get((focus_id, service_id))),
+                relation_refs.get(scope_relation_by_service_scope.get((service_id, scope_id))),
+                refs.get(scope_id),
+            )
+        for scope_id in no_service_scopes_by_focus.get(focus_id, []):
+            if scope_id not in items or mappings.get(scope_id, {}).get("services"):
+                continue
+            mappings[scope_id] = {
+                "scope": _brief_item(items[scope_id], refs),
+                "services": [],
+                "sources": _combine_sources(
+                    relation_refs.get(no_service_relation_by_focus_scope.get((focus_id, scope_id))),
                     refs.get(scope_id),
-                )
+                ),
+                "status": "no_service",
+            }
         results = []
         for scope_id in sort_ids(list(mappings.keys())):
             mapping = mappings[scope_id]
             mapping["service_count"] = len(mapping["services"])
+            mapping["status"] = mapping.get("status") or ("covered" if mapping["services"] else "no_service")
             results.append(mapping)
         return results
 
@@ -748,9 +802,10 @@ def export_capability_tree(
         service_ids = sort_ids(services_by_focus.get(focus_id, []))
         for service_id in service_ids:
             service = _item_payload(items[service_id], refs)
+            authoritative_scope_id = authoritative_scope_id_for_service(service_id)
             service["scopes"] = [
                 _item_payload(items[scope_id], refs)
-                for scope_id in sort_ids(scopes_by_service.get(service_id, []))
+                for scope_id in sort_ids([authoritative_scope_id] if authoritative_scope_id else [])
                 if scope_id in items
             ]
             services.append(service)
@@ -1053,6 +1108,357 @@ def _metadata_value(item: dict[str, Any], keys: tuple[str, ...]) -> str | None:
         if value:
             return str(value)
     return None
+
+
+def _xlsx_sheet_path(archive: zipfile.ZipFile, sheet_name: str) -> str | None:
+    workbook = ET.fromstring(archive.read("xl/workbook.xml"))
+    rels = ET.fromstring(archive.read("xl/_rels/workbook.xml.rels"))
+    rel_targets = {rel.attrib.get("Id"): rel.attrib.get("Target") for rel in rels}
+    rel_id = None
+    for sheet in workbook.find("m:sheets", XLSX_NS) or []:
+        if sheet.attrib.get("name") == sheet_name:
+            rel_id = sheet.attrib.get(f"{{{XLSX_REL_NS}}}id")
+            break
+    if not rel_id:
+        return None
+    target = (rel_targets.get(rel_id) or "").replace("\\", "/").lstrip("/")
+    if not target:
+        return None
+    return target if target.startswith("xl/") else f"xl/{target}"
+
+
+def _xlsx_shared_strings(archive: zipfile.ZipFile) -> list[str]:
+    if "xl/sharedStrings.xml" not in archive.namelist():
+        return []
+    root = ET.fromstring(archive.read("xl/sharedStrings.xml"))
+    strings = []
+    for item in root.findall("m:si", XLSX_NS):
+        strings.append("".join(text.text or "" for text in item.iter(f"{{{XLSX_MAIN_NS}}}t")))
+    return strings
+
+
+def _xlsx_style_fills(archive: zipfile.ZipFile) -> dict[str, dict[str, str]]:
+    root = ET.fromstring(archive.read("xl/styles.xml"))
+    fill_colors: list[dict[str, str]] = []
+    for fill in root.find("m:fills", XLSX_NS) or []:
+        pattern = fill.find("m:patternFill", XLSX_NS)
+        color = pattern.find("m:fgColor", XLSX_NS) if pattern is not None else None
+        fill_colors.append(dict(color.attrib) if color is not None else {})
+
+    styles: dict[str, dict[str, str]] = {}
+    for index, style in enumerate(root.find("m:cellXfs", XLSX_NS) or []):
+        try:
+            fill_id = int(style.attrib.get("fillId", "0"))
+        except ValueError:
+            fill_id = 0
+        styles[str(index)] = fill_colors[fill_id] if fill_id < len(fill_colors) else {}
+    return styles
+
+
+def _xlsx_cell_text(cell: ET.Element, shared_strings: list[str]) -> str:
+    cell_type = cell.attrib.get("t")
+    if cell_type == "inlineStr":
+        inline = cell.find("m:is", XLSX_NS)
+        if inline is None:
+            return ""
+        return "".join(text.text or "" for text in inline.iter(f"{{{XLSX_MAIN_NS}}}t"))
+    value = cell.find("m:v", XLSX_NS)
+    if value is None or value.text is None:
+        return ""
+    if cell_type == "s":
+        try:
+            return shared_strings[int(value.text)]
+        except (IndexError, ValueError):
+            return ""
+    return value.text
+
+
+def _xlsx_column(cell_ref: str) -> str:
+    return re.sub(r"\d+", "", cell_ref)
+
+
+def _xlsx_row(cell_ref: str) -> int:
+    digits = re.sub(r"\D+", "", cell_ref)
+    return int(digits) if digits else 0
+
+
+def _fill_tint_matches(fill: dict[str, str], *, theme: str, tint: float) -> bool:
+    if fill.get("theme") != theme:
+        return False
+    try:
+        return abs(float(fill.get("tint", "0")) - tint) < 0.000001
+    except ValueError:
+        return False
+
+
+def _technical_measure_style(fill: dict[str, str]) -> str | None:
+    if _fill_tint_matches(fill, theme="6", tint=0.5999938962981048):
+        return "measure"
+    if fill.get("theme") == "0":
+        return "measure_note"
+    return None
+
+
+def _normalize_measure_name(value: object) -> str:
+    text = " ".join(str(value or "").replace("\xa0", " ").split()).strip()
+    note_match = re.fullmatch(r"N/A\s*[（(]\s*(.*?)\s*[）)]", text, flags=re.IGNORECASE)
+    if note_match:
+        return note_match.group(1).strip()
+    return re.sub(r"^(N/A)\s+([（(])", r"\1\2", text, flags=re.IGNORECASE)
+
+
+def _split_measure_names(value: object) -> list[tuple[str, bool]]:
+    text = str(value or "").replace("\xa0", " ").strip()
+    text = re.sub(r"(?i)\bN/A\s*[\r\n]+\s*([（(])", r"N/A\1", text)
+    return [
+        (name, re.match(r"N/A\s*[（(]", part.strip(), flags=re.IGNORECASE) is not None)
+        for part in split_multivalue_text(text, split_on_ideographic_comma=False)
+        for name in [_normalize_measure_name(part)]
+        if name and not is_blank_or_placeholder(name)
+    ]
+
+
+def _measure_category_status(name: str, style: str, was_note_wrapper: bool = False) -> tuple[str | None, str]:
+    if style == "measure_note" or was_note_wrapper or name.upper().startswith("N/A"):
+        return None, "pending"
+    return None, "normal"
+
+
+def _source_payload(row: int, column: str, cell: str | None, raw_value: object) -> dict[str, Any]:
+    return {
+        "sheet": SCENE_TECHNICAL_MAPPING_SHEET,
+        "row": row,
+        "column": column,
+        "cell": cell,
+        "raw_value": None if raw_value is None else str(raw_value),
+    }
+
+
+def _latest_xlsx_source_paths(conn: sqlite3.Connection) -> list[Path]:
+    rows = conn.execute(
+        """
+        SELECT DISTINCT source_file.file_path, import_job.finished_at, import_job.started_at
+        FROM import_jobs AS import_job
+        JOIN source_files AS source_file ON source_file.id = import_job.source_file_id
+        WHERE import_job.status = 'approved'
+          AND source_file.file_type = 'xlsx'
+          AND source_file.status = 'active'
+        ORDER BY import_job.finished_at DESC, import_job.started_at DESC
+        """
+    ).fetchall()
+    paths: list[Path] = []
+    seen: set[Path] = set()
+    for row in rows:
+        path = resolve_project_path(row["file_path"])
+        if path.name.startswith("~$") or path in seen:
+            continue
+        seen.add(path)
+        paths.append(path)
+    return paths
+
+
+def _scene_measure_candidates_from_xlsx(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    with zipfile.ZipFile(path) as archive:
+        sheet_path = _xlsx_sheet_path(archive, SCENE_TECHNICAL_MAPPING_SHEET)
+        if not sheet_path or sheet_path not in archive.namelist():
+            return []
+        shared_strings = _xlsx_shared_strings(archive)
+        style_fills = _xlsx_style_fills(archive)
+        root = ET.fromstring(archive.read(sheet_path))
+
+        rows: dict[int, dict[str, dict[str, Any]]] = {}
+        for cell in root.findall(".//m:c", XLSX_NS):
+            cell_ref = cell.attrib.get("r", "")
+            column = _xlsx_column(cell_ref)
+            row_number = _xlsx_row(cell_ref)
+            if row_number < 3 or column not in {"B", "C", "D", "E", "F", "G", "H"}:
+                continue
+            rows.setdefault(row_number, {})[column] = {
+                "cell": cell_ref,
+                "value": _xlsx_cell_text(cell, shared_strings),
+                "fill": style_fills.get(cell.attrib.get("s", "0"), {}),
+            }
+
+    inherited_values = {"B": "", "C": "", "D": "", "E": "", "H": ""}
+    inherited_sources: dict[str, dict[str, Any]] = {}
+    source_columns = {
+        "B": "信息化环境",
+        "C": "environment_segment",
+        "D": "信息化对象",
+        "E": "作用域",
+        "H": "安全系统",
+    }
+    candidates: list[dict[str, Any]] = []
+    for row_number in sorted(rows):
+        row = rows[row_number]
+        for column in ("B", "C", "D", "E", "H"):
+            raw_value = row.get(column, {}).get("value")
+            normalized = _normalize_measure_name(raw_value)
+            if normalized:
+                inherited_values[column] = raw_value
+                inherited_sources[column] = _source_payload(
+                    row_number,
+                    source_columns[column],
+                    row.get(column, {}).get("cell"),
+                    raw_value,
+                )
+
+        if not inherited_values["B"] or not inherited_values["D"]:
+            continue
+        measure_cell = row.get("G", {})
+        style = _technical_measure_style(measure_cell.get("fill", {}))
+        if not style:
+            continue
+        raw_measure = measure_cell.get("value")
+        if is_blank_or_placeholder(raw_measure):
+            continue
+        for name, was_note_wrapper in _split_measure_names(raw_measure):
+            category, status = _measure_category_status(name, style, was_note_wrapper)
+            service_cell = row.get("F", {})
+            sources = _combine_sources(
+                [_source_payload(row_number, TECHNICAL_MEASURE_SOURCE_COLUMN, measure_cell.get("cell"), raw_measure)],
+                [_source_payload(row_number, "安全技术服务", service_cell.get("cell"), service_cell.get("value"))]
+                if service_cell.get("value")
+                else None,
+                [inherited_sources["E"]] if "E" in inherited_sources else None,
+                [inherited_sources["D"]] if "D" in inherited_sources else None,
+                limit=20,
+            )
+            candidates.append(
+                {
+                    "name": name,
+                    "category": category,
+                    "status": status,
+                    "service_raw": service_cell.get("value"),
+                    "scope_raw": inherited_values["E"],
+                    "sources": sources,
+                }
+            )
+    return candidates
+
+
+def _security_technical_measure_candidates(conn: sqlite3.Connection) -> list[dict[str, Any]]:
+    for path in _latest_xlsx_source_paths(conn):
+        candidates = _scene_measure_candidates_from_xlsx(path)
+        if candidates:
+            return candidates
+    return []
+
+
+def _stable_measure_id(name: str, category: str | None) -> str:
+    digest = hashlib.sha1(f"{name}\0{category or ''}".encode("utf-8")).hexdigest()[:16]
+    return f"security_technical_measure:{digest}"
+
+
+def _build_security_technical_measures(
+    conn: sqlite3.Connection,
+    items: dict[str, dict[str, Any]],
+    refs: dict[str, list[dict[str, Any]]],
+) -> list[dict[str, Any]]:
+    technical_services = {item_id: item for item_id, item in items.items() if item["type"] == "security_technical_service"}
+    scopes = {item_id: item for item_id, item in items.items() if item["type"] == "scope_type"}
+    focuses = {item_id: item for item_id, item in items.items() if item["type"] == "capability_focus"}
+    service_by_code = {item["code"]: item_id for item_id, item in technical_services.items() if item.get("code")}
+    service_by_title = {_normalize_measure_name(item["title"]): item_id for item_id, item in technical_services.items()}
+    scope_by_code = {item["code"]: item_id for item_id, item in scopes.items() if item.get("code")}
+    scope_by_title = {_normalize_measure_name(item["title"]): item_id for item_id, item in scopes.items()}
+    focus_by_code = {item["code"]: item_id for item_id, item in focuses.items() if item.get("code")}
+
+    grouped: dict[tuple[str, str | None], dict[str, Any]] = {}
+    for candidate in _security_technical_measure_candidates(conn):
+        key = (candidate["name"], candidate["category"])
+        entry = grouped.setdefault(
+            key,
+            {
+                "name": candidate["name"],
+                "category": candidate["category"],
+                "statuses": set(),
+                "service_ids": set(),
+                "service_names": set(),
+                "scope_ids": set(),
+                "scope_names": set(),
+                "focus_ids": set(),
+                "focus_names": set(),
+                "sources": [],
+            },
+        )
+        entry["statuses"].add(candidate["status"])
+        entry["sources"] = _combine_sources(entry["sources"], candidate["sources"], limit=50)
+
+        parts = service_parts(candidate.get("service_raw"))
+        service_id = service_by_code.get(parts.get("code") or "") or service_by_title.get(_normalize_measure_name(parts.get("title")))
+        if service_id:
+            entry["service_ids"].add(service_id)
+            entry["service_names"].add(technical_services[service_id]["title"])
+        elif parts.get("title"):
+            entry["service_names"].add(_normalize_measure_name(parts.get("title")))
+
+        focus_id = focus_by_code.get(parts.get("capability_focus_code") or "")
+        if focus_id:
+            entry["focus_ids"].add(focus_id)
+            entry["focus_names"].add(focuses[focus_id]["title"])
+
+        for scope_code, scope_title in split_scope_values(candidate.get("scope_raw")):
+            scope_id = scope_by_code.get(scope_code or "") or scope_by_title.get(_normalize_measure_name(scope_title))
+            if scope_id:
+                entry["scope_ids"].add(scope_id)
+                entry["scope_names"].add(scopes[scope_id]["title"])
+            elif scope_title or scope_code:
+                entry["scope_names"].add(_normalize_measure_name(scope_title or scope_code))
+
+    payloads = []
+    for (name, category), entry in grouped.items():
+        service_ids = _sort_source_ids(technical_services, list(entry["service_ids"]))
+        scope_ids = _sort_source_ids(scopes, list(entry["scope_ids"]))
+        focus_ids = _sort_source_ids(focuses, list(entry["focus_ids"]))
+        service_names = [technical_services[item_id]["title"] for item_id in service_ids]
+        service_names.extend(sorted(set(entry["service_names"]) - set(service_names)))
+        scope_names = [scopes[item_id]["title"] for item_id in scope_ids]
+        scope_names.extend(sorted(set(entry["scope_names"]) - set(scope_names)))
+        focus_names = [focuses[item_id]["title"] for item_id in focus_ids]
+        focus_names.extend(sorted(set(entry["focus_names"]) - set(focus_names)))
+        status = "pending" if "pending" in entry["statuses"] or not service_names or not scope_names else "normal"
+        payloads.append(
+            {
+                "id": _stable_measure_id(name, category),
+                "name": name,
+                "category": category,
+                "related_service_ids": service_ids,
+                "related_service_names": service_names,
+                "related_services": _brief_many(technical_services, service_ids, refs),
+                "related_module_ids": [],
+                "related_module_names": [],
+                "related_modules": [],
+                "related_scope_ids": scope_ids,
+                "related_scope_names": scope_names,
+                "applicable_scopes": _brief_many(scopes, scope_ids, refs),
+                "related_capability_focus_ids": focus_ids,
+                "related_capability_focus_names": focus_names,
+                "related_focuses": _brief_many(focuses, focus_ids, refs),
+                "related_focus_count": len(focus_ids),
+                "status": status,
+                "sources": entry["sources"],
+            }
+        )
+
+    def first_measure_source_row(item: dict[str, Any]) -> int:
+        rows = [
+            source.get("row") or 10**9
+            for source in item["sources"]
+            if source.get("column") == TECHNICAL_MEASURE_SOURCE_COLUMN
+        ]
+        return min(rows, default=10**9)
+
+    return sorted(
+        payloads,
+        key=lambda item: (
+            first_measure_source_row(item),
+            item["category"] or "",
+            item["name"],
+        ),
+    )
 
 
 def export_management_knowledge(
@@ -1438,6 +1844,7 @@ def export_management_knowledge(
         payload_item["environments"] = brief_many(information_environments, environments_by_module.get(item["id"], []))
         module_payloads.append(payload_item)
     service_module_index, _service_module_index_by_id = _build_service_module_index(conn)
+    security_technical_measures = _build_security_technical_measures(conn, items, refs)
 
     object_entries_by_environment: dict[str, dict[tuple[str, str, str | None], dict[str, Any]]] = {}
 
@@ -1592,6 +1999,7 @@ def export_management_knowledge(
             "gartner_roles": len(gartner_role_payloads),
             "scope_types": len(scope_payloads),
             "security_technology_modules": len(module_payloads),
+            "security_technical_measures": len(security_technical_measures),
             "service_module_index": len(service_module_index),
             "information_environments": len(environment_scope_tree),
             "information_objects": sum(len(environment["objects"]) for environment in environment_scope_tree),
@@ -1606,6 +2014,7 @@ def export_management_knowledge(
         "gartner_roles": gartner_role_payloads,
         "scope_types": scope_payloads,
         "security_technology_modules": module_payloads,
+        "security_technical_measures": security_technical_measures,
         "service_module_index": service_module_index,
         "environment_scope_tree": environment_scope_tree,
         "assets": asset_payloads,

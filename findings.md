@@ -12,6 +12,7 @@
 | 来源追踪 | 知识对象和关系必须保留来源文件、位置、hash 和导入任务 | `docs/06-implementation/local-data-layout.md` |
 | 问题管理 | 所有 bug、数据问题、页面问题统一维护在 `open-issues.md` | `docs/06-implementation/open-issues.md` |
 | Agent 使用 | 保留逻辑角色；实际运行以主控 Agent + 必要 Worker 为主 | `docs/07-governance/governance-index.md` |
+| 外部 ChatGPT 协作 | 外部 UI prototype、临时 Step 编号或 review 建议只作为输入，不自动进入正式项目 Phase | `task_plan.md`, `docs/00-overview/current-plan-for-chatgpt-review.md` |
 
 ## 当前重要风险
 

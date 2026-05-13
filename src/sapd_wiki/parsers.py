@@ -37,6 +37,19 @@ def _is_numeric_summary_value(value: object) -> bool:
     return bool(re.fullmatch(r"\d+(?:\.\d+)?", text))
 
 
+def _is_scene_module_fill(cell: object) -> bool:
+    """G 列浅蓝底代表安全技术模块；其他底色不再伪造成模块。"""
+    fill_color = getattr(getattr(cell, "fill", None), "fgColor", None)
+    try:
+        return (
+            fill_color.type == "theme"
+            and int(fill_color.theme) == 8
+            and abs(float(fill_color.tint) - 0.7999816888943144) < 0.0001
+        )
+    except (TypeError, ValueError):
+        return False
+
+
 def _object(
     item_type: str,
     title: str,
@@ -235,9 +248,33 @@ def parse_service_sheet(workbook) -> ParseResult:
         result.objects.append(focus)
         for col in range(7, 14):
             cell = row[col - 1]
+            header_code, header_title = scope_headers[col]
+            cell_text = normalize_text(cell.value)
+            if cell_text == "/" and header_code:
+                scope = _object(
+                    "scope_type",
+                    header_title or header_code,
+                    code=header_code,
+                    source=_source(sheet_name, 3, f"作用域列{col}", _coord(ws.cell(row=3, column=col)), ws.cell(row=3, column=col).value),
+                )
+                result.objects.append(scope)
+                result.relations.append(
+                    _relation(
+                        focus.key,
+                        "no_service_in_scope",
+                        scope.key,
+                        "该作用域无安全技术服务",
+                        source=_source(sheet_name, row_index, f"作用域列{col}", _coord(cell), cell.value),
+                        metadata={
+                            "status": "no_service",
+                            "scope_code": header_code,
+                            "capability_focus_code": focus_code,
+                        },
+                    )
+                )
+                continue
             if is_blank_or_placeholder(cell.value):
                 continue
-            header_code, header_title = scope_headers[col]
             parts = service_parts(cell.value, fallback_scope_code=header_code, fallback_focus_code=focus_code)
             service_code = parts["code"]
             service_title = normalize_service_title(parts["title"] or normalize_text(cell.value))
@@ -438,7 +475,7 @@ def parse_scene_sheet(workbook, authoritative_service_titles: dict[str, str] | N
                 result.relations.append(_relation(service.key, "applies_to_scope", scope.key, "适用于作用域", source=service.sources[0]))
 
         module = None
-        if not is_blank_or_placeholder(module_raw):
+        if not is_blank_or_placeholder(module_raw) and _is_scene_module_fill(row[6]):
             module = _object("security_technology_module", normalize_text(module_raw), source=_source(sheet_name, row_index, "安全技术模块/措施", _coord(row[6]), module_raw))
             result.objects.append(module)
             result.relations.append(_relation(module.key, "deployed_in_environment", env.key, "部署/适用于环境", source=module.sources[0]))

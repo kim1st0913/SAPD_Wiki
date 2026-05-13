@@ -6,9 +6,9 @@
 
 ## Current Status
 
-- Status: phase_5_dual_track_data_frontend_sync_started
+- Status: phase_5_contracts_and_frontend_baseline_ready_for_business_review
 - Started: 2026-05-09
-- Current phase: Phase 5 - 数据处理与关系化前端双轨并行
+- Current phase: Phase 5 - 关系化前端基线、接口契约与业务含义复核
 - Primary reference: `docs/00-overview/project-roadmap.md`
 
 ## Phases
@@ -20,7 +20,7 @@
 | 2 | 工程骨架 | in_progress | README, `.gitignore`, directory structure |
 | 3 | 数据模型设计 | complete | `docs/02-data-model/data-model.md`, SQLite schema, migrations |
 | 4 | 导入 MVP | in_progress | Excel + Markdown/DOCX import prototype |
-| 5 | 知识浏览与搜索 | pending | list/detail/search/tag/category pages |
+| 5 | 知识浏览与搜索 | in_progress | relation-oriented static frontend, capability/environment/specialist maintenance pages |
 | 6 | 导出与备份 | pending | CSV/JSON/Excel/ZIP export |
 | 7 | 多格式增强 | pending | PPT and Draw.io parsing/preview |
 | 8 | 更新审查与关系管理 | pending | diff, conflict review, relations |
@@ -105,7 +105,8 @@
 - [x] ETL/Data Worker: export explicit focus-scope mappings, service indexes, lifecycle knowledge and content view stubs.
 - [x] Frontend/Main: restore a runnable 7-page relation-oriented navigation skeleton and rename `知识来源` to `专项知识维护`.
 - [x] Master Agent: integrate ETL and frontend outputs, then run local verification.
-- [ ] User review: inspect the restored 7-page frontend baseline and identify the next focused frontend page to deepen.
+- [x] Run overall frontend regression, close frozen Step 6.7 issues and document security technical measure contracts.
+- [ ] User / ChatGPT review: review the latest plan and decide the next data business-confirmation batch. This is a review gate, not a formal project Phase 7.
 
 ## Phase 5 Backend/Frontend Separation Tasks
 
@@ -115,10 +116,11 @@
 - [x] Confirm backend owns ETL, normalization, master data, relation generation, validation and frontend projection export.
 - [x] Confirm frontend owns navigation, table/matrix/relation-chain rendering, filtering, resizing and detail interaction only.
 - [x] Confirm static JSON is the MVP API contract, with future `/api/v1/*` local API preserving the same semantics.
-- [ ] Add or refactor frontend `dataClient` so pages do not directly scatter business data fetching and shaping logic.
-- [ ] Align current frontend JSON exports with the documented backend interface contract.
+- [x] Add or refactor frontend `dataClient` so pages do not directly scatter business data fetching and shaping logic.
+- [x] Align current frontend JSON exports with the documented backend interface contract.
 - [x] Review the Frontend Design Agent output against `chatgpt ui code.md`, `frontend-redesign-brief.md` and `backend-interface-design.md`.
-- [ ] User confirms the first refactored capability relationship workspace before broadening to all pages.
+- [x] Complete first refactored capability relationship workspace technical baseline and regression.
+- [ ] User confirms business semantics of mapped sheets/pages before broader feature expansion.
 
 ## Phase 1 Remaining Sheet Modeling Tasks
 
@@ -144,7 +146,7 @@
 
 Latest first-batch clean approved import job:
 
-- `7ac14b99-3827-46e1-9e3b-aa557ed637b7`
+- `9afb8c92-462d-4c05-827d-d2ffa57af6a2`
 
 Latest second-batch approved import job:
 
@@ -216,10 +218,17 @@ Current local export files:
 
 ## Next Recommended Actions
 
-1. 主控 Agent 固化后端接口与静态 JSON 契约，避免前端继续承担业务推断逻辑。
-2. Frontend Design Agent 参考 `chatgpt ui code.md` 和 `impeccable` 设计原则，先重构能力维度关系页。
-3. 主控 Agent 验收前端输出，确认没有改动 ETL/数据库边界，并同步 `open-issues.md` 和 `progress.md`。
-4. 用户确认能力维度关系页后，再继续第二批、第三批已导入 Sheet 的业务含义复核和前端投影补齐。
+1. 用户将 `docs/00-overview/current-plan-for-chatgpt-review.md` 同步给 ChatGPT 做外部 review，重点检查下一阶段优先级和过度设计风险。
+2. 主控 Agent 根据 review 结果微调计划，但不把 ChatGPT 的临时 UI 编码步骤直接纳入正式项目 Phase，除非它与项目主线有明确共通性。
+3. 进入已完成映射 Sheet 的业务含义复核：逐张确认主键、对象边界、1:N / N:M 关系和前端展示含义。
+4. 完成业务含义复核后，再决定下一轮前端深化对象：能力维度、信息化环境维度、专项知识维护，或生命周期维度投影补齐。
+5. PPT / Draw.io 多格式增强仍属于后续正式 Phase 7，不在当前立即启动。
+
+## External Review / ChatGPT Handoff
+
+- 最新外部 review 资料：`docs/00-overview/current-plan-for-chatgpt-review.md`
+- 外部 ChatGPT 生成的 UI 代码或临时 Step 编号，只作为 review / prototype 输入，不自动成为本项目正式 Phase。
+- 只有当外部建议与本项目的数据契约、ETL、前端信息架构、用户工作流存在明确共通性时，才由主控 Agent 整合进 `task_plan.md`、`docs/` 或 `open-issues.md`。
 
 Issue tracking rule:
 

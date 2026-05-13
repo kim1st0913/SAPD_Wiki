@@ -1,0 +1,56 @@
+version: v1
+rule_set_name: default-local-rule-scoring
+scoring_unit: capability_focus
+target_default_level: L3
+valid_levels:
+  - L0
+  - L1
+  - L2
+  - L3
+  - L4
+  - L5
+level_gates:
+  L0:
+    when:
+      no_valid_input: true
+      no_accepted_match: true
+  L1:
+    when:
+      has_current_state_summary: true
+  L2:
+    required_any:
+      - organization
+      - process
+      - technology
+    min_required_count: 1
+  L3:
+    required_any:
+      - organization
+      - process
+      - technology
+      - operation
+    min_required_count: 3
+  L4:
+    inherit: L3
+    required_any:
+      - metrics
+    min_required_count: 1
+  L5:
+    inherit: L4
+    required_any:
+      - improvement
+    min_required_count: 1
+score_mapping:
+  L0: 0
+  L1: 20
+  L2: 40
+  L3: 60
+  L4: 80
+  L5: 95
+aggregation:
+  v1_method: simple_average
+  future_method: weighted_average_with_confidence
+manual_override:
+  allowed: true
+  require_reviewer_note: true
+  preserve_auto_score: true

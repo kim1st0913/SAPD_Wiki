@@ -5,6 +5,7 @@ data/processed/
 data/database/
 data/previews/
 data/exports/
+data/maturity/
 
 # Local databases and backups
 *.db

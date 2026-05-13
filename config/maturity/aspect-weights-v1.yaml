@@ -1,0 +1,29 @@
+version: v1
+aspects:
+  organization:
+    label: 组织职责
+    input_field: organization_status
+    weight: 0.15
+  process:
+    label: 制度流程
+    input_field: process_status
+    weight: 0.20
+  technology:
+    label: 技术工具
+    input_field: technology_status
+    weight: 0.25
+  operation:
+    label: 运营执行
+    input_field: operation_status
+    weight: 0.15
+  metrics:
+    label: 指标度量
+    input_field: metric_status
+    weight: 0.15
+  improvement:
+    label: 改进闭环
+    input_field: improvement_status
+    weight: 0.10
+defaults:
+  importance_weight: 1.0
+  confidence_weight: 1.0

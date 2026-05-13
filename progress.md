@@ -2577,3 +2577,362 @@ Playwright 回归结果：
 - 用户可先把 `docs/00-overview/current-plan-for-chatgpt-review.md` 同步给 ChatGPT；
 - 等外部 review 返回后，主控 Agent 再判断是否调整正式计划；
 - 若无重大调整，下一轮进入“已完成映射 Sheet 的业务含义复核”。
+
+## 2026-05-13 Plan Sync 1.0 正式项目计划状态校准
+
+用户要求执行 Plan Sync 1.0：正式项目计划状态校准 + 下一主线冻结。
+
+范围控制：
+
+- 未修改 `frontend/capability-browser/`；
+- 未修改 `src/sapd_wiki/`；
+- 未修改 ETL/export；
+- 未修改数据库模型；
+- 未进入正式 Phase 7；
+- 未做 PPT / Draw.io / DOCX 多格式增强；
+- 未做 UI 视觉重构或 Impeccable polish；
+- 未启动新的功能开发 Agent。
+
+已同步文件：
+
+- `task_plan.md`
+- `findings.md`
+- `docs/00-overview/current-plan-for-chatgpt-review.md`
+- `docs/00-overview/project-roadmap.md`
+- `progress.md`
+
+`task_plan.md` 状态校准：
+
+- 当前状态调整为 `phase_5_business_semantics_review_ready`；
+- 当前阶段调整为“已导入 Sheet 业务含义复核与关系展示校正”；
+- 外部 ChatGPT review gate 标记为已完成；
+- 明确外部 ChatGPT 临时 Step 编号、UI prototype、prototype code 只作为 review / prototype 输入，不自动进入正式项目 Phase；
+- 明确下一主线不是正式 Phase 7 多格式增强，而是“已导入 Sheet 的业务含义复核 + 前端关系展示校正”。
+
+标记为已完成的任务：
+
+- `dataClient` 抽象完成；
+- ViewModel 层完成；
+- 静态 JSON 已作为 MVP API 契约使用；
+- 前端页面已通过 `dataClient` + ViewModel 消费业务投影；
+- `api-field-contract.md` 和 `backend-interface-design.md` 已补齐 `security_technical_measures`；
+- 能力维度完成第一阶段关系展示；
+- 信息化环境维度完成第一阶段关系展示；
+- 专项知识维护 6 个页面完成第一阶段闭环：
+  - 作用域清单；
+  - 流程清单；
+  - 职能清单；
+  - 安全技术模块清单；
+  - 安全技术措施清单；
+  - 标准与岗位参考。
+- `security_technical_measures` 已导出、已补字段契约、已完成前端回归；
+- G 列 `安全技术模块/措施` 分流口径已固化。
+
+仍保留为待用户确认的任务：
+
+- 已完成映射 Sheet 的业务含义、主键和关系基数确认；
+- 第一批核心 Sheet 逐张复核；
+- 第二批管理、流程、职能、岗位相关 Sheet 逐张复核；
+- 第三批 LC-AP 生命周期相关 Sheet 业务语义确认；
+- `lifecycle-knowledge.json` 是否需要后续 ETL/export 生成；
+- 在第三批确认前，不进入完整安全开发维度页面深化。
+
+技术栈表述修正：
+
+- 当前 MVP frontend 调整为：静态浏览器页面 + 原生 JS + `dataClient` + ViewModel；
+- React + TypeScript 调整为后续可选重构方向；
+- 当前阶段不因旧技术决策强行引入 React/Vue。
+
+`findings.md` 记录：
+
+- 外部 ChatGPT Step 编号不进入正式 Phase；
+- 当前最重要的是业务含义复核，不是 UI 扩展；
+- Phase 7 多格式增强后置；
+- 前端继续作为数据关系排查工作台；
+- 后端负责业务关系生成，前端消费投影。
+
+下一主线：
+
+- 已导入 Sheet 的业务含义复核 + 前端关系展示校正。
+
+验证结果：
+
+- `git diff --check` 通过。
+
+## 2026-05-13 Sheet Review 1.0 第一批核心 Sheet 业务复核
+
+用户要求执行 Sheet Review 1.0：第一批核心 Sheet 业务含义复核与前端关系展示校正。
+
+范围控制：
+
+- 未修改 `frontend/capability-browser/`；
+- 未修改 `src/sapd_wiki/`；
+- 未修改 ETL/export；
+- 未修改数据库模型；
+- 未进入正式 Phase 7；
+- 未做安全开发维度、数据生命周期维度、多格式增强或视觉 polish；
+- 未自动修改原始数据。
+
+已复核 Sheet：
+
+1. `安全能力目录`
+2. `安全能力作用域目录`
+3. `信息化环境-信息化对象-安全作用域映射`
+4. `安全能力-安全技术服务`
+5. `安全技术模块清单`
+6. `作用域-安全技术服务-安全技术模块映射`
+
+已新增文档：
+
+- `docs/03-import-etl/core-sheet-business-review.md`
+
+复核内容：
+
+- 每张 Sheet 的业务含义；
+- 主对象；
+- 主键 / 唯一约束；
+- 关系基数；
+- 当前前端展示位置；
+- 当前展示判断；
+- 问题归属；
+- 后续动作。
+
+当前判断：
+
+- `安全能力目录` 展示准确，需用户确认层级、编码和排序为最终业务口径；
+- `安全能力作用域目录` 基本准确，需确认是否完全按原表字段展示；
+- `信息化环境-信息化对象-安全作用域映射` 基本准确，需确认同名信息化对象是否全局唯一，以及 `environment_segment` 是否作为正式层级；
+- `安全能力-安全技术服务` 展示准确，继续保持 `/` 为无适用服务和多服务异常检测；
+- `安全技术模块清单` 基本准确但需优化，需确认模块唯一约束是否应包含安全系统，以及系统/产品是否只作为详情字段；
+- `作用域-安全技术服务-安全技术模块/措施映射` 基本准确但需校正展示语义，后续前端应更清楚地区分安全技术模块和安全技术措施。
+
+仍需用户确认：
+
+- `information_object` 是否按名称全局唯一；
+- `environment_segment` 是辅助字段还是信息化环境树正式层级；
+- `security_technology_module` 唯一约束是否为 `type + title`，还是 `type + security_system + title`；
+- 安全技术模块清单中的系统 / 产品是否不作为主表列，只进入详情或关系说明；
+- 前端是否需要显式标签区分 `安全技术模块` 和 `安全技术措施`。
+
+计划同步：
+
+- `task_plan.md` 中第一批核心 Sheet 已标记为“Sheet Review 1.0 草案完成，待用户确认”；
+- `findings.md` 已记录第一批核心 Sheet Review 1.0 草案完成及待确认关键点。
+
+验证结果：
+
+- `git diff --check` 通过。
+
+## 2026-05-13 Sheet Review 1.0 用户反馈更新
+
+用户对照前端界面和原始表回复第一批核心 Sheet 复核结论，并补充需求修正。
+
+已更新：
+
+- `docs/03-import-etl/core-sheet-business-review.md`
+- `docs/06-implementation/open-issues.md`
+- `task_plan.md`
+- `findings.md`
+- `progress.md`
+
+已确认口径：
+
+- `安全能力目录` 的层级、编码、排序为最终口径；
+- 前端页面 `能力维度` 后续应调整为 `安全能力映射`；
+- `安全能力作用域目录` 原始数据已补充 `I-PE 物理环境`；
+- 作用域清单按原表字段展示，派生 `作用域类型` 和 `状态` 不显示；
+- 多个页面里的派生 `状态` 字段和 `待补充` 统计摘要不显示；
+- 信息化对象出现在多个类似信息化环境中是正常业务逻辑；
+- `安全能力-安全技术服务` 保持 `/` 为无适用服务，并保留多服务异常检测；
+- 安全系统是多个安全技术模块的上级分类；
+- 产品字段表示对应产品名称，`我司无相关产品` 是正常值；
+- 作用域-服务-模块/措施连续映射中，前端需要显式标签区分 `安全技术模块` 和 `安全技术措施`。
+
+已同步到统一问题清单：
+
+- 更新 `OI-019`：作用域清单需去掉派生 `作用域类型` 和 `状态`，并等待 `I-PE 物理环境` 重导入验证；
+- 更新 `OI-029`：信息化对象可在多个类似环境中复用，属于正常业务逻辑；
+- 更新 `OI-033`：前端需显式标签区分安全技术模块和安全技术措施；
+- 新增 `OI-035`：多个页面不显示非原表字段 `状态` 和 `待补充` 统计摘要；
+- 新增 `OI-036`：`能力维度` 页面需更名为 `安全能力映射`。
+
+仍未完全确认：
+
+- `environment_segment` 是辅助字段，还是信息化环境树的正式层级。
+
+验证结果：
+
+- `git diff --check` 通过。
+
+## 2026-05-13 Sheet Review 1.0 环境子类口径确认
+
+用户确认 `environment_segment` 为信息化环境维度的正式层级，中文口径为 `环境子类`。
+
+已更新：
+
+- `docs/03-import-etl/core-sheet-business-review.md`
+- `docs/06-implementation/open-issues.md`
+- `task_plan.md`
+- `findings.md`
+- `progress.md`
+
+同步结果：
+
+- 第一批核心 Sheet 复核中的 `SR1-UC-001` 已从“仍需用户确认”调整为“已确认，待前端执行”；
+- `信息化环境-信息化对象-安全作用域映射` 的关系口径调整为 `信息化环境 -> 环境子类 -> 信息化对象 -> 安全作用域`；
+- 统一问题清单新增 `OI-037`，用于后续前端将 `environment_segment` 展示为正式层级“环境子类”；
+- `task_plan.md` 中第一批核心 Sheet Review 1.0 的剩余未清事项已标记为完成。
+
+后续动作：
+
+- 下一轮前端修正时，需要同步调整信息化环境维度的树层级、页面文案和 ViewModel 语义；
+- 后续提问类似字段问题时，必须同时带出原始 Sheet、原始列位、原始表头 / 含义、系统字段名、当前用途和需要确认的问题。
+
+## 2026-05-13 成熟度分析模块 M0 规划落地
+
+用户要求基于当前 SAPD Wiki 工程文件和外部 PRD `security_maturity_analysis_prd_v0_2.md`，使用 `planning-with-files` 方式规划独立 maturity 模块。
+
+本次只做文档与配置占位，未修改主线业务代码，未新增数据库迁移，未实现评分代码、图表代码或 UI。
+
+已新增文档：
+
+- `docs/08-maturity/requirements.md`
+- `docs/08-maturity/data-model.md`
+- `docs/08-maturity/scoring-rules.md`
+- `docs/08-maturity/template-design.md`
+- `docs/08-maturity/implementation-plan.md`
+
+已新增配置：
+
+- `config/maturity/maturity-levels.yaml`
+- `config/maturity/aspect-weights-v1.yaml`
+- `config/maturity/scoring-rules-v1.yaml`
+- `config/maturity/matching-keywords-v1.yaml`
+- `config/maturity/template-schema-v1.yaml`
+- `config/maturity/report-template-v1.yaml`
+
+已更新：
+
+- `task_plan.md`：新增 maturity 模块 M0-M5 分阶段计划，标记 M0 完成；
+- `README.md`：新增 maturity 模块能力说明、文档入口和 CLI 命令占位；
+- `findings.md`：记录 maturity 模块边界为独立运行数据模型，不写入 `knowledge_items`；
+- `progress.md`：记录本次新增内容和验证结果。
+
+关键设计结论：
+
+- maturity 是 SAPD Wiki 主工程下的独立模块；
+- 评估运行数据后续使用 `maturity_*` 专用表；
+- 成熟度评分主轴只读引用现有 `capability_category`、`capability_domain`、`capability`、`capability_focus`；
+- V1 推荐先做 CLI + Excel 模板 + JSON/Markdown/HTML 报告闭环；
+- V1 不做完整前端，V1.1/M5 再接入页面；
+- 客户输入、报告和审查表默认写入本地 `data/maturity/`，不提交 GitHub；
+- 初始 raw sample 按一个 Word、一个 PPTX 和一个 XLSX 准备，建议后续放在本地 `data/raw-samples/maturity/`。
+
+验证结果：
+
+- `git diff --check` 通过；
+- 使用 Ruby YAML 解析器验证 `config/maturity/*.yaml` 全部可读取。
+
+下一步建议：
+
+1. 用户确认 L0-L5 等级、三维模型、V1 先 CLI 不做 UI 的默认口径。
+2. 准备 maturity 样例文件：一个 Word、一个 PPTX、一个 XLSX，放入本地 `data/raw-samples/maturity/`。
+3. 进入 M1 时，再新增 `maturity_*` 数据库迁移和 `maturity-template` CLI，不改 `knowledge_items`。
+
+## 2026-05-13 Sheet Review 1.1 第一批核心 Sheet 修正落地与回归
+
+本轮按用户已确认的第一批核心 Sheet 业务口径执行修正落地，不进入第二批 / 第三批 Sheet 复核，不进入正式 Phase 7。
+
+执行内容：
+
+- 备份当前本地数据库到 `data/database/backups/sapd_wiki-before-sheet-review-1-1-20260513.sqlite3`；
+- 重新执行核心 Sheet staging，import job 为 `e5bef425-c8f9-43bb-b6a8-1a7508ed6c4b`；
+- approve 本轮 staging 数据；
+- 重新导出：
+  - `frontend/capability-browser/public/data/capability-tree.json`
+  - `frontend/capability-browser/public/data/management-knowledge.json`
+- 确认 `I-PE 物理环境` 已进入 `management-knowledge.json` 的 `scope_types`；
+- 确认 `security_technical_measures` 当前为 29 条，其中 10 条为 `pending`；
+- 保持 `/` 为无适用服务，不生成安全技术服务和安全技术措施；
+- 保持 G 列模块 / 措施分流口径。
+
+前端修正：
+
+- 用户可见的 `能力维度` 已调整为 `安全能力映射`；
+- `frontend/capability-browser/README.md` 中的页面说明同步改为 `安全能力映射`；
+- `专项知识维护 > 作用域清单` 主表调整为 `序号 / 情景 / 作用域编码 / 作用域名称 / 描述`，不再显示派生 `作用域类型` 和 `状态`；
+- 信息化环境树调整为 `信息化环境 -> 环境子类 -> 信息化对象`，对象映射继续表达对象到安全作用域、服务、模块 / 措施的关系；
+- 能力映射和信息化环境映射中的 `技术模块/措施` 已显式标签区分 `安全技术模块`、`安全技术措施`、`说明类 / 待确认`；
+- 通用 `状态` 主列和 `待补充` 摘要统计已从专项维护主展示区移除；
+- 来源证据仍只进入折叠区，不进入主表。
+
+统一问题清单更新：
+
+- `OI-019`：标记为已修复，记录 `I-PE` 重导入和作用域清单字段收敛；
+- `OI-033`：标记为已修复，记录模块 / 措施 / 说明类标签展示；
+- `OI-035`：标记为已修复，记录派生状态和待补充摘要收敛；
+- `OI-036`：标记为已修复，记录 `安全能力映射` 命名调整；
+- `OI-037`：标记为已修复，记录 `环境子类` 四层关系中的正式层级展示。
+
+验证结果：
+
+- `python3 -m py_compile src/sapd_wiki/exports.py` 通过；
+- `node --check frontend/capability-browser/dataClient.js` 通过；
+- `node --check frontend/capability-browser/viewModels.js` 通过；
+- `node --check frontend/capability-browser/app.js` 通过；
+- `node --check frontend/capability-browser/components/*.js` 通过；
+- `git diff --check` 通过；
+- Playwright 页面切换回归通过，覆盖 `总览`、`安全能力映射`、`信息化环境维度`、`专项知识维护 > 作用域清单`、`专项知识维护 > 安全技术措施清单`，无控制台错误。
+
+待用户复核：
+
+- 页面实际浏览时确认 `作用域清单` 的字段顺序是否完全贴合原表核对习惯；
+- 页面实际浏览时确认 `信息化环境 -> 环境子类 -> 信息化对象` 的展开方式是否适合后续排查。
+
+## 2026-05-13 Markdown 文档语言规则更新
+
+用户要求后续所有 `.md` 文件中使用中文描述。
+
+已更新：
+
+- `AGENTS.md`
+- `progress.md`
+
+规则：
+
+- 后续所有 Markdown 文档中的说明性描述默认使用中文；
+- 代码标识、文件名、命令、字段名、对象 `type`、API 路径等保留英文原文；
+- 本规则适用于后续新增和修改的 `.md` 文件。
+
+## 2026-05-13 成熟度模块接入 Review 落地
+
+用户提供外部 ChatGPT review 文件 `sapd-maturity-module-integration-review-request.md`，要求主控 Agent 判断是否需要整体架构 review、文件合并或主工程文件结构优化。
+
+本轮结论：
+
+- 应做成熟度模块接入 review；
+- 不做全工程文件结构重构；
+- 不合并 `task_plan.md`、`findings.md`、`progress.md`；
+- 不新增重复的 `docs/08-maturity-assessment/`；
+- 沿用现有 `docs/08-maturity/` 和 `config/maturity/`；
+- 当前只补架构入口、数据治理边界和本地敏感数据忽略规则；
+- 不修改数据库 schema，不改前端，不实现 maturity 代码。
+
+已新增：
+
+- `docs/08-maturity/module-integration-review.md`
+
+已更新：
+
+- `docs/01-architecture/architecture.md`：新增“成熟度分析模块”边界，明确只读复用主知识库、运行数据使用 `maturity_*`，前端页面后置；
+- `docs/07-governance/data-governance.md`：新增成熟度评估数据治理规则，明确客户输入、证据、评分、报告默认不提交 GitHub，人工审查优先；
+- `.gitignore`：新增 `data/maturity/`；
+- `README.md`：补充 `module-integration-review.md` 文档入口；
+- `findings.md`：记录成熟度模块接入方式的关键结论；
+- `progress.md`：记录本轮执行结果。
+
+后续建议：
+
+1. 用户确认 maturity M1 前的关键问题：L0-L5、V1 Excel 模板、低置信度人工审查、CLI + HTML/Markdown/JSON 先行。
+2. 继续当前主线：第二批管理 / 流程 / 职能 / 岗位 Sheet 业务含义复核。
+3. 等主线允许新增迁移和 CLI 子命令时，再进入 maturity M1。

@@ -140,6 +140,7 @@ V1 范围：
 - 已接入能力维度、信息化环境维度和专项知识维护；
 - 已建立 `dataClient` / ViewModel 边界；
 - 已补充后端接口设计和字段契约；
+- 外部 ChatGPT review 已完成，临时 Step 编号和 UI prototype 不进入正式项目 Phase；
 - 下一步优先做已导入 Excel Sheet 的业务含义复核，而不是继续扩大页面范围。
 
 ## Phase 6：导出和备份

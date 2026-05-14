@@ -25,13 +25,14 @@
 
 项目根目录应维护：
 
+- `CURRENT_STATE.md`：主控 Agent 每次开工前优先读取的轻量状态入口；
 - `task_plan.md`：阶段计划、任务状态、风险和决策；
 - `findings.md`：当前关键决策、重要风险和历史记录索引；
-- `findings-history/`：历史发现归档，按月维护；
+- `docs/05-archive/findings-history/`：历史发现归档，按月维护；
 - `progress.md`：执行日志、文件变更、命令和验证结果；
 - `docs/00-overview/project-roadmap.md`：面向用户和开发过程的阶段路线。
 
-在做任何较大的实现、重构或技术选型前，先读取上述文件，避免偏离项目目标。
+在做任何较大的实现、重构或技术选型前，先读取 `CURRENT_STATE.md` 和本轮任务直接相关文件，避免默认加载过长历史上下文。
 
 后续所有 `.md` 文件中的说明性描述默认使用中文；代码标识、文件名、命令、字段名、对象 `type`、API 路径等保留英文原文。
 
@@ -40,8 +41,10 @@
 轻量治理规则：
 
 - `findings.md` 不再承载长篇过程记录，只保留当前有效决策、风险和历史链接。
-- 长期历史发现按月归档到 `findings-history/`。
+- 长期历史发现按月归档到 `docs/05-archive/findings-history/`。
 - `progress.md` 只记录做了什么、改了哪些文件、执行了哪些命令、验证是否通过和输出结果。
+- `progress.md` 保持轻量；完整进度历史按月归档到 `docs/05-archive/progress-history/`。
+- 后续会话恢复时优先读取 `CURRENT_STATE.md` 和 `docs/00-overview/master-context-restore.md`，不要默认读取完整历史归档。
 - 架构 reasoning、schema reasoning、ETL strategy、data governance 决策应写入对应 docs 或治理文档，不继续堆进 `progress.md`。
 - 当前治理入口为 `docs/07-governance/governance-index.md`；数据治理规则以 `docs/07-governance/data-governance.md` 为准。
 

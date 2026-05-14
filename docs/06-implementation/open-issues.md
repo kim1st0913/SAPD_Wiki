@@ -797,3 +797,20 @@
 - 后续处理：如后续需要精确到服务，应由 ETL/export 增加服务级措施映射字段或关系；前端再把措施移动到对应安全技术服务行。
 - 统一规则：后续任何原始数据中的 `/` 均代表“没有相关定义 / 不适用”，不再反复确认；ETL 和前端均不得把 `/` 生成为正常知识对象。
 - 验证结果：待后续服务级映射规则补充后验证。
+
+## OI-041：主控会话多次重连影响工程开发
+
+- 状态：已修复
+- 类型：Agent 工作流 / 上下文治理
+- 对象或页面：Codex 主控线程、项目规划文件、恢复入口
+- 现象：用户反馈主控会话出现 5 次对话重连，已经影响工程开发连续性。
+- 影响：主控每次恢复时可能默认加载过长历史、重复计划、旧子 Agent 记录或大型归档，导致响应变慢、卡住或不继续执行。
+- 当前处理：已执行 Context Slimming 1.0，并进一步固化重连处理规则。
+- 修复说明：
+  - 新增 `CURRENT_STATE.md`，作为每次开工的轻量状态入口；
+  - 新增 `docs/00-overview/master-context-restore.md`，明确恢复读取顺序和默认不读取的长历史目录；
+  - 将长历史归档到 `docs/05-archive/findings-history/` 和 `docs/05-archive/progress-history/`；
+  - 瘦身 `task_plan.md`、`findings.md`、`progress.md`，避免根目录高频文件继续堆积长历史；
+  - 更新 `AGENTS.md`，明确后续复杂任务优先读取 `CURRENT_STATE.md`，不要默认读取完整历史归档；
+  - 在 `CURRENT_STATE.md` 增加重连处理规则，后续先做上下文和 Git 状态检查，再继续业务开发。
+- 验证结果：`progress.md` 当前保持轻量；`task_plan.md`、`findings.md`、`progress.md` 均已转为当前入口 + 历史索引结构；本轮将通过 `git diff --check` 和 `git status --short --branch` 验证。

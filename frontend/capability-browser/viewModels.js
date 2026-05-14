@@ -1006,6 +1006,58 @@
     };
   }
 
+  function compactLifecycleSoftwareReferenceRow(item, index) {
+    return {
+      id: item?.id || item?.title || `software-development-type-${index}`,
+      referenceKind: "software-development-type",
+      type: "软件开发类型",
+      title: businessText(item?.title),
+      description: businessText(item?.description),
+      status: item?.status === "active" ? "正常" : businessText(item?.status, "正常"),
+      sourceEvidence: uniqueBy(list(item?.sources), sourceEvidenceKey),
+    };
+  }
+
+  function compactLifecycleApplicationSystemReferenceRow(system, index) {
+    const components = list(system?.components).map(compactLifecycleItem);
+    return {
+      id: system?.id || system?.title || `application-system-type-${index}`,
+      referenceKind: "application-system-type",
+      type: "应用系统类型",
+      title: businessText(system?.title),
+      description: businessText(system?.description),
+      components,
+      componentCount: components.length,
+      status: system?.status === "active" ? "正常" : businessText(system?.status, "正常"),
+      sourceEvidence: uniqueBy([...list(system?.sources), ...list(system?.components).flatMap((component) => list(component?.sources))], sourceEvidenceKey),
+    };
+  }
+
+  function buildLifecycleReferenceMaintenanceViewModel({ lifecycle, search }) {
+    const query = normalizeSearch(search);
+    const applicationSecurity = lifecycle?.application_security_development || {};
+    const softwareRows = list(applicationSecurity.software_development_types)
+      .map(compactLifecycleSoftwareReferenceRow)
+      .filter((row) => includesSearch(query, row.type, row.title, row.description, row.status));
+    const applicationRows = list(applicationSecurity.application_system_types)
+      .map(compactLifecycleApplicationSystemReferenceRow)
+      .filter((row) => includesSearch(query, row.type, row.title, row.description, row.status, ...row.components.map(titleOf)));
+    const rows = [...softwareRows, ...applicationRows];
+    return {
+      rows,
+      softwareRows,
+      applicationRows,
+      summary: {
+        totalReferences: rows.length,
+        softwareTypes: softwareRows.length,
+        applicationSystemTypes: applicationRows.length,
+        applicationComponents: applicationRows.reduce((sum, row) => sum + row.componentCount, 0),
+      },
+      sourceEvidenceById: Object.fromEntries(rows.map((row) => [row.id, row.sourceEvidence])),
+      emptyState: rows.length ? "" : "暂无 LC-AP 参考数据，请确认 lifecycle-knowledge.json 是否已导出软件开发类型、应用系统类型和应用组件。",
+    };
+  }
+
   function scopeScenario(scope) {
     const scenario = text(scope?.scenario || scope?.category).trim();
     return scenario && scenario !== "未分类" ? scenario : "网络空间";
@@ -1246,10 +1298,12 @@
     };
   }
 
-  function maintenanceNavigationItems(management, section, capabilityTree) {
+  function maintenanceNavigationItems(management, section, capabilityTree, lifecycle) {
     const processCount = list(management?.security_processes).flatMap((domain) => list(domain.groups).flatMap((group) => list(group.references))).length;
     const workFunctionCount = list(management?.work_function_layers).flatMap((layer) => list(layer.groups).flatMap((group) => list(group.functions))).length;
     const referenceCount = list(management?.gbt_42446_references).length + list(management?.gartner_roles).length;
+    const appSecurity = lifecycle?.application_security_development || {};
+    const lcapReferenceCount = list(appSecurity.software_development_types).length + list(appSecurity.application_system_types).length;
     const securityWorkCount = list(capabilityTree?.categories).flatMap((category) =>
       list(category.domains).flatMap((domain) => list(domain.capabilities).flatMap((capability) => list(capability.focuses).flatMap((focus) => list(focus.security_works)))),
     ).length;
@@ -1260,6 +1314,7 @@
       { id: "security-works", label: "安全工作清单", count: securityWorkCount, implemented: true },
       { id: "modules", label: "安全技术模块清单", count: list(management?.security_technology_modules).length, implemented: true },
       { id: "measures", label: "安全技术措施清单", count: list(management?.security_technical_measures).length, implemented: true },
+      { id: "lcap-references", label: "LC-AP参考数据", count: lcapReferenceCount, implemented: true },
       { id: "references", label: "岗位参考页面", count: referenceCount, implemented: true },
     ].map((item) => ({ ...item, active: item.id === section }));
   }
@@ -1388,6 +1443,21 @@
         sourceEvidence,
       };
     }
+    if (section === "lcap-references") {
+      return {
+        type: row.type,
+        code: row.type,
+        title: row.title,
+        description: row.description,
+        facts: [
+          { label: "参考类型", value: row.type },
+          { label: "应用组件数", value: row.componentCount ?? "不适用" },
+          { label: "状态", value: row.status },
+        ],
+        sections: row.referenceKind === "application-system-type" ? [{ title: "应用组件", items: row.components }] : [],
+        sourceEvidence,
+      };
+    }
     return {
       type: "安全技术措施",
       code: row.id,
@@ -1447,10 +1517,10 @@
     return [];
   }
 
-  function buildMaintenanceWorkspaceViewModel({ capabilityTree, management, section = "scopes", selectedId, search, referenceTab = "gbt" }) {
-    const normalizedSection = ["scopes", "processes", "work-functions", "security-works", "modules", "measures", "references"].includes(section) ? section : "scopes";
+  function buildMaintenanceWorkspaceViewModel({ capabilityTree, management, lifecycle, section = "scopes", selectedId, search, referenceTab = "gbt" }) {
+    const normalizedSection = ["scopes", "processes", "work-functions", "security-works", "modules", "measures", "lcap-references", "references"].includes(section) ? section : "scopes";
     const normalizedReferenceTab = referenceTab === "gartner" ? "gartner" : "gbt";
-    const navigationItems = maintenanceNavigationItems(management, normalizedSection, capabilityTree);
+    const navigationItems = maintenanceNavigationItems(management, normalizedSection, capabilityTree, lifecycle);
     const pageMeta = {
       scopes: {
         title: "作用域清单",
@@ -1485,6 +1555,12 @@
         implemented: true,
         notice: "关联安全技术措施数依赖后续数据契约完善",
       },
+      "lcap-references": {
+        title: "LC-AP参考数据",
+        description: "维护和核对 LC-AP 页面使用的软件开发类型、应用系统类型和应用组件参考数据。",
+        implemented: true,
+        notice: "这些数据只作为参考数据，不伪造成正式映射关系。",
+      },
       references: {
         title: "岗位参考页面",
         description: "展示 GB/T 42446-2023 与 Gartner 工作岗位参考；映射结果只作为候选或待复核信息。",
@@ -1505,6 +1581,8 @@
               ? buildTechnologyModuleMaintenanceViewModel({ management, search })
               : normalizedSection === "measures"
                 ? buildTechnicalMeasureMaintenanceViewModel({ management, search })
+                : normalizedSection === "lcap-references"
+                  ? buildLifecycleReferenceMaintenanceViewModel({ lifecycle, search })
                 : normalizedSection === "references"
                   ? buildStandardRoleReferenceViewModel({ management, search })
                   : { rows: [], summary: {}, emptyState: pageMeta.description };
@@ -1523,6 +1601,8 @@
       rows: sectionViewModel.rows,
       standardRows: sectionViewModel.standardRows || [],
       roleRows: sectionViewModel.roleRows || [],
+      softwareRows: sectionViewModel.softwareRows || [],
+      applicationRows: sectionViewModel.applicationRows || [],
       referenceTab: normalizedReferenceTab,
       selectedId: selectedRow?.id || null,
       detailPanel: buildMaintenanceDetailPanel(selectedRow, normalizedSection, sourceEvidence),
@@ -1928,10 +2008,6 @@
       {
         title: "服务分类",
         body: `开发技术服务单独展示；安全技术服务在本页面按 ${categories.join("、") || "待补充"} 分类展示，该分类暂不扩展为全局主数据。`,
-      },
-      {
-        title: "参考数据",
-        body: "软件开发类型、应用系统类型和应用组件仅作为同页参考数据展示，不伪造成正式映射关系。",
       },
     ];
   }

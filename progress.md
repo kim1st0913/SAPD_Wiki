@@ -4042,6 +4042,34 @@ LC-AP ETL/export：
 
 - `data/exports/worker-verify/lcap-page-regression.png`
 
+## 2026-05-14 前端调整：LC-AP 参考数据移入专项知识维护
+
+任务：根据用户反馈，将 LC-AP 页面中的“参考数据”移动到“专项知识维护”中，不再在 `LC-AP开发安全生命周期` 主页面展示。
+
+本次调整：
+
+- 在“专项知识维护”二级导航中新增 `LC-AP参考数据`；
+- `LC-AP参考数据` 页面展示两块内容：
+  - `软件开发类型`；
+  - `应用系统类型 / 应用组件`；
+- `LC-AP开发安全生命周期` 主页面移除参考数据区；
+- 参考数据页面明确作为维护 / 核对页面，不伪造成正式映射关系；
+- 详情区仍使用 `SourceEvidencePanel` 展示来源证据，默认折叠。
+
+验证：
+
+- `node --check frontend/capability-browser/viewModels.js` 通过；
+- `node --check frontend/capability-browser/app.js` 通过；
+- `node --check frontend/capability-browser/components/LcapReferenceMaintenanceTable.js` 通过；
+- `git diff --check` 通过；
+- Playwright 页面回归通过：
+  - 专项知识维护中出现 `LC-AP参考数据`，数量为 7；
+  - 页面标题为 `LC-AP参考数据`；
+  - 页面包含 `软件开发类型`，可见 `SaaS应用`、`自研应用`；
+  - 页面包含 `应用系统类型 / 应用组件`，可见 `传统应用`、`数据库`；
+  - `LC-AP开发安全生命周期` 主页面不再出现 `参考数据`；
+  - 控制台无 error / warning。
+
 ## 2026-05-14 前端收敛：LC-AP 页面复用安全能力映射工作台标准
 
 任务：按用户要求重做 `LC-AP安全开发生命周期` 页面，但不重新设计；必须对齐“安全能力映射”页面的工作台结构、表格样式、来源证据处理方式和信息密度。

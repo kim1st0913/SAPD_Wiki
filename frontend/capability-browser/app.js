@@ -348,7 +348,6 @@ function renderLifecycle(kind) {
         ${components.ApplicationSecurityLifecycle?.renderStageOverview(viewModel) || ""}
         ${components.ApplicationSecurityLifecycle?.renderRelationTable({ rows: viewModel.relationRows }) || ""}
         ${components.ApplicationSecurityLifecycle?.renderLocalRelationNotes(viewModel.localRelationNotes) || ""}
-        ${components.ApplicationSecurityLifecycle?.renderReferenceSections(viewModel.referenceSections) || ""}
         ${components.SourceEvidencePanel ? components.SourceEvidencePanel.render(viewModel.sourceEvidence) : ""}
       `,
     );
@@ -408,6 +407,7 @@ function renderMaintenance() {
   const viewModel = viewModels.buildMaintenanceWorkspaceViewModel({
     capabilityTree: state.capability,
     management: state.management,
+    lifecycle: state.lifecycle,
     section: state.activeMaintenancePage,
     selectedId: state.selectedMaintenanceId,
     search: state.search,
@@ -432,6 +432,14 @@ function renderMaintenance() {
     tableHtml = components.TechnologyModuleMaintenanceTable?.render({ rows: viewModel.rows, selectedId: viewModel.selectedId, emptyState: viewModel.emptyState }) || tableHtml;
   } else if (viewModel.section === "measures") {
     tableHtml = components.TechnicalMeasureMaintenanceTable?.render({ rows: viewModel.rows, selectedId: viewModel.selectedId, emptyState: viewModel.emptyState }) || tableHtml;
+  } else if (viewModel.section === "lcap-references") {
+    tableHtml =
+      components.LcapReferenceMaintenanceTable?.render({
+        softwareRows: viewModel.softwareRows,
+        applicationRows: viewModel.applicationRows,
+        selectedId: viewModel.selectedId,
+        emptyState: viewModel.emptyState,
+      }) || tableHtml;
   } else if (viewModel.section === "references") {
     tableHtml =
       components.StandardRoleReferenceTable?.render({

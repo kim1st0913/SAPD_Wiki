@@ -63,6 +63,14 @@
         summaryBadge("待复核", summary.pendingReview ?? 0),
       ].join("");
     }
+    if (section === "lcap-references") {
+      return [
+        summaryBadge("参考项", summary.totalReferences ?? 0),
+        summaryBadge("软件开发类型", summary.softwareTypes ?? 0),
+        summaryBadge("应用系统类型", summary.applicationSystemTypes ?? 0),
+        summaryBadge("应用组件", summary.applicationComponents ?? 0),
+      ].join("");
+    }
     return "";
   }
 

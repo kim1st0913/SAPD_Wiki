@@ -1,0 +1,245 @@
+version: v2
+source_file: data/raw-samples/maturity/sample 评分表.xlsx
+description: 新版样例字段映射配置。新版 sample 评分表.xlsx 只包含成熟度级别和成熟度分级描述，用于模型基准，不包含客户评分输入。
+
+workbook:
+  required_sheets:
+    - 成熟度级别
+    - 成熟度分级描述
+  optional_sheets: []
+
+global_rules:
+  fill_merged_cells_down: true
+  trim_text: true
+  preserve_raw_row: true
+  sample_role: model_and_evaluation_baseline_only
+  customer_data_target: maturity_only
+  model_baseline_target_tables:
+    - maturity_model_version
+    - maturity_level_definition
+    - maturity_capability_baseline
+    - maturity_scope_service_baseline
+    - maturity_mainline_match_result
+  forbidden_target_tables:
+    - knowledge_items
+  fixed_assessment_aspects:
+    - organization_role
+    - process_system
+    - platform_tool
+    - data_information
+  supported_assessment_object_types:
+    - capability
+    - capability_focus
+  technical_input_fields:
+    - scope_type
+    - security_technical_service_name
+  business_logic_source:
+    model_design: sample文档介绍.docx 第 3.1 章 网络安全能力成熟度模型
+    assessment_logic: sample文档介绍.docx 第 4 章 网络安全能力成熟度评估
+  code_normalization_candidates:
+    description: 第一轮一致性核对发现的编码归一候选，仅用于 maturity 映射审查，不自动改主工程数据。
+    rules:
+      - pattern: "^(I-[A-Z]{2}&)(AD\\.[A-Z]{2}-\\d{2})$"
+        replacement: "\\1T-\\2"
+        example_before: I-NT&AD.SA-01
+        example_after: I-NT&T-AD.SA-01
+      - pattern: "^ALL&TI\\.IO-(\\d{2})$"
+        replacement: "ALL&T-IN.IO-\\1"
+        example_before: ALL&TI.IO-01
+        example_after: ALL&T-IN.IO-01
+
+sheets:
+  成熟度级别:
+    role: level_definition_reference
+    target_table: maturity_level_definition
+    header_row: 2
+    data_rows: [3]
+    level_columns:
+      C:
+        level_code: L1
+        level_name: 非正式执行
+        target_field: level_definitions.L1
+      D:
+        level_code: L2
+        level_name: 计划跟踪
+        target_field: level_definitions.L2
+      F:
+        level_code: L3
+        level_name: 充分定义
+        target_field: level_definitions.L3
+      H:
+        level_code: L4
+        level_name: 量化控制
+        target_field: level_definitions.L4
+      J:
+        level_code: L5
+        level_name: 持续优化
+        target_field: level_definitions.L5
+    embedded_aspects:
+      - organization_role
+      - process_system
+      - platform_tool
+      - data_information
+    note: 每个等级单元格内部包含组织、流程、工具、信息四类描述；当前样例未拆成独立列。
+
+  成熟度分级描述:
+    role: capability_level_criteria_reference
+    target_tables:
+      focus_definition: maturity_capability_baseline
+      scope_practice: maturity_scope_service_baseline
+    header_rows: [1, 2]
+    data_start_row: 3
+    row_type_rules:
+      focus_definition:
+        when_column_matches:
+          D: "^.+-.+-.+"
+      scope_practice:
+        when_any_present:
+          - G
+          - H
+    columns:
+      A:
+        source_name: 安全能力分类
+        target_field: capability_category_ref
+        required: true
+        value_role: context
+        fill_down: true
+      B:
+        source_name: L1 高阶战略能力
+        target_field: capability_domain_ref
+        required: true
+        value_role: context
+        fill_down: true
+      C:
+        source_name: L2安全能力
+        target_field: capability_ref
+        required: true
+        value_role: context
+        fill_down: true
+      D:
+        source_name: 安全关注点 / 序号
+        target_field: capability_focus_code
+        required: true
+        value_role: capability_reference
+        fill_down: true
+      E:
+        source_name: 关注点
+        target_field: capability_focus_title
+        required: true
+        value_role: capability_reference
+        fill_down: true
+      F:
+        source_name: 关注点描述
+        target_field: capability_focus_description
+        required: false
+        value_role: evidence_context
+        fill_down: true
+      G:
+        source_name: 作用域
+        target_field: scope_type
+        required: false
+        value_role: context
+      H:
+        source_name: 技术服务
+        target_field: security_technical_service_name
+        required: false
+        value_role: platform_tool_input
+      I:
+        source_name: Level 1 非正式执行
+        target_field: level_criteria.L1
+        required: false
+        value_role: model_criteria
+      J:
+        source_name: Level 2 / 计划跟踪
+        target_field: level_criteria.L2
+        required: false
+        value_role: model_criteria
+      K:
+        source_name: Level 3/ 充分定义
+        target_field: level_criteria.L3
+        required: false
+        value_role: model_criteria
+      L:
+        source_name: Level 4/ 量化控制
+        target_field: level_criteria.L4
+        required: false
+        value_role: model_criteria
+      M:
+        source_name: Level 5 / 持续优化
+        target_field: level_criteria.L5
+        required: false
+        value_role: model_criteria
+
+formal_template_recommendation:
+  required_new_sheets:
+    - Assessment_Info
+    - Score_Input
+    - Evidence_List
+    - Manual_Adjustment
+    - Reference_Capabilities
+    - Reference_Level_Criteria
+    - Reference_Mainline_Diff
+    - Readme
+  score_input_object_fields:
+    assessment_object_type:
+      label: 评估对象类型
+      required: true
+      allowed_values:
+        - capability
+        - capability_focus
+    assessment_object_code:
+      label: 评估对象编码
+      required: false
+    assessment_object_title:
+      label: 评估对象名称
+      required: false
+  score_input_direct_score_fields:
+    organization_role_score:
+      label: 组织与角色
+      allowed_values: [1, 2, 3, 4, 5]
+    process_system_score:
+      label: 制度与流程
+      allowed_values: [1, 2, 3, 4, 5]
+    platform_tool_score:
+      label: 平台与工具
+      allowed_values: [1, 2, 3, 4, 5]
+    data_information_score:
+      label: 数据与信息
+      allowed_values: [1, 2, 3, 4, 5]
+
+mainline_consistency_check:
+  enabled: true
+  output_table: maturity_mainline_match_result
+  match_targets:
+    capability_category:
+      match_methods:
+        - exact_title
+        - manual
+    capability_domain:
+      match_methods:
+        - exact_title_with_parent
+        - manual
+    capability:
+      match_methods:
+        - exact_title_with_parent
+        - relation
+        - manual
+    capability_focus:
+      match_methods:
+        - exact_code
+        - exact_title_with_parent
+        - manual
+    security_technical_service_input:
+      value_role: platform_tool_input
+      match_methods:
+        - scope_type_and_service_name_and_focus_code
+        - keyword
+        - manual
+  mismatch_statuses:
+    - missing_in_mainline
+    - missing_in_maturity
+    - name_conflict
+    - parent_conflict
+    - scope_conflict
+    - service_conflict
+    - ambiguous_match

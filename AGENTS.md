@@ -220,12 +220,54 @@ SAPD_Wiki/
 
 每次任务完成后，Codex 应更新 `progress.md`；如果阶段状态变化，应同步更新 `task_plan.md`；如果发现或修复 bug/问题，应同步更新 `docs/06-implementation/open-issues.md`。
 
+## 任务完成反馈协议
+
+每次任务完成后，必须输出“任务完成反馈”。不得只说“已完成”或“验证通过”。反馈必须包含：
+
+1. 任务结论
+   - 已完成 / 部分完成 / 未完成；
+   - 如果未完成，说明阻塞原因。
+2. 修改范围
+   - 修改了哪些文件；
+   - 新增了哪些文件；
+   - 未修改哪些禁止范围。
+3. 功能结果
+   - 本轮实现了什么；
+   - 哪些需求已满足；
+   - 哪些需求未做或后置。
+4. 验证结果
+   - 执行了哪些命令；
+   - 每条命令是否通过；
+   - 如果未执行，说明原因。
+5. 前端页面提示
+   - 如果本轮修改了 `frontend/capability-browser/`，必须说明需要查看哪个页面、从哪个导航入口进入、预期能看到什么变化、本地预览命令、本地访问地址，以及是否做过 Playwright / 浏览器回归。
+6. 数据状态
+   - 如果本轮涉及 `dataClient`、`ViewModel`、`public/data/*.json` 或 ETL/export，必须说明当前数据文件是否更新、关键数据条数、`dataState` 是 `ready` / `empty` / `missing_file`，以及是否存在待确认数据。
+7. 字段边界
+   - 必须说明是否检查过非业务字段泄露；
+   - 主展示区不得出现 `sheet`、`row`、`column`、`raw_value`、`source_file`、`import_id`、`source_id`、`source_ref`、`source_label`、`debug`、`raw`、`metadata`、`intermediate`、`generated_at`。
+8. 下一步建议
+   - 下一步建议做什么；
+   - 不建议做什么；
+   - 是否需要用户确认。
+
+如果是子 Agent 任务，还必须额外说明：
+
+- Agent 名称 / ID；
+- 是否复用已有 Agent；
+- 是否已 fan-in 到主控；
+- 是否需要关闭 / 归档该 Agent thread。
+
 ## 子 Agent 调度规则
 
 当用户要求并行推进，或主控 Agent 判断某项工作适合拆分为 ETL / 数据核对 / 前端 / 文档等独立任务时，可以启动子 Agent，但必须遵守以下规则：
 
 - 启动前明确每个子 Agent 的角色、任务、写入范围、禁止范围和验收标准。
+- 本轮并行最多启动 3 个子 Agent；除非用户明确批准，不得超过该限制。
+- 优先复用已有 agent id；如需新建，必须先说明原因。
+- 子 Agent 不得再启动子 Agent。
 - 多个子 Agent 不得修改同一文件；如发现跨域问题，只记录问题并交由主控 Agent 汇总处理。
+- 只读 Agent 不得修改文件；写入 Agent 不得修改其他 Agent 的文件范围。
 - 每次启动子 Agent 后，必须立刻在 `progress.md` 记录 agent id、角色、任务、状态和启动时间。
 - 子 Agent 等待超时、完成或异常关闭时，必须主动向用户反馈状态。
 - 子 Agent 完成后，主控 Agent 必须及时读取结果、汇总结论，并主动 `close_agent` 释放线程名额。

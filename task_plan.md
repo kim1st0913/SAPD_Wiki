@@ -144,6 +144,68 @@
 - [x] G 列 `安全技术模块/措施` 分流口径已固化为安全技术模块、安全技术措施、说明类 / 待确认项。
 - [x] 当前 MVP 前端已通过静态浏览器页面 + 原生 JS + `dataClient` + ViewModel 跑通；不因旧技术决策强行引入 React/Vue。
 
+## Frontend Baseline 1.0: Relationship Workspace Alignment
+
+定位：本阶段不是新增功能，也不是进入新 Sheet 扩展，而是把当前已形成的三类核心业务视角统一到同一套“本地关系知识库工作台”产品标准中。
+
+页面范围从原先两页修正为三页：
+
+1. `安全能力映射`
+   - 主视角：安全能力 / 关注点；
+   - 表达关系：关注点、作用域、安全技术服务、管理工作、流程、安全技术模块 / 措施、来源证据。
+2. `LC-AP开发安全生命周期`
+   - 主视角：开发安全生命周期阶段；
+   - 表达关系：阶段、主要活动、安全活动、安全策略要求、开发技术服务、安全技术服务、安全技术模块、安全技术措施、开发类产品组件；
+   - LC-AP 参考数据不放在同页参考区，进入 `专项知识维护 > LC-AP参考数据`。
+3. `信息化环境维度`
+   - 主视角：信息化环境 / 环境子类 / 信息化对象；
+   - 表达关系：信息化环境、环境子类、信息化对象、作用域、安全技术服务、安全技术模块、安全系统、产品；
+   - 这是第一批核心数据的第三个业务视角，不是新 Sheet 扩展。
+
+三页统一组件基线：
+
+- `AppShell`
+- `LocalNavigator`
+- `ObjectOverview`
+- `RelationshipTable`
+- `SourceEvidencePanel`
+
+三页可有不同主对象、概览字段和关系表字段，但必须保持同一套视觉语言、信息密度、表格样式、标签规则和来源证据处理方式。
+
+信息化环境维度待检查和补齐项：
+
+- 数据对象或等价能力：
+  - `information_environment`
+  - `environment_segment`（中文口径：环境子类）
+  - `information_object`
+  - `scope_type`
+  - `security_technical_service`
+  - `security_technology_module`
+  - `security_system`
+  - `product`
+- 关系或等价关系：
+  - `protects_object`
+  - `deployed_in_environment`
+  - `applies_to_scope`
+  - `implements_service`
+  - `maps_to_product`
+  - `part_of_system`
+- 前端消费层：
+  - 检查信息化环境维度前端数据文件是否覆盖环境、环境子类、对象、作用域、服务、模块、系统和产品；
+  - 检查 `dataClient` 是否有稳定读取方法；
+  - 检查 ViewModel 是否输出白名单业务字段；
+  - 检查页面是否复用统一组件基线；
+  - 检查信息化环境页设计文档是否与另外两页一致。
+
+本阶段明确不做：
+
+- 新 Sheet 扩展；
+- Phase 7 PPT / Draw.io / DOCX 多格式增强；
+- maturity M1；
+- 数据库 schema 重构；
+- 底层 ETL 大改；
+- 引入 React / Vue 重构当前 MVP 前端。
+
 ## Phase 1 Remaining Sheet Modeling Tasks
 
 - [x] Scan all 26 Excel sheets and identify the 21 sheets not in the first ETL batch.

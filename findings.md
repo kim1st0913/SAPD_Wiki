@@ -15,6 +15,7 @@
 | 外部 ChatGPT 协作 | 外部 UI prototype、临时 Step 编号或 review 建议只作为输入，不自动进入正式项目 Phase | `task_plan.md`, `docs/00-overview/current-plan-for-chatgpt-review.md` |
 | 当前下一主线 | 已导入 Sheet 的业务含义复核 + 前端关系展示校正 | `task_plan.md` |
 | 前后端边界 | 后端负责业务关系生成和前端投影；前端消费投影并作为数据关系排查工作台 | `docs/01-architecture/backend-interface-design.md`, `docs/01-architecture/api-field-contract.md` |
+| Frontend Baseline 1.0 范围 | 从“两页”修正为“三页”：安全能力映射、LC-AP开发安全生命周期、信息化环境维度 | `task_plan.md`, `frontend-baseline-1.0-plan.md` |
 | 成熟度分析模块边界 | maturity 是主工程下的独立模块；评估运行数据使用 `maturity_*` 专用表，不写入 `knowledge_items` | `docs/08-maturity/`, `task_plan.md` |
 | 成熟度模块接入方式 | 沿用 `docs/08-maturity/`，不新增重复 `docs/08-maturity-assessment/`，只做轻量接入 review 和治理补充 | `docs/08-maturity/module-integration-review.md` |
 | maturity 业务逻辑来源 | 模型设计严格参考 Word 第 3.1 章，评估逻辑严格参考 Word 第 4 章；安全技术服务作为平台与工具输入，不作为独立评分对象 | `docs/08-maturity/maturity-domain-model.md`, `docs/08-maturity/scoring-rules.md` |
@@ -48,6 +49,7 @@
 - 主工程与 maturity 集成检查结论：maturity 可只读复用主知识库对象，但客户输入、证据、匹配、评分和报告必须留在 maturity 运行域；M1 需等输入/输出边界和主线优先级确认后再启动。
 - 成熟度 M1 第一版一致性核对已完成：基准表 84 个关注点全部命中主工程 active 关注点；主工程另有 7 个 active 关注点未被基准覆盖；安全技术服务作为平台与工具输入，存在编码不一致、多候选和覆盖差异，需用户确认。
 - 第二批管理 / 流程 / 职能 / 岗位 Sheet Review 2.0 已完成用户确认：安全工作独立编码并独立页面维护，正式编码规则为 `SW-关注点编码-序号`，关注点到安全工作为 1:1 / 1:N；L2 安全能力到 L2 流程组为严格约束；安全工作与安全职能无直接关系；同名 L3 跨 L2 需输出核对；GB/T 与 Gartner 作为岗位参考页签，并与安全职能清单支持双向映射 / 双向候选映射供用户复核，其中 GB/T 已有安全职能 -> GB/T 的单向映射基础。
+- Frontend Baseline 1.0 范围已由两页修正为三页：`安全能力映射`、`LC-AP开发安全生命周期`、`信息化环境维度`。其中信息化环境维度是第一批核心数据的第三个业务视角，不作为新 Sheet 扩展。
 
 ## 历史记录
 

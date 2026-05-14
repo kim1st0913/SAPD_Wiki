@@ -4113,3 +4113,85 @@ LC-AP ETL/export：
   - 来源证据显示为折叠面板；
   - 页面主内容不再出现 `适用开发模式`；
   - 控制台无 error / warning。
+
+## 2026-05-14 项目规则：补充任务完成反馈协议
+
+任务：根据用户要求，将“任务完成反馈协议”写入项目级 `AGENTS.md`，作为后续主控 Agent 和子 Agent 的固定执行规则。
+
+本次调整：
+
+- 在 `AGENTS.md` 新增 `任务完成反馈协议`；
+- 明确每次任务完成后必须输出：
+  - 任务结论；
+  - 修改范围；
+  - 功能结果；
+  - 验证结果；
+  - 前端页面提示；
+  - 数据状态；
+  - 字段边界；
+  - 下一步建议；
+- 补充子 Agent 任务完成后必须说明：
+  - Agent 名称 / ID；
+  - 是否复用已有 Agent；
+  - 是否已 fan-in 到主控；
+  - 是否需要关闭 / 归档；
+- 强化子 Agent 调度规则：
+  - 本轮并行最多 3 个；
+  - 优先复用已有 agent id；
+  - 如需新建必须说明原因；
+  - 子 Agent 不得再启动子 Agent；
+  - 只读 Agent 不得修改文件；
+  - 写入 Agent 不得越权修改其他 Agent 的文件范围。
+
+验证：
+
+- 本轮未修改前端、ETL、数据模型和导出数据；
+- `git diff --check` 待本轮执行完成后统一验证。
+
+## 2026-05-14 计划修正：Frontend Baseline 1.0 范围扩展为三页
+
+任务：根据用户补充修正，将 `Frontend Baseline 1.0` 的页面范围从“两页”修正为“三页”，并同步主控判断和后续计划。
+
+本次调整：
+
+- 新增 `frontend-baseline-1.0-plan.md`；
+- 更新 `task_plan.md`，新增 `Frontend Baseline 1.0: Relationship Workspace Alignment` 计划段；
+- 更新 `findings.md`，记录 Frontend Baseline 1.0 范围修正为三页；
+- 明确三页范围：
+  - `安全能力映射`；
+  - `LC-AP开发安全生命周期`；
+  - `信息化环境维度`；
+- 明确信息化环境维度是第一批核心数据的第三个业务视角，不是新 Sheet 扩展；
+- 明确信息化环境维度至少覆盖：
+  - `information_environment`；
+  - `environment_segment`（环境子类）；
+  - `information_object`；
+  - `scope_type`；
+  - `security_technical_service`；
+  - `security_technology_module`；
+  - `security_system`；
+  - `product`；
+- 明确需要检查或补齐的信息化环境维度关系：
+  - `protects_object`；
+  - `deployed_in_environment`；
+  - `applies_to_scope`；
+  - `implements_service`；
+  - `maps_to_product`；
+  - `part_of_system`；
+- 明确三页统一组件基线：
+  - `AppShell`；
+  - `LocalNavigator`；
+  - `ObjectOverview`；
+  - `RelationshipTable`；
+  - `SourceEvidencePanel`。
+
+边界：
+
+- 本轮未修改前端代码；
+- 本轮未修改 ETL/export；
+- 本轮未修改数据库 schema；
+- 本轮未进入新 Sheet 扩展、Phase 7 或 maturity M1。
+
+验证：
+
+- `git diff --check` 待本轮执行完成后统一验证。

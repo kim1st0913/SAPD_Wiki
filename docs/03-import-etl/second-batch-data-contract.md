@@ -8,11 +8,11 @@
 
 | Sheet | 角色 |
 |---|---|
-| `安全能力-安全工作` | 能力关注点到安全工作内容的映射 |
+| `安全能力-安全工作` | 能力关注点到安全工作内容的映射；安全工作独立编码并在专项知识维护中独立展示 |
 | `安全能力-安全管理元素（high level）` | L2安全能力到 L2流程组、关注点到 L3流程参考、关注点/流程到组织职能相关方 |
 | `安全职能流程清单（完善L4）` | 流程主数据，包含 L1流程域、L2流程组、L3流程参考、L4关键活动 |
-| `安全工作职能清单` | 组织职能主数据，按决策层、管理层、执行层、监督层展示，并包含 GB/T 42446-2023 引用和嵌入图片 |
-| `gartner工作岗位参考` | Gartner 安全岗位/角色参考库，不自动映射内部职能 |
+| `安全工作职能清单` | 组织职能主数据，按决策层、管理层、执行层、监督层展示，并包含 GB/T 42446-2023 引用、嵌入图片和安全职能 -> GB/T 映射基础 |
+| `gartner工作岗位参考` | Gartner 安全岗位/角色参考库，自动生成与安全职能清单的双向候选映射，用户复核后确认 |
 
 暂不处理：
 
@@ -25,7 +25,7 @@
 
 | type | 中文名 | 去重策略 |
 |---|---|---|
-| `security_work` | 安全工作 | `type + capability_focus_code + title` |
+| `security_work` | 安全工作 | 优先 `type + code`；无编码时暂用 `type + capability_focus_code + title` 并输出待补编码问题 |
 | `process_domain` | 流程域 | `type + title` |
 | `process_group` | 流程组 | `type + title`，必要时加 `process_domain` |
 | `process_reference` | 流程参考 | `type + process_group + title` |
@@ -35,7 +35,7 @@
 | `work_function` | 工作职能 | 优先 `type + code`，否则 `type + layer + group + title` |
 | `work_task` | 工作任务 | `type + work_function + title` |
 | `gbt_42446_task_reference` | GB/T 42446-2023 工作任务引用 | `type + category + title` |
-| `work_role_reference` | Gartner 岗位参考 | `type + category + title` |
+| `work_role_reference` | Gartner 岗位参考 | `type + source + category + title` |
 | `asset` | 展示资产 | `type + source_sheet + anchor + file_name` |
 
 ## 3. 关系类型
@@ -48,16 +48,16 @@
 | `belongs_to` | `process_group` | `process_domain` | `安全职能流程清单（完善L4）` |
 | `belongs_to` | `process_reference` | `process_group` | `安全职能流程清单（完善L4）` |
 | `has_activity` | `process_reference` | `process_activity` | `安全职能流程清单（完善L4）` |
-| `stakeholder_by` | `capability_focus` / `process_reference` | `work_function` | `安全能力-安全管理元素（high level）` |
+| `stakeholder_by` | `capability` + `process_group` / `process_reference` | `work_function` | `安全能力-安全管理元素（high level）` |
 | `belongs_to_layer` | `work_function_group` / `work_function` | `work_function_layer` | `安全工作职能清单` |
 | `performs_task` | `work_function` | `work_task` | `安全工作职能清单` |
-| `maps_to_gbt_task` | `work_function` | `gbt_42446_task_reference` | `安全工作职能清单` |
+| `maps_to_gbt_task` | `work_function` | `gbt_42446_task_reference` | `安全工作职能清单`；存储方向为安全职能 -> GB/T，前端/API 必须支持从 GB/T 反查安全职能 |
 
-第二批不自动生成：
+第二批自动生成候选关系，但必须保持可审查：
 
-| relation_type | 原因 |
-|---|---|
-| `references_role` | Gartner 参考岗位暂不自动匹配内部工作职能，后续由人工维护或规则建议生成 |
+| relation_type | 起点 | 终点 | 处理规则 |
+|---|---|---|---|
+| `references_role_candidate` | `work_role_reference` | `work_function` | Gartner 岗位参考与安全职能清单的候选映射，用户复核前不作为最终强关系；前端/API 必须支持双向查看 |
 
 ## 4. 前端数据契约
 
@@ -116,12 +116,25 @@
 {
   "generated_at": "string",
   "stats": {
+    "security_works": 0,
     "work_function_layers": 0,
     "work_functions": 0,
     "gbt_42446_references": 0,
     "gartner_roles": 0,
     "assets": 0
   },
+  "security_works": [
+    {
+      "id": "string",
+      "type": "security_work",
+      "code": "string",
+      "title": "string",
+      "description": "string",
+      "related_focus_ids": [],
+      "related_focus_names": [],
+      "sources": []
+    }
+  ],
   "work_function_layers": [
     {
       "id": "string",
@@ -180,10 +193,10 @@
 |---|---|---|
 | A2-FE-001 | 现有能力树 | 原能力树、搜索、展开/收起、来源追踪仍可用 |
 | A2-FE-002 | 能力详情扩展 | 选中关注点后能看到安全工作、流程参考、组织职能相关方 |
-| A2-FE-003 | 新模块 | 页面有独立“安全工作职能”模块或标签，不把职能清单塞进左侧能力树 |
+| A2-FE-003 | 新模块 | 页面有独立“安全工作清单”和“安全工作职能”模块或标签，不把职能清单塞进左侧能力树 |
 | A2-FE-004 | 四层级展示 | 安全工作职能按决策层、管理层、执行层、监督层展示 |
-| A2-FE-005 | GB/T 引用 | 能展示 GB/T 42446-2023 引用类别和任务 |
-| A2-FE-006 | Gartner 参考 | 能展示 Gartner 分类、角色、描述 |
+| A2-FE-005 | GB/T 引用 | 能展示 GB/T 42446-2023 引用类别、任务，以及 GB/T 与安全职能的双向映射查看 |
+| A2-FE-006 | Gartner 参考 | 能展示 Gartner 分类、角色、描述和安全职能双向候选映射 |
 | A2-FE-007 | 图片展示 | 能展示 `安全工作职能清单` 中嵌入的 Draw.io 导出图片 |
 
 ## 6. ETL 验收标准
@@ -192,10 +205,13 @@
 |---|---|---|
 | A2-ETL-001 | 第二批 Sheet 解析 | 5 个 Sheet 均能解析，缺 Sheet 时给出明确 validation |
 | A2-ETL-002 | 来源追踪 | 新对象和关系均保留 source sheet、row、cell、raw_value |
-| A2-ETL-003 | 关系生成 | `maps_to_work`、`maps_to_process`、`stakeholder_by`、`belongs_to_layer`、`maps_to_gbt_task` 至少生成非零关系 |
+| A2-ETL-003 | 关系生成 | `maps_to_work`、`maps_to_process`、`stakeholder_by`、`belongs_to_layer`、`maps_to_gbt_task` 至少生成非零关系；GB/T 支持反向查询投影 |
 | A2-ETL-004 | L4 空值处理 | `L4关键活动` 为空时不生成空标题对象 |
 | A2-ETL-005 | 嵌入图片 | 能提取 `安全工作职能清单` 中的嵌入图片到本地 ignored 目录 |
 | A2-ETL-006 | 兼容第一批 | 第一批 5 个 Sheet 导入结果不回退，现有 clean import 无 error |
+| A2-ETL-007 | 严格约束校验 | 单一 L2 安全能力不得映射多个 L2 流程组；如出现输出异常 |
+| A2-ETL-008 | L3 流程唯一性校验 | 同名 L3 流程原则上不得出现在不同 L2 流程组下；如出现输出具体数据 |
+| A2-ETL-009 | Gartner 候选映射 | 自动生成 Gartner 岗位参考与安全职能的双向候选映射投影，并输出复核清单 |
 
 ## 7. 导出与验证验收标准
 

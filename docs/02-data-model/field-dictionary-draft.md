@@ -27,7 +27,7 @@
 | gartner工作岗位参考 | 第二批 | 建立 Gartner 安全岗位/角色参考库 |
 | LC-DT 数据生命周期 | 第三批 | 建立数据生命周期过程，以及过程到安全技术服务、技术模块的映射 |
 | LC-DT 数据生命周期场景目录 | 第三批 | 建立数据生命周期过程定义和场景主数据 |
-| LC-AP 应用安全开发生命周期 | 第三批 | 建立应用安全开发阶段、活动、策略、开发技术服务和产品示例 |
+| LC-AP 应用安全开发生命周期 | 第三批 | 建立应用安全开发阶段、活动、策略、开发技术服务、关联安全技术模块和开发类产品组件 |
 | LC-AP 应用安全开发生命周期元素目录 | 第三批 | 建立软件开发类型、应用系统类型和应用组件字典 |
 
 当前暂不深度处理：
@@ -66,15 +66,16 @@
 | work_function_group | 工作职能组 | 安全工作职能清单 | 同一层级下的职能分组 | 职能页面二级分组 |
 | work_function | 工作职能 | 安全工作职能清单、安全能力-安全管理元素（high level） | 具体组织工作职能 | 组织职能展示和相关方映射 |
 | work_task | 工作任务 | 安全工作职能清单 | 工作职能承担的任务 | 职能详情 |
-| gbt_42446_task_reference | GB/T 42446-2023 工作任务引用 | 安全工作职能清单 | 外部标准中的工作类别和任务 | 标准引用展示 |
-| work_role_reference | 岗位参考 | gartner工作岗位参考 | Gartner 安全岗位/角色参考 | 外部岗位参考库 |
+| gbt_42446_task_reference | GB/T 42446-2023 工作任务引用 | 安全工作职能清单 | 外部标准中的工作类别和任务 | 与安全职能双向展示 |
+| work_role_reference | 岗位参考 | gartner工作岗位参考 | Gartner 安全岗位/角色参考 | 与安全职能生成双向候选映射 |
 | lifecycle_process | 生命周期过程/阶段 | LC-DT、LC-AP | 数据生命周期过程或应用安全开发阶段 | 生命周期页面导航 |
 | lifecycle_scene | 生命周期场景 | LC-DT 数据生命周期场景目录 | 数据生命周期过程下的具体场景 | 数据生命周期详情 |
 | security_activity | 安全活动 | LC-AP 应用安全开发生命周期 | 应用安全开发阶段下的一项安全活动 | 应用安全开发详情 |
-| security_policy_requirement | 安全策略要求 | LC-AP 应用安全开发生命周期 | 应用安全活动对应的策略条目 | 策略清单展示和导出 |
+| security_policy_requirement | 安全策略条目 | LC-AP 应用安全开发生命周期 | 应用安全活动对应的安全策略条目 | 安全开发维度展示，暂不独立维护 |
 | software_development_type | 软件开发类型 | LC-AP 元素目录 | 自研、定制、外购、SaaS 等 | 适用性筛选 |
 | application_system_type | 应用系统类型 | LC-AP 元素目录 | 传统应用、微服务应用、中台类应用等 | 应用字典 |
 | application_component | 应用组件 | LC-AP 元素目录 | 应用系统类型下的组件层级 | 应用字典详情 |
+| development_product_component | 开发类产品组件 | LC-AP 应用安全开发生命周期 | 原“实际产品示例” | 仅安全开发维度展示 |
 | relation | 关系 | 映射类 Sheet | 两个对象之间的关系 | 关联查询、图谱、导出 |
 
 ## 3. 通用字段
@@ -235,7 +236,7 @@
 | work_function | code、title、description、layer_title、group_title | 安全工作职能清单 | `code` 可来自序号，`description` 来自职能定义 |
 | work_task | title、work_function_code | 安全工作职能清单 | 表示内部承担的工作任务 |
 | gbt_42446_task_reference | category、title、raw_mapping | 安全工作职能清单 | 表示 GB/T 42446-2023 的引用类别和任务 |
-| work_role_reference | category、title、description | gartner工作岗位参考 | Gartner 参考库，不自动映射内部职能 |
+| work_role_reference | source、category、title、description | gartner工作岗位参考 | Gartner 参考库，自动生成与安全职能清单的双向候选映射并输出复核 |
 
 ### 4.14 第三批生命周期对象字段概览
 
@@ -244,10 +245,11 @@
 | lifecycle_process | lifecycle_type、order、title、description、goal | LC-DT、LC-AP | `lifecycle_type` 区分 `data` 和 `application_security_development` |
 | lifecycle_scene | scene_code、title、process_title、description | LC-DT 数据生命周期场景目录 | 场景编号如 `1.1`，过程列空白时向下继承 |
 | security_activity | title、process_title、definition、reference_source | LC-AP 应用安全开发生命周期 | 安全活动定义进入 description |
-| security_policy_requirement | sequence、title、text、process_title、reference_source | LC-AP 应用安全开发生命周期 | 从“安全活动对应安全策略”编号列表拆分 |
+| security_policy_requirement | sequence、text、source_type、process_title、security_activity_title、reference_source | LC-AP 应用安全开发生命周期 | 从“安全活动对应安全策略”编号列表拆分，当前 `source_type=LC-AP` |
 | software_development_type | title、description | LC-AP 应用安全开发生命周期元素目录 | 自研、定制、外购、SaaS |
 | application_system_type | title、description | LC-AP 应用安全开发生命周期元素目录 | 传统应用、微服务应用、中台类应用 |
 | application_component | title、system_type_title | LC-AP 应用安全开发生命周期元素目录 | 组件行需要继承上方应用系统类型 |
+| development_product_component | title、stage_title、service_title | LC-AP 应用安全开发生命周期 | 开发类产品组件，不进入通用产品主数据 |
 
 ### 4.15 relation 关系
 
@@ -279,7 +281,7 @@
 | stakeholder_by | 相关方为 | capability_focus / process_reference | work_function | 安全能力-安全管理元素（high level） |
 | belongs_to_layer | 属于职能层级 | work_function / work_function_group | work_function_layer | 安全工作职能清单 |
 | performs_task | 承担任务 | work_function | work_task | 安全工作职能清单 |
-| maps_to_gbt_task | 映射到 GB/T 工作任务 | work_function | gbt_42446_task_reference | 安全工作职能清单 |
+| maps_to_gbt_task | 映射到 GB/T 工作任务 | work_function | gbt_42446_task_reference | 安全工作职能清单；展示支持反向查看 |
 | protects_object | 作用于信息化对象 | security_technical_service / security_technology_module | information_object | 作用域-安全技术服务-安全技术模块映射 |
 | used_by_mapping | 映射到 | information_object / scope_type / service / module / system | 相关对象 | 作用域-安全技术服务-安全技术模块映射 |
 | has_scene | 包含场景 | lifecycle_process | lifecycle_scene | LC-DT 数据生命周期场景目录 |
@@ -288,7 +290,9 @@
 | requires_policy | 要求策略 | security_activity / lifecycle_process | security_policy_requirement | LC-AP 应用安全开发生命周期 |
 | applies_to_development_type | 适用于开发类型 | lifecycle_process / security_activity | software_development_type | LC-AP 应用安全开发生命周期 |
 | uses_service | 使用服务 | lifecycle_process / security_activity | security_technical_service | LC-AP 应用安全开发生命周期 |
-| uses_product | 使用产品示例 | lifecycle_process / security_activity | product | LC-AP 应用安全开发生命周期 |
+| uses_module | 关联安全技术模块 | lifecycle_process / security_activity / security_technical_service | security_technology_module | LC-AP 应用安全开发生命周期 |
+| uses_measure | 关联安全技术措施 | lifecycle_process / security_activity / security_technical_service | security_technical_measure | LC-AP 应用安全开发生命周期 |
+| uses_development_product_component | 使用开发类产品组件 | lifecycle_process / security_technical_service | development_product_component | LC-AP 应用安全开发生命周期 |
 | has_component | 包含组件 | application_system_type | application_component | LC-AP 应用安全开发生命周期元素目录 |
 
 ## 6. 清洗规则草案

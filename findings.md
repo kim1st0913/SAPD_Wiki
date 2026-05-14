@@ -17,6 +17,8 @@
 | 前后端边界 | 后端负责业务关系生成和前端投影；前端消费投影并作为数据关系排查工作台 | `docs/01-architecture/backend-interface-design.md`, `docs/01-architecture/api-field-contract.md` |
 | 成熟度分析模块边界 | maturity 是主工程下的独立模块；评估运行数据使用 `maturity_*` 专用表，不写入 `knowledge_items` | `docs/08-maturity/`, `task_plan.md` |
 | 成熟度模块接入方式 | 沿用 `docs/08-maturity/`，不新增重复 `docs/08-maturity-assessment/`，只做轻量接入 review 和治理补充 | `docs/08-maturity/module-integration-review.md` |
+| maturity 业务逻辑来源 | 模型设计严格参考 Word 第 3.1 章，评估逻辑严格参考 Word 第 4 章；安全技术服务作为平台与工具输入，不作为独立评分对象 | `docs/08-maturity/maturity-domain-model.md`, `docs/08-maturity/scoring-rules.md` |
+| maturity 主线一致性核对 | 成熟度基准与主工程 active 能力树可按编码对齐；需人工确认标题差异、7 个额外关注点和安全技术服务输入覆盖差异 | `docs/08-maturity/mainline-consistency-check.md` |
 
 ## 当前重要风险
 
@@ -40,8 +42,12 @@
 - 当前最重要的工作不是 UI 扩展，而是已导入 Sheet 的业务含义、主键、关系基数和页面归属复核。
 - 第一批核心 Sheet Review 1.0 已收到用户回复：能力层级/编码/排序、`/` 无适用服务、多环境复用信息化对象、安全系统与产品口径、模块/措施显式区分均已确认；`environment_segment` 已确认作为正式层级，中文口径为“环境子类”。
 - 第三批生命周期 Sheet 已完成建模、ETL staging 和审批入库；在业务语义确认前，不进入完整安全开发维度页面深化。
+- 第三批 LC-AP / LC-DT 生命周期相关 Sheet 已完成只读业务语义复核草案；LC-AP 第一阶段数据契约已更新，SLSA 暂不补充，下一步可进入 LC-AP ETL/export 设计与验证，但仍不直接进入前端安全开发维度页面深化。
 - 成熟度分析模块 M0 已规划为旁路模块：先文档与 YAML 配置，后续再以 CLI + Excel 模板 + 离线报告闭环推进。
 - 成熟度模块接入 review 结论：不做全局文件结构重构，不合并计划/发现/进度文件，不新增重复目录；当前只补架构入口、治理边界和 `data/maturity/` 忽略规则。
+- 主工程与 maturity 集成检查结论：maturity 可只读复用主知识库对象，但客户输入、证据、匹配、评分和报告必须留在 maturity 运行域；M1 需等输入/输出边界和主线优先级确认后再启动。
+- 成熟度 M1 第一版一致性核对已完成：基准表 84 个关注点全部命中主工程 active 关注点；主工程另有 7 个 active 关注点未被基准覆盖；安全技术服务作为平台与工具输入，存在编码不一致、多候选和覆盖差异，需用户确认。
+- 第二批管理 / 流程 / 职能 / 岗位 Sheet Review 2.0 已完成用户确认：安全工作独立编码并独立页面维护，正式编码规则为 `SW-关注点编码-序号`，关注点到安全工作为 1:1 / 1:N；L2 安全能力到 L2 流程组为严格约束；安全工作与安全职能无直接关系；同名 L3 跨 L2 需输出核对；GB/T 与 Gartner 作为岗位参考页签，并与安全职能清单支持双向映射 / 双向候选映射供用户复核，其中 GB/T 已有安全职能 -> GB/T 的单向映射基础。
 
 ## 历史记录
 

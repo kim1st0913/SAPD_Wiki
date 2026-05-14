@@ -61,6 +61,9 @@ guide_page
 
 diagram_view
   └─ source_file(Draw.io)
+
+maturity_*（后续独立模块）
+  └─ 只读引用 knowledge_item / knowledge_relation
 ```
 
 简单理解：
@@ -72,6 +75,19 @@ diagram_view
 - `knowledge_relation` 是正式关系。
 - `source_reference` 负责溯源。
 - `guide_page` 和 `diagram_view` 为 PPT、Draw.io 后续展示预留。
+- `maturity_*` 为成熟度分析模块后续运行数据预留，不属于主知识库对象，不写入 `knowledge_item`。
+
+### 3.1 成熟度分析模块数据边界
+
+成熟度分析模块后续会读取主知识库对象，但不改变主知识库数据模型职责。
+
+边界规则：
+
+- 主知识库继续以 `knowledge_item`、`knowledge_relation`、`source_reference`、`source_file`、`import_job` 为核心；
+- maturity 后续需要的 `maturity_models`、`maturity_dimensions`、`maturity_questions`、`maturity_assessments`、`maturity_evidence`、`maturity_scores`、`maturity_reports` 等对象，应作为独立迁移批次新增；
+- 客户输入、客户证据、客户评分结果和客户报告不写入 `knowledge_item`；
+- maturity 表只读引用能力、关注点、服务、模块、流程、职能等主知识库对象；
+- 本轮不修改 SQLite schema，不新增 `maturity_*` 表。
 
 ## 4. 核心实体
 
@@ -144,13 +160,13 @@ V1 对象类型：
 | capability_focus | 安全能力关注点 | 是 | 如 `T-AS.AD-01` |
 | scope_type | 安全作用域 | 是 | 如 `I-NT 网络` |
 | information_environment | 信息化环境 | 是 | 如“网络周界” |
-| environment_segment | 环境片区 | 是 | 如“互联网边界” |
+| environment_segment | 环境子类 | 是 | 信息化环境下的正式层级，如“互联网边界” |
 | information_object | 信息化对象 | 是 | 如“互联网入口边界” |
 | security_technical_service | 安全技术服务 | 是 | 如“网络隔离” |
 | security_technology_module | 安全技术模块 | 是 | 如“网络防火墙” |
 | security_system | 安全系统 | 是 | 如“网络边界安全防护” |
 | product | 产品 | 是 | 第一批只保存产品名称 |
-| security_work | 安全工作 | 第二批 | 能力关注点对应的安全工作内容 |
+| security_work | 安全工作 | 第二批 | 独立编码的安全工作对象，与能力关注点形成 1:1 或 1:N 映射 |
 | process_domain | 流程域 | 第二批 | L1流程域 |
 | process_group | 流程组 | 第二批 | L2流程组 |
 | process_reference | 流程参考 | 第二批 | L3流程参考，支持结合信息化对象 |
@@ -159,15 +175,16 @@ V1 对象类型：
 | work_function_group | 工作职能组 | 第二批 | 职能层级下的分组 |
 | work_function | 工作职能 | 第二批 | 内部组织工作职能 |
 | work_task | 工作任务 | 第二批 | 工作职能承担的具体任务 |
-| gbt_42446_task_reference | GB/T 42446-2023 工作任务引用 | 第二批 | 外部标准中的工作类别和任务 |
-| work_role_reference | 岗位参考 | 第二批 | Gartner 安全岗位/角色参考 |
+| gbt_42446_task_reference | GB/T 42446-2023 工作任务引用 | 第二批 | 外部标准中的工作类别和任务；与安全职能支持双向查看，当前已有安全职能 -> GB/T 映射基础 |
+| work_role_reference | 岗位参考 | 第二批 | Gartner 安全岗位/角色参考，与安全职能清单生成双向候选映射供用户复核 |
 | lifecycle_process | 生命周期过程/阶段 | 第三批 | 数据生命周期过程或应用安全开发阶段 |
 | lifecycle_scene | 数据生命周期场景 | 第三批 | 数据生命周期过程下的具体场景 |
 | security_activity | 安全活动 | 第三批 | 应用安全开发阶段下的安全活动 |
-| security_policy_requirement | 安全策略要求 | 第三批 | 应用安全开发阶段或活动对应的策略条目 |
+| security_policy_requirement | 安全策略条目 | 第三批 | 应用安全开发阶段或安全活动对应的安全策略条目；当前不作为独立维护页 |
 | software_development_type | 软件开发类型 | 第三批 | 自研、定制、外购、SaaS 等 |
 | application_system_type | 应用系统类型 | 第三批 | 传统应用、微服务应用、中台类应用等 |
 | application_component | 应用组件 | 第三批 | 应用系统类型下的组件层级 |
+| development_product_component | 开发类产品组件 | 第三批 | LC-AP 实际产品示例；只在安全开发维度展示，不进入通用产品主数据 |
 | standard_framework | 标准框架 | 后续 | ISO、CSF、等保、CIS 等 |
 | standard_control | 标准控制项 | 后续 | 标准控制条目 |
 | guide_section | 使用说明章节 | 后续 | 来自 PPT |
@@ -206,17 +223,19 @@ V1 对象类型：
 | maps_to_work | 映射到安全工作 | 能力关注点 | 安全工作 |
 | maps_to_process | 映射到流程 | L2安全能力/能力关注点 | L2流程组/L3流程参考 |
 | has_activity | 包含活动 | L3流程参考 | L4关键活动 |
-| stakeholder_by | 相关方为 | 能力关注点/流程参考 | 工作职能 |
+| stakeholder_by | 相关方为 | L2安全能力-流程组组合/流程参考 | 工作职能 |
 | belongs_to_layer | 属于职能层级 | 工作职能/职能组 | 工作职能层级 |
 | performs_task | 承担任务 | 工作职能 | 工作任务 |
-| maps_to_gbt_task | 映射到 GB/T 工作任务 | 工作职能 | GB/T 42446-2023 工作任务引用 |
-| references_role | 参考岗位 | 工作职能 | Gartner 岗位参考，第二批暂不自动生成 |
+| maps_to_gbt_task | 映射到 GB/T 工作任务 | 工作职能 | GB/T 42446-2023 工作任务引用；存储方向为安全职能 -> GB/T，查询和前端展示支持反向查看 |
+| references_role_candidate | 参考岗位候选映射 | Gartner 岗位参考 | 工作职能，用户复核前不作为最终强关系；查询和前端展示支持双向查看 |
 | has_scene | 包含场景 | 生命周期过程 | 生命周期场景 |
 | maps_to_lifecycle | 映射到生命周期 | 安全技术服务/安全技术模块 | 生命周期过程 |
-| requires_policy | 要求策略 | 生命周期过程/安全活动 | 安全策略要求 |
+| requires_policy | 要求策略 | 生命周期过程/安全活动 | 安全策略条目 |
 | applies_to_development_type | 适用于开发类型 | 生命周期过程/安全活动 | 软件开发类型 |
 | uses_service | 使用服务 | 生命周期过程/安全活动 | 安全技术服务 |
-| uses_product | 使用产品示例 | 生命周期过程/安全活动 | 产品 |
+| uses_module | 关联安全技术模块 | 生命周期过程/安全活动/安全技术服务 | 安全技术模块 |
+| uses_measure | 关联安全技术措施 | 生命周期过程/安全活动/安全技术服务 | 安全技术措施 |
+| uses_development_product_component | 使用开发类产品组件 | 生命周期过程/安全技术服务 | 开发类产品组件 |
 | has_component | 包含组件 | 应用系统类型 | 应用组件 |
 
 ### 4.5 source_reference 来源引用
@@ -339,7 +358,7 @@ flowchart LR
   Module["安全技术模块"] -->|实现| Service
   Module -->|属于| System["安全系统"]
   Module -->|对应| Product["产品"]
-  Env["信息化环境"] -->|包含| Segment["环境片区"]
+  Env["信息化环境"] -->|包含| Segment["环境子类"]
   Segment -->|包含| InfoObject["信息化对象"]
   Service -->|作用于| InfoObject
   Module -->|部署/适用于| Env

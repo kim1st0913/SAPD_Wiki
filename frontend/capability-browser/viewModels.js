@@ -153,11 +153,7 @@
     const compact = compactEntity(item, "待补充");
     const status = text(item?.status || compact?.status).trim().toLowerCase();
     const isMeasure = item?.type === "security_technical_measure" || item?.name || item?.measureName;
-    const kind = isMeasure
-      ? status === "pending" || status === "待确认"
-        ? "说明类 / 待确认"
-        : "安全技术措施"
-      : fallbackKind;
+    const kind = isMeasure ? "安全技术措施" : fallbackKind;
     return {
       ...compact,
       objectKind: kind,
@@ -741,6 +737,89 @@
     };
   }
 
+  function securityWorkDisplayCode(work, focus, index) {
+    const explicitCode = text(work?.code).trim();
+    if (explicitCode.startsWith("SW-")) return explicitCode;
+    const focusCode = businessText(focus?.code, "FOCUS");
+    const sequence = String(index + 1).padStart(2, "0");
+    return `SW-${focusCode}-${sequence}`;
+  }
+
+  function capabilityFocusRows(capabilityTree) {
+    return list(capabilityTree?.categories).flatMap((category) =>
+      list(category.domains).flatMap((domain) =>
+        list(domain.capabilities).flatMap((capability) =>
+          list(capability.focuses).map((focus) => ({
+            category,
+            domain,
+            capability,
+            focus,
+          })),
+        ),
+      ),
+    );
+  }
+
+  function compactSecurityWorkRow({ category, domain, capability, focus, work }, index, focusWorkIndex) {
+    const workTitle = businessText(work?.title || work?.name);
+    const missing = [
+      !text(focus?.code).trim() ? "关注点编码" : "",
+      workTitle === PENDING_TEXT ? "安全工作名称" : "",
+    ].filter(Boolean);
+    return {
+      id: [focus?.id || focus?.code || index, work?.id || work?.title || focusWorkIndex].join("::"),
+      rawId: work?.id || work?.title || `security-work-${index}`,
+      index: index + 1,
+      displayCode: securityWorkDisplayCode(work, focus, focusWorkIndex),
+      title: workTitle,
+      capability: compactEntity(capability, "待补充"),
+      focus: compactEntity(focus, "待补充"),
+      focusCode: businessText(focus?.code),
+      focusTitle: businessText(focus?.title),
+      category: compactEntity(category, "待补充"),
+      domain: compactEntity(domain, "待补充"),
+      status: missing.length ? "待补充" : work?.status === "active" ? "正常" : businessText(work?.status, "正常"),
+      missingFields: missing,
+    };
+  }
+
+  function buildSecurityWorkMaintenanceViewModel({ capabilityTree, search }) {
+    const query = normalizeSearch(search);
+    const rawRows = capabilityFocusRows(capabilityTree).flatMap((path) =>
+      list(path.focus.security_works).map((work, focusWorkIndex) => ({ ...path, work, focusWorkIndex })),
+    );
+    const rowPairs = rawRows.map((item, index) => ({
+      item,
+      row: compactSecurityWorkRow(item, index, item.focusWorkIndex),
+    }));
+    const rows = rowPairs
+      .map(({ row }) => row)
+      .filter((row) =>
+        includesSearch(
+          query,
+          row.displayCode,
+          row.title,
+          row.status,
+          row.capability?.title,
+          row.focusCode,
+          row.focusTitle,
+          row.category?.title,
+          row.domain?.title,
+        ),
+      );
+    return {
+      rows,
+      summary: {
+        totalSecurityWorks: rows.length,
+        linkedCapabilities: countLinked(rows.map((row) => row.capability)),
+        linkedFocuses: countLinked(rows.map((row) => row.focus)),
+        pendingFields: rows.filter((row) => row.status === "待补充").length,
+      },
+      sourceEvidenceById: Object.fromEntries(rowPairs.map(({ item, row }) => [row.id, uniqueBy(list(item.work?.sources), sourceEvidenceKey)])),
+      emptyState: rows.length ? "" : "暂无安全工作数据，请确认 ETL 是否已在 capability-tree 中导出 security_works。",
+    };
+  }
+
   function buildTechnologyModuleMaintenanceViewModel({ management, search }) {
     const query = normalizeSearch(search);
     const rows = list(management?.security_technology_modules)
@@ -774,12 +853,11 @@
   function compactStandardRoleReferenceRow(item, index, kind) {
     const rawId = item?.id || item?.code || item?.title || `${kind}-${index}`;
     const source = kind === "standard" ? "GB/T 42446-2023" : "Gartner";
-    const referenceType = kind === "standard" ? "标准任务参考" : "岗位参考";
-    const title = titleOf(item, "待补充");
-    const description = item?.description || "待补充";
+    const referenceType = kind === "standard" ? "GB/T 42446-2023" : "Gartner 工作岗位参考";
+    const title = businessText(item?.title || item?.name);
+    const description = businessText(item?.description || item?.summary);
     const missing = [
       !text(item?.title).trim() ? "名称" : "",
-      !text(item?.description).trim() ? "说明" : "",
     ].filter(Boolean);
     return {
       id: `${kind}:${rawId}`,
@@ -787,24 +865,126 @@
       referenceKind: kind,
       referenceType,
       source,
-      category: item?.category || "待补充",
+      category: businessText(item?.category),
       title,
       description,
-      linkedSecurityFunctions: "待补充",
-      linkedProcesses: "待补充",
-      status: missing.length ? "待补充" : "正常",
+      linkedSecurityFunctions: [],
+      linkedProcesses: [],
+      candidateSecurityFunctions: [],
+      matchEvidence: PENDING_TEXT,
+      mappingStatus: kind === "standard" ? "待确认" : "待复核",
+      reviewStatus: kind === "standard" ? "待确认" : "待复核",
+      status: missing.length ? "待补充" : kind === "standard" ? "待确认" : "待复核",
       missingFields: missing,
     };
   }
 
+  function flattenWorkFunctions(management) {
+    return list(management?.work_function_layers).flatMap((layer) =>
+      list(layer.groups).flatMap((group) =>
+        list(group.functions).map((fn) => ({
+          layer,
+          group,
+          fn,
+        })),
+      ),
+    );
+  }
+
+  function referenceMatches(reference, item) {
+    if (!reference || !item) return false;
+    return (
+      (reference.id && item.id && reference.id === item.id) ||
+      (reference.title && item.title && reference.title === item.title) ||
+      (reference.code && item.code && reference.code === item.code)
+    );
+  }
+
+  function linkedRowsForGbtReference(management, item) {
+    const workFunctions = flattenWorkFunctions(management).filter(({ fn }) => list(fn?.gbt_42446_refs).some((reference) => referenceMatches(reference, item)));
+    const linkedSecurityFunctions = uniqueBy(
+      workFunctions.map(({ layer, group, fn }) => ({
+        ...compactEntity(fn, "待补充"),
+        layer: layer?.title || "",
+        group: group?.title || "",
+      })),
+      (fn) => fn.id || fn.code || fn.title,
+    );
+    const linkedProcesses = uniqueBy(
+      workFunctions.flatMap(({ fn }) => processReferencesForWorkFunction(management, fn).map(({ reference }) => compactEntity(reference, "待补充"))),
+      (reference) => reference.id || reference.code || reference.title,
+    );
+    return { linkedSecurityFunctions, linkedProcesses };
+  }
+
+  function gartnerCandidateFunctions(item) {
+    return uniqueBy(
+      [
+        ...compactMeasureEntities(item, ["candidate_security_functions", "security_functions", "work_functions", "linked_security_functions"]),
+        ...list(item?.candidate_work_functions).map((candidate) => compactEntity(candidate, "待补充")).filter(Boolean),
+      ],
+      (candidate) => candidate.id || candidate.code || candidate.title,
+    );
+  }
+
   function buildStandardRoleReferenceViewModel({ management, search }) {
     const query = normalizeSearch(search);
-    const standardRows = list(management?.gbt_42446_references)
-      .map((item, index) => compactStandardRoleReferenceRow(item, index, "standard"))
-      .filter((row) => includesSearch(query, row.source, row.category, row.title, row.description, row.status));
-    const roleRows = list(management?.gartner_roles)
-      .map((item, index) => compactStandardRoleReferenceRow(item, index, "role"))
-      .filter((row) => includesSearch(query, row.source, row.category, row.title, row.description, row.status));
+    const standardPairs = list(management?.gbt_42446_references).map((item, index) => {
+        const row = compactStandardRoleReferenceRow(item, index, "standard");
+        const linked = linkedRowsForGbtReference(management, item);
+        return {
+          item,
+          row: {
+          ...row,
+          linkedSecurityFunctions: linked.linkedSecurityFunctions,
+          linkedProcesses: linked.linkedProcesses,
+          mappingStatus: linked.linkedSecurityFunctions.length || linked.linkedProcesses.length ? "待复核" : "待确认",
+          status: linked.linkedSecurityFunctions.length || linked.linkedProcesses.length ? "待复核" : row.status,
+          },
+        };
+      });
+    const standardRows = standardPairs
+      .map(({ row }) => row)
+      .filter((row) =>
+        includesSearch(
+          query,
+          row.source,
+          row.category,
+          row.title,
+          row.description,
+          row.mappingStatus,
+          ...row.linkedSecurityFunctions.map(titleOf),
+          ...row.linkedProcesses.map(titleOf),
+        ),
+      );
+    const rolePairs = list(management?.gartner_roles).map((item, index) => {
+        const candidates = gartnerCandidateFunctions(item);
+        return {
+          item,
+          row: {
+          ...compactStandardRoleReferenceRow(item, index, "role"),
+          candidateSecurityFunctions: candidates,
+          matchEvidence: businessText(item?.match_basis || item?.match_reason || item?.mapping_basis || item?.evidence),
+          mappingStatus: "待复核",
+          reviewStatus: "待复核",
+          status: "待复核",
+          },
+        };
+      });
+    const roleRows = rolePairs
+      .map(({ row }) => row)
+      .filter((row) =>
+        includesSearch(
+          query,
+          row.source,
+          row.category,
+          row.title,
+          row.description,
+          row.matchEvidence,
+          row.reviewStatus,
+          ...row.candidateSecurityFunctions.map(titleOf),
+        ),
+      );
     const rows = [...standardRows, ...roleRows];
     return {
       rows,
@@ -814,10 +994,15 @@
         totalReferences: rows.length,
         standardTasks: standardRows.length,
         roleReferences: roleRows.length,
-        missingLinks: rows.filter((row) => row.linkedSecurityFunctions === "待补充" || row.linkedProcesses === "待补充").length,
+        pendingReview: rows.filter((row) => row.status === "待复核" || row.status === "待确认").length,
+        missingLinks: [...standardRows.filter((row) => !row.linkedSecurityFunctions.length && !row.linkedProcesses.length), ...roleRows.filter((row) => !row.candidateSecurityFunctions.length)].length,
         missingFields: rows.filter((row) => row.status === "待补充").length,
       },
-      emptyState: rows.length ? "" : "暂无标准与岗位参考数据，请确认 ETL 是否已导出 gbt_42446_references 与 gartner_roles。",
+      emptyState: rows.length ? "" : "暂无岗位参考页面数据，请确认 ETL 是否已导出 gbt_42446_references 与 gartner_roles。",
+      sourceEvidenceById: {
+        ...Object.fromEntries(standardPairs.map(({ item, row }) => [row.id, uniqueBy(list(item?.sources), sourceEvidenceKey)])),
+        ...Object.fromEntries(rolePairs.map(({ item, row }) => [row.id, uniqueBy(list(item?.sources), sourceEvidenceKey)])),
+      },
     };
   }
 
@@ -1061,17 +1246,21 @@
     };
   }
 
-  function maintenanceNavigationItems(management, section) {
+  function maintenanceNavigationItems(management, section, capabilityTree) {
     const processCount = list(management?.security_processes).flatMap((domain) => list(domain.groups).flatMap((group) => list(group.references))).length;
     const workFunctionCount = list(management?.work_function_layers).flatMap((layer) => list(layer.groups).flatMap((group) => list(group.functions))).length;
     const referenceCount = list(management?.gbt_42446_references).length + list(management?.gartner_roles).length;
+    const securityWorkCount = list(capabilityTree?.categories).flatMap((category) =>
+      list(category.domains).flatMap((domain) => list(domain.capabilities).flatMap((capability) => list(capability.focuses).flatMap((focus) => list(focus.security_works)))),
+    ).length;
     return [
       { id: "scopes", label: "作用域清单", count: list(management?.scope_types).length, implemented: true },
       { id: "processes", label: "流程清单", count: processCount, implemented: true },
       { id: "work-functions", label: "职能清单", count: workFunctionCount, implemented: true },
+      { id: "security-works", label: "安全工作清单", count: securityWorkCount, implemented: true },
       { id: "modules", label: "安全技术模块清单", count: list(management?.security_technology_modules).length, implemented: true },
       { id: "measures", label: "安全技术措施清单", count: list(management?.security_technical_measures).length, implemented: true },
-      { id: "references", label: "标准与岗位参考", count: referenceCount, implemented: true },
+      { id: "references", label: "岗位参考页面", count: referenceCount, implemented: true },
     ].map((item) => ({ ...item, active: item.id === section }));
   }
 
@@ -1135,6 +1324,25 @@
         sourceEvidence,
       };
     }
+    if (section === "security-works") {
+      return {
+        type: "安全工作",
+        code: row.displayCode,
+        title: row.title,
+        description: "安全工作作为独立对象展示；与安全职能不建立直接关系。",
+        facts: [
+          { label: "正式编码", value: row.displayCode },
+          { label: "关联安全能力", value: titleOf(row.capability, "待补充") },
+          { label: "关联关注点", value: [row.focusCode, row.focusTitle].filter(Boolean).join(" ") || "待补充" },
+          { label: "状态", value: row.status },
+        ],
+        sections: [
+          { title: "关联安全能力", items: row.capability ? [row.capability] : [] },
+          { title: "关联关注点", items: row.focus ? [row.focus] : [] },
+        ],
+        sourceEvidence,
+      };
+    }
     if (section === "modules") {
       return {
         type: "安全技术模块",
@@ -1166,10 +1374,17 @@
         facts: [
           { label: "来源", value: row.source },
           { label: "分类", value: row.category },
-          { label: "关联安全职能", value: row.linkedSecurityFunctions },
-          { label: "关联流程", value: row.linkedProcesses },
+          { label: row.referenceKind === "role" ? "候选安全职能" : "关联安全职能", value: row.referenceKind === "role" ? countLinked(row.candidateSecurityFunctions) || "待补充" : countLinked(row.linkedSecurityFunctions) || "待确认" },
+          { label: "关联流程", value: row.referenceKind === "role" ? "待补充" : countLinked(row.linkedProcesses) || "待确认" },
+          { label: "映射状态", value: row.mappingStatus || row.reviewStatus },
         ],
-        sections: [],
+        sections:
+          row.referenceKind === "role"
+            ? [{ title: "候选安全职能", items: row.candidateSecurityFunctions }]
+            : [
+                { title: "关联安全职能（待复核）", items: row.linkedSecurityFunctions },
+                { title: "关联流程（待确认）", items: row.linkedProcesses },
+              ],
         sourceEvidence,
       };
     }
@@ -1217,6 +1432,9 @@
         .find((fn) => (fn?.id || fn?.code || fn?.title) === row.id);
       return list(source?.sources);
     }
+    if (section === "security-works") {
+      return [];
+    }
     if (section === "modules") {
       const source = list(management?.security_technology_modules).find((module, index) => (module?.id || module?.code || module?.title || `technology-module-${index}`) === row.id);
       return list(source?.sources);
@@ -1229,9 +1447,10 @@
     return [];
   }
 
-  function buildMaintenanceWorkspaceViewModel({ management, section = "scopes", selectedId, search }) {
-    const normalizedSection = ["scopes", "processes", "work-functions", "modules", "measures", "references"].includes(section) ? section : "scopes";
-    const navigationItems = maintenanceNavigationItems(management, normalizedSection);
+  function buildMaintenanceWorkspaceViewModel({ capabilityTree, management, section = "scopes", selectedId, search, referenceTab = "gbt" }) {
+    const normalizedSection = ["scopes", "processes", "work-functions", "security-works", "modules", "measures", "references"].includes(section) ? section : "scopes";
+    const normalizedReferenceTab = referenceTab === "gartner" ? "gartner" : "gbt";
+    const navigationItems = maintenanceNavigationItems(management, normalizedSection, capabilityTree);
     const pageMeta = {
       scopes: {
         title: "作用域清单",
@@ -1254,6 +1473,12 @@
         description: "用于维护和核对安全工作职能，统一使用“安全职能”业务口径。",
         implemented: true,
       },
+      "security-works": {
+        title: "安全工作清单",
+        description: "安全工作作为独立对象展示，编码由关注点编码和关注点内序号稳定派生。",
+        implemented: true,
+        notice: "安全工作与安全职能不显示为直接关联；如需职能关系，等待 ETL 提供可靠间接数据。",
+      },
       modules: {
         title: "安全技术模块清单",
         description: "用于维护和核对安全技术模块，区别于安全技术措施，不把系统或产品作为主列。",
@@ -1261,10 +1486,10 @@
         notice: "关联安全技术措施数依赖后续数据契约完善",
       },
       references: {
-        title: "标准与岗位参考",
-        description: "展示 GB/T 42446 任务参考和 Gartner 岗位参考，作为职能、流程、任务的参考知识。",
+        title: "岗位参考页面",
+        description: "展示 GB/T 42446-2023 与 Gartner 工作岗位参考；映射结果只作为候选或待复核信息。",
         implemented: true,
-        notice: "关联安全职能和关联流程暂不编造，无法计算时显示“待补充”",
+        notice: "GB/T 映射支持反向查看但不自动作为最终事实；Gartner 候选映射统一显示为“待复核”。",
       },
     }[normalizedSection];
     const sectionViewModel =
@@ -1273,7 +1498,9 @@
         : normalizedSection === "processes"
           ? buildProcessMaintenanceViewModel({ management, search })
           : normalizedSection === "work-functions"
-            ? buildWorkFunctionMaintenanceViewModel({ management, search })
+          ? buildWorkFunctionMaintenanceViewModel({ management, search })
+          : normalizedSection === "security-works"
+            ? buildSecurityWorkMaintenanceViewModel({ capabilityTree, search })
             : normalizedSection === "modules"
               ? buildTechnologyModuleMaintenanceViewModel({ management, search })
               : normalizedSection === "measures"
@@ -1281,7 +1508,9 @@
                 : normalizedSection === "references"
                   ? buildStandardRoleReferenceViewModel({ management, search })
                   : { rows: [], summary: {}, emptyState: pageMeta.description };
-    const selectedRow = sectionViewModel.rows.find((row) => row.id === selectedId) || sectionViewModel.rows[0] || null;
+    const selectableRows =
+      normalizedSection === "references" ? (normalizedReferenceTab === "gartner" ? sectionViewModel.roleRows || [] : sectionViewModel.standardRows || []) : sectionViewModel.rows;
+    const selectedRow = selectableRows.find((row) => row.id === selectedId) || selectableRows[0] || null;
     const sourceEvidence =
       selectedRow && sectionViewModel.sourceEvidenceById
         ? list(sectionViewModel.sourceEvidenceById[selectedRow.id])
@@ -1294,6 +1523,7 @@
       rows: sectionViewModel.rows,
       standardRows: sectionViewModel.standardRows || [],
       roleRows: sectionViewModel.roleRows || [],
+      referenceTab: normalizedReferenceTab,
       selectedId: selectedRow?.id || null,
       detailPanel: buildMaintenanceDetailPanel(selectedRow, normalizedSection, sourceEvidence),
       sourceEvidence,
@@ -1508,11 +1738,314 @@
     };
   }
 
+  function lifecycleSourcesFor(process, extras = []) {
+    return uniqueBy(
+      [
+        ...list(process?.sources),
+        ...list(process?.main_activities).flatMap((item) => list(item?.sources)),
+        ...list(process?.security_activities).flatMap((item) => list(item?.sources)),
+        ...list(process?.policy_requirements).flatMap((item) => list(item?.sources)),
+        ...list(process?.technical_services).flatMap((item) => list(item?.sources)),
+        ...list(process?.technology_modules).flatMap((item) => list(item?.sources)),
+        ...list(process?.technical_measures).flatMap((item) => list(item?.sources)),
+        ...list(process?.development_product_components).flatMap((item) => list(item?.sources)),
+        ...list(extras).flatMap((item) => list(item?.sources)),
+      ].filter(Boolean),
+      sourceEvidenceKey,
+    );
+  }
+
+  function compactLifecycleItem(item, fallback = PENDING_TEXT) {
+    const compact = compactEntity(item, fallback);
+    return {
+      ...compact,
+      order: item?.order ?? item?.metadata?.order ?? "",
+      category: businessText(item?.service_category || item?.category || item?.metadata?.service_category, ""),
+    };
+  }
+
+  function lifecycleServiceCategory(service) {
+    const sourceColumns = list(service?.sources).map((source) => text(source?.column).trim());
+    const fromManagedSecurityColumn = sourceColumns.includes("安全服务（带管理类）") || sourceCellStartsWith(service, "Q");
+    const fromSecurityServiceColumn = sourceColumns.includes("安全技术服务") || sourceCellStartsWith(service, "R");
+    const serviceCode = text(service?.code).trim();
+    const serviceTitle = titleOf(service, "");
+    const serviceLabel = `${serviceCode} ${serviceTitle}`.trim();
+    const managementNames = ["安全合规管理", "安全风险管理", "人员安全管理", "第三方安全管理", "第三方人员安全管理"];
+    if (managementNames.some((name) => serviceTitle === name || serviceLabel.includes(name))) return "管理类";
+    if (/T-AS\.DS-|软件威胁建模|代码安全检测|组件安全管理|安全组件和函数管理/.test(serviceLabel)) return "开发类";
+    if (fromSecurityServiceColumn || fromManagedSecurityColumn) return "网络空间类";
+    return businessText(service?.service_category || service?.metadata?.service_category, "未分类");
+  }
+
+  function sourceCellStartsWith(item, prefix) {
+    const normalizedPrefix = text(prefix).trim().toUpperCase();
+    return list(item?.sources).some((source) => text(source?.cell).trim().toUpperCase().startsWith(normalizedPrefix));
+  }
+
+  function isDevelopmentTechnicalService(service) {
+    return list(service?.sources).some((source) => text(source?.column).trim() === "开发技术服务") || sourceCellStartsWith(service, "M");
+  }
+
+  function lifecycleProcessServices(process) {
+    const services = list(process?.technical_services);
+    return {
+      developmentServices: services.filter(isDevelopmentTechnicalService),
+      securityServices: services.filter((service) => !isDevelopmentTechnicalService(service)),
+    };
+  }
+
+  function buildLifecycleNavigation(processes, search) {
+    const query = normalizeSearch(search);
+    return list(processes)
+      .filter((process) =>
+        includesSearch(
+          query,
+          process.code,
+          process.title,
+          process.description,
+          process.goal,
+          ...list(process.main_activities).map(titleOf),
+          ...list(process.security_activities).map(titleOf),
+          ...list(process.technical_services).map(titleOf),
+          ...list(process.technology_modules).map(titleOf),
+          ...list(process.technical_measures).map(titleOf),
+        ),
+      )
+      .map((process) => ({
+        id: process.id,
+        code: process.code || `AP-${String(process.order || "").padStart(2, "0")}`,
+        title: titleOf(process, "未命名阶段"),
+        description: businessText(process.goal || process.description, ""),
+        order: process.order || process.metadata?.order || "",
+        serviceCount: list(process.technical_services).length,
+        moduleCount: list(process.technology_modules).length,
+        measureCount: list(process.technical_measures).length,
+      }));
+  }
+
+  function buildLifecycleStageRows(processes) {
+    return list(processes).map((process) => ({
+      id: process.id,
+      order: process.order || process.metadata?.order || "",
+      code: process.code || "",
+      title: titleOf(process, "未命名阶段"),
+      goal: businessText(process.goal || process.description),
+      mainActivities: list(process.main_activities).map(compactLifecycleItem),
+      securityActivities: list(process.security_activities).map(compactLifecycleItem),
+      policyRequirements: list(process.policy_requirements).map(compactLifecycleItem),
+      developmentTypes: list(process.development_types).map(compactLifecycleItem),
+      technicalServices: list(process.technical_services).map(compactLifecycleItem),
+      technologyModules: list(process.technology_modules).map((module) => ({
+        ...compactLifecycleItem(module),
+        objectKind: "安全技术模块",
+      })),
+      technicalMeasures: list(process.technical_measures).map((measure) => ({
+        ...compactLifecycleItem(measure),
+        objectKind: "安全技术措施",
+      })),
+      productComponents: list(process.development_product_components).map((component) => ({
+        ...compactLifecycleItem(component),
+        objectKind: "开发类产品组件",
+      })),
+    }));
+  }
+
+  function buildLifecycleServiceRows(process) {
+    const { developmentServices, securityServices } = lifecycleProcessServices(process);
+    const securityServiceRows = securityServices.map((service, index) => ({
+      id: service?.id || `service:${index}`,
+      category: lifecycleServiceCategory(service),
+      service: compactLifecycleItem(service),
+      modules: list(service?.modules).map((module) => ({ ...compactLifecycleItem(module), objectKind: "安全技术模块" })),
+      note: "安全技术服务明细",
+    }));
+    return {
+      developmentServices: developmentServices.map(compactLifecycleItem),
+      securityServiceRows,
+      stageModules: list(process?.technology_modules).map((module) => ({ ...compactLifecycleItem(module), objectKind: "安全技术模块" })),
+      stageMeasures: list(process?.technical_measures).map((measure) => ({ ...compactLifecycleItem(measure), objectKind: "安全技术措施" })),
+      productComponents: list(process?.development_product_components).map((component) => ({ ...compactLifecycleItem(component), objectKind: "开发类产品组件" })),
+    };
+  }
+
+  function buildLifecycleRelationRows(selectedStageRow, serviceMappingRows) {
+    if (!selectedStageRow) return [];
+    const securityServices = list(serviceMappingRows?.securityServiceRows).map((row) => ({
+      ...row.service,
+      objectKind: row.category || "安全技术服务",
+      modules: row.modules,
+    }));
+    const serviceModules = uniqueBy(
+      list(serviceMappingRows?.securityServiceRows).flatMap((row) => list(row.modules)),
+      (item) => item.id || item.code || item.title || item.name,
+    );
+    const stageModules = list(serviceMappingRows?.stageModules);
+    const technologyModules = uniqueBy([...serviceModules, ...stageModules], (item) => item.id || item.code || item.title || item.name);
+    return [
+      {
+        id: `${selectedStageRow.id}:relation-row`,
+        mainActivity: selectedStageRow.mainActivities,
+        securityActivities: selectedStageRow.securityActivities,
+        policyRequirements: selectedStageRow.policyRequirements,
+        technicalServices: securityServices,
+        technologyModules,
+        technicalMeasures: list(serviceMappingRows?.stageMeasures),
+        productComponents: list(serviceMappingRows?.productComponents),
+        status: securityServices.length || technologyModules.length || list(serviceMappingRows?.stageMeasures).length ? "已关联" : "待补充",
+      },
+    ];
+  }
+
+  function buildLifecycleStageOverview(selectedStageRow, summary) {
+    if (!selectedStageRow) return null;
+    return {
+      code: selectedStageRow.code || "LC-AP",
+      title: selectedStageRow.title || PENDING_TEXT,
+      description: selectedStageRow.goal || PENDING_TEXT,
+      status: "当前阶段",
+      facts: [
+        { label: "主要活动", value: summary.mainActivityCount },
+        { label: "安全活动", value: summary.securityActivityCount },
+        { label: "策略要求", value: summary.policyRequirementCount },
+        { label: "技术服务", value: summary.technicalServiceCount },
+        { label: "开发技术服务", value: summary.developmentServiceCount },
+        { label: "技术模块", value: summary.technologyModuleCount },
+        { label: "技术措施", value: summary.technicalMeasureCount },
+      ],
+    };
+  }
+
+  function buildLifecycleLocalRelationNotes(selectedStageRow, serviceMappingRows) {
+    if (!selectedStageRow) return [];
+    const securityRows = list(serviceMappingRows?.securityServiceRows);
+    const categories = uniqueBy(securityRows.map((row) => row.category).filter(Boolean), (category) => category);
+    return [
+      {
+        title: "阶段关系",
+        body: `当前阶段包含 ${list(selectedStageRow.mainActivities).length} 项主要活动、${list(selectedStageRow.securityActivities).length} 项安全活动和 ${list(selectedStageRow.policyRequirements).length} 条安全策略要求；这些对象都归属于当前 LC-AP 阶段，不强行画成单线性链路。`,
+      },
+      {
+        title: "服务分类",
+        body: `开发技术服务单独展示；安全技术服务在本页面按 ${categories.join("、") || "待补充"} 分类展示，该分类暂不扩展为全局主数据。`,
+      },
+      {
+        title: "参考数据",
+        body: "软件开发类型、应用系统类型和应用组件仅作为同页参考数据展示，不伪造成正式映射关系。",
+      },
+    ];
+  }
+
+  function buildLifecycleReferenceSections(applicationSecurity) {
+    const softwareDevelopmentTypes = list(applicationSecurity?.software_development_types).map(compactLifecycleItem);
+    const applicationSystemTypes = list(applicationSecurity?.application_system_types).map((system) => ({
+      ...compactLifecycleItem(system),
+      components: list(system?.components).map(compactLifecycleItem),
+    }));
+    return {
+      softwareDevelopmentTypes,
+      applicationSystemTypes,
+    };
+  }
+
+  function buildApplicationSecurityLifecycleViewModel({ lifecycle, selectedProcessId, search }) {
+    const appSecurity = lifecycle?.application_security_development || {};
+    const dataState = lifecycle?.__data_state === "missing_file" ? "missing_file" : list(appSecurity.processes).length ? "ready" : "empty";
+    const navigationTree = buildLifecycleNavigation(appSecurity.processes, search);
+    const selectedId = selectedProcessId && navigationTree.some((row) => row.id === selectedProcessId) ? selectedProcessId : navigationTree[0]?.id || null;
+    const process = list(appSecurity.processes).find((item) => item.id === selectedId) || list(appSecurity.processes)[0] || null;
+    const stageRows = buildLifecycleStageRows(appSecurity.processes).filter((row) => !normalizeSearch(search) || navigationTree.some((nav) => nav.id === row.id));
+    const selectedStageRow = stageRows.find((row) => row.id === selectedId) || stageRows[0] || null;
+    const serviceMappingRows = buildLifecycleServiceRows(process);
+    const referenceSections = buildLifecycleReferenceSections(appSecurity);
+    const { developmentServices, securityServices } = lifecycleProcessServices(process);
+    const summary = {
+      processCount: stageRows.length,
+      selectedProcessId: selectedId,
+      mainActivityCount: list(process?.main_activities).length,
+      securityActivityCount: list(process?.security_activities).length,
+      policyRequirementCount: list(process?.policy_requirements).length,
+      developmentServiceCount: developmentServices.length,
+      technicalServiceCount: securityServices.length,
+      technologyModuleCount: list(process?.technology_modules).length,
+      technicalMeasureCount: list(process?.technical_measures).length,
+      productComponentCount: list(process?.development_product_components).length,
+      softwareDevelopmentTypeCount: referenceSections.softwareDevelopmentTypes.length,
+      applicationSystemTypeCount: referenceSections.applicationSystemTypes.length,
+    };
+    const relationRows = buildLifecycleRelationRows(selectedStageRow, serviceMappingRows);
+    const stageOverview = buildLifecycleStageOverview(selectedStageRow, summary);
+    const detailPanel = process
+      ? {
+          type: "LC-AP 开发过程阶段",
+          code: process.code || selectedStageRow?.code || "LC-AP",
+          title: titleOf(process, "未命名阶段"),
+          description: businessText(process.goal || process.description),
+          facts: [
+            { label: "阶段主要活动", value: summary.mainActivityCount },
+            { label: "安全活动", value: summary.securityActivityCount },
+            { label: "安全策略", value: summary.policyRequirementCount },
+            { label: "模式", value: list(process?.development_types).length },
+            { label: "开发技术服务", value: summary.developmentServiceCount },
+            { label: "安全技术服务", value: summary.technicalServiceCount },
+            { label: "安全技术模块", value: summary.technologyModuleCount },
+            { label: "安全技术措施", value: summary.technicalMeasureCount },
+            { label: "开发类产品组件", value: summary.productComponentCount },
+          ],
+          sections: [
+            { title: "软件开发模式", items: selectedStageRow?.developmentTypes || [] },
+            { title: "阶段主要活动", items: selectedStageRow?.mainActivities || [] },
+            { title: "安全活动", items: selectedStageRow?.securityActivities || [] },
+            { title: "安全策略", items: selectedStageRow?.policyRequirements || [] },
+            { title: "开发类产品组件", items: selectedStageRow?.productComponents || [] },
+          ],
+          sourceEvidence: lifecycleSourcesFor(process),
+        }
+      : null;
+    return {
+      dataState,
+      title: "安全开发维度",
+      description: "展示 LC-AP 应用安全开发生命周期中阶段、活动、策略、技术服务、模块、措施和开发类参考对象之间的关系。",
+      navigationTree,
+      stageTree: navigationTree,
+      selectedProcess: selectedStageRow,
+      selectedStage: selectedStageRow,
+      relationshipSummary: summary,
+      stageOverview,
+      stageRows,
+      activityPolicyRows: selectedStageRow
+        ? [
+            {
+              id: `${selectedStageRow.id}:activities`,
+              process: selectedStageRow,
+              mainActivities: selectedStageRow.mainActivities,
+              securityActivities: selectedStageRow.securityActivities,
+              policyRequirements: selectedStageRow.policyRequirements,
+            },
+          ]
+        : [],
+      serviceMappingRows,
+      relationRows,
+      referenceSections,
+      referenceGroups: referenceSections,
+      localRelationNotes: buildLifecycleLocalRelationNotes(selectedStageRow, serviceMappingRows),
+      detailPanel,
+      sourceEvidence: detailPanel?.sourceEvidence || [],
+      emptyState: stageRows.length
+        ? ""
+        : dataState === "missing_file"
+          ? "未找到 lifecycle-knowledge.json，请先执行 LC-AP 数据导出。"
+          : "暂无 LC-AP 安全开发生命周期数据，请确认 lifecycle-knowledge.json 是否已导出。",
+    };
+  }
+
   window.sapdViewModels = {
     buildCapabilityWorkspaceViewModel,
+    buildApplicationSecurityLifecycleViewModel,
     buildMaintenanceWorkspaceViewModel,
     buildProcessMaintenanceViewModel,
     buildScopeMaintenanceViewModel,
+    buildSecurityWorkMaintenanceViewModel,
     buildTechnicalMeasureMaintenanceViewModel,
     buildTechnologyModuleMaintenanceViewModel,
     buildStandardRoleReferenceViewModel,

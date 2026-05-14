@@ -1105,6 +1105,41 @@ body.is-resizing {
   gap: 12px;
 }
 
+.reference-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.reference-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 760;
+  cursor: pointer;
+}
+
+.reference-tab strong {
+  min-width: 24px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--surface-quiet);
+  color: var(--accent-3);
+  text-align: center;
+}
+
+.reference-tab.active {
+  background: color-mix(in oklch, var(--accent) 9%, var(--panel));
+  color: var(--ink);
+  outline: 1px solid color-mix(in oklch, var(--accent) 32%, var(--line));
+}
+
 .reference-table-section {
   display: grid;
   gap: 8px;
@@ -2266,12 +2301,74 @@ button.source-sheet-row.active {
   font-size: 12px;
 }
 
+.lifecycle-tree-root {
+  display: grid;
+  gap: 3px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: color-mix(in oklch, var(--accent-3) 8%, var(--panel));
+  padding: 10px;
+}
+
+.lifecycle-tree-root strong {
+  color: var(--accent-3);
+  font-size: 13px;
+}
+
+.lifecycle-tree-root span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .lifecycle-lane {
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: minmax(220px, 1fr);
   gap: 10px;
   overflow: auto;
+}
+
+.dev-lifecycle-workspace .lifecycle-lane {
+  align-content: start;
+  grid-auto-flow: row;
+  grid-auto-columns: initial;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.lifecycle-stage-overview,
+.lifecycle-relation-section,
+.lifecycle-local-notes,
+.lifecycle-reference-section {
+  min-width: 0;
+}
+
+.lifecycle-relation-scroll {
+  max-height: 460px;
+}
+
+.lifecycle-relation-table {
+  min-width: 1120px;
+}
+
+.lifecycle-reference-block {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 12px;
+}
+
+.lifecycle-reference-block h4 {
+  margin: 0;
+  color: var(--accent-3);
+  font-size: 13px;
+}
+
+.lifecycle-reference-table {
+  background: var(--panel);
 }
 
 .lane-column {
@@ -2294,6 +2391,12 @@ button.source-sheet-row.active {
 .lane-column small {
   color: var(--muted);
   line-height: 1.55;
+}
+
+.lifecycle-reference-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.65fr) minmax(360px, 1fr);
+  gap: 10px;
 }
 
 .content-list {
@@ -3061,6 +3164,10 @@ input:focus-visible,
 
 .lifecycle-workspace {
   grid-template-columns: 270px minmax(600px, 1fr) 230px;
+}
+
+.dev-lifecycle-workspace {
+  grid-template-columns: 292px minmax(640px, 1fr);
 }
 
 .content-workspace {

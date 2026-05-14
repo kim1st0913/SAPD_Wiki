@@ -31,6 +31,9 @@ dist/
 build/
 .vite/
 
+# Local Codex skill runtime links
+.agents/skills/
+
 # Tauri / Rust build artifacts
 target/
 

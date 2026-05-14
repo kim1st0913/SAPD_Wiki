@@ -6,7 +6,7 @@
 
 ## Current Status
 
-- Status: phase_5_business_semantics_review_ready
+- Status: phase_5_second_batch_review_confirmed_pending_landing
 - Started: 2026-05-09
 - Current phase: Phase 5 - 已导入 Sheet 业务含义复核与关系展示校正
 - Primary reference: `docs/00-overview/project-roadmap.md`
@@ -162,7 +162,7 @@
 - [x] User confirmed first-batch core Sheet business meaning, primary keys and relation cardinality.
 - [x] Reimport first-batch core Sheets after user source updates and refresh frontend JSON exports.
 - [x] Reimport third-batch LC-AP after user fixed duplicate policy sequence numbers.
-- [ ] User confirms completed mapped Sheet business meaning, primary keys and relation cardinality.
+- [x] User confirms completed mapped Sheet business meaning, primary keys and relation cardinality for the first and second core batches.
 
 ## Maturity Module Implementation Plan
 
@@ -177,19 +177,49 @@
 
 | M Phase | Name | Status | Output |
 |---|---|---|---|
-| M0 | 需求固化、配置占位与接入 review | complete | `docs/08-maturity/`, `docs/08-maturity/module-integration-review.md`, `config/maturity/*.yaml`, README/task_plan/progress 同步 |
-| M1 | 数据库与模板生成 MVP | pending | `maturity_*` 迁移、独立 maturity 包、`maturity-template` CLI、Reference_Capabilities Sheet |
-| M2 | 模板导入与暂存 | pending | `maturity-import` CLI、Assessment_Info / Current_State_Input / Evidence_List 解析、导入校验报告 |
-| M3 | 匹配引擎与审查表 | pending | exact code/title/relation/keyword 匹配、`maturity_match_candidates`、匹配审查表 |
-| M4 | 评分与离线报告 | pending | L0-L5 规则评分、聚合评分、`charts-data.json`、Markdown/HTML/JSON 报告 |
-| M5 | 前端页面接入 | pending | 成熟度评估入口、列表、上传、总览、能力明细和后续匹配审查页 |
+| M0 | 需求固化、配置占位、接入 review 与主线集成检查 | complete | `docs/08-maturity/`, `docs/08-maturity/module-integration-review.md`, `docs/08-maturity/mainline-integration-check.md`, `config/maturity/*.yaml` |
+| M1 | 模型基准建模与主线一致性核对 | in_progress | `maturity_model_version`、`maturity_level_definition`、`maturity_capability_baseline`、`maturity_scope_service_baseline`、`maturity_mainline_match_result` 逻辑模型；第一版一致性差异清单已输出 |
+| M2 | 数据库与模板生成 MVP | pending | `maturity_*` 迁移、独立 maturity 包、`maturity-template` CLI、Reference_Capabilities / Reference_Level_Criteria / Reference_Mainline_Diff Sheet |
+| M3 | 模板导入与暂存 | pending | `maturity-import` CLI、Assessment_Info / Score_Input / Evidence_List 解析、导入校验报告 |
+| M4 | 匹配引擎、审查表与评分 | pending | exact code/title/relation/keyword 匹配、`maturity_match_result`、主线差异确认、L1-L5 聚合评分 |
+| M5 | 离线报告 | pending | 差距项、建议项、Markdown/HTML/JSON 报告快照 |
+| M6 | 前端页面接入 | pending | 成熟度评估入口、列表、上传、总览、能力明细和后续匹配审查页 |
 
 Maturity 模块关键决策：
 
 - V1 先采用 CLI + Excel 模板 + JSON/Markdown/HTML 报告闭环；
-- V1 前端页面暂缓到 M5，不影响当前关系化工作台主线；
+- V1 前端页面暂缓到 M6，不影响当前关系化工作台主线；
 - 客户输入、评估报告和 staging 审查表默认写入 `data/maturity/`，不提交 GitHub；
 - 后端负责模板、匹配、评分和报告数据；前端只消费评估结果，不自行推断关系或评分。
+- 成熟度模型设计严格参考 Word 第 3.1 章，评估逻辑严格参考 Word 第 4 章，后续代码实现这两部分业务逻辑；
+- 成熟度评分对象固定为 `capability`、`capability_focus`；
+- 安全技术服务是平台与工具维度的技术输入、证据和匹配线索，不作为独立成熟度评分对象；
+- 评分要素固定为组织与角色、制度与流程、平台与工具、数据与信息；
+- Word 作为模型方法论基准，XLSX 作为评价基准表，二者进入 maturity 专用模型基准表；
+- 模型基准启用前必须与主工程已治理的安全能力、关注点、安全技术服务做一致性核对，并输出不一致项供人工确认。
+
+M1 进入条件：
+
+- 用户确认模型设计参考 Word 第 3.1 章，评估逻辑参考 Word 第 4 章；
+- 用户确认评分对象为 `capability`、`capability_focus`；
+- 用户确认安全技术服务作为平台与工具维度输入；
+- 用户确认四个固定评分要素；
+- 用户确认 Word 是模型方法论基准，XLSX 是评价基准表；
+- 用户确认模型基准需要与主工程已治理数据做一致性核对；
+- 用户确认后续正式客户评估以 Excel 评估模板作为主输入；
+- 用户确认 PPTX 作为教程、证据和报告风格参考；
+- 用户确认 V1 先 CLI + JSON/Markdown/HTML 报告，不做完整前端；
+- `data/maturity/` 本地数据隔离边界保持有效；
+- 第二批管理 / 流程 / 职能 / 岗位 Sheet 业务含义复核建议先完成；
+- 主控确认新增 `maturity_*` 迁移和 CLI 子命令不会打断当前主工程 Sheet 复核主线。
+
+M1 当前已完成：
+
+- 从新版 `sample 评分表.xlsx` 抽取成熟度能力基准和安全技术服务输入；
+- 与主工程 active `knowledge_items` 做只读一致性核对；
+- 输出 `docs/08-maturity/mainline-consistency-check.md`；
+- 输出 `data/exports/maturity/mainline-consistency-diff.csv/json`、`mainline-consistency-summary.json`；
+- 在 `config/maturity/field-mapping.sample.yaml` 中记录第一轮编码归一候选。
 
 ## Next Mainline: Mapped Sheet Business Semantics Review
 
@@ -221,17 +251,25 @@ Maturity 模块关键决策：
 
 第二优先级：第二批管理、流程、职能、岗位相关 Sheet
 
-- [ ] 安全能力-安全工作
-- [ ] 安全能力-安全管理元素（high level）
-- [ ] 安全职能流程清单（完善L4）
-- [ ] 安全工作职能清单
-- [ ] Gartner 工作岗位参考
+- [x] Sheet Review 2.0 复核草案已完成，结论见 `docs/03-import-etl/second-batch-business-review.md`
+- [x] 用户确认第二批 Sheet Review 2.0 的待确认事项
+- [x] 安全能力-安全工作（已确认安全工作独立编码、正式编码规则为 `SW-关注点编码-序号`、独立维护页，关注点到安全工作为 1:1 / 1:N）
+- [x] 安全能力-安全管理元素（high level）（已确认 L2 安全能力到 L2 流程组严格约束，组织职能相关方按四类展示）
+- [x] 安全职能流程清单（完善L4）（已确认同名 L3 原则上不跨 L2，发现异常需输出核对）
+- [x] 安全工作职能清单（已确认安全工作与安全职能无直接关系，GB/T 与安全职能支持双向映射查看；现有数据已有安全职能 -> GB/T 单向映射基础）
+- [x] Gartner 工作岗位参考（已确认与安全职能清单自动生成双向候选映射，用户复核后确认）
+- [x] 第二批修正落地：安全工作清单独立页面、L2 能力到 L2 流程组严格校验、GB/T 双向映射核对输出、Gartner 双向候选映射核对输出和待复核展示
 
 第三优先级：第三批 LC-AP 生命周期相关 Sheet
 
-- [ ] LC-AP 生命周期相关 Sheet 业务语义确认
-- [ ] 确认是否需要后续生成 `lifecycle-knowledge.json`
-- [ ] 在第三批确认前，不进入完整安全开发维度页面深化。
+- [x] 生成 LC-AP / LC-DT 生命周期相关 Sheet 业务语义复核草案
+- [x] 用户确认 LC-AP 生命周期相关 Sheet 的核心业务口径
+- [x] 完成 LC-AP 第一阶段数据契约设计（SLSA 暂不补充）
+- [x] 确认后续需要生成 `lifecycle-knowledge.json`
+- [x] 完成 LC-AP ETL/export 第一轮验证并生成 `lifecycle-knowledge.json`
+- [x] 用户确认并关闭 LC-AP 安全技术模块未匹配清单（见 `OI-039`）
+- [x] 完成安全开发维度 LC-AP 前端数据接入与 MVP 页面骨架。
+- [ ] 用户基于前端页面核对 LC-AP 主展示字段、参考区和关系表是否符合业务表达。
 
 ## Phase 4 Current Local Verification
 

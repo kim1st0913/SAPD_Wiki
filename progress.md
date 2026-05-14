@@ -2904,6 +2904,111 @@ Playwright 回归结果：
 - 代码标识、文件名、命令、字段名、对象 `type`、API 路径等保留英文原文；
 - 本规则适用于后续新增和修改的 `.md` 文件。
 
+## 2026-05-13 成熟度模块第一轮样本驱动建模
+
+用户要求基于当前 SAPD Wiki 工程、maturity 模块 PRD 和本地 sample 文件，完成成熟度模块的数据建模和输入模板分析。
+
+本轮只做样本分析、领域建模、数据模型和字段映射配置，未修改主工程核心 schema，未实现评分算法，未做前端页面。
+
+样例文件：
+
+- `data/raw-samples/maturity/sample文档介绍.docx`
+- `data/raw-samples/maturity/samle 使用教程.pptx`
+- `data/raw-samples/maturity/sample 评分表.xlsx`
+
+已新增：
+
+- `docs/08-maturity/sample-analysis.md`
+- `docs/08-maturity/maturity-domain-model.md`
+- `docs/08-maturity/maturity-data-model.md`
+- `docs/08-maturity/maturity-template-mapping.md`
+- `config/maturity/field-mapping.sample.yaml`
+
+样本分析结论：
+
+- `sample 评分表.xlsx` 是本轮主样本，包含 `成熟度级别`、`成熟度分级描述`、`成熟度评分`、`成熟度视图`、`成熟度分级描述 (2)` 5 个 Sheet；
+- 当前 XLSX 不是完整客户输入模板，而是“成熟度模型定义 + 手工评分表 + 汇总视图”的混合工作簿；
+- `成熟度分级描述` 包含 3 个能力分类、10 个 L1 高阶战略能力、32 个 L2 安全能力、84 个能力关注点、7 个作用域和 145 条技术服务 / 实践项；
+- `成熟度评分` 中识别到 137 条明细评分行、31 条关注点小计行、30 条 L2 小计行、9 条 L1 小计行；
+- 明细评分行的一行代表“能力关注点 × 作用域 / 技术服务实践项 × 四类评分要素”；
+- 样例中的直接评分字段为 `组织角色`、`制度流程`、`平台工具`、`数据信息`；
+- 当前样例评分值只出现 2 和 3，但正式模板仍应支持 1-5；
+- Word 样例主要提供模型概念、能力等级、能力要素、评估流程和计分方式；
+- PPT 样例主要提供工具使用流程、交付场景、报告视图和培训说明；
+- 第一轮样本建模建议优先采用四要素口径：组织与角色、制度与流程、平台与工具、数据与信息；
+- 客户评估数据继续明确不进入 `knowledge_items`，后续进入 maturity 专用模型。
+
+模型建议：
+
+- 新增领域对象：`assessment_project`、`assessment_source_file`、`assessment_input_raw`、`assessment_input_normalized`、`maturity_match_result`、`maturity_score_result`、`maturity_gap_item`、`maturity_recommendation`、`maturity_report_snapshot`；
+- 正式模板应补齐当前样例缺少的 `Assessment_Info`、`Evidence_List`、`Manual_Adjustment`；
+- 正式模板中应显式填充每行能力路径和评分字段，避免继续依赖合并单元格；
+- Excel 小计公式只作为样例兼容参考，后续系统应重新计算并记录规则版本。
+
+验证结果：
+
+- `config/maturity/*.yaml` 全部通过 Ruby YAML 解析；
+- `git diff --check` 通过。
+
+下一步建议：
+
+1. 用户确认 maturity 正式模型是否采用“四要素评分口径”，即组织与角色、制度与流程、平台与工具、数据与信息。
+2. 基于 `maturity-template-mapping.md` 设计正式 `Score_Input` 模板字段。
+3. 进入下一轮时再考虑 M1：创建 `maturity_*` 迁移和模板生成 CLI，但仍不得把客户评估数据写入 `knowledge_items`。
+
+## 2026-05-13 成熟度评分表样例更新后重分析
+
+用户更新了 `data/raw-samples/maturity/sample 评分表.xlsx`，要求基于新原始表继续成熟度模块建模。
+
+本次只重新分析新版 XLSX 并修订 maturity 文档与字段映射配置，未修改主工程核心 schema，未实现评分算法，未做前端页面。
+
+新版 XLSX 结构：
+
+- `成熟度级别`
+- `成熟度分级描述`
+
+关键变化：
+
+- 旧版中的 `成熟度评分`、`成熟度视图`、`成熟度分级描述 (2)` 已不存在；
+- 新版 XLSX 从“模型定义 + 手工评分 + 汇总视图”变为“成熟度模型基准表”；
+- 新版 XLSX 不包含客户评分输入、项目字段、客户字段、证据字段、人工调整字段或汇总公式；
+- 新版 XLSX 不能直接生成客户成熟度评分结果，只能用于生成参考能力清单和分级判定标准。
+
+重新统计结果：
+
+- `成熟度分级描述` 包含 3 个能力分类、10 个 L1 高阶战略能力、32 个 L2 安全能力、84 个能力关注点、7 个作用域、145 条技术服务 / 实践项；
+- 只有 30 个关注点含任一专属 L1-L5 分级描述；
+- L1-L5 专属描述覆盖情况分别为：L1 28 条、L2 29 条、L3 29 条、L4 28 条、L5 19 条；
+- 作用域枚举仍包括 `I-DI 数据`、`I-NT 网络`、`I-AP 软件应用`、`I-OS 操作系统`、`I-HD 硬件`、`I-PE 物理环境`、`I_US 用户`。
+
+已更新：
+
+- `docs/08-maturity/sample-analysis.md`
+- `docs/08-maturity/maturity-template-mapping.md`
+- `docs/08-maturity/maturity-domain-model.md`
+- `docs/08-maturity/maturity-data-model.md`
+- `config/maturity/field-mapping.sample.yaml`
+- `progress.md`
+
+建模修正：
+
+- 将 `sample 评分表.xlsx` 明确定位为 `model_reference_only`；
+- 后续正式模板必须新增 `Score_Input`，用于客户现状和四要素评分输入；
+- 新版样例字段映射只保留 `成熟度级别` 和 `成熟度分级描述`；
+- `Reference_Level_Criteria` 应由新版 `成熟度分级描述` 生成；
+- 客户评估数据继续只进入 maturity 专用模型，不进入 `knowledge_items`。
+
+验证结果：
+
+- `config/maturity/*.yaml` 全部通过 Ruby YAML 解析；
+- `git diff --check` 通过。
+
+下一步建议：
+
+1. 基于新版模型基准表，设计正式 `Score_Input` Sheet。
+2. 确认 `I_US 用户` 是否需要统一为主工程作用域编码。
+3. 进入 M1 前，先决定是否把模型基准也落入 maturity 专用表，还是先只用 YAML / JSON 生成参考 Sheet。
+
 ## 2026-05-13 成熟度模块接入 Review 落地
 
 用户提供外部 ChatGPT review 文件 `sapd-maturity-module-integration-review-request.md`，要求主控 Agent 判断是否需要整体架构 review、文件合并或主工程文件结构优化。
@@ -2936,3 +3041,1047 @@ Playwright 回归结果：
 1. 用户确认 maturity M1 前的关键问题：L0-L5、V1 Excel 模板、低置信度人工审查、CLI + HTML/Markdown/JSON 先行。
 2. 继续当前主线：第二批管理 / 流程 / 职能 / 岗位 Sheet 业务含义复核。
 3. 等主线允许新增迁移和 CLI 子命令时，再进入 maturity M1。
+
+## 2026-05-13 Mainline Integration Check 1.0 主工程与 maturity 集成边界校准
+
+用户要求结合外部 ChatGPT 建议，执行主工程与 maturity 模块集成边界校准。本轮只做边界检查，不做 maturity 功能开发。
+
+范围控制：
+
+- 未修改 `frontend/`；
+- 未修改 `src/`；
+- 未修改 ETL/export；
+- 未修改 SQLite schema；
+- 未新增 `maturity_*` 表；
+- 未实现 maturity 评分逻辑；
+- 未实现 maturity 前端页面；
+- 未进入 maturity M1；
+- 未打断当前 Sheet 复核主线。
+
+已新增：
+
+- `docs/08-maturity/mainline-integration-check.md`
+
+已更新：
+
+- `docs/02-data-model/data-model.md`：补充 maturity 数据模型边界，明确客户输入、证据、评分和报告不进入 `knowledge_item`；
+- `docs/01-architecture/backend-interface-design.md`：补充 maturity service 后端边界，明确未来使用独立 `/api/v1/maturity/*` 语义，前端不负责匹配评分；
+- `task_plan.md`：补充 maturity M1 进入条件；
+- `findings.md`：记录主工程与 maturity 集成边界结论；
+- `progress.md`：记录本轮执行结果。
+
+核心结论：
+
+- 主工程已具备承接 maturity 的基本边界；
+- maturity 是 SAPD Wiki 主工程子模块；
+- maturity 只读复用主工程的安全能力、作用域、服务、模块 / 措施、流程、职能等知识对象；
+- maturity 客户输入、证据、匹配候选、评分和报告不进入 `knowledge_items`；
+- maturity 运行数据后续使用 `maturity_*` 专用表或 `data/maturity/` 本地运行文件；
+- 客户评估输入、证据和报告默认不提交 GitHub；
+- 当前不建议立即启动 M1。
+
+M1 前还缺：
+
+- 用户确认 L0-L5 成熟度等级；
+- 用户确认 V1 只以 Excel 评估模板作为主输入；
+- 用户确认 Word / PPTX 只作为证据和报告风格参考；
+- 用户确认 V1 先 CLI + JSON/Markdown/HTML 报告，不做完整前端；
+- 用户准备 maturity 样例文件路径；
+- 主控确认新增 `maturity_*` 迁移和 CLI 子命令不会打断当前 Sheet 复核主线。
+
+当前主线：
+
+- 保持不变，继续“已导入 Sheet 的业务含义复核 + 前端关系展示校正”；
+- 下一优先工作仍建议为第二批管理 / 流程 / 职能 / 岗位 Sheet 业务含义复核。
+
+## 2026-05-13 Sheet Review 2.0 第二批管理 / 流程 / 职能 / 岗位 Sheet 业务含义复核
+
+用户要求继续主工程当前主线，复核第二批管理、流程、职能、岗位相关 Sheet。本轮只做业务含义复核和问题归属判断，不做开发。
+
+范围控制：
+
+- 未修改 `frontend/`；
+- 未修改 `src/`；
+- 未修改 ETL/export；
+- 未修改 SQLite schema；
+- 未修改 `management-knowledge.json`；
+- 未启动 maturity M1；
+- 未进入 Step 7；
+- 未做安全开发维度、数据生命周期维度、多格式增强或视觉 polish；
+- 未自动修复原始数据。
+
+已新增：
+
+- `docs/03-import-etl/second-batch-business-review.md`
+
+已更新：
+
+- `task_plan.md`：将当前状态更新为第二批复核待用户确认，并在下一主线中记录 Sheet Review 2.0 草案已完成；
+- `findings.md`：记录第二批复核的关键未决判断；
+- `progress.md`：记录本轮执行结果。
+
+已复核 Sheet：
+
+1. `安全能力-安全工作`
+2. `安全能力-安全管理元素（high level）`
+3. `安全职能流程清单（完善L4）`
+4. `安全工作职能清单`
+5. `Gartner 工作岗位参考`
+
+本轮结论：
+
+- 5 张 Sheet 的基础业务含义、主对象、关系方向和当前前端归属已经可以形成草案；
+- `安全职能流程清单`、`Gartner 工作岗位参考` 的边界相对清楚；
+- `安全能力-安全工作`、`安全能力-安全管理元素（high level）`、`安全工作职能清单` 仍有业务边界需要用户确认；
+- 当前不建议直接进入前端或 ETL 修正，应先完成用户确认。
+
+待用户确认问题：
+
+1. `安全工作` 是否需要独立编码并跨关注点复用；
+2. `一个能力 -> 一个 L2 流程组` 是否为严格业务约束；
+3. `安全工作` 与 `安全职能` 是否存在直接关系；
+4. 同名 L3 流程是否允许出现在不同 L2 流程组下；
+5. GB/T 42446 引用是否只在“标准与岗位参考”主展示；
+6. Gartner 岗位参考是否后续需要与内部安全职能做人工映射。
+
+## 2026-05-13 Sheet Review 2.0 二次确认落地
+
+用户逐项回复了第二批管理 / 流程 / 职能 / 岗位 Sheet 的待确认问题，并明确本线程除非主动提到成熟度模块，否则不再考虑 maturity。
+
+已完成：
+
+- 更新 `docs/03-import-etl/second-batch-business-review.md`，将 Sheet Review 2.0 从“待确认草案”改为“业务口径确认版”。
+- 更新 `docs/03-import-etl/second-batch-data-contract.md`，同步安全工作独立编码、独立页面、L2 能力到 L2 流程组严格约束、Gartner 候选映射等口径。
+- 更新 `task_plan.md`，将第二批 5 张 Sheet 复核标记为已确认，并新增“第二批修正落地”待办。
+- 更新 `findings.md`，记录第二批复核的最新关键结论。
+
+确认结论：
+
+- `安全能力-安全工作`：安全工作独立编码，并在专项知识维护中独立页面展示；关注点与安全工作为 1:1 或 1:N。
+- `安全能力-安全管理元素（high level）`：L2 安全能力到 L2 流程组为严格约束；组织职能相关方分为决策层、管理层、执行层和监督层；每个 L2 安全能力 - L2 流程组组合可关联 1 个、多个或 `/` 无相关职能。
+- `安全职能流程清单（完善L4）`：同名 L3 流程原则上不会跨 L2 流程组；如出现需输出具体数据给用户检查。
+- `安全工作职能清单`：安全工作与安全职能不存在直接关系，只能通过其他数据间接关联；GB/T 引用需要与安全职能清单建立双向映射展示并输出复核。当前已有安全职能 -> GB/T 的单向映射基础，后续需要支持从 GB/T 反查安全职能。
+- `Gartner 工作岗位参考`：与安全职能清单自动生成双向候选映射，用户检查后确认。
+
+仍需二次输出核对：
+
+- 安全工作独立编码缺失、重复或冲突清单。
+- 单一 L2 安全能力对应多个 L2 流程组的异常清单。
+- 同名 L3 流程出现在不同 L2 流程组下的具体数据。
+- GB/T 与安全职能清单的双向映射结果。
+- Gartner 与安全职能清单的双向候选映射结果。
+
+范围控制：
+
+- 未修改前端代码；
+- 未修改 ETL 代码；
+- 未修改数据库 schema；
+- 未进入第三批生命周期复核；
+- 未进入正式 Phase 7；
+- 未处理 maturity 模块。
+
+## 2026-05-13 Sheet Review 2.1 第二批落地前数据核对清单
+
+用户补充确认：原“标准与岗位参考”页面后续应改名为“岗位参考页面”，下面分为 `GB/T 42446-2023` 和 `Gartner 工作岗位参考` 两个页签；GB/T 与 Gartner 和安全职能的映射需要支持双向展示 / 查询，其中 GB/T 当前已有安全职能到 GB/T 的单向映射基础。
+
+本轮目标是生成落地前核对清单，不自动修复数据，不修改前端，不修改 ETL，不修改原始 Excel，不修改 SQLite schema。
+
+已新增：
+
+- `docs/06-implementation/sheet-review-2-1-data-check.md`
+- `data/exports/worker-verify/sheet-review-2-1-security-work-code-check.csv`
+- `data/exports/worker-verify/sheet-review-2-1-l2-process-group-constraint.csv`
+- `data/exports/worker-verify/sheet-review-2-1-l3-cross-process-group-check.csv`
+- `data/exports/worker-verify/sheet-review-2-1-gbt-to-work-function-review.csv`
+- `data/exports/worker-verify/sheet-review-2-1-gartner-to-work-function-candidates.csv`
+
+检查结果：
+
+- 安全工作编码检查：80 条安全工作记录，80 条缺少独立安全工作编码。原始表当前没有独立安全工作编码列，本轮不自动生成编码。
+- L2 安全能力 -> L2 流程组严格约束检查：未发现违反约束记录。
+- 同名 L3 流程跨 L2 流程组检查：发现 3 条异常，均涉及 `安全职能流程清单（完善L4）` 中开发安全相关 L3 流程疑似因 L2 流程组空白继承到 `身份访问管理运营流程组`。
+- GB/T -> 安全职能反向映射：生成 27 条 GB/T 任务参考核对记录，25 条有映射，2 条未映射。
+- Gartner -> 安全职能候选映射：生成 28 条岗位参考候选映射记录，28 条有候选，0 条未匹配，20 条候选范围偏宽，需要重点复核。
+
+需用户确认：
+
+- 是否在原始表为 80 条安全工作补充独立编码；
+- 3 条同名 L3 跨 L2 流程组异常是否为原始数据空白/归属错误；
+- 2 条未映射 GB/T 引用任务是否需要补充安全职能映射；
+- Gartner 候选映射中哪些接受、删除或调整；
+- 后续前端是否按“岗位参考页面 > GB/T / Gartner”落地页面命名。
+
+验证：
+
+- `git diff --check` 通过。
+
+用户随后补充确认：
+
+- 安全工作需要独立编码，编码参考能力关注点，可增加部分简写；
+- “岗位参考页面”命名确认，下面分为 `GB/T 42446-2023` 和 `Gartner 工作岗位参考` 两个页签。
+
+用户继续确认：
+
+- L3 流程异常已在原始表修复，且同步修订了该表部分其他错误；
+- GB/T 未映射的 2 条已添加到原始数据表；
+- Gartner 映射先按当前候选结果执行，页面格式先做好，后续单独校对。
+
+已新增：
+
+- `docs/06-implementation/open-issues.md` 中新增 `OI-038`，用于跟踪 Gartner 与安全职能候选映射后续人工校对。
+
+下一步：
+
+- 进入 `Sheet Review 2.2：第二批数据修正落地`，先复导用户已修订的原始 Excel，再生成安全工作建议编码清单，并落地岗位参考页面命名 / 页签 / Gartner 候选映射待复核状态。
+
+## 2026-05-13 Sheet Review 2.2A / 2.2B 并行调度与主控接管
+
+本轮尝试按 fan-out / fan-in 方式并行推进第二批数据修正落地：
+
+- `Dewey`：ETL/export Agent，实际 agent id 为 `019e2191-e54e-7712-9a94-acb1dee54c3a`；
+- `Singer`：Data QA / Contract Agent，实际 agent id 为 `019e219e-653c-71f0-a612-4b422653bd7d`；
+- `Plato`：Frontend Agent，因当前子 Agent 线程上限暂未启动。
+
+调度情况：
+
+- 第一次尝试同时启动 3 个子 Agent 时，工具返回 `agent thread limit reached`，只成功启动 Dewey。
+- Dewey 完成后已关闭。
+- Singer 启动后多次等待超时，未返回结果；为避免任务悬空，主控 Agent 已关闭 Singer，并接管 `Sheet Review 2.2B` 数据核对。
+- 后续需要改进主控调度节奏：启动、等待超时、完成、关闭四个节点都必须主动反馈，并记录 agent id。
+
+Dewey 2.2A 输出摘要：
+
+- 使用 `data/exports/worker-verify/sheet-review-2-2a.sqlite3` 副本复导第二批数据；
+- 重新生成 `frontend/capability-browser/public/data/management-knowledge.json`；
+- `security_work=80`，`maps_to_work=80`；
+- `process_group=33`，`process_reference=87`；
+- `work_function_layers=4`，`work_functions=86`；
+- `gbt_42446_references=27`，其中仍有 2 条未映射；
+- `gartner_roles=28`；
+- `security_technical_measures=29`；
+- 第一批核心 Sheet active item / relation 计数未发现破坏；
+- `/` 规则仍生效。
+
+主控接管 2.2B 后新增：
+
+- `docs/06-implementation/sheet-review-2-2-data-check.md`
+- `data/exports/worker-verify/sheet-review-2-2-security-work-code-suggestions.csv`
+- `data/exports/worker-verify/sheet-review-2-2-l2-process-group-constraint.csv`
+- `data/exports/worker-verify/sheet-review-2-2-l3-cross-process-group-check.csv`
+- `data/exports/worker-verify/sheet-review-2-2-gbt-to-work-function-review.csv`
+- `data/exports/worker-verify/sheet-review-2-2-gartner-to-work-function-candidates.csv`
+- `data/exports/worker-verify/sheet-review-2-2-data-check-summary.json`
+
+2.2B 检查结果：
+
+- 安全工作编码：80 条安全工作均缺少正式独立编码；已按 `SW-关注点编码-序号` 生成建议编码，仅供用户核对，不写入正式数据。
+- L2 安全能力 -> L2 流程组严格约束：未发现违反约束记录。
+- 同名 L3 跨 L2 流程组：仍发现 2 条，分别为 `安全日志审计流程`、`安全日志持续管理流程`，涉及 `日志管理与审计流程` / `日志管理与审计流程组` 命名差异。
+- GB/T 反向映射：27 条任务参考中仍有 2 条未映射，分别为 `网络安全建设-密码技术应用`、`网络安全建设-网络数据安全保护`。
+- Gartner 候选映射：28 条，全部标记为 `pending_user_review`；其中 20 条为过宽候选，后续单独校验。
+
+验证：
+
+- `git diff --check` 通过。
+
+下一步：
+
+- 先由用户确认 2.2B 报告中的安全工作建议编码、2 条 L3 命名差异、2 条 GB/T 未映射；
+- 再启动或由主控执行 `Sheet Review 2.2C` 前端接收准备：安全工作清单、岗位参考页面、GB/T / Gartner 页签、Gartner 候选映射待复核状态。
+
+用户随后说明 `安全日志持续管理流程组` 相关原始数据已修正，并指出 GB/T 两条原始映射也已经处理过。
+
+复验处理：
+
+- 直接读取 `data/raw-samples/wiki sample.xlsx`：
+  - `安全职能流程清单（完善L4）` 第 23 行为 `日志管理与审计流程组` / `安全日志持续管理流程`；
+  - `安全能力-安全管理元素（high level）` 第 23 行也为 `日志管理与审计流程组` / `安全日志持续管理流程`。
+- 使用新的 worker-verify 副本 `data/exports/worker-verify/sheet-review-2-2b-verify.sqlite3` 重新 stage + approve 第二批 Sheet；
+- 使用该副本重新导出 `frontend/capability-browser/public/data/management-knowledge.json`；
+- 更新 `docs/06-implementation/sheet-review-2-2-data-check.md` 和相关 2.2 核对 CSV。
+
+复验结果：
+
+- 同名 L3 跨 L2 流程组：0 条；
+- GB/T 未映射：0 条；
+- `process_groups=32`；
+- `process_references=85`；
+- `gbt_42446_references=27`；
+- `maps_to_gbt_task=32`；
+- `security_technical_measures=29`。
+
+当前剩余需确认：
+
+- 80 条安全工作建议编码是否采用 `SW-关注点编码-序号` 作为正式编码规则；
+- Gartner 候选映射仍按 `pending_user_review` 展示，后续单独校对。
+
+验证：
+
+- `git diff --check` 通过。
+
+## 2026-05-13 子 Agent 调度规则固化
+
+用户要求固定子 Agent 管理规则，避免再次出现“以为无响应 / 实际还在跑 / 线程上限”的混乱。
+
+已更新：
+
+- `AGENTS.md` 新增“子 Agent 调度规则”。
+
+规则摘要：
+
+- 每次启动子 Agent 后，必须立刻在 `progress.md` 记录 agent id、角色、任务、状态和启动时间；
+- 子 Agent 等待超时、完成或异常关闭时，必须主动反馈；
+- 子 Agent 完成后，主控 Agent 必须及时汇总并主动 `close_agent`；
+- 子 Agent 卡住或多次等待超时后，主控 Agent 应关闭并说明后续处理方式；
+- 多 Agent 不得修改同一文件，跨域问题只记录并交由主控汇总。
+
+接下来的主线：
+
+1. 用户确认安全工作正式编码规则是否采用 `SW-关注点编码-序号`。
+2. 执行 `Sheet Review 2.2C` 前端接入准备：
+   - 新增 / 完善 `专项知识维护 > 安全工作清单`；
+   - 将 `标准与岗位参考` 用户可见名称调整为 `岗位参考页面`；
+   - 增加 `GB/T 42446-2023` 与 `Gartner 工作岗位参考` 两个页签；
+   - Gartner 候选映射只显示为 `待复核`，不作为正式关系；
+   - 非业务字段仍只进入来源证据折叠区。
+3. 完成 2.2C 后做主控 fan-in 回归，确认是否可以进入 `Sheet Review 2.3`。
+
+## 2026-05-13 Sheet Review 2.2C 前端子 Agent 启动
+
+用户确认：
+
+- 80 条安全工作正式编码规则采用 `SW-关注点编码-序号`；
+- 执行 `Sheet Review 2.2C` 前端接入；
+- 执行 2.2 fan-in 回归。
+
+已启动子 Agent：
+
+- 角色：`Plato` / Frontend Worker Agent；
+- 实际 agent id：`019e21ce-066f-7262-b928-a781f9b70541`；
+- 状态：运行中；
+- 任务：接入 `专项知识维护 > 安全工作清单`，将 `标准与岗位参考` 用户可见名调整为 `岗位参考页面`，增加 `GB/T 42446-2023` 与 `Gartner 工作岗位参考` 页签，并确保 Gartner 候选映射显示为 `待复核`；
+- 写入范围：仅 `frontend/capability-browser/`；
+- 禁止范围：`src/`、`docs/`、`public/data/*.json`、SQLite schema、maturity 相关文件。
+
+子 Agent 完成与关闭：
+
+- `019e21d4-a610-78d2-ae1b-73c3c1d07da5` 已完成并已关闭，线程名额已释放。
+
+2.2C 完成结果：
+
+- 前端修改集中在：
+  - `frontend/capability-browser/app.js`
+  - `frontend/capability-browser/dataClient.js`
+  - `frontend/capability-browser/index.html`
+  - `frontend/capability-browser/styles.css`
+  - `frontend/capability-browser/viewModels.js`
+  - `frontend/capability-browser/components/MaintenanceShell.js`
+  - `frontend/capability-browser/components/StandardRoleReferenceTable.js`
+- `专项知识维护` 已接入 `安全工作清单`，ViewModel 回归显示 80 条安全工作。
+- 安全工作编码按 `SW-关注点编码-序号` 展示，首条示例为 `SW-T-AS.AD-01-01`。
+- `标准与岗位参考` 用户可见名已统一调整为 `岗位参考页面`。
+- `岗位参考页面` 已拆为：
+  - `GB/T 42446-2023`，27 条；
+  - `Gartner 工作岗位参考`，28 条。
+- Gartner 候选映射显示为 `待复核`，不作为正式关系。
+- 主控补充修正：来源证据不再夹带在主表 row 中，主展示 row 不包含 `source_sheet`、`source_row`、`raw_value`、`generated_at` 等非业务字段。
+
+主控回归：
+
+- `node --check frontend/capability-browser/dataClient.js` 通过；
+- `node --check frontend/capability-browser/viewModels.js` 通过；
+- `node --check frontend/capability-browser/app.js` 通过；
+- `node --check frontend/capability-browser/components/*.js` 通过；
+- `git diff --check` 通过；
+- ViewModel 数据校验：
+  - 安全工作清单：80 条；
+  - GB/T 页签：27 条；
+  - Gartner 页签：28 条；
+  - Gartner 状态：`待复核`；
+  - 主表 row 来源字段泄露：未发现。
+
+任务状态：
+
+- `task_plan.md` 已将第二批修正落地标记为完成。
+- `OI-038` 保留为 Gartner 候选映射后续人工校对任务，但页面待复核展示已完成。
+
+## 2026-05-13 修复 impeccable skill 项目内可用性
+
+用户要求先解决 `impeccable` skill 不能正常使用的问题，后续前端设计统一使用该 skill。
+
+问题原因：
+
+- `impeccable` skill 本体存在于 `/Users/kim1st/Documents/kim note/10_agent_system/01 Codex/CodexSkill/impeccable`；
+- 项目根目录缺少 `.agents/skills/impeccable` 入口；
+- 项目根目录缺少 `PRODUCT.md` 和 `DESIGN.md`，导致 `impeccable` 的上下文 loader 无法按项目预期读取产品与设计上下文。
+
+已处理：
+
+- 新增 `PRODUCT.md`，记录 SAPD Wiki 的产品定位、用户、语气、设计反模式和战略原则；
+- 新增 `DESIGN.md`，记录关系工作台的布局、视觉语言、组件、字段边界和当前前端架构；
+- 在 `.gitignore` 中忽略 `.agents/skills/`，避免提交本机 skill symlink；
+- 创建本机 symlink：`.agents/skills/impeccable -> /Users/kim1st/Documents/kim note/10_agent_system/01 Codex/CodexSkill/impeccable`；
+- 更新 `AGENTS.md`，明确后续前端设计、重构、视觉评审、信息架构和交互优化默认使用 `impeccable`，并先运行 `node .agents/skills/impeccable/scripts/load-context.mjs`。
+
+验证：
+
+- `node .agents/skills/impeccable/scripts/load-context.mjs` 通过；
+- loader 输出 `hasProduct=true`、`hasDesign=true`；
+- `productPath=PRODUCT.md`；
+- `designPath=DESIGN.md`；
+- `.agents/skills/` 被 `.gitignore` 忽略，不会污染 GitHub。
+
+## 2026-05-13 Sheet Review 2.3 子 Agent 启动：Data QA
+
+已启动子 Agent：
+
+- 角色：Sheet Review 2.3 Data QA Agent；
+- 实际 agent id：`019e21fe-9b4e-7c51-afce-76987748b309`；
+- 状态：运行中；
+- 任务：只读第三批 LC-AP Sheet，输出字段、对象、关系、异常清单；
+- 写入范围：`data/exports/worker-verify/sheet-review-2-3-lcap-*.csv/json/md`；
+- 禁止范围：`frontend/`、`src/sapd_wiki/`、ETL/export、SQLite schema、原始 Excel、正式 docs 文档、maturity 相关文件。
+
+尝试启动第二个 `Sheet Review 2.3 Contract Agent` 时，工具返回 `agent thread limit reached`。
+
+处理方式：
+
+- 不继续强行启动新线程；
+- 先等待 Data QA Agent 完成并关闭释放线程；
+- Contract 报告由主控 Agent 接管，或在释放线程后再启动 Contract Agent。
+
+用户指出：前端工作此前已切换为 `impeccable` skill，不应再按 `frontend-design` 口径执行。
+
+处理：
+
+- 主控确认本轮前端任务虽然是功能接入而非视觉重构，但涉及页面组织和信息架构，应遵循 `impeccable` 的产品 UI 治理口径；
+- 已关闭前端子 Agent `019e21ce-066f-7262-b928-a781f9b70541`，避免其继续按不一致的前端 skill 方向执行；
+- 后续若继续使用子 Agent，应重新以 `impeccable` 口径启动，并继续遵守 agent id 记录和完成后主动关闭规则。
+
+已重新启动前端子 Agent：
+
+- 角色：`Plato` / Frontend Worker Agent；
+- 实际 agent id：`019e21d4-a610-78d2-ae1b-73c3c1d07da5`；
+- 状态：运行中；
+- 任务：按 `impeccable` 产品 UI 口径执行 `Sheet Review 2.2C`，接入安全工作清单、岗位参考页面、GB/T / Gartner 页签和 Gartner 待复核状态；
+- preflight 说明：当前仓库没有 `.agents/skills/impeccable/scripts/load-context.mjs`，也没有 `PRODUCT.md / DESIGN.md`，完整 impeccable preflight 无法运行；本轮为功能接入而非视觉重构，因此按 impeccable 产品 UI 原则降级执行；
+- 写入范围：仅 `frontend/capability-browser/`；
+- 禁止范围：`src/`、`docs/`、`public/data/*.json`、SQLite schema、maturity 相关文件。
+
+## 2026-05-13 Sheet Review 2.3：LC-AP 生命周期相关 Sheet 复核草案
+
+任务：执行第三批 LC-AP / LC-DT 生命周期相关 Sheet 的业务语义复核，只做只读分析和报告，不改前端、不改 ETL、不进入 Step 7。
+
+子 Agent 状态：
+
+- `019e21fe-9b4e-7c51-afce-76987748b309`，角色：Data QA Agent，任务：只读检查第三批 LC-AP / LC-DT Sheet 字段、对象、关系和异常清单，状态：已完成并关闭。
+- Contract Agent：启动失败，原因：当前达到 agent thread limit；由主控 Agent 根据 Data QA 输出完成复核报告整理。
+
+新增文件：
+
+- `docs/06-implementation/sheet-review-2-3-lcap-business-review.md`
+- `data/exports/worker-verify/sheet-review-2-3-lcap-field-check.csv`
+- `data/exports/worker-verify/sheet-review-2-3-lcap-relation-check.csv`
+- `data/exports/worker-verify/sheet-review-2-3-lcap-data-qa-summary.json`
+
+更新文件：
+
+- `task_plan.md`
+- `findings.md`
+- `progress.md`
+
+复核结果：
+
+- 第三批实际 Sheet 为 `LC-DT 数据生命周期`、`LC-DT 数据生命周期场景目录`、`LC-AP 应用安全开发生命周期`、`LC-AP 应用安全开发生命周期元素目录`。
+- `LC-AP 应用安全开发生命周期` 是安全开发维度核心来源，但开发技术服务、主要活动、产品示例和元素目录重复列仍需用户确认。
+- `LC-DT` 两张表建议后置到数据生命周期维度，不混入安全开发维度主页面。
+
+下一步建议：
+
+- 用户确认 LC-AP 待确认问题后，进入 LC-AP 数据契约设计。
+- 当前不生成正式 `lifecycle-knowledge.json`，不进入安全开发维度页面实现。
+
+## 2026-05-13 Agent Thread 清理检查
+
+用户要求暂停启动任何新 Agent，先检查并清理当前 Agent thread 混乱问题。
+
+执行结果：
+
+- 当前工具环境没有可直接执行 UI `/agent` 命令的接口，也没有全局列出所有 Agent thread 的工具。
+- 主控改用 `progress.md` 中已记录的 agent id 作为可追踪清单，共识别历史 agent id 9 个。
+- 对 9 个历史 agent id 逐个执行 `close_agent`。
+- 工具返回均为 `agent ... not found`，说明这些 id 在当前可管理运行时中已不存在，等价于没有可继续关闭的活动 agent。
+
+检查到的历史 agent id：
+
+- `019e1618-b647-7e22-b2d3-640aab3cfb8f`
+- `019e1618-b692-7e83-bc4c-7829ef81c985`
+- `019e1629-0cf4-7e01-a61d-9b53b3556401`
+- `019e163e-4728-7f73-8746-00183d43ece5`
+- `019e2191-e54e-7712-9a94-acb1dee54c3a`
+- `019e219e-653c-71f0-a612-4b422653bd7d`
+- `019e21ce-066f-7262-b928-a781f9b70541`
+- `019e21d4-a610-78d2-ae1b-73c3c1d07da5`
+- `019e21fe-9b4e-7c51-afce-76987748b309`
+
+释放统计：
+
+- 释放前：按 `progress.md` 历史记录口径为 9 个已知 agent id；按当前工具可管理运行时口径为 0 个可关闭活动 agent。
+- 释放后：0 个可关闭活动 agent。
+
+后续约定：
+
+- 本轮最多启动 3 个子 Agent。
+- 优先复用已有 agent-id；如需新建，先说明原因。
+- 子 Agent 不得再启动子 Agent。
+- 每个子 Agent 必须有明确写入范围。
+- 只读 Agent 不得修改文件。
+- 写入 Agent 不得修改其他 Agent 的文件范围。
+- 完成后必须 fan-in，由主控汇总并主动关闭。
+
+## 2026-05-14 Sheet Review 2.3：LC-AP 业务口径补充确认
+
+用户补充并确认了 `LC-AP 应用安全开发生命周期` 的关键业务含义。
+
+已更新：
+
+- `docs/06-implementation/sheet-review-2-3-lcap-business-review.md`
+
+确认内容：
+
+- 软件开发模式 4 个类型的黄色底色表示该开发模式在该阶段需要考虑相关安全活动，后续可考虑用一列展示。
+- 阶段是开发过程阶段，即 IT L3 流程；阶段主要活动是 IT L4 流程活动分解，不单独作为知识来源维护。
+- 红色底色的“安全活动定义”定义为该阶段需考虑的安全活动。
+- 红色底色的“安全活动对应安全策略”定义为安全活动对应安全策略。
+- “策略要求表”不是现有独立维护页面，后续统一口径为 LC-AP 数据契约中的“安全策略条目 / 安全策略要求”对象。
+- 开发技术服务就是安全技术服务，不建立独立开发技术服务主数据。
+- 关联安全技术服务按 `管理类`、`开发类`、`网络空间类` 三类分类。
+- 安全技术模块定义为关联安全技术模块，需要到既有 `安全技术模块清单` 进行映射校验。
+- 实际产品示例定义为开发类产品组件。
+- 潜在安全威胁场景 `/` 直接映射为“无”。
+- Google SLSA 可作为补充安全策略来源。
+- `LC-AP 应用安全开发生命周期元素目录` 重复数据已处理。
+
+仍待确认：
+
+- 底色是否作为正式 ETL 规则输入；
+- 安全活动定义 `/` 是否统一映射为“无安全活动”；
+- Google SLSA 补充策略是否全部进入安全策略条目并标记来源；
+- 服务分类字段是否命名为 `service_category`；
+- 横线分割的服务是否拆分为开发类与网络空间类；
+- 安全技术模块无法匹配主数据时，是标记 `待校验` 还是输出为原始数据问题；
+- 开发类产品组件是否只在安全开发维度展示；
+- 软件开发类型与应用系统类型之间是否存在映射关系。
+
+## 2026-05-14 Sheet Review 2.3：LC-AP 剩余口径关闭
+
+用户进一步确认 LC-AP 剩余业务口径。
+
+已更新：
+
+- `docs/06-implementation/sheet-review-2-3-lcap-business-review.md`
+
+确认内容：
+
+- 黄色底色需要识别，用于判断软件开发模式在阶段中的适用性。
+- 红色底色不作为 ETL 识别条件，只需要按用户定义字段正常映射“安全活动定义”和“安全活动对应安全策略”。
+- “安全活动定义”中的 `/` 统一映射为“无安全活动”。
+- “安全策略条目”当前不做独立知识维护表，可在专项知识维护中预留入口；后续补充 Google SLSA 内容时再启用。
+- 关联安全技术服务分类字段可命名为 `service_category`，取值为 `管理类`、`开发类`、`网络空间类`，且目前仅在 LC-AP 表中使用。
+- 安全技术服务列中横线分割的上下内容，需要拆分为开发类安全技术服务和网络空间类安全技术服务。
+- 关联安全技术模块无法匹配既有 `安全技术模块清单` 时，输出数据问题给用户检查，不静默新增主数据。
+- 开发类产品组件只在安全开发维度展示，不进入既有“安全技术模块清单”和通用产品主数据。
+- 软件开发类型与应用系统类型没有映射关系，后续在同一页面上下分别展示。
+
+当前剩余实现层问题：
+
+- Google SLSA 补充内容尚未提供，后续需要明确来源文件、字段和导入方式。
+- 安全技术模块无法匹配主数据时的数据问题输出格式，需要在 LC-AP 数据契约设计中定义。
+
+## 2026-05-14 LC-AP 数据契约设计
+
+用户要求执行下一步，并明确 SLSA 先不补充。
+
+本轮未启动任何新 Agent，未修改前端、ETL 代码或数据库 schema。
+
+已更新：
+
+- `docs/03-import-etl/third-batch-data-contract.md`
+- `docs/03-import-etl/mapping-rules-draft.md`
+- `docs/03-import-etl/completed-sheet-business-confirmation.md`
+- `docs/02-data-model/data-model.md`
+- `docs/02-data-model/field-dictionary-draft.md`
+- `docs/01-architecture/api-field-contract.md`
+- `task_plan.md`
+- `findings.md`
+- `progress.md`
+
+契约结论：
+
+- `LC-AP 应用安全开发生命周期` 第一阶段对象包括：应用安全开发阶段、阶段主要活动、安全活动、安全策略条目、软件开发类型、关联安全技术服务、关联安全技术模块、开发类产品组件。
+- `security_policy_requirement` 中文口径统一为“安全策略条目”，当前不做独立知识维护页；后续可预留入口，等 SLSA 内容补充后再启用。
+- 黄色底色用于识别软件开发模式适用性；红色底色不作为 ETL 条件。
+- `service_category` 仅在 LC-AP 中使用，取值为 `管理类`、`开发类`、`网络空间类`。
+- 安全技术模块必须匹配既有 `安全技术模块清单`，无法匹配时输出数据问题，不静默新增主数据。
+- 实际产品示例统一定义为开发类产品组件，只在安全开发维度展示，不进入通用产品主数据。
+- 软件开发类型与应用系统类型没有映射关系，后续在同一页面上下分别展示。
+
+下一步建议：
+
+- 进入 `LC-AP ETL/export 设计与验证`：实现或校验底色识别、服务分类、模块匹配问题输出，并准备 `lifecycle-knowledge.json`。
+- 在 `lifecycle-knowledge.json` 验证完成前，不进入完整安全开发维度页面深化。
+
+## 2026-05-14 前端技术映射说明类标签小修
+
+用户指出能力映射技术视角中 `说明类 / 待确认`、`说明类` 都不是业务口径；如果对象是安全技术措施，就应显示为 `安全技术措施`。
+
+处理：
+
+- 修改 `frontend/capability-browser/viewModels.js`。
+- 将 `security_technical_measure` 的主显示标签统一为 `安全技术措施`。
+- 不再在前端能力映射技术视角中展示 `说明类` 或 `说明类 / 待确认`。
+
+验证：
+
+- `node --check frontend/capability-browser/viewModels.js` 通过。
+
+## 2026-05-14 LC-AP ETL/export 第一轮验证与安全架构评估能力复验
+
+本轮未启动新 Agent。
+
+LC-AP ETL/export：
+
+- 重新导入第三批 Sheet，导入任务：`6c02fb17-1a1f-46e0-9aba-8ffe80a30e45`。
+- 重新生成 `frontend/capability-browser/public/data/lifecycle-knowledge.json`。
+- 导出统计：
+  - `application_processes`: 8
+  - `data_processes`: 8
+  - `lifecycle_activities`: 43
+  - `lifecycle_scenes`: 36
+  - `security_activities`: 6
+  - `policy_requirements`: 76
+  - `software_development_types`: 4
+  - `application_system_types`: 3
+  - `application_components`: 13
+  - `development_product_components`: 14
+  - `service_module_index`: 192
+- 生成导入报告：
+  - `data/exports/worker-verify/import-result-report-6c02fb17.md`
+  - `data/exports/worker-verify/warning-review-6c02fb17.csv`
+  - `data/exports/worker-verify/import-summary-6c02fb17.json`
+- 发现 7 条 LC-AP 安全技术模块未匹配既有 `安全技术模块清单`，已登记为 `OI-039`，待用户确认原始数据或主数据补充。
+
+安全架构评估能力复验：
+
+- 用户提示“安全架构评估能力”原始数据此前有问题，本轮重新检查 Excel、SQLite 和前端导出。
+- 当前原始 Excel 中：
+  - `安全能力目录!D57` 为 `安全架构评估能力 T-AD.SV`；
+  - `安全能力-安全技术服务!D57` 为 `安全架构评估能力 T-AD.SV`；
+  - `安全能力-安全管理元素（high level）!D55` 为 `安全架构评估能力 T-AD.SV`。
+- 重新导入核心 Sheet，导入任务：`cb7c37ef-b8a2-48b8-8548-ce66383805e3`，`validations: []`。
+- 重新导入第二批 Sheet，导入任务：`d656ff68-437b-4b02-bd27-2944a960ffcf`，`validations: []`。
+- 重新生成：
+  - `frontend/capability-browser/public/data/capability-tree.json`
+  - `frontend/capability-browser/public/data/management-knowledge.json`
+- 复验结果：
+  - SQLite active 数据中 `T-AD.SV` 仅 1 条，标题为 `安全架构评估能力`；
+  - `T-AD.SV-01`、`T-AD.SV-02`、`T-AD.SV-03` 各 1 条 active 关注点；
+  - `capability-tree.json` 中不再包含旧名称 `安全有效性验证能力`；
+  - `capability-tree.json` 中 `T-AD.SV` 标题已为 `安全架构评估能力`。
+
+验证：
+
+- `python3 -m py_compile src/sapd_wiki/parsers.py src/sapd_wiki/exports.py src/sapd_wiki/cli.py` 通过。
+- `node --check frontend/capability-browser/viewModels.js` 通过。
+
+## 2026-05-14 主工程安全技术服务旧编码复验与重导
+
+用户提示 `wiki sample.xlsx` 中部分安全技术服务编码已修正，本轮只处理主工程，不处理 maturity 线程。
+
+检查范围：
+
+- `data/raw-samples/wiki sample.xlsx`
+- 主工程 SQLite `knowledge_items`
+- 前端导出：
+  - `frontend/capability-browser/public/data/capability-tree.json`
+  - `frontend/capability-browser/public/data/management-knowledge.json`
+
+检查结果：
+
+- 原始 Excel 中旧编码模式命中数为 0：
+  - `I-US&AD.SA`
+  - `I-NT&AD.SA`
+  - `I-AP&AD.SA`
+  - `I-OS&AD.SA`
+  - `ALL&TI.IO`
+- 原始 Excel 中对应新编码共命中 69 处，例如：
+  - `I-US&T-AD.SA-01`
+  - `I-NT&T-AD.SA-01`
+  - `I-AP&T-AD.SA-01`
+  - `I-OS&T-AD.SA-01`
+  - `ALL&T-IN.IO-01/02/03`
+
+执行：
+
+- 重新导入核心 Sheet，导入任务：`25704313-f3b7-4475-b397-a025287e682c`。
+- 审批导入结果：`items_updated: 630`，`warnings: []`。
+- 重新生成：
+  - `capability-tree.json`
+  - `management-knowledge.json`
+
+验证：
+
+- SQLite 中 `security_technical_service` 旧编码模式 `%&AD.SA-%`、`%&TI.IO-%` 命中数均为 0。
+- `capability-tree.json` 和 `management-knowledge.json` 全量文本中旧编码命中数均为 0。
+- 前端 JSON 可正常解析。
+- 已将追加验证结果记录到 `OI-027`。
+
+## 2026-05-14 LC-AP 模块 / 措施口径修正与重导
+
+用户确认 `OI-039` 的处理口径：
+
+- `应用程序威胁建模`、`制品安全加固`、`IaC代码安全测试` 三条按安全技术措施处理。
+- `软件成分分析` 原始数据已修正为 `软件成分分析（SCA）`。
+- `安全函数和组件库` 通过 `应用程序静态安全测试（安全函数和组件库）` 关联正式安全技术模块 `应用程序静态安全测试`。
+- `软件物料清单` 已移动到开发技术服务列，不再作为安全技术模块处理。
+
+本轮未启动新 Agent。
+
+修改：
+
+- `src/sapd_wiki/parsers.py`
+  - 新增 LC-AP 安全技术措施白名单。
+  - 新增 LC-AP 模块别名归一规则：`软件成分分析` -> `软件成分分析（SCA）`，`应用程序静态安全测试（安全函数和组件库）` -> `应用程序静态安全测试`。
+  - LC-AP S 列中用户确认的措施导出为 `security_technical_measure`，关系为 `uses_measure`。
+- `src/sapd_wiki/exports.py`
+  - `lifecycle-knowledge.json` 增加 `security_technical_measures`、`technical_measures` 和 `technical_measure_count`。
+- 同步更新：
+  - `docs/03-import-etl/third-batch-data-contract.md`
+  - `docs/02-data-model/data-model.md`
+  - `docs/02-data-model/field-dictionary-draft.md`
+  - `docs/01-architecture/api-field-contract.md`
+  - `docs/06-implementation/open-issues.md`
+  - `task_plan.md`
+
+执行：
+
+- 重新导入第三批 Sheet，导入任务：`1105f088-5a35-48b4-9776-40f5b25e5f2b`。
+- 审批导入结果：`items_created: 3`、`items_updated: 294`、`warnings: []`。
+- 重新生成 `frontend/capability-browser/public/data/lifecycle-knowledge.json`。
+- 重新生成导入报告：
+  - `data/exports/worker-verify/import-result-report-1105f088.md`
+  - `data/exports/worker-verify/warning-review-1105f088.csv`
+  - `data/exports/worker-verify/import-summary-1105f088.json`
+
+验证结果：
+
+- 第三批导入 `validations: []`。
+- 导入报告 `validation_count: 0`。
+- `lifecycle-knowledge.json` 统计：
+  - `security_technical_measures: 3`
+  - `uses_measure: 3`
+  - `uses_module: 6`
+- 阶段映射抽查：
+  - 架构设计：措施 `应用程序威胁建模`
+  - 编码开发：模块 `应用程序静态安全测试`、`软件成分分析（SCA）`
+  - 集成构建：模块 `软件成分分析（SCA）`，措施 `制品安全加固`
+  - 测试验证：模块 `应用程序动态安全测试`、`应用程序交互式安全测试`，措施 `IaC代码安全测试`
+- `OI-039` 已更新为已修复。
+
+## 2026-05-14 Maturity：样本驱动建模口径校正
+
+任务：根据用户补充确认，校正 maturity 模块第一轮样本驱动建模，不开发功能、不修改主工程核心 schema、不实现评分算法、不做前端页面。
+
+用户确认的关键口径：
+
+- 成熟度模型设计严格参考 `sample文档介绍.docx` 第 3.1 章“网络安全能力成熟度模型”；
+- 成熟度评估逻辑严格参考 `sample文档介绍.docx` 第 4 章“网络安全能力成熟度评估”；
+- 成熟度评分对象包括 `capability`、`capability_focus`，核心都是判断是否具备相关能力；
+- 安全技术服务是平台与工具维度的技术输入、证据和匹配线索，不作为独立成熟度评分对象；
+- 评分要素固定为组织与角色、制度与流程、平台与工具、数据与信息；
+- Word 是模型方法论基准，XLSX 是评价基准表，二者进入 maturity 专用模型基准表；
+- 成熟度结果按 detail → focus → L2 capability → L1/domain → category → overall 聚合；
+- maturity 模型中的安全能力、关注点、安全技术服务必须与主工程已治理数据做匹配，并输出不一致项供人工确认。
+
+更新文件：
+
+- `docs/08-maturity/maturity-domain-model.md`
+- `docs/08-maturity/maturity-data-model.md`
+- `docs/08-maturity/scoring-rules.md`
+- `docs/08-maturity/sample-analysis.md`
+- `docs/08-maturity/maturity-template-mapping.md`
+- `config/maturity/field-mapping.sample.yaml`
+- `task_plan.md`
+- `progress.md`
+
+建模结论：
+
+- 新增 maturity 模型基准专用对象：`maturity_model_version`、`maturity_level_definition`、`maturity_capability_baseline`、`maturity_scope_service_baseline`；
+- 新增主工程一致性核对对象：`maturity_mainline_match_result`；
+- 新版 `sample 评分表.xlsx` 不作为客户评分输入，不直接产生 `maturity_score_result`；
+- 安全技术服务保留在 `maturity_scope_service_baseline` 中，用于支撑 `platform_tool_score` 和主工程一致性核对；
+- 客户评估输入和输出继续明确不进入 `knowledge_items`；
+- `task_plan.md` 已把 maturity 下一阶段调整为“模型基准建模与主线一致性核对”，避免跳过建模直接进入模板或功能实现。
+
+下一步建议：
+
+- 先做只读一致性核对设计：从 XLSX 基准抽取能力、关注点和安全技术服务输入，与主工程已治理 JSON/DB 数据做匹配，输出 `Reference_Mainline_Diff` 草案；
+- 待用户确认差异处理口径后，再进入 `maturity_*` 迁移和模板生成 MVP；
+- 暂不启动前端、不写复杂评分算法。
+
+## 2026-05-14 Maturity：业务逻辑来源与技术输入口径修正
+
+用户进一步确认：
+
+- 成熟度模型设计必须严格参考 Word 第 3.1 章；
+- 评估逻辑必须严格参考 Word 第 4 章；
+- 后续代码也是实现这两部分业务逻辑；
+- 安全技术服务是对技术侧的输入，不是独立成熟度评分对象。
+
+本次修正：
+
+- 在 `requirements.md`、`maturity-domain-model.md`、`maturity-data-model.md`、`scoring-rules.md` 中补充业务逻辑来源；
+- 将 `maturity-template-mapping.md` 和 `field-mapping.sample.yaml` 中的 `security_technical_service_name` 调整为平台与工具维度输入；
+- 将 `task_plan.md` 的 maturity 决策和 M1 进入条件调整为评分对象仅 `capability` / `capability_focus`。
+
+验证：
+
+- `git diff --check` 通过；
+- 使用 Ruby `YAML.load_file` 校验 `config/maturity/field-mapping.sample.yaml` 可解析；
+- `supported_assessment_object_types` 校验为 `capability, capability_focus`。
+
+## 2026-05-14 Maturity：模型基准与主工程一致性核对第一版
+
+任务：开展 maturity M1 下一步工作，对新版 `sample 评分表.xlsx` 抽取出的成熟度模型基准与主工程 active 已治理数据做只读一致性核对。
+
+本轮边界：
+
+- 不修改主工程 schema；
+- 不修改 `knowledge_items`；
+- 不实现评分算法；
+- 不做前端页面；
+- 安全技术服务只作为 `platform_tool_score` 的技术输入、证据和匹配线索。
+
+输入：
+
+- `data/raw-samples/maturity/sample 评分表.xlsx`
+- `data/exports/items-latest/knowledge-items.json`
+
+新增 / 更新文件：
+
+- 新增 `docs/08-maturity/mainline-consistency-check.md`
+- 新增 `data/exports/maturity/maturity-baseline-capabilities.csv`
+- 新增 `data/exports/maturity/maturity-baseline-technical-inputs.csv`
+- 新增 `data/exports/maturity/mainline-consistency-diff.csv`
+- 新增 `data/exports/maturity/mainline-consistency-diff.json`
+- 新增 `data/exports/maturity/mainline-consistency-summary.json`
+- 更新 `config/maturity/field-mapping.sample.yaml`
+- 更新 `task_plan.md`
+- 更新 `findings.md`
+- 更新 `progress.md`
+
+核对结果：
+
+- 成熟度基准抽取：3 个能力分类、10 个 L1 能力域、32 个 L2 安全能力、84 个能力关注点、145 个安全技术服务输入；
+- 主工程 active 数据：3 个能力分类、10 个 L1 能力域、32 个 L2 安全能力、91 个能力关注点、183 个安全技术服务；
+- 能力分类、L1、L2 均能按编码 / 归一口径命中；
+- 成熟度基准中的 84 个关注点全部按编码命中主工程；
+- 主工程有 7 个 active 关注点未被成熟度基准覆盖；
+- 安全技术服务输入中 138 项按编码匹配，6 项按名称匹配但编码不一致，1 项存在多候选；
+- 主工程另有 42 个 active 安全技术服务未被成熟度评价基准表覆盖。
+
+待用户确认的重点：
+
+- `T-AD.SV` 的成熟度基准名称“安全有效性验证能力”与主工程“安全架构评估”是否需要统一；
+- `M-SE.SE-02` 的关注点标题差异较大，建议优先确认；
+- 7 个主工程 active 关注点是否纳入 maturity 模型基准；
+- `AD.SA` 缺少 `T-` 前缀、`TI.IO` 与 `T-IN.IO` 的编码归一候选是否接受；
+- `I-AP&AD.SA-01 应用异常行为检测` 命中多个 active 候选，需人工选择。
+
+验证：
+
+- `ruby -e 'require "yaml"; YAML.load_file(...)'` 校验 `field-mapping.sample.yaml` 通过；
+- `git diff --check` 通过。
+
+## 2026-05-14 主工程：LC-AP 安全开发维度前端接入 MVP
+
+任务：执行 LC-AP Frontend 1.0，只做安全开发维度的数据接入、ViewModel 和基础页面骨架，不进入多格式增强，不做视觉 polish，不处理成熟度模块。
+
+执行边界：
+
+- 未启动新的子 Agent；
+- 未修改 `src/`、ETL/export、SQLite schema 或原始 Excel；
+- 仅把已生成的 `lifecycle-knowledge.json` 接入前端安全开发维度页面；
+- 遵守 impeccable 上下文：关系表、树、矩阵优先，来源证据默认折叠，主展示区不展示 `sheet`、`row`、`column`、`raw_value`、`generated_at` 等非业务字段。
+
+本次修改：
+
+- `frontend/capability-browser/dataClient.js`
+  - 补齐 `getApplicationSecurityLifecycle()`；
+  - 为 `lifecycle` fallback 补齐 `development_product_components`、`security_technical_measures` 等结构；
+  - 为安全开发数据增加 `missing_file` / `empty` / `ready` 状态口径。
+- `frontend/capability-browser/viewModels.js`
+  - 新增 `buildApplicationSecurityLifecycleViewModel()`；
+  - 输出阶段树、当前阶段、阶段概览、活动 / 策略行、服务映射行、同页参考区和来源证据。
+- `frontend/capability-browser/components/ApplicationSecurityLifecycle.js`
+  - 新增安全开发维度原生 JS 组件；
+  - 展示 LC-AP 阶段导航、阶段概览、活动与安全策略、开发服务映射、软件开发类型和应用系统类型 / 应用组件参考区。
+- `frontend/capability-browser/app.js`
+  - 将“安全开发维度”接入新的 ViewModel 和组件；
+  - 数据生命周期维度仍保持原有逻辑，本轮未展开。
+- `frontend/capability-browser/index.html`
+  - 增加新组件脚本。
+- `frontend/capability-browser/styles.css`
+  - 增加安全开发维度基础表格与参考区样式。
+- `task_plan.md`
+  - 将安全开发维度 LC-AP 前端接入 MVP 标记为完成；
+  - 新增下一步：用户核对 LC-AP 主展示字段、参考区和关系表。
+
+验证：
+
+- `node .agents/skills/impeccable/scripts/load-context.mjs` 通过，`hasProduct = true`，`hasDesign = true`；
+- `node --check frontend/capability-browser/dataClient.js` 通过；
+- `node --check frontend/capability-browser/viewModels.js` 通过；
+- `node --check frontend/capability-browser/app.js` 通过；
+- `node --check frontend/capability-browser/components/*.js` 通过；
+- ViewModel 只读抽样显示：`dataState = ready`，LC-AP 阶段 8 个，默认阶段为“需求分析”，软件开发类型 4 个，应用系统类型 3 个；
+- `git diff --check` 通过。
+
+待用户核对：
+
+- 安全开发维度页面中的“阶段活动与安全策略”是否符合你对 LC-AP 第一张表的业务表达；
+- “安全开发服务映射”中开发类、管理类、网络空间类服务是否满足核对需要；
+- “软件开发类型 / 应用系统类型与组件”作为同页参考区展示是否足够，不再伪造成正式关系。
+
+## 2026-05-14 主工程：LC-AP 安全开发页面快速收敛
+
+任务：根据用户反馈，减少前置解释，直接把 LC-AP 安全开发维度页面做出更可核对的效果。
+
+本次调整：
+
+- 页面标题从 `LC-AP 生命周期泳道` 改为 `LC-AP 安全开发生命周期`；
+- 在阶段概览和活动表中显式展示 `适用开发模式`，该数据来自已导出的 `development_types`，对应原表黄色底色；
+- 将 `安全开发服务映射` 从分类汇总改为服务级明细行；
+- 保留 `开发类 / 管理类 / 网络空间类` 作为本表内服务分类，不扩展为全局主数据；
+- `安全技术措施` 和 `开发类产品组件` 当前只到阶段粒度时，显示为 `阶段关联对象`，不再假装已经关联到某个具体服务；
+- 更新 `OI-040`，记录“LC-AP 安全技术措施暂未细化到具体安全技术服务”为后续处理问题；
+- 固化 `/` 规则：任何原始数据中的 `/` 均代表“没有相关定义 / 不适用”，后续不再重复询问。
+
+验证：
+
+- `node --check frontend/capability-browser/viewModels.js` 通过；
+- `node --check frontend/capability-browser/components/ApplicationSecurityLifecycle.js` 通过；
+- `node --check frontend/capability-browser/app.js` 通过；
+- `git diff --check` 通过；
+- Playwright 页面回归通过：
+  - 页面标题为 `LC-AP 安全开发生命周期`；
+  - 阶段导航 8 条；
+  - 已展示 `适用开发模式`；
+  - 当前默认阶段服务级关系表行数 14；
+  - 存在 `阶段关联对象` 行；
+  - 来源证据默认折叠。
+
+## 2026-05-14 子 Agent 调度记录：LC-AP 服务-模块/措施核对
+
+- agent_id：`019e259f-7144-7be3-a5ec-b68b35031b1d`
+- nickname：`Peirce`
+- 角色：Data QA 子 Agent
+- 任务：生成 LC-AP `阶段 → 安全技术服务 → 安全技术模块 / 安全技术措施 / 开发类产品组件` 全量核对清单和样例说明。
+- 写入范围：仅 `data/exports/worker-verify/`
+- 禁止范围：不得修改 `frontend/`、`src/`、`docs/`、`task_plan.md`、`progress.md`、`findings.md`、`open-issues.md` 或原始 Excel。
+- 状态：completed，已关闭
+- 完成时间：2026-05-14 16:39:45 CST
+- 输出文件：
+  - `data/exports/worker-verify/lcap-service-module-measure-review.md`：494 行
+  - `data/exports/worker-verify/lcap-service-module-measure-review.csv`：108 行，含表头；107 条记录
+- 发现摘要：
+  - LC-AP 共 8 个阶段；
+  - 阶段服务记录共 91 条；
+  - 其中 39 条服务可通过 `service_module_index` 找到关联安全技术模块；
+  - 52 条服务当前没有服务级模块映射，需要后续 ETL 或业务确认；
+  - 阶段级安全技术模块共 4 个：SAST、SCA、IAST、DAST；
+  - 阶段级安全技术措施共 3 个：应用程序威胁建模、制品安全加固、IaC代码安全测试；
+  - 阶段级开发类产品组件共 14 个，例如 Jira、Artifactory、Jenkins、Ansible、Prometheus 等。
+
+## 2026-05-14 前端修正：LC-AP 安全开发生命周期页面重做
+
+任务：根据用户最新反馈，修正 LC-AP 页面中“开发技术服务”和“安全技术服务”被混合展示的问题，并整理页面显示。
+
+本次调整：
+
+- 用户可见标题改为 `LC-AP安全开发生命周期`；
+- 阶段活动表中的 `适用开发模式` 改为 `模式`，只展示模式值；
+- 将 `开发技术服务` 从安全技术服务中拆出，单独作为页面区域展示；
+- 将 `安全技术服务` 按本页专用分类展示为 `管理类 / 开发类 / 网络空间类`；
+- 对来自旧导出中 Q / R 列合并后的服务，在 ViewModel 层做本页专用分类修正；
+- 安全技术服务标签显示编码 + 名称，避免只看到名称导致误判；
+- 页面服务区改为：
+  - 开发技术服务；
+  - 安全技术服务；
+  - 阶段关联安全技术模块；
+  - 阶段关联安全技术措施；
+  - 开发类产品组件。
+
+验证：
+
+- `node --check frontend/capability-browser/viewModels.js` 通过；
+- `node --check frontend/capability-browser/components/ApplicationSecurityLifecycle.js` 通过；
+- `node --check frontend/capability-browser/app.js` 通过；
+- `node --check frontend/capability-browser/dataClient.js` 通过；
+- `node --check frontend/capability-browser/components/SourceEvidencePanel.js` 通过；
+- `git diff --check` 通过；
+- Playwright 页面回归通过：
+  - 页面标题为 `LC-AP安全开发生命周期`；
+  - 阶段导航 8 条；
+  - AP-02 页面能看到 `开发技术服务` 下的 `需求管理系统`；
+  - 活动表只显示 `模式`，不再显示 `适用开发模式`；
+  - 安全技术服务分类包含 `管理类 / 开发类 / 网络空间类`；
+  - 控制台无 error / warning。
+
+输出截图：
+
+- `data/exports/worker-verify/lcap-page-regression.png`
+
+## 2026-05-14 前端收敛：LC-AP 页面复用安全能力映射工作台标准
+
+任务：按用户要求重做 `LC-AP安全开发生命周期` 页面，但不重新设计；必须对齐“安全能力映射”页面的工作台结构、表格样式、来源证据处理方式和信息密度。
+
+本次调整：
+
+- 安全开发维度页面从三栏详情结构收敛为两栏工作台：
+  - 左侧：`LC-AP 生命周期` 阶段导航；
+  - 中间上方：当前阶段概览；
+  - 中间主体：`LC-AP 阶段关系表`；
+  - 下方：当前阶段局部关系说明、参考数据、来源证据折叠区。
+- 移除安全开发页独立右侧详情栏，不再让页面变成“左树 + 主表 + 右详情”的额外结构。
+- 主体关系表按用户确认的阶段语义展示：
+  - 主要活动；
+  - 安全活动；
+  - 安全策略要求；
+  - 安全技术服务；
+  - 安全技术模块；
+  - 安全技术措施；
+  - 开发类产品 / 组件参考；
+  - 状态。
+- `适用开发模式` 改为 `模式`，页面主内容不再出现旧称。
+- 继续保持 `开发技术服务` 与 `安全技术服务` 分离；安全技术服务分类仅作为本页展示口径。
+- 来源证据继续只进入 `SourceEvidencePanel`，默认折叠。
+- 参考数据区标注为参考，不伪造成正式映射关系。
+
+验证：
+
+- `node --check frontend/capability-browser/dataClient.js` 通过；
+- `node --check frontend/capability-browser/viewModels.js` 通过；
+- `node --check frontend/capability-browser/app.js` 通过；
+- `node --check frontend/capability-browser/components/*.js` 通过；
+- `python3 -m py_compile src/sapd_wiki/parsers.py src/sapd_wiki/exports.py` 通过；
+- `git diff --check` 通过；
+- Playwright 页面切换回归通过：
+  - `安全能力映射`、`信息化环境维度`、`专项知识维护`、`安全开发维度` 均可切换；
+  - `LC-AP安全开发生命周期` 标题正确；
+  - 右侧详情栏已隐藏；
+  - 左侧显示 `LC-AP 生命周期 / 8 个阶段`；
+  - 中间存在当前阶段概览和阶段关系表；
+  - 来源证据显示为折叠面板；
+  - 页面主内容不再出现 `适用开发模式`；
+  - 控制台无 error / warning。

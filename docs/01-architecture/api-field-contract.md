@@ -813,8 +813,13 @@
 | `technical_services` | array<SecurityTechnicalService> | 是 | 技术服务 |
 | `technical_service_count` | number | 是 | 技术服务数量 |
 | `development_types` | array<KnowledgeObjectRef> | 是 | 适用开发类型 |
-| `product_examples` | array<KnowledgeObjectRef> | 是 | 产品示例 |
-| `product_example_count` | number | 是 | 产品示例数量 |
+| `development_product_components` | array<KnowledgeObjectRef> | 是 | 开发类产品组件，来自原“实际产品示例” |
+| `development_product_component_count` | number | 是 | 开发类产品组件数量 |
+| `technology_modules` | array<SecurityTechnologyModule> | 是 | 关联安全技术模块，必须来自既有安全技术模块清单 |
+| `technology_module_count` | number | 是 | 关联安全技术模块数量 |
+| `technical_measures` | array<SecurityTechnicalMeasure> | 是 | 关联安全技术措施，不同于安全技术模块 |
+| `technical_measure_count` | number | 是 | 关联安全技术措施数量 |
+| `issues` | array<ValidationIssue> | 否 | 模块未匹配、服务无法归类等数据问题 |
 | `metadata` | object | 否 | 扩展字段 |
 | `sources` | array<SourceReference> | 否 | 来源 |
 
@@ -829,6 +834,8 @@
 | `description` | string/null | 否 | 描述 |
 | `policy_requirements` | array<SecurityPolicyRequirement> | 是 | 策略要求 |
 | `policy_count` | number | 是 | 策略数量 |
+| `technical_services` | array<SecurityTechnicalService> | 是 | 关联安全技术服务 |
+| `technology_modules` | array<SecurityTechnologyModule> | 是 | 关联安全技术模块 |
 | `sources` | array<SourceReference> | 否 | 来源 |
 
 `SecurityPolicyRequirement` 字段：
@@ -838,12 +845,27 @@
 | `id` | string | 是 | 策略 ID |
 | `type` | string | 是 | `security_policy_requirement` |
 | `code` | string | 是 | 策略编码 |
-| `title` | string | 是 | 策略要求文本或名称 |
+| `title` | string | 是 | 安全策略条目文本或名称 |
+| `text` | string | 是 | 安全策略条目正文 |
+| `sequence` | string/null | 否 | 原始策略序号 |
+| `source_type` | string | 是 | 当前为 `LC-AP`；后续 SLSA 为 `Google SLSA` |
 | `description` | string/null | 否 | 描述 |
 | `category` | string/null | 否 | 分类 |
 | `status` | string | 否 | 数据状态 |
 | `metadata` | object | 否 | 扩展字段 |
 | `sources` | array<SourceReference> | 否 | 来源 |
+
+`SecurityTechnicalService` 在 LC-AP 中额外允许：
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `service_category` | string | 否 | 仅 LC-AP 使用，取值为 `管理类`、`开发类`、`网络空间类` |
+
+`development_product_components` 说明：
+
+- 不等同于通用产品主数据。
+- 不进入安全技术模块清单。
+- 第一阶段只在安全开发维度展示。
 
 `ApplicationSystemType` 字段：
 

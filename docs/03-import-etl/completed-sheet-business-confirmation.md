@@ -35,11 +35,11 @@
 
 | Sheet | 当前业务含义 | 当前对象 | 当前主键/稳定身份 | 当前关系基数 | 需要用户确认 |
 |---|---|---|---|---|---|
-| `安全能力-安全工作` | 能力关注点对应的安全工作内容。 | `security_work`，复用 `capability_focus` | 当前以关注点 + 工作内容生成。 | 关注点 1:N 安全工作。 | 待确认：安全工作是否需要独立编码，还是只作为关注点下属工作条目。 |
-| `安全能力-安全管理元素（high level）` | 能力关注点与流程、组织职能相关方的映射。 | 复用 `capability_focus`、`process_group`、`process_reference`、`work_function` | 本表是映射表，不作为流程/职能主数据。 | 关注点 N:M L3流程；关注点 N:M 职能层/职能；L4 当前待补充。 | 已确认：安全职能流程清单不应在能力页重复维护，只在能力页展示映射结果。 |
-| `安全职能流程清单（完善L4）` | 流程主数据清单，当前 L4 关键活动待补充。 | `process_domain`、`process_group`、`process_reference`、后续 `process_activity` | 流程域/组/参考当前按标题和层级；L4 后续需编码或复合键。 | 流程域 1:N 流程组；流程组 1:N L3流程；L3流程 1:N L4活动。 | 已确认：应作为专项知识维护独立页面，不作为能力关注点下属表。 |
-| `安全工作职能清单` | 工作职能主数据和组织层级分组。 | `work_function_layer`、`work_function_group`、`work_function`、`work_task`、`gbt_42446_task_reference`、`asset` | 有编号职能按编号；无编码映射文本不作为正式职能。 | 层级 1:N 分组；分组 1:N 职能；职能 N:M GB/T 参考任务。 | 已确认：这是职能主数据来源；职能清单独立页面维护。 |
-| `gartner工作岗位参考` | Gartner 安全岗位/职能参考资料。 | `work_role_reference` | 当前按标题/分类。 | 参考资料独立展示，不强制映射到工作职能。 | 待确认：后续是否需要与 `安全工作职能清单` 建立人工映射。 |
+| `安全能力-安全工作` | 能力关注点对应的安全工作内容。 | `security_work`，复用 `capability_focus` | 优先使用安全工作独立编码；缺失时输出待补编码问题。 | 关注点 1:1 或 1:N 安全工作。 | 已确认：安全工作需要独立编码，并在专项知识维护中独立页面展示。 |
+| `安全能力-安全管理元素（high level）` | L2 安全能力、L2 流程组、L3 流程和组织职能相关方的映射。 | 复用 `capability`、`process_group`、`process_reference`、`work_function` | 本表是映射表，不作为流程/职能主数据；`/` 表示没有相关职能。 | L2 安全能力 -> L2 流程组为严格约束；L2 能力-流程组可关联 1 个、多个或 `/` 无相关组织职能；关注点 N:M L3 流程。 | 已确认：安全工作与安全职能无直接关系；组织职能相关方按决策层、管理层、执行层、监督层展示。 |
+| `安全职能流程清单（完善L4）` | 流程主数据清单，当前 L4 关键活动待补充。 | `process_domain`、`process_group`、`process_reference`、后续 `process_activity` | 流程域/组/参考当前按标题和层级；同名 L3 原则上不跨 L2，发现需输出核对。 | 流程域 1:N 流程组；流程组 1:N L3流程；L3流程 1:N L4活动。 | 已确认：应作为专项知识维护独立页面，不作为能力关注点下属表。 |
+| `安全工作职能清单` | 工作职能主数据和组织层级分组。 | `work_function_layer`、`work_function_group`、`work_function`、`work_task`、`gbt_42446_task_reference`、`asset` | 有编号职能按编号；无编码映射文本不作为正式职能。 | 层级 1:N 分组；分组 1:N 职能；职能 N:M GB/T 参考任务；GB/T 与安全职能支持双向查看。 | 已确认：这是职能主数据来源；职能清单独立页面维护；安全职能 -> GB/T 已有单向映射基础，需补 GB/T -> 安全职能反向展示 / 查询。 |
+| `gartner工作岗位参考` | Gartner 安全岗位/职能参考资料。 | `work_role_reference` | 按 `source + category + title`。 | 自动生成与安全职能清单的双向候选映射，用户复核后确认。 | 已确认：作为岗位参考页签展示，并输出 Gartner <-> 安全职能候选映射供用户检查。 |
 
 ## 第三批生命周期 Sheet
 
@@ -47,8 +47,8 @@
 |---|---|---|---|---|---|
 | `LC-DT 数据生命周期` | 数据生命周期过程与安全技术服务、技术模块映射。 | `lifecycle_process`，复用 `security_technical_service`、`security_technology_module` | 生命周期过程按 `lifecycle_type + order + title`。 | 生命周期过程 N:M 服务；生命周期过程 N:M 模块。 | 待确认：数据生命周期页是否按过程矩阵展示，还是按场景链路展示。 |
 | `LC-DT 数据生命周期场景目录` | 数据生命周期场景主数据。 | `lifecycle_scene` | `scene_code + title`。 | 生命周期过程 1:N 场景。 | 待确认：场景是否需要再映射到信息化对象或作用域。 |
-| `LC-AP 应用安全开发生命周期` | 应用安全开发阶段、活动、策略要求、开发技术服务和产品示例。 | `lifecycle_process`、`security_activity`、`security_policy_requirement`，复用服务/产品。 | 生命周期过程按阶段；策略要求当前按 `lifecycle_process + sequence + text_hash`。 | 阶段 1:N 活动；活动/阶段 1:N 策略；阶段/活动 N:M 服务/产品。 | 待确认：原始策略编号是否允许重复；例如 G6 中 `14.`、`15.` 各出现两次，导致 `AP-03-14`、`AP-03-15` 显示编码重复。 |
-| `LC-AP 应用安全开发生命周期元素目录` | 软件开发类型、应用系统类型、应用组件字典。 | `software_development_type`、`application_system_type`、`application_component` | 类型按标题；组件按 `application_system_type + title`。 | 应用系统类型 1:N 应用组件；生命周期阶段 N:M 软件开发类型。 | 待确认：组件是否需要与信息化对象/应用系统建立关系。 |
+| `LC-AP 应用安全开发生命周期` | 应用安全开发阶段、IT L4 主要活动、安全活动、安全策略条目、软件开发模式适用性、关联安全技术服务、关联安全技术模块、开发类产品组件。 | `lifecycle_process`、`lifecycle_activity`、`security_activity`、`security_policy_requirement`，复用 `security_technical_service` 和 `security_technology_module`，新增开发类产品组件投影。 | 阶段按 `lifecycle_type + order + title`；策略条目按 `lifecycle_process + security_activity + sequence + text_hash`；安全技术模块必须匹配既有模块主数据。 | 阶段 1:N 主要活动；阶段 1:N 安全活动；安全活动 1:N 策略；阶段 N:M 软件开发模式；阶段/活动 N:M 服务；服务 N:M 模块；阶段/服务 N:M 开发类产品组件。 | 已确认：黄色底色识别软件开发模式适用性；红色底色不作为 ETL 条件；SLSA 暂不补充。 |
+| `LC-AP 应用安全开发生命周期元素目录` | 软件开发类型、应用系统类型、应用组件字典。 | `software_development_type`、`application_system_type`、`application_component` | 类型按标题；组件按 `application_system_type + title`。 | 软件开发类型与应用系统类型无映射；应用系统类型 1:N 应用组件。 | 已确认：在同一页面上下分别展示软件开发类型和应用系统类型/组件。 |
 
 ## 当前需优先确认的问题
 

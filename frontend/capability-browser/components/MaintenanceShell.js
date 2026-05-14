@@ -39,6 +39,14 @@
         summaryBadge("关联流程", summary.linkedProcesses ?? 0),
       ].join("");
     }
+    if (section === "security-works") {
+      return [
+        summaryBadge("安全工作", summary.totalSecurityWorks ?? 0),
+        summaryBadge("关联能力", summary.linkedCapabilities ?? 0),
+        summaryBadge("关联关注点", summary.linkedFocuses ?? 0),
+        summaryBadge("待补字段", summary.pendingFields ?? 0),
+      ].join("");
+    }
     if (section === "modules") {
       return [
         summaryBadge("技术模块", summary.totalModules ?? 0),
@@ -52,6 +60,7 @@
         summaryBadge("参考项", summary.totalReferences ?? 0),
         summaryBadge("标准任务", summary.standardTasks ?? 0),
         summaryBadge("岗位参考", summary.roleReferences ?? 0),
+        summaryBadge("待复核", summary.pendingReview ?? 0),
       ].join("");
     }
     return "";

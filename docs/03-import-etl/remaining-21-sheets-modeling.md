@@ -85,8 +85,8 @@
 | `work_function_group` | 工作职能组 | 安全工作职能清单 | 同一职能层级下的职能分组 |
 | `work_function` | 工作职能 | 安全工作职能清单、管理元素 Sheet | 组织职能或岗位职责 |
 | `work_task` | 工作任务 | 安全工作职能清单 | 职能承担的具体任务 |
-| `gbt_42446_task_reference` | GB/T 42446-2023 工作任务引用 | 安全工作职能清单 | 外部标准中的工作类别和承担的工作任务 |
-| `work_role_reference` | 岗位参考 | gartner工作岗位参考 | 外部岗位/角色参考 |
+| `gbt_42446_task_reference` | GB/T 42446-2023 工作任务引用 | 安全工作职能清单 | 外部标准中的工作类别和承担的工作任务；与安全职能支持双向查看 |
+| `work_role_reference` | 岗位参考 | gartner工作岗位参考 | 外部岗位/角色参考；与安全职能生成双向候选映射 |
 | `lifecycle_process` | 生命周期过程 | LC-DT、LC-AP | 数据或应用生命周期阶段 |
 | `lifecycle_scene` | 生命周期场景 | LC-DT 数据生命周期场景目录 | 生命周期下的场景 |
 | `application_type` | 应用开发类型 | LC-AP 元素目录 | 自研、定制、外购、SaaS 等 |
@@ -106,8 +106,8 @@
 | `stakeholder_by` | 相关方为 | `capability_focus` / `process_reference` | `work_function` | high level 管理元素中的决策层、管理层、执行层、监督层相关方 |
 | `belongs_to_layer` | 属于职能层级 | `work_function` / `work_function_group` | `work_function_layer` | 支持按四个职能层级展示 |
 | `performs_task` | 承担任务 | `work_function` | `work_task` | 安全工作职能清单中的内部工作任务 |
-| `maps_to_gbt_task` | 映射到 GB/T 工作任务 | `work_function` | `gbt_42446_task_reference` | 安全工作职能清单中的 GB/T 42446-2023 映射 |
-| `references_role` | 参考岗位 | `work_function` | `work_role_reference` | 候选关系。第二批不自动建立，仅保留后续人工映射能力 |
+| `maps_to_gbt_task` | 映射到 GB/T 工作任务 | `work_function` | `gbt_42446_task_reference` | 安全工作职能清单中的 GB/T 42446-2023 映射；存储方向为安全职能 -> GB/T，展示支持反向查看 |
+| `references_role_candidate` | 参考岗位候选映射 | `work_role_reference` | `work_function` | 第二批自动生成双向候选映射投影，用户复核前不作为最终强关系 |
 | `maps_to_lifecycle` | 映射到生命周期 | `security_technical_service` / `security_technology_module` / `process_activity` | `lifecycle_process` / `lifecycle_scene` | 生命周期视角 |
 | `maps_to_standard_control` | 映射到标准控制项 | `capability_focus` | `standard_control` | 能力到标准/框架控制项 |
 | `belongs_to_framework` | 属于标准框架 | `standard_control` | `standard_framework` | 控制项归属 |
@@ -210,7 +210,7 @@
 | 每行代表 | 一个 Gartner 安全岗位/角色参考 |
 | 新对象 | `work_role_reference` |
 | 字段 | 分类、角色、描述 |
-| 关系 | 第二批不自动建立内部职能映射；后续可通过人工维护或规则建议生成 `references_role` |
+| 关系 | 第二批自动生成到内部安全职能的双向候选映射投影；后续由用户复核后确认是否转为正式关系 |
 | 当前策略 | 第二批纳入，作为 Gartner 安全工作岗位参考库和展示页数据 |
 
 ### 6.10 `LC-DT 数据生命周期`
@@ -359,14 +359,14 @@
 |---|---|---|
 | 能力详情页扩展 | `安全能力-安全工作`、`安全能力-安全管理元素（high level）`、`安全职能流程清单（完善L4）` | 在选中能力关注点后展示安全工作、L2流程组、L3流程参考、组织职能相关方 |
 | 安全工作职能模块 | `安全工作职能清单` | 按网络安全决策层、管理层、执行层、监督层展示工作职能、职能定义、GB/T 42446-2023 映射和嵌入图片 |
-| 参考库模块 | `gartner工作岗位参考`、`安全工作职能清单` 中的 GB/T 42446-2023 引用数据 | 展示外部参考数据，先不强制与内部能力体系自动关联 |
+| 参考库模块 | `gartner工作岗位参考`、`安全工作职能清单` 中的 GB/T 42446-2023 引用数据 | 展示外部参考数据；GB/T 与安全职能双向查看，Gartner 与安全职能双向候选映射 |
 
 ### 7.2 第二批实现边界
 
 - 可以先实现 ETL 和静态展示，不先做复杂编辑功能。
 - 允许一个关注点映射多个 L3流程参考，也允许多个关注点映射同一个 L3流程参考。
 - `安全工作职能清单` 里的工作职能以组织职责维度展示，不作为关注点树的下级节点。
-- `gartner工作岗位参考` 只建立 `work_role_reference`，不自动生成 `work_function references_role work_role_reference`。
+- `gartner工作岗位参考` 建立 `work_role_reference`，并自动生成 `work_role_reference references_role_candidate work_function` 候选映射，同时导出安全职能到 Gartner 的反向投影；用户复核前不作为最终强关系。
 - 内嵌图片先作为展示资产处理，后续再考虑是否作为可检索知识对象。
 
 ## 8. 需要用户确认的问题
@@ -377,7 +377,7 @@
 | Q21-002 | 组织职能相关方列是做成“职能对象”，还是只作为流程的责任标签？ | 已确定引用 `安全工作职能清单`，作为 `work_function` 对象 |
 | Q21-003 | 同一个流程名称在多个能力下出现时，是同一流程对象还是不同能力下的实例？ | 已确定来自 `安全职能流程清单（完善L4）`，同名流程作为同一主数据对象，关系保留来源 |
 | Q21-004 | `安全工作职能清单` 是否挂在能力详情页下？ | 已确定不挂在能力主页面下，新增独立模块展示 |
-| Q21-005 | Gartner 岗位参考是否要自动匹配内部职能？ | 已确定暂不自动匹配，先作为参考库 |
+| Q21-005 | Gartner 岗位参考是否要自动匹配内部职能？ | 已确定自动生成双向候选映射，并输出给用户复核 |
 | Q21-006 | 标准控制项是否需要一开始就做跨标准等价映射？ | 暂不做，只保留同一能力下多标准并列映射 |
 | Q21-007 | `安全工作职能清单` 中 GB/T 42446-2023 的列位和合并表头如何识别？ | 按用户说明和实际单元格位置双重校验，ETL 不只依赖标题文本 |
 | Q21-008 | 安全工作职能页面模块名称用什么？ | 暂定为“安全工作职能”，后续可改为“知识维护/组织职能与岗位参考” |

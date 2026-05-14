@@ -1,0 +1,36 @@
+version: v1
+thresholds:
+  auto_accepted: 85
+  needs_review: 60
+  weak_candidate: 40
+methods:
+  exact_code:
+    score: 100
+  exact_title_or_alias:
+    score: 90
+  relation_expansion:
+    score_min: 70
+    score_max: 85
+  keyword:
+    score_min: 50
+    score_max: 75
+  fuzzy:
+    score_min: 40
+    score_max: 70
+keywords:
+  - keyword: 堡垒机
+    target_type: security_technology_module
+    target_title_hint: 运维访问管控
+    related_capability_hint: 运维访问控制
+  - keyword: WAF
+    target_type: security_technology_module
+    target_title_hint: Web应用防火墙
+    related_capability_hint: 应用边界防护
+  - keyword: DLP
+    target_type: security_technical_service
+    target_title_hint: 数据防泄漏
+    related_capability_hint: 数据防泄漏
+  - keyword: 漏洞扫描
+    target_type: security_technical_service
+    target_title_hint: 漏洞管理
+    related_capability_hint: 漏洞识别与修复

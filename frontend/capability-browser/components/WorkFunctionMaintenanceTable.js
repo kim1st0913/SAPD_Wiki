@@ -24,7 +24,6 @@
               <th>定义</th>
               <th>关联安全工作数</th>
               <th>关联流程数</th>
-              <th>状态</th>
             </tr>
           </thead>
           <tbody>
@@ -39,7 +38,6 @@
                     <td>${cell(row.description)}</td>
                     <td>${cell(row.securityWorkCount)}</td>
                     <td>${cell(row.processCount)}</td>
-                    <td><span class="relation-chip">${cell(row.status)}</span></td>
                   </tr>
                 `,
               )

@@ -5,6 +5,7 @@ data/processed/
 data/database/
 data/previews/
 data/exports/
+data/maturity/
 
 # Local databases and backups
 *.db
@@ -29,6 +30,9 @@ node_modules/
 dist/
 build/
 .vite/
+
+# Local Codex skill runtime links
+.agents/skills/
 
 # Tauri / Rust build artifacts
 target/

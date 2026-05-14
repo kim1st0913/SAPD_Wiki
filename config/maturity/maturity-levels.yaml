@@ -1,0 +1,38 @@
+version: v1
+levels:
+  - id: L0
+    name: 未覆盖 / 无有效证据
+    min_score: 0
+    max_score: 9
+    default_score: 0
+    description: 没有有效输入、证据或匹配，不能说明该能力已经建设。
+  - id: L1
+    name: 临时执行
+    min_score: 10
+    max_score: 29
+    default_score: 20
+    description: 有零散实践，主要依赖个人经验，缺少统一职责、流程或工具。
+  - id: L2
+    name: 计划跟踪
+    min_score: 30
+    max_score: 49
+    default_score: 40
+    description: 有职责、计划、局部流程或局部工具，能重复执行但覆盖不完整。
+  - id: L3
+    name: 充分定义
+    min_score: 50
+    max_score: 69
+    default_score: 60
+    description: 职责、流程、技术措施和运营执行较完整，能在主要范围稳定落地。
+  - id: L4
+    name: 量化控制
+    min_score: 70
+    max_score: 89
+    default_score: 80
+    description: 在 L3 基础上，有指标、审计、监控、报表或效果度量。
+  - id: L5
+    name: 持续优化
+    min_score: 90
+    max_score: 100
+    default_score: 95
+    description: 在 L4 基础上，能基于度量、事件、审计或风险变化持续优化并形成闭环。

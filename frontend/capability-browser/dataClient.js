@@ -25,7 +25,13 @@
     lifecycle: {
       generated_at: null,
       stats: {},
-      application_security_development: { processes: [], software_development_types: [], application_system_types: [] },
+      application_security_development: {
+        processes: [],
+        software_development_types: [],
+        development_product_components: [],
+        security_technical_measures: [],
+        application_system_types: [],
+      },
       data_lifecycle: { processes: [] },
       service_module_index: [],
     },
@@ -64,15 +70,17 @@
     try {
       const response = await fetch(path, { cache: "no-store" });
       if (!response.ok) {
-        cache.set(name, fallback);
-        return fallback;
+        const missingData = { ...fallback, __data_state: "missing_file" };
+        cache.set(name, missingData);
+        return missingData;
       }
       const data = await response.json();
       cache.set(name, data);
       return data;
     } catch {
-      cache.set(name, fallback);
-      return fallback;
+      const missingData = { ...fallback, __data_state: "missing_file" };
+      cache.set(name, missingData);
+      return missingData;
     }
   }
 
@@ -359,7 +367,7 @@
           roles: roles.length,
           items: standards.length + roles.length,
         },
-        empty_state: standards.length || roles.length ? null : "暂无标准与岗位参考数据，请确认 ETL 是否已导出 gbt_42446_references 与 gartner_roles。",
+        empty_state: standards.length || roles.length ? null : "暂无岗位参考页面数据，请确认 ETL 是否已导出 gbt_42446_references 与 gartner_roles。",
       });
     },
 
@@ -374,6 +382,49 @@
 
     async getLifecycleKnowledge() {
       return createEnvelope(await fetchPackage("lifecycle"));
+    },
+
+    async getApplicationSecurityLifecycle(params = {}) {
+      const lifecycle = await fetchPackage("lifecycle");
+      const appSecurity = lifecycle.application_security_development || {};
+      const hasLifecycleFile = lifecycle.__data_state !== "missing_file";
+      const hasApplicationData = list(appSecurity.processes).length > 0;
+      const query = text(params.q).trim().toLowerCase();
+      const processes = list(appSecurity.processes).filter((process) => {
+        if (params.process_id && process.id !== params.process_id) return false;
+        if (!query) return true;
+        return [
+          process.code,
+          process.title,
+          process.description,
+          process.goal,
+          ...list(process.main_activities).map(titleOf),
+          ...list(process.security_activities).map(titleOf),
+          ...list(process.policy_requirements).map(titleOf),
+          ...list(process.technical_services).map(titleOf),
+          ...list(process.technology_modules).map(titleOf),
+          ...list(process.technical_measures).map(titleOf),
+          ...list(process.development_product_components).map(titleOf),
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(query);
+      });
+      return createEnvelope({
+        generated_at: lifecycle.generated_at,
+        stats: lifecycle.stats || {},
+        data_state: !hasLifecycleFile ? "missing_file" : hasApplicationData ? "ready" : "empty",
+        empty_state: !hasLifecycleFile
+          ? "未找到 lifecycle-knowledge.json，请先执行 LC-AP 数据导出。"
+          : hasApplicationData
+            ? ""
+            : "暂无开发安全生命周期数据，请确认 ETL 是否已导出 application_security_development。",
+        processes,
+        software_development_types: list(appSecurity.software_development_types),
+        development_product_components: list(appSecurity.development_product_components),
+        security_technical_measures: list(appSecurity.security_technical_measures),
+        application_system_types: list(appSecurity.application_system_types),
+      });
     },
   };
 

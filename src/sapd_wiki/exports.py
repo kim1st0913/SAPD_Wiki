@@ -86,14 +86,17 @@ SERVICE_MODULE_INDEX_RELATION_TYPES = (
 
 LIFECYCLE_ITEM_TYPES = (
     "lifecycle_process",
+    "lifecycle_activity",
     "lifecycle_scene",
     "security_activity",
     "security_policy_requirement",
     "software_development_type",
     "application_system_type",
     "application_component",
+    "development_product_component",
     "security_technical_service",
     "security_technology_module",
+    "security_technical_measure",
     "product",
 )
 
@@ -101,9 +104,13 @@ LIFECYCLE_RELATION_TYPES = (
     "has_scene",
     "maps_to_lifecycle",
     "has_activity",
+    "has_main_activity",
     "requires_policy",
     "applies_to_development_type",
     "uses_service",
+    "uses_module",
+    "uses_measure",
+    "uses_development_product_component",
     "uses_product",
     "has_component",
     "implements_service",
@@ -1053,7 +1060,18 @@ def _build_service_module_index(conn: sqlite3.Connection) -> tuple[list[dict[str
 
 
 def _item_counts_for_types(conn: sqlite3.Connection, item_types: tuple[str, ...]) -> dict[str, int]:
-    counts = item_counts_by_type(conn)
+    rows = conn.execute(
+        f"""
+        SELECT type, COUNT(*) AS count
+        FROM knowledge_items
+        WHERE status = 'active'
+          AND type IN ({", ".join("?" for _ in item_types)})
+        GROUP BY type
+        ORDER BY type
+        """,
+        item_types,
+    ).fetchall()
+    counts = {row["type"]: row["count"] for row in rows}
     return {item_type: counts.get(item_type, 0) for item_type in item_types}
 
 
@@ -1065,6 +1083,8 @@ def _relation_counts_for_types(conn: sqlite3.Connection, relation_types: tuple[s
         JOIN knowledge_items AS source ON source.id = relation.source_item_id
         JOIN knowledge_items AS target ON target.id = relation.target_item_id
         WHERE relation.relation_type IN ({", ".join("?" for _ in relation_types)})
+          AND source.status = 'active'
+          AND target.status = 'active'
           AND (
             source.type IN ({", ".join("?" for _ in SECOND_BATCH_ITEM_TYPES)})
             OR target.type IN ({", ".join("?" for _ in SECOND_BATCH_ITEM_TYPES)})
@@ -2039,24 +2059,29 @@ def export_lifecycle_knowledge(
     service_module_index, service_module_by_id = _build_service_module_index(conn)
 
     lifecycle_processes = {item_id: item for item_id, item in items.items() if item["type"] == "lifecycle_process"}
+    lifecycle_activities = {item_id: item for item_id, item in items.items() if item["type"] == "lifecycle_activity"}
     lifecycle_scenes = {item_id: item for item_id, item in items.items() if item["type"] == "lifecycle_scene"}
     security_activities = {item_id: item for item_id, item in items.items() if item["type"] == "security_activity"}
     policy_requirements = {item_id: item for item_id, item in items.items() if item["type"] == "security_policy_requirement"}
     development_types = {item_id: item for item_id, item in items.items() if item["type"] == "software_development_type"}
     application_system_types = {item_id: item for item_id, item in items.items() if item["type"] == "application_system_type"}
     application_components = {item_id: item for item_id, item in items.items() if item["type"] == "application_component"}
+    development_product_components = {item_id: item for item_id, item in items.items() if item["type"] == "development_product_component"}
     technical_services = {item_id: item for item_id, item in items.items() if item["type"] == "security_technical_service"}
     technology_modules = {item_id: item for item_id, item in items.items() if item["type"] == "security_technology_module"}
+    technical_measures = {item_id: item for item_id, item in items.items() if item["type"] == "security_technical_measure"}
     products = {item_id: item for item_id, item in items.items() if item["type"] == "product"}
 
     scenes_by_process: dict[str, list[str]] = {}
+    main_activities_by_process: dict[str, list[str]] = {}
     services_by_process: dict[str, list[str]] = {}
     modules_by_process: dict[str, list[str]] = {}
+    measures_by_process: dict[str, list[str]] = {}
     activities_by_process: dict[str, list[str]] = {}
     policies_by_process: dict[str, list[str]] = {}
     policies_by_activity: dict[str, list[str]] = {}
     development_types_by_process: dict[str, list[str]] = {}
-    products_by_process: dict[str, list[str]] = {}
+    product_components_by_process: dict[str, list[str]] = {}
     components_by_system_type: dict[str, list[str]] = {}
 
     for relation in relations:
@@ -2074,6 +2099,8 @@ def export_lifecycle_knowledge(
                 modules_by_process.setdefault(target_id, []).append(source_id)
         elif relation_type == "has_activity" and source_type == "lifecycle_process" and target_type == "security_activity":
             activities_by_process.setdefault(source_id, []).append(target_id)
+        elif relation_type == "has_main_activity" and source_type == "lifecycle_process" and target_type == "lifecycle_activity":
+            main_activities_by_process.setdefault(source_id, []).append(target_id)
         elif relation_type == "requires_policy" and target_type == "security_policy_requirement":
             if source_type == "lifecycle_process":
                 policies_by_process.setdefault(source_id, []).append(target_id)
@@ -2083,8 +2110,17 @@ def export_lifecycle_knowledge(
             development_types_by_process.setdefault(source_id, []).append(target_id)
         elif relation_type == "uses_service" and source_type == "lifecycle_process" and target_type == "security_technical_service":
             services_by_process.setdefault(source_id, []).append(target_id)
+        elif relation_type == "uses_module" and target_type == "security_technology_module":
+            if source_type == "lifecycle_process":
+                modules_by_process.setdefault(source_id, []).append(target_id)
+        elif relation_type == "uses_measure" and target_type == "security_technical_measure":
+            if source_type == "lifecycle_process":
+                measures_by_process.setdefault(source_id, []).append(target_id)
+        elif relation_type == "uses_development_product_component" and target_type == "development_product_component":
+            if source_type == "lifecycle_process":
+                product_components_by_process.setdefault(source_id, []).append(target_id)
         elif relation_type == "uses_product" and source_type == "lifecycle_process" and target_type == "product":
-            products_by_process.setdefault(source_id, []).append(target_id)
+            product_components_by_process.setdefault(source_id, []).append(target_id)
         elif relation_type == "has_component" and source_type == "application_system_type" and target_type == "application_component":
             components_by_system_type.setdefault(source_id, []).append(target_id)
 
@@ -2115,6 +2151,7 @@ def export_lifecycle_knowledge(
         if service_id not in technical_services:
             return None
         payload = detailed_item(technical_services[service_id]) or {}
+        payload["service_category"] = _metadata(technical_services[service_id]).get("service_category")
         index_entry = service_module_by_id.get(service_id)
         if index_entry:
             payload["modules"] = index_entry.get("modules", [])
@@ -2134,7 +2171,15 @@ def export_lifecycle_knowledge(
 
         if lifecycle_type == "application_security_development":
             payload["goal"] = metadata.get("goal") or process.get("description")
-            payload["main_activities"] = metadata.get("main_activities") or []
+            main_activity_ids = main_activities_by_process.get(process_id, [])
+            if main_activity_ids:
+                payload["main_activities"] = [
+                    detailed_item(lifecycle_activities[activity_id])
+                    for activity_id in sort_lifecycle_items(lifecycle_activities, main_activity_ids)
+                    if activity_id in lifecycle_activities
+                ]
+            else:
+                payload["main_activities"] = metadata.get("main_activities") or []
             activity_payloads = []
             policy_ids: list[str] = list(policies_by_process.get(process_id, []))
             for activity_id in sort_lifecycle_items(security_activities, activities_by_process.get(process_id, [])):
@@ -2167,11 +2212,27 @@ def export_lifecycle_knowledge(
                 )
                 if service
             ]
-            payload["product_examples"] = _brief_many(products, products_by_process.get(process_id, []), refs)
+            payload["technology_modules"] = [
+                detailed_item(technology_modules[module_id])
+                for module_id in sort_lifecycle_items(technology_modules, modules_by_process.get(process_id, []))
+                if module_id in technology_modules
+            ]
+            payload["technical_measures"] = [
+                detailed_item(technical_measures[measure_id])
+                for measure_id in sort_lifecycle_items(technical_measures, measures_by_process.get(process_id, []))
+                if measure_id in technical_measures
+            ]
+            payload["development_product_components"] = _brief_many(
+                development_product_components,
+                product_components_by_process.get(process_id, []),
+                refs,
+            )
             payload["security_activity_count"] = len(payload["security_activities"])
             payload["policy_requirement_count"] = len(payload["policy_requirements"])
             payload["technical_service_count"] = len(payload["technical_services"])
-            payload["product_example_count"] = len(payload["product_examples"])
+            payload["technology_module_count"] = len(payload["technology_modules"])
+            payload["technical_measure_count"] = len(payload["technical_measures"])
+            payload["development_product_component_count"] = len(payload["development_product_components"])
         else:
             payload["scenes"] = [
                 detailed_item(lifecycle_scenes[scene_id])
@@ -2191,9 +2252,15 @@ def export_lifecycle_knowledge(
                 for module_id in sort_lifecycle_items(technology_modules, modules_by_process.get(process_id, []))
                 if module_id in technology_modules
             ]
+            payload["technical_measures"] = [
+                detailed_item(technical_measures[measure_id])
+                for measure_id in sort_lifecycle_items(technical_measures, measures_by_process.get(process_id, []))
+                if measure_id in technical_measures
+            ]
             payload["scene_count"] = len(payload["scenes"])
             payload["technical_service_count"] = len(payload["technical_services"])
             payload["technology_module_count"] = len(payload["technology_modules"])
+            payload["technical_measure_count"] = len(payload["technical_measures"])
         return payload
 
     application_process_ids = [
@@ -2223,12 +2290,15 @@ def export_lifecycle_knowledge(
         "stats": {
             "application_processes": len(application_process_ids),
             "data_processes": len(data_process_ids),
+            "lifecycle_activities": len(lifecycle_activities),
             "lifecycle_scenes": len(lifecycle_scenes),
             "security_activities": len(security_activities),
             "policy_requirements": len(policy_requirements),
             "software_development_types": len(development_types),
             "application_system_types": len(application_system_types),
             "application_components": len(application_components),
+            "development_product_components": len(development_product_components),
+            "security_technical_measures": len(technical_measures),
             "service_module_index": len(service_module_index),
         },
         "application_security_development": {
@@ -2239,6 +2309,14 @@ def export_lifecycle_knowledge(
             "software_development_types": [
                 detailed_item(development_types[item_id])
                 for item_id in _sort_source_ids(development_types, list(development_types.keys()))
+            ],
+            "development_product_components": [
+                detailed_item(development_product_components[item_id])
+                for item_id in _sort_source_ids(development_product_components, list(development_product_components.keys()))
+            ],
+            "security_technical_measures": [
+                detailed_item(technical_measures[item_id])
+                for item_id in _sort_source_ids(technical_measures, list(technical_measures.keys()))
             ],
             "application_system_types": application_system_payloads,
         },

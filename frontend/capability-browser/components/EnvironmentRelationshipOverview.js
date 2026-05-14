@@ -29,9 +29,8 @@
         <div class="matrix-section-head">
           <div>
             <h3>${utils.escapeHtml(subtitle)}概览</h3>
-            <p>信息化环境 → 信息化对象 → 安全作用域 → 安全技术服务 → 安全技术模块/措施</p>
+            <p>信息化环境 → 环境子类 → 信息化对象 → 安全作用域 → 安全技术服务 → 安全技术模块/措施</p>
           </div>
-          <span>${utils.escapeHtml(summary.status || "正常")}</span>
         </div>
         <div class="environment-object-overview">
           <div class="environment-object-copy">
@@ -41,13 +40,12 @@
           </div>
           ${factList([
             { label: "所属信息化环境", value: environment?.title || "未命名环境" },
-            { label: "环境分段", value: segmentText },
+            { label: "环境子类", value: segmentText },
             { label: "对象数", value: summary.selectedObjectCount ?? 0 },
             { label: "作用域", value: summary.scopeCount ?? 0 },
             { label: "技术服务", value: summary.serviceCount ?? 0 },
             { label: "模块/措施", value: summary.moduleCount ?? 0 },
             { label: "无适用服务", value: summary.notApplicableCount ?? 0 },
-            { label: "模块待补充", value: summary.missingModuleCount ?? 0 },
           ])}
         </div>
       </section>

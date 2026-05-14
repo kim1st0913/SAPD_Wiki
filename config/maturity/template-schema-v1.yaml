@@ -1,0 +1,135 @@
+version: v1
+workbook:
+  file_type: xlsx
+  template_version_cell:
+    sheet: Assessment_Info
+    key: template_version
+  required_sheets:
+    - Assessment_Info
+    - Current_State_Input
+    - Reference_Capabilities
+    - Readme
+  optional_sheets:
+    - Evidence_List
+    - Manual_Adjustment
+sheets:
+  Assessment_Info:
+    mode: key_value
+    fields:
+      - name: assessment_name
+        required: true
+      - name: customer_name
+        required: true
+      - name: industry
+        required: false
+      - name: assessment_date
+        required: true
+      - name: assessor
+        required: true
+      - name: target_level
+        required: false
+        default: L3
+      - name: assessment_scope
+        required: true
+      - name: template_version
+        required: true
+        default: v1
+      - name: confidentiality
+        required: false
+        default: confidential
+      - name: note
+        required: false
+  Current_State_Input:
+    mode: table
+    fields:
+      - name: row_id
+        required: true
+      - name: business_scope
+        required: false
+      - name: scenario
+        required: false
+      - name: selected_capability_code
+        required: false
+      - name: selected_capability_title
+        required: false
+      - name: current_state_summary
+        required: true
+      - name: organization_status
+        required: false
+      - name: process_status
+        required: false
+      - name: technology_status
+        required: false
+      - name: operation_status
+        required: false
+      - name: metric_status
+        required: false
+      - name: improvement_status
+        required: false
+      - name: evidence_summary
+        required: false
+      - name: known_gaps
+        required: false
+      - name: expected_target_level
+        required: false
+      - name: importance_weight
+        required: false
+        default: 1
+      - name: assessor_note
+        required: false
+  Evidence_List:
+    mode: table
+    fields:
+      - name: evidence_id
+        required: true
+      - name: evidence_type
+        required: false
+      - name: file_name
+        required: false
+      - name: source_location
+        required: false
+      - name: summary
+        required: true
+      - name: linked_row_id
+        required: false
+      - name: sensitive_level
+        required: false
+        default: confidential
+  Manual_Adjustment:
+    mode: table
+    fields:
+      - name: row_id
+        required: true
+      - name: adjustment_type
+        required: true
+      - name: capability_code
+        required: false
+      - name: maturity_level
+        required: false
+      - name: maturity_score
+        required: false
+      - name: reviewer
+        required: false
+      - name: reviewer_note
+        required: true
+  Reference_Capabilities:
+    mode: generated_table
+    source: knowledge_items_and_relations
+    fields:
+      - category_code
+      - category_title
+      - domain_code
+      - domain_title
+      - capability_code
+      - capability_title
+      - focus_code
+      - focus_title
+      - path
+      - description
+      - status
+validation:
+  unsupported_template_version: error
+  missing_required_sheet: error
+  missing_required_field: error
+  unknown_capability_code: warning
+  duplicate_row_id: warning

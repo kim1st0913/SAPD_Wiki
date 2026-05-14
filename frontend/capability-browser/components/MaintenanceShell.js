@@ -13,7 +13,6 @@
         summaryBadge("情景", summary.scenarios ?? 0),
         summaryBadge("关联服务", summary.linkedServices ?? 0),
         summaryBadge("关联对象", summary.linkedObjects ?? 0),
-        summaryBadge("待补充", summary.missingFields ?? 0),
       ].join("");
     }
     if (section === "measures") {
@@ -23,7 +22,6 @@
         summaryBadge("适用作用域", summary.linkedScopes ?? 0),
         summaryBadge("关联环境", summary.linkedEnvironments ?? 0),
         summaryBadge("关联对象", summary.linkedObjects ?? 0),
-        summaryBadge("待补充", summary.missingMappings ?? 0),
       ].join("");
     }
     if (section === "processes") {
@@ -31,7 +29,6 @@
         summaryBadge("流程", summary.totalProcesses ?? 0),
         summaryBadge("L2 流程组", summary.processGroups ?? 0),
         summaryBadge("关联安全职能", summary.linkedFunctions ?? 0),
-        summaryBadge("L4 待补充", summary.missingActivities ?? 0),
       ].join("");
     }
     if (section === "work-functions") {
@@ -40,7 +37,14 @@
         summaryBadge("职能层", summary.layers ?? 0),
         summaryBadge("关联安全工作", summary.linkedWorks ?? 0),
         summaryBadge("关联流程", summary.linkedProcesses ?? 0),
-        summaryBadge("待补充", summary.missingFields ?? 0),
+      ].join("");
+    }
+    if (section === "security-works") {
+      return [
+        summaryBadge("安全工作", summary.totalSecurityWorks ?? 0),
+        summaryBadge("关联能力", summary.linkedCapabilities ?? 0),
+        summaryBadge("关联关注点", summary.linkedFocuses ?? 0),
+        summaryBadge("待补字段", summary.pendingFields ?? 0),
       ].join("");
     }
     if (section === "modules") {
@@ -49,7 +53,6 @@
         summaryBadge("关联服务", summary.linkedServices ?? 0),
         summaryBadge("关联作用域", summary.linkedScopes ?? 0),
         summaryBadge("关联对象", summary.linkedObjects ?? 0),
-        summaryBadge("待确认", summary.pendingConfirmation ?? 0),
       ].join("");
     }
     if (section === "references") {
@@ -57,7 +60,15 @@
         summaryBadge("参考项", summary.totalReferences ?? 0),
         summaryBadge("标准任务", summary.standardTasks ?? 0),
         summaryBadge("岗位参考", summary.roleReferences ?? 0),
-        summaryBadge("关联待补充", summary.missingLinks ?? 0),
+        summaryBadge("待复核", summary.pendingReview ?? 0),
+      ].join("");
+    }
+    if (section === "lcap-references") {
+      return [
+        summaryBadge("参考项", summary.totalReferences ?? 0),
+        summaryBadge("软件开发类型", summary.softwareTypes ?? 0),
+        summaryBadge("应用系统类型", summary.applicationSystemTypes ?? 0),
+        summaryBadge("应用组件", summary.applicationComponents ?? 0),
       ].join("");
     }
     return "";

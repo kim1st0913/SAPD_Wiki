@@ -352,7 +352,7 @@ G 列 `安全技术模块/措施` 不是单一对象来源，必须按原表语�
 | MAP-FUNC-R001 | work_function_group | belongs_to_layer | work_function_layer | 分组和层级均存在 |
 | MAP-FUNC-R002 | work_function | belongs_to_layer | work_function_layer | 职能和层级均存在 |
 | MAP-FUNC-R003 | work_function | performs_task | work_task | 工作任务非空 |
-| MAP-FUNC-R004 | work_function | maps_to_gbt_task | gbt_42446_task_reference | GB/T 引用非空 |
+| MAP-FUNC-R004 | work_function | maps_to_gbt_task | gbt_42446_task_reference | GB/T 引用非空；存储方向为安全职能 -> GB/T，同时导出 GB/T -> 安全职能反向查询投影 |
 
 ### 5.10 gartner工作岗位参考
 
@@ -368,7 +368,7 @@ G 列 `安全技术模块/措施` 不是单一对象来源，必须按原表语�
 
 | 规则编号 | 起点 | 关系 | 终点 | 条件 |
 |---|---|---|---|---|
-| MAP-GARTNER-R001 | work_function | references_role | work_role_reference | 第二批不自动生成，仅为后续人工维护预留 |
+| MAP-GARTNER-R001 | work_role_reference | references_role_candidate | work_function | 第二批自动生成双向候选映射投影，输出给用户复核；复核前不作为最终强关系 |
 
 ### 5.11 LC-DT 数据生命周期
 
@@ -408,19 +408,33 @@ G 列 `安全技术模块/措施` 不是单一对象来源，必须按原表语�
 
 ### 5.13 LC-AP 应用安全开发生命周期
 
-数据起始行：第 4 行。每行代表一个应用安全开发阶段，阶段下包含主要活动、安全活动、安全策略、开发类型、开发技术服务和产品示例。
+数据起始行：第 4 行。每行代表一个应用安全开发阶段，阶段下包含 IT L4 主要活动、安全活动、安全策略、软件开发模式适用性、关联安全技术服务、关联安全技术模块和开发类产品组件。
+
+业务口径：
+
+- `阶段（L3流程）` 是 IT 开发过程阶段，不是安全职能流程中的 L3 安全流程。
+- `阶段主要活动（L4流程活动）` 是 IT L4 流程活动分解，不单独作为知识来源维护。
+- 黄色底色的软件开发模式列表示该模式在该阶段适用。
+- 红色底色不作为 ETL 识别条件，按用户定义字段正常映射。
+- `安全活动定义` 中 `/` 映射为“无安全活动”，不生成空安全活动对象。
+- `开发技术服务`、`安全服务（带管理类）`、`安全技术服务` 均作为关联安全技术服务，按 `管理类`、`开发类`、`网络空间类` 分类。
+- `安全技术模块` 必须映射校验到既有 `安全技术模块清单`，无法匹配时输出数据问题，不静默新增模块主数据。
+- `实际产品示例` 定义为开发类产品组件，只在安全开发维度展示，不进入通用产品主数据。
+- Google SLSA 本轮不补充，后续作为补充安全策略来源再接入。
 
 | 规则编号 | 来源列 | 目标对象 | 目标字段 | 转换规则 | 必填 | 说明 |
 |---|---|---|---|---|---|---|
 | MAP-LCAP-001 | 阶段（L3流程） | lifecycle_process | title | T-TRIM | 是 | 应用安全开发阶段 |
 | MAP-LCAP-002 | 阶段目标 | lifecycle_process | goal / description | T-TRIM | 否 | 阶段目标进入 metadata 或 description |
-| MAP-LCAP-003 | 阶段主要活动（L4流程活动） | lifecycle_process / security_activity | metadata_json.main_activities | T-SPLIT-LINES | 否 | 先保留原始活动列表，非安全活动不拆成 process_activity |
+| MAP-LCAP-003 | 阶段主要活动（L4流程活动） | lifecycle_activity / lifecycle_process.metadata_json.main_activities | title | T-SPLIT-LINES | 否 | IT L4 流程活动，随阶段展示，不单独作为知识来源维护 |
 | MAP-LCAP-004 | 参考来源 | lifecycle_process / security_activity | metadata_json.reference_source | T-TRIM | 否 | GB/T 8566 或 T/ISC 来源 |
-| MAP-LCAP-005 | 安全活动定义 | security_activity | title / description | T-TRIM | 否 | 非 `/` 时生成安全活动 |
-| MAP-LCAP-006 | 安全活动对应安全策略 | security_policy_requirement | sequence / title / text | T-SPLIT-NUMBERED-LIST | 否 | 按编号拆分策略条目 |
-| MAP-LCAP-007 | 软件开发模式 | software_development_type / relation | title | T-COLUMN-BOOLEAN | 否 | 自研、定制、外购、SaaS 列被标记时生成适用关系 |
-| MAP-LCAP-008 | 开发技术服务 | security_technical_service / relation | title | T-SPLIT-LINES | 否 | 可复用已有服务，也允许新增开发技术服务对象 |
-| MAP-LCAP-009 | 实际产品示例 | product / relation | title | T-SPLIT-LINES | 否 | 作为产品示例，不代表正式产品库完整性 |
+| MAP-LCAP-005 | 安全活动定义 | security_activity | title / description | T-TRIM | 否 | `/` 映射为“无安全活动”，不生成对象 |
+| MAP-LCAP-006 | 安全活动对应安全策略 | security_policy_requirement | sequence / text / source_type | T-SPLIT-NUMBERED-LIST | 否 | 按编号拆分为安全策略条目，当前 `source_type=LC-AP` |
+| MAP-LCAP-007 | 软件开发模式 | software_development_type / relation | title | T-CELL-FILL-YELLOW | 否 | 黄色底色生成适用关系，非黄色不生成关系 |
+| MAP-LCAP-008 | 安全服务（带管理类） | security_technical_service / relation | title / service_category | T-SPLIT-LINES | 否 | `service_category=管理类` |
+| MAP-LCAP-009 | 安全技术服务 | security_technical_service / relation | title / service_category | T-SPLIT-BY-SEPARATOR | 否 | 横线上方为开发类，下方为网络空间类 |
+| MAP-LCAP-010 | 安全技术模块 | security_technology_module / relation | title | T-MATCH-EXISTING-MODULE | 否 | 必须匹配既有模块，未匹配输出数据问题 |
+| MAP-LCAP-011 | 实际产品示例 | development_product_component / relation | title | T-SPLIT-LINES | 否 | 开发类产品组件，不进入通用产品主数据 |
 
 关系生成：
 
@@ -428,13 +442,14 @@ G 列 `安全技术模块/措施` 不是单一对象来源，必须按原表语�
 |---|---|---|---|---|
 | MAP-LCAP-R001 | lifecycle_process | has_activity | security_activity | 安全活动定义非空且不为 `/` |
 | MAP-LCAP-R002 | security_activity | requires_policy | security_policy_requirement | 策略条目非空 |
-| MAP-LCAP-R003 | lifecycle_process / security_activity | applies_to_development_type | software_development_type | 对应开发模式列有标记 |
-| MAP-LCAP-R004 | lifecycle_process / security_activity | uses_service | security_technical_service | 开发技术服务非空 |
-| MAP-LCAP-R005 | lifecycle_process / security_activity | uses_product | product | 产品示例非空 |
+| MAP-LCAP-R003 | lifecycle_process | applies_to_development_type | software_development_type | 对应开发模式列为黄色底色 |
+| MAP-LCAP-R004 | lifecycle_process / security_activity | uses_service | security_technical_service | 关联安全技术服务非空 |
+| MAP-LCAP-R005 | lifecycle_process / security_activity / security_technical_service | uses_module | security_technology_module | 模块匹配既有安全技术模块清单 |
+| MAP-LCAP-R006 | lifecycle_process / security_technical_service | uses_development_product_component | development_product_component | 产品组件非空且可可靠归属 |
 
 ### 5.14 LC-AP 应用安全开发生命周期元素目录
 
-该 Sheet 包含两个字典区块：软件开发类型目录、应用系统类型目录。
+该 Sheet 包含两个字典区块：软件开发类型目录、应用系统类型目录。软件开发类型与应用系统类型没有映射关系，后续在同一页面上下分别展示。
 
 | 规则编号 | 来源区域 | 目标对象 | 目标字段 | 转换规则 | 必填 | 说明 |
 |---|---|---|---|---|---|---|

@@ -6,9 +6,9 @@
 
 ## Current Status
 
-- Status: phase_5_contracts_and_frontend_baseline_ready_for_business_review
+- Status: phase_5_second_batch_review_confirmed_pending_landing
 - Started: 2026-05-09
-- Current phase: Phase 5 - 关系化前端基线、接口契约与业务含义复核
+- Current phase: Phase 5 - 已导入 Sheet 业务含义复核与关系展示校正
 - Primary reference: `docs/00-overview/project-roadmap.md`
 
 ## Phases
@@ -27,6 +27,7 @@
 | 9 | 打包交付 | pending | local packaged app and user guide |
 | 10 | AI/RAG 增强 | optional | semantic search and cited Q&A |
 | G0 | 轻量治理 | complete | governance index, data governance, findings index |
+| M | 成熟度分析模块 | m0_complete | `docs/08-maturity/`, `config/maturity/`, later independent `maturity` module |
 
 ## Phase 0 Tasks
 
@@ -106,7 +107,9 @@
 - [x] Frontend/Main: restore a runnable 7-page relation-oriented navigation skeleton and rename `知识来源` to `专项知识维护`.
 - [x] Master Agent: integrate ETL and frontend outputs, then run local verification.
 - [x] Run overall frontend regression, close frozen Step 6.7 issues and document security technical measure contracts.
-- [ ] User / ChatGPT review: review the latest plan and decide the next data business-confirmation batch. This is a review gate, not a formal project Phase 7.
+- [x] User / ChatGPT review: review the latest plan and decide the next data business-confirmation batch. This is a review gate, not a formal project Phase 7.
+- [x] Confirm external ChatGPT step numbers, UI prototype and prototype code are review inputs only, not formal project phases.
+- [x] Confirm the next mainline is mapped Sheet business semantics review, not formal Phase 7 multi-format enhancement.
 
 ## Phase 5 Backend/Frontend Separation Tasks
 
@@ -117,10 +120,29 @@
 - [x] Confirm frontend owns navigation, table/matrix/relation-chain rendering, filtering, resizing and detail interaction only.
 - [x] Confirm static JSON is the MVP API contract, with future `/api/v1/*` local API preserving the same semantics.
 - [x] Add or refactor frontend `dataClient` so pages do not directly scatter business data fetching and shaping logic.
+- [x] Add ViewModel layer between `dataClient` and page rendering for capability, environment and maintenance views.
+- [x] Confirm frontend pages consume business projections through `dataClient` + ViewModel instead of scattered direct fetch and business shaping.
 - [x] Align current frontend JSON exports with the documented backend interface contract.
+- [x] Add `security_technical_measures` field contract and backend interface notes.
+- [x] Complete first-stage specialist maintenance closure for 6 pages: scope, process, work function, technology module, technical measure, standard/role reference.
 - [x] Review the Frontend Design Agent output against `chatgpt ui code.md`, `frontend-redesign-brief.md` and `backend-interface-design.md`.
 - [x] Complete first refactored capability relationship workspace technical baseline and regression.
 - [ ] User confirms business semantics of mapped sheets/pages before broader feature expansion.
+
+## Phase 5 Frontend Baseline Completion
+
+- [x] 能力维度完成第一阶段关系展示：能力树、当前关注点工作台、技术视角、管理视角、来源证据折叠区。
+- [x] 信息化环境维度完成第一阶段关系展示：环境 / 对象树，对象概览，对象-作用域-服务-模块/措施映射表。
+- [x] 专项知识维护完成第一阶段统一框架和 6 个页面闭环：
+  - [x] 作用域清单
+  - [x] 流程清单
+  - [x] 职能清单
+  - [x] 安全技术模块清单
+  - [x] 安全技术措施清单
+  - [x] 标准与岗位参考
+- [x] 安全技术措施 `security_technical_measures` 已导出、已补契约、已完成前端回归。
+- [x] G 列 `安全技术模块/措施` 分流口径已固化为安全技术模块、安全技术措施、说明类 / 待确认项。
+- [x] 当前 MVP 前端已通过静态浏览器页面 + 原生 JS + `dataClient` + ViewModel 跑通；不因旧技术决策强行引入 React/Vue。
 
 ## Phase 1 Remaining Sheet Modeling Tasks
 
@@ -140,7 +162,114 @@
 - [x] User confirmed first-batch core Sheet business meaning, primary keys and relation cardinality.
 - [x] Reimport first-batch core Sheets after user source updates and refresh frontend JSON exports.
 - [x] Reimport third-batch LC-AP after user fixed duplicate policy sequence numbers.
-- [ ] User confirms completed mapped Sheet business meaning, primary keys and relation cardinality.
+- [x] User confirms completed mapped Sheet business meaning, primary keys and relation cardinality for the first and second core batches.
+
+## Maturity Module Implementation Plan
+
+定位：成熟度分析模块是 SAPD Wiki 主工程下的独立 `maturity` 模块，读取现有安全能力知识库，评估运行数据使用 `maturity_*` 专用表，不写入 `knowledge_items`。
+
+当前边界：
+
+- 不直接修改主线业务代码；
+- 不实现复杂评分代码、图表代码和 UI；
+- 不改变当前 Phase 4/5 导入、关系展示和业务语义复核主线；
+- 初始 raw sample 以后按一个 Word、一个 PPTX 和一个 XLSX 准备，默认放在本地 `data/raw-samples/maturity/`，不提交 GitHub。
+
+| M Phase | Name | Status | Output |
+|---|---|---|---|
+| M0 | 需求固化、配置占位、接入 review 与主线集成检查 | complete | `docs/08-maturity/`, `docs/08-maturity/module-integration-review.md`, `docs/08-maturity/mainline-integration-check.md`, `config/maturity/*.yaml` |
+| M1 | 模型基准建模与主线一致性核对 | in_progress | `maturity_model_version`、`maturity_level_definition`、`maturity_capability_baseline`、`maturity_scope_service_baseline`、`maturity_mainline_match_result` 逻辑模型；第一版一致性差异清单已输出 |
+| M2 | 数据库与模板生成 MVP | pending | `maturity_*` 迁移、独立 maturity 包、`maturity-template` CLI、Reference_Capabilities / Reference_Level_Criteria / Reference_Mainline_Diff Sheet |
+| M3 | 模板导入与暂存 | pending | `maturity-import` CLI、Assessment_Info / Score_Input / Evidence_List 解析、导入校验报告 |
+| M4 | 匹配引擎、审查表与评分 | pending | exact code/title/relation/keyword 匹配、`maturity_match_result`、主线差异确认、L1-L5 聚合评分 |
+| M5 | 离线报告 | pending | 差距项、建议项、Markdown/HTML/JSON 报告快照 |
+| M6 | 前端页面接入 | pending | 成熟度评估入口、列表、上传、总览、能力明细和后续匹配审查页 |
+
+Maturity 模块关键决策：
+
+- V1 先采用 CLI + Excel 模板 + JSON/Markdown/HTML 报告闭环；
+- V1 前端页面暂缓到 M6，不影响当前关系化工作台主线；
+- 客户输入、评估报告和 staging 审查表默认写入 `data/maturity/`，不提交 GitHub；
+- 后端负责模板、匹配、评分和报告数据；前端只消费评估结果，不自行推断关系或评分。
+- 成熟度模型设计严格参考 Word 第 3.1 章，评估逻辑严格参考 Word 第 4 章，后续代码实现这两部分业务逻辑；
+- 成熟度评分对象固定为 `capability`、`capability_focus`；
+- 安全技术服务是平台与工具维度的技术输入、证据和匹配线索，不作为独立成熟度评分对象；
+- 评分要素固定为组织与角色、制度与流程、平台与工具、数据与信息；
+- Word 作为模型方法论基准，XLSX 作为评价基准表，二者进入 maturity 专用模型基准表；
+- 模型基准启用前必须与主工程已治理的安全能力、关注点、安全技术服务做一致性核对，并输出不一致项供人工确认。
+
+M1 进入条件：
+
+- 用户确认模型设计参考 Word 第 3.1 章，评估逻辑参考 Word 第 4 章；
+- 用户确认评分对象为 `capability`、`capability_focus`；
+- 用户确认安全技术服务作为平台与工具维度输入；
+- 用户确认四个固定评分要素；
+- 用户确认 Word 是模型方法论基准，XLSX 是评价基准表；
+- 用户确认模型基准需要与主工程已治理数据做一致性核对；
+- 用户确认后续正式客户评估以 Excel 评估模板作为主输入；
+- 用户确认 PPTX 作为教程、证据和报告风格参考；
+- 用户确认 V1 先 CLI + JSON/Markdown/HTML 报告，不做完整前端；
+- `data/maturity/` 本地数据隔离边界保持有效；
+- 第二批管理 / 流程 / 职能 / 岗位 Sheet 业务含义复核建议先完成；
+- 主控确认新增 `maturity_*` 迁移和 CLI 子命令不会打断当前主工程 Sheet 复核主线。
+
+M1 当前已完成：
+
+- 从新版 `sample 评分表.xlsx` 抽取成熟度能力基准和安全技术服务输入；
+- 与主工程 active `knowledge_items` 做只读一致性核对；
+- 输出 `docs/08-maturity/mainline-consistency-check.md`；
+- 输出 `data/exports/maturity/mainline-consistency-diff.csv/json`、`mainline-consistency-summary.json`；
+- 在 `config/maturity/field-mapping.sample.yaml` 中记录第一轮编码归一候选。
+
+## Next Mainline: Mapped Sheet Business Semantics Review
+
+下一主线冻结为：已导入 Sheet 的业务含义复核 + 前端关系展示校正。
+
+目标：
+
+- 逐 Sheet 复核业务含义；
+- 确认每张 Sheet 的主对象；
+- 确认主键或唯一约束；
+- 确认关系基数：`1:1`、`1:N`、`N:1`、`N:M`；
+- 确认主展示字段；
+- 确认来源证据字段；
+- 确认每张 Sheet 的关系应进入能力维度、信息化环境维度、专项知识维护、安全开发维度或数据生命周期维度；
+- 识别当前页面哪些只是“技术上可显示”，但业务表达仍需校正。
+
+复核优先顺序：
+
+第一优先级：第一批核心 Sheet
+
+- [x] 安全能力目录（Sheet Review 1.0 已复核，用户已确认层级、编码、排序）
+- [x] 安全能力作用域目录（Sheet Review 1.0 已复核，用户已补充 `I-PE 物理环境` 并提出前端展示修正）
+- [x] 信息化环境-信息化对象-安全作用域映射（Sheet Review 1.0 已复核，用户已确认环境子类正式层级和同名对象跨环境复用口径）
+- [x] 安全能力-安全技术服务（Sheet Review 1.0 已复核，用户已确认 `/` 无适用服务和多服务异常检测）
+- [x] 安全技术模块清单（Sheet Review 1.0 已复核，用户已确认安全系统、模块、产品口径）
+- [x] 作用域-安全技术服务-安全技术模块映射（Sheet Review 1.0 已复核，用户已确认模块 / 措施需显式区分）
+- [x] 用户回复第一批核心 Sheet Review 1.0，并确认大部分业务口径与前端修正方向。
+- [x] 用户确认第一批核心 Sheet Review 1.0 的剩余未清事项：`environment_segment` 为正式层级，中文口径为“环境子类”；前端修正项已进入统一问题清单，待下一轮执行。
+
+第二优先级：第二批管理、流程、职能、岗位相关 Sheet
+
+- [x] Sheet Review 2.0 复核草案已完成，结论见 `docs/03-import-etl/second-batch-business-review.md`
+- [x] 用户确认第二批 Sheet Review 2.0 的待确认事项
+- [x] 安全能力-安全工作（已确认安全工作独立编码、正式编码规则为 `SW-关注点编码-序号`、独立维护页，关注点到安全工作为 1:1 / 1:N）
+- [x] 安全能力-安全管理元素（high level）（已确认 L2 安全能力到 L2 流程组严格约束，组织职能相关方按四类展示）
+- [x] 安全职能流程清单（完善L4）（已确认同名 L3 原则上不跨 L2，发现异常需输出核对）
+- [x] 安全工作职能清单（已确认安全工作与安全职能无直接关系，GB/T 与安全职能支持双向映射查看；现有数据已有安全职能 -> GB/T 单向映射基础）
+- [x] Gartner 工作岗位参考（已确认与安全职能清单自动生成双向候选映射，用户复核后确认）
+- [x] 第二批修正落地：安全工作清单独立页面、L2 能力到 L2 流程组严格校验、GB/T 双向映射核对输出、Gartner 双向候选映射核对输出和待复核展示
+
+第三优先级：第三批 LC-AP 生命周期相关 Sheet
+
+- [x] 生成 LC-AP / LC-DT 生命周期相关 Sheet 业务语义复核草案
+- [x] 用户确认 LC-AP 生命周期相关 Sheet 的核心业务口径
+- [x] 完成 LC-AP 第一阶段数据契约设计（SLSA 暂不补充）
+- [x] 确认后续需要生成 `lifecycle-knowledge.json`
+- [x] 完成 LC-AP ETL/export 第一轮验证并生成 `lifecycle-knowledge.json`
+- [x] 用户确认并关闭 LC-AP 安全技术模块未匹配清单（见 `OI-039`）
+- [x] 完成安全开发维度 LC-AP 前端数据接入与 MVP 页面骨架。
+- [ ] 用户基于前端页面核对 LC-AP 主展示字段、参考区和关系表是否符合业务表达。
 
 ## Phase 4 Current Local Verification
 
@@ -190,7 +319,8 @@ Current local export files:
 | Decision | Current Choice | Reason |
 |---|---|---|
 | V1 database | SQLite | Local, simple, easy to back up |
-| V1 frontend | React + TypeScript | Mature ecosystem, easy UI expansion |
+| Current MVP frontend | Static browser pages + native JS + `dataClient` + ViewModel | 已经跑通本地静态关系工作台，避免当前阶段强行引入框架 |
+| Future optional frontend refactor | React + TypeScript | 作为后续可选重构方向，不是当前阶段强制技术栈 |
 | Desktop packaging | Tauri | Lightweight local app packaging |
 | V1 import priority | Excel, Markdown, DOCX | Best balance of value and difficulty |
 | Pre-development priority | Data discovery before coding | User needs guidance to define fields and ETL mappings |
@@ -218,15 +348,16 @@ Current local export files:
 
 ## Next Recommended Actions
 
-1. 用户将 `docs/00-overview/current-plan-for-chatgpt-review.md` 同步给 ChatGPT 做外部 review，重点检查下一阶段优先级和过度设计风险。
-2. 主控 Agent 根据 review 结果微调计划，但不把 ChatGPT 的临时 UI 编码步骤直接纳入正式项目 Phase，除非它与项目主线有明确共通性。
-3. 进入已完成映射 Sheet 的业务含义复核：逐张确认主键、对象边界、1:N / N:M 关系和前端展示含义。
-4. 完成业务含义复核后，再决定下一轮前端深化对象：能力维度、信息化环境维度、专项知识维护，或生命周期维度投影补齐。
+1. 进入已导入 Sheet 的业务含义复核，先从第一批核心 Sheet 开始。
+2. 每张 Sheet 按业务含义、主对象、主键/唯一约束、关系基数、主展示字段、来源证据字段和页面归属逐项确认。
+3. 根据复核结果修正前端关系展示，优先解决“技术上可显示但业务表达不准确”的页面。
+4. 完成第一、第二、第三批复核后，再决定是否生成 `lifecycle-knowledge.json` 并深化安全开发维度。
 5. PPT / Draw.io 多格式增强仍属于后续正式 Phase 7，不在当前立即启动。
 
 ## External Review / ChatGPT Handoff
 
 - 最新外部 review 资料：`docs/00-overview/current-plan-for-chatgpt-review.md`
+- 外部 ChatGPT review 已完成，当前采纳结论是：先做已导入 Sheet 业务含义复核，不进入正式 Phase 7。
 - 外部 ChatGPT 生成的 UI 代码或临时 Step 编号，只作为 review / prototype 输入，不自动成为本项目正式 Phase。
 - 只有当外部建议与本项目的数据契约、ETL、前端信息架构、用户工作流存在明确共通性时，才由主控 Agent 整合进 `task_plan.md`、`docs/` 或 `open-issues.md`。
 

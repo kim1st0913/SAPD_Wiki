@@ -23,13 +23,13 @@
             <span class="nav-symbol">⌁</span><span>关系总览</span><small>Overview</small>
           </button>
           <button id="capabilityTab" class="module-tab" type="button" data-view="capabilities">
-            <span class="nav-symbol">▣</span><span>能力维度</span><small>Capability</small>
+            <span class="nav-symbol">▣</span><span>安全能力映射</span><small>Capability</small>
           </button>
           <button id="environmentTab" class="module-tab" type="button" data-view="environment">
             <span class="nav-symbol">◫</span><span>信息化环境维度</span><small>Environment</small>
           </button>
           <button id="devLifecycleTab" class="module-tab" type="button" data-view="dev-lifecycle">
-            <span class="nav-symbol">◇</span><span>安全开发维度</span><small>LC-AP</small>
+            <span class="nav-symbol">◇</span><span>LC-AP开发安全生命周期</span><small>LC-AP</small>
           </button>
           <button id="dataLifecycleTab" class="module-tab" type="button" data-view="data-lifecycle">
             <span class="nav-symbol">◎</span><span>数据生命周期维度</span><small>LC-DT</small>
@@ -94,7 +94,7 @@
       <main id="capabilityWorkspace" class="capability-workspace is-hidden">
         <aside class="capability-tree-pane">
           <div class="pane-head">
-            <h2>能力维度树</h2>
+            <h2>安全能力树</h2>
             <button id="resetButton" type="button" title="重置选择">↺</button>
           </div>
           <div id="tree" class="tree"></div>
@@ -142,14 +142,14 @@
       <main id="devLifecycleWorkspace" class="lifecycle-workspace is-hidden">
         <aside class="lifecycle-nav-pane">
           <div class="pane-head">
-            <h2>安全开发维度</h2>
+            <h2>LC-AP开发安全生命周期</h2>
             <span id="devLifecycleCount" class="count-pill">0</span>
           </div>
           <div id="devLifecycleNav" class="lifecycle-nav"></div>
         </aside>
         <section class="lifecycle-main-pane">
           <div class="pane-head">
-            <h2>LC-AP 生命周期泳道</h2>
+            <h2>LC-AP开发安全生命周期</h2>
             <span class="type-pill">阶段 / 活动 / 策略</span>
           </div>
           <div id="devLifecycleLane" class="lifecycle-lane"></div>
@@ -214,7 +214,7 @@
               <strong id="measureCount">0</strong>
             </button>
             <button id="referencesPageTab" class="source-nav-button" type="button" data-source-page="references">
-              <span>标准与岗位参考</span>
+              <span>岗位参考页面</span>
               <strong id="referenceCount">0</strong>
             </button>
           </div>
@@ -291,6 +291,7 @@
     <script src="./components/EnvironmentRelationshipOverview.js"></script>
     <script src="./components/EnvironmentScopeServiceMatrix.js"></script>
     <script src="./components/EnvironmentDetailPanel.js"></script>
+    <script src="./components/ApplicationSecurityLifecycle.js"></script>
     <script src="./components/MaintenanceNavigation.js"></script>
     <script src="./components/MaintenanceShell.js"></script>
     <script src="./components/ScopeMaintenanceTable.js"></script>
@@ -298,6 +299,7 @@
     <script src="./components/WorkFunctionMaintenanceTable.js"></script>
     <script src="./components/TechnologyModuleMaintenanceTable.js"></script>
     <script src="./components/TechnicalMeasureMaintenanceTable.js"></script>
+    <script src="./components/LcapReferenceMaintenanceTable.js"></script>
     <script src="./components/StandardRoleReferenceTable.js"></script>
     <script src="./components/MaintenanceDetailPanel.js"></script>
     <script src="./components/TechnicalMeasureMaintenance.js"></script>

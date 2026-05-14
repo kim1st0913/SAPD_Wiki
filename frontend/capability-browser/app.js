@@ -5,6 +5,7 @@ const state = {
   content: null,
   activeView: "overview",
   activeMaintenancePage: "scopes",
+  activeReferenceTab: "gbt",
   activeContentPage: "html",
   selectedCapabilityId: null,
   selectedEnvironmentId: null,
@@ -181,7 +182,7 @@ function renderOverview() {
     "overviewMap",
     `
       <div class="relation-map">
-        ${["能力维度", "信息化环境维度", "安全开发维度", "数据生命周期维度", "专项知识维护", "说明与视图"]
+        ${["安全能力映射", "信息化环境维度", "LC-AP开发安全生命周期", "数据生命周期维度", "专项知识维护", "说明与视图"]
           .map((item) => `<div class="relation-node">${escapeHtml(item)}</div>`)
           .join("")}
       </div>
@@ -204,7 +205,6 @@ function renderOverview() {
     "overviewIssues",
     `
       <div class="issue-list">
-        <div><strong>L4关键活动</strong><span>${stats.management.process_activity_missing || 0} 条待补充</span></div>
         <div><strong>内容视图</strong><span>HTML / Draw.io / PPT 已预留入口</span></div>
         <div><strong>前端策略</strong><span>关系、矩阵、树表优先</span></div>
       </div>
@@ -316,6 +316,44 @@ function renderEnvironment() {
 }
 
 function renderLifecycle(kind) {
+  if (kind === "dev") {
+    const viewModels = window.sapdViewModels;
+    const components = window.sapdComponents || {};
+    const devWorkspace = $("devLifecycleWorkspace");
+    const devDetailPane = devWorkspace?.querySelector(".lifecycle-detail-pane");
+    devWorkspace?.classList.add("dev-lifecycle-workspace");
+    devDetailPane?.classList.add("is-hidden");
+    if (!viewModels?.buildApplicationSecurityLifecycleViewModel) {
+      setHtml("devLifecycleDetail", emptyState("安全开发视图模型未加载"));
+      return;
+    }
+    const viewModel = viewModels.buildApplicationSecurityLifecycleViewModel({
+      lifecycle: state.lifecycle,
+      selectedProcessId: state.selectedDevProcessId,
+      search: state.search,
+    });
+    state.selectedDevProcessId = viewModel.relationshipSummary?.selectedProcessId || viewModel.selectedProcess?.id || null;
+    setText("devLifecycleCount", viewModel.navigationTree.length);
+    setText("devLifecycleType", viewModel.dataState || "LC-AP");
+    setHtml(
+      "devLifecycleNav",
+      components.ApplicationSecurityLifecycle?.renderNavigation({
+        stageTree: viewModel.stageTree,
+        selectedProcessId: state.selectedDevProcessId,
+      }) || emptyState("安全开发阶段树组件未加载"),
+    );
+    setHtml(
+      "devLifecycleLane",
+      `
+        ${components.ApplicationSecurityLifecycle?.renderStageOverview(viewModel) || ""}
+        ${components.ApplicationSecurityLifecycle?.renderRelationTable({ rows: viewModel.relationRows }) || ""}
+        ${components.ApplicationSecurityLifecycle?.renderLocalRelationNotes(viewModel.localRelationNotes) || ""}
+        ${components.SourceEvidencePanel ? components.SourceEvidencePanel.render(viewModel.sourceEvidence) : ""}
+      `,
+    );
+    setHtml("devLifecycleDetail", "");
+    return;
+  }
   const processes = lifecycleProcesses(kind).filter((process) => matchesSearch(process.title, process.description, process.goal));
   const selectedKey = kind === "dev" ? "selectedDevProcessId" : "selectedDataProcessId";
   if (!state[selectedKey]) state[selectedKey] = processes[0]?.id || null;
@@ -367,12 +405,16 @@ function renderMaintenance() {
     return;
   }
   const viewModel = viewModels.buildMaintenanceWorkspaceViewModel({
+    capabilityTree: state.capability,
     management: state.management,
+    lifecycle: state.lifecycle,
     section: state.activeMaintenancePage,
     selectedId: state.selectedMaintenanceId,
     search: state.search,
+    referenceTab: state.activeReferenceTab,
   });
   state.activeMaintenancePage = viewModel.section;
+  state.activeReferenceTab = viewModel.referenceTab || state.activeReferenceTab;
   state.selectedMaintenanceId = viewModel.selectedId;
   setHtml("maintenanceNavigation", components.MaintenanceNavigation?.render({ navigationItems: viewModel.navigationItems }) || "");
   setText("sourcePageTitle", viewModel.page?.title || "专项知识维护");
@@ -384,10 +426,20 @@ function renderMaintenance() {
     tableHtml = components.ProcessMaintenanceTable?.render({ rows: viewModel.rows, selectedId: viewModel.selectedId, emptyState: viewModel.emptyState }) || tableHtml;
   } else if (viewModel.section === "work-functions") {
     tableHtml = components.WorkFunctionMaintenanceTable?.render({ rows: viewModel.rows, selectedId: viewModel.selectedId, emptyState: viewModel.emptyState }) || tableHtml;
+  } else if (viewModel.section === "security-works") {
+    tableHtml = components.SecurityWorkMaintenanceTable?.render({ rows: viewModel.rows, selectedId: viewModel.selectedId, emptyState: viewModel.emptyState }) || tableHtml;
   } else if (viewModel.section === "modules") {
     tableHtml = components.TechnologyModuleMaintenanceTable?.render({ rows: viewModel.rows, selectedId: viewModel.selectedId, emptyState: viewModel.emptyState }) || tableHtml;
   } else if (viewModel.section === "measures") {
     tableHtml = components.TechnicalMeasureMaintenanceTable?.render({ rows: viewModel.rows, selectedId: viewModel.selectedId, emptyState: viewModel.emptyState }) || tableHtml;
+  } else if (viewModel.section === "lcap-references") {
+    tableHtml =
+      components.LcapReferenceMaintenanceTable?.render({
+        softwareRows: viewModel.softwareRows,
+        applicationRows: viewModel.applicationRows,
+        selectedId: viewModel.selectedId,
+        emptyState: viewModel.emptyState,
+      }) || tableHtml;
   } else if (viewModel.section === "references") {
     tableHtml =
       components.StandardRoleReferenceTable?.render({
@@ -395,6 +447,7 @@ function renderMaintenance() {
         roleRows: viewModel.roleRows,
         selectedId: viewModel.selectedId,
         emptyState: viewModel.emptyState,
+        activeTab: viewModel.referenceTab,
       }) || tableHtml;
   }
   setHtml(
@@ -426,7 +479,7 @@ function visibleWorkspaceElements() {
 }
 
 function workspacePanes(workspace) {
-  return [...workspace.children].filter((child) => !child.classList.contains("workspace-resizer"));
+  return [...workspace.children].filter((child) => !child.classList.contains("workspace-resizer") && !child.classList.contains("is-hidden"));
 }
 
 function applyWorkspaceGrid(workspace, widths) {
@@ -441,6 +494,7 @@ function defaultWorkspaceWidths(workspace, panes) {
   const rest = (...fixed) => Math.max(220, total - fixed.reduce((sum, value) => sum + value, 0));
   if (workspace.id === "capabilityWorkspace") return [310, rest(310)];
   if (workspace.id === "environmentWorkspace") return [300, rest(300)];
+  if (workspace.id === "devLifecycleWorkspace" && panes.length === 2) return [300, rest(300)];
   if (workspace.id === "devLifecycleWorkspace" || workspace.id === "dataLifecycleWorkspace") return [270, rest(270, 220), 220];
   if (workspace.id === "maintenanceWorkspace") return [220, rest(220, 260), 260];
   if (workspace.id === "contentWorkspace") return [220, rest(220, 260), 260];
@@ -670,10 +724,18 @@ function bindEvents() {
     const button = event.target.closest("[data-source-page]");
     if (!button) return;
     state.activeMaintenancePage = button.dataset.sourcePage;
+    if (state.activeMaintenancePage === "references" && !state.activeReferenceTab) state.activeReferenceTab = "gbt";
     state.selectedMaintenanceId = null;
     renderMaintenance();
   });
   $("sourceList")?.addEventListener("click", (event) => {
+    const tab = event.target.closest("[data-reference-tab]");
+    if (tab) {
+      state.activeReferenceTab = tab.dataset.referenceTab;
+      state.selectedMaintenanceId = null;
+      renderMaintenance();
+      return;
+    }
     const row = event.target.closest("[data-maintenance-id]");
     if (!row) return;
     state.selectedMaintenanceId = row.dataset.maintenanceId;

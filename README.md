@@ -60,6 +60,16 @@
 - `docs/07-governance/governance-index.md`：轻量治理入口。
 - `docs/07-governance/data-governance.md`：数据标准化、去重、冲突、旧对象停用、验证等级和 metadata 字段升级规则。
 
+### 成熟度分析模块
+
+- `docs/08-maturity/module-integration-review.md`：成熟度模块接入主工程的架构 review 和文件结构建议。
+- `docs/08-maturity/requirements.md`：成熟度分析模块需求与边界。
+- `docs/08-maturity/data-model.md`：`maturity_*` 专用数据模型设计。
+- `docs/08-maturity/scoring-rules.md`：L0-L5 评分模型、匹配和聚合规则。
+- `docs/08-maturity/template-design.md`：客户评估 Excel 模板设计。
+- `docs/08-maturity/implementation-plan.md`：M0-M5 分阶段实施计划。
+- `config/maturity/`：成熟度等级、评分规则、关键词、模板 schema 和报告结构配置。
+
 ### 用户说明
 
 - `docs/04-user-guide/user-guide.md`：用户指南。
@@ -122,6 +132,19 @@ python scripts/sapd_wiki.py export-report --sample-limit 20
 ```
 
 导出文件默认生成在 `data/exports/`，该目录不提交 GitHub。
+
+成熟度分析模块命令占位：
+
+```bash
+python scripts/sapd_wiki.py maturity-template --output data/maturity/templates/customer-maturity-template-v1.xlsx
+python scripts/sapd_wiki.py maturity-import data/maturity/inputs/<customer-assessment>.xlsx
+python scripts/sapd_wiki.py maturity-match <assessment_id>
+python scripts/sapd_wiki.py maturity-export-review <assessment_id> --type match
+python scripts/sapd_wiki.py maturity-score <assessment_id>
+python scripts/sapd_wiki.py maturity-report <assessment_id> --format html
+```
+
+上述 maturity 命令尚未实现，目前只是后续独立模块的 CLI 规划占位。成熟度评估运行数据后续使用 `maturity_*` 专用表，不写入 `knowledge_items`。
 
 当前干净重建后的正式验收报告位于：
 

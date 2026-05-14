@@ -24,7 +24,7 @@
     return `
       <aside class="capability-tree-pane app-shell-secondary">
         <div class="pane-head">
-          <h2>能力维度</h2>
+          <h2>安全能力映射</h2>
           <button id="resetButton" type="button" title="重置选择">↺</button>
         </div>
         <div id="tree" class="tree"></div>

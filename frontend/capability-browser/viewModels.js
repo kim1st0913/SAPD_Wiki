@@ -2004,8 +2004,8 @@
       : null;
     return {
       dataState,
-      title: "安全开发维度",
-      description: "展示 LC-AP 应用安全开发生命周期中阶段、活动、策略、技术服务、模块、措施和开发类参考对象之间的关系。",
+      title: "LC-AP开发安全生命周期",
+      description: "展示 LC-AP 开发安全生命周期中阶段、活动、策略、技术服务、模块、措施和开发类参考对象之间的关系。",
       navigationTree,
       stageTree: navigationTree,
       selectedProcess: selectedStageRow,
@@ -2035,7 +2035,7 @@
         ? ""
         : dataState === "missing_file"
           ? "未找到 lifecycle-knowledge.json，请先执行 LC-AP 数据导出。"
-          : "暂无 LC-AP 安全开发生命周期数据，请确认 lifecycle-knowledge.json 是否已导出。",
+          : "暂无 LC-AP 开发安全生命周期数据，请确认 lifecycle-knowledge.json 是否已导出。",
     };
   }
 

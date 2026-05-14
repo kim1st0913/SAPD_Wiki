@@ -182,7 +182,7 @@ function renderOverview() {
     "overviewMap",
     `
       <div class="relation-map">
-        ${["安全能力映射", "信息化环境维度", "安全开发维度", "数据生命周期维度", "专项知识维护", "说明与视图"]
+        ${["安全能力映射", "信息化环境维度", "LC-AP开发安全生命周期", "数据生命周期维度", "专项知识维护", "说明与视图"]
           .map((item) => `<div class="relation-node">${escapeHtml(item)}</div>`)
           .join("")}
       </div>

@@ -418,7 +418,7 @@
           ? "未找到 lifecycle-knowledge.json，请先执行 LC-AP 数据导出。"
           : hasApplicationData
             ? ""
-            : "暂无安全开发生命周期数据，请确认 ETL 是否已导出 application_security_development。",
+            : "暂无开发安全生命周期数据，请确认 ETL 是否已导出 application_security_development。",
         processes,
         software_development_types: list(appSecurity.software_development_types),
         development_product_components: list(appSecurity.development_product_components),

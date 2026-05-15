@@ -627,6 +627,7 @@
     return service?.id || service?.code || service?.title || service?.name || "";
   }
 
+  // Fallback only: used when /api/v1/capabilities/workspace-projection is unavailable.
   function buildServiceModuleMeasureLinks(technicalRows) {
     const links = new Map();
     for (const row of list(technicalRows)) {
@@ -663,6 +664,7 @@
     }));
   }
 
+  // Fallback only: used when backend localRelationMap projection is unavailable.
   function buildCapabilityLocalRelationMap({ selectedDetail, detailRawProcesses, detailTechnicalRows, detailManagementRows, detailSourceEvidence }) {
     const firstManagementRow = detailManagementRows[0] || {};
     const modules = uniqueBy(
@@ -700,6 +702,25 @@
       },
       sourceEvidence: detailSourceEvidence,
     };
+  }
+
+  function isReadyCapabilityProjection(capabilityProjection) {
+    if (!capabilityProjection) return false;
+    const dataState = text(capabilityProjection.data_state || capabilityProjection.dataState || "").trim();
+    if (dataState && dataState !== "ready") return false;
+    return Boolean(capabilityProjection.localRelationMap || capabilityProjection.localRelationMapsByFocusId || list(capabilityProjection.localRelationMaps).length);
+  }
+
+  function projectedLocalRelationMapFor(capabilityProjection, selectedFocusId) {
+    if (!isReadyCapabilityProjection(capabilityProjection)) return null;
+    const byFocusId = capabilityProjection.localRelationMapsByFocusId || capabilityProjection.local_relation_maps_by_focus_id || {};
+    if (selectedFocusId && byFocusId[selectedFocusId]) return byFocusId[selectedFocusId];
+    const maps = list(capabilityProjection.localRelationMaps || capabilityProjection.local_relation_maps);
+    if (selectedFocusId) {
+      const selectedMap = maps.find((item) => item?.focus?.id === selectedFocusId);
+      if (selectedMap) return selectedMap;
+    }
+    return capabilityProjection.localRelationMap || capabilityProjection.local_relation_map || maps[0] || null;
   }
 
   function buildCapabilityWorkspaceViewModel({ capabilityTree, capabilityProjection, management, selectedCapabilityId, search, relationshipFilters }) {
@@ -743,13 +764,17 @@
     const detailSecurityWorks = isFocus ? managementMappingRows.find((row) => row.focus.id === selectedDetail.id)?.securityWorks || [] : uniqueBy(managementMappingRows.flatMap((row) => row.securityWorks), (work) => work.id || work.code || work.title);
     const detailSourceItems = [...list(detailRaw?.security_works), ...list(detailRaw?.scope_mappings)];
     const detailSourceEvidence = sourceEvidenceFor(detailRaw, detailRawProcesses, detailSourceItems);
-    const localRelationMap = buildCapabilityLocalRelationMap({
-      selectedDetail,
-      detailRawProcesses,
-      detailTechnicalRows,
-      detailManagementRows,
-      detailSourceEvidence,
-    });
+    const projectedFocusId = isFocus ? selectedDetail.id : selectedFocusRow?.focus?.id || null;
+    const projectedLocalRelationMap = projectedLocalRelationMapFor(capabilityProjection, projectedFocusId);
+    const localRelationMap =
+      projectedLocalRelationMap ||
+      buildCapabilityLocalRelationMap({
+        selectedDetail,
+        detailRawProcesses,
+        detailTechnicalRows,
+        detailManagementRows,
+        detailSourceEvidence,
+      });
 
     return {
       navigationTree,
@@ -767,6 +792,7 @@
       technicalMappingRows,
       managementMappingRows,
       localRelationMap,
+      localRelationMapSource: projectedLocalRelationMap ? "backend_projection" : "viewmodel_fallback",
       localRelationshipNotes: buildLocalRelationshipNotes(chainFocus, technicalMappingRows, managementMappingRows),
       relationshipMatrixRows: rows,
       relationshipChainRows: buildRelationshipChainRows(chainFocus),

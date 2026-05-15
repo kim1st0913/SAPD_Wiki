@@ -16,6 +16,10 @@
 | 来源追踪 | 知识对象和关系必须保留来源文件、位置、hash 和导入任务 | `docs/06-implementation/local-data-layout.md` |
 | 问题管理 | bug、数据问题、页面问题统一维护在 `open-issues.md` | `docs/06-implementation/open-issues.md` |
 | maturity 边界 | maturity 是主工程下独立模块；运行数据使用 `maturity_*`，不写入 `knowledge_items` | `docs/08-maturity/` |
+| 后续项目推进方式 | 后续计划拆成“前端页面设计线”和“后端数据 / 逻辑线”；每页按后端投影契约 -> 前端页面实现 -> 验收回归推进 | `task_plan.md` |
+| 页面优先级 | 先收敛安全能力映射页作为关系画布基准，再推进信息化环境维度页，最后推进 LC-AP 页 | `task_plan.md` |
+| BE-0 契约盘点 | 当前仅安全能力映射页有页面级投影；环境页和 LC-AP 页仍主要依赖 `data-packages` + ViewModel 整理 | `docs/01-architecture/api-offline-package-contract-inventory.md` |
+| 全站菜单与页面类型 | 最新全站菜单、页面类型枚举、路由建议、导航 Manifest、Stitch 交接说明和全局导航 / 应用壳 Stitch Prompt 已固化；Manifest 与 Stitch 输出不接入运行代码，需先转 implementation spec | `docs/00-overview/frontend-menu-and-page-type-definition-v1.md`, `frontend/design-handoff/README.md`, `frontend/design-handoff/navigation/nav-manifest.v1.json`, `frontend/design-handoff/stitch-prompts/00-application-shell.md` |
 
 ## 当前重要风险
 
@@ -27,6 +31,8 @@
 | 前后端边界漂移 | 新页面、新字段和新关系先更新后端契约，再进入前端实现；禁止组件直接读取原始数据或临时 JSON |
 | 非业务字段泄露 | 主展示区不得出现 `sheet`、`row`、`raw_value`、`metadata` 等非业务字段 |
 | 成熟度模块污染主知识库 | maturity 只读引用主知识库，客户输入、证据、评分和报告留在 maturity 运行域 |
+| 前端画布反复试错导致结构漂移 | 安全能力映射页先作为基准页收敛验收标准；未确认前不复制到环境页和 LC-AP 页 |
+| 已规划接口与已实现接口不一致 | `api-field-contract.md` 中部分 `/api/v1/environments/*`、`/api/v1/lifecycle/*`、`/api/v1/maintenance/technical-measures` 等接口尚未在 `api_server.py` 中实现；后续实现前需明确“规划接口”和“实际接口” |
 
 ## 历史入口
 

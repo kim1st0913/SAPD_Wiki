@@ -45,7 +45,9 @@
 
   function statusText(status) {
     if (status === "ambiguous") return "待确认";
+    if (status === "ambiguous_service_mapping") return "待确认";
     if (status === "missing") return "待补充";
+    if (status === "no_service") return "不适用";
     if (status === "not_applicable") return "不适用";
     if (status === "pending") return "待确认";
     if (status === "description") return "说明类";
@@ -87,7 +89,7 @@
         <span class="node-kicker">当前关注点</span>
         <strong>${escape(valueOf(focus.name, "未命名关注点"))}</strong>
         <em>${escape(valueOf(focus.code, "无编码"))}</em>
-        <p>${escape(valueOf(focus.description, "用于定位当前安全能力关注点，并从技术和管理两个视角查看落地关系。"))}</p>
+        <p>${escape(valueOf(focus.description, "从技术和管理两个视角查看当前关注点的落地关系。"))}</p>
       </div>
     `;
   }
@@ -119,15 +121,17 @@
     const serviceCode = valueOf(pair.serviceCode || link?.serviceCode, "服务");
     return `
       <article class="service-relation-group status-${escape(pair.status || link?.status || "normal")}" style="--flow-index:${index}">
-        <div class="relation-node scope-node-v2">
-          <span>${escape(scopeCode)}</span>
-          <strong>${escape(scopeName)}</strong>
-        </div>
-        <div class="flow-connector" aria-hidden="true"><span></span></div>
-        <div class="relation-node service-node-v2">
-          <span>${escape(statusText(pair.status || link?.status))}</span>
-          <strong>${escape(serviceName)}</strong>
-          <em>${escape(serviceCode)}</em>
+        <div class="service-flow-path">
+          <div class="relation-node scope-node-v2">
+            <span>${escape(scopeCode)}</span>
+            <strong>${escape(scopeName)}</strong>
+          </div>
+          <div class="flow-connector" aria-hidden="true"><span></span></div>
+          <div class="relation-node service-node-v2">
+            <span>${escape(statusText(pair.status || link?.status))}</span>
+            <strong>${escape(serviceName)}</strong>
+            <em>${escape(serviceCode)}</em>
+          </div>
         </div>
         <div class="service-output-panel">
           <section class="service-output-section module-output">
@@ -154,6 +158,7 @@
             <strong>技术视角</strong>
             <p>作用域 → 安全技术服务 → 该服务自己的模块 / 措施</p>
           </div>
+          <em>${pairs.length} 条映射</em>
         </div>
         <div class="service-relation-list">
           ${pairs.length ? pairs.map((pair, index) => renderServiceGroup(pair, linkMap, index)).join("") : '<div class="canvas-empty-card">暂无作用域与服务映射</div>'}
@@ -214,7 +219,7 @@
                   .map(
                     (group, index) => `
                       <details class="process-l2-v2" ${index === 0 ? "open" : ""}>
-                        <summary><strong>${escape(valueOf(group.l2ProcessGroup, "待补充"))}</strong><span>${list(group.l3Processes).length} 个 L3</span></summary>
+                        <summary><strong>${escape(entityName(group.l2ProcessGroup, "待补充"))}</strong><span>${list(group.l3Processes).length} 个 L3</span></summary>
                         <div class="process-l3-list-v2">
                           ${list(group.l3Processes)
                             .map(
@@ -252,7 +257,9 @@
         </div>
         <div class="management-stack-v2">
           ${renderSecurityWorks(management.securityWorks)}
+          <div class="management-flow-bridge-v2" aria-hidden="true"></div>
           ${renderWorkFunctionLayers(management)}
+          <div class="management-flow-bridge-v2" aria-hidden="true"></div>
           ${renderProcessTree(management)}
         </div>
       </section>

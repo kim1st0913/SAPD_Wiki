@@ -20,85 +20,77 @@
 
 ## 最近记录
 
-### 2026-05-15 前后端分离阶段性收口
+### 2026-05-15 BE-1 安全能力映射页投影补强
 
-任务：用户要求先把前后端分离工作收口。
-
-本次调整：
-
-- 新增 `docs/01-architecture/frontend-backend-separation-closure.md`，集中说明本轮收口结论、已完成接口、fallback 边界、验收标准和后续受控事项。
-- 更新 `README.md`、`CURRENT_STATE.md` 和 `task_plan.md`，将前后端分离收口说明作为后续恢复和继续推进的入口。
-- 明确本轮不继续扩展新页面投影，后续应按单独小任务推进信息化环境维度页或 LC-AP 页的后端投影。
-
-验证：
-
-- `python3 -m py_compile src/sapd_wiki/api_server.py src/sapd_wiki/cli.py` 通过。
-- `node --check frontend/capability-browser/dataClient.js`、`node --check frontend/capability-browser/app.js`、`node --check frontend/capability-browser/viewModels.js` 通过。
-- `PYTHONPATH=src python3 -c ...` 验证能力投影为 `ready`，技术映射 379 行、管理映射 91 行、关注点 91 个；专项 `scopes` 为 10 条。
-- `python3 scripts/sapd_wiki.py serve --help` 通过。
-- `rg -n ...` 检查当前有效文档，未发现待补充占位或旧口径冲突。
-- `git diff --check` 通过。
-- Git：已创建本地提交 `frontend backend separation closure`；推送到 GitHub 时被当前环境安全策略拦截，未完成远端推送。
-
-### 2026-05-15 能力映射关系投影下沉
-
-任务：执行前后端分离下一步，把现有前端 `ViewModel` 中承担的业务关系整理逐步下沉到后端 API / 数据包投影层。
+任务：将安全能力映射页关系画布需要的 `scopeServicePairs`、`serviceModuleMeasureLinks`、`workFunctionsByLayer`、`processTree` 下沉到 `/api/v1/capabilities/workspace-projection`。
 
 本次调整：
 
-- 新增 `GET /api/v1/capabilities/workspace-projection`，由 `src/sapd_wiki/api_server.py` 生成安全能力映射页的技术视角和管理视角关系投影。
-- 更新 `frontend/capability-browser/dataClient.js`，新增 `getCapabilityWorkspaceProjection()`，优先读取后端投影接口。
-- 更新 `frontend/capability-browser/app.js` 和 `frontend/capability-browser/viewModels.js`，安全能力映射页优先消费后端投影；API 不可用时保留 ViewModel fallback。
-- 更新 `docs/01-architecture/backend-interface-design.md`、`docs/01-architecture/api-field-contract.md`、`README.md`、`frontend/capability-browser/README.md` 和 `task_plan.md`，记录新接口和边界。
+- 更新 `src/sapd_wiki/api_server.py`，在能力页 workspace projection 中新增 `localRelationMap`、`localRelationMaps`、`localRelationMapsByFocusId`。
+- `localRelationMap.technical` 输出 `scopeServicePairs` 和 `serviceModuleMeasureLinks`，保留作用域到服务 pair，并按服务分别输出模块和措施。
+- `localRelationMap.management` 输出 `securityWorks`、五组 `workFunctionsByLayer` 和 L2 / L3 / L4 `processTree`。
+- `sourceEvidence` 独立输出来源证据，主展示结构不带 `sheet`、`row`、`column` 等来源字段。
+- 更新 `docs/01-architecture/api-offline-package-contract-inventory.md`，记录 BE-1 投影结构和剩余前端消费替换事项。
+- 更新 `task_plan.md`，将 BE-1 标记为已完成。
 
 验证：
 
-- `python3 -m py_compile src/sapd_wiki/api_server.py src/sapd_wiki/cli.py` 通过。
-- `node --check frontend/capability-browser/dataClient.js`、`node --check frontend/capability-browser/app.js`、`node --check frontend/capability-browser/viewModels.js` 通过。
-- `PYTHONPATH=src python3 -c ...` 直接调用 `capability_workspace_projection()` 通过，结果为 `ready`，技术映射 379 行、管理映射 91 行、关注点 91 个。
-- 本地 API 路由验证首次因沙箱禁止绑定 `127.0.0.1` 失败；使用授权后的同进程临时服务验证 `/api/v1/capabilities/workspace-projection` 返回 200，结果为 `ready`。
-- `git diff --check` 通过。
+- `python3 -m py_compile src/sapd_wiki/api_server.py` 通过。
+- 直接调用 `capability_workspace_projection()` 返回 `data_state=ready`。
+- 当前默认测试关注点 `T-AS.AD-01`：`scopeServicePairs=7`，`serviceModuleMeasureLinks=6`，四层职能计数为 `decision=0`、`management=5`、`execution=4`、`supervision=0`、`unknown=0`，`processTree=1`。
+- 现有 `technicalMappingRows` 和 `managementMappingRows` 仍保留。
+- 本轮未修改 SQLite schema、原始 Excel、前端样式或 `public/data/*.json`。
 
-### 2026-05-15 全工程前后端分离规则固化
+### 2026-05-15 Frontend Menu and Page Type Definition V1
 
-任务：用户明确要求“整个工程都要遵守前后端分离”。
+任务：用户要求根据最新全站菜单结构，完成前端菜单定义、页面类型定义、导航 Manifest 和 Stitch 设计交接准备。
 
 本次调整：
 
-- 更新 `AGENTS.md`，将前后端分离写入全工程开发规则。
-- 更新 `CURRENT_STATE.md`、`task_plan.md` 和 `findings.md`，把 API / 后端契约优先作为后续恢复、计划和风险判断的当前有效口径。
-- 更新 `docs/01-architecture/backend-interface-design.md`，将运行模式从“静态 JSON MVP、未来 API”修正为“本地 API 优先、离线数据包 fallback”。
-- 更新 `docs/01-architecture/api-field-contract.md` 和 `docs/04-user-guide/frontend-baseline-1.0-plan.md`，明确 `dataClient`、`/api/v1/*`、ViewModel 和离线 JSON 的边界。
-- 更新 `README.md`，补充全工程前后端分离说明。
+- 新增 `docs/00-overview/frontend-menu-and-page-type-definition-v1.md`，固化页面类型枚举、全站一级菜单、二级菜单、路由建议、设计重点、不适合方式和 Stitch 设计顺序。
+- 新增 `frontend/design-handoff/navigation/nav-manifest.v1.json`，作为 Stitch 设计交接和后续 Codex 实现参考，不接入运行代码。
+- 新增 `docs/00-overview/stitch-design-handoff-v1.md`，说明 Stitch 输入文件、设计顺序、全局设计边界和后续 Codex 实现边界。
+- 新增 `frontend/design-handoff/README.md`，说明设计交接目录定位、导航基线、Stitch 设计顺序、Stitch 输出使用规则和推荐目录结构。
+- 新增 `frontend/design-handoff/stitch-prompts/00-application-shell.md`，作为后续提交给 Stitch 的全局导航 / 应用壳设计提示词。
+- 新增 `frontend/design-handoff/sample-data/.gitkeep`、`frontend/design-handoff/stitch-outputs/.gitkeep`、`frontend/design-handoff/implementation-specs/.gitkeep`，保留样例数据、Stitch 输出和 implementation specs 目录。
+- 更新 `task_plan.md` 和 `findings.md`，记录 FE-IA 已完成。
 
 验证：
 
-- `rg -n "未来 API|未来接口|静态 JSON 作为 MVP|后续切换|不强制启动本地 HTTP API|再切换为" docs README.md AGENTS.md CURRENT_STATE.md task_plan.md findings.md`：除历史归档外，未发现当前有效文档中残留冲突口径。
-- `python3 -m py_compile src/sapd_wiki/api_server.py src/sapd_wiki/cli.py` 通过。
-- `node --check frontend/capability-browser/dataClient.js` 通过。
-- `python3 scripts/sapd_wiki.py serve --help` 通过。
-- `PYTHONPATH=src python3 -c ...` 验证 `management` 数据包可读取，`scopes` 专项页面为 10 条。
-- `git diff --check` 通过。
+- 本轮未修改运行中的前端页面代码、ETL、数据库、数据模型或现有导出 JSON。
+- `nav-manifest.v1.json` 已通过 JSON 解析、字段完整性、页面类型枚举和优先级枚举检查。
+- 下一步建议基于 `frontend/design-handoff/stitch-prompts/00-application-shell.md` 进行 Stitch 全局导航 / 应用壳设计。
 
-### 2026-05-15 专项知识维护前后端分离过渡
+### 2026-05-15 BE-0 API / 离线数据包契约盘点
 
-任务：用户要求先把专项知识维护这部分做前后端分离。
+任务：用户要求先执行 API / 离线数据包契约盘点。
 
 本次调整：
 
-- 新增 `src/sapd_wiki/api_server.py`，使用 Python 标准库提供本地 HTTP API 和静态前端服务。
-- 更新 `src/sapd_wiki/cli.py`，新增 `serve` 命令。
-- 更新 `frontend/capability-browser/dataClient.js`，前端优先读取 `/api/v1/data-packages/*`，API 不可用时自动回退到 `public/data/*.json`。
-- 更新 `README.md`、`frontend/capability-browser/README.md` 和 `docs/01-architecture/backend-interface-design.md`，补充本地 API 运行方式和接口边界。
-- 更新 `docs/04-user-guide/special-maintenance-pages-prototype-brief.md`，补充专项知识维护本地 API 过渡模式。
+- 新增 `docs/01-architecture/api-offline-package-contract-inventory.md`，盘点当前已实现 API、规划但尚未实现的接口、四个离线数据包、三页字段契约、来源证据边界和后续 BE-1 / BE-2 / BE-3 动作。
+- 更新 `task_plan.md`，将 BE-0 状态改为“已完成”，并指向本次盘点文档。
+- 更新 `findings.md`，记录当前仅安全能力映射页有页面级投影，环境页和 LC-AP 页仍主要依赖 `data-packages` + ViewModel 整理。
 
 验证：
 
-- `python3 -m py_compile src/sapd_wiki/api_server.py src/sapd_wiki/cli.py` 通过。
-- `node --check frontend/capability-browser/dataClient.js` 通过。
-- `python3 scripts/sapd_wiki.py serve --help` 通过。
-- `PYTHONPATH=src python3` 直接读取 API 数据包和 8 个专项页面 payload，通过。
-- 临时启动 `python3 scripts/sapd_wiki.py serve --host 127.0.0.1 --port 8765`，验证 `/api/v1/health`、`/api/v1/maintenance`、`/api/v1/data-packages/management` 均返回 200；验证后已关闭本轮启动的服务进程。
+- 已读取 `CURRENT_STATE.md`、`task_plan.md`、`findings.md`、`progress.md`、`dataClient.js`、`viewModels.js`、`api_server.py`、`api-field-contract.md`、`backend-interface-design.md` 和 Frontend Baseline 文档。
+- 已用 Node 读取四个离线 JSON 的顶层字段和统计信息。
+- 本轮只修改文档和计划记录，不修改代码、ETL、schema 或 public data。
+
+### 2026-05-15 后续项目计划分线整理
+
+任务：用户要求使用 `planning-with-files` 梳理未来项目计划，并将前端页面设计和后端逻辑分开。
+
+本次调整：
+
+- 更新 `task_plan.md`，新增“未来项目计划：前端页面设计线”和“未来项目计划：后端数据 / 逻辑线”。
+- 明确页面推进顺序：先收敛 `安全能力映射页`，再推进 `信息化环境维度页`，最后推进 `LC-AP 开发安全生命周期页`。
+- 更新 `findings.md`，记录后续按“后端投影契约 -> 前端页面实现 -> 验收回归”推进，以及当前前端画布结构漂移风险。
+
+验证：
+
+- 已读取 `CURRENT_STATE.md`、`task_plan.md`、`findings.md`、`progress.md`、`docs/04-user-guide/frontend-baseline-1.0-plan.md`、`docs/01-architecture/backend-interface-design.md`、`docs/01-architecture/api-field-contract.md` 和 `docs/06-implementation/open-issues.md`。
+- 本轮只修改计划和发现记录，不修改代码、数据、ETL 或前端资源。
 
 ## 历史索引
 

@@ -211,6 +211,135 @@ def _compact_technical_object(item: dict[str, Any], fallback_kind: str = "安全
     }
 
 
+def _compact_projection_focus(focus: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": focus.get("id") or "",
+        "code": focus.get("code") or "",
+        "name": _title_of(focus, ""),
+        "description": focus.get("description") or focus.get("summary") or "",
+    }
+
+
+def _source_evidence_key(source: Any) -> str:
+    if not isinstance(source, dict):
+        return str(source or "")
+    return (
+        ":".join(
+            str(source.get(key) or "")
+            for key in ("file", "source_file", "sheet", "row", "cell", "path", "location", "column")
+            if source.get(key) is not None
+        )
+        or json.dumps(source, ensure_ascii=False, sort_keys=True)
+    )
+
+
+def _source_evidence_from_items(items: list[Any]) -> list[dict[str, Any]]:
+    sources: list[dict[str, Any]] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        sources.extend(source for source in _list(item.get("sources")) if isinstance(source, dict))
+        sources.extend(source for source in _list(item.get("mapping_sources")) if isinstance(source, dict))
+    rows: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for source in sources:
+        key = _source_evidence_key(source)
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        rows.append(source)
+    return rows
+
+
+def _compact_scope_service_pair(row: dict[str, Any], service: dict[str, Any] | None, status: str) -> dict[str, Any]:
+    scope = row.get("scope") or {}
+    return {
+        "scopeId": scope.get("id") or "",
+        "scopeCode": scope.get("code") or "",
+        "scopeName": _title_of(scope, ""),
+        "serviceId": service.get("id") if service else "",
+        "serviceCode": service.get("code") if service else "",
+        "serviceName": _title_of(service, "") if service else "",
+        "status": status,
+    }
+
+
+def _layer_key(layer: str) -> str:
+    normalized = str(layer or "").strip().lower()
+    if normalized in {"decision", "决策层", "网络安全决策层"}:
+        return "decision"
+    if normalized in {"management", "管理层", "网络安全管理层"}:
+        return "management"
+    if normalized in {"execution", "执行层", "网络安全执行层"}:
+        return "execution"
+    if normalized in {"supervision", "监督层", "网络安全监督层"}:
+        return "supervision"
+    return "unknown"
+
+
+def _empty_work_functions_by_layer() -> dict[str, list[dict[str, Any]]]:
+    return {"decision": [], "management": [], "execution": [], "supervision": [], "unknown": []}
+
+
+def _process_tree_for_focus(focus: dict[str, Any]) -> list[dict[str, Any]]:
+    groups: dict[str, dict[str, Any]] = {}
+    for mapping in _list(focus.get("process_mappings")):
+        process_group = mapping.get("process_group") or {}
+        group_key = _entity_key(process_group) or "unknown"
+        group = groups.setdefault(
+            group_key,
+            {
+                "l2ProcessGroup": _compact_entity(process_group, "待确认流程组") or {
+                    "id": "unknown",
+                    "type": "process_group",
+                    "code": "",
+                    "title": "待确认流程组",
+                    "name": "",
+                    "description": "",
+                    "layer": "",
+                    "status": "",
+                },
+                "l3Processes": [],
+                "_l3Index": {},
+            },
+        )
+        process_reference = mapping.get("process_reference") or {}
+        process_key = _entity_key(process_reference) or f"{group_key}:unknown"
+        process_index = group["_l3Index"]
+        process = process_index.get(process_key)
+        if process is None:
+            process = {
+                "id": process_reference.get("id") or process_key,
+                "code": process_reference.get("code") or "",
+                "name": _title_of(process_reference, "待确认流程"),
+                "description": process_reference.get("description") or process_reference.get("summary") or "",
+                "activities": [],
+            }
+            process_index[process_key] = process
+            group["l3Processes"].append(process)
+        process["activities"] = _unique_by(
+            [
+                *process["activities"],
+                *[
+                    {
+                        "id": activity.get("id") or activity.get("code") or _title_of(activity, "待确认活动"),
+                        "code": activity.get("code") or "",
+                        "name": _title_of(activity, "待确认活动"),
+                        "description": activity.get("description") or activity.get("summary") or "",
+                        "status": activity.get("status") or activity.get("state") or "",
+                    }
+                    for activity in _list(mapping.get("activities"))
+                    if isinstance(activity, dict)
+                ],
+            ]
+        )
+    rows: list[dict[str, Any]] = []
+    for group in groups.values():
+        group.pop("_l3Index", None)
+        rows.append(group)
+    return rows
+
+
 def _all_focuses(capability: dict[str, Any]) -> list[dict[str, Any]]:
     return [
         focus
@@ -297,19 +426,141 @@ def _capability_management_mapping_rows(capability: dict[str, Any]) -> list[dict
     return rows
 
 
+def _capability_local_relation_map(
+    focus: dict[str, Any],
+    technical_rows: list[dict[str, Any]],
+    management_row: dict[str, Any] | None,
+) -> dict[str, Any]:
+    scope_service_pairs: list[dict[str, Any]] = []
+    service_links_by_id: dict[str, dict[str, Any]] = {}
+    for row in technical_rows:
+        services = _list(row.get("services"))
+        candidate_services = _list(row.get("candidateServices"))
+        status = str(row.get("status") or "").strip() or "unknown"
+        if services:
+            for service in services:
+                pair = _compact_scope_service_pair(row, service, status)
+                scope_service_pairs.append(pair)
+                service_key = service.get("id") or service.get("code") or service.get("title") or pair["serviceName"]
+                link = service_links_by_id.setdefault(
+                    service_key,
+                    {
+                        "serviceId": service.get("id") or "",
+                        "serviceCode": service.get("code") or "",
+                        "serviceName": _title_of(service, ""),
+                        "scopes": [],
+                        "modules": [],
+                        "measures": [],
+                        "status": status,
+                    },
+                )
+                link["scopes"] = _unique_by([*link["scopes"], row.get("scope")])
+                link["modules"] = _unique_by([*link["modules"], *_list(row.get("technologyModules"))])
+                link["measures"] = _unique_by([*link["measures"], *_list(row.get("technicalMeasures"))])
+                if link["status"] != "covered" or status != "covered":
+                    link["status"] = status
+        elif status == "ambiguous_service_mapping" and candidate_services:
+            for service in candidate_services:
+                scope_service_pairs.append(_compact_scope_service_pair(row, service, status))
+        else:
+            scope_service_pairs.append(_compact_scope_service_pair(row, None, status))
+
+    service_module_measure_links = []
+    for link in service_links_by_id.values():
+        service_module_measure_links.append(
+            {
+                **link,
+                "scopes": [_compact_entity(scope, "未命名作用域") for scope in _list(link["scopes"]) if scope],
+                "modules": _list(link["modules"]),
+                "measures": _list(link["measures"]),
+            }
+        )
+
+    work_functions_by_layer = _empty_work_functions_by_layer()
+    for stakeholder in _list((management_row or {}).get("stakeholders")):
+        layer = _layer_key(stakeholder.get("layer") or "")
+        work_functions_by_layer[layer].append(stakeholder)
+    for key, rows in work_functions_by_layer.items():
+        work_functions_by_layer[key] = _unique_by(rows)
+
+    evidence_items: list[Any] = [
+        focus,
+        *_list(focus.get("security_works")),
+        *_list(focus.get("scope_mappings")),
+        *_list(focus.get("process_mappings")),
+    ]
+    for mapping in _list(focus.get("scope_mappings")):
+        evidence_items.append(mapping.get("scope"))
+        evidence_items.extend(_list(mapping.get("services")))
+    for mapping in _list(focus.get("process_mappings")):
+        evidence_items.append(mapping.get("process_group"))
+        evidence_items.append(mapping.get("process_reference"))
+        evidence_items.extend(_list(mapping.get("activities")))
+        stakeholders = mapping.get("stakeholders") or {}
+        if isinstance(stakeholders, dict):
+            for layer_stakeholders in stakeholders.values():
+                evidence_items.extend(_list(layer_stakeholders))
+
+    source_evidence = _source_evidence_from_items(evidence_items)
+
+    return {
+        "focus": _compact_projection_focus(focus),
+        "technical": {
+            "scopeServicePairs": scope_service_pairs,
+            "serviceModuleMeasureLinks": service_module_measure_links,
+        },
+        "management": {
+            "securityWorks": _list((management_row or {}).get("securityWorks")),
+            "workFunctionsByLayer": work_functions_by_layer,
+            "processTree": _process_tree_for_focus(focus),
+        },
+        "sourceEvidence": source_evidence,
+    }
+
+
+def _capability_local_relation_maps(
+    capability: dict[str, Any],
+    technical_rows: list[dict[str, Any]],
+    management_rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    technical_by_focus: dict[str, list[dict[str, Any]]] = {}
+    for row in technical_rows:
+        focus_id = (row.get("focus") or {}).get("id") or ""
+        technical_by_focus.setdefault(focus_id, []).append(row)
+    management_by_focus: dict[str, dict[str, Any]] = {
+        (row.get("focus") or {}).get("id") or "": row for row in management_rows
+    }
+    return [
+        _capability_local_relation_map(
+            focus,
+            technical_by_focus.get(focus.get("id") or "", []),
+            management_by_focus.get(focus.get("id") or ""),
+        )
+        for focus in _all_focuses(capability)
+    ]
+
+
 def capability_workspace_projection() -> dict[str, Any]:
     capability = read_data_package("capability")
     management = read_data_package("management")
     technical_rows = _capability_technical_mapping_rows(capability, management)
     management_rows = _capability_management_mapping_rows(capability)
+    local_relation_maps = _capability_local_relation_maps(capability, technical_rows, management_rows)
+    local_relation_maps_by_focus_id = {
+        row["focus"]["id"]: row for row in local_relation_maps if row.get("focus", {}).get("id")
+    }
     return {
         "generated_at": capability.get("generated_at") or management.get("generated_at"),
         "data_state": "ready" if technical_rows or management_rows else "empty",
         "technicalMappingRows": technical_rows,
         "managementMappingRows": management_rows,
+        "localRelationMap": local_relation_maps[0] if local_relation_maps else None,
+        "localRelationMaps": local_relation_maps,
+        "localRelationMapsByFocusId": local_relation_maps_by_focus_id,
         "stats": {
             "technical_rows": len(technical_rows),
             "management_rows": len(management_rows),
+            "local_relation_maps": len(local_relation_maps),
             "focuses": len(_all_focuses(capability)),
         },
     }

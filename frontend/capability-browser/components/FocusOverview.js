@@ -9,7 +9,7 @@
   function summaryGrid(items) {
     return `
       <div class="focus-overview-summary">
-        ${items.map((item) => `<div><span>${utils.escapeHtml(item.label)}</span><strong>${utils.escapeHtml(item.value)}</strong></div>`).join("")}
+        ${items.map((item) => `<div><strong>${utils.escapeHtml(item.value)}</strong><span>${utils.escapeHtml(item.label)}</span></div>`).join("")}
       </div>
     `;
   }
@@ -22,8 +22,8 @@
     ].filter(([, item]) => item);
     if (!items.length) return "";
     return `
-      <div class="focus-path">
-        ${items.map(([label, item]) => `<span><small>${utils.escapeHtml(label)}</small><strong>${utils.escapeHtml(utils.titleOf(item))}</strong></span>`).join("")}
+      <div class="focus-compact-path">
+        ${items.map(([label, item]) => `<span><small>${utils.escapeHtml(label)}</small>${utils.escapeHtml(utils.titleOf(item))}</span>`).join("")}
       </div>
     `;
   }
@@ -41,29 +41,26 @@
     const description = focusOverview.isAggregate ? "当前选择包含多个关注点，请在左侧选择一个关注点查看单点映射。" : current?.description || "暂无说明";
     return `
       <section class="focus-overview-section">
-        <div class="matrix-section-head">
-          <div>
-            <h3>当前关注点概览</h3>
-            <p>对象详情、技术映射摘要与管理映射摘要集中在主工作区顶部</p>
-          </div>
-          <span>${focusOverview.isAggregate ? `${rows.length} 个关注点` : current?.status || "当前关注点"}</span>
-        </div>
-        ${renderPath(focusOverview.path)}
-        <div class="focus-overview-profile">
+        <div class="focus-overview-compact">
           <div class="focus-overview-copy">
-            <div class="detail-code">${utils.escapeHtml(code)}</div>
+            <div class="focus-compact-kicker">
+              <strong>${utils.escapeHtml(code)}</strong>
+              <span>${focusOverview.isAggregate ? `${rows.length} 个关注点` : current?.status || "当前关注点"}</span>
+            </div>
             <h2>${utils.escapeHtml(title)}</h2>
+            ${renderPath(focusOverview.path)}
             <p>${utils.escapeHtml(description)}</p>
           </div>
-          ${summaryGrid([
-            { label: "作用域", value: technical.scopeCount ?? currentRow.scopeCount ?? 0 },
-            { label: "确认服务", value: technical.serviceCount ?? currentRow.serviceCount ?? 0 },
-            { label: "无服务作用域", value: technical.noServiceCount ?? 0 },
-            { label: "映射异常", value: technical.ambiguousCount ?? currentRow.ambiguousCount ?? 0 },
-            { label: "安全工作", value: management.securityWorkCount ?? currentRow.securityWorkCount ?? 0 },
-            { label: "安全职能", value: management.securityFunctionCount ?? 0 },
-            { label: "L3 流程", value: management.processReferenceCount ?? currentRow.processReferenceCount ?? 0 },
-          ])}
+          <div class="focus-overview-metrics">
+            ${summaryGrid([
+              { label: "作用域", value: technical.scopeCount ?? currentRow.scopeCount ?? 0 },
+              { label: "服务", value: technical.serviceCount ?? currentRow.serviceCount ?? 0 },
+              { label: "模块", value: technical.moduleCount ?? currentRow.moduleCount ?? 0 },
+              { label: "安全工作", value: management.securityWorkCount ?? currentRow.securityWorkCount ?? 0 },
+              { label: "安全职能", value: management.securityFunctionCount ?? 0 },
+              { label: "L3 流程", value: management.processReferenceCount ?? currentRow.processReferenceCount ?? 0 },
+            ])}
+          </div>
         </div>
       </section>
     `;

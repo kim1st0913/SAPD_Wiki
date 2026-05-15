@@ -30,6 +30,7 @@ from .parsers import (
 )
 from .paths import DEFAULT_DB_PATH, display_path, resolve_project_path
 from .queries import item_counts_by_type, latest_import_jobs, list_items, relation_counts_by_type, table_counts
+from .api_server import serve
 from .source_files import (
     create_import_job,
     register_source_file,
@@ -433,6 +434,11 @@ def cmd_export_second_batch_summary(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_serve(args: argparse.Namespace) -> int:
+    serve(args)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="sapd-wiki")
     parser.add_argument(
@@ -594,6 +600,19 @@ def build_parser() -> argparse.ArgumentParser:
         help="Output JSON path.",
     )
     second_batch_summary.set_defaults(func=cmd_export_second_batch_summary)
+
+    serve_cmd = subparsers.add_parser(
+        "serve",
+        help="Run local frontend static server with /api/v1 backend endpoints.",
+    )
+    serve_cmd.add_argument("--host", default="127.0.0.1", help="Host to bind. Defaults to 127.0.0.1.")
+    serve_cmd.add_argument("--port", type=int, default=5173, help="Port to bind. Defaults to 5173.")
+    serve_cmd.add_argument(
+        "--static-dir",
+        default="frontend/capability-browser",
+        help="Static frontend directory. Defaults to frontend/capability-browser.",
+    )
+    serve_cmd.set_defaults(func=cmd_serve)
 
     return parser
 

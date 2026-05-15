@@ -1,6 +1,11 @@
 # SAPD Wiki 关系工作台前端
 
-这是 SAPD Wiki 的本地静态关系工作台，用来浏览导出的能力、信息化环境、安全开发、数据生命周期、专项知识和内容视图 JSON 数据。
+这是 SAPD Wiki 的本地关系工作台，用来浏览能力、信息化环境、安全开发、数据生命周期、专项知识和内容视图数据。
+
+当前支持两种运行模式：
+
+- 本地 API 模式：前端通过 `/api/v1/data-packages/*` 读取后端数据包，并通过 `/api/v1/capabilities/workspace-projection` 读取安全能力映射页关系投影。
+- 静态降级模式：如果 API 不可用，前端回退读取 `public/data/*.json`。
 
 ## 运行方式
 
@@ -10,7 +15,13 @@
 python scripts/sapd_wiki.py export-capability-tree
 ```
 
-再启动本地静态服务器：
+推荐启动带本地 API 的服务：
+
+```bash
+python scripts/sapd_wiki.py serve --host 127.0.0.1 --port 5173
+```
+
+也可以只启动本地静态服务器：
 
 ```bash
 cd frontend/capability-browser
@@ -31,4 +42,4 @@ http://localhost:5173
 - 专项知识维护：表头筛选、表格列宽拖拽、实体关系详情。
 - 区域拖拽：主要工作区面板支持横向调宽。
 
-当前版本只读，不做在线编辑；数据仍来自 `public/data/*.json`。
+当前版本只读，不做在线编辑。安全能力映射页的技术 / 管理映射行已优先由后端投影提供；静态降级模式下仍保留 ViewModel fallback。

@@ -4,7 +4,9 @@
 
 字段级接口契约以 `docs/01-architecture/api-field-contract.md` 为准；本文档只定义后端职责、模块边界和接口分组。
 
-当前阶段的接口可以先由静态 JSON 文件承载；后续切换为本地 API 服务时，应保持同一套数据契约。
+当前工程已经明确执行前后端分离。后续新增页面、字段、关系、导入、导出和 maturity 能力，都必须先落到后端契约或配置映射，再由前端通过 `dataClient` / `/api/v1/*` 消费。
+
+`public/data/*.json` 只作为后端生成的离线兼容数据包或本地 API 不可用时的 fallback，不再作为新功能的首选接口形态。
 
 ## 1. 设计目标
 
@@ -70,9 +72,23 @@ SAPD Wiki 的后端不是传统互联网服务端，而是本地知识库的数�
 
 ## 3. 当前运行模式
 
-### 3.1 MVP 静态契约模式
+### 3.1 本地 API 优先模式
 
-当前前端是本地静态页面，推荐先采用：
+当前工程优先采用：
+
+```text
+SQLite
+→ 后端服务 / 后端导出层
+→ /api/v1/*
+→ 前端 dataClient
+→ 页面组件
+```
+
+该模式要求页面组件只消费 `dataClient` 返回的契约化数据，不直接访问原始文件、数据库、导入暂存表或 maturity 运行表。
+
+### 3.2 离线兼容数据包模式
+
+为保留本地轻量运行能力，后端可以继续生成离线数据包：
 
 ```text
 SQLite
@@ -81,23 +97,37 @@ SQLite
 → 静态 HTML/CSS/JS 前端读取 JSON
 ```
 
-这一阶段不强制启动本地 HTTP API，目的是降低部署复杂度，让用户能直接打开本地页面查看结果。
+离线数据包必须与 API 字段语义同构，只用于 API 不可用、静态预览或打包兼容场景。新功能不得绕过后端契约直接把临时 JSON 作为页面数据源。
 
-### 3.2 后续本地 API 模式
+### 3.3 技术选型说明
 
-当导入审查、人工编辑、导出下载和更多交互变多后，再切换为：
+当前已使用 Python 标准库实现轻量本地 API，避免新增外部依赖。后续如果切换为 FastAPI、Node.js 或 Tauri 后端命令，接口语义仍应保持与本文档一致。
 
-```text
-SQLite
-→ 本地 API 服务
-→ /api/v1/*
-→ 前端 data client
-→ 页面组件
+### 3.4 当前本地 API 过渡模式
+
+专项知识维护已先进入本地 API 过渡模式。该模式使用 Python 标准库提供轻量 HTTP 服务，不新增外部依赖。
+
+启动命令：
+
+```bash
+python scripts/sapd_wiki.py serve --host 127.0.0.1 --port 5173
 ```
 
-API 服务可以由 Python FastAPI 或 Node.js 实现，具体技术选型在实现阶段决定。无论选择哪种技术，接口语义应保持与本文档一致。
+当前接口：
 
-### 3.3 打包交付模式
+| 接口 | 用途 |
+|---|---|
+| `GET /api/v1/health` | 本地 API 健康检查 |
+| `GET /api/v1/data-packages/capability` | 安全能力数据包 |
+| `GET /api/v1/data-packages/management` | 管理与专项知识数据包 |
+| `GET /api/v1/data-packages/lifecycle` | 生命周期数据包 |
+| `GET /api/v1/data-packages/content` | 内容视图数据包 |
+| `GET /api/v1/maintenance` | 专项知识维护导航清单 |
+| `GET /api/v1/maintenance/{section}` | 单个专项页面数据 |
+
+前端 `dataClient` 优先读取 `/api/v1/data-packages/*`。如果本地 API 不存在，则自动回退到 `public/data/*.json`。这保证现有静态运行方式不被破坏，同时把新增实现的默认方向固定为 API / 后端契约优先。
+
+### 3.5 打包交付模式
 
 桌面交付阶段推荐：
 
@@ -238,7 +268,7 @@ Tauri 壳
 
 - 把数据库对象和关系导出为前端数据包；
 - 保持 JSON schema 稳定；
-- 兼容静态页面和未来 API。
+- 兼容本地 API 和离线静态页面。
 
 当前静态文件建议继续放在：
 
@@ -328,6 +358,7 @@ frontend/capability-browser/public/data/
 | `GET /api/v1/capabilities/{id}` | 能力或关注点详情 |
 | `GET /api/v1/capabilities/{id}/relationships` | 能力相关的服务、作用域、流程、职能、模块 |
 | `GET /api/v1/capabilities/matrix` | 能力关注点关系矩阵 |
+| `GET /api/v1/capabilities/workspace-projection` | 安全能力映射页技术 / 管理关系投影 |
 
 ### 6.3 信息化环境维度
 
@@ -353,7 +384,7 @@ frontend/capability-browser/public/data/
 安全技术措施读取说明：
 
 - 当前静态数据阶段由 `dataClient.getMaintenanceTechnologyMeasures()` 从 `management-knowledge.json` 顶层 `security_technical_measures` 读取。
-- 未来本地 API 推荐使用 `GET /api/v1/maintenance/technical-measures` 返回列表，使用 `GET /api/v1/maintenance/technical-measures/{id}` 返回单个措施详情。
+- 本地 API 使用 `GET /api/v1/maintenance/technical-measures` 返回列表，使用 `GET /api/v1/maintenance/technical-measures/{id}` 返回单个措施详情。
 - 返回对象必须符合 `docs/01-architecture/api-field-contract.md` 中 `SecurityTechnicalMeasure` 契约。
 - 后端不得把 `security_technology_modules` 中的安全技术模块直接返回为安全技术措施。
 - 后端不得把安全系统或产品返回为安全技术措施。
@@ -407,14 +438,15 @@ frontend/capability-browser/public/data/
 - 数据库备份；
 - 原始文件和 manifest。
 
-## 9. 静态 JSON 与未来 API 的映射
+## 9. 本地 API 与离线 JSON 的映射
 
-当前前端已经使用静态 JSON。后续重构时，应把静态文件视为 API 的离线实现。
+当前前端已经通过 `dataClient` 优先读取本地 API。离线静态文件应视为 API 的兼容 fallback，由后端导出层生成并保持字段语义一致。
 
-| 未来 API | 当前静态文件建议 |
+| 本地 API | 离线数据包 |
 |---|---|
 | `/api/v1/capabilities/tree` | `capability-tree.json` |
 | `/api/v1/capabilities/matrix` | `capability-tree.json` 中的能力关系投影，后续可拆分 |
+| `/api/v1/capabilities/workspace-projection` | 后端运行时生成；静态模式下暂由 ViewModel fallback |
 | `/api/v1/maintenance/processes` | `management-knowledge.json` |
 | `/api/v1/maintenance/work-functions` | `management-knowledge.json` |
 | `/api/v1/maintenance/scopes` | `management-knowledge.json` 或后续 `maintenance-knowledge.json` |
@@ -426,9 +458,9 @@ frontend/capability-browser/public/data/
 
 重构建议：
 
-1. 先在前端建立 `dataClient`，统一读取静态 JSON；
-2. 页面组件只调用 `dataClient`，不直接 `fetch` 多个文件；
-3. 未来切换 API 时，只替换 `dataClient` 实现；
+1. 所有页面组件只调用 `dataClient`，不直接 `fetch` 多个文件；
+2. `dataClient` 优先读取 `/api/v1/*`，API 不可用时再回退到后端生成的离线 JSON；
+3. 后端接口变化时，先更新本文档和字段契约，再更新 `dataClient`；
 4. JSON 字段变化必须先更新本文档或对应 schema 说明。
 
 ## 10. 前端集成规则
@@ -442,7 +474,7 @@ frontend/capability-browser/public/data/
 | 后端给事实 | 前端只展示后端给出的对象、关系、数量、缺失项 |
 | 缺失要显式 | L4 关键活动缺失显示 `待补充` |
 | 页面可扩展 | 能力、环境、安全开发、数据生命周期、专项维护是独立维度 |
-| 本地优先 | 静态文件可打开，后续再接本地 API |
+| 本地优先 | 本地 API 优先，离线 JSON 保留为 fallback |
 
 ## 11. Agent 分工规则
 
@@ -466,7 +498,7 @@ frontend/capability-browser/public/data/
 
 当前最合理的下三步：
 
-1. 固化后端接口与静态 JSON 契约，建立前端 `dataClient` 抽象；
+1. 固化本地 API 与离线 JSON 数据包契约，持续收敛 `dataClient` 抽象；
 2. 前端按关系工作台重构能力维度页面，先不追求所有页面一次完成；
 3. 对第二批、第三批已导入 Sheet 做业务含义复核，确认主键、关系类型、1:N/N:M 逻辑，再决定是否补充导出投影。
 
@@ -475,5 +507,5 @@ frontend/capability-browser/public/data/
 - 前端页面不直接依赖原始 Sheet 字段；
 - 能力维度关系页能展示能力树、关系矩阵、关系链和详情；
 - 专项知识维护页面能展示作用域、流程、职能、技术模块清单；
-- 后端导出的 JSON 字段能明确对应未来 API；
+- 后端导出的离线 JSON 字段能明确对应本地 API；
 - 数据问题继续统一记录到 `docs/06-implementation/open-issues.md`。

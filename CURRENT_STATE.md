@@ -7,6 +7,7 @@
 - 已导入 Sheet 的业务含义复核 + 前端关系展示校正。
 - 当前重点不是新增数据源，也不是扩展新模块，而是把已导入数据的业务语义、页面归属和关系展示校正清楚。
 - Frontend Baseline 1.0 已确认作为当前前端对齐工作的基线说明。
+- 前后端分离本轮已阶段性收口，收口说明见 `docs/01-architecture/frontend-backend-separation-closure.md`。
 
 ## 当前页面范围
 
@@ -14,7 +15,8 @@ Frontend Baseline 1.0 当前覆盖三页：
 
 1. `安全能力映射`
    - 主视角：安全能力 / 安全关注点。
-   - 核心关系：关注点、作用域、安全技术服务、安全技术模块、安全技术措施、管理工作、流程 / 职能、来源证据。
+   - 技术视角：安全关注点 -> 作用域 -> 安全技术服务 -> 安全技术模块 / 安全技术措施。
+   - 管理视角：安全关注点 -> 管理工作 -> 安全流程（L2 流程组 / L3 流程 / L4 活动）或安全职能（4 层）。
 2. `LC-AP开发安全生命周期`
    - 主视角：LC-AP 开发安全生命周期阶段。
    - 核心关系：阶段、主要活动、安全活动、安全策略要求、开发技术服务、安全技术服务、安全技术模块、安全技术措施、开发类产品组件、来源证据。
@@ -33,6 +35,16 @@ Frontend Baseline 1.0 当前覆盖三页：
 - 不默认引入 React / Vue 重构当前静态 MVP 前端。
 - 不在主展示区暴露非业务字段：`sheet`、`row`、`column`、`raw_value`、`source_file`、`import_id`、`source_id`、`source_ref`、`source_label`、`debug`、`raw`、`metadata`、`intermediate`、`generated_at`。
 - 不静默覆盖用户文件或未确认业务判断。
+- 不允许新增页面绕过 `dataClient` 或 `/api/v1/*` 契约直接读取原始数据、数据库或临时 JSON。
+- 不允许前端组件实现 ETL、主数据归一、跨表匹配、成熟度评分或业务关系推断。
+
+## 全工程前后端分离规则
+
+- 后端负责数据导入、清洗、标准化、匹配、关系生成、评分、校验、导出和页面数据投影。
+- 前端负责导航、布局、筛选、交互状态、表格 / 树 / 关系视图展示和用户反馈。
+- 所有页面数据优先通过 `/api/v1/*` 本地 API 和 `dataClient` 消费；`public/data/*.json` 仅作为后端生成的离线兼容包或 API 不可用时的 fallback。
+- 新增页面、字段、关系或 maturity 能力前，先更新后端契约和文档，再进入前端实现。
+- ViewModel 只能做展示层整理，不承担业务事实生成、关系推断、评分和客户评估结论。
 
 ## 当前下一步
 
@@ -40,7 +52,7 @@ Frontend Baseline 1.0 当前覆盖三页：
 
 1. 先做只读差距检查，明确页面现状、缺口、风险和涉及文件。
 2. 用户确认后，再进入小范围前端实现。
-3. 实现时优先复用当前静态前端、`dataClient`、ViewModel、现有 JSON 投影和统一组件风格。
+3. 实现时优先复用当前前端、`dataClient`、后端 API / 数据包契约、ViewModel 展示整理和统一组件风格。
 4. 若发现数据缺口，记录为数据契约或待确认问题，不在前端临时硬编码业务关系。
 
 ## 必读文件
@@ -57,6 +69,7 @@ Frontend Baseline 1.0 当前覆盖三页：
 - 当前关键决策和风险：`findings.md`
 - 近期执行恢复：`progress.md`
 - Frontend Baseline 1.0 相关任务：`docs/04-user-guide/frontend-baseline-1.0-plan.md`
+- 前后端分离继续推进：`docs/01-architecture/frontend-backend-separation-closure.md`
 - 问题修复或 bug 核对：`docs/06-implementation/open-issues.md`
 
 ## 不必默认读取的长文档

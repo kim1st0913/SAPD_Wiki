@@ -12,8 +12,8 @@ SAPD Wiki 是一个本地运行的结构化工作知识库系统，当前核心�
 
 1. 数据定义；
 2. ETL / staging / review / approval；
-3. 静态 JSON 作为 MVP API；
-4. 前端通过 `dataClient` 和 ViewModel 展示业务关系；
+3. 本地 API / 后端数据包契约作为前后端边界；
+4. 前端通过 `dataClient` 和 ViewModel 展示业务关系，`public/data/*.json` 只作为离线 fallback；
 5. 后续再扩展 PPT、Draw.io、DOCX 等多格式内容。
 
 ## 2. 重要边界

@@ -1,8 +1,8 @@
 # API 字段级接口契约
 
-本文档定义 SAPD Wiki 前后端分离后的字段级接口契约。它面向后续前端 UI 集成、后端接口实现、静态 JSON 导出和数据校验。
+本文档定义 SAPD Wiki 前后端分离后的字段级接口契约。它面向前端 UI 集成、后端接口实现、离线 JSON 数据包导出和数据校验。
 
-当前阶段仍以静态 JSON 作为 MVP 接口实现；未来改为本地 `/api/v1/*` API 时，应尽量保持本文档字段语义不变。
+当前工程已经明确执行 API / 后端契约优先。`public/data/*.json` 仅作为后端生成的离线兼容数据包或本地 API 不可用时的 fallback；新功能默认通过 `dataClient` 和 `/api/v1/*` 契约进入前端。
 
 ## 1. 契约原则
 
@@ -13,7 +13,7 @@
 | 来源默认隐藏 | 来源字段保留在数据中，但默认 UI 不展示 |
 | 字段稳定优先 | 字段新增可以，字段改名或删除必须先更新本文档 |
 | 空值显式表达 | 缺失 L4 活动等业务缺口用状态字段表达，前端显示 `待补充` |
-| 静态与 API 同构 | 当前 `public/data/*.json` 是未来 API 的离线实现 |
+| API 与离线包同构 | `/api/v1/*` 与 `public/data/*.json` 使用同一字段语义，离线包是 API 的兼容 fallback |
 
 ## 2. 命名与类型约定
 
@@ -48,7 +48,7 @@
 
 ### 3.1 API 响应包
 
-未来本地 API 推荐统一使用响应包。当前静态 JSON 可暂时不包 `meta/data`，但字段语义保持一致。
+本地 API 推荐统一使用响应包。历史静态 JSON 可暂时不包 `meta/data`，但字段语义必须保持一致。
 
 | 字段 | 类型 | 必填 | 说明 |
 |---|---|---|---|
@@ -149,11 +149,11 @@
 | `warnings_count` | number | 警告数量 |
 | `issue_count` | number | 问题数量 |
 
-## 5. 当前静态 JSON 文件映射
+## 5. 当前离线 JSON 文件映射
 
-| 静态文件 | 对应未来接口 | 用途 |
+| 离线数据包 | 对应 API | 用途 |
 |---|---|---|
-| `capability-tree.json` | `/api/v1/capabilities/tree`、`/api/v1/capabilities/matrix` | 能力树、关注点、服务、作用域、流程、职能关系 |
+| `capability-tree.json` | `/api/v1/capabilities/tree`、`/api/v1/capabilities/matrix`、`/api/v1/capabilities/workspace-projection` | 能力树、关注点、服务、作用域、流程、职能关系 |
 | `management-knowledge.json` | `/api/v1/environments/*`、`/api/v1/maintenance/*`、`/api/v1/references/*` | 信息化环境、作用域、流程、职能、模块、标准、岗位 |
 | `lifecycle-knowledge.json` | `/api/v1/lifecycle/application`、`/api/v1/lifecycle/data` | 安全开发生命周期、数据生命周期 |
 | `content-views.json` | `/api/v1/content/*` | HTML、Draw.io、PPT 使用说明 |
@@ -399,7 +399,50 @@
 | `modules` | array<SecurityTechnologyModule> | 是 | 技术模块 |
 | `systems_products` | array<KnowledgeObjectRef> | 是 | 安全系统或产品 |
 
-### 7.3 `GET /api/v1/capabilities/{id}/relationships`
+### 7.3 `GET /api/v1/capabilities/workspace-projection`
+
+用途：安全能力映射页的后端页面投影。该接口把“关注点 -> 作用域 -> 安全技术服务 -> 技术模块 / 技术措施”和“关注点 -> 安全工作 -> 流程 / 职能”提前整理成前端可直接展示的行数据，避免 ViewModel 重新推断业务关系。
+
+返回字段：
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `data_state` | string | 是 | `ready`、`empty` 等 |
+| `technicalMappingRows` | array<CapabilityTechnicalMappingRow> | 是 | 技术视角映射行 |
+| `managementMappingRows` | array<CapabilityManagementMappingRow> | 是 | 管理视角映射行 |
+| `stats.technical_rows` | number | 是 | 技术映射行数量 |
+| `stats.management_rows` | number | 是 | 管理映射行数量 |
+| `stats.focuses` | number | 是 | 覆盖关注点数量 |
+
+`CapabilityTechnicalMappingRow` 字段：
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `focus` | KnowledgeObjectRef | 是 | 能力关注点 |
+| `scope` | KnowledgeObjectRef | 是 | 作用域 |
+| `services` | array<KnowledgeObjectRef> | 是 | 已确认安全技术服务 |
+| `candidateServices` | array<KnowledgeObjectRef> | 是 | 候选安全技术服务；存在多候选时用于人工确认 |
+| `technologyModules` | array<KnowledgeObjectRef> | 是 | 安全技术模块 |
+| `technicalMeasures` | array<KnowledgeObjectRef> | 是 | 安全技术措施 |
+| `modules` | array<KnowledgeObjectRef> | 是 | 前端展示用的模块 / 措施合并列表 |
+| `status` | string | 是 | `covered`、`no_service`、`ambiguous_service_mapping` |
+| `exceptionType` | string | 否 | 异常类型 |
+| `exceptionMessage` | string | 否 | 异常说明 |
+
+`CapabilityManagementMappingRow` 字段：
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `focus` | KnowledgeObjectRef | 是 | 能力关注点 |
+| `securityWorks` | array<KnowledgeObjectRef> | 是 | 安全工作 |
+| `stakeholders` | array<WorkFunctionWithLayer> | 是 | 安全职能 |
+| `processGroups` | array<KnowledgeObjectRef> | 是 | L2 流程组 |
+| `processReferences` | array<KnowledgeObjectRef> | 是 | L3 流程 |
+| `activities` | array<KnowledgeObjectRef> | 是 | L4 活动 |
+| `activityStatusLabels` | array<string> | 是 | 活动补全状态 |
+| `hasMissingActivity` | boolean | 是 | 是否存在待补充 L4 活动 |
+
+### 7.4 `GET /api/v1/capabilities/{id}/relationships`
 
 用途：右侧详情面板或关系链。
 

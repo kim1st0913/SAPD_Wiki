@@ -6,6 +6,17 @@
     content: "./public/data/content-views.json",
   };
 
+  const API_PACKAGE_PATHS = {
+    capability: "/api/v1/data-packages/capability",
+    management: "/api/v1/data-packages/management",
+    lifecycle: "/api/v1/data-packages/lifecycle",
+    content: "/api/v1/data-packages/content",
+  };
+
+  const API_PATHS = {
+    capabilityWorkspaceProjection: "/api/v1/capabilities/workspace-projection",
+  };
+
   const FALLBACKS = {
     capability: { generated_at: null, stats: {}, categories: [], unlinked_focuses: [] },
     management: {
@@ -39,6 +50,7 @@
   };
 
   const cache = new Map();
+  let apiUnavailable = false;
   const list = (value) => (Array.isArray(value) ? value : []);
   const text = (value) => (value == null ? "" : String(value));
   const TECHNICAL_MEASURES_FIELD = "security_technical_measures";
@@ -63,10 +75,63 @@
     };
   }
 
+  function apiUrl(path) {
+    const configured = window.SAPD_API_BASE || new URLSearchParams(window.location.search).get("api") || "";
+    if (configured) return `${configured.replace(/\/$/, "")}${path}`;
+    if (window.location.protocol === "file:") return "";
+    return path;
+  }
+
+  function unwrapEnvelope(payload) {
+    if (payload && typeof payload === "object" && Object.prototype.hasOwnProperty.call(payload, "data")) return payload.data;
+    return payload;
+  }
+
+  async function fetchApiPackage(name) {
+    if (apiUnavailable) return null;
+    const path = API_PACKAGE_PATHS[name];
+    const url = path ? apiUrl(path) : "";
+    if (!url) return null;
+    try {
+      const response = await fetch(url, { cache: "no-store" });
+      if (!response.ok) {
+        if (response.status === 404) apiUnavailable = true;
+        return null;
+      }
+      return unwrapEnvelope(await response.json());
+    } catch {
+      apiUnavailable = true;
+      return null;
+    }
+  }
+
+  async function fetchApiData(path) {
+    if (apiUnavailable) return null;
+    const url = path ? apiUrl(path) : "";
+    if (!url) return null;
+    try {
+      const response = await fetch(url, { cache: "no-store" });
+      if (!response.ok) {
+        if (response.status === 404) return null;
+        apiUnavailable = true;
+        return null;
+      }
+      return unwrapEnvelope(await response.json());
+    } catch {
+      apiUnavailable = true;
+      return null;
+    }
+  }
+
   async function fetchPackage(name) {
     if (cache.has(name)) return cache.get(name);
     const path = DATA_PATHS[name];
     const fallback = FALLBACKS[name] || {};
+    const apiData = await fetchApiPackage(name);
+    if (apiData) {
+      cache.set(name, apiData);
+      return apiData;
+    }
     try {
       const response = await fetch(path, { cache: "no-store" });
       if (!response.ok) {
@@ -279,6 +344,19 @@
             }
           : {},
       });
+    },
+
+    async getCapabilityWorkspaceProjection() {
+      const projection = await fetchApiData(API_PATHS.capabilityWorkspaceProjection);
+      return createEnvelope(
+        projection || {
+          generated_at: null,
+          data_state: "missing_api",
+          technicalMappingRows: [],
+          managementMappingRows: [],
+          stats: { technical_rows: 0, management_rows: 0, focuses: 0 },
+        },
+      );
     },
 
     async getEnvironmentTree() {

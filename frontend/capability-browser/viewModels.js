@@ -5,6 +5,13 @@
   const TECHNICAL_MEASURES_EMPTY_MESSAGE = "暂无安全技术措施数据，请确认 ETL 是否已导出 security_technical_measures。";
   const PENDING_TEXT = "待补充";
   const NOT_APPLICABLE_TEXT = "不适用";
+  const WORK_FUNCTION_LAYERS = [
+    { key: "decision", label: "决策层", aliases: ["decision", "决策层", "网络安全决策层"] },
+    { key: "management", label: "管理层", aliases: ["management", "管理层", "网络安全管理层"] },
+    { key: "execution", label: "执行层", aliases: ["execution", "执行层", "网络安全执行层"] },
+    { key: "supervision", label: "监督层", aliases: ["supervision", "监督层", "网络安全监督层"] },
+  ];
+  const WORK_FUNCTION_LAYER_BY_VALUE = new Map(WORK_FUNCTION_LAYERS.flatMap((layer) => layer.aliases.map((alias) => [alias, layer])));
   const titleOf = (value, fallback = "未命名") => {
     if (!value) return fallback;
     if (typeof value === "object") return text(value.title || value.name || value.code || value.id || fallback);
@@ -206,7 +213,7 @@
     });
   }
 
-  function buildFocusOverview({ capabilityTree, management, focuses, selectedDetail, technicalRows = [], managementRows = [] }) {
+  function buildFocusOverview({ capabilityTree, focuses, selectedDetail, technicalRows = [], managementRows = [] }) {
     const firstPath = capabilityPathForFocus(capabilityTree, focuses[0]?.id);
     const technicalSummary = summarizeTechnical(technicalRows);
     const managementSummary = summarizeManagement(managementRows);
@@ -222,7 +229,7 @@
       rows: focuses.map((focus) => {
         const focusTechnicalRows = technicalRows.filter((row) => row.focus.id === focus.id);
         const services = uniqueBy(focusTechnicalRows.flatMap((row) => row.services), (service) => service.id || service.code || service.title);
-        const modules = modulesForServices(management, services);
+        const modules = uniqueBy(focusTechnicalRows.flatMap((row) => row.modules), (module) => module.id || module.code || module.title || module.name);
         const processMappings = list(focus.process_mappings);
         return {
           focus: compactEntity(focus),
@@ -266,16 +273,17 @@
         const confirmedServices = isAmbiguous ? [] : candidateServices;
         const modules = isAmbiguous ? [] : modulesForServices(management, confirmedServices);
         const measures = isAmbiguous ? [] : measuresForServicesAndScope(management, confirmedServices, group.scope);
-        const technicalObjects = [
-          ...modules.map((module) => compactTechnicalObject(module, "安全技术模块")),
-          ...measures.map((measure) => compactTechnicalObject({ ...measure, type: "security_technical_measure" }, "安全技术措施")),
-        ];
+        const technologyModules = modules.map((module) => compactTechnicalObject(module, "安全技术模块"));
+        const technicalMeasures = measures.map((measure) => compactTechnicalObject({ ...measure, type: "security_technical_measure" }, "安全技术措施"));
+        const technicalObjects = [...technologyModules, ...technicalMeasures];
         const status = isAmbiguous ? "ambiguous_service_mapping" : confirmedServices.length ? "covered" : "no_service";
         return {
           focus: compactEntity(group.focus),
           scope: compactEntity(group.scope, "未命名作用域"),
           services: confirmedServices.map(compactEntity),
           candidateServices: candidateServices.map(compactEntity),
+          technologyModules,
+          technicalMeasures,
           modules: technicalObjects,
           serviceCount: group.serviceCount || candidateServices.length,
           status,
@@ -395,14 +403,28 @@
     if (!row) return [];
     const technicalForFocus = technicalRows.filter((item) => item.focus.id === row.focus.id);
     const managementForFocus = managementRows.find((item) => item.focus.id === row.focus.id);
+    const scopeCount = uniqueBy(technicalForFocus.map((item) => item.scope), (scope) => scope?.id || scope?.code || scope?.title).length;
+    const serviceCount = uniqueBy(buildScopeServicePairs(technicalForFocus).filter((pair) => pair.serviceId || pair.serviceName), (pair) => pair.serviceId || pair.serviceCode || pair.serviceName).length;
+    const moduleCount = uniqueBy(technicalForFocus.flatMap((item) => list(item.technologyModules)), (module) => module.id || module.code || module.title || module.name).length;
+    const measureCount = uniqueBy(technicalForFocus.flatMap((item) => list(item.technicalMeasures)), (measure) => measure.id || measure.code || measure.title || measure.name).length;
+    const workCount = uniqueBy(list(managementForFocus?.securityWorks), (work) => work.id || work.code || work.title).length;
+    const functionCount = uniqueBy(list(managementForFocus?.stakeholders), (stakeholder) => stakeholder.id || stakeholder.code || stakeholder.title || stakeholder.name).length;
     return [
       {
+        title: "图示范围",
+        body: "本图展示当前安全能力关注点在技术视角与管理视角下的局部映射关系。",
+      },
+      {
         title: "技术视角",
-        body: `当前关注点通过 ${technicalForFocus.length} 个作用域映射安全技术服务；其中 ${technicalForFocus.filter((item) => item.status === "no_service").length} 个作用域明确无适用服务，${technicalForFocus.filter((item) => item.status === "ambiguous_service_mapping").length} 条需要确认。技术服务由关注点与作用域共同决定。`,
+        body: "技术视角从适用作用域出发，展示每个作用域对应的安全技术服务，并进一步关联到安全技术模块和安全技术措施，用于判断该关注点在不同保护对象上的技术落地方式。",
       },
       {
         title: "管理视角",
-        body: `当前关注点关联 ${managementForFocus?.securityWorks.length || 0} 项安全工作、${managementForFocus?.processReferences.length || 0} 个 L3 流程；L2 流程组归属于单一能力，不作为技术服务下游。`,
+        body: "管理视角从当前关注点关联的安全工作出发，展示其涉及的四层安全职能，以及对应的 L2/L3 流程和 L4 关键活动，用于判断该关注点在组织职责和流程执行中的落地路径。",
+      },
+      {
+        title: "当前摘要",
+        body: `当前关注点共关联 ${scopeCount} 个作用域、${serviceCount} 项安全技术服务、${moduleCount} 个安全技术模块、${measureCount} 项安全技术措施，以及 ${workCount} 项安全工作和 ${functionCount} 个安全职能。`,
       },
     ];
   }
@@ -446,7 +468,241 @@
     };
   }
 
-  function buildCapabilityWorkspaceViewModel({ capabilityTree, management, selectedCapabilityId, search, relationshipFilters }) {
+  function mapTechnicalStatus(row) {
+    if (row?.status === "ambiguous_service_mapping") return "ambiguous";
+    if (row?.status === "no_service" && row?.isExplicitNoService) return "not_applicable";
+    if (row?.status === "no_service") return "missing";
+    return "normal";
+  }
+
+  function compactLocalFocus(focus) {
+    const compact = compactEntity(focus, "未命名关注点");
+    return {
+      id: compact?.id || "",
+      code: compact?.code || "",
+      name: compact?.title || "",
+      description: compact?.description || "",
+    };
+  }
+
+  function compactLocalModule(module) {
+    return {
+      id: module?.id || module?.code || module?.title || "",
+      code: module?.code || "",
+      name: module?.title || module?.name || "",
+      type: module?.type || "security_technology_module",
+    };
+  }
+
+  function compactLocalMeasure(measure) {
+    return {
+      id: measure?.id || measure?.code || measure?.title || "",
+      name: measure?.title || measure?.name || "",
+      category: measure?.category || measure?.kind || measure?.objectKind || "",
+      status: measure?.status || "normal",
+    };
+  }
+
+  function localPairFor(row, service, status) {
+    return {
+      scopeId: row.scope?.id || "",
+      scopeCode: row.scope?.code || "",
+      scopeName: row.scope?.title || "",
+      serviceId: service?.id || "",
+      serviceCode: service?.code || "",
+      serviceName: service?.title || "",
+      status,
+    };
+  }
+
+  function buildScopeServicePairs(technicalRows) {
+    return list(technicalRows).flatMap((row) => {
+      const status = mapTechnicalStatus(row);
+      const services = status === "ambiguous" ? list(row.candidateServices) : list(row.services);
+      if (!services.length) return [localPairFor(row, null, status)];
+      return services.map((service) => localPairFor(row, service, status));
+    });
+  }
+
+  function buildLocalProcesses(processMappings) {
+    return uniqueBy(
+      list(processMappings).map((mapping) => {
+        const group = compactEntity(mapping.process_group, "待补充");
+        const reference = compactEntity(mapping.process_reference, "待补充");
+        return {
+          id: [group?.id, reference?.id].filter(Boolean).join(":") || reference?.title || group?.title || "process",
+          l2ProcessGroup: group?.title || "待补充",
+          l3ProcessName: reference?.title || "待补充",
+        };
+      }),
+      (process) => process.id || `${process.l2ProcessGroup}:${process.l3ProcessName}`,
+    );
+  }
+
+  function buildLocalProcessTree(processMappings) {
+    const groups = new Map();
+    for (const mapping of list(processMappings)) {
+      const group = compactEntity(mapping.process_group, "待补充");
+      const reference = compactEntity(mapping.process_reference, "待补充");
+      const groupKey = group?.id || group?.title || "pending-l2";
+      const l2 =
+        groups.get(groupKey) || {
+          id: groupKey,
+          l2ProcessGroup: group?.title || "待补充",
+          l3Processes: [],
+        };
+      const activities = list(mapping.activities).map((activity) => ({
+        id: activity.id || activity.code || activity.title || "activity",
+        name: activity.title || activity.name || "待补充",
+        status: activity.status || "normal",
+      }));
+      l2.l3Processes.push({
+        id: reference?.id || reference?.title || `${groupKey}:pending-l3`,
+        name: reference?.title || "待补充",
+        activities: activities.length ? activities : [{ id: `${reference?.id || groupKey}:missing-activity`, name: "待补充", status: "missing" }],
+      });
+      groups.set(groupKey, l2);
+    }
+    return [...groups.values()].map((group) => ({
+      ...group,
+      l3Processes: uniqueBy(group.l3Processes, (process) => process.id || process.name).map((process) => ({
+        ...process,
+        activities: uniqueBy(process.activities, (activity) => activity.id || activity.name),
+      })),
+    }));
+  }
+
+  function buildLocalActivities(managementRows) {
+    const activities = uniqueBy(
+      list(managementRows).flatMap((row) => list(row.activities)),
+      (activity) => activity.id || activity.code || activity.title,
+    ).map((activity) => ({
+      id: activity.id || activity.code || activity.title,
+      name: activity.title || activity.name || "待补充",
+      status: activity.status || "normal",
+    }));
+    const hasMissingActivity = list(managementRows).some((row) => row.hasMissingActivity);
+    if (activities.length) return activities;
+    return hasMissingActivity ? [{ id: "missing-activity", name: "待补充", status: "missing" }] : [];
+  }
+
+  function createEmptyWorkFunctionsByLayer() {
+    return {
+      decision: [],
+      management: [],
+      execution: [],
+      supervision: [],
+      unknown: [],
+    };
+  }
+
+  function workFunctionLayerFor(value) {
+    const normalized = text(value).trim();
+    return WORK_FUNCTION_LAYER_BY_VALUE.get(normalized) || null;
+  }
+
+  function compactLocalWorkFunction(stakeholder) {
+    const layerDefinition = workFunctionLayerFor(stakeholder?.layer);
+    const layer = layerDefinition?.key || "unknown";
+    return {
+      id: stakeholder?.id || stakeholder?.code || stakeholder?.title || stakeholder?.name || "",
+      code: stakeholder?.code || "",
+      name: stakeholder?.title || stakeholder?.name || "",
+      layer,
+      layerLabel: layerDefinition?.label || "待确认职能",
+      group: stakeholder?.group || "",
+      status: stakeholder?.status || (layer === "unknown" ? "pending" : "normal"),
+    };
+  }
+
+  function buildWorkFunctionsByLayer(stakeholders) {
+    const grouped = createEmptyWorkFunctionsByLayer();
+    for (const workFunction of uniqueBy(list(stakeholders).map(compactLocalWorkFunction), (item) => `${item.layer}:${item.id || item.code || item.name}`)) {
+      grouped[workFunction.layer].push(workFunction);
+    }
+    return grouped;
+  }
+
+  function serviceKeyOf(service) {
+    return service?.id || service?.code || service?.title || service?.name || "";
+  }
+
+  function buildServiceModuleMeasureLinks(technicalRows) {
+    const links = new Map();
+    for (const row of list(technicalRows)) {
+      const services = list(row.services);
+      for (const service of services) {
+        const key = serviceKeyOf(service);
+        if (!key) continue;
+        const link =
+          links.get(key) || {
+            serviceId: service.id || "",
+            serviceCode: service.code || "",
+            serviceName: service.title || service.name || "",
+            scopes: [],
+            modules: [],
+            measures: [],
+            status: mapTechnicalStatus(row),
+          };
+        link.scopes.push({
+          id: row.scope?.id || "",
+          code: row.scope?.code || "",
+          name: row.scope?.title || "",
+        });
+        link.modules.push(...list(row.technologyModules).map(compactLocalModule));
+        link.measures.push(...list(row.technicalMeasures).map(compactLocalMeasure));
+        if (link.status !== "ambiguous") link.status = mapTechnicalStatus(row);
+        links.set(key, link);
+      }
+    }
+    return [...links.values()].map((link) => ({
+      ...link,
+      scopes: uniqueBy(link.scopes, (scope) => scope.id || scope.code || scope.name),
+      modules: uniqueBy(link.modules, (module) => module.id || module.code || module.name),
+      measures: uniqueBy(link.measures, (measure) => measure.id || measure.name),
+    }));
+  }
+
+  function buildCapabilityLocalRelationMap({ selectedDetail, detailRawProcesses, detailTechnicalRows, detailManagementRows, detailSourceEvidence }) {
+    const firstManagementRow = detailManagementRows[0] || {};
+    const modules = uniqueBy(
+      list(detailTechnicalRows).flatMap((row) => list(row.technologyModules)),
+      (module) => module.id || module.code || module.title,
+    ).map(compactLocalModule);
+    const measures = uniqueBy(
+      list(detailTechnicalRows).flatMap((row) => list(row.technicalMeasures)),
+      (measure) => measure.id || measure.code || measure.title,
+    ).map(compactLocalMeasure);
+    const workFunctions = uniqueBy(
+      list(detailManagementRows).flatMap((row) => list(row.stakeholders)),
+      (stakeholder) => `${stakeholder.layer || "unknown"}:${stakeholder.id || stakeholder.code || stakeholder.title || stakeholder.name}`,
+    ).map(compactLocalWorkFunction);
+    return {
+      focus: compactLocalFocus(selectedDetail),
+      technical: {
+        scopeServicePairs: buildScopeServicePairs(detailTechnicalRows),
+        serviceModuleMeasureLinks: buildServiceModuleMeasureLinks(detailTechnicalRows),
+        modules,
+        measures,
+      },
+      management: {
+        securityWorks: uniqueBy(list(detailManagementRows).flatMap((row) => list(row.securityWorks)), (work) => work.id || work.code || work.title).map((work) => ({
+          id: work.id || work.code || work.title || "",
+          code: work.code || "",
+          name: work.title || work.name || "",
+          status: work.status || "",
+        })),
+        workFunctions,
+        workFunctionsByLayer: buildWorkFunctionsByLayer(workFunctions),
+        processes: buildLocalProcesses(detailRawProcesses),
+        processTree: buildLocalProcessTree(detailRawProcesses),
+        activities: buildLocalActivities(detailManagementRows.length ? detailManagementRows : [firstManagementRow]),
+      },
+      sourceEvidence: detailSourceEvidence,
+    };
+  }
+
+  function buildCapabilityWorkspaceViewModel({ capabilityTree, capabilityProjection, management, selectedCapabilityId, search, relationshipFilters }) {
     const navigationTree = buildNavigationTree(capabilityTree, search);
     const fallbackFocus = focusRows(capabilityTree)[0]?.item;
     const selectedResult = selectedCapabilityId ? findCapabilityItemAndFocuses(capabilityTree, selectedCapabilityId) : { selected: null };
@@ -464,9 +720,16 @@
     );
     const visibleFocusIds = new Set(rows.map((row) => row.focus.id));
     const visibleFocuses = selectedFocuses.filter((focus) => !query || visibleFocusIds.has(focus.id) || includesSearch(query, focus.code, focus.title, focus.description));
-    const technicalMappingRows = buildTechnicalMappingRows({ management, focuses: visibleFocuses });
-    const managementMappingRows = buildManagementMappingRows({ focuses: visibleFocuses });
-    const focusOverview = buildFocusOverview({ capabilityTree, management, focuses: visibleFocuses, selectedDetail, technicalRows: technicalMappingRows, managementRows: managementMappingRows });
+    const visibleFocusIdSet = new Set(visibleFocuses.map((focus) => focus.id));
+    const projectedTechnicalRows = list(capabilityProjection?.technicalMappingRows || capabilityProjection?.technical_mapping_rows);
+    const projectedManagementRows = list(capabilityProjection?.managementMappingRows || capabilityProjection?.management_mapping_rows);
+    const technicalMappingRows = projectedTechnicalRows.length
+      ? projectedTechnicalRows.filter((row) => visibleFocusIdSet.has(row.focus?.id))
+      : buildTechnicalMappingRows({ management, focuses: visibleFocuses });
+    const managementMappingRows = projectedManagementRows.length
+      ? projectedManagementRows.filter((row) => visibleFocusIdSet.has(row.focus?.id))
+      : buildManagementMappingRows({ focuses: visibleFocuses });
+    const focusOverview = buildFocusOverview({ capabilityTree, focuses: visibleFocuses, selectedDetail, technicalRows: technicalMappingRows, managementRows: managementMappingRows });
     const selectedFocusRow = rows.find((row) => row.focus.id === selectedId) || rows[0] || null;
     const isFocus = selectedDetail?.type === "capability_focus";
     const chainFocus = selectedFocusRow || null;
@@ -479,6 +742,14 @@
     const detailModules = uniqueBy(detailTechnicalRows.flatMap((row) => row.modules), (module) => module.id || module.code || module.title);
     const detailSecurityWorks = isFocus ? managementMappingRows.find((row) => row.focus.id === selectedDetail.id)?.securityWorks || [] : uniqueBy(managementMappingRows.flatMap((row) => row.securityWorks), (work) => work.id || work.code || work.title);
     const detailSourceItems = [...list(detailRaw?.security_works), ...list(detailRaw?.scope_mappings)];
+    const detailSourceEvidence = sourceEvidenceFor(detailRaw, detailRawProcesses, detailSourceItems);
+    const localRelationMap = buildCapabilityLocalRelationMap({
+      selectedDetail,
+      detailRawProcesses,
+      detailTechnicalRows,
+      detailManagementRows,
+      detailSourceEvidence,
+    });
 
     return {
       navigationTree,
@@ -495,6 +766,7 @@
       focusOverview,
       technicalMappingRows,
       managementMappingRows,
+      localRelationMap,
       localRelationshipNotes: buildLocalRelationshipNotes(chainFocus, technicalMappingRows, managementMappingRows),
       relationshipMatrixRows: rows,
       relationshipChainRows: buildRelationshipChainRows(chainFocus),

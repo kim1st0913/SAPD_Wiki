@@ -1,9 +1,11 @@
 const state = {
   capability: null,
+  capabilityProjection: null,
   management: null,
   lifecycle: null,
   content: null,
   activeView: "overview",
+  capabilityCatalogCollapsed: false,
   activeMaintenancePage: "scopes",
   activeReferenceTab: "gbt",
   activeContentPage: "html",
@@ -47,6 +49,23 @@ function setHtml(id, html) {
 function setText(id, value) {
   const element = $(id);
   if (element) element.textContent = text(value);
+}
+
+function loadScriptOnce(src, isReady) {
+  if (isReady?.()) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector(`script[src="${src}"]`);
+    if (existing) {
+      existing.addEventListener("load", resolve, { once: true });
+      existing.addEventListener("error", reject, { once: true });
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = src;
+    script.onload = resolve;
+    script.onerror = reject;
+    document.body.appendChild(script);
+  });
 }
 
 function emptyState(title, body = "等待数据导出或选择左侧对象") {
@@ -236,15 +255,81 @@ function renderLocalRelationshipNotes(notes) {
   `;
 }
 
+function renderMappingDetailDrawer(viewModel) {
+  const components = window.sapdComponents || {};
+  return `
+    <details class="mapping-detail-drawer">
+      <summary>
+        <span>映射矩阵明细（折叠查看）</span>
+        <strong>技术 ${list(viewModel.technicalMappingRows).length} / 管理 ${list(viewModel.managementMappingRows).length}</strong>
+      </summary>
+      <div class="parallel-mapping-grid">
+        ${components.FocusScopeServiceMatrix?.render({ rows: viewModel.technicalMappingRows }) || emptyState("技术映射组件未加载")}
+        ${components.FocusManagementMapping?.render({ rows: viewModel.managementMappingRows }) || emptyState("管理映射组件未加载")}
+      </div>
+    </details>
+  `;
+}
+
+function renderSourceEvidenceDrawer(sourceEvidence) {
+  const components = window.sapdComponents || {};
+  const count = list(sourceEvidence).length;
+  return `
+    <details class="capability-evidence-drawer">
+      <summary>查看来源证据（${count}）</summary>
+      ${components.SourceEvidencePanel ? components.SourceEvidencePanel.render(sourceEvidence) : ""}
+    </details>
+  `;
+}
+
+function applyCapabilityCatalogState() {
+  const workspace = $("capabilityWorkspace");
+  workspace?.classList.toggle("catalog-collapsed", state.capabilityCatalogCollapsed);
+  if (workspace) {
+    const hasResizer = Boolean(workspace.querySelector(".workspace-resizer"));
+    if (hasResizer) {
+      workspace.style.gridTemplateColumns = state.capabilityCatalogCollapsed ? "48px 6px minmax(760px, 1fr)" : "250px 6px minmax(760px, 1fr)";
+      workspace._paneWidths = state.capabilityCatalogCollapsed ? [48, Math.max(760, workspace.clientWidth - 54)] : [250, Math.max(760, workspace.clientWidth - 256)];
+    } else {
+      workspace.style.gridTemplateColumns = state.capabilityCatalogCollapsed ? "48px minmax(760px, 1fr)" : "250px minmax(760px, 1fr)";
+      workspace._paneWidths = null;
+    }
+  }
+  const button = $("toggleCapabilityCatalog");
+  if (button) {
+    button.textContent = state.capabilityCatalogCollapsed ? "展开目录" : "收起目录";
+    button.setAttribute("aria-expanded", state.capabilityCatalogCollapsed ? "false" : "true");
+  }
+}
+
+function ensureCapabilityCatalogToggle() {
+  const paneHead = document.querySelector(".capability-tree-pane .pane-head");
+  const resetButton = $("resetButton");
+  if (!paneHead || $("toggleCapabilityCatalog")) return;
+  const actionGroup = document.createElement("div");
+  actionGroup.className = "pane-head-actions";
+  const toggleButton = document.createElement("button");
+  toggleButton.id = "toggleCapabilityCatalog";
+  toggleButton.type = "button";
+  toggleButton.title = "收起或展开目录";
+  toggleButton.setAttribute("aria-expanded", "true");
+  toggleButton.textContent = "收起目录";
+  actionGroup.appendChild(toggleButton);
+  if (resetButton) actionGroup.appendChild(resetButton);
+  paneHead.appendChild(actionGroup);
+}
+
 function renderCapabilities() {
   const viewModels = window.sapdViewModels;
   const components = window.sapdComponents || {};
+  ensureCapabilityCatalogToggle();
   if (!viewModels?.buildCapabilityWorkspaceViewModel) {
     setHtml("detail", emptyState("能力视图模型未加载"));
     return;
   }
   const viewModel = viewModels.buildCapabilityWorkspaceViewModel({
     capabilityTree: state.capability,
+    capabilityProjection: state.capabilityProjection,
     management: state.management,
     selectedCapabilityId: state.selectedCapabilityId,
     search: state.search,
@@ -263,14 +348,12 @@ function renderCapabilities() {
     "detail",
     `
       ${components.FocusOverview?.render({ focusOverview: viewModel.focusOverview }) || emptyState("关注点概览组件未加载")}
-      <div class="parallel-mapping-grid">
-        ${components.FocusScopeServiceMatrix?.render({ rows: viewModel.technicalMappingRows }) || emptyState("技术映射组件未加载")}
-        ${components.FocusManagementMapping?.render({ rows: viewModel.managementMappingRows }) || emptyState("管理映射组件未加载")}
-      </div>
+      ${components.CapabilityLocalRelationMap?.render({ localRelationMap: viewModel.localRelationMap }) || emptyState("局部关系图组件未加载")}
+      ${renderMappingDetailDrawer(viewModel)}
       ${renderLocalRelationshipNotes(viewModel.localRelationshipNotes)}
-      ${components.SourceEvidencePanel ? components.SourceEvidencePanel.render(detailInspector.sourceEvidence) : ""}
     `,
   );
+  applyCapabilityCatalogState();
 }
 
 function renderEnvironment() {
@@ -492,7 +575,7 @@ function defaultWorkspaceWidths(workspace, panes) {
   const handlesWidth = 6 * (panes.length - 1);
   const total = Math.max(480, workspace.clientWidth - handlesWidth);
   const rest = (...fixed) => Math.max(220, total - fixed.reduce((sum, value) => sum + value, 0));
-  if (workspace.id === "capabilityWorkspace") return [310, rest(310)];
+  if (workspace.id === "capabilityWorkspace") return [250, rest(250)];
   if (workspace.id === "environmentWorkspace") return [300, rest(300)];
   if (workspace.id === "devLifecycleWorkspace" && panes.length === 2) return [300, rest(300)];
   if (workspace.id === "devLifecycleWorkspace" || workspace.id === "dataLifecycleWorkspace") return [270, rest(270, 220), 220];
@@ -627,6 +710,7 @@ function renderActiveView() {
 
 function setActiveView(view) {
   state.activeView = view;
+  document.body.dataset.activeView = view;
   for (const button of document.querySelectorAll(".module-tab")) {
     const active = button.dataset.view === view;
     button.classList.toggle("active", active);
@@ -644,9 +728,14 @@ function setActiveView(view) {
   for (const [key, id] of Object.entries(workspaceMap)) $(id)?.classList.toggle("is-hidden", key !== view);
   renderActiveView();
   setupResizableWorkspaces();
+  if (view === "capabilities") applyCapabilityCatalogState();
 }
 
 function bindEvents() {
+  document.querySelectorAll(".module-tab").forEach((button) => {
+    const label = button.querySelector("span:not(.nav-symbol)")?.textContent || button.textContent.trim();
+    button.title = label;
+  });
   document.querySelectorAll(".module-tab").forEach((button) => button.addEventListener("click", () => setActiveView(button.dataset.view)));
   $("searchInput")?.addEventListener("input", (event) => {
     state.search = event.target.value.trim();
@@ -749,6 +838,11 @@ function bindEvents() {
     button.addEventListener("click", () => {});
   });
   document.addEventListener("click", (event) => {
+    if (event.target.closest("#toggleCapabilityCatalog")) {
+      state.capabilityCatalogCollapsed = !state.capabilityCatalogCollapsed;
+      applyCapabilityCatalogState();
+      return;
+    }
     const lifecycle = event.target.closest("[data-lifecycle-kind][data-lifecycle-id]");
     if (lifecycle) {
       if (lifecycle.dataset.lifecycleKind === "dev") state.selectedDevProcessId = lifecycle.dataset.lifecycleId;
@@ -774,13 +868,16 @@ function bindEvents() {
 async function init() {
   const dataClient = window.sapdDataClient;
   if (!dataClient) throw new Error("SAPD Wiki dataClient 未加载");
-  const [capability, management, lifecycle, content] = await Promise.all([
+  await loadScriptOnce("./components/CapabilityLocalRelationMap.js", () => Boolean(window.sapdComponents?.CapabilityLocalRelationMap));
+  const [capability, capabilityProjection, management, lifecycle, content] = await Promise.all([
     dataClient.getCapabilityTree(),
+    dataClient.getCapabilityWorkspaceProjection?.() || Promise.resolve({ data: null }),
     dataClient.getManagementKnowledge(),
     dataClient.getLifecycleKnowledge(),
     dataClient.getContentViews(),
   ]);
   state.capability = capability.data;
+  state.capabilityProjection = capabilityProjection.data;
   state.management = management.data;
   state.lifecycle = lifecycle.data;
   state.content = content.data;

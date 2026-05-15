@@ -6,6 +6,8 @@
 
 当前已经跑通 Excel 导入 MVP 的核心链路：本地 SQLite 初始化、来源文件登记、5 个核心 Sheet 解析、暂存预览、审批入正式表和基础查询。不做前端页面。
 
+全工程执行前后端分离：后端负责导入、清洗、标准化、关系生成、校验、评分、导出和页面数据投影；前端只通过 `dataClient` / `/api/v1/*` 消费契约化数据并负责展示交互。`public/data/*.json` 仅作为后端生成的离线兼容数据包或 API fallback。
+
 ## 先读哪几个文件
 
 如果你是第一次进入项目，建议按这个顺序阅读：
@@ -27,6 +29,7 @@
 
 - `docs/01-architecture/architecture.md`：轻量架构说明。
 - `docs/01-architecture/technology-decisions.md`：技术选型记录。
+- `docs/01-architecture/frontend-backend-separation-closure.md`：本轮前后端分离收口说明。
 
 ### 数据模型
 
@@ -165,6 +168,24 @@ python -m http.server 5173
 ```text
 http://127.0.0.1:5173
 ```
+
+启动带本地 API 的关系工作台：
+
+```bash
+python scripts/sapd_wiki.py serve --host 127.0.0.1 --port 5173
+```
+
+该模式会同时提供：
+
+```text
+http://127.0.0.1:5173/
+http://127.0.0.1:5173/api/v1/health
+http://127.0.0.1:5173/api/v1/data-packages/management
+http://127.0.0.1:5173/api/v1/capabilities/workspace-projection
+http://127.0.0.1:5173/api/v1/maintenance
+```
+
+前端会优先读取 `/api/v1/data-packages/*`，如果本地 API 不存在，则自动回退到 `public/data/*.json` 静态文件。
 
 数据库默认生成在：
 

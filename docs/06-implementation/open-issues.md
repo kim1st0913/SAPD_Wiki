@@ -814,3 +814,15 @@
   - 更新 `AGENTS.md`，明确后续复杂任务优先读取 `CURRENT_STATE.md`，不要默认读取完整历史归档；
   - 在 `CURRENT_STATE.md` 增加重连处理规则，后续先做上下文和 Git 状态检查，再继续业务开发。
 - 验证结果：`progress.md` 当前保持轻量；`task_plan.md`、`findings.md`、`progress.md` 均已转为当前入口 + 历史索引结构；本轮将通过 `git diff --check` 和 `git status --short --branch` 验证。
+
+## OI-042：成熟度评估表 V2 与主工程 L2 能力存在待确认差异
+
+- 状态：待确认
+- 类型：maturity 模型基准 / 数据一致性
+- 对象或页面：maturity 模块，`评估表v2.md`，主工程 `capability`
+- 现象：解析 `data/raw-samples/maturity/评估表v2.md` 后，共识别 31 个 L2 安全能力；当前 SQLite 主库 active L2 安全能力为 32 个。V2 缺少 `M-PS.CT` 安全意识教育与技能培养能力。`T-AD.SV` 当前已在主工程调整为“安全架构评估能力”，与 V2 一致，不再作为待确认差异。
+- 影响：如果后续以 V2 作为 L2 能力评分基准，`M-PS.CT` 将没有独立 `L1` 到 `L5` 判定标准。
+- 当前处理：不自动修改主工程能力树，不自动修改 V2 样本；差异已记录到 `docs/08-maturity/evaluation-table-v2-analysis.md`，并导出到 `data/exports/maturity/maturity-v2-mainline-capability-diff.csv`。
+- 需要确认：
+  - 是否将 `M-PS.CT` 补入 V2 L2 能力评价基准。
+- 验证结果：`python3` 已解析 V2 Markdown 并按当前 SQLite 主库重新生成 `maturity-v2-mainline-summary.json`，结论为 `v2_capability_count = 31`、`mainline_active_capability_count = 32`、`missing_in_maturity_v2_count = 1`、`name_conflict_count = 0`。

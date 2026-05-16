@@ -2,6 +2,8 @@
 
 本文档定义新版 `sample 评分表.xlsx` 字段到 maturity 标准字段的映射关系，并提出后续正式模板建议。
 
+补充说明：新增 `data/raw-samples/maturity/评估表v2.md` 是 Markdown 格式的 L2 能力评价基准，字段映射见本文件第 2.3 节和 `config/maturity/field-mapping.evaluation-table-v2.yaml`。
+
 ## 1. 映射原则
 
 | 原则 | 说明 |
@@ -53,6 +55,21 @@
 | `Level 3/ 充分定义` | `level_criteria.L3` | 否 | 模型基准字段 | L3 专属描述 |
 | `Level 4/ 量化控制` | `level_criteria.L4` | 否 | 模型基准字段 | L4 专属描述 |
 | `Level 5 / 持续优化` | `level_criteria.L5` | 否 | 模型基准字段 | L5 专属描述 |
+
+### 2.3 `评估表v2.md`
+
+| Markdown 结构 | 标准字段 | 必填 | 字段类型 | 用途 |
+|---|---|---|---|---|
+| YAML `version` | `model_version` | 是 | 版本字段 | 模型版本 |
+| YAML `changelog` | `version_note` | 否 | 说明字段 | 版本变更说明 |
+| 三级标题 | `capability_category_ref` | 是 | 引用字段 | 能力分类上下文 |
+| 四级标题 | `capability_domain_ref` | 是 | 引用字段 | L1 能力域上下文 |
+| 五级标题编码 | `capability_code` | 是 | 引用字段 | L2 安全能力编码 |
+| 五级标题名称 | `capability_title` | 是 | 引用字段 | L2 安全能力名称 |
+| `能力描述` | `capability_description` | 是 | 说明字段 | L2 能力合并描述 |
+| `L1` 到 `L5` 描述 | `level_criteria.L1` 到 `level_criteria.L5` | 是 | 模型基准字段 | L2 能力专属成熟度判定标准 |
+
+V2 的 `criteria_granularity` 固定为 `capability`。它不替代 XLSX 中的关注点级基准，而是为 L2 能力直接评分提供更完整的判定口径。
 
 ## 3. 必填字段
 
@@ -146,6 +163,7 @@
 | `Manual_Adjustment` | 人工调整 | 记录匹配替换、评分覆盖和原因 |
 | `Reference_Capabilities` | 能力参考 | 从主工程能力库生成，不手工维护 |
 | `Reference_Level_Criteria` | 分级标准参考 | 从新版 `成熟度分级描述` 生成 |
+| `Reference_L2_Capability_Criteria` | L2 能力分级标准参考 | 从 `评估表v2.md` 生成 |
 | `Reference_Mainline_Diff` | 主线差异清单 | 从 `maturity_mainline_match_result` 生成，供人工确认 |
 | `Readme` | 填写说明 | 来自 Word/PPT 方法论和工具说明 |
 

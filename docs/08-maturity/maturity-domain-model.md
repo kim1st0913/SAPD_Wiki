@@ -29,7 +29,7 @@ maturity 模块属于 SAPD Wiki 主工程下的独立业务模块。它读取主
 | `assessment_input_normalized` | 标准化输入项 | 清洗、向下填充和拆分后的评估输入项 |
 | `maturity_model_version` | 成熟度模型版本 | Word 方法论、XLSX 评价基准表和配置版本形成的模型基准版本 |
 | `maturity_level_definition` | 成熟度等级定义 | L1-L5 通用等级定义，以及四个固定评分要素的等级说明 |
-| `maturity_capability_baseline` | 能力基准项 | 从评价基准表抽取的能力分类、L1、L2、关注点和等级判定标准 |
+| `maturity_capability_baseline` | 能力基准项 | 从评价基准表抽取的能力分类、L1、L2、关注点和等级判定标准，支持 `capability` 与 `capability_focus` 两种粒度 |
 | `maturity_scope_service_baseline` | 技术输入基准项 | 从评价基准表抽取的作用域和安全技术服务 / 实践项，用于支撑平台与工具评分 |
 | `maturity_mainline_match_result` | 主线数据匹配结果 | maturity 模型基准与主工程已治理安全能力、关注点、安全技术服务的匹配结果 |
 | `maturity_match_result` | 评估输入匹配结果 | 客户输入项与主工程能力、关注点的匹配结果，并记录安全技术服务作为技术输入 |
@@ -109,7 +109,7 @@ assessment_project
 
 ## 5. 样例驱动的行粒度
 
-新版 `sample 评分表.xlsx` 中最重要的行粒度来自 `成熟度分级描述` Sheet。
+新版 `sample 评分表.xlsx` 中最重要的行粒度来自 `成熟度分级描述` Sheet。新增 `评估表v2.md` 则提供 L2 能力合并后的 `L1` 到 `L5` 判定标准。
 
 ```text
 一条关注点定义行 =
@@ -125,6 +125,14 @@ assessment_project
 上方继承的能力关注点
 + 作用域
 + 技术服务 / 实践项
+
+一条 V2 L2 能力基准 =
+能力分类标题
++ L1 能力域标题
++ L2 安全能力编码
++ L2 安全能力标题
++ L2 安全能力描述
++ L1-L5 专属成熟度描述
 ```
 
 这意味着当前样例提供的是成熟度模型基准，不是客户评分输入。正式评估模板仍需额外设计 `Score_Input`，用于承载客户现状、证据和四要素评分。
@@ -138,6 +146,13 @@ assessment_project
 | 作用域安全技术服务 | `security_technical_service_input` | 不单独作为成熟度评分对象，而是作为平台与工具维度的技术输入、证据和匹配线索 |
 
 成熟度评分最终落到 `capability_focus` 或 `capability`。安全技术服务用于说明技术侧是否具备、覆盖哪些作用域，以及能否支撑 `platform_tool_score` 的判定。
+
+`评估表v2.md` 对评分粒度的影响：
+
+- V2 更适合作为 `capability` 粒度评分基准；
+- 旧版 XLSX 的 `成熟度分级描述` 更适合作为 `capability_focus` 和安全技术服务输入基准；
+- 如果后续选择 L2 能力直接评分，V2 可以作为首版评分解释基准；
+- 如果后续选择关注点逐项评分，仍需要确认关注点级 `L1` 到 `L5` 标准是否完整。
 
 ## 6. 模型基准与客户输入分离
 

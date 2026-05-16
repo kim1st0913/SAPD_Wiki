@@ -20,6 +20,113 @@
 
 ## 最近记录
 
+### 2026-05-16 Stitch / UI 设计输入交接 V2
+
+任务：用户要求进入 Stitch / UI 设计输入整理阶段，只生成 UI 设计交接文档，不做 UI 实现、不改前端代码、不启动浏览器、不运行 npm。
+
+本次调整：
+
+- 新增 `docs/00-overview/stitch-design-handoff-v2.md`，将菜单结构、页面类型、三份 workbench 数据契约状态、当前实现状态和已知缺口整理为 Stitch 设计输入。
+- 文档明确当前口径为“P1 双核心工作台 + LC-AP 受控专项关系投影”，并将 `SAPD 成熟度评估` 标注为独立 `domain-module`，代码实现另开会话。
+- 文档明确 `environment-workbench.json` 已生成并加载，但信息化环境页展示结构尚未完全切换到其对象 / 关系模型，Stitch 设计应以目标数据结构为准。
+
+验证：
+
+- 本轮未修改前端代码、JSON、`dataClient`、ViewModel、ETL、数据库 schema，未启动 npm，未启动浏览器，未进入 maturity 或 Phase 7。
+
+### 2026-05-16 Pre-Stitch Frontend Data Source Switch
+
+任务：用户要求进入 Pre-Stitch 前端数据源切换阶段，只做数据源切换准备与最小接入核查，不做 UI / Stitch 重构。
+
+本次调整：
+
+- 更新 `frontend/capability-browser/app.js`，初始化时新增读取 `getCapabilityWorkbench()`、`getEnvironmentWorkbench()`、`getLifecycleWorkbench()`。
+- 更新 `frontend/capability-browser/viewModels.js`，能力页 ViewModel 优先从 `capability-workbench.json` 派生技术 / 管理映射行，旧 `capability-tree.json` + `management-knowledge.json` 保留为 fallback。
+- 更新 `frontend/capability-browser/viewModels.js`，LC-AP 页 ViewModel 在 `lifecycle-workbench.json` 可用时优先用 workbench 派生阶段、活动、控制点、策略、服务和模块关系；旧 `lifecycle-knowledge.json` 保留为 fallback。
+- 信息化环境页入口已存在，本轮已挂接 `environment-workbench` 数据状态，但未重写环境页展示结构；后续 UI 重构前仍需完成环境页 workbench 结构消费替换。
+
+验证：
+
+- `node --check frontend/capability-browser/app.js` 通过。
+- `node --check frontend/capability-browser/dataClient.js` 通过。
+- `node --check frontend/capability-browser/viewModels.js` 通过。
+- `node --check frontend/capability-browser/components/*.js` 通过。
+- 三份 workbench JSON 顶层契约解析通过。
+- `git diff --check` 通过。
+- 本轮未启动浏览器、未运行 npm、未修改样式大布局、未进入 Stitch / maturity / Phase 7。
+
+### 2026-05-16 SAPD 成熟度评估纳入前端菜单与数据契约规划
+
+任务：用户指出前端菜单定义中还应包含 `SAPD成熟度评估（评分填报，结果生成）`，要求一并考虑，但代码实现放到另一个会话。
+
+本次调整：
+
+- 更新 `docs/00-overview/frontend-menu-and-page-type-definition-v1.md`，将 `SAPD 成熟度评估` 作为一级菜单补入，路由建议为 `/sapd-maturity-assessment`，页面类型暂用 `domain-module`，优先级为 `P2`。
+- 更新 `frontend/design-handoff/navigation/nav-manifest.v1.json`，新增 `sapd-maturity-assessment` 导航项，作为 Stitch 设计交接和后续实现参考。
+- 更新 `docs/04-user-guide/frontend-data-contract-baseline-1.0.md`，明确 maturity 评估不并入三份 workbench JSON，后续单独定义 `maturity-assessment-template.json`、`maturity-assessment-session.json`、`maturity-assessment-result.json` 等契约。
+- 更新 `docs/04-user-guide/frontend-baseline-1.0-plan.md`，说明三页关系工作台仍是当前前端基线实现重点，`SAPD 成熟度评估` 是独立模块补充。
+- 更新 `task_plan.md` 和 `findings.md`，记录 maturity 评估入口已纳入规划，代码实现另开会话。
+
+验证：
+
+- 本轮只修改文档和设计交接 Manifest，不修改前端运行代码、ETL、schema、JSON 数据包或 maturity 运行逻辑。
+
+### 2026-05-16 Frontend Data Contract Governance Step 4-6
+
+任务：用户要求顺序完成三个 workbench JSON 导出、`dataClient` / ViewModel 接入和数据契约验收。
+
+本次调整：
+
+- 更新 `src/sapd_wiki/exports.py`，新增 `export_capability_workbench()`、`export_environment_workbench()`、`export_lifecycle_workbench()` 和 `export_frontend_workbenches()`。
+- 更新 `src/sapd_wiki/cli.py`，新增 `export-capability-workbench`、`export-environment-workbench`、`export-lifecycle-workbench`、`export-frontend-workbenches`。
+- 更新 `src/sapd_wiki/api_server.py`，补充三个 workbench 数据包的 `/api/v1/data-packages/*` 映射。
+- 更新 `frontend/capability-browser/dataClient.js`，新增 `getCapabilityWorkbench()`、`getEnvironmentWorkbench()`、`getLifecycleWorkbench()`，并保留旧包过渡 fallback。
+- 更新 `frontend/capability-browser/viewModels.js`，新增三个 workbench ViewModel 入口。
+- 生成 `frontend/capability-browser/public/data/capability-workbench.json`、`environment-workbench.json`、`lifecycle-workbench.json`。
+- 更新 `task_plan.md` 和 `findings.md`，记录三份 workbench 数据出口已完成，旧 JSON 仍作为过渡兼容。
+
+验证：
+
+- `python3 scripts/sapd_wiki.py export-frontend-workbenches` 通过，生成三份 workbench JSON。
+- 三个单独 CLI 导出命令均通过。
+- 三份 JSON 均可解析，且均包含 `meta`、`page`、`navigator`、`overview`、`relationshipGroups`、`objects`、`relations`、`evidenceRefs`、`compatibility`。
+- 契约统计：`capability-workbench.json` objects=701、relations=2176；`environment-workbench.json` objects=454、relations=2427；`lifecycle-workbench.json` objects=240、relations=354。
+- 主展示结构字段边界检查通过，未发现 `sheet`、`row`、`column`、`raw_value`、`source_file`、`import_id`、`generated_at` 泄露。
+- `python3 -m compileall src/sapd_wiki/exports.py src/sapd_wiki/cli.py src/sapd_wiki/api_server.py`、`node --check frontend/capability-browser/dataClient.js`、`node --check frontend/capability-browser/viewModels.js`、`git diff --check` 均通过。
+
+### 2026-05-15 Frontend Data Contract Governance 规格阶段收口
+
+任务：用户要求一次性完成数据治理规格阶段剩余工作，但仍不进入代码实现。
+
+本次调整：
+
+- 新增 `docs/04-user-guide/capability-workbench-json-spec-v1.md`，定义 `capability-workbench.json` 的页面定位、顶层结构、对象 / 关系清单、字段迁移和兼容策略。
+- 新增 `docs/04-user-guide/lifecycle-workbench-json-spec-v1.md`，定义 `lifecycle-workbench.json` 的 LC-AP 受控专项关系投影边界、顶层结构、对象 / 关系清单、字段迁移和兼容策略。
+- 复核并最小补充 `docs/04-user-guide/frontend-json-field-attribution-baseline-1.0.md`，增加三份 workbench 规格后的最终迁移复核表。
+- 更新 `docs/04-user-guide/frontend-data-contract-baseline-1.0.md`，冻结最终前端数据文件清单：P0 四件套、P1 三件套和过渡兼容旧文件。
+- 更新 `task_plan.md` 和 `findings.md`，记录三份 workbench 规格已齐，下一步才进入 export / dataClient 代码实现。
+
+验证：
+
+- 本轮未修改前端代码、现有 JSON、`dataClient`、ViewModel、前端组件、ETL、数据库 schema，未重新导入数据，未运行 `npm`，未启动前端，未打开浏览器。
+
+### 2026-05-15 Frontend Baseline 1.0 前端数据契约治理方案
+
+任务：用户要求结合代码同事反馈和 `frontend-data-contract-governance-prompt.md`，评估 `capability-tree.json`、`lifecycle-knowledge.json` 等前端数据包职责混杂问题，并结合全站菜单与页面类型定义给出治理方案。
+
+本次调整：
+
+- 新增 `docs/04-user-guide/frontend-data-contract-baseline-1.0.md`，明确 Frontend Baseline 1.0 应从“三个同级关系工作台”修正为“P1 双核心工作台 + LC-AP 受控专项关系投影”。
+- 文档分析了 `capability-tree.json`、`management-knowledge.json`、`lifecycle-knowledge.json` 当前职责混杂问题。
+- 文档建议新增或拆分 `app-manifest.json`、`capability-workbench.json`、`environment-workbench.json`、`lifecycle-workbench.json`、`shared-lookups.json`、`source-evidence.json`。
+- 更新 `task_plan.md` 和 `findings.md`，记录前端数据契约治理结论。
+
+验证：
+
+- 本轮只修改文档、计划、发现和进度记录。
+- 本轮未修改前端代码、现有 JSON、ETL、数据库 schema，未重新导入数据，未运行 `npm`，未启动前端，未打开浏览器。
+- 已只读盘点 `frontend/capability-browser/public/data/`、`dataClient.js`、`exports.py`、`api_server.py`、`scripts/` 和相关治理文档。
+
 ### 2026-05-15 BE-1 安全能力映射页投影补强
 
 任务：将安全能力映射页关系画布需要的 `scopeServicePairs`、`serviceModuleMeasureLinks`、`workFunctionsByLayer`、`processTree` 下沉到 `/api/v1/capabilities/workspace-projection`。
@@ -91,6 +198,22 @@
 
 - 已读取 `CURRENT_STATE.md`、`task_plan.md`、`findings.md`、`progress.md`、`docs/04-user-guide/frontend-baseline-1.0-plan.md`、`docs/01-architecture/backend-interface-design.md`、`docs/01-architecture/api-field-contract.md` 和 `docs/06-implementation/open-issues.md`。
 - 本轮只修改计划和发现记录，不修改代码、数据、ETL 或前端资源。
+
+### 2026-05-15 5 次重连问题诊断与热修复
+
+任务：用户反馈当前会话多次重连，要求先修复影响工程开发的问题。
+
+本次处理：
+
+- 按 `CURRENT_STATE.md` 的重连处理规则执行只读诊断：`git status --short --branch`、`wc -l CURRENT_STATE.md task_plan.md findings.md progress.md AGENTS.md`、`git diff --stat` 和本地服务探测。
+- 确认主控上下文文件合计 713 行，不是根目录主控文档过大导致。
+- 确认 `http://127.0.0.1:5173/` 当时已断开，已重新启动 `python3 scripts/sapd_wiki.py serve --host 127.0.0.1 --port 5173`，并验证返回 `200 OK`。
+- 确认当前主要风险来自长会话历史、浏览器 / headless 验证进程和未收口脏改，而不是需要读取的大型业务数据文件。
+
+验证：
+
+- `curl -sS -I http://127.0.0.1:5173/` 通过，返回 `HTTP/1.0 200 OK`。
+- 本轮未修改代码、schema、ETL、`public/data/*.json` 或原始业务数据。
 
 ## 历史索引
 

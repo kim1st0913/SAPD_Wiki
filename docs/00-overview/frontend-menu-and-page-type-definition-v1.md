@@ -39,7 +39,7 @@
 | `document-page` | 单篇指南 / 方法论页面 | 章节目录、正文、引用和相关指南 | P2 |
 | `capability-mapping-workbench` | 安全能力映射 | 安全能力为主语的核心关系工作台 | P1 |
 | `environment-mapping-workbench` | 信息化环境安全能力映射 | 信息化对象为主语的对象映射工作台 | P1 |
-| `domain-module` | 开发安全、数据安全 | 专题模块入口，当前可预留 | P3 |
+| `domain-module` | 开发安全、数据安全、SAPD 成熟度评估 | 专题模块入口或独立业务模块入口 | P2 / P3 |
 | `knowledge-directory` | 安全知识各类目录 | 表格浏览、检索、标签、详情抽屉 | P2 / P3 |
 | `knowledge-reference-page` | 单个知识对象详情页 | 对象详情、定义、关联和来源证据 | P2 |
 | `standard-framework-directory` | 安全标准 / 框架首页 | 标准目录、版本、覆盖范围和映射状态 | P2 |
@@ -52,7 +52,7 @@
 |---|---|
 | `P0` | 前端基础框架，包括全局导航、应用壳、主布局、搜索入口 |
 | `P1` | 核心业务工作台，包括安全能力映射、信息化环境安全能力映射 |
-| `P2` | 重要知识与标准目录，包括安全指南、安全知识、安全标准 / 框架 |
+| `P2` | 重要知识、标准目录和独立业务模块，包括安全指南、安全知识、安全标准 / 框架、SAPD 成熟度评估 |
 | `P3` | 专题扩展与预留模块，包括开发安全、数据安全、Hype Cycle、其他指南、其他标准等 |
 
 ## 5. 页面类型定义
@@ -198,6 +198,7 @@
 
 - 开发安全。
 - 数据安全。
+- SAPD 成熟度评估。
 
 核心区域：
 
@@ -206,12 +207,14 @@
 - 后续规划
 - 相关知识入口
 - 相关标准入口
+- 业务模块型页面可包含任务入口、填报工作区、结果摘要和导出入口
 
 不适合：
 
 - 当前阶段不做深度业务重构。
 - 不强行接入尚未准备好的数据。
 - 不伪造不存在的功能。
+- 不把评估填报、评分结果和客户运行数据混入安全能力映射、环境映射或 LC-AP 关系投影。
 
 ### 5.7 `knowledge-directory`
 
@@ -336,6 +339,7 @@
 | 信息化环境安全能力映射 | `/environment-mapping` | `environment-mapping-workbench` | 以信息化对象为核心展示作用域、服务、模块、措施和能力关联 | 对象目录、对象详情、作用域分布、服务/模块/措施映射 | 直接套用能力页、弱化对象、复杂网络图 | P1 |
 | 开发安全 | `/development-security` | `domain-module` | 预留 SDL、DevSecOps、代码安全、供应链安全专题入口 | 专题说明、建设状态、后续规划、相关入口 | 伪造未建设功能、强行接入不稳定数据 | P3 |
 | 数据安全 | `/data-security` | `domain-module` | 预留数据分类分级、数据安全能力、数据安全治理、DSP 策略专题入口 | 专题说明、建设状态、后续规划、相关入口 | 伪造未建设功能、深度业务重构 | P3 |
+| SAPD 成熟度评估 | `/sapd-maturity-assessment` | `domain-module` | 承载 SAPD 成熟度评分填报、结果生成和评估报告入口 | 评估任务、评分填报、结果摘要、差距建议、报告导出 | 混入能力映射工作台、写入主知识库关系、伪造评估结论 | P2 |
 | 安全知识 | `/knowledge` | `knowledge-directory` | 汇总作用域、模块、措施、工作、流程、职能、岗位等知识目录 | 目录检索、表格浏览、详情抽屉、来源证据 | 长文档页、卡片海、复杂关系图 | P2 |
 | 安全标准 / 框架 | `/standards` | `standard-framework-directory` | 汇总标准 / 框架版本、覆盖范围和映射状态 | 标准分类、版本、映射状态、范围说明 | PDF 文件列表、静态链接集合 | P2 |
 
@@ -394,6 +398,7 @@
 
 /development-security                  开发安全
 /data-security                         数据安全
+/sapd-maturity-assessment              SAPD 成熟度评估
 
 /knowledge                             安全知识
 /knowledge/scopes                      安全能力作用域目录
@@ -426,8 +431,9 @@
 | 4 | 安全知识目录页 | `knowledge-directory` | 统一目录检索、表格、详情抽屉和来源证据模式 |
 | 5 | 安全标准 / 框架目录与详情 | `standard-framework-directory` / `standard-framework-page` | 固化标准页的版本、控制项和映射模式 |
 | 6 | 安全指南文档页 | `document-hub` / `document-page` | 固化文档阅读体验 |
-| 7 | 开发安全 / 数据安全预留页 | `domain-module` | 形成专题模块预留样式 |
-| 8 | 其他占位页 | `placeholder-page` | 统一未建设页面的说明方式 |
+| 7 | SAPD 成熟度评估 | `domain-module` | 固化评分填报、结果生成和报告导出的独立业务模块框架 |
+| 8 | 开发安全 / 数据安全预留页 | `domain-module` | 形成专题模块预留样式 |
+| 9 | 其他占位页 | `placeholder-page` | 统一未建设页面的说明方式 |
 
 ## 10. 导航 Manifest 交接口径
 

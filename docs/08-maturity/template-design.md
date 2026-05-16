@@ -22,6 +22,9 @@
 | `Evidence_List` | 否 | 证据材料清单，记录文件名、类型、位置和摘要 |
 | `Manual_Adjustment` | 否 | 人工修正能力匹配或评分 |
 | `Reference_Capabilities` | 是 | 当前 Wiki 能力库导出的能力参考 |
+| `Reference_L2_Capability_Criteria` | 是 | 从 `评估表v2.md` 生成的 L2 能力 `L1` 到 `L5` 判定标准 |
+| `Reference_Level_Criteria` | 是 | 通用成熟度等级定义 |
+| `Reference_Mainline_Diff` | 否 | 模型基准与主工程能力库差异确认表 |
 | `Readme` | 是 | 填写说明、字段解释、示例和注意事项 |
 
 ## 3. `Assessment_Info`
@@ -119,7 +122,27 @@
 | 模板版本不支持 | error | 提示重新生成模板 |
 | `row_id` 重复 | warning | 系统生成内部 ID，保留原始 row_id |
 
-## 9. 生成路径占位
+## 9. `Reference_L2_Capability_Criteria`
+
+该 Sheet 由 `data/raw-samples/maturity/评估表v2.md` 生成，用户不应手工维护。
+
+| 字段 | 说明 |
+|---|---|
+| capability_category_ref | 能力分类上下文 |
+| capability_domain_ref | L1 能力域上下文 |
+| capability_code | L2 安全能力编码 |
+| capability_title | L2 安全能力名称 |
+| capability_description | L2 能力描述 |
+| criteria_granularity | 固定为 `capability` |
+| L1 | L1 非正式执行描述 |
+| L2 | L2 计划跟踪描述 |
+| L3 | L3 充分定义描述 |
+| L4 | L4 量化控制描述 |
+| L5 | L5 持续优化描述 |
+| source_file | 来源文件 |
+| source_line | 来源行号 |
+
+## 10. 生成路径占位
 
 后续 M1 默认模板输出：
 

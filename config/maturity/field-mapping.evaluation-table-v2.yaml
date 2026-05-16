@@ -1,0 +1,128 @@
+version: v1
+source_file: data/raw-samples/maturity/评估表v2.md
+description: 评估表 V2 Markdown 样本字段映射。该文件提供 L2 安全能力级成熟度判定标准，不包含客户评分输入。
+
+source_format: markdown
+
+global_rules:
+  trim_text: true
+  preserve_source_line: true
+  sample_role: l2_capability_evaluation_baseline
+  customer_data_target: maturity_only
+  forbidden_target_tables:
+    - knowledge_items
+  fixed_assessment_aspects:
+    - organization_role
+    - process_system
+    - platform_tool
+    - data_information
+  supported_assessment_object_types:
+    - capability
+  baseline_target_tables:
+    - maturity_model_version
+    - maturity_level_definition
+    - maturity_capability_baseline
+    - maturity_mainline_match_result
+
+front_matter:
+  version:
+    target_field: model_version
+    required: true
+  changelog:
+    target_field: version_note
+    required: false
+  input:
+    target_field: source_dependency_json
+    required: false
+
+sections:
+  L2安全能力成熟度定义:
+    role: level_definition_reference
+    target_table: maturity_level_definition
+    row_pattern: "^| **L[1-5]** |"
+    fields:
+      level_code:
+        source: markdown_table.column_1
+        required: true
+      level_name:
+        source: markdown_table.column_2
+        required: true
+      general_definition:
+        source: markdown_table.column_3
+        required: true
+
+  L2安全能力评估明细:
+    role: l2_capability_level_criteria_reference
+    target_table: maturity_capability_baseline
+    capability_heading_pattern: "^##### (?<capability_code>[A-Z]-[A-Z]{2}\\.[A-Z]{2}) (?<capability_title>.+)$"
+    criteria_granularity: capability
+    baseline_object_type: capability
+    baseline_source_kind: markdown_l2_baseline_v1_2
+    context_headings:
+      category_heading:
+        markdown_level: 3
+        target_field: capability_category_ref
+        required: true
+      domain_heading:
+        markdown_level: 4
+        target_field: capability_domain_ref
+        required: true
+    fields:
+      capability_code:
+        source: capability_heading.capability_code
+        target_field: capability_code
+        required: true
+        value_role: capability_reference
+      capability_title:
+        source: capability_heading.capability_title
+        target_field: capability_title
+        required: true
+        value_role: capability_reference
+      capability_description:
+        source: paragraph_after_label.能力描述
+        target_field: capability_description
+        required: true
+        value_role: model_description
+      L1:
+        source: level_table.L1
+        target_field: level_criteria.L1
+        required: true
+        value_role: model_criteria
+      L2:
+        source: level_table.L2
+        target_field: level_criteria.L2
+        required: true
+        value_role: model_criteria
+      L3:
+        source: level_table.L3
+        target_field: level_criteria.L3
+        required: true
+        value_role: model_criteria
+      L4:
+        source: level_table.L4
+        target_field: level_criteria.L4
+        required: true
+        value_role: model_criteria
+      L5:
+        source: level_table.L5
+        target_field: level_criteria.L5
+        required: true
+        value_role: model_criteria
+
+mainline_consistency_check:
+  enabled: true
+  match_target: capability
+  match_methods:
+    - exact_code
+    - exact_title_with_parent
+    - manual
+  known_v2_review_items:
+    - status: missing_in_maturity_v2
+      capability_code: M-PS.CT
+      mainline_title: 安全意识教育与技能培养能力
+      suggested_action: confirm_whether_add_to_l2_baseline
+
+formal_template_recommendation:
+  generated_reference_sheet: Reference_L2_Capability_Criteria
+  score_input_default_object_type: capability
+  note: 如后续选择关注点级评分，需继续使用或补充 XLSX 关注点基准，V2 只能作为父级能力判定口径。

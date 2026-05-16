@@ -1,8 +1,14 @@
 const state = {
   capability: null,
+  capabilityWorkbench: null,
+  capabilityWorkbenchViewModel: null,
   capabilityProjection: null,
   management: null,
+  environmentWorkbench: null,
+  environmentWorkbenchViewModel: null,
   lifecycle: null,
+  lifecycleWorkbench: null,
+  lifecycleWorkbenchViewModel: null,
   content: null,
   activeView: "overview",
   capabilityCatalogCollapsed: false,
@@ -327,7 +333,12 @@ function renderCapabilities() {
     setHtml("detail", emptyState("能力视图模型未加载"));
     return;
   }
+  const capabilityWorkbenchViewModel =
+    viewModels.buildCapabilityWorkbenchViewModel?.({ workbench: state.capabilityWorkbench }) || state.capabilityWorkbenchViewModel;
+  state.capabilityWorkbenchViewModel = capabilityWorkbenchViewModel;
   const viewModel = viewModels.buildCapabilityWorkspaceViewModel({
+    capabilityWorkbench: state.capabilityWorkbench,
+    capabilityWorkbenchViewModel,
     capabilityTree: state.capability,
     capabilityProjection: state.capabilityProjection,
     management: state.management,
@@ -363,7 +374,12 @@ function renderEnvironment() {
     setHtml("environmentDetail", emptyState("信息化环境视图模型未加载"));
     return;
   }
+  const environmentWorkbenchViewModel =
+    viewModels.buildEnvironmentWorkbenchViewModel?.({ workbench: state.environmentWorkbench }) || state.environmentWorkbenchViewModel;
+  state.environmentWorkbenchViewModel = environmentWorkbenchViewModel;
   const viewModel = viewModels.buildEnvironmentWorkspaceViewModel({
+    environmentWorkbench: state.environmentWorkbench,
+    environmentWorkbenchViewModel,
     management: state.management,
     selectedObjectId: state.selectedEnvironmentObjectId,
     selectedEnvironmentId: state.selectedEnvironmentId,
@@ -410,7 +426,12 @@ function renderLifecycle(kind) {
       setHtml("devLifecycleDetail", emptyState("安全开发视图模型未加载"));
       return;
     }
+    const lifecycleWorkbenchViewModel =
+      viewModels.buildLifecycleWorkbenchViewModel?.({ workbench: state.lifecycleWorkbench }) || state.lifecycleWorkbenchViewModel;
+    state.lifecycleWorkbenchViewModel = lifecycleWorkbenchViewModel;
     const viewModel = viewModels.buildApplicationSecurityLifecycleViewModel({
+      lifecycleWorkbench: state.lifecycleWorkbench,
+      lifecycleWorkbenchViewModel,
       lifecycle: state.lifecycle,
       selectedProcessId: state.selectedDevProcessId,
       search: state.search,
@@ -869,14 +890,20 @@ async function init() {
   const dataClient = window.sapdDataClient;
   if (!dataClient) throw new Error("SAPD Wiki dataClient 未加载");
   await loadScriptOnce("./components/CapabilityLocalRelationMap.js", () => Boolean(window.sapdComponents?.CapabilityLocalRelationMap));
-  const [capability, capabilityProjection, management, lifecycle, content] = await Promise.all([
+  const [capability, capabilityWorkbench, environmentWorkbench, lifecycleWorkbench, capabilityProjection, management, lifecycle, content] = await Promise.all([
     dataClient.getCapabilityTree(),
+    dataClient.getCapabilityWorkbench?.() || Promise.resolve({ data: null }),
+    dataClient.getEnvironmentWorkbench?.() || Promise.resolve({ data: null }),
+    dataClient.getLifecycleWorkbench?.() || Promise.resolve({ data: null }),
     dataClient.getCapabilityWorkspaceProjection?.() || Promise.resolve({ data: null }),
     dataClient.getManagementKnowledge(),
     dataClient.getLifecycleKnowledge(),
     dataClient.getContentViews(),
   ]);
   state.capability = capability.data;
+  state.capabilityWorkbench = capabilityWorkbench.data;
+  state.environmentWorkbench = environmentWorkbench.data;
+  state.lifecycleWorkbench = lifecycleWorkbench.data;
   state.capabilityProjection = capabilityProjection.data;
   state.management = management.data;
   state.lifecycle = lifecycle.data;

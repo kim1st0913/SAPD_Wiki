@@ -2407,6 +2407,724 @@ def export_content_views(
     return {"count": sum(payload["stats"].values()), "files": [str(output)], "stats": payload["stats"]}
 
 
+FRONTEND_DATA_DIR = PROJECT_ROOT / "frontend" / "capability-browser" / "public" / "data"
+WORKBENCH_TOP_LEVEL_KEYS = (
+    "meta",
+    "page",
+    "navigator",
+    "overview",
+    "relationshipGroups",
+    "objects",
+    "relations",
+    "evidenceRefs",
+    "compatibility",
+)
+
+
+def _frontend_data_path(file_name: str) -> Path:
+    return FRONTEND_DATA_DIR / file_name
+
+
+def _read_frontend_json(file_name: str) -> dict[str, Any]:
+    path = _frontend_data_path(file_name)
+    if not path.exists():
+        return {"generated_at": None, "stats": {}, "__data_state": "missing_file"}
+    data = json.loads(path.read_text(encoding="utf-8"))
+    return data if isinstance(data, dict) else {"generated_at": None, "items": data}
+
+
+def _wb_list(value: Any) -> list[Any]:
+    return value if isinstance(value, list) else []
+
+
+def _wb_text(value: Any) -> str:
+    return "" if value is None else str(value)
+
+
+def _wb_title(value: Any, fallback: str = "未命名") -> str:
+    if isinstance(value, dict):
+        return _wb_text(value.get("title") or value.get("name") or value.get("code") or value.get("id") or fallback)
+    return _wb_text(value or fallback)
+
+
+def _wb_key(value: Any) -> str:
+    if isinstance(value, dict):
+        return _wb_text(value.get("id") or value.get("code") or value.get("title") or value.get("name")).strip()
+    return _wb_text(value).strip()
+
+
+def _wb_source_ref(source: dict[str, Any]) -> str:
+    digest = hashlib.sha1(json.dumps(source, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()[:16]
+    return f"evidence:{digest}"
+
+
+def _wb_collect_evidence(evidence_refs: dict[str, dict[str, Any]], *items: Any) -> list[str]:
+    refs: list[str] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        for source in [*_wb_list(item.get("sources")), *_wb_list(item.get("mapping_sources"))]:
+            if not isinstance(source, dict):
+                continue
+            ref_id = _wb_source_ref(source)
+            if ref_id not in evidence_refs:
+                evidence_refs[ref_id] = {
+                    "id": ref_id,
+                    "kind": "source_reference",
+                    "status": "available_in_legacy_source_package",
+                }
+            refs.append(ref_id)
+    return sorted(set(refs))
+
+
+def _wb_compact_object(
+    item: Any,
+    object_type: str,
+    evidence_refs: dict[str, dict[str, Any]],
+    *,
+    fallback_name: str = "未命名",
+    extra: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    source = item if isinstance(item, dict) else {"title": item}
+    object_id = _wb_key(source) or f"{object_type}:{hashlib.sha1(_wb_title(source, fallback_name).encode('utf-8')).hexdigest()[:12]}"
+    payload = {
+        "id": object_id,
+        "type": object_type,
+        "code": _wb_text(source.get("code")).strip(),
+        "name": _wb_title(source, fallback_name),
+        "title": _wb_title(source, fallback_name),
+        "description": _wb_text(source.get("description") or source.get("summary")).strip(),
+        "category": _wb_text(source.get("category") or source.get("kind")).strip(),
+        "status": _wb_text(source.get("status") or source.get("state")).strip(),
+        "evidenceRefs": _wb_collect_evidence(evidence_refs, source),
+    }
+    if extra:
+        payload.update({key: value for key, value in extra.items() if value is not None})
+    return payload
+
+
+def _wb_add_object(
+    objects: dict[str, dict[str, dict[str, Any]]],
+    evidence_refs: dict[str, dict[str, Any]],
+    item: Any,
+    object_type: str,
+    *,
+    fallback_name: str = "未命名",
+    extra: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    payload = _wb_compact_object(item, object_type, evidence_refs, fallback_name=fallback_name, extra=extra)
+    objects.setdefault(object_type, {})
+    existing = objects[object_type].get(payload["id"])
+    if existing:
+        existing["evidenceRefs"] = sorted(set(_wb_list(existing.get("evidenceRefs")) + _wb_list(payload.get("evidenceRefs"))))
+        for key, value in payload.items():
+            if key not in existing or existing[key] in ("", None) or existing[key] == []:
+                existing[key] = value
+        return existing
+    objects[object_type][payload["id"]] = payload
+    return payload
+
+
+def _wb_add_relation(
+    relations: list[dict[str, Any]],
+    seen: set[tuple[str, str, str]],
+    relation_type: str,
+    source: dict[str, Any] | None,
+    target: dict[str, Any] | None,
+    *,
+    label: str = "",
+    evidence_refs: list[str] | None = None,
+    status: str = "active",
+    confidence: str = "explicit",
+) -> dict[str, Any] | None:
+    if not source or not target:
+        return None
+    source_id = source.get("id")
+    target_id = target.get("id")
+    if not source_id or not target_id:
+        return None
+    key = (source_id, relation_type, target_id)
+    if key in seen:
+        return None
+    seen.add(key)
+    relation_id = hashlib.sha1("\0".join(key).encode("utf-8")).hexdigest()[:16]
+    relation = {
+        "id": f"relation:{relation_id}",
+        "type": relation_type,
+        "sourceId": source_id,
+        "sourceType": source.get("type"),
+        "targetId": target_id,
+        "targetType": target.get("type"),
+        "label": label,
+        "status": status,
+        "confidence": confidence,
+        "evidenceRefs": sorted(set(evidence_refs or [])),
+    }
+    relations.append(relation)
+    return relation
+
+
+def _wb_group(
+    group_id: str,
+    title: str,
+    relation_types: list[str],
+    relations: list[dict[str, Any]],
+    *,
+    description: str = "",
+) -> dict[str, Any]:
+    relation_ids = [
+        relation["id"]
+        for relation in relations
+        if relation.get("type") in relation_types
+    ]
+    return {
+        "id": group_id,
+        "title": title,
+        "description": description,
+        "relationTypes": relation_types,
+        "relationIds": relation_ids,
+        "count": len(relation_ids),
+    }
+
+
+def _wb_stats(objects: dict[str, dict[str, Any]], relations: list[dict[str, Any]], evidence_refs: dict[str, Any]) -> dict[str, int]:
+    stats = {object_type: len(rows) for object_type, rows in objects.items()}
+    stats["objects"] = sum(stats.values())
+    stats["relations"] = len(relations)
+    stats["evidenceRefs"] = len(evidence_refs)
+    return stats
+
+
+def _service_index_by_key(service_module_index: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    index: dict[str, dict[str, Any]] = {}
+    for entry in service_module_index:
+        service = entry.get("service") or {}
+        for key in {service.get("id"), service.get("code"), service.get("title"), service.get("name")}:
+            if key:
+                index[str(key)] = entry
+    return index
+
+
+def _matched_service_index(index: dict[str, dict[str, Any]], service: dict[str, Any]) -> dict[str, Any]:
+    for key in (service.get("id"), service.get("code"), service.get("title"), service.get("name")):
+        if key and str(key) in index:
+            return index[str(key)]
+    return {}
+
+
+def _measure_matches_service(measure: dict[str, Any], service: dict[str, Any]) -> bool:
+    service_tokens = {token for token in (service.get("id"), service.get("code"), service.get("title"), service.get("name")) if token}
+    related_tokens = set(_wb_list(measure.get("related_service_ids")))
+    related_tokens.update(_wb_list(measure.get("related_service_names")))
+    for related_service in [*_wb_list(measure.get("related_services")), *_wb_list(measure.get("services")), *_wb_list(measure.get("technical_services"))]:
+        if isinstance(related_service, dict):
+            related_tokens.update(token for token in (related_service.get("id"), related_service.get("code"), related_service.get("title"), related_service.get("name")) if token)
+    return bool(service_tokens.intersection(related_tokens))
+
+
+def _capability_code_from_focus_code(code: str) -> str:
+    if "-" not in code:
+        return code
+    return code.rsplit("-", 1)[0]
+
+
+def _focus_code_from_service(service: dict[str, Any]) -> str:
+    code = _wb_text(service.get("code"))
+    if "&" in code:
+        return code.split("&", 1)[1]
+    return ""
+
+
+def _capability_lookups(capability_tree: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
+    capabilities: dict[str, dict[str, Any]] = {}
+    focuses: dict[str, dict[str, Any]] = {}
+    for category in _wb_list(capability_tree.get("categories")):
+        for domain in _wb_list(category.get("domains")):
+            for capability in _wb_list(domain.get("capabilities")):
+                if capability.get("code"):
+                    capabilities[capability["code"]] = capability
+                for focus in _wb_list(capability.get("focuses")):
+                    if focus.get("code"):
+                        focuses[focus["code"]] = focus
+    return capabilities, focuses
+
+
+def _wb_navigator_node(item: dict[str, Any], object_type: str, children: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    return {
+        "id": _wb_key(item),
+        "type": object_type,
+        "code": _wb_text(item.get("code")).strip(),
+        "name": _wb_title(item),
+        "children": children or [],
+    }
+
+
+def _empty_workbench(page: dict[str, Any], generated_at: str | None, source_packages: list[str]) -> dict[str, Any]:
+    return {
+        "meta": {
+            "version": "v1",
+            "viewModelVersion": f"{page['pageType']}-1.0",
+            "generated_at": generated_at,
+            "sourcePackages": source_packages,
+            "stats": {},
+        },
+        "page": page,
+        "navigator": {},
+        "overview": {},
+        "relationshipGroups": [],
+        "objects": {},
+        "relations": [],
+        "evidenceRefs": [],
+        "compatibility": {
+            "mode": "generated_from_frontend_legacy_packages",
+            "sourcePackages": source_packages,
+            "warnings": [],
+        },
+    }
+
+
+def export_capability_workbench(
+    conn: sqlite3.Connection,
+    *,
+    output_path: str | Path,
+) -> dict[str, Any]:
+    capability_tree = _read_frontend_json("capability-tree.json")
+    management = _read_frontend_json("management-knowledge.json")
+    generated_at = capability_tree.get("generated_at") or management.get("generated_at") or conn.execute("SELECT datetime('now') AS now").fetchone()["now"]
+    page = {
+        "route": "/capability-mapping",
+        "pageType": "capability-mapping-workbench",
+        "priority": "P1",
+        "subject": "capability / capability_focus",
+        "title": "安全能力映射",
+        "description": "以安全能力和关注点为主语，展示技术视角、管理视角、流程、标准、模块、作用域和来源证据引用。",
+    }
+    payload = _empty_workbench(page, generated_at, ["capability-tree.json", "management-knowledge.json"])
+    objects: dict[str, dict[str, dict[str, Any]]] = {key: {} for key in (
+        "capability_category",
+        "capability_domain",
+        "capability",
+        "capability_focus",
+        "scope_type",
+        "security_technical_service",
+        "security_technology_module",
+        "security_technical_measure",
+        "security_work",
+        "work_function",
+        "process_group",
+        "process_reference",
+        "process_activity",
+        "standard_framework",
+        "standard_control",
+    )}
+    relations: list[dict[str, Any]] = []
+    seen_relations: set[tuple[str, str, str]] = set()
+    evidence_refs: dict[str, dict[str, Any]] = {}
+    service_index = _service_index_by_key(_wb_list(management.get("service_module_index")))
+    measures = _wb_list(management.get("security_technical_measures"))
+
+    navigator_tree: list[dict[str, Any]] = []
+    default_focus_id = None
+    for category in _wb_list(capability_tree.get("categories")):
+        category_obj = _wb_add_object(objects, evidence_refs, category, "capability_category")
+        domain_nodes: list[dict[str, Any]] = []
+        for domain in _wb_list(category.get("domains")):
+            domain_obj = _wb_add_object(objects, evidence_refs, domain, "capability_domain")
+            _wb_add_relation(relations, seen_relations, "belongs_to", domain_obj, category_obj, label="属于")
+            capability_nodes: list[dict[str, Any]] = []
+            for capability in _wb_list(domain.get("capabilities")):
+                capability_obj = _wb_add_object(objects, evidence_refs, capability, "capability")
+                _wb_add_relation(relations, seen_relations, "belongs_to", capability_obj, domain_obj, label="属于")
+                focus_nodes: list[dict[str, Any]] = []
+                for focus in _wb_list(capability.get("focuses")):
+                    focus_obj = _wb_add_object(objects, evidence_refs, focus, "capability_focus")
+                    default_focus_id = default_focus_id or focus_obj["id"]
+                    _wb_add_relation(relations, seen_relations, "belongs_to", focus_obj, capability_obj, label="属于")
+                    focus_nodes.append(_wb_navigator_node(focus, "capability_focus"))
+
+                    services_by_key: dict[str, dict[str, Any]] = {}
+                    for service in _wb_list(focus.get("services")):
+                        if not isinstance(service, dict):
+                            continue
+                        service_obj = _wb_add_object(objects, evidence_refs, service, "security_technical_service", fallback_name="未命名服务")
+                        services_by_key[service_obj["id"]] = service
+                        _wb_add_relation(
+                            relations,
+                            seen_relations,
+                            "supports_focus",
+                            service_obj,
+                            focus_obj,
+                            label="支撑关注点",
+                            evidence_refs=_wb_collect_evidence(evidence_refs, focus, service),
+                        )
+                    for mapping in _wb_list(focus.get("scope_mappings")):
+                        scope = mapping.get("scope") or {}
+                        scope_obj = _wb_add_object(objects, evidence_refs, scope, "scope_type", fallback_name="待确认作用域")
+                        _wb_add_relation(relations, seen_relations, "applies_to_scope", focus_obj, scope_obj, label="适用作用域")
+                        for service in _wb_list(mapping.get("services")):
+                            if not isinstance(service, dict):
+                                continue
+                            service_obj = _wb_add_object(objects, evidence_refs, service, "security_technical_service", fallback_name="未命名服务")
+                            services_by_key[service_obj["id"]] = service
+                            relation_evidence = _wb_collect_evidence(evidence_refs, mapping, service, scope)
+                            _wb_add_relation(relations, seen_relations, "supports_focus", service_obj, focus_obj, label="支撑关注点", evidence_refs=relation_evidence)
+                            _wb_add_relation(relations, seen_relations, "applies_to_scope", service_obj, scope_obj, label="适用作用域", evidence_refs=relation_evidence)
+                    for service_obj_id, service in services_by_key.items():
+                        service_obj = objects["security_technical_service"].get(service_obj_id)
+                        index_entry = _matched_service_index(service_index, service)
+                        for module in _wb_list(index_entry.get("modules")):
+                            module_obj = _wb_add_object(objects, evidence_refs, module, "security_technology_module", fallback_name="未命名模块")
+                            _wb_add_relation(
+                                relations,
+                                seen_relations,
+                                "implemented_by_module",
+                                service_obj,
+                                module_obj,
+                                label="由模块实现",
+                                evidence_refs=_wb_collect_evidence(evidence_refs, service, module, index_entry),
+                            )
+                        for measure in measures:
+                            if isinstance(measure, dict) and _measure_matches_service(measure, service):
+                                measure_obj = _wb_add_object(objects, evidence_refs, measure, "security_technical_measure", fallback_name="未命名措施")
+                                _wb_add_relation(
+                                    relations,
+                                    seen_relations,
+                                    "has_measure",
+                                    service_obj,
+                                    measure_obj,
+                                    label="关联措施",
+                                    evidence_refs=_wb_collect_evidence(evidence_refs, service, measure),
+                                )
+                    for work in _wb_list(focus.get("security_works")):
+                        work_obj = _wb_add_object(objects, evidence_refs, work, "security_work", fallback_name="未命名安全工作")
+                        _wb_add_relation(relations, seen_relations, "maps_to_work", focus_obj, work_obj, label="映射安全工作")
+                    for mapping in _wb_list(focus.get("process_mappings")):
+                        group = mapping.get("process_group") or {}
+                        reference = mapping.get("process_reference") or {}
+                        group_obj = _wb_add_object(objects, evidence_refs, group, "process_group", fallback_name="待确认流程组")
+                        reference_obj = _wb_add_object(objects, evidence_refs, reference, "process_reference", fallback_name="待确认流程")
+                        _wb_add_relation(relations, seen_relations, "maps_to_process", focus_obj, reference_obj, label="映射流程", evidence_refs=_wb_collect_evidence(evidence_refs, mapping, reference))
+                        _wb_add_relation(relations, seen_relations, "belongs_to", reference_obj, group_obj, label="属于流程组")
+                        for activity in _wb_list(mapping.get("activities")):
+                            activity_obj = _wb_add_object(objects, evidence_refs, activity, "process_activity", fallback_name="待确认活动")
+                            _wb_add_relation(relations, seen_relations, "has_activity", reference_obj, activity_obj, label="包含活动")
+                        stakeholders = mapping.get("stakeholders") if isinstance(mapping.get("stakeholders"), dict) else {}
+                        for layer, layer_items in stakeholders.items():
+                            for stakeholder in _wb_list(layer_items):
+                                stakeholder_obj = _wb_add_object(
+                                    objects,
+                                    evidence_refs,
+                                    stakeholder,
+                                    "work_function",
+                                    fallback_name="未命名职能",
+                                    extra={"layer": layer},
+                                )
+                                _wb_add_relation(relations, seen_relations, "stakeholder_by", reference_obj, stakeholder_obj, label="涉及职能")
+                capability_nodes.append(_wb_navigator_node(capability, "capability", focus_nodes))
+            domain_nodes.append(_wb_navigator_node(domain, "capability_domain", capability_nodes))
+        navigator_tree.append(_wb_navigator_node(category, "capability_category", domain_nodes))
+
+    payload["navigator"] = {
+        "defaultSelectedFocusId": default_focus_id,
+        "tree": navigator_tree,
+    }
+    payload["objects"] = objects
+    payload["relations"] = relations
+    payload["evidenceRefs"] = sorted(evidence_refs.values(), key=lambda item: item["id"])
+    payload["relationshipGroups"] = [
+        _wb_group("capability-hierarchy", "能力层级", ["belongs_to"], relations),
+        _wb_group("focus-list", "关注点清单", ["belongs_to"], relations),
+        _wb_group("technical-mapping", "技术视角映射", ["supports_focus", "applies_to_scope", "implemented_by_module", "has_measure"], relations),
+        _wb_group("management-mapping", "管理视角映射", ["maps_to_work", "stakeholder_by"], relations),
+        _wb_group("process-mapping", "流程映射", ["maps_to_process", "has_activity"], relations),
+        _wb_group("standard-mapping", "标准 / 框架映射", ["maps_to_standard"], relations),
+        _wb_group("module-measure-mapping", "技术模块 / 技术措施映射", ["implemented_by_module", "has_measure"], relations),
+        _wb_group("scope-mapping", "作用域映射", ["applies_to_scope"], relations),
+    ]
+    stats = _wb_stats(objects, relations, evidence_refs)
+    payload["overview"] = {
+        "defaultObjectId": default_focus_id,
+        "object_type": "capability_focus",
+        "stats": stats,
+    }
+    payload["meta"]["stats"] = stats
+    payload["compatibility"]["warnings"] = [
+        "capability-workbench.json 当前由 capability-tree.json 与 management-knowledge.json 的既有前端投影整理生成。",
+        "标准 / 框架映射关系组已预留；当前旧数据包尚未提供稳定标准控制项投影。",
+    ]
+    output = resolve_project_path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    _write_json(output, payload)
+    return {"count": len(relations), "files": [str(output)], "stats": stats}
+
+
+def export_environment_workbench(
+    conn: sqlite3.Connection,
+    *,
+    output_path: str | Path,
+) -> dict[str, Any]:
+    management = _read_frontend_json("management-knowledge.json")
+    capability_tree = _read_frontend_json("capability-tree.json")
+    generated_at = management.get("generated_at") or conn.execute("SELECT datetime('now') AS now").fetchone()["now"]
+    page = {
+        "route": "/environment-mapping",
+        "pageType": "environment-mapping-workbench",
+        "priority": "P1",
+        "subject": "information_environment / information_object",
+        "title": "信息化环境安全能力映射",
+        "description": "以信息化环境和信息化对象为主语，展示对象、作用域、服务、模块、措施、系统、产品和能力关联。",
+    }
+    payload = _empty_workbench(page, generated_at, ["management-knowledge.json", "capability-tree.json"])
+    objects: dict[str, dict[str, dict[str, Any]]] = {key: {} for key in (
+        "information_environment",
+        "environment_segment",
+        "information_object",
+        "scope_type",
+        "security_technical_service",
+        "security_technology_module",
+        "security_technical_measure",
+        "security_system",
+        "product",
+        "capability",
+        "capability_focus",
+    )}
+    relations: list[dict[str, Any]] = []
+    seen_relations: set[tuple[str, str, str]] = set()
+    evidence_refs: dict[str, dict[str, Any]] = {}
+    capability_by_code, focus_by_code = _capability_lookups(capability_tree)
+    navigator_tree: list[dict[str, Any]] = []
+    default_object_id = None
+    measures = _wb_list(management.get("security_technical_measures"))
+
+    for environment in _wb_list(management.get("environment_scope_tree")):
+        env_obj = _wb_add_object(objects, evidence_refs, environment, "information_environment", fallback_name="未命名环境")
+        object_nodes: list[dict[str, Any]] = []
+        for info_object in _wb_list(environment.get("objects")):
+            object_obj = _wb_add_object(objects, evidence_refs, info_object, "information_object", fallback_name="未命名对象")
+            default_object_id = default_object_id or object_obj["id"]
+            segments = _wb_list(info_object.get("segments"))
+            if segments:
+                segment_nodes: list[dict[str, Any]] = []
+                for segment in segments:
+                    segment_obj = _wb_add_object(objects, evidence_refs, segment, "environment_segment", fallback_name="未命名分段")
+                    _wb_add_relation(relations, seen_relations, "contains_segment", env_obj, segment_obj, label="包含分段")
+                    _wb_add_relation(relations, seen_relations, "contains_object", segment_obj, object_obj, label="包含对象")
+                    segment_nodes.append(_wb_navigator_node(segment, "environment_segment", [_wb_navigator_node(info_object, "information_object")]))
+                object_nodes.extend(segment_nodes)
+            else:
+                _wb_add_relation(relations, seen_relations, "contains_object", env_obj, object_obj, label="包含对象")
+                object_nodes.append(_wb_navigator_node(info_object, "information_object"))
+
+            for mapping in _wb_list(info_object.get("scope_mappings")):
+                scope = mapping.get("scope") or {}
+                scope_obj = _wb_add_object(objects, evidence_refs, scope, "scope_type", fallback_name="待确认作用域")
+                _wb_add_relation(relations, seen_relations, "applies_to_scope", object_obj, scope_obj, label="适用作用域", evidence_refs=_wb_collect_evidence(evidence_refs, mapping, scope))
+                for service in _wb_list(mapping.get("services")):
+                    if not isinstance(service, dict):
+                        continue
+                    service_obj = _wb_add_object(objects, evidence_refs, service, "security_technical_service", fallback_name="未命名服务")
+                    relation_evidence = _wb_collect_evidence(evidence_refs, mapping, service, scope, info_object)
+                    _wb_add_relation(relations, seen_relations, "protects_object", service_obj, object_obj, label="保护对象", evidence_refs=relation_evidence)
+                    _wb_add_relation(relations, seen_relations, "applies_to_scope", service_obj, scope_obj, label="适用作用域", evidence_refs=relation_evidence)
+                    _wb_add_relation(relations, seen_relations, "deployed_in_environment", service_obj, env_obj, label="部署于环境", evidence_refs=relation_evidence)
+                    focus_code = _focus_code_from_service(service)
+                    if focus_code:
+                        focus_item = focus_by_code.get(focus_code) or {"id": f"capability_focus:{focus_code}", "code": focus_code, "title": focus_code, "status": "derived"}
+                        focus_obj = _wb_add_object(objects, evidence_refs, focus_item, "capability_focus", fallback_name=focus_code, extra={"status": focus_item.get("status") or "derived"})
+                        _wb_add_relation(relations, seen_relations, "supports_focus", service_obj, focus_obj, label="支撑关注点", confidence="derived")
+                        capability_code = _capability_code_from_focus_code(focus_code)
+                        capability_item = capability_by_code.get(capability_code) or {"id": f"capability:{capability_code}", "code": capability_code, "title": capability_code, "status": "derived"}
+                        capability_obj = _wb_add_object(objects, evidence_refs, capability_item, "capability", fallback_name=capability_code, extra={"status": capability_item.get("status") or "derived"})
+                        _wb_add_relation(relations, seen_relations, "supports_capability", service_obj, capability_obj, label="支撑能力", confidence="derived")
+                    for module in _wb_list(service.get("modules")):
+                        module_obj = _wb_add_object(objects, evidence_refs, module, "security_technology_module", fallback_name="未命名模块")
+                        module_evidence = _wb_collect_evidence(evidence_refs, service, module)
+                        _wb_add_relation(relations, seen_relations, "implements_service", module_obj, service_obj, label="实现服务", evidence_refs=module_evidence)
+                        _wb_add_relation(relations, seen_relations, "implemented_by_module", service_obj, module_obj, label="由模块实现", evidence_refs=module_evidence)
+                        for system in _wb_list(module.get("systems")):
+                            system_obj = _wb_add_object(objects, evidence_refs, system, "security_system", fallback_name="未命名系统")
+                            _wb_add_relation(relations, seen_relations, "part_of_system", module_obj, system_obj, label="属于系统")
+                        for product in _wb_list(module.get("products")):
+                            product_obj = _wb_add_object(objects, evidence_refs, product, "product", fallback_name="未命名产品")
+                            _wb_add_relation(relations, seen_relations, "maps_to_product", module_obj, product_obj, label="映射产品")
+                    for measure in measures:
+                        if isinstance(measure, dict) and _measure_matches_service(measure, service):
+                            measure_obj = _wb_add_object(objects, evidence_refs, measure, "security_technical_measure", fallback_name="未命名措施")
+                            _wb_add_relation(relations, seen_relations, "has_measure", service_obj, measure_obj, label="关联措施", evidence_refs=_wb_collect_evidence(evidence_refs, service, measure))
+        navigator_tree.append(_wb_navigator_node(environment, "information_environment", object_nodes))
+
+    payload["navigator"] = {
+        "defaultSelectedObjectId": default_object_id,
+        "tree": navigator_tree,
+        "grouping": ["information_environment", "environment_segment", "information_object", "scope_type"],
+    }
+    payload["objects"] = objects
+    payload["relations"] = relations
+    payload["evidenceRefs"] = sorted(evidence_refs.values(), key=lambda item: item["id"])
+    payload["relationshipGroups"] = [
+        _wb_group("environment-object", "环境 / 分段 / 对象", ["contains_segment", "contains_object"], relations),
+        _wb_group("object-scope", "对象与作用域", ["applies_to_scope"], relations),
+        _wb_group("scope-service", "作用域与安全技术服务", ["protects_object", "applies_to_scope"], relations),
+        _wb_group("service-module-measure", "服务与技术模块 / 技术措施", ["implements_service", "implemented_by_module", "has_measure"], relations),
+        _wb_group("module-system-product", "模块与安全系统 / 产品", ["part_of_system", "maps_to_product"], relations),
+        _wb_group("capability-association", "对象 / 服务与安全能力关联", ["supports_capability", "supports_focus"], relations),
+    ]
+    stats = _wb_stats(objects, relations, evidence_refs)
+    payload["overview"] = {
+        "defaultObjectId": default_object_id,
+        "object_type": "information_object",
+        "stats": stats,
+    }
+    payload["meta"]["stats"] = stats
+    payload["compatibility"]["warnings"] = [
+        "environment-workbench.json 当前主要由 management-knowledge.json.environment_scope_tree 整理生成。",
+        "服务到能力 / 关注点关系部分根据服务编码和 capability-tree.json 进行受控派生，后续可由独立 export 关系替代。",
+    ]
+    output = resolve_project_path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    _write_json(output, payload)
+    return {"count": len(relations), "files": [str(output)], "stats": stats}
+
+
+def export_lifecycle_workbench(
+    conn: sqlite3.Connection,
+    *,
+    output_path: str | Path,
+) -> dict[str, Any]:
+    lifecycle = _read_frontend_json("lifecycle-knowledge.json")
+    capability_tree = _read_frontend_json("capability-tree.json")
+    generated_at = lifecycle.get("generated_at") or conn.execute("SELECT datetime('now') AS now").fetchone()["now"]
+    page = {
+        "route": "/development-security/lc-ap",
+        "pageType": "domain-module",
+        "priority": "P3",
+        "subject": "LC-AP lifecycle controlled projection",
+        "title": "LC-AP 开发安全生命周期专项关系投影",
+        "description": "以 LC-AP 阶段和活动为主语，展示受控的活动、控制点、能力、关注点、服务、模块和来源证据引用。",
+    }
+    payload = _empty_workbench(page, generated_at, ["lifecycle-knowledge.json", "capability-tree.json"])
+    objects: dict[str, dict[str, dict[str, Any]]] = {key: {} for key in (
+        "lifecycle_domain",
+        "lifecycle_stage",
+        "lifecycle_activity",
+        "lifecycle_control",
+        "lifecycle_requirement",
+        "capability",
+        "capability_focus",
+        "security_technical_service",
+        "security_technology_module",
+    )}
+    relations: list[dict[str, Any]] = []
+    seen_relations: set[tuple[str, str, str]] = set()
+    evidence_refs: dict[str, dict[str, Any]] = {}
+    capability_by_code, focus_by_code = _capability_lookups(capability_tree)
+    app_security = lifecycle.get("application_security_development") or {}
+    service_index = _service_index_by_key(_wb_list(lifecycle.get("service_module_index")))
+    domain_item = {
+        "id": "lifecycle_domain:LC-AP",
+        "code": "LC-AP",
+        "title": "开发安全生命周期",
+        "description": "LC-AP 开发安全生命周期受控专项关系投影。",
+        "status": "active",
+    }
+    domain_obj = _wb_add_object(objects, evidence_refs, domain_item, "lifecycle_domain")
+    navigator_children: list[dict[str, Any]] = []
+    default_stage_id = None
+
+    for process in _wb_list(app_security.get("processes")):
+        stage_obj = _wb_add_object(objects, evidence_refs, process, "lifecycle_stage", fallback_name="未命名阶段")
+        default_stage_id = default_stage_id or stage_obj["id"]
+        _wb_add_relation(relations, seen_relations, "belongs_to", stage_obj, domain_obj, label="属于生命周期")
+        navigator_children.append(_wb_navigator_node(process, "lifecycle_stage"))
+        for activity in _wb_list(process.get("main_activities")):
+            activity_obj = _wb_add_object(objects, evidence_refs, activity, "lifecycle_activity", fallback_name="未命名活动")
+            _wb_add_relation(relations, seen_relations, "contains_activity", stage_obj, activity_obj, label="包含主要活动")
+        for control in _wb_list(process.get("security_activities")):
+            control_obj = _wb_add_object(objects, evidence_refs, control, "lifecycle_control", fallback_name="未命名控制点")
+            _wb_add_relation(relations, seen_relations, "contains_control", stage_obj, control_obj, label="包含安全控制")
+        for requirement in _wb_list(process.get("policy_requirements")):
+            requirement_obj = _wb_add_object(objects, evidence_refs, requirement, "lifecycle_requirement", fallback_name="未命名要求")
+            _wb_add_relation(relations, seen_relations, "belongs_to", requirement_obj, stage_obj, label="属于阶段")
+        services_by_key: dict[str, dict[str, Any]] = {}
+        for service in _wb_list(process.get("technical_services")):
+            if not isinstance(service, dict):
+                continue
+            service_obj = _wb_add_object(objects, evidence_refs, service, "security_technical_service", fallback_name="未命名服务")
+            services_by_key[service_obj["id"]] = service
+            _wb_add_relation(relations, seen_relations, "maps_to_service", stage_obj, service_obj, label="映射服务", evidence_refs=_wb_collect_evidence(evidence_refs, process, service))
+            focus_code = _focus_code_from_service(service)
+            if focus_code:
+                focus_item = focus_by_code.get(focus_code) or {"id": f"capability_focus:{focus_code}", "code": focus_code, "title": focus_code, "status": "derived"}
+                focus_obj = _wb_add_object(objects, evidence_refs, focus_item, "capability_focus", fallback_name=focus_code, extra={"status": focus_item.get("status") or "derived"})
+                _wb_add_relation(relations, seen_relations, "maps_to_focus", stage_obj, focus_obj, label="映射关注点", confidence="derived")
+                capability_code = _capability_code_from_focus_code(focus_code)
+                capability_item = capability_by_code.get(capability_code) or {"id": f"capability:{capability_code}", "code": capability_code, "title": capability_code, "status": "derived"}
+                capability_obj = _wb_add_object(objects, evidence_refs, capability_item, "capability", fallback_name=capability_code, extra={"status": capability_item.get("status") or "derived"})
+                _wb_add_relation(relations, seen_relations, "maps_to_capability", stage_obj, capability_obj, label="映射能力", confidence="derived")
+        for module in _wb_list(process.get("technology_modules")):
+            module_obj = _wb_add_object(objects, evidence_refs, module, "security_technology_module", fallback_name="未命名模块")
+            _wb_add_relation(relations, seen_relations, "implemented_by_module", stage_obj, module_obj, label="关联模块", confidence="explicit")
+        for service_obj_id, service in services_by_key.items():
+            service_obj = objects["security_technical_service"].get(service_obj_id)
+            index_entry = _matched_service_index(service_index, service)
+            for module in _wb_list(index_entry.get("modules")):
+                module_obj = _wb_add_object(objects, evidence_refs, module, "security_technology_module", fallback_name="未命名模块")
+                _wb_add_relation(relations, seen_relations, "implemented_by_module", service_obj, module_obj, label="由模块实现", evidence_refs=_wb_collect_evidence(evidence_refs, service, module, index_entry))
+
+    payload["navigator"] = {
+        "defaultSelectedStageId": default_stage_id,
+        "tree": [_wb_navigator_node(domain_item, "lifecycle_domain", navigator_children)],
+        "grouping": ["lifecycle_domain", "lifecycle_stage", "lifecycle_activity", "lifecycle_control", "lifecycle_requirement"],
+    }
+    payload["objects"] = objects
+    payload["relations"] = relations
+    payload["evidenceRefs"] = sorted(evidence_refs.values(), key=lambda item: item["id"])
+    payload["relationshipGroups"] = [
+        _wb_group("lifecycle-stage", "生命周期阶段", ["belongs_to"], relations),
+        _wb_group("activity-control", "活动 / 控制点", ["contains_activity", "contains_control"], relations),
+        _wb_group("capability-mapping", "能力映射", ["maps_to_capability"], relations),
+        _wb_group("focus-mapping", "关注点映射", ["maps_to_focus"], relations),
+        _wb_group("service-module", "服务 / 模块关联", ["maps_to_service", "implemented_by_module"], relations),
+    ]
+    stats = _wb_stats(objects, relations, evidence_refs)
+    payload["overview"] = {
+        "defaultObjectId": default_stage_id,
+        "object_type": "lifecycle_stage",
+        "stats": stats,
+    }
+    payload["meta"]["stats"] = stats
+    payload["compatibility"]["warnings"] = [
+        "lifecycle-workbench.json 当前仅承载 LC-AP 开发安全生命周期受控专项关系投影。",
+        "部分能力 / 关注点映射根据服务编码受控派生，后续可由独立 export 关系替代。",
+        "data_lifecycle 仍保留在 lifecycle-knowledge.json 过渡包中，本投影不扩展为完整开发安全模块。",
+    ]
+    output = resolve_project_path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    _write_json(output, payload)
+    return {"count": len(relations), "files": [str(output)], "stats": stats}
+
+
+def export_frontend_workbenches(
+    conn: sqlite3.Connection,
+    *,
+    output_dir: str | Path | None = None,
+) -> dict[str, Any]:
+    base_dir = resolve_project_path(output_dir) if output_dir else FRONTEND_DATA_DIR
+    base_dir.mkdir(parents=True, exist_ok=True)
+    results = [
+        export_capability_workbench(conn, output_path=base_dir / "capability-workbench.json"),
+        export_environment_workbench(conn, output_path=base_dir / "environment-workbench.json"),
+        export_lifecycle_workbench(conn, output_path=base_dir / "lifecycle-workbench.json"),
+    ]
+    files = [file for result in results for file in result.get("files", [])]
+    stats = {
+        "capability_workbench_relations": results[0].get("stats", {}).get("relations", 0),
+        "environment_workbench_relations": results[1].get("stats", {}).get("relations", 0),
+        "lifecycle_workbench_relations": results[2].get("stats", {}).get("relations", 0),
+    }
+    return {"count": sum(stats.values()), "files": files, "stats": stats}
+
+
 def _latest_import_job_id_or_none(conn: sqlite3.Connection) -> str | None:
     row = conn.execute(
         """

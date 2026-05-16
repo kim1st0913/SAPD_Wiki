@@ -18,7 +18,7 @@
 
 ## Frontend Baseline 1.0
 
-Frontend Baseline 1.0 当前覆盖三页：
+Frontend Baseline 1.0 当前关系工作台实现重点仍覆盖三页：
 
 1. `安全能力映射`
    - 主视角：安全能力 / 安全关注点。
@@ -31,6 +31,8 @@ Frontend Baseline 1.0 当前覆盖三页：
    - 主视角：信息化环境 / 环境子类 / 信息化对象。
    - 核心关系：环境、环境子类、对象、作用域、安全技术服务、安全技术模块、安全系统、产品、来源证据。
    - 该页是第一批核心数据的第三个业务视角，不是新 Sheet 扩展。
+
+全站菜单和数据契约规划另纳入 `SAPD 成熟度评估` 独立模块，承载评分填报、结果生成和评估报告入口；该模块后续另开实现会话，不并入三份 workbench JSON。
 
 详细说明见：`docs/04-user-guide/frontend-baseline-1.0-plan.md`
 
@@ -57,6 +59,7 @@ Frontend Baseline 1.0 当前覆盖三页：
 | FE-2 | 安全能力映射页前端验收清单 | 待启动 | 固化能力页验收项：左侧关注点、技术路径、管理路径、矩阵折叠、来源折叠、字段边界、无控制台错误 | FE-0 |
 | FE-3 | 信息化环境维度页设计 | 待启动 | 形成环境页局部关系画布：环境 / 对象 -> 作用域 -> 服务 -> 模块 / 系统 / 产品，并保留明细表 | BE-2 |
 | FE-4 | LC-AP 开发安全生命周期页设计 | 待启动 | 形成生命周期页局部关系画布：阶段 -> 活动 -> 策略 -> 服务 -> 模块 / 措施 / 组件 | BE-3 |
+| FE-M | SAPD 成熟度评估页面设计 | 待启动（另开会话） | 形成评分填报、结果摘要和报告导出页面，不复用关系画布作为主界面 | maturity 专用数据契约 |
 | FE-5 | 三页共同组件和交互一致性整理 | 后置 | 统一导航、对象头、关系画布、折叠明细、来源证据、空状态和标签风格 | FE-2 / FE-3 / FE-4 |
 | FE-6 | 专项知识维护页面稳定化 | 后置 | 保持 6+ 专项维护页作为数据核对入口，避免被关系画布重构影响 | 后端专项接口稳定 |
 
@@ -72,9 +75,11 @@ Frontend Baseline 1.0 当前覆盖三页：
 |---|---|---|---|---|
 | BE-0 | API / 离线数据包契约盘点 | 已完成 | 已形成三页所需字段、关系、状态、来源证据契约清单，确认哪些来自 API，哪些来自 fallback JSON | `docs/01-architecture/api-offline-package-contract-inventory.md` |
 | BE-1 | 安全能力映射页投影补强 | 已完成 | 已输出 `scopeServicePairs`、`serviceModuleMeasureLinks`、`workFunctionsByLayer`、`processTree`，后续前端可直接消费 `localRelationMap` | 现有 `/api/v1/capabilities/workspace-projection` |
-| BE-2 | 信息化环境维度页投影 | 待启动 | 输出环境 / 对象 / 作用域 / 服务 / 模块 / 系统 / 产品的页面级投影 | 环境页现有 ViewModel 和管理数据包 |
-| BE-3 | LC-AP 生命周期页投影 | 待启动 | 输出阶段 / 活动 / 策略 / 服务 / 模块 / 措施 / 产品组件的页面级投影 | 生命周期数据包 |
+| BE-DG | Frontend Baseline 1.0 前端数据契约治理 | 已完成 | 三份 workbench 规格已齐；三个 P0 workbench JSON 已能生成；`dataClient` / ViewModel 已提供稳定读取入口；契约验收通过 | `docs/04-user-guide/frontend-data-contract-baseline-1.0.md`, `frontend/capability-browser/public/data/*-workbench.json` |
+| BE-2 | 信息化环境维度页投影 | 已完成（数据包投影） | 已输出 `environment-workbench.json`，承载环境 / 对象 / 作用域 / 服务 / 模块 / 系统 / 产品 / 能力关联 | `frontend/capability-browser/public/data/environment-workbench.json` |
+| BE-3 | LC-AP 生命周期页投影 | 已完成（数据包投影） | 已输出 `lifecycle-workbench.json`，承载阶段 / 活动 / 控制点 / 策略要求 / 服务 / 模块 / 能力关联 | `frontend/capability-browser/public/data/lifecycle-workbench.json` |
 | BE-4 | 数据质量与缺口清单 | 待启动 | 把缺失 L4、缺失模块、缺失措施、待确认职能等统一写入 `open-issues.md` 或 validation 输出 | 三页投影结果 |
+| BE-M | SAPD 成熟度评估数据契约 | 待启动（另开会话） | 定义 maturity 评估模板、填报会话、结果投影和报告导出契约 | `docs/08-maturity/` |
 | BE-5 | 导入 / 校验 / 审批链路回补 | 后置 | 将当前 Excel 导入 MVP 进一步整理为 source -> staging -> review -> formal tables 的可维护链路 | 当前导入脚本和 SQLite |
 | BE-6 | 本地 API 与静态包交付整理 | 后置 | 统一 API 优先、静态包 fallback、Tauri 打包前置要求 | BE-1 / BE-2 / BE-3 |
 
@@ -105,7 +110,7 @@ Frontend Baseline 1.0 当前覆盖三页：
 ## 当前禁止事项
 
 - 不默认启动 Phase 7 PPT / Draw.io / DOCX 多格式增强。
-- 不默认启动 maturity M1。
+- 不在当前会话启动 maturity 评估代码实现；后续另开会话推进。
 - 不默认新增 Sheet 扩展。
 - 不默认重构 SQLite schema。
 - 不默认大改 ETL。

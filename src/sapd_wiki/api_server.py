@@ -12,6 +12,9 @@ from .paths import PROJECT_ROOT, resolve_project_path
 
 DATA_PACKAGES = {
     "capability": "frontend/capability-browser/public/data/capability-tree.json",
+    "capability-workbench": "frontend/capability-browser/public/data/capability-workbench.json",
+    "environment-workbench": "frontend/capability-browser/public/data/environment-workbench.json",
+    "lifecycle-workbench": "frontend/capability-browser/public/data/lifecycle-workbench.json",
     "management": "frontend/capability-browser/public/data/management-knowledge.json",
     "lifecycle": "frontend/capability-browser/public/data/lifecycle-knowledge.json",
     "content": "frontend/capability-browser/public/data/content-views.json",

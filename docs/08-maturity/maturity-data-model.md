@@ -68,6 +68,7 @@ assessment_project
 | `model_version` | text | 模型版本，如 `v0.2-sample-202605` |
 | `methodology_source_file_id` | text | Word 方法论来源文件 |
 | `baseline_source_file_id` | text | XLSX 评价基准来源文件 |
+| `l2_baseline_source_file_id` | text | Markdown V2 L2 能力评价基准来源文件，可为空 |
 | `status` | text | draft / matched / reviewed / active / archived |
 | `description` | text | 模型版本说明 |
 | `created_at` | text | 创建时间 |
@@ -101,13 +102,16 @@ assessment_project
 | `id` | text | 能力基准项 ID |
 | `model_version_id` | text | 所属模型版本 |
 | `baseline_object_type` | text | capability_category / capability_domain / capability / capability_focus |
+| `criteria_granularity` | text | capability / capability_focus，用于区分 V2 L2 基准和 XLSX 关注点基准 |
+| `baseline_source_kind` | text | word_chapter_3_1 / xlsx_focus_baseline / markdown_l2_baseline_v1_2 |
 | `capability_category_ref` | text | 能力分类原文 |
 | `capability_domain_ref` | text | L1 高阶战略能力原文 |
 | `capability_ref` | text | L2 安全能力原文 |
 | `capability_focus_code` | text | 能力关注点编码 |
 | `capability_focus_title` | text | 能力关注点标题 |
 | `capability_focus_description` | text | 能力关注点描述 |
-| `level_criteria_json` | text | 该关注点专属 L1-L5 判定标准 |
+| `capability_description` | text | L2 能力描述，V2 L2 基准使用 |
+| `level_criteria_json` | text | 该能力或关注点专属 L1-L5 判定标准 |
 | `mainline_item_id` | text | 匹配到的主工程 `knowledge_items.id`，可为空 |
 | `mainline_match_status` | text | unverified / matched / ambiguous / missing / conflict / approved |
 | `source_sheet` | text | 来源 Sheet |
@@ -202,6 +206,14 @@ assessment_project
 | `created_at` | text | 创建时间 |
 
 样例中 `成熟度级别`、`成熟度分级描述` 的每个非空行都可以先进入本表，再由标准化过程识别行类型。新版样例不包含客户评分输入。
+
+新增 `评估表v2.md` 为 Markdown 基准来源。解析时建议将每个 `##### <capability_code> <capability_title>` 块保存为一条 `maturity_capability_baseline`，并记录：
+
+- `criteria_granularity = capability`
+- `baseline_source_kind = markdown_l2_baseline_v1_2`
+- `baseline_object_type = capability`
+- `capability_description`
+- `level_criteria_json`
 
 ## 6. `assessment_input_normalized`
 

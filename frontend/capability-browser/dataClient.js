@@ -1,6 +1,9 @@
 (() => {
   const DATA_PATHS = {
     capability: "./public/data/capability-tree.json",
+    capabilityWorkbench: "./public/data/capability-workbench.json",
+    environmentWorkbench: "./public/data/environment-workbench.json",
+    lifecycleWorkbench: "./public/data/lifecycle-workbench.json",
     management: "./public/data/management-knowledge.json",
     lifecycle: "./public/data/lifecycle-knowledge.json",
     content: "./public/data/content-views.json",
@@ -8,6 +11,9 @@
 
   const API_PACKAGE_PATHS = {
     capability: "/api/v1/data-packages/capability",
+    capabilityWorkbench: "/api/v1/data-packages/capability-workbench",
+    environmentWorkbench: "/api/v1/data-packages/environment-workbench",
+    lifecycleWorkbench: "/api/v1/data-packages/lifecycle-workbench",
     management: "/api/v1/data-packages/management",
     lifecycle: "/api/v1/data-packages/lifecycle",
     content: "/api/v1/data-packages/content",
@@ -19,6 +25,9 @@
 
   const FALLBACKS = {
     capability: { generated_at: null, stats: {}, categories: [], unlinked_focuses: [] },
+    capabilityWorkbench: null,
+    environmentWorkbench: null,
+    lifecycleWorkbench: null,
     management: {
       generated_at: null,
       stats: {},
@@ -61,6 +70,164 @@
     if (typeof value === "object") return text(value.title || value.name || value.code || value.id || fallback);
     return text(value);
   };
+  const objectIdOf = (item, fallback = "unknown") => text(item?.id || item?.code || item?.title || item?.name || fallback).trim();
+
+  function emptyWorkbench(pageType, route, title, sourcePackages = []) {
+    return {
+      meta: {
+        version: "v1",
+        viewModelVersion: `${pageType}-1.0`,
+        generated_at: null,
+        sourcePackages,
+        stats: {},
+      },
+      page: {
+        route,
+        pageType,
+        title,
+      },
+      navigator: {},
+      overview: {},
+      relationshipGroups: [],
+      objects: {},
+      relations: [],
+      evidenceRefs: [],
+      compatibility: {
+        mode: "transitional_fallback",
+        sourcePackages,
+        warnings: [],
+      },
+    };
+  }
+
+  function compactWorkbenchObject(item, objectType, fallback = "未命名") {
+    return {
+      id: objectIdOf(item, `${objectType}:${titleOf(item, fallback)}`),
+      type: objectType,
+      code: text(item?.code),
+      name: titleOf(item, fallback),
+      title: titleOf(item, fallback),
+      description: text(item?.description || item?.summary),
+      category: text(item?.category),
+      status: text(item?.status || item?.state),
+      evidenceRefs: [],
+    };
+  }
+
+  function createLegacyCapabilityWorkbenchFallback(capability, management) {
+    const workbench = emptyWorkbench("capability-mapping-workbench", "/capability-mapping", "安全能力映射", ["capability-tree.json", "management-knowledge.json"]);
+    const focuses = allFocuses(capability);
+    workbench.meta.generated_at = capability?.generated_at || management?.generated_at || null;
+    workbench.meta.stats = {
+      capability_focus: focuses.length,
+      security_technical_service: uniqueBy(focuses.flatMap((focus) => list(focus.services)), (service) => objectIdOf(service)).length,
+      relations: 0,
+    };
+    workbench.navigator = {
+      defaultSelectedFocusId: focuses[0]?.id || null,
+      tree: list(capability?.categories).map((category) => ({
+        id: objectIdOf(category),
+        type: "capability_category",
+        code: text(category.code),
+        name: titleOf(category),
+        children: list(category.domains).map((domain) => ({
+          id: objectIdOf(domain),
+          type: "capability_domain",
+          code: text(domain.code),
+          name: titleOf(domain),
+          children: list(domain.capabilities).map((capabilityItem) => ({
+            id: objectIdOf(capabilityItem),
+            type: "capability",
+            code: text(capabilityItem.code),
+            name: titleOf(capabilityItem),
+            children: list(capabilityItem.focuses).map((focus) => ({
+              id: objectIdOf(focus),
+              type: "capability_focus",
+              code: text(focus.code),
+              name: titleOf(focus),
+              children: [],
+            })),
+          })),
+        })),
+      })),
+    };
+    workbench.overview = { defaultObjectId: focuses[0]?.id || null, object_type: "capability_focus", stats: workbench.meta.stats };
+    workbench.objects = {
+      capability_focus: Object.fromEntries(focuses.map((focus) => [objectIdOf(focus), compactWorkbenchObject(focus, "capability_focus")])),
+    };
+    workbench.compatibility.warnings = ["缺少 capability-workbench.json，当前使用 capability-tree.json / management-knowledge.json 生成过渡稳定结构。"];
+    return workbench;
+  }
+
+  function createLegacyEnvironmentWorkbenchFallback(management) {
+    const environments = list(management?.environment_scope_tree);
+    const objects = environments.flatMap((environment) => list(environment.objects));
+    const workbench = emptyWorkbench("environment-mapping-workbench", "/environment-mapping", "信息化环境安全能力映射", ["management-knowledge.json"]);
+    workbench.meta.generated_at = management?.generated_at || null;
+    workbench.meta.stats = {
+      information_environment: environments.length,
+      information_object: objects.length,
+      relations: 0,
+    };
+    workbench.navigator = {
+      defaultSelectedObjectId: objects[0]?.id || null,
+      tree: environments.map((environment) => ({
+        id: objectIdOf(environment),
+        type: "information_environment",
+        code: text(environment.code),
+        name: titleOf(environment),
+        children: list(environment.objects).map((item) => ({
+          id: objectIdOf(item),
+          type: "information_object",
+          code: text(item.code),
+          name: titleOf(item),
+          children: [],
+        })),
+      })),
+    };
+    workbench.overview = { defaultObjectId: objects[0]?.id || null, object_type: "information_object", stats: workbench.meta.stats };
+    workbench.objects = {
+      information_environment: Object.fromEntries(environments.map((environment) => [objectIdOf(environment), compactWorkbenchObject(environment, "information_environment")])),
+      information_object: Object.fromEntries(objects.map((item) => [objectIdOf(item), compactWorkbenchObject(item, "information_object")])),
+    };
+    workbench.compatibility.warnings = ["缺少 environment-workbench.json，当前使用 management-knowledge.json.environment_scope_tree 生成过渡稳定结构。"];
+    return workbench;
+  }
+
+  function createLegacyLifecycleWorkbenchFallback(lifecycle) {
+    const appSecurity = lifecycle?.application_security_development || {};
+    const processes = list(appSecurity.processes);
+    const workbench = emptyWorkbench("domain-module", "/development-security/lc-ap", "LC-AP 开发安全生命周期专项关系投影", ["lifecycle-knowledge.json"]);
+    workbench.meta.generated_at = lifecycle?.generated_at || null;
+    workbench.meta.stats = {
+      lifecycle_stage: processes.length,
+      relations: 0,
+    };
+    workbench.navigator = {
+      defaultSelectedStageId: processes[0]?.id || null,
+      tree: [
+        {
+          id: "lifecycle_domain:LC-AP",
+          type: "lifecycle_domain",
+          code: "LC-AP",
+          name: "开发安全生命周期",
+          children: processes.map((process) => ({
+            id: objectIdOf(process),
+            type: "lifecycle_stage",
+            code: text(process.code),
+            name: titleOf(process),
+            children: [],
+          })),
+        },
+      ],
+    };
+    workbench.overview = { defaultObjectId: processes[0]?.id || null, object_type: "lifecycle_stage", stats: workbench.meta.stats };
+    workbench.objects = {
+      lifecycle_stage: Object.fromEntries(processes.map((process) => [objectIdOf(process), compactWorkbenchObject(process, "lifecycle_stage")])),
+    };
+    workbench.compatibility.warnings = ["缺少 lifecycle-workbench.json，当前使用 lifecycle-knowledge.json 生成过渡稳定结构。"];
+    return workbench;
+  }
 
   function createEnvelope(data, warnings = []) {
     return {
@@ -135,7 +302,7 @@
     try {
       const response = await fetch(path, { cache: "no-store" });
       if (!response.ok) {
-        const missingData = { ...fallback, __data_state: "missing_file" };
+        const missingData = fallback && typeof fallback === "object" ? { ...fallback, __data_state: "missing_file" } : { __data_state: "missing_file" };
         cache.set(name, missingData);
         return missingData;
       }
@@ -143,7 +310,7 @@
       cache.set(name, data);
       return data;
     } catch {
-      const missingData = { ...fallback, __data_state: "missing_file" };
+      const missingData = fallback && typeof fallback === "object" ? { ...fallback, __data_state: "missing_file" } : { __data_state: "missing_file" };
       cache.set(name, missingData);
       return missingData;
     }
@@ -312,6 +479,13 @@
       return createEnvelope(capability);
     },
 
+    async getCapabilityWorkbench() {
+      const workbench = await fetchPackage("capabilityWorkbench");
+      if (workbench.__data_state !== "missing_file") return createEnvelope(workbench);
+      const { capability, management } = await getCapabilityAndManagement();
+      return createEnvelope(createLegacyCapabilityWorkbenchFallback(capability, management), ["capability-workbench.json 不存在，已启用过渡 fallback。"]);
+    },
+
     async getCapabilityMatrix(params = {}) {
       const { capability, management } = await getCapabilityAndManagement();
       const rows = capabilityMatrixRows(capability, management, params);
@@ -366,6 +540,13 @@
         stats: management.stats || {},
         environments: list(management.environment_scope_tree),
       });
+    },
+
+    async getEnvironmentWorkbench() {
+      const workbench = await fetchPackage("environmentWorkbench");
+      if (workbench.__data_state !== "missing_file") return createEnvelope(workbench);
+      const management = await fetchPackage("management");
+      return createEnvelope(createLegacyEnvironmentWorkbenchFallback(management), ["environment-workbench.json 不存在，已启用过渡 fallback。"]);
     },
 
     async getEnvironmentMatrix(params = {}) {
@@ -460,6 +641,13 @@
 
     async getLifecycleKnowledge() {
       return createEnvelope(await fetchPackage("lifecycle"));
+    },
+
+    async getLifecycleWorkbench() {
+      const workbench = await fetchPackage("lifecycleWorkbench");
+      if (workbench.__data_state !== "missing_file") return createEnvelope(workbench);
+      const lifecycle = await fetchPackage("lifecycle");
+      return createEnvelope(createLegacyLifecycleWorkbenchFallback(lifecycle), ["lifecycle-workbench.json 不存在，已启用过渡 fallback。"]);
     },
 
     async getApplicationSecurityLifecycle(params = {}) {

@@ -93,6 +93,14 @@
       "children": []
     },
     {
+      "id": "sapd-maturity-assessment",
+      "label": "SAPD成熟度评估",
+      "route": "/sapd-maturity-assessment",
+      "type": "domain-module",
+      "priority": "P2",
+      "children": []
+    },
+    {
       "id": "knowledge",
       "label": "安全知识",
       "route": "/knowledge",

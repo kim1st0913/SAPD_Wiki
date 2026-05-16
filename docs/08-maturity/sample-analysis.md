@@ -1,6 +1,6 @@
 # 成熟度模块样本分析
 
-本文档记录 maturity 模块样本驱动分析结论。用户已在 2026-05-13 更新 `sample 评分表.xlsx`，本文档以新版 XLSX 为准。
+本文档记录 maturity 模块样本驱动分析结论。用户已在 2026-05-13 更新 `sample 评分表.xlsx`，并在 2026-05-15 增加 `评估表v2.md`。本文档以新版 XLSX 和 V2 Markdown 样本共同作为模型基准输入。
 
 样例目录：
 
@@ -8,7 +8,8 @@
 data/raw-samples/maturity/
 ├─ sample文档介绍.docx
 ├─ samle 使用教程.pptx
-└─ sample 评分表.xlsx
+├─ sample 评分表.xlsx
+└─ 评估表v2.md
 ```
 
 本轮目标是理解样例结构和建模含义，不开发功能、不修改主工程 schema、不实现评分算法、不做前端页面。
@@ -18,6 +19,7 @@ data/raw-samples/maturity/
 | 文件 | 类型 | 主要用途 | 建模结论 |
 |---|---|---|---|
 | `sample 评分表.xlsx` | Excel 工作簿 | 成熟度等级与能力关注点分级描述 | 新版 XLSX 是“评价基准表”，应进入 maturity 专用模型基准表，不是客户评分输入表 |
+| `评估表v2.md` | Markdown 文档 | L2 安全能力成熟度评价基准 | V2 是 L2 能力级 `L1` 到 `L5` 判定标准，适合作为 `capability` 粒度评分解释基准 |
 | `sample文档介绍.docx` | Word 文档 | 成熟度模型方法论说明 | 模型基准来源，用于提炼模型概念、能力等级、能力要素、能力域、评估流程和报告叙事 |
 | `samle 使用教程.pptx` | PowerPoint | 成熟度工具介绍和使用教程 | 用于提炼工具使用流程、交付场景、报告视图和培训材料结构 |
 
@@ -27,6 +29,9 @@ data/raw-samples/maturity/
 - 旧版中的 `成熟度评分`、`成熟度视图`、`成熟度分级描述 (2)` 已不存在；
 - 新版样例不包含客户名称、评估项目、证据、人工评分、汇总视图或报告输出；
 - 因此新版 XLSX 只能用于建立模型基准和模板参考能力清单，不能直接作为客户评估输入。
+- 新增 `评估表v2.md` 把关注点相关内容合并到 L2 能力维度，提供更完整的 L2 能力成熟度描述；
+- V2 共解析出 31 个 L2 能力，当前 SQLite 主库 active L2 能力为 32 个，缺少 `M-PS.CT` 安全意识教育与技能培养能力；
+- 当前 SQLite 主库中 `T-AD.SV` 已调整为“安全架构评估能力”，与 V2 一致，不再作为 V2 标题差异。
 
 用户已确认本轮建模口径：
 
@@ -217,6 +222,18 @@ PPT 样例更适合作为模板使用说明和报告展示逻辑来源，不作�
 | `技术服务` | `security_technical_service_name` | 平台与工具维度技术输入 / 实践项 |
 | `Level 1` 到 `Level 5` | `level_criteria` | 评分判定标准 |
 
+补充：`评估表v2.md` 的字段映射如下。
+
+| V2 结构 | 标准字段 | 用途 |
+|---|---|---|
+| YAML `version` | `model_version` | 模型版本 |
+| 三级标题 | `capability_category_ref` | 能力分类上下文 |
+| 四级标题 | `capability_domain_ref` | L1 能力域上下文 |
+| 五级标题编码 | `capability_code` | L2 安全能力编码 |
+| 五级标题名称 | `capability_title` | L2 安全能力名称 |
+| `能力描述` | `capability_description` | L2 能力合并描述 |
+| `L1` 到 `L5` 表格 | `level_criteria_json` | L2 能力专属判定标准 |
+
 ## 10. 不确定字段
 
 | 字段 / 现象 | 不确定点 | 建议处理 |
@@ -247,3 +264,5 @@ PPT 样例更适合作为模板使用说明和报告展示逻辑来源，不作�
 5. 评分结果后续由系统生成 `maturity_score_result`，不从新版样例直接读取。
 6. 客户评估数据继续明确不进入 `knowledge_items`，只进入 maturity 专用模型。
 7. 在启用模型基准前，先生成 `maturity_mainline_match_result`，输出与主工程能力、关注点和安全技术服务不一致的数据清单。
+8. 新增 `评估表v2.md` 后，建议正式模板增加 `Reference_L2_Capability_Criteria`，用于承载 L2 能力级判定标准。
+9. 需要人工确认 `M-PS.CT` 是否补入 V2 L2 基准。

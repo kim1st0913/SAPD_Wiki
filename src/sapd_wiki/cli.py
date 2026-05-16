@@ -6,10 +6,14 @@ import sys
 
 from .db import connect, run_migrations
 from .exports import (
+    export_capability_workbench,
     export_capability_tree,
     export_content_views,
+    export_environment_workbench,
+    export_frontend_workbenches,
     export_import_summary,
     export_items,
+    export_lifecycle_workbench,
     export_lifecycle_knowledge,
     export_management_knowledge,
     export_relations,
@@ -418,6 +422,54 @@ def cmd_export_content_views(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_export_capability_workbench(args: argparse.Namespace) -> int:
+    db_path = resolve_project_path(args.db)
+    run_migrations(db_path)
+    with connect(db_path) as conn:
+        result = export_capability_workbench(conn, output_path=args.output)
+    _print_export_result(result)
+    print("stats:")
+    for key, value in result.get("stats", {}).items():
+        print(f"  - {key}: {value}")
+    return 0
+
+
+def cmd_export_environment_workbench(args: argparse.Namespace) -> int:
+    db_path = resolve_project_path(args.db)
+    run_migrations(db_path)
+    with connect(db_path) as conn:
+        result = export_environment_workbench(conn, output_path=args.output)
+    _print_export_result(result)
+    print("stats:")
+    for key, value in result.get("stats", {}).items():
+        print(f"  - {key}: {value}")
+    return 0
+
+
+def cmd_export_lifecycle_workbench(args: argparse.Namespace) -> int:
+    db_path = resolve_project_path(args.db)
+    run_migrations(db_path)
+    with connect(db_path) as conn:
+        result = export_lifecycle_workbench(conn, output_path=args.output)
+    _print_export_result(result)
+    print("stats:")
+    for key, value in result.get("stats", {}).items():
+        print(f"  - {key}: {value}")
+    return 0
+
+
+def cmd_export_frontend_workbenches(args: argparse.Namespace) -> int:
+    db_path = resolve_project_path(args.db)
+    run_migrations(db_path)
+    with connect(db_path) as conn:
+        result = export_frontend_workbenches(conn, output_dir=args.output_dir)
+    _print_export_result(result)
+    print("stats:")
+    for key, value in result.get("stats", {}).items():
+        print(f"  - {key}: {value}")
+    return 0
+
+
 def cmd_export_second_batch_summary(args: argparse.Namespace) -> int:
     db_path = resolve_project_path(args.db)
     run_migrations(db_path)
@@ -588,6 +640,50 @@ def build_parser() -> argparse.ArgumentParser:
         help="Output JSON path.",
     )
     content_views.set_defaults(func=cmd_export_content_views)
+
+    capability_workbench = subparsers.add_parser(
+        "export-capability-workbench",
+        help="Export frontend data contract v1 capability workbench JSON.",
+    )
+    capability_workbench.add_argument(
+        "--output",
+        default="frontend/capability-browser/public/data/capability-workbench.json",
+        help="Output JSON path.",
+    )
+    capability_workbench.set_defaults(func=cmd_export_capability_workbench)
+
+    environment_workbench = subparsers.add_parser(
+        "export-environment-workbench",
+        help="Export frontend data contract v1 environment workbench JSON.",
+    )
+    environment_workbench.add_argument(
+        "--output",
+        default="frontend/capability-browser/public/data/environment-workbench.json",
+        help="Output JSON path.",
+    )
+    environment_workbench.set_defaults(func=cmd_export_environment_workbench)
+
+    lifecycle_workbench = subparsers.add_parser(
+        "export-lifecycle-workbench",
+        help="Export frontend data contract v1 lifecycle workbench JSON.",
+    )
+    lifecycle_workbench.add_argument(
+        "--output",
+        default="frontend/capability-browser/public/data/lifecycle-workbench.json",
+        help="Output JSON path.",
+    )
+    lifecycle_workbench.set_defaults(func=cmd_export_lifecycle_workbench)
+
+    frontend_workbenches = subparsers.add_parser(
+        "export-frontend-workbenches",
+        help="Export all frontend data contract v1 workbench JSON files.",
+    )
+    frontend_workbenches.add_argument(
+        "--output-dir",
+        default="frontend/capability-browser/public/data",
+        help="Output directory for capability/environment/lifecycle workbench JSON files.",
+    )
+    frontend_workbenches.set_defaults(func=cmd_export_frontend_workbenches)
 
     second_batch_summary = subparsers.add_parser(
         "export-second-batch-summary",

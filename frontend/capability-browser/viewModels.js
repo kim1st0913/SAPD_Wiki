@@ -723,7 +723,120 @@
     return capabilityProjection.localRelationMap || capabilityProjection.local_relation_map || maps[0] || null;
   }
 
-  function buildCapabilityWorkspaceViewModel({ capabilityTree, capabilityProjection, management, selectedCapabilityId, search, relationshipFilters }) {
+  function workbenchObjectsById(workbench) {
+    const rows = {};
+    for (const group of Object.values(workbench?.objects || {})) {
+      if (!group || typeof group !== "object") continue;
+      for (const [id, item] of Object.entries(group)) rows[id] = item;
+    }
+    return rows;
+  }
+
+  function workbenchEntity(item, fallback = PENDING_TEXT, extra = {}) {
+    if (!item) return null;
+    return {
+      id: item.id || item.code || item.title || item.name || fallback,
+      type: item.type || "",
+      code: item.code || "",
+      title: titleOf(item, fallback),
+      name: item.name || "",
+      description: item.description || "",
+      category: item.category || "",
+      status: item.status || "",
+      ...extra,
+    };
+  }
+
+  function workbenchRelations(workbench, relationType) {
+    return list(workbench?.relations).filter((relation) => !relationType || relation.type === relationType);
+  }
+
+  function workbenchTargets(workbench, objectsById, sourceId, relationType, targetType = "") {
+    return workbenchRelations(workbench, relationType)
+      .filter((relation) => relation.sourceId === sourceId && (!targetType || relation.targetType === targetType))
+      .map((relation) => workbenchEntity(objectsById[relation.targetId]))
+      .filter(Boolean);
+  }
+
+  function workbenchSources(workbench, objectsById, targetId, relationType, sourceType = "") {
+    return workbenchRelations(workbench, relationType)
+      .filter((relation) => relation.targetId === targetId && (!sourceType || relation.sourceType === sourceType))
+      .map((relation) => workbenchEntity(objectsById[relation.sourceId]))
+      .filter(Boolean);
+  }
+
+  function buildCapabilityTechnicalRowsFromWorkbench(workbench, focuses) {
+    if (!workbench || workbench.__data_state === "missing_file") return [];
+    const objectsById = workbenchObjectsById(workbench);
+    return list(focuses).flatMap((focus) => {
+      const focusId = focus.id;
+      const focusEntity = workbenchEntity(objectsById[focusId] || focus, "未命名关注点");
+      const services = workbenchSources(workbench, objectsById, focusId, "supports_focus", "security_technical_service");
+      return services.flatMap((service) => {
+        const scopes = workbenchTargets(workbench, objectsById, service.id, "applies_to_scope", "scope_type");
+        const modules = workbenchTargets(workbench, objectsById, service.id, "implemented_by_module", "security_technology_module").map((module) => ({
+          ...module,
+          objectKind: "安全技术模块",
+        }));
+        const measures = workbenchTargets(workbench, objectsById, service.id, "has_measure", "security_technical_measure").map((measure) => ({
+          ...measure,
+          objectKind: "安全技术措施",
+        }));
+        const scopeRows = scopes.length ? scopes : [{ id: `${service.id}:scope:pending`, type: "scope_type", code: "", title: PENDING_TEXT }];
+        return scopeRows.map((scope) => ({
+          id: `${focusId}:${service.id}:${scope.id}`,
+          focus: focusEntity,
+          scope,
+          services: [service],
+          modules: [...modules, ...measures],
+          status: "mapped",
+          dataSource: "capability-workbench.json",
+        }));
+      });
+    });
+  }
+
+  function buildCapabilityManagementRowsFromWorkbench(workbench, focuses) {
+    if (!workbench || workbench.__data_state === "missing_file") return [];
+    const objectsById = workbenchObjectsById(workbench);
+    return list(focuses).map((focus) => {
+      const focusId = focus.id;
+      const focusEntity = workbenchEntity(objectsById[focusId] || focus, "未命名关注点");
+      const securityWorks = workbenchTargets(workbench, objectsById, focusId, "maps_to_work", "security_work");
+      const processReferences = workbenchTargets(workbench, objectsById, focusId, "maps_to_process", "process_reference");
+      const processGroups = uniqueBy(
+        processReferences.flatMap((process) => workbenchTargets(workbench, objectsById, process.id, "belongs_to", "process_group")),
+        (item) => item.id || item.code || item.title,
+      );
+      const activities = uniqueBy(
+        processReferences.flatMap((process) => workbenchTargets(workbench, objectsById, process.id, "has_activity", "process_activity")),
+        (item) => item.id || item.code || item.title,
+      );
+      const stakeholders = uniqueBy(
+        processReferences.flatMap((process) => workbenchTargets(workbench, objectsById, process.id, "stakeholder_by", "work_function")),
+        (item) => item.id || item.code || item.title,
+      );
+      return {
+        id: `${focusId}:management`,
+        focus: focusEntity,
+        securityWorks,
+        stakeholders,
+        processGroups,
+        processReferences,
+        activities,
+        hasMissingActivity: processReferences.length > 0 && activities.length === 0,
+        dataSource: "capability-workbench.json",
+      };
+    });
+  }
+
+  function buildCapabilityWorkspaceViewModel({ capabilityWorkbench, capabilityWorkbenchViewModel, capabilityTree, capabilityProjection, management, selectedCapabilityId, search, relationshipFilters }) {
+    const dataSource = workbenchDataSource({
+      workbench: capabilityWorkbench,
+      workbenchViewModel: capabilityWorkbenchViewModel,
+      workbenchName: "capability-workbench.json",
+      fallbackName: "capability-tree.json + management-knowledge.json",
+    });
     const navigationTree = buildNavigationTree(capabilityTree, search);
     const fallbackFocus = focusRows(capabilityTree)[0]?.item;
     const selectedResult = selectedCapabilityId ? findCapabilityItemAndFocuses(capabilityTree, selectedCapabilityId) : { selected: null };
@@ -742,12 +855,18 @@
     const visibleFocusIds = new Set(rows.map((row) => row.focus.id));
     const visibleFocuses = selectedFocuses.filter((focus) => !query || visibleFocusIds.has(focus.id) || includesSearch(query, focus.code, focus.title, focus.description));
     const visibleFocusIdSet = new Set(visibleFocuses.map((focus) => focus.id));
+    const workbenchTechnicalRows = buildCapabilityTechnicalRowsFromWorkbench(capabilityWorkbench, visibleFocuses);
+    const workbenchManagementRows = buildCapabilityManagementRowsFromWorkbench(capabilityWorkbench, visibleFocuses);
     const projectedTechnicalRows = list(capabilityProjection?.technicalMappingRows || capabilityProjection?.technical_mapping_rows);
     const projectedManagementRows = list(capabilityProjection?.managementMappingRows || capabilityProjection?.management_mapping_rows);
-    const technicalMappingRows = projectedTechnicalRows.length
+    const technicalMappingRows = workbenchTechnicalRows.length
+      ? workbenchTechnicalRows
+      : projectedTechnicalRows.length
       ? projectedTechnicalRows.filter((row) => visibleFocusIdSet.has(row.focus?.id))
       : buildTechnicalMappingRows({ management, focuses: visibleFocuses });
-    const managementMappingRows = projectedManagementRows.length
+    const managementMappingRows = workbenchManagementRows.length
+      ? workbenchManagementRows
+      : projectedManagementRows.length
       ? projectedManagementRows.filter((row) => visibleFocusIdSet.has(row.focus?.id))
       : buildManagementMappingRows({ focuses: visibleFocuses });
     const focusOverview = buildFocusOverview({ capabilityTree, focuses: visibleFocuses, selectedDetail, technicalRows: technicalMappingRows, managementRows: managementMappingRows });
@@ -792,7 +911,7 @@
       technicalMappingRows,
       managementMappingRows,
       localRelationMap,
-      localRelationMapSource: projectedLocalRelationMap ? "backend_projection" : "viewmodel_fallback",
+      localRelationMapSource: workbenchTechnicalRows.length || workbenchManagementRows.length ? "capability_workbench" : projectedLocalRelationMap ? "backend_projection" : "viewmodel_fallback",
       localRelationshipNotes: buildLocalRelationshipNotes(chainFocus, technicalMappingRows, managementMappingRows),
       relationshipMatrixRows: rows,
       relationshipChainRows: buildRelationshipChainRows(chainFocus),
@@ -810,6 +929,8 @@
         detailSecurityWorks,
         detailSourceItems,
       ),
+      dataSource,
+      workbenchViewModel: capabilityWorkbenchViewModel || null,
     };
   }
 
@@ -2072,7 +2193,13 @@
     );
   }
 
-  function buildEnvironmentWorkspaceViewModel({ management, selectedObjectId, selectedEnvironmentId, search }) {
+  function buildEnvironmentWorkspaceViewModel({ environmentWorkbench, environmentWorkbenchViewModel, management, selectedObjectId, selectedEnvironmentId, search }) {
+    const dataSource = workbenchDataSource({
+      workbench: environmentWorkbench,
+      workbenchViewModel: environmentWorkbenchViewModel,
+      workbenchName: "environment-workbench.json",
+      fallbackName: "management-knowledge.json.environment_scope_tree",
+    });
     const navigationTree = buildEnvironmentNavigationTree(management, search);
     const selected = findEnvironmentSelection(management, selectedObjectId, selectedEnvironmentId, search);
     const selectedEnvironment = compactEntity(selected?.environment, "未命名环境");
@@ -2113,6 +2240,8 @@
       detailPanel,
       localRelationNotes: buildEnvironmentLocalRelationNotes({ selectionType: selected?.selectionType, selectedEnvironment, selectedObject, summary, detailPanel }),
       sourceEvidence: environmentSourceEvidence(selected?.environment, selected?.object, selected?.objects),
+      dataSource,
+      workbenchViewModel: environmentWorkbenchViewModel || null,
     };
   }
 
@@ -2322,7 +2451,156 @@
     };
   }
 
-  function buildApplicationSecurityLifecycleViewModel({ lifecycle, selectedProcessId, search }) {
+  function buildApplicationSecurityLifecycleWorkbenchViewModel({ lifecycleWorkbench, lifecycleWorkbenchViewModel, selectedProcessId, search, dataSource }) {
+    const objectsById = workbenchObjectsById(lifecycleWorkbench);
+    const stages = Object.values(lifecycleWorkbench?.objects?.lifecycle_stage || {}).map((stage) => workbenchEntity(stage, "未命名阶段"));
+    const query = normalizeSearch(search);
+    const navigationTree = stages
+      .filter((stage) => includesSearch(query, stage.code, stage.title, stage.description))
+      .map((stage) => ({
+        ...stage,
+        order: stage.code,
+      }));
+    const selectedId = selectedProcessId && navigationTree.some((row) => row.id === selectedProcessId) ? selectedProcessId : navigationTree[0]?.id || null;
+    const selectedStage = navigationTree.find((stage) => stage.id === selectedId) || navigationTree[0] || null;
+    const stageActivities = selectedStage ? workbenchTargets(lifecycleWorkbench, objectsById, selectedStage.id, "contains_activity", "lifecycle_activity").map(compactLifecycleItem) : [];
+    const securityActivities = selectedStage ? workbenchTargets(lifecycleWorkbench, objectsById, selectedStage.id, "contains_control", "lifecycle_control").map(compactLifecycleItem) : [];
+    const policyRequirements = selectedStage ? workbenchSources(lifecycleWorkbench, objectsById, selectedStage.id, "belongs_to", "lifecycle_requirement").map(compactLifecycleItem) : [];
+    const technicalServices = selectedStage ? workbenchTargets(lifecycleWorkbench, objectsById, selectedStage.id, "maps_to_service", "security_technical_service").map(compactLifecycleItem) : [];
+    const stageModules = selectedStage ? workbenchTargets(lifecycleWorkbench, objectsById, selectedStage.id, "implemented_by_module", "security_technology_module").map((module) => ({ ...compactLifecycleItem(module), objectKind: "安全技术模块" })) : [];
+    const serviceModules = uniqueBy(
+      technicalServices.flatMap((service) => workbenchTargets(lifecycleWorkbench, objectsById, service.id, "implemented_by_module", "security_technology_module")).map((module) => ({ ...compactLifecycleItem(module), objectKind: "安全技术模块" })),
+      (module) => module.id || module.code || module.title,
+    );
+    const technologyModules = uniqueBy([...stageModules, ...serviceModules], (module) => module.id || module.code || module.title);
+    const summary = {
+      processCount: navigationTree.length,
+      selectedProcessId: selectedId,
+      mainActivityCount: stageActivities.length,
+      securityActivityCount: securityActivities.length,
+      policyRequirementCount: policyRequirements.length,
+      developmentServiceCount: 0,
+      technicalServiceCount: technicalServices.length,
+      technologyModuleCount: technologyModules.length,
+      technicalMeasureCount: 0,
+      productComponentCount: 0,
+      softwareDevelopmentTypeCount: 0,
+      applicationSystemTypeCount: 0,
+    };
+    const selectedStageRow = selectedStage
+      ? {
+          ...selectedStage,
+          mainActivities: stageActivities,
+          securityActivities,
+          policyRequirements,
+          developmentTypes: [],
+          technicalServices,
+          technologyModules,
+          technicalMeasures: [],
+          productComponents: [],
+        }
+      : null;
+    const stageOverview = selectedStage
+      ? {
+          code: selectedStage.code || "LC-AP",
+          title: selectedStage.title || PENDING_TEXT,
+          description: selectedStage.description || PENDING_TEXT,
+          status: "当前阶段",
+          facts: [
+            { label: "主要活动", value: summary.mainActivityCount },
+            { label: "安全活动", value: summary.securityActivityCount },
+            { label: "安全策略", value: summary.policyRequirementCount },
+            { label: "技术服务", value: summary.technicalServiceCount },
+            { label: "技术模块", value: summary.technologyModuleCount },
+          ],
+        }
+      : null;
+    const relationRows = selectedStageRow
+      ? [
+          {
+            id: `${selectedStageRow.id}:workbench-relation-row`,
+            mainActivity: stageActivities,
+            securityActivities,
+            policyRequirements,
+            technicalServices: technicalServices.map((service) => ({ ...service, objectKind: service.category || "安全技术服务" })),
+            technologyModules,
+            technicalMeasures: [],
+            productComponents: [],
+            status: technicalServices.length || technologyModules.length ? "已关联" : "待补充",
+          },
+        ]
+      : [];
+    return {
+      dataState: dataSource.workbenchReady ? "ready" : "empty",
+      title: "LC-AP开发安全生命周期",
+      description: "展示 LC-AP 开发安全生命周期中阶段、活动、策略、技术服务和模块之间的关系。",
+      navigationTree,
+      stageTree: navigationTree,
+      selectedProcess: selectedStageRow,
+      selectedStage: selectedStageRow,
+      relationshipSummary: summary,
+      stageOverview,
+      stageRows: navigationTree,
+      activityPolicyRows: selectedStageRow
+        ? [{ id: `${selectedStageRow.id}:activities`, process: selectedStageRow, mainActivities: stageActivities, securityActivities, policyRequirements }]
+        : [],
+      serviceMappingRows: {
+        developmentServices: [],
+        securityServiceRows: technicalServices.map((service) => ({ id: service.id, category: service.category || "安全技术服务", service, modules: workbenchTargets(lifecycleWorkbench, objectsById, service.id, "implemented_by_module", "security_technology_module").map(compactLifecycleItem) })),
+        stageModules,
+        stageMeasures: [],
+        productComponents: [],
+      },
+      relationRows,
+      referenceSections: { softwareDevelopmentTypes: [], applicationSystemTypes: [] },
+      referenceGroups: { softwareDevelopmentTypes: [], applicationSystemTypes: [] },
+      localRelationNotes: [
+        { title: "数据源", body: "当前 LC-AP 页面优先使用 lifecycle-workbench.json 的阶段、活动、控制点、策略、服务和模块关系投影。" },
+      ],
+      detailPanel: selectedStage
+        ? {
+            type: "LC-AP 开发过程阶段",
+            code: selectedStage.code || "LC-AP",
+            title: selectedStage.title || PENDING_TEXT,
+            description: selectedStage.description || PENDING_TEXT,
+            facts: [
+              { label: "阶段主要活动", value: summary.mainActivityCount },
+              { label: "安全活动", value: summary.securityActivityCount },
+              { label: "安全策略", value: summary.policyRequirementCount },
+              { label: "安全技术服务", value: summary.technicalServiceCount },
+              { label: "安全技术模块", value: summary.technologyModuleCount },
+            ],
+            sections: [
+              { title: "阶段主要活动", items: stageActivities },
+              { title: "安全活动", items: securityActivities },
+              { title: "安全策略", items: policyRequirements },
+            ],
+            sourceEvidence: [],
+          }
+        : null,
+      sourceEvidence: [],
+      dataSource,
+      workbenchViewModel: lifecycleWorkbenchViewModel || null,
+      emptyState: navigationTree.length ? "" : "暂无 LC-AP workbench 数据，请确认 lifecycle-workbench.json 是否已生成。",
+    };
+  }
+
+  function buildApplicationSecurityLifecycleViewModel({ lifecycleWorkbench, lifecycleWorkbenchViewModel, lifecycle, selectedProcessId, search }) {
+    const sourceStatus = workbenchDataSource({
+      workbench: lifecycleWorkbench,
+      workbenchViewModel: lifecycleWorkbenchViewModel,
+      workbenchName: "lifecycle-workbench.json",
+      fallbackName: "lifecycle-knowledge.json",
+    });
+    if (sourceStatus.workbenchReady) {
+      return buildApplicationSecurityLifecycleWorkbenchViewModel({
+        lifecycleWorkbench,
+        lifecycleWorkbenchViewModel,
+        selectedProcessId,
+        search,
+        dataSource: sourceStatus,
+      });
+    }
     const appSecurity = lifecycle?.application_security_development || {};
     const dataState = lifecycle?.__data_state === "missing_file" ? "missing_file" : list(appSecurity.processes).length ? "ready" : "empty";
     const navigationTree = buildLifecycleNavigation(appSecurity.processes, search);
@@ -2405,6 +2683,8 @@
       localRelationNotes: buildLifecycleLocalRelationNotes(selectedStageRow, serviceMappingRows),
       detailPanel,
       sourceEvidence: detailPanel?.sourceEvidence || [],
+      dataSource: sourceStatus,
+      workbenchViewModel: lifecycleWorkbenchViewModel || null,
       emptyState: stageRows.length
         ? ""
         : dataState === "missing_file"
@@ -2413,8 +2693,63 @@
     };
   }
 
+  function buildWorkbenchDataContractViewModel(workbench, fallbackTitle) {
+    const data = workbench || {};
+    const compatibility = data.compatibility || {};
+    const warnings = uniqueBy([...(list(data.warnings)), ...(list(compatibility.warnings))], (warning) => text(warning));
+    const objects = data.objects && typeof data.objects === "object" ? data.objects : {};
+    const objectCounts = Object.fromEntries(Object.entries(objects).map(([type, rows]) => [type, rows && typeof rows === "object" ? Object.keys(rows).length : 0]));
+    return {
+      dataState: data.__data_state === "missing_file" ? "missing_file" : "ready",
+      title: data.page?.title || fallbackTitle,
+      page: data.page || {},
+      navigatorData: data.navigator || {},
+      overviewData: data.overview || {},
+      relationshipGroups: list(data.relationshipGroups),
+      objects,
+      objectCounts,
+      relations: list(data.relations),
+      relationCount: list(data.relations).length,
+      evidenceRefs: list(data.evidenceRefs),
+      warnings,
+      compatibility,
+      meta: data.meta || {},
+      emptyState: data.__data_state === "missing_file" ? `${fallbackTitle} 数据契约文件缺失。` : "",
+    };
+  }
+
+  function workbenchDataSource({ workbench, workbenchViewModel, workbenchName, fallbackName }) {
+    const ready = Boolean(workbench && workbench.__data_state !== "missing_file" && workbenchViewModel?.dataState === "ready" && (workbenchViewModel.relationCount > 0 || Object.values(workbenchViewModel.objectCounts || {}).some((count) => count > 0)));
+    return {
+      primary: ready ? workbenchName : fallbackName,
+      workbenchName,
+      fallbackName,
+      workbenchReady: ready,
+      fallbackRequired: !ready,
+      status: ready ? "workbench_ready" : "legacy_fallback",
+      relationCount: workbenchViewModel?.relationCount || 0,
+      objectCounts: workbenchViewModel?.objectCounts || {},
+      warnings: list(workbenchViewModel?.warnings),
+    };
+  }
+
+  function buildCapabilityWorkbenchViewModel({ workbench } = {}) {
+    return buildWorkbenchDataContractViewModel(workbench, "安全能力映射");
+  }
+
+  function buildEnvironmentWorkbenchViewModel({ workbench } = {}) {
+    return buildWorkbenchDataContractViewModel(workbench, "信息化环境安全能力映射");
+  }
+
+  function buildLifecycleWorkbenchViewModel({ workbench } = {}) {
+    return buildWorkbenchDataContractViewModel(workbench, "LC-AP 开发安全生命周期专项关系投影");
+  }
+
   window.sapdViewModels = {
+    buildCapabilityWorkbenchViewModel,
     buildCapabilityWorkspaceViewModel,
+    buildEnvironmentWorkbenchViewModel,
+    buildLifecycleWorkbenchViewModel,
     buildApplicationSecurityLifecycleViewModel,
     buildMaintenanceWorkspaceViewModel,
     buildProcessMaintenanceViewModel,
@@ -2425,5 +2760,8 @@
     buildStandardRoleReferenceViewModel,
     buildWorkFunctionMaintenanceViewModel,
     buildEnvironmentWorkspaceViewModel,
+    capabilityWorkbenchViewModel: buildCapabilityWorkbenchViewModel,
+    environmentWorkbenchViewModel: buildEnvironmentWorkbenchViewModel,
+    lifecycleWorkbenchViewModel: buildLifecycleWorkbenchViewModel,
   };
 })();

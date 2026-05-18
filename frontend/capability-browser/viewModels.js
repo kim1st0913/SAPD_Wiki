@@ -572,6 +572,57 @@
     }));
   }
 
+  function buildLocalProcessTreeFromManagementRows(managementRows) {
+    const groups = new Map();
+    for (const row of list(managementRows)) {
+      const activities = list(row.activities).map((activity) => ({
+        id: activity.id || activity.code || activity.title || "activity",
+        name: activity.title || activity.name || "待补充",
+        status: activity.status || "normal",
+      }));
+      const l4Activities = activities.length
+        ? activities
+        : row.hasMissingActivity
+        ? [{ id: `${row.id || "management"}:missing-activity`, name: "待补充", status: "missing" }]
+        : [];
+      const processReferences = list(row.processReferences);
+      const processGroups = list(row.processGroups);
+      const l2Rows = processGroups.length ? processGroups : [{ id: `${row.id || "management"}:pending-l2`, title: "待补充" }];
+      for (const processGroup of l2Rows) {
+        const groupKey = processGroup.id || processGroup.code || processGroup.title || "pending-l2";
+        const l2 =
+          groups.get(groupKey) || {
+            id: groupKey,
+            l2ProcessGroup: processGroup.title || processGroup.name || "待补充",
+            l3Processes: [],
+          };
+        if (processReferences.length) {
+          processReferences.forEach((process) => {
+            l2.l3Processes.push({
+              id: process.id || process.code || process.title || `${groupKey}:pending-l3`,
+              name: process.title || process.name || "待补充",
+              activities: l4Activities,
+            });
+          });
+        } else {
+          l2.l3Processes.push({
+            id: `${groupKey}:pending-l3`,
+            name: "待补充",
+            activities: l4Activities,
+          });
+        }
+        groups.set(groupKey, l2);
+      }
+    }
+    return [...groups.values()].map((group) => ({
+      ...group,
+      l3Processes: uniqueBy(group.l3Processes, (process) => process.id || process.name).map((process) => ({
+        ...process,
+        activities: uniqueBy(process.activities, (activity) => activity.id || activity.name),
+      })),
+    }));
+  }
+
   function buildLocalActivities(managementRows) {
     const activities = uniqueBy(
       list(managementRows).flatMap((row) => list(row.activities)),
@@ -697,7 +748,7 @@
         workFunctions,
         workFunctionsByLayer: buildWorkFunctionsByLayer(workFunctions),
         processes: buildLocalProcesses(detailRawProcesses),
-        processTree: buildLocalProcessTree(detailRawProcesses),
+        processTree: detailRawProcesses.length ? buildLocalProcessTree(detailRawProcesses) : buildLocalProcessTreeFromManagementRows(detailManagementRows),
         activities: buildLocalActivities(detailManagementRows.length ? detailManagementRows : [firstManagementRow]),
       },
       sourceEvidence: detailSourceEvidence,
@@ -742,6 +793,9 @@
       name: item.name || "",
       description: item.description || "",
       category: item.category || "",
+      layer: item.layer || "",
+      layerLabel: item.layerLabel || "",
+      group: item.group || "",
       status: item.status || "",
       ...extra,
     };
@@ -885,15 +939,17 @@
     const detailSourceEvidence = sourceEvidenceFor(detailRaw, detailRawProcesses, detailSourceItems);
     const projectedFocusId = isFocus ? selectedDetail.id : selectedFocusRow?.focus?.id || null;
     const projectedLocalRelationMap = projectedLocalRelationMapFor(capabilityProjection, projectedFocusId);
+    const usingWorkbenchMappingRows = Boolean(workbenchTechnicalRows.length || workbenchManagementRows.length);
     const localRelationMap =
-      projectedLocalRelationMap ||
-      buildCapabilityLocalRelationMap({
-        selectedDetail,
-        detailRawProcesses,
-        detailTechnicalRows,
-        detailManagementRows,
-        detailSourceEvidence,
-      });
+      !usingWorkbenchMappingRows && projectedLocalRelationMap
+        ? projectedLocalRelationMap
+        : buildCapabilityLocalRelationMap({
+            selectedDetail,
+            detailRawProcesses,
+            detailTechnicalRows,
+            detailManagementRows,
+            detailSourceEvidence,
+          });
 
     return {
       navigationTree,
@@ -911,7 +967,7 @@
       technicalMappingRows,
       managementMappingRows,
       localRelationMap,
-      localRelationMapSource: workbenchTechnicalRows.length || workbenchManagementRows.length ? "capability_workbench" : projectedLocalRelationMap ? "backend_projection" : "viewmodel_fallback",
+      localRelationMapSource: usingWorkbenchMappingRows ? "capability_workbench" : projectedLocalRelationMap ? "backend_projection" : "viewmodel_fallback",
       localRelationshipNotes: buildLocalRelationshipNotes(chainFocus, technicalMappingRows, managementMappingRows),
       relationshipMatrixRows: rows,
       relationshipChainRows: buildRelationshipChainRows(chainFocus),

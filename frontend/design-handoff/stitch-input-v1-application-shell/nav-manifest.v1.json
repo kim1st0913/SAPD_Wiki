@@ -1,0 +1,250 @@
+{
+  "version": "v1",
+  "appName": "SAPD Wiki",
+  "description": "SAPD Wiki frontend navigation and page type manifest for Stitch design handoff and Codex implementation planning.",
+  "navigation": [
+    {
+      "id": "global-navigation",
+      "label": "全局导航",
+      "route": "/",
+      "type": "application-shell",
+      "priority": "P0",
+      "children": []
+    },
+    {
+      "id": "guides",
+      "label": "安全指南",
+      "route": "/guides",
+      "type": "document-hub",
+      "priority": "P2",
+      "children": [
+        {
+          "id": "security-architecture-design",
+          "label": "安全技术架构设计方法",
+          "route": "/guides/security-architecture-design",
+          "type": "document-page",
+          "priority": "P2",
+          "children": []
+        },
+        {
+          "id": "data-security-design",
+          "label": "数据安全设计方法",
+          "route": "/guides/data-security-design",
+          "type": "document-page",
+          "priority": "P2",
+          "children": []
+        },
+        {
+          "id": "security-governance-model",
+          "label": "安全管控模式设计方法",
+          "route": "/guides/security-governance-model",
+          "type": "document-page",
+          "priority": "P2",
+          "children": []
+        },
+        {
+          "id": "maturity-model-usage",
+          "label": "成熟度模型使用方法",
+          "route": "/guides/maturity-model-usage",
+          "type": "document-page",
+          "priority": "P2",
+          "children": []
+        },
+        {
+          "id": "other-guides",
+          "label": "其他指南",
+          "route": "/guides/others",
+          "type": "placeholder-page",
+          "priority": "P3",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "capability-mapping",
+      "label": "安全能力映射",
+      "route": "/capability-mapping",
+      "type": "capability-mapping-workbench",
+      "priority": "P1",
+      "children": []
+    },
+    {
+      "id": "environment-mapping",
+      "label": "信息化环境安全能力映射",
+      "route": "/environment-mapping",
+      "type": "environment-mapping-workbench",
+      "priority": "P1",
+      "children": []
+    },
+    {
+      "id": "development-security",
+      "label": "开发安全",
+      "route": "/development-security",
+      "type": "domain-module",
+      "priority": "P3",
+      "children": []
+    },
+    {
+      "id": "data-security",
+      "label": "数据安全",
+      "route": "/data-security",
+      "type": "domain-module",
+      "priority": "P3",
+      "children": []
+    },
+    {
+      "id": "sapd-maturity-assessment",
+      "label": "SAPD成熟度评估",
+      "route": "/sapd-maturity-assessment",
+      "type": "domain-module",
+      "priority": "P2",
+      "children": []
+    },
+    {
+      "id": "knowledge",
+      "label": "安全知识",
+      "route": "/knowledge",
+      "type": "knowledge-directory",
+      "priority": "P2",
+      "children": [
+        {
+          "id": "security-scopes",
+          "label": "安全能力作用域目录",
+          "route": "/knowledge/scopes",
+          "type": "knowledge-directory",
+          "priority": "P2",
+          "children": []
+        },
+        {
+          "id": "technical-modules",
+          "label": "安全技术模块 / 安全技术措施目录",
+          "route": "/knowledge/technical-modules",
+          "type": "knowledge-directory",
+          "priority": "P2",
+          "children": []
+        },
+        {
+          "id": "work-items",
+          "label": "安全工作清单目录",
+          "route": "/knowledge/work-items",
+          "type": "knowledge-directory",
+          "priority": "P2",
+          "children": []
+        },
+        {
+          "id": "processes",
+          "label": "安全职能流程目录",
+          "route": "/knowledge/processes",
+          "type": "knowledge-directory",
+          "priority": "P2",
+          "children": []
+        },
+        {
+          "id": "functions",
+          "label": "安全工作职能目录",
+          "route": "/knowledge/functions",
+          "type": "knowledge-directory",
+          "priority": "P2",
+          "children": []
+        },
+        {
+          "id": "role-references",
+          "label": "岗位 / 职能参考目录",
+          "route": "/knowledge/role-references",
+          "type": "knowledge-directory",
+          "priority": "P2",
+          "children": []
+        },
+        {
+          "id": "hype-cycle",
+          "label": "Hype Cycle",
+          "route": "/knowledge/hype-cycle",
+          "type": "knowledge-directory",
+          "priority": "P3",
+          "children": []
+        },
+        {
+          "id": "other-knowledge",
+          "label": "其他知识目录",
+          "route": "/knowledge/others",
+          "type": "placeholder-page",
+          "priority": "P3",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "standards",
+      "label": "安全标准 / 框架",
+      "route": "/standards",
+      "type": "standard-framework-directory",
+      "priority": "P2",
+      "children": [
+        {
+          "id": "mlps-level-3",
+          "label": "等级保护三级",
+          "route": "/standards/mlps-level-3",
+          "type": "standard-framework-page",
+          "priority": "P2",
+          "children": []
+        },
+        {
+          "id": "nist-csf-2",
+          "label": "NIST CSF 2.0",
+          "route": "/standards/nist-csf-2",
+          "type": "standard-framework-page",
+          "priority": "P2",
+          "children": []
+        },
+        {
+          "id": "iso-27001-2022",
+          "label": "ISO/IEC 27001:2022",
+          "route": "/standards/iso-27001-2022",
+          "type": "standard-framework-page",
+          "priority": "P2",
+          "children": []
+        },
+        {
+          "id": "dsp-level-2",
+          "label": "DSP 2级策略清单",
+          "route": "/standards/dsp-level-2",
+          "type": "standard-framework-page",
+          "priority": "P2",
+          "children": []
+        },
+        {
+          "id": "cis-csc-v8",
+          "label": "CIS CSC v8",
+          "route": "/standards/cis-csc-v8",
+          "type": "standard-framework-page",
+          "priority": "P2",
+          "children": []
+        },
+        {
+          "id": "crf",
+          "label": "CRF",
+          "route": "/standards/crf",
+          "type": "standard-framework-page",
+          "priority": "P2",
+          "children": []
+        },
+        {
+          "id": "nist-800-53-rev5",
+          "label": "NIST SP 800-53 Rev.5",
+          "route": "/standards/nist-800-53-rev5",
+          "type": "standard-framework-page",
+          "priority": "P2",
+          "children": []
+        },
+        {
+          "id": "other-standards",
+          "label": "其他标准 / 框架",
+          "route": "/standards/others",
+          "type": "placeholder-page",
+          "priority": "P3",
+          "children": []
+        }
+      ]
+    }
+  ]
+}

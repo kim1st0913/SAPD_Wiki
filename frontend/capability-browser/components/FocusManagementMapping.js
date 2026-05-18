@@ -1,6 +1,12 @@
 (function () {
   const components = (window.sapdComponents = window.sapdComponents || {});
   const utils = components.utils;
+  const LAYERS = [
+    { key: "decision", label: "决策层", aliases: ["decision", "决策层"] },
+    { key: "management", label: "管理层", aliases: ["management", "管理层"] },
+    { key: "execution", label: "执行层", aliases: ["execution", "执行层"] },
+    { key: "supervision", label: "监督层", aliases: ["supervision", "监督层"] },
+  ];
 
   function chipList(items, empty = "暂无", limit = 4) {
     const rows = utils.list(items).filter(Boolean);
@@ -10,20 +16,40 @@
     return `${visible.map((item) => `<span class="relation-chip">${utils.escapeHtml(utils.titleOf(item))}</span>`).join("")}${more > 0 ? `<span class="relation-chip muted">+${more}</span>` : ""}`;
   }
 
+  function layerKeyOf(stakeholder) {
+    const layer = utils.text(stakeholder?.layer || "").trim();
+    return LAYERS.find((item) => item.aliases.includes(layer))?.key || "";
+  }
+
+  function functionChips(stakeholders) {
+    return stakeholders
+      .slice(0, 3)
+      .map((stakeholder) => `<span>${utils.escapeHtml(utils.titleOf(stakeholder, "未命名职能"))}</span>`)
+      .join("");
+  }
+
   function functionList(stakeholders) {
     const rows = utils.list(stakeholders).filter(Boolean);
-    if (!rows.length) return `<span class="empty-inline">暂无安全职能</span>`;
-    return rows
-      .slice(0, 5)
-      .map(
-        (stakeholder) => `
-          <span class="function-chip">
-            ${utils.escapeHtml(utils.titleOf(stakeholder, "未命名职能"))}
-            ${stakeholder.layer ? `<small>${utils.escapeHtml(stakeholder.layer)}</small>` : ""}
-          </span>
-        `,
-      )
-      .join("");
+    const buckets = Object.fromEntries(LAYERS.map((layer) => [layer.key, []]));
+    const unknown = [];
+    rows.forEach((stakeholder) => {
+      const key = layerKeyOf(stakeholder);
+      if (key) buckets[key].push(stakeholder);
+      else unknown.push(stakeholder);
+    });
+    return `
+      <div class="function-layer-buckets">
+        ${LAYERS.map(
+          (layer) => `
+            <span class="function-layer-bucket ${buckets[layer.key].length ? "" : "is-empty"}">
+              <small>${utils.escapeHtml(layer.label)}</small>
+              <em>${buckets[layer.key].length ? functionChips(buckets[layer.key]) : "暂无"}</em>
+            </span>
+          `,
+        ).join("")}
+        ${unknown.length ? `<span class="function-layer-bucket is-unknown"><small>待归类</small><em>${functionChips(unknown)}</em></span>` : ""}
+      </div>
+    `;
   }
 
   function activityList(row) {

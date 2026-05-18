@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-- Status: `frontend_baseline_1_gap_check_and_alignment`
+- Status: `security_capability_workbench_radial_star_network_refined`
 - Started: 2026-05-09
 - 当前主线：已导入 Sheet 的业务含义复核 + 前端关系展示校正
 - 快速状态入口：`CURRENT_STATE.md`
@@ -53,10 +53,14 @@ Frontend Baseline 1.0 当前关系工作台实现重点仍覆盖三页：
 
 | 编号 | 任务 | 当前状态 | 目标产出 | 依赖 |
 |---|---|---|---|---|
-| FE-0 | 安全能力映射页关系画布收敛 | 进行中 | 将当前补丁整理为可验收的一屏关系画布，明确与预览图仍不一致的限制 | 已有能力页投影、用户确认的预览图 |
+| FE-0 | 安全能力映射页关系画布收敛 | 已完成（F3-GRAPH-P2） | 已恢复预览页式结构，以 `本地关联摘要 / 技术视角 / 管理视角 / 标准框架` 四个同级 Tabs 承载工作台；右侧栏已删除；技术 / 管理 Tab 已恢复原 `FocusScopeServiceMatrix` / `FocusManagementMapping` 矩阵组件；已诊断并修复管理职能层级展示投影丢失问题；默认本地关联摘要已升级为原生 SVG 网络图，并进一步收敛为以当前能力-关注点为唯一中心锚点的径向星形关系图：`技术视角`、`管理视角`、`标准 / 框架映射` 三个一级分支星形分散，管理视角下按 `安全职能 / 安全工作 / 流程` 展开，安全职能展示四类层级，流程按 L2/L3/L4 真实数据展开 | 已有能力页投影、用户确认的预览图、`security-capability-workbench-visual-spec-v1.md` |
 | FE-IA | 全站菜单与页面类型定义 | 已完成 | 固化全站菜单、页面类型、导航 Manifest、Stitch 交接说明、全局导航 Stitch Prompt、设计输出目录和 implementation specs 目录 | `docs/00-overview/frontend-menu-and-page-type-definition-v1.md`, `frontend/design-handoff/README.md` |
+| FE-AS | Application Shell 集成实现 | 已完成 | 已接入 Manifest 导航、顶部栏、页面标题区、面包屑、通用 WorkbenchLayout / RightInsightPanel 骨架，并保持现有页面可用 | `frontend/design-handoff/implementation-specs/application-shell-implementation-spec-v1.md`, `frontend/design-handoff/navigation/nav-manifest.v1.json` |
+| FE-AS-V | Application Shell 视觉对齐 | 已完成 | 已按 Stitch 输出对齐蓝灰低阴影工作台风格，移除重复品牌，降低顶部状态区和安全能力映射页视觉噪声，并生成 1440px / 1920px 截图 | F2-P1.5 应用壳集成、`application-shell-v1.png` |
+| FE-CAP-SPEC | 安全能力映射工作台视觉实现规格 | 已完成 | 已新增视觉实现规格，明确拒绝验收原因、三视角关系图、右侧关联洞察区和响应式验收标准 | `frontend/design-handoff/implementation-specs/security-capability-workbench-visual-spec-v1.md` |
+| FE-CAP-W | 安全能力映射工作台专项实现 | 已完成（F3-GRAPH-P2） | F3-P1R 与 F3-IMPL-P1 均已被用户拒绝；R2 恢复预览页结构，R3/R4 完成矩阵语义校正与 Tab IA，R5 删除右侧栏；RECOVERY 恢复原技术 / 管理矩阵组件到对应 Tabs；F3-DIAG 修复四类职能层级投影；P2/P3/P4 将默认摘要收敛为同源图式总览；GRAPH-P1-V2 新增原生 SVG `LocalRelationNetworkGraph` 和 `relationGraphModel`；GRAPH-P2 将其改为径向星形网络图，确保能力-关注点为唯一中心锚点、三视角星形分散、无数据业务节点不显示，技术 / 管理 Tabs 继续保留表格式明细 | `CapabilityLocalRelationMap.js`, `LocalRelationNetworkGraph.js`, `relationGraphModel.js`, `FocusScopeServiceMatrix.js`, `FocusManagementMapping.js`, `viewModels.js`, `app.js` |
 | FE-1 | 关系画布设计基线固化 | 待启动 | 抽象 `LocalRelationCanvas` / `RelationNode` / `RelationLane` / `FoldedDetail` 等可复用模式，不急于跨页抽组件文件 | FE-0 验收结果、FE-IA |
-| FE-2 | 安全能力映射页前端验收清单 | 待启动 | 固化能力页验收项：左侧关注点、技术路径、管理路径、矩阵折叠、来源折叠、字段边界、无控制台错误 | FE-0 |
+| FE-2 | 安全能力映射页前端验收清单 | 待启动 | 固化能力页验收项：左侧关注点、技术视角、管理视角、矩阵折叠、来源折叠、字段边界、无控制台错误 | FE-0 |
 | FE-3 | 信息化环境维度页设计 | 待启动 | 形成环境页局部关系画布：环境 / 对象 -> 作用域 -> 服务 -> 模块 / 系统 / 产品，并保留明细表 | BE-2 |
 | FE-4 | LC-AP 开发安全生命周期页设计 | 待启动 | 形成生命周期页局部关系画布：阶段 -> 活动 -> 策略 -> 服务 -> 模块 / 措施 / 组件 | BE-3 |
 | FE-M | SAPD 成熟度评估页面设计 | 待启动（另开会话） | 形成评分填报、结果摘要和报告导出页面，不复用关系画布作为主界面 | maturity 专用数据契约 |

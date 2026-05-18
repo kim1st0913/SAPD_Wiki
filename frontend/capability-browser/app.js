@@ -11,6 +11,7 @@ const state = {
   lifecycleWorkbenchViewModel: null,
   content: null,
   activeView: "overview",
+  activeRoute: "/",
   capabilityCatalogCollapsed: false,
   activeMaintenancePage: "scopes",
   activeReferenceTab: "gbt",
@@ -239,53 +240,45 @@ function renderOverview() {
 
 function mountAppShellComponents() {
   const components = window.sapdComponents || {};
+  components.AppShell?.mountApplicationShell?.({ activeRoute: state.activeRoute });
   components.AppShell?.mountCapabilityWorkspace($("capabilityWorkspace"));
   if ($("localModeStatus")) setHtml("localModeStatus", components.AppShell?.renderLocalModeStatus?.() || '<span class="type-pill">本地模式</span>');
 }
 
-function renderLocalRelationshipNotes(notes) {
-  const rows = list(notes);
-  if (!rows.length) return emptyState("暂无局部关系说明");
-  return `
-    <section class="local-relationship-notes">
-      <div class="matrix-section-head">
-        <div>
-          <h3>当前关注点局部关系说明</h3>
-          <p>仅说明当前对象的局部关系，不作为单线性链路展示</p>
-        </div>
-      </div>
-      <div class="local-note-list">
-        ${rows.map((note) => `<div class="local-note"><strong>${escapeHtml(note.title)}</strong><span>${escapeHtml(note.body)}</span></div>`).join("")}
-      </div>
-    </section>
-  `;
+function applyRouteTarget(target = {}) {
+  if (target.maintenancePage) {
+    state.activeMaintenancePage = target.maintenancePage;
+    state.selectedMaintenanceId = null;
+  }
+  if (target.referenceTab) state.activeReferenceTab = target.referenceTab;
+  if (target.contentPage) {
+    state.activeContentPage = target.contentPage;
+    state.selectedContentId = null;
+  }
 }
 
-function renderMappingDetailDrawer(viewModel) {
+function activateRoute(route) {
   const components = window.sapdComponents || {};
-  return `
-    <details class="mapping-detail-drawer">
-      <summary>
-        <span>映射矩阵明细（折叠查看）</span>
-        <strong>技术 ${list(viewModel.technicalMappingRows).length} / 管理 ${list(viewModel.managementMappingRows).length}</strong>
-      </summary>
-      <div class="parallel-mapping-grid">
-        ${components.FocusScopeServiceMatrix?.render({ rows: viewModel.technicalMappingRows }) || emptyState("技术映射组件未加载")}
-        ${components.FocusManagementMapping?.render({ rows: viewModel.managementMappingRows }) || emptyState("管理映射组件未加载")}
-      </div>
-    </details>
-  `;
+  const target = components.AppShell?.getRouteTarget?.(route) || { route: "/", view: "overview" };
+  state.activeRoute = target.route || "/";
+  applyRouteTarget(target);
+  setActiveView(target.view || "overview");
 }
 
-function renderSourceEvidenceDrawer(sourceEvidence) {
+function routeForCurrentState(view = state.activeView) {
   const components = window.sapdComponents || {};
-  const count = list(sourceEvidence).length;
-  return `
-    <details class="capability-evidence-drawer">
-      <summary>查看来源证据（${count}）</summary>
-      ${components.SourceEvidencePanel ? components.SourceEvidencePanel.render(sourceEvidence) : ""}
-    </details>
-  `;
+  return (
+    components.AppShell?.routeForView?.({
+      view,
+      activeMaintenancePage: state.activeMaintenancePage,
+      activeContentPage: state.activeContentPage,
+    }) || "/"
+  );
+}
+
+function updateApplicationShellChrome() {
+  const components = window.sapdComponents || {};
+  components.AppShell?.updateApplicationShell?.({ activeRoute: state.activeRoute, activeView: state.activeView });
 }
 
 function applyCapabilityCatalogState() {
@@ -358,10 +351,14 @@ function renderCapabilities() {
   setHtml(
     "detail",
     `
-      ${components.FocusOverview?.render({ focusOverview: viewModel.focusOverview }) || emptyState("关注点概览组件未加载")}
-      ${components.CapabilityLocalRelationMap?.render({ localRelationMap: viewModel.localRelationMap }) || emptyState("局部关系图组件未加载")}
-      ${renderMappingDetailDrawer(viewModel)}
-      ${renderLocalRelationshipNotes(viewModel.localRelationshipNotes)}
+      ${
+        components.CapabilityLocalRelationMap?.render({
+          localRelationMap: viewModel.localRelationMap,
+          focusOverview: viewModel.focusOverview,
+          technicalMappingRows: viewModel.technicalMappingRows,
+          managementMappingRows: viewModel.managementMappingRows,
+        }) || emptyState("局部关系图组件未加载")
+      }
     `,
   );
   applyCapabilityCatalogState();
@@ -750,6 +747,7 @@ function setActiveView(view) {
   renderActiveView();
   setupResizableWorkspaces();
   if (view === "capabilities") applyCapabilityCatalogState();
+  updateApplicationShellChrome();
 }
 
 function bindEvents() {
@@ -757,7 +755,19 @@ function bindEvents() {
     const label = button.querySelector("span:not(.nav-symbol)")?.textContent || button.textContent.trim();
     button.title = label;
   });
-  document.querySelectorAll(".module-tab").forEach((button) => button.addEventListener("click", () => setActiveView(button.dataset.view)));
+  document.addEventListener("click", (event) => {
+    const routeButton = event.target.closest("[data-app-route]");
+    if (!routeButton) return;
+    event.preventDefault();
+    activateRoute(routeButton.dataset.appRoute);
+  });
+  document.querySelectorAll(".module-tab").forEach((button) => {
+    if (!button.dataset.view || button.dataset.appRoute) return;
+    button.addEventListener("click", () => {
+      state.activeRoute = routeForCurrentState(button.dataset.view);
+      setActiveView(button.dataset.view);
+    });
+  });
   $("searchInput")?.addEventListener("input", (event) => {
     state.search = event.target.value.trim();
     if ($("capabilitySearchInput")) $("capabilitySearchInput").value = event.target.value;
@@ -834,9 +844,11 @@ function bindEvents() {
     const button = event.target.closest("[data-source-page]");
     if (!button) return;
     state.activeMaintenancePage = button.dataset.sourcePage;
+    state.activeRoute = routeForCurrentState("maintenance");
     if (state.activeMaintenancePage === "references" && !state.activeReferenceTab) state.activeReferenceTab = "gbt";
     state.selectedMaintenanceId = null;
     renderMaintenance();
+    updateApplicationShellChrome();
   });
   $("sourceList")?.addEventListener("click", (event) => {
     const tab = event.target.closest("[data-reference-tab]");
@@ -879,9 +891,11 @@ function bindEvents() {
   document.querySelectorAll("[data-content-page]").forEach((button) =>
     button.addEventListener("click", () => {
       state.activeContentPage = button.dataset.contentPage;
+      state.activeRoute = routeForCurrentState("content");
       state.selectedContentId = null;
       document.querySelectorAll("[data-content-page]").forEach((item) => item.classList.toggle("active", item === button));
       renderContent();
+      updateApplicationShellChrome();
     }),
   );
 }
@@ -889,7 +903,9 @@ function bindEvents() {
 async function init() {
   const dataClient = window.sapdDataClient;
   if (!dataClient) throw new Error("SAPD Wiki dataClient 未加载");
-  await loadScriptOnce("./components/CapabilityLocalRelationMap.js", () => Boolean(window.sapdComponents?.CapabilityLocalRelationMap));
+  await loadScriptOnce("./models/relationGraphModel.js?v=f3-graph-p1-v2-network", () => Boolean(window.sapdModels?.buildLocalRelationGraphModel));
+  await loadScriptOnce("./components/LocalRelationNetworkGraph.js?v=f3-graph-p1-v2-network", () => Boolean(window.sapdComponents?.LocalRelationNetworkGraph));
+  await loadScriptOnce("./components/CapabilityLocalRelationMap.js?v=f3-graph-p1-v2-network", () => Boolean(window.sapdComponents?.CapabilityLocalRelationMap));
   const [capability, capabilityWorkbench, environmentWorkbench, lifecycleWorkbench, capabilityProjection, management, lifecycle, content] = await Promise.all([
     dataClient.getCapabilityTree(),
     dataClient.getCapabilityWorkbench?.() || Promise.resolve({ data: null }),
@@ -910,7 +926,7 @@ async function init() {
   state.content = content.data;
   mountAppShellComponents();
   bindEvents();
-  setActiveView("overview");
+  activateRoute("/");
 }
 
 init();

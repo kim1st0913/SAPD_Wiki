@@ -24,6 +24,7 @@
 | 前端数据契约治理 | 当前有必要进行数据治理；Frontend Baseline 1.0 建议修正为“P1 双核心工作台 + LC-AP 受控专项关系投影”；先治理 export / 页面数据包，再统一前端组件 | `docs/04-user-guide/frontend-data-contract-baseline-1.0.md` |
 | 三份 workbench 规格 | `capability-workbench.json`、`environment-workbench.json`、`lifecycle-workbench.json` 三份规格已齐；最终目标数据文件清单冻结为 P0 四件套 + P1 三件套，旧 `management-knowledge.json` / `lifecycle-knowledge.json` 仅作过渡兼容 | `docs/04-user-guide/capability-workbench-json-spec-v1.md`, `docs/04-user-guide/environment-workbench-json-spec-v1.md`, `docs/04-user-guide/lifecycle-workbench-json-spec-v1.md` |
 | 三份 workbench 数据出口 | `capability-workbench.json`、`environment-workbench.json`、`lifecycle-workbench.json` 已能由 CLI 生成；`dataClient` / ViewModel 已提供稳定读取入口；旧 JSON 保留为过渡兼容，不作为新 UI 主输入 | `src/sapd_wiki/exports.py`, `src/sapd_wiki/cli.py`, `frontend/capability-browser/dataClient.js`, `frontend/capability-browser/viewModels.js` |
+| BE-4 数据质量首轮审计 | 三份 workbench 顶层结构、关系端点、孤立对象和主展示字段边界均通过静态检查；`CI/CD流水线` 拆词异常已在 BE-4.2 修复；当前主要剩余缺口为能力页标准映射为空、LC-AP 措施未进入 lifecycle workbench | `docs/06-implementation/be-4-workbench-data-quality-gap-list.md`, `docs/06-implementation/open-issues.md` |
 
 ## 当前重要风险
 
@@ -38,6 +39,7 @@
 | 前端画布反复试错导致结构漂移 | 安全能力映射页先作为基准页收敛验收标准；未确认前不复制到环境页和 LC-AP 页 |
 | 已规划接口与已实现接口不一致 | `api-field-contract.md` 中部分 `/api/v1/environments/*`、`/api/v1/lifecycle/*`、`/api/v1/maintenance/technical-measures` 等接口尚未在 `api_server.py` 中实现；后续实现前需明确“规划接口”和“实际接口” |
 | 前端 JSON 职责混杂 | `capability-tree.json`、`management-knowledge.json`、`lifecycle-knowledge.json` 当前承担多个页面视角；后续应按页面类型拆成稳定工作台数据包，避免前端直接适配混乱 JSON |
+| workbench 投影仍有业务缺口 | BE-4 已确认 `capability-workbench.json` 缺标准 / 框架映射，`lifecycle-workbench.json` 缺措施投影；`CI/CD流水线` 拆词异常已修复并关闭 `OI-050` |
 
 ## 历史入口
 

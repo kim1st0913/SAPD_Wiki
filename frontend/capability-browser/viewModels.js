@@ -1773,12 +1773,16 @@
     };
   }
 
-  function maintenanceNavigationItems(management, section, capabilityTree, lifecycle) {
+  function maintenanceNavigationItems(management, section, capabilityTree, lifecycle, standards) {
     const processCount = list(management?.security_processes).flatMap((domain) => list(domain.groups).flatMap((group) => list(group.references))).length;
     const workFunctionCount = list(management?.work_function_layers).flatMap((layer) => list(layer.groups).flatMap((group) => list(group.functions))).length;
     const referenceCount = list(management?.gbt_42446_references).length + list(management?.gartner_roles).length;
     const appSecurity = lifecycle?.application_security_development || {};
     const lcapReferenceCount = list(appSecurity.software_development_types).length + list(appSecurity.application_system_types).length;
+    const standardCount = list(standards?.frameworks).reduce(
+      (sum, framework) => sum + list(framework.rows).length + list(framework.tabs).reduce((tabSum, table) => tabSum + list(table.rows).length, 0),
+      0,
+    );
     const securityWorkCount = list(capabilityTree?.categories).flatMap((category) =>
       list(category.domains).flatMap((domain) => list(domain.capabilities).flatMap((capability) => list(capability.focuses).flatMap((focus) => list(focus.security_works)))),
     ).length;
@@ -1791,7 +1795,67 @@
       { id: "measures", label: "安全技术措施清单", count: list(management?.security_technical_measures).length, implemented: true },
       { id: "lcap-references", label: "LC-AP参考数据", count: lcapReferenceCount, implemented: true },
       { id: "references", label: "岗位参考页面", count: referenceCount, implemented: true },
+      { id: "standards", label: "标准/框架清单", count: standardCount, implemented: true },
     ].map((item) => ({ ...item, active: item.id === section }));
+  }
+
+  function buildStandardFrameworkViewModel({ standards, search, standardFrameworkId = "mlps-level-3" }) {
+    const query = normalizeSearch(search);
+    const frameworks = list(standards?.frameworks);
+    const activeFramework = frameworks.find((framework) => framework.id === standardFrameworkId) || frameworks[0] || null;
+    const frameworkTables = list(activeFramework?.tabs).length
+      ? list(activeFramework.tabs)
+      : [
+          {
+            id: activeFramework?.id || "standard",
+            title: activeFramework?.title || "标准/框架",
+            columns: list(activeFramework?.columns),
+            rows: list(activeFramework?.rows),
+          },
+        ];
+    const tableModels = frameworkTables.map((table, tableIndex) => {
+      const columns = list(table.columns);
+      const rows = list(table.rows)
+        .map((row, index) => ({
+          id: row.id || `${activeFramework?.id || "standard"}:${table.id || tableIndex}:${index}`,
+          frameworkId: activeFramework?.id || "",
+          tableId: table.id || `${tableIndex}`,
+          values: row,
+        }))
+        .filter((row) => !query || columns.some((column) => includesSearch(query, row.values[column])));
+      return {
+        id: table.id || `${tableIndex}`,
+        title: table.title || activeFramework?.title || "标准/框架",
+        columns,
+        rows,
+        totalRows: list(table.rows).length,
+      };
+    });
+    const activeTable = tableModels[0] || { columns: [], rows: [] };
+    const rows = tableModels.flatMap((table) => table.rows);
+    const columns = activeTable.columns;
+    const totalFrameworkRows = (framework) => list(framework?.rows).length + list(framework?.tabs).reduce((sum, table) => sum + list(table.rows).length, 0);
+    return {
+      rows,
+      columns,
+      tables: tableModels,
+      frameworkTabs: frameworks.map((framework) => ({
+        id: framework.id,
+        title: framework.title,
+        count: totalFrameworkRows(framework),
+      })),
+      activeFrameworkId: activeFramework?.id || "",
+      activeFrameworkTitle: activeFramework?.title || "",
+      summaryBadges: list(activeFramework?.summaryBadges),
+      summaryNote: activeFramework?.summaryNote || "",
+      summary: {
+        frameworks: frameworks.length,
+        rows: rows.length,
+        totalRows: frameworks.reduce((sum, framework) => sum + totalFrameworkRows(framework), 0),
+      },
+      dataState: standards?.data_state || "",
+      emptyState: rows.length ? "" : "暂无标准框架数据，请先执行标准框架 JSON 投影。",
+    };
   }
 
   function buildMaintenanceDetailPanel(row, section, sourceEvidence = []) {
@@ -1918,6 +1982,26 @@
         sourceEvidence,
       };
     }
+    if (section === "standards") {
+      const values = row.values || {};
+      const columns = Object.keys(values).filter((key) => key !== "id");
+      return {
+        type: "标准控制项",
+        code: values["保护措施编号"] || "",
+        title: values["名称"] || values["等保三级控制要求"] || "标准控制项",
+        description: values["描述"] || values["等保三级控制要求"] || "",
+        facts: columns
+          .filter((column) => column !== "描述" && column !== "等保三级控制要求")
+          .map((column) => ({ label: column, value: values[column] || "待处理" })),
+        sections: [
+          {
+            title: values["描述"] ? "描述" : "等保三级控制要求",
+            items: [values["描述"] || values["等保三级控制要求"] || ""].filter(Boolean),
+          },
+        ],
+        sourceEvidence,
+      };
+    }
     if (section === "lcap-references") {
       return {
         type: row.type,
@@ -1992,10 +2076,11 @@
     return [];
   }
 
-  function buildMaintenanceWorkspaceViewModel({ capabilityTree, management, lifecycle, section = "scopes", selectedId, search, referenceTab = "gbt" }) {
-    const normalizedSection = ["scopes", "processes", "work-functions", "security-works", "modules", "measures", "lcap-references", "references"].includes(section) ? section : "scopes";
+  function buildMaintenanceWorkspaceViewModel({ capabilityTree, management, maintenance, lifecycle, standards, section = "scopes", selectedId, search, referenceTab = "gbt", standardFrameworkId = "mlps-level-3" }) {
+    const normalizedSection = ["scopes", "processes", "work-functions", "security-works", "modules", "measures", "lcap-references", "references", "standards"].includes(section) ? section : "scopes";
     const normalizedReferenceTab = referenceTab === "gartner" ? "gartner" : "gbt";
-    const navigationItems = maintenanceNavigationItems(management, normalizedSection, capabilityTree, lifecycle);
+    const maintenanceKnowledge = maintenance || management;
+    const navigationItems = maintenanceNavigationItems(maintenanceKnowledge, normalizedSection, capabilityTree, lifecycle, standards);
     const pageMeta = {
       scopes: {
         title: "作用域清单",
@@ -2042,24 +2127,32 @@
         implemented: true,
         notice: "GB/T 映射支持反向查看但不自动作为最终事实；Gartner 候选映射统一显示为“待复核”。",
       },
+      standards: {
+        title: "标准/框架清单",
+        description: "展示已确认入库的等保三级和 CIS CSC V8 控制项；字段保持原始表口径，最后一列预留能力/关注点关联。",
+        implemented: true,
+        notice: "关联安全能力/关注点字段暂为空，等待后续映射处理。",
+      },
     }[normalizedSection];
     const sectionViewModel =
       normalizedSection === "scopes"
-        ? buildScopeMaintenanceViewModel({ management, search })
+        ? buildScopeMaintenanceViewModel({ management: maintenanceKnowledge, search })
         : normalizedSection === "processes"
-          ? buildProcessMaintenanceViewModel({ management, search })
+          ? buildProcessMaintenanceViewModel({ management: maintenanceKnowledge, search })
           : normalizedSection === "work-functions"
-          ? buildWorkFunctionMaintenanceViewModel({ management, search })
+          ? buildWorkFunctionMaintenanceViewModel({ management: maintenanceKnowledge, search })
           : normalizedSection === "security-works"
             ? buildSecurityWorkMaintenanceViewModel({ capabilityTree, search })
             : normalizedSection === "modules"
-              ? buildTechnologyModuleMaintenanceViewModel({ management, search })
+              ? buildTechnologyModuleMaintenanceViewModel({ management: maintenanceKnowledge, search })
               : normalizedSection === "measures"
-                ? buildTechnicalMeasureMaintenanceViewModel({ management, search })
+                ? buildTechnicalMeasureMaintenanceViewModel({ management: maintenanceKnowledge, search })
                 : normalizedSection === "lcap-references"
                   ? buildLifecycleReferenceMaintenanceViewModel({ lifecycle, search })
                 : normalizedSection === "references"
-                  ? buildStandardRoleReferenceViewModel({ management, search })
+                  ? buildStandardRoleReferenceViewModel({ management: maintenanceKnowledge, search })
+                  : normalizedSection === "standards"
+                    ? buildStandardFrameworkViewModel({ standards, search, standardFrameworkId })
                   : { rows: [], summary: {}, emptyState: pageMeta.description };
     const selectableRows =
       normalizedSection === "references" ? (normalizedReferenceTab === "gartner" ? sectionViewModel.roleRows || [] : sectionViewModel.standardRows || []) : sectionViewModel.rows;
@@ -2067,7 +2160,7 @@
     const sourceEvidence =
       selectedRow && sectionViewModel.sourceEvidenceById
         ? list(sectionViewModel.sourceEvidenceById[selectedRow.id])
-        : maintenanceSourceEvidence(management, normalizedSection, selectedRow);
+        : maintenanceSourceEvidence(maintenanceKnowledge, normalizedSection, selectedRow);
     return {
       section: normalizedSection,
       navigationItems,
@@ -2076,6 +2169,13 @@
       rows: sectionViewModel.rows,
       standardRows: sectionViewModel.standardRows || [],
       roleRows: sectionViewModel.roleRows || [],
+      frameworkTabs: sectionViewModel.frameworkTabs || [],
+      activeFrameworkId: sectionViewModel.activeFrameworkId || standardFrameworkId,
+      activeFrameworkTitle: sectionViewModel.activeFrameworkTitle || "",
+      columns: sectionViewModel.columns || [],
+      tables: sectionViewModel.tables || [],
+      summaryBadges: sectionViewModel.summaryBadges || [],
+      summaryNote: sectionViewModel.summaryNote || "",
       softwareRows: sectionViewModel.softwareRows || [],
       applicationRows: sectionViewModel.applicationRows || [],
       referenceTab: normalizedReferenceTab,

@@ -80,9 +80,10 @@ Frontend Baseline 1.0 当前关系工作台实现重点仍覆盖三页：
 | BE-0 | API / 离线数据包契约盘点 | 已完成 | 已形成三页所需字段、关系、状态、来源证据契约清单，确认哪些来自 API，哪些来自 fallback JSON | `docs/01-architecture/api-offline-package-contract-inventory.md` |
 | BE-1 | 安全能力映射页投影补强 | 已完成 | 已输出 `scopeServicePairs`、`serviceModuleMeasureLinks`、`workFunctionsByLayer`、`processTree`，后续前端可直接消费 `localRelationMap` | 现有 `/api/v1/capabilities/workspace-projection` |
 | BE-DG | Frontend Baseline 1.0 前端数据契约治理 | 已完成 | 三份 workbench 规格已齐；三个 P0 workbench JSON 已能生成；`dataClient` / ViewModel 已提供稳定读取入口；契约验收通过 | `docs/04-user-guide/frontend-data-contract-baseline-1.0.md`, `frontend/capability-browser/public/data/*-workbench.json` |
+| BE-DPS-1 | Data Package Split 1.0 专项维护包拆分 | 已完成 | 新增 `maintenance-knowledge.json`，专项知识维护页和 `dataClient` 优先读取该包，`management-knowledge.json` 保留 legacy fallback | `frontend/capability-browser/public/data/maintenance-knowledge.json`, `dataClient.js`, `viewModels.js` |
 | BE-2 | 信息化环境维度页投影 | 已完成（数据包投影） | 已输出 `environment-workbench.json`，承载环境 / 对象 / 作用域 / 服务 / 模块 / 系统 / 产品 / 能力关联 | `frontend/capability-browser/public/data/environment-workbench.json` |
 | BE-3 | LC-AP 生命周期页投影 | 已完成（数据包投影） | 已输出 `lifecycle-workbench.json`，承载阶段 / 活动 / 控制点 / 策略要求 / 服务 / 模块 / 能力关联 | `frontend/capability-browser/public/data/lifecycle-workbench.json` |
-| BE-4 | 数据质量与缺口清单 | 待启动 | 把缺失 L4、缺失模块、缺失措施、待确认职能等统一写入 `open-issues.md` 或 validation 输出 | 三页投影结果 |
+| BE-4 | 数据质量与缺口清单 | 已完成（首轮静态审计，BE-4.2 已修复） | 已新增三份 workbench 数据质量与缺口清单，确认三包顶层结构、关系端点和字段边界正常；`OI-050` 的 `CI/CD流水线` 拆词问题已修复，剩余继续跟踪 `OI-040` LC-AP 措施投影和 `OI-049` 标准映射为空 | `docs/06-implementation/be-4-workbench-data-quality-gap-list.md`, `docs/06-implementation/open-issues.md` |
 | BE-M | SAPD 成熟度评估数据契约 | 待启动（另开会话） | 定义 maturity 评估模板、填报会话、结果投影和报告导出契约 | `docs/08-maturity/` |
 | BE-5 | 导入 / 校验 / 审批链路回补 | 后置 | 将当前 Excel 导入 MVP 进一步整理为 source -> staging -> review -> formal tables 的可维护链路 | 当前导入脚本和 SQLite |
 | BE-6 | 本地 API 与静态包交付整理 | 后置 | 统一 API 优先、静态包 fallback、Tauri 打包前置要求 | BE-1 / BE-2 / BE-3 |

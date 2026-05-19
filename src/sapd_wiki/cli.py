@@ -15,9 +15,11 @@ from .exports import (
     export_items,
     export_lifecycle_workbench,
     export_lifecycle_knowledge,
+    export_maintenance_knowledge,
     export_management_knowledge,
     export_relations,
     export_second_batch_summary,
+    export_standard_frameworks_data,
     latest_approved_import_job_id,
     write_import_result_report,
     write_warning_review,
@@ -27,9 +29,11 @@ from .loader import approve_import
 from .candidates import ParseResult, ValidationMessage
 from .parsers import (
     SECOND_BATCH_SHEETS,
+    STANDARD_FRAMEWORK_SHEETS,
     THIRD_BATCH_SHEETS,
     parse_core_sheets,
     parse_second_batch_sheets,
+    parse_standard_framework_sheets,
     parse_third_batch_sheets,
 )
 from .paths import DEFAULT_DB_PATH, display_path, resolve_project_path
@@ -58,6 +62,7 @@ SHEET_ALIASES = {
     "capability": ["安全能力目录"],
     "second-batch": SECOND_BATCH_SHEETS,
     "third-batch": THIRD_BATCH_SHEETS,
+    "standard-framework": STANDARD_FRAMEWORK_SHEETS,
 }
 
 
@@ -149,9 +154,15 @@ def _parse_selected_excel(excel_path, selected_sheets: list[str]) -> ParseResult
     core_selection = [sheet for sheet in selected_sheets if sheet in CORE_SHEETS]
     second_batch_selection = [sheet for sheet in selected_sheets if sheet in SECOND_BATCH_SHEETS]
     third_batch_selection = [sheet for sheet in selected_sheets if sheet in THIRD_BATCH_SHEETS]
+    standard_framework_selection = [sheet for sheet in selected_sheets if sheet in STANDARD_FRAMEWORK_SHEETS]
     unknown_selection = [
         sheet for sheet in selected_sheets
-        if sheet not in CORE_SHEETS and sheet not in SECOND_BATCH_SHEETS and sheet not in THIRD_BATCH_SHEETS
+        if (
+            sheet not in CORE_SHEETS
+            and sheet not in SECOND_BATCH_SHEETS
+            and sheet not in THIRD_BATCH_SHEETS
+            and sheet not in STANDARD_FRAMEWORK_SHEETS
+        )
     ]
     if core_selection:
         result.extend(parse_core_sheets(excel_path, core_selection))
@@ -159,6 +170,8 @@ def _parse_selected_excel(excel_path, selected_sheets: list[str]) -> ParseResult
         result.extend(parse_second_batch_sheets(excel_path, second_batch_selection))
     if third_batch_selection:
         result.extend(parse_third_batch_sheets(excel_path, third_batch_selection))
+    if standard_framework_selection:
+        result.extend(parse_standard_framework_sheets(excel_path, standard_framework_selection))
     for sheet_name in unknown_selection:
         result.validations.append(
             ValidationMessage("error", sheet_name, None, "暂未实现该 Sheet 的解析器")
@@ -398,6 +411,18 @@ def cmd_export_management_knowledge(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_export_maintenance_knowledge(args: argparse.Namespace) -> int:
+    db_path = resolve_project_path(args.db)
+    run_migrations(db_path)
+    with connect(db_path) as conn:
+        result = export_maintenance_knowledge(conn, output_path=args.output)
+    _print_export_result(result)
+    print("stats:")
+    for key, value in result.get("stats", {}).items():
+        print(f"  - {key}: {value}")
+    return 0
+
+
 def cmd_export_lifecycle_knowledge(args: argparse.Namespace) -> int:
     db_path = resolve_project_path(args.db)
     run_migrations(db_path)
@@ -463,6 +488,18 @@ def cmd_export_frontend_workbenches(args: argparse.Namespace) -> int:
     run_migrations(db_path)
     with connect(db_path) as conn:
         result = export_frontend_workbenches(conn, output_dir=args.output_dir)
+    _print_export_result(result)
+    print("stats:")
+    for key, value in result.get("stats", {}).items():
+        print(f"  - {key}: {value}")
+    return 0
+
+
+def cmd_export_standard_frameworks_data(args: argparse.Namespace) -> int:
+    db_path = resolve_project_path(args.db)
+    run_migrations(db_path)
+    with connect(db_path) as conn:
+        result = export_standard_frameworks_data(conn, output_path=args.output)
     _print_export_result(result)
     print("stats:")
     for key, value in result.get("stats", {}).items():
@@ -619,6 +656,17 @@ def build_parser() -> argparse.ArgumentParser:
     )
     management_knowledge.set_defaults(func=cmd_export_management_knowledge)
 
+    maintenance_knowledge = subparsers.add_parser(
+        "export-maintenance-knowledge",
+        help="Export frontend-ready maintenance knowledge JSON.",
+    )
+    maintenance_knowledge.add_argument(
+        "--output",
+        default="frontend/capability-browser/public/data/maintenance-knowledge.json",
+        help="Output JSON path.",
+    )
+    maintenance_knowledge.set_defaults(func=cmd_export_maintenance_knowledge)
+
     lifecycle_knowledge = subparsers.add_parser(
         "export-lifecycle-knowledge",
         help="Export frontend-ready lifecycle knowledge JSON.",
@@ -684,6 +732,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="Output directory for capability/environment/lifecycle workbench JSON files.",
     )
     frontend_workbenches.set_defaults(func=cmd_export_frontend_workbenches)
+
+    standards_data = subparsers.add_parser(
+        "export-standard-frameworks-data",
+        help="Export frontend-ready standard framework control JSON.",
+    )
+    standards_data.add_argument(
+        "--output",
+        default="frontend/capability-browser/public/data/standards-data.json",
+        help="Output JSON path.",
+    )
+    standards_data.set_defaults(func=cmd_export_standard_frameworks_data)
 
     second_batch_summary = subparsers.add_parser(
         "export-second-batch-summary",

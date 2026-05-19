@@ -10,11 +10,14 @@ const state = {
   lifecycleWorkbench: null,
   lifecycleWorkbenchViewModel: null,
   content: null,
+  standards: null,
+  maintenanceKnowledge: null,
   activeView: "overview",
   activeRoute: "/",
   capabilityCatalogCollapsed: false,
   activeMaintenancePage: "scopes",
   activeReferenceTab: "gbt",
+  activeStandardFramework: "mlps-level-3",
   activeContentPage: "html",
   selectedCapabilityId: null,
   selectedEnvironmentId: null,
@@ -25,6 +28,8 @@ const state = {
   selectedMaintenanceId: null,
   selectedContentId: null,
   search: "",
+  standardHeaderSummary: [],
+  standardHeaderNote: "",
   relationshipFilters: {},
   relationshipColumnWidths: [190, 180, 150, 160, 160, 150, 130, 160],
 };
@@ -251,6 +256,10 @@ function applyRouteTarget(target = {}) {
     state.selectedMaintenanceId = null;
   }
   if (target.referenceTab) state.activeReferenceTab = target.referenceTab;
+  if (target.standardFramework) {
+    state.activeStandardFramework = target.standardFramework;
+    state.selectedMaintenanceId = null;
+  }
   if (target.contentPage) {
     state.activeContentPage = target.contentPage;
     state.selectedContentId = null;
@@ -272,13 +281,31 @@ function routeForCurrentState(view = state.activeView) {
       view,
       activeMaintenancePage: state.activeMaintenancePage,
       activeContentPage: state.activeContentPage,
+      activeStandardFramework: state.activeStandardFramework,
     }) || "/"
   );
+}
+
+function updateStandardPageHeaderCount() {
+  const countNode = $("pageHeaderCount");
+  if (!countNode) return;
+  const isStandardsPage = state.activeView === "maintenance" && state.activeMaintenancePage === "standards";
+  const badges = list(state.standardHeaderSummary);
+  const note = text(state.standardHeaderNote);
+  countNode.hidden = !isStandardsPage || (!badges.length && !note);
+  countNode.innerHTML = [
+    ...badges.map(
+      (badge) =>
+        `<span class="page-title-summary-badge"><strong>${escapeHtml(badge.value)}</strong><span>${escapeHtml(`${badge.unit || ""}${badge.label || ""}`)}</span></span>`,
+    ),
+    note ? `<span class="page-title-summary-note">${escapeHtml(note)}</span>` : "",
+  ].join("");
 }
 
 function updateApplicationShellChrome() {
   const components = window.sapdComponents || {};
   components.AppShell?.updateApplicationShell?.({ activeRoute: state.activeRoute, activeView: state.activeView });
+  updateStandardPageHeaderCount();
 }
 
 function applyCapabilityCatalogState() {
@@ -507,18 +534,27 @@ function renderMaintenance() {
   }
   const viewModel = viewModels.buildMaintenanceWorkspaceViewModel({
     capabilityTree: state.capability,
-    management: state.management,
+    management: state.maintenanceKnowledge || state.management,
     lifecycle: state.lifecycle,
+    standards: state.standards,
     section: state.activeMaintenancePage,
     selectedId: state.selectedMaintenanceId,
     search: state.search,
     referenceTab: state.activeReferenceTab,
+    standardFrameworkId: state.activeStandardFramework,
   });
   state.activeMaintenancePage = viewModel.section;
   state.activeReferenceTab = viewModel.referenceTab || state.activeReferenceTab;
   state.selectedMaintenanceId = viewModel.selectedId;
+  const standardsMode = viewModel.section === "standards";
+  state.standardHeaderSummary = standardsMode ? list(viewModel.summaryBadges) : [];
+  state.standardHeaderNote = standardsMode ? text(viewModel.summaryNote) : "";
+  $("maintenanceWorkspace")?.classList.toggle("standards-mode", standardsMode);
+  $("sourceNavPane")?.classList.toggle("is-hidden", standardsMode);
+  $("sourceDetailPane")?.classList.toggle("is-hidden", standardsMode);
+  updateStandardPageHeaderCount();
   setHtml("maintenanceNavigation", components.MaintenanceNavigation?.render({ navigationItems: viewModel.navigationItems }) || "");
-  setText("sourcePageTitle", viewModel.page?.title || "专项知识维护");
+  setText("sourcePageTitle", standardsMode ? viewModel.activeFrameworkTitle || "标准/框架清单" : viewModel.page?.title || "专项知识维护");
   setText("sourcePageCount", viewModel.rows.length);
   let tableHtml = `<div class="maintenance-empty-state">${escapeHtml(viewModel.emptyState || "该专项页面将在后续阶段接入。")}</div>`;
   if (viewModel.section === "scopes") {
@@ -550,19 +586,34 @@ function renderMaintenance() {
         emptyState: viewModel.emptyState,
         activeTab: viewModel.referenceTab,
       }) || tableHtml;
+  } else if (viewModel.section === "standards") {
+    tableHtml =
+      components.StandardFrameworkTable?.render({
+        activeFrameworkId: viewModel.activeFrameworkId,
+        rows: viewModel.rows,
+        columns: viewModel.columns,
+        tables: viewModel.tables,
+        selectedId: viewModel.selectedId,
+        emptyState: viewModel.emptyState,
+      }) || tableHtml;
   }
   setHtml(
     "sourceList",
     `
-      ${components.MaintenanceShell?.render({ viewModel }) || ""}
+      ${standardsMode ? "" : components.MaintenanceShell?.render({ viewModel }) || ""}
       ${tableHtml || ""}
     `,
   );
-  setText("sourceDetailType", viewModel.detailPanel?.type || "未选择");
-  setHtml(
-    "sourceDetail",
-    components.MaintenanceDetailPanel?.render({ detailPanel: viewModel.detailPanel }) || emptyState("请选择专项对象"),
-  );
+  if (standardsMode) {
+    setText("sourceDetailType", "");
+    setHtml("sourceDetail", "");
+  } else {
+    setText("sourceDetailType", viewModel.detailPanel?.type || "未选择");
+    setHtml(
+      "sourceDetail",
+      components.MaintenanceDetailPanel?.render({ detailPanel: viewModel.detailPanel }) || emptyState("请选择专项对象"),
+    );
+  }
 }
 
 function visibleWorkspaceElements() {
@@ -597,6 +648,7 @@ function defaultWorkspaceWidths(workspace, panes) {
   if (workspace.id === "environmentWorkspace") return [300, rest(300)];
   if (workspace.id === "devLifecycleWorkspace" && panes.length === 2) return [300, rest(300)];
   if (workspace.id === "devLifecycleWorkspace" || workspace.id === "dataLifecycleWorkspace") return [270, rest(270, 220), 220];
+  if (workspace.id === "maintenanceWorkspace" && workspace.classList.contains("standards-mode")) return [rest()];
   if (workspace.id === "maintenanceWorkspace") return [220, rest(220, 260), 260];
   if (workspace.id === "contentWorkspace") return [220, rest(220, 260), 260];
   if (workspace.id === "overviewWorkspace") {
@@ -836,7 +888,8 @@ function bindEvents() {
     state.selectedEnvironmentRowId = row.dataset.environmentRowId;
     renderEnvironment();
   });
-  $("sourceSearchInput")?.addEventListener("input", (event) => {
+  document.addEventListener("input", (event) => {
+    if (event.target?.id !== "sourceSearchInput") return;
     state.search = event.target.value.trim();
     renderMaintenance();
   });
@@ -846,6 +899,7 @@ function bindEvents() {
     state.activeMaintenancePage = button.dataset.sourcePage;
     state.activeRoute = routeForCurrentState("maintenance");
     if (state.activeMaintenancePage === "references" && !state.activeReferenceTab) state.activeReferenceTab = "gbt";
+    if (state.activeMaintenancePage === "standards") state.activeRoute = `/standards/${state.activeStandardFramework}`;
     state.selectedMaintenanceId = null;
     renderMaintenance();
     updateApplicationShellChrome();
@@ -906,27 +960,49 @@ async function init() {
   await loadScriptOnce("./models/relationGraphModel.js?v=f3-graph-p1-v2-network", () => Boolean(window.sapdModels?.buildLocalRelationGraphModel));
   await loadScriptOnce("./components/LocalRelationNetworkGraph.js?v=f3-graph-p1-v2-network", () => Boolean(window.sapdComponents?.LocalRelationNetworkGraph));
   await loadScriptOnce("./components/CapabilityLocalRelationMap.js?v=f3-graph-p1-v2-network", () => Boolean(window.sapdComponents?.CapabilityLocalRelationMap));
-  const [capability, capabilityWorkbench, environmentWorkbench, lifecycleWorkbench, capabilityProjection, management, lifecycle, content] = await Promise.all([
+  const [capability, capabilityWorkbench, environmentWorkbench, lifecycleWorkbench, capabilityProjection, maintenanceKnowledge, content, standards] = await Promise.all([
     dataClient.getCapabilityTree(),
     dataClient.getCapabilityWorkbench?.() || Promise.resolve({ data: null }),
     dataClient.getEnvironmentWorkbench?.() || Promise.resolve({ data: null }),
     dataClient.getLifecycleWorkbench?.() || Promise.resolve({ data: null }),
     dataClient.getCapabilityWorkspaceProjection?.() || Promise.resolve({ data: null }),
-    dataClient.getManagementKnowledge(),
-    dataClient.getLifecycleKnowledge(),
+    dataClient.getMaintenanceKnowledge?.() || Promise.resolve({ data: null }),
     dataClient.getContentViews(),
+    dataClient.getStandardFrameworks?.() || Promise.resolve({ data: null }),
   ]);
   state.capability = capability.data;
   state.capabilityWorkbench = capabilityWorkbench.data;
   state.environmentWorkbench = environmentWorkbench.data;
   state.lifecycleWorkbench = lifecycleWorkbench.data;
   state.capabilityProjection = capabilityProjection.data;
-  state.management = management.data;
-  state.lifecycle = lifecycle.data;
+  state.maintenanceKnowledge = maintenanceKnowledge.data;
   state.content = content.data;
+  state.standards = standards.data;
   mountAppShellComponents();
   bindEvents();
   activateRoute("/");
+  const loadHeavyPackages = () => {
+    Promise.all([
+      dataClient.getManagementKnowledge(),
+      dataClient.getLifecycleKnowledge(),
+    ])
+      .then(([management, lifecycle]) => {
+        state.management = management.data;
+        state.lifecycle = lifecycle.data;
+        renderMetrics();
+        if (["overview", "capabilities", "environment", "dev-lifecycle", "data-lifecycle", "maintenance"].includes(state.activeView)) {
+          renderActiveView();
+        }
+      })
+      .catch((error) => {
+        console.warn("大型数据包后台加载失败", error);
+      });
+  };
+  if (window.requestIdleCallback) {
+    window.requestIdleCallback(loadHeavyPackages, { timeout: 3000 });
+  } else {
+    window.setTimeout(loadHeavyPackages, 1200);
+  }
 }
 
 init();

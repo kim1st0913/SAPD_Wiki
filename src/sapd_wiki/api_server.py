@@ -15,9 +15,11 @@ DATA_PACKAGES = {
     "capability-workbench": "frontend/capability-browser/public/data/capability-workbench.json",
     "environment-workbench": "frontend/capability-browser/public/data/environment-workbench.json",
     "lifecycle-workbench": "frontend/capability-browser/public/data/lifecycle-workbench.json",
+    "maintenance": "frontend/capability-browser/public/data/maintenance-knowledge.json",
     "management": "frontend/capability-browser/public/data/management-knowledge.json",
     "lifecycle": "frontend/capability-browser/public/data/lifecycle-knowledge.json",
     "content": "frontend/capability-browser/public/data/content-views.json",
+    "standards": "frontend/capability-browser/public/data/standards-data.json",
 }
 
 MAINTENANCE_SECTIONS = (

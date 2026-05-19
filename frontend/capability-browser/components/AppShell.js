@@ -103,14 +103,14 @@
     "/knowledge/role-references": { view: "maintenance", maintenancePage: "references", referenceTab: "roles" },
     "/knowledge/hype-cycle": { view: "content", contentPage: "html", placeholder: true },
     "/knowledge/others": { view: "content", contentPage: "html", placeholder: true },
-    "/standards": { view: "maintenance", maintenancePage: "references", referenceTab: "gbt" },
-    "/standards/mlps-level-3": { view: "maintenance", maintenancePage: "references", referenceTab: "gbt" },
-    "/standards/nist-csf-2": { view: "maintenance", maintenancePage: "references", referenceTab: "gbt" },
-    "/standards/iso-27001-2022": { view: "maintenance", maintenancePage: "references", referenceTab: "gbt" },
+    "/standards": { view: "maintenance", maintenancePage: "standards", standardFramework: "mlps-level-3" },
+    "/standards/mlps-level-3": { view: "maintenance", maintenancePage: "standards", standardFramework: "mlps-level-3" },
+    "/standards/nist-csf-2": { view: "maintenance", maintenancePage: "standards", standardFramework: "nist-csf-2" },
+    "/standards/iso-27001-2022": { view: "maintenance", maintenancePage: "standards", standardFramework: "iso-27001-2022" },
     "/standards/dsp-level-2": { view: "maintenance", maintenancePage: "references", referenceTab: "gbt" },
-    "/standards/cis-csc-v8": { view: "maintenance", maintenancePage: "references", referenceTab: "gbt" },
-    "/standards/crf": { view: "maintenance", maintenancePage: "references", referenceTab: "gbt" },
-    "/standards/nist-800-53-rev5": { view: "maintenance", maintenancePage: "references", referenceTab: "gbt" },
+    "/standards/cis-csc-v8": { view: "maintenance", maintenancePage: "standards", standardFramework: "cis-csc-v8" },
+    "/standards/crf": { view: "maintenance", maintenancePage: "standards", standardFramework: "crf" },
+    "/standards/nist-800-53-rev5": { view: "maintenance", maintenancePage: "standards", standardFramework: "nist-800-53-rev5" },
     "/standards/others": { view: "maintenance", maintenancePage: "references", referenceTab: "gbt", placeholder: true },
   };
 
@@ -195,7 +195,8 @@
     return { route: normalized, ...ROUTE_TARGETS[normalized] };
   }
 
-  function routeForView({ view, activeMaintenancePage, activeContentPage } = {}) {
+  function routeForView({ view, activeMaintenancePage, activeContentPage, activeStandardFramework } = {}) {
+    if (view === "maintenance" && activeMaintenancePage === "standards") return `/standards/${activeStandardFramework || "mlps-level-3"}`;
     if (view === "maintenance") return MAINTENANCE_ROUTES[activeMaintenancePage] || VIEW_ROUTES.maintenance;
     if (view === "content") return CONTENT_ROUTES[activeContentPage] || VIEW_ROUTES.content;
     return VIEW_ROUTES[view] || "/";
@@ -238,7 +239,6 @@
           <summary class="module-tab navigation-parent ${active ? "active" : ""}" title="${escapeHtml(item.label)}">
             <span class="nav-symbol">${escapeHtml(symbol)}</span>
             <span>${escapeHtml(item.label)}</span>
-            <small>${escapeHtml(item.priority || "")}</small>
           </summary>
           <div class="secondary-navigation">
             ${children
@@ -246,7 +246,6 @@
                 (child) => `
                   <button class="submodule-tab ${child.route === activeRoute ? "active" : ""}" type="button" data-app-route="${escapeHtml(child.route)}" data-view="${escapeHtml(getRouteTarget(child.route).view)}">
                     <span>${escapeHtml(child.label)}</span>
-                    <small>${escapeHtml(TYPE_LABELS[child.type] || child.type)}</small>
                   </button>
                 `,
               )
@@ -259,7 +258,6 @@
       <button class="module-tab ${active ? "active" : ""}" type="button" data-app-route="${escapeHtml(item.route)}" data-view="${escapeHtml(getRouteTarget(item.route).view)}" title="${escapeHtml(item.label)}">
         <span class="nav-symbol">${escapeHtml(symbol)}</span>
         <span>${escapeHtml(item.label)}</span>
-        <small>${escapeHtml(item.priority || "")}</small>
       </button>
     `;
   }
@@ -304,21 +302,32 @@
     const item = findNavItem(activeRoute);
     const rootRoute = parentForRoute(activeRoute)?.route || activeRoute;
     const description = PAGE_DESCRIPTIONS[activeRoute] || PAGE_DESCRIPTIONS[rootRoute] || "当前页面通过 Manifest 导航进入，业务内容由现有前端 ViewModel 渲染。";
+    const target = getRouteTarget(activeRoute);
+    const isSourceTablePage = target.view === "maintenance";
+    const isStandardFrameworkPage = target.view === "maintenance" && target.maintenancePage === "standards";
     return `
       <section class="app-page-header" id="appPageHeader">
         <div class="page-header-copy">
           ${renderBreadcrumb(activeRoute)}
           <div class="page-title-row">
             <h1>${escapeHtml(item.label)}</h1>
-            <span class="shell-tag">${escapeHtml(item.priority || "规划")}</span>
-            <span class="shell-tag muted">${escapeHtml(TYPE_LABELS[item.type] || item.type)}</span>
+            ${isStandardFrameworkPage ? '<span id="pageHeaderCount" class="page-title-summary" hidden></span>' : ""}
+            ${isStandardFrameworkPage ? "" : `<span class="shell-tag">${escapeHtml(item.priority || "规划")}</span>`}
+            ${isStandardFrameworkPage ? "" : `<span class="shell-tag muted">${escapeHtml(TYPE_LABELS[item.type] || item.type)}</span>`}
           </div>
           <p>${escapeHtml(description)}</p>
         </div>
-        <div class="page-header-actions" aria-label="页面操作">
-          <button type="button" disabled>导出数据</button>
-          <button type="button" disabled>编辑映射</button>
-        </div>
+        ${
+          isSourceTablePage
+            ? `<label class="page-header-search" for="sourceSearchInput">
+                <span class="search-icon" aria-hidden="true">⌕</span>
+                <input id="sourceSearchInput" type="search" placeholder="搜索名称、编码、分组或关系" autocomplete="off" />
+              </label>`
+            : `<div class="page-header-actions" aria-label="页面操作">
+                <button type="button" disabled>导出数据</button>
+                <button type="button" disabled>编辑映射</button>
+              </div>`
+        }
       </section>
     `;
   }

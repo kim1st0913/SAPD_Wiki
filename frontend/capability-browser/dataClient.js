@@ -4,9 +4,11 @@
     capabilityWorkbench: "./public/data/capability-workbench.json",
     environmentWorkbench: "./public/data/environment-workbench.json",
     lifecycleWorkbench: "./public/data/lifecycle-workbench.json",
+    maintenance: "./public/data/maintenance-knowledge.json",
     management: "./public/data/management-knowledge.json",
     lifecycle: "./public/data/lifecycle-knowledge.json",
     content: "./public/data/content-views.json",
+    standards: "./public/data/standards-data.json",
   };
 
   const API_PACKAGE_PATHS = {
@@ -14,9 +16,11 @@
     capabilityWorkbench: "/api/v1/data-packages/capability-workbench",
     environmentWorkbench: "/api/v1/data-packages/environment-workbench",
     lifecycleWorkbench: "/api/v1/data-packages/lifecycle-workbench",
+    maintenance: "/api/v1/data-packages/maintenance",
     management: "/api/v1/data-packages/management",
     lifecycle: "/api/v1/data-packages/lifecycle",
     content: "/api/v1/data-packages/content",
+    standards: "/api/v1/data-packages/standards",
   };
 
   const API_PATHS = {
@@ -28,6 +32,17 @@
     capabilityWorkbench: null,
     environmentWorkbench: null,
     lifecycleWorkbench: null,
+    maintenance: {
+      generated_at: null,
+      stats: {},
+      gartner_roles: [],
+      gbt_42446_references: [],
+      scope_types: [],
+      security_processes: [],
+      security_technical_measures: [],
+      security_technology_modules: [],
+      work_function_layers: [],
+    },
     management: {
       generated_at: null,
       stats: {},
@@ -56,6 +71,7 @@
       service_module_index: [],
     },
     content: { generated_at: null, stats: {}, html_documents: [], diagram_views: [], guide_pages: [] },
+    standards: { generated_at: null, data_state: "empty", stats: {}, frameworks: [] },
   };
 
   const cache = new Map();
@@ -321,6 +337,12 @@
     return { capability, management };
   }
 
+  async function getMaintenanceKnowledgePayload() {
+    const maintenance = await fetchPackage("maintenance");
+    if (maintenance?.__data_state !== "missing_file") return maintenance;
+    return fetchPackage("management");
+  }
+
   function capabilityPathForFocus(capabilityTree, focusId) {
     for (const category of list(capabilityTree.categories)) {
       for (const domain of list(category.domains)) {
@@ -577,27 +599,27 @@
     },
 
     async getMaintenanceScopes() {
-      const management = await fetchPackage("management");
+      const management = await getMaintenanceKnowledgePayload();
       return createEnvelope({ generated_at: management.generated_at, items: list(management.scope_types), stats: { items: list(management.scope_types).length } });
     },
 
     async getMaintenanceProcesses() {
-      const management = await fetchPackage("management");
+      const management = await getMaintenanceKnowledgePayload();
       return createEnvelope({ generated_at: management.generated_at, items: list(management.security_processes), stats: { items: list(management.security_processes).length } });
     },
 
     async getMaintenanceWorkFunctions() {
-      const management = await fetchPackage("management");
+      const management = await getMaintenanceKnowledgePayload();
       return createEnvelope({ generated_at: management.generated_at, items: list(management.work_function_layers), stats: { items: list(management.work_function_layers).length } });
     },
 
     async getMaintenanceTechnologyModules() {
-      const management = await fetchPackage("management");
+      const management = await getMaintenanceKnowledgePayload();
       return createEnvelope({ generated_at: management.generated_at, items: list(management.security_technology_modules), stats: { items: list(management.security_technology_modules).length } });
     },
 
     async getMaintenanceTechnologyMeasures() {
-      const management = await fetchPackage("management");
+      const management = await getMaintenanceKnowledgePayload();
       const hasMeasureField = hasOwn(management, TECHNICAL_MEASURES_FIELD);
       const measures = hasMeasureField ? list(management[TECHNICAL_MEASURES_FIELD]) : [];
       return createEnvelope({
@@ -614,7 +636,7 @@
     },
 
     async getMaintenanceStandardRoleReferences() {
-      const management = await fetchPackage("management");
+      const management = await getMaintenanceKnowledgePayload();
       const standards = list(management.gbt_42446_references);
       const roles = list(management.gartner_roles);
       return createEnvelope({
@@ -628,6 +650,15 @@
         },
         empty_state: standards.length || roles.length ? null : "暂无岗位参考页面数据，请确认 ETL 是否已导出 gbt_42446_references 与 gartner_roles。",
       });
+    },
+
+    async getMaintenanceKnowledge() {
+      return createEnvelope(await getMaintenanceKnowledgePayload());
+    },
+
+    async getStandardFrameworks() {
+      const standards = await fetchPackage("standards");
+      return createEnvelope(standards);
     },
 
     async getContentViews() {

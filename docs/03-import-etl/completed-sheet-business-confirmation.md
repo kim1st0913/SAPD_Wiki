@@ -50,6 +50,14 @@
 | `LC-AP 应用安全开发生命周期` | 应用安全开发阶段、IT L4 主要活动、安全活动、安全策略条目、软件开发模式适用性、关联安全技术服务、关联安全技术模块、开发类产品组件。 | `lifecycle_process`、`lifecycle_activity`、`security_activity`、`security_policy_requirement`，复用 `security_technical_service` 和 `security_technology_module`，新增开发类产品组件投影。 | 阶段按 `lifecycle_type + order + title`；策略条目按 `lifecycle_process + security_activity + sequence + text_hash`；安全技术模块必须匹配既有模块主数据。 | 阶段 1:N 主要活动；阶段 1:N 安全活动；安全活动 1:N 策略；阶段 N:M 软件开发模式；阶段/活动 N:M 服务；服务 N:M 模块；阶段/服务 N:M 开发类产品组件。 | 已确认：黄色底色识别软件开发模式适用性；红色底色不作为 ETL 条件；SLSA 暂不补充。 |
 | `LC-AP 应用安全开发生命周期元素目录` | 软件开发类型、应用系统类型、应用组件字典。 | `software_development_type`、`application_system_type`、`application_component` | 类型按标题；组件按 `application_system_type + title`。 | 软件开发类型与应用系统类型无映射；应用系统类型 1:N 应用组件。 | 已确认：在同一页面上下分别展示软件开发类型和应用系统类型/组件。 |
 
+## 标准框架 Sheet
+
+| Sheet | 当前业务含义 | 当前对象 | 当前主键/稳定身份 | 当前关系基数 | 需要用户确认 |
+|---|---|---|---|---|---|
+| `等保三级测评清单` | GB/T 22239-2019 网络安全等级保护基本要求第三级控制要求清单。 | `standard_framework`、`standard_control` | 框架编码为 `GB-T-22239-2019-L3`；控制项编码为 `GB-T-22239-2019-L3-原条款编号`，如 `GB-T-22239-2019-L3-8.2.3.1`。 | 框架 1:N 控制项；当前只建立 `belongs_to_framework`，不建立 DSP 映射。 | 已确认：`F列 / DSP安全策略项` 不做映射、不进入数据库；导入只使用 `B-E列` 的等保原文字段。 |
+| `CIS CSC V8` | CIS Controls v8.1.2 保护措施清单。 | `standard_framework`、`standard_control` | 框架编码为 `CIS-CSC-V8.1.2`；保护措施编码为 `CIS-CSC-V8.1.2-保护措施编号`，如 `CIS-CSC-V8.1.2-1.1`。 | 框架 1:N 保护措施；当前只建立 `belongs_to_framework`。 | 已确认：`Security Function` 已填入原始表并随控制项进入 metadata；6 条 v8.1.2 描述修订已写回原始表。 |
+| `27001-2022` | ISO/IEC 27001:2022 Annex A 控制项与 ISO/IEC 27002:2022 属性矩阵。 | `standard_framework`、`standard_control` | 框架编码为 `ISO-IEC-27001-2022`；控制项编码为 `ISO-IEC-27001-2022-原控制编号`，如 `ISO-IEC-27001-2022-5.1`。 | 框架 1:N 控制项；当前只建立 `belongs_to_framework`。 | 已确认：B 列合并单元格保持原样，不补齐、不拆分；27001 文字修订和 27002 属性差异已写回原始表；导出最后追加 `关联安全能力/关注点` 空列。 |
+
 ## 当前需优先确认的问题
 
 | 编号 | 问题 | 建议处理 |

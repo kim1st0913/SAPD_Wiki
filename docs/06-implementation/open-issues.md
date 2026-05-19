@@ -294,7 +294,7 @@
 
 ## OI-018：前端整体过度卡片化，无法有效展现业务关系
 
-- 状态：待确认
+- 状态：已修复
 - 类型：前端 / 需求
 - 对象或页面：`frontend/capability-browser/`
 - 现象：当前前端仍有较强卡片化倾向，不利于从能力、信息化环境、安全开发、数据生命周期等维度展示业务关系。
@@ -796,7 +796,8 @@
 - 当前处理：本轮不阻塞页面推进。前端在“安全开发服务映射”中新增“阶段关联对象”行，显式展示当前数据仅表达到阶段。
 - 后续处理：如后续需要精确到服务，应由 ETL/export 增加服务级措施映射字段或关系；前端再把措施移动到对应安全技术服务行。
 - 统一规则：后续任何原始数据中的 `/` 均代表“没有相关定义 / 不适用”，不再反复确认；ETL 和前端均不得把 `/` 生成为正常知识对象。
-- 验证结果：待后续服务级映射规则补充后验证。
+- BE-4 追加发现：2026-05-18 检查 `lifecycle-workbench.json` 时发现，新 workbench 投影尚未包含 `security_technical_measure` 对象类型和措施关系；`lifecycle-knowledge.json` 中仍能检索到 `应用程序威胁建模`、`制品安全加固`、`IaC代码安全测试` 等措施，但新 UI 若只消费 `lifecycle-workbench.json` 将无法直接展示这些措施。
+- 验证结果：待后续服务级或阶段级措施投影规则补充后验证。
 
 ## OI-041：主控会话多次重连影响工程开发
 
@@ -826,3 +827,151 @@
 - 需要确认：
   - 是否将 `M-PS.CT` 补入 V2 L2 能力评价基准。
 - 验证结果：`python3` 已解析 V2 Markdown 并按当前 SQLite 主库重新生成 `maturity-v2-mainline-summary.json`，结论为 `v2_capability_count = 31`、`mainline_active_capability_count = 32`、`missing_in_maturity_v2_count = 1`、`name_conflict_count = 0`。
+
+## OI-043：LC-DT staging 将表头 / 定义列误识别为正式对象
+
+- 状态：已修复
+- 类型：ETL / 数据导入
+- 对象或页面：`LC-DT 数据生命周期`、`LC-DT 数据生命周期场景目录`、`third-batch` staging job `29e7be25-d4f7-4f48-8281-359b24e7ab31`
+- 现象：对当前 `data/raw-samples/wiki sample.xlsx` 执行 `stage-excel --sheets third-batch` 后，staging 中出现 17 个新建对象，其中包含 `过程`、`序号 处理子场景`、`过程定义`、`序号`、`1.1`、`2.1` 等疑似表头、子表头或定义列内容。
+- 影响：如果直接 approve 当前 third-batch，可能把 LC-DT 的表头 / 定义说明误写为正式生命周期过程、场景、安全技术服务或安全技术模块对象，污染主数据和后续导出。
+- 当前处理：已修正 LC-DT 解析规则并重新 staging；旧 job `29e7be25-d4f7-4f48-8281-359b24e7ab31` 不建议 approve。
+- 需要确认：是否接受新 job `91765990-5a81-4601-9a64-afa7da4d5762` 中 6 个新增 `lifecycle_scene` 候选。
+- 建议处理：后续如进入 approve，应使用新 job `91765990-5a81-4601-9a64-afa7da4d5762`，不要批准旧 job `29e7be25-d4f7-4f48-8281-359b24e7ab31`。
+- 修复说明：`parse_data_lifecycle_sheet` 和 `parse_data_lifecycle_scene_sheet` 已改为从第 4 行开始读取；LC-DT 安全技术服务 / 模块改为读取 H/I 列，不再误读 D/E 列。
+- 验证结果：2026-05-18 重新执行 `stage-excel --sheets third-batch` 生成 job `91765990-5a81-4601-9a64-afa7da4d5762`；objects_staged=291、relations_staged=415、validations=[]；不再出现 `过程`、`过程定义`、`序号`、`1.1` 等错误标题对象；未执行 `approve-import`。
+
+## OI-044：新版 LC-DT 映射表引入新增场景和模块候选
+
+- 状态：已修复
+- 类型：数据 / ETL 导入确认
+- 对象或页面：`LC-DT 数据生命周期`、`LC-DT 安全技术服务、模块、策略映射表`、third-batch staging job `f2e41228-9e88-4cd9-8bc2-8c60e6464588`
+- 现象：原始 Excel 更新后，`LC-DT 数据生命周期场景目录` 不再存在，当前文件包含新版 `LC-DT 安全技术服务、模块、策略映射表`。适配新版解析后，third-batch staging 出现 8 个新建候选：6 个 `lifecycle_scene` 和 2 个 `security_technology_module`。
+- 影响：这些新增候选看起来来自新版原始数据，不是表头误读；但如果未经业务确认直接 approve，会新增正式生命周期场景和安全技术模块主数据。
+- 当前处理：用户已确认新增 `lifecycle_scene` 接收，并确认 `数据销毁` 应作为安全技术措施处理；已完成 parser / export 修正并 approve 最新三批导入。
+- 需要确认：
+  - 无需继续确认。
+- 建议处理：后续如新增更多“模块列里实际是措施”的条目，应扩展明确白名单或从源表拆分措施列。
+- 修复说明：`数据销毁` 已加入 LC-DT 技术措施白名单，解析为 `security_technical_measure`；生命周期导出支持 `maps_to_lifecycle` 措施关系；最新 third-batch job `8f444988-efed-4209-b185-988c24f690f9` 已 approve。
+- 验证结果：2026-05-18 `lifecycle-knowledge.json` 导出统计 `security_technical_measures=4`，抽查确认 `数据销毁` 位于 `DT-07 删除` 的 `technical_measures`；新增 `lifecycle_scene` 已进入正式数据；前端 7 个 JSON 文件均可解析。
+
+## OI-044：原始 `CIS CSC V8` 页与 CIS Controls v8.1.2 存在待修订差异
+
+- 状态：已修复
+- 类型：数据 / 标准框架导入 / 版本一致性
+- 对象或页面：`data/raw-samples/wiki sample.xlsx` 的 `CIS CSC V8` 页，后续标准框架页面 `/standards/cis-csc-v8`
+- 现象：与官方 `CIS_Controls_Version_8.1.2___March_2025.xlsx` 比对后，原始表 Safeguard 编号、最低实施组、资产类型均能对齐；`I` 列已有 `安全功能` 表头但此前为空；`2.1`、`8.9`、`11.1`、`12.2`、`12.6`、`17.5` 的中文描述尚未完全体现 v8.1.2 文案增强。
+- 影响：如果直接导入或展示，结构字段和上述 6 条描述会比 v8.1.2 官方口径略旧或略短。
+- 当前处理：已生成并更新比对报告 `docs/03-import-etl/cis-controls-v8.1.2-vs-raw-cis-csc-v8-comparison.md`；已按官方 v8.1.2 将 153 条 `Security Function` 填入原始表 `CIS CSC V8!I3:I155`；已将第 5 节 6 条描述修订写入原始表 `CIS CSC V8!J8/J70/J88/J94/J98/J146`；已备份原始表到 `data/raw-samples/backups/wiki sample.before-cis-security-function-rewrite-20260518-111236.xlsx` 和 `data/raw-samples/backups/wiki sample.before-cis-v812-description-fixes-20260518-111806.xlsx`；未导入数据库、未更新前端数据包。
+- 建议处理：正式导入前再做一次人工抽查；如保留原始中文，应作为 `zh_title` / `zh_description` 与官方 v8.1.2 英文字段分开维护。
+- 修复说明：`Security Function` 已完成填充；`2.1` 增加“许可证数量”；`8.9` 改为“实施实例主要包括”；`11.1` 增加“包含详细备份程序”；`12.2` 改为“实施范例可包括文档、政策和设计组件”；`12.6` 按 v8.1.2 重写为区分网络管理协议和安全通信协议；`17.5` 补充年度或重大变化审查表述。
+- 验证结果：2026-05-18 使用 `openpyxl` 读取两份 Excel，确认双方均为 153 条 Safeguard、编号集合一致、最低实施组分布一致、资产类型分布一致；`Security Function` 填充后分布为 Protect=78、Govern=25、Detect=24、Identify=14、Respond=6、Recover=6，与官方 v8.1.2 一致；6 条描述写入后重新打开磁盘文件验证无错配。
+
+## OI-045：原始 `等保三级测评清单` 缺少 GB/T 22239-2019 `8.2.3.1 访问控制`
+
+- 状态：已修复
+- 类型：数据 / 标准框架导入 / 原文完整性
+- 对象或页面：`data/raw-samples/wiki sample.xlsx` 的 `等保三级测评清单` 页，后续标准框架页面
+- 现象：对扫描版 `GB/T 22239-2019 信息安全技术 网络安全等级保护基本要求` 第 8 章 OCR 后，PDF 中 `8.2.3 安全区域边界` 下存在 `8.2.3.1 访问控制`；此前原始表在 `8.2.3安全区域边界` 下只有 `8.2.3.2 入侵防范` 和 `8.2.3.3 安全审计`。
+- 影响：如不修复，云计算安全扩展要求下缺少一条访问控制要求，后续标准框架页面会少一条控制项。用户已确认 `F列 / DSP安全策略项` 不做映射、不进入数据库，因此不纳入影响范围。
+- 当前处理：用户已修正原始表；复查确认 `8.2.3.1` 已补入。用户确认 `F列 / DSP安全策略项` 不入库，后续导入忽略该列。
+- 修复说明：原始表当前有 113 条数据；`8.2.3安全区域边界` 下已有 `8.2.3.1 访问控制`、`8.2.3.2 入侵防范`、`8.2.3.3 安全审计`。
+- 验证结果：2026-05-18 使用 `openpyxl` 复查原始表，确认 `8.2.3.1` 存在；条款编号无重复、无顺序倒置、各小节无缺号；`8.2云计算安全扩展要求` 当前为 16 条；`F列 / DSP安全策略项` 已按用户确认排除出入库字段。
+
+## OI-046：原始 `CSF2.0` 页存在待确认翻译修订项
+
+- 状态：已修复
+- 类型：数据 / 标准框架导入 / 翻译一致性
+- 对象或页面：`data/raw-samples/wiki sample.xlsx` 的 `CSF2.0` 页，后续标准框架页面 `CSF`
+- 现象：`CSF2.0` sheet 的编号和两张表结构与 NIST CSF 2.0 PDF 可对齐，但存在部分中文翻译、术语和格式问题，例如 `inform` 被译成“告知/通知”、`Policy` 译为“策略”、`DE.AE` 分类中出现“入侵指标协和”等。
+- 影响：如果直接入库，会在 CSF 页面展示不够准确的中文标准文本。
+- 当前处理：用户确认 `docs/03-import-etl/csf-2.0-translation-review-and-import-notes.md` 第 2、3 节修正进原始表，第 4 节结构顺序提醒忽略；已按确认修订原始 Excel，并保留原始表顺序。
+- 需要确认：无需继续确认。
+- 修复说明：已备份原始表到 `data/raw-samples/backups/wiki sample.before-csf-translation-fixes-20260518-171113.xlsx`；已修订 `CSF2.0` 页中必须调整项和术语/格式统一项；`CSF Core` 增加 `F列 / 关联安全能力/关注点`。
+- 验证结果：2026-05-18 已用 `openpyxl` 抽查 `E3`、`E5`、`C15`、`E21`、`E33`、`C34`、`C82`、`D111`、`C114`、`D114`、`C115`、`F2`，确认修订已写入；已重新 stage/approve `CSF2.0` 并导出标准框架数据包。
+
+## OI-047：标准/框架页面表格未占满工作区
+
+- 状态：已修复
+- 类型：前端
+- 对象或页面：`安全标准 / 框架` 下 `等级保护三级`、`CIS CSC V8`、`NIST CSF 2.0`
+- 现象：用户反馈等保三级和 CIS CSC 页面表格下方留空过多，表格未占满工作区域。
+- 影响：标准控制项阅读区域被压缩，需要在较小表格区内滚动，影响长文本审阅。
+- 当前处理：已调整标准/框架模式下 `sourceList`、`standard-framework-stack` 和 `standard-framework-table-scroll` 的高度，使表格滚动区占满工作区剩余高度。
+- 需要确认：用户刷新本地页面后确认视觉效果。
+- 修复说明：`standards-mode` 下表格容器现在使用完整可用高度；同时为 CSF Core 增加 tab、色带和列宽优化。
+- 验证结果：2026-05-18 已通过前端脚本语法检查、本地 API 数据包验证；受项目未安装 Playwright 包限制，未执行自动截图回归。
+
+## OI-048：原始 `27001-2022` 页存在分类合并单元格和少量翻译术语待确认
+
+- 状态：已修复
+- 类型：数据 / 标准框架导入 / 原文完整性
+- 对象或页面：`data/raw-samples/wiki sample.xlsx` 的 `27001-2022` 页，后续 ISO/IEC 27001:2022 标准框架页面
+- 现象：与扫描版 `ISO IEC 27001-2022 英文版.pdf` OCR 后的 Annex A `Table A.1` 比对，原始表完整覆盖 93 条控制项，编号无缺失、无重复、无多余；`B列 / 控制类别` 使用合并单元格；另有少量中文术语建议确认，例如 `5.6 与特定相关方的联系`、`5.30 ICT 为业务连续性做好准备`、`6.1 审查`、`6.6` 描述主语、`8.2 特殊访问权`、`8.3 信息访问约束`、`8.4 获取源代码`、`8.7` 中“籍由”、`8.11 数据遮盖`。
+- 影响：中文标准文本不够准确或不够统一；B 列为合并单元格，但用户确认该形态正常，不作为原始表数据问题。
+- 当前处理：已新增核对报告 `docs/03-import-etl/iso27001-2022-vs-pdf-check.md`；用户确认 B 列不补齐、不拆合并单元格；其他 27001 文字建议已写回原始表。未导入数据库，未更新前端数据包。
+- 需要确认：
+  - 无需继续确认。
+- 修复说明：已修订 `D9/E9/D33/D41/E46/D64/D65/D66/E69/D73`；保留 B 列合并单元格 `B4:B40`、`B41:B48`、`B49:B62`、`B63:B96`。
+- 验证结果：2026-05-18 使用 `pdftoppm` + `tesseract -l eng` 对 52 页 PDF 做 OCR；确认 Annex A 表 A.1 位于 OCR 页 17-24。使用 `openpyxl` 核对原始表，确认数据行 93 条，编号范围 `5.1` 到 `8.34`，缺失编号 0、重复编号 0、多余编号 0；核心列 `控制编号`、`控制名称`、`控制描述` 无空值；重新打开磁盘文件确认 10 个 27001 文字修订单元格写入成功，B 列合并范围保持不变。
+
+## OI-051：原始 `27001-2022` 页与 ISO/IEC 27002:2022 属性矩阵存在 10 处属性差异
+
+- 状态：已修复
+- 类型：数据 / 标准框架导入 / 属性字段一致性
+- 对象或页面：`data/raw-samples/wiki sample.xlsx` 的 `27001-2022` 页，后续 ISO/IEC 27001:2022 / 27002:2022 标准框架页面
+- 现象：对 `ISOIEC 27002_2022_英文版完整目录.pdf` Annex A `Table A.1 — Matrix of controls and attribute values` 解析后，与原始表 F-J 列比对，93 条控制项共 465 个属性核对点中 455 个一致、10 个存在差异。差异包括：`5.24 控制类型` 当前为 `#预防性`，27002 为 `#纠正性`；`5.7`、`5.31`、`5.32`、`5.33`、`5.34`、`5.36`、`6.6`、`8.10`、`8.29` 存在运营能力术语写法不一致。
+- 影响：如果直接入库或展示，27002 属性视图基本可用，但上述属性筛选 / 分组会出现少量口径不一致，尤其 `5.24` 会影响按控制类型筛选。
+- 当前处理：已新增核对报告 `docs/03-import-etl/iso27002-2022-attributes-vs-raw-27001-check.md`；用户确认修订原始数据，已写回原始表。未导入数据库，未更新前端数据包。
+- 需要确认：
+  - 无需继续确认。
+- 修复说明：已将 `5.24 控制类型` 从 `#预防性` 修订为 `#纠正性`；已统一 9 处运营能力术语为 `#威胁和漏洞管理`、`#法律和合规性`、`#供应商关系安全`、`#信息安全保证`。
+- 验证结果：2026-05-18 使用 `pdftotext` 和 `PyMuPDF` 解析 ISO/IEC 27002:2022 Annex A 属性矩阵，共解析 93 条控制项；与 `27001-2022` 页 F-J 列做集合级比对，修订前差异 10 处，修订后差异 0 处。
+
+## OI-049：`capability-workbench.json` 标准 / 框架映射仍为空
+
+- 状态：待处理
+- 类型：数据契约 / export / 标准框架映射
+- 对象或页面：`安全能力映射`、`capability-workbench.json`、后续标准 / 框架映射视角
+- 现象：BE-4 检查确认 `capability-workbench.json` 已预留 `standard-mapping` 关系组，但 `standard_framework=0`、`standard_control=0`、`maps_to_standard=0`。规格要求安全能力映射页承载与安全标准 / 框架的映射关系，当前尚未落地到 workbench 数据包。
+- 影响：安全能力映射页未来切换到新 workbench 数据源后，无法直接展示能力 / 关注点到等保、NIST CSF、ISO、CIS 等标准控制项的映射。
+- 当前处理：已在 `docs/06-implementation/be-4-workbench-data-quality-gap-list.md` 记录为 BE-4 缺口。
+- 需要确认：后续是否先从已生成的 `standards-data.json` 和标准导入关系中抽取能力 / 关注点映射，还是先补齐标准映射规则文档。
+- 修复说明：待后续 export 投影补强。
+- 验证结果：BE-4 静态审计确认三份 workbench 顶层结构正常、无关系断点；本问题仅针对能力页标准映射为空。
+
+## OI-050：LC-AP `CI/CD流水线` 被拆成 `CI` 与 `/CD流水线`
+
+- 状态：已修复
+- 类型：ETL / 数据清洗 / workbench 投影
+- 对象或页面：`LC-AP 开发安全生命周期`、`lifecycle-workbench.json`
+- 现象：BE-4 检查发现 `lifecycle-workbench.json` 中存在一条 `security_technical_service`：`code=CI`、`name=/CD流水线`、`title=/CD流水线`。这明显是把业务名称 `CI/CD流水线` 按 `/` 错误拆分后的结果。
+- 影响：LC-AP 页面会展示错误标题；后续按服务编码、名称或关系端点进行聚合时，可能把该服务误判为编码 `CI` 的对象。
+- 当前处理：已修复。
+- 需要确认：无需业务确认，属于解析规则问题。
+- 修复说明：`split_code_title()` 在执行通用前置编码识别前，先保护 `CI/CD`、`CI/CD流水线` 和 `N/A(...)` 这类不应被拆成编码 + 标题的文本；单独 `/` 仍由 `is_blank_or_placeholder()` 识别为“不适用 / 无服务”。已重新 stage/approve third-batch job `7501a7aa-c293-439d-9a59-46f4e7c1d5ee`，旧错误对象 `code=CI`、`title=/CD流水线` 已自动停用为 `deprecated`，完整对象 `title=CI/CD流水线` 已恢复为 `active`。
+- 验证结果：2026-05-19 已重新导出 `lifecycle-knowledge.json`、`management-knowledge.json` 和三份 workbench JSON；验证文件 `data/exports/worker-verify/be-4-2-cicd-pipeline-check.json` 显示 active 错误拆分对象数量为 0，active 完整术语数量为 1；三份 workbench JSON 顶层结构完整、无坏对象、无主展示非业务字段泄露；`git diff --check` 通过。
+
+## OI-052：CRF 标准框架页缺少 Core / 成熟度 tab 且底部出现空表格
+
+- 状态：已修复
+- 类型：前端 / 标准框架页面 / 布局
+- 对象或页面：`安全标准 / 框架 / CRF`
+- 现象：用户反馈 `CRF` 页没有类似 `NIST CSF 2.0` 的 tab 切换，底部出现多余空表格；同时要求 Core 按 `保障措施分类 / 保障措施域` 两级汇总展开，并要求左侧目录可滚动、主页面不出现页面级滚动条。
+- 影响：CRF Core 和成熟度模型无法清晰分离展示，页面底部空白表格影响阅读；左侧目录展开后会拉高主页面，导致主工作区出现不必要留白和页面级滚动。
+- 当前处理：已修复。
+- 需要确认：用户刷新本地页面后确认视觉效果。
+- 修复说明：`StandardFrameworkTable` 继续使用已有 CRF 两级分组配置；本次修正标准框架 tab 面板高度、工作台滚动容器和前端资源版本，并在 `buildMaintenanceWorkspaceViewModel()` 中透传标准框架 `tables`，确保 `Core` / `成熟度` 两个 tab 分离展示；应用壳固定为视口高度，左侧导航目录独立滚动，主页面级滚动隐藏。后续根据用户反馈继续优化 CRF 表格宽高比例，将 Core 表调整为固定列宽布局，收紧明细行缩进，并优化成熟度表宽文本列。
+- 验证结果：2026-05-19 已通过 `node --check` 检查 `StandardFrameworkTable.js`、`viewModels.js`、`app.js`；`git diff --check -- frontend/capability-browser/styles.css frontend/capability-browser/index.html frontend/capability-browser/viewModels.js progress.md docs/06-implementation/open-issues.md` 通过；使用 Node 直接生成 CRF 页面模型，确认 `tables` 包含 Core 476 条、成熟度 5 条，`dataState=ready`；使用 Node 直接渲染 CRF 标准表组件，确认包含 `Core` / `成熟度` 两个 tab、两个 panel，且 Core 中存在分类和域级汇总文本。表格比例优化后，`node --check frontend/capability-browser/viewModels.js`、`node --check frontend/capability-browser/components/StandardFrameworkTable.js` 和 `git diff --check -- frontend/capability-browser/styles.css progress.md docs/06-implementation/open-issues.md` 通过。
+
+## OI-053：原始 `NIST 800-53rev5` 页存在 1 处英文控制名称单复数差异
+
+- 状态：待确认
+- 类型：数据 / 标准框架导入 / 原文一致性
+- 对象或页面：`data/raw-samples/wiki sample.xlsx` 的 `NIST 800-53rev5` 页，后续标准框架页面 `NIST 800-53 Rev.5`
+- 现象：与 `NIST.SP.800-53r5.pdf` Appendix C `Control Summaries` 核对，原始表 1007 条数据与 PDF 排除 182 条 `W` 撤销项后的 1007 条编号完全一致，`安全类型` 与 PDF `IMPLEMENTED BY` 完全一致；仅 `PE-12(1)` 英文标题存在单复数差异，原始表为 `Essential Missions And Business Functions`，PDF 原文为 `ESSENTIAL MISSION AND BUSINESS FUNCTIONS`。
+- 影响：不影响编号完整性和入库数量，但会造成英文原文标题与 NIST PDF 不完全一致。
+- 当前处理：用户已修订原始表，已按修订后数据导入。
+- 需要确认：无。
+- 修复说明：2026-05-19 复查原始表，确认 `PE-12(1)` 英文名称为 `Essential Missions And Business Functions`；本轮按修订后的 `NIST 800-53rev5` 页导入数据库，并导出到标准框架数据包。
+- 验证结果：2026-05-19 使用 `openpyxl` 复查原始表，确认有效行 1007 条、唯一编号 1007 个，`PE-12(1)` 已为修订后文本；导入后 `standards-data.json` 中 `NIST SP 800-53 Rev.5` 统计为 20 个安全控制类、298 项安全控制、1007 条安全策略；详见 `docs/03-import-etl/nist-800-53rev5-vs-raw-check.md`。

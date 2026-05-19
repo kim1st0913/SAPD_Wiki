@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SAPD Wiki - 安全能力映射</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "status-warning": "#FFAB00",
+                        "primary": "#0052cc",
+                        "status-error": "#FF5630",
+                        "inverse-surface": "#2e3038",
+                        "on-tertiary-fixed-variant": "#812800",
+                        "error-container": "#ffdad6",
+                        "on-tertiary-container": "#ffc6b2",
+                        "error": "#ba1a1a",
+                        "primary-fixed": "#dae2ff",
+                        "on-surface-variant": "#434654",
+                        "tertiary": "#7b2600",
+                        "inverse-on-surface": "#f0f0fb",
+                        "border-neutral": "#DFE1E6",
+                        "on-surface": "#191b23",
+                        "surface-subtle": "#F4F5F7",
+                        "secondary-container": "#cdddff",
+                        "on-secondary": "#ffffff",
+                        "status-success": "#36B37E",
+                        "on-error": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-container": "#c4d2ff",
+                        "on-background": "#191b23",
+                        "on-tertiary": "#ffffff",
+                        "outline": "#737685",
+                        "surface-dim": "#d9d9e4",
+                        "tertiary-fixed-dim": "#ffb59b",
+                        "secondary-fixed": "#d6e3ff",
+                        "tertiary-container": "#a33500",
+                        "surface-variant": "#e1e2ec",
+                        "on-secondary-fixed-variant": "#374763",
+                        "secondary-fixed-dim": "#b7c7e8",
+                        "primary-container": "#0052cc",
+                        "primary-fixed-dim": "#b2c5ff",
+                        "on-primary": "#ffffff",
+                        "surface": "#faf8ff",
+                        "surface-bright": "#faf8ff",
+                        "inverse-primary": "#b2c5ff",
+                        "surface-container-low": "#f3f3fd",
+                        "on-error-container": "#93000a",
+                        "surface-container-high": "#e7e7f2",
+                        "on-tertiary-fixed": "#380d00",
+                        "on-secondary-fixed": "#091c35",
+                        "surface-tint": "#0052cc",
+                        "on-primary-fixed": "#001848",
+                        "text-caption": "#6B778C",
+                        "tertiary-fixed": "#ffdbcf",
+                        "surface-container-highest": "#e1e2ec"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "topbar-height": "56px",
+                        "container-padding": "24px",
+                        "stack-md": "16px",
+                        "stack-lg": "24px",
+                        "sidebar-width": "240px",
+                        "gutter": "16px",
+                        "stack-sm": "8px"
+                    },
+                    "fontFamily": {
+                        "headline-xl": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "code-sm": ["JetBrains Mono"]
+                    },
+                    "fontSize": {
+                        "headline-xl": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                        "body-lg": ["14px", {"lineHeight": "22px", "fontWeight": "400"}],
+                        "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500"}],
+                        "label-sm": ["11px", {"lineHeight": "14px", "fontWeight": "600"}],
+                        "headline-md": ["16px", {"lineHeight": "24px", "fontWeight": "600"}],
+                        "headline-lg": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "body-md": ["13px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "code-sm": ["12px", {"lineHeight": "18px", "fontWeight": "400"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+            font-size: 20px;
+        }
+        body { background-color: #F4F5F7; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-thumb { background: #c3c6d6; border-radius: 3px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+    </style>
+<style>
+  @keyframes pulse-slow {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 40px rgba(0,82,204,0.3); }
+    50% { transform: scale(1.02); box-shadow: 0 0 60px rgba(0,82,204,0.4); }
+  }
+  .animate-pulse-slow { animation: pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+  .animate-fade-in { animation: fadeIn 0.8s ease-out forwards; opacity: 0; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  
+  .connector-line { stroke-dasharray: 6 4; animation: dash 20s linear infinite; }
+  @keyframes dash { to { stroke-dashoffset: -100; } }
+</style></head>
+<body class="font-body-md text-on-surface antialiased bg-surface-container-low min-h-screen">
+<!-- TopNavBar -->
+<header class="fixed top-0 left-0 w-full z-50 h-topbar-height bg-surface-container-lowest border-b border-outline-variant flex items-center justify-between px-container-padding">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary">security</span>
+<span class="font-headline-lg text-headline-lg font-bold text-primary">SAPD Wiki</span>
+</div>
+<div class="flex-1 max-w-2xl px-stack-lg">
+<div class="relative group">
+<div class="absolute inset-y-0 left-3 flex items-center pointer-events-none text-on-surface-variant">
+<span class="material-symbols-outlined">search</span>
+</div>
+<input class="w-full h-9 pl-10 pr-12 bg-surface-container border-none rounded-lg focus:ring-2 focus:ring-primary text-body-md" placeholder="搜索知识、能力、标准、指南..." type="text"/>
+<div class="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+<span class="px-1.5 py-0.5 border border-outline-variant rounded text-[10px] font-medium text-on-surface-variant">⌘K</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-stack-md">
+<button class="p-2 rounded hover:bg-surface-container transition-colors text-on-surface-variant relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-1 right-1 w-2 h-2 bg-status-error rounded-full"></span>
+</button>
+<button class="p-2 rounded hover:bg-surface-container transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<button class="p-2 rounded hover:bg-surface-container transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined">dns</span>
+</button>
+<div class="h-8 w-px bg-outline-variant mx-1"></div>
+<div class="flex items-center gap-2 cursor-pointer hover:bg-surface-container p-1 pr-3 rounded-full transition-all">
+<img alt="Profile" class="w-8 h-8 rounded-full border border-outline-variant" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDTojnCsoYHjtQrWHtpR33d3GN_CDmp9vpmSVGs2zWBEFe9OOZNTcnCwmvBCw1E6_IUM-NIXPmcUXR9FSQVsemuRJQFsLkbKaKoPE7qaS7YqLgSs9nBjEFuG0l0EUPLdZ_3PwwvciiRsSOSaiQNsvEbE5lsJ23d_qNgsYCzY9bexQcJ-AhnxJEDj6WXtiZJiTG2k_NqYAoE6Imo9E2kWOtzS6EyIq74coOLrpO8MwzTKF7Ezi-j4LANoeLTJ_CAMcO6uz8E0g29d60"/>
+<span class="font-label-md text-label-md text-on-surface">张管理员</span>
+</div>
+</div>
+</header>
+<!-- Sidebar Navigation -->
+<aside class="fixed top-topbar-height left-0 bottom-0 w-sidebar-width bg-surface-container-lowest border-r border-outline-variant flex flex-col z-40 overflow-y-auto xl:w-[260px]">
+<nav class="flex-1 py-4 flex flex-col gap-1">
+<a class="flex items-center gap-3 px-6 py-2.5 text-on-surface-variant hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-md text-label-md">首页</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-2.5 text-on-surface-variant hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined">menu_book</span>
+<span class="font-label-md text-label-md">安全指南</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-2.5 bg-secondary-container text-primary border-l-4 border-primary font-bold" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">hub</span>
+<span class="font-label-md text-label-md">安全能力映射</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-2.5 text-on-surface-variant hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined">grid_view</span>
+<span class="font-label-md text-label-md">信息化环境安全能力映射</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-2.5 text-on-surface-variant hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined">terminal</span>
+<span class="font-label-md text-label-md">开发安全</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-2.5 text-on-surface-variant hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined">policy</span>
+<span class="font-label-md text-label-md">数据安全</span>
+</a>
+<div class="px-6 py-2 mt-2">
+<div class="flex items-center justify-between text-on-surface-variant mb-1">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined">verified_user</span>
+<span class="font-label-md text-label-md font-semibold">安全知识</span>
+</div>
+<span class="material-symbols-outlined text-[16px]">expand_more</span>
+</div>
+<div class="pl-8 flex flex-col gap-2 mt-2 border-l border-outline-variant">
+<a class="text-label-sm text-on-surface-variant hover:text-primary py-0.5" href="#">安全能力作用域目录</a>
+<a class="text-label-sm text-on-surface-variant hover:text-primary py-0.5" href="#">安全技术模块目录</a>
+<a class="text-label-sm text-on-surface-variant hover:text-primary py-0.5" href="#">安全工作清单目录</a>
+<a class="text-label-sm text-on-surface-variant hover:text-primary py-0.5" href="#">安全职能流程目录</a>
+<a class="text-label-sm text-on-surface-variant hover:text-primary py-0.5" href="#">岗位 / 职能参考目录</a>
+<a class="text-label-sm text-on-surface-variant hover:text-primary py-0.5" href="#">Hype Cycle</a>
+</div>
+</div>
+<a class="flex items-center gap-3 px-6 py-2.5 text-on-surface-variant hover:bg-surface-container-high transition-all mt-2" href="#">
+<span class="material-symbols-outlined">account_balance</span>
+<span class="font-label-md text-label-md">安全标准 / 框架</span>
+</a>
+</nav>
+<div class="p-4 border-t border-outline-variant">
+<button class="w-full bg-primary text-on-primary py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-primary-container transition-colors font-label-md text-label-md">
+<span class="material-symbols-outlined">add</span>
+<span class="">新建分析</span>
+</button>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-sidebar-width mt-topbar-height p-gutter flex flex-col gap-6 min-h-[calc(100vh-56px-32px)] w-full flex-grow">
+<!-- Header Section -->
+<div class="flex flex-col gap-4">
+<nav class="flex items-center gap-2 text-on-surface-variant font-label-md text-label-md">
+<span class="">首页</span>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span class="text-primary font-semibold">安全能力映射</span>
+</nav>
+<div class="flex items-end justify-between">
+<div class="max-w-4xl">
+<div class="flex items-center gap-3 mb-1">
+<h1 class="font-headline-xl text-headline-xl text-on-surface">安全能力映射</h1>
+<span class="bg-primary text-on-primary px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase">P1 工作台</span>
+</div>
+<p class="text-on-surface-variant font-body-md text-body-md leading-relaxed">
+                        从技术视角、管理视角与标准 / 框架维度，映射安全能力的实现路径与支撑关系，支撑安全架构设计与治理落地。通过数据驱动的可视化界面，实现安全能力的标准化沉淀。
+                    </p>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex items-center gap-2 px-4 py-2 border border-outline rounded-lg text-on-surface hover:bg-surface-container transition-all font-label-md text-label-md bg-white">
+<span class="material-symbols-outlined">export_notes</span>
+<span class="">导出数据</span>
+</button>
+<button class="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded-lg hover:bg-primary-container transition-all font-label-md text-label-md">
+<span class="material-symbols-outlined">edit</span>
+<span class="">编辑映射</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Three Column Workbench -->
+<div class="flex flex-1 gap-6 pb-gutter items-stretch">
+<!-- Left: Directory Panel -->
+<div class="w-[280px] bg-white rounded-xl border border-border-neutral flex flex-col shrink-0">
+<div class="p-4 border-b border-border-neutral flex items-center justify-between bg-surface-bright rounded-t-xl">
+<h3 class="font-headline-md text-headline-md">能力目录</h3>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary">filter_list</span>
+</div>
+<div class="p-3 border-b border-border-neutral">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-2 top-1.5 text-on-surface-variant text-[18px]">search</span>
+<input class="w-full h-8 pl-8 pr-2 bg-surface-subtle border-none rounded text-label-md focus:ring-1 focus:ring-primary" placeholder="搜索能力名称..." type="text"/>
+</div>
+</div>
+<div class="flex flex-col gap-1 overflow-y-auto flex-1 p-2">
+<div class="group">
+<div class="flex items-center gap-2 p-1.5 hover:bg-surface-subtle rounded cursor-pointer transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<span class="font-label-md text-label-md">治理与风险管理 (6)</span>
+</div>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-2 p-1.5 bg-secondary-container/30 text-primary border-l-2 border-primary rounded-r cursor-pointer">
+<span class="material-symbols-outlined text-[16px]">expand_more</span>
+<span class="font-label-md text-label-md font-semibold">身份与访问管理 (5)</span>
+</div>
+<div class="pl-7 flex flex-col gap-1.5 mt-1.5 mb-2">
+<a class="text-label-sm text-on-surface-variant hover:text-primary py-0.5" href="#">身份治理</a>
+<a class="text-label-sm text-primary font-bold flex items-center gap-1.5 bg-primary/5 px-2 py-1 rounded" href="#">
+<span class="w-1.5 h-1.5 bg-primary rounded-full"></span>
+                                    访问控制
+                                </a>
+<a class="text-label-sm text-on-surface-variant hover:text-primary py-0.5" href="#">特权访问管理</a>
+<a class="text-label-sm text-on-surface-variant hover:text-primary py-0.5" href="#">认证管理</a>
+</div>
+</div>
+<div class="flex items-center gap-2 p-1.5 hover:bg-surface-subtle rounded cursor-pointer transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<span class="font-label-md text-label-md">数据安全 (12)</span>
+</div>
+<div class="flex items-center gap-2 p-1.5 hover:bg-surface-subtle rounded cursor-pointer transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<span class="font-label-md text-label-md">应用安全 (8)</span>
+</div>
+<div class="flex items-center gap-2 p-1.5 hover:bg-surface-subtle rounded cursor-pointer transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<span class="font-label-md text-label-md">安全运营 (15)</span>
+</div>
+</div>
+</div>
+<!-- Center: Workbench Area -->
+<div class="flex-1 flex flex-col gap-6 min-w-0 h-full"><!-- Tab Navigation -->
+<!-- Summary Card remains above tabs as a fixed header for the capability -->
+<div class="bg-white rounded-xl border border-border-neutral p-6 shadow-sm mb-6">
+<div class="flex items-start justify-between mb-4">
+<div class="flex items-center gap-4">
+<div class="w-14 h-14 bg-primary-container/10 rounded-xl flex items-center justify-center text-primary border border-primary/20">
+<span class="material-symbols-outlined text-[32px]">manage_accounts</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<h2 class="font-headline-lg text-headline-lg text-on-surface">访问控制</h2>
+<span class="bg-status-success/10 text-status-success px-2 py-0.5 rounded-full text-[10px] font-bold border border-status-success/20">已发布</span>
+</div>
+<div class="flex items-center gap-4 mt-1 font-label-md text-label-md text-on-surface-variant">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">id_card</span> CAP-IA-02</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">history</span> v2.1</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">update</span> 2024-05-15</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col items-end gap-3">
+<div class="text-right">
+<span class="block text-label-sm text-text-caption mb-1">能力负责人</span>
+<span class="font-label-md text-label-md text-on-surface flex items-center justify-end gap-1"><span class="material-symbols-outlined text-[14px] text-primary">person</span> 安全架构组 - 李思</span>
+</div>
+<div class="flex items-center gap-4 border border-border-neutral rounded-lg py-2 px-3 bg-surface-bright shadow-sm">
+<div class="flex flex-col items-center px-3 border-r border-border-neutral">
+<span class="text-[10px] text-text-caption mb-0.5">关联标准</span>
+<span class="font-label-md text-on-surface font-semibold">8条</span>
+</div>
+<div class="flex flex-col items-center px-3 border-r border-border-neutral">
+<span class="text-[10px] text-text-caption mb-0.5">证据完整度</span>
+<span class="font-label-md text-status-success font-semibold">85%</span>
+</div>
+<div class="flex flex-col items-center px-3 border-r border-border-neutral">
+<span class="text-[10px] text-text-caption mb-0.5">来源覆盖率</span>
+<span class="font-label-md text-primary font-semibold">92%</span>
+</div>
+<div class="flex flex-col items-center pl-3">
+<span class="text-[10px] text-text-caption mb-0.5">最近更新</span>
+<span class="font-label-md text-on-surface font-semibold">2024-05-15</span>
+</div>
+</div>
+</div>
+</div>
+<p class="text-body-md text-on-surface-variant mb-4 leading-relaxed">
+    对主体访问客体的行为进行识别、鉴别、授权和控制，确保仅允许经过授权的访问，并在整个访问过程中维持最小权限与分离职责。
+  </p>
+<div class="flex items-center gap-2">
+<span class="text-label-sm text-on-surface-variant font-medium">标签:</span>
+<div class="flex flex-wrap gap-2">
+<span class="bg-surface-container-high px-2.5 py-1 rounded text-[11px] font-medium text-primary">IAM</span>
+<span class="bg-surface-container-high px-2.5 py-1 rounded text-[11px] font-medium text-primary">权限控制</span>
+<span class="bg-surface-container-high px-2.5 py-1 rounded text-[11px] font-medium text-primary">最小权限</span>
+<span class="bg-surface-container-high px-2.5 py-1 rounded text-[11px] font-medium text-primary">RBAC</span>
+<span class="bg-surface-container-high px-2.5 py-1 rounded text-[11px] font-medium text-primary">ABAC</span>
+<button class="w-6 h-6 rounded border border-dashed border-outline flex items-center justify-center text-on-surface-variant hover:border-primary hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[14px]">add</span>
+</button>
+</div>
+</div>
+</div><div class="bg-white rounded-xl border border-border-neutral overflow-hidden shadow-sm flex flex-col flex-1">
+<div class="border-b border-border-neutral px-4 bg-surface-bright flex justify-between items-center">
+<div class="flex gap-8">
+<button class="py-3 font-label-md text-label-md border-b-2 border-primary text-primary font-bold">本地摘要</button>
+<button class="py-3 font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors">技术视角</button>
+<button class="py-3 font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors">管理视角</button>
+<button class="py-3 font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors">标准 / 框架映射</button>
+</div>
+<div class="flex gap-2">
+<button class="flex items-center gap-1 text-on-surface-variant hover:text-primary font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px]">info</span> 视图说明
+      </button>
+</div>
+</div>
+<!-- Content Area -->
+<div class="p-6">
+<!-- Local Summary Content (Active by Default) -->
+<div class="flex flex-col gap-8 flex-1" id="local-summary-view"><div class="flex flex-col gap-6">
+<div class="flex items-center justify-between">
+<div>
+<h4 class="font-headline-md text-headline-md text-on-surface font-semibold flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">hub</span>能力拓扑全景图 (深度)
+      </h4>
+<p class="text-label-sm text-on-surface-variant mt-1">基于语义图谱生成的全视角多级能力支撑关系视图</p>
+</div>
+<a class="text-label-sm text-primary flex items-center gap-1 hover:underline px-3 py-1.5 bg-primary/5 rounded-full transition-colors" href="#">
+      进入深度分析模式 <span class="material-symbols-outlined text-[14px]">open_in_new</span>
+</a>
+</div>
+<div class="relative w-full flex items-center justify-center bg-slate-50/50 rounded-2xl border border-outline-variant/20 overflow-hidden perspective-1000 xl:min-h-[850px]">
+<div class="absolute inset-0 opacity-40">
+<img alt="Background Graph Noise" class="w-full h-full object-cover grayscale" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAWFYyyWZ9hxdRnQXSdPVLR5jeJTNYAbA3DS8cf35ix_UFV6g-C6EXLcsjmiIE5-zxXTRLWsj5maMYPS2IKG82QpZ7_69f-G93zfW8w4e4ESnwfvjzdN8qoV7ILpgXzdQ8q3TenKNCxszsVVrf6y8DvUnspHyEj8wGAMEulrXX_rqZ4zQomsyWOx8Pd1Gx6mC86sy8fh-qJOEsoLyUnSqem7mIQ2mGkVQJOWnssRQXBsOcMdCmC2vt9ti4Ks8ZiaeROxxB4axWzgQA"/>
+</div>
+<svg class="absolute inset-0 w-full h-full pointer-events-none" preserveaspectratio="none" viewbox="0 0 1000 750">
+<defs>
+<lineargradient id="grad1" x1="0%" x2="100%" y1="0%" y2="0%">
+<stop offset="0%" style="stop-color:#0052cc;stop-opacity:0.4"></stop>
+<stop offset="100%" style="stop-color:#0052cc;stop-opacity:0.1"></stop>
+</lineargradient>
+</defs>
+<g class="connector-lines" fill="none" stroke="url(#grad1)" stroke-width="1"><path d="M 650 350 Q 800 350, 960 440" stroke-dasharray="4 2"></path><path d="M 650 600 Q 800 600, 960 440" stroke-dasharray="4 2"></path><path d="M 1270 350 Q 1120 350, 960 440" stroke-width="2"></path><path d="M 1270 600 Q 1120 600, 960 440" stroke-width="2"></path><path d="M 450 300 L 650 350" stroke-opacity="0.3"></path><path d="M 450 400 L 650 350" stroke-opacity="0.3"></path><path d="M 450 550 L 650 600" stroke-opacity="0.3"></path><path d="M 450 650 L 650 600" stroke-opacity="0.3"></path><path d="M 1470 300 L 1270 350" stroke-opacity="0.3"></path><path d="M 1470 400 L 1270 350" stroke-opacity="0.3"></path><path d="M 1470 550 L 1270 600" stroke-opacity="0.3"></path><path d="M 1470 650 L 1270 600" stroke-opacity="0.3"></path></g>
+</svg>
+<div class="relative z-20 flex items-center justify-center gap-12 w-full h-full xl:gap-64">
+<div class="flex items-center gap-8 transform rotate-y-10 scale-95">
+<div class="flex flex-col gap-16">
+<div class="flex flex-col gap-3 items-center">
+<div class="bg-white/70 backdrop-blur-md border border-white/50 p-1.5 rounded-lg shadow-sm w-32 text-center text-[10px] font-medium text-on-surface-variant">MFA 模块</div>
+<div class="bg-white/70 backdrop-blur-md border border-white/50 p-1.5 rounded-lg shadow-sm w-32 text-center text-[10px] font-medium text-on-surface-variant">SSO 服务</div>
+</div>
+<div class="flex flex-col gap-3 items-center">
+<div class="bg-white/70 backdrop-blur-md border border-white/50 p-1.5 rounded-lg shadow-sm w-32 text-center text-[10px] font-medium text-on-surface-variant">账号生命周期</div>
+<div class="bg-white/70 backdrop-blur-md border border-white/50 p-1.5 rounded-lg shadow-sm w-32 text-center text-[10px] font-medium text-on-surface-variant">角色权限审计</div>
+</div>
+</div>
+<div class="flex flex-col">
+<div class="bg-primary-container/5 backdrop-blur-xl border border-primary/20 p-4 rounded-xl shadow-lg w-40 text-center ring-1 ring-white/20">
+<div class="text-[9px] text-primary font-bold uppercase tracking-widest mb-1">Technical</div>
+<div class="text-label-md font-semibold text-on-surface">统一身份平台</div>
+</div>
+<div class="bg-secondary-container/5 backdrop-blur-xl border border-on-secondary-container/20 p-4 rounded-xl shadow-lg w-40 text-center ring-1 ring-white/20">
+<div class="text-[9px] text-on-secondary-container font-bold uppercase tracking-widest mb-1">Management</div>
+<div class="text-label-md font-semibold text-on-surface">身份治理流程</div>
+</div>
+</div>
+</div>
+<div class="relative">
+<div class="absolute -inset-8 bg-primary/10 rounded-full blur-3xl animate-pulse"></div>
+<div class="w-52 h-52 rounded-full p-1.5 bg-gradient-to-tr from-primary via-primary/40 to-primary/80 shadow-[0_0_50px_rgba(0,82,204,0.3)] animate-pulse-slow">
+<div class="w-full h-full rounded-full bg-white/90 backdrop-blur-2xl flex flex-col items-center justify-center text-center p-6 border-2 border-white">
+<div class="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-3 shadow-inner">
+<span class="material-symbols-outlined text-[32px]">manage_accounts</span>
+</div>
+<span class="text-[9px] font-bold text-primary uppercase tracking-[0.2em] opacity-80 mb-1">Central Hub</span>
+<h3 class="text-headline-lg font-black text-on-surface tracking-tight leading-none">访问控制</h3>
+<p class="text-[10px] font-medium text-text-caption mt-2 border-t border-outline-variant/30 pt-2">CAP-IA-02</p>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-8 transform -rotate-y-10 scale-95">
+<div class="flex flex-col">
+<div class="bg-status-success/5 backdrop-blur-xl border border-status-success/20 p-4 rounded-xl shadow-lg w-40 text-center ring-1 ring-white/20">
+<div class="text-[9px] text-status-success font-bold uppercase tracking-widest mb-1">Regulation</div>
+<div class="text-label-md font-semibold text-on-surface">等保 2.0 (三级)</div>
+</div>
+<div class="bg-status-info/5 backdrop-blur-xl border border-status-info/20 p-4 rounded-xl shadow-lg w-40 text-center ring-1 ring-white/20">
+<div class="text-[9px] text-status-info font-bold uppercase tracking-widest mb-1">Framework</div>
+<div class="text-label-md font-semibold text-on-surface">NIST CSF 2.0</div>
+</div>
+</div>
+<div class="flex flex-col gap-16">
+<div class="flex flex-col gap-3 items-center">
+<div class="bg-white/70 backdrop-blur-md border border-white/50 p-1.5 rounded-lg shadow-sm w-36 text-center text-[10px] font-medium text-on-surface-variant">访问控制要求</div>
+<div class="bg-white/70 backdrop-blur-md border border-white/50 p-1.5 rounded-lg shadow-sm w-36 text-center text-[10px] font-medium text-on-surface-variant">身份鉴别控制</div>
+</div>
+<div class="flex flex-col gap-3 items-center">
+<div class="bg-white/70 backdrop-blur-md border border-white/50 p-1.5 rounded-lg shadow-sm w-36 text-center text-[10px] font-medium text-on-surface-variant">PR.AC-1 策略</div>
+<div class="bg-white/70 backdrop-blur-md border border-white/50 p-1.5 rounded-lg shadow-sm w-36 text-center text-[10px] font-medium text-on-surface-variant">PR.AC-3 凭据</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div></div></div>
+<!-- Hidden View Template for Technical Perspective -->
+<div class="hidden" id="technical-view">
+<!-- Technical table content would go here -->
+</div>
+</div>
+</div></div>
+</main>
+<!-- Footer Stats -->
+<footer class="fixed bottom-0 left-sidebar-width right-0 h-8 bg-surface-container border-t border-border-neutral flex items-center justify-between px-gutter z-50">
+<div class="flex items-center gap-6 font-label-sm text-label-sm text-on-surface-variant">
+<span class="">创建人: 安全架构组 - 李四</span>
+<span class="">创建时间: 2023-11-10</span>
+<span class="w-px h-3 bg-outline-variant"></span>
+<span class="">最近更新: 王五</span>
+<span class="">更新时间: 2024-05-15 14:30</span>
+</div>
+<div class="flex items-center gap-4 text-on-surface-variant">
+<span class="flex items-center gap-1 font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px]">bolt</span>
+                系统状态: 正常
+            </span>
+</div>
+</footer>
+</body></html>

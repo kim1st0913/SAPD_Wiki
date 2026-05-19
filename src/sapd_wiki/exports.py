@@ -6,6 +6,7 @@ import json
 import re
 import shutil
 import sqlite3
+import tempfile
 import zipfile
 from datetime import datetime
 from pathlib import Path
@@ -123,6 +124,15 @@ STAKEHOLDER_LAYERS = ("决策层", "管理层", "执行层", "监督层")
 
 SCENE_TECHNICAL_MAPPING_SHEET = "作用域-安全技术服务-安全技术模块映射"
 TECHNICAL_MEASURE_SOURCE_COLUMN = "安全技术模块/措施"
+MAINTENANCE_KNOWLEDGE_FIELDS = (
+    "scope_types",
+    "security_processes",
+    "work_function_layers",
+    "security_technology_modules",
+    "security_technical_measures",
+    "gbt_42446_references",
+    "gartner_roles",
+)
 XLSX_MAIN_NS = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
 XLSX_REL_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 XLSX_PACKAGE_REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships"
@@ -244,6 +254,22 @@ def _sort_item_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         return (0 if display_order < 10**9 else 1, display_order, item.get("code") or "", item["title"])
 
     return sorted(rows, key=sort_key)
+
+
+def _maintenance_knowledge_payload(management_payload: dict[str, Any]) -> dict[str, Any]:
+    stats = {
+        field: len(management_payload.get(field) or [])
+        for field in MAINTENANCE_KNOWLEDGE_FIELDS
+    }
+    legacy_stats = management_payload.get("stats") or {}
+    for key in ("work_functions", "process_domains", "process_groups", "process_references", "process_activity_missing"):
+        if key in legacy_stats:
+            stats[key] = legacy_stats[key]
+    return {
+        "generated_at": management_payload.get("generated_at"),
+        "stats": stats,
+        **{field: management_payload.get(field) or [] for field in MAINTENANCE_KNOWLEDGE_FIELDS},
+    }
 
 
 def _brief_item(item: dict[str, Any] | None, source_refs: dict[str, list[dict[str, Any]]]) -> dict[str, Any] | None:
@@ -2043,6 +2069,24 @@ def export_management_knowledge(
     return {"count": len(work_function_layers), "files": [str(output)], "stats": payload["stats"]}
 
 
+def export_maintenance_knowledge(
+    conn: sqlite3.Connection,
+    *,
+    output_path: str | Path,
+) -> dict[str, Any]:
+    """Export page-level maintenance knowledge for the local frontend."""
+
+    output = resolve_project_path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        temp_output = Path(tmp_dir) / "management-knowledge.json"
+        export_management_knowledge(conn, output_path=temp_output)
+        management_payload = json.loads(temp_output.read_text(encoding="utf-8"))
+    payload = _maintenance_knowledge_payload(management_payload)
+    _write_json(output, payload)
+    return {"count": sum(len(payload[field]) for field in MAINTENANCE_KNOWLEDGE_FIELDS), "files": [str(output)], "stats": payload["stats"]}
+
+
 def export_lifecycle_knowledge(
     conn: sqlite3.Connection,
     *,
@@ -2097,6 +2141,8 @@ def export_lifecycle_knowledge(
                 services_by_process.setdefault(target_id, []).append(source_id)
             elif source_type == "security_technology_module":
                 modules_by_process.setdefault(target_id, []).append(source_id)
+            elif source_type == "security_technical_measure":
+                measures_by_process.setdefault(target_id, []).append(source_id)
         elif relation_type == "has_activity" and source_type == "lifecycle_process" and target_type == "security_activity":
             activities_by_process.setdefault(source_id, []).append(target_id)
         elif relation_type == "has_main_activity" and source_type == "lifecycle_process" and target_type == "lifecycle_activity":
@@ -3115,14 +3161,382 @@ def export_frontend_workbenches(
         export_capability_workbench(conn, output_path=base_dir / "capability-workbench.json"),
         export_environment_workbench(conn, output_path=base_dir / "environment-workbench.json"),
         export_lifecycle_workbench(conn, output_path=base_dir / "lifecycle-workbench.json"),
+        export_standard_frameworks_data(conn, output_path=base_dir / "standards-data.json"),
     ]
     files = [file for result in results for file in result.get("files", [])]
     stats = {
         "capability_workbench_relations": results[0].get("stats", {}).get("relations", 0),
         "environment_workbench_relations": results[1].get("stats", {}).get("relations", 0),
         "lifecycle_workbench_relations": results[2].get("stats", {}).get("relations", 0),
+        "standard_framework_controls": results[3].get("stats", {}).get("controls", 0),
     }
     return {"count": sum(stats.values()), "files": files, "stats": stats}
+
+
+def _control_sort_key(value: Any) -> tuple[Any, ...]:
+    text_value = str(value or "")
+    parts: list[Any] = []
+    for part in re.split(r"(\d+)", text_value):
+        if not part:
+            continue
+        parts.append(int(part) if part.isdigit() else part)
+    return tuple(parts)
+
+
+def _standard_control_title_without_code(title: str, code: str) -> str:
+    normalized_title = str(title or "").strip()
+    normalized_code = str(code or "").strip()
+    if normalized_code and normalized_title.startswith(normalized_code):
+        return normalized_title[len(normalized_code):].strip()
+    return normalized_title
+
+
+def export_standard_frameworks_data(
+    conn: sqlite3.Connection,
+    *,
+    output_path: str | Path,
+) -> dict[str, Any]:
+    rows = conn.execute(
+        """
+        SELECT id, code, title, description, metadata_json
+        FROM knowledge_items
+        WHERE status = 'active'
+          AND type IN ('standard_control', 'standard_tier')
+          AND json_extract(metadata_json, '$.framework_code') IN (
+            'GB-T-22239-2019-L3',
+            'CIS-CSC-V8.1.2',
+            'NIST-CSF-2.0',
+            'ISO-IEC-27001-2022',
+            'CRF-SAFEGUARDS-CORE-2026',
+            'CRF-MATURITY-MODEL-2026',
+            'NIST-800-53-REV5'
+          )
+        """
+    ).fetchall()
+
+    by_framework: dict[str, list[dict[str, Any]]] = {
+        "GB-T-22239-2019-L3": [],
+        "CIS-CSC-V8.1.2": [],
+        "NIST-CSF-2.0:core": [],
+        "NIST-CSF-2.0:tiers": [],
+        "ISO-IEC-27001-2022": [],
+        "CRF-SAFEGUARDS-CORE-2026": [],
+        "CRF-MATURITY-MODEL-2026": [],
+        "NIST-800-53-REV5": [],
+    }
+    for row in rows:
+        metadata = _load_json(row["metadata_json"], {})
+        framework_code = metadata.get("framework_code")
+        original_control_id = metadata.get("original_control_id") or ""
+        if framework_code == "GB-T-22239-2019-L3":
+            by_framework[framework_code].append(
+                {
+                    "sort_key": original_control_id,
+                    "等级保护": metadata.get("level") or "",
+                    "等保要求": metadata.get("requirement_group") or "",
+                    "等保控制项": metadata.get("control_group") or "",
+                    "等保三级控制要求": row["description"] or "",
+                    "关联安全能力/关注点": "",
+                }
+            )
+        elif framework_code == "CIS-CSC-V8.1.2":
+            by_framework[framework_code].append(
+                {
+                    "sort_key": original_control_id,
+                    "安全控制项": metadata.get("cis_control_id") or "",
+                    "安全控制项名称": metadata.get("cis_control_name") or "",
+                    "控制项描述": metadata.get("cis_control_description") or "",
+                    "保护措施编号": original_control_id,
+                    "名称": _standard_control_title_without_code(row["title"], original_control_id),
+                    "资产类型": metadata.get("asset_type") or "",
+                    "实施组": metadata.get("implementation_group") or "",
+                    "安全功能": metadata.get("security_function") or "",
+                    "描述": row["description"] or "",
+                    "关联安全能力/关注点": "",
+                }
+            )
+        elif framework_code == "NIST-CSF-2.0" and metadata.get("standard_section") == "core":
+            by_framework["NIST-CSF-2.0:core"].append(
+                {
+                    "sort_key": metadata.get("display_order") or original_control_id,
+                    "功能": metadata.get("function") or "",
+                    "分类": metadata.get("category") or "",
+                    "分类标识符": metadata.get("category_id") or "",
+                    "分类标识符说明": row["description"] or "",
+                    "关联安全能力/关注点": metadata.get("related_capability_focus") or "",
+                }
+            )
+        elif framework_code == "NIST-CSF-2.0" and metadata.get("standard_section") == "tiers":
+            by_framework["NIST-CSF-2.0:tiers"].append(
+                {
+                    "sort_key": metadata.get("display_order") or metadata.get("original_tier_id") or "",
+                    "层级": metadata.get("tier") or row["title"],
+                    "网络安全风险治理（Cybersecurity Risk Governance, GV）": metadata.get("cybersecurity_risk_governance") or "",
+                    "网络安全风险管理（Cybersecurity Risk Management, ID/PR/DE/RS/RC）": metadata.get("cybersecurity_risk_management") or "",
+                }
+            )
+        elif framework_code == "ISO-IEC-27001-2022":
+            by_framework[framework_code].append(
+                {
+                    "sort_key": original_control_id,
+                    "控制类别": metadata.get("control_category") or "",
+                    "控制编号": original_control_id,
+                    "控制名称": metadata.get("control_name") or _standard_control_title_without_code(row["title"], original_control_id),
+                    "控制描述": row["description"] or "",
+                    "控制类型": metadata.get("control_type") or "",
+                    "信息安全特性": metadata.get("information_security_properties") or "",
+                    "网络安全概念": metadata.get("cybersecurity_concepts") or "",
+                    "运营能力": metadata.get("operational_capabilities") or "",
+                    "安全域": metadata.get("security_domains") or "",
+                    "关联安全能力/关注点": "",
+                }
+            )
+        elif framework_code == "CRF-SAFEGUARDS-CORE-2026":
+            by_framework[framework_code].append(
+                {
+                    "sort_key": metadata.get("display_order") or original_control_id,
+                    "保障措施分类": metadata.get("safeguard_category") or "",
+                    "保障措施域": metadata.get("safeguard_domain") or "",
+                    "CRF成熟度等级": metadata.get("maturity_level") or "",
+                    "Safeguard ID": original_control_id,
+                    "保障措施描述": row["description"] or "",
+                    "保障措施系统": metadata.get("safeguard_system") or "",
+                    "关联安全能力/关注点": metadata.get("related_capability_focus") or "",
+                }
+            )
+        elif framework_code == "CRF-MATURITY-MODEL-2026":
+            by_framework[framework_code].append(
+                {
+                    "sort_key": metadata.get("display_order") or metadata.get("original_tier_id") or "",
+                    "等级编号": metadata.get("level_id") or metadata.get("original_tier_id") or "",
+                    "成熟度等级": metadata.get("level_name") or "",
+                    "英文等级": metadata.get("english_level") or "",
+                    "等级定义": metadata.get("definition") or row["description"] or "",
+                    "高层特征": metadata.get("characteristics") or "",
+                    "边界说明": metadata.get("boundary") or "",
+                }
+            )
+        elif framework_code == "NIST-800-53-REV5":
+            english_name = metadata.get("english_name") or _standard_control_title_without_code(row["title"], original_control_id)
+            chinese_name = metadata.get("chinese_name") or ""
+            security_type = metadata.get("security_type") or ""
+            security_type_column = "安全类型（O=组织层面控制，S=系统层面控制，O/S=组织和系统均涉及）"
+            by_framework[framework_code].append(
+                {
+                    "sort_key": metadata.get("display_order") or original_control_id,
+                    "安全控制类": metadata.get("control_family") or "",
+                    "安全控制": " ".join(
+                        value
+                        for value in [metadata.get("base_control_id") or "", metadata.get("base_control_name") or ""]
+                        if value
+                    ),
+                    "安全策略编号": original_control_id,
+                    "安全控制项": f"{chinese_name}（{english_name}）" if chinese_name and english_name else chinese_name or english_name,
+                    "安全级别": metadata.get("baseline_level") or "",
+                    security_type_column: security_type,
+                    "控制描述": row["description"] or "",
+                    "关联安全能力/关注点": "",
+                }
+            )
+
+    def row_count(framework: dict[str, Any]) -> int:
+        return len(framework.get("rows", [])) + sum(len(tab.get("rows", [])) for tab in framework.get("tabs", []))
+
+    def summary_badge(label: str, value: int, unit: str) -> dict[str, Any]:
+        return {"label": label, "value": value, "unit": unit, "text": f"{value} {unit}{label}"}
+
+    def unique_count(rows: list[dict[str, Any]], field: str) -> int:
+        return len({str(row.get(field) or "").strip() for row in rows if str(row.get(field) or "").strip()})
+
+    frameworks = [
+        {
+            "id": "mlps-level-3",
+            "route": "/standards/mlps-level-3",
+            "title": "等级保护三级",
+            "frameworkCode": "GB-T-22239-2019-L3",
+            "columns": ["等级保护", "等保要求", "等保控制项", "等保三级控制要求", "关联安全能力/关注点"],
+            "rows": [
+                {key: value for key, value in row.items() if key != "sort_key"}
+                for row in sorted(by_framework["GB-T-22239-2019-L3"], key=lambda item: _control_sort_key(item["sort_key"]))
+            ],
+        },
+        {
+            "id": "cis-csc-v8",
+            "route": "/standards/cis-csc-v8",
+            "title": "CIS CSC V8",
+            "frameworkCode": "CIS-CSC-V8.1.2",
+            "columns": [
+                "安全控制项",
+                "安全控制项名称",
+                "控制项描述",
+                "保护措施编号",
+                "名称",
+                "资产类型",
+                "实施组",
+                "安全功能",
+                "描述",
+                "关联安全能力/关注点",
+            ],
+            "rows": [
+                {key: value for key, value in row.items() if key != "sort_key"}
+                for row in sorted(by_framework["CIS-CSC-V8.1.2"], key=lambda item: _control_sort_key(item["sort_key"]))
+            ],
+        },
+        {
+            "id": "nist-csf-2",
+            "route": "/standards/nist-csf-2",
+            "title": "NIST CSF 2.0",
+            "frameworkCode": "NIST-CSF-2.0",
+            "tabs": [
+                {
+                    "id": "csf-core",
+                    "title": "CSF Core",
+                    "columns": ["功能", "分类", "分类标识符", "分类标识符说明", "关联安全能力/关注点"],
+                    "rows": [
+                        {key: value for key, value in row.items() if key != "sort_key"}
+                        for row in sorted(by_framework["NIST-CSF-2.0:core"], key=lambda item: _control_sort_key(item["sort_key"]))
+                    ],
+                },
+                {
+                    "id": "csf-tiers",
+                    "title": "CSF Tiers",
+                    "columns": [
+                        "层级",
+                        "网络安全风险治理（Cybersecurity Risk Governance, GV）",
+                        "网络安全风险管理（Cybersecurity Risk Management, ID/PR/DE/RS/RC）",
+                    ],
+                    "rows": [
+                        {key: value for key, value in row.items() if key != "sort_key"}
+                        for row in sorted(by_framework["NIST-CSF-2.0:tiers"], key=lambda item: _control_sort_key(item["sort_key"]))
+                    ],
+                },
+            ],
+        },
+        {
+            "id": "iso-27001-2022",
+            "route": "/standards/iso-27001-2022",
+            "title": "ISO/IEC 27001:2022",
+            "frameworkCode": "ISO-IEC-27001-2022",
+            "columns": [
+                "控制类别",
+                "控制编号",
+                "控制名称",
+                "控制描述",
+                "控制类型",
+                "信息安全特性",
+                "网络安全概念",
+                "运营能力",
+                "安全域",
+                "关联安全能力/关注点",
+            ],
+            "rows": [
+                {key: value for key, value in row.items() if key != "sort_key"}
+                for row in sorted(by_framework["ISO-IEC-27001-2022"], key=lambda item: _control_sort_key(item["sort_key"]))
+            ],
+        },
+        {
+            "id": "crf",
+            "route": "/standards/crf",
+            "title": "CRF",
+            "frameworkCode": "CRF-SAFEGUARDS-CORE-2026",
+            "tabs": [
+                {
+                    "id": "crf-safeguards-core-2026",
+                    "title": "Core",
+                    "columns": [
+                        "保障措施分类",
+                        "保障措施域",
+                        "CRF成熟度等级",
+                        "Safeguard ID",
+                        "保障措施描述",
+                        "保障措施系统",
+                        "关联安全能力/关注点",
+                    ],
+                    "rows": [
+                        {key: value for key, value in row.items() if key != "sort_key"}
+                        for row in sorted(by_framework["CRF-SAFEGUARDS-CORE-2026"], key=lambda item: _control_sort_key(item["sort_key"]))
+                    ],
+                },
+                {
+                    "id": "crf-maturity-model-2026",
+                    "title": "成熟度",
+                    "columns": ["等级编号", "成熟度等级", "英文等级", "等级定义", "高层特征", "边界说明"],
+                    "rows": [
+                        {key: value for key, value in row.items() if key != "sort_key"}
+                        for row in sorted(by_framework["CRF-MATURITY-MODEL-2026"], key=lambda item: _control_sort_key(item["sort_key"]))
+                    ],
+                },
+            ],
+        },
+        {
+            "id": "nist-800-53-rev5",
+            "route": "/standards/nist-800-53-rev5",
+            "title": "NIST SP 800-53 Rev.5",
+            "frameworkCode": "NIST-800-53-REV5",
+            "columns": [
+                "安全控制类",
+                "安全控制",
+                "安全策略编号",
+                "安全控制项",
+                "安全级别",
+                "安全类型（O=组织层面控制，S=系统层面控制，O/S=组织和系统均涉及）",
+                "控制描述",
+                "关联安全能力/关注点",
+            ],
+            "rows": [
+                {key: value for key, value in row.items() if key != "sort_key"}
+                for row in sorted(by_framework["NIST-800-53-REV5"], key=lambda item: _control_sort_key(item["sort_key"]))
+            ],
+        },
+    ]
+    frameworks[0]["summaryBadges"] = [
+        summary_badge("等保要求", unique_count(frameworks[0]["rows"], "等保要求"), "个"),
+        summary_badge("等保控制项", unique_count(frameworks[0]["rows"], "等保控制项"), "个"),
+        summary_badge("控制要求", len(frameworks[0]["rows"]), "条"),
+    ]
+    frameworks[1]["summaryBadges"] = [
+        summary_badge("安全控制项", unique_count(frameworks[1]["rows"], "安全控制项"), "个"),
+        summary_badge("保护措施", len(frameworks[1]["rows"]), "条"),
+    ]
+    frameworks[2]["summaryBadges"] = [
+        summary_badge("CSF Core", len(frameworks[2]["tabs"][0]["rows"]), "条"),
+        summary_badge("CSF Tiers", len(frameworks[2]["tabs"][1]["rows"]), "个"),
+    ]
+    frameworks[3]["summaryBadges"] = [
+        summary_badge("控制类别", unique_count(frameworks[3]["rows"], "控制类别"), "个"),
+        summary_badge("控制项", len(frameworks[3]["rows"]), "项"),
+    ]
+    frameworks[4]["summaryBadges"] = [
+        summary_badge("保障措施", len(frameworks[4]["tabs"][0]["rows"]), "条"),
+        summary_badge("成熟度等级", len(frameworks[4]["tabs"][1]["rows"]), "个"),
+    ]
+    frameworks[5]["summaryBadges"] = [
+        summary_badge("安全控制类", unique_count(frameworks[5]["rows"], "安全控制类"), "个"),
+        summary_badge("安全控制", unique_count(frameworks[5]["rows"], "安全控制"), "项"),
+        summary_badge("安全策略", len(frameworks[5]["rows"]), "条"),
+    ]
+
+    payload = {
+        "generated_at": datetime.now().isoformat(timespec="seconds"),
+        "data_state": "ready",
+        "stats": {
+            "frameworks": len(frameworks),
+            "controls": sum(row_count(framework) for framework in frameworks),
+            "mlps_level_3_controls": len(frameworks[0]["rows"]),
+            "cis_csc_v8_controls": len(frameworks[1]["rows"]),
+            "nist_csf_2_core": len(frameworks[2]["tabs"][0]["rows"]),
+            "nist_csf_2_tiers": len(frameworks[2]["tabs"][1]["rows"]),
+            "iso_27001_2022_controls": len(frameworks[3]["rows"]),
+            "crf_safeguards_core_2026": len(frameworks[4]["tabs"][0]["rows"]),
+            "crf_maturity_model_2026": len(frameworks[4]["tabs"][1]["rows"]),
+            "nist_800_53_rev5_policies": len(frameworks[5]["rows"]),
+        },
+        "frameworks": frameworks,
+    }
+    output = resolve_project_path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    _write_json(output, payload)
+    return {"count": payload["stats"]["controls"], "files": [str(output)], "stats": payload["stats"]}
 
 
 def _latest_import_job_id_or_none(conn: sqlite3.Connection) -> str | None:

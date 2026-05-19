@@ -11,7 +11,7 @@
 | 总体运行模式 | 已形成 `本地 API 优先 + public/data/*.json fallback` 的过渡模式 |
 | 已有页面级投影 | `安全能力映射页` 已有 `/api/v1/capabilities/workspace-projection`，且已补充 `localRelationMap` 画布投影结构 |
 | 未有页面级投影 | `信息化环境维度页`、`LC-AP 开发安全生命周期页` 仍主要依赖 `data-packages` 和前端 ViewModel 整理 |
-| 离线数据包 | 4 个：`capability-tree.json`、`management-knowledge.json`、`lifecycle-knowledge.json`、`content-views.json` |
+| 离线数据包 | 已从 4 个基础包演进为页面级包 + legacy fallback：`capability-tree.json`、`maintenance-knowledge.json`、`management-knowledge.json`、`lifecycle-knowledge.json`、`content-views.json` 等 |
 | 主要契约风险 | 文档中已有若干规划接口，但当前 `api_server.py` 尚未全部实现；后续必须区分“已实现 API”和“计划接口” |
 | 前端边界 | 前端可以排序、筛选、分组和折叠，但不应生成业务关系事实 |
 | 来源证据 | 各数据包均保留 `sources`；主展示区应默认隐藏，仅进入折叠证据区 |
@@ -25,6 +25,7 @@
 | `GET /api/v1/health` | 本地 API 健康检查 | 运行时生成 | 已实现 |
 | `GET /api/v1/data-packages` | 数据包索引 | `DATA_PACKAGES` 配置 | 已实现 |
 | `GET /api/v1/data-packages/capability` | 安全能力数据包 | `capability-tree.json` | 已实现 |
+| `GET /api/v1/data-packages/maintenance` | 专项知识维护数据包 | `maintenance-knowledge.json` | 已实现；缺失时返回 `__data_state=missing_file`，不回退到 `management-knowledge.json` |
 | `GET /api/v1/data-packages/management` | 管理 / 环境 / 专项知识数据包 | `management-knowledge.json` | 已实现 |
 | `GET /api/v1/data-packages/lifecycle` | 生命周期数据包 | `lifecycle-knowledge.json` | 已实现 |
 | `GET /api/v1/data-packages/content` | 说明与视图数据包 | `content-views.json` | 已实现 |
@@ -69,9 +70,11 @@
 | 离线包 | 顶层字段 | 当前统计 | 覆盖页面 |
 |---|---|---|---|
 | `capability-tree.json` | `generated_at`、`stats`、`categories`、`unlinked_focuses` | 分类 3、L1 10、L2 32、关注点 91、服务 157、关注点-作用域映射 379 | 安全能力映射页 |
-| `management-knowledge.json` | `work_function_layers`、`security_processes`、`scope_types`、`security_technology_modules`、`security_technical_measures`、`service_module_index`、`environment_scope_tree` 等 | 职能 86、流程参考 85、作用域 10、模块 121、措施 29、服务模块索引 192、环境对象 66 | 安全能力映射页、信息化环境维度页、专项知识维护 |
+| `maintenance-knowledge.json` | `scope_types`、`security_processes`、`work_function_layers`、`security_technology_modules`、`security_technical_measures`、`gbt_42446_references`、`gartner_roles` | 作用域 10、流程域 10、职能层 4、模块 118、措施 29、GB/T 42446 参考 27、Gartner 角色 28 | 专项知识维护 |
+| `management-knowledge.json` | `work_function_layers`、`security_processes`、`scope_types`、`security_technology_modules`、`security_technical_measures`、`service_module_index`、`environment_scope_tree` 等 | 职能 86、流程参考 85、作用域 10、模块 118、措施 29、服务模块索引 192、环境对象 66 | legacy fallback / 兼容包；不作为标准页数据源 |
 | `lifecycle-knowledge.json` | `application_security_development`、`data_lifecycle`、`service_module_index` | LC-AP 过程 8、数据生命周期过程 8、安全策略 76、开发产品组件 14、安全技术措施 3 | LC-AP 页、数据生命周期页 |
 | `content-views.json` | `html_documents`、`diagram_views`、`guide_pages` | Draw.io 1、PPT guide 1 | 说明与视图 |
+| `standards-data.json` | `frameworks`、`stats` | 等保 113、CIS 153、CSF Core 106、CSF Tiers 4 | 标准/框架页面 |
 
 ## 5. 安全能力映射页契约
 

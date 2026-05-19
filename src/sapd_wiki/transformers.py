@@ -12,6 +12,10 @@ SERVICE_CODE_SHORT_FOCUS_RE = re.compile(
     r"^(?P<scope>(?:[A-Z]{1,3}-[A-Z]{2,3}|ALL))&(?P<focus>(?:(?:[GMT])-)?[A-Z]{2,3}(?:-[A-Z]{2,3})?\.[A-Z]{2}-\d{2})\s*(?P<title>.*)$"
 )
 REPEATED_TRAILING_PAREN_RE = re.compile(r"^(?P<prefix>.+?)(?P<paren>（[^（）]+）)(?P=paren)$")
+PROTECTED_SLASH_TERMS = {
+    "CI/CD",
+    "CI/CD流水线",
+}
 
 
 def is_blank_or_placeholder(value: object) -> bool:
@@ -48,6 +52,11 @@ def split_code_title(value: object) -> tuple[str | None, str]:
     text = normalize_scope_code_text(normalize_text(value))
     if not text:
         return None, ""
+
+    if text in PROTECTED_SLASH_TERMS or any(text.startswith(f"{term} ") for term in PROTECTED_SLASH_TERMS):
+        return None, text
+    if re.match(r"(?i)^N/A\s*[（(]", text):
+        return None, text
 
     service_match = SERVICE_CODE_RE.match(text)
     if service_match:

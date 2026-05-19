@@ -65,6 +65,10 @@ LCAP_TECHNICAL_MEASURE_TITLES = {
     "IaC代码安全测试",
 }
 
+DATA_LIFECYCLE_TECHNICAL_MEASURE_TITLES = {
+    "数据销毁",
+}
+
 
 def _lcap_authoritative_module_title(value: str, authoritative_module_titles: set[str]) -> str | None:
     """Resolve LC-AP module aliases to the existing security technology module master data."""
@@ -375,7 +379,7 @@ def _build_authoritative_module_titles(workbook) -> set[str]:
     ws = workbook[sheet_name]
     titles: set[str] = set()
     last_module = ""
-    for row in ws.iter_rows(min_row=3):
+    for row_idx, row in enumerate(ws.iter_rows(min_row=3), start=3):
         if _is_numeric_summary_value(row[3].value):
             continue
         if normalize_text(row[3].value):
@@ -628,7 +632,7 @@ SECOND_BATCH_SHEETS = [
 
 THIRD_BATCH_SHEETS = [
     "LC-DT 数据生命周期",
-    "LC-DT 数据生命周期场景目录",
+    "LC-DT 安全技术服务、模块、策略映射表",
     "LC-AP 应用安全开发生命周期",
     "LC-AP 应用安全开发生命周期元素目录",
 ]
@@ -679,6 +683,14 @@ def _lifecycle_process_code(prefix: str, order: object) -> str | None:
     except ValueError:
         return f"{prefix}-{text}"
     return f"{prefix}-{number:02d}"
+
+
+def _data_lifecycle_stage_title(value: object) -> str:
+    text = normalize_text(value)
+    if not text:
+        return ""
+    first_line = text.splitlines()[0].strip()
+    return re.sub(r"\s*[（(][^)）]+[)）]\s*$", "", first_line).strip()
 
 
 def _split_lines(value: object) -> list[str]:
@@ -771,7 +783,7 @@ def _build_work_function_lookup(workbook) -> dict[str, dict[str, str | None]]:
     lookup: dict[str, dict[str, str | None]] = {}
     last_layer = ""
     last_group = ""
-    for row in ws.iter_rows(min_row=3):
+    for row_idx, row in enumerate(ws.iter_rows(min_row=3), start=3):
         if _cell_text(row, 1):
             last_layer = _cell_text(row, 1)
         if _cell_text(row, 2):
@@ -1167,22 +1179,49 @@ def parse_data_lifecycle_sheet(workbook, authoritative_service_titles: dict[str,
     sheet_name = "LC-DT 数据生命周期"
     ws = workbook[sheet_name]
     result = ParseResult()
-    for row_index, row in enumerate(ws.iter_rows(min_row=3), start=3):
-        order = _cell_raw(row, 1)
-        process_title = _cell_text(row, 2)
-        if not process_title:
+    last_order: object = None
+    last_process_title = ""
+    last_process_description = ""
+    for row_index, row in enumerate(ws.iter_rows(min_row=4), start=4):
+        if _cell_text(row, 1):
+            last_order = _cell_raw(row, 1)
+        if _cell_text(row, 2):
+            last_process_title = _cell_text(row, 2)
+        if _cell_text(row, 3):
+            last_process_description = _cell_text(row, 3)
+        if not last_process_title:
             continue
         process = _object(
             "lifecycle_process",
-            process_title,
-            code=_lifecycle_process_code("DT", order),
+            last_process_title,
+            code=_lifecycle_process_code("DT", last_order),
+            description=last_process_description,
             qualifier="data",
-            metadata={"lifecycle_type": "data", "order": order},
-            source=_source(sheet_name, row_index, "过程", _coord(row[2]), _cell_raw(row, 2)),
+            metadata={"lifecycle_type": "data", "order": last_order},
+            source=_source(sheet_name, row_index, "过程", _coord(row[2]), _cell_raw(row, 2) or last_process_title),
         )
         result.objects.append(process)
 
-        for service_raw in _split_lines(_cell_raw(row, 3)):
+        scene_code = normalize_text(_cell_raw(row, 4))
+        scene_title = _cell_text(row, 5)
+        scene_description = _cell_text(row, 6)
+        if scene_code or scene_title:
+            if not scene_title:
+                result.validations.append(ValidationMessage("error", sheet_name, row_index, f"生命周期场景 {scene_code} 缺少标题"))
+            else:
+                scene = _object(
+                    "lifecycle_scene",
+                    scene_title,
+                    code=scene_code,
+                    description=scene_description,
+                    qualifier="data",
+                    metadata={"lifecycle_type": "data", "process_title": last_process_title},
+                    source=_source(sheet_name, row_index, "处理子场景", _coord(row[5]), _cell_raw(row, 5)),
+                )
+                result.objects.append(scene)
+                result.relations.append(_relation(process.key, "has_scene", scene.key, "包含场景", source=scene.sources[0]))
+
+        for service_raw in _split_lines(_cell_raw(row, 7)):
             parts = service_parts(service_raw)
             service = _object(
                 "security_technical_service",
@@ -1194,20 +1233,132 @@ def parse_data_lifecycle_sheet(workbook, authoritative_service_titles: dict[str,
                     "capability_focus_code": parts["capability_focus_code"],
                     "lifecycle_type": "data",
                 },
-                source=_source(sheet_name, row_index, "安全技术服务设计", _coord(row[3]), service_raw),
+                source=_source(sheet_name, row_index, "安全技术服务", _coord(row[7]), service_raw),
             )
             result.objects.append(service)
             result.relations.append(_relation(service.key, "maps_to_lifecycle", process.key, "映射到生命周期", source=service.sources[0]))
 
-        for module_raw in _split_lines(_cell_raw(row, 4)):
+        for module_raw in _split_lines(_cell_raw(row, 8)):
+            module_title = normalize_text(module_raw)
+            if module_title in DATA_LIFECYCLE_TECHNICAL_MEASURE_TITLES:
+                measure = _object(
+                    "security_technical_measure",
+                    module_title,
+                    metadata={"lifecycle_type": "data"},
+                    source=_source(sheet_name, row_index, "安全技术模块", _coord(row[8]), module_raw),
+                )
+                result.objects.append(measure)
+                result.relations.append(_relation(measure.key, "maps_to_lifecycle", process.key, "映射到生命周期", source=measure.sources[0]))
+                continue
             module = _object(
                 "security_technology_module",
                 module_raw,
                 metadata={"lifecycle_type": "data"},
-                source=_source(sheet_name, row_index, "安全技术模块设计", _coord(row[4]), module_raw),
+                source=_source(sheet_name, row_index, "安全技术模块", _coord(row[8]), module_raw),
             )
             result.objects.append(module)
             result.relations.append(_relation(module.key, "maps_to_lifecycle", process.key, "映射到生命周期", source=module.sources[0]))
+    return result
+
+
+def _data_lifecycle_process_lookup(workbook) -> dict[str, tuple[object, str]]:
+    sheet_name = "LC-DT 数据生命周期"
+    if sheet_name not in workbook.sheetnames:
+        return {}
+    ws = workbook[sheet_name]
+    lookup: dict[str, tuple[object, str]] = {}
+    last_order: object = None
+    last_title = ""
+    for row in ws.iter_rows(min_row=4):
+        if _cell_text(row, 1):
+            last_order = _cell_raw(row, 1)
+        if _cell_text(row, 2):
+            last_title = _cell_text(row, 2)
+        if last_title:
+            lookup.setdefault(last_title, (last_order, last_title))
+    return lookup
+
+
+def parse_data_lifecycle_mapping_sheet(
+    workbook,
+    authoritative_service_titles: dict[str, str] | None = None,
+) -> ParseResult:
+    sheet_name = "LC-DT 安全技术服务、模块、策略映射表"
+    ws = workbook[sheet_name]
+    result = ParseResult()
+    process_lookup = _data_lifecycle_process_lookup(workbook)
+    last_stage_title = ""
+    last_category = ""
+    for row_index, row in enumerate(ws.iter_rows(min_row=6), start=6):
+        stage_title = _data_lifecycle_stage_title(_cell_raw(row, 1))
+        if stage_title:
+            last_stage_title = stage_title
+        if _cell_text(row, 2):
+            last_category = _cell_text(row, 2)
+        if not last_stage_title:
+            continue
+        order, process_title = process_lookup.get(last_stage_title, (None, last_stage_title))
+        process = _object(
+            "lifecycle_process",
+            process_title,
+            code=_lifecycle_process_code("DT", order),
+            qualifier="data",
+            metadata={"lifecycle_type": "data", "order": order},
+            source=_source(sheet_name, row_index, "阶段", _coord(row[1]), _cell_raw(row, 1) or process_title),
+        )
+        result.objects.append(process)
+
+        relation_metadata = {
+            "lifecycle_type": "data",
+            "strategy_category": last_category,
+            "policy_sequence": normalize_text(_cell_raw(row, 3)) or None,
+        }
+        for service_raw in _split_lines(_cell_raw(row, 12)):
+            parts = service_parts(service_raw)
+            service = _object(
+                "security_technical_service",
+                _service_title(parts, service_raw, authoritative_service_titles),
+                code=parts["code"],
+                category=parts["scope_code"],
+                metadata={
+                    "scope_code": parts["scope_code"],
+                    "capability_focus_code": parts["capability_focus_code"],
+                    "lifecycle_type": "data",
+                    "strategy_category": last_category,
+                },
+                source=_source(sheet_name, row_index, "安全技术服务", _coord(row[12]), service_raw),
+            )
+            result.objects.append(service)
+            result.relations.append(
+                _relation(service.key, "maps_to_lifecycle", process.key, "映射到生命周期", source=service.sources[0], metadata=relation_metadata)
+            )
+
+        for module_raw in _split_lines(_cell_raw(row, 13)):
+            module_title = normalize_text(module_raw)
+            if module_title == "\\":
+                continue
+            if module_title in DATA_LIFECYCLE_TECHNICAL_MEASURE_TITLES:
+                measure = _object(
+                    "security_technical_measure",
+                    module_title,
+                    metadata={"lifecycle_type": "data", "strategy_category": last_category},
+                    source=_source(sheet_name, row_index, "安全技术模块", _coord(row[13]), module_raw),
+                )
+                result.objects.append(measure)
+                result.relations.append(
+                    _relation(measure.key, "maps_to_lifecycle", process.key, "映射到生命周期", source=measure.sources[0], metadata=relation_metadata)
+                )
+                continue
+            module = _object(
+                "security_technology_module",
+                module_raw,
+                metadata={"lifecycle_type": "data", "strategy_category": last_category},
+                source=_source(sheet_name, row_index, "安全技术模块", _coord(row[13]), module_raw),
+            )
+            result.objects.append(module)
+            result.relations.append(
+                _relation(module.key, "maps_to_lifecycle", process.key, "映射到生命周期", source=module.sources[0], metadata=relation_metadata)
+            )
     return result
 
 
@@ -1218,7 +1369,7 @@ def parse_data_lifecycle_scene_sheet(workbook) -> ParseResult:
     last_order: object = None
     last_process_title = ""
     last_process_description = ""
-    for row_index, row in enumerate(ws.iter_rows(min_row=3), start=3):
+    for row_index, row in enumerate(ws.iter_rows(min_row=4), start=4):
         if _cell_text(row, 1):
             last_order = _cell_raw(row, 1)
         if _cell_text(row, 2):
@@ -1489,6 +1640,630 @@ def parse_application_lifecycle_element_sheet(workbook) -> ParseResult:
     return result
 
 
+STANDARD_FRAMEWORK_SHEETS = [
+    "等保三级测评清单",
+    "CIS CSC V8",
+    "CSF2.0",
+    "27001-2022",
+    "CRF Safeguards Core 2026",
+    "CRF Maturity Model 2026",
+    "NIST 800-53rev5",
+]
+
+
+def _framework_object(title: str, *, code: str, standard_family: str, source: SourceRef) -> ObjectCandidate:
+    return _object(
+        "standard_framework",
+        title,
+        code=code,
+        category=standard_family,
+        metadata={
+            "standard_family": standard_family,
+            "object_key": item_key("standard_framework", code, title),
+        },
+        source=source,
+    )
+
+
+def _standard_control_key(code: str, title: str) -> str:
+    return item_key("standard_control", code, title)
+
+
+def _parse_requirement_heading(value: object) -> tuple[str | None, str, str]:
+    text = normalize_text(value)
+    match = re.match(r"^(\d+(?:\.\d+)+)\s*([^\d，。；:：,;]+?)(本项要求包括[:：]?|应|当|$)", text)
+    if not match:
+        return None, text[:40], text
+    control_id = match.group(1)
+    title = normalize_text(match.group(2))
+    return control_id, title, text
+
+
+def parse_debao_level3_sheet(workbook) -> ParseResult:
+    sheet_name = "等保三级测评清单"
+    ws = workbook[sheet_name]
+    result = ParseResult()
+    framework_code = "GB-T-22239-2019-L3"
+    framework_title = "GB/T 22239-2019 网络安全等级保护基本要求 第三级"
+    framework_source = _source(sheet_name, 2, "B:E", "B2:E2", "等保三级测评清单")
+    framework = _framework_object(
+        framework_title,
+        code=framework_code,
+        standard_family="GB/T 22239-2019",
+        source=framework_source,
+    )
+    result.objects.append(framework)
+
+    for row_idx, row in enumerate(ws.iter_rows(min_row=3), start=3):
+        level = normalize_text(row[1].value)
+        requirement_group = normalize_text(row[2].value)
+        control_group = normalize_text(row[3].value)
+        requirement_text = normalize_text(row[4].value)
+        if not requirement_text:
+            continue
+        control_id, title, description = _parse_requirement_heading(requirement_text)
+        if not control_id:
+            result.validations.append(ValidationMessage("warning", sheet_name, row_idx, "未能从等保三级控制要求中解析条款编号"))
+            continue
+        code = f"{framework_code}-{control_id}"
+        source = _source(sheet_name, row_idx, "E", _coord(row[4]), requirement_text)
+        control = _object(
+            "standard_control",
+            title,
+            code=code,
+            description=description,
+            category="等保三级",
+            metadata={
+                "standard_family": "GB/T 22239-2019",
+                "framework_code": framework_code,
+                "framework_title": framework_title,
+                "original_control_id": control_id,
+                "level": level,
+                "requirement_group": requirement_group,
+                "control_group": control_group,
+                "ignored_source_columns": ["F:DSP安全策略项"],
+            },
+            source=source,
+        )
+        result.objects.append(control)
+        result.relations.append(
+            _relation(
+                control.key,
+                "belongs_to_framework",
+                framework.key,
+                "属于标准框架",
+                source=source,
+                metadata={"framework_code": framework_code},
+            )
+        )
+    return result
+
+
+def parse_cis_csc_v8_sheet(workbook) -> ParseResult:
+    sheet_name = "CIS CSC V8"
+    ws = workbook[sheet_name]
+    result = ParseResult()
+    framework_code = "CIS-CSC-V8.1.2"
+    framework_title = "CIS Controls v8.1.2"
+    framework_source = _source(sheet_name, 2, "B:J", "B2:J2", "CIS CSC V8")
+    framework = _framework_object(
+        framework_title,
+        code=framework_code,
+        standard_family="CIS Controls",
+        source=framework_source,
+    )
+    result.objects.append(framework)
+
+    current_control_id = ""
+    current_control_name = ""
+    current_control_description = ""
+    for row_idx, row in enumerate(ws.iter_rows(min_row=3), start=3):
+        control_id = normalize_text(row[1].value)
+        control_name = normalize_text(row[2].value)
+        control_description = normalize_text(row[3].value)
+        safeguard_id = normalize_text(row[4].value)
+        safeguard_name = normalize_text(row[5].value)
+        asset_type = normalize_text(row[6].value)
+        implementation_group = normalize_text(row[7].value)
+        security_function = normalize_text(row[8].value)
+        description = normalize_text(row[9].value)
+
+        if control_id:
+            current_control_id = control_id
+        if control_name:
+            current_control_name = control_name
+        if control_description:
+            current_control_description = control_description
+        if not safeguard_id or not safeguard_name:
+            continue
+
+        code = f"{framework_code}-{safeguard_id}"
+        title = f"{safeguard_id} {safeguard_name}"
+        source = _source(sheet_name, row_idx, "E:J", f"{_coord(row[4])}:{_coord(row[9])}", safeguard_name)
+        control = _object(
+            "standard_control",
+            title,
+            code=code,
+            description=description,
+            category="CIS Controls",
+            metadata={
+                "standard_family": "CIS Controls",
+                "framework_code": framework_code,
+                "framework_title": framework_title,
+                "original_control_id": safeguard_id,
+                "cis_control_id": current_control_id,
+                "cis_control_name": current_control_name,
+                "cis_control_description": current_control_description,
+                "asset_type": asset_type,
+                "implementation_group": implementation_group,
+                "security_function": security_function,
+            },
+            source=source,
+        )
+        result.objects.append(control)
+        result.relations.append(
+            _relation(
+                control.key,
+                "belongs_to_framework",
+                framework.key,
+                "属于标准框架",
+                source=source,
+                metadata={"framework_code": framework_code},
+            )
+        )
+    return result
+
+
+def _parse_csf_subcategory(value: object) -> tuple[str | None, str]:
+    text = normalize_text(value)
+    match = re.match(r"^([A-Z]{2}\.[A-Z]{2}-\d{2})[:：]\s*(.+)$", text)
+    if not match:
+        return None, text
+    return match.group(1), normalize_text(match.group(2))
+
+
+def parse_csf_2_sheet(workbook) -> ParseResult:
+    sheet_name = "CSF2.0"
+    ws = workbook[sheet_name]
+    result = ParseResult()
+    framework_code = "NIST-CSF-2.0"
+    framework_title = "NIST Cybersecurity Framework 2.0"
+    framework_source = _source(sheet_name, 2, "B:F", "B2:F2", "CSF2.0 Core")
+    framework = _framework_object(
+        framework_title,
+        code=framework_code,
+        standard_family="NIST CSF",
+        source=framework_source,
+    )
+    result.objects.append(framework)
+
+    current_function = ""
+    current_category = ""
+    current_category_id = ""
+    for row_idx in range(3, 109):
+        function = normalize_text(ws.cell(row_idx, 2).value)
+        category = normalize_text(ws.cell(row_idx, 3).value)
+        category_id = normalize_text(ws.cell(row_idx, 4).value)
+        subcategory_text = normalize_text(ws.cell(row_idx, 5).value)
+        related_capability = normalize_text(ws.cell(row_idx, 6).value)
+        if function:
+            current_function = function
+        if category:
+            current_category = category
+        if category_id:
+            current_category_id = category_id
+        if not subcategory_text:
+            continue
+        subcategory_id, description = _parse_csf_subcategory(subcategory_text)
+        if not subcategory_id:
+            result.validations.append(ValidationMessage("warning", sheet_name, row_idx, "未能从 CSF Core 中解析 Subcategory 编号"))
+            continue
+        code = f"{framework_code}-{subcategory_id}"
+        source = _source(sheet_name, row_idx, "E:F", f"E{row_idx}:F{row_idx}", subcategory_text)
+        control = _object(
+            "standard_control",
+            description,
+            code=code,
+            description=subcategory_text,
+            category="NIST CSF Core",
+            metadata={
+                "standard_family": "NIST CSF",
+                "framework_code": framework_code,
+                "framework_title": framework_title,
+                "standard_section": "core",
+                "original_control_id": subcategory_id,
+                "function": current_function,
+                "category": current_category,
+                "category_id": current_category_id,
+                "related_capability_focus": related_capability,
+                "display_order": row_idx,
+            },
+            source=source,
+        )
+        result.objects.append(control)
+        result.relations.append(
+            _relation(
+                control.key,
+                "belongs_to_framework",
+                framework.key,
+                "属于标准框架",
+                source=source,
+                metadata={"framework_code": framework_code, "standard_section": "core"},
+            )
+        )
+
+    tier_header = _source(sheet_name, 111, "B:D", "B111:D111", "CSF2.0 Tiers")
+    for row_idx in range(112, 116):
+        tier = normalize_text(ws.cell(row_idx, 2).value)
+        governance = normalize_text(ws.cell(row_idx, 3).value)
+        management = normalize_text(ws.cell(row_idx, 4).value)
+        if not tier:
+            continue
+        tier_match = re.match(r"^第?([一二三四])层", tier)
+        tier_number_map = {"一": "1", "二": "2", "三": "3", "四": "4"}
+        tier_number = tier_number_map.get(tier_match.group(1), "") if tier_match else ""
+        original_id = f"Tier {tier_number}" if tier_number else tier
+        source = _source(sheet_name, row_idx, "B:D", f"B{row_idx}:D{row_idx}", tier)
+        tier_item = _object(
+            "standard_tier",
+            tier,
+            code=f"{framework_code}-{original_id}",
+            description="\n".join(value for value in [governance, management] if value),
+            category="NIST CSF Tiers",
+            metadata={
+                "standard_family": "NIST CSF",
+                "framework_code": framework_code,
+                "framework_title": framework_title,
+                "standard_section": "tiers",
+                "original_tier_id": original_id,
+                "tier": tier,
+                "cybersecurity_risk_governance": governance,
+                "cybersecurity_risk_management": management,
+                "display_order": row_idx,
+            },
+            source=source,
+        )
+        tier_item.sources.insert(0, tier_header)
+        result.objects.append(tier_item)
+        result.relations.append(
+            _relation(
+                tier_item.key,
+                "belongs_to_framework",
+                framework.key,
+                "属于标准框架",
+                source=source,
+                metadata={"framework_code": framework_code, "standard_section": "tiers"},
+            )
+        )
+    return result
+
+
+def parse_iso_27001_2022_sheet(workbook) -> ParseResult:
+    sheet_name = "27001-2022"
+    ws = workbook[sheet_name]
+    result = ParseResult()
+    framework_code = "ISO-IEC-27001-2022"
+    framework_title = "ISO/IEC 27001:2022"
+    framework_source = _source(sheet_name, 2, "B:J", "B2:J3", "27001-2022")
+    framework = _framework_object(
+        framework_title,
+        code=framework_code,
+        standard_family="ISO/IEC 27001",
+        source=framework_source,
+    )
+    result.objects.append(framework)
+
+    current_control_category = ""
+    for row_idx, row in enumerate(ws.iter_rows(min_row=4), start=4):
+        control_category = normalize_text(row[1].value)
+        control_id = normalize_text(row[2].value)
+        control_name = normalize_text(row[3].value)
+        control_description = normalize_text(row[4].value)
+        control_type = normalize_text(row[5].value)
+        security_properties = normalize_text(row[6].value)
+        cybersecurity_concepts = normalize_text(row[7].value)
+        operational_capabilities = normalize_text(row[8].value)
+        security_domains = normalize_text(row[9].value)
+        if control_category:
+            current_control_category = control_category
+        if not control_id or not control_name:
+            continue
+
+        code = f"{framework_code}-{control_id}"
+        title = f"{control_id} {control_name}"
+        source = _source(sheet_name, row_idx, "C:J", f"{_coord(row[2])}:{_coord(row[9])}", control_name)
+        control = _object(
+            "standard_control",
+            title,
+            code=code,
+            description=control_description,
+            category="ISO/IEC 27001:2022",
+            metadata={
+                "standard_family": "ISO/IEC 27001",
+                "framework_code": framework_code,
+                "framework_title": framework_title,
+                "original_control_id": control_id,
+                "control_category": current_control_category,
+                "control_name": control_name,
+                "control_type": control_type,
+                "information_security_properties": security_properties,
+                "cybersecurity_concepts": cybersecurity_concepts,
+                "operational_capabilities": operational_capabilities,
+                "security_domains": security_domains,
+            },
+            source=source,
+        )
+        result.objects.append(control)
+        result.relations.append(
+            _relation(
+                control.key,
+                "belongs_to_framework",
+                framework.key,
+                "属于标准框架",
+                source=source,
+                metadata={"framework_code": framework_code},
+            )
+        )
+    return result
+
+
+def _parse_crf_level_number(value: str) -> str:
+    match = re.search(r"Level\s*(\d+)", value or "", flags=re.IGNORECASE)
+    return match.group(1) if match else ""
+
+
+def parse_crf_safeguards_core_2026_sheet(workbook) -> ParseResult:
+    sheet_name = "CRF Safeguards Core 2026"
+    ws = workbook[sheet_name]
+    result = ParseResult()
+    framework_code = "CRF-SAFEGUARDS-CORE-2026"
+    framework_title = "CRF Safeguards Core Edition v2026"
+    framework_source = _source(sheet_name, 1, "A:G", "A1:G1", framework_title)
+    framework = _framework_object(
+        framework_title,
+        code=framework_code,
+        standard_family="CRF",
+        source=framework_source,
+    )
+    result.objects.append(framework)
+
+    for row_idx, row in enumerate(ws.iter_rows(min_row=2), start=2):
+        safeguard_category = normalize_text(row[0].value)
+        safeguard_domain = normalize_text(row[1].value)
+        maturity_level = normalize_text(row[2].value)
+        safeguard_id = normalize_text(row[3].value)
+        description = normalize_text(row[4].value)
+        safeguard_system = normalize_text(row[5].value)
+        related_capability = normalize_text(row[6].value)
+        if not safeguard_id or not description:
+            continue
+
+        code = f"{framework_code}-{safeguard_id}"
+        source = _source(sheet_name, row_idx, "A:G", f"A{row_idx}:G{row_idx}", safeguard_id)
+        control = _object(
+            "standard_control",
+            f"{safeguard_id} {description[:40]}",
+            code=code,
+            description=description,
+            category="CRF Safeguards Core 2026",
+            metadata={
+                "standard_family": "CRF",
+                "framework_code": framework_code,
+                "framework_title": framework_title,
+                "standard_section": "safeguards_core",
+                "source_edition": "v2026",
+                "original_control_id": safeguard_id,
+                "safeguard_id": safeguard_id,
+                "safeguard_category": safeguard_category,
+                "safeguard_domain": safeguard_domain,
+                "maturity_level": maturity_level,
+                "maturity_level_number": _parse_crf_level_number(maturity_level),
+                "safeguard_system": safeguard_system,
+                "related_capability_focus": related_capability,
+                "display_order": row_idx,
+            },
+            source=source,
+        )
+        result.objects.append(control)
+        result.relations.append(
+            _relation(
+                control.key,
+                "belongs_to_framework",
+                framework.key,
+                "属于标准框架",
+                source=source,
+                metadata={"framework_code": framework_code, "standard_section": "safeguards_core"},
+            )
+        )
+    return result
+
+
+def parse_crf_maturity_model_2026_sheet(workbook) -> ParseResult:
+    sheet_name = "CRF Maturity Model 2026"
+    ws = workbook[sheet_name]
+    result = ParseResult()
+    framework_code = "CRF-MATURITY-MODEL-2026"
+    framework_title = "CRF Maturity Model v2026"
+    framework_source = _source(sheet_name, 1, "A:F", "A1:F1", framework_title)
+    framework = _framework_object(
+        framework_title,
+        code=framework_code,
+        standard_family="CRF",
+        source=framework_source,
+    )
+    result.objects.append(framework)
+
+    for row_idx, row in enumerate(ws.iter_rows(min_row=2), start=2):
+        level_id = normalize_text(row[0].value)
+        level_name = normalize_text(row[1].value)
+        english_level = normalize_text(row[2].value)
+        definition = normalize_text(row[3].value)
+        characteristics = normalize_text(row[4].value)
+        boundary = normalize_text(row[5].value)
+        if not level_id or not level_name:
+            continue
+
+        code = f"{framework_code}-{level_id.replace(' ', '-')}"
+        source = _source(sheet_name, row_idx, "A:F", f"A{row_idx}:F{row_idx}", level_id)
+        tier_item = _object(
+            "standard_tier",
+            f"{level_id} {level_name}",
+            code=code,
+            description=definition,
+            category="CRF Maturity Model 2026",
+            metadata={
+                "standard_family": "CRF",
+                "framework_code": framework_code,
+                "framework_title": framework_title,
+                "standard_section": "maturity_model",
+                "source_edition": "v2026",
+                "original_tier_id": level_id,
+                "level_id": level_id,
+                "level_name": level_name,
+                "english_level": english_level,
+                "definition": definition,
+                "characteristics": characteristics,
+                "boundary": boundary,
+                "display_order": row_idx,
+            },
+            source=source,
+        )
+        result.objects.append(tier_item)
+        result.relations.append(
+            _relation(
+                tier_item.key,
+                "belongs_to_framework",
+                framework.key,
+                "属于标准框架",
+                source=source,
+                metadata={"framework_code": framework_code, "standard_section": "maturity_model"},
+            )
+        )
+    return result
+
+
+def _parse_nist_800_53_family(value: object) -> tuple[str, str]:
+    lines = [normalize_text(part) for part in str(value or "").splitlines()]
+    lines = [line for line in lines if line]
+    if len(lines) >= 2:
+        return lines[0], lines[1]
+    text = normalize_text(value)
+    match = re.match(r"^([A-Z]{2})\s+(.+)$", text)
+    if match:
+        return match.group(1), normalize_text(match.group(2))
+    return text[:2], text
+
+
+def _nist_base_control_id(control_id: str) -> str:
+    return re.sub(r"\(\d+\)$", "", control_id or "")
+
+
+def parse_nist_800_53_rev5_sheet(workbook) -> ParseResult:
+    sheet_name = "NIST 800-53rev5"
+    ws = workbook[sheet_name]
+    result = ParseResult()
+    framework_code = "NIST-800-53-REV5"
+    framework_title = "NIST SP 800-53 Rev.5"
+    framework_source = _source(sheet_name, 4, "B:H", "B4:H4", framework_title)
+    framework = _framework_object(
+        framework_title,
+        code=framework_code,
+        standard_family="NIST SP 800-53",
+        source=framework_source,
+    )
+    result.objects.append(framework)
+
+    current_family_code = ""
+    current_family_name = ""
+    base_control_names: dict[str, str] = {}
+    for row_idx, row in enumerate(ws.iter_rows(min_row=5), start=5):
+        family_value = normalize_text(row[1].value)
+        control_id = normalize_text(row[2].value)
+        english_name = normalize_text(row[3].value)
+        baseline_level = normalize_text(row[4].value)
+        security_type = normalize_text(row[5].value)
+        chinese_name = normalize_text(row[6].value)
+        description = normalize_text(row[7].value)
+        if family_value:
+            current_family_code, current_family_name = _parse_nist_800_53_family(row[1].value)
+        if not control_id or not english_name:
+            continue
+
+        base_control_id = _nist_base_control_id(control_id)
+        if control_id == base_control_id:
+            base_control_names[base_control_id] = chinese_name or english_name
+        base_control_name = base_control_names.get(base_control_id, "")
+        if not base_control_name:
+            base_control_name = chinese_name or english_name
+
+        code = f"{framework_code}-{control_id}"
+        source = _source(sheet_name, row_idx, "C:H", f"{_coord(row[2])}:{_coord(row[7])}", control_id)
+        control = _object(
+            "standard_control",
+            f"{control_id} {english_name}",
+            code=code,
+            description=description,
+            category="NIST SP 800-53 Rev.5",
+            metadata={
+                "standard_family": "NIST SP 800-53",
+                "framework_code": framework_code,
+                "framework_title": framework_title,
+                "original_control_id": control_id,
+                "control_family_code": current_family_code,
+                "control_family_name": current_family_name,
+                "control_family": f"{current_family_code} {current_family_name}".strip(),
+                "base_control_id": base_control_id,
+                "base_control_name": base_control_name,
+                "english_name": english_name,
+                "baseline_level": baseline_level,
+                "security_type": security_type,
+                "chinese_name": chinese_name,
+                "display_order": row_idx,
+            },
+            source=source,
+        )
+        result.objects.append(control)
+        result.relations.append(
+            _relation(
+                control.key,
+                "belongs_to_framework",
+                framework.key,
+                "属于标准框架",
+                source=source,
+                metadata={"framework_code": framework_code},
+            )
+        )
+    return result
+
+
+def parse_standard_framework_sheets(path: str | Path, sheets: list[str] | None = None) -> ParseResult:
+    selected = sheets or STANDARD_FRAMEWORK_SHEETS
+    workbook = _load_workbook(path)
+    try:
+        result = ParseResult()
+        parsers = {
+            "等保三级测评清单": parse_debao_level3_sheet,
+            "CIS CSC V8": parse_cis_csc_v8_sheet,
+            "CSF2.0": parse_csf_2_sheet,
+            "27001-2022": parse_iso_27001_2022_sheet,
+            "CRF Safeguards Core 2026": parse_crf_safeguards_core_2026_sheet,
+            "CRF Maturity Model 2026": parse_crf_maturity_model_2026_sheet,
+            "NIST 800-53rev5": parse_nist_800_53_rev5_sheet,
+        }
+        for sheet_name in selected:
+            if sheet_name not in workbook.sheetnames:
+                result.validations.append(ValidationMessage("error", sheet_name, None, "缺少标准框架 Sheet"))
+                continue
+            parser = parsers.get(sheet_name)
+            if parser is None:
+                result.validations.append(ValidationMessage("error", sheet_name, None, "缺少标准框架 Sheet 解析器"))
+                continue
+            result.extend(parser(workbook))
+        return result
+    finally:
+        workbook.close()
+
+
 def parse_second_batch_sheets(path: str | Path, sheets: list[str] | None = None) -> ParseResult:
     selected = sheets or SECOND_BATCH_SHEETS
     workbook = _load_workbook(path)
@@ -1522,6 +2297,7 @@ def parse_third_batch_sheets(path: str | Path, sheets: list[str] | None = None) 
         parsers = {
             "LC-DT 数据生命周期": lambda wb: parse_data_lifecycle_sheet(wb, authoritative_service_titles),
             "LC-DT 数据生命周期场景目录": parse_data_lifecycle_scene_sheet,
+            "LC-DT 安全技术服务、模块、策略映射表": lambda wb: parse_data_lifecycle_mapping_sheet(wb, authoritative_service_titles),
             "LC-AP 应用安全开发生命周期": lambda wb: parse_application_security_lifecycle_sheet(wb, authoritative_service_titles, authoritative_module_titles),
             "LC-AP 应用安全开发生命周期元素目录": parse_application_lifecycle_element_sheet,
         }

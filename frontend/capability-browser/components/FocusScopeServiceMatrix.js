@@ -5,7 +5,7 @@
   function chipList(items, empty = "暂无", limit = 4) {
     const rows = utils.list(items).filter(Boolean);
     if (!rows.length) return `<span class="empty-inline">${utils.escapeHtml(empty)}</span>`;
-    const visible = rows.slice(0, limit);
+    const visible = Number.isFinite(limit) ? rows.slice(0, limit) : rows;
     const more = rows.length - visible.length;
     return `${visible
       .map((item) => {
@@ -28,7 +28,7 @@
     `;
   }
 
-  function render({ rows }) {
+  function render({ rows, summary = "" }) {
     const mappingRows = utils.list(rows);
     return `
       <section class="semantic-panel technical-mapping-section">
@@ -37,7 +37,7 @@
             <h3>技术视角映射矩阵</h3>
             <p>关注点 × 作用域 → 安全技术服务 → 安全技术模块/措施</p>
           </div>
-          <span>${mappingRows.length} 条映射</span>
+          ${summary ? `<span>${utils.escapeHtml(summary)}</span>` : ""}
         </div>
         <div class="relationship-matrix-scroll semantic-scroll">
           <table class="semantic-mapping-table">
@@ -55,7 +55,7 @@
                     <tr data-capability-id="${utils.escapeHtml(row.focus.id)}">
                       <td><strong>${utils.escapeHtml(row.scope.code || "")}</strong><span>${utils.escapeHtml(row.scope.title)}</span></td>
                       <td>${row.status === "ambiguous_service_mapping" ? `<span class="missing-pill">映射异常</span>${exceptionDetails(row)}` : chipList(row.services, "无适用服务")}</td>
-                      <td>${row.status === "ambiguous_service_mapping" ? '<span class="empty-inline">待确认</span>' : chipList(row.modules, row.status === "no_service" ? "不适用" : "暂无模块")}</td>
+                      <td>${row.status === "ambiguous_service_mapping" ? '<span class="empty-inline">待确认</span>' : chipList(row.modules, row.status === "no_service" ? "不适用" : "暂无模块", Infinity)}</td>
                     </tr>
                   `,
                 )

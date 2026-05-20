@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 from xml.etree import ElementTree as ET
 
+from .excel_reader import _load_openpyxl
 from .paths import PROJECT_ROOT, resolve_project_path
 from .queries import item_counts_by_type, relation_counts_by_type, table_counts
 from .transformers import is_blank_or_placeholder, service_parts, split_multivalue_text, split_scope_values
@@ -2681,6 +2682,129 @@ def _focus_code_from_service(service: dict[str, Any]) -> str:
     return ""
 
 
+STANDARD_MAPPING_WORKBOOK = PROJECT_ROOT / "data" / "raw-samples" / "wiki sample.xlsx"
+STANDARD_MAPPING_SHEET = "安全能力-网络安全制度、框架映射"
+STANDARD_MAPPING_COLUMNS = (
+    ("ISO-IEC-27001-2022", 7, "ISO 27001:2022"),
+    ("NIST-CSF-2.0", 8, "CSF 2.0"),
+    ("GB-T-22239-2019-L3", 9, "等级保护3级通用要求"),
+    ("CIS-CSC-V8.1.2", 11, "CIS CSC V8"),
+    ("CRF-SAFEGUARDS-CORE-2026", 12, "CRF"),
+    ("NIST-800-53-REV5", 14, "NIST 800-53 rev5"),
+)
+
+
+def _extract_standard_mapping_ids(framework_code: str, value: Any) -> list[str]:
+    text = str(value or "").strip()
+    if not text:
+        return []
+    if framework_code == "NIST-CSF-2.0":
+        matches = re.findall(r"\b[A-Z]{2}\.[A-Z]{2}-\d{2}\b", text)
+    elif framework_code == "CRF-SAFEGUARDS-CORE-2026":
+        matches = re.findall(r"\b[A-Z]{2,4}-\d{2}\b", text)
+    elif framework_code == "NIST-800-53-REV5":
+        matches = re.findall(r"\b[A-Z]{2}-\d+(?:\(\d+\))?", text)
+    else:
+        matches = re.findall(r"\b\d+(?:\.\d+)+(?:[a-z])?\b", text, flags=re.IGNORECASE)
+    return list(dict.fromkeys(matches))
+
+
+def _normalize_mapping_control_id(framework_code: str, control_id: str) -> str:
+    normalized = str(control_id or "").strip()
+    if framework_code == "GB-T-22239-2019-L3":
+        return re.sub(r"[a-z]$", "", normalized, flags=re.IGNORECASE)
+    return normalized
+
+
+def _capability_standard_mapping_rows() -> list[dict[str, Any]]:
+    if not STANDARD_MAPPING_WORKBOOK.exists():
+        return []
+    load_workbook = _load_openpyxl()
+    workbook = load_workbook(STANDARD_MAPPING_WORKBOOK, read_only=True, data_only=True)
+    if STANDARD_MAPPING_SHEET not in workbook.sheetnames:
+        workbook.close()
+        return []
+    worksheet = workbook[STANDARD_MAPPING_SHEET]
+    rows: list[dict[str, Any]] = []
+    for row_idx in range(5, worksheet.max_row + 1):
+        focus_code = _wb_text(worksheet.cell(row_idx, 5).value).strip()
+        if not focus_code:
+            continue
+        for framework_code, col_idx, framework_label in STANDARD_MAPPING_COLUMNS:
+            raw_value = _wb_text(worksheet.cell(row_idx, col_idx).value).strip()
+            for control_id in _extract_standard_mapping_ids(framework_code, raw_value):
+                rows.append(
+                    {
+                        "focus_code": focus_code,
+                        "framework_code": framework_code,
+                        "framework_label": framework_label,
+                        "control_id": control_id,
+                        "normalized_control_id": _normalize_mapping_control_id(framework_code, control_id),
+                        "source": {
+                            "sheet": STANDARD_MAPPING_SHEET,
+                            "row": row_idx,
+                            "column": framework_label,
+                            "cell": worksheet.cell(row_idx, col_idx).coordinate,
+                            "raw_value": raw_value,
+                        },
+                    }
+                )
+    workbook.close()
+    return rows
+
+
+def _standard_items_for_workbench(conn: sqlite3.Connection) -> tuple[dict[str, dict[str, Any]], dict[tuple[str, str], dict[str, Any]]]:
+    framework_rows = conn.execute(
+        """
+        SELECT id, code, title, description, category, status
+        FROM knowledge_items
+        WHERE status = 'active'
+          AND type = 'standard_framework'
+        """
+    ).fetchall()
+    frameworks: dict[str, dict[str, Any]] = {}
+    for row in framework_rows:
+        frameworks[row["code"]] = {
+            "id": row["id"],
+            "type": "standard_framework",
+            "code": row["code"],
+            "title": row["title"],
+            "description": row["description"],
+            "category": row["category"],
+            "status": row["status"],
+        }
+
+    control_rows = conn.execute(
+        """
+        SELECT id, code, title, description, category, status, metadata_json
+        FROM knowledge_items
+        WHERE status = 'active'
+          AND type = 'standard_control'
+        """
+    ).fetchall()
+    controls: dict[tuple[str, str], dict[str, Any]] = {}
+    for row in control_rows:
+        metadata = _load_json(row["metadata_json"], {})
+        framework_code = metadata.get("framework_code") or ""
+        original_control_id = metadata.get("original_control_id") or ""
+        if not framework_code or not original_control_id:
+            continue
+        controls[(framework_code, original_control_id)] = {
+            "id": row["id"],
+            "type": "standard_control",
+            "code": row["code"],
+            "title": row["title"],
+            "description": row["description"],
+            "category": row["category"],
+            "status": row["status"],
+            "frameworkCode": framework_code,
+            "frameworkTitle": metadata.get("framework_title") or "",
+            "originalControlId": original_control_id,
+            "related_capability_focus": metadata.get("related_capability_focus") or "",
+        }
+    return frameworks, controls
+
+
 def _capability_lookups(capability_tree: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
     capabilities: dict[str, dict[str, Any]] = {}
     focuses: dict[str, dict[str, Any]] = {}
@@ -2768,6 +2892,12 @@ def export_capability_workbench(
     evidence_refs: dict[str, dict[str, Any]] = {}
     service_index = _service_index_by_key(_wb_list(management.get("service_module_index")))
     measures = _wb_list(management.get("security_technical_measures"))
+    _, focus_by_code = _capability_lookups(capability_tree)
+    standard_frameworks_by_code, standard_controls_by_key = _standard_items_for_workbench(conn)
+    standard_mapping_rows = _capability_standard_mapping_rows()
+    standard_mapping_missing_controls: list[dict[str, Any]] = []
+    standard_mapping_unmatched_focuses: list[dict[str, Any]] = []
+    standard_mapping_source_pairs: set[tuple[str, str, str]] = set()
 
     navigator_tree: list[dict[str, Any]] = []
     default_focus_id = None
@@ -2870,6 +3000,52 @@ def export_capability_workbench(
             domain_nodes.append(_wb_navigator_node(domain, "capability_domain", capability_nodes))
         navigator_tree.append(_wb_navigator_node(category, "capability_category", domain_nodes))
 
+    for mapping in standard_mapping_rows:
+        standard_mapping_source_pairs.add((mapping["focus_code"], mapping["framework_code"], mapping["normalized_control_id"]))
+        focus_item = focus_by_code.get(mapping["focus_code"])
+        if not focus_item:
+            standard_mapping_unmatched_focuses.append(mapping)
+            continue
+        focus_obj = objects["capability_focus"].get(_wb_key(focus_item)) or _wb_add_object(objects, evidence_refs, focus_item, "capability_focus")
+        framework_item = standard_frameworks_by_code.get(mapping["framework_code"])
+        control_item = standard_controls_by_key.get((mapping["framework_code"], mapping["normalized_control_id"]))
+        if not control_item:
+            standard_mapping_missing_controls.append(mapping)
+            continue
+        framework_obj = None
+        if framework_item:
+            framework_obj = _wb_add_object(objects, evidence_refs, framework_item, "standard_framework", fallback_name=mapping["framework_label"])
+            _wb_add_relation(relations, seen_relations, "belongs_to_framework", _wb_add_object(objects, evidence_refs, control_item, "standard_control"), framework_obj, label="属于标准框架")
+        control_obj = _wb_add_object(
+            objects,
+            evidence_refs,
+            control_item,
+            "standard_control",
+            extra={
+                "frameworkCode": control_item.get("frameworkCode"),
+                "frameworkTitle": control_item.get("frameworkTitle"),
+                "originalControlId": control_item.get("originalControlId"),
+            },
+        )
+        _wb_add_relation(
+            relations,
+            seen_relations,
+            "maps_to_standard",
+            focus_obj,
+            control_obj,
+            label="映射标准控制项",
+            evidence_refs=_wb_collect_evidence(evidence_refs, {"sources": [mapping["source"]]}),
+        )
+
+    standard_projection_pairs: set[tuple[str, str, str]] = set()
+    for (framework_code, original_control_id), control_item in standard_controls_by_key.items():
+        related_codes = _related_capability_focus_codes(control_item.get("related_capability_focus") or "").splitlines()
+        for focus_code in related_codes:
+            if focus_code:
+                standard_projection_pairs.add((focus_code, framework_code, _normalize_mapping_control_id(framework_code, original_control_id)))
+    missing_in_standard_projection = sorted(standard_mapping_source_pairs - standard_projection_pairs)
+    extra_in_standard_projection = sorted(standard_projection_pairs - standard_mapping_source_pairs)
+
     payload["navigator"] = {
         "defaultSelectedFocusId": default_focus_id,
         "tree": navigator_tree,
@@ -2883,7 +3059,7 @@ def export_capability_workbench(
         _wb_group("technical-mapping", "技术视角映射", ["supports_focus", "applies_to_scope", "implemented_by_module", "has_measure"], relations),
         _wb_group("management-mapping", "管理视角映射", ["maps_to_work", "stakeholder_by"], relations),
         _wb_group("process-mapping", "流程映射", ["maps_to_process", "has_activity"], relations),
-        _wb_group("standard-mapping", "标准 / 框架映射", ["maps_to_standard"], relations),
+        _wb_group("standard-mapping", "标准 / 框架映射", ["maps_to_standard", "belongs_to_framework"], relations),
         _wb_group("module-measure-mapping", "技术模块 / 技术措施映射", ["implemented_by_module", "has_measure"], relations),
         _wb_group("scope-mapping", "作用域映射", ["applies_to_scope"], relations),
     ]
@@ -2894,10 +3070,27 @@ def export_capability_workbench(
         "stats": stats,
     }
     payload["meta"]["stats"] = stats
+    payload["meta"]["standardMappingValidation"] = {
+        "sourceRows": len(standard_mapping_rows),
+        "uniqueSourcePairs": len(standard_mapping_source_pairs),
+        "mappedRelations": len([relation for relation in relations if relation.get("type") == "maps_to_standard"]),
+        "missingControls": len(standard_mapping_missing_controls),
+        "unmatchedFocuses": len(standard_mapping_unmatched_focuses),
+        "missingInStandardProjection": len(missing_in_standard_projection),
+        "extraInStandardProjection": len(extra_in_standard_projection),
+    }
     payload["compatibility"]["warnings"] = [
-        "capability-workbench.json 当前由 capability-tree.json 与 management-knowledge.json 的既有前端投影整理生成。",
-        "标准 / 框架映射关系组已预留；当前旧数据包尚未提供稳定标准控制项投影。",
+        "capability-workbench.json 当前由 capability-tree.json、management-knowledge.json 与 capability-first 标准 / 框架映射表整理生成。",
+        "标准 / 框架映射以 capability-first 映射表为业务主源，并与标准 Sheet 已投影的关联关注点字段做双向验证。",
     ]
+    if standard_mapping_missing_controls:
+        payload["compatibility"]["warnings"].append(f"标准映射中有 {len(standard_mapping_missing_controls)} 条控制项未匹配到当前标准主数据。")
+    if standard_mapping_unmatched_focuses:
+        payload["compatibility"]["warnings"].append(f"标准映射中有 {len(standard_mapping_unmatched_focuses)} 条关注点未匹配到能力树。")
+    if missing_in_standard_projection or extra_in_standard_projection:
+        payload["compatibility"]["warnings"].append(
+            f"标准映射双向验证存在差异：标准页缺少 {len(missing_in_standard_projection)} 条，标准页额外 {len(extra_in_standard_projection)} 条。"
+        )
     output = resolve_project_path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
     _write_json(output, payload)
@@ -3191,6 +3384,16 @@ def _standard_control_title_without_code(title: str, code: str) -> str:
     return normalized_title
 
 
+def _related_capability_focus_codes(value: Any) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    codes = re.findall(r"\b[TGM]-[A-Z]{2}\.[A-Z]{2}-\d{2}\b", text)
+    if not codes:
+        return text
+    return "\n".join(dict.fromkeys(codes))
+
+
 def export_standard_frameworks_data(
     conn: sqlite3.Connection,
     *,
@@ -3228,6 +3431,7 @@ def export_standard_frameworks_data(
         metadata = _load_json(row["metadata_json"], {})
         framework_code = metadata.get("framework_code")
         original_control_id = metadata.get("original_control_id") or ""
+        related_capability_focus = _related_capability_focus_codes(metadata.get("related_capability_focus"))
         if framework_code == "GB-T-22239-2019-L3":
             by_framework[framework_code].append(
                 {
@@ -3236,7 +3440,7 @@ def export_standard_frameworks_data(
                     "等保要求": metadata.get("requirement_group") or "",
                     "等保控制项": metadata.get("control_group") or "",
                     "等保三级控制要求": row["description"] or "",
-                    "关联安全能力/关注点": "",
+                    "关联安全能力/关注点": related_capability_focus,
                 }
             )
         elif framework_code == "CIS-CSC-V8.1.2":
@@ -3252,7 +3456,7 @@ def export_standard_frameworks_data(
                     "实施组": metadata.get("implementation_group") or "",
                     "安全功能": metadata.get("security_function") or "",
                     "描述": row["description"] or "",
-                    "关联安全能力/关注点": "",
+                    "关联安全能力/关注点": related_capability_focus,
                 }
             )
         elif framework_code == "NIST-CSF-2.0" and metadata.get("standard_section") == "core":
@@ -3263,7 +3467,7 @@ def export_standard_frameworks_data(
                     "分类": metadata.get("category") or "",
                     "分类标识符": metadata.get("category_id") or "",
                     "分类标识符说明": row["description"] or "",
-                    "关联安全能力/关注点": metadata.get("related_capability_focus") or "",
+                    "关联安全能力/关注点": related_capability_focus,
                 }
             )
         elif framework_code == "NIST-CSF-2.0" and metadata.get("standard_section") == "tiers":
@@ -3288,7 +3492,7 @@ def export_standard_frameworks_data(
                     "网络安全概念": metadata.get("cybersecurity_concepts") or "",
                     "运营能力": metadata.get("operational_capabilities") or "",
                     "安全域": metadata.get("security_domains") or "",
-                    "关联安全能力/关注点": "",
+                    "关联安全能力/关注点": related_capability_focus,
                 }
             )
         elif framework_code == "CRF-SAFEGUARDS-CORE-2026":
@@ -3301,7 +3505,7 @@ def export_standard_frameworks_data(
                     "Safeguard ID": original_control_id,
                     "保障措施描述": row["description"] or "",
                     "保障措施系统": metadata.get("safeguard_system") or "",
-                    "关联安全能力/关注点": metadata.get("related_capability_focus") or "",
+                    "关联安全能力/关注点": related_capability_focus,
                 }
             )
         elif framework_code == "CRF-MATURITY-MODEL-2026":
@@ -3335,7 +3539,7 @@ def export_standard_frameworks_data(
                     "安全级别": metadata.get("baseline_level") or "",
                     security_type_column: security_type,
                     "控制描述": row["description"] or "",
-                    "关联安全能力/关注点": "",
+                    "关联安全能力/关注点": related_capability_focus,
                 }
             )
 

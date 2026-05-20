@@ -47,6 +47,20 @@
 - 后续会话恢复时优先读取 `CURRENT_STATE.md` 和 `docs/00-overview/master-context-restore.md`，不要默认读取完整历史归档。
 - 架构 reasoning、schema reasoning、ETL strategy、data governance 决策应写入对应 docs 或治理文档，不继续堆进 `progress.md`。
 - 当前治理入口为 `docs/07-governance/governance-index.md`；数据治理规则以 `docs/07-governance/data-governance.md` 为准。
+- Codex 执行性能与上下文治理以 `docs/07-governance/codex-performance-workflow.md` 为准；当用户只说“继续执行”“执行”“排查一下”“修一下”时，默认按该文档执行轻量恢复、局部读取、摘要验证和必要的 checkpoint。
+
+## Codex 轻量执行规则
+
+为避免长会话、大输出和重复本地服务导致卡顿或重连，Codex 在本项目中必须遵守：
+
+- 开工默认只读 `CURRENT_STATE.md`、`progress.md`，必要时再读 `task_plan.md`、`findings.md` 和目标文件局部。
+- 不默认读取 `docs/05-archive/`、`data/exports/`、`frontend/capability-browser/public/data/*.json` 或数据库备份。
+- 不默认输出全量 `git diff`、全量 DOM、全量 console log、全量 `ps -ax`；先用摘要命令，再按异常深入。
+- 前端验证优先使用 `node scripts/frontend_smoke_check.mjs --page <page>`，只输出摘要指标和截图路径。
+- 数据包检查优先使用 `python3 scripts/data_package_summary.py --package <name>`，不直接打印完整 JSON。
+- 本地服务检查优先使用 `python3 scripts/dev_server_guard.py --status`；需要修复重复服务时使用 `--fix-duplicates --start`。
+- `progress.md` 超过 120 行时应先归档瘦身，再继续大任务。
+- 工作区存在大量未提交改动时，应建议 checkpoint commit，降低重连后的恢复成本。
 
 ## 问题维护规则
 

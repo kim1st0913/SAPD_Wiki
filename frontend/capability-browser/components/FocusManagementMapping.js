@@ -57,7 +57,7 @@
     return chipList(row.activities, "待补充", 4);
   }
 
-  function render({ rows }) {
+  function render({ rows, summary = "" }) {
     const mappingRows = utils.list(rows);
     return `
       <section class="semantic-panel management-mapping-section">
@@ -66,7 +66,7 @@
             <h3>管理视角映射矩阵</h3>
             <p>单一能力归属 L2 流程组；关注点集合关联安全工作与 L3 流程</p>
           </div>
-          <span>${mappingRows.length} 条映射</span>
+          ${summary ? `<span>${utils.escapeHtml(summary)}</span>` : ""}
         </div>
         <div class="relationship-matrix-scroll semantic-scroll">
           <table class="semantic-mapping-table">

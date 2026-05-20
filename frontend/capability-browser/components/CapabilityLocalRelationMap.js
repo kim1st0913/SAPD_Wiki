@@ -73,6 +73,24 @@
     return `<span class="preview-chip ${tone ? `tone-${escape(tone)}` : ""}">${escape(label)}</span>`;
   }
 
+  function tooltipText(item) {
+    return [
+      item?.frameworkTitle || item?.frameworkCode || "",
+      item?.originalControlId || entityCode(item),
+      entityName(item, ""),
+      item?.description || "",
+    ]
+      .map((value) => text(value).trim())
+      .filter(Boolean)
+      .join("\n");
+  }
+
+  function standardControlChip(item) {
+    const code = text(item?.originalControlId || entityCode(item) || entityName(item, "未编号")).trim();
+    const tooltip = tooltipText(item);
+    return `<span class="preview-chip standard-tooltip-chip standard-control-code-chip" data-tooltip="${escape(tooltip)}" aria-label="${escape(tooltip || code)}" tabindex="0">${escape(code)}</span>`;
+  }
+
   function linkByServiceKey(links = []) {
     const map = new Map();
     for (const link of list(links)) {
@@ -147,7 +165,7 @@
       l2Processes,
       l3Processes,
       l4Activities,
-      standardStatus: standards.length || controls.length ? `${standards.length + controls.length}` : "待投影",
+      standardStatus: controls.length ? `${controls.length}` : standards.length ? `${standards.length}` : "待投影",
       pending: countPending(map),
     };
   }
@@ -184,6 +202,12 @@
     return rows.map((item, index) => chip(entityName(item), index < 2 ? "primary" : "")).join("");
   }
 
+  function standardControlChips(items, empty = "暂无控制项") {
+    const rows = unique(items).filter(Boolean);
+    if (!rows.length) return `<span class="preview-chip is-empty">${escape(empty)}</span>`;
+    return rows.map((item) => standardControlChip(item)).join("");
+  }
+
   function functionLayerGroups(groups = {}) {
     return LAYERS.map((layer) => ({
       ...layer,
@@ -208,7 +232,7 @@
     `;
   }
 
-  function renderMappingTable({ columns = [], rows = [], emptyTitle = "暂无映射矩阵", emptyBody = "当前关注点尚未形成该视角的可展示映射。", mode = "technical", title = "映射矩阵", description = "" } = {}) {
+  function renderMappingTable({ columns = [], rows = [], emptyTitle = "暂无映射矩阵", emptyBody = "当前关注点尚未形成该视角的可展示映射。", mode = "technical", title = "映射矩阵", description = "", summary = "" } = {}) {
     if (!rows.length) {
       return `<section class="preview-matrix-panel"><div class="preview-table-empty"><strong>${escape(emptyTitle)}</strong><span>${escape(emptyBody)}</span></div></section>`;
     }
@@ -219,7 +243,7 @@
             <h3>${escape(title)}</h3>
             ${description ? `<p>${escape(description)}</p>` : ""}
           </div>
-          <span>${escape(rows.length)} 条映射</span>
+          ${summary ? `<span>${escape(summary)}</span>` : ""}
         </header>
         <div class="preview-mapping-table-wrap" aria-label="${escape(title)}">
           <table class="preview-mapping-table ${escape(mode)}-mapping-table">
@@ -237,6 +261,7 @@
                       ${columns
                         .map((column) => {
                           const value = row[column.key];
+                          if (column.type === "standardControls") return `<td><div class="preview-chip-row standard-control-chip-row">${standardControlChips(value, column.empty)}</div></td>`;
                           if (column.type === "chips") return `<td><div class="preview-chip-row">${mappingObjectChips(value, column.empty)}</div></td>`;
                           if (column.type === "status") return `<td><span class="preview-status ${escape(row.statusTone || "")}">${escape(value || "已映射")}</span></td>`;
                           if (column.type === "path") return `<td><strong>${escape(value?.title || "待补充")}</strong>${value?.code ? `<span>${escape(value.code)}</span>` : ""}</td>`;
@@ -311,9 +336,14 @@
     const controls = list(map.standards?.controls || map.standardControls);
     return standards.map((standard) => ({
       standard: entityName(standard),
-      controls: controls.slice(0, 2),
-      requirement: "参考要求以后端标准 / 控制项投影为准",
+      controls: controls.filter((control) => !control.frameworkCode || !entityCode(standard) || control.frameworkCode === entityCode(standard)),
     }));
+  }
+
+  function countLabel(value, unit) {
+    const normalized = text(value).trim();
+    if (!normalized || normalized === "待投影" || normalized === "无直接投影") return normalized || "待投影";
+    return `${normalized} ${unit}`;
   }
 
   function summaryNode(label, title, code = "", modifier = "") {
@@ -385,7 +415,7 @@
         l2: processGroups.length,
         l3: processReferences.length,
         l4: l4State,
-        standard: standards.length || controls.length ? `${standards.length + controls.length}` : "无直接投影",
+        standard: controls.length ? `${controls.length}` : standards.length ? `${standards.length}` : "无直接投影",
       },
       technical: {
         pairs: technicalPairs,
@@ -542,7 +572,7 @@
     if (!standards.length && !controls.length) {
       return `
         <section class="preview-view-graph">
-          <header><h3>标准 / 框架映射</h3><span>当前关注点 -> 标准 / 框架 -> 条款 / 控制项 / 参考要求</span></header>
+          <header><h3>标准 / 框架映射</h3><span>当前关注点 -> 标准 / 框架 -> 条款 / 控制项</span></header>
           <div class="preview-standard-empty">
             ${summaryNode("当前关注点", entityName(map.focus, "当前关注点"), valueOf(map.focus?.code, ""), "current")}
             ${summaryConnector("待投影")}
@@ -565,25 +595,26 @@
     `;
   }
 
-  function renderOriginalTechnicalMatrix(rows = []) {
+  function renderOriginalTechnicalMatrix(rows = [], summary = "") {
     if (!components.FocusScopeServiceMatrix?.render) {
       return `<section class="preview-matrix-panel"><div class="preview-table-empty"><strong>技术视角映射矩阵未加载</strong><span>原矩阵组件 FocusScopeServiceMatrix 当前不可用。</span></div></section>`;
     }
-    return components.FocusScopeServiceMatrix.render({ rows });
+    return components.FocusScopeServiceMatrix.render({ rows, summary });
   }
 
-  function renderOriginalManagementMatrix(rows = []) {
+  function renderOriginalManagementMatrix(rows = [], summary = "") {
     if (!components.FocusManagementMapping?.render) {
       return `<section class="preview-matrix-panel"><div class="preview-table-empty"><strong>管理视角映射矩阵未加载</strong><span>原矩阵组件 FocusManagementMapping 当前不可用。</span></div></section>`;
     }
-    return components.FocusManagementMapping.render({ rows });
+    return components.FocusManagementMapping.render({ rows, summary });
   }
 
   function renderViewPanel(map, focusOverview, mode, matrices = {}) {
+    const stats = relationshipStats(map);
     if (mode === "technical") {
       return `
         <div class="preview-tab-panel technical-panel original-matrix-panel">
-          ${renderOriginalTechnicalMatrix(matrices.technicalMappingRows)}
+          ${renderOriginalTechnicalMatrix(matrices.technicalMappingRows, countLabel(stats.services, "服务"))}
         </div>
       `;
     }
@@ -591,7 +622,7 @@
     if (mode === "management") {
       return `
         <div class="preview-tab-panel management-panel original-matrix-panel">
-          ${renderOriginalManagementMatrix(matrices.managementMappingRows)}
+          ${renderOriginalManagementMatrix(matrices.managementMappingRows, countLabel(stats.functions, "职能"))}
         </div>
       `;
     }
@@ -616,13 +647,13 @@
               mode,
               columns: [
                 { key: "standard", label: "标准 / 框架" },
-                { key: "controls", label: "条款 / 控制项", type: "chips", empty: "暂无控制项" },
-                { key: "requirement", label: "参考要求" },
+                { key: "controls", label: "条款 / 控制项", type: "standardControls", empty: "暂无控制项" },
               ],
               rows: standardTableRows(map),
               emptyTitle: "标准 / 框架映射待投影",
               emptyBody: "当前数据包暂未提供“当前关注点 -> 标准 / 框架 -> 条款 / 控制项”的直接映射。",
               title: "标准 / 框架映射",
+              summary: countLabel(stats.standardStatus, "控制项"),
             }
           : {
               mode,
@@ -662,6 +693,7 @@
     const graphModel = buildGraphModel({
       currentFocus: map.focus,
       currentCapability: focusOverview?.path?.capability,
+      focusOverview,
       localRelationMap: map,
       technicalMappingRows: list(matrices.technicalMappingRows),
       managementMappingRows: list(matrices.managementMappingRows),
@@ -675,13 +707,12 @@
   }
 
   function renderTabControls(map = {}) {
-    const stats = relationshipStats(map);
     return `
       <div class="relation-view-tabs preview-tabs" role="tablist" aria-label="安全能力映射视角">
-        <label for="capability-relation-tab-summary" class="relation-view-tab">本地关联摘要 <span>默认</span></label>
-        <label for="capability-relation-tab-technical" class="relation-view-tab">技术视角 <span>${stats.services} 服务</span></label>
-        <label for="capability-relation-tab-management" class="relation-view-tab">管理视角 <span>${stats.functions} 职能</span></label>
-        <label for="capability-relation-tab-standard" class="relation-view-tab">标准 / 框架映射 <span>待投影</span></label>
+        <label for="capability-relation-tab-summary" class="relation-view-tab">能力关系图谱</label>
+        <label for="capability-relation-tab-technical" class="relation-view-tab">技术视角</label>
+        <label for="capability-relation-tab-management" class="relation-view-tab">管理视角</label>
+        <label for="capability-relation-tab-standard" class="relation-view-tab">标准 / 框架映射</label>
       </div>
     `;
   }
@@ -702,7 +733,6 @@
         <input class="relation-view-radio" type="radio" name="capability-relation-view" id="capability-relation-tab-standard" />
         <div class="capability-map-v3-grid preview-workbench-grid">
           <main class="capability-relation-stage preview-relation-stage">
-            ${renderFocusStrip(map, focusOverview)}
             ${renderTabControls(map)}
             <section class="preview-stage-scroll">
               ${renderSummaryPanel(map, focusOverview, matrices)}
@@ -716,5 +746,5 @@
     `;
   }
 
-  components.CapabilityLocalRelationMap = { render };
+  components.CapabilityLocalRelationMap = { render, renderFocusStrip };
 })();

@@ -788,7 +788,7 @@
 
 ## OI-040：LC-AP 安全技术措施暂未细化到具体安全技术服务
 
-- 状态：待处理
+- 状态：已修复
 - 类型：数据契约 / ETL 粒度 / 前端展示
 - 对象或页面：`安全开发维度`，`LC-AP 应用安全开发生命周期`
 - 现象：当前 `应用程序威胁建模`、`制品安全加固`、`IaC代码安全测试` 已按用户确认作为安全技术措施导出，但关系粒度是 `开发过程阶段 → 安全技术措施`，尚未细化为 `安全技术服务 → 安全技术措施`。
@@ -930,15 +930,15 @@
 
 ## OI-049：`capability-workbench.json` 标准 / 框架映射仍为空
 
-- 状态：待处理
+- 状态：已修复
 - 类型：数据契约 / export / 标准框架映射
 - 对象或页面：`安全能力映射`、`capability-workbench.json`、后续标准 / 框架映射视角
 - 现象：BE-4 检查确认 `capability-workbench.json` 已预留 `standard-mapping` 关系组，但 `standard_framework=0`、`standard_control=0`、`maps_to_standard=0`。规格要求安全能力映射页承载与安全标准 / 框架的映射关系，当前尚未落地到 workbench 数据包。
 - 影响：安全能力映射页未来切换到新 workbench 数据源后，无法直接展示能力 / 关注点到等保、NIST CSF、ISO、CIS 等标准控制项的映射。
-- 当前处理：已在 `docs/06-implementation/be-4-workbench-data-quality-gap-list.md` 记录为 BE-4 缺口。
-- 需要确认：后续是否先从已生成的 `standards-data.json` 和标准导入关系中抽取能力 / 关注点映射，还是先补齐标准映射规则文档。
-- 修复说明：待后续 export 投影补强。
-- 验证结果：BE-4 静态审计确认三份 workbench 顶层结构正常、无关系断点；本问题仅针对能力页标准映射为空。
+- 当前处理：已修复。业务主源确认为 capability-first 的 `安全能力-网络安全制度、框架映射` Sheet；标准框架 Sheet 的 `关联安全能力/关注点` 为正向投影结果。导出 `capability-workbench.json` 时读取 capability-first 映射表生成 `capability_focus maps_to_standard standard_control`，并用标准框架 Sheet / 标准控制项 metadata 中的 `related_capability_focus` 做双向验证。
+- 需要确认：无。
+- 修复说明：已更新 `src/sapd_wiki/exports.py`，为能力工作台补入 `standard_framework`、`standard_control` 对象和 `maps_to_standard`、`belongs_to_framework` 关系；已更新前端 `viewModels.js` 与 `CapabilityLocalRelationMap.js`，让能力页“标准 / 框架映射”页签从 `capability-workbench.json` 显示当前关注点对应的标准框架和控制项。
+- 验证结果：2026-05-20 重新导出 `frontend/capability-browser/public/data/capability-workbench.json`：`standard_framework=6`、`standard_control=1078`、`maps_to_standard=1401`、`belongs_to_framework=1078`，覆盖 84 个关注点。`meta.standardMappingValidation` 显示 `sourceRows=1413`、`uniqueSourcePairs=1401`、`mappedRelations=1401`、`missingControls=0`、`unmatchedFocuses=0`、`missingInStandardProjection=0`、`extraInStandardProjection=0`。
 
 ## OI-050：LC-AP `CI/CD流水线` 被拆成 `CI` 与 `/CD流水线`
 
@@ -975,3 +975,123 @@
 - 需要确认：无。
 - 修复说明：2026-05-19 复查原始表，确认 `PE-12(1)` 英文名称为 `Essential Missions And Business Functions`；本轮按修订后的 `NIST 800-53rev5` 页导入数据库，并导出到标准框架数据包。
 - 验证结果：2026-05-19 使用 `openpyxl` 复查原始表，确认有效行 1007 条、唯一编号 1007 个，`PE-12(1)` 已为修订后文本；导入后 `standards-data.json` 中 `NIST SP 800-53 Rev.5` 统计为 20 个安全控制类、298 项安全控制、1007 条安全策略；详见 `docs/03-import-etl/nist-800-53rev5-vs-raw-check.md`。
+
+## OI-054：标准 / 框架映射语义合理性与未映射候选待确认
+
+- 状态：已修复
+- 类型：数据治理 / 标准框架映射 / 业务语义复核
+- 对象或页面：`data/raw-samples/wiki sample.xlsx` 的 `安全能力-网络安全制度、框架映射` 页，后续 `安全能力映射` 标准 / 框架视角
+- 现象：编号一致性已核对通过，但第二步语义复核发现少量现有映射需要调整；同时新版 CRF、CIS、ISO、NIST 等主数据中存在未进入原映射表的高置信候选条目。
+- 影响：如果不先确认语义口径，后续把映射关系投影到 `capability-workbench.json` 时，可能把待确认候选误当作正式事实，或漏掉新版治理域下应展示的标准 / 框架关联。
+- 当前处理：用户已确认现有映射调整、ISO / CIS / CSF 高置信补映射、CRF 高置信补映射、NIST 800-53 `MA-2` / `PE-3` 补映射和 enhancement 父控制项继承规则；已写回原始映射表。CRF 新治理域中除 `AI` / `PHY` 外的 78 个 Safeguard ID 已按候选关注点散挂进原始映射表，多个候选已全部挂入；`AI` / `PHY` 已合并到 `OI-055`。
+- 需要确认：无。`AI` / `PHY` 后续能力体系优化跟踪见 `OI-055`；`capability-workbench.json` 标准 / 框架投影缺口继续由 `OI-049` 跟踪。
+- 修复说明：已创建备份 `data/raw-samples/backups/wiki sample.before-standard-mapping-semantic-accepted-retry-20260520-1532.xlsx`、`data/raw-samples/backups/wiki sample.before-crf-non-ai-phy-candidate-mapping-20260520-1550.xlsx`、`data/raw-samples/backups/wiki sample.before-standard-related-focus-projection-20260520-1604.xlsx` 和 `data/raw-samples/backups/wiki sample.before-standard-focus-code-only-20260520-1618.xlsx`；已按用户确认修改 `安全能力-网络安全制度、框架映射` 页，并把映射结果投影到各标准框架 Sheet 的 `关联安全能力/关注点` 列。该列已进一步收口为只保留关注点编号，多编号换行。已重跑标准框架 staging / approve / export，生成标准框架页面数据包。
+- 验证结果：2026-05-20 标准框架重导入 job `6456fd92-2a18-409b-a456-1e6b108334f4`：staging `objects_staged=1964`、`relations_staged=1957`、`validations=[]`；approve `items_updated=1964`、`warnings=[]`。编号显示收口后再次重导入 job `36e63614-1a55-4b7f-9bfb-4cc27f57945c`：staging `objects_staged=1964`、`relations_staged=1957`、`validations=[]`；approve `items_updated=1964`、`warnings=[]`。`standards-data.json` 已导出，`data_state=ready`，6 个框架、1957 条标准控制 / 层级记录。关联列非空统计：等保 58、CIS 151、CSF Core 98、ISO 74、CRF Core 443、NIST 254；字段格式检查确认只包含关注点编号。CRF 当前未映射 33 条，仅剩 `AI` 18 条和 `PHY` 15 条。
+
+## OI-055：CRF `AI` / `PHY` 新治理域缺少专门能力关注点
+
+- 状态：已修复
+- 类型：数据治理 / 能力体系优化 / 标准框架映射
+- 对象或页面：CRF Core 2026 新治理域、`安全能力-网络安全制度、框架映射`、后续安全能力体系
+- 现象：新版 CRF Core 2026 中 `AI` 人工智能管理、`PHY` 物理安全管理缺少专门能力关注点。用户确认本轮不把 `AI` 和 `PHY` 散挂到现有关注点，保留为后期能力体系优化 issue。
+- 影响：短期标准 / 框架映射中不会展示 CRF `AI` / `PHY` 域关联；后续若项目需要覆盖 AI 治理或物理安全管理，应先扩展能力体系，再补映射。
+- 当前处理：已输出全量候选清单 `docs/03-import-etl/crf-2026-unmapped-candidate-focus-2026-05-20.md`。除 `AI` / `PHY` 外的 78 个 CRF Safeguard ID 已按候选散挂进原始映射表；当前未映射 CRF Safeguard ID 共 33 个，仅剩 `AI` 18 条、`PHY` 15 条。
+- 需要确认：项目后期能力体系优化时，是否新增 AI 治理和物理安全管理能力关注点，并补入当前保留的 `AI` / `PHY` 映射。
+- 修复说明：待后期能力体系优化；本轮只记录 issue 和候选清单。
+- 验证结果：2026-05-20 已基于当前写回后的原始映射表与 CRF Core 2026 主数据复核，确认 CRF 未映射项只剩 `AI-01` 至 `AI-18`、`PHY-01` 至 `PHY-15`。
+
+## OI-056：部分能力关注点在原始标准 / 框架映射表中为空或缺行
+
+- 状态：已修复
+- 类型：数据 / 标准框架映射 / 原始表复核
+- 对象或页面：`data/raw-samples/wiki sample.xlsx` 的 `安全能力-网络安全制度、框架映射` 页，后续 `安全能力映射` 标准 / 框架视角
+- 现象：用户反馈 `T-AS.DG-03` 页面“标准 / 框架映射”为空。复核原始表确认 `安全能力-网络安全制度、框架映射` 第 31 行存在 `T-AS.DG-03 确保数据的可靠性与可恢复性`，但 ISO、CSF、等保、CIS、CRF、NIST 控制项列均为空；第 7 行 `T-AS.AD-03 确保系统、应用与数据的可靠性与可恢复性` 存在一组高度相似的备份 / 恢复映射。全表还存在 `T-IN.IP-01`、`T-OF.AT-01`、`T-OF.AT-02`、`T-OF.AT-03`、`M-PS.HS-02` 五行映射列为空；`安全能力目录` 中 `T-PD.TP-05` 存在，但该映射 Sheet 无对应行。
+- 影响：已修复 `T-AS.DG-03` 的标准 / 框架映射空状态；已补齐高置信空映射项与缺失行，避免能力页继续显示误导性空映射。
+- 当前处理：已为 `T-AS.DG-03` 补入数据备份、数据恢复、备份保护、恢复完整性相关映射，并把映射投影到各标准框架 Sheet 的 `关联安全能力/关注点` 列。NIST 800-53 Rev.5 已按用户确认支持 enhancement 级映射：有具体增强项时显示增强项，没有具体增强项时才显示父控制项。`T-IN.IP-01`、`M-PS.HS-02`、`T-PD.TP-05` 已补入高置信映射；`T-OF.AT-01/02/03` 因属于进攻反制且原始说明标注“民间机构不适用”，不强行挂现有防御类标准控制项。
+- 需要确认：若后续要覆盖进攻反制能力，需要另行确认适用组织范围和专门标准口径；当前 `T-OF.AT-01/02/03` 保持空映射为业务接受口径。
+- 修复说明：已备份原始表到 `data/raw-samples/backups/wiki sample.before-t-as-dg-03-standard-mapping-20260520.xlsx`、`data/raw-samples/backups/wiki sample.before-nist-enhancement-bidirectional-mapping-20260520.xlsx` 和 `data/raw-samples/backups/wiki sample.before-oi-056-empty-mapping-followup-20260520.xlsx`；已更新 `安全能力-网络安全制度、框架映射` 第 31 行，补入 ISO 3 条、CSF 2 条、等保 4 条、CIS 5 条、CRF 5 条、NIST 13 条，其中 NIST 包含 `CP-6(2)`、`CP-9(1)` 至 `CP-9(8)`、`CP-10(2)`、`CP-10(4)` 等 enhancement；已补齐 `T-IN.IP-01` 4 条、`M-PS.HS-02` 8 条，并在映射表末尾新增缺失行 `T-PD.TP-05` 15 条；已同步各标准 Sheet 的 `关联安全能力/关注点` 列，实现 capability-first 映射表与标准 Sheet 的双向一致。
+- 验证结果：2026-05-20 core staging job `f638eb81-d1ae-4e6d-8d62-1a383af8f484`：`objects_staged=630`、`relations_staged=2319`、`validations=[]`；approve 后 `items_created=2`、`items_updated=628`、`items_deprecated=2`、`relations_created=3`。最新标准框架 staging job `beab43c1-845d-4311-af61-16d1bd9cde9f`：`objects_staged=1964`、`relations_staged=1957`、`validations=[]`；approve 结果 `items_updated=1964`、`warnings=[]`。导出后 `T-AS.DG-03 maps_to_standard=32`、`T-PD.TP-05 maps_to_standard=15`、`T-IN.IP-01 maps_to_standard=4`、`M-PS.HS-02 maps_to_standard=8`、`T-OF.AT-01/02/03 maps_to_standard=0`；`meta.standardMappingValidation` 显示 `missingControls=0`、`unmatchedFocuses=0`、`missingInStandardProjection=0`、`extraInStandardProjection=0`；原始表和当前前端数据包未再命中点号版历史错误编码。
+
+## OI-057：能力关系图谱中标准 / 框架节点未展开到控制项
+
+- 状态：已修复
+- 类型：前端展示 / 图谱模型 / 标准框架映射
+- 对象或页面：`安全能力映射` 页的 `能力关系图谱`
+- 现象：用户反馈图谱中 `标准 / 框架映射` 旁的 `标准 / 框架` 节点没有继续展开数据关联。复核数据包确认 `T-PD.TP-01` 至 `T-PD.TP-05` 均存在 `maps_to_standard` 关系，但图谱只显示一个泛化节点。
+- 影响：页面会让用户误以为标准 / 框架映射缺数据，实际数据包中已有标准框架和控制项关系。
+- 当前处理：已修复 `relationGraphModel.js` 中标准行解析逻辑，让图谱识别 `standardTableRows` 输出的 `standard` 字段，并从标准框架继续展开到 `controls` 条款 / 控制项节点。
+- 需要确认：无。
+- 修复说明：`entityTitle()` 已支持 `standard` 字段；标准图谱节点按标准框架生成独立节点，并为每个框架最多展开 4 个条款 / 控制项子节点；`app.js` 已更新资源版本，避免浏览器命中旧模型缓存。
+- 验证结果：2026-05-20 使用本地 Node 直接加载 `relationGraphModel.js` 和 `capability-workbench.json` 复核 `T-PD.TP`，确认生成 6 个标准框架输入、标准图谱节点不再坍缩为一个泛化节点，`standard_to_control=13`；`node --check frontend/capability-browser/models/relationGraphModel.js frontend/capability-browser/app.js` 通过。
+
+## OI-058：标准 / 框架映射徽标统计与可见条款数量不一致
+
+- 状态：已修复
+- 类型：前端展示 / 统计口径 / 标准框架映射
+- 对象或页面：`安全能力映射` 页的 `标准 / 框架映射` tab 和映射表格
+- 现象：用户先反馈 tab 徽标显示 `41`，但下方可见条款只有 24 条；修复统计和表格行截断后，tab 徽标显示 `35`，但截图中肉眼只能数到 32 条。复核 `T-AS.AD-01` 后确认旧统计为 6 个标准 / 框架 + 35 条控制项 = 41；旧表格又对每个框架控制项执行 `slice(0, 6)`，因此 CRF 隐藏 2 条、NIST 隐藏 9 条；随后残留的 `standardControlChips()` 每行最多渲染 12 个 chip，导致 NIST 15 条中最后 3 条 `SC-3(5)`、`SC-32`、`SI-14` 仍未渲染。
+- 影响：统计口径与用户看到的条款数量不一致，容易误判为数据异常。
+- 当前处理：已将 tab 徽标和概要统计改为优先显示控制项数量；标准映射表格和 chip 渲染均不再静默截断每个框架的控制项，并将标准映射表格改为固定比例列宽，让控制项标签在单元格内换行展示。
+- 需要确认：无。
+- 修复说明：`CapabilityLocalRelationMap.js` 的 `standardStatus` 从 `standards.length + controls.length` 改为 `controls.length`；`standardTableRows()` 移除每框架 `slice(0, 6)` 截断；`standardControlChips()` 移除每行 `slice(0, 12)` 截断；`styles.css` 为 `.standard-mapping-table` 设置固定表格布局和 32% / 68% 列宽，控制项列允许换行。
+- 验证结果：2026-05-20 本地复核 `T-AS.AD-01`：真实标准框架 6 个，控制项 35 条，旧徽标 41，旧可见条款 24；修复后定点浏览器检查显示徽标 `35`、DOM chip `35`、NIST 行 `15` 条，且 `SC-3(5)`、`SC-32`、`SI-14` 均已出现；`node --check frontend/capability-browser/components/CapabilityLocalRelationMap.js` 通过。
+
+## OI-059：能力关系页签存在无意义默认与映射行数统计
+
+- 状态：已修复
+- 类型：前端展示 / 信息层级 / 统计口径
+- 对象或页面：`安全能力映射` 页的 `能力关系图谱`、`技术视角`、`管理视角`、`标准 / 框架映射` 页签和矩阵头部
+- 现象：`能力关系图谱` 页签显示“默认”，但该标签没有业务含义；各矩阵头部右上角显示 `x 条映射`，该数值是表格行数，不等于用户关心的服务数、职能数或控制项数。
+- 影响：用户容易把表格行数误认为业务对象数量，也会被“默认”这样的内部状态文案干扰。
+- 当前处理：已隐藏 `能力关系图谱` 页签中的“默认”；技术、管理、标准页签只显示视角名称，业务统计仅保留在对应矩阵头部，用服务、职能、控制项替换原 `x 条映射`。
+- 需要确认：无。
+- 修复说明：`CapabilityLocalRelationMap.js` 新增业务统计标签复用逻辑，并移除页签内统计胶囊；`FocusScopeServiceMatrix.js` 与 `FocusManagementMapping.js` 支持接收 `summary` 替换原 `x 条映射`；`index.html` 与 `app.js` 已更新前端资源版本。
+- 验证结果：2026-05-20 定点浏览器检查：页签为 `能力关系图谱`、`技术视角`、`管理视角`、`标准 / 框架映射`，页签内统计胶囊数量为 `0`；技术矩阵头部仍显示 `6 服务`，管理与标准矩阵头部保留业务统计；页面未再出现“默认”和 `x 条映射`。
+
+## OI-060：能力目录需要支持按层级逐级展开
+
+- 状态：已修复
+- 类型：前端交互 / 能力目录 / 层级浏览
+- 对象或页面：`安全能力映射` 页左侧能力目录
+- 现象：用户反馈能力目录需要支持“一级一级展开”，而不是一次性展开过多层级或只依赖整体收起 / 展开。当前目录在浏览安全技术能力、管理能力、标准 / 框架映射等层级时，层级控制不够细，容易占用过多纵向空间，也不利于按分类逐步定位关注点。
+- 影响：目录较长时用户需要滚动和识别大量节点，降低查找关注点的效率；收起态只能解决整体占位问题，不能解决目录内部的逐层浏览问题。
+- 当前处理：已实现按层级逐级展开。目录默认只展开当前选中关注点所在路径，其他分类、L1、L2 默认折叠；点击节点左侧箭头只展开 / 收起该层级，点击文字区域仍切换当前能力对象；搜索时保留匹配路径和结果，便于快速定位。
+- 需要确认：无。后续若要保留跨会话的手动展开状态，可另行作为偏好设置处理。
+- 修复说明：`viewModels.js` 的能力目录 ViewModel 已输出 `parentId` 与 `hasChildren`；`DimensionTree.js` 根据 `expandedIds` 渲染可见层级并增加箭头状态；`app.js` 管理展开集合，且只在选中对象变化时自动展开选中路径，避免用户手动收起后被立即重开；`styles.css` 已补充箭头样式。
+- 验证结果：2026-05-20 本地浏览器验证安全能力映射页：默认可见当前选中路径，`expandedRows=3`、`collapsedRows=14`；点击一级分类箭头后目录收起为 3 个分类节点，证明支持逐层收起 / 展开；页面横向溢出为 `0`。
+
+## OI-061：技术视角技术模块 / 措施列不应折叠为 `+N`
+
+- 状态：已修复
+- 类型：前端展示 / 技术视角 / 信息完整性
+- 对象或页面：`安全能力映射` 页的 `技术视角` 映射矩阵，`技术模块/措施` 列
+- 现象：用户反馈 `技术模块/措施` 列中的模块 chip 被折叠为 `+2`、`+3`，无法直接看到完整模块 / 措施清单。
+- 影响：技术视角的核心映射对象被隐藏，用户需要额外猜测或无法确认完整关系。
+- 当前处理：已将 `技术模块/措施` 列改为完整显示，不再对该列生成 `+N` 折叠 chip；候选服务等辅助区域仍保留原有数量限制。
+- 需要确认：无。
+- 修复说明：`FocusScopeServiceMatrix.js` 的 `chipList()` 支持无限制展示，并在 `row.modules` 渲染时传入 `Infinity`；`index.html` 已更新 `FocusScopeServiceMatrix.js` 资源版本。
+- 验证结果：2026-05-20 定点浏览器检查技术视角：`技术模块/措施` 列未再出现 `.relation-chip.muted` 折叠 chip，页面横向溢出为 `0`；静态检查 `node --check frontend/capability-browser/components/FocusScopeServiceMatrix.js` 通过。
+
+## OI-062：L0 / L1 高级节点能力关系图谱加载过慢
+
+- 状态：已修复
+- 类型：前端性能 / 能力关系图谱 / 高级节点概览
+- 对象或页面：`安全能力映射` 页的 `能力关系图谱`，特别是 L0 分类和 L1 能力域节点
+- 现象：用户反馈 L0、L1 等高级节点的能力关系图谱加载特别慢。复查发现高级节点会聚合大量关注点关系，例如 L0 `安全技术能力 T` 涉及 151 个服务、1224 条标准控制项，图谱一次性生成数百个业务节点并执行两两避让布局，导致渲染明显卡顿。
+- 影响：用户点击高级节点时页面响应慢，图谱呈现为密集大网，既影响性能，也难以阅读。
+- 当前处理：已将图谱改为分层策略。L0 显示当前分类下所有能力和关注点；L1 / L2 显示当前层级下所有关注点，并围绕每个关注点展示技术视角的作用域、安全技术服务，管理视角的 L2 流程组、安全工作，以及关联的标准 / 框架种类；L3（具体关注点）继续完整显示技术、管理和标准 / 框架关系。
+- 需要确认：无。后续如果需要在 L1 / L2 中继续展开到标准控制项或 L3/L4 流程，应优先做按视角展开或分页，不建议回到单张大网全量绘制。
+- 修复说明：`relationGraphModel.js` 新增基于 `graphScope` 的分层构图策略：L0 走能力-关注点结构图，L1 / L2 走关注点映射概览图，L3 走完整关系图；`viewModels.js` 为关注点概览补充路径信息和对象 `type`；`CapabilityLocalRelationMap.js` 把 `focusOverview` 传入图谱模型；`LocalRelationNetworkGraph.js` 显示对应层级说明并保留节点量自适应布局；`index.html` 与 `app.js` 已更新资源版本。
+- 验证结果：2026-05-20 本地浏览器检查：目录 L0 标签显示为 `L0`；点击 L0 `安全技术能力 T` 后图谱显示 19 个能力和 63 个关注点，业务节点 83 个，约 623ms；点击 L1 `T-AS` 后图谱显示 27 个关注点及作用域、服务、L2流程组、安全工作、标准 / 框架种类，业务节点 164 个，约 493ms；点击具体关注点后不显示概览提示，保持完整图谱，业务节点 81 个；页面横向溢出为 `0`。
+
+## OI-063：具体关注点图谱中标准 / 框架控制项被预算截断
+
+- 状态：已修复
+- 类型：前端展示 / 能力关系图谱 / 标准框架映射
+- 对象或页面：`安全能力映射` 页的 `能力关系图谱`，具体关注点的 `标准 / 框架映射` 分支
+- 现象：用户反馈图谱中 NIST 数据展示不全。复核发现 `relationGraphModel.js` 在具体关注点 `focus` 场景仍限制 `standards=4`、`controlsPerStandard=4`，导致如 `T-AS.AD-01` 的 6 个框架只展示前 4 个，`NIST SP 800-53 Rev.5` 的 15 条控制项未完整进入图谱。
+- 影响：表格中标准 / 框架映射已完整，但能力关系图谱会让用户误以为 NIST 800-53 或部分控制项缺失。
+- 当前处理：已将具体关注点图谱的标准框架数量和每框架控制项数量改为完整展示；L0 / L1 / L2 高级节点概览仍保留抽样预算，避免大图卡顿。
+- 需要确认：无。
+- 修复说明：`relationGraphModel.js` 的 `focus` 预算改为 `standards: Infinity`、`controlsPerStandard: Infinity`；`app.js` 已更新图谱模型资源版本。
+- 验证结果：2026-05-20 数据包模型核对 91 个关注点，标准框架节点数和控制项节点数与数据包一致，`mismatchCount=0`；`T-AS.AD-01` 图谱模型为 6 个框架、35 个控制项，其中 `NIST-800-53-REV5` 为 15 条。浏览器定点检查 `T-AS.AD-01`：标准框架节点 `6`、标准控制项节点 `35`、NIST 800-53 控制项节点 `15`，且 `PL-2`、`PL-8`、`SC-3(5)`、`SC-32`、`SI-14` 等均已渲染。

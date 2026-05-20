@@ -1103,6 +1103,11 @@ body.is-resizing {
   min-width: 1320px;
 }
 
+.standard-framework-table th,
+.standard-framework-table td {
+  vertical-align: middle;
+}
+
 .standards-mode .source-nav-pane,
 .standards-mode .source-detail-pane,
 .standards-mode .workspace-resizer {
@@ -1203,11 +1208,72 @@ body.is-resizing {
 
 .standard-framework-table th:nth-last-child(1),
 .standard-framework-table td:nth-last-child(1) {
-  min-width: 180px;
+  min-width: 150px;
+  max-width: 170px;
+  text-align: center;
 }
 
 .standard-framework-table td {
   max-width: 360px;
+}
+
+.standard-focus-code-list {
+  display: inline-grid;
+  justify-items: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.standard-focus-code {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 92px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 2px 7px;
+  border: 1px solid color-mix(in oklch, var(--accent) 28%, var(--line));
+  border-radius: 6px;
+  background: color-mix(in oklch, var(--accent) 8%, var(--panel));
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 820;
+  line-height: 1.25;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.standard-tooltip-chip {
+  cursor: pointer;
+}
+
+.floating-standard-tooltip {
+  position: fixed;
+  z-index: 1000;
+  width: max-content;
+  min-width: 220px;
+  max-width: min(560px, 78vw);
+  max-height: 260px;
+  padding: 10px 12px;
+  border: 1px solid #c9d2e3;
+  border-radius: 7px;
+  background: #fbfdff;
+  color: #243044;
+  box-shadow: 0 18px 42px rgba(9, 30, 66, 0.18);
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: 660;
+  line-height: 1.55;
+  overflow-y: auto;
+  pointer-events: none;
+  text-align: left;
+  white-space: pre-line;
+}
+
+.floating-standard-tooltip[hidden] {
+  display: none;
 }
 
 .standard-framework-table td:nth-last-child(1):empty::after {
@@ -1306,6 +1372,7 @@ body.is-resizing {
 .mlps-level-3-table .standard-group-detail td:first-child {
   padding-left: 42px;
   font-weight: 760;
+  vertical-align: top;
 }
 
 .cis-csc-v8-table .standard-group-detail td:first-child {
@@ -1377,6 +1444,7 @@ body.is-resizing {
   min-width: 620px;
   max-width: 780px;
   line-height: 1.55;
+  vertical-align: top;
 }
 
 .cis-csc-v8-table th:nth-child(7),
@@ -1413,6 +1481,7 @@ body.is-resizing {
 .iso-27001-2022-table td:nth-child(3) {
   min-width: 420px;
   max-width: 560px;
+  vertical-align: top;
 }
 
 .iso-27001-2022-table th:nth-child(4),
@@ -1486,6 +1555,7 @@ body.is-resizing {
   width: 104px;
   font-weight: 820;
   text-align: center;
+  vertical-align: middle;
   white-space: nowrap;
 }
 
@@ -1550,6 +1620,7 @@ body.is-resizing {
 .crf-maturity-table th:nth-child(6),
 .crf-maturity-table td:nth-child(6) {
   width: 30%;
+  vertical-align: top;
 }
 
 .crf-maturity-table {
@@ -1557,14 +1628,14 @@ body.is-resizing {
 }
 
 .nist-800-53-rev5-table {
-  min-width: 1660px;
+  min-width: 1220px;
   table-layout: fixed;
   font-size: 12px;
 }
 
 .nist-800-53-rev5-table th,
 .nist-800-53-rev5-table td {
-  padding: 10px 12px;
+  padding: 9px 10px;
   text-align: center;
   vertical-align: middle;
 }
@@ -1583,43 +1654,48 @@ body.is-resizing {
 
 .nist-800-53-rev5-table th:nth-child(1),
 .nist-800-53-rev5-table td:nth-child(1) {
-  width: 120px;
+  width: 96px;
   text-align: center;
 }
 
 .nist-800-53-rev5-table th:nth-child(2),
 .nist-800-53-rev5-table td:nth-child(2) {
-  width: 340px;
+  width: 280px;
   text-align: center;
 }
 
 .nist-800-53-rev5-table th:nth-child(3),
 .nist-800-53-rev5-table td:nth-child(3) {
-  width: 120px;
+  width: 86px;
   text-align: center;
 }
 
 .nist-800-53-rev5-table th:nth-child(4),
 .nist-800-53-rev5-table td:nth-child(4) {
-  width: 220px;
+  width: 160px;
   text-align: center;
 }
 
-.nist-800-53-rev5-table th:nth-child(5),
+.nist-800-53-rev5-table th:nth-child(5) {
+  width: 410px;
+  text-align: center;
+  vertical-align: middle;
+}
+
 .nist-800-53-rev5-table td:nth-child(5) {
-  width: 44%;
+  width: 410px;
   text-align: left;
   vertical-align: top;
 }
 
 .nist-800-53-rev5-table th:nth-child(6),
 .nist-800-53-rev5-table td:nth-child(6) {
-  width: 220px;
+  width: 156px;
   text-align: center;
 }
 
 .nist-800-53-rev5-table .nist-security-type-heading {
-  padding: 8px 10px;
+  padding: 8px 8px;
 }
 
 .nist-800-53-rev5-table .nist-security-type-heading span {
@@ -1632,11 +1708,11 @@ body.is-resizing {
 
 .nist-800-53-rev5-table .nist-security-type-heading small {
   display: block;
-  margin-top: 4px;
+  margin-top: 3px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 760;
-  line-height: 1.35;
+  line-height: 1.28;
 }
 
 .csf-core-table {
@@ -1676,12 +1752,14 @@ body.is-resizing {
 .csf-core-table td:nth-child(4) {
   min-width: 520px;
   max-width: 640px;
+  vertical-align: top;
 }
 
 .csf-core-table th:nth-child(1),
 .csf-core-table td:nth-child(1) {
   min-width: 900px;
   max-width: none;
+  vertical-align: top;
 }
 
 .csf-core-table th:nth-child(2),
@@ -1741,6 +1819,7 @@ body.is-resizing {
   min-width: 480px;
   max-width: none;
   line-height: 1.58;
+  vertical-align: top;
 }
 
 .csf-tiers-table th:nth-child(1),
@@ -1752,6 +1831,7 @@ body.is-resizing {
   max-width: none;
   font-weight: 620;
   line-height: 1.58;
+  vertical-align: top;
 }
 
 .maintenance-empty-state {
@@ -4691,22 +4771,37 @@ button.source-sheet-row.active,
 }
 
 .capability-workspace.catalog-collapsed {
-  grid-template-columns: 48px minmax(760px, 1fr);
+  grid-template-columns: 0 minmax(760px, 1fr);
 }
 
 .capability-workspace.catalog-collapsed .capability-tree-pane {
+  width: 0;
+  min-width: 0;
+  grid-column: 1;
   overflow: hidden;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.capability-workspace.catalog-collapsed .workspace-resizer {
+  display: none;
+}
+
+.capability-workspace.catalog-collapsed .capability-relation-pane {
+  grid-column: 2;
+  position: relative;
+}
+
+.capability-workspace.catalog-collapsed .capability-workbench-head,
+.capability-workspace.catalog-collapsed .capability-relation-workspace {
+  margin-left: 52px;
 }
 
 .capability-workspace.catalog-collapsed .capability-tree-pane h2,
 .capability-workspace.catalog-collapsed .capability-tree-pane .tree,
-.capability-workspace.catalog-collapsed #resetButton {
-  display: none;
-}
-
 .capability-workspace.catalog-collapsed .pane-head {
-  justify-content: center;
-  padding: 0;
+  display: none;
 }
 
 .pane-head-actions {
@@ -4725,11 +4820,32 @@ button.source-sheet-row.active,
 }
 
 .capability-workspace.catalog-collapsed #toggleCapabilityCatalog {
-  min-width: 34px;
-  width: 34px;
-  padding: 0;
-  overflow: hidden;
-  white-space: nowrap;
+  display: none;
+}
+
+.catalog-expand-tab {
+  position: absolute;
+  left: -1px;
+  top: 18px;
+  z-index: 5;
+  min-width: 46px;
+  height: 88px;
+  padding: 0 8px;
+  border: 1px solid #b8c9ec;
+  border-left: 0;
+  border-radius: 0 9px 9px 0;
+  background: #ffffff;
+  color: var(--shell-primary-dark, #0052cc);
+  box-shadow: 0 10px 22px rgba(9, 30, 66, 0.14);
+  font-size: 12px;
+  font-weight: 820;
+  letter-spacing: 0.08em;
+  writing-mode: vertical-rl;
+  cursor: pointer;
+}
+
+.catalog-expand-tab[hidden] {
+  display: none;
 }
 
 .capability-workbench-head {
@@ -5360,7 +5476,7 @@ button.source-sheet-row.active,
 }
 
 .capability-workspace.catalog-collapsed {
-  grid-template-columns: 48px minmax(0, 1fr);
+  grid-template-columns: 64px minmax(0, 1fr);
 }
 
 .capability-tree-pane {
@@ -5377,7 +5493,7 @@ button.source-sheet-row.active,
   padding: 10px;
   display: block;
   min-width: 0;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 .capability-relation-workspace > * + * {
@@ -7202,8 +7318,8 @@ summary:focus-visible {
 
 .app-shell-integrated .tree-row.tree-node-row {
   min-height: 34px;
-  grid-template-columns: 44px minmax(54px, 72px) minmax(0, 1fr);
-  gap: 7px;
+  grid-template-columns: 16px max-content minmax(0, 1fr);
+  gap: 6px;
   margin: 0 0 5px;
   padding: 5px 7px;
   border: 1px solid transparent;
@@ -7213,6 +7329,31 @@ summary:focus-visible {
   box-shadow: none;
 }
 
+.app-shell-integrated .node-expander {
+  width: 16px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  align-self: center;
+  border-radius: 5px;
+  color: #748296;
+  font-size: 11px;
+  font-weight: 780;
+  line-height: 1;
+}
+
+.app-shell-integrated .node-expander.has-children {
+  background: #eef3fa;
+  box-shadow: inset 0 0 0 1px #d5dfec;
+}
+
+.app-shell-integrated .tree-row:hover .node-expander.has-children,
+.app-shell-integrated .tree-row.active .node-expander.has-children {
+  color: var(--shell-primary-dark);
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px #b8c9ec;
+}
+
 .app-shell-integrated .tree-row.tree-level-0 {
   margin-top: 6px;
   background: #eef2f7;
@@ -7220,16 +7361,21 @@ summary:focus-visible {
   font-weight: 760;
 }
 
+.app-shell-integrated .tree-row.tree-level-0 .node-code,
+.app-shell-integrated .tree-row.tree-level-0 .node-copy:has(.node-code:empty) .node-code {
+  display: none;
+}
+
 .app-shell-integrated .tree-row.tree-level-1 {
-  padding-left: 16px;
+  padding-left: 10px;
 }
 
 .app-shell-integrated .tree-row.tree-level-2 {
-  padding-left: 28px;
+  padding-left: 16px;
 }
 
 .app-shell-integrated .tree-row.tree-level-3 {
-  padding-left: 40px;
+  padding-left: 22px;
 }
 
 .app-shell-integrated .tree-row:hover {
@@ -7246,7 +7392,7 @@ summary:focus-visible {
 
 .app-shell-integrated .node-level-label {
   justify-self: start;
-  min-width: 34px;
+  min-width: 36px;
   padding: 2px 6px;
   border: 1px solid var(--shell-line);
   border-radius: 5px;
@@ -7262,7 +7408,21 @@ summary:focus-visible {
   color: var(--shell-primary-dark);
 }
 
+.app-shell-integrated .node-copy {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  line-height: 1.25;
+}
+
+.app-shell-integrated .tree-level-3 .node-copy {
+  flex-wrap: wrap;
+  row-gap: 2px;
+}
+
 .app-shell-integrated .node-code {
+  min-width: max-content;
   overflow: hidden;
   color: var(--shell-muted);
   font-size: 11px;
@@ -7272,12 +7432,17 @@ summary:focus-visible {
 }
 
 .app-shell-integrated .node-title {
+  min-width: 0;
   overflow: hidden;
   color: inherit;
   font-size: 12px;
   font-weight: 650;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.app-shell-integrated .tree-level-3 .node-title {
+  flex-basis: 100%;
 }
 
 .app-shell-integrated .capability-relation-pane {
@@ -7333,7 +7498,7 @@ summary:focus-visible {
   height: calc(100% - 54px);
   padding: 10px;
   background: #f4f5f7;
-  overflow: auto;
+  overflow: hidden;
 }
 
 .capability-focus-summary {
@@ -8400,6 +8565,7 @@ summary:focus-visible {
   min-height: 0;
   padding: 10px;
   background: #f4f5f7;
+  overflow: hidden;
 }
 
 .app-shell-integrated .capability-relation-workspace > .capability-focus-summary {
@@ -9290,6 +9456,14 @@ summary:focus-visible {
   }
 }
 
+.app-shell-integrated .capability-workspace.catalog-collapsed {
+  grid-template-columns: 0 minmax(0, 1fr) !important;
+}
+
+.app-shell-integrated .capability-workspace.catalog-collapsed .capability-relation-pane {
+  grid-column: 2 !important;
+}
+
 /* F3-IMPL-P1R2 Preview-based security capability workbench restoration */
 .capability-map-preview-r2 {
   --preview-bg: #f5f6f8;
@@ -9394,6 +9568,97 @@ summary:focus-visible {
   font-weight: 820;
 }
 
+.app-shell-integrated .capability-workbench-head {
+  min-height: 112px;
+  display: grid;
+  grid-template-areas:
+    "main stats"
+    "main search";
+  grid-template-columns: minmax(500px, 1fr) minmax(398px, 0.52fr);
+  gap: 7px 14px;
+  align-items: center;
+  padding: 9px 16px;
+  border-bottom: 1px solid var(--shell-line);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.app-shell-integrated .capability-focus-head-slot {
+  min-width: 0;
+  display: contents;
+}
+
+.app-shell-integrated .capability-focus-head-slot .preview-focus-strip {
+  display: contents;
+}
+
+.app-shell-integrated .capability-focus-head-slot .preview-focus-main {
+  grid-area: main;
+  align-self: center;
+}
+
+.app-shell-integrated .capability-focus-head-slot .preview-focus-main > span {
+  display: inline-block;
+  margin-bottom: 3px;
+  font-size: 11px;
+}
+
+.app-shell-integrated .capability-focus-head-slot .preview-focus-main strong {
+  font-size: 14px;
+  line-height: 1.22;
+}
+
+.app-shell-integrated .capability-focus-head-slot .preview-focus-main p {
+  max-width: 112ch;
+  margin-top: 4px;
+  font-size: 10.4px;
+  line-height: 1.34;
+  display: block;
+  overflow: visible;
+  -webkit-line-clamp: unset;
+}
+
+.app-shell-integrated .capability-focus-head-slot .preview-focus-path {
+  display: none;
+}
+
+.app-shell-integrated .capability-focus-head-slot .preview-focus-stats {
+  grid-area: stats;
+  align-self: end;
+  grid-template-columns: repeat(6, minmax(48px, 1fr));
+  gap: 5px;
+}
+
+.app-shell-integrated .capability-focus-head-slot .preview-focus-stats span {
+  min-height: 34px;
+  display: grid;
+  align-content: center;
+  padding: 4px 5px;
+  border-color: #d9e2ee;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.app-shell-integrated .capability-focus-head-slot .preview-focus-stats strong {
+  margin-bottom: 0;
+  font-size: 13px;
+}
+
+.app-shell-integrated .capability-workbench-tools {
+  grid-area: search;
+  min-width: 0;
+  align-self: start;
+  justify-content: stretch;
+}
+
+.app-shell-integrated #capabilitySearchInput {
+  width: 100%;
+  height: 34px;
+}
+
+.preview-relation-stage {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
 .preview-tabs {
   min-height: 42px;
   padding-inline: 16px;
@@ -9402,7 +9667,7 @@ summary:focus-visible {
 
 .preview-stage-scroll {
   min-height: 0;
-  overflow: auto;
+  overflow: hidden;
   background: var(--preview-subtle);
 }
 
@@ -9536,6 +9801,23 @@ summary:focus-visible {
 
 .summary-panel {
   background: var(--preview-surface);
+}
+
+.summary-panel .local-relation-network-graph {
+  height: 100%;
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr);
+  padding: 12px 14px 14px;
+}
+
+.summary-panel .network-graph-canvas {
+  height: 100%;
+  min-height: 0;
+}
+
+.summary-panel .network-graph-canvas svg {
+  height: 100%;
+  min-height: 0;
 }
 
 .summary-panel .preview-local-summary {
@@ -9695,6 +9977,23 @@ summary:focus-visible {
   border-color: #c6d7f6;
   background: var(--preview-primary-soft);
   color: var(--preview-primary);
+}
+
+.standard-control-chip-row {
+  align-items: center;
+}
+
+.standard-control-code-chip {
+  position: relative;
+  max-width: 118px;
+  border-color: #d7dce5;
+  background: #f8f9fb;
+  color: var(--preview-text);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 780;
+  cursor: pointer;
+  overflow: visible;
 }
 
 .preview-chip.is-empty {
@@ -10486,32 +10785,42 @@ summary:focus-visible {
 
 .network-graph-head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 18px;
-  min-height: 42px;
+  gap: 16px;
+  min-height: 34px;
+  padding: 0 2px;
 }
 
 .network-graph-head h3 {
   margin: 0;
   color: var(--preview-text);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 860;
+  line-height: 1.2;
 }
 
 .network-graph-head p {
   max-width: 70ch;
-  margin: 4px 0 0;
+  margin: 3px 0 0;
   color: #697487;
-  font-size: 12px;
-  line-height: 1.5;
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+
+.network-graph-head .network-graph-note {
+  margin-top: 3px;
+  color: #7a8798;
+  font-size: 10px;
+  font-weight: 620;
 }
 
 .network-legend {
   display: flex;
+  align-self: center;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 7px;
+  gap: 5px;
   color: #607086;
   font-size: 11px;
   font-weight: 760;
@@ -10551,6 +10860,7 @@ summary:focus-visible {
 }
 
 .network-graph-canvas {
+  position: relative;
   min-height: 520px;
   border: 1px solid rgba(198, 210, 226, 0.82);
   border-radius: 16px;
@@ -10558,13 +10868,71 @@ summary:focus-visible {
     radial-gradient(circle at 36% 48%, oklch(0.75 0.11 255 / 0.13), transparent 21%),
     radial-gradient(circle at 78% 22%, oklch(0.83 0.05 235 / 0.16), transparent 20%),
     linear-gradient(180deg, oklch(0.985 0.004 250), oklch(0.965 0.006 248));
+  cursor: grab;
   overflow: hidden;
+  touch-action: none;
+  user-select: none;
+}
+
+.network-graph-actions {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid rgba(198, 210, 226, 0.72);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: 0 10px 24px rgba(9, 30, 66, 0.08);
+  backdrop-filter: blur(8px);
+  cursor: default;
+}
+
+.network-graph-actions button {
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #245da9;
+  font-size: 14px;
+  font-weight: 860;
+  line-height: 1;
+}
+
+.network-graph-actions button:hover {
+  background: rgba(21, 101, 192, 0.1);
+}
+
+.network-graph-actions [data-network-zoom-value] {
+  min-width: 40px;
+  color: #607086;
+  font-size: 11px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.network-graph-canvas.is-panning {
+  cursor: grabbing;
 }
 
 .network-graph-canvas svg {
   display: block;
   width: 100%;
   min-height: 520px;
+}
+
+.network-pan-layer {
+  transition: transform 120ms ease-out;
+}
+
+.network-graph-canvas.is-panning .network-pan-layer {
+  transition: none;
 }
 
 .network-background-layer {
@@ -10586,13 +10954,13 @@ summary:focus-visible {
 }
 
 .network-edge.is-business {
-  stroke: oklch(0.65 0.045 246 / 0.48);
-  stroke-width: 1.35;
+  stroke: oklch(0.61 0.026 246 / 0.34);
+  stroke-width: 1.05;
 }
 
 .edge-focus-to-view {
   stroke: oklch(0.55 0.14 254 / 0.7);
-  stroke-width: 2.1;
+  stroke-width: 1.8;
 }
 
 .edge-focus-to-scope,
@@ -10604,7 +10972,7 @@ summary:focus-visible {
 .edge-view-to-management-process-root,
 .edge-view-to-standard-status {
   stroke: oklch(0.58 0.12 254 / 0.58);
-  stroke-width: 1.8;
+  stroke-width: 1.35;
 }
 
 .network-group-labels text {
@@ -10620,17 +10988,17 @@ summary:focus-visible {
 }
 
 .network-node-shape {
-  fill: oklch(0.99 0.004 250 / 0.92);
-  stroke: oklch(0.78 0.025 250 / 0.9);
+  fill: oklch(0.52 0.018 250 / 0.82);
+  stroke: oklch(0.985 0.006 250 / 0.86);
   stroke-width: 1;
-  filter: drop-shadow(0 8px 16px oklch(0.38 0.03 250 / 0.08));
+  filter: drop-shadow(0 5px 10px oklch(0.38 0.03 250 / 0.12));
   transition: fill 180ms ease, stroke 180ms ease, stroke-width 180ms ease, filter 180ms ease;
 }
 
 .node-current-focus .network-node-shape {
-  fill: oklch(0.985 0.012 252 / 0.98);
+  fill: oklch(0.965 0.045 252 / 0.98);
   stroke: oklch(0.56 0.18 257);
-  stroke-width: 2.4;
+  stroke-width: 2.2;
   filter: drop-shadow(0 22px 36px oklch(0.47 0.13 257 / 0.22));
 }
 
@@ -10642,25 +11010,37 @@ summary:focus-visible {
 }
 
 .node-view-technical .network-node-shape {
-  fill: oklch(0.955 0.03 248 / 0.96);
+  fill: oklch(0.66 0.12 248 / 0.88);
   stroke: oklch(0.66 0.11 248 / 0.9);
 }
 
 .node-view-management .network-node-shape {
-  fill: oklch(0.958 0.026 166 / 0.94);
+  fill: oklch(0.64 0.1 166 / 0.86);
   stroke: oklch(0.66 0.08 166 / 0.86);
 }
 
 .node-view-standard .network-node-shape {
-  fill: oklch(0.966 0.018 285 / 0.92);
+  fill: oklch(0.68 0.08 84 / 0.86);
   stroke: oklch(0.7 0.045 285 / 0.78);
+}
+
+.node-capability-overview .network-node-shape,
+.node-focus-overview .network-node-shape {
+  fill: oklch(0.94 0.035 254 / 0.94);
+  stroke: oklch(0.58 0.12 254 / 0.74);
+  stroke-width: 1.25;
+}
+
+.node-focus-overview .network-node-shape {
+  fill: oklch(0.66 0.1 248 / 0.82);
+  stroke: oklch(0.72 0.08 248 / 0.78);
 }
 
 .node-scope .network-node-shape,
 .node-technical-service .network-node-shape,
 .node-technical-module .network-node-shape,
 .node-technical-measure .network-node-shape {
-  fill: oklch(0.975 0.018 248 / 0.94);
+  fill: oklch(0.58 0.075 248 / 0.78);
   stroke: oklch(0.7 0.075 248 / 0.78);
 }
 
@@ -10678,12 +11058,12 @@ summary:focus-visible {
 .node-process-l2 .network-node-shape,
 .node-process-l3 .network-node-shape,
 .node-process-l4 .network-node-shape {
-  fill: oklch(0.978 0.014 166 / 0.9);
+  fill: oklch(0.58 0.065 166 / 0.78);
   stroke: oklch(0.72 0.05 166 / 0.72);
 }
 
 .node-standard-status .network-node-shape {
-  fill: oklch(0.985 0.015 82 / 0.9);
+  fill: oklch(0.66 0.09 82 / 0.8);
   stroke: oklch(0.77 0.06 82 / 0.72);
 }
 
@@ -10707,9 +11087,9 @@ summary:focus-visible {
 }
 
 .network-node-title {
-  fill: oklch(0.29 0.026 252);
-  font-size: 10.5px;
-  font-weight: 820;
+  fill: oklch(0.38 0.016 252 / 0.82);
+  font-size: 9.4px;
+  font-weight: 720;
   pointer-events: none;
 }
 
@@ -10725,8 +11105,8 @@ summary:focus-visible {
 }
 
 .network-node-title.is-current {
-  fill: oklch(0.44 0.16 257);
-  font-size: 16px;
+  fill: oklch(0.34 0.12 257);
+  font-size: 13px;
   font-weight: 900;
 }
 
@@ -11394,6 +11774,30 @@ summary:focus-visible {
 
 .standard-mapping-table th:nth-child(3) {
   min-width: 300px;
+}
+
+.standard-mapping-table {
+  table-layout: fixed;
+}
+
+.standard-mapping-table th:nth-child(1) {
+  width: 32%;
+}
+
+.standard-mapping-table th:nth-child(2) {
+  width: 68%;
+}
+
+.standard-mapping-table td:nth-child(2) {
+  min-width: 0;
+  white-space: normal;
+}
+
+.standard-mapping-table .standard-control-chip-row {
+  max-width: 100%;
+  min-width: 0;
+  align-items: flex-start;
+  overflow: visible;
 }
 
 /* F3-IMPL-P1R4 tab IA matrix migration */

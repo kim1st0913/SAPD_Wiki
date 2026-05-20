@@ -105,3 +105,19 @@ Frontend Baseline 1.0 当前覆盖三页：
 - 不要默认读取 `docs/05-archive/`、`data/exports/` 或大型前端 JSON。
 - 优先确认是否有未提交的大型上下文文件、未关闭子 Agent 记录或重复计划文件。
 - 先做上下文减负和 Git 收口，再继续业务开发。
+
+## Codex 轻量执行入口
+
+当用户只说“继续执行”“执行”“排查一下”“修一下”时，默认按以下顺序处理：
+
+1. 读取 `CURRENT_STATE.md` 和 `progress.md`，必要时读取 `task_plan.md`、`findings.md`。
+2. 执行 `git status --short --branch`，确认当前工作区状态。
+3. 如果当前任务明确，继续执行；如果不明确，只问用户 1 个问题。
+4. 不默认读取 `docs/05-archive/`、`data/exports/`、`frontend/capability-browser/public/data/*.json`、数据库备份或完整历史日志。
+5. 不默认运行全量 `ps -ax`、全量 `git diff`、完整 DOM dump 或长 console log。
+6. 前端验证优先使用 `node scripts/frontend_smoke_check.mjs --page <page>`。
+7. 数据包检查优先使用 `python3 scripts/data_package_summary.py --package <name>`。
+8. 本地服务检查优先使用 `python3 scripts/dev_server_guard.py --status`。
+9. 如 `progress.md` 超过 120 行，先归档瘦身；如工作区 diff 很大，建议 checkpoint commit。
+
+详细规则见 `docs/07-governance/codex-performance-workflow.md`。

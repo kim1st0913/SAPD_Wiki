@@ -1699,6 +1699,7 @@ def parse_debao_level3_sheet(workbook) -> ParseResult:
         requirement_group = normalize_text(row[2].value)
         control_group = normalize_text(row[3].value)
         requirement_text = normalize_text(row[4].value)
+        related_capability = normalize_text(row[6].value) if len(row) > 6 else ""
         if not requirement_text:
             continue
         control_id, title, description = _parse_requirement_heading(requirement_text)
@@ -1721,6 +1722,7 @@ def parse_debao_level3_sheet(workbook) -> ParseResult:
                 "level": level,
                 "requirement_group": requirement_group,
                 "control_group": control_group,
+                "related_capability_focus": related_capability,
                 "ignored_source_columns": ["F:DSP安全策略项"],
             },
             source=source,
@@ -1767,6 +1769,7 @@ def parse_cis_csc_v8_sheet(workbook) -> ParseResult:
         implementation_group = normalize_text(row[7].value)
         security_function = normalize_text(row[8].value)
         description = normalize_text(row[9].value)
+        related_capability = normalize_text(row[10].value) if len(row) > 10 else ""
 
         if control_id:
             current_control_id = control_id
@@ -1797,6 +1800,7 @@ def parse_cis_csc_v8_sheet(workbook) -> ParseResult:
                 "asset_type": asset_type,
                 "implementation_group": implementation_group,
                 "security_function": security_function,
+                "related_capability_focus": related_capability,
             },
             source=source,
         )
@@ -1964,6 +1968,7 @@ def parse_iso_27001_2022_sheet(workbook) -> ParseResult:
         cybersecurity_concepts = normalize_text(row[7].value)
         operational_capabilities = normalize_text(row[8].value)
         security_domains = normalize_text(row[9].value)
+        related_capability = normalize_text(row[10].value) if len(row) > 10 else ""
         if control_category:
             current_control_category = control_category
         if not control_id or not control_name:
@@ -1990,6 +1995,7 @@ def parse_iso_27001_2022_sheet(workbook) -> ParseResult:
                 "cybersecurity_concepts": cybersecurity_concepts,
                 "operational_capabilities": operational_capabilities,
                 "security_domains": security_domains,
+                "related_capability_focus": related_capability,
             },
             source=source,
         )
@@ -2184,6 +2190,7 @@ def parse_nist_800_53_rev5_sheet(workbook) -> ParseResult:
         security_type = normalize_text(row[5].value)
         chinese_name = normalize_text(row[6].value)
         description = normalize_text(row[7].value)
+        related_capability = normalize_text(row[8].value) if len(row) > 8 else ""
         if family_value:
             current_family_code, current_family_name = _parse_nist_800_53_family(row[1].value)
         if not control_id or not english_name:
@@ -2218,6 +2225,7 @@ def parse_nist_800_53_rev5_sheet(workbook) -> ParseResult:
                 "baseline_level": baseline_level,
                 "security_type": security_type,
                 "chinese_name": chinese_name,
+                "related_capability_focus": related_capability,
                 "display_order": row_idx,
             },
             source=source,

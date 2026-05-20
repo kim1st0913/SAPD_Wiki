@@ -227,12 +227,14 @@
       technicalSummary,
       managementSummary,
       rows: focuses.map((focus) => {
+        const path = compactPath(capabilityPathForFocus(capabilityTree, focus.id));
         const focusTechnicalRows = technicalRows.filter((row) => row.focus.id === focus.id);
         const services = uniqueBy(focusTechnicalRows.flatMap((row) => row.services), (service) => service.id || service.code || service.title);
         const modules = uniqueBy(focusTechnicalRows.flatMap((row) => row.modules), (module) => module.id || module.code || module.title || module.name);
         const processMappings = list(focus.process_mappings);
         return {
           focus: compactEntity(focus),
+          path,
           scopeCount: list(focus.scope_mappings).length,
           serviceCount: services.length,
           ambiguousCount: focusTechnicalRows.filter((row) => row.status === "ambiguous_service_mapping").length,
@@ -375,18 +377,49 @@
     };
   }
 
+  function navigationRow(item, level, parentId, hasChildren) {
+    return {
+      level,
+      id: item.id,
+      parentId: parentId || "",
+      hasChildren: Boolean(hasChildren),
+      type: item.type || "",
+      code: item.code || "",
+      title: titleOf(item),
+      description: item.description || "",
+    };
+  }
+
   function buildNavigationTree(capabilityTree, search) {
     const query = normalizeSearch(search);
-    return flattenCapabilities(capabilityTree)
-      .filter((row) => includesSearch(query, row.level, row.item.code, row.item.title, row.item.description))
-      .map((row) => ({
-        level: row.level,
-        id: row.item.id,
-        type: row.item.type || "",
-        code: row.item.code || "",
-        title: titleOf(row.item),
-        description: row.item.description || "",
-      }));
+    const rows = [];
+    const shouldInclude = (item, level, inheritedMatch = false) =>
+      !query || inheritedMatch || includesSearch(query, level, item.code, item.title, item.description);
+
+    for (const category of list(capabilityTree?.categories)) {
+      const categoryMatches = shouldInclude(category, "分类");
+      const domainRows = [];
+      for (const domain of list(category.domains)) {
+        const domainMatches = shouldInclude(domain, "L1", categoryMatches);
+        const capabilityRows = [];
+        for (const capability of list(domain.capabilities)) {
+          const capabilityMatches = shouldInclude(capability, "L2", domainMatches);
+          const focusRows = list(capability.focuses)
+            .filter((focus) => shouldInclude(focus, "关注点", capabilityMatches))
+            .map((focus) => navigationRow(focus, "关注点", capability.id, false));
+          if (capabilityMatches || focusRows.length) {
+            capabilityRows.push(navigationRow(capability, "L2", domain.id, focusRows.length > 0 || list(capability.focuses).length > 0), ...focusRows);
+          }
+        }
+        if (domainMatches || capabilityRows.length) {
+          domainRows.push(navigationRow(domain, "L1", category.id, capabilityRows.length > 0 || list(domain.capabilities).length > 0), ...capabilityRows);
+        }
+      }
+      if (categoryMatches || domainRows.length) {
+        rows.push(navigationRow(category, "分类", "", domainRows.length > 0 || list(category.domains).length > 0), ...domainRows);
+      }
+    }
+    return rows;
   }
 
   function buildRelationshipChainRows(row) {
@@ -479,6 +512,7 @@
     const compact = compactEntity(focus, "未命名关注点");
     return {
       id: compact?.id || "",
+      type: compact?.type || "",
       code: compact?.code || "",
       name: compact?.title || "",
       description: compact?.description || "",
@@ -716,7 +750,7 @@
   }
 
   // Fallback only: used when backend localRelationMap projection is unavailable.
-  function buildCapabilityLocalRelationMap({ selectedDetail, detailRawProcesses, detailTechnicalRows, detailManagementRows, detailSourceEvidence }) {
+  function buildCapabilityLocalRelationMap({ selectedDetail, detailRawProcesses, detailTechnicalRows, detailManagementRows, detailStandardRows, detailSourceEvidence }) {
     const firstManagementRow = detailManagementRows[0] || {};
     const modules = uniqueBy(
       list(detailTechnicalRows).flatMap((row) => list(row.technologyModules)),
@@ -730,6 +764,14 @@
       list(detailManagementRows).flatMap((row) => list(row.stakeholders)),
       (stakeholder) => `${stakeholder.layer || "unknown"}:${stakeholder.id || stakeholder.code || stakeholder.title || stakeholder.name}`,
     ).map(compactLocalWorkFunction);
+    const standardFrameworks = uniqueBy(
+      list(detailStandardRows).flatMap((row) => list(row.standards)),
+      (standard) => standard.id || standard.code || standard.title,
+    );
+    const standardControls = uniqueBy(
+      list(detailStandardRows).flatMap((row) => list(row.controls)),
+      (control) => control.id || control.code || control.title,
+    );
     return {
       focus: compactLocalFocus(selectedDetail),
       technical: {
@@ -750,6 +792,10 @@
         processes: buildLocalProcesses(detailRawProcesses),
         processTree: detailRawProcesses.length ? buildLocalProcessTree(detailRawProcesses) : buildLocalProcessTreeFromManagementRows(detailManagementRows),
         activities: buildLocalActivities(detailManagementRows.length ? detailManagementRows : [firstManagementRow]),
+      },
+      standards: {
+        frameworks: standardFrameworks,
+        controls: standardControls,
       },
       sourceEvidence: detailSourceEvidence,
     };
@@ -797,6 +843,9 @@
       layerLabel: item.layerLabel || "",
       group: item.group || "",
       status: item.status || "",
+      frameworkCode: item.frameworkCode || "",
+      frameworkTitle: item.frameworkTitle || "",
+      originalControlId: item.originalControlId || "",
       ...extra,
     };
   }
@@ -884,6 +933,33 @@
     });
   }
 
+  function buildCapabilityStandardRowsFromWorkbench(workbench, focuses) {
+    if (!workbench || workbench.__data_state === "missing_file") return [];
+    const objectsById = workbenchObjectsById(workbench);
+    const frameworksByCode = {};
+    for (const item of Object.values(workbench?.objects?.standard_framework || {})) {
+      if (item?.code) frameworksByCode[item.code] = workbenchEntity(item, "标准 / 框架");
+    }
+    return list(focuses).map((focus) => {
+      const focusId = focus.id;
+      const focusEntity = workbenchEntity(objectsById[focusId] || focus, "未命名关注点");
+      const controls = workbenchTargets(workbench, objectsById, focusId, "maps_to_standard", "standard_control");
+      const frameworks = uniqueBy(
+        controls
+          .map((control) => frameworksByCode[control.frameworkCode] || (control.frameworkCode ? { id: control.frameworkCode, code: control.frameworkCode, title: control.frameworkTitle || control.frameworkCode } : null))
+          .filter(Boolean),
+        (framework) => framework.id || framework.code || framework.title,
+      );
+      return {
+        id: `${focusId}:standard`,
+        focus: focusEntity,
+        standards: frameworks,
+        controls,
+        dataSource: "capability-workbench.json",
+      };
+    });
+  }
+
   function buildCapabilityWorkspaceViewModel({ capabilityWorkbench, capabilityWorkbenchViewModel, capabilityTree, capabilityProjection, management, selectedCapabilityId, search, relationshipFilters }) {
     const dataSource = workbenchDataSource({
       workbench: capabilityWorkbench,
@@ -911,6 +987,7 @@
     const visibleFocusIdSet = new Set(visibleFocuses.map((focus) => focus.id));
     const workbenchTechnicalRows = buildCapabilityTechnicalRowsFromWorkbench(capabilityWorkbench, visibleFocuses);
     const workbenchManagementRows = buildCapabilityManagementRowsFromWorkbench(capabilityWorkbench, visibleFocuses);
+    const workbenchStandardRows = buildCapabilityStandardRowsFromWorkbench(capabilityWorkbench, visibleFocuses);
     const projectedTechnicalRows = list(capabilityProjection?.technicalMappingRows || capabilityProjection?.technical_mapping_rows);
     const projectedManagementRows = list(capabilityProjection?.managementMappingRows || capabilityProjection?.management_mapping_rows);
     const technicalMappingRows = workbenchTechnicalRows.length
@@ -931,6 +1008,7 @@
     const detailRawProcesses = list(detailRaw?.process_mappings);
     const detailTechnicalRows = isFocus ? technicalMappingRows.filter((row) => row.focus.id === selectedDetail.id) : technicalMappingRows;
     const detailManagementRows = isFocus ? managementMappingRows.filter((row) => row.focus.id === selectedDetail.id) : managementMappingRows;
+    const detailStandardRows = isFocus ? workbenchStandardRows.filter((row) => row.focus.id === selectedDetail.id) : workbenchStandardRows;
     const detailServices = uniqueBy(detailTechnicalRows.flatMap((row) => row.services), (service) => service.id || service.code || service.title);
     const detailProcesses = isFocus ? detailRawProcesses.map(compactProcessMapping) : [];
     const detailModules = uniqueBy(detailTechnicalRows.flatMap((row) => row.modules), (module) => module.id || module.code || module.title);
@@ -948,6 +1026,7 @@
             detailRawProcesses,
             detailTechnicalRows,
             detailManagementRows,
+            detailStandardRows,
             detailSourceEvidence,
           });
 
@@ -960,12 +1039,14 @@
         serviceCount: summarizeTechnical(technicalMappingRows).serviceCount,
         technicalRowCount: technicalMappingRows.length,
         managementRowCount: managementMappingRows.length,
+        standardRowCount: workbenchStandardRows.filter((row) => list(row.controls).length).length,
         noServiceCount: summarizeTechnical(technicalMappingRows).noServiceCount,
         ambiguousCount: summarizeTechnical(technicalMappingRows).ambiguousCount,
       },
       focusOverview,
       technicalMappingRows,
       managementMappingRows,
+      standardMappingRows: workbenchStandardRows,
       localRelationMap,
       localRelationMapSource: usingWorkbenchMappingRows ? "capability_workbench" : projectedLocalRelationMap ? "backend_projection" : "viewmodel_fallback",
       localRelationshipNotes: buildLocalRelationshipNotes(chainFocus, technicalMappingRows, managementMappingRows),

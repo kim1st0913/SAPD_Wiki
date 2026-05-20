@@ -437,20 +437,16 @@
       <aside class="capability-tree-pane app-shell-secondary">
         <div class="pane-head">
           <h2>安全能力映射</h2>
-          <button id="resetButton" type="button" title="重置选择">↺</button>
         </div>
         <div id="tree" class="tree"></div>
       </aside>
 
       <section class="capability-relation-pane app-shell-workspace">
+        <button id="expandCapabilityCatalogTab" class="catalog-expand-tab" type="button" aria-label="展开安全能力目录" aria-expanded="false">目录</button>
         <div class="capability-workbench-head">
-          <div>
-            <p class="eyebrow">Capability Relationship Workspace</p>
-            <h2>当前关注点工作台</h2>
-          </div>
+          <div id="capabilityFocusHeader" class="capability-focus-head-slot"></div>
           <div class="capability-workbench-tools">
             <input id="capabilitySearchInput" type="search" placeholder="搜索能力、服务、作用域、流程、模块" />
-            <div id="capabilitySummary" class="capability-summary-strip"></div>
           </div>
         </div>
         <div id="detail" class="capability-relation-workspace"></div>

@@ -79,6 +79,53 @@
     return `<th>${utils.escapeHtml(column)}</th>`;
   }
 
+  function relatedFocusCodes(value) {
+    const text = cellValue(value);
+    if (!text) return [];
+    const matches = text.match(/\b(?:[TGM]-[A-Z]{2}\.[A-Z]{2}-\d{2}|M\.PS\.CT-\d{2})\b/g);
+    if (matches?.length) return [...new Set(matches)];
+    return text
+      .split(/\n+/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  function focusTooltip(code, focusByCode = {}) {
+    const focus = focusByCode[code] || {};
+    const category = cellValue(focus.category).replace(/\s+[A-Z]$/, "").trim();
+    const domain = cellValue(focus.domain).trim();
+    const capabilityCode = cellValue(focus.capabilityCode).trim();
+    const capabilityTitle = cellValue(focus.capability).trim();
+    const focusTitle = cellValue(focus.title || focus.name).trim();
+    return [
+      [category, domain].filter(Boolean).join("-"),
+      [capabilityCode, capabilityTitle].filter(Boolean).join("-"),
+      [code, focusTitle].filter(Boolean).join("-"),
+      focus.description || "",
+    ]
+      .map((item) => cellValue(item).trim())
+      .filter(Boolean)
+      .join("\n");
+  }
+
+  function renderCell(column, value, focusByCode = {}) {
+    if (column === "关联安全能力/关注点") {
+      const codes = relatedFocusCodes(value);
+      if (!codes.length) return "";
+      return `
+        <div class="standard-focus-code-list">
+          ${codes
+            .map((code) => {
+              const tooltip = focusTooltip(code, focusByCode);
+              return `<span class="standard-tooltip-chip standard-focus-code" data-tooltip="${utils.escapeHtml(tooltip)}" aria-label="${utils.escapeHtml(tooltip || code)}" tabindex="0">${utils.escapeHtml(code)}</span>`;
+            })
+            .join("")}
+        </div>
+      `;
+    }
+    return utils.escapeHtml(cellValue(value));
+  }
+
   function groupConfig(activeFrameworkId, tableId) {
     if (activeFrameworkId === "mlps-level-3") {
       return {
@@ -170,7 +217,7 @@
     return [activeFrameworkId || "standard", tableId || "main", ...path].join("-");
   }
 
-  function renderDetailRows({ rows, tableColumns, activeFrameworkId, selectedId, parentId, hidden = false, lineage = [] }) {
+  function renderDetailRows({ rows, tableColumns, activeFrameworkId, selectedId, parentId, hidden = false, lineage = [], focusByCode = {} }) {
     const lineageAttr = lineage.length ? ` data-standard-lineage="${utils.escapeHtml(lineage.join(" "))}"` : "";
     const parentAttr = parentId ? ` data-standard-parent="${utils.escapeHtml(parentId)}"` : "";
     const hiddenAttr = hidden ? " hidden" : "";
@@ -181,7 +228,7 @@
         const active = selectedId && row.id === selectedId;
         return `
           <tr class="maintenance-data-row standard-group-detail ${tone ? `csf-row csf-${tone}` : ""} ${active ? "active" : ""}"${parentAttr}${lineageAttr}${hiddenAttr} data-maintenance-id="${utils.escapeHtml(row.id || "")}">
-            ${tableColumns.map((column) => `<td>${utils.escapeHtml(cellValue(row.values?.[column]))}</td>`).join("")}
+            ${tableColumns.map((column) => `<td>${renderCell(column, row.values?.[column], focusByCode)}</td>`).join("")}
           </tr>
         `;
       })
@@ -198,6 +245,7 @@
     path = [],
     parentExpanded = true,
     lineage = [],
+    focusByCode = {},
   }) {
     return utils
       .list(groups)
@@ -221,6 +269,7 @@
               path: groupPath,
               parentExpanded: expanded,
               lineage: groupLineage,
+              focusByCode,
             })
           : renderDetailRows({
               rows: group.rows,
@@ -230,6 +279,7 @@
               parentId: groupId,
               hidden: !expanded,
               lineage: groupLineage,
+              focusByCode,
             });
         return `
           <tr class="standard-group-row depth-${group.depth} ${expanded ? "expanded" : ""}" data-standard-group="${utils.escapeHtml(groupId)}"${parentAttr}${lineageAttr}${hiddenAttr}>
@@ -250,7 +300,7 @@
       .join("");
   }
 
-  function renderTable({ activeFrameworkId, tableId, rows, columns, selectedId }) {
+  function renderTable({ activeFrameworkId, tableId, rows, columns, selectedId, focusByCode = {} }) {
     const tableRows = utils.list(rows);
     const tableColumns = visibleColumns(activeFrameworkId, columns, tableId);
     if (!tableRows.length || !tableColumns.length) return "";
@@ -280,14 +330,14 @@
             <tr>${tableColumns.map((column) => renderHeaderCell(activeFrameworkId, column)).join("")}</tr>
           </thead>
           <tbody>
-            ${groups.length ? renderGroups({ groups, tableColumns, activeFrameworkId, tableId, selectedId }) : renderDetailRows({ rows: tableRows, tableColumns, activeFrameworkId, selectedId })}
+            ${groups.length ? renderGroups({ groups, tableColumns, activeFrameworkId, tableId, selectedId, focusByCode }) : renderDetailRows({ rows: tableRows, tableColumns, activeFrameworkId, selectedId, focusByCode })}
           </tbody>
         </table>
       </div>
     `;
   }
 
-  function render({ activeFrameworkId, rows, columns, tables, selectedId, emptyState }) {
+  function render({ activeFrameworkId, rows, columns, tables, selectedId, emptyState, focusByCode }) {
     const tableModels = utils.list(tables);
     const hasTabTables = activeFrameworkId === "nist-csf-2" || tableModels.length > 1;
     const fallbackCsfTables =
@@ -348,7 +398,7 @@
               .map(
                 (table, index) => `
                   <section class="standard-framework-tab-panel ${index === 0 ? "active" : ""}" data-tab-panel="${utils.escapeHtml(table.id)}" ${index === 0 ? "" : "hidden"}>
-                    ${renderTable({ activeFrameworkId, tableId: table.id, rows: table.rows, columns: table.columns, selectedId })}
+                    ${renderTable({ activeFrameworkId, tableId: table.id, rows: table.rows, columns: table.columns, selectedId, focusByCode })}
                   </section>
                 `,
               )
@@ -359,7 +409,7 @@
     }
     return `
       <div class="reference-table-stack standard-framework-stack">
-        ${renderTable({ activeFrameworkId, rows, columns, selectedId })}
+        ${renderTable({ activeFrameworkId, rows, columns, selectedId, focusByCode })}
       </div>
     `;
   }

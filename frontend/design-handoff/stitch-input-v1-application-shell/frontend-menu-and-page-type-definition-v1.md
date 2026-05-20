@@ -1,4 +1,4 @@
-  d# SAPD Wiki Frontend Menu and Page Type Definition V1
+# SAPD Wiki Frontend Menu and Page Type Definition V1
 
 本文档用于固化 SAPD Wiki 最新全站菜单结构、页面类型定义和 Stitch 设计输入边界。
 

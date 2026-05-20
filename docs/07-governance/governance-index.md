@@ -17,6 +17,7 @@
 | 文档 | 用途 |
 |---|---|
 | `docs/07-governance/data-governance.md` | 数据标准化、去重、冲突、旧对象停用、验证等级和 metadata 字段升级规则 |
+| `docs/07-governance/codex-performance-workflow.md` | Codex 轻量开发、验证摘要、重连减负和用户短指令默认执行规则 |
 | `docs/06-implementation/open-issues.md` | 所有 bug、数据问题、页面问题和待确认事项的唯一维护文件 |
 | `findings.md` | 当前关键决策、重要风险和历史记录索引 |
 | `progress.md` | 执行日志、文件变更、命令和验证结果 |

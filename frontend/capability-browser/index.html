@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SAPD Wiki 关系工作台</title>
-    <link rel="stylesheet" href="./styles.css?v=standard-summary-20260519-nist-2" />
+    <link rel="stylesheet" href="./styles.css?v=capability-graph-strategy-20260520-1" />
   </head>
   <body>
     <div id="app" class="app-shell">
@@ -95,7 +95,6 @@
         <aside class="capability-tree-pane">
           <div class="pane-head">
             <h2>安全能力树</h2>
-            <button id="resetButton" type="button" title="重置选择">↺</button>
           </div>
           <div id="tree" class="tree"></div>
         </aside>
@@ -272,14 +271,14 @@
       </div>
     </div>
     <script src="./dataClient.js"></script>
-    <script src="./viewModels.js?v=standard-summary-20260519-nist-2"></script>
-    <script src="./components/AppShell.js?v=standard-summary-20260519-nist-2"></script>
+    <script src="./viewModels.js?v=capability-graph-strategy-20260520-1"></script>
+    <script src="./components/AppShell.js?v=capability-head-layout-20260520-1"></script>
     <script src="./components/StatusBadge.js"></script>
     <script src="./components/SourceEvidencePanel.js"></script>
-    <script src="./components/DimensionTree.js"></script>
+    <script src="./components/DimensionTree.js?v=capability-tree-l0-20260520-1"></script>
     <script src="./components/FocusOverview.js"></script>
-    <script src="./components/FocusScopeServiceMatrix.js?v=f3-diag-ui-p1-local-relation"></script>
-    <script src="./components/FocusManagementMapping.js?v=f3-diag-ui-p1-local-relation"></script>
+    <script src="./components/FocusScopeServiceMatrix.js?v=capability-full-modules-20260520-1"></script>
+    <script src="./components/FocusManagementMapping.js?v=capability-tab-stats-20260520-1"></script>
     <script src="./components/EnvironmentTree.js"></script>
     <script src="./components/EnvironmentRelationshipOverview.js"></script>
     <script src="./components/EnvironmentScopeServiceMatrix.js"></script>
@@ -294,10 +293,10 @@
     <script src="./components/TechnicalMeasureMaintenanceTable.js"></script>
     <script src="./components/LcapReferenceMaintenanceTable.js"></script>
     <script src="./components/StandardRoleReferenceTable.js"></script>
-    <script src="./components/StandardFrameworkTable.js?v=standard-summary-20260519-nist-2"></script>
+    <script src="./components/StandardFrameworkTable.js?v=standard-chip-tooltip-20260520-2"></script>
     <script src="./components/MaintenanceDetailPanel.js"></script>
     <script src="./components/TechnicalMeasureMaintenance.js"></script>
     <script src="./components/DetailInspector.js"></script>
-    <script src="./app.js?v=standard-summary-20260519-nist-2"></script>
+    <script src="./app.js?v=capability-graph-strategy-20260520-1"></script>
   </body>
 </html>

@@ -24,7 +24,7 @@
   function entityTitle(item, fallback = "待补充") {
     if (item == null) return fallback;
     if (typeof item === "string") return valueOf(item, fallback);
-    return valueOf(item.title || item.name || item.serviceName || item.scopeName || item.code || item.id, fallback);
+    return valueOf(item.title || item.name || item.serviceName || item.scopeName || item.standard || item.code || item.id, fallback);
   }
 
   function entityCode(item) {
@@ -90,6 +90,282 @@
       if (!key || seen.has(key)) return false;
       seen.add(key);
       return true;
+    });
+  }
+
+  function evenlySample(items, limit) {
+    const rows = list(items);
+    if (!Number.isFinite(limit) || rows.length <= limit) return rows;
+    if (limit <= 0) return [];
+    if (limit === 1) return rows.slice(0, 1);
+    const step = (rows.length - 1) / (limit - 1);
+    return Array.from({ length: limit }, (_, index) => rows[Math.round(index * step)]).filter(Boolean);
+  }
+
+  function graphScopeOf(focus = {}) {
+    const type = text(focus.type);
+    if (type === "capability_category") return "category";
+    if (type === "capability_domain") return "domain";
+    if (type === "capability") return "capability";
+    return "focus";
+  }
+
+  function graphLimits(scope) {
+    const presets = {
+      category: {
+        technicalRows: 16,
+        servicesPerRow: 2,
+        modulesPerRow: 1,
+        managementRows: 12,
+        worksPerRow: 2,
+        functionsPerRow: 4,
+        processGroupsPerRow: 1,
+        processesPerRow: 2,
+        activitiesPerRow: 1,
+        standards: 4,
+        controlsPerStandard: 2,
+      },
+      domain: {
+        technicalRows: 24,
+        servicesPerRow: 2,
+        modulesPerRow: 2,
+        managementRows: 16,
+        worksPerRow: 3,
+        functionsPerRow: 5,
+        processGroupsPerRow: 2,
+        processesPerRow: 2,
+        activitiesPerRow: 2,
+        standards: 4,
+        controlsPerStandard: 3,
+      },
+      capability: {
+        technicalRows: 36,
+        servicesPerRow: 3,
+        modulesPerRow: 2,
+        managementRows: 24,
+        worksPerRow: 3,
+        functionsPerRow: 7,
+        processGroupsPerRow: 2,
+        processesPerRow: 3,
+        activitiesPerRow: 2,
+        standards: 5,
+        controlsPerStandard: 4,
+      },
+      focus: {
+        technicalRows: Infinity,
+        servicesPerRow: 4,
+        modulesPerRow: 4,
+        managementRows: Infinity,
+        worksPerRow: 4,
+        functionsPerRow: 10,
+        processGroupsPerRow: 3,
+        processesPerRow: 5,
+        activitiesPerRow: 4,
+        standards: Infinity,
+        controlsPerStandard: Infinity,
+      },
+    };
+    return presets[scope] || presets.focus;
+  }
+
+  function compactFocusRowFocus(row = {}) {
+    return row.focus || row;
+  }
+
+  function focusCodePrefix(focus = {}) {
+    const code = entityCode(focus) || text(focus.code);
+    const match = code.match(/^(.+)-\d+$/);
+    return match?.[1] || code || "未编码能力";
+  }
+
+  function focusRowsFromInputs(focusOverview = {}, technicalRows = [], managementRows = [], standardRows = []) {
+    const byId = new Map();
+    const addFocus = (focus, path = null) => {
+      if (!focus?.id && !focus?.code && !focus?.title && !focus?.name) return;
+      const id = focus.id || focus.code || focus.title || focus.name;
+      if (!byId.has(id)) byId.set(id, { focus, path });
+      else if (path && !byId.get(id).path) byId.get(id).path = path;
+    };
+    list(focusOverview.rows).forEach((row) => addFocus(compactFocusRowFocus(row), row.path));
+    list(technicalRows).forEach((row) => addFocus(row.focus));
+    list(managementRows).forEach((row) => addFocus(row.focus));
+    list(standardRows).forEach((row) => addFocus(row.focus));
+    return [...byId.values()];
+  }
+
+  function capabilityFromFocusRow(row = {}) {
+    const focus = compactFocusRowFocus(row);
+    const capability = row.path?.capability;
+    return {
+      id: capability?.id || capability?.code || focusCodePrefix(focus),
+      code: capability?.code || focusCodePrefix(focus),
+      title: capability?.title || capability?.name || focusCodePrefix(focus),
+    };
+  }
+
+  function rowsByFocus(rows = []) {
+    const grouped = new Map();
+    for (const row of list(rows)) {
+      const focus = row.focus || {};
+      const id = focus.id || focus.code || focus.title || focus.name;
+      if (!id) continue;
+      if (!grouped.has(id)) grouped.set(id, []);
+      grouped.get(id).push(row);
+    }
+    return grouped;
+  }
+
+  function buildGraphResponse(nodes, edges, stats = {}) {
+    const nodeRows = [...nodes.values()];
+    const edgeRows = [...edges.values()];
+    return {
+      nodes: nodeRows,
+      edges: edgeRows,
+      groups: [
+        { key: "technical", label: "技术视角" },
+        { key: "management", label: "管理视角" },
+        { key: "standard", label: "标准 / 框架映射" },
+      ],
+      stats: {
+        businessNodes: nodeRows.filter((node) => !node.isDecorative).length,
+        businessEdges: edgeRows.filter((edge) => !edge.isDecorative).length,
+        decorativeNodes: nodeRows.filter((node) => node.isDecorative).length,
+        decorativeEdges: edgeRows.filter((edge) => edge.isDecorative).length,
+        ...stats,
+      },
+    };
+  }
+
+  function buildCategoryStructureGraph({ nodes, edges, focusId, focusOverview, technicalRows, managementRows, standardRows }) {
+    const focusRows = focusRowsFromInputs(focusOverview, technicalRows, managementRows, standardRows);
+    const capabilityNodes = new Map();
+    focusRows.forEach((row) => {
+      const focus = compactFocusRowFocus(row);
+      const capability = capabilityFromFocusRow(row);
+      const capabilityId = stableId("capability_overview", capability, `capability:${capability.code || capability.title}`);
+      if (!capabilityNodes.has(capabilityId)) {
+        const capabilityNode = addNode(nodes, {
+          id: capabilityId,
+          label: entityTitle(capability, "能力"),
+          type: "capability_overview",
+          group: "capability",
+          weight: 4.8,
+          meta: { code: entityCode(capability) || capability.code || "" },
+        });
+        capabilityNodes.set(capabilityId, capabilityNode);
+        addEdge(edges, { source: focusId, target: capabilityNode.id, type: "category_to_capability", weight: 2.2 });
+      }
+      const focusNode = addNode(nodes, {
+        id: stableId("focus_overview", focus, `focus:${entityTitle(focus)}`),
+        label: entityTitle(focus, "关注点"),
+        type: "focus_overview",
+        group: "focus",
+        weight: 2,
+        meta: { code: entityCode(focus) },
+      });
+      addEdge(edges, { source: capabilityId, target: focusNode.id, type: "capability_to_focus", weight: 1.4 });
+    });
+    return buildGraphResponse(nodes, edges, {
+      strategy: "category_structure",
+      graphScope: "category",
+      capabilityCount: capabilityNodes.size,
+      focusCount: focusRows.length,
+    });
+  }
+
+  function buildFocusMappingOverviewGraph({ nodes, edges, focusId, graphScope, focusOverview, technicalRows, managementRows, standardRows }) {
+    const focusRows = focusRowsFromInputs(focusOverview, technicalRows, managementRows, standardRows);
+    const technicalByFocus = rowsByFocus(technicalRows);
+    const managementByFocus = rowsByFocus(managementRows);
+    const standardByFocus = rowsByFocus(standardRows);
+    focusRows.forEach((row) => {
+      const focus = compactFocusRowFocus(row);
+      const rowFocusId = focus.id || focus.code || focus.title || focus.name;
+      if (!rowFocusId) return;
+      const focusNode = addNode(nodes, {
+        id: stableId("focus_overview", focus, `focus:${entityTitle(focus)}`),
+        label: entityTitle(focus, "关注点"),
+        type: "focus_overview",
+        group: "focus",
+        weight: 3,
+        meta: { code: entityCode(focus) },
+      });
+      addEdge(edges, { source: focusId, target: focusNode.id, type: "aggregate_to_focus", weight: 2 });
+
+      const techRows = technicalByFocus.get(rowFocusId) || [];
+      for (const techRow of techRows) {
+        const scope = techRow.scope || {};
+        if (hasBusinessLabel(scope)) {
+          const scopeNode = addNode(nodes, {
+            id: stableId("scope", scope, `scope:${entityTitle(scope)}`),
+            label: entityTitle(scope, "作用域"),
+            type: "scope",
+            group: "technical",
+            weight: 3.2,
+            meta: { code: entityCode(scope) },
+          });
+          addEdge(edges, { source: focusNode.id, target: scopeNode.id, type: "focus_to_scope", weight: 1.5 });
+          list(techRow.services).filter(hasBusinessLabel).forEach((service) => {
+            const serviceNode = addNode(nodes, {
+              id: stableId("technical_service", service, `service:${entityTitle(service)}`),
+              label: entityTitle(service, "安全技术服务"),
+              type: "technical_service",
+              group: "technical",
+              weight: 2.5,
+              meta: { code: entityCode(service) },
+            });
+            addEdge(edges, { source: scopeNode.id, target: serviceNode.id, type: "scope_to_service", weight: 1.1 });
+          });
+        }
+      }
+
+      for (const managementRow of managementByFocus.get(rowFocusId) || []) {
+        unique(list(managementRow.processGroups).filter(hasBusinessLabel), (item) => item.id || item.code || entityTitle(item)).forEach((processGroup) => {
+          const processNode = addNode(nodes, {
+            id: stableId("process_l2", processGroup, `l2:${entityTitle(processGroup)}`),
+            label: entityTitle(processGroup, "L2流程组"),
+            type: "process_l2",
+            group: "management",
+            weight: 2.8,
+            meta: { code: entityCode(processGroup) },
+          });
+          addEdge(edges, { source: focusNode.id, target: processNode.id, type: "focus_to_process_l2", weight: 1.2 });
+        });
+        unique(list(managementRow.securityWorks).filter(hasBusinessLabel), (item) => item.id || item.code || entityTitle(item)).forEach((work) => {
+          const workNode = addNode(nodes, {
+            id: stableId("security_work", work, `work:${entityTitle(work)}`),
+            label: entityTitle(work, "安全工作"),
+            type: "security_work",
+            group: "management",
+            weight: 2.8,
+            meta: { code: entityCode(work) },
+          });
+          addEdge(edges, { source: focusNode.id, target: workNode.id, type: "focus_to_work", weight: 1.2 });
+        });
+      }
+
+      for (const standardRow of standardByFocus.get(rowFocusId) || []) {
+        unique(list(standardRow.standards).filter(hasBusinessLabel), (item) => item.id || item.code || entityTitle(item)).forEach((standard) => {
+          const standardCode = entityCode(standard) || keyPart(standard.standard || standard.title || standard.name);
+          const standardNode = addNode(nodes, {
+            id: stableId("standard_status", { ...standard, code: standardCode }, `standard:${entityTitle(standard)}`),
+            label: entityTitle(standard, "标准 / 框架"),
+            type: "standard_status",
+            group: "standard",
+            weight: 2.4,
+            meta: { code: standardCode },
+          });
+          addEdge(edges, { source: focusNode.id, target: standardNode.id, type: "focus_to_standard_status", weight: 1.1 });
+        });
+      }
+    });
+    return buildGraphResponse(nodes, edges, {
+      strategy: "focus_mapping_overview",
+      graphScope,
+      focusCount: focusRows.length,
+      technicalRows: technicalRows.length,
+      managementRows: managementRows.length,
+      standardRows: standardRows.length,
     });
   }
 
@@ -175,10 +451,12 @@
     return node;
   }
 
-  function buildLocalRelationGraphModel({ currentFocus, currentCapability, localRelationMap, technicalMappingRows, managementMappingRows, standardRows } = {}) {
+  function buildLocalRelationGraphModel({ currentFocus, currentCapability, focusOverview, localRelationMap, technicalMappingRows, managementMappingRows, standardRows } = {}) {
     const nodes = new Map();
     const edges = new Map();
     const focus = currentFocus || localRelationMap?.focus || {};
+    const graphScope = graphScopeOf(focus);
+    const limits = graphLimits(graphScope);
     const focusId = stableId("current", focus, "current-focus");
     addNode(nodes, {
       id: focusId,
@@ -195,7 +473,17 @@
       },
     });
 
-    const techRows = list(technicalMappingRows).length ? list(technicalMappingRows) : technicalRowsFromLocalMap(localRelationMap);
+    const allTechRows = list(technicalMappingRows).length ? list(technicalMappingRows) : technicalRowsFromLocalMap(localRelationMap);
+    const allManagementRows = list(managementMappingRows).length ? list(managementMappingRows) : managementRowsFromLocalMap(localRelationMap);
+    const standards = list(standardRows).length ? list(standardRows) : list(localRelationMap?.standards?.frameworks || localRelationMap?.standardFrameworks);
+    if (graphScope === "category") {
+      return buildCategoryStructureGraph({ nodes, edges, focusId, focusOverview, technicalRows: allTechRows, managementRows: allManagementRows, standardRows: standards });
+    }
+    if (graphScope === "domain" || graphScope === "capability") {
+      return buildFocusMappingOverviewGraph({ nodes, edges, focusId, graphScope, focusOverview, technicalRows: allTechRows, managementRows: allManagementRows, standardRows: standards });
+    }
+
+    const techRows = evenlySample(allTechRows, limits.technicalRows);
     const technicalView = addViewNode(nodes, edges, focusId, "view:technical", "技术视角", "view_technical", "technical");
     for (const row of techRows) {
       const scope = row.scope || {};
@@ -209,7 +497,7 @@
         meta: { code: entityCode(scope) },
       });
       addEdge(edges, { source: technicalView.id, target: scopeNode.id, type: "view_to_scope", weight: 3 });
-      for (const service of list(row.services).slice(0, 4)) {
+      for (const service of list(row.services).slice(0, limits.servicesPerRow)) {
         if (!hasBusinessLabel(service)) continue;
         const serviceNode = addNode(nodes, {
           id: stableId("technical_service", service, `service:${entityTitle(service)}`),
@@ -220,7 +508,7 @@
           meta: { code: entityCode(service) },
         });
         addEdge(edges, { source: scopeNode.id, target: serviceNode.id, type: "scope_to_service", weight: 2 });
-        for (const module of list(row.modules).filter(hasBusinessLabel).slice(0, 4)) {
+        for (const module of list(row.modules).filter(hasBusinessLabel).slice(0, limits.modulesPerRow)) {
           const objectKind = text(module.objectKind || module.kind || module.type);
           const isMeasure = objectKind.includes("措施") || objectKind.includes("measure");
           const moduleNode = addNode(nodes, {
@@ -236,7 +524,7 @@
       }
     }
 
-    const managementRows = list(managementMappingRows).length ? list(managementMappingRows) : managementRowsFromLocalMap(localRelationMap);
+    const managementRows = evenlySample(allManagementRows, limits.managementRows);
     const managementView = addViewNode(nodes, edges, focusId, "view:management", "管理视角", "view_management", "management");
     const functionRoot = addNode(nodes, { id: "management-root:functions", label: "安全职能", type: "management_function_root", group: "management", weight: 4.6, meta: {} });
     const workRoot = addNode(nodes, { id: "management-root:works", label: "安全工作", type: "management_work_root", group: "management", weight: 4.2, meta: {} });
@@ -259,11 +547,11 @@
       }),
     );
     for (const row of managementRows) {
-      const works = unique(list(row.securityWorks).filter(hasBusinessLabel), (item) => item.id || item.code || entityTitle(item)).slice(0, 4);
-      const functions = unique(list(row.stakeholders).filter(hasBusinessLabel), (item) => `${layerKeyOf(item)}:${item.id || item.code || entityTitle(item)}`).slice(0, 10);
-      const processGroups = unique(list(row.processGroups).filter(hasBusinessLabel), (item) => item.id || item.code || entityTitle(item)).slice(0, 3);
-      const processes = unique(list(row.processReferences).filter(hasBusinessLabel), (item) => item.id || item.code || entityTitle(item)).slice(0, 5);
-      const activities = unique(list(row.activities).filter(hasBusinessLabel), (item) => item.id || item.code || entityTitle(item)).slice(0, 4);
+      const works = unique(list(row.securityWorks).filter(hasBusinessLabel), (item) => item.id || item.code || entityTitle(item)).slice(0, limits.worksPerRow);
+      const functions = unique(list(row.stakeholders).filter(hasBusinessLabel), (item) => `${layerKeyOf(item)}:${item.id || item.code || entityTitle(item)}`).slice(0, limits.functionsPerRow);
+      const processGroups = unique(list(row.processGroups).filter(hasBusinessLabel), (item) => item.id || item.code || entityTitle(item)).slice(0, limits.processGroupsPerRow);
+      const processes = unique(list(row.processReferences).filter(hasBusinessLabel), (item) => item.id || item.code || entityTitle(item)).slice(0, limits.processesPerRow);
+      const activities = unique(list(row.activities).filter(hasBusinessLabel), (item) => item.id || item.code || entityTitle(item)).slice(0, limits.activitiesPerRow);
       const workNodes = works.map((work) =>
         addNode(nodes, {
           id: stableId("security_work", work, `work:${entityTitle(work)}`),
@@ -327,53 +615,43 @@
       l3Nodes.forEach((l3Node) => l4Nodes.forEach((l4Node) => addEdge(edges, { source: l3Node.id, target: l4Node.id, type: "process_l3_to_l4", weight: 1 })));
     }
 
-    const standards = list(standardRows).length ? list(standardRows) : list(localRelationMap?.standards?.frameworks || localRelationMap?.standardFrameworks);
     const standardView = addViewNode(nodes, edges, focusId, "view:standard", "标准 / 框架映射", "view_standard", "standard");
     if (standards.length) {
-      standards.slice(0, 4).forEach((standard) => {
+      standards.slice(0, limits.standards).forEach((standard) => {
+        const standardCode = entityCode(standard) || keyPart(standard.standard || standard.title || standard.name);
         const standardNode = addNode(nodes, {
-          id: stableId("standard_status", standard, `standard:${entityTitle(standard)}`),
+          id: stableId("standard_status", { ...standard, code: standardCode }, `standard:${entityTitle(standard)}`),
           label: entityTitle(standard, "标准 / 框架"),
           type: "standard_status",
           group: "standard",
           weight: 2,
-          meta: { code: entityCode(standard) },
+          meta: { code: standardCode },
         });
         addEdge(edges, { source: standardView.id, target: standardNode.id, type: "view_to_standard_status", weight: 1.4 });
+        list(standard.controls).filter(hasBusinessLabel).slice(0, limits.controlsPerStandard).forEach((control) => {
+          const controlNode = addNode(nodes, {
+            id: stableId("standard_control", control, `control:${standardCode}:${entityTitle(control)}`),
+            label: entityTitle(control, "条款 / 控制项"),
+            type: "standard_control",
+            group: "standard",
+            weight: 1.4,
+            meta: { code: entityCode(control), framework: standardCode },
+          });
+          addEdge(edges, { source: standardNode.id, target: controlNode.id, type: "standard_to_control", weight: 0.9 });
+        });
       });
-    } else {
-      const standardNode = addNode(nodes, {
-        id: "standard-status:pending",
-        label: "待投影",
-        type: "standard_status",
-        group: "standard",
-        weight: 1.2,
-        meta: {},
-      });
-      addEdge(edges, { source: standardView.id, target: standardNode.id, type: "view_to_standard_status", weight: 1 });
     }
 
     addDecorativeNetwork(nodes, edges);
 
-    const nodeRows = [...nodes.values()];
-    const edgeRows = [...edges.values()];
-    return {
-      nodes: nodeRows,
-      edges: edgeRows,
-      groups: [
-        { key: "technical", label: "技术视角" },
-        { key: "management", label: "管理视角" },
-        { key: "standard", label: "标准 / 框架映射" },
-      ],
-      stats: {
-        businessNodes: nodeRows.filter((node) => !node.isDecorative).length,
-        businessEdges: edgeRows.filter((edge) => !edge.isDecorative).length,
-        decorativeNodes: nodeRows.filter((node) => node.isDecorative).length,
-        decorativeEdges: edgeRows.filter((edge) => edge.isDecorative).length,
+    return buildGraphResponse(nodes, edges, {
+        graphScope,
+        limited: graphScope !== "focus" || allTechRows.length !== techRows.length || allManagementRows.length !== managementRows.length,
         technicalRows: techRows.length,
+        technicalRowsTotal: allTechRows.length,
         managementRows: managementRows.length,
-      },
-    };
+        managementRowsTotal: allManagementRows.length,
+    });
   }
 
   models.buildLocalRelationGraphModel = buildLocalRelationGraphModel;

@@ -15,6 +15,8 @@ const state = {
   activeView: "overview",
   activeRoute: "/",
   capabilityCatalogCollapsed: false,
+  expandedCapabilityIds: new Set(),
+  expandedSelectionId: null,
   activeMaintenancePage: "scopes",
   activeReferenceTab: "gbt",
   activeStandardFramework: "mlps-level-3",
@@ -53,6 +55,31 @@ const titleOf = (value, fallback = "未命名") => {
 const codeTitle = (value, fallback = "未命名") => [value?.code, titleOf(value, fallback)].filter(Boolean).join(" ");
 const matchesSearch = (...values) => values.map(text).join(" ").toLowerCase().includes(state.search.toLowerCase());
 
+function capabilityFocusByCode(capabilityTree) {
+  const rows = {};
+  for (const category of list(capabilityTree?.categories)) {
+    for (const domain of list(category.domains)) {
+      for (const capability of list(domain.capabilities)) {
+        for (const focus of list(capability.focuses)) {
+          if (!focus?.code) continue;
+          rows[focus.code] = {
+            code: focus.code,
+            title: titleOf(focus, focus.code),
+            description: text(focus.description),
+            capabilityCode: text(capability.code),
+            capability: titleOf(capability, ""),
+            domainCode: text(domain.code),
+            domain: titleOf(domain, ""),
+            categoryCode: text(category.code),
+            category: titleOf(category, ""),
+          };
+        }
+      }
+    }
+  }
+  return rows;
+}
+
 function setHtml(id, html) {
   const element = $(id);
   if (element) element.innerHTML = html;
@@ -78,6 +105,73 @@ function loadScriptOnce(src, isReady) {
     script.onerror = reject;
     document.body.appendChild(script);
   });
+}
+
+function installStandardTooltip() {
+  let activeTrigger = null;
+  let tooltip = null;
+
+  const ensureTooltip = () => {
+    if (tooltip) return tooltip;
+    tooltip = document.createElement("div");
+    tooltip.className = "floating-standard-tooltip";
+    tooltip.setAttribute("role", "tooltip");
+    tooltip.hidden = true;
+    document.body.appendChild(tooltip);
+    return tooltip;
+  };
+
+  const positionTooltip = () => {
+    if (!activeTrigger || !tooltip || tooltip.hidden) return;
+    const triggerRect = activeTrigger.getBoundingClientRect();
+    const tooltipRect = tooltip.getBoundingClientRect();
+    const gap = 8;
+    const viewportGap = 10;
+    let top = triggerRect.top - tooltipRect.height - gap;
+    if (top < viewportGap) top = triggerRect.bottom + gap;
+    const maxLeft = window.innerWidth - tooltipRect.width - viewportGap;
+    const centeredLeft = triggerRect.left + triggerRect.width / 2 - tooltipRect.width / 2;
+    const left = Math.max(viewportGap, Math.min(centeredLeft, maxLeft));
+    tooltip.style.left = `${Math.round(left)}px`;
+    tooltip.style.top = `${Math.round(top)}px`;
+  };
+
+  const showTooltip = (trigger) => {
+    const content = text(trigger?.dataset?.tooltip).trim();
+    if (!content) return;
+    activeTrigger = trigger;
+    const element = ensureTooltip();
+    element.textContent = content;
+    element.hidden = false;
+    requestAnimationFrame(positionTooltip);
+  };
+
+  const hideTooltip = (trigger) => {
+    if (trigger && trigger !== activeTrigger) return;
+    activeTrigger = null;
+    if (tooltip) tooltip.hidden = true;
+  };
+
+  document.addEventListener("mouseover", (event) => {
+    const trigger = event.target.closest(".standard-tooltip-chip[data-tooltip]");
+    if (!trigger) return;
+    showTooltip(trigger);
+  });
+  document.addEventListener("mouseout", (event) => {
+    const trigger = event.target.closest(".standard-tooltip-chip[data-tooltip]");
+    if (!trigger || trigger.contains(event.relatedTarget)) return;
+    hideTooltip(trigger);
+  });
+  document.addEventListener("focusin", (event) => {
+    const trigger = event.target.closest(".standard-tooltip-chip[data-tooltip]");
+    if (trigger) showTooltip(trigger);
+  });
+  document.addEventListener("focusout", (event) => {
+    const trigger = event.target.closest(".standard-tooltip-chip[data-tooltip]");
+    if (trigger) hideTooltip(trigger);
+  });
+  window.addEventListener("resize", positionTooltip);
+  document.addEventListener("scroll", () => hideTooltip(activeTrigger), true);
 }
 
 function emptyState(title, body = "等待数据导出或选择左侧对象") {
@@ -175,6 +269,20 @@ function capabilityPathForFocus(focusId) {
     }
   }
   return {};
+}
+
+function capabilityAncestorIds(targetId) {
+  for (const category of list(state.capability?.categories)) {
+    if (category.id === targetId) return [];
+    for (const domain of list(category.domains)) {
+      if (domain.id === targetId) return [category.id];
+      for (const capability of list(domain.capabilities)) {
+        if (capability.id === targetId) return [category.id, domain.id];
+        if (list(capability.focuses).some((item) => item.id === targetId)) return [category.id, domain.id, capability.id];
+      }
+    }
+  }
+  return [];
 }
 
 function lifecycleProcesses(kind) {
@@ -314,34 +422,40 @@ function applyCapabilityCatalogState() {
   if (workspace) {
     const hasResizer = Boolean(workspace.querySelector(".workspace-resizer"));
     if (hasResizer) {
-      workspace.style.gridTemplateColumns = state.capabilityCatalogCollapsed ? "48px 6px minmax(760px, 1fr)" : "250px 6px minmax(760px, 1fr)";
-      workspace._paneWidths = state.capabilityCatalogCollapsed ? [48, Math.max(760, workspace.clientWidth - 54)] : [250, Math.max(760, workspace.clientWidth - 256)];
+      workspace.style.gridTemplateColumns = state.capabilityCatalogCollapsed ? "0 minmax(0, 1fr)" : "250px 6px minmax(760px, 1fr)";
+      workspace._paneWidths = state.capabilityCatalogCollapsed ? [0, Math.max(0, workspace.clientWidth)] : [250, Math.max(760, workspace.clientWidth - 256)];
     } else {
-      workspace.style.gridTemplateColumns = state.capabilityCatalogCollapsed ? "48px minmax(760px, 1fr)" : "250px minmax(760px, 1fr)";
+      workspace.style.gridTemplateColumns = state.capabilityCatalogCollapsed ? "0 minmax(0, 1fr)" : "250px minmax(760px, 1fr)";
       workspace._paneWidths = null;
     }
   }
   const button = $("toggleCapabilityCatalog");
   if (button) {
-    button.textContent = state.capabilityCatalogCollapsed ? "展开目录" : "收起目录";
+    button.textContent = state.capabilityCatalogCollapsed ? "展开" : "收起目录";
+    button.title = state.capabilityCatalogCollapsed ? "展开安全能力目录" : "收起安全能力目录";
+    button.setAttribute("aria-label", button.title);
     button.setAttribute("aria-expanded", state.capabilityCatalogCollapsed ? "false" : "true");
+  }
+  const tab = $("expandCapabilityCatalogTab");
+  if (tab) {
+    tab.hidden = !state.capabilityCatalogCollapsed;
+    tab.setAttribute("aria-expanded", state.capabilityCatalogCollapsed ? "false" : "true");
   }
 }
 
 function ensureCapabilityCatalogToggle() {
   const paneHead = document.querySelector(".capability-tree-pane .pane-head");
-  const resetButton = $("resetButton");
   if (!paneHead || $("toggleCapabilityCatalog")) return;
   const actionGroup = document.createElement("div");
   actionGroup.className = "pane-head-actions";
   const toggleButton = document.createElement("button");
   toggleButton.id = "toggleCapabilityCatalog";
   toggleButton.type = "button";
-  toggleButton.title = "收起或展开目录";
+  toggleButton.title = "收起安全能力目录";
+  toggleButton.setAttribute("aria-label", "收起安全能力目录");
   toggleButton.setAttribute("aria-expanded", "true");
   toggleButton.textContent = "收起目录";
   actionGroup.appendChild(toggleButton);
-  if (resetButton) actionGroup.appendChild(resetButton);
   paneHead.appendChild(actionGroup);
 }
 
@@ -367,13 +481,29 @@ function renderCapabilities() {
     relationshipFilters: state.relationshipFilters,
   });
   if (!state.selectedCapabilityId) state.selectedCapabilityId = viewModel.selectedCapability?.id || null;
-  setHtml("tree", components.DimensionTree?.render({ navigationTree: viewModel.navigationTree, selectedCapabilityId: state.selectedCapabilityId }) || emptyState("能力树组件未加载"));
-  setHtml("capabilitySummary", components.AppShell?.renderCapabilitySummary?.(viewModel.relationshipSummary) || "");
+  if (state.selectedCapabilityId && state.expandedSelectionId !== state.selectedCapabilityId) {
+    capabilityAncestorIds(state.selectedCapabilityId).forEach((id) => state.expandedCapabilityIds.add(id));
+    state.expandedSelectionId = state.selectedCapabilityId;
+  }
+  setHtml(
+    "tree",
+    components.DimensionTree?.render({
+      navigationTree: viewModel.navigationTree,
+      selectedCapabilityId: state.selectedCapabilityId,
+      expandedIds: state.expandedCapabilityIds,
+      search: state.search,
+    }) || emptyState("能力树组件未加载"),
+  );
   const selected = viewModel.selectedCapability;
   if (!selected) {
+    setHtml("capabilityFocusHeader", "");
     setHtml("detail", emptyState("暂无能力关系数据"));
     return;
   }
+  setHtml(
+    "capabilityFocusHeader",
+    components.CapabilityLocalRelationMap?.renderFocusStrip?.(viewModel.localRelationMap, viewModel.focusOverview) || "",
+  );
   const detailInspector = viewModel.detailInspector;
   setHtml(
     "detail",
@@ -595,6 +725,7 @@ function renderMaintenance() {
         tables: viewModel.tables,
         selectedId: viewModel.selectedId,
         emptyState: viewModel.emptyState,
+        focusByCode: capabilityFocusByCode(state.capability),
       }) || tableHtml;
   }
   setHtml(
@@ -635,7 +766,12 @@ function workspacePanes(workspace) {
 }
 
 function applyWorkspaceGrid(workspace, widths) {
-  const columns = widths.map((width, index) => `${Math.max(160, Math.round(width))}px${index < widths.length - 1 ? " 6px" : ""}`).join(" ");
+  const columns = widths
+    .map((width, index) => {
+      const minWidth = workspace.id === "capabilityWorkspace" && workspace.classList.contains("catalog-collapsed") && index === 0 ? 64 : 160;
+      return `${Math.max(minWidth, Math.round(width))}px${index < widths.length - 1 ? " 6px" : ""}`;
+    })
+    .join(" ");
   workspace.style.gridTemplateColumns = columns;
   workspace._paneWidths = widths;
 }
@@ -825,20 +961,20 @@ function bindEvents() {
     if ($("capabilitySearchInput")) $("capabilitySearchInput").value = event.target.value;
     renderActiveView();
   });
-  $("resetButton")?.addEventListener("click", () => {
-    state.search = "";
-    state.relationshipFilters = {};
-    $("searchInput").value = "";
-    if ($("capabilitySearchInput")) $("capabilitySearchInput").value = "";
-    state.selectedCapabilityId = null;
-    renderCapabilities();
-  });
   $("capabilitySearchInput")?.addEventListener("input", (event) => {
     state.search = event.target.value.trim();
     if ($("searchInput")) $("searchInput").value = event.target.value;
     renderCapabilities();
   });
   $("tree")?.addEventListener("click", (event) => {
+    const toggle = event.target.closest("[data-tree-toggle-id]");
+    if (toggle) {
+      const id = toggle.dataset.treeToggleId;
+      if (state.expandedCapabilityIds.has(id)) state.expandedCapabilityIds.delete(id);
+      else state.expandedCapabilityIds.add(id);
+      renderCapabilities();
+      return;
+    }
     const row = event.target.closest("[data-capability-id]");
     if (!row) return;
     state.selectedCapabilityId = row.dataset.capabilityId;
@@ -925,7 +1061,7 @@ function bindEvents() {
     button.addEventListener("click", () => {});
   });
   document.addEventListener("click", (event) => {
-    if (event.target.closest("#toggleCapabilityCatalog")) {
+    if (event.target.closest("#toggleCapabilityCatalog, #expandCapabilityCatalogTab")) {
       state.capabilityCatalogCollapsed = !state.capabilityCatalogCollapsed;
       applyCapabilityCatalogState();
       return;
@@ -957,9 +1093,9 @@ function bindEvents() {
 async function init() {
   const dataClient = window.sapdDataClient;
   if (!dataClient) throw new Error("SAPD Wiki dataClient 未加载");
-  await loadScriptOnce("./models/relationGraphModel.js?v=f3-graph-p1-v2-network", () => Boolean(window.sapdModels?.buildLocalRelationGraphModel));
-  await loadScriptOnce("./components/LocalRelationNetworkGraph.js?v=f3-graph-p1-v2-network", () => Boolean(window.sapdComponents?.LocalRelationNetworkGraph));
-  await loadScriptOnce("./components/CapabilityLocalRelationMap.js?v=f3-graph-p1-v2-network", () => Boolean(window.sapdComponents?.CapabilityLocalRelationMap));
+  await loadScriptOnce("./models/relationGraphModel.js?v=capability-graph-strategy-20260520-1", () => Boolean(window.sapdModels?.buildLocalRelationGraphModel));
+  await loadScriptOnce("./components/LocalRelationNetworkGraph.js?v=capability-graph-strategy-20260520-1", () => Boolean(window.sapdComponents?.LocalRelationNetworkGraph));
+  await loadScriptOnce("./components/CapabilityLocalRelationMap.js?v=capability-tab-clean-20260520-3", () => Boolean(window.sapdComponents?.CapabilityLocalRelationMap));
   const [capability, capabilityWorkbench, environmentWorkbench, lifecycleWorkbench, capabilityProjection, maintenanceKnowledge, content, standards] = await Promise.all([
     dataClient.getCapabilityTree(),
     dataClient.getCapabilityWorkbench?.() || Promise.resolve({ data: null }),
@@ -980,6 +1116,7 @@ async function init() {
   state.standards = standards.data;
   mountAppShellComponents();
   bindEvents();
+  installStandardTooltip();
   activateRoute("/");
   const loadHeavyPackages = () => {
     Promise.all([

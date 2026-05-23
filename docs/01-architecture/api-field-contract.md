@@ -800,9 +800,9 @@
 | `id` | string | 是 | 引用 ID |
 | `type` | string | 是 | `gbt_42446_task_reference` 或其他标准引用类型 |
 | `code` | string/null | 否 | 标准条目编码 |
-| `title` | string | 是 | 标准条目名称 |
+| `title` | string | 是 | 原始表 `承担的工作任务` |
 | `description` | string/null | 否 | 说明 |
-| `category` | string/null | 否 | 标准分类 |
+| `category` | string/null | 否 | 原始表 `工作类别` |
 | `sources` | array<SourceReference> | 否 | 来源 |
 
 ### 10.2 `GET /api/v1/references/roles`
@@ -816,9 +816,9 @@
 | `id` | string | 是 | 岗位参考 ID |
 | `type` | string | 是 | `work_role_reference` |
 | `code` | string/null | 否 | 编码 |
-| `title` | string | 是 | 岗位/角色名称 |
-| `description` | string/null | 否 | 描述 |
-| `category` | string/null | 否 | 分类 |
+| `title` | string | 是 | 原始表 `角色` |
+| `description` | string/null | 否 | 原始表 `描述` |
+| `category` | string/null | 否 | 原始表 `分类` |
 | `sources` | array<SourceReference> | 否 | 来源 |
 
 ## 11. 生命周期接口

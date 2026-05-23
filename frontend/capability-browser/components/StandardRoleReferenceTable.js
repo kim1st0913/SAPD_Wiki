@@ -9,45 +9,83 @@
     return value;
   }
 
-  function renderChips(items, empty = "待补充") {
-    const rows = utils.list(items).filter(Boolean);
-    if (!rows.length) return `<span class="empty-inline">${utils.escapeHtml(empty)}</span>`;
-    return rows.map((item) => `<span class="relation-chip">${utils.escapeHtml(utils.titleOf(item, "待补充"))}</span>`).join("");
+  function groupId(parts) {
+    return parts
+      .map((part) =>
+        utils
+          .text(part)
+          .trim()
+          .replace(/[^\w\u4e00-\u9fa5-]+/g, "-")
+          .replace(/^-+|-+$/g, ""),
+      )
+      .filter(Boolean)
+      .join("-");
   }
 
-  function renderStandardRows(rows, selectedId) {
-    return utils
-      .list(rows)
+  function groupedByCategory(rows, fallbackLabel) {
+    const groups = [];
+    const groupMap = new Map();
+    for (const row of utils.list(rows)) {
+      const label = utils.text(row.category || "").trim() || fallbackLabel;
+      if (!groupMap.has(label)) {
+        const group = { label, rows: [] };
+        groups.push(group);
+        groupMap.set(label, group);
+      }
+      groupMap.get(label).rows.push(row);
+    }
+    return groups;
+  }
+
+  function renderStandardDetailRows(rows, selectedId, parentId, hidden) {
+    const hiddenAttr = hidden ? " hidden" : "";
+    return rows
       .map(
         (row) => `
-          <tr class="${row.id === selectedId ? "active" : ""}" data-maintenance-id="${utils.escapeHtml(row.id)}">
-            <td>${utils.escapeHtml(valueText(row.source))}</td>
-            <td>${utils.escapeHtml(valueText(row.category))}</td>
+          <tr class="maintenance-data-row standard-group-detail reference-group-detail ${row.id === selectedId ? "active" : ""}" data-standard-parent="${utils.escapeHtml(parentId)}" data-standard-lineage="${utils.escapeHtml(parentId)}"${hiddenAttr} data-maintenance-id="${utils.escapeHtml(row.id)}">
+            <td class="reference-indent-cell"></td>
             <td><strong>${utils.escapeHtml(valueText(row.title))}</strong></td>
-            <td>${renderChips(row.linkedSecurityFunctions, "待确认")}</td>
-            <td>${renderChips(row.linkedProcesses, "待确认")}</td>
-            <td>${utils.escapeHtml(valueText(row.mappingStatus))}</td>
           </tr>
         `,
       )
       .join("");
   }
 
-  function renderRoleRows(rows, selectedId) {
-    return utils
-      .list(rows)
+  function renderRoleDetailRows(rows, selectedId, parentId, hidden) {
+    const hiddenAttr = hidden ? " hidden" : "";
+    return rows
       .map(
         (row) => `
-          <tr class="${row.id === selectedId ? "active" : ""}" data-maintenance-id="${utils.escapeHtml(row.id)}">
-            <td>${utils.escapeHtml(valueText(row.source))}</td>
-            <td>${utils.escapeHtml(valueText(row.category))}</td>
+          <tr class="maintenance-data-row standard-group-detail reference-group-detail ${row.id === selectedId ? "active" : ""}" data-standard-parent="${utils.escapeHtml(parentId)}" data-standard-lineage="${utils.escapeHtml(parentId)}"${hiddenAttr} data-maintenance-id="${utils.escapeHtml(row.id)}">
             <td><strong>${utils.escapeHtml(valueText(row.title))}</strong></td>
-            <td>${renderChips(row.candidateSecurityFunctions, "待补充")}</td>
-            <td>${utils.escapeHtml(valueText(row.matchEvidence))}</td>
-            <td>${utils.escapeHtml(valueText(row.reviewStatus || row.mappingStatus))}</td>
+            <td class="maintenance-description-cell"><span>${utils.escapeHtml(valueText(row.description))}</span></td>
           </tr>
         `,
       )
+      .join("");
+  }
+
+  function renderGroupedRows(rows, selectedId, options) {
+    const groups = groupedByCategory(rows, options.fallbackLabel);
+    const hasSelectedRow = utils.list(rows).some((row) => row.id === selectedId);
+    return groups
+      .map((group, groupIndex) => {
+        const referenceGroupId = groupId([options.idPrefix, groupIndex, group.label]);
+        const groupHasSelected = group.rows.some((row) => row.id === selectedId);
+        const expanded = hasSelectedRow ? groupHasSelected : groupIndex === 0;
+        return `
+          <tr class="standard-group-row depth-0 reference-category-row ${expanded ? "expanded" : ""}" data-standard-group="${utils.escapeHtml(referenceGroupId)}">
+            <td colspan="${options.columnCount}">
+              <button class="standard-group-toggle" type="button" aria-expanded="${expanded ? "true" : "false"}">
+                <span class="standard-group-caret">›</span>
+                <span class="standard-group-main"><strong>${utils.escapeHtml(group.label)}</strong></span>
+                <em>${utils.escapeHtml(`${group.rows.length} ${options.countUnit}`)}</em>
+              </button>
+            </td>
+          </tr>
+          ${options.renderDetails(group.rows, selectedId, referenceGroupId, !expanded)}
+        `;
+      })
       .join("");
   }
 
@@ -73,21 +111,6 @@
     `;
   }
 
-  function renderTabs(activeTab, standards, roles) {
-    return `
-      <div class="reference-tabs" role="tablist" aria-label="岗位参考页面页签">
-        <button class="reference-tab ${activeTab === "gbt" ? "active" : ""}" type="button" role="tab" data-reference-tab="gbt" aria-selected="${activeTab === "gbt"}">
-          <span>GB/T 42446-2023</span>
-          <strong>${utils.escapeHtml(standards.length)}</strong>
-        </button>
-        <button class="reference-tab ${activeTab === "gartner" ? "active" : ""}" type="button" role="tab" data-reference-tab="gartner" aria-selected="${activeTab === "gartner"}">
-          <span>Gartner 工作岗位参考</span>
-          <strong>${utils.escapeHtml(roles.length)}</strong>
-        </button>
-      </div>
-    `;
-  }
-
   function render({ standardRows, roleRows, selectedId, emptyState, activeTab = "gbt" }) {
     const standards = utils.list(standardRows);
     const roles = utils.list(roleRows);
@@ -102,15 +125,27 @@
             ? renderTable({
                 title: "Gartner 工作岗位参考",
                 empty: "暂无 Gartner 岗位参考数据。",
-                headers: ["岗位来源", "岗位分类", "岗位名称", "候选安全职能", "匹配依据", "复核状态"],
-                body: renderRoleRows(roles, selectedId),
+                headers: ["角色", "描述"],
+                body: renderGroupedRows(roles, selectedId, {
+                  idPrefix: "gartner-role-category",
+                  fallbackLabel: "未分组岗位分类",
+                  columnCount: 2,
+                  countUnit: "个角色",
+                  renderDetails: renderRoleDetailRows,
+                }),
                 tableClass: "role-reference-maintenance-table",
               })
             : renderTable({
                 title: "GB/T 42446-2023",
                 empty: "暂无 GB/T 42446-2023 任务参考数据。",
-                headers: ["标准来源", "任务分类", "任务名称", "关联安全职能", "关联流程", "状态"],
-                body: renderStandardRows(standards, selectedId),
+                headers: ["工作类别", "承担的工作任务"],
+                body: renderGroupedRows(standards, selectedId, {
+                  idPrefix: "gbt-work-category",
+                  fallbackLabel: "未分组工作类别",
+                  columnCount: 2,
+                  countUnit: "项工作任务",
+                  renderDetails: renderStandardDetailRows,
+                }),
                 tableClass: "standard-reference-maintenance-table",
               })
         }

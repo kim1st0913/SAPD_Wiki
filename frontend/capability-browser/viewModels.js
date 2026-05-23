@@ -1537,11 +1537,9 @@
       .filter((row) =>
         includesSearch(
           query,
-          row.source,
-          row.category,
           row.title,
+          row.category,
           row.description,
-          row.mappingStatus,
           ...row.linkedSecurityFunctions.map(titleOf),
           ...row.linkedProcesses.map(titleOf),
         ),
@@ -1565,12 +1563,10 @@
       .filter((row) =>
         includesSearch(
           query,
-          row.source,
+          row.description,
           row.category,
           row.title,
-          row.description,
           row.matchEvidence,
-          row.reviewStatus,
           ...row.candidateSecurityFunctions.map(titleOf),
         ),
       );
@@ -2161,25 +2157,13 @@
       };
     }
     if (section === "references") {
+      const isRoleReference = row.referenceKind === "role";
       return {
         type: row.referenceType,
-        code: row.source,
         title: row.title,
         description: row.description,
-        facts: [
-          { label: "来源", value: row.source },
-          { label: "分类", value: row.category },
-          { label: row.referenceKind === "role" ? "候选安全职能" : "关联安全职能", value: row.referenceKind === "role" ? countLinked(row.candidateSecurityFunctions) || "待补充" : countLinked(row.linkedSecurityFunctions) || "待确认" },
-          { label: "关联流程", value: row.referenceKind === "role" ? "待补充" : countLinked(row.linkedProcesses) || "待确认" },
-          { label: "映射状态", value: row.mappingStatus || row.reviewStatus },
-        ],
-        sections:
-          row.referenceKind === "role"
-            ? [{ title: "候选安全职能", items: row.candidateSecurityFunctions }]
-            : [
-                { title: "关联安全职能（待复核）", items: row.linkedSecurityFunctions },
-                { title: "关联流程（待确认）", items: row.linkedProcesses },
-              ],
+        facts: [{ label: isRoleReference ? "分类" : "工作类别", value: row.category }],
+        sections: [],
         sourceEvidence,
       };
     }

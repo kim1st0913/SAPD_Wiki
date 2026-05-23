@@ -4,7 +4,7 @@
     capabilityWorkbench: "./public/data/capability-workbench.json",
     environmentWorkbench: "./public/data/environment-workbench.json",
     lifecycleWorkbench: "./public/data/lifecycle-workbench.json",
-    maintenance: "./public/data/maintenance-knowledge.json?v=security-functions-tabs-order-20260523-1",
+    maintenance: "./public/data/maintenance-knowledge.json?v=security-reference-original-fields-20260523-1",
     sharedLookups: "./public/data/shared-lookups.json",
     lifecycle: "./public/data/lifecycle-knowledge.json",
     content: "./public/data/content-views.json",

@@ -1242,9 +1242,9 @@
 - 状态：已修复
 - 类型：前端展示 / 安全知识页面 / 表格结构
 - 对象或页面：`/knowledge/functions` 及安全知识已有表格入口。
-- 现象：`安全职能名称` 列占用过宽，挤压右侧 `定义` 列；安全工作职能清单前两列 `安全职能层`、`职能组` 没有按原表层级归纳展开，安全知识其他表格的短字段列和描述列比例也需要进一步统一。
-- 影响：定义字段阅读成本高，职能层级浏览效率低，安全知识各子页表格密度和列宽体验不一致。
-- 当前处理：`安全工作职能清单` 已按 `安全职能层 -> 职能组 -> 安全职能明细` 两级展开；明细表不再重复显示 `安全职能层` / `职能组` 两列；职能组按 `安全工作职能清单` 原表来源行号排序，职能明细按编码顺序兜底；`GB/T 42446-2023` 与 `Gartner 工作岗位参考` 已提升为 `安全职能清单` 的同级页签；安全知识表格统一收紧短字段列、统计列和表头高度，把横向空间让给 `定义`、`描述` 和映射信息列。
+- 现象：`安全职能名称` 列占用过宽，挤压右侧 `定义` 列；安全工作职能清单前两列 `安全职能层`、`职能组` 没有按原表层级归纳展开；`GB/T 42446-2023` 与 `Gartner 工作岗位参考` 曾展示 `岗位来源`、`候选安全职能`、`复核状态` 等非原始业务字段，反而缺少原表 `工作类别`、`分类` 等字段；两个参考目录还缺少按原始分类归纳展开的浏览结构。
+- 影响：定义字段阅读成本高，职能层级浏览效率低；参考目录页面出现非用户需求的衍生字段，原始业务字段缺失。
+- 当前处理：`安全工作职能清单` 已按 `安全职能层 -> 职能组 -> 安全职能明细` 两级展开；明细表不再重复显示 `安全职能层` / `职能组` 两列；职能组按 `安全工作职能清单` 原表来源行号排序，职能明细按编码顺序兜底；`GB/T 42446-2023` 与 `Gartner 工作岗位参考` 已提升为 `安全职能清单` 的同级页签；安全知识表格统一收紧短字段列、统计列和表头高度；参考目录主表已改为只展示原始业务字段，并按原始分类归纳展开：GB/T 按 `工作类别` 展开 `承担的工作任务`，Gartner 按 `分类` 展开 `角色` 与 `描述`。
 - 需要确认：无。
-- 修复说明：修改 `WorkFunctionMaintenanceTable.js`、`StandardRoleReferenceTable.js` 和 `styles.css`；未修改 ETL、数据包、schema 或原始 Excel。
-- 验证结果：2026-05-23 `node --check`、`python3 -m py_compile src/sapd_wiki/exports.py`、`git diff --check` 通过；已重新导出 `maintenance-knowledge.json`，并更新 `index.html` / `dataClient.js` 资源版本避免旧缓存；`/knowledge/functions`、`/knowledge/scopes`、`/knowledge/technical`、`/knowledge/management-workflows`、`/knowledge/role-references` Chrome headless smoke 通过，均 `consoleIssues=0`、`bodyOverflowX=0`，表头字号 / 字重 / 居中检查通过。
+- 修复说明：修改 `WorkFunctionMaintenanceTable.js`、`StandardRoleReferenceTable.js`、`styles.css`、`viewModels.js`、`exports.py`、页面字段契约和治理文档；未修改原始 Excel、schema 或数据库结构。
+- 验证结果：2026-05-23 `node --check`、`python3 -m py_compile src/sapd_wiki/exports.py`、`git diff --check` 通过；已重新导出 `maintenance-knowledge.json`，并更新 `index.html` / `dataClient.js` 资源版本避免旧缓存；本地 API 返回 `gbt_42446_references=27` 且 `category_non_empty=27`、`gartner_roles=28` 且 `category_non_empty=28`；`/knowledge/functions`、`/knowledge/scopes`、`/knowledge/technical`、`/knowledge/management-workflows`、`/knowledge/gbt-42446`、`/knowledge/role-references` Chrome headless smoke 通过，均 `consoleIssues=0`、`bodyOverflowX=0`；DOM 复核确认 GB/T 首组为 `网络安全管理 6 项工作任务`，Gartner 首组为 `安全和风险管理 (SRM) 领导者 10 个角色`，标题到表格间距约 8px，首组折叠交互正常。

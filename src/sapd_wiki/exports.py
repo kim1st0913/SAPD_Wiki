@@ -303,13 +303,15 @@ def _maintenance_knowledge_payload(management_payload: dict[str, Any]) -> dict[s
 def _brief_item(item: dict[str, Any] | None, source_refs: dict[str, list[dict[str, Any]]]) -> dict[str, Any] | None:
     if not item:
         return None
+    metadata = _metadata(item)
+    category = item.get("category") or metadata.get("role_category") or metadata.get("reference_category")
     return {
         "id": item["id"],
         "type": item["type"],
         "code": item.get("code"),
         "title": item["title"],
         "description": item.get("description"),
-        "category": item.get("category"),
+        "category": category,
         "sources": source_refs.get(item["id"], [])[:8],
     }
 
@@ -1816,11 +1818,17 @@ def export_management_knowledge(
 
     gbt_42446_references = [
         _brief_item(item, refs) or {}
-        for item in _sort_item_rows(list(gbt_refs.values()))
+        for item in sorted(
+            gbt_refs.values(),
+            key=lambda item: (*_source_position_key(refs.get(item.get("id") or ""), ("安全工作职能清单",)), item.get("title") or ""),
+        )
     ]
     gartner_role_payloads = [
         _brief_item(item, refs) or {}
-        for item in _sort_item_rows(list(gartner_roles.values()))
+        for item in sorted(
+            gartner_roles.values(),
+            key=lambda item: (*_source_position_key(refs.get(item.get("id") or ""), ("gartner工作岗位参考",)), item.get("title") or ""),
+        )
     ]
     domain_by_title = {item["title"]: item_id for item_id, item in process_domains.items()}
     group_by_title = {item["title"]: item_id for item_id, item in process_groups.items()}

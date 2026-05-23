@@ -1388,31 +1388,68 @@ body.is-resizing {
   vertical-align: middle;
 }
 
+.standard-reference-maintenance-table {
+  min-width: 760px;
+}
+
+.knowledge-directory-mode .reference-table-section .maintenance-table-scroll {
+  height: auto;
+  max-height: none;
+}
+
 .standard-reference-maintenance-table th:nth-child(1),
-.standard-reference-maintenance-table td:nth-child(1),
-.role-reference-maintenance-table th:nth-child(1),
-.role-reference-maintenance-table td:nth-child(1) {
-  width: 132px;
-  text-align: center;
+.standard-reference-maintenance-table td:nth-child(1) {
+  width: 220px;
   vertical-align: middle;
 }
 
-.standard-reference-maintenance-table th:nth-child(2),
-.standard-reference-maintenance-table td:nth-child(2),
+.standard-reference-maintenance-table .reference-indent-cell {
+  background: color-mix(in oklch, var(--surface-quiet) 62%, var(--panel));
+}
+
+.role-reference-maintenance-table {
+  min-width: 980px;
+}
+
 .role-reference-maintenance-table th:nth-child(2),
 .role-reference-maintenance-table td:nth-child(2) {
-  width: 150px;
-  text-align: center;
+  width: auto;
   vertical-align: middle;
 }
 
-.standard-reference-maintenance-table th:nth-child(6),
-.standard-reference-maintenance-table td:nth-child(6),
-.role-reference-maintenance-table th:nth-child(6),
-.role-reference-maintenance-table td:nth-child(6) {
-  width: 88px;
-  text-align: center;
+.role-reference-maintenance-table th:nth-child(1),
+.role-reference-maintenance-table td:nth-child(1) {
+  width: 280px;
   vertical-align: middle;
+}
+
+.standard-reference-maintenance-table .reference-group-detail td,
+.role-reference-maintenance-table .reference-group-detail td {
+  height: 36px;
+  padding: 6px 10px;
+}
+
+.role-reference-maintenance-table .reference-group-detail td:first-child {
+  padding-left: 22px;
+}
+
+.standard-reference-maintenance-table .standard-group-toggle,
+.role-reference-maintenance-table .standard-group-toggle {
+  min-height: 42px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.standard-reference-maintenance-table .standard-group-row.depth-0 td,
+.role-reference-maintenance-table .standard-group-row.depth-0 td {
+  background: color-mix(in oklch, var(--accent) 7%, var(--surface-quiet));
+}
+
+.standard-reference-maintenance-table .standard-group-toggle em,
+.role-reference-maintenance-table .standard-group-toggle em {
+  color: var(--muted);
+  font-style: normal;
+  font-weight: 800;
 }
 
 .standard-framework-table {
@@ -2546,6 +2583,8 @@ body.is-resizing {
 
 .reference-table-section {
   display: grid;
+  align-content: start;
+  grid-template-rows: auto auto;
   gap: 8px;
 }
 

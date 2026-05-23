@@ -32,6 +32,8 @@ GitHub 仓库只保存代码、文档、配置模板和脱敏 fixture，不保�
 python scripts/check_github_data_boundary.py
 ```
 
+同一检查已接入 `.github/workflows/data-boundary.yml`，在 push / pull request 时自动运行。CI 失败时，优先检查是否有原始数据、SQLite 数据库、导出包或前端生成数据被 Git 追踪。
+
 从 GitHub 拉代码后的本地数据重建流程统一使用：
 
 ```bash

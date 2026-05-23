@@ -120,6 +120,8 @@ python scripts/bootstrap_local_data.py --reset
 python scripts/check_github_data_boundary.py
 ```
 
+同一检查已接入 GitHub Actions：每次 push / pull request 会自动运行 `.github/workflows/data-boundary.yml`，如果原始数据、SQLite、导出包或前端生成数据被误追踪，CI 会失败。
+
 登记并检查 Excel 样例：
 
 ```bash

@@ -22,6 +22,7 @@
 
 - 已新增 `scripts/bootstrap_local_data.py`，用于从本地 `data/raw-samples/wiki sample.xlsx` 一键重建开发数据库、审批导入已实现 parser 的 Sheet，并导出前端离线数据包。
 - 已新增 `scripts/check_github_data_boundary.py`，用于提交前检查 Git 是否误追踪原始数据、SQLite 数据库、导出包、前端生成 JSON 或生成资源目录。
+- 已新增 `.github/workflows/data-boundary.yml`，在 GitHub push / pull request 时自动运行脚本语法检查和数据边界检查。
 - 已新增 `docs/03-import-etl/github-local-data-initialization.md`，明确 GitHub 拉取后需要放哪些文件、放到哪个目录、执行哪个初始化命令，以及哪些本地数据永不同步。
 - 已同步修订 `README.md`、`docs/06-implementation/local-data-layout.md`、`docs/07-governance/data-governance.md` 和 `docs/07-governance/governance-index.md`，把“GitHub 工程不包含原始数据和生成数据”固化为工程规则。
 
@@ -91,6 +92,7 @@
 - `python3 -m py_compile scripts/bootstrap_local_data.py scripts/check_github_data_boundary.py`：通过。
 - `python3 scripts/bootstrap_local_data.py --print-inputs`：通过，输出必需 / 可选本地文件放置清单。
 - `python3 scripts/check_github_data_boundary.py`：通过，当前 Git 未追踪原始数据、数据库、导出包或前端生成数据。
+- `python3 -m py_compile scripts/bootstrap_local_data.py scripts/check_github_data_boundary.py` 与 `python3 scripts/check_github_data_boundary.py` 已作为 `.github/workflows/data-boundary.yml` 的 CI 检查项接入。
 - `git diff --check`：通过。
 - 安全能力映射页 smoke：`node scripts/frontend_smoke_check.mjs --page capability --url http://127.0.0.1:6190/ --debug-port 9432` 通过，`consoleIssues=0`、`bodyOverflowX=0`、`workspaceOverflowX=0`、`capabilityMap=true`；临时 6190 服务已关闭。
 - legacy 去重后数据包复核通过：`management-knowledge.json` 顶层已无 `assets` / `service_module_index`，约 52.5MB；`lifecycle-knowledge.json` 顶层已无 `service_module_index`，约 6.7MB；`shared-lookups.json` 继续为 `ready`，`service_module_index=192`。

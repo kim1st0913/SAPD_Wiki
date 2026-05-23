@@ -1,0 +1,29 @@
+name: Data Boundary
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - "codex/**"
+      - "codex-*"
+
+jobs:
+  data-boundary:
+    name: Check repository data boundary
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Check bootstrap scripts compile
+        run: python -m py_compile scripts/bootstrap_local_data.py scripts/check_github_data_boundary.py
+
+      - name: Check forbidden data is not tracked
+        run: python scripts/check_github_data_boundary.py

@@ -28,6 +28,14 @@ python scripts/check_github_data_boundary.py
 
 输出 `GitHub data boundary check: OK` 才能继续提交。
 
+该检查已经接入 GitHub Actions：
+
+```text
+.github/workflows/data-boundary.yml
+```
+
+每次 push / pull request 会自动执行脚本语法检查和数据边界检查。如果误追踪了原始资料、SQLite 数据库、导出包或前端生成数据，CI 会失败。
+
 ## 2. 拉代码后需要放哪些文件
 
 当前一键初始化工具的必需输入是主 Excel 工作簿：

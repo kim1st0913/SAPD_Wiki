@@ -37,13 +37,11 @@
     return groups;
   }
 
-  function renderStandardDetailRows(rows, selectedId, parentId, hidden) {
-    const hiddenAttr = hidden ? " hidden" : "";
+  function renderStandardDetailRows(rows, selectedId) {
     return rows
       .map(
         (row) => `
-          <tr class="maintenance-data-row standard-group-detail reference-group-detail ${row.id === selectedId ? "active" : ""}" data-standard-parent="${utils.escapeHtml(parentId)}" data-standard-lineage="${utils.escapeHtml(parentId)}"${hiddenAttr} data-maintenance-id="${utils.escapeHtml(row.id)}">
-            <td class="reference-indent-cell"></td>
+          <tr class="maintenance-data-row reference-group-detail ${row.id === selectedId ? "active" : ""}" data-maintenance-id="${utils.escapeHtml(row.id)}">
             <td><strong>${utils.escapeHtml(valueText(row.title))}</strong></td>
           </tr>
         `,
@@ -51,12 +49,11 @@
       .join("");
   }
 
-  function renderRoleDetailRows(rows, selectedId, parentId, hidden) {
-    const hiddenAttr = hidden ? " hidden" : "";
+  function renderRoleDetailRows(rows, selectedId) {
     return rows
       .map(
         (row) => `
-          <tr class="maintenance-data-row standard-group-detail reference-group-detail ${row.id === selectedId ? "active" : ""}" data-standard-parent="${utils.escapeHtml(parentId)}" data-standard-lineage="${utils.escapeHtml(parentId)}"${hiddenAttr} data-maintenance-id="${utils.escapeHtml(row.id)}">
+          <tr class="maintenance-data-row reference-group-detail ${row.id === selectedId ? "active" : ""}" data-maintenance-id="${utils.escapeHtml(row.id)}">
             <td><strong>${utils.escapeHtml(valueText(row.title))}</strong></td>
             <td class="maintenance-description-cell"><span>${utils.escapeHtml(valueText(row.description))}</span></td>
           </tr>
@@ -65,7 +62,7 @@
       .join("");
   }
 
-  function renderGroupedRows(rows, selectedId, options) {
+  function renderGroupedPanels(rows, selectedId, options) {
     const groups = groupedByCategory(rows, options.fallbackLabel);
     const hasSelectedRow = utils.list(rows).some((row) => row.id === selectedId);
     return groups
@@ -74,37 +71,33 @@
         const groupHasSelected = group.rows.some((row) => row.id === selectedId);
         const expanded = hasSelectedRow ? groupHasSelected : groupIndex === 0;
         return `
-          <tr class="standard-group-row depth-0 reference-category-row ${expanded ? "expanded" : ""}" data-standard-group="${utils.escapeHtml(referenceGroupId)}">
-            <td colspan="${options.columnCount}">
-              <button class="standard-group-toggle" type="button" aria-expanded="${expanded ? "true" : "false"}">
-                <span class="standard-group-caret">›</span>
-                <span class="standard-group-main"><strong>${utils.escapeHtml(group.label)}</strong></span>
-                <em>${utils.escapeHtml(`${group.rows.length} ${options.countUnit}`)}</em>
-              </button>
-            </td>
-          </tr>
-          ${options.renderDetails(group.rows, selectedId, referenceGroupId, !expanded)}
+          <details class="reference-category-panel" data-reference-group="${utils.escapeHtml(referenceGroupId)}" ${expanded ? "open" : ""}>
+            <summary>
+              <span class="reference-category-caret">›</span>
+              <strong>${utils.escapeHtml(group.label)}</strong>
+              <em>${utils.escapeHtml(`${group.rows.length} ${options.countUnit}`)}</em>
+            </summary>
+            <div class="maintenance-table-scroll reference-group-table-scroll">
+              <table class="maintenance-data-table reference-group-table ${utils.escapeHtml(options.tableClass)}">
+                <thead>
+                  <tr>${options.headers.map((header) => `<th>${utils.escapeHtml(header)}</th>`).join("")}</tr>
+                </thead>
+                <tbody>${options.renderDetails(group.rows, selectedId)}</tbody>
+              </table>
+            </div>
+          </details>
         `;
       })
       .join("");
   }
 
-  function renderTable({ title, empty, headers, body, tableClass }) {
+  function renderTable({ title, empty, body }) {
     return `
       <section class="reference-table-section">
         <h3 class="reference-section-title">${utils.escapeHtml(title)}</h3>
         ${
           body
-            ? `
-              <div class="maintenance-table-scroll">
-                <table class="maintenance-data-table ${utils.escapeHtml(tableClass || "")}">
-                  <thead>
-                    <tr>${headers.map((header) => `<th>${utils.escapeHtml(header)}</th>`).join("")}</tr>
-                  </thead>
-                  <tbody>${body}</tbody>
-                </table>
-              </div>
-            `
+            ? `<div class="reference-group-list">${body}</div>`
             : `<div class="maintenance-empty-state">${utils.escapeHtml(empty)}</div>`
         }
       </section>
@@ -125,28 +118,26 @@
             ? renderTable({
                 title: "Gartner 工作岗位参考",
                 empty: "暂无 Gartner 岗位参考数据。",
-                headers: ["角色", "描述"],
-                body: renderGroupedRows(roles, selectedId, {
+                body: renderGroupedPanels(roles, selectedId, {
                   idPrefix: "gartner-role-category",
                   fallbackLabel: "未分组岗位分类",
-                  columnCount: 2,
                   countUnit: "个角色",
+                  headers: ["角色", "描述"],
+                  tableClass: "role-reference-maintenance-table",
                   renderDetails: renderRoleDetailRows,
                 }),
-                tableClass: "role-reference-maintenance-table",
               })
             : renderTable({
                 title: "GB/T 42446-2023",
                 empty: "暂无 GB/T 42446-2023 任务参考数据。",
-                headers: ["工作类别", "承担的工作任务"],
-                body: renderGroupedRows(standards, selectedId, {
+                body: renderGroupedPanels(standards, selectedId, {
                   idPrefix: "gbt-work-category",
                   fallbackLabel: "未分组工作类别",
-                  columnCount: 2,
                   countUnit: "项工作任务",
+                  headers: ["承担的工作任务"],
+                  tableClass: "standard-reference-maintenance-table",
                   renderDetails: renderStandardDetailRows,
                 }),
-                tableClass: "standard-reference-maintenance-table",
               })
         }
       </div>

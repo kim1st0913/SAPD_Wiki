@@ -4,7 +4,6 @@ import csv
 import hashlib
 import json
 import re
-import shutil
 import sqlite3
 import tempfile
 import zipfile
@@ -255,6 +254,34 @@ def _sort_item_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         return (0 if display_order < 10**9 else 1, display_order, item.get("code") or "", item["title"])
 
     return sorted(rows, key=sort_key)
+
+
+def _source_position_key(
+    sources: list[dict[str, Any]] | None,
+    preferred_sheets: tuple[str, ...] = (),
+) -> tuple[int, int, int, str, str]:
+    source_rows = sources or []
+    if not source_rows:
+        return (1, len(preferred_sheets), 10**9, "", "")
+    sheet_rank = {sheet: index for index, sheet in enumerate(preferred_sheets)}
+
+    def sort_key(source: dict[str, Any]) -> tuple[int, int, str, str]:
+        sheet = str(source.get("sheet") or "")
+        row = source.get("row")
+        try:
+            source_row = int(row)
+        except (TypeError, ValueError):
+            source_row = 10**9
+        return (
+            sheet_rank.get(sheet, len(preferred_sheets)),
+            source_row,
+            str(source.get("cell") or ""),
+            str(source.get("column") or ""),
+        )
+
+    best = min(source_rows, key=sort_key)
+    best_rank, best_row, best_cell, best_column = sort_key(best)
+    return (0 if best_rank < len(preferred_sheets) else 1, best_rank, best_row, best_cell, best_column)
 
 
 def _maintenance_knowledge_payload(management_payload: dict[str, Any]) -> dict[str, Any]:
@@ -1086,6 +1113,32 @@ def _build_service_module_index(conn: sqlite3.Connection) -> tuple[list[dict[str
     return service_module_index, by_service_id
 
 
+def _shared_lookups_payload(conn: sqlite3.Connection) -> dict[str, Any]:
+    service_module_index, _service_module_index_by_id = _build_service_module_index(conn)
+    return {
+        "generated_at": conn.execute("SELECT datetime('now') AS now").fetchone()["now"],
+        "data_state": "ready" if service_module_index else "empty",
+        "stats": {
+            "service_module_index": len(service_module_index),
+        },
+        "service_module_index": service_module_index,
+    }
+
+
+def export_shared_lookups(
+    conn: sqlite3.Connection,
+    *,
+    output_path: str | Path,
+) -> dict[str, Any]:
+    """Export frontend shared lookup data used across workbench projections."""
+
+    output = resolve_project_path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    payload = _shared_lookups_payload(conn)
+    _write_json(output, payload)
+    return {"count": len(payload["service_module_index"]), "files": [str(output)], "stats": payload["stats"]}
+
+
 def _item_counts_for_types(conn: sqlite3.Connection, item_types: tuple[str, ...]) -> dict[str, int]:
     rows = conn.execute(
         f"""
@@ -1529,7 +1582,6 @@ def export_management_knowledge(
     tasks = {item_id: item for item_id, item in items.items() if item["type"] == "work_task"}
     gbt_refs = {item_id: item for item_id, item in items.items() if item["type"] == "gbt_42446_task_reference"}
     gartner_roles = {item_id: item for item_id, item in items.items() if item["type"] == "work_role_reference"}
-    assets = {item_id: item for item_id, item in items.items() if item["type"] == "asset"}
     process_domains = {item_id: item for item_id, item in items.items() if item["type"] == "process_domain"}
     process_groups = {item_id: item for item_id, item in items.items() if item["type"] == "process_group"}
     process_references = {item_id: item for item_id, item in items.items() if item["type"] == "process_reference"}
@@ -1718,6 +1770,39 @@ def export_management_knowledge(
         group_payload["functions"].append(function_payload)
 
     layer_items_for_sort = {**layers, "virtual:layer:未分层": ensure_virtual_layer("virtual:layer:未分层")}
+    work_function_source_sheets = ("安全工作职能清单",)
+
+    def work_function_code_order(item: dict[str, Any]) -> tuple[int, int | str]:
+        code = item.get("code")
+        try:
+            return (0, int(code))
+        except (TypeError, ValueError):
+            return (1, str(code or ""))
+
+    def work_function_source_key(item: dict[str, Any]) -> tuple[Any, ...]:
+        return (
+            *_source_position_key(refs.get(item.get("id") or ""), work_function_source_sheets),
+            item.get("title") or "",
+        )
+
+    def work_function_sort_key(item: dict[str, Any]) -> tuple[Any, ...]:
+        return (
+            *work_function_code_order(item),
+            *work_function_source_key(item),
+            item.get("code") or "",
+            item.get("title") or "",
+        )
+
+    def work_function_group_sort_key(group: dict[str, Any]) -> tuple[Any, ...]:
+        function_keys = [work_function_source_key(function) for function in group.get("functions", [])]
+        if function_keys:
+            return (*min(function_keys), group.get("title") or "")
+        return (
+            *_source_position_key(refs.get(group.get("id") or ""), work_function_source_sheets),
+            "",
+            group.get("title") or "",
+        )
+
     work_function_layers = []
     for layer_id, layer_payload in sorted(
         layer_payloads.items(),
@@ -1725,8 +1810,8 @@ def export_management_knowledge(
     ):
         groups_for_layer = list(group_payloads_by_layer.get(layer_id, {}).values())
         for group in groups_for_layer:
-            group["functions"] = sorted(group["functions"], key=lambda item: (item.get("code") or "", item["title"]))
-        layer_payload["groups"] = sorted(groups_for_layer, key=lambda item: item["title"])
+            group["functions"] = sorted(group["functions"], key=work_function_sort_key)
+        layer_payload["groups"] = sorted(groups_for_layer, key=work_function_group_sort_key)
         work_function_layers.append(layer_payload)
 
     gbt_42446_references = [
@@ -1737,33 +1822,6 @@ def export_management_knowledge(
         _brief_item(item, refs) or {}
         for item in _sort_item_rows(list(gartner_roles.values()))
     ]
-    asset_payloads = []
-    for item in _sort_item_rows(list(assets.values())):
-        metadata = _metadata(item)
-        source_refs = refs.get(item["id"], [])
-        first_ref = source_refs[0] if source_refs else {}
-        asset_path = metadata.get("public_path") or metadata.get("path") or metadata.get("file_path")
-        if asset_path:
-            source_path = resolve_project_path(asset_path)
-            if source_path.exists() and output.parent.name == "data" and output.parent.parent.name == "public":
-                asset_dir = output.parent / "assets"
-                asset_dir.mkdir(parents=True, exist_ok=True)
-                copied_path = asset_dir / source_path.name
-                if source_path.resolve() != copied_path.resolve():
-                    shutil.copyfile(source_path, copied_path)
-                frontend_root = output.parent.parent.parent
-                asset_path = f"./{copied_path.relative_to(frontend_root).as_posix()}"
-        asset_payloads.append(
-            {
-                "id": item["id"],
-                "title": item["title"],
-                "type": metadata.get("asset_type") or metadata.get("type") or "image",
-                "source_sheet": metadata.get("source_sheet") or first_ref.get("sheet"),
-                "path": asset_path,
-                "sources": source_refs[:8],
-            }
-        )
-
     domain_by_title = {item["title"]: item_id for item_id, item in process_domains.items()}
     group_by_title = {item["title"]: item_id for item_id, item in process_groups.items()}
     process_domain_payloads: dict[str, dict[str, Any]] = {}
@@ -1890,7 +1948,6 @@ def export_management_knowledge(
         payload_item["products"] = brief_many(products, products_by_module.get(item["id"], []))
         payload_item["environments"] = brief_many(information_environments, environments_by_module.get(item["id"], []))
         module_payloads.append(payload_item)
-    service_module_index, _service_module_index_by_id = _build_service_module_index(conn)
     security_technical_measures = _build_security_technical_measures(conn, items, refs)
 
     object_entries_by_environment: dict[str, dict[tuple[str, str, str | None], dict[str, Any]]] = {}
@@ -2047,13 +2104,11 @@ def export_management_knowledge(
             "scope_types": len(scope_payloads),
             "security_technology_modules": len(module_payloads),
             "security_technical_measures": len(security_technical_measures),
-            "service_module_index": len(service_module_index),
             "information_environments": len(environment_scope_tree),
             "information_objects": sum(len(environment["objects"]) for environment in environment_scope_tree),
             "environment_scope_mappings": sum(environment["scope_mapping_count"] for environment in environment_scope_tree),
             "environment_service_mappings": sum(environment["service_count"] for environment in environment_scope_tree),
             "environment_module_mappings": sum(environment["module_count"] for environment in environment_scope_tree),
-            "assets": len(asset_payloads),
         },
         "work_function_layers": work_function_layers,
         "security_processes": security_processes,
@@ -2062,9 +2117,7 @@ def export_management_knowledge(
         "scope_types": scope_payloads,
         "security_technology_modules": module_payloads,
         "security_technical_measures": security_technical_measures,
-        "service_module_index": service_module_index,
         "environment_scope_tree": environment_scope_tree,
-        "assets": asset_payloads,
     }
     _write_json(output, payload)
     return {"count": len(work_function_layers), "files": [str(output)], "stats": payload["stats"]}
@@ -2346,7 +2399,6 @@ def export_lifecycle_knowledge(
             "application_components": len(application_components),
             "development_product_components": len(development_product_components),
             "security_technical_measures": len(technical_measures),
-            "service_module_index": len(service_module_index),
         },
         "application_security_development": {
             "processes": [
@@ -2373,7 +2425,6 @@ def export_lifecycle_knowledge(
                 for process_id in sort_lifecycle_items(lifecycle_processes, data_process_ids)
             ],
         },
-        "service_module_index": service_module_index,
     }
     _write_json(output, payload)
     return {"count": len(application_process_ids) + len(data_process_ids), "files": [str(output)], "stats": payload["stats"]}
@@ -2859,8 +2910,9 @@ def export_capability_workbench(
     output_path: str | Path,
 ) -> dict[str, Any]:
     capability_tree = _read_frontend_json("capability-tree.json")
-    management = _read_frontend_json("management-knowledge.json")
-    generated_at = capability_tree.get("generated_at") or management.get("generated_at") or conn.execute("SELECT datetime('now') AS now").fetchone()["now"]
+    shared_lookups = _read_frontend_json("shared-lookups.json")
+    maintenance = _read_frontend_json("maintenance-knowledge.json")
+    generated_at = capability_tree.get("generated_at") or maintenance.get("generated_at") or shared_lookups.get("generated_at") or conn.execute("SELECT datetime('now') AS now").fetchone()["now"]
     page = {
         "route": "/capability-mapping",
         "pageType": "capability-mapping-workbench",
@@ -2869,7 +2921,7 @@ def export_capability_workbench(
         "title": "安全能力映射",
         "description": "以安全能力和关注点为主语，展示技术视角、管理视角、流程、标准、模块、作用域和来源证据引用。",
     }
-    payload = _empty_workbench(page, generated_at, ["capability-tree.json", "management-knowledge.json"])
+    payload = _empty_workbench(page, generated_at, ["capability-tree.json", "shared-lookups.json", "maintenance-knowledge.json"])
     objects: dict[str, dict[str, dict[str, Any]]] = {key: {} for key in (
         "capability_category",
         "capability_domain",
@@ -2890,8 +2942,8 @@ def export_capability_workbench(
     relations: list[dict[str, Any]] = []
     seen_relations: set[tuple[str, str, str]] = set()
     evidence_refs: dict[str, dict[str, Any]] = {}
-    service_index = _service_index_by_key(_wb_list(management.get("service_module_index")))
-    measures = _wb_list(management.get("security_technical_measures"))
+    service_index = _service_index_by_key(_wb_list(shared_lookups.get("service_module_index")))
+    measures = _wb_list(maintenance.get("security_technical_measures"))
     _, focus_by_code = _capability_lookups(capability_tree)
     standard_frameworks_by_code, standard_controls_by_key = _standard_items_for_workbench(conn)
     standard_mapping_rows = _capability_standard_mapping_rows()
@@ -3080,7 +3132,7 @@ def export_capability_workbench(
         "extraInStandardProjection": len(extra_in_standard_projection),
     }
     payload["compatibility"]["warnings"] = [
-        "capability-workbench.json 当前由 capability-tree.json、management-knowledge.json 与 capability-first 标准 / 框架映射表整理生成。",
+        "capability-workbench.json 当前由 capability-tree.json、shared-lookups.json、maintenance-knowledge.json 与 capability-first 标准 / 框架映射表整理生成。",
         "标准 / 框架映射以 capability-first 映射表为业务主源，并与标准 Sheet 已投影的关联关注点字段做双向验证。",
     ]
     if standard_mapping_missing_controls:
@@ -3102,7 +3154,10 @@ def export_environment_workbench(
     *,
     output_path: str | Path,
 ) -> dict[str, Any]:
-    management = _read_frontend_json("management-knowledge.json")
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        temp_output = Path(tmp_dir) / "management-knowledge.json"
+        export_management_knowledge(conn, output_path=temp_output)
+        management = json.loads(temp_output.read_text(encoding="utf-8"))
     capability_tree = _read_frontend_json("capability-tree.json")
     generated_at = management.get("generated_at") or conn.execute("SELECT datetime('now') AS now").fetchone()["now"]
     page = {
@@ -3113,7 +3168,7 @@ def export_environment_workbench(
         "title": "信息化环境安全能力映射",
         "description": "以信息化环境和信息化对象为主语，展示对象、作用域、服务、模块、措施、系统、产品和能力关联。",
     }
-    payload = _empty_workbench(page, generated_at, ["management-knowledge.json", "capability-tree.json"])
+    payload = _empty_workbench(page, generated_at, ["database", "capability-tree.json", "maintenance-knowledge.json"])
     objects: dict[str, dict[str, dict[str, Any]]] = {key: {} for key in (
         "information_environment",
         "environment_segment",
@@ -3216,7 +3271,7 @@ def export_environment_workbench(
     }
     payload["meta"]["stats"] = stats
     payload["compatibility"]["warnings"] = [
-        "environment-workbench.json 当前主要由 management-knowledge.json.environment_scope_tree 整理生成。",
+        "environment-workbench.json 当前由数据库中的环境关系和 capability-tree.json 整理生成；不依赖公开发布的 management-knowledge.json。",
         "服务到能力 / 关注点关系部分根据服务编码和 capability-tree.json 进行受控派生，后续可由独立 export 关系替代。",
     ]
     output = resolve_project_path(output_path)
@@ -3232,6 +3287,7 @@ def export_lifecycle_workbench(
 ) -> dict[str, Any]:
     lifecycle = _read_frontend_json("lifecycle-knowledge.json")
     capability_tree = _read_frontend_json("capability-tree.json")
+    shared_lookups = _read_frontend_json("shared-lookups.json")
     generated_at = lifecycle.get("generated_at") or conn.execute("SELECT datetime('now') AS now").fetchone()["now"]
     page = {
         "route": "/development-security/lc-ap",
@@ -3241,7 +3297,7 @@ def export_lifecycle_workbench(
         "title": "LC-AP 开发安全生命周期专项关系投影",
         "description": "以 LC-AP 阶段和活动为主语，展示受控的活动、控制点、能力、关注点、服务、模块和来源证据引用。",
     }
-    payload = _empty_workbench(page, generated_at, ["lifecycle-knowledge.json", "capability-tree.json"])
+    payload = _empty_workbench(page, generated_at, ["lifecycle-knowledge.json", "capability-tree.json", "shared-lookups.json"])
     objects: dict[str, dict[str, dict[str, Any]]] = {key: {} for key in (
         "lifecycle_domain",
         "lifecycle_stage",
@@ -3258,7 +3314,7 @@ def export_lifecycle_workbench(
     evidence_refs: dict[str, dict[str, Any]] = {}
     capability_by_code, focus_by_code = _capability_lookups(capability_tree)
     app_security = lifecycle.get("application_security_development") or {}
-    service_index = _service_index_by_key(_wb_list(lifecycle.get("service_module_index")))
+    service_index = _service_index_by_key(_wb_list(shared_lookups.get("service_module_index")) or _wb_list(lifecycle.get("service_module_index")))
     domain_item = {
         "id": "lifecycle_domain:LC-AP",
         "code": "LC-AP",
@@ -3351,17 +3407,19 @@ def export_frontend_workbenches(
     base_dir = resolve_project_path(output_dir) if output_dir else FRONTEND_DATA_DIR
     base_dir.mkdir(parents=True, exist_ok=True)
     results = [
+        export_shared_lookups(conn, output_path=base_dir / "shared-lookups.json"),
         export_capability_workbench(conn, output_path=base_dir / "capability-workbench.json"),
         export_environment_workbench(conn, output_path=base_dir / "environment-workbench.json"),
         export_lifecycle_workbench(conn, output_path=base_dir / "lifecycle-workbench.json"),
-        export_standard_frameworks_data(conn, output_path=base_dir / "standards-data.json"),
+        export_standard_frameworks_data(conn, output_path=base_dir / "standards-index.json"),
     ]
     files = [file for result in results for file in result.get("files", [])]
     stats = {
-        "capability_workbench_relations": results[0].get("stats", {}).get("relations", 0),
-        "environment_workbench_relations": results[1].get("stats", {}).get("relations", 0),
-        "lifecycle_workbench_relations": results[2].get("stats", {}).get("relations", 0),
-        "standard_framework_controls": results[3].get("stats", {}).get("controls", 0),
+        "shared_service_module_index": results[0].get("stats", {}).get("service_module_index", 0),
+        "capability_workbench_relations": results[1].get("stats", {}).get("relations", 0),
+        "environment_workbench_relations": results[2].get("stats", {}).get("relations", 0),
+        "lifecycle_workbench_relations": results[3].get("stats", {}).get("relations", 0),
+        "standard_framework_controls": results[4].get("stats", {}).get("controls", 0),
     }
     return {"count": sum(stats.values()), "files": files, "stats": stats}
 
@@ -3410,6 +3468,7 @@ def export_standard_frameworks_data(
             'CIS-CSC-V8.1.2',
             'NIST-CSF-2.0',
             'ISO-IEC-27001-2022',
+            'DSP-SCF-2026',
             'CRF-SAFEGUARDS-CORE-2026',
             'CRF-MATURITY-MODEL-2026',
             'NIST-800-53-REV5'
@@ -3423,6 +3482,7 @@ def export_standard_frameworks_data(
         "NIST-CSF-2.0:core": [],
         "NIST-CSF-2.0:tiers": [],
         "ISO-IEC-27001-2022": [],
+        "DSP-SCF-2026": [],
         "CRF-SAFEGUARDS-CORE-2026": [],
         "CRF-MATURITY-MODEL-2026": [],
         "NIST-800-53-REV5": [],
@@ -3493,6 +3553,27 @@ def export_standard_frameworks_data(
                     "运营能力": metadata.get("operational_capabilities") or "",
                     "安全域": metadata.get("security_domains") or "",
                     "关联安全能力/关注点": related_capability_focus,
+                }
+            )
+        elif framework_code == "DSP-SCF-2026":
+            by_framework[framework_code].append(
+                {
+                    "sort_key": metadata.get("display_order") or original_control_id,
+                    "SCF域": metadata.get("scf_domain") or "",
+                    "策略原则": metadata.get("policy_principle") or "",
+                    "策略意图": metadata.get("policy_intent") or "",
+                    "SCF编号": original_control_id,
+                    "SCF控制项": metadata.get("control_name") or _standard_control_title_without_code(row["title"], original_control_id),
+                    "SCF控制项描述": row["description"] or "",
+                    "安全策略项": metadata.get("security_policy_item") or "",
+                    "NIST CSF功能分组": metadata.get("nist_csf_function_grouping") or "",
+                    "关联安全能力/关注点": related_capability_focus,
+                    "SCR-CMM 0级 未执行": metadata.get("scr_cmm_level_0") or "",
+                    "SCR-CMM 1级 非正式执行": metadata.get("scr_cmm_level_1") or "",
+                    "SCR-CMM 2级 已计划并跟踪": metadata.get("scr_cmm_level_2") or "",
+                    "SCR-CMM 3级 定义良好": metadata.get("scr_cmm_level_3") or "",
+                    "SCR-CMM 4级 量化控制": metadata.get("scr_cmm_level_4") or "",
+                    "SCR-CMM 5级 持续改进": metadata.get("scr_cmm_level_5") or "",
                 }
             )
         elif framework_code == "CRF-SAFEGUARDS-CORE-2026":
@@ -3639,6 +3720,78 @@ def export_standard_frameworks_data(
             ],
         },
         {
+            "id": "dsp-level-2",
+            "route": "/standards/dsp-level-2",
+            "title": "DSP Secure Controls Framework (SCF) - 2026",
+            "frameworkCode": "DSP-SCF-2026",
+            "tabs": [
+                {
+                    "id": "dsp-scf-controls-2026",
+                    "title": "SCF Controls",
+                    "columns": [
+                        "SCF域",
+                        "策略原则",
+                        "策略意图",
+                        "SCF编号",
+                        "SCF控制项",
+                        "SCF控制项描述",
+                        "NIST CSF功能分组",
+                        "关联安全能力/关注点",
+                    ],
+                    "rows": [
+                        {
+                            key: value
+                            for key, value in row.items()
+                            if key
+                            not in {
+                                "sort_key",
+                                "SCR-CMM 0级 未执行",
+                                "SCR-CMM 1级 非正式执行",
+                                "SCR-CMM 2级 已计划并跟踪",
+                                "SCR-CMM 3级 定义良好",
+                                "SCR-CMM 4级 量化控制",
+                                "SCR-CMM 5级 持续改进",
+                                "安全策略项",
+                            }
+                        }
+                        for row in sorted(by_framework["DSP-SCF-2026"], key=lambda item: _control_sort_key(item["sort_key"]))
+                    ],
+                },
+                {
+                    "id": "dsp-scf-maturity-2026",
+                    "title": "SCF成熟度",
+                    "columns": [
+                        "SCF域",
+                        "SCF编号",
+                        "SCF控制项",
+                        "SCR-CMM 0级 未执行",
+                        "SCR-CMM 1级 非正式执行",
+                        "SCR-CMM 2级 已计划并跟踪",
+                        "SCR-CMM 3级 定义良好",
+                        "SCR-CMM 4级 量化控制",
+                        "SCR-CMM 5级 持续改进",
+                    ],
+                    "rows": [
+                        {
+                            key: row.get(key, "")
+                            for key in [
+                                "SCF域",
+                                "SCF编号",
+                                "SCF控制项",
+                                "SCR-CMM 0级 未执行",
+                                "SCR-CMM 1级 非正式执行",
+                                "SCR-CMM 2级 已计划并跟踪",
+                                "SCR-CMM 3级 定义良好",
+                                "SCR-CMM 4级 量化控制",
+                                "SCR-CMM 5级 持续改进",
+                            ]
+                        }
+                        for row in sorted(by_framework["DSP-SCF-2026"], key=lambda item: _control_sort_key(item["sort_key"]))
+                    ],
+                },
+            ],
+        },
+        {
             "id": "crf",
             "route": "/standards/crf",
             "title": "CRF",
@@ -3711,13 +3864,17 @@ def export_standard_frameworks_data(
         summary_badge("控制项", len(frameworks[3]["rows"]), "项"),
     ]
     frameworks[4]["summaryBadges"] = [
-        summary_badge("保障措施", len(frameworks[4]["tabs"][0]["rows"]), "条"),
-        summary_badge("成熟度等级", len(frameworks[4]["tabs"][1]["rows"]), "个"),
+        summary_badge("SCF控制项", len(frameworks[4]["tabs"][0]["rows"]), "条"),
+        summary_badge("成熟度描述", len(frameworks[4]["tabs"][1]["rows"]), "条"),
     ]
     frameworks[5]["summaryBadges"] = [
-        summary_badge("安全控制类", unique_count(frameworks[5]["rows"], "安全控制类"), "个"),
-        summary_badge("安全控制", unique_count(frameworks[5]["rows"], "安全控制"), "项"),
-        summary_badge("安全策略", len(frameworks[5]["rows"]), "条"),
+        summary_badge("保障措施", len(frameworks[5]["tabs"][0]["rows"]), "条"),
+        summary_badge("成熟度等级", len(frameworks[5]["tabs"][1]["rows"]), "个"),
+    ]
+    frameworks[6]["summaryBadges"] = [
+        summary_badge("安全控制类", unique_count(frameworks[6]["rows"], "安全控制类"), "个"),
+        summary_badge("安全控制", unique_count(frameworks[6]["rows"], "安全控制"), "项"),
+        summary_badge("安全策略", len(frameworks[6]["rows"]), "条"),
     ]
 
     payload = {
@@ -3731,16 +3888,99 @@ def export_standard_frameworks_data(
             "nist_csf_2_core": len(frameworks[2]["tabs"][0]["rows"]),
             "nist_csf_2_tiers": len(frameworks[2]["tabs"][1]["rows"]),
             "iso_27001_2022_controls": len(frameworks[3]["rows"]),
-            "crf_safeguards_core_2026": len(frameworks[4]["tabs"][0]["rows"]),
-            "crf_maturity_model_2026": len(frameworks[4]["tabs"][1]["rows"]),
-            "nist_800_53_rev5_policies": len(frameworks[5]["rows"]),
+            "dsp_scf_2026_controls": len(frameworks[4]["tabs"][0]["rows"]),
+            "dsp_scf_2026_maturity": len(frameworks[4]["tabs"][1]["rows"]),
+            "crf_safeguards_core_2026": len(frameworks[5]["tabs"][0]["rows"]),
+            "crf_maturity_model_2026": len(frameworks[5]["tabs"][1]["rows"]),
+            "nist_800_53_rev5_policies": len(frameworks[6]["rows"]),
         },
         "frameworks": frameworks,
     }
     output = resolve_project_path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
-    _write_json(output, payload)
-    return {"count": payload["stats"]["controls"], "files": [str(output)], "stats": payload["stats"]}
+    generated_at = payload["generated_at"]
+    split_root = output.parent / "standards"
+    split_root.mkdir(parents=True, exist_ok=True)
+    files: list[str] = []
+
+    def public_data_path(path: Path) -> str:
+        try:
+            relative = path.relative_to(FRONTEND_DATA_DIR)
+            return f"./public/data/{relative.as_posix()}"
+        except ValueError:
+            return path.as_posix()
+
+    index_frameworks: list[dict[str, Any]] = []
+    for framework in frameworks:
+        framework_id = str(framework.get("id") or "").strip()
+        if not framework_id:
+            continue
+        common = {key: value for key, value in framework.items() if key not in {"rows", "tabs"}}
+        if framework.get("tabs"):
+            tab_indexes: list[dict[str, Any]] = []
+            framework_dir = split_root / framework_id
+            framework_dir.mkdir(parents=True, exist_ok=True)
+            for tab in framework["tabs"]:
+                tab_id = str(tab.get("id") or "table").strip()
+                tab_output = framework_dir / f"{tab_id}.json"
+                tab_payload = {
+                    "generated_at": generated_at,
+                    "data_state": "ready",
+                    "frameworkId": framework_id,
+                    "frameworkTitle": framework.get("title") or "",
+                    "frameworkCode": framework.get("frameworkCode") or "",
+                    "route": framework.get("route") or "",
+                    **tab,
+                    "totalRows": len(tab.get("rows", [])),
+                }
+                _write_json(tab_output, tab_payload)
+                files.append(str(tab_output))
+                tab_indexes.append(
+                    {
+                        key: value
+                        for key, value in tab.items()
+                        if key != "rows"
+                    }
+                    | {
+                        "totalRows": len(tab.get("rows", [])),
+                        "dataPath": public_data_path(tab_output),
+                    }
+                )
+            index_frameworks.append(common | {"tabs": tab_indexes, "split": True})
+        else:
+            framework_output = split_root / f"{framework_id}.json"
+            framework_payload = {
+                "generated_at": generated_at,
+                "data_state": "ready",
+                **framework,
+                "totalRows": len(framework.get("rows", [])),
+            }
+            _write_json(framework_output, framework_payload)
+            files.append(str(framework_output))
+            index_frameworks.append(
+                common
+                | {
+                    "columns": framework.get("columns", []),
+                    "totalRows": len(framework.get("rows", [])),
+                    "dataPath": public_data_path(framework_output),
+                    "split": True,
+                }
+            )
+
+    index_payload = {
+        "generated_at": generated_at,
+        "data_state": "ready",
+        "package_type": "standards-index",
+        "stats": payload["stats"],
+        "frameworks": index_frameworks,
+    }
+    _write_json(output, index_payload)
+    files.insert(0, str(output))
+    legacy_output = output.parent / "standards-data.json"
+    if legacy_output != output:
+        _write_json(legacy_output, index_payload)
+        files.append(str(legacy_output))
+    return {"count": payload["stats"]["controls"], "files": files, "stats": payload["stats"]}
 
 
 def _latest_import_job_id_or_none(conn: sqlite3.Connection) -> str | None:

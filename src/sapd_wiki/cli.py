@@ -16,9 +16,9 @@ from .exports import (
     export_lifecycle_workbench,
     export_lifecycle_knowledge,
     export_maintenance_knowledge,
-    export_management_knowledge,
     export_relations,
     export_second_batch_summary,
+    export_shared_lookups,
     export_standard_frameworks_data,
     latest_approved_import_job_id,
     write_import_result_report,
@@ -399,11 +399,11 @@ def cmd_export_capability_tree(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_export_management_knowledge(args: argparse.Namespace) -> int:
+def cmd_export_maintenance_knowledge(args: argparse.Namespace) -> int:
     db_path = resolve_project_path(args.db)
     run_migrations(db_path)
     with connect(db_path) as conn:
-        result = export_management_knowledge(conn, output_path=args.output)
+        result = export_maintenance_knowledge(conn, output_path=args.output)
     _print_export_result(result)
     print("stats:")
     for key, value in result.get("stats", {}).items():
@@ -411,11 +411,11 @@ def cmd_export_management_knowledge(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_export_maintenance_knowledge(args: argparse.Namespace) -> int:
+def cmd_export_shared_lookups(args: argparse.Namespace) -> int:
     db_path = resolve_project_path(args.db)
     run_migrations(db_path)
     with connect(db_path) as conn:
-        result = export_maintenance_knowledge(conn, output_path=args.output)
+        result = export_shared_lookups(conn, output_path=args.output)
     _print_export_result(result)
     print("stats:")
     for key, value in result.get("stats", {}).items():
@@ -645,17 +645,6 @@ def build_parser() -> argparse.ArgumentParser:
     )
     capability_tree.set_defaults(func=cmd_export_capability_tree)
 
-    management_knowledge = subparsers.add_parser(
-        "export-management-knowledge",
-        help="Export frontend-ready management knowledge JSON.",
-    )
-    management_knowledge.add_argument(
-        "--output",
-        default="frontend/capability-browser/public/data/management-knowledge.json",
-        help="Output JSON path.",
-    )
-    management_knowledge.set_defaults(func=cmd_export_management_knowledge)
-
     maintenance_knowledge = subparsers.add_parser(
         "export-maintenance-knowledge",
         help="Export frontend-ready maintenance knowledge JSON.",
@@ -666,6 +655,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="Output JSON path.",
     )
     maintenance_knowledge.set_defaults(func=cmd_export_maintenance_knowledge)
+
+    shared_lookups = subparsers.add_parser(
+        "export-shared-lookups",
+        help="Export frontend-ready shared lookup JSON.",
+    )
+    shared_lookups.add_argument(
+        "--output",
+        default="frontend/capability-browser/public/data/shared-lookups.json",
+        help="Output JSON path.",
+    )
+    shared_lookups.set_defaults(func=cmd_export_shared_lookups)
 
     lifecycle_knowledge = subparsers.add_parser(
         "export-lifecycle-knowledge",
@@ -739,8 +739,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     standards_data.add_argument(
         "--output",
-        default="frontend/capability-browser/public/data/standards-data.json",
-        help="Output JSON path.",
+        default="frontend/capability-browser/public/data/standards-index.json",
+        help="Output index JSON path.",
     )
     standards_data.set_defaults(func=cmd_export_standard_frameworks_data)
 

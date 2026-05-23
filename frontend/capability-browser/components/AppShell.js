@@ -52,11 +52,19 @@
         priority: "P2",
         children: [
           { id: "security-scopes", label: "安全能力作用域目录", route: "/knowledge/scopes", type: "knowledge-directory", priority: "P2", children: [] },
-          { id: "technical-modules", label: "安全技术模块 / 安全技术措施目录", route: "/knowledge/technical-modules", type: "knowledge-directory", priority: "P2", children: [] },
-          { id: "work-items", label: "安全工作清单目录", route: "/knowledge/work-items", type: "knowledge-directory", priority: "P2", children: [] },
-          { id: "processes", label: "安全职能流程目录", route: "/knowledge/processes", type: "knowledge-directory", priority: "P2", children: [] },
-          { id: "functions", label: "安全工作职能目录", route: "/knowledge/functions", type: "knowledge-directory", priority: "P2", children: [] },
-          { id: "role-references", label: "岗位 / 职能参考目录", route: "/knowledge/role-references", type: "knowledge-directory", priority: "P2", children: [] },
+          { id: "technical-knowledge", label: "安全技术模块/措施清单", route: "/knowledge/technical", type: "knowledge-directory", priority: "P2", children: [] },
+          { id: "management-workflows", label: "安全管理工作/流程清单", route: "/knowledge/management-workflows", type: "knowledge-directory", priority: "P2", children: [] },
+          {
+            id: "security-functions",
+            label: "安全职能清单",
+            route: "/knowledge/functions",
+            type: "knowledge-directory",
+            priority: "P2",
+            children: [
+              { id: "security-functions-gbt", label: "GB/T 42446-2023", route: "/knowledge/gbt-42446", type: "knowledge-directory", priority: "P2", children: [] },
+              { id: "security-functions-gartner", label: "Gartner 工作岗位参考", route: "/knowledge/role-references", type: "knowledge-directory", priority: "P2", children: [] },
+            ],
+          },
           { id: "hype-cycle", label: "Hype Cycle", route: "/knowledge/hype-cycle", type: "knowledge-directory", priority: "P3", children: [] },
           { id: "other-knowledge", label: "其他知识目录", route: "/knowledge/others", type: "placeholder-page", priority: "P3", children: [] },
         ],
@@ -71,7 +79,7 @@
           { id: "mlps-level-3", label: "等级保护三级", route: "/standards/mlps-level-3", type: "standard-framework-page", priority: "P2", children: [] },
           { id: "nist-csf-2", label: "NIST CSF 2.0", route: "/standards/nist-csf-2", type: "standard-framework-page", priority: "P2", children: [] },
           { id: "iso-27001-2022", label: "ISO/IEC 27001:2022", route: "/standards/iso-27001-2022", type: "standard-framework-page", priority: "P2", children: [] },
-          { id: "dsp-level-2", label: "DSP 2级策略清单", route: "/standards/dsp-level-2", type: "standard-framework-page", priority: "P2", children: [] },
+          { id: "dsp-level-2", label: "DSP Secure Controls Framework (SCF) - 2026", route: "/standards/dsp-level-2", type: "standard-framework-page", priority: "P2", children: [] },
           { id: "cis-csc-v8", label: "CIS CSC v8", route: "/standards/cis-csc-v8", type: "standard-framework-page", priority: "P2", children: [] },
           { id: "crf", label: "CRF", route: "/standards/crf", type: "standard-framework-page", priority: "P2", children: [] },
           { id: "nist-800-53-rev5", label: "NIST SP 800-53 Rev.5", route: "/standards/nist-800-53-rev5", type: "standard-framework-page", priority: "P2", children: [] },
@@ -96,18 +104,22 @@
     "/sapd-maturity-assessment": { view: "overview", placeholder: true },
     "/knowledge": { view: "maintenance", maintenancePage: "scopes" },
     "/knowledge/scopes": { view: "maintenance", maintenancePage: "scopes" },
-    "/knowledge/technical-modules": { view: "maintenance", maintenancePage: "modules" },
-    "/knowledge/work-items": { view: "maintenance", maintenancePage: "security-works" },
-    "/knowledge/processes": { view: "maintenance", maintenancePage: "processes" },
+    "/knowledge/technical": { view: "maintenance", maintenancePage: "modules" },
+    "/knowledge/technical-modules": { view: "maintenance", maintenancePage: "modules", canonicalRoute: "/knowledge/technical" },
+    "/knowledge/technical-measures": { view: "maintenance", maintenancePage: "measures", canonicalRoute: "/knowledge/technical" },
+    "/knowledge/management-workflows": { view: "maintenance", maintenancePage: "security-works" },
+    "/knowledge/work-items": { view: "maintenance", maintenancePage: "security-works", canonicalRoute: "/knowledge/management-workflows" },
+    "/knowledge/processes": { view: "maintenance", maintenancePage: "processes", canonicalRoute: "/knowledge/management-workflows" },
     "/knowledge/functions": { view: "maintenance", maintenancePage: "work-functions" },
-    "/knowledge/role-references": { view: "maintenance", maintenancePage: "references", referenceTab: "roles" },
+    "/knowledge/gbt-42446": { view: "maintenance", maintenancePage: "references", referenceTab: "gbt", canonicalRoute: "/knowledge/functions" },
+    "/knowledge/role-references": { view: "maintenance", maintenancePage: "references", referenceTab: "gartner", canonicalRoute: "/knowledge/functions" },
     "/knowledge/hype-cycle": { view: "content", contentPage: "html", placeholder: true },
     "/knowledge/others": { view: "content", contentPage: "html", placeholder: true },
     "/standards": { view: "maintenance", maintenancePage: "standards", standardFramework: "mlps-level-3" },
     "/standards/mlps-level-3": { view: "maintenance", maintenancePage: "standards", standardFramework: "mlps-level-3" },
     "/standards/nist-csf-2": { view: "maintenance", maintenancePage: "standards", standardFramework: "nist-csf-2" },
     "/standards/iso-27001-2022": { view: "maintenance", maintenancePage: "standards", standardFramework: "iso-27001-2022" },
-    "/standards/dsp-level-2": { view: "maintenance", maintenancePage: "references", referenceTab: "gbt" },
+    "/standards/dsp-level-2": { view: "maintenance", maintenancePage: "standards", standardFramework: "dsp-level-2" },
     "/standards/cis-csc-v8": { view: "maintenance", maintenancePage: "standards", standardFramework: "cis-csc-v8" },
     "/standards/crf": { view: "maintenance", maintenancePage: "standards", standardFramework: "crf" },
     "/standards/nist-800-53-rev5": { view: "maintenance", maintenancePage: "standards", standardFramework: "nist-800-53-rev5" },
@@ -126,13 +138,13 @@
 
   const MAINTENANCE_ROUTES = {
     scopes: "/knowledge/scopes",
-    modules: "/knowledge/technical-modules",
-    "security-works": "/knowledge/work-items",
-    processes: "/knowledge/processes",
+    modules: "/knowledge/technical",
+    measures: "/knowledge/technical",
+    "security-works": "/knowledge/management-workflows",
+    processes: "/knowledge/management-workflows",
     "work-functions": "/knowledge/functions",
-    measures: "/knowledge/technical-modules",
     "lcap-references": "/development-security",
-    references: "/standards",
+    references: "/knowledge/functions",
   };
 
   const CONTENT_ROUTES = {
@@ -144,12 +156,16 @@
   const PAGE_DESCRIPTIONS = {
     "/": "查看当前已导入安全能力、信息化环境、生命周期和知识维护数据的关系覆盖状态。",
     "/guides": "承载安全架构、数据安全、管控模式和成熟度模型等方法论说明。",
+    "/guides/data-security-design": "以本地幻灯片形式浏览数据安全设计方法，后续可扩展为数据安全设计指南目录。",
     "/capability-mapping": "从安全能力和关注点出发，核对技术视角、管理视角和标准 / 框架映射。",
     "/environment-mapping": "从信息化环境和对象出发，核对对象、作用域、服务、模块、措施和能力关联。",
     "/development-security": "以 LC-AP 开发安全生命周期阶段和活动为主语，承载受控专项关系投影。",
     "/data-security": "保留当前数据生命周期维度页面入口，后续再按数据安全专题契约收口。",
     "/sapd-maturity-assessment": "成熟度评估已纳入菜单规划，评分填报和结果生成将在独立模块中实现。",
     "/knowledge": "集中维护作用域、技术模块、技术措施、安全工作、流程、职能和岗位参考等知识对象。",
+    "/knowledge/technical": "安全系统（为解决某一场景 / 领域的安全问题，由多个安全模块组成、协同运行的实体）；安全技术模块（实现一个或多个安全能力的安全技术逻辑实体，可以独立部署运行，通常代表一类安全产品）。",
+    "/knowledge/management-workflows": "用页签集中维护安全工作清单和安全职能流程清单。",
+    "/knowledge/functions": "用页签集中维护安全工作职能清单和岗位 / 职能参考目录。",
     "/standards": "集中查看标准 / 框架参考及其与能力、措施和管理工作的映射关系。",
   };
 
@@ -192,10 +208,11 @@
 
   function getRouteTarget(route) {
     const normalized = ROUTE_TARGETS[route] ? route : "/";
-    return { route: normalized, ...ROUTE_TARGETS[normalized] };
+    const target = ROUTE_TARGETS[normalized];
+    return { ...target, route: target.canonicalRoute || normalized };
   }
 
-  function routeForView({ view, activeMaintenancePage, activeContentPage, activeStandardFramework } = {}) {
+  function routeForView({ view, activeMaintenancePage, activeReferenceTab, activeContentPage, activeStandardFramework } = {}) {
     if (view === "maintenance" && activeMaintenancePage === "standards") return `/standards/${activeStandardFramework || "mlps-level-3"}`;
     if (view === "maintenance") return MAINTENANCE_ROUTES[activeMaintenancePage] || VIEW_ROUTES.maintenance;
     if (view === "content") return CONTENT_ROUTES[activeContentPage] || VIEW_ROUTES.content;
@@ -203,7 +220,7 @@
   }
 
   function childRouteActive(parent, route) {
-    return components.utils.list(parent.children).some((child) => child.route === route);
+    return components.utils.list(parent.children).some((child) => child.route === route || childRouteActive(child, route));
   }
 
   function renderGlobalSearch() {
@@ -244,7 +261,7 @@
             ${children
               .map(
                 (child) => `
-                  <button class="submodule-tab ${child.route === activeRoute ? "active" : ""}" type="button" data-app-route="${escapeHtml(child.route)}" data-view="${escapeHtml(getRouteTarget(child.route).view)}">
+                  <button class="submodule-tab ${child.route === activeRoute || childRouteActive(child, activeRoute) ? "active" : ""}" type="button" data-app-route="${escapeHtml(child.route)}" data-view="${escapeHtml(getRouteTarget(child.route).view)}">
                     <span>${escapeHtml(child.label)}</span>
                   </button>
                 `,
@@ -305,15 +322,16 @@
     const target = getRouteTarget(activeRoute);
     const isSourceTablePage = target.view === "maintenance";
     const isStandardFrameworkPage = target.view === "maintenance" && target.maintenancePage === "standards";
+    const isGuidePage = activeRoute.startsWith("/guides/");
     return `
       <section class="app-page-header" id="appPageHeader">
         <div class="page-header-copy">
           ${renderBreadcrumb(activeRoute)}
           <div class="page-title-row">
             <h1>${escapeHtml(item.label)}</h1>
-            ${isStandardFrameworkPage ? '<span id="pageHeaderCount" class="page-title-summary" hidden></span>' : ""}
-            ${isStandardFrameworkPage ? "" : `<span class="shell-tag">${escapeHtml(item.priority || "规划")}</span>`}
-            ${isStandardFrameworkPage ? "" : `<span class="shell-tag muted">${escapeHtml(TYPE_LABELS[item.type] || item.type)}</span>`}
+            ${isSourceTablePage ? '<span id="pageHeaderCount" class="page-title-summary" hidden></span>' : ""}
+            ${isSourceTablePage ? "" : `<span class="shell-tag">${escapeHtml(item.priority || "规划")}</span>`}
+            ${isSourceTablePage ? "" : `<span class="shell-tag muted">${escapeHtml(TYPE_LABELS[item.type] || item.type)}</span>`}
           </div>
           <p>${escapeHtml(description)}</p>
         </div>
@@ -323,7 +341,9 @@
                 <span class="search-icon" aria-hidden="true">⌕</span>
                 <input id="sourceSearchInput" type="search" placeholder="搜索名称、编码、分组或关系" autocomplete="off" />
               </label>`
-            : `<div class="page-header-actions" aria-label="页面操作">
+            : isGuidePage
+              ? ""
+              : `<div class="page-header-actions" aria-label="页面操作">
                 <button type="button" disabled>导出数据</button>
                 <button type="button" disabled>编辑映射</button>
               </div>`

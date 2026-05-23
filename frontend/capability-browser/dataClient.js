@@ -4,11 +4,13 @@
     capabilityWorkbench: "./public/data/capability-workbench.json",
     environmentWorkbench: "./public/data/environment-workbench.json",
     lifecycleWorkbench: "./public/data/lifecycle-workbench.json",
-    maintenance: "./public/data/maintenance-knowledge.json",
-    management: "./public/data/management-knowledge.json",
+    maintenance: "./public/data/maintenance-knowledge.json?v=security-functions-tabs-order-20260523-1",
+    sharedLookups: "./public/data/shared-lookups.json",
     lifecycle: "./public/data/lifecycle-knowledge.json",
     content: "./public/data/content-views.json",
-    standards: "./public/data/standards-data.json",
+    securityArchitectureDesignGuide: "./public/data/guides/security-architecture-design.json",
+    dataSecurityDesignGuide: "./public/data/guides/data-security-design.json",
+    standards: "./public/data/standards-index.json",
   };
 
   const API_PACKAGE_PATHS = {
@@ -17,10 +19,12 @@
     environmentWorkbench: "/api/v1/data-packages/environment-workbench",
     lifecycleWorkbench: "/api/v1/data-packages/lifecycle-workbench",
     maintenance: "/api/v1/data-packages/maintenance",
-    management: "/api/v1/data-packages/management",
+    sharedLookups: "/api/v1/data-packages/shared-lookups",
     lifecycle: "/api/v1/data-packages/lifecycle",
     content: "/api/v1/data-packages/content",
-    standards: "/api/v1/data-packages/standards",
+    securityArchitectureDesignGuide: "/api/v1/data-packages/security-architecture-design-guide",
+    dataSecurityDesignGuide: "/api/v1/data-packages/data-security-design-guide",
+    standards: "/api/v1/data-packages/standards-index",
   };
 
   const API_PATHS = {
@@ -43,19 +47,11 @@
       security_technology_modules: [],
       work_function_layers: [],
     },
-    management: {
+    sharedLookups: {
       generated_at: null,
+      data_state: "empty",
       stats: {},
-      assets: [],
-      environment_scope_tree: [],
-      gartner_roles: [],
-      gbt_42446_references: [],
-      scope_types: [],
-      security_processes: [],
-      security_technical_measures: [],
-      security_technology_modules: [],
       service_module_index: [],
-      work_function_layers: [],
     },
     lifecycle: {
       generated_at: null,
@@ -68,9 +64,10 @@
         application_system_types: [],
       },
       data_lifecycle: { processes: [] },
-      service_module_index: [],
     },
     content: { generated_at: null, stats: {}, html_documents: [], diagram_views: [], guide_pages: [] },
+    securityArchitectureDesignGuide: { generated_at: null, data_state: "empty", guide_id: "security-architecture-design", slides: {} },
+    dataSecurityDesignGuide: { generated_at: null, data_state: "empty", guide_id: "data-security-design", slides: {} },
     standards: { generated_at: null, data_state: "empty", stats: {}, frameworks: [] },
   };
 
@@ -131,7 +128,7 @@
   }
 
   function createLegacyCapabilityWorkbenchFallback(capability, management) {
-    const workbench = emptyWorkbench("capability-mapping-workbench", "/capability-mapping", "安全能力映射", ["capability-tree.json", "management-knowledge.json"]);
+    const workbench = emptyWorkbench("capability-mapping-workbench", "/capability-mapping", "安全能力映射", ["capability-tree.json", "maintenance-knowledge.json", "shared-lookups.json"]);
     const focuses = allFocuses(capability);
     workbench.meta.generated_at = capability?.generated_at || management?.generated_at || null;
     workbench.meta.stats = {
@@ -171,15 +168,15 @@
     workbench.objects = {
       capability_focus: Object.fromEntries(focuses.map((focus) => [objectIdOf(focus), compactWorkbenchObject(focus, "capability_focus")])),
     };
-    workbench.compatibility.warnings = ["缺少 capability-workbench.json，当前使用 capability-tree.json / management-knowledge.json 生成过渡稳定结构。"];
+    workbench.compatibility.warnings = ["缺少 capability-workbench.json，当前使用 capability-tree.json / maintenance-knowledge.json / shared-lookups.json 生成过渡稳定结构。"];
     return workbench;
   }
 
-  function createLegacyEnvironmentWorkbenchFallback(management) {
-    const environments = list(management?.environment_scope_tree);
-    const objects = environments.flatMap((environment) => list(environment.objects));
-    const workbench = emptyWorkbench("environment-mapping-workbench", "/environment-mapping", "信息化环境安全能力映射", ["management-knowledge.json"]);
-    workbench.meta.generated_at = management?.generated_at || null;
+  function createLegacyEnvironmentWorkbenchFallback() {
+    const environments = [];
+    const objects = [];
+    const workbench = emptyWorkbench("environment-mapping-workbench", "/environment-mapping", "信息化环境安全能力映射", ["environment-workbench.json"]);
+    workbench.meta.generated_at = null;
     workbench.meta.stats = {
       information_environment: environments.length,
       information_object: objects.length,
@@ -206,7 +203,7 @@
       information_environment: Object.fromEntries(environments.map((environment) => [objectIdOf(environment), compactWorkbenchObject(environment, "information_environment")])),
       information_object: Object.fromEntries(objects.map((item) => [objectIdOf(item), compactWorkbenchObject(item, "information_object")])),
     };
-    workbench.compatibility.warnings = ["缺少 environment-workbench.json，当前使用 management-knowledge.json.environment_scope_tree 生成过渡稳定结构。"];
+    workbench.compatibility.warnings = ["缺少 environment-workbench.json；management-knowledge.json 已退役，未启用旧结构 fallback。"];
     return workbench;
   }
 
@@ -259,7 +256,7 @@
   }
 
   function apiUrl(path) {
-    const configured = window.SAPD_API_BASE || new URLSearchParams(window.location.search).get("api") || "";
+    const configured = window.SAPD_API_BASE || "";
     if (configured) return `${configured.replace(/\/$/, "")}${path}`;
     if (window.location.protocol === "file:") return "";
     return path;
@@ -332,15 +329,84 @@
     }
   }
 
+  async function fetchJsonPath(path, fallback = {}) {
+    if (!path) return fallback;
+    const cacheKey = `path:${path}`;
+    if (cache.has(cacheKey)) return cache.get(cacheKey);
+    try {
+      const response = await fetch(path, { cache: "no-store" });
+      if (!response.ok) {
+        cache.set(cacheKey, fallback);
+        return fallback;
+      }
+      const data = await response.json();
+      cache.set(cacheKey, data);
+      return data;
+    } catch {
+      cache.set(cacheKey, fallback);
+      return fallback;
+    }
+  }
+
+  function frameworkIndexById(standards, frameworkId) {
+    return list(standards?.frameworks).find((framework) => framework.id === frameworkId) || null;
+  }
+
+  async function loadStandardFramework(frameworkId) {
+    const standards = await fetchPackage("standards");
+    const framework = frameworkIndexById(standards, frameworkId);
+    if (!framework) return null;
+    if (framework.dataPath) {
+      const payload = await fetchJsonPath(framework.dataPath, null);
+      return payload ? { ...framework, ...payload, loaded: true } : framework;
+    }
+    if (list(framework.tabs).length) {
+      const [firstTab, ...restTabs] = list(framework.tabs);
+      const loadedFirstTab = firstTab?.dataPath ? await fetchJsonPath(firstTab.dataPath, firstTab) : firstTab;
+      return {
+        ...framework,
+        loaded: true,
+        tabs: [
+          { ...firstTab, ...loadedFirstTab, loaded: Boolean(loadedFirstTab?.rows) },
+          ...restTabs.map((tab) => ({ ...tab, rows: [], loaded: false })),
+        ],
+      };
+    }
+    return framework;
+  }
+
+  async function loadStandardFrameworkTable(frameworkId, tableId) {
+    const standards = await fetchPackage("standards");
+    const framework = frameworkIndexById(standards, frameworkId);
+    const table = list(framework?.tabs).find((tab) => tab.id === tableId);
+    if (!table) return null;
+    if (!table.dataPath) return table;
+    const payload = await fetchJsonPath(table.dataPath, table);
+    return { ...table, ...payload, loaded: Boolean(payload?.rows) };
+  }
+
   async function getCapabilityAndManagement() {
-    const [capability, management] = await Promise.all([fetchPackage("capability"), fetchPackage("management")]);
-    return { capability, management };
+    const [capability, management, sharedLookups] = await Promise.all([fetchPackage("capability"), fetchPackage("maintenance"), fetchPackage("sharedLookups")]);
+    return { capability, management: mergeSharedLookups(management, sharedLookups) };
   }
 
   async function getMaintenanceKnowledgePayload() {
-    const maintenance = await fetchPackage("maintenance");
-    if (maintenance?.__data_state !== "missing_file") return maintenance;
-    return fetchPackage("management");
+    const [maintenance, sharedLookups] = await Promise.all([fetchPackage("maintenance"), fetchPackage("sharedLookups")]);
+    if (maintenance?.__data_state !== "missing_file") return mergeSharedLookups(maintenance, sharedLookups);
+    return mergeSharedLookups(maintenance, sharedLookups);
+  }
+
+  function mergeSharedLookups(payload, sharedLookups) {
+    const serviceModuleIndex = list(sharedLookups?.service_module_index);
+    if (!serviceModuleIndex.length || list(payload?.service_module_index).length) return payload;
+    return {
+      ...(payload || {}),
+      stats: {
+        ...(payload?.stats || {}),
+        service_module_index: serviceModuleIndex.length,
+      },
+      service_module_index: serviceModuleIndex,
+    };
   }
 
   function capabilityPathForFocus(capabilityTree, focusId) {
@@ -483,13 +549,20 @@
     },
 
     async getCatalogSummary() {
-      const [capability, management, lifecycle, content] = await Promise.all([fetchPackage("capability"), fetchPackage("management"), fetchPackage("lifecycle"), fetchPackage("content")]);
+      const [capability, maintenance, lifecycle, content, sharedLookups] = await Promise.all([
+        fetchPackage("capability"),
+        fetchPackage("maintenance"),
+        fetchPackage("lifecycle"),
+        fetchPackage("content"),
+        fetchPackage("sharedLookups"),
+      ]);
       return createEnvelope({
-        generated_at: [capability.generated_at, management.generated_at, lifecycle.generated_at, content.generated_at].filter(Boolean).sort().at(-1) || null,
+        generated_at: [capability.generated_at, maintenance.generated_at, lifecycle.generated_at, content.generated_at, sharedLookups.generated_at].filter(Boolean).sort().at(-1) || null,
         stats: {
           capability: capability.stats || {},
-          management: management.stats || {},
+          maintenance: maintenance.stats || {},
           lifecycle: lifecycle.stats || {},
+          sharedLookups: sharedLookups.stats || {},
           content: content.stats || {},
         },
         data_packages: Object.entries(DATA_PATHS).map(([name, path]) => ({ name, path })),
@@ -556,34 +629,33 @@
     },
 
     async getEnvironmentTree() {
-      const management = await fetchPackage("management");
+      const workbench = await fetchPackage("environmentWorkbench");
       return createEnvelope({
-        generated_at: management.generated_at,
-        stats: management.stats || {},
-        environments: list(management.environment_scope_tree),
+        generated_at: workbench?.meta?.generated_at || null,
+        stats: workbench?.meta?.stats || {},
+        environments: list(workbench?.navigator?.tree),
       });
     },
 
     async getEnvironmentWorkbench() {
       const workbench = await fetchPackage("environmentWorkbench");
       if (workbench.__data_state !== "missing_file") return createEnvelope(workbench);
-      const management = await fetchPackage("management");
-      return createEnvelope(createLegacyEnvironmentWorkbenchFallback(management), ["environment-workbench.json 不存在，已启用过渡 fallback。"]);
+      return createEnvelope(createLegacyEnvironmentWorkbenchFallback(), ["environment-workbench.json 不存在，且 management-knowledge.json 已退役。"]);
     },
 
     async getEnvironmentMatrix(params = {}) {
-      const management = await fetchPackage("management");
-      const rows = environmentMatrixRows(management, params);
+      const workbench = await fetchPackage("environmentWorkbench");
+      const rows = environmentMatrixRows(createLegacyEnvironmentWorkbenchFallback(workbench), params);
       return createEnvelope({
-        generated_at: management.generated_at,
+        generated_at: workbench?.meta?.generated_at || null,
         rows,
         stats: { rows: rows.length },
       });
     },
 
     async getEnvironmentRelationships(id) {
-      const management = await fetchPackage("management");
-      const rows = environmentMatrixRows(management, { object_id: id });
+      const workbench = await fetchPackage("environmentWorkbench");
+      const rows = environmentMatrixRows(createLegacyEnvironmentWorkbenchFallback(workbench), { object_id: id });
       const row = rows[0] || null;
       return createEnvelope({
         generated_at: management.generated_at,
@@ -661,13 +733,31 @@
       return createEnvelope(standards);
     },
 
+    async getStandardFramework(frameworkId) {
+      return createEnvelope(await loadStandardFramework(frameworkId));
+    },
+
+    async getStandardFrameworkTable(frameworkId, tableId) {
+      return createEnvelope(await loadStandardFrameworkTable(frameworkId, tableId));
+    },
+
     async getContentViews() {
       const content = await fetchPackage("content");
       return createEnvelope(content);
     },
 
-    async getManagementKnowledge() {
-      return createEnvelope(await fetchPackage("management"));
+    async getSecurityArchitectureDesignGuide() {
+      const guide = await fetchPackage("securityArchitectureDesignGuide");
+      return createEnvelope(guide);
+    },
+
+    async getDataSecurityDesignGuide() {
+      const guide = await fetchPackage("dataSecurityDesignGuide");
+      return createEnvelope(guide);
+    },
+
+    async getSharedLookups() {
+      return createEnvelope(await fetchPackage("sharedLookups"));
     },
 
     async getLifecycleKnowledge() {

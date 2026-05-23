@@ -85,10 +85,14 @@
       .join("\n");
   }
 
+  function codeWithBreaks(value) {
+    return escape(text(value)).replace(/([.\/:：-])/g, "$1<wbr>").replace(/(\s+)/g, "$1<wbr>");
+  }
+
   function standardControlChip(item) {
     const code = text(item?.originalControlId || entityCode(item) || entityName(item, "未编号")).trim();
     const tooltip = tooltipText(item);
-    return `<span class="preview-chip standard-tooltip-chip standard-control-code-chip" data-tooltip="${escape(tooltip)}" aria-label="${escape(tooltip || code)}" tabindex="0">${escape(code)}</span>`;
+    return `<span class="preview-chip standard-tooltip-chip standard-control-code-chip standard-code-breaks" data-tooltip="${escape(tooltip)}" aria-label="${escape(tooltip || code)}" tabindex="0">${codeWithBreaks(code)}</span>`;
   }
 
   function linkByServiceKey(links = []) {
@@ -697,7 +701,7 @@
       localRelationMap: map,
       technicalMappingRows: list(matrices.technicalMappingRows),
       managementMappingRows: list(matrices.managementMappingRows),
-      standardRows: standardTableRows(map),
+      standardRows: map.focus?.type === "capability_focus" ? standardTableRows(map) : list(matrices.standardMappingRows),
     });
     return `
       <div class="preview-tab-panel summary-panel">
@@ -724,6 +728,7 @@
     const matrices = {
       technicalMappingRows: list(args.technicalMappingRows),
       managementMappingRows: list(args.managementMappingRows),
+      standardMappingRows: list(args.standardMappingRows),
     };
     return `
       <section class="capability-local-relation-map capability-map-v3 capability-map-preview-r2">

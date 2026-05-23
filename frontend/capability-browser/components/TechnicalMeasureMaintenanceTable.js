@@ -25,7 +25,7 @@
     }
     return `
       <div class="maintenance-table-scroll">
-        <table class="maintenance-data-table">
+        <table class="maintenance-data-table technical-measure-maintenance-table">
           <thead>
             <tr>
               <th>序号</th>

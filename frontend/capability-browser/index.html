@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SAPD Wiki 关系工作台</title>
-    <link rel="stylesheet" href="./styles.css?v=capability-graph-strategy-20260520-1" />
+    <link rel="stylesheet" href="./styles.css?v=graph-head-compact-guide-slide-controls-20260522-rollback-1" />
   </head>
   <body>
     <div id="app" class="app-shell">
@@ -187,7 +187,7 @@
       </main>
 
       <main id="maintenanceWorkspace" class="source-workspace is-hidden">
-        <aside class="source-nav-pane">
+        <aside id="sourceNavPane" class="source-nav-pane">
           <div class="pane-head">
             <h2>专项知识维护</h2>
           </div>
@@ -235,9 +235,9 @@
       <main id="contentWorkspace" class="content-workspace is-hidden">
         <aside class="content-nav-pane">
           <div class="pane-head">
-            <h2>说明与视图</h2>
+            <h2 id="contentNavTitle">页面预览</h2>
           </div>
-          <div class="source-nav" aria-label="说明与视图二级页面">
+          <div id="contentNavList" class="source-nav" aria-label="页面预览">
             <button id="htmlDocsTab" class="source-nav-button active" type="button" data-content-page="html">
               <span>HTML 知识说明</span>
               <strong id="htmlDocCount">0</strong>
@@ -270,33 +270,32 @@
         </section>
       </div>
     </div>
-    <script src="./dataClient.js"></script>
-    <script src="./viewModels.js?v=capability-graph-strategy-20260520-1"></script>
-    <script src="./components/AppShell.js?v=capability-head-layout-20260520-1"></script>
+    <script src="./dataClient.js?v=security-functions-tabs-order-20260523-1"></script>
+    <script src="./viewModels.js?v=security-functions-tabs-order-20260523-1"></script>
+    <script src="./components/AppShell.js?v=security-functions-tabs-order-20260523-1"></script>
     <script src="./components/StatusBadge.js"></script>
-    <script src="./components/SourceEvidencePanel.js"></script>
     <script src="./components/DimensionTree.js?v=capability-tree-l0-20260520-1"></script>
     <script src="./components/FocusOverview.js"></script>
     <script src="./components/FocusScopeServiceMatrix.js?v=capability-full-modules-20260520-1"></script>
-    <script src="./components/FocusManagementMapping.js?v=capability-tab-stats-20260520-1"></script>
+    <script src="./components/FocusManagementMapping.js?v=management-functions-layout-20260521-1"></script>
     <script src="./components/EnvironmentTree.js"></script>
     <script src="./components/EnvironmentRelationshipOverview.js"></script>
     <script src="./components/EnvironmentScopeServiceMatrix.js"></script>
     <script src="./components/EnvironmentDetailPanel.js"></script>
     <script src="./components/ApplicationSecurityLifecycle.js"></script>
     <script src="./components/MaintenanceNavigation.js"></script>
-    <script src="./components/MaintenanceShell.js"></script>
-    <script src="./components/ScopeMaintenanceTable.js"></script>
-    <script src="./components/ProcessMaintenanceTable.js"></script>
-    <script src="./components/WorkFunctionMaintenanceTable.js"></script>
-    <script src="./components/TechnologyModuleMaintenanceTable.js"></script>
-    <script src="./components/TechnicalMeasureMaintenanceTable.js"></script>
+    <script src="./components/MaintenanceShell.js?v=security-functions-tabs-order-20260523-1"></script>
+    <script src="./components/ScopeMaintenanceTable.js?v=security-knowledge-density-20260521-1"></script>
+    <script src="./components/ProcessMaintenanceTable.js?v=security-knowledge-density-20260521-1"></script>
+    <script src="./components/WorkFunctionMaintenanceTable.js?v=security-functions-tabs-order-20260523-1"></script>
+    <script src="./components/TechnologyModuleMaintenanceTable.js?v=security-knowledge-density-20260521-1"></script>
+    <script src="./components/TechnicalMeasureMaintenanceTable.js?v=security-knowledge-density-20260521-1"></script>
     <script src="./components/LcapReferenceMaintenanceTable.js"></script>
-    <script src="./components/StandardRoleReferenceTable.js"></script>
-    <script src="./components/StandardFrameworkTable.js?v=standard-chip-tooltip-20260520-2"></script>
+    <script src="./components/StandardRoleReferenceTable.js?v=security-functions-tabs-order-20260523-1"></script>
+    <script src="./components/StandardFrameworkTable.js?v=standard-framework-layout-20260521-4"></script>
     <script src="./components/MaintenanceDetailPanel.js"></script>
     <script src="./components/TechnicalMeasureMaintenance.js"></script>
     <script src="./components/DetailInspector.js"></script>
-    <script src="./app.js?v=capability-graph-strategy-20260520-1"></script>
+    <script src="./app.js?v=security-functions-tabs-order-20260523-1"></script>
   </body>
 </html>

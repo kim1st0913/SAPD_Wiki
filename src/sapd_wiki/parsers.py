@@ -82,6 +82,41 @@ def _lcap_authoritative_module_title(value: str, authoritative_module_titles: se
     return None
 
 
+def _security_module_titles_from_catalog_alias(value: object, authoritative_module_titles: set[str]) -> list[str]:
+    """Resolve free-text module cells to security technology module catalog titles."""
+    title = normalize_text(value)
+    if not title or title == "\\":
+        return []
+    if title in authoritative_module_titles:
+        return [title]
+    rules: list[tuple[bool, list[str]]] = [
+        ("API安全防护" in title, ["API安全防护"]),
+        ("主机安全管理" in title or "主机系统安全管理" in title or title == "应用程序控制", ["主机安全管理"]),
+        ("文件完整性监控" in title or title == "主机入侵防御", ["主机入侵防御（HIPS）"]),
+        ("终端安全检测与响应" in title, ["终端安全检测与响应（EDR）"]),
+        ("终端恶意代码防护" in title, ["终端恶意代码防护(EPP)"]),
+        ("终端数据防泄露" in title, ["终端数据防泄露（EDLP）"]),
+        ("移动安全管理" in title, ["移动安全管理(MTD)"]),
+        ("Web应用防火墙" in title, ["Web应用防火墙（WAF）"]),
+        ("运行时应用自防护" in title, ["运行时应用自防护（RASP）"]),
+        ("安全接入网关" in title, ["安全接入网关（VPN）"]),
+        ("网络准入控制" in title, ["网络准入控制（NAC）"]),
+        ("数据加密" in title, ["数据加密和令牌化"]),
+        ("数据安全网关" in title, ["数据安全网关"]),
+        ("数据水印溯源" in title, ["数据水印溯源"]),
+        ("数据脱敏" in title, ["数据脱敏(去标识化)"]),
+        ("零信任访问代理" in title and "零信任访问控制台" in title, ["零信任访问代理", "零信任访问控制台"]),
+        ("零信任访问控制台" in title, ["零信任访问控制台"]),
+        ("单向光闸" in title and "双向网闸" in title, ["单向光闸", "双向网闸"]),
+        ("虚拟主机部署" in title and "容器环境部署" in title, ["主机安全管理", "容器镜像安全"]),
+        (title == "安全工作区", ["终端安全工作区"]),
+    ]
+    for matched, candidates in rules:
+        if matched:
+            return [candidate for candidate in candidates if candidate in authoritative_module_titles]
+    return []
+
+
 def _object(
     item_type: str,
     title: str,
@@ -425,13 +460,19 @@ def parse_module_sheet(workbook, authoritative_service_titles: dict[str, str] | 
         service_raw = row[5].value
         if not last_module:
             continue
-        system = _object("security_system", last_system, category=last_category, source=_source(sheet_name, row_index, "安全系统", _coord(row[2]), last_system))
+        system = _object(
+            "security_system",
+            last_system,
+            category=last_category,
+            metadata={"category": last_category, "display_order": row_index},
+            source=_source(sheet_name, row_index, "安全系统", _coord(row[2]), last_system),
+        )
         module = _object(
             "security_technology_module",
             last_module,
             description=last_definition,
             category=last_category,
-            metadata={"security_system": last_system, "product": last_product},
+            metadata={"category": last_category, "security_system": last_system, "product": last_product, "display_order": row_index},
             source=_source(sheet_name, row_index, "安全技术模块", _coord(row[3]), last_module),
         )
         result.objects.extend([system, module])
@@ -456,10 +497,15 @@ def parse_module_sheet(workbook, authoritative_service_titles: dict[str, str] | 
     return result
 
 
-def parse_scene_sheet(workbook, authoritative_service_titles: dict[str, str] | None = None) -> ParseResult:
+def parse_scene_sheet(
+    workbook,
+    authoritative_service_titles: dict[str, str] | None = None,
+    authoritative_module_titles: set[str] | None = None,
+) -> ParseResult:
     sheet_name = "作用域-安全技术服务-安全技术模块映射"
     ws = workbook[sheet_name]
     result = ParseResult()
+    authoritative_module_titles = authoritative_module_titles or set()
     last_environment = ""
     last_segment = ""
     last_object = ""
@@ -525,15 +571,19 @@ def parse_scene_sheet(workbook, authoritative_service_titles: dict[str, str] | N
 
         module = None
         if not is_blank_or_placeholder(module_raw) and _is_scene_module_fill(row[6]):
-            module = _object("security_technology_module", normalize_text(module_raw), source=_source(sheet_name, row_index, "安全技术模块/措施", _coord(row[6]), module_raw))
-            result.objects.append(module)
-            result.relations.append(_relation(module.key, "deployed_in_environment", env.key, "部署/适用于环境", source=module.sources[0]))
-            if service:
-                result.relations.append(_relation(module.key, "implements_service", service.key, "实现技术服务", source=module.sources[0]))
-        if module and last_system:
-            system = _object("security_system", last_system, source=_source(sheet_name, row_index, "安全系统", _coord(row[7]), last_system))
-            result.objects.append(system)
-            result.relations.append(_relation(module.key, "part_of_system", system.key, "属于安全系统", source=module.sources[0]))
+            module_titles = _security_module_titles_from_catalog_alias(module_raw, authoritative_module_titles)
+            if not module_titles:
+                result.validations.append(ValidationMessage("warning", sheet_name, row_index, f"安全技术模块未匹配安全技术模块清单：{normalize_text(module_raw)}"))
+            for module_title in module_titles:
+                module = _object("security_technology_module", module_title, source=_source(sheet_name, row_index, "安全技术模块/措施", _coord(row[6]), module_raw))
+                result.objects.append(module)
+                result.relations.append(_relation(module.key, "deployed_in_environment", env.key, "部署/适用于环境", source=module.sources[0]))
+                if service:
+                    result.relations.append(_relation(module.key, "implements_service", service.key, "实现技术服务", source=module.sources[0]))
+                if last_system:
+                    system = _object("security_system", last_system, source=_source(sheet_name, row_index, "安全系统", _coord(row[7]), last_system))
+                    result.objects.append(system)
+                    result.relations.append(_relation(module.key, "part_of_system", system.key, "属于安全系统", source=module.sources[0]))
     return result
 
 
@@ -1175,10 +1225,15 @@ def parse_gartner_role_reference_sheet(workbook) -> ParseResult:
     return result
 
 
-def parse_data_lifecycle_sheet(workbook, authoritative_service_titles: dict[str, str] | None = None) -> ParseResult:
+def parse_data_lifecycle_sheet(
+    workbook,
+    authoritative_service_titles: dict[str, str] | None = None,
+    authoritative_module_titles: set[str] | None = None,
+) -> ParseResult:
     sheet_name = "LC-DT 数据生命周期"
     ws = workbook[sheet_name]
     result = ParseResult()
+    authoritative_module_titles = authoritative_module_titles or set()
     last_order: object = None
     last_process_title = ""
     last_process_description = ""
@@ -1250,14 +1305,19 @@ def parse_data_lifecycle_sheet(workbook, authoritative_service_titles: dict[str,
                 result.objects.append(measure)
                 result.relations.append(_relation(measure.key, "maps_to_lifecycle", process.key, "映射到生命周期", source=measure.sources[0]))
                 continue
-            module = _object(
-                "security_technology_module",
-                module_raw,
-                metadata={"lifecycle_type": "data"},
-                source=_source(sheet_name, row_index, "安全技术模块", _coord(row[8]), module_raw),
-            )
-            result.objects.append(module)
-            result.relations.append(_relation(module.key, "maps_to_lifecycle", process.key, "映射到生命周期", source=module.sources[0]))
+            module_titles = _security_module_titles_from_catalog_alias(module_raw, authoritative_module_titles)
+            if not module_titles:
+                result.validations.append(ValidationMessage("warning", sheet_name, row_index, f"LC-DT 安全技术模块未匹配安全技术模块清单：{module_title}"))
+                continue
+            for catalog_module_title in module_titles:
+                module = _object(
+                    "security_technology_module",
+                    catalog_module_title,
+                    metadata={"lifecycle_type": "data"},
+                    source=_source(sheet_name, row_index, "安全技术模块", _coord(row[8]), module_raw),
+                )
+                result.objects.append(module)
+                result.relations.append(_relation(module.key, "maps_to_lifecycle", process.key, "映射到生命周期", source=module.sources[0]))
     return result
 
 
@@ -1282,10 +1342,12 @@ def _data_lifecycle_process_lookup(workbook) -> dict[str, tuple[object, str]]:
 def parse_data_lifecycle_mapping_sheet(
     workbook,
     authoritative_service_titles: dict[str, str] | None = None,
+    authoritative_module_titles: set[str] | None = None,
 ) -> ParseResult:
     sheet_name = "LC-DT 安全技术服务、模块、策略映射表"
     ws = workbook[sheet_name]
     result = ParseResult()
+    authoritative_module_titles = authoritative_module_titles or set()
     process_lookup = _data_lifecycle_process_lookup(workbook)
     last_stage_title = ""
     last_category = ""
@@ -1349,16 +1411,21 @@ def parse_data_lifecycle_mapping_sheet(
                     _relation(measure.key, "maps_to_lifecycle", process.key, "映射到生命周期", source=measure.sources[0], metadata=relation_metadata)
                 )
                 continue
-            module = _object(
-                "security_technology_module",
-                module_raw,
-                metadata={"lifecycle_type": "data", "strategy_category": last_category},
-                source=_source(sheet_name, row_index, "安全技术模块", _coord(row[13]), module_raw),
-            )
-            result.objects.append(module)
-            result.relations.append(
-                _relation(module.key, "maps_to_lifecycle", process.key, "映射到生命周期", source=module.sources[0], metadata=relation_metadata)
-            )
+            module_titles = _security_module_titles_from_catalog_alias(module_raw, authoritative_module_titles)
+            if not module_titles:
+                result.validations.append(ValidationMessage("warning", sheet_name, row_index, f"LC-DT 安全技术模块未匹配安全技术模块清单：{module_title}"))
+                continue
+            for catalog_module_title in module_titles:
+                module = _object(
+                    "security_technology_module",
+                    catalog_module_title,
+                    metadata={"lifecycle_type": "data", "strategy_category": last_category},
+                    source=_source(sheet_name, row_index, "安全技术模块", _coord(row[13]), module_raw),
+                )
+                result.objects.append(module)
+                result.relations.append(
+                    _relation(module.key, "maps_to_lifecycle", process.key, "映射到生命周期", source=module.sources[0], metadata=relation_metadata)
+                )
     return result
 
 
@@ -1645,6 +1712,7 @@ STANDARD_FRAMEWORK_SHEETS = [
     "CIS CSC V8",
     "CSF2.0",
     "27001-2022",
+    "DSP策略清单（2026）",
     "CRF Safeguards Core 2026",
     "CRF Maturity Model 2026",
     "NIST 800-53rev5",
@@ -2148,6 +2216,94 @@ def parse_crf_maturity_model_2026_sheet(workbook) -> ParseResult:
     return result
 
 
+def parse_dsp_scf_2026_sheet(workbook) -> ParseResult:
+    sheet_name = "DSP策略清单（2026）"
+    ws = workbook[sheet_name]
+    result = ParseResult()
+    framework_code = "DSP-SCF-2026"
+    framework_title = "DSP Secure Controls Framework (SCF) - 2026"
+    framework_source = _source(sheet_name, 2, "B:O", "B2:O2", framework_title)
+    framework = _framework_object(
+        framework_title,
+        code=framework_code,
+        standard_family="Secure Controls Framework",
+        source=framework_source,
+    )
+    result.objects.append(framework)
+
+    current_domain = ""
+    current_principle = ""
+    current_intent = ""
+    maturity_columns = [
+        (10, "scr_cmm_level_0", "SCR-CMM 0级 未执行"),
+        (11, "scr_cmm_level_1", "SCR-CMM 1级 非正式执行"),
+        (12, "scr_cmm_level_2", "SCR-CMM 2级 已计划并跟踪"),
+        (13, "scr_cmm_level_3", "SCR-CMM 3级 定义良好"),
+        (14, "scr_cmm_level_4", "SCR-CMM 4级 量化控制"),
+        (15, "scr_cmm_level_5", "SCR-CMM 5级 持续改进"),
+    ]
+    for row_idx in range(3, ws.max_row + 1):
+        domain = normalize_text(ws.cell(row_idx, 2).value)
+        principle = normalize_text(ws.cell(row_idx, 3).value)
+        intent = normalize_text(ws.cell(row_idx, 4).value)
+        control_id = normalize_text(ws.cell(row_idx, 5).value)
+        control_name = normalize_text(ws.cell(row_idx, 6).value)
+        control_description = normalize_text(ws.cell(row_idx, 7).value)
+        security_policy_item = normalize_text(ws.cell(row_idx, 8).value)
+        csf_function_grouping = normalize_text(ws.cell(row_idx, 9).value)
+        if domain:
+            current_domain = domain
+        if principle:
+            current_principle = principle
+        if intent:
+            current_intent = intent
+        if not control_id or not control_name:
+            continue
+
+        metadata = {
+            "standard_family": "Secure Controls Framework",
+            "framework_code": framework_code,
+            "framework_title": framework_title,
+            "standard_section": "scf_controls",
+            "source_edition": "2026",
+            "original_control_id": control_id,
+            "scf_domain": current_domain,
+            "policy_principle": current_principle,
+            "policy_intent": current_intent,
+            "control_name": control_name,
+            "security_policy_item": security_policy_item,
+            "nist_csf_function_grouping": csf_function_grouping,
+            "related_capability_focus": "",
+            "display_order": row_idx,
+        }
+        for col_idx, key, _label in maturity_columns:
+            metadata[key] = normalize_text(ws.cell(row_idx, col_idx).value)
+
+        code = f"{framework_code}-{control_id}"
+        source = _source(sheet_name, row_idx, "B:O", f"B{row_idx}:O{row_idx}", control_id)
+        control = _object(
+            "standard_control",
+            f"{control_id} {control_name}",
+            code=code,
+            description=control_description,
+            category="DSP Secure Controls Framework (SCF) - 2026",
+            metadata=metadata,
+            source=source,
+        )
+        result.objects.append(control)
+        result.relations.append(
+            _relation(
+                control.key,
+                "belongs_to_framework",
+                framework.key,
+                "属于标准框架",
+                source=source,
+                metadata={"framework_code": framework_code, "standard_section": "scf_controls"},
+            )
+        )
+    return result
+
+
 def _parse_nist_800_53_family(value: object) -> tuple[str, str]:
     lines = [normalize_text(part) for part in str(value or "").splitlines()]
     lines = [line for line in lines if line]
@@ -2254,6 +2410,7 @@ def parse_standard_framework_sheets(path: str | Path, sheets: list[str] | None =
             "CIS CSC V8": parse_cis_csc_v8_sheet,
             "CSF2.0": parse_csf_2_sheet,
             "27001-2022": parse_iso_27001_2022_sheet,
+            "DSP策略清单（2026）": parse_dsp_scf_2026_sheet,
             "CRF Safeguards Core 2026": parse_crf_safeguards_core_2026_sheet,
             "CRF Maturity Model 2026": parse_crf_maturity_model_2026_sheet,
             "NIST 800-53rev5": parse_nist_800_53_rev5_sheet,
@@ -2303,9 +2460,9 @@ def parse_third_batch_sheets(path: str | Path, sheets: list[str] | None = None) 
         authoritative_service_titles = _build_authoritative_service_titles(workbook)
         authoritative_module_titles = _build_authoritative_module_titles(workbook)
         parsers = {
-            "LC-DT 数据生命周期": lambda wb: parse_data_lifecycle_sheet(wb, authoritative_service_titles),
+            "LC-DT 数据生命周期": lambda wb: parse_data_lifecycle_sheet(wb, authoritative_service_titles, authoritative_module_titles),
             "LC-DT 数据生命周期场景目录": parse_data_lifecycle_scene_sheet,
-            "LC-DT 安全技术服务、模块、策略映射表": lambda wb: parse_data_lifecycle_mapping_sheet(wb, authoritative_service_titles),
+            "LC-DT 安全技术服务、模块、策略映射表": lambda wb: parse_data_lifecycle_mapping_sheet(wb, authoritative_service_titles, authoritative_module_titles),
             "LC-AP 应用安全开发生命周期": lambda wb: parse_application_security_lifecycle_sheet(wb, authoritative_service_titles, authoritative_module_titles),
             "LC-AP 应用安全开发生命周期元素目录": parse_application_lifecycle_element_sheet,
         }
@@ -2340,11 +2497,12 @@ def parse_core_sheets(path: str | Path, sheets: list[str] | None = None) -> Pars
     try:
         result = ParseResult()
         authoritative_service_titles = _build_authoritative_service_titles(workbook)
+        authoritative_module_titles = _build_authoritative_module_titles(workbook)
         parsers["信息化环境-信息化对象-安全作用域映射"] = (
             lambda wb: parse_environment_scope_sheet(wb, authoritative_service_titles)
         )
         parsers["安全技术模块清单"] = lambda wb: parse_module_sheet(wb, authoritative_service_titles)
-        parsers["作用域-安全技术服务-安全技术模块映射"] = lambda wb: parse_scene_sheet(wb, authoritative_service_titles)
+        parsers["作用域-安全技术服务-安全技术模块映射"] = lambda wb: parse_scene_sheet(wb, authoritative_service_titles, authoritative_module_titles)
         for sheet_name in selected:
             if sheet_name not in workbook.sheetnames:
                 result.validations.append(ValidationMessage("error", sheet_name, None, "缺少核心 Sheet"))

@@ -116,41 +116,25 @@
           "children": []
         },
         {
-          "id": "technical-modules",
-          "label": "安全技术模块 / 安全技术措施目录",
-          "route": "/knowledge/technical-modules",
+          "id": "technical-knowledge",
+          "label": "安全技术模块/措施清单",
+          "route": "/knowledge/technical",
           "type": "knowledge-directory",
           "priority": "P2",
           "children": []
         },
         {
-          "id": "work-items",
-          "label": "安全工作清单目录",
-          "route": "/knowledge/work-items",
+          "id": "management-workflows",
+          "label": "安全管理工作/流程清单",
+          "route": "/knowledge/management-workflows",
           "type": "knowledge-directory",
           "priority": "P2",
           "children": []
         },
         {
-          "id": "processes",
-          "label": "安全职能流程目录",
-          "route": "/knowledge/processes",
-          "type": "knowledge-directory",
-          "priority": "P2",
-          "children": []
-        },
-        {
-          "id": "functions",
-          "label": "安全工作职能目录",
+          "id": "security-functions",
+          "label": "安全职能清单",
           "route": "/knowledge/functions",
-          "type": "knowledge-directory",
-          "priority": "P2",
-          "children": []
-        },
-        {
-          "id": "role-references",
-          "label": "岗位 / 职能参考目录",
-          "route": "/knowledge/role-references",
           "type": "knowledge-directory",
           "priority": "P2",
           "children": []

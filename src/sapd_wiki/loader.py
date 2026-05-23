@@ -185,6 +185,8 @@ def _deprecate_stale_items(
         *sorted(source_sheets),
         source_file_path,
         source_file_path,
+        source_file_path,
+        *sorted(source_sheets),
     ]
     candidates = conn.execute(
         f"""
@@ -199,6 +201,15 @@ def _deprecate_stale_items(
           AND item.type IN ({type_placeholders})
           AND refs.source_sheet IN ({sheet_placeholders})
           AND (item_source.file_path = ? OR ref_source.file_path = ?)
+          AND NOT EXISTS (
+              SELECT 1
+              FROM source_references AS other_refs
+              JOIN source_files AS other_ref_source ON other_ref_source.id = other_refs.source_file_id
+              WHERE other_refs.target_type = 'item'
+                AND other_refs.target_id = item.id
+                AND other_ref_source.file_path = ?
+                AND other_refs.source_sheet NOT IN ({sheet_placeholders})
+          )
         """,
         params,
     ).fetchall()

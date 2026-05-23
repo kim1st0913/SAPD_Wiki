@@ -52,8 +52,6 @@
         ])}
         <div class="source-chip-row">${chipList(detailInspector.securityWorks, "暂无安全工作", 8)}</div>
       </section>
-
-      ${components.SourceEvidencePanel ? components.SourceEvidencePanel.render(detailInspector.sourceEvidence) : ""}
     `;
   }
 

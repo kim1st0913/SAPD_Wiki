@@ -2,7 +2,7 @@
   const components = (window.sapdComponents = window.sapdComponents || {});
   const utils = components.utils;
 
-  function render({ navigationTree, selectedObjectId, selectedEnvironmentId }) {
+  function render({ navigationTree, selectedObjectId, selectedEnvironmentId, selectedSegmentId }) {
     const environments = utils.list(navigationTree);
     if (!environments.length) {
       return '<div class="detail-empty"><strong>暂无环境对象</strong><span>请确认信息化环境维度数据是否已导出。</span></div>';
@@ -29,10 +29,15 @@
                 .map(
                   (segment) => `
                     <div class="environment-segment-group">
-                      <div class="environment-segment-head">
+                      <button
+                        class="environment-segment-head ${segment.id === selectedSegmentId ? "active" : ""}"
+                        type="button"
+                        data-environment-id="${utils.escapeHtml(segment.environmentId || environment.id)}"
+                        data-environment-segment-id="${utils.escapeHtml(segment.id)}"
+                      >
                         <strong>${utils.escapeHtml(segment.title || "未定义环境子类")}</strong>
                         <span>${utils.escapeHtml(segment.objectCount ?? utils.list(segment.objects).length)} 个对象</span>
-                      </div>
+                      </button>
                       ${utils
                         .list(segment.objects)
                         .map(

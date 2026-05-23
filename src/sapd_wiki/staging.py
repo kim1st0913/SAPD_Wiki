@@ -101,6 +101,8 @@ def write_staging(conn: sqlite3.Connection, import_job_id: str, result: ParseRes
         proposed_action = "update" if matched_item_id else "create"
         source_refs = [source.to_dict() for source in obj.sources]
         metadata = dict(obj.metadata)
+        if obj.category and not metadata.get("category"):
+            metadata["category"] = obj.category
         metadata["object_key"] = obj.key
         metadata["source_count"] = len(source_refs)
         conn.execute(
@@ -173,4 +175,3 @@ def write_staging(conn: sqlite3.Connection, import_job_id: str, result: ParseRes
         object_counts=dict(sorted(object_counts.items())),
         relation_counts=dict(sorted(relation_counts.items())),
     )
-

@@ -74,16 +74,31 @@
     return "";
   }
 
-  function render({ viewModel }) {
-    const page = viewModel?.page || {};
+  function renderSectionTabs(tabs = []) {
+    const rows = utils.list(tabs);
+    if (!rows.length) return "";
     return `
-      <section class="maintenance-shell-head">
-        <div class="measure-maintenance-copy">
-          <strong>${utils.escapeHtml(page.title || "专项知识维护")}</strong>
-          <span>${utils.escapeHtml(page.description || "该专项页面将在后续阶段接入。")}</span>
-          ${page.notice ? `<em>${utils.escapeHtml(page.notice)}</em>` : ""}
-        </div>
-        <div class="measure-summary-strip">${renderSummary(viewModel?.section, viewModel?.summary)}</div>
+      <div class="maintenance-section-tabs" role="tablist" aria-label="安全知识页签">
+        ${rows
+          .map(
+            (tab) => `
+              <button class="maintenance-section-tab ${tab.active ? "active" : ""}" type="button" role="tab" data-source-page="${utils.escapeHtml(tab.sourcePage || tab.id)}"${tab.referenceTab ? ` data-reference-tab="${utils.escapeHtml(tab.referenceTab)}"` : ""} aria-selected="${tab.active ? "true" : "false"}">
+                <span>${utils.escapeHtml(tab.label)}</span>
+                <strong>${utils.escapeHtml(tab.count ?? 0)}</strong>
+              </button>
+            `,
+          )
+          .join("")}
+      </div>
+    `;
+  }
+
+  function render({ viewModel }) {
+    const tabs = renderSectionTabs(viewModel?.sectionTabs);
+    if (!tabs) return "";
+    return `
+      <section class="maintenance-shell-head crf-like-tabs">
+        ${tabs}
       </section>
     `;
   }

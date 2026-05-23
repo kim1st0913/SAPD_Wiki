@@ -2,108 +2,88 @@
 
 本文件是当前会话恢复入口，只保留最近状态和历史索引。完整执行历史已归档到 `docs/05-archive/progress-history/2026-05.md`。
 
-## 当前状态（2026-05-20 22:45:18）
+## 当前状态（2026-05-23）
 
 - 当前分支：`codex-frontend-backend-separation-closure`。
-- 当前重点：安全能力映射前端体验、标准 / 框架数据映射收口，以及 Codex 轻量开发与验证机制落地。
-- 本地预览：`127.0.0.1:5174` 项目服务已由 `scripts/dev_server_guard.py --port 5174 --start` 拉起，用于安全能力映射验证。
-- 注意：当前工作区已有多项未提交业务改动；继续开发前应先用轻量摘要确认范围，避免全量 diff 和大文件输出。
+- 当前主线：Phase 5 知识浏览与搜索 / 关系化前端工作台校正；重点仍是已导入 Sheet 的业务语义复核、前端关系展示校正、数据契约治理和员工端字段边界收口。
+- Frontend Baseline 1.0 当前仍以三页为核心：`安全能力映射`、`LC-AP开发安全生命周期`、`信息化环境维度`；不默认启动 Phase 7 多格式增强、maturity M1、新 Sheet 扩展、schema 重构或 React / Vue 重构。
+- 标准 / 框架静态数据保持拆分：`standards-index.json` 为小索引，`frontend/capability-browser/public/data/standards/**` 承载明细分包；旧 `/api/v1/data-packages/standards` 由后端运行时组装完整明细。
+- 安全指南幻灯片页面已完成目录交互、底部翻页浮层、独立数据包和双 PDF 重新导入验证；数据安全设计方法为 43 页，安全技术架构设计方法为 75 页。
+- 安全知识已有数据表格已同步表头、居中、列宽和 smoke 验收规则；`/knowledge/management-workflows` 缺少 `capability` 依赖导致表格不渲染的问题已修复。
+- 员工端非业务字段展示已收口：`SourceEvidencePanel.js` 已从员工端移除，内容详情页不再展示来源文件或路径字段；来源追踪数据仍保留给后续维护端。
+- 本地 API 安全边界已收口：不再发送通配 `Access-Control-Allow-Origin: *`；`dataClient` 不再支持 URL 参数 `?api=` 切换 API Base。
+- 数据安全安全技术模块原表替换已完成并重新 ETL / 导出：`maintenance-knowledge.json` 为 `ready`，安全技术模块 102 条，安全技术措施 29 条；`网络数据防泄露` 和 `数据交易沙箱` 已不再作为 active 模块出现在维护包。
+- 当前待确认问题：`OI-073`。源 Sheet `作用域-安全技术服务-安全技术模块映射` 仍有 5 行 G 列旧值 `网络数据防泄露`，是否统一改为 `数据流转监测和泄漏防护` 待用户确认。
+- 工作区仍有大量历史未提交改动，继续开发前建议先做 checkpoint commit；如暂不提交，后续任务应继续用轻量摘要确认范围，避免全量 diff 和大文件输出。
 
 ## 最近完成事项
 
-### 2026-05-20 安全能力映射图谱自适应星形布局再评估
+### 2026-05-23 顾问端压缩包交付模型确认
 
-- 仅处理 `安全能力映射` 的 `能力关系图谱`，未修改原始 Excel、ETL、schema、数据库或 `public/data/*.json`。
-- `LocalRelationNetworkGraph.js` 已移除技术 / 管理 / 标准按类型绑定的固定坐标锚点，改为只固定当前关注点，其余业务节点统一使用确定性 force 布局。
-- 新布局统一使用连线距离、节点排斥、碰撞整理、弱中心力、径向层级力和边界留白，不再按技术视角、管理视角、标准 / 框架映射写死角度或树杈扇区。
-- 保留缩放、拖拽平移、装饰灰点不渲染、空节点不显示，以及节点文案不显示 `能力-关注点`。
-- 右边缘节点标签改为自动向左对齐，避免长业务名称贴边或被裁剪。
-- 已提升 `app.js` 动态加载图谱相关资源版本，避免浏览器继续命中旧缓存。
-- 能力目录文字显示已收紧：`DimensionTree.js` 将编号和标题合并为文字组，`styles.css` 减少层级缩进和列间距，关注点长标题改为编号下方显示，避免标签、编号、标题之间出现大块空白。
-- 安全能力映射工作台头部已重排：当前关注点详情和图二统计上移到工作台头部，移除“当前关注点工作台”、路径 chip 和图三旧统计；6 个统计块在右侧单行排布，搜索框位于统计下方，说明文字向右延展并完整落在 112px 头部内。
-- 能力目录收起态已优化：收起后左侧目录列为 `0px`，目录内容完全隐藏，仅在关系区左侧保留竖向“目录”展开标签；标签不会遮挡头部内容。
-- 能力关系图谱文字显示已优化：节点标签缩短为最多两行，扩大标签碰撞半径，减少图谱内长标准 / 职能名称互相穿插。
-- 已修复 `OI-060` / `OI-062`：能力目录支持分类、L1、L2 逐级展开，分类标签显示为 `L0`；图谱改为分层策略，L0 展示能力-关注点结构，L1 / L2 展示关注点映射概览，L3 具体关注点保留完整图谱。浏览器验证：L0 `安全技术能力 T` 显示 19 个能力和 63 个关注点，L1 `T-AS` 显示 27 个关注点及作用域、服务、L2流程组、安全工作、标准 / 框架种类。
+- 已新增 `docs/01-architecture/consultant-delivery-model.md`，明确 V1 顾问端交付为压缩包应用：首次打开后一键初始化，自动部署预置 SQLite 数据库、页面数据包和预览资源，然后直接使用。
+- 已确认 V1 顾问端不做登录、注册、账号或权限体系；不要求用户安装 Python / Node / SQLite CLI；不提供顾问自行导入 Excel / PDF / PPT / DOCX、执行 ETL、执行 migration 或选择数据库的入口。
+- 已同步修订 `README.md`、`docs/01-architecture/technology-decisions.md`、`docs/01-architecture/backend-interface-design.md`、`docs/06-implementation/local-data-layout.md`、`docs/00-overview/project-roadmap.md`、`task_plan.md` 和 `findings.md`。
+- 继续核对 `management-knowledge.json` 拆分状态：安全知识 7 个业务块已由 `maintenance-knowledge.json` 100% 覆盖；`environment_scope_tree` 已由 `environment-workbench.json` 覆盖；剩余需要迁移的是共享 `service_module_index` 和极小的 `assets` 旧资源记录。
+- 用户确认 `assets` 对应的旧图片页面暂不考虑，可删除；已新增 `shared-lookups.json` 承接 `service_module_index=192`，并让 `capability-workbench.json`、`lifecycle-workbench.json` 和 `/api/v1/capabilities/workspace-projection` 使用共享索引，后续可继续清理 `management-knowledge.json`。
+- 已新增 `docs/01-architecture/frontend-json-data-package-inventory.md`，作为所有前端 JSON 数据包用途、页面归属、legacy 状态、发布处理和退役条件的台账；后续新增 / 删除 / 拆分 `public/data/*.json` 必须同步更新。
+- 已完成 `service_module_index` 拆分落地：新增 `frontend/capability-browser/public/data/shared-lookups.json`，补充 `export-shared-lookups` CLI、API 数据包注册、前端 `dataClient` 懒加载入口，并让能力 / 生命周期工作台改读共享索引。
+- 已重新导出前端工作台数据包，当前 `shared-lookups.json` 为 `ready`，`service_module_index=192`；`capability-workbench.json`、`lifecycle-workbench.json` 的 `sourcePackages` 已包含 `shared-lookups.json`。
+- 已继续清理 legacy 重复数据：`management-knowledge.json` 不再导出 `assets` 和顶层 `service_module_index`；`lifecycle-knowledge.json` 不再导出顶层 `service_module_index`；必要的 legacy fallback 由 `dataClient` 从 `shared-lookups.json` 合并共享索引。
+- 已一次性完成 `management-knowledge.json` 退役：前端 `DATA_PATHS` / `PACKAGE_GETTERS`、本地 API `DATA_PACKAGES`、公开 CLI `export-management-knowledge`、`data_package_summary` 均不再暴露 management 包；公开 `public/data/management-knowledge.json` 已删除，环境 workbench 导出改为从数据库临时投影生成，不依赖公开 legacy 文件。
 
-### 2026-05-20 `OI-056` 标准 / 框架空映射收口
+### 2026-05-23 数据安全安全技术模块原表替换
 
-- 复核 `data/raw-samples/wiki sample.xlsx` 中 `安全能力-网络安全制度、框架映射`、6 组标准框架 Sheet 和当前 `capability-workbench.json`，确认 `T-AS.DG-03` 原始映射行为空。
-- 已备份原始表到 `data/raw-samples/backups/wiki sample.before-t-as-dg-03-standard-mapping-20260520.xlsx`。
-- 已为 `T-AS.DG-03 确保数据的可靠性与可恢复性` 补入数据备份、数据恢复、备份保护和恢复完整性相关映射：ISO 3 条、CSF 2 条、等保 4 条、CIS 5 条、CRF 5 条、NIST 13 条。
-- 已同步更新各标准框架 Sheet 的 `关联安全能力/关注点` 列；NIST 800-53 Rev.5 按用户确认支持 enhancement 级映射，有具体增强项时显示增强项，没有具体增强项时才显示父控制项。
-- 根据用户确认，NIST 800-53 Rev.5 已进一步支持 enhancement 级映射：`T-AS.DG-03` 的 NIST 映射从父控制项 3 条扩展为 13 条，包含 `CP-6(2)`、`CP-9(1)` 至 `CP-9(8)`、`CP-10(2)`、`CP-10(4)` 等具体增强项。
-- 已把全量 capability-first NIST 映射同步投影到 `NIST 800-53rev5` Sheet 的 `关联安全能力/关注点` 列；用户已把历史错误编码修订为 `M-PS.CT-01/02`，本轮随后重跑 core 与 standard 导入，使双向校验闭合。
-- 已备份原始表到 `data/raw-samples/backups/wiki sample.before-oi-056-empty-mapping-followup-20260520.xlsx`，并继续处理剩余空映射：补齐 `T-IN.IP-01` 4 条、`M-PS.HS-02` 8 条；在映射表末尾补入缺失行 `T-PD.TP-05` 15 条。
-- `T-OF.AT-01/02/03` 保持空映射：原始能力说明属于进攻反制并注明“民间机构不适用”，现有标准框架不强行挂防御类控制项。
-- 已重跑标准框架 staging / approve，并重新导出 `frontend/capability-browser/public/data/standards-data.json` 与 `frontend/capability-browser/public/data/capability-workbench.json`；`OI-056` 已同步更新。
-- 已修复 `OI-057`：能力关系图谱标准 / 框架节点原先只显示泛化节点，是因为 `relationGraphModel.js` 不识别 `standardTableRows` 的 `standard` 字段，且没有把标准框架继续连到条款 / 控制项；现已展开到控制项节点，并更新 `app.js` 资源版本。
-- 已修复 `OI-058` / `OI-059` / `OI-061` / `OI-063`：标准 / 框架映射与能力关系页签统计口径已收口；技术视角 `技术模块/措施` 列不再折叠；具体关注点图谱的标准框架和控制项完整展示，`T-AS.AD-01` 浏览器验证为 6 个框架、35 个控制项、NIST 800-53 15 条。
+- 已备份原始工作簿到 `data/raw-samples/backups/wiki sample.before-data-security-module-replace-20260523.xlsx`。
+- 已用 `/Users/kim1st/Desktop/数据安全 - 安全技术模块清单.xlsx` 替换 `data/raw-samples/wiki sample.xlsx` / `安全技术模块清单` 中第 200 行开始的 `数据安全` 区块；原区块 32 行，新区块 41 行，后续 `工业安全` 区块整体下移但内容未改。
+- 已更新同 Sheet 统计行：`C393` 安全系统数量为 29，`D393` 安全技术模块数量为 102；parser 复核未把数字统计解析为业务对象。
+- 已按相关范围重新 ETL 和导出，最新 job `46485818-7c4c-493a-ab3b-d21e418977d4` 更新 471 个对象、停用 1 个旧对象、approve warning 为 0。
+- 已补导出 `management-knowledge.json` 后重导 capability/environment/lifecycle workbench，确认 `capability-workbench.json` 中 `网络数据防泄露=0`、`数据交易沙箱=0`，新增模块已进入安全能力映射数据。
+- 已用临时端口 `6299` 运行能力页 smoke：`node scripts/frontend_smoke_check.mjs --page capability --route /capability-mapping --url http://127.0.0.1:6299/ --debug-port 9440`，结果通过，`consoleIssues=0`、`bodyOverflowX=0`、`workspaceOverflowX=0`、`capabilityMap=true`；临时服务已关闭。
+- 新增 `OI-073` 跟踪源映射表 5 行旧模块名称残留；当前数据库和前端数据包已正确停用旧模块。
 
-### 2026-05-20 安全能力映射图谱自适应与缩放修正
+### 2026-05-23 安全知识表格体验和职能分组
 
-- `能力关系图谱` 从固定角度 / 树杈式布局改为自适应力导向星形排布，技术视角、管理视角和标准 / 框架映射统一使用同一套布局原则。
-- 默认图谱视窗改为完整画布 `0 0 1680 940`，避免初始状态裁切星形分布；局部查看通过拖拽和缩放完成。
-- 新增图谱 `+ / - / 1:1` 缩放控制，并支持滚轮缩放；保留按住鼠标拖拽平移。
-- 空占位 / 装饰灰点继续不渲染；当前节点文案保持业务名称和编号，不再显示 `能力-关注点`。
-- 本轮未修改 ETL、数据包、schema 或原始数据文件。
+- 已将 `安全工作职能清单` 改为按 `安全职能层 -> 职能组 -> 安全职能明细` 两级归纳展开，并保留选中明细自动展开所在分组；明细表不再重复显示 `安全职能层` 和 `职能组` 两列。
+- 已统一优化安全知识表格密度、短字段列宽、统计列宽和参考目录表格类名；`安全职能名称` 列已收窄，`定义` / `描述` / 映射信息列获得更多横向空间。
+- 已修正安全工作职能清单导出顺序：职能组按 `安全工作职能清单` 原表来源行号排序，职能明细按编码顺序兜底；`GB/T 42446-2023` 与 `Gartner 工作岗位参考` 已提升为 `安全职能清单` 的同级页签。
+- 已更新 `index.html` 和 `dataClient.js` 资源版本，避免浏览器继续加载旧的合并页签与旧维护数据包缓存。
+- 已新增并修复 `OI-074`，记录本轮安全知识表格结构和列宽问题。
+- 本轮只改前端展示组件和样式，未修改 ETL、数据包、schema 或原始 Excel。
 
-### 2026-05-20 标准 / 框架映射 tooltip 与编号展示优化
+### 2026-05-23 员工端字段与 API 安全边界收口
 
-- 优化能力页“标准 / 框架映射”中标准条目编号 chip：主界面只显示条款 / 控制项编号，细节改由浅色悬浮气泡展示。
-- 将悬浮气泡从 CSS 伪元素改为全局浮层，避免被标准表格和能力映射表的滚动容器裁剪；底色改为浅色，支持较长内容滚动查看。
-- 标准 / 框架页面的“关联安全能力/关注点”列改为仅显示关注点编号；鼠标悬停或键盘聚焦时显示关注点所属分类、能力、标题和描述。
-- 调整“关联安全能力/关注点”悬浮气泡格式为四行：能力域路径、能力编号与名称、关注点编号与名称、关注点内容，避免把关注点编号放到气泡最前导致层级混乱。
-- 保持 `参考要求` 等衍生字段不在主展示区输出；本轮未改原始 Excel、未改 schema、未重做导入。
+- 已修复 `OI-071`：员工端页面不再加载 `SourceEvidencePanel.js`，并移除环境详情、LC-AP 详情、专项知识详情、通用详情检查器和内容详情页中的来源证据 / 路径字段展示。
+- 已修复 `OI-072`：本地 API 不再向所有来源发送 `Access-Control-Allow-Origin: *`；前端 `dataClient` 不再读取 URL 参数 `?api=` 覆盖 API 地址。
+- 本轮未删除数据层来源追踪字段，后续维护端仍可使用。
 
-### 2026-05-20 Codex 轻量开发与验证机制
+### 2026-05-21 至 2026-05-22 前端体验和数据包治理
 
-- 新增 `docs/07-governance/codex-performance-workflow.md`，定义短指令默认执行、轻量恢复、前端 smoke、数据包摘要和重连减负流程。
-- 新增 `scripts/dev_server_guard.py`：只检查指定端口，识别项目服务和重复静态服务，并输出短 JSON 摘要。
-- 新增 `scripts/data_package_summary.py`：对前端数据包输出大小、状态、统计、顶层字段和非业务字段命中摘要，不打印完整 JSON。
-- 新增 `scripts/frontend_smoke_check.mjs`：用 Chrome headless 做页面 smoke，输出 console、横向溢出、关键节点和截图路径摘要。
-- 更新 `AGENTS.md`、`CURRENT_STATE.md`、`docs/07-governance/governance-index.md`，让后续“继续执行 / 执行 / 排查一下 / 修一下”默认遵守轻量协议。
-- 已将本次瘦身前 `progress.md` 快照追加到月度归档，根目录 `progress.md` 保持轻量。
+- 已修复 `OI-068`：刷新后保持当前 hash 路由，不再回到默认入口。
+- 已修复 `OI-069`：首屏不再全量等待多个大型数据包，改为按当前路由懒加载；54MB `management-knowledge.json` 不再作为全局刷新默认加载。
+- 已修复 `OI-070`：安全知识已有数据表格统一表头字号、字重、居中、单元格垂直对齐和短值列宽。
+- 已完成标准 / 框架 7 页表格体验收口、tooltip 去重和 smoke 规则补强。
+- 已完成数据安全设计方法和安全技术架构设计方法幻灯片页面标准化、独立数据包接入和目录交互回归。
 
 ## 最近验证
 
-- 临时静态预览 + 本机 Chrome headless 回归：`能力关系图谱` 可渲染；业务节点 `41`；`data-layout-overlaps=0`；`data-layout-min-gap=22`；装饰节点 `0`；空文本节点 `0`；禁止字段命中 `0`；缩放控件 `3` 个，点击放大后 `network-pan-layer` 为 `translate(0 0) scale(1.16)`。
-- 本机 Chrome headless 复核工作台头部：当前关注点详情位于 `.capability-focus-head-slot`，关系卡片内不再保留 `.preview-focus-strip`；旧标题未出现，路径 chip 隐藏，搜索框居中，统计右侧上三下三排布；描述全文位于头部内，页面横向溢出 `0`。
-- 本机 Chrome headless 复核目录收起和图谱文字：收起后 grid 为 `0px 1192px`，目录树可见行 `0`，竖向“目录”标签可见且不遮挡头部；图谱最大标签长度 `14`，多行标签 `18`，页面横向溢出 `0`。
-- 说明：静态预览模式下 `/api/v1/*` 请求返回 404 后按 `dataClient` fallback 加载本地 JSON，浏览器 console 会出现静态服务 404 记录；这不是本轮图谱代码错误。本轮已停止临时 `5175` / `5176` 验证服务。
-
-- `openpyxl` 复核：`T-AS.DG-03` 原始映射行已补齐，位于第 31 行；映射分布为 ISO 3、CSF 2、等保 4、CIS 5、CRF 5、NIST 13；NIST `CP-6`、`CP-6(2)`、`CP-9`、`CP-9(1)` 至 `CP-9(8)`、`CP-10`、`CP-10(2)`、`CP-10(4)` 的 `关联安全能力/关注点` 均包含 `T-AS.DG-03`。
-- `openpyxl` 复核：当前原始表未再命中点号版历史错误编码，并可命中修订后的 `M-PS.CT-01/02`。
-- `python3 scripts/sapd_wiki.py stage-excel 'data/raw-samples/wiki sample.xlsx' --sheets core --sensitive-level confidential --json`：通过，job `f638eb81-d1ae-4e6d-8d62-1a383af8f484`，`objects_staged=630`、`relations_staged=2319`、`validations=[]`。
-- `python3 scripts/sapd_wiki.py approve-import f638eb81-d1ae-4e6d-8d62-1a383af8f484 --json`：通过，`items_created=2`、`items_updated=628`、`items_deprecated=2`、`relations_created=3`、`warnings=[]`。
-- `python3 scripts/sapd_wiki.py export-capability-tree`：通过，`focuses=91`、`focus_scope_mappings=379`、`unlinked_focuses=0`。
-- `python3 scripts/sapd_wiki.py stage-excel 'data/raw-samples/wiki sample.xlsx' --sheets standard-framework --sensitive-level confidential --json`：通过，最新 job `beab43c1-845d-4311-af61-16d1bd9cde9f`，`objects_staged=1964`、`relations_staged=1957`、`validations=[]`。
-- `python3 scripts/sapd_wiki.py approve-import beab43c1-845d-4311-af61-16d1bd9cde9f --json`：通过，`items_updated=1964`、`warnings=[]`。
-- `python3 scripts/sapd_wiki.py export-standard-frameworks-data`：通过，`frameworks=6`、`controls=1957`。
-- `python3 scripts/sapd_wiki.py export-capability-workbench`：通过，`standard_control=1650`、`relations=5898`。
-- `T-AS.DG-03` 数据包复查：`maps_to_standard=32`，框架分布为 ISO 3、CSF 2、等保 4、CIS 5、CRF 5、NIST 13；`CP-9(1)`、`CP-9(2)`、`CP-9(8)`、`CP-10(4)` 均可在能力工作台映射中命中。
-- `OI-056` 剩余项复查：`T-PD.TP-05 maps_to_standard=15`、`T-IN.IP-01 maps_to_standard=4`、`M-PS.HS-02 maps_to_standard=8`；`T-OF.AT-01/02/03 maps_to_standard=0`，按进攻反制不适用口径保留空映射。
-- NIST enhancement 双向校验：`standardMappingValidation` 显示 `missingControls=0`、`unmatchedFocuses=0`、`missingInStandardProjection=0`、`extraInStandardProjection=0`。
-- `T-AS.AD-01` 标准映射统计复核：真实标准框架 6 个、控制项 35 条，旧徽标 41、旧可见条款 24；修复后徽标应显示 35，表格展示全部 35 条控制项。
-- `python3 scripts/data_package_summary.py --package standards`：通过，`data_state=ready`，6 个框架、1957 条控制 / 层级记录。
-- `python3 scripts/data_package_summary.py --package capability-workbench`：通过，`standard_control=1650`；该包未声明 `data_state`，脚本显示 `unknown`。
-- `python3 -m py_compile src/sapd_wiki/exports.py`：通过。
-- `node --check frontend/capability-browser/components/LocalRelationNetworkGraph.js frontend/capability-browser/app.js`：通过。
-- `git diff --check`：通过（2026-05-20 图谱自适应与缩放修正后复查）。
-- 非业务字段泄露检查：`能力关系图谱` 文本未命中 `sheet`、`row`、`column`、`raw_value`、`source_file`、`import_id`、`source_id`、`source_ref`、`source_label`、`debug`、`raw`、`metadata`、`intermediate`、`generated_at`。
-- 能力数据包摘要：`data_state=ready`，`categories=3`、`domains=10`、`capabilities=32`、`focuses=91`、`services=157`、`focus_scope_mappings=379`、`unlinked_focuses=0`。
-- `node --check frontend/capability-browser/app.js`：通过。
-- `node --check frontend/capability-browser/components/CapabilityLocalRelationMap.js`：通过。
-- `node --check frontend/capability-browser/components/StandardFrameworkTable.js`：通过。
-- `node -e "... M-SA.CO-02 ..."`：抽样确认关注点 tooltip 输出为四行结构：`安全管理能力-安全支撑与资源保障 Supportance and Assurance`、`M-SA.CO-安全协同能力`、`M-SA.CO-02-对外部通报进行响应、处置与反馈`、关注点内容。
-- `git diff --check -- frontend/capability-browser/index.html frontend/capability-browser/app.js frontend/capability-browser/components/CapabilityLocalRelationMap.js frontend/capability-browser/components/StandardFrameworkTable.js frontend/capability-browser/styles.css`：通过。
-- `rg -n "title=|data-tooltip|floating-standard-tooltip|#253044|问号|cursor: help" ...`：确认 tooltip 使用 `data-tooltip` 与浅色浮层，未保留原生 `title=`、深色底和问号光标。
-- `node scripts/frontend_smoke_check.mjs --page standards --url http://127.0.0.1:5175/ --debug-port 9345`：未通过，原因是当前未提供可连接的 Chrome DevTools target；临时静态服务已停止，未留下本轮启动的后台服务。
-- `python3 -m py_compile scripts/dev_server_guard.py scripts/data_package_summary.py`：通过。
-- `node --check scripts/frontend_smoke_check.mjs`：通过。
-- `python3 scripts/data_package_summary.py --package standards`：通过，`data_state=ready`，标准框架 6 个，控制 / 层级记录 1957 条。
-- `python3 scripts/dev_server_guard.py --port 5174 --status`：普通沙箱下可降级返回 `warn`，提升权限后识别项目服务并返回 `pass`。
-- `node scripts/frontend_smoke_check.mjs --page overview --url http://127.0.0.1:5174/ --debug-port 9344`：通过，`consoleIssues=0`，`bodyOverflowX=0`。
-- `git diff --check`：通过。
+- `python3 scripts/data_package_summary.py --package maintenance`：通过；`maintenance-knowledge.json` 为 `ready`，安全技术模块 102 条，安全技术措施 29 条。
+- `python3 -m py_compile src/sapd_wiki/api_server.py`：通过。
+- `node --check frontend/capability-browser/dataClient.js`：通过。
+- `node --check frontend/capability-browser/components/WorkFunctionMaintenanceTable.js`、`node --check frontend/capability-browser/components/StandardRoleReferenceTable.js`、`git diff --check -- frontend/capability-browser/components/WorkFunctionMaintenanceTable.js frontend/capability-browser/components/StandardRoleReferenceTable.js frontend/capability-browser/styles.css`：通过。
+- 安全知识表格 smoke 复测通过：`/knowledge/functions`、`/knowledge/scopes`、`/knowledge/technical`、`/knowledge/management-workflows`、`/knowledge/role-references`，均 `consoleIssues=0`、`bodyOverflowX=0`、表头字号 / 字重 / 居中检查通过；`/knowledge/functions` 复核页签为同级展示，执行层职能组顺序与原表行号一致。
+- `node --check frontend/capability-browser/app.js`、`node --check scripts/frontend_smoke_check.mjs`、关键表格 / 详情组件 `node --check`：通过。
+- 指南页 smoke：`/guides/security-architecture-design` 和 `/guides/data-security-design` 均通过；缩略图数量分别为 75 和 43，图片加载比例约 `1.7778`，目录点击和键盘切换不回弹。
+- 安全知识 7 个已有数据表格入口 smoke 均通过：`/knowledge/scopes`、`/knowledge/technical`、`/knowledge/technical-measures`、`/knowledge/management-workflows`、`/knowledge/processes`、`/knowledge/functions`、`/knowledge/role-references`。
+- 代表性标准页回归通过：`/standards/mlps-level-3`、`/standards/nist-800-53-rev5`；表头字号 / 字重 / 对齐和 tooltip 数量检查通过。
+- 字段边界扫描通过：员工端渲染入口未再发现 `SourceEvidencePanel`、`来源证据`、`source_file`、`raw_value` 等展示调用。
+- `python3 scripts/data_package_summary.py --package shared-lookups`：通过；`shared-lookups.json` 为 `ready`，`service_module_index=192`。数据层仍保留来源追踪字段样本命中，前端主展示区未新增这些字段展示。
+- `python3 -m py_compile src/sapd_wiki/exports.py src/sapd_wiki/cli.py src/sapd_wiki/api_server.py scripts/data_package_summary.py scripts/dev_server_guard.py`：通过。
+- `node --check frontend/capability-browser/dataClient.js`、`node --check frontend/capability-browser/app.js`、`node --check scripts/frontend_smoke_check.mjs`：通过。
+- 安全能力映射页 smoke：`node scripts/frontend_smoke_check.mjs --page capability --url http://127.0.0.1:6190/ --debug-port 9432` 通过，`consoleIssues=0`、`bodyOverflowX=0`、`workspaceOverflowX=0`、`capabilityMap=true`；临时 6190 服务已关闭。
+- legacy 去重后数据包复核通过：`management-knowledge.json` 顶层已无 `assets` / `service_module_index`，约 52.5MB；`lifecycle-knowledge.json` 顶层已无 `service_module_index`，约 6.7MB；`shared-lookups.json` 继续为 `ready`，`service_module_index=192`。
+- legacy 去重后页面 smoke 通过：`capability`、`lifecycle`、`/knowledge/technical` 均 `consoleIssues=0`；临时 6191 服务已关闭。`lifecycle` 工作区仍有 32px 横向溢出指标，脚本判定通过，后续若做视觉收口可单独处理。
+- management 退役复核通过：`test ! -e frontend/capability-browser/public/data/management-knowledge.json` 通过；`/api/v1/data-packages` 不再列出 `management`；`/api/v1/data-packages/management` 返回 404；`/api/v1/maintenance` 返回 8 个 section。
+- management 退役后页面 smoke 通过：`capability`、`environment`、`/knowledge/technical` 均 `consoleIssues=0`；临时 6192 服务已关闭。`environment` 工作区仍有 32px 横向溢出指标，脚本判定通过，后续若做视觉收口可单独处理。
 
 ## 历史索引
 

@@ -23,13 +23,13 @@
 
   function functionChips(stakeholders) {
     return stakeholders
-      .slice(0, 3)
       .map((stakeholder) => `<span>${utils.escapeHtml(utils.titleOf(stakeholder, "未命名职能"))}</span>`)
       .join("");
   }
 
   function functionList(stakeholders) {
     const rows = utils.list(stakeholders).filter(Boolean);
+    if (!rows.length) return `<span class="empty-inline">暂无职能</span>`;
     const buckets = Object.fromEntries(LAYERS.map((layer) => [layer.key, []]));
     const unknown = [];
     rows.forEach((stakeholder) => {
@@ -37,17 +37,22 @@
       if (key) buckets[key].push(stakeholder);
       else unknown.push(stakeholder);
     });
+    const filledLayers = LAYERS.filter((layer) => buckets[layer.key].length);
+    const emptyLayers = LAYERS.filter((layer) => !buckets[layer.key].length);
     return `
       <div class="function-layer-buckets">
-        ${LAYERS.map(
+        ${filledLayers
+          .map(
           (layer) => `
-            <span class="function-layer-bucket ${buckets[layer.key].length ? "" : "is-empty"}">
+            <span class="function-layer-bucket">
               <small>${utils.escapeHtml(layer.label)}</small>
-              <em>${buckets[layer.key].length ? functionChips(buckets[layer.key]) : "暂无"}</em>
+              <em>${functionChips(buckets[layer.key])}</em>
             </span>
           `,
-        ).join("")}
+        )
+          .join("")}
         ${unknown.length ? `<span class="function-layer-bucket is-unknown"><small>待归类</small><em>${functionChips(unknown)}</em></span>` : ""}
+        ${emptyLayers.length ? `<span class="function-layer-empty-note">${utils.escapeHtml(emptyLayers.map((layer) => layer.label).join(" / "))}：暂无</span>` : ""}
       </div>
     `;
   }

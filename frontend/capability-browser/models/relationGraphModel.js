@@ -49,6 +49,11 @@
     return `${prefix}:${id || keyPart(fallback) || "node"}`;
   }
 
+  function contextualStableId(prefix, contextId, item, fallback) {
+    const itemKey = item?.id || item?.code || item?.serviceCode || item?.scopeCode || item?.title || item?.name || fallback;
+    return stableId(prefix, { id: `${contextId}:${itemKey || fallback}` }, fallback);
+  }
+
   function layerKeyOf(item = {}) {
     const layer = text(item.layer || item.layerLabel).trim();
     return LAYERS.find((entry) => entry.key === layer || entry.label === layer)?.key || "unknown";
@@ -203,6 +208,18 @@
     };
   }
 
+  function domainFromFocusRow(row = {}) {
+    const focus = compactFocusRowFocus(row);
+    const domain = row.path?.domain;
+    const focusCode = entityCode(focus) || text(focus.code);
+    const domainCode = focusCode.split(".")[0] || "";
+    return {
+      id: domain?.id || domain?.code || domainCode || "未编码L1",
+      code: domain?.code || domainCode || "",
+      title: domain?.title || domain?.name || domainCode || "待补充L1",
+    };
+  }
+
   function rowsByFocus(rows = []) {
     const grouped = new Map();
     for (const row of list(rows)) {
@@ -238,10 +255,24 @@
 
   function buildCategoryStructureGraph({ nodes, edges, focusId, focusOverview, technicalRows, managementRows, standardRows }) {
     const focusRows = focusRowsFromInputs(focusOverview, technicalRows, managementRows, standardRows);
+    const domainNodes = new Map();
     const capabilityNodes = new Map();
     focusRows.forEach((row) => {
-      const focus = compactFocusRowFocus(row);
+      const domain = domainFromFocusRow(row);
       const capability = capabilityFromFocusRow(row);
+      const domainId = stableId("domain_overview", domain, `domain:${domain.code || domain.title}`);
+      if (!domainNodes.has(domainId)) {
+        const domainNode = addNode(nodes, {
+          id: domainId,
+          label: entityTitle(domain, "L1能力域"),
+          type: "domain_overview",
+          group: "capability",
+          weight: 5.2,
+          meta: { code: entityCode(domain) || domain.code || "", hierarchyDepth: 1 },
+        });
+        domainNodes.set(domainId, domainNode);
+        addEdge(edges, { source: focusId, target: domainNode.id, type: "category_to_domain", weight: 2.4 });
+      }
       const capabilityId = stableId("capability_overview", capability, `capability:${capability.code || capability.title}`);
       if (!capabilityNodes.has(capabilityId)) {
         const capabilityNode = addNode(nodes, {
@@ -250,26 +281,57 @@
           type: "capability_overview",
           group: "capability",
           weight: 4.8,
-          meta: { code: entityCode(capability) || capability.code || "" },
+          meta: { code: entityCode(capability) || capability.code || "", hierarchyDepth: 2 },
         });
         capabilityNodes.set(capabilityId, capabilityNode);
-        addEdge(edges, { source: focusId, target: capabilityNode.id, type: "category_to_capability", weight: 2.2 });
+        addEdge(edges, { source: domainId, target: capabilityNode.id, type: "domain_to_capability", weight: 1.6 });
+      }
+    });
+    return buildGraphResponse(nodes, edges, {
+      strategy: "category_structure",
+      graphScope: "category",
+      domainCount: domainNodes.size,
+      capabilityCount: capabilityNodes.size,
+      focusCount: 0,
+    });
+  }
+
+  function buildDomainStructureGraph({ nodes, edges, focusId, focusOverview, technicalRows, managementRows, standardRows }) {
+    const focusRows = focusRowsFromInputs(focusOverview, technicalRows, managementRows, standardRows);
+    const capabilityNodes = new Map();
+    const focusNodes = new Map();
+    focusRows.forEach((row) => {
+      const focus = compactFocusRowFocus(row);
+      const capability = capabilityFromFocusRow(row);
+      const capabilityId = stableId("capability_overview", capability, `capability:${capability.code || capability.title}`);
+      if (!capabilityNodes.has(capabilityId)) {
+        const capabilityNode = addNode(nodes, {
+          id: capabilityId,
+          label: entityTitle(capability, "L2能力"),
+          type: "capability_overview",
+          group: "capability",
+          weight: 5,
+          meta: { code: entityCode(capability) || capability.code || "", hierarchyDepth: 1 },
+        });
+        capabilityNodes.set(capabilityId, capabilityNode);
+        addEdge(edges, { source: focusId, target: capabilityNode.id, type: "domain_to_capability", weight: 2.1 });
       }
       const focusNode = addNode(nodes, {
         id: stableId("focus_overview", focus, `focus:${entityTitle(focus)}`),
         label: entityTitle(focus, "关注点"),
         type: "focus_overview",
         group: "focus",
-        weight: 2,
-        meta: { code: entityCode(focus) },
+        weight: 2.2,
+        meta: { code: entityCode(focus), hierarchyDepth: 2 },
       });
-      addEdge(edges, { source: capabilityId, target: focusNode.id, type: "capability_to_focus", weight: 1.4 });
+      focusNodes.set(focusNode.id, focusNode);
+      addEdge(edges, { source: capabilityId, target: focusNode.id, type: "capability_to_focus", weight: 1.3 });
     });
     return buildGraphResponse(nodes, edges, {
-      strategy: "category_structure",
-      graphScope: "category",
+      strategy: "domain_structure",
+      graphScope: "domain",
       capabilityCount: capabilityNodes.size,
-      focusCount: focusRows.length,
+      focusCount: focusNodes.size,
     });
   }
 
@@ -282,80 +344,92 @@
       const focus = compactFocusRowFocus(row);
       const rowFocusId = focus.id || focus.code || focus.title || focus.name;
       if (!rowFocusId) return;
+      const contextId = keyPart(rowFocusId || entityTitle(focus));
       const focusNode = addNode(nodes, {
         id: stableId("focus_overview", focus, `focus:${entityTitle(focus)}`),
         label: entityTitle(focus, "关注点"),
         type: "focus_overview",
         group: "focus",
         weight: 3,
-        meta: { code: entityCode(focus) },
+        meta: { code: entityCode(focus), hierarchyDepth: 1, radius: 44 },
       });
-      addEdge(edges, { source: focusId, target: focusNode.id, type: "aggregate_to_focus", weight: 2 });
+      addEdge(edges, { source: focusId, target: focusNode.id, type: "capability_to_focus", weight: 2 });
 
       const techRows = technicalByFocus.get(rowFocusId) || [];
-      for (const techRow of techRows) {
-        const scope = techRow.scope || {};
-        if (hasBusinessLabel(scope)) {
+      const scopes = unique(techRows.map((techRow) => techRow.scope).filter(hasBusinessLabel), (item) => item.id || item.code || entityTitle(item));
+      if (scopes.length) {
+        const technicalViewNode = addNode(nodes, {
+          id: stableId("view_technical", { id: `${focusNode.id}:technical`, title: "技术视角" }, `technical-view:${focusNode.id}`),
+          label: "技术视角",
+          type: "view_technical",
+          group: "technical",
+          weight: 2.6,
+          meta: { hierarchyDepth: 2, radius: 38 },
+        });
+        addEdge(edges, { source: focusNode.id, target: technicalViewNode.id, type: "focus_to_technical_view", weight: 1.4 });
+        scopes.forEach((scope) => {
           const scopeNode = addNode(nodes, {
-            id: stableId("scope", scope, `scope:${entityTitle(scope)}`),
+            id: contextualStableId("scope", contextId, scope, `scope:${entityTitle(scope)}`),
             label: entityTitle(scope, "作用域"),
             type: "scope",
             group: "technical",
-            weight: 3.2,
-            meta: { code: entityCode(scope) },
+            weight: 2.1,
+            meta: { code: entityCode(scope), hierarchyDepth: 3, parentFocusId: focusNode.id, radius: 8 },
           });
-          addEdge(edges, { source: focusNode.id, target: scopeNode.id, type: "focus_to_scope", weight: 1.5 });
-          list(techRow.services).filter(hasBusinessLabel).forEach((service) => {
-            const serviceNode = addNode(nodes, {
-              id: stableId("technical_service", service, `service:${entityTitle(service)}`),
-              label: entityTitle(service, "安全技术服务"),
-              type: "technical_service",
-              group: "technical",
-              weight: 2.5,
-              meta: { code: entityCode(service) },
-            });
-            addEdge(edges, { source: scopeNode.id, target: serviceNode.id, type: "scope_to_service", weight: 1.1 });
-          });
-        }
+          addEdge(edges, { source: technicalViewNode.id, target: scopeNode.id, type: "view_to_scope", weight: 1.1 });
+        });
       }
 
       for (const managementRow of managementByFocus.get(rowFocusId) || []) {
-        unique(list(managementRow.processGroups).filter(hasBusinessLabel), (item) => item.id || item.code || entityTitle(item)).forEach((processGroup) => {
-          const processNode = addNode(nodes, {
-            id: stableId("process_l2", processGroup, `l2:${entityTitle(processGroup)}`),
-            label: entityTitle(processGroup, "L2流程组"),
-            type: "process_l2",
-            group: "management",
-            weight: 2.8,
-            meta: { code: entityCode(processGroup) },
-          });
-          addEdge(edges, { source: focusNode.id, target: processNode.id, type: "focus_to_process_l2", weight: 1.2 });
+        const securityWorks = unique(list(managementRow.securityWorks).filter(hasBusinessLabel), (item) => item.id || item.code || entityTitle(item));
+        if (!securityWorks.length) continue;
+        const managementViewNode = addNode(nodes, {
+          id: stableId("view_management", { id: `${focusNode.id}:management`, title: "管理视角" }, `management-view:${focusNode.id}`),
+          label: "管理视角",
+          type: "view_management",
+          group: "management",
+          weight: 2.6,
+          meta: { hierarchyDepth: 2, radius: 38 },
         });
-        unique(list(managementRow.securityWorks).filter(hasBusinessLabel), (item) => item.id || item.code || entityTitle(item)).forEach((work) => {
+        addEdge(edges, { source: focusNode.id, target: managementViewNode.id, type: "focus_to_management_view", weight: 1.4 });
+        securityWorks.forEach((work) => {
           const workNode = addNode(nodes, {
-            id: stableId("security_work", work, `work:${entityTitle(work)}`),
+            id: contextualStableId("security_work", contextId, work, `work:${entityTitle(work)}`),
             label: entityTitle(work, "安全工作"),
             type: "security_work",
             group: "management",
-            weight: 2.8,
-            meta: { code: entityCode(work) },
+            weight: 2.1,
+            meta: { code: entityCode(work), hierarchyDepth: 3, parentFocusId: focusNode.id, radius: 8 },
           });
-          addEdge(edges, { source: focusNode.id, target: workNode.id, type: "focus_to_work", weight: 1.2 });
+          addEdge(edges, { source: managementViewNode.id, target: workNode.id, type: "view_to_work", weight: 1.1 });
         });
       }
 
-      for (const standardRow of standardByFocus.get(rowFocusId) || []) {
-        unique(list(standardRow.standards).filter(hasBusinessLabel), (item) => item.id || item.code || entityTitle(item)).forEach((standard) => {
+      const standards = unique(
+        (standardByFocus.get(rowFocusId) || []).flatMap((standardRow) => list(standardRow.standards)).filter(hasBusinessLabel),
+        (item) => item.id || item.code || entityTitle(item),
+      );
+      if (standards.length) {
+        const standardViewNode = addNode(nodes, {
+          id: stableId("view_standard", { id: `${focusNode.id}:standard`, title: "标准 / 框架" }, `standard-view:${focusNode.id}`),
+          label: "标准 / 框架",
+          type: "view_standard",
+          group: "standard",
+          weight: 2.6,
+          meta: { hierarchyDepth: 2, radius: 42 },
+        });
+        addEdge(edges, { source: focusNode.id, target: standardViewNode.id, type: "focus_to_standard_view", weight: 1.4 });
+        standards.forEach((standard) => {
           const standardCode = entityCode(standard) || keyPart(standard.standard || standard.title || standard.name);
           const standardNode = addNode(nodes, {
-            id: stableId("standard_status", { ...standard, code: standardCode }, `standard:${entityTitle(standard)}`),
+            id: contextualStableId("standard_status", contextId, { ...standard, code: standardCode }, `standard:${entityTitle(standard)}`),
             label: entityTitle(standard, "标准 / 框架"),
             type: "standard_status",
             group: "standard",
-            weight: 2.4,
-            meta: { code: standardCode },
+            weight: 2.1,
+            meta: { code: standardCode, hierarchyDepth: 3, parentFocusId: focusNode.id, radius: 8 },
           });
-          addEdge(edges, { source: focusNode.id, target: standardNode.id, type: "focus_to_standard_status", weight: 1.1 });
+          addEdge(edges, { source: standardViewNode.id, target: standardNode.id, type: "standard_view_to_standard_status", weight: 1.1 });
         });
       }
     });
@@ -439,13 +513,18 @@
   }
 
   function addViewNode(nodes, edges, focusId, id, label, type, group) {
+    const radiusByType = {
+      view_technical: 38,
+      view_management: 38,
+      view_standard: 42,
+    };
     const node = addNode(nodes, {
       id,
       label,
       type,
       group,
       weight: 6,
-      meta: {},
+      meta: { radius: radiusByType[type] },
     });
     addEdge(edges, { source: focusId, target: node.id, type: "focus_to_view", weight: 4 });
     return node;
@@ -461,12 +540,15 @@
     addNode(nodes, {
       id: focusId,
       label: entityTitle(focus, "当前关注点"),
-      type: "current_focus",
+      type: graphScope === "capability" ? "current_capability" : "current_focus",
       group: "current",
       weight: 10,
       isCurrent: true,
       meta: {
         code: entityCode(focus),
+        currentTitle: entityTitle(focus, "当前能力"),
+        currentCode: entityCode(focus),
+        hierarchyDepth: 0,
         capability: entityTitle(currentCapability, ""),
         capabilityCode: entityCode(currentCapability),
         tag: "能力-关注点",
@@ -479,7 +561,10 @@
     if (graphScope === "category") {
       return buildCategoryStructureGraph({ nodes, edges, focusId, focusOverview, technicalRows: allTechRows, managementRows: allManagementRows, standardRows: standards });
     }
-    if (graphScope === "domain" || graphScope === "capability") {
+    if (graphScope === "domain") {
+      return buildDomainStructureGraph({ nodes, edges, focusId, focusOverview, technicalRows: allTechRows, managementRows: allManagementRows, standardRows: standards });
+    }
+    if (graphScope === "capability") {
       return buildFocusMappingOverviewGraph({ nodes, edges, focusId, graphScope, focusOverview, technicalRows: allTechRows, managementRows: allManagementRows, standardRows: standards });
     }
 
@@ -526,14 +611,32 @@
 
     const managementRows = evenlySample(allManagementRows, limits.managementRows);
     const managementView = addViewNode(nodes, edges, focusId, "view:management", "管理视角", "view_management", "management");
-    const functionRoot = addNode(nodes, { id: "management-root:functions", label: "安全职能", type: "management_function_root", group: "management", weight: 4.6, meta: {} });
-    const workRoot = addNode(nodes, { id: "management-root:works", label: "安全工作", type: "management_work_root", group: "management", weight: 4.2, meta: {} });
-    const processRoot = addNode(nodes, { id: "management-root:processes", label: "流程", type: "management_process_root", group: "management", weight: 4.2, meta: {} });
-    addEdge(edges, { source: managementView.id, target: functionRoot.id, type: "view_to_management_function_root", weight: 2 });
-    addEdge(edges, { source: managementView.id, target: workRoot.id, type: "view_to_management_work_root", weight: 2 });
-    addEdge(edges, { source: managementView.id, target: processRoot.id, type: "view_to_management_process_root", weight: 2 });
+    const activeFunctionLayerKeys = new Set();
+    let hasSecurityWorks = false;
+    let hasProcessData = false;
+    managementRows.forEach((row) => {
+      if (list(row.securityWorks).some(hasBusinessLabel)) hasSecurityWorks = true;
+      if (list(row.processGroups).some(hasBusinessLabel) || list(row.processReferences).some(hasBusinessLabel) || list(row.activities).some(hasBusinessLabel)) {
+        hasProcessData = true;
+      }
+      unique(list(row.stakeholders).filter(hasBusinessLabel), (item) => `${layerKeyOf(item)}:${item.id || item.code || entityTitle(item)}`)
+        .slice(0, limits.functionsPerRow)
+        .forEach((item) => activeFunctionLayerKeys.add(layerKeyOf(item)));
+    });
+    const functionRoot = activeFunctionLayerKeys.size
+      ? addNode(nodes, { id: "management-root:functions", label: "安全职能", type: "management_function_root", group: "management", weight: 4.6, meta: {} })
+      : null;
+    const workRoot = hasSecurityWorks
+      ? addNode(nodes, { id: "management-root:works", label: "安全工作", type: "management_work_root", group: "management", weight: 4.2, meta: {} })
+      : null;
+    const processRoot = hasProcessData
+      ? addNode(nodes, { id: "management-root:processes", label: "流程", type: "management_process_root", group: "management", weight: 4.2, meta: {} })
+      : null;
+    if (functionRoot) addEdge(edges, { source: managementView.id, target: functionRoot.id, type: "view_to_management_function_root", weight: 2 });
+    if (workRoot) addEdge(edges, { source: managementView.id, target: workRoot.id, type: "view_to_management_work_root", weight: 2 });
+    if (processRoot) addEdge(edges, { source: managementView.id, target: processRoot.id, type: "view_to_management_process_root", weight: 2 });
     const layerNodes = Object.fromEntries(
-      LAYERS.map((layer) => {
+      LAYERS.filter((layer) => activeFunctionLayerKeys.has(layer.key)).map((layer) => {
         const node = addNode(nodes, {
           id: `security-function-layer:${layer.key}`,
           label: layer.label,
@@ -607,15 +710,15 @@
       workNodes.forEach((workNode) => addEdge(edges, { source: workRoot.id, target: workNode.id, type: "management_work_root_to_work", weight: 1.5 }));
       functionNodes.forEach((functionNode) => {
         const layer = layerKeyOf(functionNode.meta);
-        const layerNode = layerNodes[layer] || layerNodes.management;
-        addEdge(edges, { source: layerNode.id, target: functionNode.id, type: "layer_to_function", weight: 1.2 });
+        const layerNode = layerNodes[layer];
+        if (layerNode) addEdge(edges, { source: layerNode.id, target: functionNode.id, type: "layer_to_function", weight: 1.2 });
       });
       l2Nodes.forEach((l2Node) => addEdge(edges, { source: processRoot.id, target: l2Node.id, type: "management_process_root_to_l2", weight: 1.5 }));
       l2Nodes.forEach((l2Node) => l3Nodes.forEach((l3Node) => addEdge(edges, { source: l2Node.id, target: l3Node.id, type: "process_l2_to_l3", weight: 1.2 })));
       l3Nodes.forEach((l3Node) => l4Nodes.forEach((l4Node) => addEdge(edges, { source: l3Node.id, target: l4Node.id, type: "process_l3_to_l4", weight: 1 })));
     }
 
-    const standardView = addViewNode(nodes, edges, focusId, "view:standard", "标准 / 框架映射", "view_standard", "standard");
+    const standardView = addViewNode(nodes, edges, focusId, "view:standard", "标准 / 框架", "view_standard", "standard");
     if (standards.length) {
       standards.slice(0, limits.standards).forEach((standard) => {
         const standardCode = entityCode(standard) || keyPart(standard.standard || standard.title || standard.name);
@@ -625,7 +728,7 @@
           type: "standard_status",
           group: "standard",
           weight: 2,
-          meta: { code: standardCode },
+          meta: { code: standardCode, radius: 24 },
         });
         addEdge(edges, { source: standardView.id, target: standardNode.id, type: "view_to_standard_status", weight: 1.4 });
         list(standard.controls).filter(hasBusinessLabel).slice(0, limits.controlsPerStandard).forEach((control) => {
@@ -635,7 +738,7 @@
             type: "standard_control",
             group: "standard",
             weight: 1.4,
-            meta: { code: entityCode(control), framework: standardCode },
+            meta: { code: entityCode(control), framework: standardCode, radius: 8 },
           });
           addEdge(edges, { source: standardNode.id, target: controlNode.id, type: "standard_to_control", weight: 0.9 });
         });

@@ -44,11 +44,15 @@ def run_lsof(port: int) -> list[dict[str, str]]:
                 "pid": pid,
                 "user": user,
                 "name": name,
-                "is_project_server": "scripts/sapd_wiki.py" in command_line(pid),
+                "is_project_server": is_project_server_command(command_line(pid)),
                 "command_line": command_line(pid),
             }
         )
     return rows
+
+
+def is_project_server_command(cmd: str) -> bool:
+    return "scripts/sapd_wiki.py" in cmd or "-m sapd_wiki.cli serve" in cmd
 
 
 def command_line(pid: str) -> str:
@@ -95,9 +99,13 @@ def start_project_server(port: int) -> int | None:
     processes = run_lsof(port)
     if any(row["is_project_server"] for row in processes):
         return None
+    env = os.environ.copy()
+    src = str(ROOT / "src")
+    env["PYTHONPATH"] = src if not env.get("PYTHONPATH") else f"{src}{os.pathsep}{env['PYTHONPATH']}"
     subprocess.Popen(
-        [sys.executable, "scripts/sapd_wiki.py", "serve", "--host", "127.0.0.1", "--port", str(port)],
+        [sys.executable, "-m", "sapd_wiki.cli", "serve", "--host", "127.0.0.1", "--port", str(port)],
         cwd=ROOT,
+        env=env,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
         start_new_session=True,
@@ -105,13 +113,30 @@ def start_project_server(port: int) -> int | None:
     return 1
 
 
+def stop_project_servers(processes: list[dict[str, str]]) -> list[str]:
+    stopped: list[str] = []
+    for row in processes:
+        if not row["is_project_server"]:
+            continue
+        os.kill(int(row["pid"]), signal.SIGTERM)
+        stopped.append(row["pid"])
+    return stopped
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Check and guard the SAPD Wiki local dev server.")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT)
     parser.add_argument("--status", action="store_true", help="Print current status.")
     parser.add_argument("--start", action="store_true", help="Start project server if it is not running.")
+    parser.add_argument("--stop", action="store_true", help="Stop project server processes on the selected port.")
     parser.add_argument("--fix-duplicates", action="store_true", help="Stop duplicate plain http.server processes when project server exists.")
     args = parser.parse_args()
+
+    stopped: list[str] = []
+    if args.stop:
+        stopped = stop_project_servers(run_lsof(args.port))
+        if stopped:
+            time.sleep(0.3)
 
     if args.start:
         start_project_server(args.port)
@@ -125,6 +150,11 @@ def main() -> int:
 
     home = http_status(f"http://127.0.0.1:{args.port}/")
     projection = http_status(f"http://127.0.0.1:{args.port}/api/v1/capabilities/workspace-projection")
+    has_project_server = any(row["is_project_server"] for row in processes)
+    if args.stop and not args.start:
+        result = "pass" if not has_project_server else "warn"
+    else:
+        result = "pass" if home.get("ok") and projection.get("ok") and has_project_server else "warn"
     summary = {
         "port": args.port,
         "listeners": [
@@ -135,6 +165,7 @@ def main() -> int:
             }
             for row in processes
         ],
+        "stopped_project_pids": stopped,
         "killed_duplicate_pids": killed,
         "home": {"status": home.get("status"), "ok": home.get("ok"), "time_seconds": home.get("time_seconds")},
         "workspace_projection": {
@@ -142,7 +173,7 @@ def main() -> int:
             "ok": projection.get("ok"),
             "time_seconds": projection.get("time_seconds"),
         },
-        "result": "pass" if home.get("ok") and projection.get("ok") and any(row["is_project_server"] for row in processes) else "warn",
+        "result": result,
     }
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     return 0 if summary["result"] == "pass" else 1

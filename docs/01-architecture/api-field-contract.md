@@ -154,7 +154,9 @@
 | 离线数据包 | 对应 API | 用途 |
 |---|---|---|
 | `capability-tree.json` | `/api/v1/capabilities/tree`、`/api/v1/capabilities/matrix`、`/api/v1/capabilities/workspace-projection` | 能力树、关注点、服务、作用域、流程、职能关系 |
-| `management-knowledge.json` | `/api/v1/environments/*`、`/api/v1/maintenance/*`、`/api/v1/references/*` | 信息化环境、作用域、流程、职能、模块、标准、岗位 |
+| `maintenance-knowledge.json` | `/api/v1/maintenance/*`、`/api/v1/references/*` | 作用域、流程、职能、模块、措施、标准、岗位 |
+| `environment-workbench.json` | `/api/v1/environments/*` | 信息化环境页面级投影 |
+| `shared-lookups.json` | `/api/v1/maintenance/service-module-index` | 全站共享服务-模块索引 |
 | `lifecycle-knowledge.json` | `/api/v1/lifecycle/application`、`/api/v1/lifecycle/data` | 安全开发生命周期、数据生命周期 |
 | `content-views.json` | `/api/v1/content/*` | HTML、Draw.io、PPT 使用说明 |
 
@@ -482,7 +484,7 @@
 
 ### 8.1 `GET /api/v1/environments/tree`
 
-当前静态文件：`management-knowledge.json` 的 `environment_scope_tree`
+当前静态文件：`environment-workbench.json` 的 `navigator` 和 `relations`
 
 用途：提供信息化环境、信息化对象、作用域、服务、模块、系统/产品连续映射。
 
@@ -580,7 +582,7 @@
 
 ### 9.1 `GET /api/v1/maintenance/scopes`
 
-当前静态字段：`management-knowledge.json.scope_types`
+当前静态字段：`maintenance-knowledge.json.scope_types`
 
 用途：安全能力作用域目录和作用域名目录。
 
@@ -601,7 +603,7 @@
 
 ### 9.2 `GET /api/v1/maintenance/processes`
 
-当前静态字段：`management-knowledge.json.security_processes`
+当前静态字段：`maintenance-knowledge.json.security_processes`
 
 用途：安全职能流程清单，以流程域、流程组、L3 流程参考、L4 活动组织。
 
@@ -658,7 +660,7 @@
 
 ### 9.3 `GET /api/v1/maintenance/work-functions`
 
-当前静态字段：`management-knowledge.json.work_function_layers`
+当前静态字段：`maintenance-knowledge.json.work_function_layers`
 
 用途：安全工作职能清单，按决策层、管理层、执行层、监督层展示。
 
@@ -701,7 +703,7 @@
 
 ### 9.4 `GET /api/v1/maintenance/technology-modules`
 
-当前静态字段：`management-knowledge.json.security_technology_modules`
+当前静态字段：`maintenance-knowledge.json.security_technology_modules`
 
 用途：安全技术模块清单。
 
@@ -723,7 +725,7 @@
 
 ### 9.5 `GET /api/v1/maintenance/technical-measures`
 
-当前静态字段：`management-knowledge.json.security_technical_measures`
+当前静态字段：`maintenance-knowledge.json.security_technical_measures`
 
 用途：安全技术措施清单。主对象是“安全技术措施”，不同于 `security_technology_modules`。安全技术模块偏能力构件或技术模块，安全技术措施偏具体控制措施、实施措施或技术措施。
 
@@ -759,7 +761,7 @@
 
 字段边界：
 
-- `security_technical_measures` 位于 `management-knowledge.json` 顶层。
+- `security_technical_measures` 位于 `maintenance-knowledge.json` 顶层。
 - 后端不得把安全技术模块直接当作安全技术措施返回。
 - 后端不得把安全系统或产品当作安全技术措施返回。
 - `related_service_names`、`related_scope_names`、`related_environment_names`、`related_environment_object_names` 都必须按数组保留多值关系，不得压成单值。
@@ -768,7 +770,7 @@
 
 ### 9.6 `GET /api/v1/maintenance/service-module-index`
 
-当前静态字段：`management-knowledge.json.service_module_index`
+当前静态字段：`shared-lookups.json.service_module_index`
 
 用途：服务到模块、系统、产品的索引。
 
@@ -789,7 +791,7 @@
 
 ### 10.1 `GET /api/v1/references/standards`
 
-当前静态字段：`management-knowledge.json.gbt_42446_references`
+当前静态字段：`maintenance-knowledge.json.gbt_42446_references`
 
 `StandardReference` 字段：
 
@@ -805,7 +807,7 @@
 
 ### 10.2 `GET /api/v1/references/roles`
 
-当前静态字段：`management-knowledge.json.gartner_roles`
+当前静态字段：`maintenance-knowledge.json.gartner_roles`
 
 `RoleReference` 字段：
 

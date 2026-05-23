@@ -20,7 +20,6 @@
     if (!detailPanel) {
       return `
         <div class="detail-empty"><strong>请选择专项对象</strong><span>左侧表格选择一行后展示详情。</span></div>
-        ${components.SourceEvidencePanel ? components.SourceEvidencePanel.render([]) : ""}
       `;
     }
     return `
@@ -42,7 +41,6 @@
           `,
         )
         .join("")}
-      ${components.SourceEvidencePanel ? components.SourceEvidencePanel.render(detailPanel.sourceEvidence) : ""}
     `;
   }
 

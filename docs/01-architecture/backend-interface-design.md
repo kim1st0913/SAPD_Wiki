@@ -119,7 +119,8 @@ python scripts/sapd_wiki.py serve --host 127.0.0.1 --port 5173
 |---|---|
 | `GET /api/v1/health` | 本地 API 健康检查 |
 | `GET /api/v1/data-packages/capability` | 安全能力数据包 |
-| `GET /api/v1/data-packages/management` | 管理与专项知识数据包 |
+| `GET /api/v1/data-packages/maintenance` | 专项知识维护数据包 |
+| `GET /api/v1/data-packages/shared-lookups` | 全站共享索引数据包 |
 | `GET /api/v1/data-packages/lifecycle` | 生命周期数据包 |
 | `GET /api/v1/data-packages/content` | 内容视图数据包 |
 | `GET /api/v1/maintenance` | 专项知识维护导航清单 |
@@ -129,15 +130,33 @@ python scripts/sapd_wiki.py serve --host 127.0.0.1 --port 5173
 
 ### 3.5 打包交付模式
 
-桌面交付阶段推荐：
+桌面交付阶段以顾问端压缩包为目标形态。详细交付模型见 `docs/01-architecture/consultant-delivery-model.md`。
+
+顾问用户不是开发人员，第一期不要求也不允许用户自行安装依赖、执行 ETL、选择数据库或导入原始资料。内部维护流程先完成数据导入、审批、校验、SQLite 种子库整理、页面数据包生成和资源校验；顾问端只负责一键初始化和使用。
+
+桌面交付阶段推荐结构：
 
 ```text
-Tauri 壳
+SAPD_Wiki_Consultant_Package.zip
+├─ Tauri 应用
 ├─ 前端静态资源
-├─ 本地 SQLite
-├─ 后端命令或本地 API
-└─ 原始文件 / 导出 / 预览目录
+├─ 本地 API 或 Tauri command 数据读取层
+├─ resources/database/sapd_wiki.seed.sqlite3
+├─ resources/data-packages/
+├─ resources/previews/
+└─ manifest.json
 ```
+
+首次打开后由应用提供“一键初始化”：
+
+```text
+resources/database/sapd_wiki.seed.sqlite3
+→ <app_data_dir>/SAPD_Wiki/database/sapd_wiki.sqlite3
+```
+
+初始化还应复制或登记页面数据包、预览资源和 manifest。初始化完成后，用户再次打开应用应直接进入知识库工作台。
+
+第一期不做登录、注册、账号体系和权限分层；也不在顾问端提供 Excel / PDF / PPT / DOCX 导入入口。导入与数据更新属于内部维护和发布构建流程。
 
 ## 4. 后端逻辑模块
 
@@ -383,7 +402,7 @@ frontend/capability-browser/public/data/
 
 安全技术措施读取说明：
 
-- 当前静态数据阶段由 `dataClient.getMaintenanceTechnologyMeasures()` 从 `management-knowledge.json` 顶层 `security_technical_measures` 读取。
+- 当前静态数据阶段由 `dataClient.getMaintenanceTechnologyMeasures()` 从 `maintenance-knowledge.json` 顶层 `security_technical_measures` 读取。
 - 本地 API 使用 `GET /api/v1/maintenance/technical-measures` 返回列表，使用 `GET /api/v1/maintenance/technical-measures/{id}` 返回单个措施详情。
 - 返回对象必须符合 `docs/01-architecture/api-field-contract.md` 中 `SecurityTechnicalMeasure` 契约。
 - 后端不得把 `security_technology_modules` 中的安全技术模块直接返回为安全技术措施。
@@ -447,10 +466,10 @@ frontend/capability-browser/public/data/
 | `/api/v1/capabilities/tree` | `capability-tree.json` |
 | `/api/v1/capabilities/matrix` | `capability-tree.json` 中的能力关系投影，后续可拆分 |
 | `/api/v1/capabilities/workspace-projection` | 后端运行时生成；静态模式下暂由 ViewModel fallback |
-| `/api/v1/maintenance/processes` | `management-knowledge.json` |
-| `/api/v1/maintenance/work-functions` | `management-knowledge.json` |
-| `/api/v1/maintenance/scopes` | `management-knowledge.json` 或后续 `maintenance-knowledge.json` |
-| `/api/v1/maintenance/technical-measures` | `management-knowledge.json` 顶层 `security_technical_measures` |
+| `/api/v1/maintenance/processes` | `maintenance-knowledge.json` |
+| `/api/v1/maintenance/work-functions` | `maintenance-knowledge.json` |
+| `/api/v1/maintenance/scopes` | `maintenance-knowledge.json` |
+| `/api/v1/maintenance/technical-measures` | `maintenance-knowledge.json` 顶层 `security_technical_measures` |
 | `/api/v1/lifecycle/application` | `lifecycle-knowledge.json` |
 | `/api/v1/lifecycle/data` | `lifecycle-knowledge.json` |
 | `/api/v1/content/guide-pages` | `content-views.json` |

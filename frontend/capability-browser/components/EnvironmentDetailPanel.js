@@ -11,7 +11,7 @@
     `;
   }
 
-  function render({ localRelationNotes, sourceEvidence }) {
+  function render({ localRelationNotes }) {
     const notes = utils.list(localRelationNotes);
     return `
       <section class="semantic-panel environment-local-notes">
@@ -26,7 +26,6 @@
           <div class="local-note-list">
             ${notes.map(renderNote).join("") || '<div class="detail-empty"><strong>暂无局部关系说明</strong><span>请选择左侧环境对象。</span></div>'}
           </div>
-          ${components.SourceEvidencePanel ? components.SourceEvidencePanel.render(sourceEvidence) : ""}
         </div>
       </section>
     `;

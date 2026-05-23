@@ -14,7 +14,7 @@
     }
     return `
       <div class="maintenance-table-scroll">
-        <table class="maintenance-data-table">
+        <table class="maintenance-data-table process-maintenance-table">
           <thead>
             <tr>
               <th>流程域</th>
@@ -35,7 +35,7 @@
                     <td>${cell(row.processGroup)}</td>
                     <td><strong>${cell(row.processReference)}</strong></td>
                     <td>${cell(row.l4ActivityStatus)}</td>
-                    <td>${cell(row.description)}</td>
+                    <td class="maintenance-description-cell"><span>${cell(row.description)}</span></td>
                     <td>${cell(row.relatedFocusCount)}</td>
                     <td>${cell(row.securityFunctionCount)}</td>
                   </tr>

@@ -221,12 +221,11 @@
 适用：
 
 - 安全能力作用域目录。
-- 安全技术模块 / 安全技术措施目录。
-- 安全工作清单目录。
-- 安全职能流程目录。
-- 安全工作职能目录。
-- 岗位 / 职能参考目录。
+- 安全技术模块/措施清单。
+- 安全管理工作/流程清单。
+- 安全职能清单。
 - Hype Cycle。
+- 其他知识目录。
 
 核心区域：
 
@@ -360,13 +359,15 @@
 | 菜单名称 | 路由建议 | 页面类型 | 页面目标 | 设计重点 | 不适合的设计方式 | 优先级 |
 |---|---|---|---|---|---|---|
 | 安全能力作用域目录 | `/knowledge/scopes` | `knowledge-directory` | 浏览和核对作用域清单 | 表格、检索、标签、详情抽屉、来源证据 | 长文档页、卡片平铺 | P2 |
-| 安全技术模块 / 安全技术措施目录 | `/knowledge/technical-modules` | `knowledge-directory` | 浏览模块和措施清单及其关联 | 模块/措施切换、服务关联、详情抽屉 | 复杂网络图、营销卡片 | P2 |
-| 安全工作清单目录 | `/knowledge/work-items` | `knowledge-directory` | 浏览安全工作清单 | 表格、能力关联、来源证据 | 文档页、关系大图 | P2 |
-| 安全职能流程目录 | `/knowledge/processes` | `knowledge-directory` | 浏览 L2/L3/L4 流程目录 | 流程层级、L4 缺失状态、来源证据 | 纯文本长表、不可读长表 | P2 |
-| 安全工作职能目录 | `/knowledge/functions` | `knowledge-directory` | 浏览四层安全职能 | 四层分类、职能组、任务、标准引用 | 每类职能完全不同结构 | P2 |
-| 岗位 / 职能参考目录（GB/T、Gartner） | `/knowledge/role-references` | `knowledge-directory` | 浏览岗位和职能参考 | 标准来源切换、条目详情、来源证据 | PDF 列表、静态链接集合 | P2 |
+| 安全技术模块/措施清单 | `/knowledge/technical` | `knowledge-directory` | 浏览和核对安全技术模块、技术措施及其关联 | 内部 Tab：安全技术模块目录、安全技术措施目录；表格、搜索、详情、来源证据 | 拆成两个外层二级菜单、复杂网络图、组件内临时拼关系 | P2 |
+| 安全管理工作/流程清单 | `/knowledge/management-workflows` | `knowledge-directory` | 浏览和核对安全工作、职能流程及其关联 | 内部 Tab：安全工作清单、安全职能流程清单；表格、搜索、详情、来源证据 | 把工作和流程做成无关联的孤立页面、关系大图 | P2 |
+| 安全职能清单 | `/knowledge/functions` | `knowledge-directory` | 浏览和核对安全工作职能及岗位 / 职能参考 | 内部 Tab：安全工作职能清单、岗位 / 职能参考目录；表格、搜索、详情、来源证据 | 每类职能完全不同结构、PDF 列表、静态链接集合 | P2 |
 | Hype Cycle | `/knowledge/hype-cycle` | `knowledge-directory` | 预留 Hype Cycle 知识目录 | 建设状态、目录结构预留、关联入口 | 伪造图表或趋势数据 | P3 |
 | 其他知识目录 | `/knowledge/others` | `placeholder-page` | 预留其他知识目录入口 | 建设状态、后续规划、返回入口 | 伪造成完整目录 | P3 |
+
+安全知识内部页面参考 `安全标准 / 框架` 的 CRF 页面结构：页面标题区保留数量徽标和全局搜索；内容区使用紧凑页签承载同组清单，页签下方使用密集表格作为主核对界面。短表保持顶部对齐并显示“已显示全部 X 条记录”的收尾提示，长表保留工作区内滚动。默认结构不再使用旧维护页左侧目录和右侧详情分栏；来源证据和对象详情如需展示，应作为次级抽屉或折叠区，不在主表格展示原始来源字段。
+
+安全技术模块目录主表应优先展示可核对的业务事实：领域分类、安全系统、安全技术模块 / 定义、映射安全技术服务，以及措施 / 作用域 / 对象 / 环境的契约状态。领域分类来自原始 `安全技术模块清单` B 列，安全系统来自 C 列，页面应按“领域分类 -> 安全系统 -> 安全技术模块”两级分组展开，并优先保持原始表行顺序。当前维护包中安全系统、定义、技术服务和信息化环境可直接展示；模块-措施映射、模块-作用域映射、模块-信息化对象映射若未进入稳定数据契约，不应在组件中临时反推。
 
 ### 7.3 安全标准 / 框架
 
@@ -375,7 +376,7 @@
 | 等级保护三级 | `/standards/mlps-level-3` | `standard-framework-page` | 展示等保三级条款、控制项和映射关系 | 标准目录、控制项、能力/措施/管理映射、版本说明 | PDF 阅读器、静态文档页 | P2 |
 | NIST CSF 2.0 | `/standards/nist-csf-2` | `standard-framework-page` | 展示 NIST CSF 2.0 控制项和映射 | 控制项层级、版本、映射状态 | 静态链接集合 | P2 |
 | ISO/IEC 27001:2022 | `/standards/iso-27001-2022` | `standard-framework-page` | 展示 ISO/IEC 27001:2022 控制项和映射 | 条款、附录控制项、版本、映射 | PDF 列表 | P2 |
-| DSP 2级策略清单 | `/standards/dsp-level-2` | `standard-framework-page` | 展示 DSP 2级策略及能力/措施映射 | 策略清单、映射状态、来源证据 | 不可读长表 | P2 |
+| DSP Secure Controls Framework (SCF) - 2026 | `/standards/dsp-level-2` | `standard-framework-page` | 展示 DSP SCF 2026 控制项、成熟度和能力/措施映射 | SCF Controls、SCF 成熟度、映射状态、来源证据 | 不可读长表、全量大 JSON | P2 |
 | CIS CSC v8 | `/standards/cis-csc-v8` | `standard-framework-page` | 展示 CIS Controls v8 控制项和映射 | 控制项分组、映射关系、版本 | 静态文档页 | P2 |
 | CRF | `/standards/crf` | `standard-framework-page` | 展示 CRF 框架条目和映射 | 框架层级、控制项、映射关系 | PDF 阅读器 | P2 |
 | NIST SP 800-53 Rev.5 | `/standards/nist-800-53-rev5` | `standard-framework-page` | 展示 NIST SP 800-53 Rev.5 控制项和映射 | 控制族、控制项、版本、映射 | 超长不可读表格 | P2 |
@@ -402,11 +403,9 @@
 
 /knowledge                             安全知识
 /knowledge/scopes                      安全能力作用域目录
-/knowledge/technical-modules           安全技术模块 / 安全技术措施目录
-/knowledge/work-items                  安全工作清单目录
-/knowledge/processes                   安全职能流程目录
-/knowledge/functions                   安全工作职能目录
-/knowledge/role-references             岗位 / 职能参考目录
+/knowledge/technical                   安全技术模块/措施清单
+/knowledge/management-workflows        安全管理工作/流程清单
+/knowledge/functions                   安全职能清单
 /knowledge/hype-cycle                  Hype Cycle
 /knowledge/others                      其他知识目录
 
@@ -414,7 +413,7 @@
 /standards/mlps-level-3                等级保护三级
 /standards/nist-csf-2                  NIST CSF 2.0
 /standards/iso-27001-2022              ISO/IEC 27001:2022
-/standards/dsp-level-2                 DSP 2级策略清单
+/standards/dsp-level-2                 DSP Secure Controls Framework (SCF) - 2026
 /standards/cis-csc-v8                  CIS CSC v8
 /standards/crf                         CRF
 /standards/nist-800-53-rev5            NIST SP 800-53 Rev.5
@@ -430,6 +429,21 @@
 | 3 | 信息化环境安全能力映射 | `environment-mapping-workbench` | 核心业务工作台二号，用作对象映射型工作台基准 |
 | 4 | 安全知识目录页 | `knowledge-directory` | 统一目录检索、表格、详情抽屉和来源证据模式 |
 | 5 | 安全标准 / 框架目录与详情 | `standard-framework-directory` / `standard-framework-page` | 固化标准页的版本、控制项和映射模式 |
+
+### 7.4 安全标准 / 框架数据包边界
+
+安全标准 / 框架页面不得使用单一全量 JSON 作为主数据包。页面数据必须拆为：
+
+- `standards-index.json`：标准目录、版本、统计、Tab 元数据和分包路径；
+- `standards-data.json`：旧入口兼容索引，不承载表格 `rows`；
+- `public/data/standards/**`：按单个标准 / 框架或 Tab 存放行数据。
+
+设计和实现验收时应确认：
+
+- 标准目录页首屏只需要索引包；
+- 单个标准页只加载当前框架或当前 Tab 分包；
+- 大型框架（例如 DSP SCF 2026 成熟度、NIST 800-53 Rev.5）不得混入全局首屏包；
+- 前端不得直接从多个标准分包拼接或推断安全能力映射关系，映射关系必须来自后端投影。
 | 6 | 安全指南文档页 | `document-hub` / `document-page` | 固化文档阅读体验 |
 | 7 | SAPD 成熟度评估 | `domain-module` | 固化评分填报、结果生成和报告导出的独立业务模块框架 |
 | 8 | 开发安全 / 数据安全预留页 | `domain-module` | 形成专题模块预留样式 |

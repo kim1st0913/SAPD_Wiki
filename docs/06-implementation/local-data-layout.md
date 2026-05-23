@@ -25,16 +25,40 @@ data/database/sapd_wiki.sqlite3
 
 打包成桌面应用后，不应把数据库写在安装目录里，而应写入应用数据目录。
 
+顾问端第一期交付形态以 `docs/01-architecture/consultant-delivery-model.md` 为准：用户收到压缩包，解压后首次打开应用，通过“一键初始化”自动部署预置数据库和页面资源，然后直接使用。顾问用户不需要安装开发依赖、选择数据库、执行迁移、运行 ETL 或自行导入原始资料。
+
 建议逻辑路径：
 
 ```text
 <app_data_dir>/SAPD_Wiki/database/sapd_wiki.sqlite3
-<app_data_dir>/SAPD_Wiki/raw/
-<app_data_dir>/SAPD_Wiki/previews/
+<app_data_dir>/SAPD_Wiki/resources/
 <app_data_dir>/SAPD_Wiki/exports/
+<app_data_dir>/SAPD_Wiki/backups/
 ```
 
 具体 `<app_data_dir>` 由 Tauri 在不同操作系统上解析。
+
+发布包内置的数据库建议作为只读种子库保存，例如：
+
+```text
+resources/database/sapd_wiki.seed.sqlite3
+```
+
+首次初始化时复制为运行库：
+
+```text
+<app_data_dir>/SAPD_Wiki/database/sapd_wiki.sqlite3
+```
+
+后续应用读取和可能产生的用户偏好、导出、备份都写入应用数据目录，不写入安装目录。
+
+顾问端压缩包不应包含：
+
+- 开发备份库；
+- `data/raw-samples/` 中的真实样例资料；
+- ETL 中间产物；
+- 需要用户手工执行的导入脚本；
+- 未经脱敏或未确认可分发的原始文件。
 
 ## 3. 样例文件策略
 
@@ -60,8 +84,8 @@ data/database/sapd_wiki.sqlite3
 全量备份建议包含：
 
 - SQLite 数据库；
-- 原始文件仓库；
-- 预览文件；
+- 已部署资源 manifest；
+- 预览资源；
 - 导出 manifest；
 - 当前映射规则版本。
 
@@ -70,4 +94,3 @@ data/database/sapd_wiki.sqlite3
 ```text
 data/exports/
 ```
-

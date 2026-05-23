@@ -51,12 +51,12 @@ Frontend Baseline 1.0 已从“三个同级关系工作台”修正为：
 | 数据文件 | 当前状态 | 设计含义 |
 |---|---|---|
 | `capability-workbench.json` | 已生成并接入 | 安全能力映射页的关系工作台主数据 |
-| `environment-workbench.json` | 已生成并加载 | 信息化环境页目标主数据，展示结构尚未完全切换 |
+| `environment-workbench.json` | 已生成并接入 | 信息化环境页目标主数据 |
 | `lifecycle-workbench.json` | 已生成并接入 | LC-AP 受控专项关系投影主数据 |
 | `capability-tree.json` | 继续保留 | 只作为能力目录树，不再作为关系工作台主输入 |
-| `management-knowledge.json` | 过渡兼容 | 旧环境 / 管理知识数据包，不作为新 UI 主输入 |
+| `management-knowledge.json` | 已退役 | 不再作为顾问端发布包、API 数据包或前端 fallback |
 | `lifecycle-knowledge.json` | 过渡兼容 | 旧生命周期知识数据包，不作为新 UI 主输入 |
-| `shared-lookups.json` | 后续 P1 项 | 共享字典、枚举和标签候选 |
+| `shared-lookups.json` | 已生成并接入 | 全站共享索引，当前包含 `service_module_index` |
 | `source-evidence.json` | 后续 P1 项 | 来源证据集中索引，主页面只保留引用和折叠入口 |
 
 设计时应以 `*-workbench.json` 目标契约为准，不以旧 JSON 的临时展示结构为准。
@@ -65,11 +65,9 @@ Frontend Baseline 1.0 已从“三个同级关系工作台”修正为：
 
 当前必须显式交接给 Stitch 的缺口：
 
-- 信息化环境页已经加载 `environment-workbench.json`，但页面展示结构尚未完全切换到 `environment-workbench` 的对象 / 关系模型。
-- Stitch 设计信息化环境页时，必须以 `environment-workbench.json` 的目标数据结构为准，而不是以旧 `management-knowledge.json.environment_scope_tree` 或旧页面表格方式为准。
+- Stitch 设计信息化环境页时，必须以 `environment-workbench.json` 的目标数据结构为准，而不是以旧页面表格方式为准。
 - 信息化环境页的主语是“信息化环境 / 信息化对象”，不应直接套用安全能力映射页。
-- 环境页后续实现必须完成 `environment-workbench` 消费替换，避免前端继续从旧结构直接解释环境关系。
-- `shared-lookups.json` 和 `source-evidence.json` 尚未拆出，设计中应保留共享字典与来源证据的扩展入口。
+- `source-evidence.json` 尚未拆出，设计中应保留来源证据的扩展入口。
 
 ## 6. 页面设计约束
 
@@ -155,8 +153,7 @@ Frontend Baseline 1.0 已从“三个同级关系工作台”修正为：
 - 已包含 P0、P1、P2、P3 页面范围。
 - 已明确 P1 双核心工作台和 LC-AP 受控专项投影。
 - 已明确三份 workbench JSON 的数据状态。
-- 已明确 `capability-tree.json`、`management-knowledge.json`、`lifecycle-knowledge.json` 的过渡定位。
-- 已明确信息化环境页尚未完全切换到 `environment-workbench` 的缺口。
+- 已明确 `capability-tree.json`、`lifecycle-knowledge.json` 的过渡定位，以及 `management-knowledge.json` 的退役状态。
 - 已明确非业务字段不得进入主展示区。
 - 已明确来源证据默认折叠。
 - 已明确技术模块和技术措施必须显式区分。

@@ -41,6 +41,7 @@
 python3 scripts/dev_server_guard.py --status
 python3 scripts/dev_server_guard.py --start
 python3 scripts/dev_server_guard.py --fix-duplicates --start
+python3 scripts/dev_server_guard.py --port <temp-port> --stop
 ```
 
 用途：
@@ -49,6 +50,13 @@ python3 scripts/dev_server_guard.py --fix-duplicates --start
 - 优先保留 `scripts/sapd_wiki.py serve` 项目服务；
 - 关闭重复的普通 `python -m http.server`；
 - 确认首页和关键 API 是否响应。
+
+端口约定：
+
+- `5173` 是 SAPD Wiki 唯一常驻预览端口。
+- 多个线程同时需要验证时，可以临时使用其它端口，例如 `5174`、`5175`。
+- 临时端口只用于验证，验证完成后必须执行 `python3 scripts/dev_server_guard.py --port <temp-port> --stop` 关闭。
+- 不把临时端口写入长期文档、截图说明或最终交付入口；面向用户的默认访问地址始终使用 `http://127.0.0.1:5173/`。
 
 ### 数据包摘要
 
@@ -63,6 +71,14 @@ python3 scripts/data_package_summary.py --package all
 - 输出数据包存在性、大小、顶层字段、关键计数；
 - 检查主展示结构中是否疑似泄露 `sheet`、`row`、`raw_value`、`debug`、`metadata` 等非业务字段；
 - 只输出摘要，不打印完整 JSON。
+
+标准 / 框架数据包的额外要求：
+
+- `standards` 摘要应指向 `frontend/capability-browser/public/data/standards-index.json`。
+- `standards-index.json` 应保持小索引，不承载 `rows`。
+- `standards-data.json` 仅作旧入口兼容索引，不得恢复为全量大包。
+- 新前端通过 `/api/v1/data-packages/standards-index` 或静态 `standards-index.json` 读取小索引；旧 API 入口 `/api/v1/data-packages/standards` 只允许运行时兼容组装，不允许落盘为全量静态包。
+- `frontend/capability-browser/public/data/standards/**` 承载框架和 Tab 分包；只按需抽样，不默认全量读取。
 
 ### 前端页面 smoke
 
@@ -100,7 +116,7 @@ node scripts/frontend_smoke_check.mjs --page lifecycle
 - `progress.md` 超过 120 行；
 - 工作区存在大量未提交 diff；
 - 浏览器验证输出过大；
-- 5173 有重复服务；
+- 5173 有重复服务或存在未关闭的临时项目预览端口；
 
 Codex 应优先执行：
 
@@ -110,6 +126,51 @@ Codex 应优先执行：
 4. 如 `progress.md` 超过 120 行，先归档瘦身。
 5. 如工作区改动较大，建议 checkpoint commit。
 6. 完成减负后再继续业务任务。
+
+## 标准 / 框架分包验证
+
+涉及 `安全标准 / 框架` 导出或前端加载时，默认按以下顺序验证：
+
+1. 运行导出：
+
+```bash
+python3 scripts/sapd_wiki.py export-standard-frameworks-data
+```
+
+2. 摘要检查：
+
+```bash
+python3 scripts/data_package_summary.py --package standards
+```
+
+预期：
+
+- `path` 为 `frontend/capability-browser/public/data/standards-index.json`；
+- `data_state=ready`；
+- `split_files` 大于 0；
+- `standards-index.json` 和兼容 `standards-data.json` 都是小索引。
+
+3. 精确抽样检查索引不含行数据：
+
+```bash
+python3 - <<'PY'
+import json
+from pathlib import Path
+for rel in [
+    "frontend/capability-browser/public/data/standards-index.json",
+    "frontend/capability-browser/public/data/standards-data.json",
+]:
+    data = json.loads(Path(rel).read_text(encoding="utf-8"))
+    print(rel, data.get("package_type"), any("rows" in f for f in data.get("frameworks", [])))
+PY
+```
+
+4. 浏览器验证：
+
+- 进入具体标准页时，首屏只请求索引和当前框架 / 当前 Tab 分包；
+- 切换 Tab 后才请求对应 Tab 分包；
+- 页面横向溢出为 0；
+- 主展示区不出现非业务字段。
 
 ## 验证输出格式
 

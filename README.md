@@ -8,6 +8,8 @@
 
 全工程执行前后端分离：后端负责导入、清洗、标准化、关系生成、校验、评分、导出和页面数据投影；前端只通过 `dataClient` / `/api/v1/*` 消费契约化数据并负责展示交互。`public/data/*.json` 仅作为后端生成的离线兼容数据包或 API fallback。
 
+面向咨询顾问的 V1 交付目标是压缩包应用：顾问解压后第一次打开，点击一键初始化，系统自动部署预置 SQLite 数据库、页面数据包和预览资源，然后直接进入知识库工作台。顾问端不需要安装 Python / Node / SQLite CLI，不自行导入资料，不执行 ETL 或 migration；第一期也不做登录、注册、账号和权限体系。详细交付模型见 `docs/01-architecture/consultant-delivery-model.md`。
+
 ## 先读哪几个文件
 
 如果你是第一次进入项目，建议按这个顺序阅读：
@@ -29,6 +31,8 @@
 
 - `docs/01-architecture/architecture.md`：轻量架构说明。
 - `docs/01-architecture/technology-decisions.md`：技术选型记录。
+- `docs/01-architecture/consultant-delivery-model.md`：顾问端压缩包交付、一键初始化和无登录边界。
+- `docs/01-architecture/frontend-json-data-package-inventory.md`：前端 JSON 数据包用途、页面归属、legacy 状态和发布处理台账。
 - `docs/01-architecture/frontend-backend-separation-closure.md`：本轮前后端分离收口说明。
 
 ### 数据模型
@@ -180,7 +184,8 @@ python scripts/sapd_wiki.py serve --host 127.0.0.1 --port 5173
 ```text
 http://127.0.0.1:5173/
 http://127.0.0.1:5173/api/v1/health
-http://127.0.0.1:5173/api/v1/data-packages/management
+http://127.0.0.1:5173/api/v1/data-packages/maintenance
+http://127.0.0.1:5173/api/v1/data-packages/shared-lookups
 http://127.0.0.1:5173/api/v1/capabilities/workspace-projection
 http://127.0.0.1:5173/api/v1/maintenance
 ```

@@ -11,7 +11,7 @@
 | 总体运行模式 | 已形成 `本地 API 优先 + public/data/*.json fallback` 的过渡模式 |
 | 已有页面级投影 | `安全能力映射页` 已有 `/api/v1/capabilities/workspace-projection`，且已补充 `localRelationMap` 画布投影结构 |
 | 未有页面级投影 | `信息化环境维度页`、`LC-AP 开发安全生命周期页` 仍主要依赖 `data-packages` 和前端 ViewModel 整理 |
-| 离线数据包 | 已从 4 个基础包演进为页面级包 + legacy fallback：`capability-tree.json`、`maintenance-knowledge.json`、`management-knowledge.json`、`lifecycle-knowledge.json`、`content-views.json` 等 |
+| 离线数据包 | 已从 4 个基础包演进为页面级包 + 共享索引：`capability-tree.json`、`maintenance-knowledge.json`、`shared-lookups.json`、`lifecycle-knowledge.json`、`content-views.json` 等；`management-knowledge.json` 已退役 |
 | 主要契约风险 | 文档中已有若干规划接口，但当前 `api_server.py` 尚未全部实现；后续必须区分“已实现 API”和“计划接口” |
 | 前端边界 | 前端可以排序、筛选、分组和折叠，但不应生成业务关系事实 |
 | 来源证据 | 各数据包均保留 `sources`；主展示区应默认隐藏，仅进入折叠证据区 |
@@ -26,10 +26,10 @@
 | `GET /api/v1/data-packages` | 数据包索引 | `DATA_PACKAGES` 配置 | 已实现 |
 | `GET /api/v1/data-packages/capability` | 安全能力数据包 | `capability-tree.json` | 已实现 |
 | `GET /api/v1/data-packages/maintenance` | 专项知识维护数据包 | `maintenance-knowledge.json` | 已实现；缺失时返回 `__data_state=missing_file`，不回退到 `management-knowledge.json` |
-| `GET /api/v1/data-packages/management` | 管理 / 环境 / 专项知识数据包 | `management-knowledge.json` | 已实现 |
+| `GET /api/v1/data-packages/shared-lookups` | 全站共享索引数据包 | `shared-lookups.json` | 已实现；当前包含 `service_module_index` |
 | `GET /api/v1/data-packages/lifecycle` | 生命周期数据包 | `lifecycle-knowledge.json` | 已实现 |
 | `GET /api/v1/data-packages/content` | 说明与视图数据包 | `content-views.json` | 已实现 |
-| `GET /api/v1/capabilities/workspace-projection` | 安全能力映射页页面级投影，含技术 / 管理映射行和局部关系画布投影 | `capability-tree.json` + `management-knowledge.json` | 已实现 |
+| `GET /api/v1/capabilities/workspace-projection` | 安全能力映射页页面级投影，含技术 / 管理映射行和局部关系画布投影 | `capability-tree.json` + `maintenance-knowledge.json` + `shared-lookups.json` | 已实现 |
 | `GET /api/v1/maintenance` | 专项知识维护导航 | 三个主数据包汇总 | 已实现 |
 | `GET /api/v1/maintenance/{section}` | 专项知识维护单页数据 | 数据包切片 | 已实现 |
 
@@ -53,9 +53,9 @@
 | 规划接口 | 当前实际来源 | 风险 / 处理建议 |
 |---|---|---|
 | `/api/v1/capabilities/tree` | `/api/v1/data-packages/capability` 或 `capability-tree.json` | 可后置；能力树已稳定 |
-| `/api/v1/capabilities/matrix` | 前端 `dataClient.getCapabilityMatrix()` 从能力包 + 管理包整理 | 后续若继续前后端分离，应下沉 |
+| `/api/v1/capabilities/matrix` | 前端 `dataClient.getCapabilityMatrix()` 从能力包 + 维护包 + 共享索引整理 | 后续若继续前后端分离，应下沉 |
 | `/api/v1/capabilities/{id}/relationships` | 前端 `dataClient.getCapabilityRelationships()` 整理 | 可由能力页投影补强覆盖 |
-| `/api/v1/environments/tree` | `management-knowledge.json.environment_scope_tree` | BE-2 应优先实现 |
+| `/api/v1/environments/tree` | `environment-workbench.json.navigator` | BE-2 应优先实现 |
 | `/api/v1/environments/matrix` | 前端 `dataClient.getEnvironmentMatrix()` 整理 | BE-2 应优先实现 |
 | `/api/v1/environments/objects/{id}/relationships` | 前端 `dataClient.getEnvironmentRelationships()` 整理 | BE-2 应输出页面级关系投影 |
 | `/api/v1/lifecycle/application` | `lifecycle-knowledge.json.application_security_development` | BE-3 应优先实现 |
@@ -63,7 +63,7 @@
 | `/api/v1/lifecycle/{id}/relationships` | 前端 ViewModel 整理 | BE-3 应输出页面级关系投影 |
 | `/api/v1/maintenance/technology-modules` | 当前实际为 `/api/v1/maintenance/modules` | 需统一命名或在文档中说明别名 |
 | `/api/v1/maintenance/technical-measures` | 当前实际为 `/api/v1/maintenance/measures` | 需统一命名或在文档中说明别名 |
-| `/api/v1/maintenance/service-module-index` | `management-knowledge.json.service_module_index` | 目前无独立 API，可后置 |
+| `/api/v1/maintenance/service-module-index` | `shared-lookups.json.service_module_index` | 可后置；当前通过 `/api/v1/data-packages/shared-lookups` 提供 |
 
 ## 4. 离线数据包盘点
 
@@ -71,8 +71,8 @@
 |---|---|---|---|
 | `capability-tree.json` | `generated_at`、`stats`、`categories`、`unlinked_focuses` | 分类 3、L1 10、L2 32、关注点 91、服务 157、关注点-作用域映射 379 | 安全能力映射页 |
 | `maintenance-knowledge.json` | `scope_types`、`security_processes`、`work_function_layers`、`security_technology_modules`、`security_technical_measures`、`gbt_42446_references`、`gartner_roles` | 作用域 10、流程域 10、职能层 4、模块 118、措施 29、GB/T 42446 参考 27、Gartner 角色 28 | 专项知识维护 |
-| `management-knowledge.json` | `work_function_layers`、`security_processes`、`scope_types`、`security_technology_modules`、`security_technical_measures`、`service_module_index`、`environment_scope_tree` 等 | 职能 86、流程参考 85、作用域 10、模块 118、措施 29、服务模块索引 192、环境对象 66 | legacy fallback / 兼容包；不作为标准页数据源 |
-| `lifecycle-knowledge.json` | `application_security_development`、`data_lifecycle`、`service_module_index` | LC-AP 过程 8、数据生命周期过程 8、安全策略 76、开发产品组件 14、安全技术措施 3 | LC-AP 页、数据生命周期页 |
+| `shared-lookups.json` | `service_module_index` | 服务模块索引 192 | 全站共享索引 |
+| `lifecycle-knowledge.json` | `application_security_development`、`data_lifecycle` | LC-AP 过程 8、数据生命周期过程 8、安全策略 76、开发产品组件 14、安全技术措施 3 | LC-AP 页、数据生命周期页；顶层共享索引改由 `shared-lookups.json` 承载 |
 | `content-views.json` | `html_documents`、`diagram_views`、`guide_pages` | Draw.io 1、PPT guide 1 | 说明与视图 |
 | `standards-data.json` | `frameworks`、`stats` | 等保 113、CIS 153、CSF Core 106、CSF Tiers 4 | 标准/框架页面 |
 
@@ -147,12 +147,12 @@ localRelationMap
 
 | 数据 | 当前来源 | 当前状态 |
 |---|---|---|
-| 信息化环境 | `management-knowledge.json.environment_scope_tree[]` | 已有 |
-| 环境子类 / segment | `environment_scope_tree[].objects[].segments` | 已有 |
-| 信息化对象 | `environment_scope_tree[].objects[]` | 已有 |
-| 对象-作用域关系 | `objects[].scope_mappings[]` | 已有 |
-| 作用域-服务关系 | `scope_mappings[].services[]` | 已有 |
-| 服务-模块关系 | `services[].modules[]` | 已有 |
+| 信息化环境 | `environment-workbench.json.objects.information_environment` | 已有 |
+| 环境子类 / segment | `environment-workbench.json.objects.environment_segment` | 已有 |
+| 信息化对象 | `environment-workbench.json.objects.information_object` | 已有 |
+| 对象-作用域关系 | `environment-workbench.json.relations` | 已有 |
+| 作用域-服务关系 | `environment-workbench.json.relations` | 已有 |
+| 服务-模块关系 | `environment-workbench.json.relations` | 已有 |
 | 服务-系统 / 产品关系 | `service_module_index[].systems/products` | 数据结构有规划，但当前样本中常为空或不稳定 |
 | 来源证据 | environment / object / mapping / service 的 `sources`、`mapping_sources` | 已有，默认隐藏 |
 

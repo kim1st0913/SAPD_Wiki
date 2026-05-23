@@ -2,7 +2,7 @@
   const components = (window.sapdComponents = window.sapdComponents || {});
   const utils = components.utils;
 
-  const VIEWBOX = { x: 0, y: 0, width: 1680, height: 940 };
+  const VIEWBOX = { x: 0, y: 0, width: 2400, height: 1600 };
 
   function list(value) {
     if (utils?.list) return utils.list(value);
@@ -21,11 +21,6 @@
       .replaceAll("<", "&lt;")
       .replaceAll(">", "&gt;")
       .replaceAll('"', "&quot;");
-  }
-
-  function truncate(value, length = 14) {
-    const normalized = text(value).trim();
-    return normalized.length > length ? `${normalized.slice(0, length - 1)}…` : normalized;
   }
 
   function labelLines(value, lineLength = 12, maxLines = 2) {
@@ -52,19 +47,36 @@
   }
 
   function nodeRadius(node = {}) {
+    const explicitRadius = Number(node.meta?.radius);
+    if (Number.isFinite(explicitRadius) && explicitRadius > 0) return explicitRadius;
+    const hierarchyDepth = Number(node.meta?.hierarchyDepth);
+    if (Number.isFinite(hierarchyDepth)) {
+      if (hierarchyDepth <= 0) return 62;
+      if (hierarchyDepth === 1) return 34;
+      if (hierarchyDepth === 2) return 24;
+      return 16;
+    }
+    if (node.type === "current_capability") return 62;
     if (node.isCurrent) return 56;
-    if (node.type === "view_technical" || node.type === "view_management" || node.type === "view_standard") return 26;
-    if (node.type === "capability_overview") return 20;
-    if (node.type === "focus_overview") return 12;
+    if (node.type === "focus_overview") return 30;
+    if (node.type === "view_technical" || node.type === "view_management" || node.type === "view_standard") return 22;
+    if (node.type === "capability_overview") return 22;
     if (node.type === "management_function_root" || node.type === "management_work_root" || node.type === "management_process_root") return 21;
     if (node.type === "security_function_layer") return 16;
-    if (node.type === "scope") return 18;
+    if (node.type === "scope") return 15;
     if (node.type === "technical_service") return 15;
     if (node.type === "technical_module" || node.type === "technical_measure") return 11;
     if (node.type === "security_function") return 13;
-    if (node.type === "security_work" || node.type === "process_l2") return 14;
+    if (node.type === "security_work" || node.type === "process_l2") return 15;
     if (node.type === "process_l3" || node.type === "process_l4") return 11;
-    if (node.type === "standard_status") return 12;
+    if (node.type === "standard_status") return 24;
+    if (node.type === "standard_control") return 8;
+    if (node.type === "environment_segment") return 18;
+    if (node.type === "information_object") return 16;
+    if (node.type === "information_environment") return 20;
+    if (node.type === "security_system") return 13;
+    if (node.type === "product") return 12;
+    if (node.type === "capability" || node.type === "capability_focus") return 13;
     return 12;
   }
 
@@ -114,10 +126,36 @@
     return depths;
   }
 
-  function idealLinkDistance(edge, nodesById, depths) {
+  function isStructureStrategy(strategy) {
+    return strategy === "category_structure" || strategy === "domain_structure";
+  }
+
+  function isLayeredRadialStrategy(strategy) {
+    return isStructureStrategy(strategy) || strategy === "focus_mapping_overview";
+  }
+
+  function structureIdealRadius(strategy, depth) {
+    if (!isLayeredRadialStrategy(strategy) || depth <= 0) return null;
+    if (strategy === "focus_mapping_overview") {
+      if (depth === 1) return 340;
+      if (depth === 2) return 540;
+      return 700;
+    }
+    if (depth === 1) return strategy === "category_structure" ? 270 : 255;
+    if (depth === 2) return strategy === "category_structure" ? 455 : 430;
+    return 540;
+  }
+
+  function idealLinkDistance(edge, nodesById, depths, strategy) {
     const source = nodesById.get(edge.source);
     const target = nodesById.get(edge.target);
     const depth = Math.max(depths.get(edge.source) || 0, depths.get(edge.target) || 1);
+    if (isLayeredRadialStrategy(strategy)) {
+      if (source?.isCurrent || target?.isCurrent) return strategy === "category_structure" ? 270 : 255;
+      if (strategy === "focus_mapping_overview") return depth <= 2 ? 190 : 155;
+      if (depth <= 2) return 160;
+      return 120;
+    }
     if (source?.isCurrent || target?.isCurrent) return 210;
     if (source?.type?.startsWith("view_") || target?.type?.startsWith("view_")) return 148;
     if (depth <= 3) return 112;
@@ -138,7 +176,152 @@
     });
   }
 
-  function seedInitialLayout({ current, businessNodes, liveEdges, nodesById, positions }) {
+  function polar(origin, angle, radius, offset = 0) {
+    return {
+      x: origin.x + Math.cos(angle) * (radius + offset),
+      y: origin.y + Math.sin(angle) * (radius + offset),
+    };
+  }
+
+  function spreadAngles(centerAngle, count, width, preferredAngles = []) {
+    if (count <= 0) return [];
+    if (preferredAngles.length >= count) return preferredAngles.slice(0, count).map((angle) => centerAngle + angle);
+    if (count === 1) return [centerAngle];
+    const safeWidth = Math.min(Math.PI * 0.74, Math.max(0.3, width));
+    return Array.from({ length: count }, (_, index) => {
+      const ratio = count <= 1 ? 0.5 : index / (count - 1);
+      return centerAngle - safeWidth / 2 + safeWidth * ratio;
+    });
+  }
+
+  function seedFocusMappingClusterLayout({ current, businessNodes, liveEdges, nodesById, positions }) {
+    if (!current) return false;
+    const center = { x: VIEWBOX.width / 2, y: VIEWBOX.height / 2 };
+    positions.set(current.id, { ...center });
+    const childrenBySource = new Map();
+    liveEdges.forEach((edge) => {
+      const target = nodesById.get(edge.target);
+      if (!target) return;
+      if (!childrenBySource.has(edge.source)) childrenBySource.set(edge.source, []);
+      childrenBySource.get(edge.source).push(target);
+    });
+    const focusNodes = stableSort(childrenBySource.get(current.id)).filter((node) => node.type === "focus_overview");
+    if (!focusNodes.length) return false;
+    const placed = new Set([current.id]);
+    const focusLoads = focusNodes.map((focusNode) => {
+      const viewNodes = list(childrenBySource.get(focusNode.id));
+      return viewNodes.reduce((total, viewNode) => total + 1 + list(childrenBySource.get(viewNode.id)).length, 0);
+    });
+    const largestFocusLoad = Math.max(0, ...focusLoads);
+    const focusRadius = Math.min(390, 320 + focusNodes.length * 18 + Math.min(45, largestFocusLoad * 3));
+    const focusRotation = focusNodes.length === 3 ? -Math.PI / 3 : -Math.PI / 2 - (focusNodes.length === 2 ? Math.PI / 10 : 0);
+    focusNodes.forEach((focusNode, focusIndex) => {
+      const focusAngle = focusRotation + (Math.PI * 2 * focusIndex) / focusNodes.length;
+      const focusPosition = polar(center, focusAngle, focusRadius);
+      positions.set(focusNode.id, focusPosition);
+      placed.add(focusNode.id);
+
+      const viewNodes = stableSort(childrenBySource.get(focusNode.id)).filter((node) => !placed.has(node.id));
+      const preferred = viewNodes.length === 3 ? [-0.62, 0, 0.62] : viewNodes.length === 2 ? [-0.36, 0.36] : [];
+      const viewAngles = spreadAngles(focusAngle, viewNodes.length, 1.26, preferred);
+      viewNodes.forEach((viewNode, viewIndex) => {
+        const seed = hashSeed(`${focusNode.id}:${viewNode.id}`);
+        const viewAngle = viewAngles[viewIndex] ?? focusAngle;
+        const leafNodes = stableSort(childrenBySource.get(viewNode.id)).filter((node) => !placed.has(node.id));
+        const isStandardView = viewNode.type === "view_standard";
+        const viewDistance = 210 + Math.min(40, leafNodes.length * 3) + (isStandardView ? 34 : 0);
+        const viewPosition = polar(focusPosition, viewAngle, viewDistance, ((seed % 21) - 10) * 1.5);
+        positions.set(viewNode.id, viewPosition);
+        placed.add(viewNode.id);
+
+        const leafWidth = Math.min(isStandardView ? Math.PI * 1.04 : Math.PI * 0.86, (isStandardView ? 0.62 : 0.46) + leafNodes.length * (isStandardView ? 0.2 : 0.16));
+        const leafAngles = spreadAngles(viewAngle, leafNodes.length, leafWidth);
+        leafNodes.forEach((leafNode, leafIndex) => {
+          const leafSeed = hashSeed(`${viewNode.id}:${leafNode.id}`);
+          const ring = (isStandardView ? 205 : 170) + (leafIndex % 3) * (isStandardView ? 36 : 30) + Math.floor(leafIndex / 3) * 4;
+          positions.set(leafNode.id, polar(viewPosition, leafAngles[leafIndex] ?? viewAngle, ring, ((leafSeed % 19) - 9) * 1.5));
+          placed.add(leafNode.id);
+        });
+      });
+    });
+    businessNodes.forEach((node, index) => {
+      if (positions.has(node.id)) return;
+      const seed = hashSeed(node.id || node.label || index);
+      const angle = focusRotation + index * Math.PI * (3 - Math.sqrt(5)) + ((seed % 60) / 180) * Math.PI;
+      positions.set(node.id, polar(center, angle, 570 + (index % 4) * 22));
+    });
+    return true;
+  }
+
+  function seedStructureStarLayout({ current, businessNodes, liveEdges, nodesById, positions, strategy }) {
+    if (!current || !isLayeredRadialStrategy(strategy)) return false;
+    if (strategy === "focus_mapping_overview") {
+      return seedFocusMappingClusterLayout({ current, businessNodes, liveEdges, nodesById, positions });
+    }
+    const center = { x: VIEWBOX.width / 2, y: VIEWBOX.height / 2 };
+    positions.set(current.id, { ...center });
+    const childrenBySource = new Map();
+    liveEdges.forEach((edge) => {
+      const target = nodesById.get(edge.target);
+      if (!target) return;
+      if (!childrenBySource.has(edge.source)) childrenBySource.set(edge.source, []);
+      childrenBySource.get(edge.source).push(target);
+    });
+    const firstRing = stableSort(childrenBySource.get(current.id));
+    const firstRadius = strategy === "category_structure" ? 270 : 255;
+    const secondRadius = strategy === "category_structure" ? 178 : 168;
+    const thirdRadius = strategy === "focus_mapping_overview" ? 145 : 122;
+    const rotation = -Math.PI / 2;
+    const placed = new Set([current.id]);
+    firstRing.forEach((node, index) => {
+      const angle = rotation + (Math.PI * 2 * index) / Math.max(1, firstRing.length);
+      const parentPosition = {
+        x: center.x + Math.cos(angle) * firstRadius,
+        y: center.y + Math.sin(angle) * firstRadius,
+      };
+      positions.set(node.id, parentPosition);
+      placed.add(node.id);
+      const children = stableSort(childrenBySource.get(node.id)).filter((child) => !placed.has(child.id));
+      const spread = Math.min(Math.PI * 0.86, 0.34 + children.length * 0.12);
+      children.forEach((child, childIndex) => {
+        const ratio = children.length <= 1 ? 0.5 : childIndex / (children.length - 1);
+        const childAngle = angle - spread / 2 + spread * ratio;
+        const offset = ((hashSeed(`${node.id}:${child.id}`) % 29) - 14) * 1.2;
+        const childPosition = {
+          x: parentPosition.x + Math.cos(childAngle) * (secondRadius + offset),
+          y: parentPosition.y + Math.sin(childAngle) * (secondRadius + offset),
+        };
+        positions.set(child.id, childPosition);
+        placed.add(child.id);
+        const grandchildren = stableSort(childrenBySource.get(child.id)).filter((grandchild) => !placed.has(grandchild.id));
+        const grandchildSpread = Math.min(Math.PI * 0.72, 0.28 + grandchildren.length * 0.1);
+        grandchildren.forEach((grandchild, grandchildIndex) => {
+          const grandchildRatio = grandchildren.length <= 1 ? 0.5 : grandchildIndex / (grandchildren.length - 1);
+          const grandchildAngle = childAngle - grandchildSpread / 2 + grandchildSpread * grandchildRatio;
+          const grandchildOffset = ((hashSeed(`${child.id}:${grandchild.id}`) % 23) - 11) * 1.1;
+          positions.set(grandchild.id, {
+            x: childPosition.x + Math.cos(grandchildAngle) * (thirdRadius + grandchildOffset),
+            y: childPosition.y + Math.sin(grandchildAngle) * (thirdRadius + grandchildOffset),
+          });
+          placed.add(grandchild.id);
+        });
+      });
+    });
+    businessNodes.forEach((node, index) => {
+      if (positions.has(node.id)) return;
+      const seed = hashSeed(node.id || node.label || index);
+      const angle = rotation + index * Math.PI * (3 - Math.sqrt(5)) + ((seed % 90) / 180) * Math.PI;
+      const radius = firstRadius + secondRadius + 70 + (index % 4) * 18;
+      positions.set(node.id, {
+        x: center.x + Math.cos(angle) * radius,
+        y: center.y + Math.sin(angle) * radius,
+      });
+    });
+    return true;
+  }
+
+  function seedInitialLayout({ current, businessNodes, liveEdges, nodesById, positions, strategy }) {
+    if (seedStructureStarLayout({ current, businessNodes, liveEdges, nodesById, positions, strategy })) return;
     const center = { x: VIEWBOX.width / 2, y: VIEWBOX.height / 2 };
     if (current) positions.set(current.id, { ...center });
     const childrenBySource = new Map();
@@ -173,8 +356,8 @@
     });
   }
 
-  function settleCollisions(businessNodes, positions, fixedIds) {
-    const maxIterations = businessNodes.length > 150 ? 24 : businessNodes.length > 100 ? 38 : 96;
+  function settleCollisions(businessNodes, positions, fixedIds, strategy = "") {
+    const maxIterations = strategy === "focus_mapping_overview" ? 120 : businessNodes.length > 150 ? 24 : businessNodes.length > 100 ? 38 : 96;
     for (let iteration = 0; iteration < maxIterations; iteration += 1) {
       let moved = false;
       for (let a = 0; a < businessNodes.length; a += 1) {
@@ -193,7 +376,7 @@
             dy = Math.sin(seed) * 0.8;
             distance = 0.8;
           }
-          const minimum = collisionRadius(left) + collisionRadius(right) + 22;
+          const minimum = collisionRadius(left) + collisionRadius(right) + (strategy === "focus_mapping_overview" ? 38 : 22);
           if (distance >= minimum) continue;
           moved = true;
           const push = ((minimum - distance) / distance) * 0.54;
@@ -220,13 +403,20 @@
     const positions = new Map();
     const fixedIds = new Set();
     const current = nodes.find((node) => node.isCurrent) || nodes.find((node) => node.type === "current_focus");
-    const liveEdges = edges.filter((edge) => !edge.isDecorative && nodesById.has(edge.source) && nodesById.has(edge.target));
+    const liveEdges = edges.filter((edge) => (!edge.isDecorative || edge.isLayoutOnly) && nodesById.has(edge.source) && nodesById.has(edge.target));
+    const strategy = graphModel.stats?.strategy || "";
     const depths = graphDepths(current, businessNodes, liveEdges);
     if (current) fixedIds.add(current.id);
-    seedInitialLayout({ current, businessNodes, liveEdges, nodesById, positions });
+    seedInitialLayout({ current, businessNodes, liveEdges, nodesById, positions, strategy });
+    if (strategy === "focus_mapping_overview") {
+      businessNodes.forEach((node) => {
+        const depth = depths.get(node.id);
+        if (depth <= 1) fixedIds.add(node.id);
+      });
+    }
     const velocities = new Map(businessNodes.map((node) => [node.id, { x: 0, y: 0 }]));
     const center = { x: VIEWBOX.width / 2, y: VIEWBOX.height / 2 };
-    const layoutIterations = businessNodes.length > 150 ? 96 : businessNodes.length > 100 ? 150 : 320;
+    const layoutIterations = strategy === "focus_mapping_overview" ? 180 : businessNodes.length > 150 ? 96 : businessNodes.length > 100 ? 150 : 320;
     for (let iteration = 0; iteration < layoutIterations; iteration += 1) {
       const progress = iteration / layoutIterations;
       const alpha = 0.15 * Math.pow(1 - progress, 1.35) + 0.004;
@@ -239,8 +429,8 @@
         let dx = target.x - source.x;
         let dy = target.y - source.y;
         let distance = Math.hypot(dx, dy) || 1;
-        const desired = idealLinkDistance(edge, nodesById, depths);
-        const force = ((distance - desired) / distance) * alpha * 0.22;
+        const desired = idealLinkDistance(edge, nodesById, depths, strategy);
+        const force = ((distance - desired) / distance) * alpha * (strategy === "focus_mapping_overview" ? 0.1 : 0.22);
         dx *= force;
         dy *= force;
         if (!fixedIds.has(edge.source)) {
@@ -265,7 +455,7 @@
           let dy = rightPosition.y - leftPosition.y;
           let distance = Math.hypot(dx, dy) || 1;
           const sameGroup = groupKey(left) === groupKey(right);
-          const minimum = collisionRadius(left) + collisionRadius(right) + (sameGroup ? 34 : 24);
+          const minimum = collisionRadius(left) + collisionRadius(right) + (strategy === "focus_mapping_overview" ? (sameGroup ? 52 : 40) : (sameGroup ? 34 : 24));
           if (distance < minimum) {
             const force = ((minimum - distance) / distance) * alpha * 1.08;
             dx *= force;
@@ -296,16 +486,19 @@
         const velocity = velocities.get(node.id);
         if (!position || !velocity) return;
         if (fixedIds.has(node.id)) return;
-        velocity.x += (center.x - position.x) * 0.009 * alpha;
-        velocity.y += (center.y - position.y) * 0.009 * alpha;
+        const centerPull = strategy === "focus_mapping_overview" ? 0.0006 : isLayeredRadialStrategy(strategy) ? 0.003 : 0.009;
+        velocity.x += (center.x - position.x) * centerPull * alpha;
+        velocity.y += (center.y - position.y) * centerPull * alpha;
         const depth = depths.get(node.id);
         if (current && depth > 0) {
           const currentPosition = positions.get(current.id) || center;
           const dx = position.x - currentPosition.x;
           const dy = position.y - currentPosition.y;
           const distance = Math.hypot(dx, dy) || 1;
-          const idealRadius = Math.min(300, 180 + depth * 38);
-          const radialForce = ((idealRadius - distance) / distance) * 0.008 * alpha;
+          const structureRadius = structureIdealRadius(strategy, depth);
+          const idealRadius = structureRadius || Math.min(540, 190 + depth * 72);
+          const radialStrength = strategy === "focus_mapping_overview" ? 0.012 : structureRadius ? 0.028 : 0.008;
+          const radialForce = ((idealRadius - distance) / distance) * radialStrength * alpha;
           velocity.x += dx * radialForce;
           velocity.y += dy * radialForce;
         }
@@ -320,7 +513,7 @@
         position.y += velocity.y;
       });
     }
-    settleCollisions(businessNodes, positions, fixedIds);
+    settleCollisions(businessNodes, positions, fixedIds, strategy);
     clampPositions(businessNodes, positions);
 
     return positions;
@@ -388,7 +581,7 @@
   }
 
   function edgePath(source, target, type = "") {
-    const dx = Math.max(48, Math.abs(target.x - source.x) * 0.42);
+    const dx = Math.max(80, Math.abs(target.x - source.x) * 0.44);
     const direction = target.x >= source.x ? 1 : -1;
     const bend = type === "focus_to_standard_status" ? 34 : type === "decorative_link" ? 0 : 6;
     return `M ${source.x} ${source.y} C ${source.x + dx * direction} ${source.y - bend}, ${target.x - dx * direction} ${target.y + bend}, ${target.x} ${target.y}`;
@@ -416,27 +609,38 @@
     return "";
   }
 
-  function renderNodeText(node, position, radius) {
+  function renderNodeText(node, position, radius, currentPosition, strategy = "") {
     if (node.isCurrent) {
-      const title = text(node.meta?.capability || node.label).trim();
-      const code = text(node.meta?.capabilityCode || node.meta?.code).trim();
-      const lines = labelLines(title, 8, 2);
-      const startY = lines.length > 1 ? -9 : 1;
+      const code = text(node.meta?.currentCode || node.meta?.capabilityCode || node.meta?.code).trim();
+      const title = text(node.meta?.currentTitle || node.meta?.capability || node.label).trim();
+      const label = title || node.label;
+      const lines = labelLines(label, 11, 2);
       return `
-        <text class="network-node-title is-current" x="${position.x}" y="${position.y + startY}" text-anchor="middle">
-          ${lines.map((line, index) => `<tspan x="${position.x}" dy="${index === 0 ? 0 : 16}">${escape(line)}</tspan>`).join("")}
+        <text class="network-node-title is-current" x="${position.x}" y="${position.y - (lines.length > 1 ? 3 : -3)}" text-anchor="middle">
+          ${lines.map((line, index) => `<tspan x="${position.x}" dy="${index === 0 ? 0 : 13}">${escape(line)}</tspan>`).join("")}
         </text>
-        ${code ? `<text class="network-node-code is-current" x="${position.x}" y="${position.y + 35}" text-anchor="middle">${escape(code)}</text>` : ""}
+        ${code && code !== label ? `<text class="network-node-code" x="${position.x}" y="${position.y + 30}" text-anchor="middle">${escape(code)}</text>` : ""}
       `;
     }
-    const labelLength = node.type === "standard_status" ? 14 : node.type === "security_function" ? 12 : 12;
-    const label = truncate(node.label, labelLength);
+    const isL2FocusNode = strategy === "focus_mapping_overview" && node.type === "focus_overview";
+    const labelLength = node.type === "standard_status" ? 16 : node.type === "standard_control" ? 16 : node.type === "security_function" ? 15 : 14;
+    const lines = labelLines(node.label, labelLength, 2);
+    const relativeX = currentPosition ? position.x - currentPosition.x : position.x - VIEWBOX.width / 2;
+    const relativeY = currentPosition ? position.y - currentPosition.y : position.y - VIEWBOX.height / 2;
     const isNearRightEdge = position.x > VIEWBOX.width - 260;
-    const textX = isNearRightEdge ? position.x - radius - 6 : position.x + radius + 6;
-    const anchor = isNearRightEdge ? "end" : "start";
-    const lines = labelLines(label, 9, 2);
+    const isNearLeftEdge = position.x < 260;
+    const verticalOutward = Math.abs(relativeX) < 58 && Math.abs(relativeY) > 130;
+    const focusVertical = isL2FocusNode && Math.abs(relativeX) < 95;
+    const anchor = focusVertical || verticalOutward ? "middle" : isL2FocusNode ? (relativeX >= 0 ? "end" : "start") : isNearRightEdge ? "end" : isNearLeftEdge ? "start" : relativeX < 0 ? "end" : "start";
+    const textOffset = isL2FocusNode ? 15 : 8;
+    const textX = focusVertical || verticalOutward ? position.x : anchor === "end" ? position.x - radius - textOffset : position.x + radius + textOffset;
+    const textY = focusVertical
+      ? position.y + (relativeY >= 0 ? -radius - 18 : radius + 16)
+      : verticalOutward
+        ? position.y + (relativeY < 0 ? -radius - 14 : radius + 12)
+        : position.y;
     return `
-      <text class="network-node-title" x="${textX}" y="${position.y - (lines.length > 1 ? 4 : 0)}" text-anchor="${anchor}">
+      <text class="network-node-title" x="${textX}" y="${textY}" text-anchor="${anchor}">
         ${lines.map((line, index) => `<tspan x="${textX}" dy="${index === 0 ? 0 : 12}">${escape(line)}</tspan>`).join("")}
       </text>
     `;
@@ -446,14 +650,18 @@
     const position = positions.get(node.id);
     if (!position || node.isDecorative) return "";
     const radius = nodeRadius(node);
+    const currentPosition = positions.get(graphModel.nodes?.find((item) => item.isCurrent)?.id) || positions.get(graphModel.nodes?.find((item) => item.type === "current_focus")?.id);
+    const strategy = graphModel.stats?.strategy || "";
     const titleParts = [node.label, node.meta?.code, node.meta?.layer, node.meta?.capability].map(text).filter(Boolean);
+    const hierarchyDepth = Number(node.meta?.hierarchyDepth);
+    const hierarchyClass = Number.isFinite(hierarchyDepth) ? `node-depth-${Math.max(0, Math.min(3, hierarchyDepth))}` : "";
     return `
-      <g class="network-node-wrap node-${escape(nodeClass(node.type))} ${node.isCurrent ? "is-current" : ""}" tabindex="0" data-graph-node-id="${escape(node.id)}" role="listitem" aria-label="${escape(titleParts.join("，"))}">
+      <g class="network-node-wrap node-${escape(nodeClass(node.type))} ${escape(hierarchyClass)} ${node.isCurrent ? "is-current" : ""}" tabindex="0" data-graph-node-id="${escape(node.id)}" role="listitem" aria-label="${escape(titleParts.join("，"))}">
         <title>${escape(titleParts.join(" / "))}</title>
         ${incidentEdges(node.id, graphModel.edges, positions)}
         ${node.isCurrent ? `<circle class="network-node-halo" cx="${position.x}" cy="${position.y}" r="112" />` : ""}
         <circle class="network-node-shape" cx="${position.x}" cy="${position.y}" r="${radius}" />
-        ${renderNodeText(node, position, radius)}
+        ${renderNodeText(node, position, radius, currentPosition, strategy)}
       </g>
     `;
   }
@@ -462,7 +670,15 @@
     return "";
   }
 
-  function renderLegend() {
+  function renderLegend(model = {}) {
+    const legendItems = list(model.stats?.legendItems);
+    if (legendItems.length) {
+      return `
+        <div class="network-legend" aria-label="图例">
+          ${legendItems.map((item) => `<span><i class="${escape(item.className || "legend-current")}"></i>${escape(item.label || "")}</span>`).join("")}
+        </div>
+      `;
+    }
     return `
       <div class="network-legend" aria-label="图例">
         <span><i class="legend-current"></i>当前关注点</span>
@@ -475,11 +691,15 @@
 
   function renderGraphNote(model = {}) {
     const stats = model.stats || {};
+    if (stats.note) return `<p class="network-graph-note">${escape(stats.note)}</p>`;
     if (stats.strategy === "category_structure") {
-      return `<p class="network-graph-note">${escape(`L0 结构图：展示本分类下 ${stats.capabilityCount || 0} 个能力和 ${stats.focusCount || 0} 个关注点。`)}</p>`;
+      return `<p class="network-graph-note">${escape(`L0 结构图：展示本分类下 ${stats.domainCount || 0} 个 L1 和 ${stats.capabilityCount || 0} 个 L2。`)}</p>`;
+    }
+    if (stats.strategy === "domain_structure") {
+      return `<p class="network-graph-note">${escape(`L1 结构图：展示当前 L1 下 ${stats.capabilityCount || 0} 个 L2 和 ${stats.focusCount || 0} 个关注点。`)}</p>`;
     }
     if (stats.strategy === "focus_mapping_overview") {
-      return `<p class="network-graph-note">${escape(`L${stats.graphScope === "domain" ? "1" : "2"} 映射概览：展示 ${stats.focusCount || 0} 个关注点，以及作用域、安全技术服务、L2流程组、安全工作和标准 / 框架种类。`)}</p>`;
+      return `<p class="network-graph-note">${escape(`L2 映射概览：以当前 L2 能力为中心，第二层展示 ${stats.focusCount || 0} 个 L3 关注点，第三层展开技术视角、管理视角和标准 / 框架映射，第四层展示作用域、安全工作和标准 / 框架种类。`)}</p>`;
     }
     if (!stats.limited) return "";
     const technical = Number.isFinite(stats.technicalRowsTotal) && stats.technicalRowsTotal > stats.technicalRows ? `技术 ${stats.technicalRows}/${stats.technicalRowsTotal}` : "";
@@ -583,17 +803,18 @@
     const positions = buildLayout(model);
     const viewBox = visibleViewBox(businessNodes, positions);
     const metrics = layoutMetrics(businessNodes, positions, viewBox);
+    const stats = model.stats || {};
+    const title = stats.networkTitle || "能力关系图谱";
+    const ariaLabel = stats.ariaLabel || "当前关注点能力关系图谱";
     return `
-      <section class="local-relation-network-graph" aria-label="能力关系图谱">
+      <section class="local-relation-network-graph" aria-label="${escape(title)}">
         <header class="network-graph-head">
           <div>
-            <h3>能力关系图谱</h3>
-            <p>查看当前关注点关联的技术视角、管理视角和标准 / 框架映射。</p>
-            ${renderGraphNote(model)}
+            <h3>${escape(title)}</h3>
           </div>
-          ${renderLegend()}
+          ${renderLegend(model)}
         </header>
-        <div class="network-graph-canvas" role="img" aria-label="当前关注点能力关系图谱" data-viewbox-width="${viewBox.width}" data-viewbox-height="${viewBox.height}" data-layout-overlaps="${metrics.overlaps}" data-layout-min-gap="${metrics.minGap}" data-business-nodes="${businessNodes.length}" data-layout-viewbox="${escape(metrics.viewBox)}" data-zoom="1" data-pan-x="0" data-pan-y="0">
+        <div class="network-graph-canvas" role="img" aria-label="${escape(ariaLabel)}" data-viewbox-width="${viewBox.width}" data-viewbox-height="${viewBox.height}" data-layout-overlaps="${metrics.overlaps}" data-layout-min-gap="${metrics.minGap}" data-business-nodes="${businessNodes.length}" data-layout-viewbox="${escape(metrics.viewBox)}" data-zoom="1" data-pan-x="0" data-pan-y="0">
           <div class="network-graph-actions" aria-label="图谱缩放控制">
             <button type="button" data-network-zoom="out" title="缩小图谱" aria-label="缩小图谱">−</button>
             <span data-network-zoom-value>100%</span>

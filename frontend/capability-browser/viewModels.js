@@ -58,6 +58,10 @@
     return flattenCapabilities(capabilityTree).filter((row) => row.item.type === "capability_focus");
   }
 
+  function defaultCapabilitySelection(capabilityTree) {
+    return list(capabilityTree?.categories)[0] || focusRows(capabilityTree)[0]?.item || null;
+  }
+
   function findCapabilityItemAndFocuses(capabilityTree, targetId) {
     let selected = null;
     let focuses = [];
@@ -165,6 +169,8 @@
       ...compact,
       objectKind: kind,
       kind,
+      systems: list(item?.systems).map(compactEntity).filter(Boolean),
+      products: list(item?.products).map(compactEntity).filter(Boolean),
     };
   }
 
@@ -965,12 +971,12 @@
       workbench: capabilityWorkbench,
       workbenchViewModel: capabilityWorkbenchViewModel,
       workbenchName: "capability-workbench.json",
-      fallbackName: "capability-tree.json + management-knowledge.json",
+      fallbackName: "capability-tree.json + maintenance-knowledge.json + shared-lookups.json",
     });
     const navigationTree = buildNavigationTree(capabilityTree, search);
-    const fallbackFocus = focusRows(capabilityTree)[0]?.item;
+    const fallbackSelection = defaultCapabilitySelection(capabilityTree);
     const selectedResult = selectedCapabilityId ? findCapabilityItemAndFocuses(capabilityTree, selectedCapabilityId) : { selected: null };
-    const selectedRaw = selectedResult.selected || fallbackFocus;
+    const selectedRaw = selectedResult.selected || fallbackSelection;
     const selectedCapability = compactEntity(selectedRaw);
     const selectedDetail = selectedCapability;
     const selectedId = selectedCapability?.id || null;
@@ -1268,6 +1274,12 @@
   function compactTechnologyModuleRow(management, module, index) {
     const suspiciousTitle = suspiciousModuleTitle(module);
     const services = uniqueBy(list(module?.services), (service) => service?.id || service?.code || service?.title);
+    const systems = uniqueBy(list(module?.systems), (system) => system?.id || system?.code || system?.title);
+    const products = uniqueBy(list(module?.products), (product) => product?.id || product?.code || product?.title);
+    const environments = uniqueBy(list(module?.environments), (environment) => environment?.id || environment?.code || environment?.title);
+    const catalogSourceRows = list(module?.sources)
+      .filter((source) => source?.sheet === "安全技术模块清单" && Number(source?.row))
+      .map((source) => Number(source.row));
     const measures = uniqueBy(list(module?.measures || module?.security_technical_measures || module?.technical_measures), (measure) => measure?.id || measure?.code || measure?.title || measure?.name);
     const scopes = moduleLinkedScopes(management, module);
     const informationObjects = moduleLinkedInformationObjects(management, module);
@@ -1277,20 +1289,37 @@
     ].filter(Boolean);
     return {
       id: module?.id || module?.code || module?.title || `technology-module-${index}`,
-      category: module?.category || "待补充",
+      category: module?.category || "待契约补充",
+      catalogOrder: catalogSourceRows.length ? Math.min(...catalogSourceRows) : null,
+      inCatalog: catalogSourceRows.length > 0,
       title: suspiciousTitle ? "待确认" : titleOf(module, "待补充"),
       description: module?.description || "待补充",
       serviceCount: services.length,
-      measureCount: measures.length || "待补充",
-      scopeCount: scopes.length || "待补充",
-      informationObjectCount: informationObjects.length || "待补充",
+      measureCount: measures.length || "待契约补充",
+      scopeCount: scopes.length || "待契约补充",
+      informationObjectCount: informationObjects.length || "待契约补充",
+      measureMappingStatus: measures.length ? `${measures.length} 项` : "当前维护包未包含模块-措施映射",
+      scopeMappingStatus: scopes.length ? `${scopes.length} 个作用域` : "当前维护包未包含模块-作用域映射",
+      informationObjectMappingStatus: informationObjects.length ? `${informationObjects.length} 个对象` : "当前维护包未包含模块-对象映射",
+      informationEnvironmentStatus: environments.length ? environments.map((environment) => titleOf(environment, "未命名环境")).join("、") : "当前维护包未包含环境映射",
       status: suspiciousTitle ? "待确认" : missing.length ? "待补充" : "正常",
       missingFields: missing,
       linkedServices: services.map(compactEntity),
+      linkedSystems: systems.map(compactEntity),
+      linkedProducts: products.map(compactEntity),
       linkedMeasures: measures.map(compactEntity),
       linkedScopes: scopes.map(compactEntity),
       informationObjects: informationObjects.map(compactEntity),
+      informationEnvironments: environments.map(compactEntity),
     };
+  }
+
+  function hasTechnologyModuleCatalogSource(module) {
+    return list(module?.sources).some((source) => source?.sheet === "安全技术模块清单" && Number(source?.row));
+  }
+
+  function catalogTechnologyModules(management) {
+    return list(management?.security_technology_modules).filter((module) => hasTechnologyModuleCatalogSource(module) || text(module?.category).trim());
   }
 
   function securityWorkDisplayCode(work, focus, index) {
@@ -1378,7 +1407,7 @@
 
   function buildTechnologyModuleMaintenanceViewModel({ management, search }) {
     const query = normalizeSearch(search);
-    const rows = list(management?.security_technology_modules)
+    const rows = catalogTechnologyModules(management)
       .map((module, index) => compactTechnologyModuleRow(management, module, index))
       .filter((row) =>
         includesSearch(
@@ -1387,9 +1416,11 @@
           row.title,
           row.description,
           row.status,
+          ...row.linkedSystems.map(titleOf),
           ...row.linkedServices.map(titleOf),
           ...row.linkedScopes.map(titleOf),
           ...row.informationObjects.map(titleOf),
+          ...row.informationEnvironments.map(titleOf),
         ),
       );
     return {
@@ -1399,6 +1430,8 @@
         linkedServices: countLinked(rows.flatMap((row) => row.linkedServices)),
         linkedScopes: countLinked(rows.flatMap((row) => row.linkedScopes)),
         linkedObjects: countLinked(rows.flatMap((row) => row.informationObjects)),
+        linkedSystems: countLinked(rows.flatMap((row) => row.linkedSystems)),
+        linkedEnvironments: countLinked(rows.flatMap((row) => row.informationEnvironments)),
         pendingConfirmation: rows.filter((row) => row.status === "待确认").length,
         missingFields: rows.filter((row) => row.status === "待补充").length,
       },
@@ -1858,32 +1891,111 @@
     const processCount = list(management?.security_processes).flatMap((domain) => list(domain.groups).flatMap((group) => list(group.references))).length;
     const workFunctionCount = list(management?.work_function_layers).flatMap((layer) => list(layer.groups).flatMap((group) => list(group.functions))).length;
     const referenceCount = list(management?.gbt_42446_references).length + list(management?.gartner_roles).length;
-    const appSecurity = lifecycle?.application_security_development || {};
-    const lcapReferenceCount = list(appSecurity.software_development_types).length + list(appSecurity.application_system_types).length;
-    const standardCount = list(standards?.frameworks).reduce(
-      (sum, framework) => sum + list(framework.rows).length + list(framework.tabs).reduce((tabSum, table) => tabSum + list(table.rows).length, 0),
-      0,
-    );
     const securityWorkCount = list(capabilityTree?.categories).flatMap((category) =>
       list(category.domains).flatMap((domain) => list(domain.capabilities).flatMap((capability) => list(capability.focuses).flatMap((focus) => list(focus.security_works)))),
     ).length;
     return [
       { id: "scopes", label: "作用域清单", count: list(management?.scope_types).length, implemented: true },
+      { id: "modules", label: "安全技术模块清单", count: catalogTechnologyModules(management).length, implemented: true },
+      { id: "measures", label: "安全技术措施清单", count: list(management?.security_technical_measures).length, implemented: true },
+      { id: "security-works", label: "安全工作清单", count: securityWorkCount, implemented: true },
       { id: "processes", label: "流程清单", count: processCount, implemented: true },
       { id: "work-functions", label: "职能清单", count: workFunctionCount, implemented: true },
-      { id: "security-works", label: "安全工作清单", count: securityWorkCount, implemented: true },
-      { id: "modules", label: "安全技术模块清单", count: list(management?.security_technology_modules).length, implemented: true },
-      { id: "measures", label: "安全技术措施清单", count: list(management?.security_technical_measures).length, implemented: true },
-      { id: "lcap-references", label: "LC-AP参考数据", count: lcapReferenceCount, implemented: true },
-      { id: "references", label: "岗位参考页面", count: referenceCount, implemented: true },
-      { id: "standards", label: "标准/框架清单", count: standardCount, implemented: true },
+      { id: "references", label: "岗位 / 职能参考", count: referenceCount, implemented: true },
     ].map((item) => ({ ...item, active: item.id === section }));
+  }
+
+  const MAINTENANCE_SECTION_TABS = {
+    modules: [
+      { id: "modules", label: "安全技术模块目录" },
+      { id: "measures", label: "安全技术措施目录" },
+    ],
+    measures: [
+      { id: "modules", label: "安全技术模块目录" },
+      { id: "measures", label: "安全技术措施目录" },
+    ],
+    "security-works": [
+      { id: "security-works", label: "安全工作清单" },
+      { id: "processes", label: "安全职能流程清单" },
+    ],
+    processes: [
+      { id: "security-works", label: "安全工作清单" },
+      { id: "processes", label: "安全职能流程清单" },
+    ],
+    "work-functions": [
+      { id: "work-functions", label: "安全工作职能清单" },
+      { id: "references-gbt", sourcePage: "references", referenceTab: "gbt", label: "GB/T 42446-2023" },
+      { id: "references-gartner", sourcePage: "references", referenceTab: "gartner", label: "Gartner 工作岗位参考" },
+    ],
+    references: [
+      { id: "work-functions", label: "安全工作职能清单" },
+      { id: "references-gbt", sourcePage: "references", referenceTab: "gbt", label: "GB/T 42446-2023" },
+      { id: "references-gartner", sourcePage: "references", referenceTab: "gartner", label: "Gartner 工作岗位参考" },
+    ],
+  };
+
+  function maintenanceSectionTabs(section, counts = {}, referenceTab = "gbt") {
+    return list(MAINTENANCE_SECTION_TABS[section]).map((tab) => ({
+      ...tab,
+      count: counts[tab.id] ?? 0,
+      active: tab.sourcePage === "references" ? section === "references" && (tab.referenceTab || "gbt") === referenceTab : tab.id === section,
+      implemented: true,
+    }));
+  }
+
+  function maintenancePageMeta(section) {
+    if (section === "modules" || section === "measures") {
+      return {
+        title: "安全技术模块/措施清单",
+        description: "安全系统（为解决某一场景 / 领域的安全问题，由多个安全模块组成、协同运行的实体）；安全技术模块（实现一个或多个安全能力的安全技术逻辑实体，可以独立部署运行，通常代表一类安全产品）。",
+        implemented: true,
+        notice: section === "modules" ? "当前页签为安全技术模块目录；关联措施数依赖后续数据契约完善。" : "当前页签为安全技术措施目录；环境和对象关系由安全技术服务 + 作用域投影生成。",
+      };
+    }
+    if (section === "security-works" || section === "processes") {
+      return {
+        title: "安全管理工作/流程清单",
+        description: "集中维护安全工作清单和安全职能流程清单，按页签核对工作对象、流程域、L2/L3/L4 层级和关联状态。",
+        implemented: true,
+        notice: section === "security-works" ? "当前页签为安全工作清单；安全工作与安全职能不显示为直接关联。" : "当前页签为安全职能流程清单；L4 关键活动缺失继续作为待补状态展示。",
+      };
+    }
+    if (section === "work-functions" || section === "references") {
+      return {
+        title: "安全职能清单",
+        description: "集中维护安全工作职能清单、GB/T 42446-2023 任务参考和 Gartner 工作岗位参考，按页签核对安全职能分层、标准参考和岗位候选映射。",
+        implemented: true,
+        notice: section === "references" ? "当前页签为职能参考数据；映射结果只作为候选或待复核信息。" : "当前页签为安全工作职能清单，统一使用“安全职能”业务口径。",
+      };
+    }
+    if (section === "scopes") {
+      return {
+        title: "安全能力作用域清单",
+        description: "用于维护和核对安全能力作用域，展示处理后的业务字段和关联数量。",
+        implemented: true,
+      };
+    }
+    if (section === "standards") {
+      return {
+        title: "标准/框架清单",
+        description: "展示已确认入库的等保三级和 CIS CSC V8 控制项；字段保持原始表口径，最后一列预留能力/关注点关联。",
+        implemented: true,
+        notice: "关联安全能力/关注点字段暂为空，等待后续映射处理。",
+      };
+    }
+    return {
+      title: "专项知识维护",
+      description: "该专项页面将在后续阶段接入。",
+      implemented: false,
+    };
   }
 
   function buildStandardFrameworkViewModel({ standards, search, standardFrameworkId = "mlps-level-3" }) {
     const query = normalizeSearch(search);
     const frameworks = list(standards?.frameworks);
-    const activeFramework = frameworks.find((framework) => framework.id === standardFrameworkId) || frameworks[0] || null;
+    const indexedFramework = frameworks.find((framework) => framework.id === standardFrameworkId) || frameworks[0] || null;
+    const loadedFramework = standards?.loadedFrameworks?.[indexedFramework?.id];
+    const activeFramework = loadedFramework || indexedFramework || null;
     const frameworkTables = list(activeFramework?.tabs).length
       ? list(activeFramework.tabs)
       : [
@@ -1909,13 +2021,18 @@
         title: table.title || activeFramework?.title || "标准/框架",
         columns,
         rows,
-        totalRows: list(table.rows).length,
+        totalRows: Number(table.totalRows) || list(table.rows).length,
+        dataPath: table.dataPath || "",
+        loaded: Boolean(table.loaded),
       };
     });
     const activeTable = tableModels[0] || { columns: [], rows: [] };
     const rows = tableModels.flatMap((table) => table.rows);
     const columns = activeTable.columns;
-    const totalFrameworkRows = (framework) => list(framework?.rows).length + list(framework?.tabs).reduce((sum, table) => sum + list(table.rows).length, 0);
+    const totalFrameworkRows = (framework) =>
+      Number(framework?.totalRows) ||
+      list(framework?.rows).length +
+        list(framework?.tabs).reduce((sum, table) => sum + (Number(table.totalRows) || list(table.rows).length), 0);
     return {
       rows,
       columns,
@@ -2025,17 +2142,20 @@
         title: row.title,
         description: row.description,
         facts: [
-          { label: "模块分类", value: row.category },
+          { label: "领域分类", value: row.category },
+          { label: "安全系统", value: row.linkedSystems.length },
           { label: "关联安全技术服务", value: row.serviceCount },
           { label: "关联安全技术措施", value: row.measureCount },
           { label: "关联作用域", value: row.scopeCount },
           { label: "关联信息化对象", value: row.informationObjectCount },
         ],
         sections: [
+          { title: "所属安全系统", items: row.linkedSystems },
           { title: "关联安全技术服务", items: row.linkedServices },
           { title: "关联安全技术措施", items: row.linkedMeasures },
           { title: "关联作用域", items: row.linkedScopes },
           { title: "关联信息化对象", items: row.informationObjects },
+          { title: "关联信息化环境", items: row.informationEnvironments },
         ],
         sourceEvidence,
       };
@@ -2162,59 +2282,7 @@
     const normalizedReferenceTab = referenceTab === "gartner" ? "gartner" : "gbt";
     const maintenanceKnowledge = maintenance || management;
     const navigationItems = maintenanceNavigationItems(maintenanceKnowledge, normalizedSection, capabilityTree, lifecycle, standards);
-    const pageMeta = {
-      scopes: {
-        title: "作用域清单",
-        description: "用于维护和核对安全作用域，展示处理后的业务字段和关联数量。",
-        implemented: true,
-      },
-      measures: {
-        title: "安全技术措施清单",
-        description: "用于维护和核对安全技术措施，展示措施与安全技术服务、作用域、信息化环境和信息化对象的关系。",
-        implemented: true,
-        notice: "信息化环境和对象由安全技术服务 + 作用域在 environment_scope_tree 中可靠派生；无法命中时显示“待补充”。",
-      },
-      processes: {
-        title: "流程清单",
-        description: "用于维护和核对安全职能流程，展示流程域、L2 流程组、L3 流程和 L4 关键活动状态。",
-        implemented: true,
-      },
-      "work-functions": {
-        title: "职能清单",
-        description: "用于维护和核对安全工作职能，统一使用“安全职能”业务口径。",
-        implemented: true,
-      },
-      "security-works": {
-        title: "安全工作清单",
-        description: "安全工作作为独立对象展示，编码由关注点编码和关注点内序号稳定派生。",
-        implemented: true,
-        notice: "安全工作与安全职能不显示为直接关联；如需职能关系，等待 ETL 提供可靠间接数据。",
-      },
-      modules: {
-        title: "安全技术模块清单",
-        description: "用于维护和核对安全技术模块，区别于安全技术措施，不把系统或产品作为主列。",
-        implemented: true,
-        notice: "关联安全技术措施数依赖后续数据契约完善",
-      },
-      "lcap-references": {
-        title: "LC-AP参考数据",
-        description: "维护和核对 LC-AP 页面使用的软件开发类型、应用系统类型和应用组件参考数据。",
-        implemented: true,
-        notice: "这些数据只作为参考数据，不伪造成正式映射关系。",
-      },
-      references: {
-        title: "岗位参考页面",
-        description: "展示 GB/T 42446-2023 与 Gartner 工作岗位参考；映射结果只作为候选或待复核信息。",
-        implemented: true,
-        notice: "GB/T 映射支持反向查看但不自动作为最终事实；Gartner 候选映射统一显示为“待复核”。",
-      },
-      standards: {
-        title: "标准/框架清单",
-        description: "展示已确认入库的等保三级和 CIS CSC V8 控制项；字段保持原始表口径，最后一列预留能力/关注点关联。",
-        implemented: true,
-        notice: "关联安全能力/关注点字段暂为空，等待后续映射处理。",
-      },
-    }[normalizedSection];
+    const pageMeta = maintenancePageMeta(normalizedSection);
     const sectionViewModel =
       normalizedSection === "scopes"
         ? buildScopeMaintenanceViewModel({ management: maintenanceKnowledge, search })
@@ -2242,12 +2310,19 @@
       selectedRow && sectionViewModel.sourceEvidenceById
         ? list(sectionViewModel.sourceEvidenceById[selectedRow.id])
         : maintenanceSourceEvidence(maintenanceKnowledge, normalizedSection, selectedRow);
+    const tabCounts = {
+      ...Object.fromEntries(navigationItems.map((item) => [item.id, item.count])),
+      "references-gbt": list(maintenanceKnowledge?.gbt_42446_references).length,
+      "references-gartner": list(maintenanceKnowledge?.gartner_roles).length,
+    };
+    const visibleRows = normalizedSection === "references" ? selectableRows : sectionViewModel.rows;
     return {
       section: normalizedSection,
       navigationItems,
+      sectionTabs: maintenanceSectionTabs(normalizedSection, tabCounts, normalizedReferenceTab),
       page: pageMeta,
       summary: sectionViewModel.summary,
-      rows: sectionViewModel.rows,
+      rows: visibleRows,
       standardRows: sectionViewModel.standardRows || [],
       roleRows: sectionViewModel.roleRows || [],
       frameworkTabs: sectionViewModel.frameworkTabs || [],
@@ -2300,6 +2375,7 @@
             type: "information_object",
             title: titleOf(object, "未命名对象"),
             description: object.description || "",
+            segments: list(object.segments),
             scopeCount: Number(object.scope_count ?? list(object.scope_mappings).length) || 0,
             serviceCount: Number(object.service_count ?? 0) || 0,
             moduleCount: Number(object.module_count ?? 0) || 0,
@@ -2339,7 +2415,7 @@
       .filter((environment) => environment.objects.length || includesSearch(query, environment.title, environment.description));
   }
 
-  function findEnvironmentSelection(management, selectedObjectId, selectedEnvironmentId, search) {
+  function findEnvironmentSelection(management, selectedObjectId, selectedEnvironmentId, selectedSegmentId, search) {
     const query = normalizeSearch(search);
     const environments = list(management?.environment_scope_tree)
       .map((environment) => {
@@ -2361,6 +2437,18 @@
       .flatMap(({ environment, objects }) => objects.map((object) => ({ selectionType: "object", environment, object, objects })))
       .find((row) => row.object.id === selectedObjectId);
     if (objectSelection) return objectSelection;
+    const segmentSelection = environments
+      .flatMap(({ environment, objects }) =>
+        uniqueBy(list(objects).flatMap((object) => list(object.segments)), (segment) => segment?.id || segment?.title).map((segment) => ({
+          selectionType: "segment",
+          environment,
+          segment,
+          object: null,
+          objects: objects.filter((object) => list(object.segments).some((item) => (item.id || item.title) === (segment.id || segment.title))),
+        })),
+      )
+      .find((row) => (row.segment?.id || row.segment?.title) === selectedSegmentId);
+    if (segmentSelection) return segmentSelection;
     const environmentSelection = environments.find((row) => row.environment.id === selectedEnvironmentId);
     if (environmentSelection) return { selectionType: "environment", environment: environmentSelection.environment, object: null, objects: environmentSelection.objects };
     const fallback = environments[0];
@@ -2396,8 +2484,8 @@
     });
   }
 
-  function buildEnvironmentLocalRelationNotes({ selectionType, selectedEnvironment, selectedObject, summary, detailPanel }) {
-    const scopeSubject = selectionType === "environment" ? "当前环境下的信息化对象" : "当前信息化对象";
+  function buildEnvironmentLocalRelationNotes({ selectionType, selectedEnvironment, selectedSegment, selectedObject, summary, detailPanel }) {
+    const scopeSubject = selectionType === "environment" ? "当前环境下的信息化对象" : selectionType === "segment" ? "当前环境子类下的信息化对象" : "当前信息化对象";
     const segmentText = list(detailPanel.segments).length ? list(detailPanel.segments).map(titleOf).join("、") : "暂无环境子类";
     return [
       {
@@ -2410,7 +2498,11 @@
       },
       {
         title: "环境子类",
-        body: selectedObject ? `${titleOf(selectedObject)} 所属环境子类：${segmentText}。环境子类是信息化环境下的正式层级。` : `${titleOf(selectedEnvironment)} 下按环境子类组织信息化对象，表格展示该环境内对象的合并映射。`,
+        body: selectedObject
+          ? `${titleOf(selectedObject)} 所属环境子类：${segmentText}。环境子类是信息化环境下的正式层级。`
+          : selectedSegment
+            ? `${titleOf(selectedSegment)} 是 ${titleOf(selectedEnvironment)} 下的环境子类，表格展示该子类内对象的合并映射。`
+            : `${titleOf(selectedEnvironment)} 下按环境子类组织信息化对象，表格展示该环境内对象的合并映射。`,
       },
     ];
   }
@@ -2430,24 +2522,36 @@
     );
   }
 
-  function buildEnvironmentWorkspaceViewModel({ environmentWorkbench, environmentWorkbenchViewModel, management, selectedObjectId, selectedEnvironmentId, search }) {
+  function compactEnvironmentGraphObject(object) {
+    const compact = compactEntity(object, "未命名对象");
+    return {
+      ...compact,
+      segments: list(object?.segments).map(compactEntity).filter(Boolean),
+    };
+  }
+
+  function buildEnvironmentWorkspaceViewModel({ environmentWorkbench, environmentWorkbenchViewModel, management, selectedObjectId, selectedEnvironmentId, selectedSegmentId, search }) {
     const dataSource = workbenchDataSource({
       workbench: environmentWorkbench,
       workbenchViewModel: environmentWorkbenchViewModel,
       workbenchName: "environment-workbench.json",
-      fallbackName: "management-knowledge.json.environment_scope_tree",
+      fallbackName: "environment-workbench.json",
     });
     const navigationTree = buildEnvironmentNavigationTree(management, search);
-    const selected = findEnvironmentSelection(management, selectedObjectId, selectedEnvironmentId, search);
+    const selected = findEnvironmentSelection(management, selectedObjectId, selectedEnvironmentId, selectedSegmentId, search);
     const selectedEnvironment = compactEntity(selected?.environment, "未命名环境");
+    const selectedSegment = selected?.segment ? compactEntity(selected.segment, "未定义环境子类") : null;
     const selectedObject = selected?.object ? compactEntity(selected.object, "未命名对象") : null;
     const isEnvironmentSelection = selected?.selectionType === "environment";
+    const isSegmentSelection = selected?.selectionType === "segment";
     const scopeServiceRows = isEnvironmentSelection
       ? list(selected?.objects).flatMap((object) => buildEnvironmentScopeServiceRows(management, object, true))
+      : isSegmentSelection
+        ? list(selected?.objects).flatMap((object) => buildEnvironmentScopeServiceRows(management, object, true))
       : buildEnvironmentScopeServiceRows(management, selected?.object, false);
     const summary = {
       objectCount: navigationTree.reduce((sum, environment) => sum + list(environment.objects).length, 0),
-      selectedObjectCount: isEnvironmentSelection ? list(selected?.objects).length : selectedObject ? 1 : 0,
+      selectedObjectCount: isEnvironmentSelection || isSegmentSelection ? list(selected?.objects).length : selectedObject ? 1 : 0,
       scopeCount: uniqueBy(scopeServiceRows.map((row) => row.scope), (scope) => scope?.id || scope?.code || scope?.title).length,
       serviceCount: uniqueBy(scopeServiceRows.flatMap((row) => row.services), (service) => service.id || service.code || service.title).length,
       moduleCount: uniqueBy(scopeServiceRows.flatMap((row) => row.modules), (module) => module.id || module.code || module.title).length,
@@ -2456,10 +2560,11 @@
     };
     const detailPanel = {
       environment: selectedEnvironment,
+      segment: selectedSegment,
       object: selectedObject,
       selectionType: selected?.selectionType || "",
-      showObjectColumn: isEnvironmentSelection,
-      segments: isEnvironmentSelection
+      showObjectColumn: isEnvironmentSelection || isSegmentSelection,
+      segments: isEnvironmentSelection || isSegmentSelection
         ? uniqueBy(list(selected?.objects).flatMap((object) => list(object.segments)), (segment) => segment?.id || segment?.code || segment?.title).map(compactEntity)
         : list(selected?.object?.segments).map(compactEntity),
       scopeCount: summary.scopeCount,
@@ -2470,15 +2575,32 @@
     return {
       navigationTree,
       selectedEnvironment,
+      selectedSegment,
       selectedObject,
       selectedMode: selected?.selectionType || "",
       relationshipSummary: summary,
       scopeServiceRows,
       detailPanel,
-      localRelationNotes: buildEnvironmentLocalRelationNotes({ selectionType: selected?.selectionType, selectedEnvironment, selectedObject, summary, detailPanel }),
+      localRelationNotes: buildEnvironmentLocalRelationNotes({ selectionType: selected?.selectionType, selectedEnvironment, selectedSegment, selectedObject, summary, detailPanel }),
       sourceEvidence: environmentSourceEvidence(selected?.environment, selected?.object, selected?.objects),
       dataSource,
       workbenchViewModel: environmentWorkbenchViewModel || null,
+      environmentGraphContext: {
+        selectionType: selected?.selectionType || "",
+        current: selectedObject || selectedSegment || selectedEnvironment,
+        selectedEnvironment,
+        selectedSegment,
+        selectedObject: selected?.object ? compactEnvironmentGraphObject(selected.object) : null,
+        selectedObjects: list(selected?.objects).map(compactEnvironmentGraphObject),
+        segments: isEnvironmentSelection
+          ? uniqueBy(list(selected?.objects).flatMap((object) => list(object.segments)), (segment) => segment?.id || segment?.title).map(compactEntity)
+          : selectedSegment
+            ? [selectedSegment]
+            : list(selected?.object?.segments).map(compactEntity),
+        scopeServiceRows,
+        summary,
+        workbenchViewModel: environmentWorkbenchViewModel || null,
+      },
     };
   }
 

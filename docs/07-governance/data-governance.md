@@ -217,6 +217,52 @@
 
 后续对象类型继续增加后，再评估是否新增 `frontend/schema/` 配置层。
 
+## 10.1 前端数据包拆分规则
+
+前端离线 JSON 是后端投影结果，不是原始 Sheet 的搬运结果。任何新导出包都必须按“页面契约 + 业务边界”组织，不允许为了方便把多个大表继续塞进一个大 JSON。
+
+通用规则：
+
+- 索引包只承载导航、标题、版本、统计、Tab 元数据和分包路径，不承载主表 `rows`。
+- 详情包按页面、框架、对象类型或 Tab 拆分，进入页面或切换 Tab 时再按需加载。
+- 单个 JSON 如果超过约 `1MB`，应评估拆分；超过约 `3MB` 必须拆分或给出治理说明。
+- 长文本矩阵、成熟度描述、标准控制项、参考条款等高膨胀数据不得进入全局首屏包。
+- 兼容旧文件名时，旧文件只能作为小索引或重定向兼容包，不得继续承载全量行数据。
+- 前端组件不得直接拼接多个原始包重新推断业务事实；只能通过 `dataClient`、`/api/v1/*` 或后端生成的契约化分包读取。
+
+安全标准 / 框架包的强制规则：
+
+```text
+frontend/capability-browser/public/data/
+├── standards-index.json
+├── standards-data.json          # 兼容索引，不承载 rows
+└── standards/
+    ├── <framework>.json
+    └── <framework>/<tab>.json
+```
+
+- `standards-index.json` 和兼容 `standards-data.json` 必须是 `package_type = standards-index`。
+- `standards-index.json.frameworks[]` 不得包含 `rows`。
+- `/api/v1/data-packages/standards-index` 返回小索引；旧入口 `/api/v1/data-packages/standards` 可由后端运行时组装完整明细用于兼容，但不得重新写回静态全量大包。
+- 多 Tab 框架必须按 Tab 分包，例如 DSP SCF 2026 的 `SCF Controls` 和 `SCF成熟度`。
+- 前端首屏只加载索引和当前框架 / 当前 Tab；切换到其他 Tab 后才加载对应分包。
+- 标准 / 框架主展示包不得出现 `sheet`、`row`、`column`、`raw_value`、`source_file`、`source_ref`、`metadata`、`debug`、`intermediate` 等非业务字段。
+
+当前已固化的标准 / 框架分包：
+
+| 文件 | 角色 |
+|---|---|
+| `standards-index.json` | 标准 / 框架导航、统计、分包路径 |
+| `standards-data.json` | 旧入口兼容索引 |
+| `standards/dsp-level-2/dsp-scf-controls-2026.json` | DSP SCF 2026 控制项 Tab |
+| `standards/dsp-level-2/dsp-scf-maturity-2026.json` | DSP SCF 2026 成熟度 Tab |
+
+验证要求：
+
+- `python3 scripts/data_package_summary.py --package standards` 应显示 `standards-index.json` 为小索引，并输出 `split_files`。
+- 抽样检查 `standards-index.json` 和 `standards-data.json` 时，`frameworks[]` 及其 `tabs[]` 不得包含 `rows`。
+- 浏览器验证应确认首屏没有提前请求非当前 Tab 的大分包。
+
 ## 11. 错误数据处理流程
 
 未来数据导入遇到错误数据时，按以下流程处理：

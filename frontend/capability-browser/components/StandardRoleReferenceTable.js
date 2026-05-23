@@ -51,7 +51,7 @@
       .join("");
   }
 
-  function renderTable({ title, empty, headers, body }) {
+  function renderTable({ title, empty, headers, body, tableClass }) {
     return `
       <section class="reference-table-section">
         <h3 class="reference-section-title">${utils.escapeHtml(title)}</h3>
@@ -59,7 +59,7 @@
           body
             ? `
               <div class="maintenance-table-scroll">
-                <table class="maintenance-data-table">
+                <table class="maintenance-data-table ${utils.escapeHtml(tableClass || "")}">
                   <thead>
                     <tr>${headers.map((header) => `<th>${utils.escapeHtml(header)}</th>`).join("")}</tr>
                   </thead>
@@ -97,7 +97,6 @@
     const normalizedTab = activeTab === "gartner" ? "gartner" : "gbt";
     return `
       <div class="reference-table-stack">
-        ${renderTabs(normalizedTab, standards, roles)}
         ${
           normalizedTab === "gartner"
             ? renderTable({
@@ -105,12 +104,14 @@
                 empty: "暂无 Gartner 岗位参考数据。",
                 headers: ["岗位来源", "岗位分类", "岗位名称", "候选安全职能", "匹配依据", "复核状态"],
                 body: renderRoleRows(roles, selectedId),
+                tableClass: "role-reference-maintenance-table",
               })
             : renderTable({
                 title: "GB/T 42446-2023",
                 empty: "暂无 GB/T 42446-2023 任务参考数据。",
                 headers: ["标准来源", "任务分类", "任务名称", "关联安全职能", "关联流程", "状态"],
                 body: renderStandardRows(standards, selectedId),
+                tableClass: "standard-reference-maintenance-table",
               })
         }
       </div>

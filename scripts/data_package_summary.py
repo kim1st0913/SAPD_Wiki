@@ -14,10 +14,11 @@ ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "frontend/capability-browser/public/data"
 PACKAGES = {
     "capability": DATA_DIR / "capability-tree.json",
-    "management": DATA_DIR / "management-knowledge.json",
     "lifecycle": DATA_DIR / "lifecycle-knowledge.json",
     "content": DATA_DIR / "content-views.json",
-    "standards": DATA_DIR / "standards-data.json",
+    "standards": DATA_DIR / "standards-index.json",
+    "maintenance": DATA_DIR / "maintenance-knowledge.json",
+    "shared-lookups": DATA_DIR / "shared-lookups.json",
     "capability-workbench": DATA_DIR / "capability-workbench.json",
     "environment-workbench": DATA_DIR / "environment-workbench.json",
     "lifecycle-workbench": DATA_DIR / "lifecycle-workbench.json",
@@ -99,19 +100,28 @@ def summarize(name: str) -> dict[str, Any]:
         return {"package": name, "path": str(path.relative_to(ROOT)), "exists": False, "result": "missing"}
     data = load_json(path)
     stats = data.get("stats") if isinstance(data, dict) else None
-    return {
+    list_counts = count_lists(data)
+    data_state = "unknown"
+    if isinstance(data, dict):
+        data_state = data.get("data_state") or data.get("__data_state") or ("ready" if any(list_counts.values()) else "empty")
+    summary = {
         "package": name,
         "path": str(path.relative_to(ROOT)),
         "exists": True,
         "size_kb": round(path.stat().st_size / 1024, 1),
-        "data_state": data.get("data_state") or data.get("__data_state") or "unknown" if isinstance(data, dict) else "unknown",
+        "data_state": data_state,
         "top_level_keys": list(data.keys())[:24] if isinstance(data, dict) else [],
         "stats": stats if isinstance(stats, dict) else {},
         "object_counts": object_counts(data),
-        "list_counts": count_lists(data),
+        "list_counts": list_counts,
         "forbidden_key_hits_sample": key_scan(data),
         "result": "pass",
     }
+    if name == "standards":
+        split_files = sorted((DATA_DIR / "standards").glob("**/*.json"))
+        summary["split_files"] = len(split_files)
+        summary["split_size_kb"] = round(sum(file.stat().st_size for file in split_files) / 1024, 1)
+    return summary
 
 
 def main() -> int:

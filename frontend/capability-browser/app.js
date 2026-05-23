@@ -3,13 +3,14 @@ const state = {
   capabilityWorkbench: null,
   capabilityWorkbenchViewModel: null,
   capabilityProjection: null,
-  management: null,
+  sharedLookups: null,
   environmentWorkbench: null,
   environmentWorkbenchViewModel: null,
   lifecycle: null,
   lifecycleWorkbench: null,
   lifecycleWorkbenchViewModel: null,
   content: null,
+  guidePackages: {},
   standards: null,
   maintenanceKnowledge: null,
   activeView: "overview",
@@ -23,15 +24,21 @@ const state = {
   activeContentPage: "html",
   selectedCapabilityId: null,
   selectedEnvironmentId: null,
+  selectedEnvironmentSegmentId: null,
   selectedEnvironmentObjectId: null,
   selectedEnvironmentRowId: null,
   selectedDevProcessId: null,
   selectedDataProcessId: null,
   selectedMaintenanceId: null,
   selectedContentId: null,
+  selectedContentSlideIndex: 0,
+  contentSlideScrollMode: "preserve",
+  standardFrameworkLoads: new Map(),
+  loadedPackages: new Set(),
+  packageLoads: new Map(),
   search: "",
-  standardHeaderSummary: [],
-  standardHeaderNote: "",
+  pageHeaderSummary: [],
+  pageHeaderNote: "",
   relationshipFilters: {},
   relationshipColumnWidths: [190, 180, 150, 160, 160, 150, 130, 160],
 };
@@ -54,6 +61,123 @@ const titleOf = (value, fallback = "未命名") => {
 
 const codeTitle = (value, fallback = "未命名") => [value?.code, titleOf(value, fallback)].filter(Boolean).join(" ");
 const matchesSearch = (...values) => values.map(text).join(" ").toLowerCase().includes(state.search.toLowerCase());
+
+const PACKAGE_GETTERS = {
+  capability: "getCapabilityTree",
+  capabilityWorkbench: "getCapabilityWorkbench",
+  capabilityProjection: "getCapabilityWorkspaceProjection",
+  environmentWorkbench: "getEnvironmentWorkbench",
+  lifecycleWorkbench: "getLifecycleWorkbench",
+  maintenanceKnowledge: "getMaintenanceKnowledge",
+  sharedLookups: "getSharedLookups",
+  content: "getContentViews",
+  securityArchitectureDesignGuide: "getSecurityArchitectureDesignGuide",
+  dataSecurityDesignGuide: "getDataSecurityDesignGuide",
+  standards: "getStandardFrameworks",
+  lifecycle: "getLifecycleKnowledge",
+};
+
+const GUIDE_ROUTE_PACKAGES = {
+  "/guides/security-architecture-design": "securityArchitectureDesignGuide",
+  "/guides/data-security-design": "dataSecurityDesignGuide",
+};
+
+function assignPackageData(name, data) {
+  if (name === "capability") state.capability = data;
+  if (name === "capabilityWorkbench") state.capabilityWorkbench = data;
+  if (name === "capabilityProjection") state.capabilityProjection = data;
+  if (name === "sharedLookups") state.sharedLookups = data;
+  if (name === "environmentWorkbench") state.environmentWorkbench = data;
+  if (name === "lifecycleWorkbench") state.lifecycleWorkbench = data;
+  if (name === "maintenanceKnowledge") state.maintenanceKnowledge = data;
+  if (name === "content") state.content = data;
+  if (name === "securityArchitectureDesignGuide") state.guidePackages = { ...state.guidePackages, "security-architecture-design": data };
+  if (name === "dataSecurityDesignGuide") state.guidePackages = { ...state.guidePackages, "data-security-design": data };
+  if (name === "standards") state.standards = data;
+  if (name === "lifecycle") state.lifecycle = data;
+}
+
+function loadDataPackage(name) {
+  if (state.loadedPackages.has(name)) return Promise.resolve();
+  if (state.packageLoads.has(name)) return state.packageLoads.get(name);
+  const dataClient = window.sapdDataClient;
+  const getterName = PACKAGE_GETTERS[name];
+  const getter = getterName ? dataClient?.[getterName] : null;
+  if (!getter) return Promise.resolve();
+  const load = getter
+    .call(dataClient)
+    .then((envelope) => {
+      assignPackageData(name, envelope?.data ?? null);
+      state.loadedPackages.add(name);
+    })
+    .catch((error) => {
+      console.warn(`数据包加载失败：${name}`, error);
+    })
+    .finally(() => {
+      state.packageLoads.delete(name);
+    });
+  state.packageLoads.set(name, load);
+  return load;
+}
+
+function routePackagesForCurrentState() {
+  if (state.activeView === "capabilities") return ["capability", "capabilityWorkbench", "capabilityProjection"];
+  if (state.activeView === "environment") return ["environmentWorkbench"];
+  if (state.activeView === "dev-lifecycle") return ["lifecycleWorkbench"];
+  if (state.activeView === "data-lifecycle") return ["lifecycle"];
+  if (state.activeView === "content") {
+    const guidePackage = GUIDE_ROUTE_PACKAGES[state.activeRoute];
+    return guidePackage ? ["content", guidePackage] : ["content"];
+  }
+  if (state.activeView === "maintenance") {
+    if (state.activeMaintenancePage === "standards") return ["standards"];
+    const packages = ["maintenanceKnowledge"];
+    if (state.activeMaintenancePage === "modules") packages.push("sharedLookups");
+    if (state.activeMaintenancePage === "security-works") packages.push("capability");
+    if (state.activeMaintenancePage === "lcap-references") packages.push("lifecycle");
+    return packages;
+  }
+  return ["content", "standards"];
+}
+
+function mergeSharedLookups(payload) {
+  const serviceModuleIndex = list(state.sharedLookups?.service_module_index);
+  if (!serviceModuleIndex.length || list(payload?.service_module_index).length) return payload;
+  return {
+    ...(payload || {}),
+    stats: {
+      ...(payload?.stats || {}),
+      service_module_index: serviceModuleIndex.length,
+    },
+    service_module_index: serviceModuleIndex,
+  };
+}
+
+function ensureRoutePackages({ rerender = true } = {}) {
+  const routeAtStart = state.activeRoute;
+  const packages = routePackagesForCurrentState().filter((name) => !state.loadedPackages.has(name));
+  if (!packages.length) return Promise.resolve();
+  return Promise.all(packages.map(loadDataPackage)).then(() => {
+    renderMetrics();
+    if (rerender && state.activeRoute === routeAtStart) {
+      renderActiveView();
+      setupResizableWorkspaces();
+      updateApplicationShellChrome();
+    }
+  });
+}
+
+function scheduleOverviewWarmup() {
+  const warmup = () => {
+    if (state.activeView !== "overview") return;
+    Promise.all(["capabilityWorkbench", "environmentWorkbench", "lifecycleWorkbench"].map(loadDataPackage)).then(() => {
+      renderMetrics();
+      if (state.activeView === "overview") renderOverview();
+    });
+  };
+  if (window.requestIdleCallback) window.requestIdleCallback(warmup, { timeout: 4000 });
+  else window.setTimeout(warmup, 2500);
+}
 
 function capabilityFocusByCode(capabilityTree) {
   const rows = {};
@@ -221,6 +345,125 @@ function compactChips(items, empty = "暂无", limit = 3) {
   return `${visible.map((item) => `<span class="relation-chip">${escapeHtml(titleOf(item))}</span>`).join("")}${more > 0 ? `<span class="relation-chip muted">+${more}</span>` : ""}`;
 }
 
+function slideImagePath(row, slideNumber) {
+  const numberText = String(slideNumber).padStart(3, "0");
+  return text(row?.slide_path_pattern || "").replace("{n}", numberText);
+}
+
+function contentSlides(row) {
+  const guidePackage = state.guidePackages?.[row?.guide_id] || null;
+  const packageSlides = guidePackage?.slides || null;
+  if (packageSlides?.path_pattern && packageSlides?.count) {
+    return Array.from({ length: Number(packageSlides.count) }, (_, index) => ({
+      pageNumber: index + 1,
+      title: `第 ${index + 1} 页`,
+      image: text(packageSlides.path_pattern).replace("{n}", String(index + 1).padStart(3, "0")),
+    }));
+  }
+  const explicitSlides = list(row?.slides);
+  if (explicitSlides.length) {
+    return explicitSlides.map((slide, index) => ({
+      pageNumber: Number(slide.pageNumber || slide.slide_number || index + 1),
+      title: text(slide.title || `第 ${index + 1} 页`),
+      image: text(slide.image || slide.preview_path || slide.path),
+    }));
+  }
+  const count = Number(row?.slide_count || 0);
+  if (!count || !row?.slide_path_pattern) return [];
+  return Array.from({ length: count }, (_, index) => ({
+    pageNumber: index + 1,
+    title: `第 ${index + 1} 页`,
+    image: slideImagePath(row, index + 1),
+  }));
+}
+
+function clampSlideIndex(slides) {
+  const count = slides.length;
+  if (!count) return 0;
+  const index = Number(state.selectedContentSlideIndex || 0);
+  if (Number.isNaN(index)) return 0;
+  return Math.max(0, Math.min(index, count - 1));
+}
+
+function changeContentSlide(delta, scrollMode = "active") {
+  const selected = contentRows().find((row) => row.id === state.selectedContentId);
+  const slides = contentSlides(selected);
+  if (!slides.length) return;
+  const nextIndex = clampSlideIndex(slides) + delta;
+  state.selectedContentSlideIndex = Math.max(0, Math.min(nextIndex, slides.length - 1));
+  state.contentSlideScrollMode = scrollMode;
+  renderContent();
+}
+
+function renderSlideDeck(row) {
+  const slides = contentSlides(row);
+  if (!slides.length) return emptyState("暂无幻灯片", "请确认内容包是否包含 slide_count 或 slides。");
+  const activeIndex = clampSlideIndex(slides);
+  state.selectedContentSlideIndex = activeIndex;
+  const activeSlide = slides[activeIndex];
+  const previousDisabled = activeIndex <= 0 ? "disabled" : "";
+  const nextDisabled = activeIndex >= slides.length - 1 ? "disabled" : "";
+  return `
+    <div class="guide-slide-player" data-guide-id="${escapeHtml(row.id)}">
+      <div class="guide-slide-stage" tabindex="0" aria-label="${escapeHtml(`${row.title || "指南"}第 ${activeSlide.pageNumber} 页`)}">
+        <img src="${escapeHtml(activeSlide.image)}" alt="${escapeHtml(activeSlide.title)}" loading="eager" />
+        <div class="guide-slide-controls" aria-label="幻灯片翻页控制">
+          <button class="guide-slide-arrow" type="button" data-content-slide-step="-1" aria-label="上一页" title="上一页" ${previousDisabled}>
+            <span aria-hidden="true">‹</span>
+          </button>
+          <span class="guide-slide-page">第 ${activeSlide.pageNumber} / ${slides.length} 页</span>
+          <button class="guide-slide-arrow" type="button" data-content-slide-step="1" aria-label="下一页" title="下一页" ${nextDisabled}>
+            <span aria-hidden="true">›</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderSlidePreviewRail(row) {
+  const slides = contentSlides(row);
+  if (!slides.length) return "";
+  const activeIndex = clampSlideIndex(slides);
+  return `
+    <div class="guide-thumb-rail guide-thumb-rail-nav" aria-label="幻灯片页面预览">
+      ${slides
+        .map(
+          (slide, index) => `
+            <button class="guide-thumb ${index === activeIndex ? "active" : ""}" type="button" data-content-slide-index="${index}" aria-label="查看第 ${slide.pageNumber} 页">
+              <img src="${escapeHtml(slide.image)}" alt="" loading="lazy" />
+              <span>${slide.pageNumber}</span>
+            </button>
+          `,
+        )
+        .join("")}
+    </div>
+  `;
+}
+
+function renderContentDetail(selected) {
+  if (!selected) return emptyState("请选择内容");
+  const slides = contentSlides(selected);
+  const activeIndex = clampSlideIndex(slides);
+  const activeSlide = slides[activeIndex];
+  if (slides.length) {
+    return `
+      <div class="source-entity-code">${escapeHtml(selected.category || "安全指南")}</div>
+      <h2 class="source-entity-title">${escapeHtml(selected.title || "未命名内容")}</h2>
+      <p class="source-entity-desc">${escapeHtml(selected.content || selected.note || "本地指南幻灯片视图。")}</p>
+      <dl class="guide-detail-list">
+        <div><dt>当前页</dt><dd>${escapeHtml(activeSlide ? `${activeSlide.pageNumber} / ${slides.length}` : `0 / ${slides.length}`)}</dd></div>
+        <div><dt>视图类型</dt><dd>${escapeHtml(selected.view_type || "slide_deck")}</dd></div>
+      </dl>
+    `;
+  }
+  return `
+    <div class="source-entity-code">${escapeHtml(selected.view_type || selected.category || "内容")}</div>
+    <h2 class="source-entity-title">${escapeHtml(selected.title || "未命名内容")}</h2>
+    <p class="source-entity-desc">${escapeHtml(selected.content || selected.note || "首版为索引占位，后续补充预览内容。")}</p>
+  `;
+}
+
 function findCapabilityItemAndFocuses(targetId) {
   let selected = null;
   let focuses = [];
@@ -285,35 +528,50 @@ function capabilityAncestorIds(targetId) {
   return [];
 }
 
+function capabilityCategoryIds() {
+  return list(state.capability?.categories)
+    .map((category) => category.id)
+    .filter(Boolean);
+}
+
 function lifecycleProcesses(kind) {
   if (kind === "dev") return list(state.lifecycle?.application_security_development?.processes);
   return list(state.lifecycle?.data_lifecycle?.processes);
 }
 
 function contentRows() {
-  if (state.activeContentPage === "drawio") return list(state.content?.diagram_views);
-  if (state.activeContentPage === "ppt") return list(state.content?.guide_pages);
-  return list(state.content?.html_documents);
+  let rows = list(state.content?.html_documents);
+  if (state.activeContentPage === "drawio") rows = list(state.content?.diagram_views);
+  if (state.activeContentPage === "ppt") rows = list(state.content?.guide_pages);
+  if (state.activeRoute.startsWith("/guides/") && state.activeRoute !== "/guides/others") {
+    const routeRows = rows.filter((row) => row.route === state.activeRoute);
+    return routeRows;
+  }
+  return rows;
 }
 
 function renderMetrics() {
-  const stats = state.capability?.stats || {};
-  const lifecycleStats = state.lifecycle?.stats || {};
+  const capabilityStats = state.capabilityWorkbench?.meta?.stats || state.capability?.stats || {};
+  const environmentStats = state.environmentWorkbench?.meta?.stats || {};
+  const lifecycleStats = state.lifecycleWorkbench?.meta?.stats || state.lifecycle?.stats || {};
   const metrics = [
-    ["能力", stats.capabilities || 0],
-    ["关注点", stats.focuses || 0],
-    ["服务", stats.services || 0],
-    ["环境", state.management?.stats?.information_environments || 0],
-    ["生命周期", (lifecycleStats.application_processes || 0) + (lifecycleStats.data_processes || 0)],
+    ["能力", capabilityStats.capability || capabilityStats.capabilities || 0],
+    ["关注点", capabilityStats.capability_focus || capabilityStats.focuses || 0],
+    ["服务", capabilityStats.security_technical_service || capabilityStats.services || 0],
+    ["环境", environmentStats.information_environment || environmentStats.information_environments || 0],
+    ["生命周期", lifecycleStats.lifecycle_stage || (lifecycleStats.application_processes || 0) + (lifecycleStats.data_processes || 0)],
   ];
   setHtml("metrics", metrics.map(([label, value]) => `<div class="metric"><strong>${value}</strong><span>${label}</span></div>`).join(""));
 }
 
 function renderOverview() {
+  const capabilityStats = state.capabilityWorkbench?.meta?.stats || state.capability?.stats || {};
+  const environmentStats = state.environmentWorkbench?.meta?.stats || {};
+  const lifecycleStats = state.lifecycleWorkbench?.meta?.stats || state.lifecycle?.stats || {};
   const stats = {
-    capability: state.capability?.stats || {},
-    management: state.management?.stats || {},
-    lifecycle: state.lifecycle?.stats || {},
+    capability: capabilityStats,
+    environment: environmentStats,
+    lifecycle: lifecycleStats,
     content: state.content?.stats || {},
   };
   setText("overviewGeneratedAt", "本地数据");
@@ -332,9 +590,9 @@ function renderOverview() {
     `
       <table class="matrix-table">
         <tbody>
-          <tr><th>能力关注点</th><td>${stats.capability.focuses || 0}</td><th>关注点-作用域</th><td>${stats.capability.focus_scope_mappings || 0}</td></tr>
-          <tr><th>信息化对象</th><td>${stats.management.information_objects || 0}</td><th>对象-作用域</th><td>${stats.management.environment_scope_mappings || 0}</td></tr>
-          <tr><th>LC-AP 阶段</th><td>${stats.lifecycle.application_processes || 0}</td><th>LC-DT 过程</th><td>${stats.lifecycle.data_processes || 0}</td></tr>
+          <tr><th>能力关注点</th><td>${stats.capability.capability_focus || stats.capability.focuses || 0}</td><th>关注点-作用域</th><td>${stats.capability.scope_type || stats.capability.focus_scope_mappings || 0}</td></tr>
+          <tr><th>信息化对象</th><td>${stats.environment.information_object || stats.environment.information_objects || 0}</td><th>对象-关系</th><td>${stats.environment.relations || stats.environment.environment_scope_mappings || 0}</td></tr>
+          <tr><th>LC-AP 阶段</th><td>${stats.lifecycle.lifecycle_stage || stats.lifecycle.application_processes || 0}</td><th>LC 关系</th><td>${stats.lifecycle.relations || stats.lifecycle.data_processes || 0}</td></tr>
           <tr><th>Draw.io 图</th><td>${stats.content.diagram_views || 0}</td><th>PPT 页</th><td>${stats.content.guide_pages || 0}</td></tr>
         </tbody>
       </table>
@@ -371,15 +629,41 @@ function applyRouteTarget(target = {}) {
   if (target.contentPage) {
     state.activeContentPage = target.contentPage;
     state.selectedContentId = null;
+    state.selectedContentSlideIndex = 0;
   }
 }
 
-function activateRoute(route) {
+function normalizeAppRoute(route) {
+  const value = text(route).trim();
+  if (!value) return "/";
+  const withoutHash = value.startsWith("#") ? value.slice(1) : value;
+  const withoutQuery = withoutHash.split("?")[0];
+  const normalized = withoutQuery.startsWith("/") ? withoutQuery : `/${withoutQuery}`;
+  return normalized.replace(/\/+$/, "") || "/";
+}
+
+function routeFromBrowserLocation() {
+  const hashRoute = normalizeAppRoute(window.location.hash || "");
+  if (hashRoute !== "/") return hashRoute;
+  return normalizeAppRoute(window.location.pathname || "/");
+}
+
+function syncBrowserRoute(route, { replace = false } = {}) {
+  const normalized = normalizeAppRoute(route);
+  const nextHash = normalized === "/" ? "" : `#${normalized}`;
+  if (window.location.hash === nextHash) return;
+  const nextUrl = `${window.location.pathname}${window.location.search}${nextHash}`;
+  if (replace) window.history.replaceState({ route: normalized }, "", nextUrl);
+  else window.history.pushState({ route: normalized }, "", nextUrl);
+}
+
+function activateRoute(route, options = {}) {
   const components = window.sapdComponents || {};
-  const target = components.AppShell?.getRouteTarget?.(route) || { route: "/", view: "overview" };
+  const target = components.AppShell?.getRouteTarget?.(normalizeAppRoute(route)) || { route: "/", view: "overview" };
   state.activeRoute = target.route || "/";
   applyRouteTarget(target);
-  setActiveView(target.view || "overview");
+  setActiveView(target.view || "overview", { syncRoute: false });
+  if (!options.fromBrowser) syncBrowserRoute(state.activeRoute, { replace: Boolean(options.replace) });
 }
 
 function routeForCurrentState(view = state.activeView) {
@@ -388,19 +672,19 @@ function routeForCurrentState(view = state.activeView) {
     components.AppShell?.routeForView?.({
       view,
       activeMaintenancePage: state.activeMaintenancePage,
+      activeReferenceTab: state.activeReferenceTab,
       activeContentPage: state.activeContentPage,
       activeStandardFramework: state.activeStandardFramework,
     }) || "/"
   );
 }
 
-function updateStandardPageHeaderCount() {
+function updatePageHeaderSummary() {
   const countNode = $("pageHeaderCount");
   if (!countNode) return;
-  const isStandardsPage = state.activeView === "maintenance" && state.activeMaintenancePage === "standards";
-  const badges = list(state.standardHeaderSummary);
-  const note = text(state.standardHeaderNote);
-  countNode.hidden = !isStandardsPage || (!badges.length && !note);
+  const badges = list(state.pageHeaderSummary);
+  const note = text(state.pageHeaderNote);
+  countNode.hidden = !badges.length && !note;
   countNode.innerHTML = [
     ...badges.map(
       (badge) =>
@@ -413,7 +697,7 @@ function updateStandardPageHeaderCount() {
 function updateApplicationShellChrome() {
   const components = window.sapdComponents || {};
   components.AppShell?.updateApplicationShell?.({ activeRoute: state.activeRoute, activeView: state.activeView });
-  updateStandardPageHeaderCount();
+  updatePageHeaderSummary();
 }
 
 function applyCapabilityCatalogState() {
@@ -422,10 +706,10 @@ function applyCapabilityCatalogState() {
   if (workspace) {
     const hasResizer = Boolean(workspace.querySelector(".workspace-resizer"));
     if (hasResizer) {
-      workspace.style.gridTemplateColumns = state.capabilityCatalogCollapsed ? "0 minmax(0, 1fr)" : "250px 6px minmax(760px, 1fr)";
-      workspace._paneWidths = state.capabilityCatalogCollapsed ? [0, Math.max(0, workspace.clientWidth)] : [250, Math.max(760, workspace.clientWidth - 256)];
+      workspace.style.gridTemplateColumns = state.capabilityCatalogCollapsed ? "0 minmax(0, 1fr)" : "300px 6px minmax(760px, 1fr)";
+      workspace._paneWidths = state.capabilityCatalogCollapsed ? [0, Math.max(0, workspace.clientWidth)] : [300, Math.max(760, workspace.clientWidth - 306)];
     } else {
-      workspace.style.gridTemplateColumns = state.capabilityCatalogCollapsed ? "0 minmax(0, 1fr)" : "250px minmax(760px, 1fr)";
+      workspace.style.gridTemplateColumns = state.capabilityCatalogCollapsed ? "0 minmax(0, 1fr)" : "300px minmax(760px, 1fr)";
       workspace._paneWidths = null;
     }
   }
@@ -463,6 +747,12 @@ function renderCapabilities() {
   const viewModels = window.sapdViewModels;
   const components = window.sapdComponents || {};
   ensureCapabilityCatalogToggle();
+  if (!state.loadedPackages.has("capability") || !state.loadedPackages.has("capabilityWorkbench")) {
+    setHtml("tree", emptyState("正在加载安全能力数据"));
+    setHtml("capabilityFocusHeader", "");
+    setHtml("detail", emptyState("正在加载安全能力映射数据", "当前页面优先加载，完成后会自动显示。"));
+    return;
+  }
   if (!viewModels?.buildCapabilityWorkspaceViewModel) {
     setHtml("detail", emptyState("能力视图模型未加载"));
     return;
@@ -475,12 +765,16 @@ function renderCapabilities() {
     capabilityWorkbenchViewModel,
     capabilityTree: state.capability,
     capabilityProjection: state.capabilityProjection,
-    management: state.management,
+    management: mergeSharedLookups(state.maintenanceKnowledge),
     selectedCapabilityId: state.selectedCapabilityId,
     search: state.search,
     relationshipFilters: state.relationshipFilters,
   });
+  const hadSelectedCapability = Boolean(state.selectedCapabilityId);
   if (!state.selectedCapabilityId) state.selectedCapabilityId = viewModel.selectedCapability?.id || null;
+  if (!hadSelectedCapability && viewModel.selectedCapability?.type === "capability_category" && state.selectedCapabilityId) {
+    capabilityCategoryIds().forEach((id) => state.expandedCapabilityIds.add(id));
+  }
   if (state.selectedCapabilityId && state.expandedSelectionId !== state.selectedCapabilityId) {
     capabilityAncestorIds(state.selectedCapabilityId).forEach((id) => state.expandedCapabilityIds.add(id));
     state.expandedSelectionId = state.selectedCapabilityId;
@@ -514,6 +808,7 @@ function renderCapabilities() {
           focusOverview: viewModel.focusOverview,
           technicalMappingRows: viewModel.technicalMappingRows,
           managementMappingRows: viewModel.managementMappingRows,
+          standardMappingRows: viewModel.standardMappingRows,
         }) || emptyState("局部关系图组件未加载")
       }
     `,
@@ -524,6 +819,12 @@ function renderCapabilities() {
 function renderEnvironment() {
   const viewModels = window.sapdViewModels;
   const components = window.sapdComponents || {};
+  if (!state.loadedPackages.has("environmentWorkbench")) {
+    setText("environmentCount", 0);
+    setHtml("environmentTree", emptyState("正在加载信息化环境数据"));
+    setHtml("environmentDetail", emptyState("正在加载信息化环境映射数据", "当前页面优先加载，完成后会自动显示。"));
+    return;
+  }
   if (!viewModels?.buildEnvironmentWorkspaceViewModel) {
     setHtml("environmentDetail", emptyState("信息化环境视图模型未加载"));
     return;
@@ -534,9 +835,10 @@ function renderEnvironment() {
   const viewModel = viewModels.buildEnvironmentWorkspaceViewModel({
     environmentWorkbench: state.environmentWorkbench,
     environmentWorkbenchViewModel,
-    management: state.management,
+    management: null,
     selectedObjectId: state.selectedEnvironmentObjectId,
     selectedEnvironmentId: state.selectedEnvironmentId,
+    selectedSegmentId: state.selectedEnvironmentSegmentId,
     search: state.search,
   });
   if (viewModel.selectedEnvironment?.id && state.selectedEnvironmentId !== viewModel.selectedEnvironment.id) {
@@ -545,12 +847,16 @@ function renderEnvironment() {
   if (viewModel.selectedObject?.id && state.selectedEnvironmentObjectId !== viewModel.selectedObject.id) {
     state.selectedEnvironmentObjectId = viewModel.selectedObject.id;
   }
+  if (viewModel.selectedSegment?.id && state.selectedEnvironmentSegmentId !== viewModel.selectedSegment.id) {
+    state.selectedEnvironmentSegmentId = viewModel.selectedSegment.id;
+  }
   setText("environmentCount", viewModel.relationshipSummary.objectCount || 0);
   setHtml(
     "environmentTree",
     components.EnvironmentTree?.render({
       navigationTree: viewModel.navigationTree,
       selectedEnvironmentId: state.selectedEnvironmentId,
+      selectedSegmentId: state.selectedEnvironmentSegmentId,
       selectedObjectId: state.selectedEnvironmentObjectId,
     }) || emptyState("环境对象树组件未加载"),
   );
@@ -562,8 +868,9 @@ function renderEnvironment() {
     "environmentDetail",
     `
       ${components.EnvironmentRelationshipOverview?.render({ viewModel }) || emptyState("环境概览组件未加载")}
+      ${components.EnvironmentLocalRelationMap?.render({ viewModel }) || emptyState("环境图谱组件未加载")}
       ${components.EnvironmentScopeServiceMatrix?.render({ rows: viewModel.scopeServiceRows, showObjectColumn: viewModel.detailPanel?.showObjectColumn, selectedRowId: state.selectedEnvironmentRowId }) || emptyState("环境映射表组件未加载")}
-      ${components.EnvironmentDetailPanel?.render({ localRelationNotes: viewModel.localRelationNotes, sourceEvidence: viewModel.sourceEvidence }) || ""}
+      ${components.EnvironmentDetailPanel?.render({ localRelationNotes: viewModel.localRelationNotes }) || ""}
     `,
   );
 }
@@ -576,6 +883,14 @@ function renderLifecycle(kind) {
     const devDetailPane = devWorkspace?.querySelector(".lifecycle-detail-pane");
     devWorkspace?.classList.add("dev-lifecycle-workspace");
     devDetailPane?.classList.add("is-hidden");
+    if (!state.loadedPackages.has("lifecycleWorkbench")) {
+      setText("devLifecycleCount", 0);
+      setText("devLifecycleType", "LC-AP");
+      setHtml("devLifecycleNav", emptyState("正在加载开发安全生命周期数据"));
+      setHtml("devLifecycleLane", emptyState("正在加载开发安全生命周期关系数据", "当前页面优先加载，完成后会自动显示。"));
+      setHtml("devLifecycleDetail", "");
+      return;
+    }
     if (!viewModels?.buildApplicationSecurityLifecycleViewModel) {
       setHtml("devLifecycleDetail", emptyState("安全开发视图模型未加载"));
       return;
@@ -606,10 +921,17 @@ function renderLifecycle(kind) {
         ${components.ApplicationSecurityLifecycle?.renderStageOverview(viewModel) || ""}
         ${components.ApplicationSecurityLifecycle?.renderRelationTable({ rows: viewModel.relationRows }) || ""}
         ${components.ApplicationSecurityLifecycle?.renderLocalRelationNotes(viewModel.localRelationNotes) || ""}
-        ${components.SourceEvidencePanel ? components.SourceEvidencePanel.render(viewModel.sourceEvidence) : ""}
       `,
     );
     setHtml("devLifecycleDetail", "");
+    return;
+  }
+  if (kind === "data" && !state.loadedPackages.has("lifecycle")) {
+    setText("dataLifecycleCount", 0);
+    setText("dataLifecycleType", "LC-DT");
+    setHtml("dataLifecycleNav", emptyState("正在加载数据生命周期数据"));
+    setHtml("dataLifecycleMatrix", emptyState("正在加载数据生命周期关系数据", "当前页面优先加载，完成后会自动显示。"));
+    setHtml("dataLifecycleDetail", "");
     return;
   }
   const processes = lifecycleProcesses(kind).filter((process) => matchesSearch(process.title, process.description, process.goal));
@@ -658,13 +980,55 @@ function renderLifecycle(kind) {
 function renderMaintenance() {
   const viewModels = window.sapdViewModels;
   const components = window.sapdComponents || {};
+  const dataClient = window.sapdDataClient;
+  if (state.activeMaintenancePage === "standards" && !state.loadedPackages.has("standards")) {
+    setText("sourcePageTitle", "标准 / 框架");
+    setText("sourcePageCount", 0);
+    setHtml("maintenanceNavigation", "");
+    setHtml("sourceList", `<div class="maintenance-empty-state">正在加载标准 / 框架索引...</div>`);
+    setText("sourceDetailType", "");
+    setHtml("sourceDetail", "");
+    return;
+  }
+  if (state.activeMaintenancePage !== "standards" && !state.loadedPackages.has("maintenanceKnowledge")) {
+    setText("sourcePageTitle", "安全知识");
+    setText("sourcePageCount", 0);
+    setHtml("maintenanceNavigation", "");
+    setHtml("sourceList", `<div class="maintenance-empty-state">正在加载安全知识目录...</div>`);
+    setText("sourceDetailType", "");
+    setHtml("sourceDetail", "");
+    return;
+  }
   if (!viewModels?.buildMaintenanceWorkspaceViewModel) {
     setHtml("sourceList", emptyState("专项维护视图模型未加载"));
     return;
   }
+  if (state.activeMaintenancePage === "standards" && dataClient?.getStandardFramework) {
+    const frameworkId = state.activeStandardFramework || "mlps-level-3";
+    const loadedFramework = state.standards?.loadedFrameworks?.[frameworkId];
+    if (!loadedFramework) {
+      setHtml("sourceList", `<div class="maintenance-empty-state">正在加载 ${escapeHtml(frameworkId)} 标准 / 框架数据...</div>`);
+      const existingLoad = state.standardFrameworkLoads.get(frameworkId);
+      const loadPromise =
+        existingLoad ||
+        dataClient.getStandardFramework(frameworkId).then((envelope) => {
+          state.standards = {
+            ...(state.standards || {}),
+            loadedFrameworks: {
+              ...(state.standards?.loadedFrameworks || {}),
+              [frameworkId]: envelope.data,
+            },
+          };
+          state.standardFrameworkLoads.delete(frameworkId);
+          if (state.activeMaintenancePage === "standards" && state.activeStandardFramework === frameworkId) renderMaintenance();
+        });
+      state.standardFrameworkLoads.set(frameworkId, loadPromise);
+      return;
+    }
+  }
   const viewModel = viewModels.buildMaintenanceWorkspaceViewModel({
     capabilityTree: state.capability,
-    management: state.maintenanceKnowledge || state.management,
+    management: mergeSharedLookups(state.maintenanceKnowledge),
     lifecycle: state.lifecycle,
     standards: state.standards,
     section: state.activeMaintenancePage,
@@ -677,12 +1041,15 @@ function renderMaintenance() {
   state.activeReferenceTab = viewModel.referenceTab || state.activeReferenceTab;
   state.selectedMaintenanceId = viewModel.selectedId;
   const standardsMode = viewModel.section === "standards";
-  state.standardHeaderSummary = standardsMode ? list(viewModel.summaryBadges) : [];
-  state.standardHeaderNote = standardsMode ? text(viewModel.summaryNote) : "";
+  const knowledgeDirectoryMode = !standardsMode;
+  state.pageHeaderSummary = standardsMode ? list(viewModel.summaryBadges) : maintenanceHeaderSummary(viewModel);
+  state.pageHeaderNote = standardsMode ? text(viewModel.summaryNote) : "";
   $("maintenanceWorkspace")?.classList.toggle("standards-mode", standardsMode);
-  $("sourceNavPane")?.classList.toggle("is-hidden", standardsMode);
-  $("sourceDetailPane")?.classList.toggle("is-hidden", standardsMode);
-  updateStandardPageHeaderCount();
+  $("maintenanceWorkspace")?.classList.toggle("knowledge-directory-mode", knowledgeDirectoryMode);
+  $("maintenanceWorkspace")?.classList.toggle("short-maintenance-table", knowledgeDirectoryMode && list(viewModel.rows).length > 0 && list(viewModel.rows).length <= 12);
+  $("sourceNavPane")?.classList.toggle("is-hidden", standardsMode || knowledgeDirectoryMode);
+  $("sourceDetailPane")?.classList.toggle("is-hidden", standardsMode || knowledgeDirectoryMode);
+  updatePageHeaderSummary();
   setHtml("maintenanceNavigation", components.MaintenanceNavigation?.render({ navigationItems: viewModel.navigationItems }) || "");
   setText("sourcePageTitle", standardsMode ? viewModel.activeFrameworkTitle || "标准/框架清单" : viewModel.page?.title || "专项知识维护");
   setText("sourcePageCount", viewModel.rows.length);
@@ -733,9 +1100,10 @@ function renderMaintenance() {
     `
       ${standardsMode ? "" : components.MaintenanceShell?.render({ viewModel }) || ""}
       ${tableHtml || ""}
+      ${knowledgeDirectoryMode && viewModel.rows.length ? `<div class="maintenance-table-endcap">已显示全部 ${escapeHtml(viewModel.rows.length)} 条记录</div>` : ""}
     `,
   );
-  if (standardsMode) {
+  if (standardsMode || knowledgeDirectoryMode) {
     setText("sourceDetailType", "");
     setHtml("sourceDetail", "");
   } else {
@@ -745,6 +1113,31 @@ function renderMaintenance() {
       components.MaintenanceDetailPanel?.render({ detailPanel: viewModel.detailPanel }) || emptyState("请选择专项对象"),
     );
   }
+}
+
+function maintenanceHeaderSummary(viewModel) {
+  const navigationCounts = Object.fromEntries(list(viewModel.navigationItems).map((item) => [item.id, Number(item.count) || 0]));
+  const sectionTabCounts = Object.fromEntries(list(viewModel.sectionTabs).map((tab) => [tab.id, Number(tab.count) || 0]));
+  const counts = { ...navigationCounts, ...sectionTabCounts };
+  const labels = {
+    scopes: ["作用域", "个"],
+    modules: ["技术模块", "个"],
+    measures: ["技术措施", "项"],
+    "security-works": ["安全工作", "项"],
+    processes: ["流程", "条"],
+    "work-functions": ["安全职能", "个"],
+    references: ["岗位 / 职能参考", "条"],
+    "references-gbt": ["GB/T 任务参考", "条"],
+    "references-gartner": ["Gartner 岗位参考", "条"],
+  };
+  const tabIds = list(viewModel.sectionTabs).map((tab) => tab.id);
+  const ids = tabIds.length ? tabIds : [viewModel.section];
+  return ids
+    .map((id) => {
+      const [label, unit] = labels[id] || [id, ""];
+      return { value: counts[id] ?? list(viewModel.rows).length, label, unit };
+    })
+    .filter((badge) => badge.value || badge.value === 0);
 }
 
 function visibleWorkspaceElements() {
@@ -780,7 +1173,7 @@ function defaultWorkspaceWidths(workspace, panes) {
   const handlesWidth = 6 * (panes.length - 1);
   const total = Math.max(480, workspace.clientWidth - handlesWidth);
   const rest = (...fixed) => Math.max(220, total - fixed.reduce((sum, value) => sum + value, 0));
-  if (workspace.id === "capabilityWorkspace") return [250, rest(250)];
+  if (workspace.id === "capabilityWorkspace") return [300, rest(300)];
   if (workspace.id === "environmentWorkspace") return [300, rest(300)];
   if (workspace.id === "devLifecycleWorkspace" && panes.length === 2) return [300, rest(300)];
   if (workspace.id === "devLifecycleWorkspace" || workspace.id === "dataLifecycleWorkspace") return [270, rest(270, 220), 220];
@@ -799,6 +1192,7 @@ function defaultWorkspaceWidths(workspace, panes) {
 
 function ensureWorkspaceResizable(workspace) {
   if (workspace.classList.contains("is-hidden") || workspace.clientWidth <= 0) return;
+  if (workspace.id === "contentWorkspace" && workspace.classList.contains("guide-slide-layout")) return;
   const panes = workspacePanes(workspace);
   if (panes.length < 2) return;
   workspace.classList.add("is-resizable");
@@ -877,30 +1271,86 @@ function beginRelationshipColumnResize(event, handle) {
 }
 
 function renderContent() {
+  const navList = $("contentNavList");
+  const previousThumbScrollTop = navList?.scrollTop || 0;
+  const requiredGuidePackage = GUIDE_ROUTE_PACKAGES[state.activeRoute];
+  if (!state.loadedPackages.has("content") || (requiredGuidePackage && !state.loadedPackages.has(requiredGuidePackage))) {
+    setText("contentNavTitle", "幻灯片目录");
+    setText("contentPageTitle", "安全指南");
+    setText("contentPageCount", 0);
+    setHtml("contentNavList", emptyState("正在加载指南目录"));
+    setHtml("contentList", emptyState("正在加载指南内容", "当前页面优先加载，完成后会自动显示。"));
+    setText("contentDetailType", "");
+    setHtml("contentDetail", "");
+    return;
+  }
   const rows = contentRows().filter((row) => matchesSearch(row.title, row.category, row.view_type, row.content));
+  const isSpecificGuideRoute = state.activeRoute.startsWith("/guides/") && state.activeRoute !== "/guides/others";
   if (!state.selectedContentId || !rows.some((row) => row.id === state.selectedContentId)) state.selectedContentId = rows[0]?.id || null;
+  if (!state.selectedContentId) state.selectedContentSlideIndex = 0;
   const titles = { html: "HTML 知识说明", drawio: "Draw.io 只读图", ppt: "PPT 使用说明" };
-  setText("contentPageTitle", titles[state.activeContentPage]);
-  setText("contentPageCount", rows.length);
-  setText("htmlDocCount", list(state.content?.html_documents).length);
-  setText("drawioViewCount", list(state.content?.diagram_views).length);
-  setText("pptGuideCount", list(state.content?.guide_pages).length);
+  const selected = rows.find((row) => row.id === state.selectedContentId);
+  const selectedSlides = contentSlides(selected);
+  const workspace = $("contentWorkspace");
+  const detailPane = document.querySelector(".content-detail-pane");
+  const isSlideDeck = selectedSlides.length > 0;
+  workspace?.classList.toggle("guide-slide-layout", isSlideDeck);
+  detailPane?.classList.toggle("is-hidden", isSlideDeck);
+  if (isSpecificGuideRoute && !rows.length) detailPane?.classList.add("is-hidden");
+  if (workspace && isSlideDeck) {
+    workspace.querySelectorAll(":scope > .workspace-resizer").forEach((handle) => handle.remove());
+    workspace.classList.remove("is-resizable");
+    workspace.dataset.resizableReady = "";
+    workspace.style.gridTemplateColumns = "";
+    workspace._paneWidths = null;
+  }
+  setText("contentNavTitle", isSlideDeck || isSpecificGuideRoute ? "幻灯片目录" : "说明与视图");
+  setText("contentPageTitle", selected?.title || titles[state.activeContentPage]);
+  setText("contentPageCount", selectedSlides.length || rows.length);
+  setHtml(
+    "contentNavList",
+    isSlideDeck
+      ? renderSlidePreviewRail(selected)
+      : isSpecificGuideRoute && !rows.length
+        ? emptyState("暂无页面预览", "该指南内容待补充。")
+      : `
+        <button id="htmlDocsTab" class="source-nav-button ${state.activeContentPage === "html" ? "active" : ""}" type="button" data-content-page="html">
+          <span>HTML 知识说明</span>
+          <strong>${list(state.content?.html_documents).length}</strong>
+        </button>
+        <button id="drawioViewsTab" class="source-nav-button ${state.activeContentPage === "drawio" ? "active" : ""}" type="button" data-content-page="drawio">
+          <span>Draw.io 只读图</span>
+          <strong>${list(state.content?.diagram_views).length}</strong>
+        </button>
+        <button id="pptGuideTab" class="source-nav-button ${state.activeContentPage === "ppt" ? "active" : ""}" type="button" data-content-page="ppt">
+          <span>PPT 使用说明</span>
+          <strong>${list(state.content?.guide_pages).length}</strong>
+        </button>
+      `,
+  );
   setHtml(
     "contentList",
-    rows.map((row) => `<button class="catalog-row ${row.id === state.selectedContentId ? "active" : ""}" type="button" data-content-id="${escapeHtml(row.id)}"><span class="catalog-main"><strong>${escapeHtml(row.title || "未命名内容")}</strong><small>${escapeHtml(row.view_type || row.category || "")}</small></span><span class="catalog-meta"><span>${escapeHtml(row.slide_number || row.page_index || row.updated_at || "")}</span></span></button>`).join("") || emptyState("暂无内容视图", "HTML / Draw.io / PPT 已预留入口"),
+    isSlideDeck
+      ? renderSlideDeck(selected)
+      : isSpecificGuideRoute && !rows.length
+        ? emptyState("暂无指南内容", "当前二级页面已预留，尚未绑定数据包。")
+      : rows.map((row) => `<button class="catalog-row ${row.id === state.selectedContentId ? "active" : ""}" type="button" data-content-id="${escapeHtml(row.id)}"><span class="catalog-main"><strong>${escapeHtml(row.title || "未命名内容")}</strong><small>${escapeHtml(row.view_type || row.category || "")}</small></span><span class="catalog-meta"><span>${escapeHtml(row.slide_number || row.page_index || row.updated_at || "")}</span></span></button>`).join("") || emptyState("暂无内容视图", "HTML / Draw.io / PPT 已预留入口"),
   );
-  const selected = rows.find((row) => row.id === state.selectedContentId);
-  setText("contentDetailType", state.activeContentPage);
-  setHtml(
-    "contentDetail",
-    selected
-      ? `
-        <div class="source-entity-code">${escapeHtml(selected.view_type || selected.category || "内容")}</div>
-        <h2 class="source-entity-title">${escapeHtml(selected.title || "未命名内容")}</h2>
-        <p class="source-entity-desc">${escapeHtml(selected.content || selected.note || selected.drawio_path || selected.preview_path || "首版为索引占位，后续补充预览内容。")}</p>
-      `
-      : emptyState("请选择内容"),
-  );
+  if (isSlideDeck) {
+    requestAnimationFrame(() => {
+      const rail = $("contentNavList");
+      if (!rail) return;
+      if (state.contentSlideScrollMode === "active") {
+        rail.querySelector(".guide-thumb.active")?.scrollIntoView({ block: "nearest", inline: "nearest" });
+      } else {
+        rail.scrollTop = previousThumbScrollTop;
+      }
+      state.contentSlideScrollMode = "preserve";
+    });
+  }
+  const typeLabels = { slide_deck: "幻灯片", html: "HTML", drawio: "Draw.io", ppt: "PPT" };
+  setText("contentDetailType", typeLabels[selected?.view_type] || typeLabels[state.activeContentPage] || selected?.view_type || state.activeContentPage);
+  setHtml("contentDetail", renderContentDetail(selected));
 }
 
 function renderActiveView() {
@@ -914,7 +1364,13 @@ function renderActiveView() {
   if (state.activeView === "content") renderContent();
 }
 
-function setActiveView(view) {
+function setActiveView(view, options = {}) {
+  const previousView = state.activeView;
+  if (view === "capabilities" && previousView !== "capabilities") {
+    state.selectedCapabilityId = null;
+    state.expandedCapabilityIds = new Set();
+    state.expandedSelectionId = null;
+  }
   state.activeView = view;
   document.body.dataset.activeView = view;
   for (const button of document.querySelectorAll(".module-tab")) {
@@ -935,6 +1391,11 @@ function setActiveView(view) {
   renderActiveView();
   setupResizableWorkspaces();
   if (view === "capabilities") applyCapabilityCatalogState();
+  if (options.syncRoute !== false) {
+    state.activeRoute = routeForCurrentState(view);
+    syncBrowserRoute(state.activeRoute, { replace: Boolean(options.replaceRoute) });
+  }
+  ensureRoutePackages();
   updateApplicationShellChrome();
 }
 
@@ -1011,9 +1472,11 @@ function bindEvents() {
   });
   $("environmentTree")?.addEventListener("click", (event) => {
     const objectRow = event.target.closest("[data-environment-object-id]");
+    const segmentRow = event.target.closest("[data-environment-segment-id]");
     const environmentRow = event.target.closest("[data-environment-id]");
-    if (!objectRow && !environmentRow) return;
+    if (!objectRow && !segmentRow && !environmentRow) return;
     state.selectedEnvironmentId = environmentRow?.dataset.environmentId || null;
+    state.selectedEnvironmentSegmentId = segmentRow?.dataset.environmentSegmentId || null;
     state.selectedEnvironmentObjectId = objectRow?.dataset.environmentObjectId || null;
     state.selectedEnvironmentRowId = null;
     renderEnvironment();
@@ -1029,15 +1492,19 @@ function bindEvents() {
     state.search = event.target.value.trim();
     renderMaintenance();
   });
-  $("maintenanceNavigation")?.addEventListener("click", (event) => {
+  document.addEventListener("click", (event) => {
     const button = event.target.closest("[data-source-page]");
     if (!button) return;
+    if (!button.closest("#maintenanceWorkspace")) return;
     state.activeMaintenancePage = button.dataset.sourcePage;
+    if (button.dataset.referenceTab) state.activeReferenceTab = button.dataset.referenceTab;
     state.activeRoute = routeForCurrentState("maintenance");
     if (state.activeMaintenancePage === "references" && !state.activeReferenceTab) state.activeReferenceTab = "gbt";
     if (state.activeMaintenancePage === "standards") state.activeRoute = `/standards/${state.activeStandardFramework}`;
     state.selectedMaintenanceId = null;
     renderMaintenance();
+    syncBrowserRoute(state.activeRoute);
+    ensureRoutePackages();
     updateApplicationShellChrome();
   });
   $("sourceList")?.addEventListener("click", (event) => {
@@ -1057,6 +1524,15 @@ function bindEvents() {
     const handle = event.target.closest(".workspace-resizer");
     if (handle) beginWorkspaceResize(event, handle);
   });
+  document.addEventListener("keydown", (event) => {
+    if (state.activeView !== "content") return;
+    if (!["ArrowUp", "ArrowDown"].includes(event.key)) return;
+    if (event.target?.matches?.("input, textarea, select, [contenteditable='true']")) return;
+    const selected = contentRows().find((row) => row.id === state.selectedContentId);
+    if (!contentSlides(selected).length) return;
+    event.preventDefault();
+    changeContentSlide(event.key === "ArrowDown" ? 1 : -1, "active");
+  });
   document.querySelectorAll("[data-lifecycle-kind]").forEach((button) => {
     button.addEventListener("click", () => {});
   });
@@ -1072,74 +1548,62 @@ function bindEvents() {
       if (lifecycle.dataset.lifecycleKind === "data") state.selectedDataProcessId = lifecycle.dataset.lifecycleId;
       renderLifecycle(lifecycle.dataset.lifecycleKind);
     }
+    const contentPage = event.target.closest("[data-content-page]");
+    if (contentPage && contentPage.closest("#contentWorkspace")) {
+      state.activeContentPage = contentPage.dataset.contentPage;
+      state.activeRoute = routeForCurrentState("content");
+      state.selectedContentId = null;
+      state.selectedContentSlideIndex = 0;
+      renderContent();
+      syncBrowserRoute(state.activeRoute);
+      ensureRoutePackages();
+      updateApplicationShellChrome();
+      return;
+    }
+    const slideStep = event.target.closest("[data-content-slide-step]");
+    if (slideStep) {
+      slideStep.blur();
+      changeContentSlide(Number(slideStep.dataset.contentSlideStep || 0), "active");
+      return;
+    }
+    const slideThumb = event.target.closest("[data-content-slide-index]");
+    if (slideThumb) {
+      state.selectedContentSlideIndex = Number(slideThumb.dataset.contentSlideIndex || 0);
+      state.contentSlideScrollMode = "preserve";
+      renderContent();
+      return;
+    }
     const content = event.target.closest("[data-content-id]");
     if (content) {
       state.selectedContentId = content.dataset.contentId;
+      state.selectedContentSlideIndex = 0;
       renderContent();
     }
   });
-  document.querySelectorAll("[data-content-page]").forEach((button) =>
-    button.addEventListener("click", () => {
-      state.activeContentPage = button.dataset.contentPage;
-      state.activeRoute = routeForCurrentState("content");
-      state.selectedContentId = null;
-      document.querySelectorAll("[data-content-page]").forEach((item) => item.classList.toggle("active", item === button));
-      renderContent();
-      updateApplicationShellChrome();
-    }),
-  );
+  document.addEventListener("mouseleave", (event) => {
+    const stage = event.target.closest?.(".guide-slide-stage");
+    if (!stage) return;
+    if (stage.contains(document.activeElement)) document.activeElement.blur?.();
+  }, true);
 }
 
 async function init() {
   const dataClient = window.sapdDataClient;
   if (!dataClient) throw new Error("SAPD Wiki dataClient 未加载");
-  await loadScriptOnce("./models/relationGraphModel.js?v=capability-graph-strategy-20260520-1", () => Boolean(window.sapdModels?.buildLocalRelationGraphModel));
-  await loadScriptOnce("./components/LocalRelationNetworkGraph.js?v=capability-graph-strategy-20260520-1", () => Boolean(window.sapdComponents?.LocalRelationNetworkGraph));
-  await loadScriptOnce("./components/CapabilityLocalRelationMap.js?v=capability-tab-clean-20260520-3", () => Boolean(window.sapdComponents?.CapabilityLocalRelationMap));
-  const [capability, capabilityWorkbench, environmentWorkbench, lifecycleWorkbench, capabilityProjection, maintenanceKnowledge, content, standards] = await Promise.all([
-    dataClient.getCapabilityTree(),
-    dataClient.getCapabilityWorkbench?.() || Promise.resolve({ data: null }),
-    dataClient.getEnvironmentWorkbench?.() || Promise.resolve({ data: null }),
-    dataClient.getLifecycleWorkbench?.() || Promise.resolve({ data: null }),
-    dataClient.getCapabilityWorkspaceProjection?.() || Promise.resolve({ data: null }),
-    dataClient.getMaintenanceKnowledge?.() || Promise.resolve({ data: null }),
-    dataClient.getContentViews(),
-    dataClient.getStandardFrameworks?.() || Promise.resolve({ data: null }),
-  ]);
-  state.capability = capability.data;
-  state.capabilityWorkbench = capabilityWorkbench.data;
-  state.environmentWorkbench = environmentWorkbench.data;
-  state.lifecycleWorkbench = lifecycleWorkbench.data;
-  state.capabilityProjection = capabilityProjection.data;
-  state.maintenanceKnowledge = maintenanceKnowledge.data;
-  state.content = content.data;
-  state.standards = standards.data;
+  await loadScriptOnce("./models/relationGraphModel.js?v=capability-graph-strategy-20260522-13", () => Boolean(window.sapdModels?.buildLocalRelationGraphModel));
+  await loadScriptOnce("./components/LocalRelationNetworkGraph.js?v=capability-graph-strategy-20260522-rollback-1", () => Boolean(window.sapdComponents?.LocalRelationNetworkGraph));
+  await loadScriptOnce("./components/CapabilityLocalRelationMap.js?v=capability-graph-strategy-20260521-3", () => Boolean(window.sapdComponents?.CapabilityLocalRelationMap));
+  await loadScriptOnce("./models/environmentRelationGraphModel.js?v=environment-graph-20260521-1", () => Boolean(window.sapdModels?.buildEnvironmentRelationGraphModel));
+  await loadScriptOnce("./components/EnvironmentLocalRelationMap.js?v=environment-graph-20260521-1", () => Boolean(window.sapdComponents?.EnvironmentLocalRelationMap));
   mountAppShellComponents();
   bindEvents();
-  installStandardTooltip();
-  activateRoute("/");
-  const loadHeavyPackages = () => {
-    Promise.all([
-      dataClient.getManagementKnowledge(),
-      dataClient.getLifecycleKnowledge(),
-    ])
-      .then(([management, lifecycle]) => {
-        state.management = management.data;
-        state.lifecycle = lifecycle.data;
-        renderMetrics();
-        if (["overview", "capabilities", "environment", "dev-lifecycle", "data-lifecycle", "maintenance"].includes(state.activeView)) {
-          renderActiveView();
-        }
-      })
-      .catch((error) => {
-        console.warn("大型数据包后台加载失败", error);
-      });
+  const restoreRouteFromLocation = () => {
+    activateRoute(routeFromBrowserLocation(), { fromBrowser: true });
   };
-  if (window.requestIdleCallback) {
-    window.requestIdleCallback(loadHeavyPackages, { timeout: 3000 });
-  } else {
-    window.setTimeout(loadHeavyPackages, 1200);
-  }
+  window.addEventListener("hashchange", restoreRouteFromLocation);
+  window.addEventListener("popstate", restoreRouteFromLocation);
+  activateRoute(routeFromBrowserLocation(), { replace: true });
+  scheduleOverviewWarmup();
 }
 
 init();

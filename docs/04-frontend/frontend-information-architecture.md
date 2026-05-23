@@ -269,7 +269,7 @@ L2 流程组
 数据契约：
 
 - 可继续读取 `capability-tree.json`。
-- 可继续读取 `management-knowledge.json`。
+- 专项知识读取 `maintenance-knowledge.json`，共享索引读取 `shared-lookups.json`，环境维度读取 `environment-workbench.json`。
 - 需要前端本地维护一份页面配置，或由 ETL 后续导出 `frontend-navigation.json`。
 - 通过 `dataClient` 读取，不在页面组件中散落直接 `fetch`。
 
@@ -313,13 +313,10 @@ L2 流程组
 
 当前可用数据：
 
-- `management-knowledge.json.environment_scope_tree[]`
-- `environment.objects[]`
-- `object.scope_mappings[]`
-- `scope_mappings[].services[]`
-- `services[].modules[]`
-- `modules[].systems[]`
-- `modules[].products[]`
+- `environment-workbench.json.navigator.tree`
+- `environment-workbench.json.objects`
+- `environment-workbench.json.relations`
+- `environment-workbench.json.evidenceRefs`
 
 需要补充或确认的数据契约：
 
@@ -337,13 +334,13 @@ L2 流程组
 
 当前可用数据：
 
-- `management-knowledge.json.scope_types[]`
-- `management-knowledge.json.security_processes[]`
-- `management-knowledge.json.work_function_layers[]`
-- `management-knowledge.json.security_technology_modules[]`
-- `management-knowledge.json.security_technical_measures[]`
-- `management-knowledge.json.gbt_42446_references[]`
-- `management-knowledge.json.gartner_roles[]`
+- `maintenance-knowledge.json.scope_types[]`
+- `maintenance-knowledge.json.security_processes[]`
+- `maintenance-knowledge.json.work_function_layers[]`
+- `maintenance-knowledge.json.security_technology_modules[]`
+- `maintenance-knowledge.json.security_technical_measures[]`
+- `maintenance-knowledge.json.gbt_42446_references[]`
+- `maintenance-knowledge.json.gartner_roles[]`
 
 需要补充或确认的数据契约：
 

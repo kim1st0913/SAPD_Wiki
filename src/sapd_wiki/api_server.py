@@ -16,10 +16,13 @@ DATA_PACKAGES = {
     "environment-workbench": "frontend/capability-browser/public/data/environment-workbench.json",
     "lifecycle-workbench": "frontend/capability-browser/public/data/lifecycle-workbench.json",
     "maintenance": "frontend/capability-browser/public/data/maintenance-knowledge.json",
-    "management": "frontend/capability-browser/public/data/management-knowledge.json",
+    "shared-lookups": "frontend/capability-browser/public/data/shared-lookups.json",
     "lifecycle": "frontend/capability-browser/public/data/lifecycle-knowledge.json",
     "content": "frontend/capability-browser/public/data/content-views.json",
-    "standards": "frontend/capability-browser/public/data/standards-data.json",
+    "security-architecture-design-guide": "frontend/capability-browser/public/data/guides/security-architecture-design.json",
+    "data-security-design-guide": "frontend/capability-browser/public/data/guides/data-security-design.json",
+    "standards": "frontend/capability-browser/public/data/standards-index.json",
+    "standards-index": "frontend/capability-browser/public/data/standards-index.json",
 }
 
 MAINTENANCE_SECTIONS = (
@@ -49,6 +52,8 @@ def _data_package_path(name: str) -> Path:
 
 
 def read_data_package(name: str) -> dict[str, Any]:
+    if name == "standards":
+        return read_standards_compat_package()
     path = _data_package_path(name)
     if not path.exists():
         return {"generated_at": None, "stats": {}, "__data_state": "missing_file"}
@@ -56,6 +61,66 @@ def read_data_package(name: str) -> dict[str, Any]:
     if isinstance(data, dict):
         return data
     return {"generated_at": None, "items": data}
+
+
+def _frontend_data_path(data_path: Any) -> Path | None:
+    if not data_path:
+        return None
+    normalized = str(data_path).strip()
+    if not normalized:
+        return None
+    if normalized.startswith("./"):
+        normalized = normalized[2:]
+    if normalized.startswith("public/data/"):
+        normalized = f"frontend/capability-browser/{normalized}"
+    return resolve_project_path(normalized)
+
+
+def _read_split_payload(data_path: Any) -> dict[str, Any] | None:
+    path = _frontend_data_path(data_path)
+    if not path or not path.exists():
+        return None
+    payload = _read_json(path)
+    return payload if isinstance(payload, dict) else None
+
+
+def read_standards_compat_package() -> dict[str, Any]:
+    path = _data_package_path("standards-index")
+    if not path.exists():
+        return {"generated_at": None, "stats": {}, "__data_state": "missing_file"}
+    index = _read_json(path)
+    if not isinstance(index, dict):
+        return {"generated_at": None, "stats": {}, "__data_state": "invalid_file"}
+
+    frameworks: list[dict[str, Any]] = []
+    for framework in _list(index.get("frameworks")):
+        if not isinstance(framework, dict):
+            continue
+        assembled = dict(framework)
+        payload = _read_split_payload(assembled.get("dataPath"))
+        if payload:
+            assembled.update(payload)
+            assembled["loaded"] = True
+        elif _list(assembled.get("tabs")):
+            tabs: list[dict[str, Any]] = []
+            for tab in _list(assembled.get("tabs")):
+                if not isinstance(tab, dict):
+                    continue
+                assembled_tab = dict(tab)
+                tab_payload = _read_split_payload(assembled_tab.get("dataPath"))
+                if tab_payload:
+                    assembled_tab.update(tab_payload)
+                    assembled_tab["loaded"] = True
+                tabs.append(assembled_tab)
+            assembled["tabs"] = tabs
+            assembled["loaded"] = True
+        frameworks.append(assembled)
+
+    return {
+        **index,
+        "package_type": "standards-full-compat",
+        "frameworks": frameworks,
+    }
 
 
 def create_envelope(data: Any, warnings: list[str] | None = None) -> dict[str, Any]:
@@ -547,15 +612,20 @@ def _capability_local_relation_maps(
 
 def capability_workspace_projection() -> dict[str, Any]:
     capability = read_data_package("capability")
-    management = read_data_package("management")
-    technical_rows = _capability_technical_mapping_rows(capability, management)
+    maintenance = read_data_package("maintenance")
+    shared_lookups = read_data_package("shared-lookups")
+    projection_context = {
+        "security_technical_measures": _list(maintenance.get("security_technical_measures")),
+        "service_module_index": _list(shared_lookups.get("service_module_index")),
+    }
+    technical_rows = _capability_technical_mapping_rows(capability, projection_context)
     management_rows = _capability_management_mapping_rows(capability)
     local_relation_maps = _capability_local_relation_maps(capability, technical_rows, management_rows)
     local_relation_maps_by_focus_id = {
         row["focus"]["id"]: row for row in local_relation_maps if row.get("focus", {}).get("id")
     }
     return {
-        "generated_at": capability.get("generated_at") or management.get("generated_at"),
+        "generated_at": capability.get("generated_at") or shared_lookups.get("generated_at") or maintenance.get("generated_at"),
         "data_state": "ready" if technical_rows or management_rows else "empty",
         "technicalMappingRows": technical_rows,
         "managementMappingRows": management_rows,
@@ -628,7 +698,7 @@ def _security_work_items(capability: dict[str, Any]) -> list[dict[str, Any]]:
 
 def maintenance_payload(section: str) -> dict[str, Any]:
     capability = read_data_package("capability")
-    management = read_data_package("management")
+    management = read_data_package("maintenance")
     lifecycle = read_data_package("lifecycle")
     app_security = lifecycle.get("application_security_development") or {}
     if section == "scopes":
@@ -670,12 +740,6 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args: Any, directory: str | None = None, **kwargs: Any) -> None:
         super().__init__(*args, directory=directory, **kwargs)
 
-    def end_headers(self) -> None:
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
-        super().end_headers()
-
     def do_OPTIONS(self) -> None:
         self.send_response(204)
         self.end_headers()
@@ -712,7 +776,7 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
                 return
             if path == "/api/v1/maintenance":
                 capability = read_data_package("capability")
-                management = read_data_package("management")
+                management = read_data_package("maintenance")
                 lifecycle = read_data_package("lifecycle")
                 self._send_json(create_envelope({"sections": _maintenance_navigation(capability, management, lifecycle)}))
                 return

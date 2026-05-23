@@ -1,6 +1,10 @@
 (function () {
   const components = (window.sapdComponents = window.sapdComponents || {});
   const utils = components.utils;
+  const lazyTableCache = new Map();
+  const detailTextCache = new Map();
+  let renderSerial = 0;
+  let detailSerial = 0;
 
   function cellValue(value) {
     if (value == null || value === "") return "";
@@ -42,6 +46,11 @@
             activeFrameworkId === "nist-csf-2" &&
             tableId === "csf-tiers" &&
             column === "层级"
+          ) &&
+          !(
+            activeFrameworkId === "dsp-level-2" &&
+            tableId === "dsp-scf-controls-2026" &&
+            ["SCF域", "策略原则", "策略意图"].includes(column)
           ),
       );
   }
@@ -67,16 +76,109 @@
     return [control ? `${control}.` : "", name].filter(Boolean).join(" ");
   }
 
+  function scfGroupLabel(values) {
+    return cellValue(values["SCF域"]).replace(/\s+/g, " ").trim();
+  }
+
+  function scfGroupDescription(values) {
+    const principle = cellValue(values["策略原则"]).trim();
+    const intent = cellValue(values["策略意图"]).trim();
+    return [
+      principle ? `策略原则：${principle}` : "",
+      intent ? `策略意图：${intent}` : "",
+    ]
+      .filter(Boolean)
+      .join(" · ");
+  }
+
+  function columnSlug(column) {
+    const known = {
+      "关联安全能力/关注点": "related-focus",
+      "等保三级控制要求": "mlps-control-requirement",
+      "分类标识符说明": "csf-category-description",
+      "控制描述": "control-description",
+      "控制项描述": "control-description",
+      "SCF控制项描述": "control-description",
+      "保障措施描述": "control-description",
+      "描述": "control-description",
+      "安全策略编号": "control-code",
+      "安全控制项": "control-title",
+      "SCF编号": "control-code",
+      "SCF控制项": "control-title",
+      "控制编号": "control-code",
+      "控制名称": "control-title",
+      "Safeguard ID": "control-code",
+      "保护措施编号": "control-code",
+      "名称": "control-title",
+      "安全级别": "compact-status",
+      "安全类型（O=组织层面控制，S=系统层面控制，O/S=组织和系统均涉及）": "compact-status",
+      "实施组": "compact-status",
+      "安全功能": "compact-status",
+      "资产类型": "compact-status",
+      "NIST CSF功能分组": "compact-status",
+      "CRF成熟度等级": "compact-status",
+      "保障措施系统": "compact-status",
+    };
+    if (known[column]) return known[column];
+    return cellValue(column)
+      .toLowerCase()
+      .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 48);
+  }
+
+  function columnClass(column) {
+    return `standard-column standard-column-${columnSlug(column)}`;
+  }
+
   function renderHeaderCell(activeFrameworkId, column) {
     if (activeFrameworkId === "nist-800-53-rev5" && column.startsWith("安全类型（")) {
       return `
-        <th class="nist-security-type-heading">
+        <th class="${columnClass(column)} nist-security-type-heading" data-column="${utils.escapeHtml(column)}" title="O=组织层面控制；S=系统层面控制；O/S=组织和系统均涉及">
           <span>安全类型</span>
-          <small>O=组织层面控制<br>S=系统层面控制<br>O/S=组织和系统均涉及</small>
         </th>
       `;
     }
-    return `<th>${utils.escapeHtml(column)}</th>`;
+    return `<th class="${columnClass(column)}" data-column="${utils.escapeHtml(column)}">${utils.escapeHtml(column)}</th>`;
+  }
+
+  function isDspMaturityColumn(activeFrameworkId, tableId, column) {
+    return activeFrameworkId === "dsp-level-2" && tableId === "dsp-scf-maturity-2026" && column.startsWith("SCR-CMM ");
+  }
+
+  function compactLongText(value, maxLength = 92) {
+    const text = cellValue(value).replace(/\s+/g, " ").trim();
+    if (text.length <= maxLength) return text;
+    return `${text.slice(0, maxLength).trim()}...`;
+  }
+
+  function codeWithBreaks(value) {
+    return utils.escapeHtml(cellValue(value)).replace(/([.\/:：-])/g, "$1<wbr>").replace(/(\s+)/g, "$1<wbr>");
+  }
+
+  function translateSecurityFunction(value) {
+    const map = {
+      govern: "治理",
+      identify: "识别",
+      protect: "保护",
+      detect: "检测",
+      respond: "响应",
+      recover: "恢复",
+    };
+    return cellValue(value).replace(/\b(Govern|Identify|Protect|Detect|Respond|Recover)\b/gi, (match) => map[match.toLowerCase()] || match);
+  }
+
+  function tableDataRows(table, frameworkId) {
+    return utils.list(table?.rows).map((row, index) =>
+      row?.values
+        ? row
+        : {
+            id: row?.id || `${frameworkId || "standard"}:${table?.id || "table"}:${index}`,
+            frameworkId: frameworkId || "",
+            tableId: table?.id || "",
+            values: row || {},
+          },
+    );
   }
 
   function relatedFocusCodes(value) {
@@ -108,7 +210,19 @@
       .join("\n");
   }
 
-  function renderCell(column, value, focusByCode = {}) {
+  function renderLongPreview(value) {
+    const text = cellValue(value).trim();
+    if (!text) return "";
+    const cacheKey = `standard-detail-${++detailSerial}`;
+    detailTextCache.set(cacheKey, text);
+    return `
+      <button class="standard-rich-preview" type="button" data-standard-detail-key="${utils.escapeHtml(cacheKey)}" aria-label="查看完整成熟度描述">
+        ${utils.escapeHtml(compactLongText(text))}
+      </button>
+    `;
+  }
+
+  function renderCell(column, value, focusByCode = {}, context = {}) {
     if (column === "关联安全能力/关注点") {
       const codes = relatedFocusCodes(value);
       if (!codes.length) return "";
@@ -117,11 +231,17 @@
           ${codes
             .map((code) => {
               const tooltip = focusTooltip(code, focusByCode);
-              return `<span class="standard-tooltip-chip standard-focus-code" data-tooltip="${utils.escapeHtml(tooltip)}" aria-label="${utils.escapeHtml(tooltip || code)}" tabindex="0">${utils.escapeHtml(code)}</span>`;
+              return `<span class="standard-tooltip-chip standard-focus-code standard-code-breaks" data-tooltip="${utils.escapeHtml(tooltip)}" aria-label="${utils.escapeHtml(tooltip || code)}" tabindex="0">${codeWithBreaks(code)}</span>`;
             })
             .join("")}
         </div>
       `;
+    }
+    if (isDspMaturityColumn(context.activeFrameworkId, context.tableId, column)) {
+      return renderLongPreview(value);
+    }
+    if (context.activeFrameworkId === "cis-csc-v8" && column === "安全功能") {
+      return utils.escapeHtml(translateSecurityFunction(value));
     }
     return utils.escapeHtml(cellValue(value));
   }
@@ -180,6 +300,17 @@
         ],
       };
     }
+    if (activeFrameworkId === "dsp-level-2" && tableId === "dsp-scf-controls-2026") {
+      return {
+        levels: [
+          {
+            fields: ["SCF域", "策略原则", "策略意图"],
+            label: scfGroupLabel,
+            description: scfGroupDescription,
+          },
+        ],
+      };
+    }
     return null;
   }
 
@@ -217,7 +348,7 @@
     return [activeFrameworkId || "standard", tableId || "main", ...path].join("-");
   }
 
-  function renderDetailRows({ rows, tableColumns, activeFrameworkId, selectedId, parentId, hidden = false, lineage = [], focusByCode = {} }) {
+  function renderDetailRows({ rows, tableColumns, activeFrameworkId, tableId, selectedId, parentId, hidden = false, lineage = [], focusByCode = {} }) {
     const lineageAttr = lineage.length ? ` data-standard-lineage="${utils.escapeHtml(lineage.join(" "))}"` : "";
     const parentAttr = parentId ? ` data-standard-parent="${utils.escapeHtml(parentId)}"` : "";
     const hiddenAttr = hidden ? " hidden" : "";
@@ -228,7 +359,12 @@
         const active = selectedId && row.id === selectedId;
         return `
           <tr class="maintenance-data-row standard-group-detail ${tone ? `csf-row csf-${tone}` : ""} ${active ? "active" : ""}"${parentAttr}${lineageAttr}${hiddenAttr} data-maintenance-id="${utils.escapeHtml(row.id || "")}">
-            ${tableColumns.map((column) => `<td>${renderCell(column, row.values?.[column], focusByCode)}</td>`).join("")}
+            ${tableColumns
+              .map(
+                (column) =>
+                  `<td class="${columnClass(column)}" data-column="${utils.escapeHtml(column)}">${renderCell(column, row.values?.[column], focusByCode, { activeFrameworkId, tableId })}</td>`,
+              )
+              .join("")}
           </tr>
         `;
       })
@@ -275,6 +411,7 @@
               rows: group.rows,
               tableColumns,
               activeFrameworkId,
+              tableId,
               selectedId,
               parentId: groupId,
               hidden: !expanded,
@@ -300,29 +437,26 @@
       .join("");
   }
 
+  function frameworkTableClass(activeFrameworkId, tableId) {
+    if (activeFrameworkId === "nist-csf-2" && tableId === "csf-tiers") return " csf-tiers-table";
+    if (activeFrameworkId === "nist-csf-2") return " csf-core-table";
+    if (activeFrameworkId === "mlps-level-3") return " mlps-level-3-table";
+    if (activeFrameworkId === "cis-csc-v8") return " cis-csc-v8-table";
+    if (activeFrameworkId === "iso-27001-2022") return " iso-27001-2022-table";
+    if (activeFrameworkId === "nist-800-53-rev5") return " nist-800-53-rev5-table";
+    if (activeFrameworkId === "dsp-level-2" && tableId === "dsp-scf-controls-2026") return " dsp-scf-table dsp-scf-controls-table";
+    if (activeFrameworkId === "dsp-level-2" && tableId === "dsp-scf-maturity-2026") return " dsp-scf-table dsp-scf-maturity-table";
+    if (activeFrameworkId === "crf" && tableId === "crf-safeguards-core-2026") return " crf-table crf-safeguards-table";
+    if (activeFrameworkId === "crf" && tableId === "crf-maturity-model-2026") return " crf-table crf-maturity-table";
+    return "";
+  }
+
   function renderTable({ activeFrameworkId, tableId, rows, columns, selectedId, focusByCode = {} }) {
     const tableRows = utils.list(rows);
     const tableColumns = visibleColumns(activeFrameworkId, columns, tableId);
     if (!tableRows.length || !tableColumns.length) return "";
     const groups = groupedRows(tableRows, groupConfig(activeFrameworkId, tableId));
-    const frameworkClass =
-      activeFrameworkId === "nist-csf-2" && tableId === "csf-tiers"
-        ? " csf-tiers-table"
-        : activeFrameworkId === "nist-csf-2"
-          ? " csf-core-table"
-          : activeFrameworkId === "mlps-level-3"
-            ? " mlps-level-3-table"
-            : activeFrameworkId === "cis-csc-v8"
-              ? " cis-csc-v8-table"
-              : activeFrameworkId === "iso-27001-2022"
-                ? " iso-27001-2022-table"
-                : activeFrameworkId === "nist-800-53-rev5"
-                  ? " nist-800-53-rev5-table"
-                : activeFrameworkId === "crf" && tableId === "crf-safeguards-core-2026"
-                  ? " crf-table crf-safeguards-table"
-                  : activeFrameworkId === "crf" && tableId === "crf-maturity-model-2026"
-                    ? " crf-table crf-maturity-table"
-                : "";
+    const frameworkClass = frameworkTableClass(activeFrameworkId, tableId);
     return `
       <div class="maintenance-table-scroll standard-framework-table-scroll">
         <table class="maintenance-data-table standard-framework-table${frameworkClass}">
@@ -330,7 +464,7 @@
             <tr>${tableColumns.map((column) => renderHeaderCell(activeFrameworkId, column)).join("")}</tr>
           </thead>
           <tbody>
-            ${groups.length ? renderGroups({ groups, tableColumns, activeFrameworkId, tableId, selectedId, focusByCode }) : renderDetailRows({ rows: tableRows, tableColumns, activeFrameworkId, selectedId, focusByCode })}
+            ${groups.length ? renderGroups({ groups, tableColumns, activeFrameworkId, tableId, selectedId, focusByCode }) : renderDetailRows({ rows: tableRows, tableColumns, activeFrameworkId, tableId, selectedId, focusByCode })}
           </tbody>
         </table>
       </div>
@@ -379,9 +513,9 @@
           </div>
         `;
       }
-      const tabName = `standard-framework-tab-${activeFrameworkId}`;
+      const instanceId = `standard-framework-${activeFrameworkId || "standard"}-${++renderSerial}`;
       return `
-        <div class="reference-table-stack standard-framework-stack standard-framework-tabbed">
+        <div class="reference-table-stack standard-framework-stack standard-framework-tabbed" data-standard-tab-instance="${utils.escapeHtml(instanceId)}">
           <div class="standard-framework-tabs" role="tablist">
             ${normalizedTables
               .map(
@@ -395,13 +529,38 @@
           </div>
           <div class="standard-framework-tab-panels">
             ${normalizedTables
-              .map(
-                (table, index) => `
-                  <section class="standard-framework-tab-panel ${index === 0 ? "active" : ""}" data-tab-panel="${utils.escapeHtml(table.id)}" ${index === 0 ? "" : "hidden"}>
-                    ${renderTable({ activeFrameworkId, tableId: table.id, rows: table.rows, columns: table.columns, selectedId, focusByCode })}
+              .map((table, index) => {
+                const cacheKey = `${instanceId}:${table.id}`;
+                const tableRenderer = () => {
+                  if (!utils.list(table.rows).length && table.dataPath && window.sapdDataClient?.getStandardFrameworkTable) {
+                    return window.sapdDataClient.getStandardFrameworkTable(activeFrameworkId, table.id).then((envelope) => {
+                      const loadedTable = envelope.data || table;
+                      return renderTable({
+                        activeFrameworkId,
+                        tableId: loadedTable.id || table.id,
+                        rows: tableDataRows(loadedTable, activeFrameworkId),
+                        columns: loadedTable.columns || table.columns,
+                        selectedId,
+                        focusByCode,
+                      });
+                    });
+                  }
+                  return renderTable({ activeFrameworkId, tableId: table.id, rows: table.rows, columns: table.columns, selectedId, focusByCode });
+                };
+                if (index === 0) {
+                  return `
+                    <section class="standard-framework-tab-panel active" data-tab-panel="${utils.escapeHtml(table.id)}" data-framework-id="${utils.escapeHtml(activeFrameworkId)}" data-lazy-table-key="${utils.escapeHtml(cacheKey)}" data-lazy-loaded="true">
+                      ${tableRenderer()}
+                    </section>
+                  `;
+                }
+                lazyTableCache.set(cacheKey, tableRenderer);
+                return `
+                  <section class="standard-framework-tab-panel" data-tab-panel="${utils.escapeHtml(table.id)}" data-framework-id="${utils.escapeHtml(activeFrameworkId)}" data-lazy-table-key="${utils.escapeHtml(cacheKey)}" data-lazy-loaded="false" hidden>
+                    <div class="maintenance-empty-state standard-framework-lazy-state">切换后加载 ${utils.escapeHtml(table.title)}。</div>
                   </section>
-                `,
-              )
+                `;
+              })
               .join("")}
           </div>
         </div>
@@ -414,7 +573,7 @@
     `;
   }
 
-  document.addEventListener("click", (event) => {
+  document.addEventListener("click", async (event) => {
     const tab = event.target.closest?.(".standard-framework-tab");
     if (!tab) return;
     const stack = tab.closest(".standard-framework-tabbed");
@@ -425,12 +584,100 @@
       item.classList.toggle("active", active);
       item.setAttribute("aria-selected", active ? "true" : "false");
     });
-    stack.querySelectorAll(".standard-framework-tab-panel").forEach((panel) => {
+    for (const panel of stack.querySelectorAll(".standard-framework-tab-panel")) {
       const active = panel.dataset.tabPanel === target;
       panel.classList.toggle("active", active);
       panel.hidden = !active;
-    });
+      if (active && panel.dataset.lazyLoaded !== "true") {
+        const cached = lazyTableCache.get(panel.dataset.lazyTableKey || "");
+        panel.innerHTML = `<div class="maintenance-empty-state standard-framework-lazy-state">正在加载表格数据...</div>`;
+        const rendered =
+          typeof cached === "function"
+            ? cached()
+            : window.sapdDataClient?.getStandardFrameworkTable && panel.dataset.frameworkId && panel.dataset.tabPanel
+              ? window.sapdDataClient.getStandardFrameworkTable(panel.dataset.frameworkId, panel.dataset.tabPanel).then((envelope) => {
+                  const table = envelope.data || {};
+                  return renderTable({
+                    activeFrameworkId: panel.dataset.frameworkId,
+                    tableId: table.id || panel.dataset.tabPanel,
+                    rows: tableDataRows(table, panel.dataset.frameworkId),
+                    columns: table.columns,
+                    selectedId: "",
+                    focusByCode: {},
+                  });
+                })
+              : cached || "";
+        panel.innerHTML = rendered && typeof rendered.then === "function" ? await rendered : rendered;
+        panel.dataset.lazyLoaded = "true";
+      }
+    }
   });
+
+  function tooltipTextFor(target) {
+    if (target?.dataset?.standardDetailKey) return detailTextCache.get(target.dataset.standardDetailKey) || "";
+    return target?.dataset?.tooltip || "";
+  }
+
+  function ensureTooltip() {
+    let tooltip = document.querySelector(".floating-standard-tooltip");
+    if (!tooltip) {
+      tooltip = document.createElement("div");
+      tooltip.className = "floating-standard-tooltip";
+      tooltip.hidden = true;
+      document.body.appendChild(tooltip);
+    }
+    return tooltip;
+  }
+
+  function positionTooltip(tooltip, event, anchor) {
+    const rect = anchor?.getBoundingClientRect?.() || {
+      left: event?.clientX || 12,
+      right: event?.clientX || 12,
+      top: event?.clientY || 12,
+      bottom: event?.clientY || 12,
+    };
+    const gap = 8;
+    const margin = 12;
+    const tooltipRect = tooltip.getBoundingClientRect();
+    const preferredX = rect.left;
+    const x = Math.min(window.innerWidth - tooltipRect.width - margin, Math.max(margin, preferredX));
+    const belowY = rect.bottom + gap;
+    const aboveY = rect.top - tooltipRect.height - gap;
+    const y = belowY + tooltipRect.height + margin <= window.innerHeight ? belowY : Math.max(margin, aboveY);
+    tooltip.style.left = `${x}px`;
+    tooltip.style.top = `${y}px`;
+  }
+
+  function showTooltip(event) {
+    const target = event.target.closest?.(".standard-tooltip-chip, .standard-rich-preview");
+    const text = tooltipTextFor(target);
+    if (!target || !text) return;
+    const tooltip = ensureTooltip();
+    tooltip.textContent = text;
+    tooltip.hidden = false;
+    positionTooltip(tooltip, event, target);
+  }
+
+  function hideTooltip() {
+    const tooltip = document.querySelector(".floating-standard-tooltip");
+    if (tooltip) tooltip.hidden = true;
+  }
+
+  document.addEventListener("pointerover", showTooltip);
+  document.addEventListener("focusin", showTooltip);
+  document.addEventListener("pointermove", (event) => {
+    const tooltip = document.querySelector(".floating-standard-tooltip:not([hidden])");
+    const target = event.target.closest?.(".standard-tooltip-chip, .standard-rich-preview");
+    if (tooltip && target) positionTooltip(tooltip, event, target);
+  });
+  document.addEventListener("pointerout", (event) => {
+    if (event.target.closest?.(".standard-tooltip-chip, .standard-rich-preview")) hideTooltip();
+  });
+  document.addEventListener("focusout", (event) => {
+    if (event.target.closest?.(".standard-tooltip-chip, .standard-rich-preview")) hideTooltip();
+  });
+  window.addEventListener("resize", hideTooltip);
+  window.addEventListener("scroll", hideTooltip, true);
 
   document.addEventListener("click", (event) => {
     const toggle = event.target.closest?.(".standard-group-toggle");

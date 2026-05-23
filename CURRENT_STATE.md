@@ -118,6 +118,7 @@ Frontend Baseline 1.0 当前覆盖三页：
 6. 前端验证优先使用 `node scripts/frontend_smoke_check.mjs --page <page>`。
 7. 数据包检查优先使用 `python3 scripts/data_package_summary.py --package <name>`。
 8. 本地服务检查优先使用 `python3 scripts/dev_server_guard.py --status`。
-9. 如 `progress.md` 超过 120 行，先归档瘦身；如工作区 diff 很大，建议 checkpoint commit。
+9. 本项目常驻预览页固定为 `http://127.0.0.1:5173/`；多个线程并行验证时可临时使用其它端口，但验证后必须用 `python3 scripts/dev_server_guard.py --port <temp-port> --stop` 关闭。
+10. 如 `progress.md` 超过 120 行，先归档瘦身；如工作区 diff 很大，建议 checkpoint commit。
 
 详细规则见 `docs/07-governance/codex-performance-workflow.md`。

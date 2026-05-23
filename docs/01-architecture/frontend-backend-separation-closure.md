@@ -85,7 +85,8 @@ GET /api/v1/capabilities/workspace-projection
 | `GET /api/v1/health` | 已实现 | 本地 API 健康检查 |
 | `GET /api/v1/data-packages` | 已实现 | 当前可用数据包清单 |
 | `GET /api/v1/data-packages/capability` | 已实现 | 安全能力数据包 |
-| `GET /api/v1/data-packages/management` | 已实现 | 管理与专项知识数据包 |
+| `GET /api/v1/data-packages/maintenance` | 已实现 | 专项知识维护数据包 |
+| `GET /api/v1/data-packages/shared-lookups` | 已实现 | 全站共享索引数据包 |
 | `GET /api/v1/data-packages/lifecycle` | 已实现 | 生命周期数据包 |
 | `GET /api/v1/data-packages/content` | 已实现 | 内容视图数据包 |
 | `GET /api/v1/maintenance` | 已实现 | 专项知识维护导航 |

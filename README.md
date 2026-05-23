@@ -10,7 +10,7 @@
 
 面向咨询顾问的 V1 交付目标是压缩包应用：顾问解压后第一次打开，点击一键初始化，系统自动部署预置 SQLite 数据库、页面数据包和预览资源，然后直接进入知识库工作台。顾问端不需要安装 Python / Node / SQLite CLI，不自行导入资料，不执行 ETL 或 migration；第一期也不做登录、注册、账号和权限体系。详细交付模型见 `docs/01-architecture/consultant-delivery-model.md`。
 
-GitHub 工程不提交原始数据、生成数据、SQLite 数据库、导出包或预览资源。开发者从 GitHub 拉代码后，应把授权的本地原始文件放入 `data/raw-samples/`，再执行 `python scripts/bootstrap_local_data.py --reset` 一键生成本地数据库和前端离线数据包。详细文件清单和流程见 `docs/03-import-etl/github-local-data-initialization.md`。
+GitHub 工程不提交原始数据、生成数据、SQLite 数据库、导出包或预览资源。数据初始化细节见 `docs/03-import-etl/github-local-data-initialization.md`。
 
 ## 先读哪几个文件
 
@@ -25,6 +25,7 @@ GitHub 工程不提交原始数据、生成数据、SQLite 数据库、导出包
 
 ### 项目总览
 
+- `docs/README.md`：文档总导航，按场景说明该先看哪些文件。
 - `docs/00-overview/project-vision.md`：项目愿景。
 - `docs/00-overview/project-roadmap.md`：项目路线图。
 - `docs/00-overview/non-developer-workflow.md`：非开发者工作流。
@@ -47,6 +48,7 @@ GitHub 工程不提交原始数据、生成数据、SQLite 数据库、导出包
 
 ### 导入与 ETL
 
+- `docs/03-import-etl/README.md`：导入与 ETL 文档索引。
 - `docs/03-import-etl/import-rules.md`：文件导入、字段映射与 ETL 规则。
 - `docs/03-import-etl/mapping-rules-draft.md`：第一批 5 个核心 Excel Sheet 映射规则草案。
 - `docs/03-import-etl/remaining-21-sheets-modeling.md`：剩余 21 个 Excel Sheet 建模草案。
@@ -98,6 +100,7 @@ GitHub 工程不提交原始数据、生成数据、SQLite 数据库、导出包
 - `findings-history/`：历史发现归档。
 - `progress.md`：执行日志、文件变更、命令和验证结果。
 - `docs/06-implementation/open-issues.md`：bug 和问题清单；修复后也在这里改状态。
+- `scripts/README.md`：脚本分类、长期工具和专题脚本说明。
 
 ## 本地命令
 
@@ -110,8 +113,8 @@ python scripts/sapd_wiki.py init-db
 从 GitHub 拉代码后的推荐一键数据初始化：
 
 ```bash
-python scripts/bootstrap_local_data.py --print-inputs
-python scripts/bootstrap_local_data.py --reset
+python scripts/sapd_wiki.py bootstrap-local-data --print-inputs
+python scripts/sapd_wiki.py bootstrap-local-data --reset
 ```
 
 提交前检查是否误追踪原始数据或生成数据：

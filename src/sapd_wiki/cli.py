@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import sys
 
 from .db import connect, run_migrations
@@ -36,7 +37,7 @@ from .parsers import (
     parse_standard_framework_sheets,
     parse_third_batch_sheets,
 )
-from .paths import DEFAULT_DB_PATH, display_path, resolve_project_path
+from .paths import DEFAULT_DB_PATH, PROJECT_ROOT, display_path, resolve_project_path
 from .queries import item_counts_by_type, latest_import_jobs, list_items, relation_counts_by_type, table_counts
 from .api_server import serve
 from .source_files import (
@@ -64,6 +65,20 @@ SHEET_ALIASES = {
     "third-batch": THIRD_BATCH_SHEETS,
     "standard-framework": STANDARD_FRAMEWORK_SHEETS,
 }
+
+BOOTSTRAP_IMPORT_PROFILES = {
+    "core": ["core"],
+    "full": ["core", "second-batch", "third-batch", "standard-framework"],
+}
+
+BOOTSTRAP_DEFAULT_WORKBOOK = PROJECT_ROOT / "data" / "raw-samples" / "wiki sample.xlsx"
+FRONTEND_DATA_DIR = PROJECT_ROOT / "frontend" / "capability-browser" / "public" / "data"
+BOOTSTRAP_OPTIONAL_INPUTS = [
+    "data/raw-samples/wiki sample ppt.pptx",
+    "data/raw-samples/drawio sample.drawio",
+    "data/raw-samples/ds design/T00-面向业务的数据安全专项设计方法（V2.1）.pdf",
+    "data/raw-samples/ds design/安全技术架构设计方法 V2.0.pdf",
+]
 
 
 def cmd_init_db(args: argparse.Namespace) -> int:
@@ -316,6 +331,184 @@ def cmd_imports(args: argparse.Namespace) -> int:
     else:
         for row in rows:
             print(f"{row['id']}\t{row['status']}\t{row['job_type']}\t{row['file_name']}\t{row['started_at']}")
+    return 0
+
+
+def _print_bootstrap_inputs(workbook_path) -> None:
+    print("需要先放入的本地文件：")
+    print(f"  必需: {display_path(workbook_path)}")
+    print("  可选:")
+    for item in BOOTSTRAP_OPTIONAL_INPUTS:
+        print(f"    - {item}")
+    print("\n这些文件只放在本机，受 .gitignore 保护，不提交 GitHub。")
+
+
+def _ensure_bootstrap_dirs(db_path) -> None:
+    for path in [
+        PROJECT_ROOT / "data" / "raw-samples",
+        db_path.parent,
+        PROJECT_ROOT / "data" / "exports",
+        FRONTEND_DATA_DIR,
+    ]:
+        path.mkdir(parents=True, exist_ok=True)
+
+
+def _reset_bootstrap_database(db_path) -> None:
+    if not db_path.exists():
+        return
+    backup = db_path.with_suffix(".sqlite3.before-bootstrap.bak")
+    if backup.exists():
+        backup.unlink()
+    shutil.move(db_path, backup)
+    print(f"已备份旧数据库: {display_path(backup)}")
+
+
+def _stage_and_approve_bootstrap_sheet_set(
+    *,
+    db_path,
+    workbook_path,
+    sheet_set: str,
+    sensitive_level: str,
+    allow_validation_errors: bool,
+) -> str | None:
+    selected_sheets = _selected_sheets(sheet_set)
+    parse_result = _parse_selected_excel(workbook_path, selected_sheets)
+
+    with connect(db_path) as conn:
+        source_file = register_source_file(
+            conn,
+            workbook_path,
+            usage_policy="import_source",
+            sensitive_level=sensitive_level,
+        )
+        import_job_id = create_import_job(
+            conn,
+            source_file.id,
+            job_type="initial_import",
+            status="reviewing",
+        )
+        stage_summary = write_staging(conn, import_job_id, parse_result)
+        payload = {
+            "source_file": {
+                "id": source_file.id,
+                "file_name": source_file.file_name,
+                "file_path": source_file.file_path,
+                "file_hash": source_file.file_hash,
+                "created": source_file.created,
+            },
+            "selected_sheets": selected_sheets,
+            "stage_summary": stage_summary.to_dict(),
+        }
+        update_import_job_summary(
+            conn,
+            import_job_id,
+            status="reviewing",
+            summary_json=json.dumps(payload, ensure_ascii=False),
+        )
+        blocking = [
+            item
+            for item in payload["stage_summary"].get("validations", [])
+            if item.get("level") in {"error", "blocking"}
+        ]
+        print(
+            f"导入暂存: sheets={sheet_set}, import_job_id={import_job_id}, "
+            f"validations={len(stage_summary.validations)}, blocking={len(blocking)}"
+        )
+        if blocking and not allow_validation_errors:
+            for item in blocking[:10]:
+                print(f"  - [{item.get('level')}] {item.get('sheet')}:{item.get('row')} {item.get('message')}")
+            print("存在阻断级校验问题，已停止审批入库。可修正源文件后重跑。")
+            return None
+
+        approve_summary = approve_import(conn, import_job_id)
+        print(
+            "审批入库: "
+            f"items_created={approve_summary.items_created}, "
+            f"items_updated={approve_summary.items_updated}, "
+            f"relations_created={approve_summary.relations_created}"
+        )
+    return import_job_id
+
+
+def _export_bootstrap_outputs(db_path, latest_import_job_id: str | None) -> None:
+    with connect(db_path) as conn:
+        export_steps = [
+            export_frontend_workbenches(conn, output_dir=str(FRONTEND_DATA_DIR)),
+            export_maintenance_knowledge(conn, output_path="frontend/capability-browser/public/data/maintenance-knowledge.json"),
+            export_shared_lookups(conn, output_path="frontend/capability-browser/public/data/shared-lookups.json"),
+            export_lifecycle_knowledge(conn, output_path="frontend/capability-browser/public/data/lifecycle-knowledge.json"),
+            export_standard_frameworks_data(conn, output_path="frontend/capability-browser/public/data/standards-index.json"),
+            export_content_views(conn, output_path="frontend/capability-browser/public/data/content-views.json"),
+            export_capability_tree(conn, output_path="frontend/capability-browser/public/data/capability-tree.json"),
+            export_items(conn, fmt="all"),
+            export_relations(conn, fmt="all"),
+        ]
+        if latest_import_job_id:
+            export_steps.extend(
+                [
+                    write_import_result_report(conn, latest_import_job_id, sample_limit=20),
+                    write_warning_review(conn, latest_import_job_id),
+                    export_import_summary(conn, latest_import_job_id),
+                ]
+            )
+    print("已生成本地数据库摘要、前端离线数据包和基础导出报告。")
+    for result in export_steps:
+        for file in result.get("files", []):
+            print(f"  - {display_path(file)}")
+
+
+def cmd_bootstrap_local_data(args: argparse.Namespace) -> int:
+    db_path = resolve_project_path(args.db)
+    workbook_path = resolve_project_path(args.workbook)
+
+    if args.print_inputs:
+        _print_bootstrap_inputs(workbook_path)
+        return 0
+
+    _ensure_bootstrap_dirs(db_path)
+    if not workbook_path.exists():
+        _print_bootstrap_inputs(workbook_path)
+        print(f"error: missing required workbook: {display_path(workbook_path)}", file=sys.stderr)
+        return 1
+    if db_path.exists() and not args.reset and not args.append:
+        print(f"数据库已存在: {display_path(db_path)}")
+        print("如果要重新初始化，请执行: python scripts/sapd_wiki.py bootstrap-local-data --reset")
+        print("如果确认要追加导入，请执行: python scripts/sapd_wiki.py bootstrap-local-data --append")
+        return 2
+    if args.reset:
+        _reset_bootstrap_database(db_path)
+
+    run_migrations(db_path)
+    imported_jobs: list[str] = []
+    for sheet_set in BOOTSTRAP_IMPORT_PROFILES[args.profile]:
+        import_job_id = _stage_and_approve_bootstrap_sheet_set(
+            db_path=db_path,
+            workbook_path=workbook_path,
+            sheet_set=sheet_set,
+            sensitive_level=args.sensitive_level,
+            allow_validation_errors=args.allow_validation_errors,
+        )
+        if import_job_id is None:
+            return 1
+        imported_jobs.append(import_job_id)
+
+    if not args.skip_frontend_export:
+        _export_bootstrap_outputs(db_path, imported_jobs[-1] if imported_jobs else None)
+
+    with connect(db_path) as conn:
+        payload = {
+            "tables": table_counts(conn),
+            "items_by_type": item_counts_by_type(conn),
+            "relations_by_type": relation_counts_by_type(conn),
+        }
+    print("\n本地初始化完成。")
+    print(f"数据库: {display_path(db_path)}")
+    print(f"前端数据包目录: {display_path(FRONTEND_DATA_DIR)}")
+    print(f"导入任务: {', '.join(imported_jobs)}")
+    print("tables:")
+    for key, value in payload["tables"].items():
+        print(f"  - {key}: {value}")
+    print("上述数据库和生成数据包均为本地文件，不提交 GitHub。")
     return 0
 
 
@@ -595,6 +788,54 @@ def build_parser() -> argparse.ArgumentParser:
     imports.add_argument("--limit", type=int, default=10, help="Maximum number of rows.")
     imports.add_argument("--json", action="store_true", help="Print JSON rows.")
     imports.set_defaults(func=cmd_imports)
+
+    bootstrap = subparsers.add_parser(
+        "bootstrap-local-data",
+        help="Initialize local SQLite and frontend data packages from local source files.",
+    )
+    bootstrap.add_argument(
+        "--profile",
+        choices=sorted(BOOTSTRAP_IMPORT_PROFILES),
+        default="full",
+        help="Import profile. full imports core, second-batch, third-batch and standard-framework sheets.",
+    )
+    bootstrap.add_argument(
+        "--workbook",
+        default=str(BOOTSTRAP_DEFAULT_WORKBOOK),
+        help="Main Excel workbook path. Defaults to data/raw-samples/wiki sample.xlsx.",
+    )
+    bootstrap.add_argument(
+        "--reset",
+        action="store_true",
+        help="Back up the existing local database before rebuilding.",
+    )
+    bootstrap.add_argument(
+        "--append",
+        action="store_true",
+        help="Append imports to an existing database. Defaults to refusing when the database exists.",
+    )
+    bootstrap.add_argument(
+        "--skip-frontend-export",
+        action="store_true",
+        help="Import SQLite only; do not generate frontend public/data packages.",
+    )
+    bootstrap.add_argument(
+        "--allow-validation-errors",
+        action="store_true",
+        help="Continue approval even when error/blocking validations exist. Intended for investigation only.",
+    )
+    bootstrap.add_argument(
+        "--sensitive-level",
+        default="confidential",
+        choices=["unknown", "internal", "public", "confidential"],
+        help="Sensitivity label for the source file.",
+    )
+    bootstrap.add_argument(
+        "--print-inputs",
+        action="store_true",
+        help="Print required and optional local input files without importing.",
+    )
+    bootstrap.set_defaults(func=cmd_bootstrap_local_data)
 
     export_items_cmd = subparsers.add_parser("export-items", help="Export knowledge items to CSV/JSON.")
     export_items_cmd.add_argument("--type", help="Filter by knowledge item type.")

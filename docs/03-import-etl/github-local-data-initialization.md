@@ -64,7 +64,7 @@ mkdir -p "data/raw-samples/ds design"
 首次初始化推荐执行：
 
 ```bash
-python scripts/bootstrap_local_data.py --reset
+python scripts/sapd_wiki.py bootstrap-local-data --reset
 ```
 
 脚本会自动完成：
@@ -106,19 +106,19 @@ data/exports/
 只查看需要放哪些文件：
 
 ```bash
-python scripts/bootstrap_local_data.py --print-inputs
+python scripts/sapd_wiki.py bootstrap-local-data --print-inputs
 ```
 
 本地已有数据库时，脚本默认不会覆盖。确认重建时执行：
 
 ```bash
-python scripts/bootstrap_local_data.py --reset
+python scripts/sapd_wiki.py bootstrap-local-data --reset
 ```
 
 只重建 SQLite，不导出前端离线包：
 
 ```bash
-python scripts/bootstrap_local_data.py --reset --skip-frontend-export
+python scripts/sapd_wiki.py bootstrap-local-data --reset --skip-frontend-export
 ```
 
 只检查 GitHub 数据边界：

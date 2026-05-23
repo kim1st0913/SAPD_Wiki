@@ -17,15 +17,6 @@
 
 GitHub 仓库只保存代码、文档、配置模板和脱敏 fixture，不保存真实原始数据和生成数据。
 
-禁止提交：
-
-- `data/raw/`、`data/raw-samples/`；
-- `data/database/`、`*.sqlite3`、`*.db`；
-- `data/processed/`、`data/previews/`、`data/exports/`、`data/maturity/`；
-- `frontend/capability-browser/public/data/*.json`；
-- `frontend/capability-browser/public/data/assets/`、`guides/`、`standards/`；
-- 未确认可公开的压缩包、备份库和导出报告。
-
 提交前应执行：
 
 ```bash
@@ -34,13 +25,7 @@ python scripts/check_github_data_boundary.py
 
 同一检查已接入 `.github/workflows/data-boundary.yml`，在 push / pull request 时自动运行。CI 失败时，优先检查是否有原始数据、SQLite 数据库、导出包或前端生成数据被 Git 追踪。
 
-从 GitHub 拉代码后的本地数据重建流程统一使用：
-
-```bash
-python scripts/bootstrap_local_data.py --reset
-```
-
-文件放置清单和完整流程见 `docs/03-import-etl/github-local-data-initialization.md`。
+禁止提交清单、文件放置清单和本地数据重建流程见 `docs/03-import-etl/github-local-data-initialization.md`。
 
 ## 1.1 原始表建模确认规则
 
@@ -275,6 +260,7 @@ frontend/capability-browser/public/data/
 - `/api/v1/data-packages/standards-index` 返回小索引；旧入口 `/api/v1/data-packages/standards` 可由后端运行时组装完整明细用于兼容，但不得重新写回静态全量大包。
 - 多 Tab 框架必须按 Tab 分包，例如 DSP SCF 2026 的 `SCF Controls` 和 `SCF成熟度`。
 - 前端首屏只加载索引和当前框架 / 当前 Tab；切换到其他 Tab 后才加载对应分包。
+- 主展示区不得出现非用户需求的衍生字段、占位字段、中间字段或调试字段；新增列前必须确认它来自原始业务字段或已被用户明确要求展示。
 - 标准 / 框架主展示包不得出现 `sheet`、`row`、`column`、`raw_value`、`source_file`、`source_ref`、`metadata`、`debug`、`intermediate` 等非业务字段。
 
 当前已固化的标准 / 框架分包：

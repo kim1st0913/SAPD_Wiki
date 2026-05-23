@@ -22,8 +22,8 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Check bootstrap scripts compile
-        run: python -m py_compile scripts/bootstrap_local_data.py scripts/check_github_data_boundary.py
+      - name: Check CLI and data boundary scripts compile
+        run: python -m py_compile scripts/sapd_wiki.py src/sapd_wiki/cli.py scripts/check_github_data_boundary.py
 
       - name: Check forbidden data is not tracked
         run: python scripts/check_github_data_boundary.py

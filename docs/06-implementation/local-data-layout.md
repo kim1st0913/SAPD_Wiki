@@ -82,7 +82,7 @@ resources/database/sapd_wiki.seed.sqlite3
 3. 执行：
 
 ```bash
-python scripts/bootstrap_local_data.py --reset
+python scripts/sapd_wiki.py bootstrap-local-data --reset
 ```
 
 脚本会生成：

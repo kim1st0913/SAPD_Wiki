@@ -33,6 +33,7 @@ Frontend Baseline 1.0 当前覆盖三页：
 - 不默认重构数据库 schema。
 - 不默认大改 ETL。
 - 不默认引入 React / Vue 重构当前静态 MVP 前端。
+- 不默认大规模搬迁目录、重排文档编号或大拆 `app.js` / `styles.css`；结构治理优先采用索引、说明、归档和小步收口。
 - 不在主展示区暴露非业务字段：`sheet`、`row`、`column`、`raw_value`、`source_file`、`import_id`、`source_id`、`source_ref`、`source_label`、`debug`、`raw`、`metadata`、`intermediate`、`generated_at`。
 - 不静默覆盖用户文件或未确认业务判断。
 - 不允许提交或同步原始数据、SQLite 数据库、ETL 中间产物、前端生成 JSON、指南 / 标准生成资源或导出包到 GitHub；提交前可用 `python3 scripts/check_github_data_boundary.py` 检查。
@@ -86,6 +87,11 @@ Frontend Baseline 1.0 当前覆盖三页：
 - `data/exports/`
 - `frontend/capability-browser/public/data/*.json`
 - 大型前端源码文件，除非任务需要检查或修改对应页面
+
+## 轻量结构治理入口
+
+- `scripts/README.md`：脚本分类、长期工具和专题脚本边界。
+- `docs/03-import-etl/README.md`：导入与 ETL 文档索引。
 
 ## 当前 Agent 工作规则
 

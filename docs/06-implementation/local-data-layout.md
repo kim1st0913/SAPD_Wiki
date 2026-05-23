@@ -14,6 +14,9 @@
 | `data/exports/` | 否 | 导出文件 |
 | `db/migrations/` | 是 | 数据库迁移脚本 |
 | `docs/` | 是 | 设计、规则、说明文档 |
+| `frontend/capability-browser/public/data/*.json` | 否 | 后端生成的前端离线数据包 |
+| `frontend/capability-browser/public/data/guides/` | 否 | 后端或发布流程生成的指南资源包 |
+| `frontend/capability-browser/public/data/standards/` | 否 | 后端生成的标准 / 框架明细数据包 |
 
 开发阶段默认数据库路径：
 
@@ -69,6 +72,29 @@ resources/database/sapd_wiki.seed.sqlite3
 - 不写入迁移脚本；
 - 不在文档中记录敏感内容全文；
 - 后续如需测试数据，应生成脱敏小样例。
+
+## 3.1 GitHub 拉取后的数据初始化
+
+从 GitHub 拉代码的人不会拿到原始数据、SQLite 数据库或前端生成数据包。标准流程是：
+
+1. 把授权的主 Excel 文件放到 `data/raw-samples/wiki sample.xlsx`；
+2. 如有 Draw.io / PPT / 指南 PDF，本地放到 `data/raw-samples/` 下对应目录；
+3. 执行：
+
+```bash
+python scripts/bootstrap_local_data.py --reset
+```
+
+脚本会生成：
+
+```text
+data/database/sapd_wiki.sqlite3
+frontend/capability-browser/public/data/*.json
+frontend/capability-browser/public/data/standards/**
+data/exports/**
+```
+
+这些文件仍然只存在本地，不提交 GitHub。完整说明见 `docs/03-import-etl/github-local-data-initialization.md`。
 
 ## 4. 测试 fixture 策略
 

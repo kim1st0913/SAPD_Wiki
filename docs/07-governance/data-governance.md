@@ -13,6 +13,33 @@
 | 渐进固化 | 不稳定字段先进入 `metadata_json`，稳定后再提升为正式字段 |
 | 问题集中 | bug、数据问题、待确认事项统一进入 `docs/06-implementation/open-issues.md` |
 
+## 1.0 GitHub 数据边界
+
+GitHub 仓库只保存代码、文档、配置模板和脱敏 fixture，不保存真实原始数据和生成数据。
+
+禁止提交：
+
+- `data/raw/`、`data/raw-samples/`；
+- `data/database/`、`*.sqlite3`、`*.db`；
+- `data/processed/`、`data/previews/`、`data/exports/`、`data/maturity/`；
+- `frontend/capability-browser/public/data/*.json`；
+- `frontend/capability-browser/public/data/assets/`、`guides/`、`standards/`；
+- 未确认可公开的压缩包、备份库和导出报告。
+
+提交前应执行：
+
+```bash
+python scripts/check_github_data_boundary.py
+```
+
+从 GitHub 拉代码后的本地数据重建流程统一使用：
+
+```bash
+python scripts/bootstrap_local_data.py --reset
+```
+
+文件放置清单和完整流程见 `docs/03-import-etl/github-local-data-initialization.md`。
+
 ## 1.1 原始表建模确认规则
 
 每建模或导入一张新的原始 Sheet 前，必须先完成业务确认，不允许只根据字段名直接写 parser。

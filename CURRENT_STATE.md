@@ -35,6 +35,7 @@ Frontend Baseline 1.0 当前覆盖三页：
 - 不默认引入 React / Vue 重构当前静态 MVP 前端。
 - 不在主展示区暴露非业务字段：`sheet`、`row`、`column`、`raw_value`、`source_file`、`import_id`、`source_id`、`source_ref`、`source_label`、`debug`、`raw`、`metadata`、`intermediate`、`generated_at`。
 - 不静默覆盖用户文件或未确认业务判断。
+- 不允许提交或同步原始数据、SQLite 数据库、ETL 中间产物、前端生成 JSON、指南 / 标准生成资源或导出包到 GitHub；提交前可用 `python3 scripts/check_github_data_boundary.py` 检查。
 - 不允许新增页面绕过 `dataClient` 或 `/api/v1/*` 契约直接读取原始数据、数据库或临时 JSON。
 - 不允许前端组件实现 ETL、主数据归一、跨表匹配、成熟度评分或业务关系推断。
 

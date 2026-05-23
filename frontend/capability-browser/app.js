@@ -1509,7 +1509,7 @@ function bindEvents() {
   });
   $("sourceList")?.addEventListener("click", (event) => {
     const tab = event.target.closest("[data-reference-tab]");
-    if (tab) {
+    if (tab && !tab.dataset.sourcePage) {
       state.activeReferenceTab = tab.dataset.referenceTab;
       state.selectedMaintenanceId = null;
       renderMaintenance();

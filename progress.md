@@ -18,6 +18,13 @@
 
 ## 最近完成事项
 
+### 2026-05-23 GitHub 数据不同步与本地一键初始化
+
+- 已新增 `scripts/bootstrap_local_data.py`，用于从本地 `data/raw-samples/wiki sample.xlsx` 一键重建开发数据库、审批导入已实现 parser 的 Sheet，并导出前端离线数据包。
+- 已新增 `scripts/check_github_data_boundary.py`，用于提交前检查 Git 是否误追踪原始数据、SQLite 数据库、导出包、前端生成 JSON 或生成资源目录。
+- 已新增 `docs/03-import-etl/github-local-data-initialization.md`，明确 GitHub 拉取后需要放哪些文件、放到哪个目录、执行哪个初始化命令，以及哪些本地数据永不同步。
+- 已同步修订 `README.md`、`docs/06-implementation/local-data-layout.md`、`docs/07-governance/data-governance.md` 和 `docs/07-governance/governance-index.md`，把“GitHub 工程不包含原始数据和生成数据”固化为工程规则。
+
 ### 2026-05-23 顾问端压缩包交付模型确认
 
 - 已新增 `docs/01-architecture/consultant-delivery-model.md`，明确 V1 顾问端交付为压缩包应用：首次打开后一键初始化，自动部署预置 SQLite 数据库、页面数据包和预览资源，然后直接使用。
@@ -47,6 +54,7 @@
 - 已统一优化安全知识表格密度、短字段列宽、统计列宽和参考目录表格类名；`安全职能名称` 列已收窄，`定义` / `描述` / 映射信息列获得更多横向空间。
 - 已修正安全工作职能清单导出顺序：职能组按 `安全工作职能清单` 原表来源行号排序，职能明细按编码顺序兜底；`GB/T 42446-2023` 与 `Gartner 工作岗位参考` 已提升为 `安全职能清单` 的同级页签。
 - 已更新 `index.html` 和 `dataClient.js` 资源版本，避免浏览器继续加载旧的合并页签与旧维护数据包缓存。
+- 已修复同级参考页签点击事件：顶部 `GB/T 42446-2023` / `Gartner 工作岗位参考` 页签不再被旧内部 reference tab 逻辑截获。
 - 已新增并修复 `OI-074`，记录本轮安全知识表格结构和列宽问题。
 - 本轮只改前端展示组件和样式，未修改 ETL、数据包、schema 或原始 Excel。
 
@@ -71,6 +79,7 @@
 - `node --check frontend/capability-browser/dataClient.js`：通过。
 - `node --check frontend/capability-browser/components/WorkFunctionMaintenanceTable.js`、`node --check frontend/capability-browser/components/StandardRoleReferenceTable.js`、`git diff --check -- frontend/capability-browser/components/WorkFunctionMaintenanceTable.js frontend/capability-browser/components/StandardRoleReferenceTable.js frontend/capability-browser/styles.css`：通过。
 - 安全知识表格 smoke 复测通过：`/knowledge/functions`、`/knowledge/scopes`、`/knowledge/technical`、`/knowledge/management-workflows`、`/knowledge/role-references`，均 `consoleIssues=0`、`bodyOverflowX=0`、表头字号 / 字重 / 居中检查通过；`/knowledge/functions` 复核页签为同级展示，执行层职能组顺序与原表行号一致。
+- 点击回归通过：从 `/knowledge/functions` 点击 `Gartner 工作岗位参考` 后 active 页签和表格标题均切换为 `Gartner 工作岗位参考`，表格行数 28，横向溢出 0。
 - `node --check frontend/capability-browser/app.js`、`node --check scripts/frontend_smoke_check.mjs`、关键表格 / 详情组件 `node --check`：通过。
 - 指南页 smoke：`/guides/security-architecture-design` 和 `/guides/data-security-design` 均通过；缩略图数量分别为 75 和 43，图片加载比例约 `1.7778`，目录点击和键盘切换不回弹。
 - 安全知识 7 个已有数据表格入口 smoke 均通过：`/knowledge/scopes`、`/knowledge/technical`、`/knowledge/technical-measures`、`/knowledge/management-workflows`、`/knowledge/processes`、`/knowledge/functions`、`/knowledge/role-references`。
@@ -79,6 +88,10 @@
 - `python3 scripts/data_package_summary.py --package shared-lookups`：通过；`shared-lookups.json` 为 `ready`，`service_module_index=192`。数据层仍保留来源追踪字段样本命中，前端主展示区未新增这些字段展示。
 - `python3 -m py_compile src/sapd_wiki/exports.py src/sapd_wiki/cli.py src/sapd_wiki/api_server.py scripts/data_package_summary.py scripts/dev_server_guard.py`：通过。
 - `node --check frontend/capability-browser/dataClient.js`、`node --check frontend/capability-browser/app.js`、`node --check scripts/frontend_smoke_check.mjs`：通过。
+- `python3 -m py_compile scripts/bootstrap_local_data.py scripts/check_github_data_boundary.py`：通过。
+- `python3 scripts/bootstrap_local_data.py --print-inputs`：通过，输出必需 / 可选本地文件放置清单。
+- `python3 scripts/check_github_data_boundary.py`：通过，当前 Git 未追踪原始数据、数据库、导出包或前端生成数据。
+- `git diff --check`：通过。
 - 安全能力映射页 smoke：`node scripts/frontend_smoke_check.mjs --page capability --url http://127.0.0.1:6190/ --debug-port 9432` 通过，`consoleIssues=0`、`bodyOverflowX=0`、`workspaceOverflowX=0`、`capabilityMap=true`；临时 6190 服务已关闭。
 - legacy 去重后数据包复核通过：`management-knowledge.json` 顶层已无 `assets` / `service_module_index`，约 52.5MB；`lifecycle-knowledge.json` 顶层已无 `service_module_index`，约 6.7MB；`shared-lookups.json` 继续为 `ready`，`service_module_index=192`。
 - legacy 去重后页面 smoke 通过：`capability`、`lifecycle`、`/knowledge/technical` 均 `consoleIssues=0`；临时 6191 服务已关闭。`lifecycle` 工作区仍有 32px 横向溢出指标，脚本判定通过，后续若做视觉收口可单独处理。

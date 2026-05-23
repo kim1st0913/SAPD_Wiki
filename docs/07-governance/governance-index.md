@@ -16,7 +16,8 @@
 
 | 文档 | 用途 |
 |---|---|
-| `docs/07-governance/data-governance.md` | 数据标准化、去重、冲突、旧对象停用、验证等级、metadata 字段升级和前端数据包拆分规则 |
+| `docs/07-governance/data-governance.md` | GitHub 数据边界、数据标准化、去重、冲突、旧对象停用、验证等级、metadata 字段升级和前端数据包拆分规则 |
+| `docs/03-import-etl/github-local-data-initialization.md` | 从 GitHub 拉取代码后的本地文件放置、一键数据初始化和生成数据不同步说明 |
 | `docs/07-governance/codex-performance-workflow.md` | Codex 轻量开发、验证摘要、重连减负和用户短指令默认执行规则 |
 | `docs/06-implementation/open-issues.md` | 所有 bug、数据问题、页面问题和待确认事项的唯一维护文件 |
 | `findings.md` | 当前关键决策、重要风险和历史记录索引 |
@@ -28,6 +29,7 @@
 当前立即执行：
 
 - 数据治理规则集中化。
+- GitHub 只同步代码 / 文档 / 配置模板 / 脱敏 fixture，原始数据和生成数据通过本地初始化脚本重建。
 - 前端离线数据包按页面契约拆分，禁止恢复大一统业务 JSON。
 - `findings.md` 索引化。
 - `progress.md` 职责收缩。

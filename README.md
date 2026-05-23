@@ -10,6 +10,8 @@
 
 面向咨询顾问的 V1 交付目标是压缩包应用：顾问解压后第一次打开，点击一键初始化，系统自动部署预置 SQLite 数据库、页面数据包和预览资源，然后直接进入知识库工作台。顾问端不需要安装 Python / Node / SQLite CLI，不自行导入资料，不执行 ETL 或 migration；第一期也不做登录、注册、账号和权限体系。详细交付模型见 `docs/01-architecture/consultant-delivery-model.md`。
 
+GitHub 工程不提交原始数据、生成数据、SQLite 数据库、导出包或预览资源。开发者从 GitHub 拉代码后，应把授权的本地原始文件放入 `data/raw-samples/`，再执行 `python scripts/bootstrap_local_data.py --reset` 一键生成本地数据库和前端离线数据包。详细文件清单和流程见 `docs/03-import-etl/github-local-data-initialization.md`。
+
 ## 先读哪几个文件
 
 如果你是第一次进入项目，建议按这个顺序阅读：
@@ -50,6 +52,7 @@
 - `docs/03-import-etl/remaining-21-sheets-modeling.md`：剩余 21 个 Excel Sheet 建模草案。
 - `docs/03-import-etl/excel-import-mvp-design.md`：Excel 导入 MVP 设计。
 - `docs/03-import-etl/sample-file-inventory.md`：知识资产与样例文件盘点表。
+- `docs/03-import-etl/github-local-data-initialization.md`：GitHub 拉取后的本地文件放置、一键数据初始化和数据不同步边界。
 
 ### 实施与数据库
 
@@ -102,6 +105,19 @@
 
 ```bash
 python scripts/sapd_wiki.py init-db
+```
+
+从 GitHub 拉代码后的推荐一键数据初始化：
+
+```bash
+python scripts/bootstrap_local_data.py --print-inputs
+python scripts/bootstrap_local_data.py --reset
+```
+
+提交前检查是否误追踪原始数据或生成数据：
+
+```bash
+python scripts/check_github_data_boundary.py
 ```
 
 登记并检查 Excel 样例：

@@ -431,10 +431,10 @@ G 列 `安全技术模块/措施` 不是单一对象来源，必须按原表语�
 | MAP-LCAP-005 | 安全活动定义 | security_activity | title / description | T-TRIM | 否 | `/` 映射为“无安全活动”，不生成对象 |
 | MAP-LCAP-006 | 安全活动对应安全策略 | security_policy_requirement | sequence / text / source_type | T-SPLIT-NUMBERED-LIST | 否 | 按编号拆分为安全策略条目，当前 `source_type=LC-AP` |
 | MAP-LCAP-007 | 软件开发模式 | software_development_type / relation | title | T-CELL-FILL-YELLOW | 否 | 黄色底色生成适用关系，非黄色不生成关系 |
-| MAP-LCAP-008 | 安全服务（带管理类） | security_technical_service / relation | title / service_category | T-SPLIT-LINES | 否 | `service_category=管理类` |
-| MAP-LCAP-009 | 安全技术服务 | security_technical_service / relation | title / service_category | T-SPLIT-BY-SEPARATOR | 否 | 横线上方为开发类，下方为网络空间类 |
-| MAP-LCAP-010 | 安全技术模块 | security_technology_module / relation | title | T-MATCH-EXISTING-MODULE | 否 | 必须匹配既有模块，未匹配输出数据问题 |
-| MAP-LCAP-011 | 实际产品示例 | development_product_component / relation | title | T-SPLIT-LINES | 否 | 开发类产品组件，不进入通用产品主数据 |
+| MAP-LCAP-008 | 开发技术服务 | development_technical_service / relation | title | T-SPLIT-LINES | 否 | 开发过程中使用的服务，不进入安全技术服务清单 |
+| MAP-LCAP-009 | 实际产品示例 | development_technical_module / relation | title | T-SPLIT-LINES | 否 | 开发技术模块，不进入安全技术模块清单 |
+| MAP-LCAP-010 | 安全技术服务 | security_technical_service / relation | title | T-SPLIT-LINES | 否 | 安全技术服务基准为 `安全能力-安全技术服务`，不再按管理类/开发类/网络空间类拆分 |
+| MAP-LCAP-011 | 安全技术模块 | security_technology_module / security_technical_measure / relation | title | T-MATCH-EXISTING-MODULE-OR-MEASURE | 否 | 优先匹配既有安全技术模块清单；用户确认的专项值暂归安全技术措施 |
 
 关系生成：
 
@@ -445,7 +445,9 @@ G 列 `安全技术模块/措施` 不是单一对象来源，必须按原表语�
 | MAP-LCAP-R003 | lifecycle_process | applies_to_development_type | software_development_type | 对应开发模式列为黄色底色 |
 | MAP-LCAP-R004 | lifecycle_process / security_activity | uses_service | security_technical_service | 关联安全技术服务非空 |
 | MAP-LCAP-R005 | lifecycle_process / security_activity / security_technical_service | uses_module | security_technology_module | 模块匹配既有安全技术模块清单 |
-| MAP-LCAP-R006 | lifecycle_process / security_technical_service | uses_development_product_component | development_product_component | 产品组件非空且可可靠归属 |
+| MAP-LCAP-R006 | lifecycle_process | uses_measure | security_technical_measure | 模块列值经用户确认暂归安全技术措施 |
+| MAP-LCAP-R007 | lifecycle_process | uses_development_technical_service | development_technical_service | 开发技术服务非空 |
+| MAP-LCAP-R008 | lifecycle_process | uses_development_technical_module | development_technical_module | 实际产品示例非空 |
 
 ### 5.14 LC-AP 应用安全开发生命周期元素目录
 

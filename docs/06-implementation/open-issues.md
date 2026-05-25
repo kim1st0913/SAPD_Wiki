@@ -48,7 +48,7 @@
 
 ## OI-002：`ALL&T-AD.IR-02` 与 `ALL&T-AD.IR-03` 源数据编码混淆
 
-- 状态：待处理
+- 状态：已修复
 - 类型：数据
 - 对象：`ALL&T-AD.IR-02 安全事件管理`、`ALL&T-AD.IR-03 安全响应处置`
 - 现象：修正前，源 Excel 中部分 `安全响应处置` 被写成 `ALL&T-AD.IR-02`，导致同一编码出现两个服务标题。
@@ -689,6 +689,12 @@
   - 用户确认上述 6 个 LC-DT 名称应进入 `安全技术模块清单`；已用 `/Users/kim1st/Desktop/数据安全 - 安全技术模块清单.xlsx` 替换 `data/raw-samples/wiki sample.xlsx` / `安全技术模块清单` 中的 `数据安全` 区块；
   - 修订后标准安全技术模块目录为 102 个；`网络数据防泄露` 和 `数据交易沙箱` 不再作为模块主数据，替换为 `数据流转监测和泄漏防护`、`隐私计算平台`；
   - 只读 parser 验证 `LC-DT 数据生命周期` 与 `LC-DT 安全技术服务、模块、策略映射表` 的安全技术模块未匹配 warning 为 0。
+- 2026-05-25 回归修复：
+  - 重新 ETL 后，`安全技术模块/措施清单` 页面出现 5 个主安全系统、13 个模块被分到“未归入安全技术模块清单”；
+  - 复核确认这 13 个模块均存在于原始 `安全技术模块清单`，例如 `桌面安全管理（UEM）` 在 `D3:D11`、`网络防火墙` 在 `D36:D37`、`数据流转监测和泄漏防护` 在 `D214:D218`；
+  - 根因不是原始表缺失，而是前端数据包的来源摘要只保留前 8 条，排序后优先截取了映射表来源，导致 `安全技术模块清单` 来源行被截掉，前端据此误判为非目录模块；
+  - 已调整导出层：`security_system` 与 `security_technology_module` 的简要来源优先保留 `安全技术模块清单`，再保留映射表来源；
+  - 重新导出后 `maintenance-knowledge.json` 中有分类但无目录来源的安全技术模块数量为 0，`安全技术模块/措施清单` 页面 smoke 通过。
 
 ## OI-033：新增安全技术措施专项维护页面
 
@@ -808,18 +814,17 @@
 - 修复说明：2026-05-14 用户确认处理口径：`应用程序威胁建模`、`制品安全加固`、`IaC代码安全测试` 作为安全技术措施；`软件成分分析` 映射到 `软件成分分析（SCA）`；`安全函数和组件库` 通过 `应用程序静态安全测试（安全函数和组件库）` 映射到 `应用程序静态安全测试`；`软件物料清单` 已从模块列移到开发技术服务列。
 - 追加验证结果：第三批导入任务 `1105f088-5a35-48b4-9776-40f5b25e5f2b` 输出 `validations: []`、`warnings: []`；`lifecycle-knowledge.json` 中生成 `security_technical_measures: 3`，`uses_measure: 3`，`uses_module: 6`；未再出现 LC-AP 安全技术模块未匹配 warning。
 
-## OI-040：LC-AP 安全技术措施暂未细化到具体安全技术服务
+## OI-040：LC-AP 安全技术措施未进入 lifecycle workbench 主投影
 
 - 状态：已修复
 - 类型：数据契约 / ETL 粒度 / 前端展示
 - 对象或页面：`安全开发维度`，`LC-AP 应用安全开发生命周期`
 - 现象：当前 `应用程序威胁建模`、`制品安全加固`、`IaC代码安全测试` 已按用户确认作为安全技术措施导出，但关系粒度是 `开发过程阶段 → 安全技术措施`，尚未细化为 `安全技术服务 → 安全技术措施`。
 - 影响：安全开发维度页面可以展示这些措施，但暂时只能作为阶段关联对象展示，不能精确放在某一条安全技术服务下。
-- 当前处理：本轮不阻塞页面推进。前端在“安全开发服务映射”中新增“阶段关联对象”行，显式展示当前数据仅表达到阶段。
-- 后续处理：如后续需要精确到服务，应由 ETL/export 增加服务级措施映射字段或关系；前端再把措施移动到对应安全技术服务行。
+- 当前处理：已在 `lifecycle-workbench.json` 契约 / export 中补入阶段级 `security_technical_measure` 对象和 `uses_measure` 关系；前端 workbench ViewModel 已读取该关系，并在阶段概览、关系表和详情面板中展示安全技术措施。
+- 后续处理：如后续需要精确到服务，应由 ETL/export 增加服务级措施映射字段或关系，前端再把措施移动到对应安全技术服务行；本轮不伪造服务级归属。
 - 统一规则：后续任何原始数据中的 `/` 均代表“没有相关定义 / 不适用”，不再反复确认；ETL 和前端均不得把 `/` 生成为正常知识对象。
-- BE-4 追加发现：2026-05-18 检查 `lifecycle-workbench.json` 时发现，新 workbench 投影尚未包含 `security_technical_measure` 对象类型和措施关系；`lifecycle-knowledge.json` 中仍能检索到 `应用程序威胁建模`、`制品安全加固`、`IaC代码安全测试` 等措施，但新 UI 若只消费 `lifecycle-workbench.json` 将无法直接展示这些措施。
-- 验证结果：待后续服务级或阶段级措施投影规则补充后验证。
+- 验证结果：2026-05-25 重新导出 `lifecycle-workbench.json` 后，`security_technical_measure=3`、`uses_measure=3`、关系端点缺失 0；关系为 `AP-02 -> 应用程序威胁建模`、`AP-04 -> 制品安全加固`、`AP-05 -> IaC代码安全测试`。`node scripts/frontend_smoke_check.mjs --page lifecycle --url http://127.0.0.1:5174/ --debug-port 9334` 通过，`activeView=dev-lifecycle`、`consoleIssues=0`、`bodyOverflowX=0`。
 
 ## OI-041：主控会话多次重连影响工程开发
 
@@ -1228,14 +1233,14 @@
 
 ## OI-073：作用域映射表仍残留旧安全技术模块名称
 
-- 状态：待处理
+- 状态：已修复
 - 类型：原始数据一致性 / ETL warning
 - 对象或页面：`作用域-安全技术服务-安全技术模块映射`
-- 现象：`安全技术模块清单` 中 `网络数据防泄露` 已替换为 `数据流转监测和泄漏防护`，但 `作用域-安全技术服务-安全技术模块映射` 的 G 列仍有 5 行旧值 `网络数据防泄露`：第 14、31、42、451、718 行。
-- 影响：重新 stage 相关 Sheet 时会产生 5 条 `安全技术模块未匹配安全技术模块清单：网络数据防泄露` warning；当前 ETL 已不再把旧名称导出为 active 模块，但源表仍需同步修订，避免后续反复出现 warning。
-- 当前处理：已联合 approve `安全技术模块清单`、`作用域-安全技术服务-安全技术模块映射`、`LC-DT 数据生命周期`、`LC-DT 安全技术服务、模块、策略映射表`，并重新导出前端数据包；`maintenance-knowledge.json` 中 `security_technology_modules=102`，`网络数据防泄露` 与 `数据交易沙箱` 均不再出现，数据库中二者均为 `deprecated`。
-- 需要确认：是否将上述 5 行 G 列统一改为 `数据流转监测和泄漏防护`。
-- 验证结果：2026-05-23 stage 相关 4 张 Sheet 时仍出现上述 5 条 warning；approve 后无 approve warning；重新导出后 `python3 scripts/data_package_summary.py --package maintenance` 通过，`dataState=ready`，安全技术模块 102 条。
+- 现象：`安全技术模块清单` 中 `网络数据防泄露` 已替换为 `数据流转监测和泄漏防护`，此前 `作用域-安全技术服务-安全技术模块映射` 的 G 列仍有 5 行旧值 `网络数据防泄露`。
+- 影响：旧源值会在重新 stage 相关 Sheet 时产生 `安全技术模块未匹配安全技术模块清单：网络数据防泄露` warning。
+- 当前处理：用户已将原始表中的对应关系同步为新版模块名称；已重新 ETL `安全技术模块清单`、`作用域-安全技术服务-安全技术模块映射`、`LC-DT 数据生命周期`、`LC-DT 安全技术服务、模块、策略映射表`，并重新导出维护知识、共享查找表和前端 workbench 数据包。
+- 修复说明：重新 stage 任务 `d9c0c34b-f334-4ff6-a7cb-48fb309c1e86` 无 validation；approve 后 `items_created=1`、`items_updated=471`、`relations_created=28`、`warnings=[]`。数据库中 `网络数据防泄露` 与 `数据交易沙箱` 均为 deprecated，`数据流转监测和泄漏防护` 与 `隐私计算平台` 为 active。
+- 验证结果：2026-05-25 只读 parser 复核 `作用域-安全技术服务-安全技术模块映射`：`validations=0`，`网络数据防泄露=0`、`数据交易沙箱=0`、`数据流转监测和泄漏防护=5`；`maintenance-knowledge.json` 为 `data_state=ready`，`security_technology_modules=102`；`capability-workbench`、`environment-workbench`、`lifecycle-workbench` 数据包摘要均通过。
 
 ## OI-074：安全职能清单列宽不合理且缺少前两列归纳展开
 
@@ -1248,3 +1253,58 @@
 - 需要确认：无。
 - 修复说明：修改 `WorkFunctionMaintenanceTable.js`、`StandardRoleReferenceTable.js`、`styles.css`、`viewModels.js`、`exports.py`、页面字段契约和治理文档；未修改原始 Excel、schema 或数据库结构。
 - 验证结果：2026-05-23 `node --check`、`python3 -m py_compile src/sapd_wiki/exports.py`、`git diff --check` 通过；已重新导出 `maintenance-knowledge.json`，并更新 `index.html` / `dataClient.js` 资源版本避免旧缓存；本地 API 返回 `gbt_42446_references=27` 且 `category_non_empty=27`、`gartner_roles=28` 且 `category_non_empty=28`；`/knowledge/functions`、`/knowledge/scopes`、`/knowledge/technical`、`/knowledge/management-workflows`、`/knowledge/gbt-42446`、`/knowledge/role-references` Chrome headless smoke 通过，均 `consoleIssues=0`、`bodyOverflowX=0`；DOM 复核确认 GB/T 为 5 个折叠面板、Gartner 为 4 个折叠面板，标题到内容间距约 8px。
+
+## OI-075：LC-AP Q/R/S/M/N 列与安全技术服务和模块基准存在口径差异
+
+- 状态：待处理
+- 类型：数据一致性 / LC-AP / ETL 口径
+- 对象或页面：`LC-AP 应用安全开发生命周期`、`安全能力-安全技术服务`、`安全技术模块清单`、`lifecycle-workbench.json`
+- 现象：2026-05-25 用户删除旧 Q 列后复核，当前表头为 `Q=安全技术服务`、`R=安全技术模块`、`S=空`。按新口径检查，Q 列安全技术服务全部命中 `安全能力-安全技术服务`，R 列安全技术模块全部命中 `安全技术模块清单`；未命中的 4 个 R 列值 `应用程序威胁建模`、`应用程序静态安全测试（安全函数和组件库）`、`制品安全加固`、`IaC代码安全测试` 暂按安全技术措施接受，不再作为原始数据错误。
+- 影响：原始数据已按新口径闭环；旧 parser 曾按旧列位和旧分类逻辑解析，导致 M 列被解析为 `security_technical_service` 的 `开发类`，当前 R 列安全技术模块会被误读为安全技术服务，当前 S 列空值会导致模块关系缺失。
+- 当前处理：已修改 LC-AP parser：M 列解析为 `development_technical_service`，N 列解析为 `development_technical_module`，Q 列解析为统一的 `security_technical_service`，R 列解析为 `security_technology_module` 或用户确认的 `security_technical_measure`；导入器已补充同源同 Sheet 重新导入时清理旧关系的规则。
+- 需要确认：无。
+- 修复说明：已重新 stage / approve `LC-AP 应用安全开发生命周期`，最新 import job 为 `e98a576e-00d8-4eeb-ae8c-9256fd1e7649`，`validations=[]`、`relations_deleted=120`、`warnings=[]`；已重新导出 `lifecycle-knowledge.json`、`shared-lookups.json` 和各 workbench 数据包。
+- 验证结果：2026-05-25 自定义 Excel / JSON 比对：`SERVICE_ISSUES=0`、`MODULE_ISSUES=0`、`ACCEPTED_TEMP_MEASURES=4`；`lifecycle-knowledge.json` 为 `data_state=ready`，`development_technical_services=11`、`development_technical_modules=14`、应用安全阶段直接安全技术服务唯一值 6、直接安全技术模块 4、阶段安全技术措施 3；`lifecycle-workbench.json` 为 `data_state=ready`，对象计数 `development_technical_service=11`、`development_technical_module=14`、`security_technical_service=6`、`security_technology_module=4`、`security_technical_measure=3`，旧开发工具类名称不再混入安全技术服务；LC-AP 页面 smoke 通过。
+
+## OI-076：LC-DT 数据备份服务编码与安全技术服务基准不一致
+
+- 状态：已修复
+- 类型：原始数据一致性 / LC-DT / 安全技术服务编码
+- 对象或页面：`安全技术模块清单`、`LC-DT 数据生命周期`、`LC-DT 安全技术服务、模块、策略映射表`、`安全能力-安全技术服务`
+- 现象：用户修订原始表后，重新检查数据安全相关两张 LC-DT 表，发现 `I-DI&T-AS.AD-03 数据备份` 未命中 `安全能力-安全技术服务` 基准；基准表中存在的是 `I-DI&T-AS.DG-03 数据备份`。
+- 来源追踪：
+  - `安全技术模块清单!F227`：`I-DI&T-AS.AD-03 数据备份`；
+  - `LC-DT 数据生命周期!H12`：包含 `I-DI&T-AS.AD-03 数据备份`；
+  - `LC-DT 安全技术服务、模块、策略映射表!M28/M30`：`I-DI&T-AS.AD-03 数据备份`；
+  - `安全能力-安全技术服务!H30`：`I-DI&T-AS.DG-03 数据备份`。
+- 影响：当前 stage 不报 validation，但服务编码不一致会导致 LC-DT 与安全技术服务基准之间无法严格对齐，后续关系投影可能把该服务作为非基准服务处理。
+- 当前处理：已按用户确认把上述位置统一修订为 `I-DI&T-AS.DG-03 数据备份`；同时补强 parser，使 `安全技术模块清单`、`LC-DT 数据生命周期`、`LC-DT 安全技术服务、模块、策略映射表` 中的安全技术服务引用会校验编码和名称是否匹配 `安全能力-安全技术服务`。
+- 需要确认：无。
+- 验证结果：2026-05-25 重新 stage `安全技术模块清单`、`LC-DT 数据生命周期`、`LC-DT 安全技术服务、模块、策略映射表`，`I-DI&T-AS.AD-03 数据备份` 已不存在；LC-DT 两张表安全技术服务严格比对剩余问题为 0。
+
+## OI-077：操作系统隔离服务曾未进入安全技术服务基准
+
+- 状态：已修复
+- 类型：原始数据一致性 / 安全技术模块清单 / 安全技术服务编码
+- 对象或页面：`安全能力-安全技术服务`、`安全技术模块清单`、`信息化环境-信息化对象-安全作用域映射`、`作用域-安全技术服务-安全技术模块映射`
+- 现象：按 `安全能力-安全技术服务` 对 `安全技术模块清单!F` 做严格比对后，曾发现 2 条 `I-OS&T-PD.PP-03 操作系统隔离` 无法命中权威服务清单。
+- 来源追踪：
+  - `安全技术模块清单!F27`：`云桌面` 映射 `I-OS&T-PD.PP-03 操作系统隔离`；
+  - `安全技术模块清单!F304`：`移动终端环境隔离` 映射 `I-OS&T-PD.PP-03 操作系统隔离`；
+  - `信息化环境-信息化对象-安全作用域映射!F118`；
+  - `作用域-安全技术服务-安全技术模块映射!F118`。
+- 影响：如果权威服务清单缺少该服务，ETL 会把 `I-OS&T-PD.PP-03 操作系统隔离` 识别为未匹配基准的服务；如果强行替换为应用/网络/数据/硬件隔离，会改变业务语义。
+- 当前处理：用户已人工回退删除并在 `安全能力-安全技术服务!K33` 补充 `I-OS&T-PD.PP-03 操作系统隔离`。已重新 stage / approve `安全能力-安全技术服务`、`安全技术模块清单`、`信息化环境-信息化对象-安全作用域映射`、`作用域-安全技术服务-安全技术模块映射`，使该服务成为权威基准服务并恢复相关映射。
+- 需要确认：无。
+- 验证结果：2026-05-25 重新导出 `capability-tree.json`、`maintenance-knowledge.json`、`shared-lookups.json` 和各 workbench 数据包后，`capability-tree.json` 服务数为 158，`capability-workbench.json` 的 `security_technical_service=158`；stage warning 中不再包含 `I-OS&T-PD.PP-03 操作系统隔离`。
+
+## OI-078：两张作用域映射表安全技术服务旧口径不一致
+
+- 状态：已修复
+- 类型：原始数据一致性 / 作用域映射 / 安全技术服务编码
+- 对象或页面：`安全能力-安全技术服务`、`安全技术模块清单`、`信息化环境-信息化对象-安全作用域映射`、`作用域-安全技术服务-安全技术模块映射`
+- 现象：补强 parser 后，两张作用域映射表的 F 列还能检出安全技术服务引用与 `安全能力-安全技术服务` 不一致。当前严格比对统计：`信息化环境-信息化对象-安全作用域映射` 66 条、12 个唯一旧值；`作用域-安全技术服务-安全技术模块映射` 67 条、12 个唯一旧值。
+- 影响：这些旧口径服务会在环境维度和作用域维度中作为非基准服务进入关系投影，影响后续映射一致性检查。
+- 当前处理：已按用户确认分两类处理：第一类编码不一致以权威建议值为准，更新 `信息化环境-信息化对象-安全作用域映射` 与 `作用域-安全技术服务-安全技术模块映射` 的 F 列；第二类重复括号名称以映射表原值为准，更新回 `安全能力-安全技术服务`，并同步回退 `安全技术模块清单` 中此前按旧权威值写入的 9 处重复括号名称。
+- 需要确认：无。
+- 验证结果：2026-05-25 重新严格比对 `安全技术模块清单`、两张作用域映射表、两张 LC-DT 表与 `安全能力-安全技术服务`，剩余不一致数量为 0；最新 stage `668045e9-47bd-4e6a-a2fe-74094e239124` 的 `validations=[]`，approve `warnings=[]`。

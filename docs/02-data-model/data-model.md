@@ -184,7 +184,8 @@ V1 对象类型：
 | software_development_type | 软件开发类型 | 第三批 | 自研、定制、外购、SaaS 等 |
 | application_system_type | 应用系统类型 | 第三批 | 传统应用、微服务应用、中台类应用等 |
 | application_component | 应用组件 | 第三批 | 应用系统类型下的组件层级 |
-| development_product_component | 开发类产品组件 | 第三批 | LC-AP 实际产品示例；只在安全开发维度展示，不进入通用产品主数据 |
+| development_technical_service | 开发技术服务 | 第三批 | LC-AP 开发过程中使用的开发技术服务，不属于安全技术服务 |
+| development_technical_module | 开发技术模块 | 第三批 | LC-AP 实际产品示例，类比安全技术模块但不进入安全技术模块清单 |
 | standard_framework | 标准框架 | 后续 | ISO、CSF、等保、CIS 等 |
 | standard_control | 标准控制项 | 后续 | 标准控制条目 |
 | guide_section | 使用说明章节 | 后续 | 来自 PPT |
@@ -235,7 +236,8 @@ V1 对象类型：
 | uses_service | 使用服务 | 生命周期过程/安全活动 | 安全技术服务 |
 | uses_module | 关联安全技术模块 | 生命周期过程/安全活动/安全技术服务 | 安全技术模块 |
 | uses_measure | 关联安全技术措施 | 生命周期过程/安全活动/安全技术服务 | 安全技术措施 |
-| uses_development_product_component | 使用开发类产品组件 | 生命周期过程/安全技术服务 | 开发类产品组件 |
+| uses_development_technical_service | 使用开发技术服务 | 生命周期过程 | 开发技术服务 |
+| uses_development_technical_module | 使用开发技术模块 | 生命周期过程 | 开发技术模块 |
 | has_component | 包含组件 | 应用系统类型 | 应用组件 |
 
 ### 4.5 source_reference 来源引用

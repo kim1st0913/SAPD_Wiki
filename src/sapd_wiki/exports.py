@@ -94,7 +94,8 @@ LIFECYCLE_ITEM_TYPES = (
     "software_development_type",
     "application_system_type",
     "application_component",
-    "development_product_component",
+    "development_technical_service",
+    "development_technical_module",
     "security_technical_service",
     "security_technology_module",
     "security_technical_measure",
@@ -111,7 +112,8 @@ LIFECYCLE_RELATION_TYPES = (
     "uses_service",
     "uses_module",
     "uses_measure",
-    "uses_development_product_component",
+    "uses_development_technical_service",
+    "uses_development_technical_module",
     "uses_product",
     "has_component",
     "implements_service",
@@ -243,6 +245,30 @@ def _combine_sources(*source_lists: list[dict[str, Any]] | None, limit: int = 12
     return combined
 
 
+def _brief_item_sources(item: dict[str, Any], source_refs: dict[str, list[dict[str, Any]]], limit: int = 8) -> list[dict[str, Any]]:
+    sources = source_refs.get(item["id"], [])
+    if item.get("type") not in {"security_system", "security_technology_module"}:
+        return sources[:limit]
+    preferred_sheets = ("安全技术模块清单",)
+    sheet_rank = {sheet: index for index, sheet in enumerate(preferred_sheets)}
+
+    def sort_key(source: dict[str, Any]) -> tuple[int, int, int, str, str]:
+        sheet = str(source.get("sheet") or "")
+        try:
+            row = int(source.get("row"))
+        except (TypeError, ValueError):
+            row = 10**9
+        return (
+            0 if sheet in sheet_rank else 1,
+            sheet_rank.get(sheet, len(preferred_sheets)),
+            row,
+            str(source.get("cell") or ""),
+            str(source.get("column") or ""),
+        )
+
+    return _combine_sources(sorted(sources, key=sort_key), limit=limit)
+
+
 def _sort_item_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     def sort_key(item: dict[str, Any]) -> tuple[int, int, str, str]:
         metadata = _metadata(item)
@@ -312,7 +338,7 @@ def _brief_item(item: dict[str, Any] | None, source_refs: dict[str, list[dict[st
         "title": item["title"],
         "description": item.get("description"),
         "category": category,
-        "sources": source_refs.get(item["id"], [])[:8],
+        "sources": _brief_item_sources(item, source_refs),
     }
 
 
@@ -2172,7 +2198,8 @@ def export_lifecycle_knowledge(
     development_types = {item_id: item for item_id, item in items.items() if item["type"] == "software_development_type"}
     application_system_types = {item_id: item for item_id, item in items.items() if item["type"] == "application_system_type"}
     application_components = {item_id: item for item_id, item in items.items() if item["type"] == "application_component"}
-    development_product_components = {item_id: item for item_id, item in items.items() if item["type"] == "development_product_component"}
+    development_technical_services = {item_id: item for item_id, item in items.items() if item["type"] == "development_technical_service"}
+    development_technical_modules = {item_id: item for item_id, item in items.items() if item["type"] == "development_technical_module"}
     technical_services = {item_id: item for item_id, item in items.items() if item["type"] == "security_technical_service"}
     technology_modules = {item_id: item for item_id, item in items.items() if item["type"] == "security_technology_module"}
     technical_measures = {item_id: item for item_id, item in items.items() if item["type"] == "security_technical_measure"}
@@ -2187,7 +2214,8 @@ def export_lifecycle_knowledge(
     policies_by_process: dict[str, list[str]] = {}
     policies_by_activity: dict[str, list[str]] = {}
     development_types_by_process: dict[str, list[str]] = {}
-    product_components_by_process: dict[str, list[str]] = {}
+    development_services_by_process: dict[str, list[str]] = {}
+    development_modules_by_process: dict[str, list[str]] = {}
     components_by_system_type: dict[str, list[str]] = {}
 
     for relation in relations:
@@ -2224,11 +2252,14 @@ def export_lifecycle_knowledge(
         elif relation_type == "uses_measure" and target_type == "security_technical_measure":
             if source_type == "lifecycle_process":
                 measures_by_process.setdefault(source_id, []).append(target_id)
-        elif relation_type == "uses_development_product_component" and target_type == "development_product_component":
+        elif relation_type == "uses_development_technical_service" and target_type == "development_technical_service":
             if source_type == "lifecycle_process":
-                product_components_by_process.setdefault(source_id, []).append(target_id)
+                development_services_by_process.setdefault(source_id, []).append(target_id)
+        elif relation_type == "uses_development_technical_module" and target_type == "development_technical_module":
+            if source_type == "lifecycle_process":
+                development_modules_by_process.setdefault(source_id, []).append(target_id)
         elif relation_type == "uses_product" and source_type == "lifecycle_process" and target_type == "product":
-            product_components_by_process.setdefault(source_id, []).append(target_id)
+            development_modules_by_process.setdefault(source_id, []).append(target_id)
         elif relation_type == "has_component" and source_type == "application_system_type" and target_type == "application_component":
             components_by_system_type.setdefault(source_id, []).append(target_id)
 
@@ -2279,6 +2310,7 @@ def export_lifecycle_knowledge(
 
         if lifecycle_type == "application_security_development":
             payload["goal"] = metadata.get("goal") or process.get("description")
+            payload["original_business_fields"] = metadata.get("original_business_fields") or {}
             main_activity_ids = main_activities_by_process.get(process_id, [])
             if main_activity_ids:
                 payload["main_activities"] = [
@@ -2330,9 +2362,14 @@ def export_lifecycle_knowledge(
                 for measure_id in sort_lifecycle_items(technical_measures, measures_by_process.get(process_id, []))
                 if measure_id in technical_measures
             ]
-            payload["development_product_components"] = _brief_many(
-                development_product_components,
-                product_components_by_process.get(process_id, []),
+            payload["development_technical_services"] = _brief_many(
+                development_technical_services,
+                development_services_by_process.get(process_id, []),
+                refs,
+            )
+            payload["development_technical_modules"] = _brief_many(
+                development_technical_modules,
+                development_modules_by_process.get(process_id, []),
                 refs,
             )
             payload["security_activity_count"] = len(payload["security_activities"])
@@ -2340,7 +2377,8 @@ def export_lifecycle_knowledge(
             payload["technical_service_count"] = len(payload["technical_services"])
             payload["technology_module_count"] = len(payload["technology_modules"])
             payload["technical_measure_count"] = len(payload["technical_measures"])
-            payload["development_product_component_count"] = len(payload["development_product_components"])
+            payload["development_technical_service_count"] = len(payload["development_technical_services"])
+            payload["development_technical_module_count"] = len(payload["development_technical_modules"])
         else:
             payload["scenes"] = [
                 detailed_item(lifecycle_scenes[scene_id])
@@ -2405,7 +2443,8 @@ def export_lifecycle_knowledge(
             "software_development_types": len(development_types),
             "application_system_types": len(application_system_types),
             "application_components": len(application_components),
-            "development_product_components": len(development_product_components),
+            "development_technical_services": len(development_technical_services),
+            "development_technical_modules": len(development_technical_modules),
             "security_technical_measures": len(technical_measures),
         },
         "application_security_development": {
@@ -2417,9 +2456,13 @@ def export_lifecycle_knowledge(
                 detailed_item(development_types[item_id])
                 for item_id in _sort_source_ids(development_types, list(development_types.keys()))
             ],
-            "development_product_components": [
-                detailed_item(development_product_components[item_id])
-                for item_id in _sort_source_ids(development_product_components, list(development_product_components.keys()))
+            "development_technical_services": [
+                detailed_item(development_technical_services[item_id])
+                for item_id in _sort_source_ids(development_technical_services, list(development_technical_services.keys()))
+            ],
+            "development_technical_modules": [
+                detailed_item(development_technical_modules[item_id])
+                for item_id in _sort_source_ids(development_technical_modules, list(development_technical_modules.keys()))
             ],
             "security_technical_measures": [
                 detailed_item(technical_measures[item_id])
@@ -3312,10 +3355,14 @@ def export_lifecycle_workbench(
         "lifecycle_activity",
         "lifecycle_control",
         "lifecycle_requirement",
+        "software_development_type",
         "capability",
         "capability_focus",
+        "development_technical_service",
+        "development_technical_module",
         "security_technical_service",
         "security_technology_module",
+        "security_technical_measure",
     )}
     relations: list[dict[str, Any]] = []
     seen_relations: set[tuple[str, str, str]] = set()
@@ -3335,7 +3382,18 @@ def export_lifecycle_workbench(
     default_stage_id = None
 
     for process in _wb_list(app_security.get("processes")):
-        stage_obj = _wb_add_object(objects, evidence_refs, process, "lifecycle_stage", fallback_name="未命名阶段")
+        stage_obj = _wb_add_object(
+            objects,
+            evidence_refs,
+            process,
+            "lifecycle_stage",
+            fallback_name="未命名阶段",
+            extra={
+                "originalBusinessFields": process.get("original_business_fields")
+                or (process.get("metadata").get("original_business_fields") if isinstance(process.get("metadata"), dict) else {})
+                or {}
+            },
+        )
         default_stage_id = default_stage_id or stage_obj["id"]
         _wb_add_relation(relations, seen_relations, "belongs_to", stage_obj, domain_obj, label="属于生命周期")
         navigator_children.append(_wb_navigator_node(process, "lifecycle_stage"))
@@ -3348,6 +3406,60 @@ def export_lifecycle_workbench(
         for requirement in _wb_list(process.get("policy_requirements")):
             requirement_obj = _wb_add_object(objects, evidence_refs, requirement, "lifecycle_requirement", fallback_name="未命名要求")
             _wb_add_relation(relations, seen_relations, "belongs_to", requirement_obj, stage_obj, label="属于阶段")
+        for development_type in _wb_list(process.get("development_types")):
+            development_type_obj = _wb_add_object(
+                objects,
+                evidence_refs,
+                development_type,
+                "software_development_type",
+                fallback_name="未命名开发模式",
+            )
+            _wb_add_relation(
+                relations,
+                seen_relations,
+                "applies_to_development_type",
+                stage_obj,
+                development_type_obj,
+                label="适用于开发模式",
+                confidence="explicit",
+                evidence_refs=_wb_collect_evidence(evidence_refs, process, development_type),
+            )
+        for development_service in _wb_list(process.get("development_technical_services")):
+            development_service_obj = _wb_add_object(
+                objects,
+                evidence_refs,
+                development_service,
+                "development_technical_service",
+                fallback_name="未命名开发技术服务",
+            )
+            _wb_add_relation(
+                relations,
+                seen_relations,
+                "uses_development_technical_service",
+                stage_obj,
+                development_service_obj,
+                label="使用开发技术服务",
+                confidence="explicit",
+                evidence_refs=_wb_collect_evidence(evidence_refs, process, development_service),
+            )
+        for development_module in _wb_list(process.get("development_technical_modules")):
+            development_module_obj = _wb_add_object(
+                objects,
+                evidence_refs,
+                development_module,
+                "development_technical_module",
+                fallback_name="未命名开发技术模块",
+            )
+            _wb_add_relation(
+                relations,
+                seen_relations,
+                "uses_development_technical_module",
+                stage_obj,
+                development_module_obj,
+                label="使用开发技术模块",
+                confidence="explicit",
+                evidence_refs=_wb_collect_evidence(evidence_refs, process, development_module),
+            )
         services_by_key: dict[str, dict[str, Any]] = {}
         for service in _wb_list(process.get("technical_services")):
             if not isinstance(service, dict):
@@ -3367,6 +3479,18 @@ def export_lifecycle_workbench(
         for module in _wb_list(process.get("technology_modules")):
             module_obj = _wb_add_object(objects, evidence_refs, module, "security_technology_module", fallback_name="未命名模块")
             _wb_add_relation(relations, seen_relations, "implemented_by_module", stage_obj, module_obj, label="关联模块", confidence="explicit")
+        for measure in _wb_list(process.get("technical_measures")):
+            measure_obj = _wb_add_object(objects, evidence_refs, measure, "security_technical_measure", fallback_name="未命名措施")
+            _wb_add_relation(
+                relations,
+                seen_relations,
+                "uses_measure",
+                stage_obj,
+                measure_obj,
+                label="关联措施",
+                confidence="explicit",
+                evidence_refs=_wb_collect_evidence(evidence_refs, process, measure),
+            )
         for service_obj_id, service in services_by_key.items():
             service_obj = objects["security_technical_service"].get(service_obj_id)
             index_entry = _matched_service_index(service_index, service)
@@ -3377,7 +3501,17 @@ def export_lifecycle_workbench(
     payload["navigator"] = {
         "defaultSelectedStageId": default_stage_id,
         "tree": [_wb_navigator_node(domain_item, "lifecycle_domain", navigator_children)],
-        "grouping": ["lifecycle_domain", "lifecycle_stage", "lifecycle_activity", "lifecycle_control", "lifecycle_requirement"],
+        "grouping": [
+            "lifecycle_domain",
+            "lifecycle_stage",
+            "lifecycle_activity",
+            "lifecycle_control",
+            "lifecycle_requirement",
+            "software_development_type",
+            "development_technical_service",
+            "development_technical_module",
+            "security_technical_measure",
+        ],
     }
     payload["objects"] = objects
     payload["relations"] = relations
@@ -3385,9 +3519,12 @@ def export_lifecycle_workbench(
     payload["relationshipGroups"] = [
         _wb_group("lifecycle-stage", "生命周期阶段", ["belongs_to"], relations),
         _wb_group("activity-control", "活动 / 控制点", ["contains_activity", "contains_control"], relations),
+        _wb_group("development-type", "软件开发模式", ["applies_to_development_type"], relations),
         _wb_group("capability-mapping", "能力映射", ["maps_to_capability"], relations),
         _wb_group("focus-mapping", "关注点映射", ["maps_to_focus"], relations),
+        _wb_group("development-technology", "开发技术服务 / 模块", ["uses_development_technical_service", "uses_development_technical_module"], relations),
         _wb_group("service-module", "服务 / 模块关联", ["maps_to_service", "implemented_by_module"], relations),
+        _wb_group("stage-measure", "阶段 / 技术措施关联", ["uses_measure"], relations),
     ]
     stats = _wb_stats(objects, relations, evidence_refs)
     payload["overview"] = {
@@ -3398,6 +3535,7 @@ def export_lifecycle_workbench(
     payload["meta"]["stats"] = stats
     payload["compatibility"]["warnings"] = [
         "lifecycle-workbench.json 当前仅承载 LC-AP 开发安全生命周期受控专项关系投影。",
+        "安全技术措施当前按 LC-AP 阶段级关系投影；尚不细化为安全技术服务级关系。",
         "部分能力 / 关注点映射根据服务编码受控派生，后续可由独立 export 关系替代。",
         "data_lifecycle 仍保留在 lifecycle-knowledge.json 过渡包中，本投影不扩展为完整开发安全模块。",
     ]

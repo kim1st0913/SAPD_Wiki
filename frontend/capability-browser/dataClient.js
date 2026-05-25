@@ -59,9 +59,11 @@
       application_security_development: {
         processes: [],
         software_development_types: [],
-        development_product_components: [],
+        development_technical_services: [],
+        development_technical_modules: [],
         security_technical_measures: [],
         application_system_types: [],
+        application_components: [],
       },
       data_lifecycle: { processes: [] },
     },
@@ -791,7 +793,8 @@
           ...list(process.technical_services).map(titleOf),
           ...list(process.technology_modules).map(titleOf),
           ...list(process.technical_measures).map(titleOf),
-          ...list(process.development_product_components).map(titleOf),
+          ...list(process.development_technical_services).map(titleOf),
+          ...list(process.development_technical_modules).map(titleOf),
         ]
           .join(" ")
           .toLowerCase()
@@ -808,7 +811,8 @@
             : "暂无开发安全生命周期数据，请确认 ETL 是否已导出 application_security_development。",
         processes,
         software_development_types: list(appSecurity.software_development_types),
-        development_product_components: list(appSecurity.development_product_components),
+        development_technical_services: list(appSecurity.development_technical_services),
+        development_technical_modules: list(appSecurity.development_technical_modules),
         security_technical_measures: list(appSecurity.security_technical_measures),
         application_system_types: list(appSecurity.application_system_types),
       });

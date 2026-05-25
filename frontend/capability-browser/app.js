@@ -16,6 +16,7 @@ const state = {
   activeView: "overview",
   activeRoute: "/",
   capabilityCatalogCollapsed: false,
+  devLifecycleCatalogCollapsed: false,
   expandedCapabilityIds: new Set(),
   expandedSelectionId: null,
   activeMaintenancePage: "scopes",
@@ -123,7 +124,7 @@ function loadDataPackage(name) {
 function routePackagesForCurrentState() {
   if (state.activeView === "capabilities") return ["capability", "capabilityWorkbench", "capabilityProjection"];
   if (state.activeView === "environment") return ["environmentWorkbench"];
-  if (state.activeView === "dev-lifecycle") return ["lifecycleWorkbench"];
+  if (state.activeView === "dev-lifecycle") return ["lifecycleWorkbench", "lifecycle"];
   if (state.activeView === "data-lifecycle") return ["lifecycle"];
   if (state.activeView === "content") {
     const guidePackage = GUIDE_ROUTE_PACKAGES[state.activeRoute];
@@ -134,7 +135,7 @@ function routePackagesForCurrentState() {
     const packages = ["maintenanceKnowledge"];
     if (state.activeMaintenancePage === "modules") packages.push("sharedLookups");
     if (state.activeMaintenancePage === "security-works") packages.push("capability");
-    if (state.activeMaintenancePage === "lcap-references") packages.push("lifecycle");
+    if (state.activeMaintenancePage === "lcap-references" || state.activeMaintenancePage === "application-systems") packages.push("lifecycle");
     return packages;
   }
   return ["content", "standards"];
@@ -727,6 +728,33 @@ function applyCapabilityCatalogState() {
   }
 }
 
+function applyDevLifecycleCatalogState() {
+  const workspace = $("devLifecycleWorkspace");
+  workspace?.classList.toggle("catalog-collapsed", state.devLifecycleCatalogCollapsed);
+  if (workspace) {
+    const hasResizer = Boolean(workspace.querySelector(".workspace-resizer"));
+    if (hasResizer) {
+      workspace.style.gridTemplateColumns = state.devLifecycleCatalogCollapsed ? "0 minmax(0, 1fr)" : "200px 6px minmax(0, 1fr)";
+      workspace._paneWidths = state.devLifecycleCatalogCollapsed ? [0, Math.max(0, workspace.clientWidth)] : [200, Math.max(0, workspace.clientWidth - 206)];
+    } else {
+      workspace.style.gridTemplateColumns = state.devLifecycleCatalogCollapsed ? "0 minmax(0, 1fr)" : "200px minmax(0, 1fr)";
+      workspace._paneWidths = null;
+    }
+  }
+  const button = $("toggleDevLifecycleCatalog");
+  if (button) {
+    button.textContent = state.devLifecycleCatalogCollapsed ? "展开" : "收起目录";
+    button.title = state.devLifecycleCatalogCollapsed ? "展开 LC-AP 阶段目录" : "收起 LC-AP 阶段目录";
+    button.setAttribute("aria-label", button.title);
+    button.setAttribute("aria-expanded", state.devLifecycleCatalogCollapsed ? "false" : "true");
+  }
+  const tab = $("expandDevLifecycleCatalogTab");
+  if (tab) {
+    tab.hidden = !state.devLifecycleCatalogCollapsed;
+    tab.setAttribute("aria-expanded", state.devLifecycleCatalogCollapsed ? "false" : "true");
+  }
+}
+
 function ensureCapabilityCatalogToggle() {
   const paneHead = document.querySelector(".capability-tree-pane .pane-head");
   if (!paneHead || $("toggleCapabilityCatalog")) return;
@@ -883,6 +911,7 @@ function renderLifecycle(kind) {
     const devDetailPane = devWorkspace?.querySelector(".lifecycle-detail-pane");
     devWorkspace?.classList.add("dev-lifecycle-workspace");
     devDetailPane?.classList.add("is-hidden");
+    applyDevLifecycleCatalogState();
     if (!state.loadedPackages.has("lifecycleWorkbench")) {
       setText("devLifecycleCount", 0);
       setText("devLifecycleType", "LC-AP");
@@ -919,11 +948,11 @@ function renderLifecycle(kind) {
       "devLifecycleLane",
       `
         ${components.ApplicationSecurityLifecycle?.renderStageOverview(viewModel) || ""}
-        ${components.ApplicationSecurityLifecycle?.renderRelationTable({ rows: viewModel.relationRows }) || ""}
-        ${components.ApplicationSecurityLifecycle?.renderLocalRelationNotes(viewModel.localRelationNotes) || ""}
+        ${components.ApplicationSecurityLifecycle?.renderRelationTable({ rows: viewModel.relationRows, overview: viewModel.stageOverview }) || ""}
       `,
     );
     setHtml("devLifecycleDetail", "");
+    applyDevLifecycleCatalogState();
     return;
   }
   if (kind === "data" && !state.loadedPackages.has("lifecycle")) {
@@ -999,6 +1028,15 @@ function renderMaintenance() {
     setHtml("sourceDetail", "");
     return;
   }
+  if (state.activeMaintenancePage === "application-systems" && !state.loadedPackages.has("lifecycle")) {
+    setText("sourcePageTitle", "应用系统目录");
+    setText("sourcePageCount", 0);
+    setHtml("maintenanceNavigation", "");
+    setHtml("sourceList", `<div class="maintenance-empty-state">正在加载 LC-AP 应用系统目录...</div>`);
+    setText("sourceDetailType", "");
+    setHtml("sourceDetail", "");
+    return;
+  }
   if (!viewModels?.buildMaintenanceWorkspaceViewModel) {
     setHtml("sourceList", emptyState("专项维护视图模型未加载"));
     return;
@@ -1066,6 +1104,13 @@ function renderMaintenance() {
     tableHtml = components.TechnologyModuleMaintenanceTable?.render({ rows: viewModel.rows, selectedId: viewModel.selectedId, emptyState: viewModel.emptyState }) || tableHtml;
   } else if (viewModel.section === "measures") {
     tableHtml = components.TechnicalMeasureMaintenanceTable?.render({ rows: viewModel.rows, selectedId: viewModel.selectedId, emptyState: viewModel.emptyState }) || tableHtml;
+  } else if (viewModel.section === "application-systems") {
+    tableHtml =
+      components.ApplicationSystemDirectoryTable?.render({
+        rows: viewModel.rows,
+        selectedId: viewModel.selectedId,
+        emptyState: viewModel.emptyState,
+      }) || tableHtml;
   } else if (viewModel.section === "lcap-references") {
     tableHtml =
       components.LcapReferenceMaintenanceTable?.render({
@@ -1116,6 +1161,12 @@ function renderMaintenance() {
 }
 
 function maintenanceHeaderSummary(viewModel) {
+  if (viewModel.section === "application-systems") {
+    return [
+      { value: viewModel.summary?.totalApplicationSystems ?? list(viewModel.rows).length, label: "应用系统", unit: "类" },
+      { value: viewModel.summary?.applicationComponents ?? 0, label: "应用组件", unit: "个" },
+    ];
+  }
   const navigationCounts = Object.fromEntries(list(viewModel.navigationItems).map((item) => [item.id, Number(item.count) || 0]));
   const sectionTabCounts = Object.fromEntries(list(viewModel.sectionTabs).map((tab) => [tab.id, Number(tab.count) || 0]));
   const counts = { ...navigationCounts, ...sectionTabCounts };
@@ -1125,6 +1176,7 @@ function maintenanceHeaderSummary(viewModel) {
     measures: ["技术措施", "项"],
     "security-works": ["安全工作", "项"],
     processes: ["流程", "条"],
+    "application-systems": ["应用系统", "类"],
     "work-functions": ["安全职能", "个"],
     references: ["岗位 / 职能参考", "条"],
     "references-gbt": ["GB/T 任务参考", "条"],
@@ -1161,7 +1213,7 @@ function workspacePanes(workspace) {
 function applyWorkspaceGrid(workspace, widths) {
   const columns = widths
     .map((width, index) => {
-      const minWidth = workspace.id === "capabilityWorkspace" && workspace.classList.contains("catalog-collapsed") && index === 0 ? 64 : 160;
+      const minWidth = ["capabilityWorkspace", "devLifecycleWorkspace"].includes(workspace.id) && workspace.classList.contains("catalog-collapsed") && index === 0 ? 64 : 160;
       return `${Math.max(minWidth, Math.round(width))}px${index < widths.length - 1 ? " 6px" : ""}`;
     })
     .join(" ");
@@ -1175,7 +1227,7 @@ function defaultWorkspaceWidths(workspace, panes) {
   const rest = (...fixed) => Math.max(220, total - fixed.reduce((sum, value) => sum + value, 0));
   if (workspace.id === "capabilityWorkspace") return [300, rest(300)];
   if (workspace.id === "environmentWorkspace") return [300, rest(300)];
-  if (workspace.id === "devLifecycleWorkspace" && panes.length === 2) return [300, rest(300)];
+  if (workspace.id === "devLifecycleWorkspace" && panes.length === 2) return [200, rest(200)];
   if (workspace.id === "devLifecycleWorkspace" || workspace.id === "dataLifecycleWorkspace") return [270, rest(270, 220), 220];
   if (workspace.id === "maintenanceWorkspace" && workspace.classList.contains("standards-mode")) return [rest()];
   if (workspace.id === "maintenanceWorkspace") return [220, rest(220, 260), 260];
@@ -1540,6 +1592,11 @@ function bindEvents() {
     if (event.target.closest("#toggleCapabilityCatalog, #expandCapabilityCatalogTab")) {
       state.capabilityCatalogCollapsed = !state.capabilityCatalogCollapsed;
       applyCapabilityCatalogState();
+      return;
+    }
+    if (event.target.closest("#toggleDevLifecycleCatalog, #expandDevLifecycleCatalogTab")) {
+      state.devLifecycleCatalogCollapsed = !state.devLifecycleCatalogCollapsed;
+      applyDevLifecycleCatalogState();
       return;
     }
     const lifecycle = event.target.closest("[data-lifecycle-kind][data-lifecycle-id]");

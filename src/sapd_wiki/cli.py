@@ -273,6 +273,7 @@ def cmd_approve_import(args: argparse.Namespace) -> int:
         print(f"items_updated: {summary.items_updated}")
         print(f"items_deprecated: {summary.items_deprecated}")
         print(f"relations_created: {summary.relations_created}")
+        print(f"relations_deleted: {summary.relations_deleted}")
         print(f"source_references_created: {summary.source_references_created}")
         if summary.warnings:
             print("warnings:")

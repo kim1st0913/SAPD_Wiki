@@ -14,12 +14,10 @@
     return [code, title].filter(Boolean).join(" ");
   }
 
-  function chipList(items, empty = "待补充", limit = 5) {
+  function chipList(items, empty = "待补充") {
     const rows = utils.list(items).filter(Boolean);
     if (!rows.length) return `<span class="empty-inline">${utils.escapeHtml(empty)}</span>`;
-    const visible = rows.slice(0, limit);
-    const more = rows.length - visible.length;
-    return `${visible.map((item) => `<span class="relation-chip">${utils.escapeHtml(entityLabel(item, empty))}</span>`).join("")}${more > 0 ? `<span class="relation-chip muted">+${more}</span>` : ""}`;
+    return rows.map((item) => `<span class="relation-chip">${utils.escapeHtml(entityLabel(item, empty))}</span>`).join("");
   }
 
   function statusLine(label, value) {
@@ -78,14 +76,14 @@
         (row) => `
           <tr class="maintenance-data-row standard-group-detail ${row.id === selectedId ? "active" : ""}" data-standard-parent="${utils.escapeHtml(parentId)}" data-standard-lineage="${utils.escapeHtml(lineage.join(" "))}"${hiddenAttr} data-maintenance-id="${utils.escapeHtml(row.id)}">
             <td>${utils.escapeHtml(valueText(row.category))}</td>
-            <td>${chipList(row.linkedSystems, "待契约补充", 3)}</td>
+            <td>${chipList(row.linkedSystems, "待契约补充")}</td>
             <td>
               <div class="module-title-cell">
                 <strong>${utils.escapeHtml(valueText(row.title))}</strong>
                 <span>${utils.escapeHtml(valueText(row.description))}</span>
               </div>
             </td>
-            <td>${chipList(row.linkedServices, "无映射服务", 6)}</td>
+            <td>${chipList(row.linkedServices, "无映射服务")}</td>
             <td>
               <div class="module-mapping-cell">
                 ${statusLine("措施", row.measureMappingStatus)}

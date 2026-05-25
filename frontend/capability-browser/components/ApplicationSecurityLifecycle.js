@@ -5,36 +5,85 @@
   const list = (value) => utils.list(value);
   const escapeHtml = (value) => utils.escapeHtml(value);
   const titleOf = (item, fallback = "待补充") => utils.titleOf(item, fallback);
-  const codeTitle = (item, fallback = "待补充") => [item?.code, titleOf(item, fallback)].filter(Boolean).join(" ");
 
-  function chipList(items, empty = "待补充", limit = 8) {
-    const rows = list(items).filter(Boolean);
-    if (!rows.length) return `<span class="empty-inline">${escapeHtml(empty)}</span>`;
-    const visible = rows.slice(0, limit);
-    const more = rows.length - visible.length;
-    return `${visible
-      .map((item) => {
-        const kind = item.objectKind || item.kind || "";
-        const kindClass = kind.includes("措施") ? "measure-chip" : "";
-        return `<span class="relation-chip ${kindClass}">${kind ? `<em>${escapeHtml(kind)}</em>` : ""}${escapeHtml(codeTitle(item))}</span>`;
-      })
-      .join("")}${more > 0 ? `<span class="relation-chip muted">+${more}</span>` : ""}`;
+  function splitLines(value) {
+    if (Array.isArray(value)) return value.flatMap(splitLines);
+    if (value && typeof value === "object") return splitLines(titleOf(value, ""));
+    return String(value || "")
+      .replace(/\r\n/g, "\n")
+      .replace(/\r/g, "\n")
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+  }
+
+  function fieldCell(value) {
+    const lines = splitLines(value);
+    if (!lines.length) return `<span class="empty-inline">待补充</span>`;
+    return `<div class="lifecycle-field-lines">${lines.map((line) => `<span>${escapeHtml(line)}</span>`).join("")}</div>`;
+  }
+
+  function recordField(label, value) {
+    return `
+      <th scope="row">${escapeHtml(label)}</th>
+      <td>${fieldCell(value)}</td>
+    `;
+  }
+
+  function renderRecordTable(row) {
+    return `
+      <div class="lifecycle-record-groups">
+        <section class="lifecycle-record-group">
+          <h4>开发技术相关</h4>
+          <table class="lifecycle-record-table">
+            <tbody>
+              <tr>
+                ${recordField("阶段主要活动（L4流程活动）", row.mainActivity)}
+                ${recordField("阶段主要活动参考来源", row.mainActivityReference)}
+              </tr>
+              <tr>
+                ${recordField("软件开发模式", row.developmentTypes)}
+                ${recordField("开发技术服务", row.developmentServices)}
+              </tr>
+              <tr>
+                ${recordField("实际产品示例", row.developmentModules)}
+                ${recordField("潜在安全威胁场景", row.threatScenarios)}
+              </tr>
+            </tbody>
+          </table>
+        </section>
+        <section class="lifecycle-record-group">
+          <h4>安全相关</h4>
+          <table class="lifecycle-record-table">
+            <tbody>
+              <tr>
+                ${recordField("安全活动定义", row.securityActivities)}
+                ${recordField("安全活动对应安全策略", row.policyRequirements)}
+              </tr>
+              <tr>
+                ${recordField("安全活动参考来源", row.policyReference)}
+                ${recordField("补充安全策略", row.supplementalPolicies)}
+              </tr>
+              <tr>
+                ${recordField("安全技术服务", row.technicalServices)}
+                ${recordField("安全技术模块", row.technologyModules)}
+              </tr>
+            </tbody>
+          </table>
+        </section>
+      </div>
+    `;
   }
 
   function renderNavigation({ stageTree, navigationTree, selectedProcessId }) {
     const rows = list(stageTree || navigationTree);
     if (!rows.length) return `<div class="detail-empty"><strong>暂无 LC-AP 阶段</strong><span>等待生命周期数据导出。</span></div>`;
     return `
-      <div class="lifecycle-tree-root">
-        <strong>LC-AP 生命周期</strong>
-        <span>${rows.length} 个阶段</span>
-      </div>
       ${rows
         .map(
           (row) => `
             <button class="lifecycle-nav-row ${row.id === selectedProcessId ? "active" : ""}" type="button" data-lifecycle-kind="dev" data-lifecycle-id="${escapeHtml(row.id)}">
-              <strong>${escapeHtml(codeTitle(row, "未命名阶段"))}</strong>
-              <span>主要活动 / 安全活动 / 服务摘要</span>
+              <strong>${escapeHtml(titleOf(row, "未命名阶段"))}</strong>
             </button>
           `,
         )
@@ -42,103 +91,31 @@
     `;
   }
 
-  function summaryGrid(items) {
-    return `
-      <div class="focus-overview-summary">
-        ${items.map((item) => `<div><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(item.value)}</strong></div>`).join("")}
-      </div>
-    `;
-  }
-
   function renderStageOverview(viewModel) {
-    const overview = viewModel.stageOverview;
-    if (!overview) return `<div class="detail-empty"><strong>暂无阶段概览</strong><span>${escapeHtml(viewModel.emptyState || "等待选择阶段。")}</span></div>`;
-    return `
-      <section class="focus-overview-section lifecycle-stage-overview">
-        <div class="matrix-section-head">
-          <div>
-            <h3>当前阶段概览</h3>
-            <p>对象详情和关系摘要集中在主工作区顶部</p>
-          </div>
-          <span>${escapeHtml(overview.status || "当前阶段")}</span>
-        </div>
-        <div class="focus-overview-profile">
-          <div class="focus-overview-copy">
-            <div class="detail-code">${escapeHtml(overview.code || "LC-AP")}</div>
-            <h2>${escapeHtml(overview.title || "未命名阶段")}</h2>
-            <p>${escapeHtml(overview.description || "暂无阶段目标 / 描述")}</p>
-          </div>
-          ${summaryGrid(list(overview.facts))}
-        </div>
-      </section>
-    `;
+    return "";
   }
 
-  function renderRelationTable({ rows }) {
+  function renderRelationTable({ rows, overview }) {
     const relationRows = list(rows);
+    const title = overview?.title || "LC-AP";
+    const description = overview?.description || "";
     return `
       <section class="semantic-panel lifecycle-relation-section">
         <div class="matrix-section-head">
           <div>
-            <h3>LC-AP 阶段关系表</h3>
-            <p>阶段下的活动、策略、服务、模块、措施和开发类组件分别展示，不压成单线性链路</p>
+            <h3>${escapeHtml(title)}</h3>
+            ${description ? `<div class="lifecycle-stage-definition"><span class="lifecycle-stage-label">阶段目标</span>${fieldCell(description)}</div>` : ""}
           </div>
-          <span>${relationRows.length} 条阶段关系</span>
         </div>
-        <div class="relationship-matrix-scroll semantic-scroll lifecycle-relation-scroll">
-          <table class="semantic-mapping-table lifecycle-relation-table">
-            <thead>
-              <tr>
-                <th>主要活动</th>
-                <th>安全活动</th>
-                <th>安全策略要求</th>
-                <th>安全技术服务</th>
-                <th>安全技术模块</th>
-                <th>安全技术措施</th>
-                <th>开发类产品 / 组件参考</th>
-                <th>状态</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${relationRows
-                .map(
-                  (row) => `
-                    <tr>
-                      <td>${chipList(row.mainActivity, "待补充", 12)}</td>
-                      <td>${chipList(row.securityActivities, "待补充", 8)}</td>
-                      <td>${chipList(row.policyRequirements, "待补充", 8)}</td>
-                      <td>${chipList(row.technicalServices, "待补充", 12)}</td>
-                      <td>${chipList(row.technologyModules, "待补充", 10)}</td>
-                      <td>${chipList(row.technicalMeasures, "待补充", 8)}</td>
-                      <td>${chipList(row.productComponents, "参考数据待补充", 8)}</td>
-                      <td><span class="status-badge">${escapeHtml(row.status || "待补充")}</span></td>
-                    </tr>
-                  `,
-                )
-                .join("") || '<tr><td colspan="8"><div class="reference-empty">暂无 LC-AP 阶段关系</div></td></tr>'}
-            </tbody>
-          </table>
+        <div class="lifecycle-record-scroll">
+          ${relationRows.map(renderRecordTable).join("") || '<div class="reference-empty">暂无 LC-AP 阶段关系</div>'}
         </div>
       </section>
     `;
   }
 
   function renderLocalRelationNotes(notes) {
-    const rows = list(notes);
-    if (!rows.length) return "";
-    return `
-      <section class="local-relationship-notes lifecycle-local-notes">
-        <div class="matrix-section-head">
-          <div>
-            <h3>当前阶段局部关系说明</h3>
-            <p>说明当前阶段内多类关联关系，不作为全局知识来源维护页面</p>
-          </div>
-        </div>
-        <div class="local-note-list">
-          ${rows.map((note) => `<div class="local-note"><strong>${escapeHtml(note.title)}</strong><span>${escapeHtml(note.body)}</span></div>`).join("")}
-        </div>
-      </section>
-    `;
+    return "";
   }
 
   function renderReferenceSections(referenceSections) {
@@ -156,7 +133,7 @@
         <div class="lifecycle-reference-grid">
           <div class="lifecycle-reference-block">
             <h4>软件开发类型</h4>
-            <div class="source-chip-row">${chipList(softwareTypes, "待补充", 8)}</div>
+            <div class="source-chip-row">${fieldCell(softwareTypes.map((item) => titleOf(item, ""))) || "待补充"}</div>
           </div>
           <div class="lifecycle-reference-block">
             <h4>应用系统类型 / 应用组件</h4>
@@ -169,7 +146,7 @@
                       (system) => `
                         <tr>
                           <td>${escapeHtml(titleOf(system))}</td>
-                          <td>${chipList(system.components, "待补充", 8)}</td>
+                          <td>${fieldCell(system.components.map((item) => titleOf(item, ""))) || "待补充"}</td>
                         </tr>
                       `,
                     )

@@ -858,8 +858,10 @@
 | `technical_services` | array<SecurityTechnicalService> | 是 | 技术服务 |
 | `technical_service_count` | number | 是 | 技术服务数量 |
 | `development_types` | array<KnowledgeObjectRef> | 是 | 适用开发类型 |
-| `development_product_components` | array<KnowledgeObjectRef> | 是 | 开发类产品组件，来自原“实际产品示例” |
-| `development_product_component_count` | number | 是 | 开发类产品组件数量 |
+| `development_technical_services` | array<KnowledgeObjectRef> | 是 | 开发技术服务，来自原“开发技术服务” |
+| `development_technical_service_count` | number | 是 | 开发技术服务数量 |
+| `development_technical_modules` | array<KnowledgeObjectRef> | 是 | 开发技术模块，来自原“实际产品示例” |
+| `development_technical_module_count` | number | 是 | 开发技术模块数量 |
 | `technology_modules` | array<SecurityTechnologyModule> | 是 | 关联安全技术模块，必须来自既有安全技术模块清单 |
 | `technology_module_count` | number | 是 | 关联安全技术模块数量 |
 | `technical_measures` | array<SecurityTechnicalMeasure> | 是 | 关联安全技术措施，不同于安全技术模块 |
@@ -900,16 +902,16 @@
 | `metadata` | object | 否 | 扩展字段 |
 | `sources` | array<SourceReference> | 否 | 来源 |
 
-`SecurityTechnicalService` 在 LC-AP 中额外允许：
+`SecurityTechnicalService` 在 LC-AP 中说明：
 
 | 字段 | 类型 | 必填 | 说明 |
 |---|---|---|---|
-| `service_category` | string | 否 | 仅 LC-AP 使用，取值为 `管理类`、`开发类`、`网络空间类` |
+| `service_category` | string | 否 | 旧字段，仅兼容历史数据；新 LC-AP 不再按管理类、开发类、网络空间类拆分 |
 
-`development_product_components` 说明：
+`development_technical_services` / `development_technical_modules` 说明：
 
-- 不等同于通用产品主数据。
-- 不进入安全技术模块清单。
+- 开发技术服务不等同于安全技术服务。
+- 开发技术模块不等同于安全技术模块，也不进入安全技术模块清单。
 - 第一阶段只在安全开发维度展示。
 
 `ApplicationSystemType` 字段：

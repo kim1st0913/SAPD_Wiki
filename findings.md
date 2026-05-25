@@ -30,7 +30,7 @@
 | 三份 workbench 规格 | `capability-workbench.json`、`environment-workbench.json`、`lifecycle-workbench.json` 三份规格已齐；最终目标数据文件清单冻结为 P0 四件套 + P1 三件套；`management-knowledge.json` 已从顾问端运行路径退役，`lifecycle-knowledge.json` 仅保留生命周期专项数据 | `docs/04-user-guide/capability-workbench-json-spec-v1.md`, `docs/04-user-guide/environment-workbench-json-spec-v1.md`, `docs/04-user-guide/lifecycle-workbench-json-spec-v1.md` |
 | 三份 workbench 数据出口 | `capability-workbench.json`、`environment-workbench.json`、`lifecycle-workbench.json` 已能由 CLI 生成；`dataClient` / ViewModel 已提供稳定读取入口；旧 JSON 保留为过渡兼容，不作为新 UI 主输入 | `src/sapd_wiki/exports.py`, `src/sapd_wiki/cli.py`, `frontend/capability-browser/dataClient.js`, `frontend/capability-browser/viewModels.js` |
 | `management-knowledge.json` 退役边界 | 已完成退役：`assets`、顶层 `service_module_index`、安全知识重复数据和环境旧树均不再作为顾问端发布包、API 数据包或前端 fallback；安全知识由 `maintenance-knowledge.json` 承接，环境关系由 `environment-workbench.json` 承接，共享索引由 `shared-lookups.json` 承接 | `frontend/capability-browser/public/data/shared-lookups.json`, `frontend/capability-browser/public/data/maintenance-knowledge.json`, `frontend/capability-browser/public/data/environment-workbench.json`, `src/sapd_wiki/exports.py`, `src/sapd_wiki/api_server.py` |
-| BE-4 数据质量首轮审计 | 三份 workbench 顶层结构、关系端点、孤立对象和主展示字段边界均通过静态检查；`CI/CD流水线` 拆词异常已在 BE-4.2 修复；当前主要剩余缺口为能力页标准映射为空、LC-AP 措施未进入 lifecycle workbench | `docs/06-implementation/be-4-workbench-data-quality-gap-list.md`, `docs/06-implementation/open-issues.md` |
+| BE-4 数据质量首轮审计 | 三份 workbench 顶层结构、关系端点、孤立对象和主展示字段边界均通过静态检查；`CI/CD流水线` 拆词异常、能力页标准 / 框架映射和 LC-AP 阶段级措施投影均已修复；当前继续跟踪 `OI-073` 源数据一致性待确认项 | `docs/06-implementation/be-4-workbench-data-quality-gap-list.md`, `docs/06-implementation/open-issues.md` |
 
 ## 当前重要风险
 
@@ -45,7 +45,7 @@
 | 前端画布反复试错导致结构漂移 | 安全能力映射页先作为基准页收敛验收标准；未确认前不复制到环境页和 LC-AP 页 |
 | 已规划接口与已实现接口不一致 | `api-field-contract.md` 中部分 `/api/v1/environments/*`、`/api/v1/lifecycle/*`、`/api/v1/maintenance/technical-measures` 等接口尚未在 `api_server.py` 中实现；后续实现前需明确“规划接口”和“实际接口” |
 | 前端 JSON 职责混杂 | `management-knowledge.json` 的职责混杂已完成退役；后续重点是继续缩小 `capability-tree.json` 与 `lifecycle-knowledge.json` 的非页面级职责 |
-| workbench 投影仍有业务缺口 | BE-4 已确认 `capability-workbench.json` 缺标准 / 框架映射，`lifecycle-workbench.json` 缺措施投影；`CI/CD流水线` 拆词异常已修复并关闭 `OI-050` |
+| 源数据一致性仍有待确认项 | `OI-073` 记录源 Sheet `作用域-安全技术服务-安全技术模块映射` 仍残留 5 行旧模块名 `网络数据防泄露`，是否统一替换为 `数据流转监测和泄漏防护` 需要用户确认 |
 
 ## 历史入口
 

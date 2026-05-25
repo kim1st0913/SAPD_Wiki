@@ -14,6 +14,7 @@ class ApproveSummary:
     items_updated: int
     items_deprecated: int
     relations_created: int
+    relations_deleted: int
     source_references_created: int
     warnings: list[str]
 
@@ -24,6 +25,7 @@ class ApproveSummary:
             "items_updated": self.items_updated,
             "items_deprecated": self.items_deprecated,
             "relations_created": self.relations_created,
+            "relations_deleted": self.relations_deleted,
             "source_references_created": self.source_references_created,
             "warnings": self.warnings,
         }
@@ -262,6 +264,90 @@ def _deprecate_stale_items(
     return count
 
 
+def _delete_stale_relations(
+    conn: sqlite3.Connection,
+    *,
+    import_job_id: str,
+    source_file_path: str | None,
+    current_relation_keys: set[tuple[str, str, str]],
+    source_sheets: set[str],
+) -> int:
+    if not source_file_path or not current_relation_keys or not source_sheets:
+        return 0
+
+    sheet_placeholders = ", ".join("?" for _ in source_sheets)
+    params = [
+        *sorted(source_sheets),
+        source_file_path,
+        source_file_path,
+        source_file_path,
+        *sorted(source_sheets),
+    ]
+    candidates = conn.execute(
+        f"""
+        SELECT DISTINCT relation.id, relation.source_item_id, relation.target_item_id,
+               relation.relation_type, relation.relation_label, relation.confidence,
+               relation.metadata_json
+        FROM knowledge_relations AS relation
+        LEFT JOIN source_files AS relation_source ON relation_source.id = relation.source_file_id
+        JOIN source_references AS refs
+          ON refs.target_type = 'relation'
+         AND refs.target_id = relation.id
+        JOIN source_files AS ref_source ON ref_source.id = refs.source_file_id
+        WHERE refs.source_sheet IN ({sheet_placeholders})
+          AND (relation_source.file_path = ? OR ref_source.file_path = ?)
+          AND NOT EXISTS (
+              SELECT 1
+              FROM source_references AS other_refs
+              JOIN source_files AS other_ref_source ON other_ref_source.id = other_refs.source_file_id
+              WHERE other_refs.target_type = 'relation'
+                AND other_refs.target_id = relation.id
+                AND other_ref_source.file_path = ?
+                AND other_refs.source_sheet NOT IN ({sheet_placeholders})
+          )
+        """,
+        params,
+    ).fetchall()
+
+    count = 0
+    for row in candidates:
+        relation_key = (row["source_item_id"], row["relation_type"], row["target_item_id"])
+        if relation_key in current_relation_keys:
+            continue
+        conn.execute("DELETE FROM source_references WHERE target_type = 'relation' AND target_id = ?", (row["id"],))
+        conn.execute("DELETE FROM knowledge_relations WHERE id = ?", (row["id"],))
+        conn.execute(
+            """
+            INSERT INTO change_logs (id, target_type, target_id, change_type, before_json, after_json, import_job_id)
+            VALUES (?, 'relation', ?, 'deprecate', ?, ?, ?)
+            """,
+            (
+                str(uuid.uuid4()),
+                row["id"],
+                _dumps(
+                    {
+                        "relation_type": row["relation_type"],
+                        "relation_label": row["relation_label"],
+                        "confidence": row["confidence"],
+                        "source_item_id": row["source_item_id"],
+                        "target_item_id": row["target_item_id"],
+                        "metadata": _loads(row["metadata_json"], {}),
+                    }
+                ),
+                _dumps(
+                    {
+                        "reason": "not_found_in_same_source_sheet_reimport",
+                        "source_file_path": source_file_path,
+                        "source_sheets": sorted(source_sheets),
+                    }
+                ),
+                import_job_id,
+            ),
+        )
+        count += 1
+    return count
+
+
 def approve_import(conn: sqlite3.Connection, import_job_id: str) -> ApproveSummary:
     job = conn.execute(
         """
@@ -374,6 +460,7 @@ def approve_import(conn: sqlite3.Connection, import_job_id: str) -> ApproveSumma
         )
 
     relations_created = 0
+    current_relation_keys: set[tuple[str, str, str]] = set()
     staging_relations = conn.execute(
         "SELECT * FROM staging_relations WHERE import_job_id = ? AND validation_status != 'error'",
         (import_job_id,),
@@ -392,6 +479,7 @@ def approve_import(conn: sqlite3.Connection, import_job_id: str) -> ApproveSumma
                 note="关系端点未找到",
             )
             continue
+        current_relation_keys.add((source_item_id, row["relation_type"], target_item_id))
         existing = conn.execute(
             """
             SELECT id FROM knowledge_relations
@@ -472,16 +560,25 @@ def approve_import(conn: sqlite3.Connection, import_job_id: str) -> ApproveSumma
         )
 
     items_deprecated = 0
+    relations_deleted = 0
     if _has_blocking_validations(job):
         warnings.append("本次导入存在 error/blocking 校验信息，已跳过旧对象自动停用。")
     else:
+        source_sheets = _source_sheets_from_staging(staging_items)
+        relations_deleted = _delete_stale_relations(
+            conn,
+            import_job_id=import_job_id,
+            source_file_path=job["source_file_path"],
+            current_relation_keys=current_relation_keys,
+            source_sheets=source_sheets,
+        )
         items_deprecated = _deprecate_stale_items(
             conn,
             import_job_id=import_job_id,
             source_file_path=job["source_file_path"],
             current_item_keys=current_item_keys,
             current_item_types=current_item_types,
-            source_sheets=_source_sheets_from_staging(staging_items),
+            source_sheets=source_sheets,
         )
 
     conn.execute(
@@ -498,6 +595,7 @@ def approve_import(conn: sqlite3.Connection, import_job_id: str) -> ApproveSumma
         items_updated=items_updated,
         items_deprecated=items_deprecated,
         relations_created=relations_created,
+        relations_deleted=relations_deleted,
         source_references_created=source_refs_created,
         warnings=warnings,
     )

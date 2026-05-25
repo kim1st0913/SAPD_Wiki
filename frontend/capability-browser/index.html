@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SAPD Wiki 关系工作台</title>
-    <link rel="stylesheet" href="./styles.css?v=security-reference-grouped-20260523-3" />
+    <link rel="stylesheet" href="./styles.css?v=application-system-directory-20260525-1" />
   </head>
   <body>
     <div id="app" class="app-shell">
@@ -141,12 +141,15 @@
       <main id="devLifecycleWorkspace" class="lifecycle-workspace is-hidden">
         <aside class="lifecycle-nav-pane">
           <div class="pane-head">
-            <h2>LC-AP开发安全生命周期</h2>
-            <span id="devLifecycleCount" class="count-pill">0</span>
+            <h2>LC-AP 阶段</h2>
+            <div class="pane-head-actions">
+              <button id="toggleDevLifecycleCatalog" type="button" aria-label="收起 LC-AP 阶段目录" aria-expanded="true">收起目录</button>
+            </div>
           </div>
           <div id="devLifecycleNav" class="lifecycle-nav"></div>
         </aside>
         <section class="lifecycle-main-pane">
+          <button id="expandDevLifecycleCatalogTab" class="catalog-expand-tab lifecycle-expand-tab" type="button" aria-label="展开 LC-AP 阶段目录" aria-expanded="false" hidden>目录</button>
           <div class="pane-head">
             <h2>LC-AP开发安全生命周期</h2>
             <span class="type-pill">阶段 / 活动 / 策略</span>
@@ -271,8 +274,8 @@
       </div>
     </div>
     <script src="./dataClient.js?v=security-reference-original-fields-20260523-1"></script>
-    <script src="./viewModels.js?v=security-reference-grouped-20260523-1"></script>
-    <script src="./components/AppShell.js?v=security-functions-tabs-order-20260523-1"></script>
+    <script src="./viewModels.js?v=application-system-directory-20260525-1"></script>
+    <script src="./components/AppShell.js?v=application-system-directory-20260525-1"></script>
     <script src="./components/StatusBadge.js"></script>
     <script src="./components/DimensionTree.js?v=capability-tree-l0-20260520-1"></script>
     <script src="./components/FocusOverview.js"></script>
@@ -290,12 +293,13 @@
     <script src="./components/WorkFunctionMaintenanceTable.js?v=security-functions-tabs-order-20260523-1"></script>
     <script src="./components/TechnologyModuleMaintenanceTable.js?v=security-knowledge-density-20260521-1"></script>
     <script src="./components/TechnicalMeasureMaintenanceTable.js?v=security-knowledge-density-20260521-1"></script>
+    <script src="./components/ApplicationSystemDirectoryTable.js?v=application-system-directory-20260525-1"></script>
     <script src="./components/LcapReferenceMaintenanceTable.js"></script>
     <script src="./components/StandardRoleReferenceTable.js?v=security-reference-grouped-20260523-3"></script>
     <script src="./components/StandardFrameworkTable.js?v=standard-framework-layout-20260521-4"></script>
     <script src="./components/MaintenanceDetailPanel.js"></script>
     <script src="./components/TechnicalMeasureMaintenance.js"></script>
     <script src="./components/DetailInspector.js"></script>
-    <script src="./app.js?v=security-functions-tabs-order-20260523-1"></script>
+    <script src="./app.js?v=application-system-directory-20260525-1"></script>
   </body>
 </html>

@@ -61,6 +61,7 @@ def _is_lcap_development_type_fill(cell: object) -> bool:
 
 LCAP_TECHNICAL_MEASURE_TITLES = {
     "应用程序威胁建模",
+    "应用程序静态安全测试（安全函数和组件库）",
     "制品安全加固",
     "IaC代码安全测试",
 }
@@ -435,6 +436,38 @@ def _service_title(
     return normalize_service_title(parts.get("title") or normalize_text(raw_value))
 
 
+def _validate_service_reference(
+    result: ParseResult,
+    sheet_name: str,
+    row_index: int,
+    service_raw: object,
+    parts: dict[str, str | None],
+    authoritative_service_titles: dict[str, str] | None = None,
+) -> None:
+    if authoritative_service_titles is None:
+        return
+    code = parts.get("code")
+    if not code:
+        return
+    expected_title = authoritative_service_titles.get(code)
+    raw_title = normalize_service_title(parts.get("title") or normalize_text(service_raw))
+    normalized_raw = normalize_text(service_raw)
+    if expected_title is None:
+        result.validations.append(
+            ValidationMessage("warning", sheet_name, row_index, f"安全技术服务未匹配安全技术服务清单：{normalized_raw}")
+        )
+        return
+    if raw_title and raw_title != expected_title:
+        result.validations.append(
+            ValidationMessage(
+                "warning",
+                sheet_name,
+                row_index,
+                f"安全技术服务名称与安全技术服务清单不一致：{normalized_raw}（清单：{code} {expected_title}）",
+            )
+        )
+
+
 def parse_module_sheet(workbook, authoritative_service_titles: dict[str, str] | None = None) -> ParseResult:
     sheet_name = "安全技术模块清单"
     ws = workbook[sheet_name]
@@ -484,6 +517,7 @@ def parse_module_sheet(workbook, authoritative_service_titles: dict[str, str] | 
             result.relations.append(_relation(module.key, "maps_to_product", product.key, "对应产品", source=product.sources[0]))
         if not is_blank_or_placeholder(service_raw):
             parts = service_parts(service_raw)
+            _validate_service_reference(result, sheet_name, row_index, service_raw, parts, authoritative_service_titles)
             service = _object(
                 "security_technical_service",
                 _service_title(parts, service_raw, authoritative_service_titles),
@@ -556,6 +590,7 @@ def parse_scene_sheet(
         service = None
         if not is_blank_or_placeholder(service_raw):
             parts = service_parts(service_raw)
+            _validate_service_reference(result, sheet_name, row_index, service_raw, parts, authoritative_service_titles)
             service = _object(
                 "security_technical_service",
                 _service_title(parts, service_raw, authoritative_service_titles),
@@ -656,6 +691,7 @@ def parse_environment_scope_sheet(workbook, authoritative_service_titles: dict[s
 
         if not is_blank_or_placeholder(service_raw):
             parts = service_parts(service_raw)
+            _validate_service_reference(result, sheet_name, row_index, service_raw, parts, authoritative_service_titles)
             service = _object(
                 "security_technical_service",
                 _service_title(parts, service_raw, authoritative_service_titles),
@@ -698,6 +734,13 @@ def _cell_raw(row: tuple[Any, ...], index: int) -> object:
     if index >= len(row):
         return None
     return row[index].value
+
+
+def _cell_display_text(row: tuple[Any, ...], index: int) -> str:
+    value = _cell_raw(row, index)
+    if value is None:
+        return ""
+    return str(value).replace("\r\n", "\n").replace("\r", "\n").strip()
 
 
 def _make_focus(code: str, title: str, sheet_name: str, row_index: int, cell: object) -> ObjectCandidate:
@@ -794,21 +837,25 @@ def _append_lcap_service(
     raw_value: object,
     process: ObjectCandidate,
     service_title: str,
-    service_category: str,
+    service_category: str | None = None,
     authoritative_service_titles: dict[str, str],
 ) -> ObjectCandidate:
     parts = service_parts(service_title)
+    metadata = {
+        "lifecycle_type": "application_security_development",
+        "scope_code": parts["scope_code"],
+        "capability_focus_code": parts["capability_focus_code"],
+    }
+    relation_metadata: dict[str, str] = {}
+    if service_category:
+        metadata["service_category"] = service_category
+        relation_metadata["service_category"] = service_category
     service = _object(
         "security_technical_service",
         _service_title(parts, service_title, authoritative_service_titles),
         code=parts["code"],
         category=parts["scope_code"],
-        metadata={
-            "lifecycle_type": "application_security_development",
-            "service_category": service_category,
-            "scope_code": parts["scope_code"],
-            "capability_focus_code": parts["capability_focus_code"],
-        },
+        metadata=metadata,
         source=_source(sheet_name, row_index, "关联安全技术服务", _coord(cell), raw_value),
     )
     result.objects.append(service)
@@ -819,10 +866,54 @@ def _append_lcap_service(
             service.key,
             "关联安全技术服务",
             source=service.sources[0],
-            metadata={"service_category": service_category},
+            metadata=relation_metadata,
         )
     )
     return service
+
+
+def _append_lcap_module_or_measure(
+    result: ParseResult,
+    *,
+    sheet_name: str,
+    row_index: int,
+    cell: object,
+    raw_value: object,
+    process: ObjectCandidate,
+    process_title: str,
+    module_title: str,
+    authoritative_module_titles: set[str],
+) -> None:
+    normalized_module = normalize_text(module_title)
+    authoritative_module = _lcap_authoritative_module_title(normalized_module, authoritative_module_titles)
+    if authoritative_module:
+        module = _object(
+            "security_technology_module",
+            authoritative_module,
+            source=_source(sheet_name, row_index, "安全技术模块", _coord(cell), module_title),
+        )
+        result.objects.append(module)
+        result.relations.append(_relation(process.key, "uses_module", module.key, "关联安全技术模块", source=module.sources[0]))
+        return
+    if normalized_module in LCAP_TECHNICAL_MEASURE_TITLES:
+        measure = _object(
+            "security_technical_measure",
+            normalized_module,
+            category="安全技术措施",
+            metadata={"lifecycle_type": "application_security_development", "process_title": process_title},
+            source=_source(sheet_name, row_index, "安全技术模块", _coord(cell), module_title),
+        )
+        result.objects.append(measure)
+        result.relations.append(_relation(process.key, "uses_measure", measure.key, "关联安全技术措施", source=measure.sources[0]))
+        return
+    result.validations.append(
+        ValidationMessage(
+            "warning",
+            sheet_name,
+            row_index,
+            f"LC-AP 安全技术模块未匹配安全技术模块清单：{normalized_module}（阶段：{process_title}）",
+        )
+    )
 
 
 def _build_work_function_lookup(workbook) -> dict[str, dict[str, str | None]]:
@@ -1278,10 +1369,12 @@ def parse_data_lifecycle_sheet(
 
         for service_raw in _split_lines(_cell_raw(row, 7)):
             parts = service_parts(service_raw)
+            service_code = parts["code"]
+            _validate_service_reference(result, sheet_name, row_index, service_raw, parts, authoritative_service_titles)
             service = _object(
                 "security_technical_service",
                 _service_title(parts, service_raw, authoritative_service_titles),
-                code=parts["code"],
+                code=service_code,
                 category=parts["scope_code"],
                 metadata={
                     "scope_code": parts["scope_code"],
@@ -1377,10 +1470,12 @@ def parse_data_lifecycle_mapping_sheet(
         }
         for service_raw in _split_lines(_cell_raw(row, 12)):
             parts = service_parts(service_raw)
+            service_code = parts["code"]
+            _validate_service_reference(result, sheet_name, row_index, service_raw, parts, authoritative_service_titles)
             service = _object(
                 "security_technical_service",
                 _service_title(parts, service_raw, authoritative_service_titles),
-                code=parts["code"],
+                code=service_code,
                 category=parts["scope_code"],
                 metadata={
                     "scope_code": parts["scope_code"],
@@ -1496,6 +1591,27 @@ def parse_application_security_lifecycle_sheet(
         activity_definition = _cell_text(row, 5)
         policy_raw = _cell_raw(row, 6)
         policy_ref = _cell_text(row, 7)
+        selected_development_types = [
+            development_type
+            for offset, development_type in enumerate(development_types, start=8)
+            if _is_lcap_development_type_fill(row[offset])
+        ]
+        original_business_fields = {
+            "阶段（L3流程）": _cell_display_text(row, 1),
+            "阶段目标": _cell_display_text(row, 2),
+            "阶段主要活动（L4流程活动）": _cell_display_text(row, 3),
+            "阶段主要活动参考来源": _cell_display_text(row, 4),
+            "安全活动定义": _cell_display_text(row, 5),
+            "安全活动对应安全策略": _cell_display_text(row, 6),
+            "安全活动参考来源": _cell_display_text(row, 7),
+            "软件开发模式": "\n".join(selected_development_types),
+            "开发技术服务": _cell_display_text(row, 12),
+            "实际产品示例": _cell_display_text(row, 13),
+            "潜在安全威胁场景": _cell_display_text(row, 14),
+            "补充安全策略": _cell_display_text(row, 15),
+            "安全技术服务": _cell_display_text(row, 16),
+            "安全技术模块": _cell_display_text(row, 17),
+        }
         process = _object(
             "lifecycle_process",
             process_title,
@@ -1508,6 +1624,7 @@ def parse_application_security_lifecycle_sheet(
                 "goal": goal,
                 "main_activities": main_activities,
                 "reference_source": lifecycle_ref,
+                "original_business_fields": original_business_fields,
             },
             source=_source(sheet_name, row_index, "阶段（L3流程）", _coord(row[1]), _cell_raw(row, 1)),
         )
@@ -1562,7 +1679,7 @@ def parse_application_security_lifecycle_sheet(
             result.relations.append(_relation(policy_relation_source_key, "requires_policy", policy.key, "要求策略", source=policy.sources[0]))
 
         for offset, development_type in enumerate(development_types, start=8):
-            if not _is_lcap_development_type_fill(row[offset]):
+            if development_type not in selected_development_types:
                 continue
             dev_type = _object(
                 "software_development_type",
@@ -1572,17 +1689,42 @@ def parse_application_security_lifecycle_sheet(
             result.objects.append(dev_type)
             result.relations.append(_relation(process.key, "applies_to_development_type", dev_type.key, "适用于开发类型", source=dev_type.sources[0]))
 
-        for service_title in _split_lines(_cell_raw(row, 12)):
-            _append_lcap_service(
-                result,
-                sheet_name=sheet_name,
-                row_index=row_index,
-                cell=row[12],
-                raw_value=service_title,
-                process=process,
-                service_title=service_title,
-                service_category="开发类",
-                authoritative_service_titles=authoritative_service_titles,
+        for development_service_title in _split_lines(_cell_raw(row, 12)):
+            development_service = _object(
+                "development_technical_service",
+                development_service_title,
+                category="开发技术服务",
+                metadata={"lifecycle_type": "application_security_development", "process_title": process_title},
+                source=_source(sheet_name, row_index, "开发技术服务", _coord(row[12]), development_service_title),
+            )
+            result.objects.append(development_service)
+            result.relations.append(
+                _relation(
+                    process.key,
+                    "uses_development_technical_service",
+                    development_service.key,
+                    "使用开发技术服务",
+                    source=development_service.sources[0],
+                )
+            )
+
+        for development_module_title in _split_lines(_cell_raw(row, 13)):
+            development_module = _object(
+                "development_technical_module",
+                development_module_title,
+                category="开发技术模块",
+                metadata={"lifecycle_type": "application_security_development", "process_title": process_title},
+                source=_source(sheet_name, row_index, "实际产品示例", _coord(row[13]), development_module_title),
+            )
+            result.objects.append(development_module)
+            result.relations.append(
+                _relation(
+                    process.key,
+                    "uses_development_technical_module",
+                    development_module.key,
+                    "使用开发技术模块",
+                    source=development_module.sources[0],
+                )
             )
 
         for service_title in _split_lines(_cell_raw(row, 16)):
@@ -1594,70 +1736,20 @@ def parse_application_security_lifecycle_sheet(
                 raw_value=service_title,
                 process=process,
                 service_title=service_title,
-                service_category="管理类",
                 authoritative_service_titles=authoritative_service_titles,
             )
 
-        for service_title, service_category in _split_lcap_services_by_separator(_cell_raw(row, 17)):
-            _append_lcap_service(
+        for module_title in _split_lines(_cell_raw(row, 17)):
+            _append_lcap_module_or_measure(
                 result,
                 sheet_name=sheet_name,
                 row_index=row_index,
                 cell=row[17],
-                raw_value=service_title,
+                raw_value=module_title,
                 process=process,
-                service_title=service_title,
-                service_category=service_category,
-                authoritative_service_titles=authoritative_service_titles,
-            )
-
-        for module_title in _split_lines(_cell_raw(row, 18)):
-            normalized_module = normalize_text(module_title)
-            authoritative_module = _lcap_authoritative_module_title(normalized_module, authoritative_module_titles)
-            if authoritative_module:
-                module = _object(
-                    "security_technology_module",
-                    authoritative_module,
-                    source=_source(sheet_name, row_index, "安全技术模块", _coord(row[18]), module_title),
-                )
-                result.objects.append(module)
-                result.relations.append(_relation(process.key, "uses_module", module.key, "关联安全技术模块", source=module.sources[0]))
-                continue
-            if normalized_module in LCAP_TECHNICAL_MEASURE_TITLES:
-                measure = _object(
-                    "security_technical_measure",
-                    normalized_module,
-                    category="安全技术措施",
-                    metadata={"lifecycle_type": "application_security_development", "process_title": process_title},
-                    source=_source(sheet_name, row_index, "安全技术模块", _coord(row[18]), module_title),
-                )
-                result.objects.append(measure)
-                result.relations.append(
-                    _relation(process.key, "uses_measure", measure.key, "关联安全技术措施", source=measure.sources[0])
-                )
-                continue
-            if normalized_module not in authoritative_module_titles:
-                result.validations.append(
-                    ValidationMessage(
-                        "warning",
-                        sheet_name,
-                        row_index,
-                        f"LC-AP 安全技术模块未匹配安全技术模块清单：{normalized_module}（阶段：{process_title}）",
-                    )
-                )
-                continue
-
-        for product_title in _split_lines(_cell_raw(row, 13)):
-            product_component = _object(
-                "development_product_component",
-                product_title,
-                category="开发类产品组件",
-                metadata={"lifecycle_type": "application_security_development", "process_title": process_title},
-                source=_source(sheet_name, row_index, "实际产品示例", _coord(row[13]), product_title),
-            )
-            result.objects.append(product_component)
-            result.relations.append(
-                _relation(process.key, "uses_development_product_component", product_component.key, "使用开发类产品组件", source=product_component.sources[0])
+                process_title=process_title,
+                module_title=module_title,
+                authoritative_module_titles=authoritative_module_titles,
             )
     return result
 

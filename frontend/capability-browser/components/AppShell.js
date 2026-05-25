@@ -54,6 +54,7 @@
           { id: "security-scopes", label: "安全能力作用域目录", route: "/knowledge/scopes", type: "knowledge-directory", priority: "P2", children: [] },
           { id: "technical-knowledge", label: "安全技术模块/措施清单", route: "/knowledge/technical", type: "knowledge-directory", priority: "P2", children: [] },
           { id: "management-workflows", label: "安全管理工作/流程清单", route: "/knowledge/management-workflows", type: "knowledge-directory", priority: "P2", children: [] },
+          { id: "application-systems", label: "应用系统目录", route: "/knowledge/application-systems", type: "knowledge-directory", priority: "P2", children: [] },
           {
             id: "security-functions",
             label: "安全职能清单",
@@ -110,6 +111,7 @@
     "/knowledge/management-workflows": { view: "maintenance", maintenancePage: "security-works" },
     "/knowledge/work-items": { view: "maintenance", maintenancePage: "security-works", canonicalRoute: "/knowledge/management-workflows" },
     "/knowledge/processes": { view: "maintenance", maintenancePage: "processes", canonicalRoute: "/knowledge/management-workflows" },
+    "/knowledge/application-systems": { view: "maintenance", maintenancePage: "application-systems" },
     "/knowledge/functions": { view: "maintenance", maintenancePage: "work-functions" },
     "/knowledge/gbt-42446": { view: "maintenance", maintenancePage: "references", referenceTab: "gbt", canonicalRoute: "/knowledge/functions" },
     "/knowledge/role-references": { view: "maintenance", maintenancePage: "references", referenceTab: "gartner", canonicalRoute: "/knowledge/functions" },
@@ -142,6 +144,7 @@
     measures: "/knowledge/technical",
     "security-works": "/knowledge/management-workflows",
     processes: "/knowledge/management-workflows",
+    "application-systems": "/knowledge/application-systems",
     "work-functions": "/knowledge/functions",
     "lcap-references": "/development-security",
     references: "/knowledge/functions",
@@ -165,6 +168,7 @@
     "/knowledge": "集中维护作用域、技术模块、技术措施、安全工作、流程、职能和岗位参考等知识对象。",
     "/knowledge/technical": "安全系统（为解决某一场景 / 领域的安全问题，由多个安全模块组成、协同运行的实体）；安全技术模块（实现一个或多个安全能力的安全技术逻辑实体，可以独立部署运行，通常代表一类安全产品）。",
     "/knowledge/management-workflows": "用页签集中维护安全工作清单和安全职能流程清单。",
+    "/knowledge/application-systems": "来自 LC-AP 应用安全开发生命周期元素目录，按应用系统、定义和应用组件归纳展开。",
     "/knowledge/functions": "用页签集中维护安全工作职能清单和岗位 / 职能参考目录。",
     "/standards": "集中查看标准 / 框架参考及其与能力、措施和管理工作的映射关系。",
   };

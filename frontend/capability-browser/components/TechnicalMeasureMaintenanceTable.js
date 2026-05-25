@@ -2,12 +2,10 @@
   const components = (window.sapdComponents = window.sapdComponents || {});
   const utils = components.utils;
 
-  function chipList(items, empty = "待补充", limit = 4) {
+  function chipList(items, empty = "待补充") {
     const rows = utils.list(items).filter(Boolean);
     if (!rows.length) return `<span class="empty-inline">${utils.escapeHtml(empty)}</span>`;
-    const visible = rows.slice(0, limit);
-    const more = rows.length - visible.length;
-    return `${visible.map((item) => `<span class="relation-chip">${utils.escapeHtml(displayValue(item, empty))}</span>`).join("")}${more > 0 ? `<span class="relation-chip muted">+${more}</span>` : ""}`;
+    return rows.map((item) => `<span class="relation-chip">${utils.escapeHtml(displayValue(item, empty))}</span>`).join("");
   }
 
   function displayValue(value, empty = "待补充") {

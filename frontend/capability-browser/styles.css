@@ -2662,6 +2662,53 @@ body.is-resizing {
   border-collapse: collapse;
 }
 
+.application-system-directory-scroll {
+  padding: 0;
+}
+
+.application-system-directory-table {
+  min-width: 980px;
+}
+
+.application-system-directory-table th:nth-child(1),
+.application-system-directory-table td:nth-child(1) {
+  width: 220px;
+  vertical-align: middle;
+}
+
+.application-system-directory-table th:nth-child(2),
+.application-system-directory-table td:nth-child(2) {
+  width: auto;
+  vertical-align: middle;
+}
+
+.application-system-directory-table th:nth-child(3),
+.application-system-directory-table td:nth-child(3) {
+  width: 360px;
+  vertical-align: middle;
+}
+
+.application-component-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  align-items: center;
+}
+
+.application-component-preview span {
+  display: inline-flex;
+  min-height: 22px;
+  align-items: center;
+  padding: 2px 8px;
+  border: 1px solid color-mix(in oklch, var(--accent) 34%, var(--line));
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--accent) 8%, var(--panel));
+  color: var(--accent-3);
+  font-size: 12px;
+  font-weight: 820;
+  line-height: 1.2;
+}
+
 .maintenance-detail-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -3821,6 +3868,111 @@ button.source-sheet-row.active {
   font-size: 12px;
 }
 
+.dev-lifecycle-workspace .lifecycle-nav-pane {
+  background: #fbfcfe;
+}
+
+.dev-lifecycle-workspace .lifecycle-nav-pane .pane-head {
+  min-height: 48px;
+  padding: 8px 10px;
+  background: #f8fafc;
+}
+
+.dev-lifecycle-workspace .lifecycle-nav-pane .pane-head h2 {
+  font-size: 13px;
+}
+
+.dev-lifecycle-workspace .lifecycle-nav-pane .count-pill {
+  min-width: 26px;
+  height: 22px;
+  padding: 0 6px;
+  font-size: 12px;
+}
+
+.dev-lifecycle-workspace #toggleDevLifecycleCatalog {
+  width: auto;
+  min-width: 62px;
+  height: 26px;
+  padding: 0 7px;
+  color: var(--shell-primary-dark, #0052cc);
+  font-size: 11px;
+  font-weight: 680;
+}
+
+.dev-lifecycle-workspace .lifecycle-nav {
+  height: calc(100% - 48px);
+  gap: 7px;
+  padding: 10px;
+  background:
+    linear-gradient(180deg, #fbfcfe, #f5f7fb);
+}
+
+.dev-lifecycle-workspace .lifecycle-nav-row {
+  min-height: 34px;
+  border-color: #d5dfec;
+  border-radius: 8px;
+  background: transparent;
+  box-shadow: none;
+  padding: 7px 9px;
+}
+
+.dev-lifecycle-workspace .lifecycle-nav-row strong {
+  overflow: hidden;
+  color: #283342;
+  font-size: 13px;
+  font-weight: 780;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dev-lifecycle-workspace .lifecycle-nav-row.active {
+  border-color: #9ab5e8;
+  background: #e9f0ff;
+  box-shadow: inset 0 0 0 1px #bfd2f5;
+}
+
+.dev-lifecycle-workspace .lifecycle-main-pane {
+  position: relative;
+}
+
+.dev-lifecycle-workspace.catalog-collapsed {
+  grid-template-columns: 0 minmax(0, 1fr) !important;
+}
+
+.dev-lifecycle-workspace.catalog-collapsed .lifecycle-nav-pane {
+  width: 0;
+  min-width: 0;
+  grid-column: 1;
+  overflow: hidden;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.dev-lifecycle-workspace.catalog-collapsed .workspace-resizer {
+  display: none;
+}
+
+.dev-lifecycle-workspace.catalog-collapsed .lifecycle-main-pane {
+  grid-column: 2 !important;
+}
+
+.dev-lifecycle-workspace.catalog-collapsed .lifecycle-main-pane > .pane-head,
+.dev-lifecycle-workspace.catalog-collapsed .lifecycle-lane {
+  margin-left: 52px;
+}
+
+.dev-lifecycle-workspace.catalog-collapsed .lifecycle-nav-pane h2,
+.dev-lifecycle-workspace.catalog-collapsed .lifecycle-nav-pane .lifecycle-nav,
+.dev-lifecycle-workspace.catalog-collapsed .lifecycle-nav-pane .pane-head {
+  display: none;
+}
+
+.dev-lifecycle-workspace.catalog-collapsed #toggleDevLifecycleCatalog {
+  display: none;
+}
+
 .lifecycle-tree-root {
   display: grid;
   gap: 3px;
@@ -3865,12 +4017,118 @@ button.source-sheet-row.active {
   min-width: 0;
 }
 
-.lifecycle-relation-scroll {
-  max-height: 460px;
+.lifecycle-record-scroll {
+  max-height: 620px;
+  overflow: auto;
+  background: #f7fafc;
 }
 
-.lifecycle-relation-table {
-  min-width: 1120px;
+.lifecycle-record-groups {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+}
+
+.lifecycle-record-group {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fbfcfd;
+}
+
+.lifecycle-record-group h4 {
+  margin: 0;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--line);
+  background: #eef4f8;
+  color: #40515f;
+  font-size: 13px;
+  font-weight: 820;
+  line-height: 1.25;
+}
+
+.lifecycle-record-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+
+.lifecycle-record-table th,
+.lifecycle-record-table td {
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+  text-align: left;
+}
+
+.lifecycle-record-table th {
+  width: 150px;
+  padding: 12px 12px;
+  background: #e6eef4;
+  color: #40515f;
+  font-size: 12px;
+  font-weight: 820;
+  line-height: 1.35;
+}
+
+.lifecycle-record-table td {
+  width: calc((100% - 300px) / 2);
+  min-width: 0;
+  padding: 12px 14px;
+  background: #fbfcfd;
+}
+
+.lifecycle-record-table tr:nth-child(even) th {
+  background: #edf3f8;
+}
+
+.lifecycle-record-table tr:nth-child(even) td {
+  background: #fdfefe;
+}
+
+.lifecycle-record-table tr:hover th,
+.lifecycle-record-table tr:hover td {
+  background: #f3f7fb;
+}
+
+.lifecycle-stage-label {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 760;
+}
+
+.lifecycle-stage-definition {
+  max-width: 1180px;
+  margin-top: 8px;
+}
+
+.lifecycle-field-lines {
+  display: grid;
+  gap: 7px;
+  color: #243544;
+  font-size: 13px;
+  font-weight: 680;
+  line-height: 1.55;
+}
+
+.lifecycle-field-lines span {
+  display: block;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.lifecycle-stage-definition .lifecycle-field-lines {
+  color: var(--muted);
+  font-weight: 620;
+}
+
+.lifecycle-record-table .empty-inline {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 620;
 }
 
 .lifecycle-reference-block {
@@ -5209,7 +5467,7 @@ input:focus-visible,
 }
 
 .dev-lifecycle-workspace {
-  grid-template-columns: 292px minmax(640px, 1fr);
+  grid-template-columns: 200px minmax(0, 1fr);
 }
 
 .content-workspace {

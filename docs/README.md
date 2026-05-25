@@ -51,5 +51,6 @@
 
 1. `05-archive/progress-history/2026-05.md`
 2. `05-archive/findings-history/2026-05.md`
+3. `05-archive/document-retirement-2026-05/README.md`
 
 历史归档只在需要追溯过程时读取，不作为日常开工入口。

@@ -2,7 +2,7 @@
 
 本文件是当前会话恢复入口，只保留最近状态、最近完成事项、关键验证和历史索引。完整执行历史已归档到 `docs/05-archive/progress-history/2026-05.md`。
 
-## 当前状态（2026-05-23）
+## 当前状态（2026-05-25）
 
 - 当前分支：`codex-frontend-backend-separation-closure`。
 - 当前主线：Phase 5 知识浏览与搜索 / 关系化前端工作台校正；重点仍是已导入 Sheet 的业务语义复核、前端关系展示校正、数据契约治理和员工端字段边界收口。
@@ -12,6 +12,12 @@
 - 当前工作区存在未提交改动，包含安全知识表格字段收口、治理说明和本轮结构治理文件；继续开发前建议 checkpoint commit。
 
 ## 最近完成事项
+
+### 2026-05-25 文档失效与冗余归档
+
+- 已检查当前 Markdown 文档分布和旧路径引用，把 18 个旧设计、一次性核对、历史复核文档迁移到 `docs/05-archive/document-retirement-2026-05/`。
+- 已新增归档说明 `docs/05-archive/document-retirement-2026-05/README.md`，并更新 `README.md`、`docs/README.md`、`docs/03-import-etl/README.md`、`docs/00-overview/frontend-menu-and-page-type-definition-v1.md` 和 `docs/06-implementation/open-issues.md` 中的入口或历史引用。
+- 本轮未修改前端代码、数据库、原始数据、生成数据或导出数据。
 
 ### 2026-05-23 轻量项目结构治理
 
@@ -26,7 +32,7 @@
 
 - 已按“只展示原始业务字段”收口参考目录：`GB/T 42446-2023` 主表只展示 `工作类别`、`承担的工作任务`，`Gartner 工作岗位参考` 主表只展示 `分类`、`角色`、`描述`。
 - `maintenance-knowledge.json` 已回填 27 条 GB/T 工作类别和 28 条 Gartner 分类，并按原始表行号排序。
-- 已将 `GB/T 42446-2023` 按 `工作类别`、`Gartner 工作岗位参考` 按 `分类` 做归纳展开；默认展开第一组，组行显示条数；已收紧参考页 section 布局和组行高度，避免标题与表格之间出现大空白。
+- 已将 `GB/T 42446-2023` 按 `工作类别`、`Gartner 工作岗位参考` 按 `分类` 做归纳展开；最终改为“分类折叠面板 + 组内明细表”，避免大表空白列、大面积横条和标题到表格的大空白。
 - 本轮未修改原始 Excel、schema 或数据库结构；涉及前端展示组件、样式、数据导出投影、页面字段契约和治理文档。
 
 ### 2026-05-23 GitHub 数据不同步与本地一键初始化
@@ -38,11 +44,12 @@
 ## 最近验证
 
 - `python3 scripts/check_github_data_boundary.py`：通过，当前 Git 未追踪原始数据、数据库、导出包或前端生成数据。
+- 2026-05-25 文档归档复核：旧路径扫描排除 `docs/05-archive/**` 后无命中；`git diff --check` 通过。
 - `python3 -m py_compile scripts/sapd_wiki.py src/sapd_wiki/cli.py scripts/check_github_data_boundary.py`：通过。
 - `python3 scripts/sapd_wiki.py bootstrap-local-data --print-inputs` 与 `--help`：通过，主 CLI 一键初始化子命令可用。
 - 结构治理行数检查通过：`progress.md` 已从 117 行瘦身到 61 行；新增 `scripts/README.md` 33 行，`docs/03-import-etl/README.md` 48 行。
 - 参考目录原始字段复核通过：本地 API `/api/v1/data-packages/maintenance` 返回 `gbt_42446_references=27` 且 `category_non_empty=27`，`gartner_roles=28` 且 `category_non_empty=28`；页面 smoke `/knowledge/gbt-42446`、`/knowledge/role-references` 通过。
-- 参考目录分组 DOM 复核通过：GB/T 组为 `网络安全管理 6 项工作任务` 等，Gartner 组为 `安全和风险管理 (SRM) 领导者 10 个角色` 等；标题到表格间距约 8px，首组可折叠，`bodyOverflowX=0`。
+- 参考目录分组 DOM 复核通过：GB/T 为 5 个折叠面板，首组 `网络安全管理 6 项工作任务`；Gartner 为 4 个折叠面板，首组 `安全和风险管理 (SRM) 领导者 10 个角色`；标题到内容间距约 8px，`bodyOverflowX=0`。
 - `node --check frontend/capability-browser/dataClient.js`、`node --check frontend/capability-browser/app.js`、`node --check scripts/frontend_smoke_check.mjs`：通过。
 - `python3 -m py_compile src/sapd_wiki/exports.py src/sapd_wiki/cli.py src/sapd_wiki/api_server.py scripts/data_package_summary.py scripts/dev_server_guard.py`：通过。
 - `git diff --check`：通过。

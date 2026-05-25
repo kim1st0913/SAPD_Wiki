@@ -467,4 +467,4 @@
 
 Stitch 交接说明见：
 
-- `docs/00-overview/stitch-design-handoff-v1.md`
+- `docs/05-archive/document-retirement-2026-05/00-overview/stitch-design-handoff-v1.md`

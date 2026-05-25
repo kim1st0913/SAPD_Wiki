@@ -26,21 +26,11 @@
 
 ## 标准 / 框架核对报告
 
-这些文档主要用于记录某个标准、PDF、原始表或映射关系的历史核对结论。它们是重要证据，但不一定都是当前导入规则入口。
+标准 / 框架、PDF、原始表和映射关系的一次性历史核对报告已退役到：
 
-| 文档 | 用途 |
-|---|---|
-| `cis-controls-v8.1-vs-v8.1.2-comparison.md` | CIS v8.1 与 v8.1.2 差异核对 |
-| `cis-controls-v8.1.2-vs-raw-cis-csc-v8-comparison.md` | CIS v8.1.2 与原始 Sheet 核对 |
-| `csf-2.0-raw-sheet-content-confirmation.md` | CSF 2.0 原始 Sheet 内容确认 |
-| `csf-2.0-translation-review-and-import-notes.md` | CSF 2.0 翻译与导入说明 |
-| `gbt22239-2019-level3-vs-raw-debao3-check.md` | 等保三级原始资料核对 |
-| `iso27001-2022-vs-pdf-check.md` | ISO 27001:2022 与 PDF 核对 |
-| `iso27002-2022-attributes-vs-raw-27001-check.md` | ISO 27002 属性与原始 27001 Sheet 核对 |
-| `nist-800-53rev5-vs-raw-check.md` | NIST SP 800-53 Rev.5 与原始表核对 |
-| `standard-framework-mapping-semantic-review-2026-05-20.md` | 标准 / 框架映射语义核对 |
-| `crf-2026-import-projection-notes.md` | CRF 2026 导入投影说明 |
-| `crf-2026-unmapped-candidate-focus-2026-05-20.md` | CRF 2026 未映射候选关注点 |
+- `../05-archive/document-retirement-2026-05/03-import-etl/`
+
+这些报告只在追溯历史证据时读取，不再作为当前导入规则入口。
 
 ## 维护方式
 

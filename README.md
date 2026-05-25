@@ -85,7 +85,7 @@ GitHub 工程不提交原始数据、生成数据、SQLite 数据库、导出包
 ### 用户说明
 
 - `docs/04-user-guide/user-guide.md`：用户指南。
-- `docs/04-user-guide/capability-browser-page-design.md`：第一版能力目录浏览页设计。
+- `docs/README.md`：文档总导航，包含当前用户指南、工程入口和历史归档入口。
 
 ### 归档
 

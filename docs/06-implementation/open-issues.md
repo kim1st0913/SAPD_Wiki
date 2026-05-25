@@ -884,7 +884,7 @@
 - 对象或页面：`data/raw-samples/wiki sample.xlsx` 的 `CIS CSC V8` 页，后续标准框架页面 `/standards/cis-csc-v8`
 - 现象：与官方 `CIS_Controls_Version_8.1.2___March_2025.xlsx` 比对后，原始表 Safeguard 编号、最低实施组、资产类型均能对齐；`I` 列已有 `安全功能` 表头但此前为空；`2.1`、`8.9`、`11.1`、`12.2`、`12.6`、`17.5` 的中文描述尚未完全体现 v8.1.2 文案增强。
 - 影响：如果直接导入或展示，结构字段和上述 6 条描述会比 v8.1.2 官方口径略旧或略短。
-- 当前处理：已生成并更新比对报告 `docs/03-import-etl/cis-controls-v8.1.2-vs-raw-cis-csc-v8-comparison.md`；已按官方 v8.1.2 将 153 条 `Security Function` 填入原始表 `CIS CSC V8!I3:I155`；已将第 5 节 6 条描述修订写入原始表 `CIS CSC V8!J8/J70/J88/J94/J98/J146`；已备份原始表到 `data/raw-samples/backups/wiki sample.before-cis-security-function-rewrite-20260518-111236.xlsx` 和 `data/raw-samples/backups/wiki sample.before-cis-v812-description-fixes-20260518-111806.xlsx`；未导入数据库、未更新前端数据包。
+- 当前处理：已生成并更新比对报告 `docs/05-archive/document-retirement-2026-05/03-import-etl/cis-controls-v8.1.2-vs-raw-cis-csc-v8-comparison.md`；已按官方 v8.1.2 将 153 条 `Security Function` 填入原始表 `CIS CSC V8!I3:I155`；已将第 5 节 6 条描述修订写入原始表 `CIS CSC V8!J8/J70/J88/J94/J98/J146`；已备份原始表到 `data/raw-samples/backups/wiki sample.before-cis-security-function-rewrite-20260518-111236.xlsx` 和 `data/raw-samples/backups/wiki sample.before-cis-v812-description-fixes-20260518-111806.xlsx`；未导入数据库、未更新前端数据包。
 - 建议处理：正式导入前再做一次人工抽查；如保留原始中文，应作为 `zh_title` / `zh_description` 与官方 v8.1.2 英文字段分开维护。
 - 修复说明：`Security Function` 已完成填充；`2.1` 增加“许可证数量”；`8.9` 改为“实施实例主要包括”；`11.1` 增加“包含详细备份程序”；`12.2` 改为“实施范例可包括文档、政策和设计组件”；`12.6` 按 v8.1.2 重写为区分网络管理协议和安全通信协议；`17.5` 补充年度或重大变化审查表述。
 - 验证结果：2026-05-18 使用 `openpyxl` 读取两份 Excel，确认双方均为 153 条 Safeguard、编号集合一致、最低实施组分布一致、资产类型分布一致；`Security Function` 填充后分布为 Protect=78、Govern=25、Detect=24、Identify=14、Respond=6、Recover=6，与官方 v8.1.2 一致；6 条描述写入后重新打开磁盘文件验证无错配。
@@ -907,7 +907,7 @@
 - 对象或页面：`data/raw-samples/wiki sample.xlsx` 的 `CSF2.0` 页，后续标准框架页面 `CSF`
 - 现象：`CSF2.0` sheet 的编号和两张表结构与 NIST CSF 2.0 PDF 可对齐，但存在部分中文翻译、术语和格式问题，例如 `inform` 被译成“告知/通知”、`Policy` 译为“策略”、`DE.AE` 分类中出现“入侵指标协和”等。
 - 影响：如果直接入库，会在 CSF 页面展示不够准确的中文标准文本。
-- 当前处理：用户确认 `docs/03-import-etl/csf-2.0-translation-review-and-import-notes.md` 第 2、3 节修正进原始表，第 4 节结构顺序提醒忽略；已按确认修订原始 Excel，并保留原始表顺序。
+- 当前处理：用户确认 `docs/05-archive/document-retirement-2026-05/03-import-etl/csf-2.0-translation-review-and-import-notes.md` 第 2、3 节修正进原始表，第 4 节结构顺序提醒忽略；已按确认修订原始 Excel，并保留原始表顺序。
 - 需要确认：无需继续确认。
 - 修复说明：已备份原始表到 `data/raw-samples/backups/wiki sample.before-csf-translation-fixes-20260518-171113.xlsx`；已修订 `CSF2.0` 页中必须调整项和术语/格式统一项；`CSF Core` 增加 `F列 / 关联安全能力/关注点`。
 - 验证结果：2026-05-18 已用 `openpyxl` 抽查 `E3`、`E5`、`C15`、`E21`、`E33`、`C34`、`C82`、`D111`、`C114`、`D114`、`C115`、`F2`，确认修订已写入；已重新 stage/approve `CSF2.0` 并导出标准框架数据包。
@@ -931,7 +931,7 @@
 - 对象或页面：`data/raw-samples/wiki sample.xlsx` 的 `27001-2022` 页，后续 ISO/IEC 27001:2022 标准框架页面
 - 现象：与扫描版 `ISO IEC 27001-2022 英文版.pdf` OCR 后的 Annex A `Table A.1` 比对，原始表完整覆盖 93 条控制项，编号无缺失、无重复、无多余；`B列 / 控制类别` 使用合并单元格；另有少量中文术语建议确认，例如 `5.6 与特定相关方的联系`、`5.30 ICT 为业务连续性做好准备`、`6.1 审查`、`6.6` 描述主语、`8.2 特殊访问权`、`8.3 信息访问约束`、`8.4 获取源代码`、`8.7` 中“籍由”、`8.11 数据遮盖`。
 - 影响：中文标准文本不够准确或不够统一；B 列为合并单元格，但用户确认该形态正常，不作为原始表数据问题。
-- 当前处理：已新增核对报告 `docs/03-import-etl/iso27001-2022-vs-pdf-check.md`；用户确认 B 列不补齐、不拆合并单元格；其他 27001 文字建议已写回原始表。未导入数据库，未更新前端数据包。
+- 当前处理：已新增核对报告 `docs/05-archive/document-retirement-2026-05/03-import-etl/iso27001-2022-vs-pdf-check.md`；用户确认 B 列不补齐、不拆合并单元格；其他 27001 文字建议已写回原始表。未导入数据库，未更新前端数据包。
 - 需要确认：
   - 无需继续确认。
 - 修复说明：已修订 `D9/E9/D33/D41/E46/D64/D65/D66/E69/D73`；保留 B 列合并单元格 `B4:B40`、`B41:B48`、`B49:B62`、`B63:B96`。
@@ -944,7 +944,7 @@
 - 对象或页面：`data/raw-samples/wiki sample.xlsx` 的 `27001-2022` 页，后续 ISO/IEC 27001:2022 / 27002:2022 标准框架页面
 - 现象：对 `ISOIEC 27002_2022_英文版完整目录.pdf` Annex A `Table A.1 — Matrix of controls and attribute values` 解析后，与原始表 F-J 列比对，93 条控制项共 465 个属性核对点中 455 个一致、10 个存在差异。差异包括：`5.24 控制类型` 当前为 `#预防性`，27002 为 `#纠正性`；`5.7`、`5.31`、`5.32`、`5.33`、`5.34`、`5.36`、`6.6`、`8.10`、`8.29` 存在运营能力术语写法不一致。
 - 影响：如果直接入库或展示，27002 属性视图基本可用，但上述属性筛选 / 分组会出现少量口径不一致，尤其 `5.24` 会影响按控制类型筛选。
-- 当前处理：已新增核对报告 `docs/03-import-etl/iso27002-2022-attributes-vs-raw-27001-check.md`；用户确认修订原始数据，已写回原始表。未导入数据库，未更新前端数据包。
+- 当前处理：已新增核对报告 `docs/05-archive/document-retirement-2026-05/03-import-etl/iso27002-2022-attributes-vs-raw-27001-check.md`；用户确认修订原始数据，已写回原始表。未导入数据库，未更新前端数据包。
 - 需要确认：
   - 无需继续确认。
 - 修复说明：已将 `5.24 控制类型` 从 `#预防性` 修订为 `#纠正性`；已统一 9 处运营能力术语为 `#威胁和漏洞管理`、`#法律和合规性`、`#供应商关系安全`、`#信息安全保证`。
@@ -996,7 +996,7 @@
 - 当前处理：用户已修订原始表，已按修订后数据导入。
 - 需要确认：无。
 - 修复说明：2026-05-19 复查原始表，确认 `PE-12(1)` 英文名称为 `Essential Missions And Business Functions`；本轮按修订后的 `NIST 800-53rev5` 页导入数据库，并导出到标准框架数据包。
-- 验证结果：2026-05-19 使用 `openpyxl` 复查原始表，确认有效行 1007 条、唯一编号 1007 个，`PE-12(1)` 已为修订后文本；导入后 `standards-data.json` 中 `NIST SP 800-53 Rev.5` 统计为 20 个安全控制类、298 项安全控制、1007 条安全策略；详见 `docs/03-import-etl/nist-800-53rev5-vs-raw-check.md`。
+- 验证结果：2026-05-19 使用 `openpyxl` 复查原始表，确认有效行 1007 条、唯一编号 1007 个，`PE-12(1)` 已为修订后文本；导入后 `standards-data.json` 中 `NIST SP 800-53 Rev.5` 统计为 20 个安全控制类、298 项安全控制、1007 条安全策略；详见 `docs/05-archive/document-retirement-2026-05/03-import-etl/nist-800-53rev5-vs-raw-check.md`。
 
 ## OI-054：标准 / 框架映射语义合理性与未映射候选待确认
 
@@ -1017,7 +1017,7 @@
 - 对象或页面：CRF Core 2026 新治理域、`安全能力-网络安全制度、框架映射`、后续安全能力体系
 - 现象：新版 CRF Core 2026 中 `AI` 人工智能管理、`PHY` 物理安全管理缺少专门能力关注点。用户确认本轮不把 `AI` 和 `PHY` 散挂到现有关注点，保留为后期能力体系优化 issue。
 - 影响：短期标准 / 框架映射中不会展示 CRF `AI` / `PHY` 域关联；后续若项目需要覆盖 AI 治理或物理安全管理，应先扩展能力体系，再补映射。
-- 当前处理：已输出全量候选清单 `docs/03-import-etl/crf-2026-unmapped-candidate-focus-2026-05-20.md`。除 `AI` / `PHY` 外的 78 个 CRF Safeguard ID 已按候选散挂进原始映射表；当前未映射 CRF Safeguard ID 共 33 个，仅剩 `AI` 18 条、`PHY` 15 条。
+- 当前处理：已输出全量候选清单 `docs/05-archive/document-retirement-2026-05/03-import-etl/crf-2026-unmapped-candidate-focus-2026-05-20.md`。除 `AI` / `PHY` 外的 78 个 CRF Safeguard ID 已按候选散挂进原始映射表；当前未映射 CRF Safeguard ID 共 33 个，仅剩 `AI` 18 条、`PHY` 15 条。
 - 需要确认：项目后期能力体系优化时，是否新增 AI 治理和物理安全管理能力关注点，并补入当前保留的 `AI` / `PHY` 映射。
 - 修复说明：待后期能力体系优化；本轮只记录 issue 和候选清单。
 - 验证结果：2026-05-20 已基于当前写回后的原始映射表与 CRF Core 2026 主数据复核，确认 CRF 未映射项只剩 `AI-01` 至 `AI-18`、`PHY-01` 至 `PHY-15`。
@@ -1244,7 +1244,7 @@
 - 对象或页面：`/knowledge/functions` 及安全知识已有表格入口。
 - 现象：`安全职能名称` 列占用过宽，挤压右侧 `定义` 列；安全工作职能清单前两列 `安全职能层`、`职能组` 没有按原表层级归纳展开；`GB/T 42446-2023` 与 `Gartner 工作岗位参考` 曾展示 `岗位来源`、`候选安全职能`、`复核状态` 等非原始业务字段，反而缺少原表 `工作类别`、`分类` 等字段；两个参考目录还缺少按原始分类归纳展开的浏览结构。
 - 影响：定义字段阅读成本高，职能层级浏览效率低；参考目录页面出现非用户需求的衍生字段，原始业务字段缺失。
-- 当前处理：`安全工作职能清单` 已按 `安全职能层 -> 职能组 -> 安全职能明细` 两级展开；明细表不再重复显示 `安全职能层` / `职能组` 两列；职能组按 `安全工作职能清单` 原表来源行号排序，职能明细按编码顺序兜底；`GB/T 42446-2023` 与 `Gartner 工作岗位参考` 已提升为 `安全职能清单` 的同级页签；安全知识表格统一收紧短字段列、统计列和表头高度；参考目录主表已改为只展示原始业务字段，并按原始分类归纳展开：GB/T 按 `工作类别` 展开 `承担的工作任务`，Gartner 按 `分类` 展开 `角色` 与 `描述`。
+- 当前处理：`安全工作职能清单` 已按 `安全职能层 -> 职能组 -> 安全职能明细` 两级展开；明细表不再重复显示 `安全职能层` / `职能组` 两列；职能组按 `安全工作职能清单` 原表来源行号排序，职能明细按编码顺序兜底；`GB/T 42446-2023` 与 `Gartner 工作岗位参考` 已提升为 `安全职能清单` 的同级页签；安全知识表格统一收紧短字段列、统计列和表头高度；参考目录主表已改为只展示原始业务字段，并按原始分类归纳展开：GB/T 按 `工作类别` 展开 `承担的工作任务`，Gartner 按 `分类` 展开 `角色` 与 `描述`；最终采用“分类折叠面板 + 组内明细表”，避免大表空白列和大面积横条。
 - 需要确认：无。
 - 修复说明：修改 `WorkFunctionMaintenanceTable.js`、`StandardRoleReferenceTable.js`、`styles.css`、`viewModels.js`、`exports.py`、页面字段契约和治理文档；未修改原始 Excel、schema 或数据库结构。
-- 验证结果：2026-05-23 `node --check`、`python3 -m py_compile src/sapd_wiki/exports.py`、`git diff --check` 通过；已重新导出 `maintenance-knowledge.json`，并更新 `index.html` / `dataClient.js` 资源版本避免旧缓存；本地 API 返回 `gbt_42446_references=27` 且 `category_non_empty=27`、`gartner_roles=28` 且 `category_non_empty=28`；`/knowledge/functions`、`/knowledge/scopes`、`/knowledge/technical`、`/knowledge/management-workflows`、`/knowledge/gbt-42446`、`/knowledge/role-references` Chrome headless smoke 通过，均 `consoleIssues=0`、`bodyOverflowX=0`；DOM 复核确认 GB/T 首组为 `网络安全管理 6 项工作任务`，Gartner 首组为 `安全和风险管理 (SRM) 领导者 10 个角色`，标题到表格间距约 8px，首组折叠交互正常。
+- 验证结果：2026-05-23 `node --check`、`python3 -m py_compile src/sapd_wiki/exports.py`、`git diff --check` 通过；已重新导出 `maintenance-knowledge.json`，并更新 `index.html` / `dataClient.js` 资源版本避免旧缓存；本地 API 返回 `gbt_42446_references=27` 且 `category_non_empty=27`、`gartner_roles=28` 且 `category_non_empty=28`；`/knowledge/functions`、`/knowledge/scopes`、`/knowledge/technical`、`/knowledge/management-workflows`、`/knowledge/gbt-42446`、`/knowledge/role-references` Chrome headless smoke 通过，均 `consoleIssues=0`、`bodyOverflowX=0`；DOM 复核确认 GB/T 为 5 个折叠面板、Gartner 为 4 个折叠面板，标题到内容间距约 8px。

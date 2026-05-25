@@ -2334,15 +2334,15 @@ def parse_dsp_scf_2026_sheet(workbook) -> ParseResult:
         (14, "scr_cmm_level_4", "SCR-CMM 4级 量化控制"),
         (15, "scr_cmm_level_5", "SCR-CMM 5级 持续改进"),
     ]
-    for row_idx in range(3, ws.max_row + 1):
-        domain = normalize_text(ws.cell(row_idx, 2).value)
-        principle = normalize_text(ws.cell(row_idx, 3).value)
-        intent = normalize_text(ws.cell(row_idx, 4).value)
-        control_id = normalize_text(ws.cell(row_idx, 5).value)
-        control_name = normalize_text(ws.cell(row_idx, 6).value)
-        control_description = normalize_text(ws.cell(row_idx, 7).value)
-        security_policy_item = normalize_text(ws.cell(row_idx, 8).value)
-        csf_function_grouping = normalize_text(ws.cell(row_idx, 9).value)
+    for row_idx, row in enumerate(ws.iter_rows(min_row=3, max_col=15), start=3):
+        domain = normalize_text(row[1].value)
+        principle = normalize_text(row[2].value)
+        intent = normalize_text(row[3].value)
+        control_id = normalize_text(row[4].value)
+        control_name = normalize_text(row[5].value)
+        control_description = normalize_text(row[6].value)
+        security_policy_item = normalize_text(row[7].value)
+        csf_function_grouping = normalize_text(row[8].value)
         if domain:
             current_domain = domain
         if principle:
@@ -2369,7 +2369,7 @@ def parse_dsp_scf_2026_sheet(workbook) -> ParseResult:
             "display_order": row_idx,
         }
         for col_idx, key, _label in maturity_columns:
-            metadata[key] = normalize_text(ws.cell(row_idx, col_idx).value)
+            metadata[key] = normalize_text(row[col_idx - 1].value)
 
         code = f"{framework_code}-{control_id}"
         source = _source(sheet_name, row_idx, "B:O", f"B{row_idx}:O{row_idx}", control_id)

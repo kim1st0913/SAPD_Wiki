@@ -1308,3 +1308,16 @@
 - 当前处理：已按用户确认分两类处理：第一类编码不一致以权威建议值为准，更新 `信息化环境-信息化对象-安全作用域映射` 与 `作用域-安全技术服务-安全技术模块映射` 的 F 列；第二类重复括号名称以映射表原值为准，更新回 `安全能力-安全技术服务`，并同步回退 `安全技术模块清单` 中此前按旧权威值写入的 9 处重复括号名称。
 - 需要确认：无。
 - 验证结果：2026-05-25 重新严格比对 `安全技术模块清单`、两张作用域映射表、两张 LC-DT 表与 `安全能力-安全技术服务`，剩余不一致数量为 0；最新 stage `668045e9-47bd-4e6a-a2fe-74094e239124` 的 `validations=[]`，approve `warnings=[]`。
+
+## OI-079：`DSP策略清单（2026）` 解析器在全量 ETL 中长时间卡住
+
+- 状态：已修复
+- 类型：ETL 性能 / 标准框架导入
+- 对象或页面：`DSP策略清单（2026）`、`standard-framework` 导入 profile
+- 现象：执行全量 ETL 时，`standard-framework` 整体 stage 长时间无输出；逐张定位后确认卡在 `DSP策略清单（2026）`。
+- 原因：该解析器在 read-only Excel 模式下使用 `ws.cell(row, col)` 按坐标随机访问单元格。OpenPyXL read-only 工作簿对随机访问大表性能很差，导致解析表现为卡住。
+- 影响：影响全量 ETL 和 `bootstrap-local-data --profile full` 的稳定性；业务数据本身无 validation 问题。
+- 当前处理：已将 `parse_dsp_scf_2026_sheet` 改为 `iter_rows(min_row=3, max_col=15)` 顺序读取。
+- 需要确认：无。
+- 修复说明：未修改 schema、原始 Excel 或标准数据语义，只修改解析读取方式。
+- 验证结果：2026-05-25 修复后单独解析 `DSP策略清单（2026）` 输出 `objects=1469`、`relations=1468`、`validations=0`，耗时约 0.48 秒；重新 stage / approve 该 Sheet，`validations=[]`、`warnings=[]`。

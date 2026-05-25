@@ -7,9 +7,21 @@
 - 当前分支：`codex-frontend-backend-separation-closure`。
 - 当前主线：Phase 5 知识浏览与搜索 / 关系化前端工作台校正；重点仍是已导入 Sheet 的业务语义复核、前端关系展示校正、数据契约治理和员工端字段边界收口。
 - Frontend Baseline 1.0 当前仍以三页为核心：`安全能力映射`、`LC-AP开发安全生命周期`、`信息化环境维度`；不默认启动 Phase 7 多格式增强、maturity M1、新 Sheet 扩展、schema 重构或 React / Vue 重构。
-- 当前工作区仅存在本轮工程进度同步文档改动：`progress.md`、`task_plan.md`、`findings.md`；同步前分支与远端一致，最近提交为 `7514587 docs: archive retired markdown references`。
+- 本轮已完成 GitHub checkpoint commit `3447e9b chore: checkpoint lifecycle data governance updates` 并推送到远端分支 `codex-frontend-backend-separation-closure`。
+- 当前工作区新增本轮全量 ETL 复核记录和 `DSP策略清单（2026）` 解析性能修复，待验证后再做第二个小 checkpoint。
 
 ## 最近完成事项
+
+### 2026-05-25 全量 ETL 复核与 DSP 2026 解析性能修复
+
+- 已备份当前 SQLite 到 `data/database/backups/sapd_wiki-before-full-etl-20260525.sqlite3`，备份大小约 575MB。
+- 已按当前导入 profile 完成全量 ETL：`core`、`second-batch`、`third-batch`、`standard-framework`。所有 stage 均 `validations=[]`，所有 approve 均 `warnings=[]`。
+- 全量 ETL 过程中发现 `DSP策略清单（2026）` 解析器在 read-only Excel 模式下使用 `ws.cell(row, col)` 随机访问，导致单表 stage 长时间卡住；已改为 `iter_rows` 顺序读取，单表解析约 0.48 秒完成。
+- 已清理旧的卡住 `stage-excel` / parse-only 进程，避免晚点写入重复 staging。
+- 已重新导出 `maintenance-knowledge.json`、`shared-lookups.json`、`lifecycle-knowledge.json`、三份 workbench、`capability-tree.json`、`content-views.json` 和 standards 相关数据包。
+- 当前数据包摘要均为 `data_state=ready`：`capability-workbench`、`environment-workbench`、`lifecycle-workbench`、`maintenance`。
+- 定向异常检查通过：active `网络数据防泄露` 为 0，active 安全技术模块 `数据交易沙箱` 为 0，active `/CD流水线` 为 0，active `CI/CD流水线` 为 1，active 安全技术措施 `数据销毁` 为 1。
+- 当前判断：不需要立即干净重建数据库；业务输出包稳定，旧异常对象均非 active。但 SQLite 已积累较多历史 `staging_*`、`review_decisions`、`source_references` 和 `change_logs`，若后续准备顾问端种子库或压缩包交付，建议另开“干净重建 + 全量导入 + 体积压缩”专项。
 
 ### 2026-05-25 LC-AP 主表显示优化
 

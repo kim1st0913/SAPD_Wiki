@@ -237,9 +237,7 @@
   }
 
   function renderMappingTable({ columns = [], rows = [], emptyTitle = "暂无映射矩阵", emptyBody = "当前关注点尚未形成该视角的可展示映射。", mode = "technical", title = "映射矩阵", description = "", summary = "" } = {}) {
-    if (!rows.length) {
-      return `<section class="preview-matrix-panel"><div class="preview-table-empty"><strong>${escape(emptyTitle)}</strong><span>${escape(emptyBody)}</span></div></section>`;
-    }
+    const safeColumns = columns.length ? columns : [{ key: "empty", label: "映射对象" }];
     return `
       <section class="preview-matrix-panel ${escape(mode)}-matrix-panel">
         <header>
@@ -253,30 +251,34 @@
           <table class="preview-mapping-table ${escape(mode)}-mapping-table">
             <thead>
               <tr>
-                ${columns.map((column) => `<th>${escape(column.label)}</th>`).join("")}
+                ${safeColumns.map((column) => `<th>${escape(column.label)}</th>`).join("")}
               </tr>
             </thead>
             <tbody>
-              ${rows
-                .slice(0, 10)
-                .map(
-                  (row) => `
-                    <tr>
-                      ${columns
-                        .map((column) => {
-                          const value = row[column.key];
-                          if (column.type === "standardControls") return `<td><div class="preview-chip-row standard-control-chip-row">${standardControlChips(value, column.empty)}</div></td>`;
-                          if (column.type === "chips") return `<td><div class="preview-chip-row">${mappingObjectChips(value, column.empty)}</div></td>`;
-                          if (column.type === "status") return `<td><span class="preview-status ${escape(row.statusTone || "")}">${escape(value || "已映射")}</span></td>`;
-                          if (column.type === "path") return `<td><strong>${escape(value?.title || "待补充")}</strong>${value?.code ? `<span>${escape(value.code)}</span>` : ""}</td>`;
-                          if (column.type === "functionLayers") return `<td>${renderFunctionLayerCell(value)}</td>`;
-                          return `<td>${escape(value || column.empty || "暂无")}</td>`;
-                        })
-                        .join("")}
-                    </tr>
-                  `,
-                )
-                .join("")}
+              ${
+                rows.length
+                  ? rows
+                      .slice(0, 10)
+                      .map(
+                        (row) => `
+                          <tr>
+                            ${safeColumns
+                              .map((column) => {
+                                const value = row[column.key];
+                                if (column.type === "standardControls") return `<td><div class="preview-chip-row standard-control-chip-row">${standardControlChips(value, column.empty)}</div></td>`;
+                                if (column.type === "chips") return `<td><div class="preview-chip-row">${mappingObjectChips(value, column.empty)}</div></td>`;
+                                if (column.type === "status") return `<td><span class="preview-status ${escape(row.statusTone || "")}">${escape(value || "已映射")}</span></td>`;
+                                if (column.type === "path") return `<td><strong>${escape(value?.title || "待补充")}</strong>${value?.code ? `<span>${escape(value.code)}</span>` : ""}</td>`;
+                                if (column.type === "functionLayers") return `<td>${renderFunctionLayerCell(value)}</td>`;
+                                return `<td>${escape(value || column.empty || "暂无")}</td>`;
+                              })
+                              .join("")}
+                          </tr>
+                        `,
+                      )
+                      .join("")
+                  : `<tr class="preview-mapping-empty-row"><td colspan="${safeColumns.length}"><div class="reference-empty">${emptyBody ? `<strong>${escape(emptyTitle)}</strong><span>${escape(emptyBody)}</span>` : escape(emptyTitle)}</div></td></tr>`
+              }
             </tbody>
           </table>
         </div>
@@ -348,6 +350,14 @@
     const normalized = text(value).trim();
     if (!normalized || normalized === "待投影" || normalized === "无直接投影") return normalized || "待投影";
     return `${normalized} ${unit}`;
+  }
+
+  function visibleTechnicalMappingRows(rows = []) {
+    return list(rows).filter((row) => row?.status === "ambiguous_service_mapping" || list(row?.services).length);
+  }
+
+  function confirmedTechnicalServiceCount(rows = []) {
+    return unique(list(rows).flatMap((row) => list(row.services))).length;
   }
 
   function summaryNode(label, title, code = "", modifier = "") {
@@ -574,26 +584,55 @@
     const standards = list(map.standards?.frameworks || map.standardFrameworks);
     const controls = list(map.standards?.controls || map.standardControls);
     if (!standards.length && !controls.length) {
-      return `
-        <section class="preview-view-graph">
-          <header><h3>标准 / 框架映射</h3><span>当前关注点 -> 标准 / 框架 -> 条款 / 控制项</span></header>
-          <div class="preview-standard-empty">
-            ${summaryNode("当前关注点", entityName(map.focus, "当前关注点"), valueOf(map.focus?.code, ""), "current")}
-            ${summaryConnector("待投影")}
-            <div>
-              <strong>暂无当前关注点的标准 / 框架直接映射</strong>
-              <p>当前数据包未提供当前关注点到标准 / 框架和条款控制项的直接投影。本页保留切换入口，不伪造标准映射。</p>
-              <span>可后续由后端契约补充标准与控制项投影。</span>
-            </div>
-          </div>
-        </section>
-      `;
+      return renderMappingTable({
+        columns: [
+          { key: "standard", label: "标准 / 框架" },
+          { key: "controls", label: "条款 / 控制项", type: "standardControls", empty: "暂无控制项" },
+        ],
+        rows: [],
+        emptyTitle: "暂无条款/控制项对应能力关注点",
+        emptyBody: "",
+        mode: "standard",
+        title: "标准 / 框架映射",
+        description: "当前关注点 -> 标准 / 框架 -> 条款 / 控制项",
+        summary: "0 控制项",
+      });
     }
     return `
       <section class="preview-view-graph">
         <header><h3>标准 / 框架映射</h3><span>当前关注点 -> 标准 / 框架 -> 条款 / 控制项</span></header>
         <div class="preview-service-grid">
           ${standards.map((item) => `<article class="preview-service-node"><strong>${escape(entityName(item))}</strong><small>${escape(entityCode(item) || "标准 / 框架")}</small></article>`).join("")}
+        </div>
+      </section>
+    `;
+  }
+
+  function renderTechnicalEmpty(map = {}) {
+    return `
+      <section class="semantic-panel technical-mapping-section">
+        <div class="matrix-section-head">
+          <div>
+            <h3>技术视角映射矩阵</h3>
+            <p>当前关注点 -> 作用域 -> 安全技术服务 -> 安全技术模块/措施</p>
+          </div>
+          <span>0 服务</span>
+        </div>
+        <div class="relationship-matrix-scroll semantic-scroll">
+          <table class="semantic-mapping-table">
+            <thead>
+              <tr>
+                <th>作用域</th>
+                <th>安全技术服务</th>
+                <th>技术模块/措施</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="semantic-empty-row">
+                <td colspan="3"><div class="reference-empty">暂无作用域对应安全技术服务</div></td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </section>
     `;
@@ -616,9 +655,17 @@
   function renderViewPanel(map, focusOverview, mode, matrices = {}) {
     const stats = relationshipStats(map);
     if (mode === "technical") {
+      const technicalRows = visibleTechnicalMappingRows(matrices.technicalMappingRows);
+      if (!technicalRows.length) {
+        return `
+          <div class="preview-tab-panel technical-panel original-matrix-panel">
+            ${renderTechnicalEmpty(map)}
+          </div>
+        `;
+      }
       return `
         <div class="preview-tab-panel technical-panel original-matrix-panel">
-          ${renderOriginalTechnicalMatrix(matrices.technicalMappingRows, countLabel(stats.services, "服务"))}
+          ${renderOriginalTechnicalMatrix(technicalRows, countLabel(confirmedTechnicalServiceCount(technicalRows), "服务"))}
         </div>
       `;
     }
@@ -654,10 +701,10 @@
                 { key: "controls", label: "条款 / 控制项", type: "standardControls", empty: "暂无控制项" },
               ],
               rows: standardTableRows(map),
-              emptyTitle: "标准 / 框架映射待投影",
-              emptyBody: "当前数据包暂未提供“当前关注点 -> 标准 / 框架 -> 条款 / 控制项”的直接映射。",
+              emptyTitle: "暂无条款/控制项对应能力关注点",
+              emptyBody: "",
               title: "标准 / 框架映射",
-              summary: countLabel(stats.standardStatus, "控制项"),
+              summary: standardTableRows(map).length ? countLabel(stats.standardStatus, "控制项") : "0 控制项",
             }
           : {
               mode,
@@ -669,13 +716,6 @@
               title: "技术视角映射矩阵",
               description: "当前关注点 -> 作用域 -> 安全技术服务",
             };
-    if (mode === "standard" && !tableConfig.rows.length) {
-      return `
-        <div class="preview-tab-panel ${mode}-panel">
-          ${renderStandardRelations(map)}
-        </div>
-      `;
-    }
     return `
       <div class="preview-tab-panel ${mode}-panel">
         ${renderMappingTable(tableConfig)}

@@ -51,6 +51,7 @@ SOURCE_PAGE_ITEM_TYPES = SECOND_BATCH_ITEM_TYPES + (
     "scope_type",
     "security_technical_service",
     "security_technology_module",
+    "security_technical_measure",
     "security_system",
     "product",
     "information_environment",
@@ -170,6 +171,16 @@ def _load_json(value: str | None, default: Any) -> Any:
 
 def _metadata(row: dict[str, Any]) -> dict[str, Any]:
     return _load_json(row.get("metadata_json"), {})
+
+
+def _split_catalog_code_title(value: object) -> tuple[str | None, str]:
+    text = " ".join(str(value or "").replace("\xa0", " ").split()).strip()
+    if not text:
+        return None, ""
+    match = re.match(r"^([A-Z]{1,3}(?:-[A-Z]{1,3})?(?:-[A-Z]{1,3})?|LC-[A-Z]{2})\s+(.+)$", text)
+    if match:
+        return match.group(1), match.group(2).strip()
+    return None, text
 
 
 def _source_reference_map(conn: sqlite3.Connection, target_type: str) -> dict[str, list[dict[str, Any]]]:
@@ -1475,6 +1486,51 @@ def _security_technical_measure_candidates(conn: sqlite3.Connection) -> list[dic
     return []
 
 
+def _scope_catalog_rows_from_xlsx(conn: sqlite3.Connection) -> list[dict[str, Any]]:
+    sheet_name = "安全能力作用域目录"
+    load_workbook = _load_openpyxl()
+    for path in _latest_xlsx_source_paths(conn):
+        if not path.exists():
+            continue
+        workbook = load_workbook(path, read_only=True, data_only=True)
+        try:
+            if sheet_name not in workbook.sheetnames:
+                continue
+            worksheet = workbook[sheet_name]
+            scenario = ""
+            rows: list[dict[str, Any]] = []
+            for row_index, row in enumerate(worksheet.iter_rows(min_row=3), start=3):
+                raw_scenario = row[1].value
+                if str(raw_scenario or "").strip():
+                    scenario = " ".join(str(raw_scenario).replace("\xa0", " ").split()).strip()
+                raw_scope = row[2].value
+                code, title = _split_catalog_code_title(raw_scope)
+                if not code and not title:
+                    continue
+                description = " ".join(str(row[3].value or "").replace("\xa0", " ").split()).strip()
+                rows.append(
+                    {
+                        "row": row_index,
+                        "code": code,
+                        "title": title,
+                        "description": description,
+                        "scenario": scenario,
+                        "source": {
+                            "sheet": sheet_name,
+                            "row": row_index,
+                            "column": "作用域类型",
+                            "cell": row[2].coordinate,
+                            "raw_value": "" if raw_scope is None else str(raw_scope),
+                        },
+                    }
+                )
+            if rows:
+                return rows
+        finally:
+            workbook.close()
+    return []
+
+
 def _stable_measure_id(name: str, category: str | None) -> str:
     digest = hashlib.sha1(f"{name}\0{category or ''}".encode("utf-8")).hexdigest()[:16]
     return f"security_technical_measure:{digest}"
@@ -1486,6 +1542,9 @@ def _build_security_technical_measures(
     refs: dict[str, list[dict[str, Any]]],
 ) -> list[dict[str, Any]]:
     technical_services = {item_id: item for item_id, item in items.items() if item["type"] == "security_technical_service"}
+    technical_measure_items = {
+        item_id: item for item_id, item in items.items() if item["type"] == "security_technical_measure"
+    }
     scopes = {item_id: item for item_id, item in items.items() if item["type"] == "scope_type"}
     focuses = {item_id: item for item_id, item in items.items() if item["type"] == "capability_focus"}
     service_by_code = {item["code"]: item_id for item_id, item in technical_services.items() if item.get("code")}
@@ -1493,6 +1552,16 @@ def _build_security_technical_measures(
     scope_by_code = {item["code"]: item_id for item_id, item in scopes.items() if item.get("code")}
     scope_by_title = {_normalize_measure_name(item["title"]): item_id for item_id, item in scopes.items()}
     focus_by_code = {item["code"]: item_id for item_id, item in focuses.items() if item.get("code")}
+
+    def measure_source_label(sources: list[dict[str, Any]]) -> tuple[str, str]:
+        source_sheets = {source.get("sheet") for source in sources}
+        if "作用域-安全技术服务-安全技术模块映射" in source_sheets:
+            return "安全知识措施映射表", "scope_service_module_mapping"
+        if any(str(sheet or "").startswith("LC-AP") for sheet in source_sheets):
+            return "LC-AP 生命周期措施", "lifecycle_application"
+        if any(str(sheet or "").startswith("LC-DT") for sheet in source_sheets):
+            return "LC-DT 生命周期措施", "lifecycle_data"
+        return "待复核来源", "pending_review"
 
     grouped: dict[tuple[str, str | None], dict[str, Any]] = {}
     for candidate in _security_technical_measure_candidates(conn):
@@ -1509,11 +1578,17 @@ def _build_security_technical_measures(
                 "scope_names": set(),
                 "focus_ids": set(),
                 "focus_names": set(),
+                "confirmed_measure_ids": set(),
                 "sources": [],
+                "source_labels": set(),
+                "source_kinds": set(),
             },
         )
         entry["statuses"].add(candidate["status"])
         entry["sources"] = _combine_sources(entry["sources"], candidate["sources"], limit=50)
+        label, kind = measure_source_label(candidate["sources"])
+        entry["source_labels"].add(label)
+        entry["source_kinds"].add(kind)
 
         parts = service_parts(candidate.get("service_raw"))
         service_id = service_by_code.get(parts.get("code") or "") or service_by_title.get(_normalize_measure_name(parts.get("title")))
@@ -1536,23 +1611,67 @@ def _build_security_technical_measures(
             elif scope_title or scope_code:
                 entry["scope_names"].add(_normalize_measure_name(scope_title or scope_code))
 
+    for measure_id, measure in technical_measure_items.items():
+        name = _normalize_measure_name(measure.get("title"))
+        if not name or is_blank_or_placeholder(name):
+            continue
+        metadata = _metadata(measure)
+        category = measure.get("category") or metadata.get("category") or None
+        key = (name, category)
+        entry = grouped.setdefault(
+            key,
+            {
+                "name": name,
+                "category": category,
+                "statuses": set(),
+                "service_ids": set(),
+                "service_names": set(),
+                "scope_ids": set(),
+                "scope_names": set(),
+                "focus_ids": set(),
+                "focus_names": set(),
+                "confirmed_measure_ids": set(),
+                "sources": [],
+                "source_labels": set(),
+                "source_kinds": set(),
+            },
+        )
+        entry["statuses"].add("normal")
+        entry["confirmed_measure_ids"].add(measure_id)
+        entry["sources"] = _combine_sources(entry["sources"], refs.get(measure_id, []), limit=50)
+        label, kind = measure_source_label(refs.get(measure_id, []))
+        entry["source_labels"].add(label)
+        entry["source_kinds"].add(kind)
+
     payloads = []
     for (name, category), entry in grouped.items():
         service_ids = _sort_source_ids(technical_services, list(entry["service_ids"]))
         scope_ids = _sort_source_ids(scopes, list(entry["scope_ids"]))
         focus_ids = _sort_source_ids(focuses, list(entry["focus_ids"]))
+        confirmed_measure_ids = _sort_source_ids(technical_measure_items, list(entry["confirmed_measure_ids"]))
         service_names = [technical_services[item_id]["title"] for item_id in service_ids]
         service_names.extend(sorted(set(entry["service_names"]) - set(service_names)))
         scope_names = [scopes[item_id]["title"] for item_id in scope_ids]
         scope_names.extend(sorted(set(entry["scope_names"]) - set(scope_names)))
         focus_names = [focuses[item_id]["title"] for item_id in focus_ids]
         focus_names.extend(sorted(set(entry["focus_names"]) - set(focus_names)))
-        status = "pending" if "pending" in entry["statuses"] or not service_names or not scope_names else "normal"
+        status = (
+            "pending"
+            if "pending" in entry["statuses"] or (not confirmed_measure_ids and (not service_names or not scope_names))
+            else "normal"
+        )
+        if not service_names or not scope_names:
+            status = "pending"
+        source_labels = sorted(entry["source_labels"]) or ["待复核来源"]
+        source_kinds = sorted(entry["source_kinds"]) or ["pending_review"]
         payloads.append(
             {
                 "id": _stable_measure_id(name, category),
                 "name": name,
                 "category": category,
+                "source_label": " / ".join(source_labels),
+                "source_kind": " / ".join(source_kinds),
+                "mapping_status_label": "待补充关联安全技术服务或作用域" if status == "pending" else "正常",
                 "related_service_ids": service_ids,
                 "related_service_names": service_names,
                 "related_services": _brief_many(technical_services, service_ids, refs),
@@ -1860,6 +1979,7 @@ def export_management_knowledge(
     group_by_title = {item["title"]: item_id for item_id, item in process_groups.items()}
     process_domain_payloads: dict[str, dict[str, Any]] = {}
     process_groups_by_domain: dict[str, dict[str, dict[str, Any]]] = {}
+    process_catalog_sheet = "安全职能流程清单（完善L4）"
 
     def find_process_domain_id(item: dict[str, Any]) -> str:
         domain_title = _metadata_value(item, ("process_domain", "domain_title", "capability_domain"))
@@ -1899,14 +2019,19 @@ def export_management_knowledge(
             }
         return groups_for_domain[group_id]
 
-    for domain_id in process_domains:
-        ensure_process_domain(domain_id)
+    def has_process_catalog_source(item_id: str) -> bool:
+        return any(source.get("sheet") == process_catalog_sheet for source in refs.get(item_id, []))
 
-    for group_id, group in process_groups.items():
-        domain_id = process_group_to_domain.get(group_id) or find_process_domain_id(group)
-        ensure_process_group(domain_id, group_id, group["title"])
+    catalog_process_references = {
+        reference_id: reference
+        for reference_id, reference in process_references.items()
+        if has_process_catalog_source(reference_id)
+    }
 
-    for reference_id, reference in process_references.items():
+    for reference_id, reference in sorted(
+        catalog_process_references.items(),
+        key=lambda row: _source_position_key(refs.get(row[0]), (process_catalog_sheet,)),
+    ):
         group_id = process_reference_to_group.get(reference_id)
         if not group_id:
             group_title = _metadata_value(reference, ("process_group", "group_title"))
@@ -1938,12 +2063,12 @@ def export_management_knowledge(
     security_processes = []
     for domain_id, domain_payload in sorted(
         process_domain_payloads.items(),
-        key=lambda row: (1 if str(row[0]).startswith("virtual:") else 0, row[1].get("code") or "", row[1]["title"]),
+        key=lambda row: _source_position_key(refs.get(row[0]), (process_catalog_sheet,)),
     ):
         groups_for_domain = list(process_groups_by_domain.get(domain_id, {}).values())
         for group in groups_for_domain:
-            group["references"] = sorted(group["references"], key=lambda item: (item.get("code") or "", item["title"]))
-        domain_payload["groups"] = sorted(groups_for_domain, key=lambda item: item["title"])
+            group["references"] = sorted(group["references"], key=lambda item: _source_position_key(refs.get(item.get("id") or ""), (process_catalog_sheet,)))
+        domain_payload["groups"] = sorted(groups_for_domain, key=lambda item: _source_position_key(refs.get(item.get("id") or ""), (process_catalog_sheet,)))
         security_processes.append(domain_payload)
 
     def brief_many(source: dict[str, dict[str, Any]], item_ids: list[str]) -> list[dict[str, Any]]:
@@ -1965,11 +2090,22 @@ def export_management_knowledge(
     def item_sources(item_ids: list[str]) -> list[dict[str, Any]]:
         return _combine_sources(*(refs.get(item_id) for item_id in item_ids))
 
+    scope_catalog_sheet = "安全能力作用域目录"
     scope_payloads = []
-    for item in _sort_item_rows(list(scope_types.values())):
+    scope_catalog_rows = _scope_catalog_rows_from_xlsx(conn)
+    scope_items_by_code = {item.get("code"): item for item in scope_types.values() if item.get("code")}
+    for catalog_row in scope_catalog_rows:
+        item = scope_items_by_code.get(catalog_row.get("code") or "")
+        if not item:
+            continue
         payload_item = _brief_item(item, refs) or {}
+        payload_item["code"] = catalog_row.get("code") or payload_item.get("code")
+        payload_item["title"] = catalog_row.get("title") or payload_item.get("title")
+        payload_item["description"] = catalog_row.get("description") or payload_item.get("description")
+        payload_item["category"] = catalog_row.get("scenario") or payload_item.get("category")
+        payload_item["sources"] = _combine_sources([catalog_row["source"]], payload_item.get("sources"), limit=8)
         metadata = _metadata(item)
-        payload_item["scenario"] = metadata.get("scenario") or item.get("category")
+        payload_item["scenario"] = catalog_row.get("scenario") or metadata.get("scenario") or item.get("category")
         payload_item["services"] = brief_many(technical_services, services_by_scope.get(item["id"], []))
         payload_item["information_objects"] = brief_many(information_objects, objects_by_scope.get(item["id"], []))
         scope_payloads.append(payload_item)
@@ -2125,13 +2261,15 @@ def export_management_knowledge(
         "stats": {
             "work_function_layers": len(work_function_layers),
             "work_functions": len(functions),
-            "process_domains": len(process_domains),
-            "process_groups": len(process_groups),
-            "process_references": len(process_references),
+            "process_domains": len(security_processes),
+            "process_groups": sum(len(domain.get("groups", [])) for domain in security_processes),
+            "process_references": sum(len(group.get("references", [])) for domain in security_processes for group in domain.get("groups", [])),
             "process_activity_missing": sum(
                 1
-                for reference_id in process_references
-                if not activities_by_process_reference.get(reference_id)
+                for domain in security_processes
+                for group in domain.get("groups", [])
+                for reference in group.get("references", [])
+                if not reference.get("activities")
             ),
             "gbt_42446_references": len(gbt_42446_references),
             "gartner_roles": len(gartner_role_payloads),
@@ -2420,14 +2558,22 @@ def export_lifecycle_knowledge(
         if _metadata(item).get("lifecycle_type") == "data"
     ]
 
+    application_element_sheet = "LC-AP 应用安全开发生命周期元素目录"
+
+    def application_element_key(item_id: str) -> tuple[int, int, int, str, str]:
+        return _source_position_key(refs.get(item_id), (application_element_sheet,))
+
     application_system_payloads = []
-    for system_type_id in _sort_source_ids(application_system_types, list(application_system_types.keys())):
+    for system_type_id in sorted(application_system_types.keys(), key=application_element_key):
         system_payload = detailed_item(application_system_types[system_type_id]) or {}
-        system_payload["components"] = _brief_many(
-            application_components,
-            components_by_system_type.get(system_type_id, []),
-            refs,
+        component_ids = sorted(
+            [component_id for component_id in components_by_system_type.get(system_type_id, []) if component_id in application_components],
+            key=application_element_key,
         )
+        system_payload["components"] = [
+            detailed_item(application_components[component_id]) or {}
+            for component_id in component_ids
+        ]
         system_payload["component_count"] = len(system_payload["components"])
         application_system_payloads.append(system_payload)
 
@@ -2502,6 +2648,30 @@ def export_content_views(
         }
 
     raw_samples = PROJECT_ROOT / "data" / "raw-samples"
+    guide_specs = [
+        {
+            "guide_id": "security-architecture-design",
+            "package_path": PROJECT_ROOT
+            / "frontend"
+            / "capability-browser"
+            / "public"
+            / "data"
+            / "guides"
+            / "security-architecture-design.json",
+            "content": "安全技术架构设计方法（V2.0）",
+        },
+        {
+            "guide_id": "data-security-design",
+            "package_path": PROJECT_ROOT
+            / "frontend"
+            / "capability-browser"
+            / "public"
+            / "data"
+            / "guides"
+            / "data-security-design.json",
+            "content": "面向业务的数据安全专项设计方法（V2.1）",
+        },
+    ]
     html_documents: list[dict[str, Any]] = []
     diagram_views: list[dict[str, Any]] = []
     guide_pages: list[dict[str, Any]] = []
@@ -2540,6 +2710,47 @@ def export_content_views(
                     "sources": [entry],
                 }
             )
+
+    for spec in guide_specs:
+        package_path = spec["package_path"]
+        if not package_path.exists():
+            continue
+        with package_path.open("r", encoding="utf-8") as handle:
+            guide_package = json.load(handle)
+        if guide_package.get("data_state") != "ready":
+            continue
+        guide_id = guide_package.get("guide_id") or spec["guide_id"]
+        source = guide_package.get("source") or {}
+        source_path = source.get("source_path")
+        source_file = resolve_project_path(source_path) if source_path else None
+        source_entry = None
+        if source_file and source_file.exists():
+            source_entry = file_entry(source_file)
+            source_entry["source_hash"] = source.get("source_hash")
+            source_entry["file_size_bytes"] = source.get("file_size_bytes")
+        slides = guide_package.get("slides") or {}
+        package_rel_path = package_path.relative_to(PROJECT_ROOT / "frontend" / "capability-browser").as_posix()
+        html_documents.append(
+            {
+                "id": f"guide:{guide_id}",
+                "guide_id": guide_id,
+                "route": guide_package.get("route") or f"/guides/{guide_id}",
+                "title": guide_package.get("title") or guide_id,
+                "category": "安全指南",
+                "view_type": "slide_deck",
+                "content": spec["content"],
+                "note": "本地 PDF 生成的幻灯片视图。",
+                "data_path": f"./{package_rel_path}",
+                "slide_count": slides.get("count"),
+                "slide_width": slides.get("width"),
+                "slide_height": slides.get("height"),
+                "slide_path_pattern": slides.get("path_pattern"),
+                "source_path": source_path,
+                "source_hash": source.get("source_hash"),
+                "updated_at": guide_package.get("generated_at"),
+                "sources": [source_entry] if source_entry else [],
+            }
+        )
 
     payload = {
         "generated_at": conn.execute("SELECT datetime('now') AS now").fetchone()["now"],
@@ -3341,12 +3552,12 @@ def export_lifecycle_workbench(
     shared_lookups = _read_frontend_json("shared-lookups.json")
     generated_at = lifecycle.get("generated_at") or conn.execute("SELECT datetime('now') AS now").fetchone()["now"]
     page = {
-        "route": "/development-security/lc-ap",
+        "route": "/development-security",
         "pageType": "domain-module",
         "priority": "P3",
-        "subject": "LC-AP lifecycle controlled projection",
-        "title": "LC-AP 开发安全生命周期专项关系投影",
-        "description": "以 LC-AP 阶段和活动为主语，展示受控的活动、控制点、能力、关注点、服务、模块和来源证据引用。",
+        "subject": "LC-AP / LC-DT lifecycle controlled projection",
+        "title": "生命周期安全专项关系投影",
+        "description": "以 LC-AP 阶段和 LC-DT 数据处理过程为主语，展示受控的活动、场景、服务、模块、措施和来源证据引用。",
     }
     payload = _empty_workbench(page, generated_at, ["lifecycle-knowledge.json", "capability-tree.json", "shared-lookups.json"])
     objects: dict[str, dict[str, dict[str, Any]]] = {key: {} for key in (
@@ -3370,16 +3581,26 @@ def export_lifecycle_workbench(
     capability_by_code, focus_by_code = _capability_lookups(capability_tree)
     app_security = lifecycle.get("application_security_development") or {}
     service_index = _service_index_by_key(_wb_list(shared_lookups.get("service_module_index")) or _wb_list(lifecycle.get("service_module_index")))
-    domain_item = {
+    app_domain_item = {
         "id": "lifecycle_domain:LC-AP",
         "code": "LC-AP",
         "title": "开发安全生命周期",
         "description": "LC-AP 开发安全生命周期受控专项关系投影。",
         "status": "active",
     }
-    domain_obj = _wb_add_object(objects, evidence_refs, domain_item, "lifecycle_domain")
-    navigator_children: list[dict[str, Any]] = []
+    data_domain_item = {
+        "id": "lifecycle_domain:LC-DT",
+        "code": "LC-DT",
+        "title": "数据生命周期安全",
+        "description": "LC-DT 数据生命周期安全受控专项关系投影。",
+        "status": "active",
+    }
+    app_domain_obj = _wb_add_object(objects, evidence_refs, app_domain_item, "lifecycle_domain", extra={"lifecycleType": "application_security_development"})
+    data_domain_obj = _wb_add_object(objects, evidence_refs, data_domain_item, "lifecycle_domain", extra={"lifecycleType": "data"})
+    app_navigator_children: list[dict[str, Any]] = []
+    data_navigator_children: list[dict[str, Any]] = []
     default_stage_id = None
+    default_data_stage_id = None
 
     for process in _wb_list(app_security.get("processes")):
         stage_obj = _wb_add_object(
@@ -3389,14 +3610,15 @@ def export_lifecycle_workbench(
             "lifecycle_stage",
             fallback_name="未命名阶段",
             extra={
+                "lifecycleType": "application_security_development",
                 "originalBusinessFields": process.get("original_business_fields")
                 or (process.get("metadata").get("original_business_fields") if isinstance(process.get("metadata"), dict) else {})
                 or {}
             },
         )
         default_stage_id = default_stage_id or stage_obj["id"]
-        _wb_add_relation(relations, seen_relations, "belongs_to", stage_obj, domain_obj, label="属于生命周期")
-        navigator_children.append(_wb_navigator_node(process, "lifecycle_stage"))
+        _wb_add_relation(relations, seen_relations, "belongs_to", stage_obj, app_domain_obj, label="属于生命周期")
+        app_navigator_children.append(_wb_navigator_node(process, "lifecycle_stage"))
         for activity in _wb_list(process.get("main_activities")):
             activity_obj = _wb_add_object(objects, evidence_refs, activity, "lifecycle_activity", fallback_name="未命名活动")
             _wb_add_relation(relations, seen_relations, "contains_activity", stage_obj, activity_obj, label="包含主要活动")
@@ -3498,9 +3720,90 @@ def export_lifecycle_workbench(
                 module_obj = _wb_add_object(objects, evidence_refs, module, "security_technology_module", fallback_name="未命名模块")
                 _wb_add_relation(relations, seen_relations, "implemented_by_module", service_obj, module_obj, label="由模块实现", evidence_refs=_wb_collect_evidence(evidence_refs, service, module, index_entry))
 
+    data_lifecycle = lifecycle.get("data_lifecycle") or {}
+    for process in _wb_list(data_lifecycle.get("processes")):
+        stage_obj = _wb_add_object(
+            objects,
+            evidence_refs,
+            process,
+            "lifecycle_stage",
+            fallback_name="未命名数据过程",
+            extra={"lifecycleType": "data"},
+        )
+        default_data_stage_id = default_data_stage_id or stage_obj["id"]
+        _wb_add_relation(relations, seen_relations, "belongs_to", stage_obj, data_domain_obj, label="属于数据生命周期")
+        data_navigator_children.append(_wb_navigator_node(process, "lifecycle_stage"))
+        for scene in _wb_list(process.get("scenes")):
+            scene_obj = _wb_add_object(
+                objects,
+                evidence_refs,
+                scene,
+                "lifecycle_activity",
+                fallback_name="未命名数据处理场景",
+                extra={"lifecycleType": "data", "objectKind": "数据处理场景"},
+            )
+            _wb_add_relation(
+                relations,
+                seen_relations,
+                "contains_scene",
+                stage_obj,
+                scene_obj,
+                label="包含数据处理场景",
+                evidence_refs=_wb_collect_evidence(evidence_refs, process, scene),
+            )
+        services_by_key: dict[str, dict[str, Any]] = {}
+        for service in _wb_list(process.get("technical_services")):
+            if not isinstance(service, dict):
+                continue
+            service_obj = _wb_add_object(objects, evidence_refs, service, "security_technical_service", fallback_name="未命名服务")
+            services_by_key[service_obj["id"]] = service
+            _wb_add_relation(
+                relations,
+                seen_relations,
+                "maps_to_service",
+                stage_obj,
+                service_obj,
+                label="映射安全技术服务",
+                evidence_refs=_wb_collect_evidence(evidence_refs, process, service),
+            )
+            focus_code = _focus_code_from_service(service)
+            if focus_code:
+                focus_item = focus_by_code.get(focus_code) or {"id": f"capability_focus:{focus_code}", "code": focus_code, "title": focus_code, "status": "derived"}
+                focus_obj = _wb_add_object(objects, evidence_refs, focus_item, "capability_focus", fallback_name=focus_code, extra={"status": focus_item.get("status") or "derived"})
+                _wb_add_relation(relations, seen_relations, "maps_to_focus", stage_obj, focus_obj, label="映射关注点", confidence="derived")
+                capability_code = _capability_code_from_focus_code(focus_code)
+                capability_item = capability_by_code.get(capability_code) or {"id": f"capability:{capability_code}", "code": capability_code, "title": capability_code, "status": "derived"}
+                capability_obj = _wb_add_object(objects, evidence_refs, capability_item, "capability", fallback_name=capability_code, extra={"status": capability_item.get("status") or "derived"})
+                _wb_add_relation(relations, seen_relations, "maps_to_capability", stage_obj, capability_obj, label="映射能力", confidence="derived")
+        for module in _wb_list(process.get("technology_modules")):
+            module_obj = _wb_add_object(objects, evidence_refs, module, "security_technology_module", fallback_name="未命名模块")
+            _wb_add_relation(relations, seen_relations, "implemented_by_module", stage_obj, module_obj, label="关联模块", confidence="explicit")
+        for measure in _wb_list(process.get("technical_measures")):
+            measure_obj = _wb_add_object(objects, evidence_refs, measure, "security_technical_measure", fallback_name="未命名措施")
+            _wb_add_relation(
+                relations,
+                seen_relations,
+                "uses_measure",
+                stage_obj,
+                measure_obj,
+                label="关联措施",
+                confidence="explicit",
+                evidence_refs=_wb_collect_evidence(evidence_refs, process, measure),
+            )
+        for service_obj_id, service in services_by_key.items():
+            service_obj = objects["security_technical_service"].get(service_obj_id)
+            index_entry = _matched_service_index(service_index, service)
+            for module in _wb_list(index_entry.get("modules")):
+                module_obj = _wb_add_object(objects, evidence_refs, module, "security_technology_module", fallback_name="未命名模块")
+                _wb_add_relation(relations, seen_relations, "implemented_by_module", service_obj, module_obj, label="由模块实现", evidence_refs=_wb_collect_evidence(evidence_refs, service, module, index_entry))
+
     payload["navigator"] = {
         "defaultSelectedStageId": default_stage_id,
-        "tree": [_wb_navigator_node(domain_item, "lifecycle_domain", navigator_children)],
+        "defaultSelectedDataStageId": default_data_stage_id,
+        "tree": [
+            _wb_navigator_node(app_domain_item, "lifecycle_domain", app_navigator_children),
+            _wb_navigator_node(data_domain_item, "lifecycle_domain", data_navigator_children),
+        ],
         "grouping": [
             "lifecycle_domain",
             "lifecycle_stage",
@@ -3518,7 +3821,7 @@ def export_lifecycle_workbench(
     payload["evidenceRefs"] = sorted(evidence_refs.values(), key=lambda item: item["id"])
     payload["relationshipGroups"] = [
         _wb_group("lifecycle-stage", "生命周期阶段", ["belongs_to"], relations),
-        _wb_group("activity-control", "活动 / 控制点", ["contains_activity", "contains_control"], relations),
+        _wb_group("activity-control", "活动 / 控制点 / 数据场景", ["contains_activity", "contains_control", "contains_scene"], relations),
         _wb_group("development-type", "软件开发模式", ["applies_to_development_type"], relations),
         _wb_group("capability-mapping", "能力映射", ["maps_to_capability"], relations),
         _wb_group("focus-mapping", "关注点映射", ["maps_to_focus"], relations),
@@ -3534,10 +3837,9 @@ def export_lifecycle_workbench(
     }
     payload["meta"]["stats"] = stats
     payload["compatibility"]["warnings"] = [
-        "lifecycle-workbench.json 当前仅承载 LC-AP 开发安全生命周期受控专项关系投影。",
-        "安全技术措施当前按 LC-AP 阶段级关系投影；尚不细化为安全技术服务级关系。",
+        "lifecycle-workbench.json 当前承载 LC-AP 开发安全生命周期和 LC-DT 数据生命周期安全两类受控专项关系投影。",
+        "安全技术措施当前按生命周期阶段级关系投影；尚不细化为安全技术服务级关系。",
         "部分能力 / 关注点映射根据服务编码受控派生，后续可由独立 export 关系替代。",
-        "data_lifecycle 仍保留在 lifecycle-knowledge.json 过渡包中，本投影不扩展为完整开发安全模块。",
     ]
     output = resolve_project_path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)

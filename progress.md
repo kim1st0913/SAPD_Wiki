@@ -2,121 +2,50 @@
 
 本文件是当前会话恢复入口，只保留最近状态、最近完成事项、关键验证和历史索引。完整执行历史已归档到 `docs/05-archive/progress-history/2026-05.md`。
 
-## 当前状态（2026-05-25）
+## 当前状态（2026-05-27）
 
 - 当前分支：`codex-frontend-backend-separation-closure`。
-- 当前主线：Phase 5 知识浏览与搜索 / 关系化前端工作台校正；重点仍是已导入 Sheet 的业务语义复核、前端关系展示校正、数据契约治理和员工端字段边界收口。
-- Frontend Baseline 1.0 当前仍以三页为核心：`安全能力映射`、`LC-AP开发安全生命周期`、`信息化环境维度`；不默认启动 Phase 7 多格式增强、maturity M1、新 Sheet 扩展、schema 重构或 React / Vue 重构。
-- 本轮已完成 GitHub checkpoint commit `3447e9b chore: checkpoint lifecycle data governance updates` 并推送到远端分支 `codex-frontend-backend-separation-closure`。
-- 当前工作区新增本轮全量 ETL 复核记录和 `DSP策略清单（2026）` 解析性能修复，待验证后再做第二个小 checkpoint。
+- 当前主线：Frontend Baseline 1.0 四页关系工作台校正；重点仍是已导入 Sheet 的业务语义复核、前端关系展示校正、数据契约治理和字段边界收口。
+- 固定预览入口：`http://127.0.0.1:5173/`。多个线程并行验证时可以临时使用其它端口，但验证后必须关闭；面向用户的常驻预览页只保留 `5173`。
+- 本轮处理开发体验问题：前端验证频繁弹出 `Google Chrome 意外退出`，以及固定 `5173` 刷新后偶尔看不到最新页面。
 
 ## 最近完成事项
 
-### 2026-05-25 全量 ETL 复核与 DSP 2026 解析性能修复
-
-- 已备份当前 SQLite 到 `data/database/backups/sapd_wiki-before-full-etl-20260525.sqlite3`，备份大小约 575MB。
-- 已按当前导入 profile 完成全量 ETL：`core`、`second-batch`、`third-batch`、`standard-framework`。所有 stage 均 `validations=[]`，所有 approve 均 `warnings=[]`。
-- 全量 ETL 过程中发现 `DSP策略清单（2026）` 解析器在 read-only Excel 模式下使用 `ws.cell(row, col)` 随机访问，导致单表 stage 长时间卡住；已改为 `iter_rows` 顺序读取，单表解析约 0.48 秒完成。
-- 已清理旧的卡住 `stage-excel` / parse-only 进程，避免晚点写入重复 staging。
-- 已重新导出 `maintenance-knowledge.json`、`shared-lookups.json`、`lifecycle-knowledge.json`、三份 workbench、`capability-tree.json`、`content-views.json` 和 standards 相关数据包。
-- 当前数据包摘要均为 `data_state=ready`：`capability-workbench`、`environment-workbench`、`lifecycle-workbench`、`maintenance`。
-- 定向异常检查通过：active `网络数据防泄露` 为 0，active 安全技术模块 `数据交易沙箱` 为 0，active `/CD流水线` 为 0，active `CI/CD流水线` 为 1，active 安全技术措施 `数据销毁` 为 1。
-- 当前判断：不需要立即干净重建数据库；业务输出包稳定，旧异常对象均非 active。但 SQLite 已积累较多历史 `staging_*`、`review_decisions`、`source_references` 和 `change_logs`，若后续准备顾问端种子库或压缩包交付，建议另开“干净重建 + 全量导入 + 体积压缩”专项。
-
-### 2026-05-25 LC-AP 主表显示优化
-
-- 已将 `LC-AP开发安全生命周期` 主表改为上下两块字段记录表：上方 `开发技术相关` 展示阶段主要活动、参考来源、软件开发模式、开发技术服务、实际产品示例和潜在安全威胁场景；下方 `安全相关` 展示安全活动、策略、参考来源、补充安全策略、安全技术服务和安全技术模块。
-- `软件开发模式` 已追加 `LC-AP 应用安全开发生命周期元素目录` 的软件开发类型定义，例如 `自研应用：本地软件开发；有源代码`。
-- 已继续缩小默认宽度：LC-AP 阶段目录运行时默认宽度从 `220px` 调整为 `200px`，主表不再使用 12 列横向宽表，记录表横向溢出为 0。
-- 已移除 LC-AP 阶段标题旁的 `8` 计数徽标，阶段栏只保留标题和 `收起目录` 操作。
-- 已复核字段边界：主展示区未命中 `sheet`、`row`、`column`、`raw_value`、`source_file`、`import_id`、`source_id`、`source_ref`、`source_label`、`debug`、`raw`、`metadata`、`intermediate`、`generated_at`。
-- 验证通过：`node --check`、`python3 scripts/data_package_summary.py --package lifecycle-workbench`、LC-AP 页面 1440px / 1024px smoke、自定义 DOM/CSS 探针和 `git diff --check`；本轮仅改前端展示文件与 `progress.md`，未修改 ETL、数据库 schema、原始 Excel 或生成数据包。
-
-### 2026-05-25 安全技术模块相关 Sheet 重新 ETL
-
-- 已备份当前 SQLite 到 `data/database/backups/sapd_wiki-before-scope-module-sync-etl-20260525141109.sqlite3`。
-- 已重新 stage 并 approve 4 张相关 Sheet：`安全技术模块清单`、`作用域-安全技术服务-安全技术模块映射`、`LC-DT 数据生命周期`、`LC-DT 安全技术服务、模块、策略映射表`；import job 为 `d9c0c34b-f334-4ff6-a7cb-48fb309c1e86`。
-- stage 结果无 validation，approve 结果为 `items_created=1`、`items_updated=471`、`items_deprecated=0`、`relations_created=28`、`warnings=[]`。
-- 已重新导出 `maintenance-knowledge.json`、`lifecycle-knowledge.json`、`shared-lookups.json`、`capability-workbench.json`、`environment-workbench.json`、`lifecycle-workbench.json` 和 standards 相关前端数据包。
-- 当前 DB active 统计：`security_system=32`、`security_technology_module=102`、`security_technical_service=192`、`security_technical_measure=4`；`网络数据防泄露` 与 `数据交易沙箱` 在 DB 中均为 deprecated 模块。
-- 只读 parser 复核 `作用域-安全技术服务-安全技术模块映射`：`validations=0`，`网络数据防泄露=0`、`数据交易沙箱=0`、`数据流转监测和泄漏防护=5`、`数据安全存储=3`、`数据备份与恢复=3`、`隐私计算平台=1`、`知情同意管理=5`、`隐私安全影响评估=0`。
-- 已将 `OI-073` 标记为已修复；本轮未修改 Excel 原始文件结构、前端代码或数据库 schema。
-- 已复核 `安全技术模块/措施清单` 中“未归入安全技术模块清单”的 5 个主安全系统、13 个模块；确认它们均存在于原始 `安全技术模块清单`，属于前端数据包来源摘要截断导致的误分组。
-- 已调整 `src/sapd_wiki/exports.py`：`security_system` 与 `security_technology_module` 的简要来源优先保留 `安全技术模块清单`；重新导出后有分类但无目录来源的安全技术模块数量为 0。
-- 已补跑并复核核心 JSON 投影：`capability-tree.json`、`maintenance-knowledge.json`、`shared-lookups.json`、三类 workbench、`lifecycle-knowledge.json`、`standards-index.json`、`standards-data.json` 和 `content-views.json` 均为当前导出状态；`capability-workbench.json` 的 `generated_at` 已刷新到本轮导出时间。
-- 用户再次修订原始表后，已只读检查 `安全技术模块清单`、`LC-DT 数据生命周期`、`LC-DT 安全技术服务、模块、策略映射表`：stage `validations=[]`，数据安全模块清单为 3 个安全系统、14 个模块；发现 `I-DI&T-AS.AD-03 数据备份` 与安全技术服务基准 `I-DI&T-AS.DG-03 数据备份` 不一致，已登记 `OI-076`。
-
-### 2026-05-25 开发安全页面数据检查
-
-- 已检查 `LC-AP开发安全生命周期` 页面当前主数据包 `lifecycle-workbench.json` 和兼容旧包 `lifecycle-knowledge.json`。
-- 已按用户重新确认的新口径复核 LC-AP 的 Q/R/S/M/N 列：安全技术服务基准为 `安全能力-安全技术服务`，安全技术模块基准为 `安全技术模块清单`，M/N 分别为独立的开发技术服务和开发技术模块。
-- 已修正 LC-AP ETL 新口径并重新导入：M/N 分别为 `development_technical_service` / `development_technical_module`，Q 为统一 `security_technical_service`，R 为 `security_technology_module` 或 `security_technical_measure`；最新 job `e98a576e-00d8-4eeb-ae8c-9256fd1e7649`，`validations=[]`、`relations_deleted=120`、`warnings=[]`，`OI-075` 已修复。
-- 已重新检查生成 JSON：`lifecycle-knowledge.json` 和 `lifecycle-workbench.json` 均为 `data_state=ready`；workbench 对象计数为 `development_technical_service=11`、`development_technical_module=14`、`security_technical_service=6`、`security_technology_module=4`、`security_technical_measure=3`，关系端点缺失 0，旧 `development_product_component` 字段/关系残留 0，开发技术服务混入安全技术服务 0。
-- 本轮未修改数据库、原始数据或 Excel stage / approve 状态；生成数据包属于本地运行数据，不纳入 Git 跟踪。
-
-### 2026-05-25 工程进度同步
-
-- 已按轻量恢复规则核对 `CURRENT_STATE.md`、`progress.md`、`task_plan.md`、`findings.md`、`open-issues.md` 和 Git 工作区状态。
-- 已确认当前主线仍为 Phase 5 关系化前端工作台校正；不默认启动 Phase 7、多格式增强、maturity M1、新 Sheet 扩展或 React / Vue 重构。
-- 已同步文档中的过期状态：`OI-040`、`OI-049`、`OI-050` 均为已修复；当前明确待确认问题仍是 `OI-073`。
-- 本轮未修改前端代码、数据库、原始数据或 Excel stage / approve 状态；生成数据包属于本地运行数据，不纳入 Git 跟踪。
-
-### 2026-05-23 轻量项目结构治理
-
-- 已完成只读结构体检，确认当前适合做轻量治理，不建议做大规模目录搬迁、React / Vue 重构或大拆 `app.js` / `styles.css`。
-- 已新增 `scripts/README.md`，把脚本分为长期工具和专题脚本，明确新增脚本登记规则。
-- 已新增 `docs/03-import-etl/README.md`，为导入规则、数据契约、业务复核和标准 / 框架核对报告建立索引。
-- 已按“一个地方讲完整，其它地方只做入口索引”的原则压缩重复说明，避免 `README`、治理文档、脚本索引和初始化说明同质化。
-- 已新增 `docs/README.md` 作为文档总导航，按项目现状、顾问端交付、GitHub 初始化、ETL、前端契约和历史追溯分场景给入口。
-- 已将根目录 `progress.md` 瘦身为轻量恢复入口，长历史归档到 `docs/05-archive/progress-history/2026-05.md`。
-
-### 2026-05-23 安全知识表格字段收口
-
-- 已按“只展示原始业务字段”收口参考目录：`GB/T 42446-2023` 主表只展示 `工作类别`、`承担的工作任务`，`Gartner 工作岗位参考` 主表只展示 `分类`、`角色`、`描述`。
-- `maintenance-knowledge.json` 已回填 27 条 GB/T 工作类别和 28 条 Gartner 分类，并按原始表行号排序。
-- 已将 `GB/T 42446-2023` 按 `工作类别`、`Gartner 工作岗位参考` 按 `分类` 做归纳展开；最终改为“分类折叠面板 + 组内明细表”，避免大表空白列、大面积横条和标题到表格的大空白。
-- 本轮未修改原始 Excel、schema 或数据库结构；涉及前端展示组件、样式、数据导出投影、页面字段契约和治理文档。
-
-### 2026-05-25 安全知识应用系统目录
-- 已在安全知识中新增 `/knowledge/application-systems` 二级页面，数据来自 `lifecycle-knowledge.json.application_security_development.application_system_types`。
-- 页面按原始 `LC-AP 应用安全开发生命周期元素目录` 的 `应用系统`、`定义`、`应用组件` 三个业务字段单表展示；组件全量展开为标签，不使用折叠层级或 `+N` 截断。
-- 已把短表规则同步到技术措施、技术模块和 LC-AP 参考表，并更新页面目录设计文档和安全知识交接稿；未修改原始 Excel、schema、数据库或 ETL 导出逻辑。
+- 2026-05-27 high-level 新流程复核与同步：按 `安全能力-安全管理元素（high level）!H` 与 `安全职能流程清单（完善L4）!E` 做规范化精确比对。用户修改原始数据后，当前 high-level 表 78 个唯一 L3 流程参考已全部存在于流程目录主表，原 6 条待复核项已解除；随后重新 stage / approve 第二批 job `6bfc916c-efc9-4b6b-805c-9ac7c279485d`，重新导出 `maintenance-knowledge.json`、`capability-tree.json`、`capability-workbench.json` 和 second-batch summary。当前 `maintenance-knowledge.json` 已同步为 `process_references=78`，`攻防演练/沙盘推演流程` 已进入流程目录导出包。
+- 2026-05-27 安全知识全量数据审计：按源表 -> parser -> 数据包 -> 页面契约链路只读核对 `wiki sample.xlsx`、`maintenance-knowledge.json`、`lifecycle-knowledge.json`、`capability-workbench.json`。通过项：安全技术模块目录 102/102、安全管理工作映射审计通过、工作职能 86/86、GB/T 27/27、Gartner 28/28。发现并记录 `OI-093` 至 `OI-096`：作用域主数据被关联表覆盖、流程目录混入 high-level 并发生顿号误拆、措施目录混入 LC-AP/LC-DT 措施、应用系统目录顺序丢失。新增审计报告 `docs/06-implementation/security-knowledge-data-audit-2026-05-27.md`。本轮未修改 Excel、数据库、ETL、前端运行代码或 public data JSON。
+- 2026-05-27 安全知识 093-096 确认后修复：按用户确认完成数据边界收口。`安全能力作用域清单` 只按 `安全能力作用域目录` 导出 9 条，`ALL` 和关联表短标题不进目录主表；`安全职能流程清单` 只展示 `安全职能流程清单（完善L4）` 原表显式 L3 流程，high-level 流程不补入目录；`安全技术措施目录` 保留 4 条 LC-AP / LC-DT 生命周期措施并补充 `source_label` / `source_kind` / `mapping_status_label`，前端显示来源标签和待补充关联；`应用系统目录` 按 `LC-AP 应用安全开发生命周期元素目录` 来源行排序。已重新导出 `maintenance-knowledge.json`、`lifecycle-knowledge.json`，并更新 `OI-093` 至 `OI-096` 为已修复。
+- 2026-05-27 安全知识 093-096 复查：按用户要求重新执行数据包摘要、管理映射审计、093-096 源表对数据包定点审计和安全知识页面 smoke。复查结论为通过：`scope_types=9`、`process_references=77`、`security_technical_measures=32`、`application_system_types=3`、`application_components=13`；`/knowledge/scopes`、`/knowledge/technical-measures`、`/knowledge/management-workflows`、`/knowledge/application-systems` smoke 均通过。
+- 2026-05-26 安全能力映射页加载慢修复：新增 `/api/v1/capabilities/workspace-initial` 轻量初始投影和 `workspace-projection?focus_id=<id>` 按关注点投影，直接进入 `#/capability-mapping` 约 `1.0MB`，业务 fetch 仅 `workspace-initial≈204KB`；`OI-081` 已修复。
+- 2026-05-26 全局刷新状态恢复：刷新时恢复当前路由、当前页面选中对象、目录展开状态、维护页 Tab、指南页选中内容和生命周期选择；如果 URL 明确指定页面则优先尊重 URL。
+- 2026-05-26 安全能力映射页数据语义修正：`OI-085`、`OI-086`、`OI-087`、`OI-088` 已修复，分别覆盖小投影加载中状态、无服务矩阵计数、管理 high level `/` 空值继承和标准 / 框架空态样式。
+- 2026-05-27 开发体验修复：`OI-089` 已修复，`frontend_smoke_check.mjs` 改为优雅关闭 headless Chrome；本地静态预览禁用浏览器缓存；`dev_server_guard.py` 增加 `--restart` 并可清理旧 `http.server` / 失效 Python 预览占用。
+- 2026-05-27 Chrome 崩溃报告二次止血：系统 Google Chrome 148 在 Codex 拉起的 headless 场景下仍会触发 macOS `SIGABRT` 报告，因此 `frontend_smoke_check.mjs` 改为默认不启动系统 Chrome，只做轻量 HTTP/API smoke；只有用户明确同意时才允许 `--allow-system-chrome`。
+- 2026-05-27 全局前端预览规则：项目级规则已明确，前端展示和用户验收默认只使用 `http://127.0.0.1:5173/`；修改前端后必须确认该端口热刷新到最新文件，失效时用 `python3 scripts/dev_server_guard.py --restart`，不再把 `python -m http.server 5173` 作为常驻服务。
+- 2026-05-27 整体能力节点刷新加载修复：`OI-090` 已修复。安全能力映射页刷新恢复到 `T-OF 进攻 Offense`、`安全治理能力 G`、`安全管理能力 M` 等非关注点节点时，会自动补载完整 `capability-workbench` 并重渲染，避免轻量初始投影导致整体关系数据空白。
+- 2026-05-27 标准 / 框架空态微调：按用户截图将 `标准 / 框架映射` 空矩阵行收敛为单句 `暂无条款/控制项对应能力关注点`，不再显示额外说明文字。
+- 2026-05-27 关注点刷新管理视角修复：`OI-091` 已修复，`workspace-projection?focus_id=...` 同时支持关注点 UUID 和业务 code，前端不再用轻量首屏空壳 workbench 覆盖后端投影，`T-OF.AT-02` 刷新后可恢复管理映射。
+- 2026-05-27 管理视角 ETL 全量审计与修复：`OI-092` 已修复。`安全能力-安全管理元素（high level）` 解析现在按 Excel 合并单元格锚点值读取 L2 流程组、L3 流程参考和四层职能，L3 流程名不再按中文顿号拆分，显式 `/` 继续清空对应职能层级；新增 `scripts/audit_capability_management_mappings.py` 做全量回归审计。
+- 2026-05-27 LC-DT 页面数据全面复核：已按源表 -> parser -> `lifecycle-knowledge.json` -> `lifecycle-workbench.json` -> `/data-security` 页面链路检查继承、换行拆分、漏导入和模块 / 措施归类；业务数据核对通过，7 个过程、31 个场景、74 个过程级服务关联、29 个模块关联、1 个措施关联均与源表一致，parser validation 为 0，workbench 端点缺失 0；发现来源证据重复记录治理问题，已新增 `OI-092`，不影响当前主展示。
+- 2026-05-27 标准 / 框架模块全量数据复核：新增 `scripts/audit_standard_framework_data.py`，按原始 workbook、标准拆包 JSON 和 capability-first 标准映射表检查 7 个页面 / 8 个源表的行数、唯一编号、继承字段、错误换行、漏导入、索引 dataPath 和映射双向一致性；审计报告已写入 `data/processed/reviews/standard-framework-full-data-audit-20260527.md`，问题明细 CSV 只有表头。
 
 ## 最近验证
 
-- `python3 scripts/sapd_wiki.py stage-excel "data/raw-samples/wiki sample.xlsx" --sheets "安全技术模块清单,作用域-安全技术服务-安全技术模块映射,LC-DT 数据生命周期,LC-DT 安全技术服务、模块、策略映射表" --sensitive-level confidential --json`：通过，`validations=[]`，staged 对象 472 个、关系 1857 条。
-- `python3 scripts/sapd_wiki.py approve-import d9c0c34b-f334-4ff6-a7cb-48fb309c1e86 --json`：通过，`warnings=[]`。
-- `python3 scripts/sapd_wiki.py export-maintenance-knowledge`、`python3 scripts/sapd_wiki.py export-lifecycle-knowledge`、`python3 scripts/sapd_wiki.py export-shared-lookups`、`python3 scripts/sapd_wiki.py export-frontend-workbenches`：通过，相关前端数据包已刷新。
-- `python3 scripts/data_package_summary.py --package maintenance`：通过，`data_state=ready`，`security_technology_modules=102`、`security_technical_measures=28`；自定义复核显示有分类但无 `安全技术模块清单` 来源的模块数量为 0。
-- `python3 scripts/data_package_summary.py --package all`：通过，核心数据包均存在且 `data_state=ready`；`capability-tree.json`、`capability-workbench.json`、`environment-workbench.json`、`content-views.json` 已补跑到本轮修改时间。
-- `python3 scripts/sapd_wiki.py stage-excel "data/raw-samples/wiki sample.xlsx" --sheets "安全技术模块清单,LC-DT 数据生命周期,LC-DT 安全技术服务、模块、策略映射表" --sensitive-level confidential --json`：通过，`validations=[]`，未 approve；自定义单元格比对发现 3 处 `I-DI&T-AS.AD-03 数据备份` 未命中安全技术服务基准。
-- 临时端口 `6302` 页面 smoke：`/knowledge/technical` 通过，`activeView=maintenance`，`maintenanceTable=true`，`consoleIssues=0`，截图 `/var/folders/81/8nwy3h2n00s1dw1g5bnvj7j40000gn/T/sapd-maintenance-smoke.png`；临时服务已停止。
-- `python3 scripts/data_package_summary.py --package capability-workbench`、`--package environment-workbench`、`--package lifecycle-workbench`：通过，三个 workbench 数据包均为 `data_state=ready`。
-- 自定义 parser / JSON 复核：通过，`作用域-安全技术服务-安全技术模块映射` parser `validations=0`；导出包中 `网络数据防泄露` 不再出现，`数据交易沙箱` 不再作为 `security_technology_module` 标题出现。
-- 临时端口 `6301` 页面 smoke：`capability`、`environment`、`lifecycle` 均通过，`consoleIssues=0`；截图分别为 `/var/folders/81/8nwy3h2n00s1dw1g5bnvj7j40000gn/T/sapd-capability-smoke.png`、`/var/folders/81/8nwy3h2n00s1dw1g5bnvj7j40000gn/T/sapd-environment-smoke.png`、`/var/folders/81/8nwy3h2n00s1dw1g5bnvj7j40000gn/T/sapd-lifecycle-smoke.png`；临时服务已停止。
-- `python3 scripts/check_github_data_boundary.py`：通过，当前 Git 未追踪原始数据、数据库、导出包或前端生成数据。
-- `git status --short --branch`：通过，当前分支 `codex-frontend-backend-separation-closure` 与远端无 ahead / behind 提示；同步后仅 `progress.md`、`task_plan.md`、`findings.md` 存在文档改动。
-- `python3 scripts/sapd_wiki.py export-lifecycle-workbench`：通过，重新生成 `frontend/capability-browser/public/data/lifecycle-workbench.json`；`security_technical_measure=3`、`relations=356`。
-- `python3 scripts/data_package_summary.py --package lifecycle-workbench`：通过，`data_state=ready`，`lifecycle_stage=8`、`lifecycle_activity=43`、`lifecycle_control=6`、`lifecycle_requirement=76`、`security_technical_service=41`、`security_technology_module=41`、`security_technical_measure=3`。
-- `python3 scripts/data_package_summary.py --package lifecycle`：通过，`data_state=ready`，旧包 `security_technical_measures=4`。
-- 自定义 `lifecycle-workbench.json` 端点和异常检查：通过，关系端点缺失 0，`uses_measure=3`；阶段级措施关系为 `AP-02 -> 应用程序威胁建模`、`AP-04 -> 制品安全加固`、`AP-05 -> IaC代码安全测试`；`CI/CD流水线` 无错误拆分对象，`/` 占位对象 0。
-- 自定义 LC-AP 目录一致性比对：通过，`servicesMissingSharedIndex=0`、`directModulesMissingCatalog=0`、`workbenchModulesMissingCatalog=0`、`sharedModulesMissingCatalog=0`；发现 22 个服务未进入模块目录服务-模块关系，已记录到 `OI-075`。
-- `node --check frontend/capability-browser/dataClient.js`、`node --check frontend/capability-browser/viewModels.js`、`node --check frontend/capability-browser/components/ApplicationSecurityLifecycle.js`：通过。
-- 临时端口 `5174` 页面 smoke：`node scripts/frontend_smoke_check.mjs --page lifecycle --url http://127.0.0.1:5174/ --debug-port 9334` 通过，`activeView=dev-lifecycle`，`consoleIssues=0`，`bodyOverflowX=0`，截图 `/var/folders/81/8nwy3h2n00s1dw1g5bnvj7j40000gn/T/sapd-lifecycle-smoke.png`；临时服务已停止。
-- 2026-05-25 文档归档复核：旧路径扫描排除 `docs/05-archive/**` 后无命中；`git diff --check` 通过。
-- `python3 -m py_compile scripts/sapd_wiki.py src/sapd_wiki/cli.py scripts/check_github_data_boundary.py`、`python3 scripts/sapd_wiki.py bootstrap-local-data --print-inputs` 与 `--help`：通过。
-- 参考目录原始字段复核通过：本地 API `/api/v1/data-packages/maintenance` 返回 `gbt_42446_references=27` 且 `category_non_empty=27`，`gartner_roles=28` 且 `category_non_empty=28`；页面 smoke `/knowledge/gbt-42446`、`/knowledge/role-references` 通过。
-- 参考目录分组 DOM 复核通过：GB/T 为 5 个折叠面板，首组 `网络安全管理 6 项工作任务`；Gartner 为 4 个折叠面板，首组 `安全和风险管理 (SRM) 领导者 10 个角色`；标题到内容间距约 8px，`bodyOverflowX=0`。
-- `node --check frontend/capability-browser/dataClient.js`、`node --check frontend/capability-browser/app.js`、`node --check scripts/frontend_smoke_check.mjs`：通过。
-- `python3 -m py_compile src/sapd_wiki/exports.py src/sapd_wiki/cli.py src/sapd_wiki/api_server.py scripts/data_package_summary.py scripts/dev_server_guard.py`：通过。
-- `node --check frontend/capability-browser/app.js`、`viewModels.js`、`components/AppShell.js`、`components/ApplicationSystemDirectoryTable.js`：通过。
-- `node scripts/frontend_smoke_check.mjs --page maintenance --route /knowledge/application-systems --url http://127.0.0.1:6305/ --debug-port 9317`：通过，`consoleIssues=0`、`bodyOverflowX=0`，截图 `/var/folders/81/8nwy3h2n00s1dw1g5bnvj7j40000gn/T/sapd-maintenance-smoke.png`；临时服务已停止。
-- `node --check frontend/capability-browser/components/TechnicalMeasureMaintenanceTable.js`、`TechnologyModuleMaintenanceTable.js`、`LcapReferenceMaintenanceTable.js`、`ApplicationSystemDirectoryTable.js` 通过；临时端口 `6307` 回归 `/knowledge/application-systems`、`/knowledge/technical`、`/knowledge/technical-measures` 均通过，`consoleIssues=0`、`bodyOverflowX=0`、`workspaceOverflowX=0`，临时服务已停止。
-- 2026-05-25 安全技术服务严格比对：已修订原始表中 `I-DI&T-AS.AD-03 数据备份`、数据安全相关 `IA-03/DP-04` 以及全量 `安全技术模块清单` 60 条可自动判定的不一致；LC-DT 两张表剩余严格比对问题为 0，最新 staging `7506c69d-6346-4acc-8191-9c9dbe6ca5b0` 仅剩 `安全技术模块清单!F27/F304` 两条 `I-OS&T-PD.PP-03 操作系统隔离` 待业务确认，未 approve。
-- 2026-05-25 LC-AP 页面投影收口：开发安全页左侧目录仅保留阶段标题，中间区以所选阶段标题和阶段定义开头，主表按原表 `B:R` 业务字段展示 `主要活动`、两类 `参考来源`、`安全活动定义`、`安全策略要求`、`软件开发模式`、`开发技术服务`、`实际产品示例`、`潜在安全威胁场景`、`补充安全策略`、`安全技术服务`、`安全技术模块`；重新 approve `bdbf5860-317e-4912-91c4-0ec7b72fa895` 并导出 `lifecycle-knowledge.json`、`lifecycle-workbench.json`，DOM 复核无圆角标签且缺失字段为 0。
-- 2026-05-25 LC-AP 左侧目录样式调整：开发安全页阶段目录默认宽度收窄为 `220px`，阶段按钮字号降为 `13px`，目录支持 `收起目录` 与侧边 `目录` 展开入口；DOM 复核折叠后左侧宽度约 `0px`，展开后恢复 `220px`。
-- 2026-05-25 安全技术服务复核同步：已输出 60 条 `安全技术模块清单` 修正复核表 `data/processed/reviews/security-service-fix-review-20260525.xlsx`；用户已在 `安全能力-安全技术服务!K33` 补充 `I-OS&T-PD.PP-03 操作系统隔离` 并恢复相关映射，后续按用户确认修复 `OI-078`：两张作用域映射表 95 处编码旧口径按权威建议值更新，权威表 3 处重复括号名称按映射表原值回退，并同步回退 `安全技术模块清单` 9 处名称；最新 approve `668045e9-47bd-4e6a-a2fe-74094e239124`，`validations=[]`、`items_updated=558`、`relations_created=45`、`relations_deleted=67`，已重导出能力树、维护知识、shared lookups 和 workbench。
-- `git diff --check`：通过。
+- 2026-05-27 high-level 新流程复核与同步验证：`stage-excel --sheets second-batch` 输出 `objects_staged=512`、`process_reference=78`、`validations=[]`；`approve-import 6bfc916c-efc9-4b6b-805c-9ac7c279485d` 输出 `items_updated=512`、`items_deprecated=5`、`relations_created=45`、`relations_deleted=50`、`warnings=[]`；导出后 `maintenance` data package summary 通过，`process_references=78`；定点 `openpyxl` + JSON 审计输出 `high_level_not_in_directory=[]`、`directory_not_in_maintenance_export=[]`、`attack_drill_in_export=true`；`audit_capability_management_mappings.py` 通过，`issue_count=0`；固定 `5173` 项目服务已恢复，`/knowledge/management-workflows` smoke 通过，`consoleIssues=0`、`bodyOverflowX=0`。
+- 2026-05-27 安全知识全量数据审计验证：`python3 scripts/data_package_summary.py --package maintenance`、`python3 scripts/data_package_summary.py --package lifecycle`、`python3 scripts/data_package_summary.py --package capability-workbench`、`python3 scripts/audit_capability_management_mappings.py`、直接 parser validation 脚本均通过；直接 `openpyxl` + JSON 审计输出已写入 `docs/06-implementation/security-knowledge-data-audit-2026-05-27.md`。
+- 2026-05-27 安全知识 093-096 修复验证：`python3 -m py_compile src/sapd_wiki/exports.py`、`node --check frontend/capability-browser/viewModels.js frontend/capability-browser/components/TechnicalMeasureMaintenanceTable.js`、`python3 scripts/sapd_wiki.py export-maintenance-knowledge`、`python3 scripts/sapd_wiki.py export-lifecycle-knowledge`、`python3 scripts/data_package_summary.py --package maintenance`、`python3 scripts/data_package_summary.py --package lifecycle`、`python3 scripts/audit_capability_management_mappings.py`、定点 `openpyxl` + JSON 093-096 审计、目标文件 `git diff --check` 均通过；修复后 `scope_types=9`、`process_references=77`、`security_technical_measures=32`、`application_system_types=3`、`application_components=13`。固定 `5173` 旧服务清理需提升权限，已用 `python3 scripts/dev_server_guard.py --fix-duplicates --start` 恢复项目服务；`/knowledge/scopes`、`/knowledge/technical-measures`、`/knowledge/management-workflows`、`/knowledge/application-systems` smoke 均通过，`consoleIssues=0`、`bodyOverflowX=0`。
+- 2026-05-27 安全知识复查命令：`python3 -m py_compile src/sapd_wiki/exports.py`、`node --check frontend/capability-browser/viewModels.js`、`node --check frontend/capability-browser/components/TechnicalMeasureMaintenanceTable.js`、`python3 scripts/data_package_summary.py --package maintenance`、`--package lifecycle`、`--package capability-workbench`、`python3 scripts/audit_capability_management_mappings.py`、定点 `openpyxl` + JSON 审计、`git diff --check`、4 个 `node scripts/frontend_smoke_check.mjs --page maintenance --route ...` 均通过；本轮只检查并更新 `progress.md`，未改业务代码或数据包。
+- 2026-05-26 capability smoke：固定 `5173` 页面通过，刷新选中关注点可恢复并按需加载小投影，未拉完整 `capability-workbench` 大包。
+- 2026-05-26 lifecycle / data-lifecycle / guides / maintenance 等页面近几轮 smoke 均通过；详细命令和截图路径见 `docs/05-archive/progress-history/2026-05.md`。
+- 2026-05-27 开发体验验证：`node --check scripts/frontend_smoke_check.mjs`、`python3 -m py_compile src/sapd_wiki/api_server.py scripts/dev_server_guard.py`、`python3 scripts/dev_server_guard.py --restart`、capability smoke、`curl -I http://127.0.0.1:5173/app.js` 和目标文件 `git diff --check` 通过；固定端口 `5173` 当前为项目服务，`app.js` 已返回 `Cache-Control: no-store`。
+- 2026-05-27 Chrome 二次止血验证：`node --check scripts/frontend_smoke_check.mjs` 通过；`node scripts/frontend_smoke_check.mjs --page capability --url http://127.0.0.1:5173/` 轻量模式通过，输出 `browserSkipped=true`，未启动系统 Chrome。
+- 2026-05-27 全局预览规则文档更新：`AGENTS.md`、`CURRENT_STATE.md`、`docs/07-governance/codex-performance-workflow.md`、`frontend/capability-browser/README.md` 已同步；待执行 `git diff --check`。
+- 2026-05-27 整体能力节点刷新验证：`node --check frontend/capability-browser/app.js`、`node --check scripts/frontend_smoke_check.mjs` 通过；用 `--workspace-state-json` 模拟刷新恢复到 `T-OF`、`安全治理能力 G`、`安全管理能力 M`，三次 capability smoke 均通过，`capabilityMap=true`、`consoleIssues=0`、`bodyOverflowX=0`。
+- 2026-05-27 标准 / 框架空态微调验证：`node --check frontend/capability-browser/components/CapabilityLocalRelationMap.js`、目标文件 `git diff --check`、组件定点渲染断言通过；`python3 scripts/dev_server_guard.py --restart` 已恢复 `5173` 项目服务；capability smoke 受本机 Chrome DevTools target 不可用影响未完成。
+- 2026-05-27 关注点刷新管理视角验证：`python3 -m py_compile src/sapd_wiki/api_server.py`、`node --check frontend/capability-browser/viewModels.js`、`python3 scripts/dev_server_guard.py --restart`、`T-OF.AT-02` API 定点检查、刷新 ViewModel 模拟和 capability 定点 smoke 通过；API 返回 `managementRows=1`、安全工作 `入侵目标选择及评估分析`、职能层级 `1/1/2/0`。
+- 2026-05-27 管理视角 ETL 全量审计验证：重新 `stage-excel --sheets second-batch` 并 approve `f270bf0f-e2ae-4003-8c7f-f0bdec4c5bcb`，审批结果 `items_updated=517`、`relations_created=21`、`relations_deleted=22`、`warnings=[]`；重新导出 `capability-tree`、`capability-workbench`、second-batch summary；`python3 scripts/audit_capability_management_mappings.py` 通过，`issue_count=0`、`placeholder_leak_count=0`。
+- 2026-05-27 LC-DT 数据复核验证：`python3 scripts/data_package_summary.py --package lifecycle-workbench`、`--package lifecycle`、LC-DT 源表 / 投影定点 Python 审计、`node --check frontend/capability-browser/viewModels.js`、`node --check frontend/capability-browser/components/ApplicationSecurityLifecycle.js`、`python3 scripts/dev_server_guard.py --fix-duplicates --start`、`node scripts/frontend_smoke_check.mjs --page data-lifecycle --route /data-security --url http://127.0.0.1:5173/ --debug-port 9340`、`git diff --check` 通过。
+- 2026-05-27 LC-AP 数据全面复核：对 `LC-AP 应用安全开发生命周期` 源表 8 个阶段、13 个主展示字段与 `lifecycle-workbench` / ViewModel 做字段级比对，阶段数、开发模式填充色继承、开发技术服务/模块、安全技术服务、安全技术模块/措施均已核对；发现并修复 `OI-092`，AP-03 `应用程序静态安全测试（安全函数和组件库）` 不再因规范关系回填而从页面少显示；`node --check`、`git diff --check` 和固定 `5173` lifecycle smoke 通过，`5173` 项目服务已恢复。
+- 2026-05-27 标准 / 框架全量复核验证：`python3 scripts/audit_standard_framework_data.py --stamp 20260527` 通过，`errors=0`、`warnings=0`、原始 / JSON 行数均一致（等保 113、CIS 153、CSF core 106、ISO 93、DSP 1468、CRF core 476、CRF maturity 5、NIST 1007），标准映射 `sourcePairs=2288`、`projectionPairs=2288`、缺失 / 额外均为 0；`python3 -m py_compile scripts/audit_standard_framework_data.py`、`python3 scripts/data_package_summary.py --package standards` 通过。
 
 ## 历史索引
 

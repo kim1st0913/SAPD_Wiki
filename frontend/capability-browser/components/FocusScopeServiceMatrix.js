@@ -28,8 +28,40 @@
     `;
   }
 
+  function renderEmptyTechnicalMapping(rows) {
+    return `
+      <section class="semantic-panel technical-mapping-section">
+        <div class="matrix-section-head">
+          <div>
+            <h3>技术视角映射矩阵</h3>
+            <p>当前关注点 → 作用域 → 安全技术服务 → 安全技术模块/措施</p>
+          </div>
+          <span>0 服务</span>
+        </div>
+        <div class="relationship-matrix-scroll semantic-scroll">
+          <table class="semantic-mapping-table">
+            <thead>
+              <tr>
+                <th>作用域</th>
+                <th>安全技术服务</th>
+                <th>技术模块/措施</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="semantic-empty-row">
+                <td colspan="3"><div class="reference-empty">暂无作用域对应安全技术服务</div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    `;
+  }
+
   function render({ rows, summary = "" }) {
-    const mappingRows = utils.list(rows);
+    const sourceRows = utils.list(rows);
+    const mappingRows = sourceRows.filter((row) => row?.status === "ambiguous_service_mapping" || utils.list(row?.services).length);
+    if (!mappingRows.length) return renderEmptyTechnicalMapping(sourceRows);
     return `
       <section class="semantic-panel technical-mapping-section">
         <div class="matrix-section-head">
@@ -59,7 +91,7 @@
                     </tr>
                   `,
                 )
-                .join("") || '<tr><td colspan="3"><div class="reference-empty">暂无技术映射</div></td></tr>'}
+                .join("") || '<tr><td colspan="3"><div class="reference-empty">暂无作用域对应安全技术服务</div></td></tr>'}
             </tbody>
           </table>
         </div>

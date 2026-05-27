@@ -2,7 +2,7 @@
 // Lightweight Chrome headless smoke check. It prints a short JSON summary only.
 
 import { spawn } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -31,10 +31,64 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function hasFlag(name) {
+  return process.argv.includes(name);
+}
+
 async function fetchJson(url) {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`${url} returned ${response.status}`);
   return response.json();
+}
+
+async function fetchStatus(url) {
+  const started = Date.now();
+  try {
+    const response = await fetch(url, { cache: "no-store" });
+    await response.arrayBuffer();
+    return {
+      ok: response.ok,
+      status: response.status,
+      timeMs: Date.now() - started,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      status: 0,
+      timeMs: Date.now() - started,
+      error: error.message,
+    };
+  }
+}
+
+async function lightweightHttpSmoke({ pageName, baseUrl, route, reason }) {
+  const rootUrl = new URL("/", baseUrl).toString();
+  const pageUrl = new URL(baseUrl);
+  const healthUrl = new URL("/api/v1/health", rootUrl).toString();
+  const initialUrl = new URL("/api/v1/capabilities/workspace-initial", rootUrl).toString();
+  const checks = {
+    page: await fetchStatus(pageUrl.toString()),
+    health: await fetchStatus(healthUrl),
+  };
+  if (pageName === "capability" || pageName === "capabilities" || route === "/capability-mapping") {
+    checks.capabilityInitial = await fetchStatus(initialUrl);
+  }
+  const result = Object.values(checks).every((item) => item.ok) ? "pass" : "fail";
+  console.log(
+    JSON.stringify(
+      {
+        page: pageName,
+        url: baseUrl,
+        browserSkipped: true,
+        reason,
+        checks,
+        result,
+      },
+      null,
+      2,
+    ),
+  );
+  process.exitCode = result === "pass" ? 0 : 1;
 }
 
 async function waitForTarget(port, timeoutMs = 5000) {
@@ -82,6 +136,21 @@ function sendFactory(ws) {
     });
 }
 
+function waitForProcessExit(child, timeoutMs = 2500) {
+  if (child.exitCode !== null || child.signalCode !== null) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    const onExit = () => {
+      clearTimeout(timer);
+      resolve(true);
+    };
+    const timer = setTimeout(() => {
+      child.off("exit", onExit);
+      resolve(false);
+    }, timeoutMs);
+    child.once("exit", onExit);
+  });
+}
+
 async function main() {
   const pageName = argValue("--page", "overview");
   const view = PAGE_TO_VIEW[pageName] || pageName;
@@ -91,25 +160,49 @@ async function main() {
   const height = Number(argValue("--height", "1000"));
   const port = Number(argValue("--debug-port", "9333"));
   const chromePath = argValue("--chrome", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome");
+  const allowSystemChrome = hasFlag("--allow-system-chrome") || process.env.SAPD_ALLOW_SYSTEM_CHROME_SMOKE === "1";
+  const workspaceStateJson = argValue("--workspace-state-json", "");
   const guideExpectation = GUIDE_ROUTE_EXPECTATIONS[route] || null;
   const expectedGuidePage21 = guideExpectation ? `第 21 / ${guideExpectation.thumbs} 页` : "";
   const expectedGuidePage22 = guideExpectation ? `第 22 / ${guideExpectation.thumbs} 页` : "";
+  const usesSystemGoogleChrome = chromePath.includes("/Applications/Google Chrome.app/");
+  if (usesSystemGoogleChrome && !allowSystemChrome) {
+    await lightweightHttpSmoke({
+      pageName,
+      baseUrl,
+      route,
+      reason:
+        "Skipped launching system Google Chrome to avoid macOS crash reports. Use --allow-system-chrome only for an explicitly approved browser run.",
+    });
+    return;
+  }
+
   const userDataDir = join(tmpdir(), `sapd-smoke-${Date.now()}`);
   mkdirSync(userDataDir, { recursive: true });
 
   const chrome = spawn(chromePath, [
     "--headless=new",
     "--disable-gpu",
+    "--disable-background-networking",
+    "--disable-breakpad",
+    "--disable-component-update",
+    "--disable-crash-reporter",
+    "--disable-default-apps",
+    "--disable-extensions",
     "--no-first-run",
+    "--no-default-browser-check",
+    "--metrics-recording-only",
     `--user-data-dir=${userDataDir}`,
     `--remote-debugging-port=${port}`,
     baseUrl,
   ], { stdio: "ignore" });
 
   const issues = [];
+  let ws = null;
+  let send = null;
   try {
     const target = await waitForTarget(port);
-    const ws = new WebSocket(target.webSocketDebuggerUrl);
+    ws = new WebSocket(target.webSocketDebuggerUrl);
     await new Promise((resolve, reject) => {
       ws.addEventListener("open", resolve, { once: true });
       ws.addEventListener("error", reject, { once: true });
@@ -123,7 +216,7 @@ async function main() {
         issues.push({ type: message.params.entry.level, text: message.params.entry.text || "" });
       }
     });
-    const send = sendFactory(ws);
+    send = sendFactory(ws);
     const evaluate = async (expression, awaitPromise = false) => {
       let result;
       try {
@@ -141,6 +234,14 @@ async function main() {
     await send("Runtime.enable");
     await send("Log.enable");
     await send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: 1, mobile: false });
+    if (workspaceStateJson) {
+      await evaluate(`(() => {
+        window.localStorage.setItem('sapd:workspace-state:v1', ${JSON.stringify(workspaceStateJson)});
+        return true;
+      })()`);
+      await send("Page.navigate", { url: baseUrl });
+      await sleep(200);
+    }
     await evaluate(`new Promise((resolve) => {
       if (document.readyState === "complete") {
         resolve(true);
@@ -285,12 +386,57 @@ async function main() {
         tooltipTrigger.dispatchEvent(new PointerEvent('pointerout', { bubbles: true, relatedTarget: document.body }));
         tooltipTrigger.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
       }
+      const resourceEntries = performance.getEntriesByType('resource');
+      const performanceSummary = (() => {
+        const nav = performance.getEntriesByType('navigation')[0];
+        const byType = {};
+        resourceEntries.forEach((entry) => {
+          const type = entry.initiatorType || 'other';
+          byType[type] ||= { count: 0, durationMs: 0, transferKb: 0 };
+          byType[type].count += 1;
+          byType[type].durationMs += entry.duration || 0;
+          byType[type].transferKb += entry.transferSize || 0;
+        });
+        Object.values(byType).forEach((item) => {
+          item.durationMs = Math.round(item.durationMs);
+          item.transferKb = Math.round(item.transferKb / 1024);
+        });
+        return {
+          navigationMs: nav ? Math.round(nav.duration) : 0,
+          domContentLoadedMs: nav ? Math.round(nav.domContentLoadedEventEnd - nav.startTime) : 0,
+          loadEventMs: nav ? Math.round(nav.loadEventEnd - nav.startTime) : 0,
+          resourceCount: resourceEntries.length,
+          totalTransferKb: Math.round(resourceEntries.reduce((sum, entry) => sum + (entry.transferSize || 0), 0) / 1024),
+          byType,
+          slowResources: resourceEntries
+            .map((entry) => ({
+              name: entry.name.replace(location.origin, ''),
+              type: entry.initiatorType || 'other',
+              durationMs: Math.round(entry.duration || 0),
+              transferKb: Math.round((entry.transferSize || 0) / 1024)
+            }))
+            .sort((a, b) => b.durationMs - a.durationMs)
+            .slice(0, 8)
+        };
+      })();
       return {
         activeView: document.body.dataset.activeView || '',
         title: document.title,
         bodyOverflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
         workspaceOverflowX: workspace ? workspace.scrollWidth - workspace.clientWidth : null,
         capabilityMap: Boolean(document.querySelector('.capability-local-relation-map, .relation-network-graph')),
+        capabilityDetailText: document.querySelector('#detail')?.textContent?.replace(/\\s+/g, ' ').trim().slice(0, 180) || '',
+        capabilityActiveTreeRow: (() => {
+          const row = document.querySelector('#tree .tree-row.active');
+          return row
+            ? {
+                id: row.dataset.capabilityId || '',
+                level: row.querySelector('.node-level-label')?.textContent?.trim() || '',
+                code: row.querySelector('.node-code')?.textContent?.trim() || '',
+                title: row.querySelector('.node-title')?.textContent?.trim() || ''
+              }
+            : null;
+        })(),
         standardTable: Boolean(document.querySelector('.standard-framework-table, .standard-framework-page')),
         standardGroupRows: document.querySelectorAll('.standard-framework-table .standard-group-row').length,
         standardDataRows: document.querySelectorAll('.standard-framework-table .standard-group-detail, .standard-framework-table .maintenance-data-row').length,
@@ -369,13 +515,13 @@ async function main() {
         evidenceDrawerOpen: document.querySelector('.capability-evidence-drawer')?.open ?? null,
         routeFunctionReady: typeof activateRoute === "function",
         viewFunctionReady: typeof setActiveView === "function",
-        tooltipProbe
+        tooltipProbe,
+        performance: performanceSummary
       };
     })()`);
     const screenshot = await send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
     const screenshotPath = join(tmpdir(), `sapd-${pageName}-smoke.png`);
     writeFileSync(screenshotPath, Buffer.from(screenshot.data, "base64"));
-    ws.close();
     const blockingIssues = issues.filter(
       (issue) =>
         issue.type === "exception" ||
@@ -434,7 +580,37 @@ async function main() {
     console.log(JSON.stringify(summary, null, 2));
     process.exitCode = summary.result === "pass" ? 0 : 1;
   } finally {
-    chrome.kill("SIGTERM");
+    try {
+      if (send) await send("Browser.close");
+    } catch {
+      // Fall back to process termination below when the DevTools socket is already closed.
+    }
+    const gracefullyExited = await waitForProcessExit(chrome, 2500);
+    if (!gracefullyExited) {
+      try {
+        chrome.kill("SIGTERM");
+      } catch {
+        // Process may have exited between the timeout and the signal.
+      }
+      const terminated = await waitForProcessExit(chrome, 1000);
+      if (!terminated) {
+        try {
+          chrome.kill("SIGKILL");
+        } catch {
+          // Nothing more to do if the process is already gone.
+        }
+      }
+    }
+    try {
+      ws?.close?.();
+    } catch {
+      // Browser.close normally closes the socket first.
+    }
+    try {
+      rmSync(userDataDir, { recursive: true, force: true });
+    } catch {
+      // Temporary profile cleanup is best effort only.
+    }
   }
 }
 

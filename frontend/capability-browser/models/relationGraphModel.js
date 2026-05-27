@@ -444,20 +444,26 @@
   }
 
   function technicalRowsFromLocalMap(localRelationMap = {}) {
-    return list(localRelationMap.technical?.scopeServicePairs).map((pair) => ({
-      scope: {
-        id: pair.scopeId || pair.scopeCode || pair.scopeName,
-        code: pair.scopeCode || "",
-        title: pair.scopeName || pair.scopeTitle || "待补充作用域",
-      },
-      services: [
-        {
-          id: pair.serviceId || pair.serviceCode || pair.serviceName,
-          code: pair.serviceCode || "",
-          title: pair.serviceName || pair.serviceTitle || "待补充服务",
+    return list(localRelationMap.technical?.scopeServicePairs)
+      .filter((pair) => hasBusinessLabel({ id: pair.serviceId || pair.serviceCode, code: pair.serviceCode, title: pair.serviceName || pair.serviceTitle }))
+      .map((pair) => ({
+        scope: {
+          id: pair.scopeId || pair.scopeCode || pair.scopeName,
+          code: pair.scopeCode || "",
+          title: pair.scopeName || pair.scopeTitle || "待补充作用域",
         },
-      ],
-    }));
+        services: [
+          {
+            id: pair.serviceId || pair.serviceCode || pair.serviceName,
+            code: pair.serviceCode || "",
+            title: pair.serviceName || pair.serviceTitle || "待补充服务",
+          },
+        ],
+      }));
+  }
+
+  function hasTechnicalGraphRelation(row = {}) {
+    return list(row.services).some(hasBusinessLabel);
   }
 
   function managementRowsFromLocalMap(localRelationMap = {}) {
@@ -555,7 +561,7 @@
       },
     });
 
-    const allTechRows = list(technicalMappingRows).length ? list(technicalMappingRows) : technicalRowsFromLocalMap(localRelationMap);
+    const allTechRows = (list(technicalMappingRows).length ? list(technicalMappingRows) : technicalRowsFromLocalMap(localRelationMap)).filter(hasTechnicalGraphRelation);
     const allManagementRows = list(managementMappingRows).length ? list(managementMappingRows) : managementRowsFromLocalMap(localRelationMap);
     const standards = list(standardRows).length ? list(standardRows) : list(localRelationMap?.standards?.frameworks || localRelationMap?.standardFrameworks);
     if (graphScope === "category") {
@@ -569,42 +575,44 @@
     }
 
     const techRows = evenlySample(allTechRows, limits.technicalRows);
-    const technicalView = addViewNode(nodes, edges, focusId, "view:technical", "技术视角", "view_technical", "technical");
-    for (const row of techRows) {
-      const scope = row.scope || {};
-      if (!hasBusinessLabel(scope)) continue;
-      const scopeNode = addNode(nodes, {
-        id: stableId("scope", scope, `scope:${entityTitle(scope)}`),
-        label: entityTitle(scope, "待补充作用域"),
-        type: "scope",
-        group: "technical",
-        weight: 4,
-        meta: { code: entityCode(scope) },
-      });
-      addEdge(edges, { source: technicalView.id, target: scopeNode.id, type: "view_to_scope", weight: 3 });
-      for (const service of list(row.services).slice(0, limits.servicesPerRow)) {
-        if (!hasBusinessLabel(service)) continue;
-        const serviceNode = addNode(nodes, {
-          id: stableId("technical_service", service, `service:${entityTitle(service)}`),
-          label: entityTitle(service, "待补充服务"),
-          type: "technical_service",
+    if (techRows.length) {
+      const technicalView = addViewNode(nodes, edges, focusId, "view:technical", "技术视角", "view_technical", "technical");
+      for (const row of techRows) {
+        const scope = row.scope || {};
+        if (!hasBusinessLabel(scope)) continue;
+        const scopeNode = addNode(nodes, {
+          id: stableId("scope", scope, `scope:${entityTitle(scope)}`),
+          label: entityTitle(scope, "待补充作用域"),
+          type: "scope",
           group: "technical",
-          weight: 3,
-          meta: { code: entityCode(service) },
+          weight: 4,
+          meta: { code: entityCode(scope) },
         });
-        addEdge(edges, { source: scopeNode.id, target: serviceNode.id, type: "scope_to_service", weight: 2 });
-        for (const module of list(row.modules).filter(hasBusinessLabel).slice(0, limits.modulesPerRow)) {
-          const objectKind = text(module.objectKind || module.kind || module.type);
-          const isMeasure = objectKind.includes("措施") || objectKind.includes("measure");
-          const moduleNode = addNode(nodes, {
-            id: stableId(isMeasure ? "technical_measure" : "technical_module", module, `${isMeasure ? "measure" : "module"}:${entityTitle(module)}`),
-            label: entityTitle(module, isMeasure ? "技术措施" : "技术模块"),
-            type: isMeasure ? "technical_measure" : "technical_module",
+        addEdge(edges, { source: technicalView.id, target: scopeNode.id, type: "view_to_scope", weight: 3 });
+        for (const service of list(row.services).slice(0, limits.servicesPerRow)) {
+          if (!hasBusinessLabel(service)) continue;
+          const serviceNode = addNode(nodes, {
+            id: stableId("technical_service", service, `service:${entityTitle(service)}`),
+            label: entityTitle(service, "待补充服务"),
+            type: "technical_service",
             group: "technical",
-            weight: 1.6,
-            meta: { code: entityCode(module) },
+            weight: 3,
+            meta: { code: entityCode(service) },
           });
-          addEdge(edges, { source: serviceNode.id, target: moduleNode.id, type: isMeasure ? "service_to_measure" : "service_to_module", weight: 1 });
+          addEdge(edges, { source: scopeNode.id, target: serviceNode.id, type: "scope_to_service", weight: 2 });
+          for (const module of list(row.modules).filter(hasBusinessLabel).slice(0, limits.modulesPerRow)) {
+            const objectKind = text(module.objectKind || module.kind || module.type);
+            const isMeasure = objectKind.includes("措施") || objectKind.includes("measure");
+            const moduleNode = addNode(nodes, {
+              id: stableId(isMeasure ? "technical_measure" : "technical_module", module, `${isMeasure ? "measure" : "module"}:${entityTitle(module)}`),
+              label: entityTitle(module, isMeasure ? "技术措施" : "技术模块"),
+              type: isMeasure ? "technical_measure" : "technical_module",
+              group: "technical",
+              weight: 1.6,
+              meta: { code: entityCode(module) },
+            });
+            addEdge(edges, { source: serviceNode.id, target: moduleNode.id, type: isMeasure ? "service_to_measure" : "service_to_module", weight: 1 });
+          }
         }
       }
     }
@@ -718,8 +726,8 @@
       l3Nodes.forEach((l3Node) => l4Nodes.forEach((l4Node) => addEdge(edges, { source: l3Node.id, target: l4Node.id, type: "process_l3_to_l4", weight: 1 })));
     }
 
-    const standardView = addViewNode(nodes, edges, focusId, "view:standard", "标准 / 框架", "view_standard", "standard");
     if (standards.length) {
+      const standardView = addViewNode(nodes, edges, focusId, "view:standard", "标准 / 框架", "view_standard", "standard");
       standards.slice(0, limits.standards).forEach((standard) => {
         const standardCode = entityCode(standard) || keyPart(standard.standard || standard.title || standard.name);
         const standardNode = addNode(nodes, {

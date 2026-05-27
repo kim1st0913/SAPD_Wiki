@@ -28,6 +28,7 @@
             <tr>
               <th>序号</th>
               <th>安全技术措施</th>
+              <th>来源标签</th>
               <th>关联安全技术服务</th>
               <th>适用作用域</th>
               <th>关联信息化环境</th>
@@ -40,9 +41,13 @@
                 (row) => `
                   <tr class="${row.id === selectedId ? "active" : ""}" data-maintenance-id="${utils.escapeHtml(row.id)}">
                     <td>${utils.escapeHtml(displayValue(row.index))}</td>
-                    <td><strong>${utils.escapeHtml(displayValue(row.measureName))}</strong></td>
-                    <td>${chipList(row.serviceNames)}</td>
-                    <td>${chipList(row.scopeNames)}</td>
+                    <td>
+                      <strong>${utils.escapeHtml(displayValue(row.measureName))}</strong>
+                      ${row.mappingStatusLabel ? `<span class="maintenance-cell-note">${utils.escapeHtml(row.mappingStatusLabel)}</span>` : ""}
+                    </td>
+                    <td>${utils.escapeHtml(displayValue(row.sourceLabel))}</td>
+                    <td>${chipList(row.serviceNames, row.serviceEmptyText || "待补充关联安全技术服务")}</td>
+                    <td>${chipList(row.scopeNames, row.scopeEmptyText || "待补充关联作用域")}</td>
                     <td>${chipList(row.environmentNames)}</td>
                     <td>${chipList(row.environmentObjectNames)}</td>
                   </tr>

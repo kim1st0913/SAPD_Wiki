@@ -1309,6 +1309,17 @@
 - 需要确认：无。
 - 验证结果：2026-05-25 重新严格比对 `安全技术模块清单`、两张作用域映射表、两张 LC-DT 表与 `安全能力-安全技术服务`，剩余不一致数量为 0；最新 stage `668045e9-47bd-4e6a-a2fe-74094e239124` 的 `validations=[]`，approve `warnings=[]`。
 
+## OI-084：应用异常行为检测服务编码与名称之间空格不一致
+
+- 状态：已修复
+- 类型：原始数据一致性 / 安全技术服务文本规范
+- 对象或页面：`安全能力-安全技术服务`、`安全技术模块清单`、`信息化环境-信息化对象-安全作用域映射`、`作用域-安全技术服务-安全技术模块映射`
+- 现象：重新检查安全技术服务引用时发现 `I-AP&T-AD.SA-01应用异常行为检测` 与 `I-AP&T-AD.SA-01 应用异常行为检测` 并存，严格文本比对会把带空格的 10 处引用识别为不命中权威服务清单；数据库历史记录中也可见早期由无空格文本导致的 `code=I-AP`、`title=&AD.SA-01应用异常行为检测` 废弃对象。
+- 影响：当前活跃对象已是正确的 `code=I-AP&T-AD.SA-01`、`title=应用异常行为检测`，但原始表文本不统一会影响后续严格比对和人工复核。
+- 当前处理：已把 5 个少空格的原始单元格统一为 `I-AP&T-AD.SA-01 应用异常行为检测`：`安全能力-安全技术服务!J48`、`安全技术模块清单!F115/F350`、`信息化环境-信息化对象-安全作用域映射!F79`、`作用域-安全技术服务-安全技术模块映射!F79`。备份文件为 `data/raw-samples/backups/wiki sample.before-ap-ad-sa01-spacing-20260526.xlsx`。
+- 需要确认：无。
+- 验证结果：2026-05-26 重新严格比对 `安全技术模块清单`、两张作用域映射表、两张 LC-DT 表与 `安全能力-安全技术服务`，剩余不一致数量为 0；stage `e9c07ba4-f80f-4b0c-bc3f-0ea6de11d86d` 的 `validations=[]`，approve `warnings=[]`；数据库中 `code=I-AP` 的相关历史对象均为 `deprecated`，活跃对象为 `I-AP&T-AD.SA-01 应用异常行为检测`。
+
 ## OI-079：`DSP策略清单（2026）` 解析器在全量 ETL 中长时间卡住
 
 - 状态：已修复
@@ -1321,3 +1332,206 @@
 - 需要确认：无。
 - 修复说明：未修改 schema、原始 Excel 或标准数据语义，只修改解析读取方式。
 - 验证结果：2026-05-25 修复后单独解析 `DSP策略清单（2026）` 输出 `objects=1469`、`relations=1468`、`validations=0`，耗时约 0.48 秒；重新 stage / approve 该 Sheet，`validations=[]`、`warnings=[]`。
+
+## OI-080：两个安全指南幻灯片页面索引数据被导出覆盖为空
+
+- 状态：已修复
+- 类型：前端数据包 / 内容视图索引 / 安全指南幻灯片
+- 对象或页面：`/guides/data-security-design`、`/guides/security-architecture-design`、`content-views.json`
+- 现象：`content-views.json` 在最近一次内容视图导出后 `html_documents=[]`，导致两个安全指南二级页面进入后没有绑定幻灯片数据。
+- 影响：独立指南 JSON 和 PNG 幻灯片资源仍存在，但页面目录索引无法找到对应指南，表现为“两个页面的数据没了”。
+- 当前处理：已修复 `export_content_views`，导出时会从两个本地指南 JSON 自动补回 `slide_deck` 索引记录；已重新导出 `content-views.json`。同时收紧前端内容路由过滤，除已绑定同路由索引记录的指南页外，其他安全指南二级页保持空状态，不再继承通用内容列表。
+- 需要确认：无。
+- 验证结果：2026-05-26 `content-views.json` 恢复 2 条 `html_documents`，`数据安全设计方法` 43 页、`安全技术架构设计方法` 75 页；两条指南路由在 `http://127.0.0.1:5173/` smoke 均通过。`/guides/others` 与 `/guides/security-governance-model` smoke 显示 `guideSlidePlayer=false`、`guideThumbs=0`，保持空状态。
+
+## OI-081：安全能力映射页首屏加载数据包过大
+
+- 状态：已修复，后续可继续优化
+- 类型：前端性能 / 安全能力映射 / 数据加载
+- 对象或页面：`安全能力映射`、`/capability-mapping`、`capability-tree.json`、`capability-workbench.json`、`/api/v1/capabilities/workspace-projection`
+- 现象：2026-05-26 使用固定端口 `5173` 对 `#/capability-mapping` 做 Chrome headless 性能摘要，页面无 console error、无横向溢出，但首次进入仍会拉取约 `22.98MB` 资源，其中 fetch 约 `22.19MB`。
+- 影响：本地页面功能可用，但安全能力映射页首屏会感觉慢；如果从首页 `/` 切入能力页，还可能触发 overview warmup，额外拉取 `environment-workbench` 与 `lifecycle-workbench`，总传输约 `27.63MB`。
+- 当前处理：已在 `scripts/frontend_smoke_check.mjs` 增加轻量性能摘要，输出导航耗时、资源数量、按类型传输量和最慢资源；安全能力映射页首屏不再阻塞加载完整 `workspace-projection`；目录数据改用后端轻量初始投影提供的 navigator；新增 `/api/v1/capabilities/workspace-initial`，首屏只返回能力目录和默认关注点关系；新增 `workspace-projection?focus_id=<id>` 支持按关注点加载小投影；完整 `capability-workbench` 仅在用户选择聚合节点等需要矩阵明细时按需加载。
+- 需要确认：后续如果还要进一步优化，可以继续拆分全局脚本组件，但首屏业务数据大包问题已解决。
+- 验证结果：2026-05-26 修复前 `#/capability-mapping` 首屏约 `22.98MB`，从首页切入约 `27.63MB`；第一阶段修复后直接进入约 `6.76MB`；第二阶段轻量初始投影后直接进入约 `1.0MB`，业务 fetch 仅 `/api/v1/capabilities/workspace-initial` 约 `204KB`；页面 smoke 通过，`consoleIssues=0`、`bodyOverflowX=0`、`workspaceOverflowX=0`。
+
+## OI-082：能力关系图谱把无技术服务作用域显示为业务节点
+
+- 状态：已修复
+- 类型：前端展示 / 能力关系图谱 / 数据语义边界
+- 对象或页面：`安全能力映射` 页的 `能力关系图谱`，示例关注点 `T-IN.IO-03 在组织内部共享成品威胁情报`
+- 现象：用户反馈图谱数据不对。定点核对发现 `T-IN.IO-03` 的 `scope_mappings` 中存在 `硬件`、`物理环境` 两条 `status=no_service` 且源单元格为 `/` 的作用域记录，但图谱仍把它们作为技术视角业务节点展示；同时无标准控制项时仍显示空的 `标准 / 框架` 视角节点。
+- 影响：图谱会把“不适用 / 无服务覆盖”的作用域看起来画成真实技术关系，容易误导用户判断该关注点和 `物理环境`、`硬件` 存在技术服务映射。
+- 当前处理：`relationGraphModel.js` 的图谱技术行只接收存在实际 `services` 的关系；从 `localRelationMap` 转图谱时过滤无服务的 `scopeServicePairs`；具体关注点图谱仅在存在技术关系或标准关系时创建对应视角节点。
+- 需要确认：无。`status=no_service` 行仍可留在表格或数据检查中表达数据状态，但不进入关系图谱业务节点。
+- 验证结果：2026-05-26 Node 定点模型核对 `T-IN.IO-03`：原始技术行仍包含 `全部作用域 covered`、`硬件 no_service`、`物理环境 no_service`；修复后图谱技术节点仅剩 `技术视角`、`全部作用域`、`威胁情报分发`，`graphStandardNodes=[]`，管理侧仍有 19 个业务节点。
+
+## OI-083：安全职能层级节点附近连线和标签贴合
+
+- 状态：已修复
+- 类型：前端展示 / 能力关系图谱 / 管理视角连线
+- 对象或页面：`安全能力映射` 页的 `能力关系图谱`，管理视角下 `安全职能 -> 执行层 / 决策层 / 管理层 / 监督层 -> 安全职能` 层级
+- 现象：用户截图反馈 `执行层` 附近连线贴合、并线，层级标签与连线距离过近，阅读时像发生碰撞。
+- 影响：管理视角的安全职能层级关系不够清晰，容易把层级节点、下级职能节点和经过的连线误读为重叠。
+- 当前处理：`LocalRelationNetworkGraph.js` 对 `management_function_root_to_layer` 和 `layer_to_function` 两类边做局部优化：仅安全职能层级线从节点外沿连接，不再穿过圆心；近垂直的 `layer_to_function` 线改为顺向曲线，避免 S 型回折；安全职能层级标签固定显示在节点上方，避开左右连线。
+- 需要确认：无。本轮未恢复全局分道线、短标题 hover/title 或其它已回退交互。
+- 验证结果：2026-05-26 `node --check` 与 `git diff --check` 通过；定点渲染 `T-IN.IO-03` 时安全职能层级边使用新的边界连接路径，布局指标 `overlaps=0`、`minGap=22`。
+
+## OI-085：关注点图谱首次点击出现短暂空数据
+
+- 状态：已修复
+- 类型：前端加载时序 / 安全能力映射 / 关注点关系投影
+- 对象或页面：`安全能力映射` 页的 `能力关系图谱`，按需加载 `workspace-projection?focus_id=<id>` 的 L3 关注点详情。
+- 现象：用户反馈“刚才看没有数据，后来又有了”。排查发现关注点关系投影按需异步加载时，页面点击后会先用轻量初始投影或旧投影渲染一次；对应关注点小投影返回后再自动重渲染，因此会出现短暂空图或关系不完整。
+- 影响：容易被误判为数据缺失或图谱生成错误，尤其是刚进入页面后首次点击非默认关注点时更明显。
+- 当前处理：`app.js` 在选中关注点但该关注点关系投影尚未返回时，不再渲染空的关系图谱详情区，改为显示“正在加载当前关注点关系数据”；投影加载完成后继续自动重渲染真实图谱。
+- 需要确认：无。该修复只处理前端加载状态，不改数据包、ETL、ViewModel 关系生成或业务映射语义。
+- 验证结果：2026-05-26 `node --check frontend/capability-browser/app.js`、`git diff --check` 与 `node scripts/frontend_smoke_check.mjs --page capability --url http://127.0.0.1:6191/frontend/capability-browser/ --debug-port 9591` 通过，`consoleIssues=0`、`bodyOverflowX=0`、`workspaceOverflowX=0`。
+
+## OI-086：技术视角矩阵把无适用服务显示为 1 个服务
+
+- 状态：已修复
+- 类型：前端展示 / 安全能力映射 / 技术视角矩阵
+- 对象或页面：`安全能力映射` 页的 `技术视角`，示例关注点 `T-OF.AT-02 网络攻击入侵目标选择...`
+- 现象：用户反馈进攻反制能力没有作用域对应安全技术服务，但技术视角矩阵仍显示一行 `I-US 用户 / 无适用服务 / 不适用`，右上角还显示 `1 服务`。
+- 影响：会把 `/` 或 `no_service` 这类“不存在有效服务映射”的状态误读成存在 1 个服务映射。
+- 当前处理：`FocusScopeServiceMatrix.js` 与 `CapabilityLocalRelationMap.js` 只将存在真实 `services` 的行或 `ambiguous_service_mapping` 异常行纳入技术视角矩阵；服务数只按真实服务计数。全是 `no_service` 时保留技术视角矩阵标题、表头和虚线空行，显示 `0 服务` 与“暂无作用域对应安全技术服务”，不再显示 `无适用服务` 行或图形化关系占位。
+- 需要确认：无。该修复只调整前端展示口径，不改数据包、ETL、ViewModel 关系生成或原始 `/` 语义。
+- 验证结果：2026-05-26 `node --check`、定点组件渲染探针、`git diff --check` 与 `node scripts/frontend_smoke_check.mjs --page capability --url http://127.0.0.1:6193/frontend/capability-browser/ --debug-port 9593` 通过；探针确认 `no_service` 行不再渲染 `1 服务`、`无适用服务` 或 `不适用`，而显示图形化关系占位空态。
+
+## OI-087：管理视角把上一行监督层职能继承到空值关注点
+
+- 状态：已修复
+- 类型：数据解析 / 安全能力映射 / 管理视角矩阵
+- 对象或页面：`安全能力映射` 页的 `管理视角`，示例关注点 `G-SP.SM-02 完善网络安全组织架构...`
+- 现象：用户反馈 `G-SP.SM-02` 的监督层应为空，但页面显示了上一条记录的监督层职能；同时检查 `T-OF.AT-03` 时发现管理关系曾因前端数据包未刷新而显示为空。
+- 影响：管理视角会把明确写成 `/` 的空层级误判为沿用上一行，导致监督层、执行层等职能被错误挂接到当前关注点。
+- 当前处理：`parse_management_high_level_sheet()` 在解析职能层级时，如果单元格是明确占位符 `/` 等空值标记，则清空该层级的继承上下文；真正的空白单元格仍保留原有向下沿用规则。随后重新审核 `安全能力-安全管理元素（high level）` 并导出 `capability-tree.json`、`capability-workbench.json`。
+- 需要确认：无。该修复不改变前端展示逻辑，只修正源表解析中“占位符空值”和“空白继承”的区别。
+- 验证结果：2026-05-26 数据库定点检查确认 `G-SP.SM-02` 不再有关联到监督层职能，`T-OF.AT-03` 已有关联 `进攻反制` 和 `进攻反制流程`；前端数据包定点检查确认 `G-SP.SM-02` 的流程职能只剩决策层、管理层对象。
+
+## OI-088：标准 / 框架无直接映射时空态样式方向错误
+
+- 状态：已修复
+- 类型：前端展示 / 安全能力映射 / 标准框架映射空态
+- 对象或页面：`安全能力映射` 页的 `标准 / 框架映射`，示例关注点 `T-OF.AT-01 对攻击行为进行溯源`。
+- 现象：用户确认之前方向说反了，标准 / 框架无直接映射时不应展示图形化关系占位块，应参考技术视角空矩阵样式。
+- 影响：图形化空态会误导用户以为存在一条“当前关注点 -> 待投影”关系链，不如矩阵空态清晰表达“当前表格暂无行”。
+- 当前处理：`CapabilityLocalRelationMap.js` 中标准 / 框架无直接映射时改为渲染矩阵面板，保留标题、`0 控制项` 汇总、`标准 / 框架` 与 `条款 / 控制项` 表头，并在表体显示虚线空行；空行文案按用户截图校正为单句 `暂无条款/控制项对应能力关注点`，不再显示额外说明文字。
+- 需要确认：无。该修复只调整空态 UI，不改数据包、ETL、ViewModel 关系语义或标准映射数据。
+- 验证结果：2026-05-26 `node --check`、`git diff --check`、capability smoke 与 headless 组件定点渲染通过；定点结果确认标准空态表头为 `标准 / 框架`、`条款 / 控制项`，图形关系节点数量为 0。2026-05-27 补充执行单句文案校正并通过目标文件语法与 diff 检查。
+
+## OI-089：前端验证频繁弹出 Chrome 意外退出且 5173 刷新不稳定
+
+- 状态：已修复
+- 类型：开发体验 / 本地预览 / 前端验证
+- 对象或页面：固定预览端口 `http://127.0.0.1:5173/`、`scripts/frontend_smoke_check.mjs`、`scripts/dev_server_guard.py`。
+- 现象：用户反馈修改前端时经常出现 macOS `Google Chrome 意外退出` 报告，并且固定 `5173` 端口刷新后有时看不到最新页面。
+- 影响：前端验证会干扰用户桌面环境，且旧缓存或旧服务会造成“明明改了但刷新没变化”的误判。
+- 当前处理：`frontend_smoke_check.mjs` 默认不再启动系统 Google Chrome，只做轻量 HTTP/API 检查；如确需 DOM / 截图 / console 验证，优先使用 Codex in-app browser，只有用户明确同意时才允许传 `--allow-system-chrome`。保留 DevTools `Browser.close` 优雅关闭作为显式 Chrome 验证的兜底；`api_server.py` 对本地静态预览输出 `Cache-Control: no-store`；`dev_server_guard.py` 增加 `--restart`，并让 `--fix-duplicates --start` 可先清理占用端口的旧 `http.server` 再启动项目服务。
+- 需要确认：如果用户手动用系统 Chrome 打开大量普通网页导致崩溃，本问题不覆盖；本修复针对 Codex 前端验证脚本拉起系统 Chrome 的情况。
+- 验证结果：2026-05-27 `node --check scripts/frontend_smoke_check.mjs`、`python3 -m py_compile src/sapd_wiki/api_server.py scripts/dev_server_guard.py`、`python3 scripts/dev_server_guard.py --restart`、`curl -I http://127.0.0.1:5173/app.js` 和目标文件 `git diff --check` 通过；`app.js` 返回 `Cache-Control: no-store, max-age=0, must-revalidate`。同日补充修复：默认 smoke 不再启动系统 Google Chrome，`node scripts/frontend_smoke_check.mjs --page capability --url http://127.0.0.1:5173/` 以 `browserSkipped=true` 轻量模式通过。
+
+## OI-090：整体能力节点刷新后关系数据不显示或不完整
+
+- 状态：已修复
+- 类型：前端加载时序 / 安全能力映射 / 整体能力节点
+- 对象或页面：`安全能力映射` 页，示例节点 `T-OF 进攻 Offense`、`安全治理能力 G`、`安全管理能力 M`。
+- 现象：用户反馈进攻能力、安全治理能力、安全管理能力等整体节点经常刷新后不显示数据。
+- 影响：用户刷新后会误以为整体能力节点没有业务关系数据；实际数据在完整 `capability-workbench` 中存在，但轻量初始投影只包含目录和默认关注点关系，无法覆盖整体节点的全部关系。
+- 当前处理：`app.js` 在刷新恢复或点击选中非 `capability_focus` 的整体节点时，如果完整 `capabilityWorkbench` 尚未加载，则自动补载完整能力工作台数据；补载期间显示“正在加载整体能力关系数据”，数据返回后自动重渲染。关注点节点仍沿用小投影 `workspace-projection?focus_id=...`，不扩大单关注点加载成本。
+- 需要确认：无。该修复只调整前端按需加载时序，不改 ETL、schema、原始 Excel 或数据包内容。
+- 验证结果：2026-05-27 `node --check frontend/capability-browser/app.js`、`node --check scripts/frontend_smoke_check.mjs` 与目标文件 `git diff --check` 通过；使用 `--workspace-state-json` 分别模拟刷新恢复到 `T-OF`、`安全治理能力 G`、`安全管理能力 M`，三次 capability smoke 均通过，`consoleIssues=0`、`bodyOverflowX=0`、`capabilityMap=true`，详情文本已显示对应整体能力关系内容。
+
+## OI-091：关注点刷新后管理视角被轻量空壳数据覆盖
+
+- 状态：已修复
+- 类型：前端加载时序 / API 投影 / 安全能力映射 / 关注点节点
+- 对象或页面：`安全能力映射` 页，示例关注点 `T-OF.AT-02 入侵目标选择及评估分析` 的 `管理视角`。
+- 现象：用户刷新页面后，`T-OF.AT-02` 管理视角显示 `0 职能`，表格中出现 `暂无安全工作`、`暂无职能`、`暂无 L2 流程组`、`暂无 L3 流程`，但源数据和能力数据包中该关注点实际存在安全工作、流程组、流程和职能映射。
+- 影响：用户会误判为数据未导入或管理映射丢失；实际原因是页面按业务 code 请求小投影，而后端只按内部 UUID 过滤，同时前端把轻量首屏包当成完整 workbench 重建出空管理行。
+- 当前处理：`api_server.py` 的 `workspace-projection?focus_id=...` 同时支持关注点内部 `id` 和业务 `code` 匹配，并在 `localRelationMapsByFocusId` 中同时写入 `id` 与 `code` 键；`viewModels.js` 识别 `compatibility.mode=initial_projection` 的轻量首屏包，不再从空 `objects/relations` 中重建 workbench 行，改用后端投影返回的真实 `managementMappingRows` 和 `localRelationMap`。
+- 需要确认：无。该修复不改 ETL、schema、原始 Excel 或生成数据包，只修正刷新后的投影筛选和前端数据源优先级。
+- 验证结果：2026-05-27 `python3 -m py_compile src/sapd_wiki/api_server.py`、`node --check frontend/capability-browser/viewModels.js` 通过；重启 `5173` 后定点 API 返回 `T-OF.AT-02` 的 `managementRows=1`、安全工作 `入侵目标选择及评估分析`、职能层级 `decision=1 / management=1 / execution=2 / supervision=0`；本地 Node 模拟刷新后的 ViewModel 返回 `source=backend_projection`、`managementRows=1`。
+
+## OI-092：安全能力管理视角 ETL 合并单元格和顿号解析导致流程/职能映射错误
+
+- 状态：已修复
+- 类型：ETL 解析 / 安全能力映射 / 管理视角 / 职能映射
+- 对象或页面：`安全能力映射` 页的管理视角；来源 Sheet `安全能力-安全管理元素（high level）` 与 `安全能力-安全工作`。
+- 现象：全量审计发现 `安全能力-安全管理元素（high level）` 中的 L3 流程参考存在两类高风险解析问题：一是 Excel 合并单元格内部的 L3 流程参考没有按锚点值继承，导致 `T-AS.LA-02`、`T-PD.PP-02/03`、`T-IN.IO-02` 等关注点缺少管理流程映射；二是流程名 `身份、凭证与访问管理策略运营流程` 被按顿号拆成 `身份` 和 `凭证与访问管理策略运营流程` 两条错误流程。该类问题会进一步造成页面管理视角的流程和职能映射缺失、重复或错配。
+- 影响：这是 ETL 级别的严重数据质量问题，会让安全能力映射页面展示与原始业务 Sheet 不一致，用户无法信任管理视角、流程和职能关系。
+- 当前处理：`parsers.py` 改为非只读方式加载 workbook，以便读取合并单元格范围；新增合并单元格锚点值读取 helper；`parse_management_high_level_sheet()` 对 L2 能力、L2 流程组、L3 流程参考和四层职能列使用合并单元格有效值；L3 流程参考拆分不再按中文顿号 `、` 拆分；四层职能列继续把显式 `/` 作为清空，不再继承上一行。新增 `scripts/audit_capability_management_mappings.py`，固定执行“原始 Sheet 有效值 -> 导出 capability-tree”的全量审计。
+- 需要确认：无。该修复按原始 Excel 合并单元格语义和显式 `/` 空值语义执行，不改变业务字段定义。
+- 验证结果：2026-05-27 重新 stage/approve 第二批 Sheet，审批结果 `items_updated=517`、`relations_created=21`、`relations_deleted=22`、`warnings=[]`；重新导出 `capability-tree.json`、`capability-workbench.json` 和 second-batch summary；`python3 scripts/audit_capability_management_mappings.py` 通过，结果为 `high_level_issue_count=0`、`placeholder_leak_count=0`、`security_work_issue_count=0`、`issue_count=0`；`python3 -m py_compile scripts/audit_capability_management_mappings.py src/sapd_wiki/parsers.py` 和目标文件 `git diff --check` 通过。
+
+## OI-092：LC-DT 来源证据存在重复 source_references
+
+- 状态：待确认
+- 类型：数据治理 / ETL 来源追踪
+- 对象或页面：`LC-DT数据生命周期安全`，涉及 `lifecycle-knowledge.json` 中的数据生命周期对象来源证据。
+- 现象：2026-05-27 全面复核 LC-DT 源表到页面投影时，业务主数据未发现漏导入、错误换行或继承错误，但 SQLite `source_references` 中 LC-DT item / relation 来源存在重复记录。例如关系来源按物理单元格去重前后差异明显：`LC-DT 安全技术服务、模块、策略映射表` 的 `安全技术服务` 来源总数 1184、去重后 95；`LC-DT 数据生命周期` 的 `安全技术服务` 来源总数 963、去重后 76。
+- 影响：当前不影响页面主展示数据和关系数量，但会放大来源证据体积，并可能影响后续证据面板、导出包大小和来源追踪可读性。
+- 当前处理：已记录为数据治理问题。本轮未清理数据库，也未改 ETL 写入逻辑；LC-DT 页面业务数据核对结果仍为通过。
+- 需要确认：后续是否在 source reference 写入或导出阶段做去重收口；如果要修复，建议先设计通用去重规则，避免影响其他页面来源证据。
+- 修复说明：未修复。
+- 验证结果：2026-05-27 只读核对确认 `lifecycle-knowledge.json` 与 `lifecycle-workbench.json` 的 LC-DT 业务对象和关系完整：7 个过程、31 个场景、74 个过程级服务关联、29 个模块关联、1 个措施关联，源表与投影一致，端点缺失 0。
+
+## OI-092：LC-AP 安全技术模块/措施列用规范关系回填导致原始字段值少一项
+
+- 状态：已修复
+- 类型：前端展示 / 数据投影 / LC-AP安全开发生命周期
+- 对象或页面：`LC-AP安全开发生命周期` 页，下表 `阶段安全控制与威胁补充策略表` 的 `安全技术模块/措施` 列。
+- 现象：对 `LC-AP 应用安全开发生命周期` 源表做全字段复核时发现，AP-03 `编码开发` 的原始 `安全技术模块` 单元格有 3 行：`应用程序静态安全测试`、`软件成分分析（SCA）`、`应用程序静态安全测试（安全函数和组件库）`；页面 ViewModel 此前用规范化后的关系对象回填该列，只显示 `应用程序静态安全测试` 和 `软件成分分析（SCA）`，漏掉原始字段中的第三行。
+- 影响：虽然 ETL 关系把 `应用程序静态安全测试（安全函数和组件库）` 按治理口径归并到标准模块 `应用程序静态安全测试`，但主表展示应遵守原表字段，不能因关系规范化而少显示原始业务值。
+- 当前处理：`viewModels.js` 中 LC-AP 下表改为优先按原始 `安全技术模块` 字段逐行展示；模块/措施标签仍参考关系对象判断。精确或前缀匹配到安全技术措施关系的行显示为 `措施`，其余显示为 `模块`。
+- 需要确认：无。本修复只改展示层，不改 ETL、schema、原始 Excel、数据库或生成数据包。
+- 验证结果：2026-05-27 对源表 8 个 AP 阶段、13 个主展示字段做 ViewModel 逐字段比对，除 `/` 与空数组的等价空值外差异为 0；AP-03 已显示 3 个 `安全技术模块/措施` 值，且均标为 `模块`。`node --check frontend/capability-browser/viewModels.js`、`node --check frontend/capability-browser/components/ApplicationSecurityLifecycle.js` 与 `git diff --check` 通过。
+
+## OI-093：安全能力作用域清单主数据被关联表同编码作用域覆盖
+
+- 状态：已修复
+- 类型：ETL / 数据投影 / 安全知识 / 作用域主数据
+- 对象或页面：`安全知识 > 安全能力作用域清单`，来源 Sheet `安全能力作用域目录`。
+- 现象：2026-05-27 安全知识全量数据审计发现，当前 `maintenance-knowledge.json` 的 `scope_types` 为 10 条，但 `安全能力作用域目录` 原表只有 9 条。数据包多出 `ALL 全部作用域`，且部分同编码作用域标题被 `安全能力-安全技术服务` 表头覆盖：`安全能力作用域目录!C4` 原值 `I-DI 数据与信息` 被导出为 `I-DI 数据`；`安全能力作用域目录!C7` 原值 `I-OS 操作系统` 被导出为 `I-OS 操作系统（主机/终端）`。同时作用域顺序不再跟随原表第 3-11 行顺序。
+- 影响：作用域目录页不再是原始作用域主数据目录，会误导用户以为作用域名称和数量已被主表确认。
+- 当前处理：用户已确认 `安全能力作用域清单` 只以 `安全能力作用域目录` 为目录主数据；关联表中的 `ALL` 和同编码短标题只能用于关系映射或别名，不进入目录主表。
+- 需要确认：无。
+- 修复说明：`export_management_knowledge()` 导出作用域目录时改为读取最新 Excel 中 `安全能力作用域目录` 的主数据行，按原表第 3-11 行顺序输出 9 条，并用原表标题、描述和情景覆盖同编码关联表短标题；`ALL 全部作用域` 不再进入目录主表。
+- 验证结果：2026-05-27 重新导出 `maintenance-knowledge.json` 后，`scope_types=9`；定点审计确认 `I-DI=数据与信息`、`I-OS=操作系统`，无 `ALL 全部作用域`，顺序与原表一致。
+
+## OI-094：安全职能流程清单混入 high-level 流程参考并发生顿号误拆
+
+- 状态：已修复
+- 类型：ETL / 数据投影 / 安全知识 / 流程目录
+- 对象或页面：`安全知识 > 安全管理工作/流程清单 > 安全职能流程清单`。
+- 现象：2026-05-27 安全知识全量数据审计发现，`安全职能流程清单（完善L4）` 原表显式 L3 流程参考为 77 条，但 `maintenance-knowledge.json` 中 `process_references` 为 85 条。多出的 8 条来自 `安全能力-安全管理元素（high level）`，不是流程目录原表。例如 `安全能力-安全管理元素（high level）!H14` 原值 `身份、凭证与访问管理策略运营流程` 被拆成 `身份` 和 `凭证与访问管理策略运营流程` 两条，其中 `身份` 是明显错误流程名。
+- 影响：流程目录页混入映射表派生对象，且错误拆分会生成不存在的流程条目，影响安全知识目录可信度。
+- 当前处理：用户已确认流程目录页只展示 `安全职能流程清单（完善L4）` 原表流程；high-level 表中的流程只作为能力映射关系使用，不补入流程目录主表。用户修改原始数据后，已重新核对复核清单 `docs/06-implementation/high-level-process-review-checklist-2026-05-27.md`，当前 high-level 表不再存在不在流程目录主表中的 L3 流程参考；已重新 ETL / 审核 / 导出第二批数据。
+- 需要确认：无。
+- 修复说明：`export_management_knowledge()` 中 `security_processes` 只保留带有 `安全职能流程清单（完善L4）` 来源的流程参考；`安全能力-安全管理元素（high level）` 的流程参考不再补入流程目录主表。`身份` 这类由顿号误拆产生的 high-level 派生流程不再出现在安全职能流程目录。
+- 验证结果：2026-05-27 重新导出 `maintenance-knowledge.json` 后，`process_references=78`、`process_activity_missing=78`；定点审计确认 high-level 表、流程目录主表和导出包三方唯一 L3 流程均为 78 条，差集为 0，且 `攻防演练/沙盘推演流程` 已进入流程目录导出包；管理映射审计 `issue_count=0`。
+
+## OI-095：安全技术措施目录混入 LC-AP / LC-DT 生命周期措施
+
+- 状态：已修复
+- 类型：数据边界 / ETL 投影 / 安全知识 / 安全技术措施
+- 对象或页面：`安全知识 > 安全技术模块/措施清单 > 安全技术措施目录`。
+- 现象：2026-05-27 安全知识全量数据审计发现，`作用域-安全技术服务-安全技术模块映射` 中按底色识别出的主映射措施为 28 条，但当前 `maintenance-knowledge.json` 的 `security_technical_measures` 为 32 条。多出的 4 条来自生命周期表：`数据销毁` 来自 `LC-DT 安全技术服务、模块、策略映射表!N69:N70` 和 `LC-DT 数据生命周期!I30`；`应用程序威胁建模` 来自 `LC-AP 应用安全开发生命周期!R5`；`制品安全加固` 来自 `LC-AP 应用安全开发生命周期!R7`；`IaC代码安全测试` 来自 `LC-AP 应用安全开发生命周期!R8`。
+- 影响：安全技术措施目录页混入 LC-AP / LC-DT 生命周期措施后，这 4 条缺少安全知识措施目录所需的安全技术服务和作用域映射，页面统计和关系列会出现空映射。
+- 当前处理：用户已确认 `安全技术措施目录` 允许保留这 4 条 LC-AP / LC-DT 生命周期措施，但需要补齐独立来源标签和适配字段；如果没有作用域映射，则在安全技术措施页显示待补充关联关系。
+- 需要确认：无。
+- 修复说明：`security_technical_measures` 导出为措施补充 `source_label`、`source_kind`、`mapping_status_label`；LC-AP / LC-DT 4 条措施保留在目录中，来源分别标为 `LC-AP 生命周期措施` / `LC-DT 生命周期措施`。前端措施表新增 `来源标签` 列，并在缺少服务或作用域时显示 `待补充关联安全技术服务` / `待补充关联作用域`。
+- 验证结果：2026-05-27 重新导出 `maintenance-knowledge.json` 后，`security_technical_measures=32`；定点审计确认 `数据销毁`、`应用程序威胁建模`、`制品安全加固`、`IaC代码安全测试` 均为 `pending`，来源标签正确，且无误造服务或作用域映射。
+
+## OI-096：应用系统目录系统类型和组件顺序未按原表保留
+
+- 状态：已修复
+- 类型：数据投影 / 安全知识 / 应用系统目录 / 排序
+- 对象或页面：`安全知识 > 应用系统目录`，来源 Sheet `LC-AP 应用安全开发生命周期元素目录`。
+- 现象：2026-05-27 安全知识全量数据审计发现，应用系统类型和组件条数完整，但顺序被导出层按标题重排。原表系统类型顺序为 `传统应用 -> 微服务应用 -> 中台类应用`，数据包顺序为 `中台类应用 -> 传统应用 -> 微服务应用`。`微服务应用` 原表组件顺序为 `网关层 -> 用户接入层 -> 应用服务层 -> 数据访问层 -> 数据存储层`，数据包顺序变为 `应用服务层 -> 数据存储层 -> 数据访问层 -> 用户接入层 -> 网关层`；`中台类应用` 原表组件顺序也被重排。
+- 影响：页面无法按原始目录阅读，用户之前已要求此类目录按原始表格顺序排序。
+- 当前处理：用户已确认应用系统目录按原表排序。
+- 需要确认：无。
+- 修复说明：`export_lifecycle_knowledge()` 导出应用系统目录时改为按 `LC-AP 应用安全开发生命周期元素目录` 来源行排序；系统类型和应用组件均不再按标题重排。
+- 验证结果：2026-05-27 重新导出 `lifecycle-knowledge.json` 后，应用系统类型顺序为 `传统应用 -> 微服务应用 -> 中台类应用`；`微服务应用`、`中台类应用` 的组件顺序均与原表一致，仍为 3 类 / 13 个组件。

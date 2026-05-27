@@ -580,7 +580,35 @@
     };
   }
 
-  function edgePath(source, target, type = "") {
+  function managementFunctionEdgeType(type = "") {
+    return type === "management_function_root_to_layer" || type === "layer_to_function";
+  }
+
+  function boundaryPoint(source, target, radius = 0, direction = 1) {
+    const dx = target.x - source.x;
+    const dy = target.y - source.y;
+    const distance = Math.hypot(dx, dy) || 1;
+    return {
+      x: source.x + (dx / distance) * radius * direction,
+      y: source.y + (dy / distance) * radius * direction,
+    };
+  }
+
+  function edgePath(source, target, type = "", sourceRadius = 0, targetRadius = 0) {
+    if (managementFunctionEdgeType(type)) {
+      const start = boundaryPoint(source, target, sourceRadius + 4, 1);
+      const end = boundaryPoint(target, source, targetRadius + 4, 1);
+      const deltaX = end.x - start.x;
+      const deltaY = end.y - start.y;
+      if (type === "layer_to_function" && Math.abs(deltaX) < 120) {
+        const handle = Math.max(34, Math.abs(deltaY) * 0.42);
+        const direction = deltaY >= 0 ? 1 : -1;
+        return `M ${start.x} ${start.y} C ${start.x} ${start.y + handle * direction}, ${end.x} ${end.y - handle * direction}, ${end.x} ${end.y}`;
+      }
+      const dx = Math.max(28, Math.abs(deltaX) * 0.4);
+      const direction = deltaX >= 0 ? 1 : -1;
+      return `M ${start.x} ${start.y} C ${start.x + dx * direction} ${start.y}, ${end.x - dx * direction} ${end.y}, ${end.x} ${end.y}`;
+    }
     const dx = Math.max(80, Math.abs(target.x - source.x) * 0.44);
     const direction = target.x >= source.x ? 1 : -1;
     const bend = type === "focus_to_standard_status" ? 34 : type === "decorative_link" ? 0 : 6;
@@ -591,17 +619,19 @@
     return `network-edge ${edge.isDecorative ? "is-decorative" : "is-business"} edge-${nodeClass(edge.type)}`;
   }
 
-  function renderEdge(edge, positions, extraClass = "") {
+  function renderEdge(edge, positions, nodesById = new Map(), extraClass = "") {
     const source = positions.get(edge.source);
     const target = positions.get(edge.target);
     if (!source || !target) return "";
-    return `<path class="${escape(`${edgeClass(edge)} ${extraClass}`)}" d="${edgePath(source, target, edge.type)}" />`;
+    const sourceRadius = managementFunctionEdgeType(edge.type) ? nodeRadius(nodesById.get(edge.source)) : 0;
+    const targetRadius = managementFunctionEdgeType(edge.type) ? nodeRadius(nodesById.get(edge.target)) : 0;
+    return `<path class="${escape(`${edgeClass(edge)} ${extraClass}`)}" d="${edgePath(source, target, edge.type, sourceRadius, targetRadius)}" />`;
   }
 
-  function incidentEdges(nodeId, edges, positions) {
+  function incidentEdges(nodeId, edges, positions, nodesById = new Map()) {
     return list(edges)
       .filter((edge) => !edge.isDecorative && (edge.source === nodeId || edge.target === nodeId))
-      .map((edge) => renderEdge(edge, positions, "node-hover-edge"))
+      .map((edge) => renderEdge(edge, positions, nodesById, "node-hover-edge"))
       .join("");
   }
 
@@ -631,6 +661,14 @@
     const isNearLeftEdge = position.x < 260;
     const verticalOutward = Math.abs(relativeX) < 58 && Math.abs(relativeY) > 130;
     const focusVertical = isL2FocusNode && Math.abs(relativeX) < 95;
+    if (node.type === "security_function_layer") {
+      const textY = position.y - radius - 14;
+      return `
+        <text class="network-node-title" x="${position.x}" y="${textY}" text-anchor="middle">
+          ${lines.map((line, index) => `<tspan x="${position.x}" dy="${index === 0 ? 0 : 12}">${escape(line)}</tspan>`).join("")}
+        </text>
+      `;
+    }
     const anchor = focusVertical || verticalOutward ? "middle" : isL2FocusNode ? (relativeX >= 0 ? "end" : "start") : isNearRightEdge ? "end" : isNearLeftEdge ? "start" : relativeX < 0 ? "end" : "start";
     const textOffset = isL2FocusNode ? 15 : 8;
     const textX = focusVertical || verticalOutward ? position.x : anchor === "end" ? position.x - radius - textOffset : position.x + radius + textOffset;
@@ -646,7 +684,7 @@
     `;
   }
 
-  function renderNode(node, graphModel, positions) {
+  function renderNode(node, graphModel, positions, nodesById = new Map()) {
     const position = positions.get(node.id);
     if (!position || node.isDecorative) return "";
     const radius = nodeRadius(node);
@@ -658,7 +696,7 @@
     return `
       <g class="network-node-wrap node-${escape(nodeClass(node.type))} ${escape(hierarchyClass)} ${node.isCurrent ? "is-current" : ""}" tabindex="0" data-graph-node-id="${escape(node.id)}" role="listitem" aria-label="${escape(titleParts.join("，"))}">
         <title>${escape(titleParts.join(" / "))}</title>
-        ${incidentEdges(node.id, graphModel.edges, positions)}
+        ${incidentEdges(node.id, graphModel.edges, positions, nodesById)}
         ${node.isCurrent ? `<circle class="network-node-halo" cx="${position.x}" cy="${position.y}" r="112" />` : ""}
         <circle class="network-node-shape" cx="${position.x}" cy="${position.y}" r="${radius}" />
         ${renderNodeText(node, position, radius, currentPosition, strategy)}
@@ -796,6 +834,7 @@
     bindGraphInteractions();
     const model = graphModel || { nodes: [], edges: [], groups: [], stats: {} };
     const nodes = list(model.nodes);
+    const nodesById = new Map(nodes.map((node) => [node.id, node]));
     const businessNodes = nodes.filter((node) => !node.isDecorative);
     if (!businessNodes.length) {
       return `<section class="local-relation-network-graph"><div class="preview-table-empty"><strong>暂无本地关联图谱</strong><span>当前关注点尚未形成可展示的关系投影。</span></div></section>`;
@@ -834,12 +873,12 @@
               <g class="network-business-edge-layer" aria-hidden="true">
                 ${list(model.edges)
                   .filter((edge) => !edge.isDecorative)
-                  .map((edge) => renderEdge(edge, positions))
+                  .map((edge) => renderEdge(edge, positions, nodesById))
                   .join("")}
               </g>
               ${renderGroupLabels()}
               <g class="network-node-layer" role="list">
-                ${businessNodes.map((node) => renderNode(node, model, positions)).join("")}
+                ${businessNodes.map((node) => renderNode(node, model, positions, nodesById)).join("")}
               </g>
             </g>
           </svg>

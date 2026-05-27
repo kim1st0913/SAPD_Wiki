@@ -24,50 +24,47 @@
     version: "v1",
     appName: "SAPD Wiki",
     navigation: [
-      { id: "global-navigation", label: "全局导航", route: "/", type: "application-shell", priority: "P0", children: [] },
+      { id: "global-navigation", label: "全局导航", route: "/", type: "application-shell", children: [] },
       {
         id: "guides",
         label: "安全指南",
         route: "/guides",
         type: "document-hub",
-        priority: "P2",
         children: [
-          { id: "security-architecture-design", label: "安全技术架构设计方法", route: "/guides/security-architecture-design", type: "document-page", priority: "P2", children: [] },
-          { id: "data-security-design", label: "数据安全设计方法", route: "/guides/data-security-design", type: "document-page", priority: "P2", children: [] },
-          { id: "security-governance-model", label: "安全管控模式设计方法", route: "/guides/security-governance-model", type: "document-page", priority: "P2", children: [] },
-          { id: "maturity-model-usage", label: "成熟度模型使用方法", route: "/guides/maturity-model-usage", type: "document-page", priority: "P2", children: [] },
-          { id: "other-guides", label: "其他指南", route: "/guides/others", type: "placeholder-page", priority: "P3", children: [] },
+          { id: "security-architecture-design", label: "安全技术架构设计方法", route: "/guides/security-architecture-design", type: "document-page", children: [] },
+          { id: "data-security-design", label: "数据安全设计方法", route: "/guides/data-security-design", type: "document-page", children: [] },
+          { id: "security-governance-model", label: "安全管控模式设计方法", route: "/guides/security-governance-model", type: "document-page", children: [] },
+          { id: "maturity-model-usage", label: "成熟度模型使用方法", route: "/guides/maturity-model-usage", type: "document-page", children: [] },
+          { id: "other-guides", label: "其他指南", route: "/guides/others", type: "placeholder-page", children: [] },
         ],
       },
-      { id: "capability-mapping", label: "安全能力映射", route: "/capability-mapping", type: "capability-mapping-workbench", priority: "P1", children: [] },
-      { id: "environment-mapping", label: "信息化环境安全能力映射", route: "/environment-mapping", type: "environment-mapping-workbench", priority: "P1", children: [] },
-      { id: "development-security", label: "开发安全", route: "/development-security", type: "domain-module", priority: "P3", children: [] },
-      { id: "data-security", label: "数据安全", route: "/data-security", type: "domain-module", priority: "P3", children: [] },
-      { id: "sapd-maturity-assessment", label: "SAPD成熟度评估", route: "/sapd-maturity-assessment", type: "domain-module", priority: "P2", children: [] },
+      { id: "capability-mapping", label: "安全能力映射", route: "/capability-mapping", type: "capability-mapping-workbench", children: [] },
+      { id: "environment-mapping", label: "信息化环境安全能力映射", route: "/environment-mapping", type: "environment-mapping-workbench", children: [] },
+      { id: "development-security", label: "LC-AP安全开发生命周期", route: "/development-security", type: "domain-module", children: [] },
+      { id: "data-security", label: "LC-DT数据生命周期安全", route: "/data-security", type: "domain-module", children: [] },
+      { id: "sapd-maturity-assessment", label: "SAPD成熟度评估", route: "/sapd-maturity-assessment", type: "domain-module", children: [] },
       {
         id: "knowledge",
         label: "安全知识",
         route: "/knowledge",
         type: "knowledge-directory",
-        priority: "P2",
         children: [
-          { id: "security-scopes", label: "安全能力作用域目录", route: "/knowledge/scopes", type: "knowledge-directory", priority: "P2", children: [] },
-          { id: "technical-knowledge", label: "安全技术模块/措施清单", route: "/knowledge/technical", type: "knowledge-directory", priority: "P2", children: [] },
-          { id: "management-workflows", label: "安全管理工作/流程清单", route: "/knowledge/management-workflows", type: "knowledge-directory", priority: "P2", children: [] },
-          { id: "application-systems", label: "应用系统目录", route: "/knowledge/application-systems", type: "knowledge-directory", priority: "P2", children: [] },
+          { id: "security-scopes", label: "安全能力作用域目录", route: "/knowledge/scopes", type: "knowledge-directory", children: [] },
+          { id: "technical-knowledge", label: "安全技术模块/措施清单", route: "/knowledge/technical", type: "knowledge-directory", children: [] },
+          { id: "management-workflows", label: "安全管理工作/流程清单", route: "/knowledge/management-workflows", type: "knowledge-directory", children: [] },
+          { id: "application-systems", label: "应用系统目录", route: "/knowledge/application-systems", type: "knowledge-directory", children: [] },
           {
             id: "security-functions",
             label: "安全职能清单",
             route: "/knowledge/functions",
             type: "knowledge-directory",
-            priority: "P2",
             children: [
-              { id: "security-functions-gbt", label: "GB/T 42446-2023", route: "/knowledge/gbt-42446", type: "knowledge-directory", priority: "P2", children: [] },
-              { id: "security-functions-gartner", label: "Gartner 工作岗位参考", route: "/knowledge/role-references", type: "knowledge-directory", priority: "P2", children: [] },
+              { id: "security-functions-gbt", label: "GB/T 42446-2023", route: "/knowledge/gbt-42446", type: "knowledge-directory", children: [] },
+              { id: "security-functions-gartner", label: "Gartner 工作岗位参考", route: "/knowledge/role-references", type: "knowledge-directory", children: [] },
             ],
           },
-          { id: "hype-cycle", label: "Hype Cycle", route: "/knowledge/hype-cycle", type: "knowledge-directory", priority: "P3", children: [] },
-          { id: "other-knowledge", label: "其他知识目录", route: "/knowledge/others", type: "placeholder-page", priority: "P3", children: [] },
+          { id: "hype-cycle", label: "Hype Cycle", route: "/knowledge/hype-cycle", type: "knowledge-directory", children: [] },
+          { id: "other-knowledge", label: "其他知识目录", route: "/knowledge/others", type: "placeholder-page", children: [] },
         ],
       },
       {
@@ -75,16 +72,15 @@
         label: "安全标准 / 框架",
         route: "/standards",
         type: "standard-framework-directory",
-        priority: "P2",
         children: [
-          { id: "mlps-level-3", label: "等级保护三级", route: "/standards/mlps-level-3", type: "standard-framework-page", priority: "P2", children: [] },
-          { id: "nist-csf-2", label: "NIST CSF 2.0", route: "/standards/nist-csf-2", type: "standard-framework-page", priority: "P2", children: [] },
-          { id: "iso-27001-2022", label: "ISO/IEC 27001:2022", route: "/standards/iso-27001-2022", type: "standard-framework-page", priority: "P2", children: [] },
-          { id: "dsp-level-2", label: "DSP Secure Controls Framework (SCF) - 2026", route: "/standards/dsp-level-2", type: "standard-framework-page", priority: "P2", children: [] },
-          { id: "cis-csc-v8", label: "CIS CSC v8", route: "/standards/cis-csc-v8", type: "standard-framework-page", priority: "P2", children: [] },
-          { id: "crf", label: "CRF", route: "/standards/crf", type: "standard-framework-page", priority: "P2", children: [] },
-          { id: "nist-800-53-rev5", label: "NIST SP 800-53 Rev.5", route: "/standards/nist-800-53-rev5", type: "standard-framework-page", priority: "P2", children: [] },
-          { id: "other-standards", label: "其他标准 / 框架", route: "/standards/others", type: "placeholder-page", priority: "P3", children: [] },
+          { id: "mlps-level-3", label: "等级保护三级", route: "/standards/mlps-level-3", type: "standard-framework-page", children: [] },
+          { id: "nist-csf-2", label: "NIST CSF 2.0", route: "/standards/nist-csf-2", type: "standard-framework-page", children: [] },
+          { id: "iso-27001-2022", label: "ISO/IEC 27001:2022", route: "/standards/iso-27001-2022", type: "standard-framework-page", children: [] },
+          { id: "dsp-level-2", label: "DSP Secure Controls Framework (SCF) - 2026", route: "/standards/dsp-level-2", type: "standard-framework-page", children: [] },
+          { id: "cis-csc-v8", label: "CIS CSC v8", route: "/standards/cis-csc-v8", type: "standard-framework-page", children: [] },
+          { id: "crf", label: "CRF", route: "/standards/crf", type: "standard-framework-page", children: [] },
+          { id: "nist-800-53-rev5", label: "NIST SP 800-53 Rev.5", route: "/standards/nist-800-53-rev5", type: "standard-framework-page", children: [] },
+          { id: "other-standards", label: "其他标准 / 框架", route: "/standards/others", type: "placeholder-page", children: [] },
         ],
       },
     ],
@@ -162,8 +158,8 @@
     "/guides/data-security-design": "以本地幻灯片形式浏览数据安全设计方法，后续可扩展为数据安全设计指南目录。",
     "/capability-mapping": "从安全能力和关注点出发，核对技术视角、管理视角和标准 / 框架映射。",
     "/environment-mapping": "从信息化环境和对象出发，核对对象、作用域、服务、模块、措施和能力关联。",
-    "/development-security": "以 LC-AP 开发安全生命周期阶段和活动为主语，承载受控专项关系投影。",
-    "/data-security": "保留当前数据生命周期维度页面入口，后续再按数据安全专题契约收口。",
+    "/development-security": "以 LC-AP安全开发生命周期阶段和活动为主语，承载受控专项关系投影。",
+    "/data-security": "以 LC-DT 数据生命周期过程和场景为主语，承载数据安全服务、模块和措施的受控专项关系投影。",
     "/sapd-maturity-assessment": "成熟度评估已纳入菜单规划，评分填报和结果生成将在独立模块中实现。",
     "/knowledge": "集中维护作用域、技术模块、技术措施、安全工作、流程、职能和岗位参考等知识对象。",
     "/knowledge/technical": "安全系统（为解决某一场景 / 领域的安全问题，由多个安全模块组成、协同运行的实体）；安全技术模块（实现一个或多个安全能力的安全技术逻辑实体，可以独立部署运行，通常代表一类安全产品）。",
@@ -321,6 +317,7 @@
 
   function renderPageHeader({ activeRoute = "/" } = {}) {
     const item = findNavItem(activeRoute);
+    const pageTitle = activeRoute === "/development-security" ? "LC-AP安全开发生命周期" : activeRoute === "/data-security" ? "LC-DT数据生命周期安全" : item.label;
     const rootRoute = parentForRoute(activeRoute)?.route || activeRoute;
     const description = PAGE_DESCRIPTIONS[activeRoute] || PAGE_DESCRIPTIONS[rootRoute] || "当前页面通过 Manifest 导航进入，业务内容由现有前端 ViewModel 渲染。";
     const target = getRouteTarget(activeRoute);
@@ -332,9 +329,8 @@
         <div class="page-header-copy">
           ${renderBreadcrumb(activeRoute)}
           <div class="page-title-row">
-            <h1>${escapeHtml(item.label)}</h1>
+            <h1>${escapeHtml(pageTitle)}</h1>
             ${isSourceTablePage ? '<span id="pageHeaderCount" class="page-title-summary" hidden></span>' : ""}
-            ${isSourceTablePage ? "" : `<span class="shell-tag">${escapeHtml(item.priority || "规划")}</span>`}
             ${isSourceTablePage ? "" : `<span class="shell-tag muted">${escapeHtml(TYPE_LABELS[item.type] || item.type)}</span>`}
           </div>
           <p>${escapeHtml(description)}</p>

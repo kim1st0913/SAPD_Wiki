@@ -2,6 +2,7 @@ const state = {
   capability: null,
   capabilityWorkbench: null,
   capabilityWorkbenchViewModel: null,
+  capabilityInitial: null,
   capabilityProjection: null,
   sharedLookups: null,
   environmentWorkbench: null,
@@ -30,6 +31,8 @@ const state = {
   selectedEnvironmentRowId: null,
   selectedDevProcessId: null,
   selectedDataProcessId: null,
+  devLifecycleStageSearch: "",
+  dataLifecycleStageSearch: "",
   selectedMaintenanceId: null,
   selectedContentId: null,
   selectedContentSlideIndex: 0,
@@ -47,6 +50,7 @@ const state = {
 const $ = (id) => document.getElementById(id);
 const list = (value) => (Array.isArray(value) ? value : []);
 const text = (value) => (value == null ? "" : String(value));
+const WORKSPACE_STATE_STORAGE_KEY = "sapd:workspace-state:v1";
 const escapeHtml = (value) =>
   text(value)
     .replaceAll("&", "&amp;")
@@ -62,10 +66,81 @@ const titleOf = (value, fallback = "未命名") => {
 
 const codeTitle = (value, fallback = "未命名") => [value?.code, titleOf(value, fallback)].filter(Boolean).join(" ");
 const matchesSearch = (...values) => values.map(text).join(" ").toLowerCase().includes(state.search.toLowerCase());
+const matchesTextQuery = (query, ...values) => {
+  const normalized = text(query).trim().toLowerCase();
+  if (!normalized) return true;
+  return values.map(text).join(" ").toLowerCase().includes(normalized);
+};
+
+function readWorkspaceState() {
+  try {
+    return JSON.parse(window.localStorage?.getItem(WORKSPACE_STATE_STORAGE_KEY) || "null");
+  } catch {
+    return null;
+  }
+}
+
+function persistWorkspaceState() {
+  try {
+    window.localStorage?.setItem(
+      WORKSPACE_STATE_STORAGE_KEY,
+      JSON.stringify({
+        activeRoute: state.activeRoute,
+        activeView: state.activeView,
+        selectedCapabilityId: state.selectedCapabilityId,
+        expandedCapabilityIds: [...state.expandedCapabilityIds],
+        capabilityCatalogCollapsed: state.capabilityCatalogCollapsed,
+        selectedEnvironmentId: state.selectedEnvironmentId,
+        selectedEnvironmentSegmentId: state.selectedEnvironmentSegmentId,
+        selectedEnvironmentObjectId: state.selectedEnvironmentObjectId,
+        selectedEnvironmentRowId: state.selectedEnvironmentRowId,
+        selectedDevProcessId: state.selectedDevProcessId,
+        devLifecycleStageSearch: state.devLifecycleStageSearch,
+        selectedDataProcessId: state.selectedDataProcessId,
+        dataLifecycleStageSearch: state.dataLifecycleStageSearch,
+        devLifecycleCatalogCollapsed: state.devLifecycleCatalogCollapsed,
+        activeMaintenancePage: state.activeMaintenancePage,
+        activeReferenceTab: state.activeReferenceTab,
+        activeStandardFramework: state.activeStandardFramework,
+        selectedMaintenanceId: state.selectedMaintenanceId,
+        activeContentPage: state.activeContentPage,
+        selectedContentId: state.selectedContentId,
+        selectedContentSlideIndex: state.selectedContentSlideIndex,
+        savedAt: new Date().toISOString(),
+      }),
+    );
+  } catch {
+    // Ignore localStorage failures in file/private browsing contexts.
+  }
+}
+
+function applyWorkspaceState(snapshot) {
+  if (!snapshot || typeof snapshot !== "object") return;
+  state.selectedCapabilityId = snapshot.selectedCapabilityId || state.selectedCapabilityId;
+  state.expandedCapabilityIds = new Set(list(snapshot.expandedCapabilityIds));
+  state.capabilityCatalogCollapsed = Boolean(snapshot.capabilityCatalogCollapsed);
+  state.selectedEnvironmentId = snapshot.selectedEnvironmentId || state.selectedEnvironmentId;
+  state.selectedEnvironmentSegmentId = snapshot.selectedEnvironmentSegmentId || state.selectedEnvironmentSegmentId;
+  state.selectedEnvironmentObjectId = snapshot.selectedEnvironmentObjectId || state.selectedEnvironmentObjectId;
+  state.selectedEnvironmentRowId = snapshot.selectedEnvironmentRowId || state.selectedEnvironmentRowId;
+  state.selectedDevProcessId = snapshot.selectedDevProcessId || state.selectedDevProcessId;
+  state.devLifecycleStageSearch = snapshot.devLifecycleStageSearch || state.devLifecycleStageSearch;
+  state.selectedDataProcessId = snapshot.selectedDataProcessId || state.selectedDataProcessId;
+  state.dataLifecycleStageSearch = snapshot.dataLifecycleStageSearch || state.dataLifecycleStageSearch;
+  state.devLifecycleCatalogCollapsed = Boolean(snapshot.devLifecycleCatalogCollapsed);
+  state.activeMaintenancePage = snapshot.activeMaintenancePage || state.activeMaintenancePage;
+  state.activeReferenceTab = snapshot.activeReferenceTab || state.activeReferenceTab;
+  state.activeStandardFramework = snapshot.activeStandardFramework || state.activeStandardFramework;
+  state.selectedMaintenanceId = snapshot.selectedMaintenanceId || state.selectedMaintenanceId;
+  state.activeContentPage = snapshot.activeContentPage || state.activeContentPage;
+  state.selectedContentId = snapshot.selectedContentId || state.selectedContentId;
+  state.selectedContentSlideIndex = Number.isFinite(Number(snapshot.selectedContentSlideIndex)) ? Number(snapshot.selectedContentSlideIndex) : state.selectedContentSlideIndex;
+}
 
 const PACKAGE_GETTERS = {
   capability: "getCapabilityTree",
   capabilityWorkbench: "getCapabilityWorkbench",
+  capabilityInitial: "getCapabilityWorkspaceInitial",
   capabilityProjection: "getCapabilityWorkspaceProjection",
   environmentWorkbench: "getEnvironmentWorkbench",
   lifecycleWorkbench: "getLifecycleWorkbench",
@@ -85,7 +160,16 @@ const GUIDE_ROUTE_PACKAGES = {
 
 function assignPackageData(name, data) {
   if (name === "capability") state.capability = data;
-  if (name === "capabilityWorkbench") state.capabilityWorkbench = data;
+  if (name === "capabilityInitial") {
+    state.capabilityInitial = data;
+    state.capabilityWorkbench = data;
+    state.capability = capabilityTreeFromWorkbench(data);
+    state.capabilityProjection = data;
+  }
+  if (name === "capabilityWorkbench") {
+    state.capabilityWorkbench = data;
+    if (!state.loadedPackages.has("capability")) state.capability = capabilityTreeFromWorkbench(data);
+  }
   if (name === "capabilityProjection") state.capabilityProjection = data;
   if (name === "sharedLookups") state.sharedLookups = data;
   if (name === "environmentWorkbench") state.environmentWorkbench = data;
@@ -122,10 +206,11 @@ function loadDataPackage(name) {
 }
 
 function routePackagesForCurrentState() {
-  if (state.activeView === "capabilities") return ["capability", "capabilityWorkbench", "capabilityProjection"];
+  if (state.activeView === "overview") return ["capabilityWorkbench", "environmentWorkbench", "lifecycleWorkbench", "content", "standards"];
+  if (state.activeView === "capabilities") return ["capabilityInitial"];
   if (state.activeView === "environment") return ["environmentWorkbench"];
   if (state.activeView === "dev-lifecycle") return ["lifecycleWorkbench", "lifecycle"];
-  if (state.activeView === "data-lifecycle") return ["lifecycle"];
+  if (state.activeView === "data-lifecycle") return ["lifecycleWorkbench", "lifecycle"];
   if (state.activeView === "content") {
     const guidePackage = GUIDE_ROUTE_PACKAGES[state.activeRoute];
     return guidePackage ? ["content", guidePackage] : ["content"];
@@ -139,6 +224,109 @@ function routePackagesForCurrentState() {
     return packages;
   }
   return ["content", "standards"];
+}
+
+function mergeCapabilityProjection(projection) {
+  if (!projection) return;
+  const previous = state.capabilityProjection || {};
+  const previousMaps = previous.localRelationMapsByFocusId || previous.local_relation_maps_by_focus_id || {};
+  const nextMaps = projection.localRelationMapsByFocusId || projection.local_relation_maps_by_focus_id || {};
+  const mergedMaps = { ...previousMaps, ...nextMaps };
+  const mergeRows = (left, right) => {
+    const rows = new Map();
+    list(left).forEach((row) => rows.set(row.id || row.focus?.id || JSON.stringify(row), row));
+    list(right).forEach((row) => rows.set(row.id || row.focus?.id || JSON.stringify(row), row));
+    return [...rows.values()];
+  };
+  state.capabilityProjection = {
+    ...previous,
+    ...projection,
+    technicalMappingRows: mergeRows(previous.technicalMappingRows || previous.technical_mapping_rows, projection.technicalMappingRows || projection.technical_mapping_rows),
+    managementMappingRows: mergeRows(previous.managementMappingRows || previous.management_mapping_rows, projection.managementMappingRows || projection.management_mapping_rows),
+    localRelationMapsByFocusId: mergedMaps,
+    localRelationMaps: Object.values(mergedMaps),
+    localRelationMap: projection.localRelationMap || previous.localRelationMap || null,
+  };
+}
+
+function capabilityItemTypeById(id) {
+  if (!id) return "";
+  const stack = [...list(state.capability?.categories)];
+  while (stack.length) {
+    const item = stack.shift();
+    if (item?.id === id) return item.type || "";
+    stack.push(...list(item?.domains), ...list(item?.capabilities), ...list(item?.focuses));
+  }
+  return "";
+}
+
+function capabilityProjectionHasFocus(focusId) {
+  if (!focusId) return false;
+  const maps = state.capabilityProjection?.localRelationMapsByFocusId || state.capabilityProjection?.local_relation_maps_by_focus_id || {};
+  return Boolean(maps[focusId]);
+}
+
+function capabilityProjectionLoadKey(focusId) {
+  return `capabilityProjection:${focusId}`;
+}
+
+function capabilitySelectionNeedsFullWorkbench(selectedType) {
+  return Boolean(
+    state.selectedCapabilityId &&
+      selectedType &&
+      selectedType !== "capability_focus" &&
+      !state.loadedPackages.has("capabilityWorkbench"),
+  );
+}
+
+function ensureCapabilityProjectionForFocus(focusId) {
+  if (!focusId || capabilityProjectionHasFocus(focusId)) return Promise.resolve();
+  const loadKey = capabilityProjectionLoadKey(focusId);
+  if (state.packageLoads.has(loadKey)) return state.packageLoads.get(loadKey);
+  const dataClient = window.sapdDataClient;
+  const load = dataClient
+    ?.getCapabilityWorkspaceProjection?.({ focusId })
+    .then((envelope) => {
+      mergeCapabilityProjection(envelope?.data);
+      if (state.activeView === "capabilities" && state.selectedCapabilityId === focusId) renderCapabilities();
+    })
+    .catch((error) => console.warn("关注点关系投影加载失败", error))
+    .finally(() => state.packageLoads.delete(loadKey));
+  if (load) state.packageLoads.set(loadKey, load);
+  return load || Promise.resolve();
+}
+
+function capabilityNodeFromWorkbench(node) {
+  const base = {
+    id: node?.id || "",
+    type: node?.type || "",
+    code: node?.code || "",
+    title: titleOf(node, ""),
+    name: node?.name || "",
+    description: node?.description || "",
+  };
+  const children = list(node?.children);
+  if (base.type === "capability_category") {
+    return { ...base, domains: children.map(capabilityNodeFromWorkbench) };
+  }
+  if (base.type === "capability_domain") {
+    return { ...base, capabilities: children.map(capabilityNodeFromWorkbench) };
+  }
+  if (base.type === "capability") {
+    return { ...base, focuses: children.map(capabilityNodeFromWorkbench) };
+  }
+  return base;
+}
+
+function capabilityTreeFromWorkbench(workbench) {
+  const tree = list(workbench?.navigator?.tree);
+  return {
+    generated_at: workbench?.meta?.generated_at || null,
+    data_state: workbench?.__data_state === "missing_file" ? "missing_file" : "ready",
+    stats: workbench?.meta?.stats || {},
+    categories: tree.map(capabilityNodeFromWorkbench),
+    unlinked_focuses: [],
+  };
 }
 
 function mergeSharedLookups(payload) {
@@ -544,7 +732,7 @@ function contentRows() {
   let rows = list(state.content?.html_documents);
   if (state.activeContentPage === "drawio") rows = list(state.content?.diagram_views);
   if (state.activeContentPage === "ppt") rows = list(state.content?.guide_pages);
-  if (state.activeRoute.startsWith("/guides/") && state.activeRoute !== "/guides/others") {
+  if (state.activeRoute.startsWith("/guides/")) {
     const routeRows = rows.filter((row) => row.route === state.activeRoute);
     return routeRows;
   }
@@ -565,47 +753,299 @@ function renderMetrics() {
   setHtml("metrics", metrics.map(([label, value]) => `<div class="metric"><strong>${value}</strong><span>${label}</span></div>`).join(""));
 }
 
-function renderOverview() {
-  const capabilityStats = state.capabilityWorkbench?.meta?.stats || state.capability?.stats || {};
-  const environmentStats = state.environmentWorkbench?.meta?.stats || {};
-  const lifecycleStats = state.lifecycleWorkbench?.meta?.stats || state.lifecycle?.stats || {};
-  const stats = {
-    capability: capabilityStats,
-    environment: environmentStats,
-    lifecycle: lifecycleStats,
-    content: state.content?.stats || {},
+function formatNumber(value) {
+  const number = Number(value) || 0;
+  return number.toLocaleString("zh-CN");
+}
+
+function percentOf(value, total) {
+  if (!total) return 0;
+  return Math.max(0, Math.min(100, Math.round((Number(value) / Number(total)) * 100)));
+}
+
+function workbenchSummary({ id, label, shortLabel, route, workbench, tone, dimensions }) {
+  const objects = workbench?.objects && typeof workbench.objects === "object" ? workbench.objects : {};
+  const objectCounts = Object.fromEntries(Object.entries(objects).map(([type, rows]) => [type, rows && typeof rows === "object" ? Object.keys(rows).length : 0]));
+  const metaStats = workbench?.meta?.stats || {};
+  const objectTotal = Number(metaStats.objects) || Object.values(objectCounts).reduce((sum, count) => sum + Number(count || 0), 0);
+  const relationTotal = Number(metaStats.relations) || list(workbench?.relations).length;
+  const evidenceTotal = Number(metaStats.evidenceRefs) || list(workbench?.evidenceRefs).length;
+  const stateLabel = workbench ? (workbench.__data_state === "missing_file" ? "missing_file" : "ready") : "loading";
+  return {
+    id,
+    label,
+    shortLabel,
+    route,
+    tone,
+    dimensions,
+    dataState: stateLabel,
+    objectCounts,
+    objectTotal,
+    relationTotal,
+    evidenceTotal,
+    relationshipGroupCount: list(workbench?.relationshipGroups).length,
   };
-  setText("overviewGeneratedAt", "本地数据");
-  setHtml(
-    "overviewMap",
-    `
-      <div class="relation-map">
-        ${["安全能力映射", "信息化环境维度", "LC-AP开发安全生命周期", "数据生命周期维度", "专项知识维护", "说明与视图"]
-          .map((item) => `<div class="relation-node">${escapeHtml(item)}</div>`)
+}
+
+function dashboardSummaries() {
+  const packages = [
+    workbenchSummary({
+      id: "capability",
+      label: "安全能力映射",
+      shortLabel: "能力",
+      route: "/capability-mapping",
+      workbench: state.capabilityWorkbench,
+      tone: "blue",
+      dimensions: ["能力", "关注点", "作用域", "服务", "模块", "标准"],
+    }),
+    workbenchSummary({
+      id: "environment",
+      label: "信息化环境维度",
+      shortLabel: "环境",
+      route: "/environment-mapping",
+      workbench: state.environmentWorkbench,
+      tone: "green",
+      dimensions: ["环境", "对象", "作用域", "服务", "系统", "产品"],
+    }),
+    workbenchSummary({
+      id: "lifecycle",
+      label: "LC-AP安全开发生命周期",
+      shortLabel: "LC-AP",
+      route: "/development-security",
+      workbench: state.lifecycleWorkbench,
+      tone: "amber",
+      dimensions: ["阶段", "活动", "策略", "服务", "模块", "措施"],
+    }),
+    workbenchSummary({
+      id: "data-lifecycle",
+      label: "LC-DT数据生命周期安全",
+      shortLabel: "LC-DT",
+      route: "/data-security",
+      workbench: state.lifecycleWorkbench,
+      tone: "green",
+      dimensions: ["过程", "场景", "服务", "模块", "措施"],
+    }),
+  ];
+  const readyCount = packages.filter((item) => item.dataState === "ready").length;
+  const objectTotal = packages.reduce((sum, item) => sum + item.objectTotal, 0);
+  const relationTotal = packages.reduce((sum, item) => sum + item.relationTotal, 0);
+  const evidenceTotal = packages.reduce((sum, item) => sum + item.evidenceTotal, 0);
+  return {
+    packages,
+    readyCount,
+    objectTotal,
+    relationTotal,
+    evidenceTotal,
+    standardsTotal: Number(state.standards?.stats?.controls) || 0,
+    contentViews: Number(state.content?.stats?.html_documents || 0) + Number(state.content?.stats?.diagram_views || 0) + Number(state.content?.stats?.guide_pages || 0),
+  };
+}
+
+function renderDashboardMetric({ label, value, hint, tone = "neutral" }) {
+  return `
+    <div class="dashboard-metric dashboard-tone-${escapeHtml(tone)}">
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(formatNumber(value))}</strong>
+      <small>${escapeHtml(hint)}</small>
+    </div>
+  `;
+}
+
+function renderDashboardBarRows(packages, key) {
+  const max = Math.max(...packages.map((item) => Number(item[key]) || 0), 1);
+  return packages
+    .map(
+      (item) => `
+        <div class="dashboard-bar-row">
+          <span>${escapeHtml(item.shortLabel)}</span>
+          <div class="dashboard-bar-track"><i class="dashboard-tone-${escapeHtml(item.tone)}" style="width:${percentOf(item[key], max)}%"></i></div>
+          <strong>${escapeHtml(formatNumber(item[key]))}</strong>
+        </div>
+      `,
+    )
+    .join("");
+}
+
+function renderDashboardDonut(packages, total) {
+  const colors = ["#2563eb", "#16a34a", "#c56b2c", "#0f766e"];
+  let cursor = 0;
+  const stops = packages
+    .map((item, index) => {
+      const start = cursor;
+      const end = total ? cursor + (item.objectTotal / total) * 100 : cursor;
+      cursor = end;
+      return `${colors[index]} ${start}% ${end}%`;
+    })
+    .join(", ");
+  return `
+    <div class="dashboard-donut-wrap">
+      <div class="dashboard-donut" style="background:conic-gradient(${escapeHtml(stops || "#d8e1ee 0% 100%")})">
+        <div><strong>${escapeHtml(formatNumber(total))}</strong><span>对象</span></div>
+      </div>
+      <div class="dashboard-legend">
+        ${packages
+          .map(
+            (item, index) => `
+              <div><i style="background:${colors[index]}"></i><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(`${percentOf(item.objectTotal, total)}%`)}</strong></div>
+            `,
+          )
           .join("")}
       </div>
-    `,
-  );
+    </div>
+  `;
+}
+
+function renderDashboardSatellite(packages) {
+  return `
+    <div class="dashboard-satellite" aria-label="业务关系卫星图">
+      <span class="satellite-line satellite-line-capability"></span>
+      <span class="satellite-line satellite-line-environment"></span>
+      <span class="satellite-line satellite-line-lifecycle"></span>
+      <span class="satellite-line satellite-line-standards"></span>
+      <span class="satellite-line satellite-line-content"></span>
+      <button class="satellite-node satellite-hub" type="button" data-app-route="/" data-view="overview">
+        <strong>SAPD Wiki</strong>
+        <small>本地关系工作台</small>
+      </button>
+      ${packages
+        .map(
+          (item, index) => `
+            <button class="satellite-node satellite-${escapeHtml(item.id)} dashboard-tone-${escapeHtml(item.tone)}" type="button" data-app-route="${escapeHtml(item.route)}">
+              <strong>${escapeHtml(item.label)}</strong>
+              <small>${escapeHtml(`${formatNumber(item.objectTotal)} 对象 / ${formatNumber(item.relationTotal)} 关系`)}</small>
+            </button>
+          `,
+        )
+        .join("")}
+      <button class="satellite-node satellite-standards" type="button" data-app-route="/standards">
+        <strong>安全标准 / 框架</strong>
+        <small>${escapeHtml(formatNumber(state.standards?.stats?.frameworks || 0))} 框架 / ${escapeHtml(formatNumber(state.standards?.stats?.controls || 0))} 控制项</small>
+      </button>
+      <button class="satellite-node satellite-content" type="button" data-app-route="/guides">
+        <strong>安全指南</strong>
+        <small>${escapeHtml(formatNumber((state.content?.stats?.html_documents || 0) + (state.content?.stats?.diagram_views || 0) + (state.content?.stats?.guide_pages || 0)))} 个内容视图</small>
+      </button>
+    </div>
+  `;
+}
+
+function renderOverview() {
+  const summary = dashboardSummaries();
+  const dataStateLabel = summary.readyCount === summary.packages.length ? "ready" : "loading";
   setHtml(
-    "overviewCoverage",
+    "overviewWorkspace",
     `
-      <table class="matrix-table">
-        <tbody>
-          <tr><th>能力关注点</th><td>${stats.capability.capability_focus || stats.capability.focuses || 0}</td><th>关注点-作用域</th><td>${stats.capability.scope_type || stats.capability.focus_scope_mappings || 0}</td></tr>
-          <tr><th>信息化对象</th><td>${stats.environment.information_object || stats.environment.information_objects || 0}</td><th>对象-关系</th><td>${stats.environment.relations || stats.environment.environment_scope_mappings || 0}</td></tr>
-          <tr><th>LC-AP 阶段</th><td>${stats.lifecycle.lifecycle_stage || stats.lifecycle.application_processes || 0}</td><th>LC 关系</th><td>${stats.lifecycle.relations || stats.lifecycle.data_processes || 0}</td></tr>
-          <tr><th>Draw.io 图</th><td>${stats.content.diagram_views || 0}</td><th>PPT 页</th><td>${stats.content.guide_pages || 0}</td></tr>
-        </tbody>
-      </table>
-    `,
-  );
-  setHtml(
-    "overviewIssues",
-    `
-      <div class="issue-list">
-        <div><strong>内容视图</strong><span>HTML / Draw.io / PPT 已预留入口</span></div>
-        <div><strong>前端策略</strong><span>关系、矩阵、树表优先</span></div>
-      </div>
+      <section class="dashboard-hero">
+        <div>
+          <span class="dashboard-kicker">SAPD Wiki / Dashboard</span>
+          <h2>数据关系总览</h2>
+          <p>把安全能力、信息化环境、LC-AP / LC-DT 生命周期、标准框架和指南内容集中成一页，用统计图和关系图快速判断当前知识库覆盖情况。</p>
+        </div>
+        <div class="dashboard-state">
+          <span>${escapeHtml(dataStateLabel)}</span>
+          <strong>${escapeHtml(`${summary.readyCount}/${summary.packages.length}`)}</strong>
+          <small>Workbench 数据包</small>
+        </div>
+      </section>
+      <section class="dashboard-metric-grid">
+        ${renderDashboardMetric({ label: "Workbench 数据包", value: summary.readyCount, hint: "能力 / 环境 / LC-AP / LC-DT", tone: "blue" })}
+        ${renderDashboardMetric({ label: "对象总数", value: summary.objectTotal, hint: "四个入口 workbench 合计", tone: "green" })}
+        ${renderDashboardMetric({ label: "关系总数", value: summary.relationTotal, hint: "关系端点投影合计", tone: "amber" })}
+        ${renderDashboardMetric({ label: "来源引用", value: summary.evidenceTotal, hint: "来源证据引用合计", tone: "purple" })}
+        ${renderDashboardMetric({ label: "标准控制项", value: summary.standardsTotal, hint: "安全标准 / 框架索引", tone: "slate" })}
+        ${renderDashboardMetric({ label: "内容视图", value: summary.contentViews, hint: "HTML / 图 / 指南页", tone: "neutral" })}
+      </section>
+      <section class="dashboard-grid dashboard-grid-primary">
+        <article class="dashboard-panel dashboard-panel-bars">
+          <header>
+            <div>
+              <h3>Workbench 统计柱状图</h3>
+              <p>按对象、关系、来源三个维度比较当前核心页面的数据体量。</p>
+            </div>
+            <span class="dashboard-chip">统计</span>
+          </header>
+          <div class="dashboard-bars">
+            <section><h4>对象</h4>${renderDashboardBarRows(summary.packages, "objectTotal")}</section>
+            <section><h4>关系</h4>${renderDashboardBarRows(summary.packages, "relationTotal")}</section>
+            <section><h4>来源</h4>${renderDashboardBarRows(summary.packages, "evidenceTotal")}</section>
+          </div>
+        </article>
+        <article class="dashboard-panel">
+          <header>
+            <div>
+              <h3>对象分布饼图</h3>
+              <p>三份 workbench 的对象规模占比。</p>
+            </div>
+            <span class="dashboard-chip">占比</span>
+          </header>
+          ${renderDashboardDonut(summary.packages, summary.objectTotal)}
+        </article>
+      </section>
+      <section class="dashboard-grid dashboard-grid-secondary">
+        <article class="dashboard-panel dashboard-panel-satellite">
+          <header>
+            <div>
+              <h3>业务关系卫星图</h3>
+              <p>以全局导航为中心，连接当前可用页面和内容索引。</p>
+            </div>
+            <span class="dashboard-chip">关系</span>
+          </header>
+          ${renderDashboardSatellite(summary.packages)}
+        </article>
+        <article class="dashboard-panel">
+          <header>
+            <div>
+              <h3>页面数据维度</h3>
+              <p>每个入口当前承载的主要业务维度。</p>
+            </div>
+            <span class="dashboard-chip">维度</span>
+          </header>
+          <div class="dashboard-package-list">
+            ${summary.packages
+              .map(
+                (item) => `
+                  <button class="dashboard-package-row" type="button" data-app-route="${escapeHtml(item.route)}">
+                    <span class="dashboard-package-title"><strong>${escapeHtml(item.label)}</strong><small>${escapeHtml(item.dimensions.join(" / "))}</small></span>
+                    <span><b>${escapeHtml(formatNumber(item.objectTotal))}</b><small>对象</small></span>
+                    <span><b>${escapeHtml(formatNumber(item.relationTotal))}</b><small>关系</small></span>
+                    <i>${escapeHtml(item.dataState)}</i>
+                  </button>
+                `,
+              )
+              .join("")}
+          </div>
+        </article>
+      </section>
+      <section class="dashboard-panel dashboard-panel-table">
+        <header>
+          <div>
+            <h3>全局导航页面矩阵</h3>
+            <p>从 dashboard 直接进入各工作台，主展示区只呈现业务维度和统计，不暴露来源追踪中间字段。</p>
+          </div>
+          <span class="dashboard-chip">导航</span>
+        </header>
+        <div class="dashboard-table-wrap">
+          <table class="dashboard-table">
+            <thead><tr><th>页面</th><th>图形表达</th><th>核心对象</th><th>关系</th><th>来源引用</th><th>状态</th></tr></thead>
+            <tbody>
+              ${summary.packages
+                .map(
+                  (item) => `
+                    <tr>
+                      <td><button type="button" data-app-route="${escapeHtml(item.route)}">${escapeHtml(item.label)}</button><small>${escapeHtml(item.dimensions.join("、"))}</small></td>
+                      <td>${escapeHtml(item.id === "capability" ? "树图 / 矩阵 / 关系图" : item.id === "environment" ? "树图 / 链路图 / 矩阵" : "阶段表 / 关系表 / 统计图")}</td>
+                      <td>${escapeHtml(formatNumber(item.objectTotal))}</td>
+                      <td>${escapeHtml(formatNumber(item.relationTotal))}</td>
+                      <td>${escapeHtml(formatNumber(item.evidenceTotal))}</td>
+                      <td><span class="dashboard-status">${escapeHtml(item.dataState)}</span></td>
+                    </tr>
+                  `,
+                )
+                .join("")}
+            </tbody>
+          </table>
+        </div>
+      </section>
     `,
   );
 }
@@ -730,28 +1170,23 @@ function applyCapabilityCatalogState() {
 
 function applyDevLifecycleCatalogState() {
   const workspace = $("devLifecycleWorkspace");
-  workspace?.classList.toggle("catalog-collapsed", state.devLifecycleCatalogCollapsed);
+  workspace?.classList.remove("catalog-collapsed");
   if (workspace) {
-    const hasResizer = Boolean(workspace.querySelector(".workspace-resizer"));
-    if (hasResizer) {
-      workspace.style.gridTemplateColumns = state.devLifecycleCatalogCollapsed ? "0 minmax(0, 1fr)" : "200px 6px minmax(0, 1fr)";
-      workspace._paneWidths = state.devLifecycleCatalogCollapsed ? [0, Math.max(0, workspace.clientWidth)] : [200, Math.max(0, workspace.clientWidth - 206)];
-    } else {
-      workspace.style.gridTemplateColumns = state.devLifecycleCatalogCollapsed ? "0 minmax(0, 1fr)" : "200px minmax(0, 1fr)";
-      workspace._paneWidths = null;
-    }
+    workspace.style.gridTemplateColumns = "minmax(0, 1fr)";
+    workspace._paneWidths = null;
   }
   const button = $("toggleDevLifecycleCatalog");
   if (button) {
-    button.textContent = state.devLifecycleCatalogCollapsed ? "展开" : "收起目录";
-    button.title = state.devLifecycleCatalogCollapsed ? "展开 LC-AP 阶段目录" : "收起 LC-AP 阶段目录";
+    button.hidden = true;
+    button.textContent = "";
+    button.title = "";
     button.setAttribute("aria-label", button.title);
-    button.setAttribute("aria-expanded", state.devLifecycleCatalogCollapsed ? "false" : "true");
+    button.setAttribute("aria-expanded", "false");
   }
   const tab = $("expandDevLifecycleCatalogTab");
   if (tab) {
-    tab.hidden = !state.devLifecycleCatalogCollapsed;
-    tab.setAttribute("aria-expanded", state.devLifecycleCatalogCollapsed ? "false" : "true");
+    tab.hidden = true;
+    tab.setAttribute("aria-expanded", "false");
   }
 }
 
@@ -775,7 +1210,7 @@ function renderCapabilities() {
   const viewModels = window.sapdViewModels;
   const components = window.sapdComponents || {};
   ensureCapabilityCatalogToggle();
-  if (!state.loadedPackages.has("capability") || !state.loadedPackages.has("capabilityWorkbench")) {
+  if (!state.capability || (!state.loadedPackages.has("capabilityInitial") && !state.loadedPackages.has("capabilityWorkbench"))) {
     setHtml("tree", emptyState("正在加载安全能力数据"));
     setHtml("capabilityFocusHeader", "");
     setHtml("detail", emptyState("正在加载安全能力映射数据", "当前页面优先加载，完成后会自动显示。"));
@@ -784,6 +1219,20 @@ function renderCapabilities() {
   if (!viewModels?.buildCapabilityWorkspaceViewModel) {
     setHtml("detail", emptyState("能力视图模型未加载"));
     return;
+  }
+  const selectedType = capabilityItemTypeById(state.selectedCapabilityId);
+  if (capabilitySelectionNeedsFullWorkbench(selectedType)) {
+    loadDataPackage("capabilityWorkbench").then(() => {
+      if (state.activeView === "capabilities") renderCapabilities();
+    });
+    setHtml("capabilityFocusHeader", "");
+    setHtml("detail", emptyState("正在加载整体能力关系数据", "进攻能力、安全治理能力、安全管理能力等整体节点需要补载完整能力工作台数据。"));
+    applyCapabilityCatalogState();
+    return;
+  }
+  const isFocusProjectionPending = selectedType === "capability_focus" && !capabilityProjectionHasFocus(state.selectedCapabilityId);
+  if (isFocusProjectionPending) {
+    ensureCapabilityProjectionForFocus(state.selectedCapabilityId);
   }
   const capabilityWorkbenchViewModel =
     viewModels.buildCapabilityWorkbenchViewModel?.({ workbench: state.capabilityWorkbench }) || state.capabilityWorkbenchViewModel;
@@ -820,6 +1269,12 @@ function renderCapabilities() {
   if (!selected) {
     setHtml("capabilityFocusHeader", "");
     setHtml("detail", emptyState("暂无能力关系数据"));
+    return;
+  }
+  if (isFocusProjectionPending && state.packageLoads.has(capabilityProjectionLoadKey(state.selectedCapabilityId))) {
+    setHtml("capabilityFocusHeader", "");
+    setHtml("detail", emptyState("正在加载当前关注点关系数据", "关系投影加载完成后会自动显示。"));
+    applyCapabilityCatalogState();
     return;
   }
   setHtml(
@@ -915,6 +1370,8 @@ function renderLifecycle(kind) {
     if (!state.loadedPackages.has("lifecycleWorkbench")) {
       setText("devLifecycleCount", 0);
       setText("devLifecycleType", "LC-AP");
+      setText("devLifecyclePageTitle", "");
+      if ($("devLifecycleStageSearch")) $("devLifecycleStageSearch").value = state.devLifecycleStageSearch;
       setHtml("devLifecycleNav", emptyState("正在加载开发安全生命周期数据"));
       setHtml("devLifecycleLane", emptyState("正在加载开发安全生命周期关系数据", "当前页面优先加载，完成后会自动显示。"));
       setHtml("devLifecycleDetail", "");
@@ -927,14 +1384,28 @@ function renderLifecycle(kind) {
     const lifecycleWorkbenchViewModel =
       viewModels.buildLifecycleWorkbenchViewModel?.({ workbench: state.lifecycleWorkbench }) || state.lifecycleWorkbenchViewModel;
     state.lifecycleWorkbenchViewModel = lifecycleWorkbenchViewModel;
-    const viewModel = viewModels.buildApplicationSecurityLifecycleViewModel({
+    let viewModel = viewModels.buildApplicationSecurityLifecycleViewModel({
       lifecycleWorkbench: state.lifecycleWorkbench,
       lifecycleWorkbenchViewModel,
       lifecycle: state.lifecycle,
       selectedProcessId: state.selectedDevProcessId,
       search: state.search,
     });
+    const stageQuery = text(state.devLifecycleStageSearch).trim();
+    const matchedStages = list(viewModel.stageTree).filter((row) => matchesTextQuery(stageQuery, row.title, row.code, row.order));
+    if (stageQuery && matchedStages.length && !matchedStages.some((row) => row.id === viewModel.relationshipSummary?.selectedProcessId)) {
+      state.selectedDevProcessId = matchedStages[0].id;
+      viewModel = viewModels.buildApplicationSecurityLifecycleViewModel({
+        lifecycleWorkbench: state.lifecycleWorkbench,
+        lifecycleWorkbenchViewModel,
+        lifecycle: state.lifecycle,
+        selectedProcessId: state.selectedDevProcessId,
+        search: state.search,
+      });
+    }
     state.selectedDevProcessId = viewModel.relationshipSummary?.selectedProcessId || viewModel.selectedProcess?.id || null;
+    if ($("devLifecycleStageSearch")) $("devLifecycleStageSearch").value = state.devLifecycleStageSearch;
+    setText("devLifecyclePageTitle", "");
     setText("devLifecycleCount", viewModel.navigationTree.length);
     setText("devLifecycleType", viewModel.dataState || "LC-AP");
     setHtml(
@@ -942,6 +1413,7 @@ function renderLifecycle(kind) {
       components.ApplicationSecurityLifecycle?.renderNavigation({
         stageTree: viewModel.stageTree,
         selectedProcessId: state.selectedDevProcessId,
+        search: state.devLifecycleStageSearch,
       }) || emptyState("安全开发阶段树组件未加载"),
     );
     setHtml(
@@ -955,55 +1427,73 @@ function renderLifecycle(kind) {
     applyDevLifecycleCatalogState();
     return;
   }
-  if (kind === "data" && !state.loadedPackages.has("lifecycle")) {
-    setText("dataLifecycleCount", 0);
-    setText("dataLifecycleType", "LC-DT");
-    setHtml("dataLifecycleNav", emptyState("正在加载数据生命周期数据"));
-    setHtml("dataLifecycleMatrix", emptyState("正在加载数据生命周期关系数据", "当前页面优先加载，完成后会自动显示。"));
+  if (kind === "data") {
+    const viewModels = window.sapdViewModels;
+    const components = window.sapdComponents || {};
+    const dataWorkspace = $("dataLifecycleWorkspace");
+    const dataDetailPane = dataWorkspace?.querySelector(".lifecycle-detail-pane");
+    dataWorkspace?.classList.add("dev-lifecycle-workspace");
+    dataDetailPane?.classList.add("is-hidden");
+    if (!state.loadedPackages.has("lifecycleWorkbench")) {
+      setText("dataLifecycleCount", 0);
+      setText("dataLifecycleType", "LC-DT");
+      setText("dataLifecyclePageTitle", "");
+      if ($("dataLifecycleStageSearch")) $("dataLifecycleStageSearch").value = state.dataLifecycleStageSearch;
+      setHtml("dataLifecycleNav", emptyState("正在加载数据生命周期安全数据"));
+      setHtml("dataLifecycleMatrix", emptyState("正在加载数据生命周期安全关系数据", "当前页面优先加载，完成后会自动显示。"));
+      setHtml("dataLifecycleDetail", "");
+      return;
+    }
+    if (!viewModels?.buildDataSecurityLifecycleViewModel) {
+      setHtml("dataLifecycleDetail", emptyState("数据生命周期安全视图模型未加载"));
+      return;
+    }
+    const lifecycleWorkbenchViewModel =
+      viewModels.buildLifecycleWorkbenchViewModel?.({ workbench: state.lifecycleWorkbench }) || state.lifecycleWorkbenchViewModel;
+    state.lifecycleWorkbenchViewModel = lifecycleWorkbenchViewModel;
+    let viewModel = viewModels.buildDataSecurityLifecycleViewModel({
+      lifecycleWorkbench: state.lifecycleWorkbench,
+      lifecycleWorkbenchViewModel,
+      lifecycle: state.lifecycle,
+      selectedProcessId: state.selectedDataProcessId,
+      search: state.search,
+    });
+    const stageQuery = text(state.dataLifecycleStageSearch).trim();
+    const matchedStages = list(viewModel.stageTree).filter((row) => matchesTextQuery(stageQuery, row.title, row.code, row.order));
+    if (stageQuery && matchedStages.length && !matchedStages.some((row) => row.id === viewModel.relationshipSummary?.selectedProcessId)) {
+      state.selectedDataProcessId = matchedStages[0].id;
+      viewModel = viewModels.buildDataSecurityLifecycleViewModel({
+        lifecycleWorkbench: state.lifecycleWorkbench,
+        lifecycleWorkbenchViewModel,
+        lifecycle: state.lifecycle,
+        selectedProcessId: state.selectedDataProcessId,
+        search: state.search,
+      });
+    }
+    state.selectedDataProcessId = viewModel.relationshipSummary?.selectedProcessId || viewModel.selectedProcess?.id || null;
+    if ($("dataLifecycleStageSearch")) $("dataLifecycleStageSearch").value = state.dataLifecycleStageSearch;
+    setText("dataLifecyclePageTitle", "");
+    setText("dataLifecycleCount", viewModel.navigationTree.length);
+    setText("dataLifecycleType", viewModel.dataState || "LC-DT");
+    setHtml(
+      "dataLifecycleNav",
+      components.ApplicationSecurityLifecycle?.renderNavigation({
+        stageTree: viewModel.stageTree,
+        selectedProcessId: state.selectedDataProcessId,
+        search: state.dataLifecycleStageSearch,
+        kind: "data",
+      }) || emptyState("数据生命周期过程树组件未加载"),
+    );
+    setHtml(
+      "dataLifecycleMatrix",
+      `
+        ${components.ApplicationSecurityLifecycle?.renderStageOverview(viewModel) || ""}
+        ${components.ApplicationSecurityLifecycle?.renderRelationTable({ rows: viewModel.relationRows, overview: viewModel.stageOverview }) || ""}
+      `,
+    );
     setHtml("dataLifecycleDetail", "");
     return;
   }
-  const processes = lifecycleProcesses(kind).filter((process) => matchesSearch(process.title, process.description, process.goal));
-  const selectedKey = kind === "dev" ? "selectedDevProcessId" : "selectedDataProcessId";
-  if (!state[selectedKey]) state[selectedKey] = processes[0]?.id || null;
-  const selected = processes.find((process) => process.id === state[selectedKey]) || processes[0];
-  const navId = kind === "dev" ? "devLifecycleNav" : "dataLifecycleNav";
-  const countId = kind === "dev" ? "devLifecycleCount" : "dataLifecycleCount";
-  const laneId = kind === "dev" ? "devLifecycleLane" : "dataLifecycleMatrix";
-  const detailId = kind === "dev" ? "devLifecycleDetail" : "dataLifecycleDetail";
-  const typeId = kind === "dev" ? "devLifecycleType" : "dataLifecycleType";
-  setText(countId, processes.length);
-  setHtml(
-    navId,
-    processes.map((process) => `<button class="lifecycle-nav-row ${process.id === state[selectedKey] ? "active" : ""}" type="button" data-lifecycle-kind="${kind}" data-lifecycle-id="${escapeHtml(process.id)}"><strong>${escapeHtml(process.title || "未命名")}</strong><span>${escapeHtml(process.order || process.code || "")}</span></button>`).join("") || emptyState("暂无生命周期数据"),
-  );
-  setHtml(
-    laneId,
-    processes
-      .map((process) => `
-        <section class="lane-column">
-          <strong>${escapeHtml(process.title || "未命名")}</strong>
-          <span>${escapeHtml(kind === "dev" ? process.goal || "阶段目标待补充" : process.description || "过程说明待补充")}</span>
-          <small>服务 ${list(process.technical_services).length} / 模块 ${list(process.technology_modules).length} / 策略 ${list(process.policy_requirements).length}</small>
-        </section>
-      `)
-      .join("") || emptyState("暂无生命周期泳道"),
-  );
-  setText(typeId, kind === "dev" ? "LC-AP" : "LC-DT");
-  setHtml(
-    detailId,
-    selected
-      ? `
-        <div class="source-entity-code">${escapeHtml(selected.order || selected.code || (kind === "dev" ? "LC-AP" : "LC-DT"))}</div>
-        <h2 class="source-entity-title">${escapeHtml(selected.title || "未命名")}</h2>
-        <p class="source-entity-desc">${escapeHtml(selected.goal || selected.description || "暂无说明")}</p>
-        <h3 class="section-title">活动 / 场景</h3>
-        <div class="source-chip-row">${pillList([...list(selected.main_activities), ...list(selected.security_activities), ...list(selected.scenes)], "暂无")}</div>
-        <h3 class="section-title">策略 / 服务 / 模块</h3>
-        <div class="source-chip-row">${pillList([...list(selected.policy_requirements), ...list(selected.technical_services), ...list(selected.technology_modules)], "暂无")}</div>
-      `
-      : emptyState("请选择生命周期节点"),
-  );
 }
 
 function renderMaintenance() {
@@ -1244,6 +1734,8 @@ function defaultWorkspaceWidths(workspace, panes) {
 
 function ensureWorkspaceResizable(workspace) {
   if (workspace.classList.contains("is-hidden") || workspace.clientWidth <= 0) return;
+  if (workspace.id === "overviewWorkspace") return;
+  if (workspace.id === "devLifecycleWorkspace") return;
   if (workspace.id === "contentWorkspace" && workspace.classList.contains("guide-slide-layout")) return;
   const panes = workspacePanes(workspace);
   if (panes.length < 2) return;
@@ -1337,7 +1829,7 @@ function renderContent() {
     return;
   }
   const rows = contentRows().filter((row) => matchesSearch(row.title, row.category, row.view_type, row.content));
-  const isSpecificGuideRoute = state.activeRoute.startsWith("/guides/") && state.activeRoute !== "/guides/others";
+  const isSpecificGuideRoute = state.activeRoute.startsWith("/guides/");
   if (!state.selectedContentId || !rows.some((row) => row.id === state.selectedContentId)) state.selectedContentId = rows[0]?.id || null;
   if (!state.selectedContentId) state.selectedContentSlideIndex = 0;
   const titles = { html: "HTML 知识说明", drawio: "Draw.io 只读图", ppt: "PPT 使用说明" };
@@ -1449,6 +1941,7 @@ function setActiveView(view, options = {}) {
   }
   ensureRoutePackages();
   updateApplicationShellChrome();
+  persistWorkspaceState();
 }
 
 function bindEvents() {
@@ -1485,20 +1978,29 @@ function bindEvents() {
       const id = toggle.dataset.treeToggleId;
       if (state.expandedCapabilityIds.has(id)) state.expandedCapabilityIds.delete(id);
       else state.expandedCapabilityIds.add(id);
-      renderCapabilities();
-      return;
-    }
-    const row = event.target.closest("[data-capability-id]");
-    if (!row) return;
-    state.selectedCapabilityId = row.dataset.capabilityId;
     renderCapabilities();
-  });
-  $("detail")?.addEventListener("click", (event) => {
-    const row = event.target.closest("[data-capability-id]");
-    if (!row) return;
-    state.selectedCapabilityId = row.dataset.capabilityId;
-    renderCapabilities();
-  });
+    return;
+  }
+  const row = event.target.closest("[data-capability-id]");
+  if (!row) return;
+  state.selectedCapabilityId = row.dataset.capabilityId;
+  const selectedType = capabilityItemTypeById(state.selectedCapabilityId);
+  if (selectedType === "capability_focus") {
+    ensureCapabilityProjectionForFocus(state.selectedCapabilityId);
+  } else if (!state.loadedPackages.has("capabilityWorkbench")) {
+    loadDataPackage("capabilityWorkbench").then(() => {
+      if (state.activeView === "capabilities") renderCapabilities();
+    });
+  }
+  renderCapabilities();
+});
+$("detail")?.addEventListener("click", (event) => {
+  const row = event.target.closest("[data-capability-id]");
+  if (!row) return;
+  state.selectedCapabilityId = row.dataset.capabilityId;
+  if (capabilityItemTypeById(state.selectedCapabilityId) === "capability_focus") ensureCapabilityProjectionForFocus(state.selectedCapabilityId);
+  renderCapabilities();
+});
   $("detail")?.addEventListener("input", (event) => {
     const input = event.target.closest("[data-relation-filter]");
     if (!input) return;
@@ -1521,6 +2023,14 @@ function bindEvents() {
   $("environmentSearchInput")?.addEventListener("input", (event) => {
     state.search = event.target.value.trim();
     renderEnvironment();
+  });
+  $("devLifecycleStageSearch")?.addEventListener("input", (event) => {
+    state.devLifecycleStageSearch = event.target.value.trim();
+    renderLifecycle("dev");
+  });
+  $("dataLifecycleStageSearch")?.addEventListener("input", (event) => {
+    state.dataLifecycleStageSearch = event.target.value.trim();
+    renderLifecycle("data");
   });
   $("environmentTree")?.addEventListener("click", (event) => {
     const objectRow = event.target.closest("[data-environment-object-id]");
@@ -1642,24 +2152,37 @@ function bindEvents() {
     if (!stage) return;
     if (stage.contains(document.activeElement)) document.activeElement.blur?.();
   }, true);
+  document.addEventListener("click", () => {
+    window.setTimeout(persistWorkspaceState, 0);
+  });
+  document.addEventListener("keydown", () => {
+    window.setTimeout(persistWorkspaceState, 0);
+  });
 }
 
 async function init() {
   const dataClient = window.sapdDataClient;
   if (!dataClient) throw new Error("SAPD Wiki dataClient 未加载");
-  await loadScriptOnce("./models/relationGraphModel.js?v=capability-graph-strategy-20260522-13", () => Boolean(window.sapdModels?.buildLocalRelationGraphModel));
-  await loadScriptOnce("./components/LocalRelationNetworkGraph.js?v=capability-graph-strategy-20260522-rollback-1", () => Boolean(window.sapdComponents?.LocalRelationNetworkGraph));
-  await loadScriptOnce("./components/CapabilityLocalRelationMap.js?v=capability-graph-strategy-20260521-3", () => Boolean(window.sapdComponents?.CapabilityLocalRelationMap));
+  await loadScriptOnce("./models/relationGraphModel.js?v=capability-graph-strategy-20260526-1", () => Boolean(window.sapdModels?.buildLocalRelationGraphModel));
+  await loadScriptOnce("./components/LocalRelationNetworkGraph.js?v=capability-graph-strategy-20260526-2", () => Boolean(window.sapdComponents?.LocalRelationNetworkGraph));
+  await loadScriptOnce("./components/CapabilityLocalRelationMap.js?v=capability-graph-strategy-20260526-5", () => Boolean(window.sapdComponents?.CapabilityLocalRelationMap));
   await loadScriptOnce("./models/environmentRelationGraphModel.js?v=environment-graph-20260521-1", () => Boolean(window.sapdModels?.buildEnvironmentRelationGraphModel));
   await loadScriptOnce("./components/EnvironmentLocalRelationMap.js?v=environment-graph-20260521-1", () => Boolean(window.sapdComponents?.EnvironmentLocalRelationMap));
   mountAppShellComponents();
   bindEvents();
+  const restoredState = readWorkspaceState();
   const restoreRouteFromLocation = () => {
     activateRoute(routeFromBrowserLocation(), { fromBrowser: true });
   };
   window.addEventListener("hashchange", restoreRouteFromLocation);
   window.addEventListener("popstate", restoreRouteFromLocation);
-  activateRoute(routeFromBrowserLocation(), { replace: true });
+  const browserRoute = routeFromBrowserLocation();
+  const restoredRoute = normalizeAppRoute(restoredState?.activeRoute || "");
+  const initialRoute = browserRoute === "/" && restoredRoute !== "/" ? restoredRoute : browserRoute;
+  activateRoute(initialRoute, { replace: true });
+  if (restoredRoute === state.activeRoute) applyWorkspaceState(restoredState);
+  persistWorkspaceState();
+  renderActiveView();
   scheduleOverviewWarmup();
 }
 

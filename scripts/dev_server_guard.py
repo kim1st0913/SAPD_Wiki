@@ -79,16 +79,15 @@ def http_status(url: str, timeout: float = 2.5) -> dict[str, object]:
         return {"ok": False, "status": 0, "time_seconds": round(time.perf_counter() - started, 3), "error": str(error)}
 
 
-def kill_duplicate_servers(processes: list[dict[str, str]]) -> list[str]:
-    project_servers = [row for row in processes if row["is_project_server"]]
-    if not project_servers:
-        return []
+def kill_plain_http_servers(processes: list[dict[str, str]]) -> list[str]:
     killed: list[str] = []
     for row in processes:
         if row["is_project_server"]:
             continue
         cmd = row.get("command_line", "")
-        if "http.server" not in cmd:
+        command = row.get("command", "").lower()
+        is_stale_python_preview = command.startswith("python") and not cmd
+        if "http.server" not in cmd and not is_stale_python_preview:
             continue
         os.kill(int(row["pid"]), signal.SIGTERM)
         killed.append(row["pid"])
@@ -98,6 +97,8 @@ def kill_duplicate_servers(processes: list[dict[str, str]]) -> list[str]:
 def start_project_server(port: int) -> int | None:
     processes = run_lsof(port)
     if any(row["is_project_server"] for row in processes):
+        return None
+    if processes:
         return None
     env = os.environ.copy()
     src = str(ROOT / "src")
@@ -129,28 +130,33 @@ def main() -> int:
     parser.add_argument("--status", action="store_true", help="Print current status.")
     parser.add_argument("--start", action="store_true", help="Start project server if it is not running.")
     parser.add_argument("--stop", action="store_true", help="Stop project server processes on the selected port.")
-    parser.add_argument("--fix-duplicates", action="store_true", help="Stop duplicate plain http.server processes when project server exists.")
+    parser.add_argument("--restart", action="store_true", help="Restart project server processes on the selected port.")
+    parser.add_argument("--fix-duplicates", action="store_true", help="Stop stale plain http.server processes on the selected port.")
     args = parser.parse_args()
 
     stopped: list[str] = []
-    if args.stop:
+    killed: list[str] = []
+    if args.stop or args.restart:
         stopped = stop_project_servers(run_lsof(args.port))
         if stopped:
             time.sleep(0.3)
 
-    if args.start:
-        start_project_server(args.port)
+    if args.fix_duplicates:
+        killed = kill_plain_http_servers(run_lsof(args.port))
+        if killed:
+            time.sleep(0.3)
+
+    started = None
+    if args.start or args.restart:
+        started = start_project_server(args.port)
         time.sleep(0.6)
 
     processes = run_lsof(args.port)
-    killed = kill_duplicate_servers(processes) if args.fix_duplicates else []
-    if killed:
-        time.sleep(0.3)
-        processes = run_lsof(args.port)
 
     home = http_status(f"http://127.0.0.1:{args.port}/")
     projection = http_status(f"http://127.0.0.1:{args.port}/api/v1/capabilities/workspace-projection")
-    has_project_server = any(row["is_project_server"] for row in processes)
+    has_healthy_project_response = bool(home.get("ok") and projection.get("ok") and processes)
+    has_project_server = any(row["is_project_server"] for row in processes) or has_healthy_project_response
     if args.stop and not args.start:
         result = "pass" if not has_project_server else "warn"
     else:
@@ -161,12 +167,13 @@ def main() -> int:
             {
                 "pid": row["pid"],
                 "command": row["command"],
-                "is_project_server": row["is_project_server"],
+                "is_project_server": row["is_project_server"] or has_healthy_project_response,
             }
             for row in processes
         ],
         "stopped_project_pids": stopped,
         "killed_duplicate_pids": killed,
+        "started_project_server": bool(started),
         "home": {"status": home.get("status"), "ok": home.get("ok"), "time_seconds": home.get("time_seconds")},
         "workspace_projection": {
             "status": projection.get("status"),

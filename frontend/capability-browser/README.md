@@ -18,20 +18,21 @@ python scripts/sapd_wiki.py export-capability-tree
 推荐启动带本地 API 的服务：
 
 ```bash
-python scripts/sapd_wiki.py serve --host 127.0.0.1 --port 5173
+python3 scripts/dev_server_guard.py --fix-duplicates --start
 ```
 
-也可以只启动本地静态服务器：
+项目默认且长期只使用 `5173` 作为前端预览端口。不要用 `python -m http.server 5173` 作为常驻服务，因为它没有 `/api/v1/*` 后端投影接口，也容易导致刷新后仍看到旧页面。
+
+如果修改前端文件后刷新仍未看到最新效果，重启固定预览服务：
 
 ```bash
-cd frontend/capability-browser
-python -m http.server 5173
+python3 scripts/dev_server_guard.py --restart
 ```
 
 浏览器打开：
 
 ```text
-http://localhost:5173
+http://127.0.0.1:5173/
 ```
 
 ## 当前范围

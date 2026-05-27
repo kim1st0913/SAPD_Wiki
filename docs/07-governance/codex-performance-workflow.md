@@ -40,6 +40,7 @@
 ```bash
 python3 scripts/dev_server_guard.py --status
 python3 scripts/dev_server_guard.py --start
+python3 scripts/dev_server_guard.py --restart
 python3 scripts/dev_server_guard.py --fix-duplicates --start
 python3 scripts/dev_server_guard.py --port <temp-port> --stop
 ```
@@ -54,9 +55,13 @@ python3 scripts/dev_server_guard.py --port <temp-port> --stop
 端口约定：
 
 - `5173` 是 SAPD Wiki 唯一常驻预览端口。
+- 前端展示、用户验收和最终截图默认都使用 `http://127.0.0.1:5173/`。
+- 修改 `frontend/capability-browser/` 后必须确认 `5173` 已加载最新文件；优先依赖本地项目服务的 `Cache-Control: no-store` 和浏览器刷新完成热刷新。
+- 如果刷新后仍看到旧页面，先执行 `python3 scripts/dev_server_guard.py --restart` 重启固定端口项目服务；不要另起一个长期预览端口。
 - 多个线程同时需要验证时，可以临时使用其它端口，例如 `5174`、`5175`。
 - 临时端口只用于验证，验证完成后必须执行 `python3 scripts/dev_server_guard.py --port <temp-port> --stop` 关闭。
 - 不把临时端口写入长期文档、截图说明或最终交付入口；面向用户的默认访问地址始终使用 `http://127.0.0.1:5173/`。
+- 不使用 `python -m http.server 5173` 作为常驻服务；该方式没有 `/api/v1/*` 能力，也容易造成刷新和数据状态误判。
 
 ### 数据包摘要
 
@@ -91,11 +96,9 @@ node scripts/frontend_smoke_check.mjs --page lifecycle
 
 用途：
 
-- 用 Chrome headless 打开本地页面；
-- 切换到指定页面；
-- 检查 console error、横向溢出、关键 DOM 节点；
-- 保存截图路径；
-- 只输出 JSON 摘要。
+- 默认不启动系统 Google Chrome，只做轻量 HTTP/API 检查，避免 macOS 反复弹出 `Google Chrome 意外退出` 报告。
+- 如果确实需要 DOM / 截图 / console 验证，优先使用 Codex in-app browser；只有用户明确同意时，才允许执行 `node scripts/frontend_smoke_check.mjs --page <page> --allow-system-chrome`。
+- 启动系统 Chrome 的验证结束必须通过 DevTools `Browser.close` 优雅关闭；只有优雅关闭失败时才允许发送进程终止信号。
 
 ## 大文件读取规则
 
@@ -103,7 +106,7 @@ node scripts/frontend_smoke_check.mjs --page lifecycle
 |---|---|---|
 | JSON 数据包 | 用 `data_package_summary.py` 看字段和计数 | 按对象 id 或抽样读取 |
 | 前端 diff | `git diff --stat` + 目标文件 diff | 用户要求审查完整 diff 时再读 |
-| 浏览器验证 | `frontend_smoke_check.mjs` 摘要 | 截图异常时查看截图或局部 DOM |
+| 浏览器验证 | in-app browser 或 `frontend_smoke_check.mjs` 轻量 HTTP/API 摘要 | 用户明确同意后才允许 `--allow-system-chrome` |
 | 进程排查 | `dev_server_guard.py --status` / `lsof -iTCP:5173` | 只有定位不到端口问题时再扩大 |
 | 历史追溯 | `progress.md` / `findings.md` 轻量入口 | 明确追溯时读取归档局部 |
 

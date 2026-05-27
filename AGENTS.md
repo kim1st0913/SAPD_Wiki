@@ -56,9 +56,11 @@
 - 开工默认只读 `CURRENT_STATE.md`、`progress.md`，必要时再读 `task_plan.md`、`findings.md` 和目标文件局部。
 - 不默认读取 `docs/05-archive/`、`data/exports/`、`frontend/capability-browser/public/data/*.json` 或数据库备份。
 - 不默认输出全量 `git diff`、全量 DOM、全量 console log、全量 `ps -ax`；先用摘要命令，再按异常深入。
-- 前端验证优先使用 `node scripts/frontend_smoke_check.mjs --page <page>`，只输出摘要指标和截图路径。
+- 前端验证默认不启动系统 Google Chrome；优先使用 `python3 scripts/dev_server_guard.py --status`、数据包摘要、语法检查和 `node scripts/frontend_smoke_check.mjs --page <page>` 的轻量 HTTP/API 模式。只有用户明确同意时，才允许给 smoke 脚本传 `--allow-system-chrome` 做系统 Chrome headless 验证。
 - 数据包检查优先使用 `python3 scripts/data_package_summary.py --package <name>`，不直接打印完整 JSON。
 - 本地服务检查优先使用 `python3 scripts/dev_server_guard.py --status`；需要修复重复服务时使用 `--fix-duplicates --start`。
+- 前端展示默认且长期只使用 `http://127.0.0.1:5173/`；修改 `frontend/capability-browser/` 后必须让该端口展示最新文件，优先依赖本地服务的 `no-store` 热刷新 / 浏览器刷新，失效时执行 `python3 scripts/dev_server_guard.py --restart`，不得另起长期预览端口。
+- 多线程并行验证允许临时端口，但只用于验证；验证完成必须关闭，最终交付和用户查看地址仍回到 `5173`。
 - `progress.md` 超过 120 行时应先归档瘦身，再继续大任务。
 - 工作区存在大量未提交改动时，应建议 checkpoint commit，降低重连后的恢复成本。
 

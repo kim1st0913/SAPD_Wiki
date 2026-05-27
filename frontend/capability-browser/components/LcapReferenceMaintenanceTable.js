@@ -15,7 +15,7 @@
         <div class="matrix-section-head">
           <div>
             <h3>软件开发类型</h3>
-            <p>仅作为 LC-AP 开发安全生命周期页面参考数据。</p>
+            <p>仅作为 LC-AP安全开发生命周期页面参考数据。</p>
           </div>
           <span>${dataRows.length} 项</span>
         </div>

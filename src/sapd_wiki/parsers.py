@@ -164,7 +164,27 @@ def _relation(
 
 def _load_workbook(path: str | Path):
     load_workbook = _load_openpyxl()
-    return load_workbook(resolve_project_path(path), read_only=True, data_only=True)
+    return load_workbook(resolve_project_path(path), read_only=False, data_only=True)
+
+
+def _merged_cell_values(ws) -> dict[str, object]:
+    merged = getattr(ws, "merged_cells", None)
+    ranges = getattr(merged, "ranges", []) if merged else []
+    values: dict[str, object] = {}
+    for merged_range in ranges:
+        anchor_value = ws.cell(merged_range.min_row, merged_range.min_col).value
+        for row_index in range(merged_range.min_row, merged_range.max_row + 1):
+            for column_index in range(merged_range.min_col, merged_range.max_col + 1):
+                values[ws.cell(row_index, column_index).coordinate] = anchor_value
+    return values
+
+
+def _cell_raw_with_merged(row: tuple[object, ...], column_index: int, merged_values: dict[str, object]) -> object:
+    cell = row[column_index]
+    coord = _coord(cell)
+    if coord and coord in merged_values:
+        return merged_values[coord]
+    return _cell_raw(row, column_index)
 
 
 def parse_capability_sheet(workbook) -> ParseResult:
@@ -1062,6 +1082,7 @@ def parse_management_high_level_sheet(workbook, work_function_lookup: dict[str, 
     ws = workbook[sheet_name]
     result = ParseResult()
     lookup = work_function_lookup or {}
+    merged_values = _merged_cell_values(ws)
     last_capability: tuple[str | None, str] | None = None
     last_focus_code = ""
     last_focus_title = ""
@@ -1070,23 +1091,27 @@ def parse_management_high_level_sheet(workbook, work_function_lookup: dict[str, 
     stakeholder_columns = [(8, "决策层"), (9, "管理层"), (10, "执行层"), (11, "监督层")]
 
     for row_index, row in enumerate(ws.iter_rows(min_row=4), start=4):
-        if _cell_text(row, 3):
-            last_capability = split_code_title(_cell_raw(row, 3))
+        capability_raw = _cell_raw_with_merged(row, 3, merged_values)
+        process_group_raw = _cell_raw_with_merged(row, 6, merged_values)
+        process_reference_raw = _cell_raw_with_merged(row, 7, merged_values)
+        if normalize_text(capability_raw):
+            last_capability = split_code_title(capability_raw)
         if _cell_text(row, 4):
             last_focus_code = _cell_text(row, 4)
         if _cell_text(row, 5):
             last_focus_title = _cell_text(row, 5)
-        if _cell_text(row, 6):
-            last_process_group = _cell_text(row, 6)
+        if normalize_text(process_group_raw):
+            last_process_group = normalize_text(process_group_raw)
 
         for column_index, layer in stakeholder_columns:
-            values = split_multivalue_text(_cell_raw(row, column_index), split_on_ideographic_comma=False)
+            raw_stakeholder_value = _cell_raw_with_merged(row, column_index, merged_values)
+            values = split_multivalue_text(raw_stakeholder_value, split_on_ideographic_comma=False)
             if values:
                 last_stakeholders[layer] = values
+            elif is_blank_or_placeholder(raw_stakeholder_value) and normalize_text(raw_stakeholder_value):
+                last_stakeholders[layer] = []
 
-        process_refs = split_multivalue_text(_cell_raw(row, 7))
-        if not process_refs and _cell_text(row, 7):
-            process_refs = [_cell_text(row, 7)]
+        process_refs = split_multivalue_text(process_reference_raw, split_on_ideographic_comma=False)
         if not last_focus_code:
             continue
 

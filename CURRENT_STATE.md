@@ -11,19 +11,22 @@
 
 ## 当前页面范围
 
-Frontend Baseline 1.0 当前覆盖三页：
+Frontend Baseline 1.0 当前覆盖四页：
 
 1. `安全能力映射`
    - 主视角：安全能力 / 安全关注点。
    - 技术视角：安全关注点 -> 作用域 -> 安全技术服务 -> 安全技术模块 / 安全技术措施。
    - 管理视角：安全关注点 -> 管理工作 -> 安全流程（L2 流程组 / L3 流程 / L4 活动）或安全职能（4 层）。
-2. `LC-AP开发安全生命周期`
-   - 主视角：LC-AP 开发安全生命周期阶段。
+2. `LC-AP安全开发生命周期`
+   - 主视角：LC-AP 安全开发生命周期阶段。
    - 核心关系：阶段、主要活动、安全活动、安全策略要求、开发技术服务、安全技术服务、安全技术模块、安全技术措施、开发类产品组件、来源证据。
 3. `信息化环境维度`
    - 主视角：信息化环境 / 环境子类 / 信息化对象。
    - 核心关系：环境、环境子类、对象、作用域、安全技术服务、安全技术模块、安全系统、产品、来源证据。
    - 该页是第一批核心数据的第三个业务视角，不是新 Sheet 扩展。
+4. `LC-DT数据生命周期安全`
+   - 主视角：LC-DT 数据处理过程。
+   - 核心关系：数据处理过程、处理子场景、安全技术服务、安全技术模块、安全技术措施、来源证据。
 
 ## 当前禁止事项
 
@@ -122,10 +125,11 @@ Frontend Baseline 1.0 当前覆盖三页：
 3. 如果当前任务明确，继续执行；如果不明确，只问用户 1 个问题。
 4. 不默认读取 `docs/05-archive/`、`data/exports/`、`frontend/capability-browser/public/data/*.json`、数据库备份或完整历史日志。
 5. 不默认运行全量 `ps -ax`、全量 `git diff`、完整 DOM dump 或长 console log。
-6. 前端验证优先使用 `node scripts/frontend_smoke_check.mjs --page <page>`。
+6. 前端验证默认不启动系统 Google Chrome；优先使用 `python3 scripts/dev_server_guard.py --status`、数据包摘要、语法检查和 `node scripts/frontend_smoke_check.mjs --page <page>` 的轻量 HTTP/API 模式。只有用户明确同意时，才允许传 `--allow-system-chrome` 做系统 Chrome headless 验证。
 7. 数据包检查优先使用 `python3 scripts/data_package_summary.py --package <name>`。
 8. 本地服务检查优先使用 `python3 scripts/dev_server_guard.py --status`。
-9. 本项目常驻预览页固定为 `http://127.0.0.1:5173/`；多个线程并行验证时可临时使用其它端口，但验证后必须用 `python3 scripts/dev_server_guard.py --port <temp-port> --stop` 关闭。
+9. 本项目常驻预览页固定为 `http://127.0.0.1:5173/`；前端展示和用户验收默认只看该端口。修改 `frontend/capability-browser/` 后必须确认 `5173` 已热刷新到最新文件；若刷新仍旧，执行 `python3 scripts/dev_server_guard.py --restart`，不要另起长期预览端口。
+10. 多个线程并行验证时可临时使用其它端口，但验证后必须用 `python3 scripts/dev_server_guard.py --port <temp-port> --stop` 关闭，最终交付地址仍回到 `5173`。
 10. 如 `progress.md` 超过 120 行，先归档瘦身；如工作区 diff 很大，建议 checkpoint commit。
 
 详细规则见 `docs/07-governance/codex-performance-workflow.md`。

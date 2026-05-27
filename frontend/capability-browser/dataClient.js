@@ -29,6 +29,7 @@
 
   const API_PATHS = {
     capabilityWorkspaceProjection: "/api/v1/capabilities/workspace-projection",
+    capabilityWorkspaceInitial: "/api/v1/capabilities/workspace-initial",
   };
 
   const FALLBACKS = {
@@ -212,7 +213,7 @@
   function createLegacyLifecycleWorkbenchFallback(lifecycle) {
     const appSecurity = lifecycle?.application_security_development || {};
     const processes = list(appSecurity.processes);
-    const workbench = emptyWorkbench("domain-module", "/development-security/lc-ap", "LC-AP 开发安全生命周期专项关系投影", ["lifecycle-knowledge.json"]);
+    const workbench = emptyWorkbench("domain-module", "/development-security/lc-ap", "LC-AP安全开发生命周期专项关系投影", ["lifecycle-knowledge.json"]);
     workbench.meta.generated_at = lifecycle?.generated_at || null;
     workbench.meta.stats = {
       lifecycle_stage: processes.length,
@@ -225,7 +226,7 @@
           id: "lifecycle_domain:LC-AP",
           type: "lifecycle_domain",
           code: "LC-AP",
-          name: "开发安全生命周期",
+          name: "LC-AP安全开发生命周期",
           children: processes.map((process) => ({
             id: objectIdOf(process),
             type: "lifecycle_stage",
@@ -583,6 +584,13 @@
       return createEnvelope(createLegacyCapabilityWorkbenchFallback(capability, management), ["capability-workbench.json 不存在，已启用过渡 fallback。"]);
     },
 
+    async getCapabilityWorkspaceInitial() {
+      const initial = await fetchApiData(API_PATHS.capabilityWorkspaceInitial);
+      if (initial) return createEnvelope(initial);
+      const workbench = await fetchPackage("capabilityWorkbench");
+      return createEnvelope(workbench, ["workspace-initial API 不可用，已回退到完整 capability-workbench。"]);
+    },
+
     async getCapabilityMatrix(params = {}) {
       const { capability, management } = await getCapabilityAndManagement();
       const rows = capabilityMatrixRows(capability, management, params);
@@ -617,8 +625,10 @@
       });
     },
 
-    async getCapabilityWorkspaceProjection() {
-      const projection = await fetchApiData(API_PATHS.capabilityWorkspaceProjection);
+    async getCapabilityWorkspaceProjection(params = {}) {
+      const focusId = params.focusId || params.focus_id || "";
+      const query = focusId ? `?focus_id=${encodeURIComponent(focusId)}` : "";
+      const projection = await fetchApiData(`${API_PATHS.capabilityWorkspaceProjection}${query}`);
       return createEnvelope(
         projection || {
           generated_at: null,

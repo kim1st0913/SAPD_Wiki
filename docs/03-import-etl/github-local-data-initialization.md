@@ -61,10 +61,111 @@ mkdir -p "data/raw-samples/ds design"
 
 ## 3. 一键初始化命令
 
+### Ubuntu 24.04 标准执行步骤
+
+同事在 Ubuntu 24.04 上从 GitHub 拉代码后，按以下步骤执行。
+
+1. 安装系统依赖：
+
+```bash
+sudo apt update
+sudo apt install -y git python3 python3-venv python3-pip
+```
+
+如需执行前端静态语法检查或 smoke 脚本，再安装 Node.js。仅做数据初始化时不强制需要 Node.js。
+
+```bash
+sudo apt install -y nodejs npm
+```
+
+2. 拉取代码并切换分支：
+
+```bash
+git clone https://github.com/kim1st0913/SAPD_Wiki.git
+cd SAPD_Wiki
+git checkout codex-frontend-backend-separation-closure
+```
+
+3. 创建 Python 虚拟环境并安装项目依赖：
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e .
+```
+
+4. 放入原始数据文件：
+
+```bash
+mkdir -p "data/raw-samples/ds design"
+```
+
+把主 Excel 放到：
+
+```text
+data/raw-samples/wiki sample.xlsx
+```
+
+可选文件按第 2 节的路径放入；没有可选文件不影响主数据初始化。
+
+5. 确认初始化输入：
+
+```bash
+python scripts/sapd_wiki.py bootstrap-local-data --print-inputs
+```
+
+6. 执行完整本地初始化：
+
+```bash
+python scripts/sapd_wiki.py bootstrap-local-data --profile full --reset
+```
+
+该命令会重建本地 SQLite、导入当前已实现 parser 的 Sheet，并生成前端离线数据包。
+
+7. 初始化后做轻量验证：
+
+```bash
+python scripts/data_package_summary.py --package capability-workbench
+python scripts/data_package_summary.py --package environment-workbench
+python scripts/data_package_summary.py --package lifecycle-workbench
+python scripts/data_package_summary.py --package maintenance
+python scripts/check_github_data_boundary.py
+```
+
+预期结果：
+
+- 四个数据包均显示 `data_state=ready`；
+- GitHub 数据边界检查输出 `GitHub data boundary check: OK`。
+
+8. 可选：启动本地预览服务：
+
+```bash
+python scripts/sapd_wiki.py serve --host 127.0.0.1 --port 5173
+```
+
+然后访问：
+
+```text
+http://127.0.0.1:5173/
+```
+
+如果 Ubuntu 服务器没有桌面浏览器，可只执行数据包验证，不必打开页面。
+
+9. 后续更新代码或原始 Excel 后重新初始化：
+
+```bash
+git pull
+source .venv/bin/activate
+python scripts/sapd_wiki.py bootstrap-local-data --profile full --reset
+```
+
+注意：`--reset` 会备份并重建本地 SQLite。该操作只影响本机 `data/database/`，不会修改 GitHub。
+
 首次初始化推荐执行：
 
 ```bash
-python scripts/sapd_wiki.py bootstrap-local-data --reset
+python scripts/sapd_wiki.py bootstrap-local-data --profile full --reset
 ```
 
 脚本会自动完成：

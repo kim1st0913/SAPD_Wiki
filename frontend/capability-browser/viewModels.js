@@ -852,6 +852,8 @@
       frameworkCode: item.frameworkCode || "",
       frameworkTitle: item.frameworkTitle || "",
       originalControlId: item.originalControlId || "",
+      lifecycleType: item.lifecycleType || item.lifecycle_type || "",
+      objectKind: item.objectKind || item.object_kind || "",
       originalBusinessFields: item.originalBusinessFields || item.original_business_fields || {},
       ...extra,
     };
@@ -859,6 +861,10 @@
 
   function workbenchRelations(workbench, relationType) {
     return list(workbench?.relations).filter((relation) => !relationType || relation.type === relationType);
+  }
+
+  function isInitialProjectionWorkbench(workbench) {
+    return text(workbench?.compatibility?.mode).trim() === "initial_projection";
   }
 
   function workbenchTargets(workbench, objectsById, sourceId, relationType, targetType = "") {
@@ -877,6 +883,7 @@
 
   function buildCapabilityTechnicalRowsFromWorkbench(workbench, focuses) {
     if (!workbench || workbench.__data_state === "missing_file") return [];
+    if (isInitialProjectionWorkbench(workbench)) return [];
     const objectsById = workbenchObjectsById(workbench);
     return list(focuses).flatMap((focus) => {
       const focusId = focus.id;
@@ -908,6 +915,7 @@
 
   function buildCapabilityManagementRowsFromWorkbench(workbench, focuses) {
     if (!workbench || workbench.__data_state === "missing_file") return [];
+    if (isInitialProjectionWorkbench(workbench)) return [];
     const objectsById = workbenchObjectsById(workbench);
     return list(focuses).map((focus) => {
       const focusId = focus.id;
@@ -942,6 +950,7 @@
 
   function buildCapabilityStandardRowsFromWorkbench(workbench, focuses) {
     if (!workbench || workbench.__data_state === "missing_file") return [];
+    if (isInitialProjectionWorkbench(workbench)) return [];
     const objectsById = workbenchObjectsById(workbench);
     const frameworksByCode = {};
     for (const item of Object.values(workbench?.objects?.standard_framework || {})) {
@@ -1203,7 +1212,9 @@
     );
     const name = businessText(measure?.title || measure?.name || measure?.measure_name || measure?.technical_measure_name);
     const category = businessText(measure?.category || measure?.classification);
+    const sourceLabel = businessText(measure?.source_label || measure?.sourceLabel || measure?.source_kind || measure?.sourceKind, "安全知识措施映射表");
     const status = measureStatusText(measure?.status || measure?.state, name === PENDING_TEXT ? PENDING_TEXT : "正常");
+    const mappingStatusLabel = businessText(measure?.mapping_status_label || measure?.mappingStatusLabel, status === PENDING_TEXT ? "待补充关联安全技术服务或作用域" : "");
     const notes = [];
     if (!environments.length || !environmentObjects.length) {
       notes.push("信息化环境和对象由安全技术服务 + 作用域在 environment_scope_tree 中派生；当前数据未命中时显示待补充。");
@@ -1212,6 +1223,10 @@
       id: measure?.id || measure?.code || measure?.title || measure?.name || `measure-${index}`,
       index: index + 1,
       measureName: name,
+      sourceLabel,
+      mappingStatusLabel,
+      serviceEmptyText: services.length ? PENDING_TEXT : "待补充关联安全技术服务",
+      scopeEmptyText: scopes.length ? PENDING_TEXT : "待补充关联作用域",
       serviceNames: services.map((item) => titleOf(item, PENDING_TEXT)),
       scopeNames: scopes.map((item) => titleOf(item, PENDING_TEXT)),
       environmentNames: environments.map((item) => titleOf(item, PENDING_TEXT)),
@@ -1745,6 +1760,8 @@
       includesSearch(
         query,
         row.measureName,
+        row.sourceLabel,
+        row.mappingStatusLabel,
         row.detail.category,
         row.status,
         ...row.serviceNames,
@@ -2671,6 +2688,8 @@
       ...compact,
       order: item?.order ?? item?.metadata?.order ?? "",
       category: businessText(item?.service_category || item?.category || item?.metadata?.service_category, ""),
+      lifecycleType: item?.lifecycleType || item?.lifecycle_type || item?.metadata?.lifecycle_type || "",
+      objectKind: item?.objectKind || item?.object_kind || "",
       originalBusinessFields: item?.originalBusinessFields || item?.original_business_fields || item?.metadata?.original_business_fields || {},
     };
   }
@@ -2705,6 +2724,15 @@
     return list(items).map(lifecycleFieldText).filter(Boolean).join("\n");
   }
 
+  function lifecycleFieldLines(value) {
+    const raw = lifecycleFieldText(value);
+    if (!raw || raw === "/") return [];
+    return raw
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+  }
+
   function lifecycleOriginalBusinessFields(stage) {
     return stage?.originalBusinessFields || stage?.original_business_fields || stage?.metadata?.original_business_fields || {};
   }
@@ -2714,6 +2742,25 @@
     const raw = lifecycleFieldText(fields[key]);
     if (raw) return raw;
     return lifecycleFieldListText(fallbackItems);
+  }
+
+  function typedLifecycleSecurityTechnologyItems(stage, modules, measures) {
+    const sourceLines = lifecycleFieldLines(lifecycleOriginalBusinessFields(stage)["安全技术模块"]);
+    const moduleItems = list(modules);
+    const measureItems = list(measures);
+    if (!sourceLines.length) return [...moduleItems, ...measureItems];
+    const moduleNames = moduleItems.map((item) => titleOf(item, "")).filter(Boolean);
+    const measureNames = measureItems.map((item) => titleOf(item, "")).filter(Boolean);
+    const matchesNamedObject = (line, names) => names.some((name) => line === name || line.startsWith(`${name}（`) || line.startsWith(`${name}(`));
+    return sourceLines.map((line) => {
+      const isMeasure = matchesNamedObject(line, measureNames);
+      const isModule = matchesNamedObject(line, moduleNames);
+      return {
+        title: line,
+        name: line,
+        objectKind: isMeasure && !isModule ? "安全技术措施" : "安全技术模块",
+      };
+    });
   }
 
   function softwareDevelopmentTypeDefinitionMap(lifecycle) {
@@ -2743,10 +2790,15 @@
     if (!selectedStageRow) return [];
     const technicalServices = list(selectedStageRow.technicalServices).map((service) => [service?.code, titleOf(service, "")].filter(Boolean).join(" "));
     const originalModuleFallback = [...list(selectedStageRow.technologyModules), ...list(selectedStageRow.technicalMeasures)];
+    const typedSecurityTechnologyItems = typedLifecycleSecurityTechnologyItems(selectedStageRow, selectedStageRow.technologyModules, selectedStageRow.technicalMeasures);
     const developmentTypes = lifecycleOriginalField(selectedStageRow, "软件开发模式", selectedStageRow.developmentTypes);
     return [
       {
         id: `${selectedStageRow.id}:original-business-fields`,
+        stageId: selectedStageRow.id || "",
+        stageCode: selectedStageRow.code || "",
+        stageTitle: selectedStageRow.title || "",
+        stageGoal: lifecycleOriginalField(selectedStageRow, "阶段目标", [selectedStageRow.goal]),
         mainActivity: lifecycleOriginalField(selectedStageRow, "阶段主要活动（L4流程活动）", selectedStageRow.mainActivities),
         mainActivityReference: lifecycleOriginalField(selectedStageRow, "阶段主要活动参考来源"),
         securityActivities: lifecycleOriginalField(selectedStageRow, "安全活动定义", selectedStageRow.securityActivities),
@@ -2758,7 +2810,29 @@
         threatScenarios: lifecycleOriginalField(selectedStageRow, "潜在安全威胁场景"),
         supplementalPolicies: lifecycleOriginalField(selectedStageRow, "补充安全策略"),
         technicalServices: lifecycleOriginalField(selectedStageRow, "安全技术服务", technicalServices),
-        technologyModules: lifecycleOriginalField(selectedStageRow, "安全技术模块", originalModuleFallback),
+        technologyModules: typedSecurityTechnologyItems,
+      },
+    ];
+  }
+
+  function buildDataLifecycleOriginalFieldRows(selectedStageRow) {
+    if (!selectedStageRow) return [];
+    const technicalServices = list(selectedStageRow.technicalServices).map((service) => [service?.code, titleOf(service, "")].filter(Boolean).join(" "));
+    const technicalModules = [...list(selectedStageRow.technologyModules), ...list(selectedStageRow.technicalMeasures)];
+    return [
+      {
+        id: `${selectedStageRow.id}:data-lifecycle-fields`,
+        stageId: selectedStageRow.id || "",
+        stageCode: selectedStageRow.code || "",
+        stageTitle: selectedStageRow.title || "",
+        processDefinition: selectedStageRow.description || selectedStageRow.goal || "",
+        scenes: lifecycleFieldListText(selectedStageRow.scenes),
+        sceneDescriptions: list(selectedStageRow.scenes)
+          .map((scene) => [scene?.code, titleOf(scene, ""), scene?.description].filter(Boolean).join("："))
+          .filter(Boolean)
+          .join("\n"),
+        technicalServices: lifecycleFieldListText(technicalServices),
+        technologyModules: technicalModules,
       },
     ];
   }
@@ -2912,7 +2986,9 @@
 
   function buildApplicationSecurityLifecycleWorkbenchViewModel({ lifecycleWorkbench, lifecycleWorkbenchViewModel, lifecycle, selectedProcessId, search, dataSource }) {
     const objectsById = workbenchObjectsById(lifecycleWorkbench);
-    const stages = Object.values(lifecycleWorkbench?.objects?.lifecycle_stage || {}).map((stage) => workbenchEntity(stage, "未命名阶段"));
+    const stages = Object.values(lifecycleWorkbench?.objects?.lifecycle_stage || {})
+      .map((stage) => workbenchEntity(stage, "未命名阶段"))
+      .filter((stage) => !stage.lifecycleType || stage.lifecycleType === "application_security_development");
     const query = normalizeSearch(search);
     const navigationTree = stages
       .filter((stage) => includesSearch(query, stage.code, stage.title, stage.description))
@@ -2987,7 +3063,7 @@
     const relationRows = buildLifecycleOriginalFieldRows(selectedStageRow, softwareDefinitionMap);
     return {
       dataState: dataSource.workbenchReady ? "ready" : "empty",
-      title: "LC-AP开发安全生命周期",
+      title: "LC-AP安全开发生命周期",
       description: "按 LC-AP 原始业务字段展示阶段、活动、策略、开发技术服务、开发技术模块、安全技术服务、安全技术模块和安全技术措施。",
       navigationTree,
       stageTree: navigationTree,
@@ -3043,6 +3119,110 @@
     };
   }
 
+  function buildDataSecurityLifecycleWorkbenchViewModel({ lifecycleWorkbench, lifecycleWorkbenchViewModel, lifecycle, selectedProcessId, search, dataSource }) {
+    const objectsById = workbenchObjectsById(lifecycleWorkbench);
+    const stages = Object.values(lifecycleWorkbench?.objects?.lifecycle_stage || {})
+      .map((stage) => workbenchEntity(stage, "未命名数据过程"))
+      .filter((stage) => stage.lifecycleType === "data");
+    const query = normalizeSearch(search);
+    const navigationTree = stages
+      .filter((stage) => includesSearch(query, stage.code, stage.title, stage.description))
+      .map((stage) => ({
+        ...stage,
+        order: stage.code,
+      }));
+    const selectedId = selectedProcessId && navigationTree.some((row) => row.id === selectedProcessId) ? selectedProcessId : navigationTree[0]?.id || null;
+    const selectedStage = navigationTree.find((stage) => stage.id === selectedId) || navigationTree[0] || null;
+    const scenes = selectedStage ? workbenchTargets(lifecycleWorkbench, objectsById, selectedStage.id, "contains_scene", "lifecycle_activity").map((scene) => ({ ...compactLifecycleItem(scene), objectKind: "数据处理场景" })) : [];
+    const technicalServices = selectedStage ? workbenchTargets(lifecycleWorkbench, objectsById, selectedStage.id, "maps_to_service", "security_technical_service").map(compactLifecycleItem) : [];
+    const stageModules = selectedStage ? workbenchTargets(lifecycleWorkbench, objectsById, selectedStage.id, "implemented_by_module", "security_technology_module").map((module) => ({ ...compactLifecycleItem(module), objectKind: "安全技术模块" })) : [];
+    const technicalMeasures = selectedStage ? workbenchTargets(lifecycleWorkbench, objectsById, selectedStage.id, "uses_measure", "security_technical_measure").map((measure) => ({ ...compactLifecycleItem(measure), objectKind: "安全技术措施" })) : [];
+    const serviceModules = uniqueBy(
+      technicalServices.flatMap((service) => workbenchTargets(lifecycleWorkbench, objectsById, service.id, "implemented_by_module", "security_technology_module")).map((module) => ({ ...compactLifecycleItem(module), objectKind: "安全技术模块" })),
+      (module) => module.id || module.code || module.title,
+    );
+    const technologyModules = uniqueBy([...stageModules, ...serviceModules], (module) => module.id || module.code || module.title);
+    const summary = {
+      processCount: navigationTree.length,
+      selectedProcessId: selectedId,
+      sceneCount: scenes.length,
+      technicalServiceCount: technicalServices.length,
+      technologyModuleCount: technologyModules.length,
+      technicalMeasureCount: technicalMeasures.length,
+    };
+    const selectedStageRow = selectedStage
+      ? {
+          ...selectedStage,
+          scenes,
+          technicalServices,
+          technologyModules,
+          technicalMeasures,
+        }
+      : null;
+    const stageOverview = selectedStage
+      ? {
+          mode: "data",
+          code: selectedStage.code || "LC-DT",
+          title: selectedStage.title || PENDING_TEXT,
+          description: selectedStage.description || PENDING_TEXT,
+          status: "当前数据过程",
+          facts: [
+            { label: "处理场景", value: summary.sceneCount },
+            { label: "安全技术服务", value: summary.technicalServiceCount },
+            { label: "安全技术模块", value: summary.technologyModuleCount },
+            { label: "安全技术措施", value: summary.technicalMeasureCount },
+          ],
+        }
+      : null;
+    const relationRows = buildDataLifecycleOriginalFieldRows(selectedStageRow);
+    return {
+      dataState: dataSource.workbenchReady ? "ready" : "empty",
+      title: "LC-DT数据生命周期安全",
+      description: "按 LC-DT 原始业务字段展示数据处理过程、处理场景、安全技术服务、安全技术模块和安全技术措施。",
+      navigationTree,
+      stageTree: navigationTree,
+      selectedProcess: selectedStageRow,
+      selectedStage: selectedStageRow,
+      relationshipSummary: summary,
+      stageOverview,
+      stageRows: navigationTree,
+      relationRows,
+      serviceMappingRows: {
+        securityServiceRows: technicalServices.map((service) => ({ id: service.id, category: service.category || "安全技术服务", service, modules: workbenchTargets(lifecycleWorkbench, objectsById, service.id, "implemented_by_module", "security_technology_module").map(compactLifecycleItem) })),
+        stageModules,
+        stageMeasures: technicalMeasures,
+      },
+      referenceSections: {},
+      referenceGroups: {},
+      localRelationNotes: [],
+      detailPanel: selectedStage
+        ? {
+            type: "LC-DT 数据处理过程",
+            code: selectedStage.code || "LC-DT",
+            title: selectedStage.title || PENDING_TEXT,
+            description: selectedStage.description || PENDING_TEXT,
+            facts: [
+              { label: "处理场景", value: summary.sceneCount },
+              { label: "安全技术服务", value: summary.technicalServiceCount },
+              { label: "安全技术模块", value: summary.technologyModuleCount },
+              { label: "安全技术措施", value: summary.technicalMeasureCount },
+            ],
+            sections: [
+              { title: "数据处理场景", items: scenes },
+              { title: "安全技术服务", items: technicalServices },
+              { title: "安全技术模块", items: technologyModules },
+              { title: "安全技术措施", items: technicalMeasures },
+            ],
+            sourceEvidence: [],
+          }
+        : null,
+      sourceEvidence: [],
+      dataSource,
+      workbenchViewModel: lifecycleWorkbenchViewModel || null,
+      emptyState: navigationTree.length ? "" : "暂无 LC-DT workbench 数据，请确认 lifecycle-workbench.json 是否已生成。",
+    };
+  }
+
   function buildApplicationSecurityLifecycleViewModel({ lifecycleWorkbench, lifecycleWorkbenchViewModel, lifecycle, selectedProcessId, search }) {
     const sourceStatus = workbenchDataSource({
       workbench: lifecycleWorkbench,
@@ -3084,7 +3264,9 @@
       softwareDevelopmentTypeCount: referenceSections.softwareDevelopmentTypes.length,
       applicationSystemTypeCount: referenceSections.applicationSystemTypes.length,
     };
-    const relationRows = buildLifecycleOriginalFieldRows(selectedStageRow, softwareDevelopmentTypeDefinitionMap(lifecycle));
+    const softwareDefinitionMap = softwareDevelopmentTypeDefinitionMap(lifecycle);
+    const stageProfileRows = stageRows.flatMap((row) => buildLifecycleOriginalFieldRows(row, softwareDefinitionMap));
+    const relationRows = buildLifecycleOriginalFieldRows(selectedStageRow, softwareDefinitionMap);
     const stageOverview = buildLifecycleStageOverview(selectedStageRow, summary);
     const detailPanel = process
       ? {
@@ -3116,7 +3298,7 @@
       : null;
     return {
       dataState,
-      title: "LC-AP开发安全生命周期",
+      title: "LC-AP安全开发生命周期",
       description: "按 LC-AP 原始业务字段展示阶段、活动、策略、开发技术服务、开发技术模块、安全技术服务、安全技术模块和安全技术措施。",
       navigationTree,
       stageTree: navigationTree,
@@ -3125,6 +3307,7 @@
       relationshipSummary: summary,
       stageOverview,
       stageRows,
+      stageProfileRows,
       activityPolicyRows: selectedStageRow
         ? [
             {
@@ -3149,7 +3332,67 @@
         ? ""
         : dataState === "missing_file"
           ? "未找到 lifecycle-knowledge.json，请先执行 LC-AP 数据导出。"
-          : "暂无 LC-AP 开发安全生命周期数据，请确认 lifecycle-knowledge.json 是否已导出。",
+          : "暂无 LC-AP安全开发生命周期数据，请确认 lifecycle-knowledge.json 是否已导出。",
+    };
+  }
+
+  function buildDataSecurityLifecycleViewModel({ lifecycleWorkbench, lifecycleWorkbenchViewModel, lifecycle, selectedProcessId, search }) {
+    const sourceStatus = workbenchDataSource({
+      workbench: lifecycleWorkbench,
+      workbenchViewModel: lifecycleWorkbenchViewModel,
+      workbenchName: "lifecycle-workbench.json",
+      fallbackName: "lifecycle-knowledge.json",
+    });
+    if (sourceStatus.workbenchReady) {
+      return buildDataSecurityLifecycleWorkbenchViewModel({
+        lifecycleWorkbench,
+        lifecycleWorkbenchViewModel,
+        lifecycle,
+        selectedProcessId,
+        search,
+        dataSource: sourceStatus,
+      });
+    }
+    const dataLifecycle = lifecycle?.data_lifecycle || {};
+    const dataState = lifecycle?.__data_state === "missing_file" ? "missing_file" : list(dataLifecycle.processes).length ? "ready" : "empty";
+    const navigationTree = buildLifecycleNavigation(dataLifecycle.processes, search);
+    const selectedId = selectedProcessId && navigationTree.some((row) => row.id === selectedProcessId) ? selectedProcessId : navigationTree[0]?.id || null;
+    const stageRows = buildLifecycleStageRows(dataLifecycle.processes);
+    const selectedStageRow = stageRows.find((row) => row.id === selectedId) || stageRows[0] || null;
+    if (selectedStageRow) selectedStageRow.scenes = list(list(dataLifecycle.processes).find((item) => item.id === selectedStageRow.id)?.scenes).map(compactLifecycleItem);
+    const relationRows = buildDataLifecycleOriginalFieldRows(selectedStageRow);
+    return {
+      dataState,
+      title: "LC-DT数据生命周期安全",
+      description: "按 LC-DT 原始业务字段展示数据处理过程、处理场景、安全技术服务、安全技术模块和安全技术措施。",
+      navigationTree,
+      stageTree: navigationTree,
+      selectedProcess: selectedStageRow,
+      selectedStage: selectedStageRow,
+      relationshipSummary: {
+        processCount: navigationTree.length,
+        selectedProcessId: selectedId,
+        sceneCount: list(selectedStageRow?.scenes).length,
+        technicalServiceCount: list(selectedStageRow?.technicalServices).length,
+        technologyModuleCount: list(selectedStageRow?.technologyModules).length,
+        technicalMeasureCount: list(selectedStageRow?.technicalMeasures).length,
+      },
+      stageOverview: selectedStageRow
+        ? {
+            mode: "data",
+            code: selectedStageRow.code || "LC-DT",
+            title: selectedStageRow.title || PENDING_TEXT,
+            description: selectedStageRow.description || selectedStageRow.goal || PENDING_TEXT,
+          }
+        : null,
+      relationRows,
+      dataSource: sourceStatus,
+      workbenchViewModel: lifecycleWorkbenchViewModel || null,
+      emptyState: navigationTree.length
+        ? ""
+        : dataState === "missing_file"
+          ? "未找到 lifecycle-knowledge.json，请先执行 LC-DT 数据导出。"
+          : "暂无 LC-DT 数据生命周期安全数据，请确认 lifecycle-knowledge.json 是否已导出。",
     };
   }
 
@@ -3202,7 +3445,7 @@
   }
 
   function buildLifecycleWorkbenchViewModel({ workbench } = {}) {
-    return buildWorkbenchDataContractViewModel(workbench, "LC-AP 开发安全生命周期专项关系投影");
+    return buildWorkbenchDataContractViewModel(workbench, "LC-AP安全开发生命周期专项关系投影");
   }
 
   window.sapdViewModels = {
@@ -3211,6 +3454,7 @@
     buildEnvironmentWorkbenchViewModel,
     buildLifecycleWorkbenchViewModel,
     buildApplicationSecurityLifecycleViewModel,
+    buildDataSecurityLifecycleViewModel,
     buildMaintenanceWorkspaceViewModel,
     buildProcessMaintenanceViewModel,
     buildScopeMaintenanceViewModel,

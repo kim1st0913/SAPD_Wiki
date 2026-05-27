@@ -420,6 +420,13 @@ def _all_focuses(capability: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
+def _focus_matches(focus: dict[str, Any] | None, focus_id: str | None) -> bool:
+    normalized = str(focus_id or "").strip()
+    if not normalized or not isinstance(focus, dict):
+        return False
+    return normalized in {str(focus.get("id") or "").strip(), str(focus.get("code") or "").strip()}
+
+
 def _stakeholders_from_mappings(process_mappings: list[dict[str, Any]]) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for mapping in process_mappings:
@@ -610,7 +617,21 @@ def _capability_local_relation_maps(
     ]
 
 
-def capability_workspace_projection() -> dict[str, Any]:
+def _default_focus_id_from_workbench(workbench: dict[str, Any]) -> str:
+    navigator = workbench.get("navigator") or {}
+    default_id = navigator.get("defaultSelectedFocusId")
+    if default_id:
+        return str(default_id)
+    stack = list(_list(navigator.get("tree")))
+    while stack:
+        node = stack.pop(0)
+        if node.get("type") == "capability_focus" and node.get("id"):
+            return str(node["id"])
+        stack.extend(_list(node.get("children")))
+    return ""
+
+
+def capability_workspace_projection(focus_id: str | None = None) -> dict[str, Any]:
     capability = read_data_package("capability")
     maintenance = read_data_package("maintenance")
     shared_lookups = read_data_package("shared-lookups")
@@ -620,10 +641,20 @@ def capability_workspace_projection() -> dict[str, Any]:
     }
     technical_rows = _capability_technical_mapping_rows(capability, projection_context)
     management_rows = _capability_management_mapping_rows(capability)
+    selected_focus_ids = {focus_id} if focus_id else set()
+    if selected_focus_ids:
+        technical_rows = [row for row in technical_rows if any(_focus_matches(row.get("focus"), selected) for selected in selected_focus_ids)]
+        management_rows = [row for row in management_rows if any(_focus_matches(row.get("focus"), selected) for selected in selected_focus_ids)]
     local_relation_maps = _capability_local_relation_maps(capability, technical_rows, management_rows)
-    local_relation_maps_by_focus_id = {
-        row["focus"]["id"]: row for row in local_relation_maps if row.get("focus", {}).get("id")
-    }
+    if selected_focus_ids:
+        local_relation_maps = [row for row in local_relation_maps if any(_focus_matches(row.get("focus"), selected) for selected in selected_focus_ids)]
+    local_relation_maps_by_focus_id: dict[str, dict[str, Any]] = {}
+    for row in local_relation_maps:
+        focus = row.get("focus", {})
+        for key in (focus.get("id"), focus.get("code")):
+            normalized_key = str(key or "").strip()
+            if normalized_key:
+                local_relation_maps_by_focus_id[normalized_key] = row
     return {
         "generated_at": capability.get("generated_at") or shared_lookups.get("generated_at") or maintenance.get("generated_at"),
         "data_state": "ready" if technical_rows or management_rows else "empty",
@@ -637,6 +668,38 @@ def capability_workspace_projection() -> dict[str, Any]:
             "management_rows": len(management_rows),
             "local_relation_maps": len(local_relation_maps),
             "focuses": len(_all_focuses(capability)),
+        },
+    }
+
+
+def capability_workspace_initial_projection() -> dict[str, Any]:
+    workbench = read_data_package("capability-workbench")
+    focus_id = _default_focus_id_from_workbench(workbench)
+    projection = capability_workspace_projection(focus_id=focus_id or None)
+    return {
+        "generated_at": workbench.get("meta", {}).get("generated_at") or projection.get("generated_at"),
+        "data_state": projection.get("data_state") or "ready",
+        "meta": workbench.get("meta") or {},
+        "page": workbench.get("page") or {},
+        "navigator": workbench.get("navigator") or {},
+        "overview": workbench.get("overview") or {},
+        "relationshipGroups": [],
+        "objects": {},
+        "relations": [],
+        "evidenceRefs": [],
+        "compatibility": {
+            **(workbench.get("compatibility") or {}),
+            "mode": "initial_projection",
+            "warnings": ["首屏仅加载能力目录和默认关注点关系，完整矩阵明细按需加载。"],
+        },
+        "technicalMappingRows": projection.get("technicalMappingRows") or [],
+        "managementMappingRows": projection.get("managementMappingRows") or [],
+        "localRelationMap": projection.get("localRelationMap"),
+        "localRelationMaps": projection.get("localRelationMaps") or [],
+        "localRelationMapsByFocusId": projection.get("localRelationMapsByFocusId") or {},
+        "stats": {
+            **(projection.get("stats") or {}),
+            "initial_focus_id": focus_id,
         },
     }
 
@@ -740,6 +803,14 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args: Any, directory: str | None = None, **kwargs: Any) -> None:
         super().__init__(*args, directory=directory, **kwargs)
 
+    def end_headers(self) -> None:
+        # The local preview server is used while editing frontend files. Disable
+        # browser caching so a normal refresh always picks up changed JS/CSS/HTML.
+        self.send_header("Cache-Control", "no-store, max-age=0, must-revalidate")
+        self.send_header("Pragma", "no-cache")
+        self.send_header("Expires", "0")
+        super().end_headers()
+
     def do_OPTIONS(self) -> None:
         self.send_response(204)
         self.end_headers()
@@ -771,8 +842,12 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
             if len(parts) == 4 and parts[:3] == ["api", "v1", "data-packages"]:
                 self._send_json(create_envelope(read_data_package(parts[3])))
                 return
+            if path == "/api/v1/capabilities/workspace-initial":
+                self._send_json(create_envelope(capability_workspace_initial_projection()))
+                return
             if path == "/api/v1/capabilities/workspace-projection":
-                self._send_json(create_envelope(capability_workspace_projection()))
+                focus_id = (query.get("focus_id") or query.get("focusId") or [""])[0] or None
+                self._send_json(create_envelope(capability_workspace_projection(focus_id=focus_id)))
                 return
             if path == "/api/v1/maintenance":
                 capability = read_data_package("capability")

@@ -12,7 +12,7 @@
 | `check_github_data_boundary.py` | GitHub 数据边界检查 | `docs/07-governance/data-governance.md` |
 | `data_package_summary.py` | 前端数据包摘要检查 | `CURRENT_STATE.md` |
 | `dev_server_guard.py` | 本地预览服务守护 | `CURRENT_STATE.md` |
-| `frontend_smoke_check.mjs` | 前端页面 smoke 检查 | `CURRENT_STATE.md` |
+| `frontend_smoke_check.mjs` | 前端页面轻量 HTTP/API smoke 检查；默认不启动系统 Google Chrome | `CURRENT_STATE.md` |
 
 ## 专题脚本
 

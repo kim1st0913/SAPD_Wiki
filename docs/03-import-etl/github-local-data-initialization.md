@@ -78,12 +78,12 @@ sudo apt install -y git python3 python3-venv python3-pip
 sudo apt install -y nodejs npm
 ```
 
-2. 拉取代码并切换分支：
+2. 拉取代码：
 
 ```bash
 git clone https://github.com/kim1st0913/SAPD_Wiki.git
 cd SAPD_Wiki
-git checkout codex-frontend-backend-separation-closure
+git checkout main
 ```
 
 3. 创建 Python 虚拟环境并安装项目依赖：

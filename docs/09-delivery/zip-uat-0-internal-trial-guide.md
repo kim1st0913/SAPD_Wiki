@@ -28,23 +28,45 @@ Windows x64 仍处于：
 | 项 | 值 |
 |---|---|
 | ZIP 文件名 | `SAPD-Wiki-v0.1.0-mac-arm64.zip` |
-| 当前试发路径 | `/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle/SAPD-Wiki-v0.1.0-mac-arm64.zip` |
+| 当前试发路径 | `/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle/dist/releases/0.1.0-alpha/SAPD-Wiki-v0.1.0-mac-arm64.zip` |
+| 当前 release manifest | `/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle/dist/releases/0.1.0-alpha/release-manifest.json` |
 | 默认生成目录 | `/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle` |
+| 默认发行目录 | `/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle/dist/releases/0.1.0-alpha/` |
 | `app_version` | `0.1.0-alpha` |
 | `bundle_type` | `zip-portable` |
 | `platform` | `mac-arm64` |
-| `build_time` | `2026-05-29T02:49:41Z` |
+| `build_time` | `2026-05-29T03:02:30Z` |
 | `data_version` | `2026.05-alpha` |
 | base schema | `base_schema_0.1` |
 | user schema | `user_schema_0.1` |
 | base DB hash | `3e1f50d9af9700e2ab0bde7dd46dd4cad05514faefc8ca0cbd61f718c278dd80` |
-| backend binary hash | `e269aa3a85a9098c4519d6f2f5608e24ba577092f93e38d1c1f7a882b33ffdc2` |
-| ZIP hash | `ac3c9ade148ee078e160ff7d141afd6f0b2e9ac763be1b4b5465056f59ce95b0` |
-| backend binary size | `9,548,032 bytes` |
+| backend binary hash | `06426fe40777f6b1e1744ab272a1039b0fa1d87b75399a350bd9196189e4dbe8` |
+| ZIP hash | `4b5ac3bc115abd42d8082e941817cadd36518c99a91c9042d68bc6ac8a341e4b` |
+| backend binary size | `9,551,424 bytes` |
 | base DB size | `708,177,920 bytes` |
-| ZIP size | `190,206,624 bytes` |
+| ZIP size | `190,209,370 bytes` |
 
 如重新构建 ZIP，应重新计算本节 hash、大小和 `build_time`。
+
+## 2.1 当前发行目录内容
+
+当前内部试发材料统一来自：
+
+```text
+"/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle/dist/releases/0.1.0-alpha/"
+```
+
+该目录包含：
+
+- `SAPD-Wiki-v0.1.0-mac-arm64.zip`
+- `SAPD-Wiki-v0.1.0-mac-arm64.sha256`
+- `release-manifest.json`
+- `README-FIRST.md`
+- `zip-uat-0-checklist.md`
+- `zip-uat-feedback-template.md`
+- `windows-validation-report.md`
+
+Windows x64 在该 manifest 中仍标记为 `pending / not_verified`，直到真实 Windows x64 环境构建并验证通过。
 
 ## 3. 试用人员操作说明
 

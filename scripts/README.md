@@ -20,6 +20,7 @@
 | `package_backend_pyinstaller.py` | 使用 PyInstaller 在当前平台生成 ZIP 内部后端运行组件 | `docs/09-delivery/zip-bundle-1.0-alpha-runtime-design.md` |
 | `package_backend_windows.ps1` | Windows x64 上生成 `SAPD-Wiki-Backend.exe` 的 PowerShell 入口 | `docs/09-delivery/windows-zip-build-guide.md` |
 | `build_zip_bundle.py` | 生成 ZIP alpha bundle 目录骨架，可选压缩为 zip；默认输出到 `/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle`，真实运行 ZIP 必须传入 `--backend-binary` | `docs/09-delivery/zip-bundle-1.0-alpha-design.md` |
+| `create_alpha_release.py` | 将已验证 ZIP、checksum、release manifest、README、UAT checklist 和反馈模板组装到本地 alpha release 目录；Windows 未实测时标记为 `pending` | `docs/09-delivery/zip-uat-0-internal-trial-guide.md` |
 | `start-windows.bat` / `start-macos.command` / `stop-windows.bat` / `stop-macos.command` | 分平台 ZIP alpha 启停脚本模板 | `docs/09-delivery/zip-bundle-1.0-alpha-design.md` |
 
 ## 专题脚本
@@ -36,6 +37,6 @@
 
 - 能被多人长期复用的脚本，放在“长期工具”表。
 - 只服务于某次导入、校验、翻译、修表或数据修复的脚本，放在“专题脚本”表。
-- 不要把真实原始资料路径、个人桌面路径或敏感文件名硬编码成唯一入口；需要默认路径时，应提供命令行参数覆盖。ZIP bundle 打包默认输出目录已按当前项目约定固定为 `/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle`，仍可通过 `--output-dir` 或 `SAPD_WIKI_BUNDLE_OUTPUT_DIR` 覆盖。
+- 不要把真实原始资料路径、个人桌面路径或敏感文件名硬编码成唯一入口；需要默认路径时，应提供命令行参数覆盖。ZIP bundle 打包默认输出目录已按当前项目约定固定为 `/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle`，仍可通过 `--output-dir` 或 `SAPD_WIKI_BUNDLE_OUTPUT_DIR` 覆盖。alpha 发行目录固定为 `/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle/dist/releases/0.1.0-alpha/`，可通过 `--release-dir` 或 `SAPD_WIKI_RELEASE_DIR` 覆盖。
 - 新脚本如果会生成数据，应默认输出到已忽略的本地目录，例如 `data/processed/`、`data/exports/` 或 `frontend/capability-browser/public/data/`。
 - 新脚本如果用于提交前或 CI 检查，应尽量不依赖本地原始数据。

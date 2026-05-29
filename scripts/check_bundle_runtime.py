@@ -34,9 +34,48 @@ def is_loopback_host(host: str) -> bool:
     if value == "localhost":
         return True
     try:
-        return ipaddress.ip_address(value).is_loopback
+        address = ipaddress.ip_address(value)
     except ValueError:
         return False
+    return address.version == 4 and address.is_loopback
+
+
+def safe_bundle_child(base_dir: Path, file_value: Any, default_name: str) -> Path:
+    raw_value = str(file_value or default_name).strip()
+    relative = Path(raw_value)
+    if not raw_value:
+        raise ValueError("empty path")
+    if relative.is_absolute():
+        raise ValueError(f"absolute path is not allowed: {raw_value}")
+    if any(part in {"", ".", ".."} for part in relative.parts):
+        raise ValueError(f"path traversal is not allowed: {raw_value}")
+    base = base_dir.resolve()
+    candidate = (base / relative).resolve()
+    try:
+        candidate.relative_to(base)
+    except ValueError as error:
+        raise ValueError(f"path escapes bundle directory: {raw_value}") from error
+    return candidate
+
+
+def parse_port(value: Any, default: int) -> int:
+    port = int(value if value is not None else default)
+    if port < 1 or port > 65535:
+        raise ValueError(f"port out of range: {port}")
+    return port
+
+
+def parse_port_list(value: Any, default: list[int]) -> list[int]:
+    if value is None:
+        raw_ports = default
+    elif isinstance(value, list):
+        raw_ports = value
+    else:
+        raise ValueError("fallback_ports must be a list")
+    ports: list[int] = []
+    for raw_port in raw_ports:
+        ports.append(parse_port(raw_port, 0))
+    return ports
 
 
 def expected_backend_name(platform_name: str) -> str:
@@ -56,9 +95,12 @@ def load_json(path: Path) -> dict[str, Any]:
 
 
 def is_port_available(host: str, port: int) -> bool:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.settimeout(0.2)
-        return sock.connect_ex((host, port)) != 0
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.settimeout(0.2)
+            return sock.connect_ex((host, port)) != 0
+    except OSError:
+        return False
 
 
 def user_schema_version(db_path: Path) -> str | None:
@@ -116,23 +158,37 @@ def check_bundle(bundle_root: Path, create_user: bool = False) -> dict[str, Any]
     base_file = base_info.get("file", "sapd_wiki_base.sqlite3")
     user_file = user_info.get("file", "sapd_wiki_user.sqlite3")
     expected_user_schema = user_info.get("schema_version", DEFAULT_SCHEMA_VERSION)
-    base_db = root / "data" / "base" / base_file
-    user_db = root / "data" / "user" / user_file
+    base_db: Path | None = None
+    user_db: Path | None = None
+    try:
+        base_db = safe_bundle_child(root / "data" / "base", base_file, "sapd_wiki_base.sqlite3")
+        add("base_db_path_safe", True, str(base_db.relative_to(root)))
+    except ValueError as error:
+        add("base_db_path_safe", False, str(error))
+    try:
+        user_db = safe_bundle_child(root / "data" / "user", user_file, "sapd_wiki_user.sqlite3")
+        add("user_db_path_safe", True, str(user_db.relative_to(root)))
+    except ValueError as error:
+        add("user_db_path_safe", False, str(error))
 
-    add("base_db_exists", base_db.exists(), str(base_db))
-    if base_db.exists() and base_info.get("sha256"):
+    add("base_db_exists", bool(base_db and base_db.exists()), str(base_db) if base_db else "unsafe base database path")
+    if base_db and base_db.exists() and base_info.get("sha256"):
         actual_hash = sha256_file(base_db)
         add("base_db_sha256_matches", actual_hash == base_info["sha256"], actual_hash)
-    elif base_db.exists():
+    elif base_db and base_db.exists():
         add("base_db_sha256_matches", False, "manifest missing base_database.sha256")
     else:
         add("base_db_sha256_matches", False, "base database missing")
 
-    if not user_db.exists() and create_user:
+    if user_db and not user_db.exists() and create_user:
         initialize_user_db(user_db, expected_user_schema)
-    add("user_db_exists", user_db.exists(), str(user_db))
-    actual_user_schema = user_schema_version(user_db)
-    add("user_schema_matches", actual_user_schema == expected_user_schema, f"actual={actual_user_schema}; expected={expected_user_schema}")
+    add("user_db_exists", bool(user_db and user_db.exists()), str(user_db) if user_db else "unsafe user database path")
+    actual_user_schema = user_schema_version(user_db) if user_db else None
+    add(
+        "user_schema_matches",
+        bool(user_db and actual_user_schema == expected_user_schema),
+        f"actual={actual_user_schema}; expected={expected_user_schema}",
+    )
 
     logs_writable = False
     try:
@@ -146,18 +202,39 @@ def check_bundle(bundle_root: Path, create_user: bool = False) -> dict[str, Any]
     if logs_writable:
         add("logs_writable", True)
 
-    config = load_json(config_path) if config_path.exists() else {}
+    config: dict[str, Any] = {}
+    if config_path.exists():
+        try:
+            config = load_json(config_path)
+            add("config_json_valid", True)
+        except json.JSONDecodeError as error:
+            add("config_json_valid", False, str(error))
+        except OSError as error:
+            add("config_json_valid", False, str(error))
+    else:
+        add("config_json_valid", False, "config missing")
     add("config_frontend_path_set", bool(config.get("frontend_dist")), str(config.get("frontend_dist", "")))
     add("config_base_db_path_set", bool(config.get("base_database")), str(config.get("base_database", "")))
     add("config_user_db_path_set", bool(config.get("user_database")), str(config.get("user_database", "")))
     host = str(config.get("host", "127.0.0.1")).strip() or "127.0.0.1"
     host_is_loopback = is_loopback_host(host)
     add("config_host_loopback", host_is_loopback, host)
-    preferred = int(config.get("preferred_port", 18765))
-    fallbacks = [int(port) for port in config.get("fallback_ports", [18766, 18767, 18768])]
+    try:
+        preferred = parse_port(config.get("preferred_port"), 18765)
+        add("config_preferred_port_valid", True, str(preferred))
+    except (TypeError, ValueError) as error:
+        preferred = None
+        add("config_preferred_port_valid", False, str(error))
+    try:
+        fallbacks = parse_port_list(config.get("fallback_ports"), [18766, 18767, 18768])
+        add("config_fallback_ports_valid", True, ",".join(str(port) for port in fallbacks))
+    except (TypeError, ValueError) as error:
+        fallbacks = []
+        add("config_fallback_ports_valid", False, str(error))
     selected_port = None
+    candidate_ports = ([preferred] if preferred else []) + fallbacks
     if host_is_loopback:
-        for port in [preferred, *fallbacks]:
+        for port in candidate_ports:
             if is_port_available(host, port):
                 selected_port = port
                 break

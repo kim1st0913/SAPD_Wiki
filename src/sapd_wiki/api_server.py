@@ -39,6 +39,8 @@ MAINTENANCE_SECTIONS = (
     "standards",
 )
 
+FRONTEND_PUBLIC_DATA_ROOT = (PROJECT_ROOT / "frontend" / "capability-browser" / "public" / "data").resolve()
+
 
 def _list(value: Any) -> list[Any]:
     return value if isinstance(value, list) else []
@@ -74,9 +76,23 @@ def _frontend_data_path(data_path: Any) -> Path | None:
         return None
     if normalized.startswith("./"):
         normalized = normalized[2:]
+    if "://" in normalized or normalized.startswith(("/", "\\")):
+        return None
     if normalized.startswith("public/data/"):
-        normalized = f"frontend/capability-browser/{normalized}"
-    return resolve_project_path(normalized)
+        normalized = normalized.removeprefix("public/data/")
+    elif normalized.startswith("frontend/capability-browser/public/data/"):
+        normalized = normalized.removeprefix("frontend/capability-browser/public/data/")
+    else:
+        return None
+    relative = Path(normalized)
+    if relative.is_absolute() or any(part in {"", ".", ".."} for part in relative.parts):
+        return None
+    path = (FRONTEND_PUBLIC_DATA_ROOT / relative).resolve()
+    try:
+        path.relative_to(FRONTEND_PUBLIC_DATA_ROOT)
+    except ValueError:
+        return None
+    return path
 
 
 def _read_split_payload(data_path: Any) -> dict[str, Any] | None:

@@ -2472,13 +2472,13 @@
         facts: [
           { label: "服务编号", value: row.code },
           { label: "归属安全能力-关注点", value: row.ownershipFocuses.length || "待补充" },
-          { label: "关联技术模块", value: row.moduleCount },
+          { label: "关联安全技术模块/措施", value: row.moduleCount },
           { label: "关联安全系统", value: row.systemCount },
           { label: "定义状态", value: row.definition === "待补充定义" ? "待补充" : "正常" },
         ],
         sections: [
           { title: "归属安全能力-关注点", items: row.ownershipFocuses },
-          { title: "关联技术模块", items: row.linkedModules },
+          { title: "关联安全技术模块/措施", items: row.linkedModules },
           { title: "关联安全系统", items: row.linkedSystems },
           { title: "关联产品", items: row.linkedProducts },
           { title: "关联信息化环境", items: row.linkedEnvironments },

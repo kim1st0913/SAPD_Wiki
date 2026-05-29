@@ -86,7 +86,7 @@ Frontend Baseline 1.0 当前关系工作台实现重点仍覆盖三页：
 | BE-4 | 数据质量与缺口清单 | 已完成（首轮静态审计，BE-4.2 已修复；`OI-040` 已修复） | 已新增三份 workbench 数据质量与缺口清单，确认三包顶层结构、关系端点和字段边界正常；`OI-040`、`OI-049`、`OI-050` 已修复，当前继续跟踪源数据一致性待确认问题 `OI-073` | `docs/06-implementation/be-4-workbench-data-quality-gap-list.md`, `docs/06-implementation/open-issues.md` |
 | BE-M | SAPD 成熟度评估数据契约 | 待启动（另开会话） | 定义 maturity 评估模板、填报会话、结果投影和报告导出契约 | `docs/08-maturity/` |
 | BE-5 | 导入 / 校验 / 审批链路回补 | 后置 | 将当前 Excel 导入 MVP 进一步整理为 source -> staging -> review -> formal tables 的可维护链路 | 当前导入脚本和 SQLite |
-| BE-6 | Delivery Bundle 1.0-alpha ZIP 解压即用交付版 | ZIP-UAT-0 macOS 内部试发准备已完成，Windows 待实机验证 | Delivery Bundle 1.0 第一优先级为分平台 `.zip` 解压即用版；当前 macOS arm64 试发包已按默认输出目录重新生成到 `/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle/SAPD-Wiki-v0.1.0-mac-arm64.zip`，并已固化指纹、试发指南、UAT checklist 和反馈模板；Windows `SAPD-Wiki-Backend.exe` 构建脚本和验收清单已就绪，但需 Windows x64 环境继续实测 | `docs/09-delivery/zip-uat-0-internal-trial-guide.md`, `docs/09-delivery/zip-uat-0-checklist.md`, `docs/09-delivery/zip-uat-feedback-template.md`, `docs/09-delivery/windows-zip-build-guide.md` |
+| BE-6 | Delivery Bundle 1.0-alpha ZIP 解压即用交付版 | ZIP-UAT-0 macOS 内部试发准备已完成，Windows 待实机验证 | Delivery Bundle 1.0 第一优先级为分平台 `.zip` 解压即用版；当前 macOS arm64 alpha 试发材料已固定到 `/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle/dist/releases/0.1.0-alpha/`，并已固化 ZIP、checksum、release manifest、试发指南、UAT checklist 和反馈模板；Windows `SAPD-Wiki-Backend.exe` 构建脚本和验收清单已就绪，但需 Windows x64 环境继续实测 | `docs/09-delivery/zip-uat-0-internal-trial-guide.md`, `docs/09-delivery/zip-uat-0-checklist.md`, `docs/09-delivery/zip-uat-feedback-template.md`, `docs/09-delivery/windows-zip-build-guide.md` |
 
 后端数据 / 逻辑线的边界：
 
@@ -105,7 +105,7 @@ Frontend Baseline 1.0 当前关系工作台实现重点仍覆盖三页：
 | DB-5 | base/user 合并 read model | 连接与命名空间规则已设计 | API 层输出 `base:<id>` / `user:<id>` 命名空间，前端不关心数据来自哪个 SQLite |
 | DB-6 | ZIP Bundle Builder alpha | 真实运行 ZIP 构建规则已收紧 | 从已审批正式库生成 `sapd_wiki_base.sqlite3`、manifest、`frontend-dist`、分平台 start/stop / diagnostics 脚本、logs、diagnostics 和平台 zip 目录；默认输出到 `/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle`；真实 ZIP 必须传入 `--backend-binary`，结构验证包必须显式 `--allow-placeholder` |
 | DB-7 | 本地后端可执行文件 alpha | macOS arm64 已打包验证，Windows 待实测 | `scripts/run_local_server.py` 已用 PyInstaller 打包为 macOS arm64 `SAPD-Wiki-Backend` 并完成 ZIP 解压启动验证；Windows 构建脚本 `scripts/package_backend_windows.ps1` 和 `docs/09-delivery/windows-zip-build-guide.md` 已就绪，待 Windows x64 环境生成并验证 `SAPD-Wiki-Backend.exe` |
-| DB-9 | ZIP-UAT-0 内部试发准备 | macOS arm64 已完成，Windows 前置已收口 | macOS alpha 试发包指纹、内部试用步骤、UAT checklist、问题反馈模板和 Windows x64 实机构建前置条件已固化 |
+| DB-9 | ZIP-UAT-0 内部试发准备 | macOS arm64 已完成，Windows 前置已收口 | macOS alpha 试发材料已固定到本地 release 目录，包含 ZIP、checksum、release manifest、README、UAT checklist、问题反馈模板和 Windows pending 验证报告；Windows x64 实机构建前置条件已固化 |
 | DB-8 | Tauri / 安装包体验增强 | 后置 | ZIP alpha 成立后再评估 Tauri 壳、macOS `.dmg/.app`、Windows `.msi/.exe`、签名和自动更新 |
 
 ## 页面推进顺序建议

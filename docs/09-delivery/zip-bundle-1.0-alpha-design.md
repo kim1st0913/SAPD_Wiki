@@ -413,6 +413,14 @@ scripts/build_zip_bundle.py
 
 如需临时输出到其他位置，可以使用 `--output-dir` 覆盖；脚本也支持用 `SAPD_WIKI_BUNDLE_OUTPUT_DIR` 覆盖默认目录。
 
+内部 alpha 发行目录维护为：
+
+```text
+"/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle/dist/releases/0.1.0-alpha/"
+```
+
+该目录只作为本地发行产物目录，不提交大体积 ZIP。`release-manifest.json` 必须如实标记各平台状态；Windows 未实机验证时保持 `pending / not_verified`。
+
 ZIP-PACK-1 起，真实运行 ZIP 必须传入：
 
 ```text

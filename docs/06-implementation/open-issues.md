@@ -1581,7 +1581,7 @@
 - 影响：本地后端可能暴露到局域网，放大本地 API 的访问面。
 - 当前处理：运行检查新增 `config_host_loopback`；后端启动前也会拒绝非 loopback host。
 - 需要确认：无。
-- 修复说明：新增 `is_loopback_host()`，仅允许 `localhost`、`127.0.0.1`、`::1` 等 loopback 地址。
+- 修复说明：新增 `is_loopback_host()`，当前 ZIP alpha 仅允许 `localhost` 和 IPv4 loopback 地址；IPv6 loopback 暂不作为支持目标，避免检查通过但实际绑定失败。
 - 验证结果：2026-05-29 临时 bundle 将 host 改为 `0.0.0.0` 后，`check_bundle_runtime.py --json` 返回 `ok=false`，`config_host_loopback=false`；恢复 `127.0.0.1` 后检查通过。
 
 ## OI-101：诊断包脱敏范围不完整
@@ -1631,3 +1631,75 @@
 - 需要确认：无。
 - 修复说明：`frontend_smoke_check.mjs` 的 lightweight 模式输出并请求 route URL；`SapdWikiRequestHandler.do_GET()` 增加前端路由 fallback。
 - 验证结果：2026-05-29 固定 `5173` 项目服务重启后，`node scripts/frontend_smoke_check.mjs --page environment --route /environment-mapping --url http://127.0.0.1:5173/` 轻量模式通过，page 和 health 均为 200。
+
+## OI-105：ZIP manifest 数据库路径未限制在 bundle 内
+
+- 状态：已修复
+- 类型：安全 / Delivery Bundle / 路径边界
+- 对象或页面：`scripts/check_bundle_runtime.py`、`scripts/run_local_server.py`、`scripts/export_diagnostics.py`。
+- 现象：`base_database.file` 和 `user_database.file` 直接拼接到 bundle 目录下，若 manifest 被篡改为绝对路径或 `../`，运行检查、启动器或诊断脚本可能读写 bundle 外文件。
+- 影响：损坏或恶意 bundle 可能造成用户库创建到意外位置，或让诊断 / 运行时读取非 bundle 数据库文件。
+- 当前处理：新增 `safe_bundle_child()`，拒绝空路径、绝对路径、`.` / `..` 路径片段，并要求解析后仍位于对应 `data/base` 或 `data/user` 目录内。
+- 需要确认：无。
+- 修复说明：运行检查先验证 `base_db_path_safe` / `user_db_path_safe`，不安全时不创建 user DB；启动器和诊断脚本复用同一安全路径解析。
+- 验证结果：2026-05-29 临时 bundle 定点回归通过：`../outside-user.sqlite3` 被拒绝，外部文件未创建；诊断脚本遇到越界 DB 路径时写入错误摘要而不读取外部路径。
+
+## OI-106：损坏 app-config 会让 runtime check 和 diagnostics 崩溃
+
+- 状态：已修复
+- 类型：可靠性 / Delivery Bundle / 诊断
+- 对象或页面：`scripts/check_bundle_runtime.py`、`scripts/export_diagnostics.py`。
+- 现象：`app-config.json` JSON 损坏或端口字段类型错误时，检查脚本直接抛异常；诊断脚本调用检查逻辑后也无法产出诊断包。
+- 影响：用户最需要诊断包的坏包场景反而拿不到诊断信息。
+- 当前处理：运行检查将 config JSON、preferred port、fallback ports 的错误记录为 failed checks；诊断脚本对 manifest、config 和 runtime-state 读取错误输出结构化错误信息。
+- 需要确认：无。
+- 修复说明：`check_bundle_runtime.py` 新增 `config_json_valid`、`config_preferred_port_valid`、`config_fallback_ports_valid`；`export_diagnostics.py` 新增 `load_json_for_diagnostics()`。
+- 验证结果：2026-05-29 临时坏 config 回归通过：检查返回 `ok=false` 而非崩溃；诊断 ZIP 成功生成，并在 `app-config.json` 中记录 `invalid_json`。
+
+## OI-107：IPv6 loopback 被允许但 ZIP alpha 实际不支持
+
+- 状态：已修复
+- 类型：兼容性 / Delivery Bundle / 本地服务
+- 对象或页面：`scripts/check_bundle_runtime.py`、`scripts/run_local_server.py`。
+- 现象：此前 `::1` / `[::1]` 会被判定为 loopback，但端口检查使用 IPv4 socket，运行时 URL 也未按 IPv6 格式加方括号。
+- 影响：配置看似通过安全检查，实际启动或访问失败。
+- 当前处理：ZIP alpha 当前明确只支持 `localhost` 和 IPv4 loopback；IPv6 loopback 配置会被检查为失败。
+- 需要确认：后续如需要支持 IPv6，再单独实现 `AF_INET6` 绑定、端口检查和 `[::1]` URL 格式。
+- 修复说明：`is_loopback_host()` 收紧为 IPv4 loopback；Host / Origin 校验同步复用该规则。
+- 验证结果：2026-05-29 定点回归确认 `is_loopback_host("::1") == False`，config host 为 `::1` 时 `config_host_loopback=false` 且检查失败。
+
+## OI-108：开发 API standards split dataPath 缺少读取范围限制
+
+- 状态：已修复
+- 类型：安全 / 后端 API / 路径边界
+- 对象或页面：`src/sapd_wiki/api_server.py`，`read_standards_compat_package()`。
+- 现象：`standards-index.json` 中的 `dataPath` 会被解析为项目路径或绝对路径，缺少对 `frontend/capability-browser/public/data` 的限制。
+- 影响：被篡改的数据包索引可能诱导开发 API 读取项目外 JSON 文件。
+- 当前处理：`_frontend_data_path()` 只接受 `./public/data/...`、`public/data/...` 或等价的前端 public data 相对路径，拒绝 URL、绝对路径和 `..`。
+- 需要确认：无。
+- 修复说明：新增 `FRONTEND_PUBLIC_DATA_ROOT`，解析后使用 `relative_to()` 确认文件仍在 public data 目录内。
+- 验证结果：2026-05-29 定点回归通过：合法 standards split 路径可解析，`../../CURRENT_STATE.md`、`/tmp/secret.json`、`https://example.com/data.json` 均返回 `None`。
+
+## OI-109：health token 缺少 Host 防护
+
+- 状态：已修复
+- 类型：安全 / Delivery Bundle / 本地后端
+- 对象或页面：`scripts/run_local_server.py`，`GET /api/v1/health`、写接口。
+- 现象：`/api/v1/health` 会返回启动期写入 token，但此前未检查请求 `Host` 是否为本机 loopback。
+- 影响：虽然写接口已要求 token、Content-Type 和 Origin / Referer，但 Host 防护不足会增加 DNS rebinding 或本机代理误暴露场景下的 token 暴露面。
+- 当前处理：health 与写接口都要求 `Host` 为当前端口的 IPv4 loopback / localhost。
+- 需要确认：无。
+- 修复说明：新增 `is_allowed_host_header()`；不合规 Host 访问 health 返回 403，写请求也返回 403。
+- 验证结果：2026-05-29 临时本地 HTTP server 回归通过：正常 `127.0.0.1:<port>` 可获取 token，`Host: example.com:<port>` 返回 403。
+
+## OI-110：user DB 初始化日志手工拼 JSON
+
+- 状态：已修复
+- 类型：可靠性 / Delivery Bundle / 用户库
+- 对象或页面：`scripts/create_user_db.py`。
+- 现象：`initialize_user_db` 写入 `payload_json` 时使用 f-string 拼接，schema version 若包含引号或反斜杠会生成非法 JSON。
+- 影响：异常参数会污染 `user_change_logs.payload_json`，影响后续诊断或迁移解析。
+- 当前处理：改用 `json.dumps()` 生成 payload。
+- 需要确认：无。
+- 修复说明：`payload_json` 改为 `json.dumps({"schema_version": schema_version}, ensure_ascii=False)`。
+- 验证结果：2026-05-29 临时 user DB 回归通过：包含引号和反斜杠的 schema version 写入后可被 `json.loads()` 正确解析。

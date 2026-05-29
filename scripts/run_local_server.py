@@ -27,7 +27,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
-from check_bundle_runtime import check_bundle, is_loopback_host, load_json, sha256_file
+from check_bundle_runtime import check_bundle, is_loopback_host, load_json, safe_bundle_child, sha256_file
 from export_diagnostics import export_diagnostics
 
 
@@ -72,6 +72,18 @@ def is_allowed_loopback_origin(value: str, port: int) -> bool:
     return parsed.scheme == "http" and parsed_port == port and is_loopback_host(parsed.hostname or "")
 
 
+def is_allowed_host_header(value: str, port: int) -> bool:
+    raw_value = str(value or "").strip()
+    if not raw_value:
+        return False
+    parsed = urlparse(f"//{raw_value}")
+    try:
+        parsed_port = parsed.port or 80
+    except ValueError:
+        return False
+    return parsed_port == port and is_loopback_host(parsed.hostname or "")
+
+
 class RuntimeLogger:
     def __init__(self, log_path: Path) -> None:
         self.log_path = log_path
@@ -94,8 +106,8 @@ class BundleRuntime:
         self.config = load_json(self.config_path)
         base_file = self.manifest["base_database"].get("file", "sapd_wiki_base.sqlite3")
         user_file = self.manifest["user_database"].get("file", "sapd_wiki_user.sqlite3")
-        self.base_db = self.root / "data" / "base" / base_file
-        self.user_db = self.root / "data" / "user" / user_file
+        self.base_db = safe_bundle_child(self.root / "data" / "base", base_file, "sapd_wiki_base.sqlite3")
+        self.user_db = safe_bundle_child(self.root / "data" / "user", user_file, "sapd_wiki_user.sqlite3")
 
     def open_connection(self) -> sqlite3.Connection:
         user_uri = self.user_db.resolve().as_uri() + "?mode=rwc"
@@ -241,6 +253,10 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
             parsed = urlparse(self.path)
             try:
                 if parsed.path == "/api/v1/health":
+                    port = int(state["port"])
+                    if not is_allowed_host_header(self.headers.get("Host", ""), port):
+                        self.send_json(403, {"ok": False, "error": "invalid Host header"})
+                        return
                     self.send_json(
                         200,
                         {
@@ -286,6 +302,8 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
             if not token or not secrets.compare_digest(token, session_token):
                 return 403, f"POST writes require a valid {AUTH_HEADER} header"
             port = int(state["port"])
+            if not is_allowed_host_header(self.headers.get("Host", ""), port):
+                return 403, "invalid Host header"
             origin = self.headers.get("Origin", "").strip()
             if origin and not is_allowed_loopback_origin(origin, port):
                 return 403, "cross-origin POST is not allowed"
@@ -347,8 +365,8 @@ def run_server(bundle_root: Path, no_browser: bool = False) -> int:
         return 2
 
     runtime = BundleRuntime(root, logger)
-    host = runtime.config.get("host", "127.0.0.1")
-    if not is_loopback_host(str(host)):
+    host = str(runtime.config.get("host", "127.0.0.1")).strip() or "127.0.0.1"
+    if not is_loopback_host(host):
         logger.write("error", "refusing to bind non-loopback host", host=host)
         return 2
     port = int(result["selected_port"])

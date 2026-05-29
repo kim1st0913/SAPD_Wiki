@@ -2,6 +2,12 @@
 
 请试用人员复制以下模板填写，并随反馈附上 diagnostics ZIP。
 
+当前 macOS arm64 alpha 试发材料来自：
+
+```text
+"/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle/dist/releases/0.1.0-alpha/"
+```
+
 ## 1. 基本信息
 
 | 项 | 内容 |

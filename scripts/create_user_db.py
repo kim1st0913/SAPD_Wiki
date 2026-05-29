@@ -8,6 +8,7 @@ does not read or modify the read-only base database.
 from __future__ import annotations
 
 import argparse
+import json
 import sqlite3
 import uuid
 from pathlib import Path
@@ -141,7 +142,7 @@ def initialize_user_db(db_path: Path, schema_version: str) -> None:
             INSERT INTO user_change_logs(id, action, target_ref, payload_json)
             VALUES (?, 'initialize_user_db', NULL, ?)
             """,
-            (str(uuid.uuid4()), f'{{"schema_version":"{schema_version}"}}'),
+            (str(uuid.uuid4()), json.dumps({"schema_version": schema_version}, ensure_ascii=False)),
         )
 
 

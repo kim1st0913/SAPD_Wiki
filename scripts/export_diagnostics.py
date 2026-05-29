@@ -11,7 +11,7 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
-from check_bundle_runtime import check_bundle, load_json, sha256_file
+from check_bundle_runtime import check_bundle, load_json, safe_bundle_child, sha256_file
 
 
 SENSITIVE_KEYS = {
@@ -30,6 +30,19 @@ def file_info(path: Path) -> dict[str, object]:
         "size": path.stat().st_size if path.exists() else 0,
         "sha256": sha256_file(path) if path.exists() else None,
     }
+
+
+def unavailable_file_info(error: str) -> dict[str, object]:
+    return {"exists": False, "size": 0, "sha256": None, "error": error}
+
+
+def load_json_for_diagnostics(path: Path) -> dict[str, Any]:
+    try:
+        return load_json(path)
+    except json.JSONDecodeError as error:
+        return {"__diagnostic_error": "invalid_json", "message": str(error)}
+    except OSError as error:
+        return {"__diagnostic_error": "read_error", "message": str(error)}
 
 
 def redact_text(value: str, root: Path) -> str:
@@ -83,13 +96,23 @@ def export_diagnostics(bundle_root: Path) -> Path:
     manifest_path = root / "data" / "base" / "base-manifest.json"
     config_path = root / "config" / "app-config.json"
     runtime_state_path = root / "logs" / "runtime-state.json"
-    manifest = load_json(manifest_path) if manifest_path.exists() else {}
+    manifest = load_json_for_diagnostics(manifest_path) if manifest_path.exists() else {}
     base_info = manifest.get("base_database", {}) if isinstance(manifest.get("base_database"), dict) else {}
     user_info = manifest.get("user_database", {}) if isinstance(manifest.get("user_database"), dict) else {}
-    base_db = root / "data" / "base" / base_info.get("file", "sapd_wiki_base.sqlite3")
-    user_db = root / "data" / "user" / user_info.get("file", "sapd_wiki_user.sqlite3")
+    base_db_error = ""
+    user_db_error = ""
+    try:
+        base_db = safe_bundle_child(root / "data" / "base", base_info.get("file"), "sapd_wiki_base.sqlite3")
+    except ValueError as error:
+        base_db = None
+        base_db_error = str(error)
+    try:
+        user_db = safe_bundle_child(root / "data" / "user", user_info.get("file"), "sapd_wiki_user.sqlite3")
+    except ValueError as error:
+        user_db = None
+        user_db_error = str(error)
     startup_check = check_bundle(root, create_user=False)
-    runtime_state = load_json(runtime_state_path) if runtime_state_path.exists() else {}
+    runtime_state = load_json_for_diagnostics(runtime_state_path) if runtime_state_path.exists() else {}
 
     summary = {
         "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -105,8 +128,8 @@ def export_diagnostics(bundle_root: Path) -> Path:
         "python_version": platform.python_version(),
     }
     database_files = {
-        "base": file_info(base_db),
-        "user": file_info(user_db),
+        "base": file_info(base_db) if base_db else unavailable_file_info(base_db_error),
+        "user": file_info(user_db) if user_db else unavailable_file_info(user_db_error),
     }
     redaction_note = (
         "This diagnostics package excludes SQLite database contents, raw import files, exports, "
@@ -123,9 +146,9 @@ def export_diagnostics(bundle_root: Path) -> Path:
         archive.writestr("database-files.json", diagnostic_json(database_files, root))
         archive.writestr("redaction-note.txt", redaction_note)
         if manifest_path.exists():
-            archive.writestr("base-manifest.json", diagnostic_json(load_json(manifest_path), root))
+            archive.writestr("base-manifest.json", diagnostic_json(load_json_for_diagnostics(manifest_path), root))
         if config_path.exists():
-            archive.writestr("app-config.json", diagnostic_json(load_json(config_path), root))
+            archive.writestr("app-config.json", diagnostic_json(load_json_for_diagnostics(config_path), root))
         if runtime_log.exists():
             archive.writestr("runtime.log", redacted_runtime_log(runtime_log, root))
     return output

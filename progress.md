@@ -12,6 +12,7 @@
 
 ## 最近完成事项
 
+- 2026-05-29 子 Agent 调度规则修订：按用户反馈补充长任务 / 子 Agent 运行判断规则，明确“暂无输出不等于无响应”，运行中 Agent 未经用户确认不得关闭；新增三次确认、只读旁路、fan-out / fan-in 模板和适合并行 / 必须串行任务边界。本轮实际启动只读 explorer Agent `019e7428-4a48-7810-ab2a-82394977a438`（Halley）评估并行任务线，已 fan-in 并关闭。
 - 2026-05-29 安全能力映射关注点 projection 前端防串包：`app.js` 将关注点按需投影请求改为 `objectType=capability_focus` + `objectId=<当前关注点>`，新增请求序号、当前有效请求和 pending 请求复用记录；响应合并前校验 `selected` / `graph.center` 与当前选中关注点一致，旧响应或对象不一致响应不再进入 `state.capabilityProjection`；`OI-118` 已修复。
 - 2026-05-29 BE-4.3 lifecycle-workbench 安全技术措施投影复查：重新导出 `frontend/capability-browser/public/data/lifecycle-workbench.json`，确认当前已承载 `security_technical_measure=4` 和 `uses_measure=4`；LC-AP 阶段级措施为 `AP-02 -> 应用程序威胁建模`、`AP-04 -> 制品安全加固`、`AP-05 -> IaC代码安全测试`，LC-DT 为 `DT-07 -> 数据销毁`；生成 `data/exports/worker-verify/be-4-3-lifecycle-measures-check.json`，更新 `OI-040` 和 BE-4 gap 清单。
 - 2026-05-29 Capability Projection Contract 1.0：`/api/v1/capabilities/workspace-projection` 新增 `object_type` / `object_id` 对象粒度契约，支持 `capability_category`、`capability_domain`、`capability`、`capability_focus`；返回 `selected`、`graphScope`、`dataState`、`graph.center`、`summary`、`tabs`，非关注点不返回关注点级 `localRelationMap`，不存在对象返回 `invalid_object`；新增 `scripts/audit_capability_projection_contract.mjs`，`OI-117` 已修复。
@@ -25,6 +26,7 @@
 
 ## 最近验证
 
+- 2026-05-29 子 Agent 调度规则验证：`rg` 定位既有子 Agent / 长任务规则，`AGENTS.md` 和 `docs/07-governance/codex-performance-workflow.md` 已补充；Halley 只读评估完成并关闭；待提交前执行 `git diff --check` 和数据边界检查。
 - 2026-05-29 安全能力映射关注点 projection 防串包验证：`node --check frontend/capability-browser/app.js`、`node --check frontend/capability-browser/dataClient.js`、`node scripts/audit_capability_projection_contract.mjs --url http://127.0.0.1:5173`、`node scripts/frontend_smoke_check.mjs --page capability --url http://127.0.0.1:5173/frontend/capability-browser/`、`git diff --check -- frontend/capability-browser/app.js frontend/capability-browser/dataClient.js docs/06-implementation/open-issues.md progress.md` 均通过；普通沙箱访问 localhost 会 `fetch failed`，已在沙箱外重跑通过，未启动系统 Google Chrome。
 - 2026-05-29 BE-4.3 验证：`python3 scripts/sapd_wiki.py export-lifecycle-workbench`、`python3 -m py_compile src/sapd_wiki/exports.py`、三份 workbench JSON 解析、`data_package_summary.py --package lifecycle-workbench`、BE-4.3 自定义字段边界 / 端点检查、`git diff --check` 均通过。
 - 2026-05-29 Capability Projection Contract 1.0 验证：`python3 -m py_compile src/sapd_wiki/api_server.py`、`node --check frontend/capability-browser/dataClient.js`、`node --check scripts/audit_capability_projection_contract.mjs`、`node scripts/audit_capability_projection_contract.mjs --url http://127.0.0.1:5173` 通过；固定对象 `T`、`T-AS`、`T-AS.AD`、`T-AS.AD-01`、`T-OF`、`T-OF.AT`、`T-OF.AT-02`、`G-SP.SM-02` 和不存在对象均通过。

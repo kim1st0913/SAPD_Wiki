@@ -28,21 +28,21 @@ Windows x64 仍处于：
 | 项 | 值 |
 |---|---|
 | ZIP 文件名 | `SAPD-Wiki-v0.1.0-mac-arm64.zip` |
-| 当前试发路径 | `/private/tmp/sapd_zip_uat0/bundle/SAPD-Wiki-v0.1.0-mac-arm64.zip` |
-| 后续默认生成目录 | `/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle` |
+| 当前试发路径 | `/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle/SAPD-Wiki-v0.1.0-mac-arm64.zip` |
+| 默认生成目录 | `/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle` |
 | `app_version` | `0.1.0-alpha` |
 | `bundle_type` | `zip-portable` |
 | `platform` | `mac-arm64` |
-| `build_time` | `2026-05-29T02:21:47Z` |
+| `build_time` | `2026-05-29T02:49:41Z` |
 | `data_version` | `2026.05-alpha` |
 | base schema | `base_schema_0.1` |
 | user schema | `user_schema_0.1` |
 | base DB hash | `3e1f50d9af9700e2ab0bde7dd46dd4cad05514faefc8ca0cbd61f718c278dd80` |
-| backend binary hash | `6c538044ec337a112127191ba1834aa233dabf3f5c624110594cda0e6ed71419` |
-| ZIP hash | `bb216ce25d3e6e76db16ce5d84017f3e799ff2963cac52110bba5fc97edc90f9` |
-| backend binary size | `9,492,496 bytes` |
+| backend binary hash | `e269aa3a85a9098c4519d6f2f5608e24ba577092f93e38d1c1f7a882b33ffdc2` |
+| ZIP hash | `ac3c9ade148ee078e160ff7d141afd6f0b2e9ac763be1b4b5465056f59ce95b0` |
+| backend binary size | `9,548,032 bytes` |
 | base DB size | `708,177,920 bytes` |
-| ZIP size | `190,149,724 bytes` |
+| ZIP size | `190,206,624 bytes` |
 
 如重新构建 ZIP，应重新计算本节 hash、大小和 `build_time`。
 

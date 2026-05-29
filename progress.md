@@ -4,7 +4,7 @@
 
 ## 当前状态（2026-05-29）
 
-- 当前分支：`codex-frontend-backend-separation-closure`。
+- 当前分支：`main`。
 - 当前主线：Frontend Baseline 1.0 四页关系工作台校正；重点仍是已导入 Sheet 的业务语义复核、前端关系展示校正、数据契约治理和字段边界收口。
 - 固定预览入口：`http://127.0.0.1:5173/`。前端展示和用户验收默认只看该端口。
 - 当前前端设计方向：以 `frontend/capability-browser/apple-morandi-color-demo.html` 为正式颜色基准，走 Apple / iOS / macOS shell 风格：明亮 tinted neutral、浅蓝灰 translucent sidebar、清晰 iOS blue 选中态、低噪表格、segmented tabs 和语义 chip。
@@ -12,6 +12,7 @@
 
 ## 最近完成事项
 
+- 2026-05-29 安全能力图谱与生命周期表格轻量修复：复用只读子 Agent `019e7428-4a48-7810-ab2a-82394977a438`（Halley）完成前端风险评估并 fan-in；主控实现 L0 / L1 / L2 / 关注点统一对象粒度 projection 请求，修复 projection 完成后加载态卡住的问题；微调图谱深层叶子节点碰撞半径和分布间距；安全能力树 active 行改为浅蓝底深色字；LC-AP / LC-DT 表格对齐 Apple / Morandi 低饱和配色。本轮未修改 ETL、schema、导出 JSON、数据库或原始数据。
 - 2026-05-29 子 Agent 调度规则修订：按用户反馈补充长任务 / 子 Agent 运行判断规则，明确“暂无输出不等于无响应”，运行中 Agent 未经用户确认不得关闭；新增三次确认、只读旁路、fan-out / fan-in 模板和适合并行 / 必须串行任务边界。本轮实际启动只读 explorer Agent `019e7428-4a48-7810-ab2a-82394977a438`（Halley）评估并行任务线，已 fan-in 并关闭。
 - 2026-05-29 安全能力映射关注点 projection 前端防串包：`app.js` 将关注点按需投影请求改为 `objectType=capability_focus` + `objectId=<当前关注点>`，新增请求序号、当前有效请求和 pending 请求复用记录；响应合并前校验 `selected` / `graph.center` 与当前选中关注点一致，旧响应或对象不一致响应不再进入 `state.capabilityProjection`；`OI-118` 已修复。
 - 2026-05-29 BE-4.3 lifecycle-workbench 安全技术措施投影复查：重新导出 `frontend/capability-browser/public/data/lifecycle-workbench.json`，确认当前已承载 `security_technical_measure=4` 和 `uses_measure=4`；LC-AP 阶段级措施为 `AP-02 -> 应用程序威胁建模`、`AP-04 -> 制品安全加固`、`AP-05 -> IaC代码安全测试`，LC-DT 为 `DT-07 -> 数据销毁`；生成 `data/exports/worker-verify/be-4-3-lifecycle-measures-check.json`，更新 `OI-040` 和 BE-4 gap 清单。
@@ -26,6 +27,7 @@
 
 ## 最近验证
 
+- 2026-05-29 安全能力图谱与生命周期表格轻量修复验证：`node --check frontend/capability-browser/dataClient.js`、`node --check frontend/capability-browser/app.js frontend/capability-browser/viewModels.js frontend/capability-browser/components/LocalRelationNetworkGraph.js frontend/capability-browser/models/relationGraphModel.js frontend/capability-browser/components/ApplicationSecurityLifecycle.js`、`node scripts/audit_capability_projection_contract.mjs --url http://127.0.0.1:5173`、`node scripts/frontend_smoke_check.mjs --page capability`、`node scripts/frontend_smoke_check.mjs --page dev-lifecycle`、`node scripts/frontend_smoke_check.mjs --page data-lifecycle`、`git diff --check` 均通过；in-app browser 验证 L1、L2、关注点切换不再卡加载，选中行文字为深色可读，浏览器控制台无 error / warning。普通沙箱访问 localhost 会 `fetch failed`，已在沙箱外重跑通过。
 - 2026-05-29 子 Agent 调度规则验证：`rg` 定位既有子 Agent / 长任务规则，`AGENTS.md` 和 `docs/07-governance/codex-performance-workflow.md` 已补充；Halley 只读评估完成并关闭；待提交前执行 `git diff --check` 和数据边界检查。
 - 2026-05-29 安全能力映射关注点 projection 防串包验证：`node --check frontend/capability-browser/app.js`、`node --check frontend/capability-browser/dataClient.js`、`node scripts/audit_capability_projection_contract.mjs --url http://127.0.0.1:5173`、`node scripts/frontend_smoke_check.mjs --page capability --url http://127.0.0.1:5173/frontend/capability-browser/`、`git diff --check -- frontend/capability-browser/app.js frontend/capability-browser/dataClient.js docs/06-implementation/open-issues.md progress.md` 均通过；普通沙箱访问 localhost 会 `fetch failed`，已在沙箱外重跑通过，未启动系统 Google Chrome。
 - 2026-05-29 BE-4.3 验证：`python3 scripts/sapd_wiki.py export-lifecycle-workbench`、`python3 -m py_compile src/sapd_wiki/exports.py`、三份 workbench JSON 解析、`data_package_summary.py --package lifecycle-workbench`、BE-4.3 自定义字段边界 / 端点检查、`git diff --check` 均通过。

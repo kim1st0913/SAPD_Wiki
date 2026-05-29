@@ -81,8 +81,12 @@
   }
 
   function collisionRadius(node = {}) {
-    const labelLength = Math.min(18, text(node.label).length);
-    const labelSpace = node.isCurrent ? 34 : node.type?.startsWith("view_") ? 30 : 24 + labelLength * 1.8;
+    const label = text(node.label);
+    const deepLeafTypes = new Set(["process_l3", "process_l4", "technical_module", "technical_measure", "standard_control"]);
+    const labelLength = Math.min(deepLeafTypes.has(node.type) ? 26 : 18, label.length);
+    const depthWeight = Number(node.meta?.hierarchyDepth || node.depth || 0);
+    const leafBuffer = deepLeafTypes.has(node.type) ? 18 + Math.min(16, Math.max(0, depthWeight - 2) * 5) : 0;
+    const labelSpace = node.isCurrent ? 34 : node.type?.startsWith("view_") ? 30 : 24 + labelLength * 1.8 + leafBuffer;
     return nodeRadius(node) + labelSpace;
   }
 
@@ -234,11 +238,12 @@
         positions.set(viewNode.id, viewPosition);
         placed.add(viewNode.id);
 
-        const leafWidth = Math.min(isStandardView ? Math.PI * 1.04 : Math.PI * 0.86, (isStandardView ? 0.62 : 0.46) + leafNodes.length * (isStandardView ? 0.2 : 0.16));
+        const leafWidth = Math.min(isStandardView ? Math.PI * 1.18 : Math.PI * 0.98, (isStandardView ? 0.72 : 0.54) + leafNodes.length * (isStandardView ? 0.24 : 0.19));
         const leafAngles = spreadAngles(viewAngle, leafNodes.length, leafWidth);
         leafNodes.forEach((leafNode, leafIndex) => {
           const leafSeed = hashSeed(`${viewNode.id}:${leafNode.id}`);
-          const ring = (isStandardView ? 205 : 170) + (leafIndex % 3) * (isStandardView ? 36 : 30) + Math.floor(leafIndex / 3) * 4;
+          const leafTypeBuffer = ["process_l3", "process_l4", "technical_module", "technical_measure", "standard_control"].includes(leafNode.type) ? 18 : 0;
+          const ring = (isStandardView ? 230 : 194) + leafTypeBuffer + (leafIndex % 4) * (isStandardView ? 42 : 36) + Math.floor(leafIndex / 4) * 8;
           positions.set(leafNode.id, polar(viewPosition, leafAngles[leafIndex] ?? viewAngle, ring, ((leafSeed % 19) - 9) * 1.5));
           placed.add(leafNode.id);
         });
@@ -357,7 +362,7 @@
   }
 
   function settleCollisions(businessNodes, positions, fixedIds, strategy = "") {
-    const maxIterations = strategy === "focus_mapping_overview" ? 120 : businessNodes.length > 150 ? 24 : businessNodes.length > 100 ? 38 : 96;
+    const maxIterations = strategy === "focus_mapping_overview" ? 180 : businessNodes.length > 150 ? 24 : businessNodes.length > 100 ? 38 : 96;
     for (let iteration = 0; iteration < maxIterations; iteration += 1) {
       let moved = false;
       for (let a = 0; a < businessNodes.length; a += 1) {
@@ -376,7 +381,7 @@
             dy = Math.sin(seed) * 0.8;
             distance = 0.8;
           }
-          const minimum = collisionRadius(left) + collisionRadius(right) + (strategy === "focus_mapping_overview" ? 38 : 22);
+          const minimum = collisionRadius(left) + collisionRadius(right) + (strategy === "focus_mapping_overview" ? 48 : 22);
           if (distance >= minimum) continue;
           moved = true;
           const push = ((minimum - distance) / distance) * 0.54;

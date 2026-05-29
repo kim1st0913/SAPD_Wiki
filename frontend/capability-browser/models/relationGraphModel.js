@@ -108,6 +108,8 @@
   }
 
   function graphScopeOf(focus = {}) {
+    const explicitScope = text(focus.graphScope || focus.graph_scope || focus.meta?.graphScope || focus.meta?.graph_scope);
+    if (["category", "domain", "capability", "focus"].includes(explicitScope)) return explicitScope;
     const type = text(focus.type);
     if (type === "capability_category") return "category";
     if (type === "capability_domain") return "domain";

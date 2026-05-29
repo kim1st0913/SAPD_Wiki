@@ -285,6 +285,14 @@ function capabilityProjectionHasFocus(focusId) {
   return Boolean(maps[focusId]);
 }
 
+const CAPABILITY_PROJECTION_OBJECT_TYPES = new Set(["capability_category", "capability_domain", "capability", "capability_focus"]);
+
+function capabilityProjectionHasObject(item) {
+  if (!item?.id || !CAPABILITY_PROJECTION_OBJECT_TYPES.has(item.type)) return false;
+  if (item.type === "capability_focus" && capabilityProjectionHasFocus(item.id)) return true;
+  return capabilityProjectionMatchesSelection(state.capabilityProjection, item);
+}
+
 function capabilityWorkbenchHasFullRelations() {
   const workbench = state.capabilityWorkbench;
   if (!workbench || typeof workbench !== "object") return false;
@@ -335,15 +343,16 @@ function capabilitySelectionNeedsFullWorkbench(selectedType) {
     state.selectedCapabilityId &&
       selectedType &&
       selectedType !== "capability_focus" &&
+      !CAPABILITY_PROJECTION_OBJECT_TYPES.has(selectedType) &&
       !capabilityWorkbenchHasFullRelations() &&
       !state.loadedPackages.has("capabilityWorkbench"),
   );
 }
 
-function ensureCapabilityProjectionForFocus(focusId) {
-  if (!focusId || capabilityProjectionHasFocus(focusId)) return Promise.resolve();
-  const item = capabilityItemById(focusId);
-  if (!item || item.type !== "capability_focus") return Promise.resolve();
+function ensureCapabilityProjectionForSelection(selectedId) {
+  if (!selectedId) return Promise.resolve();
+  const item = capabilityItemById(selectedId);
+  if (!item || !CAPABILITY_PROJECTION_OBJECT_TYPES.has(item.type) || capabilityProjectionHasObject(item)) return Promise.resolve();
   const loadKey = capabilityProjectionLoadKeyForItem(item);
   if (state.packageLoads.has(loadKey)) {
     const pendingRequest = state.capabilityProjectionRequests.get(loadKey);
@@ -369,19 +378,23 @@ function ensureCapabilityProjectionForFocus(focusId) {
       } else {
         mergeCapabilityProjection(projection);
       }
-      if (!capabilityProjectionHasFocus(focusId) && !capabilityWorkbenchHasFullRelations() && !state.loadedPackages.has("capabilityWorkbench")) {
-        state.capabilityProjectionFallbackFocusIds.add(focusId);
+      if (!capabilityProjectionHasObject(item) && !capabilityWorkbenchHasFullRelations() && !state.loadedPackages.has("capabilityWorkbench")) {
+        if (item.type === "capability_focus") state.capabilityProjectionFallbackFocusIds.add(item.id);
         await loadDataPackage("capabilityWorkbench");
       }
-      if (state.activeView === "capabilities" && state.selectedCapabilityId === focusId) renderCapabilities();
     })
-    .catch((error) => console.warn("关注点关系投影加载失败", error))
+    .catch((error) => console.warn("能力对象关系投影加载失败", error))
     .finally(() => {
       state.packageLoads.delete(loadKey);
       state.capabilityProjectionRequests.delete(loadKey);
+      if (state.activeView === "capabilities" && state.selectedCapabilityId === item.id) renderCapabilities();
     });
   if (load) state.packageLoads.set(loadKey, load);
   return load || Promise.resolve();
+}
+
+function ensureCapabilityProjectionForFocus(focusId) {
+  return ensureCapabilityProjectionForSelection(focusId);
 }
 
 function capabilityNodeFromWorkbench(node) {
@@ -1336,12 +1349,14 @@ function renderCapabilities() {
       if (state.activeView === "capabilities") renderCapabilities();
     });
   }
-  const isFocusProjectionPending =
-    selectedType === "capability_focus" &&
-    !capabilityProjectionHasFocus(state.selectedCapabilityId) &&
+  const selectedProjectionItem = capabilityItemById(state.selectedCapabilityId);
+  const isCapabilityProjectionPending =
+    selectedProjectionItem &&
+    CAPABILITY_PROJECTION_OBJECT_TYPES.has(selectedProjectionItem.type) &&
+    !capabilityProjectionHasObject(selectedProjectionItem) &&
     !capabilityWorkbenchHasFullRelations();
-  if (isFocusProjectionPending) {
-    ensureCapabilityProjectionForFocus(state.selectedCapabilityId);
+  if (isCapabilityProjectionPending) {
+    ensureCapabilityProjectionForSelection(state.selectedCapabilityId);
   }
   const capabilityWorkbenchViewModel =
     viewModels.buildCapabilityWorkbenchViewModel?.({ workbench: state.capabilityWorkbench }) || state.capabilityWorkbenchViewModel;
@@ -1358,6 +1373,15 @@ function renderCapabilities() {
   });
   const hadSelectedCapability = Boolean(state.selectedCapabilityId);
   if (!state.selectedCapabilityId) state.selectedCapabilityId = viewModel.selectedCapability?.id || null;
+  const hydratedSelection = capabilityItemById(state.selectedCapabilityId);
+  if (
+    hydratedSelection &&
+    CAPABILITY_PROJECTION_OBJECT_TYPES.has(hydratedSelection.type) &&
+    !capabilityProjectionHasObject(hydratedSelection) &&
+    !capabilityWorkbenchHasFullRelations()
+  ) {
+    ensureCapabilityProjectionForSelection(hydratedSelection.id);
+  }
   if (!hadSelectedCapability && viewModel.selectedCapability?.type === "capability_category" && state.selectedCapabilityId) {
     capabilityCategoryIds().forEach((id) => state.expandedCapabilityIds.add(id));
   }
@@ -1380,9 +1404,9 @@ function renderCapabilities() {
     setHtml("detail", emptyState("暂无能力关系数据"));
     return;
   }
-  if (isFocusProjectionPending && state.packageLoads.has(capabilityProjectionLoadKey(state.selectedCapabilityId))) {
+  if (hydratedSelection && state.packageLoads.has(capabilityProjectionLoadKeyForItem(hydratedSelection))) {
     setHtml("capabilityFocusHeader", "");
-    setHtml("detail", emptyState("正在加载当前关注点关系数据", "关系投影加载完成后会自动显示。"));
+    setHtml("detail", emptyState("正在加载当前能力对象关系数据", "对象粒度 projection 加载完成后会自动显示。"));
     applyCapabilityCatalogState();
     return;
   }
@@ -2133,8 +2157,8 @@ function bindEvents() {
   if (!row) return;
   state.selectedCapabilityId = row.dataset.capabilityId;
   const selectedType = capabilityItemTypeById(state.selectedCapabilityId);
-  if (selectedType === "capability_focus") {
-    ensureCapabilityProjectionForFocus(state.selectedCapabilityId);
+  if (CAPABILITY_PROJECTION_OBJECT_TYPES.has(selectedType)) {
+    ensureCapabilityProjectionForSelection(state.selectedCapabilityId);
   } else if (!state.loadedPackages.has("capabilityWorkbench")) {
     loadDataPackage("capabilityWorkbench").then(() => {
       if (state.activeView === "capabilities") renderCapabilities();
@@ -2146,7 +2170,9 @@ $("detail")?.addEventListener("click", (event) => {
   const row = event.target.closest("[data-capability-id]");
   if (!row) return;
   state.selectedCapabilityId = row.dataset.capabilityId;
-  if (capabilityItemTypeById(state.selectedCapabilityId) === "capability_focus") ensureCapabilityProjectionForFocus(state.selectedCapabilityId);
+  if (CAPABILITY_PROJECTION_OBJECT_TYPES.has(capabilityItemTypeById(state.selectedCapabilityId))) {
+    ensureCapabilityProjectionForSelection(state.selectedCapabilityId);
+  }
   renderCapabilities();
 });
   $("detail")?.addEventListener("input", (event) => {

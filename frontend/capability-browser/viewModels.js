@@ -563,12 +563,15 @@
 
   function compactLocalFocus(focus) {
     const compact = compactEntity(focus, "未命名关注点");
+    const type = text(compact?.type || focus?.type);
+    const graphScope = type === "capability_category" ? "category" : type === "capability_domain" ? "domain" : type === "capability" ? "capability" : "focus";
     return {
       id: compact?.id || "",
       type: compact?.type || "",
       code: compact?.code || "",
       name: compact?.title || "",
       description: compact?.description || "",
+      graphScope,
     };
   }
 
@@ -857,8 +860,30 @@
   function isReadyCapabilityProjection(capabilityProjection) {
     if (!capabilityProjection) return false;
     const dataState = text(capabilityProjection.data_state || capabilityProjection.dataState || "").trim();
-    if (dataState && dataState !== "ready") return false;
-    return Boolean(capabilityProjection.localRelationMap || capabilityProjection.localRelationMapsByFocusId || list(capabilityProjection.localRelationMaps).length);
+    if (dataState && dataState !== "ready" && dataState !== "empty") return false;
+    return Boolean(
+      capabilityProjection.selected ||
+        capabilityProjection.graph?.center ||
+        capabilityProjection.localRelationMap ||
+        capabilityProjection.localRelationMapsByFocusId ||
+        list(capabilityProjection.localRelationMaps).length,
+    );
+  }
+
+  function projectionObjectMatches(actual, expected) {
+    const actualKeys = [actual?.id, actual?.code].map(text).filter(Boolean);
+    const expectedKeys = [expected?.id, expected?.code].map(text).filter(Boolean);
+    return actualKeys.some((key) => expectedKeys.includes(key));
+  }
+
+  function capabilityProjectionMatchesSelected(capabilityProjection, selectedDetail) {
+    if (!isReadyCapabilityProjection(capabilityProjection) || !selectedDetail) return false;
+    const selected = capabilityProjection.selected || null;
+    const center = capabilityProjection.graph?.center || null;
+    if (!selected || !center) return false;
+    if (text(selected.type) !== text(selectedDetail.type)) return false;
+    if (text(center.type) !== text(selected.type)) return false;
+    return projectionObjectMatches(selected, selectedDetail) && projectionObjectMatches(center, selected);
   }
 
   function projectedLocalRelationMapFor(capabilityProjection, selectedFocusId) {
@@ -1052,18 +1077,18 @@
     const workbenchManagementRows = buildCapabilityManagementRowsFromWorkbench(capabilityWorkbench, visibleFocuses);
     const workbenchStandardRows = buildCapabilityStandardRowsFromWorkbench(capabilityWorkbench, visibleFocuses);
     const isFocus = selectedDetail?.type === "capability_focus";
-    const canUseFocusProjection = isFocus;
-    const projectedTechnicalRows = canUseFocusProjection ? list(capabilityProjection?.technicalMappingRows || capabilityProjection?.technical_mapping_rows) : [];
-    const projectedManagementRows = canUseFocusProjection ? list(capabilityProjection?.managementMappingRows || capabilityProjection?.management_mapping_rows) : [];
-    const technicalMappingRows = workbenchTechnicalRows.length
-      ? workbenchTechnicalRows
-      : projectedTechnicalRows.length
+    const canUseProjection = capabilityProjectionMatchesSelected(capabilityProjection, selectedDetail);
+    const projectedTechnicalRows = canUseProjection ? list(capabilityProjection?.technicalMappingRows || capabilityProjection?.technical_mapping_rows) : [];
+    const projectedManagementRows = canUseProjection ? list(capabilityProjection?.managementMappingRows || capabilityProjection?.management_mapping_rows) : [];
+    const technicalMappingRows = projectedTechnicalRows.length
       ? projectedTechnicalRows.filter((row) => visibleFocusIdSet.has(row.focus?.id))
+      : workbenchTechnicalRows.length
+      ? workbenchTechnicalRows
       : buildTechnicalMappingRows({ management, focuses: visibleFocuses });
-    const managementMappingRows = workbenchManagementRows.length
-      ? workbenchManagementRows
-      : projectedManagementRows.length
+    const managementMappingRows = projectedManagementRows.length
       ? projectedManagementRows.filter((row) => visibleFocusIdSet.has(row.focus?.id))
+      : workbenchManagementRows.length
+      ? workbenchManagementRows
       : buildManagementMappingRows({ focuses: visibleFocuses });
     const focusOverview = buildFocusOverview({ capabilityTree, focuses: visibleFocuses, selectedDetail, technicalRows: technicalMappingRows, managementRows: managementMappingRows });
     const selectedFocusRow = rows.find((row) => row.focus.id === selectedId) || rows[0] || null;
@@ -1079,9 +1104,10 @@
     const detailSecurityWorks = isFocus ? managementMappingRows.find((row) => row.focus.id === selectedDetail.id)?.securityWorks || [] : uniqueBy(managementMappingRows.flatMap((row) => row.securityWorks), (work) => work.id || work.code || work.title);
     const detailSourceItems = [...list(detailRaw?.security_works), ...list(detailRaw?.scope_mappings)];
     const detailSourceEvidence = sourceEvidenceFor(detailRaw, detailRawProcesses, detailSourceItems);
-    const projectedFocusId = canUseFocusProjection ? selectedDetail.id : null;
-    const projectedLocalRelationMap = canUseFocusProjection ? projectedLocalRelationMapFor(capabilityProjection, projectedFocusId) : null;
-    const usingWorkbenchMappingRows = Boolean(workbenchTechnicalRows.length || workbenchManagementRows.length);
+    const projectedFocusId = canUseProjection && isFocus ? selectedDetail.id : null;
+    const projectedLocalRelationMap = projectedFocusId ? projectedLocalRelationMapFor(capabilityProjection, projectedFocusId) : null;
+    const usingProjectedMappingRows = Boolean(projectedTechnicalRows.length || projectedManagementRows.length);
+    const usingWorkbenchMappingRows = Boolean(!usingProjectedMappingRows && (workbenchTechnicalRows.length || workbenchManagementRows.length));
     const usingProjectedLocalRelationMap = Boolean(!usingWorkbenchMappingRows && projectedLocalRelationMap);
     const localRelationMap =
       usingProjectedLocalRelationMap
@@ -1113,7 +1139,7 @@
       managementMappingRows,
       standardMappingRows: workbenchStandardRows,
       localRelationMap,
-      localRelationMapSource: usingWorkbenchMappingRows ? "capability_workbench" : usingProjectedLocalRelationMap ? "backend_projection" : "viewmodel_fallback",
+      localRelationMapSource: usingProjectedMappingRows || usingProjectedLocalRelationMap ? "backend_projection" : usingWorkbenchMappingRows ? "capability_workbench" : "viewmodel_fallback",
       localRelationshipNotes: buildLocalRelationshipNotes(chainFocus, technicalMappingRows, managementMappingRows),
       relationshipMatrixRows: rows,
       relationshipChainRows: buildRelationshipChainRows(chainFocus),

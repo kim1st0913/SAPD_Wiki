@@ -17560,3 +17560,107 @@ body {
 #maintenanceWorkspace.standards-mode .standard-framework-tabs {
   margin-bottom: 10px;
 }
+
+/* 2026-05-29 capability tree readability and lifecycle table color alignment */
+.capability-tree-pane .tree-row.active,
+.app-shell-integrated .capability-tree-pane .tree-row.active {
+  border-color: color-mix(in oklch, var(--apple-blue, #0a84ff) 28%, var(--line));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(255, 255, 255, 0.58)),
+    color-mix(in oklch, var(--apple-blue, #0a84ff) 13%, var(--panel));
+  color: var(--ink);
+  box-shadow: 0 8px 20px rgba(10, 132, 255, 0.12);
+}
+
+.capability-tree-pane .tree-row.active *,
+.app-shell-integrated .capability-tree-pane .tree-row.active * {
+  color: var(--ink);
+}
+
+.capability-tree-pane .tree-row.active .node-code,
+.capability-tree-pane .tree-row.active .node-title,
+.capability-tree-pane .tree-row.active .node-count,
+.app-shell-integrated .capability-tree-pane .tree-row.active .node-code,
+.app-shell-integrated .capability-tree-pane .tree-row.active .node-title,
+.app-shell-integrated .capability-tree-pane .tree-row.active .node-count {
+  color: color-mix(in oklch, var(--ink) 82%, var(--apple-blue, #0a84ff));
+}
+
+.capability-tree-pane .tree-row.active .node-level-label,
+.capability-tree-pane .tree-row.active .node-toggle,
+.app-shell-integrated .capability-tree-pane .tree-row.active .node-level-label,
+.app-shell-integrated .capability-tree-pane .tree-row.active .node-toggle {
+  border-color: color-mix(in oklch, var(--apple-blue, #0a84ff) 26%, var(--line));
+  background: rgba(255, 255, 255, 0.82);
+  color: color-mix(in oklch, var(--apple-blue, #0a84ff) 70%, var(--ink));
+}
+
+.dev-lifecycle-workspace .lifecycle-workbench-table,
+.dev-lifecycle-workspace .lifecycle-profile-table,
+.dev-lifecycle-workspace .lifecycle-security-table,
+.dev-lifecycle-workspace .data-lifecycle-profile-table,
+.dev-lifecycle-workspace .data-lifecycle-security-table {
+  border-color: color-mix(in oklch, var(--morandi-blue) 24%, var(--line));
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.dev-lifecycle-workspace .lifecycle-workbench-table th {
+  border-color: color-mix(in oklch, var(--morandi-blue) 18%, var(--line));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.48)),
+    color-mix(in oklch, var(--morandi-blue) 10%, var(--panel));
+  color: #526071;
+}
+
+.dev-lifecycle-workspace .lifecycle-profile-table th:nth-child(1),
+.dev-lifecycle-workspace .data-lifecycle-profile-table th:nth-child(1) {
+  background: color-mix(in oklch, var(--morandi-blue) 13%, rgba(255, 255, 255, 0.82));
+}
+
+.dev-lifecycle-workspace .lifecycle-profile-table th:nth-child(2),
+.dev-lifecycle-workspace .data-lifecycle-profile-table th:nth-child(2) {
+  background: color-mix(in oklch, var(--morandi-sage) 13%, rgba(255, 255, 255, 0.82));
+}
+
+.dev-lifecycle-workspace .lifecycle-profile-table th:nth-child(3),
+.dev-lifecycle-workspace .data-lifecycle-profile-table th:nth-child(3) {
+  background: color-mix(in oklch, var(--morandi-lavender) 12%, rgba(255, 255, 255, 0.84));
+}
+
+.dev-lifecycle-workspace .lifecycle-profile-table th:nth-child(n + 4),
+.dev-lifecycle-workspace .data-lifecycle-profile-table th:nth-child(n + 4),
+.dev-lifecycle-workspace .lifecycle-security-table th:nth-child(n + 3),
+.dev-lifecycle-workspace .data-lifecycle-security-table th:nth-child(n + 3) {
+  background: color-mix(in oklch, var(--morandi-blue) 12%, rgba(255, 255, 255, 0.84));
+}
+
+.dev-lifecycle-workspace .lifecycle-security-table th:nth-child(1),
+.dev-lifecycle-workspace .data-lifecycle-security-table th:nth-child(1) {
+  background: color-mix(in oklch, var(--morandi-sage) 15%, rgba(255, 255, 255, 0.82));
+}
+
+.dev-lifecycle-workspace .lifecycle-security-table th:nth-child(2),
+.dev-lifecycle-workspace .data-lifecycle-security-table th:nth-child(2) {
+  background: color-mix(in oklch, var(--morandi-sage) 11%, rgba(255, 255, 255, 0.86));
+}
+
+.dev-lifecycle-workspace .lifecycle-workbench-table td {
+  border-color: color-mix(in oklch, var(--morandi-blue) 14%, var(--line));
+  background: rgba(255, 255, 255, 0.66);
+  color: #243041;
+}
+
+.dev-lifecycle-workspace .lifecycle-profile-table td,
+.dev-lifecycle-workspace .data-lifecycle-profile-table td {
+  background: color-mix(in oklch, var(--morandi-blue) 8%, rgba(255, 255, 255, 0.72));
+}
+
+.dev-lifecycle-workspace .lifecycle-security-table td,
+.dev-lifecycle-workspace .data-lifecycle-security-table td {
+  background: color-mix(in oklch, var(--morandi-blue) 6%, rgba(255, 255, 255, 0.74));
+}
+
+.dev-lifecycle-workspace .lifecycle-workbench-table tbody tr:hover td,
+.dev-lifecycle-workspace .lifecycle-workbench-table tbody tr.selected td {
+  background: color-mix(in oklch, var(--apple-blue, #0a84ff) 8%, rgba(255, 255, 255, 0.84));
+}

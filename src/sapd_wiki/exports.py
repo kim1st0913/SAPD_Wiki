@@ -131,6 +131,7 @@ MAINTENANCE_KNOWLEDGE_FIELDS = (
     "scope_types",
     "security_processes",
     "work_function_layers",
+    "security_technical_services",
     "security_technology_modules",
     "security_technical_measures",
     "gbt_42446_references",
@@ -1363,6 +1364,17 @@ def _measure_category_status(name: str, style: str, was_note_wrapper: bool = Fal
     return None, "normal"
 
 
+def _scope_value_with_service_scope(scope_raw: object, service_raw: object) -> str:
+    scope_text = str(scope_raw or "").strip()
+    service_scope = service_parts(service_raw).get("scope_code")
+    if not service_scope:
+        return scope_text
+    scope_codes = {code for code, _title in split_scope_values(scope_text) if code}
+    if service_scope in scope_codes:
+        return scope_text
+    return "\n".join([value for value in [scope_text, service_scope] if value])
+
+
 def _source_payload(row: int, column: str, cell: str | None, raw_value: object) -> dict[str, Any]:
     return {
         "sheet": SCENE_TECHNICAL_MAPPING_SHEET,
@@ -1471,7 +1483,7 @@ def _scene_measure_candidates_from_xlsx(path: Path) -> list[dict[str, Any]]:
                     "category": category,
                     "status": status,
                     "service_raw": service_cell.get("value"),
-                    "scope_raw": inherited_values["E"],
+                    "scope_raw": _scope_value_with_service_scope(inherited_values["E"], service_cell.get("value")),
                     "sources": sources,
                 }
             )
@@ -2118,6 +2130,7 @@ def export_management_knowledge(
         payload_item["products"] = brief_many(products, products_by_module.get(item["id"], []))
         payload_item["environments"] = brief_many(information_environments, environments_by_module.get(item["id"], []))
         module_payloads.append(payload_item)
+    security_technical_services, _service_module_index_by_id = _build_service_module_index(conn)
     security_technical_measures = _build_security_technical_measures(conn, items, refs)
 
     object_entries_by_environment: dict[str, dict[tuple[str, str, str | None], dict[str, Any]]] = {}
@@ -2200,8 +2213,6 @@ def export_management_knowledge(
                     for service_id in service_ids_for_object
                     if scope_id in scopes_by_service.get(service_id, [])
                 ]
-                if not scoped_service_ids:
-                    scoped_service_ids = service_ids_for_object
                 service_payloads = []
                 for service_id in sort_source_ids(technical_services, scoped_service_ids):
                     if service_id not in technical_services:
@@ -2274,6 +2285,7 @@ def export_management_knowledge(
             "gbt_42446_references": len(gbt_42446_references),
             "gartner_roles": len(gartner_role_payloads),
             "scope_types": len(scope_payloads),
+            "security_technical_services": len(security_technical_services),
             "security_technology_modules": len(module_payloads),
             "security_technical_measures": len(security_technical_measures),
             "information_environments": len(environment_scope_tree),
@@ -2287,6 +2299,7 @@ def export_management_knowledge(
         "gbt_42446_references": gbt_42446_references,
         "gartner_roles": gartner_role_payloads,
         "scope_types": scope_payloads,
+        "security_technical_services": security_technical_services,
         "security_technology_modules": module_payloads,
         "security_technical_measures": security_technical_measures,
         "environment_scope_tree": environment_scope_tree,

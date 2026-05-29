@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SAPD Wiki 关系工作台</title>
-    <link rel="stylesheet" href="./styles.css?v=global-dashboard-20260526-1" />
+    <link rel="stylesheet" href="./styles.css?v=technical-service-catalog-20260528-2" />
   </head>
   <body>
     <div id="app" class="app-shell">
@@ -118,22 +118,7 @@
       </main>
 
       <main id="environmentWorkspace" class="environment-workspace is-hidden">
-        <section class="environment-catalog-pane">
-          <div class="pane-head">
-            <h2>环境对象树</h2>
-            <span id="environmentCount" class="count-pill">0</span>
-          </div>
-          <div class="source-catalog-tools">
-            <input id="environmentSearchInput" type="search" placeholder="搜索环境、对象、作用域、服务或模块" />
-          </div>
-          <div id="environmentTree" class="environment-tree"></div>
-        </section>
-
         <section class="environment-detail-pane">
-          <div class="pane-head">
-            <h2>连续映射详情</h2>
-            <span class="type-pill">对象 → 作用域 → 服务 → 模块</span>
-          </div>
           <div id="environmentDetail" class="environment-detail"></div>
         </section>
       </main>
@@ -198,6 +183,10 @@
               <span>职能清单</span>
               <strong id="workFunctionCount">0</strong>
             </button>
+            <button id="servicesPageTab" class="source-nav-button" type="button" data-source-page="services">
+              <span>安全技术服务清单</span>
+              <strong id="serviceCatalogCount">0</strong>
+            </button>
             <button id="modulesPageTab" class="source-nav-button" type="button" data-source-page="modules">
               <span>安全技术模块清单</span>
               <strong id="moduleCount">0</strong>
@@ -261,20 +250,23 @@
           <div id="contentDetail" class="content-detail"></div>
         </section>
       </main>
+      <main id="placeholderWorkspace" class="placeholder-workspace is-hidden">
+        <section id="placeholderDetail" class="placeholder-page-panel"></section>
+      </main>
         </section>
       </div>
     </div>
     <script src="./dataClient.js?v=capability-initial-projection-20260526-1"></script>
-    <script src="./viewModels.js?v=application-system-directory-20260525-1"></script>
-    <script src="./components/AppShell.js?v=application-system-directory-20260525-1"></script>
+    <script src="./viewModels.js?v=technical-service-catalog-20260528-2"></script>
+    <script src="./components/AppShell.js?v=technical-service-catalog-20260528-1"></script>
     <script src="./components/StatusBadge.js"></script>
     <script src="./components/DimensionTree.js?v=capability-tree-l0-20260520-1"></script>
     <script src="./components/FocusOverview.js"></script>
-    <script src="./components/FocusScopeServiceMatrix.js?v=capability-full-modules-20260526-3"></script>
+    <script src="./components/FocusScopeServiceMatrix.js?v=technical-service-catalog-20260528-1"></script>
     <script src="./components/FocusManagementMapping.js?v=management-functions-layout-20260521-1"></script>
     <script src="./components/EnvironmentTree.js"></script>
     <script src="./components/EnvironmentRelationshipOverview.js"></script>
-    <script src="./components/EnvironmentScopeServiceMatrix.js"></script>
+    <script src="./components/EnvironmentScopeServiceMatrix.js?v=technical-service-catalog-20260528-1"></script>
     <script src="./components/EnvironmentDetailPanel.js"></script>
     <script src="./components/ApplicationSecurityLifecycle.js"></script>
     <script src="./components/MaintenanceNavigation.js"></script>
@@ -282,8 +274,9 @@
     <script src="./components/ScopeMaintenanceTable.js?v=security-knowledge-density-20260521-1"></script>
     <script src="./components/ProcessMaintenanceTable.js?v=security-knowledge-density-20260521-1"></script>
     <script src="./components/WorkFunctionMaintenanceTable.js?v=security-functions-tabs-order-20260523-1"></script>
-    <script src="./components/TechnologyModuleMaintenanceTable.js?v=security-knowledge-density-20260521-1"></script>
-    <script src="./components/TechnicalMeasureMaintenanceTable.js?v=security-knowledge-density-20260521-1"></script>
+    <script src="./components/TechnicalServiceMaintenanceTable.js?v=technical-service-catalog-20260528-2"></script>
+    <script src="./components/TechnologyModuleMaintenanceTable.js?v=technical-chip-unified-20260528-2"></script>
+    <script src="./components/TechnicalMeasureMaintenanceTable.js?v=technical-chip-unified-20260528-2"></script>
     <script src="./components/ApplicationSystemDirectoryTable.js?v=application-system-directory-20260525-1"></script>
     <script src="./components/LcapReferenceMaintenanceTable.js"></script>
     <script src="./components/StandardRoleReferenceTable.js?v=security-reference-grouped-20260523-3"></script>
@@ -291,6 +284,6 @@
     <script src="./components/MaintenanceDetailPanel.js"></script>
     <script src="./components/TechnicalMeasureMaintenance.js"></script>
     <script src="./components/DetailInspector.js"></script>
-    <script src="./app.js?v=global-dashboard-20260526-5"></script>
+    <script src="./app.js?v=technical-service-catalog-20260528-2"></script>
   </body>
 </html>

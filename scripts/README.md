@@ -13,6 +13,14 @@
 | `data_package_summary.py` | 前端数据包摘要检查 | `CURRENT_STATE.md` |
 | `dev_server_guard.py` | 本地预览服务守护 | `CURRENT_STATE.md` |
 | `frontend_smoke_check.mjs` | 前端页面轻量 HTTP/API smoke 检查；默认不启动系统 Google Chrome | `CURRENT_STATE.md` |
+| `create_user_db.py` | 创建 ZIP alpha 的 `sapd_wiki_user.sqlite3` 最小用户库 | `docs/09-delivery/user-database-minimum-schema.md` |
+| `check_bundle_runtime.py` | 检查 ZIP alpha bundle root、manifest、base/user 数据库、日志目录和端口 | `docs/09-delivery/zip-bundle-1.0-alpha-runtime-design.md` |
+| `export_diagnostics.py` | 导出 ZIP alpha 脱敏诊断包 | `docs/09-delivery/zip-bundle-1.0-alpha-runtime-design.md` |
+| `run_local_server.py` | ZIP alpha 本地后端源码入口：执行 runtime check、服务静态前端和最小 API | `docs/09-delivery/zip-bundle-1.0-alpha-runtime-design.md` |
+| `package_backend_pyinstaller.py` | 使用 PyInstaller 在当前平台生成 ZIP 内部后端运行组件 | `docs/09-delivery/zip-bundle-1.0-alpha-runtime-design.md` |
+| `package_backend_windows.ps1` | Windows x64 上生成 `SAPD-Wiki-Backend.exe` 的 PowerShell 入口 | `docs/09-delivery/windows-zip-build-guide.md` |
+| `build_zip_bundle.py` | 生成 ZIP alpha bundle 目录骨架，可选压缩为 zip；默认输出到 `/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle`，真实运行 ZIP 必须传入 `--backend-binary` | `docs/09-delivery/zip-bundle-1.0-alpha-design.md` |
+| `start-windows.bat` / `start-macos.command` / `stop-windows.bat` / `stop-macos.command` | 分平台 ZIP alpha 启停脚本模板 | `docs/09-delivery/zip-bundle-1.0-alpha-design.md` |
 
 ## 专题脚本
 
@@ -28,6 +36,6 @@
 
 - 能被多人长期复用的脚本，放在“长期工具”表。
 - 只服务于某次导入、校验、翻译、修表或数据修复的脚本，放在“专题脚本”表。
-- 不要把真实原始资料路径、个人桌面路径或敏感文件名硬编码成唯一入口；需要默认路径时，应提供命令行参数覆盖。
+- 不要把真实原始资料路径、个人桌面路径或敏感文件名硬编码成唯一入口；需要默认路径时，应提供命令行参数覆盖。ZIP bundle 打包默认输出目录已按当前项目约定固定为 `/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle`，仍可通过 `--output-dir` 或 `SAPD_WIKI_BUNDLE_OUTPUT_DIR` 覆盖。
 - 新脚本如果会生成数据，应默认输出到已忽略的本地目录，例如 `data/processed/`、`data/exports/` 或 `frontend/capability-browser/public/data/`。
 - 新脚本如果用于提交前或 CI 检查，应尽量不依赖本地原始数据。

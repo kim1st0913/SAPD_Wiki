@@ -19,7 +19,9 @@ const state = {
   capabilityCatalogCollapsed: false,
   devLifecycleCatalogCollapsed: false,
   expandedCapabilityIds: new Set(),
+  expandedEnvironmentIds: new Set(),
   expandedSelectionId: null,
+  expandedEnvironmentSelectionId: null,
   activeMaintenancePage: "scopes",
   activeReferenceTab: "gbt",
   activeStandardFramework: "mlps-level-3",
@@ -29,6 +31,8 @@ const state = {
   selectedEnvironmentSegmentId: null,
   selectedEnvironmentObjectId: null,
   selectedEnvironmentRowId: null,
+  activeEnvironmentTab: "topology",
+  environmentCatalogCollapsed: false,
   selectedDevProcessId: null,
   selectedDataProcessId: null,
   devLifecycleStageSearch: "",
@@ -94,6 +98,9 @@ function persistWorkspaceState() {
         selectedEnvironmentSegmentId: state.selectedEnvironmentSegmentId,
         selectedEnvironmentObjectId: state.selectedEnvironmentObjectId,
         selectedEnvironmentRowId: state.selectedEnvironmentRowId,
+        expandedEnvironmentIds: [...state.expandedEnvironmentIds],
+        activeEnvironmentTab: state.activeEnvironmentTab,
+        environmentCatalogCollapsed: state.environmentCatalogCollapsed,
         selectedDevProcessId: state.selectedDevProcessId,
         devLifecycleStageSearch: state.devLifecycleStageSearch,
         selectedDataProcessId: state.selectedDataProcessId,
@@ -123,6 +130,9 @@ function applyWorkspaceState(snapshot) {
   state.selectedEnvironmentSegmentId = snapshot.selectedEnvironmentSegmentId || state.selectedEnvironmentSegmentId;
   state.selectedEnvironmentObjectId = snapshot.selectedEnvironmentObjectId || state.selectedEnvironmentObjectId;
   state.selectedEnvironmentRowId = snapshot.selectedEnvironmentRowId || state.selectedEnvironmentRowId;
+  state.expandedEnvironmentIds = new Set(list(snapshot.expandedEnvironmentIds));
+  state.activeEnvironmentTab = snapshot.activeEnvironmentTab || state.activeEnvironmentTab;
+  state.environmentCatalogCollapsed = Boolean(snapshot.environmentCatalogCollapsed);
   state.selectedDevProcessId = snapshot.selectedDevProcessId || state.selectedDevProcessId;
   state.devLifecycleStageSearch = snapshot.devLifecycleStageSearch || state.devLifecycleStageSearch;
   state.selectedDataProcessId = snapshot.selectedDataProcessId || state.selectedDataProcessId;
@@ -206,6 +216,7 @@ function loadDataPackage(name) {
 }
 
 function routePackagesForCurrentState() {
+  if (state.activeView === "placeholder") return [];
   if (state.activeView === "overview") return ["capabilityWorkbench", "environmentWorkbench", "lifecycleWorkbench", "content", "standards"];
   if (state.activeView === "capabilities") return ["capabilityInitial"];
   if (state.activeView === "environment") return ["environmentWorkbench"];
@@ -1190,6 +1201,23 @@ function applyDevLifecycleCatalogState() {
   }
 }
 
+function environmentAncestorIds(viewModel) {
+  const ids = [];
+  const environmentId = viewModel?.selectedEnvironment?.id;
+  const segmentId = viewModel?.selectedSegment?.id;
+  const objectId = viewModel?.selectedObject?.id;
+  if (environmentId) ids.push(environmentId);
+  if (segmentId) ids.push(segmentId);
+  if (objectId && !segmentId) {
+    const environment = list(viewModel?.navigationTree).find((row) => row.id === environmentId);
+    const segment = list(environment?.segments).find((row) =>
+      list(row.objects).some((object) => object.id === objectId),
+    );
+    if (segment?.id) ids.push(segment.id);
+  }
+  return ids;
+}
+
 function ensureCapabilityCatalogToggle() {
   const paneHead = document.querySelector(".capability-tree-pane .pane-head");
   if (!paneHead || $("toggleCapabilityCatalog")) return;
@@ -1303,8 +1331,6 @@ function renderEnvironment() {
   const viewModels = window.sapdViewModels;
   const components = window.sapdComponents || {};
   if (!state.loadedPackages.has("environmentWorkbench")) {
-    setText("environmentCount", 0);
-    setHtml("environmentTree", emptyState("正在加载信息化环境数据"));
     setHtml("environmentDetail", emptyState("正在加载信息化环境映射数据", "当前页面优先加载，完成后会自动显示。"));
     return;
   }
@@ -1333,16 +1359,10 @@ function renderEnvironment() {
   if (viewModel.selectedSegment?.id && state.selectedEnvironmentSegmentId !== viewModel.selectedSegment.id) {
     state.selectedEnvironmentSegmentId = viewModel.selectedSegment.id;
   }
-  setText("environmentCount", viewModel.relationshipSummary.objectCount || 0);
-  setHtml(
-    "environmentTree",
-    components.EnvironmentTree?.render({
-      navigationTree: viewModel.navigationTree,
-      selectedEnvironmentId: state.selectedEnvironmentId,
-      selectedSegmentId: state.selectedEnvironmentSegmentId,
-      selectedObjectId: state.selectedEnvironmentObjectId,
-    }) || emptyState("环境对象树组件未加载"),
-  );
+  if (state.selectedEnvironmentId && state.expandedEnvironmentSelectionId !== `${state.selectedEnvironmentId}:${state.selectedEnvironmentSegmentId || ""}:${state.selectedEnvironmentObjectId || ""}`) {
+    environmentAncestorIds(viewModel).forEach((id) => state.expandedEnvironmentIds.add(id));
+    state.expandedEnvironmentSelectionId = `${state.selectedEnvironmentId}:${state.selectedEnvironmentSegmentId || ""}:${state.selectedEnvironmentObjectId || ""}`;
+  }
   if (!viewModel.selectedEnvironment) {
     setHtml("environmentDetail", emptyState("请选择信息化环境或对象"));
     return;
@@ -1350,10 +1370,19 @@ function renderEnvironment() {
   setHtml(
     "environmentDetail",
     `
-      ${components.EnvironmentRelationshipOverview?.render({ viewModel }) || emptyState("环境概览组件未加载")}
-      ${components.EnvironmentLocalRelationMap?.render({ viewModel }) || emptyState("环境图谱组件未加载")}
-      ${components.EnvironmentScopeServiceMatrix?.render({ rows: viewModel.scopeServiceRows, showObjectColumn: viewModel.detailPanel?.showObjectColumn, selectedRowId: state.selectedEnvironmentRowId }) || emptyState("环境映射表组件未加载")}
-      ${components.EnvironmentDetailPanel?.render({ localRelationNotes: viewModel.localRelationNotes }) || ""}
+      ${
+        components.EnvironmentLocalRelationMap?.render({
+          viewModel,
+          selectedRowId: state.selectedEnvironmentRowId,
+          selectedEnvironmentId: state.selectedEnvironmentId,
+          selectedSegmentId: state.selectedEnvironmentSegmentId,
+          selectedObjectId: state.selectedEnvironmentObjectId,
+          search: state.search,
+          activeTab: state.activeEnvironmentTab,
+          expandedIds: state.expandedEnvironmentIds,
+          catalogCollapsed: state.environmentCatalogCollapsed,
+        }) || emptyState("环境图谱组件未加载")
+      }
     `,
   );
 }
@@ -1590,6 +1619,14 @@ function renderMaintenance() {
     tableHtml = components.WorkFunctionMaintenanceTable?.render({ rows: viewModel.rows, selectedId: viewModel.selectedId, emptyState: viewModel.emptyState }) || tableHtml;
   } else if (viewModel.section === "security-works") {
     tableHtml = components.SecurityWorkMaintenanceTable?.render({ rows: viewModel.rows, selectedId: viewModel.selectedId, emptyState: viewModel.emptyState }) || tableHtml;
+  } else if (viewModel.section === "services") {
+    tableHtml =
+      components.TechnicalServiceMaintenanceTable?.render({
+        rows: viewModel.rows,
+        scopeGroups: viewModel.serviceScopeGroups,
+        selectedId: viewModel.selectedId,
+        emptyState: viewModel.emptyState,
+      }) || tableHtml;
   } else if (viewModel.section === "modules") {
     tableHtml = components.TechnologyModuleMaintenanceTable?.render({ rows: viewModel.rows, selectedId: viewModel.selectedId, emptyState: viewModel.emptyState }) || tableHtml;
   } else if (viewModel.section === "measures") {
@@ -1662,6 +1699,7 @@ function maintenanceHeaderSummary(viewModel) {
   const counts = { ...navigationCounts, ...sectionTabCounts };
   const labels = {
     scopes: ["作用域", "个"],
+    services: ["技术服务", "项"],
     modules: ["技术模块", "个"],
     measures: ["技术措施", "项"],
     "security-works": ["安全工作", "项"],
@@ -1897,6 +1935,33 @@ function renderContent() {
   setHtml("contentDetail", renderContentDetail(selected));
 }
 
+function renderPlaceholder() {
+  const components = window.sapdComponents || {};
+  const routeInfo = components.AppShell?.getRouteInfo?.(state.activeRoute) || {};
+  const item = routeInfo.item || {};
+  const pageTitle = item.label || "预留页面";
+  const description = routeInfo.description || "该页面已进入导航规划，等待独立设计和数据契约确认。";
+  setHtml(
+    "placeholderDetail",
+    `
+      <div class="placeholder-page-card">
+        <span class="placeholder-page-kicker">待设计页面</span>
+        <h2>${escapeHtml(pageTitle)}</h2>
+        <p>${escapeHtml(description)}</p>
+        <div class="placeholder-page-state">
+          <strong>当前状态</strong>
+          <span>页面暂不复用其他模块结构，待完成独立设计、数据契约和交互说明后再进入实现。</span>
+        </div>
+        <ul class="placeholder-page-rules">
+          <li>不套用安全能力映射、信息化环境映射、LC-AP、LC-DT 或知识目录页面。</li>
+          <li>不临时展示无关数据，不在页面内做业务关系推断。</li>
+          <li>不展示 sheet、row、raw_value、source_file 等非业务字段。</li>
+        </ul>
+      </div>
+    `,
+  );
+}
+
 function renderActiveView() {
   renderMetrics();
   if (state.activeView === "overview") renderOverview();
@@ -1906,6 +1971,7 @@ function renderActiveView() {
   if (state.activeView === "data-lifecycle") renderLifecycle("data");
   if (state.activeView === "maintenance") renderMaintenance();
   if (state.activeView === "content") renderContent();
+  if (state.activeView === "placeholder") renderPlaceholder();
 }
 
 function setActiveView(view, options = {}) {
@@ -1930,6 +1996,7 @@ function setActiveView(view, options = {}) {
     "data-lifecycle": "dataLifecycleWorkspace",
     maintenance: "maintenanceWorkspace",
     content: "contentWorkspace",
+    placeholder: "placeholderWorkspace",
   };
   for (const [key, id] of Object.entries(workspaceMap)) $(id)?.classList.toggle("is-hidden", key !== view);
   renderActiveView();
@@ -2020,7 +2087,9 @@ $("detail")?.addEventListener("click", (event) => {
     const handle = event.target.closest(".relationship-column-resizer");
     if (handle) beginRelationshipColumnResize(event, handle);
   });
-  $("environmentSearchInput")?.addEventListener("input", (event) => {
+  document.addEventListener("input", (event) => {
+    if (event.target?.id !== "environmentSearchInput") return;
+    state.activeEnvironmentTab = "mapping";
     state.search = event.target.value.trim();
     renderEnvironment();
   });
@@ -2044,10 +2113,43 @@ $("detail")?.addEventListener("click", (event) => {
     renderEnvironment();
   });
   $("environmentDetail")?.addEventListener("click", (event) => {
+    const environmentCatalogToggle = event.target.closest("[data-toggle-environment-catalog]");
+    if (environmentCatalogToggle) {
+      state.activeEnvironmentTab = "mapping";
+      state.environmentCatalogCollapsed = !state.environmentCatalogCollapsed;
+      renderEnvironment();
+      return;
+    }
+    const environmentToggle = event.target.closest("[data-environment-tree-toggle-id]");
+    if (environmentToggle) {
+      state.activeEnvironmentTab = "mapping";
+      const id = environmentToggle.dataset.environmentTreeToggleId;
+      if (state.expandedEnvironmentIds.has(id)) state.expandedEnvironmentIds.delete(id);
+      else state.expandedEnvironmentIds.add(id);
+      renderEnvironment();
+      return;
+    }
+    const objectRow = event.target.closest("[data-environment-object-id]");
+    const segmentRow = event.target.closest("[data-environment-segment-id]");
+    const environmentRow = event.target.closest("[data-environment-id]");
+    if (objectRow || segmentRow || environmentRow) {
+      state.activeEnvironmentTab = event.target.closest(".environment-tab-panel-mapping") ? "mapping" : "topology";
+      state.selectedEnvironmentId = environmentRow?.dataset.environmentId || null;
+      state.selectedEnvironmentSegmentId = segmentRow?.dataset.environmentSegmentId || null;
+      state.selectedEnvironmentObjectId = objectRow?.dataset.environmentObjectId || null;
+      state.selectedEnvironmentRowId = null;
+      renderEnvironment();
+      return;
+    }
     const row = event.target.closest("[data-environment-row-id]");
     if (!row) return;
+    state.activeEnvironmentTab = "mapping";
     state.selectedEnvironmentRowId = row.dataset.environmentRowId;
     renderEnvironment();
+  });
+  $("environmentDetail")?.addEventListener("change", (event) => {
+    if (event.target?.name !== "environmentDetailTab") return;
+    state.activeEnvironmentTab = event.target.id === "environmentTabMapping" ? "mapping" : "topology";
   });
   document.addEventListener("input", (event) => {
     if (event.target?.id !== "sourceSearchInput") return;
@@ -2167,7 +2269,7 @@ async function init() {
   await loadScriptOnce("./components/LocalRelationNetworkGraph.js?v=capability-graph-strategy-20260526-2", () => Boolean(window.sapdComponents?.LocalRelationNetworkGraph));
   await loadScriptOnce("./components/CapabilityLocalRelationMap.js?v=capability-graph-strategy-20260526-5", () => Boolean(window.sapdComponents?.CapabilityLocalRelationMap));
   await loadScriptOnce("./models/environmentRelationGraphModel.js?v=environment-graph-20260521-1", () => Boolean(window.sapdModels?.buildEnvironmentRelationGraphModel));
-  await loadScriptOnce("./components/EnvironmentLocalRelationMap.js?v=environment-graph-20260521-1", () => Boolean(window.sapdComponents?.EnvironmentLocalRelationMap));
+  await loadScriptOnce("./components/EnvironmentLocalRelationMap.js?v=environment-tabs-20260528-5", () => Boolean(window.sapdComponents?.EnvironmentLocalRelationMap));
   mountAppShellComponents();
   bindEvents();
   const restoredState = readWorkspaceState();

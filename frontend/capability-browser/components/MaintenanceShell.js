@@ -24,6 +24,14 @@
         summaryBadge("关联对象", summary.linkedObjects ?? 0),
       ].join("");
     }
+    if (section === "services") {
+      return [
+        summaryBadge("技术服务", summary.totalServices ?? 0),
+        summaryBadge("归属关注点", summary.linkedFocuses ?? 0),
+        summaryBadge("关联模块", summary.linkedModules ?? 0),
+        summaryBadge("待补定义", summary.missingDefinitions ?? 0),
+      ].join("");
+    }
     if (section === "processes") {
       return [
         summaryBadge("流程", summary.totalProcesses ?? 0),

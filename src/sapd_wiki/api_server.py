@@ -27,13 +27,16 @@ DATA_PACKAGES = {
 
 MAINTENANCE_SECTIONS = (
     "scopes",
+    "services",
     "processes",
     "work-functions",
     "security-works",
     "modules",
     "measures",
+    "application-systems",
     "lcap-references",
     "references",
+    "standards",
 )
 
 
@@ -704,7 +707,7 @@ def capability_workspace_initial_projection() -> dict[str, Any]:
     }
 
 
-def _maintenance_navigation(capability: dict[str, Any], management: dict[str, Any], lifecycle: dict[str, Any]) -> list[dict[str, Any]]:
+def _maintenance_navigation(capability: dict[str, Any], management: dict[str, Any], lifecycle: dict[str, Any], standards: dict[str, Any]) -> list[dict[str, Any]]:
     process_count = sum(
         len(_list(group.get("references")))
         for domain in _list(management.get("security_processes"))
@@ -723,17 +726,23 @@ def _maintenance_navigation(capability: dict[str, Any], management: dict[str, An
         for focus in _list(cap.get("focuses"))
     )
     app_security = lifecycle.get("application_security_development") or {}
+    technical_service_count = len(_list(management.get("security_technical_services"))) or len(_list(management.get("service_module_index")))
+    application_system_count = len(_list(app_security.get("application_system_types")))
     lcap_reference_count = len(_list(app_security.get("software_development_types"))) + len(_list(app_security.get("application_system_types")))
     reference_count = len(_list(management.get("gbt_42446_references"))) + len(_list(management.get("gartner_roles")))
+    standards_count = len(_list(standards.get("frameworks")))
     return [
         {"id": "scopes", "label": "作用域清单", "count": len(_list(management.get("scope_types")))},
+        {"id": "services", "label": "安全技术服务清单", "count": technical_service_count},
         {"id": "processes", "label": "流程清单", "count": process_count},
         {"id": "work-functions", "label": "职能清单", "count": work_function_count},
         {"id": "security-works", "label": "安全工作清单", "count": security_work_count},
         {"id": "modules", "label": "安全技术模块清单", "count": len(_list(management.get("security_technology_modules")))},
         {"id": "measures", "label": "安全技术措施清单", "count": len(_list(management.get("security_technical_measures")))},
+        {"id": "application-systems", "label": "应用系统目录", "count": application_system_count},
         {"id": "lcap-references", "label": "LC-AP参考数据", "count": lcap_reference_count},
         {"id": "references", "label": "岗位参考页面", "count": reference_count},
+        {"id": "standards", "label": "标准/框架清单", "count": standards_count},
     ]
 
 
@@ -763,9 +772,18 @@ def maintenance_payload(section: str) -> dict[str, Any]:
     capability = read_data_package("capability")
     management = read_data_package("maintenance")
     lifecycle = read_data_package("lifecycle")
+    standards = read_data_package("standards")
     app_security = lifecycle.get("application_security_development") or {}
     if section == "scopes":
         return {"section": section, "items": _list(management.get("scope_types"))}
+    if section == "services":
+        services = _list(management.get("security_technical_services"))
+        return {
+            "section": section,
+            "items": services,
+            "data_state": "ready" if services else "empty",
+            "empty_state": "" if services else "暂无安全技术服务数据，请确认 ETL 是否已导出 security_technical_services。",
+        }
     if section == "processes":
         return {"section": section, "items": _list(management.get("security_processes"))}
     if section == "work-functions":
@@ -788,11 +806,27 @@ def maintenance_payload(section: str) -> dict[str, Any]:
             "software_development_types": _list(app_security.get("software_development_types")),
             "application_system_types": _list(app_security.get("application_system_types")),
         }
+    if section == "application-systems":
+        rows = _list(app_security.get("application_system_types"))
+        return {
+            "section": section,
+            "items": rows,
+            "components": _list(app_security.get("application_components")),
+            "data_state": "ready" if rows else "empty",
+            "empty_state": "" if rows else "暂无应用系统目录数据，请确认 ETL 是否已导出 application_system_types。",
+        }
     if section == "references":
         return {
             "section": section,
             "standards": _list(management.get("gbt_42446_references")),
             "roles": _list(management.get("gartner_roles")),
+        }
+    if section == "standards":
+        return {
+            "section": section,
+            "frameworks": _list(standards.get("frameworks")),
+            "stats": standards.get("stats") if isinstance(standards.get("stats"), dict) else {},
+            "data_state": standards.get("data_state") or ("ready" if _list(standards.get("frameworks")) else "empty"),
         }
     raise KeyError(section)
 
@@ -820,6 +854,12 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
         if parsed.path.startswith("/api/v1/"):
             self._handle_api(parsed.path, parse_qs(parsed.query))
             return
+        if parsed.path not in {"", "/"} and "." not in Path(parsed.path).name:
+            index_path = Path(self.directory) / "index.html"
+            if index_path.exists():
+                self.path = "/index.html"
+                super().do_GET()
+                return
         super().do_GET()
 
     def _send_json(self, payload: Any, status: int = 200) -> None:
@@ -853,7 +893,8 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
                 capability = read_data_package("capability")
                 management = read_data_package("maintenance")
                 lifecycle = read_data_package("lifecycle")
-                self._send_json(create_envelope({"sections": _maintenance_navigation(capability, management, lifecycle)}))
+                standards = read_data_package("standards")
+                self._send_json(create_envelope({"sections": _maintenance_navigation(capability, management, lifecycle, standards)}))
                 return
             if len(parts) == 4 and parts[:3] == ["api", "v1", "maintenance"]:
                 section = parts[3]

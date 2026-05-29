@@ -15,6 +15,13 @@
 | 导入方式 | 坚持 `source -> staging -> review -> approval -> formal tables` | `docs/03-import-etl/excel-import-mvp-design.md` |
 | 来源追踪 | 知识对象和关系必须保留来源文件、位置、hash 和导入任务 | `docs/06-implementation/local-data-layout.md` |
 | 顾问端交付模型 | V1 面向咨询顾问交付压缩包；首次打开后由应用一键初始化预置 SQLite 数据库、页面数据包和预览资源；顾问端不安装开发依赖、不自行导入资料、不执行 ETL / migration；V1 不做登录、注册、账号和权限体系 | `docs/01-architecture/consultant-delivery-model.md`, `docs/06-implementation/local-data-layout.md` |
+| Delivery Bundle 1.0 交付版 | 正式边界收紧为“预构建知识库运行版”，不是“一键导入版”：制作者 / 管理员端负责原始资料、ETL、清洗、审查、审批和构建只读 `sapd_wiki_base.sqlite3`；普通用户端安装 App 后读取 base，并把备注、收藏、个人标签、overlay、修正建议和用户新增数据写入 `sapd_wiki_user.sqlite3` | `docs/09-delivery/delivery-bundle-1.0-prebuilt-database.md`, `docs/01-architecture/delivery-bundle-1.0-prebuilt-database.md` |
+| Delivery Bundle 1.0-alpha 路线 | 第一优先级正式改为 `.zip` 解压即用版：后端可执行文件同时提供 API 和前端静态页面，浏览器访问 `127.0.0.1`；包内携带 `sapd_wiki_base.sqlite3`、自动创建 `sapd_wiki_user.sqlite3`、manifest、start/stop 脚本、logs 和 diagnostics。Tauri 壳、`.dmg`、`.msi/.exe`、签名和自动更新均后置 | `docs/09-delivery/zip-bundle-1.0-alpha-design.md`, `docs/09-delivery/delivery-bundle-1.0-prebuilt-database.md`, `task_plan.md` |
+| ZIP-DB-1 最小运行闭环 | ZIP alpha 已补齐最小运行契约和脚手架：`base-manifest.json` 契约、`sapd_wiki_user.sqlite3` 最小 schema、bundle root 启动检查、端口选择、诊断包内容、用户库创建脚本、bundle 检查脚本、诊断导出脚本和 bundle builder 骨架；后续仍需进入 `stable_key` 策略和真实后端可执行文件打包 | `docs/09-delivery/zip-bundle-1.0-alpha-runtime-design.md`, `docs/09-delivery/base-manifest-contract.md`, `docs/09-delivery/user-database-minimum-schema.md`, `scripts/create_user_db.py`, `scripts/check_bundle_runtime.py`, `scripts/export_diagnostics.py`, `scripts/build_zip_bundle.py` |
+| ZIP-RUN-1 分平台运行闭环 | ZIP alpha 交付边界进一步明确为分平台 ZIP，不是 exe 安装器；Windows ZIP 内部使用 `SAPD-Wiki-Backend.exe`，macOS ZIP 内部使用 `SAPD-Wiki-Backend` / `.command`。`scripts/run_local_server.py` 已作为平台运行组件源码入口，支持 runtime check、静态前端、base 只读 API、user 收藏写入 API、日志和诊断。macOS 未签名可执行文件、`.command` 执行权限和 Gatekeeper 提示为 alpha 已知风险，后续签名阶段解决 | `docs/09-delivery/zip-bundle-1.0-alpha-runtime-design.md`, `scripts/run_local_server.py`, `scripts/build_zip_bundle.py` |
+| ZIP-PACK-1 打包工具与实包状态 | alpha 打包工具冻结为 PyInstaller，Nuitka 保留备选；原因是当前本地后端仍为 Python，PyInstaller 能最快生成平台运行组件。PyInstaller 不是交叉编译器：当前 macOS arm64 机器已生成并验证真实 `SAPD-Wiki-v0.1.0-mac-arm64.zip`；Windows `SAPD-Wiki-Backend.exe` 只能在 Windows x64 环境构建和验证，当前状态为构建脚本与验收清单就绪、未实机验证 | `scripts/package_backend_pyinstaller.py`, `scripts/package_backend_windows.ps1`, `docs/09-delivery/windows-zip-build-guide.md` |
+| ZIP-UAT-0 内部试发边界 | macOS arm64 已具备 1-3 人内部小范围试发条件，当前试发包为 `/private/tmp/sapd_zip_uat0/bundle/SAPD-Wiki-v0.1.0-mac-arm64.zip`；后续打包默认输出目录维护为 `/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle`；Windows x64 仍为构建脚本就绪 / 未实机验证。完整双平台 UAT 必须等 Windows x64 实包验证通过后再启动 | `docs/09-delivery/zip-uat-0-internal-trial-guide.md`, `docs/09-delivery/zip-uat-0-checklist.md`, `docs/09-delivery/zip-uat-feedback-template.md` |
+| Delivery Bundle 1.0 设计沟通边界 | 设计团队先聚焦首次启动准备态、初始化失败 / 修复、本地数据状态、升级提示和 zip 用户说明；不设计登录、导入、数据库选择器、ETL 配置器或开发者控制台 | `frontend/design-handoff/implementation-specs/delivery-bundle-1.0-design-brief-2026-05-28.md` |
 | 问题管理 | bug、数据问题、页面问题统一维护在 `open-issues.md` | `docs/06-implementation/open-issues.md` |
 | maturity 边界 | maturity 是主工程下独立模块；运行数据使用 `maturity_*`，不写入 `knowledge_items` | `docs/08-maturity/` |
 | SAPD 成熟度评估入口 | 已补入前端菜单和数据契约规划，路由建议为 `/sapd-maturity-assessment`，页面类型暂用 `domain-module`，代码实现另开会话 | `docs/00-overview/frontend-menu-and-page-type-definition-v1.md`, `docs/04-user-guide/frontend-data-contract-baseline-1.0.md` |
@@ -44,6 +51,10 @@
 | 成熟度模块污染主知识库 | maturity 只读引用主知识库，客户输入、证据、评分和报告留在 maturity 运行域 |
 | 前端画布反复试错导致结构漂移 | 安全能力映射页先作为基准页收敛验收标准；未确认前不复制到环境页和 LC-AP 页 |
 | 已规划接口与已实现接口不一致 | `api-field-contract.md` 中部分 `/api/v1/environments/*`、`/api/v1/lifecycle/*`、`/api/v1/maintenance/technical-measures` 等接口尚未在 `api_server.py` 中实现；后续实现前需明确“规划接口”和“实际接口” |
+| 桌面交付签名和本地后端适配风险 | macOS 正式外部分发需要签名和 notarization；Windows 需要处理 SmartScreen、杀毒误报、安装目录和应用数据目录；如采用本地 API sidecar，必须固定 `127.0.0.1` 并管理端口、进程生命周期和 fallback |
+| macOS ZIP alpha 权限风险 | `.command` 脚本和 `SAPD-Wiki-Backend` 可能在 ZIP 解压后缺少执行权限；未签名可执行文件可能触发 Gatekeeper。ZIP alpha 先在 `README-FIRST.md` 和文档中说明，正式签名 / notarization 后置 |
+| PyInstaller 打包边界 | PyInstaller 首次在沙箱内运行会尝试写 `~/Library/Application Support/pyinstaller`，本项目打包脚本已把 `PYINSTALLER_CONFIG_DIR` 指向输出目录；一文件模式在 Codex 沙箱内直接运行可能遇到系统信号量限制，真实 macOS 验证需使用普通本机权限执行 |
+| Delivery Bundle 缺少稳定业务键风险 | 如果基础库 clean rebuild 后 UUID 改变，用户库中指向基础对象的备注、收藏、个人标签、关系和修正建议会断裂；进入正式交付前必须补 `stable_key` / deterministic ID、`base_id_redirects` 和 base release 兼容策略 |
 | 前端 JSON 职责混杂 | `management-knowledge.json` 的职责混杂已完成退役；后续重点是继续缩小 `capability-tree.json` 与 `lifecycle-knowledge.json` 的非页面级职责 |
 | 源数据一致性仍有待确认项 | `OI-073` 记录源 Sheet `作用域-安全技术服务-安全技术模块映射` 仍残留 5 行旧模块名 `网络数据防泄露`，是否统一替换为 `数据流转监测和泄漏防护` 需要用户确认 |
 

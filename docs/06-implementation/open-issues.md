@@ -1535,3 +1535,99 @@
 - 需要确认：无。
 - 修复说明：`export_lifecycle_knowledge()` 导出应用系统目录时改为按 `LC-AP 应用安全开发生命周期元素目录` 来源行排序；系统类型和应用组件均不再按标题重排。
 - 验证结果：2026-05-27 重新导出 `lifecycle-knowledge.json` 后，应用系统类型顺序为 `传统应用 -> 微服务应用 -> 中台类应用`；`微服务应用`、`中台类应用` 的组件顺序均与原表一致，仍为 3 类 / 13 个组件。
+
+## OI-097：作用域映射表 E 列作用域未覆盖安全技术服务编号作用域
+
+- 状态：已修复
+- 类型：ETL 解析 / 数据投影 / 信息化环境映射 / 安全技术服务
+- 对象或页面：`信息化环境安全能力映射`、`作用域-安全技术服务-安全技术模块映射`、`信息化环境-信息化对象-安全作用域映射`。
+- 现象：两张作用域映射表中，E 列作用域使用合并 / 继承式写法，部分对象行的 E 列没有覆盖 F 列安全技术服务编号里的作用域。例如服务是 `I-US...` 或 `I-AP...`，但继承后的 E 列只有 `I-NT / I-DI`。旧导出层还存在兜底逻辑：某个对象作用域下没有匹配服务时，会把该对象全部服务复制到该作用域下，造成服务显示在错误作用域中。
+- 影响：环境映射表的“作用域 -> 安全技术服务 -> 模块/措施”链路会错配，用户无法按作用域准确核对服务。
+- 当前处理：parser 导入两张作用域映射表时，会从安全技术服务编号补入缺失的对象作用域；服务自身只关联到服务编号中的作用域，不再挂到 E 列全部作用域。导出层删除“无匹配服务时复制全部服务”的旧兜底。
+- 需要确认：无。本修复只把服务编号中的作用域作为补充事实，不修改原始 Excel。
+- 修复说明：`src/sapd_wiki/parsers.py` 增加基于服务编号的作用域补齐；`src/sapd_wiki/exports.py` 收口环境映射服务筛选逻辑。
+- 验证结果：2026-05-28 定点 parser 审计：`validations=0`、`missing_object_scope=0`、`wrong_service_scope=0`；重新 stage/approve 两张表，审批结果 `items_updated=259`、`relations_created=51`、`relations_deleted=159`、`warnings=[]`；重导出 `maintenance-knowledge.json`、`shared-lookups.json`、`environment-workbench.json` 后，环境工作台中服务作用域错配关系为 0。
+
+## OI-098：安全技术措施清单多来源口径澄清
+
+- 状态：业务接受
+- 类型：数据治理 / 主数据边界 / 安全技术措施
+- 对象或页面：`安全知识 > 安全技术服务/模块/措施清单 > 安全技术措施目录`。
+- 现象：此前记录为“安全技术措施缺少独立权威清单”，该表述不准确。用户已澄清：安全技术措施清单已经存在，口径就是多来源汇总，不要求必须来自单一独立 Sheet。
+- 影响：后续不应再把“是否需要独立安全技术措施权威清单”作为阻塞问题；应继续保持多来源清单，并通过来源标签区分 `安全知识措施映射表`、`LC-AP 生命周期措施`、`LC-DT 生命周期措施` 等来源。
+- 当前处理：保留现有多来源措施清单口径；前端继续显示来源标签和待补充映射状态，不在前端伪造服务或作用域关系。
+- 需要确认：无。后续若要新增单独措施目录 Sheet，可作为增强项，不作为当前数据正确性的前置条件。
+- 修复说明：已将问题口径从“缺少独立权威清单”修正为“多来源措施清单口径已确认”；本轮分类修复仍保留，`security_technology_module` 显示为安全技术模块，`security_technical_measure` 显示为安全技术措施。
+- 验证结果：2026-05-28 `maintenance-knowledge.json` 已导出 `security_technical_measures=32`，其中措施来源通过 `source_label` / `source_kind` 区分；前端渲染断言确认模块和措施显示分类正确。
+
+## OI-099：ZIP 本地写接口缺少 token 和来源校验
+
+- 状态：已修复
+- 类型：安全 / Delivery Bundle / 本地后端
+- 对象或页面：`scripts/run_local_server.py`，`POST /api/v1/user/favorites`。
+- 现象：本地 ZIP 后端的用户收藏写接口可被无 token 的 POST 调用；如果用户浏览器访问恶意网页，网页可尝试向 `127.0.0.1:<port>` 发起本地写请求。
+- 影响：存在本机浏览器 CSRF 写入风险，可能污染 `sapd_wiki_user.sqlite3` 中的收藏和变更日志。
+- 当前处理：写接口必须携带 `Content-Type: application/json` 和启动期 `X-SAPD-Session-Token`；token 通过同源 `GET /api/v1/health` 获取；非本机 `Origin` / `Referer` 被拒绝；`OPTIONS` 不开放 CORS。
+- 需要确认：无。
+- 修复说明：`scripts/run_local_server.py` 新增启动期随机 token、写接口 token 校验、Content-Type 校验、loopback Origin / Referer 校验，并将日志中的 `target_ref` 改为 hash 摘要。
+- 验证结果：2026-05-29 临时 ZIP bundle 回归通过：无 token 返回 403，恶意 Origin 返回 403，错误 Content-Type 返回 415，携带正确 token 和本机 Origin 返回 200。
+
+## OI-100：ZIP 本地后端可被配置为非 localhost 监听
+
+- 状态：已修复
+- 类型：安全 / Delivery Bundle / 运行检查
+- 对象或页面：`scripts/check_bundle_runtime.py`、`scripts/run_local_server.py`。
+- 现象：`app-config.json` 中的 `host` 可被改为 `0.0.0.0` 或局域网 IP，运行检查未阻止。
+- 影响：本地后端可能暴露到局域网，放大本地 API 的访问面。
+- 当前处理：运行检查新增 `config_host_loopback`；后端启动前也会拒绝非 loopback host。
+- 需要确认：无。
+- 修复说明：新增 `is_loopback_host()`，仅允许 `localhost`、`127.0.0.1`、`::1` 等 loopback 地址。
+- 验证结果：2026-05-29 临时 bundle 将 host 改为 `0.0.0.0` 后，`check_bundle_runtime.py --json` 返回 `ok=false`，`config_host_loopback=false`；恢复 `127.0.0.1` 后检查通过。
+
+## OI-101：诊断包脱敏范围不完整
+
+- 状态：已修复
+- 类型：安全 / 隐私 / Delivery Bundle
+- 对象或页面：`scripts/export_diagnostics.py`。
+- 现象：诊断包虽不包含 SQLite 原文件，但仍可能包含本机绝对路径、运行日志中的写入对象引用和 payload 字段。
+- 影响：用户发送诊断包给维护人员时，可能泄露本机用户名、解压路径或局部使用痕迹。
+- 当前处理：诊断包写入前统一脱敏 bundle root、home 路径、session token、`target_ref` 和写入 payload 字段；说明文本同步更新。
+- 需要确认：无。
+- 修复说明：新增结构化 JSON / runtime log 脱敏函数，manifest、config、runtime-state、startup check 和 runtime.log 均经脱敏后写入 ZIP。
+- 验证结果：2026-05-29 临时诊断包检查通过：不包含临时 bundle 绝对路径、敏感备注文本、`base:item1` target_ref 或 session token 字段。
+
+## OI-102：`dataClient` 环境旧接口无法消费 `environment-workbench`
+
+- 状态：已修复
+- 类型：前端 / 数据契约兼容
+- 对象或页面：`frontend/capability-browser/dataClient.js`。
+- 现象：`getEnvironmentMatrix()` 和 `getEnvironmentRelationships()` 仍尝试走已退役的旧 `environment_scope_tree` fallback；其中 `getEnvironmentRelationships()` 还引用了未定义的 `management.generated_at`。
+- 影响：未来调用这两个接口时会返回空数据或抛出运行时错误。
+- 当前处理：两个接口改为从标准 `environment-workbench` 的 `navigator`、`objects`、`relations` 重建展示行；文件缺失时才返回空 fallback。
+- 需要确认：无。
+- 修复说明：新增 `environmentMatrixRowsFromWorkbench()`，按信息化环境、环境子类、信息化对象、作用域、安全技术服务、模块 / 措施生成稳定行数据，并修正 `generated_at` 来源。
+- 验证结果：2026-05-29 Node VM 定点测试通过：样例 `environment-workbench` 可返回 1 行环境映射、1 个服务和 1 个模块；`node --check frontend/capability-browser/dataClient.js` 通过。
+
+## OI-103：maintenance API 与当前前端知识导航 section 不一致
+
+- 状态：已修复
+- 类型：后端 API / 前后端契约
+- 对象或页面：`src/sapd_wiki/api_server.py`，`/api/v1/maintenance`。
+- 现象：maintenance API 未暴露当前前端已有的 `services`、`application-systems`、`standards` section。
+- 影响：如果前端或测试切换到 `/api/v1/maintenance/*` 契约，会出现 404 或导航缺项。
+- 当前处理：补齐 navigation 和 payload：`services` 返回安全技术服务清单，`application-systems` 返回 LC-AP 应用系统目录，`standards` 返回标准 / 框架清单。
+- 需要确认：无。
+- 修复说明：更新 `_maintenance_navigation()` 和 `maintenance_payload()`，并在 `/api/v1/maintenance` 聚合 standards 数据包。
+- 验证结果：2026-05-29 `PYTHONPATH=src` 定点调用通过，navigation 包含 `services`、`application-systems`、`standards`，三个 payload 均返回预期字段。
+
+## OI-104：轻量前端 smoke 未真正覆盖传入 route
+
+- 状态：已修复
+- 类型：测试 / 前端回归
+- 对象或页面：`scripts/frontend_smoke_check.mjs`、`src/sapd_wiki/api_server.py`。
+- 现象：默认轻量 smoke 只请求根页面，忽略 `--route`；修复后发现开发 API server 对 `/environment-mapping` 这类前端直达路由没有 fallback。
+- 影响：页面级回归可能假通过；用户直接访问前端路径时可能拿到 404。
+- 当前处理：轻量 smoke 会请求 `route` 对应 URL；开发 API server 对无扩展名的非 API 路径回退到 `index.html`，与 ZIP 后端行为一致。
+- 需要确认：无。
+- 修复说明：`frontend_smoke_check.mjs` 的 lightweight 模式输出并请求 route URL；`SapdWikiRequestHandler.do_GET()` 增加前端路由 fallback。
+- 验证结果：2026-05-29 固定 `5173` 项目服务重启后，`node scripts/frontend_smoke_check.mjs --page environment --route /environment-mapping --url http://127.0.0.1:5173/` 轻量模式通过，page 和 health 均为 200。

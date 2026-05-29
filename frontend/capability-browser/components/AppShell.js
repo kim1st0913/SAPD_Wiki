@@ -18,6 +18,12 @@
       if (typeof value === "object") return text(value.title || value.name || value.code || value.id || fallback);
       return text(value);
     },
+    codeTitleOf(value, fallback = "未命名") {
+      if (!value || typeof value !== "object") return this.titleOf(value, fallback);
+      const code = text(value.code || "").trim();
+      const title = this.titleOf(value, fallback);
+      return [code, title].filter(Boolean).join(" ");
+    },
   };
 
   const NAV_MANIFEST = {
@@ -33,8 +39,8 @@
         children: [
           { id: "security-architecture-design", label: "安全技术架构设计方法", route: "/guides/security-architecture-design", type: "document-page", children: [] },
           { id: "data-security-design", label: "数据安全设计方法", route: "/guides/data-security-design", type: "document-page", children: [] },
-          { id: "security-governance-model", label: "安全管控模式设计方法", route: "/guides/security-governance-model", type: "document-page", children: [] },
-          { id: "maturity-model-usage", label: "成熟度模型使用方法", route: "/guides/maturity-model-usage", type: "document-page", children: [] },
+          { id: "security-governance-model", label: "安全管控模式设计方法", route: "/guides/security-governance-model", type: "placeholder-page", children: [] },
+          { id: "maturity-model-usage", label: "成熟度模型使用方法", route: "/guides/maturity-model-usage", type: "placeholder-page", children: [] },
           { id: "other-guides", label: "其他指南", route: "/guides/others", type: "placeholder-page", children: [] },
         ],
       },
@@ -42,7 +48,7 @@
       { id: "environment-mapping", label: "信息化环境安全能力映射", route: "/environment-mapping", type: "environment-mapping-workbench", children: [] },
       { id: "development-security", label: "LC-AP安全开发生命周期", route: "/development-security", type: "domain-module", children: [] },
       { id: "data-security", label: "LC-DT数据生命周期安全", route: "/data-security", type: "domain-module", children: [] },
-      { id: "sapd-maturity-assessment", label: "SAPD成熟度评估", route: "/sapd-maturity-assessment", type: "domain-module", children: [] },
+      { id: "sapd-maturity-assessment", label: "SAPD成熟度评估", route: "/sapd-maturity-assessment", type: "placeholder-page", children: [] },
       {
         id: "knowledge",
         label: "安全知识",
@@ -50,6 +56,7 @@
         type: "knowledge-directory",
         children: [
           { id: "security-scopes", label: "安全能力作用域目录", route: "/knowledge/scopes", type: "knowledge-directory", children: [] },
+          { id: "technical-services", label: "安全技术服务清单", route: "/knowledge/technical-services", type: "knowledge-directory", children: [] },
           { id: "technical-knowledge", label: "安全技术模块/措施清单", route: "/knowledge/technical", type: "knowledge-directory", children: [] },
           { id: "management-workflows", label: "安全管理工作/流程清单", route: "/knowledge/management-workflows", type: "knowledge-directory", children: [] },
           { id: "application-systems", label: "应用系统目录", route: "/knowledge/application-systems", type: "knowledge-directory", children: [] },
@@ -63,7 +70,7 @@
               { id: "security-functions-gartner", label: "Gartner 工作岗位参考", route: "/knowledge/role-references", type: "knowledge-directory", children: [] },
             ],
           },
-          { id: "hype-cycle", label: "Hype Cycle", route: "/knowledge/hype-cycle", type: "knowledge-directory", children: [] },
+          { id: "hype-cycle", label: "Hype Cycle", route: "/knowledge/hype-cycle", type: "placeholder-page", children: [] },
           { id: "other-knowledge", label: "其他知识目录", route: "/knowledge/others", type: "placeholder-page", children: [] },
         ],
       },
@@ -91,16 +98,17 @@
     "/guides": { view: "content", contentPage: "html" },
     "/guides/security-architecture-design": { view: "content", contentPage: "html" },
     "/guides/data-security-design": { view: "content", contentPage: "html" },
-    "/guides/security-governance-model": { view: "content", contentPage: "html" },
-    "/guides/maturity-model-usage": { view: "content", contentPage: "html" },
-    "/guides/others": { view: "content", contentPage: "html" },
+    "/guides/security-governance-model": { view: "placeholder", placeholder: true },
+    "/guides/maturity-model-usage": { view: "placeholder", placeholder: true },
+    "/guides/others": { view: "placeholder", placeholder: true },
     "/capability-mapping": { view: "capabilities" },
     "/environment-mapping": { view: "environment" },
     "/development-security": { view: "dev-lifecycle" },
     "/data-security": { view: "data-lifecycle" },
-    "/sapd-maturity-assessment": { view: "overview", placeholder: true },
+    "/sapd-maturity-assessment": { view: "placeholder", placeholder: true },
     "/knowledge": { view: "maintenance", maintenancePage: "scopes" },
     "/knowledge/scopes": { view: "maintenance", maintenancePage: "scopes" },
+    "/knowledge/technical-services": { view: "maintenance", maintenancePage: "services" },
     "/knowledge/technical": { view: "maintenance", maintenancePage: "modules" },
     "/knowledge/technical-modules": { view: "maintenance", maintenancePage: "modules", canonicalRoute: "/knowledge/technical" },
     "/knowledge/technical-measures": { view: "maintenance", maintenancePage: "measures", canonicalRoute: "/knowledge/technical" },
@@ -111,8 +119,8 @@
     "/knowledge/functions": { view: "maintenance", maintenancePage: "work-functions" },
     "/knowledge/gbt-42446": { view: "maintenance", maintenancePage: "references", referenceTab: "gbt", canonicalRoute: "/knowledge/functions" },
     "/knowledge/role-references": { view: "maintenance", maintenancePage: "references", referenceTab: "gartner", canonicalRoute: "/knowledge/functions" },
-    "/knowledge/hype-cycle": { view: "content", contentPage: "html", placeholder: true },
-    "/knowledge/others": { view: "content", contentPage: "html", placeholder: true },
+    "/knowledge/hype-cycle": { view: "placeholder", placeholder: true },
+    "/knowledge/others": { view: "placeholder", placeholder: true },
     "/standards": { view: "maintenance", maintenancePage: "standards", standardFramework: "mlps-level-3" },
     "/standards/mlps-level-3": { view: "maintenance", maintenancePage: "standards", standardFramework: "mlps-level-3" },
     "/standards/nist-csf-2": { view: "maintenance", maintenancePage: "standards", standardFramework: "nist-csf-2" },
@@ -121,7 +129,7 @@
     "/standards/cis-csc-v8": { view: "maintenance", maintenancePage: "standards", standardFramework: "cis-csc-v8" },
     "/standards/crf": { view: "maintenance", maintenancePage: "standards", standardFramework: "crf" },
     "/standards/nist-800-53-rev5": { view: "maintenance", maintenancePage: "standards", standardFramework: "nist-800-53-rev5" },
-    "/standards/others": { view: "maintenance", maintenancePage: "references", referenceTab: "gbt", placeholder: true },
+    "/standards/others": { view: "placeholder", placeholder: true },
   };
 
   const VIEW_ROUTES = {
@@ -136,6 +144,7 @@
 
   const MAINTENANCE_ROUTES = {
     scopes: "/knowledge/scopes",
+    services: "/knowledge/technical-services",
     modules: "/knowledge/technical",
     measures: "/knowledge/technical",
     "security-works": "/knowledge/management-workflows",
@@ -161,7 +170,8 @@
     "/development-security": "以 LC-AP安全开发生命周期阶段和活动为主语，承载受控专项关系投影。",
     "/data-security": "以 LC-DT 数据生命周期过程和场景为主语，承载数据安全服务、模块和措施的受控专项关系投影。",
     "/sapd-maturity-assessment": "成熟度评估已纳入菜单规划，评分填报和结果生成将在独立模块中实现。",
-    "/knowledge": "集中维护作用域、技术模块、技术措施、安全工作、流程、职能和岗位参考等知识对象。",
+    "/knowledge": "集中维护作用域、技术服务、技术模块、技术措施、安全工作、流程、职能和岗位参考等知识对象。",
+    "/knowledge/technical-services": "安全技术服务清单用于核对服务编号、定义补充状态、归属安全能力/关注点和模块关联关系。",
     "/knowledge/technical": "安全系统（为解决某一场景 / 领域的安全问题，由多个安全模块组成、协同运行的实体）；安全技术模块（实现一个或多个安全能力的安全技术逻辑实体，可以独立部署运行，通常代表一类安全产品）。",
     "/knowledge/management-workflows": "用页签集中维护安全工作清单和安全职能流程清单。",
     "/knowledge/application-systems": "来自 LC-AP 应用安全开发生命周期元素目录，按应用系统、定义和应用组件归纳展开。",
@@ -324,6 +334,7 @@
     const isSourceTablePage = target.view === "maintenance";
     const isStandardFrameworkPage = target.view === "maintenance" && target.maintenancePage === "standards";
     const isGuidePage = activeRoute.startsWith("/guides/");
+    const isPlaceholderPage = target.placeholder || target.view === "placeholder";
     return `
       <section class="app-page-header" id="appPageHeader">
         <div class="page-header-copy">
@@ -341,7 +352,7 @@
                 <span class="search-icon" aria-hidden="true">⌕</span>
                 <input id="sourceSearchInput" type="search" placeholder="搜索名称、编码、分组或关系" autocomplete="off" />
               </label>`
-            : isGuidePage
+            : isGuidePage || isPlaceholderPage
               ? ""
               : `<div class="page-header-actions" aria-label="页面操作">
                 <button type="button" disabled>导出数据</button>
@@ -373,6 +384,7 @@
       ["dataLifecycleWorkspace", "three"],
       ["maintenanceWorkspace", "three"],
       ["contentWorkspace", "three"],
+      ["placeholderWorkspace", "two"],
     ].forEach(([id, mode]) => {
       const workspace = document.getElementById(id);
       if (!workspace) return;
@@ -509,6 +521,17 @@
     manifest: NAV_MANIFEST,
     routeTargets: ROUTE_TARGETS,
     getRouteTarget,
+    getRouteInfo(route) {
+      const normalized = ROUTE_TARGETS[route] ? route : "/";
+      const item = findNavItem(normalized);
+      const rootRoute = parentForRoute(normalized)?.route || normalized;
+      return {
+        item,
+        parent: parentForRoute(normalized),
+        description: PAGE_DESCRIPTIONS[normalized] || PAGE_DESCRIPTIONS[rootRoute] || "该页面已进入导航规划，等待独立设计和数据契约确认。",
+        target: getRouteTarget(normalized),
+      };
+    },
     routeForView,
     mountApplicationShell,
     updateApplicationShell,

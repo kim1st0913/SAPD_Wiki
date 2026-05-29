@@ -537,6 +537,118 @@
       });
   }
 
+  function environmentMatrixRowsFromWorkbench(workbench, params = {}) {
+    const objects = workbench?.objects && typeof workbench.objects === "object" ? workbench.objects : {};
+    const relations = list(workbench?.relations);
+    const byType = (type) => (objects[type] && typeof objects[type] === "object" ? objects[type] : {});
+    const entity = (type, id) => byType(type)[id] || null;
+    const relationsOf = (type) => relations.filter((relation) => relation.type === type);
+    const rowsByObject = new Map();
+    const ensureObjectRow = (environmentLike, segmentLike, objectLike) => {
+      const object = entity("information_object", objectLike?.id) || objectLike;
+      const environment = entity("information_environment", environmentLike?.id) || environmentLike;
+      if (!object?.id || !environment?.id) return null;
+      const row =
+        rowsByObject.get(object.id) || {
+          environment: { ...environment, title: titleOf(environment, "未命名环境") },
+          information_object: { ...object, title: titleOf(object, "未命名对象") },
+          segments: [],
+        };
+      const segment = entity("environment_segment", segmentLike?.id) || segmentLike;
+      if (segment?.id || segment?.title) {
+        row.segments = uniqueBy([...row.segments, { ...segment, title: titleOf(segment, "未定义环境子类") }], (item) => item.id || item.title);
+      }
+      rowsByObject.set(object.id, row);
+      return row;
+    };
+
+    for (const environmentNode of list(workbench?.navigator?.tree)) {
+      for (const child of list(environmentNode.children)) {
+        if (child.type === "environment_segment") {
+          for (const objectNode of list(child.children)) ensureObjectRow(environmentNode, child, objectNode);
+        } else {
+          ensureObjectRow(environmentNode, null, child);
+        }
+      }
+    }
+
+    if (!rowsByObject.size) {
+      for (const relation of relationsOf("contains_object")) {
+        const object = entity("information_object", relation.targetId);
+        const segment = entity("environment_segment", relation.sourceId);
+        const environmentRelation = segment
+          ? relationsOf("contains_segment").find((item) => item.targetId === segment.id)
+          : relations.find((item) => item.type === "contains_object" && item.targetId === relation.targetId);
+        const environment = segment ? entity("information_environment", environmentRelation?.sourceId) : entity("information_environment", relation.sourceId);
+        ensureObjectRow(environment, segment, object);
+      }
+    }
+
+    const serviceScopeIds = new Map();
+    for (const relation of relationsOf("applies_to_scope")) {
+      if (!relation.sourceId || !relation.targetId) continue;
+      serviceScopeIds.set(relation.sourceId, new Set([...(serviceScopeIds.get(relation.sourceId) || []), relation.targetId]));
+    }
+    const serviceModules = new Map();
+    for (const relation of [...relationsOf("implemented_by_module"), ...relationsOf("implements_service")]) {
+      const serviceId = relation.type === "implemented_by_module" ? relation.sourceId : relation.targetId;
+      const moduleId = relation.type === "implemented_by_module" ? relation.targetId : relation.sourceId;
+      const module = entity("security_technology_module", moduleId);
+      if (!serviceId || !module) continue;
+      serviceModules.set(serviceId, uniqueBy([...(serviceModules.get(serviceId) || []), module], (item) => item.id || item.code || item.title));
+    }
+    for (const relation of relationsOf("has_measure")) {
+      const measure = entity("security_technical_measure", relation.targetId);
+      if (!relation.sourceId || !measure) continue;
+      serviceModules.set(relation.sourceId, uniqueBy([...(serviceModules.get(relation.sourceId) || []), { ...measure, objectKind: "安全技术措施" }], (item) => item.id || item.code || item.title));
+    }
+    const rows = [];
+    for (const baseRow of rowsByObject.values()) {
+      if (params.environment_id && baseRow.environment.id !== params.environment_id) continue;
+      if (params.object_id && baseRow.information_object.id !== params.object_id) continue;
+      const objectId = baseRow.information_object.id;
+      const scopeRows = uniqueBy(
+        relationsOf("applies_to_scope")
+          .filter((relation) => relation.sourceId === objectId)
+          .map((relation) => entity("scope_type", relation.targetId))
+          .filter(Boolean),
+        (scope) => scope.id || scope.code || scope.title,
+      );
+      const services = uniqueBy(
+        relationsOf("protects_object")
+          .filter((relation) => relation.targetId === objectId)
+          .map((relation) => entity("security_technical_service", relation.sourceId))
+          .filter(Boolean),
+        (service) => service.id || service.code || service.title,
+      );
+      const scopedRows = scopeRows.length
+        ? scopeRows
+        : uniqueBy(services.flatMap((service) => [...(serviceScopeIds.get(service.id) || [])].map((scopeId) => entity("scope_type", scopeId))).filter(Boolean), (scope) => scope.id || scope.code || scope.title);
+      for (const scope of scopedRows) {
+        if (params.scope_id && scope.id !== params.scope_id) continue;
+        const rowServices = services.filter((service) => {
+          const scopeIds = serviceScopeIds.get(service.id);
+          return !scopeIds?.size || scopeIds.has(scope.id);
+        });
+        rows.push({
+          id: [objectId, scope.id || scope.code || scope.title].filter(Boolean).join("::"),
+          environment: baseRow.environment,
+          segments: baseRow.segments,
+          information_object: baseRow.information_object,
+          object: baseRow.information_object,
+          scope,
+          services: rowServices,
+          modules: uniqueBy(rowServices.flatMap((service) => list(serviceModules.get(service.id))), (module) => module.id || module.code || module.title),
+        });
+      }
+    }
+    const query = text(params.q).trim().toLowerCase();
+    return rows.filter((row) => {
+      if (!query) return true;
+      return [row.environment.title, row.information_object.title, ...row.segments.map(titleOf), titleOf(row.scope), ...row.services.map(titleOf), ...row.modules.map(titleOf)].join(" ").toLowerCase().includes(query);
+    });
+  }
+
   const dataClient = {
     async getHealth() {
       const results = await Promise.allSettled(Object.keys(DATA_PATHS).map((name) => fetchPackage(name)));
@@ -657,7 +769,10 @@
 
     async getEnvironmentMatrix(params = {}) {
       const workbench = await fetchPackage("environmentWorkbench");
-      const rows = environmentMatrixRows(createLegacyEnvironmentWorkbenchFallback(workbench), params);
+      const rows =
+        workbench?.__data_state === "missing_file"
+          ? environmentMatrixRows(createLegacyEnvironmentWorkbenchFallback(), params)
+          : environmentMatrixRowsFromWorkbench(workbench, params);
       return createEnvelope({
         generated_at: workbench?.meta?.generated_at || null,
         rows,
@@ -667,10 +782,13 @@
 
     async getEnvironmentRelationships(id) {
       const workbench = await fetchPackage("environmentWorkbench");
-      const rows = environmentMatrixRows(createLegacyEnvironmentWorkbenchFallback(workbench), { object_id: id });
+      const rows =
+        workbench?.__data_state === "missing_file"
+          ? environmentMatrixRows(createLegacyEnvironmentWorkbenchFallback(), { object_id: id })
+          : environmentMatrixRowsFromWorkbench(workbench, { object_id: id });
       const row = rows[0] || null;
       return createEnvelope({
-        generated_at: management.generated_at,
+        generated_at: workbench?.meta?.generated_at || null,
         object: row?.information_object || null,
         environment: row?.environment || null,
         relationships: {

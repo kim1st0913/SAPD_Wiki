@@ -5,6 +5,7 @@
 ## 当前主线
 
 - 已导入 Sheet 的业务含义复核 + 前端关系展示校正。
+- 用户当前临时优先事项：Delivery Bundle 1.0-alpha ZIP 解压即用交付版，用于内部团队快速分发、快速验证、快速反馈。
 - 当前重点不是新增数据源，也不是扩展新模块，而是把已导入数据的业务语义、页面归属和关系展示校正清楚。
 - Frontend Baseline 1.0 已确认作为当前前端对齐工作的基线说明。
 - 前后端分离本轮已阶段性收口，收口说明见 `docs/01-architecture/frontend-backend-separation-closure.md`。
@@ -52,6 +53,8 @@ Frontend Baseline 1.0 当前覆盖四页：
 - ViewModel 只能做展示层整理，不承担业务事实生成、关系推断、评分和客户评估结论。
 
 ## 当前下一步
+
+本轮临时优先支持 Delivery Bundle 1.0-alpha：第一优先级是分平台 `.zip` 解压即用版，不先做正式安装包或 Tauri 壳。正式设计入口为 `docs/09-delivery/zip-bundle-1.0-alpha-design.md`；当前 ZIP-UAT-0 已完成 macOS arm64 内部试发准备，试发包为 `/private/tmp/sapd_zip_uat0/bundle/SAPD-Wiki-v0.1.0-mac-arm64.zip`，后续打包默认输出目录固定为 `/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle`，UAT 指南、checklist 和反馈模板已在 `docs/09-delivery/` 下补齐。Windows 构建脚本和验收清单已就绪，但 Windows 原生 `SAPD-Wiki-Backend.exe` 仍需 Windows x64 环境实测。
 
 优先推进 Frontend Baseline 1.0 的三页 Gap Check 和必要校正：
 

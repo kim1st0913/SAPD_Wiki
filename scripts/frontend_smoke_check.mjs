@@ -63,7 +63,7 @@ async function fetchStatus(url) {
 
 async function lightweightHttpSmoke({ pageName, baseUrl, route, reason }) {
   const rootUrl = new URL("/", baseUrl).toString();
-  const pageUrl = new URL(baseUrl);
+  const pageUrl = new URL(route || "/", rootUrl);
   const healthUrl = new URL("/api/v1/health", rootUrl).toString();
   const initialUrl = new URL("/api/v1/capabilities/workspace-initial", rootUrl).toString();
   const checks = {
@@ -78,7 +78,9 @@ async function lightweightHttpSmoke({ pageName, baseUrl, route, reason }) {
     JSON.stringify(
       {
         page: pageName,
-        url: baseUrl,
+        url: pageUrl.toString(),
+        baseUrl,
+        route,
         browserSkipped: true,
         reason,
         checks,

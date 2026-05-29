@@ -2,7 +2,14 @@
   const components = (window.sapdComponents = window.sapdComponents || {});
   const utils = components.utils;
 
-  function chipList(items, empty = "暂无", limit = 4) {
+  function technicalChipClass(kind) {
+    if (kind.includes("模块")) return "technical-chip module-chip";
+    if (kind.includes("措施")) return "technical-chip measure-chip";
+    if (kind.includes("说明")) return "note-chip";
+    return "";
+  }
+
+  function chipList(items, empty = "暂无", limit = Infinity) {
     const rows = utils.list(items).filter(Boolean);
     if (!rows.length) return `<span class="empty-inline">${utils.escapeHtml(empty)}</span>`;
     const visible = Number.isFinite(limit) ? rows.slice(0, limit) : rows;
@@ -10,7 +17,7 @@
     return `${visible
       .map((item) => {
         const kind = item.kind || item.objectKind || "";
-        return `<span class="relation-chip ${kind.includes("措施") ? "measure-chip" : kind.includes("说明") ? "note-chip" : ""}">${kind ? `<em>${utils.escapeHtml(kind)}</em>` : ""}${utils.escapeHtml(utils.titleOf(item))}</span>`;
+        return `<span class="relation-chip ${technicalChipClass(kind)}">${kind ? `<em>${utils.escapeHtml(kind)}</em>` : ""}${utils.escapeHtml(utils.codeTitleOf(item))}</span>`;
       })
       .join("")}${more > 0 ? `<span class="relation-chip muted">+${more}</span>` : ""}`;
   }

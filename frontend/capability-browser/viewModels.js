@@ -58,6 +58,49 @@
     return flattenCapabilities(capabilityTree).filter((row) => row.item.type === "capability_focus");
   }
 
+  function serviceFocusCode(serviceCode) {
+    const parts = text(serviceCode).split("&");
+    return text(parts.length > 1 ? parts[parts.length - 1] : serviceCode).trim();
+  }
+
+  function serviceScopeCode(serviceCode) {
+    const parts = text(serviceCode).split("&");
+    return text(parts.length > 1 ? parts[0] : "").trim();
+  }
+
+  function capabilityCodeFromFocusCode(focusCode) {
+    return text(focusCode).replace(/-\d+$/, "");
+  }
+
+  function buildCapabilityFocusOrder(capabilityTree) {
+    const focusOrder = new Map();
+    const capabilityOrder = new Map();
+    let order = 0;
+    for (const category of list(capabilityTree?.categories)) {
+      for (const domain of list(category.domains)) {
+        for (const capability of list(domain.capabilities)) {
+          const capabilityCode = text(capability?.code).trim();
+          if (capabilityCode && !capabilityOrder.has(capabilityCode)) {
+            capabilityOrder.set(capabilityCode, { order, title: titleOf(capability, capabilityCode) });
+          }
+          for (const focus of list(capability.focuses)) {
+            const focusCode = text(focus?.code).trim();
+            if (focusCode && !focusOrder.has(focusCode)) {
+              focusOrder.set(focusCode, {
+                order,
+                capabilityCode,
+                capabilityTitle: titleOf(capability, capabilityCode),
+                focusTitle: titleOf(focus, focusCode),
+              });
+              order += 1;
+            }
+          }
+        }
+      }
+    }
+    return { focusOrder, capabilityOrder };
+  }
+
   function defaultCapabilitySelection(capabilityTree) {
     return list(capabilityTree?.categories)[0] || focusRows(capabilityTree)[0]?.item || null;
   }
@@ -163,7 +206,7 @@
   function compactTechnicalObject(item, fallbackKind = "安全技术模块") {
     const compact = compactEntity(item, "待补充");
     const status = text(item?.status || compact?.status).trim().toLowerCase();
-    const isMeasure = item?.type === "security_technical_measure" || item?.name || item?.measureName;
+    const isMeasure = item?.type === "security_technical_measure" || item?.objectKind === "安全技术措施" || item?.kind === "安全技术措施" || item?.measureName;
     const kind = isMeasure ? "安全技术措施" : fallbackKind;
     return {
       ...compact,
@@ -1227,7 +1270,7 @@
       mappingStatusLabel,
       serviceEmptyText: services.length ? PENDING_TEXT : "待补充关联安全技术服务",
       scopeEmptyText: scopes.length ? PENDING_TEXT : "待补充关联作用域",
-      serviceNames: services.map((item) => titleOf(item, PENDING_TEXT)),
+      serviceNames: services.map((item) => codeTitle(item, PENDING_TEXT)),
       scopeNames: scopes.map((item) => titleOf(item, PENDING_TEXT)),
       environmentNames: environments.map((item) => titleOf(item, PENDING_TEXT)),
       environmentObjectNames: environmentObjects.map((item) => titleOf(item, PENDING_TEXT)),
@@ -1751,6 +1794,197 @@
     };
   }
 
+  function serviceDefinitionText(service) {
+    return businessText(service?.description || service?.definition || service?.summary, "待补充定义");
+  }
+
+  function scopeKey(scope) {
+    return text(scope?.code || scope?.id || scope?.title || scope?.name).trim();
+  }
+
+  function scopeLabel(scope) {
+    return [scope?.code, titleOf(scope, "")].filter(Boolean).join(" ") || "待补充作用域";
+  }
+
+  function scopeLookup(management) {
+    return new Map(list(management?.scope_types).map((scope) => [scopeKey(scope), scope]).filter(([key]) => key));
+  }
+
+  function scopeSortOrderMap(management) {
+    const orders = new Map();
+    list(management?.scope_types).forEach((scope, index) => {
+      const key = scopeKey(scope);
+      if (key) orders.set(key, index + 1);
+    });
+    return orders;
+  }
+
+  function compactTechnicalServiceRow(entry, index, orderIndex = {}) {
+    const service = entry?.service || entry || {};
+    const scopes = uniqueBy(list(entry?.scopes || service?.scopes || service?.scope_types), (scope) => scope?.id || scope?.code || scope?.title);
+    const declaredScopeCode = serviceScopeCode(service?.code);
+    const fallbackScope = orderIndex.scopeByCode?.get(declaredScopeCode);
+    const groupingScopes = scopes.length ? scopes : fallbackScope ? [fallbackScope] : [];
+    const modules = uniqueBy(list(entry?.modules || service?.modules || service?.technology_modules), (module) => module?.id || module?.code || module?.title);
+    const systems = uniqueBy(modules.flatMap((module) => list(module?.systems)), (system) => system?.id || system?.code || system?.title);
+    const products = uniqueBy(modules.flatMap((module) => list(module?.products)), (product) => product?.id || product?.code || product?.title);
+    const environments = uniqueBy(
+      [...list(entry?.environments || service?.environments), ...modules.flatMap((module) => list(module?.environments))],
+      (environment) => environment?.id || environment?.code || environment?.title,
+    );
+    const definition = serviceDefinitionText(service);
+    const missing = [
+      !text(service?.code).trim() ? "服务编号" : "",
+      definition === "待补充定义" ? "定义" : "",
+      !scopes.length ? "适用作用域" : "",
+    ].filter(Boolean);
+    const focusCode = serviceFocusCode(service?.code);
+    const capabilityCode = capabilityCodeFromFocusCode(focusCode);
+    const focusOrder = orderIndex.focusOrder?.get(focusCode);
+    const capabilityOrder = orderIndex.capabilityOrder?.get(capabilityCode);
+    const capabilityTitle = focusOrder?.capabilityTitle || capabilityOrder?.title || capabilityCode || "待补充安全能力";
+    const focusTitle = focusOrder?.focusTitle || focusCode || "待补充关注点";
+    const ownershipFocus = focusCode
+      ? {
+          id: focusCode,
+          type: "capability_focus",
+          code: focusCode,
+          title: [capabilityTitle, focusTitle].filter(Boolean).join(" / "),
+        }
+      : null;
+    return {
+      id: service?.id || service?.code || service?.title || `technical-service-${index}`,
+      index: index + 1,
+      code: service?.code || "待补充",
+      title: titleOf(service, "待补充"),
+      serviceLabel: codeTitle(service, "待补充"),
+      capabilityCode,
+      capabilityTitle,
+      focusCode,
+      focusTitle,
+      sortOrder: focusOrder?.order ?? capabilityOrder?.order ?? 999999,
+      definition,
+      status: missing.length ? "待补充" : "正常",
+      missingFields: missing,
+      scopeCount: scopes.length,
+      moduleCount: modules.length,
+      systemCount: systems.length,
+      productCount: products.length,
+      environmentCount: environments.length,
+      linkedScopes: scopes.map(compactEntity),
+      groupingScopes: groupingScopes.map(compactEntity),
+      ownershipFocuses: ownershipFocus ? [ownershipFocus] : [],
+      linkedModules: modules.map(compactEntity),
+      linkedSystems: systems.map(compactEntity),
+      linkedProducts: products.map(compactEntity),
+      linkedEnvironments: environments.map(compactEntity),
+      sourceEvidence: uniqueBy([...list(service?.sources), ...list(entry?.sources)], sourceEvidenceKey),
+    };
+  }
+
+  function compareTechnicalServiceRows(left, right) {
+    return (
+      (Number(left.sortOrder) || 999999) - (Number(right.sortOrder) || 999999) ||
+      text(left.focusCode).localeCompare(text(right.focusCode), "zh-Hans-CN") ||
+      text(left.code).localeCompare(text(right.code), "zh-Hans-CN") ||
+      text(left.title).localeCompare(text(right.title), "zh-Hans-CN")
+    );
+  }
+
+  function buildTechnicalServiceScopeGroups(rows, management) {
+    const orderMap = scopeSortOrderMap(management);
+    const grouped = new Map();
+    for (const row of list(rows)) {
+      const isManagementService = text(row.code).startsWith("M");
+      const scopes = list(row.groupingScopes).length ? list(row.groupingScopes) : [{ code: "missing", title: "待补充作用域" }];
+      const groups = isManagementService
+        ? [{ id: "security-management", code: "M", title: "安全管理类安全技术服务", label: "安全管理类安全技术服务", order: 10001 }]
+        : scopes.map((scope) => {
+            const key = scopeKey(scope) || "missing";
+            if (key === "ALL") {
+              return {
+                id: "security-operations",
+                code: "ALL",
+                title: "安全运行类安全技术服务",
+                label: "安全运行类安全技术服务",
+                order: 10000,
+              };
+            }
+            return {
+              id: key,
+              code: scope?.code || "",
+              title: titleOf(scope, "待补充作用域"),
+              label: scopeLabel(scope),
+              order: orderMap.has(key) ? orderMap.get(key) : 9999,
+            };
+          });
+      for (const groupInfo of groups) {
+        const key = groupInfo.id || "missing";
+        if (!grouped.has(key)) {
+          grouped.set(key, {
+            id: key,
+            code: groupInfo.code || "",
+            title: groupInfo.title || "待补充作用域",
+            label: groupInfo.label || groupInfo.title || "待补充作用域",
+            count: 0,
+            order: groupInfo.order ?? 9999,
+            rows: [],
+          });
+        }
+        const group = grouped.get(key);
+        group.count += 1;
+        group.rows.push(row);
+      }
+    }
+    return [...grouped.values()]
+      .map((group) => ({
+        ...group,
+        rows: uniqueBy(group.rows.sort(compareTechnicalServiceRows), (row) => row.id),
+      }))
+      .sort((left, right) => left.order - right.order || text(left.label).localeCompare(text(right.label), "zh-Hans-CN"));
+  }
+
+  function buildTechnicalServiceMaintenanceViewModel({ capabilityTree, management, search }) {
+    const query = normalizeSearch(search);
+    const orderIndex = { ...buildCapabilityFocusOrder(capabilityTree), scopeByCode: scopeLookup(management) };
+    const sourceEntries = list(management?.security_technical_services).length
+      ? list(management?.security_technical_services)
+      : list(management?.service_module_index);
+    const rowPairs = sourceEntries.map((entry, index) => ({ entry, row: compactTechnicalServiceRow(entry, index, orderIndex) }));
+    const searchRows = rowPairs
+      .map(({ row }) => row)
+      .sort(compareTechnicalServiceRows)
+      .filter((row) =>
+        includesSearch(
+          query,
+          row.code,
+          row.title,
+          row.definition,
+          row.status,
+          ...row.ownershipFocuses.map(codeTitle),
+          ...row.linkedScopes.map(codeTitle),
+          ...row.linkedModules.map(titleOf),
+          ...row.linkedSystems.map(titleOf),
+          ...row.linkedProducts.map(titleOf),
+          ...row.linkedEnvironments.map(titleOf),
+        ),
+      );
+    const rows = searchRows.map((row, index) => ({ ...row, index: index + 1 }));
+    return {
+      rows,
+      serviceScopeGroups: buildTechnicalServiceScopeGroups(rows, management),
+      summary: {
+        totalServices: rows.length,
+        linkedFocuses: countLinked(rows.flatMap((row) => row.ownershipFocuses)),
+        linkedModules: countLinked(rows.flatMap((row) => row.linkedModules)),
+        linkedSystems: countLinked(rows.flatMap((row) => row.linkedSystems)),
+        missingDefinitions: rows.filter((row) => row.definition === "待补充定义").length,
+      },
+      sourceEvidenceById: Object.fromEntries(rowPairs.map(({ row }) => [row.id, row.sourceEvidence])),
+      emptyState: rows.length ? "" : "暂无安全技术服务数据，请确认 ETL 是否已导出 security_technical_services 或 service_module_index。",
+    };
+  }
+
   function buildTechnicalMeasureMaintenanceViewModel({ management, search }) {
     const query = normalizeSearch(search);
     const hasMeasureField = hasOwn(management, TECHNICAL_MEASURES_FIELD);
@@ -1947,6 +2181,7 @@
     const applicationSystemCount = list(lifecycle?.application_security_development?.application_system_types).length;
     return [
       { id: "scopes", label: "作用域清单", count: list(management?.scope_types).length, implemented: true },
+      { id: "services", label: "安全技术服务清单", count: list(management?.security_technical_services).length || list(management?.service_module_index).length, implemented: true },
       { id: "modules", label: "安全技术模块清单", count: catalogTechnologyModules(management).length, implemented: true },
       { id: "measures", label: "安全技术措施清单", count: list(management?.security_technical_measures).length, implemented: true },
       { id: "security-works", label: "安全工作清单", count: securityWorkCount, implemented: true },
@@ -1996,12 +2231,20 @@
   }
 
   function maintenancePageMeta(section) {
-    if (section === "modules" || section === "measures") {
+    if (section === "services" || section === "modules" || section === "measures") {
+      const isServicePage = section === "services";
       return {
-        title: "安全技术模块/措施清单",
-        description: "安全系统（为解决某一场景 / 领域的安全问题，由多个安全模块组成、协同运行的实体）；安全技术模块（实现一个或多个安全能力的安全技术逻辑实体，可以独立部署运行，通常代表一类安全产品）。",
+        title: isServicePage ? "安全技术服务清单" : "安全技术模块/措施清单",
+        description: isServicePage
+          ? "安全技术服务清单用于核对服务编号、定义补充状态、归属安全能力/关注点和模块关联关系。"
+          : "安全技术模块是实现服务的标准技术构件；安全技术措施是更细粒度的落地措施，二者在页面和颜色上保持区分。",
         implemented: true,
-        notice: section === "modules" ? "当前页签为安全技术模块目录；关联措施数依赖后续数据契约完善。" : "当前页签为安全技术措施目录；环境和对象关系由安全技术服务 + 作用域投影生成。",
+        notice:
+          isServicePage
+            ? "服务按作用域分组，ALL 服务显示为安全运行类，M 开头服务显示为安全管理类；组内按安全能力/关注点顺序排列。"
+            : section === "modules"
+              ? "模块只来自安全技术模块清单或权威模块关系，不伪造成措施。"
+              : "措施需保持来源标签和服务 / 作用域映射，不伪造成模块。",
       };
     }
     if (section === "security-works" || section === "processes") {
@@ -2220,6 +2463,29 @@
         sourceEvidence,
       };
     }
+    if (section === "services") {
+      return {
+        type: "安全技术服务",
+        code: row.code,
+        title: row.serviceLabel,
+        description: row.definition,
+        facts: [
+          { label: "服务编号", value: row.code },
+          { label: "归属安全能力-关注点", value: row.ownershipFocuses.length || "待补充" },
+          { label: "关联技术模块", value: row.moduleCount },
+          { label: "关联安全系统", value: row.systemCount },
+          { label: "定义状态", value: row.definition === "待补充定义" ? "待补充" : "正常" },
+        ],
+        sections: [
+          { title: "归属安全能力-关注点", items: row.ownershipFocuses },
+          { title: "关联技术模块", items: row.linkedModules },
+          { title: "关联安全系统", items: row.linkedSystems },
+          { title: "关联产品", items: row.linkedProducts },
+          { title: "关联信息化环境", items: row.linkedEnvironments },
+        ],
+        sourceEvidence,
+      };
+    }
     if (section === "references") {
       const isRoleReference = row.referenceKind === "role";
       return {
@@ -2327,6 +2593,13 @@
       const source = list(management?.security_technology_modules).find((module, index) => (module?.id || module?.code || module?.title || `technology-module-${index}`) === row.id);
       return list(source?.sources);
     }
+    if (section === "services") {
+      const source = list(management?.security_technical_services).find((entry, index) => {
+        const service = entry?.service || entry;
+        return (service?.id || service?.code || service?.title || `technical-service-${index}`) === row.id;
+      });
+      return uniqueBy([...list(source?.service?.sources), ...list(source?.sources), ...list(row?.sourceEvidence)], sourceEvidenceKey);
+    }
     if (section === "references") {
       const sourceList = row.referenceKind === "standard" ? list(management?.gbt_42446_references) : list(management?.gartner_roles);
       const source = sourceList.find((item, index) => (item?.id || item?.code || item?.title || `${row.referenceKind}-${index}`) === row.rawId);
@@ -2336,7 +2609,7 @@
   }
 
   function buildMaintenanceWorkspaceViewModel({ capabilityTree, management, maintenance, lifecycle, standards, section = "scopes", selectedId, search, referenceTab = "gbt", standardFrameworkId = "mlps-level-3" }) {
-    const normalizedSection = ["scopes", "processes", "work-functions", "security-works", "modules", "measures", "application-systems", "lcap-references", "references", "standards"].includes(section) ? section : "scopes";
+    const normalizedSection = ["scopes", "processes", "work-functions", "security-works", "services", "modules", "measures", "application-systems", "lcap-references", "references", "standards"].includes(section) ? section : "scopes";
     const normalizedReferenceTab = referenceTab === "gartner" ? "gartner" : "gbt";
     const maintenanceKnowledge = maintenance || management;
     const navigationItems = maintenanceNavigationItems(maintenanceKnowledge, normalizedSection, capabilityTree, lifecycle, standards);
@@ -2349,11 +2622,13 @@
           : normalizedSection === "work-functions"
           ? buildWorkFunctionMaintenanceViewModel({ management: maintenanceKnowledge, search })
           : normalizedSection === "security-works"
-            ? buildSecurityWorkMaintenanceViewModel({ capabilityTree, search })
-            : normalizedSection === "modules"
-              ? buildTechnologyModuleMaintenanceViewModel({ management: maintenanceKnowledge, search })
-              : normalizedSection === "measures"
-                ? buildTechnicalMeasureMaintenanceViewModel({ management: maintenanceKnowledge, search })
+          ? buildSecurityWorkMaintenanceViewModel({ capabilityTree, search })
+            : normalizedSection === "services"
+              ? buildTechnicalServiceMaintenanceViewModel({ capabilityTree, management: maintenanceKnowledge, search })
+              : normalizedSection === "modules"
+                ? buildTechnologyModuleMaintenanceViewModel({ management: maintenanceKnowledge, search })
+                : normalizedSection === "measures"
+                  ? buildTechnicalMeasureMaintenanceViewModel({ management: maintenanceKnowledge, search })
                 : normalizedSection === "lcap-references"
                   ? buildLifecycleReferenceMaintenanceViewModel({ lifecycle, search })
                 : normalizedSection === "application-systems"
@@ -2380,6 +2655,7 @@
       section: normalizedSection,
       navigationItems,
       sectionTabs: maintenanceSectionTabs(normalizedSection, tabCounts, normalizedReferenceTab),
+      serviceScopeGroups: sectionViewModel.serviceScopeGroups || [],
       page: pageMeta,
       summary: sectionViewModel.summary,
       rows: visibleRows,
@@ -2410,6 +2686,172 @@
         object,
       })),
     );
+  }
+
+  function workbenchObjectRows(workbenchViewModel, type) {
+    const rows = workbenchViewModel?.objects?.[type];
+    return rows && typeof rows === "object" ? Object.values(rows) : [];
+  }
+
+  function buildEnvironmentManagementFromWorkbench(workbenchViewModel) {
+    const objects = workbenchViewModel?.objects || {};
+    const relations = list(workbenchViewModel?.relations);
+    const byType = (type) => (objects[type] && typeof objects[type] === "object" ? objects[type] : {});
+    const entity = (type, id) => byType(type)[id] || null;
+    const relationsOf = (type) => relations.filter((relation) => relation.type === type);
+    const scopeByCode = new Map(workbenchObjectRows(workbenchViewModel, "scope_type").map((scope) => [text(scope.code || scope.title).trim(), scope]));
+    const segmentObjects = new Map();
+    const environmentRows = new Map();
+
+    const ensureEnvironment = (environmentLike) => {
+      const environment = entity("information_environment", environmentLike?.id) || environmentLike;
+      if (!environment?.id) return null;
+      if (!environmentRows.has(environment.id)) {
+        environmentRows.set(environment.id, {
+          ...environment,
+          title: titleOf(environment, "未命名环境"),
+          objectsMap: new Map(),
+        });
+      }
+      return environmentRows.get(environment.id);
+    };
+
+    const addObjectToEnvironment = (environmentLike, segmentLike, objectLike) => {
+      const environment = ensureEnvironment(environmentLike);
+      const object = entity("information_object", objectLike?.id) || objectLike;
+      if (!environment || !object?.id) return;
+      const segment = entity("environment_segment", segmentLike?.id) || segmentLike || {
+        id: `${environment.id}:segment:unclassified`,
+        title: "未定义环境子类",
+      };
+      const row =
+        environment.objectsMap.get(object.id) || {
+          ...object,
+          title: titleOf(object, "未命名对象"),
+          segments: [],
+          scope_mappings: [],
+        };
+      if (segment?.id || segment?.title) {
+        row.segments = uniqueBy([...list(row.segments), { ...segment, title: titleOf(segment, "未定义环境子类") }], (item) => item.id || item.title);
+        if (segment?.id) {
+          segmentObjects.set(segment.id, uniqueBy([...(segmentObjects.get(segment.id) || []), row], (item) => item.id || item.title));
+        }
+      }
+      environment.objectsMap.set(object.id, row);
+    };
+
+    for (const environmentNode of list(workbenchViewModel?.navigatorData?.tree)) {
+      for (const segmentNode of list(environmentNode.children)) {
+        for (const objectNode of list(segmentNode.children)) {
+          addObjectToEnvironment(environmentNode, segmentNode, objectNode);
+        }
+      }
+    }
+
+    if (!environmentRows.size) {
+      for (const relation of relationsOf("contains_object")) {
+        const segment = entity("environment_segment", relation.sourceId);
+        const object = entity("information_object", relation.targetId);
+        const environmentRelation = relationsOf("contains_segment").find((item) => item.targetId === relation.sourceId);
+        const environment = entity("information_environment", environmentRelation?.sourceId);
+        addObjectToEnvironment(environment, segment, object);
+      }
+    }
+
+    const serviceModules = new Map();
+    for (const relation of [...relationsOf("implemented_by_module"), ...relationsOf("implements_service")]) {
+      const serviceId = relation.type === "implemented_by_module" ? relation.sourceId : relation.targetId;
+      const moduleId = relation.type === "implemented_by_module" ? relation.targetId : relation.sourceId;
+      const module = entity("security_technology_module", moduleId);
+      if (!serviceId || !module) continue;
+      serviceModules.set(serviceId, uniqueBy([...(serviceModules.get(serviceId) || []), module], (item) => item.id || item.code || item.title));
+    }
+    for (const relation of relationsOf("has_measure")) {
+      const measure = entity("security_technical_measure", relation.targetId);
+      if (!relation.sourceId || !measure) continue;
+      serviceModules.set(relation.sourceId, uniqueBy([...(serviceModules.get(relation.sourceId) || []), measure], (item) => item.id || item.code || item.title));
+    }
+
+    const moduleSystems = new Map();
+    for (const relation of relationsOf("part_of_system")) {
+      const system = entity("security_system", relation.targetId);
+      if (!relation.sourceId || !system) continue;
+      moduleSystems.set(relation.sourceId, uniqueBy([...(moduleSystems.get(relation.sourceId) || []), system], (item) => item.id || item.title));
+    }
+    const moduleProducts = new Map();
+    for (const relation of relationsOf("maps_to_product")) {
+      const product = entity("product", relation.targetId);
+      if (!relation.sourceId || !product) continue;
+      moduleProducts.set(relation.sourceId, uniqueBy([...(moduleProducts.get(relation.sourceId) || []), product], (item) => item.id || item.title));
+    }
+
+    const decorateService = (service) => ({
+      ...service,
+      title: titleOf(service, "未命名服务"),
+      modules: list(serviceModules.get(service.id)).map((module) => ({
+        ...module,
+        systems: list(moduleSystems.get(module.id)),
+        products: list(moduleProducts.get(module.id)),
+      })),
+    });
+
+    const serviceMatchesScope = (service, scope) => {
+      const scopeCode = text(scope?.code).trim();
+      const scopeTitle = text(scope?.title || scope?.name).trim();
+      const serviceCategory = text(service?.category).trim();
+      const serviceCode = text(service?.code).trim();
+      if (scopeCode && (serviceCategory === scopeCode || serviceCode.startsWith(`${scopeCode}&`) || serviceCode.startsWith(`${scopeCode}-`))) return true;
+      if (scopeTitle && serviceCategory === scopeTitle) return true;
+      return !scopeCode && !scopeTitle;
+    };
+
+    const scopesForObject = (object) =>
+      uniqueBy(
+        relationsOf("applies_to_scope")
+          .filter((relation) => relation.sourceId === object.id)
+          .map((relation) => entity("scope_type", relation.targetId))
+          .filter(Boolean),
+        (scope) => scope.id || scope.code || scope.title,
+      );
+
+    const servicesForObject = (object) =>
+      uniqueBy(
+        relationsOf("protects_object")
+          .filter((relation) => relation.targetId === object.id)
+          .map((relation) => entity("security_technical_service", relation.sourceId))
+          .filter(Boolean),
+        (service) => service.id || service.code || service.title,
+      );
+
+    for (const environment of environmentRows.values()) {
+      for (const object of environment.objectsMap.values()) {
+        const scopes = scopesForObject(object);
+        const services = servicesForObject(object);
+        const derivedScopes = scopes.length
+          ? scopes
+          : uniqueBy(services.map((service) => scopeByCode.get(text(service.category).trim())).filter(Boolean), (scope) => scope.id || scope.code || scope.title);
+        object.scope_mappings = derivedScopes.map((scope) => ({
+          scope,
+          services: services.filter((service) => serviceMatchesScope(service, scope)).map(decorateService),
+        }));
+        object.scope_count = object.scope_mappings.length;
+        object.service_count = uniqueBy(object.scope_mappings.flatMap((mapping) => mapping.services), (service) => service.id || service.code || service.title).length;
+        object.module_count = uniqueBy(object.scope_mappings.flatMap((mapping) => list(mapping.services).flatMap((service) => list(service.modules))), (module) => module.id || module.code || module.title).length;
+      }
+    }
+
+    return {
+      environment_scope_tree: [...environmentRows.values()].map((environment) => ({
+        ...environment,
+        objects: [...environment.objectsMap.values()].sort((left, right) => titleOf(left).localeCompare(titleOf(right), "zh-Hans-CN")),
+      })),
+      service_module_index: [...serviceModules.entries()].map(([serviceId, modules]) => ({
+        service: entity("security_technical_service", serviceId),
+        modules,
+      })),
+      security_technical_measures: workbenchObjectRows(workbenchViewModel, "security_technical_measure"),
+      segmentObjects,
+    };
   }
 
   function buildEnvironmentNavigationTree(management, search) {
@@ -2591,26 +3033,28 @@
   }
 
   function buildEnvironmentWorkspaceViewModel({ environmentWorkbench, environmentWorkbenchViewModel, management, selectedObjectId, selectedEnvironmentId, selectedSegmentId, search }) {
+    const environmentManagement = management || buildEnvironmentManagementFromWorkbench(environmentWorkbenchViewModel);
     const dataSource = workbenchDataSource({
       workbench: environmentWorkbench,
       workbenchViewModel: environmentWorkbenchViewModel,
       workbenchName: "environment-workbench.json",
       fallbackName: "environment-workbench.json",
     });
-    const navigationTree = buildEnvironmentNavigationTree(management, search);
-    const selected = findEnvironmentSelection(management, selectedObjectId, selectedEnvironmentId, selectedSegmentId, search);
+    const navigationTree = buildEnvironmentNavigationTree(environmentManagement, search);
+    const topologyTree = buildEnvironmentNavigationTree(environmentManagement, "");
+    const selected = findEnvironmentSelection(environmentManagement, selectedObjectId, selectedEnvironmentId, selectedSegmentId, search);
     const selectedEnvironment = compactEntity(selected?.environment, "未命名环境");
     const selectedSegment = selected?.segment ? compactEntity(selected.segment, "未定义环境子类") : null;
     const selectedObject = selected?.object ? compactEntity(selected.object, "未命名对象") : null;
     const isEnvironmentSelection = selected?.selectionType === "environment";
     const isSegmentSelection = selected?.selectionType === "segment";
     const scopeServiceRows = isEnvironmentSelection
-      ? list(selected?.objects).flatMap((object) => buildEnvironmentScopeServiceRows(management, object, true))
+      ? list(selected?.objects).flatMap((object) => buildEnvironmentScopeServiceRows(environmentManagement, object, true))
       : isSegmentSelection
-        ? list(selected?.objects).flatMap((object) => buildEnvironmentScopeServiceRows(management, object, true))
-      : buildEnvironmentScopeServiceRows(management, selected?.object, false);
+        ? list(selected?.objects).flatMap((object) => buildEnvironmentScopeServiceRows(environmentManagement, object, true))
+      : buildEnvironmentScopeServiceRows(environmentManagement, selected?.object, false);
     const summary = {
-      objectCount: navigationTree.reduce((sum, environment) => sum + list(environment.objects).length, 0),
+      objectCount: uniqueBy(navigationTree.flatMap((environment) => list(environment.objects)), (object) => object.id || object.title).length,
       selectedObjectCount: isEnvironmentSelection || isSegmentSelection ? list(selected?.objects).length : selectedObject ? 1 : 0,
       scopeCount: uniqueBy(scopeServiceRows.map((row) => row.scope), (scope) => scope?.id || scope?.code || scope?.title).length,
       serviceCount: uniqueBy(scopeServiceRows.flatMap((row) => row.services), (service) => service.id || service.code || service.title).length,
@@ -2634,6 +3078,7 @@
     };
     return {
       navigationTree,
+      topologyTree,
       selectedEnvironment,
       selectedSegment,
       selectedObject,

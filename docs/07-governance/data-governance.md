@@ -278,6 +278,70 @@ frontend/capability-browser/public/data/
 - 抽样检查 `standards-index.json` 和 `standards-data.json` 时，`frameworks[]` 及其 `tabs[]` 不得包含 `rows`。
 - 浏览器验证应确认首屏没有提前请求非当前 Tab 的大分包。
 
+## 10.2 前端数据粒度边界规则
+
+按需加载、轻量首屏投影、局部 projection、fallback、缓存和刷新恢复都必须遵守数据粒度边界。性能优化不能改变当前对象语义。
+
+强制规则：
+
+- 关注点级 projection 只能服务 `capability_focus` 节点，不得用于 L0 / L1 / L2 能力层级节点。
+- L0 / L1 / L2 节点必须使用同粒度的后端聚合数据，或使用能力树已有关系构造展示层聚合；不得借用默认关注点或第一条关注点的局部关系。
+- 禁止用 `rows[0]`、默认关注点、首个子节点、最近一次选中对象、上一次 projection 或旧缓存来决定主展示区当前对象。
+- 主展示区当前对象必须来自左侧显式选中 ID、URL / workspace state 中恢复的选中 ID，或后端明确返回的同粒度对象。
+- `localRelationMap.focus`、图谱中心节点、详情标题、关系摘要的当前对象必须与选中对象同粒度一致；如果当前选择是 L1，图谱范围应是 L1 聚合，而不是某个 L3 关注点。
+- 轻量首屏包可以只返回默认关注点投影，但前端必须在非关注点选择时忽略该关注点投影，改用聚合 fallback 或后台补载完整数据。
+- Capability Projection Contract 1.0 固定为 `GET /api/v1/capabilities/workspace-projection?object_type={type}&object_id={id}`；支持 `capability_category`、`capability_domain`、`capability`、`capability_focus`。
+- 对象粒度 projection 必须返回 `selected`、`graphScope`、`dataState`、`graph.center`、`summary`、`tabs` 和 `sourceEvidence`；`graph.center.id/type/code` 必须与 `selected.id/type/code` 一致。
+- 对象不存在时必须返回 `dataState = invalid_object`，不得回退到默认关注点。
+- 非 `capability_focus` projection 不得返回关注点级 `localRelationMap` 作为主图谱来源；关注点 projection 可以返回完整局部 `localRelationMap`。
+
+涉及以下文件或能力时，必须执行粒度边界验证：
+
+- `frontend/capability-browser/dataClient.js`
+- `frontend/capability-browser/app.js`
+- `frontend/capability-browser/viewModels.js`
+- 图谱输入模型和本地关系图组件
+- `/api/v1/capabilities/workspace-initial`
+- `/api/v1/capabilities/workspace-projection`
+- 刷新状态恢复、缓存版本、分包加载、fallback 数据路径
+
+最小验证矩阵：
+
+| 选择对象 | 预期数据粒度 | 必须断言 |
+|---|---|---|
+| L0 分类，例如 `T` | `capability_category` 聚合 | 图谱中心 / 当前对象是 L0 分类，不是第一个关注点 |
+| L1 领域，例如 `T-AS` | `capability_domain` 聚合 | `localRelationMap.focus.code = T-AS` 或等价当前对象 |
+| L2 能力，例如 `T-AS.AD` | `capability` 聚合 | `localRelationMap.focus.code = T-AS.AD` 或等价当前对象 |
+| L3 关注点，例如 `T-AS.AD-01` | `capability_focus` 局部投影 | 可以使用关注点 projection，但不得复用到上层节点 |
+
+验证命令建议：
+
+```bash
+node --check frontend/capability-browser/viewModels.js
+node --check frontend/capability-browser/app.js
+node scripts/frontend_smoke_check.mjs --page capability --url http://127.0.0.1:5173/frontend/capability-browser/
+```
+
+如修改涉及首屏投影或图谱输入，还应补充 Node 定点断言，至少覆盖 L1、L2、关注点三类对象，并输出当前对象 code、`localRelationMap.focus.code` 和图谱 `graphScope`。
+
+Capability Projection Contract 1.0 的固定审计命令：
+
+```bash
+node scripts/audit_capability_projection_contract.mjs --url http://127.0.0.1:5173
+```
+
+固定审计对象：
+
+- `T`
+- `T-AS`
+- `T-AS.AD`
+- `T-AS.AD-01`
+- `T-OF`
+- `T-OF.AT`
+- `T-OF.AT-02`
+- `G-SP.SM-02`
+- 一个不存在的能力对象，用于验证 `invalid_object`
+
 ## 11. 错误数据处理流程
 
 未来数据导入遇到错误数据时，按以下流程处理：

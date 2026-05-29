@@ -1,6 +1,7 @@
 (function () {
   const components = (window.sapdComponents = window.sapdComponents || {});
   const utils = components.utils;
+  const display = window.sapdDisplay || {};
 
   function summaryBadge(label, value) {
     return `<span class="measure-summary-badge"><small>${utils.escapeHtml(label)}</small><strong>${utils.escapeHtml(value)}</strong></span>`;
@@ -9,26 +10,26 @@
   function renderSummary(section, summary = {}) {
     if (section === "scopes") {
       return [
-        summaryBadge("作用域", summary.totalScopes ?? 0),
+        summaryBadge(display.label?.("scope_type", "作用域") || "作用域", summary.totalScopes ?? 0),
         summaryBadge("情景", summary.scenarios ?? 0),
-        summaryBadge("关联服务", summary.linkedServices ?? 0),
-        summaryBadge("关联对象", summary.linkedObjects ?? 0),
+        summaryBadge(display.relationLabel?.("security_technical_service") || "关联安全技术服务", summary.linkedServices ?? 0),
+        summaryBadge(display.relationLabel?.("information_object") || "关联信息化对象", summary.linkedObjects ?? 0),
       ].join("");
     }
     if (section === "measures") {
       return [
-        summaryBadge("措施", summary.totalMeasures ?? 0),
-        summaryBadge("关联服务", summary.linkedServices ?? 0),
-        summaryBadge("适用作用域", summary.linkedScopes ?? 0),
-        summaryBadge("关联环境", summary.linkedEnvironments ?? 0),
-        summaryBadge("关联对象", summary.linkedObjects ?? 0),
+        summaryBadge(display.label?.("security_technical_measure", "安全技术措施") || "安全技术措施", summary.totalMeasures ?? 0),
+        summaryBadge(display.relationLabel?.("security_technical_service") || "关联安全技术服务", summary.linkedServices ?? 0),
+        summaryBadge(display.relationLabel?.("scope_type") || "关联作用域", summary.linkedScopes ?? 0),
+        summaryBadge(display.relationLabel?.("information_environment") || "关联信息化环境", summary.linkedEnvironments ?? 0),
+        summaryBadge(display.relationLabel?.("information_object") || "关联信息化对象", summary.linkedObjects ?? 0),
       ].join("");
     }
     if (section === "services") {
       return [
-        summaryBadge("技术服务", summary.totalServices ?? 0),
+        summaryBadge(display.label?.("security_technical_service", "安全技术服务") || "安全技术服务", summary.totalServices ?? 0),
         summaryBadge("归属关注点", summary.linkedFocuses ?? 0),
-        summaryBadge("关联模块", summary.linkedModules ?? 0),
+        summaryBadge(display.label?.("security_module_or_measure", "安全技术模块/措施") || "安全技术模块/措施", summary.linkedModules ?? 0),
         summaryBadge("待补定义", summary.missingDefinitions ?? 0),
       ].join("");
     }
@@ -57,10 +58,10 @@
     }
     if (section === "modules") {
       return [
-        summaryBadge("技术模块", summary.totalModules ?? 0),
-        summaryBadge("关联服务", summary.linkedServices ?? 0),
-        summaryBadge("关联作用域", summary.linkedScopes ?? 0),
-        summaryBadge("关联对象", summary.linkedObjects ?? 0),
+        summaryBadge(display.label?.("security_technology_module", "安全技术模块") || "安全技术模块", summary.totalModules ?? 0),
+        summaryBadge(display.relationLabel?.("security_technical_service") || "关联安全技术服务", summary.linkedServices ?? 0),
+        summaryBadge(display.relationLabel?.("scope_type") || "关联作用域", summary.linkedScopes ?? 0),
+        summaryBadge(display.relationLabel?.("information_object") || "关联信息化对象", summary.linkedObjects ?? 0),
       ].join("");
     }
     if (section === "references") {

@@ -389,7 +389,7 @@
         const groupPath = [...path, index];
         const groupId = groupDomId(activeFrameworkId, tableId, groupPath);
         const groupLineage = [...lineage, groupId];
-        const expanded = parentExpanded && index === 0;
+        const expanded = false;
         const hidden = !parentExpanded;
         const parentAttr = parentId ? ` data-standard-parent="${utils.escapeHtml(parentId)}"` : "";
         const lineageAttr = lineage.length ? ` data-standard-lineage="${utils.escapeHtml(lineage.join(" "))}"` : "";

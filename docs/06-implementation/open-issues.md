@@ -825,6 +825,7 @@
 - 后续处理：如后续需要精确到服务，应由 ETL/export 增加服务级措施映射字段或关系，前端再把措施移动到对应安全技术服务行；本轮不伪造服务级归属。
 - 统一规则：后续任何原始数据中的 `/` 均代表“没有相关定义 / 不适用”，不再反复确认；ETL 和前端均不得把 `/` 生成为正常知识对象。
 - 验证结果：2026-05-25 重新导出 `lifecycle-workbench.json` 后，`security_technical_measure=3`、`uses_measure=3`、关系端点缺失 0；关系为 `AP-02 -> 应用程序威胁建模`、`AP-04 -> 制品安全加固`、`AP-05 -> IaC代码安全测试`。`node scripts/frontend_smoke_check.mjs --page lifecycle --url http://127.0.0.1:5174/ --debug-port 9334` 通过，`activeView=dev-lifecycle`、`consoleIssues=0`、`bodyOverflowX=0`。
+- 追加验证结果：2026-05-29 BE-4.3 复查并重新导出 `lifecycle-workbench.json`，当前 `security_technical_measure=4`、`uses_measure=4`，其中 LC-AP 为 3 条：`AP-02 -> 应用程序威胁建模`、`AP-04 -> 制品安全加固`、`AP-05 -> IaC代码安全测试`；LC-DT 为 1 条：`DT-07 -> 数据销毁`。三份 workbench 顶层结构、关系端点和字段边界检查通过；验证输出见 `data/exports/worker-verify/be-4-3-lifecycle-measures-check.json`。
 
 ## OI-041：主控会话多次重连影响工程开发
 
@@ -1384,7 +1385,7 @@
 - 对象或页面：`安全能力映射` 页的 `能力关系图谱`，按需加载 `workspace-projection?focus_id=<id>` 的 L3 关注点详情。
 - 现象：用户反馈“刚才看没有数据，后来又有了”。排查发现关注点关系投影按需异步加载时，页面点击后会先用轻量初始投影或旧投影渲染一次；对应关注点小投影返回后再自动重渲染，因此会出现短暂空图或关系不完整。
 - 影响：容易被误判为数据缺失或图谱生成错误，尤其是刚进入页面后首次点击非默认关注点时更明显。
-- 当前处理：`app.js` 在选中关注点但该关注点关系投影尚未返回时，不再渲染空的关系图谱详情区，改为显示“正在加载当前关注点关系数据”；投影加载完成后继续自动重渲染真实图谱。
+- 当前处理：`app.js` 在选中关注点但该关注点关系投影尚未返回时，不再渲染空的关系图谱详情区，改为显示“正在加载当前关注点关系数据”；投影加载完成后继续自动重渲染真实图谱。2026-05-29 追加兜底：如果关注点小投影接口未返回该关注点关系图，前端会在加载态中补载完整 `capability-workbench`，避免先显示只有管理视角或半成品图谱。
 - 需要确认：无。该修复只处理前端加载状态，不改数据包、ETL、ViewModel 关系生成或业务映射语义。
 - 验证结果：2026-05-26 `node --check frontend/capability-browser/app.js`、`git diff --check` 与 `node scripts/frontend_smoke_check.mjs --page capability --url http://127.0.0.1:6191/frontend/capability-browser/ --debug-port 9591` 通过，`consoleIssues=0`、`bodyOverflowX=0`、`workspaceOverflowX=0`。
 
@@ -1703,3 +1704,97 @@
 - 需要确认：无。
 - 修复说明：`payload_json` 改为 `json.dumps({"schema_version": schema_version}, ensure_ascii=False)`。
 - 验证结果：2026-05-29 临时 user DB 回归通过：包含引号和反斜杠的 schema version 写入后可被 `json.loads()` 正确解析。
+
+## OI-111：ZIP macOS 包中关注点关系面板持续加载
+
+- 状态：已修复
+- 类型：打包 / 前端状态 / Delivery Bundle
+- 对象或页面：ZIP alpha macOS 包，`安全能力映射` 页面，三级“关注点”节点，例如 `T-IN.IO-01`、`T-PD.AC-01`。
+- 现象：解压 ZIP 后选择三级关注点，右侧长期显示“正在加载当前关注点关系数据”，威胁情报运营和其他关注点均可能复现。
+- 影响：用户误以为三级数据缺失，实际 `capability-workbench.json` 中关注点、关系和对象数据存在。
+- 当前处理：前端在完整 `capability-workbench` 已加载时直接使用本地工作台关系数据渲染关注点，不再强制等待后端投影；ZIP 后端对未知 `/api/v1/*` 返回 JSON 404，避免 API 请求落到 `index.html`。
+- 需要确认：后续如继续推进按需投影 API，应在 ZIP 后端补齐 `/api/v1/capabilities/workspace-projection`，但不应阻塞当前 alpha 包。
+- 修复说明：`frontend/capability-browser/app.js` 增加完整工作台关系数据判断；`scripts/run_local_server.py` 增加未知 API JSON 404；重新生成 macOS 完整 ZIP 和从上一版到新版的 update 包。
+- 验证结果：2026-05-29 新 macOS ZIP 解压启动通过；首页可访问；`GET /api/v1/base/summary` 可读；未知能力投影 API 返回 JSON 404 而非 HTML；`POST /api/v1/user/favorites` 写入 user DB 成功；base DB sha256 保持不变；diagnostics 导出包不包含用户数据库原文件。
+
+## OI-112：同一业务值在不同页面 / JSON / 表格中显示名称和样式不一致
+
+- 状态：已修复
+- 类型：前端 / ViewModel / 数据契约展示治理
+- 对象或页面：安全能力映射、信息化环境映射、LC-AP、LC-DT、安全知识目录、标准 / 框架映射。
+- 现象：同一类业务对象在不同页面存在表头、摘要标签、空态文案和 chip 样式不一致，例如 `安全技术服务` 被显示为 `技术服务`、`服务`、`关联技术服务`、`映射安全技术服务`；`作用域` 被显示为 `安全作用域`、`适用作用域`、`关联作用域`；`安全技术模块/措施` 与空态 `暂无模块` 混用。
+- 影响：顾问使用时会误以为这些是不同字段或不同口径，也会增加后续页面维护成本。
+- 当前处理：已完成第一轮修复。新增 `frontend/capability-browser/displayLabels.js` 统一对象标签、关系列名、状态 / 空态文案和 relation chip helper；已替换安全技术服务、作用域、安全技术模块/措施、安全策略要求、L4 活动等高频字段在主要表格、摘要和详情面板中的显示口径。
+- 建议处理：后续新增页面或字段时必须优先复用 `displayLabels.js`；搜索框占位、导航维度短词和说明性长句可以保留压缩表达，但主表头、详情 facts 和空态文案不得新增未登记变体。
+- 验证结果：2026-05-29 已扫描 `app.js`、`viewModels.js`、`components/*.js`、`styles.css` 和主要前端数据包摘要；新增 / 修改脚本 `node --check` 通过；固定 `5173` 轻量 smoke 已覆盖 `/knowledge/technical-services`、`/capability-mapping`、`/environment-mapping`、`/development-security`，均通过，未启动系统 Google Chrome。
+
+## OI-113：前端整体色系未统一到莫兰迪低饱和体系
+
+- 状态：已修复
+- 类型：前端 / 视觉系统 / 色彩治理
+- 对象或页面：全局应用壳、关系工作台、能力映射图谱、生命周期页、标准 / 框架表格、首页概览 dashboard、关联 chip。
+- 现象：前端存在多套局部色值，部分区域仍使用高饱和蓝、绿、橙、紫和纯白面板；同一类关系 chip 虽然已有分色，但整体色彩体系未明确收敛。
+- 影响：界面容易显得像多轮局部修补后的拼接结果，顾问使用时会感觉视觉口径不稳定，也不利于后续设计和页面扩展。
+- 当前处理：已完成第一轮 Morandi 色系治理，并补充完成图谱语义色校准、映射表压缩和 Apple shell 正式配色落地。`styles.css` 复用并覆盖全局 token，将全局背景、应用壳、侧栏、顶部栏、搜索框、页面标题区、面板、表格、关系 chip、生命周期 chip 和本地图谱色彩推进到 Apple / iOS / macOS 方向：明亮 tinted neutral、清晰 iOS-blue 选中态、服务蓝、模块 sage、措施 clay、当前关注点 lavender、标准 sand。用户反馈“修改不明显”后，已按 `apple-morandi-color-demo.html` 进一步加强正式页：侧栏改为明显浅蓝灰 translucent surface，一级导航和目录 active 态改为 demo 式 iOS blue 渐变，目录行、tabs、搜索框和面板圆角 / 浅玻璃感同步加重；随后继续把 demo 的 segmented tabs、table wrap、表头、表格 hover、目录树、维护表、标准表、映射矩阵和 chip 规则落到正式页，避免只有 shell 明显而内部表格仍像旧样式；本轮进一步限定在 `#maintenanceWorkspace.knowledge-directory-mode` 和 `#maintenanceWorkspace.standards-mode`，统一安全知识和安全标准 / 框架下全部表格的表格外框、表头、行底色、hover、分组行、折叠行、CSF 语义行和 chip 色彩；`apple-morandi-color-demo.html` 保留为参考样张，`DESIGN.md` 已更新为 Apple shell 方向优先。
+- 建议处理：后续新增页面、状态或对象类型时，不再直接写高饱和十六进制色值，应优先复用 `styles.css` 中的 `--morandi-*`、`--accent`、`--success`、`--warning`、`--danger` 等 token。
+- 验证结果：2026-05-29 `node --check frontend/capability-browser/app.js`、`node --check frontend/capability-browser/displayLabels.js`、`node --check frontend/capability-browser/components/LocalRelationNetworkGraph.js`、`node --check frontend/capability-browser/components/StandardFrameworkTable.js`、`node --check frontend/capability-browser/components/TechnologyModuleMaintenanceTable.js`、高饱和旧主色扫描、`git diff --check`、`python3 scripts/check_github_data_boundary.py` 均通过；固定 `5173` 轻量 smoke 已覆盖 `/`、`/capability-mapping`、`/knowledge/scopes`、`/knowledge/technical-services`、`/knowledge/technical-modules`、`/standards/nist-csf-core`、`/standards/nist-800-53`、`/standards/iso-27001-2022`、`/environment-mapping`、`/development-security`，均通过，未启动系统 Google Chrome。
+
+## OI-114：能力关系图谱布局修复尝试造成视觉回退
+
+- 状态：已回退
+- 类型：前端 / 图谱布局 / 视觉回归
+- 对象或页面：`安全能力映射` 页面，`能力关系图谱` 默认 Tab。
+- 现象：Apple shell 配色落地后，曾尝试为当前关注点能力图谱加入专门的 `local_relation_radial_star` 固定布局策略，但实际预览中分支仍被推到画布边缘，视觉效果比上一版更差。
+- 影响：用户查看关注点关系时会觉得图谱数据缺失或加载不完整。
+- 当前处理：已回退 `local_relation_radial_star` 布局策略，恢复到此前 `LocalRelationNetworkGraph` 的原布局逻辑；保留 Apple shell 配色，不继续扩大图谱布局改动。
+- 需要确认：后续若要重做图谱布局，应先基于截图验收做独立任务，不能在配色任务里继续试探性修改。
+- 修复说明：保持技术 / 管理矩阵数据源不变，只回退本轮失败的图谱布局策略。
+- 验证结果：2026-05-29 `node --check frontend/capability-browser/models/relationGraphModel.js`、`node --check frontend/capability-browser/components/LocalRelationNetworkGraph.js`、`node --check frontend/capability-browser/app.js`、`git diff --check`、`python3 scripts/check_github_data_boundary.py` 均通过；固定 `5173` 轻量 smoke 覆盖 `/capability-mapping`、`/environment-mapping`、`/development-security` 均通过，未启动系统 Google Chrome。
+
+## OI-115：刷新后层级能力节点误用默认关注点投影数据
+
+- 状态：已修复
+- 类型：前端 / ViewModel / 按需投影回归
+- 对象或页面：`安全能力映射` 页面，L0 / L1 / L2 能力层级节点，例如 `T-AS`、`T-AS.AD`。
+- 现象：刷新后首屏只加载默认关注点投影，选中 L1 / L2 层级节点时，右侧图谱和摘要仍可能显示同一批默认关注点数据，例如 `T-AS`、`T-AS.AD` 都显示 `T-AS.AD-01` 的局部图谱；同时层级节点等待完整 `capability-workbench` 补载，体感加载慢。
+- 影响：用户会误判能力层级映射数据发生错误继承或重复加载，图谱中心节点与左侧选中节点不一致。
+- 当前处理：非 `capability_focus` 层级节点不再消费默认关注点的 `workspace-initial` 投影行和 `localRelationMap`；完整工作台补载改为后台执行，页面先用能力树已有关系构建层级聚合图谱，完整数据返回后再自动刷新。
+- 需要确认：用户肉眼复查 `T-AS`、`T-AS.AD`、`T-AS.AD-01` 三类节点的图谱中心和关系数量是否符合预期。
+- 修复说明：`viewModels.js` 限定后端投影只服务关注点节点；`app.js` 不再因 L0 / L1 / L2 需要完整工作台而阻塞首屏渲染；`index.html` 更新缓存版本。
+- 验证结果：2026-05-29 Node 定点断言通过：首屏投影状态下 `T-AS` 的 `localFocus=T-AS`、`graphScope=domain`，`T-AS.AD` 的 `localFocus=T-AS.AD`、`graphScope=capability`，`T-AS.AD-01` 的 `localFocus=T-AS.AD-01`、`graphScope=focus`；`node --check` 通过；固定 `5173` 轻量 smoke 通过，未启动系统 Google Chrome。
+
+## OI-116：Apple demo 组件级对齐误伤 LC-AP 阶段 Tab 和模块表默认展开
+
+- 状态：已修复
+- 类型：前端 / 视觉回归 / 默认展开状态
+- 对象或页面：`LC-AP安全开发生命周期` 阶段 Tab；`安全知识维护 -> 安全技术模块` 表格分组。
+- 现象：Apple demo 组件级对齐时将通用 segmented tab 规则套到了 `lifecycle-stage-tabs .lifecycle-nav-row`，导致阶段 Tab 被压扁、文字重叠；同时安全技术模块维护表首屏展开了第一组分类和安全系统明细。
+- 影响：LC-AP 页面顶部阶段导航不可读；安全技术模块表首屏信息密度过高，不符合此前“分组默认收回”的要求。
+- 当前处理：已将 LC-AP 阶段 Tab 从通用 segmented tab 覆盖选择器中排除，并补充专用 Apple 风格阶段 Tab 规则；同时移除 `stage-tab-code` 被通用 chip / pill 规则套用的问题，避免 `AP-01` 继续显示成胶囊按钮；安全技术模块维护表改为分类与安全系统默认均收起，并更新组件缓存版本。
+- 需要确认：用户肉眼复查 LC-AP 阶段 Tab 和安全技术模块表首屏。
+- 修复说明：仅调整 `styles.css` 选择器 / 专用覆盖、`TechnologyModuleMaintenanceTable.js` 默认展开布尔值和前端缓存版本；未修改数据、ETL、ViewModel 或图谱逻辑。
+- 验证结果：2026-05-29 `node --check frontend/capability-browser/components/TechnologyModuleMaintenanceTable.js`、`node --check frontend/capability-browser/app.js`、`git diff --check`、`python3 scripts/check_github_data_boundary.py` 均通过；固定 `5173` 轻量 smoke 覆盖 `/development-security` 和 `/knowledge/technical-modules`，均通过，未启动系统 Google Chrome。
+
+## OI-117：安全能力 projection 缺少对象粒度契约
+
+- 状态：已修复
+- 类型：后端 / 数据投影契约 / 防串包治理
+- 对象或页面：`/api/v1/capabilities/workspace-projection`，`安全能力映射` 页面 L0 / L1 / L2 / 关注点选择。
+- 现象：历史接口主要围绕 `focus_id` 返回关注点级投影，缺少 `object_type + object_id` 的对象粒度契约；前端按需加载、刷新恢复或缓存优化时，存在用默认关注点代替当前层级对象的风险。
+- 影响：L0 / L1 / L2 层级节点可能被关注点级关系污染，造成图谱中心、摘要统计和当前选中对象不一致。
+- 当前处理：`workspace-projection` 支持 `object_type` / `object_id`，覆盖 `capability_category`、`capability_domain`、`capability`、`capability_focus`；返回 `selected`、`graphScope`、`dataState`、`graph.center`、`summary`、`tabs` 和 `sourceEvidence`；非关注点 projection 不返回关注点级 `localRelationMap`；对象不存在返回 `invalid_object`。
+- 需要确认：后续前端正式接入该契约时，应增加 request token 和 response selected 校验，防止旧请求覆盖新选择。
+- 修复说明：新增后端对象解析、层级概要图谱、标准控制项统计、防默认回退逻辑和 `scripts/audit_capability_projection_contract.mjs` 审计脚本；`dataClient.getCapabilityWorkspaceProjection` 预留 `objectType` / `objectId` query 参数。
+- 验证结果：2026-05-29 `python3 -m py_compile src/sapd_wiki/api_server.py`、`node --check frontend/capability-browser/dataClient.js`、`node --check scripts/audit_capability_projection_contract.mjs`、`node scripts/audit_capability_projection_contract.mjs --url http://127.0.0.1:5173` 均通过；固定对象 `T`、`T-AS`、`T-AS.AD`、`T-AS.AD-01`、`T-OF`、`T-OF.AT`、`T-OF.AT-02`、`G-SP.SM-02` 和不存在对象均通过审计。
+
+## OI-118：关注点 projection 前端缺少请求防串包校验
+
+- 状态：已修复
+- 类型：前端 / 数据加载 / 防串包治理
+- 对象或页面：`安全能力映射` 页面关注点级 projection 按需加载。
+- 现象：前端快速切换关注点或刷新恢复时，旧的 projection 请求返回后可以直接合并进 `state.capabilityProjection`；虽然后端已具备对象粒度契约，但前端尚未校验 `selected` / `graph.center` 是否仍对应当前选中对象。
+- 影响：旧响应有机会污染当前页面状态，造成图谱中心、矩阵行和左侧选中对象短暂不一致。
+- 当前处理：关注点 projection 请求改为使用 `objectType=capability_focus` + `objectId=<当前关注点>`；前端新增请求序号、当前有效请求记录和 pending 请求复用记录；响应合并前校验 `projection.selected`、`projection.graph.center` 与当前选中关注点的 `id` / `code` / `type` 一致，过期或不一致响应直接丢弃。
+- 需要确认：后续性能优化可继续把 L0 / L1 / L2 也接入对象粒度 projection 渲染，逐步减少完整 `capability-workbench` 后台补载依赖。
+- 修复说明：仅修改 `app.js` 数据加载与状态合并逻辑；未修改视觉样式、ETL、SQLite schema、原始 Excel 或 `public/data/*.json` 生成逻辑。
+- 验证结果：2026-05-29 `node --check frontend/capability-browser/app.js`、`node --check frontend/capability-browser/dataClient.js`、`node scripts/audit_capability_projection_contract.mjs --url http://127.0.0.1:5173`、`node scripts/frontend_smoke_check.mjs --page capability --url http://127.0.0.1:5173/frontend/capability-browser/`、`git diff --check` 均通过；smoke 未启动系统 Google Chrome。

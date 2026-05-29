@@ -1,5 +1,6 @@
 (function () {
   const components = (window.sapdComponents = window.sapdComponents || {});
+  const display = window.sapdDisplay || {};
 
   const text = (value) => (value == null ? "" : String(value));
   const escapeHtml = (value) =>
@@ -453,12 +454,12 @@
   function displaySelectedType(value) {
     const labels = {
       capability_category: "能力分类",
-      capability_focus: "能力关注点",
-      service: "安全技术服务",
-      scope: "作用域",
+      capability_focus: display.label?.("capability_focus", "能力关注点") || "能力关注点",
+      service: display.label?.("security_technical_service", "安全技术服务") || "安全技术服务",
+      scope: display.label?.("scope_type", "作用域") || "作用域",
       process: "安全流程",
-      module: "技术模块",
-      measure: "技术措施",
+      module: display.label?.("security_technology_module", "安全技术模块") || "安全技术模块",
+      measure: display.label?.("security_technical_measure", "安全技术措施") || "安全技术措施",
     };
     return labels[value] || value || "能力对象";
   }
@@ -478,7 +479,7 @@
         <div class="capability-workbench-head">
           <div id="capabilityFocusHeader" class="capability-focus-head-slot"></div>
           <div class="capability-workbench-tools">
-            <input id="capabilitySearchInput" type="search" placeholder="搜索能力、服务、作用域、流程、模块" />
+            <input id="capabilitySearchInput" type="search" placeholder="搜索能力、作用域、安全技术服务、流程或安全技术模块/措施" />
           </div>
         </div>
         <div id="detail" class="capability-relation-workspace"></div>
@@ -496,10 +497,10 @@
   function renderCapabilitySummary(summary = {}) {
     const statusBadge = components.StatusBadge;
     const rows = [
-      { label: "关注点", value: summary.rowCount ?? 0 },
+      { label: display.label?.("capability_focus", "能力关注点") || "能力关注点", value: summary.rowCount ?? 0 },
       { label: "技术映射", value: summary.technicalRowCount ?? 0 },
       { label: "管理映射", value: summary.managementRowCount ?? 0 },
-      { label: "无服务", value: summary.noServiceCount ?? 0 },
+      { label: display.state?.("no_applicable_service") || "无适用服务", value: summary.noServiceCount ?? 0 },
       { label: "异常", value: summary.ambiguousCount ?? 0 },
       { label: "对象", value: displaySelectedType(summary.selectedType) },
     ];

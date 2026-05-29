@@ -1,6 +1,7 @@
 (function () {
   const components = (window.sapdComponents = window.sapdComponents || {});
   const utils = components.utils;
+  const display = window.sapdDisplay || {};
   const LAYERS = [
     { key: "decision", label: "决策层", aliases: ["decision", "决策层"] },
     { key: "management", label: "管理层", aliases: ["management", "管理层"] },
@@ -79,9 +80,9 @@
               <tr>
                 <th>安全工作</th>
                 <th>安全职能</th>
-                <th>L2 流程组</th>
-                <th>L3 流程</th>
-                <th>L4 关键活动</th>
+                <th>${utils.escapeHtml(display.label?.("l2_process_group", "L2 流程组") || "L2 流程组")}</th>
+                <th>${utils.escapeHtml(display.label?.("l3_process", "L3 流程") || "L3 流程")}</th>
+                <th>${utils.escapeHtml(display.label?.("l4_activity", "L4 活动") || "L4 活动")}</th>
               </tr>
             </thead>
             <tbody>

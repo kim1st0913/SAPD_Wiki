@@ -1,6 +1,7 @@
 (function () {
   const components = (window.sapdComponents = window.sapdComponents || {});
   const utils = components.utils;
+  const display = window.sapdDisplay || {};
 
   function cell(value) {
     const text = value == null || value === "" ? "待补充" : value;
@@ -18,9 +19,9 @@
           <thead>
             <tr>
               <th>流程域</th>
-              <th>L2 流程组</th>
-              <th>L3 流程</th>
-              <th>L4 关键活动状态</th>
+              <th>${utils.escapeHtml(display.label?.("l2_process_group", "L2 流程组") || "L2 流程组")}</th>
+              <th>${utils.escapeHtml(display.label?.("l3_process", "L3 流程") || "L3 流程")}</th>
+              <th>${utils.escapeHtml(display.label?.("l4_activity", "L4 活动") || "L4 活动")}状态</th>
               <th>描述</th>
               <th>关联关注点数</th>
               <th>关联安全职能数</th>

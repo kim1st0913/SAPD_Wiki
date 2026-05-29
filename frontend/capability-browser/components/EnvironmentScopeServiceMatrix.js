@@ -1,8 +1,10 @@
 (function () {
   const components = (window.sapdComponents = window.sapdComponents || {});
   const utils = components.utils;
+  const display = window.sapdDisplay || {};
 
   function technicalChipClass(kind) {
+    if (display.chipClass) return display.chipClass(kind);
     if (kind.includes("模块")) return "technical-chip module-chip";
     if (kind.includes("措施")) return "technical-chip measure-chip";
     if (kind.includes("说明")) return "note-chip";
@@ -10,6 +12,7 @@
   }
 
   function chipList(items, empty = "暂无", limit = Infinity) {
+    if (display.relationChipList) return display.relationChipList(utils, items, { empty, limit, showKind: true });
     const rows = utils.list(items).filter(Boolean);
     if (!rows.length) return `<span class="empty-inline">${utils.escapeHtml(empty)}</span>`;
     const visible = Number.isFinite(limit) ? rows.slice(0, limit) : rows;
@@ -75,8 +78,8 @@
         ${showObjectColumn ? `<td>${chipList(row.segments, "未定义环境子类", 2)}</td>` : ""}
         ${showObjectColumn ? `<td><strong>${utils.escapeHtml(row.object?.code || "")}</strong><span>${utils.escapeHtml(row.object?.title || "未命名对象")}</span></td>` : ""}
         <td><strong>${utils.escapeHtml(row.scope?.code || "")}</strong><span>${utils.escapeHtml(row.scope?.title || "未命名作用域")}</span></td>
-        <td>${chipList(row.services, "无适用服务")}</td>
-        <td>${chipList(row.modules, row.services?.length ? "待补充" : "不适用")}</td>
+        <td>${chipList(row.services, display.state?.("no_applicable_service") || "无适用服务")}</td>
+        <td>${chipList(row.modules, row.services?.length ? display.state?.("no_module_or_measure") || "暂无安全技术模块/措施" : display.state?.("not_applicable") || "不适用")}</td>
       </tr>
     `;
   }
@@ -139,9 +142,9 @@
             <thead>
               <tr>
                 ${showObjectColumn ? "<th>环境子类</th><th>信息化对象</th>" : ""}
-                <th>安全作用域</th>
-                <th>安全技术服务</th>
-                <th>安全技术模块/措施</th>
+                <th>${utils.escapeHtml(display.label?.("scope_type", "作用域") || "作用域")}</th>
+                <th>${utils.escapeHtml(display.label?.("security_technical_service", "安全技术服务") || "安全技术服务")}</th>
+                <th>${utils.escapeHtml(display.label?.("security_module_or_measure", "安全技术模块/措施") || "安全技术模块/措施")}</th>
               </tr>
             </thead>
             <tbody>
@@ -156,8 +159,8 @@
                               ${showObjectColumn ? `<td>${chipList(row.segments, "未定义环境子类", 2)}</td>` : ""}
                               ${showObjectColumn ? `<td><strong>${utils.escapeHtml(row.object?.code || "")}</strong><span>${utils.escapeHtml(row.object?.title || "未命名对象")}</span></td>` : ""}
                               <td><strong>${utils.escapeHtml(row.scope?.code || "")}</strong><span>${utils.escapeHtml(row.scope?.title || "未命名作用域")}</span></td>
-                              <td>${chipList(row.services, "无适用服务")}</td>
-                              <td>${chipList(row.modules, row.services?.length ? "待补充" : "不适用")}</td>
+                              <td>${chipList(row.services, display.state?.("no_applicable_service") || "无适用服务")}</td>
+                              <td>${chipList(row.modules, row.services?.length ? display.state?.("no_module_or_measure") || "暂无安全技术模块/措施" : display.state?.("not_applicable") || "不适用")}</td>
                             </tr>
                           `,
                         )

@@ -1,6 +1,7 @@
 (() => {
   const components = (window.sapdComponents = window.sapdComponents || {});
   const utils = components.utils;
+  const display = window.sapdDisplay || {};
 
   const list = (value) => utils.list(value);
   const escapeHtml = (value) => utils.escapeHtml(value);
@@ -244,11 +245,11 @@
             <thead>
               <tr>
                 <th>安全活动</th>
-                <th>安全活动对应安全策略</th>
+                <th>安全活动对应策略要求</th>
                 <th>潜在安全威胁场景</th>
-                <th>补充安全策略</th>
-                <th>安全技术服务</th>
-                <th>安全技术模块/措施</th>
+                <th>补充策略要求</th>
+                <th>${utils.escapeHtml(display.label?.("security_technical_service", "安全技术服务") || "安全技术服务")}</th>
+                <th>${utils.escapeHtml(display.label?.("security_module_or_measure", "安全技术模块/措施") || "安全技术模块/措施")}</th>
               </tr>
             </thead>
             <tbody>
@@ -305,8 +306,8 @@
             </colgroup>
             <thead>
               <tr>
-                <th>安全技术服务</th>
-                <th>安全技术模块/措施</th>
+                <th>${utils.escapeHtml(display.label?.("security_technical_service", "安全技术服务") || "安全技术服务")}</th>
+                <th>${utils.escapeHtml(display.label?.("security_module_or_measure", "安全技术模块/措施") || "安全技术模块/措施")}</th>
               </tr>
             </thead>
             <tbody>

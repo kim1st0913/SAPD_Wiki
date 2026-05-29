@@ -281,6 +281,9 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
                 if parsed.path == "/api/v1/user/favorites":
                     self.send_json(200, runtime.list_favorites())
                     return
+                if parsed.path.startswith(API_PREFIX):
+                    self.send_json(404, {"ok": False, "error": "not found", "path": parsed.path})
+                    return
                 static_path = self.resolve_static_path(parsed.path)
                 if not static_path.exists():
                     self.send_json(404, {"ok": False, "error": "frontend index.html not found"})

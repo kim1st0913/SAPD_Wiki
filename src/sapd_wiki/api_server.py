@@ -439,6 +439,104 @@ def _all_focuses(capability: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
+CAPABILITY_OBJECT_TYPES = {
+    "category": "capability_category",
+    "capability_category": "capability_category",
+    "l0": "capability_category",
+    "domain": "capability_domain",
+    "capability_domain": "capability_domain",
+    "l1": "capability_domain",
+    "capability": "capability",
+    "l2": "capability",
+    "focus": "capability_focus",
+    "capability_focus": "capability_focus",
+    "l3": "capability_focus",
+}
+
+CAPABILITY_GRAPH_SCOPES = {
+    "capability_category": "category",
+    "capability_domain": "domain",
+    "capability": "capability",
+    "capability_focus": "focus",
+}
+
+
+def _normalize_capability_object_type(object_type: str | None) -> str:
+    return CAPABILITY_OBJECT_TYPES.get(str(object_type or "").strip(), "")
+
+
+def _capability_object_code(item: dict[str, Any], object_type: str = "") -> str:
+    code = str(item.get("code") or "").strip()
+    if code:
+        return code
+    if object_type == "capability_category":
+        title = _title_of(item, "")
+        tail = title.split()[-1] if title.split() else ""
+        if tail in {"T", "G", "M"}:
+            return tail
+    return ""
+
+
+def _capability_object_matches(item: dict[str, Any], object_id: str | None) -> bool:
+    normalized = str(object_id or "").strip()
+    if not normalized or not isinstance(item, dict):
+        return False
+    return normalized in {str(item.get("id") or "").strip(), _capability_object_code(item, str(item.get("type") or ""))}
+
+
+def _compact_projection_object(item: dict[str, Any], object_type: str) -> dict[str, Any]:
+    compact = _compact_entity({**item, "type": object_type}, "未命名能力对象") or {}
+    return {
+        "id": compact.get("id") or "",
+        "type": object_type,
+        "code": compact.get("code") or _capability_object_code(item, object_type),
+        "name": compact.get("title") or compact.get("name") or "",
+        "title": compact.get("title") or compact.get("name") or "",
+        "description": compact.get("description") or "",
+    }
+
+
+def _find_capability_projection_object(
+    capability: dict[str, Any],
+    object_type: str,
+    object_id: str | None,
+) -> tuple[dict[str, Any] | None, dict[str, Any]]:
+    for category in _list(capability.get("categories")):
+        category_path = {"category": category}
+        if object_type == "capability_category" and _capability_object_matches(category, object_id):
+            return category, category_path
+        for domain in _list(category.get("domains")):
+            domain_path = {**category_path, "domain": domain}
+            if object_type == "capability_domain" and _capability_object_matches(domain, object_id):
+                return domain, domain_path
+            for cap in _list(domain.get("capabilities")):
+                capability_path = {**domain_path, "capability": cap}
+                if object_type == "capability" and _capability_object_matches(cap, object_id):
+                    return cap, capability_path
+                for focus in _list(cap.get("focuses")):
+                    focus_path = {**capability_path, "focus": focus}
+                    if object_type == "capability_focus" and _capability_object_matches(focus, object_id):
+                        return focus, focus_path
+    return None, {}
+
+
+def _focuses_for_projection_object(item: dict[str, Any], object_type: str) -> list[dict[str, Any]]:
+    if object_type == "capability_category":
+        return [
+            focus
+            for domain in _list(item.get("domains"))
+            for cap in _list(domain.get("capabilities"))
+            for focus in _list(cap.get("focuses"))
+        ]
+    if object_type == "capability_domain":
+        return [focus for cap in _list(item.get("capabilities")) for focus in _list(cap.get("focuses"))]
+    if object_type == "capability":
+        return _list(item.get("focuses"))
+    if object_type == "capability_focus":
+        return [item]
+    return []
+
+
 def _focus_matches(focus: dict[str, Any] | None, focus_id: str | None) -> bool:
     normalized = str(focus_id or "").strip()
     if not normalized or not isinstance(focus, dict):
@@ -636,6 +734,144 @@ def _capability_local_relation_maps(
     ]
 
 
+def _graph_node(item: dict[str, Any], object_type: str, group: str = "capability", weight: int = 1) -> dict[str, Any]:
+    selected = _compact_projection_object(item, object_type)
+    return {
+        "id": selected["id"],
+        "type": selected["type"],
+        "code": selected["code"],
+        "name": selected["name"],
+        "label": selected["name"] or selected["code"] or selected["id"],
+        "group": group,
+        "weight": weight,
+    }
+
+
+def _graph_edge(source: dict[str, Any], target: dict[str, Any], relation_type: str) -> dict[str, Any]:
+    return {
+        "id": f"{relation_type}:{source.get('id')}->{target.get('id')}",
+        "source": source.get("id") or "",
+        "target": target.get("id") or "",
+        "type": relation_type,
+    }
+
+
+def _capability_projection_graph(
+    selected_item: dict[str, Any],
+    object_type: str,
+    technical_rows: list[dict[str, Any]],
+    management_rows: list[dict[str, Any]],
+    standard_summary: dict[str, int],
+) -> dict[str, Any]:
+    center = _graph_node(selected_item, object_type, "current", 10)
+    nodes: list[dict[str, Any]] = [center]
+    edges: list[dict[str, Any]] = []
+
+    def add_child(parent: dict[str, Any], item: dict[str, Any], child_type: str, relation_type: str, group: str = "capability") -> dict[str, Any]:
+        node = _graph_node(item, child_type, group, 3)
+        if not any(row["id"] == node["id"] for row in nodes):
+            nodes.append(node)
+        edges.append(_graph_edge(parent, node, relation_type))
+        return node
+
+    if object_type == "capability_category":
+        for domain in _list(selected_item.get("domains")):
+            domain_node = add_child(center, domain, "capability_domain", "category_to_domain")
+            for cap in _list(domain.get("capabilities")):
+                add_child(domain_node, cap, "capability", "domain_to_capability")
+    elif object_type == "capability_domain":
+        for cap in _list(selected_item.get("capabilities")):
+            cap_node = add_child(center, cap, "capability", "domain_to_capability")
+            for focus in _list(cap.get("focuses")):
+                add_child(cap_node, focus, "capability_focus", "capability_to_focus", "focus_overview")
+    elif object_type == "capability":
+        for focus in _list(selected_item.get("focuses")):
+            add_child(center, focus, "capability_focus", "capability_to_focus", "focus_overview")
+        for key, label, count in (
+            ("technical", "技术视角", len(technical_rows)),
+            ("management", "管理视角", len(management_rows)),
+            ("standards", "标准 / 框架", standard_summary.get("standard_controls", 0)),
+        ):
+            if count:
+                node = {"id": f"{center['id']}:{key}", "type": f"{key}_overview", "code": "", "name": label, "label": label, "group": key, "weight": 5, "count": count}
+                nodes.append(node)
+                edges.append(_graph_edge(center, node, f"capability_to_{key}_overview"))
+    elif object_type == "capability_focus":
+        for key, label, count in (
+            ("technical", "技术视角", len(technical_rows)),
+            ("management", "管理视角", len(management_rows)),
+            ("standards", "标准 / 框架", standard_summary.get("standard_controls", 0)),
+        ):
+            if count:
+                node = {"id": f"{center['id']}:{key}", "type": f"{key}_view", "code": "", "name": label, "label": label, "group": key, "weight": 5, "count": count}
+                nodes.append(node)
+                edges.append(_graph_edge(center, node, f"focus_to_{key}_view"))
+
+    return {
+        "center": center,
+        "nodes": nodes,
+        "edges": edges,
+        "limited": object_type != "capability_focus",
+    }
+
+
+def _standard_summary_for_focus_ids(focus_ids: set[str]) -> dict[str, int]:
+    if not focus_ids:
+        return {"standard_controls": 0, "standard_frameworks": 0}
+    workbench = read_data_package("capability-workbench")
+    relations = _list(workbench.get("relations"))
+    control_ids = {
+        str(row.get("targetId") or "").strip()
+        for row in relations
+        if row.get("type") == "maps_to_standard" and str(row.get("sourceId") or "").strip() in focus_ids and row.get("targetId")
+    }
+    framework_ids = {
+        str(row.get("targetId") or "").strip()
+        for row in relations
+        if row.get("type") == "belongs_to_framework" and str(row.get("sourceId") or "").strip() in control_ids and row.get("targetId")
+    }
+    return {"standard_controls": len(control_ids), "standard_frameworks": len(framework_ids)}
+
+
+def _projection_summary(
+    focuses: list[dict[str, Any]],
+    technical_rows: list[dict[str, Any]],
+    management_rows: list[dict[str, Any]],
+    standard_summary: dict[str, int],
+) -> dict[str, int]:
+    return {
+        "focuses": len(focuses),
+        "technical_rows": len(technical_rows),
+        "management_rows": len(management_rows),
+        "standard_controls": standard_summary.get("standard_controls", 0),
+        "standard_frameworks": standard_summary.get("standard_frameworks", 0),
+    }
+
+
+def _invalid_capability_projection(object_type: str, object_id: str | None) -> dict[str, Any]:
+    return {
+        "selected": {
+            "id": str(object_id or "").strip(),
+            "type": object_type,
+            "code": "",
+            "name": "",
+        },
+        "graphScope": CAPABILITY_GRAPH_SCOPES.get(object_type, ""),
+        "dataState": "invalid_object",
+        "data_state": "invalid_object",
+        "graph": {"center": {}, "nodes": [], "edges": [], "limited": True},
+        "summary": {},
+        "tabs": {},
+        "sourceEvidence": [],
+        "technicalMappingRows": [],
+        "managementMappingRows": [],
+        "localRelationMap": None,
+        "localRelationMaps": [],
+        "localRelationMapsByFocusId": {},
+        "stats": {"technical_rows": 0, "management_rows": 0, "local_relation_maps": 0, "focuses": 0},
+    }
+
+
 def _default_focus_id_from_workbench(workbench: dict[str, Any]) -> str:
     navigator = workbench.get("navigator") or {}
     default_id = navigator.get("defaultSelectedFocusId")
@@ -650,7 +886,11 @@ def _default_focus_id_from_workbench(workbench: dict[str, Any]) -> str:
     return ""
 
 
-def capability_workspace_projection(focus_id: str | None = None) -> dict[str, Any]:
+def capability_workspace_projection(
+    focus_id: str | None = None,
+    object_type: str | None = None,
+    object_id: str | None = None,
+) -> dict[str, Any]:
     capability = read_data_package("capability")
     maintenance = read_data_package("maintenance")
     shared_lookups = read_data_package("shared-lookups")
@@ -660,13 +900,30 @@ def capability_workspace_projection(focus_id: str | None = None) -> dict[str, An
     }
     technical_rows = _capability_technical_mapping_rows(capability, projection_context)
     management_rows = _capability_management_mapping_rows(capability)
-    selected_focus_ids = {focus_id} if focus_id else set()
+    normalized_object_type = _normalize_capability_object_type(object_type)
+    selected_item: dict[str, Any] | None = None
+    selected_focuses: list[dict[str, Any]] = []
+    if normalized_object_type and object_id:
+        selected_item, _ = _find_capability_projection_object(capability, normalized_object_type, object_id)
+        if not selected_item:
+            return _invalid_capability_projection(normalized_object_type, object_id)
+        selected_focuses = _focuses_for_projection_object(selected_item, normalized_object_type)
+    elif focus_id:
+        normalized_object_type = "capability_focus"
+        selected_item, _ = _find_capability_projection_object(capability, normalized_object_type, focus_id)
+        if not selected_item:
+            return _invalid_capability_projection(normalized_object_type, focus_id)
+        selected_focuses = [selected_item]
+
+    selected_focus_ids = {str(focus.get("id") or "").strip() for focus in selected_focuses if focus.get("id")}
     if selected_focus_ids:
-        technical_rows = [row for row in technical_rows if any(_focus_matches(row.get("focus"), selected) for selected in selected_focus_ids)]
-        management_rows = [row for row in management_rows if any(_focus_matches(row.get("focus"), selected) for selected in selected_focus_ids)]
-    local_relation_maps = _capability_local_relation_maps(capability, technical_rows, management_rows)
-    if selected_focus_ids:
-        local_relation_maps = [row for row in local_relation_maps if any(_focus_matches(row.get("focus"), selected) for selected in selected_focus_ids)]
+        technical_rows = [row for row in technical_rows if str((row.get("focus") or {}).get("id") or "").strip() in selected_focus_ids]
+        management_rows = [row for row in management_rows if str((row.get("focus") or {}).get("id") or "").strip() in selected_focus_ids]
+    local_relation_maps: list[dict[str, Any]] = []
+    if not normalized_object_type or normalized_object_type == "capability_focus":
+        local_relation_maps = _capability_local_relation_maps(capability, technical_rows, management_rows)
+        if selected_focus_ids:
+            local_relation_maps = [row for row in local_relation_maps if str((row.get("focus") or {}).get("id") or "").strip() in selected_focus_ids]
     local_relation_maps_by_focus_id: dict[str, dict[str, Any]] = {}
     for row in local_relation_maps:
         focus = row.get("focus", {})
@@ -674,9 +931,30 @@ def capability_workspace_projection(focus_id: str | None = None) -> dict[str, An
             normalized_key = str(key or "").strip()
             if normalized_key:
                 local_relation_maps_by_focus_id[normalized_key] = row
+    standard_summary = _standard_summary_for_focus_ids(selected_focus_ids)
+    selected = _compact_projection_object(selected_item, normalized_object_type) if selected_item and normalized_object_type else None
+    graph = (
+        _capability_projection_graph(selected_item, normalized_object_type, technical_rows, management_rows, standard_summary)
+        if selected_item and normalized_object_type
+        else {"center": {}, "nodes": [], "edges": [], "limited": True}
+    )
+    data_state = "ready" if graph.get("nodes") or technical_rows or management_rows or standard_summary.get("standard_controls") else "empty"
+    summary = _projection_summary(selected_focuses, technical_rows, management_rows, standard_summary) if selected_item else {}
     return {
         "generated_at": capability.get("generated_at") or shared_lookups.get("generated_at") or maintenance.get("generated_at"),
-        "data_state": "ready" if technical_rows or management_rows else "empty",
+        "selected": selected,
+        "graphScope": CAPABILITY_GRAPH_SCOPES.get(normalized_object_type, "") if normalized_object_type else "",
+        "dataState": data_state,
+        "data_state": data_state,
+        "graph": graph,
+        "summary": summary,
+        "tabs": {
+            "graph": {"dataState": data_state, "nodeCount": len(_list(graph.get("nodes")))},
+            "technical": {"rowCount": len(technical_rows)},
+            "management": {"rowCount": len(management_rows)},
+            "standards": {"controlCount": standard_summary.get("standard_controls", 0), "frameworkCount": standard_summary.get("standard_frameworks", 0)},
+        },
+        "sourceEvidence": [],
         "technicalMappingRows": technical_rows,
         "managementMappingRows": management_rows,
         "localRelationMap": local_relation_maps[0] if local_relation_maps else None,
@@ -686,7 +964,9 @@ def capability_workspace_projection(focus_id: str | None = None) -> dict[str, An
             "technical_rows": len(technical_rows),
             "management_rows": len(management_rows),
             "local_relation_maps": len(local_relation_maps),
-            "focuses": len(_all_focuses(capability)),
+            "focuses": len(selected_focuses) if selected_focuses else len(_all_focuses(capability)),
+            "standard_controls": standard_summary.get("standard_controls", 0),
+            "standard_frameworks": standard_summary.get("standard_frameworks", 0),
         },
     }
 
@@ -903,7 +1183,9 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
                 return
             if path == "/api/v1/capabilities/workspace-projection":
                 focus_id = (query.get("focus_id") or query.get("focusId") or [""])[0] or None
-                self._send_json(create_envelope(capability_workspace_projection(focus_id=focus_id)))
+                object_type = (query.get("object_type") or query.get("objectType") or [""])[0] or None
+                object_id = (query.get("object_id") or query.get("objectId") or [""])[0] or None
+                self._send_json(create_envelope(capability_workspace_projection(focus_id=focus_id, object_type=object_type, object_id=object_id)))
                 return
             if path == "/api/v1/maintenance":
                 capability = read_data_package("capability")

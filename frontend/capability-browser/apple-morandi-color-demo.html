@@ -1,0 +1,1296 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SAPD Apple Morandi Color Demo</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #182230;
+        --muted: #667085;
+        --soft: #7a8798;
+        --line: rgba(102, 112, 133, 0.2);
+        --line-strong: rgba(102, 112, 133, 0.32);
+        --page: #f5f5f7;
+        --page-warm: #f2f0eb;
+        --panel: rgba(255, 255, 255, 0.78);
+        --panel-strong: rgba(255, 255, 255, 0.94);
+        --panel-muted: rgba(247, 249, 252, 0.72);
+        --sidebar: rgba(235, 242, 248, 0.82);
+        --search: rgba(219, 226, 235, 0.72);
+        --segmented: rgba(118, 118, 128, 0.12);
+        --hover: rgba(255, 255, 255, 0.7);
+        --selected: rgba(10, 132, 255, 0.07);
+        --focus-ring: rgba(10, 132, 255, 0.2);
+        --shadow: 0 18px 44px rgba(29, 35, 48, 0.12);
+        --shadow-soft: 0 10px 28px rgba(29, 35, 48, 0.08);
+
+        --apple-blue: #0a84ff;
+        --apple-blue-top: #2086f3;
+        --apple-blue-deep: #0567d8;
+        --apple-icon-blue-top: #4db5ff;
+        --apple-icon-green-top: #63da8b;
+        --apple-icon-green-bottom: #30d158;
+        --apple-icon-purple-top: #a98cff;
+        --apple-icon-purple-bottom: #8e6be8;
+        --apple-icon-amber-top: #ffd66b;
+        --apple-icon-amber-bottom: #c89539;
+        --apple-icon-gray-top: #b9bec8;
+        --apple-icon-gray-bottom: #858a96;
+
+        --service: #5a9fd8;
+        --service-deep: #236aa3;
+        --module: #78af92;
+        --module-deep: #3d7357;
+        --measure: #cf9a75;
+        --measure-deep: #8f5d45;
+        --focus: #8e7ac8;
+        --focus-deep: #6550a6;
+        --standard: #c8a15d;
+        --standard-deep: #806337;
+        --environment: #858a96;
+        --environment-deep: #4c5b70;
+        --cyan: #5daebd;
+        --cyan-deep: #367482;
+        --rose: #d6818f;
+        --rose-deep: #985465;
+
+        --success: #58a477;
+        --warning: #c89539;
+        --danger: #c86653;
+        --danger-deep: #9a4035;
+        --exception-text: #8a4f00;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--ink);
+        font-family:
+          -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "PingFang SC",
+          "Microsoft YaHei", sans-serif;
+        background:
+          radial-gradient(circle at 14% 6%, rgba(90, 159, 216, 0.2), transparent 28%),
+          radial-gradient(circle at 86% 12%, rgba(142, 122, 200, 0.16), transparent 30%),
+          linear-gradient(135deg, #f8fafc 0%, var(--page) 48%, var(--page-warm) 100%);
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      .window {
+        width: min(1480px, calc(100vw - 36px));
+        min-height: calc(100vh - 36px);
+        margin: 18px auto;
+        display: grid;
+        grid-template-columns: 288px minmax(0, 1fr);
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.68);
+        border-radius: 28px;
+        background: rgba(255, 255, 255, 0.62);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(26px) saturate(1.1);
+      }
+
+      .sidebar {
+        padding: 24px 18px;
+        border-right: 1px solid rgba(102, 112, 133, 0.16);
+        background: var(--sidebar);
+        backdrop-filter: blur(18px) saturate(1.08);
+      }
+
+      .traffic {
+        display: flex;
+        gap: 10px;
+        margin: 2px 0 24px;
+      }
+
+      .traffic span {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+      }
+
+      .traffic span:nth-child(1) {
+        background: #ff5f57;
+      }
+
+      .traffic span:nth-child(2) {
+        background: #febc2e;
+      }
+
+      .traffic span:nth-child(3) {
+        background: #28c840;
+      }
+
+      .search {
+        height: 42px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 14px;
+        border: 1px solid rgba(102, 112, 133, 0.12);
+        border-radius: 16px;
+        background: var(--search);
+        color: #687384;
+        font-size: 15px;
+      }
+
+      .nav {
+        display: grid;
+        gap: 8px;
+        margin-top: 24px;
+      }
+
+      .nav-label {
+        margin: 14px 10px 5px;
+        color: #687384;
+        font-size: 11px;
+        font-weight: 760;
+      }
+
+      .nav-item {
+        min-height: 46px;
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 12px;
+        border: 1px solid transparent;
+        border-radius: 14px;
+        color: #253041;
+        font-size: 14px;
+        font-weight: 740;
+      }
+
+      .nav-item:hover {
+        border-color: var(--line);
+        background: rgba(255, 255, 255, 0.52);
+      }
+
+      .nav-item.active {
+        border-color: transparent;
+        color: rgba(255, 255, 255, 0.96);
+        background: linear-gradient(180deg, var(--apple-blue-top), var(--apple-blue-deep));
+        box-shadow: 0 8px 18px rgba(10, 132, 255, 0.2);
+      }
+
+      .nav-count {
+        padding: 2px 7px;
+        border-radius: 999px;
+        background: var(--segmented);
+        color: #6b7788;
+        font-size: 11px;
+        font-weight: 820;
+      }
+
+      .nav-item.active .nav-count {
+        background: rgba(255, 255, 255, 0.2);
+        color: rgba(255, 255, 255, 0.88);
+      }
+
+      .icon {
+        width: 32px;
+        height: 32px;
+        display: grid;
+        place-items: center;
+        border-radius: 10px;
+        color: rgba(255, 255, 255, 0.96);
+        font-size: 15px;
+        font-weight: 820;
+        box-shadow: 0 6px 14px rgba(24, 34, 48, 0.14);
+      }
+
+      .icon.blue {
+        background: linear-gradient(180deg, var(--apple-icon-blue-top), var(--apple-blue));
+      }
+
+      .icon.green {
+        background: linear-gradient(180deg, var(--apple-icon-green-top), var(--apple-icon-green-bottom));
+      }
+
+      .icon.purple {
+        background: linear-gradient(180deg, var(--apple-icon-purple-top), var(--apple-icon-purple-bottom));
+      }
+
+      .icon.amber {
+        background: linear-gradient(180deg, var(--apple-icon-amber-top), var(--apple-icon-amber-bottom));
+      }
+
+      .icon.gray {
+        background: linear-gradient(180deg, var(--apple-icon-gray-top), var(--apple-icon-gray-bottom));
+      }
+
+      .side-panel {
+        display: grid;
+        gap: 8px;
+        margin-top: 22px;
+        padding: 14px;
+        border: 1px solid rgba(102, 112, 133, 0.18);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.58);
+      }
+
+      .side-panel span {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 720;
+      }
+
+      .side-panel strong {
+        color: var(--ink);
+        font-size: 13px;
+      }
+
+      main {
+        min-width: 0;
+        padding: 28px 32px 34px;
+        overflow: auto;
+      }
+
+      .hero {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 20px;
+      }
+
+      h1 {
+        font-size: 32px;
+        line-height: 1.15;
+        letter-spacing: 0;
+      }
+
+      .hero p {
+        max-width: 720px;
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 15px;
+        line-height: 1.6;
+      }
+
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 10px;
+      }
+
+      .segmented,
+      .tabs {
+        display: inline-flex;
+        width: fit-content;
+        max-width: 100%;
+        gap: 4px;
+        padding: 4px;
+        border-radius: 16px;
+        background: var(--segmented);
+        overflow-x: auto;
+      }
+
+      .segmented button,
+      .tabs button {
+        min-height: 32px;
+        border: 0;
+        border-radius: 12px;
+        background: transparent;
+        color: #526071;
+        padding: 0 12px;
+        font-size: 13px;
+        font-weight: 760;
+        white-space: nowrap;
+      }
+
+      .segmented button.active,
+      .tabs button.active {
+        color: #1f2937;
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 2px 8px rgba(29, 35, 48, 0.1);
+      }
+
+      .status-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 0 0 18px;
+      }
+
+      .status-badge {
+        min-height: 34px;
+        display: inline-grid;
+        align-content: center;
+        gap: 1px;
+        padding: 4px 10px;
+        border: 1px solid rgba(102, 112, 133, 0.18);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.76);
+        color: #4c5b70;
+        white-space: nowrap;
+        box-shadow: 0 2px 8px rgba(29, 35, 48, 0.06);
+      }
+
+      .status-badge small {
+        color: var(--soft);
+        font-size: 10px;
+        font-weight: 760;
+      }
+
+      .status-badge strong {
+        color: var(--ink);
+        font-size: 12px;
+        font-weight: 820;
+      }
+
+      .status-badge.ok strong {
+        color: var(--success);
+      }
+
+      .status-badge.warning strong {
+        color: #a45316;
+      }
+
+      .status-badge.danger strong {
+        color: var(--danger-deep);
+      }
+
+      .demo-grid {
+        display: grid;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      .card {
+        min-width: 0;
+        border: 1px solid rgba(255, 255, 255, 0.72);
+        border-radius: 22px;
+        background: var(--panel);
+        box-shadow: var(--shadow-soft);
+        backdrop-filter: blur(20px) saturate(1.1);
+      }
+
+      .card.full {
+        grid-column: 1 / -1;
+      }
+
+      .card.wide {
+        grid-column: span 8;
+      }
+
+      .card.medium {
+        grid-column: span 6;
+      }
+
+      .card.narrow {
+        grid-column: span 4;
+      }
+
+      .card-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 18px 20px 12px;
+        border-bottom: 1px solid rgba(102, 112, 133, 0.14);
+      }
+
+      .card-head h2 {
+        font-size: 17px;
+        line-height: 1.3;
+      }
+
+      .card-head span {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .card-body {
+        padding: 18px 20px 20px;
+      }
+
+      .swatch-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .swatch-grid.compact {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .swatch {
+        min-height: 62px;
+        display: grid;
+        grid-template-columns: 44px minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--panel-strong);
+      }
+
+      .dot {
+        width: 42px;
+        height: 42px;
+        border-radius: 13px;
+        box-shadow: inset 0 0 0 1px rgba(24, 34, 48, 0.08);
+      }
+
+      .swatch strong {
+        display: block;
+        font-size: 13px;
+      }
+
+      .swatch small {
+        display: block;
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.35;
+      }
+
+      .code {
+        color: #5f6b7a;
+        font-size: 11px;
+        font-weight: 780;
+        text-align: right;
+      }
+
+      .chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 9px;
+      }
+
+      .chip,
+      .missing-pill,
+      .exception-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 30px;
+        max-width: 100%;
+        padding: 5px 11px;
+        border: 1px solid;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 800;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+      }
+
+      .chip::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        flex: 0 0 auto;
+        border-radius: 50%;
+        background: currentColor;
+      }
+
+      .chip em {
+        padding-right: 6px;
+        border-right: 1px solid currentColor;
+        font-style: normal;
+        opacity: 0.78;
+      }
+
+      .service {
+        color: var(--service-deep);
+        border-color: color-mix(in srgb, var(--service) 48%, #cbd5e1);
+        background: color-mix(in srgb, var(--service) 18%, #fbfdff);
+      }
+
+      .module {
+        color: var(--module-deep);
+        border-color: color-mix(in srgb, var(--module) 48%, #cbd5e1);
+        background: color-mix(in srgb, var(--module) 18%, #fbfdff);
+      }
+
+      .measure,
+      .missing-pill {
+        color: var(--measure-deep);
+        border-color: color-mix(in srgb, var(--measure) 50%, #cbd5e1);
+        background: color-mix(in srgb, var(--measure) 18%, #fbfdff);
+      }
+
+      .focus {
+        color: var(--focus-deep);
+        border-color: color-mix(in srgb, var(--focus) 48%, #cbd5e1);
+        background: color-mix(in srgb, var(--focus) 16%, #fbfdff);
+      }
+
+      .standard {
+        color: var(--standard-deep);
+        border-color: color-mix(in srgb, var(--standard) 48%, #cbd5e1);
+        background: color-mix(in srgb, var(--standard) 16%, #fbfdff);
+      }
+
+      .system {
+        color: var(--focus-deep);
+        border-color: color-mix(in srgb, var(--focus) 44%, #cbd5e1);
+        background: color-mix(in srgb, var(--focus) 15%, #fbfdff);
+      }
+
+      .environment {
+        color: var(--environment-deep);
+        border-color: color-mix(in srgb, var(--environment) 40%, #cbd5e1);
+        background: color-mix(in srgb, var(--environment) 12%, #fbfdff);
+      }
+
+      .note {
+        color: var(--measure-deep);
+        border-color: color-mix(in srgb, var(--measure) 30%, #cbd5e1);
+        background: color-mix(in srgb, var(--measure) 13%, #fbfdff);
+      }
+
+      .muted-chip {
+        color: #697487;
+        border-color: color-mix(in srgb, var(--environment) 22%, #d9e1ea);
+        background: color-mix(in srgb, var(--environment) 8%, #fbfdff);
+      }
+
+      .exception-pill {
+        color: var(--exception-text);
+        border-color: color-mix(in srgb, var(--warning) 36%, #d9e1ea);
+        background: color-mix(in srgb, var(--warning) 10%, #fbfdff);
+      }
+
+      .component-board {
+        display: grid;
+        grid-template-columns: 240px minmax(0, 1fr);
+        gap: 16px;
+      }
+
+      .tree-demo {
+        display: grid;
+        gap: 7px;
+        padding: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.72);
+        border-radius: 18px;
+        background: rgba(247, 249, 252, 0.52);
+      }
+
+      .tree-row {
+        min-height: 40px;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 10px;
+        border: 1px solid transparent;
+        border-radius: 14px;
+        color: #253041;
+        font-size: 12px;
+      }
+
+      .tree-row:hover {
+        background: var(--hover);
+      }
+
+      .tree-row.active {
+        color: rgba(255, 255, 255, 0.96);
+        background: linear-gradient(180deg, var(--apple-blue-top), var(--apple-blue-deep));
+        box-shadow: 0 8px 18px rgba(10, 132, 255, 0.18);
+      }
+
+      .tree-badge {
+        padding: 2px 6px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.78);
+        color: #526071;
+        font-size: 10px;
+        font-weight: 820;
+      }
+
+      .tree-row.active .tree-badge {
+        background: rgba(255, 255, 255, 0.18);
+        color: rgba(255, 255, 255, 0.9);
+      }
+
+      .table-wrap {
+        overflow: hidden;
+        border: 1px solid rgba(132, 143, 159, 0.26);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.72);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+
+      th,
+      td {
+        padding: 12px 13px;
+        border-bottom: 1px solid rgba(132, 143, 159, 0.22);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        color: #526071;
+        background: var(--panel-muted);
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      td {
+        color: #243041;
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      tbody tr:hover td {
+        background: var(--selected);
+      }
+
+      .matrix-table th:nth-child(1),
+      .matrix-table td:nth-child(1) {
+        width: 18%;
+      }
+
+      .matrix-table th:nth-child(2),
+      .matrix-table td:nth-child(2) {
+        width: 31%;
+      }
+
+      .matrix-table th:nth-child(3),
+      .matrix-table td:nth-child(3) {
+        width: 34%;
+      }
+
+      .matrix-table th:nth-child(4),
+      .matrix-table td:nth-child(4) {
+        width: 17%;
+      }
+
+      .csf-table .csf-gv td {
+        background: color-mix(in srgb, var(--standard) 24%, #fbfdff);
+      }
+
+      .csf-table .csf-id td {
+        background: color-mix(in srgb, var(--service) 18%, #fbfdff);
+      }
+
+      .csf-table .csf-pr td {
+        background: color-mix(in srgb, var(--focus) 18%, #fbfdff);
+      }
+
+      .csf-table .csf-de td {
+        background: color-mix(in srgb, var(--measure) 18%, #fbfdff);
+      }
+
+      .csf-table .csf-rs td {
+        background: color-mix(in srgb, var(--danger) 14%, #fbfdff);
+      }
+
+      .csf-table .csf-rc td {
+        background: color-mix(in srgb, var(--module) 18%, #fbfdff);
+      }
+
+      .tone-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .tone {
+        min-height: 96px;
+        display: grid;
+        align-content: space-between;
+        gap: 12px;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background:
+          linear-gradient(180deg, color-mix(in srgb, var(--tone-color) 14%, transparent), transparent 64%),
+          var(--panel-strong);
+      }
+
+      .tone strong {
+        color: var(--tone-color);
+        font-size: 20px;
+      }
+
+      .tone span {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .tone.blue {
+        --tone-color: var(--service);
+      }
+
+      .tone.green {
+        --tone-color: var(--module);
+      }
+
+      .tone.amber {
+        --tone-color: var(--measure);
+      }
+
+      .tone.purple {
+        --tone-color: var(--focus);
+      }
+
+      .tone.slate {
+        --tone-color: var(--environment);
+      }
+
+      .graph {
+        min-height: 430px;
+        position: relative;
+        overflow: hidden;
+        border-radius: 0 0 22px 22px;
+        background:
+          radial-gradient(circle at 14% 6%, rgba(90, 159, 216, 0.16), transparent 28%),
+          radial-gradient(circle at 86% 12%, rgba(142, 122, 200, 0.12), transparent 30%),
+          linear-gradient(135deg, #f8fafc 0%, var(--page) 48%, var(--page-warm) 100%);
+      }
+
+      .legend {
+        position: absolute;
+        top: 16px;
+        left: 18px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        z-index: 2;
+      }
+
+      .legend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 9px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.82);
+        color: #4c5b70;
+        font-size: 11px;
+        font-weight: 780;
+      }
+
+      .legend i {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+      }
+
+      .edge {
+        position: absolute;
+        height: 2px;
+        transform-origin: 0 50%;
+        border-radius: 999px;
+        opacity: 0.7;
+      }
+
+      .edge.technical {
+        left: 48%;
+        top: 52%;
+        width: 300px;
+        transform: rotate(-24deg);
+        background: color-mix(in srgb, var(--service) 62%, transparent);
+      }
+
+      .edge.management {
+        left: 48%;
+        top: 52%;
+        width: 260px;
+        transform: rotate(151deg);
+        background: color-mix(in srgb, var(--module) 62%, transparent);
+      }
+
+      .edge.standard {
+        left: 48%;
+        top: 52%;
+        width: 252px;
+        transform: rotate(62deg);
+        background: color-mix(in srgb, var(--standard) 68%, transparent);
+      }
+
+      .edge.structure {
+        left: 48%;
+        top: 52%;
+        width: 180px;
+        transform: rotate(-96deg);
+        background: color-mix(in srgb, var(--focus) 58%, transparent);
+      }
+
+      .node {
+        position: absolute;
+        display: grid;
+        place-items: center;
+        border: 1px solid;
+        border-radius: 50%;
+        font-size: 12px;
+        font-weight: 820;
+        text-align: center;
+        box-shadow: 0 12px 28px rgba(29, 35, 48, 0.12);
+      }
+
+      .node.center {
+        left: calc(48% - 48px);
+        top: calc(52% - 48px);
+        width: 96px;
+        height: 96px;
+      }
+
+      .node.l1 {
+        width: 72px;
+        height: 72px;
+      }
+
+      .node.l2 {
+        width: 52px;
+        height: 52px;
+      }
+
+      .node.l3 {
+        width: 30px;
+        height: 30px;
+        font-size: 0;
+      }
+
+      .n-service {
+        color: #1e5f91;
+        border-color: rgba(90, 159, 216, 0.58);
+        background: color-mix(in srgb, var(--service) 28%, #fbfdff);
+      }
+
+      .n-module {
+        color: #315f47;
+        border-color: rgba(120, 175, 146, 0.62);
+        background: color-mix(in srgb, var(--module) 30%, #fbfdff);
+      }
+
+      .n-measure {
+        color: #7b4e39;
+        border-color: rgba(207, 154, 117, 0.64);
+        background: color-mix(in srgb, var(--measure) 32%, #fbfdff);
+      }
+
+      .n-focus {
+        color: #54448f;
+        border-color: rgba(142, 122, 200, 0.66);
+        background: color-mix(in srgb, var(--focus) 26%, #fbfdff);
+      }
+
+      .n-standard {
+        color: #70552e;
+        border-color: rgba(200, 161, 93, 0.64);
+        background: color-mix(in srgb, var(--standard) 30%, #fbfdff);
+      }
+
+      .n-slate {
+        color: #4c5b70;
+        border-color: rgba(133, 138, 150, 0.58);
+        background: color-mix(in srgb, var(--environment) 20%, #fbfdff);
+      }
+
+      .token-table {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .token {
+        display: grid;
+        gap: 8px;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--panel-strong);
+      }
+
+      .token-band {
+        height: 34px;
+        border-radius: 11px;
+        background: var(--token-color);
+        box-shadow: inset 0 0 0 1px rgba(24, 34, 48, 0.08);
+      }
+
+      .token strong {
+        font-size: 12px;
+      }
+
+      .token span {
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      @media (max-width: 1120px) {
+        .window {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          display: none;
+        }
+
+        .card.wide,
+        .card.medium,
+        .card.narrow {
+          grid-column: 1 / -1;
+        }
+
+        .component-board {
+          grid-template-columns: 1fr;
+        }
+
+        .tone-grid,
+        .swatch-grid,
+        .swatch-grid.compact,
+        .token-table {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .window {
+          width: min(100vw - 18px, 1480px);
+          margin: 9px auto;
+          border-radius: 20px;
+        }
+
+        main {
+          padding: 20px 16px 24px;
+        }
+
+        .hero {
+          flex-direction: column;
+        }
+
+        h1 {
+          font-size: 26px;
+        }
+
+        .swatch,
+        .token-table,
+        .swatch-grid,
+        .swatch-grid.compact,
+        .tone-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .toolbar {
+          justify-content: flex-start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="window">
+      <aside class="sidebar">
+        <div class="traffic"><span></span><span></span><span></span></div>
+        <div class="search">⌕ 搜索能力、标准、指南</div>
+        <nav class="nav" aria-label="配色导航示例">
+          <div class="nav-label">主工作台</div>
+          <div class="nav-item active"><span class="icon blue">S</span><span>安全能力映射</span><b class="nav-count">159</b></div>
+          <div class="nav-item"><span class="icon green">M</span><span>安全技术模块</span><b class="nav-count">102</b></div>
+          <div class="nav-item"><span class="icon purple">G</span><span>关系图谱</span><b class="nav-count">42</b></div>
+          <div class="nav-item"><span class="icon amber">L</span><span>LC-AP 生命周期</span><b class="nav-count">8</b></div>
+          <div class="nav-item"><span class="icon gray">D</span><span>数据治理</span><b class="nav-count">6</b></div>
+        </nav>
+        <div class="side-panel">
+          <span>Demo 用途</span>
+          <strong>把正式前端正在使用的所有颜色角色集中到一页，后续新增页面按这里对齐。</strong>
+        </div>
+      </aside>
+
+      <main>
+        <section class="hero">
+          <div>
+            <h1>Apple Morandi 配色 Demo</h1>
+            <p>
+              覆盖当前 SAPD Wiki 前端的 shell、导航、tabs、表格、状态、关系 chip、标准框架行色、生命周期对象和关系图谱颜色。颜色只服务业务识别，不做装饰性堆叠。
+            </p>
+          </div>
+          <div class="toolbar">
+            <div class="segmented" aria-label="风格模式">
+              <button class="active" type="button">iOS Shell</button>
+              <button type="button">Morandi</button>
+              <button type="button">SAPD</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="status-strip" aria-label="状态颜色">
+          <span class="status-badge ok"><small>dataState</small><strong>ready</strong></span>
+          <span class="status-badge warning"><small>review</small><strong>待确认</strong></span>
+          <span class="status-badge danger"><small>issue</small><strong>映射异常</strong></span>
+          <span class="status-badge"><small>fallback</small><strong>静态数据包</strong></span>
+        </section>
+
+        <section class="demo-grid">
+          <article class="card full">
+            <div class="card-head">
+              <h2>全局色彩注册表</h2>
+              <span>shell neutral、Apple action、业务语义、状态色全部显式列出</span>
+            </div>
+            <div class="card-body">
+              <div class="token-table">
+                <div class="token" style="--token-color: var(--ink)"><div class="token-band"></div><strong>Ink</strong><span>#182230 主文字</span></div>
+                <div class="token" style="--token-color: var(--muted)"><div class="token-band"></div><strong>Muted</strong><span>#667085 次级文字</span></div>
+                <div class="token" style="--token-color: var(--page)"><div class="token-band"></div><strong>Page</strong><span>#f5f5f7 页面底色</span></div>
+                <div class="token" style="--token-color: var(--sidebar)"><div class="token-band"></div><strong>Sidebar</strong><span>浅蓝灰 translucent</span></div>
+                <div class="token" style="--token-color: var(--search)"><div class="token-band"></div><strong>Search</strong><span>搜索框填充</span></div>
+                <div class="token" style="--token-color: var(--segmented)"><div class="token-band"></div><strong>Segmented</strong><span>tabs 背板</span></div>
+                <div class="token" style="--token-color: var(--hover)"><div class="token-band"></div><strong>Hover</strong><span>列表悬停</span></div>
+                <div class="token" style="--token-color: var(--selected)"><div class="token-band"></div><strong>Row Selected</strong><span>表格选中/悬停</span></div>
+                <div class="token" style="--token-color: var(--apple-blue)"><div class="token-band"></div><strong>iOS Blue</strong><span>#0a84ff 当前选中</span></div>
+                <div class="token" style="--token-color: var(--service)"><div class="token-band"></div><strong>Service Blue</strong><span>安全技术服务</span></div>
+                <div class="token" style="--token-color: var(--module)"><div class="token-band"></div><strong>Sage Green</strong><span>安全技术模块</span></div>
+                <div class="token" style="--token-color: var(--measure)"><div class="token-band"></div><strong>Clay</strong><span>安全技术措施/缺口</span></div>
+                <div class="token" style="--token-color: var(--focus)"><div class="token-band"></div><strong>Lavender</strong><span>当前关注点/系统</span></div>
+                <div class="token" style="--token-color: var(--standard)"><div class="token-band"></div><strong>Sand</strong><span>标准 / 框架</span></div>
+                <div class="token" style="--token-color: var(--environment)"><div class="token-band"></div><strong>Slate</strong><span>环境/中性结构</span></div>
+                <div class="token" style="--token-color: var(--success)"><div class="token-band"></div><strong>Success</strong><span>通过/ready</span></div>
+                <div class="token" style="--token-color: var(--warning)"><div class="token-band"></div><strong>Warning</strong><span>待确认/异常提示</span></div>
+                <div class="token" style="--token-color: var(--danger)"><div class="token-band"></div><strong>Danger</strong><span>修复风险/响应类</span></div>
+                <div class="token" style="--token-color: var(--cyan)"><div class="token-band"></div><strong>Cyan</strong><span>辅助信息色</span></div>
+                <div class="token" style="--token-color: var(--rose)"><div class="token-band"></div><strong>Rose</strong><span>少量强调色</span></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="card narrow">
+            <div class="card-head">
+              <h2>导航与目录态</h2>
+              <span>active、hover、badge</span>
+            </div>
+            <div class="card-body">
+              <div class="tree-demo">
+                <div class="tree-row active"><span class="tree-badge">L1</span><strong>T-AS 应用安全</strong><span class="tree-badge">12</span></div>
+                <div class="tree-row"><span class="tree-badge">L2</span><strong>T-AS.AD 架构设计</strong><span class="tree-badge">5</span></div>
+                <div class="tree-row"><span class="tree-badge">E1</span><strong>信息化环境子类</strong><span class="tree-badge">9</span></div>
+                <div class="tree-row"><span class="tree-badge">AP</span><strong>开发生命周期阶段</strong><span class="tree-badge">8</span></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="card wide">
+            <div class="card-head">
+              <h2>Tabs 与分段控件</h2>
+              <span>关系视角、标准页、维护页共用的浅背板效果</span>
+            </div>
+            <div class="card-body" style="display: grid; gap: 16px">
+              <div class="tabs" aria-label="关系视角">
+                <button class="active" type="button">本地关联摘要</button>
+                <button type="button">技术视角</button>
+                <button type="button">管理视角</button>
+                <button type="button">标准 / 框架</button>
+              </div>
+              <div class="tabs" aria-label="维护页 Tab">
+                <button type="button">安全技术服务</button>
+                <button class="active" type="button">安全技术模块/措施</button>
+                <button type="button">安全管理工作/流程</button>
+                <button type="button">安全职能</button>
+              </div>
+              <div class="chip-row">
+                <span class="chip service"><em>安全技术服务</em>I-AP&amp;T-AS.AD-02 应用冗余</span>
+                <span class="chip module"><em>安全技术模块</em>云原生应用防护</span>
+                <span class="chip measure"><em>安全技术措施</em>网络基础架构安全设计</span>
+                <span class="chip focus"><em>能力关注点</em>身份生命周期管理</span>
+                <span class="chip standard"><em>标准 / 框架</em>NIST CSF 2.0</span>
+                <span class="chip system"><em>安全系统</em>统一身份平台</span>
+                <span class="chip environment"><em>信息化环境</em>软件应用</span>
+                <span class="chip note"><em>说明</em>待补充依据</span>
+                <span class="chip muted-chip">+7</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="card full">
+            <div class="card-head">
+              <h2>关系矩阵表格</h2>
+              <span>压缩作用域列，服务/模块/措施通过颜色和前缀同时区分</span>
+            </div>
+            <div class="card-body">
+              <div class="component-board">
+                <div class="tree-demo">
+                  <div class="tree-row active"><span class="tree-badge">T</span><strong>技术视角</strong><span class="tree-badge">ready</span></div>
+                  <div class="tree-row"><span class="tree-badge">M</span><strong>管理视角</strong><span class="tree-badge">76</span></div>
+                  <div class="tree-row"><span class="tree-badge">S</span><strong>标准 / 框架</strong><span class="tree-badge">2288</span></div>
+                </div>
+                <div class="table-wrap">
+                  <table class="matrix-table">
+                    <thead>
+                      <tr>
+                        <th>作用域</th>
+                        <th>安全技术服务</th>
+                        <th>安全技术模块/措施</th>
+                        <th>状态</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><strong>I-AP</strong><br />软件应用</td>
+                        <td><span class="chip service">I-AP&amp;T-AS.AD-02 应用冗余</span></td>
+                        <td><span class="chip module"><em>模块</em>云原生应用防护</span></td>
+                        <td><span class="status-badge ok"><small>契约</small><strong>已匹配</strong></span></td>
+                      </tr>
+                      <tr>
+                        <td><strong>I-NT</strong><br />网络</td>
+                        <td><span class="chip service">网络平面及区域划分</span></td>
+                        <td><span class="chip measure"><em>措施</em>网络基础架构安全设计</span></td>
+                        <td><span class="exception-pill">待确认</span></td>
+                      </tr>
+                      <tr>
+                        <td><strong>I-DT</strong><br />数据</td>
+                        <td><span class="chip service">数据流转监测和泄漏防护</span></td>
+                        <td><span class="missing-pill">暂无安全技术模块/措施</span></td>
+                        <td><span class="status-badge warning"><small>缺口</small><strong>待补充</strong></span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="card medium">
+            <div class="card-head">
+              <h2>标准 / 框架行色</h2>
+              <span>CSF 分类行色必须与全局语义色兼容</span>
+            </div>
+            <div class="card-body">
+              <div class="table-wrap">
+                <table class="csf-table">
+                  <thead>
+                    <tr>
+                      <th>CSF Function</th>
+                      <th>颜色角色</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="csf-gv"><td><strong>GV 治理</strong><br />Govern</td><td>Sand</td></tr>
+                    <tr class="csf-id"><td><strong>ID 识别</strong><br />Identify</td><td>Service Blue</td></tr>
+                    <tr class="csf-pr"><td><strong>PR 保护</strong><br />Protect</td><td>Lavender</td></tr>
+                    <tr class="csf-de"><td><strong>DE 检测</strong><br />Detect</td><td>Clay</td></tr>
+                    <tr class="csf-rs"><td><strong>RS 响应</strong><br />Respond</td><td>Danger</td></tr>
+                    <tr class="csf-rc"><td><strong>RC 恢复</strong><br />Recover</td><td>Sage</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </article>
+
+          <article class="card medium">
+            <div class="card-head">
+              <h2>生命周期与看板 tone</h2>
+              <span>LC-AP chip 和首页 tone 使用同一套语义色</span>
+            </div>
+            <div class="card-body" style="display: grid; gap: 16px">
+              <div class="chip-row">
+                <span class="chip service">安全技术服务</span>
+                <span class="chip module">安全技术模块</span>
+                <span class="chip measure">安全技术措施</span>
+                <span class="chip muted-chip">来源证据</span>
+              </div>
+              <div class="tone-grid">
+                <div class="tone blue"><strong>服务</strong><span>技术服务、技术视角、服务节点</span></div>
+                <div class="tone green"><strong>模块</strong><span>模块、管理视角、恢复类</span></div>
+                <div class="tone amber"><strong>措施</strong><span>措施、缺口、检测类</span></div>
+                <div class="tone purple"><strong>焦点</strong><span>当前对象、系统、保护类</span></div>
+                <div class="tone slate"><strong>结构</strong><span>环境、弱关系、中性统计</span></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="card full">
+            <div class="card-head">
+              <h2>关系图谱语义色</h2>
+              <span>中心、技术、管理、标准、结构层级一页对照</span>
+            </div>
+            <div class="graph" aria-label="关系图谱颜色示例">
+              <div class="legend">
+                <span><i style="background: var(--focus)"></i>当前关注点</span>
+                <span><i style="background: var(--service)"></i>技术视角</span>
+                <span><i style="background: var(--module)"></i>管理视角</span>
+                <span><i style="background: var(--standard)"></i>标准 / 框架</span>
+                <span><i style="background: var(--environment)"></i>结构层级</span>
+              </div>
+              <span class="edge technical"></span>
+              <span class="edge management"></span>
+              <span class="edge standard"></span>
+              <span class="edge structure"></span>
+              <span class="node center n-focus">当前<br />关注点</span>
+              <span class="node l1 n-service" style="left: 66%; top: 28%">服务</span>
+              <span class="node l2 n-module" style="left: 78%; top: 22%">模块</span>
+              <span class="node l3 n-measure" style="left: 88%; top: 18%"></span>
+              <span class="node l1 n-module" style="left: 23%; top: 53%">管理</span>
+              <span class="node l2 n-slate" style="left: 13%; top: 44%">流程</span>
+              <span class="node l3 n-module" style="left: 8%; top: 36%"></span>
+              <span class="node l1 n-standard" style="left: 57%; top: 72%">标准</span>
+              <span class="node l2 n-measure" style="left: 71%; top: 78%">措施</span>
+              <span class="node l3 n-standard" style="left: 83%; top: 82%"></span>
+              <span class="node l1 n-slate" style="left: 43%; top: 13%">L1</span>
+              <span class="node l2 n-measure" style="left: 37%; top: 5%">L2</span>
+              <span class="node l3 n-slate" style="left: 33%; top: 1%"></span>
+            </div>
+          </article>
+
+          <article class="card full">
+            <div class="card-head">
+              <h2>使用边界</h2>
+              <span>新增页面按角色复用，不直接写散落色值</span>
+            </div>
+            <div class="card-body">
+              <div class="swatch-grid compact">
+                <div class="swatch">
+                  <span class="dot" style="background: linear-gradient(180deg, var(--apple-blue-top), var(--apple-blue-deep))"></span>
+                  <div><strong>当前选中</strong><small>只用于当前路由、当前树节点、主 tabs，不用作普通 chip。</small></div>
+                  <span class="code">Active</span>
+                </div>
+                <div class="swatch">
+                  <span class="dot" style="background: var(--service)"></span>
+                  <div><strong>安全技术服务</strong><small>服务 chip、技术视角、服务节点和服务列。</small></div>
+                  <span class="code">Blue</span>
+                </div>
+                <div class="swatch">
+                  <span class="dot" style="background: var(--module)"></span>
+                  <div><strong>安全技术模块</strong><small>模块 chip、管理视角、恢复类状态。</small></div>
+                  <span class="code">Sage</span>
+                </div>
+                <div class="swatch">
+                  <span class="dot" style="background: var(--measure)"></span>
+                  <div><strong>安全技术措施</strong><small>措施 chip、缺口、检测类和待补充。</small></div>
+                  <span class="code">Clay</span>
+                </div>
+                <div class="swatch">
+                  <span class="dot" style="background: var(--focus)"></span>
+                  <div><strong>当前关注点</strong><small>图谱中心、当前能力、系统类辅助对象。</small></div>
+                  <span class="code">Lavender</span>
+                </div>
+                <div class="swatch">
+                  <span class="dot" style="background: var(--standard)"></span>
+                  <div><strong>标准 / 框架</strong><small>标准节点、标准映射、CSF GV 行。</small></div>
+                  <span class="code">Sand</span>
+                </div>
+              </div>
+            </div>
+          </article>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

@@ -20,7 +20,8 @@
 | `package_backend_pyinstaller.py` | 使用 PyInstaller 在当前平台生成 ZIP 内部后端运行组件 | `docs/09-delivery/zip-bundle-1.0-alpha-runtime-design.md` |
 | `package_backend_windows.ps1` | Windows x64 上生成 `SAPD-Wiki-Backend.exe` 的 PowerShell 入口 | `docs/09-delivery/windows-zip-build-guide.md` |
 | `build_zip_bundle.py` | 生成 ZIP alpha bundle 目录骨架，可选压缩为 zip；默认输出到 `/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle`，真实运行 ZIP 必须传入 `--backend-binary` | `docs/09-delivery/zip-bundle-1.0-alpha-design.md` |
-| `create_alpha_release.py` | 将已验证 ZIP、checksum、release manifest、README、UAT checklist 和反馈模板组装到本地 alpha release 目录；Windows 未实测时标记为 `pending` | `docs/09-delivery/zip-uat-0-internal-trial-guide.md` |
+| `create_alpha_release.py` | 将已验证 ZIP、checksum 和 release manifest 组装到本地 alpha release 目录；平台产物分入 `mac-arm64/`、`win-x64/` 子目录，默认不重复复制 ZIP 内已有 README，Windows 未实测时在 manifest 中标记为 `pending` | `docs/09-delivery/zip-uat-0-internal-trial-guide.md` |
+| `create_update_package.py` | 对比上一版完整 ZIP 和新版完整 ZIP，生成内部 alpha update 包；默认排除 `data/user/` 和 `logs/` | `docs/09-delivery/zip-uat-0-internal-trial-guide.md` |
 | `start-windows.bat` / `start-macos.command` / `stop-windows.bat` / `stop-macos.command` | 分平台 ZIP alpha 启停脚本模板 | `docs/09-delivery/zip-bundle-1.0-alpha-design.md` |
 
 ## 专题脚本

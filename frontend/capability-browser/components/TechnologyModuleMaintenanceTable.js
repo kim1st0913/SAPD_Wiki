@@ -1,6 +1,7 @@
 (function () {
   const components = (window.sapdComponents = window.sapdComponents || {});
   const utils = components.utils;
+  const display = window.sapdDisplay || {};
 
   function valueText(value) {
     if (value == null || value === "") return "待补充";
@@ -15,6 +16,7 @@
   }
 
   function chipList(items, empty = "待补充") {
+    if (display.relationChipList) return display.relationChipList(utils, items, { empty });
     const rows = utils.list(items).filter(Boolean);
     if (!rows.length) return `<span class="empty-inline">${utils.escapeHtml(empty)}</span>`;
     return rows.map((item) => `<span class="relation-chip">${utils.escapeHtml(entityLabel(item, empty))}</span>`).join("");
@@ -76,14 +78,14 @@
         (row) => `
           <tr class="maintenance-data-row standard-group-detail ${row.id === selectedId ? "active" : ""}" data-standard-parent="${utils.escapeHtml(parentId)}" data-standard-lineage="${utils.escapeHtml(lineage.join(" "))}"${hiddenAttr} data-maintenance-id="${utils.escapeHtml(row.id)}">
             <td>${utils.escapeHtml(valueText(row.category))}</td>
-            <td>${chipList(row.linkedSystems, "待契约补充")}</td>
+            <td>${chipList(row.linkedSystems, display.state?.("contract_pending") || "待契约补充")}</td>
             <td>
               <div class="module-title-cell">
                 <strong>${utils.escapeHtml(valueText(row.title))}</strong>
                 <span>${utils.escapeHtml(valueText(row.description))}</span>
               </div>
             </td>
-            <td>${chipList(row.linkedServices, "无映射服务")}</td>
+            <td>${chipList(row.linkedServices, "暂无关联安全技术服务")}</td>
             <td>
               <div class="module-mapping-cell">
                 ${statusLine("措施", row.measureMappingStatus)}
@@ -102,12 +104,12 @@
     return groupedRows(rows)
       .map((category, categoryIndex) => {
         const categoryId = groupId(["module-category", categoryIndex, category.label]);
-        const categoryExpanded = categoryIndex === 0;
+        const categoryExpanded = false;
         const categoryHiddenAttr = "";
         const systemRows = category.systems
           .map((system, systemIndex) => {
             const systemId = groupId([categoryId, "system", systemIndex, system.label]);
-            const systemExpanded = categoryExpanded && systemIndex === 0;
+            const systemExpanded = false;
             const systemHidden = !categoryExpanded;
             const systemHiddenAttr = systemHidden ? " hidden" : "";
             return `
@@ -152,9 +154,9 @@
             <tr>
               <th>领域分类</th>
               <th>安全系统</th>
-              <th>安全技术模块 / 定义</th>
-              <th>映射安全技术服务</th>
-              <th>措施 / 作用域 / 对象 / 环境</th>
+              <th>${utils.escapeHtml(display.label?.("security_technology_module", "安全技术模块") || "安全技术模块")} / 定义</th>
+              <th>${utils.escapeHtml(display.relationLabel?.("security_technical_service") || "关联安全技术服务")}</th>
+              <th>${utils.escapeHtml(display.relationLabel?.("security_technical_measure") || "关联安全技术措施")} / 作用域 / 对象 / 环境</th>
             </tr>
           </thead>
           <tbody>

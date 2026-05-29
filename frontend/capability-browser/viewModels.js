@@ -1,6 +1,10 @@
 (function () {
   const list = (value) => (Array.isArray(value) ? value : []);
   const text = (value) => (value == null ? "" : String(value));
+  const display = window.sapdDisplay || {};
+  const displayLabel = (key, fallback) => display.label?.(key, fallback) || fallback;
+  const relationLabel = (key, fallback) => display.relationLabel?.(key) || fallback;
+  const displayState = (key, fallback) => display.state?.(key, fallback) || fallback;
   const TECHNICAL_MEASURES_FIELD = "security_technical_measures";
   const TECHNICAL_MEASURES_EMPTY_MESSAGE = "暂无安全技术措施数据，请确认 ETL 是否已导出 security_technical_measures。";
   const PENDING_TEXT = "待补充";
@@ -474,10 +478,10 @@
   function buildRelationshipChainRows(row) {
     if (!row) return [];
     return [
-      { key: "focus", label: "能力关注点", value: row.focus?.code || "无编码", preview: row.focus?.title || "未命名", items: row.focus ? [row.focus] : [] },
-      { key: "services", label: "安全技术服务", value: row.services.length, preview: row.services.slice(0, 2).map(titleOf).join("、") || "暂无", items: row.services },
-      { key: "scopes", label: "作用域", value: row.scopes.length, preview: row.scopes.slice(0, 2).map(titleOf).join("、") || "暂无", items: row.scopes },
-      { key: "modules", label: "技术模块", value: row.modules.length, preview: row.modules.slice(0, 2).map(titleOf).join("、") || "暂无", items: row.modules },
+      { key: "focus", label: displayLabel("capability_focus", "能力关注点"), value: row.focus?.code || "无编码", preview: row.focus?.title || "未命名", items: row.focus ? [row.focus] : [] },
+      { key: "services", label: displayLabel("security_technical_service", "安全技术服务"), value: row.services.length, preview: row.services.slice(0, 2).map(titleOf).join("、") || "暂无", items: row.services },
+      { key: "scopes", label: displayLabel("scope_type", "作用域"), value: row.scopes.length, preview: row.scopes.slice(0, 2).map(titleOf).join("、") || "暂无", items: row.scopes },
+      { key: "modules", label: displayLabel("security_module_or_measure", "安全技术模块/措施"), value: row.modules.length, preview: row.modules.slice(0, 2).map(titleOf).join("、") || "暂无", items: row.modules },
     ];
   }
 
@@ -1047,8 +1051,10 @@
     const workbenchTechnicalRows = buildCapabilityTechnicalRowsFromWorkbench(capabilityWorkbench, visibleFocuses);
     const workbenchManagementRows = buildCapabilityManagementRowsFromWorkbench(capabilityWorkbench, visibleFocuses);
     const workbenchStandardRows = buildCapabilityStandardRowsFromWorkbench(capabilityWorkbench, visibleFocuses);
-    const projectedTechnicalRows = list(capabilityProjection?.technicalMappingRows || capabilityProjection?.technical_mapping_rows);
-    const projectedManagementRows = list(capabilityProjection?.managementMappingRows || capabilityProjection?.management_mapping_rows);
+    const isFocus = selectedDetail?.type === "capability_focus";
+    const canUseFocusProjection = isFocus;
+    const projectedTechnicalRows = canUseFocusProjection ? list(capabilityProjection?.technicalMappingRows || capabilityProjection?.technical_mapping_rows) : [];
+    const projectedManagementRows = canUseFocusProjection ? list(capabilityProjection?.managementMappingRows || capabilityProjection?.management_mapping_rows) : [];
     const technicalMappingRows = workbenchTechnicalRows.length
       ? workbenchTechnicalRows
       : projectedTechnicalRows.length
@@ -1061,7 +1067,6 @@
       : buildManagementMappingRows({ focuses: visibleFocuses });
     const focusOverview = buildFocusOverview({ capabilityTree, focuses: visibleFocuses, selectedDetail, technicalRows: technicalMappingRows, managementRows: managementMappingRows });
     const selectedFocusRow = rows.find((row) => row.focus.id === selectedId) || rows[0] || null;
-    const isFocus = selectedDetail?.type === "capability_focus";
     const chainFocus = selectedFocusRow || null;
     const detailRaw = selectedDetail?.id ? findCapabilityItemAndFocuses(capabilityTree, selectedDetail.id).selected : selectedRaw;
     const detailRawProcesses = list(detailRaw?.process_mappings);
@@ -1074,11 +1079,12 @@
     const detailSecurityWorks = isFocus ? managementMappingRows.find((row) => row.focus.id === selectedDetail.id)?.securityWorks || [] : uniqueBy(managementMappingRows.flatMap((row) => row.securityWorks), (work) => work.id || work.code || work.title);
     const detailSourceItems = [...list(detailRaw?.security_works), ...list(detailRaw?.scope_mappings)];
     const detailSourceEvidence = sourceEvidenceFor(detailRaw, detailRawProcesses, detailSourceItems);
-    const projectedFocusId = isFocus ? selectedDetail.id : selectedFocusRow?.focus?.id || null;
-    const projectedLocalRelationMap = projectedLocalRelationMapFor(capabilityProjection, projectedFocusId);
+    const projectedFocusId = canUseFocusProjection ? selectedDetail.id : null;
+    const projectedLocalRelationMap = canUseFocusProjection ? projectedLocalRelationMapFor(capabilityProjection, projectedFocusId) : null;
     const usingWorkbenchMappingRows = Boolean(workbenchTechnicalRows.length || workbenchManagementRows.length);
+    const usingProjectedLocalRelationMap = Boolean(!usingWorkbenchMappingRows && projectedLocalRelationMap);
     const localRelationMap =
-      !usingWorkbenchMappingRows && projectedLocalRelationMap
+      usingProjectedLocalRelationMap
         ? projectedLocalRelationMap
         : buildCapabilityLocalRelationMap({
             selectedDetail,
@@ -1107,7 +1113,7 @@
       managementMappingRows,
       standardMappingRows: workbenchStandardRows,
       localRelationMap,
-      localRelationMapSource: usingWorkbenchMappingRows ? "capability_workbench" : projectedLocalRelationMap ? "backend_projection" : "viewmodel_fallback",
+      localRelationMapSource: usingWorkbenchMappingRows ? "capability_workbench" : usingProjectedLocalRelationMap ? "backend_projection" : "viewmodel_fallback",
       localRelationshipNotes: buildLocalRelationshipNotes(chainFocus, technicalMappingRows, managementMappingRows),
       relationshipMatrixRows: rows,
       relationshipChainRows: buildRelationshipChainRows(chainFocus),
@@ -1819,6 +1825,29 @@
     return orders;
   }
 
+  function serviceLookupKeys(service) {
+    return uniqueBy([service?.id, service?.code, service?.title, service?.name], (value) => text(value).trim())
+      .map((value) => text(value).trim())
+      .filter(Boolean);
+  }
+
+  function measureByServiceLookup(management) {
+    const measuresByService = new Map();
+    const addMeasure = (serviceRef, measure) => {
+      serviceLookupKeys(serviceRef).forEach((key) => {
+        if (!measuresByService.has(key)) measuresByService.set(key, []);
+        measuresByService.get(key).push(measure);
+      });
+    };
+    list(management?.[TECHNICAL_MEASURES_FIELD]).forEach((measure) => {
+      const measureEntity = { ...compactEntity(measure, "未命名安全技术措施"), objectKind: "安全技术措施" };
+      list(measure?.related_services).forEach((serviceRef) => addMeasure(serviceRef, measureEntity));
+      list(measure?.related_service_ids).forEach((id) => addMeasure({ id }, measureEntity));
+      list(measure?.related_service_names).forEach((title) => addMeasure({ title }, measureEntity));
+    });
+    return measuresByService;
+  }
+
   function compactTechnicalServiceRow(entry, index, orderIndex = {}) {
     const service = entry?.service || entry || {};
     const scopes = uniqueBy(list(entry?.scopes || service?.scopes || service?.scope_types), (scope) => scope?.id || scope?.code || scope?.title);
@@ -1826,6 +1855,12 @@
     const fallbackScope = orderIndex.scopeByCode?.get(declaredScopeCode);
     const groupingScopes = scopes.length ? scopes : fallbackScope ? [fallbackScope] : [];
     const modules = uniqueBy(list(entry?.modules || service?.modules || service?.technology_modules), (module) => module?.id || module?.code || module?.title);
+    const linkedModules = modules.map((module) => ({ ...compactEntity(module), objectKind: "安全技术模块" }));
+    const linkedMeasures = uniqueBy(
+      serviceLookupKeys(service).flatMap((key) => list(orderIndex.measuresByService?.get(key))),
+      (measure) => measure?.id || measure?.code || measure?.title,
+    );
+    const linkedModuleMeasures = uniqueBy([...linkedModules, ...linkedMeasures], (item) => `${item?.objectKind || ""}:${item?.id || item?.code || item?.title}`);
     const systems = uniqueBy(modules.flatMap((module) => list(module?.systems)), (system) => system?.id || system?.code || system?.title);
     const products = uniqueBy(modules.flatMap((module) => list(module?.products)), (product) => product?.id || product?.code || product?.title);
     const environments = uniqueBy(
@@ -1848,7 +1883,7 @@
       ? {
           id: focusCode,
           type: "capability_focus",
-          code: focusCode,
+          code: "",
           title: [capabilityTitle, focusTitle].filter(Boolean).join(" / "),
         }
       : null;
@@ -1874,7 +1909,9 @@
       linkedScopes: scopes.map(compactEntity),
       groupingScopes: groupingScopes.map(compactEntity),
       ownershipFocuses: ownershipFocus ? [ownershipFocus] : [],
-      linkedModules: modules.map(compactEntity),
+      linkedModules,
+      linkedMeasures,
+      linkedModuleMeasures,
       linkedSystems: systems.map(compactEntity),
       linkedProducts: products.map(compactEntity),
       linkedEnvironments: environments.map(compactEntity),
@@ -1946,7 +1983,7 @@
 
   function buildTechnicalServiceMaintenanceViewModel({ capabilityTree, management, search }) {
     const query = normalizeSearch(search);
-    const orderIndex = { ...buildCapabilityFocusOrder(capabilityTree), scopeByCode: scopeLookup(management) };
+    const orderIndex = { ...buildCapabilityFocusOrder(capabilityTree), scopeByCode: scopeLookup(management), measuresByService: measureByServiceLookup(management) };
     const sourceEntries = list(management?.security_technical_services).length
       ? list(management?.security_technical_services)
       : list(management?.service_module_index);
@@ -1964,6 +2001,7 @@
           ...row.ownershipFocuses.map(codeTitle),
           ...row.linkedScopes.map(codeTitle),
           ...row.linkedModules.map(titleOf),
+          ...row.linkedMeasures.map(titleOf),
           ...row.linkedSystems.map(titleOf),
           ...row.linkedProducts.map(titleOf),
           ...row.linkedEnvironments.map(titleOf),
@@ -1976,7 +2014,7 @@
       summary: {
         totalServices: rows.length,
         linkedFocuses: countLinked(rows.flatMap((row) => row.ownershipFocuses)),
-        linkedModules: countLinked(rows.flatMap((row) => row.linkedModules)),
+        linkedModules: countLinked(rows.flatMap((row) => row.linkedModuleMeasures)),
         linkedSystems: countLinked(rows.flatMap((row) => row.linkedSystems)),
         missingDefinitions: rows.filter((row) => row.definition === "待补充定义").length,
       },
@@ -2363,14 +2401,14 @@
     if (!row) return null;
     if (section === "scopes") {
       return {
-        type: "安全作用域",
+        type: "安全能力作用域",
         code: row.code,
         title: row.title,
         description: row.description,
         facts: [
           { label: "情景", value: row.scenario },
-          { label: "关联技术服务", value: row.serviceCount },
-          { label: "关联信息化对象", value: row.informationObjectCount },
+          { label: relationLabel("security_technical_service", "关联安全技术服务"), value: row.serviceCount },
+          { label: relationLabel("information_object", "关联信息化对象"), value: row.informationObjectCount },
         ],
         sections: [
           { title: "关联安全技术服务", items: row.linkedServices },
@@ -2387,13 +2425,13 @@
         description: row.description,
         facts: [
           { label: "流程域", value: row.domain },
-          { label: "L2 流程组", value: row.processGroup },
-          { label: "L4 状态", value: row.l4ActivityStatus },
-          { label: "关联关注点", value: row.relatedFocusCount },
+          { label: displayLabel("l2_process_group", "L2 流程组"), value: row.processGroup },
+          { label: `${displayLabel("l4_activity", "L4 活动")}状态`, value: row.l4ActivityStatus },
+          { label: relationLabel("capability_focus", "关联能力关注点"), value: row.relatedFocusCount },
           { label: "关联安全职能", value: row.securityFunctionCount },
         ],
         sections: [
-          { title: "L4 关键活动", items: row.activities },
+          { title: displayLabel("l4_activity", "L4 活动"), items: row.activities },
           { title: "关联安全职能", items: row.stakeholders },
         ],
         sourceEvidence,
@@ -2449,16 +2487,16 @@
           { label: "安全系统", value: row.linkedSystems.length },
           { label: "关联安全技术服务", value: row.serviceCount },
           { label: "关联安全技术措施", value: row.measureCount },
-          { label: "关联作用域", value: row.scopeCount },
-          { label: "关联信息化对象", value: row.informationObjectCount },
+          { label: relationLabel("scope_type", "关联作用域"), value: row.scopeCount },
+          { label: relationLabel("information_object", "关联信息化对象"), value: row.informationObjectCount },
         ],
         sections: [
           { title: "所属安全系统", items: row.linkedSystems },
           { title: "关联安全技术服务", items: row.linkedServices },
           { title: "关联安全技术措施", items: row.linkedMeasures },
-          { title: "关联作用域", items: row.linkedScopes },
-          { title: "关联信息化对象", items: row.informationObjects },
-          { title: "关联信息化环境", items: row.informationEnvironments },
+          { title: relationLabel("scope_type", "关联作用域"), items: row.linkedScopes },
+          { title: relationLabel("information_object", "关联信息化对象"), items: row.informationObjects },
+          { title: relationLabel("information_environment", "关联信息化环境"), items: row.informationEnvironments },
         ],
         sourceEvidence,
       };
@@ -2471,17 +2509,17 @@
         description: row.definition,
         facts: [
           { label: "服务编号", value: row.code },
-          { label: "归属安全能力-关注点", value: row.ownershipFocuses.length || "待补充" },
-          { label: "关联安全技术模块/措施", value: row.moduleCount },
-          { label: "关联安全系统", value: row.systemCount },
+          { label: "归属安全能力 / 关注点", value: row.ownershipFocuses.length || "待补充" },
+          { label: relationLabel("security_module_or_measure", "关联安全技术模块/措施"), value: row.linkedModuleMeasures.length },
+          { label: relationLabel("security_system", "关联安全系统"), value: row.systemCount },
           { label: "定义状态", value: row.definition === "待补充定义" ? "待补充" : "正常" },
         ],
         sections: [
-          { title: "归属安全能力-关注点", items: row.ownershipFocuses },
-          { title: "关联安全技术模块/措施", items: row.linkedModules },
-          { title: "关联安全系统", items: row.linkedSystems },
+          { title: "归属安全能力 / 关注点", items: row.ownershipFocuses },
+          { title: relationLabel("security_module_or_measure", "关联安全技术模块/措施"), items: row.linkedModuleMeasures },
+          { title: relationLabel("security_system", "关联安全系统"), items: row.linkedSystems },
           { title: "关联产品", items: row.linkedProducts },
-          { title: "关联信息化环境", items: row.linkedEnvironments },
+          { title: relationLabel("information_environment", "关联信息化环境"), items: row.linkedEnvironments },
         ],
         sourceEvidence,
       };
@@ -2548,14 +2586,14 @@
       title: row.measureName,
       description: row.detail?.notes?.join(" ") || "以安全技术措施为主对象，展示已处理后的服务、作用域、信息化环境和信息化对象关系。",
       facts: [
-        { label: "关联服务", value: measureEntityCountLabel(row.linkedServices) },
-        { label: "适用作用域", value: measureEntityCountLabel(row.applicableScopes) },
-        { label: "关联信息化环境", value: measureEntityCountLabel(row.relatedEnvironments) },
-        { label: "关联信息化对象", value: measureEntityCountLabel(row.relatedEnvironmentObjects) },
+        { label: relationLabel("security_technical_service", "关联安全技术服务"), value: measureEntityCountLabel(row.linkedServices) },
+        { label: relationLabel("scope_type", "关联作用域"), value: measureEntityCountLabel(row.applicableScopes) },
+        { label: relationLabel("information_environment", "关联信息化环境"), value: measureEntityCountLabel(row.relatedEnvironments) },
+        { label: relationLabel("information_object", "关联信息化对象"), value: measureEntityCountLabel(row.relatedEnvironmentObjects) },
       ],
       sections: [
         { title: "关联安全技术服务", items: row.linkedServices },
-        { title: "适用作用域", items: row.applicableScopes },
+        { title: relationLabel("scope_type", "关联作用域"), items: row.applicableScopes },
         { title: "关联信息化环境", items: row.relatedEnvironments },
         { title: "关联信息化对象", items: row.relatedEnvironmentObjects },
       ],
@@ -2996,7 +3034,7 @@
       },
       {
         title: "覆盖口径",
-        body: `共 ${summary.scopeCount} 个作用域、${summary.serviceCount} 个安全技术服务、${summary.moduleCount} 个技术模块/措施；${summary.notApplicableCount} 个作用域无适用服务。`,
+        body: `共 ${summary.scopeCount} 个作用域、${summary.serviceCount} 个安全技术服务、${summary.moduleCount} 个安全技术模块/措施；${summary.notApplicableCount} 个作用域无适用服务。`,
       },
       {
         title: "环境子类",
@@ -3402,12 +3440,12 @@
       facts: [
         { label: "主要活动", value: summary.mainActivityCount },
         { label: "安全活动", value: summary.securityActivityCount },
-        { label: "策略要求", value: summary.policyRequirementCount },
-        { label: "安全技术服务", value: summary.technicalServiceCount },
+        { label: displayLabel("security_policy_requirement", "安全策略要求"), value: summary.policyRequirementCount },
+        { label: displayLabel("security_technical_service", "安全技术服务"), value: summary.technicalServiceCount },
         { label: "开发技术服务", value: summary.developmentServiceCount },
         { label: "开发技术模块", value: summary.developmentModuleCount },
-        { label: "安全技术模块", value: summary.technologyModuleCount },
-        { label: "安全技术措施", value: summary.technicalMeasureCount },
+        { label: displayLabel("security_technology_module", "安全技术模块"), value: summary.technologyModuleCount },
+        { label: displayLabel("security_technical_measure", "安全技术措施"), value: summary.technicalMeasureCount },
       ],
     };
   }
@@ -3494,13 +3532,13 @@
           facts: [
             { label: "主要活动", value: summary.mainActivityCount },
             { label: "安全活动", value: summary.securityActivityCount },
-            { label: "安全策略", value: summary.policyRequirementCount },
+            { label: displayLabel("security_policy_requirement", "安全策略要求"), value: summary.policyRequirementCount },
             { label: "软件开发模式", value: summary.softwareDevelopmentTypeCount },
             { label: "开发技术服务", value: summary.developmentServiceCount },
             { label: "开发技术模块", value: summary.developmentModuleCount },
-            { label: "安全技术服务", value: summary.technicalServiceCount },
-            { label: "安全技术模块", value: summary.technologyModuleCount },
-            { label: "安全技术措施", value: summary.technicalMeasureCount },
+            { label: displayLabel("security_technical_service", "安全技术服务"), value: summary.technicalServiceCount },
+            { label: displayLabel("security_technology_module", "安全技术模块"), value: summary.technologyModuleCount },
+            { label: displayLabel("security_technical_measure", "安全技术措施"), value: summary.technicalMeasureCount },
           ],
         }
       : null;
@@ -3541,15 +3579,15 @@
 	              { label: "软件开发模式", value: summary.softwareDevelopmentTypeCount },
 	              { label: "开发技术服务", value: summary.developmentServiceCount },
 	              { label: "开发技术模块", value: summary.developmentModuleCount },
-	              { label: "安全技术服务", value: summary.technicalServiceCount },
-	              { label: "安全技术模块", value: summary.technologyModuleCount },
-	              { label: "安全技术措施", value: summary.technicalMeasureCount },
+		              { label: displayLabel("security_technical_service", "安全技术服务"), value: summary.technicalServiceCount },
+		              { label: displayLabel("security_technology_module", "安全技术模块"), value: summary.technologyModuleCount },
+		              { label: displayLabel("security_technical_measure", "安全技术措施"), value: summary.technicalMeasureCount },
 	            ],
 	            sections: [
 	              { title: "软件开发模式", items: developmentTypes },
 	              { title: "阶段主要活动", items: stageActivities },
 	              { title: "安全活动", items: securityActivities },
-	              { title: "安全策略", items: policyRequirements },
+		              { title: displayLabel("security_policy_requirement", "安全策略要求"), items: policyRequirements },
 	              { title: "开发技术服务", items: developmentServices },
 	              { title: "开发技术模块", items: developmentModules },
 	              { title: "安全技术措施", items: technicalMeasures },
@@ -3613,9 +3651,9 @@
           status: "当前数据过程",
           facts: [
             { label: "处理场景", value: summary.sceneCount },
-            { label: "安全技术服务", value: summary.technicalServiceCount },
-            { label: "安全技术模块", value: summary.technologyModuleCount },
-            { label: "安全技术措施", value: summary.technicalMeasureCount },
+            { label: displayLabel("security_technical_service", "安全技术服务"), value: summary.technicalServiceCount },
+            { label: displayLabel("security_technology_module", "安全技术模块"), value: summary.technologyModuleCount },
+            { label: displayLabel("security_technical_measure", "安全技术措施"), value: summary.technicalMeasureCount },
           ],
         }
       : null;
@@ -3648,9 +3686,9 @@
             description: selectedStage.description || PENDING_TEXT,
             facts: [
               { label: "处理场景", value: summary.sceneCount },
-              { label: "安全技术服务", value: summary.technicalServiceCount },
-              { label: "安全技术模块", value: summary.technologyModuleCount },
-              { label: "安全技术措施", value: summary.technicalMeasureCount },
+              { label: displayLabel("security_technical_service", "安全技术服务"), value: summary.technicalServiceCount },
+              { label: displayLabel("security_technology_module", "安全技术模块"), value: summary.technologyModuleCount },
+              { label: displayLabel("security_technical_measure", "安全技术措施"), value: summary.technicalMeasureCount },
             ],
             sections: [
               { title: "数据处理场景", items: scenes },
@@ -3722,12 +3760,12 @@
           facts: [
             { label: "阶段主要活动", value: summary.mainActivityCount },
             { label: "安全活动", value: summary.securityActivityCount },
-            { label: "安全策略", value: summary.policyRequirementCount },
+            { label: displayLabel("security_policy_requirement", "安全策略要求"), value: summary.policyRequirementCount },
             { label: "软件开发模式", value: list(process?.development_types).length },
             { label: "开发技术服务", value: summary.developmentServiceCount },
-            { label: "安全技术服务", value: summary.technicalServiceCount },
-            { label: "安全技术模块", value: summary.technologyModuleCount },
-            { label: "安全技术措施", value: summary.technicalMeasureCount },
+            { label: displayLabel("security_technical_service", "安全技术服务"), value: summary.technicalServiceCount },
+            { label: displayLabel("security_technology_module", "安全技术模块"), value: summary.technologyModuleCount },
+            { label: displayLabel("security_technical_measure", "安全技术措施"), value: summary.technicalMeasureCount },
             { label: "开发技术模块", value: summary.developmentModuleCount },
           ],
           sections: [

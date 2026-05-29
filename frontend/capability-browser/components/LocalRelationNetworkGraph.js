@@ -863,9 +863,9 @@
           <svg viewBox="${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}" preserveAspectRatio="xMidYMid meet" role="presentation">
             <defs>
               <radialGradient id="network-center-halo" cx="50%" cy="50%" r="62%">
-                <stop offset="0%" stop-color="oklch(0.72 0.14 257 / 0.22)" />
-                <stop offset="70%" stop-color="oklch(0.78 0.09 257 / 0.07)" />
-                <stop offset="100%" stop-color="oklch(0.98 0.006 250 / 0)" />
+                <stop offset="0%" stop-color="oklch(0.52 0.058 292 / 0.22)" />
+                <stop offset="70%" stop-color="oklch(0.72 0.035 292 / 0.08)" />
+                <stop offset="100%" stop-color="oklch(0.985 0.006 86 / 0)" />
               </radialGradient>
             </defs>
             <g class="network-pan-layer" transform="translate(0 0)">

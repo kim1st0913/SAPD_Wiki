@@ -48,7 +48,7 @@ compatibility
 
 1. `capability-workbench.json` 预留了标准 / 框架映射，但 `standard_framework`、`standard_control` 和 `maps_to_standard` 仍为空。
 2. `capability-workbench.json` 规格中的 `implements_service` 目标语义关系尚未落地，当前使用 `supports_focus` + `applies_to_scope` + `implemented_by_module` 组合表达。
-3. `lifecycle-workbench.json` 未承载 `security_technical_measure` 对象和措施关系，LC-AP 已确认的措施仍主要留在旧 `lifecycle-knowledge.json`。
+3. `lifecycle-workbench.json` 未承载 `security_technical_measure` 对象和措施关系，LC-AP 已确认的措施仍主要留在旧 `lifecycle-knowledge.json`。（2026-05-29 BE-4.3 已修复并复查，见本文末追加记录。）
 4. `lifecycle-workbench.json` 中存在 1 条明显拆词问题：`CI/CD流水线` 被拆为 `code=CI`、`name=/CD流水线`。
 5. 三份数据包仍有部分对象 `status` 为空，部分派生关系无 `evidenceRefs`，需要后续契约化说明哪些是合法派生关系、哪些需要补来源。
 
@@ -255,14 +255,14 @@ generated_at
 
 | 问题编号 | 标题 | 状态 |
 |---|---|---|
-| `OI-040` | LC-AP 安全技术措施暂未细化到具体安全技术服务 | 已追加 BE-4 发现 |
+| `OI-040` | LC-AP 安全技术措施暂未细化到具体安全技术服务 | 已修复阶段级投影 |
 | `OI-049` | `capability-workbench.json` 标准 / 框架映射仍为空 | 待处理 |
 | `OI-050` | LC-AP `CI/CD流水线` 被拆成 `CI` 与 `/CD流水线` | 已修复 |
 
 ## 后续建议
 
 1. `CI/CD流水线` 解析问题已在 BE-4.2 修复，旧错误对象已停用。
-2. 下一步建议补齐 LC-AP 措施进入 `lifecycle-workbench.json` 的投影，不强行细化到服务时，应显式标注为阶段级措施。
+2. LC-AP 措施进入 `lifecycle-workbench.json` 的投影已在 BE-4.3 复查通过；当前不强行细化到服务，显式保留为阶段级 `uses_measure`。
 3. 再将标准 / 框架导入结果映射到 `capability-workbench.json` 的 `standard_framework`、`standard_control`、`maps_to_standard`。
 4. 后续统一处理 workbench 对象缺省 `status` 和派生关系来源说明。
 
@@ -278,3 +278,35 @@ generated_at
 - 不启动浏览器；
 - 不进入 maturity；
 - 不进入 Phase 7。
+
+## BE-4.3 追加复查：lifecycle-workbench 安全技术措施投影
+
+执行时间：2026-05-29
+
+结论：`OI-040` 已修复。当前 `lifecycle-workbench.json` 已承载 LC-AP / LC-DT 安全技术措施对象和阶段级 `uses_measure` 关系。
+
+| 项 | 当前结果 |
+|---|---:|
+| `security_technical_service` | 35 |
+| `security_technology_module` | 45 |
+| `security_technical_measure` | 4 |
+| `uses_measure` | 4 |
+| 单独 `/` 生成措施对象 | 0 |
+| `N/A(...)` 正常措施对象 | 0 |
+| 缺失关系端点 | 0 |
+| 关系端点类型不一致 | 0 |
+
+当前措施关系：
+
+| 生命周期 | 阶段 | 措施 | 关系口径 |
+|---|---|---|---|
+| LC-AP | `AP-02` | `应用程序威胁建模` | `lifecycle_stage --uses_measure--> security_technical_measure` |
+| LC-AP | `AP-04` | `制品安全加固` | `lifecycle_stage --uses_measure--> security_technical_measure` |
+| LC-AP | `AP-05` | `IaC代码安全测试` | `lifecycle_stage --uses_measure--> security_technical_measure` |
+| LC-DT | `DT-07` | `数据销毁` | `lifecycle_stage --uses_measure--> security_technical_measure` |
+
+口径说明：
+
+- 当前原始数据能够支持阶段级措施投影，不能支持精确的 `security_technical_service -> security_technical_measure` 归属；因此本轮不伪造服务级关系。
+- 安全技术模块和安全技术措施继续作为不同对象类型，未混入同一字段。
+- 验证输出：`data/exports/worker-verify/be-4-3-lifecycle-measures-check.json`。

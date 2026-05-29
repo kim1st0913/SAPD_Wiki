@@ -739,7 +739,13 @@
 
     async getCapabilityWorkspaceProjection(params = {}) {
       const focusId = params.focusId || params.focus_id || "";
-      const query = focusId ? `?focus_id=${encodeURIComponent(focusId)}` : "";
+      const objectType = params.objectType || params.object_type || "";
+      const objectId = params.objectId || params.object_id || "";
+      const queryParams = new URLSearchParams();
+      if (objectType) queryParams.set("object_type", objectType);
+      if (objectId) queryParams.set("object_id", objectId);
+      if (!objectType && !objectId && focusId) queryParams.set("focus_id", focusId);
+      const query = queryParams.toString() ? `?${queryParams.toString()}` : "";
       const projection = await fetchApiData(`${API_PATHS.capabilityWorkspaceProjection}${query}`);
       return createEnvelope(
         projection || {

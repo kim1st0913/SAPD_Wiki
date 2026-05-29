@@ -1,8 +1,10 @@
 (function () {
   const components = (window.sapdComponents = window.sapdComponents || {});
   const utils = components.utils;
+  const display = window.sapdDisplay || {};
 
   function chipList(items, empty = "待补充") {
+    if (display.relationChipList) return display.relationChipList(utils, items, { empty, preferCodeTitle: false });
     const rows = utils.list(items).filter(Boolean);
     if (!rows.length) return `<span class="empty-inline">${utils.escapeHtml(empty)}</span>`;
     return rows.map((item) => `<span class="relation-chip">${utils.escapeHtml(displayValue(item, empty))}</span>`).join("");
@@ -27,12 +29,12 @@
           <thead>
             <tr>
               <th>序号</th>
-              <th>安全技术措施</th>
+              <th>${utils.escapeHtml(display.label?.("security_technical_measure", "安全技术措施") || "安全技术措施")}</th>
               <th>来源标签</th>
-              <th>关联安全技术服务</th>
-              <th>适用作用域</th>
-              <th>关联信息化环境</th>
-              <th>关联信息化对象</th>
+              <th>${utils.escapeHtml(display.relationLabel?.("security_technical_service") || "关联安全技术服务")}</th>
+              <th>${utils.escapeHtml(display.relationLabel?.("scope_type") || "关联作用域")}</th>
+              <th>${utils.escapeHtml(display.relationLabel?.("information_environment") || "关联信息化环境")}</th>
+              <th>${utils.escapeHtml(display.relationLabel?.("information_object") || "关联信息化对象")}</th>
             </tr>
           </thead>
           <tbody>

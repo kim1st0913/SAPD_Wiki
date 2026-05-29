@@ -1,6 +1,7 @@
 (function () {
   const components = (window.sapdComponents = window.sapdComponents || {});
   const utils = components.utils;
+  const display = window.sapdDisplay || {};
 
   const LAYERS = [
     { key: "decision", label: "决策层" },
@@ -58,9 +59,9 @@
   }
 
   function statusText(status) {
-    if (status === "ambiguous" || status === "ambiguous_service_mapping" || status === "pending") return "待确认";
-    if (status === "missing") return "待补充";
-    if (status === "no_service" || status === "not_applicable") return "不适用";
+    if (status === "ambiguous" || status === "ambiguous_service_mapping" || status === "pending") return display.state?.("pending_review") || "待确认";
+    if (status === "missing") return display.state?.("missing") || "待补充";
+    if (status === "no_service" || status === "not_applicable") return display.state?.("not_applicable") || "不适用";
     if (status === "description") return "说明类";
     return "已映射";
   }
@@ -385,8 +386,8 @@
     const upstream = [];
     const technicalPairs = list(map.technical?.scopeServicePairs)
       .map((pair) => ({
-        scope: { label: "作用域", title: valueOf(pair.scopeName, "待补充作用域"), code: pair.scopeCode || "" },
-        service: { label: "安全技术服务", title: valueOf(pair.serviceName, "无适用服务"), code: pair.serviceCode || "" },
+        scope: { label: display.label?.("scope_type", "作用域") || "作用域", title: valueOf(pair.scopeName, "待补充作用域"), code: pair.scopeCode || "" },
+        service: { label: display.label?.("security_technical_service", "安全技术服务") || "安全技术服务", title: valueOf(pair.serviceName, display.state?.("no_applicable_service") || "无适用服务"), code: pair.serviceCode || "" },
       }))
       .slice(0, 6);
     const workFunctionsByLayer = map.management?.workFunctionsByLayer || {};
@@ -399,16 +400,16 @@
     }));
     const processTree = list(map.management?.processTree);
     const processGroups = processTree.map((group) => ({
-      label: "L2流程组",
+      label: display.label?.("l2_process_group", "L2 流程组") || "L2 流程组",
       title: valueOf(group.l2ProcessGroup, "待补充"),
       code: group.code || "",
     }));
     const processReferences = processTree
       .flatMap((group) => list(group.l3Processes))
-      .map((process) => ({ label: "L3流程", title: entityName(process), code: entityCode(process) }));
+      .map((process) => ({ label: display.label?.("l3_process", "L3 流程") || "L3 流程", title: entityName(process), code: entityCode(process) }));
     const treeActivities = processTree.flatMap((group) => list(group.l3Processes).flatMap((process) => list(process.activities)));
     const activities = (treeActivities.length ? treeActivities : list(map.management?.activities)).map((activity) => ({
-      label: "L4活动",
+      label: display.label?.("l4_activity", "L4 活动") || "L4 活动",
       title: entityName(activity),
       code: entityCode(activity),
       status: activity.status || "",
@@ -518,7 +519,7 @@
     const l4Nodes = l4Rows.length
       ? l4Rows
       : management.hasMissingActivity
-      ? [{ label: "L4活动", title: "L4 待补充", code: "" }]
+      ? [{ label: display.label?.("l4_activity", "L4 活动") || "L4 活动", title: "L4 活动待补充", code: "" }]
       : [];
     return `
       <article class="summary-path-lane tone-management summary-management-lane">
@@ -622,9 +623,9 @@
           <table class="semantic-mapping-table">
             <thead>
               <tr>
-                <th>作用域</th>
-                <th>安全技术服务</th>
-                <th>技术模块/措施</th>
+                <th>${escape(display.label?.("scope_type", "作用域") || "作用域")}</th>
+                <th>${escape(display.label?.("security_technical_service", "安全技术服务") || "安全技术服务")}</th>
+                <th>${escape(display.label?.("security_module_or_measure", "安全技术模块/措施") || "安全技术模块/措施")}</th>
               </tr>
             </thead>
             <tbody>
@@ -685,13 +686,13 @@
             columns: [
               { key: "work", label: "安全工作", type: "chips", empty: "暂无安全工作" },
               { key: "functions", label: "安全职能", type: "functionLayers" },
-              { key: "l2", label: "L2流程组" },
-              { key: "l3", label: "L3流程" },
-              { key: "l4", label: "L4活动", type: "chips", empty: "暂无" },
+              { key: "l2", label: display.label?.("l2_process_group", "L2 流程组") || "L2 流程组" },
+              { key: "l3", label: display.label?.("l3_process", "L3 流程") || "L3 流程" },
+              { key: "l4", label: display.label?.("l4_activity", "L4 活动") || "L4 活动", type: "chips", empty: display.state?.("empty") || "暂无" },
             ],
             rows: managementTableRows(map),
             title: "管理视角映射矩阵",
-            description: "当前关注点 -> 安全工作 -> 安全职能 -> L2流程组 -> L3流程 -> L4活动",
+            description: "当前关注点 -> 安全工作 -> 安全职能 -> L2 流程组 -> L3 流程 -> L4 活动",
           }
         : mode === "standard"
           ? {
@@ -709,8 +710,8 @@
           : {
               mode,
               columns: [
-                { key: "scope", label: "作用域", type: "path" },
-                { key: "service", label: "安全技术服务", type: "path" },
+                { key: "scope", label: display.label?.("scope_type", "作用域") || "作用域", type: "path" },
+                { key: "service", label: display.label?.("security_technical_service", "安全技术服务") || "安全技术服务", type: "path" },
               ],
               rows: technicalTableRows(map),
               title: "技术视角映射矩阵",

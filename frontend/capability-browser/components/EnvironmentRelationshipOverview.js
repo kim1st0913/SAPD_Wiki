@@ -1,6 +1,7 @@
 (function () {
   const components = (window.sapdComponents = window.sapdComponents || {});
   const utils = components.utils;
+  const display = window.sapdDisplay || {};
 
   function factList(items) {
     return `
@@ -42,10 +43,10 @@
             { label: "所属信息化环境", value: environment?.title || "未命名环境" },
             { label: "环境子类", value: segmentText },
             { label: "对象数", value: summary.selectedObjectCount ?? 0 },
-            { label: "作用域", value: summary.scopeCount ?? 0 },
-            { label: "技术服务", value: summary.serviceCount ?? 0 },
-            { label: "模块/措施", value: summary.moduleCount ?? 0 },
-            { label: "无适用服务", value: summary.notApplicableCount ?? 0 },
+            { label: display.label?.("scope_type", "作用域") || "作用域", value: summary.scopeCount ?? 0 },
+            { label: display.label?.("security_technical_service", "安全技术服务") || "安全技术服务", value: summary.serviceCount ?? 0 },
+            { label: display.label?.("security_module_or_measure", "安全技术模块/措施") || "安全技术模块/措施", value: summary.moduleCount ?? 0 },
+            { label: display.state?.("no_applicable_service") || "无适用服务", value: summary.notApplicableCount ?? 0 },
           ])}
         </div>
       </section>

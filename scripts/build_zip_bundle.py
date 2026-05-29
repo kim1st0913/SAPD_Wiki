@@ -96,6 +96,7 @@ cd "$DIR" || exit 1
 if [ ! -x "$DIR/SAPD-Wiki-Backend" ]; then
   echo "SAPD-Wiki-Backend is missing or not executable."
   echo "Try: chmod +x \"$DIR/SAPD-Wiki-Backend\" \"$DIR/start-macos.command\""
+  echo "If macOS says Apple cannot verify the app, try: xattr -dr com.apple.quarantine \"$DIR\""
   echo "Then check logs/runtime.log or run diagnostics/export-diagnostics.command."
   exit 1
 fi
@@ -136,6 +137,7 @@ def readme_content(platform_name: str, placeholder: bool = False) -> str:
         else (
             "macOS ZIP 内部包含 SAPD-Wiki-Backend 和 start-macos.command。"
             " 如果系统提示权限或安全风险，可先执行 chmod +x start-macos.command SAPD-Wiki-Backend；"
+            " 如果 macOS 提示 Apple 无法验证，可在终端进入解压目录后执行 xattr -dr com.apple.quarantine .；"
             " 未签名可执行文件的 Gatekeeper 提示留到正式签名阶段解决。"
         )
     )
@@ -187,6 +189,7 @@ def readme_content(platform_name: str, placeholder: bool = False) -> str:
 - 启动失败时，先查看 `logs/runtime.log`。
 - 需要发给维护人员时，运行 `diagnostics/` 目录下的诊断脚本导出诊断包。
 - 诊断包默认不包含用户备注全文或 SQLite 数据库内容。
+- macOS 内部 alpha 未签名。如果出现“Apple 无法验证 SAPD-Wiki-Backend”，可在解压后的 ZIP 根目录运行 `xattr -dr com.apple.quarantine .` 后再启动。
 {security_note}
 """
 

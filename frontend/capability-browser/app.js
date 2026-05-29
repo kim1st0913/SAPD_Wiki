@@ -44,6 +44,10 @@ const state = {
   standardFrameworkLoads: new Map(),
   loadedPackages: new Set(),
   packageLoads: new Map(),
+  capabilityProjectionFallbackFocusIds: new Set(),
+  capabilityProjectionRequestSeq: 0,
+  activeCapabilityProjectionRequest: null,
+  capabilityProjectionRequests: new Map(),
   search: "",
   pageHeaderSummary: [],
   pageHeaderNote: "",
@@ -261,14 +265,18 @@ function mergeCapabilityProjection(projection) {
 }
 
 function capabilityItemTypeById(id) {
+  return capabilityItemById(id)?.type || "";
+}
+
+function capabilityItemById(id) {
   if (!id) return "";
   const stack = [...list(state.capability?.categories)];
   while (stack.length) {
     const item = stack.shift();
-    if (item?.id === id) return item.type || "";
+    if (item?.id === id) return item;
     stack.push(...list(item?.domains), ...list(item?.capabilities), ...list(item?.focuses));
   }
-  return "";
+  return null;
 }
 
 function capabilityProjectionHasFocus(focusId) {
@@ -277,8 +285,49 @@ function capabilityProjectionHasFocus(focusId) {
   return Boolean(maps[focusId]);
 }
 
+function capabilityWorkbenchHasFullRelations() {
+  const workbench = state.capabilityWorkbench;
+  if (!workbench || typeof workbench !== "object") return false;
+  const objects = workbench.objects && typeof workbench.objects === "object" ? workbench.objects : {};
+  return Boolean(list(workbench.relationshipGroups).length || list(workbench.relations).length || Object.keys(objects).length);
+}
+
 function capabilityProjectionLoadKey(focusId) {
-  return `capabilityProjection:${focusId}`;
+  const item = capabilityItemById(focusId);
+  return capabilityProjectionLoadKeyForItem(item || { id: focusId, type: "capability_focus" });
+}
+
+function capabilityProjectionLoadKeyForItem(item) {
+  return `capabilityProjection:${item?.type || "unknown"}:${item?.id || ""}`;
+}
+
+function capabilityProjectionObjectMatches(actual, expected) {
+  const actualKeys = [actual?.id, actual?.code].map(text).filter(Boolean);
+  const expectedKeys = [expected?.id, expected?.code].map(text).filter(Boolean);
+  return actualKeys.some((key) => expectedKeys.includes(key));
+}
+
+function capabilityProjectionMatchesSelection(projection, expectedItem) {
+  if (!projection || !expectedItem) return false;
+  const dataState = text(projection.dataState || projection.data_state).trim();
+  if (dataState && dataState !== "ready" && dataState !== "empty") return false;
+  const selected = projection.selected || null;
+  const center = projection.graph?.center || null;
+  if (!selected || !center) return false;
+  if (text(selected.type) !== text(expectedItem.type)) return false;
+  if (text(center.type) !== text(selected.type)) return false;
+  return capabilityProjectionObjectMatches(selected, expectedItem) && capabilityProjectionObjectMatches(center, selected);
+}
+
+function isActiveCapabilityProjectionRequest(request) {
+  return (
+    request &&
+    state.activeCapabilityProjectionRequest?.seq === request.seq &&
+    state.activeCapabilityProjectionRequest?.objectId === request.objectId &&
+    state.activeCapabilityProjectionRequest?.objectType === request.objectType &&
+    state.activeView === "capabilities" &&
+    state.selectedCapabilityId === request.objectId
+  );
 }
 
 function capabilitySelectionNeedsFullWorkbench(selectedType) {
@@ -286,23 +335,51 @@ function capabilitySelectionNeedsFullWorkbench(selectedType) {
     state.selectedCapabilityId &&
       selectedType &&
       selectedType !== "capability_focus" &&
+      !capabilityWorkbenchHasFullRelations() &&
       !state.loadedPackages.has("capabilityWorkbench"),
   );
 }
 
 function ensureCapabilityProjectionForFocus(focusId) {
   if (!focusId || capabilityProjectionHasFocus(focusId)) return Promise.resolve();
-  const loadKey = capabilityProjectionLoadKey(focusId);
-  if (state.packageLoads.has(loadKey)) return state.packageLoads.get(loadKey);
+  const item = capabilityItemById(focusId);
+  if (!item || item.type !== "capability_focus") return Promise.resolve();
+  const loadKey = capabilityProjectionLoadKeyForItem(item);
+  if (state.packageLoads.has(loadKey)) {
+    const pendingRequest = state.capabilityProjectionRequests.get(loadKey);
+    if (pendingRequest) state.activeCapabilityProjectionRequest = pendingRequest;
+    return state.packageLoads.get(loadKey);
+  }
+  const request = {
+    seq: ++state.capabilityProjectionRequestSeq,
+    objectId: item.id,
+    objectType: item.type,
+    objectCode: item.code || "",
+  };
+  state.activeCapabilityProjectionRequest = request;
+  state.capabilityProjectionRequests.set(loadKey, request);
   const dataClient = window.sapdDataClient;
   const load = dataClient
-    ?.getCapabilityWorkspaceProjection?.({ focusId })
-    .then((envelope) => {
-      mergeCapabilityProjection(envelope?.data);
+    ?.getCapabilityWorkspaceProjection?.({ objectType: item.type, objectId: item.id })
+    .then(async (envelope) => {
+      if (!isActiveCapabilityProjectionRequest(request)) return;
+      const projection = envelope?.data;
+      if (!capabilityProjectionMatchesSelection(projection, item)) {
+        console.warn("关注点关系投影与当前选择不一致，已丢弃", { requested: request, selected: projection?.selected, center: projection?.graph?.center });
+      } else {
+        mergeCapabilityProjection(projection);
+      }
+      if (!capabilityProjectionHasFocus(focusId) && !capabilityWorkbenchHasFullRelations() && !state.loadedPackages.has("capabilityWorkbench")) {
+        state.capabilityProjectionFallbackFocusIds.add(focusId);
+        await loadDataPackage("capabilityWorkbench");
+      }
       if (state.activeView === "capabilities" && state.selectedCapabilityId === focusId) renderCapabilities();
     })
     .catch((error) => console.warn("关注点关系投影加载失败", error))
-    .finally(() => state.packageLoads.delete(loadKey));
+    .finally(() => {
+      state.packageLoads.delete(loadKey);
+      state.capabilityProjectionRequests.delete(loadKey);
+    });
   if (load) state.packageLoads.set(loadKey, load);
   return load || Promise.resolve();
 }
@@ -878,7 +955,12 @@ function renderDashboardBarRows(packages, key) {
 }
 
 function renderDashboardDonut(packages, total) {
-  const colors = ["#2563eb", "#16a34a", "#c56b2c", "#0f766e"];
+  const colors = [
+    "oklch(0.49 0.055 224)",
+    "oklch(0.51 0.048 150)",
+    "oklch(0.56 0.054 48)",
+    "oklch(0.53 0.05 300)",
+  ];
   let cursor = 0;
   const stops = packages
     .map((item, index) => {
@@ -890,7 +972,7 @@ function renderDashboardDonut(packages, total) {
     .join(", ");
   return `
     <div class="dashboard-donut-wrap">
-      <div class="dashboard-donut" style="background:conic-gradient(${escapeHtml(stops || "#d8e1ee 0% 100%")})">
+      <div class="dashboard-donut" style="background:conic-gradient(${escapeHtml(stops || "oklch(0.86 0.014 86) 0% 100%")})">
         <div><strong>${escapeHtml(formatNumber(total))}</strong><span>对象</span></div>
       </div>
       <div class="dashboard-legend">
@@ -1253,12 +1335,11 @@ function renderCapabilities() {
     loadDataPackage("capabilityWorkbench").then(() => {
       if (state.activeView === "capabilities") renderCapabilities();
     });
-    setHtml("capabilityFocusHeader", "");
-    setHtml("detail", emptyState("正在加载整体能力关系数据", "进攻能力、安全治理能力、安全管理能力等整体节点需要补载完整能力工作台数据。"));
-    applyCapabilityCatalogState();
-    return;
   }
-  const isFocusProjectionPending = selectedType === "capability_focus" && !capabilityProjectionHasFocus(state.selectedCapabilityId);
+  const isFocusProjectionPending =
+    selectedType === "capability_focus" &&
+    !capabilityProjectionHasFocus(state.selectedCapabilityId) &&
+    !capabilityWorkbenchHasFullRelations();
   if (isFocusProjectionPending) {
     ensureCapabilityProjectionForFocus(state.selectedCapabilityId);
   }

@@ -1,6 +1,7 @@
 (function () {
   const components = (window.sapdComponents = window.sapdComponents || {});
   const utils = components.utils;
+  const display = window.sapdDisplay || {};
 
   function emptyState(title) {
     return `<div class="detail-empty"><strong>${utils.escapeHtml(title)}</strong><span>请选择能力或关注点</span></div>`;
@@ -56,9 +57,9 @@
           </div>
           <div class="focus-overview-metrics">
             ${summaryGrid("技术落地", [
-              { label: "作用域", value: technical.scopeCount ?? currentRow.scopeCount ?? 0 },
-              { label: "服务", value: technical.serviceCount ?? currentRow.serviceCount ?? 0 },
-              { label: "模块", value: technical.moduleCount ?? currentRow.moduleCount ?? 0 },
+              { label: display.label?.("scope_type", "作用域") || "作用域", value: technical.scopeCount ?? currentRow.scopeCount ?? 0 },
+              { label: display.label?.("security_technical_service", "安全技术服务") || "安全技术服务", value: technical.serviceCount ?? currentRow.serviceCount ?? 0 },
+              { label: display.label?.("security_module_or_measure", "安全技术模块/措施") || "安全技术模块/措施", value: technical.moduleCount ?? currentRow.moduleCount ?? 0 },
             ])}
             ${summaryGrid("管理执行", [
               { label: "安全工作", value: management.securityWorkCount ?? currentRow.securityWorkCount ?? 0 },

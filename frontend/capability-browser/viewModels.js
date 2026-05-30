@@ -563,15 +563,12 @@
 
   function compactLocalFocus(focus) {
     const compact = compactEntity(focus, "未命名关注点");
-    const type = text(compact?.type || focus?.type);
-    const graphScope = type === "capability_category" ? "category" : type === "capability_domain" ? "domain" : type === "capability" ? "capability" : "focus";
     return {
       id: compact?.id || "",
       type: compact?.type || "",
       code: compact?.code || "",
       name: compact?.title || "",
       description: compact?.description || "",
-      graphScope,
     };
   }
 
@@ -860,30 +857,8 @@
   function isReadyCapabilityProjection(capabilityProjection) {
     if (!capabilityProjection) return false;
     const dataState = text(capabilityProjection.data_state || capabilityProjection.dataState || "").trim();
-    if (dataState && dataState !== "ready" && dataState !== "empty") return false;
-    return Boolean(
-      capabilityProjection.selected ||
-        capabilityProjection.graph?.center ||
-        capabilityProjection.localRelationMap ||
-        capabilityProjection.localRelationMapsByFocusId ||
-        list(capabilityProjection.localRelationMaps).length,
-    );
-  }
-
-  function projectionObjectMatches(actual, expected) {
-    const actualKeys = [actual?.id, actual?.code].map(text).filter(Boolean);
-    const expectedKeys = [expected?.id, expected?.code].map(text).filter(Boolean);
-    return actualKeys.some((key) => expectedKeys.includes(key));
-  }
-
-  function capabilityProjectionMatchesSelected(capabilityProjection, selectedDetail) {
-    if (!isReadyCapabilityProjection(capabilityProjection) || !selectedDetail) return false;
-    const selected = capabilityProjection.selected || null;
-    const center = capabilityProjection.graph?.center || null;
-    if (!selected || !center) return false;
-    if (text(selected.type) !== text(selectedDetail.type)) return false;
-    if (text(center.type) !== text(selected.type)) return false;
-    return projectionObjectMatches(selected, selectedDetail) && projectionObjectMatches(center, selected);
+    if (dataState && dataState !== "ready") return false;
+    return Boolean(capabilityProjection.localRelationMap || capabilityProjection.localRelationMapsByFocusId || list(capabilityProjection.localRelationMaps).length);
   }
 
   function projectedLocalRelationMapFor(capabilityProjection, selectedFocusId) {
@@ -927,6 +902,7 @@
       lifecycleType: item.lifecycleType || item.lifecycle_type || "",
       objectKind: item.objectKind || item.object_kind || "",
       originalBusinessFields: item.originalBusinessFields || item.original_business_fields || {},
+      dataPolicyRows: item.dataPolicyRows || item.data_policy_rows || [],
       ...extra,
     };
   }
@@ -1077,18 +1053,18 @@
     const workbenchManagementRows = buildCapabilityManagementRowsFromWorkbench(capabilityWorkbench, visibleFocuses);
     const workbenchStandardRows = buildCapabilityStandardRowsFromWorkbench(capabilityWorkbench, visibleFocuses);
     const isFocus = selectedDetail?.type === "capability_focus";
-    const canUseProjection = capabilityProjectionMatchesSelected(capabilityProjection, selectedDetail);
-    const projectedTechnicalRows = canUseProjection ? list(capabilityProjection?.technicalMappingRows || capabilityProjection?.technical_mapping_rows) : [];
-    const projectedManagementRows = canUseProjection ? list(capabilityProjection?.managementMappingRows || capabilityProjection?.management_mapping_rows) : [];
-    const technicalMappingRows = projectedTechnicalRows.length
-      ? projectedTechnicalRows.filter((row) => visibleFocusIdSet.has(row.focus?.id))
-      : workbenchTechnicalRows.length
+    const canUseFocusProjection = isFocus;
+    const projectedTechnicalRows = canUseFocusProjection ? list(capabilityProjection?.technicalMappingRows || capabilityProjection?.technical_mapping_rows) : [];
+    const projectedManagementRows = canUseFocusProjection ? list(capabilityProjection?.managementMappingRows || capabilityProjection?.management_mapping_rows) : [];
+    const technicalMappingRows = workbenchTechnicalRows.length
       ? workbenchTechnicalRows
+      : projectedTechnicalRows.length
+      ? projectedTechnicalRows.filter((row) => visibleFocusIdSet.has(row.focus?.id))
       : buildTechnicalMappingRows({ management, focuses: visibleFocuses });
-    const managementMappingRows = projectedManagementRows.length
-      ? projectedManagementRows.filter((row) => visibleFocusIdSet.has(row.focus?.id))
-      : workbenchManagementRows.length
+    const managementMappingRows = workbenchManagementRows.length
       ? workbenchManagementRows
+      : projectedManagementRows.length
+      ? projectedManagementRows.filter((row) => visibleFocusIdSet.has(row.focus?.id))
       : buildManagementMappingRows({ focuses: visibleFocuses });
     const focusOverview = buildFocusOverview({ capabilityTree, focuses: visibleFocuses, selectedDetail, technicalRows: technicalMappingRows, managementRows: managementMappingRows });
     const selectedFocusRow = rows.find((row) => row.focus.id === selectedId) || rows[0] || null;
@@ -1104,10 +1080,9 @@
     const detailSecurityWorks = isFocus ? managementMappingRows.find((row) => row.focus.id === selectedDetail.id)?.securityWorks || [] : uniqueBy(managementMappingRows.flatMap((row) => row.securityWorks), (work) => work.id || work.code || work.title);
     const detailSourceItems = [...list(detailRaw?.security_works), ...list(detailRaw?.scope_mappings)];
     const detailSourceEvidence = sourceEvidenceFor(detailRaw, detailRawProcesses, detailSourceItems);
-    const projectedFocusId = canUseProjection && isFocus ? selectedDetail.id : null;
-    const projectedLocalRelationMap = projectedFocusId ? projectedLocalRelationMapFor(capabilityProjection, projectedFocusId) : null;
-    const usingProjectedMappingRows = Boolean(projectedTechnicalRows.length || projectedManagementRows.length);
-    const usingWorkbenchMappingRows = Boolean(!usingProjectedMappingRows && (workbenchTechnicalRows.length || workbenchManagementRows.length));
+    const projectedFocusId = canUseFocusProjection ? selectedDetail.id : null;
+    const projectedLocalRelationMap = canUseFocusProjection ? projectedLocalRelationMapFor(capabilityProjection, projectedFocusId) : null;
+    const usingWorkbenchMappingRows = Boolean(workbenchTechnicalRows.length || workbenchManagementRows.length);
     const usingProjectedLocalRelationMap = Boolean(!usingWorkbenchMappingRows && projectedLocalRelationMap);
     const localRelationMap =
       usingProjectedLocalRelationMap
@@ -1139,7 +1114,7 @@
       managementMappingRows,
       standardMappingRows: workbenchStandardRows,
       localRelationMap,
-      localRelationMapSource: usingProjectedMappingRows || usingProjectedLocalRelationMap ? "backend_projection" : usingWorkbenchMappingRows ? "capability_workbench" : "viewmodel_fallback",
+      localRelationMapSource: usingWorkbenchMappingRows ? "capability_workbench" : usingProjectedLocalRelationMap ? "backend_projection" : "viewmodel_fallback",
       localRelationshipNotes: buildLocalRelationshipNotes(chainFocus, technicalMappingRows, managementMappingRows),
       relationshipMatrixRows: rows,
       relationshipChainRows: buildRelationshipChainRows(chainFocus),
@@ -3326,7 +3301,6 @@
 
   function buildDataLifecycleOriginalFieldRows(selectedStageRow) {
     if (!selectedStageRow) return [];
-    const technicalServices = list(selectedStageRow.technicalServices).map((service) => [service?.code, titleOf(service, "")].filter(Boolean).join(" "));
     const technicalModules = [...list(selectedStageRow.technologyModules), ...list(selectedStageRow.technicalMeasures)];
     return [
       {
@@ -3335,15 +3309,81 @@
         stageCode: selectedStageRow.code || "",
         stageTitle: selectedStageRow.title || "",
         processDefinition: selectedStageRow.description || selectedStageRow.goal || "",
-        scenes: lifecycleFieldListText(selectedStageRow.scenes),
-        sceneDescriptions: list(selectedStageRow.scenes)
-          .map((scene) => [scene?.code, titleOf(scene, ""), scene?.description].filter(Boolean).join("："))
-          .filter(Boolean)
-          .join("\n"),
-        technicalServices: lifecycleFieldListText(technicalServices),
+        scenes: list(selectedStageRow.scenes).map((scene) => ({
+          id: scene?.id || scene?.code || titleOf(scene, ""),
+          code: scene?.code || "",
+          title: titleOf(scene, ""),
+          description: businessText(scene?.description, ""),
+        })),
+        technicalServices: list(selectedStageRow.technicalServices),
         technologyModules: technicalModules,
       },
     ];
+  }
+
+  function compactDataLifecyclePolicy(policy) {
+    return {
+      level: policy?.level || "",
+      label: policy?.label || "",
+      code: policy?.code || "",
+      text: businessText(policy?.text, ""),
+      reference: businessText(policy?.reference, ""),
+      status: policy?.status || "",
+    };
+  }
+
+  function compactDataLifecyclePolicyRow(row, index = 0) {
+    const modules = list(row?.module_or_measure_items || row?.moduleOrMeasureItems).length
+      ? list(row?.module_or_measure_items || row?.moduleOrMeasureItems)
+      : [...list(row?.technology_modules || row?.technologyModules), ...list(row?.technical_measures || row?.technicalMeasures)];
+    return {
+      id: row?.id || `data-policy-row:${index}`,
+      category: businessText(row?.category, ""),
+      sequence: businessText(row?.sequence, ""),
+      policies: list(row?.policies).map(compactDataLifecyclePolicy),
+      technicalServices: list(row?.technical_services || row?.technicalServices).map(compactLifecycleItem),
+      technologyModules: modules.map(compactLifecycleItem),
+    };
+  }
+
+  function compactDataLifecyclePolicyRows(rows) {
+    return list(rows).map(compactDataLifecyclePolicyRow);
+  }
+
+  function findDataLifecycleProcess(lifecycle, selectedStage) {
+    if (!selectedStage) return null;
+    const candidates = list(lifecycle?.data_lifecycle?.processes);
+    return (
+      candidates.find((process) => process?.id === selectedStage.id) ||
+      candidates.find((process) => process?.code && process.code === selectedStage.code) ||
+      candidates.find((process) => titleOf(process, "") === titleOf(selectedStage, "")) ||
+      null
+    );
+  }
+
+  function dataPolicyRowsForStage(lifecycle, selectedStage) {
+    const workbenchRows = list(selectedStage?.dataPolicyRows || selectedStage?.data_policy_rows);
+    if (workbenchRows.length) return compactDataLifecyclePolicyRows(workbenchRows);
+    const sourceProcess = findDataLifecycleProcess(lifecycle, selectedStage);
+    return compactDataLifecyclePolicyRows(sourceProcess?.data_policy_rows || sourceProcess?.dataPolicyRows);
+  }
+
+  function comparableItemKey(item) {
+    return text(item?.code || item?.title || item?.name || item).trim();
+  }
+
+  function dataLifecycleTechnicalConsistency(stageRow, policyRows) {
+    const stageServiceKeys = new Set(list(stageRow?.technicalServices).map(comparableItemKey).filter(Boolean));
+    const policyServiceKeys = new Set(list(policyRows).flatMap((row) => list(row.technicalServices).map(comparableItemKey)).filter(Boolean));
+    const stageModuleKeys = new Set([...list(stageRow?.technologyModules), ...list(stageRow?.technicalMeasures)].map(comparableItemKey).filter(Boolean));
+    const policyModuleKeys = new Set(list(policyRows).flatMap((row) => list(row.technologyModules).map(comparableItemKey)).filter(Boolean));
+    const serviceDelta = [...stageServiceKeys].filter((key) => !policyServiceKeys.has(key)).length + [...policyServiceKeys].filter((key) => !stageServiceKeys.has(key)).length;
+    const moduleDelta = [...stageModuleKeys].filter((key) => !policyModuleKeys.has(key)).length + [...policyModuleKeys].filter((key) => !stageModuleKeys.has(key)).length;
+    return {
+      status: serviceDelta === 0 && moduleDelta === 0 ? "两表一致" : "待核对",
+      serviceDelta,
+      moduleDelta,
+    };
   }
 
   function buildLifecycleNavigation(processes, search) {
@@ -3406,6 +3446,7 @@
         ...compactLifecycleItem(measure),
         objectKind: "安全技术措施",
       })),
+      dataPolicyRows: compactDataLifecyclePolicyRows(process.data_policy_rows || process.dataPolicyRows),
     }));
   }
 
@@ -3658,6 +3699,8 @@
       technicalServiceCount: technicalServices.length,
       technologyModuleCount: technologyModules.length,
       technicalMeasureCount: technicalMeasures.length,
+      dataPolicyRowCount: 0,
+      technicalConsistencyStatus: "",
     };
     const selectedStageRow = selectedStage
       ? {
@@ -3668,6 +3711,12 @@
           technicalMeasures,
         }
       : null;
+    const policyRows = dataPolicyRowsForStage(lifecycle, selectedStageRow);
+    const consistency = dataLifecycleTechnicalConsistency(selectedStageRow, policyRows);
+    summary.dataPolicyRowCount = policyRows.length;
+    summary.technicalConsistencyStatus = consistency.status;
+    summary.serviceConsistencyDelta = consistency.serviceDelta;
+    summary.moduleConsistencyDelta = consistency.moduleDelta;
     const stageOverview = selectedStage
       ? {
           mode: "data",
@@ -3677,6 +3726,8 @@
           status: "当前数据过程",
           facts: [
             { label: "处理场景", value: summary.sceneCount },
+            { label: "策略行", value: summary.dataPolicyRowCount },
+            { label: "两表技术映射", value: summary.technicalConsistencyStatus },
             { label: displayLabel("security_technical_service", "安全技术服务"), value: summary.technicalServiceCount },
             { label: displayLabel("security_technology_module", "安全技术模块"), value: summary.technologyModuleCount },
             { label: displayLabel("security_technical_measure", "安全技术措施"), value: summary.technicalMeasureCount },
@@ -3687,7 +3738,7 @@
     return {
       dataState: dataSource.workbenchReady ? "ready" : "empty",
       title: "LC-DT数据生命周期安全",
-      description: "按 LC-DT 原始业务字段展示数据处理过程、处理场景、安全技术服务、安全技术模块和安全技术措施。",
+      description: "按 LC-DT 两个原始 sheet 展示数据处理场景、数据重要程度安全策略，以及同一阶段一致的安全技术服务和安全技术模块/措施。",
       navigationTree,
       stageTree: navigationTree,
       selectedProcess: selectedStageRow,
@@ -3696,6 +3747,7 @@
       stageOverview,
       stageRows: navigationTree,
       relationRows,
+      policyRows,
       serviceMappingRows: {
         securityServiceRows: technicalServices.map((service) => ({ id: service.id, category: service.category || "安全技术服务", service, modules: workbenchTargets(lifecycleWorkbench, objectsById, service.id, "implemented_by_module", "security_technology_module").map(compactLifecycleItem) })),
         stageModules,
@@ -3712,12 +3764,15 @@
             description: selectedStage.description || PENDING_TEXT,
             facts: [
               { label: "处理场景", value: summary.sceneCount },
+              { label: "策略行", value: summary.dataPolicyRowCount },
+              { label: "两表技术映射", value: summary.technicalConsistencyStatus },
               { label: displayLabel("security_technical_service", "安全技术服务"), value: summary.technicalServiceCount },
               { label: displayLabel("security_technology_module", "安全技术模块"), value: summary.technologyModuleCount },
               { label: displayLabel("security_technical_measure", "安全技术措施"), value: summary.technicalMeasureCount },
             ],
             sections: [
               { title: "数据处理场景", items: scenes },
+              { title: "数据重要程度安全策略", items: policyRows.map((row) => ({ id: row.id, title: [row.category, row.sequence].filter(Boolean).join(" "), objectKind: "策略行" })) },
               { title: "安全技术服务", items: technicalServices },
               { title: "安全技术模块", items: technologyModules },
               { title: "安全技术措施", items: technicalMeasures },
@@ -3870,10 +3925,12 @@
     const selectedStageRow = stageRows.find((row) => row.id === selectedId) || stageRows[0] || null;
     if (selectedStageRow) selectedStageRow.scenes = list(list(dataLifecycle.processes).find((item) => item.id === selectedStageRow.id)?.scenes).map(compactLifecycleItem);
     const relationRows = buildDataLifecycleOriginalFieldRows(selectedStageRow);
+    const policyRows = dataPolicyRowsForStage(lifecycle, selectedStageRow);
+    const consistency = dataLifecycleTechnicalConsistency(selectedStageRow, policyRows);
     return {
       dataState,
       title: "LC-DT数据生命周期安全",
-      description: "按 LC-DT 原始业务字段展示数据处理过程、处理场景、安全技术服务、安全技术模块和安全技术措施。",
+      description: "按 LC-DT 两个原始 sheet 展示数据处理场景、数据重要程度安全策略，以及同一阶段一致的安全技术服务和安全技术模块/措施。",
       navigationTree,
       stageTree: navigationTree,
       selectedProcess: selectedStageRow,
@@ -3882,6 +3939,10 @@
         processCount: navigationTree.length,
         selectedProcessId: selectedId,
         sceneCount: list(selectedStageRow?.scenes).length,
+        dataPolicyRowCount: policyRows.length,
+        technicalConsistencyStatus: consistency.status,
+        serviceConsistencyDelta: consistency.serviceDelta,
+        moduleConsistencyDelta: consistency.moduleDelta,
         technicalServiceCount: list(selectedStageRow?.technicalServices).length,
         technologyModuleCount: list(selectedStageRow?.technologyModules).length,
         technicalMeasureCount: list(selectedStageRow?.technicalMeasures).length,
@@ -3892,9 +3953,15 @@
             code: selectedStageRow.code || "LC-DT",
             title: selectedStageRow.title || PENDING_TEXT,
             description: selectedStageRow.description || selectedStageRow.goal || PENDING_TEXT,
+            facts: [
+              { label: "处理场景", value: list(selectedStageRow?.scenes).length },
+              { label: "策略行", value: policyRows.length },
+              { label: "两表技术映射", value: consistency.status },
+            ],
           }
         : null,
       relationRows,
+      policyRows,
       dataSource: sourceStatus,
       workbenchViewModel: lifecycleWorkbenchViewModel || null,
       emptyState: navigationTree.length

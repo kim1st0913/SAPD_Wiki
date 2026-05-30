@@ -1730,7 +1730,7 @@ body.is-resizing {
   border-radius: 999px;
   background: #eef3ec;
   color: #3e5f45;
-  font-family: var(--mono);
+  font-family: var(--mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
   font-size: 12px;
   font-weight: 820;
   line-height: 1.28;
@@ -4323,40 +4323,45 @@ button.source-sheet-row.active {
   gap: 9px;
 }
 
+.source-reference-note,
 .lifecycle-activity-source-note {
   display: grid;
-  gap: 5px;
-  border-top: 1px dashed #cbd9e3;
-  padding-top: 8px;
+  gap: 6px;
+  border-top: 0;
+  padding-top: 0;
 }
 
+.source-reference-label,
 .activity-source-label {
-  width: fit-content;
-  color: #5f7081;
-  font-size: 11px;
-  font-weight: 860;
+  width: auto;
+  color: #607286;
+  font-size: 12px;
+  font-weight: 740;
   line-height: 1.2;
 }
 
+.source-reference-value,
 .activity-source-values {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
+  display: block;
+  min-width: 0;
 }
 
+.source-reference-value span,
 .activity-source-values span {
-  display: inline-flex;
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
   max-width: 100%;
-  align-items: center;
-  border: 1px solid #d8dfeb;
-  border-radius: 6px;
-  background: #f7f9fc;
-  color: #4c5b70;
-  padding: 3px 7px;
-  font-size: 11px;
-  font-weight: 720;
-  line-height: 1.35;
+  border: 1px solid rgba(132, 143, 159, 0.24);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #4f5f73;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.45;
   overflow-wrap: anywhere;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
 .lifecycle-profile-table .development-mode .lifecycle-field-lines {
@@ -4490,6 +4495,11 @@ button.source-sheet-row.active {
   font-weight: 740;
 }
 
+.lifecycle-profile-table .main-activities .security-main-activity-title {
+  color: #c43b31;
+  font-weight: 820;
+}
+
 .lifecycle-workbench-table tbody tr:hover td {
   background: #f8fbff;
 }
@@ -4524,39 +4534,39 @@ button.source-sheet-row.active {
   font-weight: 900;
 }
 
-.lifecycle-security-table thead tr:first-child th:nth-child(1),
-.lifecycle-security-table td:nth-child(1) {
-  width: 14%;
+.lifecycle-security-table:not(.data-lifecycle-policy-table) thead tr:first-child th:nth-child(1),
+.lifecycle-security-table:not(.data-lifecycle-policy-table) td:nth-child(1) {
+  width: 12%;
   min-width: 0;
 }
 
-.lifecycle-security-table thead tr:first-child th:nth-child(2),
-.lifecycle-security-table td:nth-child(2) {
-  width: 28%;
+.lifecycle-security-table:not(.data-lifecycle-policy-table) thead tr:first-child th:nth-child(2),
+.lifecycle-security-table:not(.data-lifecycle-policy-table) td:nth-child(2) {
+  width: 23%;
   min-width: 0;
 }
 
-.lifecycle-security-table thead tr:first-child th:nth-child(3),
-.lifecycle-security-table td:nth-child(3) {
+.lifecycle-security-table:not(.data-lifecycle-policy-table) thead tr:first-child th:nth-child(3),
+.lifecycle-security-table:not(.data-lifecycle-policy-table) td:nth-child(3) {
+  width: 15%;
+  min-width: 0;
+}
+
+.lifecycle-security-table:not(.data-lifecycle-policy-table) thead tr:first-child th:nth-child(4),
+.lifecycle-security-table:not(.data-lifecycle-policy-table) td:nth-child(4) {
   width: 18%;
   min-width: 0;
 }
 
-.lifecycle-security-table thead tr:first-child th:nth-child(4),
-.lifecycle-security-table td:nth-child(4) {
-  width: 20%;
+.lifecycle-security-table:not(.data-lifecycle-policy-table) thead tr:first-child th:nth-child(5),
+.lifecycle-security-table:not(.data-lifecycle-policy-table) td:nth-child(5) {
+  width: 16%;
   min-width: 0;
 }
 
-.lifecycle-security-table thead tr:first-child th:nth-child(5),
-.lifecycle-security-table td:nth-child(5) {
-  width: 10%;
-  min-width: 0;
-}
-
-.lifecycle-security-table thead tr:first-child th:nth-child(6),
-.lifecycle-security-table td:nth-child(6) {
-  width: 10%;
+.lifecycle-security-table:not(.data-lifecycle-policy-table) thead tr:first-child th:nth-child(6),
+.lifecycle-security-table:not(.data-lifecycle-policy-table) td:nth-child(6) {
+  width: 16%;
   min-width: 0;
 }
 
@@ -4678,6 +4688,70 @@ button.source-sheet-row.active {
   border-color: #d8dfeb;
   background: #f7f9fc;
   color: #4c5b70;
+}
+
+.lifecycle-object-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+}
+
+.lifecycle-object-chip {
+  display: inline-grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  max-width: 100%;
+  min-height: 26px;
+  align-items: center;
+  gap: 3px 6px;
+  border: 1px solid var(--lifecycle-module-border);
+  border-radius: 7px;
+  background: var(--lifecycle-module-bg);
+  color: var(--lifecycle-module-text);
+  padding: 4px 7px;
+  line-height: 1.25;
+}
+
+.lifecycle-object-chip b {
+  grid-row: 1 / span 2;
+  align-self: center;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.76);
+  padding: 2px 5px;
+  font-size: 10px;
+  font-weight: 760;
+}
+
+.lifecycle-object-chip code {
+  min-width: 0;
+  color: color-mix(in oklch, currentColor 74%, var(--ink));
+  font-family: var(--mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 10px;
+  font-weight: 760;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+
+.lifecycle-object-chip em {
+  min-width: 0;
+  color: inherit;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 680;
+  overflow-wrap: anywhere;
+}
+
+.lifecycle-object-chip-list.security .lifecycle-object-chip {
+  border-color: var(--lifecycle-service-border);
+  background: var(--lifecycle-service-bg);
+  color: var(--lifecycle-service-text);
+}
+
+.lifecycle-object-chip-list.module .lifecycle-object-chip.is-measure {
+  border-color: var(--lifecycle-measure-border);
+  background: var(--lifecycle-measure-bg);
+  color: var(--lifecycle-measure-text);
 }
 
 .lifecycle-logic-table {
@@ -12058,7 +12132,7 @@ summary:focus-visible {
 
 .preview-focus-stats {
   display: grid;
-  grid-template-columns: repeat(6, minmax(54px, 1fr));
+  grid-template-columns: repeat(5, minmax(54px, 1fr));
   gap: 6px;
 }
 
@@ -12138,7 +12212,7 @@ summary:focus-visible {
 .app-shell-integrated .capability-focus-head-slot .preview-focus-stats {
   grid-area: stats;
   align-self: end;
-  grid-template-columns: repeat(6, minmax(48px, 1fr));
+  grid-template-columns: repeat(5, minmax(48px, 1fr));
   gap: 5px;
 }
 
@@ -14266,7 +14340,7 @@ summary:focus-visible {
   }
 
   .preview-focus-stats {
-    grid-template-columns: repeat(6, minmax(48px, 1fr));
+    grid-template-columns: repeat(5, minmax(48px, 1fr));
   }
 
   .preview-mapping-table th,
@@ -17232,6 +17306,57 @@ body {
   background: color-mix(in srgb, var(--morandi-sage) 18%, rgba(255, 255, 255, 0.86));
 }
 
+/* 2026-05-29 environment mapping table column repair */
+.environment-tab-table-pane .environment-mapping-table {
+  min-width: 920px;
+  table-layout: fixed;
+}
+
+.environment-tab-table-pane .environment-mapping-table.with-object-column {
+  min-width: 1320px;
+}
+
+.environment-tab-table-pane .environment-mapping-table.without-object-column th:nth-child(1) {
+  width: 20%;
+}
+
+.environment-tab-table-pane .environment-mapping-table.without-object-column th:nth-child(2) {
+  width: 34%;
+}
+
+.environment-tab-table-pane .environment-mapping-table.without-object-column th:nth-child(3) {
+  width: 46%;
+}
+
+.environment-tab-table-pane .environment-mapping-table.with-object-column th:nth-child(1) {
+  width: 12%;
+}
+
+.environment-tab-table-pane .environment-mapping-table.with-object-column th:nth-child(2) {
+  width: 18%;
+}
+
+.environment-tab-table-pane .environment-mapping-table.with-object-column th:nth-child(3) {
+  width: 15%;
+}
+
+.environment-tab-table-pane .environment-mapping-table.with-object-column th:nth-child(4) {
+  width: 25%;
+}
+
+.environment-tab-table-pane .environment-mapping-table.with-object-column th:nth-child(5) {
+  width: 30%;
+}
+
+.environment-tab-table-pane .environment-mapping-table th {
+  white-space: nowrap;
+}
+
+.environment-tab-table-pane .environment-mapping-table td {
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
 /* 2026-05-29 lifecycle stage tab repair */
 .dev-lifecycle-workspace .lifecycle-stage-tabs {
   min-width: 0;
@@ -17595,11 +17720,137 @@ body {
   color: color-mix(in oklch, var(--apple-blue, #0a84ff) 70%, var(--ink));
 }
 
+/* 2026-05-30 environment tree aligned to capability mapping tree */
+.environment-tab-tree-pane .environment-tree {
+  padding: 10px;
+  background:
+    linear-gradient(180deg, #fbfcfe, #f5f7fb);
+}
+
+.environment-tab-tree-pane .environment-tree-row.tree-node-row {
+  min-height: 38px;
+  grid-template-columns: 18px max-content minmax(0, 1fr);
+  gap: 7px;
+  margin: 0 0 6px;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--shell-muted, var(--muted));
+  box-shadow: none;
+}
+
+.environment-tab-tree-pane .environment-tree-row.tree-level-0 {
+  margin-top: 6px;
+  background: #eef2f7;
+  color: var(--shell-text, var(--ink));
+  font-weight: 760;
+}
+
+.environment-tab-tree-pane .environment-tree-row.tree-level-1 {
+  padding-left: 24px;
+}
+
+.environment-tab-tree-pane .environment-tree-row.tree-level-2 {
+  padding-left: 42px;
+}
+
+.environment-tab-tree-pane .environment-tree-row:hover {
+  border-color: var(--shell-line, var(--line));
+  background: var(--shell-surface, var(--panel));
+}
+
+.environment-tab-tree-pane .environment-tree-row.active {
+  border-color: color-mix(in oklch, var(--apple-blue, #0a84ff) 28%, var(--line));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(255, 255, 255, 0.58)),
+    color-mix(in oklch, var(--apple-blue, #0a84ff) 13%, var(--panel));
+  color: var(--ink);
+  box-shadow: 0 8px 20px rgba(10, 132, 255, 0.12);
+}
+
+.environment-tab-tree-pane .environment-tree-row.active * {
+  color: var(--ink);
+}
+
+.environment-tab-tree-pane .environment-tree-row.active .node-title,
+.environment-tab-tree-pane .environment-tree-row.active .environment-node-meta {
+  color: color-mix(in oklch, var(--ink) 82%, var(--apple-blue, #0a84ff));
+}
+
+.environment-tab-tree-pane .environment-tree-row .node-expander {
+  width: 18px;
+  height: 20px;
+  border-radius: 6px;
+  color: #748296;
+  font-size: 11px;
+  font-weight: 780;
+}
+
+.environment-tab-tree-pane .environment-tree-row .node-expander.has-children {
+  background: #eef3fa;
+  box-shadow: inset 0 0 0 1px #d5dfec;
+}
+
+.environment-tab-tree-pane .environment-tree-row:hover .node-expander.has-children,
+.environment-tab-tree-pane .environment-tree-row.active .node-expander.has-children {
+  color: color-mix(in oklch, var(--apple-blue, #0a84ff) 70%, var(--ink));
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--apple-blue, #0a84ff) 26%, var(--line));
+}
+
+.environment-tab-tree-pane .environment-tree-row .node-level-label {
+  justify-self: start;
+  min-width: 34px;
+  padding: 2px 7px;
+  border: 1px solid var(--shell-line, var(--line));
+  border-radius: 6px;
+  background: var(--shell-surface, var(--panel));
+  color: var(--shell-soft, var(--muted));
+  font-size: 10px;
+  font-weight: 720;
+  text-align: center;
+}
+
+.environment-tab-tree-pane .environment-tree-row.active .node-level-label {
+  border-color: color-mix(in oklch, var(--apple-blue, #0a84ff) 26%, var(--line));
+  background: rgba(255, 255, 255, 0.82);
+  color: color-mix(in oklch, var(--apple-blue, #0a84ff) 70%, var(--ink));
+}
+
+.environment-tab-tree-pane .environment-tree-row .node-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  line-height: 1.22;
+}
+
+.environment-tab-tree-pane .environment-tree-row .node-title {
+  min-width: 0;
+  overflow: hidden;
+  color: inherit;
+  font-size: 12px;
+  font-weight: 720;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.environment-tab-tree-pane .environment-tree-row .environment-node-meta {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--shell-soft, var(--muted));
+  font-size: 10.5px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .dev-lifecycle-workspace .lifecycle-workbench-table,
 .dev-lifecycle-workspace .lifecycle-profile-table,
 .dev-lifecycle-workspace .lifecycle-security-table,
 .dev-lifecycle-workspace .data-lifecycle-profile-table,
-.dev-lifecycle-workspace .data-lifecycle-security-table {
+.dev-lifecycle-workspace .data-lifecycle-security-table,
+.dev-lifecycle-workspace .data-lifecycle-policy-table {
   border-color: color-mix(in oklch, var(--morandi-blue) 24%, var(--line));
   background: rgba(255, 255, 255, 0.72);
 }
@@ -17630,17 +17881,20 @@ body {
 .dev-lifecycle-workspace .lifecycle-profile-table th:nth-child(n + 4),
 .dev-lifecycle-workspace .data-lifecycle-profile-table th:nth-child(n + 4),
 .dev-lifecycle-workspace .lifecycle-security-table th:nth-child(n + 3),
-.dev-lifecycle-workspace .data-lifecycle-security-table th:nth-child(n + 3) {
+.dev-lifecycle-workspace .data-lifecycle-security-table th:nth-child(n + 3),
+.dev-lifecycle-workspace .data-lifecycle-policy-table th:nth-child(n + 6) {
   background: color-mix(in oklch, var(--morandi-blue) 12%, rgba(255, 255, 255, 0.84));
 }
 
 .dev-lifecycle-workspace .lifecycle-security-table th:nth-child(1),
-.dev-lifecycle-workspace .data-lifecycle-security-table th:nth-child(1) {
+.dev-lifecycle-workspace .data-lifecycle-security-table th:nth-child(1),
+.dev-lifecycle-workspace .data-lifecycle-policy-table th:nth-child(1) {
   background: color-mix(in oklch, var(--morandi-sage) 15%, rgba(255, 255, 255, 0.82));
 }
 
 .dev-lifecycle-workspace .lifecycle-security-table th:nth-child(2),
-.dev-lifecycle-workspace .data-lifecycle-security-table th:nth-child(2) {
+.dev-lifecycle-workspace .data-lifecycle-security-table th:nth-child(2),
+.dev-lifecycle-workspace .data-lifecycle-policy-table th:nth-child(2) {
   background: color-mix(in oklch, var(--morandi-sage) 11%, rgba(255, 255, 255, 0.86));
 }
 
@@ -17650,17 +17904,2089 @@ body {
   color: #243041;
 }
 
+.dev-lifecycle-workspace .data-lifecycle-profile-table {
+  min-width: 1120px;
+}
+
+.dev-lifecycle-workspace .lifecycle-profile-table {
+  min-width: 1280px;
+}
+
+.dev-lifecycle-workspace .lifecycle-security-table {
+  min-width: 1480px;
+}
+
+.dev-lifecycle-workspace .data-lifecycle-profile-table {
+  min-width: 1040px;
+  table-layout: fixed;
+}
+
+.dev-lifecycle-workspace .data-lifecycle-profile-table th {
+  height: 34px;
+  padding: 6px 10px;
+}
+
+.dev-lifecycle-workspace .data-lifecycle-profile-table td {
+  height: auto !important;
+  min-height: 0;
+}
+
+.dev-lifecycle-workspace .data-lifecycle-profile-table .data-process-group-start td {
+  border-top: 1px solid color-mix(in oklch, var(--morandi-blue) 24%, var(--line));
+}
+
+.dev-lifecycle-workspace .data-lifecycle-profile-table .data-process-group-continuation td {
+  border-top-color: color-mix(in oklch, var(--morandi-blue) 9%, var(--line));
+}
+
+.dev-lifecycle-workspace .data-lifecycle-profile-table .data-process-definition-cell,
+.dev-lifecycle-workspace .data-lifecycle-profile-table .data-scenario-name-cell,
+.dev-lifecycle-workspace .data-lifecycle-profile-table .data-scenario-definition-cell {
+  vertical-align: top !important;
+}
+
+.dev-lifecycle-workspace .data-lifecycle-profile-table th,
+.dev-lifecycle-workspace .data-lifecycle-profile-table td {
+  padding: 6px 10px;
+}
+
+.dev-lifecycle-workspace .data-lifecycle-profile-table .data-process-definition-cell {
+  background: color-mix(in oklch, var(--morandi-blue) 10%, rgba(255, 255, 255, 0.78));
+}
+
+.dev-lifecycle-workspace .data-lifecycle-profile-table .data-scenario-name-cell {
+  background: color-mix(in oklch, var(--morandi-sage) 7%, rgba(255, 255, 255, 0.76));
+}
+
+.dev-lifecycle-workspace .data-lifecycle-profile-table .data-scenario-definition-cell {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.dev-lifecycle-workspace .data-lifecycle-policy-table {
+  min-width: 1560px;
+}
+
+.data-policy-category-stack {
+  display: grid;
+  gap: 8px;
+  padding: 8px;
+  background: color-mix(in oklch, var(--morandi-blue) 4%, rgba(255, 255, 255, 0.72));
+}
+
+.data-policy-category-group {
+  overflow: hidden;
+  border: 1px solid color-mix(in oklch, var(--morandi-blue) 18%, var(--line));
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.data-policy-category-group summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+  padding: 7px 11px;
+  cursor: pointer;
+  list-style: none;
+  background: color-mix(in oklch, var(--morandi-sage) 8%, rgba(255, 255, 255, 0.84));
+  color: #263342;
+}
+
+.data-policy-category-group summary::-webkit-details-marker {
+  display: none;
+}
+
+.data-policy-category-group summary::before {
+  content: "›";
+  display: inline-grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.78);
+  color: color-mix(in oklch, var(--morandi-sage) 70%, var(--ink));
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1;
+  transition: transform 160ms ease-out;
+}
+
+.data-policy-category-group[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.data-policy-category-group summary strong {
+  font-size: 13px;
+  font-weight: 860;
+}
+
+.data-policy-category-group summary span {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.76);
+  color: #607082;
+  font-size: 12px;
+  font-weight: 760;
+  padding: 2px 8px;
+}
+
+.data-lifecycle-policy-group-table {
+  border: 0;
+  border-radius: 0;
+}
+
+.dev-lifecycle-workspace .data-lifecycle-policy-group-table th:first-child,
+.dev-lifecycle-workspace .data-lifecycle-policy-group-table td:first-child {
+  text-align: center;
+  white-space: nowrap;
+}
+
 .dev-lifecycle-workspace .lifecycle-profile-table td,
 .dev-lifecycle-workspace .data-lifecycle-profile-table td {
   background: color-mix(in oklch, var(--morandi-blue) 8%, rgba(255, 255, 255, 0.72));
 }
 
 .dev-lifecycle-workspace .lifecycle-security-table td,
-.dev-lifecycle-workspace .data-lifecycle-security-table td {
+.dev-lifecycle-workspace .data-lifecycle-security-table td,
+.dev-lifecycle-workspace .data-lifecycle-policy-table td {
   background: color-mix(in oklch, var(--morandi-blue) 6%, rgba(255, 255, 255, 0.74));
+}
+
+.dev-lifecycle-workspace .data-lifecycle-policy-table th:nth-child(3) {
+  background: color-mix(in oklch, var(--morandi-lavender) 12%, rgba(255, 255, 255, 0.84));
+}
+
+.dev-lifecycle-workspace .data-lifecycle-policy-table th:nth-child(4) {
+  background: color-mix(in oklch, var(--morandi-clay) 13%, rgba(255, 255, 255, 0.84));
+}
+
+.dev-lifecycle-workspace .data-lifecycle-policy-table th:nth-child(5) {
+  background: color-mix(in oklch, var(--morandi-sand) 11%, rgba(255, 255, 255, 0.86));
+}
+
+.data-policy-cell {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  color: #263342;
+}
+
+.data-policy-cell strong {
+  font-size: 11px;
+  font-weight: 700;
+  color: color-mix(in oklch, var(--morandi-blue) 54%, #233044);
+}
+
+.data-policy-cell span {
+  font-size: 12px;
+  line-height: 1.42;
+}
+
+.data-policy-cell .source-reference-note {
+  margin-top: 2px;
+}
+
+.data-policy-cell.is-not-applicable span,
+.data-policy-cell.is-not-applicable strong {
+  color: #94a0ae;
+}
+
+.data-scenario-stack {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.data-scenario-item {
+  display: grid;
+  gap: 4px;
+  border: 1px solid color-mix(in oklch, var(--morandi-sage) 18%, var(--line));
+  border-radius: 7px;
+  background: color-mix(in oklch, var(--morandi-sage) 7%, rgba(255, 255, 255, 0.7));
+  padding: 8px 9px;
+}
+
+.data-scenario-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.data-scenario-title code {
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.78);
+  color: color-mix(in oklch, var(--morandi-sage) 72%, var(--ink));
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 780;
+  padding: 2px 5px;
+}
+
+.data-scenario-title strong {
+  color: #223142;
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.data-scenario-item p {
+  margin: 0;
+  color: #5d6b7a;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.data-scenario-title-cell {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: start;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.data-scenario-title-cell code {
+  width: fit-content;
+  border: 1px solid color-mix(in oklch, var(--morandi-sage) 24%, var(--line));
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.82);
+  color: color-mix(in oklch, var(--morandi-sage) 74%, var(--ink));
+  font-family: var(--mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 11px;
+  font-weight: 820;
+  padding: 2px 6px;
+}
+
+.data-scenario-title-cell strong {
+  color: #243041;
+  font-size: 12.5px;
+  font-weight: 820;
+  line-height: 1.32;
+}
+
+.data-scenario-definition {
+  color: #435160;
+  font-size: 12.5px;
+  line-height: 1.42;
+}
+
+.data-lifecycle-technical-scroll {
+  border-top: 1px solid color-mix(in oklch, var(--morandi-blue) 14%, var(--line));
+  border-bottom: 1px solid color-mix(in oklch, var(--morandi-blue) 14%, var(--line));
+}
+
+.data-lifecycle-technical-table.semantic-mapping-table {
+  min-width: 760px;
+  border: 0;
+  border-radius: 0;
+}
+
+.data-lifecycle-technical-table.semantic-mapping-table th {
+  background: color-mix(in oklch, var(--morandi-blue) 10%, rgba(255, 255, 255, 0.86));
+}
+
+.data-lifecycle-technical-table.semantic-mapping-table td {
+  height: auto;
+  padding: 12px 14px;
+  vertical-align: top !important;
 }
 
 .dev-lifecycle-workspace .lifecycle-workbench-table tbody tr:hover td,
 .dev-lifecycle-workspace .lifecycle-workbench-table tbody tr.selected td {
   background: color-mix(in oklch, var(--apple-blue, #0a84ff) 8%, rgba(255, 255, 255, 0.84));
+}
+
+/* 2026-05-30 global table typography and technical object chips */
+:root {
+  --sapd-table-header-font-size: 13px;
+  --sapd-table-cell-font-size: 12.5px;
+  --sapd-table-cell-line-height: 1.42;
+  --sapd-table-empty-font-size: var(--sapd-table-cell-font-size);
+  --sapd-technical-chip-font-size: var(--sapd-table-cell-font-size);
+}
+
+.preview-mapping-table th,
+.relationship-matrix-table th,
+.matrix-table th,
+.semantic-mapping-table th,
+.lifecycle-workbench-table th,
+.environment-mapping-table th,
+.maintenance-data-table th,
+.maintenance-table th,
+.standard-framework-table th,
+.dashboard-table th,
+.source-sheet-table th,
+.catalog-table th,
+.reference-group-table th,
+.application-system-directory-table th {
+  font-size: var(--sapd-table-header-font-size) !important;
+  line-height: 1.35;
+  font-weight: 850;
+  vertical-align: middle !important;
+}
+
+.preview-mapping-table td,
+.relationship-matrix-table td,
+.matrix-table td,
+.semantic-mapping-table td,
+.lifecycle-workbench-table td,
+.environment-mapping-table td,
+.maintenance-data-table td,
+.maintenance-table td,
+.standard-framework-table td,
+.dashboard-table td,
+.source-sheet-table td,
+.catalog-table td,
+.reference-group-table td,
+.application-system-directory-table td {
+  font-size: var(--sapd-table-cell-font-size) !important;
+  line-height: var(--sapd-table-cell-line-height);
+  vertical-align: middle !important;
+}
+
+.semantic-mapping-table td > strong,
+.semantic-mapping-table td > span:not(.relation-chip):not(.missing-pill):not(.empty-inline):not(.function-chip):not(.exception-pill),
+.preview-mapping-table td:first-child strong,
+.preview-mapping-table td:first-child span,
+.environment-mapping-table td > strong,
+.environment-mapping-table td > span:not(.relation-chip):not(.empty-inline),
+.lifecycle-workbench-table td > strong,
+.lifecycle-workbench-table td > span:not(.relation-chip):not(.empty-inline) {
+  font-size: inherit !important;
+  line-height: var(--sapd-table-cell-line-height);
+}
+
+.empty-inline,
+.original-matrix-panel .empty-inline,
+.environment-tab-table-pane .environment-mapping-table .empty-inline,
+#maintenanceWorkspace.knowledge-directory-mode .empty-inline,
+#maintenanceWorkspace.standards-mode .empty-inline,
+.dev-lifecycle-workspace .empty-inline {
+  display: inline !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: color-mix(in oklch, var(--ink) 76%, var(--muted)) !important;
+  font-family: inherit !important;
+  font-size: var(--sapd-table-empty-font-size) !important;
+  font-style: normal !important;
+  font-weight: 740 !important;
+  line-height: var(--sapd-table-cell-line-height) !important;
+  text-align: center;
+  box-shadow: none !important;
+}
+
+.original-matrix-panel .management-mapping-section .relation-chip,
+.original-matrix-panel .management-mapping-section .missing-pill,
+.original-matrix-panel .function-layer-bucket small,
+.original-matrix-panel .function-layer-bucket em,
+.original-matrix-panel .function-layer-bucket em span,
+.original-matrix-panel .function-layer-empty-note {
+  font-size: var(--sapd-table-cell-font-size) !important;
+  line-height: var(--sapd-table-cell-line-height);
+}
+
+.original-matrix-panel .function-layer-bucket small {
+  font-weight: 820;
+}
+
+.original-matrix-panel .standard-mapping-section .semantic-mapping-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.original-matrix-panel .standard-mapping-section {
+  min-height: 0;
+}
+
+.original-matrix-panel .standard-mapping-section .semantic-scroll {
+  min-height: 260px;
+  max-height: calc(100vh - var(--topbar-height, 60px) - var(--page-header-height, 98px) - 250px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.original-matrix-panel .standard-mapping-section thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.original-matrix-panel .standard-mapping-section th:nth-child(1) {
+  width: 28%;
+}
+
+.original-matrix-panel .standard-mapping-section th:nth-child(2) {
+  width: 72%;
+}
+
+.original-matrix-panel .standard-mapping-section td {
+  overflow: visible;
+  white-space: normal;
+}
+
+.standard-framework-name {
+  display: block;
+  color: color-mix(in oklch, var(--ink) 78%, var(--muted));
+  font-size: inherit;
+  font-weight: 650;
+  white-space: normal;
+}
+
+.standard-control-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.standard-control-code-chip.standard-control-inline {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  max-width: 100%;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: var(--sapd-table-cell-font-size) !important;
+  font-weight: 740;
+  line-height: 1.25;
+  gap: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.standard-control-code-chip.standard-control-inline::before {
+  display: none !important;
+  content: none !important;
+}
+
+.relation-chip.technical-chip,
+.relation-chip.service-chip,
+.relation-chip.module-chip,
+.relation-chip.measure-chip,
+.original-matrix-panel .relation-chip.technical-chip,
+.original-matrix-panel .relation-chip.service-chip,
+.original-matrix-panel .relation-chip.module-chip,
+.original-matrix-panel .relation-chip.measure-chip,
+.environment-tab-table-pane .environment-mapping-table .relation-chip.technical-chip,
+.environment-tab-table-pane .environment-mapping-table .relation-chip.service-chip,
+.environment-tab-table-pane .environment-mapping-table .relation-chip.module-chip,
+.environment-tab-table-pane .environment-mapping-table .relation-chip.measure-chip,
+.dev-lifecycle-workspace .relation-chip.technical-chip,
+.dev-lifecycle-workspace .relation-chip.service-chip,
+.dev-lifecycle-workspace .relation-chip.module-chip,
+.dev-lifecycle-workspace .relation-chip.measure-chip {
+  width: fit-content;
+  max-width: none;
+  min-height: 30px;
+  padding: 5px 10px;
+  font-size: var(--sapd-technical-chip-font-size) !important;
+  font-weight: 740;
+  line-height: 1.25;
+  overflow-wrap: normal;
+  vertical-align: middle;
+  white-space: nowrap;
+  word-break: keep-all;
+}
+
+.dev-lifecycle-workspace .lifecycle-inline-chips.dev,
+.dev-lifecycle-workspace .lifecycle-inline-chips.dev-module {
+  align-items: center;
+}
+
+.dev-lifecycle-workspace .lifecycle-inline-chips.dev .lifecycle-chip-item,
+.dev-lifecycle-workspace .lifecycle-inline-chips.dev-module .lifecycle-chip-item {
+  width: fit-content;
+  max-width: none;
+  min-height: 30px;
+  padding: 5px 10px;
+  font-size: var(--sapd-technical-chip-font-size) !important;
+  font-weight: 740;
+  line-height: 1.25;
+  overflow-wrap: normal;
+  white-space: nowrap;
+  word-break: keep-all;
+}
+
+.dev-lifecycle-workspace .lifecycle-inline-chips,
+.dev-lifecycle-workspace .lifecycle-object-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+}
+
+.dev-lifecycle-workspace .lifecycle-security-table:not(.data-lifecycle-policy-table) td:nth-child(5),
+.dev-lifecycle-workspace .lifecycle-security-table:not(.data-lifecycle-policy-table) td:nth-child(6),
+.dev-lifecycle-workspace .data-lifecycle-policy-table td:nth-child(6),
+.dev-lifecycle-workspace .data-lifecycle-policy-table td:nth-child(7) {
+  text-align: left;
+}
+
+.dev-lifecycle-workspace .lifecycle-security-table:not(.data-lifecycle-policy-table) td:nth-child(5) .lifecycle-inline-chips,
+.dev-lifecycle-workspace .lifecycle-security-table:not(.data-lifecycle-policy-table) td:nth-child(6) .lifecycle-inline-chips,
+.dev-lifecycle-workspace .data-lifecycle-policy-table td:nth-child(6) .lifecycle-inline-chips,
+.dev-lifecycle-workspace .data-lifecycle-policy-table td:nth-child(7) .lifecycle-inline-chips {
+  display: grid;
+  align-content: center;
+  align-items: center;
+  justify-items: start;
+  gap: 7px;
+  width: 100%;
+  max-width: 100%;
+}
+
+.dev-lifecycle-workspace .lifecycle-security-table:not(.data-lifecycle-policy-table) td:nth-child(5) .relation-chip,
+.dev-lifecycle-workspace .lifecycle-security-table:not(.data-lifecycle-policy-table) td:nth-child(6) .relation-chip,
+.dev-lifecycle-workspace .data-lifecycle-policy-table td:nth-child(6) .relation-chip,
+.dev-lifecycle-workspace .data-lifecycle-policy-table td:nth-child(7) .relation-chip {
+  width: fit-content;
+  max-width: 100%;
+  min-height: 30px;
+  margin: 0;
+  white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.dev-lifecycle-workspace .lifecycle-workbench-table .relation-chip em,
+.relation-chip.technical-chip em,
+.relation-chip.service-chip em,
+.relation-chip.module-chip em,
+.relation-chip.measure-chip em {
+  font-style: normal;
+  font-size: inherit;
+  font-weight: 740;
+}
+
+.preview-mapping-table .relation-chip,
+.relationship-matrix-table .relation-chip,
+.matrix-table .relation-chip,
+.semantic-mapping-table .relation-chip,
+.lifecycle-workbench-table .relation-chip,
+.environment-mapping-table .relation-chip,
+.maintenance-data-table .relation-chip,
+.maintenance-table .relation-chip,
+.standard-framework-table .relation-chip,
+.dashboard-table .relation-chip,
+.source-sheet-table .relation-chip,
+.catalog-table .relation-chip,
+.reference-group-table .relation-chip,
+.application-system-directory-table .relation-chip {
+  min-height: 26px;
+  padding: 4px 9px;
+  font-size: var(--sapd-table-cell-font-size) !important;
+  font-weight: 740;
+  line-height: 1.28;
+}
+
+.preview-mapping-table .relation-chip em,
+.relationship-matrix-table .relation-chip em,
+.matrix-table .relation-chip em,
+.semantic-mapping-table .relation-chip em,
+.lifecycle-workbench-table .relation-chip em,
+.environment-mapping-table .relation-chip em,
+.maintenance-data-table .relation-chip em,
+.maintenance-table .relation-chip em,
+.standard-framework-table .relation-chip em,
+.dashboard-table .relation-chip em,
+.source-sheet-table .relation-chip em,
+.catalog-table .relation-chip em,
+.reference-group-table .relation-chip em,
+.application-system-directory-table .relation-chip em {
+  font-size: inherit;
+  font-weight: inherit;
+  white-space: nowrap;
+}
+
+.dev-lifecycle-workspace .data-lifecycle-technical-table .lifecycle-object-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+}
+
+.dev-lifecycle-workspace .data-lifecycle-technical-table .relation-chip {
+  width: fit-content;
+  max-width: 100%;
+  min-height: 26px;
+  margin: 0 6px 0 0;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: var(--sapd-technical-chip-font-size) !important;
+  font-weight: 740;
+  line-height: 1.28;
+  white-space: normal;
+}
+
+.dev-lifecycle-workspace .data-lifecycle-technical-table .relation-chip em {
+  font-style: normal;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+/* 2026-05-30 sidebar secondary navigation readability */
+.app-shell-integrated .secondary-navigation {
+  gap: 5px;
+  padding: 5px 0 7px 42px;
+}
+
+.app-shell-integrated .secondary-navigation .submodule-tab {
+  min-height: 36px;
+  padding: 6px 9px;
+  border-radius: 13px;
+  color: #445267;
+  font-size: 14px;
+  font-weight: 760;
+  line-height: 1.24;
+}
+
+.app-shell-integrated .secondary-navigation .submodule-tab span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell-integrated .secondary-navigation .submodule-tab small {
+  max-width: 68px;
+  color: #728094;
+  font-size: 11px;
+  font-weight: 760;
+  line-height: 1.15;
+}
+
+.app-shell-integrated .secondary-navigation .submodule-tab:hover {
+  border-color: rgba(102, 112, 133, 0.18);
+  background: rgba(255, 255, 255, 0.62);
+  color: #253041;
+}
+
+.app-shell-integrated .secondary-navigation .submodule-tab.active {
+  border-color: rgba(10, 132, 255, 0.24);
+  background: rgba(255, 255, 255, 0.8);
+  color: #236aa3;
+  box-shadow: 0 3px 10px rgba(29, 35, 48, 0.08);
+}
+
+/* 2026-05-30 P0/P1/P3 global Apple demo baseline consolidation */
+:root {
+  --sapd-font-family: "Avenir Next", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --sapd-page-bg: #f5f5f7;
+  --sapd-surface: rgba(255, 255, 255, 0.82);
+  --sapd-surface-strong: rgba(255, 255, 255, 0.94);
+  --sapd-surface-muted: rgba(247, 249, 252, 0.78);
+  --sapd-line: rgba(132, 143, 159, 0.22);
+  --sapd-line-strong: rgba(132, 143, 159, 0.32);
+  --sapd-text: #1d2939;
+  --sapd-muted: #667085;
+  --sapd-soft: #98a2b3;
+  --sapd-blue: #0a84ff;
+  --sapd-blue-top: #36a1ff;
+  --sapd-blue-deep: #0875e1;
+  --sapd-blue-soft: rgba(10, 132, 255, 0.08);
+  --sapd-green: #34c759;
+  --sapd-purple: #8e7cc8;
+  --sapd-gold: #c9a85a;
+  --sapd-radius-sm: 10px;
+  --sapd-radius-md: 14px;
+  --sapd-radius-lg: 20px;
+  --sapd-radius-xl: 26px;
+  --sapd-shadow-soft: 0 10px 28px rgba(29, 35, 48, 0.08);
+  --sapd-shadow-control: 0 3px 10px rgba(29, 35, 48, 0.08);
+  --sapd-focus-ring: 0 0 0 3px rgba(10, 132, 255, 0.18);
+  --sapd-table-header-font-size: 14px;
+}
+
+body {
+  color: var(--sapd-text);
+  background:
+    radial-gradient(circle at 18% 6%, rgba(10, 132, 255, 0.08), transparent 28%),
+    radial-gradient(circle at 86% 14%, rgba(142, 122, 200, 0.07), transparent 30%),
+    linear-gradient(135deg, #fbfcfe 0%, var(--sapd-page-bg) 48%, #f2f4f7 100%);
+  font-family: var(--sapd-font-family);
+}
+
+.app-shell.app-shell-integrated {
+  --app-sidebar-width: 292px;
+  --topbar-height: 64px;
+  background: transparent;
+}
+
+.app-shell-integrated .app-sidebar {
+  border-right: 1px solid rgba(132, 143, 159, 0.2);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(239, 246, 255, 0.72)),
+    var(--sapd-page-bg);
+  box-shadow: 8px 0 24px rgba(29, 35, 48, 0.05);
+}
+
+.app-shell-integrated .shell-sidebar-brand {
+  min-height: 76px;
+  padding: 16px 18px 12px;
+}
+
+.app-shell-integrated .shell-sidebar-brand .brand-mark {
+  width: 38px;
+  height: 38px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, var(--sapd-blue-top), var(--sapd-blue-deep));
+  box-shadow: 0 12px 22px rgba(10, 132, 255, 0.22);
+}
+
+.app-shell-integrated .shell-sidebar-brand strong {
+  color: #172033;
+  font-size: 16px;
+  font-weight: 860;
+  letter-spacing: 0;
+}
+
+.app-shell-integrated .shell-sidebar-brand span,
+.app-shell-integrated .sidebar-status {
+  color: var(--sapd-muted);
+  font-size: 12px;
+}
+
+.app-shell-integrated .module-tabs.manifest-navigation {
+  height: auto;
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  padding: 10px 18px 20px;
+  border: 0;
+  background: transparent;
+}
+
+.app-shell-integrated .navigation-group {
+  display: grid;
+  gap: 4px;
+}
+
+.app-shell-integrated .app-sidebar .module-tab,
+.app-shell-integrated .app-sidebar .navigation-parent {
+  min-height: 48px;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  border-radius: 17px;
+  background: transparent;
+  color: #263447;
+  font-size: 15px;
+  font-weight: 820;
+  line-height: 1.18;
+  box-shadow: none;
+}
+
+.app-shell-integrated .app-sidebar .module-tab:hover,
+.app-shell-integrated .app-sidebar .navigation-parent:hover {
+  border-color: rgba(102, 112, 133, 0.16);
+  background: rgba(255, 255, 255, 0.66);
+  box-shadow: var(--sapd-shadow-control);
+}
+
+.app-shell-integrated .app-sidebar .module-tab.active,
+.app-shell-integrated .app-sidebar .navigation-group.active > .navigation-parent {
+  border-color: rgba(10, 132, 255, 0.22);
+  background: linear-gradient(180deg, var(--sapd-blue-top), var(--sapd-blue-deep));
+  color: #ffffff;
+  box-shadow: 0 13px 24px rgba(10, 132, 255, 0.25);
+}
+
+.app-shell-integrated .app-sidebar .module-tab span:not(.nav-symbol),
+.app-shell-integrated .app-sidebar .navigation-parent span:not(.nav-symbol),
+.app-shell-integrated .secondary-navigation .submodule-tab span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell-integrated .app-sidebar .module-tab small,
+.app-shell-integrated .app-sidebar .navigation-parent small {
+  justify-self: end;
+  color: #718096;
+  font-size: 11px;
+  font-weight: 780;
+}
+
+.app-shell-integrated .app-sidebar .module-tab.active small,
+.app-shell-integrated .app-sidebar .navigation-group.active > .navigation-parent small {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.app-shell-integrated .app-sidebar .nav-symbol {
+  width: 34px;
+  height: 34px;
+  border-radius: 13px;
+  background: rgba(10, 132, 255, 0.1);
+  color: var(--sapd-blue);
+  box-shadow: none;
+}
+
+.app-shell-integrated .app-sidebar .module-tab.active .nav-symbol,
+.app-shell-integrated .app-sidebar .navigation-group.active > .navigation-parent .nav-symbol {
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
+
+.app-shell-integrated .secondary-navigation {
+  display: grid;
+  gap: 6px;
+  padding: 5px 0 8px 46px;
+}
+
+.app-shell-integrated .secondary-navigation .submodule-tab {
+  min-height: 40px;
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: transparent;
+  color: #526071;
+  font-size: 14.5px;
+  font-weight: 780;
+}
+
+.app-shell-integrated .secondary-navigation .submodule-tab:hover {
+  border-color: rgba(102, 112, 133, 0.16);
+  background: rgba(255, 255, 255, 0.64);
+}
+
+.app-shell-integrated .secondary-navigation .submodule-tab.active {
+  border-color: rgba(10, 132, 255, 0.2);
+  background: rgba(255, 255, 255, 0.84);
+  color: #0b64ce;
+  box-shadow: var(--sapd-shadow-control);
+}
+
+.app-shell-integrated .topbar {
+  min-height: var(--topbar-height);
+  grid-template-columns: minmax(300px, 1fr) auto auto auto;
+  gap: 12px;
+  padding: 10px 18px;
+  border-bottom: 1px solid rgba(132, 143, 159, 0.18);
+  background: rgba(255, 255, 255, 0.76);
+  backdrop-filter: blur(24px) saturate(1.2);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.68);
+}
+
+.app-shell-integrated .global-search {
+  min-height: 40px;
+  border: 1px solid rgba(132, 143, 159, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.app-shell-integrated .topbar-status .status-badge,
+.app-shell-integrated .topbar-actions button,
+.app-shell-integrated .topbar-metrics .metric {
+  border: 1px solid rgba(132, 143, 159, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.66);
+  color: #526071;
+  box-shadow: none;
+}
+
+.app-shell-integrated .topbar-metrics {
+  gap: 6px;
+}
+
+.app-shell-integrated .topbar-metrics .metric {
+  min-width: 0;
+  padding: 5px 10px;
+}
+
+.app-shell-integrated .topbar-metrics .metric strong {
+  color: #263447;
+  font-size: 13px;
+}
+
+.app-shell-integrated .topbar-metrics .metric span {
+  color: #718096;
+  font-size: 11px;
+}
+
+.app-shell-integrated .app-page-header {
+  border-bottom: 1px solid rgba(132, 143, 159, 0.18);
+  background: rgba(255, 255, 255, 0.64);
+  backdrop-filter: blur(18px) saturate(1.08);
+}
+
+.app-shell-integrated .breadcrumb {
+  color: #718096;
+  font-size: 12px;
+  font-weight: 720;
+}
+
+.app-shell-integrated .page-title-row h1 {
+  color: #182230;
+  font-size: clamp(24px, 1.8vw, 34px);
+  font-weight: 880;
+  letter-spacing: 0;
+}
+
+.app-shell-integrated .page-description {
+  color: #667085;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.app-shell-integrated .content-shell,
+.app-shell-integrated .main-content-layout,
+.app-shell-integrated .workbench-layout,
+.app-shell-integrated .overview-page,
+.app-shell-integrated .capability-browser {
+  background: transparent;
+}
+
+.app-shell-integrated .pane,
+.app-shell-integrated .shell-panel,
+.app-shell-integrated .preview-mapping-table-wrap,
+.app-shell-integrated .relationship-matrix-scroll,
+.app-shell-integrated .maintenance-table-scroll,
+.app-shell-integrated .standard-framework-table-scroll,
+.app-shell-integrated .reference-group-table-scroll,
+.app-shell-integrated .application-system-directory-scroll,
+.app-shell-integrated .environment-tab-table-pane .relationship-matrix-scroll {
+  border: 1px solid var(--sapd-line);
+  border-radius: var(--sapd-radius-lg);
+  background: var(--sapd-surface);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.62),
+    var(--sapd-shadow-soft);
+}
+
+.app-shell-integrated .preview-mapping-table,
+.app-shell-integrated .relationship-matrix-table,
+.app-shell-integrated .matrix-table,
+.app-shell-integrated .semantic-mapping-table,
+.app-shell-integrated .lifecycle-workbench-table,
+.app-shell-integrated .environment-mapping-table,
+.app-shell-integrated .maintenance-data-table,
+.app-shell-integrated .maintenance-table,
+.app-shell-integrated .standard-framework-table,
+.app-shell-integrated .reference-group-table,
+.app-shell-integrated .application-system-directory-table {
+  border-collapse: collapse;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--sapd-text);
+}
+
+.app-shell-integrated .preview-mapping-table th,
+.app-shell-integrated .relationship-matrix-table th,
+.app-shell-integrated .matrix-table th,
+.app-shell-integrated .semantic-mapping-table th,
+.app-shell-integrated .lifecycle-workbench-table th,
+.app-shell-integrated .environment-mapping-table th,
+.app-shell-integrated .maintenance-data-table th,
+.app-shell-integrated .maintenance-table th,
+.app-shell-integrated .standard-framework-table th,
+.app-shell-integrated .reference-group-table th,
+.app-shell-integrated .application-system-directory-table th {
+  height: 44px;
+  border-color: rgba(132, 143, 159, 0.2);
+  background: rgba(247, 249, 252, 0.9);
+  color: #526071;
+  font-size: var(--sapd-table-header-font-size) !important;
+  font-weight: 860 !important;
+}
+
+#maintenanceWorkspace.knowledge-directory-mode .maintenance-data-table th,
+#maintenanceWorkspace.knowledge-directory-mode .maintenance-table th,
+#maintenanceWorkspace.standards-mode .standard-framework-table th,
+#maintenanceWorkspace.standards-mode .reference-group-table th,
+#maintenanceWorkspace.standards-mode .application-system-directory-table th,
+#maintenanceWorkspace.standards-mode .standard-framework-table .nist-security-type-heading {
+  font-size: var(--sapd-table-header-font-size) !important;
+}
+
+.app-shell-integrated .preview-mapping-table td,
+.app-shell-integrated .relationship-matrix-table td,
+.app-shell-integrated .matrix-table td,
+.app-shell-integrated .semantic-mapping-table td,
+.app-shell-integrated .lifecycle-workbench-table td,
+.app-shell-integrated .environment-mapping-table td,
+.app-shell-integrated .maintenance-data-table td,
+.app-shell-integrated .maintenance-table td,
+.app-shell-integrated .standard-framework-table td,
+.app-shell-integrated .reference-group-table td,
+.app-shell-integrated .application-system-directory-table td {
+  border-color: rgba(132, 143, 159, 0.16);
+  background: rgba(255, 255, 255, 0.66);
+  color: #263447;
+  font-size: 12.5px !important;
+}
+
+.app-shell-integrated .preview-mapping-table tbody tr:hover td,
+.app-shell-integrated .relationship-matrix-table tbody tr:hover td,
+.app-shell-integrated .matrix-table tbody tr:hover td,
+.app-shell-integrated .semantic-mapping-table tbody tr:hover td,
+.app-shell-integrated .lifecycle-workbench-table tbody tr:hover td,
+.app-shell-integrated .environment-mapping-table tbody tr:hover td,
+.app-shell-integrated .maintenance-data-table tbody tr:hover td,
+.app-shell-integrated .maintenance-table tbody tr:hover td,
+.app-shell-integrated .standard-framework-table tbody tr:hover td,
+.app-shell-integrated .reference-group-table tbody tr:hover td,
+.app-shell-integrated .application-system-directory-table tbody tr:hover td {
+  background: rgba(10, 132, 255, 0.065);
+}
+
+.app-shell-integrated .preview-relation-tabs,
+.app-shell-integrated .relation-view-tabs.preview-tabs,
+.app-shell-integrated .source-mode-switch,
+.app-shell-integrated .maintenance-tab-list,
+.app-shell-integrated .maintenance-section-tabs,
+.app-shell-integrated .standard-framework-tabs,
+.environment-tabbed-map .environment-tab-controls,
+.environment-tabbed-map .environment-tab-bar {
+  width: fit-content;
+  max-width: 100%;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 0;
+  border-radius: 16px;
+  background: rgba(118, 118, 128, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(102, 112, 133, 0.04);
+  overflow-x: auto;
+}
+
+.app-shell-integrated .preview-relation-tabs label,
+.app-shell-integrated .relation-view-tab,
+.app-shell-integrated .source-mode-switch button,
+.app-shell-integrated .maintenance-tab-list button,
+.app-shell-integrated .maintenance-section-tabs button,
+.app-shell-integrated .standard-framework-tabs button,
+.environment-tabbed-map .environment-tab-controls label,
+.environment-tabbed-map .environment-tab-label {
+  min-width: 0;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: #526071;
+  font-size: 13.5px;
+  font-weight: 780;
+  line-height: 1;
+  white-space: nowrap;
+  box-shadow: none;
+}
+
+.app-shell-integrated .preview-relation-tabs label:hover,
+.app-shell-integrated .relation-view-tab:hover,
+.app-shell-integrated .source-mode-switch button:hover,
+.app-shell-integrated .maintenance-tab-list button:hover,
+.app-shell-integrated .maintenance-section-tabs button:hover,
+.app-shell-integrated .standard-framework-tabs button:hover,
+.environment-tabbed-map .environment-tab-controls label:hover,
+.environment-tabbed-map .environment-tab-label:hover {
+  background: rgba(255, 255, 255, 0.5);
+  color: #253041;
+}
+
+.app-shell-integrated #capability-relation-tab-summary:checked ~ .capability-map-v3-grid label[for="capability-relation-tab-summary"],
+.app-shell-integrated #capability-relation-tab-technical:checked ~ .capability-map-v3-grid label[for="capability-relation-tab-technical"],
+.app-shell-integrated #capability-relation-tab-management:checked ~ .capability-map-v3-grid label[for="capability-relation-tab-management"],
+.app-shell-integrated #capability-relation-tab-standard:checked ~ .capability-map-v3-grid label[for="capability-relation-tab-standard"],
+.app-shell-integrated .source-mode-switch button.active,
+.app-shell-integrated .maintenance-tab-list button.active,
+.app-shell-integrated .maintenance-section-tabs button.active,
+.app-shell-integrated .standard-framework-tabs button.active,
+.environment-tabbed-map input:checked + label,
+.environment-tabbed-map .environment-tab-label.active {
+  border: 0;
+  background: rgba(255, 255, 255, 0.92);
+  color: #172033;
+  box-shadow: 0 3px 9px rgba(29, 35, 48, 0.1);
+}
+
+.app-shell-integrated .relation-view-tab {
+  height: auto;
+  border-bottom: 0;
+}
+
+.app-shell-integrated .relation-view-tab:focus-visible,
+.app-shell-integrated .source-mode-switch button:focus-visible,
+.app-shell-integrated .maintenance-tab-list button:focus-visible,
+.app-shell-integrated .maintenance-section-tabs button:focus-visible,
+.app-shell-integrated .standard-framework-tabs button:focus-visible,
+.environment-tabbed-map .environment-tab-label:focus-visible,
+.app-shell-integrated .module-tab:focus-visible,
+.app-shell-integrated .navigation-parent:focus-visible,
+.app-shell-integrated .submodule-tab:focus-visible {
+  outline: 0;
+  box-shadow: var(--sapd-focus-ring);
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs {
+  min-width: 0;
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row {
+  width: auto;
+  min-width: 144px;
+  max-width: 190px;
+  min-height: 54px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 26px;
+  grid-template-areas:
+    "title arrow"
+    "code arrow";
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 2px 8px;
+  padding: 8px 10px;
+  border: 1px solid rgba(132, 143, 159, 0.22);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.78);
+  color: #172033;
+  box-shadow: 0 6px 14px rgba(29, 35, 48, 0.07);
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row strong {
+  grid-area: title;
+  min-width: 0;
+  overflow: hidden;
+  color: #172033;
+  font-size: 13px;
+  font-weight: 880;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs .stage-tab-code {
+  grid-area: code;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--sapd-blue);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 840;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs .stage-tab-arrow {
+  grid-area: arrow;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(10, 132, 255, 0.09);
+  color: #236aa3;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row.active {
+  border-color: rgba(10, 132, 255, 0.36);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow:
+    inset 0 0 0 1px rgba(10, 132, 255, 0.08),
+    0 10px 18px rgba(10, 132, 255, 0.13);
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row.active::after {
+  inset: auto 12px 6px 12px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--sapd-blue);
+}
+
+@media (max-width: 1440px) {
+  .app-shell.app-shell-integrated {
+    --app-sidebar-width: 272px;
+  }
+
+  .app-shell-integrated .app-sidebar .module-tab,
+  .app-shell-integrated .app-sidebar .navigation-parent {
+    min-height: 46px;
+    font-size: 14.5px;
+  }
+
+  .app-shell-integrated .secondary-navigation .submodule-tab {
+    min-height: 38px;
+    font-size: 14px;
+  }
+
+  .app-shell-integrated .topbar {
+    grid-template-columns: minmax(240px, 1fr) auto auto;
+  }
+
+  .app-shell-integrated .topbar-metrics {
+    display: none;
+  }
+}
+
+/* 2026-05-30 global typography weight and semantic chip convergence */
+:root {
+  --sapd-font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --sapd-weight-body: 450;
+  --sapd-weight-control: 650;
+  --sapd-weight-strong: 700;
+  --sapd-weight-title: 760;
+  --sapd-weight-chip: 650;
+  --sapd-service-bg: rgba(228, 241, 250, 0.82);
+  --sapd-service-border: rgba(73, 149, 199, 0.42);
+  --sapd-service-text: #2e7fac;
+  --sapd-module-bg: rgba(227, 244, 234, 0.82);
+  --sapd-module-border: rgba(89, 169, 113, 0.38);
+  --sapd-module-text: #3f8b5b;
+  --sapd-measure-bg: rgba(248, 236, 229, 0.84);
+  --sapd-measure-border: rgba(197, 132, 98, 0.38);
+  --sapd-measure-text: #9a6247;
+  --sapd-standard-bg: rgba(247, 239, 221, 0.86);
+  --sapd-standard-border: rgba(191, 156, 76, 0.36);
+  --sapd-standard-text: #8a6a2f;
+  --sapd-structure-bg: rgba(240, 244, 248, 0.84);
+  --sapd-structure-border: rgba(101, 119, 138, 0.28);
+  --sapd-structure-text: #516173;
+}
+
+html,
+body {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-family: var(--sapd-font-family);
+  font-weight: var(--sapd-weight-body);
+}
+
+.app-shell-integrated .page-title-row h1,
+.app-shell-integrated .source-entity-title,
+.app-shell-integrated .section-title,
+.app-shell-integrated .dashboard-section h2,
+.app-shell-integrated .pane-head h2,
+.app-shell-integrated .pane-head h3 {
+  color: #1d2939;
+  font-family: var(--sapd-font-family);
+  font-weight: var(--sapd-weight-title) !important;
+  letter-spacing: 0;
+}
+
+.app-shell-integrated .page-title-row h1 {
+  font-size: clamp(24px, 1.55vw, 30px) !important;
+  line-height: 1.13;
+}
+
+.app-shell-integrated .shell-sidebar-brand strong,
+.app-shell-integrated .app-sidebar .module-tab,
+.app-shell-integrated .app-sidebar .navigation-parent,
+.app-shell-integrated .dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row strong,
+.dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row strong {
+  font-family: var(--sapd-font-family);
+  font-weight: var(--sapd-weight-strong) !important;
+  letter-spacing: 0;
+}
+
+.app-shell-integrated .secondary-navigation .submodule-tab,
+.app-shell-integrated .breadcrumb,
+.app-shell-integrated .page-description,
+.app-shell-integrated .relation-view-tab,
+.app-shell-integrated .preview-relation-tabs label,
+.app-shell-integrated .source-mode-switch button,
+.app-shell-integrated .maintenance-tab-list button,
+.app-shell-integrated .maintenance-section-tabs button,
+.app-shell-integrated .standard-framework-tabs button,
+.environment-tabbed-map .environment-tab-controls label,
+.environment-tabbed-map .environment-tab-label,
+.dev-lifecycle-workspace .lifecycle-stage-tabs .stage-tab-code,
+.dev-lifecycle-workspace .lifecycle-stage-tabs .stage-tab-arrow {
+  font-family: var(--sapd-font-family);
+  font-weight: var(--sapd-weight-control) !important;
+  letter-spacing: 0;
+}
+
+.app-shell-integrated .preview-mapping-table th,
+.app-shell-integrated .relationship-matrix-table th,
+.app-shell-integrated .matrix-table th,
+.app-shell-integrated .semantic-mapping-table th,
+.app-shell-integrated .lifecycle-workbench-table th,
+.app-shell-integrated .environment-mapping-table th,
+.app-shell-integrated .maintenance-data-table th,
+.app-shell-integrated .maintenance-table th,
+.app-shell-integrated .standard-framework-table th,
+.app-shell-integrated .reference-group-table th,
+.app-shell-integrated .application-system-directory-table th,
+#maintenanceWorkspace.knowledge-directory-mode .maintenance-data-table th,
+#maintenanceWorkspace.knowledge-directory-mode .maintenance-table th,
+#maintenanceWorkspace.standards-mode .standard-framework-table th,
+#maintenanceWorkspace.standards-mode .reference-group-table th,
+#maintenanceWorkspace.standards-mode .application-system-directory-table th,
+#maintenanceWorkspace.standards-mode .standard-framework-table .nist-security-type-heading {
+  font-family: var(--sapd-font-family);
+  font-weight: 800 !important;
+  letter-spacing: 0;
+}
+
+.app-shell-integrated .preview-mapping-table td,
+.app-shell-integrated .relationship-matrix-table td,
+.app-shell-integrated .matrix-table td,
+.app-shell-integrated .semantic-mapping-table td,
+.app-shell-integrated .lifecycle-workbench-table td,
+.app-shell-integrated .environment-mapping-table td,
+.app-shell-integrated .maintenance-data-table td,
+.app-shell-integrated .maintenance-table td,
+.app-shell-integrated .standard-framework-table td,
+.app-shell-integrated .reference-group-table td,
+.app-shell-integrated .application-system-directory-table td {
+  font-family: var(--sapd-font-family);
+  font-weight: var(--sapd-weight-body);
+}
+
+.preview-chip,
+.relation-chip,
+.original-matrix-panel .relation-chip,
+.environment-tab-table-pane .environment-mapping-table .relation-chip,
+.dev-lifecycle-workspace .relation-chip,
+.standard-control-code-chip,
+.preview-status,
+.missing-pill,
+.exception-pill,
+.reference-tag {
+  min-height: 26px;
+  padding: 4px 9px;
+  border-width: 1px;
+  border-radius: 999px;
+  font-family: var(--sapd-font-family);
+  font-size: var(--sapd-table-cell-font-size, 12.5px) !important;
+  font-weight: var(--sapd-weight-chip) !important;
+  line-height: 1.28;
+  letter-spacing: 0;
+  box-shadow: none;
+}
+
+.preview-chip::before,
+.relation-chip::before,
+.original-matrix-panel .relation-chip::before,
+.environment-tab-table-pane .environment-mapping-table .relation-chip::before,
+.standard-control-code-chip::before,
+.preview-status::before,
+.missing-pill::before {
+  width: 6px;
+  height: 6px;
+  opacity: 0.72;
+}
+
+.relation-chip em,
+.original-matrix-panel .relation-chip em,
+.environment-tab-table-pane .environment-mapping-table .relation-chip em,
+.dev-lifecycle-workspace .relation-chip em,
+.standard-control-code-chip em {
+  color: inherit;
+  font-style: normal;
+  font-weight: 600 !important;
+  opacity: 0.72;
+}
+
+.relation-chip.technical-chip:not(.module-chip):not(.measure-chip),
+.relation-chip.service-chip,
+.original-matrix-panel .relation-chip.technical-chip:not(.module-chip):not(.measure-chip),
+.original-matrix-panel .relation-chip.service-chip,
+.environment-tab-table-pane .environment-mapping-table .relation-chip.technical-chip:not(.module-chip):not(.measure-chip),
+.environment-tab-table-pane .environment-mapping-table .relation-chip.service-chip,
+.dev-lifecycle-workspace .relation-chip.technical-chip:not(.module-chip):not(.measure-chip),
+.dev-lifecycle-workspace .relation-chip.service-chip,
+.maintenance-data-table .relation-chip.service-chip,
+.maintenance-table .relation-chip.service-chip {
+  border-color: var(--sapd-service-border) !important;
+  background: var(--sapd-service-bg) !important;
+  color: var(--sapd-service-text) !important;
+}
+
+.relation-chip.module-chip,
+.relation-chip.ownership-chip,
+.original-matrix-panel .relation-chip.module-chip,
+.original-matrix-panel .relation-chip.ownership-chip,
+.environment-tab-table-pane .environment-mapping-table .relation-chip.module-chip,
+.dev-lifecycle-workspace .relation-chip.module-chip,
+.maintenance-data-table .relation-chip.module-chip,
+.maintenance-table .relation-chip.module-chip {
+  border-color: var(--sapd-module-border) !important;
+  background: var(--sapd-module-bg) !important;
+  color: var(--sapd-module-text) !important;
+}
+
+.relation-chip.measure-chip,
+.relation-chip.note-chip,
+.relation-chip.missing,
+.missing-pill,
+.original-matrix-panel .relation-chip.measure-chip,
+.original-matrix-panel .relation-chip.note-chip,
+.environment-tab-table-pane .environment-mapping-table .relation-chip.measure-chip,
+.dev-lifecycle-workspace .relation-chip.measure-chip,
+.maintenance-data-table .relation-chip.measure-chip,
+.maintenance-table .relation-chip.measure-chip {
+  border-color: var(--sapd-measure-border) !important;
+  background: var(--sapd-measure-bg) !important;
+  color: var(--sapd-measure-text) !important;
+}
+
+.standard-control-code-chip,
+.standard-control-code-chip.standard-control-inline,
+.standard-framework-table .reference-tag {
+  border-color: var(--sapd-standard-border) !important;
+  background: var(--sapd-standard-bg) !important;
+  color: var(--sapd-standard-text) !important;
+}
+
+.relation-chip.system-chip,
+.relation-chip.environment-chip,
+.relation-chip.muted,
+.original-matrix-panel .relation-chip.system-chip,
+.original-matrix-panel .relation-chip.environment-chip,
+.environment-tab-table-pane .environment-mapping-table .relation-chip.system-chip,
+.environment-tab-table-pane .environment-mapping-table .relation-chip.environment-chip {
+  border-color: var(--sapd-structure-border) !important;
+  background: var(--sapd-structure-bg) !important;
+  color: var(--sapd-structure-text) !important;
+}
+
+/* 2026-05-30 relation chip containment for dense matrix cells */
+.relation-chip,
+.original-matrix-panel .relation-chip,
+.environment-tab-table-pane .environment-mapping-table .relation-chip,
+.dev-lifecycle-workspace .relation-chip {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.relation-chip em,
+.original-matrix-panel .relation-chip em,
+.environment-tab-table-pane .environment-mapping-table .relation-chip em,
+.dev-lifecycle-workspace .relation-chip em {
+  flex: 0 0 auto;
+}
+
+.relation-chip .relation-chip-text,
+.original-matrix-panel .relation-chip .relation-chip-text,
+.environment-tab-table-pane .environment-mapping-table .relation-chip .relation-chip-text,
+.dev-lifecycle-workspace .relation-chip .relation-chip-text {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.original-matrix-panel .technical-mapping-section .semantic-mapping-table td,
+.original-matrix-panel .management-mapping-section .semantic-mapping-table td,
+.environment-tab-table-pane .environment-mapping-table td {
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* 2026-05-30 lifecycle stage tab fit and baseline alignment */
+.dev-lifecycle-workspace .lifecycle-stage-bar {
+  min-height: 62px;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 260px);
+  align-items: start;
+  gap: 12px;
+  overflow: hidden;
+  padding: 8px 12px 6px;
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs {
+  width: 100%;
+  max-width: 100%;
+  min-height: 50px;
+  align-items: flex-start;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0 12px 6px 0;
+  scroll-padding-inline: 8px 18px;
+  scrollbar-gutter: stable;
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row {
+  min-width: 148px;
+  max-width: 174px;
+  min-height: 46px;
+  grid-template-columns: minmax(0, 1fr) 24px;
+  align-content: center;
+  gap: 1px 7px;
+  padding: 6px 8px 7px 10px;
+  border-radius: 16px;
+  scroll-margin-inline: 8px 18px;
+  transform: none;
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row strong {
+  font-size: 12.5px;
+  line-height: 1.15;
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs .stage-tab-code {
+  font-size: 11px;
+  line-height: 1.1;
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs .stage-tab-arrow {
+  width: 24px;
+  height: 24px;
+  font-size: 14px;
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row:hover {
+  transform: none;
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-search {
+  align-self: start;
+  height: 38px;
+  margin-top: 4px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+@media (max-width: 1440px) {
+  .dev-lifecycle-workspace .lifecycle-stage-bar {
+    grid-template-columns: minmax(0, 1fr) minmax(168px, 220px);
+    gap: 10px;
+    padding-inline: 10px;
+  }
+
+  .dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row {
+    min-width: 136px;
+    max-width: 158px;
+  }
+
+  .dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row strong {
+    font-size: 12px;
+  }
+
+.dev-lifecycle-workspace .lifecycle-stage-search {
+    height: 36px;
+  }
+}
+
+/* 2026-05-30 global baseline issue closeout: protected lifecycle tabs and cell-contained relation chips */
+.dev-lifecycle-workspace .lifecycle-stage-bar {
+  grid-template-columns: minmax(0, 1fr) clamp(180px, 14vw, 250px);
+  align-items: start;
+  overflow: hidden;
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs {
+  grid-column: 1;
+  min-width: 0;
+  max-width: 100%;
+  padding-right: 20px;
+  scroll-padding-inline: 10px 28px;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-search {
+  grid-column: 2;
+  width: 100%;
+  min-width: 0;
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row {
+  width: max-content;
+  min-width: 162px;
+  max-width: none;
+  min-height: 56px;
+  flex: 0 0 auto;
+  grid-template-columns: max-content 28px;
+  gap: 2px 12px;
+  padding: 9px 12px 10px 16px;
+  border-color: rgba(132, 143, 159, 0.26);
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row.active {
+  border-color: var(--sapd-blue);
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--sapd-blue) 36%, transparent),
+    0 10px 18px rgba(10, 132, 255, 0.12);
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row.active::after {
+  inset: auto 16px 8px 16px;
+  background: var(--sapd-blue);
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row strong,
+.dev-lifecycle-workspace .lifecycle-stage-tabs .stage-tab-code {
+  width: max-content;
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.original-matrix-panel .technical-mapping-section .semantic-scroll {
+  overflow-x: hidden;
+}
+
+.original-matrix-panel .technical-mapping-section .semantic-mapping-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.original-matrix-panel .technical-mapping-section .semantic-mapping-table th:nth-child(1),
+.original-matrix-panel .technical-mapping-section .semantic-mapping-table td:nth-child(1) {
+  width: 18%;
+}
+
+.original-matrix-panel .technical-mapping-section .semantic-mapping-table th:nth-child(2),
+.original-matrix-panel .technical-mapping-section .semantic-mapping-table td:nth-child(2) {
+  width: 40%;
+}
+
+.original-matrix-panel .technical-mapping-section .semantic-mapping-table th:nth-child(3),
+.original-matrix-panel .technical-mapping-section .semantic-mapping-table td:nth-child(3) {
+  width: 42%;
+}
+
+.original-matrix-panel .technical-mapping-section .semantic-mapping-table td {
+  overflow: hidden;
+}
+
+.original-matrix-panel .technical-mapping-section .relation-chip {
+  max-width: 100%;
+}
+
+@media (max-width: 1440px) {
+  .dev-lifecycle-workspace .lifecycle-stage-bar {
+    grid-template-columns: minmax(0, 1fr) 196px;
+  }
+
+  .dev-lifecycle-workspace .lifecycle-stage-tabs {
+    padding-right: 18px;
+  }
+
+  .dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row {
+    min-width: 154px;
+    padding-inline: 14px 10px;
+  }
+
+  .original-matrix-panel .technical-mapping-section .semantic-mapping-table th:nth-child(1),
+  .original-matrix-panel .technical-mapping-section .semantic-mapping-table td:nth-child(1) {
+    width: 20%;
+  }
+
+  .original-matrix-panel .technical-mapping-section .semantic-mapping-table th:nth-child(2),
+  .original-matrix-panel .technical-mapping-section .semantic-mapping-table td:nth-child(2) {
+    width: 38%;
+  }
+
+  .original-matrix-panel .technical-mapping-section .semantic-mapping-table th:nth-child(3),
+  .original-matrix-panel .technical-mapping-section .semantic-mapping-table td:nth-child(3) {
+    width: 42%;
+  }
+}
+
+/* 2026-05-30 LC-AP / LC-DT final stage-tab override: content-sized tabs on top of global baseline */
+.dev-lifecycle-workspace .lifecycle-stage-bar {
+  min-height: 78px !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) clamp(220px, 17vw, 300px) !important;
+  align-items: center !important;
+  gap: 14px !important;
+  overflow: hidden !important;
+  padding: 10px 14px 8px !important;
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs {
+  grid-column: 1 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  min-height: 64px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 12px !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  padding: 4px 28px 8px 8px !important;
+  scroll-padding-inline: 8px 34px !important;
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row {
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  min-height: 58px !important;
+  flex: 0 0 auto !important;
+  display: grid !important;
+  grid-template-columns: max-content 34px !important;
+  grid-template-areas:
+    "title arrow"
+    "code arrow" !important;
+  align-items: center !important;
+  gap: 2px 16px !important;
+  padding: 10px 14px 12px 18px !important;
+  border: 1px solid rgba(132, 143, 159, 0.24) !important;
+  border-radius: 17px !important;
+  background: rgba(255, 255, 255, 0.86) !important;
+  color: #172033 !important;
+  box-shadow: 0 5px 14px rgba(29, 35, 48, 0.07) !important;
+  transform: none !important;
+  white-space: nowrap !important;
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row strong,
+.dev-lifecycle-workspace .lifecycle-stage-tabs .stage-tab-code {
+  width: auto !important;
+  max-width: none !important;
+  min-width: max-content !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: nowrap !important;
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row strong {
+  grid-area: title !important;
+  color: #172033 !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  line-height: 1.18 !important;
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs .stage-tab-code {
+  grid-area: code !important;
+  color: var(--sapd-blue) !important;
+  font-size: 12px !important;
+  font-weight: 650 !important;
+  line-height: 1.1 !important;
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs .stage-tab-arrow {
+  grid-area: arrow !important;
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 999px !important;
+  background: rgba(10, 132, 255, 0.1) !important;
+  color: #236aa3 !important;
+  font-size: 15px !important;
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row:hover {
+  border-color: rgba(10, 132, 255, 0.26) !important;
+  background: rgba(255, 255, 255, 0.94) !important;
+  transform: none !important;
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row.active {
+  border-color: var(--sapd-blue) !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  color: #172033 !important;
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--sapd-blue) 32%, transparent),
+    0 8px 18px rgba(10, 132, 255, 0.12) !important;
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row.active::after {
+  inset: auto 18px 10px 18px !important;
+  height: 3px !important;
+  border-radius: 999px !important;
+  background: var(--sapd-blue) !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row.active *,
+.dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row:hover * {
+  color: inherit;
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row.active .stage-tab-code,
+.dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row:hover .stage-tab-code {
+  color: var(--sapd-blue) !important;
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row.active .stage-tab-arrow,
+.dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row:hover .stage-tab-arrow {
+  color: #236aa3 !important;
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-search {
+  grid-column: 2 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 40px !important;
+  margin-top: 0 !important;
+  align-self: center !important;
+}
+
+@media (max-width: 1440px) {
+  .dev-lifecycle-workspace .lifecycle-stage-bar {
+    grid-template-columns: minmax(0, 1fr) 210px !important;
+    gap: 10px !important;
+    padding-inline: 10px !important;
+  }
+
+  .dev-lifecycle-workspace .lifecycle-stage-tabs {
+    gap: 10px !important;
+    padding-right: 24px !important;
+  }
+
+  .dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row {
+    padding-inline: 14px 12px !important;
+  }
+}
+
+/* 2026-05-30 LC-AP / LC-DT stage tabs: arrowless equal-width tabs with restored motion */
+@keyframes sapd-stage-tab-settle {
+  0% {
+    transform: translateY(1px) scale(0.985);
+  }
+  60% {
+    transform: translateY(-1px) scale(1.01);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs {
+  gap: 12px !important;
+  padding: 5px 28px 9px 8px !important;
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row {
+  width: var(--stage-tab-width, 156px) !important;
+  min-width: var(--stage-tab-width, 156px) !important;
+  max-width: var(--stage-tab-width, 156px) !important;
+  min-height: 58px !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-template-areas:
+    "title"
+    "code" !important;
+  justify-items: start !important;
+  gap: 2px !important;
+  padding: 10px 16px 12px !important;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 180ms ease !important;
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs .stage-tab-arrow {
+  display: none !important;
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row strong,
+.dev-lifecycle-workspace .lifecycle-stage-tabs .stage-tab-code {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row:hover {
+  transform: translateY(-1px) !important;
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row:active {
+  transform: translateY(1px) scale(0.985) !important;
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row.active {
+  animation: sapd-stage-tab-settle 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row.active::after {
+  inset: auto 18px 10px 18px !important;
+}
+
+@media (min-width: 1680px) {
+  .dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row {
+    width: var(--stage-tab-width, 156px) !important;
+    min-width: var(--stage-tab-width, 156px) !important;
+    max-width: var(--stage-tab-width, 156px) !important;
+  }
+}
+
+@media (max-width: 1440px) {
+  .dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row {
+    width: var(--stage-tab-width, 156px) !important;
+    min-width: var(--stage-tab-width, 156px) !important;
+    max-width: var(--stage-tab-width, 156px) !important;
+  }
+}
+
+/* 2026-05-30 capability workbench view tabs: compact Apple segmented control */
+.app-shell-integrated .capability-map-preview-r2 .relation-view-tabs.preview-tabs {
+  width: fit-content;
+  max-width: calc(100% - 20px);
+  min-height: 38px;
+  margin: 0 0 0 8px;
+  padding: 3px;
+  gap: 2px;
+  border: 1px solid rgba(132, 143, 159, 0.14);
+  border-radius: 15px;
+  background: rgba(118, 118, 128, 0.11);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.52),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.26);
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.app-shell-integrated .capability-map-preview-r2 .relation-view-tab {
+  min-height: 30px;
+  height: 30px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: #526071;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1;
+  letter-spacing: 0;
+  transition:
+    background 140ms ease,
+    color 140ms ease,
+    box-shadow 160ms ease,
+    transform 140ms ease;
+}
+
+.app-shell-integrated .capability-map-preview-r2 .relation-view-tab:hover {
+  background: rgba(255, 255, 255, 0.5);
+  color: #253041;
+  transform: translateY(-0.5px);
+}
+
+.app-shell-integrated .capability-map-preview-r2 #capability-relation-tab-summary:checked ~ .capability-map-v3-grid label[for="capability-relation-tab-summary"],
+.app-shell-integrated .capability-map-preview-r2 #capability-relation-tab-technical:checked ~ .capability-map-v3-grid label[for="capability-relation-tab-technical"],
+.app-shell-integrated .capability-map-preview-r2 #capability-relation-tab-management:checked ~ .capability-map-v3-grid label[for="capability-relation-tab-management"],
+.app-shell-integrated .capability-map-preview-r2 #capability-relation-tab-standard:checked ~ .capability-map-v3-grid label[for="capability-relation-tab-standard"] {
+  background: rgba(255, 255, 255, 0.94);
+  color: #172033;
+  font-weight: 700;
+  box-shadow:
+    0 1px 2px rgba(29, 35, 48, 0.08),
+    0 5px 14px rgba(29, 35, 48, 0.08);
+  transform: none;
+}
+
+/* 2026-05-30 capability workbench IA spacing: keep header, tabs and frame separated */
+.app-shell-integrated .capability-workbench-head {
+  min-height: 94px;
+  align-items: start;
+  padding: 13px 16px 9px;
+}
+
+.app-shell-integrated .capability-focus-head-slot .preview-focus-main {
+  align-self: start;
+  padding-top: 1px;
+}
+
+.app-shell-integrated .capability-focus-head-slot .preview-focus-main > span {
+  margin-bottom: 4px;
+  color: #43536a;
+  font-size: 12px;
+  font-weight: 680;
+  letter-spacing: 0.01em;
+}
+
+.app-shell-integrated .capability-focus-head-slot .preview-focus-main strong {
+  color: #43536a;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.22;
+}
+
+.app-shell-integrated .capability-focus-head-slot .preview-focus-main p {
+  display: none;
+}
+
+.app-shell-integrated .capability-relation-workspace {
+  padding: 10px 12px 12px;
+  background: #f4f6f9;
+}
+
+.app-shell-integrated .capability-map-preview-r2.capability-local-relation-map {
+  border: 1px solid rgba(132, 143, 159, 0.2);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.76);
+  background-image: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 8px 22px rgba(29, 35, 48, 0.05);
+}
+
+.app-shell-integrated .capability-map-preview-r2 .preview-relation-stage {
+  padding-top: 10px;
+  border-radius: 18px;
+  background: transparent;
+}
+
+.app-shell-integrated .capability-map-preview-r2 .relation-view-tabs.preview-tabs {
+  margin-left: 12px;
+  margin-bottom: 10px;
+}
+
+.app-shell-integrated .capability-map-preview-r2 .preview-stage-scroll {
+  border-top: 1px solid rgba(132, 143, 159, 0.16);
+  background: rgba(248, 250, 252, 0.72);
+}
+
+/* 2026-05-30 global sidebar icon contrast baseline */
+.app-shell-integrated .app-sidebar .nav-symbol {
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  border-radius: 14px;
+  color: rgba(255, 255, 255, 0.98) !important;
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.28),
+    0 0 1px rgba(15, 23, 42, 0.22);
+  -webkit-text-stroke: 0.35px rgba(15, 23, 42, 0.18);
+}
+
+.app-shell-integrated .app-sidebar .module-tab.active .nav-symbol,
+.app-shell-integrated .app-sidebar .navigation-group.active > .navigation-parent .nav-symbol {
+  border-color: rgba(255, 255, 255, 0.34);
+  background: rgba(15, 23, 42, 0.16);
+  color: #ffffff !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 5px 12px rgba(8, 51, 102, 0.16);
+  text-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.36),
+    0 0 1px rgba(15, 23, 42, 0.26);
+  -webkit-text-stroke: 0.38px rgba(15, 23, 42, 0.2);
 }

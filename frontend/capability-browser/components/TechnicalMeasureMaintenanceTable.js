@@ -3,11 +3,13 @@
   const utils = components.utils;
   const display = window.sapdDisplay || {};
 
-  function chipList(items, empty = "待补充") {
-    if (display.relationChipList) return display.relationChipList(utils, items, { empty, preferCodeTitle: false });
+  function chipList(items, empty = "待补充", fallbackKind = "") {
+    if (display.relationChipList) return display.relationChipList(utils, items, { empty, kind: fallbackKind, preferCodeTitle: false });
     const rows = utils.list(items).filter(Boolean);
     if (!rows.length) return `<span class="empty-inline">${utils.escapeHtml(empty)}</span>`;
-    return rows.map((item) => `<span class="relation-chip">${utils.escapeHtml(displayValue(item, empty))}</span>`).join("");
+    return rows
+      .map((item) => `<span class="relation-chip ${display.chipClass?.(fallbackKind) || ""}">${utils.escapeHtml(displayValue(item, empty))}</span>`)
+      .join("");
   }
 
   function displayValue(value, empty = "待补充") {
@@ -48,7 +50,7 @@
                       ${row.mappingStatusLabel ? `<span class="maintenance-cell-note">${utils.escapeHtml(row.mappingStatusLabel)}</span>` : ""}
                     </td>
                     <td>${utils.escapeHtml(displayValue(row.sourceLabel))}</td>
-                    <td>${chipList(row.serviceNames, row.serviceEmptyText || "待补充关联安全技术服务")}</td>
+                    <td>${chipList(row.serviceNames, row.serviceEmptyText || "待补充关联安全技术服务", "安全技术服务")}</td>
                     <td>${chipList(row.scopeNames, row.scopeEmptyText || "待补充关联作用域")}</td>
                     <td>${chipList(row.environmentNames)}</td>
                     <td>${chipList(row.environmentObjectNames)}</td>

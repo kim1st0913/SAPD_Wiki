@@ -21,6 +21,7 @@ DATA_PACKAGES = {
     "content": "frontend/capability-browser/public/data/content-views.json",
     "security-architecture-design-guide": "frontend/capability-browser/public/data/guides/security-architecture-design.json",
     "data-security-design-guide": "frontend/capability-browser/public/data/guides/data-security-design.json",
+    "light-planning-guide": "frontend/capability-browser/public/data/guides/light-planning.json",
     "standards": "frontend/capability-browser/public/data/standards-index.json",
     "standards-index": "frontend/capability-browser/public/data/standards-index.json",
 }

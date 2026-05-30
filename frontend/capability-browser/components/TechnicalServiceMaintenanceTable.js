@@ -78,7 +78,7 @@
         </td>
         <td>${utils.escapeHtml(displayValue(row.definition))}</td>
         <td>${chipList(row.ownershipFocuses, "待补充安全能力 / 关注点", "能力关注点")}</td>
-        <td>${chipList(row.linkedModuleMeasures, display.state?.("no_module_or_measure") || "暂无安全技术模块/措施", "", true)}</td>
+        <td>${chipList(row.linkedModuleMeasures, display.state?.("no_module_or_measure") || "/", "", true)}</td>
         <td>${chipList(row.linkedSystems, "待补充安全系统", "安全系统")}</td>
         <td>${chipList(row.linkedEnvironments, "待补充信息化环境", "信息化环境")}</td>
       </tr>

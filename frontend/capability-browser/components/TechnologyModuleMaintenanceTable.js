@@ -15,11 +15,13 @@
     return [code, title].filter(Boolean).join(" ");
   }
 
-  function chipList(items, empty = "待补充") {
-    if (display.relationChipList) return display.relationChipList(utils, items, { empty });
+  function chipList(items, empty = "待补充", fallbackKind = "") {
+    if (display.relationChipList) return display.relationChipList(utils, items, { empty, kind: fallbackKind });
     const rows = utils.list(items).filter(Boolean);
     if (!rows.length) return `<span class="empty-inline">${utils.escapeHtml(empty)}</span>`;
-    return rows.map((item) => `<span class="relation-chip">${utils.escapeHtml(entityLabel(item, empty))}</span>`).join("");
+    return rows
+      .map((item) => `<span class="relation-chip ${display.chipClass?.(fallbackKind) || ""}">${utils.escapeHtml(entityLabel(item, empty))}</span>`)
+      .join("");
   }
 
   function statusLine(label, value) {
@@ -78,14 +80,14 @@
         (row) => `
           <tr class="maintenance-data-row standard-group-detail ${row.id === selectedId ? "active" : ""}" data-standard-parent="${utils.escapeHtml(parentId)}" data-standard-lineage="${utils.escapeHtml(lineage.join(" "))}"${hiddenAttr} data-maintenance-id="${utils.escapeHtml(row.id)}">
             <td>${utils.escapeHtml(valueText(row.category))}</td>
-            <td>${chipList(row.linkedSystems, display.state?.("contract_pending") || "待契约补充")}</td>
+            <td>${chipList(row.linkedSystems, display.state?.("contract_pending") || "待契约补充", "安全系统")}</td>
             <td>
               <div class="module-title-cell">
                 <strong>${utils.escapeHtml(valueText(row.title))}</strong>
                 <span>${utils.escapeHtml(valueText(row.description))}</span>
               </div>
             </td>
-            <td>${chipList(row.linkedServices, "暂无关联安全技术服务")}</td>
+            <td>${chipList(row.linkedServices, "暂无关联安全技术服务", "安全技术服务")}</td>
             <td>
               <div class="module-mapping-cell">
                 ${statusLine("措施", row.measureMappingStatus)}

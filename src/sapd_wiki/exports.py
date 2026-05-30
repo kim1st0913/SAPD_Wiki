@@ -126,6 +126,7 @@ LIFECYCLE_RELATION_TYPES = (
 STAKEHOLDER_LAYERS = ("决策层", "管理层", "执行层", "监督层")
 
 SCENE_TECHNICAL_MAPPING_SHEET = "作用域-安全技术服务-安全技术模块映射"
+DATA_LIFECYCLE_POLICY_MAPPING_SHEET = "LC-DT 安全技术服务、模块、策略映射表"
 TECHNICAL_MEASURE_SOURCE_COLUMN = "安全技术模块/措施"
 MAINTENANCE_KNOWLEDGE_FIELDS = (
     "scope_types",
@@ -1498,6 +1499,195 @@ def _security_technical_measure_candidates(conn: sqlite3.Connection) -> list[dic
     return []
 
 
+def _xlsx_text(value: object) -> str:
+    return " ".join(str(value or "").replace("\xa0", " ").split()).strip()
+
+
+def _data_lifecycle_stage_title(value: object) -> str:
+    text = _xlsx_text(value)
+    if not text:
+        return ""
+    return re.sub(r"（[A-Z]{2}）$", "", text).strip()
+
+
+def _policy_code_and_text(value: object) -> tuple[str, str]:
+    text = _xlsx_text(value)
+    if not text:
+        return "", ""
+    match = re.match(r"^([ISNP]\.[A-Z]{2}\.\d{2})\s+(.+)$", text)
+    if match:
+        return match.group(1), match.group(2).strip()
+    return "", text
+
+
+def _data_policy_source(row_number: int, column_name: str, cell: str | None, raw_value: object) -> dict[str, Any]:
+    return {
+        "sheet": DATA_LIFECYCLE_POLICY_MAPPING_SHEET,
+        "row": row_number,
+        "column": column_name,
+        "cell": cell,
+        "raw_value": None if raw_value is None else str(raw_value),
+    }
+
+
+def _cell_coordinate(cell: Any) -> str | None:
+    return getattr(cell, "coordinate", None)
+
+
+def _data_lifecycle_policy_rows_from_xlsx(
+    conn: sqlite3.Connection,
+    *,
+    technical_services: dict[str, dict[str, Any]],
+    technology_modules: dict[str, dict[str, Any]],
+    technical_measures: dict[str, dict[str, Any]],
+    refs: dict[str, list[dict[str, Any]]],
+) -> dict[str, list[dict[str, Any]]]:
+    service_by_code = {item.get("code"): item for item in technical_services.values() if item.get("code")}
+    module_by_title = {item.get("title"): item for item in technology_modules.values() if item.get("title")}
+    measure_by_title = {item.get("title"): item for item in technical_measures.values() if item.get("title")}
+    level_columns = (
+        {"level": "I", "label": "重要数据", "policy_col": 5, "ref_col": 6, "policy_header": "重要数据安全策略", "ref_header": "参考来源"},
+        {"level": "S", "label": "个人敏感数据", "policy_col": 7, "ref_col": 8, "policy_header": "个人敏感数据安全策略", "ref_header": "参考来源"},
+        {"level": "N", "label": "非公开数据", "policy_col": 9, "ref_col": 10, "policy_header": "非公开数据安全策略", "ref_header": "参考来源"},
+        {"level": "P", "label": "公开数据", "policy_col": 11, "ref_col": 12, "policy_header": "公开数据安全策略", "ref_header": "参考来源"},
+    )
+
+    def service_payloads(raw_value: object) -> list[dict[str, Any]]:
+        payloads: list[dict[str, Any]] = []
+        for value in split_multivalue_text(raw_value):
+            parts = service_parts(value)
+            item = service_by_code.get(parts.get("code") or "")
+            if item:
+                payloads.append(_item_payload(item, refs))
+            elif parts.get("code") or parts.get("title"):
+                payloads.append(
+                    {
+                        "id": f"security_technical_service:policy:{parts.get('code') or parts.get('title')}",
+                        "type": "security_technical_service",
+                        "code": parts.get("code"),
+                        "title": parts.get("title") or parts.get("code"),
+                        "description": None,
+                        "category": None,
+                        "status": "derived",
+                        "metadata": {},
+                        "sources": [],
+                    }
+                )
+        return payloads
+
+    def module_or_measure_payloads(raw_value: object) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        modules: list[dict[str, Any]] = []
+        measures: list[dict[str, Any]] = []
+        for title in split_multivalue_text(raw_value):
+            if title == "\\":
+                continue
+            measure = measure_by_title.get(title)
+            if measure:
+                payload = _item_payload(measure, refs)
+                payload["objectKind"] = "安全技术措施"
+                measures.append(payload)
+                continue
+            module = module_by_title.get(title)
+            if not module:
+                candidates = [item for item_title, item in module_by_title.items() if item_title and item_title.startswith(title)]
+                if len(candidates) == 1:
+                    module = candidates[0]
+            if module:
+                payload = _item_payload(module, refs)
+                payload["objectKind"] = "安全技术模块"
+                modules.append(payload)
+                continue
+            modules.append(
+                {
+                    "id": f"security_technology_module:policy:{title}",
+                    "type": "security_technology_module",
+                    "code": None,
+                    "title": title,
+                    "description": None,
+                    "category": None,
+                    "status": "derived",
+                    "metadata": {},
+                    "sources": [],
+                    "objectKind": "安全技术模块",
+                }
+            )
+        return modules, measures
+
+    load_workbook = _load_openpyxl()
+    for path in _latest_xlsx_source_paths(conn):
+        if not path.exists():
+            continue
+        workbook = load_workbook(path, read_only=True, data_only=True)
+        try:
+            if DATA_LIFECYCLE_POLICY_MAPPING_SHEET not in workbook.sheetnames:
+                continue
+            worksheet = workbook[DATA_LIFECYCLE_POLICY_MAPPING_SHEET]
+            rows_by_stage: dict[str, list[dict[str, Any]]] = {}
+            last_stage = ""
+            last_category = ""
+            for row_number, row in enumerate(worksheet.iter_rows(min_row=4), start=4):
+                raw_stage = row[1].value if len(row) > 1 else None
+                stage = _data_lifecycle_stage_title(raw_stage) or last_stage
+                if stage:
+                    last_stage = stage
+                if not stage:
+                    continue
+                raw_category = row[2].value if len(row) > 2 else None
+                category = _xlsx_text(raw_category) or last_category
+                if category:
+                    last_category = category
+                sequence = _xlsx_text(row[3].value if len(row) > 3 else None)
+                service_raw = row[12].value if len(row) > 12 else None
+                module_raw = row[13].value if len(row) > 13 else None
+                policies: list[dict[str, Any]] = []
+                for level in level_columns:
+                    policy_cell = row[level["policy_col"] - 1]
+                    reference_cell = row[level["ref_col"] - 1]
+                    code, text = _policy_code_and_text(policy_cell.value)
+                    reference = _xlsx_text(reference_cell.value)
+                    policies.append(
+                        {
+                            "level": level["level"],
+                            "label": level["label"],
+                            "code": code,
+                            "text": text,
+                            "reference": reference,
+                            "status": "not_applicable" if text == "不涉及" else "applicable",
+                            "sources": [
+                                _data_policy_source(row_number, level["policy_header"], _cell_coordinate(policy_cell), policy_cell.value),
+                                _data_policy_source(row_number, level["ref_header"], _cell_coordinate(reference_cell), reference_cell.value),
+                            ],
+                        }
+                    )
+                services = service_payloads(service_raw)
+                modules, measures = module_or_measure_payloads(module_raw)
+                if not any(policy.get("text") for policy in policies) and not services and not modules and not measures:
+                    continue
+                rows_by_stage.setdefault(stage, []).append(
+                    {
+                        "id": f"data-policy:{stage}:{row_number}",
+                        "stage": stage,
+                        "category": category,
+                        "sequence": sequence,
+                        "policies": policies,
+                        "technical_services": services,
+                        "technology_modules": modules,
+                        "technical_measures": measures,
+                        "module_or_measure_items": modules + measures,
+                        "sources": [
+                            _data_policy_source(row_number, "阶段", _cell_coordinate(row[1]) if len(row) > 1 else None, raw_stage),
+                            _data_policy_source(row_number, "类别", _cell_coordinate(row[2]) if len(row) > 2 else None, raw_category),
+                            _data_policy_source(row_number, "安全技术服务", _cell_coordinate(row[12]) if len(row) > 12 else None, service_raw),
+                            _data_policy_source(row_number, "安全技术模块", _cell_coordinate(row[13]) if len(row) > 13 else None, module_raw),
+                        ],
+                    }
+                )
+            return rows_by_stage
+        finally:
+            workbook.close()
+    return {}
+
+
 def _scope_catalog_rows_from_xlsx(conn: sqlite3.Connection) -> list[dict[str, Any]]:
     sheet_name = "安全能力作用域目录"
     load_workbook = _load_openpyxl()
@@ -2451,6 +2641,14 @@ def export_lifecycle_knowledge(
             payload["module_count"] = 0
         return payload
 
+    data_policy_rows_by_stage = _data_lifecycle_policy_rows_from_xlsx(
+        conn,
+        technical_services=technical_services,
+        technology_modules=technology_modules,
+        technical_measures=technical_measures,
+        refs=refs,
+    )
+
     def lifecycle_process_payload(process_id: str) -> dict[str, Any]:
         process = lifecycle_processes[process_id]
         metadata = _metadata(process)
@@ -2554,10 +2752,12 @@ def export_lifecycle_knowledge(
                 for measure_id in sort_lifecycle_items(technical_measures, measures_by_process.get(process_id, []))
                 if measure_id in technical_measures
             ]
+            payload["data_policy_rows"] = data_policy_rows_by_stage.get(process.get("title"), [])
             payload["scene_count"] = len(payload["scenes"])
             payload["technical_service_count"] = len(payload["technical_services"])
             payload["technology_module_count"] = len(payload["technology_modules"])
             payload["technical_measure_count"] = len(payload["technical_measures"])
+            payload["data_policy_row_count"] = len(payload["data_policy_rows"])
         return payload
 
     application_process_ids = [
@@ -2683,6 +2883,17 @@ def export_content_views(
             / "guides"
             / "data-security-design.json",
             "content": "面向业务的数据安全专项设计方法（V2.1）",
+        },
+        {
+            "guide_id": "light-planning",
+            "package_path": PROJECT_ROOT
+            / "frontend"
+            / "capability-browser"
+            / "public"
+            / "data"
+            / "guides"
+            / "light-planning.json",
+            "content": "轻规划设计报告模版（v0.3）",
         },
     ]
     html_documents: list[dict[str, Any]] = []
@@ -3741,7 +3952,7 @@ def export_lifecycle_workbench(
             process,
             "lifecycle_stage",
             fallback_name="未命名数据过程",
-            extra={"lifecycleType": "data"},
+            extra={"lifecycleType": "data", "dataPolicyRows": _wb_list(process.get("data_policy_rows"))},
         )
         default_data_stage_id = default_data_stage_id or stage_obj["id"]
         _wb_add_relation(relations, seen_relations, "belongs_to", stage_obj, data_domain_obj, label="属于数据生命周期")

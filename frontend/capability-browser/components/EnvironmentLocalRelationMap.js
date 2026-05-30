@@ -6,20 +6,6 @@
     return utils?.escapeHtml ? utils.escapeHtml(value) : String(value ?? "");
   }
 
-  function renderStatus(summary = {}) {
-    const items = [
-      ["对象", summary.selectedObjectCount ?? 0],
-      ["作用域", summary.scopeCount ?? 0],
-      ["技术服务", summary.serviceCount ?? 0],
-      ["模块/措施", summary.moduleCount ?? 0],
-    ];
-    return `
-      <div class="environment-graph-status" aria-label="当前图谱统计">
-        ${items.map(([label, value]) => `<span><strong>${escape(value)}</strong>${escape(label)}</span>`).join("")}
-      </div>
-    `;
-  }
-
   function topologyStats(tree = []) {
     const segments = new Set();
     const objects = new Set();
@@ -303,7 +289,6 @@
         <div class="environment-tab-bar" role="tablist" aria-label="信息化环境页面视图">
           <label class="environment-tab-label" for="environmentTabTopology" role="tab">拓扑首页</label>
           <label class="environment-tab-label" for="environmentTabMapping" role="tab">归纳表格</label>
-          ${renderStatus(viewModel?.relationshipSummary || {})}
         </div>
         <div class="environment-tab-panels">
           <div class="environment-tab-panel environment-tab-panel-topology">

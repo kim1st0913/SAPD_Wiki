@@ -89,7 +89,7 @@
               ${mappingRows
                 .map(
                   (row) => `
-                    <tr data-capability-id="${utils.escapeHtml(row.focus.id)}">
+                    <tr>
                       <td>${chipList(row.securityWorks, "暂无安全工作")}</td>
                       <td>${functionList(row.stakeholders)}</td>
                       <td>${chipList(row.processGroups, "暂无 L2 流程组")}</td>

@@ -38,7 +38,21 @@ Product UI for a local security architecture relationship workspace.
 - Relationship graph colors must prioritize semantic roles over hierarchy: current/focus nodes use muted lavender, technical uses muted blue, management uses sage, standards use sand. Pure hierarchy levels may use sand, clay, and slate, with clear lightness differences, but must not override semantic focus/view colors.
 - Tabs, segmented controls, table headers, hover rows, active tree rows, and CSF / lifecycle color rows should reuse the demo roles instead of introducing one-off local colors.
 - Source evidence: folded panel only.
+- Business `参考来源`: use the shared low-noise label + rounded reference box pattern. It may appear inside business tables only when the value is a user-readable business reference, not a raw provenance field.
 - Filters: search and simple controls, not heavy dashboard filter bars.
+
+## Frontend Display Governance
+
+- The global frontend design baseline is `docs/06-implementation/frontend-global-design-baseline-2026-05-30.md`; new and existing pages must converge to it by default.
+- Current frontend display categories and text / table / character rules are governed by `docs/06-implementation/frontend-display-design-principles-2026-05-30.md`.
+- Future frontend work must first identify the affected display category, then follow the corresponding typography, table, tab, chip, graph, empty-state, and field-boundary rules.
+- If the user says "按全局设计基线", "像 Apple demo 一样", or "这个页面不统一", Codex must apply the baseline without requiring a long prompt from the user.
+- Do not apply broad visual overrides across tables, tabs, directories, and graphs unless the governing document explicitly defines a shared rule.
+- New display categories must update the governance document before implementation.
+- Current baseline explicitly treats tabs as navigation-only, relationship chips as cell-contained business objects, lifecycle stage tabs as protected controls, and semantic object colors as cross-page invariants.
+- Multi-tab layouts must choose width behavior by type: view-switch tabs are content-sized, sequence tabs such as LC-AP / LC-DT are measured equal-width, and statistics stay outside tabs.
+- Relationship matrix chips are static relationship labels by default; they must not inherit parent-row navigation unless an explicit business destination exists.
+- Business `参考来源` display is part of the global baseline: label `参考来源` above a subtle rounded reference box; do not render it as plain text, strong chips, buttons, badges, or raw source evidence.
 
 ## Field Boundary Rules
 

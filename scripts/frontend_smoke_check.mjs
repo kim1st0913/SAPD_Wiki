@@ -20,7 +20,18 @@ const PAGE_TO_VIEW = {
 const GUIDE_ROUTE_EXPECTATIONS = {
   "/guides/security-architecture-design": { thumbs: 75 },
   "/guides/data-security-design": { thumbs: 43 },
+  "/guides/light-planning": { thumbs: 46 },
 };
+
+const PLACEHOLDER_ROUTES = new Set([
+  "/guides/security-governance-model",
+  "/guides/maturity-model-usage",
+  "/guides/others",
+  "/knowledge/hype-cycle",
+  "/knowledge/others",
+  "/standards/others",
+  "/sapd-maturity-assessment",
+]);
 
 function argValue(name, fallback = "") {
   const index = process.argv.indexOf(name);
@@ -108,6 +119,7 @@ async function waitForTarget(port, timeoutMs = 5000) {
 }
 
 function expectedViewFor(pageName, route) {
+  if (PLACEHOLDER_ROUTES.has(route)) return "placeholder";
   if (route.startsWith("/standards/")) return "maintenance";
   if (route.startsWith("/guides/")) return "content";
   if (pageName === "standards" || pageName === "maintenance") return "maintenance";

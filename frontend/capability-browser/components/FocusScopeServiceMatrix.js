@@ -11,16 +11,16 @@
     return "";
   }
 
-  function chipList(items, empty = "暂无", limit = Infinity) {
-    if (display.relationChipList) return display.relationChipList(utils, items, { empty, limit, showKind: true });
+  function chipList(items, empty = "暂无", limit = Infinity, fallbackKind = "") {
+    if (display.relationChipList) return display.relationChipList(utils, items, { empty, limit, kind: fallbackKind, showKind: true });
     const rows = utils.list(items).filter(Boolean);
     if (!rows.length) return `<span class="empty-inline">${utils.escapeHtml(empty)}</span>`;
     const visible = Number.isFinite(limit) ? rows.slice(0, limit) : rows;
     const more = rows.length - visible.length;
     return `${visible
       .map((item) => {
-        const kind = item.kind || item.objectKind || "";
-        return `<span class="relation-chip ${technicalChipClass(kind)}">${kind ? `<em>${utils.escapeHtml(kind)}</em>` : ""}${utils.escapeHtml(utils.codeTitleOf(item))}</span>`;
+        const kind = item.kind || item.objectKind || fallbackKind;
+        return `<span class="relation-chip ${technicalChipClass(kind)}">${kind ? `<em>${utils.escapeHtml(kind)}</em>` : ""}<span class="relation-chip-text">${utils.escapeHtml(utils.codeTitleOf(item))}</span></span>`;
       })
       .join("")}${more > 0 ? `<span class="relation-chip muted">+${more}</span>` : ""}`;
   }
@@ -31,7 +31,7 @@
       <div class="mapping-exception">
         <details>
           <summary>候选服务 ${utils.list(row.candidateServices).length}</summary>
-          <div class="source-chip-row">${chipList(row.candidateServices, "暂无候选服务", 8)}</div>
+          <div class="source-chip-row">${chipList(row.candidateServices, "暂无候选服务", 8, "安全技术服务")}</div>
           <p>${utils.escapeHtml(row.exceptionMessage || "需要后端/ETL确认")}</p>
         </details>
       </div>
@@ -94,10 +94,10 @@
               ${mappingRows
                 .map(
                   (row) => `
-                    <tr data-capability-id="${utils.escapeHtml(row.focus.id)}">
+                    <tr>
                       <td><strong>${utils.escapeHtml(row.scope.code || "")}</strong><span>${utils.escapeHtml(row.scope.title)}</span></td>
-                      <td>${row.status === "ambiguous_service_mapping" ? `<span class="missing-pill">${utils.escapeHtml(display.state?.("mapping_exception") || "映射异常")}</span>${exceptionDetails(row)}` : chipList(row.services, display.state?.("no_applicable_service") || "无适用服务")}</td>
-                      <td>${row.status === "ambiguous_service_mapping" ? `<span class="empty-inline">${utils.escapeHtml(display.state?.("pending_review") || "待确认")}</span>` : chipList(row.modules, row.status === "no_service" ? display.state?.("not_applicable") || "不适用" : display.state?.("no_module_or_measure") || "暂无安全技术模块/措施", Infinity)}</td>
+                      <td>${row.status === "ambiguous_service_mapping" ? `<span class="missing-pill">${utils.escapeHtml(display.state?.("mapping_exception") || "映射异常")}</span>${exceptionDetails(row)}` : chipList(row.services, display.state?.("no_applicable_service") || "无适用服务", Infinity, "安全技术服务")}</td>
+                      <td>${row.status === "ambiguous_service_mapping" ? `<span class="empty-inline">${utils.escapeHtml(display.state?.("pending_review") || "待确认")}</span>` : chipList(row.modules, row.status === "no_service" ? display.state?.("not_applicable") || "不适用" : display.state?.("no_module_or_measure") || "/", Infinity)}</td>
                     </tr>
                   `,
                 )

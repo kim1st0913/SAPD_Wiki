@@ -40,6 +40,7 @@
         children: [
           { id: "security-architecture-design", label: "安全技术架构设计方法", route: "/guides/security-architecture-design", type: "document-page", children: [] },
           { id: "data-security-design", label: "数据安全设计方法", route: "/guides/data-security-design", type: "document-page", children: [] },
+          { id: "light-planning", label: "轻规划", route: "/guides/light-planning", type: "document-page", children: [] },
           { id: "security-governance-model", label: "安全管控模式设计方法", route: "/guides/security-governance-model", type: "placeholder-page", children: [] },
           { id: "maturity-model-usage", label: "成熟度模型使用方法", route: "/guides/maturity-model-usage", type: "placeholder-page", children: [] },
           { id: "other-guides", label: "其他指南", route: "/guides/others", type: "placeholder-page", children: [] },
@@ -99,6 +100,7 @@
     "/guides": { view: "content", contentPage: "html" },
     "/guides/security-architecture-design": { view: "content", contentPage: "html" },
     "/guides/data-security-design": { view: "content", contentPage: "html" },
+    "/guides/light-planning": { view: "content", contentPage: "html" },
     "/guides/security-governance-model": { view: "placeholder", placeholder: true },
     "/guides/maturity-model-usage": { view: "placeholder", placeholder: true },
     "/guides/others": { view: "placeholder", placeholder: true },
@@ -166,6 +168,7 @@
     "/": "查看当前已导入安全能力、信息化环境、生命周期和知识维护数据的关系覆盖状态。",
     "/guides": "承载安全架构、数据安全、管控模式和成熟度模型等方法论说明。",
     "/guides/data-security-design": "以本地幻灯片形式浏览数据安全设计方法，后续可扩展为数据安全设计指南目录。",
+    "/guides/light-planning": "以本地幻灯片形式浏览轻规划设计报告模版，后续可扩展为轻规划设计指南目录。",
     "/capability-mapping": "从安全能力和关注点出发，核对技术视角、管理视角和标准 / 框架映射。",
     "/environment-mapping": "从信息化环境和对象出发，核对对象、作用域、服务、模块、措施和能力关联。",
     "/development-security": "以 LC-AP安全开发生命周期阶段和活动为主语，承载受控专项关系投影。",

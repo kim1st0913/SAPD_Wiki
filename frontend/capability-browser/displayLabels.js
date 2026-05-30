@@ -26,7 +26,7 @@
     pending_review: "待确认",
     mapping_exception: "映射异常",
     no_applicable_service: "无适用服务",
-    no_module_or_measure: "暂无安全技术模块/措施",
+    no_module_or_measure: "/",
     contract_pending: "待契约补充",
   };
 
@@ -44,6 +44,10 @@
 
   function state(key, fallback = "") {
     return DISPLAY_STATES[key] || fallback || key;
+  }
+
+  function emptyMark() {
+    return "/";
   }
 
   function kindKey(kind) {
@@ -86,13 +90,12 @@
     const itemKind = text((item && typeof item === "object" && (item.objectKind || item.kind)) || kind).trim();
     const visibleKind = showKind ? itemKind : "";
     const kindPrefix = visibleKind ? `<em>${escaped(visibleKind)}</em>` : "";
-    return `<span class="relation-chip ${chipClass(itemKind)}">${kindPrefix}${escaped(itemText(utils, item, empty, preferCodeTitle))}</span>`;
+    return `<span class="relation-chip ${chipClass(itemKind)}">${kindPrefix}<span class="relation-chip-text">${escaped(itemText(utils, item, empty, preferCodeTitle))}</span></span>`;
   }
 
   function relationChipList(utils, items, options = {}) {
     const rows = (Array.isArray(items) ? items : []).filter(Boolean);
-    const empty = options.empty || state("missing");
-    if (!rows.length) return `<span class="empty-inline">${utils.escapeHtml(empty)}</span>`;
+    if (!rows.length) return `<span class="empty-inline">${utils.escapeHtml(emptyMark())}</span>`;
     const limit = Number.isFinite(options.limit) ? options.limit : Infinity;
     const visible = rows.slice(0, limit);
     const more = rows.length - visible.length;
@@ -105,6 +108,7 @@
   display.label = label;
   display.relationLabel = relationLabel;
   display.state = state;
+  display.emptyMark = emptyMark;
   display.chipClass = chipClass;
   display.itemText = itemText;
   display.relationChip = relationChip;

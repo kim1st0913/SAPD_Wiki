@@ -32,7 +32,7 @@
 
   function fieldCell(value) {
     const lines = splitLines(value);
-    if (!lines.length) return `<span class="empty-inline">${EMPTY_VALUE}</span>`;
+    if (!lines.length || !lines.some(isBusinessText)) return `<span class="empty-inline">${EMPTY_VALUE}</span>`;
     return `
       <div class="lifecycle-field-lines">
         ${lines.map(renderFieldLine).join("")}
@@ -42,7 +42,12 @@
 
   function hasBusinessValue(value) {
     const lines = splitLines(value);
-    return lines.some((line) => line && line !== EMPTY_VALUE);
+    return lines.some(isBusinessText);
+  }
+
+  function isBusinessText(value) {
+    const text = String(value || "").trim();
+    return Boolean(text && text !== EMPTY_VALUE);
   }
 
   function renderFieldLine(line) {
@@ -69,8 +74,32 @@
     return `<span class="lifecycle-field-line"><span class="line-text">${escapeHtml(line)}</span></span>`;
   }
 
+  function renderMainActivityLine(line) {
+    const numbered = line.match(/^(\d+['’′]?)[).）、]\s*(.+)$/);
+    if (!numbered) return renderFieldLine(line);
+    return `
+      <span class="lifecycle-field-line is-numbered">
+        <span class="line-marker">${escapeHtml(numbered[1])}</span>
+        <span class="line-text">${renderMainActivityText(numbered[2])}</span>
+      </span>
+    `;
+  }
+
+  function renderMainActivityText(text) {
+    const match = String(text || "").match(/^([^：:\[]+)([：:\[].*)?$/);
+    if (!match) return escapeHtml(text);
+    const title = match[1].trim();
+    const suffix = match[2] || "";
+    if (!isSecurityMainActivityTitle(title)) return escapeHtml(text);
+    return `<span class="security-main-activity-title">${escapeHtml(title)}</span>${escapeHtml(suffix)}`;
+  }
+
+  function isSecurityMainActivityTitle(title) {
+    return /安全|威胁建模/.test(String(title || ""));
+  }
+
   function chipItems(value) {
-    if (!Array.isArray(value)) return splitLines(value).map((line) => ({ label: line, kind: "" }));
+    if (!Array.isArray(value)) return splitLines(value).map((line) => ({ label: line, kind: "" })).filter((item) => isBusinessText(item.label));
     return value
       .flatMap((item) => {
         if (item && typeof item === "object") {
@@ -81,7 +110,7 @@
         }
         return splitLines(item).map((line) => ({ label: line, kind: "" }));
       })
-      .filter((item) => item.label);
+      .filter((item) => isBusinessText(item.label));
   }
 
   function inlineChips(value, tone = "") {
@@ -89,19 +118,82 @@
     if (!items.length) return `<span class="empty-inline">${EMPTY_VALUE}</span>`;
     return `
       <div class="lifecycle-inline-chips ${escapeHtml(tone)}">
+        ${items.map((item) => technicalRelationChip({ title: item.label, objectKind: item.kind }, fallbackTechnicalKind(tone))).join("")}
+      </div>
+    `;
+  }
+
+  function developmentChips(value, tone = "dev") {
+    const items = chipItems(value);
+    if (!items.length) return `<span class="empty-inline">${EMPTY_VALUE}</span>`;
+    return `
+      <div class="lifecycle-inline-chips ${escapeHtml(tone)}">
+        ${items.map((item) => `<span class="lifecycle-chip-item"><em>${escapeHtml(item.label)}</em></span>`).join("")}
+      </div>
+    `;
+  }
+
+  function objectChipItems(value) {
+    return list(value)
+      .flatMap((item) => {
+        if (item && typeof item === "object") {
+          return {
+            code: item.code || "",
+            label: titleOf(item, ""),
+            kind: item.objectKind || item.object_kind || "",
+          };
+        }
+        return splitLines(item).map((line) => ({ code: "", label: line, kind: "" }));
+      })
+      .filter((item) => isBusinessText(item.label) || isBusinessText(item.code));
+  }
+
+  function semanticObjectChips(value, tone = "") {
+    const items = objectChipItems(value);
+    if (!items.length) return `<span class="empty-inline">${EMPTY_VALUE}</span>`;
+    return `
+      <div class="lifecycle-object-chip-list ${escapeHtml(tone)}">
+        ${items.map((item) => technicalRelationChip({ code: item.code, title: item.label, objectKind: item.kind }, fallbackTechnicalKind(tone))).join("")}
+      </div>
+    `;
+  }
+
+  function fallbackTechnicalKind(tone = "") {
+    if (tone === "security") return "安全技术服务";
+    if (tone === "module") return "安全技术模块";
+    if (tone === "measure") return "安全技术措施";
+    return "";
+  }
+
+  function technicalRelationChip(item, fallbackKind = "") {
+    const objectKind = item.objectKind || fallbackKind;
+    const code = isBusinessText(item.code) ? item.code : "";
+    const title = isBusinessText(item.title) ? item.title : "";
+    if (!code && !title) return "";
+    if (display.relationChip) {
+      return display.relationChip(utils, { ...item, code, title, objectKind }, { kind: objectKind, showKind: true, preferCodeTitle: true });
+    }
+    const kindClass = objectKind.includes("措施") ? "measure-chip" : objectKind.includes("模块") ? "module-chip" : objectKind.includes("服务") ? "service-chip" : "";
+    return `<span class="relation-chip technical-chip ${kindClass}">${objectKind ? `<em>${escapeHtml(objectKind)}</em>` : ""}<span class="relation-chip-text">${escapeHtml([code, title].filter(Boolean).join(" "))}</span></span>`;
+  }
+
+  function renderDataScenarioList(scenes) {
+    const items = list(scenes).filter((scene) => scene?.title || scene?.description || scene?.code);
+    if (!items.length) return `<span class="empty-inline">${EMPTY_VALUE}</span>`;
+    return `
+      <div class="data-scenario-stack">
         ${items
-          .map((item) => {
-            const isMeasure = item.kind === "安全技术措施";
-            const isModule = item.kind === "安全技术模块";
-            const kindClass = isMeasure ? " is-measure" : isModule ? " is-module" : "";
-            const marker = isMeasure ? "措施" : isModule ? "模块" : "";
-            return `
-              <span class="lifecycle-chip-item${kindClass}">
-                ${marker ? `<b>${escapeHtml(marker)}</b>` : ""}
-                <em>${escapeHtml(item.label)}</em>
-              </span>
-            `;
-          })
+          .map(
+            (scene) => `
+              <div class="data-scenario-item">
+                <div class="data-scenario-title">
+                  ${scene.code ? `<code>${escapeHtml(scene.code)}</code>` : ""}
+                  <strong>${escapeHtml(scene.title || EMPTY_VALUE)}</strong>
+                </div>
+                ${scene.description ? `<p>${escapeHtml(scene.description)}</p>` : ""}
+              </div>
+            `,
+          )
           .join("")}
       </div>
     `;
@@ -117,22 +209,28 @@
   }
 
   function sourceNote(value, label = "参考来源") {
-    const lines = splitLines(value);
+    const lines = splitLines(value).filter(isBusinessText);
     if (!lines.length) return "";
+    const referenceText = lines.join("； ");
     return `
-      <div class="lifecycle-activity-source-note">
-        <span class="activity-source-label">${escapeHtml(label)}</span>
-        <div class="activity-source-values">
-          ${lines.map((line) => `<span>${escapeHtml(line)}</span>`).join("")}
+      <div class="source-reference-note lifecycle-activity-source-note">
+        <span class="source-reference-label activity-source-label">${escapeHtml(label)}</span>
+        <div class="source-reference-value activity-source-values">
+          <span>${escapeHtml(referenceText)}</span>
         </div>
       </div>
     `;
   }
 
   function mainActivityCell(row) {
+    const lines = splitLines(row.mainActivity);
+    const activityContent =
+      !lines.length || !lines.some(isBusinessText)
+        ? `<span class="empty-inline">${EMPTY_VALUE}</span>`
+        : `<div class="lifecycle-field-lines">${lines.map(renderMainActivityLine).join("")}</div>`;
     return `
       <div class="lifecycle-main-activity-cell">
-        ${tableText(row.mainActivity, "main-activities")}
+        <div class="lifecycle-table-text main-activities">${activityContent}</div>
         ${hasBusinessValue(row.mainActivity) ? sourceNote(row.mainActivityReference) : ""}
       </div>
     `;
@@ -142,7 +240,7 @@
     return `
       <div class="lifecycle-security-activity-cell">
         ${tableText(row.securityActivities, "security-activities")}
-        ${hasBusinessValue(row.securityActivities) ? sourceNote(row.policyReference, "安全活动参考来源") : ""}
+        ${hasBusinessValue(row.securityActivities) ? sourceNote(row.policyReference) : ""}
       </div>
     `;
   }
@@ -153,8 +251,8 @@
         <td>${tableText(row.stageGoal)}</td>
         <td>${mainActivityCell(row)}</td>
         <td>${tableText(row.developmentTypes, "development-mode")}</td>
-        <td>${inlineChips(row.developmentServices, "dev")}</td>
-        <td>${inlineChips(row.developmentModules, "module")}</td>
+        <td>${developmentChips(row.developmentServices, "dev")}</td>
+        <td>${developmentChips(row.developmentModules, "dev-module")}</td>
       </tr>
     `;
   }
@@ -172,22 +270,144 @@
     `;
   }
 
-  function renderDataProcessProfileRow(row, selectedStageId) {
+  function renderDataScenarioTitleCell(scene) {
+    if (!scene?.title && !scene?.code) return `<span class="empty-inline">${EMPTY_VALUE}</span>`;
     return `
-      <tr class="${row.stageId === selectedStageId ? "selected" : ""}" data-lifecycle-kind="data" data-lifecycle-id="${escapeHtml(row.stageId)}">
-        <td>${tableText(row.processDefinition)}</td>
-        <td>${tableText(row.scenes, "main-activities")}</td>
-        <td>${tableText(row.sceneDescriptions)}</td>
+      <div class="data-scenario-title-cell">
+        ${scene.code ? `<code>${escapeHtml(scene.code)}</code>` : ""}
+        <strong>${escapeHtml(scene.title || EMPTY_VALUE)}</strong>
+      </div>
+    `;
+  }
+
+  function renderDataScenarioDefinitionCell(scene) {
+    if (!scene?.description) return `<span class="empty-inline">${EMPTY_VALUE}</span>`;
+    return `<div class="data-scenario-definition">${escapeHtml(scene.description)}</div>`;
+  }
+
+  function renderDataProcessProfileRows(row, selectedStageId) {
+    const scenes = list(row.scenes).length ? list(row.scenes) : [{ id: `${row.stageId}:empty-scene`, title: "", description: "" }];
+    const rowSpan = scenes.length;
+    return scenes
+      .map((scene, index) => {
+        const isFirst = index === 0;
+        return `
+          <tr class="${row.stageId === selectedStageId ? "selected" : ""} ${isFirst ? "data-process-group-start" : "data-process-group-continuation"}" data-lifecycle-kind="data" data-lifecycle-id="${escapeHtml(row.stageId)}">
+            ${isFirst ? `<td class="data-process-definition-cell" rowspan="${rowSpan}">${tableText(row.processDefinition)}</td>` : ""}
+            <td class="data-scenario-name-cell">${renderDataScenarioTitleCell(scene)}</td>
+            <td class="data-scenario-definition-cell">${renderDataScenarioDefinitionCell(scene)}</td>
+          </tr>
+        `;
+      })
+      .join("");
+  }
+
+  function renderDataTechnicalSummary(row) {
+    if (!row) return "";
+    return `
+      <div class="relationship-matrix-scroll semantic-scroll data-lifecycle-technical-scroll">
+        <table class="semantic-mapping-table data-lifecycle-technical-table">
+          <colgroup>
+            <col style="width: 42%" />
+            <col style="width: 58%" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th>${utils.escapeHtml(display.label?.("security_technical_service", "安全技术服务") || "安全技术服务")}</th>
+              <th>${utils.escapeHtml(display.label?.("security_module_or_measure", "安全技术模块/措施") || "安全技术模块/措施")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>${semanticObjectChips(row.technicalServices, "security")}</td>
+              <td>${semanticObjectChips(row.technologyModules, "module")}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function renderDataPolicyCell(policy) {
+    if (!policy || !hasBusinessValue(policy.text)) return `<span class="empty-inline">${EMPTY_VALUE}</span>`;
+    const isNotApplicable = policy.status === "not_applicable" || policy.text === "不涉及";
+    return `
+      <div class="data-policy-cell ${isNotApplicable ? "is-not-applicable" : ""}">
+        ${policy.code ? `<strong>${escapeHtml(policy.code)}</strong>` : ""}
+        <span>${escapeHtml(policy.text)}</span>
+        ${sourceNote(policy.reference)}
+      </div>
+    `;
+  }
+
+  function policyByLevel(row, level) {
+    return list(row.policies).find((policy) => policy.level === level) || null;
+  }
+
+  function renderDataPolicyRow(row, { showCategory = true } = {}) {
+    return `
+      <tr>
+        ${showCategory ? `<td>${tableText([row.category, row.sequence || ""].filter(Boolean).join("\n"))}</td>` : `<td>${tableText(row.sequence || "")}</td>`}
+        <td>${renderDataPolicyCell(policyByLevel(row, "I"))}</td>
+        <td>${renderDataPolicyCell(policyByLevel(row, "S"))}</td>
+        <td>${renderDataPolicyCell(policyByLevel(row, "N"))}</td>
+        <td>${renderDataPolicyCell(policyByLevel(row, "P"))}</td>
+        <td class="${emptyValueCellClass(row.technicalServices)}">${inlineChips(row.technicalServices, "security")}</td>
+        <td class="${emptyValueCellClass(row.technologyModules)}">${inlineChips(row.technologyModules, "module")}</td>
       </tr>
     `;
   }
 
-  function renderDataSecurityMappingRow(row) {
+  function dataPolicyGroups(rows) {
+    const groups = [];
+    for (const row of list(rows)) {
+      const category = row.category || "未分类策略";
+      let group = groups.find((item) => item.category === category);
+      if (!group) {
+        group = { category, rows: [] };
+        groups.push(group);
+      }
+      group.rows.push(row);
+    }
+    return groups;
+  }
+
+  function renderDataPolicyGroup(group, index) {
+    const rows = list(group.rows);
     return `
-      <tr>
-        <td class="${emptyValueCellClass(row.technicalServices)}">${inlineChips(row.technicalServices, "security")}</td>
-        <td class="${emptyValueCellClass(row.technologyModules)}">${inlineChips(row.technologyModules, "module")}</td>
-      </tr>
+      <details class="data-policy-category-group" ${index === 0 ? "open" : ""}>
+        <summary>
+          <strong>${escapeHtml(group.category)}</strong>
+          <span>${rows.length} 项策略</span>
+        </summary>
+        <div class="lifecycle-table-scroll lifecycle-security-scroll">
+          <table class="lifecycle-workbench-table lifecycle-security-table data-lifecycle-policy-table data-lifecycle-policy-group-table">
+            <colgroup>
+              <col style="width: 4%" />
+              <col style="width: 15%" />
+              <col style="width: 15%" />
+              <col style="width: 15%" />
+              <col style="width: 15%" />
+              <col style="width: 18%" />
+              <col style="width: 18%" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>编号</th>
+                <th>重要数据</th>
+                <th>个人敏感数据</th>
+                <th>非公开数据</th>
+                <th>公开数据</th>
+                <th>${utils.escapeHtml(display.label?.("security_technical_service", "安全技术服务") || "安全技术服务")}</th>
+                <th>${utils.escapeHtml(display.label?.("security_module_or_measure", "安全技术模块/措施") || "安全技术模块/措施")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map((row) => renderDataPolicyRow(row, { showCategory: false })).join("")}
+            </tbody>
+          </table>
+        </div>
+      </details>
     `;
   }
 
@@ -201,11 +421,11 @@
         <div class="lifecycle-table-scroll lifecycle-profile-scroll">
           <table class="lifecycle-workbench-table lifecycle-profile-table">
             <colgroup>
+              <col style="width: 22%" />
               <col style="width: 28%" />
-              <col style="width: 33%" />
-              <col style="width: 19%" />
-              <col style="width: 10%" />
-              <col style="width: 10%" />
+              <col style="width: 14%" />
+              <col style="width: 18%" />
+              <col style="width: 18%" />
             </colgroup>
             <thead>
               <tr>
@@ -235,12 +455,12 @@
         <div class="lifecycle-table-scroll lifecycle-security-scroll">
           <table class="lifecycle-workbench-table lifecycle-security-table">
             <colgroup>
-              <col style="width: 14%" />
-              <col style="width: 28%" />
+              <col style="width: 12%" />
+              <col style="width: 23%" />
+              <col style="width: 15%" />
               <col style="width: 18%" />
-              <col style="width: 20%" />
-              <col style="width: 10%" />
-              <col style="width: 10%" />
+              <col style="width: 16%" />
+              <col style="width: 16%" />
             </colgroup>
             <thead>
               <tr>
@@ -265,56 +485,46 @@
     return `
       <section class="lifecycle-logic-section lifecycle-table-panel">
         <div class="lifecycle-logic-head">
-          <h4>数据处理过程画像</h4>
-          <span>过程定义 → 数据处理场景 → 场景说明</span>
+          <h4>数据处理场景与技术映射</h4>
+          <span>来自“LC-DT 数据生命周期”：过程定义 → 数据处理场景 → 安全技术服务 / 安全技术模块/措施</span>
         </div>
         <div class="lifecycle-table-scroll lifecycle-profile-scroll">
           <table class="lifecycle-workbench-table lifecycle-profile-table data-lifecycle-profile-table">
             <colgroup>
-              <col style="width: 24%" />
-              <col style="width: 30%" />
-              <col style="width: 46%" />
+              <col style="width: 18%" />
+              <col style="width: 22%" />
+              <col style="width: 60%" />
             </colgroup>
             <thead>
               <tr>
                 <th>过程定义</th>
-                <th>数据处理场景</th>
-                <th>处理子场景描述</th>
+                <th>数据处理子场景</th>
+                <th>子场景定义</th>
               </tr>
             </thead>
             <tbody>
-              ${rows.map((row) => renderDataProcessProfileRow(row, selectedStageId)).join("") || `<tr><td colspan="3">暂无 LC-DT 数据处理过程画像</td></tr>`}
+              ${rows.map((row) => renderDataProcessProfileRows(row, selectedStageId)).join("") || `<tr><td colspan="3">暂无 LC-DT 数据处理过程画像</td></tr>`}
             </tbody>
           </table>
         </div>
+        ${renderDataTechnicalSummary(rows[0])}
       </section>
     `;
   }
 
-  function renderDataSecurityMappingTable(rows) {
+  function renderDataPolicyMatrixTable(rows) {
+    const groups = dataPolicyGroups(rows);
     return `
       <section class="lifecycle-logic-section lifecycle-table-panel">
         <div class="lifecycle-logic-head">
-          <h4>数据安全技术映射表</h4>
-          <span>安全技术服务 → 安全技术模块/措施</span>
+          <h4>数据重要程度安全策略矩阵</h4>
+          <span>来自“LC-DT 安全技术服务、模块、策略映射表”：同一阶段的策略行复用同一组安全技术服务 / 安全技术模块/措施</span>
         </div>
-        <div class="lifecycle-table-scroll lifecycle-security-scroll">
-          <table class="lifecycle-workbench-table lifecycle-security-table data-lifecycle-security-table">
-            <colgroup>
-              <col style="width: 42%" />
-              <col style="width: 58%" />
-            </colgroup>
-            <thead>
-              <tr>
-                <th>${utils.escapeHtml(display.label?.("security_technical_service", "安全技术服务") || "安全技术服务")}</th>
-                <th>${utils.escapeHtml(display.label?.("security_module_or_measure", "安全技术模块/措施") || "安全技术模块/措施")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rows.map(renderDataSecurityMappingRow).join("") || `<tr><td colspan="2">暂无数据安全技术映射</td></tr>`}
-            </tbody>
-          </table>
-        </div>
+        ${
+          groups.length
+            ? `<div class="data-policy-category-stack">${groups.map(renderDataPolicyGroup).join("")}</div>`
+            : `<div class="reference-empty">暂无数据重要程度安全策略映射</div>`
+        }
       </section>
     `;
   }
@@ -328,11 +538,11 @@
     `;
   }
 
-  function renderDataRecordTables({ rows, selectedStageId }) {
+  function renderDataRecordTables({ rows, policyRows, selectedStageId }) {
     return `
       <div class="lifecycle-logic-stack">
         ${renderDataProcessProfileTable(rows, selectedStageId)}
-        ${renderDataSecurityMappingTable(rows)}
+        ${renderDataPolicyMatrixTable(list(policyRows))}
       </div>
     `;
   }
@@ -351,15 +561,23 @@
         </div>
       `;
     }
+    const textUnits = (value) =>
+      Array.from(String(value || "")).reduce((total, char) => total + (/[\u0000-\u007f]/.test(char) ? 0.58 : 1), 0);
+    const stageMeta = rows.map((row, index) => {
+      const code = row.code || row.order || `${kind === "data" ? "DT" : "AP"}-${String(index + 1).padStart(2, "0")}`;
+      const title = titleOf(row, "未命名阶段");
+      return { row, code, title };
+    });
+    const maxTitleUnits = Math.max(...stageMeta.map((item) => textUnits(item.title)), 0);
+    const maxCodeUnits = Math.max(...stageMeta.map((item) => textUnits(item.code)), 0);
+    const tabWidth = Math.ceil(Math.max(maxTitleUnits * 15, maxCodeUnits * 8) + 58);
     return `
-      ${rows
-        .map((row, index) => {
-          const code = row.code || row.order || `${kind === "data" ? "DT" : "AP"}-${String(index + 1).padStart(2, "0")}`;
+      ${stageMeta
+        .map(({ row, code, title }) => {
           return `
-            <button class="lifecycle-nav-row ${row.id === selectedProcessId ? "active" : ""}" type="button" data-lifecycle-kind="${escapeHtml(kind)}" data-lifecycle-id="${escapeHtml(row.id)}">
+            <button class="lifecycle-nav-row ${row.id === selectedProcessId ? "active" : ""}" type="button" data-lifecycle-kind="${escapeHtml(kind)}" data-lifecycle-id="${escapeHtml(row.id)}" style="--stage-tab-width: ${tabWidth}px;">
               <span class="stage-tab-code">${escapeHtml(code)}</span>
-              <strong>${escapeHtml(titleOf(row, "未命名阶段"))}</strong>
-              <span class="stage-tab-arrow" aria-hidden="true">›</span>
+              <strong>${escapeHtml(title)}</strong>
             </button>
           `;
         })
@@ -371,7 +589,7 @@
     return "";
   }
 
-  function renderRelationTable({ rows, profileRows, overview }) {
+  function renderRelationTable({ rows, profileRows, policyRows, overview }) {
     const relationRows = list(rows);
     const allProfileRows = list(profileRows).length ? list(profileRows) : relationRows;
     const selectedStageId = relationRows[0]?.stageId || "";
@@ -381,7 +599,7 @@
           ${
             relationRows.length
               ? overview?.mode === "data"
-                ? renderDataRecordTables({ rows: relationRows, selectedStageId })
+                ? renderDataRecordTables({ rows: relationRows, policyRows, selectedStageId })
                 : renderRecordTables({ rows: relationRows, profileRows: allProfileRows, selectedStageId })
               : `<div class="reference-empty">${overview?.mode === "data" ? "暂无 LC-DT 数据安全关系" : "暂无 LC-AP 阶段关系"}</div>`
           }

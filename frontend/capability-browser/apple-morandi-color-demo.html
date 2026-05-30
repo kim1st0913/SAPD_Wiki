@@ -530,6 +530,12 @@
         background: color-mix(in srgb, var(--measure) 18%, #fbfdff);
       }
 
+      .empty-value {
+        color: color-mix(in srgb, var(--ink) 78%, var(--muted));
+        font-size: 15px;
+        font-weight: 880;
+      }
+
       .focus {
         color: var(--focus-deep);
         border-color: color-mix(in srgb, var(--focus) 48%, #cbd5e1);
@@ -1157,7 +1163,7 @@
                       <tr>
                         <td><strong>I-DT</strong><br />数据</td>
                         <td><span class="chip service">数据流转监测和泄漏防护</span></td>
-                        <td><span class="missing-pill">暂无安全技术模块/措施</span></td>
+                        <td><span class="empty-value">/</span></td>
                         <td><span class="status-badge warning"><small>缺口</small><strong>待补充</strong></span></td>
                       </tr>
                     </tbody>

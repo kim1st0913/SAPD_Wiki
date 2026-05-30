@@ -10,6 +10,7 @@
     content: "./public/data/content-views.json",
     securityArchitectureDesignGuide: "./public/data/guides/security-architecture-design.json",
     dataSecurityDesignGuide: "./public/data/guides/data-security-design.json",
+    lightPlanningGuide: "./public/data/guides/light-planning.json",
     standards: "./public/data/standards-index.json",
   };
 
@@ -24,6 +25,7 @@
     content: "/api/v1/data-packages/content",
     securityArchitectureDesignGuide: "/api/v1/data-packages/security-architecture-design-guide",
     dataSecurityDesignGuide: "/api/v1/data-packages/data-security-design-guide",
+    lightPlanningGuide: "/api/v1/data-packages/light-planning-guide",
     standards: "/api/v1/data-packages/standards-index",
   };
 
@@ -71,6 +73,7 @@
     content: { generated_at: null, stats: {}, html_documents: [], diagram_views: [], guide_pages: [] },
     securityArchitectureDesignGuide: { generated_at: null, data_state: "empty", guide_id: "security-architecture-design", slides: {} },
     dataSecurityDesignGuide: { generated_at: null, data_state: "empty", guide_id: "data-security-design", slides: {} },
+    lightPlanningGuide: { generated_at: null, data_state: "empty", guide_id: "light-planning", slides: {} },
     standards: { generated_at: null, data_state: "empty", stats: {}, frameworks: [] },
   };
 
@@ -889,6 +892,11 @@
 
     async getDataSecurityDesignGuide() {
       const guide = await fetchPackage("dataSecurityDesignGuide");
+      return createEnvelope(guide);
+    },
+
+    async getLightPlanningGuide() {
+      const guide = await fetchPackage("lightPlanningGuide");
       return createEnvelope(guide);
     },
 

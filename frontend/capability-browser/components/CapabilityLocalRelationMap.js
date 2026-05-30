@@ -93,7 +93,7 @@
   function standardControlChip(item) {
     const code = text(item?.originalControlId || entityCode(item) || entityName(item, "未编号")).trim();
     const tooltip = tooltipText(item);
-    return `<span class="preview-chip standard-tooltip-chip standard-control-code-chip standard-code-breaks" data-tooltip="${escape(tooltip)}" aria-label="${escape(tooltip || code)}" tabindex="0">${codeWithBreaks(code)}</span>`;
+    return `<span class="standard-tooltip-chip standard-control-code-chip standard-control-inline standard-code-breaks" data-tooltip="${escape(tooltip)}" aria-label="${escape(tooltip || code)}" tabindex="0">${codeWithBreaks(code)}</span>`;
   }
 
   function linkByServiceKey(links = []) {
@@ -179,12 +179,12 @@
     const focus = map.focus || {};
     const stats = relationshipStats(map);
     const path = focusOverview.path || {};
+    const header = focusHeader(focus);
     return `
       <header class="preview-focus-strip">
         <div class="preview-focus-main">
-          <span>${escape(valueOf(focus.code, "无编码"))}</span>
-          <strong>${escape(entityName(focus, "未命名关注点"))}</strong>
-          <p>${escape(valueOf(focus.description, "从当前关注点核对技术、管理和标准 / 框架映射。"))}</p>
+          <span>${escape(header.code)}</span>
+          <strong>${escape(header.title)}</strong>
         </div>
         <div class="preview-focus-path">
           ${[path.category, path.domain, path.capability].filter(Boolean).map((item) => chip(entityName(item))).join("") || chip("能力路径待补充")}
@@ -195,21 +195,29 @@
           ${metric("安全工作", stats.works)}
           ${metric("职能", stats.functions)}
           ${metric("L2/L3/L4", `${stats.l2Processes}/${stats.l3Processes}/${stats.l4Activities}`)}
-          ${metric("标准", stats.standardStatus)}
         </div>
       </header>
     `;
   }
 
+  function focusHeader(focus = {}) {
+    const title = entityName(focus, "未命名关注点");
+    const explicitCode = text(focus.code).trim();
+    if (explicitCode) return { code: explicitCode, title };
+    const match = title.match(/^(.*?)[\s　]+([TGM])$/);
+    if (match) return { code: match[2], title: valueOf(match[1], title) };
+    return { code: "无编码", title };
+  }
+
   function mappingObjectChips(items, empty = "暂无") {
     const rows = unique(items).filter(Boolean).slice(0, 4);
-    if (!rows.length) return `<span class="preview-chip is-empty">${escape(empty)}</span>`;
+    if (!rows.length) return `<span class="empty-inline">${escape(window.sapdDisplay?.emptyMark?.() || "/")}</span>`;
     return rows.map((item, index) => chip(entityName(item), index < 2 ? "primary" : "")).join("");
   }
 
   function standardControlChips(items, empty = "暂无控制项") {
     const rows = unique(items).filter(Boolean);
-    if (!rows.length) return `<span class="preview-chip is-empty">${escape(empty)}</span>`;
+    if (!rows.length) return `<span class="empty-inline">${escape(window.sapdDisplay?.emptyMark?.() || "/")}</span>`;
     return rows.map((item) => standardControlChip(item)).join("");
   }
 
@@ -345,6 +353,48 @@
       standard: entityName(standard),
       controls: controls.filter((control) => !control.frameworkCode || !entityCode(standard) || control.frameworkCode === entityCode(standard)),
     }));
+  }
+
+  function renderStandardMappingMatrix(rows = [], summary = "") {
+    const mappingRows = list(rows);
+    return `
+      <section class="semantic-panel standard-mapping-section">
+        <div class="matrix-section-head">
+          <div>
+            <h3>标准 / 框架映射</h3>
+            <p>当前关注点 -> 标准 / 框架 -> 条款 / 控制项</p>
+          </div>
+          <span>${escape(summary || "0 控制项")}</span>
+        </div>
+        <div class="relationship-matrix-scroll semantic-scroll">
+          <table class="semantic-mapping-table standard-mapping-table">
+            <thead>
+              <tr>
+                <th>标准 / 框架</th>
+                <th>条款 / 控制项</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${
+                mappingRows.length
+                  ? mappingRows
+                      .slice(0, 10)
+                      .map(
+                        (row) => `
+                          <tr>
+                            <td><strong class="standard-framework-name">${escape(row.standard || "待补充")}</strong></td>
+                            <td><div class="standard-control-chip-row">${standardControlChips(row.controls, "暂无控制项")}</div></td>
+                          </tr>
+                        `,
+                      )
+                      .join("")
+                  : '<tr class="semantic-empty-row"><td colspan="2"><div class="reference-empty">暂无条款/控制项对应能力关注点</div></td></tr>'
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    `;
   }
 
   function countLabel(value, unit) {
@@ -675,6 +725,15 @@
       return `
         <div class="preview-tab-panel management-panel original-matrix-panel">
           ${renderOriginalManagementMatrix(matrices.managementMappingRows, countLabel(stats.functions, "职能"))}
+        </div>
+      `;
+    }
+
+    if (mode === "standard") {
+      const rows = standardTableRows(map);
+      return `
+        <div class="preview-tab-panel standard-panel original-matrix-panel">
+          ${renderStandardMappingMatrix(rows, rows.length ? countLabel(stats.standardStatus, "控制项") : "0 控制项")}
         </div>
       `;
     }

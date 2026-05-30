@@ -1798,3 +1798,49 @@
 - 需要确认：后续性能优化可继续把 L0 / L1 / L2 也接入对象粒度 projection 渲染，逐步减少完整 `capability-workbench` 后台补载依赖。
 - 修复说明：仅修改 `app.js` 数据加载与状态合并逻辑；未修改视觉样式、ETL、SQLite schema、原始 Excel 或 `public/data/*.json` 生成逻辑。
 - 验证结果：2026-05-29 `node --check frontend/capability-browser/app.js`、`node --check frontend/capability-browser/dataClient.js`、`node scripts/audit_capability_projection_contract.mjs --url http://127.0.0.1:5173`、`node scripts/frontend_smoke_check.mjs --page capability --url http://127.0.0.1:5173/frontend/capability-browser/`、`git diff --check` 均通过；smoke 未启动系统 Google Chrome。
+
+## OI-119：全局表格字号、空值和安全技术对象 chip 口径不统一
+
+- 状态：已修复
+- 类型：前端 / 全局表格规范 / 视觉一致性
+- 对象或页面：安全能力映射、信息化环境维度、LC-AP、LC-DT、安全知识维护和标准 / 框架表格。
+- 现象：部分表格单元格垂直靠上；表头和作用域字段字号偏小；空值以 `暂无安全技术模块/措施` 等胶囊 chip 展示，和原始表格 `/` 口径不一致；LC-AP / LC-DT 中安全技术服务、模块、措施使用了局部 lifecycle chip 样式，没有严格复用全局技术对象样式。
+- 影响：同类表格阅读节奏不一致，空值容易被误认为正式业务对象，跨页面对象样式口径不稳定。
+- 当前处理：新增全局表格字号变量和覆盖规则，统一表头 / 单元格字号与垂直居中；`displayLabels.js` 将表格空值输出规范为加粗 `/`；LC-AP / LC-DT 中真正的安全技术服务、模块、措施改用全局 `relation-chip` / `technical-chip` 样式；开发技术服务、开发技术模块保持独立开发类字段样式，不混入安全技术对象口径；能力、环境和维护表格中的无模块/措施 fallback 文案同步改为 `/`；表格字号已收敛为表头 `13px`、正文 `13px`、空值 `/` `14px`、技术对象 chip `12.5px`，避免局部字体过大。
+- 需要确认：用户肉眼复查截图中的技术视角映射矩阵，以及 LC-AP / LC-DT 技术对象列是否符合“全局统一”要求。
+- 修复说明：仅修改前端展示组件、全局 CSS 和缓存版本；未修改数据、ETL、SQLite schema、原始 Excel、`public/data/*.json` 或 projection 逻辑。
+- 验证结果：2026-05-30 `node --check` 覆盖 `displayLabels.js`、`ApplicationSecurityLifecycle.js`、`CapabilityLocalRelationMap.js`、`FocusScopeServiceMatrix.js`、`EnvironmentScopeServiceMatrix.js`、`TechnicalServiceMaintenanceTable.js`；业务前端文件已检索不到 `暂无安全技术模块/措施` 空值文案；固定 `5173` 健康检查通过；`capability`、`environment`、`dev-lifecycle`、`data-lifecycle` smoke 均通过；用户指出开发技术字段不是安全技术字段后，已将 LC-AP 开发技术服务 / 开发技术模块从安全技术 chip 口径回退，保留安全技术字段与能力映射一致；用户反馈技术对象字体过大后，已下调全局表格和 chip 字号变量，四页 smoke 通过；`git diff --check` 通过。
+
+## OI-120：L0 能力节点在完整 workbench 未返回前显示 0 服务
+
+- 状态：已修复
+- 类型：前端 / 数据加载 / 初始轻量包回归
+- 对象或页面：`安全能力映射` 页面，L0 / L1 / L2 非关注点节点，用户截图对象为 L0 `安全技术能力 T`。
+- 现象：刷新后选择 L0 `安全技术能力 T` 时，右侧 `技术视角` 显示 `0 服务` 和“暂无作用域对应安全技术服务”，但完整 `capability-workbench` 实际存在安全技术服务和关系数据。
+- 影响：用户会误判 L0 层级数据丢失或 ETL 继承错误；这类中间态不应被当作真实空数据展示。
+- 原因：`OI-115` 修复时为了降低 L0 / L1 / L2 加载等待，允许非关注点节点先用 `workspace-initial` 轻量包渲染，并只在后台补载完整 `capability-workbench`。但默认 L0 选择是在 ViewModel 构建后才落到 `state.selectedCapabilityId`，导致完整 workbench 补载前，轻量包被误当成最终数据渲染为空矩阵。
+- 当前处理：`app.js` 新增非关注点节点完整 workbench 加载保护；L0 / L1 / L2 在完整 `capability-workbench` 尚未具备关系数据时，只显示“正在加载整体能力关系数据”，不再显示 `0 服务` 空态；完整包返回后自动重新渲染。
+- 修复说明：仅修改 `frontend/capability-browser/app.js` 的数据加载保护逻辑；未修改前端样式、ETL、SQLite schema、原始 Excel、后端 projection、`public/data/*.json` 生成逻辑或业务关系推断。
+- 验证结果：2026-05-30 本地 API 确认完整 `capability-workbench` 含 `security_technical_service=158`、`relations=6052`、`relationshipGroups=8`；Node 定点 ViewModel 检查确认 L0 `安全技术能力 T` 在完整 workbench 下有技术映射行；`node --check frontend/capability-browser/app.js`、`node scripts/audit_capability_projection_contract.mjs --url http://127.0.0.1:5173`、`node scripts/frontend_smoke_check.mjs --page capability --url http://127.0.0.1:5173/frontend/capability-browser/` 通过；smoke 为轻量 HTTP/API 模式，未启动系统 Google Chrome。
+
+## OI-121：能力映射标准表格和管理表格字体口径不一致
+
+- 状态：已修复
+- 类型：前端 / 视觉一致性 / 表格规范
+- 对象或页面：`安全能力映射` 页面，`标准 / 框架映射` 与 `管理视角`。
+- 现象：`标准 / 框架映射` 仍使用旧 `preview-mapping-table` 表格壳，与技术视角、管理视角的矩阵表格样式不一致；条款 / 控制项 chip 带黑点，占用横向空间；管理视角中的安全职能分层文字没有完全继承全局表格字号，视觉上偏小。
+- 影响：同一页面三个视角的矩阵风格不统一，条款控制项过于拥挤，管理视角可读性低于全局表格要求。
+- 当前处理：`标准 / 框架映射` 改为复用 `semantic-panel` / `semantic-mapping-table` 结构；条款 / 控制项改为无黑点的紧凑代码标签；管理视角中的 `relation-chip`、职能层级标签、职能名称和空层提示统一继承全局表格正文字号；用户指出标准列被横向滚动挤出视野后，已移除标准矩阵表的固定 `min-width`，改为表格宽度自适应、标准 / 框架列始终可见，条款 / 控制项在右侧自动换行；用户继续指出下方内容仍不可见后，已为标准映射表体补充独立纵向滚动区域和 sticky 表头。
+- 修复说明：仅修改能力映射组件和 CSS 样式缓存版本；未修改数据、ETL、schema、后端接口、projection 或导出 JSON。
+- 验证结果：2026-05-30 `node --check frontend/capability-browser/components/CapabilityLocalRelationMap.js`、`node --check frontend/capability-browser/app.js`、`git diff --check -- frontend/capability-browser/components/CapabilityLocalRelationMap.js frontend/capability-browser/styles.css frontend/capability-browser/index.html frontend/capability-browser/app.js`、固定 `5173` 服务状态检查和 `node scripts/frontend_smoke_check.mjs --page capability --url http://127.0.0.1:5173/frontend/capability-browser/` 通过；追加修复标准列横向滚动和纵向滚动后，`git diff --check -- frontend/capability-browser/styles.css frontend/capability-browser/index.html`、固定 `5173` 服务状态和 capability 轻量 smoke 通过；smoke 为轻量 HTTP/API 模式，未启动系统 Google Chrome。
+
+## OI-122：安全能力映射页数据加载、ViewModel、图谱和 CSS 覆盖耦合导致反复回退
+
+- 状态：待处理
+- 类型：前端 / 架构治理 / 回归风险
+- 对象或页面：`安全能力映射` 页面，重点包括 L0 / L1 / L2 / 关注点选择、能力关系图谱、技术视角、管理视角、标准 / 框架映射和全局表格 / chip 样式。
+- 现象：安全能力映射页近期多次出现“优化后视觉或数据回归，需要回退”的情况；同类问题反复出现在默认关注点 projection、L0 / L1 / L2 加载、图谱布局、表格列宽、chip 配色和跨页面全局样式覆盖上。
+- 影响：局部优化成本变高，用户需要反复指出同样的视觉和数据一致性问题；后续 Apple / Morandi 视觉推进容易再次误伤 LC-AP、环境映射、安全知识维护或标准表格。
+- 当前处理：已完成工程阻塞点 review，并形成 `docs/06-implementation/project-blocker-review-2026-05-30.md`。本轮只做诊断和记录，不直接重构页面。
+- 处理方式：后续先收敛对象级页面契约和渲染生命周期，再拆分 CSS token / table / chip / capability-map 边界；图谱布局单独立项并建立截图或 DOM 验收基线。
+- 验证结果：2026-05-30 `node --check`、`git diff --check`、数据边界检查、数据包摘要、projection contract audit 和四个前端轻量 smoke 均通过；本轮未做系统 Chrome / Playwright 视觉回归。

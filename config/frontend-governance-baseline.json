@@ -1,0 +1,29 @@
+{
+  "version": "2026-05-31.capability-workspace-view-baseline",
+  "scope": "frontend/capability-browser",
+  "purpose": "Current ceilings for files that repeatedly caused safety capability mapping regressions. Lower values pass; increases require deliberate governance review.",
+  "requiredIssue": "OI-122",
+  "requiredReview": "docs/06-implementation/project-blocker-review-2026-05-30.md",
+  "files": {
+    "frontend/capability-browser/styles.css": {
+      "maxLines": 19993,
+      "maxImportant": 205,
+      "maxHexColors": 617,
+      "maxRootBlocks": 10,
+      "maxRelationChipMentions": 179,
+      "maxColorMix": 510
+    },
+    "frontend/capability-browser/app.js": {
+      "maxLines": 2540
+    },
+    "frontend/capability-browser/viewModels.js": {
+      "maxLines": 4192
+    },
+    "frontend/capability-browser/components/CapabilityLocalRelationMap.js": {
+      "maxLines": 856
+    },
+    "frontend/capability-browser/components/LocalRelationNetworkGraph.js": {
+      "maxLines": 892
+    }
+  }
+}

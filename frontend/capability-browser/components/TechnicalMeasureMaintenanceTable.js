@@ -4,12 +4,20 @@
   const display = window.sapdDisplay || {};
 
   function chipList(items, empty = "待补充", fallbackKind = "") {
-    if (display.relationChipList) return display.relationChipList(utils, items, { empty, kind: fallbackKind, preferCodeTitle: false });
     const rows = utils.list(items).filter(Boolean);
     if (!rows.length) return `<span class="empty-inline">${utils.escapeHtml(empty)}</span>`;
     return rows
-      .map((item) => `<span class="relation-chip ${display.chipClass?.(fallbackKind) || ""}">${utils.escapeHtml(displayValue(item, empty))}</span>`)
+      .map((item) => `<span class="relation-chip ${display.chipClass?.(fallbackKind) || ""}"><span class="relation-chip-text">${utils.escapeHtml(displayValue(item, empty))}</span></span>`)
       .join("");
+  }
+
+  function relationBlock(label, items, empty, fallbackKind = "") {
+    return `
+      <div class="measure-relation-block">
+        <em>${utils.escapeHtml(label)}</em>
+        <span>${chipList(items, empty, fallbackKind)}</span>
+      </div>
+    `;
   }
 
   function displayValue(value, empty = "待补充") {
@@ -32,11 +40,9 @@
             <tr>
               <th>序号</th>
               <th>${utils.escapeHtml(display.label?.("security_technical_measure", "安全技术措施") || "安全技术措施")}</th>
-              <th>来源标签</th>
               <th>${utils.escapeHtml(display.relationLabel?.("security_technical_service") || "关联安全技术服务")}</th>
               <th>${utils.escapeHtml(display.relationLabel?.("scope_type") || "关联作用域")}</th>
-              <th>${utils.escapeHtml(display.relationLabel?.("information_environment") || "关联信息化环境")}</th>
-              <th>${utils.escapeHtml(display.relationLabel?.("information_object") || "关联信息化对象")}</th>
+              <th>关联信息化环境 / 对象</th>
             </tr>
           </thead>
           <tbody>
@@ -47,13 +53,13 @@
                     <td>${utils.escapeHtml(displayValue(row.index))}</td>
                     <td>
                       <strong>${utils.escapeHtml(displayValue(row.measureName))}</strong>
-                      ${row.mappingStatusLabel ? `<span class="maintenance-cell-note">${utils.escapeHtml(row.mappingStatusLabel)}</span>` : ""}
                     </td>
-                    <td>${utils.escapeHtml(displayValue(row.sourceLabel))}</td>
                     <td>${chipList(row.serviceNames, row.serviceEmptyText || "待补充关联安全技术服务", "安全技术服务")}</td>
                     <td>${chipList(row.scopeNames, row.scopeEmptyText || "待补充关联作用域")}</td>
-                    <td>${chipList(row.environmentNames)}</td>
-                    <td>${chipList(row.environmentObjectNames)}</td>
+                    <td>
+                      ${relationBlock("环境", row.environmentNames, "待补充关联信息化环境", "信息化环境")}
+                      ${relationBlock("对象", row.environmentObjectNames, "待补充关联信息化对象")}
+                    </td>
                   </tr>
                 `,
               )

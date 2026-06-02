@@ -60,6 +60,10 @@
     return new Set(Array.isArray(groups) ? groups.filter(Boolean) : []);
   }
 
+  function shouldExpandGroups(search) {
+    return Boolean(utils.text(search).trim());
+  }
+
   function groupId(value) {
     return utils
       .text(value)
@@ -85,13 +89,14 @@
     `;
   }
 
-  function renderGroupedRows(rows, scopeGroups, selectedId) {
+  function renderGroupedRows(rows, scopeGroups, selectedId, search) {
     const groups = utils.list(scopeGroups).length ? utils.list(scopeGroups) : [{ id: "ungrouped", label: "全部服务", count: utils.list(rows).length, rows }];
     const expandedGroups = expandedGroupSet();
+    const expandAll = shouldExpandGroups(search);
     return groups
       .map((group, index) => {
         const id = groupId(`technical-service-scope-${index}-${group.id || group.label}`);
-        const expanded = expandedGroups.has(id);
+        const expanded = expandAll || expandedGroups.has(id);
         const serviceRows = utils.list(group.rows);
         return `
           <tr class="standard-group-row service-scope-table-group depth-0 ${expanded ? "expanded" : ""}" data-standard-group="${utils.escapeHtml(id)}">
@@ -147,7 +152,7 @@
     });
   }
 
-  function render({ rows, scopeGroups, selectedId, emptyState }) {
+  function render({ rows, scopeGroups, selectedId, emptyState, search }) {
     const tableRows = utils.list(rows);
     if (!tableRows.length) {
       return `<div class="maintenance-empty-state">${utils.escapeHtml(emptyState || "暂无安全技术服务数据，请确认 ETL 是否已导出 security_technical_services。")}</div>`;
@@ -167,7 +172,7 @@
             </tr>
           </thead>
           <tbody>
-            ${renderGroupedRows(tableRows, scopeGroups, selectedId)}
+            ${renderGroupedRows(tableRows, scopeGroups, selectedId, search)}
           </tbody>
         </table>
       </div>

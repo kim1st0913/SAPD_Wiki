@@ -15,7 +15,15 @@ DATA_PACKAGES = {
     "capability-workbench": "frontend/capability-browser/public/data/capability-workbench.json",
     "environment-workbench": "frontend/capability-browser/public/data/environment-workbench.json",
     "lifecycle-workbench": "frontend/capability-browser/public/data/lifecycle-workbench.json",
+    "maintenance-index": "frontend/capability-browser/public/data/maintenance-index.json",
     "maintenance": "frontend/capability-browser/public/data/maintenance-knowledge.json",
+    "maintenance-scopes": "frontend/capability-browser/public/data/maintenance/scopes.json",
+    "maintenance-services": "frontend/capability-browser/public/data/maintenance/services.json",
+    "maintenance-modules": "frontend/capability-browser/public/data/maintenance/modules.json",
+    "maintenance-measures": "frontend/capability-browser/public/data/maintenance/measures.json",
+    "maintenance-processes": "frontend/capability-browser/public/data/maintenance/processes.json",
+    "maintenance-work-functions": "frontend/capability-browser/public/data/maintenance/work-functions.json",
+    "maintenance-references": "frontend/capability-browser/public/data/maintenance/references.json",
     "shared-lookups": "frontend/capability-browser/public/data/shared-lookups.json",
     "lifecycle": "frontend/capability-browser/public/data/lifecycle-knowledge.json",
     "content": "frontend/capability-browser/public/data/content-views.json",
@@ -834,6 +842,56 @@ def _standard_summary_for_focus_ids(focus_ids: set[str]) -> dict[str, int]:
     return {"standard_controls": len(control_ids), "standard_frameworks": len(framework_ids)}
 
 
+def _capability_standard_mapping_rows_for_focus_ids(focuses: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    focus_ids = {str(focus.get("id") or "").strip() for focus in focuses if focus.get("id")}
+    if not focus_ids:
+        return []
+    workbench = read_data_package("capability-workbench")
+    objects = workbench.get("objects") or {}
+    focus_objects = objects.get("capability_focus") or {}
+    controls = objects.get("standard_control") or {}
+    frameworks = objects.get("standard_framework") or {}
+    frameworks_by_code = {str(item.get("code") or "").strip(): item for item in frameworks.values() if item.get("code")}
+    controls_by_focus: dict[str, list[dict[str, Any]]] = {focus_id: [] for focus_id in focus_ids}
+    for relation in _list(workbench.get("relations")):
+        if relation.get("type") != "maps_to_standard":
+            continue
+        focus_id = str(relation.get("sourceId") or "").strip()
+        if focus_id not in focus_ids:
+            continue
+        control = controls.get(str(relation.get("targetId") or "").strip())
+        if not isinstance(control, dict):
+            continue
+        compact = _compact_entity(control, "条款 / 控制项") or {}
+        compact["frameworkCode"] = control.get("frameworkCode") or ""
+        compact["frameworkTitle"] = control.get("frameworkTitle") or ""
+        compact["originalControlId"] = control.get("originalControlId") or ""
+        controls_by_focus[focus_id].append(compact)
+
+    rows: list[dict[str, Any]] = []
+    for focus in focuses:
+        focus_id = str(focus.get("id") or "").strip()
+        focus_entity = _compact_entity(focus_objects.get(focus_id) or focus, "未命名关注点") or {}
+        row_controls = _unique_by(controls_by_focus.get(focus_id, []))
+        row_frameworks = _unique_by(
+            [
+                _compact_entity(frameworks_by_code.get(str(control.get("frameworkCode") or "").strip()) or {"id": control.get("frameworkCode"), "code": control.get("frameworkCode"), "title": control.get("frameworkTitle")}, "标准 / 框架")
+                for control in row_controls
+                if control.get("frameworkCode")
+            ]
+        )
+        rows.append(
+            {
+                "id": f"{focus_id}:standard",
+                "focus": focus_entity,
+                "standards": [framework for framework in row_frameworks if framework],
+                "controls": row_controls,
+                "dataSource": "capability-workspace-view",
+            }
+        )
+    return rows
+
+
 def _projection_summary(
     focuses: list[dict[str, Any]],
     technical_rows: list[dict[str, Any]],
@@ -866,6 +924,7 @@ def _invalid_capability_projection(object_type: str, object_id: str | None) -> d
         "sourceEvidence": [],
         "technicalMappingRows": [],
         "managementMappingRows": [],
+        "standardMappingRows": [],
         "localRelationMap": None,
         "localRelationMaps": [],
         "localRelationMapsByFocusId": {},
@@ -941,8 +1000,11 @@ def capability_workspace_projection(
     )
     data_state = "ready" if graph.get("nodes") or technical_rows or management_rows or standard_summary.get("standard_controls") else "empty"
     summary = _projection_summary(selected_focuses, technical_rows, management_rows, standard_summary) if selected_item else {}
+    standard_rows = _capability_standard_mapping_rows_for_focus_ids(selected_focuses) if selected_item else []
     return {
         "generated_at": capability.get("generated_at") or shared_lookups.get("generated_at") or maintenance.get("generated_at"),
+        "contract": "capability-workspace-view",
+        "viewModelKind": "capability_object_workspace_view",
         "selected": selected,
         "graphScope": CAPABILITY_GRAPH_SCOPES.get(normalized_object_type, "") if normalized_object_type else "",
         "dataState": data_state,
@@ -958,6 +1020,7 @@ def capability_workspace_projection(
         "sourceEvidence": [],
         "technicalMappingRows": technical_rows,
         "managementMappingRows": management_rows,
+        "standardMappingRows": standard_rows,
         "localRelationMap": local_relation_maps[0] if local_relation_maps else None,
         "localRelationMaps": local_relation_maps,
         "localRelationMapsByFocusId": local_relation_maps_by_focus_id,
@@ -970,6 +1033,13 @@ def capability_workspace_projection(
             "standard_frameworks": standard_summary.get("standard_frameworks", 0),
         },
     }
+
+
+def capability_workspace_view(object_type: str | None = None, object_id: str | None = None, focus_id: str | None = None) -> dict[str, Any]:
+    view = capability_workspace_projection(focus_id=focus_id, object_type=object_type, object_id=object_id)
+    view["contract"] = "capability-workspace-view"
+    view["viewModelKind"] = "capability_object_workspace_view"
+    return view
 
 
 def capability_workspace_initial_projection() -> dict[str, Any]:
@@ -1187,6 +1257,12 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
                 object_type = (query.get("object_type") or query.get("objectType") or [""])[0] or None
                 object_id = (query.get("object_id") or query.get("objectId") or [""])[0] or None
                 self._send_json(create_envelope(capability_workspace_projection(focus_id=focus_id, object_type=object_type, object_id=object_id)))
+                return
+            if path == "/api/v1/capabilities/workspace-view":
+                focus_id = (query.get("focus_id") or query.get("focusId") or [""])[0] or None
+                object_type = (query.get("object_type") or query.get("objectType") or [""])[0] or None
+                object_id = (query.get("object_id") or query.get("objectId") or [""])[0] or None
+                self._send_json(create_envelope(capability_workspace_view(focus_id=focus_id, object_type=object_type, object_id=object_id)))
                 return
             if path == "/api/v1/maintenance":
                 capability = read_data_package("capability")

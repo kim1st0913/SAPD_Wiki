@@ -4,6 +4,7 @@ const state = {
   capabilityWorkbenchViewModel: null,
   capabilityInitial: null,
   capabilityProjection: null,
+  capabilityWorkspaceView: null,
   sharedLookups: null,
   environmentWorkbench: null,
   environmentWorkbenchViewModel: null,
@@ -13,6 +14,7 @@ const state = {
   content: null,
   guidePackages: {},
   standards: null,
+  maintenanceIndex: null,
   maintenanceKnowledge: null,
   activeView: "overview",
   activeRoute: "/",
@@ -25,6 +27,7 @@ const state = {
   activeMaintenancePage: "scopes",
   activeReferenceTab: "gbt",
   activeStandardFramework: "mlps-level-3",
+  activeStandardTableId: "",
   activeContentPage: "html",
   selectedCapabilityId: null,
   selectedEnvironmentId: null,
@@ -42,6 +45,9 @@ const state = {
   selectedContentSlideIndex: 0,
   contentSlideScrollMode: "preserve",
   standardFrameworkLoads: new Map(),
+  maintenanceSectionLoads: new Map(),
+  loadedMaintenanceSections: new Set(),
+  maintenanceSectionStaleReloads: new Set(),
   loadedPackages: new Set(),
   packageLoads: new Map(),
   capabilityProjectionFallbackFocusIds: new Set(),
@@ -113,6 +119,7 @@ function persistWorkspaceState() {
         activeMaintenancePage: state.activeMaintenancePage,
         activeReferenceTab: state.activeReferenceTab,
         activeStandardFramework: state.activeStandardFramework,
+        activeStandardTableId: state.activeStandardTableId,
         selectedMaintenanceId: state.selectedMaintenanceId,
         activeContentPage: state.activeContentPage,
         selectedContentId: state.selectedContentId,
@@ -145,6 +152,7 @@ function applyWorkspaceState(snapshot) {
   state.activeMaintenancePage = snapshot.activeMaintenancePage || state.activeMaintenancePage;
   state.activeReferenceTab = snapshot.activeReferenceTab || state.activeReferenceTab;
   state.activeStandardFramework = snapshot.activeStandardFramework || state.activeStandardFramework;
+  state.activeStandardTableId = snapshot.activeStandardTableId || state.activeStandardTableId;
   state.selectedMaintenanceId = snapshot.selectedMaintenanceId || state.selectedMaintenanceId;
   state.activeContentPage = snapshot.activeContentPage || state.activeContentPage;
   state.selectedContentId = snapshot.selectedContentId || state.selectedContentId;
@@ -158,6 +166,7 @@ const PACKAGE_GETTERS = {
   capabilityProjection: "getCapabilityWorkspaceProjection",
   environmentWorkbench: "getEnvironmentWorkbench",
   lifecycleWorkbench: "getLifecycleWorkbench",
+  maintenanceIndex: "getMaintenanceIndex",
   maintenanceKnowledge: "getMaintenanceKnowledge",
   sharedLookups: "getSharedLookups",
   content: "getContentViews",
@@ -190,6 +199,7 @@ function assignPackageData(name, data) {
   if (name === "sharedLookups") state.sharedLookups = data;
   if (name === "environmentWorkbench") state.environmentWorkbench = data;
   if (name === "lifecycleWorkbench") state.lifecycleWorkbench = data;
+  if (name === "maintenanceIndex") state.maintenanceIndex = data;
   if (name === "maintenanceKnowledge") state.maintenanceKnowledge = data;
   if (name === "content") state.content = data;
   if (name === "securityArchitectureDesignGuide") state.guidePackages = { ...state.guidePackages, "security-architecture-design": data };
@@ -235,11 +245,8 @@ function routePackagesForCurrentState() {
   }
   if (state.activeView === "maintenance") {
     if (state.activeMaintenancePage === "standards") return ["standards"];
-    const packages = ["maintenanceKnowledge"];
-    if (state.activeMaintenancePage === "modules") packages.push("sharedLookups");
-    if (state.activeMaintenancePage === "security-works") packages.push("capability");
-    if (state.activeMaintenancePage === "lcap-references" || state.activeMaintenancePage === "application-systems") packages.push("lifecycle");
-    return packages;
+    const contract = maintenanceLoadContractForPage(state.activeMaintenancePage);
+    return uniqueBy(["maintenanceIndex", ...list(contract.requiredPackages)], (name) => name);
   }
   return ["content", "standards"];
 }
@@ -304,6 +311,10 @@ function capabilityProjectionLoadKeyForItem(item) {
   return `capabilityProjection:${item?.type || "unknown"}:${item?.id || ""}`;
 }
 
+function capabilityWorkspaceViewLoadKeyForItem(item) {
+  return `capabilityWorkspaceView:${item?.type || "unknown"}:${item?.id || ""}`;
+}
+
 function capabilityProjectionObjectMatches(actual, expected) {
   const actualKeys = [actual?.id, actual?.code].map(text).filter(Boolean);
   const expectedKeys = [expected?.id, expected?.code].map(text).filter(Boolean);
@@ -320,6 +331,13 @@ function capabilityProjectionMatchesSelection(projection, expectedItem) {
   if (text(selected.type) !== text(expectedItem.type)) return false;
   if (text(center.type) !== text(selected.type)) return false;
   return capabilityProjectionObjectMatches(selected, expectedItem) && capabilityProjectionObjectMatches(center, selected);
+}
+
+function currentCapabilityObjectView() {
+  const item = capabilityItemById(state.selectedCapabilityId);
+  if (capabilityProjectionMatchesSelection(state.capabilityWorkspaceView, item)) return state.capabilityWorkspaceView;
+  if (capabilityProjectionMatchesSelection(state.capabilityProjection, item)) return state.capabilityProjection;
+  return null;
 }
 
 function isActiveCapabilityProjectionRequest(request) {
@@ -395,6 +413,46 @@ function ensureCapabilityProjectionForFocus(focusId) {
   return load || Promise.resolve();
 }
 
+function ensureCapabilityWorkspaceViewForSelection(selectedId) {
+  const item = capabilityItemById(selectedId);
+  if (!item?.id || !item.type) return Promise.resolve();
+  if (capabilityProjectionMatchesSelection(state.capabilityWorkspaceView, item)) return Promise.resolve();
+  const loadKey = capabilityWorkspaceViewLoadKeyForItem(item);
+  if (state.packageLoads.has(loadKey)) {
+    const pendingRequest = state.capabilityProjectionRequests.get(loadKey);
+    if (pendingRequest) state.activeCapabilityProjectionRequest = pendingRequest;
+    return state.packageLoads.get(loadKey);
+  }
+  const request = {
+    seq: ++state.capabilityProjectionRequestSeq,
+    objectId: item.id,
+    objectType: item.type,
+    objectCode: item.code || "",
+  };
+  state.activeCapabilityProjectionRequest = request;
+  state.capabilityProjectionRequests.set(loadKey, request);
+  const dataClient = window.sapdDataClient;
+  const load = dataClient
+    ?.getCapabilityWorkspaceView?.({ objectType: item.type, objectId: item.id })
+    .then((envelope) => {
+      if (!isActiveCapabilityProjectionRequest(request)) return;
+      const view = envelope?.data;
+      if (!capabilityProjectionMatchesSelection(view, item)) {
+        console.warn("能力对象工作区视图与当前选择不一致，已丢弃", { requested: request, selected: view?.selected, center: view?.graph?.center });
+      } else {
+        state.capabilityWorkspaceView = view;
+      }
+      if (state.activeView === "capabilities" && state.selectedCapabilityId === item.id) renderCapabilities();
+    })
+    .catch((error) => console.warn("能力对象工作区视图加载失败", error))
+    .finally(() => {
+      state.packageLoads.delete(loadKey);
+      state.capabilityProjectionRequests.delete(loadKey);
+    });
+  if (load) state.packageLoads.set(loadKey, load);
+  return load || Promise.resolve();
+}
+
 function capabilityNodeFromWorkbench(node) {
   const base = {
     id: node?.id || "",
@@ -439,6 +497,312 @@ function mergeSharedLookups(payload) {
     },
     service_module_index: serviceModuleIndex,
   };
+}
+
+const MAINTENANCE_PAGE_LOAD_CONTRACT = {
+  "capability-directory": {
+    requiredPackages: ["capability"],
+    requiredSections: [],
+    supplementalPackages: [],
+    supplementalSections: [],
+  },
+  scopes: {
+    requiredPackages: [],
+    requiredSections: ["scopes"],
+    supplementalPackages: [],
+    supplementalSections: ["services"],
+  },
+  services: {
+    requiredPackages: [],
+    requiredSections: ["services"],
+    supplementalPackages: ["capability"],
+    supplementalSections: ["scopes", "modules", "measures"],
+  },
+  modules: {
+    requiredPackages: ["sharedLookups"],
+    requiredSections: ["modules"],
+    supplementalPackages: [],
+    supplementalSections: ["services", "scopes"],
+  },
+  measures: {
+    requiredPackages: [],
+    requiredSections: ["measures"],
+    supplementalPackages: [],
+    supplementalSections: ["services", "scopes"],
+  },
+  "security-works": {
+    requiredPackages: ["capability"],
+    requiredSections: [],
+    supplementalPackages: [],
+    supplementalSections: [],
+  },
+  processes: {
+    requiredPackages: [],
+    requiredSections: ["processes"],
+    supplementalPackages: [],
+    supplementalSections: [],
+  },
+  "work-functions": {
+    requiredPackages: [],
+    requiredSections: ["work-functions"],
+    supplementalPackages: [],
+    supplementalSections: ["references", "processes"],
+  },
+  references: {
+    requiredPackages: [],
+    requiredSections: ["references"],
+    supplementalPackages: [],
+    supplementalSections: ["work-functions", "processes"],
+  },
+  "application-systems": {
+    requiredPackages: ["lifecycle"],
+    requiredSections: [],
+    supplementalPackages: [],
+    supplementalSections: [],
+  },
+  "lcap-references": {
+    requiredPackages: ["lifecycle"],
+    requiredSections: [],
+    supplementalPackages: [],
+    supplementalSections: [],
+  },
+};
+
+function maintenanceLoadContractForPage(page) {
+  return (
+    MAINTENANCE_PAGE_LOAD_CONTRACT[page] || {
+      requiredPackages: [],
+      requiredSections: [],
+      supplementalPackages: [],
+      supplementalSections: [],
+    }
+  );
+}
+
+function maintenanceSectionForPage(page) {
+  const contract = maintenanceLoadContractForPage(page);
+  return list(contract.requiredSections)[0] || "";
+}
+
+function maintenanceSectionsForPage(page) {
+  return list(maintenanceLoadContractForPage(page).requiredSections);
+}
+
+function supplementalMaintenanceSectionsForPage(page) {
+  return list(maintenanceLoadContractForPage(page).supplementalSections);
+}
+
+function supplementalMaintenancePackagesForPage(page) {
+  return list(maintenanceLoadContractForPage(page).supplementalPackages);
+}
+
+function maintenanceRenderSectionsForPage(page) {
+  const contract = maintenanceLoadContractForPage(page);
+  return uniqueBy([...list(contract.requiredSections), ...list(contract.supplementalSections)], (sectionId) => sectionId);
+}
+
+function maintenanceRenderPackagesForPage(page) {
+  const contract = maintenanceLoadContractForPage(page);
+  return uniqueBy([...list(contract.requiredPackages), ...list(contract.supplementalPackages)], (packageName) => packageName);
+}
+
+const MAINTENANCE_SECTION_FIELDS = {
+  scopes: ["scope_types"],
+  services: ["security_technical_services"],
+  modules: ["security_technology_modules"],
+  measures: ["security_technical_measures"],
+  processes: ["security_processes"],
+  "work-functions": ["work_function_layers"],
+  references: ["gbt_42446_references", "gartner_roles"],
+};
+
+const MAINTENANCE_SPLIT_FIELDS = uniqueBy(Object.values(MAINTENANCE_SECTION_FIELDS).flat(), (field) => field);
+
+function maintenanceSectionRecordCount(sectionId, payload = state.maintenanceKnowledge) {
+  return list(MAINTENANCE_SECTION_FIELDS[sectionId]).reduce((sum, field) => sum + list(payload?.[field]).length, 0);
+}
+
+function expectedMaintenanceSectionCount(sectionId) {
+  const counts = state.maintenanceIndex?.section_counts || state.maintenanceKnowledge?.section_counts || {};
+  return Number(counts[sectionId]) || 0;
+}
+
+function isMaintenanceSectionReady(sectionId) {
+  if (!sectionId) return true;
+  if (maintenanceSectionRecordCount(sectionId) > 0) return true;
+  if (!state.loadedMaintenanceSections.has(sectionId)) return false;
+  if (expectedMaintenanceSectionCount(sectionId) <= 0) return true;
+  if (state.maintenanceSectionStaleReloads.has(sectionId)) return true;
+  state.maintenanceSectionStaleReloads.add(sectionId);
+  state.loadedMaintenanceSections.delete(sectionId);
+  return false;
+}
+
+function mergeMaintenanceSectionPayload(payload) {
+  if (!payload) return;
+  const sectionFields = new Set(MAINTENANCE_SECTION_FIELDS[payload.section_id] || []);
+  const scopedPayload = { ...payload };
+  MAINTENANCE_SPLIT_FIELDS.forEach((field) => {
+    if (!sectionFields.has(field) && list(payload[field]).length === 0 && list(state.maintenanceKnowledge?.[field]).length > 0) {
+      scopedPayload[field] = state.maintenanceKnowledge[field];
+    }
+  });
+  if (payload.section_id && maintenanceSectionRecordCount(payload.section_id, payload) > 0) {
+    state.maintenanceSectionStaleReloads.delete(payload.section_id);
+  }
+  state.maintenanceKnowledge = {
+    generated_at: scopedPayload.generated_at || state.maintenanceKnowledge?.generated_at || state.maintenanceIndex?.generated_at || null,
+    data_state: scopedPayload.data_state || state.maintenanceKnowledge?.data_state || state.maintenanceIndex?.data_state || "ready",
+    ...(state.maintenanceKnowledge || {}),
+    ...scopedPayload,
+    stats: {
+      ...(state.maintenanceIndex?.stats || {}),
+      ...(state.maintenanceKnowledge?.stats || {}),
+      ...(scopedPayload.stats || {}),
+    },
+    section_counts: {
+      ...(state.maintenanceIndex?.section_counts || {}),
+      ...(state.maintenanceKnowledge?.section_counts || {}),
+      ...(scopedPayload.section_counts || {}),
+    },
+    source_evidence_by_id: {
+      ...(state.maintenanceKnowledge?.source_evidence_by_id || {}),
+      ...(scopedPayload.source_evidence_by_id || {}),
+    },
+    maintenance_index: state.maintenanceIndex || scopedPayload.maintenance_index || state.maintenanceKnowledge?.maintenance_index || null,
+  };
+}
+
+function ensureMaintenanceSectionLoaded(section) {
+  const sectionId = maintenanceSectionForPage(section);
+  if (!sectionId || state.loadedMaintenanceSections.has(sectionId)) return false;
+  if (state.maintenanceSectionLoads.has(sectionId)) return true;
+  const dataClient = window.sapdDataClient;
+  if (!dataClient?.getMaintenanceSection) return false;
+  const loadPromise = dataClient
+    .getMaintenanceSection(sectionId)
+    .then((envelope) => {
+      mergeMaintenanceSectionPayload(envelope?.data);
+      state.loadedMaintenanceSections.add(sectionId);
+      state.maintenanceSectionLoads.delete(sectionId);
+      if (state.activeView === "maintenance" && maintenanceRenderSectionsForPage(state.activeMaintenancePage).includes(sectionId)) renderMaintenance();
+    })
+    .catch((error) => {
+      console.warn(`知识库字典分片加载失败：${sectionId}`, error);
+      state.maintenanceSectionLoads.delete(sectionId);
+    });
+  state.maintenanceSectionLoads.set(sectionId, loadPromise);
+  return true;
+}
+
+function ensureMaintenancePackageLoaded(packageName) {
+  if (!packageName || state.loadedPackages.has(packageName)) return false;
+  const routeAtStart = state.activeRoute;
+  const load = loadDataPackage(packageName);
+  load.then(() => {
+    if (
+      state.activeRoute === routeAtStart &&
+      state.activeView === "maintenance" &&
+      maintenanceRenderPackagesForPage(state.activeMaintenancePage).includes(packageName)
+    ) {
+      renderMaintenance();
+    }
+  });
+  return true;
+}
+
+function ensureSupplementalMaintenanceSectionsLoaded(page) {
+  supplementalMaintenanceSectionsForPage(page).forEach((sectionId) => ensureMaintenanceSectionLoaded(sectionId));
+  supplementalMaintenancePackagesForPage(page).forEach((packageName) => ensureMaintenancePackageLoaded(packageName));
+}
+
+const STANDARD_TABLE_PREFETCH_MAX_ROWS = 200;
+
+function standardFrameworkIndexById(frameworkId) {
+  return list(state.standards?.frameworks).find((framework) => framework.id === frameworkId) || null;
+}
+
+function loadedStandardFramework(frameworkId) {
+  return state.standards?.loadedFrameworks?.[frameworkId] || null;
+}
+
+function standardTablesForFramework(framework) {
+  if (list(framework?.tabs).length) return list(framework.tabs);
+  if (!framework) return [];
+  return [
+    {
+      id: framework.id || "standard",
+      title: framework.title || "标准/框架",
+      columns: list(framework.columns),
+      rows: list(framework.rows),
+      totalRows: Number(framework.totalRows) || list(framework.rows).length,
+      dataPath: framework.dataPath || "",
+      loaded: Boolean(list(framework.rows).length),
+    },
+  ];
+}
+
+function standardTableHasRows(table) {
+  return list(table?.rows).length > 0;
+}
+
+function activeStandardTableIdForFramework(framework) {
+  const tables = standardTablesForFramework(framework);
+  if (!tables.length) return "";
+  const current = tables.find((table) => table.id === state.activeStandardTableId);
+  return current?.id || tables[0].id || "";
+}
+
+function standardTableById(framework, tableId) {
+  return standardTablesForFramework(framework).find((table) => table.id === tableId) || null;
+}
+
+function mergeLoadedStandardFrameworkTable(frameworkId, loadedTable) {
+  if (!frameworkId || !loadedTable) return;
+  const current = loadedStandardFramework(frameworkId) || standardFrameworkIndexById(frameworkId) || {};
+  const tables = standardTablesForFramework(current);
+  const nextTabs = list(current.tabs).length
+    ? tables.map((table) => (table.id === loadedTable.id ? { ...table, ...loadedTable, loaded: true } : table))
+    : list(current.tabs);
+  const nextFramework = list(current.tabs).length
+    ? { ...current, tabs: nextTabs, loaded: true }
+    : { ...current, ...loadedTable, loaded: true };
+  state.standards = {
+    ...(state.standards || {}),
+    loadedFrameworks: {
+      ...(state.standards?.loadedFrameworks || {}),
+      [frameworkId]: nextFramework,
+    },
+  };
+}
+
+function ensureStandardFrameworkTableLoaded(frameworkId, tableId) {
+  const framework = loadedStandardFramework(frameworkId);
+  const table = standardTableById(framework, tableId);
+  if (!framework || !table || standardTableHasRows(table) || !table.dataPath) return false;
+  const loadKey = `${frameworkId}:${tableId}`;
+  if (state.standardFrameworkLoads.has(loadKey)) return true;
+  const dataClient = window.sapdDataClient;
+  if (!dataClient?.getStandardFrameworkTable) return false;
+  const loadPromise = dataClient.getStandardFrameworkTable(frameworkId, tableId).then((envelope) => {
+    mergeLoadedStandardFrameworkTable(frameworkId, envelope?.data || table);
+    state.standardFrameworkLoads.delete(loadKey);
+    if (state.activeMaintenancePage === "standards" && state.activeStandardFramework === frameworkId && state.activeStandardTableId === tableId) {
+      renderMaintenance();
+    }
+  });
+  state.standardFrameworkLoads.set(loadKey, loadPromise);
+  return true;
+}
+
+function ensureSupplementalStandardTablesLoaded(frameworkId) {
+  const framework = loadedStandardFramework(frameworkId);
+  if (!framework) return;
+  for (const table of standardTablesForFramework(framework)) {
+    if (table.id === state.activeStandardTableId) continue;
+    const shouldPrefetch = Number(table.totalRows) > 0 && Number(table.totalRows) <= STANDARD_TABLE_PREFETCH_MAX_ROWS;
+    if (shouldPrefetch) ensureStandardFrameworkTableLoaded(frameworkId, table.id);
+  }
 }
 
 function ensureRoutePackages({ rerender = true } = {}) {
@@ -1168,6 +1532,7 @@ function applyRouteTarget(target = {}) {
   }
   if (target.referenceTab) state.activeReferenceTab = target.referenceTab;
   if (target.standardFramework) {
+    if (state.activeStandardFramework !== target.standardFramework) state.activeStandardTableId = "";
     state.activeStandardFramework = target.standardFramework;
     state.selectedMaintenanceId = null;
   }
@@ -1327,42 +1692,97 @@ function ensureCapabilityCatalogToggle() {
   paneHead.appendChild(actionGroup);
 }
 
-function renderCapabilities() {
-  const viewModels = window.sapdViewModels;
-  const components = window.sapdComponents || {};
-  ensureCapabilityCatalogToggle();
-  if (!state.capability || (!state.loadedPackages.has("capabilityInitial") && !state.loadedPackages.has("capabilityWorkbench"))) {
-    setHtml("tree", emptyState("正在加载安全能力数据"));
-    setHtml("capabilityFocusHeader", "");
-    setHtml("detail", emptyState("正在加载安全能力映射数据", "当前页面优先加载，完成后会自动显示。"));
-    return;
+function capabilityInitialDataReady() {
+  return Boolean(state.capability && (state.loadedPackages.has("capabilityInitial") || state.loadedPackages.has("capabilityWorkbench")));
+}
+
+function createCapabilityLoadState(selectedType, selectedId) {
+  const item = capabilityItemById(selectedId);
+  const loadKey = item ? capabilityWorkspaceViewLoadKeyForItem(item) : "";
+  const hasObjectView = capabilityProjectionMatchesSelection(state.capabilityWorkspaceView, item);
+  const loadState = {
+    phase: "initial",
+    selectedId,
+    selectedType,
+    objectViewPending: false,
+    focusProjectionPending: false,
+    blocksDetail: false,
+    loadKey,
+    title: "",
+    body: "",
+  };
+  if (item && !hasObjectView && !capabilityWorkbenchHasFullRelations()) {
+    loadState.phase = "object_view_pending";
+    loadState.objectViewPending = true;
+    ensureCapabilityWorkspaceViewForSelection(selectedId);
   }
-  if (!viewModels?.buildCapabilityWorkspaceViewModel) {
-    setHtml("detail", emptyState("能力视图模型未加载"));
-    return;
-  }
-  const selectedType = capabilityItemTypeById(state.selectedCapabilityId);
-  requestCapabilityWorkbenchForSelection(selectedType);
   const isFocusProjectionPending =
     selectedType === "capability_focus" &&
-    !capabilityProjectionHasFocus(state.selectedCapabilityId) &&
+    !loadState.objectViewPending &&
+    !capabilityProjectionHasFocus(selectedId) &&
     !capabilityWorkbenchHasFullRelations();
   if (isFocusProjectionPending) {
-    ensureCapabilityProjectionForFocus(state.selectedCapabilityId);
+    loadState.phase = "focus_projection_pending";
+    loadState.focusProjectionPending = true;
+    ensureCapabilityProjectionForFocus(selectedId);
   }
+  return loadState;
+}
+
+function resolveCapabilityDetailLoadState(viewModel, loadState) {
+  const selected = viewModel.selectedCapability;
+  if (!selected) {
+    return { ...loadState, phase: "no_selection", blocksDetail: true, title: "暂无能力关系数据" };
+  }
+  if (loadState.objectViewPending && state.packageLoads.has(loadState.loadKey)) {
+    return {
+      ...loadState,
+      phase: "object_view_pending",
+      blocksDetail: true,
+      title: "正在加载当前能力对象关系数据",
+      body: "对象级工作区视图加载完成后会自动显示。",
+    };
+  }
+  const hasObjectView = capabilityProjectionMatchesSelection(state.capabilityWorkspaceView, capabilityItemById(state.selectedCapabilityId));
+  const effectiveSelectedType = selected.type || capabilityItemTypeById(state.selectedCapabilityId);
+  if (!hasObjectView && requestCapabilityWorkbenchForSelection(effectiveSelectedType)) {
+    return {
+      ...loadState,
+      phase: "workbench_pending",
+      blocksDetail: true,
+      title: "正在加载整体能力关系数据",
+      body: "L0 / L1 / L2 节点需要完整能力工作台数据，加载完成后会自动显示。",
+    };
+  }
+  if (loadState.focusProjectionPending && state.packageLoads.has(capabilityProjectionLoadKey(state.selectedCapabilityId))) {
+    return {
+      ...loadState,
+      phase: "focus_projection_pending",
+      blocksDetail: true,
+      title: "正在加载当前关注点关系数据",
+      body: "关系投影加载完成后会自动显示。",
+    };
+  }
+  return { ...loadState, phase: "ready", blocksDetail: false };
+}
+
+function buildCapabilityViewModel(viewModels) {
   const capabilityWorkbenchViewModel =
     viewModels.buildCapabilityWorkbenchViewModel?.({ workbench: state.capabilityWorkbench }) || state.capabilityWorkbenchViewModel;
   state.capabilityWorkbenchViewModel = capabilityWorkbenchViewModel;
-  const viewModel = viewModels.buildCapabilityWorkspaceViewModel({
+  return viewModels.buildCapabilityWorkspaceViewModel({
     capabilityWorkbench: state.capabilityWorkbench,
     capabilityWorkbenchViewModel,
     capabilityTree: state.capability,
-    capabilityProjection: state.capabilityProjection,
+    capabilityProjection: currentCapabilityObjectView(),
     management: mergeSharedLookups(state.maintenanceKnowledge),
     selectedCapabilityId: state.selectedCapabilityId,
     search: state.search,
     relationshipFilters: state.relationshipFilters,
   });
+}
+
+function resolveCapabilitySelection(viewModel) {
   const hadSelectedCapability = Boolean(state.selectedCapabilityId);
   if (!state.selectedCapabilityId) state.selectedCapabilityId = viewModel.selectedCapability?.id || null;
   if (!hadSelectedCapability && viewModel.selectedCapability?.type === "capability_category" && state.selectedCapabilityId) {
@@ -1372,6 +1792,9 @@ function renderCapabilities() {
     capabilityAncestorIds(state.selectedCapabilityId).forEach((id) => state.expandedCapabilityIds.add(id));
     state.expandedSelectionId = state.selectedCapabilityId;
   }
+}
+
+function renderCapabilityTree(components, viewModel) {
   setHtml(
     "tree",
     components.DimensionTree?.render({
@@ -1381,30 +1804,21 @@ function renderCapabilities() {
       search: state.search,
     }) || emptyState("能力树组件未加载"),
   );
-  const selected = viewModel.selectedCapability;
-  if (!selected) {
-    setHtml("capabilityFocusHeader", "");
-    setHtml("detail", emptyState("暂无能力关系数据"));
-    return;
-  }
-  const effectiveSelectedType = selected.type || capabilityItemTypeById(state.selectedCapabilityId);
-  if (requestCapabilityWorkbenchForSelection(effectiveSelectedType)) {
-    setHtml("capabilityFocusHeader", "");
-    setHtml("detail", emptyState("正在加载整体能力关系数据", "L0 / L1 / L2 节点需要完整能力工作台数据，加载完成后会自动显示。"));
-    applyCapabilityCatalogState();
-    return;
-  }
-  if (isFocusProjectionPending && state.packageLoads.has(capabilityProjectionLoadKey(state.selectedCapabilityId))) {
-    setHtml("capabilityFocusHeader", "");
-    setHtml("detail", emptyState("正在加载当前关注点关系数据", "关系投影加载完成后会自动显示。"));
-    applyCapabilityCatalogState();
-    return;
-  }
+}
+
+function renderCapabilityPendingDetail(loadState) {
+  if (!loadState.blocksDetail) return false;
+  setHtml("capabilityFocusHeader", "");
+  setHtml("detail", emptyState(loadState.title, loadState.body));
+  applyCapabilityCatalogState();
+  return true;
+}
+
+function renderCapabilityDetail(components, viewModel) {
   setHtml(
     "capabilityFocusHeader",
     components.CapabilityLocalRelationMap?.renderFocusStrip?.(viewModel.localRelationMap, viewModel.focusOverview) || "",
   );
-  const detailInspector = viewModel.detailInspector;
   setHtml(
     "detail",
     `
@@ -1419,6 +1833,32 @@ function renderCapabilities() {
       }
     `,
   );
+}
+
+function renderCapabilities() {
+  const viewModels = window.sapdViewModels;
+  const components = window.sapdComponents || {};
+  ensureCapabilityCatalogToggle();
+  if (!capabilityInitialDataReady()) {
+    setHtml("tree", emptyState("正在加载安全能力数据"));
+    setHtml("capabilityFocusHeader", "");
+    setHtml("detail", emptyState("正在加载安全能力映射数据", "当前页面优先加载，完成后会自动显示。"));
+    return;
+  }
+  if (!viewModels?.buildCapabilityWorkspaceViewModel) {
+    setHtml("detail", emptyState("能力视图模型未加载"));
+    return;
+  }
+  const selectedType = capabilityItemTypeById(state.selectedCapabilityId);
+  let loadState = createCapabilityLoadState(selectedType, state.selectedCapabilityId);
+  const viewModel = buildCapabilityViewModel(viewModels);
+  resolveCapabilitySelection(viewModel);
+  if (!loadState.selectedId && state.selectedCapabilityId) {
+    loadState = createCapabilityLoadState(capabilityItemTypeById(state.selectedCapabilityId), state.selectedCapabilityId);
+  }
+  renderCapabilityTree(components, viewModel);
+  if (renderCapabilityPendingDetail(resolveCapabilityDetailLoadState(viewModel, loadState))) return;
+  renderCapabilityDetail(components, viewModel);
   applyCapabilityCatalogState();
 }
 
@@ -1633,11 +2073,35 @@ function renderMaintenance() {
     setHtml("sourceDetail", "");
     return;
   }
-  if (state.activeMaintenancePage !== "standards" && !state.loadedPackages.has("maintenanceKnowledge")) {
-    setText("sourcePageTitle", "安全知识");
+  if (state.activeMaintenancePage !== "standards" && !state.loadedPackages.has("maintenanceIndex")) {
+    loadDataPackage("maintenanceIndex").then(() => {
+      if (state.activeView === "maintenance" && state.activeMaintenancePage !== "standards") renderMaintenance();
+    });
+    setText("sourcePageTitle", "知识库字典");
     setText("sourcePageCount", 0);
     setHtml("maintenanceNavigation", "");
-    setHtml("sourceList", `<div class="maintenance-empty-state">正在加载安全知识目录...</div>`);
+    setHtml("sourceList", `<div class="maintenance-empty-state">正在加载知识库字典目录...</div>`);
+    setText("sourceDetailType", "");
+    setHtml("sourceDetail", "");
+    return;
+  }
+  const maintenanceSectionIds = maintenanceSectionsForPage(state.activeMaintenancePage);
+  const missingMaintenanceSectionId = maintenanceSectionIds.find((sectionId) => !isMaintenanceSectionReady(sectionId));
+  if (missingMaintenanceSectionId) {
+    ensureMaintenanceSectionLoaded(missingMaintenanceSectionId);
+    setText("sourcePageTitle", "知识库字典");
+    setText("sourcePageCount", 0);
+    setHtml("maintenanceNavigation", "");
+    setHtml("sourceList", `<div class="maintenance-empty-state">正在加载知识库字典分片...</div>`);
+    setText("sourceDetailType", "");
+    setHtml("sourceDetail", "");
+    return;
+  }
+  if (state.activeMaintenancePage === "capability-directory" && !state.loadedPackages.has("capability")) {
+    setText("sourcePageTitle", "安全能力清单");
+    setText("sourcePageCount", 0);
+    setHtml("maintenanceNavigation", "");
+    setHtml("sourceList", `<div class="maintenance-empty-state">正在加载安全能力与关注点目录...</div>`);
     setText("sourceDetailType", "");
     setHtml("sourceDetail", "");
     return;
@@ -1651,6 +2115,7 @@ function renderMaintenance() {
     setHtml("sourceDetail", "");
     return;
   }
+  ensureSupplementalMaintenanceSectionsLoaded(state.activeMaintenancePage);
   if (!viewModels?.buildMaintenanceWorkspaceViewModel) {
     setHtml("sourceList", emptyState("专项维护视图模型未加载"));
     return;
@@ -1677,10 +2142,13 @@ function renderMaintenance() {
       state.standardFrameworkLoads.set(frameworkId, loadPromise);
       return;
     }
+    state.activeStandardTableId = activeStandardTableIdForFramework(loadedFramework);
+    ensureStandardFrameworkTableLoaded(frameworkId, state.activeStandardTableId);
+    ensureSupplementalStandardTablesLoaded(frameworkId);
   }
   const viewModel = viewModels.buildMaintenanceWorkspaceViewModel({
     capabilityTree: state.capability,
-    management: mergeSharedLookups(state.maintenanceKnowledge),
+    management: mergeSharedLookups(state.maintenanceKnowledge || { ...(state.maintenanceIndex || {}), maintenance_index: state.maintenanceIndex }),
     lifecycle: state.lifecycle,
     standards: state.standards,
     section: state.activeMaintenancePage,
@@ -1688,9 +2156,11 @@ function renderMaintenance() {
     search: state.search,
     referenceTab: state.activeReferenceTab,
     standardFrameworkId: state.activeStandardFramework,
+    standardTableId: state.activeStandardTableId,
   });
   state.activeMaintenancePage = viewModel.section;
   state.activeReferenceTab = viewModel.referenceTab || state.activeReferenceTab;
+  if (viewModel.activeStandardTableId) state.activeStandardTableId = viewModel.activeStandardTableId;
   state.selectedMaintenanceId = viewModel.selectedId;
   const standardsMode = viewModel.section === "standards";
   const knowledgeDirectoryMode = !standardsMode;
@@ -1706,24 +2176,27 @@ function renderMaintenance() {
   setText("sourcePageTitle", standardsMode ? viewModel.activeFrameworkTitle || "标准/框架清单" : viewModel.page?.title || "专项知识维护");
   setText("sourcePageCount", viewModel.rows.length);
   let tableHtml = `<div class="maintenance-empty-state">${escapeHtml(viewModel.emptyState || "该专项页面将在后续阶段接入。")}</div>`;
-  if (viewModel.section === "scopes") {
+  if (viewModel.section === "capability-directory") {
+    tableHtml =
+      components.CapabilityDirectoryMaintenanceTable?.render({
+        rows: viewModel.rows,
+        capabilityGroups: viewModel.capabilityGroups,
+        selectedId: viewModel.selectedId,
+        emptyState: viewModel.emptyState,
+        search: state.search,
+      }) || tableHtml;
+  } else if (viewModel.section === "scopes") {
     tableHtml = components.ScopeMaintenanceTable?.render({ rows: viewModel.rows, selectedId: viewModel.selectedId, emptyState: viewModel.emptyState }) || tableHtml;
   } else if (viewModel.section === "processes") {
     tableHtml = components.ProcessMaintenanceTable?.render({ rows: viewModel.rows, selectedId: viewModel.selectedId, emptyState: viewModel.emptyState }) || tableHtml;
   } else if (viewModel.section === "work-functions") {
-    tableHtml = components.WorkFunctionMaintenanceTable?.render({ rows: viewModel.rows, selectedId: viewModel.selectedId, emptyState: viewModel.emptyState }) || tableHtml;
+    tableHtml = components.WorkFunctionMaintenanceTable?.render({ rows: viewModel.rows, selectedId: viewModel.selectedId, emptyState: viewModel.emptyState, search: state.search }) || tableHtml;
   } else if (viewModel.section === "security-works") {
     tableHtml = components.SecurityWorkMaintenanceTable?.render({ rows: viewModel.rows, selectedId: viewModel.selectedId, emptyState: viewModel.emptyState }) || tableHtml;
   } else if (viewModel.section === "services") {
-    tableHtml =
-      components.TechnicalServiceMaintenanceTable?.render({
-        rows: viewModel.rows,
-        scopeGroups: viewModel.serviceScopeGroups,
-        selectedId: viewModel.selectedId,
-        emptyState: viewModel.emptyState,
-      }) || tableHtml;
+    tableHtml = components.TechnicalServiceMaintenanceTable?.render({ rows: viewModel.rows, scopeGroups: viewModel.serviceScopeGroups, selectedId: viewModel.selectedId, emptyState: viewModel.emptyState, search: state.search }) || tableHtml;
   } else if (viewModel.section === "modules") {
-    tableHtml = components.TechnologyModuleMaintenanceTable?.render({ rows: viewModel.rows, selectedId: viewModel.selectedId, emptyState: viewModel.emptyState }) || tableHtml;
+    tableHtml = components.TechnologyModuleMaintenanceTable?.render({ rows: viewModel.rows, selectedId: viewModel.selectedId, emptyState: viewModel.emptyState, search: state.search }) || tableHtml;
   } else if (viewModel.section === "measures") {
     tableHtml = components.TechnicalMeasureMaintenanceTable?.render({ rows: viewModel.rows, selectedId: viewModel.selectedId, emptyState: viewModel.emptyState }) || tableHtml;
   } else if (viewModel.section === "application-systems") {
@@ -1742,24 +2215,19 @@ function renderMaintenance() {
         emptyState: viewModel.emptyState,
       }) || tableHtml;
   } else if (viewModel.section === "references") {
-    tableHtml =
-      components.StandardRoleReferenceTable?.render({
-        standardRows: viewModel.standardRows,
-        roleRows: viewModel.roleRows,
-        selectedId: viewModel.selectedId,
-        emptyState: viewModel.emptyState,
-        activeTab: viewModel.referenceTab,
-      }) || tableHtml;
+    tableHtml = components.StandardRoleReferenceTable?.render({ standardRows: viewModel.standardRows, roleRows: viewModel.roleRows, selectedId: viewModel.selectedId, emptyState: viewModel.emptyState, activeTab: viewModel.referenceTab, search: state.search }) || tableHtml;
   } else if (viewModel.section === "standards") {
     tableHtml =
       components.StandardFrameworkTable?.render({
         activeFrameworkId: viewModel.activeFrameworkId,
+        activeTableId: viewModel.activeStandardTableId,
         rows: viewModel.rows,
         columns: viewModel.columns,
         tables: viewModel.tables,
         selectedId: viewModel.selectedId,
         emptyState: viewModel.emptyState,
         focusByCode: capabilityFocusByCode(state.capability),
+        search: state.search,
       }) || tableHtml;
   }
   setHtml(
@@ -1789,10 +2257,19 @@ function maintenanceHeaderSummary(viewModel) {
       { value: viewModel.summary?.applicationComponents ?? 0, label: "应用组件", unit: "个" },
     ];
   }
+  if (viewModel.section === "capability-directory") {
+    return [
+      { value: viewModel.summary?.l0 ?? 0, label: "L0 分类", unit: "类" },
+      { value: viewModel.summary?.l1 ?? 0, label: "L1 能力域", unit: "个" },
+      { value: viewModel.summary?.l2 ?? 0, label: "L2 安全能力", unit: "项" },
+      { value: viewModel.summary?.focuses ?? 0, label: "安全关注点", unit: "个" },
+    ];
+  }
   const navigationCounts = Object.fromEntries(list(viewModel.navigationItems).map((item) => [item.id, Number(item.count) || 0]));
   const sectionTabCounts = Object.fromEntries(list(viewModel.sectionTabs).map((tab) => [tab.id, Number(tab.count) || 0]));
   const counts = { ...navigationCounts, ...sectionTabCounts };
   const labels = {
+    "capability-directory": ["能力/关注点", "项"],
     scopes: ["作用域", "个"],
     services: ["技术服务", "项"],
     modules: ["技术模块", "个"],
@@ -2274,9 +2751,19 @@ $("detail")?.addEventListener("click", (event) => {
       renderMaintenance();
       return;
     }
+    if (event.target.closest(".maintenance-count-bubble")) return;
     const row = event.target.closest("[data-maintenance-id]");
     if (!row) return;
     state.selectedMaintenanceId = row.dataset.maintenanceId;
+    renderMaintenance();
+  });
+  document.addEventListener("sapd:standard-table-select", (event) => {
+    const tableId = event.detail?.tableId || "";
+    const frameworkId = event.detail?.frameworkId || state.activeStandardFramework;
+    if (!tableId || state.activeMaintenancePage !== "standards") return;
+    if (frameworkId && frameworkId !== state.activeStandardFramework) return;
+    state.activeStandardTableId = tableId;
+    state.selectedMaintenanceId = null;
     renderMaintenance();
   });
   document.addEventListener("pointerdown", (event) => {
@@ -2375,7 +2862,7 @@ async function init() {
   window.addEventListener("popstate", restoreRouteFromLocation);
   const browserRoute = routeFromBrowserLocation();
   const restoredRoute = normalizeAppRoute(restoredState?.activeRoute || "");
-  const initialRoute = browserRoute === "/" && restoredRoute !== "/" ? restoredRoute : browserRoute;
+  const initialRoute = browserRoute;
   activateRoute(initialRoute, { replace: true });
   if (restoredRoute === state.activeRoute) applyWorkspaceState(restoredState);
   persistWorkspaceState();

@@ -1,7 +1,6 @@
 (function () {
   const components = (window.sapdComponents = window.sapdComponents || {});
   const utils = components.utils;
-  const lazyTableCache = new Map();
   const detailTextCache = new Map();
   let renderSerial = 0;
   let detailSerial = 0;
@@ -382,6 +381,7 @@
     parentExpanded = true,
     lineage = [],
     focusByCode = {},
+    expandAll = false,
   }) {
     return utils
       .list(groups)
@@ -389,7 +389,7 @@
         const groupPath = [...path, index];
         const groupId = groupDomId(activeFrameworkId, tableId, groupPath);
         const groupLineage = [...lineage, groupId];
-        const expanded = false;
+        const expanded = expandAll;
         const hidden = !parentExpanded;
         const parentAttr = parentId ? ` data-standard-parent="${utils.escapeHtml(parentId)}"` : "";
         const lineageAttr = lineage.length ? ` data-standard-lineage="${utils.escapeHtml(lineage.join(" "))}"` : "";
@@ -406,6 +406,7 @@
               parentExpanded: expanded,
               lineage: groupLineage,
               focusByCode,
+              expandAll,
             })
           : renderDetailRows({
               rows: group.rows,
@@ -451,12 +452,13 @@
     return "";
   }
 
-  function renderTable({ activeFrameworkId, tableId, rows, columns, selectedId, focusByCode = {} }) {
+  function renderTable({ activeFrameworkId, tableId, rows, columns, selectedId, focusByCode = {}, search = "" }) {
     const tableRows = utils.list(rows);
     const tableColumns = visibleColumns(activeFrameworkId, columns, tableId);
     if (!tableRows.length || !tableColumns.length) return "";
     const groups = groupedRows(tableRows, groupConfig(activeFrameworkId, tableId));
     const frameworkClass = frameworkTableClass(activeFrameworkId, tableId);
+    const expandAll = Boolean(utils.text(search).trim());
     return `
       <div class="maintenance-table-scroll standard-framework-table-scroll">
         <table class="maintenance-data-table standard-framework-table${frameworkClass}">
@@ -464,14 +466,14 @@
             <tr>${tableColumns.map((column) => renderHeaderCell(activeFrameworkId, column)).join("")}</tr>
           </thead>
           <tbody>
-            ${groups.length ? renderGroups({ groups, tableColumns, activeFrameworkId, tableId, selectedId, focusByCode }) : renderDetailRows({ rows: tableRows, tableColumns, activeFrameworkId, tableId, selectedId, focusByCode })}
+            ${groups.length ? renderGroups({ groups, tableColumns, activeFrameworkId, tableId, selectedId, focusByCode, expandAll }) : renderDetailRows({ rows: tableRows, tableColumns, activeFrameworkId, tableId, selectedId, focusByCode })}
           </tbody>
         </table>
       </div>
     `;
   }
 
-  function render({ activeFrameworkId, rows, columns, tables, selectedId, emptyState, focusByCode }) {
+  function render({ activeFrameworkId, activeTableId, rows, columns, tables, selectedId, emptyState, focusByCode, search = "" }) {
     const tableModels = utils.list(tables);
     const hasTabTables = activeFrameworkId === "nist-csf-2" || tableModels.length > 1;
     const fallbackCsfTables =
@@ -496,121 +498,81 @@
           ].map((table) => ({ ...table, totalRows: table.rows.length }))
         : [];
     const normalizedTables = hasTabTables && tableModels.length ? tableModels : fallbackCsfTables;
-    const tableRows = hasTabTables ? normalizedTables.flatMap((table) => utils.list(table.rows)) : utils.list(rows);
-    const tableColumns = hasTabTables ? normalizedTables.flatMap((table) => utils.list(table.columns)) : visibleColumns(activeFrameworkId, columns);
-    if (!tableRows.length || !tableColumns.length) {
-      return `
-        <div class="reference-table-stack standard-framework-stack">
-          <div class="maintenance-empty-state">${utils.escapeHtml(emptyState || "暂无标准框架数据。")}</div>
-        </div>
-      `;
-    }
-    if (hasTabTables) {
-      if (!normalizedTables.length) {
+    if (!hasTabTables) {
+      const tableRows = utils.list(rows);
+      const tableColumns = visibleColumns(activeFrameworkId, columns);
+      if (!tableRows.length || !tableColumns.length) {
         return `
           <div class="reference-table-stack standard-framework-stack">
-            <div class="maintenance-empty-state">${utils.escapeHtml(emptyState || "暂无 CSF Core / CSF Tiers 数据。")}</div>
+            <div class="maintenance-empty-state">${utils.escapeHtml(emptyState || "暂无标准框架数据。")}</div>
           </div>
         `;
       }
-      const instanceId = `standard-framework-${activeFrameworkId || "standard"}-${++renderSerial}`;
       return `
-        <div class="reference-table-stack standard-framework-stack standard-framework-tabbed" data-standard-tab-instance="${utils.escapeHtml(instanceId)}">
-          <div class="standard-framework-tabs" role="tablist">
-            ${normalizedTables
-              .map(
-                (table, index) => `
-                  <button class="standard-framework-tab ${index === 0 ? "active" : ""}" type="button" role="tab" aria-selected="${index === 0 ? "true" : "false"}" data-tab-target="${utils.escapeHtml(table.id)}">
-                    <span>${utils.escapeHtml(table.title)}</span>
-                  </button>
-                `,
-              )
-              .join("")}
-          </div>
-          <div class="standard-framework-tab-panels">
-            ${normalizedTables
-              .map((table, index) => {
-                const cacheKey = `${instanceId}:${table.id}`;
-                const tableRenderer = () => {
-                  if (!utils.list(table.rows).length && table.dataPath && window.sapdDataClient?.getStandardFrameworkTable) {
-                    return window.sapdDataClient.getStandardFrameworkTable(activeFrameworkId, table.id).then((envelope) => {
-                      const loadedTable = envelope.data || table;
-                      return renderTable({
-                        activeFrameworkId,
-                        tableId: loadedTable.id || table.id,
-                        rows: tableDataRows(loadedTable, activeFrameworkId),
-                        columns: loadedTable.columns || table.columns,
-                        selectedId,
-                        focusByCode,
-                      });
-                    });
-                  }
-                  return renderTable({ activeFrameworkId, tableId: table.id, rows: table.rows, columns: table.columns, selectedId, focusByCode });
-                };
-                if (index === 0) {
-                  return `
-                    <section class="standard-framework-tab-panel active" data-tab-panel="${utils.escapeHtml(table.id)}" data-framework-id="${utils.escapeHtml(activeFrameworkId)}" data-lazy-table-key="${utils.escapeHtml(cacheKey)}" data-lazy-loaded="true">
-                      ${tableRenderer()}
-                    </section>
-                  `;
-                }
-                lazyTableCache.set(cacheKey, tableRenderer);
-                return `
-                  <section class="standard-framework-tab-panel" data-tab-panel="${utils.escapeHtml(table.id)}" data-framework-id="${utils.escapeHtml(activeFrameworkId)}" data-lazy-table-key="${utils.escapeHtml(cacheKey)}" data-lazy-loaded="false" hidden>
-                    <div class="maintenance-empty-state standard-framework-lazy-state">切换后加载 ${utils.escapeHtml(table.title)}。</div>
-                  </section>
-                `;
-              })
-              .join("")}
-          </div>
+        <div class="reference-table-stack standard-framework-stack">
+          ${renderTable({ activeFrameworkId, rows, columns, selectedId, focusByCode, search })}
         </div>
       `;
     }
+    if (!normalizedTables.length) {
+      return `
+        <div class="reference-table-stack standard-framework-stack">
+          <div class="maintenance-empty-state">${utils.escapeHtml(emptyState || "暂无 CSF Core / CSF Tiers 数据。")}</div>
+        </div>
+      `;
+    }
+    const normalizedActiveTableId = normalizedTables.some((table) => table.id === activeTableId) ? activeTableId : normalizedTables[0]?.id;
+    const instanceId = `standard-framework-${activeFrameworkId || "standard"}-${++renderSerial}`;
     return `
-      <div class="reference-table-stack standard-framework-stack">
-        ${renderTable({ activeFrameworkId, rows, columns, selectedId, focusByCode })}
+      <div class="reference-table-stack standard-framework-stack standard-framework-tabbed" data-standard-tab-instance="${utils.escapeHtml(instanceId)}">
+        <div class="standard-framework-tabs" role="tablist">
+          ${normalizedTables
+            .map((table) => {
+              const active = table.id === normalizedActiveTableId;
+              return `
+                <button class="standard-framework-tab ${active ? "active" : ""}" type="button" role="tab" aria-selected="${active ? "true" : "false"}" data-framework-id="${utils.escapeHtml(activeFrameworkId)}" data-tab-target="${utils.escapeHtml(table.id)}">
+                  <span>${utils.escapeHtml(table.title)}</span>
+                </button>
+              `;
+            })
+            .join("")}
+        </div>
+        <div class="standard-framework-tab-panels">
+          ${normalizedTables
+            .map((table) => {
+              const active = table.id === normalizedActiveTableId;
+              const tableRows = tableDataRows(table, activeFrameworkId);
+              const panelBody = tableRows.length
+                ? renderTable({ activeFrameworkId, tableId: table.id, rows: tableRows, columns: table.columns, selectedId, focusByCode, search })
+                : table.dataPath && !table.loaded
+                  ? `<div class="maintenance-empty-state standard-framework-lazy-state">正在加载表格数据...</div>`
+                  : `<div class="maintenance-empty-state standard-framework-lazy-state">暂无 ${utils.escapeHtml(table.title || "表格")} 数据。</div>`;
+              return `
+                <section class="standard-framework-tab-panel ${active ? "active" : ""}" data-tab-panel="${utils.escapeHtml(table.id)}" data-framework-id="${utils.escapeHtml(activeFrameworkId)}"${active ? "" : " hidden"}>
+                  ${panelBody}
+                </section>
+              `;
+            })
+            .join("")}
+        </div>
       </div>
     `;
   }
 
-  document.addEventListener("click", async (event) => {
+  document.addEventListener("click", (event) => {
     const tab = event.target.closest?.(".standard-framework-tab");
     if (!tab) return;
     const stack = tab.closest(".standard-framework-tabbed");
     const target = tab.dataset.tabTarget;
     if (!stack || !target) return;
-    stack.querySelectorAll(".standard-framework-tab").forEach((item) => {
-      const active = item.dataset.tabTarget === target;
-      item.classList.toggle("active", active);
-      item.setAttribute("aria-selected", active ? "true" : "false");
-    });
-    for (const panel of stack.querySelectorAll(".standard-framework-tab-panel")) {
-      const active = panel.dataset.tabPanel === target;
-      panel.classList.toggle("active", active);
-      panel.hidden = !active;
-      if (active && panel.dataset.lazyLoaded !== "true") {
-        const cached = lazyTableCache.get(panel.dataset.lazyTableKey || "");
-        panel.innerHTML = `<div class="maintenance-empty-state standard-framework-lazy-state">正在加载表格数据...</div>`;
-        const rendered =
-          typeof cached === "function"
-            ? cached()
-            : window.sapdDataClient?.getStandardFrameworkTable && panel.dataset.frameworkId && panel.dataset.tabPanel
-              ? window.sapdDataClient.getStandardFrameworkTable(panel.dataset.frameworkId, panel.dataset.tabPanel).then((envelope) => {
-                  const table = envelope.data || {};
-                  return renderTable({
-                    activeFrameworkId: panel.dataset.frameworkId,
-                    tableId: table.id || panel.dataset.tabPanel,
-                    rows: tableDataRows(table, panel.dataset.frameworkId),
-                    columns: table.columns,
-                    selectedId: "",
-                    focusByCode: {},
-                  });
-                })
-              : cached || "";
-        panel.innerHTML = rendered && typeof rendered.then === "function" ? await rendered : rendered;
-        panel.dataset.lazyLoaded = "true";
-      }
-    }
+    document.dispatchEvent(
+      new CustomEvent("sapd:standard-table-select", {
+        detail: {
+          frameworkId: tab.dataset.frameworkId || "",
+          tableId: target,
+        },
+      }),
+    );
   });
 
   function tooltipTextFor(target) {

@@ -17,9 +17,8 @@ from openpyxl import load_workbook
 
 
 SHEET_NAME = "DSP策略清单（2026）"
-SOURCE_2024_PATH = Path(
-    "/Users/kim1st/Documents/work@qax/01.战略咨询规划部/技术架构组/安全规划方法论设计研究/架构参考材料/网络安全框架材料/ComplianceForge/SCF 2024/secure-controls-framework-scf-2024-3.xlsx"
-)
+# DSP 2024 has been retired as an active source. Keep this script focused on
+# translating the 2026 sheet without reading the old workbook or old sheet.
 
 DOMAIN_TRANSLATIONS = {
     "Security, Compliance & Resilience Governance": "安全、合规与韧性治理（Security, Compliance & Resilience Governance）",
@@ -208,31 +207,8 @@ def translate_missing(cache: dict[str, str], texts: list[str], max_chars: int) -
         time.sleep(0.15)
 
 
-def load_2024_exact_cn(wb, source_2024_path: Path) -> dict[str, dict[str, str]]:
-    ws_cn = wb["DSP2级策略清单（2024年版本）"]
-    cn_by_code: dict[str, dict[str, str]] = {}
-    for row in range(3, ws_cn.max_row + 1):
-        code = ws_cn.cell(row, 5).value
-        if code:
-            cn_by_code[str(code).strip()] = {
-                "control": ws_cn.cell(row, 6).value,
-                "desc": ws_cn.cell(row, 7).value,
-            }
-
-    source_wb = load_workbook(source_2024_path, read_only=True, data_only=True)
-    source_ws = source_wb["SCF 2024.3"]
-    exact: dict[str, dict[str, str]] = {}
-    for record in source_ws.iter_rows(min_row=2, values_only=True):
-        code = str(record[2] or "").strip()
-        if not code or "." in code or code not in cn_by_code:
-            continue
-        exact[code] = {
-            "en_control": str(record[1] or "").strip(),
-            "en_desc": str(record[3] or "").strip(),
-            "cn_control": cn_by_code[code]["control"],
-            "cn_desc": cn_by_code[code]["desc"],
-        }
-    return exact
+def load_2024_exact_cn(wb) -> dict[str, dict[str, str]]:
+    return {}
 
 
 def clause_for_description(text: str | None) -> tuple[str, str] | None:
@@ -331,7 +307,7 @@ def apply_translation(args: argparse.Namespace) -> None:
             "Target sheet already looks translated. Use --postprocess-only for glossary cleanup, "
             "or --force to translate anyway."
         )
-    exact_2024 = load_2024_exact_cn(wb, SOURCE_2024_PATH)
+    exact_2024 = load_2024_exact_cn(wb)
 
     cache = load_cache(cache_path)
     units = collect_translation_units(ws)

@@ -28,6 +28,10 @@
     return `<span class="module-mapping-status"><em>${utils.escapeHtml(label)}</em>${utils.escapeHtml(valueText(value))}</span>`;
   }
 
+  function levelChip(label) {
+    return `<span class="type-pill">${utils.escapeHtml(label)}</span>`;
+  }
+
   function groupId(parts) {
     return parts
       .map((part) =>
@@ -46,7 +50,8 @@
   }
 
   function categoryLabel(row) {
-    if (row.inCatalog) return valueText(row.category);
+    const category = utils.text(row.category).trim();
+    if (category) return category;
     return "未归入安全技术模块清单";
   }
 
@@ -79,8 +84,6 @@
       .map(
         (row) => `
           <tr class="maintenance-data-row standard-group-detail ${row.id === selectedId ? "active" : ""}" data-standard-parent="${utils.escapeHtml(parentId)}" data-standard-lineage="${utils.escapeHtml(lineage.join(" "))}"${hiddenAttr} data-maintenance-id="${utils.escapeHtml(row.id)}">
-            <td>${utils.escapeHtml(valueText(row.category))}</td>
-            <td>${chipList(row.linkedSystems, display.state?.("contract_pending") || "待契约补充", "安全系统")}</td>
             <td>
               <div class="module-title-cell">
                 <strong>${utils.escapeHtml(valueText(row.title))}</strong>
@@ -90,7 +93,6 @@
             <td>${chipList(row.linkedServices, "暂无关联安全技术服务", "安全技术服务")}</td>
             <td>
               <div class="module-mapping-cell">
-                ${statusLine("措施", row.measureMappingStatus)}
                 ${statusLine("作用域", row.scopeMappingStatus)}
                 ${statusLine("对象", row.informationObjectMappingStatus)}
                 ${statusLine("环境", row.informationEnvironmentStatus)}
@@ -102,24 +104,25 @@
       .join("");
   }
 
-  function renderGroupedRows(rows, selectedId) {
+  function renderGroupedRows(rows, selectedId, search) {
+    const expandAll = Boolean(utils.text(search).trim());
     return groupedRows(rows)
       .map((category, categoryIndex) => {
         const categoryId = groupId(["module-category", categoryIndex, category.label]);
-        const categoryExpanded = false;
+        const categoryExpanded = expandAll;
         const categoryHiddenAttr = "";
         const systemRows = category.systems
           .map((system, systemIndex) => {
             const systemId = groupId([categoryId, "system", systemIndex, system.label]);
-            const systemExpanded = false;
+            const systemExpanded = expandAll;
             const systemHidden = !categoryExpanded;
             const systemHiddenAttr = systemHidden ? " hidden" : "";
             return `
               <tr class="standard-group-row depth-1 ${systemExpanded ? "expanded" : ""}" data-standard-group="${utils.escapeHtml(systemId)}" data-standard-parent="${utils.escapeHtml(categoryId)}" data-standard-lineage="${utils.escapeHtml(categoryId)}"${systemHiddenAttr}>
-                <td colspan="5">
-                  <button class="standard-group-toggle" type="button" aria-expanded="${systemExpanded ? "true" : "false"}">
+                <td colspan="3">
+                  <button class="standard-group-toggle" type="button" aria-expanded="${systemExpanded ? "true" : "false"}" style="padding-left: 30px;">
                     <span class="standard-group-caret">›</span>
-                    <span class="standard-group-main"><strong>${utils.escapeHtml(system.label)}</strong></span>
+                    <span class="standard-group-main"><strong>${levelChip("安全系统")} ${utils.escapeHtml(system.label)}</strong></span>
                     <em>${utils.escapeHtml(`${system.rows.length} 个模块`)}</em>
                   </button>
                 </td>
@@ -130,10 +133,10 @@
           .join("");
         return `
           <tr class="standard-group-row depth-0 ${categoryExpanded ? "expanded" : ""}" data-standard-group="${utils.escapeHtml(categoryId)}"${categoryHiddenAttr}>
-            <td colspan="5">
-              <button class="standard-group-toggle" type="button" aria-expanded="${categoryExpanded ? "true" : "false"}">
+            <td colspan="3">
+              <button class="standard-group-toggle" type="button" aria-expanded="${categoryExpanded ? "true" : "false"}" style="padding-left: 10px;">
                 <span class="standard-group-caret">›</span>
-                <span class="standard-group-main"><strong>${utils.escapeHtml(category.label)}</strong></span>
+                <span class="standard-group-main"><strong>${levelChip("领域分类")} ${utils.escapeHtml(category.label)}</strong></span>
                 <em>${utils.escapeHtml(`${category.systems.length} 个安全系统 · ${category.rows.length} 个模块`)}</em>
               </button>
             </td>
@@ -144,7 +147,7 @@
       .join("");
   }
 
-  function render({ rows, selectedId, emptyState }) {
+  function render({ rows, selectedId, emptyState, search }) {
     const tableRows = utils.list(rows);
     if (!tableRows.length) {
       return `<div class="maintenance-empty-state">${utils.escapeHtml(emptyState || "暂无安全技术模块数据，请确认 ETL 是否已导出 security_technology_modules。")}</div>`;
@@ -154,15 +157,13 @@
         <table class="maintenance-data-table technology-module-maintenance-table">
           <thead>
             <tr>
-              <th>领域分类</th>
-              <th>安全系统</th>
               <th>${utils.escapeHtml(display.label?.("security_technology_module", "安全技术模块") || "安全技术模块")} / 定义</th>
               <th>${utils.escapeHtml(display.relationLabel?.("security_technical_service") || "关联安全技术服务")}</th>
-              <th>${utils.escapeHtml(display.relationLabel?.("security_technical_measure") || "关联安全技术措施")} / 作用域 / 对象 / 环境</th>
+              <th>作用域 / 对象 / 环境</th>
             </tr>
           </thead>
           <tbody>
-            ${renderGroupedRows(tableRows, selectedId)}
+            ${renderGroupedRows(tableRows, selectedId, search)}
           </tbody>
         </table>
       </div>

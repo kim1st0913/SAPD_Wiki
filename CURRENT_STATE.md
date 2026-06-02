@@ -78,7 +78,7 @@ Frontend Baseline 1.0 当前覆盖四页：
 - 近期执行恢复：`progress.md`
 - Frontend Baseline 1.0 相关任务：`docs/04-user-guide/frontend-baseline-1.0-plan.md`
 - 前后端分离继续推进：`docs/01-architecture/frontend-backend-separation-closure.md`
-- 问题修复或 bug 核对：`docs/06-implementation/open-issues.md`
+- 问题修复或 bug 核对：`docs/06-implementation/open-issues.md`；查历史已关闭问题时先看 `docs/06-implementation/open-issues-index.md`
 
 ## 不必默认读取的长文档
 
@@ -98,6 +98,14 @@ Frontend Baseline 1.0 当前覆盖四页：
 
 - `scripts/README.md`：脚本分类、长期工具和专题脚本边界。
 - `docs/03-import-etl/README.md`：导入与 ETL 文档索引。
+- `docs/06-implementation/open-issues.md`：当前未关闭问题入口；已关闭问题通过 `docs/06-implementation/open-issues-index.md` 定位到归档。
+- `node scripts/govern_open_issues.mjs`：Open Issues 轻量治理脚本，用于归档已关闭长记录并刷新全量索引。
+- `docs/07-governance/capability-mapping-change-control.md`：安全能力映射页变更分级、暂停条件和治理审计入口。
+- `node scripts/audit_frontend_governance.mjs`：前端高风险文件基线审计，防止 `styles.css`、`app.js`、`viewModels.js` 和能力映射关键组件继续无意识膨胀。
+- `node scripts/audit_frontend_lazy_load_contract.mjs`：前端按需加载契约审计，检查知识库字典和安全标准 / 框架的 `required` / `supplemental` 分片、标准页 tab loader 和组件内取数边界。
+- `node scripts/audit_capability_viewmodel_contract.mjs --url http://127.0.0.1:5173`：安全能力映射页 ViewModel 当前对象一致性审计，验证 L0 / L1 / L2 / 关注点不会误用默认关注点或错粒度 projection。
+- 安全能力映射页 `renderCapabilities()` 已拆出显式 `loadState` 阶段，后续继续治理时优先沿该边界推进，不要重新把加载判断写回渲染主体。
+- 安全能力映射页对象级契约入口为 `/api/v1/capabilities/workspace-view`；前端通过 `dataClient.getCapabilityWorkspaceView()` 按当前选中对象读取，旧 `workspace-projection` 仅作为兼容 fallback。
 
 ## 当前 Agent 工作规则
 

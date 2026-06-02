@@ -9,6 +9,26 @@
     return value;
   }
 
+  function itemLabel(item) {
+    if (!item || typeof item !== "object") return utils.text(item).trim();
+    return [item.code, utils.titleOf(item)].filter(Boolean).join(" ");
+  }
+
+  function tooltipText(title, items, empty = "暂无映射安全职能") {
+    const rows = utils.list(items).map(itemLabel).filter(Boolean);
+    if (!rows.length) return `${title}\n${empty}`;
+    return `${title}\n${rows.map((row, index) => `${index + 1}. ${row}`).join("\n")}`;
+  }
+
+  function countBubble(value, tooltip, label) {
+    const count = Number(value) || 0;
+    return `
+      <button class="standard-tooltip-chip maintenance-count-bubble" type="button" data-tooltip="${utils.escapeHtml(tooltip)}" aria-label="${utils.escapeHtml(label)}">
+        ${utils.escapeHtml(count)}
+      </button>
+    `;
+  }
+
   function groupId(parts) {
     return parts
       .map((part) =>
@@ -43,6 +63,10 @@
         (row) => `
           <tr class="maintenance-data-row reference-group-detail ${row.id === selectedId ? "active" : ""}" data-maintenance-id="${utils.escapeHtml(row.id)}">
             <td><strong>${utils.escapeHtml(valueText(row.title))}</strong></td>
+            <td class="maintenance-description-cell" title="${utils.escapeHtml(valueText(row.description))}">
+              <span>${utils.escapeHtml(valueText(row.description))}</span>
+            </td>
+            <td>${countBubble(utils.list(row.linkedSecurityFunctions).length, tooltipText("映射安全职能", row.linkedSecurityFunctions), `${row.title} 的映射安全职能`)}</td>
           </tr>
         `,
       )
@@ -56,6 +80,7 @@
           <tr class="maintenance-data-row reference-group-detail ${row.id === selectedId ? "active" : ""}" data-maintenance-id="${utils.escapeHtml(row.id)}">
             <td><strong>${utils.escapeHtml(valueText(row.title))}</strong></td>
             <td class="maintenance-description-cell"><span>${utils.escapeHtml(valueText(row.description))}</span></td>
+            <td>${countBubble(utils.list(row.candidateSecurityFunctions).length, tooltipText("候选安全职能", row.candidateSecurityFunctions), `${row.title} 的候选安全职能`)}</td>
           </tr>
         `,
       )
@@ -64,12 +89,11 @@
 
   function renderGroupedPanels(rows, selectedId, options) {
     const groups = groupedByCategory(rows, options.fallbackLabel);
-    const hasSelectedRow = utils.list(rows).some((row) => row.id === selectedId);
+    const expandAll = Boolean(utils.text(options.search).trim());
     return groups
       .map((group, groupIndex) => {
         const referenceGroupId = groupId([options.idPrefix, groupIndex, group.label]);
-        const groupHasSelected = group.rows.some((row) => row.id === selectedId);
-        const expanded = hasSelectedRow ? groupHasSelected : groupIndex === 0;
+        const expanded = expandAll;
         return `
           <details class="reference-category-panel" data-reference-group="${utils.escapeHtml(referenceGroupId)}" ${expanded ? "open" : ""}>
             <summary>
@@ -79,6 +103,7 @@
             </summary>
             <div class="maintenance-table-scroll reference-group-table-scroll">
               <table class="maintenance-data-table reference-group-table ${utils.escapeHtml(options.tableClass)}">
+                ${options.colgroup || ""}
                 <thead>
                   <tr>${options.headers.map((header) => `<th>${utils.escapeHtml(header)}</th>`).join("")}</tr>
                 </thead>
@@ -104,7 +129,7 @@
     `;
   }
 
-  function render({ standardRows, roleRows, selectedId, emptyState, activeTab = "gbt" }) {
+  function render({ standardRows, roleRows, selectedId, emptyState, activeTab = "gbt", search }) {
     const standards = utils.list(standardRows);
     const roles = utils.list(roleRows);
     if (!standards.length && !roles.length) {
@@ -122,9 +147,10 @@
                   idPrefix: "gartner-role-category",
                   fallbackLabel: "未分组岗位分类",
                   countUnit: "个角色",
-                  headers: ["角色", "描述"],
+                  headers: ["角色", "描述", "候选安全职能"],
                   tableClass: "role-reference-maintenance-table",
                   renderDetails: renderRoleDetailRows,
+                  search,
                 }),
               })
             : renderTable({
@@ -134,9 +160,11 @@
                   idPrefix: "gbt-work-category",
                   fallbackLabel: "未分组工作类别",
                   countUnit: "项工作任务",
-                  headers: ["承担的工作任务"],
+                  headers: ["承担的工作任务", "工作任务描述", "映射安全职能"],
+                  colgroup: "<colgroup><col style=\"width: 28%; min-width: 260px;\"><col><col style=\"width: 128px;\"></colgroup>",
                   tableClass: "standard-reference-maintenance-table",
                   renderDetails: renderStandardDetailRows,
+                  search,
                 }),
               })
         }
@@ -165,7 +193,6 @@
               <th>安全工作名称</th>
               <th>关联安全能力</th>
               <th>关联关注点</th>
-              <th>状态</th>
             </tr>
           </thead>
           <tbody>
@@ -178,7 +205,6 @@
                     <td>${securityWorkCell(row.title)}</td>
                     <td>${securityWorkCell(utils.titleOf(row.capability, "待补充"))}</td>
                     <td>${securityWorkCell([row.focusCode, row.focusTitle].filter(Boolean).join(" ") || "待补充")}</td>
-                    <td>${securityWorkCell(row.status)}</td>
                   </tr>
                 `,
               )

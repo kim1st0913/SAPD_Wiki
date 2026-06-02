@@ -390,11 +390,18 @@ def parse_service_sheet(workbook) -> ParseResult:
             result.objects.append(service)
             result.relations.append(_relation(service.key, "supports_focus", focus.key, "支撑关注点", source=service.sources[0]))
             if scope_code and scope_title:
+                scope_source = service.sources[0] if scope_code == "ALL" else _source(
+                    sheet_name,
+                    3,
+                    f"作用域列{col}",
+                    _coord(ws.cell(row=3, column=col)),
+                    ws.cell(row=3, column=col).value,
+                )
                 scope = _object(
                     "scope_type",
                     scope_title,
                     code=scope_code,
-                    source=_source(sheet_name, 3, f"作用域列{col}", _coord(ws.cell(row=3, column=col)), ws.cell(row=3, column=col).value),
+                    source=scope_source,
                 )
                 result.objects.append(scope)
                 result.relations.append(_relation(service.key, "applies_to_scope", scope.key, "适用于作用域", source=service.sources[0]))

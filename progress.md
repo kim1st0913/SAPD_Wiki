@@ -1,60 +1,124 @@
 # progress.md
 
-本文件是当前会话恢复入口，只保留最近状态、最近完成事项、关键验证和历史索引。完整执行历史已归档到 `docs/05-archive/progress-history/2026-05.md`。
+本文件是当前会话恢复入口，只保留最近状态、最近完成事项、关键验证和历史索引。完整执行历史已归档到 `docs/05-archive/progress-history/`。
 
-## 当前状态（2026-05-30）
+## 当前状态（2026-06-02）
 
 - 当前分支：`main`。
-- 当前主线：Frontend Baseline 1.0 四页关系工作台校正；重点仍是业务语义复核、前端关系展示校正、数据契约治理和字段边界收口。
+- 当前主线：Frontend Baseline 1.0 四页关系工作台校正、数据契约治理、字段边界收口和 Open Issues 轻量维护。
 - 固定预览入口：`http://127.0.0.1:5173/`。前端展示和用户验收默认只看该端口。
-- 当前前端设计方向：以 `frontend/capability-browser/apple-morandi-color-demo.html` 为正式颜色基准，走 Apple / iOS / macOS shell 风格。
-- 当前禁止事项：不修改 ETL、数据库、数据模型、导出 JSON、workbench JSON、`dataClient` 数据来源边界或 ViewModel 业务逻辑；主展示区不得暴露 `sheet`、`row`、`column`、`raw_value`、`source_file`、`import_id`、`source_id`、`source_ref`、`source_label`、`debug`、`raw`、`metadata`、`intermediate`、`generated_at`。
+- 安全能力映射页对象级契约：`/api/v1/capabilities/workspace-view` 已接入；前端优先通过 `dataClient.getCapabilityWorkspaceView()` 按当前选中对象读取。
+- Open Issues 当前未关闭：`OI-038`、`OI-124`。
+- 当前重点治理项：知识库字典权威引用一致性治理；`OI-124` 已完成作用域旧名称、生命周期 `security_technical_measure` 权威 ID 复用、`ALL / 全部作用域` authority-only 字典口径和临时流程引用占位清理，后续需处理能力 / 服务 / 模块等跨包对象 ID 归一。
+- 当前禁止事项：不默认改 ETL、数据库、数据模型、导出 JSON、workbench JSON、`dataClient` 数据来源边界或 ViewModel 业务逻辑；主展示区不得暴露 `sheet`、`row`、`column`、`raw_value`、`source_file`、`import_id`、`source_id`、`source_ref`、`source_label`、`debug`、`raw`、`metadata`、`intermediate`、`generated_at`。
 
 ## 最近完成事项
 
-- 2026-05-30 全局侧边栏图标对比度修正：提高左侧一级导航彩色图标中前景图案的对比度，使用白色前景、轻描边和阴影，并单独处理选中态图标内层底色；同步写入全局基线和展示原则，未修改数据链路、ETL、数据库、ViewModel 或导出 JSON。
-- 2026-05-30 轻规划 PDF 指南接入：已将 `data/raw-samples/ds design/03 轻规划设计报告模版-v0.3-20250814.pdf` 按现有指南标准导出为 46 张 `2400x1350` 幻灯片，新增 `light-planning.json`，接入 `dataClient`、本地 API、`GUIDE_ROUTE_PACKAGES`、`content-views.json` 和 `/guides/light-planning`；固定端口 `5173` smoke 通过，未绑定 PDF 的其他指南二级页仍保持空状态。
-- 2026-05-30 能力映射标题区 L0 编码与统计修正：`安全技术能力 T`、`安全治理能力 G`、`安全管理能力 M` 这类 L0 分类在标题区改为编码位显示 `T/G/M`，标题去掉尾码；右侧轻量统计删除 `标准` 卡，统计网格从 6 格改为 5 格；同步更新脚本和样式缓存版本，未修改数据链路、ETL、数据库、ViewModel 或导出 JSON。
-- 2026-05-30 能力映射标题区与四视角 Tab 位置修正：删除关注点标题区的“从当前关注点核对技术、管理和标准 / 框架映射。”说明行，提升标题文字尺寸和位置；为四视角 Tab 与工作台外框增加内侧呼吸位。
-- 2026-05-30 能力映射四视角 Tab 视觉收敛：将 `能力关系图谱 / 技术视角 / 管理视角 / 标准 / 框架映射` 局部覆盖为轻量 Apple segmented control，并写入全局基线和展示原则。
-- 2026-05-30 业务参考来源展示统一：LC-AP / LC-DT 表格内 `参考来源` 统一为“标签 + 浅色圆角引用框”；补齐 LC-DT `policy.reference` 渲染路径，避免来源裸文本显示。
-- 2026-05-30 多 Tab 设计原则补充：全局基线明确视角切换类、阶段序列类、业务分类类和筛选 chip 的不同宽度与信息承载规则。
-- 2026-05-30 LC-AP / LC-DT 阶段 Tab 测算等宽修正：阶段 Tab 宽度由当前 AP / DT 阶段组中最长阶段名称和编码测算，箭头移除，保留 hover / click / active 动效。
-- 2026-05-30 生命周期 Tab 与能力矩阵交互收口：能力映射技术 / 管理矩阵移除行级 `data-capability-id`，避免点击安全技术服务、模块或措施误触发能力选择 / 能力图谱跳转。
-- 2026-05-30 全局字体权重与安全技术服务 chip 统一：全局字体族改为 macOS system UI 优先，标题、导航、Tab、阶段按钮和 chip 字重收敛；安全技术服务统一为浅蓝语义 chip。
+- 2026-06-02 `OI-127` 知识库字典与安全标准 / 框架多分片加载契约治理完成：将 `Frontend Lazy Data Contract Baseline 1.0` 写入前端全局基线；`app.js` 增加知识库字典页面 `required` / `supplemental` 加载契约和补充包重渲染逻辑；标准 / 框架页新增 `activeStandardTableId` 和统一 table loader，`StandardFrameworkTable.js` 不再直接调用 `dataClient`；新增 `scripts/audit_frontend_lazy_load_contract.mjs` 并登记到治理入口。
+- 2026-06-02 安全职能清单与参考页反向映射分片修复：安全职能清单首屏仍只等待 `work-functions`，后台补 `references`、`processes`；GB/T / Gartner 参考页首屏等待 `references`，后台补 `work-functions`；分片合并已按所属字段保护，非当前分片的空数组不再覆盖已加载业务分片。
+- 2026-06-02 根路径默认首页修复：修正 `app.js` 初始化逻辑，直接输入 `127.0.0.1:5173` / 根路径 `/` 时不再恢复上次保存的非首页路由，固定进入首页；同步更新 `app.js` 缓存版本。
+- 2026-06-01 `5173` 安全职能清单卡住修复：定位 `127.0.0.1:5173/#/knowledge/functions` 空白 / `RESULT_CODE_HUNG` 与知识库字典首屏加载过重有关；改为先加载 `maintenance-index` 和当前页主分片 `work-functions`，不再让安全职能清单首屏等待额外 `references` / `processes` 分片；更新 `app.js` 缓存版本并重启固定 `5173` 服务，普通 Chrome 新标签页和原始地址均已渲染出安全职能清单表格。
+- 2026-06-01 `5173` 页面卡住诊断与恢复：检查固定预览服务，确认旧项目服务进程 `74224` 存在但用户侧页面刷新仍卡住；执行 `python3 scripts/dev_server_guard.py --restart` 重启固定端口，停止旧进程并启动新项目服务进程 `2583`。本轮未修改前端源码、数据包、ETL、数据库或业务字段。
+- 2026-06-01 数据库备份全局保留规则落地：按用户确认将备份保留策略改为“只保留最新 5 个 `.sqlite3`，出现新备份后删除时间戳最早的旧备份”；新增 `scripts/prune_database_backups.py` dry-run / `--apply` 脚本，并写入 `docs/07-governance/data-governance.md` 与 `scripts/README.md`；当前实际备份已清理到 3 个。
+- 2026-06-01 `OI-124` 临时流程引用占位清理：按用户纠正，业务上不存在只有 L2 流程组而无 L3 流程参考的流程映射；修正 `capability-tree` 导出逻辑，不再将 `capability -> process_group` 关系补成空 `process_reference`；`capability-workbench` 构建时跳过空流程引用，避免生成 `process_reference:* / 待确认流程`。
+- 2026-06-01 `OI-124` `ALL / 全部作用域` 字典口径修复：按用户确认将 `ALL` 作为“适用于所有作用域”的权威虚拟作用域保留；修正 parser 中 `ALL` 作用域来源证据，改为指向实际 `ALL&...` 服务单元格；维护导出中将 `ALL` 写入字典分片但标记 `display_in_scope_catalog=false`，作用域清单 ViewModel 过滤该 authority-only 项。
+- 2026-06-01 数据库文件层清理 R0/R1 执行：完成当前主库 checkpoint，删除两个 0 字节占位库 `data/database/sapd_wiki.db`、`data/database/sapd_wiki.sqlite`；将 34 个历史 SQLite 备份移动到 `data/database/backups/archive-historical-2026-06-01/`，根目录保留 `sapd_wiki-before-cleanup-20260601-current.sqlite3`；新增备份整理清单和 `data/exports` 分类清单，未移动 `worker-verify`。
+- 2026-06-01 `OI-125` 安全职能清单依赖分片加载修复：修正知识库字典按需加载的重新渲染条件，安全职能清单在依次加载 `work-functions`、`references`、`processes` 依赖分片后会继续渲染，不再停留在“正在加载知识库字典分片...”；问题已归档为 `已修复`。
+- 2026-06-01 `OI-124` 生命周期安全技术措施权威 ID 复用：在 `src/sapd_wiki/exports.py` 增加 `security_technical_measure` canonical payload，生命周期导出时保留原生命周期来源证据，但将同名安全技术措施 ID 统一到知识库字典稳定 ID；已重导出 `lifecycle-knowledge.json` 和 `lifecycle-workbench.json`。
+- 2026-06-01 数据库整体清理计划与预案：新增 `docs/06-implementation/database-cleanup-plan-and-contingency-2026-06-01.md`，基于 `bootstrap-local-data --reset` 后的新基线，整理 R0-R4 分轮清理策略、验收标准、回滚预案、暂停条件和推荐下一步；本轮仍不执行删除或数据库写入。
+- 2026-06-01 关联统计全局显示基线新增：将“关联统计必须显示关联清单”写入前端全局设计基线；安全能力作用域目录的 `关联服务数`、`关联对象数` 改为统一数字气泡，鼠标悬停显示对应安全技术服务清单和信息化对象清单。
+- 2026-06-01 `OI-124` 作用域权威值原始数据修正：按用户确认，将 `I-OS` 权威值固定为 `操作系统（主机/终端）`，将 `I-DI` 权威值固定为 `数据与信息`；修改 `wiki sample.xlsx` 中 `安全能力作用域目录!C7` 和 `安全能力-安全技术服务!H3` 两个源单元格，并用 `bootstrap-local-data --reset` 重建本地 SQLite 和前端数据包。
+- 2026-06-01 数据库清理交接：新增 `docs/06-implementation/database-cleanup-handoff-2026-06-01.md`，整理当前数据库体积、表计数、staging / source reference / deprecated 数据清理顺序、`OI-124` 修复边界、验证命令和字段边界要求；本轮只做只读盘点与文档交接，未删除或改写数据库。
+- 2026-06-01 安全职能流程清单职能气泡优化：移除主表 `关联关注点数` 列；`关联安全职能数` 改为数字气泡，鼠标悬停显示关联安全职能清单，复用现有 `standard-tooltip-chip` / `maintenance-count-bubble` 样式和 `row.stakeholders` 数据。
+- 2026-06-01 安全技术措施目录显示优化：安全技术措施主表从 7 列收敛为 5 列，移除重复且当前数据无原始值的 `来源标签` 列和措施名称下方状态提示；合并 `关联信息化环境`、`关联信息化对象` 为 `关联信息化环境 / 对象`，并允许关系 chip 在单元格内换行。
+- 2026-06-01 知识库字典权威引用治理规则新增：将安全能力、安全作用域、安全技术服务、安全技术模块 / 措施、安全管理工作、流程清单、安全职能清单记录为全局权威值；新增 `scripts/audit_dictionary_reference_consistency.mjs` 做全量引用一致性审计，并在治理文档、接口契约和脚本索引登记。
+- 2026-06-01 新增 `OI-124`：全量审计发现当前生成数据仍有作用域引用旧名称、生命周期技术措施引用非权威 ID 等一致性问题；Gartner `candidate_work_functions` 因仍属 `OI-038` 待确认候选映射，审计中降级为 warning。
+- 2026-06-01 安全技术模块目录移除模块-措施映射展示：核对 `maintenance/modules.json`，当前 102 个安全技术模块均无模块到安全技术措施的关系字段；前端模块目录主表移除 `关联安全技术措施` 表头和 `措施` 状态行，模块详情 ViewModel 同步不再输出措施统计与措施列表，保留作用域 / 对象 / 环境。
+- 2026-06-01 安全职能流程清单首次切换加载修复：修正按需分片加载就绪判断，不能只看分片是否被标记已加载；当 `maintenance-index` 显示 `processes` 有数据但当前状态缺少 `security_processes` 时，自动将该分片视为未就绪并重拉一次，避免首次从安全工作清单切到流程清单时误显示空状态。
+- 2026-06-01 安全工作职能反向映射列补齐：在 `GB/T 42446-2023` 页签新增 `映射安全职能` 数字气泡列，在 `Gartner 工作岗位参考` 页签新增 `候选安全职能` 数字气泡列，用现有 ViewModel 反向关系展示安全工作职能清单；不改 ETL、数据库或导出 JSON。
+- 2026-06-01 安全工作职能清单映射列修正：按用户截图补回 `GB/T 42446-2023 映射` 和 `Gartner 映射` 两列；移除主表 `关联安全工作数` 列；新增统一 `关联流程组/流程` 数字入口，使用全局气泡展示流程组和流程清单；职能页按需加载 `work-functions`、`references`、`processes` 三个分片，不改 ETL、数据库或导出 JSON。
+- 2026-06-01 安全职能流程清单字段边界收敛：核对原始 `wiki sample.xlsx` 的 `安全职能流程清单（完善L4）` 表头，未发现 `描述` 原始列；前端主表移除 `描述` 列，并按 6 列重新分配流程表宽度。
+- 2026-06-01 安全工作清单表格宽度优化：修正移除 `状态` 列后的 `security-work-table` 列宽分配，按 5 列重新分配序号、编码、名称、关联安全能力和关联关注点；安全工作编码列加宽并避免业务编码被拆行。
+- 2026-06-01 安全技术模块明细列收敛：安全技术模块目录已按 `领域分类 -> 安全系统` 分组展示，明细表移除重复的 `领域分类`、`安全系统` 两列，只保留模块 / 定义、关联服务和措施 / 作用域 / 对象 / 环境三类业务列。
+- 2026-06-01 安全技术模块分组误判修复：修正 `TechnologyModuleMaintenanceTable.js` 的 `categoryLabel(row)`，优先按已有 `row.category` 分组；只有分类为空时才显示 `未归入安全技术模块清单`，不改数据、ETL 或 ViewModel。
+- 2026-06-01 主表衍生字段边界加固：按用户确认，将“不得随意加入衍生字段 / 自建字段，新增字段需用户确认”写入全局设计基线；移除安全工作清单主表中的自建 `状态` 列，保留原始业务展示字段。
+- 2026-06-01 `OI-123` 安全知识与安全标准 / 框架拆包协同治理完成：保留旧 `maintenance-knowledge.json` 兼容包，新增 `maintenance-index.json`、`maintenance/*.json` 和 `source-evidence/maintenance/*.sources.json`；前端 `dataClient` 改为安全知识索引先行、当前二级入口按需加载，标准 / 框架继续沿用 `standards-index.json` + 框架分片，两个模块形成统一协同契约。
+- 2026-06-01 左侧全局目录文案更新：将主导航 `安全知识` 统一改为 `知识库字典`，同步更新维护页加载态、页签辅助标签、脚本缓存版本、全局设计基线、展示原则和前端交接文档；未修改数据链路或业务字段。
+- 2026-06-01 知识库字典与安全标准 / 框架表格基线优化：按全局设计基准优化维护页签、层级目录默认行为、搜索展开、关键长文本展示、表头断行和标准 / 框架分组显示；保留完整业务文字，不改 ETL、schema、数据包、`dataClient` 或 ViewModel。
+- 2026-06-01 左侧全局目录长入口断行修正：针对展开态 `信息化环境安全能力映射`、`LC-AP安全开发生命周期`、`LC-DT数据生命周期安全` 三个一级导航入口禁用局部拆分，并略微收紧字号，保留其他长中文入口自然换行策略；同步更新 `styles.css` 缓存版本。
+- 2026-06-01 作用域目录表头优化：按用户纠正，恢复安全能力作用域目录完整表头文案，通过列宽和表头断行规则优化显示，避免 `作用域编码` 在 88px 窄列中断裂换行，不删减业务文字。
+- 2026-06-01 安全能力清单全局基准沉淀：按用户确认，将 `安全能力清单` 记录为知识库字典、安全标准 / 框架同类型层级目录页的全局开发基准；更新全局设计基线和知识库字典前端交接稿，明确默认收起、搜索展开、关键描述完整展示和字段边界要求。
+- 2026-06-01 知识库字典前端交接：新增 `frontend/design-handoff/implementation-specs/security-knowledge-frontend-handoff-2026-06-01.md`，记录知识库字典二级入口、数据链路、字段边界、长文本全局基线、安全能力清单默认收起行为、验证状态和下一轮建议。
+- 2026-06-01 Progress 瘦身：将根目录 `progress.md` 的完整 2026-06 执行记录归档到 `docs/05-archive/progress-history/2026-06.md`，根目录只保留轻量恢复入口。
+- 2026-06-01 过期实施文档归档：将一次性审计 / 复核文档 `field-label-display-consistency-review-2026-05-29.md`、`security-knowledge-data-audit-2026-05-27.md`、`high-level-process-review-checklist-2026-05-27.md` 从 `docs/06-implementation/` 移入 `docs/05-archive/document-retirement-2026-05/06-implementation/`；保留仍被引用的 `project-blocker-review-2026-05-30.md` 和 `apple-color-direction-handoff-2026-05-29.md`。
+- 2026-06-01 DSP 2024 活跃引用清理：用户确认 `DSP2级策略清单（2024年版本）` 明确不用并建议删除；复查当前 `wiki sample.xlsx` 已无 2024 sheet、仅保留 `DSP策略清单（2026）`，SQLite 活跃库仅有 `DSP策略清单（2026）` 来源引用。同步更新剩余 Sheet 建模文档、样例清单和 `translate_dsp_2026_sheet.py`，去掉对 2024 sheet / SCF 2024.3 的活跃依赖；archive / backups 保留历史追溯。
+- 2026-06-01 `OI-075` 用户确认关闭：记录中已包含 LC-AP parser 修复、重新导入导出、`SERVICE_ISSUES=0`、`MODULE_ISSUES=0`、`lifecycle-workbench.json data_state=ready` 和页面 smoke 通过；已标记 `已修复` 并归档。
+- 2026-06-01 `OI-066` 业务接受关闭：用户确认 `DSP2级策略清单（2024年版本）` 作废，后续只参考 `DSP策略清单（2026）`；已标记 `业务接受` 并归档。
+- 2026-06-01 `OI-053` 用户确认关闭：`NIST 800-53rev5` 的 `PE-12(1)` 英文名称差异已按修订后原始表导入并验证；已标记 `已修复` 并归档。
+- 2026-06-01 新增 `OI-123`：登记 `maintenance-knowledge.json` 单体过大且跨页面耦合，需要拆分与按需加载治理；短期保留兼容包，不立即硬拆。
+- 2026-06-01 `OI-021` 用户确认关闭：用户确认能力详情应按 `L2流程组 -> L3流程 -> L4关键活动 -> 组织职能相关方` 显示，且 L4 源数据为空时显示 `待补充`；已标记 `已修复` 并归档。
+- 2026-06-01 `OI-038` 页面显示缺口修复但人工校对保留：Gartner 候选映射已接入导出链路并可显示，后续人工校对仍保持 `待确认`，本轮暂停继续修。
 
 ## 最近验证
 
-- 2026-05-30 全局侧边栏图标对比度修正验证：`git diff --check` 通过；固定 `5173` 服务状态通过；overview 轻量 smoke 通过；GitHub 数据边界检查通过。
-- 2026-05-30 轻规划 PDF 指南验证：`pdftoppm -r 180` 生成 46 张 PNG，首尾页均为 `2400x1350`；`python3 scripts/sapd_wiki.py export-content-views` 后 `html_documents=3`；`node --check` 覆盖 `dataClient.js`、`app.js`、`AppShell.js`、`frontend_smoke_check.mjs` 通过；`python3 -m py_compile src/sapd_wiki/api_server.py src/sapd_wiki/exports.py` 通过；`/guides/light-planning` 浏览器 smoke 通过，`guideThumbs=46`、`guideImageLoaded=true`、`consoleIssues=0`；`/guides/security-governance-model` 仍为空占位页。
-- 2026-05-30 能力映射标题区 L0 编码与统计修正验证：`node --check frontend/capability-browser/components/CapabilityLocalRelationMap.js` 和 `node --check frontend/capability-browser/app.js` 通过；`git diff --check` 通过；固定 `5173` 服务状态通过；capability 轻量 smoke 通过；GitHub 数据边界检查通过。
-- 2026-05-30 能力映射标题区与四视角 Tab 位置修正验证：`node --check frontend/capability-browser/components/CapabilityLocalRelationMap.js` 通过；`git diff --check` 通过；`node scripts/frontend_smoke_check.mjs --page capability --route /capability-mapping --url http://127.0.0.1:5173/` 通过；固定 `5173` 服务状态通过；GitHub 数据边界检查通过。
-- 2026-05-30 能力映射四视角 Tab 视觉收敛验证：`git diff --check` 通过；固定 `5173` 服务状态通过；capability 轻量 smoke 通过；GitHub 数据边界检查通过。
-- 2026-05-30 业务参考来源漏点修复验证：`rg` 确认 `policy.reference` 只进入 `sourceNote(policy.reference)`；`node --check frontend/capability-browser/components/ApplicationSecurityLifecycle.js` 通过；`git diff --check` 通过；`/data-security` 轻量 smoke 通过。
-- 2026-05-30 全局字体权重与安全技术服务 chip 验证：固定 `5173` 服务状态通过；HTTP smoke 覆盖 `capability /capability-mapping`、`dev-lifecycle`、`maintenance /knowledge/technical-services`、`standards /standards/nist-csf-2` 均通过。
+- 2026-06-02 `OI-127` 懒加载契约治理验证：`node --check frontend/capability-browser/app.js frontend/capability-browser/viewModels.js frontend/capability-browser/components/StandardFrameworkTable.js scripts/audit_frontend_lazy_load_contract.mjs` 通过；`node scripts/audit_frontend_lazy_load_contract.mjs` 返回 `result=pass`、`standardFrameworks=7`、`standardTabs=6`、`issues=[]`；`node scripts/govern_open_issues.mjs` 通过，当前 `active=2`、`archived=128`；固定 `5173` 状态检查通过；`/knowledge/functions`、`/knowledge/technical-services`、`/standards/nist-csf-2`、`/standards/dsp-level-2`、`/standards/crf`、`/standards/nist-800-53-rev5` 轻量 smoke 通过；二次 review 确认知识库字典和安全标准 / 框架均由显式加载契约、统一 loader、组件取数边界和专项审计覆盖，`git diff --cached --check` 与 `python3 scripts/check_github_data_boundary.py` 通过，未启动系统 Chrome。
+- 2026-06-02 安全职能清单与参考页反向映射分片验证：`node --check frontend/capability-browser/app.js frontend/capability-browser/components/StandardRoleReferenceTable.js`、分片顺序合并断言、ViewModel 断言、固定 `5173` 状态检查、`/knowledge/gbt-42446`、`/knowledge/role-references` 轻量 smoke、静态文件缓存版本检查和 `git diff --check` 通过；确认 GB/T `27/27` 行有反向安全职能、Gartner `28/28` 行有候选安全职能。
+- 2026-06-02 根路径默认首页验证：`node --check frontend/capability-browser/app.js`、`git diff --check -- frontend/capability-browser/app.js frontend/capability-browser/index.html` 通过；`python3 scripts/dev_server_guard.py --status` 通过；`node scripts/frontend_smoke_check.mjs --page overview --url http://127.0.0.1:5173/` 通过，未启动系统 Chrome。
+- 2026-06-01 `5173` 页面卡住恢复验证：`python3 scripts/dev_server_guard.py --status` 通过，固定端口当前只有一个项目服务进程 `2583`；`node scripts/frontend_smoke_check.mjs --page overview`、`node scripts/frontend_smoke_check.mjs --page maintenance --route /knowledge/functions`、`node scripts/frontend_smoke_check.mjs --page maintenance --route /knowledge/technical` 轻量 HTTP/API smoke 均通过；`node --check` 覆盖 `app.js`、`dataClient.js`、`viewModels.js` 和动态加载的关系图组件均通过。临时 headless Chrome runtime 验证因 `Chrome DevTools target not available` 未完成，未作为页面失败判定。
+- 2026-06-01 数据库备份全局保留规则验证：手动删除除最新 3 个之外的旧 `.sqlite3` 备份后，`data/database/backups/` 下当前仅剩 `3` 个备份，目录大小约 `1.2GB`；`python3 -m py_compile scripts/prune_database_backups.py` 通过；`python3 scripts/prune_database_backups.py` dry-run 显示 `total_backups=3`、`keep_limit=5`、`would_delete: none`。
+- 2026-06-01 `OI-124` 临时流程引用占位验证：SQLite 确认原始关系中存在 32 条 `capability -> process_group` 的 L2 映射关系，来源为 `安全能力-安全管理元素（high level）` 的 L2 流程组列；这些不是 L3 流程参考，不能生成临时 L3。`python3 -m py_compile src/sapd_wiki/exports.py`、`git diff --check -- src/sapd_wiki/exports.py`、`python3 scripts/sapd_wiki.py export-capability-tree`、`python3 scripts/sapd_wiki.py export-capability-workbench` 通过；验证 `capability-tree.json` 和 `capability-workbench.json` 中 `待确认流程=0`、`临时流程引用=0`、`process_reference:3190818408c5=0`、`process_reference:=0`；重跑字典审计仍为 `fail`，但 `issuesByType` 已无 `process_reference`；`/capability-map` 轻量 smoke 通过。
+- 2026-06-01 `OI-124` `ALL / 全部作用域` 验证：`python3 -m py_compile src/sapd_wiki/parsers.py src/sapd_wiki/exports.py`、`node --check frontend/capability-browser/viewModels.js`、`git diff --check` 通过；`python3 scripts/sapd_wiki.py bootstrap-local-data --reset` 通过；`maintenance/scopes.json` 中 `scope_types=10` 且 `ALL` 标记 `display_in_scope_catalog=false / authority_only=true`、关联 12 个 `ALL&...` 服务；作用域页面 ViewModel 验证 `sourceScopes=10`、`visibleRows=9`、`hasAll=false`；SQLite 与 sidecar 来源证据确认 `ALL` 指向 `安全能力-安全技术服务!G49:G63` 的实际服务单元格；`/knowledge/scopes` 轻量 smoke 通过；重跑字典审计仍为 `fail`，但 `ALL` 不再作为 unknown scope 报告。
+- 2026-06-01 数据库文件层清理 R0/R1 验证：`PRAGMA integrity_check` 清理前返回 `ok`；`data/database/backups/` 根目录保留 `sapd_wiki-before-cleanup-20260601-current.sqlite3`；第一轮整理时 34 个历史备份已移动到归档目录，后续全局保留规则已继续清理旧备份；`data/database/sapd_wiki.db`、`data/database/sapd_wiki.sqlite` 已不存在；`data/exports/worker-verify/` 仍保留且包含 `42` 个文件，未移动。
+- 2026-06-01 `OI-125` 安全职能清单依赖分片加载验证：`node --check frontend/capability-browser/app.js`、`git diff --check -- frontend/capability-browser/app.js frontend/capability-browser/index.html progress.md docs/06-implementation/open-issues.md docs/06-implementation/open-issues-index.md docs/05-archive/open-issues-history/2026-06.md` 通过；本地逻辑断言确认加载 `references` / `processes` 这类依赖分片后会触发 `renderMaintenance()`；`/knowledge/functions` 轻量 smoke 和 `node scripts/govern_open_issues.mjs` 通过。
+- 2026-06-01 `OI-124` 生命周期安全技术措施 ID 归一验证：`python3 -m py_compile src/sapd_wiki/exports.py`、`git diff --check -- src/sapd_wiki/exports.py`、`python3 scripts/sapd_wiki.py export-lifecycle-knowledge`、`python3 scripts/sapd_wiki.py export-lifecycle-workbench` 通过；抽样确认 `应用程序威胁建模`、`制品安全加固`、`IaC代码安全测试`、`数据销毁` 在 `lifecycle-knowledge.json` 和 `lifecycle-workbench.json` 中均使用对应字典权威 ID；`node scripts/audit_dictionary_reference_consistency.mjs` 仍为 `fail`，但 `issuesByType` 已无 `security_technical_measure`；`/development-security`、`/data-security` 轻量 smoke 通过，未启动系统 Chrome。
+- 2026-06-01 数据库整体清理计划与预案验证：只读复查当前主库和目录大小，确认 `sapd_wiki.sqlite3` 约 `69MB`、`data/database/backups/` 约 `9.6GB`、`data/exports/` 约 `600MB`、`frontend/capability-browser/public/data/` 约 `135MB`；当前主库 `knowledge_items=4648`、`knowledge_relations=7642`、`source_references=25515`、`staging_items=4822`、`staging_relations=7642`、`review_decisions=12464`，4 个 import job 均为 `approved`，孤儿关系 / deprecated endpoint 关系 / 孤儿来源引用均为 `0`。
+- 2026-06-01 关联统计清单气泡验证：`node --check frontend/capability-browser/components/ScopeMaintenanceTable.js`、`git diff --check -- frontend/capability-browser/components/ScopeMaintenanceTable.js frontend/capability-browser/index.html docs/06-implementation/frontend-global-design-baseline-2026-05-30.md progress.md` 通过；组件渲染断言确认 `关联服务数`、`关联对象数` 均使用 `maintenance-count-bubble`，且 tooltip 包含对应关联清单；`/knowledge/scopes` 轻量 smoke 通过。
+- 2026-06-01 `OI-124` 作用域权威值验证：用 `openpyxl` 回读确认 `安全能力作用域目录!C4='I-DI 数据与信息'`、`安全能力作用域目录!C7='I-OS 操作系统（主机/终端）'`、`安全能力-安全技术服务!H3='I-DI 数据与信息'`、`安全能力-安全技术服务!K3='I-OS 操作系统（主机/终端）'`；`python3 scripts/sapd_wiki.py bootstrap-local-data --reset` 通过，生成 `knowledge_items=4648`、`knowledge_relations=7642`、`source_references=25515`；`python3 scripts/data_package_summary.py --package maintenance` 通过，`data_state=ready`；`node scripts/audit_dictionary_reference_consistency.mjs` 仍为 `fail`，但 `scope_type` 剩余问题已从旧名不一致收敛为 `ALL / 全部作用域` 未纳入字典的 warning，生命周期 4 个安全技术措施仍为非权威 ID 引用。
+- 2026-06-01 数据库清理交接验证：只读执行 `find data -maxdepth 4 -type f` 定位 SQLite 文件、`du -sh data/database data/database/backups frontend/capability-browser/public/data data/exports`、`sqlite3 data/database/sapd_wiki.sqlite3` 表计数 / `dbstat` / 状态聚合 / 孤儿引用检查，确认主库约 `708MB`、备份目录约 `9.6GB`、`staging_items=56221`、`staging_relations=128093`、`source_references=408923`、`review_decisions=162044`、孤儿关系 `0`、连接 deprecated endpoint 的关系 `36`、孤儿 `source_references=9`；本轮未执行删除、`VACUUM` 或数据包重导出。
+- 2026-06-01 安全职能流程清单职能气泡验证：`node --check frontend/capability-browser/components/ProcessMaintenanceTable.js`、`git diff --check -- frontend/capability-browser/components/ProcessMaintenanceTable.js frontend/capability-browser/styles.css frontend/capability-browser/index.html progress.md` 通过；组件渲染断言确认表头不含 `关联关注点数`、包含 `关联安全职能数`，且数字气泡包含关联职能清单 tooltip；`/knowledge/management-workflows` 轻量 smoke 通过。
+- 2026-06-01 安全技术措施目录显示优化验证：`node --check frontend/capability-browser/components/TechnicalMeasureMaintenanceTable.js frontend/capability-browser/viewModels.js`、`git diff --check -- frontend/capability-browser/components/TechnicalMeasureMaintenanceTable.js frontend/capability-browser/viewModels.js frontend/capability-browser/styles.css frontend/capability-browser/index.html progress.md` 通过；组件渲染断言确认表头不含 `来源标签`，包含 `关联信息化环境 / 对象`；`/knowledge/technical` 轻量 smoke 通过。
+- 2026-06-01 知识库字典权威引用审计验证：`node --check scripts/audit_dictionary_reference_consistency.mjs` 通过；`node scripts/audit_dictionary_reference_consistency.mjs` 完成 31 个数据包全量检查，结果 `fail`，发现 `errors=174`、`warnings=340`，其中 `scope_type=215`、`security_technical_measure=20` 为待修复错误，`work_function=278` 为 Gartner 候选映射 warning；`node scripts/govern_open_issues.mjs` 通过，当前 `issues=127`、`active=2`、`archived=125`；相关文件 `git diff --check` 通过。
+- 2026-06-01 安全技术模块目录移除模块-措施映射验证：本地抽样确认 `maintenance/modules.json` 中 `modules=102`、`withMeasures=0`、`relatedMeasureKeys=[]`；`node --check frontend/capability-browser/components/TechnologyModuleMaintenanceTable.js frontend/capability-browser/viewModels.js`、`git diff --check -- frontend/capability-browser/components/TechnologyModuleMaintenanceTable.js frontend/capability-browser/viewModels.js frontend/capability-browser/index.html progress.md` 通过；`/knowledge/technical` 轻量 smoke 通过。
+- 2026-06-01 安全职能流程清单首次切换加载验证：`node --check frontend/capability-browser/app.js frontend/capability-browser/components/ProcessMaintenanceTable.js`、`git diff --check -- frontend/capability-browser/app.js frontend/capability-browser/components/ProcessMaintenanceTable.js frontend/capability-browser/styles.css frontend/capability-browser/index.html progress.md` 通过；`/knowledge/management-workflows` 轻量 smoke 通过；本轮未启动系统 Chrome。
+- 2026-06-01 安全工作职能反向映射列补齐验证：`node --check frontend/capability-browser/components/StandardRoleReferenceTable.js` 通过；组件渲染断言确认 `standardRows=27`、`roleRows=28`、两类行均有安全职能反向映射，表头包含 `映射安全职能` 和 `候选安全职能`，共渲染 `55` 个数字气泡；`git diff --check` 通过；固定 `5173` 服务状态通过；`/knowledge/gbt-42446` 和 `/knowledge/role-references` 轻量 smoke 通过，未启动系统 Chrome。
+- 2026-06-01 安全工作职能清单映射列修正验证：`node --check` 覆盖 `WorkFunctionMaintenanceTable.js`、`MaintenanceShell.js`、`viewModels.js`、`app.js` 通过；ViewModel 本地抽样得到 `rows=86`、`gbtReferences=32`、`gartnerReferences=142`、`linkedProcessRelations=736`；组件渲染断言确认表头包含 `GB/T 42446-2023 映射`、`Gartner 映射`、`关联流程组/流程` 且不含 `关联安全工作数`；`git diff --check` 通过；固定 `5173` 服务状态通过；`/knowledge/functions` 轻量 smoke 通过，未启动系统 Chrome。
+- 2026-06-01 安全职能流程清单字段边界验证：用 `openpyxl` 读取 `data/raw-samples/wiki sample.xlsx` 的 `安全职能流程清单（完善L4）` 前 8 行，确认表头为流程分类、L1 流程域、L2流程组、L3流程参考、L4关键活动，无 `描述` 列；`node --check frontend/capability-browser/components/ProcessMaintenanceTable.js`、`git diff --check -- frontend/capability-browser/components/ProcessMaintenanceTable.js frontend/capability-browser/styles.css frontend/capability-browser/index.html progress.md` 通过；`/knowledge/management-workflows` 轻量 smoke 通过。
+- 2026-06-01 安全工作清单表格宽度优化验证：`node --check frontend/capability-browser/components/StandardRoleReferenceTable.js`、`git diff --check -- frontend/capability-browser/styles.css frontend/capability-browser/index.html progress.md` 通过；`/knowledge/management-workflows` 轻量 smoke 通过。
+- 2026-06-01 安全技术模块明细列收敛验证：`node --check frontend/capability-browser/components/TechnologyModuleMaintenanceTable.js`、`git diff --check -- frontend/capability-browser/components/TechnologyModuleMaintenanceTable.js frontend/capability-browser/styles.css frontend/capability-browser/index.html progress.md` 通过；`/knowledge/technical` 轻量 smoke 通过。
+- 2026-06-01 安全技术模块分组误判修复验证：`node --check frontend/capability-browser/components/TechnologyModuleMaintenanceTable.js`、`git diff --check -- frontend/capability-browser/components/TechnologyModuleMaintenanceTable.js frontend/capability-browser/index.html progress.md` 通过；`/knowledge/technical` 轻量 smoke 通过。
+- 2026-06-01 主表衍生字段边界加固验证：`node --check frontend/capability-browser/components/StandardRoleReferenceTable.js`、`git diff --check -- docs/06-implementation/frontend-global-design-baseline-2026-05-30.md frontend/capability-browser/components/StandardRoleReferenceTable.js progress.md` 通过；`/knowledge/management-workflows` 轻量 smoke 通过。
+- 2026-06-01 左侧全局目录文案更新验证：`node --check` 覆盖 `AppShell.js`、`MaintenanceShell.js`、`app.js` 通过；`git diff --check` 覆盖前端文案、缓存版本和相关文档通过；固定 `5173` 服务状态通过；`/knowledge/scopes` 轻量 smoke 通过；GitHub 数据边界检查通过。
+- 2026-06-01 `OI-123` 验证：`python3 -m py_compile src/sapd_wiki/exports.py src/sapd_wiki/api_server.py`、`node --check frontend/capability-browser/dataClient.js frontend/capability-browser/app.js frontend/capability-browser/viewModels.js`、`python3 scripts/sapd_wiki.py export-maintenance-knowledge`、主分片禁用字段 `rg` 检查、固定 `5173` 服务状态、`/knowledge/scopes`、`/knowledge/technical-services`、`/knowledge/technical`、`/knowledge/functions`、`/knowledge/role-references`、`/standards/dsp-level-2`、`/standards/nist-800-53-rev5` 轻量 smoke、`check_github_data_boundary.py`、`node scripts/govern_open_issues.mjs` 均通过；`maintenance-index.json` 约 `3.4KB`，主分片最大 `services.json` 约 `679.6KB`，主分片未发现 `sheet`、`row`、`column`、`raw_value`、`sources`、`sourceEvidence`、`mapping_sources`、`source_label`。
+- 2026-06-01 知识库字典与安全标准 / 框架表格基线优化验证：`node --check` 覆盖 `MaintenanceShell.js`、`TechnicalServiceMaintenanceTable.js`、`TechnologyModuleMaintenanceTable.js`、`WorkFunctionMaintenanceTable.js`、`StandardRoleReferenceTable.js`、`StandardFrameworkTable.js`、`app.js` 通过；`git diff --check` 通过；固定 `5173` 服务状态通过；`/knowledge/scopes`、`/knowledge/technical-services`、`/knowledge/technical`、`/knowledge/functions`、`/standards/nist-csf-2`、`/standards/dsp-level-2`、`/standards/nist-800-53-rev5` 轻量 smoke 通过；`check_github_data_boundary.py` 通过；`audit_frontend_governance.mjs` 仍因既有 `styles.css` 行数 / `important` 超基线失败。
+- 2026-06-01 左侧全局目录长入口断行修正验证：`git diff --check -- frontend/capability-browser/styles.css frontend/capability-browser/index.html progress.md` 通过；固定 `5173` 服务状态检查通过；`/environment-mapping`、`/development-security` 和 `/data-security` 轻量 smoke 通过；GitHub 数据边界检查通过；刷新当前 Chrome 页面后目视确认 `信息化环境安全能力映射`、`LC-AP`、`LC-DT` 不再异常断开。
+- 2026-06-01 作用域目录表头优化验证：`node --check frontend/capability-browser/components/ScopeMaintenanceTable.js`、`git diff --check -- frontend/capability-browser/components/ScopeMaintenanceTable.js frontend/capability-browser/styles.css frontend/capability-browser/index.html progress.md` 和固定 `5173` 服务状态检查通过；`/knowledge/scopes` 轻量 smoke 通过。
+- 2026-06-01 安全能力清单全局基准验证：`git diff --check -- docs/06-implementation/frontend-global-design-baseline-2026-05-30.md frontend/design-handoff/implementation-specs/security-knowledge-frontend-handoff-2026-06-01.md progress.md` 通过。
+- 2026-06-01 知识库字典前端交接验证：`git diff --check` 通过；交接稿位于 `frontend/design-handoff/implementation-specs/security-knowledge-frontend-handoff-2026-06-01.md`。
+- 2026-06-01 Progress 瘦身验证：`docs/05-archive/progress-history/2026-06.md` 已生成；根目录 `progress.md` 行数降至轻量范围；`git diff --check` 通过。
+- 2026-06-01 过期实施文档归档验证：活跃路径不再引用 3 个已归档文档；仍被 `DESIGN.md` / 治理配置引用的 Apple 方向交接和工程阻塞 review 保留在活跃区。
+- 2026-06-01 DSP 2024 活跃引用清理验证：`wiki sample.xlsx` 为 `has_dsp_2024=False`、`has_dsp_2026=True`；SQLite 活跃库仅查到 `DSP策略清单（2026）` 来源引用；活跃路径 `rg` 未发现 `DSP2级策略清单`、`SCF 2024.3` 或 `secure-controls-framework-scf-2024` 残留；`python3 -m py_compile scripts/translate_dsp_2026_sheet.py` 和 `git diff --check` 通过。
+- 2026-06-01 Open Issues 治理验证：`node scripts/govern_open_issues.mjs` 通过，当前 `issues=127`、`active=2`、`archived=125`。
+- 2026-06-01 Gartner 映射显示验证：`gartner_roles=28`、带候选映射 `28`、缺失 `0`；页面主表衍生列后续已按用户批注移除，`OI-038` 保留为人工校对任务。
+- 2026-06-02 Windows ZIP 启动脚本路径修复：用户在 Windows 执行 `start-windows.bat` 后，PyInstaller 后端报 `WinError 123`，路径被解析为 `...SAPD-Wiki-v0.1.0-win-x64" \logs`。定位为 Windows `%~dp0` 自带结尾反斜杠，作为 `--bundle-root "%~dp0"` 传入 PyInstaller/Python 参数解析时导致引号被吃歪；已将 `scripts/build_zip_bundle.py` 生成的 `start-windows.bat` 和仓库静态 `scripts/start-windows.bat` 改为 `cd /d "%~dp0"` 后使用 `%CD%` 作为 `BUNDLE_ROOT`，避免结尾反斜杠。验证：`python3 -m py_compile scripts/build_zip_bundle.py`、`git diff --check -- scripts/build_zip_bundle.py scripts/start-windows.bat` 通过；Windows ZIP 需要重新生成后再试发。
+- 2026-06-02 Windows ZIP 启动窗口闪退诊断增强：用户反馈手工修复 `start-windows.bat` 后双击终端窗口闪一下就关闭；已增强 `scripts/build_zip_bundle.py` 生成模板和仓库静态 `scripts/start-windows.bat`，启动时写入 `logs/launcher.log`，后端控制台输出写入 `logs/backend-console.log`，后端退出后无论错误码是否为 0 都保留窗口、显示退出码并打印最近 30 行 `logs/backend-console.log` / `logs/runtime.log`，方便定位 base DB、manifest、端口或安全软件导致的秒退问题。Windows ZIP 仍需重新生成或替换已解压包中的 `start-windows.bat` 后复测。
+- 2026-06-02 Windows ZIP launcher 日志增强：用户反馈双击后仍闪退且没有 `runtime.log`；已进一步增强 Windows 启动脚本，执行 `.bat` 后立即创建 `logs/launcher.log`，后端 stdout/stderr 追加写入 `logs/backend-console.log`，并在窗口中打印 `backend-console.log` / `runtime.log` 尾部内容。若仍没有 `launcher.log`，说明双击到的不是该脚本或脚本文件为空 / 扩展名错误。验证：`python3 -m py_compile scripts/build_zip_bundle.py`、`git diff --check -- scripts/build_zip_bundle.py scripts/start-windows.bat progress.md` 通过。
 
 ## 当前问题索引
 
-- `OI-112`：全局字段命名与显示样式一致性，已修复。
-- `OI-113`：前端整体色系未统一到 Apple / Morandi 体系，已修复并继续做组件级增强。
-- `OI-114`：能力关系图谱布局修复尝试造成视觉回退，已回退。
-- `OI-115`：刷新后层级能力节点误用默认关注点投影数据，已修复。
-- `OI-116`：Apple demo 组件级对齐误伤 LC-AP 阶段 Tab 和模块表默认展开，已修复。
-- `OI-117`：安全能力 projection 缺少对象粒度契约，已修复。
-- `OI-118`：关注点 projection 前端缺少请求防串包校验，已修复。
-- `OI-119`：全局表格字号、空值和安全技术对象 chip 口径不统一，已修复。
-- `OI-120`：L0 能力节点在完整 workbench 未返回前显示 0 服务，已修复。
-- `OI-121`：能力映射标准表格和管理表格字体口径不一致，已修复。
+- `OI-038`：Gartner 与安全职能候选映射需后续人工校对，状态 `待确认`。
+- `OI-124`：知识库字典权威引用全量审计发现作用域与技术措施引用不一致，状态 `待修复`。
 
 ## 历史索引
 
 | 归档文件 | 内容 |
 |---|---|
-| `docs/05-archive/progress-history/2026-05.md` | 2026-05 完整执行记录、根目录 `progress.md` 瘦身快照和本轮轻量结构治理记录 |
+| `docs/05-archive/progress-history/2026-06.md` | 2026-06 完整执行记录、Open Issues 治理、前端治理、数据口径确认和本轮 progress 瘦身前快照 |
+| `docs/05-archive/progress-history/2026-05.md` | 2026-05 完整执行记录、根目录 `progress.md` 瘦身快照和结构治理记录 |
 | `docs/05-archive/findings-history/2026-05.md` | 2026-05 历史发现 |
+| `docs/05-archive/open-issues-history/2026-06.md` | 已关闭 Open Issues 长记录 |
 | `docs/05-archive/context-slimming-2026-05-15/` | 2026-05-15 上下文瘦身快照 |
 
 ## 维护规则
 
-- 本文件只保留最近 1-3 次重要执行；超过 120 行时继续归档到 `docs/05-archive/`。
+- 本文件只保留最近状态、最近 5-10 条重要执行和恢复入口；超过 120 行时继续归档到 `docs/05-archive/progress-history/`。
 - 详细过程、长命令输出和阶段性历史不写入根目录 `progress.md`。

@@ -19,6 +19,9 @@ from .transformers import is_blank_or_placeholder, service_parts, split_multival
 
 
 DEFAULT_EXPORT_DIR = PROJECT_ROOT / "data" / "exports"
+GARTNER_WORK_FUNCTION_CANDIDATES_PATH = (
+    PROJECT_ROOT / "data" / "exports" / "worker-verify" / "sheet-review-2-2-gartner-to-work-function-candidates.csv"
+)
 
 SECOND_BATCH_ITEM_TYPES = (
     "security_work",
@@ -138,6 +141,52 @@ MAINTENANCE_KNOWLEDGE_FIELDS = (
     "gbt_42446_references",
     "gartner_roles",
 )
+MAINTENANCE_SECTION_CONFIGS = (
+    {
+        "id": "scopes",
+        "title": "作用域清单",
+        "fields": ("scope_types",),
+        "route": "/knowledge/scopes",
+    },
+    {
+        "id": "services",
+        "title": "安全技术服务清单",
+        "fields": ("security_technical_services",),
+        "route": "/knowledge/technical-services",
+    },
+    {
+        "id": "modules",
+        "title": "安全技术模块清单",
+        "fields": ("security_technology_modules",),
+        "route": "/knowledge/technical",
+    },
+    {
+        "id": "measures",
+        "title": "安全技术措施清单",
+        "fields": ("security_technical_measures",),
+        "route": "/knowledge/technical",
+    },
+    {
+        "id": "processes",
+        "title": "流程清单",
+        "fields": ("security_processes",),
+        "route": "/knowledge/management-workflows",
+    },
+    {
+        "id": "work-functions",
+        "title": "职能清单",
+        "fields": ("work_function_layers",),
+        "route": "/knowledge/functions",
+    },
+    {
+        "id": "references",
+        "title": "岗位 / 职能参考",
+        "fields": ("gbt_42446_references", "gartner_roles"),
+        "route": "/knowledge/role-references",
+    },
+)
+MAINTENANCE_SOURCE_KEYS = {"sources", "sourceEvidence", "mapping_sources"}
+MAINTENANCE_INTERNAL_SOURCE_KEYS = {"source_label", "sourceLabel", "source_kind", "sourceKind"}
 XLSX_MAIN_NS = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
 XLSX_REL_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 XLSX_PACKAGE_REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships"
@@ -339,6 +388,130 @@ def _maintenance_knowledge_payload(management_payload: dict[str, Any]) -> dict[s
     }
 
 
+def _maintenance_object_id(value: dict[str, Any], fallback: str | None = None) -> str | None:
+    candidate = value.get("id") or value.get("code") or value.get("title") or value.get("name") or fallback
+    if candidate is None:
+        return None
+    normalized = str(candidate).strip()
+    return normalized or None
+
+
+def _dedupe_source_evidence(sources: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for source in sources:
+        if not isinstance(source, dict):
+            continue
+        key = json.dumps(source, ensure_ascii=False, sort_keys=True)
+        if key in seen:
+            continue
+        seen.add(key)
+        rows.append(source)
+    return rows
+
+
+def _strip_maintenance_source_evidence(value: Any, evidence_by_id: dict[str, list[dict[str, Any]]], owner_id: str | None = None) -> Any:
+    if isinstance(value, list):
+        return [_strip_maintenance_source_evidence(item, evidence_by_id, owner_id) for item in value]
+    if not isinstance(value, dict):
+        return value
+
+    current_id = _maintenance_object_id(value, owner_id)
+    cleaned: dict[str, Any] = {}
+    for key, child in value.items():
+        if key in MAINTENANCE_INTERNAL_SOURCE_KEYS:
+            continue
+        if key in MAINTENANCE_SOURCE_KEYS:
+            if current_id and isinstance(child, list):
+                evidence_by_id.setdefault(current_id, []).extend(source for source in child if isinstance(source, dict))
+            continue
+        cleaned[key] = _strip_maintenance_source_evidence(child, evidence_by_id, current_id)
+    return cleaned
+
+
+def _maintenance_section_count(payload: dict[str, Any], fields: tuple[str, ...]) -> int:
+    return sum(len(payload.get(field) or []) for field in fields)
+
+
+def _write_maintenance_split_packages(output: Path, payload: dict[str, Any]) -> list[str]:
+    base_dir = output.parent
+    section_dir = base_dir / "maintenance"
+    source_dir = base_dir / "source-evidence" / "maintenance"
+    section_dir.mkdir(parents=True, exist_ok=True)
+    source_dir.mkdir(parents=True, exist_ok=True)
+
+    written_files: list[str] = []
+    sections: list[dict[str, Any]] = []
+    section_counts: dict[str, int] = {}
+    generated_at = payload.get("generated_at")
+
+    for config in MAINTENANCE_SECTION_CONFIGS:
+        section_id = str(config["id"])
+        fields = tuple(str(field) for field in config["fields"])
+        evidence_by_id: dict[str, list[dict[str, Any]]] = {}
+        section_payload: dict[str, Any] = {
+            "generated_at": generated_at,
+            "data_state": "ready",
+            "package_type": "maintenance-section",
+            "section_id": section_id,
+            "section_title": config["title"],
+            "stats": {field: len(payload.get(field) or []) for field in fields},
+        }
+        for field in fields:
+            section_payload[field] = _strip_maintenance_source_evidence(payload.get(field) or [], evidence_by_id)
+
+        evidence_payload = {
+            "generated_at": generated_at,
+            "data_state": "ready",
+            "package_type": "maintenance-source-evidence",
+            "section_id": section_id,
+            "evidenceById": {key: _dedupe_source_evidence(value) for key, value in evidence_by_id.items()},
+        }
+        count = _maintenance_section_count(payload, fields)
+        section_counts[section_id] = count
+        if section_id == "references":
+            section_counts["references-gbt"] = len(payload.get("gbt_42446_references") or [])
+            section_counts["references-gartner"] = len(payload.get("gartner_roles") or [])
+
+        section_filename = f"{section_id}.json"
+        evidence_filename = f"{section_id}.sources.json"
+        section_path = section_dir / section_filename
+        evidence_path = source_dir / evidence_filename
+        _write_json(section_path, section_payload)
+        _write_json(evidence_path, evidence_payload)
+        written_files.extend([str(section_path), str(evidence_path)])
+
+        sections.append(
+            {
+                "id": section_id,
+                "title": config["title"],
+                "route": config["route"],
+                "fields": list(fields),
+                "count": count,
+                "dataPath": f"./public/data/maintenance/{section_filename}",
+                "sourceEvidencePath": f"./public/data/source-evidence/maintenance/{evidence_filename}",
+            }
+        )
+
+    index_payload = {
+        "generated_at": generated_at,
+        "data_state": "ready",
+        "package_type": "maintenance-index",
+        "stats": payload.get("stats") or {},
+        "section_counts": section_counts,
+        "sections": sections,
+        "compatibility": {
+            "legacyPackage": "./public/data/maintenance-knowledge.json",
+            "splitStrategy": "index-first-section-on-demand",
+            "sourceEvidence": "sidecar",
+        },
+    }
+    index_path = base_dir / "maintenance-index.json"
+    _write_json(index_path, index_payload)
+    written_files.insert(0, str(index_path))
+    return written_files
+
+
 def _brief_item(item: dict[str, Any] | None, source_refs: dict[str, list[dict[str, Any]]]) -> dict[str, Any] | None:
     if not item:
         return None
@@ -353,6 +526,91 @@ def _brief_item(item: dict[str, Any] | None, source_refs: dict[str, list[dict[st
         "category": category,
         "sources": _brief_item_sources(item, source_refs),
     }
+
+
+GBT_42446_TASK_DESCRIPTIONS = {
+    "网络安全规划和管理": "指导、制定、监督和执行网络安全战略规划、策略制度和体制机制。综合协调相关人员，采取各类网络安全控制措施，降低并缓解系统安全风险",
+    "网络数据安全保护": "针对网络数据收集、存储、使用、加工、传输、提供、公开等环节，采取措施保障网络数据安全",
+    "个人信息保护": "针对个人信息收集、存储、使用、加工、传输、提供、公开、删除等环节，采取措施保障个人信息安全",
+    "密码技术应用": "运用密码技术，进行信息系统安全密码保障的架构设计、系统集成、检测评估、运维管理、密码咨询等",
+    "网络安全需求分析": "依据法律法规、政策标准及业务流程要求，开展符合性需求分析、业务所依赖的信息通信技术（ICT）持续运行需求分析、数据安全需求分析等，定期或在遇到重大网络安全事件时对组织网络安全需求进行复审",
+    "网络安全架构设计": "依据网络安全需求分析、ICT 基础设施现状、组织环境和业务特点等，从物理环境、通信网络、计算环境、区域边界等方面进行网络安全架构设计，形成网络安全架构实施方案",
+    "网络安全开发": "实现软件、硬件安全架构及功能开发，并对其进行测试、更新和维护",
+    "供应链安全管理": "运用供应链安全管理的方法、工具和技术，控制供应链安全风险，管理供应商及网络安全和信息化相关产品和服务的采购",
+    "网络安全集成实施": "网络安全项目管理，信息系统安全集成过程中软硬件设备与系统的安装、调试、测试、配置、故障处理和工程实施，以及配合验收交付",
+    "网络安全运维": "利用网络安全技术工具，根据网络安全相关标准和制度流程，操作、运行、维护和管理信息系统",
+    "网络安全监测和分析": "利用相关技术、工具和情报信息等对目标系统进行安全监测、分析和预警，并提出应对威胁的措施和改进建议",
+    "网络安全应急管理": "组织编制网络安全事件应急预案，实施网络安全应急演练，在应对突发/重大网络安全事件时，采取必要的应急处置措施将信息系统和业务恢复到正常状态，并进行事件溯源和调查取证",
+    "网络安全审计": "依据审计依据，在规定的审计范围内，监督和评价网络安全控制措施的设计有效性和执行有效性，确定被审计对象满足审计依据的程度，并提出网络安全工作改进的意见和建议",
+    "网络安全测试": "对目标系统的脆弱性和防御机制有效性进行验证，发现安全问题并提出改进建议；根据测试依据，识别并测试系统和产品的安全性",
+    "网络安全评估": "评估信息系统、业务及相关网络数据等的符合性和面临的网络安全风险，对风险进行识别、分析、评价，提出改进建议",
+    "网络安全认证": "对网络安全管理体系、服务、产品等开展认证与审核",
+    "电子数据取证": "对电子数据进行提取、固定、恢复、分析等工作",
+    "网络安全咨询": "根据组织的安全目标，提供安全规划、设计、实施、运维、管理等方面的政策法规和技术咨询服务",
+    "网络安全研究": "研究网络空间安全涉及的学科理论基础和方法论，研究网络安全新兴技术及应用、产业发展趋势，以及网络安全法律法规、政策、标准等",
+    "网络安全培训和评价": "开展网络安全培训方案和相关课程的设计、开发和持续改进，实施授课等培训活动，开展评价活动，例如：理论知识考试、技能操作考核、业绩评审、竞赛选拔等",
+}
+
+
+def _gbt_42446_task_description(item: dict[str, Any]) -> str | None:
+    title = " ".join(str(item.get("title") or "").split()).strip()
+    category = " ".join(str(item.get("category") or "").split()).strip()
+    task_title = title
+    if category and title.startswith(f"{category}-"):
+        task_title = title[len(category) + 1 :]
+    return GBT_42446_TASK_DESCRIPTIONS.get(task_title)
+
+
+def _split_semicolon_values(value: object) -> list[str]:
+    return [part.strip() for part in str(value or "").replace("；", ";").split(";") if part.strip()]
+
+
+def _candidate_work_function_item(value: str) -> dict[str, Any]:
+    text = " ".join(str(value or "").split()).strip()
+    match = re.match(r"^(\d+)\s+(.+)$", text)
+    if match:
+        code, title = match.groups()
+        return {
+            "id": f"work-function-candidate:{code}",
+            "type": "work_function",
+            "code": code,
+            "title": title.strip(),
+            "status": "待复核",
+        }
+    return {
+        "id": f"work-function-candidate:{text}",
+        "type": "work_function",
+        "title": text,
+        "status": "待复核",
+    }
+
+
+def _load_gartner_work_function_candidates(path: Path = GARTNER_WORK_FUNCTION_CANDIDATES_PATH) -> dict[tuple[str, str], dict[str, Any]]:
+    if not path.exists():
+        return {}
+    candidates: dict[tuple[str, str], dict[str, Any]] = {}
+    with path.open(newline="", encoding="utf-8-sig") as file:
+        for row in csv.DictReader(file):
+            title = " ".join((row.get("gartner_role_name") or "").split()).strip()
+            category = " ".join((row.get("gartner_role_category") or "").split()).strip()
+            if not title:
+                continue
+            candidate_functions = [
+                _candidate_work_function_item(value)
+                for value in _split_semicolon_values(row.get("candidate_work_functions"))
+            ]
+            candidates[(title, category)] = {
+                "gartner_role_candidate_id": row.get("gartner_role_id") or "",
+                "candidate_work_function_layers": _split_semicolon_values(row.get("candidate_work_function_layers")),
+                "candidate_work_function_groups": _split_semicolon_values(row.get("candidate_work_function_groups")),
+                "candidate_work_functions": candidate_functions,
+                "candidate_count": len(candidate_functions),
+                "match_basis": row.get("match_basis") or "",
+                "confidence_or_rule": row.get("confidence_or_rule") or "",
+                "review_status": "待复核",
+                "candidate_quality": row.get("candidate_quality") or "",
+            }
+    return candidates
 
 
 def _format_count_table(title: str, counts: dict[str, int]) -> str:
@@ -820,30 +1078,6 @@ def export_capability_tree(
                     refs.get(process_group_id) if process_group_id else None,
                 ),
             }
-        if capability_id:
-            for relation in capability_process_groups.get(capability_id, []):
-                process_group_id = relation["target_item_id"]
-                if process_group_id not in items:
-                    continue
-                if any(existing_key[0] == process_group_id for existing_key in mappings):
-                    continue
-                key = (process_group_id, None)
-                mappings.setdefault(
-                    key,
-                    {
-                        "process_group": _brief_item(items[process_group_id], refs),
-                        "process_reference": None,
-                        "activities": [],
-                        "activity_status": "missing",
-                        "activity_status_label": "待补充",
-                        "missing_activity": True,
-                        "stakeholders": make_stakeholders(focus_id),
-                        "sources": _combine_sources(
-                            relation_refs.get(relation["id"]),
-                            refs.get(process_group_id),
-                        ),
-                    },
-                )
         return sorted(
             mappings.values(),
             key=lambda mapping: (
@@ -1583,7 +1817,7 @@ def _data_lifecycle_policy_rows_from_xlsx(
                 continue
             measure = measure_by_title.get(title)
             if measure:
-                payload = _item_payload(measure, refs)
+                payload = _canonical_security_technical_measure_payload(measure, refs)
                 payload["objectKind"] = "安全技术措施"
                 measures.append(payload)
                 continue
@@ -1736,6 +1970,26 @@ def _scope_catalog_rows_from_xlsx(conn: sqlite3.Connection) -> list[dict[str, An
 def _stable_measure_id(name: str, category: str | None) -> str:
     digest = hashlib.sha1(f"{name}\0{category or ''}".encode("utf-8")).hexdigest()[:16]
     return f"security_technical_measure:{digest}"
+
+
+def _canonical_security_technical_measure_id(item: dict[str, Any]) -> str:
+    name = _normalize_measure_name(item.get("title"))
+    if not name:
+        return item.get("id") or ""
+    metadata = _metadata(item)
+    category = item.get("category") or metadata.get("category") or None
+    return _stable_measure_id(name, category)
+
+
+def _canonical_security_technical_measure_payload(
+    item: dict[str, Any],
+    refs: dict[str, list[dict[str, Any]]],
+) -> dict[str, Any]:
+    payload = _item_payload(item, refs)
+    canonical_id = _canonical_security_technical_measure_id(item)
+    if canonical_id:
+        payload["id"] = canonical_id
+    return payload
 
 
 def _build_security_technical_measures(
@@ -2163,15 +2417,26 @@ def export_management_knowledge(
         layer_payload["groups"] = sorted(groups_for_layer, key=work_function_group_sort_key)
         work_function_layers.append(layer_payload)
 
-    gbt_42446_references = [
-        _brief_item(item, refs) or {}
-        for item in sorted(
-            gbt_refs.values(),
-            key=lambda item: (*_source_position_key(refs.get(item.get("id") or ""), ("安全工作职能清单",)), item.get("title") or ""),
-        )
-    ]
+    gbt_42446_references = []
+    for item in sorted(
+        gbt_refs.values(),
+        key=lambda item: (*_source_position_key(refs.get(item.get("id") or ""), ("安全工作职能清单",)), item.get("title") or ""),
+    ):
+        payload_item = _brief_item(item, refs) or {}
+        payload_item["description"] = item.get("description") or _gbt_42446_task_description(item)
+        gbt_42446_references.append(payload_item)
+    gartner_work_function_candidates = _load_gartner_work_function_candidates()
     gartner_role_payloads = [
-        _brief_item(item, refs) or {}
+        {
+            **(_brief_item(item, refs) or {}),
+            **gartner_work_function_candidates.get(
+                (
+                    " ".join((item.get("title") or "").split()).strip(),
+                    " ".join(((item.get("category") or _metadata(item).get("role_category") or "")).split()).strip(),
+                ),
+                {},
+            ),
+        }
         for item in sorted(
             gartner_roles.values(),
             key=lambda item: (*_source_position_key(refs.get(item.get("id") or ""), ("gartner工作岗位参考",)), item.get("title") or ""),
@@ -2310,6 +2575,19 @@ def export_management_knowledge(
         payload_item["scenario"] = catalog_row.get("scenario") or metadata.get("scenario") or item.get("category")
         payload_item["services"] = brief_many(technical_services, services_by_scope.get(item["id"], []))
         payload_item["information_objects"] = brief_many(information_objects, objects_by_scope.get(item["id"], []))
+        scope_payloads.append(payload_item)
+    all_scope_item = scope_items_by_code.get("ALL")
+    if all_scope_item:
+        payload_item = _brief_item(all_scope_item, refs) or {}
+        payload_item["code"] = "ALL"
+        payload_item["title"] = "全部作用域"
+        payload_item["description"] = "虚拟作用域，表示该安全技术服务适用于所有作用域；保留为字典权威值，但不在作用域清单页面显示。"
+        payload_item["category"] = "虚拟作用域"
+        payload_item["scenario"] = "通用"
+        payload_item["display_in_scope_catalog"] = False
+        payload_item["authority_only"] = True
+        payload_item["services"] = brief_many(technical_services, services_by_scope.get(all_scope_item["id"], []))
+        payload_item["information_objects"] = []
         scope_payloads.append(payload_item)
 
     module_payloads = []
@@ -2513,7 +2791,12 @@ def export_maintenance_knowledge(
         management_payload = json.loads(temp_output.read_text(encoding="utf-8"))
     payload = _maintenance_knowledge_payload(management_payload)
     _write_json(output, payload)
-    return {"count": sum(len(payload[field]) for field in MAINTENANCE_KNOWLEDGE_FIELDS), "files": [str(output)], "stats": payload["stats"]}
+    split_files = _write_maintenance_split_packages(output, payload)
+    return {
+        "count": sum(len(payload[field]) for field in MAINTENANCE_KNOWLEDGE_FIELDS),
+        "files": [str(output), *split_files],
+        "stats": payload["stats"],
+    }
 
 
 def export_lifecycle_knowledge(
@@ -2707,7 +2990,7 @@ def export_lifecycle_knowledge(
                 if module_id in technology_modules
             ]
             payload["technical_measures"] = [
-                detailed_item(technical_measures[measure_id])
+                _canonical_security_technical_measure_payload(technical_measures[measure_id], refs)
                 for measure_id in sort_lifecycle_items(technical_measures, measures_by_process.get(process_id, []))
                 if measure_id in technical_measures
             ]
@@ -2748,7 +3031,7 @@ def export_lifecycle_knowledge(
                 if module_id in technology_modules
             ]
             payload["technical_measures"] = [
-                detailed_item(technical_measures[measure_id])
+                _canonical_security_technical_measure_payload(technical_measures[measure_id], refs)
                 for measure_id in sort_lifecycle_items(technical_measures, measures_by_process.get(process_id, []))
                 if measure_id in technical_measures
             ]
@@ -2824,7 +3107,7 @@ def export_lifecycle_knowledge(
                 for item_id in _sort_source_ids(development_technical_modules, list(development_technical_modules.keys()))
             ],
             "security_technical_measures": [
-                detailed_item(technical_measures[item_id])
+                _canonical_security_technical_measure_payload(technical_measures[item_id], refs)
                 for item_id in _sort_source_ids(technical_measures, list(technical_measures.keys()))
             ],
             "application_system_types": application_system_payloads,
@@ -3515,6 +3798,8 @@ def export_capability_workbench(
                     for mapping in _wb_list(focus.get("process_mappings")):
                         group = mapping.get("process_group") or {}
                         reference = mapping.get("process_reference") or {}
+                        if not reference:
+                            continue
                         group_obj = _wb_add_object(objects, evidence_refs, group, "process_group", fallback_name="待确认流程组")
                         reference_obj = _wb_add_object(objects, evidence_refs, reference, "process_reference", fallback_name="待确认流程")
                         _wb_add_relation(relations, seen_relations, "maps_to_process", focus_obj, reference_obj, label="映射流程", evidence_refs=_wb_collect_evidence(evidence_refs, mapping, reference))

@@ -10,6 +10,7 @@
 | 来源可追溯 | 每个正式对象和关系必须能追溯来源文件、Sheet、行列、hash 和导入任务 |
 | staging-first | 自动导入必须先进入 staging，经 review/approval 后进入正式库 |
 | 主数据优先 | 有编码、已确认的主数据优先于映射表中的临时文本 |
+| 知识库字典权威 | 数据确认后，知识库字典中的能力、作用域、技术服务、技术模块 / 措施、管理工作、流程和职能是全局引用的权威值 |
 | 渐进固化 | 不稳定字段先进入 `metadata_json`，稳定后再提升为正式字段 |
 | 问题集中 | bug、数据问题、待确认事项统一进入 `docs/06-implementation/open-issues.md` |
 
@@ -27,7 +28,28 @@ python scripts/check_github_data_boundary.py
 
 禁止提交清单、文件放置清单和本地数据重建流程见 `docs/03-import-etl/github-local-data-initialization.md`。
 
-## 1.1 原始表建模确认规则
+## 1.1 本地数据库备份保留规则
+
+本地数据库备份目录为 `data/database/backups/`。该目录只用于本机恢复，不提交 GitHub。
+
+全局保留规则：
+
+- 默认只保留最新 `5` 个 `.sqlite3` 备份文件。
+- “最新”按文件修改时间排序；时间相同时按路径名稳定排序。
+- 出现新备份后，如果备份总数超过 `5`，删除时间戳最早的旧备份。
+- 删除前应先运行 dry-run，确认将保留和删除的文件。
+- 当前主库 `data/database/sapd_wiki.sqlite3` 不属于备份文件，不参与该规则。
+
+执行脚本：
+
+```bash
+python3 scripts/prune_database_backups.py
+python3 scripts/prune_database_backups.py --apply
+```
+
+脚本默认 dry-run；只有传入 `--apply` 才会删除旧备份。需要临时改变保留数量时使用 `--keep <N>`。
+
+## 1.2 原始表建模确认规则
 
 每建模或导入一张新的原始 Sheet 前，必须先完成业务确认，不允许只根据字段名直接写 parser。
 
@@ -84,6 +106,31 @@ python scripts/check_github_data_boundary.py
 - 其他表中的同编码安全技术服务只用于建立映射关系，不允许覆盖权威服务名称。
 - 如果 active 安全技术服务对象名称与权威表不一致，必须输出数据质量报告并进入 `open-issues.md`。
 - `information_object` 使用同一套主数据，按对象名称全局去重；信息化环境和环境分段只作为关系或上下文字段，不参与信息化对象主键。
+
+## 3.1 知识库字典权威引用规则
+
+数据确认后，知识库字典是以下对象的全局权威来源：
+
+| 权威对象 | 权威入口 | 约束 |
+|---|---|---|
+| 安全能力分类 / 能力域 / 安全能力 / 安全关注点 | `安全能力清单` | 其他页面只能引用同一 `id` / `code` / `title`，不得在引用处改名或新建临时同义对象 |
+| 安全作用域 | `安全作用域清单` | 作用域引用以字典中的 `scope_type` 为准 |
+| 安全技术服务 | `安全技术服务清单` | 服务编码、名称和 ID 以字典为准，其他 Sheet 只建立关系 |
+| 安全技术模块 / 措施 | `安全技术模块/措施` | 模块和措施引用以字典为准，不能把系统、产品或自由文本当作模块 / 措施 |
+| 安全管理工作 | `安全管理工作` | 关注点关联的安全工作以字典为准 |
+| 流程清单 | `流程清单` | L1 流程域、L2 流程组、L3 流程参考、L4 关键活动以字典为准 |
+| 安全职能清单 | `安全职能清单` | 职能编码、名称和层级以字典为准，映射文本只能归并到正式职能 |
+
+执行规则：
+
+- 任何页面、workbench、标准映射或生命周期 / 环境关系包引用上述对象时，若带有 `id`、`code`、`title` 或 `name`，必须与知识库字典权威值一致。
+- 只允许后端 ETL / 导出层做主数据归一、别名匹配和对象合并；前端组件和 ViewModel 不得在页面侧自行改名、拼接或推断权威对象。
+- 引用数据发现与权威值不一致时，应先输出全量审计报告；若影响页面展示或关系正确性，必须进入 `open-issues.md`。
+- 新增导入表、标准映射表或页面投影前，应运行：
+
+```bash
+node scripts/audit_dictionary_reference_consistency.mjs
+```
 
 ## 4. Work Function 主数据规则
 
@@ -290,9 +337,10 @@ frontend/capability-browser/public/data/
 - 主展示区当前对象必须来自左侧显式选中 ID、URL / workspace state 中恢复的选中 ID，或后端明确返回的同粒度对象。
 - `localRelationMap.focus`、图谱中心节点、详情标题、关系摘要的当前对象必须与选中对象同粒度一致；如果当前选择是 L1，图谱范围应是 L1 聚合，而不是某个 L3 关注点。
 - 轻量首屏包可以只返回默认关注点投影，但前端必须在非关注点选择时忽略该关注点投影，改用聚合 fallback 或后台补载完整数据。
-- Capability Projection Contract 1.0 固定为 `GET /api/v1/capabilities/workspace-projection?object_type={type}&object_id={id}`；支持 `capability_category`、`capability_domain`、`capability`、`capability_focus`。
-- 对象粒度 projection 必须返回 `selected`、`graphScope`、`dataState`、`graph.center`、`summary`、`tabs` 和 `sourceEvidence`；`graph.center.id/type/code` 必须与 `selected.id/type/code` 一致。
+- Capability Workspace View Contract 1.0 固定为 `GET /api/v1/capabilities/workspace-view?object_type={type}&object_id={id}`；支持 `capability_category`、`capability_domain`、`capability`、`capability_focus`。旧 `workspace-projection` 仅保留为兼容入口。
+- 对象粒度 workspace view 必须返回 `contract`、`selected`、`graphScope`、`dataState`、`graph.center`、`summary`、`tabs`、`technicalMappingRows`、`managementMappingRows`、`standardMappingRows` 和 `sourceEvidence`；`graph.center.id/type/code` 必须与 `selected.id/type/code` 一致。
 - 对象不存在时必须返回 `dataState = invalid_object`，不得回退到默认关注点。
+- 契约审计必须覆盖有效对象和无效对象：无效对象也必须保留上述顶层字段，且 `technicalMappingRows`、`managementMappingRows`、`standardMappingRows`、`sourceEvidence` 必须为空数组。
 - 非 `capability_focus` projection 不得返回关注点级 `localRelationMap` 作为主图谱来源；关注点 projection 可以返回完整局部 `localRelationMap`。
 
 涉及以下文件或能力时，必须执行粒度边界验证：
@@ -300,8 +348,10 @@ frontend/capability-browser/public/data/
 - `frontend/capability-browser/dataClient.js`
 - `frontend/capability-browser/app.js`
 - `frontend/capability-browser/viewModels.js`
+- `scripts/audit_capability_viewmodel_contract.mjs`
 - 图谱输入模型和本地关系图组件
 - `/api/v1/capabilities/workspace-initial`
+- `/api/v1/capabilities/workspace-view`
 - `/api/v1/capabilities/workspace-projection`
 - 刷新状态恢复、缓存版本、分包加载、fallback 数据路径
 
@@ -319,6 +369,8 @@ frontend/capability-browser/public/data/
 ```bash
 node --check frontend/capability-browser/viewModels.js
 node --check frontend/capability-browser/app.js
+node scripts/audit_capability_projection_contract.mjs --url http://127.0.0.1:5173
+node scripts/audit_capability_viewmodel_contract.mjs --url http://127.0.0.1:5173
 node scripts/frontend_smoke_check.mjs --page capability --url http://127.0.0.1:5173/frontend/capability-browser/
 ```
 

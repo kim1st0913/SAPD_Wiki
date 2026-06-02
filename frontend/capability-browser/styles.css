@@ -1186,18 +1186,25 @@ body.is-resizing {
 }
 
 .maintenance-description-cell span {
-  display: -webkit-box;
-  max-height: 50px;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+  display: block;
+  max-height: none;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  word-break: normal;
 }
 
 .scope-maintenance-table th:nth-child(1),
 .scope-maintenance-table td:nth-child(1) {
-  width: 88px;
+  width: 116px;
   text-align: center;
   vertical-align: middle;
+}
+
+.scope-maintenance-table th:nth-child(1) {
+  white-space: nowrap;
+  word-break: keep-all;
+  overflow-wrap: normal;
 }
 
 .scope-maintenance-table th:nth-child(2),
@@ -1218,40 +1225,31 @@ body.is-resizing {
 .scope-maintenance-table td:nth-child(5),
 .scope-maintenance-table th:nth-child(6),
 .scope-maintenance-table td:nth-child(6) {
-  width: 70px;
+  width: 92px;
   text-align: center;
   vertical-align: middle;
 }
 
+.scope-maintenance-table th:nth-child(5),
+.scope-maintenance-table th:nth-child(6) {
+  word-break: keep-all;
+}
+
 .technology-module-maintenance-table th:nth-child(1),
 .technology-module-maintenance-table td:nth-child(1) {
-  width: 88px;
-  text-align: center;
+  width: 430px;
   vertical-align: middle;
 }
 
 .technology-module-maintenance-table th:nth-child(2),
 .technology-module-maintenance-table td:nth-child(2) {
-  width: 124px;
-  text-align: center;
+  width: 360px;
   vertical-align: middle;
 }
 
 .technology-module-maintenance-table th:nth-child(3),
 .technology-module-maintenance-table td:nth-child(3) {
-  width: 390px;
-  vertical-align: middle;
-}
-
-.technology-module-maintenance-table th:nth-child(4),
-.technology-module-maintenance-table td:nth-child(4) {
-  width: 300px;
-  vertical-align: middle;
-}
-
-.technology-module-maintenance-table th:nth-child(5),
-.technology-module-maintenance-table td:nth-child(5) {
-  width: 220px;
+  width: 330px;
   vertical-align: middle;
 }
 
@@ -1262,12 +1260,13 @@ body.is-resizing {
 }
 
 .module-title-cell span {
-  display: -webkit-box;
-  max-height: 50px;
-  overflow: hidden;
+  display: block;
+  max-height: none;
+  overflow: visible;
   color: var(--muted);
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+  line-height: 1.48;
+  white-space: normal;
+  word-break: normal;
 }
 
 .module-mapping-status {
@@ -1288,116 +1287,189 @@ body.is-resizing {
 
 .technical-measure-maintenance-table th:nth-child(1),
 .technical-measure-maintenance-table td:nth-child(1) {
-  width: 48px;
+  width: 4%;
   text-align: center;
   vertical-align: middle;
 }
 
 .technical-measure-maintenance-table th:nth-child(2),
 .technical-measure-maintenance-table td:nth-child(2) {
-  width: 220px;
+  width: 24%;
   vertical-align: middle;
 }
 
 .technical-measure-maintenance-table th:nth-child(3),
 .technical-measure-maintenance-table td:nth-child(3) {
-  width: 260px;
+  width: 30%;
   vertical-align: middle;
 }
 
 .technical-measure-maintenance-table th:nth-child(4),
 .technical-measure-maintenance-table td:nth-child(4) {
-  width: 160px;
+  width: 16%;
   vertical-align: middle;
 }
 
 .technical-measure-maintenance-table th:nth-child(5),
-.technical-measure-maintenance-table td:nth-child(5),
-.technical-measure-maintenance-table th:nth-child(6),
-.technical-measure-maintenance-table td:nth-child(6) {
-  width: 220px;
+.technical-measure-maintenance-table td:nth-child(5) {
+  width: 26%;
   vertical-align: middle;
 }
 
+.technical-measure-maintenance-table .relation-chip {
+  max-width: 100%;
+  white-space: normal;
+}
+
+.technical-measure-maintenance-table .relation-chip .relation-chip-text {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
+.measure-relation-block {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  gap: 6px;
+  align-items: start;
+}
+
+.measure-relation-block + .measure-relation-block {
+  margin-top: 6px;
+}
+
+.measure-relation-block em {
+  color: var(--ink);
+  font-style: normal;
+  font-weight: 780;
+  line-height: 1.45;
+}
+
 .process-maintenance-table th:nth-child(1),
-.process-maintenance-table td:nth-child(1),
+.process-maintenance-table td:nth-child(1) {
+  width: 16%;
+  text-align: center;
+  vertical-align: middle;
+}
+
 .process-maintenance-table th:nth-child(2),
 .process-maintenance-table td:nth-child(2) {
-  width: 116px;
+  width: 20%;
   text-align: center;
   vertical-align: middle;
 }
 
 .process-maintenance-table th:nth-child(3),
 .process-maintenance-table td:nth-child(3) {
-  width: 210px;
+  width: 42%;
   vertical-align: middle;
 }
 
 .process-maintenance-table th:nth-child(4),
-.process-maintenance-table td:nth-child(4),
-.process-maintenance-table th:nth-child(6),
-.process-maintenance-table td:nth-child(6),
-.process-maintenance-table th:nth-child(7),
-.process-maintenance-table td:nth-child(7) {
-  width: 76px;
+.process-maintenance-table td:nth-child(4) {
+  width: 10%;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.process-maintenance-table th:nth-child(5),
+.process-maintenance-table td:nth-child(5) {
+  width: 12%;
   text-align: center;
   vertical-align: middle;
 }
 
 .work-function-maintenance-table th:nth-child(1),
 .work-function-maintenance-table td:nth-child(1) {
-  width: 78px;
+  width: 118px;
   text-align: center;
   vertical-align: middle;
 }
 
 .work-function-maintenance-table th:nth-child(2),
 .work-function-maintenance-table td:nth-child(2) {
-  width: 190px;
+  width: 174px;
   vertical-align: middle;
 }
 
 .work-function-maintenance-table th:nth-child(4),
 .work-function-maintenance-table td:nth-child(4),
 .work-function-maintenance-table th:nth-child(5),
-.work-function-maintenance-table td:nth-child(5) {
-  width: 70px;
+.work-function-maintenance-table td:nth-child(5),
+.work-function-maintenance-table th:nth-child(6),
+.work-function-maintenance-table td:nth-child(6) {
+  width: 116px;
   text-align: center;
   vertical-align: middle;
 }
 
+.maintenance-data-table .maintenance-count-bubble {
+  display: inline-flex;
+  min-width: 38px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in oklch, var(--accent) 18%, var(--line));
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--accent) 5%, var(--panel));
+  color: color-mix(in oklch, var(--ink) 88%, var(--accent));
+  font: inherit;
+  font-size: 12px;
+  font-weight: 820;
+  line-height: 1;
+  box-shadow: none;
+}
+
+.maintenance-data-table .maintenance-count-bubble:hover,
+.maintenance-data-table .maintenance-count-bubble:focus-visible {
+  border-color: color-mix(in oklch, var(--accent) 34%, var(--line));
+  background: color-mix(in oklch, var(--accent) 9%, var(--panel));
+  outline: none;
+}
+
 .security-work-table th:nth-child(1),
 .security-work-table td:nth-child(1) {
-  width: 56px;
+  width: 4%;
   text-align: center;
   vertical-align: middle;
 }
 
 .security-work-table th:nth-child(2),
 .security-work-table td:nth-child(2) {
-  width: 132px;
+  width: 15%;
   text-align: center;
   vertical-align: middle;
+}
+
+.security-work-table td:nth-child(2) strong {
+  white-space: nowrap;
+  word-break: keep-all;
+  overflow-wrap: normal;
 }
 
 .security-work-table th:nth-child(3),
 .security-work-table td:nth-child(3) {
-  width: 240px;
+  width: 28%;
   vertical-align: middle;
 }
 
 .security-work-table th:nth-child(4),
-.security-work-table td:nth-child(4),
-.security-work-table th:nth-child(6),
-.security-work-table td:nth-child(6) {
-  width: 96px;
+.security-work-table td:nth-child(4) {
+  width: 18%;
   text-align: center;
   vertical-align: middle;
 }
 
+.security-work-table th:nth-child(5),
+.security-work-table td:nth-child(5) {
+  width: 35%;
+  vertical-align: middle;
+}
+
 .standard-reference-maintenance-table {
-  min-width: 760px;
+  min-width: 920px;
 }
 
 .knowledge-directory-mode .reference-table-section .maintenance-table-scroll {
@@ -1408,6 +1480,15 @@ body.is-resizing {
 .standard-reference-maintenance-table th:nth-child(1),
 .standard-reference-maintenance-table td:nth-child(1) {
   width: 220px;
+  vertical-align: middle;
+}
+
+.standard-reference-maintenance-table th:nth-child(3),
+.standard-reference-maintenance-table td:nth-child(3),
+.role-reference-maintenance-table th:nth-child(3),
+.role-reference-maintenance-table td:nth-child(3) {
+  width: 128px;
+  text-align: center;
   vertical-align: middle;
 }
 
@@ -1985,14 +2066,16 @@ body.is-resizing {
 }
 
 .standard-group-description {
-  overflow: hidden;
+  display: block;
+  overflow: visible;
   color: var(--ink);
   font-size: 12px;
   font-weight: 620;
   line-height: 1.5;
   opacity: 0.82;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-overflow: clip;
+  white-space: normal;
+  word-break: normal;
 }
 
 .standard-group-toggle em {
@@ -5777,7 +5860,7 @@ input:focus-visible,
 }
 
 .technical-service-maintenance-table {
-  min-width: 1340px;
+  min-width: 1480px;
 }
 
 .technical-service-maintenance-table th:nth-child(1),
@@ -5793,7 +5876,7 @@ input:focus-visible,
 
 .technical-service-maintenance-table th:nth-child(3),
 .technical-service-maintenance-table td:nth-child(3) {
-  width: 112px;
+  width: 260px;
 }
 
 .technical-service-maintenance-table th:nth-child(4),
@@ -19246,6 +19329,8 @@ body {
   font-family: var(--sapd-font-family);
   font-weight: 800 !important;
   letter-spacing: 0;
+  word-break: keep-all;
+  overflow-wrap: normal;
 }
 
 .app-shell-integrated .preview-mapping-table td,
@@ -19261,6 +19346,18 @@ body {
 .app-shell-integrated .application-system-directory-table td {
   font-family: var(--sapd-font-family);
   font-weight: var(--sapd-weight-body);
+}
+
+#maintenanceWorkspace.knowledge-directory-mode .technical-service-maintenance-table td:nth-child(3),
+#maintenanceWorkspace.knowledge-directory-mode .application-system-directory-table td:nth-child(2),
+#maintenanceWorkspace.standards-mode .standard-framework-table td.standard-column-control-description,
+#maintenanceWorkspace.standards-mode .standard-framework-table td.standard-column-csf-category-description,
+#maintenanceWorkspace.standards-mode .standard-framework-table td.standard-column-mlps-control-requirement {
+  text-align: left;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.52;
 }
 
 .preview-chip,
@@ -19989,4 +20086,222 @@ body {
     0 1px 2px rgba(15, 23, 42, 0.36),
     0 0 1px rgba(15, 23, 42, 0.26);
   -webkit-text-stroke: 0.38px rgba(15, 23, 42, 0.2);
+}
+
+/* 2026-06-01 global sidebar label readability baseline */
+body.app-shell-locked { width: 100%; min-width: 0; overflow: hidden; }
+
+.app-shell.app-shell-integrated {
+  --app-sidebar-width: 258px;
+  position: fixed; inset: 0; width: 100vw; max-width: 100vw;
+}
+
+.app-shell-integrated .module-tabs.manifest-navigation {
+  padding: 0 8px 0 6px;
+}
+
+.app-shell-integrated .module-tabs.manifest-navigation .module-tab,
+.app-shell-integrated .module-tabs.manifest-navigation .navigation-parent {
+  grid-template-columns: 28px minmax(0, 1fr);
+  min-height: 46px;
+  gap: 9px;
+  padding: 7px 8px;
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.18;
+}
+
+.app-shell-integrated .module-tabs.manifest-navigation .module-tab span:not(.nav-symbol),
+.app-shell-integrated .module-tabs.manifest-navigation .navigation-parent span:not(.nav-symbol) {
+  overflow: visible;
+  line-height: 1.2;
+  text-overflow: clip;
+  white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.app-shell-integrated .module-tabs.manifest-navigation .module-tab[data-app-route="/development-security"] span:not(.nav-symbol),
+.app-shell-integrated .module-tabs.manifest-navigation .module-tab[data-app-route="/data-security"] span:not(.nav-symbol),
+.app-shell .module-tabs .module-tab#devLifecycleTab span:not(.nav-symbol),
+.app-shell .module-tabs .module-tab#dataLifecycleTab span:not(.nav-symbol) {
+  font-size: 12.2px;
+  letter-spacing: 0;
+  white-space: nowrap !important;
+  word-break: keep-all;
+  overflow-wrap: normal !important;
+}
+
+.app-shell-integrated .module-tabs.manifest-navigation .module-tab[data-app-route="/environment-mapping"] span:not(.nav-symbol),
+.app-shell .module-tabs .module-tab#environmentTab span:not(.nav-symbol) {
+  font-size: 11.5px;
+  letter-spacing: 0;
+  white-space: nowrap !important;
+  word-break: keep-all;
+  overflow-wrap: normal !important;
+}
+
+.app-shell-integrated .module-tabs.manifest-navigation .nav-symbol {
+  width: 28px;
+  height: 28px;
+  border-radius: 11px;
+  font-size: 13px;
+}
+
+.app-shell-integrated .secondary-navigation {
+  padding-right: 4px; padding-left: 24px;
+}
+
+.app-shell-integrated .secondary-navigation .submodule-tab {
+  min-height: 30px;
+  padding: 5px 7px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.app-shell-integrated .secondary-navigation .submodule-tab span {
+  overflow: visible;
+  line-height: 1.25;
+  text-overflow: clip;
+  white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1440px) {
+  .app-shell.app-shell-integrated {
+    --app-sidebar-width: 246px;
+  }
+
+  .app-shell-integrated .module-tabs.manifest-navigation .module-tab,
+  .app-shell-integrated .module-tabs.manifest-navigation .navigation-parent {
+    gap: 8px;
+    padding-inline: 7px;
+    font-size: 13px;
+  }
+}
+
+/* 2026-06-01 responsive shell containment: keep wide workbench tables inside the main pane */
+html,
+body.app-shell-locked {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.app-shell.app-shell-integrated {
+  grid-template-columns: var(--app-sidebar-width) minmax(0, calc(100vw - var(--app-sidebar-width)));
+  min-width: 0;
+  overflow: hidden;
+}
+
+.app-shell-integrated .app-main {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.app-shell-integrated .topbar,
+.app-shell-integrated .app-page-header,
+.app-shell-integrated .workspace-stage {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.app-shell-integrated .overview-workspace,
+.app-shell-integrated .capability-workspace,
+.app-shell-integrated .environment-workspace,
+.app-shell-integrated .lifecycle-workspace,
+.app-shell-integrated .content-workspace,
+.app-shell-integrated .source-workspace,
+.app-shell-integrated .workspace {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.app-shell-integrated .overview-map-pane,
+.app-shell-integrated .overview-coverage-pane,
+.app-shell-integrated .overview-issue-pane,
+.app-shell-integrated .capability-tree-pane,
+.app-shell-integrated .capability-relation-pane,
+.app-shell-integrated .environment-catalog-pane,
+.app-shell-integrated .environment-detail-pane,
+.app-shell-integrated .lifecycle-main-pane,
+.app-shell-integrated .lifecycle-detail-pane,
+.app-shell-integrated .source-nav-pane,
+.app-shell-integrated .source-list-pane,
+.app-shell-integrated .source-detail-pane,
+.app-shell-integrated .content-nav-pane,
+.app-shell-integrated .content-list-pane,
+.app-shell-integrated .content-detail-pane {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.dev-lifecycle-workspace .lifecycle-lane,
+.dev-lifecycle-workspace .lifecycle-logic-stack,
+.dev-lifecycle-workspace .lifecycle-logic-section,
+.dev-lifecycle-workspace .lifecycle-table-panel,
+.dev-lifecycle-workspace .lifecycle-table-scroll,
+.dev-lifecycle-workspace .lifecycle-record-scroll {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.dev-lifecycle-workspace .lifecycle-table-scroll,
+.dev-lifecycle-workspace .lifecycle-record-scroll {
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+@media (min-width: 1181px) and (max-width: 1440px) {
+  .app-shell.app-shell-integrated {
+    --app-sidebar-width: 236px;
+  }
+
+  .app-shell-integrated .topbar {
+    grid-template-columns: minmax(240px, 1fr) auto auto;
+    padding-inline: 14px;
+  }
+
+  .app-shell-integrated .page-title-row h1 {
+    font-size: 22px;
+  }
+
+  .dev-lifecycle-workspace .lifecycle-stage-bar {
+    grid-template-columns: minmax(0, 1fr) minmax(190px, 240px) !important;
+  }
+}
+
+@media (max-width: 1180px) {
+  .app-shell.app-shell-integrated {
+    --app-sidebar-width: 76px;
+  }
+
+  .app-shell-integrated .topbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding-inline: 12px;
+  }
+
+  .app-shell-integrated .topbar-actions,
+  .app-shell-integrated .topbar-metrics,
+  .app-shell-integrated .page-header-actions {
+    display: none;
+  }
+
+  .dev-lifecycle-workspace .lifecycle-stage-bar {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .dev-lifecycle-workspace .lifecycle-stage-search {
+    display: none;
+  }
 }

@@ -44,6 +44,8 @@
 | `sources` | 来源证据，默认 UI 不展示 |
 | `generated_at` | 导出时间或接口生成时间 |
 
+知识库字典权威值：数据确认后，`安全能力清单`、`安全作用域清单`、`安全技术服务清单`、`安全技术模块/措施`、`安全管理工作`、`流程清单`、`安全职能清单` 中的对象是全局权威值。其他接口、workbench 和离线包引用这些对象时，`id`、`code`、`title` / `name` 必须与字典一致；引用一致性由 `node scripts/audit_dictionary_reference_consistency.mjs` 检查。
+
 ## 3. 通用响应结构
 
 ### 3.1 API 响应包
@@ -154,7 +156,9 @@
 | 离线数据包 | 对应 API | 用途 |
 |---|---|---|
 | `capability-tree.json` | `/api/v1/capabilities/tree`、`/api/v1/capabilities/matrix`、`/api/v1/capabilities/workspace-projection` | 能力树、关注点、服务、作用域、流程、职能关系 |
-| `maintenance-knowledge.json` | `/api/v1/maintenance/*`、`/api/v1/references/*` | 作用域、流程、职能、模块、措施、标准、岗位 |
+| `maintenance-index.json` + `maintenance/*.json` | `/api/v1/maintenance/*`、`/api/v1/references/*` | 安全知识目录索引与作用域、流程、职能、模块、措施、岗位参考分片 |
+| `source-evidence/maintenance/*.sources.json` | `/api/v1/maintenance/source-evidence/*` | 安全知识来源证据 sidecar，按页面对象 ID 延迟读取 |
+| `maintenance-knowledge.json` | `/api/v1/data-packages/maintenance` | 旧版聚合兼容包，仅作 fallback，不作为新增页面首选入口 |
 | `environment-workbench.json` | `/api/v1/environments/*` | 信息化环境页面级投影 |
 | `shared-lookups.json` | `/api/v1/maintenance/service-module-index` | 全站共享服务-模块索引 |
 | `lifecycle-knowledge.json` | `/api/v1/lifecycle/application`、`/api/v1/lifecycle/data` | 安全开发生命周期、数据生命周期 |
@@ -580,9 +584,32 @@
 
 ## 9. 专项知识维护接口
 
+### 9.0 安全知识拆包与按需加载契约
+
+安全知识页面与安全标准 / 框架页面统一采用“索引先行、详情按需”的协同策略：
+
+- 安全知识入口先加载 `maintenance-index.json`，获得二级入口、统计、分片路径和来源证据 sidecar 路径。
+- 安全知识主数据按二级入口加载 `maintenance/<section>.json`，例如 `maintenance/scopes.json`、`maintenance/services.json`、`maintenance/modules.json`、`maintenance/measures.json`、`maintenance/processes.json`、`maintenance/work-functions.json`、`maintenance/references.json`。
+- 安全知识来源证据只保存在 `source-evidence/maintenance/<section>.sources.json`，前端普通主表、概览和筛选不得依赖 `sheet`、`row`、`column`、`raw_value`、`source_label` 等来源字段。
+- `maintenance-knowledge.json` 保留为旧版聚合兼容包；新增页面、字段和修复默认不得继续以该聚合包作为首选数据入口。
+- 安全标准 / 框架页面继续先加载 `standards-index.json`，再按当前框架加载 `standards/<framework>/*.json` 或框架分片；两类模块共享 `dataClient` 的索引、分片和 legacy fallback 边界。
+
+`MaintenanceIndex` 关键字段：
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `data_state` | string | 是 | `ready`、`empty` 或 `missing_file` |
+| `package_type` | string | 是 | 固定为 `maintenance-index` |
+| `stats` | object | 是 | 兼容统计 |
+| `section_counts` | object | 是 | 二级入口计数，供导航在未加载分片时显示 |
+| `sections` | array<object> | 是 | 分片清单 |
+| `sections[].id` | string | 是 | 分片 ID，如 `scopes`、`services`、`references` |
+| `sections[].dataPath` | string | 是 | 主数据分片路径 |
+| `sections[].sourceEvidencePath` | string | 是 | 来源证据 sidecar 路径 |
+
 ### 9.1 `GET /api/v1/maintenance/scopes`
 
-当前静态字段：`maintenance-knowledge.json.scope_types`
+当前静态字段：`maintenance/scopes.json.scope_types`
 
 用途：安全能力作用域目录和作用域名目录。
 
@@ -599,11 +626,11 @@
 | `scenario` | string/null | 否 | 情景，空值前端显示 `网络空间` |
 | `services` | array<SecurityTechnicalService> | 是 | 关联服务 |
 | `information_objects` | array<KnowledgeObjectRef> | 是 | 关联信息化对象 |
-| `sources` | array<SourceReference> | 否 | 来源，默认隐藏 |
+| `sources` | array<SourceReference> | 否 | 旧兼容字段；拆包后迁移到 `source-evidence/maintenance/scopes.sources.json.evidenceById` |
 
 ### 9.2 `GET /api/v1/maintenance/processes`
 
-当前静态字段：`maintenance-knowledge.json.security_processes`
+当前静态字段：`maintenance/processes.json.security_processes`
 
 用途：安全职能流程清单，以流程域、流程组、L3 流程参考、L4 活动组织。
 
@@ -616,7 +643,7 @@
 | `title` | string | 是 | 流程域名称 |
 | `description` | string/null | 否 | 描述 |
 | `category` | string/null | 否 | 分类 |
-| `sources` | array<SourceReference> | 否 | 来源 |
+| `sources` | array<SourceReference> | 否 | 旧兼容字段；拆包后迁移到 `source-evidence/maintenance/processes.sources.json.evidenceById` |
 | `groups` | array<ProcessGroup> | 是 | L2 流程组 |
 
 `ProcessGroup` 字段：
@@ -627,7 +654,7 @@
 | `code` | string/null | 否 | 编码 |
 | `title` | string | 是 | 流程组名称 |
 | `description` | string/null | 否 | 描述 |
-| `sources` | array<SourceReference> | 否 | 来源 |
+| `sources` | array<SourceReference> | 否 | 旧兼容字段；拆包后迁移到来源证据 sidecar |
 | `references` | array<ProcessReference> | 是 | L3 流程参考 |
 
 `ProcessReference` 字段：
@@ -645,7 +672,7 @@
 | `activity_status` | string | 是 | L4 状态 |
 | `activity_status_label` | string | 是 | 前端显示，如 `待补充` |
 | `stakeholders` | object | 是 | 职能相关方 |
-| `sources` | array<SourceReference> | 否 | 来源 |
+| `sources` | array<SourceReference> | 否 | 旧兼容字段；拆包后迁移到来源证据 sidecar |
 
 `ProcessActivity` 字段：
 
@@ -660,7 +687,7 @@
 
 ### 9.3 `GET /api/v1/maintenance/work-functions`
 
-当前静态字段：`maintenance-knowledge.json.work_function_layers`
+当前静态字段：`maintenance/work-functions.json.work_function_layers`
 
 用途：安全工作职能清单，按决策层、管理层、执行层、监督层展示。
 
@@ -692,7 +719,7 @@
 | `category` | string/null | 否 | 分类 |
 | `tasks` | array<string/object> | 是 | 工作任务 |
 | `gbt_42446_refs` | array<StandardReference> | 是 | GB/T 42446-2023 引用 |
-| `sources` | array<SourceReference> | 否 | 来源 |
+| `sources` | array<SourceReference> | 否 | 旧兼容字段；拆包后迁移到 `source-evidence/maintenance/work-functions.sources.json.evidenceById` |
 
 `WorkFunctionWithLayer` 额外字段：
 
@@ -703,7 +730,7 @@
 
 ### 9.4 `GET /api/v1/maintenance/technology-modules`
 
-当前静态字段：`maintenance-knowledge.json.security_technology_modules`
+当前静态字段：`maintenance/modules.json.security_technology_modules`
 
 用途：安全技术模块清单。
 
@@ -721,11 +748,11 @@
 | `systems` | array<KnowledgeObjectRef> | 是 | 所属安全系统 |
 | `products` | array<KnowledgeObjectRef> | 是 | 对应产品 |
 | `environments` | array<KnowledgeObjectRef> | 是 | 适用环境 |
-| `sources` | array<SourceReference> | 否 | 来源 |
+| `sources` | array<SourceReference> | 否 | 旧兼容字段；拆包后迁移到 `source-evidence/maintenance/modules.sources.json.evidenceById` |
 
 ### 9.5 `GET /api/v1/maintenance/technical-measures`
 
-当前静态字段：`maintenance-knowledge.json.security_technical_measures`
+当前静态字段：`maintenance/measures.json.security_technical_measures`
 
 用途：安全技术措施清单。主对象是“安全技术措施”，不同于 `security_technology_modules`。安全技术模块偏能力构件或技术模块，安全技术措施偏具体控制措施、实施措施或技术措施。
 
@@ -757,15 +784,15 @@
 | `related_capability_focus_ids` | array<string> | 否 | 关联能力关注点 ID；仅在可靠映射时输出 |
 | `related_capability_focus_names` | array<string> | 否 | 关联能力关注点名称；仅在可靠映射时输出 |
 | `status` | string/null | 否 | `normal`、`pending`、`missing` 或说明类状态 |
-| `sources` | array<SourceReference> | 否 | 来源证据，仅用于 SourceEvidencePanel 或来源证据区，默认折叠 |
+| `sources` | array<SourceReference> | 否 | 旧兼容字段；拆包后迁移到 `source-evidence/maintenance/measures.sources.json.evidenceById`，仅用于来源证据区 |
 
 字段边界：
 
-- `security_technical_measures` 位于 `maintenance-knowledge.json` 顶层。
+- `security_technical_measures` 位于 `maintenance/measures.json` 顶层；旧 `maintenance-knowledge.json` 仅保留兼容。
 - 后端不得把安全技术模块直接当作安全技术措施返回。
 - 后端不得把安全系统或产品当作安全技术措施返回。
 - `related_service_names`、`related_scope_names`、`related_environment_names`、`related_environment_object_names` 都必须按数组保留多值关系，不得压成单值。
-- `sources` 只用于来源证据，默认折叠，不进入主表列、概览区或筛选主维度。
+- `sources` / `sourceEvidence` / `mapping_sources` 只允许出现在来源证据 sidecar 或旧兼容包中，不进入主分片、主表列、概览区或筛选主维度。
 - `sheet`、`row`、`column`、`raw_value`、`source_file`、`import_id`、`source_id`、`generated_at` 等非业务字段不得进入主展示区。
 
 ### 9.6 `GET /api/v1/maintenance/service-module-index`
@@ -791,7 +818,7 @@
 
 ### 10.1 `GET /api/v1/references/standards`
 
-当前静态字段：`maintenance-knowledge.json.gbt_42446_references`
+当前静态字段：`maintenance/references.json.gbt_42446_references`
 
 `StandardReference` 字段：
 
@@ -801,13 +828,13 @@
 | `type` | string | 是 | `gbt_42446_task_reference` 或其他标准引用类型 |
 | `code` | string/null | 否 | 标准条目编码 |
 | `title` | string | 是 | 原始表 `承担的工作任务` |
-| `description` | string/null | 否 | 说明 |
+| `description` | string/null | 否 | `GB/T 42446-2023` 原文表 2 `工作任务描述`，按工作任务名称匹配补充 |
 | `category` | string/null | 否 | 原始表 `工作类别` |
-| `sources` | array<SourceReference> | 否 | 来源 |
+| `sources` | array<SourceReference> | 否 | 旧兼容字段；拆包后迁移到 `source-evidence/maintenance/references.sources.json.evidenceById` |
 
 ### 10.2 `GET /api/v1/references/roles`
 
-当前静态字段：`maintenance-knowledge.json.gartner_roles`
+当前静态字段：`maintenance/references.json.gartner_roles`
 
 `RoleReference` 字段：
 
@@ -819,7 +846,7 @@
 | `title` | string | 是 | 原始表 `角色` |
 | `description` | string/null | 否 | 原始表 `描述` |
 | `category` | string/null | 否 | 原始表 `分类` |
-| `sources` | array<SourceReference> | 否 | 来源 |
+| `sources` | array<SourceReference> | 否 | 旧兼容字段；拆包后迁移到 `source-evidence/maintenance/references.sources.json.evidenceById` |
 
 ## 11. 生命周期接口
 

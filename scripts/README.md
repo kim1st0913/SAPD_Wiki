@@ -13,6 +13,11 @@
 | `data_package_summary.py` | 前端数据包摘要检查 | `CURRENT_STATE.md` |
 | `dev_server_guard.py` | 本地预览服务守护 | `CURRENT_STATE.md` |
 | `frontend_smoke_check.mjs` | 前端页面轻量 HTTP/API smoke 检查；默认不启动系统 Google Chrome | `CURRENT_STATE.md` |
+| `audit_frontend_governance.mjs` | 前端高风险文件治理审计，防止安全能力映射相关 CSS / 核心文件继续无意识膨胀 | `docs/07-governance/capability-mapping-change-control.md` |
+| `audit_frontend_lazy_load_contract.mjs` | 前端按需加载契约审计，检查知识库字典和安全标准 / 框架的 required / supplemental 分片、标准页 tab loader 和组件内取数边界 | `docs/06-implementation/frontend-global-design-baseline-2026-05-30.md` |
+| `audit_capability_viewmodel_contract.mjs` | 安全能力映射页 ViewModel 当前对象一致性审计，验证 L0 / L1 / L2 / 关注点不会误用默认关注点或错粒度 projection | `docs/07-governance/data-governance.md` |
+| `audit_dictionary_reference_consistency.mjs` | 知识库字典权威引用一致性审计，检查能力、作用域、技术服务、技术模块 / 措施、管理工作、流程和职能引用是否与字典一致 | `docs/07-governance/data-governance.md` |
+| `govern_open_issues.mjs` | `open-issues.md` 轻量治理：保留未关闭问题入口，归档已关闭长记录，生成全量索引 | `docs/06-implementation/open-issues.md` |
 | `create_user_db.py` | 创建 ZIP alpha 的 `sapd_wiki_user.sqlite3` 最小用户库 | `docs/09-delivery/user-database-minimum-schema.md` |
 | `check_bundle_runtime.py` | 检查 ZIP alpha bundle root、manifest、base/user 数据库、日志目录和端口 | `docs/09-delivery/zip-bundle-1.0-alpha-runtime-design.md` |
 | `export_diagnostics.py` | 导出 ZIP alpha 脱敏诊断包 | `docs/09-delivery/zip-bundle-1.0-alpha-runtime-design.md` |
@@ -22,6 +27,7 @@
 | `build_zip_bundle.py` | 生成 ZIP alpha bundle 目录骨架，可选压缩为 zip；默认输出到 `/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle`，真实运行 ZIP 必须传入 `--backend-binary` | `docs/09-delivery/zip-bundle-1.0-alpha-design.md` |
 | `create_alpha_release.py` | 将已验证 ZIP、checksum 和 release manifest 组装到本地 alpha release 目录；平台产物分入 `mac-arm64/`、`win-x64/` 子目录，默认不重复复制 ZIP 内已有 README，Windows 未实测时在 manifest 中标记为 `pending` | `docs/09-delivery/zip-uat-0-internal-trial-guide.md` |
 | `create_update_package.py` | 对比上一版完整 ZIP 和新版完整 ZIP，生成内部 alpha update 包；默认排除 `data/user/` 和 `logs/` | `docs/09-delivery/zip-uat-0-internal-trial-guide.md` |
+| `prune_database_backups.py` | 本地 SQLite 备份保留脚本；默认 dry-run，只保留最新 5 个 `.sqlite3`，传 `--apply` 后删除更早备份 | `docs/07-governance/data-governance.md` |
 | `start-windows.bat` / `start-macos.command` / `stop-windows.bat` / `stop-macos.command` | 分平台 ZIP alpha 启停脚本模板 | `docs/09-delivery/zip-bundle-1.0-alpha-design.md` |
 
 ## 专题脚本

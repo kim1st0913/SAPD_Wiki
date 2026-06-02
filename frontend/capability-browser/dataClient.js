@@ -4,7 +4,8 @@
     capabilityWorkbench: "./public/data/capability-workbench.json",
     environmentWorkbench: "./public/data/environment-workbench.json",
     lifecycleWorkbench: "./public/data/lifecycle-workbench.json",
-    maintenance: "./public/data/maintenance-knowledge.json?v=security-reference-original-fields-20260523-1",
+    maintenanceIndex: "./public/data/maintenance-index.json",
+    maintenance: "./public/data/maintenance-knowledge.json?v=gbt42446-task-description-20260601-1",
     sharedLookups: "./public/data/shared-lookups.json",
     lifecycle: "./public/data/lifecycle-knowledge.json",
     content: "./public/data/content-views.json",
@@ -19,6 +20,7 @@
     capabilityWorkbench: "/api/v1/data-packages/capability-workbench",
     environmentWorkbench: "/api/v1/data-packages/environment-workbench",
     lifecycleWorkbench: "/api/v1/data-packages/lifecycle-workbench",
+    maintenanceIndex: "/api/v1/data-packages/maintenance-index",
     maintenance: "/api/v1/data-packages/maintenance",
     sharedLookups: "/api/v1/data-packages/shared-lookups",
     lifecycle: "/api/v1/data-packages/lifecycle",
@@ -31,6 +33,7 @@
 
   const API_PATHS = {
     capabilityWorkspaceProjection: "/api/v1/capabilities/workspace-projection",
+    capabilityWorkspaceView: "/api/v1/capabilities/workspace-view",
     capabilityWorkspaceInitial: "/api/v1/capabilities/workspace-initial",
   };
 
@@ -50,6 +53,7 @@
       security_technology_modules: [],
       work_function_layers: [],
     },
+    maintenanceIndex: { generated_at: null, data_state: "empty", stats: {}, section_counts: {}, sections: [] },
     sharedLookups: {
       generated_at: null,
       data_state: "empty",
@@ -356,6 +360,59 @@
 
   function frameworkIndexById(standards, frameworkId) {
     return list(standards?.frameworks).find((framework) => framework.id === frameworkId) || null;
+  }
+
+  function maintenanceSectionById(index, sectionId) {
+    return list(index?.sections).find((section) => section.id === sectionId) || null;
+  }
+
+  function emptyMaintenanceSlice(index, sectionId) {
+    return {
+      generated_at: index?.generated_at || null,
+      data_state: index?.__data_state === "missing_file" ? "missing_file" : index?.data_state || "empty",
+      package_type: "maintenance-section",
+      section_id: sectionId,
+      stats: index?.stats || {},
+      section_counts: index?.section_counts || {},
+      source_evidence_by_id: {},
+      gbt_42446_references: [],
+      gartner_roles: [],
+      scope_types: [],
+      security_processes: [],
+      security_technical_measures: [],
+      security_technology_modules: [],
+      security_technical_services: [],
+      work_function_layers: [],
+    };
+  }
+
+  async function getMaintenanceIndexPayload() {
+    return fetchPackage("maintenanceIndex");
+  }
+
+  async function getMaintenanceSectionPayload(sectionId) {
+    const [index, sharedLookups] = await Promise.all([getMaintenanceIndexPayload(), fetchPackage("sharedLookups")]);
+    const section = maintenanceSectionById(index, sectionId);
+    if (!section || index?.__data_state === "missing_file") {
+      return getMaintenanceKnowledgePayload();
+    }
+    const [sectionPayload, evidencePayload] = await Promise.all([
+      fetchJsonPath(section.dataPath, emptyMaintenanceSlice(index, sectionId)),
+      fetchJsonPath(section.sourceEvidencePath, { evidenceById: {} }),
+    ]);
+    const payload = {
+      ...emptyMaintenanceSlice(index, sectionId),
+      ...sectionPayload,
+      generated_at: sectionPayload?.generated_at || index?.generated_at || null,
+      stats: {
+        ...(index?.stats || {}),
+        ...(sectionPayload?.stats || {}),
+      },
+      section_counts: index?.section_counts || {},
+      source_evidence_by_id: evidencePayload?.evidenceById || evidencePayload?.evidence_by_id || {},
+      maintenance_index: index,
+    };
+    return mergeSharedLookups(payload, sharedLookups);
   }
 
   async function loadStandardFramework(frameworkId) {
@@ -761,6 +818,21 @@
       );
     },
 
+    async getCapabilityWorkspaceView(params = {}) {
+      const focusId = params.focusId || params.focus_id || "";
+      const objectType = params.objectType || params.object_type || "";
+      const objectId = params.objectId || params.object_id || "";
+      const queryParams = new URLSearchParams();
+      if (objectType) queryParams.set("object_type", objectType);
+      if (objectId) queryParams.set("object_id", objectId);
+      if (!objectType && !objectId && focusId) queryParams.set("focus_id", focusId);
+      const query = queryParams.toString() ? `?${queryParams.toString()}` : "";
+      const view = await fetchApiData(`${API_PATHS.capabilityWorkspaceView}${query}`);
+      if (view) return createEnvelope(view);
+      const projection = await this.getCapabilityWorkspaceProjection(params);
+      return createEnvelope(projection.data, ["workspace-view API 不可用，已回退到 workspace-projection。"]);
+    },
+
     async getEnvironmentTree() {
       const workbench = await fetchPackage("environmentWorkbench");
       return createEnvelope({
@@ -810,27 +882,27 @@
     },
 
     async getMaintenanceScopes() {
-      const management = await getMaintenanceKnowledgePayload();
+      const management = await getMaintenanceSectionPayload("scopes");
       return createEnvelope({ generated_at: management.generated_at, items: list(management.scope_types), stats: { items: list(management.scope_types).length } });
     },
 
     async getMaintenanceProcesses() {
-      const management = await getMaintenanceKnowledgePayload();
+      const management = await getMaintenanceSectionPayload("processes");
       return createEnvelope({ generated_at: management.generated_at, items: list(management.security_processes), stats: { items: list(management.security_processes).length } });
     },
 
     async getMaintenanceWorkFunctions() {
-      const management = await getMaintenanceKnowledgePayload();
+      const management = await getMaintenanceSectionPayload("work-functions");
       return createEnvelope({ generated_at: management.generated_at, items: list(management.work_function_layers), stats: { items: list(management.work_function_layers).length } });
     },
 
     async getMaintenanceTechnologyModules() {
-      const management = await getMaintenanceKnowledgePayload();
+      const management = await getMaintenanceSectionPayload("modules");
       return createEnvelope({ generated_at: management.generated_at, items: list(management.security_technology_modules), stats: { items: list(management.security_technology_modules).length } });
     },
 
     async getMaintenanceTechnologyMeasures() {
-      const management = await getMaintenanceKnowledgePayload();
+      const management = await getMaintenanceSectionPayload("measures");
       const hasMeasureField = hasOwn(management, TECHNICAL_MEASURES_FIELD);
       const measures = hasMeasureField ? list(management[TECHNICAL_MEASURES_FIELD]) : [];
       return createEnvelope({
@@ -847,7 +919,7 @@
     },
 
     async getMaintenanceStandardRoleReferences() {
-      const management = await getMaintenanceKnowledgePayload();
+      const management = await getMaintenanceSectionPayload("references");
       const standards = list(management.gbt_42446_references);
       const roles = list(management.gartner_roles);
       return createEnvelope({
@@ -865,6 +937,14 @@
 
     async getMaintenanceKnowledge() {
       return createEnvelope(await getMaintenanceKnowledgePayload());
+    },
+
+    async getMaintenanceIndex() {
+      return createEnvelope(await getMaintenanceIndexPayload());
+    },
+
+    async getMaintenanceSection(sectionId) {
+      return createEnvelope(await getMaintenanceSectionPayload(sectionId));
     },
 
     async getStandardFrameworks() {

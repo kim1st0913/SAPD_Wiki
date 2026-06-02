@@ -30,6 +30,22 @@ const forbiddenMainKeys = new Set([
   "generated_at",
 ]);
 
+const requiredTopLevelKeys = [
+  "contract",
+  "selected",
+  "graphScope",
+  "dataState",
+  "graph",
+  "summary",
+  "tabs",
+  "technicalMappingRows",
+  "managementMappingRows",
+  "standardMappingRows",
+  "sourceEvidence",
+];
+
+const requiredArrayKeys = ["technicalMappingRows", "managementMappingRows", "standardMappingRows", "sourceEvidence"];
+
 function argValue(name, fallback) {
   const index = process.argv.indexOf(name);
   return index >= 0 && process.argv[index + 1] ? process.argv[index + 1] : fallback;
@@ -82,7 +98,7 @@ function assertParentCoversChild(parent, child, label) {
 }
 
 async function fetchProjection(baseUrl, item) {
-  const url = new URL("/api/v1/capabilities/workspace-projection", baseUrl);
+  const url = new URL("/api/v1/capabilities/workspace-view", baseUrl);
   url.searchParams.set("object_type", item.objectType);
   url.searchParams.set("object_id", item.code);
   const response = await fetch(url);
@@ -97,7 +113,14 @@ function validateProjection(item, data) {
   const nodes = Array.isArray(graph.nodes) ? graph.nodes : [];
   const state = data.dataState || data.data_state || "";
 
+  for (const key of requiredTopLevelKeys) {
+    assert(Object.prototype.hasOwnProperty.call(data, key), `${item.code}: missing required key ${key}`);
+  }
+  for (const key of requiredArrayKeys) {
+    assert(Array.isArray(data[key]), `${item.code}: ${key} is not an array`);
+  }
   assert(state === "ready" || state === "empty", `${item.code}: unexpected dataState=${state}`);
+  assert(data.contract === "capability-workspace-view", `${item.code}: contract=${data.contract}`);
   assert(selected.type === item.objectType, `${item.code}: selected.type=${selected.type}`);
   assert(selected.code === item.code, `${item.code}: selected.code=${selected.code}`);
   assert(data.graphScope === item.graphScope, `${item.code}: graphScope=${data.graphScope}`);
@@ -120,6 +143,14 @@ async function validateInvalidObject(baseUrl) {
   const item = { code: "NO-SUCH-CAPABILITY", objectType: "capability", graphScope: "capability" };
   const data = await fetchProjection(baseUrl, item);
   const state = data.dataState || data.data_state || "";
+  for (const key of requiredTopLevelKeys) {
+    assert(Object.prototype.hasOwnProperty.call(data, key), `invalid object: missing required key ${key}`);
+  }
+  for (const key of requiredArrayKeys) {
+    assert(Array.isArray(data[key]), `invalid object: ${key} is not an array`);
+    assert(data[key].length === 0, `invalid object: ${key} is not empty`);
+  }
+  assert(data.contract === "capability-workspace-view", `invalid object: contract=${data.contract}`);
   assert(state === "invalid_object", `invalid object: dataState=${state}`);
   assert((data.graph?.nodes || []).length === 0, "invalid object returned graph nodes");
   assert(!data.localRelationMap, "invalid object returned localRelationMap");

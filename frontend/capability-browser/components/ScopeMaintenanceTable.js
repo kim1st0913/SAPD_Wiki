@@ -7,6 +7,26 @@
     return utils.escapeHtml(text);
   }
 
+  function itemLabel(item) {
+    if (!item || typeof item !== "object") return utils.text(item).trim();
+    return [item.code, utils.titleOf(item)].filter(Boolean).join(" ");
+  }
+
+  function relationTooltip(title, items, emptyText) {
+    const rows = utils.list(items).map(itemLabel).filter(Boolean);
+    if (!rows.length) return `${title}\n${emptyText}`;
+    return `${title}\n${rows.map((row, index) => `${index + 1}. ${row}`).join("\n")}`;
+  }
+
+  function countBubble(value, tooltip, label) {
+    const count = Number(value) || 0;
+    return `
+      <button class="standard-tooltip-chip maintenance-count-bubble" type="button" data-tooltip="${utils.escapeHtml(tooltip)}" aria-label="${utils.escapeHtml(label)}">
+        ${utils.escapeHtml(count)}
+      </button>
+    `;
+  }
+
   function render({ rows, selectedId, emptyState }) {
     const tableRows = utils.list(rows);
     if (!tableRows.length) {
@@ -34,8 +54,16 @@
                     <td>${cell(row.title)}</td>
                     <td>${cell(row.scenario)}</td>
                     <td class="maintenance-description-cell"><span>${cell(row.description)}</span></td>
-                    <td>${cell(row.serviceCount)}</td>
-                    <td>${cell(row.informationObjectCount)}</td>
+                    <td>${countBubble(
+                      row.serviceCount,
+                      relationTooltip("关联安全技术服务清单", row.linkedServices, "暂无关联安全技术服务"),
+                      `${row.title || row.code || "当前作用域"} 的关联安全技术服务清单`,
+                    )}</td>
+                    <td>${countBubble(
+                      row.informationObjectCount,
+                      relationTooltip("关联信息化对象清单", row.informationObjects, "暂无关联信息化对象"),
+                      `${row.title || row.code || "当前作用域"} 的关联信息化对象清单`,
+                    )}</td>
                   </tr>
                 `,
               )

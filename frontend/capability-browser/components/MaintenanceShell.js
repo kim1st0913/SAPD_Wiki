@@ -44,8 +44,9 @@
       return [
         summaryBadge("安全职能", summary.totalFunctions ?? 0),
         summaryBadge("职能层", summary.layers ?? 0),
-        summaryBadge("关联安全工作", summary.linkedWorks ?? 0),
-        summaryBadge("关联流程", summary.linkedProcesses ?? 0),
+        summaryBadge("GB/T 42446 映射", summary.gbtReferences ?? 0),
+        summaryBadge("Gartner 映射", summary.gartnerReferences ?? 0),
+        summaryBadge("关联流程", summary.linkedProcessRelations ?? 0),
       ].join("");
     }
     if (section === "security-works") {
@@ -87,13 +88,12 @@
     const rows = utils.list(tabs);
     if (!rows.length) return "";
     return `
-      <div class="maintenance-section-tabs" role="tablist" aria-label="安全知识页签">
+      <div class="maintenance-section-tabs" role="tablist" aria-label="知识库字典页签">
         ${rows
           .map(
             (tab) => `
               <button class="maintenance-section-tab ${tab.active ? "active" : ""}" type="button" role="tab" data-source-page="${utils.escapeHtml(tab.sourcePage || tab.id)}"${tab.referenceTab ? ` data-reference-tab="${utils.escapeHtml(tab.referenceTab)}"` : ""} aria-selected="${tab.active ? "true" : "false"}">
                 <span>${utils.escapeHtml(tab.label)}</span>
-                <strong>${utils.escapeHtml(tab.count ?? 0)}</strong>
               </button>
             `,
           )

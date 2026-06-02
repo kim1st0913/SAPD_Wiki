@@ -17,9 +17,12 @@
 | 文档 | 用途 |
 |---|---|
 | `docs/07-governance/data-governance.md` | GitHub 数据边界、数据标准化、去重、冲突、旧对象停用、验证等级、metadata 字段升级和前端数据包拆分规则 |
+| `docs/07-governance/capability-mapping-change-control.md` | 安全能力映射页变更分级、暂停条件、验证门槛和前端治理审计入口 |
 | `docs/03-import-etl/github-local-data-initialization.md` | 从 GitHub 拉取代码后的本地文件放置、一键数据初始化和生成数据不同步说明 |
 | `docs/07-governance/codex-performance-workflow.md` | Codex 轻量开发、验证摘要、重连减负和用户短指令默认执行规则 |
-| `docs/06-implementation/open-issues.md` | 所有 bug、数据问题、页面问题和待确认事项的唯一维护文件 |
+| `docs/06-implementation/open-issues.md` | 当前未关闭 bug、数据问题、页面问题和待确认事项的维护入口 |
+| `docs/06-implementation/open-issues-index.md` | Open Issues 全量索引，定位当前问题和历史归档问题 |
+| `docs/05-archive/open-issues-history/2026-06.md` | 已关闭 Open Issues 历史长记录归档 |
 | `findings.md` | 当前关键决策、重要风险和历史记录索引 |
 | `progress.md` | 执行日志、文件变更、命令和验证结果 |
 | `task_plan.md` | 当前阶段、任务状态和下一步 |
@@ -31,9 +34,12 @@
 - 数据治理规则集中化。
 - GitHub 只同步代码 / 文档 / 配置模板 / 脱敏 fixture，原始数据和生成数据通过本地初始化脚本重建。
 - 前端离线数据包按页面契约拆分，禁止恢复大一统业务 JSON。
+- 索引先行、分片按需加载、跨包补关系页面执行 `Frontend Lazy Data Contract Baseline 1.0`；知识库字典和安全标准 / 框架必须用显式加载契约区分 `required` / `supplemental`，并通过 `node scripts/audit_frontend_lazy_load_contract.mjs` 审计。
+- 知识库字典作为安全能力、作用域、技术服务、技术模块 / 措施、管理工作、流程和职能的权威值；相关引用用 `node scripts/audit_dictionary_reference_consistency.mjs` 做全量一致性检查。
+- 安全能力映射页按 `capability-mapping-change-control.md` 执行变更分级和前端治理审计。
 - `findings.md` 索引化。
 - `progress.md` 职责收缩。
-- 问题统一维护在 `open-issues.md`。
+- 当前未关闭问题统一维护在 `open-issues.md`；已关闭问题长记录归档到 `docs/05-archive/open-issues-history/`，全量定位通过 `open-issues-index.md`。
 
 当前不执行：
 

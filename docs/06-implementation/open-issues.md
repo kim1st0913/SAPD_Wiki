@@ -5,7 +5,7 @@
 ## 治理入口
 
 - 当前未关闭问题数：2
-- 已关闭归档问题数：128
+- 已关闭归档问题数：129
 - 全量索引：`docs/06-implementation/open-issues-index.md`
 - 已关闭问题归档：`docs/05-archive/open-issues-history/2026-06.md`
 - 重复编号待治理：`OI-044`、`OI-092`，索引中使用 `OI-xxx#n` 区分历史条目。
@@ -15,7 +15,7 @@
 | 编号 | 状态 | 标题 |
 |---|---|---|
 | OI-038 | 待确认 | Gartner 与安全职能候选映射需后续人工校对 |
-| OI-127 | 待修复 | 知识库字典与安全标准 / 框架多分片按需加载契约需全局治理 |
+| OI-128 | 待实现 | USER-WRITE-UI-1：收藏 / 备注最小前端入口 |
 
 ## 问题记录模板
 
@@ -44,14 +44,14 @@
 - 需要确认：后续由用户逐条检查 `data/exports/worker-verify/sheet-review-2-2-gartner-to-work-function-candidates.csv`，确认哪些候选接受、删除或调整。
 - 修复说明：页面显示缺口已修复；候选映射继续作为 `待复核` 数据保留，不作为最终正式关系。
 - 验证结果：2026-06-01 重新导出 `maintenance-knowledge.json` 后，`gartner_roles=28`，其中 28 条均包含 `candidate_work_functions`；组件渲染断言确认 `Gartner 工作岗位参考` 表格包含“候选安全职能”列，示例“首席信息安全官（CISO）”显示 `2 安全负责职能`、`10 安全管理职能`、`27 规划计划管理职能`。
-## OI-127：知识库字典与安全标准 / 框架多分片按需加载契约需全局治理
+## OI-128：USER-WRITE-UI-1：收藏 / 备注最小前端入口
 
-- 状态：待修复
-- 类型：前端 / 数据契约 / 治理
-- 对象或页面：`知识库字典`、`安全标准 / 框架`、`frontend/capability-browser/app.js`、`frontend/capability-browser/components/StandardFrameworkTable.js`、`frontend/capability-browser/viewModels.js`
-- 现象：`maintenance-index.json`、`maintenance/*.json`、`standards-index.json` 和 `standards/**/*.json` 已采用索引先行与分片按需加载；安全职能清单、岗位 / 职能参考、技术服务、技术模块以及多 tab 标准 / 框架页面存在主分片和补充分片分离。如果页面只等待主分片，或组件内部自行懒加载 tab 数据，就可能出现首次进入停留在 loading、关系气泡显示假 `0`、刷新后偶发恢复、tab 切换加载状态不统一等问题。
-- 影响：后续继续拆分数据包或优化页面时，同类问题可能在知识库字典和安全标准 / 框架页面反复出现，难以通过轻量 HTTP smoke 提前发现。
-- 当前处理：已将 `Frontend Lazy Data Contract Baseline 1.0` 作为全局基准落地；页面必须显式声明 `required` 与 `supplemental` 数据依赖；组件不得直接调用 `dataClient` 做业务数据加载；新增 `scripts/audit_frontend_lazy_load_contract.mjs` 检查加载契约、标准页组件内取数和标准 / 框架 tab `dataPath`。
-- 需要确认：后续如新增知识库字典二级入口、标准 / 框架、多 tab 数据表或跨包关系气泡，必须先补加载契约和审计规则，再进入页面展示实现。
-- 修复说明：本轮完成全局基准、知识库字典加载契约集中化、标准页 `activeStandardTableId` 与统一 table loader、标准页组件内取数上移和审计脚本；关系气泡更细粒度 `partialReady` 文案可作为后续体验增强，不影响本轮契约治理关闭。
-- 验证结果：2026-06-02 执行 `node --check frontend/capability-browser/app.js frontend/capability-browser/viewModels.js frontend/capability-browser/components/StandardFrameworkTable.js scripts/audit_frontend_lazy_load_contract.mjs` 通过；`node scripts/audit_frontend_lazy_load_contract.mjs` 返回 `result=pass`、`standardFrameworks=7`、`standardTabs=6`、`issues=[]`；`python3 scripts/dev_server_guard.py --status` 通过；`/knowledge/functions`、`/knowledge/technical-services`、`/standards/nist-csf-2`、`/standards/dsp-level-2`、`/standards/crf`、`/standards/nist-800-53-rev5` 轻量 smoke 通过，未启动系统 Chrome。
+- 状态：待实现
+- 类型：前端 / 用户数据 / Delivery Bundle
+- 对象或页面：ZIP alpha 桌面包、`sapd_wiki_user.sqlite3`、安全能力映射 / 知识库字典等对象详情页。
+- 现象：ZIP alpha 后端已具备 `user_favorites` 写入 API 和 user DB 自动创建能力，但当前前端页面没有暴露收藏、备注、用户标签或编辑入口，Windows / macOS UAT 无法通过页面操作验证 user DB 写入。
+- 影响：当前 Windows 包只能验收解压启动、页面访问、base 数据读取、user DB 自动创建、日志和诊断包；页面级用户写入能力不能作为本轮验收项。
+- 当前处理：Windows release manifest 已将 `page_user_write` 标记为 `not_available_current_frontend`；本问题作为后续独立最小实现任务保留。
+- 需要确认：第一版优先做“收藏”还是“备注”；建议先做收藏，再做备注。
+- 修复说明：待实现。
+- 验证结果：待实现后验证页面操作写入 `sapd_wiki_user.sqlite3`，重启后保留，且不修改 `sapd_wiki_base.sqlite3`。

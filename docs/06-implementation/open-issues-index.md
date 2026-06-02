@@ -5,9 +5,9 @@
 ## 摘要
 
 - 生成日期：2026-06-01
-- 问题总数：130
+- 问题总数：131
 - 当前未关闭问题数：2
-- 已关闭归档问题数：128
+- 已关闭归档问题数：129
 - 当前入口：`docs/06-implementation/open-issues.md`
 - 已关闭归档：`docs/05-archive/open-issues-history/2026-06.md`
 
@@ -17,10 +17,10 @@
 |---|---:|
 | (空) | 1 |
 | 待确认 | 1 |
-| 待修复 | 1 |
+| 待实现 | 1 |
 | 业务接受 | 5 |
 | 已回退 | 1 |
-| 已修复 | 121 |
+| 已修复 | 122 |
 | 已修复，后续可继续优化 | 1 |
 
 ## 重复编号
@@ -165,5 +165,6 @@
 | OI-125 | 已修复 | 安全职能清单依赖分片加载后未重新渲染 | 前端 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-126 | 已修复 | 安全职能清单和参考页补充映射分片加载 / 合并导致映射列长期为 0 | 前端 / 数据映射 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-124 | 已修复 | 知识库字典权威引用全量审计发现作用域与技术措施引用不一致 | 数据契约 / ETL / 数据治理 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-127 | 已修复 | 知识库字典与安全标准 / 框架多分片按需加载契约需全局治理 | 前端 / 数据契约 / 治理 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-038 | 待确认 | Gartner 与安全职能候选映射需后续人工校对 | 数据 / 需求 | docs/06-implementation/open-issues.md |
-| OI-127 | 待修复 | 知识库字典与安全标准 / 框架多分片按需加载契约需全局治理 | 前端 / 数据契约 / 治理 | docs/06-implementation/open-issues.md |
+| OI-128 | 待实现 | USER-WRITE-UI-1：收藏 / 备注最小前端入口 | 前端 / 用户数据 / Delivery Bundle | docs/06-implementation/open-issues.md |

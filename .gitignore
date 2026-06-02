@@ -25,6 +25,8 @@ mapping_rules.xlsx
 frontend/capability-browser/public/data/*.json
 frontend/capability-browser/public/data/assets/
 frontend/capability-browser/public/data/guides/
+frontend/capability-browser/public/data/maintenance/
+frontend/capability-browser/public/data/source-evidence/
 frontend/capability-browser/public/data/standards/
 
 # Node / frontend build artifacts

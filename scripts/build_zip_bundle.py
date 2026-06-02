@@ -21,12 +21,13 @@ from create_user_db import initialize_user_db
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 SUPPORTED_PLATFORMS = {"win-x64", "mac-arm64", "mac-x64"}
-DEFAULT_OUTPUT_DIR = Path(
+DEFAULT_BUNDLE_ROOT = Path(
     os.environ.get(
-        "SAPD_WIKI_BUNDLE_OUTPUT_DIR",
+        "SAPD_WIKI_BUNDLE_ROOT",
         "/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle",
     )
 )
+DEFAULT_OUTPUT_DIR = Path(os.environ.get("SAPD_WIKI_BUNDLE_OUTPUT_DIR", str(DEFAULT_BUNDLE_ROOT / "package-work")))
 
 
 def copy_tree(source: Path, target: Path) -> None:

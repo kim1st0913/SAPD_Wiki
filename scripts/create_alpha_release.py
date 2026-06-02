@@ -24,10 +24,11 @@ from check_bundle_runtime import sha256_file
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_BUNDLE_DIR = Path(
     os.environ.get(
-        "SAPD_WIKI_BUNDLE_OUTPUT_DIR",
+        "SAPD_WIKI_BUNDLE_ROOT",
         "/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle",
     )
 )
+DEFAULT_SOURCE_DIR = Path(os.environ.get("SAPD_WIKI_BUNDLE_OUTPUT_DIR", str(DEFAULT_BUNDLE_DIR / "package-work")))
 DEFAULT_RELEASE_DIR = Path(
     os.environ.get(
         "SAPD_WIKI_RELEASE_DIR",
@@ -299,7 +300,7 @@ def build_release(args: argparse.Namespace) -> Path:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Assemble SAPD Wiki 0.1.0-alpha release files.")
     parser.add_argument("--release-dir", type=Path, default=DEFAULT_RELEASE_DIR)
-    parser.add_argument("--source-dir", type=Path, default=DEFAULT_BUNDLE_DIR)
+    parser.add_argument("--source-dir", type=Path, default=DEFAULT_SOURCE_DIR)
     parser.add_argument("--bundle-version", default=DEFAULT_VERSION)
     parser.add_argument("--app-version", default=DEFAULT_APP_VERSION)
     parser.add_argument("--windows-zip", type=Path, help="Optional real Windows ZIP produced in Windows x64.")

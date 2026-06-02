@@ -8,12 +8,13 @@
 - 当前主线：Frontend Baseline 1.0 四页关系工作台校正、数据契约治理、字段边界收口和 Open Issues 轻量维护。
 - 固定预览入口：`http://127.0.0.1:5173/`。前端展示和用户验收默认只看该端口。
 - 安全能力映射页对象级契约：`/api/v1/capabilities/workspace-view` 已接入；前端优先通过 `dataClient.getCapabilityWorkspaceView()` 按当前选中对象读取。
-- Open Issues 当前未关闭：`OI-038`、`OI-124`。
-- 当前重点治理项：知识库字典权威引用一致性治理；`OI-124` 已完成作用域旧名称、生命周期 `security_technical_measure` 权威 ID 复用、`ALL / 全部作用域` authority-only 字典口径和临时流程引用占位清理，后续需处理能力 / 服务 / 模块等跨包对象 ID 归一。
+- Open Issues 当前未关闭：`OI-038`、`OI-128`。
+- 当前重点治理项：Delivery Bundle 1.0-alpha 打包清理边界、Windows / macOS ZIP 基准包维护，以及 `USER-WRITE-UI-1` 最小用户写入入口后续实现。
 - 当前禁止事项：不默认改 ETL、数据库、数据模型、导出 JSON、workbench JSON、`dataClient` 数据来源边界或 ViewModel 业务逻辑；主展示区不得暴露 `sheet`、`row`、`column`、`raw_value`、`source_file`、`import_id`、`source_id`、`source_ref`、`source_label`、`debug`、`raw`、`metadata`、`intermediate`、`generated_at`。
 
 ## 最近完成事项
 
+- 2026-06-02 打包清理清单治理：补充 `.gitignore`，忽略新拆出的 `frontend/capability-browser/public/data/maintenance/` 和 `frontend/capability-browser/public/data/source-evidence/` 生成目录；新增 `docs/09-delivery/packaging-cleanup-checklist.md`，固化可清理 / 必须保留 / 不进 GitHub / Windows 与 macOS 每次打包步骤。
 - 2026-06-02 `OI-127` 知识库字典与安全标准 / 框架多分片加载契约治理完成：将 `Frontend Lazy Data Contract Baseline 1.0` 写入前端全局基线；`app.js` 增加知识库字典页面 `required` / `supplemental` 加载契约和补充包重渲染逻辑；标准 / 框架页新增 `activeStandardTableId` 和统一 table loader，`StandardFrameworkTable.js` 不再直接调用 `dataClient`；新增 `scripts/audit_frontend_lazy_load_contract.mjs` 并登记到治理入口。
 - 2026-06-02 安全职能清单与参考页反向映射分片修复：安全职能清单首屏仍只等待 `work-functions`，后台补 `references`、`processes`；GB/T / Gartner 参考页首屏等待 `references`，后台补 `work-functions`；分片合并已按所属字段保护，非当前分片的空数组不再覆盖已加载业务分片。
 - 2026-06-02 根路径默认首页修复：修正 `app.js` 初始化逻辑，直接输入 `127.0.0.1:5173` / 根路径 `/` 时不再恢复上次保存的非首页路由，固定进入首页；同步更新 `app.js` 缓存版本。
@@ -102,11 +103,15 @@
 - 2026-06-02 Windows ZIP 启动脚本路径修复：用户在 Windows 执行 `start-windows.bat` 后，PyInstaller 后端报 `WinError 123`，路径被解析为 `...SAPD-Wiki-v0.1.0-win-x64" \logs`。定位为 Windows `%~dp0` 自带结尾反斜杠，作为 `--bundle-root "%~dp0"` 传入 PyInstaller/Python 参数解析时导致引号被吃歪；已将 `scripts/build_zip_bundle.py` 生成的 `start-windows.bat` 和仓库静态 `scripts/start-windows.bat` 改为 `cd /d "%~dp0"` 后使用 `%CD%` 作为 `BUNDLE_ROOT`，避免结尾反斜杠。验证：`python3 -m py_compile scripts/build_zip_bundle.py`、`git diff --check -- scripts/build_zip_bundle.py scripts/start-windows.bat` 通过；Windows ZIP 需要重新生成后再试发。
 - 2026-06-02 Windows ZIP 启动窗口闪退诊断增强：用户反馈手工修复 `start-windows.bat` 后双击终端窗口闪一下就关闭；已增强 `scripts/build_zip_bundle.py` 生成模板和仓库静态 `scripts/start-windows.bat`，启动时写入 `logs/launcher.log`，后端控制台输出写入 `logs/backend-console.log`，后端退出后无论错误码是否为 0 都保留窗口、显示退出码并打印最近 30 行 `logs/backend-console.log` / `logs/runtime.log`，方便定位 base DB、manifest、端口或安全软件导致的秒退问题。Windows ZIP 仍需重新生成或替换已解压包中的 `start-windows.bat` 后复测。
 - 2026-06-02 Windows ZIP launcher 日志增强：用户反馈双击后仍闪退且没有 `runtime.log`；已进一步增强 Windows 启动脚本，执行 `.bat` 后立即创建 `logs/launcher.log`，后端 stdout/stderr 追加写入 `logs/backend-console.log`，并在窗口中打印 `backend-console.log` / `runtime.log` 尾部内容。若仍没有 `launcher.log`，说明双击到的不是该脚本或脚本文件为空 / 扩展名错误。验证：`python3 -m py_compile scripts/build_zip_bundle.py`、`git diff --check -- scripts/build_zip_bundle.py scripts/start-windows.bat progress.md` 通过。
+- 2026-06-02 Windows release manifest 收口与 `USER-WRITE-UI-1` 登记：按用户反馈，Windows ZIP 已能正常打开，但当前前端没有收藏 / 备注 / 编辑修改入口，无法做页面级 user DB 写入验收；已将本地发行目录 `release-manifest.json` 的 `win-x64` 状态更新为 `manual_runtime_verified_pending_archive`，记录 `page_user_write=not_available_current_frontend`、ZIP 归档 / hash 待补；新增 `OI-128：USER-WRITE-UI-1：收藏 / 备注最小前端入口`，作为后续独立实现任务。
+- 2026-06-02 Windows ZIP 归档：用户已将 `SAPD-Wiki-v0.1.0-win-x64.zip` 放到默认 bundle 目录；已复制到 `dist/releases/0.1.0-alpha/win-x64/`，生成 `SAPD-Wiki-v0.1.0-win-x64.sha256`，ZIP sha256 为 `f9b9a2a49dbedb9f0c3bd39d2cd6e1e2cf2f62992d799e73d3a94d09a0c94abd`；从 ZIP 内读取 `SAPD-Wiki-Backend.exe` hash 为 `b4549c2eb1b9b78a0e86ec30217dc7b535126a15ad843d23ec8630eb69904a33`，base DB hash 为 `64b69aec59bd609128686f1cd8839bc01e8705c61ccb67ec898e4b69ff89c77e`；`release-manifest.json` 的 `win-x64` 状态更新为 `ready_pending_full_uat`，仍记录页面级写入入口未实现。
+- 2026-06-02 macOS arm64 基准包重打：按用户要求重新打 `SAPD-Wiki-v0.1.0-mac-arm64.zip` 并替换到 `dist/releases/0.1.0-alpha/mac-arm64/`，以当前版本作为 mac 基准；旧 mac update 包已移除，`release-manifest.json` 的 `mac-arm64.status` 更新为 `ready_baseline`、`update_packages=[]`。新 mac ZIP sha256 为 `7ededeed8fc79b52f6c61b379768d76594ca37f28bbcbaea9eb43b3c7bda386a`，backend hash 为 `cceef5559a1a6cffa12aa34a64f9e2c55495415f147ca1e3cf544bea47de110d`，base DB hash 为 `64b69aec59bd609128686f1cd8839bc01e8705c61ccb67ec898e4b69ff89c77e`；临时解压后补执行位运行 `SAPD-Wiki-Backend --check-only` 通过，`ok=true`、`selected_port=18765`、base sha256 与 user schema 均匹配。
+- 2026-06-02 bundle 根目录 ZIP 清理与默认路径调整：按用户要求，后续不再在 `sapd wiki bundle/` 根目录单独生成 `SAPD-Wiki-v0.1.0-*.zip`；`scripts/build_zip_bundle.py` 默认输出目录改为 `sapd wiki bundle/package-work`，`scripts/create_alpha_release.py` 默认从 `package-work` 读取中间构建物并复制到 `dist/releases/0.1.0-alpha/<platform>/`；已删除根目录下已归档的 mac / win 重复 ZIP，正式分发产物仍保留在 `dist/releases/0.1.0-alpha/mac-arm64/` 与 `win-x64/`。验证：`python3 -m py_compile scripts/build_zip_bundle.py scripts/create_alpha_release.py` 和 `git diff --check -- scripts/build_zip_bundle.py scripts/create_alpha_release.py scripts/README.md` 通过。
 
 ## 当前问题索引
 
 - `OI-038`：Gartner 与安全职能候选映射需后续人工校对，状态 `待确认`。
-- `OI-124`：知识库字典权威引用全量审计发现作用域与技术措施引用不一致，状态 `待修复`。
+- `OI-128`：USER-WRITE-UI-1：收藏 / 备注最小前端入口，状态 `待实现`。
 
 ## 历史索引
 

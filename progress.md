@@ -12,6 +12,7 @@
 
 ## 最近完成事项
 
+- 2026-06-03 安全技术服务清单列宽与 `T-AD.SA` 权威名称修订：适当扩大 `归属安全能力 / 关注点` 列，压缩相邻关联列，避免归属路径过早换行；导出层新增 `T-AD.SA` 能力对象权威标题 `态势感知能力`，重新导出能力树、维护知识包和前端工作台包；新增并关闭归档 `OI-134`，服务名 `ALL&T-AD.SA-03 态势感知` 保持不变。
 - 2026-06-03 用户截图反馈修正：安全技术服务清单 `归属安全能力 / 关注点` 列从绿色关系胶囊改为低噪声归属路径块，分行展示 `安全能力` 与 `关注点`，完整换行并可选择复制；同步把该展示类别补入全局设计基线和展示原则。`OI-128A` 文案从“收藏 / 取消收藏 / 备注 / 保存备注并收藏”调整为“加入关注清单 / 移出关注清单 / 收藏备注 / 保存收藏备注”，并在设计文档中明确收藏不等于业务确认，正式 Office 式批注进入 V1B 独立 `user_notes`。
 - 2026-06-03 `OI-128A` 用户写入最小入口：新增 `docs/06-implementation/user-workspace-v1-to-v4-design.md`，固定用户自定义工作区 V1-V4 的 UI、数据表、API、页面入口、阶段路线和验收标准；补齐开发 API 与 ZIP runtime 的 `GET/POST/DELETE /api/v1/user/favorites`；安全能力映射页对象详情区新增收藏 / 轻备注入口，收藏事实来自 `sapd_wiki_user.sqlite3`，API 不可用时显示禁用态。
 - 2026-06-03 `OI-132 / EL-024` 第三轮页面级展示基准治理并关闭：按用户截图修复安全能力映射管理视角主关系矩阵里安全职能 chip 被省略号截断的问题；`FocusManagementMapping.js` 为关系对象写入完整文本 `title` / `data-copy-text`，`styles.css` 将管理矩阵关系 chip 改为完整换行显示并可选择复制；同步更新前端展示基准和新增 `audit_frontend_display_contract.mjs`；真实 Chrome 回归确认管理视角 chip `truncated=false`、`copyable=true`，`OI-132` 关闭。
@@ -24,6 +25,20 @@
 
 ## 最近验证
 
+- `python3 -m py_compile src/sapd_wiki/exports.py`：通过。
+- `python3 scripts/sapd_wiki.py export-capability-tree`：通过，`capabilities=32`、`focuses=91`、`services=158`。
+- `python3 scripts/sapd_wiki.py export-maintenance-knowledge`：通过，`security_technical_services=158`。
+- `python3 scripts/sapd_wiki.py export-frontend-workbenches`：通过，`capability_workbench_relations=6060`。
+- `node -e ...` 数据断言：通过，`capability-tree.json` 中 `T-AD.SA` 标题为 `态势感知能力`，关注点标题仍保留 `建立并维护态势感知`。
+- `python3 scripts/data_package_summary.py --package capability`、`--package capability-workbench`、`--package maintenance`：均通过，`data_state=ready`。
+- `node scripts/audit_dictionary_reference_consistency.mjs`：通过但保留既有 warning，`errors=0`、`warnings=278`，均为 `OI-038` 相关 Gartner 候选职能 ID 待人工校对。
+- `node scripts/audit_frontend_lazy_load_contract.mjs`：通过，`result=pass`、`issues=[]`。
+- `node --check frontend/capability-browser/components/TechnicalServiceMaintenanceTable.js`：通过。
+- `python3 scripts/dev_server_guard.py --status`：通过，`5173` 只有一个项目服务进程，home 和 workspace projection 均正常。
+- `node scripts/frontend_smoke_check.mjs --page maintenance --route /knowledge/capabilities --url http://127.0.0.1:5173 --allow-system-chrome --debug-port 9373 --width 2048 --height 1300`：真实 Chrome 回归通过，`consoleIssues=0`、`workspaceOverflowX=0`，截图已保存到 `/private/tmp/sapd-capabilities-smoke-20260603.png`。
+- `node scripts/frontend_smoke_check.mjs --page maintenance --route /knowledge/technical-services --url http://127.0.0.1:5173 --allow-system-chrome --debug-port 9374 --width 2048 --height 1300`：真实 Chrome 回归通过，`consoleIssues=0`、`workspaceOverflowX=0`，截图已保存到 `/private/tmp/sapd-technical-services-smoke-20260603.png`。
+- `node scripts/govern_open_issues.mjs`：通过，`active=3`、`archived=133`。
+- `git diff --check`：通过。
 - `node --check frontend/capability-browser/dataClient.js`：通过。
 - `node --check frontend/capability-browser/app.js`：通过。
 - `node --check frontend/capability-browser/components/UserObjectActions.js`：通过。

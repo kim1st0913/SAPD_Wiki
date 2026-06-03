@@ -195,6 +195,9 @@ XLSX_NS = {
     "r": XLSX_REL_NS,
     "pr": XLSX_PACKAGE_REL_NS,
 }
+CANONICAL_ITEM_TITLES: dict[tuple[str, str], str] = {
+    ("capability", "T-AD.SA"): "态势感知能力",
+}
 
 
 def _ensure_dir(path: str | Path | None) -> Path:
@@ -222,6 +225,12 @@ def _load_json(value: str | None, default: Any) -> Any:
 
 def _metadata(row: dict[str, Any]) -> dict[str, Any]:
     return _load_json(row.get("metadata_json"), {})
+
+
+def _canonical_title(item: dict[str, Any]) -> str:
+    code = str(item.get("code") or "").strip()
+    item_type = str(item.get("type") or "").strip()
+    return CANONICAL_ITEM_TITLES.get((item_type, code), item.get("title") or "")
 
 
 def _split_catalog_code_title(value: object) -> tuple[str | None, str]:
@@ -521,7 +530,7 @@ def _brief_item(item: dict[str, Any] | None, source_refs: dict[str, list[dict[st
         "id": item["id"],
         "type": item["type"],
         "code": item.get("code"),
-        "title": item["title"],
+        "title": _canonical_title(item),
         "description": item.get("description"),
         "category": category,
         "sources": _brief_item_sources(item, source_refs),
@@ -894,7 +903,7 @@ def _item_payload(item: dict[str, Any], source_refs: dict[str, list[dict[str, An
         "id": item["id"],
         "type": item["type"],
         "code": item["code"],
-        "title": item["title"],
+        "title": _canonical_title(item),
         "description": item["description"],
         "category": item["category"],
         "status": item["status"],

@@ -5860,7 +5860,7 @@ input:focus-visible,
 }
 
 .technical-service-maintenance-table {
-  min-width: 1420px;
+  min-width: 1500px;
 }
 
 .technical-service-maintenance-table th:nth-child(1),
@@ -5871,22 +5871,22 @@ input:focus-visible,
 
 .technical-service-maintenance-table th:nth-child(2),
 .technical-service-maintenance-table td:nth-child(2) {
-  width: 250px;
+  width: 240px;
 }
 
 .technical-service-maintenance-table th:nth-child(3),
 .technical-service-maintenance-table td:nth-child(3) {
-  width: 250px;
+  width: 350px;
 }
 
 .technical-service-maintenance-table th:nth-child(4),
 .technical-service-maintenance-table td:nth-child(4) {
-  width: 470px;
+  width: 430px;
 }
 
 .technical-service-maintenance-table th:nth-child(5),
 .technical-service-maintenance-table td:nth-child(5) {
-  width: 240px;
+  width: 230px;
 }
 
 .technical-service-maintenance-table th:nth-child(6),

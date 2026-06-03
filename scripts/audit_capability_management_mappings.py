@@ -101,12 +101,14 @@ def expected_high_level_rows(workbook) -> dict[str, dict[str, Any]]:
 
 def expected_security_work_rows(workbook) -> dict[str, set[str]]:
     ws = workbook["安全能力-安全工作"]
+    merged_values = merged_anchor_values(ws)
     expected: dict[str, set[str]] = {}
     last_focus_code = ""
     for row_index in range(4, ws.max_row + 1):
-        if ws.cell(row_index, 5).value:
-            last_focus_code = str(ws.cell(row_index, 5).value).strip()
-        work_title = str(ws.cell(row_index, 7).value or "").strip()
+        focus_code = str(effective_value(ws, merged_values, row_index, 5) or "").strip()
+        if focus_code:
+            last_focus_code = focus_code
+        work_title = str(effective_value(ws, merged_values, row_index, 7) or "").strip()
         if last_focus_code and work_title:
             expected.setdefault(last_focus_code, set()).add(work_title)
     return expected

@@ -6,7 +6,10 @@ const cases = [
   { code: "T", objectType: "capability_category", graphScope: "category" },
   { code: "T-AS", objectType: "capability_domain", graphScope: "domain" },
   { code: "T-AS.AD", objectType: "capability", graphScope: "capability" },
-  { code: "T-AS.AD-01", objectType: "capability_focus", graphScope: "focus" },
+  { code: "T-AS.AD-01", objectType: "capability_focus", graphScope: "focus", minStandardControls: 1 },
+  { code: "T-PD.PP", objectType: "capability", graphScope: "capability", expectedSecurityWorkByFocus: { "T-PD.PP-01": "边界防护策略持续管理", "T-PD.PP-02": "边界防护策略持续管理", "T-PD.PP-03": "边界防护策略持续管理" } },
+  { code: "T-PD.PP-02", objectType: "capability_focus", graphScope: "focus", expectedSecurityWorkByFocus: { "T-PD.PP-02": "边界防护策略持续管理" } },
+  { code: "T-PD.PP-03", objectType: "capability_focus", graphScope: "focus", expectedSecurityWorkByFocus: { "T-PD.PP-03": "边界防护策略持续管理" } },
   { code: "T-OF", objectType: "capability_domain", graphScope: "domain" },
   { code: "T-OF.AT", objectType: "capability", graphScope: "capability" },
   { code: "T-OF.AT-02", objectType: "capability_focus", graphScope: "focus" },
@@ -91,6 +94,38 @@ function summarySignature(data) {
   };
 }
 
+function titleOf(item) {
+  return String(item?.title || item?.name || item?.code || "").trim();
+}
+
+function validateTabCounts(item, data) {
+  const technicalRows = Array.isArray(data.technicalMappingRows) ? data.technicalMappingRows : [];
+  const managementRows = Array.isArray(data.managementMappingRows) ? data.managementMappingRows : [];
+  const standardRows = Array.isArray(data.standardMappingRows) ? data.standardMappingRows : [];
+  const tabTechnical = Number(data.tabs?.technical?.rowCount || 0);
+  const tabManagement = Number(data.tabs?.management?.rowCount || 0);
+  const tabControls = Number(data.tabs?.standards?.controlCount || 0);
+  const rowControls = standardRows.reduce((sum, row) => sum + (Array.isArray(row?.controls) ? row.controls.length : 0), 0);
+  assert(tabTechnical === technicalRows.length, `${item.code}: technical tab rowCount=${tabTechnical}, rows=${technicalRows.length}`);
+  assert(tabManagement === managementRows.length, `${item.code}: management tab rowCount=${tabManagement}, rows=${managementRows.length}`);
+  if (item.objectType === "capability_focus") {
+    assert(tabControls === rowControls, `${item.code}: standards tab controlCount=${tabControls}, rowControls=${rowControls}`);
+  } else {
+    assert(rowControls >= tabControls, `${item.code}: standards rowControls=${rowControls} is smaller than deduped tab controlCount=${tabControls}`);
+  }
+  if (item.minStandardControls) assert(tabControls >= item.minStandardControls, `${item.code}: standards controlCount=${tabControls}`);
+}
+
+function validateExpectedSecurityWorks(item, data) {
+  const expected = item.expectedSecurityWorkByFocus || {};
+  for (const [focusCode, workTitle] of Object.entries(expected)) {
+    const row = (data.managementMappingRows || []).find((candidate) => candidate?.focus?.code === focusCode);
+    assert(row, `${item.code}: missing management row for ${focusCode}`);
+    const works = (row.securityWorks || []).map(titleOf);
+    assert(works.includes(workTitle), `${item.code}: ${focusCode} missing security work ${workTitle}; actual=${works.join("、")}`);
+  }
+}
+
 function assertParentCoversChild(parent, child, label) {
   for (const key of ["focuses", "technical", "management", "standards"]) {
     assert(parent[key] >= child[key], `${label}: parent ${key}=${parent[key]} is smaller than child ${key}=${child[key]}`);
@@ -132,6 +167,8 @@ function validateProjection(item, data) {
     assert(!data.localRelationMap, `${item.code}: non-focus projection returned localRelationMap`);
     assert(!Array.isArray(data.localRelationMaps) || data.localRelationMaps.length === 0, `${item.code}: non-focus projection returned localRelationMaps`);
   }
+  validateTabCounts(item, data);
+  validateExpectedSecurityWorks(item, data);
 
   for (const [name, value] of Object.entries({ selected, graph, summary: data.summary || {}, tabs: data.tabs || {} })) {
     const forbidden = findForbiddenKey(value);

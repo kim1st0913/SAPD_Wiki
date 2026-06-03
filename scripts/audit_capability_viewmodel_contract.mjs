@@ -9,7 +9,10 @@ const cases = [
   { code: "T", objectType: "capability_category", expectedLocalRelationMapSource: "viewmodel_fallback" },
   { code: "T-AS", objectType: "capability_domain", expectedLocalRelationMapSource: "viewmodel_fallback" },
   { code: "T-AS.AD", objectType: "capability", expectedLocalRelationMapSource: "viewmodel_fallback" },
-  { code: "T-AS.AD-01", objectType: "capability_focus", expectedLocalRelationMapSource: "backend_projection" },
+  { code: "T-AS.AD-01", objectType: "capability_focus", expectedLocalRelationMapSource: "backend_projection", minStandardControls: 1 },
+  { code: "T-PD.PP", objectType: "capability", expectedLocalRelationMapSource: "viewmodel_fallback", expectedSecurityWorkByFocus: { "T-PD.PP-01": "边界防护策略持续管理", "T-PD.PP-02": "边界防护策略持续管理", "T-PD.PP-03": "边界防护策略持续管理" } },
+  { code: "T-PD.PP-02", objectType: "capability_focus", expectedLocalRelationMapSource: "backend_projection", expectedSecurityWorkByFocus: { "T-PD.PP-02": "边界防护策略持续管理" } },
+  { code: "T-PD.PP-03", objectType: "capability_focus", expectedLocalRelationMapSource: "backend_projection", expectedSecurityWorkByFocus: { "T-PD.PP-03": "边界防护策略持续管理" } },
   { code: "T-OF", objectType: "capability_domain", expectedLocalRelationMapSource: "viewmodel_fallback" },
   { code: "T-OF.AT", objectType: "capability", expectedLocalRelationMapSource: "viewmodel_fallback" },
   { code: "T-OF.AT-02", objectType: "capability_focus", expectedLocalRelationMapSource: "backend_projection" },
@@ -58,6 +61,10 @@ function keysMatch(left, right) {
   const leftKeys = [left?.id, left?.code].map(text).filter(Boolean);
   const rightKeys = [right?.id, right?.code].map(text).filter(Boolean);
   return leftKeys.some((key) => rightKeys.includes(key));
+}
+
+function titleOf(item) {
+  return text(item?.title || item?.name || item?.code).trim();
 }
 
 function findForbiddenKey(value, path = "") {
@@ -191,6 +198,17 @@ function validateViewModel(item, target, projection, viewModel, selectedFocusIds
   assert(viewModel.technicalMappingRows.length === projectedTechnicalRows.length, `${item.code}: technical row count ${viewModel.technicalMappingRows.length} != ${projectedTechnicalRows.length}`);
   assert(viewModel.managementMappingRows.length === projectedManagementRows.length, `${item.code}: management row count ${viewModel.managementMappingRows.length} != ${projectedManagementRows.length}`);
   assert(viewModel.standardMappingRows.length === projectedStandardRows.length, `${item.code}: standard row count ${viewModel.standardMappingRows.length} != ${projectedStandardRows.length}`);
+  const projectionStandardControls = projectedStandardRows.reduce((sum, row) => sum + list(row?.controls).length, 0);
+  const viewModelStandardControls = viewModel.standardMappingRows.reduce((sum, row) => sum + list(row?.controls).length, 0);
+  assert(viewModelStandardControls === projectionStandardControls, `${item.code}: standard controls ${viewModelStandardControls} != ${projectionStandardControls}`);
+  if (item.minStandardControls) assert(viewModelStandardControls >= item.minStandardControls, `${item.code}: standard controls ${viewModelStandardControls}`);
+
+  for (const [focusCode, workTitle] of Object.entries(item.expectedSecurityWorkByFocus || {})) {
+    const row = viewModel.managementMappingRows.find((candidate) => candidate?.focus?.code === focusCode);
+    assert(row, `${item.code}: missing management row for ${focusCode}`);
+    const works = list(row.securityWorks).map(titleOf);
+    assert(works.includes(workTitle), `${item.code}: ${focusCode} missing security work ${workTitle}; actual=${works.join("、")}`);
+  }
 
   validateRowsStayInsideSelection(item, viewModel.technicalMappingRows, selectedFocusIds, "technical");
   validateRowsStayInsideSelection(item, viewModel.managementMappingRows, selectedFocusIds, "management");
@@ -205,6 +223,7 @@ function validateViewModel(item, target, projection, viewModel, selectedFocusIds
     technicalRows: viewModel.technicalMappingRows.length,
     managementRows: viewModel.managementMappingRows.length,
     standardRows: viewModel.standardMappingRows.length,
+    standardControls: viewModelStandardControls,
     localRelationMapSource: viewModel.localRelationMapSource,
   };
 }

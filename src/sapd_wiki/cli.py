@@ -434,13 +434,13 @@ def _stage_and_approve_bootstrap_sheet_set(
 def _export_bootstrap_outputs(db_path, latest_import_job_id: str | None) -> None:
     with connect(db_path) as conn:
         export_steps = [
-            export_frontend_workbenches(conn, output_dir=str(FRONTEND_DATA_DIR)),
             export_maintenance_knowledge(conn, output_path="frontend/capability-browser/public/data/maintenance-knowledge.json"),
             export_shared_lookups(conn, output_path="frontend/capability-browser/public/data/shared-lookups.json"),
             export_lifecycle_knowledge(conn, output_path="frontend/capability-browser/public/data/lifecycle-knowledge.json"),
             export_standard_frameworks_data(conn, output_path="frontend/capability-browser/public/data/standards-index.json"),
             export_content_views(conn, output_path="frontend/capability-browser/public/data/content-views.json"),
             export_capability_tree(conn, output_path="frontend/capability-browser/public/data/capability-tree.json"),
+            export_frontend_workbenches(conn, output_dir=str(FRONTEND_DATA_DIR)),
             export_items(conn, fmt="all"),
             export_relations(conn, fmt="all"),
         ]

@@ -1026,6 +1026,7 @@ def parse_security_work_sheet(workbook) -> ParseResult:
     sheet_name = "安全能力-安全工作"
     ws = workbook[sheet_name]
     result = ParseResult()
+    merged_values = _merged_cell_values(ws)
     last_category: tuple[str | None, str] | None = None
     last_domain: tuple[str | None, str] | None = None
     last_capability: tuple[str | None, str] | None = None
@@ -1033,18 +1034,24 @@ def parse_security_work_sheet(workbook) -> ParseResult:
     last_focus_title = ""
 
     for row_index, row in enumerate(ws.iter_rows(min_row=4), start=4):
-        if _cell_text(row, 1):
-            last_category = split_code_title(_cell_raw(row, 1))
-        if _cell_text(row, 2):
-            last_domain = split_code_title(_cell_raw(row, 2))
-        if _cell_text(row, 3):
-            last_capability = split_code_title(_cell_raw(row, 3))
-        if _cell_text(row, 4):
-            last_focus_code = _cell_text(row, 4)
-        if _cell_text(row, 5):
-            last_focus_title = _cell_text(row, 5)
+        category_raw = _cell_raw_with_merged(row, 1, merged_values)
+        domain_raw = _cell_raw_with_merged(row, 2, merged_values)
+        capability_raw = _cell_raw_with_merged(row, 3, merged_values)
+        focus_code_raw = _cell_raw_with_merged(row, 4, merged_values)
+        focus_title_raw = _cell_raw_with_merged(row, 5, merged_values)
+        work_raw = _cell_raw_with_merged(row, 6, merged_values)
+        if normalize_text(category_raw):
+            last_category = split_code_title(category_raw)
+        if normalize_text(domain_raw):
+            last_domain = split_code_title(domain_raw)
+        if normalize_text(capability_raw):
+            last_capability = split_code_title(capability_raw)
+        if normalize_text(focus_code_raw):
+            last_focus_code = normalize_text(focus_code_raw)
+        if normalize_text(focus_title_raw):
+            last_focus_title = normalize_text(focus_title_raw)
 
-        work_title = _cell_text(row, 6)
+        work_title = normalize_text(work_raw)
         if not work_title:
             continue
         if not last_focus_code:
@@ -1067,7 +1074,7 @@ def parse_security_work_sheet(workbook) -> ParseResult:
                 "capability_domain": last_domain[1] if last_domain else None,
                 "capability": last_capability[1] if last_capability else None,
             },
-            source=_source(sheet_name, row_index, "安全工作", _coord(row[6]), _cell_raw(row, 6)),
+            source=_source(sheet_name, row_index, "安全工作", _coord(row[6]), work_raw),
         )
         result.objects.extend([focus, work])
         result.relations.append(_relation(focus.key, "maps_to_work", work.key, "映射安全工作", source=work.sources[0]))

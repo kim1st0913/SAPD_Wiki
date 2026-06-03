@@ -12,6 +12,7 @@
 
 ## 最近完成事项
 
+- 2026-06-03 `OI-132 / EL-024` 第二轮对象级空态可信度治理：优先核查 `T-AS.AD-01` 标准 / 框架映射和用户截图中的 `T-PD.PP` 管理视角；确认 `T-PD.PP-01/02/03` 源表 `安全能力-安全工作!G32:G34` 为合并单元格，修复 `parse_security_work_sheet()` 未继承合并单元格值导致后两条关注点显示 `暂无安全工作` 的问题；同时修复 `bootstrap-local-data` 先导出 workbench 后导出 `capability-tree` 导致对象 UUID 不一致、标准 tab 计数回退为 0 的导出顺序问题。已重建本地数据库和前端数据包，生成数据仍在 Git 忽略边界内。
 - 2026-06-03 `OI-132 / EL-024` 安全能力清单、知识库字典和标准 / 框架加载稳定性第一轮治理：确认 `/api/v1/data-packages/capability` 有能力 / 关注点描述，而 `/api/v1/capabilities/workspace-initial` 是轻量工作台树且缺描述；修复 `capabilityInitial` 覆盖完整 `capability-tree` 的风险，维护页缺必需包时主动自愈加载，标准 / 框架 active tab 未加载完成时显示加载态，不再把暂时空表渲染成真实空数据；扩展懒加载契约审计。未改 ETL、数据库、数据包或业务字段。
 - 2026-06-03 checkpoint 推送：当前 `main` 的 5 个 checkpoint 已推送到 `origin/main`，推送后 `git status --short --branch` 为干净基线；本轮后续改动只来自 `OI-132` 加载治理。
 - 2026-06-03 ArchiMate 建模语言页优化评估：只读评估 `/guides/security-architecture-modeling-language` 当前 PDF 图片化方案，新增 `docs/06-implementation/archimate-modeling-page-optimization-plan.md`，并登记 `OI-133 / EL-025`；建议后续从素材陈列升级为区域导航 + 当前区域阅读器 + SAPD 元素映射说明，并优化为首屏只加载默认区域图。
@@ -20,7 +21,12 @@
 
 ## 最近验证
 
-- `git push origin main`：通过，`main -> origin/main` 已更新到 `f5c6eb2`。
+- `python3 scripts/sapd_wiki.py bootstrap-local-data --profile full --reset`：通过；本地数据库重建后 `knowledge_items=4660`、`knowledge_relations=7654`、`security_work=92`、`maps_to_work=92`，比修复前增加 12 条合并单元格继承出的安全工作关系。
+- `python3 scripts/sapd_wiki.py export-frontend-workbenches`：通过；重新生成与最新 `capability-tree` 对齐的 `capability-workbench.json`，`capability_workbench_relations=6060`。
+- `python3 scripts/audit_capability_management_mappings.py --max-issues 20`：通过，`expected_security_work_focuses=91`、`security_work_issue_count=0`。
+- `node scripts/audit_capability_projection_contract.mjs --url http://127.0.0.1:5173`：通过，覆盖 `T-AS.AD-01` 标准控制项不为 0、`T-PD.PP-01/02/03` 安全工作继承和 L0/L1/L2/关注点对象级契约。
+- `node scripts/audit_capability_viewmodel_contract.mjs --url http://127.0.0.1:5173`：通过；`T-AS.AD-01 standardControls=39`，`T-PD.PP` 三个关注点均带 `边界防护策略持续管理`。
+- 上一轮 `git push origin main`：通过，`OI-132` 第一轮 checkpoint 已同步到远端。
 - `python3` 本地 API 只读检查：确认 `data-packages/capability` 中 `T-AS.AD`、`T-AS.AD-01/02/03` 均有描述；`workspace-initial` 对应轻量树无描述。
 - `node --check frontend/capability-browser/app.js`：通过。
 - `node --check scripts/audit_frontend_lazy_load_contract.mjs`：通过。

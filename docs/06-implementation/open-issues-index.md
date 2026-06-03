@@ -5,9 +5,9 @@
 ## 摘要
 
 - 生成日期：2026-06-01
-- 问题总数：131
-- 当前未关闭问题数：2
-- 已关闭归档问题数：129
+- 问题总数：135
+- 当前未关闭问题数：4
+- 已关闭归档问题数：131
 - 当前入口：`docs/06-implementation/open-issues.md`
 - 已关闭归档：`docs/05-archive/open-issues-history/2026-06.md`
 
@@ -17,10 +17,12 @@
 |---|---:|
 | (空) | 1 |
 | 待确认 | 1 |
+| 待设计 | 1 |
 | 待实现 | 1 |
+| 待治理 | 1 |
 | 业务接受 | 5 |
 | 已回退 | 1 |
-| 已修复 | 122 |
+| 已修复 | 124 |
 | 已修复，后续可继续优化 | 1 |
 
 ## 重复编号
@@ -166,5 +168,9 @@
 | OI-126 | 已修复 | 安全职能清单和参考页补充映射分片加载 / 合并导致映射列长期为 0 | 前端 / 数据映射 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-124 | 已修复 | 知识库字典权威引用全量审计发现作用域与技术措施引用不一致 | 数据契约 / ETL / 数据治理 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-127 | 已修复 | 知识库字典与安全标准 / 框架多分片按需加载契约需全局治理 | 前端 / 数据契约 / 治理 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-129 | 已修复 | 安全能力映射页签切换重置与矩阵滚动不稳定 | 前端 / 交互 / 滚动契约 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-131 | 已修复 | LC-DT 阶段技术模块/措施统计被服务下挂模块膨胀 | 前端 / 数据展示 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-038 | 待确认 | Gartner 与安全职能候选映射需后续人工校对 | 数据 / 需求 | docs/06-implementation/open-issues.md |
 | OI-128 | 待实现 | USER-WRITE-UI-1：收藏 / 备注最小前端入口 | 前端 / 用户数据 / Delivery Bundle | docs/06-implementation/open-issues.md |
+| OI-132 | 待治理 | 安全能力映射页数据加载稳定性与空态可信度治理 | 前端 / 数据契约 / 验证 | docs/06-implementation/open-issues.md |
+| OI-133 | 待设计 | ArchiMate 建模语言页显示效果与加载效率优化 | 前端 / 设计 / 性能 | docs/06-implementation/open-issues.md |

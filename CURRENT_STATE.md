@@ -5,6 +5,7 @@
 ## 当前主线
 
 - 已导入 Sheet 的业务含义复核 + 前端关系展示校正。
+- 用户已明确优先解决“执行线太多 / 子 Agent 不稳定 / 长会话效率下降”问题；后续默认先按 `docs/07-governance/execution-line-convergence-workflow.md` 收敛到单一主控和单一写入主线，再继续新功能。
 - 用户当前临时优先事项：Delivery Bundle 1.0-alpha ZIP 解压即用交付版，用于内部团队快速分发、快速验证、快速反馈。
 - 当前重点不是新增数据源，也不是扩展新模块，而是把已导入数据的业务语义、页面归属和关系展示校正清楚。
 - Frontend Baseline 1.0 已确认作为当前前端对齐工作的基线说明。
@@ -53,6 +54,14 @@ Frontend Baseline 1.0 当前覆盖四页：
 - ViewModel 只能做展示层整理，不承担业务事实生成、关系推断、评分和客户评估结论。
 
 ## 当前下一步
+
+当前先进入执行线收敛 P0：验收 dirty worktree、同步治理入口、明确 checkpoint，再继续前端、数据或 Delivery Bundle 功能线。不要在 dirty diff 未验收前启动新的并行写入任务。
+
+当前多任务、模块线程和实际 Codex thread id 追踪入口为 `docs/07-governance/current-execution-lines.md`。暂停任务前必须先登记状态、证据、恢复条件和下一步；已有模块线程必须映射到 `EL-xxx` 执行线，避免多会话收敛后丢失任务线。当前已盘点 18 个 cwd 属于本工程的 Codex 线程；`archimate建模` 已进入 idle / 待验收状态，后续页面效果与加载优化走 `OI-133 / EL-025`；`数据安全页面1` 仍显示为运行中线程，主控只做 fan-in，不默认停止或抢写同一范围。长会话需要换新会话时，按 `docs/07-governance/execution-line-convergence-workflow.md` 的“长会话轮换协议”执行。
+
+安全能力映射页数据加载反复回退已登记为 `OI-132 / EL-024`。后续继续修改安全能力页前，必须先做数据加载稳定性治理：区分真实空数据、workspace-view 未加载、projection fallback、完整 workbench fallback、对象 mismatch 和重渲染缺失；不得再用局部空态文案或组件补丁替代加载契约治理。
+
+ArchiMate 建模语言页显示效果和加载效率已登记为 `OI-133 / EL-025`。当前页面已完成 PDF 图片化和区域阅读初版，但后续应先按 `docs/06-implementation/archimate-modeling-page-optimization-plan.md` 确认页面职责、区域导航、首屏图片加载策略和 SAPD 元素图例映射说明，再进入前端实现。
 
 本轮临时优先支持 Delivery Bundle 1.0-alpha：第一优先级是分平台 `.zip` 解压即用版，不先做正式安装包或 Tauri 壳。正式设计入口为 `docs/09-delivery/zip-bundle-1.0-alpha-design.md`；当前 ZIP-UAT-0 已完成 macOS arm64 内部试发准备，alpha 试发材料已固定到 `/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle/dist/releases/0.1.0-alpha/`，包含 macOS ZIP、checksum、release manifest、README、UAT checklist 和反馈模板。Windows 构建脚本和验收清单已就绪，但 Windows 原生 `SAPD-Wiki-Backend.exe` 仍需 Windows x64 环境实测；release manifest 中 Windows 保持 `pending / not_verified`。
 

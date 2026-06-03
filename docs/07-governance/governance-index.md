@@ -20,6 +20,8 @@
 | `docs/07-governance/capability-mapping-change-control.md` | 安全能力映射页变更分级、暂停条件、验证门槛和前端治理审计入口 |
 | `docs/03-import-etl/github-local-data-initialization.md` | 从 GitHub 拉取代码后的本地文件放置、一键数据初始化和生成数据不同步说明 |
 | `docs/07-governance/codex-performance-workflow.md` | Codex 轻量开发、验证摘要、重连减负和用户短指令默认执行规则 |
+| `docs/07-governance/execution-line-convergence-workflow.md` | 多会话 / 子 Agent 不稳定后的执行线收敛规则：单一主控、单一写入主线、dirty diff 优先验收和 checkpoint |
+| `docs/07-governance/current-execution-lines.md` | 当前已展开任务线和模块线程映射台账，用于暂停但不丢失任务，记录状态、证据、恢复条件、写入权限和下一步 |
 | `docs/06-implementation/open-issues.md` | 当前未关闭 bug、数据问题、页面问题和待确认事项的维护入口 |
 | `docs/06-implementation/open-issues-index.md` | Open Issues 全量索引，定位当前问题和历史归档问题 |
 | `docs/05-archive/open-issues-history/2026-06.md` | 已关闭 Open Issues 历史长记录归档 |
@@ -31,6 +33,7 @@
 
 当前立即执行：
 
+- 执行线收敛：当前优先解决多会话并行、长会话变慢和子 Agent fan-in 不稳定导致的主线漂移；默认采用单一主控、单一写入主线和 dirty diff 优先验收。
 - 数据治理规则集中化。
 - GitHub 只同步代码 / 文档 / 配置模板 / 脱敏 fixture，原始数据和生成数据通过本地初始化脚本重建。
 - 前端离线数据包按页面契约拆分，禁止恢复大一统业务 JSON。

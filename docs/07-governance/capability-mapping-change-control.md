@@ -8,6 +8,7 @@
 
 - 工程 review：`docs/06-implementation/project-blocker-review-2026-05-30.md`
 - 统一问题项：`docs/06-implementation/open-issues.md` 中 `OI-122`
+- 数据加载专项问题项：`docs/06-implementation/open-issues.md` 中 `OI-132`
 - 审计脚本：`node scripts/audit_frontend_governance.mjs`
 - 对象一致性审计：`node scripts/audit_capability_viewmodel_contract.mjs --url http://127.0.0.1:5173`
 - 基线配置：`config/frontend-governance-baseline.json`
@@ -34,10 +35,40 @@
 ## 后续治理顺序
 
 1. 先让安全能力映射页有唯一对象级页面契约，避免完整 workbench、projection 和 fallback 三套来源混用。
-2. 再拆 `renderCapabilities()`，把选择、加载、ViewModel、渲染分离。
-3. 然后统一三视角矩阵 shell，删除或标记 legacy renderer。
-4. 再拆 CSS token / table / chip / capability-map 边界。
-5. 最后单独治理图谱布局，并建立截图或 DOM / SVG 验收基线。
+2. 对数据加载建立可观测状态，先证明当前对象、数据源、tab rows 和空态原因一致，再改 UI。
+3. 再拆 `renderCapabilities()`，把选择、加载、ViewModel、渲染分离。
+4. 然后统一三视角矩阵 shell，删除或标记 legacy renderer。
+5. 再拆 CSS token / table / chip / capability-map 边界。
+6. 最后单独治理图谱布局，并建立截图或 DOM / SVG 验收基线。
+
+## 数据加载稳定性治理
+
+`OI-132` 之前，安全能力映射页不能再用“看到空态就改空态文案”的方式修问题。任何涉及数据加载、对象级 projection、fallback、tab rows 或空态判断的修改，都必须先回答以下问题：
+
+- 当前左侧选中对象的 `id / type / code` 是什么。
+- `workspace-view.selected`、`workspace-view.graph.center`、ViewModel 的 `selectedCapability` 是否为同一个对象。
+- 当前使用的数据源是 `workspace-view`、`workspace-projection`、`capability-workbench.json` 还是 legacy fallback。
+- 四个 tab 的行数分别来自哪里：`technicalMappingRows`、`managementMappingRows`、`standardMappingRows`、`localRelationMap`。
+- 空态原因是 `真实无数据`、`正在加载`、`API 不可用`、`fallback 使用中`、`对象不匹配` 还是 `渲染未重触发`。
+
+安全能力页的数据加载状态至少要能区分：
+
+| 状态 | 含义 | 页面 / 审计要求 |
+|---|---|---|
+| `ready` | 当前对象数据源完整且对象一致 | 可以显示业务矩阵或真实空态 |
+| `loading_object_view` | 正在加载对象级 workspace-view | 不渲染为真实空态 |
+| `fallback_projection` | workspace-view 不可用，使用旧 projection | 必须在审计中记录，不得静默当作正式数据 |
+| `fallback_workbench` | 需要完整 workbench 才能展示 L0 / L1 / L2 | 必须等待或显示加载中，不得提前显示空矩阵 |
+| `object_mismatch` | 返回对象与当前选择不一致 | 丢弃并记录，不得渲染 |
+| `empty_confirmed` | 后端或数据包明确表示当前对象无该 tab 数据 | 可以显示“暂无”类真实空态 |
+
+回归门槛：
+
+- 对 `capability_category`、`capability_domain`、`capability`、`capability_focus` 四类对象分别请求 workspace-view。
+- 断言 `selected`、`graph.center`、左侧选中对象、右侧标题和 `localRelationMap.focus` 一致。
+- 断言技术、管理、标准 / 框架 tab 都有可解释的数据来源和空态原因。
+- 断言加载完成后触发当前页重渲染，并保留当前 tab。
+- 截图中的 `T-AS.AD-01` 这类复现对象必须纳入回归样例，先确认源数据是否应有标准 / 框架控制项。
 
 ## 审计脚本口径
 

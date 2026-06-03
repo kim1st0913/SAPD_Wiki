@@ -38,6 +38,44 @@
       .join("");
   }
 
+  function ownershipParts(item) {
+    const raw = displayValue(item, "待补充安全能力 / 关注点");
+    const parts = raw.split(/\s+\/\s+/).map((part) => part.trim()).filter(Boolean);
+    return {
+      raw,
+      capability: parts[0] || raw,
+      focus: parts.slice(1).join(" / "),
+    };
+  }
+
+  function ownershipList(items, empty = "待补充安全能力 / 关注点") {
+    const rows = utils.list(items).filter(Boolean);
+    if (!rows.length) return `<span class="empty-inline">${utils.escapeHtml(empty)}</span>`;
+    return `<div class="service-ownership-list">
+      ${rows
+        .map((item) => {
+          const parts = ownershipParts(item);
+          return `
+            <div class="service-ownership-path" title="${utils.escapeHtml(parts.raw)}" data-copy-text="${utils.escapeHtml(parts.raw)}">
+              <span class="service-ownership-line">
+                <em>安全能力</em>
+                <strong>${utils.escapeHtml(parts.capability)}</strong>
+              </span>
+              ${
+                parts.focus
+                  ? `<span class="service-ownership-line">
+                      <em>关注点</em>
+                      <strong>${utils.escapeHtml(parts.focus)}</strong>
+                    </span>`
+                  : ""
+              }
+            </div>
+          `;
+        })
+        .join("")}
+    </div>`;
+  }
+
   function readTableState() {
     try {
       return JSON.parse(window.localStorage?.getItem(TABLE_STATE_KEY) || "{}") || {};
@@ -80,7 +118,7 @@
         <td>
           <strong>${utils.escapeHtml(displayValue(row.serviceLabel))}</strong>
         </td>
-        <td>${chipList(row.ownershipFocuses, "待补充安全能力 / 关注点", "能力关注点")}</td>
+        <td>${ownershipList(row.ownershipFocuses, "待补充安全能力 / 关注点")}</td>
         <td>${chipList(row.linkedModuleMeasures, display.state?.("no_module_or_measure") || "/", "", true)}</td>
         <td>${chipList(row.linkedSystems, "待补充安全系统", "安全系统")}</td>
         <td>${chipList(row.linkedEnvironments, "待补充信息化环境", "信息化环境")}</td>

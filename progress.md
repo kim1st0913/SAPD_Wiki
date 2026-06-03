@@ -12,6 +12,7 @@
 
 ## 最近完成事项
 
+- 2026-06-03 用户截图反馈修正：安全技术服务清单 `归属安全能力 / 关注点` 列从绿色关系胶囊改为低噪声归属路径块，分行展示 `安全能力` 与 `关注点`，完整换行并可选择复制；同步把该展示类别补入全局设计基线和展示原则。`OI-128A` 文案从“收藏 / 取消收藏 / 备注 / 保存备注并收藏”调整为“加入关注清单 / 移出关注清单 / 收藏备注 / 保存收藏备注”，并在设计文档中明确收藏不等于业务确认，正式 Office 式批注进入 V1B 独立 `user_notes`。
 - 2026-06-03 `OI-128A` 用户写入最小入口：新增 `docs/06-implementation/user-workspace-v1-to-v4-design.md`，固定用户自定义工作区 V1-V4 的 UI、数据表、API、页面入口、阶段路线和验收标准；补齐开发 API 与 ZIP runtime 的 `GET/POST/DELETE /api/v1/user/favorites`；安全能力映射页对象详情区新增收藏 / 轻备注入口，收藏事实来自 `sapd_wiki_user.sqlite3`，API 不可用时显示禁用态。
 - 2026-06-03 `OI-132 / EL-024` 第三轮页面级展示基准治理并关闭：按用户截图修复安全能力映射管理视角主关系矩阵里安全职能 chip 被省略号截断的问题；`FocusManagementMapping.js` 为关系对象写入完整文本 `title` / `data-copy-text`，`styles.css` 将管理矩阵关系 chip 改为完整换行显示并可选择复制；同步更新前端展示基准和新增 `audit_frontend_display_contract.mjs`；真实 Chrome 回归确认管理视角 chip `truncated=false`、`copyable=true`，`OI-132` 关闭。
 - 2026-06-03 `OI-132 / EL-024` 第二轮对象级空态可信度治理：优先核查 `T-AS.AD-01` 标准 / 框架映射和用户截图中的 `T-PD.PP` 管理视角；确认 `T-PD.PP-01/02/03` 源表 `安全能力-安全工作!G32:G34` 为合并单元格，修复 `parse_security_work_sheet()` 未继承合并单元格值导致后两条关注点显示 `暂无安全工作` 的问题；同时修复 `bootstrap-local-data` 先导出 workbench 后导出 `capability-tree` 导致对象 UUID 不一致、标准 tab 计数回退为 0 的导出顺序问题。已重建本地数据库和前端数据包，生成数据仍在 Git 忽略边界内。
@@ -26,10 +27,12 @@
 - `node --check frontend/capability-browser/dataClient.js`：通过。
 - `node --check frontend/capability-browser/app.js`：通过。
 - `node --check frontend/capability-browser/components/UserObjectActions.js`：通过。
+- `node --check frontend/capability-browser/components/TechnicalServiceMaintenanceTable.js`：通过。
 - `python3 -m py_compile src/sapd_wiki/api_server.py scripts/run_local_server.py`：通过。
 - `python3 scripts/dev_server_guard.py --restart`：通过，固定 `5173` 重启，home 和 workspace projection 均正常。
 - `node -e ...` 本地 API 写入闭环：提升本地回环网络权限后通过，`POST /api/v1/user/favorites` 写入 smoke 收藏，`GET` 读到，`DELETE` 删除后列表消失。
 - `node scripts/frontend_smoke_check.mjs --page capability --url http://127.0.0.1:5173`：通过，未启动系统 Chrome。
+- `node scripts/frontend_smoke_check.mjs --page maintenance --route /knowledge/technical-services --url http://127.0.0.1:5173`：通过，未启动系统 Chrome。
 - `node scripts/audit_frontend_display_contract.mjs`：通过，确认管理视角 chip 完整显示 / 可复制基准未被本轮样式影响。
 - `node --check frontend/capability-browser/components/FocusManagementMapping.js`：通过。
 - `node --check scripts/audit_frontend_display_contract.mjs`：通过。

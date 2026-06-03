@@ -12,6 +12,7 @@
 
 ## 最近完成事项
 
+- 2026-06-03 `OI-128B` 跨页面用户动作入口：复用 `UserObjectActions` 到知识库字典、安全标准 / 框架和安全指南页面；知识库字典绑定当前选中对象，标准页优先绑定当前标准控制项，安全指南绑定当前指南内容或专用指南路由；保存 / 删除 / 备注后按当前页面重渲染，不再固定回到安全能力页。同步增强 `frontend_smoke_check.mjs`，支持 `--maintenance-search` 展开服务清单、`--screenshot-name` 保存独立截图、`--expect-user-actions` 断言用户动作组件存在。
 - 2026-06-03 安全技术服务清单列宽与 `T-AD.SA` 权威名称修订：适当扩大 `归属安全能力 / 关注点` 列，压缩相邻关联列，避免归属路径过早换行；导出层新增 `T-AD.SA` 能力对象权威标题 `态势感知能力`，重新导出能力树、维护知识包和前端工作台包；新增并关闭归档 `OI-134`，服务名 `ALL&T-AD.SA-03 态势感知` 保持不变。
 - 2026-06-03 用户截图反馈修正：安全技术服务清单 `归属安全能力 / 关注点` 列从绿色关系胶囊改为低噪声归属路径块，分行展示 `安全能力` 与 `关注点`，完整换行并可选择复制；同步把该展示类别补入全局设计基线和展示原则。`OI-128A` 文案从“收藏 / 取消收藏 / 备注 / 保存备注并收藏”调整为“加入关注清单 / 移出关注清单 / 收藏备注 / 保存收藏备注”，并在设计文档中明确收藏不等于业务确认，正式 Office 式批注进入 V1B 独立 `user_notes`。
 - 2026-06-03 `OI-128A` 用户写入最小入口：新增 `docs/06-implementation/user-workspace-v1-to-v4-design.md`，固定用户自定义工作区 V1-V4 的 UI、数据表、API、页面入口、阶段路线和验收标准；补齐开发 API 与 ZIP runtime 的 `GET/POST/DELETE /api/v1/user/favorites`；安全能力映射页对象详情区新增收藏 / 轻备注入口，收藏事实来自 `sapd_wiki_user.sqlite3`，API 不可用时显示禁用态。
@@ -25,6 +26,13 @@
 
 ## 最近验证
 
+- `node --check frontend/capability-browser/app.js`：通过。
+- `node --check scripts/frontend_smoke_check.mjs`：通过。
+- `python3 scripts/dev_server_guard.py --status`：通过，固定 `5173` 只有一个项目服务进程。
+- `node scripts/frontend_smoke_check.mjs --page maintenance --route /knowledge/technical-services --url http://127.0.0.1:5173 --allow-system-chrome --debug-port 9381 --width 2048 --height 1300 --maintenance-search I-US --screenshot-name technical-services-expanded --expect-user-actions`：真实 Chrome 回归通过，`technicalServiceOwnershipProbe.pathCount=14`、`truncated=false`、`copyable=true`、`userObjectActionsProbe.count=1`、`consoleIssues=0`。
+- `node scripts/frontend_smoke_check.mjs --page maintenance --route /knowledge/capabilities --url http://127.0.0.1:5173 --allow-system-chrome --debug-port 9382 --width 2048 --height 1300 --screenshot-name capabilities-user-actions --expect-user-actions`：真实 Chrome 回归通过，`userObjectActionsProbe.count=1`、`consoleIssues=0`。
+- `node scripts/frontend_smoke_check.mjs --page standards --route /standards/mlps-level-3 --url http://127.0.0.1:5173 --allow-system-chrome --debug-port 9383 --width 2048 --height 1300 --screenshot-name standards-user-actions --expect-user-actions`：真实 Chrome 回归通过，`standardTable=true`、`userObjectActionsProbe.count=1`、`consoleIssues=0`。
+- `node scripts/frontend_smoke_check.mjs --page content --route /guides/security-architecture-modeling-language --url http://127.0.0.1:5173 --allow-system-chrome --debug-port 9384 --width 2048 --height 1300 --screenshot-name guide-user-actions --expect-user-actions`：真实 Chrome 回归通过，`userObjectActionsProbe.count=1`、`consoleIssues=0`。
 - `python3 -m py_compile src/sapd_wiki/exports.py`：通过。
 - `python3 scripts/sapd_wiki.py export-capability-tree`：通过，`capabilities=32`、`focuses=91`、`services=158`。
 - `python3 scripts/sapd_wiki.py export-maintenance-knowledge`：通过，`security_technical_services=158`。

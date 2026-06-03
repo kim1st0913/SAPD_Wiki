@@ -626,20 +626,159 @@ function capabilityUserObjectLabel(type) {
   return labels[type] || "能力对象";
 }
 
+function buildBaseUserTarget({ objectType, objectLabel, id, code, title }) {
+  const normalizedType = text(objectType || "object").trim();
+  const stableKey = text(code || id).trim();
+  if (!normalizedType || !stableKey) return null;
+  return {
+    targetRef: `base:${normalizedType}:${stableKey}`,
+    objectType: normalizedType,
+    objectLabel: objectLabel || "业务对象",
+    id: id || stableKey,
+    code: text(code),
+    title: text(title || code || id || stableKey),
+  };
+}
+
 function capabilityUserTarget(viewModel) {
   const selected = viewModel?.selectedCapability || capabilityItemById(state.selectedCapabilityId);
   if (!selected?.id) return null;
   const objectType = selected.type || capabilityItemTypeById(selected.id) || "capability_object";
-  const stableKey = text(selected.code || selected.id).trim();
-  if (!stableKey) return null;
-  return {
-    targetRef: `base:${objectType}:${stableKey}`,
+  return buildBaseUserTarget({
     objectType,
     objectLabel: capabilityUserObjectLabel(objectType),
     id: selected.id,
-    code: text(selected.code),
+    code: selected.code,
     title: codeTitle(selected, "未命名能力对象"),
+  });
+}
+
+function maintenanceUserObjectLabel(section, row) {
+  const labels = {
+    "capability-directory": row?.level === "L2" ? "安全能力" : "能力关注点",
+    scopes: "安全能力作用域",
+    services: "安全技术服务",
+    modules: "安全技术模块",
+    measures: "安全技术措施",
+    "security-works": "安全工作",
+    processes: "安全流程",
+    "work-functions": "安全职能",
+    references: row?.referenceType || "岗位 / 职能参考",
+    "application-systems": "应用系统",
+    "lcap-references": "LC-AP 参考对象",
+    standards: "标准控制项",
   };
+  return labels[section] || "知识库对象";
+}
+
+function maintenanceUserObjectType(section, row) {
+  if (section === "capability-directory") return row?.level === "L2" ? "capability" : "capability_focus";
+  const types = {
+    scopes: "scope_type",
+    services: "security_technical_service",
+    modules: "security_technology_module",
+    measures: "security_technical_measure",
+    "security-works": "security_work",
+    processes: "process_reference",
+    "work-functions": "work_function",
+    references: row?.referenceKind === "role" ? "work_role_reference" : "gbt_42446_task_reference",
+    "application-systems": "application_system_type",
+    "lcap-references": "lifecycle_reference",
+    standards: "standard_control",
+  };
+  return types[section] || "knowledge_object";
+}
+
+function maintenanceRowCode(row = {}, section = "") {
+  if (section === "standards") {
+    const values = row.values || {};
+    return values["保护措施编号"] || values["控制ID"] || values["控制项ID"] || values["ID"] || row.id;
+  }
+  return row.code || row.displayCode || row.serviceCode || row.id;
+}
+
+function maintenanceRowTitle(row = {}, section = "") {
+  if (section === "standards") {
+    const values = row.values || {};
+    return values["名称"] || values["控制名称"] || values["等保三级控制要求"] || values["描述"] || maintenanceRowCode(row, section);
+  }
+  return row.serviceLabel || row.processReference || row.title || row.name || row.description || maintenanceRowCode(row, section);
+}
+
+function maintenanceUserTarget(viewModel) {
+  if (!viewModel) return null;
+  if (viewModel.section === "standards") {
+    const row = list(viewModel.rows).find((item) => item.id === viewModel.selectedId);
+    if (row) {
+      return buildBaseUserTarget({
+        objectType: "standard_control",
+        objectLabel: "标准控制项",
+        id: row.id,
+        code: maintenanceRowCode(row, "standards"),
+        title: maintenanceRowTitle(row, "standards"),
+      });
+    }
+    return buildBaseUserTarget({
+      objectType: "standard_framework",
+      objectLabel: "标准 / 框架",
+      id: viewModel.activeFrameworkId,
+      code: viewModel.activeFrameworkId,
+      title: viewModel.activeFrameworkTitle || "标准 / 框架",
+    });
+  }
+  const row = list(viewModel.rows).find((item) => item.id === viewModel.selectedId);
+  if (!row) return null;
+  return buildBaseUserTarget({
+    objectType: maintenanceUserObjectType(viewModel.section, row),
+    objectLabel: maintenanceUserObjectLabel(viewModel.section, row),
+    id: row.id,
+    code: maintenanceRowCode(row, viewModel.section),
+    title: maintenanceRowTitle(row, viewModel.section),
+  });
+}
+
+function contentUserTarget(selected, routeInfo = {}) {
+  if (selected) {
+    return buildBaseUserTarget({
+      objectType: "security_guide",
+      objectLabel: "安全指南",
+      id: selected.id,
+      code: selected.route || selected.id,
+      title: selected.title || selected.route || selected.id,
+    });
+  }
+  if (state.activeRoute.startsWith("/guides/")) {
+    const item = routeInfo.item || {};
+    return buildBaseUserTarget({
+      objectType: "security_guide",
+      objectLabel: "安全指南",
+      id: state.activeRoute,
+      code: state.activeRoute,
+      title: item.label || routeInfo.description || state.activeRoute,
+    });
+  }
+  return null;
+}
+
+function renderUserObjectActions(target, components = window.sapdComponents || {}) {
+  return components.UserObjectActions?.render?.({
+    target,
+    favorite: favoriteForTarget(target?.targetRef),
+    status: state.userWriteStatus,
+    noteOpen: state.activeUserNoteTargetRef === target?.targetRef,
+  }) || "";
+}
+
+function renderActiveUserActionScope() {
+  if (state.activeView === "maintenance") {
+    renderMaintenance();
+    return;
+  }
+  if (state.activeView === "content") {
+    renderContent();
+    return;
+  }
+  renderCapabilities();
 }
 
 function refreshUserFavoritesMap() {
@@ -672,7 +811,7 @@ function ensureUserFavoritesLoaded() {
     })
     .finally(() => {
       state.userFavoriteLoadPromise = null;
-      if (state.activeView === "capabilities") renderCapabilities();
+      if (["capabilities", "maintenance", "content"].includes(state.activeView)) renderActiveUserActionScope();
     });
   return state.userFavoriteLoadPromise;
 }
@@ -700,7 +839,7 @@ async function handleFavoriteToggle(targetRef) {
   if (!targetRef || !dataClient?.upsertUserFavorite) return;
   const existing = favoriteForTarget(targetRef);
   state.userWriteStatus = { state: "ready", savingTargetRef: targetRef };
-  renderCapabilities();
+  renderActiveUserActionScope();
   try {
     if (existing) {
       const envelope = await dataClient.deleteUserFavorite(targetRef);
@@ -717,7 +856,7 @@ async function handleFavoriteToggle(targetRef) {
     console.warn("用户收藏写入失败", error);
     state.userWriteStatus = { state: "api_error", savingTargetRef: "" };
   }
-  renderCapabilities();
+  renderActiveUserActionScope();
 }
 
 async function handleFavoriteNoteSave(targetRef) {
@@ -727,7 +866,7 @@ async function handleFavoriteNoteSave(targetRef) {
   const input = document.querySelector(`[data-user-note-input="${escapedTargetRef}"]`);
   const note = input?.value || "";
   state.userWriteStatus = { state: "ready", savingTargetRef: targetRef };
-  renderCapabilities();
+  renderActiveUserActionScope();
   try {
     const envelope = await dataClient.upsertUserFavorite({ target_ref: targetRef, note });
     if (envelope?.data?.ok === false) throw new Error(envelope.data.error || "save note failed");
@@ -737,7 +876,28 @@ async function handleFavoriteNoteSave(targetRef) {
     console.warn("用户备注保存失败", error);
     state.userWriteStatus = { state: "api_error", savingTargetRef: "" };
   }
-  renderCapabilities();
+  renderActiveUserActionScope();
+}
+
+function handleUserObjectActionClick(event) {
+  const favoriteButton = event.target.closest("[data-user-favorite-toggle]");
+  if (favoriteButton) {
+    handleFavoriteToggle(favoriteButton.dataset.userFavoriteToggle);
+    return true;
+  }
+  const noteButton = event.target.closest("[data-user-note-toggle]");
+  if (noteButton) {
+    const targetRef = noteButton.dataset.userNoteToggle;
+    state.activeUserNoteTargetRef = state.activeUserNoteTargetRef === targetRef ? "" : targetRef;
+    renderActiveUserActionScope();
+    return true;
+  }
+  const noteSave = event.target.closest("[data-user-note-save]");
+  if (noteSave) {
+    handleFavoriteNoteSave(noteSave.dataset.userNoteSave);
+    return true;
+  }
+  return false;
 }
 
 function mergeSharedLookups(payload) {
@@ -1682,6 +1842,7 @@ function renderModelingLanguageOverviewPanel() {
 }
 
 function renderModelingLanguageGuide(routeInfo = {}) {
+  ensureUserFavoritesLoaded();
   const workspace = $("contentWorkspace");
   const detailPane = document.querySelector(".content-detail-pane");
   workspace?.classList.remove("guide-slide-layout");
@@ -1712,6 +1873,7 @@ function renderModelingLanguageGuide(routeInfo = {}) {
     `,
   ).join("");
   const routeItem = routeInfo.item || {};
+  const userActions = renderUserObjectActions(contentUserTarget(null, routeInfo));
   setText("contentNavTitle", "");
   setHtml("contentNavList", "");
   setText("contentPageTitle", routeItem.label || "安全架构建模语言");
@@ -1729,6 +1891,7 @@ function renderModelingLanguageGuide(routeInfo = {}) {
             ${tabs}
           </div>
         </header>
+        ${userActions ? `<div class="guide-user-action-slot">${userActions}</div>` : ""}
         <div class="modeling-language-guide-body" role="tabpanel">
           ${tabPanels[activeTab]}
         </div>
@@ -2517,12 +2680,7 @@ function renderCapabilityPendingDetail(loadState) {
 
 function renderCapabilityDetail(components, viewModel) {
   const userTarget = capabilityUserTarget(viewModel);
-  const userActions = components.UserObjectActions?.render?.({
-    target: userTarget,
-    favorite: favoriteForTarget(userTarget?.targetRef),
-    status: state.userWriteStatus,
-    noteOpen: state.activeUserNoteTargetRef === userTarget?.targetRef,
-  });
+  const userActions = renderUserObjectActions(userTarget, components);
   setHtml(
     "capabilityFocusHeader",
     `${userActions || ""}${components.CapabilityLocalRelationMap?.renderFocusStrip?.(viewModel.localRelationMap, viewModel.focusOverview) || ""}`,
@@ -2774,6 +2932,7 @@ function renderMaintenance() {
   const viewModels = window.sapdViewModels;
   const components = window.sapdComponents || {};
   const dataClient = window.sapdDataClient;
+  ensureUserFavoritesLoaded();
   if (state.activeMaintenancePage === "standards" && !state.loadedPackages.has("standards")) {
     setText("sourcePageTitle", "标准 / 框架");
     setText("sourcePageCount", 0);
@@ -2965,10 +3124,12 @@ function renderMaintenance() {
         search: state.search,
       }) || tableHtml;
   }
+  const userActions = renderUserObjectActions(maintenanceUserTarget(viewModel), components);
   setHtml(
     "sourceList",
     `
       ${standardsMode ? "" : components.MaintenanceShell?.render({ viewModel }) || ""}
+      ${userActions ? `<div class="maintenance-user-action-slot">${userActions}</div>` : ""}
       ${tableHtml || ""}
       ${knowledgeDirectoryMode && viewModel.rows.length ? `<div class="maintenance-table-endcap">已显示全部 ${escapeHtml(viewModel.rows.length)} 条记录</div>` : ""}
     `,
@@ -3161,6 +3322,7 @@ function beginRelationshipColumnResize(event, handle) {
 }
 
 function renderContent() {
+  ensureUserFavoritesLoaded();
   const navList = $("contentNavList");
   const previousThumbScrollTop = navList?.scrollTop || 0;
   const routeInfo = window.sapdComponents?.AppShell?.getRouteInfo?.(state.activeRoute) || {};
@@ -3227,11 +3389,14 @@ function renderContent() {
   );
   setHtml(
     "contentList",
-    isSlideDeck
-      ? renderSlideDeck(selected)
+    `${renderUserObjectActions(contentUserTarget(selected, routeInfo))}
+    ${
+      isSlideDeck
+        ? renderSlideDeck(selected)
       : isSpecificGuideRoute && !rows.length
         ? emptyState(routeItem.label || "暂无指南内容", routeInfo.description || "当前二级页面已预留，尚未绑定数据包。")
-      : rows.map((row) => `<button class="catalog-row ${row.id === state.selectedContentId ? "active" : ""}" type="button" data-content-id="${escapeHtml(row.id)}"><span class="catalog-main"><strong>${escapeHtml(row.title || "未命名内容")}</strong><small>${escapeHtml(row.view_type || row.category || "")}</small></span><span class="catalog-meta"><span>${escapeHtml(row.slide_number || row.page_index || row.updated_at || "")}</span></span></button>`).join("") || emptyState("暂无内容视图", "HTML / Draw.io / PPT 已预留入口"),
+      : rows.map((row) => `<button class="catalog-row ${row.id === state.selectedContentId ? "active" : ""}" type="button" data-content-id="${escapeHtml(row.id)}"><span class="catalog-main"><strong>${escapeHtml(row.title || "未命名内容")}</strong><small>${escapeHtml(row.view_type || row.category || "")}</small></span><span class="catalog-meta"><span>${escapeHtml(row.slide_number || row.page_index || row.updated_at || "")}</span></span></button>`).join("") || emptyState("暂无内容视图", "HTML / Draw.io / PPT 已预留入口")
+    }`,
   );
   if (isSlideDeck) {
     requestAnimationFrame(() => {
@@ -3382,22 +3547,9 @@ function bindEvents() {
   state.selectedCapabilityId = row.dataset.capabilityId;
   if (capabilityItemTypeById(state.selectedCapabilityId) === "capability_focus") ensureCapabilityProjectionForFocus(state.selectedCapabilityId);
   renderCapabilities();
-});
+  });
   $("capabilityFocusHeader")?.addEventListener("click", (event) => {
-    const favoriteButton = event.target.closest("[data-user-favorite-toggle]");
-    if (favoriteButton) {
-      handleFavoriteToggle(favoriteButton.dataset.userFavoriteToggle);
-      return;
-    }
-    const noteButton = event.target.closest("[data-user-note-toggle]");
-    if (noteButton) {
-      const targetRef = noteButton.dataset.userNoteToggle;
-      state.activeUserNoteTargetRef = state.activeUserNoteTargetRef === targetRef ? "" : targetRef;
-      renderCapabilities();
-      return;
-    }
-    const noteSave = event.target.closest("[data-user-note-save]");
-    if (noteSave) handleFavoriteNoteSave(noteSave.dataset.userNoteSave);
+    handleUserObjectActionClick(event);
   });
   $("detail")?.addEventListener("change", (event) => {
     const tab = event.target.closest(".relation-view-radio");
@@ -3509,6 +3661,7 @@ function bindEvents() {
     updateApplicationShellChrome();
   });
   $("sourceList")?.addEventListener("click", (event) => {
+    if (handleUserObjectActionClick(event)) return;
     const tab = event.target.closest("[data-reference-tab]");
     if (tab && !tab.dataset.sourcePage) {
       state.activeReferenceTab = tab.dataset.referenceTab;
@@ -3553,6 +3706,7 @@ function bindEvents() {
     button.addEventListener("click", () => {});
   });
   document.addEventListener("click", (event) => {
+    if (event.target.closest("#contentWorkspace .user-object-actions") && handleUserObjectActionClick(event)) return;
     if (event.target.closest("#toggleCapabilityCatalog, #expandCapabilityCatalogTab")) {
       state.capabilityCatalogCollapsed = !state.capabilityCatalogCollapsed;
       applyCapabilityCatalogState();

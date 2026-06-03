@@ -176,6 +176,9 @@ async function main() {
   const chromePath = argValue("--chrome", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome");
   const allowSystemChrome = hasFlag("--allow-system-chrome") || process.env.SAPD_ALLOW_SYSTEM_CHROME_SMOKE === "1";
   const workspaceStateJson = argValue("--workspace-state-json", "");
+  const maintenanceSearch = argValue("--maintenance-search", "");
+  const screenshotName = argValue("--screenshot-name", pageName);
+  const expectUserActions = hasFlag("--expect-user-actions");
   const guideExpectation = GUIDE_ROUTE_EXPECTATIONS[route] || null;
   const expectedGuidePage21 = guideExpectation ? `第 21 / ${guideExpectation.thumbs} 页` : "";
   const expectedGuidePage22 = guideExpectation ? `第 22 / ${guideExpectation.thumbs} 页` : "";
@@ -379,6 +382,32 @@ async function main() {
         })()`);
       }
     }
+    if (maintenanceSearch) {
+      await evaluate(`(async () => {
+        const search = ${JSON.stringify(maintenanceSearch)};
+        const waitFrame = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        for (let i = 0; i < 30; i += 1) {
+          const input = [...document.querySelectorAll('input')]
+            .find((item) => /搜索/.test(item.getAttribute('placeholder') || '') && item.offsetParent !== null);
+          if (input) {
+            input.focus();
+            input.value = search;
+            input.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: search }));
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+            await waitFrame();
+            window.__sapdMaintenanceSearchProbe = {
+              search,
+              placeholder: input.getAttribute('placeholder') || '',
+              value: input.value
+            };
+            return true;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+        window.__sapdMaintenanceSearchProbe = { search, missingInput: true };
+        return false;
+      })()`, true);
+    }
     await sleep(800);
 
     const metrics = await evaluate(`(() => {
@@ -461,6 +490,16 @@ async function main() {
               }
             : null;
         })(),
+        userObjectActionsProbe: (() => {
+          const actions = [...document.querySelectorAll('.user-object-actions')]
+            .filter((item) => item.offsetParent !== null);
+          return {
+            count: actions.length,
+            sampleTargets: actions.slice(0, 4).map((item) => item.dataset.userTarget || ''),
+            statuses: actions.slice(0, 4).map((item) => item.querySelector('.user-action-status')?.textContent?.replace(/\\s+/g, ' ').trim() || ''),
+            noteOpen: actions.some((item) => Boolean(item.querySelector('.user-action-note-panel')))
+          };
+        })(),
         standardTable: Boolean(document.querySelector('.standard-framework-table, .standard-framework-page')),
         standardGroupRows: document.querySelectorAll('.standard-framework-table .standard-group-row').length,
         standardDataRows: document.querySelectorAll('.standard-framework-table .standard-group-detail, .standard-framework-table .maintenance-data-row').length,
@@ -509,6 +548,21 @@ async function main() {
             })
           };
         })(),
+        technicalServiceOwnershipProbe: (() => {
+          const paths = [...document.querySelectorAll('.technical-service-maintenance-table .service-ownership-path')]
+            .filter((item) => item.offsetParent !== null);
+          const values = paths.map((item) => item.textContent.replace(/\\s+/g, ' ').trim()).filter(Boolean);
+          const textNodes = paths.flatMap((path) => [...path.querySelectorAll('.service-ownership-line strong')]);
+          return {
+            search: window.__sapdMaintenanceSearchProbe || null,
+            pathCount: paths.length,
+            visibleDetailRows: [...document.querySelectorAll('.technical-service-maintenance-table .standard-group-detail')]
+              .filter((item) => item.offsetParent !== null && !item.hidden).length,
+            sample: values.slice(0, 8),
+            truncated: textNodes.some((item) => item.scrollWidth > item.clientWidth + 1 && getComputedStyle(item).whiteSpace === 'nowrap'),
+            copyable: paths.every((item) => item.dataset.copyText && getComputedStyle(item).userSelect !== 'none')
+          };
+        })(),
         environmentTree: Boolean(document.querySelector('.environment-tree')),
         lifecycleLane: Boolean(document.querySelector('.lifecycle-lane')),
         guideSlidePlayer: Boolean(document.querySelector('.guide-slide-player')),
@@ -544,7 +598,7 @@ async function main() {
       };
     })()`);
     const screenshot = await send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
-    const screenshotPath = join(tmpdir(), `sapd-${pageName}-smoke.png`);
+    const screenshotPath = join(tmpdir(), `sapd-${screenshotName}-smoke.png`);
     writeFileSync(screenshotPath, Buffer.from(screenshot.data, "base64"));
     const blockingIssues = issues.filter(
       (issue) =>
@@ -568,10 +622,14 @@ async function main() {
         (!metrics.maintenanceHeaderEmphasis.centered ||
           metrics.maintenanceHeaderEmphasis.minFontSize < 14 ||
           metrics.maintenanceHeaderEmphasis.minFontWeight < 800)) ||
+      (maintenanceSearch &&
+        route === "/knowledge/technical-services" &&
+        (!metrics.technicalServiceOwnershipProbe?.pathCount || metrics.technicalServiceOwnershipProbe.truncated || !metrics.technicalServiceOwnershipProbe.copyable)) ||
       ((pageName === "capability" || pageName === "capabilities") && !metrics.capabilityMap) ||
       ((pageName === "capability" || pageName === "capabilities") &&
         metrics.capabilityManagementChipProbe?.count > 0 &&
         (metrics.capabilityManagementChipProbe.truncated || !metrics.capabilityManagementChipProbe.copyable)) ||
+      (expectUserActions && !metrics.userObjectActionsProbe?.count) ||
       (pageName === "environment" && !metrics.environmentTree) ||
       ((pageName === "lifecycle" || pageName === "dev-lifecycle") && !metrics.lifecycleLane) ||
       (pageName === "content" && guideExpectation && !metrics.guideSlidePlayer) ||

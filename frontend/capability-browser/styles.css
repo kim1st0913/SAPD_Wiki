@@ -13635,6 +13635,19 @@ summary:focus-visible {
   grid-area: actions;
 }
 
+.maintenance-user-action-slot,
+.guide-user-action-slot {
+  margin: 0 0 10px;
+}
+
+.guide-user-action-slot {
+  padding: 0 14px;
+}
+
+.modeling-language-guide-panel .guide-user-action-slot {
+  padding: 0 0 12px;
+}
+
 .user-action-status {
   min-width: 0;
   display: grid;

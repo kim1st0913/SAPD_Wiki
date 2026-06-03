@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import sqlite3
+import uuid
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 from .paths import PROJECT_ROOT, resolve_project_path
 
@@ -49,6 +51,97 @@ MAINTENANCE_SECTIONS = (
 )
 
 FRONTEND_PUBLIC_DATA_ROOT = (PROJECT_ROOT / "frontend" / "capability-browser" / "public" / "data").resolve()
+USER_DB_PATH = (PROJECT_ROOT / "data" / "user" / "sapd_wiki_user.sqlite3").resolve()
+USER_SCHEMA_VERSION = "user_schema_0.1"
+USER_SCHEMA_SQL = """
+PRAGMA foreign_keys = ON;
+
+CREATE TABLE IF NOT EXISTS user_meta (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_favorites (
+  id TEXT PRIMARY KEY,
+  target_ref TEXT NOT NULL,
+  note TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(target_ref)
+);
+
+CREATE TABLE IF NOT EXISTS user_notes (
+  id TEXT PRIMARY KEY,
+  target_ref TEXT NOT NULL,
+  body TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_tags (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE,
+  color TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_item_tags (
+  id TEXT PRIMARY KEY,
+  target_ref TEXT NOT NULL,
+  tag_id TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(target_ref, tag_id),
+  FOREIGN KEY(tag_id) REFERENCES user_tags(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS user_custom_items (
+  id TEXT PRIMARY KEY,
+  item_type TEXT NOT NULL,
+  title TEXT NOT NULL,
+  code TEXT,
+  description TEXT,
+  status TEXT NOT NULL DEFAULT 'active',
+  source_ref TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_custom_relations (
+  id TEXT PRIMARY KEY,
+  relation_type TEXT NOT NULL,
+  source_ref TEXT NOT NULL,
+  target_ref TEXT NOT NULL,
+  description TEXT,
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_import_jobs (
+  id TEXT PRIMARY KEY,
+  import_type TEXT NOT NULL,
+  source_path TEXT,
+  status TEXT NOT NULL DEFAULT 'draft',
+  summary TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_change_logs (
+  id TEXT PRIMARY KEY,
+  action TEXT NOT NULL,
+  target_ref TEXT,
+  payload_json TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_schema_migrations (
+  version TEXT PRIMARY KEY,
+  applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+"""
 
 
 def _list(value: Any) -> list[Any]:
@@ -164,6 +257,112 @@ def create_envelope(data: Any, warnings: list[str] | None = None) -> dict[str, A
         "data": data,
         "warnings": warning_list,
     }
+
+
+def ensure_user_db() -> None:
+    USER_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(USER_DB_PATH) as connection:
+        connection.executescript(USER_SCHEMA_SQL)
+        connection.execute(
+            """
+            INSERT INTO user_meta(key, value, updated_at)
+            VALUES ('schema_version', ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(key) DO UPDATE SET
+              value = excluded.value,
+              updated_at = CURRENT_TIMESTAMP
+            """,
+            (USER_SCHEMA_VERSION,),
+        )
+        connection.execute(
+            """
+            INSERT INTO user_meta(key, value, updated_at)
+            VALUES ('created_by', 'sapd-wiki-local-api', CURRENT_TIMESTAMP)
+            ON CONFLICT(key) DO NOTHING
+            """
+        )
+        connection.execute(
+            """
+            INSERT INTO user_schema_migrations(version)
+            VALUES (?)
+            ON CONFLICT(version) DO NOTHING
+            """,
+            (USER_SCHEMA_VERSION,),
+        )
+
+
+def user_db_connection() -> sqlite3.Connection:
+    ensure_user_db()
+    connection = sqlite3.connect(USER_DB_PATH)
+    connection.row_factory = sqlite3.Row
+    connection.execute("PRAGMA foreign_keys = ON")
+    return connection
+
+
+def list_user_favorites() -> dict[str, Any]:
+    with user_db_connection() as connection:
+        rows = connection.execute(
+            """
+            SELECT id, target_ref, note, created_at, updated_at
+            FROM user_favorites
+            ORDER BY updated_at DESC
+            """
+        ).fetchall()
+    return {"ok": True, "data_state": "ready", "favorites": [dict(row) for row in rows]}
+
+
+def upsert_user_favorite(payload: dict[str, Any]) -> dict[str, Any]:
+    target_ref = str(payload.get("target_ref") or "").strip()
+    if not target_ref:
+        raise ValueError("target_ref is required")
+    note_value = payload.get("note")
+    note = None if note_value is None else str(note_value)
+    favorite_id = str(uuid.uuid4())
+    change_id = str(uuid.uuid4())
+    change_payload = json.dumps({"target_ref": target_ref, "note": note}, ensure_ascii=False)
+    with user_db_connection() as connection:
+        connection.execute(
+            """
+            INSERT INTO user_favorites(id, target_ref, note, created_at, updated_at)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            ON CONFLICT(target_ref) DO UPDATE SET
+              note = excluded.note,
+              updated_at = CURRENT_TIMESTAMP
+            """,
+            (favorite_id, target_ref, note),
+        )
+        row = connection.execute(
+            """
+            SELECT id, target_ref, note, created_at, updated_at
+            FROM user_favorites
+            WHERE target_ref = ?
+            """,
+            (target_ref,),
+        ).fetchone()
+        connection.execute(
+            """
+            INSERT INTO user_change_logs(id, action, target_ref, payload_json)
+            VALUES (?, 'upsert_favorite', ?, ?)
+            """,
+            (change_id, target_ref, change_payload),
+        )
+    return {"ok": True, "favorite": dict(row) if row else None}
+
+
+def delete_user_favorite(target_ref: str) -> dict[str, Any]:
+    normalized = str(target_ref or "").strip()
+    if not normalized:
+        raise ValueError("target_ref is required")
+    with user_db_connection() as connection:
+        cursor = connection.execute("DELETE FROM user_favorites WHERE target_ref = ?", (normalized,))
+        deleted = cursor.rowcount
+        connection.execute(
+            """
+            INSERT INTO user_change_logs(id, action, target_ref, payload_json)
+            VALUES (?, 'delete_favorite', ?, ?)
+            """,
+            (str(uuid.uuid4()), normalized, json.dumps({"target_ref": normalized, "deleted": deleted}, ensure_ascii=False)),
+        )
+    return {"ok": True, "deleted": deleted}
 
 
 def _title_of(value: Any, fallback: str = "未命名") -> str:
@@ -1229,6 +1428,33 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
                 return
         super().do_GET()
 
+    def do_POST(self) -> None:
+        parsed = urlparse(self.path)
+        if parsed.path != "/api/v1/user/favorites":
+            self._send_json(create_envelope({"error": "not_found", "path": parsed.path}), status=404)
+            return
+        try:
+            payload = self._read_json_body()
+            self._send_json(create_envelope(upsert_user_favorite(payload)))
+        except ValueError as exc:
+            self._send_json(create_envelope({"error": "bad_request", "message": str(exc)}), status=400)
+        except Exception as exc:
+            self._send_json(create_envelope({"error": "server_error", "message": str(exc), "path": parsed.path}), status=500)
+
+    def do_DELETE(self) -> None:
+        parsed = urlparse(self.path)
+        if parsed.path != "/api/v1/user/favorites":
+            self._send_json(create_envelope({"error": "not_found", "path": parsed.path}), status=404)
+            return
+        try:
+            query = parse_qs(parsed.query)
+            target_ref = unquote((query.get("target_ref") or [""])[0])
+            self._send_json(create_envelope(delete_user_favorite(target_ref)))
+        except ValueError as exc:
+            self._send_json(create_envelope({"error": "bad_request", "message": str(exc)}), status=400)
+        except Exception as exc:
+            self._send_json(create_envelope({"error": "server_error", "message": str(exc), "path": parsed.path}), status=500)
+
     def _send_json(self, payload: Any, status: int = 200) -> None:
         encoded = json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")
         self.send_response(status)
@@ -1237,11 +1463,34 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(encoded)
 
+    def _read_json_body(self) -> dict[str, Any]:
+        if self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower() != "application/json":
+            raise ValueError("Content-Type must be application/json")
+        length = int(self.headers.get("Content-Length", "0"))
+        raw = self.rfile.read(length).decode("utf-8") if length else "{}"
+        payload = json.loads(raw or "{}")
+        if not isinstance(payload, dict):
+            raise ValueError("JSON body must be an object")
+        return payload
+
     def _handle_api(self, path: str, query: dict[str, list[str]]) -> None:
         parts = [part for part in path.split("/") if part]
         try:
             if path == "/api/v1/health":
-                self._send_json(create_envelope({"status": "ok", "app": "SAPD Wiki", "mode": "local-api"}))
+                self._send_json(
+                    create_envelope(
+                        {
+                            "status": "ok",
+                            "app": "SAPD Wiki",
+                            "mode": "local-api",
+                            "auth": {"writes_require_token": False, "header": "X-SAPD-Session-Token", "session_token": None},
+                            "user_database": {"ready": True, "schema_version": USER_SCHEMA_VERSION},
+                        }
+                    )
+                )
+                return
+            if path == "/api/v1/user/favorites":
+                self._send_json(create_envelope(list_user_favorites()))
                 return
             if path == "/api/v1/data-packages":
                 self._send_json(create_envelope({"packages": [{"name": name, "path": path} for name, path in DATA_PACKAGES.items()]}))

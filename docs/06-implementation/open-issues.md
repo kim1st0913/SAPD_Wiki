@@ -15,7 +15,7 @@
 | 编号 | 状态 | 标题 |
 |---|---|---|
 | OI-038 | 待确认 | Gartner 与安全职能候选映射需后续人工校对 |
-| OI-128 | 待实现 | USER-WRITE-UI-1：收藏 / 备注最小前端入口 |
+| OI-128 | 部分完成 | USER-WRITE-UI-1：收藏 / 备注最小前端入口 |
 | OI-133 | 待设计 | ArchiMate 建模语言页显示效果与加载效率优化 |
 
 ## 问题记录模板
@@ -47,15 +47,15 @@
 - 验证结果：2026-06-01 重新导出 `maintenance-knowledge.json` 后，`gartner_roles=28`，其中 28 条均包含 `candidate_work_functions`；组件渲染断言确认 `Gartner 工作岗位参考` 表格包含“候选安全职能”列，示例“首席信息安全官（CISO）”显示 `2 安全负责职能`、`10 安全管理职能`、`27 规划计划管理职能`。
 ## OI-128：USER-WRITE-UI-1：收藏 / 备注最小前端入口
 
-- 状态：待实现
+- 状态：部分完成
 - 类型：前端 / 用户数据 / Delivery Bundle
 - 对象或页面：ZIP alpha 桌面包、`sapd_wiki_user.sqlite3`、安全能力映射 / 知识库字典等对象详情页。
 - 现象：ZIP alpha 后端已具备 `user_favorites` 写入 API 和 user DB 自动创建能力，但当前前端页面没有暴露收藏、备注、用户标签或编辑入口，Windows / macOS UAT 无法通过页面操作验证 user DB 写入。
 - 影响：当前 Windows 包只能验收解压启动、页面访问、base 数据读取、user DB 自动创建、日志和诊断包；页面级用户写入能力不能作为本轮验收项。
-- 当前处理：Windows release manifest 已将 `page_user_write` 标记为 `not_available_current_frontend`；本问题作为后续独立最小实现任务保留。
-- 需要确认：第一版优先做“收藏”还是“备注”；建议先做收藏，再做备注。
-- 修复说明：待实现。
-- 验证结果：待实现后验证页面操作写入 `sapd_wiki_user.sqlite3`，重启后保留，且不修改 `sapd_wiki_base.sqlite3`。
+- 当前处理：2026-06-03 已新增正式设计文档 `docs/06-implementation/user-workspace-v1-to-v4-design.md`，固定 V1A 收藏 / 轻备注、V1B 备注 / 标签、V2 我的工作区、V3 新增 / 复制编辑、V4 导出路线。`OI-128A` 已先在安全能力映射页对象详情区实现收藏 / 轻备注入口，并补齐开发 API 与 ZIP runtime 的收藏保存 / 撤销路径。
+- 需要确认：后续是否继续做 `OI-128B`，把同一用户动作组件复用到安全知识、标准 / 框架和安全指南对象详情页；是否在 V1B 开始多条备注和个人标签。
+- 修复说明：`OI-128A` 已实现。当前入口以 `user_favorites.note` 承载轻备注，收藏事实以 user DB 为准，不写入 `localStorage`；API 不可用时显示 `用户库不可用`。
+- 验证结果：2026-06-03 通过本地 `5173` API 写入 / 读取 / 删除闭环验证：`POST /api/v1/user/favorites` 写入 `base:capability_focus:OI-128A-SMOKE` 成功，`GET` 可读，`DELETE` 后列表消失；`node scripts/frontend_smoke_check.mjs --page capability --url http://127.0.0.1:5173` 通过，未启动系统 Chrome。
 ## OI-133：ArchiMate 建模语言页显示效果与加载效率优化
 
 - 状态：待设计

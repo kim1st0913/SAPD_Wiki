@@ -13504,7 +13504,7 @@ summary:focus-visible {
   display: grid;
   grid-template-areas:
     "main stats"
-    "main search";
+    "actions search";
   grid-template-columns: minmax(500px, 1fr) minmax(398px, 0.52fr);
   gap: 7px 14px;
   align-items: center;
@@ -13572,6 +13572,118 @@ summary:focus-visible {
 .app-shell-integrated .capability-focus-head-slot .preview-focus-stats strong {
   margin-bottom: 0;
   font-size: 13px;
+}
+
+.user-object-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 10px;
+  align-items: center;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid #dbe5f0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.app-shell-integrated .capability-focus-head-slot .user-object-actions {
+  grid-area: actions;
+}
+
+.user-action-status {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  gap: 6px;
+  align-items: center;
+  color: #60718a;
+  font-size: 11px;
+}
+
+.user-action-status strong {
+  color: #33465f;
+  font-size: 11px;
+}
+
+.user-action-status small {
+  overflow: hidden;
+  color: #7c8ba0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-action-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #a7b5c8;
+}
+
+.user-object-actions.is-favorite .user-action-dot {
+  background: #1f7a55;
+}
+
+.user-object-actions.is-unavailable .user-action-dot {
+  background: #c9774e;
+}
+
+.user-action-buttons,
+.user-action-note-tools {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.user-action-buttons button,
+.user-action-note-tools button {
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid #cdd9e8;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #30465f;
+  font-size: 11px;
+  font-weight: 760;
+  cursor: pointer;
+}
+
+.user-object-actions.is-favorite .user-action-favorite {
+  border-color: #b9d8c8;
+  background: #edf8f2;
+  color: #1f6b4d;
+}
+
+.user-action-buttons button:disabled,
+.user-action-note-tools button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.user-action-note-panel {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 6px;
+}
+
+.user-action-note-input {
+  width: 100%;
+  min-height: 54px;
+  resize: vertical;
+  border: 1px solid #d7e1ed;
+  border-radius: 7px;
+  padding: 7px 8px;
+  background: #fbfdff;
+  color: #23364d;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.user-action-note-tools {
+  justify-content: space-between;
+  color: #7c8ba0;
+  font-size: 11px;
 }
 
 .app-shell-integrated .capability-workbench-tools {

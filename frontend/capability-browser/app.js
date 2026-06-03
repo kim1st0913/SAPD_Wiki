@@ -57,6 +57,12 @@ const state = {
   capabilityProjectionRequestSeq: 0,
   activeCapabilityProjectionRequest: null,
   capabilityProjectionRequests: new Map(),
+  userFavorites: [],
+  userFavoritesByRef: new Map(),
+  userFavoritesLoaded: false,
+  userFavoriteLoadPromise: null,
+  userWriteStatus: { state: "idle", savingTargetRef: "" },
+  activeUserNoteTargetRef: "",
   search: "",
   pageHeaderSummary: [],
   pageHeaderNote: "",
@@ -608,6 +614,130 @@ function capabilityTreeFromWorkbench(workbench) {
     categories: tree.map(capabilityNodeFromWorkbench),
     unlinked_focuses: [],
   };
+}
+
+function capabilityUserObjectLabel(type) {
+  const labels = {
+    capability_category: "能力分类",
+    capability_domain: "能力域",
+    capability: "能力",
+    capability_focus: "关注点",
+  };
+  return labels[type] || "能力对象";
+}
+
+function capabilityUserTarget(viewModel) {
+  const selected = viewModel?.selectedCapability || capabilityItemById(state.selectedCapabilityId);
+  if (!selected?.id) return null;
+  const objectType = selected.type || capabilityItemTypeById(selected.id) || "capability_object";
+  const stableKey = text(selected.code || selected.id).trim();
+  if (!stableKey) return null;
+  return {
+    targetRef: `base:${objectType}:${stableKey}`,
+    objectType,
+    objectLabel: capabilityUserObjectLabel(objectType),
+    id: selected.id,
+    code: text(selected.code),
+    title: codeTitle(selected, "未命名能力对象"),
+  };
+}
+
+function refreshUserFavoritesMap() {
+  state.userFavoritesByRef = new Map(list(state.userFavorites).map((favorite) => [text(favorite.target_ref).trim(), favorite]));
+}
+
+function ensureUserFavoritesLoaded() {
+  if (state.userFavoritesLoaded) return Promise.resolve();
+  if (state.userFavoriteLoadPromise) return state.userFavoriteLoadPromise;
+  const dataClient = window.sapdDataClient;
+  if (!dataClient?.getUserFavorites) {
+    state.userWriteStatus = { state: "api_unavailable", savingTargetRef: "" };
+    state.userFavoritesLoaded = true;
+    return Promise.resolve();
+  }
+  state.userWriteStatus = { ...state.userWriteStatus, state: "loading" };
+  state.userFavoriteLoadPromise = dataClient
+    .getUserFavorites()
+    .then((envelope) => {
+      const data = envelope?.data || {};
+      state.userFavorites = list(data.favorites);
+      refreshUserFavoritesMap();
+      state.userWriteStatus = { state: data.ok === false ? data.data_state || "api_unavailable" : "ready", savingTargetRef: "" };
+      state.userFavoritesLoaded = true;
+    })
+    .catch((error) => {
+      console.warn("用户收藏加载失败", error);
+      state.userWriteStatus = { state: "api_unavailable", savingTargetRef: "" };
+      state.userFavoritesLoaded = true;
+    })
+    .finally(() => {
+      state.userFavoriteLoadPromise = null;
+      if (state.activeView === "capabilities") renderCapabilities();
+    });
+  return state.userFavoriteLoadPromise;
+}
+
+function favoriteForTarget(targetRef) {
+  return state.userFavoritesByRef.get(text(targetRef).trim()) || null;
+}
+
+function upsertFavoriteInState(favorite) {
+  if (!favorite?.target_ref) return;
+  const targetRef = text(favorite.target_ref).trim();
+  const rows = list(state.userFavorites).filter((row) => text(row.target_ref).trim() !== targetRef);
+  state.userFavorites = [favorite, ...rows];
+  refreshUserFavoritesMap();
+}
+
+function removeFavoriteFromState(targetRef) {
+  const normalized = text(targetRef).trim();
+  state.userFavorites = list(state.userFavorites).filter((row) => text(row.target_ref).trim() !== normalized);
+  refreshUserFavoritesMap();
+}
+
+async function handleFavoriteToggle(targetRef) {
+  const dataClient = window.sapdDataClient;
+  if (!targetRef || !dataClient?.upsertUserFavorite) return;
+  const existing = favoriteForTarget(targetRef);
+  state.userWriteStatus = { state: "ready", savingTargetRef: targetRef };
+  renderCapabilities();
+  try {
+    if (existing) {
+      const envelope = await dataClient.deleteUserFavorite(targetRef);
+      if (envelope?.data?.ok === false) throw new Error(envelope.data.error || "delete favorite failed");
+      removeFavoriteFromState(targetRef);
+      if (state.activeUserNoteTargetRef === targetRef) state.activeUserNoteTargetRef = "";
+    } else {
+      const envelope = await dataClient.upsertUserFavorite({ target_ref: targetRef, note: null });
+      if (envelope?.data?.ok === false) throw new Error(envelope.data.error || "upsert favorite failed");
+      upsertFavoriteInState(envelope?.data?.favorite || { target_ref: targetRef, note: "" });
+    }
+    state.userWriteStatus = { state: "ready", savingTargetRef: "" };
+  } catch (error) {
+    console.warn("用户收藏写入失败", error);
+    state.userWriteStatus = { state: "api_error", savingTargetRef: "" };
+  }
+  renderCapabilities();
+}
+
+async function handleFavoriteNoteSave(targetRef) {
+  const dataClient = window.sapdDataClient;
+  if (!targetRef || !dataClient?.upsertUserFavorite) return;
+  const escapedTargetRef = globalThis.CSS?.escape ? globalThis.CSS.escape(targetRef) : targetRef.replaceAll('"', '\\"');
+  const input = document.querySelector(`[data-user-note-input="${escapedTargetRef}"]`);
+  const note = input?.value || "";
+  state.userWriteStatus = { state: "ready", savingTargetRef: targetRef };
+  renderCapabilities();
+  try {
+    const envelope = await dataClient.upsertUserFavorite({ target_ref: targetRef, note });
+    if (envelope?.data?.ok === false) throw new Error(envelope.data.error || "save note failed");
+    upsertFavoriteInState(envelope?.data?.favorite || { target_ref: targetRef, note });
+    state.userWriteStatus = { state: "ready", savingTargetRef: "" };
+  } catch (error) {
+    console.warn("用户备注保存失败", error);
+    state.userWriteStatus = { state: "api_error", savingTargetRef: "" };
+  }
+  renderCapabilities();
 }
 
 function mergeSharedLookups(payload) {
@@ -2386,9 +2516,16 @@ function renderCapabilityPendingDetail(loadState) {
 }
 
 function renderCapabilityDetail(components, viewModel) {
+  const userTarget = capabilityUserTarget(viewModel);
+  const userActions = components.UserObjectActions?.render?.({
+    target: userTarget,
+    favorite: favoriteForTarget(userTarget?.targetRef),
+    status: state.userWriteStatus,
+    noteOpen: state.activeUserNoteTargetRef === userTarget?.targetRef,
+  });
   setHtml(
     "capabilityFocusHeader",
-    components.CapabilityLocalRelationMap?.renderFocusStrip?.(viewModel.localRelationMap, viewModel.focusOverview) || "",
+    `${userActions || ""}${components.CapabilityLocalRelationMap?.renderFocusStrip?.(viewModel.localRelationMap, viewModel.focusOverview) || ""}`,
   );
   setHtml(
     "detail",
@@ -2411,6 +2548,7 @@ function renderCapabilities() {
   const viewModels = window.sapdViewModels;
   const components = window.sapdComponents || {};
   ensureCapabilityCatalogToggle();
+  ensureUserFavoritesLoaded();
   if (!capabilityInitialDataReady()) {
     setHtml("tree", emptyState("正在加载安全能力数据"));
     setHtml("capabilityFocusHeader", "");
@@ -3238,13 +3376,29 @@ function bindEvents() {
   }
   renderCapabilities();
 });
-$("detail")?.addEventListener("click", (event) => {
+  $("detail")?.addEventListener("click", (event) => {
   const row = event.target.closest("[data-capability-id]");
   if (!row) return;
   state.selectedCapabilityId = row.dataset.capabilityId;
   if (capabilityItemTypeById(state.selectedCapabilityId) === "capability_focus") ensureCapabilityProjectionForFocus(state.selectedCapabilityId);
   renderCapabilities();
 });
+  $("capabilityFocusHeader")?.addEventListener("click", (event) => {
+    const favoriteButton = event.target.closest("[data-user-favorite-toggle]");
+    if (favoriteButton) {
+      handleFavoriteToggle(favoriteButton.dataset.userFavoriteToggle);
+      return;
+    }
+    const noteButton = event.target.closest("[data-user-note-toggle]");
+    if (noteButton) {
+      const targetRef = noteButton.dataset.userNoteToggle;
+      state.activeUserNoteTargetRef = state.activeUserNoteTargetRef === targetRef ? "" : targetRef;
+      renderCapabilities();
+      return;
+    }
+    const noteSave = event.target.closest("[data-user-note-save]");
+    if (noteSave) handleFavoriteNoteSave(noteSave.dataset.userNoteSave);
+  });
   $("detail")?.addEventListener("change", (event) => {
     const tab = event.target.closest(".relation-view-radio");
     if (!tab) return;

@@ -35,6 +35,8 @@
     capabilityWorkspaceProjection: "/api/v1/capabilities/workspace-projection",
     capabilityWorkspaceView: "/api/v1/capabilities/workspace-view",
     capabilityWorkspaceInitial: "/api/v1/capabilities/workspace-initial",
+    health: "/api/v1/health",
+    userFavorites: "/api/v1/user/favorites",
   };
 
   const FALLBACKS = {
@@ -83,6 +85,7 @@
 
   const cache = new Map();
   let apiUnavailable = false;
+  let runtimeHealthCache = null;
   const list = (value) => (Array.isArray(value) ? value : []);
   const text = (value) => (value == null ? "" : String(value));
   const TECHNICAL_MEASURES_FIELD = "security_technical_measures";
@@ -277,6 +280,12 @@
     return payload;
   }
 
+  function normalizeUserPayload(payload) {
+    const data = unwrapEnvelope(payload);
+    if (!data || typeof data !== "object") return { ok: false, data_state: "api_unavailable", favorites: [] };
+    return data;
+  }
+
   async function fetchApiPackage(name) {
     if (apiUnavailable) return null;
     const path = API_PACKAGE_PATHS[name];
@@ -310,6 +319,47 @@
     } catch {
       apiUnavailable = true;
       return null;
+    }
+  }
+
+  async function fetchRuntimeHealth() {
+    if (runtimeHealthCache) return runtimeHealthCache;
+    const url = apiUrl(API_PATHS.health);
+    if (!url) {
+      runtimeHealthCache = { status: "offline", auth: { writes_require_token: false }, user_database: { ready: false } };
+      return runtimeHealthCache;
+    }
+    try {
+      const response = await fetch(url, { cache: "no-store" });
+      if (!response.ok) throw new Error(`health ${response.status}`);
+      runtimeHealthCache = normalizeUserPayload(await response.json());
+      return runtimeHealthCache;
+    } catch {
+      runtimeHealthCache = { status: "offline", auth: { writes_require_token: false }, user_database: { ready: false }, data_state: "api_unavailable" };
+      return runtimeHealthCache;
+    }
+  }
+
+  async function userWriteHeaders() {
+    const health = await fetchRuntimeHealth();
+    const headers = { "Content-Type": "application/json" };
+    const auth = health?.auth || {};
+    if (auth.writes_require_token && auth.header && auth.session_token) {
+      headers[auth.header] = auth.session_token;
+    }
+    return headers;
+  }
+
+  async function fetchUserApi(path, options = {}) {
+    const url = path ? apiUrl(path) : "";
+    if (!url) return { ok: false, data_state: "api_unavailable", favorites: [] };
+    try {
+      const response = await fetch(url, { cache: "no-store", ...options });
+      const payload = response.headers.get("Content-Type")?.includes("application/json") ? await response.json() : {};
+      const data = normalizeUserPayload(payload);
+      return response.ok ? data : { ok: false, data_state: "api_error", error: data.error || data.message || `HTTP ${response.status}` };
+    } catch (error) {
+      return { ok: false, data_state: "api_unavailable", error: error?.message || "user api unavailable" };
     }
   }
 
@@ -711,7 +761,7 @@
 
   const dataClient = {
     async getHealth() {
-      const results = await Promise.allSettled(Object.keys(DATA_PATHS).map((name) => fetchPackage(name)));
+      const [runtimeHealth, results] = await Promise.all([fetchRuntimeHealth(), Promise.allSettled(Object.keys(DATA_PATHS).map((name) => fetchPackage(name)))]);
       const failedCount = results.filter((result) => result.status === "rejected").length;
       return createEnvelope({
         status: failedCount ? "degraded" : "ok",
@@ -719,8 +769,45 @@
         version: "v1",
         database_ready: true,
         generated_data_ready: failedCount === 0,
+        runtime: runtimeHealth,
         checked_at: new Date().toISOString(),
       });
+    },
+
+    async getRuntimeHealth() {
+      return createEnvelope(await fetchRuntimeHealth());
+    },
+
+    async getUserFavorites() {
+      const result = await fetchUserApi(API_PATHS.userFavorites);
+      return createEnvelope({
+        ok: Boolean(result.ok),
+        data_state: result.data_state || (result.ok ? "ready" : "api_unavailable"),
+        favorites: list(result.favorites),
+        error: result.error || "",
+      });
+    },
+
+    async upsertUserFavorite(payload) {
+      const result = await fetchUserApi(API_PATHS.userFavorites, {
+        method: "POST",
+        headers: await userWriteHeaders(),
+        body: JSON.stringify({
+          target_ref: text(payload?.target_ref).trim(),
+          note: payload?.note == null ? null : text(payload.note),
+        }),
+      });
+      return createEnvelope(result);
+    },
+
+    async deleteUserFavorite(targetRef) {
+      const query = `?target_ref=${encodeURIComponent(text(targetRef).trim())}`;
+      const result = await fetchUserApi(`${API_PATHS.userFavorites}${query}`, {
+        method: "DELETE",
+        headers: await userWriteHeaders(),
+        body: "{}",
+      });
+      return createEnvelope(result);
     },
 
     async getCatalogSummary() {

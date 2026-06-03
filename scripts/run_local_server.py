@@ -25,7 +25,7 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 from check_bundle_runtime import check_bundle, is_loopback_host, load_json, safe_bundle_child, sha256_file
 from export_diagnostics import export_diagnostics
@@ -212,6 +212,27 @@ class BundleRuntime:
         self.logger.write("info", "user favorite upserted", target_ref_sha256=hash_text(target_ref)[:16])
         return {"ok": True, "favorite": dict(row) if row else None}
 
+    def delete_favorite(self, target_ref: str) -> dict[str, Any]:
+        normalized = str(target_ref or "").strip()
+        if not normalized:
+            raise ValueError("target_ref is required")
+        with self.open_connection() as connection:
+            cursor = connection.execute("DELETE FROM user_favorites WHERE target_ref = ?", (normalized,))
+            deleted = cursor.rowcount
+            connection.execute(
+                """
+                INSERT INTO user_change_logs(id, action, target_ref, payload_json)
+                VALUES (?, 'delete_favorite', ?, ?)
+                """,
+                (
+                    str(uuid.uuid4()),
+                    normalized,
+                    json.dumps({"target_ref": normalized, "deleted": deleted}, ensure_ascii=False),
+                ),
+            )
+        self.logger.write("info", "user favorite deleted", target_ref_sha256=hash_text(normalized)[:16], deleted=deleted)
+        return {"ok": True, "deleted": deleted}
+
 
 def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: str) -> type[BaseHTTPRequestHandler]:
     class LocalHandler(BaseHTTPRequestHandler):
@@ -333,6 +354,26 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
                 self.send_json(400, {"ok": False, "error": str(error)})
             except Exception as error:  # noqa: BLE001
                 runtime.logger.write("error", "post failed", path=parsed.path, error=str(error))
+                self.send_json(500, {"ok": False, "error": str(error)})
+
+        def do_DELETE(self) -> None:
+            parsed = urlparse(self.path)
+            try:
+                if parsed.path != "/api/v1/user/favorites":
+                    self.send_json(404, {"ok": False, "error": "not found"})
+                    return
+                auth_error = self.validate_write_request()
+                if auth_error:
+                    status, message = auth_error
+                    self.send_json(status, {"ok": False, "error": message})
+                    return
+                params = parse_qs(parsed.query)
+                target_ref = unquote((params.get("target_ref") or [""])[0])
+                self.send_json(200, runtime.delete_favorite(target_ref))
+            except ValueError as error:
+                self.send_json(400, {"ok": False, "error": str(error)})
+            except Exception as error:  # noqa: BLE001
+                runtime.logger.write("error", "delete failed", path=parsed.path, error=str(error))
                 self.send_json(500, {"ok": False, "error": str(error)})
 
     return LocalHandler

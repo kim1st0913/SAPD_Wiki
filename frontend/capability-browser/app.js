@@ -30,6 +30,7 @@ const state = {
   activeStandardTableId: "",
   activeContentPage: "html",
   selectedCapabilityId: null,
+  activeCapabilityRelationTab: "summary",
   selectedEnvironmentId: null,
   selectedEnvironmentSegmentId: null,
   selectedEnvironmentObjectId: null,
@@ -43,6 +44,7 @@ const state = {
   selectedMaintenanceId: null,
   selectedContentId: null,
   selectedContentSlideIndex: 0,
+  activeModelingLanguageTab: "overview",
   contentSlideScrollMode: "preserve",
   standardFrameworkLoads: new Map(),
   maintenanceSectionLoads: new Map(),
@@ -65,6 +67,85 @@ const $ = (id) => document.getElementById(id);
 const list = (value) => (Array.isArray(value) ? value : []);
 const text = (value) => (value == null ? "" : String(value));
 const WORKSPACE_STATE_STORAGE_KEY = "sapd:workspace-state:v1";
+const MODELING_LANGUAGE_GUIDE_ROUTE = "/guides/security-architecture-modeling-language";
+const MODELING_LANGUAGE_GUIDE_TABS = [
+  { id: "overview", label: "语言概览" },
+  { id: "elements", label: "元素图例" },
+];
+const DRAWIO_LEGEND_DEFAULT_SIZE = [150, 75];
+const DRAWIO_LEGEND_SECURITY_SIZE = [150, 82.94701986754967];
+const DRAWIO_ACTOR_SIZE = [26.5, 50];
+const ARCHIMATE_ICON_LABEL_RULE = {
+  chineseFontSize: 15,
+  chineseLineHeight: 16.5,
+  chineseWeight: 820,
+  englishFontSize: 8.8,
+  englishLineHeight: 9.8,
+  englishWeight: 680,
+  titleGap: 5,
+  shapeTextPaddingX: 42,
+  actorTextMaxWidth: 86,
+};
+const ARCHIMATE_NOTATION_REGISTRY = window.sapdArchimateNotationRegistry || {};
+const MODELING_LEGEND_SECTIONS = [
+  {
+    id: "information",
+    title: "信息化基础元素图例",
+    description: "原始图例左侧区域：通用信息化环境对象。",
+    columns: 4,
+    items: [
+      { name: "人员", base: "actor 图标", definition: "参与业务活动、承担角色的主动参与者。", fill: "#ffff99", iconType: "actor", drawioSize: DRAWIO_ACTOR_SIZE },
+      { name: "系统软件", base: "System Software", definition: "运行在硬件上，支撑上层应用的基础软件环境，如操作系统。", fill: "#AFFFAF", iconType: "system-software", drawioSize: DRAWIO_LEGEND_DEFAULT_SIZE },
+      { name: "设备", base: "Device", definition: "物理硬件实体，如物理主机、工控设备。", fill: "#AFFFAF", iconType: "device", drawioSize: DRAWIO_LEGEND_DEFAULT_SIZE },
+      { name: "节点", base: "Node", definition: "逻辑的计算或通信资源，如主机、终端、网络边界等。", fill: "#AFFFAF", iconType: "node", drawioSize: DRAWIO_LEGEND_DEFAULT_SIZE },
+      { name: "网络", base: "Communication Network", definition: "连接各个节点，实现数据传输的通信基础设施。", fill: "#AFFFAF", iconType: "network", drawioSize: DRAWIO_LEGEND_DEFAULT_SIZE },
+      { name: "设施", base: "Facility", definition: "一个具体的物理环境，如数据中心。", fill: "#AFFFAF", iconType: "facility", drawioSize: DRAWIO_LEGEND_DEFAULT_SIZE },
+      { name: "地点", base: "Location", definition: "一个物理或地理上的空间位置，如园区、分支机构、数据中心机房等。", fill: "#efd1e4", iconType: "location", drawioSize: DRAWIO_LEGEND_DEFAULT_SIZE },
+      { name: "分组", base: "Grouping", definition: "具有共同特征的一组架构元素。", fill: "transparent", stroke: "#7d8997", dashed: true, iconType: "grouping", drawioSize: DRAWIO_LEGEND_DEFAULT_SIZE },
+      { name: "应用组件", base: "Application Component", definition: "应用系统、平台、模块。", fill: "#99ffff", iconType: "component", drawioSize: DRAWIO_LEGEND_DEFAULT_SIZE },
+      { name: "应用功能", base: "Application Function", definition: "用来执行特定任务的具体应用功能或操作。", fill: "#99ffff", rounded: true, iconType: "function", drawioSize: DRAWIO_LEGEND_DEFAULT_SIZE },
+      { name: "应用服务", base: "Application Service", definition: "通常由一个或多个应用功能实现，并向其他应用组件或应用提供服务。", fill: "#99ffff", rounded: true, iconType: "service", drawioSize: DRAWIO_LEGEND_DEFAULT_SIZE },
+      { name: "数据对象", base: "Data Object", definition: "应用中处理、传输或存储的数据实体。", fill: "#99ffff", iconType: "data", drawioSize: DRAWIO_LEGEND_DEFAULT_SIZE },
+    ],
+  },
+  {
+    id: "security",
+    title: "SAPD 安全元素图例",
+    description: "原始图例右侧区域：SAPD 安全元素对 ArchiMate 元素的专业化映射。",
+    columns: 4,
+    items: [
+      { name: "安全人员", base: "Actor", definition: "参与安全工作、承担角色的主动参与者。", fill: "#ffff99", iconType: "actor", drawioSize: DRAWIO_ACTOR_SIZE },
+      { name: "安全技术服务", base: "Technology Service", definition: "作用于信息化对象或过程场景、满足特定安全需求的公开技术行为，支撑安全能力实现。", fill: "#f8cecc", stroke: "#b85450", rounded: true, iconType: "service", drawioSize: DRAWIO_LEGEND_SECURITY_SIZE },
+      { name: "安全技术模块", base: "Function", definition: "实现一个或多个安全技术服务的安全技术逻辑实体，可以独立部署运行，通常代表一类安全产品。", fill: "#f8cecc", stroke: "#b85450", rounded: true, iconType: "function", drawioSize: DRAWIO_LEGEND_SECURITY_SIZE },
+      { name: "安全系统", base: "Node", definition: "为解决某一场景或领域的安全问题，由多个安全模块组成、协同运行的系统。", fill: "#f8cecc", stroke: "#b85450", iconType: "node", drawioSize: DRAWIO_LEGEND_SECURITY_SIZE },
+      { name: "安全技术工件", base: "Artifact", definition: "实现安全技术模块的源文件、可执行文件、脚本、数据库表等。", fill: "#f8cecc", stroke: "#b85450", iconType: "artifact", drawioSize: DRAWIO_LEGEND_SECURITY_SIZE },
+      { name: "安全系统软件", base: "System Software", definition: "为存储、执行和使用其中部署的安全软件或数据提供环境的软件。", fill: "#f8cecc", stroke: "#b85450", iconType: "system-software", drawioSize: DRAWIO_LEGEND_SECURITY_SIZE },
+      { name: "安全设备", base: "Device", definition: "具有安全处理能力的物理 IT 资源。", fill: "#f8cecc", stroke: "#b85450", iconType: "device", drawioSize: DRAWIO_LEGEND_SECURITY_SIZE },
+      { name: "安全威胁", base: "Technology Event", definition: "可能危害到信息化对象或过程的机密性、完整性和可用性的行为。", fill: "#f8cecc", stroke: "#b85450", rounded: true, iconType: "event", drawioSize: DRAWIO_LEGEND_SECURITY_SIZE },
+      { name: "安全应用 / 安全应用组件", base: "Application Component", definition: "为实现安全目标和策略、管理安全风险、保护敏感信息和数据而设计开发的应用程序、子系统或模块。", fill: "#99ffff", iconType: "component", drawioSize: DRAWIO_LEGEND_SECURITY_SIZE },
+      { name: "安全应用功能", base: "Application Function", definition: "用来执行特定的安全任务的具体安全功能或操作。", fill: "#99ffff", rounded: true, iconType: "function", drawioSize: DRAWIO_LEGEND_SECURITY_SIZE },
+      { name: "安全应用服务", base: "Application Service", definition: "用于满足特定安全需求，通常由一个或多个安全应用功能实现，并向其他应用组件或安全应用提供服务。", fill: "#99ffff", rounded: true, iconType: "service", drawioSize: DRAWIO_LEGEND_SECURITY_SIZE },
+      { name: "安全数据", base: "Data Object", definition: "安全应用中处理、传输或存储的数据实体。", fill: "#99ffff", iconType: "data", drawioSize: DRAWIO_LEGEND_SECURITY_SIZE },
+    ],
+  },
+  {
+    id: "management",
+    title: "安全管理元素图例",
+    description: "原始图例底部右侧：组织、岗位、职能和 L1-L5 流程分级。",
+    columns: 4,
+    items: [
+      { name: "安全组织单元", base: "Business Actor", definition: "安全人员所属组织。", fill: "#ffff99", iconType: "business-actor", drawioSize: DRAWIO_LEGEND_DEFAULT_SIZE },
+      { name: "安全工作岗位", base: "Business Actor", definition: "安全人员所担任的岗位；岗位：职能 = 1:N。", fill: "#ffff99", iconType: "business-actor", drawioSize: DRAWIO_LEGEND_DEFAULT_SIZE },
+      { name: "安全工作职能 / 角色", base: "Business Role", definition: "岗位承担的职责身份 / 责任集合；当前版本不再拆分“职能”和“角色”两套概念。", fill: "#ffff99", iconType: "role", drawioSize: DRAWIO_LEGEND_DEFAULT_SIZE },
+      { name: "安全流程", base: "Business Process", definition: "参考 PCF 流程分类框架，分为 L1-L5：L1 安全流程类别；L2 安全职能流程组；L3 安全职能流程；L4 流程活动；L5 活动任务。", fill: "#ffff99", rounded: true, iconType: "process", drawioSize: DRAWIO_LEGEND_DEFAULT_SIZE },
+    ],
+  },
+];
+const MODELING_RELATION_LEGENDS = [
+  { name: "服务关系", base: "Serving", definition: "应用之间的业务服务关系，表示某个元素将功能提供给另一个元素，例如某个应用组件提供认证服务给业务应用。", lineType: "serving" },
+  { name: "数据流 / 控制流", base: "Flow", definition: "表示从一个元素转到另一个元素，通常用来表示信息流的传递。", lineType: "flow" },
+  { name: "访问关系", base: "Access", definition: "三条线都是访问关系，表示行为和主动结构元素观察或处理被动结构元素的能力，典型示例如应用组件访问数据库。", lineType: "access", lineVariants: ["access-none", "access-both", "access-end"] },
+];
 const escapeHtml = (value) =>
   text(value)
     .replaceAll("&", "&amp;")
@@ -102,6 +183,7 @@ function persistWorkspaceState() {
         activeRoute: state.activeRoute,
         activeView: state.activeView,
         selectedCapabilityId: state.selectedCapabilityId,
+        activeCapabilityRelationTab: state.activeCapabilityRelationTab,
         expandedCapabilityIds: [...state.expandedCapabilityIds],
         capabilityCatalogCollapsed: state.capabilityCatalogCollapsed,
         selectedEnvironmentId: state.selectedEnvironmentId,
@@ -124,6 +206,7 @@ function persistWorkspaceState() {
         activeContentPage: state.activeContentPage,
         selectedContentId: state.selectedContentId,
         selectedContentSlideIndex: state.selectedContentSlideIndex,
+        activeModelingLanguageTab: state.activeModelingLanguageTab,
         savedAt: new Date().toISOString(),
       }),
     );
@@ -135,6 +218,7 @@ function persistWorkspaceState() {
 function applyWorkspaceState(snapshot) {
   if (!snapshot || typeof snapshot !== "object") return;
   state.selectedCapabilityId = snapshot.selectedCapabilityId || state.selectedCapabilityId;
+  state.activeCapabilityRelationTab = snapshot.activeCapabilityRelationTab || state.activeCapabilityRelationTab;
   state.expandedCapabilityIds = new Set(list(snapshot.expandedCapabilityIds));
   state.capabilityCatalogCollapsed = Boolean(snapshot.capabilityCatalogCollapsed);
   state.selectedEnvironmentId = snapshot.selectedEnvironmentId || state.selectedEnvironmentId;
@@ -157,6 +241,7 @@ function applyWorkspaceState(snapshot) {
   state.activeContentPage = snapshot.activeContentPage || state.activeContentPage;
   state.selectedContentId = snapshot.selectedContentId || state.selectedContentId;
   state.selectedContentSlideIndex = Number.isFinite(Number(snapshot.selectedContentSlideIndex)) ? Number(snapshot.selectedContentSlideIndex) : state.selectedContentSlideIndex;
+  state.activeModelingLanguageTab = snapshot.activeModelingLanguageTab || state.activeModelingLanguageTab;
 }
 
 const PACKAGE_GETTERS = {
@@ -1047,6 +1132,361 @@ function changeContentSlide(delta, scrollMode = "active") {
   renderContent();
 }
 
+function scaledDrawioSize(size = DRAWIO_LEGEND_DEFAULT_SIZE, maxWidth = 96, maxHeight = 58) {
+  const width = Number(size[0]) || DRAWIO_LEGEND_DEFAULT_SIZE[0];
+  const height = Number(size[1]) || DRAWIO_LEGEND_DEFAULT_SIZE[1];
+  const scale = Math.min(maxWidth / width, maxHeight / height);
+  return {
+    width: Math.round(width * scale * 100) / 100,
+    height: Math.round(height * scale * 100) / 100,
+  };
+}
+
+function splitIconEnglishTitle(value) {
+  const words = text(value)
+    .replace(" 图标", "")
+    .split(/\s+|\/+/)
+    .map((word) => word.trim())
+    .filter(Boolean);
+  if (!words.length) return [];
+  if (words.length <= 2) return [words.join(" ")];
+  return [words.slice(0, 2).join(" "), words.slice(2).join(" ")].filter(Boolean);
+}
+
+function splitIconChineseTitle(value) {
+  const title = text(value).replace(/\s+/g, " ").trim();
+  if (title.includes(" / ")) return title.split(" / ").map((part, index, rows) => (index < rows.length - 1 ? `${part} /` : part));
+  if (title.length <= 7) return [title];
+  return [title.slice(0, 7), title.slice(7)].filter(Boolean);
+}
+
+function estimatedSvgTextWidth(line, size) {
+  return Array.from(text(line)).reduce((total, char) => {
+    const code = char.codePointAt(0) || 0;
+    if (code > 255) return total + size * 0.95;
+    if (char === " ") return total + size * 0.34;
+    return total + size * 0.56;
+  }, 0);
+}
+
+function renderSvgTextLines(lines, x, y, options = {}) {
+  const size = Number(options.size || 10);
+  const weight = Number(options.weight || 700);
+  const lineHeight = Number(options.lineHeight || size + 2);
+  const anchor = options.anchor || "middle";
+  return list(lines)
+    .map((line, index) => {
+      const maxWidth = Number(options.maxWidth || 0);
+      const textLength = maxWidth && estimatedSvgTextWidth(line, size) > maxWidth ? ` textLength="${maxWidth}" lengthAdjust="spacingAndGlyphs"` : "";
+      return `<text x="${x}" y="${y + index * lineHeight}" text-anchor="${anchor}" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',sans-serif" font-size="${size}" font-weight="${weight}" fill="${escapeHtml(options.fill || "#344054")}"${textLength}>${escapeHtml(line)}</text>`;
+    })
+    .join("");
+}
+
+function renderArchimateCornerIcon(type, width, height, options = {}) {
+  const x = Math.max(0, width - 20);
+  const y = Math.max(0, Math.min(8, height * 0.1));
+  const stroke = escapeHtml(options.stroke || "#111827");
+  const rawFill = options.fill || "none";
+  const fill = rawFill === "none" ? "none" : escapeHtml(rawFill);
+  const blackFill = stroke;
+  const outline = `fill="${fill}" stroke="${stroke}" stroke-width="1" stroke-miterlimit="10"`;
+  const noFill = `fill="none" stroke="${stroke}" stroke-width="1" stroke-miterlimit="10"`;
+  const group = (content, dx = 0, dy = 0) => `<g transform="translate(${x + dx} ${y + dy})">${content}</g>`;
+
+  if (type === "location") {
+    return group(`<path d="M4.5 0 C2.56 0 0 1.51 0 4.5 C0 6.11 0.7 7.17 1.37 8.23 C2.61 10.18 3.85 11.99 4.5 15 C5.15 11.99 6.39 10.18 7.63 8.23 C8.3 7.17 9 6.11 9 4.5 C9 1.51 6.44 0 4.5 0 Z" ${outline}/>`, 3, 0);
+  }
+  if (type === "network") {
+    return group(`
+      <path d="M3.75 2.2 L10.5 2.2 L6.75 8.8 L0 8.8 Z" ${noFill}/>
+      <ellipse cx="3.75" cy="2.2" rx="2.25" ry="2.2" fill="${blackFill}" stroke="none"/>
+      <ellipse cx="10.5" cy="2.2" rx="2.25" ry="2.2" fill="${blackFill}" stroke="none"/>
+      <ellipse cx="0" cy="8.8" rx="2.25" ry="2.2" fill="${blackFill}" stroke="none"/>
+      <ellipse cx="6.75" cy="8.8" rx="2.25" ry="2.2" fill="${blackFill}" stroke="none"/>
+    `, 2.25, 2.2);
+  }
+  if (type === "device") {
+    return group(`<rect x="0" y="0" width="15" height="13.2" rx="1.5" ry="1.5" ${outline}/><path d="M1.5 13.2 L0 15 L15 15 L13.5 13.2" ${outline}/>`);
+  }
+  if (type === "system-software") {
+    return group(`<ellipse cx="9.75" cy="5.25" rx="5.25" ry="5.25" ${outline}/><ellipse cx="7.35" cy="7.35" rx="7.35" ry="7.35" ${outline}/>`);
+  }
+  if (type === "component" || type === "artifact") {
+    return group(`<rect x="4.25" y="0" width="9.75" height="15" ${outline}/><rect x="1" y="3.75" width="6.5" height="2.25" ${outline}/><rect x="1" y="9" width="6.5" height="2.25" ${outline}/>`);
+  }
+  if (type === "function") {
+    return group(`<path d="M7.5 0 L15 3 L15 15 L7.5 12 L0 15 L0 3 Z" ${outline}/>`);
+  }
+  if (type === "service" || type === "business-actor") {
+    return group(`<path d="M10.5 0 C12.99 0 15 2.01 15 4.5 C15 6.99 12.99 9 10.5 9 L4.5 9 C2.01 9 0 6.99 0 4.5 C0 2.01 2.01 0 4.5 0 Z" ${outline}/>`, 0, 3);
+  }
+  if (type === "data") {
+    return group(`<path d="M0 0 L15 0 L15 9 L0 9 Z M0 1.8 L15 1.8" ${outline}/>`, 0, 3);
+  }
+  if (type === "event") {
+    return group(`<path d="M10.5 0 C12.99 0 15 2.01 15 4.5 C15 6.98 12.99 9 10.5 9 L0 9 L4.5 4.5 L0 0 Z" ${outline}/>`, 0, 3);
+  }
+  if (type === "node") {
+    return group(`<path d="M0 3.75 L3.75 0 L15 0 L15 11.25 L11.25 15 L0 15 Z M0 3.75 L11.25 3.75 L11.25 15 M15 0 L11.25 3.75" ${outline}/>`);
+  }
+  if (type === "role") {
+    return group(`<path d="M12 0 L3 0 C1.34 0 0 2.01 0 4.5 C0 6.99 1.34 9 3 9 L12 9" ${outline}/><ellipse cx="12" cy="4.5" rx="3" ry="4.5" ${outline}/>`, 0, 3);
+  }
+  if (type === "process") {
+    return group(`<path d="M0 2.7 L9 2.7 L9 0 L15 4.5 L9 9 L9 6.3 L0 6.3 Z" ${outline}/>`, 0, 3);
+  }
+  if (type === "grouping") {
+    return group(`<path d="M0 3.3 L15 3.3 L15 11 L0 11 Z M0 3.3 L0 0 L11.25 0 L11.25 3.3" fill="none" stroke="${stroke}" stroke-width="1" stroke-miterlimit="10" stroke-dasharray="3 3"/>`, 0, 2);
+  }
+  if (type === "facility") {
+    return group(`<path d="M0 15 L0 0 L1.95 0 L1.95 10.5 L6.3 8.25 L6.3 10.5 L10.65 8.25 L10.65 10.5 L15 8.25 L15 15 Z" ${outline}/>`);
+  }
+  return group(`<rect x="0" y="0" width="15" height="15" ${outline}/>`);
+}
+
+function notationForLegendItem(item = {}) {
+  return ARCHIMATE_NOTATION_REGISTRY[item.notationId || item.iconType] || null;
+}
+
+function renderPendingNotationIcon(item) {
+  return `
+    <span class="modeling-legend-icon-frame modeling-legend-icon-frame-pending" aria-hidden="true">
+      <svg class="modeling-legend-drawio-icon" style="width:124px;height:62px" viewBox="0 0 150 75" role="img" focusable="false">
+        <rect x="0.75" y="0.75" width="148.5" height="73.5" rx="0" fill="none" stroke="#9aa4b2" stroke-width="1.5" stroke-dasharray="7 5"/>
+        ${renderSvgTextLines(["待映射"], 75, 36, { size: ARCHIMATE_ICON_LABEL_RULE.chineseFontSize, weight: ARCHIMATE_ICON_LABEL_RULE.chineseWeight, fill: "#344054", maxWidth: 112 })}
+        ${renderSvgTextLines([text(item.base || "Non-standard")], 75, 54, { size: ARCHIMATE_ICON_LABEL_RULE.englishFontSize, weight: ARCHIMATE_ICON_LABEL_RULE.englishWeight, fill: "#667085", maxWidth: 112 })}
+      </svg>
+    </span>
+  `;
+}
+
+function renderModelingLegendIcon(item) {
+  const notation = notationForLegendItem(item);
+  if (!notation) return renderPendingNotationIcon(item);
+  const actor = notation.renderer === "actor";
+  const rawSize = actor ? DRAWIO_LEGEND_DEFAULT_SIZE : item.drawioSize || notation.drawioSize || DRAWIO_LEGEND_DEFAULT_SIZE;
+  const size = scaledDrawioSize(rawSize, 124, 72);
+  const viewWidth = Number(rawSize[0]) || DRAWIO_LEGEND_DEFAULT_SIZE[0];
+  const viewHeight = Number(rawSize[1]) || DRAWIO_LEGEND_DEFAULT_SIZE[1];
+  const stroke = item.stroke || "#2f3b4d";
+  const fill = text(item.fill).toLowerCase() === "transparent" ? "none" : item.fill || "#ffffff";
+  const dash = notation.dashed ? `stroke-dasharray="7 5"` : "";
+  const radius = notation.rounded ? Math.min(18, viewHeight * 0.22) : 0;
+  const chineseLines = splitIconChineseTitle(item.name);
+  const englishLines = splitIconEnglishTitle(item.base);
+  const chineseSize = ARCHIMATE_ICON_LABEL_RULE.chineseFontSize;
+  const englishSize = ARCHIMATE_ICON_LABEL_RULE.englishFontSize;
+  const chineseLineHeight = ARCHIMATE_ICON_LABEL_RULE.chineseLineHeight;
+  const englishLineHeight = ARCHIMATE_ICON_LABEL_RULE.englishLineHeight;
+  const titleBlockHeight = chineseLines.length * chineseLineHeight + ARCHIMATE_ICON_LABEL_RULE.titleGap + englishLines.length * englishLineHeight;
+  const chineseStartY = Math.max(23, (viewHeight - titleBlockHeight) / 2 + chineseSize);
+  const englishY = chineseStartY + chineseLines.length * chineseLineHeight + ARCHIMATE_ICON_LABEL_RULE.titleGap;
+  const textMaxWidth = Math.max(82, viewWidth - ARCHIMATE_ICON_LABEL_RULE.shapeTextPaddingX);
+  const shape = actor
+    ? `
+      <rect x="0.75" y="0.75" width="${viewWidth - 1.5}" height="${viewHeight - 1.5}" rx="0" fill="transparent" stroke="transparent"/>
+      <g transform="translate(18 12)">
+        <circle cx="13.25" cy="7" r="7" fill="${escapeHtml(fill)}" stroke="${escapeHtml(stroke)}" stroke-width="1.5"/>
+        <path d="M13.25 14 V30 M2 21 H24.5 M13.25 30 L2 45 M13.25 30 L24.5 45" fill="none" stroke="${escapeHtml(stroke)}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+      ${renderSvgTextLines(chineseLines, 96, chineseLines.length > 1 ? 29 : 34, { size: chineseSize, weight: ARCHIMATE_ICON_LABEL_RULE.chineseWeight, fill: "#111827", lineHeight: chineseLineHeight, maxWidth: ARCHIMATE_ICON_LABEL_RULE.actorTextMaxWidth })}
+      ${renderSvgTextLines(englishLines, 96, chineseLines.length > 1 ? 59 : 55, { size: englishSize, weight: ARCHIMATE_ICON_LABEL_RULE.englishWeight, fill: "#344054", lineHeight: englishLineHeight, maxWidth: ARCHIMATE_ICON_LABEL_RULE.actorTextMaxWidth - 6 })}
+    `
+    : `
+      <rect x="0.75" y="0.75" width="${viewWidth - 1.5}" height="${viewHeight - 1.5}" rx="${radius}" fill="${escapeHtml(fill)}" stroke="${escapeHtml(stroke)}" stroke-width="1.5" ${dash}/>
+      ${renderArchimateCornerIcon(notation.cornerIcon, viewWidth, viewHeight, { fill, stroke })}
+      ${renderSvgTextLines(chineseLines, viewWidth / 2, chineseStartY, { size: chineseSize, weight: ARCHIMATE_ICON_LABEL_RULE.chineseWeight, fill: "#111827", lineHeight: chineseLineHeight, maxWidth: textMaxWidth })}
+      ${renderSvgTextLines(englishLines, viewWidth / 2, englishY, { size: englishSize, weight: ARCHIMATE_ICON_LABEL_RULE.englishWeight, fill: "#344054", lineHeight: englishLineHeight, maxWidth: textMaxWidth - 8 })}
+    `;
+  return `
+    <span class="modeling-legend-icon-frame" aria-hidden="true" data-archimate-element="${escapeHtml(notation.archimateElementTypeId)}" data-drawio-shape="${escapeHtml(notation.drawioShape)}" data-drawio-app-type="${escapeHtml(notation.appType || "")}" data-drawio-archi-type="${escapeHtml(notation.archiType || "")}">
+      <svg class="modeling-legend-drawio-icon" style="width:${size.width}px;height:${size.height}px" viewBox="0 0 ${viewWidth} ${viewHeight}" role="img" focusable="false">
+        ${shape}
+      </svg>
+    </span>
+  `;
+}
+
+function renderModelingLegendCard(item) {
+  return `
+    <article class="modeling-legend-card">
+      ${renderModelingLegendIcon(item)}
+      <div class="modeling-legend-card-body">
+        <div class="modeling-legend-definition">
+          <p>${escapeHtml(item.definition)}</p>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function renderModelingLegendSection(section) {
+  return `
+    <section class="modeling-legend-section modeling-legend-section-${escapeHtml(section.id)}">
+      <header>
+        <div>
+          <h3>${escapeHtml(section.title)}</h3>
+          <p>${escapeHtml(section.description)}</p>
+        </div>
+        <span>${list(section.items).length} 个元素</span>
+      </header>
+      <div class="modeling-legend-grid columns-${Number(section.columns) || 3}">
+        ${list(section.items).map(renderModelingLegendCard).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderModelingRelationLine(lineType, variant = "") {
+  return `<span class="modeling-relation-line line-${escapeHtml(lineType)} ${variant ? `variant-${escapeHtml(variant)}` : ""}" aria-hidden="true"><i></i></span>`;
+}
+
+function renderModelingRelationLegendCard(item) {
+  return `
+    <article class="modeling-relation-legend-card line-${escapeHtml(item.lineType)}">
+      <div class="modeling-relation-line-stack">
+        ${list(item.lineVariants).length ? list(item.lineVariants).map((variant) => renderModelingRelationLine(item.lineType, variant)).join("") : renderModelingRelationLine(item.lineType)}
+      </div>
+      <div>
+        <strong>${escapeHtml(item.name)}</strong>
+        <span>${escapeHtml(item.base)}</span>
+        <p>${escapeHtml(item.definition)}</p>
+      </div>
+    </article>
+  `;
+}
+
+function renderModelingElementLegendPanel() {
+  return `
+    <div class="modeling-legend-stack">
+      ${MODELING_LEGEND_SECTIONS.map(renderModelingLegendSection).join("")}
+      <section class="modeling-legend-section modeling-legend-section-relations">
+        <header>
+          <div>
+            <h3>关系线图例</h3>
+            <p>原始图例底部左侧：线型语义，后续作为 notation 候选。</p>
+          </div>
+          <span>${MODELING_RELATION_LEGENDS.length} 类关系</span>
+        </header>
+        <div class="modeling-relation-legend-grid">
+          ${MODELING_RELATION_LEGENDS.map(renderModelingRelationLegendCard).join("")}
+        </div>
+      </section>
+    </div>
+  `;
+}
+
+function renderModelingLanguageGuide(routeInfo = {}) {
+  const workspace = $("contentWorkspace");
+  const detailPane = document.querySelector(".content-detail-pane");
+  workspace?.classList.remove("guide-slide-layout");
+  workspace?.classList.add("modeling-language-guide-workspace");
+  detailPane?.classList.add("is-hidden");
+  if (workspace) {
+    workspace.querySelectorAll(":scope > .workspace-resizer").forEach((handle) => handle.remove());
+    workspace.classList.remove("is-resizable");
+    workspace.dataset.resizableReady = "";
+    workspace.style.gridTemplateColumns = "";
+    workspace._paneWidths = null;
+  }
+
+  const activeTab = MODELING_LANGUAGE_GUIDE_TABS.some((tab) => tab.id === state.activeModelingLanguageTab)
+    ? state.activeModelingLanguageTab
+    : MODELING_LANGUAGE_GUIDE_TABS[0].id;
+  state.activeModelingLanguageTab = activeTab;
+  const tabPanels = {
+    overview: `
+      <section class="modeling-language-panel-section">
+        <div class="modeling-language-lead">
+          <span class="modeling-language-kicker">建模语言</span>
+          <h3>用统一图例表达信息化环境、安全元素和治理关系</h3>
+          <p>这页用于沉淀安全架构建模语言的业务口径。它把 ArchiMate 基础元素、SAPD 安全元素、流程和职能放到同一套图例中，后续支撑 draw.io 图例、元模型和信息化环境底图的维护。</p>
+        </div>
+        <dl class="modeling-language-facts" aria-label="建模语言边界">
+          <div>
+            <dt>建模对象</dt>
+            <dd>业务、应用、数据、技术节点，以及作用域、安全能力、安全服务和安全措施。</dd>
+          </div>
+          <div>
+            <dt>使用场景</dt>
+            <dd>信息化环境底图、安全能力映射、安全技术服务落点和管理关系检查。</dd>
+          </div>
+          <div>
+            <dt>当前边界</dt>
+            <dd>本页先说明语言规则，不临时生成关系数据，也不展示原始来源字段。</dd>
+          </div>
+        </dl>
+      </section>
+      <section class="modeling-language-table-section">
+        <h3>语言分层</h3>
+        <table class="modeling-language-table">
+          <thead>
+            <tr>
+              <th>层次</th>
+              <th>说明</th>
+              <th>页面用途</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>基础元素</td>
+              <td>承接 ArchiMate 中业务、应用、数据和技术基础对象。</td>
+              <td>作为信息化环境和对象底图的统一表达。</td>
+            </tr>
+            <tr>
+              <td>SAPD 安全元素</td>
+              <td>表达安全能力、作用域、安全技术服务、模块、措施和系统。</td>
+              <td>支撑能力到技术、系统、产品的落点检查。</td>
+            </tr>
+            <tr>
+              <td>安全管理元素</td>
+              <td>表达流程组、流程、工作活动和安全工作职能 / 角色。</td>
+              <td>支撑治理责任、流程承接和职能映射检查。</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    `,
+    elements: renderModelingElementLegendPanel(),
+  };
+
+  const tabs = MODELING_LANGUAGE_GUIDE_TABS.map(
+    (tab) => `
+      <button class="maintenance-section-tab ${tab.id === activeTab ? "active" : ""}" type="button" role="tab" aria-selected="${tab.id === activeTab ? "true" : "false"}" data-modeling-language-tab="${escapeHtml(tab.id)}">
+        <span>${escapeHtml(tab.label)}</span>
+      </button>
+    `,
+  ).join("");
+  const routeItem = routeInfo.item || {};
+  setText("contentNavTitle", "");
+  setHtml("contentNavList", "");
+  setText("contentPageTitle", routeItem.label || "安全架构建模语言");
+  setText("contentPageCount", MODELING_LANGUAGE_GUIDE_TABS.length);
+  setHtml(
+    "contentList",
+    `
+      <article class="modeling-language-guide-panel">
+        <header class="modeling-language-guide-header">
+          <div>
+            <span class="modeling-language-kicker">安全指南</span>
+            <h2>${escapeHtml(routeItem.label || "安全架构建模语言")}</h2>
+            <p>${escapeHtml(routeInfo.description || "用于维护 SAPD 安全架构建模语言、图例、元模型和关系线口径。")}</p>
+          </div>
+          <div class="maintenance-section-tabs modeling-language-tabs" role="tablist" aria-label="安全架构建模语言页签">
+            ${tabs}
+          </div>
+        </header>
+        <div class="modeling-language-guide-body" role="tabpanel">
+          ${tabPanels[activeTab]}
+        </div>
+      </article>
+    `,
+  );
+  setText("contentDetailType", "");
+  setHtml("contentDetail", "");
+}
+
 function renderSlideDeck(row) {
   const slides = contentSlides(row);
   if (!slides.length) return emptyState("暂无幻灯片", "请确认内容包是否包含 slide_count 或 slides。");
@@ -1555,14 +1995,23 @@ function normalizeAppRoute(route) {
 function routeFromBrowserLocation() {
   const hashRoute = normalizeAppRoute(window.location.hash || "");
   if (hashRoute !== "/") return hashRoute;
-  return normalizeAppRoute(window.location.pathname || "/");
+  const pathname = window.location.pathname || "/";
+  if (pathname.includes("/frontend/capability-browser")) return "/";
+  return normalizeAppRoute(pathname);
+}
+
+function appRouteBasePath() {
+  const pathname = window.location.pathname || "/";
+  if (!pathname.includes("/frontend/capability-browser")) return "/";
+  return pathname.endsWith("/") ? pathname : `${pathname.replace(/index\.html$/, "").replace(/\/+$/, "")}/`;
 }
 
 function syncBrowserRoute(route, { replace = false } = {}) {
   const normalized = normalizeAppRoute(route);
   const nextHash = normalized === "/" ? "" : `#${normalized}`;
-  if (window.location.hash === nextHash) return;
-  const nextUrl = `${window.location.pathname}${window.location.search}${nextHash}`;
+  const nextPath = appRouteBasePath();
+  if (window.location.pathname === nextPath && window.location.hash === nextHash) return;
+  const nextUrl = `${nextPath}${window.location.search}${nextHash}`;
   if (replace) window.history.replaceState({ route: normalized }, "", nextUrl);
   else window.history.pushState({ route: normalized }, "", nextUrl);
 }
@@ -1826,6 +2275,7 @@ function renderCapabilityDetail(components, viewModel) {
         components.CapabilityLocalRelationMap?.render({
           localRelationMap: viewModel.localRelationMap,
           focusOverview: viewModel.focusOverview,
+          activeTab: state.activeCapabilityRelationTab,
           technicalMappingRows: viewModel.technicalMappingRows,
           managementMappingRows: viewModel.managementMappingRows,
           standardMappingRows: viewModel.standardMappingRows,
@@ -2347,6 +2797,7 @@ function ensureWorkspaceResizable(workspace) {
   if (workspace.id === "overviewWorkspace") return;
   if (workspace.id === "devLifecycleWorkspace") return;
   if (workspace.id === "contentWorkspace" && workspace.classList.contains("guide-slide-layout")) return;
+  if (workspace.id === "contentWorkspace" && workspace.classList.contains("modeling-language-guide-workspace")) return;
   const panes = workspacePanes(workspace);
   if (panes.length < 2) return;
   workspace.classList.add("is-resizable");
@@ -2427,6 +2878,12 @@ function beginRelationshipColumnResize(event, handle) {
 function renderContent() {
   const navList = $("contentNavList");
   const previousThumbScrollTop = navList?.scrollTop || 0;
+  const routeInfo = window.sapdComponents?.AppShell?.getRouteInfo?.(state.activeRoute) || {};
+  if (state.activeRoute === MODELING_LANGUAGE_GUIDE_ROUTE) {
+    renderModelingLanguageGuide(routeInfo);
+    return;
+  }
+  $("contentWorkspace")?.classList.remove("modeling-language-guide-workspace");
   const requiredGuidePackage = GUIDE_ROUTE_PACKAGES[state.activeRoute];
   if (!state.loadedPackages.has("content") || (requiredGuidePackage && !state.loadedPackages.has(requiredGuidePackage))) {
     setText("contentNavTitle", "幻灯片目录");
@@ -2440,6 +2897,7 @@ function renderContent() {
   }
   const rows = contentRows().filter((row) => matchesSearch(row.title, row.category, row.view_type, row.content));
   const isSpecificGuideRoute = state.activeRoute.startsWith("/guides/");
+  const routeItem = routeInfo.item || {};
   if (!state.selectedContentId || !rows.some((row) => row.id === state.selectedContentId)) state.selectedContentId = rows[0]?.id || null;
   if (!state.selectedContentId) state.selectedContentSlideIndex = 0;
   const titles = { html: "HTML 知识说明", drawio: "Draw.io 只读图", ppt: "PPT 使用说明" };
@@ -2459,14 +2917,14 @@ function renderContent() {
     workspace._paneWidths = null;
   }
   setText("contentNavTitle", isSlideDeck || isSpecificGuideRoute ? "幻灯片目录" : "说明与视图");
-  setText("contentPageTitle", selected?.title || titles[state.activeContentPage]);
+  setText("contentPageTitle", selected?.title || (isSpecificGuideRoute ? routeItem.label : "") || titles[state.activeContentPage]);
   setText("contentPageCount", selectedSlides.length || rows.length);
   setHtml(
     "contentNavList",
     isSlideDeck
       ? renderSlidePreviewRail(selected)
       : isSpecificGuideRoute && !rows.length
-        ? emptyState("暂无页面预览", "该指南内容待补充。")
+        ? emptyState(routeItem.label || "暂无页面预览", "该指南内容待补充。")
       : `
         <button id="htmlDocsTab" class="source-nav-button ${state.activeContentPage === "html" ? "active" : ""}" type="button" data-content-page="html">
           <span>HTML 知识说明</span>
@@ -2487,7 +2945,7 @@ function renderContent() {
     isSlideDeck
       ? renderSlideDeck(selected)
       : isSpecificGuideRoute && !rows.length
-        ? emptyState("暂无指南内容", "当前二级页面已预留，尚未绑定数据包。")
+        ? emptyState(routeItem.label || "暂无指南内容", routeInfo.description || "当前二级页面已预留，尚未绑定数据包。")
       : rows.map((row) => `<button class="catalog-row ${row.id === state.selectedContentId ? "active" : ""}" type="button" data-content-id="${escapeHtml(row.id)}"><span class="catalog-main"><strong>${escapeHtml(row.title || "未命名内容")}</strong><small>${escapeHtml(row.view_type || row.category || "")}</small></span><span class="catalog-meta"><span>${escapeHtml(row.slide_number || row.page_index || row.updated_at || "")}</span></span></button>`).join("") || emptyState("暂无内容视图", "HTML / Draw.io / PPT 已预留入口"),
   );
   if (isSlideDeck) {
@@ -2640,6 +3098,12 @@ $("detail")?.addEventListener("click", (event) => {
   if (capabilityItemTypeById(state.selectedCapabilityId) === "capability_focus") ensureCapabilityProjectionForFocus(state.selectedCapabilityId);
   renderCapabilities();
 });
+  $("detail")?.addEventListener("change", (event) => {
+    const tab = event.target.closest(".relation-view-radio");
+    if (!tab) return;
+    state.activeCapabilityRelationTab = tab.value || "summary";
+    persistWorkspaceState();
+  });
   $("detail")?.addEventListener("input", (event) => {
     const input = event.target.closest("[data-relation-filter]");
     if (!input) return;
@@ -2799,6 +3263,12 @@ $("detail")?.addEventListener("click", (event) => {
       if (lifecycle.dataset.lifecycleKind === "data") state.selectedDataProcessId = lifecycle.dataset.lifecycleId;
       renderLifecycle(lifecycle.dataset.lifecycleKind);
     }
+    const modelingLanguageTab = event.target.closest("[data-modeling-language-tab]");
+    if (modelingLanguageTab && modelingLanguageTab.closest("#contentWorkspace")) {
+      state.activeModelingLanguageTab = modelingLanguageTab.dataset.modelingLanguageTab;
+      renderContent();
+      return;
+    }
     const contentPage = event.target.closest("[data-content-page]");
     if (contentPage && contentPage.closest("#contentWorkspace")) {
       state.activeContentPage = contentPage.dataset.contentPage;
@@ -2849,7 +3319,7 @@ async function init() {
   if (!dataClient) throw new Error("SAPD Wiki dataClient 未加载");
   await loadScriptOnce("./models/relationGraphModel.js?v=capability-graph-strategy-20260526-1", () => Boolean(window.sapdModels?.buildLocalRelationGraphModel));
   await loadScriptOnce("./components/LocalRelationNetworkGraph.js?v=capability-graph-strategy-20260526-2", () => Boolean(window.sapdComponents?.LocalRelationNetworkGraph));
-  await loadScriptOnce("./components/CapabilityLocalRelationMap.js?v=capability-focus-header-r2-20260530", () => Boolean(window.sapdComponents?.CapabilityLocalRelationMap));
+  await loadScriptOnce("./components/CapabilityLocalRelationMap.js?v=capability-tab-state-20260602-1", () => Boolean(window.sapdComponents?.CapabilityLocalRelationMap));
   await loadScriptOnce("./models/environmentRelationGraphModel.js?v=environment-graph-20260521-1", () => Boolean(window.sapdModels?.buildEnvironmentRelationGraphModel));
   await loadScriptOnce("./components/EnvironmentLocalRelationMap.js?v=environment-tab-stat-cleanup-20260530", () => Boolean(window.sapdComponents?.EnvironmentLocalRelationMap));
   mountAppShellComponents();

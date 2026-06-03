@@ -825,6 +825,8 @@
     const args = arguments[0] || {};
     const map = localRelationMap || {};
     if (!map.focus?.id) return "";
+    const activeTab = ["summary", "technical", "management", "standard"].includes(args.activeTab) ? args.activeTab : "summary";
+    const checked = (tab) => (activeTab === tab ? " checked" : "");
     const matrices = {
       technicalMappingRows: list(args.technicalMappingRows),
       managementMappingRows: list(args.managementMappingRows),
@@ -832,10 +834,10 @@
     };
     return `
       <section class="capability-local-relation-map capability-map-v3 capability-map-preview-r2">
-        <input class="relation-view-radio" type="radio" name="capability-relation-view" id="capability-relation-tab-summary" checked />
-        <input class="relation-view-radio" type="radio" name="capability-relation-view" id="capability-relation-tab-technical" />
-        <input class="relation-view-radio" type="radio" name="capability-relation-view" id="capability-relation-tab-management" />
-        <input class="relation-view-radio" type="radio" name="capability-relation-view" id="capability-relation-tab-standard" />
+        <input class="relation-view-radio" type="radio" name="capability-relation-view" id="capability-relation-tab-summary" value="summary"${checked("summary")} />
+        <input class="relation-view-radio" type="radio" name="capability-relation-view" id="capability-relation-tab-technical" value="technical"${checked("technical")} />
+        <input class="relation-view-radio" type="radio" name="capability-relation-view" id="capability-relation-tab-management" value="management"${checked("management")} />
+        <input class="relation-view-radio" type="radio" name="capability-relation-view" id="capability-relation-tab-standard" value="standard"${checked("standard")} />
         <div class="capability-map-v3-grid preview-workbench-grid">
           <main class="capability-relation-stage preview-relation-stage">
             ${renderTabControls(map)}

@@ -80,7 +80,6 @@
         <td>
           <strong>${utils.escapeHtml(displayValue(row.serviceLabel))}</strong>
         </td>
-        <td>${utils.escapeHtml(displayValue(row.definition))}</td>
         <td>${chipList(row.ownershipFocuses, "待补充安全能力 / 关注点", "能力关注点")}</td>
         <td>${chipList(row.linkedModuleMeasures, display.state?.("no_module_or_measure") || "/", "", true)}</td>
         <td>${chipList(row.linkedSystems, "待补充安全系统", "安全系统")}</td>
@@ -100,7 +99,7 @@
         const serviceRows = utils.list(group.rows);
         return `
           <tr class="standard-group-row service-scope-table-group depth-0 ${expanded ? "expanded" : ""}" data-standard-group="${utils.escapeHtml(id)}">
-            <td colspan="7">
+            <td colspan="6">
               <button class="standard-group-toggle" type="button" aria-expanded="${expanded ? "true" : "false"}">
                 <span class="standard-group-caret">›</span>
                   <span class="standard-group-main">
@@ -164,7 +163,6 @@
             <tr>
               <th>序号</th>
               <th>${utils.escapeHtml(display.label?.("security_technical_service", "安全技术服务") || "安全技术服务")}</th>
-              <th>定义</th>
               <th>归属安全能力 / 关注点</th>
               <th>${utils.escapeHtml(display.relationLabel?.("security_module_or_measure") || "关联安全技术模块/措施")}</th>
               <th>${utils.escapeHtml(display.relationLabel?.("security_system") || "关联安全系统")}</th>

@@ -45,6 +45,7 @@ const state = {
   selectedContentId: null,
   selectedContentSlideIndex: 0,
   activeModelingLanguageTab: "overview",
+  modelingPosterExpanded: false,
   contentSlideScrollMode: "preserve",
   standardFrameworkLoads: new Map(),
   maintenanceSectionLoads: new Map(),
@@ -69,8 +70,49 @@ const text = (value) => (value == null ? "" : String(value));
 const WORKSPACE_STATE_STORAGE_KEY = "sapd:workspace-state:v1";
 const MODELING_LANGUAGE_GUIDE_ROUTE = "/guides/security-architecture-modeling-language";
 const MODELING_LANGUAGE_GUIDE_TABS = [
-  { id: "overview", label: "语言概览" },
-  { id: "elements", label: "元素图例" },
+  { id: "overview", label: "ArchiMate® 3.2 - 企业架构建模标准" },
+  { id: "elements", label: "SAPD 元素图例" },
+];
+const ARCHIMATE_POSTER_ASSET_BASE = "./public/data/guides/archimate-poster";
+const ARCHIMATE_POSTER_PDF_PATH = `${ARCHIMATE_POSTER_ASSET_BASE}/archimate-poster-v3.2-zh.pdf`;
+const ARCHIMATE_POSTER_OVERVIEW_IMAGE = `${ARCHIMATE_POSTER_ASSET_BASE}/archimate-poster-overview.jpg`;
+const ARCHIMATE_POSTER_REGIONS = [
+  {
+    id: "business-general",
+    title: "业务层与通用元素",
+    summary: "Business Layer、通用元素与通用行为模型，是业务对象、角色、流程和通用 notation 的基础参考。",
+    image: `${ARCHIMATE_POSTER_ASSET_BASE}/archimate-poster-region-business-general.jpg`,
+  },
+  {
+    id: "application-layer",
+    title: "应用层",
+    summary: "Application Component、Function、Service、Data Object 等应用架构元素。",
+    image: `${ARCHIMATE_POSTER_ASSET_BASE}/archimate-poster-region-application-layer.jpg`,
+  },
+  {
+    id: "technology-physical",
+    title: "技术层与物理层",
+    summary: "Artifact、Device、Node、Communication Network、Facility、Equipment 等技术和物理元素。",
+    image: `${ARCHIMATE_POSTER_ASSET_BASE}/archimate-poster-region-technology-physical.jpg`,
+  },
+  {
+    id: "motivation-strategy",
+    title: "动机元素与战略元素",
+    summary: "Requirement、Principle、Goal、Capability、Resource、Value Stream 等治理和战略表达元素。",
+    image: `${ARCHIMATE_POSTER_ASSET_BASE}/archimate-poster-region-motivation-strategy.jpg`,
+  },
+  {
+    id: "risk-implementation",
+    title: "实施迁移、风险与安全叠加",
+    summary: "Implementation & Migration、Risk and Security Overlay、派生关系和传递关系等扩展参考。",
+    image: `${ARCHIMATE_POSTER_ASSET_BASE}/archimate-poster-region-risk-implementation.jpg`,
+  },
+  {
+    id: "relationships-views",
+    title: "关系、视图与元模型结构",
+    summary: "ArchiMate 层、关系线、角色职责、替代表达法、视点和视图示例。",
+    image: `${ARCHIMATE_POSTER_ASSET_BASE}/archimate-poster-region-relationships-views.jpg`,
+  },
 ];
 const DRAWIO_LEGEND_DEFAULT_SIZE = [150, 75];
 const DRAWIO_LEGEND_SECURITY_SIZE = [150, 82.94701986754967];
@@ -91,7 +133,6 @@ const MODELING_LEGEND_SECTIONS = [
   {
     id: "information",
     title: "信息化基础元素图例",
-    description: "原始图例左侧区域：通用信息化环境对象。",
     columns: 4,
     items: [
       { name: "人员", base: "actor 图标", definition: "参与业务活动、承担角色的主动参与者。", fill: "#ffff99", iconType: "actor", drawioSize: DRAWIO_ACTOR_SIZE },
@@ -111,7 +152,6 @@ const MODELING_LEGEND_SECTIONS = [
   {
     id: "security",
     title: "SAPD 安全元素图例",
-    description: "原始图例右侧区域：SAPD 安全元素对 ArchiMate 元素的专业化映射。",
     columns: 4,
     items: [
       { name: "安全人员", base: "Actor", definition: "参与安全工作、承担角色的主动参与者。", fill: "#ffff99", iconType: "actor", drawioSize: DRAWIO_ACTOR_SIZE },
@@ -131,7 +171,6 @@ const MODELING_LEGEND_SECTIONS = [
   {
     id: "management",
     title: "安全管理元素图例",
-    description: "原始图例底部右侧：组织、岗位、职能和 L1-L5 流程分级。",
     columns: 4,
     items: [
       { name: "安全组织单元", base: "Business Actor", definition: "安全人员所属组织。", fill: "#ffff99", iconType: "business-actor", drawioSize: DRAWIO_LEGEND_DEFAULT_SIZE },
@@ -1323,18 +1362,27 @@ function renderModelingLegendCard(item) {
 
 function renderModelingLegendSection(section) {
   return `
-    <section class="modeling-legend-section modeling-legend-section-${escapeHtml(section.id)}">
-      <header>
-        <div>
+    <details class="modeling-legend-section modeling-legend-section-${escapeHtml(section.id)}">
+      <summary class="modeling-legend-section-summary">
+        <span class="modeling-legend-section-heading">
+          <span class="modeling-legend-section-signal" aria-hidden="true"></span>
           <h3>${escapeHtml(section.title)}</h3>
-          <p>${escapeHtml(section.description)}</p>
+        </span>
+        <span class="modeling-legend-section-actions">
+          <span class="modeling-legend-section-count">${list(section.items).length} 个元素</span>
+          <span class="modeling-legend-section-state" aria-hidden="true">
+            <span class="state-collapsed">展开</span>
+            <span class="state-expanded">收起</span>
+          </span>
+          <span class="modeling-legend-section-chevron" aria-hidden="true"></span>
+        </span>
+      </summary>
+      <div class="modeling-legend-section-body">
+        <div class="modeling-legend-grid columns-${Number(section.columns) || 3}">
+          ${list(section.items).map(renderModelingLegendCard).join("")}
         </div>
-        <span>${list(section.items).length} 个元素</span>
-      </header>
-      <div class="modeling-legend-grid columns-${Number(section.columns) || 3}">
-        ${list(section.items).map(renderModelingLegendCard).join("")}
       </div>
-    </section>
+    </details>
   `;
 }
 
@@ -1361,19 +1409,137 @@ function renderModelingElementLegendPanel() {
   return `
     <div class="modeling-legend-stack">
       ${MODELING_LEGEND_SECTIONS.map(renderModelingLegendSection).join("")}
-      <section class="modeling-legend-section modeling-legend-section-relations">
-        <header>
-          <div>
+      <details class="modeling-legend-section modeling-legend-section-relations">
+        <summary class="modeling-legend-section-summary">
+          <span class="modeling-legend-section-heading">
+            <span class="modeling-legend-section-signal" aria-hidden="true"></span>
             <h3>关系线图例</h3>
-            <p>原始图例底部左侧：线型语义，后续作为 notation 候选。</p>
+          </span>
+          <span class="modeling-legend-section-actions">
+            <span class="modeling-legend-section-count">${MODELING_RELATION_LEGENDS.length} 类关系</span>
+            <span class="modeling-legend-section-state" aria-hidden="true">
+              <span class="state-collapsed">展开</span>
+              <span class="state-expanded">收起</span>
+            </span>
+            <span class="modeling-legend-section-chevron" aria-hidden="true"></span>
+          </span>
+        </summary>
+        <div class="modeling-legend-section-body">
+          <div class="modeling-relation-legend-grid">
+            ${MODELING_RELATION_LEGENDS.map(renderModelingRelationLegendCard).join("")}
           </div>
-          <span>${MODELING_RELATION_LEGENDS.length} 类关系</span>
+        </div>
+      </details>
+    </div>
+  `;
+}
+
+function getModelingPosterTarget(targetId) {
+  if (targetId && targetId !== "full") {
+    const region = ARCHIMATE_POSTER_REGIONS.find((item) => item.id === targetId);
+    if (region) return region;
+  }
+  return {
+    id: "full",
+    title: "ArchiMate® 3.2 企业架构建模标准",
+    summary: "本地 ArchiMate Poster 整页视图，作为 SAPD 安全架构元素映射的语言标准参考。",
+    image: ARCHIMATE_POSTER_OVERVIEW_IMAGE,
+  };
+}
+
+function renderModelingPosterImage(target, imageClass = "", loading = "lazy") {
+  return `
+    <img
+      class="modeling-poster-image ${escapeHtml(imageClass)}"
+      src="${escapeHtml(target.image)}"
+      alt="${escapeHtml(target.title)}"
+      loading="${escapeHtml(loading)}"
+      decoding="async"
+    />
+  `;
+}
+
+function renderModelingPosterOverlay() {
+  if (!state.modelingPosterExpanded) return "";
+  const target = getModelingPosterTarget(state.modelingPosterExpanded);
+  return `
+    <div class="modeling-poster-overlay" role="dialog" aria-modal="true" aria-label="${escapeHtml(target.title)} 全页面查看">
+      <button class="modeling-poster-backdrop" type="button" data-modeling-poster-close aria-label="关闭海报查看"></button>
+      <section class="modeling-poster-dialog">
+        <header class="modeling-poster-dialog-header">
+          <div>
+            <span>ArchiMate® 3.2</span>
+            <h3>${escapeHtml(target.title)}</h3>
+            <p>${escapeHtml(target.summary)}</p>
+          </div>
+          <a class="modeling-poster-download is-compact" href="${escapeHtml(ARCHIMATE_POSTER_PDF_PATH)}" download="archimate-poster-v3.2-zh.pdf">
+            <span aria-hidden="true">↓</span>
+            PDF
+          </a>
+          <button class="modeling-poster-close" type="button" data-modeling-poster-close aria-label="关闭">
+            <span aria-hidden="true">×</span>
+          </button>
         </header>
-        <div class="modeling-relation-legend-grid">
-          ${MODELING_RELATION_LEGENDS.map(renderModelingRelationLegendCard).join("")}
+        <div class="modeling-poster-expanded-canvas ${target.id === "full" ? "is-full" : "is-region"}">
+          ${renderModelingPosterImage(target, "is-expanded", "eager")}
         </div>
       </section>
     </div>
+  `;
+}
+
+function renderModelingPosterRegionCard(region, index) {
+  return `
+    <button class="modeling-poster-region-card" type="button" data-modeling-poster-open="${escapeHtml(region.id)}">
+      <span class="modeling-poster-region-index">${String(index + 1).padStart(2, "0")}</span>
+      <span class="modeling-poster-region-copy">
+        <strong>${escapeHtml(region.title)}</strong>
+        <span>${escapeHtml(region.summary)}</span>
+      </span>
+      <span class="modeling-poster-region-thumb" aria-hidden="true">
+        <img src="${escapeHtml(region.image)}" alt="" loading="lazy" decoding="async" />
+      </span>
+    </button>
+  `;
+}
+
+function renderModelingLanguageOverviewPanel() {
+  const posterTarget = getModelingPosterTarget("full");
+  return `
+    <section class="modeling-poster-panel">
+      <header class="modeling-poster-panel-header">
+        <div>
+          <span class="modeling-language-kicker">ArchiMate® 3.2</span>
+          <h3>安全架构设计元素图例</h3>
+          <p>安全架构中的各种元素都需要映射到 ArchiMate 的元素。本页以图片化海报作为语言概览素材，避免直接嵌入 PDF 带来的页面卡顿。</p>
+        </div>
+        <div class="modeling-poster-actions">
+          <button class="modeling-poster-expand-button" type="button" data-modeling-poster-open="full">
+            <span aria-hidden="true">⤢</span>
+            全页面显示
+          </button>
+          <a class="modeling-poster-download" href="${escapeHtml(ARCHIMATE_POSTER_PDF_PATH)}" download="archimate-poster-v3.2-zh.pdf">
+            <span aria-hidden="true">↓</span>
+            下载 PDF
+          </a>
+        </div>
+      </header>
+      <div class="modeling-poster-page-viewer">
+        <button class="modeling-poster-page-button" type="button" data-modeling-poster-open="full" aria-label="全页面查看 ArchiMate Poster">
+          ${renderModelingPosterImage(posterTarget, "is-overview", "eager")}
+        </button>
+      </div>
+      <section class="modeling-poster-region-panel" aria-label="ArchiMate Poster 区域阅读">
+        <header>
+          <h4>区域阅读</h4>
+          <p>按标准海报结构切分，点击任一区域单独放大。</p>
+        </header>
+        <div class="modeling-poster-region-grid">
+          ${ARCHIMATE_POSTER_REGIONS.map(renderModelingPosterRegionCard).join("")}
+        </div>
+      </section>
+    </section>
+    ${renderModelingPosterOverlay()}
   `;
 }
 
@@ -1396,58 +1562,7 @@ function renderModelingLanguageGuide(routeInfo = {}) {
     : MODELING_LANGUAGE_GUIDE_TABS[0].id;
   state.activeModelingLanguageTab = activeTab;
   const tabPanels = {
-    overview: `
-      <section class="modeling-language-panel-section">
-        <div class="modeling-language-lead">
-          <span class="modeling-language-kicker">建模语言</span>
-          <h3>用统一图例表达信息化环境、安全元素和治理关系</h3>
-          <p>这页用于沉淀安全架构建模语言的业务口径。它把 ArchiMate 基础元素、SAPD 安全元素、流程和职能放到同一套图例中，后续支撑 draw.io 图例、元模型和信息化环境底图的维护。</p>
-        </div>
-        <dl class="modeling-language-facts" aria-label="建模语言边界">
-          <div>
-            <dt>建模对象</dt>
-            <dd>业务、应用、数据、技术节点，以及作用域、安全能力、安全服务和安全措施。</dd>
-          </div>
-          <div>
-            <dt>使用场景</dt>
-            <dd>信息化环境底图、安全能力映射、安全技术服务落点和管理关系检查。</dd>
-          </div>
-          <div>
-            <dt>当前边界</dt>
-            <dd>本页先说明语言规则，不临时生成关系数据，也不展示原始来源字段。</dd>
-          </div>
-        </dl>
-      </section>
-      <section class="modeling-language-table-section">
-        <h3>语言分层</h3>
-        <table class="modeling-language-table">
-          <thead>
-            <tr>
-              <th>层次</th>
-              <th>说明</th>
-              <th>页面用途</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>基础元素</td>
-              <td>承接 ArchiMate 中业务、应用、数据和技术基础对象。</td>
-              <td>作为信息化环境和对象底图的统一表达。</td>
-            </tr>
-            <tr>
-              <td>SAPD 安全元素</td>
-              <td>表达安全能力、作用域、安全技术服务、模块、措施和系统。</td>
-              <td>支撑能力到技术、系统、产品的落点检查。</td>
-            </tr>
-            <tr>
-              <td>安全管理元素</td>
-              <td>表达流程组、流程、工作活动和安全工作职能 / 角色。</td>
-              <td>支撑治理责任、流程承接和职能映射检查。</td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
-    `,
+    overview: renderModelingLanguageOverviewPanel(),
     elements: renderModelingElementLegendPanel(),
   };
 
@@ -1469,7 +1584,6 @@ function renderModelingLanguageGuide(routeInfo = {}) {
       <article class="modeling-language-guide-panel">
         <header class="modeling-language-guide-header">
           <div>
-            <span class="modeling-language-kicker">安全指南</span>
             <h2>${escapeHtml(routeItem.label || "安全架构建模语言")}</h2>
             <p>${escapeHtml(routeInfo.description || "用于维护 SAPD 安全架构建模语言、图例、元模型和关系线口径。")}</p>
           </div>
@@ -3235,6 +3349,11 @@ $("detail")?.addEventListener("click", (event) => {
     if (handle) beginWorkspaceResize(event, handle);
   });
   document.addEventListener("keydown", (event) => {
+    if (state.modelingPosterExpanded && event.key === "Escape") {
+      state.modelingPosterExpanded = false;
+      renderContent();
+      return;
+    }
     if (state.activeView !== "content") return;
     if (!["ArrowUp", "ArrowDown"].includes(event.key)) return;
     if (event.target?.matches?.("input, textarea, select, [contenteditable='true']")) return;
@@ -3262,6 +3381,17 @@ $("detail")?.addEventListener("click", (event) => {
       if (lifecycle.dataset.lifecycleKind === "dev") state.selectedDevProcessId = lifecycle.dataset.lifecycleId;
       if (lifecycle.dataset.lifecycleKind === "data") state.selectedDataProcessId = lifecycle.dataset.lifecycleId;
       renderLifecycle(lifecycle.dataset.lifecycleKind);
+    }
+    const modelingPosterOpen = event.target.closest("[data-modeling-poster-open]");
+    if (modelingPosterOpen) {
+      state.modelingPosterExpanded = modelingPosterOpen.dataset.modelingPosterOpen || "full";
+      renderContent();
+      return;
+    }
+    if (event.target.closest("[data-modeling-poster-close]")) {
+      state.modelingPosterExpanded = false;
+      renderContent();
+      return;
     }
     const modelingLanguageTab = event.target.closest("[data-modeling-language-tab]");
     if (modelingLanguageTab && modelingLanguageTab.closest("#contentWorkspace")) {

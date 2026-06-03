@@ -3885,11 +3885,7 @@
     const technicalServices = selectedStage ? workbenchTargets(lifecycleWorkbench, objectsById, selectedStage.id, "maps_to_service", "security_technical_service").map(compactLifecycleItem) : [];
     const stageModules = selectedStage ? workbenchTargets(lifecycleWorkbench, objectsById, selectedStage.id, "implemented_by_module", "security_technology_module").map((module) => ({ ...compactLifecycleItem(module), objectKind: "安全技术模块" })) : [];
     const technicalMeasures = selectedStage ? workbenchTargets(lifecycleWorkbench, objectsById, selectedStage.id, "uses_measure", "security_technical_measure").map((measure) => ({ ...compactLifecycleItem(measure), objectKind: "安全技术措施" })) : [];
-    const serviceModules = uniqueBy(
-      technicalServices.flatMap((service) => workbenchTargets(lifecycleWorkbench, objectsById, service.id, "implemented_by_module", "security_technology_module")).map((module) => ({ ...compactLifecycleItem(module), objectKind: "安全技术模块" })),
-      (module) => module.id || module.code || module.title,
-    );
-    const technologyModules = uniqueBy([...stageModules, ...serviceModules], (module) => module.id || module.code || module.title);
+    const technologyModules = uniqueBy(stageModules, (module) => module.id || module.code || module.title);
     const summary = {
       processCount: navigationTree.length,
       selectedProcessId: selectedId,

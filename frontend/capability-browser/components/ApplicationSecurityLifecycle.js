@@ -308,8 +308,8 @@
       <div class="relationship-matrix-scroll semantic-scroll data-lifecycle-technical-scroll">
         <table class="semantic-mapping-table data-lifecycle-technical-table">
           <colgroup>
-            <col style="width: 42%" />
-            <col style="width: 58%" />
+            <col style="width: 62%" />
+            <col style="width: 38%" />
           </colgroup>
           <thead>
             <tr>
@@ -372,10 +372,10 @@
     return groups;
   }
 
-  function renderDataPolicyGroup(group, index) {
+  function renderDataPolicyGroup(group) {
     const rows = list(group.rows);
     return `
-      <details class="data-policy-category-group" ${index === 0 ? "open" : ""}>
+      <details class="data-policy-category-group">
         <summary>
           <strong>${escapeHtml(group.category)}</strong>
           <span>${rows.length} 项策略</span>
@@ -416,7 +416,6 @@
       <section class="lifecycle-logic-section lifecycle-table-panel">
         <div class="lifecycle-logic-head">
           <h4>开发阶段画像</h4>
-          <span>阶段目标 → 阶段主要活动（含参考来源） → 软件开发模式 → 开发技术服务 / 开发技术模块</span>
         </div>
         <div class="lifecycle-table-scroll lifecycle-profile-scroll">
           <table class="lifecycle-workbench-table lifecycle-profile-table">
@@ -450,7 +449,6 @@
       <section class="lifecycle-logic-section lifecycle-table-panel">
         <div class="lifecycle-logic-head">
           <h4>阶段安全控制与威胁补充策略表</h4>
-          <span>安全活动（含参考来源）与策略 → 潜在安全威胁场景与补充安全策略 → 安全技术服务 / 安全技术模块/措施</span>
         </div>
         <div class="lifecycle-table-scroll lifecycle-security-scroll">
           <table class="lifecycle-workbench-table lifecycle-security-table">
@@ -486,7 +484,6 @@
       <section class="lifecycle-logic-section lifecycle-table-panel">
         <div class="lifecycle-logic-head">
           <h4>数据处理场景与技术映射</h4>
-          <span>来自“LC-DT 数据生命周期”：过程定义 → 数据处理场景 → 安全技术服务 / 安全技术模块/措施</span>
         </div>
         <div class="lifecycle-table-scroll lifecycle-profile-scroll">
           <table class="lifecycle-workbench-table lifecycle-profile-table data-lifecycle-profile-table">
@@ -518,7 +515,6 @@
       <section class="lifecycle-logic-section lifecycle-table-panel">
         <div class="lifecycle-logic-head">
           <h4>数据重要程度安全策略矩阵</h4>
-          <span>来自“LC-DT 安全技术服务、模块、策略映射表”：同一阶段的策略行复用同一组安全技术服务 / 安全技术模块/措施</span>
         </div>
         ${
           groups.length

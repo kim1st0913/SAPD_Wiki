@@ -20767,6 +20767,32 @@ body {
   overflow: hidden;
 }
 
+/* 2026-06-03 primary relationship matrices must keep business objects readable and selectable. */
+.original-matrix-panel .management-mapping-section .semantic-mapping-table td {
+  overflow: visible;
+  white-space: normal;
+}
+
+.original-matrix-panel .management-mapping-section .relation-chip,
+.original-matrix-panel .management-mapping-section .function-layer-bucket em span {
+  max-width: 100%;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.original-matrix-panel .management-mapping-section .relation-chip .relation-chip-text {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
 /* 2026-05-30 lifecycle stage tab fit and baseline alignment */
 .dev-lifecycle-workspace .lifecycle-stage-bar {
   min-height: 62px;

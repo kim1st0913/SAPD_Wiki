@@ -440,6 +440,16 @@ async function main() {
         workspaceOverflowX: workspace ? workspace.scrollWidth - workspace.clientWidth : null,
         capabilityMap: Boolean(document.querySelector('.capability-local-relation-map, .relation-network-graph')),
         capabilityDetailText: document.querySelector('#detail')?.textContent?.replace(/\\s+/g, ' ').trim().slice(0, 180) || '',
+        capabilityManagementChipProbe: (() => {
+          const chips = [...document.querySelectorAll('.original-matrix-panel .management-mapping-section .function-layer-bucket em span')]
+            .filter((item) => item.offsetParent !== null);
+          return {
+            count: chips.length,
+            sample: chips.slice(0, 8).map((item) => item.textContent.replace(/\\s+/g, ' ').trim()),
+            truncated: chips.some((item) => item.scrollWidth > item.clientWidth + 1 || getComputedStyle(item).textOverflow === 'ellipsis' || getComputedStyle(item).whiteSpace === 'nowrap'),
+            copyable: chips.every((item) => getComputedStyle(item).userSelect !== 'none' && item.dataset.copyText === item.textContent.trim()),
+          };
+        })(),
         capabilityActiveTreeRow: (() => {
           const row = document.querySelector('#tree .tree-row.active');
           return row
@@ -559,6 +569,9 @@ async function main() {
           metrics.maintenanceHeaderEmphasis.minFontSize < 14 ||
           metrics.maintenanceHeaderEmphasis.minFontWeight < 800)) ||
       ((pageName === "capability" || pageName === "capabilities") && !metrics.capabilityMap) ||
+      ((pageName === "capability" || pageName === "capabilities") &&
+        metrics.capabilityManagementChipProbe?.count > 0 &&
+        (metrics.capabilityManagementChipProbe.truncated || !metrics.capabilityManagementChipProbe.copyable)) ||
       (pageName === "environment" && !metrics.environmentTree) ||
       ((pageName === "lifecycle" || pageName === "dev-lifecycle") && !metrics.lifecycleLane) ||
       (pageName === "content" && guideExpectation && !metrics.guideSlidePlayer) ||

@@ -14,7 +14,12 @@
     if (!rows.length) return `<span class="empty-inline">${utils.escapeHtml(empty)}</span>`;
     const visible = rows.slice(0, limit);
     const more = rows.length - visible.length;
-    return `${visible.map((item) => `<span class="relation-chip">${utils.escapeHtml(utils.titleOf(item))}</span>`).join("")}${more > 0 ? `<span class="relation-chip muted">+${more}</span>` : ""}`;
+    return `${visible
+      .map((item) => {
+        const title = utils.escapeHtml(utils.titleOf(item));
+        return `<span class="relation-chip" title="${title}" data-copy-text="${title}"><span class="relation-chip-text">${title}</span></span>`;
+      })
+      .join("")}${more > 0 ? `<span class="relation-chip muted">+${more}</span>` : ""}`;
   }
 
   function layerKeyOf(stakeholder) {
@@ -24,7 +29,10 @@
 
   function functionChips(stakeholders) {
     return stakeholders
-      .map((stakeholder) => `<span>${utils.escapeHtml(utils.titleOf(stakeholder, "未命名职能"))}</span>`)
+      .map((stakeholder) => {
+        const title = utils.escapeHtml(utils.titleOf(stakeholder, "未命名职能"));
+        return `<span title="${title}" data-copy-text="${title}">${title}</span>`;
+      })
       .join("");
   }
 

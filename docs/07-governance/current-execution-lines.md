@@ -25,7 +25,7 @@
 | 文件组 | 主要文件 | 验收结论 | 主控建议 |
 |---|---|---|---|
 | 执行线 / 治理收敛 | `CURRENT_STATE.md`、`docs/07-governance/current-execution-lines.md`、`docs/07-governance/execution-line-convergence-workflow.md`、`docs/07-governance/codex-performance-workflow.md`、`docs/07-governance/governance-index.md`、`progress.md` | 方向正确，解决多线程、长会话和主控交接问题 | 可作为独立 checkpoint；后续新会话优先恢复本文档 |
-| Open Issues / 安全能力加载治理 | `docs/06-implementation/open-issues.md`、`open-issues-index.md`、`open-issues-history/2026-06.md`、`capability-mapping-change-control.md` | `OI-132`、`OI-133` 登记合理；`govern_open_issues` 通过，active=4 / archived=131 | 可作为治理 checkpoint；`OI-132` 不能关闭 |
+| Open Issues / 安全能力加载治理 | `docs/06-implementation/open-issues.md`、`open-issues-index.md`、`open-issues-history/2026-06.md`、`capability-mapping-change-control.md` | `OI-132` 已按三轮治理关闭；`OI-133` 保留待设计；`govern_open_issues` 通过后应为 active=3 | 可作为治理 checkpoint；后续恢复时不要重新打开 `OI-132`，除非出现新的复现证据 |
 | ArchiMate / 安全指南前端 | `frontend/capability-browser/app.js`、`styles.css`、`AppShell.js`、`index.html`、`archimate-modeling-page-optimization-plan.md` | 当前改动可运行，但效果仍未达到目标；已登记 `OI-133 / EL-025` | 可保留为当前版本 checkpoint，但下一轮必须单线优化，不继续混写其他页面 |
 | LC-DT / 生命周期页面 | `ApplicationSecurityLifecycle.js`、`viewModels.js`、`styles.css`、`index.html` | 语法、数据包摘要和 `/data-security` 轻量 smoke 通过 | 可作为前端修正 checkpoint；不再扩大到数据源或 ETL |
 | 安全能力页 tab / 矩阵滚动 | `CapabilityLocalRelationMap.js`、`styles.css`、`index.html` | 语法、能力页 smoke、projection / ViewModel 审计通过；但截图问题显示 UI 空态仍不可信 | 可保留已通过的小修；后续进入 `EL-024` 时必须先做加载状态诊断 |
@@ -132,7 +132,7 @@
 | EL-021 | 数据库备份清理 / retention 规则 | 归档参考 | 线程 `019e8293-ce9f-7d52-a3f2-61792f29c07a` 已完成旧备份清理，只保留最新备份，并新增 `scripts/prune_database_backups.py` 和备份保留 manifest | 只有当再次清理数据库备份或调整保留策略时恢复 | 当前只保留规则和证据，不纳入前端 / Delivery 主线 |
 | EL-022 | 5173 服务稳定性 / 页面卡住排查 | 归档参考 | 线程 `019e82a9-691f-7593-829d-03e3ea1a5c06` 定位 `/knowledge/functions` 卡住根因：首屏依赖过重，`maintenance-knowledge.json` 拆包后需先加载 `maintenance-index` 和主分片 | 再次出现 5173 卡住、空白、chunk 长时间 pending 时恢复 | 先查 `dev_server_guard.py --status` 和页面 required / supplemental 声明，不直接重启或改大 JSON |
 | EL-023 | Apple Morandi 配色 demo / 全局视觉基准 | 后置 | 线程 `019e72f1-f6f8-7fa0-b9ef-378551251726` 产出 `apple-morandi-color-demo.html`、`DESIGN.md` 配色基准和 handoff | 用户要求继续全局视觉统一，或页面 Gap Check 需要统一色彩 token 时恢复 | 只作为设计参考，不在 dirty diff 未验收前改 `styles.css` |
-| EL-024 | 安全能力映射数据加载稳定性治理 | 治理中 | `OI-132`；2026-06-03 第一轮已修复能力清单 / 知识库字典 / 标准框架类页面的加载竞态入口；第二轮已修复 `安全能力-安全工作` 合并单元格未继承导致的 `T-PD.PP-02/03` 安全工作空值，以及 `bootstrap-local-data` 先导出 workbench 后导出 `capability-tree` 导致 UUID 不一致、`T-AS.AD-01` 标准 tab 计数为 0 的问题 | 第二轮对象级数据契约修复已完成；继续安全能力页前仍必须跑对象级审计，不直接改 UI 空态 | 下一步做页面级浏览器回归和空态文案区分：确认 `T-AS.AD-01` 标准 / 框架 tab 显示 39 控制项，`T-PD.PP` 管理视角 3 个关注点均显示 `边界防护策略持续管理`；再决定是否关闭 `OI-132` |
+| EL-024 | 安全能力映射数据加载稳定性治理 | 已修复 / 可归档 | `OI-132`；2026-06-03 第一轮已修复能力清单 / 知识库字典 / 标准框架类页面的加载竞态入口；第二轮已修复 `安全能力-安全工作` 合并单元格未继承导致的 `T-PD.PP-02/03` 安全工作空值，以及 `bootstrap-local-data` 先导出 workbench 后导出 `capability-tree` 导致 UUID 不一致、`T-AS.AD-01` 标准 tab 计数为 0 的问题；第三轮已补齐管理视角主关系矩阵完整显示 / 可复制基准，真实 Chrome 回归确认管理视角 chip `truncated=false`、`copyable=true` | 数据契约、主关系矩阵展示基准、轻量 smoke、对象级审计和真实浏览器回归均已通过 | 后续若继续改安全能力页，必须先跑 `audit_capability_projection_contract.mjs`、`audit_capability_viewmodel_contract.mjs`、`audit_frontend_display_contract.mjs` 和能力页真实 smoke；不要用局部空态补丁覆盖对象级问题 |
 | EL-025 | ArchiMate 建模语言页显示与加载效率优化 | 待设计 | `OI-133`；当前页面已从 PDF iframe 改为整页 JPG + 6 个区域 JPG + 下载按钮，但仍像素材陈列，缺少区域导航、阅读路径、SAPD 映射说明和受控加载策略 | EL-001 完成后；若继续安全指南页，先按 `archimate-modeling-page-optimization-plan.md` 做设计确认 | 先做 P1 区域导航 + 当前区域阅读器，首屏只加载默认区域；再补 SAPD 元素图例与 ArchiMate 区域映射 |
 
 ## 实际 Codex 线程盘点

@@ -4,8 +4,8 @@
 
 ## 治理入口
 
-- 当前未关闭问题数：4
-- 已关闭归档问题数：131
+- 当前未关闭问题数：3
+- 已关闭归档问题数：132
 - 全量索引：`docs/06-implementation/open-issues-index.md`
 - 已关闭问题归档：`docs/05-archive/open-issues-history/2026-06.md`
 - 重复编号待治理：`OI-044`、`OI-092`，索引中使用 `OI-xxx#n` 区分历史条目。
@@ -16,7 +16,6 @@
 |---|---|---|
 | OI-038 | 待确认 | Gartner 与安全职能候选映射需后续人工校对 |
 | OI-128 | 待实现 | USER-WRITE-UI-1：收藏 / 备注最小前端入口 |
-| OI-132 | 治理中 | 安全能力映射页数据加载稳定性与空态可信度治理 |
 | OI-133 | 待设计 | ArchiMate 建模语言页显示效果与加载效率优化 |
 
 ## 问题记录模板
@@ -57,17 +56,6 @@
 - 需要确认：第一版优先做“收藏”还是“备注”；建议先做收藏，再做备注。
 - 修复说明：待实现。
 - 验证结果：待实现后验证页面操作写入 `sapd_wiki_user.sqlite3`，重启后保留，且不修改 `sapd_wiki_base.sqlite3`。
-## OI-132：安全能力映射页数据加载稳定性与空态可信度治理
-
-- 状态：治理中
-- 类型：前端 / 数据契约 / 验证
-- 对象或页面：`安全能力映射` 页面，尤其是能力关系图谱、技术视角、管理视角、标准 / 框架映射四个 tab。
-- 现象：安全能力映射页的数据加载和空态在多轮修复后仍可能复现异常；例如 2026-06-03 用户截图中当前选择 `T-AS.AD-01`，`标准 / 框架映射` tab 显示 `0 控制项 / 暂无条款/控制项对应能力关注点`，但当前页面无法让用户或审计脚本明确区分“源数据确实无映射”“对象级 workspace-view 未加载完成”“fallback 数据源被使用”“当前选中对象与右侧数据不一致”或“重渲染未触发”。
-- 影响：用户无法信任空态是否代表业务事实；后续任何 UI、tab、ViewModel 或加载流程小修都可能再次破坏安全能力页，导致同类问题反复出现。
-- 当前处理：不继续做局部空态补丁；新增独立执行线 `EL-024`，先治理数据加载可观测性、对象一致性断言、空态原因和回归审计。2026-06-03 已完成第一轮前端加载稳定性修复：确认完整 `capability-tree` 有安全能力 / 关注点描述、轻量 `workspace-initial` 缺描述；修复轻量 `capabilityInitial` 覆盖完整能力树的风险；维护页缺必需包时主动触发加载；标准 / 框架 active tab 数据未加载完成时显示加载态。2026-06-03 第二轮修复确认两类对象级根因：1）`安全能力-安全工作` 源表合并单元格未继承，导致 `T-PD.PP-02/03` 等 12 个关注点安全工作为空；2）`bootstrap-local-data` 导出顺序先生成 workbench 后生成 `capability-tree`，导致对象 UUID 不一致，`T-AS.AD-01` 标准 tab 计数回退为 0。
-- 需要确认：用户后续可指定截图中的关注点或其他复现对象，确认该对象在源数据 / 后端 projection 中是否应有标准 / 框架控制项。
-- 修复说明：第一轮已修复能力清单 / 知识库字典 / 标准框架类页面的加载竞态入口；第二轮已修复源表合并单元格继承和 bootstrap 导出顺序导致的对象级标准 / 管理 tab 不可信问题。本问题暂不关闭；后续仍需继续补齐页面级真实浏览器回归和空态文案区分。
-- 验证结果：2026-06-03 EL-001 初验中，`node scripts/audit_capability_viewmodel_contract.mjs --url http://127.0.0.1:5173` 与 `node scripts/audit_capability_projection_contract.mjs --url http://127.0.0.1:5173` 在提升本地网络权限后均通过；其中截图复现对象 `T-AS.AD-01` 的 ViewModel 审计返回 `standardRows=1`，说明页面显示 `0 控制项` 不能直接判定为真实无数据。2026-06-03 第一轮修复后，`node --check frontend/capability-browser/app.js`、`node scripts/audit_frontend_lazy_load_contract.mjs`、固定 `5173` 状态检查、`/knowledge/capabilities`、`/standards/mlps-level-3`、`/guides/security-architecture-modeling-language` 和 `/capability-map` 轻量 smoke 均通过；完整 `capability-tree.json` 构建安全能力清单得到 `fullRows=123`，`T-AS.AD-01` 描述非 `待补充`。2026-06-03 第二轮修复后，`bootstrap-local-data --profile full --reset` 通过，本地 `security_work=92`、`maps_to_work=92`；`audit_capability_management_mappings.py` 通过；`audit_capability_projection_contract.mjs` 和 `audit_capability_viewmodel_contract.mjs` 均通过，`T-AS.AD-01 standardControls=39`，`T-PD.PP-01/02/03` 均带 `边界防护策略持续管理`。
 ## OI-133：ArchiMate 建模语言页显示效果与加载效率优化
 
 - 状态：待设计

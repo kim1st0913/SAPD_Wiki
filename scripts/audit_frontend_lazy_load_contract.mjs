@@ -119,6 +119,30 @@ if (!appJs.includes("activeStandardTableId") || !appJs.includes("ensureStandardF
   });
 }
 
+if (!appJs.includes('if (!state.loadedPackages.has("capability")) state.capability = capabilityTreeFromWorkbench(data);')) {
+  issues.push({
+    severity: "error",
+    type: "capability_initial_overwrites_full_tree",
+    message: "capabilityInitial / capabilityWorkbench 轻量树不得覆盖已加载的完整 capability-tree，否则安全能力清单描述会回退为待补充。",
+  });
+}
+
+if (!appJs.includes("maintenancePackagesForPage") || !appJs.includes("ensureMaintenancePackageLoaded(missingMaintenancePackageName)")) {
+  issues.push({
+    severity: "error",
+    type: "maintenance_required_package_self_heal_missing",
+    message: "知识库维护页缺少必需数据包时必须由 renderMaintenance 主动触发加载，不能只依赖路由外层补加载。",
+  });
+}
+
+if (!appJs.includes("activeTableLoading") || !appJs.includes("standardTableHasRows(activeTable)")) {
+  issues.push({
+    severity: "error",
+    type: "standard_active_table_loading_guard_missing",
+    message: "标准 / 框架 active tab 数据未加载完成时必须显示加载态，不能把暂时空表渲染成真实空数据。",
+  });
+}
+
 const frameworks = Array.isArray(standardsIndex.frameworks) ? standardsIndex.frameworks : [];
 for (const framework of frameworks) {
   const hasFrameworkPath = Boolean(framework.dataPath);

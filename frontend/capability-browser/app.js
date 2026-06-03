@@ -312,7 +312,7 @@ function assignPackageData(name, data) {
   if (name === "capabilityInitial") {
     state.capabilityInitial = data;
     state.capabilityWorkbench = data;
-    state.capability = capabilityTreeFromWorkbench(data);
+    if (!state.loadedPackages.has("capability")) state.capability = capabilityTreeFromWorkbench(data);
     state.capabilityProjection = data;
   }
   if (name === "capabilityWorkbench") {
@@ -712,6 +712,10 @@ function maintenanceSectionsForPage(page) {
   return list(maintenanceLoadContractForPage(page).requiredSections);
 }
 
+function maintenancePackagesForPage(page) {
+  return list(maintenanceLoadContractForPage(page).requiredPackages);
+}
+
 function supplementalMaintenanceSectionsForPage(page) {
   return list(maintenanceLoadContractForPage(page).supplementalSections);
 }
@@ -797,8 +801,12 @@ function mergeMaintenanceSectionPayload(payload) {
   };
 }
 
+function resolveMaintenanceSectionId(section) {
+  return MAINTENANCE_SECTION_FIELDS[section] ? section : maintenanceSectionForPage(section);
+}
+
 function ensureMaintenanceSectionLoaded(section) {
-  const sectionId = maintenanceSectionForPage(section);
+  const sectionId = resolveMaintenanceSectionId(section);
   if (!sectionId || state.loadedMaintenanceSections.has(sectionId)) return false;
   if (state.maintenanceSectionLoads.has(sectionId)) return true;
   const dataClient = window.sapdDataClient;
@@ -2661,6 +2669,24 @@ function renderMaintenance() {
     setHtml("sourceDetail", "");
     return;
   }
+  const maintenancePackageNames = maintenancePackagesForPage(state.activeMaintenancePage);
+  const missingMaintenancePackageName = maintenancePackageNames.find((packageName) => !state.loadedPackages.has(packageName));
+  if (missingMaintenancePackageName) {
+    ensureMaintenancePackageLoaded(missingMaintenancePackageName);
+    const loadingTitle =
+      state.activeMaintenancePage === "capability-directory"
+        ? "安全能力清单"
+        : state.activeMaintenancePage === "application-systems"
+          ? "应用系统目录"
+          : "知识库字典";
+    setText("sourcePageTitle", loadingTitle);
+    setText("sourcePageCount", 0);
+    setHtml("maintenanceNavigation", "");
+    setHtml("sourceList", `<div class="maintenance-empty-state">正在加载${escapeHtml(loadingTitle)}数据...</div>`);
+    setText("sourceDetailType", "");
+    setHtml("sourceDetail", "");
+    return;
+  }
   if (state.activeMaintenancePage === "capability-directory" && !state.loadedPackages.has("capability")) {
     setText("sourcePageTitle", "安全能力清单");
     setText("sourcePageCount", 0);
@@ -2707,7 +2733,14 @@ function renderMaintenance() {
       return;
     }
     state.activeStandardTableId = activeStandardTableIdForFramework(loadedFramework);
-    ensureStandardFrameworkTableLoaded(frameworkId, state.activeStandardTableId);
+    const activeTable = standardTableById(loadedFramework, state.activeStandardTableId);
+    const activeTableLoading = ensureStandardFrameworkTableLoaded(frameworkId, state.activeStandardTableId);
+    if (activeTableLoading && activeTable && !standardTableHasRows(activeTable)) {
+      setHtml("sourceList", `<div class="maintenance-empty-state">正在加载 ${escapeHtml(activeTable.title || frameworkId)} 数据...</div>`);
+      setText("sourceDetailType", "");
+      setHtml("sourceDetail", "");
+      return;
+    }
     ensureSupplementalStandardTablesLoaded(frameworkId);
   }
   const viewModel = viewModels.buildMaintenanceWorkspaceViewModel({

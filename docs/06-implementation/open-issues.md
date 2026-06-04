@@ -15,7 +15,7 @@
 | 编号 | 状态 | 标题 |
 |---|---|---|
 | OI-038 | 待确认 | Gartner 与安全职能候选映射需后续人工校对 |
-| OI-128 | 部分完成 | USER-WRITE-UI-1：收藏 / 备注最小前端入口 |
+| OI-128 | 部分完成 | USER-WRITE-UI-1：批注 / 工作台用户写入入口 |
 | OI-133 | 待设计 | ArchiMate 建模语言页显示效果与加载效率优化 |
 
 ## 问题记录模板
@@ -45,16 +45,16 @@
 - 需要确认：后续由用户逐条检查 `data/exports/worker-verify/sheet-review-2-2-gartner-to-work-function-candidates.csv`，确认哪些候选接受、删除或调整。
 - 修复说明：页面显示缺口已修复；候选映射继续作为 `待复核` 数据保留，不作为最终正式关系。
 - 验证结果：2026-06-01 重新导出 `maintenance-knowledge.json` 后，`gartner_roles=28`，其中 28 条均包含 `candidate_work_functions`；组件渲染断言确认 `Gartner 工作岗位参考` 表格包含“候选安全职能”列，示例“首席信息安全官（CISO）”显示 `2 安全负责职能`、`10 安全管理职能`、`27 规划计划管理职能`。
-## OI-128：USER-WRITE-UI-1：收藏 / 备注最小前端入口
+## OI-128：USER-WRITE-UI-1：批注 / 工作台用户写入入口
 
 - 状态：部分完成
 - 类型：前端 / 用户数据 / Delivery Bundle
-- 对象或页面：ZIP alpha 桌面包、`sapd_wiki_user.sqlite3`、安全能力映射 / 知识库字典等对象详情页。
-- 现象：ZIP alpha 后端已具备 `user_favorites` 写入 API 和 user DB 自动创建能力，但当前前端页面没有暴露收藏、备注、用户标签或编辑入口，Windows / macOS UAT 无法通过页面操作验证 user DB 写入。
+- 对象或页面：ZIP alpha 桌面包、`sapd_wiki_user.sqlite3`、安全能力映射 / 知识库字典 / 标准框架 / 安全指南、右侧浮层批注抽屉与工作台。
+- 现象：ZIP alpha 后端已具备 `user_favorites` 写入 API 和 user DB 自动创建能力；`OI-128A / OI-128B` 已验证页面可写入用户库，但当前横向 `加入关注清单 / 收藏备注` 条语义较弱，不适合作为长期用户工作入口。
 - 影响：当前 Windows 包只能验收解压启动、页面访问、base 数据读取、user DB 自动创建、日志和诊断包；页面级用户写入能力不能作为本轮验收项。
-- 当前处理：2026-06-03 已新增正式设计文档 `docs/06-implementation/user-workspace-v1-to-v4-design.md`，固定 V1A 收藏 / 轻备注、V1B 备注 / 标签、V2 我的工作区、V3 新增 / 复制编辑、V4 导出路线。`OI-128A` 已先在安全能力映射页对象详情区实现关注清单 / 收藏备注入口，并补齐开发 API 与 ZIP runtime 的收藏保存 / 撤销路径；`OI-128B` 已把同一用户动作组件复用到安全知识、标准 / 框架和安全指南页面。
-- 需要确认：后续是否进入 V1B，开始类似 Office 批注的独立多条备注、备注标记、统一备注中心和用户标签；是否开始 V2“我的工作区”入口。
-- 修复说明：`OI-128A / OI-128B` 已实现。当前入口以 `user_favorites.note` 承载收藏备注，收藏事实以 user DB 为准，不写入 `localStorage`；API 不可用时显示 `用户库不可用`。2026-06-03 已进一步明确：收藏表示加入“我的关注清单”，不代表业务确认；正式备注 / 批注必须在 V1B 进入独立 `user_notes`，并可独立于收藏存在。
+- 当前处理：2026-06-03 已新增正式设计文档 `docs/06-implementation/user-workspace-v1-to-v4-design.md`，固定 V1A 收藏 / 轻备注、V1B 备注 / 标签、V2 我的工作区、V3 新增 / 复制编辑、V4 导出路线。`OI-128A` 已先在安全能力映射页对象详情区实现关注清单 / 收藏备注入口，并补齐开发 API 与 ZIP runtime 的收藏保存 / 撤销路径；`OI-128B` 已把同一用户动作组件复用到安全知识、标准 / 框架和安全指南页面。2026-06-04 已新增 `docs/06-implementation/workspace-annotation-and-capability-remix-design.md`，固定后续下线横向收藏条，改为右侧上浮批注抽屉和工作台方向。
+- 需要确认：下一步是否执行 `OI-128C`，实现右侧浮层批注抽屉；后续再进入工作台总览、数据篮 / 导出、能力重组、导入和 Skill 集成。
+- 修复说明：`OI-128A / OI-128B` 已实现。当前入口以 `user_favorites.note` 承载收藏备注，收藏事实以 user DB 为准，不写入 `localStorage`；API 不可用时显示 `用户库不可用`。2026-06-04 后续产品语义调整为：`收藏` 不再作为主业务动作，正式入口改为 `批注`、`待复核`、`数据篮` 和 `工作台`。
 - 验证结果：2026-06-03 通过本地 `5173` API 写入 / 读取 / 删除闭环验证：`POST /api/v1/user/favorites` 写入 `base:capability_focus:OI-128A-SMOKE` 成功，`GET` 可读，`DELETE` 后列表消失；`node scripts/frontend_smoke_check.mjs --page capability --url http://127.0.0.1:5173` 通过。2026-06-03 `OI-128B` 真实 Chrome 回归覆盖 `/knowledge/technical-services`、`/knowledge/capabilities`、`/standards/mlps-level-3`、`/guides/security-architecture-modeling-language`，均有 `userObjectActionsProbe.count=1`、`consoleIssues=0`。
 ## OI-133：ArchiMate 建模语言页显示效果与加载效率优化
 

@@ -172,5 +172,5 @@
 | OI-132 | 已修复 | 安全能力映射页数据加载稳定性与空态可信度治理 | 前端 / 数据契约 / 验证 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-134 | 已修复 | 安全能力 T-AD.SA 权威名称缺少“能力”后缀 | 数据 / 前端 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-038 | 待确认 | Gartner 与安全职能候选映射需后续人工校对 | 数据 / 需求 | docs/06-implementation/open-issues.md |
-| OI-128 | 部分完成 | USER-WRITE-UI-1：收藏 / 备注最小前端入口 | 前端 / 用户数据 / Delivery Bundle | docs/06-implementation/open-issues.md |
+| OI-128 | 部分完成 | USER-WRITE-UI-1：批注 / 工作台用户写入入口 | 前端 / 用户数据 / Delivery Bundle | docs/06-implementation/open-issues.md |
 | OI-133 | 待设计 | ArchiMate 建模语言页显示效果与加载效率优化 | 前端 / 设计 / 性能 | docs/06-implementation/open-issues.md |

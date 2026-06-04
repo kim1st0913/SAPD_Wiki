@@ -37,6 +37,7 @@
     capabilityWorkspaceInitial: "/api/v1/capabilities/workspace-initial",
     health: "/api/v1/health",
     userFavorites: "/api/v1/user/favorites",
+    userNotes: "/api/v1/user/notes",
   };
 
   const FALLBACKS = {
@@ -282,7 +283,7 @@
 
   function normalizeUserPayload(payload) {
     const data = unwrapEnvelope(payload);
-    if (!data || typeof data !== "object") return { ok: false, data_state: "api_unavailable", favorites: [] };
+    if (!data || typeof data !== "object") return { ok: false, data_state: "api_unavailable", favorites: [], notes: [] };
     return data;
   }
 
@@ -352,7 +353,7 @@
 
   async function fetchUserApi(path, options = {}) {
     const url = path ? apiUrl(path) : "";
-    if (!url) return { ok: false, data_state: "api_unavailable", favorites: [] };
+    if (!url) return { ok: false, data_state: "api_unavailable", favorites: [], notes: [] };
     try {
       const response = await fetch(url, { cache: "no-store", ...options });
       const payload = response.headers.get("Content-Type")?.includes("application/json") ? await response.json() : {};
@@ -803,6 +804,61 @@
     async deleteUserFavorite(targetRef) {
       const query = `?target_ref=${encodeURIComponent(text(targetRef).trim())}`;
       const result = await fetchUserApi(`${API_PATHS.userFavorites}${query}`, {
+        method: "DELETE",
+        headers: await userWriteHeaders(),
+        body: "{}",
+      });
+      return createEnvelope(result);
+    },
+
+    async getUserNotes(filters = {}) {
+      const query = new URLSearchParams();
+      if (filters.target_ref) query.set("target_ref", text(filters.target_ref).trim());
+      if (filters.page_route) query.set("page_route", text(filters.page_route).trim());
+      const path = `${API_PATHS.userNotes}${query.toString() ? `?${query.toString()}` : ""}`;
+      const result = await fetchUserApi(path);
+      return createEnvelope({
+        ok: Boolean(result.ok),
+        data_state: result.data_state || (result.ok ? "ready" : "api_unavailable"),
+        notes: list(result.notes),
+        error: result.error || "",
+      });
+    },
+
+    async createUserNote(payload) {
+      const result = await fetchUserApi(API_PATHS.userNotes, {
+        method: "POST",
+        headers: await userWriteHeaders(),
+        body: JSON.stringify({
+          target_ref: text(payload?.target_ref).trim(),
+          body: text(payload?.body).trim(),
+          status: text(payload?.status || "todo").trim(),
+          page_route: text(payload?.page_route).trim(),
+          page_title: text(payload?.page_title).trim(),
+          anchor_type: text(payload?.anchor_type || "object").trim(),
+          object_type: text(payload?.object_type).trim(),
+          object_title: text(payload?.object_title).trim(),
+          tags: list(payload?.tags).map((item) => text(item).trim()).filter(Boolean),
+        }),
+      });
+      return createEnvelope(result);
+    },
+
+    async updateUserNote(noteId, payload) {
+      const body = {};
+      if (Object.prototype.hasOwnProperty.call(payload || {}, "body")) body.body = text(payload.body).trim();
+      if (Object.prototype.hasOwnProperty.call(payload || {}, "status")) body.status = text(payload.status).trim();
+      if (Object.prototype.hasOwnProperty.call(payload || {}, "tags")) body.tags = list(payload.tags).map((item) => text(item).trim()).filter(Boolean);
+      const result = await fetchUserApi(`${API_PATHS.userNotes}/${encodeURIComponent(text(noteId).trim())}`, {
+        method: "PATCH",
+        headers: await userWriteHeaders(),
+        body: JSON.stringify(body),
+      });
+      return createEnvelope(result);
+    },
+
+    async deleteUserNote(noteId) {
+      const result = await fetchUserApi(`${API_PATHS.userNotes}/${encodeURIComponent(text(noteId).trim())}`, {
         method: "DELETE",
         headers: await userWriteHeaders(),
         body: "{}",

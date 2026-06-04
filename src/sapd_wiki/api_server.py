@@ -52,7 +52,7 @@ MAINTENANCE_SECTIONS = (
 
 FRONTEND_PUBLIC_DATA_ROOT = (PROJECT_ROOT / "frontend" / "capability-browser" / "public" / "data").resolve()
 USER_DB_PATH = (PROJECT_ROOT / "data" / "user" / "sapd_wiki_user.sqlite3").resolve()
-USER_SCHEMA_VERSION = "user_schema_0.1"
+USER_SCHEMA_VERSION = "user_schema_0.2"
 USER_SCHEMA_SQL = """
 PRAGMA foreign_keys = ON;
 
@@ -75,6 +75,13 @@ CREATE TABLE IF NOT EXISTS user_notes (
   id TEXT PRIMARY KEY,
   target_ref TEXT NOT NULL,
   body TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'todo',
+  page_route TEXT,
+  page_title TEXT,
+  anchor_type TEXT NOT NULL DEFAULT 'object',
+  object_type TEXT,
+  object_title TEXT,
+  tags_json TEXT,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -142,6 +149,30 @@ CREATE TABLE IF NOT EXISTS user_schema_migrations (
   applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 """
+
+USER_NOTE_COLUMNS = {
+    "status": "TEXT NOT NULL DEFAULT 'todo'",
+    "page_route": "TEXT",
+    "page_title": "TEXT",
+    "anchor_type": "TEXT NOT NULL DEFAULT 'object'",
+    "object_type": "TEXT",
+    "object_title": "TEXT",
+    "tags_json": "TEXT",
+}
+
+USER_NOTE_SELECT_COLUMNS = """
+id, target_ref, body, status, page_route, page_title, anchor_type, object_type, object_title, tags_json, created_at, updated_at
+"""
+
+USER_NOTE_STATUSES = {"todo", "reviewing", "waiting_confirm", "confirmed", "closed", "deferred"}
+
+
+def ensure_user_note_columns(connection: sqlite3.Connection) -> None:
+    rows = connection.execute("PRAGMA table_info(user_notes)").fetchall()
+    existing = {row[1] for row in rows}
+    for column, definition in USER_NOTE_COLUMNS.items():
+        if column not in existing:
+            connection.execute(f"ALTER TABLE user_notes ADD COLUMN {column} {definition}")
 
 
 def _list(value: Any) -> list[Any]:
@@ -263,6 +294,7 @@ def ensure_user_db() -> None:
     USER_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(USER_DB_PATH) as connection:
         connection.executescript(USER_SCHEMA_SQL)
+        ensure_user_note_columns(connection)
         connection.execute(
             """
             INSERT INTO user_meta(key, value, updated_at)
@@ -361,6 +393,190 @@ def delete_user_favorite(target_ref: str) -> dict[str, Any]:
             VALUES (?, 'delete_favorite', ?, ?)
             """,
             (str(uuid.uuid4()), normalized, json.dumps({"target_ref": normalized, "deleted": deleted}, ensure_ascii=False)),
+        )
+    return {"ok": True, "deleted": deleted}
+
+
+def normalize_note_status(value: Any) -> str:
+    status = str(value or "todo").strip() or "todo"
+    return status if status in USER_NOTE_STATUSES else "todo"
+
+
+def normalize_tags_json(value: Any) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        stripped = value.strip()
+        if not stripped:
+            return None
+        try:
+            parsed = json.loads(stripped)
+        except json.JSONDecodeError:
+            parsed = [stripped]
+    else:
+        parsed = value
+    if not isinstance(parsed, list):
+        parsed = [parsed]
+    tags = [str(item).strip() for item in parsed if str(item).strip()]
+    return json.dumps(tags, ensure_ascii=False)
+
+
+def note_row_to_dict(row: sqlite3.Row | None) -> dict[str, Any] | None:
+    if not row:
+        return None
+    item = dict(row)
+    try:
+        item["tags"] = json.loads(item.get("tags_json") or "[]")
+    except json.JSONDecodeError:
+        item["tags"] = []
+    item.pop("tags_json", None)
+    return item
+
+
+def list_user_notes(query: dict[str, list[str]]) -> dict[str, Any]:
+    filters: list[str] = []
+    params: list[str] = []
+    target_ref = str((query.get("target_ref") or [""])[0] or "").strip()
+    page_route = str((query.get("page_route") or [""])[0] or "").strip()
+    if target_ref:
+        filters.append("target_ref = ?")
+        params.append(target_ref)
+    if page_route:
+        filters.append("page_route = ?")
+        params.append(page_route)
+    where = f"WHERE {' AND '.join(filters)}" if filters else ""
+    with user_db_connection() as connection:
+        rows = connection.execute(
+            f"""
+            SELECT {USER_NOTE_SELECT_COLUMNS}
+            FROM user_notes
+            {where}
+            ORDER BY updated_at DESC
+            """,
+            params,
+        ).fetchall()
+    return {"ok": True, "data_state": "ready", "notes": [note_row_to_dict(row) for row in rows]}
+
+
+def create_user_note(payload: dict[str, Any]) -> dict[str, Any]:
+    target_ref = str(payload.get("target_ref") or "").strip()
+    body = str(payload.get("body") or "").strip()
+    if not target_ref:
+        raise ValueError("target_ref is required")
+    if not body:
+        raise ValueError("body is required")
+    note_id = str(uuid.uuid4())
+    status = normalize_note_status(payload.get("status"))
+    page_route = str(payload.get("page_route") or "").strip() or None
+    page_title = str(payload.get("page_title") or "").strip() or None
+    anchor_type = str(payload.get("anchor_type") or "object").strip() or "object"
+    object_type = str(payload.get("object_type") or "").strip() or None
+    object_title = str(payload.get("object_title") or "").strip() or None
+    tags_json = normalize_tags_json(payload.get("tags"))
+    change_payload = json.dumps(
+        {
+            "target_ref": target_ref,
+            "status": status,
+            "page_route": page_route,
+            "anchor_type": anchor_type,
+            "object_type": object_type,
+            "object_title": object_title,
+            "tags": json.loads(tags_json or "[]"),
+        },
+        ensure_ascii=False,
+    )
+    with user_db_connection() as connection:
+        connection.execute(
+            """
+            INSERT INTO user_notes(id, target_ref, body, status, page_route, page_title, anchor_type, object_type, object_title, tags_json, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            """,
+            (note_id, target_ref, body, status, page_route, page_title, anchor_type, object_type, object_title, tags_json),
+        )
+        row = connection.execute(
+            f"""
+            SELECT {USER_NOTE_SELECT_COLUMNS}
+            FROM user_notes
+            WHERE id = ?
+            """,
+            (note_id,),
+        ).fetchone()
+        connection.execute(
+            """
+            INSERT INTO user_change_logs(id, action, target_ref, payload_json)
+            VALUES (?, 'create_note', ?, ?)
+            """,
+            (str(uuid.uuid4()), target_ref, change_payload),
+        )
+    return {"ok": True, "note": note_row_to_dict(row)}
+
+
+def update_user_note(note_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+    normalized_id = str(note_id or "").strip()
+    if not normalized_id:
+        raise ValueError("id is required")
+    allowed_fields: dict[str, Any] = {}
+    if "body" in payload:
+        body = str(payload.get("body") or "").strip()
+        if not body:
+            raise ValueError("body is required")
+        allowed_fields["body"] = body
+    if "status" in payload:
+        allowed_fields["status"] = normalize_note_status(payload.get("status"))
+    if "tags" in payload:
+        allowed_fields["tags_json"] = normalize_tags_json(payload.get("tags"))
+    if not allowed_fields:
+        raise ValueError("no supported fields to update")
+    assignments = ", ".join(f"{field} = ?" for field in allowed_fields)
+    values = list(allowed_fields.values())
+    with user_db_connection() as connection:
+        row_before = connection.execute("SELECT target_ref FROM user_notes WHERE id = ?", (normalized_id,)).fetchone()
+        if not row_before:
+            return {"ok": False, "error": "not_found", "note": None}
+        connection.execute(
+            f"""
+            UPDATE user_notes
+            SET {assignments}, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+            """,
+            [*values, normalized_id],
+        )
+        row = connection.execute(
+            f"""
+            SELECT {USER_NOTE_SELECT_COLUMNS}
+            FROM user_notes
+            WHERE id = ?
+            """,
+            (normalized_id,),
+        ).fetchone()
+        connection.execute(
+            """
+            INSERT INTO user_change_logs(id, action, target_ref, payload_json)
+            VALUES (?, 'update_note', ?, ?)
+            """,
+            (str(uuid.uuid4()), row_before["target_ref"], json.dumps({"id": normalized_id, **allowed_fields}, ensure_ascii=False)),
+        )
+    return {"ok": True, "note": note_row_to_dict(row)}
+
+
+def delete_user_note(note_id: str) -> dict[str, Any]:
+    normalized_id = str(note_id or "").strip()
+    if not normalized_id:
+        raise ValueError("id is required")
+    with user_db_connection() as connection:
+        row_before = connection.execute("SELECT target_ref FROM user_notes WHERE id = ?", (normalized_id,)).fetchone()
+        cursor = connection.execute("DELETE FROM user_notes WHERE id = ?", (normalized_id,))
+        deleted = cursor.rowcount
+        connection.execute(
+            """
+            INSERT INTO user_change_logs(id, action, target_ref, payload_json)
+            VALUES (?, 'delete_note', ?, ?)
+            """,
+            (
+                str(uuid.uuid4()),
+                row_before["target_ref"] if row_before else None,
+                json.dumps({"id": normalized_id, "deleted": deleted}, ensure_ascii=False),
+            ),
         )
     return {"ok": True, "deleted": deleted}
 
@@ -1430,12 +1646,29 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
 
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
-        if parsed.path != "/api/v1/user/favorites":
+        if parsed.path not in {"/api/v1/user/favorites", "/api/v1/user/notes"}:
             self._send_json(create_envelope({"error": "not_found", "path": parsed.path}), status=404)
             return
         try:
             payload = self._read_json_body()
-            self._send_json(create_envelope(upsert_user_favorite(payload)))
+            if parsed.path == "/api/v1/user/notes":
+                self._send_json(create_envelope(create_user_note(payload)))
+            else:
+                self._send_json(create_envelope(upsert_user_favorite(payload)))
+        except ValueError as exc:
+            self._send_json(create_envelope({"error": "bad_request", "message": str(exc)}), status=400)
+        except Exception as exc:
+            self._send_json(create_envelope({"error": "server_error", "message": str(exc), "path": parsed.path}), status=500)
+
+    def do_PATCH(self) -> None:
+        parsed = urlparse(self.path)
+        if not parsed.path.startswith("/api/v1/user/notes/"):
+            self._send_json(create_envelope({"error": "not_found", "path": parsed.path}), status=404)
+            return
+        try:
+            note_id = unquote(parsed.path.rsplit("/", 1)[-1])
+            payload = self._read_json_body()
+            self._send_json(create_envelope(update_user_note(note_id, payload)))
         except ValueError as exc:
             self._send_json(create_envelope({"error": "bad_request", "message": str(exc)}), status=400)
         except Exception as exc:
@@ -1443,13 +1676,17 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
 
     def do_DELETE(self) -> None:
         parsed = urlparse(self.path)
-        if parsed.path != "/api/v1/user/favorites":
+        if parsed.path != "/api/v1/user/favorites" and not parsed.path.startswith("/api/v1/user/notes/"):
             self._send_json(create_envelope({"error": "not_found", "path": parsed.path}), status=404)
             return
         try:
-            query = parse_qs(parsed.query)
-            target_ref = unquote((query.get("target_ref") or [""])[0])
-            self._send_json(create_envelope(delete_user_favorite(target_ref)))
+            if parsed.path.startswith("/api/v1/user/notes/"):
+                note_id = unquote(parsed.path.rsplit("/", 1)[-1])
+                self._send_json(create_envelope(delete_user_note(note_id)))
+            else:
+                query = parse_qs(parsed.query)
+                target_ref = unquote((query.get("target_ref") or [""])[0])
+                self._send_json(create_envelope(delete_user_favorite(target_ref)))
         except ValueError as exc:
             self._send_json(create_envelope({"error": "bad_request", "message": str(exc)}), status=400)
         except Exception as exc:
@@ -1491,6 +1728,9 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
                 return
             if path == "/api/v1/user/favorites":
                 self._send_json(create_envelope(list_user_favorites()))
+                return
+            if path == "/api/v1/user/notes":
+                self._send_json(create_envelope(list_user_notes(query)))
                 return
             if path == "/api/v1/data-packages":
                 self._send_json(create_envelope({"packages": [{"name": name, "path": path} for name, path in DATA_PACKAGES.items()]}))

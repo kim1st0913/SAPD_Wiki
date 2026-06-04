@@ -500,6 +500,30 @@ async function main() {
             noteOpen: actions.some((item) => Boolean(item.querySelector('.user-action-note-panel')))
           };
         })(),
+        userAnnotationDrawerProbe: (() => {
+          const drawer = document.querySelector('.user-annotation-drawer');
+          const tab = drawer?.querySelector('[data-annotation-drawer-toggle]');
+          const oldHorizontalActions = [...document.querySelectorAll('.user-object-actions')]
+            .filter((item) => item.offsetParent !== null);
+          const beforeWidth = document.querySelector('.workspace-stage, #sourceList, #contentWorkspace, #detail')?.getBoundingClientRect?.().width || 0;
+          tab?.click?.();
+          const nextDrawer = document.querySelector('.user-annotation-drawer');
+          const nextTab = nextDrawer?.querySelector('[data-annotation-drawer-toggle]');
+          const panel = nextDrawer?.querySelector('.annotation-drawer-panel');
+          const tabRect = nextTab?.getBoundingClientRect?.();
+          const panelRect = panel?.getBoundingClientRect?.();
+          const afterWidth = document.querySelector('.workspace-stage, #sourceList, #contentWorkspace, #detail')?.getBoundingClientRect?.().width || 0;
+          return {
+            present: Boolean(nextDrawer),
+            tabVisible: Boolean(nextTab && tabRect?.width > 0 && tabRect?.height > 0),
+            open: Boolean(nextDrawer?.classList.contains('is-open')),
+            panelVisible: Boolean(panel && panelRect?.width > 0 && panelRect?.height > 0),
+            title: nextDrawer?.querySelector('.annotation-drawer-header h2')?.textContent?.replace(/\\s+/g, ' ').trim() || '',
+            context: nextDrawer?.querySelector('.annotation-context-box')?.textContent?.replace(/\\s+/g, ' ').trim() || '',
+            oldHorizontalCount: oldHorizontalActions.length,
+            workspaceWidthDelta: Math.round(afterWidth - beforeWidth)
+          };
+        })(),
         standardTable: Boolean(document.querySelector('.standard-framework-table, .standard-framework-page')),
         standardGroupRows: document.querySelectorAll('.standard-framework-table .standard-group-row').length,
         standardDataRows: document.querySelectorAll('.standard-framework-table .standard-group-detail, .standard-framework-table .maintenance-data-row').length,
@@ -629,7 +653,13 @@ async function main() {
       ((pageName === "capability" || pageName === "capabilities") &&
         metrics.capabilityManagementChipProbe?.count > 0 &&
         (metrics.capabilityManagementChipProbe.truncated || !metrics.capabilityManagementChipProbe.copyable)) ||
-      (expectUserActions && !metrics.userObjectActionsProbe?.count) ||
+      (expectUserActions &&
+        (!metrics.userAnnotationDrawerProbe?.present ||
+          !metrics.userAnnotationDrawerProbe?.tabVisible ||
+          !metrics.userAnnotationDrawerProbe?.open ||
+          !metrics.userAnnotationDrawerProbe?.panelVisible ||
+          metrics.userAnnotationDrawerProbe?.oldHorizontalCount !== 0 ||
+          Math.abs(metrics.userAnnotationDrawerProbe?.workspaceWidthDelta || 0) > 2)) ||
       (pageName === "environment" && !metrics.environmentTree) ||
       ((pageName === "lifecycle" || pageName === "dev-lifecycle") && !metrics.lifecycleLane) ||
       (pageName === "content" && guideExpectation && !metrics.guideSlidePlayer) ||

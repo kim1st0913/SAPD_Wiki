@@ -40,6 +40,22 @@ BASE_ITEM_TABLE_CANDIDATES = [
     "items",
 ]
 
+USER_NOTE_COLUMNS = {
+    "status": "TEXT NOT NULL DEFAULT 'todo'",
+    "page_route": "TEXT",
+    "page_title": "TEXT",
+    "anchor_type": "TEXT NOT NULL DEFAULT 'object'",
+    "object_type": "TEXT",
+    "object_title": "TEXT",
+    "tags_json": "TEXT",
+}
+
+USER_NOTE_SELECT_COLUMNS = """
+id, target_ref, body, status, page_route, page_title, anchor_type, object_type, object_title, tags_json, created_at, updated_at
+"""
+
+USER_NOTE_STATUSES = {"todo", "reviewing", "waiting_confirm", "confirmed", "closed", "deferred"}
+
 
 def json_dumps(data: Any) -> bytes:
     return json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
@@ -108,6 +124,16 @@ class BundleRuntime:
         user_file = self.manifest["user_database"].get("file", "sapd_wiki_user.sqlite3")
         self.base_db = safe_bundle_child(self.root / "data" / "base", base_file, "sapd_wiki_base.sqlite3")
         self.user_db = safe_bundle_child(self.root / "data" / "user", user_file, "sapd_wiki_user.sqlite3")
+        self.ensure_user_note_columns()
+
+    def ensure_user_note_columns(self) -> None:
+        user_uri = self.user_db.resolve().as_uri() + "?mode=rwc"
+        with sqlite3.connect(user_uri, uri=True) as connection:
+            rows = connection.execute("PRAGMA table_info(user_notes)").fetchall()
+            existing = {row[1] for row in rows}
+            for column, definition in USER_NOTE_COLUMNS.items():
+                if column not in existing:
+                    connection.execute(f"ALTER TABLE user_notes ADD COLUMN {column} {definition}")
 
     def open_connection(self) -> sqlite3.Connection:
         user_uri = self.user_db.resolve().as_uri() + "?mode=rwc"
@@ -233,6 +259,178 @@ class BundleRuntime:
         self.logger.write("info", "user favorite deleted", target_ref_sha256=hash_text(normalized)[:16], deleted=deleted)
         return {"ok": True, "deleted": deleted}
 
+    def normalize_note_status(self, value: Any) -> str:
+        status = str(value or "todo").strip() or "todo"
+        return status if status in USER_NOTE_STATUSES else "todo"
+
+    def normalize_tags_json(self, value: Any) -> str | None:
+        if value is None:
+            return None
+        if isinstance(value, str):
+            stripped = value.strip()
+            if not stripped:
+                return None
+            try:
+                parsed = json.loads(stripped)
+            except json.JSONDecodeError:
+                parsed = [stripped]
+        else:
+            parsed = value
+        if not isinstance(parsed, list):
+            parsed = [parsed]
+        tags = [str(item).strip() for item in parsed if str(item).strip()]
+        return json.dumps(tags, ensure_ascii=False)
+
+    def note_row_to_dict(self, row: sqlite3.Row | None) -> dict[str, Any] | None:
+        if not row:
+            return None
+        item = dict(row)
+        try:
+            item["tags"] = json.loads(item.get("tags_json") or "[]")
+        except json.JSONDecodeError:
+            item["tags"] = []
+        item.pop("tags_json", None)
+        return item
+
+    def list_notes(self, query: dict[str, list[str]]) -> dict[str, Any]:
+        filters: list[str] = []
+        params: list[str] = []
+        target_ref = str((query.get("target_ref") or [""])[0] or "").strip()
+        page_route = str((query.get("page_route") or [""])[0] or "").strip()
+        if target_ref:
+            filters.append("target_ref = ?")
+            params.append(target_ref)
+        if page_route:
+            filters.append("page_route = ?")
+            params.append(page_route)
+        where = f"WHERE {' AND '.join(filters)}" if filters else ""
+        with self.open_connection() as connection:
+            rows = connection.execute(
+                f"""
+                SELECT {USER_NOTE_SELECT_COLUMNS}
+                FROM user_notes
+                {where}
+                ORDER BY updated_at DESC
+                """,
+                params,
+            ).fetchall()
+        return {"ok": True, "data_state": "ready", "notes": [self.note_row_to_dict(row) for row in rows]}
+
+    def add_note(self, payload: dict[str, Any]) -> dict[str, Any]:
+        target_ref = str(payload.get("target_ref", "")).strip()
+        body = str(payload.get("body") or "").strip()
+        if not target_ref:
+            raise ValueError("target_ref is required")
+        if not body:
+            raise ValueError("body is required")
+        note_id = str(uuid.uuid4())
+        status = self.normalize_note_status(payload.get("status"))
+        page_route = str(payload.get("page_route") or "").strip() or None
+        page_title = str(payload.get("page_title") or "").strip() or None
+        anchor_type = str(payload.get("anchor_type") or "object").strip() or "object"
+        object_type = str(payload.get("object_type") or "").strip() or None
+        object_title = str(payload.get("object_title") or "").strip() or None
+        tags_json = self.normalize_tags_json(payload.get("tags"))
+        with self.open_connection() as connection:
+            connection.execute(
+                """
+                INSERT INTO user_notes(id, target_ref, body, status, page_route, page_title, anchor_type, object_type, object_title, tags_json, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                """,
+                (note_id, target_ref, body, status, page_route, page_title, anchor_type, object_type, object_title, tags_json),
+            )
+            row = connection.execute(
+                f"""
+                SELECT {USER_NOTE_SELECT_COLUMNS}
+                FROM user_notes
+                WHERE id = ?
+                """,
+                (note_id,),
+            ).fetchone()
+            connection.execute(
+                """
+                INSERT INTO user_change_logs(id, action, target_ref, payload_json)
+                VALUES (?, 'create_note', ?, ?)
+                """,
+                (
+                    str(uuid.uuid4()),
+                    target_ref,
+                    json.dumps({"target_ref": target_ref, "status": status, "page_route": page_route, "anchor_type": anchor_type}, ensure_ascii=False),
+                ),
+            )
+        self.logger.write("info", "user note created", target_ref_sha256=hash_text(target_ref)[:16], status=status)
+        return {"ok": True, "note": self.note_row_to_dict(row)}
+
+    def update_note(self, note_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+        normalized_id = str(note_id or "").strip()
+        if not normalized_id:
+            raise ValueError("id is required")
+        allowed_fields: dict[str, Any] = {}
+        if "body" in payload:
+            body = str(payload.get("body") or "").strip()
+            if not body:
+                raise ValueError("body is required")
+            allowed_fields["body"] = body
+        if "status" in payload:
+            allowed_fields["status"] = self.normalize_note_status(payload.get("status"))
+        if "tags" in payload:
+            allowed_fields["tags_json"] = self.normalize_tags_json(payload.get("tags"))
+        if not allowed_fields:
+            raise ValueError("no supported fields to update")
+        assignments = ", ".join(f"{field} = ?" for field in allowed_fields)
+        values = list(allowed_fields.values())
+        with self.open_connection() as connection:
+            row_before = connection.execute("SELECT target_ref FROM user_notes WHERE id = ?", (normalized_id,)).fetchone()
+            if not row_before:
+                return {"ok": False, "error": "not_found", "note": None}
+            connection.execute(
+                f"""
+                UPDATE user_notes
+                SET {assignments}, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                """,
+                [*values, normalized_id],
+            )
+            row = connection.execute(
+                f"""
+                SELECT {USER_NOTE_SELECT_COLUMNS}
+                FROM user_notes
+                WHERE id = ?
+                """,
+                (normalized_id,),
+            ).fetchone()
+            connection.execute(
+                """
+                INSERT INTO user_change_logs(id, action, target_ref, payload_json)
+                VALUES (?, 'update_note', ?, ?)
+                """,
+                (str(uuid.uuid4()), row_before["target_ref"], json.dumps({"id": normalized_id, **allowed_fields}, ensure_ascii=False)),
+            )
+        self.logger.write("info", "user note updated", note_id=normalized_id, status=allowed_fields.get("status"))
+        return {"ok": True, "note": self.note_row_to_dict(row)}
+
+    def delete_note(self, note_id: str) -> dict[str, Any]:
+        normalized_id = str(note_id or "").strip()
+        if not normalized_id:
+            raise ValueError("id is required")
+        with self.open_connection() as connection:
+            row_before = connection.execute("SELECT target_ref FROM user_notes WHERE id = ?", (normalized_id,)).fetchone()
+            cursor = connection.execute("DELETE FROM user_notes WHERE id = ?", (normalized_id,))
+            deleted = cursor.rowcount
+            connection.execute(
+                """
+                INSERT INTO user_change_logs(id, action, target_ref, payload_json)
+                VALUES (?, 'delete_note', ?, ?)
+                """,
+                (
+                    str(uuid.uuid4()),
+                    row_before["target_ref"] if row_before else None,
+                    json.dumps({"id": normalized_id, "deleted": deleted}, ensure_ascii=False),
+                ),
+            )
+        self.logger.write("info", "user note deleted", note_id=normalized_id, deleted=deleted)
+        return {"ok": True, "deleted": deleted}
+
 
 def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: str) -> type[BaseHTTPRequestHandler]:
     class LocalHandler(BaseHTTPRequestHandler):
@@ -302,6 +500,9 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
                 if parsed.path == "/api/v1/user/favorites":
                     self.send_json(200, runtime.list_favorites())
                     return
+                if parsed.path == "/api/v1/user/notes":
+                    self.send_json(200, runtime.list_notes(parse_qs(parsed.query)))
+                    return
                 if parsed.path.startswith(API_PREFIX):
                     self.send_json(404, {"ok": False, "error": "not found", "path": parsed.path})
                     return
@@ -339,7 +540,7 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
         def do_POST(self) -> None:
             parsed = urlparse(self.path)
             try:
-                if parsed.path != "/api/v1/user/favorites":
+                if parsed.path not in {"/api/v1/user/favorites", "/api/v1/user/notes"}:
                     self.send_json(404, {"ok": False, "error": "not found"})
                     return
                 auth_error = self.validate_write_request()
@@ -349,17 +550,20 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
                     return
                 length = int(self.headers.get("Content-Length", "0"))
                 payload = json.loads(self.rfile.read(length).decode("utf-8") or "{}")
-                self.send_json(200, runtime.add_favorite(payload))
+                if parsed.path == "/api/v1/user/notes":
+                    self.send_json(200, runtime.add_note(payload))
+                else:
+                    self.send_json(200, runtime.add_favorite(payload))
             except ValueError as error:
                 self.send_json(400, {"ok": False, "error": str(error)})
             except Exception as error:  # noqa: BLE001
                 runtime.logger.write("error", "post failed", path=parsed.path, error=str(error))
                 self.send_json(500, {"ok": False, "error": str(error)})
 
-        def do_DELETE(self) -> None:
+        def do_PATCH(self) -> None:
             parsed = urlparse(self.path)
             try:
-                if parsed.path != "/api/v1/user/favorites":
+                if not parsed.path.startswith("/api/v1/user/notes/"):
                     self.send_json(404, {"ok": False, "error": "not found"})
                     return
                 auth_error = self.validate_write_request()
@@ -367,9 +571,34 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
                     status, message = auth_error
                     self.send_json(status, {"ok": False, "error": message})
                     return
-                params = parse_qs(parsed.query)
-                target_ref = unquote((params.get("target_ref") or [""])[0])
-                self.send_json(200, runtime.delete_favorite(target_ref))
+                length = int(self.headers.get("Content-Length", "0"))
+                payload = json.loads(self.rfile.read(length).decode("utf-8") or "{}")
+                note_id = unquote(parsed.path.rsplit("/", 1)[-1])
+                self.send_json(200, runtime.update_note(note_id, payload))
+            except ValueError as error:
+                self.send_json(400, {"ok": False, "error": str(error)})
+            except Exception as error:  # noqa: BLE001
+                runtime.logger.write("error", "patch failed", path=parsed.path, error=str(error))
+                self.send_json(500, {"ok": False, "error": str(error)})
+
+        def do_DELETE(self) -> None:
+            parsed = urlparse(self.path)
+            try:
+                if parsed.path != "/api/v1/user/favorites" and not parsed.path.startswith("/api/v1/user/notes/"):
+                    self.send_json(404, {"ok": False, "error": "not found"})
+                    return
+                auth_error = self.validate_write_request()
+                if auth_error:
+                    status, message = auth_error
+                    self.send_json(status, {"ok": False, "error": message})
+                    return
+                if parsed.path.startswith("/api/v1/user/notes/"):
+                    note_id = unquote(parsed.path.rsplit("/", 1)[-1])
+                    self.send_json(200, runtime.delete_note(note_id))
+                else:
+                    params = parse_qs(parsed.query)
+                    target_ref = unquote((params.get("target_ref") or [""])[0])
+                    self.send_json(200, runtime.delete_favorite(target_ref))
             except ValueError as error:
                 self.send_json(400, {"ok": False, "error": str(error)})
             except Exception as error:  # noqa: BLE001

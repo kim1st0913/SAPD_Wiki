@@ -52,10 +52,10 @@
 - 对象或页面：ZIP alpha 桌面包、`sapd_wiki_user.sqlite3`、安全能力映射 / 知识库字典 / 标准框架 / 安全指南、右侧浮层批注抽屉与工作台。
 - 现象：ZIP alpha 后端已具备 `user_favorites` 写入 API 和 user DB 自动创建能力；`OI-128A / OI-128B` 已验证页面可写入用户库，但当前横向 `加入关注清单 / 收藏备注` 条语义较弱，不适合作为长期用户工作入口。
 - 影响：当前 Windows 包只能验收解压启动、页面访问、base 数据读取、user DB 自动创建、日志和诊断包；页面级用户写入能力不能作为本轮验收项。
-- 当前处理：2026-06-03 已新增正式设计文档 `docs/06-implementation/user-workspace-v1-to-v4-design.md`，固定 V1A 收藏 / 轻备注、V1B 备注 / 标签、V2 我的工作区、V3 新增 / 复制编辑、V4 导出路线。`OI-128A` 已先在安全能力映射页对象详情区实现关注清单 / 收藏备注入口，并补齐开发 API 与 ZIP runtime 的收藏保存 / 撤销路径；`OI-128B` 已把同一用户动作组件复用到安全知识、标准 / 框架和安全指南页面。2026-06-04 已新增 `docs/06-implementation/workspace-annotation-and-capability-remix-design.md`，固定后续下线横向收藏条，改为右侧上浮批注抽屉和工作台方向。
-- 需要确认：下一步是否执行 `OI-128C`，实现右侧浮层批注抽屉；后续再进入工作台总览、数据篮 / 导出、能力重组、导入和 Skill 集成。
-- 修复说明：`OI-128A / OI-128B` 已实现。当前入口以 `user_favorites.note` 承载收藏备注，收藏事实以 user DB 为准，不写入 `localStorage`；API 不可用时显示 `用户库不可用`。2026-06-04 后续产品语义调整为：`收藏` 不再作为主业务动作，正式入口改为 `批注`、`待复核`、`数据篮` 和 `工作台`。
-- 验证结果：2026-06-03 通过本地 `5173` API 写入 / 读取 / 删除闭环验证：`POST /api/v1/user/favorites` 写入 `base:capability_focus:OI-128A-SMOKE` 成功，`GET` 可读，`DELETE` 后列表消失；`node scripts/frontend_smoke_check.mjs --page capability --url http://127.0.0.1:5173` 通过。2026-06-03 `OI-128B` 真实 Chrome 回归覆盖 `/knowledge/technical-services`、`/knowledge/capabilities`、`/standards/mlps-level-3`、`/guides/security-architecture-modeling-language`，均有 `userObjectActionsProbe.count=1`、`consoleIssues=0`。
+- 当前处理：2026-06-03 已新增正式设计文档 `docs/06-implementation/user-workspace-v1-to-v4-design.md`，固定 V1A 收藏 / 轻备注、V1B 备注 / 标签、V2 我的工作区、V3 新增 / 复制编辑、V4 导出路线。`OI-128A` 已先在安全能力映射页对象详情区实现关注清单 / 收藏备注入口，并补齐开发 API 与 ZIP runtime 的收藏保存 / 撤销路径；`OI-128B` 已把同一用户动作组件复用到安全知识、标准 / 框架和安全指南页面。2026-06-04 已新增 `docs/06-implementation/workspace-annotation-and-capability-remix-design.md`，固定后续下线横向收藏条，改为右侧上浮批注抽屉和工作台方向；同日 `OI-128C` 已实现右侧浮层批注抽屉第一版。
+- 需要确认：后续是否进入工作台总览、数据篮 / 导出、能力重组、导入和 Skill 集成。
+- 修复说明：`OI-128A / OI-128B / OI-128C` 已实现。当前入口以 `user_notes` 承载正式批注，`user_favorites.note` 仅作为过渡收藏备注显示；收藏不再作为主业务动作，正式入口改为 `批注`、`待复核`、`数据篮` 和 `工作台`。用户写入只影响 `sapd_wiki_user.sqlite3`，不回写基础库。
+- 验证结果：2026-06-03 通过本地 `5173` API 写入 / 读取 / 删除闭环验证：`POST /api/v1/user/favorites` 写入 `base:capability_focus:OI-128A-SMOKE` 成功，`GET` 可读，`DELETE` 后列表消失；`node scripts/frontend_smoke_check.mjs --page capability --url http://127.0.0.1:5173` 通过。2026-06-03 `OI-128B` 真实 Chrome 回归覆盖 `/knowledge/technical-services`、`/knowledge/capabilities`、`/standards/mlps-level-3`、`/guides/security-architecture-modeling-language`，均有 `userObjectActionsProbe.count=1`、`consoleIssues=0`。2026-06-04 `OI-128C` 通过 `POST /api/v1/user/notes`、`GET`、`PATCH`、`DELETE` 本地 API 闭环；真实 Chrome 回归覆盖 `/capability-mapping`、`/knowledge/technical-services`、`/standards/mlps-level-3`、`/guides/security-architecture-modeling-language`，均确认右侧批注抽屉存在、可展开、旧横向条数量为 0、`workspaceWidthDelta=0`、`consoleIssues=0`。
 ## OI-133：ArchiMate 建模语言页显示效果与加载效率优化
 
 - 状态：待设计

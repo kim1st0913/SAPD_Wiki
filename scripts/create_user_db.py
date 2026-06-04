@@ -14,7 +14,7 @@ import uuid
 from pathlib import Path
 
 
-DEFAULT_SCHEMA_VERSION = "user_schema_0.1"
+DEFAULT_SCHEMA_VERSION = "user_schema_0.2"
 
 
 SCHEMA_SQL = """
@@ -39,6 +39,13 @@ CREATE TABLE IF NOT EXISTS user_notes (
   id TEXT PRIMARY KEY,
   target_ref TEXT NOT NULL,
   body TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'todo',
+  page_route TEXT,
+  page_title TEXT,
+  anchor_type TEXT NOT NULL DEFAULT 'object',
+  object_type TEXT,
+  object_title TEXT,
+  tags_json TEXT,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -108,10 +115,30 @@ CREATE TABLE IF NOT EXISTS user_schema_migrations (
 """
 
 
+USER_NOTE_COLUMNS = {
+    "status": "TEXT NOT NULL DEFAULT 'todo'",
+    "page_route": "TEXT",
+    "page_title": "TEXT",
+    "anchor_type": "TEXT NOT NULL DEFAULT 'object'",
+    "object_type": "TEXT",
+    "object_title": "TEXT",
+    "tags_json": "TEXT",
+}
+
+
+def ensure_user_note_columns(connection: sqlite3.Connection) -> None:
+    rows = connection.execute("PRAGMA table_info(user_notes)").fetchall()
+    existing = {row[1] for row in rows}
+    for column, definition in USER_NOTE_COLUMNS.items():
+        if column not in existing:
+            connection.execute(f"ALTER TABLE user_notes ADD COLUMN {column} {definition}")
+
+
 def initialize_user_db(db_path: Path, schema_version: str) -> None:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(db_path) as connection:
         connection.executescript(SCHEMA_SQL)
+        ensure_user_note_columns(connection)
         connection.execute(
             """
             INSERT INTO user_meta(key, value, updated_at)

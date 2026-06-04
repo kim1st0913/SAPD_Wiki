@@ -61,6 +61,13 @@ const state = {
   userFavoritesByRef: new Map(),
   userFavoritesLoaded: false,
   userFavoriteLoadPromise: null,
+  userNotes: [],
+  userNotesLoaded: false,
+  userNotesLoadPromise: null,
+  activeUserTarget: null,
+  activePageAnnotationTarget: null,
+  userAnnotationDrawerOpen: false,
+  userAnnotationDraft: "",
   userWriteStatus: { state: "idle", savingTargetRef: "" },
   activeUserNoteTargetRef: "",
   search: "",
@@ -760,15 +767,6 @@ function contentUserTarget(selected, routeInfo = {}) {
   return null;
 }
 
-function renderUserObjectActions(target, components = window.sapdComponents || {}) {
-  return components.UserObjectActions?.render?.({
-    target,
-    favorite: favoriteForTarget(target?.targetRef),
-    status: state.userWriteStatus,
-    noteOpen: state.activeUserNoteTargetRef === target?.targetRef,
-  }) || "";
-}
-
 function renderActiveUserActionScope() {
   if (state.activeView === "maintenance") {
     renderMaintenance();
@@ -779,6 +777,39 @@ function renderActiveUserActionScope() {
     return;
   }
   renderCapabilities();
+}
+
+function currentPageAnnotationTarget(pageTitleOverride = "") {
+  const pageTitle =
+    text(pageTitleOverride).trim() ||
+    text(document.querySelector("#appPageHeader h1")?.textContent).trim() ||
+    text(document.querySelector(".page-title-copy h1")?.textContent).trim() ||
+    (state.activeView === "content" ? text(document.querySelector("#contentPageTitle")?.textContent).trim() : "") ||
+    (state.activeView === "content" ? text(document.querySelector("#contentNavTitle")?.textContent).trim() : "") ||
+    state.activeRoute ||
+    "当前页面";
+  return {
+    targetRef: `page:${state.activeRoute || "/"}`,
+    objectType: "page",
+    objectLabel: "页面",
+    id: state.activeRoute || "/",
+    code: state.activeRoute || "/",
+    title: pageTitle,
+    tags: [pageTitle, "页面"],
+  };
+}
+
+function setCurrentAnnotationTarget(target, options = {}) {
+  const pageTarget = currentPageAnnotationTarget(options.pageTitle);
+  state.activePageAnnotationTarget = pageTarget;
+  state.activeUserTarget = target || pageTarget;
+  if (!state.activeUserTarget?.tags?.length) {
+    state.activeUserTarget = {
+      ...state.activeUserTarget,
+      tags: [state.activeUserTarget?.objectLabel, pageTarget.title].filter(Boolean),
+    };
+  }
+  requestAnimationFrame(() => renderUserAnnotationDrawer());
 }
 
 function refreshUserFavoritesMap() {
@@ -816,6 +847,36 @@ function ensureUserFavoritesLoaded() {
   return state.userFavoriteLoadPromise;
 }
 
+function ensureUserNotesLoaded() {
+  if (state.userNotesLoaded) return Promise.resolve();
+  if (state.userNotesLoadPromise) return state.userNotesLoadPromise;
+  const dataClient = window.sapdDataClient;
+  if (!dataClient?.getUserNotes) {
+    state.userWriteStatus = { ...state.userWriteStatus, state: "api_unavailable", savingNote: false };
+    state.userNotesLoaded = true;
+    return Promise.resolve();
+  }
+  state.userWriteStatus = { ...state.userWriteStatus, state: "loading" };
+  state.userNotesLoadPromise = dataClient
+    .getUserNotes()
+    .then((envelope) => {
+      const data = envelope?.data || {};
+      state.userNotes = list(data.notes);
+      state.userWriteStatus = { ...state.userWriteStatus, state: data.ok === false ? data.data_state || "api_unavailable" : "ready", savingNote: false };
+      state.userNotesLoaded = true;
+    })
+    .catch((error) => {
+      console.warn("用户批注加载失败", error);
+      state.userWriteStatus = { ...state.userWriteStatus, state: "api_unavailable", savingNote: false };
+      state.userNotesLoaded = true;
+    })
+    .finally(() => {
+      state.userNotesLoadPromise = null;
+      renderUserAnnotationDrawer();
+    });
+  return state.userNotesLoadPromise;
+}
+
 function favoriteForTarget(targetRef) {
   return state.userFavoritesByRef.get(text(targetRef).trim()) || null;
 }
@@ -834,70 +895,102 @@ function removeFavoriteFromState(targetRef) {
   refreshUserFavoritesMap();
 }
 
-async function handleFavoriteToggle(targetRef) {
-  const dataClient = window.sapdDataClient;
-  if (!targetRef || !dataClient?.upsertUserFavorite) return;
-  const existing = favoriteForTarget(targetRef);
-  state.userWriteStatus = { state: "ready", savingTargetRef: targetRef };
-  renderActiveUserActionScope();
-  try {
-    if (existing) {
-      const envelope = await dataClient.deleteUserFavorite(targetRef);
-      if (envelope?.data?.ok === false) throw new Error(envelope.data.error || "delete favorite failed");
-      removeFavoriteFromState(targetRef);
-      if (state.activeUserNoteTargetRef === targetRef) state.activeUserNoteTargetRef = "";
-    } else {
-      const envelope = await dataClient.upsertUserFavorite({ target_ref: targetRef, note: null });
-      if (envelope?.data?.ok === false) throw new Error(envelope.data.error || "upsert favorite failed");
-      upsertFavoriteInState(envelope?.data?.favorite || { target_ref: targetRef, note: "" });
-    }
-    state.userWriteStatus = { state: "ready", savingTargetRef: "" };
-  } catch (error) {
-    console.warn("用户收藏写入失败", error);
-    state.userWriteStatus = { state: "api_error", savingTargetRef: "" };
-  }
-  renderActiveUserActionScope();
+function upsertNoteInState(note) {
+  if (!note?.id) return;
+  const rows = list(state.userNotes).filter((row) => text(row.id).trim() !== text(note.id).trim());
+  state.userNotes = [note, ...rows];
 }
 
-async function handleFavoriteNoteSave(targetRef) {
-  const dataClient = window.sapdDataClient;
-  if (!targetRef || !dataClient?.upsertUserFavorite) return;
-  const escapedTargetRef = globalThis.CSS?.escape ? globalThis.CSS.escape(targetRef) : targetRef.replaceAll('"', '\\"');
-  const input = document.querySelector(`[data-user-note-input="${escapedTargetRef}"]`);
-  const note = input?.value || "";
-  state.userWriteStatus = { state: "ready", savingTargetRef: targetRef };
-  renderActiveUserActionScope();
-  try {
-    const envelope = await dataClient.upsertUserFavorite({ target_ref: targetRef, note });
-    if (envelope?.data?.ok === false) throw new Error(envelope.data.error || "save note failed");
-    upsertFavoriteInState(envelope?.data?.favorite || { target_ref: targetRef, note });
-    state.userWriteStatus = { state: "ready", savingTargetRef: "" };
-  } catch (error) {
-    console.warn("用户备注保存失败", error);
-    state.userWriteStatus = { state: "api_error", savingTargetRef: "" };
-  }
-  renderActiveUserActionScope();
+function removeNoteFromState(noteId) {
+  const normalized = text(noteId).trim();
+  state.userNotes = list(state.userNotes).filter((row) => text(row.id).trim() !== normalized);
 }
 
-function handleUserObjectActionClick(event) {
-  const favoriteButton = event.target.closest("[data-user-favorite-toggle]");
-  if (favoriteButton) {
-    handleFavoriteToggle(favoriteButton.dataset.userFavoriteToggle);
-    return true;
+function renderUserAnnotationDrawer() {
+  ensureUserFavoritesLoaded();
+  ensureUserNotesLoaded();
+  const mount = $("userAnnotationMount");
+  const components = window.sapdComponents || {};
+  if (!mount || !components.UserAnnotationDrawer?.render) return;
+  const target = state.activeUserTarget || state.activePageAnnotationTarget || currentPageAnnotationTarget();
+  const pageTarget = state.activePageAnnotationTarget || currentPageAnnotationTarget();
+  setHtml(
+    "userAnnotationMount",
+    components.UserAnnotationDrawer.render({
+      open: state.userAnnotationDrawerOpen,
+      target,
+      pageTarget,
+      notes: state.userNotes,
+      favorite: favoriteForTarget(target?.targetRef),
+      status: state.userWriteStatus,
+      draft: state.userAnnotationDraft,
+    }),
+  );
+}
+
+async function handleUserNoteCreate() {
+  const dataClient = window.sapdDataClient;
+  const target = state.activeUserTarget || state.activePageAnnotationTarget || currentPageAnnotationTarget();
+  const pageTarget = state.activePageAnnotationTarget || currentPageAnnotationTarget();
+  const body = text(state.userAnnotationDraft).trim();
+  if (!target?.targetRef || !body || !dataClient?.createUserNote) return;
+  state.userWriteStatus = { ...state.userWriteStatus, state: "ready", savingNote: true };
+  renderUserAnnotationDrawer();
+  try {
+    const envelope = await dataClient.createUserNote({
+      target_ref: target.targetRef,
+      body,
+      status: "todo",
+      page_route: pageTarget.code,
+      page_title: pageTarget.title,
+      anchor_type: target.objectType === "page" ? "page" : "object",
+      object_type: target.objectType,
+      object_title: target.title,
+      tags: [target.objectLabel, pageTarget.title].filter(Boolean),
+    });
+    if (envelope?.data?.ok === false) throw new Error(envelope.data.error || "create note failed");
+    upsertNoteInState(envelope?.data?.note);
+    state.userAnnotationDraft = "";
+    state.userWriteStatus = { ...state.userWriteStatus, state: "ready", savingNote: false };
+  } catch (error) {
+    console.warn("用户批注保存失败", error);
+    state.userWriteStatus = { ...state.userWriteStatus, state: "api_error", savingNote: false };
   }
-  const noteButton = event.target.closest("[data-user-note-toggle]");
-  if (noteButton) {
-    const targetRef = noteButton.dataset.userNoteToggle;
-    state.activeUserNoteTargetRef = state.activeUserNoteTargetRef === targetRef ? "" : targetRef;
-    renderActiveUserActionScope();
-    return true;
+  renderUserAnnotationDrawer();
+}
+
+async function handleUserNoteStatus(noteId, status) {
+  const dataClient = window.sapdDataClient;
+  if (!noteId || !dataClient?.updateUserNote) return;
+  state.userWriteStatus = { ...state.userWriteStatus, state: "ready", savingNote: true };
+  renderUserAnnotationDrawer();
+  try {
+    const envelope = await dataClient.updateUserNote(noteId, { status });
+    if (envelope?.data?.ok === false) throw new Error(envelope.data.error || "update note failed");
+    upsertNoteInState(envelope?.data?.note);
+    state.userWriteStatus = { ...state.userWriteStatus, state: "ready", savingNote: false };
+  } catch (error) {
+    console.warn("用户批注状态保存失败", error);
+    state.userWriteStatus = { ...state.userWriteStatus, state: "api_error", savingNote: false };
   }
-  const noteSave = event.target.closest("[data-user-note-save]");
-  if (noteSave) {
-    handleFavoriteNoteSave(noteSave.dataset.userNoteSave);
-    return true;
+  renderUserAnnotationDrawer();
+}
+
+async function handleUserNoteDelete(noteId) {
+  const dataClient = window.sapdDataClient;
+  if (!noteId || !dataClient?.deleteUserNote) return;
+  state.userWriteStatus = { ...state.userWriteStatus, state: "ready", savingNote: true };
+  renderUserAnnotationDrawer();
+  try {
+    const envelope = await dataClient.deleteUserNote(noteId);
+    if (envelope?.data?.ok === false) throw new Error(envelope.data.error || "delete note failed");
+    removeNoteFromState(noteId);
+    state.userWriteStatus = { ...state.userWriteStatus, state: "ready", savingNote: false };
+  } catch (error) {
+    console.warn("用户批注删除失败", error);
+    state.userWriteStatus = { ...state.userWriteStatus, state: "api_error", savingNote: false };
   }
-  return false;
+  renderUserAnnotationDrawer();
 }
 
 function mergeSharedLookups(payload) {
@@ -1873,7 +1966,7 @@ function renderModelingLanguageGuide(routeInfo = {}) {
     `,
   ).join("");
   const routeItem = routeInfo.item || {};
-  const userActions = renderUserObjectActions(contentUserTarget(null, routeInfo));
+  setCurrentAnnotationTarget(contentUserTarget(null, routeInfo), { pageTitle: routeItem.label || "安全架构建模语言" });
   setText("contentNavTitle", "");
   setHtml("contentNavList", "");
   setText("contentPageTitle", routeItem.label || "安全架构建模语言");
@@ -1891,7 +1984,6 @@ function renderModelingLanguageGuide(routeInfo = {}) {
             ${tabs}
           </div>
         </header>
-        ${userActions ? `<div class="guide-user-action-slot">${userActions}</div>` : ""}
         <div class="modeling-language-guide-body" role="tabpanel">
           ${tabPanels[activeTab]}
         </div>
@@ -2680,10 +2772,10 @@ function renderCapabilityPendingDetail(loadState) {
 
 function renderCapabilityDetail(components, viewModel) {
   const userTarget = capabilityUserTarget(viewModel);
-  const userActions = renderUserObjectActions(userTarget, components);
+  setCurrentAnnotationTarget(userTarget);
   setHtml(
     "capabilityFocusHeader",
-    `${userActions || ""}${components.CapabilityLocalRelationMap?.renderFocusStrip?.(viewModel.localRelationMap, viewModel.focusOverview) || ""}`,
+    `${components.CapabilityLocalRelationMap?.renderFocusStrip?.(viewModel.localRelationMap, viewModel.focusOverview) || ""}`,
   );
   setHtml(
     "detail",
@@ -3124,12 +3216,11 @@ function renderMaintenance() {
         search: state.search,
       }) || tableHtml;
   }
-  const userActions = renderUserObjectActions(maintenanceUserTarget(viewModel), components);
+  setCurrentAnnotationTarget(maintenanceUserTarget(viewModel));
   setHtml(
     "sourceList",
     `
       ${standardsMode ? "" : components.MaintenanceShell?.render({ viewModel }) || ""}
-      ${userActions ? `<div class="maintenance-user-action-slot">${userActions}</div>` : ""}
       ${tableHtml || ""}
       ${knowledgeDirectoryMode && viewModel.rows.length ? `<div class="maintenance-table-endcap">已显示全部 ${escapeHtml(viewModel.rows.length)} 条记录</div>` : ""}
     `,
@@ -3387,10 +3478,10 @@ function renderContent() {
         </button>
       `,
   );
+  setCurrentAnnotationTarget(contentUserTarget(selected, routeInfo), { pageTitle: selected?.title || (isSpecificGuideRoute ? routeItem.label : "") || titles[state.activeContentPage] });
   setHtml(
     "contentList",
-    `${renderUserObjectActions(contentUserTarget(selected, routeInfo))}
-    ${
+    `${
       isSlideDeck
         ? renderSlideDeck(selected)
       : isSpecificGuideRoute && !rows.length
@@ -3443,6 +3534,7 @@ function renderPlaceholder() {
 }
 
 function renderActiveView() {
+  setCurrentAnnotationTarget(null);
   renderMetrics();
   if (state.activeView === "overview") renderOverview();
   if (state.activeView === "capabilities") renderCapabilities();
@@ -3519,6 +3611,20 @@ function bindEvents() {
     if ($("searchInput")) $("searchInput").value = event.target.value;
     renderCapabilities();
   });
+  document.addEventListener("input", (event) => {
+    if (!event.target?.matches?.("[data-user-note-draft]")) return;
+    state.userAnnotationDraft = event.target.value;
+  });
+  document.addEventListener("submit", (event) => {
+    if (!event.target?.matches?.("[data-user-note-form]")) return;
+    event.preventDefault();
+    handleUserNoteCreate();
+  });
+  document.addEventListener("change", (event) => {
+    const statusSelect = event.target?.closest?.("[data-user-note-status]");
+    if (!statusSelect) return;
+    handleUserNoteStatus(statusSelect.dataset.userNoteStatus, statusSelect.value);
+  });
   $("tree")?.addEventListener("click", (event) => {
     const toggle = event.target.closest("[data-tree-toggle-id]");
     if (toggle) {
@@ -3548,9 +3654,7 @@ function bindEvents() {
   if (capabilityItemTypeById(state.selectedCapabilityId) === "capability_focus") ensureCapabilityProjectionForFocus(state.selectedCapabilityId);
   renderCapabilities();
   });
-  $("capabilityFocusHeader")?.addEventListener("click", (event) => {
-    handleUserObjectActionClick(event);
-  });
+  $("capabilityFocusHeader")?.addEventListener("click", () => {});
   $("detail")?.addEventListener("change", (event) => {
     const tab = event.target.closest(".relation-view-radio");
     if (!tab) return;
@@ -3661,7 +3765,6 @@ function bindEvents() {
     updateApplicationShellChrome();
   });
   $("sourceList")?.addEventListener("click", (event) => {
-    if (handleUserObjectActionClick(event)) return;
     const tab = event.target.closest("[data-reference-tab]");
     if (tab && !tab.dataset.sourcePage) {
       state.activeReferenceTab = tab.dataset.referenceTab;
@@ -3706,7 +3809,22 @@ function bindEvents() {
     button.addEventListener("click", () => {});
   });
   document.addEventListener("click", (event) => {
-    if (event.target.closest("#contentWorkspace .user-object-actions") && handleUserObjectActionClick(event)) return;
+    const drawerToggle = event.target.closest("[data-annotation-drawer-toggle]");
+    if (drawerToggle) {
+      state.userAnnotationDrawerOpen = !state.userAnnotationDrawerOpen;
+      renderUserAnnotationDrawer();
+      return;
+    }
+    if (event.target.closest("[data-annotation-drawer-close]")) {
+      state.userAnnotationDrawerOpen = false;
+      renderUserAnnotationDrawer();
+      return;
+    }
+    const noteDelete = event.target.closest("[data-user-note-delete]");
+    if (noteDelete) {
+      handleUserNoteDelete(noteDelete.dataset.userNoteDelete);
+      return;
+    }
     if (event.target.closest("#toggleCapabilityCatalog, #expandCapabilityCatalogTab")) {
       state.capabilityCatalogCollapsed = !state.capabilityCatalogCollapsed;
       applyCapabilityCatalogState();

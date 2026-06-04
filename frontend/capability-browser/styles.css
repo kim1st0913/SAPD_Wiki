@@ -13619,129 +13619,308 @@ summary:focus-visible {
   font-size: 13px;
 }
 
-.user-object-actions {
+.user-annotation-drawer {
+  position: fixed;
+  top: 104px;
+  right: 0;
+  bottom: 22px;
+  z-index: 70;
+  width: min(420px, calc(100vw - 28px));
+  pointer-events: none;
+  transform: translateX(calc(100% - 40px));
+  transition: transform 230ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.user-annotation-drawer.is-open {
+  transform: translateX(-14px);
+}
+
+.annotation-drawer-tab {
+  position: absolute;
+  top: 128px;
+  left: 0;
+  width: 40px;
+  min-height: 108px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px 10px;
-  align-items: center;
-  min-width: 0;
-  padding: 6px 8px;
-  border: 1px solid #dbe5f0;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.82);
+  place-items: center;
+  padding: 10px 6px;
+  border: 1px solid #ccd8e7;
+  border-right: 0;
+  border-radius: 16px 0 0 16px;
+  background: rgba(241, 246, 252, 0.94);
+  box-shadow: 0 10px 28px rgba(56, 72, 92, 0.16);
+  color: #40546e;
+  font-size: 12px;
+  font-weight: 780;
+  cursor: pointer;
+  pointer-events: auto;
+  writing-mode: vertical-rl;
+  letter-spacing: 0;
 }
 
-.app-shell-integrated .capability-focus-head-slot .user-object-actions {
-  grid-area: actions;
-}
-
-.maintenance-user-action-slot,
-.guide-user-action-slot {
-  margin: 0 0 10px;
-}
-
-.guide-user-action-slot {
-  padding: 0 14px;
-}
-
-.modeling-language-guide-panel .guide-user-action-slot {
-  padding: 0 0 12px;
-}
-
-.user-action-status {
-  min-width: 0;
+.annotation-drawer-panel {
+  height: 100%;
+  margin-left: 40px;
   display: grid;
-  grid-template-columns: auto auto minmax(0, 1fr);
-  gap: 6px;
-  align-items: center;
-  color: #60718a;
-  font-size: 11px;
-}
-
-.user-action-status strong {
-  color: #33465f;
-  font-size: 11px;
-}
-
-.user-action-status small {
+  grid-template-rows: auto auto auto auto minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  padding: 16px;
   overflow: hidden;
-  color: #7c8ba0;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  border: 1px solid rgba(194, 207, 224, 0.9);
+  border-radius: 18px;
+  background: rgba(247, 250, 253, 0.96);
+  box-shadow: 0 22px 60px rgba(38, 52, 70, 0.18);
+  color: #293c54;
+  pointer-events: auto;
 }
 
-.user-action-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: #a7b5c8;
-}
-
-.user-object-actions.is-favorite .user-action-dot {
-  background: #1f7a55;
-}
-
-.user-object-actions.is-unavailable .user-action-dot {
-  background: #c9774e;
-}
-
-.user-action-buttons,
-.user-action-note-tools {
+.annotation-drawer-header {
   display: flex;
-  gap: 6px;
-  align-items: center;
-  justify-content: flex-end;
+  gap: 12px;
+  align-items: start;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(205, 217, 231, 0.78);
 }
 
-.user-action-buttons button,
-.user-action-note-tools button {
-  height: 28px;
-  padding: 0 10px;
-  border: 1px solid #cdd9e8;
-  border-radius: 999px;
-  background: #ffffff;
-  color: #30465f;
+.annotation-drawer-header h2 {
+  margin: 2px 0 0;
+  color: #22354c;
+  font-size: 16px;
+  line-height: 1.32;
+}
+
+.annotation-kicker {
+  color: #6b7c92;
   font-size: 11px;
+  font-weight: 760;
+}
+
+.annotation-drawer-close,
+.annotation-form-tools button,
+.annotation-note-footer button {
+  height: 30px;
+  border: 1px solid #cbd8e8;
+  border-radius: 999px;
+  background: rgba(252, 254, 255, 0.92);
+  color: #344b64;
+  font-size: 12px;
   font-weight: 760;
   cursor: pointer;
 }
 
-.user-object-actions.is-favorite .user-action-favorite {
-  border-color: #b9d8c8;
-  background: #edf8f2;
-  color: #1f6b4d;
+.annotation-drawer-close {
+  padding: 0 11px;
 }
 
-.user-action-buttons button:disabled,
-.user-action-note-tools button:disabled {
+.annotation-context-box {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid rgba(213, 224, 236, 0.92);
+  border-radius: 12px;
+  background: rgba(251, 253, 255, 0.76);
+}
+
+.annotation-context-box div {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 8px;
+  align-items: baseline;
+}
+
+.annotation-context-box span {
+  color: #75859a;
+  font-size: 11px;
+}
+
+.annotation-context-box strong {
+  min-width: 0;
+  color: #293d55;
+  font-size: 12px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.annotation-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.annotation-tag-row span,
+.annotation-status-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 3px 9px;
+  border: 1px solid #d3deeb;
+  border-radius: 999px;
+  background: rgba(238, 244, 250, 0.86);
+  color: #4e627a;
+  font-size: 11px;
+  font-weight: 740;
+}
+
+.annotation-create-form {
+  display: grid;
+  gap: 8px;
+}
+
+.annotation-create-form label,
+.annotation-section h3 {
+  margin: 0;
+  color: #334960;
+  font-size: 12px;
+  font-weight: 820;
+}
+
+.annotation-create-form textarea {
+  width: 100%;
+  min-height: 94px;
+  resize: vertical;
+  border: 1px solid #ccd9e8;
+  border-radius: 12px;
+  padding: 10px;
+  background: rgba(253, 254, 255, 0.92);
+  color: #263951;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.annotation-form-tools,
+.annotation-note-footer,
+.annotation-note-meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.annotation-form-tools span,
+.annotation-note-meta time {
+  color: #75859a;
+  font-size: 11px;
+}
+
+.annotation-form-tools button {
+  padding: 0 12px;
+  border-color: #9fc1e8;
+  background: #edf5ff;
+  color: #1f5d9b;
+}
+
+.annotation-form-tools button:disabled,
+.annotation-note-footer button:disabled,
+.annotation-note-footer select:disabled {
   cursor: not-allowed;
   opacity: 0.62;
 }
 
-.user-action-note-panel {
-  grid-column: 1 / -1;
+.annotation-section {
+  min-height: 0;
   display: grid;
-  gap: 6px;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 8px;
 }
 
-.user-action-note-input {
-  width: 100%;
-  min-height: 54px;
-  resize: vertical;
-  border: 1px solid #d7e1ed;
-  border-radius: 7px;
-  padding: 7px 8px;
-  background: #fbfdff;
-  color: #23364d;
-  font: inherit;
+.annotation-note-list {
+  min-height: 0;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.annotation-note-card,
+.annotation-legacy-note,
+.annotation-empty {
+  border: 1px solid rgba(211, 222, 235, 0.9);
+  border-radius: 12px;
+  background: rgba(253, 254, 255, 0.86);
+  padding: 10px;
+}
+
+.annotation-note-card p,
+.annotation-legacy-note p {
+  margin: 8px 0;
+  color: #263951;
   font-size: 12px;
-  line-height: 1.45;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
-.user-action-note-tools {
-  justify-content: space-between;
-  color: #7c8ba0;
+.annotation-note-footer select {
+  min-width: 104px;
+  height: 28px;
+  border: 1px solid #ccd9e8;
+  border-radius: 999px;
+  background: rgba(252, 254, 255, 0.94);
+  color: #344b64;
   font-size: 11px;
+  font-weight: 700;
+}
+
+.annotation-note-footer button {
+  padding: 0 10px;
+  color: #7a4a42;
+}
+
+.annotation-empty {
+  color: #738399;
+  font-size: 12px;
+}
+
+.annotation-legacy-note span {
+  color: #7c6a4e;
+  font-size: 11px;
+  font-weight: 780;
+}
+
+.annotation-status-pill.status-reviewing {
+  border-color: #bed4ed;
+  background: #edf5ff;
+  color: #315f8e;
+}
+
+.annotation-status-pill.status-waiting_confirm {
+  border-color: #e4d4a8;
+  background: #fbf6e7;
+  color: #7d642b;
+}
+
+.annotation-status-pill.status-confirmed,
+.annotation-status-pill.status-closed {
+  border-color: #bfd8cf;
+  background: #edf7f2;
+  color: #346a55;
+}
+
+.annotation-status-pill.status-deferred {
+  border-color: #d7dce4;
+  background: #f1f4f7;
+  color: #677384;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .user-annotation-drawer {
+    transition-duration: 60ms;
+  }
+}
+
+@media (max-width: 720px) {
+  .user-annotation-drawer {
+    top: 72px;
+    bottom: 12px;
+    width: calc(100vw - 18px);
+  }
+
+  .user-annotation-drawer.is-open {
+    transform: translateX(-8px);
+  }
 }
 
 .app-shell-integrated .capability-workbench-tools {

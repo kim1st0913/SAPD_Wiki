@@ -165,6 +165,26 @@ function waitForProcessExit(child, timeoutMs = 2500) {
   });
 }
 
+async function acquireChromeLaunchLock(timeoutMs = 120000) {
+  const lockDir = join(tmpdir(), "sapd-system-chrome-smoke.lock");
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    try {
+      mkdirSync(lockDir);
+      writeFileSync(
+        join(lockDir, "owner.json"),
+        JSON.stringify({ pid: process.pid, startedAt: new Date().toISOString() }, null, 2),
+      );
+      return () => {
+        rmSync(lockDir, { recursive: true, force: true });
+      };
+    } catch {
+      await sleep(500);
+    }
+  }
+  throw new Error("System Chrome smoke lock timeout. Do not run --allow-system-chrome checks in parallel.");
+}
+
 async function main() {
   const pageName = argValue("--page", "overview");
   const view = PAGE_TO_VIEW[pageName] || pageName;
@@ -194,30 +214,31 @@ async function main() {
     return;
   }
 
+  const releaseChromeLock = usesSystemGoogleChrome ? await acquireChromeLaunchLock() : () => {};
   const userDataDir = join(tmpdir(), `sapd-smoke-${Date.now()}`);
   mkdirSync(userDataDir, { recursive: true });
 
-  const chrome = spawn(chromePath, [
-    "--headless=new",
-    "--disable-gpu",
-    "--disable-background-networking",
-    "--disable-breakpad",
-    "--disable-component-update",
-    "--disable-crash-reporter",
-    "--disable-default-apps",
-    "--disable-extensions",
-    "--no-first-run",
-    "--no-default-browser-check",
-    "--metrics-recording-only",
-    `--user-data-dir=${userDataDir}`,
-    `--remote-debugging-port=${port}`,
-    baseUrl,
-  ], { stdio: "ignore" });
-
   const issues = [];
+  let chrome = null;
   let ws = null;
   let send = null;
   try {
+    chrome = spawn(chromePath, [
+      "--headless=new",
+      "--disable-gpu",
+      "--disable-background-networking",
+      "--disable-breakpad",
+      "--disable-component-update",
+      "--disable-crash-reporter",
+      "--disable-default-apps",
+      "--disable-extensions",
+      "--no-first-run",
+      "--no-default-browser-check",
+      "--metrics-recording-only",
+      `--user-data-dir=${userDataDir}`,
+      `--remote-debugging-port=${port}`,
+      baseUrl,
+    ], { stdio: "ignore" });
     const target = await waitForTarget(port);
     ws = new WebSocket(target.webSocketDebuggerUrl);
     await new Promise((resolve, reject) => {
@@ -700,19 +721,21 @@ async function main() {
     } catch {
       // Fall back to process termination below when the DevTools socket is already closed.
     }
-    const gracefullyExited = await waitForProcessExit(chrome, 2500);
-    if (!gracefullyExited) {
-      try {
-        chrome.kill("SIGTERM");
-      } catch {
-        // Process may have exited between the timeout and the signal.
-      }
-      const terminated = await waitForProcessExit(chrome, 1000);
-      if (!terminated) {
+    if (chrome) {
+      const gracefullyExited = await waitForProcessExit(chrome, 2500);
+      if (!gracefullyExited) {
         try {
-          chrome.kill("SIGKILL");
+          chrome.kill("SIGTERM");
         } catch {
-          // Nothing more to do if the process is already gone.
+          // Process may have exited between the timeout and the signal.
+        }
+        const terminated = await waitForProcessExit(chrome, 1000);
+        if (!terminated) {
+          try {
+            chrome.kill("SIGKILL");
+          } catch {
+            // Nothing more to do if the process is already gone.
+          }
         }
       }
     }
@@ -726,6 +749,7 @@ async function main() {
     } catch {
       // Temporary profile cleanup is best effort only.
     }
+    releaseChromeLock();
   }
 }
 

@@ -854,6 +854,26 @@
     };
   }
 
+  function hasLocalStandards(map) {
+    return Boolean(list(map?.standards?.frameworks).length || list(map?.standards?.controls).length);
+  }
+
+  function mergeProjectedStandards(localMap, projectedMap) {
+    if (hasLocalStandards(localMap) || !hasLocalStandards(projectedMap)) return localMap;
+    return {
+      ...localMap,
+      standards: projectedMap.standards,
+    };
+  }
+
+  function mergeFallbackStandardsIntoProjected(projectedMap, fallbackMap) {
+    if (!projectedMap || hasLocalStandards(projectedMap) || !hasLocalStandards(fallbackMap)) return projectedMap;
+    return {
+      ...projectedMap,
+      standards: fallbackMap.standards,
+    };
+  }
+
   function isReadyCapabilityProjection(capabilityProjection) {
     if (!capabilityProjection) return false;
     const dataState = text(capabilityProjection.data_state || capabilityProjection.dataState || "").trim();
@@ -1034,7 +1054,136 @@
     });
   }
 
-  function buildCapabilityWorkspaceViewModel({ capabilityWorkbench, capabilityWorkbenchViewModel, capabilityTree, capabilityProjection, management, selectedCapabilityId, search, relationshipFilters }) {
+  function standardFrameworkTables(framework) {
+    if (list(framework?.tabs).length) return list(framework.tabs);
+    return framework ? [framework] : [];
+  }
+
+  function standardRowRelatedFocusCodes(row = {}) {
+    return text(
+      row["关联安全能力/关注点"] ||
+        row.related_capability_focus ||
+        row.relatedCapabilityFocus ||
+        row.relatedFocus ||
+        row.related_focus ||
+        "",
+    )
+      .split(/[\s,，;；、]+/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  function standardControlFromRow(row = {}, framework = {}) {
+    const controlId = text(row["控制编号"] || row.originalControlId || row.original_control_id || row.controlId || row.code || "").trim();
+    const controlName = text(row["控制名称"] || row.controlName || row.control_name || row.title || row.name || "").trim();
+    const title = [controlId, controlName].filter(Boolean).join(" ") || controlName || controlId || PENDING_TEXT;
+    return {
+      id: `${framework.id || framework.frameworkCode || framework.title}:${controlId || title}`,
+      type: "standard_control",
+      code: controlId,
+      title,
+      name: controlName,
+      frameworkCode: framework.frameworkCode || framework.code || framework.id || "",
+      frameworkTitle: framework.title || framework.name || "",
+      originalControlId: controlId,
+    };
+  }
+
+  function canonicalStandardKey(value) {
+    const raw = text(value).trim().toLowerCase();
+    if (!raw) return "";
+    return raw.replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "");
+  }
+
+  function standardEntityKeys(standard = {}) {
+    const entity = typeof standard === "object" && standard ? standard : { title: standard };
+    return [entity.id, entity.code, entity.frameworkCode, entity.frameworkTitle, entity.title, entity.name]
+      .flatMap((value) => {
+        const raw = text(value).trim();
+        const canonical = canonicalStandardKey(raw);
+        return [raw.toLowerCase(), canonical].filter(Boolean);
+      })
+      .filter(Boolean);
+  }
+
+  function standardRowFrameworkKeys(row = {}) {
+    const keys = list(row.standards || row.frameworks || row.standardFrameworks).flatMap(standardEntityKeys);
+    keys.push(...standardEntityKeys(row.standard || row.framework || {}));
+    for (const control of list(row.controls)) {
+      keys.push(canonicalStandardKey(control.frameworkCode), canonicalStandardKey(control.frameworkTitle));
+    }
+    return new Set(keys.filter(Boolean));
+  }
+
+  function standardRowsShareFramework(left = {}, right = {}) {
+    const leftKeys = standardRowFrameworkKeys(left);
+    if (!leftKeys.size) return false;
+    for (const key of standardRowFrameworkKeys(right)) {
+      if (leftKeys.has(key)) return true;
+    }
+    return false;
+  }
+
+  function standardRowFocusId(row = {}) {
+    return text(row.focus?.id || row.focusId || row.focus_id || "").trim();
+  }
+
+  function mergeSupplementalStandardRows(primaryRows, supplementalRows) {
+    const rows = list(primaryRows).map((row) => ({
+      ...row,
+      standards: list(row.standards),
+      controls: list(row.controls),
+    }));
+    for (const supplement of list(supplementalRows)) {
+      const focusId = standardRowFocusId(supplement);
+      const match = rows.find((row) => standardRowFocusId(row) === focusId && standardRowsShareFramework(row, supplement));
+      if (!match) {
+        rows.push(supplement);
+        continue;
+      }
+      match.standards = uniqueBy([...list(match.standards), ...list(supplement.standards)], (standard) => canonicalStandardKey(standard.id || standard.code || standard.title || standard.name));
+      match.controls = uniqueBy([...list(match.controls), ...list(supplement.controls)], (control) => `${canonicalStandardKey(control.frameworkCode || control.frameworkTitle)}:${text(control.originalControlId || control.code || control.title).trim()}`);
+      match.dataSource = [match.dataSource, supplement.dataSource].filter(Boolean).join("+");
+    }
+    return rows;
+  }
+
+  function buildCapabilityStandardRowsFromStandards(standards, focuses) {
+    const loadedFrameworks = Object.values(standards?.loadedFrameworks || standards?.loaded_frameworks || {});
+    if (!loadedFrameworks.length) return [];
+    return list(focuses).flatMap((focus) => {
+      const focusEntity = workbenchEntity(focus, "未命名关注点");
+      const focusCode = text(focus?.code).trim();
+      if (!focusCode) return [];
+      return loadedFrameworks
+        .map((framework) => {
+          const controls = uniqueBy(
+            standardFrameworkTables(framework)
+              .flatMap((table) => list(table.rows))
+              .filter((row) => standardRowRelatedFocusCodes(row).includes(focusCode))
+              .map((row) => standardControlFromRow(row, framework)),
+            (control) => `${control.frameworkCode}:${control.originalControlId || control.title}`,
+          );
+          if (!controls.length) return null;
+          const standard = {
+            id: framework.id || framework.frameworkCode || framework.title || "",
+            type: "standard_framework",
+            code: framework.frameworkCode || framework.code || framework.id || "",
+            title: framework.title || framework.name || framework.frameworkCode || framework.id || "标准 / 框架",
+          };
+          return {
+            id: `${focus.id}:${standard.id || standard.code}:standard-package`,
+            focus: focusEntity,
+            standards: [standard],
+            controls,
+            dataSource: "standards-index",
+          };
+        })
+        .filter(Boolean);
+    });
+  }
+
+  function buildCapabilityWorkspaceViewModel({ capabilityWorkbench, capabilityWorkbenchViewModel, capabilityTree, capabilityProjection, management, standards, selectedCapabilityId, search, relationshipFilters }) {
     const dataSource = workbenchDataSource({
       workbench: capabilityWorkbench,
       workbenchViewModel: capabilityWorkbenchViewModel,
@@ -1062,11 +1211,13 @@
     const workbenchTechnicalRows = buildCapabilityTechnicalRowsFromWorkbench(capabilityWorkbench, visibleFocuses);
     const workbenchManagementRows = buildCapabilityManagementRowsFromWorkbench(capabilityWorkbench, visibleFocuses);
     const workbenchStandardRows = buildCapabilityStandardRowsFromWorkbench(capabilityWorkbench, visibleFocuses);
+    const standardsPackageRows = buildCapabilityStandardRowsFromStandards(standards, visibleFocuses);
     const isFocus = selectedDetail?.type === "capability_focus";
     const canUseObjectProjection = capabilityProjectionMatchesSelected(capabilityProjection, selectedDetail);
     const projectedTechnicalRows = canUseObjectProjection ? list(capabilityProjection?.technicalMappingRows || capabilityProjection?.technical_mapping_rows) : [];
     const projectedManagementRows = canUseObjectProjection ? list(capabilityProjection?.managementMappingRows || capabilityProjection?.management_mapping_rows) : [];
     const projectedStandardRows = canUseObjectProjection ? list(capabilityProjection?.standardMappingRows || capabilityProjection?.standard_mapping_rows) : [];
+    const selectedProjectedStandardRows = projectedStandardRows.filter((row) => visibleFocusIdSet.has(row.focus?.id));
     const technicalMappingRows = workbenchTechnicalRows.length
       ? workbenchTechnicalRows
       : projectedTechnicalRows.length
@@ -1077,10 +1228,12 @@
       : projectedManagementRows.length
       ? projectedManagementRows.filter((row) => visibleFocusIdSet.has(row.focus?.id))
       : buildManagementMappingRows({ focuses: visibleFocuses });
-    const standardMappingRows = workbenchStandardRows.length
-      ? workbenchStandardRows
-      : projectedStandardRows.length
-      ? projectedStandardRows.filter((row) => visibleFocusIdSet.has(row.focus?.id))
+    const workbenchAndLoadedStandardRows = workbenchStandardRows.length ? mergeSupplementalStandardRows(workbenchStandardRows, standardsPackageRows) : [];
+    const projectedAndLoadedStandardRows = mergeSupplementalStandardRows(selectedProjectedStandardRows, standardsPackageRows);
+    const standardMappingRows = workbenchAndLoadedStandardRows.length
+      ? workbenchAndLoadedStandardRows
+      : projectedAndLoadedStandardRows.length
+      ? projectedAndLoadedStandardRows
       : [];
     const focusOverview = buildFocusOverview({ capabilityTree, focuses: visibleFocuses, selectedDetail, technicalRows: technicalMappingRows, managementRows: managementMappingRows });
     const selectedFocusRow = rows.find((row) => row.focus.id === selectedId) || rows[0] || null;
@@ -1100,17 +1253,17 @@
     const projectedLocalRelationMap = projectedFocusId ? projectedLocalRelationMapFor(capabilityProjection, projectedFocusId) : null;
     const usingWorkbenchMappingRows = Boolean(workbenchTechnicalRows.length || workbenchManagementRows.length);
     const usingProjectedLocalRelationMap = Boolean(!usingWorkbenchMappingRows && projectedLocalRelationMap);
-    const localRelationMap =
-      usingProjectedLocalRelationMap
-        ? projectedLocalRelationMap
-        : buildCapabilityLocalRelationMap({
-            selectedDetail,
-            detailRawProcesses,
-            detailTechnicalRows,
-            detailManagementRows,
-            detailStandardRows,
-            detailSourceEvidence,
-          });
+    const fallbackLocalRelationMap = buildCapabilityLocalRelationMap({
+      selectedDetail,
+      detailRawProcesses,
+      detailTechnicalRows,
+      detailManagementRows,
+      detailStandardRows,
+      detailSourceEvidence,
+    });
+    const localRelationMap = usingProjectedLocalRelationMap
+      ? mergeFallbackStandardsIntoProjected(projectedLocalRelationMap, fallbackLocalRelationMap)
+      : mergeProjectedStandards(fallbackLocalRelationMap, projectedLocalRelationMap);
 
     return {
       navigationTree,

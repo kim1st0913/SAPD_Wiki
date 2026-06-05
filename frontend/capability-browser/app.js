@@ -57,6 +57,7 @@ const state = {
   capabilityProjectionRequestSeq: 0,
   activeCapabilityProjectionRequest: null,
   capabilityProjectionRequests: new Map(),
+  annotationContextLoads: new Map(),
   userFavorites: [],
   userFavoritesByRef: new Map(),
   userFavoritesLoaded: false,
@@ -68,8 +69,18 @@ const state = {
   activePageAnnotationTarget: null,
   userAnnotationDrawerOpen: false,
   userAnnotationDraft: "",
+  annotationDraftTarget: null,
+  userAnnotationExpandedNoteIds: new Set(),
+  userAnnotationEditingNoteId: "",
+  userAnnotationEditDraft: "",
+  pendingAnnotationAction: null,
+  pendingAnnotationTargetLabel: "",
+  annotationContextMenu: null,
   userWriteStatus: { state: "idle", savingTargetRef: "" },
   activeUserNoteTargetRef: "",
+  annotationMarkerFrame: 0,
+  annotationMarkerTimers: [],
+  annotationSurfaceObserver: null,
   search: "",
   pageHeaderSummary: [],
   pageHeaderNote: "",
@@ -86,6 +97,7 @@ const MODELING_LANGUAGE_GUIDE_TABS = [
   { id: "overview", label: "ArchiMate® 3.2 - 企业架构建模标准" },
   { id: "elements", label: "SAPD 元素图例" },
 ];
+window.__sapdAnnotationAnchorVersion = "v2-contextual";
 const ARCHIMATE_POSTER_ASSET_BASE = "./public/data/guides/archimate-poster";
 const ARCHIMATE_POSTER_PDF_PATH = `${ARCHIMATE_POSTER_ASSET_BASE}/archimate-poster-v3.2-zh.pdf`;
 const ARCHIMATE_POSTER_OVERVIEW_IMAGE = `${ARCHIMATE_POSTER_ASSET_BASE}/archimate-poster-overview.jpg`;
@@ -204,6 +216,12 @@ const escapeHtml = (value) =>
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
+
+const annotationValueAttrsForHtml = (value) => {
+  const raw = text(value).trim();
+  if (!raw || raw === "/" || raw === "暂无" || raw === "待补充") return "";
+  return ` data-annotation-value="true" data-copy-text="${escapeHtml(raw)}" title="${escapeHtml(raw)}" data-annotation-tooltip="${escapeHtml(raw)}"`;
+};
 
 const titleOf = (value, fallback = "未命名") => {
   if (!value) return fallback;
@@ -633,9 +651,361 @@ function capabilityUserObjectLabel(type) {
   return labels[type] || "能力对象";
 }
 
-function buildBaseUserTarget({ objectType, objectLabel, id, code, title }) {
+function hashText(value) {
+  let hash = 5381;
+  for (const char of text(value)) hash = ((hash << 5) + hash) ^ char.charCodeAt(0);
+  return Math.abs(hash >>> 0).toString(36);
+}
+
+function encodeAnchorPart(value) {
+  return encodeURIComponent(text(value).trim() || "_");
+}
+
+const ANNOTATION_VALUE_SELECTOR = [
+  '[data-annotation-value="true"]',
+  "[data-copy-text]",
+  ".relation-chip",
+  ".standard-tooltip-chip",
+  ".standard-framework-name",
+  ".management-chip",
+  ".taxonomy-chip",
+].join(", ");
+
+const ANNOTATION_CELL_VALUE_SELECTOR = "td";
+const ANNOTATION_TARGET_REF_SELECTOR = "[data-annotation-target-ref]";
+
+const ANNOTATION_CONTEXT_SELECTOR = [
+  ANNOTATION_VALUE_SELECTOR,
+  ANNOTATION_TARGET_REF_SELECTOR,
+  ANNOTATION_CELL_VALUE_SELECTOR,
+  "tr",
+  "[data-capability-id]",
+  "[data-maintenance-id]",
+].join(", ");
+
+function annotationValueText(node) {
+  return text(node?.dataset?.copyText || node?.dataset?.annotationValueText || node?.textContent).trim();
+}
+
+function annotationTargetAttrsForHtml(target, { title = "" } = {}) {
+  if (!target?.targetRef) return "";
+  const targetTitle = text(title || target.title || target.code || target.id || target.targetRef).trim();
+  return [
+    `data-annotation-target-ref="${escapeHtml(target.targetRef)}"`,
+    `data-annotation-anchor-type="${escapeHtml(target.anchorType || "object")}"`,
+    `data-annotation-object-type="${escapeHtml(target.objectType || "knowledge_object")}"`,
+    `data-annotation-object-label="${escapeHtml(target.objectLabel || "业务对象")}"`,
+    `data-annotation-object-id="${escapeHtml(target.id || "")}"`,
+    `data-annotation-object-code="${escapeHtml(target.code || "")}"`,
+    `data-annotation-title="${escapeHtml(targetTitle)}"`,
+    `data-annotation-tooltip="${escapeHtml(targetTitle)}"`,
+    `title="${escapeHtml(targetTitle)}"`,
+  ].join(" ");
+}
+
+function annotationCellValueText(node) {
+  const value = text(node?.dataset?.copyText || node?.textContent)
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!value || value === "/" || value === "暂无" || value === "待补充") return "";
+  return value;
+}
+
+function annotationCellValueNode(element) {
+  const cell = element?.closest?.(ANNOTATION_CELL_VALUE_SELECTOR);
+  if (!cell || cell.closest?.("[data-annotation-drawer], [data-annotation-context-menu]")) return null;
+  if (!cell.closest?.("table")) return null;
+  if (element.closest?.(ANNOTATION_VALUE_SELECTOR)) return null;
+  if (cell.querySelector?.(ANNOTATION_VALUE_SELECTOR)) return null;
+  return annotationCellValueText(cell) ? cell : null;
+}
+
+function normalizeAnnotationLookupText(value) {
+  return text(value)
+    .replace(/\u00a0/g, " ")
+    .replace(/[｜|]/g, " ")
+    .replace(/[：:]/g, " ")
+    .replace(/[，,。；;、]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+function compactAnnotationLookupText(value) {
+  return normalizeAnnotationLookupText(value).replace(/\s+/g, "");
+}
+
+function uniqueAnnotationTextVariants(values) {
+  const seen = new Set();
+  const variants = [];
+  for (const value of values.flatMap((item) => (Array.isArray(item) ? item : [item]))) {
+    const normalized = normalizeAnnotationLookupText(value);
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    variants.push(normalized);
+  }
+  return variants;
+}
+
+function noteLookupTextVariants(note = {}) {
+  const objectTitle = text(note.object_title).trim();
+  const body = text(note.body).trim();
+  const values = [objectTitle];
+  objectTitle
+    .split(/[｜|]/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .forEach((item) => values.push(item));
+  values.push(
+    objectTitle
+      .replace(/^(选中值|表格行|标准控制项|安全技术服务|安全技术模块|安全技术措施|能力|关注点|页面)\s*/u, "")
+      .trim(),
+  );
+  if (body && body.length <= 80) values.push(body);
+  return uniqueAnnotationTextVariants(values);
+}
+
+function annotationElementLookupTexts(node) {
+  if (!node) return [];
+  return uniqueAnnotationTextVariants([
+    node.dataset?.annotationTitle,
+    node.dataset?.annotationTooltip,
+    node.dataset?.copyText,
+    node.dataset?.annotationValueText,
+    node.getAttribute?.("title"),
+    node.getAttribute?.("aria-label"),
+    annotationValueText(node),
+    annotationCellValueText(node),
+    node.querySelector?.("strong")?.textContent,
+    node.textContent,
+  ]);
+}
+
+function annotationTextMatchScore(node, note) {
+  const targetRef = text(note?.target_ref).trim();
+  let score = node.dataset?.annotationTargetRef && text(node.dataset.annotationTargetRef).trim() === targetRef ? 220 : 0;
+  const noteTexts = noteLookupTextVariants(note);
+  const nodeTexts = annotationElementLookupTexts(node);
+  if (noteTexts.length && nodeTexts.length) {
+    for (const noteText of noteTexts) {
+      const compactNote = compactAnnotationLookupText(noteText);
+      if (!compactNote) continue;
+      for (const nodeText of nodeTexts) {
+        const compactNode = compactAnnotationLookupText(nodeText);
+        if (!compactNode) continue;
+        if (compactNode === compactNote) score = Math.max(score, 130);
+        else if (compactNode.includes(compactNote)) score = Math.max(score, compactNote.length >= 3 ? 92 : 54);
+        else if (compactNote.includes(compactNode) && compactNode.length >= 3) score = Math.max(score, 76);
+      }
+    }
+  }
+  if (!score) return 0;
+  const anchorType = normalizedAnnotationAnchorType(note.anchor_type || annotationAnchorTypeFromTargetRef(note.target_ref));
+  if (score && anchorType === "field" && node.matches?.(ANNOTATION_VALUE_SELECTOR)) score += 12;
+  if (score && anchorType === "row" && node.matches?.("tr, [data-maintenance-id], [data-capability-id]")) score += 12;
+  return score;
+}
+
+function visibleAnnotationCandidates(selector, includeHidden = false) {
+  return Array.from(document.querySelectorAll(selector)).filter((node) => {
+    if (node.closest?.("[data-annotation-drawer], [data-annotation-context-menu]")) return false;
+    return includeHidden || isAnnotationAnchorVisible(node);
+  });
+}
+
+function bestAnnotationCandidate(candidates, note, minimumScore = 58) {
+  let best = null;
+  let bestScore = 0;
+  for (const candidate of candidates) {
+    const score = annotationTextMatchScore(candidate, note);
+    if (score > bestScore) {
+      best = candidate;
+      bestScore = score;
+    }
+  }
+  return bestScore >= minimumScore ? best : null;
+}
+
+function decodeLegacyAnchorPart(value) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function legacyAnnotationTargetMeta(targetRef = "") {
+  const parts = text(targetRef).trim().split(":");
+  if (parts[0] !== "base" || parts[2] !== "v2") return null;
+  const decoded = parts.slice(3).map(decodeLegacyAnchorPart);
+  const view = decoded[1] || "";
+  const contextEndByView = {
+    capabilities: 4,
+    maintenance: 6,
+    content: 5,
+    "dev-lifecycle": 3,
+    "data-lifecycle": 3,
+  };
+  const contextEnd = contextEndByView[view] || 2;
+  return {
+    objectType: parts[1] || "",
+    route: decoded[0] || "",
+    view,
+    context: decoded.slice(0, contextEnd),
+    rowHash: decoded[contextEnd] || "",
+    coordinate: decoded[contextEnd + 1] || "",
+    valueHash: decoded[contextEnd + 2] || "",
+  };
+}
+
+function annotationTargetContextMatchesCurrent(note = {}) {
+  const meta = legacyAnnotationTargetMeta(note.target_ref);
+  if (!meta) return true;
+  const current = annotationContextId().split(":").map(decodeLegacyAnchorPart);
+  return meta.context.every((part, index) => !part || part === "_" || current[index] === part);
+}
+
+function candidateFromLegacyCoordinate(note, { includeHidden = false } = {}) {
+  const meta = legacyAnnotationTargetMeta(note?.target_ref);
+  if (meta && !annotationTargetContextMatchesCurrent(note)) return null;
+  const match = text(meta?.coordinate).match(/^t(\d+)r(\d+)c(\d+)v(.+)$/);
+  if (!match) return null;
+  const anchorType = normalizedAnnotationAnchorType(note?.anchor_type || annotationAnchorTypeFromTargetRef(note?.target_ref));
+  const [, tableIndexText, rowIndexText, cellIndexText, valueIndexText] = match;
+  const tableIndex = Number(tableIndexText);
+  const rowIndex = Number(rowIndexText);
+  const cellIndex = Number(cellIndexText);
+  const visibleTables = visibleAnnotationCandidates("table", includeHidden);
+  const allTables = Array.from(document.querySelectorAll("table")).filter((node) => !node.closest?.("[data-annotation-drawer], [data-annotation-context-menu]"));
+  const tables = [...new Set([visibleTables[tableIndex], allTables[tableIndex], ...visibleTables].filter(Boolean))];
+  const candidates = [];
+  for (const table of tables) {
+    if (!includeHidden && !isAnnotationAnchorVisible(table)) continue;
+    const rows = Array.from(table.querySelectorAll("tbody tr, thead tr, tfoot tr, tr"));
+    const row = rows[rowIndex];
+    if (!row || (!includeHidden && !isAnnotationAnchorVisible(row))) continue;
+    const cell = row.children[cellIndex];
+    const valueNodes = cell ? Array.from(cell.querySelectorAll(ANNOTATION_VALUE_SELECTOR)) : [];
+    if (anchorType === "field") {
+      if (valueIndexText === "cell" && cell && !valueNodes.length) candidates.push(cell);
+      else {
+        const valueIndex = Number(valueIndexText);
+        if (Number.isFinite(valueIndex) && valueNodes[valueIndex]) candidates.push(valueNodes[valueIndex]);
+        candidates.push(...valueNodes);
+        if (cell && !valueNodes.length) candidates.push(cell);
+      }
+      continue;
+    }
+    if (valueIndexText === "cell" && cell) candidates.push(cell);
+    else {
+      const valueIndex = Number(valueIndexText);
+      if (Number.isFinite(valueIndex) && valueNodes[valueIndex]) candidates.push(valueNodes[valueIndex]);
+      if (cell) candidates.push(...valueNodes, cell);
+    }
+    candidates.push(row);
+  }
+  return bestAnnotationCandidate(candidates, note, 42);
+}
+
+function findAnnotationAnchorElementByNoteText(note, { includeHidden = false } = {}) {
+  const targetRef = text(note?.target_ref).trim();
+  const anchorType = normalizedAnnotationAnchorType(note?.anchor_type || annotationAnchorTypeFromTargetRef(note?.target_ref));
+  const selectors =
+    targetRef.startsWith("base:capability:")
+      ? ["[data-capability-id]", "#capabilityFocusHeader", "#tree"]
+      : anchorType === "row"
+      ? ["[data-annotation-target-ref]", "[data-maintenance-id]", "[data-capability-id]", "tr"]
+      : [ANNOTATION_VALUE_SELECTOR, ANNOTATION_CELL_VALUE_SELECTOR, "[data-annotation-target-ref]"];
+  const candidates = selectors.flatMap((selector) => visibleAnnotationCandidates(selector, includeHidden));
+  return bestAnnotationCandidate(candidates, note);
+}
+
+function capabilityItemByCodeOrTitle(value) {
+  const target = compactAnnotationLookupText(value);
+  if (!target) return null;
+  let fuzzy = null;
+  const stack = [...list(state.capability?.categories)];
+  while (stack.length) {
+    const item = stack.shift();
+    const values = [item?.id, item?.code, item?.title, codeTitle(item || {})].map(compactAnnotationLookupText);
+    if (values.some((candidate) => candidate && candidate === target)) return item;
+    if (!fuzzy && values.some((candidate) => candidate && candidate.length >= target.length && candidate.includes(target))) fuzzy = item;
+    stack.push(...list(item?.domains), ...list(item?.capabilities), ...list(item?.focuses));
+  }
+  return fuzzy;
+}
+
+function annotationContextId() {
+  const parts = [state.activeRoute || "/", state.activeView || ""];
+  if (state.activeView === "capabilities") {
+    parts.push(state.selectedCapabilityId || "", state.activeCapabilityRelationTab || "");
+  } else if (state.activeView === "maintenance") {
+    parts.push(state.activeMaintenancePage || "", state.activeReferenceTab || "", state.activeStandardFramework || "", state.activeStandardTableId || "");
+  } else if (state.activeView === "content") {
+    parts.push(state.activeContentPage || "", state.selectedContentId || "", String(state.selectedContentSlideIndex || 0));
+  } else if (state.activeView === "dev-lifecycle") {
+    parts.push(state.selectedDevProcessId || "");
+  } else if (state.activeView === "data-lifecycle") {
+    parts.push(state.selectedDataProcessId || "");
+  }
+  return parts.map(encodeAnchorPart).join(":");
+}
+
+function annotationRowLabelFromElement(element) {
+  const row = element?.closest?.("tr, [data-capability-id], [data-maintenance-id]");
+  if (!row) return "";
+  return text(row.querySelector?.("strong")?.textContent || row.cells?.[1]?.textContent || row.textContent).trim();
+}
+
+function isAnnotationAnchorVisible(element) {
+  if (!element || !element.isConnected) return false;
+  const rect = element.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return false;
+  const style = window.getComputedStyle(element);
+  return style.display !== "none" && style.visibility !== "hidden" && Number(style.opacity || 1) !== 0;
+}
+
+function annotationElementCoordinate(element) {
+  const node = element?.closest?.(ANNOTATION_CONTEXT_SELECTOR);
+  if (!node) return "n0";
+  const table = node.closest?.("table");
+  if (table) {
+    const nodeIsCell = node.matches?.(ANNOTATION_CELL_VALUE_SELECTOR);
+    const row = node.closest("tr");
+    const cell = nodeIsCell ? node : node.closest("td, th");
+    const tableIndex = Array.from(document.querySelectorAll("table")).indexOf(table);
+    const rowIndex = row ? Array.from(table.querySelectorAll("tbody tr, thead tr, tfoot tr, tr")).indexOf(row) : -1;
+    const cellIndex = cell && row ? Array.from(row.children).indexOf(cell) : -1;
+    const valueIndex =
+      cell && node !== row
+        ? nodeIsCell
+          ? "cell"
+          : Math.max(0, Array.from(cell.querySelectorAll(ANNOTATION_VALUE_SELECTOR)).indexOf(node))
+        : -1;
+    return `t${Math.max(0, tableIndex)}r${Math.max(0, rowIndex)}c${Math.max(0, cellIndex)}v${valueIndex === -1 ? 0 : valueIndex}`;
+  }
+  if (node.dataset?.capabilityId) {
+    return `cap${Math.max(0, Array.from(document.querySelectorAll("[data-capability-id]")).indexOf(node))}`;
+  }
+  if (node.dataset?.maintenanceId) {
+    return `mnt${Math.max(0, Array.from(document.querySelectorAll("[data-maintenance-id]")).indexOf(node))}`;
+  }
+  return `n${Math.max(0, Array.from(document.querySelectorAll(ANNOTATION_VALUE_SELECTOR)).indexOf(node))}`;
+}
+
+function fieldAnnotationId(value, element) {
+  return `v2:${annotationContextId()}:${hashText(annotationRowLabelFromElement(element))}:${annotationElementCoordinate(element)}:${hashText(value)}`;
+}
+
+function rowAnnotationId(element, fallback = "") {
+  const rowLabel = annotationRowLabelFromElement(element) || fallback;
+  return `v2:${annotationContextId()}:${hashText(rowLabel)}:${annotationElementCoordinate(element)}`;
+}
+
+function buildBaseUserTarget({ objectType, objectLabel, id, code, title, anchorType = "object" }) {
   const normalizedType = text(objectType || "object").trim();
-  const stableKey = text(code || id).trim();
+  const stableKey =
+    normalizedType === "field_value" || normalizedType === "table_row" ? text(id || code).trim() : text(code || id).trim();
   if (!normalizedType || !stableKey) return null;
   return {
     targetRef: `base:${normalizedType}:${stableKey}`,
@@ -644,6 +1014,7 @@ function buildBaseUserTarget({ objectType, objectLabel, id, code, title }) {
     id: id || stableKey,
     code: text(code),
     title: text(title || code || id || stableKey),
+    anchorType,
   };
 }
 
@@ -744,6 +1115,60 @@ function maintenanceUserTarget(viewModel) {
   });
 }
 
+function annotationTargetFromDataset(node) {
+  const targetRef = text(node?.dataset?.annotationTargetRef).trim();
+  if (!targetRef) return null;
+  const title =
+    text(node.dataset.annotationTitle || node.dataset.annotationTooltip || node.getAttribute("title")).trim() ||
+    text(node.querySelector?.("strong")?.textContent || node.textContent).trim() ||
+    targetRef;
+  return {
+    targetRef,
+    objectType: text(node.dataset.annotationObjectType || "knowledge_object").trim(),
+    objectLabel: text(node.dataset.annotationObjectLabel || "业务对象").trim(),
+    id: text(node.dataset.annotationObjectId || targetRef).trim(),
+    code: text(node.dataset.annotationObjectCode || "").trim(),
+    title,
+    anchorType: text(node.dataset.annotationAnchorType || "object").trim(),
+  };
+}
+
+function applyAnnotationTargetDataset(node, target, { title = "" } = {}) {
+  if (!node || !target?.targetRef) return;
+  const targetTitle = text(title || target.title || target.code || target.id || target.targetRef).trim();
+  node.dataset.annotationTargetRef = target.targetRef;
+  node.dataset.annotationAnchorType = target.anchorType || "object";
+  node.dataset.annotationObjectType = target.objectType || "knowledge_object";
+  node.dataset.annotationObjectLabel = target.objectLabel || "业务对象";
+  node.dataset.annotationObjectId = target.id || "";
+  node.dataset.annotationObjectCode = target.code || "";
+  node.dataset.annotationTitle = targetTitle;
+  node.dataset.annotationTooltip = targetTitle;
+  if (targetTitle && !node.getAttribute("title")) node.setAttribute("title", targetTitle);
+}
+
+function hydrateMaintenanceAnnotationTargets(viewModel) {
+  const root = $("sourceList");
+  if (!root || !viewModel?.section) return;
+  const rows = list(viewModel.rows);
+  if (!rows.length) return;
+  const rowById = new Map(rows.map((row) => [text(row.id).trim(), row]).filter(([id]) => id));
+  root.querySelectorAll("[data-maintenance-id]").forEach((node) => {
+    const id = text(node.dataset.maintenanceId).trim();
+    const row = rowById.get(id);
+    if (!row) return;
+    const target = buildBaseUserTarget({
+      objectType: maintenanceUserObjectType(viewModel.section, row),
+      objectLabel: maintenanceUserObjectLabel(viewModel.section, row),
+      id: row.id,
+      code: maintenanceRowCode(row, viewModel.section),
+      title: maintenanceRowTitle(row, viewModel.section),
+      anchorType: "object",
+    });
+    applyAnnotationTargetDataset(node, target, { title: maintenanceRowTitle(row, viewModel.section) });
+  });
+}
+
 function contentUserTarget(selected, routeInfo = {}) {
   if (selected) {
     return buildBaseUserTarget({
@@ -765,6 +1190,20 @@ function contentUserTarget(selected, routeInfo = {}) {
     });
   }
   return null;
+}
+
+function contentSlideUserTarget(row, slide, slideIndex = 0) {
+  if (!row || !slide) return null;
+  const pageNumber = Number(slide.pageNumber || slide.slide_number || slideIndex + 1) || slideIndex + 1;
+  const guideTitle = text(row.title || row.route || row.id || "安全指南").trim();
+  return buildBaseUserTarget({
+    objectType: "security_guide_slide",
+    objectLabel: "幻灯片页",
+    id: `${row.id || row.route || state.activeRoute}:slide:${pageNumber}`,
+    code: `${row.id || row.route || state.activeRoute}#${pageNumber}`,
+    title: `${guideTitle} 第 ${pageNumber} 页`,
+    anchorType: "object",
+  });
 }
 
 function renderActiveUserActionScope() {
@@ -799,6 +1238,731 @@ function currentPageAnnotationTarget(pageTitleOverride = "") {
   };
 }
 
+function annotationTargetFromElement(element) {
+  if (!element || element.closest?.("[data-annotation-drawer], [data-annotation-context-menu], input, textarea, select")) return null;
+  const valueNode = element.closest?.(ANNOTATION_VALUE_SELECTOR);
+  if (valueNode) {
+    const value = annotationValueText(valueNode);
+    if (value) {
+      return buildBaseUserTarget({
+        objectType: "field_value",
+        objectLabel: "选中值",
+        id: fieldAnnotationId(value, valueNode),
+        code: value,
+        title: value,
+        anchorType: "field",
+      });
+    }
+  }
+  const cellNode = annotationCellValueNode(element);
+  if (cellNode) {
+    const value = annotationCellValueText(cellNode);
+    if (value) {
+      return buildBaseUserTarget({
+        objectType: "field_value",
+        objectLabel: "选中值",
+        id: fieldAnnotationId(value, cellNode),
+        code: value,
+        title: value,
+        anchorType: "field",
+      });
+    }
+  }
+  const stableTargetNode = element.closest?.(ANNOTATION_TARGET_REF_SELECTOR);
+  const stableTarget = annotationTargetFromDataset(stableTargetNode);
+  if (stableTarget) return stableTarget;
+  const capabilityRow = element.closest?.("[data-capability-id]");
+  if (capabilityRow) {
+    const id = capabilityRow.dataset.capabilityId;
+    const item = capabilityItemById(id);
+    const objectType = item?.type || capabilityItemTypeById(id) || "capability_object";
+    return buildBaseUserTarget({
+      objectType,
+      objectLabel: capabilityUserObjectLabel(objectType),
+      id,
+      code: item?.code || id,
+      title: codeTitle(item || { id, code: id }, text(capabilityRow.textContent).trim() || id),
+      anchorType: "row",
+    });
+  }
+  const maintenanceRow = element.closest?.("[data-maintenance-id]");
+  if (maintenanceRow) {
+    const id = maintenanceRow.dataset.maintenanceId;
+    const title = text(maintenanceRow.querySelector("strong")?.textContent || maintenanceRow.textContent).trim();
+    return buildBaseUserTarget({
+      objectType: "table_row",
+      objectLabel: "表格行",
+      id: rowAnnotationId(maintenanceRow, id),
+      code: id,
+      title: title || id,
+      anchorType: "row",
+    });
+  }
+  const tableRow = element.closest?.("tr");
+  if (tableRow && tableRow.closest?.("table")) {
+    const title = text(tableRow.querySelector("strong")?.textContent || tableRow.cells?.[1]?.textContent || tableRow.textContent).trim();
+    if (title) {
+      return buildBaseUserTarget({
+        objectType: "table_row",
+        objectLabel: "表格行",
+        id: rowAnnotationId(tableRow, title),
+        code: title,
+        title,
+        anchorType: "row",
+      });
+    }
+  }
+  return null;
+}
+
+function targetRefForAnnotationTarget(target) {
+  return text(target?.targetRef).trim();
+}
+
+function clearAnnotationAnchorState() {
+  document
+    .querySelectorAll(
+      [
+        "[data-user-note-anchor-marked='true']",
+        "[data-user-note-anchor-active='true']",
+        "[data-user-note-anchor-cell-marked='true']",
+        "[data-user-note-anchor-cell-active='true']",
+        "[data-user-note-anchor-row-marked='true']",
+        "[data-user-note-anchor-row-active='true']",
+      ].join(","),
+    )
+    .forEach((node) => {
+      node.removeAttribute("data-user-note-anchor-marked");
+      node.removeAttribute("data-user-note-anchor-active");
+      node.removeAttribute("data-user-note-anchor-cell-marked");
+      node.removeAttribute("data-user-note-anchor-cell-active");
+      node.removeAttribute("data-user-note-anchor-row-marked");
+      node.removeAttribute("data-user-note-anchor-row-active");
+      node.removeAttribute("data-user-note-count");
+    });
+}
+
+function normalizedAnnotationAnchorType(anchorType = "") {
+  const type = text(anchorType).trim();
+  if (type === "value") return "field";
+  if (["field", "row", "cell", "column", "area", "object", "relation"].includes(type)) return type;
+  return "";
+}
+
+function annotationAnchorTypeFromTargetRef(targetRef = "") {
+  const ref = text(targetRef).trim();
+  if (ref.startsWith("base:field_value:")) return "field";
+  if (ref.startsWith("base:table_row:")) return "row";
+  return "";
+}
+
+function canonicalAnnotationRoute(route = "") {
+  const normalized = text(route).trim() || "/";
+  const aliases = {
+    "/knowledge/technical-modules": "/knowledge/technical",
+    "/knowledge/technical-measures": "/knowledge/technical",
+  };
+  return aliases[normalized] || normalized;
+}
+
+function annotationNoteMatchesCurrentPage(note, pageRoute = "") {
+  const noteRoute = canonicalAnnotationRoute(note?.page_route);
+  const currentRoute = canonicalAnnotationRoute(pageRoute || state.activeRoute || "/");
+  if (!noteRoute || noteRoute !== currentRoute) return false;
+  const meta = legacyAnnotationTargetMeta(note?.target_ref);
+  if (!meta || meta.view !== "maintenance") return true;
+  const maintenancePage = decodeLegacyAnchorPart(meta.context?.[2] || "");
+  return !maintenancePage || maintenancePage === "_" || maintenancePage === state.activeMaintenancePage;
+}
+
+function scheduleAnnotationAnchorMarkers(reason = "", { delays = [0, 80, 240] } = {}) {
+  if (state.annotationMarkerFrame) window.cancelAnimationFrame(state.annotationMarkerFrame);
+  state.annotationMarkerTimers.forEach((timer) => window.clearTimeout(timer));
+  state.annotationMarkerTimers = [];
+  const run = () => {
+    state.annotationMarkerFrame = 0;
+    applyAnnotationAnchorMarkers();
+  };
+  state.annotationMarkerFrame = window.requestAnimationFrame(run);
+  state.annotationMarkerTimers = delays
+    .filter((delay) => delay > 0)
+    .map((delay) =>
+      window.setTimeout(() => {
+        applyAnnotationAnchorMarkers();
+      }, delay),
+    );
+}
+
+function setupAnnotationSurfaceObserver() {
+  state.annotationSurfaceObserver?.disconnect?.();
+  if (typeof MutationObserver !== "function") return;
+  const roots = [
+    "capabilityWorkspace",
+    "environmentWorkspace",
+    "devLifecycleWorkspace",
+    "dataLifecycleWorkspace",
+    "maintenanceWorkspace",
+    "contentWorkspace",
+    "overviewWorkspace",
+  ]
+    .map((id) => $(id))
+    .filter(Boolean);
+  if (!roots.length) return;
+  state.annotationSurfaceObserver = new MutationObserver((mutations) => {
+    const changed = mutations.some((mutation) => {
+      if (mutation.type !== "childList") return false;
+      const target = mutation.target;
+      if (target?.closest?.("[data-annotation-drawer], [data-annotation-context-menu]")) return false;
+      return mutation.addedNodes.length || mutation.removedNodes.length;
+    });
+    if (changed) scheduleAnnotationAnchorMarkers("surface-dom-mutated", { delays: [0, 80, 240, 520] });
+  });
+  roots.forEach((root) => {
+    state.annotationSurfaceObserver.observe(root, { childList: true, subtree: true });
+  });
+}
+
+function fieldAnnotationAnchorElement(node, note = null) {
+  if (!node) return null;
+  if (node.matches?.(ANNOTATION_VALUE_SELECTOR)) return node;
+  const valueNodes = Array.from(node.querySelectorAll?.(ANNOTATION_VALUE_SELECTOR) || []).filter(isAnnotationAnchorVisible);
+  if (valueNodes.length) return note ? bestAnnotationCandidate(valueNodes, note, 1) || valueNodes[0] : valueNodes[0];
+  const cell = node.matches?.("td, th") ? node : node.closest?.("td, th");
+  if (cell && !cell.querySelector?.(ANNOTATION_VALUE_SELECTOR) && annotationCellValueText(cell)) return cell;
+  return node;
+}
+
+function annotationRevealScrollElement(node, note = null) {
+  const anchorType = normalizedAnnotationAnchorType(note?.anchor_type || annotationAnchorTypeFromTargetRef(note?.target_ref));
+  const anchor = anchorType === "field" || anchorType === "value" ? fieldAnnotationAnchorElement(node, note) : node;
+  return anchor?.querySelector?.(".line-text, .relation-chip-text, strong") || anchor || node;
+}
+
+function markAnnotationAnchorContext(node, stateName = "marked", anchorType = "", note = null) {
+  if (!node) return;
+  const isActive = stateName === "active";
+  const type = normalizedAnnotationAnchorType(anchorType);
+  const anchorAttr = isActive ? "data-user-note-anchor-active" : "data-user-note-anchor-marked";
+  const cellAttr = isActive ? "data-user-note-anchor-cell-active" : "data-user-note-anchor-cell-marked";
+  const rowAttr = isActive ? "data-user-note-anchor-row-active" : "data-user-note-anchor-row-marked";
+  const cell = node.closest?.("td, th");
+  const row = node.closest?.("tr");
+  if (type === "field" || type === "value") {
+    fieldAnnotationAnchorElement(node, note)?.setAttribute(anchorAttr, "true");
+    return;
+  }
+  if (type === "row") {
+    (row || node).setAttribute(row ? rowAttr : anchorAttr, "true");
+    return;
+  }
+  if (type === "cell" || type === "column" || type === "area") {
+    (cell || node).setAttribute(cell ? cellAttr : anchorAttr, "true");
+    return;
+  }
+  node.setAttribute(anchorAttr, "true");
+  if (cell && node !== cell) cell.setAttribute(cellAttr, "true");
+  if (row && node !== row) row.setAttribute(rowAttr, "true");
+}
+
+function applyAnnotationAnchorMarkers() {
+  clearAnnotationAnchorState();
+  const pageRoute = text((state.activePageAnnotationTarget || currentPageAnnotationTarget()).code).trim();
+  const noteCounts = new Map();
+  const noteAnchorTypes = new Map();
+  for (const note of list(state.userNotes)) {
+    if (!annotationNoteMatchesCurrentPage(note, pageRoute)) continue;
+    const targetRef = text(note.target_ref).trim();
+    if (!targetRef || targetRef.startsWith("page:")) continue;
+    noteCounts.set(targetRef, (noteCounts.get(targetRef) || 0) + 1);
+    if (!noteAnchorTypes.has(targetRef)) {
+      noteAnchorTypes.set(targetRef, note.anchor_type || annotationAnchorTypeFromTargetRef(targetRef));
+    }
+  }
+  if (!noteCounts.size) return;
+  const markedTargetRefs = new Set();
+
+  const mark = (node, targetRef, preferredAnchorType = "") => {
+    const count = noteCounts.get(targetRef);
+    if (!node || !count) return;
+    const anchorType = preferredAnchorType || noteAnchorTypes.get(targetRef) || annotationAnchorTypeFromTargetRef(targetRef);
+    markAnnotationAnchorContext(node, "marked", anchorType);
+    markedTargetRefs.add(targetRef);
+  };
+
+  document.querySelectorAll(ANNOTATION_TARGET_REF_SELECTOR).forEach((node) => {
+    if (node.closest("[data-annotation-drawer]")) return;
+    if (!isAnnotationAnchorVisible(node)) return;
+    const targetRef = text(node.dataset.annotationTargetRef).trim();
+    if (!targetRef) return;
+    mark(node, targetRef, node.dataset.annotationAnchorType || "object");
+  });
+
+  document.querySelectorAll(ANNOTATION_VALUE_SELECTOR).forEach((node) => {
+    if (!isAnnotationAnchorVisible(node)) return;
+    const value = annotationValueText(node);
+    if (!value) return;
+    if (!node.getAttribute("title")) node.setAttribute("title", value);
+    if (!node.dataset.annotationTooltip) node.dataset.annotationTooltip = value;
+    mark(node, `base:field_value:${fieldAnnotationId(value, node)}`);
+  });
+  document.querySelectorAll(ANNOTATION_CELL_VALUE_SELECTOR).forEach((node) => {
+    if (node.closest("[data-annotation-drawer]")) return;
+    if (node.querySelector(ANNOTATION_VALUE_SELECTOR)) return;
+    if (!isAnnotationAnchorVisible(node)) return;
+    const value = annotationCellValueText(node);
+    if (!value) return;
+    if (!node.getAttribute("title")) node.setAttribute("title", value);
+    if (!node.dataset.annotationTooltip) node.dataset.annotationTooltip = value;
+    mark(node, `base:field_value:${fieldAnnotationId(value, node)}`);
+  });
+  document.querySelectorAll("[data-capability-id]").forEach((node) => {
+    if (!isAnnotationAnchorVisible(node)) return;
+    const id = node.dataset.capabilityId;
+    const item = capabilityItemById(id);
+    const objectType = item?.type || capabilityItemTypeById(id) || "capability_object";
+    const targetRef = targetRefForAnnotationTarget(
+      buildBaseUserTarget({
+        objectType,
+        objectLabel: capabilityUserObjectLabel(objectType),
+        id,
+        code: item?.code || id,
+        title: codeTitle(item || { id, code: id }, id),
+        anchorType: "row",
+      }),
+    );
+    mark(node, targetRef);
+  });
+  document.querySelectorAll("[data-maintenance-id]").forEach((node) => {
+    if (!isAnnotationAnchorVisible(node)) return;
+    const id = node.dataset.maintenanceId;
+    mark(node, `base:table_row:${rowAnnotationId(node, id)}`);
+  });
+  document.querySelectorAll("tr").forEach((node) => {
+    if (node.closest("[data-annotation-drawer]")) return;
+    if (!isAnnotationAnchorVisible(node)) return;
+    const title = text(node.querySelector("strong")?.textContent || node.cells?.[1]?.textContent || node.textContent).trim();
+    if (!title) return;
+    mark(node, `base:table_row:${rowAnnotationId(node, title)}`);
+  });
+  for (const note of list(state.userNotes)) {
+    if (!annotationNoteMatchesCurrentPage(note, pageRoute)) continue;
+    const targetRef = text(note.target_ref).trim();
+    if (!targetRef || targetRef.startsWith("page:") || markedTargetRefs.has(targetRef)) continue;
+    if (!annotationTargetContextMatchesCurrent(note)) continue;
+    const fallbackAnchor = candidateFromLegacyCoordinate(note) || findAnnotationAnchorElementByNoteText(note);
+    if (!fallbackAnchor) continue;
+      markAnnotationAnchorContext(fallbackAnchor, "marked", note.anchor_type || annotationAnchorTypeFromTargetRef(targetRef), note);
+      markedTargetRefs.add(targetRef);
+    }
+}
+
+function findAnnotationAnchorElement(note, { includeHidden = false } = {}) {
+  const targetRef = text(note?.target_ref).trim();
+  if (!targetRef || targetRef.startsWith("page:")) return null;
+  if (targetRef.startsWith("base:capability:")) {
+    const legacyCapabilityKey = targetRef.replace(/^base:capability:/, "");
+    const item = capabilityItemByCodeOrTitle(legacyCapabilityKey || note?.object_title);
+    if (item?.id && item.id === state.selectedCapabilityId) {
+      const treeNode = Array.from(document.querySelectorAll("[data-capability-id]")).find((node) => node.dataset.capabilityId === item.id);
+      return treeNode || document.querySelector("#capabilityFocusHeader");
+    }
+  }
+  for (const node of document.querySelectorAll(ANNOTATION_TARGET_REF_SELECTOR)) {
+    if (node.closest("[data-annotation-drawer]")) continue;
+    if (!includeHidden && !isAnnotationAnchorVisible(node)) continue;
+    if (text(node.dataset.annotationTargetRef).trim() === targetRef) return node;
+  }
+  for (const node of document.querySelectorAll(ANNOTATION_VALUE_SELECTOR)) {
+    if (!includeHidden && !isAnnotationAnchorVisible(node)) continue;
+    const value = annotationValueText(node);
+    if (!value) continue;
+    if (`base:field_value:${fieldAnnotationId(value, node)}` === targetRef) return node;
+  }
+  for (const node of document.querySelectorAll(ANNOTATION_CELL_VALUE_SELECTOR)) {
+    if (node.closest("[data-annotation-drawer]")) continue;
+    if (node.querySelector(ANNOTATION_VALUE_SELECTOR)) continue;
+    if (!includeHidden && !isAnnotationAnchorVisible(node)) continue;
+    const value = annotationCellValueText(node);
+    if (!value) continue;
+    if (`base:field_value:${fieldAnnotationId(value, node)}` === targetRef) return node;
+  }
+  for (const node of document.querySelectorAll("[data-capability-id]")) {
+    if (!includeHidden && !isAnnotationAnchorVisible(node)) continue;
+    const id = node.dataset.capabilityId;
+    const item = capabilityItemById(id);
+    const legacyCapabilityCode = targetRef.startsWith("base:capability:") ? targetRef.replace(/^base:capability:/, "") : "";
+    if (
+      legacyCapabilityCode &&
+      [id, item?.code, codeTitle(item || { id }, id)]
+        .map(compactAnnotationLookupText)
+        .some((candidate) => candidate && candidate === compactAnnotationLookupText(legacyCapabilityCode))
+    ) {
+      return node;
+    }
+    const objectType = item?.type || capabilityItemTypeById(id) || "capability_object";
+    const candidate = targetRefForAnnotationTarget(
+      buildBaseUserTarget({
+        objectType,
+        objectLabel: capabilityUserObjectLabel(objectType),
+        id,
+        code: item?.code || id,
+        title: codeTitle(item || { id, code: id }, id),
+        anchorType: "row",
+      }),
+    );
+    if (candidate === targetRef) return node;
+  }
+  for (const node of document.querySelectorAll("[data-maintenance-id]")) {
+    if (!includeHidden && !isAnnotationAnchorVisible(node)) continue;
+    const id = node.dataset.maintenanceId;
+    if (`base:table_row:${rowAnnotationId(node, id)}` === targetRef) return node;
+  }
+  for (const node of document.querySelectorAll("tr")) {
+    if (node.closest("[data-annotation-drawer]")) continue;
+    if (!includeHidden && !isAnnotationAnchorVisible(node)) continue;
+    const label = text(node.querySelector("strong")?.textContent || node.cells?.[1]?.textContent || node.textContent).trim();
+    if (!label) continue;
+    if (`base:table_row:${rowAnnotationId(node, label)}` === targetRef) return node;
+  }
+  if (!annotationTargetContextMatchesCurrent(note)) return null;
+  return candidateFromLegacyCoordinate(note, { includeHidden }) || findAnnotationAnchorElementByNoteText(note, { includeHidden });
+}
+
+function restoreAnnotationContextFromNote(note) {
+  const targetRef = text(note?.target_ref).trim();
+  const parts = targetRef.split(":");
+  if (parts[0] !== "base") return false;
+  if (parts[2] !== "v2") {
+    if (state.activeView !== "capabilities") return false;
+    const item = capabilityItemByCodeOrTitle(parts.slice(2).join(":") || note?.object_title);
+    if (!item?.id || item.id === state.selectedCapabilityId) return false;
+    state.selectedCapabilityId = item.id;
+    state.capabilityCatalogCollapsed = false;
+    capabilityAncestorIds(item.id).forEach((id) => state.expandedCapabilityIds.add(id));
+    state.expandedSelectionId = item.id;
+    return true;
+  }
+  if (parts.length < 5) return false;
+  const payload = parts[2] === "v2" ? parts.slice(3) : parts.slice(2);
+  const decoded = payload.map((item) => {
+    try {
+      return decodeURIComponent(item);
+    } catch {
+      return item;
+    }
+  });
+  const view = decoded[1] || "";
+  let changed = false;
+  if (view === "capabilities") {
+    const capabilityId = decoded[2] === "_" ? "" : decoded[2];
+    const tab = decoded[3] === "_" ? "" : decoded[3];
+    if (capabilityId && capabilityId !== state.selectedCapabilityId) {
+      state.selectedCapabilityId = capabilityId;
+      state.capabilityCatalogCollapsed = false;
+      capabilityAncestorIds(capabilityId).forEach((id) => state.expandedCapabilityIds.add(id));
+      state.expandedSelectionId = capabilityId;
+      changed = true;
+    }
+    if (capabilityId && capabilityItemTypeById(capabilityId) === "capability_focus") {
+      ensureCapabilityProjectionForFocus(capabilityId);
+    }
+    if (tab && tab !== state.activeCapabilityRelationTab) {
+      state.activeCapabilityRelationTab = tab;
+      changed = true;
+    }
+  } else if (view === "maintenance") {
+    const maintenancePage = decoded[2] === "_" ? "" : decoded[2];
+    const referenceTab = decoded[3] === "_" ? "" : decoded[3];
+    const framework = decoded[4] === "_" ? "" : decoded[4];
+    const tableId = decoded[5] === "_" ? "" : decoded[5];
+    if (maintenancePage && maintenancePage !== state.activeMaintenancePage) {
+      state.activeMaintenancePage = maintenancePage;
+      changed = true;
+    }
+    if (referenceTab && referenceTab !== state.activeReferenceTab) state.activeReferenceTab = referenceTab;
+    if (framework && framework !== state.activeStandardFramework) state.activeStandardFramework = framework;
+    if (tableId && tableId !== state.activeStandardTableId) state.activeStandardTableId = tableId;
+  } else if (view === "content") {
+    const contentPage = decoded[2] === "_" ? "" : decoded[2];
+    const contentId = decoded[3] === "_" ? "" : decoded[3];
+    const slideIndex = Number(decoded[4]);
+    if (contentPage && contentPage !== state.activeContentPage) {
+      state.activeContentPage = contentPage;
+      changed = true;
+    }
+    if (contentId && contentId !== state.selectedContentId) {
+      state.selectedContentId = contentId;
+      changed = true;
+    }
+    if (Number.isFinite(slideIndex) && slideIndex !== state.selectedContentSlideIndex) {
+      state.selectedContentSlideIndex = slideIndex;
+      changed = true;
+    }
+  } else if (view === "dev-lifecycle") {
+    const processId = decoded[2] === "_" ? "" : decoded[2];
+    if (processId && processId !== state.selectedDevProcessId) {
+      state.selectedDevProcessId = processId;
+      changed = true;
+    }
+  } else if (view === "data-lifecycle") {
+    const processId = decoded[2] === "_" ? "" : decoded[2];
+    if (processId && processId !== state.selectedDataProcessId) {
+      state.selectedDataProcessId = processId;
+      changed = true;
+    }
+  }
+  return changed;
+}
+
+function annotationStandardFrameworkForNote(note = {}) {
+  const target = compactAnnotationLookupText(note.object_title || note.object_code || "");
+  if (!target) return null;
+  return (
+    list(state.standards?.frameworks).find((framework) =>
+      [framework?.id, framework?.title, framework?.frameworkCode, framework?.code]
+        .map(compactAnnotationLookupText)
+        .some((candidate) => candidate && (candidate === target || candidate.includes(target) || target.includes(candidate))),
+    ) || null
+  );
+}
+
+function standardFrameworkRowsLoaded(frameworkId) {
+  const loaded = loadedStandardFramework(frameworkId) || standardFrameworkIndexById(frameworkId);
+  return standardTablesForFramework(loaded).some((table) => list(table.rows).length);
+}
+
+function promiseWithTimeout(promise, timeoutMs = 3200) {
+  if (!promise?.then) return Promise.resolve(promise);
+  return new Promise((resolve) => {
+    const timer = window.setTimeout(() => resolve(null), timeoutMs);
+    promise
+      .then((value) => resolve(value))
+      .catch(() => resolve(null))
+      .finally(() => window.clearTimeout(timer));
+  });
+}
+
+function ensureStandardFrameworkLoadedForAnnotationNote(note) {
+  const loadKey = `annotationStandardFramework:${compactAnnotationLookupText(note.object_title || note.object_code || "")}`;
+  if (state.annotationContextLoads.has(loadKey)) return state.annotationContextLoads.get(loadKey);
+  const run = async () => {
+    if (!state.loadedPackages.has("standards")) await loadDataPackage("standards");
+    const framework = annotationStandardFrameworkForNote(note);
+    if (!framework?.id || standardFrameworkRowsLoaded(framework.id)) return;
+    const dataClient = window.sapdDataClient;
+    await dataClient
+      ?.getStandardFramework?.(framework.id)
+      .then((envelope) => {
+        const loadedFramework = envelope?.data;
+        if (!loadedFramework) return;
+        state.standards = {
+          ...(state.standards || {}),
+          loadedFrameworks: {
+            ...(state.standards?.loadedFrameworks || {}),
+            [framework.id]: loadedFramework,
+          },
+        };
+      });
+  };
+  const load = promiseWithTimeout(run()).finally(() => {
+    state.annotationContextLoads.delete(loadKey);
+  });
+  state.annotationContextLoads.set(loadKey, load);
+  return load;
+}
+
+function annotationContextLoadPromiseForNote(note) {
+  const meta = legacyAnnotationTargetMeta(note?.target_ref);
+  if (!meta || meta.view !== "capabilities") return Promise.resolve();
+  const capabilityId = decodeLegacyAnchorPart(meta.context?.[2] || "");
+  const loads = [ensureStandardFrameworkLoadedForAnnotationNote(note)];
+  if (capabilityId && capabilityId !== "_" && capabilityItemTypeById(capabilityId) === "capability_focus") {
+    loads.push(ensureCapabilityProjectionForFocus(capabilityId));
+  }
+  return Promise.all(loads);
+}
+
+function expandAnnotationHiddenLineage(anchor) {
+  const table = anchor?.closest?.("table");
+  const row = anchor?.closest?.("tr");
+  if (!table || !row) return false;
+  const lineage = text(row.dataset?.standardLineage)
+    .split(/\s+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+  const groupRows = Array.from(table.querySelectorAll(".standard-group-row[data-standard-group]"));
+  const rows = Array.from(table.querySelectorAll("[data-standard-parent]"));
+  for (const groupId of lineage) {
+    const groupRow = groupRows.find((candidate) => candidate.dataset.standardGroup === groupId);
+    if (groupRow) {
+      groupRow.hidden = false;
+      groupRow.classList.add("expanded");
+      groupRow.querySelector(".standard-group-toggle")?.setAttribute("aria-expanded", "true");
+    }
+    rows.filter((candidate) => candidate.dataset.standardParent === groupId).forEach((candidate) => {
+      candidate.hidden = false;
+    });
+  }
+  row.hidden = false;
+  if (lineage.length) scheduleAnnotationAnchorMarkers("expand-annotation-hidden-lineage", { delays: [0, 80] });
+  return Boolean(lineage.length);
+}
+
+function resolveAnnotationAnchorElement(note) {
+  const visibleAnchor = findAnnotationAnchorElement(note);
+  if (visibleAnchor) return visibleAnchor;
+  const hiddenAnchor = findAnnotationAnchorElement(note, { includeHidden: true });
+  if (!hiddenAnchor) return null;
+  expandAnnotationHiddenLineage(hiddenAnchor);
+  return findAnnotationAnchorElement(note) || hiddenAnchor;
+}
+
+function jumpToUserNote(noteId) {
+  const note = list(state.userNotes).find((row) => text(row.id).trim() === text(noteId).trim());
+  if (!note) return;
+  const route = text(note.page_route).trim();
+  const clearActiveAnchor = (anchor) => {
+    window.setTimeout(() => {
+      anchor.removeAttribute("data-user-note-anchor-active");
+      anchor.closest?.("td, th")?.removeAttribute("data-user-note-anchor-cell-active");
+      anchor.closest?.("tr")?.removeAttribute("data-user-note-anchor-row-active");
+      scheduleAnnotationAnchorMarkers("clear-active-after-jump", { delays: [0, 80] });
+    }, 2600);
+  };
+  const isCoveredByOpenDrawer = (anchor) => {
+    if (!state.userAnnotationDrawerOpen || !anchor) return false;
+    const panel = document.querySelector(".user-annotation-drawer.is-open .annotation-drawer-panel");
+    if (!panel) return false;
+    const anchorRect = anchor.getBoundingClientRect();
+    const panelRect = panel.getBoundingClientRect();
+    return anchorRect.right > panelRect.left - 12 && anchorRect.left < panelRect.right && anchorRect.bottom > panelRect.top && anchorRect.top < panelRect.bottom;
+  };
+  const revealAnchor = (anchor) => {
+    const anchorType = note.anchor_type || annotationAnchorTypeFromTargetRef(note.target_ref);
+    markAnnotationAnchorContext(anchor, "active", anchorType, note);
+    const scrollTarget = annotationRevealScrollElement(anchor, note);
+    scrollTarget?.scrollIntoView?.({ behavior: "smooth", block: "center", inline: "nearest" });
+    [180, 520, 980].forEach((delay) => {
+      window.setTimeout(() => {
+        const current = resolveAnnotationAnchorElement(note) || anchor;
+        markAnnotationAnchorContext(current, "active", anchorType, note);
+      }, delay);
+    });
+    clearActiveAnchor(anchor);
+  };
+  const doJump = () => {
+    const changed = restoreAnnotationContextFromNote(note);
+    const pendingContextLoad = annotationContextLoadPromiseForNote(note);
+    if (changed) renderActiveView();
+    let revealed = false;
+    const resolveAndReveal = (attempt = 0) => {
+      applyAnnotationAnchorMarkers();
+      const anchor = resolveAnnotationAnchorElement(note);
+      if (!anchor) {
+        if (attempt < 28) {
+          window.setTimeout(() => resolveAndReveal(attempt + 1), 160);
+          return;
+        }
+        if (text(note.target_ref).trim().startsWith("page:")) {
+          document.querySelector(".workspace-stage")?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+        }
+        return;
+      }
+      revealed = true;
+      if (isCoveredByOpenDrawer(anchor)) {
+        state.userAnnotationDrawerOpen = false;
+        renderUserAnnotationDrawer({ preserveScroll: true });
+        requestAnimationFrame(() => {
+          scheduleAnnotationAnchorMarkers("jump-drawer-covered", { delays: [0, 80] });
+          revealAnchor(resolveAnnotationAnchorElement(note) || anchor);
+        });
+        return;
+      }
+      revealAnchor(anchor);
+    };
+    pendingContextLoad?.then?.(() => {
+      if (revealed || (route && route !== state.activeRoute)) return;
+      renderActiveView();
+      scheduleAnnotationAnchorMarkers("jump-context-loaded", { delays: [0, 80, 240] });
+      requestAnimationFrame(() => resolveAndReveal(0));
+    });
+    requestAnimationFrame(() => resolveAndReveal());
+  };
+  if (route && route !== state.activeRoute) {
+    activateRoute(route);
+    window.setTimeout(doJump, 260);
+    return;
+  }
+  doJump();
+}
+
+function annotationTooltipTextFromTarget(target) {
+  const node = target?.closest?.(
+    [
+      "[data-annotation-tooltip]",
+      "[data-user-note-anchor-marked='true']",
+      "[data-user-note-anchor-active='true']",
+      "[data-user-note-anchor-cell-marked='true']",
+      "[data-user-note-anchor-cell-active='true']",
+      "[data-user-note-anchor-row-marked='true']",
+      "[data-user-note-anchor-row-active='true']",
+    ].join(","),
+  );
+  if (!node) return "";
+  return text(node.dataset?.annotationTooltip || node.getAttribute("title") || node.dataset?.copyText || node.textContent).trim();
+}
+
+function annotationTooltipHost(target) {
+  return target?.closest?.(
+    [
+      "[data-annotation-tooltip]",
+      "[data-user-note-anchor-marked='true']",
+      "[data-user-note-anchor-active='true']",
+      "[data-user-note-anchor-cell-marked='true']",
+      "[data-user-note-anchor-cell-active='true']",
+      "[data-user-note-anchor-row-marked='true']",
+      "[data-user-note-anchor-row-active='true']",
+    ].join(","),
+  );
+}
+
+function ensureAnnotationTooltip() {
+  let tooltip = document.getElementById("annotationTooltip");
+  if (tooltip) return tooltip;
+  tooltip = document.createElement("div");
+  tooltip.id = "annotationTooltip";
+  tooltip.className = "annotation-tooltip";
+  tooltip.hidden = true;
+  document.body.appendChild(tooltip);
+  return tooltip;
+}
+
+function showAnnotationTooltip(event) {
+  const body = annotationTooltipTextFromTarget(event.target);
+  if (!body) return;
+  const tooltip = ensureAnnotationTooltip();
+  tooltip.textContent = body;
+  tooltip.hidden = false;
+  positionAnnotationTooltip(event);
+}
+
+function positionAnnotationTooltip(event) {
+  const tooltip = document.getElementById("annotationTooltip");
+  if (!tooltip || tooltip.hidden) return;
+  const margin = 12;
+  const offset = 14;
+  const rect = tooltip.getBoundingClientRect();
+  const x = Math.min(window.innerWidth - rect.width - margin, Math.max(margin, event.clientX + offset));
+  const y = Math.min(window.innerHeight - rect.height - margin, Math.max(margin, event.clientY + offset));
+  tooltip.style.left = `${x}px`;
+  tooltip.style.top = `${y}px`;
+}
+
+function hideAnnotationTooltip() {
+  const tooltip = document.getElementById("annotationTooltip");
+  if (tooltip) tooltip.hidden = true;
+}
+
 function setCurrentAnnotationTarget(target, options = {}) {
   const pageTarget = currentPageAnnotationTarget(options.pageTitle);
   state.activePageAnnotationTarget = pageTarget;
@@ -809,7 +1973,85 @@ function setCurrentAnnotationTarget(target, options = {}) {
       tags: [state.activeUserTarget?.objectLabel, pageTarget.title].filter(Boolean),
     };
   }
+  state.annotationContextMenu = null;
   requestAnimationFrame(() => renderUserAnnotationDrawer());
+  scheduleAnnotationAnchorMarkers("set-current-annotation-target");
+}
+
+function hasUnsavedAnnotationDraft() {
+  return Boolean(text(state.userAnnotationDraft).trim());
+}
+
+function resetAnnotationInteraction({ collapse = false, clearDraft = false } = {}) {
+  if (collapse) state.userAnnotationDrawerOpen = false;
+  if (clearDraft) {
+    state.userAnnotationDraft = "";
+    state.annotationDraftTarget = null;
+    state.pendingAnnotationAction = null;
+    state.pendingAnnotationTargetLabel = "";
+  }
+  state.annotationContextMenu = null;
+  state.userAnnotationEditingNoteId = "";
+  state.userAnnotationEditDraft = "";
+  state.userWriteStatus = { ...state.userWriteStatus, draftGuard: false };
+}
+
+function requestAnnotationContextSwitch(action, label = "新页面") {
+  if (!hasUnsavedAnnotationDraft()) {
+    resetAnnotationInteraction({ collapse: true, clearDraft: true });
+    action();
+    return true;
+  }
+  state.pendingAnnotationAction = action;
+  state.pendingAnnotationTargetLabel = label;
+  state.userAnnotationDrawerOpen = true;
+  state.userWriteStatus = { ...state.userWriteStatus, draftGuard: true };
+  renderUserAnnotationDrawer();
+  return false;
+}
+
+function runPendingAnnotationAction() {
+  const action = state.pendingAnnotationAction;
+  state.pendingAnnotationAction = null;
+  state.pendingAnnotationTargetLabel = "";
+  state.userWriteStatus = { ...state.userWriteStatus, draftGuard: false };
+  state.userAnnotationDrawerOpen = false;
+  state.userAnnotationDraft = "";
+  state.userAnnotationEditingNoteId = "";
+  state.userAnnotationEditDraft = "";
+  if (typeof action === "function") action();
+  else renderUserAnnotationDrawer();
+}
+
+function openAnnotationTarget(target) {
+  if (!target?.targetRef) return;
+  const action = () => {
+    state.annotationDraftTarget = target;
+    setCurrentAnnotationTarget(target);
+    state.userAnnotationDrawerOpen = true;
+    state.annotationContextMenu = null;
+    renderUserAnnotationDrawer();
+    requestAnimationFrame(() => document.querySelector("[data-user-note-draft]")?.focus?.());
+  };
+  const currentRef = text(state.activeUserTarget?.targetRef).trim();
+  if (hasUnsavedAnnotationDraft() && currentRef && currentRef !== text(target.targetRef).trim()) {
+    requestAnnotationContextSwitch(action, target.title || target.code || "当前选择");
+    return;
+  }
+  action();
+}
+
+function openAnnotationContextMenu(event) {
+  const target = annotationTargetFromElement(event.target);
+  if (!target?.targetRef) return false;
+  event.preventDefault();
+  document.querySelectorAll("[data-annotation-anchor-selected='true']").forEach((node) => node.removeAttribute("data-annotation-anchor-selected"));
+  const anchorNode =
+    event.target.closest?.(ANNOTATION_CONTEXT_SELECTOR) || event.target;
+  anchorNode?.setAttribute?.("data-annotation-anchor-selected", "true");
+  state.annotationContextMenu = { x: event.clientX, y: event.clientY, target };
+  renderUserAnnotationDrawer();
+  return true;
 }
 
 function refreshUserFavoritesMap() {
@@ -873,6 +2115,7 @@ function ensureUserNotesLoaded() {
     .finally(() => {
       state.userNotesLoadPromise = null;
       renderUserAnnotationDrawer();
+      scheduleAnnotationAnchorMarkers("user-notes-loaded");
     });
   return state.userNotesLoadPromise;
 }
@@ -906,12 +2149,13 @@ function removeNoteFromState(noteId) {
   state.userNotes = list(state.userNotes).filter((row) => text(row.id).trim() !== normalized);
 }
 
-function renderUserAnnotationDrawer() {
+function renderUserAnnotationDrawer(options = {}) {
   ensureUserFavoritesLoaded();
   ensureUserNotesLoaded();
   const mount = $("userAnnotationMount");
   const components = window.sapdComponents || {};
   if (!mount || !components.UserAnnotationDrawer?.render) return;
+  const previousPanelScrollTop = options.preserveScroll ? mount.querySelector(".annotation-drawer-panel")?.scrollTop || 0 : 0;
   const target = state.activeUserTarget || state.activePageAnnotationTarget || currentPageAnnotationTarget();
   const pageTarget = state.activePageAnnotationTarget || currentPageAnnotationTarget();
   setHtml(
@@ -924,16 +2168,28 @@ function renderUserAnnotationDrawer() {
       favorite: favoriteForTarget(target?.targetRef),
       status: state.userWriteStatus,
       draft: state.userAnnotationDraft,
+      editingNoteId: state.userAnnotationEditingNoteId,
+      editDraft: state.userAnnotationEditDraft,
+      expandedNoteIds: Array.from(state.userAnnotationExpandedNoteIds),
+      pendingTargetLabel: state.pendingAnnotationTargetLabel,
+      contextMenu: state.annotationContextMenu,
     }),
   );
+  requestAnimationFrame(() => {
+    if (options.preserveScroll) {
+      const nextPanel = mount.querySelector(".annotation-drawer-panel");
+      if (nextPanel) nextPanel.scrollTop = previousPanelScrollTop;
+    }
+    scheduleAnnotationAnchorMarkers("render-drawer", { delays: [0, 80] });
+  });
 }
 
 async function handleUserNoteCreate() {
   const dataClient = window.sapdDataClient;
-  const target = state.activeUserTarget || state.activePageAnnotationTarget || currentPageAnnotationTarget();
+  const target = state.annotationDraftTarget || state.activeUserTarget || state.activePageAnnotationTarget || currentPageAnnotationTarget();
   const pageTarget = state.activePageAnnotationTarget || currentPageAnnotationTarget();
   const body = text(state.userAnnotationDraft).trim();
-  if (!target?.targetRef || !body || !dataClient?.createUserNote) return;
+  if (!target?.targetRef || !body || !dataClient?.createUserNote) return false;
   state.userWriteStatus = { ...state.userWriteStatus, state: "ready", savingNote: true };
   renderUserAnnotationDrawer();
   try {
@@ -943,7 +2199,7 @@ async function handleUserNoteCreate() {
       status: "todo",
       page_route: pageTarget.code,
       page_title: pageTarget.title,
-      anchor_type: target.objectType === "page" ? "page" : "object",
+      anchor_type: target.anchorType || (target.objectType === "page" ? "page" : "object"),
       object_type: target.objectType,
       object_title: target.title,
       tags: [target.objectLabel, pageTarget.title].filter(Boolean),
@@ -951,19 +2207,23 @@ async function handleUserNoteCreate() {
     if (envelope?.data?.ok === false) throw new Error(envelope.data.error || "create note failed");
     upsertNoteInState(envelope?.data?.note);
     state.userAnnotationDraft = "";
-    state.userWriteStatus = { ...state.userWriteStatus, state: "ready", savingNote: false };
+    state.annotationDraftTarget = null;
+    state.userWriteStatus = { ...state.userWriteStatus, state: "ready", savingNote: false, draftGuard: false };
+    renderUserAnnotationDrawer();
+    return true;
   } catch (error) {
     console.warn("用户批注保存失败", error);
-    state.userWriteStatus = { ...state.userWriteStatus, state: "api_error", savingNote: false };
+    state.userWriteStatus = { ...state.userWriteStatus, state: "api_error", savingNote: false, draftGuard: false };
   }
   renderUserAnnotationDrawer();
+  return false;
 }
 
 async function handleUserNoteStatus(noteId, status) {
   const dataClient = window.sapdDataClient;
   if (!noteId || !dataClient?.updateUserNote) return;
   state.userWriteStatus = { ...state.userWriteStatus, state: "ready", savingNote: true };
-  renderUserAnnotationDrawer();
+  renderUserAnnotationDrawer({ preserveScroll: true });
   try {
     const envelope = await dataClient.updateUserNote(noteId, { status });
     if (envelope?.data?.ok === false) throw new Error(envelope.data.error || "update note failed");
@@ -973,7 +2233,42 @@ async function handleUserNoteStatus(noteId, status) {
     console.warn("用户批注状态保存失败", error);
     state.userWriteStatus = { ...state.userWriteStatus, state: "api_error", savingNote: false };
   }
-  renderUserAnnotationDrawer();
+  renderUserAnnotationDrawer({ preserveScroll: true });
+}
+
+function handleUserNoteEditStart(noteId) {
+  const note = list(state.userNotes).find((row) => text(row.id).trim() === text(noteId).trim());
+  if (!note) return;
+  state.userAnnotationEditingNoteId = note.id;
+  state.userAnnotationEditDraft = text(note.body);
+  state.userAnnotationExpandedNoteIds.add(text(note.id).trim());
+  renderUserAnnotationDrawer({ preserveScroll: true });
+}
+
+async function handleUserNoteEditSave(noteId) {
+  const dataClient = window.sapdDataClient;
+  const body = text(state.userAnnotationEditDraft).trim();
+  if (!noteId || !body || !dataClient?.updateUserNote) return;
+  state.userWriteStatus = { ...state.userWriteStatus, state: "ready", savingNote: true };
+  renderUserAnnotationDrawer({ preserveScroll: true });
+  try {
+    const envelope = await dataClient.updateUserNote(noteId, { body });
+    if (envelope?.data?.ok === false) throw new Error(envelope.data.error || "update note failed");
+    upsertNoteInState(envelope?.data?.note);
+    state.userAnnotationEditingNoteId = "";
+    state.userAnnotationEditDraft = "";
+    state.userWriteStatus = { ...state.userWriteStatus, state: "ready", savingNote: false };
+  } catch (error) {
+    console.warn("用户批注修改失败", error);
+    state.userWriteStatus = { ...state.userWriteStatus, state: "api_error", savingNote: false };
+  }
+  renderUserAnnotationDrawer({ preserveScroll: true });
+}
+
+function handleUserNoteEditCancel() {
+  state.userAnnotationEditingNoteId = "";
+  state.userAnnotationEditDraft = "";
+  renderUserAnnotationDrawer({ preserveScroll: true });
 }
 
 async function handleUserNoteDelete(noteId) {
@@ -990,6 +2285,23 @@ async function handleUserNoteDelete(noteId) {
     console.warn("用户批注删除失败", error);
     state.userWriteStatus = { ...state.userWriteStatus, state: "api_error", savingNote: false };
   }
+  renderUserAnnotationDrawer();
+}
+
+async function handleAnnotationDraftSaveAndSwitch() {
+  const saved = await handleUserNoteCreate();
+  if (saved) runPendingAnnotationAction();
+}
+
+function handleAnnotationDraftDiscardAndSwitch() {
+  runPendingAnnotationAction();
+}
+
+function handleAnnotationDraftCancelSwitch() {
+  state.pendingAnnotationAction = null;
+  state.pendingAnnotationTargetLabel = "";
+  state.userWriteStatus = { ...state.userWriteStatus, draftGuard: false };
+  state.userAnnotationDrawerOpen = true;
   renderUserAnnotationDrawer();
 }
 
@@ -1509,7 +2821,12 @@ function compactChips(items, empty = "暂无", limit = 3) {
   if (!rows.length) return `<span class="empty-inline">${escapeHtml(empty)}</span>`;
   const visible = rows.slice(0, limit);
   const more = rows.length - visible.length;
-  return `${visible.map((item) => `<span class="relation-chip">${escapeHtml(titleOf(item))}</span>`).join("")}${more > 0 ? `<span class="relation-chip muted">+${more}</span>` : ""}`;
+  return `${visible
+    .map((item) => {
+      const label = titleOf(item);
+      return `<span class="relation-chip"${annotationValueAttrsForHtml(label)}>${escapeHtml(label)}</span>`;
+    })
+    .join("")}${more > 0 ? `<span class="relation-chip muted">+${more}</span>` : ""}`;
 }
 
 function slideImagePath(row, slideNumber) {
@@ -2000,11 +3317,13 @@ function renderSlideDeck(row) {
   const activeIndex = clampSlideIndex(slides);
   state.selectedContentSlideIndex = activeIndex;
   const activeSlide = slides[activeIndex];
+  const slideTarget = contentSlideUserTarget(row, activeSlide, activeIndex);
+  const slideTargetAttrs = annotationTargetAttrsForHtml(slideTarget);
   const previousDisabled = activeIndex <= 0 ? "disabled" : "";
   const nextDisabled = activeIndex >= slides.length - 1 ? "disabled" : "";
   return `
     <div class="guide-slide-player" data-guide-id="${escapeHtml(row.id)}">
-      <div class="guide-slide-stage" tabindex="0" aria-label="${escapeHtml(`${row.title || "指南"}第 ${activeSlide.pageNumber} 页`)}">
+      <div class="guide-slide-stage" tabindex="0" aria-label="${escapeHtml(`${row.title || "指南"}第 ${activeSlide.pageNumber} 页`)}" data-annotation-slide-stage="true" ${slideTargetAttrs}>
         <img src="${escapeHtml(activeSlide.image)}" alt="${escapeHtml(activeSlide.title)}" loading="eager" />
         <div class="guide-slide-controls" aria-label="幻灯片翻页控制">
           <button class="guide-slide-arrow" type="button" data-content-slide-step="-1" aria-label="上一页" title="上一页" ${previousDisabled}>
@@ -2028,12 +3347,15 @@ function renderSlidePreviewRail(row) {
     <div class="guide-thumb-rail guide-thumb-rail-nav" aria-label="幻灯片页面预览">
       ${slides
         .map(
-          (slide, index) => `
-            <button class="guide-thumb ${index === activeIndex ? "active" : ""}" type="button" data-content-slide-index="${index}" aria-label="查看第 ${slide.pageNumber} 页">
+          (slide, index) => {
+            const slideTarget = contentSlideUserTarget(row, slide, index);
+            return `
+            <button class="guide-thumb ${index === activeIndex ? "active" : ""}" type="button" data-content-slide-index="${index}" aria-label="查看第 ${slide.pageNumber} 页" ${annotationTargetAttrsForHtml(slideTarget)}>
               <img src="${escapeHtml(slide.image)}" alt="" loading="lazy" />
               <span>${slide.pageNumber}</span>
             </button>
-          `,
+          `;
+          },
         )
         .join("")}
     </div>
@@ -2526,9 +3848,16 @@ function syncBrowserRoute(route, { replace = false } = {}) {
 function activateRoute(route, options = {}) {
   const components = window.sapdComponents || {};
   const target = components.AppShell?.getRouteTarget?.(normalizeAppRoute(route)) || { route: "/", view: "overview" };
+  const routeChanged = target.route !== state.activeRoute;
+  if (!options.skipAnnotationGuard && routeChanged && hasUnsavedAnnotationDraft()) {
+    requestAnnotationContextSwitch(() => activateRoute(route, { ...options, skipAnnotationGuard: true }), target.description || target.route || "新页面");
+    if (options.fromBrowser) syncBrowserRoute(state.activeRoute, { replace: true });
+    return;
+  }
+  if (routeChanged) resetAnnotationInteraction({ collapse: true, clearDraft: !options.preserveAnnotationDraft });
   state.activeRoute = target.route || "/";
   applyRouteTarget(target);
-  setActiveView(target.view || "overview", { syncRoute: false });
+  setActiveView(target.view || "overview", { syncRoute: false, skipAnnotationGuard: true });
   if (!options.fromBrowser) syncBrowserRoute(state.activeRoute, { replace: Boolean(options.replace) });
 }
 
@@ -2732,6 +4061,7 @@ function buildCapabilityViewModel(viewModels) {
     capabilityTree: state.capability,
     capabilityProjection: currentCapabilityObjectView(),
     management: mergeSharedLookups(state.maintenanceKnowledge),
+    standards: state.standards,
     selectedCapabilityId: state.selectedCapabilityId,
     search: state.search,
     relationshipFilters: state.relationshipFilters,
@@ -3225,6 +4555,8 @@ function renderMaintenance() {
       ${knowledgeDirectoryMode && viewModel.rows.length ? `<div class="maintenance-table-endcap">已显示全部 ${escapeHtml(viewModel.rows.length)} 条记录</div>` : ""}
     `,
   );
+  hydrateMaintenanceAnnotationTargets(viewModel);
+  scheduleAnnotationAnchorMarkers("render-maintenance");
   if (standardsMode || knowledgeDirectoryMode) {
     setText("sourceDetailType", "");
     setHtml("sourceDetail", "");
@@ -3441,6 +4773,8 @@ function renderContent() {
   const titles = { html: "HTML 知识说明", drawio: "Draw.io 只读图", ppt: "PPT 使用说明" };
   const selected = rows.find((row) => row.id === state.selectedContentId);
   const selectedSlides = contentSlides(selected);
+  const activeSlideIndex = selectedSlides.length ? clampSlideIndex(selectedSlides) : 0;
+  const activeSlide = selectedSlides[activeSlideIndex] || null;
   const workspace = $("contentWorkspace");
   const detailPane = document.querySelector(".content-detail-pane");
   const isSlideDeck = selectedSlides.length > 0;
@@ -3478,7 +4812,10 @@ function renderContent() {
         </button>
       `,
   );
-  setCurrentAnnotationTarget(contentUserTarget(selected, routeInfo), { pageTitle: selected?.title || (isSpecificGuideRoute ? routeItem.label : "") || titles[state.activeContentPage] });
+  setCurrentAnnotationTarget(
+    isSlideDeck ? contentSlideUserTarget(selected, activeSlide, activeSlideIndex) : contentUserTarget(selected, routeInfo),
+    { pageTitle: selected?.title || (isSpecificGuideRoute ? routeItem.label : "") || titles[state.activeContentPage] },
+  );
   setHtml(
     "contentList",
     `${
@@ -3544,10 +4881,16 @@ function renderActiveView() {
   if (state.activeView === "maintenance") renderMaintenance();
   if (state.activeView === "content") renderContent();
   if (state.activeView === "placeholder") renderPlaceholder();
+  scheduleAnnotationAnchorMarkers("render-active-view");
 }
 
 function setActiveView(view, options = {}) {
   const previousView = state.activeView;
+  if (!options.skipAnnotationGuard && view !== previousView && hasUnsavedAnnotationDraft()) {
+    requestAnnotationContextSwitch(() => setActiveView(view, { ...options, skipAnnotationGuard: true }), view);
+    return;
+  }
+  if (view !== previousView) resetAnnotationInteraction({ collapse: true, clearDraft: true });
   if (view === "capabilities" && previousView !== "capabilities") {
     state.selectedCapabilityId = null;
     state.expandedCapabilityIds = new Set();
@@ -3615,6 +4958,24 @@ function bindEvents() {
     if (!event.target?.matches?.("[data-user-note-draft]")) return;
     state.userAnnotationDraft = event.target.value;
   });
+  document.addEventListener("input", (event) => {
+    if (!event.target?.matches?.("[data-user-note-edit-draft]")) return;
+    state.userAnnotationEditDraft = event.target.value;
+  });
+  document.addEventListener("contextmenu", (event) => {
+    openAnnotationContextMenu(event);
+  });
+  document.addEventListener("mouseover", (event) => {
+    showAnnotationTooltip(event);
+  });
+  document.addEventListener("mousemove", (event) => {
+    positionAnnotationTooltip(event);
+  });
+  document.addEventListener("mouseout", (event) => {
+    const fromHost = annotationTooltipHost(event.target);
+    const toHost = annotationTooltipHost(event.relatedTarget);
+    if (fromHost && fromHost !== toHost) hideAnnotationTooltip();
+  });
   document.addEventListener("submit", (event) => {
     if (!event.target?.matches?.("[data-user-note-form]")) return;
     event.preventDefault();
@@ -3625,6 +4986,18 @@ function bindEvents() {
     if (!statusSelect) return;
     handleUserNoteStatus(statusSelect.dataset.userNoteStatus, statusSelect.value);
   });
+  document.addEventListener(
+    "toggle",
+    (event) => {
+      const noteCard = event.target?.closest?.(".annotation-note-card[data-user-note-id]");
+      if (!noteCard) return;
+      const noteId = text(noteCard.dataset.userNoteId).trim();
+      if (!noteId) return;
+      if (noteCard.open) state.userAnnotationExpandedNoteIds.add(noteId);
+      else if (state.userAnnotationEditingNoteId !== noteId) state.userAnnotationExpandedNoteIds.delete(noteId);
+    },
+    true,
+  );
   $("tree")?.addEventListener("click", (event) => {
     const toggle = event.target.closest("[data-tree-toggle-id]");
     if (toggle) {
@@ -3753,16 +5126,19 @@ function bindEvents() {
     const button = event.target.closest("[data-source-page]");
     if (!button) return;
     if (!button.closest("#maintenanceWorkspace")) return;
-    state.activeMaintenancePage = button.dataset.sourcePage;
-    if (button.dataset.referenceTab) state.activeReferenceTab = button.dataset.referenceTab;
-    state.activeRoute = routeForCurrentState("maintenance");
-    if (state.activeMaintenancePage === "references" && !state.activeReferenceTab) state.activeReferenceTab = "gbt";
-    if (state.activeMaintenancePage === "standards") state.activeRoute = `/standards/${state.activeStandardFramework}`;
-    state.selectedMaintenanceId = null;
-    renderMaintenance();
-    syncBrowserRoute(state.activeRoute);
-    ensureRoutePackages();
-    updateApplicationShellChrome();
+    const switchMaintenancePage = () => {
+      state.activeMaintenancePage = button.dataset.sourcePage;
+      if (button.dataset.referenceTab) state.activeReferenceTab = button.dataset.referenceTab;
+      state.activeRoute = routeForCurrentState("maintenance");
+      if (state.activeMaintenancePage === "references" && !state.activeReferenceTab) state.activeReferenceTab = "gbt";
+      if (state.activeMaintenancePage === "standards") state.activeRoute = `/standards/${state.activeStandardFramework}`;
+      state.selectedMaintenanceId = null;
+      renderMaintenance();
+      syncBrowserRoute(state.activeRoute);
+      ensureRoutePackages();
+      updateApplicationShellChrome();
+    };
+    requestAnnotationContextSwitch(switchMaintenancePage, button.textContent.trim() || "知识库页面");
   });
   $("sourceList")?.addEventListener("click", (event) => {
     const tab = event.target.closest("[data-reference-tab]");
@@ -3820,6 +5196,47 @@ function bindEvents() {
       renderUserAnnotationDrawer();
       return;
     }
+    if (event.target.closest("[data-annotation-context-add]")) {
+      openAnnotationTarget(state.annotationContextMenu?.target);
+      return;
+    }
+    if (!event.target.closest("[data-annotation-context-menu]")) {
+      if (state.annotationContextMenu) {
+        state.annotationContextMenu = null;
+        renderUserAnnotationDrawer();
+      }
+    }
+    if (event.target.closest("[data-annotation-draft-save-switch]")) {
+      handleAnnotationDraftSaveAndSwitch();
+      return;
+    }
+    if (event.target.closest("[data-annotation-draft-discard-switch]")) {
+      handleAnnotationDraftDiscardAndSwitch();
+      return;
+    }
+    if (event.target.closest("[data-annotation-draft-cancel-switch]")) {
+      handleAnnotationDraftCancelSwitch();
+      return;
+    }
+    const noteEdit = event.target.closest("[data-user-note-edit]");
+    if (noteEdit) {
+      handleUserNoteEditStart(noteEdit.dataset.userNoteEdit);
+      return;
+    }
+    const noteJump = event.target.closest("[data-user-note-jump]");
+    if (noteJump) {
+      jumpToUserNote(noteJump.dataset.userNoteJump);
+      return;
+    }
+    const noteEditSave = event.target.closest("[data-user-note-edit-save]");
+    if (noteEditSave) {
+      handleUserNoteEditSave(noteEditSave.dataset.userNoteEditSave);
+      return;
+    }
+    if (event.target.closest("[data-user-note-edit-cancel]")) {
+      handleUserNoteEditCancel();
+      return;
+    }
     const noteDelete = event.target.closest("[data-user-note-delete]");
     if (noteDelete) {
       handleUserNoteDelete(noteDelete.dataset.userNoteDelete);
@@ -3860,14 +5277,17 @@ function bindEvents() {
     }
     const contentPage = event.target.closest("[data-content-page]");
     if (contentPage && contentPage.closest("#contentWorkspace")) {
-      state.activeContentPage = contentPage.dataset.contentPage;
-      state.activeRoute = routeForCurrentState("content");
-      state.selectedContentId = null;
-      state.selectedContentSlideIndex = 0;
-      renderContent();
-      syncBrowserRoute(state.activeRoute);
-      ensureRoutePackages();
-      updateApplicationShellChrome();
+      const switchContentPage = () => {
+        state.activeContentPage = contentPage.dataset.contentPage;
+        state.activeRoute = routeForCurrentState("content");
+        state.selectedContentId = null;
+        state.selectedContentSlideIndex = 0;
+        renderContent();
+        syncBrowserRoute(state.activeRoute);
+        ensureRoutePackages();
+        updateApplicationShellChrome();
+      };
+      requestAnnotationContextSwitch(switchContentPage, contentPage.textContent.trim() || "安全指南页面");
       return;
     }
     const slideStep = event.target.closest("[data-content-slide-step]");
@@ -3908,10 +5328,11 @@ async function init() {
   if (!dataClient) throw new Error("SAPD Wiki dataClient 未加载");
   await loadScriptOnce("./models/relationGraphModel.js?v=capability-graph-strategy-20260526-1", () => Boolean(window.sapdModels?.buildLocalRelationGraphModel));
   await loadScriptOnce("./components/LocalRelationNetworkGraph.js?v=capability-graph-strategy-20260526-2", () => Boolean(window.sapdComponents?.LocalRelationNetworkGraph));
-  await loadScriptOnce("./components/CapabilityLocalRelationMap.js?v=capability-tab-state-20260602-1", () => Boolean(window.sapdComponents?.CapabilityLocalRelationMap));
+  await loadScriptOnce("./components/CapabilityLocalRelationMap.js?v=annotation-framework-anchor-20260605-1", () => Boolean(window.sapdComponents?.CapabilityLocalRelationMap));
   await loadScriptOnce("./models/environmentRelationGraphModel.js?v=environment-graph-20260521-1", () => Boolean(window.sapdModels?.buildEnvironmentRelationGraphModel));
   await loadScriptOnce("./components/EnvironmentLocalRelationMap.js?v=environment-tab-stat-cleanup-20260530", () => Boolean(window.sapdComponents?.EnvironmentLocalRelationMap));
   mountAppShellComponents();
+  setupAnnotationSurfaceObserver();
   bindEvents();
   const restoredState = readWorkspaceState();
   const restoreRouteFromLocation = () => {

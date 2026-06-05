@@ -85,12 +85,21 @@
     return value && value !== "[object Object]" ? value : empty;
   }
 
+  function annotationValueAttrs(utils, value) {
+    const raw = text(value).trim();
+    if (!raw || raw === "/" || raw === state("missing")) return "";
+    const escaped = utils.escapeHtml;
+    return ` data-annotation-value="true" data-copy-text="${escaped(raw)}" title="${escaped(raw)}" data-annotation-tooltip="${escaped(raw)}"`;
+  }
+
   function relationChip(utils, item, { empty = state("missing"), kind = "", showKind = false, preferCodeTitle = true } = {}) {
     const escaped = utils.escapeHtml;
     const itemKind = text((item && typeof item === "object" && (item.objectKind || item.kind)) || kind).trim();
     const visibleKind = showKind ? itemKind : "";
     const kindPrefix = visibleKind ? `<em>${escaped(visibleKind)}</em>` : "";
-    return `<span class="relation-chip ${chipClass(itemKind)}">${kindPrefix}<span class="relation-chip-text">${escaped(itemText(utils, item, empty, preferCodeTitle))}</span></span>`;
+    const visibleText = itemText(utils, item, empty, preferCodeTitle);
+    const copyText = [visibleKind, visibleText].filter(Boolean).join(" | ");
+    return `<span class="relation-chip ${chipClass(itemKind)}"${annotationValueAttrs(utils, copyText && copyText !== empty ? copyText : "")}>${kindPrefix}<span class="relation-chip-text">${escaped(visibleText)}</span></span>`;
   }
 
   function relationChipList(utils, items, options = {}) {
@@ -111,6 +120,7 @@
   display.emptyMark = emptyMark;
   display.chipClass = chipClass;
   display.itemText = itemText;
+  display.annotationValueAttrs = annotationValueAttrs;
   display.relationChip = relationChip;
   display.relationChipList = relationChipList;
 })();

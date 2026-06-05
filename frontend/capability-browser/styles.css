@@ -13621,18 +13621,31 @@ summary:focus-visible {
 
 .user-annotation-drawer {
   position: fixed;
-  top: 104px;
-  right: 0;
-  bottom: 22px;
+  top: clamp(72px, 11dvh, 104px);
+  right: 12px;
+  bottom: max(12px, env(safe-area-inset-bottom));
   z-index: 70;
-  width: min(420px, calc(100vw - 28px));
+  width: min(390px, calc(100vw - 28px));
+  max-width: 390px;
+  min-width: 0;
+  max-height: calc(100dvh - clamp(72px, 11dvh, 104px) - max(12px, env(safe-area-inset-bottom)));
+  contain: layout style;
+  overflow: visible;
   pointer-events: none;
-  transform: translateX(calc(100% - 40px));
+  transform: translateX(calc(100% - 38px));
   transition: transform 230ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+.user-annotation-drawer,
+.user-annotation-drawer *,
+.annotation-tooltip,
+.annotation-context-menu,
+.annotation-context-menu * {
+  box-sizing: border-box;
+}
+
 .user-annotation-drawer.is-open {
-  transform: translateX(-14px);
+  transform: translateX(0);
 }
 
 .annotation-drawer-tab {
@@ -13658,14 +13671,99 @@ summary:focus-visible {
   letter-spacing: 0;
 }
 
+.user-annotation-drawer.has-notes .annotation-drawer-tab {
+  border-color: rgba(126, 166, 220, 0.92);
+  background: linear-gradient(180deg, rgba(237, 246, 255, 0.98), rgba(225, 239, 255, 0.96));
+  box-shadow:
+    0 12px 30px rgba(56, 72, 92, 0.18),
+    inset 3px 0 0 rgba(10, 132, 255, 0.58);
+  color: #285780;
+}
+
+.annotation-tooltip {
+  position: fixed;
+  z-index: 140;
+  max-width: min(340px, calc(100vw - 28px));
+  max-height: min(260px, calc(100dvh - 24px));
+  padding: 8px 10px;
+  border: 1px solid rgba(185, 202, 222, 0.94);
+  border-radius: 11px;
+  background: rgba(252, 254, 255, 0.98);
+  box-shadow: 0 16px 38px rgba(35, 49, 68, 0.18);
+  color: #273a52;
+  font-size: 12px;
+  font-weight: 680;
+  line-height: 1.45;
+  overflow: hidden auto;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  pointer-events: none;
+}
+
+.annotation-context-menu {
+  position: fixed;
+  z-index: 95;
+  width: min(240px, calc(100dvw - 16px));
+  max-height: calc(100dvh - 16px);
+  display: grid;
+  gap: 5px;
+  padding: 9px;
+  border: 1px solid rgba(194, 207, 224, 0.92);
+  border-radius: 13px;
+  background: rgba(248, 251, 254, 0.98);
+  box-shadow: 0 16px 38px rgba(35, 49, 68, 0.16);
+  color: #293c54;
+  overflow: hidden auto;
+  overscroll-behavior: contain;
+}
+
+.annotation-context-menu span {
+  color: #75859a;
+  font-size: 10px;
+  font-weight: 760;
+}
+
+.annotation-context-menu strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #263951;
+  font-size: 12px;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow-wrap: anywhere;
+}
+
+.annotation-context-menu button {
+  justify-self: start;
+  max-width: 100%;
+  min-height: 28px;
+  padding: 0 11px;
+  border: 1px solid #9fc1e8;
+  border-radius: 999px;
+  background: #edf5ff;
+  color: #1f5d9b;
+  font-size: 11px;
+  font-weight: 760;
+  cursor: pointer;
+}
+
 .annotation-drawer-panel {
   height: 100%;
   margin-left: 40px;
-  display: grid;
-  grid-template-rows: auto auto auto auto minmax(0, 1fr) minmax(0, 1fr);
+  width: calc(100% - 40px);
+  min-width: 0;
+  max-width: calc(100% - 40px);
+  display: flex;
+  flex-direction: column;
   gap: 12px;
   padding: 16px;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  overflow-anchor: none;
   border: 1px solid rgba(194, 207, 224, 0.9);
   border-radius: 18px;
   background: rgba(247, 250, 253, 0.96);
@@ -13676,6 +13774,8 @@ summary:focus-visible {
 
 .annotation-drawer-header {
   display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
   gap: 12px;
   align-items: start;
   justify-content: space-between;
@@ -13686,7 +13786,7 @@ summary:focus-visible {
 .annotation-drawer-header h2 {
   margin: 2px 0 0;
   color: #22354c;
-  font-size: 16px;
+  font-size: 18px;
   line-height: 1.32;
 }
 
@@ -13699,6 +13799,7 @@ summary:focus-visible {
 .annotation-drawer-close,
 .annotation-form-tools button,
 .annotation-note-footer button {
+  max-width: 100%;
   height: 30px;
   border: 1px solid #cbd8e8;
   border-radius: 999px;
@@ -13707,51 +13808,94 @@ summary:focus-visible {
   font-size: 12px;
   font-weight: 760;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .annotation-drawer-close {
   padding: 0 11px;
 }
 
-.annotation-context-box {
+.annotation-anchor-strip {
+  min-width: 0;
   display: grid;
-  gap: 8px;
-  padding: 10px;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 8px;
+  align-items: baseline;
+  padding: 10px 11px;
   border: 1px solid rgba(213, 224, 236, 0.92);
-  border-radius: 12px;
+  border-radius: 13px;
   background: rgba(251, 253, 255, 0.76);
 }
 
-.annotation-context-box div {
-  display: grid;
-  grid-template-columns: 48px minmax(0, 1fr);
-  gap: 8px;
-  align-items: baseline;
-}
-
-.annotation-context-box span {
+.annotation-anchor-strip span {
   color: #75859a;
   font-size: 11px;
+  font-weight: 760;
 }
 
-.annotation-context-box strong {
+.annotation-anchor-strip strong {
   min-width: 0;
   color: #293d55;
+  font-size: 13px;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.annotation-anchor-strip small {
+  grid-column: 2;
+  min-width: 0;
+  color: #718198;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.annotation-draft-guard {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+  padding: 10px 11px;
+  border: 1px solid #e5d3a8;
+  border-radius: 13px;
+  background: #fbf6e7;
+  color: #5f4c24;
+}
+
+.annotation-draft-guard strong {
   font-size: 12px;
   line-height: 1.35;
-  overflow-wrap: anywhere;
 }
 
-.annotation-tag-row {
+.annotation-draft-guard span {
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.annotation-draft-guard div {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 7px;
 }
 
-.annotation-tag-row span,
+.annotation-draft-guard button {
+  max-width: 100%;
+  min-height: 28px;
+  border: 1px solid #d9c691;
+  border-radius: 999px;
+  background: rgba(255, 253, 247, 0.92);
+  color: #614b1f;
+  font-size: 11px;
+  font-weight: 760;
+  cursor: pointer;
+}
+
 .annotation-status-pill {
   display: inline-flex;
   align-items: center;
+  max-width: 100%;
   min-height: 24px;
   padding: 3px 9px;
   border: 1px solid #d3deeb;
@@ -13760,10 +13904,12 @@ summary:focus-visible {
   color: #4e627a;
   font-size: 11px;
   font-weight: 740;
+  white-space: nowrap;
 }
 
 .annotation-create-form {
   display: grid;
+  min-width: 0;
   gap: 8px;
 }
 
@@ -13777,6 +13923,7 @@ summary:focus-visible {
 
 .annotation-create-form textarea {
   width: 100%;
+  max-width: 100%;
   min-height: 94px;
   resize: vertical;
   border: 1px solid #ccd9e8;
@@ -13789,19 +13936,50 @@ summary:focus-visible {
   line-height: 1.5;
 }
 
+.annotation-note-edit {
+  width: 100%;
+  max-width: 100%;
+  min-height: 80px;
+  margin: 8px 0;
+  resize: vertical;
+  border: 1px solid #ccd9e8;
+  border-radius: 10px;
+  padding: 9px;
+  background: rgba(253, 254, 255, 0.95);
+  color: #263951;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .annotation-form-tools,
 .annotation-note-footer,
 .annotation-note-meta {
   display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
   gap: 8px;
   align-items: center;
   justify-content: space-between;
 }
 
+.annotation-note-actions {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  flex: 1 1 150px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
 .annotation-form-tools span,
 .annotation-note-meta time {
+  min-width: 0;
+  flex: 1 1 150px;
   color: #75859a;
   font-size: 11px;
+  overflow-wrap: anywhere;
 }
 
 .annotation-form-tools button {
@@ -13821,30 +13999,145 @@ summary:focus-visible {
 .annotation-section {
   min-height: 0;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
   gap: 8px;
+  overflow-anchor: none;
 }
 
 .annotation-note-list {
   min-height: 0;
+  min-width: 0;
   display: grid;
   align-content: start;
   gap: 8px;
-  overflow: auto;
+  overflow: visible;
   padding-right: 2px;
+  overflow-anchor: none;
 }
 
 .annotation-note-card,
 .annotation-legacy-note,
 .annotation-empty {
-  border: 1px solid rgba(211, 222, 235, 0.9);
+  min-width: 0;
+  max-width: 100%;
+  border: 1px solid rgba(205, 218, 234, 0.92);
   border-radius: 12px;
-  background: rgba(253, 254, 255, 0.86);
-  padding: 10px;
+  background: rgba(253, 254, 255, 0.9);
+  padding: 0;
+}
+
+.annotation-note-card.is-current-anchor {
+  border-color: #9fc1e8;
+  background: rgba(244, 249, 255, 0.92);
+}
+
+.annotation-note-summary {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  padding: 9px 10px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.annotation-note-summary::-webkit-details-marker {
+  display: none;
+}
+
+.annotation-note-summary::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid #6c7d92;
+  border-bottom: 1.5px solid #6c7d92;
+  transform: rotate(-45deg);
+  transition: transform 160ms ease;
+}
+
+.annotation-note-card[open] .annotation-note-summary::before {
+  transform: rotate(45deg);
+}
+
+.annotation-note-number {
+  max-width: 100%;
+  min-height: 23px;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border: 1px solid rgba(190, 207, 226, 0.9);
+  border-radius: 999px;
+  background: rgba(247, 250, 253, 0.94);
+  color: #50647c;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.annotation-anchor-pill {
+  max-width: 100%;
+  min-height: 23px;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border: 1px solid rgba(184, 205, 226, 0.9);
+  border-radius: 999px;
+  background: rgba(240, 246, 252, 0.92);
+  color: #38516e;
+  font-size: 11px;
+  font-weight: 780;
+  white-space: nowrap;
+}
+
+.annotation-anchor-pill.anchor-page {
+  border-color: rgba(196, 202, 216, 0.92);
+  background: rgba(245, 247, 250, 0.96);
+  color: #59687a;
+}
+
+.annotation-anchor-pill.anchor-row {
+  border-color: rgba(159, 193, 232, 0.92);
+  background: rgba(237, 245, 255, 0.96);
+  color: #275b8e;
+}
+
+.annotation-anchor-pill.anchor-field {
+  border-color: rgba(178, 206, 194, 0.95);
+  background: rgba(239, 248, 244, 0.96);
+  color: #3e6b57;
+}
+
+.annotation-anchor-pill.anchor-object,
+.annotation-anchor-pill.anchor-relation {
+  border-color: rgba(207, 198, 225, 0.92);
+  background: rgba(246, 242, 251, 0.96);
+  color: #5c4f76;
+}
+
+.annotation-note-summary strong {
+  flex: 1 1 120px;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  color: #2b3f58;
+  font-size: 12px;
+  font-weight: 780;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.annotation-note-body {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+  padding: 0 10px 10px;
+  border-top: 1px solid rgba(224, 231, 240, 0.82);
 }
 
 .annotation-note-card p,
 .annotation-legacy-note p {
+  min-width: 0;
   margin: 8px 0;
   color: #263951;
   font-size: 12px;
@@ -13853,8 +14146,181 @@ summary:focus-visible {
   overflow-wrap: anywhere;
 }
 
+[data-annotation-anchor-selected="true"] {
+  outline: 2px solid rgba(62, 135, 216, 0.42);
+  outline-offset: -2px;
+  background-color: rgba(237, 245, 255, 0.7) !important;
+}
+
+@keyframes annotationGlowSweep {
+  0% {
+    filter: saturate(1) brightness(1);
+  }
+  45% {
+    filter: saturate(1.04) brightness(1.015);
+  }
+  100% {
+    filter: saturate(1) brightness(1);
+  }
+}
+
+@keyframes annotationSoftPulse {
+  0% {
+    box-shadow:
+      0 0 0 1px rgba(10, 132, 255, 0.24),
+      0 0 0 0 rgba(10, 132, 255, 0);
+  }
+  42% {
+    box-shadow:
+      0 0 0 1px rgba(10, 132, 255, 0.34),
+      0 0 0 5px rgba(10, 132, 255, 0.11);
+  }
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(10, 132, 255, 0.24),
+      0 0 0 0 rgba(10, 132, 255, 0);
+  }
+}
+
+[data-user-note-anchor-marked="true"],
+[data-user-note-anchor-active="true"] {
+  position: relative;
+  scroll-margin-top: 112px;
+  scroll-margin-right: 460px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+:is([data-annotation-value="true"], [data-copy-text], .relation-chip, .standard-tooltip-chip, .standard-framework-name, .management-chip, .taxonomy-chip)[data-user-note-anchor-marked="true"],
+td[data-user-note-anchor-marked="true"],
+th[data-user-note-anchor-marked="true"] {
+  outline: 0;
+  border-radius: 5px;
+  background-image: none !important;
+  text-decoration-line: underline;
+  text-decoration-color: rgba(185, 128, 18, 0.8);
+  text-decoration-thickness: 0.22em;
+  text-decoration-skip-ink: none;
+  text-underline-offset: 0.2em;
+  box-shadow: none;
+  text-shadow: none;
+}
+
+:is([data-annotation-value="true"], [data-copy-text], .relation-chip, .standard-tooltip-chip, .standard-framework-name, .management-chip, .taxonomy-chip)[data-user-note-anchor-active="true"],
+td[data-user-note-anchor-active="true"],
+th[data-user-note-anchor-active="true"] {
+  outline: 0 !important;
+  border-radius: 7px;
+  background-color: rgba(255, 232, 88, 0.78) !important;
+  background-image:
+    linear-gradient(90deg, rgba(10, 132, 255, 0.1) 0%, transparent 36%, rgba(255, 255, 255, 0.28) 58%, transparent 100%),
+    linear-gradient(180deg, rgba(255, 252, 210, 0.76), rgba(255, 221, 59, 0.82)) !important;
+  background-repeat: no-repeat;
+  background-size: 100% 100%, 100% 100%;
+  text-decoration: none;
+  animation:
+    annotationGlowSweep 1.15s ease-in-out 0s 2,
+    annotationSoftPulse 1.65s ease-in-out 0s 1;
+  box-shadow:
+    0 0 0 2px rgba(10, 132, 255, 0.62),
+    0 0 0 6px rgba(10, 132, 255, 0.16),
+    0 5px 18px rgba(10, 132, 255, 0.15) !important;
+}
+
+tr[data-user-note-anchor-marked="true"],
+[data-maintenance-id][data-user-note-anchor-marked="true"],
+[data-capability-id][data-user-note-anchor-marked="true"] {
+  outline: 0;
+  box-shadow: inset 3px 0 0 rgba(215, 166, 40, 0.44);
+}
+
+[data-user-note-anchor-row-marked="true"] {
+  box-shadow: inset 3px 0 0 rgba(215, 166, 40, 0.44);
+}
+
+tr[data-user-note-anchor-marked="true"] > td,
+tr[data-user-note-anchor-marked="true"] > th,
+tr[data-user-note-anchor-row-marked="true"] > td,
+tr[data-user-note-anchor-row-marked="true"] > th,
+[data-maintenance-id][data-user-note-anchor-marked="true"] > td,
+[data-maintenance-id][data-user-note-anchor-marked="true"] > th,
+[data-capability-id][data-user-note-anchor-marked="true"] > td,
+[data-capability-id][data-user-note-anchor-marked="true"] > th {
+  background: transparent !important;
+}
+
+tr[data-user-note-anchor-marked="true"] > td:first-child,
+tr[data-user-note-anchor-marked="true"] > th:first-child,
+tr[data-user-note-anchor-row-marked="true"] > td:first-child,
+tr[data-user-note-anchor-row-marked="true"] > th:first-child,
+[data-maintenance-id][data-user-note-anchor-marked="true"] > td:first-child,
+[data-maintenance-id][data-user-note-anchor-marked="true"] > th:first-child,
+[data-capability-id][data-user-note-anchor-marked="true"] > td:first-child,
+[data-capability-id][data-user-note-anchor-marked="true"] > th:first-child {
+  box-shadow: inset 3px 0 0 rgba(215, 166, 40, 0.46);
+}
+
+[data-user-note-anchor-cell-marked="true"],
+td[data-user-note-anchor-cell-marked="true"],
+th[data-user-note-anchor-cell-marked="true"] {
+  background-color: transparent !important;
+  text-decoration-line: underline;
+  text-decoration-color: rgba(185, 128, 18, 0.8);
+  text-decoration-thickness: 0.22em;
+  text-decoration-skip-ink: none;
+  text-underline-offset: 0.2em;
+  box-shadow:
+    inset 0 0 0 1px rgba(217, 167, 38, 0.24),
+    inset 0 -3px 0 rgba(185, 128, 18, 0.32);
+}
+
+tr[data-user-note-anchor-active="true"],
+[data-user-note-anchor-row-active="true"] {
+  animation: annotationGlowSweep 1.15s ease-in-out 0s 2;
+  box-shadow:
+    inset 4px 0 0 rgba(10, 132, 255, 0.72),
+    0 0 0 2px rgba(10, 132, 255, 0.18) !important;
+}
+
+tr[data-user-note-anchor-active="true"] > td,
+tr[data-user-note-anchor-active="true"] > th,
+tr[data-user-note-anchor-row-active="true"] > td,
+tr[data-user-note-anchor-row-active="true"] > th {
+  background:
+    linear-gradient(90deg, rgba(255, 220, 58, 0.68), rgba(255, 243, 160, 0.58) 56%, rgba(225, 241, 255, 0.46)) !important;
+}
+
+[data-user-note-anchor-cell-active="true"],
+td[data-user-note-anchor-cell-active="true"],
+th[data-user-note-anchor-cell-active="true"] {
+  background-color: rgba(255, 225, 73, 0.72) !important;
+  box-shadow:
+    inset 0 0 0 2px rgba(10, 132, 255, 0.42),
+    0 0 0 5px rgba(10, 132, 255, 0.12) !important;
+}
+
+.relation-chip[data-user-note-anchor-marked="true"],
+.standard-tooltip-chip[data-user-note-anchor-marked="true"],
+.management-chip[data-user-note-anchor-marked="true"],
+.taxonomy-chip[data-user-note-anchor-marked="true"] {
+  border-color: rgba(212, 166, 45, 0.44) !important;
+  box-shadow:
+    inset 0 -0.52em 0 rgba(255, 225, 70, 0.5),
+    0 0 0 1px rgba(214, 166, 40, 0.22);
+}
+
+.relation-chip[data-user-note-anchor-active="true"],
+.standard-tooltip-chip[data-user-note-anchor-active="true"],
+.management-chip[data-user-note-anchor-active="true"],
+.taxonomy-chip[data-user-note-anchor-active="true"] {
+  background-image: linear-gradient(180deg, rgba(255, 252, 217, 0.98), rgba(255, 220, 58, 0.8)) !important;
+  border-color: rgba(10, 132, 255, 0.64) !important;
+}
+
 .annotation-note-footer select {
+  flex: 0 1 132px;
   min-width: 104px;
+  max-width: 100%;
   height: 28px;
   border: 1px solid #ccd9e8;
   border-radius: 999px;
@@ -13865,8 +14331,20 @@ summary:focus-visible {
 }
 
 .annotation-note-footer button {
+  flex: 0 0 auto;
+  min-height: 28px;
+  border: 1px solid #cbd8e8;
+  border-radius: 999px;
+  background: rgba(252, 254, 255, 0.94);
   padding: 0 10px;
   color: #7a4a42;
+  font-size: 11px;
+  font-weight: 760;
+  cursor: pointer;
+}
+
+.annotation-note-footer button[data-user-note-jump] {
+  color: #315f8e;
 }
 
 .annotation-empty {
@@ -13909,30 +14387,42 @@ summary:focus-visible {
   .user-annotation-drawer {
     transition-duration: 60ms;
   }
+
+  [data-user-note-anchor-active="true"],
+  [data-user-note-anchor-row-active="true"] {
+    animation: none;
+  }
 }
 
 @media (max-width: 720px) {
   .user-annotation-drawer {
     top: 72px;
     bottom: 12px;
-    width: calc(100vw - 18px);
+    right: 8px;
+    width: calc(100vw - 16px);
   }
 
   .user-annotation-drawer.is-open {
-    transform: translateX(-8px);
+    transform: translateX(0);
   }
 }
 
 .app-shell-integrated .capability-workbench-tools {
   grid-area: search;
   min-width: 0;
+  width: min(100%, 560px);
   align-self: start;
+  justify-self: end;
   justify-content: stretch;
 }
 
 .app-shell-integrated #capabilitySearchInput {
   width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   height: 34px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .preview-relation-stage {
@@ -21081,6 +21571,58 @@ body {
   color: var(--sapd-structure-text) !important;
 }
 
+.relation-chip[data-user-note-anchor-marked="true"],
+.relation-chip.technical-chip.service-chip[data-user-note-anchor-marked="true"],
+.original-matrix-panel .relation-chip[data-user-note-anchor-marked="true"],
+.original-matrix-panel .relation-chip.technical-chip.service-chip[data-user-note-anchor-marked="true"],
+.environment-tab-table-pane .environment-mapping-table .relation-chip[data-user-note-anchor-marked="true"],
+.environment-tab-table-pane .environment-mapping-table .relation-chip.technical-chip.service-chip[data-user-note-anchor-marked="true"],
+.dev-lifecycle-workspace .relation-chip[data-user-note-anchor-marked="true"],
+.dev-lifecycle-workspace .relation-chip.technical-chip.service-chip[data-user-note-anchor-marked="true"],
+.maintenance-data-table .relation-chip[data-user-note-anchor-marked="true"],
+.maintenance-table .relation-chip[data-user-note-anchor-marked="true"],
+.standard-tooltip-chip[data-user-note-anchor-marked="true"],
+.standard-control-code-chip[data-user-note-anchor-marked="true"],
+.standard-framework-name[data-user-note-anchor-marked="true"],
+.management-chip[data-user-note-anchor-marked="true"],
+.taxonomy-chip[data-user-note-anchor-marked="true"] {
+  border-color: rgba(212, 166, 45, 0.62) !important;
+  background-image: none !important;
+  text-decoration-line: underline;
+  text-decoration-color: rgba(185, 128, 18, 0.82);
+  text-decoration-thickness: 0.2em;
+  text-decoration-skip-ink: none;
+  text-underline-offset: 0.18em;
+  box-shadow:
+    inset 0 -3px 0 rgba(185, 128, 18, 0.38),
+    0 0 0 1px rgba(185, 128, 18, 0.34) !important;
+}
+
+.relation-chip[data-user-note-anchor-active="true"],
+.relation-chip.technical-chip.service-chip[data-user-note-anchor-active="true"],
+.original-matrix-panel .relation-chip[data-user-note-anchor-active="true"],
+.original-matrix-panel .relation-chip.technical-chip.service-chip[data-user-note-anchor-active="true"],
+.environment-tab-table-pane .environment-mapping-table .relation-chip[data-user-note-anchor-active="true"],
+.environment-tab-table-pane .environment-mapping-table .relation-chip.technical-chip.service-chip[data-user-note-anchor-active="true"],
+.dev-lifecycle-workspace .relation-chip[data-user-note-anchor-active="true"],
+.dev-lifecycle-workspace .relation-chip.technical-chip.service-chip[data-user-note-anchor-active="true"],
+.maintenance-data-table .relation-chip[data-user-note-anchor-active="true"],
+.maintenance-table .relation-chip[data-user-note-anchor-active="true"],
+.standard-tooltip-chip[data-user-note-anchor-active="true"],
+.standard-control-code-chip[data-user-note-anchor-active="true"],
+.standard-framework-name[data-user-note-anchor-active="true"],
+.management-chip[data-user-note-anchor-active="true"],
+.taxonomy-chip[data-user-note-anchor-active="true"] {
+  border-color: rgba(10, 132, 255, 0.66) !important;
+  background:
+    linear-gradient(90deg, rgba(10, 132, 255, 0.14) 0%, rgba(255, 255, 255, 0) 34%, rgba(255, 255, 255, 0.34) 58%, rgba(255, 255, 255, 0) 100%),
+    linear-gradient(180deg, rgba(255, 252, 210, 0.96), rgba(255, 221, 59, 0.88)) !important;
+  box-shadow:
+    0 0 0 2px rgba(10, 132, 255, 0.62),
+    0 0 0 6px rgba(10, 132, 255, 0.16),
+    0 5px 18px rgba(10, 132, 255, 0.15) !important;
+}
+
 /* 2026-05-30 relation chip containment for dense matrix cells */
 .relation-chip,
 .original-matrix-panel .relation-chip,
@@ -22027,5 +22569,152 @@ body.app-shell-locked {
 
   .dev-lifecycle-workspace .lifecycle-stage-search {
     display: none;
+  }
+}
+
+/* OI-128C revision: final Apple shell rules for compact capability page header. */
+.app-shell-integrated .capability-workbench-head {
+  min-height: 86px;
+  grid-template-areas:
+    "main stats"
+    "main search";
+  grid-template-columns: minmax(360px, 1fr) minmax(360px, 520px);
+  grid-template-rows: auto auto;
+  align-items: start;
+  gap: 5px 14px;
+  overflow: visible;
+  padding: 8px 16px 9px;
+}
+
+.app-shell-integrated .capability-focus-head-slot .preview-focus-main strong {
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.app-shell-integrated .capability-focus-head-slot .preview-focus-stats {
+  align-self: start;
+  gap: 5px;
+}
+
+.app-shell-integrated .capability-focus-head-slot .preview-focus-stats span {
+  min-height: 30px;
+  padding: 3px 6px;
+}
+
+.app-shell-integrated .capability-focus-head-slot .preview-focus-stats strong {
+  font-size: 12px;
+}
+
+.app-shell-integrated .capability-workbench-tools {
+  grid-area: search;
+  width: min(100%, 560px);
+  min-width: 0;
+  align-self: center;
+  justify-self: end;
+}
+
+.app-shell-integrated #capabilitySearchInput {
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  box-sizing: border-box;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 17px;
+  background: rgba(229, 235, 243, 0.82);
+  color: #263951;
+  line-height: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-shell-integrated #capabilitySearchInput::placeholder {
+  color: #6f7f94;
+}
+
+.capability-tree-pane .tree-row[data-user-note-anchor-marked="true"],
+.app-shell-integrated .capability-tree-pane .tree-row[data-user-note-anchor-marked="true"] {
+  border-color: rgba(185, 128, 18, 0.48);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.6)),
+    color-mix(in oklch, rgba(185, 128, 18, 0.34) 22%, var(--panel));
+  box-shadow:
+    inset 0 -3px 0 rgba(185, 128, 18, 0.46),
+    0 0 0 1px rgba(185, 128, 18, 0.18);
+}
+
+.capability-tree-pane .tree-row[data-user-note-anchor-active="true"],
+.app-shell-integrated .capability-tree-pane .tree-row[data-user-note-anchor-active="true"] {
+  border-color: rgba(10, 132, 255, 0.66);
+  background:
+    linear-gradient(180deg, rgba(255, 252, 210, 0.92), rgba(255, 232, 88, 0.68)),
+    color-mix(in oklch, var(--apple-blue, #0a84ff) 9%, var(--panel));
+  box-shadow:
+    inset 0 -3px 0 rgba(10, 132, 255, 0.5),
+    0 0 0 2px rgba(10, 132, 255, 0.52),
+    0 0 0 6px rgba(10, 132, 255, 0.14);
+}
+
+.capability-tree-pane .tree-row[data-user-note-anchor-marked="true"] .node-title,
+.capability-tree-pane .tree-row[data-user-note-anchor-marked="true"] .node-code,
+.app-shell-integrated .capability-tree-pane .tree-row[data-user-note-anchor-marked="true"] .node-title,
+.app-shell-integrated .capability-tree-pane .tree-row[data-user-note-anchor-marked="true"] .node-code {
+  text-decoration-line: underline;
+  text-decoration-color: rgba(185, 128, 18, 0.82);
+  text-decoration-thickness: 0.18em;
+  text-decoration-skip-ink: none;
+  text-underline-offset: 0.18em;
+}
+
+.guide-slide-stage[data-annotation-target-ref],
+.guide-thumb[data-annotation-target-ref] {
+  scroll-margin-top: 112px;
+}
+
+.guide-slide-stage[data-user-note-anchor-marked="true"] {
+  border-color: rgba(185, 128, 18, 0.52);
+  box-shadow:
+    inset 0 0 0 2px rgba(185, 128, 18, 0.18),
+    inset 0 -4px 0 rgba(185, 128, 18, 0.44),
+    0 12px 28px rgba(65, 52, 32, 0.12);
+}
+
+.guide-thumb[data-user-note-anchor-marked="true"] {
+  border-color: rgba(185, 128, 18, 0.52);
+  background: rgba(255, 249, 229, 0.92);
+  box-shadow:
+    inset 0 -3px 0 rgba(185, 128, 18, 0.44),
+    0 0 0 1px rgba(185, 128, 18, 0.16);
+}
+
+.guide-slide-stage[data-user-note-anchor-active="true"],
+.guide-thumb[data-user-note-anchor-active="true"] {
+  border-color: rgba(10, 132, 255, 0.68);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 225, 70, 0.56),
+    inset 0 -5px 0 rgba(185, 128, 18, 0.58),
+    0 0 0 2px rgba(10, 132, 255, 0.58),
+    0 0 0 7px rgba(10, 132, 255, 0.14),
+    0 14px 30px rgba(10, 132, 255, 0.14);
+}
+
+.guide-slide-stage[data-annotation-anchor-selected="true"],
+.guide-thumb[data-annotation-anchor-selected="true"] {
+  outline: 2px solid rgba(10, 132, 255, 0.46);
+  outline-offset: 2px;
+}
+
+@media (max-width: 1180px) {
+  .app-shell-integrated .capability-workbench-head {
+    grid-template-areas:
+      "main"
+      "stats"
+      "search";
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+  }
+
+  .app-shell-integrated .capability-workbench-tools {
+    width: 100%;
+    justify-self: stretch;
   }
 }

@@ -50,11 +50,18 @@
     return Boolean(text && text !== EMPTY_VALUE);
   }
 
+  function annotationValueAttrs(value) {
+    const normalized = String(value || "").trim();
+    if (!isBusinessText(normalized)) return "";
+    const escaped = escapeHtml(normalized);
+    return ` data-annotation-value="true" data-copy-text="${escaped}" title="${escaped}" data-annotation-tooltip="${escaped}"`;
+  }
+
   function renderFieldLine(line) {
     const numbered = line.match(/^(\d+['’′]?)[).）、]\s*(.+)$/);
     if (numbered) {
       return `
-        <span class="lifecycle-field-line is-numbered">
+        <span class="lifecycle-field-line is-numbered"${annotationValueAttrs(line)}>
           <span class="line-marker">${escapeHtml(numbered[1])}</span>
           <span class="line-text">${escapeHtml(numbered[2])}</span>
         </span>
@@ -64,21 +71,21 @@
     const term = line.match(/^([^：:]{2,14})[：:]\s*(.+)$/);
     if (term) {
       return `
-        <span class="lifecycle-field-line is-term">
+        <span class="lifecycle-field-line is-term"${annotationValueAttrs(line)}>
           <span class="line-term">${escapeHtml(term[1])}</span>
           <span class="line-text">${escapeHtml(term[2])}</span>
         </span>
       `;
     }
 
-    return `<span class="lifecycle-field-line"><span class="line-text">${escapeHtml(line)}</span></span>`;
+    return `<span class="lifecycle-field-line"${annotationValueAttrs(line)}><span class="line-text">${escapeHtml(line)}</span></span>`;
   }
 
   function renderMainActivityLine(line) {
     const numbered = line.match(/^(\d+['’′]?)[).）、]\s*(.+)$/);
     if (!numbered) return renderFieldLine(line);
     return `
-      <span class="lifecycle-field-line is-numbered">
+      <span class="lifecycle-field-line is-numbered"${annotationValueAttrs(line)}>
         <span class="line-marker">${escapeHtml(numbered[1])}</span>
         <span class="line-text">${renderMainActivityText(numbered[2])}</span>
       </span>
@@ -128,7 +135,7 @@
     if (!items.length) return `<span class="empty-inline">${EMPTY_VALUE}</span>`;
     return `
       <div class="lifecycle-inline-chips ${escapeHtml(tone)}">
-        ${items.map((item) => `<span class="lifecycle-chip-item"><em>${escapeHtml(item.label)}</em></span>`).join("")}
+        ${items.map((item) => `<span class="lifecycle-chip-item"${annotationValueAttrs(item.label)}><em>${escapeHtml(item.label)}</em></span>`).join("")}
       </div>
     `;
   }
@@ -174,7 +181,9 @@
       return display.relationChip(utils, { ...item, code, title, objectKind }, { kind: objectKind, showKind: true, preferCodeTitle: true });
     }
     const kindClass = objectKind.includes("措施") ? "measure-chip" : objectKind.includes("模块") ? "module-chip" : objectKind.includes("服务") ? "service-chip" : "";
-    return `<span class="relation-chip technical-chip ${kindClass}">${objectKind ? `<em>${escapeHtml(objectKind)}</em>` : ""}<span class="relation-chip-text">${escapeHtml([code, title].filter(Boolean).join(" "))}</span></span>`;
+    const visibleText = [code, title].filter(Boolean).join(" ");
+    const annotationText = [objectKind, visibleText].filter(Boolean).join(" | ");
+    return `<span class="relation-chip technical-chip ${kindClass}"${annotationValueAttrs(annotationText)}>${objectKind ? `<em>${escapeHtml(objectKind)}</em>` : ""}<span class="relation-chip-text">${escapeHtml(visibleText)}</span></span>`;
   }
 
   function renderDataScenarioList(scenes) {
@@ -186,11 +195,11 @@
           .map(
             (scene) => `
               <div class="data-scenario-item">
-                <div class="data-scenario-title">
+                <div class="data-scenario-title"${annotationValueAttrs([scene.code, scene.title].filter(Boolean).join(" "))}>
                   ${scene.code ? `<code>${escapeHtml(scene.code)}</code>` : ""}
                   <strong>${escapeHtml(scene.title || EMPTY_VALUE)}</strong>
                 </div>
-                ${scene.description ? `<p>${escapeHtml(scene.description)}</p>` : ""}
+                ${scene.description ? `<p${annotationValueAttrs(scene.description)}>${escapeHtml(scene.description)}</p>` : ""}
               </div>
             `,
           )
@@ -216,7 +225,7 @@
       <div class="source-reference-note lifecycle-activity-source-note">
         <span class="source-reference-label activity-source-label">${escapeHtml(label)}</span>
         <div class="source-reference-value activity-source-values">
-          <span>${escapeHtml(referenceText)}</span>
+          <span${annotationValueAttrs(referenceText)}>${escapeHtml(referenceText)}</span>
         </div>
       </div>
     `;
@@ -272,8 +281,9 @@
 
   function renderDataScenarioTitleCell(scene) {
     if (!scene?.title && !scene?.code) return `<span class="empty-inline">${EMPTY_VALUE}</span>`;
+    const titleText = [scene.code, scene.title].filter(Boolean).join(" ");
     return `
-      <div class="data-scenario-title-cell">
+      <div class="data-scenario-title-cell"${annotationValueAttrs(titleText)}>
         ${scene.code ? `<code>${escapeHtml(scene.code)}</code>` : ""}
         <strong>${escapeHtml(scene.title || EMPTY_VALUE)}</strong>
       </div>
@@ -282,7 +292,7 @@
 
   function renderDataScenarioDefinitionCell(scene) {
     if (!scene?.description) return `<span class="empty-inline">${EMPTY_VALUE}</span>`;
-    return `<div class="data-scenario-definition">${escapeHtml(scene.description)}</div>`;
+    return `<div class="data-scenario-definition"${annotationValueAttrs(scene.description)}>${escapeHtml(scene.description)}</div>`;
   }
 
   function renderDataProcessProfileRows(row, selectedStageId) {
@@ -333,8 +343,8 @@
     const isNotApplicable = policy.status === "not_applicable" || policy.text === "不涉及";
     return `
       <div class="data-policy-cell ${isNotApplicable ? "is-not-applicable" : ""}">
-        ${policy.code ? `<strong>${escapeHtml(policy.code)}</strong>` : ""}
-        <span>${escapeHtml(policy.text)}</span>
+        ${policy.code ? `<strong${annotationValueAttrs(policy.code)}>${escapeHtml(policy.code)}</strong>` : ""}
+        <span${annotationValueAttrs(policy.text)}>${escapeHtml(policy.text)}</span>
         ${sourceNote(policy.reference)}
       </div>
     `;
@@ -635,7 +645,7 @@
                     .map(
                       (system) => `
                         <tr>
-                          <td>${escapeHtml(titleOf(system))}</td>
+                          <td><span${annotationValueAttrs(titleOf(system))}>${escapeHtml(titleOf(system))}</span></td>
                           <td>${fieldCell(system.components.map((item) => titleOf(item, ""))) || EMPTY_VALUE}</td>
                         </tr>
                       `,

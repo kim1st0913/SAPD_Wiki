@@ -1,11 +1,21 @@
 (function () {
   const components = (window.sapdComponents = window.sapdComponents || {});
   const utils = components.utils;
+  const display = window.sapdDisplay || {};
+
+  function annotationAttrs(value) {
+    return display.annotationValueAttrs?.(utils, value) || "";
+  }
 
   function chipList(items, empty = "待补充") {
     const rows = utils.list(items).filter(Boolean);
     if (!rows.length) return `<span class="empty-inline">${utils.escapeHtml(empty)}</span>`;
-    return rows.map((item) => `<span class="relation-chip">${utils.escapeHtml(utils.titleOf(item))}</span>`).join("");
+    return rows
+      .map((item) => {
+        const label = utils.titleOf(item);
+        return `<span class="relation-chip"${annotationAttrs(label)}><span class="relation-chip-text">${utils.escapeHtml(label)}</span></span>`;
+      })
+      .join("");
   }
 
   function renderSoftwareRows(rows) {

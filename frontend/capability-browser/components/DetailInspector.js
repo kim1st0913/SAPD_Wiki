@@ -11,13 +11,23 @@
     if (!rows.length) return `<span class="empty-inline">${utils.escapeHtml(empty)}</span>`;
     const visible = rows.slice(0, limit);
     const more = rows.length - visible.length;
-    return `${visible.map((item) => `<span class="relation-chip">${utils.escapeHtml(utils.titleOf(item))}</span>`).join("")}${more > 0 ? `<span class="relation-chip muted">+${more}</span>` : ""}`;
+    return `${visible
+      .map((item) => {
+        const label = utils.titleOf(item);
+        return `<span class="relation-chip"${display.annotationValueAttrs?.(utils, label) || ""}><span class="relation-chip-text">${utils.escapeHtml(label)}</span></span>`;
+      })
+      .join("")}${more > 0 ? `<span class="relation-chip muted">+${more}</span>` : ""}`;
   }
 
   function summaryGrid(items) {
     return `
       <div class="source-entity-grid inspector-summary-grid">
-        ${items.map((item) => `<div><span>${utils.escapeHtml(item.label)}</span><strong>${utils.escapeHtml(item.value)}</strong></div>`).join("")}
+        ${items
+          .map((item) => {
+            const value = utils.text(item.value ?? "").trim();
+            return `<div><span>${utils.escapeHtml(item.label)}</span><strong${display.annotationValueAttrs?.(utils, value) || ""}>${utils.escapeHtml(value)}</strong></div>`;
+          })
+          .join("")}
       </div>
     `;
   }

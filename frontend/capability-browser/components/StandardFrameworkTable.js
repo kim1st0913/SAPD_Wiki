@@ -230,7 +230,8 @@
           ${codes
             .map((code) => {
               const tooltip = focusTooltip(code, focusByCode);
-              return `<span class="standard-tooltip-chip standard-focus-code standard-code-breaks" data-tooltip="${utils.escapeHtml(tooltip)}" aria-label="${utils.escapeHtml(tooltip || code)}" tabindex="0">${codeWithBreaks(code)}</span>`;
+              const copyText = tooltip || code;
+              return `<span class="standard-tooltip-chip standard-focus-code standard-code-breaks" data-annotation-value="true" data-copy-text="${utils.escapeHtml(copyText)}" title="${utils.escapeHtml(copyText)}" data-annotation-tooltip="${utils.escapeHtml(copyText)}" data-tooltip="${utils.escapeHtml(tooltip)}" aria-label="${utils.escapeHtml(copyText)}" tabindex="0">${codeWithBreaks(code)}</span>`;
             })
             .join("")}
         </div>

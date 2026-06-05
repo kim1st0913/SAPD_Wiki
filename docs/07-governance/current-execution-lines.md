@@ -14,13 +14,17 @@
 
 ## 当前唯一建议主线
 
+2026-06-05 主控接管说明：当前主控线程切换为 `019e966d-81e1-7261-bd89-370c41a8c90e`。旧 `product design Review` 线程 `019e8b6d-8ae3-7d20-8436-3024c4683891` 仍显示 active，但因上下文过重、执行慢和批注修复质量不稳定，降级为旧主控 / 待 fan-in 来源，不再默认写入。后续复杂工作采用“轻主控 + 专项 subagent / 专项会话 + fan-in 验收”：主控负责边界、调度、验收和 checkpoint；专项会话负责窄范围实现或只读验证。
+
+`OI-128C` 最新结论：二次人工抽查暴露的安全技术措施 / 模块 / 服务高亮、点击页面后高亮保留、非首屏定位抽屉滚动、抽屉半显示，以及后续变更中的定位落到文字后方、L0-L2 对象批注无常态高亮、常态高亮线视觉强度和指南 / 幻灯片页无法添加批注问题已修复；用户已基本验收通过，当前批注设计已固化为全局基线。提交后补跑当前用户库 33 条保存批注真实 Chrome 严格回归，最终 `33/33 pass`、`failures=[]`、`consoleIssues=[]`。下一步只做 `OI-128C` 单独 checkpoint amend 收口；不要继续扩大批注功能，也不要和工作台 V2 / V3 混在同一 checkpoint。
+
 | 执行线 | 状态 | 为什么现在排第一 | 下一步 |
 |---|---|---|---|
-| Dirty worktree 验收与 checkpoint | 当前主线 | 当前工作区已有多主题未提交改动；不先验收会继续扩大回退成本 | 按文件组看局部 diff，跑对应治理脚本，决定 checkpoint / 修正 / 暂停 |
+| Dirty worktree 验收与 checkpoint | 当前主线 | 当前工作区已有多主题未提交改动；`OI-128C` 已基本验收并固化为全局批注基线，但仍未 checkpoint，不先验收会继续扩大回退成本 | 先列 `OI-128C` 拟 stage 文件，用户确认后单独做 checkpoint |
 
 ## EL-001 验收快照（2026-06-03）
 
-本轮主控只做 dirty worktree 验收和基线验证，未 stage、未 commit、未回退文件。当前工作区仍在 `main`，本地领先 `origin/main` 1 个提交，且没有 staged 文件。
+本轮主控只做 dirty worktree 验收和基线验证，未 stage、未 commit、未回退文件。当前工作区仍在 `main`，本地领先 `origin/main` 4 个提交，且没有 staged 文件。
 
 | 文件组 | 主要文件 | 验收结论 | 主控建议 |
 |---|---|---|---|
@@ -58,7 +62,7 @@
 
 | 模块线程 | 建议线程类型 | 对应执行线 | 默认权限 | fan-in 给主控的内容 |
 |---|---|---|---|---|
-| 主控 / 收敛线程 | 主控会话 | EL-001、EL-002、全部执行线排序 | 可写 | 最终采纳、checkpoint、状态入口更新 |
+| 主控 / 收敛线程 | 主控会话 | EL-001、EL-002、全部执行线排序 | 可写 | 当前主控为 `019e966d-81e1-7261-bd89-370c41a8c90e`；负责最终采纳、checkpoint、状态入口更新 |
 | 前端 / ArchiMate 图例线程 | 辅助或临时写入 | EL-003 | 默认只读；写入需用户确认 | UI 改动范围、截图 / smoke 证据、是否可 checkpoint |
 | ArchiMate 建模语言页优化线程 | 后续设计 / 性能优化 | EL-025 | 当前只读评估；实现需单线写入 | 页面阅读路径、区域导航、图片加载策略、SAPD 映射说明 |
 | Delivery / macOS ZIP 线程 | 辅助或临时写入 | EL-004 | 默认只读；脚本写入需单独授权 | 启动脚本、ZIP、checksum、诊断结果 |
@@ -109,7 +113,7 @@
 
 | 编号 | 执行线 | 状态 | 当前证据 / 入口 | 恢复条件 | 下一步 |
 |---|---|---|---|---|---|
-| EL-001 | Dirty worktree 验收与 checkpoint | 当前主线 | `git status --short --branch` 显示 `main` ahead 1，且前端、治理文档、Delivery 脚本仍有未提交改动 | 任何新功能开始前 | `git diff --stat` 后按主题验收：前端 UI、治理文档、Delivery 脚本、Open Issues 归档 |
+| EL-001 | Dirty worktree 验收与 checkpoint | 当前主线 | `git status --short --branch` 显示 `main` ahead 5，`OI-128C` 已提交 checkpoint；提交后补跑当前用户库 33 条保存批注真实 Chrome 严格回归已 `33/33 pass`，用户已基本验收，批注设计已固化为全局基线 | 任何新功能开始前；先完成 `OI-128C` checkpoint amend 收口并确认工作区干净 | 不要 `git add .`，不要混入工作台 V2 / V3；完成 amend 后进入 `OI-135` 用户库治理或 Delivery Bundle 后续 |
 | EL-002 | 执行线收敛治理 | 待验收 | `docs/07-governance/execution-line-convergence-workflow.md`、本文档、`CURRENT_STATE.md` | 用户确认此工作流可作为后续默认方式 | 将本台账作为新会话恢复入口；必要时 checkpoint |
 | EL-003 | ArchiMate / SAPD 元素图例前端修正 | 待验收 | 当前 dirty diff 涉及 `app.js`、`styles.css`、`index.html`、`AppShell.js`，`progress.md` 已记录多轮浏览器标注反馈 | 先完成 EL-001；若继续改前端，必须按页面和文件组分开 | 只读核对 UI 改动范围，跑 `node --check`、页面 smoke、必要时浏览器截图 |
 | EL-004 | macOS ZIP alpha `Killed: 9` 启动提示修复 | 待验收 | dirty diff 涉及 `scripts/build_zip_bundle.py`、`scripts/start-macos.command`；`progress.md` 记录已替换发行 ZIP 与 checksum | 先完成脚本语法和打包边界验证；不默认推进 Windows UAT | 验证 `py_compile`、`sh -n`、`check_github_data_boundary.py`，确认是否 checkpoint |
@@ -141,7 +145,8 @@
 
 | Thread id | 线程标题 | Codex 状态 | 映射执行线 | 角色 / 当前处理 |
 |---|---|---|---|---|
-| `019e8b6d-8ae3-7d20-8436-3024c4683891` | `product design Review` | active / inProgress | EL-001、EL-002、全部执行线 | 当前主控收敛线程；负责读取全线程、更新治理入口和最终 fan-in |
+| `019e966d-81e1-7261-bd89-370c41a8c90e` | `同步上下文并评估修复方案` | active | EL-001、EL-002、FE-ANN | 当前主控接管线程；负责轻量恢复、专项会话调度、fan-in 验收、状态入口更新和 checkpoint 判断 |
+| `019e8b6d-8ae3-7d20-8436-3024c4683891` | `product design Review` | active / inProgress | EL-001、EL-002、FE-ANN | 旧主控 / 待 fan-in 来源；不再默认写入。仅读取其产物、验证结果和失败证据，必要时由当前主控决定是否采纳 |
 | `019e8246-0825-7292-a542-87631d98f6dd` | `archimate建模` | idle | EL-003、EL-014、EL-025 | 已完成 PDF 图片化和区域阅读初版；当前效果待验收，后续优化走 EL-025 |
 | `019e6d81-0a90-7fb2-966c-515fe4890b07` | `交付打包` | idle | EL-004、EL-005、EL-011 | macOS ZIP alpha、`Killed: 9`、Windows UAT 和 C/S 预研参考；下一步先只读验收 dirty diff |
 | `019e7eca-4622-7862-b1be-6333f8392b10` | `治理会话2` | idle | EL-006、EL-007、EL-016、EL-001 | Open Issues 瘦身、字典治理、能力页契约和交接说明来源；作为当前治理事实入口 |
@@ -174,7 +179,8 @@
 
 | 处理分类 | 线程 | 建议动作 | 原因 |
 |---|---|---|---|
-| 当前主控保留 | `product design Review` | 不归档，由当前会话继续 EL-001 / EL-002 | 当前主控负责线程收敛、dirty diff 验收和 checkpoint 判断 |
+| 当前主控保留 | `同步上下文并评估修复方案` | 不归档，由当前会话继续 EL-001 / EL-002 / FE-ANN | 当前主控负责线程收敛、dirty diff 验收、专项会话调度和 checkpoint 判断 |
+| 旧主控降级 | `product design Review` | 暂不归档，先作为历史产物和失败证据来源；不再默认写入 | 该线程上下文过重、执行慢且批注修复质量不稳定；后续由当前主控 fan-in |
 | 运行中保留 | `数据安全页面1` | 暂不归档，不抢写；等产出后 fan-in | 该线程仍为 active / inProgress，直接归档会丢失正在执行的上下文 |
 | 主控接手 | `治理会话2`、`交付打包` | 暂不继续原线程；由主控在 EL-001 验收时接手其产物 | 两者已有明确产物和 dirty diff，需要主控统一判断是否采纳 / checkpoint |
 | 当前会话接手 | `前端设计3`、`安全能力图谱4`、`安全知识页面2`、`开发安全页面2`、`信息化环境安全能力1` | 不再作为独立写入线程；主控按 EL-016 到 EL-020 分页面验收 | 这些线程都指向前端公共文件，继续多线程写入会再次冲突 |

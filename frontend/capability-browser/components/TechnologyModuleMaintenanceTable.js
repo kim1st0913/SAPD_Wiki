@@ -20,7 +20,11 @@
     const rows = utils.list(items).filter(Boolean);
     if (!rows.length) return `<span class="empty-inline">${utils.escapeHtml(empty)}</span>`;
     return rows
-      .map((item) => `<span class="relation-chip ${display.chipClass?.(fallbackKind) || ""}">${utils.escapeHtml(entityLabel(item, empty))}</span>`)
+      .map((item) => {
+        const label = entityLabel(item, empty);
+        const annotationText = [fallbackKind, label].filter(Boolean).join(" | ");
+        return `<span class="relation-chip ${display.chipClass?.(fallbackKind) || ""}"${display.annotationValueAttrs?.(utils, annotationText) || ""}>${utils.escapeHtml(label)}</span>`;
+      })
       .join("");
   }
 

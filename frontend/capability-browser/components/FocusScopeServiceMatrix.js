@@ -11,6 +11,10 @@
     return "";
   }
 
+  function annotationAttrs(value) {
+    return display.annotationValueAttrs?.(utils, value) || "";
+  }
+
   function chipList(items, empty = "暂无", limit = Infinity, fallbackKind = "") {
     if (display.relationChipList) return display.relationChipList(utils, items, { empty, limit, kind: fallbackKind, showKind: true });
     const rows = utils.list(items).filter(Boolean);
@@ -20,7 +24,9 @@
     return `${visible
       .map((item) => {
         const kind = item.kind || item.objectKind || fallbackKind;
-        return `<span class="relation-chip ${technicalChipClass(kind)}">${kind ? `<em>${utils.escapeHtml(kind)}</em>` : ""}<span class="relation-chip-text">${utils.escapeHtml(utils.codeTitleOf(item))}</span></span>`;
+        const label = utils.codeTitleOf(item);
+        const annotationText = [kind, label].filter(Boolean).join(" | ");
+        return `<span class="relation-chip ${technicalChipClass(kind)}"${annotationAttrs(annotationText)}>${kind ? `<em>${utils.escapeHtml(kind)}</em>` : ""}<span class="relation-chip-text">${utils.escapeHtml(label)}</span></span>`;
       })
       .join("")}${more > 0 ? `<span class="relation-chip muted">+${more}</span>` : ""}`;
   }

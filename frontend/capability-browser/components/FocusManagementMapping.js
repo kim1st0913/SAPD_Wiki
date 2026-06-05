@@ -17,7 +17,7 @@
     return `${visible
       .map((item) => {
         const title = utils.escapeHtml(utils.titleOf(item));
-        return `<span class="relation-chip" title="${title}" data-copy-text="${title}"><span class="relation-chip-text">${title}</span></span>`;
+        return `<span class="relation-chip"${display.annotationValueAttrs?.(utils, utils.titleOf(item)) || ` title="${title}" data-copy-text="${title}"`}><span class="relation-chip-text">${title}</span></span>`;
       })
       .join("")}${more > 0 ? `<span class="relation-chip muted">+${more}</span>` : ""}`;
   }
@@ -31,7 +31,7 @@
     return stakeholders
       .map((stakeholder) => {
         const title = utils.escapeHtml(utils.titleOf(stakeholder, "未命名职能"));
-        return `<span title="${title}" data-copy-text="${title}">${title}</span>`;
+        return `<span${display.annotationValueAttrs?.(utils, utils.titleOf(stakeholder, "未命名职能")) || ` title="${title}" data-copy-text="${title}"`}>${title}</span>`;
       })
       .join("");
   }

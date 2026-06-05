@@ -24,6 +24,10 @@
     return "technical-chip";
   }
 
+  function annotationAttrs(value) {
+    return display.annotationValueAttrs?.(utils, value) || "";
+  }
+
   function chipList(items, empty = "待补充", fallbackKind = "", showKind = false) {
     if (display.relationChipList) {
       return display.relationChipList(utils, items, { empty, kind: fallbackKind, showKind });
@@ -33,7 +37,9 @@
     return rows
       .map((item) => {
         const kind = utils.text(item.objectKind || item.kind || fallbackKind).trim();
-        return `<span class="relation-chip ${chipClass(kind)}">${showKind && kind ? `<em>${utils.escapeHtml(kind)}</em>` : ""}${utils.escapeHtml(displayValue(item, empty))}</span>`;
+        const label = displayValue(item, empty);
+        const annotationText = [showKind && kind ? kind : "", label].filter(Boolean).join(" | ");
+        return `<span class="relation-chip ${chipClass(kind)}"${annotationAttrs(annotationText)}>${showKind && kind ? `<em>${utils.escapeHtml(kind)}</em>` : ""}${utils.escapeHtml(label)}</span>`;
       })
       .join("");
   }
@@ -56,7 +62,7 @@
         .map((item) => {
           const parts = ownershipParts(item);
           return `
-            <div class="service-ownership-path" title="${utils.escapeHtml(parts.raw)}" data-copy-text="${utils.escapeHtml(parts.raw)}">
+            <div class="service-ownership-path"${annotationAttrs(parts.raw)}>
               <span class="service-ownership-line">
                 <em>安全能力</em>
                 <strong>${utils.escapeHtml(parts.capability)}</strong>

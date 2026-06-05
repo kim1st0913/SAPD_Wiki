@@ -15,6 +15,7 @@
 | `frontend_smoke_check.mjs` | 前端页面轻量 HTTP/API smoke 检查；默认不启动系统 Google Chrome | `CURRENT_STATE.md` |
 | `audit_frontend_governance.mjs` | 前端高风险文件治理审计，防止安全能力映射相关 CSS / 核心文件继续无意识膨胀 | `docs/07-governance/capability-mapping-change-control.md` |
 | `audit_frontend_lazy_load_contract.mjs` | 前端按需加载契约审计，检查知识库字典和安全标准 / 框架的 required / supplemental 分片、标准页 tab loader 和组件内取数边界 | `docs/06-implementation/frontend-global-design-baseline-2026-05-30.md` |
+| `audit_user_annotation_contract.mjs` | 用户批注全局锚点契约审计，检查统一值选择器、普通表格单元格兜底、共享 relation chip、知识库字典 / 标准框架 / 能力映射 / 环境映射 / LC-AP / LC-DT 渲染样例、折叠目录定位恢复、批注视觉状态和逐页回归需求基线 | `docs/06-implementation/global-annotation-requirements-and-regression-matrix.md` |
 | `audit_capability_viewmodel_contract.mjs` | 安全能力映射页 ViewModel 当前对象一致性审计，验证 L0 / L1 / L2 / 关注点不会误用默认关注点或错粒度 projection | `docs/07-governance/data-governance.md` |
 | `audit_dictionary_reference_consistency.mjs` | 知识库字典权威引用一致性审计，检查能力、作用域、技术服务、技术模块 / 措施、管理工作、流程和职能引用是否与字典一致 | `docs/07-governance/data-governance.md` |
 | `govern_open_issues.mjs` | `open-issues.md` 轻量治理：保留未关闭问题入口，归档已关闭长记录，生成全量索引 | `docs/06-implementation/open-issues.md` |

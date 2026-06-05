@@ -2,105 +2,55 @@
 
 本文件是当前会话恢复入口，只保留最近状态、最近完成事项、关键验证和历史索引。完整执行历史已归档到 `docs/05-archive/progress-history/`。
 
-## 当前状态（2026-06-04）
+## 当前状态（2026-06-05）
 
 - 当前分支：`main`。
 - 固定预览入口：`http://127.0.0.1:5173/`。前端展示和用户验收默认只看该端口。
-- 当前主控主线：`OI-128A/B/C` 已实现；后续应进入工作台总览、数据篮 / 导出、能力重组、导入和 Skill 集成，不再延续横向 `加入关注清单 / 收藏备注` 条。
-- Open Issues 当前未关闭：`OI-038`、`OI-128`、`OI-133`。
-- 当前禁止事项：不默认改 ETL、数据库、数据模型、导出 JSON、workbench JSON、原始数据或业务关系推断；主展示区不得暴露 `sheet`、`row`、`column`、`raw_value`、`source_file`、`import_id`、`source_id`、`source_ref`、`source_label`、`debug`、`raw`、`metadata`、`intermediate`、`generated_at`。
+- 当前主控主线：`OI-128C` 批注模块收口；不继续开发新批注功能，不混入工作台 V2 / V3。
+- Open Issues 当前未关闭：`OI-038`、`OI-128`、`OI-133`、`OI-135`。
+- 当前禁止事项：不默认改 ETL、数据库、数据模型、基础数据包、导出 JSON、用户库数据或业务关系推断；不 `git add .`；主展示区不得暴露 `sheet`、`row`、`column`、`raw_value`、`source_file`、`import_id`、`source_id`、`source_ref`、`source_label`、`debug`、`raw`、`metadata`、`intermediate`、`generated_at`。
 
 ## 最近完成事项
 
-- 2026-06-04 `OI-128C` 设计基准固定：新增 `docs/06-implementation/workspace-annotation-and-capability-remix-design.md`，正式下线横向关注 / 收藏条方向，固定右侧浮层批注抽屉、批注状态清单、工作台、数据篮 / 导出、能力重组、导入和 Skill 集成路线；同步更新 `OI-128` 和 `user-workspace-v1-to-v4-design.md`。
-- 2026-06-04 `OI-128C` 右侧浮层批注抽屉第一版：新增正式 `user_notes` API 与前端抽屉组件，删除横向 `UserObjectActions` 入口；抽屉支持当前页面 / 对象上下文、批注新增、状态修改、删除、旧收藏备注过渡显示，并在安全能力映射、知识库字典、标准 / 框架和安全指南页面真实 Chrome 回归通过。
-- 2026-06-04 Chrome smoke 调试稳定性治理：因并发 `--allow-system-chrome` 回归触发 macOS Chrome 崩溃报告，已给 `scripts/frontend_smoke_check.mjs` 增加系统 Chrome 串行锁；后续默认仍使用轻量 HTTP smoke，真实系统 Chrome 只在明确需要时串行执行。
-- 2026-06-03 `OI-128B` 跨页面用户动作入口：复用 `UserObjectActions` 到知识库字典、安全标准 / 框架和安全指南页面；知识库字典绑定当前选中对象，标准页优先绑定当前标准控制项，安全指南绑定当前指南内容或专用指南路由；保存 / 删除 / 备注后按当前页面重渲染，不再固定回到安全能力页。同步增强 `frontend_smoke_check.mjs`，支持 `--maintenance-search` 展开服务清单、`--screenshot-name` 保存独立截图、`--expect-user-actions` 断言用户动作组件存在。
-- 2026-06-03 安全技术服务清单列宽与 `T-AD.SA` 权威名称修订：适当扩大 `归属安全能力 / 关注点` 列，压缩相邻关联列，避免归属路径过早换行；导出层新增 `T-AD.SA` 能力对象权威标题 `态势感知能力`，重新导出能力树、维护知识包和前端工作台包；新增并关闭归档 `OI-134`，服务名 `ALL&T-AD.SA-03 态势感知` 保持不变。
-- 2026-06-03 用户截图反馈修正：安全技术服务清单 `归属安全能力 / 关注点` 列从绿色关系胶囊改为低噪声归属路径块，分行展示 `安全能力` 与 `关注点`，完整换行并可选择复制；同步把该展示类别补入全局设计基线和展示原则。`OI-128A` 文案从“收藏 / 取消收藏 / 备注 / 保存备注并收藏”调整为“加入关注清单 / 移出关注清单 / 收藏备注 / 保存收藏备注”，并在设计文档中明确收藏不等于业务确认，正式 Office 式批注进入 V1B 独立 `user_notes`。
-- 2026-06-03 `OI-128A` 用户写入最小入口：新增 `docs/06-implementation/user-workspace-v1-to-v4-design.md`，固定用户自定义工作区 V1-V4 的 UI、数据表、API、页面入口、阶段路线和验收标准；补齐开发 API 与 ZIP runtime 的 `GET/POST/DELETE /api/v1/user/favorites`；安全能力映射页对象详情区新增收藏 / 轻备注入口，收藏事实来自 `sapd_wiki_user.sqlite3`，API 不可用时显示禁用态。
-- 2026-06-03 `OI-132 / EL-024` 第三轮页面级展示基准治理并关闭：按用户截图修复安全能力映射管理视角主关系矩阵里安全职能 chip 被省略号截断的问题；`FocusManagementMapping.js` 为关系对象写入完整文本 `title` / `data-copy-text`，`styles.css` 将管理矩阵关系 chip 改为完整换行显示并可选择复制；同步更新前端展示基准和新增 `audit_frontend_display_contract.mjs`；真实 Chrome 回归确认管理视角 chip `truncated=false`、`copyable=true`，`OI-132` 关闭。
-- 2026-06-03 `OI-132 / EL-024` 第二轮对象级空态可信度治理：优先核查 `T-AS.AD-01` 标准 / 框架映射和用户截图中的 `T-PD.PP` 管理视角；确认 `T-PD.PP-01/02/03` 源表 `安全能力-安全工作!G32:G34` 为合并单元格，修复 `parse_security_work_sheet()` 未继承合并单元格值导致后两条关注点显示 `暂无安全工作` 的问题；同时修复 `bootstrap-local-data` 先导出 workbench 后导出 `capability-tree` 导致对象 UUID 不一致、标准 tab 计数回退为 0 的导出顺序问题。已重建本地数据库和前端数据包，生成数据仍在 Git 忽略边界内。
-- 2026-06-03 `OI-132 / EL-024` 安全能力清单、知识库字典和标准 / 框架加载稳定性第一轮治理：确认 `/api/v1/data-packages/capability` 有能力 / 关注点描述，而 `/api/v1/capabilities/workspace-initial` 是轻量工作台树且缺描述；修复 `capabilityInitial` 覆盖完整 `capability-tree` 的风险，维护页缺必需包时主动自愈加载，标准 / 框架 active tab 未加载完成时显示加载态，不再把暂时空表渲染成真实空数据；扩展懒加载契约审计。未改 ETL、数据库、数据包或业务字段。
-- 2026-06-03 checkpoint 推送：当前 `main` 的 5 个 checkpoint 已推送到 `origin/main`，推送后 `git status --short --branch` 为干净基线；本轮后续改动只来自 `OI-132` 加载治理。
-- 2026-06-03 ArchiMate 建模语言页优化评估：只读评估 `/guides/security-architecture-modeling-language` 当前 PDF 图片化方案，新增 `docs/06-implementation/archimate-modeling-page-optimization-plan.md`，并登记 `OI-133 / EL-025`；建议后续从素材陈列升级为区域导航 + 当前区域阅读器 + SAPD 元素映射说明，并优化为首屏只加载默认区域图。
-- 2026-06-03 执行线收敛治理入口落地：新增 `docs/07-governance/execution-line-convergence-workflow.md` 和 `docs/07-governance/current-execution-lines.md`，固定“单一主控、单一写入主线、dirty diff 优先验收、checkpoint 后再继续功能”的默认规则，并补充模块线程与页面模块线程到 `EL-xxx` 的映射规则。
-- 2026-06-03 Delivery ZIP alpha checkpoint：完成 macOS launcher guard、C/S 客户端交付预研和相关 release / delivery 文档 checkpoint；Windows UAT 仍后置，当前不跳到正式安装包 / Tauri。
+- 2026-06-05 `OI-128C` checkpoint 提交后补充真实回归：提交后发现当前用户库已扩展到 33 条保存批注，首次全量回归抓出 4 条指南 / 幻灯片缩略图批注缺少定位态视觉高亮。已只针对 `.guide-slide-stage` / `.guide-thumb` 定位态补齐琥珀下沿并推进 `styles.css` 缓存版本到 `annotation-global-20260605-8`，保留 Apple blue 聚焦圈。定点 4 条和全量 33 条真实 Chrome 严格回归均通过，最终 `33/33 pass`、`failures=[]`、`consoleIssues=[]`。
+- 2026-06-05 `OI-128C` checkpoint 前治理状态同步：已将 `docs/07-governance/current-execution-lines.md` 中过期的 `24/24 pass`、最终人工抽查口径同步为当前事实：用户已基本验收通过，批注设计已作为全局基线固化，当前用户库保存批注真实 Chrome 严格回归最终口径为 `33/33 pass`、`failures=[]`、`consoleIssues=[]`。下一步进入 checkpoint amend 收口；仍不 `git add .`，不混入工作台 V2 / V3。
+- 2026-06-05 `OI-128C` 批注设计全局基线固化：用户确认本问题基本验收通过，后续有问题再按 bug fix 处理。已将当前批注设计固化为全局基线，新增 `global-annotation-requirements-and-regression-matrix.md` 的“基线固化状态”“新页面接入清单”“维护边界”，并同步 `frontend-global-design-baseline-2026-05-30.md`。后续新增页面必须先声明页面对象、值锚点、行锚点、幻灯片 / 子页上下文并跑契约审计，避免每个新页面重新调试批注。
+- 2026-06-05 `OI-128C` 后续变更收口：修复定位后高亮落到文字后方、L0-L2 对象批注常态不高亮、普通态高亮线需要加深加粗但不遮挡文字、指南 / 幻灯片页无法添加批注，以及能力映射标准页 ISO / NIST 标准行按需加载后值锚点丢失的问题。标准映射 ViewModel 改为“projection / workbench 为主、已加载 standards 包只补充不覆盖”，避免 `NIST CSF` 加载后覆盖 `AT-6`；`localRelationMap` 同步补入 fallback 标准框架 / 控制项，保证页面 DOM 有稳定值锚点。当前用户库保存批注真实 Chrome 严格回归已从 24 条扩展到 28 条，最终 `28/28 pass`。
+- 2026-06-05 `OI-128C` 常态高亮视觉收口：用户截图指出普通高亮仍呈横向黄色长条，影响 Apple shell / Office Word 式批注质感。已把普通态批注从背景铺底改为贴文字的琥珀下划线；行级普通态仅保留左侧标识，不再铺整行黄色；关系 chip 保留原有语义底色，只叠加低噪声下划线 / 边框。定位态仍保留更明显的黄色 + Apple blue 聚焦，方便查找。资源版本更新到 `annotation-global-20260605-5`。
+- 2026-06-05 `OI-128C` 视觉防回归脚本升级：`scripts/audit_saved_user_annotations.mjs` 新增 `normalStripeOk`、`normal_visual_stripe_too_wide`，同时识别 text-decoration 式普通批注；后续如果普通态又出现用户截图中的宽背景条，真实 Chrome 回归会直接失败。
+- 2026-06-05 `OI-128C` 安全技术服务 / 模块 / 措施高亮五次回归问题根因修复：旧脚本只验证 `data-user-note-anchor-marked / active` 属性，未验证真实视觉样式；技术 chip 语义色规则会覆盖批注样式。已把批注 chip 覆盖层放到语义色规则之后，并补齐 `technical-chip service-chip` specificity。
+- 2026-06-05 `OI-128C` 二次人工抽查问题修复完成：安全技术措施 / 模块 / 服务常态与定位高亮、点击页面后常态保留、非首屏定位抽屉滚动保持、抽屉视口完整性均纳入真实 Chrome 严格回归并通过。
+- 2026-06-05 新主控接收旧会话交接并同步状态入口：当前线程接管主控；旧慢会话降级为历史产物来源 / 待 fan-in。后续复杂任务采用“轻主控 + 专项 subagent / 专项会话 + fan-in 验收”，主控只负责边界、调度、验收、状态更新和 checkpoint。
 
 ## 最近验证
 
+- `node scripts/audit_user_annotation_contract.mjs`：通过，新增检查已覆盖“全局设计基线已固化”“33/33 pass”“新页面接入清单”“页面对象声明”“锚点声明”“视觉接入”“回归准入”等硬条款，结果 `issues=[]`。
+- `node scripts/audit_saved_user_annotations.mjs --url http://127.0.0.1:5173 --allow-system-chrome --debug-port 9446 --width 1800 --height 1200 --compact`：提交后真实 Chrome 严格逐条保存批注回归通过，`noteCount=33`、`auditedNoteCount=33`、`passed=33`、`failed=0`、`failures=[]`、`consoleIssues=[]`；覆盖新增指南 / 幻灯片缩略图对象批注、L0-L2 对象 / 行批注、ISO 标准框架值、`AT-6` 标准控制项、技术服务 / 模块 / 措施 chip、常态视觉、定位视觉、值 / 行粒度、点击后常态保留、抽屉滚动保持和误高亮防护。
+- `node --check scripts/audit_user_annotation_contract.mjs`：通过。
+- `git diff --check -- docs/06-implementation/global-annotation-requirements-and-regression-matrix.md docs/06-implementation/frontend-global-design-baseline-2026-05-30.md scripts/audit_user_annotation_contract.mjs`：通过。
+- `node scripts/audit_saved_user_annotations.mjs --url http://127.0.0.1:5173 --allow-system-chrome --debug-port 9433 --width 1800 --height 1200 --compact`：真实 Chrome 严格逐条保存批注回归通过，`noteCount=28`、`auditedNoteCount=28`、`passed=28`、`failed=0`、`failures=[]`、`consoleIssues=[]`；覆盖 L0-L2 对象 / 行批注、ISO 标准框架值、`AT-6` 标准控制项、技术服务 / 模块 / 措施 chip、幻灯片页、常态视觉、定位视觉、值 / 行粒度、点击后常态保留、抽屉滚动保持和误高亮防护。
+- `node scripts/audit_saved_user_annotations.mjs --url http://127.0.0.1:5173 --allow-system-chrome --debug-port 9432 --width 1800 --height 1200 --compact --from-ordinal 15 --to-ordinal 23 --debug-state`：通过，确认 `NIST CSF 2.0` 标准包加载后不会覆盖后端 projection 中的 `AT-6` 锚点。
+- `node --check scripts/audit_saved_user_annotations.mjs`：通过。
 - `node --check frontend/capability-browser/app.js`：通过。
-- `node --check scripts/frontend_smoke_check.mjs`：通过。
-- `python3 scripts/dev_server_guard.py --status`：通过，固定 `5173` 只有一个项目服务进程。
-- `node scripts/frontend_smoke_check.mjs --page maintenance --route /knowledge/technical-services --url http://127.0.0.1:5173 --allow-system-chrome --debug-port 9381 --width 2048 --height 1300 --maintenance-search I-US --screenshot-name technical-services-expanded --expect-user-actions`：真实 Chrome 回归通过，`technicalServiceOwnershipProbe.pathCount=14`、`truncated=false`、`copyable=true`、`userObjectActionsProbe.count=1`、`consoleIssues=0`。
-- `node scripts/frontend_smoke_check.mjs --page maintenance --route /knowledge/capabilities --url http://127.0.0.1:5173 --allow-system-chrome --debug-port 9382 --width 2048 --height 1300 --screenshot-name capabilities-user-actions --expect-user-actions`：真实 Chrome 回归通过，`userObjectActionsProbe.count=1`、`consoleIssues=0`。
-- `node scripts/frontend_smoke_check.mjs --page standards --route /standards/mlps-level-3 --url http://127.0.0.1:5173 --allow-system-chrome --debug-port 9383 --width 2048 --height 1300 --screenshot-name standards-user-actions --expect-user-actions`：真实 Chrome 回归通过，`standardTable=true`、`userObjectActionsProbe.count=1`、`consoleIssues=0`。
-- `node scripts/frontend_smoke_check.mjs --page content --route /guides/security-architecture-modeling-language --url http://127.0.0.1:5173 --allow-system-chrome --debug-port 9384 --width 2048 --height 1300 --screenshot-name guide-user-actions --expect-user-actions`：真实 Chrome 回归通过，`userObjectActionsProbe.count=1`、`consoleIssues=0`。
-- `python3 -m py_compile src/sapd_wiki/exports.py`：通过。
-- `python3 scripts/sapd_wiki.py export-capability-tree`：通过，`capabilities=32`、`focuses=91`、`services=158`。
-- `python3 scripts/sapd_wiki.py export-maintenance-knowledge`：通过，`security_technical_services=158`。
-- `python3 scripts/sapd_wiki.py export-frontend-workbenches`：通过，`capability_workbench_relations=6060`。
-- `node -e ...` 数据断言：通过，`capability-tree.json` 中 `T-AD.SA` 标题为 `态势感知能力`，关注点标题仍保留 `建立并维护态势感知`。
-- `python3 scripts/data_package_summary.py --package capability`、`--package capability-workbench`、`--package maintenance`：均通过，`data_state=ready`。
-- `node scripts/audit_dictionary_reference_consistency.mjs`：通过但保留既有 warning，`errors=0`、`warnings=278`，均为 `OI-038` 相关 Gartner 候选职能 ID 待人工校对。
-- `node scripts/audit_frontend_lazy_load_contract.mjs`：通过，`result=pass`、`issues=[]`。
-- `node --check frontend/capability-browser/components/TechnicalServiceMaintenanceTable.js`：通过。
-- `python3 scripts/dev_server_guard.py --status`：通过，`5173` 只有一个项目服务进程，home 和 workspace projection 均正常。
-- `node scripts/frontend_smoke_check.mjs --page maintenance --route /knowledge/capabilities --url http://127.0.0.1:5173 --allow-system-chrome --debug-port 9373 --width 2048 --height 1300`：真实 Chrome 回归通过，`consoleIssues=0`、`workspaceOverflowX=0`，截图已保存到 `/private/tmp/sapd-capabilities-smoke-20260603.png`。
-- `node scripts/frontend_smoke_check.mjs --page maintenance --route /knowledge/technical-services --url http://127.0.0.1:5173 --allow-system-chrome --debug-port 9374 --width 2048 --height 1300`：真实 Chrome 回归通过，`consoleIssues=0`、`workspaceOverflowX=0`，截图已保存到 `/private/tmp/sapd-technical-services-smoke-20260603.png`。
-- `node scripts/govern_open_issues.mjs`：通过，`active=3`、`archived=133`。
-- `git diff --check`：通过。
-- `node --check frontend/capability-browser/dataClient.js`：通过。
-- `node --check frontend/capability-browser/app.js`：通过。
-- `node --check frontend/capability-browser/components/UserObjectActions.js`：通过。
-- `node --check frontend/capability-browser/components/TechnicalServiceMaintenanceTable.js`：通过。
-- `python3 -m py_compile src/sapd_wiki/api_server.py scripts/run_local_server.py`：通过。
-- `python3 scripts/dev_server_guard.py --restart`：通过，固定 `5173` 重启，home 和 workspace projection 均正常。
-- `node -e ...` 本地 API 写入闭环：提升本地回环网络权限后通过，`POST /api/v1/user/favorites` 写入 smoke 收藏，`GET` 读到，`DELETE` 删除后列表消失。
-- `node scripts/frontend_smoke_check.mjs --page capability --url http://127.0.0.1:5173`：通过，未启动系统 Chrome。
-- `node scripts/frontend_smoke_check.mjs --page maintenance --route /knowledge/technical-services --url http://127.0.0.1:5173`：通过，未启动系统 Chrome。
-- `node scripts/audit_frontend_display_contract.mjs`：通过，确认管理视角 chip 完整显示 / 可复制基准未被本轮样式影响。
-- `node --check frontend/capability-browser/components/FocusManagementMapping.js`：通过。
-- `node --check scripts/audit_frontend_display_contract.mjs`：通过。
-- `node scripts/audit_frontend_display_contract.mjs`：通过，`result=pass`，确认管理视角主关系矩阵 chip 完整显示 / 可复制基准、组件完整文本属性和基准文档均存在。
-- `node scripts/audit_frontend_lazy_load_contract.mjs`：通过，`result=pass`、`issues=[]`。
-- `python3 scripts/dev_server_guard.py --status`：通过，`5173` 只有一个项目服务进程。
-- `node scripts/frontend_smoke_check.mjs --page capability --route /capability-map --url http://127.0.0.1:5173`：通过，未启动系统 Chrome。
-- `node scripts/audit_capability_projection_contract.mjs --url http://127.0.0.1:5173`：提升本地网络权限后通过。
-- `node scripts/audit_capability_viewmodel_contract.mjs --url http://127.0.0.1:5173`：提升本地网络权限后通过；`T-AS.AD-01 standardControls=39`，`T-PD.PP` 管理视角对象级数据仍正常。
-- `node scripts/frontend_smoke_check.mjs --page capability --route /capability-mapping --url http://127.0.0.1:5173 --allow-system-chrome --debug-port 9361`：真实 Chrome 回归通过，`activeView=capabilities`、`capabilityMap=true`、`consoleIssues=0`。
-- `node scripts/frontend_smoke_check.mjs --page capability --route /capability-mapping --url http://127.0.0.1:5173 --allow-system-chrome --debug-port 9363 --workspace-state-json ...`：定向管理视角真实 Chrome 回归通过，`capabilityManagementChipProbe.count=434`、`truncated=false`、`copyable=true`、`consoleIssues=0`。
-- `node scripts/govern_open_issues.mjs`：通过，`active=4`、`archived=131`。
-- `python3 scripts/check_github_data_boundary.py`：通过。
-- `git diff --check`：通过。
-- `python3 scripts/sapd_wiki.py bootstrap-local-data --profile full --reset`：通过；本地数据库重建后 `knowledge_items=4660`、`knowledge_relations=7654`、`security_work=92`、`maps_to_work=92`，比修复前增加 12 条合并单元格继承出的安全工作关系。
-- `python3 scripts/sapd_wiki.py export-frontend-workbenches`：通过；重新生成与最新 `capability-tree` 对齐的 `capability-workbench.json`，`capability_workbench_relations=6060`。
-- `python3 scripts/audit_capability_management_mappings.py --max-issues 20`：通过，`expected_security_work_focuses=91`、`security_work_issue_count=0`。
-- `node scripts/audit_capability_projection_contract.mjs --url http://127.0.0.1:5173`：通过，覆盖 `T-AS.AD-01` 标准控制项不为 0、`T-PD.PP-01/02/03` 安全工作继承和 L0/L1/L2/关注点对象级契约。
-- `node scripts/audit_capability_viewmodel_contract.mjs --url http://127.0.0.1:5173`：通过；`T-AS.AD-01 standardControls=39`，`T-PD.PP` 三个关注点均带 `边界防护策略持续管理`。
-- 上一轮 `git push origin main`：通过，`OI-132` 第一轮 checkpoint 已同步到远端。
-- `python3` 本地 API 只读检查：确认 `data-packages/capability` 中 `T-AS.AD`、`T-AS.AD-01/02/03` 均有描述；`workspace-initial` 对应轻量树无描述。
-- `node --check frontend/capability-browser/app.js`：通过。
-- `node --check scripts/audit_frontend_lazy_load_contract.mjs`：通过。
-- `node scripts/audit_frontend_lazy_load_contract.mjs`：通过，`result=pass`、`standardFrameworks=7`、`standardTabs=6`、`issues=[]`。
-- `python3 scripts/dev_server_guard.py --status`：通过，`5173` 只有一个项目服务进程，home 和 workspace projection 均正常。
-- `node scripts/frontend_smoke_check.mjs --page maintenance --route /knowledge/capabilities --url http://127.0.0.1:5173`：通过，未启动系统 Chrome。
-- `node scripts/frontend_smoke_check.mjs --page standards --route /standards/mlps-level-3 --url http://127.0.0.1:5173`：通过，未启动系统 Chrome。
-- `node scripts/frontend_smoke_check.mjs --page content --route /guides/security-architecture-modeling-language --url http://127.0.0.1:5173`：通过，未启动系统 Chrome。
-- `node scripts/frontend_smoke_check.mjs --page capability --route /capability-map --url http://127.0.0.1:5173`：通过，未启动系统 Chrome。
-- ViewModel 静态断言：完整 `capability-tree.json` 构建安全能力清单得到 `fullRows=123`，`T-AS.AD-01` 描述非 `待补充`，且完整树行数据不含 `待补充`；轻量 `capability-workbench.json` 对应节点确认无描述。
+- `node --check frontend/capability-browser/viewModels.js`：通过。
+- `node --check frontend/capability-browser/components/CapabilityLocalRelationMap.js`：通过。
+- `node --check scripts/audit_user_annotation_contract.mjs`：通过。
+- `git diff --check -- frontend/capability-browser/app.js frontend/capability-browser/viewModels.js frontend/capability-browser/components/CapabilityLocalRelationMap.js frontend/capability-browser/styles.css frontend/capability-browser/index.html scripts/audit_saved_user_annotations.mjs scripts/audit_user_annotation_contract.mjs`：通过。
+- `python3 scripts/dev_server_guard.py --status`：通过，固定 `5173` 只有一个项目服务进程，home / workspace projection 均为 `200`。
+- `node scripts/audit_user_annotation_contract.mjs`：通过，确认全局锚点契约、共享关系 chip 值锚点、LC-AP / LC-DT 值锚点、折叠分组定位契约、视觉范围基线和全局批注需求矩阵均合格。
 
 ## 当前问题索引
 
 - `OI-038`：Gartner 与安全职能候选映射需后续人工校对，状态 `待确认`。
-- `OI-128`：USER-WRITE-UI-1：批注 / 工作台用户写入入口，状态 `部分完成`；`OI-128A/B/C` 已实现，后续进入工作台总览、数据篮 / 导出和能力重组。
+- `OI-128`：USER-WRITE-UI-1：批注 / 工作台用户写入入口，状态 `部分完成`；`OI-128A/B/C` 已实现，`OI-128C` 已基本验收，当前进入 checkpoint 确认。
 - `OI-133`：ArchiMate 建模语言页显示效果与加载效率优化，状态 `待设计`。
+- `OI-135`：用户库治理与兼容表迁移清理，状态 `待设计`。
 
 ## 历史索引
 
 | 归档文件 | 内容 |
 |---|---|
-| `docs/05-archive/progress-history/2026-06.md` | 2026-06 完整执行记录、Open Issues 治理、前端治理、数据口径确认和本轮 progress 瘦身前快照 |
+| `docs/05-archive/progress-history/2026-06.md` | 2026-06 完整执行记录、Open Issues 治理、前端治理、数据口径确认和本轮 progress 瘦身摘要 |
 | `docs/05-archive/progress-history/2026-05.md` | 2026-05 完整执行记录、根目录 `progress.md` 瘦身快照和结构治理记录 |
 | `docs/05-archive/findings-history/2026-05.md` | 2026-05 历史发现 |
 | `docs/05-archive/open-issues-history/2026-06.md` | 已关闭 Open Issues 长记录 |

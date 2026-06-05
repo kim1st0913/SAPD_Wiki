@@ -29,6 +29,14 @@
       .replaceAll('"', "&quot;");
   }
 
+  function annotationValueAttrs(value) {
+    const normalized = text(value).trim();
+    if (!normalized) return "";
+    if (display.annotationValueAttrs) return display.annotationValueAttrs(utils, normalized);
+    const escaped = escape(normalized);
+    return ` data-annotation-value="true" data-copy-text="${escaped}" title="${escaped}" data-annotation-tooltip="${escaped}"`;
+  }
+
   function valueOf(value, fallback = "待补充") {
     const normalized = text(value).trim();
     return normalized || fallback;
@@ -382,7 +390,7 @@
                       .map(
                         (row) => `
                           <tr>
-                            <td><strong class="standard-framework-name">${escape(row.standard || "待补充")}</strong></td>
+                            <td><strong class="standard-framework-name"${annotationValueAttrs(row.standard)}>${escape(row.standard || "待补充")}</strong></td>
                             <td><div class="standard-control-chip-row">${standardControlChips(row.controls, "暂无控制项")}</div></td>
                           </tr>
                         `,

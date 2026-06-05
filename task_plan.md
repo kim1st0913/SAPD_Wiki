@@ -66,6 +66,7 @@ Frontend Baseline 1.0 当前关系工作台实现重点仍覆盖三页：
 | FE-M | SAPD 成熟度评估页面设计 | 待启动（另开会话） | 形成评分填报、结果摘要和报告导出页面，不复用关系画布作为主界面 | maturity 专用数据契约 |
 | FE-5 | 三页共同组件和交互一致性整理 | 后置 | 统一导航、对象头、关系画布、折叠明细、来源证据、空状态和标签风格 | FE-2 / FE-3 / FE-4 |
 | FE-6 | 专项知识维护页面稳定化 | 第二轮结构调整已完成 | 已按安全知识目录链路完成收口：外层二级入口为作用域、技术模块/措施、管理工作/流程、职能、Hype Cycle、其他知识目录；模块/措施、管理工作/流程、职能/岗位参考改为内部 Tab；维护表格密度与列宽统一；后续继续梳理详情面板和缺口字段 | 后端专项接口稳定 |
+| FE-ANN | 全局批注与工作台锚点契约 | 基本验收通过 / checkpoint amend 收口（OI-128C 设计已固化为全局基线，真实回归 33/33 通过） | 右侧浮层批注抽屉已替代横向收藏条；批注模块按 overlay 层治理，基础页面只暴露稳定锚点，批注层统一处理右键、抽屉、保存、状态、tooltip、常驻提示和定位高亮；全局值级锚点覆盖能力映射、环境映射、知识库字典、标准 / 框架、指南和 LC-AP / LC-DT；普通 `td` 单元格具备值级兜底，知识库对象行挂载稳定 `data-annotation-target-ref`，折叠目录定位可自动展开父级并恢复常驻标记。普通态视觉已从背景铺底收口为贴文字的琥珀下划线，行级普通态只保留左侧标识，关系 chip 保留语义底色并叠加低噪声下划线 / 边框；定位态保留更明显的黄色 + Apple blue 聚焦，指南 slide / thumb 定位态额外补齐琥珀下沿，避免 active 蓝底覆盖批注 ink。2026-06-05 提交后补跑严格真实 Chrome 回归已通过，当前用户库 33 条保存批注 `33/33 pass`、`failures=[]`、`consoleIssues=[]`。当前设计已写入全局基线和新页面接入清单，后续新增页面必须先接入页面对象、值锚点、行锚点、幻灯片 / 子页上下文并跑契约审计，不再逐页重新调试。下一步完成 `OI-128C` checkpoint amend，再进入工作台总览、数据篮 / 导出和能力重组 | `docs/06-implementation/global-annotation-requirements-and-regression-matrix.md`, `docs/06-implementation/workspace-annotation-and-capability-remix-design.md`, `scripts/audit_user_annotation_contract.mjs`, `scripts/audit_saved_user_annotations.mjs` |
 
 前端页面设计线的边界：
 
@@ -102,6 +103,7 @@ Frontend Baseline 1.0 当前关系工作台实现重点仍覆盖三页：
 | DB-2 | `stable_key` / deterministic ID 策略 | P0 待启动 | 基础对象和关系拥有跨 release 稳定键，并设计 `base_id_redirects` 处理改名、合并、拆分、废弃 |
 | DB-3 | base manifest 与版本规范 | 最小契约已完成 | 生成 `base-manifest.json`，绑定 app 版本、base 数据版本、schema 版本、fallback JSON hash 和关键计数 |
 | DB-4 | 用户库 schema / migration | 最小 schema 与创建脚本已完成 | 初始化用户库，覆盖备注、收藏、个人标签、overlay、修正建议、用户导入 staging / review / change log |
+| DB-11 | 用户库治理与兼容表迁移清理 | P0 待启动 | 明确 `user_notes`、旧 `user_favorites`、数据篮、导出配置、用户自定义能力和导入草稿的长期 schema、迁移、备份、恢复、测试数据清理和 read model 合并规则 |
 | DB-5 | base/user 合并 read model | 连接与命名空间规则已设计 | API 层输出 `base:<id>` / `user:<id>` 命名空间，前端不关心数据来自哪个 SQLite |
 | DB-6 | ZIP Bundle Builder alpha | 真实运行 ZIP 构建规则已收紧 | 从已审批正式库生成 `sapd_wiki_base.sqlite3`、manifest、`frontend-dist`、分平台 start/stop / diagnostics 脚本、logs、diagnostics 和平台 zip 目录；默认输出到 `/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle`；真实 ZIP 必须传入 `--backend-binary`，结构验证包必须显式 `--allow-placeholder` |
 | DB-7 | 本地后端可执行文件 alpha | macOS arm64 已打包验证，Windows 待实测 | `scripts/run_local_server.py` 已用 PyInstaller 打包为 macOS arm64 `SAPD-Wiki-Backend` 并完成 ZIP 解压启动验证；Windows 构建脚本 `scripts/package_backend_windows.ps1` 和 `docs/09-delivery/windows-zip-build-guide.md` 已就绪，待 Windows x64 环境生成并验证 `SAPD-Wiki-Backend.exe` |

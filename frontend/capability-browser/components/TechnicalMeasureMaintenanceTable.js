@@ -7,7 +7,11 @@
     const rows = utils.list(items).filter(Boolean);
     if (!rows.length) return `<span class="empty-inline">${utils.escapeHtml(empty)}</span>`;
     return rows
-      .map((item) => `<span class="relation-chip ${display.chipClass?.(fallbackKind) || ""}"><span class="relation-chip-text">${utils.escapeHtml(displayValue(item, empty))}</span></span>`)
+      .map((item) => {
+        const label = displayValue(item, empty);
+        const annotationText = [fallbackKind, label].filter(Boolean).join(" | ");
+        return `<span class="relation-chip ${display.chipClass?.(fallbackKind) || ""}"${display.annotationValueAttrs?.(utils, annotationText) || ""}><span class="relation-chip-text">${utils.escapeHtml(label)}</span></span>`;
+      })
       .join("");
   }
 

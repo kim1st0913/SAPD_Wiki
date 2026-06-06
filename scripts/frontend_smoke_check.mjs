@@ -72,17 +72,64 @@ async function fetchStatus(url) {
   }
 }
 
+async function fetchTextStatus(url) {
+  const started = Date.now();
+  try {
+    const response = await fetch(url, { cache: "no-store" });
+    const text = await response.text();
+    return {
+      ok: response.ok,
+      status: response.status,
+      timeMs: Date.now() - started,
+      text,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      status: 0,
+      timeMs: Date.now() - started,
+      text: "",
+      error: error.message,
+    };
+  }
+}
+
+function isDeepBusinessRoute(route) {
+  return /^\/(guides|knowledge|standards)\//.test(route || "");
+}
+
 async function lightweightHttpSmoke({ pageName, baseUrl, route, reason }) {
   const rootUrl = new URL("/", baseUrl).toString();
   const pageUrl = new URL(route || "/", rootUrl);
   const healthUrl = new URL("/api/v1/health", rootUrl).toString();
   const initialUrl = new URL("/api/v1/capabilities/workspace-initial", rootUrl).toString();
+  const page = await fetchTextStatus(pageUrl.toString());
   const checks = {
-    page: await fetchStatus(pageUrl.toString()),
+    page: {
+      ok: page.ok,
+      status: page.status,
+      timeMs: page.timeMs,
+      error: page.error,
+    },
     health: await fetchStatus(healthUrl),
   };
   if (pageName === "capability" || pageName === "capabilities" || route === "/capability-mapping") {
     checks.capabilityInitial = await fetchStatus(initialUrl);
+  }
+  if (isDeepBusinessRoute(route)) {
+    checks.appBaseHref = {
+      ok: page.text.includes('<base href="/"'),
+      status: page.status,
+      timeMs: page.timeMs,
+    };
+    checks.rootStylesheet = await fetchStatus(new URL("/styles.css", rootUrl).toString());
+    checks.rootAppScript = await fetchStatus(new URL("/app.js", rootUrl).toString());
+    const deepRelativeStylesheet = await fetchStatus(new URL(`${route.replace(/\/+$/, "")}/styles.css`, rootUrl).toString());
+    checks.deepRelativeStylesheetBlocked = {
+      ok: !deepRelativeStylesheet.ok,
+      status: deepRelativeStylesheet.status,
+      timeMs: deepRelativeStylesheet.timeMs,
+    };
   }
   const result = Object.values(checks).every((item) => item.ok) ? "pass" : "fail";
   console.log(

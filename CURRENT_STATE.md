@@ -6,7 +6,7 @@
 
 - 已导入 Sheet 的业务含义复核 + 前端关系展示校正。
 - 用户已明确优先解决“执行线太多 / 子 Agent 不稳定 / 长会话效率下降”问题；后续默认先按 `docs/07-governance/execution-line-convergence-workflow.md` 收敛到单一主控和单一写入主线，再继续新功能。
-- 用户当前临时优先事项：Delivery Bundle 1.0-alpha ZIP 解压即用交付版，用于内部团队快速分发、快速验证、快速反馈。
+- Delivery Bundle 1.0-alpha ZIP 解压即用交付版已完成 macOS alpha 准备，但当前打包任务先往后排；后续待用户库长期治理和 `stable_key` / 基础库升级兼容设计稳定后再恢复。
 - 当前重点不是新增数据源，也不是扩展新模块，而是把已导入数据的业务语义、页面归属和关系展示校正清楚。
 - Frontend Baseline 1.0 已确认作为当前前端对齐工作的基线说明。
 - 前后端分离本轮已阶段性收口，收口说明见 `docs/01-architecture/frontend-backend-separation-closure.md`。
@@ -61,7 +61,7 @@ Frontend Baseline 1.0 当前覆盖四页：
 
 当前先进入执行线收敛 P0：验收 dirty worktree、同步治理入口、明确 checkpoint，再继续前端、数据或 Delivery Bundle 功能线。不要在 dirty diff 未验收前启动新的并行写入任务。
 
-2026-06-06 已完成总 backlog 收敛，入口为 `docs/07-governance/backlog-convergence-2026-06-06.md`。当前 dirty worktree checkpoint 已完成：`e23c6d7 Document backlog convergence and frontend planning` 固化 Product Design 审阅、dashboard 契约草案和 backlog 收敛。后续恢复未开展任务时，先用该文件确认 `P0`、可并行只读评估、后续开发和后置任务，避免只按某一条前端、Delivery 或 Product Design 线继续。当前默认下一步：做 `OI-136 / FE-ROUTE` 深层路由稳定性，随后按用户优先级进入用户库 / `stable_key` / Delivery 或前端基线稳定化。
+2026-06-06 已完成总 backlog 收敛，入口为 `docs/07-governance/backlog-convergence-2026-06-06.md`。当前 dirty worktree checkpoint 已完成：`e23c6d7 Document backlog convergence and frontend planning` 固化 Product Design 审阅、dashboard 契约草案和 backlog 收敛。用户已明确：`analytics_summary` 是 P0，但不独占当前最高优先级；Delivery Bundle / 打包任务先往后排。当前已完成 `OI-135 + DB-11 + DB-2` 设计、审计、dry-run 和临时库 smoke：`scripts/smoke_db_migration_contracts.mjs` 只写 `/private/tmp/sapd_wiki_user_schema_0_3_smoke.sqlite3` 与 `/private/tmp/sapd_wiki_base_stable_key_smoke.sqlite3`，真实基础库和真实用户库未写入；复制用户库已升级到 `user_schema_0.3` 并创建 13 张新表，复制基础库已给 4660 个对象和 7654 条关系补齐 `stable_key` / `stable_ref` / `public_id`，stable key 审计通过。`OI-136 / FE-ROUTE` 深层路由直接访问掉样式已修复：`index.html` 固化根 `base href="/"`，轻量 smoke 覆盖 `/guides/*`、`/knowledge/*`、`/standards/*` 根资源加载。下一步建议先做当前 dirty worktree checkpoint，然后进入真正的下一条主线：`analytics_summary` exporter / audit 或真实迁移脚本设计二选一，不再做泛化周边评估。
 
 当前多任务、模块线程和实际 Codex thread id 追踪入口为 `docs/07-governance/current-execution-lines.md`。暂停任务前必须先登记状态、证据、恢复条件和下一步；已有模块线程必须映射到 `EL-xxx` 执行线，避免多会话收敛后丢失任务线。当前已盘点 18 个 cwd 属于本工程的 Codex 线程；`archimate建模` 已进入 idle / 待验收状态，后续页面效果与加载优化走 `OI-133 / EL-025`；`数据安全页面1` 仍显示为运行中线程，主控只做 fan-in，不默认停止或抢写同一范围。长会话需要换新会话时，按 `docs/07-governance/execution-line-convergence-workflow.md` 的“长会话轮换协议”执行。
 
@@ -69,7 +69,7 @@ Frontend Baseline 1.0 当前覆盖四页：
 
 ArchiMate 建模语言页显示效果和加载效率已登记为 `OI-133 / EL-025`。当前页面已完成 PDF 图片化和区域阅读初版，但后续应先按 `docs/06-implementation/archimate-modeling-page-optimization-plan.md` 确认页面职责、区域导航、首屏图片加载策略和 SAPD 元素图例映射说明，再进入前端实现。
 
-本轮临时优先支持 Delivery Bundle 1.0-alpha：第一优先级是分平台 `.zip` 解压即用版，不先做正式安装包或 Tauri 壳。正式设计入口为 `docs/09-delivery/zip-bundle-1.0-alpha-design.md`；当前 ZIP-UAT-0 已完成 macOS arm64 内部试发准备，alpha 试发材料已固定到 `/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle/dist/releases/0.1.0-alpha/`，包含 macOS ZIP、checksum、release manifest、README、UAT checklist 和反馈模板。Windows 构建脚本和验收清单已就绪，但 Windows 原生 `SAPD-Wiki-Backend.exe` 仍需 Windows x64 环境实测；release manifest 中 Windows 保持 `pending / not_verified`。
+Delivery Bundle 1.0-alpha 当前后排保留：正式设计入口为 `docs/09-delivery/zip-bundle-1.0-alpha-design.md`；ZIP-UAT-0 已完成 macOS arm64 内部试发准备，alpha 试发材料已固定到 `/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle/dist/releases/0.1.0-alpha/`，包含 macOS ZIP、checksum、release manifest、README、UAT checklist 和反馈模板。Windows 构建脚本和验收清单已就绪，但 Windows 原生 `SAPD-Wiki-Backend.exe` 仍需 Windows x64 环境实测；release manifest 中 Windows 保持 `pending / not_verified`。后续待 user DB / `stable_key` 前置设计稳定后再恢复打包任务。
 
 优先推进 Frontend Baseline 1.0 的三页 Gap Check 和必要校正：
 

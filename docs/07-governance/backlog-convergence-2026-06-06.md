@@ -13,69 +13,70 @@
 当前需要先做一轮收敛，而不是直接开新功能：
 
 1. 先把 `OI-128C` 和当前 dirty worktree 做 checkpoint，降低回退成本。
-2. 再修 `OI-136 / FE-ROUTE`，保证深层路由直接访问、刷新和批注定位跳转稳定。
-3. 随后按用户当前优先级在“用户库 / stable_key / Delivery Bundle”和“前端基线稳定化”之间选择主线。
+2. 2026-06-06 用户调整优先级：`analytics_summary` 是 P0，但不独占当前最高优先级；`OI-136 / FE-ROUTE` 与只读 subagent 评估项也暂时不抢主线。
+3. 当前已完成 `OI-135 + DB-11 + DB-2` 第一轮设计收敛：`docs/06-implementation/user-database-governance-and-stable-key-design.md`。Delivery Bundle / 打包任务先往后排；`analytics_summary` 保持 P0 队列任务但不抢占当前主线。
 
 ## Backlog 总览
 
 | 优先级 | 工作包 | 包含任务 | 当前状态 | 推荐处理 |
 |---|---|---|---|---|
-| Gate 0 | Dirty worktree checkpoint | `OI-128C` 批注收口、全局批注基线、批注脚本、当前设计审阅产物 | 已完成 | 已拆成 `b93a9f1` 批注基线和 `e23c6d7` backlog / 设计计划两个 checkpoint；当前工作区已清理，可进入 `OI-136 / FE-ROUTE` |
-| P0 | 深层路由稳定性 | `OI-136`、`FE-ROUTE` | 待修复 | 单线写入；修直接访问 `/guides/*`、`/knowledge/*`、`/standards/*` 掉样式 |
-| P0 | 用户库长期治理 | `OI-135`、`DB-11`、`user_notes`、旧 `user_favorites`、数据篮 / 导出 / 自定义能力 | 待设计 | 先设计 schema / migration / 备份恢复，不直接写前端 |
-| P0 | 稳定键与基础库升级兼容 | `DB-2 stable_key`、deterministic ID、`base_id_redirects` | 待启动 | 与用户库治理强相关；进入 Delivery 正式版前必须做 |
-| P0/P1 | Delivery Bundle 1.0-alpha | `BE-6`、`DB-6/7/9`、Windows x64 实测、诊断包、release manifest | macOS alpha 已准备，Windows 未验证 | checkpoint 后继续；不要和前端 UI 混写 |
+| Gate 0 | Dirty worktree checkpoint | `OI-128C` 批注收口、全局批注基线、批注脚本、当前设计审阅产物 | 已完成 | 已拆成 `b93a9f1` 批注基线和 `e23c6d7` backlog / 设计计划两个 checkpoint；当前工作区已清理，进入 P0 主线队列 |
+| P0 | `analytics_summary` 落地 | exporter、`data_package_summary`、`dataClient.getAnalyticsSummary()`、dashboard 消费、audit 脚本 | 已纳入计划 / 待启动 | 先后端 / 离线数据包，再摘要检查和审计，再 dataClient，最后 dashboard；当前不直接改前端 |
+| P1 | 深层路由稳定性 | `OI-136`、`FE-ROUTE` | 已修复 / 待 checkpoint | 已修直接访问 `/guides/*`、`/knowledge/*`、`/standards/*` 掉样式，并纳入轻量 smoke |
+| P0 | 用户库长期治理 | `OI-135`、`DB-11`、`user_notes`、旧 `user_favorites`、数据篮 / 导出 / 自定义能力 | 临时库 smoke 通过 / 真实迁移待确认 | `/private/tmp` 复制用户库已验证 `user_schema_0.3` migration，不迁移真实用户库 |
+| P0 | 稳定键与基础库升级兼容 | `DB-2 stable_key`、deterministic ID、`base_id_redirects` | 临时库 smoke 通过 / 真实迁移待确认 | `/private/tmp` 复制基础库已验证正式 `stable_key` / `stable_ref` / `public_id` 字段和 `base_id_redirects` 最小 migration |
+| P1 | Delivery Bundle 1.0-alpha | `BE-6`、`DB-6/7/9`、Windows x64 实测、诊断包、release manifest | macOS alpha 已准备，Windows 未验证；优先级后排 | 待 user DB / stable_key 前置设计稳定后再恢复；不要和前端 UI 混写 |
 | P1 | 前端设计基线稳定化 | `FE-BASELINE-STABILIZE` 建议包：`FE-NAV`、`FE-ANNOTATION-UX`、`FE-CHIP-MATRIX`、`FE-DASHBOARD` | 待拆分 | 先只读审阅，逐项小步实现 |
 | P1 | 页面模块继续验收 | 安全能力、LC-AP / LC-DT、信息化环境、知识库字典、标准 / 框架、指南页 | 多数已有实现或待验收 | 只读 Gap Check 起步；写入必须单页面单线 |
 | P1/P2 | ArchiMate 建模语言页优化 | `OI-133 / EL-025` | 待设计 | 先按优化计划确认阅读路径和加载策略 |
-| P2 | Dashboard 工作入口化 | `dashboard-and-module-data-display-optimization-design.md` | 设计完成，未进实现项 | 先补计划项，再后端聚合数据，最后前端实现 |
+| P0 | Dashboard 工作入口化 | `dashboard-and-module-data-display-optimization-design.md`、`analytics-summary-json-contract-draft.md` | 设计完成，计划已补入 `task_plan.md` | 先生成 `analytics-summary.json`，再接入摘要检查、dataClient、dashboard 和审计 |
 | P2 | 数据质量 / 字典一致性 | `EL-007`、字典引用一致性、候选映射校对 | 暂停 / 待确认 | 单独数据治理线，不和前端混修 |
 | P2 | Gartner 人工校对 | `OI-038` | 待确认 | 用户业务确认任务；Codex 只提供辅助表和校对视图 |
 | 后置 | 成熟度评估模块 | `FE-M`、`BE-M`、M1.3 / M2 / M3 | 待启动 / 另线 | 用户重新指定后再启动 |
 | 后置 | C/S 客户端 / Tauri / 安装包增强 | `EL-005`、`DB-8`、C/S presearch | 后置 | ZIP alpha 成立后再评估 |
 | 后置 | 多格式增强 / AI RAG | Phase 7、Phase 10 | 后置 | 当前不启动 |
 
-## 当前必须先做
+## 当前 P0 主线队列
 
-### 1. Gate 0：Dirty Worktree checkpoint
+### 1. 当前下一步：用户库长期治理 + `stable_key`
 
-理由：当前工作区同时包含批注模块、审阅文档、dashboard 设计、路由计划项、脚本和进度文档。继续开发会增加回退成本。
+理由：这条线直接支撑批注、收藏、数据篮、导出、自定义能力、Delivery Bundle 和基础库升级兼容，属于后续很多功能的底座。建议先做设计和迁移策略，不直接改前端。
 
-建议拆成至少三个 checkpoint 候选：
+第一轮设计已完成，入口为：
 
-| Checkpoint | 文件范围 | 说明 |
-|---|---|---|
-| `OI-128C annotation baseline` | `frontend/capability-browser/app.js`、`styles.css`、`components/UserAnnotationDrawer.js`、`index.html`、`scripts/audit_saved_user_annotations.mjs`、`scripts/audit_user_annotation_contract.mjs`、`scripts/audit_annotation_drawer_tab.mjs`、批注基线文档 | 批注功能和全局基线，不混入 dashboard / Product Design review |
-| `Design review and backlog governance` | `docs/06-implementation/design-audits/2026-06-06-product-design-review/`、`docs/06-implementation/open-issues.md`、`task_plan.md`、`progress.md`、本文件 | 审阅、Open Issue 和 backlog 收敛 |
-| `Dashboard design` | `docs/06-implementation/dashboard-and-module-data-display-optimization-design.md` | Dashboard 方案文档，不混入前端实现 |
+- `docs/06-implementation/user-database-governance-and-stable-key-design.md`
 
-提交前不要 `git add .`。
+审计入口已完成：
 
-### 2. P0：`OI-136 / FE-ROUTE`
+1. `scripts/audit_user_db_governance_contract.mjs`
+2. `scripts/audit_stable_key_contract.mjs`
+3. `docs/06-implementation/user-db-compatibility-report-2026-06-06.md`
+4. `scripts/plan_user_schema_0_3_migration.mjs`
+5. `docs/06-implementation/base-stable-key-and-redirect-migration-design-2026-06-06.md`
 
-目标：深层 route 直接访问、刷新、前进 / 后退、应用内导航和批注定位跳转必须保持同一个应用壳和样式。
+后续实施建议拆分：
 
-验收 route：
+1. `OI-135 / DB-11 / DB-2`：当前临时库 smoke 已通过，先做 checkpoint，避免 DB 治理证据再次散落。
+2. 如继续 DB 线：设计真实迁移脚本的备份、dry-run、apply 三段式，并先确认正式 `stable_key` 生成口径。
+3. 再进入最小 API：数据篮或工作台二选一，不同时开。
 
-- `/`
-- `/capability-mapping`
-- `/development-security`
-- `/data-security`
-- `/environment-mapping`
-- `/guides/security-architecture-design`
-- `/knowledge/technical`
-- `/standards/iso-27001-2022`
+### 2. 同级 P0：`analytics_summary`
 
-每个 route 至少断言：
+目标：把 Data Analytics 会话的 dashboard 方案从设计文档落成稳定数据契约和实施任务。它是 P0，但不抢占用户库 / stable_key / Delivery 主线。
 
-- 样式已加载，不是原生 HTML。
-- 左侧全局导航存在。
-- 页面标题与 route 一致。
-- 当前父级 / 子级导航状态可理解。
-- 批注抽屉不误展开。
-- 主展示区无非业务字段泄露。
+实施顺序：
 
-## 当前可并行只读评估
+1. exporter 生成 `frontend/capability-browser/public/data/analytics-summary.json`。
+2. 新增 audit 脚本验证覆盖率、标准控制项 grain 和禁止字段泄露。
+3. `scripts/data_package_summary.py` 增加 `analytics-summary` 摘要检查。
+4. `dataClient.getAnalyticsSummary()` 统一 API / 离线包 fallback。
+5. dashboard 消费 `analytics_summary`，从工程统计页转为安全能力知识地图入口。
+
+### 3. 已下调但仍需保留的问题：`OI-136 / FE-ROUTE`
+
+`OI-136 / FE-ROUTE` 仍是有效问题，但不再是当前下一步。后续恢复时按单线写入处理，不与 `analytics_summary` exporter、dashboard 消费或批注 UI 混在同一提交。
+
+## 已下调的可并行只读评估
 
 以下任务可以开只读子 Agent 或专项会话，但不建议并行写入：
 
@@ -116,11 +117,11 @@
 
 应和用户库治理相邻推进。
 
-### C. Delivery Bundle
+### C. Delivery Bundle（后排）
 
 入口：`BE-6`、`DB-6`、`DB-7`、`DB-9`。
 
-当前 macOS arm64 alpha 已准备，Windows 仍 `pending / not_verified`。
+当前 macOS arm64 alpha 已准备，Windows 仍 `pending / not_verified`。用户已要求打包任务往后排；后续待 user DB / `stable_key` 前置设计稳定后再恢复。
 
 建议顺序：
 
@@ -188,24 +189,23 @@
 
 ### 默认推荐
 
-1. 做 `OI-136 / FE-ROUTE`。
-2. 再进入 `OI-135 + DB-2 + DB-11` 用户库与 stable_key 治理。
-3. 然后继续 Delivery Bundle 或前端基线稳定化。
+1. 当前下一步：先 checkpoint 已完成的 `OI-135 + DB-11 + DB-2` smoke 与 `OI-136 / FE-ROUTE` 修复。
+2. 同级 P0：`analytics_summary P0`，先 exporter 和 audit，再 dashboard 消费。
+3. 如继续 DB 线：设计真实迁移脚本的备份、dry-run、apply 三段式。
 
 ### 如果用户更关心交付包
 
 1. Checkpoint。
-2. `OI-136`。
-3. `DB-2 + DB-11`。
-4. Windows ZIP UAT。
+2. `DB-2 + DB-11` 真实迁移脚本设计确认。
+3. Windows ZIP UAT。
 
 ### 如果用户更关心当前前端体验
 
 1. Checkpoint。
-2. `OI-136`。
-3. `FE-NAV`。
-4. `FE-CHIP-MATRIX`。
-5. `FE-DASHBOARD`。
+2. `analytics_summary` exporter / audit。
+3. `FE-DASHBOARD`。
+4. `FE-NAV`。
+5. `FE-CHIP-MATRIX`。
 
 ## 状态维护要求
 

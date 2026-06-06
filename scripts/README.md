@@ -17,6 +17,10 @@
 | `audit_frontend_lazy_load_contract.mjs` | 前端按需加载契约审计，检查知识库字典和安全标准 / 框架的 required / supplemental 分片、标准页 tab loader 和组件内取数边界 | `docs/06-implementation/frontend-global-design-baseline-2026-05-30.md` |
 | `audit_user_annotation_contract.mjs` | 用户批注全局锚点契约审计，检查统一值选择器、普通表格单元格兜底、共享 relation chip、知识库字典 / 标准框架 / 能力映射 / 环境映射 / LC-AP / LC-DT 渲染样例、折叠目录定位恢复、批注视觉状态和逐页回归需求基线 | `docs/06-implementation/global-annotation-requirements-and-regression-matrix.md` |
 | `audit_annotation_drawer_tab.mjs` | 用户批注右侧标签真实浏览器交互审计，检查默认窄标签、数量徽标、hover 预展开、点击完全展开和再次点击平滑收起 | `docs/06-implementation/global-annotation-requirements-and-regression-matrix.md` |
+| `audit_user_db_governance_contract.mjs` | 用户库长期治理契约审计，默认检查设计 / 代码一致性，传 `--db` 时只读检查真实用户库 | `docs/06-implementation/user-database-governance-and-stable-key-design.md` |
+| `plan_user_schema_0_3_migration.mjs` | `user_schema_0.3` 只读 dry-run 计划，输出拟建表、legacy favorite note 候选和 target_ref 风险分类，不写真实用户库 | `docs/06-implementation/user-database-governance-and-stable-key-design.md` |
+| `audit_stable_key_contract.mjs` | 基础库 `stable_key` / deterministic ID / `base_id_redirects` 契约审计；当前用于暴露 DB-2 未落地缺口 | `docs/06-implementation/base-stable-key-and-redirect-migration-design-2026-06-06.md` |
+| `smoke_db_migration_contracts.mjs` | 只复制 base/user SQLite 到 `/private/tmp` 并在复制库上执行 `user_schema_0.3` 与基础库 `stable_key` / `base_id_redirects` migration smoke，不写真实项目数据库 | `docs/06-implementation/user-database-governance-and-stable-key-design.md` |
 | `audit_capability_viewmodel_contract.mjs` | 安全能力映射页 ViewModel 当前对象一致性审计，验证 L0 / L1 / L2 / 关注点不会误用默认关注点或错粒度 projection | `docs/07-governance/data-governance.md` |
 | `audit_dictionary_reference_consistency.mjs` | 知识库字典权威引用一致性审计，检查能力、作用域、技术服务、技术模块 / 措施、管理工作、流程和职能引用是否与字典一致 | `docs/07-governance/data-governance.md` |
 | `govern_open_issues.mjs` | `open-issues.md` 轻量治理：保留未关闭问题入口，归档已关闭长记录，生成全量索引 | `docs/06-implementation/open-issues.md` |

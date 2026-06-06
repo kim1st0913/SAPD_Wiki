@@ -51,6 +51,54 @@ Frontend Baseline 1.0 当前关系工作台实现重点仍覆盖三页：
 
 本轮已完成首个前后端分离落点：安全能力映射页新增 `/api/v1/capabilities/workspace-projection`，用于承载技术视角和管理视角的关系投影；静态模式下保留 ViewModel fallback。
 
+2026-06-06 用户调整优先级：`analytics_summary` 是 P0，但不独占当前最高优先级；Delivery Bundle / 打包任务先往后排。当前已完成 `OI-135 + DB-11 + DB-2` 的第一轮设计收敛，产出 `docs/06-implementation/user-database-governance-and-stable-key-design.md`；Data Analytics dashboard 成果已 fan-in 到计划，后续按队列推进，不直接改前端。
+
+## 当前 P0 主线队列
+
+| 优先级组 | 工作包 | 当前状态 | 推荐下一步 | 改动边界 |
+|---|---|---|---|---|
+| P0-A | 用户库长期治理 | `OI-135` / `DB-11` 临时库 smoke 通过 / 真实迁移待确认 | 先 checkpoint 当前设计与 smoke 证据；如继续推进，下一步设计真实迁移脚本的备份、dry-run、apply 三段式，不直接写真实用户库 | 文档 / schema 设计先行，不直接改前端按钮 |
+| P0-A | `stable_key` / 基础库升级兼容 | `DB-2` 临时库 smoke 通过 / 真实迁移待确认 | 先 checkpoint 当前设计与 smoke 证据；如继续推进，下一步定义正式 stable key 生成口径和 `base_id_redirects` 真实样例策略 | 支撑批注、收藏、Delivery 和后续基础库升级 |
+| P0-B | `analytics_summary` 落地 | 计划已纳入，未实现 | 先做 exporter / audit / `data_package_summary` / `dataClient`，最后 dashboard 消费 | 先数据契约，后前端展示 |
+| P0-C | 深层路由稳定性 | `OI-136 / FE-ROUTE` 已修复 / 待 checkpoint | 已通过根 `base href` 修复 `/guides/*`、`/knowledge/*`、`/standards/*` 直接访问资源相对路径问题；轻量 smoke 已覆盖三类深链根资源加载 | 单线写入，不和 dashboard 或批注混写 |
+| P1 | Delivery Bundle 1.0-alpha | macOS alpha 已准备，Windows 未实测 | 打包任务后排；待 user DB / stable_key 前置设计稳定后，再决定是否恢复 Windows UAT 或正式打包 | 不和前端 UI 混写 |
+
+## analytics_summary P0 落地计划
+
+设计入口：
+
+- `docs/06-implementation/dashboard-and-module-data-display-optimization-design.md`
+- `docs/06-implementation/analytics-summary-json-contract-draft.md`
+
+实施原则：
+
+- 先生成后端 / 离线数据契约，再接入 `dataClient`，最后改 dashboard 展示。
+- Dashboard 第一屏围绕 `capability_focus`、能力覆盖、多维支撑、场景可达和标准支撑，不展示数据治理 / 导入健康 / 工程状态。
+- 标准控制项必须区分三类 grain：能力映射可达控制项、标准索引控制项、SQLite 全库 reconciliation；不得混成一个“标准控制项总数”。
+- 普通用户主展示区不得出现 `sheet`、`row`、`column`、`raw_value`、`source_file`、`import_id`、`source_id`、`source_ref`、`source_label`、`debug`、`raw`、`metadata`、`intermediate`、`generated_at`。
+
+| 顺序 | 编号 | 任务 | 状态 | 改动范围 | 验收重点 |
+|---|---|---|---|---|---|
+| 1 | AN-SUM-EXPORT | exporter 生成 `analytics-summary.json` | P0 待启动 | 新增或扩展离线 exporter；输出 `frontend/capability-browser/public/data/analytics-summary.json`；只聚合现有 `ready` 数据包 | 顶层包含 `meta`、`businessSummary`、`coverageSummary`、`moduleSummary`、`navigationSummary`、`relationshipSummary`、`evidenceSummary`、`adminSummary`、`reconciliationSummary`、`compatibility`；覆盖率有分子、分母、relation type、source package |
+| 2 | AN-SUM-PKG | `data_package_summary.py` 增加摘要检查 | P0 待启动 | `scripts/data_package_summary.py`、必要的脚本 README | `--package analytics-summary` 和 `--package all` 能显示 `dataState`、主 grain、关键计数、覆盖维度、标准控制项三类 grain，不打印完整 JSON |
+| 3 | AN-SUM-CLIENT | `dataClient.getAnalyticsSummary()` | P0 待启动 | `frontend/capability-browser/dataClient.js` 及最小契约说明 | 统一处理 API `/api/v1/data-packages/analytics-summary` 与离线包 fallback；页面组件不直接读取 raw workbench JSON 重新计算 P0 指标 |
+| 4 | AN-SUM-DASHBOARD | dashboard 消费 `analytics_summary` | P0 待前置数据包完成 | `frontend/capability-browser/app.js`、必要 CSS；不改批注模块 | 首页从数据包健康统计转为能力知识地图入口；管理员 / reconciliation 信息只进折叠维护区；不做营销页、卡片墙或装饰 dashboard |
+| 5 | AN-SUM-AUDIT | audit 脚本验证覆盖率、标准控制项 grain 和禁止字段泄露 | P0 待启动 | 新增 `scripts/audit_analytics_summary_contract.mjs`；必要时扩展 smoke | 验证覆盖率分母固定为 `capability_focus`、标准控制项三类 grain 不混用、主展示字段不泄露禁止字段、dashboard 只消费 `analytics_summary` |
+
+推荐实施顺序：
+
+1. 先做 `AN-SUM-EXPORT`，把 Data Analytics 方案变成稳定离线数据包。
+2. 同步做 `AN-SUM-AUDIT` 的最小契约审计，先让错误可被脚本抓住。
+3. 做 `AN-SUM-PKG`，把 `data_package_summary.py` 变成轻量验收入口。
+4. 做 `AN-SUM-CLIENT`，只加读取契约，不改页面视觉。
+5. 最后做 `AN-SUM-DASHBOARD`，用已经稳定的数据包替换当前首页工程统计。
+
+不建议同时做：
+
+- 不同时做 dashboard 视觉重构和 exporter 口径调整。
+- 不让 dashboard 组件直接从 `capability-workbench`、`environment-workbench`、`lifecycle-workbench` 拼统计。
+- 不把 `OI-136 / FE-ROUTE`、批注 UI 微调、导航重构和 `analytics_summary` 落地混在一个提交里。
+
 ## 未来项目计划：前端页面设计线
 
 | 编号 | 任务 | 当前状态 | 目标产出 | 依赖 |
@@ -61,7 +109,8 @@ Frontend Baseline 1.0 当前关系工作台实现重点仍覆盖三页：
 | FE-AS-V | Application Shell 视觉对齐 | 已完成 | 已按 Stitch 输出对齐蓝灰低阴影工作台风格，移除重复品牌，降低顶部状态区和安全能力映射页视觉噪声，并生成 1440px / 1920px 截图 | F2-P1.5 应用壳集成、`application-shell-v1.png` |
 | FE-CAP-SPEC | 安全能力映射工作台视觉实现规格 | 已完成 | 已新增视觉实现规格，明确拒绝验收原因、三视角关系图、右侧关联洞察区和响应式验收标准 | `frontend/design-handoff/implementation-specs/security-capability-workbench-visual-spec-v1.md` |
 | FE-CAP-W | 安全能力映射工作台专项实现 | 已完成（F3-GRAPH-P2） | F3-P1R 与 F3-IMPL-P1 均已被用户拒绝；R2 恢复预览页结构，R3/R4 完成矩阵语义校正与 Tab IA，R5 删除右侧栏；RECOVERY 恢复原技术 / 管理矩阵组件到对应 Tabs；F3-DIAG 修复四类职能层级投影；P2/P3/P4 将默认摘要收敛为同源图式总览；GRAPH-P1-V2 新增原生 SVG `LocalRelationNetworkGraph` 和 `relationGraphModel`；GRAPH-P2 将其改为径向星形网络图，确保能力-关注点为唯一中心锚点、三视角星形分散、无数据业务节点不显示，技术 / 管理 Tabs 继续保留表格式明细 | `CapabilityLocalRelationMap.js`, `LocalRelationNetworkGraph.js`, `relationGraphModel.js`, `FocusScopeServiceMatrix.js`, `FocusManagementMapping.js`, `viewModels.js`, `app.js` |
-| FE-ROUTE | 深层路由直接访问与刷新稳定性治理 | P0 待启动（`OI-136`） | 修复 `/guides/*`、`/knowledge/*`、`/standards/*` 等深层 route 直接访问未加载样式的问题；固化直接输入、刷新、应用内导航、浏览器前进 / 后退、批注定位跳转的一致 route contract | `frontend-global-design-baseline-2026-05-30.md`, `AppShell.js`, `app.js`, `index.html`, `scripts/frontend_smoke_check.mjs` |
+| FE-ROUTE | 深层路由直接访问与刷新稳定性治理 | 已修复 / 待 checkpoint（`OI-136`） | 已在 `index.html` 固化根 `base href="/"`，并扩展 `frontend_smoke_check.mjs` 的深层路由轻量资源断言，覆盖 `/guides/*`、`/knowledge/*`、`/standards/*` 直接访问样式和主脚本加载 | `frontend-global-design-baseline-2026-05-30.md`, `index.html`, `scripts/frontend_smoke_check.mjs` |
+| FE-DASHBOARD-AS | Dashboard 消费 `analytics_summary` | P0 待前置数据包完成 | 首页从工程数据包统计切换为“安全能力知识地图”入口，只消费 `dataClient.getAnalyticsSummary()`，不在组件内重新计算跨包覆盖率、标准控制项 grain 或关系推断 | `docs/06-implementation/dashboard-and-module-data-display-optimization-design.md`, `docs/06-implementation/analytics-summary-json-contract-draft.md`, `dataClient.js`, `app.js` |
 | FE-1 | 关系画布设计基线固化 | 待启动 | 抽象 `LocalRelationCanvas` / `RelationNode` / `RelationLane` / `FoldedDetail` 等可复用模式，不急于跨页抽组件文件 | FE-0 验收结果、FE-IA |
 | FE-2 | 安全能力映射页前端验收清单 | 待启动 | 固化能力页验收项：左侧关注点、技术视角、管理视角、矩阵折叠、来源折叠、字段边界、无控制台错误 | FE-0 |
 | FE-3 | 信息化环境维度页设计 | 第一版实现已完成 | 已新增信息化环境安全能力映射图谱策略，并接入环境页本地关系图谱：`E0` 信息化环境只展示结构、`E1` 环境子类展示对象 / 作用域 / 服务 / 能力概览、`E2` 信息化对象完整展示作用域、服务、模块 / 措施、系统、产品和能力 / 关注点；保留原环境映射表作为核对入口 | `frontend/design-handoff/implementation-specs/environment-security-capability-graph-strategy-2026-05-20.md`, `environmentRelationGraphModel.js`, `EnvironmentLocalRelationMap.js`, BE-2 |
@@ -69,7 +118,7 @@ Frontend Baseline 1.0 当前关系工作台实现重点仍覆盖三页：
 | FE-M | SAPD 成熟度评估页面设计 | 待启动（另开会话） | 形成评分填报、结果摘要和报告导出页面，不复用关系画布作为主界面 | maturity 专用数据契约 |
 | FE-5 | 三页共同组件和交互一致性整理 | 后置 | 统一导航、对象头、关系画布、折叠明细、来源证据、空状态和标签风格 | FE-2 / FE-3 / FE-4 |
 | FE-6 | 专项知识维护页面稳定化 | 第二轮结构调整已完成 | 已按安全知识目录链路完成收口：外层二级入口为作用域、技术模块/措施、管理工作/流程、职能、Hype Cycle、其他知识目录；模块/措施、管理工作/流程、职能/岗位参考改为内部 Tab；维护表格密度与列宽统一；后续继续梳理详情面板和缺口字段 | 后端专项接口稳定 |
-| FE-ANN | 全局批注与工作台锚点契约 | 基本验收通过 / checkpoint 已完成（OI-128C 设计已固化为全局基线，真实回归 33/33 通过） | 右侧浮层批注抽屉已替代横向收藏条；批注模块按 overlay 层治理，基础页面只暴露稳定锚点，批注层统一处理右键、抽屉、保存、状态、tooltip、常驻提示和定位高亮；全局值级锚点覆盖能力映射、环境映射、知识库字典、标准 / 框架、指南和 LC-AP / LC-DT；普通 `td` 单元格具备值级兜底，知识库对象行挂载稳定 `data-annotation-target-ref`，折叠目录定位可自动展开父级并恢复常驻标记。普通态视觉已从背景铺底收口为贴文字的琥珀下划线，行级普通态只保留左侧标识，关系 chip 保留语义底色并叠加低噪声下划线 / 边框；定位态保留更明显的黄色 + Apple blue 聚焦，指南 slide / thumb 定位态额外补齐琥珀下沿，避免 active 蓝底覆盖批注 ink。2026-06-06 已完成 `OI-128C` checkpoint：`b93a9f1 Finalize OI-128C annotation baseline`。当前设计已写入全局基线和新页面接入清单，后续新增页面必须先接入页面对象、值锚点、行锚点、幻灯片 / 子页上下文并跑契约审计，不再逐页重新调试。后续批注只按 bug fix 处理；下一步默认进入 `OI-136 / FE-ROUTE`，再评估工作台总览、数据篮 / 导出和能力重组 | `docs/06-implementation/global-annotation-requirements-and-regression-matrix.md`, `docs/06-implementation/workspace-annotation-and-capability-remix-design.md`, `scripts/audit_user_annotation_contract.mjs`, `scripts/audit_saved_user_annotations.mjs` |
+| FE-ANN | 全局批注与工作台锚点契约 | 基本验收通过 / checkpoint 已完成（OI-128C 设计已固化为全局基线，真实回归 33/33 通过） | 右侧浮层批注抽屉已替代横向收藏条；批注模块按 overlay 层治理，基础页面只暴露稳定锚点，批注层统一处理右键、抽屉、保存、状态、tooltip、常驻提示和定位高亮；全局值级锚点覆盖能力映射、环境映射、知识库字典、标准 / 框架、指南和 LC-AP / LC-DT；普通 `td` 单元格具备值级兜底，知识库对象行挂载稳定 `data-annotation-target-ref`，折叠目录定位可自动展开父级并恢复常驻标记。普通态视觉已从背景铺底收口为贴文字的琥珀下划线，行级普通态只保留左侧标识，关系 chip 保留语义底色并叠加低噪声下划线 / 边框；定位态保留更明显的黄色 + Apple blue 聚焦，指南 slide / thumb 定位态额外补齐琥珀下沿，避免 active 蓝底覆盖批注 ink。2026-06-06 已完成 `OI-128C` checkpoint：`b93a9f1 Finalize OI-128C annotation baseline`。当前设计已写入全局基线和新页面接入清单，后续新增页面必须先接入页面对象、值锚点、行锚点、幻灯片 / 子页上下文并跑契约审计，不再逐页重新调试。后续批注只按 bug fix 处理；当前进入 P0 主线队列，不再把批注作为新功能主线 | `docs/06-implementation/global-annotation-requirements-and-regression-matrix.md`, `docs/06-implementation/workspace-annotation-and-capability-remix-design.md`, `scripts/audit_user_annotation_contract.mjs`, `scripts/audit_saved_user_annotations.mjs` |
 
 前端页面设计线的边界：
 
@@ -88,9 +137,11 @@ Frontend Baseline 1.0 当前关系工作台实现重点仍覆盖三页：
 | BE-2 | 信息化环境维度页投影 | 已完成（数据包投影） | 已输出 `environment-workbench.json`，承载环境 / 对象 / 作用域 / 服务 / 模块 / 系统 / 产品 / 能力关联 | `frontend/capability-browser/public/data/environment-workbench.json` |
 | BE-3 | LC-AP 生命周期页投影 | 已完成（数据包投影） | 已输出 `lifecycle-workbench.json`，承载阶段 / 活动 / 控制点 / 策略要求 / 服务 / 模块 / 能力关联 | `frontend/capability-browser/public/data/lifecycle-workbench.json` |
 | BE-4 | 数据质量与缺口清单 | 已完成（首轮静态审计，BE-4.2 已修复；`OI-040` 已修复） | 已新增三份 workbench 数据质量与缺口清单，确认三包顶层结构、关系端点和字段边界正常；`OI-040`、`OI-049`、`OI-050` 已修复，当前继续跟踪源数据一致性待确认问题 `OI-073` | `docs/06-implementation/be-4-workbench-data-quality-gap-list.md`, `docs/06-implementation/open-issues.md` |
+| BE-AN-SUM-1 | `analytics_summary` 离线数据包生成 | P0 待启动 | 新增 exporter 生成 `frontend/capability-browser/public/data/analytics-summary.json`，聚合 `capability-workbench`、`environment-workbench`、`lifecycle-workbench`、`standards-index`、`content-views`，以 `capability_focus` 为主 grain，输出覆盖率、模块入口、关系摘要、证据摘要和 reconciliation | `docs/06-implementation/analytics-summary-json-contract-draft.md`, `docs/06-implementation/dashboard-and-module-data-display-optimization-design.md` |
+| BE-AN-SUM-2 | `analytics_summary` 数据包摘要与审计 | P0 待启动 | 扩展 `scripts/data_package_summary.py` 支持 `analytics-summary` 摘要；新增 `scripts/audit_analytics_summary_contract.mjs`，验证覆盖率、标准控制项三类 grain 和禁止字段泄露 | `BE-AN-SUM-1` |
 | BE-M | SAPD 成熟度评估数据契约 | 待启动（另开会话） | 定义 maturity 评估模板、填报会话、结果投影和报告导出契约 | `docs/08-maturity/` |
 | BE-5 | 导入 / 校验 / 审批链路回补 | 后置 | 将当前 Excel 导入 MVP 进一步整理为 source -> staging -> review -> formal tables 的可维护链路 | 当前导入脚本和 SQLite |
-| BE-6 | Delivery Bundle 1.0-alpha ZIP 解压即用交付版 | ZIP-UAT-0 macOS 内部试发准备已完成，Windows 待实机验证 | Delivery Bundle 1.0 第一优先级为分平台 `.zip` 解压即用版；当前 macOS arm64 alpha 试发材料已固定到 `/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle/dist/releases/0.1.0-alpha/`，并已固化 ZIP、checksum、release manifest、试发指南、UAT checklist 和反馈模板；Windows `SAPD-Wiki-Backend.exe` 构建脚本和验收清单已就绪，但需 Windows x64 环境继续实测 | `docs/09-delivery/zip-uat-0-internal-trial-guide.md`, `docs/09-delivery/zip-uat-0-checklist.md`, `docs/09-delivery/zip-uat-feedback-template.md`, `docs/09-delivery/windows-zip-build-guide.md` |
+| BE-6 | Delivery Bundle 1.0-alpha ZIP 解压即用交付版 | 后排保留；ZIP-UAT-0 macOS 内部试发准备已完成，Windows 待实机验证 | 当前 macOS arm64 alpha 试发材料已固定到 `/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle/dist/releases/0.1.0-alpha/`，并已固化 ZIP、checksum、release manifest、试发指南、UAT checklist 和反馈模板；Windows `SAPD-Wiki-Backend.exe` 构建脚本和验收清单已就绪，但需 Windows x64 环境继续实测。打包任务先往后排，待 user DB / `stable_key` 前置设计稳定后再恢复 | `docs/09-delivery/zip-uat-0-internal-trial-guide.md`, `docs/09-delivery/zip-uat-0-checklist.md`, `docs/09-delivery/zip-uat-feedback-template.md`, `docs/09-delivery/windows-zip-build-guide.md` |
 
 后端数据 / 逻辑线的边界：
 
@@ -103,10 +154,10 @@ Frontend Baseline 1.0 当前关系工作台实现重点仍覆盖三页：
 | 编号 | 任务 | 当前状态 | 目标产出 |
 |---|---|---|---|
 | DB-1 | base/user 双数据库边界 | 最小运行契约已完成 | 明确 `sapd_wiki_base.sqlite3` 只读基础库和 `sapd_wiki_user.sqlite3` 可写用户库 schema 分界 |
-| DB-2 | `stable_key` / deterministic ID 策略 | P0 待启动 | 基础对象和关系拥有跨 release 稳定键，并设计 `base_id_redirects` 处理改名、合并、拆分、废弃 |
+| DB-2 | `stable_key` / deterministic ID 策略 | P0 临时库 smoke 通过 / 真实迁移待确认 | 已新增 `scripts/audit_stable_key_contract.mjs`、`scripts/smoke_db_migration_contracts.mjs` 和 `base-stable-key-and-redirect-migration-design-2026-06-06.md`；复制基础库已验证 4660 个对象和 7654 条关系的 `stable_key` / `stable_ref` / `public_id` 覆盖，真实迁移仍需用户确认 |
 | DB-3 | base manifest 与版本规范 | 最小契约已完成 | 生成 `base-manifest.json`，绑定 app 版本、base 数据版本、schema 版本、fallback JSON hash 和关键计数 |
 | DB-4 | 用户库 schema / migration | 最小 schema 与创建脚本已完成 | 初始化用户库，覆盖备注、收藏、个人标签、overlay、修正建议、用户导入 staging / review / change log |
-| DB-11 | 用户库治理与兼容表迁移清理 | P0 待启动 | 明确 `user_notes`、旧 `user_favorites`、数据篮、导出配置、用户自定义能力和导入草稿的长期 schema、迁移、备份、恢复、测试数据清理和 read model 合并规则 |
+| DB-11 | 用户库治理与兼容表迁移清理 | P0 临时库 smoke 通过 / 真实迁移待确认 | 已新增 `scripts/audit_user_db_governance_contract.mjs`、用户库兼容报告、`scripts/plan_user_schema_0_3_migration.mjs` 和 `scripts/smoke_db_migration_contracts.mjs`；复制用户库已验证 `user_schema_0.3` 13 张新表，真实迁移仍需用户确认 |
 | DB-5 | base/user 合并 read model | 连接与命名空间规则已设计 | API 层输出 `base:<id>` / `user:<id>` 命名空间，前端不关心数据来自哪个 SQLite |
 | DB-6 | ZIP Bundle Builder alpha | 真实运行 ZIP 构建规则已收紧 | 从已审批正式库生成 `sapd_wiki_base.sqlite3`、manifest、`frontend-dist`、分平台 start/stop / diagnostics 脚本、logs、diagnostics 和平台 zip 目录；默认输出到 `/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle`；真实 ZIP 必须传入 `--backend-binary`，结构验证包必须显式 `--allow-placeholder` |
 | DB-7 | 本地后端可执行文件 alpha | macOS arm64 已打包验证，Windows 待实测 | `scripts/run_local_server.py` 已用 PyInstaller 打包为 macOS arm64 `SAPD-Wiki-Backend` 并完成 ZIP 解压启动验证；Windows 构建脚本 `scripts/package_backend_windows.ps1` 和 `docs/09-delivery/windows-zip-build-guide.md` 已就绪，待 Windows x64 环境生成并验证 `SAPD-Wiki-Backend.exe` |

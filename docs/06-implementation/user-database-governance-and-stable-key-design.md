@@ -1,7 +1,7 @@
 # 用户库长期治理与 stable_key 设计
 
 日期：2026-06-06
-状态：设计完成 / 待确认
+状态：正式迁移脚本完成 / 真实库 apply 待显式确认
 适用范围：`OI-135`、`DB-11`、`DB-2`，以及后续工作台、数据篮、导出、用户自定义能力、导入草稿、基础库升级兼容。
 
 ## 1. 设计结论
@@ -14,7 +14,7 @@
 - `user_notes` 已成为正式批注入口，`user_favorites` 只保留为历史兼容 / 关注清单，不再作为主业务动作。
 - 所有用户写入必须指向稳定 `target_ref`，优先使用 `base:<object_type>:<stable_key>`，不得长期依赖基础库重建后可能变化的 UUID。
 - `stable_key` 和 `base_id_redirects` 是 Delivery、批注、数据篮、导出、能力重组和基础库升级的共同底座。
-- 本轮只做设计和迁移策略，不直接改前端、不迁移数据库、不修改数据包。
+- 本轮已完成设计、dry-run、临时库 smoke 和正式迁移脚本三段式；真实基础库和真实用户库仍未写入，不直接改前端、不修改数据包。
 
 ## 2. 当前事实
 
@@ -560,7 +560,8 @@ scripts/audit_stable_key_contract.mjs
 | 3 | 生成当前用户库兼容报告 | 已完成 | `docs/06-implementation/user-db-compatibility-report-2026-06-06.md` |
 | 4 | 设计 `user_schema_0.3` migration dry-run | 已完成 | `scripts/plan_user_schema_0_3_migration.mjs`，只读输出 0.3 表创建、legacy favorite note 候选和 target_ref 风险分类 |
 | 5 | 设计基础库 `stable_key` / `base_id_redirects` migration | 已完成 | `docs/06-implementation/base-stable-key-and-redirect-migration-design-2026-06-06.md` |
-| 6 | 临时库 migration smoke | 下一步 | 只对 `/private/tmp` 复制库执行，真实基础库 / 用户库不写 |
-| 7 | 最小 API：数据篮或工作台二选一 | 后续 | 不同时开 |
+| 6 | 临时库 migration smoke | 已完成 | `scripts/smoke_db_migration_contracts.mjs` 只对 `/private/tmp` 复制库执行，真实基础库 / 用户库不写 |
+| 7 | 正式迁移脚本三段式 | 已完成 | `scripts/migrate_db_contracts.mjs` 默认 dry-run；`--apply` 才写目标库；项目真实库还需 `--confirm-project-db-write` 并自动备份 |
+| 8 | 最小 API：数据篮或工作台二选一 | 后续 | 不同时开 |
 
-下一步不应直接进入前端按钮，而应先做临时库 migration smoke，把 dry-run 计划变成可验证的迁移脚本。
+下一步不应直接进入前端按钮。建议先在用户工作台 / 数据篮 / 导出中选择一个最小 API 入口，把已完成的用户库 schema 设计转成可用能力。

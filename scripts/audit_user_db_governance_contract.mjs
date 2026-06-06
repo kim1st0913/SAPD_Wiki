@@ -254,17 +254,17 @@ function main() {
   addCheck(
     checks,
     "oi_135_design_status_synced",
-    /OI-135\s*\|\s*(设计完成 \/ 待确认|临时库 smoke 通过 \/ 真实迁移待确认)/.test(openIssues),
+    /OI-135\s*\|\s*(设计完成 \/ 待确认|临时库 smoke 通过 \/ 真实迁移待确认|正式迁移脚本完成 \/ 真实库 apply 待显式确认)/.test(openIssues),
   );
   addCheck(
     checks,
     "db_11_plan_status_synced",
-    /DB-11[\s\S]*P0 (设计完成 \/ 待确认|审计脚本完成 \/ migration dry-run 待启动|migration dry-run 完成 \/ 临时库 smoke 待启动|临时库 smoke 通过 \/ 真实迁移待确认)/.test(taskPlan),
+    /DB-11[\s\S]*P0 (设计完成 \/ 待确认|审计脚本完成 \/ migration dry-run 待启动|migration dry-run 完成 \/ 临时库 smoke 待启动|临时库 smoke 通过 \/ 真实迁移待确认|正式迁移脚本完成 \/ 真实库 apply 待显式确认)/.test(taskPlan),
   );
   addCheck(
     checks,
     "db_2_plan_status_synced",
-    /DB-2[\s\S]*P0 (设计完成 \/ 待确认|审计脚本完成 \/ migration 设计待启动|migration 设计完成 \/ 临时库 smoke 待启动|临时库 smoke 通过 \/ 真实迁移待确认)/.test(taskPlan),
+    /DB-2[\s\S]*P0 (设计完成 \/ 待确认|审计脚本完成 \/ migration 设计待启动|migration 设计完成 \/ 临时库 smoke 待启动|临时库 smoke 通过 \/ 真实迁移待确认|正式迁移脚本完成 \/ 真实库 apply 待显式确认)/.test(taskPlan),
   );
 
   if (args.db) {

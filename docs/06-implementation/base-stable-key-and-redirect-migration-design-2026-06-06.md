@@ -1,12 +1,12 @@
 # 基础库 stable_key 与 base_id_redirects 迁移设计
 
 日期：2026-06-06
-状态：设计完成 / 待实现
+状态：正式迁移脚本完成 / 真实库 apply 待显式确认
 适用范围：`DB-2`、`DB-11`、Delivery Bundle 基础库升级、批注 / 收藏 / 数据篮 / 用户关系跨版本兼容。
 
 ## 1. 结论
 
-当前不应直接迁移真实基础库。应先把基础库中已经存在的候选稳定键提升为正式字段，再建立 redirect 表和审计脚本闭环。
+当前不应直接迁移真实基础库。基础库中已经存在的候选稳定键已通过正式迁移脚本验证可提升为正式字段，并建立 redirect 表和审计脚本闭环；真实库 apply 仍需显式确认和备份。
 
 当前基础库事实：
 
@@ -203,7 +203,7 @@ scripts/plan_base_stable_key_migration.mjs
 - 临时复制库迁移后 `audit_stable_key_contract.mjs` 通过。
 - `base_id_redirects` 至少具备表结构和 redirect type 校验。
 - `user_schema_0.3` dry-run 明确不会丢用户数据。
-- 用户确认可以进入基础库 schema migration。
+- 显式运行 `node scripts/migrate_db_contracts.mjs --apply --confirm-project-db-write`，并确认备份已生成。
 
 ## 6. 与用户库的关系
 
@@ -222,19 +222,19 @@ target_ref -> normalize -> stable_ref -> base_id_redirects -> active/orphan/depr
 
 ## 7. 验收标准
 
-真实迁移完成后，至少满足：
+正式迁移脚本完成后，至少满足：
 
 - `knowledge_items.stable_key` 覆盖 4660 / 4660。
 - `knowledge_relations.stable_key` 覆盖 7654 / 7654。
 - `knowledge_items.stable_ref`、`knowledge_relations.stable_ref` 唯一。
 - `base_id_redirects` 表存在，字段完整。
-- `audit_stable_key_contract.mjs` 不再因 stable key / redirects 基础契约失败。
+- 临时迁移库执行 `audit_stable_key_contract.mjs` 不再因 stable key / redirects 基础契约失败。
 - 不修改用户库正文，不输出用户正文。
 - 不把 v2 页面坐标锚点误判为基础对象 stable ref。
 
 ## 8. 当前不做
 
-- 不直接写真实基础库。
+- 不默认写真实基础库；真实库 apply 必须显式确认并自动备份。
 - 不改 ETL 主流程。
 - 不改前端。
 - 不修改真实 `sapd_wiki_user.sqlite3`。

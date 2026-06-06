@@ -14,17 +14,17 @@
 
 1. 先把 `OI-128C` 和当前 dirty worktree 做 checkpoint，降低回退成本。
 2. 2026-06-06 用户调整优先级：`analytics_summary` 是 P0，但不独占当前最高优先级；`OI-136 / FE-ROUTE` 与只读 subagent 评估项也暂时不抢主线。
-3. 当前已完成 `OI-135 + DB-11 + DB-2` 第一轮设计收敛：`docs/06-implementation/user-database-governance-and-stable-key-design.md`。Delivery Bundle / 打包任务先往后排；`analytics_summary` 保持 P0 队列任务但不抢占当前主线。
+3. 当前已完成 `OI-135 + DB-11 + DB-2` 正式迁移脚本三段式：`scripts/migrate_db_contracts.mjs`。Delivery Bundle / 打包任务先往后排；`analytics_summary` 已完成 dashboard 消费，后续只按视觉或业务反馈小修。
 
 ## Backlog 总览
 
 | 优先级 | 工作包 | 包含任务 | 当前状态 | 推荐处理 |
 |---|---|---|---|---|
 | Gate 0 | Dirty worktree checkpoint | `OI-128C` 批注收口、全局批注基线、批注脚本、当前设计审阅产物 | 已完成 | 已拆成 `b93a9f1` 批注基线和 `e23c6d7` backlog / 设计计划两个 checkpoint；当前工作区已清理，进入 P0 主线队列 |
-| P0 | `analytics_summary` 落地 | exporter、`data_package_summary`、`dataClient.getAnalyticsSummary()`、dashboard 消费、audit 脚本 | 已完成 / 待提交 | 首页已只消费 `analyticsSummary`，后续只按视觉或业务反馈小修 |
+| P0 | `analytics_summary` 落地 | exporter、`data_package_summary`、`dataClient.getAnalyticsSummary()`、dashboard 消费、audit 脚本 | 已完成 / 已提交 | 首页已只消费 `analyticsSummary`，后续只按视觉或业务反馈小修 |
 | P1 | 深层路由稳定性 | `OI-136`、`FE-ROUTE` | 已修复 / 已归档 | 已修直接访问 `/guides/*`、`/knowledge/*`、`/standards/*` 掉样式，并纳入轻量 smoke；已随 checkpoint 提交并从当前 Open Issues 移入归档 |
-| P0 | 用户库长期治理 | `OI-135`、`DB-11`、`user_notes`、旧 `user_favorites`、数据篮 / 导出 / 自定义能力 | 临时库 smoke 通过 / 真实迁移待确认 | `/private/tmp` 复制用户库已验证 `user_schema_0.3` migration，不迁移真实用户库 |
-| P0 | 稳定键与基础库升级兼容 | `DB-2 stable_key`、deterministic ID、`base_id_redirects` | 临时库 smoke 通过 / 真实迁移待确认 | `/private/tmp` 复制基础库已验证正式 `stable_key` / `stable_ref` / `public_id` 字段和 `base_id_redirects` 最小 migration |
+| P0 | 用户库长期治理 | `OI-135`、`DB-11`、`user_notes`、旧 `user_favorites`、数据篮 / 导出 / 自定义能力 | 正式迁移脚本完成 / 真实库 apply 待显式确认 | `scripts/migrate_db_contracts.mjs` 已验证默认 dry-run、临时库 apply、自动备份和真实项目库写入确认门 |
+| P0 | 稳定键与基础库升级兼容 | `DB-2 stable_key`、deterministic ID、`base_id_redirects` | 正式迁移脚本完成 / 真实库 apply 待显式确认 | 临时复制基础库已验证正式 `stable_key` / `stable_ref` / `public_id` 字段和 `base_id_redirects` 最小 migration，真实库未写入 |
 | P1 | Delivery Bundle 1.0-alpha | `BE-6`、`DB-6/7/9`、Windows x64 实测、诊断包、release manifest | macOS alpha 已准备，Windows 未验证；优先级后排 | 待 user DB / stable_key 前置设计稳定后再恢复；不要和前端 UI 混写 |
 | P1 | 前端设计基线稳定化 | `FE-BASELINE-STABILIZE` 建议包：`FE-NAV`、`FE-ANNOTATION-UX`、`FE-CHIP-MATRIX`、`FE-DASHBOARD` | 待拆分 | 先只读审阅，逐项小步实现 |
 | P1 | 页面模块继续验收 | 安全能力、LC-AP / LC-DT、信息化环境、知识库字典、标准 / 框架、指南页 | 多数已有实现或待验收 | 只读 Gap Check 起步；写入必须单页面单线 |
@@ -56,13 +56,13 @@
 
 后续实施建议拆分：
 
-1. `OI-135 / DB-11 / DB-2`：当前临时库 smoke 已通过，先做 checkpoint，避免 DB 治理证据再次散落。
-2. 如继续 DB 线：设计真实迁移脚本的备份、dry-run、apply 三段式，并先确认正式 `stable_key` 生成口径。
-3. 再进入最小 API：数据篮或工作台二选一，不同时开。
+1. `OI-135 / DB-11 / DB-2`：正式迁移脚本三段式已完成，真实项目库未写入，后续 apply 必须显式确认并自动备份。
+2. 如继续 DB 线：进入最小 API，数据篮或工作台二选一，不同时开。
+3. 如恢复 Delivery Bundle：先决定是否把真实基础库 / 用户库 apply 纳入发布前步骤，再做 Windows ZIP UAT。
 
 ### 2. 同级 P0：`analytics_summary`
 
-目标：把 Data Analytics 会话的 dashboard 方案从设计文档落成稳定数据契约和实施任务。它是 P0，但不抢占用户库 / stable_key / Delivery 主线。
+目标：把 Data Analytics 会话的 dashboard 方案从设计文档落成稳定数据契约和实施任务。该 P0 已完成，后续只按视觉或业务反馈小修。
 
 实施顺序：
 
@@ -189,9 +189,9 @@
 
 ### 默认推荐
 
-1. 当前下一步：先 checkpoint 已完成的 `OI-135 + DB-11 + DB-2` smoke 与 `OI-136 / FE-ROUTE` 修复。
-2. 同级 P0：`analytics_summary P0`，先 exporter 和 audit，再 dashboard 消费。
-3. 如继续 DB 线：设计真实迁移脚本的备份、dry-run、apply 三段式。
+1. 当前两个 P0 已完成代码闭环：`analytics_summary` dashboard 消费，以及 `OI-135 + DB-11 + DB-2` 正式迁移脚本三段式。
+2. 下一条主线建议进入用户工作台 / 数据篮 / 导出最小 API 二选一。
+3. Delivery Bundle 继续后排，待决定真实库 apply 和 Windows UAT 顺序后恢复。
 
 ### 如果用户更关心交付包
 

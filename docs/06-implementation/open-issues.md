@@ -17,7 +17,7 @@
 | OI-038 | 待确认 | Gartner 与安全职能候选映射需后续人工校对 |
 | OI-128 | 部分完成 | USER-WRITE-UI-1：批注 / 工作台用户写入入口 |
 | OI-133 | 待设计 | ArchiMate 建模语言页显示效果与加载效率优化 |
-| OI-135 | 临时库 smoke 通过 / 真实迁移待确认 | 用户库治理与兼容表迁移清理 |
+| OI-135 | 正式迁移脚本完成 / 真实库 apply 待显式确认 | 用户库治理与兼容表迁移清理 |
 
 ## 问题记录模板
 
@@ -77,12 +77,12 @@
 - 验证结果：待后续执行页面截图 / DOM 摘要、图片请求数、首屏加载、固定 `5173` smoke 和字段边界检查。
 ## OI-135：用户库治理与兼容表迁移清理
 
-- 状态：临时库 smoke 通过 / 真实迁移待确认
+- 状态：正式迁移脚本完成 / 真实库 apply 待显式确认
 - 类型：数据 / 前端 / Delivery Bundle / 治理
 - 对象或页面：`sapd_wiki_user.sqlite3`、`user_notes`、`user_favorites`、右侧批注抽屉、后续用户工作台 / 数据篮 / 导出 / 自定义能力。
 - 现象：正式批注入口已切到 `user_notes`，旧 `user_favorites` 仍作为收藏 / 轻备注兼容表存在；后续工作台、数据导出、能力重组、导入和 Skill 集成都依赖用户库长期治理。
 - 影响：若不治理，旧表语义、测试数据、迁移 / 备份 / 恢复边界和 base/user read model 合并规则会影响 Delivery Bundle 与用户工作台稳定性。
-- 当前处理：已完成第一轮设计收敛，入口为 `docs/06-implementation/user-database-governance-and-stable-key-design.md`；已新增 `scripts/audit_user_db_governance_contract.mjs`、`scripts/audit_stable_key_contract.mjs`、`scripts/plan_user_schema_0_3_migration.mjs`、`scripts/smoke_db_migration_contracts.mjs`、`docs/06-implementation/user-db-compatibility-report-2026-06-06.md` 和 `docs/06-implementation/base-stable-key-and-redirect-migration-design-2026-06-06.md`。本轮只写 `/private/tmp` 复制库，不修改真实 schema、不迁移真实用户库、不改前端。
-- 需要确认：是否接受下一步做 checkpoint；如继续推进真实迁移，需要先确认正式 `stable_key` 生成口径、迁移备份路径、dry-run 输出和 apply 前用户确认机制。
-- 修复说明：设计、审计入口、dry-run 和临时库 migration smoke 已完成。复制用户库验证 `user_schema_0.3` 13 张表可创建；复制基础库验证 `stable_key` / `stable_ref` / `public_id` 覆盖 4660 个对象和 7654 条关系，`base_id_redirects` 最小表结构合格。
-- 验证结果：2026-06-06 已通过三个只读子 Agent fan-in 复核现有 user DB/API、stable_key / redirect 证据和工作台 / 数据篮 / 导出产品对象；`node scripts/audit_user_db_governance_contract.mjs --db data/user/sapd_wiki_user.sqlite3 --json` 通过，发现 `user_schema_0.2`、`user_notes=34`、legacy favorite note `1` 条；`node scripts/plan_user_schema_0_3_migration.mjs` 通过，只读输出 16 个 schema 计划动作和 6 类数据处理动作；真实基础库的 `node scripts/audit_stable_key_contract.mjs` 可运行并按预期失败，指出 DB-2 未落地缺口。临时库 smoke 验证通过：`node scripts/smoke_db_migration_contracts.mjs` 输出 `writesPerformedOnProjectDatabases=false`、`userSchemaVersion=user_schema_0.3`、`userV03CreatedTables=13`、`knowledgeItemsUpdated=4660`、`knowledgeRelationsUpdated=7654`；`node scripts/audit_user_db_governance_contract.mjs --db /private/tmp/sapd_wiki_user_schema_0_3_smoke.sqlite3 --require-v03` 通过；`node scripts/audit_stable_key_contract.mjs --base-db /private/tmp/sapd_wiki_base_stable_key_smoke.sqlite3 --user-db /private/tmp/sapd_wiki_user_schema_0_3_smoke.sqlite3` 通过，仅保留 redirect 示例类型未覆盖和页面锚点需上下文解析的 warning。
+- 当前处理：已完成第一轮设计收敛，入口为 `docs/06-implementation/user-database-governance-and-stable-key-design.md`；已新增 `scripts/audit_user_db_governance_contract.mjs`、`scripts/audit_stable_key_contract.mjs`、`scripts/plan_user_schema_0_3_migration.mjs`、`scripts/smoke_db_migration_contracts.mjs`、`scripts/migrate_db_contracts.mjs`、`docs/06-implementation/user-db-compatibility-report-2026-06-06.md` 和 `docs/06-implementation/base-stable-key-and-redirect-migration-design-2026-06-06.md`。正式迁移脚本默认只写 `/private/tmp` 复制库，`--apply` 才写目标库；若目标在项目 `data/user`、`data/database` 或 `data/base` 下，还必须显式传 `--confirm-project-db-write`，并在写入前自动备份。当前真实基础库和真实用户库未写入，不改前端。
+- 需要确认：后续如进入发布前真实库 apply，需先执行默认 dry-run、确认备份路径和输出，再显式运行 `--apply --confirm-project-db-write`；工作台 / 数据篮 / 导出 API 可作为下一条开发主线，不再回到前端按钮先行。
+- 修复说明：设计、审计入口、dry-run、临时库 migration smoke 和正式迁移脚本三段式已完成。正式脚本与设计 SQL 对齐，支持 `both/user/base` 范围、默认 dry-run、临时库 apply、自动备份、真实项目库写入确认门和 JSON 输出。复制用户库验证 `user_schema_0.3` 13 张表可创建；复制基础库验证 `stable_key` / `stable_ref` / `public_id` 覆盖 4660 个对象和 7654 条关系，`base_id_redirects` 最小表结构合格。
+- 验证结果：2026-06-06 已通过三个只读子 Agent fan-in 复核现有 user DB/API、stable_key / redirect 证据和工作台 / 数据篮 / 导出产品对象；`node scripts/audit_user_db_governance_contract.mjs --db data/user/sapd_wiki_user.sqlite3 --json` 通过，发现 `user_schema_0.2`、`user_notes=34`、legacy favorite note `1` 条；`node scripts/plan_user_schema_0_3_migration.mjs` 通过，只读输出 16 个 schema 计划动作和 6 类数据处理动作。2026-06-07 正式脚本验证通过：`node scripts/migrate_db_contracts.mjs --json` 默认 dry-run 输出 `writesPerformed=false`、`writesPerformedOnProjectDatabases=false`；`node scripts/migrate_db_contracts.mjs --apply --user-db /private/tmp/sapd_wiki_user_contract_apply.sqlite3 --base-db /private/tmp/sapd_wiki_base_contract_apply.sqlite3 --work-dir /private/tmp/sapd-wiki-db-contract-apply --json` 对临时库 apply 通过并生成备份，输出 `writesPerformedOnProjectDatabases=false`、`userSchemaVersion=user_schema_0.3`、`knowledgeItemsUpdated=4660`、`knowledgeRelationsUpdated=7654`；对真实项目库直接 `--apply` 被确认门拦截。迁移后审计通过：`node scripts/audit_user_db_governance_contract.mjs --db /private/tmp/sapd_wiki_user_contract_apply.sqlite3 --require-v03 --json` 和 `node scripts/audit_stable_key_contract.mjs --base-db /private/tmp/sapd_wiki_base_contract_apply.sqlite3 --user-db /private/tmp/sapd_wiki_user_contract_apply.sqlite3 --json` 均通过，仅保留 legacy favorite note、redirect 示例类型未覆盖和页面锚点需上下文解析 warning。

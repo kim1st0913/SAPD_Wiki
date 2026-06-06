@@ -22,6 +22,7 @@
 | `audit_user_db_governance_contract.mjs` | 用户库长期治理契约审计，默认检查设计 / 代码一致性，传 `--db` 时只读检查真实用户库 | `docs/06-implementation/user-database-governance-and-stable-key-design.md` |
 | `plan_user_schema_0_3_migration.mjs` | `user_schema_0.3` 只读 dry-run 计划，输出拟建表、legacy favorite note 候选和 target_ref 风险分类，不写真实用户库 | `docs/06-implementation/user-database-governance-and-stable-key-design.md` |
 | `audit_stable_key_contract.mjs` | 基础库 `stable_key` / deterministic ID / `base_id_redirects` 契约审计；当前用于暴露 DB-2 未落地缺口 | `docs/06-implementation/base-stable-key-and-redirect-migration-design-2026-06-06.md` |
+| `migrate_db_contracts.mjs` | `OI-135 / DB-11 / DB-2` 正式迁移工具；默认只复制到 `/private/tmp` dry-run，`--apply` 才写目标库，真实项目库还必须传 `--confirm-project-db-write` 并先自动备份 | `docs/06-implementation/user-database-governance-and-stable-key-design.md` |
 | `smoke_db_migration_contracts.mjs` | 只复制 base/user SQLite 到 `/private/tmp` 并在复制库上执行 `user_schema_0.3` 与基础库 `stable_key` / `base_id_redirects` migration smoke，不写真实项目数据库 | `docs/06-implementation/user-database-governance-and-stable-key-design.md` |
 | `audit_capability_viewmodel_contract.mjs` | 安全能力映射页 ViewModel 当前对象一致性审计，验证 L0 / L1 / L2 / 关注点不会误用默认关注点或错粒度 projection | `docs/07-governance/data-governance.md` |
 | `audit_dictionary_reference_consistency.mjs` | 知识库字典权威引用一致性审计，检查能力、作用域、技术服务、技术模块 / 措施、管理工作、流程和职能引用是否与字典一致 | `docs/07-governance/data-governance.md` |

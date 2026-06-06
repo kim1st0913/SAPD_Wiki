@@ -16,7 +16,7 @@
 |---|---|---|
 | OI-038 | 待确认 | Gartner 与安全职能候选映射需后续人工校对 |
 | OI-128 | 部分完成 | USER-WRITE-UI-1：批注 / 工作台用户写入入口 |
-| OI-133 | 已修复 / 待人工验收 | ArchiMate 建模语言页显示效果与加载效率优化 |
+| OI-133 | 待设计 | ArchiMate 建模语言页显示效果与加载效率优化 |
 | OI-135 | 正式迁移脚本完成 / 真实库 apply 待显式确认 | 用户库治理与兼容表迁移清理 |
 
 ## 问题记录模板
@@ -66,15 +66,15 @@
 - 验证结果：2026-06-03 通过本地 `5173` API 写入 / 读取 / 删除闭环验证：`POST /api/v1/user/favorites` 写入 `base:capability_focus:OI-128A-SMOKE` 成功，`GET` 可读，`DELETE` 后列表消失；`node scripts/frontend_smoke_check.mjs --page capability --url http://127.0.0.1:5173` 通过。2026-06-03 `OI-128B` 真实 Chrome 回归覆盖 `/knowledge/technical-services`、`/knowledge/capabilities`、`/standards/mlps-level-3`、`/guides/security-architecture-modeling-language`，均有 `userObjectActionsProbe.count=1`、`consoleIssues=0`。2026-06-04 `OI-128C` 通过 `POST /api/v1/user/notes`、`GET`、`PATCH`、`DELETE` 本地 API 闭环；真实 Chrome 回归覆盖 `/capability-mapping`、`/knowledge/technical-services`、`/standards/mlps-level-3`、`/guides/security-architecture-modeling-language`，均确认右侧批注抽屉存在、可展开、旧横向条数量为 0、`workspaceWidthDelta=0`、`consoleIssues=0`。2026-06-05 `node scripts/audit_user_annotation_contract.mjs` 通过，动态渲染样例确认 `LC-AP=14`、`LC-DT=11`、参考数据 `3` 个值级锚点。2026-06-05 全局版审计通过，覆盖能力映射技术 / 管理、信息化环境、技术服务、技术模块、技术措施、LC-AP 参考数据、详情面板、标准 / 框架和折叠目录定位契约。2026-06-05 overlay 修复后 `node --check frontend/capability-browser/app.js`、`node scripts/audit_user_annotation_contract.mjs`、`node scripts/audit_frontend_display_contract.mjs`、`node scripts/audit_frontend_lazy_load_contract.mjs`、`python3 scripts/dev_server_guard.py --status`、`git diff --check` 均通过；轻量 smoke 覆盖 `/capability-mapping`、`/environment-mapping`、`/development-security`、`/data-security`、`/knowledge/capabilities`、`/knowledge/technical-services`、`/knowledge/technical`、`/knowledge/technical-measures`、`/knowledge/functions`、`/knowledge/processes`、`/standards/nist-csf-2`、`/standards/mlps-level-3`、`/standards/iso-27001-2022`、`/standards/cis-csc-v8`、`/standards/crf`、`/standards/nist-800-53-rev5`、`/standards/dsp-level-2`、`/guides/security-architecture-modeling-language` 均通过；本轮未启动系统 Chrome，避免复现 Chrome 崩溃。2026-06-05 严格真实 Chrome 回归通过：`node scripts/audit_saved_user_annotations.mjs --url http://127.0.0.1:5173 --allow-system-chrome --debug-port 9397 --width 1800 --height 1200 --compact` 返回 `noteCount=24`、`passed=24`、`failed=0`、`consoleIssues=[]`，并逐条满足 `granularityOk=true`、`persistentAfterClick=true`、`unexpectedMarkedCount=0`。2026-06-05 二次严格真实 Chrome 回归通过：`node scripts/audit_saved_user_annotations.mjs --url http://127.0.0.1:5173 --allow-system-chrome --debug-port 9404 --width 1800 --height 1200 --compact` 返回 `noteCount=24`、`passed=24`、`failed=0`、`consoleIssues=[]`，并逐条满足 `normalMarkedBeforeLocate=true`、`activeAfterJump=true`、`granularityOk=true`、`persistentAfterClick=true`、`drawerPanelOk=true`、`currentNoteCardOk=true`、`drawerScrollPreserved=true`、`locateButtonClicked=true`、`unexpectedMarkedCount=0`。2026-06-07 数据篮最小 API smoke 通过：`node scripts/smoke_user_data_basket_api.mjs` 在临时 ZIP bundle / 临时 user DB 中验证 token 拒绝、创建数据篮、条目 upsert、读取、删除条目和删除数据篮闭环。
 ## OI-133：ArchiMate 建模语言页显示效果与加载效率优化
 
-- 状态：已修复 / 待人工验收
+- 状态：待设计
 - 类型：前端 / 设计 / 性能
 - 对象或页面：`安全指南 / 安全架构建模语言`，路由 `/guides/security-architecture-modeling-language`。
 - 现象：`archimate建模` 会话已把 PDF iframe 改为整页 JPG + 6 个区域 JPG，并提供 PDF 下载，但页面效果仍未达到用户预期。当前页面更像“Poster 素材陈列”，还没有形成清晰的建模语言阅读路径、区域导航、SAPD 映射说明和高效加载策略。
 - 影响：用户查看标准海报和 SAPD 元素图例时容易迷路；首屏仍可能加载整页图和多张区域图；后续如果继续局部调 UI，可能再次造成视觉杂糅和性能回退。
-- 当前处理：2026-06-07 已按优化计划实现第一轮页面调整，将首屏从“整页海报 + 6 个区域缩略图”改为“区域目录 + 当前区域阅读器 + SAPD 映射说明”。默认只渲染当前区域图；整页海报和其他区域通过点击查看或切换时加载；保留 PDF 下载和 `SAPD 元素图例` registry 受控渲染。
-- 需要确认：用户在固定入口 `http://127.0.0.1:5173/guides/security-architecture-modeling-language` 人工验收页面阅读路径、区域切换和 SAPD 映射说明是否符合预期；如通过，可将状态改为 `已修复`。
-- 修复说明：新增当前区域状态保存、区域上一项 / 下一项、弹层区域切换、图片 `width` / `height` 尺寸声明、两栏阅读布局、窄屏布局和首屏加载说明。本轮不改数据库、不改数据包、不改 `SAPD 元素图例` registry。
-- 验证结果：2026-06-07 `node --check frontend/capability-browser/app.js` 通过；`python3 scripts/dev_server_guard.py --status` 通过，固定 `5173` 单一项目服务健康；`node scripts/frontend_smoke_check.mjs --page content --route /guides/security-architecture-modeling-language --url http://127.0.0.1:5173` 轻量 HTTP smoke 通过，未启动系统 Chrome；`git diff --check -- frontend/capability-browser/app.js frontend/capability-browser/styles.css` 通过；diff 禁止字段检查未发现新增主展示区禁止字段。
+- 当前处理：新增优化评估文档 `docs/06-implementation/archimate-modeling-page-optimization-plan.md`，建议将该页从图片查看器升级为“建模语言参考工作页”，并作为独立执行线处理。
+- 需要确认：后续是否先实现 `P1 区域导航 + 当前区域阅读器`，还是先补 `SAPD 元素图例 -> ArchiMate 区域` 的映射说明。
+- 修复说明：待设计 / 待实现。当前不直接修改前端运行代码。
+- 验证结果：待后续执行页面截图 / DOM 摘要、图片请求数、首屏加载、固定 `5173` smoke 和字段边界检查。
 ## OI-135：用户库治理与兼容表迁移清理
 
 - 状态：正式迁移脚本完成 / 真实库 apply 待显式确认

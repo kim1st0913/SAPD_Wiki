@@ -7,7 +7,7 @@
 - 当前分支：`main`。
 - 固定预览入口：`http://127.0.0.1:5173/`。前端展示和用户验收默认只看该端口。
 - 当前主控主线：三个 P0 已完成代码闭环。`analytics_summary` 已完成 exporter / audit / `data_package_summary` / `dataClient` / dashboard 消费；`OI-135 + DB-11 + DB-2` 已完成设计、审计脚本、dry-run、临时库 smoke 和正式迁移脚本三段式；`OI-128 / OI-135` 已完成数据篮最小 API。真实基础库 / 用户库未写入；后续 apply 必须显式确认并自动备份。Delivery Bundle / 打包任务继续后排。
-- Open Issues 当前未关闭：`OI-038`、`OI-128`、`OI-133`、`OI-135`；`OI-133` 已完成第一轮修复 / 待人工验收，`OI-136` 已修复并归档。
+- Open Issues 当前未关闭：`OI-038`、`OI-128`、`OI-133`、`OI-135`；`OI-136` 已修复并归档。
 - 当前禁止事项：不默认改 ETL、数据库、数据模型、基础数据包、导出 JSON、用户库数据或业务关系推断；不 `git add .`；主展示区不得暴露 `sheet`、`row`、`column`、`raw_value`、`source_file`、`import_id`、`source_id`、`source_ref`、`source_label`、`debug`、`raw`、`metadata`、`intermediate`、`generated_at`。
 
 ## 当前子 Agent fan-in（2026-06-06）
@@ -20,7 +20,6 @@
 
 ## 最近完成事项
 
-- 2026-06-07 完成 `OI-133 / ArchiMate 建模语言页` 第一轮页面优化：`安全指南 / 安全架构建模语言` 从“整页海报 + 6 个区域缩略图”调整为“区域目录 + 当前区域阅读器 + SAPD 映射说明”；默认只渲染当前区域图，整页海报和其他区域通过点击查看或切换时加载；弹层补充上一项 / 下一项和左右键区域切换；图片补齐 `width` / `height` 尺寸声明；保留 PDF 下载和 `SAPD 元素图例` registry 受控渲染。本轮只改 `frontend/capability-browser/app.js`、`frontend/capability-browser/styles.css`、`docs/06-implementation/open-issues.md`、`task_plan.md` 和 `progress.md`，不改数据库、数据包、ETL 或用户库。
 - 2026-06-07 完成 `OI-128 / OI-135` 工作台总览和数据篮最小 API：`scripts/run_local_server.py` 新增 `/api/v1/user/workspaces`、`/api/v1/user/data-baskets` 和 `/items` 写读删接口，runtime 会确保 `user_workspaces` / `user_workspace_items` / `user_data_baskets` / `user_data_basket_items` 表存在；`scripts/smoke_user_data_basket_api.mjs` 用临时 ZIP bundle / 临时 user DB 验证 token 拒绝、创建容器、条目 upsert、读取和删除闭环。真实基础库 / 用户库未写入。
 - 2026-06-06 推进 `analytics_summary` P0 主线第一段：新增 `scripts/export_analytics_summary.mjs`，从 `capability-workbench`、`environment-workbench`、`lifecycle-workbench`、`standards-index`、`content-views` 生成本地 `analytics-summary.json`；新增 `scripts/audit_analytics_summary_contract.mjs`，验证 `capability_focus=91`、覆盖率分母、标准控制项 `1745 / 4893` grain 分离和禁止字段泄露；扩展 `scripts/data_package_summary.py --package analytics-summary`。生成 JSON 属于已忽略前端离线数据包，不纳入 Git。
 - 2026-06-06 推进 `AN-SUM-CLIENT`：`frontend/capability-browser/dataClient.js` 新增 `analyticsSummary` API / 离线包路径、空状态 fallback 和 `getAnalyticsSummary()`；`audit_analytics_summary_contract.mjs` 同步检查客户端契约，确保 dashboard 后续只消费该方法，不重新拼 raw workbench 统计。
@@ -55,7 +54,6 @@
 
 ## 最近验证
 
-- 2026-06-07 `OI-133 / ArchiMate 建模语言页` 验证：`node --check frontend/capability-browser/app.js` 通过；`python3 scripts/dev_server_guard.py --status` 通过，固定 `5173` 单一项目服务健康；`node scripts/frontend_smoke_check.mjs --page content --route /guides/security-architecture-modeling-language --url http://127.0.0.1:5173` 轻量 HTTP smoke 通过，未启动系统 Chrome；`git diff --check -- frontend/capability-browser/app.js frontend/capability-browser/styles.css` 通过；diff 禁止字段检查未发现新增主展示区禁止字段；Browser 插件工具本线程未暴露，未做应用内浏览器截图。
 - 2026-06-06 `analytics_summary` 验证：`node --check scripts/export_analytics_summary.mjs`、`node --check scripts/audit_analytics_summary_contract.mjs`、`python3 -m py_compile scripts/data_package_summary.py` 均通过；`node scripts/export_analytics_summary.mjs` 生成本地包通过，输出 `primaryGrain=capability_focus`、`focusCount=91`、`coverageDimensions=7`；`node scripts/audit_analytics_summary_contract.mjs` 通过，确认 `capabilityMapped=1745`、`standardsIndex=4893`；`python3 scripts/data_package_summary.py --package analytics-summary` 通过并输出覆盖维度与标准控制项三类 grain 摘要。
 - 2026-06-06 `AN-SUM-CLIENT` 验证：`node --check frontend/capability-browser/dataClient.js`、`node --check scripts/audit_analytics_summary_contract.mjs`、`node scripts/audit_analytics_summary_contract.mjs`、`python3 scripts/dev_server_guard.py --status` 均通过；`node scripts/frontend_smoke_check.mjs --page overview --url http://127.0.0.1:5173` 轻量首页 smoke 通过，未启动系统 Chrome。
 - 2026-06-07 `AN-SUM-DASHBOARD` 验证：`node --check frontend/capability-browser/app.js`、`node scripts/audit_analytics_summary_contract.mjs`、`node scripts/frontend_smoke_check.mjs --page overview --url http://127.0.0.1:5173`、`python3 scripts/check_github_data_boundary.py`、`git diff --check` 均通过。
@@ -101,7 +99,7 @@
 
 - `OI-038`：Gartner 与安全职能候选映射需后续人工校对，状态 `待确认`。
 - `OI-128`：USER-WRITE-UI-1：批注 / 工作台用户写入入口，状态 `部分完成`；`OI-128A/B/C` 已实现，`OI-128C` 已基本验收，当前进入 checkpoint 确认。
-- `OI-133`：ArchiMate 建模语言页显示效果与加载效率优化，状态 `已修复 / 待人工验收`。
+- `OI-133`：ArchiMate 建模语言页显示效果与加载效率优化，状态 `待设计`。
 - `OI-135`：用户库治理与兼容表迁移清理，状态 `正式迁移脚本完成 / 真实库 apply 待显式确认`。
 - `OI-136`：深层路由直接访问未加载前端样式，状态 `已修复 / 已归档`。
 

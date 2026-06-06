@@ -46,7 +46,6 @@ const state = {
   selectedContentId: null,
   selectedContentSlideIndex: 0,
   activeModelingLanguageTab: "overview",
-  activeModelingPosterRegion: "business-general",
   modelingPosterExpanded: false,
   contentSlideScrollMode: "preserve",
   standardFrameworkLoads: new Map(),
@@ -108,71 +107,39 @@ const ARCHIMATE_POSTER_REGIONS = [
     id: "business-general",
     title: "业务层与通用元素",
     summary: "Business Layer、通用元素与通用行为模型，是业务对象、角色、流程和通用 notation 的基础参考。",
-    sapdUse: "安全组织、岗位、人员、职能 / 角色、流程，以及分组和地点等通用结构。",
-    nextStep: "用于安全管理对象和组织职责建模，后续再进入安全职能、流程和岗位关系核对。",
     image: `${ARCHIMATE_POSTER_ASSET_BASE}/archimate-poster-region-business-general.jpg`,
-    width: 578,
-    height: 1700,
   },
   {
     id: "application-layer",
     title: "应用层",
     summary: "Application Component、Function、Service、Data Object 等应用架构元素。",
-    sapdUse: "安全应用、安全应用功能、安全应用服务、安全数据，以及面向业务应用的安全支撑能力。",
-    nextStep: "用于表达应用侧安全能力落点，和安全技术服务、数据对象访问关系一起阅读。",
     image: `${ARCHIMATE_POSTER_ASSET_BASE}/archimate-poster-region-application-layer.jpg`,
-    width: 1056,
-    height: 1439,
   },
   {
     id: "technology-physical",
     title: "技术层与物理层",
     summary: "Artifact、Device、Node、Communication Network、Facility、Equipment 等技术和物理元素。",
-    sapdUse: "安全技术服务、安全技术模块、安全系统、安全设备、安全系统软件、安全技术工件和通信网络。",
-    nextStep: "用于把信息化对象、作用域、安全系统和产品组件放到同一技术语境中核对。",
     image: `${ARCHIMATE_POSTER_ASSET_BASE}/archimate-poster-region-technology-physical.jpg`,
-    width: 1014,
-    height: 1439,
   },
   {
     id: "motivation-strategy",
     title: "动机元素与战略元素",
     summary: "Requirement、Principle、Goal、Capability、Resource、Value Stream 等治理和战略表达元素。",
-    sapdUse: "安全能力、原则、目标、策略要求、资源和价值流，支撑安全能力映射页的高层语义。",
-    nextStep: "用于解释能力为什么存在，暂不替代安全能力页中的业务关系投影。",
     image: `${ARCHIMATE_POSTER_ASSET_BASE}/archimate-poster-region-motivation-strategy.jpg`,
-    width: 1030,
-    height: 1439,
   },
   {
     id: "risk-implementation",
     title: "实施迁移、风险与安全叠加",
     summary: "Implementation & Migration、Risk and Security Overlay、派生关系和传递关系等扩展参考。",
-    sapdUse: "安全威胁、风险、安全状态、实施迁移对象，以及后续成熟度或交付路线中的变更表达。",
-    nextStep: "用于阅读安全风险和迁移语义，当前只作为建模语言参考，不生成评估结论。",
     image: `${ARCHIMATE_POSTER_ASSET_BASE}/archimate-poster-region-risk-implementation.jpg`,
-    width: 539,
-    height: 1700,
   },
   {
     id: "relationships-views",
     title: "关系、视图与元模型结构",
     summary: "ArchiMate 层、关系线、角色职责、替代表达法、视点和视图示例。",
-    sapdUse: "Serving、Flow、Access 等关系线，用于理解安全服务、模块、系统、数据和对象之间的连接方式。",
-    nextStep: "用于核对图中关系语义，具体关系事实仍以页面 ViewModel 和后端 projection 为准。",
     image: `${ARCHIMATE_POSTER_ASSET_BASE}/archimate-poster-region-relationships-views.jpg`,
-    width: 2200,
-    height: 1359,
   },
 ];
-const ARCHIMATE_POSTER_OVERVIEW_TARGET = {
-  id: "full",
-  title: "ArchiMate® 3.2 企业架构建模标准",
-  summary: "本地 ArchiMate Poster 整页视图，作为 SAPD 安全架构元素映射的语言标准参考。",
-  image: ARCHIMATE_POSTER_OVERVIEW_IMAGE,
-  width: 2600,
-  height: 1839,
-};
 const DRAWIO_LEGEND_DEFAULT_SIZE = [150, 75];
 const DRAWIO_LEGEND_SECURITY_SIZE = [150, 82.94701986754967];
 const DRAWIO_ACTOR_SIZE = [26.5, 50];
@@ -311,7 +278,6 @@ function persistWorkspaceState() {
         selectedContentId: state.selectedContentId,
         selectedContentSlideIndex: state.selectedContentSlideIndex,
         activeModelingLanguageTab: state.activeModelingLanguageTab,
-        activeModelingPosterRegion: state.activeModelingPosterRegion,
         savedAt: new Date().toISOString(),
       }),
     );
@@ -347,7 +313,6 @@ function applyWorkspaceState(snapshot) {
   state.selectedContentId = snapshot.selectedContentId || state.selectedContentId;
   state.selectedContentSlideIndex = Number.isFinite(Number(snapshot.selectedContentSlideIndex)) ? Number(snapshot.selectedContentSlideIndex) : state.selectedContentSlideIndex;
   state.activeModelingLanguageTab = snapshot.activeModelingLanguageTab || state.activeModelingLanguageTab;
-  state.activeModelingPosterRegion = snapshot.activeModelingPosterRegion || state.activeModelingPosterRegion;
 }
 
 const PACKAGE_GETTERS = {
@@ -3246,16 +3211,12 @@ function getModelingPosterTarget(targetId) {
     const region = ARCHIMATE_POSTER_REGIONS.find((item) => item.id === targetId);
     if (region) return region;
   }
-  return ARCHIMATE_POSTER_OVERVIEW_TARGET;
-}
-
-function getActiveModelingPosterRegion() {
-  return ARCHIMATE_POSTER_REGIONS.find((item) => item.id === state.activeModelingPosterRegion) || ARCHIMATE_POSTER_REGIONS[0];
-}
-
-function modelingPosterRegionOffset(currentId, offset) {
-  const currentIndex = Math.max(0, ARCHIMATE_POSTER_REGIONS.findIndex((item) => item.id === currentId));
-  return ARCHIMATE_POSTER_REGIONS[(currentIndex + offset + ARCHIMATE_POSTER_REGIONS.length) % ARCHIMATE_POSTER_REGIONS.length];
+  return {
+    id: "full",
+    title: "ArchiMate® 3.2 企业架构建模标准",
+    summary: "本地 ArchiMate Poster 整页视图，作为 SAPD 安全架构元素映射的语言标准参考。",
+    image: ARCHIMATE_POSTER_OVERVIEW_IMAGE,
+  };
 }
 
 function renderModelingPosterImage(target, imageClass = "", loading = "lazy") {
@@ -3264,8 +3225,6 @@ function renderModelingPosterImage(target, imageClass = "", loading = "lazy") {
       class="modeling-poster-image ${escapeHtml(imageClass)}"
       src="${escapeHtml(target.image)}"
       alt="${escapeHtml(target.title)}"
-      width="${Number(target.width) || ""}"
-      height="${Number(target.height) || ""}"
       loading="${escapeHtml(loading)}"
       decoding="async"
     />
@@ -3293,13 +3252,6 @@ function renderModelingPosterOverlay() {
             <span aria-hidden="true">×</span>
           </button>
         </header>
-        ${target.id !== "full" ? `
-          <nav class="modeling-poster-dialog-nav" aria-label="区域切换">
-            <button type="button" data-modeling-poster-open="${escapeHtml(modelingPosterRegionOffset(target.id, -1).id)}">上一区域</button>
-            <span>${escapeHtml(ARCHIMATE_POSTER_REGIONS.findIndex((item) => item.id === target.id) + 1)} / ${ARCHIMATE_POSTER_REGIONS.length}</span>
-            <button type="button" data-modeling-poster-open="${escapeHtml(modelingPosterRegionOffset(target.id, 1).id)}">下一区域</button>
-          </nav>
-        ` : ""}
         <div class="modeling-poster-expanded-canvas ${target.id === "full" ? "is-full" : "is-region"}">
           ${renderModelingPosterImage(target, "is-expanded", "eager")}
         </div>
@@ -3309,35 +3261,34 @@ function renderModelingPosterOverlay() {
 }
 
 function renderModelingPosterRegionCard(region, index) {
-  const active = region.id === getActiveModelingPosterRegion().id;
   return `
-    <button class="modeling-poster-region-card ${active ? "active" : ""}" type="button" data-modeling-poster-region="${escapeHtml(region.id)}" aria-current="${active ? "true" : "false"}">
+    <button class="modeling-poster-region-card" type="button" data-modeling-poster-open="${escapeHtml(region.id)}">
       <span class="modeling-poster-region-index">${String(index + 1).padStart(2, "0")}</span>
       <span class="modeling-poster-region-copy">
         <strong>${escapeHtml(region.title)}</strong>
         <span>${escapeHtml(region.summary)}</span>
+      </span>
+      <span class="modeling-poster-region-thumb" aria-hidden="true">
+        <img src="${escapeHtml(region.image)}" alt="" loading="lazy" decoding="async" />
       </span>
     </button>
   `;
 }
 
 function renderModelingLanguageOverviewPanel() {
-  const activeRegion = getActiveModelingPosterRegion();
-  const activeIndex = ARCHIMATE_POSTER_REGIONS.findIndex((item) => item.id === activeRegion.id);
-  const previousRegion = modelingPosterRegionOffset(activeRegion.id, -1);
-  const nextRegion = modelingPosterRegionOffset(activeRegion.id, 1);
+  const posterTarget = getModelingPosterTarget("full");
   return `
     <section class="modeling-poster-panel">
       <header class="modeling-poster-panel-header">
         <div>
           <span class="modeling-language-kicker">ArchiMate® 3.2</span>
-          <h3>建模语言参考工作页</h3>
-          <p>安全架构元素先映射到 ArchiMate 语言，再进入 SAPD 的能力、环境、流程和标准关系页。本页只负责阅读标准区域和受控图例，不生成业务关系结论。</p>
+          <h3>安全架构设计元素图例</h3>
+          <p>安全架构中的各种元素都需要映射到 ArchiMate 的元素。本页以图片化海报作为语言概览素材，避免直接嵌入 PDF 带来的页面卡顿。</p>
         </div>
         <div class="modeling-poster-actions">
           <button class="modeling-poster-expand-button" type="button" data-modeling-poster-open="full">
             <span aria-hidden="true">⤢</span>
-            查看整页
+            全页面显示
           </button>
           <a class="modeling-poster-download" href="${escapeHtml(ARCHIMATE_POSTER_PDF_PATH)}" download="archimate-poster-v3.2-zh.pdf">
             <span aria-hidden="true">↓</span>
@@ -3345,49 +3296,20 @@ function renderModelingLanguageOverviewPanel() {
           </a>
         </div>
       </header>
-      <div class="modeling-poster-reference-layout">
-        <nav class="modeling-poster-region-panel" aria-label="ArchiMate Poster 区域目录">
-          <header>
-            <h4>区域目录</h4>
-            <p>切换目录只替换主阅读器图片。</p>
-          </header>
-          <div class="modeling-poster-region-grid">
-            ${ARCHIMATE_POSTER_REGIONS.map(renderModelingPosterRegionCard).join("")}
-          </div>
-        </nav>
-        <section class="modeling-poster-reader" aria-label="当前 ArchiMate 区域阅读器">
-          <header class="modeling-poster-reader-header">
-            <div>
-              <span class="modeling-poster-region-index">${String(activeIndex + 1).padStart(2, "0")}</span>
-              <div>
-                <h4>${escapeHtml(activeRegion.title)}</h4>
-                <p>${escapeHtml(activeRegion.summary)}</p>
-              </div>
-            </div>
-            <div class="modeling-poster-reader-actions">
-              <button type="button" data-modeling-poster-region="${escapeHtml(previousRegion.id)}">上一项</button>
-              <button type="button" data-modeling-poster-region="${escapeHtml(nextRegion.id)}">下一项</button>
-              <button type="button" data-modeling-poster-open="${escapeHtml(activeRegion.id)}">放大阅读</button>
-            </div>
-          </header>
-          <button class="modeling-poster-page-button" type="button" data-modeling-poster-open="${escapeHtml(activeRegion.id)}" aria-label="放大查看 ${escapeHtml(activeRegion.title)}">
-            ${renderModelingPosterImage(activeRegion, "is-region-reader", "eager")}
-          </button>
-          <aside class="modeling-poster-sapd-note" aria-label="SAPD 映射说明">
-            <div>
-              <span>对应 SAPD 元素</span>
-              <p>${escapeHtml(activeRegion.sapdUse)}</p>
-            </div>
-            <div>
-              <span>阅读后续</span>
-              <p>${escapeHtml(activeRegion.nextStep)}</p>
-            </div>
-          </aside>
-        </section>
-        <div class="modeling-poster-loading-note">
-          首屏只加载当前区域图；整页海报和其他区域在点击查看时再加载。
-        </div>
+      <div class="modeling-poster-page-viewer">
+        <button class="modeling-poster-page-button" type="button" data-modeling-poster-open="full" aria-label="全页面查看 ArchiMate Poster">
+          ${renderModelingPosterImage(posterTarget, "is-overview", "eager")}
+        </button>
       </div>
+      <section class="modeling-poster-region-panel" aria-label="ArchiMate Poster 区域阅读">
+        <header>
+          <h4>区域阅读</h4>
+          <p>按标准海报结构切分，点击任一区域单独放大。</p>
+        </header>
+        <div class="modeling-poster-region-grid">
+          ${ARCHIMATE_POSTER_REGIONS.map(renderModelingPosterRegionCard).join("")}
+        </div>
+      </section>
     </section>
     ${renderModelingPosterOverlay()}
   `;
@@ -5304,17 +5226,6 @@ function bindEvents() {
       renderContent();
       return;
     }
-    if (state.modelingPosterExpanded && ["ArrowLeft", "ArrowRight"].includes(event.key)) {
-      const target = getModelingPosterTarget(state.modelingPosterExpanded);
-      if (target.id !== "full") {
-        event.preventDefault();
-        const nextRegion = modelingPosterRegionOffset(target.id, event.key === "ArrowRight" ? 1 : -1);
-        state.modelingPosterExpanded = nextRegion.id;
-        state.activeModelingPosterRegion = nextRegion.id;
-        renderContent();
-      }
-      return;
-    }
     if (state.activeView !== "content") return;
     if (!["ArrowUp", "ArrowDown"].includes(event.key)) return;
     if (event.target?.matches?.("input, textarea, select, [contenteditable='true']")) return;
@@ -5403,7 +5314,6 @@ function bindEvents() {
     const modelingPosterOpen = event.target.closest("[data-modeling-poster-open]");
     if (modelingPosterOpen) {
       state.modelingPosterExpanded = modelingPosterOpen.dataset.modelingPosterOpen || "full";
-      if (state.modelingPosterExpanded !== "full") state.activeModelingPosterRegion = state.modelingPosterExpanded;
       renderContent();
       return;
     }
@@ -5415,12 +5325,6 @@ function bindEvents() {
     const modelingLanguageTab = event.target.closest("[data-modeling-language-tab]");
     if (modelingLanguageTab && modelingLanguageTab.closest("#contentWorkspace")) {
       state.activeModelingLanguageTab = modelingLanguageTab.dataset.modelingLanguageTab;
-      renderContent();
-      return;
-    }
-    const modelingPosterRegion = event.target.closest("[data-modeling-poster-region]");
-    if (modelingPosterRegion && modelingPosterRegion.closest("#contentWorkspace")) {
-      state.activeModelingPosterRegion = modelingPosterRegion.dataset.modelingPosterRegion;
       renderContent();
       return;
     }

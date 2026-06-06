@@ -61,6 +61,8 @@ Frontend Baseline 1.0 当前覆盖四页：
 
 当前先进入执行线收敛 P0：验收 dirty worktree、同步治理入口、明确 checkpoint，再继续前端、数据或 Delivery Bundle 功能线。不要在 dirty diff 未验收前启动新的并行写入任务。
 
+2026-06-06 已完成总 backlog 收敛，入口为 `docs/07-governance/backlog-convergence-2026-06-06.md`。后续恢复未开展任务时，先用该文件确认 `Gate 0`、`P0`、可并行只读评估、后续开发和后置任务，避免只按某一条前端、Delivery 或 Product Design 线继续。当前默认顺序：先做 dirty worktree checkpoint，再做 `OI-136 / FE-ROUTE` 深层路由稳定性，随后按用户优先级进入用户库 / `stable_key` / Delivery 或前端基线稳定化。
+
 当前多任务、模块线程和实际 Codex thread id 追踪入口为 `docs/07-governance/current-execution-lines.md`。暂停任务前必须先登记状态、证据、恢复条件和下一步；已有模块线程必须映射到 `EL-xxx` 执行线，避免多会话收敛后丢失任务线。当前已盘点 18 个 cwd 属于本工程的 Codex 线程；`archimate建模` 已进入 idle / 待验收状态，后续页面效果与加载优化走 `OI-133 / EL-025`；`数据安全页面1` 仍显示为运行中线程，主控只做 fan-in，不默认停止或抢写同一范围。长会话需要换新会话时，按 `docs/07-governance/execution-line-convergence-workflow.md` 的“长会话轮换协议”执行。
 
 安全能力映射页数据加载反复回退已登记为 `OI-132 / EL-024`。后续继续修改安全能力页前，必须先做数据加载稳定性治理：区分真实空数据、workspace-view 未加载、projection fallback、完整 workbench fallback、对象 mismatch 和重渲染缺失；不得再用局部空态文案或组件补丁替代加载契约治理。

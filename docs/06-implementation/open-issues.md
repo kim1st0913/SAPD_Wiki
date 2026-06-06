@@ -4,7 +4,7 @@
 
 ## 治理入口
 
-- 当前未关闭问题数：4
+- 当前未关闭问题数：5
 - 已关闭归档问题数：133
 - 全量索引：`docs/06-implementation/open-issues-index.md`
 - 已关闭问题归档：`docs/05-archive/open-issues-history/2026-06.md`
@@ -18,6 +18,7 @@
 | OI-128 | 部分完成 | USER-WRITE-UI-1：批注 / 工作台用户写入入口 |
 | OI-133 | 待设计 | ArchiMate 建模语言页显示效果与加载效率优化 |
 | OI-135 | 待设计 | 用户库治理与兼容表迁移清理 |
+| OI-136 | 待修复 | 深层路由直接访问未加载前端样式 |
 
 ## 问题记录模板
 
@@ -86,3 +87,15 @@
 - 需要确认：是否保留 `user_favorites` 历史兼容、是否把旧收藏语义迁移到 `user_notes` / 数据篮、用户库备份 / 导出 / 清空测试数据的优先级。
 - 修复说明：待设计。
 - 验证结果：待验证。
+
+## OI-136：深层路由直接访问未加载前端样式
+
+- 状态：待修复
+- 类型：前端 / 路由 / 交付体验
+- 对象或页面：`/guides/*`、`/knowledge/*`、`/standards/*` 等深层业务路由，固定预览入口 `http://127.0.0.1:5173/`。
+- 现象：Product Design 只读审阅发现，直接访问 `/guides/security-architecture-design`、`/knowledge/technical`、`/standards/iso-27001-2022` 时页面掉到未样式化原生 HTML；通过应用内一级导航进入部分核心页面时样式正常。
+- 影响：用户从地址栏、收藏夹、批注定位、外部链接或交付包深链进入页面时会看到错误体验；也会影响截图审阅、自动化回归和 Delivery Bundle 解压即用可信度。该问题优先级高于继续做视觉微调。
+- 当前处理：已在 `docs/06-implementation/design-audits/2026-06-06-product-design-review/README.md` 记录为 P0；本条将其补登记为独立 Open Issue，并纳入 `task_plan.md` 的 `FE-ROUTE` 工作项。
+- 需要确认：无需业务判断；需要先做技术根因定位，确认是静态服务 history fallback、资源相对路径、base path、`routeFromBrowserLocation()` / `syncBrowserRoute()` 归一化，还是 HTML 入口加载路径导致。
+- 修复说明：待修复。修复边界应限定在前端路由 / 静态资源加载 / 轻量回归脚本，不改数据包、不改用户库、不改批注业务逻辑。
+- 验证结果：待验证。建议覆盖直接输入 `/`、`/capability-mapping`、`/development-security`、`/data-security`、`/environment-mapping`、`/guides/security-architecture-design`、`/knowledge/technical`、`/standards/iso-27001-2022`；每个路由断言样式已加载、`app-shell` 正常、页面标题与路由一致、批注抽屉不误展开、无非业务字段泄露。

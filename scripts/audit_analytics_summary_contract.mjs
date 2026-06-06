@@ -7,6 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, "..");
 const DEFAULT_PACKAGE = path.join(ROOT, "frontend/capability-browser/public/data/analytics-summary.json");
+const DATA_CLIENT_PATH = path.join(ROOT, "frontend/capability-browser/dataClient.js");
 
 const REQUIRED_TOP_LEVEL_KEYS = [
   "meta",
@@ -178,6 +179,21 @@ function validateSummary(summary) {
   return issues;
 }
 
+function validateDataClient(issues) {
+  const source = fs.existsSync(DATA_CLIENT_PATH) ? fs.readFileSync(DATA_CLIENT_PATH, "utf8") : "";
+  const checks = [
+    ["client_data_path", /analyticsSummary:\s*"\.\/public\/data\/analytics-summary\.json"/],
+    ["client_api_path", /analyticsSummary:\s*"\/api\/v1\/data-packages\/analytics-summary"/],
+    ["client_method", /async\s+getAnalyticsSummary\s*\(/],
+    ["client_fetch_package", /fetchPackage\("analyticsSummary"\)/],
+  ];
+  for (const [code, pattern] of checks) {
+    if (!pattern.test(source)) {
+      addIssue(issues, code, "dataClient analytics summary contract is missing or changed");
+    }
+  }
+}
+
 function main() {
   const options = parseArgs(process.argv.slice(2));
   if (options.help) {
@@ -186,6 +202,7 @@ function main() {
   }
   const summary = readJson(options.packagePath);
   const issues = validateSummary(summary);
+  validateDataClient(issues);
   const result = {
     result: issues.length ? "fail" : "pass",
     package: path.relative(ROOT, options.packagePath),

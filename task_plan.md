@@ -59,7 +59,7 @@ Frontend Baseline 1.0 当前关系工作台实现重点仍覆盖三页：
 |---|---|---|---|---|
 | P0-A | 用户库长期治理 | `OI-135` / `DB-11` 临时库 smoke 通过 / 真实迁移待确认 | 先 checkpoint 当前设计与 smoke 证据；如继续推进，下一步设计真实迁移脚本的备份、dry-run、apply 三段式，不直接写真实用户库 | 文档 / schema 设计先行，不直接改前端按钮 |
 | P0-A | `stable_key` / 基础库升级兼容 | `DB-2` 临时库 smoke 通过 / 真实迁移待确认 | 先 checkpoint 当前设计与 smoke 证据；如继续推进，下一步定义正式 stable key 生成口径和 `base_id_redirects` 真实样例策略 | 支撑批注、收藏、Delivery 和后续基础库升级 |
-| P0-B | `analytics_summary` 落地 | exporter / audit / `data_package_summary` 已完成，`dataClient` / dashboard 待启动 | 下一步只加 `dataClient.getAnalyticsSummary()` 读取契约，再让 dashboard 消费；不要在 dashboard 内重新计算跨包指标 | 先数据契约，后前端展示 |
+| P0-B | `analytics_summary` 落地 | exporter / audit / `data_package_summary` / `dataClient` 已完成，dashboard 待启动 | 下一步让 dashboard 消费 `dataClient.getAnalyticsSummary()`；不要在 dashboard 内重新计算跨包指标 | 先数据契约，后前端展示 |
 | P0-C | 深层路由稳定性 | `OI-136 / FE-ROUTE` 已修复 / 待 checkpoint | 已通过根 `base href` 修复 `/guides/*`、`/knowledge/*`、`/standards/*` 直接访问资源相对路径问题；轻量 smoke 已覆盖三类深链根资源加载 | 单线写入，不和 dashboard 或批注混写 |
 | P1 | Delivery Bundle 1.0-alpha | macOS alpha 已准备，Windows 未实测 | 打包任务后排；待 user DB / stable_key 前置设计稳定后，再决定是否恢复 Windows UAT 或正式打包 | 不和前端 UI 混写 |
 
@@ -81,8 +81,8 @@ Frontend Baseline 1.0 当前关系工作台实现重点仍覆盖三页：
 |---|---|---|---|---|---|
 | 1 | AN-SUM-EXPORT | exporter 生成 `analytics-summary.json` | 已完成 / 待提交 | 新增 `scripts/export_analytics_summary.mjs`；输出 `frontend/capability-browser/public/data/analytics-summary.json`，该生成包不纳入 Git | 顶层包含 `meta`、`businessSummary`、`coverageSummary`、`moduleSummary`、`navigationSummary`、`relationshipSummary`、`evidenceSummary`、`adminSummary`、`reconciliationSummary`、`compatibility`；覆盖率有分子、分母、relation type、source package |
 | 2 | AN-SUM-PKG | `data_package_summary.py` 增加摘要检查 | 已完成 / 待提交 | `scripts/data_package_summary.py`、`scripts/README.md` | `--package analytics-summary` 能显示 `dataState`、主 grain、关键计数、覆盖维度、标准控制项三类 grain，不打印完整 JSON |
-| 3 | AN-SUM-CLIENT | `dataClient.getAnalyticsSummary()` | P0 待启动 | `frontend/capability-browser/dataClient.js` 及最小契约说明 | 统一处理 API `/api/v1/data-packages/analytics-summary` 与离线包 fallback；页面组件不直接读取 raw workbench JSON 重新计算 P0 指标 |
-| 4 | AN-SUM-DASHBOARD | dashboard 消费 `analytics_summary` | P0 待前置数据包完成 | `frontend/capability-browser/app.js`、必要 CSS；不改批注模块 | 首页从数据包健康统计转为能力知识地图入口；管理员 / reconciliation 信息只进折叠维护区；不做营销页、卡片墙或装饰 dashboard |
+| 3 | AN-SUM-CLIENT | `dataClient.getAnalyticsSummary()` | 已完成 / 待提交 | `frontend/capability-browser/dataClient.js`；`audit_analytics_summary_contract.mjs` 增加客户端契约检查 | 统一处理 API `/api/v1/data-packages/analytics-summary` 与离线包 fallback；页面组件不直接读取 raw workbench JSON 重新计算 P0 指标 |
+| 4 | AN-SUM-DASHBOARD | dashboard 消费 `analytics_summary` | P0 待启动 | `frontend/capability-browser/app.js`、必要 CSS；不改批注模块 | 首页从数据包健康统计转为能力知识地图入口；管理员 / reconciliation 信息只进折叠维护区；不做营销页、卡片墙或装饰 dashboard |
 | 5 | AN-SUM-AUDIT | audit 脚本验证覆盖率、标准控制项 grain 和禁止字段泄露 | 已完成 / 待提交 | 新增 `scripts/audit_analytics_summary_contract.mjs` | 验证覆盖率分母固定为 `capability_focus`、标准控制项三类 grain 不混用、主展示字段不泄露禁止字段 |
 
 推荐实施顺序：
@@ -110,7 +110,7 @@ Frontend Baseline 1.0 当前关系工作台实现重点仍覆盖三页：
 | FE-CAP-SPEC | 安全能力映射工作台视觉实现规格 | 已完成 | 已新增视觉实现规格，明确拒绝验收原因、三视角关系图、右侧关联洞察区和响应式验收标准 | `frontend/design-handoff/implementation-specs/security-capability-workbench-visual-spec-v1.md` |
 | FE-CAP-W | 安全能力映射工作台专项实现 | 已完成（F3-GRAPH-P2） | F3-P1R 与 F3-IMPL-P1 均已被用户拒绝；R2 恢复预览页结构，R3/R4 完成矩阵语义校正与 Tab IA，R5 删除右侧栏；RECOVERY 恢复原技术 / 管理矩阵组件到对应 Tabs；F3-DIAG 修复四类职能层级投影；P2/P3/P4 将默认摘要收敛为同源图式总览；GRAPH-P1-V2 新增原生 SVG `LocalRelationNetworkGraph` 和 `relationGraphModel`；GRAPH-P2 将其改为径向星形网络图，确保能力-关注点为唯一中心锚点、三视角星形分散、无数据业务节点不显示，技术 / 管理 Tabs 继续保留表格式明细 | `CapabilityLocalRelationMap.js`, `LocalRelationNetworkGraph.js`, `relationGraphModel.js`, `FocusScopeServiceMatrix.js`, `FocusManagementMapping.js`, `viewModels.js`, `app.js` |
 | FE-ROUTE | 深层路由直接访问与刷新稳定性治理 | 已修复 / 待 checkpoint（`OI-136`） | 已在 `index.html` 固化根 `base href="/"`，并扩展 `frontend_smoke_check.mjs` 的深层路由轻量资源断言，覆盖 `/guides/*`、`/knowledge/*`、`/standards/*` 直接访问样式和主脚本加载 | `frontend-global-design-baseline-2026-05-30.md`, `index.html`, `scripts/frontend_smoke_check.mjs` |
-| FE-DASHBOARD-AS | Dashboard 消费 `analytics_summary` | P0 待前置数据包完成 | 首页从工程数据包统计切换为“安全能力知识地图”入口，只消费 `dataClient.getAnalyticsSummary()`，不在组件内重新计算跨包覆盖率、标准控制项 grain 或关系推断 | `docs/06-implementation/dashboard-and-module-data-display-optimization-design.md`, `docs/06-implementation/analytics-summary-json-contract-draft.md`, `dataClient.js`, `app.js` |
+| FE-DASHBOARD-AS | Dashboard 消费 `analytics_summary` | P0 待启动 | 首页从工程数据包统计切换为“安全能力知识地图”入口，只消费 `dataClient.getAnalyticsSummary()`，不在组件内重新计算跨包覆盖率、标准控制项 grain 或关系推断 | `docs/06-implementation/dashboard-and-module-data-display-optimization-design.md`, `docs/06-implementation/analytics-summary-json-contract-draft.md`, `dataClient.js`, `app.js` |
 | FE-1 | 关系画布设计基线固化 | 待启动 | 抽象 `LocalRelationCanvas` / `RelationNode` / `RelationLane` / `FoldedDetail` 等可复用模式，不急于跨页抽组件文件 | FE-0 验收结果、FE-IA |
 | FE-2 | 安全能力映射页前端验收清单 | 待启动 | 固化能力页验收项：左侧关注点、技术视角、管理视角、矩阵折叠、来源折叠、字段边界、无控制台错误 | FE-0 |
 | FE-3 | 信息化环境维度页设计 | 第一版实现已完成 | 已新增信息化环境安全能力映射图谱策略，并接入环境页本地关系图谱：`E0` 信息化环境只展示结构、`E1` 环境子类展示对象 / 作用域 / 服务 / 能力概览、`E2` 信息化对象完整展示作用域、服务、模块 / 措施、系统、产品和能力 / 关注点；保留原环境映射表作为核对入口 | `frontend/design-handoff/implementation-specs/environment-security-capability-graph-strategy-2026-05-20.md`, `environmentRelationGraphModel.js`, `EnvironmentLocalRelationMap.js`, BE-2 |

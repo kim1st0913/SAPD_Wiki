@@ -4,6 +4,7 @@
     capabilityWorkbench: "./public/data/capability-workbench.json",
     environmentWorkbench: "./public/data/environment-workbench.json",
     lifecycleWorkbench: "./public/data/lifecycle-workbench.json",
+    analyticsSummary: "./public/data/analytics-summary.json",
     maintenanceIndex: "./public/data/maintenance-index.json",
     maintenance: "./public/data/maintenance-knowledge.json?v=gbt42446-task-description-20260601-1",
     sharedLookups: "./public/data/shared-lookups.json",
@@ -20,6 +21,7 @@
     capabilityWorkbench: "/api/v1/data-packages/capability-workbench",
     environmentWorkbench: "/api/v1/data-packages/environment-workbench",
     lifecycleWorkbench: "/api/v1/data-packages/lifecycle-workbench",
+    analyticsSummary: "/api/v1/data-packages/analytics-summary",
     maintenanceIndex: "/api/v1/data-packages/maintenance-index",
     maintenance: "/api/v1/data-packages/maintenance",
     sharedLookups: "/api/v1/data-packages/shared-lookups",
@@ -45,6 +47,30 @@
     capabilityWorkbench: null,
     environmentWorkbench: null,
     lifecycleWorkbench: null,
+    analyticsSummary: {
+      meta: {
+        version: "v1",
+        viewModelVersion: "analytics-summary-1.0",
+        generated_at: null,
+        dataState: "missing_file",
+        apiEquivalent: "/api/v1/data-packages/analytics-summary",
+        sourcePackages: [],
+        stats: { primaryGrain: "capability_focus", focusCount: 0, capabilityCount: 0, sourcePackageCount: 0 },
+      },
+      page: {},
+      businessSummary: {},
+      coverageSummary: { grain: "capability_focus", totalFocuses: 0, dimensions: [] },
+      moduleSummary: { entryViews: [] },
+      navigationSummary: { primaryEntries: [], secondaryEntries: [] },
+      relationshipSummary: { graphGrain: "business_relation", groups: [] },
+      evidenceSummary: { displayRole: "secondary", sourcePackages: [], totalEvidenceRefs: 0 },
+      adminSummary: { displayRole: "admin_only", packageHealth: [] },
+      reconciliationSummary: {
+        displayRole: "admin_only",
+        standardControls: { capabilityMapped: 0, standardsIndex: 0, sqliteFullDatabase: null, grainNotes: [] },
+      },
+      compatibility: { warnings: ["analytics-summary.json 不存在，dashboard 应显示空状态而不是重新计算跨包指标。"], sourcePackages: [] },
+    },
     maintenance: {
       generated_at: null,
       stats: {},
@@ -885,6 +911,11 @@
         },
         data_packages: Object.entries(DATA_PATHS).map(([name, path]) => ({ name, path })),
       });
+    },
+
+    async getAnalyticsSummary() {
+      const summary = await fetchPackage("analyticsSummary");
+      return createEnvelope(summary);
     },
 
     async getCapabilityTree() {

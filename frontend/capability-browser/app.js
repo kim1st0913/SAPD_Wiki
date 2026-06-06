@@ -11,6 +11,7 @@ const state = {
   lifecycle: null,
   lifecycleWorkbench: null,
   lifecycleWorkbenchViewModel: null,
+  analyticsSummary: null,
   content: null,
   guidePackages: {},
   standards: null,
@@ -321,6 +322,7 @@ const PACKAGE_GETTERS = {
   capabilityProjection: "getCapabilityWorkspaceProjection",
   environmentWorkbench: "getEnvironmentWorkbench",
   lifecycleWorkbench: "getLifecycleWorkbench",
+  analyticsSummary: "getAnalyticsSummary",
   maintenanceIndex: "getMaintenanceIndex",
   maintenanceKnowledge: "getMaintenanceKnowledge",
   sharedLookups: "getSharedLookups",
@@ -354,6 +356,7 @@ function assignPackageData(name, data) {
   if (name === "sharedLookups") state.sharedLookups = data;
   if (name === "environmentWorkbench") state.environmentWorkbench = data;
   if (name === "lifecycleWorkbench") state.lifecycleWorkbench = data;
+  if (name === "analyticsSummary") state.analyticsSummary = data;
   if (name === "maintenanceIndex") state.maintenanceIndex = data;
   if (name === "maintenanceKnowledge") state.maintenanceKnowledge = data;
   if (name === "content") state.content = data;
@@ -389,7 +392,7 @@ function loadDataPackage(name) {
 
 function routePackagesForCurrentState() {
   if (state.activeView === "placeholder") return [];
-  if (state.activeView === "overview") return ["capabilityWorkbench", "environmentWorkbench", "lifecycleWorkbench", "content", "standards"];
+  if (state.activeView === "overview") return ["analyticsSummary"];
   if (state.activeView === "capabilities") return ["capabilityInitial"];
   if (state.activeView === "environment") return ["environmentWorkbench"];
   if (state.activeView === "dev-lifecycle") return ["lifecycleWorkbench", "lifecycle"];
@@ -2710,7 +2713,7 @@ function ensureRoutePackages({ rerender = true } = {}) {
 function scheduleOverviewWarmup() {
   const warmup = () => {
     if (state.activeView !== "overview") return;
-    Promise.all(["capabilityWorkbench", "environmentWorkbench", "lifecycleWorkbench"].map(loadDataPackage)).then(() => {
+    Promise.all(["analyticsSummary"].map(loadDataPackage)).then(() => {
       renderMetrics();
       if (state.activeView === "overview") renderOverview();
     });
@@ -3551,6 +3554,11 @@ function formatNumber(value) {
   return number.toLocaleString("zh-CN");
 }
 
+function formatMetricValue(value, unit = "") {
+  if (typeof value === "number") return `${formatNumber(value)}${unit && unit !== "个" ? unit : ""}`;
+  return `${text(value) || "0"}${unit && !text(value).includes(unit) ? unit : ""}`;
+}
+
 function percentOf(value, total) {
   if (!total) return 0;
   return Math.max(0, Math.min(100, Math.round((Number(value) / Number(total)) * 100)));
@@ -3581,85 +3589,66 @@ function workbenchSummary({ id, label, shortLabel, route, workbench, tone, dimen
 }
 
 function dashboardSummaries() {
-  const packages = [
-    workbenchSummary({
-      id: "capability",
-      label: "安全能力映射",
-      shortLabel: "能力",
-      route: "/capability-mapping",
-      workbench: state.capabilityWorkbench,
-      tone: "blue",
-      dimensions: ["能力", "关注点", "作用域", "服务", "模块", "标准"],
-    }),
-    workbenchSummary({
-      id: "environment",
-      label: "信息化环境维度",
-      shortLabel: "环境",
-      route: "/environment-mapping",
-      workbench: state.environmentWorkbench,
-      tone: "green",
-      dimensions: ["环境", "对象", "作用域", "服务", "系统", "产品"],
-    }),
-    workbenchSummary({
-      id: "lifecycle",
-      label: "LC-AP安全开发生命周期",
-      shortLabel: "LC-AP",
-      route: "/development-security",
-      workbench: state.lifecycleWorkbench,
-      tone: "amber",
-      dimensions: ["阶段", "活动", "策略", "服务", "模块", "措施"],
-    }),
-    workbenchSummary({
-      id: "data-lifecycle",
-      label: "LC-DT数据生命周期安全",
-      shortLabel: "LC-DT",
-      route: "/data-security",
-      workbench: state.lifecycleWorkbench,
-      tone: "green",
-      dimensions: ["过程", "场景", "服务", "模块", "措施"],
-    }),
-  ];
-  const readyCount = packages.filter((item) => item.dataState === "ready").length;
-  const objectTotal = packages.reduce((sum, item) => sum + item.objectTotal, 0);
-  const relationTotal = packages.reduce((sum, item) => sum + item.relationTotal, 0);
-  const evidenceTotal = packages.reduce((sum, item) => sum + item.evidenceTotal, 0);
+  const summary = state.analyticsSummary || {};
+  const coverageDimensions = list(summary.coverageSummary?.dimensions);
+  const entryViews = list(summary.moduleSummary?.entryViews);
+  const heroMetrics = list(summary.businessSummary?.heroMetrics);
+  const capabilityMap = summary.businessSummary?.capabilityMap || {};
+  const standardControls = summary.reconciliationSummary?.standardControls || {};
+  const metricById = Object.fromEntries(heroMetrics.map((item) => [item.id, item]));
+  const primaryEntries = list(summary.navigationSummary?.primaryEntries);
+  const secondaryEntries = list(summary.navigationSummary?.secondaryEntries);
   return {
-    packages,
-    readyCount,
-    objectTotal,
-    relationTotal,
-    evidenceTotal,
-    standardsTotal: Number(state.standards?.stats?.controls) || 0,
-    contentViews: Number(state.content?.stats?.html_documents || 0) + Number(state.content?.stats?.diagram_views || 0) + Number(state.content?.stats?.guide_pages || 0),
+    raw: summary,
+    dataState: summary.meta?.dataState || summary.compatibility?.sourcePackages?.[0]?.dataState || "loading",
+    page: summary.page || {},
+    titleMetric: summary.businessSummary?.headline?.titleMetric || {},
+    supportingText: summary.businessSummary?.headline?.supportingText || "",
+    coverageDimensions,
+    entryViews,
+    heroMetrics,
+    metricById,
+    capabilityMap,
+    standardControls,
+    primaryEntries,
+    secondaryEntries,
+    totalFocuses: Number(summary.coverageSummary?.totalFocuses || summary.meta?.stats?.focusCount || 0),
+    sourcePackageCount: Number(summary.meta?.stats?.sourcePackageCount || list(summary.meta?.sourcePackages).length || 0),
   };
 }
 
-function renderDashboardMetric({ label, value, hint, tone = "neutral" }) {
+function renderDashboardMetric({ label, value, unit = "", hint, tone = "neutral" }) {
   return `
     <div class="dashboard-metric dashboard-tone-${escapeHtml(tone)}">
       <span>${escapeHtml(label)}</span>
-      <strong>${escapeHtml(formatNumber(value))}</strong>
+      <strong>${escapeHtml(formatMetricValue(value, unit))}</strong>
       <small>${escapeHtml(hint)}</small>
     </div>
   `;
 }
 
-function renderDashboardBarRows(packages, key) {
-  const max = Math.max(...packages.map((item) => Number(item[key]) || 0), 1);
-  return packages
+function renderDashboardCoverageRows(dimensions) {
+  return list(dimensions)
     .map(
       (item) => `
         <div class="dashboard-bar-row">
-          <span>${escapeHtml(item.shortLabel)}</span>
-          <div class="dashboard-bar-track"><i class="dashboard-tone-${escapeHtml(item.tone)}" style="width:${percentOf(item[key], max)}%"></i></div>
-          <strong>${escapeHtml(formatNumber(item[key]))}</strong>
+          <span>${escapeHtml(item.label)}</span>
+          <div class="dashboard-bar-track"><i class="dashboard-tone-blue" style="width:${Math.max(0, Math.min(100, Number(item.percent) || 0))}%"></i></div>
+          <strong>${escapeHtml(`${formatNumber(item.covered)}/${formatNumber(item.total)}`)}</strong>
         </div>
       `,
     )
     .join("");
 }
 
-function renderDashboardDonut(packages, total) {
+function renderDashboardCapabilityMap(map) {
+  const rows = [
+    { label: "能力大类", value: map.categories || 0, tone: "blue" },
+    { label: "能力域", value: map.domains || 0, tone: "green" },
+    { label: "能力", value: map.capabilities || 0, tone: "amber" },
+    { label: "关注点", value: map.focuses || 0, tone: "purple" },
+  ];
+  const total = Number(map.focuses || 0);
   const colors = [
     "oklch(0.49 0.055 224)",
     "oklch(0.51 0.048 150)",
@@ -3667,10 +3656,11 @@ function renderDashboardDonut(packages, total) {
     "oklch(0.53 0.05 300)",
   ];
   let cursor = 0;
-  const stops = packages
+  const max = Math.max(...rows.map((item) => Number(item.value) || 0), 1);
+  const stops = rows
     .map((item, index) => {
       const start = cursor;
-      const end = total ? cursor + (item.objectTotal / total) * 100 : cursor;
+      const end = cursor + (Number(item.value || 0) / max) * 25;
       cursor = end;
       return `${colors[index]} ${start}% ${end}%`;
     })
@@ -3678,13 +3668,13 @@ function renderDashboardDonut(packages, total) {
   return `
     <div class="dashboard-donut-wrap">
       <div class="dashboard-donut" style="background:conic-gradient(${escapeHtml(stops || "oklch(0.86 0.014 86) 0% 100%")})">
-        <div><strong>${escapeHtml(formatNumber(total))}</strong><span>对象</span></div>
+        <div><strong>${escapeHtml(formatNumber(total))}</strong><span>关注点</span></div>
       </div>
       <div class="dashboard-legend">
-        ${packages
+        ${rows
           .map(
             (item, index) => `
-              <div><i style="background:${colors[index]}"></i><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(`${percentOf(item.objectTotal, total)}%`)}</strong></div>
+              <div><i style="background:${colors[index]}"></i><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(formatNumber(item.value))}</strong></div>
             `,
           )
           .join("")}
@@ -3693,7 +3683,14 @@ function renderDashboardDonut(packages, total) {
   `;
 }
 
-function renderDashboardSatellite(packages) {
+function renderDashboardSatellite(entries) {
+  const visibleEntries = [
+    { id: "capability_mapping", className: "capability", label: "安全能力映射", route: "/capability-mapping", hint: "能力关注点主入口" },
+    { id: "environment_scope", className: "environment", label: "信息化环境维度", route: "/environment-mapping", hint: "环境与对象映射" },
+    { id: "lifecycle_ap", className: "lifecycle", label: "LC-AP安全开发生命周期", route: "/development-security", hint: "安全开发过程" },
+    { id: "standards", className: "standards", label: "安全标准 / 框架", route: "/standards", hint: "标准控制项" },
+    { id: "guides", className: "content", label: "安全指南", route: "/guides/security-architecture-design", hint: "指南 / 幻灯片" },
+  ].map((fallback) => ({ ...fallback, ...(list(entries).find((item) => item.id === fallback.id) || {}) }));
   return `
     <div class="dashboard-satellite" aria-label="业务关系卫星图">
       <span class="satellite-line satellite-line-capability"></span>
@@ -3702,111 +3699,106 @@ function renderDashboardSatellite(packages) {
       <span class="satellite-line satellite-line-standards"></span>
       <span class="satellite-line satellite-line-content"></span>
       <button class="satellite-node satellite-hub" type="button" data-app-route="/" data-view="overview">
-        <strong>SAPD Wiki</strong>
-        <small>本地关系工作台</small>
+        <strong>能力知识地图</strong>
+        <small>capability_focus</small>
       </button>
-      ${packages
+      ${visibleEntries
         .map(
-          (item, index) => `
-            <button class="satellite-node satellite-${escapeHtml(item.id)} dashboard-tone-${escapeHtml(item.tone)}" type="button" data-app-route="${escapeHtml(item.route)}">
+          (item) => `
+            <button class="satellite-node satellite-${escapeHtml(item.className)}" type="button" data-app-route="${escapeHtml(item.route)}">
               <strong>${escapeHtml(item.label)}</strong>
-              <small>${escapeHtml(`${formatNumber(item.objectTotal)} 对象 / ${formatNumber(item.relationTotal)} 关系`)}</small>
+              <small>${escapeHtml(item.hint || item.primaryGrain || "")}</small>
             </button>
           `,
         )
         .join("")}
-      <button class="satellite-node satellite-standards" type="button" data-app-route="/standards">
-        <strong>安全标准 / 框架</strong>
-        <small>${escapeHtml(formatNumber(state.standards?.stats?.frameworks || 0))} 框架 / ${escapeHtml(formatNumber(state.standards?.stats?.controls || 0))} 控制项</small>
-      </button>
-      <button class="satellite-node satellite-content" type="button" data-app-route="/guides">
-        <strong>安全指南</strong>
-        <small>${escapeHtml(formatNumber((state.content?.stats?.html_documents || 0) + (state.content?.stats?.diagram_views || 0) + (state.content?.stats?.guide_pages || 0)))} 个内容视图</small>
-      </button>
     </div>
   `;
 }
 
 function renderOverview() {
   const summary = dashboardSummaries();
-  const dataStateLabel = summary.readyCount === summary.packages.length ? "ready" : "loading";
+  const technicalCoverage = summary.metricById.technical_service_coverage || {};
+  const standardCoverage = summary.metricById.standard_mapping_coverage || {};
+  const environmentReach = summary.coverageDimensions.find((item) => item.id === "environment_reach") || {};
+  const lifecycleReach = summary.coverageDimensions.find((item) => item.id === "lifecycle_reach") || {};
   setHtml(
     "overviewWorkspace",
     `
       <section class="dashboard-hero">
         <div>
-          <span class="dashboard-kicker">SAPD Wiki / Dashboard</span>
-          <h2>数据关系总览</h2>
-          <p>把安全能力、信息化环境、LC-AP / LC-DT 生命周期、标准框架和指南内容集中成一页，用统计图和关系图快速判断当前知识库覆盖情况。</p>
+          <span class="dashboard-kicker">SAPD Wiki / Capability Map</span>
+          <h2>${escapeHtml(summary.page.title || "安全能力知识地图")}</h2>
+          <p>${escapeHtml(summary.page.subtitle || summary.supportingText || "以能力关注点为核心查看技术、环境、生命周期、标准和工作方法的支撑关系。")}</p>
         </div>
         <div class="dashboard-state">
-          <span>${escapeHtml(dataStateLabel)}</span>
-          <strong>${escapeHtml(`${summary.readyCount}/${summary.packages.length}`)}</strong>
-          <small>Workbench 数据包</small>
+          <span>${escapeHtml(summary.dataState)}</span>
+          <strong>${escapeHtml(formatNumber(summary.totalFocuses))}</strong>
+          <small>能力关注点</small>
         </div>
       </section>
       <section class="dashboard-metric-grid">
-        ${renderDashboardMetric({ label: "Workbench 数据包", value: summary.readyCount, hint: "能力 / 环境 / LC-AP / LC-DT", tone: "blue" })}
-        ${renderDashboardMetric({ label: "对象总数", value: summary.objectTotal, hint: "四个入口 workbench 合计", tone: "green" })}
-        ${renderDashboardMetric({ label: "关系总数", value: summary.relationTotal, hint: "关系端点投影合计", tone: "amber" })}
-        ${renderDashboardMetric({ label: "来源引用", value: summary.evidenceTotal, hint: "来源证据引用合计", tone: "purple" })}
-        ${renderDashboardMetric({ label: "标准控制项", value: summary.standardsTotal, hint: "安全标准 / 框架索引", tone: "slate" })}
-        ${renderDashboardMetric({ label: "内容视图", value: summary.contentViews, hint: "HTML / 图 / 指南页", tone: "neutral" })}
+        ${renderDashboardMetric({ label: summary.titleMetric.label || "能力关注点", value: summary.titleMetric.value || summary.totalFocuses, unit: summary.titleMetric.unit || "个", hint: "主统计粒度 capability_focus", tone: "blue" })}
+        ${renderDashboardMetric({ label: technicalCoverage.label || "技术服务支撑", value: technicalCoverage.value ?? technicalCoverage.percent ?? 0, unit: "%", hint: `${formatNumber(technicalCoverage.numerator || technicalCoverage.covered || 0)}/${formatNumber(technicalCoverage.denominator || technicalCoverage.total || summary.totalFocuses)} 关注点`, tone: "green" })}
+        ${renderDashboardMetric({ label: standardCoverage.label || "标准映射覆盖", value: standardCoverage.value ?? standardCoverage.percent ?? 0, unit: "%", hint: `${formatNumber(standardCoverage.numerator || standardCoverage.covered || 0)}/${formatNumber(standardCoverage.denominator || standardCoverage.total || summary.totalFocuses)} 关注点`, tone: "amber" })}
+        ${renderDashboardMetric({ label: "环境可达", value: environmentReach.percent || 0, unit: "%", hint: `${formatNumber(environmentReach.covered || 0)}/${formatNumber(environmentReach.total || summary.totalFocuses)} 关注点`, tone: "purple" })}
+        ${renderDashboardMetric({ label: "生命周期可达", value: lifecycleReach.percent || 0, unit: "%", hint: `${formatNumber(lifecycleReach.covered || 0)}/${formatNumber(lifecycleReach.total || summary.totalFocuses)} 关注点`, tone: "slate" })}
+        ${renderDashboardMetric({ label: "分析入口", value: list(summary.entryViews).length || summary.metricById.module_entry_count?.value || 0, unit: "个", hint: "可进入的业务页面", tone: "neutral" })}
       </section>
       <section class="dashboard-grid dashboard-grid-primary">
         <article class="dashboard-panel dashboard-panel-bars">
           <header>
             <div>
-              <h3>Workbench 统计柱状图</h3>
-              <p>按对象、关系、来源三个维度比较当前核心页面的数据体量。</p>
+              <h3>能力关注点覆盖</h3>
+              <p>所有覆盖率统一以 ${escapeHtml(formatNumber(summary.totalFocuses))} 个能力关注点为分母。</p>
             </div>
-            <span class="dashboard-chip">统计</span>
+            <span class="dashboard-chip">capability_focus</span>
           </header>
           <div class="dashboard-bars">
-            <section><h4>对象</h4>${renderDashboardBarRows(summary.packages, "objectTotal")}</section>
-            <section><h4>关系</h4>${renderDashboardBarRows(summary.packages, "relationTotal")}</section>
-            <section><h4>来源</h4>${renderDashboardBarRows(summary.packages, "evidenceTotal")}</section>
+            <section><h4>主要支撑</h4>${renderDashboardCoverageRows(summary.coverageDimensions.filter((item) => item.displayRole === "primary"))}</section>
+            <section><h4>扩展可达</h4>${renderDashboardCoverageRows(summary.coverageDimensions.filter((item) => item.displayRole !== "primary"))}</section>
+            <section><h4>标准 grain</h4>${renderDashboardCoverageRows([{ label: "能力映射可达", covered: summary.standardControls.capabilityMapped || 0, total: summary.standardControls.standardsIndex || 1, percent: percentOf(summary.standardControls.capabilityMapped || 0, summary.standardControls.standardsIndex || 1) }, { label: "标准索引", covered: summary.standardControls.standardsIndex || 0, total: summary.standardControls.standardsIndex || 0, percent: 100 }])}</section>
           </div>
         </article>
         <article class="dashboard-panel">
           <header>
             <div>
-              <h3>对象分布饼图</h3>
-              <p>三份 workbench 的对象规模占比。</p>
+              <h3>能力地图层级</h3>
+              <p>${escapeHtml(summary.supportingText || "能力体系按类、域、能力和关注点组织。")}</p>
             </div>
-            <span class="dashboard-chip">占比</span>
+            <span class="dashboard-chip">层级</span>
           </header>
-          ${renderDashboardDonut(summary.packages, summary.objectTotal)}
+          ${renderDashboardCapabilityMap(summary.capabilityMap)}
         </article>
       </section>
       <section class="dashboard-grid dashboard-grid-secondary">
         <article class="dashboard-panel dashboard-panel-satellite">
           <header>
             <div>
-              <h3>业务关系卫星图</h3>
-              <p>以全局导航为中心，连接当前可用页面和内容索引。</p>
+              <h3>工作入口关系图</h3>
+              <p>从能力知识地图进入核心业务页面，不在首页重新推断关系。</p>
             </div>
-            <span class="dashboard-chip">关系</span>
+            <span class="dashboard-chip">入口</span>
           </header>
-          ${renderDashboardSatellite(summary.packages)}
+          ${renderDashboardSatellite(summary.entryViews)}
         </article>
         <article class="dashboard-panel">
           <header>
             <div>
-              <h3>页面数据维度</h3>
-              <p>每个入口当前承载的主要业务维度。</p>
+              <h3>分析入口</h3>
+              <p>每个入口保留自己的业务粒度，dashboard 只做导航和摘要。</p>
             </div>
-            <span class="dashboard-chip">维度</span>
+            <span class="dashboard-chip">模块</span>
           </header>
           <div class="dashboard-package-list">
-            ${summary.packages
+            ${summary.entryViews
               .map(
                 (item) => `
                   <button class="dashboard-package-row" type="button" data-app-route="${escapeHtml(item.route)}">
-                    <span class="dashboard-package-title"><strong>${escapeHtml(item.label)}</strong><small>${escapeHtml(item.dimensions.join(" / "))}</small></span>
-                    <span><b>${escapeHtml(formatNumber(item.objectTotal))}</b><small>对象</small></span>
-                    <span><b>${escapeHtml(formatNumber(item.relationTotal))}</b><small>关系</small></span>
-                    <i>${escapeHtml(item.dataState)}</i>
+                    <span class="dashboard-package-title"><strong>${escapeHtml(item.label)}</strong><small>${escapeHtml(item.sourcePackage || "")}</small></span>
+                    <span><b>${escapeHtml(formatNumber(item.objectCount || 0))}</b><small>对象</small></span>
+                    <span><b>${escapeHtml(item.primaryGrain || "-")}</b><small>grain</small></span>
+                    <i>${escapeHtml(item.id)}</i>
                   </button>
                 `,
               )
@@ -3817,25 +3809,25 @@ function renderOverview() {
       <section class="dashboard-panel dashboard-panel-table">
         <header>
           <div>
-            <h3>全局导航页面矩阵</h3>
-            <p>从 dashboard 直接进入各工作台，主展示区只呈现业务维度和统计，不暴露来源追踪中间字段。</p>
+            <h3>覆盖率来源矩阵</h3>
+            <p>覆盖率只展示业务口径、来源包和关系类型，不暴露来源追踪中间字段。</p>
           </div>
-          <span class="dashboard-chip">导航</span>
+          <span class="dashboard-chip">覆盖</span>
         </header>
         <div class="dashboard-table-wrap">
           <table class="dashboard-table">
-            <thead><tr><th>页面</th><th>图形表达</th><th>核心对象</th><th>关系</th><th>来源引用</th><th>状态</th></tr></thead>
+            <thead><tr><th>维度</th><th>覆盖</th><th>百分比</th><th>来源包</th><th>关系类型</th><th>入口</th></tr></thead>
             <tbody>
-              ${summary.packages
+              ${summary.coverageDimensions
                 .map(
                   (item) => `
                     <tr>
-                      <td><button type="button" data-app-route="${escapeHtml(item.route)}">${escapeHtml(item.label)}</button><small>${escapeHtml(item.dimensions.join("、"))}</small></td>
-                      <td>${escapeHtml(item.id === "capability" ? "树图 / 矩阵 / 关系图" : item.id === "environment" ? "树图 / 链路图 / 矩阵" : "阶段表 / 关系表 / 统计图")}</td>
-                      <td>${escapeHtml(formatNumber(item.objectTotal))}</td>
-                      <td>${escapeHtml(formatNumber(item.relationTotal))}</td>
-                      <td>${escapeHtml(formatNumber(item.evidenceTotal))}</td>
-                      <td><span class="dashboard-status">${escapeHtml(item.dataState)}</span></td>
+                      <td><button type="button" data-app-route="${escapeHtml(item.route)}">${escapeHtml(item.label)}</button><small>${escapeHtml(item.id)}</small></td>
+                      <td>${escapeHtml(`${formatNumber(item.covered)}/${formatNumber(item.total)}`)}</td>
+                      <td>${escapeHtml(`${item.percent}%`)}</td>
+                      <td>${escapeHtml(item.sourcePackage)}</td>
+                      <td>${escapeHtml(list(item.relationTypes).join("、"))}</td>
+                      <td><span class="dashboard-status">${escapeHtml(item.displayRole || "secondary")}</span></td>
                     </tr>
                   `,
                 )

@@ -8,6 +8,7 @@ const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, "..");
 const DEFAULT_PACKAGE = path.join(ROOT, "frontend/capability-browser/public/data/analytics-summary.json");
 const DATA_CLIENT_PATH = path.join(ROOT, "frontend/capability-browser/dataClient.js");
+const APP_PATH = path.join(ROOT, "frontend/capability-browser/app.js");
 
 const REQUIRED_TOP_LEVEL_KEYS = [
   "meta",
@@ -194,6 +195,26 @@ function validateDataClient(issues) {
   }
 }
 
+function validateDashboardConsumer(issues) {
+  const source = fs.existsSync(APP_PATH) ? fs.readFileSync(APP_PATH, "utf8") : "";
+  const checks = [
+    ["dashboard_state", /analyticsSummary:\s*null/],
+    ["dashboard_getter", /analyticsSummary:\s*"getAnalyticsSummary"/],
+    ["dashboard_assign", /name === "analyticsSummary"\)\s*state\.analyticsSummary = data/],
+    ["dashboard_route_package", /state\.activeView === "overview"\)\s*return \["analyticsSummary"\]/],
+    ["dashboard_render_source", /const summary = state\.analyticsSummary \|\| \{\}/],
+  ];
+  for (const [code, pattern] of checks) {
+    if (!pattern.test(source)) {
+      addIssue(issues, code, "dashboard analytics summary consumer contract is missing or changed");
+    }
+  }
+  const routeMatch = source.match(/if \(state\.activeView === "overview"\) return \[([^\]]*)\]/);
+  if (routeMatch && /capabilityWorkbench|environmentWorkbench|lifecycleWorkbench|standards|content/.test(routeMatch[1])) {
+    addIssue(issues, "dashboard_raw_package_load", "overview must not load raw workbench packages for dashboard metrics", { routePackages: routeMatch[1] });
+  }
+}
+
 function main() {
   const options = parseArgs(process.argv.slice(2));
   if (options.help) {
@@ -203,6 +224,7 @@ function main() {
   const summary = readJson(options.packagePath);
   const issues = validateSummary(summary);
   validateDataClient(issues);
+  validateDashboardConsumer(issues);
   const result = {
     result: issues.length ? "fail" : "pass",
     package: path.relative(ROOT, options.packagePath),

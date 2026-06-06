@@ -20,7 +20,7 @@
 
 | 优先级 | 工作包 | 包含任务 | 当前状态 | 推荐处理 |
 |---|---|---|---|---|
-| Gate 0 | Dirty worktree checkpoint | `OI-128C` 批注收口、全局批注基线、批注脚本、当前设计审阅产物 | 已基本验收，仍有未提交改动 | 先拆文件组确认，避免 `git add .`；完成 checkpoint 后再继续新开发 |
+| Gate 0 | Dirty worktree checkpoint | `OI-128C` 批注收口、全局批注基线、批注脚本、当前设计审阅产物 | 已完成 | 已拆成 `b93a9f1` 批注基线和 `e23c6d7` backlog / 设计计划两个 checkpoint；当前工作区已清理，可进入 `OI-136 / FE-ROUTE` |
 | P0 | 深层路由稳定性 | `OI-136`、`FE-ROUTE` | 待修复 | 单线写入；修直接访问 `/guides/*`、`/knowledge/*`、`/standards/*` 掉样式 |
 | P0 | 用户库长期治理 | `OI-135`、`DB-11`、`user_notes`、旧 `user_favorites`、数据篮 / 导出 / 自定义能力 | 待设计 | 先设计 schema / migration / 备份恢复，不直接写前端 |
 | P0 | 稳定键与基础库升级兼容 | `DB-2 stable_key`、deterministic ID、`base_id_redirects` | 待启动 | 与用户库治理强相关；进入 Delivery 正式版前必须做 |
@@ -188,10 +188,9 @@
 
 ### 默认推荐
 
-1. 做 `OI-128C` / 当前 dirty worktree checkpoint。
-2. 做 `OI-136 / FE-ROUTE`。
-3. 再进入 `OI-135 + DB-2 + DB-11` 用户库与 stable_key 治理。
-4. 然后继续 Delivery Bundle 或前端基线稳定化。
+1. 做 `OI-136 / FE-ROUTE`。
+2. 再进入 `OI-135 + DB-2 + DB-11` 用户库与 stable_key 治理。
+3. 然后继续 Delivery Bundle 或前端基线稳定化。
 
 ### 如果用户更关心交付包
 

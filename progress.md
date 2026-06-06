@@ -12,6 +12,7 @@
 
 ## 最近完成事项
 
+- 2026-06-06 完成当前 dirty worktree checkpoint：`b93a9f1 Finalize OI-128C annotation baseline` 固化批注前端、抽屉标签、幻灯片定位、审计脚本和全局批注基线；`e23c6d7 Document backlog convergence and frontend planning` 固化 Product Design 审阅、dashboard 契约草案、`OI-136 / FE-ROUTE` 登记和总 backlog 收敛。后续默认进入 `OI-136 / FE-ROUTE`，不再把批注基线和新功能混写。
 - 2026-06-06 设计 `analytics_summary` JSON 契约草案：新增 `docs/06-implementation/analytics-summary-json-contract-draft.md`，明确 dashboard 面向能力知识地图的 P0 数据结构、`capability_focus` 主粒度、覆盖率维度、模块入口统计、关系摘要、证据折叠、管理员折叠区、标准控制项三类 grain 和前端消费边界；本轮仅做契约设计，不改前端、ETL、数据库或数据包。
 - 2026-06-06 完成总 backlog 收敛：新增 `docs/07-governance/backlog-convergence-2026-06-06.md`，将未开展任务重新分为 `Gate 0`、`P0`、可并行只读评估、后续开发和后置任务。结论：任务未丢失，但分散在 `task_plan.md`、Open Issues、执行线台账、Product Design review、Data Analytics review 和 Delivery 文档中；默认下一步应先做 dirty worktree checkpoint，再做 `OI-136 / FE-ROUTE`，随后按用户优先级进入用户库 / stable_key / Delivery 或前端基线稳定化。
 - 2026-06-06 按 Data Analytics review 继续优化 dashboard 方案：更新 `docs/06-implementation/dashboard-and-module-data-display-optimization-design.md`，补齐标准控制项三类 grain（能力映射可达 / 标准索引 / SQLite 全库）、P0 支撑覆盖 relation type、控制数据源优先级、P0 指标口径附录、Top 榜单 capped score、首屏 L0 / L1 聚合矩阵和维护视角边界；继续不改前端、ETL、数据库或数据包。
@@ -32,6 +33,7 @@
 
 ## 最近验证
 
+- 2026-06-06 checkpoint 验证：`git status --short --branch` 显示 `main...origin/main [ahead 7]` 且无未提交文件；`git log -2 --oneline` 显示 `e23c6d7` 与 `b93a9f1`；`python3 scripts/dev_server_guard.py --status` 通过，固定 `5173` 单一项目服务健康；`git diff --check` 通过。
 - `node scripts/audit_saved_user_annotations.mjs --url http://127.0.0.1:5173 --allow-system-chrome --debug-port 9462 --width 1800 --height 1200 --compact --from-ordinal 1 --to-ordinal 5`：真实 Chrome 定向幻灯片批注定位回归通过，`auditedNoteCount=5`、`passed=5`、`failed=0`、`failures=[]`；覆盖安全技术架构设计方法第 30 / 2 页、轻规划第 26 页、数据安全设计方法第 3 / 1 页，均满足 `guideSlidePageOk=true`，页面显示、active thumb 和 `selectedContentSlideIndex` 一致。
 - `node scripts/audit_saved_user_annotations.mjs --url http://127.0.0.1:5173 --allow-system-chrome --debug-port 9461 --width 1800 --height 1200 --compact`：真实 Chrome 全量保存批注回归通过，当前用户库 `noteCount=34`、`auditedNoteCount=34`、`passed=34`、`failed=0`、`failures=[]`、`consoleIssues=[]`。
 - `node --check frontend/capability-browser/app.js`、`node --check scripts/audit_saved_user_annotations.mjs`、`node --check scripts/audit_user_annotation_contract.mjs`：均通过。

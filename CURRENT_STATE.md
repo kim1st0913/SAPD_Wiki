@@ -57,11 +57,11 @@ Frontend Baseline 1.0 当前覆盖四页：
 
 2026-06-05 起主控接管到当前线程 `019e966d-81e1-7261-bd89-370c41a8c90e`；旧 `product design Review` 线程 `019e8b6d-8ae3-7d20-8436-3024c4683891` 降级为历史产物来源 / 待 fan-in，不再默认拥有写入权。后续复杂实现优先采用“轻主控 + 专项 subagent / 专项会话 + fan-in 验收”，主控只做调度、边界、验收、状态更新和 checkpoint。
 
-`OI-128C` 最新结论：用户 2026-06-05 后续抽查提出的定位高亮落到文字后方、L0-L2 批注无常态高亮、普通态高亮线需要加深加粗但不遮挡文字、指南 / 幻灯片页无法添加批注等问题已修复，并已基本验收通过。当前批注设计已作为全局基线固化到 `docs/06-implementation/global-annotation-requirements-and-regression-matrix.md` 和 `docs/06-implementation/frontend-global-design-baseline-2026-05-30.md`；后续新增页面必须按“新页面接入清单”声明页面对象、值锚点、行锚点、幻灯片 / 子页上下文和回归命令，不再逐页重新调试。提交后补跑当前用户库 33 条保存批注真实 Chrome 严格回归，最终 `33/33 pass`、`failures=[]`、`consoleIssues=[]`。下一步做 `OI-128C` checkpoint amend 收口；不要继续开发新的批注功能或混入工作台 V2 / V3。
+`OI-128C` 最新结论：用户 2026-06-05 后续抽查提出的定位高亮落到文字后方、L0-L2 批注无常态高亮、普通态高亮线需要加深加粗但不遮挡文字、指南 / 幻灯片页无法添加批注等问题已修复，并已基本验收通过。当前批注设计已作为全局基线固化到 `docs/06-implementation/global-annotation-requirements-and-regression-matrix.md` 和 `docs/06-implementation/frontend-global-design-baseline-2026-05-30.md`；后续新增页面必须按“新页面接入清单”声明页面对象、值锚点、行锚点、幻灯片 / 子页上下文和回归命令，不再逐页重新调试。2026-06-06 已完成 `OI-128C` checkpoint：`b93a9f1 Finalize OI-128C annotation baseline`。后续只按 bug fix 处理，不继续开发新的批注功能或混入工作台 V2 / V3。
 
 当前先进入执行线收敛 P0：验收 dirty worktree、同步治理入口、明确 checkpoint，再继续前端、数据或 Delivery Bundle 功能线。不要在 dirty diff 未验收前启动新的并行写入任务。
 
-2026-06-06 已完成总 backlog 收敛，入口为 `docs/07-governance/backlog-convergence-2026-06-06.md`。后续恢复未开展任务时，先用该文件确认 `Gate 0`、`P0`、可并行只读评估、后续开发和后置任务，避免只按某一条前端、Delivery 或 Product Design 线继续。当前默认顺序：先做 dirty worktree checkpoint，再做 `OI-136 / FE-ROUTE` 深层路由稳定性，随后按用户优先级进入用户库 / `stable_key` / Delivery 或前端基线稳定化。
+2026-06-06 已完成总 backlog 收敛，入口为 `docs/07-governance/backlog-convergence-2026-06-06.md`。当前 dirty worktree checkpoint 已完成：`e23c6d7 Document backlog convergence and frontend planning` 固化 Product Design 审阅、dashboard 契约草案和 backlog 收敛。后续恢复未开展任务时，先用该文件确认 `P0`、可并行只读评估、后续开发和后置任务，避免只按某一条前端、Delivery 或 Product Design 线继续。当前默认下一步：做 `OI-136 / FE-ROUTE` 深层路由稳定性，随后按用户优先级进入用户库 / `stable_key` / Delivery 或前端基线稳定化。
 
 当前多任务、模块线程和实际 Codex thread id 追踪入口为 `docs/07-governance/current-execution-lines.md`。暂停任务前必须先登记状态、证据、恢复条件和下一步；已有模块线程必须映射到 `EL-xxx` 执行线，避免多会话收敛后丢失任务线。当前已盘点 18 个 cwd 属于本工程的 Codex 线程；`archimate建模` 已进入 idle / 待验收状态，后续页面效果与加载优化走 `OI-133 / EL-025`；`数据安全页面1` 仍显示为运行中线程，主控只做 fan-in，不默认停止或抢写同一范围。长会话需要换新会话时，按 `docs/07-governance/execution-line-convergence-workflow.md` 的“长会话轮换协议”执行。
 

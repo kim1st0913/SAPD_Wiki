@@ -55,6 +55,42 @@ id, target_ref, body, status, page_route, page_title, anchor_type, object_type, 
 """
 
 USER_NOTE_STATUSES = {"todo", "reviewing", "waiting_confirm", "confirmed", "closed", "deferred"}
+USER_DATA_BASKET_STATUSES = {"active", "draft", "archived"}
+
+USER_DATA_BASKET_TABLES = [
+    """
+    CREATE TABLE IF NOT EXISTS user_data_baskets (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        status TEXT NOT NULL DEFAULT 'active',
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS user_data_basket_items (
+        id TEXT PRIMARY KEY,
+        basket_id TEXT NOT NULL,
+        target_ref TEXT NOT NULL,
+        object_type TEXT,
+        object_title TEXT,
+        payload_json TEXT,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(basket_id, target_ref),
+        FOREIGN KEY(basket_id) REFERENCES user_data_baskets(id) ON DELETE CASCADE
+    )
+    """,
+]
+
+USER_DATA_BASKET_SELECT_COLUMNS = """
+id, name, description, status, created_at, updated_at
+"""
+
+USER_DATA_BASKET_ITEM_SELECT_COLUMNS = """
+id, basket_id, target_ref, object_type, object_title, payload_json, created_at, updated_at
+"""
 
 
 def json_dumps(data: Any) -> bytes:
@@ -125,6 +161,7 @@ class BundleRuntime:
         self.base_db = safe_bundle_child(self.root / "data" / "base", base_file, "sapd_wiki_base.sqlite3")
         self.user_db = safe_bundle_child(self.root / "data" / "user", user_file, "sapd_wiki_user.sqlite3")
         self.ensure_user_note_columns()
+        self.ensure_user_data_basket_tables()
 
     def ensure_user_note_columns(self) -> None:
         user_uri = self.user_db.resolve().as_uri() + "?mode=rwc"
@@ -134,6 +171,13 @@ class BundleRuntime:
             for column, definition in USER_NOTE_COLUMNS.items():
                 if column not in existing:
                     connection.execute(f"ALTER TABLE user_notes ADD COLUMN {column} {definition}")
+
+    def ensure_user_data_basket_tables(self) -> None:
+        user_uri = self.user_db.resolve().as_uri() + "?mode=rwc"
+        with sqlite3.connect(user_uri, uri=True) as connection:
+            connection.execute("PRAGMA foreign_keys = ON")
+            for statement in USER_DATA_BASKET_TABLES:
+                connection.execute(statement)
 
     def open_connection(self) -> sqlite3.Connection:
         user_uri = self.user_db.resolve().as_uri() + "?mode=rwc"
@@ -431,6 +475,227 @@ class BundleRuntime:
         self.logger.write("info", "user note deleted", note_id=normalized_id, deleted=deleted)
         return {"ok": True, "deleted": deleted}
 
+    def normalize_data_basket_status(self, value: Any) -> str:
+        status = str(value or "active").strip() or "active"
+        return status if status in USER_DATA_BASKET_STATUSES else "active"
+
+    def normalize_payload_json(self, value: Any) -> str | None:
+        if value is None:
+            return None
+        if isinstance(value, str):
+            stripped = value.strip()
+            if not stripped:
+                return None
+            try:
+                parsed = json.loads(stripped)
+            except json.JSONDecodeError:
+                parsed = {"text": stripped}
+        else:
+            parsed = value
+        return json.dumps(parsed, ensure_ascii=False)
+
+    def data_basket_item_row_to_dict(self, row: sqlite3.Row | None) -> dict[str, Any] | None:
+        if not row:
+            return None
+        item = dict(row)
+        try:
+            item["payload"] = json.loads(item.get("payload_json") or "null")
+        except json.JSONDecodeError:
+            item["payload"] = None
+        item.pop("payload_json", None)
+        return item
+
+    def list_data_baskets(self) -> dict[str, Any]:
+        with self.open_connection() as connection:
+            rows = connection.execute(
+                f"""
+                SELECT b.id, b.name, b.description, b.status, b.created_at, b.updated_at,
+                       COUNT(i.id) AS item_count
+                FROM user_data_baskets b
+                LEFT JOIN user_data_basket_items i ON i.basket_id = b.id
+                GROUP BY b.id
+                ORDER BY b.updated_at DESC
+                """
+            ).fetchall()
+        return {"ok": True, "data_state": "ready", "data_baskets": [dict(row) for row in rows]}
+
+    def create_data_basket(self, payload: dict[str, Any]) -> dict[str, Any]:
+        name = str(payload.get("name") or "").strip()
+        if not name:
+            raise ValueError("name is required")
+        basket_id = str(uuid.uuid4())
+        description = str(payload.get("description") or "").strip() or None
+        status = self.normalize_data_basket_status(payload.get("status"))
+        with self.open_connection() as connection:
+            connection.execute(
+                """
+                INSERT INTO user_data_baskets(id, name, description, status, created_at, updated_at)
+                VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                """,
+                (basket_id, name, description, status),
+            )
+            row = connection.execute(
+                f"""
+                SELECT {USER_DATA_BASKET_SELECT_COLUMNS}
+                FROM user_data_baskets
+                WHERE id = ?
+                """,
+                (basket_id,),
+            ).fetchone()
+            connection.execute(
+                """
+                INSERT INTO user_change_logs(id, action, target_ref, payload_json)
+                VALUES (?, 'create_data_basket', ?, ?)
+                """,
+                (
+                    str(uuid.uuid4()),
+                    f"user:data_basket:{basket_id}",
+                    json.dumps({"id": basket_id, "name": name, "status": status}, ensure_ascii=False),
+                ),
+            )
+        self.logger.write("info", "user data basket created", basket_id=basket_id, status=status)
+        return {"ok": True, "data_basket": dict(row) if row else None}
+
+    def delete_data_basket(self, basket_id: str) -> dict[str, Any]:
+        normalized_id = str(basket_id or "").strip()
+        if not normalized_id:
+            raise ValueError("basket_id is required")
+        with self.open_connection() as connection:
+            cursor = connection.execute("DELETE FROM user_data_baskets WHERE id = ?", (normalized_id,))
+            deleted = cursor.rowcount
+            connection.execute(
+                """
+                INSERT INTO user_change_logs(id, action, target_ref, payload_json)
+                VALUES (?, 'delete_data_basket', ?, ?)
+                """,
+                (
+                    str(uuid.uuid4()),
+                    f"user:data_basket:{normalized_id}",
+                    json.dumps({"id": normalized_id, "deleted": deleted}, ensure_ascii=False),
+                ),
+            )
+        self.logger.write("info", "user data basket deleted", basket_id=normalized_id, deleted=deleted)
+        return {"ok": True, "deleted": deleted}
+
+    def list_data_basket_items(self, basket_id: str) -> dict[str, Any]:
+        normalized_id = str(basket_id or "").strip()
+        if not normalized_id:
+            raise ValueError("basket_id is required")
+        with self.open_connection() as connection:
+            rows = connection.execute(
+                f"""
+                SELECT {USER_DATA_BASKET_ITEM_SELECT_COLUMNS}
+                FROM user_data_basket_items
+                WHERE basket_id = ?
+                ORDER BY updated_at DESC
+                """,
+                (normalized_id,),
+            ).fetchall()
+        return {"ok": True, "data_state": "ready", "items": [self.data_basket_item_row_to_dict(row) for row in rows]}
+
+    def add_data_basket_item(self, basket_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+        normalized_basket_id = str(basket_id or "").strip()
+        target_ref = str(payload.get("target_ref") or "").strip()
+        if not normalized_basket_id:
+            raise ValueError("basket_id is required")
+        if not target_ref:
+            raise ValueError("target_ref is required")
+        object_type = str(payload.get("object_type") or "").strip() or None
+        object_title = str(payload.get("object_title") or "").strip() or None
+        payload_json = self.normalize_payload_json(payload.get("payload"))
+        item_id = str(uuid.uuid4())
+        with self.open_connection() as connection:
+            basket = connection.execute("SELECT id FROM user_data_baskets WHERE id = ?", (normalized_basket_id,)).fetchone()
+            if not basket:
+                return {"ok": False, "error": "basket_not_found", "item": None}
+            connection.execute(
+                """
+                INSERT INTO user_data_basket_items(id, basket_id, target_ref, object_type, object_title, payload_json, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                ON CONFLICT(basket_id, target_ref) DO UPDATE SET
+                  object_type = excluded.object_type,
+                  object_title = excluded.object_title,
+                  payload_json = excluded.payload_json,
+                  updated_at = CURRENT_TIMESTAMP
+                """,
+                (item_id, normalized_basket_id, target_ref, object_type, object_title, payload_json),
+            )
+            connection.execute(
+                """
+                UPDATE user_data_baskets
+                SET updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                """,
+                (normalized_basket_id,),
+            )
+            row = connection.execute(
+                f"""
+                SELECT {USER_DATA_BASKET_ITEM_SELECT_COLUMNS}
+                FROM user_data_basket_items
+                WHERE basket_id = ? AND target_ref = ?
+                """,
+                (normalized_basket_id, target_ref),
+            ).fetchone()
+            connection.execute(
+                """
+                INSERT INTO user_change_logs(id, action, target_ref, payload_json)
+                VALUES (?, 'upsert_data_basket_item', ?, ?)
+                """,
+                (
+                    str(uuid.uuid4()),
+                    target_ref,
+                    json.dumps({"basket_id": normalized_basket_id, "target_ref": target_ref}, ensure_ascii=False),
+                ),
+            )
+        self.logger.write("info", "user data basket item upserted", basket_id=normalized_basket_id, target_ref_sha256=hash_text(target_ref)[:16])
+        return {"ok": True, "item": self.data_basket_item_row_to_dict(row)}
+
+    def delete_data_basket_item(self, basket_id: str, item_id: str) -> dict[str, Any]:
+        normalized_basket_id = str(basket_id or "").strip()
+        normalized_item_id = str(item_id or "").strip()
+        if not normalized_basket_id:
+            raise ValueError("basket_id is required")
+        if not normalized_item_id:
+            raise ValueError("item_id is required")
+        with self.open_connection() as connection:
+            row_before = connection.execute(
+                """
+                SELECT target_ref
+                FROM user_data_basket_items
+                WHERE basket_id = ? AND id = ?
+                """,
+                (normalized_basket_id, normalized_item_id),
+            ).fetchone()
+            cursor = connection.execute(
+                """
+                DELETE FROM user_data_basket_items
+                WHERE basket_id = ? AND id = ?
+                """,
+                (normalized_basket_id, normalized_item_id),
+            )
+            deleted = cursor.rowcount
+            connection.execute(
+                """
+                UPDATE user_data_baskets
+                SET updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                """,
+                (normalized_basket_id,),
+            )
+            connection.execute(
+                """
+                INSERT INTO user_change_logs(id, action, target_ref, payload_json)
+                VALUES (?, 'delete_data_basket_item', ?, ?)
+                """,
+                (
+                    str(uuid.uuid4()),
+                    row_before["target_ref"] if row_before else None,
+                    json.dumps({"basket_id": normalized_basket_id, "item_id": normalized_item_id, "deleted": deleted}, ensure_ascii=False),
+                ),
+            )
+        self.logger.write("info", "user data basket item deleted", basket_id=normalized_basket_id, item_id=normalized_item_id, deleted=deleted)
+        return {"ok": True, "deleted": deleted}
+
 
 def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: str) -> type[BaseHTTPRequestHandler]:
     class LocalHandler(BaseHTTPRequestHandler):
@@ -468,6 +733,11 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
                 return candidate
             return frontend_root / "index.html"
 
+        def user_data_basket_parts(self, request_path: str) -> list[str]:
+            if not request_path.startswith("/api/v1/user/data-baskets"):
+                return []
+            return [unquote(part) for part in request_path.strip("/").split("/")]
+
         def do_GET(self) -> None:
             parsed = urlparse(self.path)
             try:
@@ -503,6 +773,13 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
                 if parsed.path == "/api/v1/user/notes":
                     self.send_json(200, runtime.list_notes(parse_qs(parsed.query)))
                     return
+                parts = self.user_data_basket_parts(parsed.path)
+                if parts == ["api", "v1", "user", "data-baskets"]:
+                    self.send_json(200, runtime.list_data_baskets())
+                    return
+                if len(parts) == 6 and parts[:4] == ["api", "v1", "user", "data-baskets"] and parts[5] == "items":
+                    self.send_json(200, runtime.list_data_basket_items(parts[4]))
+                    return
                 if parsed.path.startswith(API_PREFIX):
                     self.send_json(404, {"ok": False, "error": "not found", "path": parsed.path})
                     return
@@ -522,25 +799,28 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
 
         def validate_write_request(self) -> tuple[int, str] | None:
             if not is_json_content_type(self.headers.get("Content-Type", "")):
-                return 415, "POST writes require Content-Type: application/json"
+                return 415, "writes require Content-Type: application/json"
             token = self.headers.get(AUTH_HEADER, "").strip()
             if not token or not secrets.compare_digest(token, session_token):
-                return 403, f"POST writes require a valid {AUTH_HEADER} header"
+                return 403, f"writes require a valid {AUTH_HEADER} header"
             port = int(state["port"])
             if not is_allowed_host_header(self.headers.get("Host", ""), port):
                 return 403, "invalid Host header"
             origin = self.headers.get("Origin", "").strip()
             if origin and not is_allowed_loopback_origin(origin, port):
-                return 403, "cross-origin POST is not allowed"
+                return 403, "cross-origin writes are not allowed"
             referer = self.headers.get("Referer", "").strip()
             if not origin and referer and not is_allowed_loopback_origin(referer, port):
-                return 403, "cross-origin POST referer is not allowed"
+                return 403, "cross-origin write referer is not allowed"
             return None
 
         def do_POST(self) -> None:
             parsed = urlparse(self.path)
             try:
-                if parsed.path not in {"/api/v1/user/favorites", "/api/v1/user/notes"}:
+                parts = self.user_data_basket_parts(parsed.path)
+                is_data_basket_create = parts == ["api", "v1", "user", "data-baskets"]
+                is_data_basket_item_create = len(parts) == 6 and parts[:4] == ["api", "v1", "user", "data-baskets"] and parts[5] == "items"
+                if parsed.path not in {"/api/v1/user/favorites", "/api/v1/user/notes"} and not is_data_basket_create and not is_data_basket_item_create:
                     self.send_json(404, {"ok": False, "error": "not found"})
                     return
                 auth_error = self.validate_write_request()
@@ -552,6 +832,10 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
                 payload = json.loads(self.rfile.read(length).decode("utf-8") or "{}")
                 if parsed.path == "/api/v1/user/notes":
                     self.send_json(200, runtime.add_note(payload))
+                elif is_data_basket_create:
+                    self.send_json(200, runtime.create_data_basket(payload))
+                elif is_data_basket_item_create:
+                    self.send_json(200, runtime.add_data_basket_item(parts[4], payload))
                 else:
                     self.send_json(200, runtime.add_favorite(payload))
             except ValueError as error:
@@ -584,7 +868,10 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
         def do_DELETE(self) -> None:
             parsed = urlparse(self.path)
             try:
-                if parsed.path != "/api/v1/user/favorites" and not parsed.path.startswith("/api/v1/user/notes/"):
+                parts = self.user_data_basket_parts(parsed.path)
+                is_data_basket_delete = len(parts) == 5 and parts[:4] == ["api", "v1", "user", "data-baskets"]
+                is_data_basket_item_delete = len(parts) == 7 and parts[:4] == ["api", "v1", "user", "data-baskets"] and parts[5] == "items"
+                if parsed.path != "/api/v1/user/favorites" and not parsed.path.startswith("/api/v1/user/notes/") and not is_data_basket_delete and not is_data_basket_item_delete:
                     self.send_json(404, {"ok": False, "error": "not found"})
                     return
                 auth_error = self.validate_write_request()
@@ -595,6 +882,10 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
                 if parsed.path.startswith("/api/v1/user/notes/"):
                     note_id = unquote(parsed.path.rsplit("/", 1)[-1])
                     self.send_json(200, runtime.delete_note(note_id))
+                elif is_data_basket_item_delete:
+                    self.send_json(200, runtime.delete_data_basket_item(parts[4], parts[6]))
+                elif is_data_basket_delete:
+                    self.send_json(200, runtime.delete_data_basket(parts[4]))
                 else:
                     params = parse_qs(parsed.query)
                     target_ref = unquote((params.get("target_ref") or [""])[0])

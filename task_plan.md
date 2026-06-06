@@ -51,13 +51,13 @@ Frontend Baseline 1.0 当前关系工作台实现重点仍覆盖三页：
 
 本轮已完成首个前后端分离落点：安全能力映射页新增 `/api/v1/capabilities/workspace-projection`，用于承载技术视角和管理视角的关系投影；静态模式下保留 ViewModel fallback。
 
-2026-06-06 用户调整优先级：`analytics_summary` 是 P0，但不独占当前最高优先级；Delivery Bundle / 打包任务先往后排。当前已完成 `analytics_summary` dashboard 消费，以及 `OI-135 + DB-11 + DB-2` 正式迁移脚本三段式，产出 `scripts/migrate_db_contracts.mjs`；真实基础库和真实用户库仍未写入，后续 apply 必须显式传 `--apply --confirm-project-db-write` 并自动备份。
+2026-06-06 用户调整优先级：`analytics_summary` 是 P0，但不独占当前最高优先级；Delivery Bundle / 打包任务先往后排。当前已完成 `analytics_summary` dashboard 消费、`OI-135 + DB-11 + DB-2` 正式迁移脚本三段式，以及 `OI-128 / OI-135` 数据篮最小 API；真实基础库和真实用户库仍未写入，后续 apply 必须显式传 `--apply --confirm-project-db-write` 并自动备份。
 
 ## 当前 P0 主线队列
 
 | 优先级组 | 工作包 | 当前状态 | 推荐下一步 | 改动边界 |
 |---|---|---|---|---|
-| P0-A | 用户库长期治理 | `OI-135` / `DB-11` 正式迁移脚本完成 / 真实库 apply 待显式确认 | 已有默认 dry-run、临时库 apply、自动备份和项目库写入确认门；下一步进入工作台 / 数据篮 / 导出最小 API 二选一，不先做前端按钮 | 文档 / schema 设计先行，不直接改前端按钮 |
+| P0-A | 用户库长期治理 | `OI-135` / `DB-11` 正式迁移脚本完成 / 数据篮最小 API 已完成 / 真实库 apply 待显式确认 | 已有默认 dry-run、临时库 apply、自动备份和项目库写入确认门；数据篮 API 已完成创建、读取、条目 upsert、删除和 token 防护，下一步进入工作台总览或导出配置最小 API | 后端最小 API 先行，不直接改前端按钮 |
 | P0-A | `stable_key` / 基础库升级兼容 | `DB-2` 正式迁移脚本完成 / 真实库 apply 待显式确认 | 已可对临时复制基础库补齐 `stable_key` / `stable_ref` / `public_id` 和 `base_id_redirects`；真实库 apply 需显式确认和备份 | 支撑批注、收藏、Delivery 和后续基础库升级 |
 | P0-B | `analytics_summary` 落地 | exporter / audit / `data_package_summary` / `dataClient` / dashboard 消费已完成 / 已提交 | 后续只按视觉或业务反馈小修 | 已按数据契约消费，不在前端重新拼跨包指标 |
 | P0-C | 深层路由稳定性 | `OI-136 / FE-ROUTE` 已修复 / 待 checkpoint | 已通过根 `base href` 修复 `/guides/*`、`/knowledge/*`、`/standards/*` 直接访问资源相对路径问题；轻量 smoke 已覆盖三类深链根资源加载 | 单线写入，不和 dashboard 或批注混写 |
@@ -157,7 +157,7 @@ Frontend Baseline 1.0 当前关系工作台实现重点仍覆盖三页：
 | DB-2 | `stable_key` / deterministic ID 策略 | P0 正式迁移脚本完成 / 真实库 apply 待显式确认 | 已新增 `scripts/audit_stable_key_contract.mjs`、`scripts/smoke_db_migration_contracts.mjs`、`scripts/migrate_db_contracts.mjs` 和 `base-stable-key-and-redirect-migration-design-2026-06-06.md`；临时复制基础库已验证 4660 个对象和 7654 条关系的 `stable_key` / `stable_ref` / `public_id` 覆盖，真实库 apply 必须显式确认和备份 |
 | DB-3 | base manifest 与版本规范 | 最小契约已完成 | 生成 `base-manifest.json`，绑定 app 版本、base 数据版本、schema 版本、fallback JSON hash 和关键计数 |
 | DB-4 | 用户库 schema / migration | 最小 schema 与创建脚本已完成 | 初始化用户库，覆盖备注、收藏、个人标签、overlay、修正建议、用户导入 staging / review / change log |
-| DB-11 | 用户库治理与兼容表迁移清理 | P0 正式迁移脚本完成 / 真实库 apply 待显式确认 | 已新增 `scripts/audit_user_db_governance_contract.mjs`、用户库兼容报告、`scripts/plan_user_schema_0_3_migration.mjs`、`scripts/smoke_db_migration_contracts.mjs` 和 `scripts/migrate_db_contracts.mjs`；临时复制用户库已验证 `user_schema_0.3` 13 张新表，真实库 apply 必须显式确认和备份 |
+| DB-11 | 用户库治理与兼容表迁移清理 | P0 正式迁移脚本完成 / 数据篮最小 API 已完成 / 真实库 apply 待显式确认 | 已新增 `scripts/audit_user_db_governance_contract.mjs`、用户库兼容报告、`scripts/plan_user_schema_0_3_migration.mjs`、`scripts/smoke_db_migration_contracts.mjs` 和 `scripts/migrate_db_contracts.mjs`；临时复制用户库已验证 `user_schema_0.3` 13 张新表；runtime 已确保 `user_data_baskets` / `user_data_basket_items` 表并提供最小 API；真实库 apply 必须显式确认和备份 |
 | DB-5 | base/user 合并 read model | 连接与命名空间规则已设计 | API 层输出 `base:<id>` / `user:<id>` 命名空间，前端不关心数据来自哪个 SQLite |
 | DB-6 | ZIP Bundle Builder alpha | 真实运行 ZIP 构建规则已收紧 | 从已审批正式库生成 `sapd_wiki_base.sqlite3`、manifest、`frontend-dist`、分平台 start/stop / diagnostics 脚本、logs、diagnostics 和平台 zip 目录；默认输出到 `/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle`；真实 ZIP 必须传入 `--backend-binary`，结构验证包必须显式 `--allow-placeholder` |
 | DB-7 | 本地后端可执行文件 alpha | macOS arm64 已打包验证，Windows 待实测 | `scripts/run_local_server.py` 已用 PyInstaller 打包为 macOS arm64 `SAPD-Wiki-Backend` 并完成 ZIP 解压启动验证；Windows 构建脚本 `scripts/package_backend_windows.ps1` 和 `docs/09-delivery/windows-zip-build-guide.md` 已就绪，待 Windows x64 环境生成并验证 `SAPD-Wiki-Backend.exe` |

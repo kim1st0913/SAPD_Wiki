@@ -6,7 +6,7 @@
 
 - 当前分支：`main`。
 - 固定预览入口：`http://127.0.0.1:5173/`。前端展示和用户验收默认只看该端口。
-- 当前主控主线：两个 P0 已完成代码闭环。`analytics_summary` 已完成 exporter / audit / `data_package_summary` / `dataClient` / dashboard 消费；`OI-135 + DB-11 + DB-2` 已完成设计、审计脚本、dry-run、临时库 smoke 和正式迁移脚本三段式。真实基础库 / 用户库未写入；后续 apply 必须显式确认并自动备份。Delivery Bundle / 打包任务继续后排。
+- 当前主控主线：三个 P0 已完成代码闭环。`analytics_summary` 已完成 exporter / audit / `data_package_summary` / `dataClient` / dashboard 消费；`OI-135 + DB-11 + DB-2` 已完成设计、审计脚本、dry-run、临时库 smoke 和正式迁移脚本三段式；`OI-128 / OI-135` 已完成数据篮最小 API。真实基础库 / 用户库未写入；后续 apply 必须显式确认并自动备份。Delivery Bundle / 打包任务继续后排。
 - Open Issues 当前未关闭：`OI-038`、`OI-128`、`OI-133`、`OI-135`；`OI-136` 已修复并归档。
 - 当前禁止事项：不默认改 ETL、数据库、数据模型、基础数据包、导出 JSON、用户库数据或业务关系推断；不 `git add .`；主展示区不得暴露 `sheet`、`row`、`column`、`raw_value`、`source_file`、`import_id`、`source_id`、`source_ref`、`source_label`、`debug`、`raw`、`metadata`、`intermediate`、`generated_at`。
 
@@ -20,6 +20,7 @@
 
 ## 最近完成事项
 
+- 2026-06-07 完成 `OI-128 / OI-135` 数据篮最小 API：`scripts/run_local_server.py` 新增 `/api/v1/user/data-baskets` 和 `/items` 写读删接口，runtime 会确保 `user_data_baskets` / `user_data_basket_items` 表存在；新增 `scripts/smoke_user_data_basket_api.mjs`，用临时 ZIP bundle / 临时 user DB 验证 token 拒绝、创建数据篮、条目 upsert、读取和删除闭环。真实基础库 / 用户库未写入。
 - 2026-06-06 推进 `analytics_summary` P0 主线第一段：新增 `scripts/export_analytics_summary.mjs`，从 `capability-workbench`、`environment-workbench`、`lifecycle-workbench`、`standards-index`、`content-views` 生成本地 `analytics-summary.json`；新增 `scripts/audit_analytics_summary_contract.mjs`，验证 `capability_focus=91`、覆盖率分母、标准控制项 `1745 / 4893` grain 分离和禁止字段泄露；扩展 `scripts/data_package_summary.py --package analytics-summary`。生成 JSON 属于已忽略前端离线数据包，不纳入 Git。
 - 2026-06-06 推进 `AN-SUM-CLIENT`：`frontend/capability-browser/dataClient.js` 新增 `analyticsSummary` API / 离线包路径、空状态 fallback 和 `getAnalyticsSummary()`；`audit_analytics_summary_contract.mjs` 同步检查客户端契约，确保 dashboard 后续只消费该方法，不重新拼 raw workbench 统计。
 - 2026-06-07 推进 `AN-SUM-DASHBOARD`：首页只加载 `analyticsSummary` 并消费 `dataClient.getAnalyticsSummary()`，从工程数据包统计改为安全能力知识地图入口；audit 同步检查 dashboard 不再加载 raw workbench 包拼首页指标。

@@ -66,8 +66,16 @@ const v03Tables = [
 const requiredApiSnippets = [
   'parsed.path == "/api/v1/user/favorites"',
   'parsed.path == "/api/v1/user/notes"',
-  'parsed.path not in {"/api/v1/user/favorites", "/api/v1/user/notes"}',
   'parsed.path.startswith("/api/v1/user/notes/")',
+  'request_path.startswith("/api/v1/user/data-baskets")',
+  "def ensure_user_data_basket_tables",
+  "def list_data_baskets",
+  "def create_data_basket",
+  "def add_data_basket_item",
+  "def delete_data_basket_item",
+  "def delete_data_basket",
+  "create_data_basket",
+  "upsert_data_basket_item",
   "def do_PATCH",
   "def do_DELETE",
   "X-SAPD-Session-Token",
@@ -162,6 +170,8 @@ target_refs = []
 for table in ("user_notes", "user_favorites", "user_item_tags"):
     if table in tables and "target_ref" in columns.get(table, []):
         target_refs.extend([row[0] for row in connection.execute(f"SELECT target_ref FROM {table} WHERE target_ref IS NOT NULL")])
+if "user_data_basket_items" in tables and "target_ref" in columns.get("user_data_basket_items", []):
+    target_refs.extend([row[0] for row in connection.execute("SELECT target_ref FROM user_data_basket_items WHERE target_ref IS NOT NULL")])
 
 legacy_base_id_refs = [ref for ref in target_refs if ref.startswith("base:") and ref.count(":") == 1]
 legacy_object_id_refs = [ref for ref in target_refs if ref.startswith("base:") and ref.count(":") >= 2]
@@ -259,7 +269,7 @@ function main() {
   addCheck(
     checks,
     "db_11_plan_status_synced",
-    /DB-11[\s\S]*P0 (设计完成 \/ 待确认|审计脚本完成 \/ migration dry-run 待启动|migration dry-run 完成 \/ 临时库 smoke 待启动|临时库 smoke 通过 \/ 真实迁移待确认|正式迁移脚本完成 \/ 真实库 apply 待显式确认)/.test(taskPlan),
+    /DB-11[\s\S]*P0 (设计完成 \/ 待确认|审计脚本完成 \/ migration dry-run 待启动|migration dry-run 完成 \/ 临时库 smoke 待启动|临时库 smoke 通过 \/ 真实迁移待确认|正式迁移脚本完成 \/ 真实库 apply 待显式确认|正式迁移脚本完成 \/ 数据篮最小 API 已完成 \/ 真实库 apply 待显式确认)/.test(taskPlan),
   );
   addCheck(
     checks,

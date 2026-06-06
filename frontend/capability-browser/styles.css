@@ -9658,7 +9658,7 @@ summary:focus-visible {
 .modeling-poster-panel {
   min-height: 0;
   display: grid;
-  grid-template-rows: auto minmax(420px, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 14px;
 }
 
@@ -9692,6 +9692,137 @@ summary:focus-visible {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.modeling-poster-reference-layout {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(260px, 0.34fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 12px;
+}
+
+.modeling-poster-reader {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(360px, 1fr) auto;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid color-mix(in oklch, var(--line) 80%, var(--accent));
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, color-mix(in oklch, var(--panel) 96%, var(--surface-quiet)), color-mix(in oklch, var(--surface-quiet) 86%, var(--panel))),
+    var(--panel);
+  box-shadow:
+    inset 0 1px 0 rgba(250, 253, 255, 0.74),
+    0 12px 26px rgba(15, 23, 42, 0.06);
+}
+
+.modeling-poster-reader-header {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.modeling-poster-reader-header > div:first-child {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+}
+
+.modeling-poster-reader-header h4 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1.26;
+}
+
+.modeling-poster-reader-header p {
+  max-width: 82ch;
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.48;
+}
+
+.modeling-poster-reader-actions {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.modeling-poster-reader-actions button,
+.modeling-poster-dialog-nav button {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid color-mix(in oklch, var(--accent) 18%, var(--line));
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--panel) 88%, var(--surface-quiet));
+  color: var(--accent-3);
+  font-size: 12px;
+  font-weight: 780;
+}
+
+.modeling-poster-reader-actions button:hover,
+.modeling-poster-reader-actions button:focus-visible,
+.modeling-poster-dialog-nav button:hover,
+.modeling-poster-dialog-nav button:focus-visible {
+  border-color: color-mix(in oklch, var(--accent) 38%, var(--line));
+  background: color-mix(in oklch, var(--accent) 9%, var(--panel));
+}
+
+.modeling-poster-reader .modeling-poster-page-button {
+  min-height: 0;
+  border: 1px solid color-mix(in oklch, var(--line) 74%, var(--accent));
+}
+
+.modeling-poster-image.is-region-reader {
+  object-fit: contain;
+  object-position: center top;
+}
+
+.modeling-poster-sapd-note {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.modeling-poster-sapd-note div {
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid color-mix(in oklch, var(--line) 86%, var(--accent));
+  border-radius: 14px;
+  background: color-mix(in oklch, var(--surface-quiet) 76%, var(--panel));
+}
+
+.modeling-poster-sapd-note span,
+.modeling-poster-loading-note {
+  color: var(--accent-3);
+  font-size: 11px;
+  font-weight: 840;
+}
+
+.modeling-poster-sapd-note p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.modeling-poster-loading-note {
+  grid-column: 1 / -1;
+  padding: 9px 12px;
+  border: 1px solid color-mix(in oklch, var(--line) 88%, var(--accent));
+  border-radius: 12px;
+  background: color-mix(in oklch, var(--surface-quiet) 72%, var(--panel));
 }
 
 .modeling-poster-expand-button,
@@ -9770,14 +9901,19 @@ summary:focus-visible {
 
 .modeling-poster-region-panel {
   display: grid;
+  align-content: start;
   gap: 10px;
+  min-width: 0;
+  min-height: 0;
+  padding: 12px;
+  border: 1px solid color-mix(in oklch, var(--line) 84%, var(--accent));
+  border-radius: 18px;
+  background: color-mix(in oklch, var(--surface-quiet) 74%, var(--panel));
 }
 
 .modeling-poster-region-panel > header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 14px;
+  display: grid;
+  gap: 4px;
 }
 
 .modeling-poster-region-panel h4 {
@@ -9792,37 +9928,45 @@ summary:focus-visible {
   margin: 0;
   color: var(--muted);
   font-size: 12px;
+  line-height: 1.42;
 }
 
 .modeling-poster-region-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: 1fr;
+  gap: 8px;
 }
 
 .modeling-poster-region-card {
   min-width: 0;
-  min-height: 94px;
+  min-height: 72px;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) 108px;
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 10px;
-  align-items: center;
+  align-items: start;
   padding: 10px;
   border: 1px solid color-mix(in oklch, var(--line) 82%, var(--accent));
-  border-radius: 14px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(245, 248, 252, 0.78)),
-    color-mix(in oklch, var(--surface-quiet) 74%, var(--panel));
+  border-radius: 12px;
+  background: color-mix(in oklch, var(--panel) 88%, var(--surface-quiet));
   color: var(--ink);
   text-align: left;
-  cursor: zoom-in;
+  cursor: pointer;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
-.modeling-poster-region-card:hover {
+.modeling-poster-region-card:hover,
+.modeling-poster-region-card:focus-visible {
   transform: translateY(-1px);
   border-color: color-mix(in oklch, var(--accent) 34%, var(--line));
   background: color-mix(in oklch, var(--accent) 7%, var(--panel));
+}
+
+.modeling-poster-region-card.active {
+  border-color: color-mix(in oklch, var(--accent) 48%, var(--line));
+  background: color-mix(in oklch, var(--accent) 11%, var(--panel));
+  box-shadow:
+    inset 0 1px 0 rgba(250, 253, 255, 0.78),
+    0 8px 18px rgba(37, 99, 235, 0.08);
 }
 
 .modeling-poster-region-index {
@@ -9855,21 +9999,6 @@ summary:focus-visible {
   color: var(--muted);
   font-size: 11px;
   line-height: 1.35;
-}
-
-.modeling-poster-region-thumb {
-  height: 70px;
-  border: 1px solid color-mix(in oklch, var(--line) 78%, var(--accent));
-  border-radius: 10px;
-  background: color-mix(in oklch, var(--panel) 86%, var(--surface-quiet));
-  overflow: hidden;
-}
-
-.modeling-poster-region-thumb img {
-  width: 100%;
-  height: 100%;
-  display: block;
-  object-fit: cover;
 }
 
 .modeling-poster-overlay {
@@ -9945,6 +10074,25 @@ summary:focus-visible {
   color: var(--muted);
   font-size: 12px;
   line-height: 1.35;
+}
+
+.modeling-poster-dialog-nav {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 7px 14px;
+  border-bottom: 1px solid color-mix(in oklch, var(--line) 86%, var(--accent));
+  background: color-mix(in oklch, var(--surface-quiet) 70%, var(--panel));
+}
+
+.modeling-poster-dialog-nav span {
+  min-width: 58px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 780;
+  text-align: center;
 }
 
 .modeling-poster-download.is-compact {
@@ -10731,6 +10879,11 @@ summary:focus-visible {
     flex-direction: column;
   }
 
+  .modeling-poster-reference-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+
   .modeling-poster-actions,
   .modeling-poster-expand-button,
   .modeling-poster-download {
@@ -10739,6 +10892,30 @@ summary:focus-visible {
 
   .modeling-poster-actions {
     flex-wrap: wrap;
+  }
+
+  .modeling-poster-reader {
+    grid-template-rows: auto minmax(320px, 58vh) auto;
+  }
+
+  .modeling-poster-reader-header,
+  .modeling-poster-sapd-note {
+    grid-template-columns: 1fr;
+  }
+
+  .modeling-poster-reader-header {
+    display: grid;
+  }
+
+  .modeling-poster-reader-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .modeling-poster-reader-actions button {
+    width: 100%;
+    padding: 0 6px;
   }
 
   .modeling-poster-page-viewer {
@@ -10751,10 +10928,6 @@ summary:focus-visible {
 
   .modeling-poster-region-card {
     grid-template-columns: auto minmax(0, 1fr);
-  }
-
-  .modeling-poster-region-thumb {
-    display: none;
   }
 
   .modeling-poster-overlay {

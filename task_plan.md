@@ -61,6 +61,7 @@ Frontend Baseline 1.0 当前关系工作台实现重点仍覆盖三页：
 | P0-A | `stable_key` / 基础库升级兼容 | `DB-2` 正式迁移脚本完成 / 真实库 apply 待显式确认 | 已可对临时复制基础库补齐 `stable_key` / `stable_ref` / `public_id` 和 `base_id_redirects`；真实库 apply 需显式确认和备份 | 支撑批注、收藏、Delivery 和后续基础库升级 |
 | P0-B | `analytics_summary` 落地 | exporter / audit / `data_package_summary` / `dataClient` / dashboard 消费已完成 / 已提交 | 后续只按视觉或业务反馈小修 | 已按数据契约消费，不在前端重新拼跨包指标 |
 | P0-C | 深层路由稳定性 | `OI-136 / FE-ROUTE` 已修复 / 待 checkpoint | 已通过根 `base href` 修复 `/guides/*`、`/knowledge/*`、`/standards/*` 直接访问资源相对路径问题；轻量 smoke 已覆盖三类深链根资源加载 | 单线写入，不和 dashboard 或批注混写 |
+| P0-D | ArchiMate 建模语言页优化 | `OI-133` 已修复 / 待人工验收 | 已完成第一轮页面调整：区域目录 + 当前区域阅读器 + SAPD 映射说明；默认只渲染当前区域图，整页海报和其他区域按点击加载 | 不改数据库、不改数据包、不改 `SAPD 元素图例` registry |
 | P1 | Delivery Bundle 1.0-alpha | macOS alpha 已准备，Windows 未实测 | 打包任务后排；待 user DB / stable_key 前置设计稳定后，再决定是否恢复 Windows UAT 或正式打包 | 不和前端 UI 混写 |
 
 ## analytics_summary P0 落地计划
@@ -110,6 +111,7 @@ Frontend Baseline 1.0 当前关系工作台实现重点仍覆盖三页：
 | FE-CAP-SPEC | 安全能力映射工作台视觉实现规格 | 已完成 | 已新增视觉实现规格，明确拒绝验收原因、三视角关系图、右侧关联洞察区和响应式验收标准 | `frontend/design-handoff/implementation-specs/security-capability-workbench-visual-spec-v1.md` |
 | FE-CAP-W | 安全能力映射工作台专项实现 | 已完成（F3-GRAPH-P2） | F3-P1R 与 F3-IMPL-P1 均已被用户拒绝；R2 恢复预览页结构，R3/R4 完成矩阵语义校正与 Tab IA，R5 删除右侧栏；RECOVERY 恢复原技术 / 管理矩阵组件到对应 Tabs；F3-DIAG 修复四类职能层级投影；P2/P3/P4 将默认摘要收敛为同源图式总览；GRAPH-P1-V2 新增原生 SVG `LocalRelationNetworkGraph` 和 `relationGraphModel`；GRAPH-P2 将其改为径向星形网络图，确保能力-关注点为唯一中心锚点、三视角星形分散、无数据业务节点不显示，技术 / 管理 Tabs 继续保留表格式明细 | `CapabilityLocalRelationMap.js`, `LocalRelationNetworkGraph.js`, `relationGraphModel.js`, `FocusScopeServiceMatrix.js`, `FocusManagementMapping.js`, `viewModels.js`, `app.js` |
 | FE-ROUTE | 深层路由直接访问与刷新稳定性治理 | 已修复 / 待 checkpoint（`OI-136`） | 已在 `index.html` 固化根 `base href="/"`，并扩展 `frontend_smoke_check.mjs` 的深层路由轻量资源断言，覆盖 `/guides/*`、`/knowledge/*`、`/standards/*` 直接访问样式和主脚本加载 | `frontend-global-design-baseline-2026-05-30.md`, `index.html`, `scripts/frontend_smoke_check.mjs` |
+| FE-ML | ArchiMate 建模语言页显示与加载优化 | 已修复 / 待人工验收（`OI-133`） | 已将 `安全指南 / 安全架构建模语言` 从素材陈列调整为建模语言参考工作页：顶部说明页面职责，左侧区域目录，右侧当前区域阅读器，下方 SAPD 映射说明；首屏只渲染当前区域图，整页海报、其他区域和 PDF 不参与首屏加载；弹层支持区域上一项 / 下一项和左右键切换 | `docs/06-implementation/archimate-modeling-page-optimization-plan.md`, `frontend/capability-browser/app.js`, `frontend/capability-browser/styles.css` |
 | FE-DASHBOARD-AS | Dashboard 消费 `analytics_summary` | P0 待启动 | 首页从工程数据包统计切换为“安全能力知识地图”入口，只消费 `dataClient.getAnalyticsSummary()`，不在组件内重新计算跨包覆盖率、标准控制项 grain 或关系推断 | `docs/06-implementation/dashboard-and-module-data-display-optimization-design.md`, `docs/06-implementation/analytics-summary-json-contract-draft.md`, `dataClient.js`, `app.js` |
 | FE-1 | 关系画布设计基线固化 | 待启动 | 抽象 `LocalRelationCanvas` / `RelationNode` / `RelationLane` / `FoldedDetail` 等可复用模式，不急于跨页抽组件文件 | FE-0 验收结果、FE-IA |
 | FE-2 | 安全能力映射页前端验收清单 | 待启动 | 固化能力页验收项：左侧关注点、技术视角、管理视角、矩阵折叠、来源折叠、字段边界、无控制台错误 | FE-0 |

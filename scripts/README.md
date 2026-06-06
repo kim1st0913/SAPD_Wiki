@@ -11,6 +11,8 @@
 | `sapd_wiki.py` | 项目主 CLI 入口，包含 `bootstrap-local-data` 一键初始化子命令 | README、`docs/03-import-etl/github-local-data-initialization.md` |
 | `check_github_data_boundary.py` | GitHub 数据边界检查 | `docs/07-governance/data-governance.md` |
 | `data_package_summary.py` | 前端数据包摘要检查 | `CURRENT_STATE.md` |
+| `export_analytics_summary.mjs` | 从现有 workbench / standards / content 数据包生成 `analytics-summary.json` 离线契约；默认输出到已忽略的 `frontend/capability-browser/public/data/` | `docs/06-implementation/analytics-summary-json-contract-draft.md` |
+| `audit_analytics_summary_contract.mjs` | 审计 `analytics-summary.json` 的主 grain、覆盖率分母、标准控制项三类 grain 和禁止字段泄露 | `docs/06-implementation/analytics-summary-json-contract-draft.md` |
 | `dev_server_guard.py` | 本地预览服务守护 | `CURRENT_STATE.md` |
 | `frontend_smoke_check.mjs` | 前端页面轻量 HTTP/API smoke 检查；默认不启动系统 Google Chrome | `CURRENT_STATE.md` |
 | `audit_frontend_governance.mjs` | 前端高风险文件治理审计，防止安全能力映射相关 CSS / 核心文件继续无意识膨胀 | `docs/07-governance/capability-mapping-change-control.md` |

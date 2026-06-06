@@ -6,8 +6,8 @@
 
 - 当前分支：`main`。
 - 固定预览入口：`http://127.0.0.1:5173/`。前端展示和用户验收默认只看该端口。
-- 当前主控主线：`OI-135 + DB-11 + DB-2` 已完成设计、审计脚本、dry-run 和临时库 smoke。当前产物包括 `docs/06-implementation/user-database-governance-and-stable-key-design.md`、`scripts/audit_user_db_governance_contract.mjs`、`scripts/audit_stable_key_contract.mjs`、`scripts/plan_user_schema_0_3_migration.mjs`、`scripts/smoke_db_migration_contracts.mjs`、`docs/06-implementation/user-db-compatibility-report-2026-06-06.md`、`docs/06-implementation/base-stable-key-and-redirect-migration-design-2026-06-06.md`。真实基础库 / 用户库未写入；下一步建议先 checkpoint，或进入真实迁移脚本设计确认。`analytics_summary` 已纳入 P0 但不独占当前最高优先级；Delivery Bundle / 打包任务先往后排。
-- Open Issues 当前未关闭：`OI-038`、`OI-128`、`OI-133`、`OI-135`；`OI-136` 已修复 / 待 checkpoint。
+- 当前主控主线：`OI-135 + DB-11 + DB-2` 已完成设计、审计脚本、dry-run、临时库 smoke 和 checkpoint；真实基础库 / 用户库未写入。`analytics_summary` 已完成 exporter / audit / `data_package_summary` 三步，下一步进入 `dataClient.getAnalyticsSummary()`，再进入 dashboard 消费。Delivery Bundle / 打包任务继续后排。
+- Open Issues 当前未关闭：`OI-038`、`OI-128`、`OI-133`、`OI-135`；`OI-136` 已修复并归档。
 - 当前禁止事项：不默认改 ETL、数据库、数据模型、基础数据包、导出 JSON、用户库数据或业务关系推断；不 `git add .`；主展示区不得暴露 `sheet`、`row`、`column`、`raw_value`、`source_file`、`import_id`、`source_id`、`source_ref`、`source_label`、`debug`、`raw`、`metadata`、`intermediate`、`generated_at`。
 
 ## 当前子 Agent fan-in（2026-06-06）
@@ -20,6 +20,8 @@
 
 ## 最近完成事项
 
+- 2026-06-06 推进 `analytics_summary` P0 主线第一段：新增 `scripts/export_analytics_summary.mjs`，从 `capability-workbench`、`environment-workbench`、`lifecycle-workbench`、`standards-index`、`content-views` 生成本地 `analytics-summary.json`；新增 `scripts/audit_analytics_summary_contract.mjs`，验证 `capability_focus=91`、覆盖率分母、标准控制项 `1745 / 4893` grain 分离和禁止字段泄露；扩展 `scripts/data_package_summary.py --package analytics-summary`。生成 JSON 属于已忽略前端离线数据包，不纳入 Git。
+- 2026-06-06 收口 `OI-136 / FE-ROUTE` 治理：前一 checkpoint `f305d1a Checkpoint DB governance and route stability` 已固化深层路由修复，本轮按脚本口径将 `OI-136` 标为 `已修复` 并运行 `node scripts/govern_open_issues.mjs`，当前未关闭问题降为 4，已关闭归档问题增至 134。
 - 2026-06-06 修复 `OI-136 / FE-ROUTE` 深层路由直接访问掉样式：`index.html` 增加 `<base href="/" />`，解决 `/guides/*`、`/knowledge/*`、`/standards/*` 直接访问时 CSS、脚本、组件和数据包相对路径落到深层目录的问题；扩展 `scripts/frontend_smoke_check.mjs`，轻量 HTTP 模式增加深层路由 `base href`、根 `/styles.css` 和根 `/app.js` 断言。本轮不改数据包、不改用户库、不改批注逻辑。
 - 2026-06-06 完成 `OI-135 + DB-11 + DB-2` 临时库 migration smoke：新增 `scripts/smoke_db_migration_contracts.mjs`，只复制真实 user/base DB 到 `/private/tmp` 并在复制库执行 `user_schema_0.3` 与基础库 `stable_key` / `stable_ref` / `public_id` / `base_id_redirects` 最小迁移；真实项目数据库未写入。复制用户库升级到 `user_schema_0.3` 并创建 13 张新表；复制基础库给 4660 个对象和 7654 条关系补齐稳定引用字段。同步 `CURRENT_STATE.md`、`task_plan.md`、`docs/07-governance/backlog-convergence-2026-06-06.md`、`docs/06-implementation/open-issues.md` 和 `scripts/README.md`。
 - 2026-06-06 Product Design 主控推进下一步：新增 `scripts/plan_user_schema_0_3_migration.mjs`，只读输出 `user_schema_0.3` dry-run 计划，当前真实用户库 dry-run 通过，拟执行 16 个 schema 计划动作和 6 类数据处理动作，`writesPerformed=false`；新增 `docs/06-implementation/base-stable-key-and-redirect-migration-design-2026-06-06.md`，确认 `metadata_json.object_key` / `relation_key` 可作为正式 `stable_key` 候选来源，但当前不直接写真实基础库；同步 `scripts/README.md`、`CURRENT_STATE.md`、`task_plan.md`、`open-issues.md`、`backlog-convergence` 和 `progress.md`。下一步收敛为只对 `/private/tmp` 复制库做 migration smoke。
@@ -48,6 +50,8 @@
 
 ## 最近验证
 
+- 2026-06-06 `analytics_summary` 验证：`node --check scripts/export_analytics_summary.mjs`、`node --check scripts/audit_analytics_summary_contract.mjs`、`python3 -m py_compile scripts/data_package_summary.py` 均通过；`node scripts/export_analytics_summary.mjs` 生成本地包通过，输出 `primaryGrain=capability_focus`、`focusCount=91`、`coverageDimensions=7`；`node scripts/audit_analytics_summary_contract.mjs` 通过，确认 `capabilityMapped=1745`、`standardsIndex=4893`；`python3 scripts/data_package_summary.py --package analytics-summary` 通过并输出覆盖维度与标准控制项三类 grain 摘要。
+- 2026-06-06 Open Issues 治理验证：`node --check scripts/govern_open_issues.mjs` 通过；`node scripts/govern_open_issues.mjs` 通过，输出 `active=4`、`archived=134`。
 - 2026-06-06 `OI-136 / FE-ROUTE` 验证：`node --check scripts/frontend_smoke_check.mjs`、`node --check frontend/capability-browser/app.js`、`python3 scripts/dev_server_guard.py --status` 均通过；轻量 HTTP smoke 覆盖 `/guides/security-architecture-design`、`/guides/security-architecture-modeling-language`、`/knowledge/technical`、`/knowledge/technical-services`、`/standards/iso-27001-2022`、`/standards/nist-csf-2`，均返回 `result=pass`，并确认深层路由 HTML 包含根 `base href`、根 `/styles.css` 和根 `/app.js` 可访问；本轮未启动系统 Chrome。
 - 2026-06-06 临时库 migration smoke 验证：`node --check scripts/smoke_db_migration_contracts.mjs`、`node --check scripts/audit_stable_key_contract.mjs`、`node --check scripts/audit_user_db_governance_contract.mjs` 均通过；`node scripts/smoke_db_migration_contracts.mjs` 通过，输出 `writesPerformedOnProjectDatabases=false`、复制库路径 `/private/tmp/sapd_wiki_user_schema_0_3_smoke.sqlite3` / `/private/tmp/sapd_wiki_base_stable_key_smoke.sqlite3`、`userSchemaVersion=user_schema_0.3`、`userV03CreatedTables=13`、`baseAddedColumns=6`、`knowledgeItemsUpdated=4660`、`knowledgeRelationsUpdated=7654`；`node scripts/audit_user_db_governance_contract.mjs --db /private/tmp/sapd_wiki_user_schema_0_3_smoke.sqlite3 --require-v03` 通过，仅保留 legacy favorite note `1` 条 warning；`node scripts/audit_stable_key_contract.mjs --base-db /private/tmp/sapd_wiki_base_stable_key_smoke.sqlite3 --user-db /private/tmp/sapd_wiki_user_schema_0_3_smoke.sqlite3` 通过，stable key / deterministic public id 覆盖率均为 100%，仅保留 `base_id_redirects` 示例类型未覆盖和页面锚点需上下文解析的 warning。
 - 2026-06-06 Product Design 主控推进验证：`node --check scripts/plan_user_schema_0_3_migration.mjs`、`node --check scripts/audit_user_db_governance_contract.mjs`、`node --check scripts/audit_stable_key_contract.mjs` 均通过；`node scripts/plan_user_schema_0_3_migration.mjs` 通过，输出 `writesPerformed=false`、`currentSchemaVersion=user_schema_0.2`、`targetSchemaVersion=user_schema_0.3`、`plannedSchemaActions=16`、`plannedDataActions=6`、高风险引用 `80` 条需 contextual / manual resolution；`node scripts/audit_user_db_governance_contract.mjs --db data/user/sapd_wiki_user.sqlite3` 通过；`node scripts/audit_stable_key_contract.mjs` 可运行并按预期失败，继续指出 DB-2 缺口；`git diff --check` 通过。
@@ -90,7 +94,7 @@
 - `OI-128`：USER-WRITE-UI-1：批注 / 工作台用户写入入口，状态 `部分完成`；`OI-128A/B/C` 已实现，`OI-128C` 已基本验收，当前进入 checkpoint 确认。
 - `OI-133`：ArchiMate 建模语言页显示效果与加载效率优化，状态 `待设计`。
 - `OI-135`：用户库治理与兼容表迁移清理，状态 `临时库 smoke 通过 / 真实迁移待确认`。
-- `OI-136`：深层路由直接访问未加载前端样式，状态 `已修复 / 待 checkpoint`。
+- `OI-136`：深层路由直接访问未加载前端样式，状态 `已修复 / 已归档`。
 
 ## 历史索引
 

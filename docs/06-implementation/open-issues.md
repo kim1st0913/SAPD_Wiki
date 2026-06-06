@@ -4,8 +4,8 @@
 
 ## 治理入口
 
-- 当前未关闭问题数：5
-- 已关闭归档问题数：133
+- 当前未关闭问题数：4
+- 已关闭归档问题数：134
 - 全量索引：`docs/06-implementation/open-issues-index.md`
 - 已关闭问题归档：`docs/05-archive/open-issues-history/2026-06.md`
 - 重复编号待治理：`OI-044`、`OI-092`，索引中使用 `OI-xxx#n` 区分历史条目。
@@ -18,7 +18,6 @@
 | OI-128 | 部分完成 | USER-WRITE-UI-1：批注 / 工作台用户写入入口 |
 | OI-133 | 待设计 | ArchiMate 建模语言页显示效果与加载效率优化 |
 | OI-135 | 临时库 smoke 通过 / 真实迁移待确认 | 用户库治理与兼容表迁移清理 |
-| OI-136 | 已修复 / 待 checkpoint | 深层路由直接访问未加载前端样式 |
 
 ## 问题记录模板
 
@@ -87,15 +86,3 @@
 - 需要确认：是否接受下一步做 checkpoint；如继续推进真实迁移，需要先确认正式 `stable_key` 生成口径、迁移备份路径、dry-run 输出和 apply 前用户确认机制。
 - 修复说明：设计、审计入口、dry-run 和临时库 migration smoke 已完成。复制用户库验证 `user_schema_0.3` 13 张表可创建；复制基础库验证 `stable_key` / `stable_ref` / `public_id` 覆盖 4660 个对象和 7654 条关系，`base_id_redirects` 最小表结构合格。
 - 验证结果：2026-06-06 已通过三个只读子 Agent fan-in 复核现有 user DB/API、stable_key / redirect 证据和工作台 / 数据篮 / 导出产品对象；`node scripts/audit_user_db_governance_contract.mjs --db data/user/sapd_wiki_user.sqlite3 --json` 通过，发现 `user_schema_0.2`、`user_notes=34`、legacy favorite note `1` 条；`node scripts/plan_user_schema_0_3_migration.mjs` 通过，只读输出 16 个 schema 计划动作和 6 类数据处理动作；真实基础库的 `node scripts/audit_stable_key_contract.mjs` 可运行并按预期失败，指出 DB-2 未落地缺口。临时库 smoke 验证通过：`node scripts/smoke_db_migration_contracts.mjs` 输出 `writesPerformedOnProjectDatabases=false`、`userSchemaVersion=user_schema_0.3`、`userV03CreatedTables=13`、`knowledgeItemsUpdated=4660`、`knowledgeRelationsUpdated=7654`；`node scripts/audit_user_db_governance_contract.mjs --db /private/tmp/sapd_wiki_user_schema_0_3_smoke.sqlite3 --require-v03` 通过；`node scripts/audit_stable_key_contract.mjs --base-db /private/tmp/sapd_wiki_base_stable_key_smoke.sqlite3 --user-db /private/tmp/sapd_wiki_user_schema_0_3_smoke.sqlite3` 通过，仅保留 redirect 示例类型未覆盖和页面锚点需上下文解析的 warning。
-
-## OI-136：深层路由直接访问未加载前端样式
-
-- 状态：已修复 / 待 checkpoint
-- 类型：前端 / 路由 / 交付体验
-- 对象或页面：`/guides/*`、`/knowledge/*`、`/standards/*` 等深层业务路由，固定预览入口 `http://127.0.0.1:5173/`。
-- 现象：Product Design 只读审阅发现，直接访问 `/guides/security-architecture-design`、`/knowledge/technical`、`/standards/iso-27001-2022` 时页面掉到未样式化原生 HTML；通过应用内一级导航进入部分核心页面时样式正常。
-- 影响：用户从地址栏、收藏夹、批注定位、外部链接或交付包深链进入页面时会看到错误体验；也会影响截图审阅、自动化回归和 Delivery Bundle 解压即用可信度。该问题优先级高于继续做视觉微调。
-- 当前处理：已完成根因定位与修复。根因是 `index.html` 使用 `./styles.css`、`./app.js`、`./components/*` 和 `./public/data/*` 相对路径；直接访问 `/guides/*`、`/knowledge/*`、`/standards/*` 时浏览器会把资源解析到深层路径下，导致样式和脚本加载异常。
-- 需要确认：无需业务判断；后续 checkpoint 后可关闭或归档本问题。
-- 修复说明：在 `frontend/capability-browser/index.html` 增加 `<base href="/" />`，让深层路由下的 CSS、脚本、组件和数据包统一从应用根路径加载；扩展 `scripts/frontend_smoke_check.mjs`，轻量 HTTP 模式也会检查深层路由 HTML 包含根 base、根 `/styles.css` 和根 `/app.js` 可访问。
-- 验证结果：2026-06-06 已通过 `node --check scripts/frontend_smoke_check.mjs`、`node --check frontend/capability-browser/app.js`、`python3 scripts/dev_server_guard.py --status`；深层路由轻量 smoke 通过：`/guides/security-architecture-design`、`/guides/security-architecture-modeling-language`、`/knowledge/technical`、`/knowledge/technical-services`、`/standards/iso-27001-2022`、`/standards/nist-csf-2` 均返回 `result=pass`，并确认 `appBaseHref`、`rootStylesheet`、`rootAppScript` 均可用。本轮未启动系统 Chrome。

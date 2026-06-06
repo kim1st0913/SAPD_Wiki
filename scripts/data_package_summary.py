@@ -22,6 +22,7 @@ PACKAGES = {
     "capability-workbench": DATA_DIR / "capability-workbench.json",
     "environment-workbench": DATA_DIR / "environment-workbench.json",
     "lifecycle-workbench": DATA_DIR / "lifecycle-workbench.json",
+    "analytics-summary": DATA_DIR / "analytics-summary.json",
 }
 FORBIDDEN_KEYS = {
     "sheet",
@@ -100,6 +101,8 @@ def summarize(name: str) -> dict[str, Any]:
         return {"package": name, "path": str(path.relative_to(ROOT)), "exists": False, "result": "missing"}
     data = load_json(path)
     stats = data.get("stats") if isinstance(data, dict) else None
+    if name == "analytics-summary" and isinstance(data, dict):
+        stats = (data.get("meta") or {}).get("stats")
     list_counts = count_lists(data)
     data_state = "unknown"
     if isinstance(data, dict):
@@ -121,6 +124,31 @@ def summarize(name: str) -> dict[str, Any]:
         split_files = sorted((DATA_DIR / "standards").glob("**/*.json"))
         summary["split_files"] = len(split_files)
         summary["split_size_kb"] = round(sum(file.stat().st_size for file in split_files) / 1024, 1)
+    if name == "analytics-summary" and isinstance(data, dict):
+        coverage = data.get("coverageSummary") or {}
+        reconciliation = data.get("reconciliationSummary") or {}
+        standard_controls = reconciliation.get("standardControls") or {}
+        summary["analytics_summary"] = {
+            "primary_grain": (data.get("meta") or {}).get("stats", {}).get("primaryGrain"),
+            "focus_count": (data.get("meta") or {}).get("stats", {}).get("focusCount"),
+            "coverage_grain": coverage.get("grain"),
+            "coverage_dimensions": [
+                {
+                    "id": item.get("id"),
+                    "covered": item.get("covered"),
+                    "total": item.get("total"),
+                    "percent": item.get("percent"),
+                    "sourcePackage": item.get("sourcePackage"),
+                    "relationTypes": item.get("relationTypes"),
+                }
+                for item in coverage.get("dimensions", [])
+            ],
+            "standard_control_grains": {
+                "capability_mapped": standard_controls.get("capabilityMapped"),
+                "standards_index": standard_controls.get("standardsIndex"),
+                "sqlite_full_database": standard_controls.get("sqliteFullDatabase"),
+            },
+        }
     return summary
 
 

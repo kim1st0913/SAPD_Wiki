@@ -21,8 +21,8 @@
 | 优先级 | 工作包 | 包含任务 | 当前状态 | 推荐处理 |
 |---|---|---|---|---|
 | Gate 0 | Dirty worktree checkpoint | `OI-128C` 批注收口、全局批注基线、批注脚本、当前设计审阅产物 | 已完成 | 已拆成 `b93a9f1` 批注基线和 `e23c6d7` backlog / 设计计划两个 checkpoint；当前工作区已清理，进入 P0 主线队列 |
-| P0 | `analytics_summary` 落地 | exporter、`data_package_summary`、`dataClient.getAnalyticsSummary()`、dashboard 消费、audit 脚本 | 已纳入计划 / 待启动 | 先后端 / 离线数据包，再摘要检查和审计，再 dataClient，最后 dashboard；当前不直接改前端 |
-| P1 | 深层路由稳定性 | `OI-136`、`FE-ROUTE` | 已修复 / 待 checkpoint | 已修直接访问 `/guides/*`、`/knowledge/*`、`/standards/*` 掉样式，并纳入轻量 smoke |
+| P0 | `analytics_summary` 落地 | exporter、`data_package_summary`、`dataClient.getAnalyticsSummary()`、dashboard 消费、audit 脚本 | exporter / audit / `data_package_summary` 已完成，`dataClient` / dashboard 待启动 | 下一步加 `dataClient.getAnalyticsSummary()`，再让 dashboard 消费；当前不直接改 dashboard UI |
+| P1 | 深层路由稳定性 | `OI-136`、`FE-ROUTE` | 已修复 / 已归档 | 已修直接访问 `/guides/*`、`/knowledge/*`、`/standards/*` 掉样式，并纳入轻量 smoke；已随 checkpoint 提交并从当前 Open Issues 移入归档 |
 | P0 | 用户库长期治理 | `OI-135`、`DB-11`、`user_notes`、旧 `user_favorites`、数据篮 / 导出 / 自定义能力 | 临时库 smoke 通过 / 真实迁移待确认 | `/private/tmp` 复制用户库已验证 `user_schema_0.3` migration，不迁移真实用户库 |
 | P0 | 稳定键与基础库升级兼容 | `DB-2 stable_key`、deterministic ID、`base_id_redirects` | 临时库 smoke 通过 / 真实迁移待确认 | `/private/tmp` 复制基础库已验证正式 `stable_key` / `stable_ref` / `public_id` 字段和 `base_id_redirects` 最小 migration |
 | P1 | Delivery Bundle 1.0-alpha | `BE-6`、`DB-6/7/9`、Windows x64 实测、诊断包、release manifest | macOS alpha 已准备，Windows 未验证；优先级后排 | 待 user DB / stable_key 前置设计稳定后再恢复；不要和前端 UI 混写 |
@@ -66,15 +66,15 @@
 
 实施顺序：
 
-1. exporter 生成 `frontend/capability-browser/public/data/analytics-summary.json`。
-2. 新增 audit 脚本验证覆盖率、标准控制项 grain 和禁止字段泄露。
-3. `scripts/data_package_summary.py` 增加 `analytics-summary` 摘要检查。
-4. `dataClient.getAnalyticsSummary()` 统一 API / 离线包 fallback。
-5. dashboard 消费 `analytics_summary`，从工程统计页转为安全能力知识地图入口。
+1. 已完成 exporter 生成本地 `frontend/capability-browser/public/data/analytics-summary.json`，生成包不提交到 Git。
+2. 已完成 audit 脚本验证覆盖率、标准控制项 grain 和禁止字段泄露。
+3. 已完成 `scripts/data_package_summary.py` 增加 `analytics-summary` 摘要检查。
+4. 下一步做 `dataClient.getAnalyticsSummary()` 统一 API / 离线包 fallback。
+5. 最后让 dashboard 消费 `analytics_summary`，从工程统计页转为安全能力知识地图入口。
 
 ### 3. 已下调但仍需保留的问题：`OI-136 / FE-ROUTE`
 
-`OI-136 / FE-ROUTE` 仍是有效问题，但不再是当前下一步。后续恢复时按单线写入处理，不与 `analytics_summary` exporter、dashboard 消费或批注 UI 混在同一提交。
+`OI-136 / FE-ROUTE` 已随 checkpoint 提交并归档。后续如发现深层路由新问题，按新问题登记，不与 `analytics_summary` exporter、dashboard 消费或批注 UI 混在同一提交。
 
 ## 已下调的可并行只读评估
 

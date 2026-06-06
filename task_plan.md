@@ -59,7 +59,7 @@ Frontend Baseline 1.0 当前关系工作台实现重点仍覆盖三页：
 |---|---|---|---|---|
 | P0-A | 用户库长期治理 | `OI-135` / `DB-11` 临时库 smoke 通过 / 真实迁移待确认 | 先 checkpoint 当前设计与 smoke 证据；如继续推进，下一步设计真实迁移脚本的备份、dry-run、apply 三段式，不直接写真实用户库 | 文档 / schema 设计先行，不直接改前端按钮 |
 | P0-A | `stable_key` / 基础库升级兼容 | `DB-2` 临时库 smoke 通过 / 真实迁移待确认 | 先 checkpoint 当前设计与 smoke 证据；如继续推进，下一步定义正式 stable key 生成口径和 `base_id_redirects` 真实样例策略 | 支撑批注、收藏、Delivery 和后续基础库升级 |
-| P0-B | `analytics_summary` 落地 | 计划已纳入，未实现 | 先做 exporter / audit / `data_package_summary` / `dataClient`，最后 dashboard 消费 | 先数据契约，后前端展示 |
+| P0-B | `analytics_summary` 落地 | exporter / audit / `data_package_summary` 已完成，`dataClient` / dashboard 待启动 | 下一步只加 `dataClient.getAnalyticsSummary()` 读取契约，再让 dashboard 消费；不要在 dashboard 内重新计算跨包指标 | 先数据契约，后前端展示 |
 | P0-C | 深层路由稳定性 | `OI-136 / FE-ROUTE` 已修复 / 待 checkpoint | 已通过根 `base href` 修复 `/guides/*`、`/knowledge/*`、`/standards/*` 直接访问资源相对路径问题；轻量 smoke 已覆盖三类深链根资源加载 | 单线写入，不和 dashboard 或批注混写 |
 | P1 | Delivery Bundle 1.0-alpha | macOS alpha 已准备，Windows 未实测 | 打包任务后排；待 user DB / stable_key 前置设计稳定后，再决定是否恢复 Windows UAT 或正式打包 | 不和前端 UI 混写 |
 
@@ -79,11 +79,11 @@ Frontend Baseline 1.0 当前关系工作台实现重点仍覆盖三页：
 
 | 顺序 | 编号 | 任务 | 状态 | 改动范围 | 验收重点 |
 |---|---|---|---|---|---|
-| 1 | AN-SUM-EXPORT | exporter 生成 `analytics-summary.json` | P0 待启动 | 新增或扩展离线 exporter；输出 `frontend/capability-browser/public/data/analytics-summary.json`；只聚合现有 `ready` 数据包 | 顶层包含 `meta`、`businessSummary`、`coverageSummary`、`moduleSummary`、`navigationSummary`、`relationshipSummary`、`evidenceSummary`、`adminSummary`、`reconciliationSummary`、`compatibility`；覆盖率有分子、分母、relation type、source package |
-| 2 | AN-SUM-PKG | `data_package_summary.py` 增加摘要检查 | P0 待启动 | `scripts/data_package_summary.py`、必要的脚本 README | `--package analytics-summary` 和 `--package all` 能显示 `dataState`、主 grain、关键计数、覆盖维度、标准控制项三类 grain，不打印完整 JSON |
+| 1 | AN-SUM-EXPORT | exporter 生成 `analytics-summary.json` | 已完成 / 待提交 | 新增 `scripts/export_analytics_summary.mjs`；输出 `frontend/capability-browser/public/data/analytics-summary.json`，该生成包不纳入 Git | 顶层包含 `meta`、`businessSummary`、`coverageSummary`、`moduleSummary`、`navigationSummary`、`relationshipSummary`、`evidenceSummary`、`adminSummary`、`reconciliationSummary`、`compatibility`；覆盖率有分子、分母、relation type、source package |
+| 2 | AN-SUM-PKG | `data_package_summary.py` 增加摘要检查 | 已完成 / 待提交 | `scripts/data_package_summary.py`、`scripts/README.md` | `--package analytics-summary` 能显示 `dataState`、主 grain、关键计数、覆盖维度、标准控制项三类 grain，不打印完整 JSON |
 | 3 | AN-SUM-CLIENT | `dataClient.getAnalyticsSummary()` | P0 待启动 | `frontend/capability-browser/dataClient.js` 及最小契约说明 | 统一处理 API `/api/v1/data-packages/analytics-summary` 与离线包 fallback；页面组件不直接读取 raw workbench JSON 重新计算 P0 指标 |
 | 4 | AN-SUM-DASHBOARD | dashboard 消费 `analytics_summary` | P0 待前置数据包完成 | `frontend/capability-browser/app.js`、必要 CSS；不改批注模块 | 首页从数据包健康统计转为能力知识地图入口；管理员 / reconciliation 信息只进折叠维护区；不做营销页、卡片墙或装饰 dashboard |
-| 5 | AN-SUM-AUDIT | audit 脚本验证覆盖率、标准控制项 grain 和禁止字段泄露 | P0 待启动 | 新增 `scripts/audit_analytics_summary_contract.mjs`；必要时扩展 smoke | 验证覆盖率分母固定为 `capability_focus`、标准控制项三类 grain 不混用、主展示字段不泄露禁止字段、dashboard 只消费 `analytics_summary` |
+| 5 | AN-SUM-AUDIT | audit 脚本验证覆盖率、标准控制项 grain 和禁止字段泄露 | 已完成 / 待提交 | 新增 `scripts/audit_analytics_summary_contract.mjs` | 验证覆盖率分母固定为 `capability_focus`、标准控制项三类 grain 不混用、主展示字段不泄露禁止字段 |
 
 推荐实施顺序：
 
@@ -137,8 +137,8 @@ Frontend Baseline 1.0 当前关系工作台实现重点仍覆盖三页：
 | BE-2 | 信息化环境维度页投影 | 已完成（数据包投影） | 已输出 `environment-workbench.json`，承载环境 / 对象 / 作用域 / 服务 / 模块 / 系统 / 产品 / 能力关联 | `frontend/capability-browser/public/data/environment-workbench.json` |
 | BE-3 | LC-AP 生命周期页投影 | 已完成（数据包投影） | 已输出 `lifecycle-workbench.json`，承载阶段 / 活动 / 控制点 / 策略要求 / 服务 / 模块 / 能力关联 | `frontend/capability-browser/public/data/lifecycle-workbench.json` |
 | BE-4 | 数据质量与缺口清单 | 已完成（首轮静态审计，BE-4.2 已修复；`OI-040` 已修复） | 已新增三份 workbench 数据质量与缺口清单，确认三包顶层结构、关系端点和字段边界正常；`OI-040`、`OI-049`、`OI-050` 已修复，当前继续跟踪源数据一致性待确认问题 `OI-073` | `docs/06-implementation/be-4-workbench-data-quality-gap-list.md`, `docs/06-implementation/open-issues.md` |
-| BE-AN-SUM-1 | `analytics_summary` 离线数据包生成 | P0 待启动 | 新增 exporter 生成 `frontend/capability-browser/public/data/analytics-summary.json`，聚合 `capability-workbench`、`environment-workbench`、`lifecycle-workbench`、`standards-index`、`content-views`，以 `capability_focus` 为主 grain，输出覆盖率、模块入口、关系摘要、证据摘要和 reconciliation | `docs/06-implementation/analytics-summary-json-contract-draft.md`, `docs/06-implementation/dashboard-and-module-data-display-optimization-design.md` |
-| BE-AN-SUM-2 | `analytics_summary` 数据包摘要与审计 | P0 待启动 | 扩展 `scripts/data_package_summary.py` 支持 `analytics-summary` 摘要；新增 `scripts/audit_analytics_summary_contract.mjs`，验证覆盖率、标准控制项三类 grain 和禁止字段泄露 | `BE-AN-SUM-1` |
+| BE-AN-SUM-1 | `analytics_summary` 离线数据包生成 | 已完成 / 待提交 | 新增 exporter 生成 `frontend/capability-browser/public/data/analytics-summary.json`，聚合 `capability-workbench`、`environment-workbench`、`lifecycle-workbench`、`standards-index`、`content-views`，以 `capability_focus` 为主 grain，输出覆盖率、模块入口、关系摘要、证据摘要和 reconciliation；生成包不提交到 Git | `docs/06-implementation/analytics-summary-json-contract-draft.md`, `docs/06-implementation/dashboard-and-module-data-display-optimization-design.md` |
+| BE-AN-SUM-2 | `analytics_summary` 数据包摘要与审计 | 已完成 / 待提交 | 扩展 `scripts/data_package_summary.py` 支持 `analytics-summary` 摘要；新增 `scripts/audit_analytics_summary_contract.mjs`，验证覆盖率、标准控制项三类 grain 和禁止字段泄露 | `BE-AN-SUM-1` |
 | BE-M | SAPD 成熟度评估数据契约 | 待启动（另开会话） | 定义 maturity 评估模板、填报会话、结果投影和报告导出契约 | `docs/08-maturity/` |
 | BE-5 | 导入 / 校验 / 审批链路回补 | 后置 | 将当前 Excel 导入 MVP 进一步整理为 source -> staging -> review -> formal tables 的可维护链路 | 当前导入脚本和 SQLite |
 | BE-6 | Delivery Bundle 1.0-alpha ZIP 解压即用交付版 | 后排保留；ZIP-UAT-0 macOS 内部试发准备已完成，Windows 待实机验证 | 当前 macOS arm64 alpha 试发材料已固定到 `/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle/dist/releases/0.1.0-alpha/`，并已固化 ZIP、checksum、release manifest、试发指南、UAT checklist 和反馈模板；Windows `SAPD-Wiki-Backend.exe` 构建脚本和验收清单已就绪，但需 Windows x64 环境继续实测。打包任务先往后排，待 user DB / `stable_key` 前置设计稳定后再恢复 | `docs/09-delivery/zip-uat-0-internal-trial-guide.md`, `docs/09-delivery/zip-uat-0-checklist.md`, `docs/09-delivery/zip-uat-feedback-template.md`, `docs/09-delivery/windows-zip-build-guide.md` |

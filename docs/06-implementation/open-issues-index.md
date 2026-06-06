@@ -5,9 +5,9 @@
 ## 摘要
 
 - 生成日期：2026-06-01
-- 问题总数：137
+- 问题总数：138
 - 当前未关闭问题数：4
-- 已关闭归档问题数：133
+- 已关闭归档问题数：134
 - 当前入口：`docs/06-implementation/open-issues.md`
 - 已关闭归档：`docs/05-archive/open-issues-history/2026-06.md`
 
@@ -18,10 +18,11 @@
 | (空) | 1 |
 | 部分完成 | 1 |
 | 待确认 | 1 |
-| 待设计 | 2 |
+| 待设计 | 1 |
+| 临时库 smoke 通过 / 真实迁移待确认 | 1 |
 | 业务接受 | 5 |
 | 已回退 | 1 |
-| 已修复 | 126 |
+| 已修复 | 127 |
 | 已修复，后续可继续优化 | 1 |
 
 ## 重复编号
@@ -171,7 +172,8 @@
 | OI-131 | 已修复 | LC-DT 阶段技术模块/措施统计被服务下挂模块膨胀 | 前端 / 数据展示 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-132 | 已修复 | 安全能力映射页数据加载稳定性与空态可信度治理 | 前端 / 数据契约 / 验证 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-134 | 已修复 | 安全能力 T-AD.SA 权威名称缺少“能力”后缀 | 数据 / 前端 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-136 | 已修复 | 深层路由直接访问未加载前端样式 | 前端 / 路由 / 交付体验 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-038 | 待确认 | Gartner 与安全职能候选映射需后续人工校对 | 数据 / 需求 | docs/06-implementation/open-issues.md |
 | OI-128 | 部分完成 | USER-WRITE-UI-1：批注 / 工作台用户写入入口 | 前端 / 用户数据 / Delivery Bundle | docs/06-implementation/open-issues.md |
 | OI-133 | 待设计 | ArchiMate 建模语言页显示效果与加载效率优化 | 前端 / 设计 / 性能 | docs/06-implementation/open-issues.md |
-| OI-135 | 待设计 | 用户库治理与兼容表迁移清理 | 数据 / 前端 / Delivery Bundle / 治理 | docs/06-implementation/open-issues.md |
+| OI-135 | 临时库 smoke 通过 / 真实迁移待确认 | 用户库治理与兼容表迁移清理 | 数据 / 前端 / Delivery Bundle / 治理 | docs/06-implementation/open-issues.md |

@@ -220,12 +220,13 @@
     const pageTitle = pageTarget?.title || pageTarget?.code || "当前页面";
     const anchorLabel = currentTarget.objectType === "page" ? "当前页面" : currentTarget.objectLabel || "当前对象";
     const draftGuard = Boolean(status.draftGuard);
-    const tabLabel = currentPageCount ? `批注 ${currentPageCount}` : "批注";
+    const tabAriaLabel = `${open ? "收起" : "展开"}批注面板，当前页 ${currentPageCount} 条批注`;
     return `
       ${renderContextMenu(contextMenu)}
       <aside class="user-annotation-drawer ${open ? "is-open" : ""} ${unavailable ? "is-unavailable" : ""} ${currentPageCount ? "has-notes" : ""}" aria-label="批注工作台" data-annotation-drawer data-annotation-page-route="${escape(canonicalPageRoute)}">
-        <button class="annotation-drawer-tab" type="button" data-annotation-drawer-toggle aria-expanded="${open ? "true" : "false"}">
-          <span>${escape(tabLabel)}</span>
+        <button class="annotation-drawer-tab" type="button" data-annotation-drawer-toggle aria-expanded="${open ? "true" : "false"}" aria-label="${escape(tabAriaLabel)}" title="${escape(tabAriaLabel)}">
+          <span class="annotation-tab-count" aria-hidden="true">${escape(currentPageCount)}</span>
+          <span class="annotation-tab-label">批注</span>
         </button>
         <section class="annotation-drawer-panel" aria-hidden="${open ? "false" : "true"}">
           <header class="annotation-drawer-header">

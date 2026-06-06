@@ -865,6 +865,49 @@ function annotationTargetContextMatchesCurrent(note = {}) {
   return meta.context.every((part, index) => !part || part === "_" || current[index] === part);
 }
 
+function guideSlideTargetMetaFromNote(note = {}) {
+  const targetRef = text(note?.target_ref).trim();
+  if (!targetRef.startsWith("base:security_guide_slide:")) return null;
+  const stableKey = targetRef.replace(/^base:security_guide_slide:/, "");
+  const hashIndex = stableKey.lastIndexOf("#");
+  const contentId = hashIndex >= 0 ? stableKey.slice(0, hashIndex) : stableKey;
+  const titlePageMatch = text(note?.object_title).match(/第\s*(\d+)\s*页/u);
+  const pageNumber = Number(hashIndex >= 0 ? stableKey.slice(hashIndex + 1) : titlePageMatch?.[1]);
+  if (!contentId || !Number.isFinite(pageNumber) || pageNumber < 1) return null;
+  return {
+    contentId,
+    pageNumber,
+    slideIndex: Math.max(0, pageNumber - 1),
+  };
+}
+
+function restoreGuideSlideContextFromNote(note = {}) {
+  const slideTarget = guideSlideTargetMetaFromNote(note);
+  if (!slideTarget) return false;
+  let changed = false;
+  if (state.activeContentPage !== "html") {
+    state.activeContentPage = "html";
+    changed = true;
+  }
+  const rows = contentRows();
+  const matchedRow = rows.find((row) =>
+    [row?.id, row?.route, row?.guide_id, row?.code]
+      .map((value) => text(value).trim())
+      .some((value) => value && value === slideTarget.contentId),
+  );
+  const nextContentId = matchedRow?.id || slideTarget.contentId;
+  if (nextContentId && nextContentId !== state.selectedContentId) {
+    state.selectedContentId = nextContentId;
+    changed = true;
+  }
+  if (slideTarget.slideIndex !== state.selectedContentSlideIndex) {
+    state.selectedContentSlideIndex = slideTarget.slideIndex;
+    changed = true;
+  }
+  if (changed) state.contentSlideScrollMode = "active";
+  return changed;
+}
+
 function candidateFromLegacyCoordinate(note, { includeHidden = false } = {}) {
   const meta = legacyAnnotationTargetMeta(note?.target_ref);
   if (meta && !annotationTargetContextMatchesCurrent(note)) return null;
@@ -1632,6 +1675,8 @@ function restoreAnnotationContextFromNote(note) {
   const targetRef = text(note?.target_ref).trim();
   const parts = targetRef.split(":");
   if (parts[0] !== "base") return false;
+  const slideChanged = restoreGuideSlideContextFromNote(note);
+  if (slideChanged) return true;
   if (parts[2] !== "v2") {
     if (state.activeView !== "capabilities") return false;
     const item = capabilityItemByCodeOrTitle(parts.slice(2).join(":") || note?.object_title);
@@ -2155,6 +2200,9 @@ function renderUserAnnotationDrawer(options = {}) {
   const mount = $("userAnnotationMount");
   const components = window.sapdComponents || {};
   if (!mount || !components.UserAnnotationDrawer?.render) return;
+  const previousDrawer = mount.querySelector(".user-annotation-drawer");
+  const previousOpen = previousDrawer ? previousDrawer.classList.contains("is-open") : null;
+  const nextOpen = Boolean(state.userAnnotationDrawerOpen);
   const previousPanelScrollTop = options.preserveScroll ? mount.querySelector(".annotation-drawer-panel")?.scrollTop || 0 : 0;
   const target = state.activeUserTarget || state.activePageAnnotationTarget || currentPageAnnotationTarget();
   const pageTarget = state.activePageAnnotationTarget || currentPageAnnotationTarget();
@@ -2176,6 +2224,19 @@ function renderUserAnnotationDrawer(options = {}) {
     }),
   );
   requestAnimationFrame(() => {
+    const drawer = mount.querySelector(".user-annotation-drawer");
+    if (drawer && previousOpen !== null && previousOpen !== nextOpen) {
+      drawer.classList.toggle("is-open", previousOpen);
+      drawer.classList.toggle("is-closing", previousOpen && !nextOpen);
+      drawer.dataset.annotationTransitioning = "true";
+      requestAnimationFrame(() => {
+        drawer.classList.toggle("is-open", nextOpen);
+        window.setTimeout(() => {
+          drawer.classList.remove("is-closing");
+          drawer.removeAttribute("data-annotation-transitioning");
+        }, 420);
+      });
+    }
     if (options.preserveScroll) {
       const nextPanel = mount.querySelector(".annotation-drawer-panel");
       if (nextPanel) nextPanel.scrollTop = previousPanelScrollTop;

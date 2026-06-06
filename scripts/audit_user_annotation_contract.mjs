@@ -33,6 +33,7 @@ function lineFindings(relativePath, predicate) {
 const appJs = readText("frontend/capability-browser/app.js");
 const stylesCss = readText("frontend/capability-browser/styles.css");
 const displayLabelsJs = readText("frontend/capability-browser/displayLabels.js");
+const userAnnotationDrawerJs = readText("frontend/capability-browser/components/UserAnnotationDrawer.js");
 const lifecycleJs = readText("frontend/capability-browser/components/ApplicationSecurityLifecycle.js");
 const globalBaseline = readText("docs/06-implementation/frontend-global-design-baseline-2026-05-30.md");
 const annotationDesign = readText("docs/06-implementation/workspace-annotation-and-capability-remix-design.md");
@@ -346,6 +347,8 @@ if (
     "function annotationTargetFromDataset",
     "function annotationTargetAttrsForHtml",
     "function contentSlideUserTarget",
+    "function guideSlideTargetMetaFromNote",
+    "function restoreGuideSlideContextFromNote",
     "function hydrateMaintenanceAnnotationTargets",
     "function resolveAnnotationAnchorElement",
     "function expandAnnotationHiddenLineage",
@@ -369,6 +372,8 @@ if (
     "contentSlideUserTarget(selected, activeSlide, activeSlideIndex)",
     "contentSlideUserTarget(row, activeSlide, activeIndex)",
     "contentSlideUserTarget(row, slide, index)",
+    "restoreGuideSlideContextFromNote(note)",
+    "state.selectedContentSlideIndex = slideTarget.slideIndex",
     "data-annotation-target-ref",
     "security_guide_slide",
   ])
@@ -557,6 +562,14 @@ if (
     "锚点声明",
     "视觉接入",
     "回归准入",
+    "数量徽标",
+    "平滑预展开",
+    "半胶囊",
+    "侧耳",
+    "不能露出批注抽屉面板",
+    "融合",
+    "低噪声边缘控件",
+    "批注 1",
     "P0 页面",
     "/capability-mapping",
     "/environment-mapping",
@@ -592,12 +605,34 @@ if (
     "annotationGlowSweep",
     "annotationSoftPulse",
     "annotation-tooltip",
+    "--annotation-tab-peek",
+    "--annotation-tab-hover",
+    "--annotation-tab-preview",
+    "annotation-tab-count",
+    "annotation-tab-label",
+    "is-closing",
   ])
 ) {
   issues.push({
     severity: "error",
     type: "annotation_visual_state_contract_missing",
     message: "批注样式缺少保存后常驻态、点击定位临时态、行 / 单元格范围或自定义悬停气泡样式。",
+  });
+}
+
+if (
+  !includesAll(userAnnotationDrawerJs, [
+    "annotation-tab-count",
+    "annotation-tab-label",
+    "当前页 ${currentPageCount} 条批注",
+    "tabAriaLabel",
+  ]) ||
+  userAnnotationDrawerJs.includes("`批注 ${currentPageCount}`")
+) {
+  issues.push({
+    severity: "error",
+    type: "annotation_drawer_tab_contract_missing",
+    message: "批注抽屉标签必须使用独立数量徽标和批注标签，不得恢复为 `批注 N` 拼接文案。",
   });
 }
 

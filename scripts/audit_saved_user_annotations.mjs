@@ -224,6 +224,7 @@ async function main() {
       item.drawerPanelOk &&
       item.currentNoteCardOk &&
       item.drawerScrollPreserved &&
+      item.guideSlidePageOk !== false &&
       item.locateButtonClicked;
     const technicalFamilyCoverage = results.reduce((acc, item) => {
       if (!item.pageFamily) return acc;
@@ -266,6 +267,8 @@ async function main() {
                 normalVisualHighlight: item.normalVisualHighlight,
                 normalStripeOk: item.normalStripeOk,
                 activeVisualHighlight: item.activeVisualHighlight,
+                guideSlidePageOk: item.guideSlidePageOk,
+                guideSlideAfterLocate: item.guideSlideAfterLocate,
                 anchor: item.anchor,
                 debug: item.debug,
                 rect: item.afterClickState?.rect || item.activeState?.rect || item.markedState?.rect || null,
@@ -291,6 +294,8 @@ async function main() {
               currentNoteCardOk: item.currentNoteCardOk,
               drawerScrollPreserved: item.drawerScrollPreserved,
               locateButtonClicked: item.locateButtonClicked,
+              guideSlidePageOk: item.guideSlidePageOk,
+              guideSlideAfterLocate: item.guideSlideAfterLocate,
               unexpectedMarkedCount: item.unexpectedMarkedCount,
               unexpectedMarked: item.unexpectedMarked,
               scope: item.scope,
@@ -489,6 +494,27 @@ async function annotationAuditInPage(note, ordinal, options = {}) {
     if (/\/knowledge\/technical-measures(?:$|[?#/])/.test(route)) return "technical-measures";
     if (/\/knowledge\/technical(?:$|[?#/])/.test(route)) return "technical";
     return "";
+  };
+  const guideSlideExpected = () => {
+    if (note.object_type !== "security_guide_slide" && !String(note.target_ref || "").startsWith("base:security_guide_slide:")) return null;
+    const stableKey = String(note.target_ref || "").replace(/^base:security_guide_slide:/, "");
+    const hashIndex = stableKey.lastIndexOf("#");
+    const titlePage = String(note.object_title || "").match(/第\s*(\d+)\s*页/u)?.[1] || "";
+    const pageNumber = Number(hashIndex >= 0 ? stableKey.slice(hashIndex + 1) : titlePage);
+    if (!Number.isFinite(pageNumber) || pageNumber < 1) return null;
+    return { pageNumber, slideIndex: pageNumber - 1 };
+  };
+  const guideSlideState = () => {
+    const appState = typeof state !== "undefined" ? state : window.state;
+    const pageText = String(document.querySelector(".guide-slide-page")?.textContent || "");
+    const pageNumber = Number(pageText.match(/第\s*(\d+)\s*\//u)?.[1]);
+    return {
+      pageText,
+      pageNumber: Number.isFinite(pageNumber) ? pageNumber : null,
+      activeThumbText: String(document.querySelector(".guide-thumb.active span")?.textContent || "").trim(),
+      selectedContentId: appState?.selectedContentId || "",
+      selectedContentSlideIndex: Number(appState?.selectedContentSlideIndex),
+    };
   };
   const isFieldNote = () => normalizedAnchorType(note.anchor_type, note.target_ref) === "field" || note.object_type === "field_value";
   const isRowNote = () => normalizedAnchorType(note.anchor_type, note.target_ref) === "row" || note.object_type === "table_row";
@@ -799,6 +825,13 @@ async function annotationAuditInPage(note, ordinal, options = {}) {
     const persistentAfterClick = afterClickState.anyMarked;
     const unexpected = unexpectedMarked();
     const pageFamily = pageFamilyOfNote();
+    const expectedGuideSlide = guideSlideExpected();
+    const guideSlideAfterLocate = guideSlideState();
+    const guideSlidePageOk =
+      !expectedGuideSlide ||
+      (guideSlideAfterLocate.pageNumber === expectedGuideSlide.pageNumber &&
+        guideSlideAfterLocate.activeThumbText === String(expectedGuideSlide.pageNumber) &&
+        guideSlideAfterLocate.selectedContentSlideIndex === expectedGuideSlide.slideIndex);
     const drawerPanelOk =
       drawerBeforeLocate.panelExists &&
       drawerBeforeLocate.panelFitsViewport &&
@@ -829,6 +862,7 @@ async function annotationAuditInPage(note, ordinal, options = {}) {
       !drawerPanelOk ? "drawer_panel_clipped_or_missing" : "",
       !currentNoteCardOk ? "current_note_card_clipped_or_missing" : "",
       !drawerScrollPreserved ? "drawer_scroll_lost_after_locate" : "",
+      !guideSlidePageOk ? "guide_slide_page_not_selected_after_locate" : "",
       pageFamily && !normalMarkedBeforeLocate ? `${pageFamily}_normal_highlight_missing` : "",
       pageFamily && !activeState.anyActive ? `${pageFamily}_locate_highlight_missing` : "",
       pageFamily && !persistentAfterClick ? `${pageFamily}_lost_after_click` : "",
@@ -859,6 +893,8 @@ async function annotationAuditInPage(note, ordinal, options = {}) {
       locateButtonClicked,
       unexpectedMarkedCount: unexpected.length,
       unexpectedMarked: unexpected.slice(0, 4),
+      guideSlidePageOk,
+      guideSlideAfterLocate,
       failureReasons,
       debug: debugSnapshot(),
       scope: fieldScope ? "field" : rowScope ? "row" : normalizedAnchorType(note.anchor_type, note.target_ref) || "object",

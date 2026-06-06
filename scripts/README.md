@@ -24,7 +24,7 @@
 | `audit_stable_key_contract.mjs` | 基础库 `stable_key` / deterministic ID / `base_id_redirects` 契约审计；当前用于暴露 DB-2 未落地缺口 | `docs/06-implementation/base-stable-key-and-redirect-migration-design-2026-06-06.md` |
 | `migrate_db_contracts.mjs` | `OI-135 / DB-11 / DB-2` 正式迁移工具；默认只复制到 `/private/tmp` dry-run，`--apply` 才写目标库，真实项目库还必须传 `--confirm-project-db-write` 并先自动备份 | `docs/06-implementation/user-database-governance-and-stable-key-design.md` |
 | `smoke_db_migration_contracts.mjs` | 只复制 base/user SQLite 到 `/private/tmp` 并在复制库上执行 `user_schema_0.3` 与基础库 `stable_key` / `base_id_redirects` migration smoke，不写真实项目数据库 | `docs/06-implementation/user-database-governance-and-stable-key-design.md` |
-| `smoke_user_data_basket_api.mjs` | 构造临时 ZIP bundle 并启动本地 runtime，验证 `/api/v1/user/data-baskets` 创建、读取、条目 upsert、删除和 token 防护闭环 | `OI-128` / `OI-135` 用户写入最小 API |
+| `smoke_user_data_basket_api.mjs` | 构造临时 ZIP bundle 并启动本地 runtime，验证 `/api/v1/user/workspaces` 与 `/api/v1/user/data-baskets` 创建、读取、条目 upsert、删除和 token 防护闭环 | `OI-128` / `OI-135` 用户写入最小 API |
 | `audit_capability_viewmodel_contract.mjs` | 安全能力映射页 ViewModel 当前对象一致性审计，验证 L0 / L1 / L2 / 关注点不会误用默认关注点或错粒度 projection | `docs/07-governance/data-governance.md` |
 | `audit_dictionary_reference_consistency.mjs` | 知识库字典权威引用一致性审计，检查能力、作用域、技术服务、技术模块 / 措施、管理工作、流程和职能引用是否与字典一致 | `docs/07-governance/data-governance.md` |
 | `govern_open_issues.mjs` | `open-issues.md` 轻量治理：保留未关闭问题入口，归档已关闭长记录，生成全量索引 | `docs/06-implementation/open-issues.md` |

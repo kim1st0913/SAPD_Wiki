@@ -244,6 +244,71 @@ async function main() {
       fail("deleted data basket still appears in list", finalList.json);
     }
 
+    const rejectedWorkspace = await requestJson(`${baseUrl}/api/v1/user/workspaces`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Origin: baseUrl },
+      body: JSON.stringify({ name: "should fail" }),
+    });
+    if (rejectedWorkspace.response.status !== 403) {
+      fail("workspace write without token should be rejected", { status: rejectedWorkspace.response.status, body: rejectedWorkspace.json });
+    }
+
+    const createWorkspace = await requestJson(`${baseUrl}/api/v1/user/workspaces`, {
+      method: "POST",
+      headers: writeHeaders,
+      body: JSON.stringify({ name: "工作台总览", description: "smoke test" }),
+    });
+    const workspace = createWorkspace.json.workspace;
+    if (!createWorkspace.json.ok || !workspace?.id) {
+      fail("workspace create failed", createWorkspace.json);
+    }
+
+    const listWorkspaces = await requestJson(`${baseUrl}/api/v1/user/workspaces`);
+    if (!listWorkspaces.json.workspaces?.some((item) => item.id === workspace.id && item.item_count === 0)) {
+      fail("created workspace was not listed", listWorkspaces.json);
+    }
+
+    const addWorkspaceItem = await requestJson(`${baseUrl}/api/v1/user/workspaces/${encodeURIComponent(workspace.id)}/items`, {
+      method: "POST",
+      headers: writeHeaders,
+      body: JSON.stringify({
+        target_ref: "base:capability_focus:G-SP.SM-01",
+        item_status: "pinned",
+        sort_order: 1,
+        payload: { route: "/capability-mapping", source: "smoke" },
+      }),
+    });
+    const workspaceItem = addWorkspaceItem.json.item;
+    if (!addWorkspaceItem.json.ok || !workspaceItem?.id || workspaceItem.item_status !== "pinned" || workspaceItem.payload?.source !== "smoke") {
+      fail("workspace item upsert failed", addWorkspaceItem.json);
+    }
+
+    const workspaceItems = await requestJson(`${baseUrl}/api/v1/user/workspaces/${encodeURIComponent(workspace.id)}/items`);
+    if (workspaceItems.json.items?.length !== 1 || workspaceItems.json.items[0].target_ref !== "base:capability_focus:G-SP.SM-01") {
+      fail("workspace items list did not contain expected item", workspaceItems.json);
+    }
+
+    const deleteWorkspaceItem = await requestJson(
+      `${baseUrl}/api/v1/user/workspaces/${encodeURIComponent(workspace.id)}/items/${encodeURIComponent(workspaceItem.id)}`,
+      {
+        method: "DELETE",
+        headers: writeHeaders,
+        body: "{}",
+      },
+    );
+    if (!deleteWorkspaceItem.json.ok || deleteWorkspaceItem.json.deleted !== 1) {
+      fail("workspace item delete failed", deleteWorkspaceItem.json);
+    }
+
+    const deleteWorkspace = await requestJson(`${baseUrl}/api/v1/user/workspaces/${encodeURIComponent(workspace.id)}`, {
+      method: "DELETE",
+      headers: writeHeaders,
+      body: "{}",
+    });
+    if (!deleteWorkspace.json.ok || deleteWorkspace.json.deleted !== 1) {
+      fail("workspace delete failed", deleteWorkspace.json);
+    }
+
     console.log(
       JSON.stringify(
         {
@@ -256,6 +321,11 @@ async function main() {
             itemCreated: true,
             itemDeleted: true,
             basketDeleted: true,
+            workspaceAuthRejected: true,
+            workspaceCreated: true,
+            workspaceItemCreated: true,
+            workspaceItemDeleted: true,
+            workspaceDeleted: true,
           },
         },
         null,

@@ -67,6 +67,15 @@ const requiredApiSnippets = [
   'parsed.path == "/api/v1/user/favorites"',
   'parsed.path == "/api/v1/user/notes"',
   'parsed.path.startswith("/api/v1/user/notes/")',
+  'request_path.startswith("/api/v1/user/workspaces")',
+  "def ensure_user_workspace_tables",
+  "def list_workspaces",
+  "def create_workspace",
+  "def add_workspace_item",
+  "def delete_workspace_item",
+  "def delete_workspace",
+  "create_workspace",
+  "upsert_workspace_item",
   'request_path.startswith("/api/v1/user/data-baskets")',
   "def ensure_user_data_basket_tables",
   "def list_data_baskets",
@@ -269,7 +278,7 @@ function main() {
   addCheck(
     checks,
     "db_11_plan_status_synced",
-    /DB-11[\s\S]*P0 (设计完成 \/ 待确认|审计脚本完成 \/ migration dry-run 待启动|migration dry-run 完成 \/ 临时库 smoke 待启动|临时库 smoke 通过 \/ 真实迁移待确认|正式迁移脚本完成 \/ 真实库 apply 待显式确认|正式迁移脚本完成 \/ 数据篮最小 API 已完成 \/ 真实库 apply 待显式确认)/.test(taskPlan),
+    /DB-11[\s\S]*P0 (设计完成 \/ 待确认|审计脚本完成 \/ migration dry-run 待启动|migration dry-run 完成 \/ 临时库 smoke 待启动|临时库 smoke 通过 \/ 真实迁移待确认|正式迁移脚本完成 \/ 真实库 apply 待显式确认|正式迁移脚本完成 \/ 数据篮最小 API 已完成 \/ 真实库 apply 待显式确认|正式迁移脚本完成 \/ 工作台总览和数据篮最小 API 已完成 \/ 真实库 apply 待显式确认)/.test(taskPlan),
   );
   addCheck(
     checks,

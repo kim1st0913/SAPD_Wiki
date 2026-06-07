@@ -338,7 +338,11 @@
 
   function renderPageHeader({ activeRoute = "/" } = {}) {
     const item = findNavItem(activeRoute);
-    const pageTitle = activeRoute === "/development-security" ? "LC-AP安全开发生命周期" : activeRoute === "/data-security" ? "LC-DT数据生命周期安全" : item.label;
+    const pageTitle = activeRoute === "/development-security"
+        ? "LC-AP安全开发生命周期"
+        : activeRoute === "/data-security"
+          ? "LC-DT数据生命周期安全"
+          : item.label;
     const rootRoute = parentForRoute(activeRoute)?.route || activeRoute;
     const description = PAGE_DESCRIPTIONS[activeRoute] || PAGE_DESCRIPTIONS[rootRoute] || "当前页面通过 Manifest 导航进入，业务内容由现有前端 ViewModel 渲染。";
     const target = getRouteTarget(activeRoute);
@@ -354,8 +358,18 @@
             <h1>${escapeHtml(pageTitle)}</h1>
             ${isSourceTablePage ? '<span id="pageHeaderCount" class="page-title-summary" hidden></span>' : ""}
             ${isSourceTablePage ? "" : `<span class="shell-tag muted">${escapeHtml(TYPE_LABELS[item.type] || item.type)}</span>`}
+            ${activeRoute === "/guides/security-architecture-modeling-language" ? `<div id="modelingLanguageHeaderTabs" class="modeling-language-title-tabs" aria-label="安全架构建模语言页签">
+              <div class="maintenance-section-tabs modeling-language-tabs" role="tablist" aria-label="安全架构建模语言页签">
+                <button class="maintenance-section-tab active" type="button" role="tab" aria-selected="true" data-modeling-language-tab="overview">
+                  <span>ArchiMate® 3.2 - 企业架构建模标准</span>
+                </button>
+                <button class="maintenance-section-tab" type="button" role="tab" aria-selected="false" data-modeling-language-tab="elements">
+                  <span>SAPD 元素图例</span>
+                </button>
+              </div>
+            </div>` : ""}
           </div>
-          <p>${escapeHtml(description)}</p>
+          ${description ? `<p>${escapeHtml(description)}</p>` : ""}
         </div>
         ${
           isSourceTablePage

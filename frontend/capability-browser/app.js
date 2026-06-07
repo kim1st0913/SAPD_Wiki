@@ -46,7 +46,9 @@ const state = {
   selectedContentId: null,
   selectedContentSlideIndex: 0,
   activeModelingLanguageTab: "overview",
-  modelingPosterExpanded: false,
+  modelingPosterLightboxTarget: null,
+  modelingPosterLightboxZoom: 1,
+  modelingPosterLightboxDragging: false,
   contentSlideScrollMode: "preserve",
   standardFrameworkLoads: new Map(),
   maintenanceSectionLoads: new Map(),
@@ -89,6 +91,15 @@ const state = {
   relationshipColumnWidths: [190, 180, 150, 160, 160, 150, 130, 160],
 };
 
+const modelingPosterDragState = {
+  active: false,
+  pointerId: null,
+  startX: 0,
+  startY: 0,
+  scrollLeft: 0,
+  scrollTop: 0,
+};
+
 const $ = (id) => document.getElementById(id);
 const list = (value) => (Array.isArray(value) ? value : []);
 const text = (value) => (value == null ? "" : String(value));
@@ -102,42 +113,61 @@ window.__sapdAnnotationAnchorVersion = "v2-contextual";
 const ARCHIMATE_POSTER_ASSET_BASE = "./public/data/guides/archimate-poster";
 const ARCHIMATE_POSTER_PDF_PATH = `${ARCHIMATE_POSTER_ASSET_BASE}/archimate-poster-v3.2-zh.pdf`;
 const ARCHIMATE_POSTER_OVERVIEW_IMAGE = `${ARCHIMATE_POSTER_ASSET_BASE}/archimate-poster-overview.jpg`;
+const ARCHIMATE_POSTER_OVERVIEW_SIZE = { width: 6741, height: 4768 };
 const ARCHIMATE_POSTER_REGIONS = [
   {
     id: "business-general",
     title: "业务层与通用元素",
     summary: "Business Layer、通用元素与通用行为模型，是业务对象、角色、流程和通用 notation 的基础参考。",
     image: `${ARCHIMATE_POSTER_ASSET_BASE}/archimate-poster-region-business-general.jpg`,
+    width: 578,
+    height: 1700,
+    hotspot: { left: 3.7, top: 5.8, width: 33.9, height: 39.3 },
   },
   {
     id: "application-layer",
     title: "应用层",
     summary: "Application Component、Function、Service、Data Object 等应用架构元素。",
     image: `${ARCHIMATE_POSTER_ASSET_BASE}/archimate-poster-region-application-layer.jpg`,
+    width: 1056,
+    height: 1439,
+    hotspot: { left: 38.2, top: 5.8, width: 21.9, height: 25.9 },
   },
   {
     id: "technology-physical",
     title: "技术层与物理层",
     summary: "Artifact、Device、Node、Communication Network、Facility、Equipment 等技术和物理元素。",
     image: `${ARCHIMATE_POSTER_ASSET_BASE}/archimate-poster-region-technology-physical.jpg`,
+    width: 1014,
+    height: 1439,
+    hotspot: { left: 60.7, top: 5.8, width: 21.6, height: 25.9 },
   },
   {
     id: "motivation-strategy",
     title: "动机元素与战略元素",
     summary: "Requirement、Principle、Goal、Capability、Resource、Value Stream 等治理和战略表达元素。",
     image: `${ARCHIMATE_POSTER_ASSET_BASE}/archimate-poster-region-motivation-strategy.jpg`,
+    width: 1030,
+    height: 1439,
+    hotspot: { left: 82.7, top: 5.8, width: 13.7, height: 39.3 },
   },
   {
     id: "risk-implementation",
     title: "实施迁移、风险与安全叠加",
     summary: "Implementation & Migration、Risk and Security Overlay、派生关系和传递关系等扩展参考。",
     image: `${ARCHIMATE_POSTER_ASSET_BASE}/archimate-poster-region-risk-implementation.jpg`,
+    width: 539,
+    height: 1700,
+    hotspot: { left: 82.7, top: 45.9, width: 13.7, height: 42.1 },
   },
   {
     id: "relationships-views",
     title: "关系、视图与元模型结构",
     summary: "ArchiMate 层、关系线、角色职责、替代表达法、视点和视图示例。",
     image: `${ARCHIMATE_POSTER_ASSET_BASE}/archimate-poster-region-relationships-views.jpg`,
+    width: 2200,
+    height: 1359,
+    hotspot: { left: 37.7, top: 32.8, width: 44.7, height: 55.2 },
   },
 ];
 const DRAWIO_LEGEND_DEFAULT_SIZE = [150, 75];
@@ -3142,10 +3172,6 @@ function renderModelingLegendSection(section) {
         </span>
         <span class="modeling-legend-section-actions">
           <span class="modeling-legend-section-count">${list(section.items).length} 个元素</span>
-          <span class="modeling-legend-section-state" aria-hidden="true">
-            <span class="state-collapsed">展开</span>
-            <span class="state-expanded">收起</span>
-          </span>
           <span class="modeling-legend-section-chevron" aria-hidden="true"></span>
         </span>
       </summary>
@@ -3189,10 +3215,6 @@ function renderModelingElementLegendPanel() {
           </span>
           <span class="modeling-legend-section-actions">
             <span class="modeling-legend-section-count">${MODELING_RELATION_LEGENDS.length} 类关系</span>
-            <span class="modeling-legend-section-state" aria-hidden="true">
-              <span class="state-collapsed">展开</span>
-              <span class="state-expanded">收起</span>
-            </span>
             <span class="modeling-legend-section-chevron" aria-hidden="true"></span>
           </span>
         </summary>
@@ -3206,6 +3228,19 @@ function renderModelingElementLegendPanel() {
   `;
 }
 
+function toggleModelingLegendSection(summary) {
+  const section = summary?.closest?.(".modeling-legend-section");
+  if (!section) return false;
+  section.open = !section.open;
+  return true;
+}
+
+function setModelingLegendSections(open) {
+  document.querySelectorAll(".modeling-language-guide-workspace .modeling-legend-section").forEach((section) => {
+    section.open = Boolean(open);
+  });
+}
+
 function getModelingPosterTarget(targetId) {
   if (targetId && targetId !== "full") {
     const region = ARCHIMATE_POSTER_REGIONS.find((item) => item.id === targetId);
@@ -3216,6 +3251,8 @@ function getModelingPosterTarget(targetId) {
     title: "ArchiMate® 3.2 企业架构建模标准",
     summary: "本地 ArchiMate Poster 整页视图，作为 SAPD 安全架构元素映射的语言标准参考。",
     image: ARCHIMATE_POSTER_OVERVIEW_IMAGE,
+    width: ARCHIMATE_POSTER_OVERVIEW_SIZE.width,
+    height: ARCHIMATE_POSTER_OVERVIEW_SIZE.height,
   };
 }
 
@@ -3227,91 +3264,182 @@ function renderModelingPosterImage(target, imageClass = "", loading = "lazy") {
       alt="${escapeHtml(target.title)}"
       loading="${escapeHtml(loading)}"
       decoding="async"
+      width="${escapeHtml(target.width || ARCHIMATE_POSTER_OVERVIEW_SIZE.width)}"
+      height="${escapeHtml(target.height || ARCHIMATE_POSTER_OVERVIEW_SIZE.height)}"
     />
   `;
 }
 
-function renderModelingPosterOverlay() {
-  if (!state.modelingPosterExpanded) return "";
-  const target = getModelingPosterTarget(state.modelingPosterExpanded);
+function renderModelingPosterLightbox() {
+  if (!state.modelingPosterLightboxTarget) return "";
+  const target = getModelingPosterTarget(state.modelingPosterLightboxTarget);
+  const zoom = Number(state.modelingPosterLightboxZoom || 1);
+  const zoomWidth = Math.round(Number(target.width || ARCHIMATE_POSTER_OVERVIEW_SIZE.width) * zoom);
+  const isFit = zoom <= 1;
   return `
-    <div class="modeling-poster-overlay" role="dialog" aria-modal="true" aria-label="${escapeHtml(target.title)} 全页面查看">
-      <button class="modeling-poster-backdrop" type="button" data-modeling-poster-close aria-label="关闭海报查看"></button>
-      <section class="modeling-poster-dialog">
-        <header class="modeling-poster-dialog-header">
-          <div>
-            <span>ArchiMate® 3.2</span>
-            <h3>${escapeHtml(target.title)}</h3>
-            <p>${escapeHtml(target.summary)}</p>
-          </div>
-          <a class="modeling-poster-download is-compact" href="${escapeHtml(ARCHIMATE_POSTER_PDF_PATH)}" download="archimate-poster-v3.2-zh.pdf">
-            <span aria-hidden="true">↓</span>
-            PDF
-          </a>
-          <button class="modeling-poster-close" type="button" data-modeling-poster-close aria-label="关闭">
-            <span aria-hidden="true">×</span>
-          </button>
-        </header>
-        <div class="modeling-poster-expanded-canvas ${target.id === "full" ? "is-full" : "is-region"}">
-          ${renderModelingPosterImage(target, "is-expanded", "eager")}
+    <section class="modeling-poster-lightbox" data-modeling-poster-lightbox role="dialog" aria-modal="true" aria-label="${escapeHtml(target.title)} 图片预览">
+      <button class="modeling-poster-lightbox-backdrop" type="button" data-modeling-poster-lightbox-close aria-label="关闭图片预览"></button>
+      <div class="modeling-poster-lightbox-stage">
+        <div class="modeling-poster-lightbox-toolbar" aria-label="图片预览工具">
+          <button type="button" data-modeling-poster-lightbox-action="zoom-out" aria-label="缩小">−</button>
+          <button type="button" data-modeling-poster-lightbox-action="fit" aria-label="适应屏幕">适应</button>
+          <button type="button" data-modeling-poster-lightbox-action="zoom-in" aria-label="放大">＋</button>
         </div>
-      </section>
-    </div>
+        <button class="modeling-poster-lightbox-close" type="button" data-modeling-poster-lightbox-close aria-label="关闭">
+          <span aria-hidden="true">×</span>
+        </button>
+        <div class="modeling-poster-lightbox-scroll">
+          <img
+            class="modeling-poster-lightbox-image ${isFit ? "is-fit" : "is-zoomed"}"
+            src="${escapeHtml(target.image)}"
+            alt="${escapeHtml(target.title)}"
+            width="${escapeHtml(target.width || ARCHIMATE_POSTER_OVERVIEW_SIZE.width)}"
+            height="${escapeHtml(target.height || ARCHIMATE_POSTER_OVERVIEW_SIZE.height)}"
+            style="--poster-zoom-width:${escapeHtml(zoomWidth)}px"
+            decoding="async"
+          />
+        </div>
+      </div>
+    </section>
   `;
 }
 
-function renderModelingPosterRegionCard(region, index) {
-  return `
-    <button class="modeling-poster-region-card" type="button" data-modeling-poster-open="${escapeHtml(region.id)}">
-      <span class="modeling-poster-region-index">${String(index + 1).padStart(2, "0")}</span>
-      <span class="modeling-poster-region-copy">
-        <strong>${escapeHtml(region.title)}</strong>
-        <span>${escapeHtml(region.summary)}</span>
-      </span>
-      <span class="modeling-poster-region-thumb" aria-hidden="true">
-        <img src="${escapeHtml(region.image)}" alt="" loading="lazy" decoding="async" />
-      </span>
-    </button>
-  `;
+function requestModelingPosterFullscreen() {
+  const lightbox = document.querySelector(".modeling-poster-lightbox");
+  if (!lightbox || document.fullscreenElement === lightbox || !lightbox.requestFullscreen) return;
+  lightbox.requestFullscreen().catch(() => {});
+}
+
+function getModelingPosterFittedWidth(target, viewport) {
+  const naturalWidth = Number(target.width || ARCHIMATE_POSTER_OVERVIEW_SIZE.width);
+  const naturalHeight = Number(target.height || ARCHIMATE_POSTER_OVERVIEW_SIZE.height);
+  const viewportWidth = Math.max(320, Number(viewport?.clientWidth || window.innerWidth || 1280) - 24);
+  const viewportHeight = Math.max(240, Number(viewport?.clientHeight || window.innerHeight || 720) - 24);
+  const widthByHeight = viewportHeight * (naturalWidth / naturalHeight);
+  return Math.min(naturalWidth, viewportWidth, widthByHeight);
+}
+
+function openModelingPosterLightbox(targetId = "full") {
+  state.modelingPosterLightboxTarget = targetId || "full";
+  state.modelingPosterLightboxZoom = 1;
+  renderContent();
+  requestModelingPosterFullscreen();
+}
+
+function closeModelingPosterLightbox() {
+  state.modelingPosterLightboxTarget = null;
+  state.modelingPosterLightboxZoom = 1;
+  state.modelingPosterLightboxDragging = false;
+  modelingPosterDragState.active = false;
+  modelingPosterDragState.pointerId = null;
+  if (document.fullscreenElement && document.exitFullscreen) {
+    document.exitFullscreen().catch(() => {});
+  }
+  renderContent();
+}
+
+function applyModelingPosterLightboxZoom(nextZoom, originEvent = null) {
+  if (!state.modelingPosterLightboxTarget) return;
+  const target = getModelingPosterTarget(state.modelingPosterLightboxTarget);
+  const viewport = document.querySelector(".modeling-poster-lightbox-scroll");
+  const image = document.querySelector(".modeling-poster-lightbox-image");
+  if (!image || !viewport) return;
+  const fittedWidth = getModelingPosterFittedWidth(target, viewport);
+  const naturalWidth = Number(target.width || ARCHIMATE_POSTER_OVERVIEW_SIZE.width);
+  const maxZoom = Math.max(2, Math.min(5, naturalWidth / fittedWidth));
+  const previousRect = image.getBoundingClientRect();
+  const previousScrollLeft = viewport.scrollLeft;
+  const previousScrollTop = viewport.scrollTop;
+  const previousX = originEvent ? originEvent.clientX : previousRect.left + previousRect.width / 2;
+  const previousY = originEvent ? originEvent.clientY : previousRect.top + previousRect.height / 2;
+  const previousRatioX = previousRect.width > 0 ? (previousX - previousRect.left + previousScrollLeft) / previousRect.width : 0.5;
+  const previousRatioY = previousRect.height > 0 ? (previousY - previousRect.top + previousScrollTop) / previousRect.height : 0.5;
+  state.modelingPosterLightboxZoom = Math.max(1, Math.min(maxZoom, Number(nextZoom.toFixed(2))));
+  const zoom = Number(state.modelingPosterLightboxZoom || 1);
+  image.classList.toggle("is-fit", zoom <= 1);
+  image.classList.toggle("is-zoomed", zoom > 1);
+  image.style.setProperty("--poster-zoom-width", `${Math.round(fittedWidth * zoom)}px`);
+  requestAnimationFrame(() => {
+    if (zoom <= 1) {
+      viewport.scrollLeft = 0;
+      viewport.scrollTop = 0;
+      return;
+    }
+    const nextRect = image.getBoundingClientRect();
+    viewport.scrollLeft = Math.max(0, previousRatioX * nextRect.width - (previousX - nextRect.left));
+    viewport.scrollTop = Math.max(0, previousRatioY * nextRect.height - (previousY - nextRect.top));
+  });
+}
+
+function updateModelingPosterLightboxZoom(action) {
+  if (!state.modelingPosterLightboxTarget) return;
+  const currentZoom = Number(state.modelingPosterLightboxZoom || 1);
+  if (action === "fit") applyModelingPosterLightboxZoom(1);
+  if (action === "zoom-in") applyModelingPosterLightboxZoom(currentZoom + 0.18);
+  if (action === "zoom-out") applyModelingPosterLightboxZoom(currentZoom - 0.18);
+}
+
+function handleModelingPosterLightboxWheel(event) {
+  if (!state.modelingPosterLightboxTarget) return;
+  if (!event.target?.closest?.(".modeling-poster-lightbox")) return;
+  event.preventDefault();
+  const currentZoom = Number(state.modelingPosterLightboxZoom || 1);
+  const zoomDelta = event.deltaY < 0 ? 0.08 : -0.08;
+  applyModelingPosterLightboxZoom(currentZoom + zoomDelta, event);
+}
+
+function beginModelingPosterLightboxDrag(event) {
+  if (!state.modelingPosterLightboxTarget) return;
+  if (event.button !== 0) return;
+  const viewport = event.target?.closest?.(".modeling-poster-lightbox-scroll");
+  if (!viewport || event.target?.closest?.(".modeling-poster-lightbox-toolbar, .modeling-poster-lightbox-close")) return;
+  modelingPosterDragState.active = true;
+  modelingPosterDragState.pointerId = event.pointerId;
+  modelingPosterDragState.startX = event.clientX;
+  modelingPosterDragState.startY = event.clientY;
+  modelingPosterDragState.scrollLeft = viewport.scrollLeft;
+  modelingPosterDragState.scrollTop = viewport.scrollTop;
+  state.modelingPosterLightboxDragging = true;
+  viewport.classList.add("is-dragging");
+  viewport.setPointerCapture?.(event.pointerId);
+  event.preventDefault();
+}
+
+function updateModelingPosterLightboxDrag(event) {
+  if (!modelingPosterDragState.active) return;
+  if (modelingPosterDragState.pointerId !== event.pointerId) return;
+  const viewport = document.querySelector(".modeling-poster-lightbox-scroll");
+  if (!viewport) return;
+  viewport.scrollLeft = modelingPosterDragState.scrollLeft - (event.clientX - modelingPosterDragState.startX);
+  viewport.scrollTop = modelingPosterDragState.scrollTop - (event.clientY - modelingPosterDragState.startY);
+}
+
+function endModelingPosterLightboxDrag(event) {
+  if (!modelingPosterDragState.active) return;
+  if (modelingPosterDragState.pointerId !== event.pointerId) return;
+  const viewport = document.querySelector(".modeling-poster-lightbox-scroll");
+  viewport?.releasePointerCapture?.(event.pointerId);
+  viewport?.classList.remove("is-dragging");
+  modelingPosterDragState.active = false;
+  modelingPosterDragState.pointerId = null;
+  window.setTimeout(() => {
+    state.modelingPosterLightboxDragging = false;
+  }, 0);
 }
 
 function renderModelingLanguageOverviewPanel() {
   const posterTarget = getModelingPosterTarget("full");
   return `
     <section class="modeling-poster-panel">
-      <header class="modeling-poster-panel-header">
-        <div>
-          <span class="modeling-language-kicker">ArchiMate® 3.2</span>
-          <h3>安全架构设计元素图例</h3>
-          <p>安全架构中的各种元素都需要映射到 ArchiMate 的元素。本页以图片化海报作为语言概览素材，避免直接嵌入 PDF 带来的页面卡顿。</p>
-        </div>
-        <div class="modeling-poster-actions">
-          <button class="modeling-poster-expand-button" type="button" data-modeling-poster-open="full">
-            <span aria-hidden="true">⤢</span>
-            全页面显示
-          </button>
-          <a class="modeling-poster-download" href="${escapeHtml(ARCHIMATE_POSTER_PDF_PATH)}" download="archimate-poster-v3.2-zh.pdf">
-            <span aria-hidden="true">↓</span>
-            下载 PDF
-          </a>
-        </div>
-      </header>
       <div class="modeling-poster-page-viewer">
-        <button class="modeling-poster-page-button" type="button" data-modeling-poster-open="full" aria-label="全页面查看 ArchiMate Poster">
-          ${renderModelingPosterImage(posterTarget, "is-overview", "eager")}
-        </button>
-      </div>
-      <section class="modeling-poster-region-panel" aria-label="ArchiMate Poster 区域阅读">
-        <header>
-          <h4>区域阅读</h4>
-          <p>按标准海报结构切分，点击任一区域单独放大。</p>
-        </header>
-        <div class="modeling-poster-region-grid">
-          ${ARCHIMATE_POSTER_REGIONS.map(renderModelingPosterRegionCard).join("")}
+        <div class="modeling-poster-page-stage" aria-label="ArchiMate Poster 整页图">
+          <button class="modeling-poster-image-map" type="button" data-modeling-poster-open="full" aria-label="查看 ArchiMate Poster 大图">
+            ${renderModelingPosterImage(posterTarget, "is-overview", "eager")}
+          </button>
         </div>
-      </section>
+      </div>
     </section>
-    ${renderModelingPosterOverlay()}
+    ${renderModelingPosterLightbox()}
   `;
 }
 
@@ -3334,10 +3462,29 @@ function renderModelingLanguageGuide(routeInfo = {}) {
     ? state.activeModelingLanguageTab
     : MODELING_LANGUAGE_GUIDE_TABS[0].id;
   state.activeModelingLanguageTab = activeTab;
+  if (workspace) workspace.dataset.modelingLanguageTab = activeTab;
+  const activeTabLabel = MODELING_LANGUAGE_GUIDE_TABS.find((tab) => tab.id === activeTab)?.label || "安全架构建模语言";
   const tabPanels = {
     overview: renderModelingLanguageOverviewPanel(),
     elements: renderModelingElementLegendPanel(),
   };
+  const headerActions = activeTab === "overview" ? `
+    <div class="modeling-poster-actions">
+      <button class="modeling-poster-expand-button" type="button" data-modeling-poster-open="full">
+        <span aria-hidden="true">⤢</span>
+        全页面显示
+      </button>
+      <a class="modeling-poster-download" href="${escapeHtml(ARCHIMATE_POSTER_PDF_PATH)}" download="archimate-poster-v3.2-zh.pdf">
+        <span aria-hidden="true">↓</span>
+        下载 PDF
+      </a>
+    </div>
+  ` : `
+    <div class="modeling-legend-bulk-actions" aria-label="元素图例折叠控制">
+      <button class="modeling-legend-bulk-button" type="button" data-modeling-legend-action="expand-all">全部展开</button>
+      <button class="modeling-legend-bulk-button" type="button" data-modeling-legend-action="collapse-all">全部收起</button>
+    </div>
+  `;
 
   const tabs = MODELING_LANGUAGE_GUIDE_TABS.map(
     (tab) => `
@@ -3350,22 +3497,32 @@ function renderModelingLanguageGuide(routeInfo = {}) {
   setCurrentAnnotationTarget(contentUserTarget(null, routeInfo), { pageTitle: routeItem.label || "安全架构建模语言" });
   setText("contentNavTitle", "");
   setHtml("contentNavList", "");
-  setText("contentPageTitle", routeItem.label || "安全架构建模语言");
-  setText("contentPageCount", MODELING_LANGUAGE_GUIDE_TABS.length);
+  setText("contentPageTitle", activeTabLabel);
+  const pageCount = $("contentPageCount");
+  if (pageCount) pageCount.className = "count-pill";
+  setText("contentPageCount", "");
+  setHtml(
+    "modelingLanguageHeaderTabs",
+    `
+      <div class="maintenance-section-tabs modeling-language-tabs" role="tablist" aria-label="安全架构建模语言页签">
+        ${tabs}
+      </div>
+    `,
+  );
   setHtml(
     "contentList",
     `
       <article class="modeling-language-guide-panel">
         <header class="modeling-language-guide-header">
-          <div>
-            <h2>${escapeHtml(routeItem.label || "安全架构建模语言")}</h2>
-            <p>${escapeHtml(routeInfo.description || "用于维护 SAPD 安全架构建模语言、图例、元模型和关系线口径。")}</p>
-          </div>
-          <div class="maintenance-section-tabs modeling-language-tabs" role="tablist" aria-label="安全架构建模语言页签">
-            ${tabs}
-          </div>
+          <h2>${escapeHtml(activeTabLabel)}</h2>
+          ${headerActions}
         </header>
         <div class="modeling-language-guide-body" role="tabpanel">
+          ${activeTab === "elements" ? `
+            <section class="modeling-language-lead">
+              <p>SAPD 安全架构建模使用的元素图例，按受控 registry 渲染。</p>
+            </section>
+          ` : ""}
           ${tabPanels[activeTab]}
         </div>
       </article>
@@ -4807,6 +4964,8 @@ function renderContent() {
     return;
   }
   $("contentWorkspace")?.classList.remove("modeling-language-guide-workspace");
+  const pageCount = $("contentPageCount");
+  if (pageCount) pageCount.className = "count-pill";
   const requiredGuidePackage = GUIDE_ROUTE_PACKAGES[state.activeRoute];
   if (!state.loadedPackages.has("content") || (requiredGuidePackage && !state.loadedPackages.has(requiredGuidePackage))) {
     setText("contentNavTitle", "幻灯片目录");
@@ -5220,10 +5379,42 @@ function bindEvents() {
     const handle = event.target.closest(".workspace-resizer");
     if (handle) beginWorkspaceResize(event, handle);
   });
+  document.addEventListener("pointerdown", (event) => {
+    beginModelingPosterLightboxDrag(event);
+  });
+  document.addEventListener("pointermove", (event) => {
+    updateModelingPosterLightboxDrag(event);
+  });
+  document.addEventListener("pointerup", (event) => {
+    endModelingPosterLightboxDrag(event);
+  });
+  document.addEventListener("pointercancel", (event) => {
+    endModelingPosterLightboxDrag(event);
+  });
+  document.addEventListener("wheel", (event) => {
+    handleModelingPosterLightboxWheel(event);
+  }, { passive: false });
+  document.addEventListener("dblclick", (event) => {
+    if (!state.modelingPosterLightboxTarget) return;
+    if (!event.target?.closest?.(".modeling-poster-lightbox-scroll")) return;
+    applyModelingPosterLightboxZoom(1);
+  });
+  document.addEventListener("fullscreenchange", () => {
+    if (!state.modelingPosterLightboxTarget || document.fullscreenElement) return;
+    state.modelingPosterLightboxTarget = null;
+    state.modelingPosterLightboxZoom = 1;
+    renderContent();
+  });
   document.addEventListener("keydown", (event) => {
-    if (state.modelingPosterExpanded && event.key === "Escape") {
-      state.modelingPosterExpanded = false;
-      renderContent();
+    const legendSummary = event.target?.closest?.(".modeling-legend-section-summary");
+    if (legendSummary && ["Enter", " "].includes(event.key)) {
+      event.preventDefault();
+      toggleModelingLegendSection(legendSummary);
+      return;
+    }
+    if (state.modelingPosterLightboxTarget && event.key === "Escape") {
+      event.preventDefault();
+      closeModelingPosterLightbox();
       return;
     }
     if (state.activeView !== "content") return;
@@ -5311,19 +5502,39 @@ function bindEvents() {
       if (lifecycle.dataset.lifecycleKind === "data") state.selectedDataProcessId = lifecycle.dataset.lifecycleId;
       renderLifecycle(lifecycle.dataset.lifecycleKind);
     }
-    const modelingPosterOpen = event.target.closest("[data-modeling-poster-open]");
-    if (modelingPosterOpen) {
-      state.modelingPosterExpanded = modelingPosterOpen.dataset.modelingPosterOpen || "full";
-      renderContent();
+    const modelingPosterLightboxClose = event.target.closest("[data-modeling-poster-lightbox-close]");
+    if (modelingPosterLightboxClose) {
+      closeModelingPosterLightbox();
       return;
     }
-    if (event.target.closest("[data-modeling-poster-close]")) {
-      state.modelingPosterExpanded = false;
-      renderContent();
+    if (state.modelingPosterLightboxTarget && event.target?.classList?.contains("modeling-poster-lightbox-scroll")) {
+      if (state.modelingPosterLightboxDragging) return;
+      closeModelingPosterLightbox();
+      return;
+    }
+    const modelingPosterLightboxAction = event.target.closest("[data-modeling-poster-lightbox-action]");
+    if (modelingPosterLightboxAction) {
+      updateModelingPosterLightboxZoom(modelingPosterLightboxAction.dataset.modelingPosterLightboxAction);
+      return;
+    }
+    const modelingPosterOpen = event.target.closest("[data-modeling-poster-open]");
+    if (modelingPosterOpen) {
+      openModelingPosterLightbox(modelingPosterOpen.dataset.modelingPosterOpen || "full");
+      return;
+    }
+    const modelingLegendAction = event.target.closest("[data-modeling-legend-action]");
+    if (modelingLegendAction) {
+      setModelingLegendSections(modelingLegendAction.dataset.modelingLegendAction === "expand-all");
+      return;
+    }
+    const modelingLegendSummary = event.target.closest(".modeling-legend-section-summary");
+    if (modelingLegendSummary) {
+      event.preventDefault();
+      toggleModelingLegendSection(modelingLegendSummary);
       return;
     }
     const modelingLanguageTab = event.target.closest("[data-modeling-language-tab]");
-    if (modelingLanguageTab && modelingLanguageTab.closest("#contentWorkspace")) {
+    if (modelingLanguageTab) {
       state.activeModelingLanguageTab = modelingLanguageTab.dataset.modelingLanguageTab;
       renderContent();
       return;

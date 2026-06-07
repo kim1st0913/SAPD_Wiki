@@ -16,7 +16,7 @@
 |---|---|---|
 | OI-038 | 待确认 | Gartner 与安全职能候选映射需后续人工校对 |
 | OI-128 | 部分完成 | USER-WRITE-UI-1：批注 / 工作台用户写入入口 |
-| OI-133 | 待设计 | ArchiMate 建模语言页显示效果与加载效率优化 |
+| OI-133 | 已修复 / 待人工验收 | ArchiMate 建模语言页显示效果与加载效率优化 |
 | OI-135 | 正式迁移脚本完成 / 真实库 apply 待显式确认 | 用户库治理与兼容表迁移清理 |
 
 ## 问题记录模板
@@ -66,15 +66,15 @@
 - 验证结果：2026-06-03 通过本地 `5173` API 写入 / 读取 / 删除闭环验证：`POST /api/v1/user/favorites` 写入 `base:capability_focus:OI-128A-SMOKE` 成功，`GET` 可读，`DELETE` 后列表消失；`node scripts/frontend_smoke_check.mjs --page capability --url http://127.0.0.1:5173` 通过。2026-06-03 `OI-128B` 真实 Chrome 回归覆盖 `/knowledge/technical-services`、`/knowledge/capabilities`、`/standards/mlps-level-3`、`/guides/security-architecture-modeling-language`，均有 `userObjectActionsProbe.count=1`、`consoleIssues=0`。2026-06-04 `OI-128C` 通过 `POST /api/v1/user/notes`、`GET`、`PATCH`、`DELETE` 本地 API 闭环；真实 Chrome 回归覆盖 `/capability-mapping`、`/knowledge/technical-services`、`/standards/mlps-level-3`、`/guides/security-architecture-modeling-language`，均确认右侧批注抽屉存在、可展开、旧横向条数量为 0、`workspaceWidthDelta=0`、`consoleIssues=0`。2026-06-05 `node scripts/audit_user_annotation_contract.mjs` 通过，动态渲染样例确认 `LC-AP=14`、`LC-DT=11`、参考数据 `3` 个值级锚点。2026-06-05 全局版审计通过，覆盖能力映射技术 / 管理、信息化环境、技术服务、技术模块、技术措施、LC-AP 参考数据、详情面板、标准 / 框架和折叠目录定位契约。2026-06-05 overlay 修复后 `node --check frontend/capability-browser/app.js`、`node scripts/audit_user_annotation_contract.mjs`、`node scripts/audit_frontend_display_contract.mjs`、`node scripts/audit_frontend_lazy_load_contract.mjs`、`python3 scripts/dev_server_guard.py --status`、`git diff --check` 均通过；轻量 smoke 覆盖 `/capability-mapping`、`/environment-mapping`、`/development-security`、`/data-security`、`/knowledge/capabilities`、`/knowledge/technical-services`、`/knowledge/technical`、`/knowledge/technical-measures`、`/knowledge/functions`、`/knowledge/processes`、`/standards/nist-csf-2`、`/standards/mlps-level-3`、`/standards/iso-27001-2022`、`/standards/cis-csc-v8`、`/standards/crf`、`/standards/nist-800-53-rev5`、`/standards/dsp-level-2`、`/guides/security-architecture-modeling-language` 均通过；本轮未启动系统 Chrome，避免复现 Chrome 崩溃。2026-06-05 严格真实 Chrome 回归通过：`node scripts/audit_saved_user_annotations.mjs --url http://127.0.0.1:5173 --allow-system-chrome --debug-port 9397 --width 1800 --height 1200 --compact` 返回 `noteCount=24`、`passed=24`、`failed=0`、`consoleIssues=[]`，并逐条满足 `granularityOk=true`、`persistentAfterClick=true`、`unexpectedMarkedCount=0`。2026-06-05 二次严格真实 Chrome 回归通过：`node scripts/audit_saved_user_annotations.mjs --url http://127.0.0.1:5173 --allow-system-chrome --debug-port 9404 --width 1800 --height 1200 --compact` 返回 `noteCount=24`、`passed=24`、`failed=0`、`consoleIssues=[]`，并逐条满足 `normalMarkedBeforeLocate=true`、`activeAfterJump=true`、`granularityOk=true`、`persistentAfterClick=true`、`drawerPanelOk=true`、`currentNoteCardOk=true`、`drawerScrollPreserved=true`、`locateButtonClicked=true`、`unexpectedMarkedCount=0`。2026-06-07 数据篮最小 API smoke 通过：`node scripts/smoke_user_data_basket_api.mjs` 在临时 ZIP bundle / 临时 user DB 中验证 token 拒绝、创建数据篮、条目 upsert、读取、删除条目和删除数据篮闭环。
 ## OI-133：ArchiMate 建模语言页显示效果与加载效率优化
 
-- 状态：待设计
+- 状态：已修复 / 待人工验收
 - 类型：前端 / 设计 / 性能
 - 对象或页面：`安全指南 / 安全架构建模语言`，路由 `/guides/security-architecture-modeling-language`。
-- 现象：`archimate建模` 会话已把 PDF iframe 改为整页 JPG + 6 个区域 JPG，并提供 PDF 下载，但页面效果仍未达到用户预期。当前页面更像“Poster 素材陈列”，还没有形成清晰的建模语言阅读路径、区域导航、SAPD 映射说明和高效加载策略。
-- 影响：用户查看标准海报和 SAPD 元素图例时容易迷路；首屏仍可能加载整页图和多张区域图；后续如果继续局部调 UI，可能再次造成视觉杂糅和性能回退。
-- 当前处理：新增优化评估文档 `docs/06-implementation/archimate-modeling-page-optimization-plan.md`，建议将该页从图片查看器升级为“建模语言参考工作页”，并作为独立执行线处理。
-- 需要确认：后续是否先实现 `P1 区域导航 + 当前区域阅读器`，还是先补 `SAPD 元素图例 -> ArchiMate 区域` 的映射说明。
-- 修复说明：待设计 / 待实现。当前不直接修改前端运行代码。
-- 验证结果：待后续执行页面截图 / DOM 摘要、图片请求数、首屏加载、固定 `5173` smoke 和字段边界检查。
+- 现象：`archimate建模` 会话已把 PDF iframe 改为整页 JPG + 6 个区域 JPG，并提供 PDF 下载，但页面效果仍未达到用户预期。用户 2026-06-07 明确否定“下方区域阅读器”方案，要求在 PDF / Poster 图本身上分块，点击相应分块后弹出相关位置放大图。
+- 影响：如果继续保留下方区域阅读器，用户会把该页理解成素材陈列或双重阅读路径；Poster 本体与放大区域之间的空间关系不够直接。
+- 当前处理：2026-06-07 按用户最新纠偏再次修正：恢复两层标题结构，最大标题为 `安全架构建模语言`，第二标题为 `ArchiMate® 3.2 - 企业架构建模标准`；tab 组跟在最大标题后面并居右，`全页面显示` / `下载 PDF` 跟在第二标题后面；删除下方区域阅读器、区域目录、区域卡片和不够精确的热区浮层；主体空间留给整张 ArchiMate Poster，容器允许纵向滚动；点击图片或 `全页面显示` 时在当前页面内打开 Image Lightbox / Fullscreen Modal，并对预览容器调用 Fullscreen API；不再使用 `window.open`、`target="_blank"`、`Blob` 页面或浏览器原生新窗口 UI；预览层深色底色、默认 contain 适配屏幕，右上角关闭、Esc 关闭、点击遮罩空白区域关闭，工具栏只保留放大、缩小和适应，不显示下载按钮；支持鼠标滚轮缩放和按住拖动平移；缩放以适应屏幕后的显示宽度为基准，按钮和滚轮均采用小步进并带宽度过渡，避免第一次操作直接跳成超大图；本地整图预览资源已从 PDF 重新导出为 `6741 x 4768` 高分辨率 JPG，退出后恢复原页面和当前路由状态。
+- 需要确认：用户在固定入口 `http://127.0.0.1:5173/guides/security-architecture-modeling-language` 人工验收上方 tab 位置、Poster 可滚动区域、页面内全屏预览清晰度、关闭按钮和 Esc / 空白关闭是否符合预期；如通过，可将状态改为 `已修复`。
+- 修复说明：本轮只改 `frontend/capability-browser/app.js`、`frontend/capability-browser/styles.css`、`frontend/capability-browser/index.html`、`frontend/capability-browser/components/AppShell.js` 和状态文档；不改数据库、数据包、ETL、用户库或 `SAPD 元素图例` registry。PDF 不嵌入页面，只保留上方下载入口；当前不做 Poster 分块点击，避免不精确切割造成误导。
+- 验证结果：2026-06-07 `rg 'download="archimate-poster-overview|下载图片|>下载<|window.open|target="_blank"|createObjectURL|new Blob|Blob\(' frontend/capability-browser/app.js frontend/capability-browser/styles.css` 无命中；`sips -g pixelWidth -g pixelHeight frontend/capability-browser/public/data/guides/archimate-poster/archimate-poster-overview.jpg` 确认为 `6741 x 4768`；`node --check frontend/capability-browser/app.js`、`node --check frontend/capability-browser/components/AppShell.js` 通过；`python3 scripts/dev_server_guard.py --status` 通过，固定 `5173` 单一项目服务健康；`node scripts/frontend_smoke_check.mjs --page content --route /guides/security-architecture-modeling-language --url http://127.0.0.1:5173` 轻量 HTTP smoke 通过，未启动系统 Chrome；内置浏览器检查确认点击 `全页面显示` 后工具栏文本为 `− 适应 ＋` 且下载控件数量为 0，图片自然尺寸为 `6741 x 4768`，初始适应宽约 `984px`，第一次滚轮仅放大到约 `1063px`，再点一次放大按钮约 `1240px`，拖动后滚动位置发生变化，Esc 可关闭并恢复原页面；源码确认 `requestModelingPosterFullscreen()` 会在浏览器提供 `requestFullscreen` 时对预览容器调用 Fullscreen API，内置浏览器运行时本身未暴露该 API，无法在该环境断言 `document.fullscreenElement`；`git diff --check` 通过；`python3 scripts/check_github_data_boundary.py` 通过。2026-06-07 追加验证 `SAPD 元素图例`：四个分组默认全部 `open=false`，点击第一个分组标题后变为 `open=true`，再次点击恢复 `open=false`；分组内 `展开 / 收起` 文字状态胶囊已删除，二级标题行右侧 `全部展开` / `全部收起` 可统一控制四个分组；`node --check frontend/capability-browser/app.js`、content smoke 和相关 `git diff --check` 均通过。
 ## OI-135：用户库治理与兼容表迁移清理
 
 - 状态：正式迁移脚本完成 / 真实库 apply 待显式确认

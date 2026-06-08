@@ -100,6 +100,42 @@ const modelingPosterDragState = {
   scrollTop: 0,
 };
 
+const environmentBasemapDragState = {
+  active: false,
+  pointerId: null,
+  startX: 0,
+  startY: 0,
+  panX: 0,
+  panY: 0,
+  moved: false,
+  suppressNextClick: false,
+};
+
+const ENVIRONMENT_BASEMAP_MIN_SCALE = 0.12;
+const ENVIRONMENT_BASEMAP_MAX_SCALE = 4;
+const ENVIRONMENT_BASEMAP_FIT_PADDING = 28;
+const ENVIRONMENT_BASEMAP_DRAG_THRESHOLD = 5;
+const ENVIRONMENT_BASEMAP_TOOLTIP_DELAY = 500;
+const environmentBasemapTooltipState = {
+  timer: 0,
+  node: null,
+};
+
+const environmentBasemapHtmlCache = new Map();
+const environmentBasemapNodeDetailsCache = new Map();
+const ENVIRONMENT_BASEMAP_OBJECT_TYPE_LABELS = Object.freeze({
+  information_environment: "信息化环境",
+  environment_segment: "环境子类",
+  information_object: "信息化对象",
+  environment_zone: "环境区域",
+  external_network: "外部网络",
+  actor: "参与方",
+  scope_type: "作用域",
+  security_technical_service: "安全技术服务",
+  security_technology_module: "安全技术模块",
+  security_technical_measure: "安全技术措施",
+});
+
 const $ = (id) => document.getElementById(id);
 const list = (value) => (Array.isArray(value) ? value : []);
 const text = (value) => (value == null ? "" : String(value));
@@ -240,6 +276,7 @@ const MODELING_RELATION_LEGENDS = [
   { name: "服务关系", base: "Serving", definition: "应用之间的业务服务关系，表示某个元素将功能提供给另一个元素，例如某个应用组件提供认证服务给业务应用。", lineType: "serving" },
   { name: "数据流 / 控制流", base: "Flow", definition: "表示从一个元素转到另一个元素，通常用来表示信息流的传递。", lineType: "flow" },
   { name: "访问关系", base: "Access", definition: "三条线都是访问关系，表示行为和主动结构元素观察或处理被动结构元素的能力，典型示例如应用组件访问数据库。", lineType: "access", lineVariants: ["access-none", "access-both", "access-end"] },
+  { name: "连接关系", base: "Association", definition: "表示两个架构元素之间存在一般连接或关联，用于表达不适合归入服务、流转或访问语义的弱关系。", lineType: "association", lineVariants: ["association-none", "association-end"] },
 ];
 const escapeHtml = (value) =>
   text(value)
@@ -2236,7 +2273,7 @@ function renderUserAnnotationDrawer(options = {}) {
   const previousDrawer = mount.querySelector(".user-annotation-drawer");
   const previousOpen = previousDrawer ? previousDrawer.classList.contains("is-open") : null;
   const nextOpen = Boolean(state.userAnnotationDrawerOpen);
-  const previousPanelScrollTop = options.preserveScroll ? mount.querySelector(".annotation-drawer-panel")?.scrollTop || 0 : 0;
+  const previousPanelScrollTop = options.preserveScroll ? mount.querySelector(".annotation-drawer-scroll")?.scrollTop || 0 : 0;
   const target = state.activeUserTarget || state.activePageAnnotationTarget || currentPageAnnotationTarget();
   const pageTarget = state.activePageAnnotationTarget || currentPageAnnotationTarget();
   setHtml(
@@ -2271,7 +2308,7 @@ function renderUserAnnotationDrawer(options = {}) {
       });
     }
     if (options.preserveScroll) {
-      const nextPanel = mount.querySelector(".annotation-drawer-panel");
+      const nextPanel = mount.querySelector(".annotation-drawer-scroll");
       if (nextPanel) nextPanel.scrollTop = previousPanelScrollTop;
     }
     scheduleAnnotationAnchorMarkers("render-drawer", { delays: [0, 80] });
@@ -3427,6 +3464,486 @@ function endModelingPosterLightboxDrag(event) {
   }, 0);
 }
 
+function getEnvironmentBasemapViewer(target = document) {
+  return target?.closest?.("[data-environment-basemap-viewer]") || document.querySelector("[data-environment-basemap-viewer]");
+}
+
+function getEnvironmentBasemapViewport(viewer) {
+  return viewer?.querySelector?.("[data-environment-basemap-viewport]");
+}
+
+function getEnvironmentBasemapPanZoomLayer(viewer) {
+  return viewer?.querySelector?.("[data-environment-basemap-panzoom-layer]") || viewer?.querySelector?.("[data-environment-basemap-stage]");
+}
+
+function environmentBasemapNumber(value, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function clampEnvironmentBasemapScale(value) {
+  return Math.max(ENVIRONMENT_BASEMAP_MIN_SCALE, Math.min(ENVIRONMENT_BASEMAP_MAX_SCALE, environmentBasemapNumber(value, 1)));
+}
+
+function environmentBasemapCanvasSize(layer) {
+  return {
+    width: Math.max(1, Number.parseFloat(layer?.style?.getPropertyValue("--basemap-stage-width")) || layer?.offsetWidth || 1),
+    height: Math.max(1, Number.parseFloat(layer?.style?.getPropertyValue("--basemap-stage-height")) || layer?.offsetHeight || 1),
+  };
+}
+
+function environmentBasemapViewportSize(viewer) {
+  const viewport = getEnvironmentBasemapViewport(viewer) || viewer;
+  return {
+    width: Math.max(1, viewport?.clientWidth || viewer?.clientWidth || 1),
+    height: Math.max(1, viewport?.clientHeight || viewer?.clientHeight || 1),
+  };
+}
+
+function updateEnvironmentBasemapZoomLabel(viewer, scale, mode = "") {
+  const labelRoot = viewer?.closest?.(".environment-basemap-map") || viewer || document;
+  const label = labelRoot?.querySelector?.("[data-environment-basemap-zoom-label]");
+  if (!label) return;
+  label.textContent = mode === "fit" ? "适应" : `${Math.round(scale * 100)}%`;
+}
+
+function applyEnvironmentBasemapTransform(viewer) {
+  const layer = getEnvironmentBasemapPanZoomLayer(viewer);
+  if (!layer) return;
+  const scale = clampEnvironmentBasemapScale(viewer.dataset.basemapScale || 1);
+  const panX = environmentBasemapNumber(viewer.dataset.basemapPanX, 0);
+  const panY = environmentBasemapNumber(viewer.dataset.basemapPanY, 0);
+  viewer.dataset.basemapScale = String(scale);
+  viewer.dataset.basemapPanX = String(panX);
+  viewer.dataset.basemapPanY = String(panY);
+  layer.style.setProperty("--basemap-viewer-scale", String(scale));
+  layer.style.setProperty("--basemap-viewer-x", `${panX}px`);
+  layer.style.setProperty("--basemap-viewer-y", `${panY}px`);
+  updateEnvironmentBasemapZoomLabel(viewer, scale, viewer.dataset.basemapMode);
+}
+
+function setEnvironmentBasemapTransform(viewer, nextScale, nextPanX, nextPanY, mode = "custom") {
+  if (!viewer) return;
+  viewer.dataset.basemapScale = String(clampEnvironmentBasemapScale(nextScale));
+  viewer.dataset.basemapPanX = String(environmentBasemapNumber(nextPanX, 0));
+  viewer.dataset.basemapPanY = String(environmentBasemapNumber(nextPanY, 0));
+  viewer.dataset.basemapMode = mode;
+  applyEnvironmentBasemapTransform(viewer);
+}
+
+function fitEnvironmentBasemapViewer(viewer) {
+  if (!viewer) return;
+  const layer = getEnvironmentBasemapPanZoomLayer(viewer);
+  if (!layer) return;
+  const canvas = environmentBasemapCanvasSize(layer);
+  const viewport = environmentBasemapViewportSize(viewer);
+  const availableWidth = Math.max(1, viewport.width - ENVIRONMENT_BASEMAP_FIT_PADDING);
+  const availableHeight = Math.max(1, viewport.height - ENVIRONMENT_BASEMAP_FIT_PADDING);
+  const scale = clampEnvironmentBasemapScale(Math.min(availableWidth / canvas.width, availableHeight / canvas.height));
+  const panX = (viewport.width - canvas.width * scale) / 2;
+  const panY = (viewport.height - canvas.height * scale) / 2;
+  setEnvironmentBasemapTransform(viewer, scale, panX, panY, "fit");
+}
+
+function zoomEnvironmentBasemapAt(viewer, nextScale, clientX = null, clientY = null) {
+  if (!viewer) return;
+  const viewport = getEnvironmentBasemapViewport(viewer);
+  if (!viewport) return;
+  const currentScale = clampEnvironmentBasemapScale(viewer.dataset.basemapScale || 1);
+  const scale = clampEnvironmentBasemapScale(nextScale);
+  const rect = viewport.getBoundingClientRect();
+  const focusX = Number.isFinite(clientX) ? clientX - rect.left : rect.width / 2;
+  const focusY = Number.isFinite(clientY) ? clientY - rect.top : rect.height / 2;
+  const panX = environmentBasemapNumber(viewer.dataset.basemapPanX, 0);
+  const panY = environmentBasemapNumber(viewer.dataset.basemapPanY, 0);
+  const contentX = (focusX - panX) / currentScale;
+  const contentY = (focusY - panY) / currentScale;
+  setEnvironmentBasemapTransform(viewer, scale, focusX - contentX * scale, focusY - contentY * scale, "custom");
+}
+
+function updateEnvironmentBasemapViewer(action, trigger = null) {
+  const viewer = getEnvironmentBasemapViewer(trigger);
+  if (!viewer) return;
+  const currentScale = clampEnvironmentBasemapScale(viewer.dataset.basemapScale || 1);
+  if (action === "fit") {
+    fitEnvironmentBasemapViewer(viewer);
+    return;
+  }
+  if (action === "zoom-in") zoomEnvironmentBasemapAt(viewer, currentScale * 1.16);
+  if (action === "zoom-out") zoomEnvironmentBasemapAt(viewer, currentScale / 1.16);
+}
+
+function handleEnvironmentBasemapWheel(event) {
+  const viewport = event.target?.closest?.("[data-environment-basemap-viewport]");
+  const viewer = viewport?.closest?.("[data-environment-basemap-viewer]");
+  if (!viewer) return false;
+  event.preventDefault();
+  const currentScale = clampEnvironmentBasemapScale(viewer.dataset.basemapScale || 1);
+  const factor = Math.exp(-event.deltaY * 0.0012);
+  zoomEnvironmentBasemapAt(viewer, currentScale * factor, event.clientX, event.clientY);
+  return true;
+}
+
+function beginEnvironmentBasemapDrag(event) {
+  if (event.button !== 0) return;
+  const viewport = event.target?.closest?.("[data-environment-basemap-viewport]");
+  const viewer = viewport?.closest?.("[data-environment-basemap-viewer]");
+  const layer = getEnvironmentBasemapPanZoomLayer(viewer);
+  if (!viewport || !viewer || !layer || event.target?.closest?.("[data-environment-basemap-action], [data-environment-basemap-fullscreen]")) return;
+  environmentBasemapDragState.active = true;
+  environmentBasemapDragState.pointerId = event.pointerId;
+  environmentBasemapDragState.startX = event.clientX;
+  environmentBasemapDragState.startY = event.clientY;
+  environmentBasemapDragState.panX = environmentBasemapNumber(viewer.dataset.basemapPanX, 0);
+  environmentBasemapDragState.panY = environmentBasemapNumber(viewer.dataset.basemapPanY, 0);
+  environmentBasemapDragState.moved = false;
+  layer.classList.add("is-dragging");
+  viewport.setPointerCapture?.(event.pointerId);
+  event.preventDefault();
+}
+
+function updateEnvironmentBasemapDrag(event) {
+  if (!environmentBasemapDragState.active) return;
+  if (environmentBasemapDragState.pointerId !== event.pointerId) return;
+  const viewer = document.querySelector("[data-environment-basemap-viewer]");
+  if (!viewer) return;
+  const deltaX = event.clientX - environmentBasemapDragState.startX;
+  const deltaY = event.clientY - environmentBasemapDragState.startY;
+  if (!environmentBasemapDragState.moved && Math.hypot(deltaX, deltaY) < ENVIRONMENT_BASEMAP_DRAG_THRESHOLD) return;
+  environmentBasemapDragState.moved = true;
+  setEnvironmentBasemapTransform(
+    viewer,
+    viewer.dataset.basemapScale || 1,
+    environmentBasemapDragState.panX + deltaX,
+    environmentBasemapDragState.panY + deltaY,
+    "custom",
+  );
+}
+
+function endEnvironmentBasemapDrag(event) {
+  if (!environmentBasemapDragState.active) return;
+  if (environmentBasemapDragState.pointerId !== event.pointerId) return;
+  const viewport = document.querySelector("[data-environment-basemap-viewport]");
+  const layer = getEnvironmentBasemapPanZoomLayer(document.querySelector("[data-environment-basemap-viewer]"));
+  viewport?.releasePointerCapture?.(event.pointerId);
+  layer?.classList.remove("is-dragging");
+  if (environmentBasemapDragState.moved) {
+    environmentBasemapDragState.suppressNextClick = true;
+    window.setTimeout(() => {
+      environmentBasemapDragState.suppressNextClick = false;
+    }, 80);
+  }
+  environmentBasemapDragState.active = false;
+  environmentBasemapDragState.pointerId = null;
+  environmentBasemapDragState.moved = false;
+}
+
+function prepareEnvironmentBasemapNodeTooltips(slot) {
+  slot?.querySelectorAll?.(".basemap-node[title]").forEach((node) => {
+    const value = node.getAttribute("title");
+    if (value) node.dataset.basemapTooltip = value;
+    node.removeAttribute("title");
+  });
+}
+
+function hideEnvironmentBasemapTooltip() {
+  if (environmentBasemapTooltipState.timer) window.clearTimeout(environmentBasemapTooltipState.timer);
+  environmentBasemapTooltipState.timer = 0;
+  environmentBasemapTooltipState.node = null;
+  document.querySelectorAll("[data-environment-basemap-tooltip]").forEach((tooltip) => {
+    tooltip.hidden = true;
+    tooltip.textContent = "";
+  });
+}
+
+function showEnvironmentBasemapTooltip(node) {
+  const viewer = getEnvironmentBasemapViewer(node);
+  const viewport = getEnvironmentBasemapViewport(viewer);
+  const tooltip = viewer?.querySelector?.("[data-environment-basemap-tooltip]");
+  if (!node || !viewport || !tooltip || environmentBasemapTooltipState.node !== node) return;
+  const label = text(node.dataset.basemapTooltip || node.dataset.label || node.dataset.mxId).trim();
+  if (!label) return;
+  const viewportRect = viewport.getBoundingClientRect();
+  const nodeRect = node.getBoundingClientRect();
+  tooltip.textContent = label;
+  tooltip.hidden = false;
+  const top = Math.max(10, Math.min(viewportRect.height - 46, nodeRect.top - viewportRect.top + 12));
+  const left = Math.max(10, Math.min(viewportRect.width - 260, nodeRect.right - viewportRect.left + 10));
+  tooltip.style.transform = `translate(${left}px, ${top}px)`;
+}
+
+function scheduleEnvironmentBasemapTooltip(node) {
+  if (!node) return;
+  hideEnvironmentBasemapTooltip();
+  environmentBasemapTooltipState.node = node;
+  environmentBasemapTooltipState.timer = window.setTimeout(() => {
+    environmentBasemapTooltipState.timer = 0;
+    showEnvironmentBasemapTooltip(node);
+  }, ENVIRONMENT_BASEMAP_TOOLTIP_DELAY);
+}
+
+function handleEnvironmentBasemapPointerOver(event) {
+  const node = event.target?.closest?.(".basemap-node[data-mx-id]");
+  if (!node || !event.target?.closest?.("[data-environment-basemap-viewport]")) return;
+  scheduleEnvironmentBasemapTooltip(node);
+}
+
+function handleEnvironmentBasemapPointerOut(event) {
+  const node = event.target?.closest?.(".basemap-node[data-mx-id]");
+  if (!node) return;
+  if (node.contains(event.relatedTarget)) return;
+  hideEnvironmentBasemapTooltip();
+}
+
+async function hydrateEnvironmentBasemapHtml() {
+  const slot = document.querySelector("[data-environment-basemap-html]");
+  if (!slot || slot.dataset.basemapLoaded === "true") return;
+  const url = slot.dataset.environmentBasemapHtml;
+  if (!url) return;
+  try {
+    let html = environmentBasemapHtmlCache.get(url);
+    if (!html) {
+      const response = await fetch(url, { cache: "no-store" });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      html = await response.text();
+      environmentBasemapHtmlCache.set(url, html);
+    }
+    slot.innerHTML = html;
+    prepareEnvironmentBasemapNodeTooltips(slot);
+    slot.dataset.basemapLoaded = "true";
+    requestAnimationFrame(() => fitEnvironmentBasemapViewer(slot.closest("[data-environment-basemap-viewer]")));
+  } catch (error) {
+    slot.innerHTML = `<div class="empty-state"><strong>信息化环境底图加载失败</strong><p>${escapeHtml(error?.message || "无法读取生成的 HTML 底图")}</p></div>`;
+  }
+}
+
+function environmentBasemapTypeLabel(value) {
+  const key = text(value).trim();
+  return ENVIRONMENT_BASEMAP_OBJECT_TYPE_LABELS[key] || key || "未标注类型";
+}
+
+function environmentBasemapEntityName(entity) {
+  if (!entity || typeof entity !== "object") return "";
+  const code = text(entity.objectCode || entity.code).trim();
+  const name = text(entity.objectName || entity.name || entity.title).trim();
+  return [code, name].filter(Boolean).join(" ");
+}
+
+function pushEnvironmentBasemapName(names, seen, value) {
+  const name = text(value).trim();
+  if (!name || seen.has(name)) return;
+  seen.add(name);
+  names.push(name);
+}
+
+function collectEnvironmentBasemapNames(items, mapper) {
+  const names = [];
+  const seen = new Set();
+  list(items).forEach((item) => pushEnvironmentBasemapName(names, seen, mapper(item)));
+  return names;
+}
+
+function collectEnvironmentBasemapDetailLists(detail) {
+  const mappings = list(detail?.scopeMappings);
+  const scopes = collectEnvironmentBasemapNames(mappings, (mapping) => environmentBasemapEntityName(mapping.scope));
+  const services = [];
+  const modules = [];
+  const measures = [];
+  const seenServices = new Set();
+  const seenModules = new Set();
+  const seenMeasures = new Set();
+  mappings.forEach((mapping) => {
+    list(mapping.services).forEach((service) => {
+      pushEnvironmentBasemapName(services, seenServices, environmentBasemapEntityName(service));
+      list(service.modules).forEach((module) => {
+        pushEnvironmentBasemapName(modules, seenModules, environmentBasemapEntityName(module));
+      });
+      list(service.measures).forEach((measure) => {
+        pushEnvironmentBasemapName(measures, seenMeasures, environmentBasemapEntityName(measure));
+      });
+    });
+  });
+  return { scopes, services, modules, measures };
+}
+
+function renderEnvironmentBasemapValue(value) {
+  const label = text(value).trim();
+  return label ? `<span class="environment-basemap-value">${escapeHtml(label)}</span>` : '<span class="environment-basemap-empty-value">暂无</span>';
+}
+
+function renderEnvironmentBasemapChipList(items, maxItems = 10) {
+  const values = list(items).map((item) => text(item).trim()).filter(Boolean);
+  if (!values.length) return '<span class="environment-basemap-empty-value">暂无</span>';
+  const visible = values.slice(0, maxItems);
+  const hiddenCount = Math.max(0, values.length - visible.length);
+  return `
+    <div class="environment-basemap-chip-list">
+      ${visible.map((item) => `<span class="environment-basemap-chip">${escapeHtml(item)}</span>`).join("")}
+      ${hiddenCount ? `<span class="environment-basemap-chip is-more">另 ${escapeHtml(hiddenCount)} 项</span>` : ""}
+    </div>
+  `;
+}
+
+function renderEnvironmentBasemapField(label, valueHtml) {
+  return `
+    <div class="environment-basemap-detail-field">
+      <dt>${escapeHtml(label)}</dt>
+      <dd>${valueHtml}</dd>
+    </div>
+  `;
+}
+
+function renderEnvironmentBasemapBoundDetail(detail, node) {
+  const lists = collectEnvironmentBasemapDetailLists(detail);
+  const objectName =
+    text(detail?.objectName).trim() ||
+    environmentBasemapEntityName(detail?.informationObject) ||
+    text(node?.dataset?.objectName).trim() ||
+    text(node?.dataset?.label).trim() ||
+    "未命名对象";
+  const environmentName = environmentBasemapEntityName(detail?.environment) || (detail?.objectType === "information_environment" ? objectName : "");
+  const segments = collectEnvironmentBasemapNames(detail?.segments, environmentBasemapEntityName);
+  return `
+    <div class="environment-basemap-detail-card is-bound">
+      <div class="environment-basemap-detail-head">
+        <strong>${escapeHtml(objectName)}</strong>
+        <span>已绑定业务对象</span>
+      </div>
+      <dl class="environment-basemap-detail-grid">
+        ${renderEnvironmentBasemapField("对象名称", renderEnvironmentBasemapValue(objectName))}
+        ${renderEnvironmentBasemapField("对象类型", renderEnvironmentBasemapValue(environmentBasemapTypeLabel(detail?.objectType)))}
+        ${renderEnvironmentBasemapField("所属环境", renderEnvironmentBasemapValue(environmentName))}
+        ${renderEnvironmentBasemapField("环境子类", renderEnvironmentBasemapChipList(segments, 8))}
+        ${renderEnvironmentBasemapField("作用域", renderEnvironmentBasemapChipList(lists.scopes, 8))}
+        ${renderEnvironmentBasemapField("安全技术服务", renderEnvironmentBasemapChipList(lists.services, 8))}
+        ${renderEnvironmentBasemapField("安全技术模块", renderEnvironmentBasemapChipList(lists.modules, 8))}
+        ${renderEnvironmentBasemapField("安全技术措施", renderEnvironmentBasemapChipList(lists.measures, 8))}
+      </dl>
+    </div>
+  `;
+}
+
+function environmentBasemapIgnoredReason(reason) {
+  if (reason === "ignored_by_override") return "按绑定规则标记为图示 / 归类节点。";
+  return "图示 / 归类节点，不绑定业务对象。";
+}
+
+function renderEnvironmentBasemapIgnoredDetail(ignoredNode, node) {
+  const label = text(ignoredNode?.label || node?.dataset?.label).trim() || "未命名节点";
+  const objectType = ignoredNode?.objectType || node?.dataset?.objectType || "";
+  return `
+    <div class="environment-basemap-detail-card is-ignored">
+      <div class="environment-basemap-detail-head">
+        <strong>${escapeHtml(label)}</strong>
+        <span>图示 / 归类节点，不绑定业务对象</span>
+      </div>
+      <dl class="environment-basemap-detail-grid">
+        ${renderEnvironmentBasemapField("对象类型", renderEnvironmentBasemapValue(environmentBasemapTypeLabel(objectType)))}
+        ${renderEnvironmentBasemapField("忽略原因", renderEnvironmentBasemapValue(environmentBasemapIgnoredReason(ignoredNode?.bindingReason)))}
+      </dl>
+    </div>
+  `;
+}
+
+function renderEnvironmentBasemapMissingDetail(node) {
+  const label = text(node?.dataset?.label).trim() || "未命名节点";
+  return `
+    <div class="environment-basemap-detail-card is-empty">
+      <div class="environment-basemap-detail-head">
+        <strong>${escapeHtml(label)}</strong>
+        <span>未找到可展示的业务详情</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderEnvironmentBasemapLoading(node) {
+  const label = text(node?.dataset?.label).trim() || "节点";
+  return `
+    <div class="environment-basemap-detail-card is-loading">
+      <div class="environment-basemap-detail-head">
+        <strong>${escapeHtml(label)}</strong>
+        <span>正在读取节点详情...</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderEnvironmentBasemapError(error) {
+  return `
+    <div class="environment-basemap-detail-card is-empty">
+      <div class="environment-basemap-detail-head">
+        <strong>节点详情加载失败</strong>
+        <span>${escapeHtml(error?.message || "无法读取节点详情数据")}</span>
+      </div>
+    </div>
+  `;
+}
+
+function clearEnvironmentBasemapSelection(viewer = document) {
+  const root = viewer?.querySelectorAll ? viewer : document;
+  root.querySelectorAll(".basemap-node.is-selected").forEach((item) => item.classList.remove("is-selected"));
+  const selection = document.getElementById("environmentBasemapSelection");
+  if (selection) selection.textContent = "点击底图中的业务对象查看详情。";
+}
+
+function getEnvironmentBasemapNodeDetailsPath(viewer) {
+  return text(viewer?.dataset?.environmentBasemapNodeDetails || window.sapdEnvironmentBasemapData?.nodeDetailsPath).trim();
+}
+
+async function loadEnvironmentBasemapNodeDetails(viewer) {
+  const url = getEnvironmentBasemapNodeDetailsPath(viewer);
+  if (!url) return { nodeDetailsByMxId: {}, ignoredNodes: [] };
+  const cached = environmentBasemapNodeDetailsCache.get(url);
+  if (cached) return cached;
+  const request = fetch(url, { cache: "no-store" }).then(async (response) => {
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return response.json();
+  });
+  environmentBasemapNodeDetailsCache.set(url, request);
+  try {
+    return await request;
+  } catch (error) {
+    environmentBasemapNodeDetailsCache.delete(url);
+    throw error;
+  }
+}
+
+function findEnvironmentBasemapIgnoredNode(details, mxId) {
+  return list(details?.ignoredNodes).find((item) => item?.mxId === mxId);
+}
+
+async function selectEnvironmentBasemapNode(node) {
+  if (!node) return;
+  document.querySelectorAll(".basemap-node.is-selected").forEach((item) => {
+    if (item !== node) item.classList.remove("is-selected");
+  });
+  node.classList.add("is-selected");
+  const selection = document.getElementById("environmentBasemapSelection");
+  if (!selection) return;
+  const mxId = node.dataset.mxId || "";
+  const viewer = getEnvironmentBasemapViewer(node);
+  selection.innerHTML = renderEnvironmentBasemapLoading(node);
+  try {
+    const details = await loadEnvironmentBasemapNodeDetails(viewer);
+    if (!node.classList.contains("is-selected")) return;
+    const detail = details?.nodeDetailsByMxId?.[mxId];
+    if (detail) {
+      selection.innerHTML = renderEnvironmentBasemapBoundDetail(detail, node);
+      return;
+    }
+    const ignoredNode = findEnvironmentBasemapIgnoredNode(details, mxId);
+    if (ignoredNode || node.dataset.bindStatus === "ignored") {
+      selection.innerHTML = renderEnvironmentBasemapIgnoredDetail(ignoredNode, node);
+      return;
+    }
+    selection.innerHTML = renderEnvironmentBasemapMissingDetail(node);
+  } catch (error) {
+    if (!node.classList.contains("is-selected")) return;
+    selection.innerHTML = renderEnvironmentBasemapError(error);
+  }
+}
+
 function renderModelingLanguageOverviewPanel() {
   const posterTarget = getModelingPosterTarget("full");
   return `
@@ -3999,7 +4516,11 @@ function renderOverview() {
 
 function mountAppShellComponents() {
   const components = window.sapdComponents || {};
-  components.AppShell?.mountApplicationShell?.({ activeRoute: state.activeRoute });
+  components.AppShell?.mountApplicationShell?.({
+    activeRoute: state.activeRoute,
+    activeModelingLanguageTab: state.activeModelingLanguageTab,
+    activeEnvironmentTab: state.activeEnvironmentTab,
+  });
   components.AppShell?.mountCapabilityWorkspace($("capabilityWorkspace"));
   if ($("localModeStatus")) setHtml("localModeStatus", components.AppShell?.renderLocalModeStatus?.() || '<span class="type-pill">本地模式</span>');
 }
@@ -4101,7 +4622,12 @@ function updatePageHeaderSummary() {
 
 function updateApplicationShellChrome() {
   const components = window.sapdComponents || {};
-  components.AppShell?.updateApplicationShell?.({ activeRoute: state.activeRoute, activeView: state.activeView });
+  components.AppShell?.updateApplicationShell?.({
+    activeRoute: state.activeRoute,
+    activeView: state.activeView,
+    activeModelingLanguageTab: state.activeModelingLanguageTab,
+    activeEnvironmentTab: state.activeEnvironmentTab,
+  });
   updatePageHeaderSummary();
 }
 
@@ -4362,7 +4888,31 @@ function renderCapabilities() {
   applyCapabilityCatalogState();
 }
 
+function renderEnvironmentHeaderTabs() {
+  const root = $("environmentHeaderTabs");
+  if (!root) return;
+  const activeTab = state.activeEnvironmentTab === "mapping" ? "mapping" : "topology";
+  const tabs = [
+    { id: "topology", label: "环境底图" },
+    { id: "mapping", label: "归纳表格" },
+  ];
+  root.innerHTML = `
+    <div class="maintenance-section-tabs environment-page-tabs" role="tablist" aria-label="信息化环境页面视图">
+      ${tabs
+        .map(
+          (tab) => `
+            <button class="maintenance-section-tab ${tab.id === activeTab ? "active" : ""}" type="button" role="tab" aria-selected="${tab.id === activeTab ? "true" : "false"}" data-environment-tab="${escapeHtml(tab.id)}">
+              <span>${escapeHtml(tab.label)}</span>
+            </button>
+          `,
+        )
+        .join("")}
+    </div>
+  `;
+}
+
 function renderEnvironment() {
+  renderEnvironmentHeaderTabs();
   const viewModels = window.sapdViewModels;
   const components = window.sapdComponents || {};
   if (!state.loadedPackages.has("environmentWorkbench")) {
@@ -4420,6 +4970,7 @@ function renderEnvironment() {
       }
     `,
   );
+  hydrateEnvironmentBasemapHtml();
 }
 
 function renderLifecycle(kind) {
@@ -5380,18 +5931,25 @@ function bindEvents() {
     if (handle) beginWorkspaceResize(event, handle);
   });
   document.addEventListener("pointerdown", (event) => {
+    beginEnvironmentBasemapDrag(event);
     beginModelingPosterLightboxDrag(event);
   });
+  document.addEventListener("pointerover", handleEnvironmentBasemapPointerOver);
+  document.addEventListener("pointerout", handleEnvironmentBasemapPointerOut);
   document.addEventListener("pointermove", (event) => {
+    updateEnvironmentBasemapDrag(event);
     updateModelingPosterLightboxDrag(event);
   });
   document.addEventListener("pointerup", (event) => {
+    endEnvironmentBasemapDrag(event);
     endModelingPosterLightboxDrag(event);
   });
   document.addEventListener("pointercancel", (event) => {
+    endEnvironmentBasemapDrag(event);
     endModelingPosterLightboxDrag(event);
   });
   document.addEventListener("wheel", (event) => {
+    if (handleEnvironmentBasemapWheel(event)) return;
     handleModelingPosterLightboxWheel(event);
   }, { passive: false });
   document.addEventListener("dblclick", (event) => {
@@ -5405,6 +5963,16 @@ function bindEvents() {
     state.modelingPosterLightboxZoom = 1;
     renderContent();
   });
+  document.addEventListener("fullscreenchange", () => {
+    const viewer = document.querySelector("[data-environment-basemap-viewer]");
+    if (!viewer) return;
+    window.requestAnimationFrame(() => fitEnvironmentBasemapViewer(viewer));
+  });
+  window.addEventListener("resize", () => {
+    document.querySelectorAll("[data-environment-basemap-viewer][data-basemap-mode='fit']").forEach((viewer) => {
+      window.requestAnimationFrame(() => fitEnvironmentBasemapViewer(viewer));
+    });
+  });
   document.addEventListener("keydown", (event) => {
     const legendSummary = event.target?.closest?.(".modeling-legend-section-summary");
     if (legendSummary && ["Enter", " "].includes(event.key)) {
@@ -5415,6 +5983,12 @@ function bindEvents() {
     if (state.modelingPosterLightboxTarget && event.key === "Escape") {
       event.preventDefault();
       closeModelingPosterLightbox();
+      return;
+    }
+    const environmentBasemapNode = event.target?.closest?.(".basemap-node[data-mx-id]");
+    if (environmentBasemapNode && ["Enter", " "].includes(event.key)) {
+      event.preventDefault();
+      selectEnvironmentBasemapNode(environmentBasemapNode);
       return;
     }
     if (state.activeView !== "content") return;
@@ -5502,6 +6076,33 @@ function bindEvents() {
       if (lifecycle.dataset.lifecycleKind === "data") state.selectedDataProcessId = lifecycle.dataset.lifecycleId;
       renderLifecycle(lifecycle.dataset.lifecycleKind);
     }
+    const environmentBasemapAction = event.target.closest("[data-environment-basemap-action]");
+    if (environmentBasemapAction) {
+      updateEnvironmentBasemapViewer(environmentBasemapAction.dataset.environmentBasemapAction, environmentBasemapAction);
+      return;
+    }
+    if (environmentBasemapDragState.suppressNextClick) return;
+    const environmentBasemapNode = event.target.closest(".basemap-node[data-mx-id]");
+    if (environmentBasemapNode) {
+      selectEnvironmentBasemapNode(environmentBasemapNode);
+      return;
+    }
+    const environmentBasemapFullscreen = event.target.closest("[data-environment-basemap-fullscreen]");
+    if (environmentBasemapFullscreen) {
+      const viewer = document.querySelector("[data-environment-basemap-viewer]");
+      if (viewer?.requestFullscreen) viewer.requestFullscreen().catch(() => {});
+      return;
+    }
+    const environmentBasemapViewer = event.target.closest("[data-environment-basemap-viewer]");
+    if (environmentBasemapViewer) {
+      if (!event.target.closest("#environmentBasemapSelection")) clearEnvironmentBasemapSelection(environmentBasemapViewer);
+      return;
+    }
+    const environmentBasemapMap = event.target.closest(".environment-basemap-map");
+    if (environmentBasemapMap) {
+      clearEnvironmentBasemapSelection(environmentBasemapMap);
+      return;
+    }
     const modelingPosterLightboxClose = event.target.closest("[data-modeling-poster-lightbox-close]");
     if (modelingPosterLightboxClose) {
       closeModelingPosterLightbox();
@@ -5537,6 +6138,12 @@ function bindEvents() {
     if (modelingLanguageTab) {
       state.activeModelingLanguageTab = modelingLanguageTab.dataset.modelingLanguageTab;
       renderContent();
+      return;
+    }
+    const environmentPageTab = event.target.closest("[data-environment-tab]");
+    if (environmentPageTab) {
+      state.activeEnvironmentTab = environmentPageTab.dataset.environmentTab === "mapping" ? "mapping" : "topology";
+      renderEnvironment();
       return;
     }
     const contentPage = event.target.closest("[data-content-page]");
@@ -5591,10 +6198,10 @@ async function init() {
   const dataClient = window.sapdDataClient;
   if (!dataClient) throw new Error("SAPD Wiki dataClient 未加载");
   await loadScriptOnce("./models/relationGraphModel.js?v=capability-graph-strategy-20260526-1", () => Boolean(window.sapdModels?.buildLocalRelationGraphModel));
-  await loadScriptOnce("./components/LocalRelationNetworkGraph.js?v=capability-graph-strategy-20260526-2", () => Boolean(window.sapdComponents?.LocalRelationNetworkGraph));
+  await loadScriptOnce("./components/LocalRelationNetworkGraph.js?v=capability-graph-label-avoidance-20260608-1", () => Boolean(window.sapdComponents?.LocalRelationNetworkGraph));
   await loadScriptOnce("./components/CapabilityLocalRelationMap.js?v=annotation-framework-anchor-20260605-1", () => Boolean(window.sapdComponents?.CapabilityLocalRelationMap));
   await loadScriptOnce("./models/environmentRelationGraphModel.js?v=environment-graph-20260521-1", () => Boolean(window.sapdModels?.buildEnvironmentRelationGraphModel));
-  await loadScriptOnce("./components/EnvironmentLocalRelationMap.js?v=environment-tab-stat-cleanup-20260530", () => Boolean(window.sapdComponents?.EnvironmentLocalRelationMap));
+  await loadScriptOnce("./components/EnvironmentLocalRelationMap.js?v=environment-basemap-page-structure-20260608-1", () => Boolean(window.sapdComponents?.EnvironmentLocalRelationMap));
   mountAppShellComponents();
   setupAnnotationSurfaceObserver();
   bindEvents();

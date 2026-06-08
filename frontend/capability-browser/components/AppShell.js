@@ -336,7 +336,53 @@
     `;
   }
 
-  function renderPageHeader({ activeRoute = "/" } = {}) {
+  function renderModelingLanguageHeaderTabs(activeTab = "overview") {
+    const tabs = [
+      { id: "overview", label: "ArchiMate® 3.2 - 企业架构建模标准" },
+      { id: "elements", label: "SAPD 元素图例" },
+    ];
+    const normalizedActiveTab = tabs.some((tab) => tab.id === activeTab) ? activeTab : "overview";
+    return `
+      <div id="modelingLanguageHeaderTabs" class="modeling-language-title-tabs" aria-label="安全架构建模语言页签">
+        <div class="maintenance-section-tabs modeling-language-tabs" role="tablist" aria-label="安全架构建模语言页签">
+          ${tabs
+            .map(
+              (tab) => `
+                <button class="maintenance-section-tab ${tab.id === normalizedActiveTab ? "active" : ""}" type="button" role="tab" aria-selected="${tab.id === normalizedActiveTab ? "true" : "false"}" data-modeling-language-tab="${escapeHtml(tab.id)}">
+                  <span>${escapeHtml(tab.label)}</span>
+                </button>
+              `,
+            )
+            .join("")}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderEnvironmentHeaderTabs(activeTab = "topology") {
+    const tabs = [
+      { id: "topology", label: "环境底图" },
+      { id: "mapping", label: "归纳表格" },
+    ];
+    const normalizedActiveTab = tabs.some((tab) => tab.id === activeTab) ? activeTab : "topology";
+    return `
+      <div id="environmentHeaderTabs" class="environment-title-tabs" aria-label="信息化环境页面视图">
+        <div class="maintenance-section-tabs environment-page-tabs" role="tablist" aria-label="信息化环境页面视图">
+          ${tabs
+            .map(
+              (tab) => `
+                <button class="maintenance-section-tab ${tab.id === normalizedActiveTab ? "active" : ""}" type="button" role="tab" aria-selected="${tab.id === normalizedActiveTab ? "true" : "false"}" data-environment-tab="${escapeHtml(tab.id)}">
+                  <span>${escapeHtml(tab.label)}</span>
+                </button>
+              `,
+            )
+            .join("")}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderPageHeader({ activeRoute = "/", activeModelingLanguageTab = "overview", activeEnvironmentTab = "topology" } = {}) {
     const item = findNavItem(activeRoute);
     const pageTitle = activeRoute === "/development-security"
         ? "LC-AP安全开发生命周期"
@@ -358,16 +404,8 @@
             <h1>${escapeHtml(pageTitle)}</h1>
             ${isSourceTablePage ? '<span id="pageHeaderCount" class="page-title-summary" hidden></span>' : ""}
             ${isSourceTablePage ? "" : `<span class="shell-tag muted">${escapeHtml(TYPE_LABELS[item.type] || item.type)}</span>`}
-            ${activeRoute === "/guides/security-architecture-modeling-language" ? `<div id="modelingLanguageHeaderTabs" class="modeling-language-title-tabs" aria-label="安全架构建模语言页签">
-              <div class="maintenance-section-tabs modeling-language-tabs" role="tablist" aria-label="安全架构建模语言页签">
-                <button class="maintenance-section-tab active" type="button" role="tab" aria-selected="true" data-modeling-language-tab="overview">
-                  <span>ArchiMate® 3.2 - 企业架构建模标准</span>
-                </button>
-                <button class="maintenance-section-tab" type="button" role="tab" aria-selected="false" data-modeling-language-tab="elements">
-                  <span>SAPD 元素图例</span>
-                </button>
-              </div>
-            </div>` : ""}
+            ${activeRoute === "/guides/security-architecture-modeling-language" ? renderModelingLanguageHeaderTabs(activeModelingLanguageTab) : ""}
+            ${activeRoute === "/environment-mapping" ? renderEnvironmentHeaderTabs(activeEnvironmentTab) : ""}
           </div>
           ${description ? `<p>${escapeHtml(description)}</p>` : ""}
         </div>
@@ -379,25 +417,22 @@
               </label>`
             : isGuidePage || isPlaceholderPage
               ? ""
-              : `<div class="page-header-actions" aria-label="页面操作">
-                <button type="button" disabled>导出数据</button>
-                <button type="button" disabled>编辑映射</button>
-              </div>`
+              : ""
         }
       </section>
     `;
   }
 
-  function ensurePageHeader(activeRoute) {
+  function ensurePageHeader({ activeRoute = "/", activeModelingLanguageTab = "overview", activeEnvironmentTab = "topology" } = {}) {
     const main = document.querySelector(".app-main");
     const stage = document.querySelector(".workspace-stage");
     if (!main || !stage) return;
     let header = document.getElementById("appPageHeader");
     if (!header) {
-      stage.insertAdjacentHTML("beforebegin", renderPageHeader({ activeRoute }));
+      stage.insertAdjacentHTML("beforebegin", renderPageHeader({ activeRoute, activeModelingLanguageTab, activeEnvironmentTab }));
       return;
     }
-    header.outerHTML = renderPageHeader({ activeRoute });
+    header.outerHTML = renderPageHeader({ activeRoute, activeModelingLanguageTab, activeEnvironmentTab });
   }
 
   function applyWorkbenchContainers() {
@@ -425,19 +460,19 @@
     });
   }
 
-  function mountApplicationShell({ activeRoute = "/" } = {}) {
+  function mountApplicationShell({ activeRoute = "/", activeModelingLanguageTab = "overview", activeEnvironmentTab = "topology" } = {}) {
     document.body?.classList.add("app-shell-locked");
     document.getElementById("app")?.classList.add("app-shell-integrated");
     const sidebar = document.querySelector(".app-sidebar");
     const topbar = document.querySelector(".topbar");
     if (sidebar) sidebar.innerHTML = renderSideNavigation(activeRoute);
     if (topbar) topbar.innerHTML = renderTopBar();
-    ensurePageHeader(activeRoute);
+    ensurePageHeader({ activeRoute, activeModelingLanguageTab, activeEnvironmentTab });
     applyWorkbenchContainers();
-    updateApplicationShell({ activeRoute });
+    updateApplicationShell({ activeRoute, activeModelingLanguageTab, activeEnvironmentTab });
   }
 
-  function updateApplicationShell({ activeRoute = "/" } = {}) {
+  function updateApplicationShell({ activeRoute = "/", activeModelingLanguageTab = "overview", activeEnvironmentTab = "topology" } = {}) {
     document.querySelectorAll("[data-app-route]").forEach((element) => {
       const active = element.dataset.appRoute === activeRoute;
       element.classList.toggle("active", active);
@@ -451,7 +486,7 @@
       summary?.classList.toggle("active", active);
       if (active) group.open = true;
     });
-    ensurePageHeader(activeRoute);
+    ensurePageHeader({ activeRoute, activeModelingLanguageTab, activeEnvironmentTab });
   }
 
   function renderWorkbenchLayout({ left = "", main = "", right = "" } = {}) {

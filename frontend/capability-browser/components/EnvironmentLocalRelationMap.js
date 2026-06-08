@@ -28,6 +28,40 @@
     return id && selectedId && id === selectedId ? " is-current" : "";
   }
 
+  function renderDrawioBasemap() {
+    const basemap = window.sapdEnvironmentBasemapData;
+    if (!basemap?.htmlPath) return "";
+    const viewBox = basemap.viewBox || { x: 0, y: 0, width: 3200, height: 2300 };
+    const canvas = basemap.canvas || { x: 0, y: 0, width: viewBox.width || 3200, height: viewBox.height || 2300 };
+    const htmlPath = `${basemap.htmlPath}?v=environment-basemap-viewer-20260608-4`;
+    const nodeDetailsPath = basemap.nodeDetailsPath || "";
+    return `
+      <section class="environment-basemap-map">
+        <div class="environment-basemap-head">
+          <div class="environment-basemap-title-block">
+            <h2>${escape(basemap.title || "信息化环境及对象底图")}</h2>
+          </div>
+          <div class="environment-basemap-head-actions modeling-poster-actions">
+            <button class="modeling-poster-expand-button environment-basemap-fullscreen" type="button" data-environment-basemap-fullscreen>
+              <span aria-hidden="true">⤢</span>
+              全页面显示
+            </button>
+          </div>
+        </div>
+        <div class="environment-basemap-viewer" data-environment-basemap-viewer data-environment-basemap-node-details="${escape(nodeDetailsPath)}" data-basemap-scale="1" data-basemap-pan-x="0" data-basemap-pan-y="0" aria-label="信息化环境及对象底图语义 HTML Viewer">
+          <div class="environment-basemap-viewport" data-environment-basemap-viewport>
+            <div class="environment-basemap-stage environment-basemap-panzoom-layer" data-environment-basemap-stage data-environment-basemap-panzoom-layer style="--basemap-stage-width:${Number(canvas.width)};--basemap-stage-height:${Number(canvas.height)};--basemap-stage-ratio:${Number(canvas.width)} / ${Number(canvas.height)};--basemap-stage-ratio-number:${(Number(canvas.width) / Math.max(1, Number(canvas.height))).toFixed(6)};--basemap-viewer-scale:1;--basemap-viewer-x:0px;--basemap-viewer-y:0px;">
+              <div class="environment-basemap-html-slot" data-environment-basemap-html="${escape(htmlPath)}" aria-label="信息化环境及对象底图语义 HTML">
+                正在加载 draw.io 语义底图...
+              </div>
+            </div>
+            <div class="environment-basemap-tooltip" data-environment-basemap-tooltip hidden></div>
+          </div>
+        </div>
+      </section>
+    `;
+  }
+
   function renderObjectNode(environment, object, selectedObjectId) {
     const badges = [
       object.scopeCount ? `${object.scopeCount} 作用域` : "",
@@ -168,6 +202,8 @@
   }
 
   function renderTopology({ viewModel } = {}) {
+    const basemap = renderDrawioBasemap();
+    if (basemap) return basemap;
     const tree = utils.list(viewModel?.topologyTree || viewModel?.navigationTree);
     const stats = topologyStats(tree);
     const selectedEnvironmentId = viewModel?.selectedEnvironment?.id || "";
@@ -286,10 +322,6 @@
       <section class="semantic-panel environment-relation-map environment-tabbed-map">
         <input class="environment-tab-input" id="environmentTabTopology" type="radio" name="environmentDetailTab" ${showMapping ? "" : "checked"}>
         <input class="environment-tab-input" id="environmentTabMapping" type="radio" name="environmentDetailTab" ${showMapping ? "checked" : ""}>
-        <div class="environment-tab-bar" role="tablist" aria-label="信息化环境页面视图">
-          <label class="environment-tab-label" for="environmentTabTopology" role="tab">拓扑首页</label>
-          <label class="environment-tab-label" for="environmentTabMapping" role="tab">归纳表格</label>
-        </div>
         <div class="environment-tab-panels">
           <div class="environment-tab-panel environment-tab-panel-topology">
             ${renderTopology({ viewModel })}

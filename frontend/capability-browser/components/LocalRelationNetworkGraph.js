@@ -558,9 +558,10 @@
     };
   }
 
-  function layoutMetrics(businessNodes, positions, viewBox) {
+  function layoutMetrics(businessNodes, positions, viewBox, labelPlacements = new Map()) {
     let overlaps = 0;
     let minGap = Infinity;
+    let labelOverlaps = 0;
     for (let a = 0; a < businessNodes.length; a += 1) {
       for (let b = a + 1; b < businessNodes.length; b += 1) {
         const left = businessNodes[a];
@@ -573,8 +574,15 @@
         if (gap < -1) overlaps += 1;
       }
     }
+    const labelBoxes = Array.from(labelPlacements.values()).map((placement) => placement.box).filter(Boolean);
+    for (let a = 0; a < labelBoxes.length; a += 1) {
+      for (let b = a + 1; b < labelBoxes.length; b += 1) {
+        if (boxesOverlap(labelBoxes[a], labelBoxes[b], 0)) labelOverlaps += 1;
+      }
+    }
     return {
       overlaps,
+      labelOverlaps,
       minGap: Number.isFinite(minGap) ? Math.round(minGap) : 0,
       viewBox: `${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`,
     };
@@ -619,6 +627,186 @@
     return `network-edge ${edge.isDecorative ? "is-decorative" : "is-business"} edge-${nodeClass(edge.type)}`;
   }
 
+  function estimateLabelWidth(lines = []) {
+    const maxLength = Math.max(1, ...list(lines).map((line) => text(line).length));
+    return Math.min(170, Math.max(44, maxLength * 9.6));
+  }
+
+  function labelBox({ x, y, anchor, lines }) {
+    const width = estimateLabelWidth(lines);
+    const height = Math.max(12, lines.length * 12);
+    const left = anchor === "end" ? x - width : anchor === "middle" ? x - width / 2 : x;
+    const top = y - 10;
+    return {
+      left,
+      top,
+      right: left + width,
+      bottom: top + height + 4,
+      width,
+      height,
+    };
+  }
+
+  function boxesOverlap(a, b, gap = 0) {
+    return a.left - gap < b.right && a.right + gap > b.left && a.top - gap < b.bottom && a.bottom + gap > b.top;
+  }
+
+  function circleIntersectsBox(center, radius, box, gap = 0) {
+    const nearestX = Math.max(box.left - gap, Math.min(center.x, box.right + gap));
+    const nearestY = Math.max(box.top - gap, Math.min(center.y, box.bottom + gap));
+    return Math.hypot(center.x - nearestX, center.y - nearestY) < radius + gap;
+  }
+
+  function segmentIntersectsBox(start, end, box, gap = 0) {
+    const expanded = {
+      left: box.left - gap,
+      top: box.top - gap,
+      right: box.right + gap,
+      bottom: box.bottom + gap,
+    };
+    const lineMinX = Math.min(start.x, end.x);
+    const lineMaxX = Math.max(start.x, end.x);
+    const lineMinY = Math.min(start.y, end.y);
+    const lineMaxY = Math.max(start.y, end.y);
+    if (lineMaxX < expanded.left || lineMinX > expanded.right || lineMaxY < expanded.top || lineMinY > expanded.bottom) return false;
+    const samples = 8;
+    for (let index = 0; index <= samples; index += 1) {
+      const ratio = index / samples;
+      const x = start.x + (end.x - start.x) * ratio;
+      const y = start.y + (end.y - start.y) * ratio;
+      if (x >= expanded.left && x <= expanded.right && y >= expanded.top && y <= expanded.bottom) return true;
+    }
+    return false;
+  }
+
+  function cubicPoint(start, controlA, controlB, end, ratio) {
+    const inverse = 1 - ratio;
+    const a = inverse * inverse * inverse;
+    const b = 3 * inverse * inverse * ratio;
+    const c = 3 * inverse * ratio * ratio;
+    const d = ratio * ratio * ratio;
+    return {
+      x: start.x * a + controlA.x * b + controlB.x * c + end.x * d,
+      y: start.y * a + controlA.y * b + controlB.y * c + end.y * d,
+    };
+  }
+
+  function edgeIntersectsBox(edge, source, target, box, gap = 0) {
+    const dx = Math.max(80, Math.abs(target.x - source.x) * 0.44);
+    const direction = target.x >= source.x ? 1 : -1;
+    const bend = edge.type === "focus_to_standard_status" ? 34 : edge.type === "decorative_link" ? 0 : 6;
+    const controlA = { x: source.x + dx * direction, y: source.y - bend };
+    const controlB = { x: target.x - dx * direction, y: target.y + bend };
+    let previous = source;
+    const samples = 18;
+    for (let index = 1; index <= samples; index += 1) {
+      const current = cubicPoint(source, controlA, controlB, target, index / samples);
+      if (segmentIntersectsBox(previous, current, box, gap)) return true;
+      previous = current;
+    }
+    return false;
+  }
+
+  function labelPlacementFromSide(position, radius, side, lines) {
+    const sideOffset = side.includes("diagonal") ? 14 : 10;
+    if (side === "right") return { x: position.x + radius + sideOffset, y: position.y, anchor: "start", lines };
+    if (side === "left") return { x: position.x - radius - sideOffset, y: position.y, anchor: "end", lines };
+    if (side === "top") return { x: position.x, y: position.y - radius - 15, anchor: "middle", lines };
+    if (side === "bottom") return { x: position.x, y: position.y + radius + 17, anchor: "middle", lines };
+    if (side === "top-right") return { x: position.x + radius + sideOffset, y: position.y - radius - 10, anchor: "start", lines };
+    if (side === "top-left") return { x: position.x - radius - sideOffset, y: position.y - radius - 10, anchor: "end", lines };
+    if (side === "bottom-right") return { x: position.x + radius + sideOffset, y: position.y + radius + 14, anchor: "start", lines };
+    return { x: position.x - radius - sideOffset, y: position.y + radius + 14, anchor: "end", lines };
+  }
+
+  function defaultLabelSide(node, position, currentPosition, strategy = "") {
+    const relativeX = currentPosition ? position.x - currentPosition.x : position.x - VIEWBOX.width / 2;
+    const relativeY = currentPosition ? position.y - currentPosition.y : position.y - VIEWBOX.height / 2;
+    const isL2FocusNode = strategy === "focus_mapping_overview" && node.type === "focus_overview";
+    const verticalOutward = Math.abs(relativeX) < 58 && Math.abs(relativeY) > 130;
+    const focusVertical = isL2FocusNode && Math.abs(relativeX) < 95;
+    const hierarchyDepth = Number(node.meta?.hierarchyDepth);
+    const isOuterLeaf = strategy === "focus_mapping_overview" && Number.isFinite(hierarchyDepth) && hierarchyDepth >= 3;
+    if (node.type === "security_function_layer") return "top";
+    if (isOuterLeaf && Math.abs(relativeY) > 70 && Math.abs(relativeY) > Math.abs(relativeX) * 0.42) return relativeY < 0 ? "top" : "bottom";
+    if (focusVertical || verticalOutward) return relativeY < 0 ? "top" : "bottom";
+    if (position.x > VIEWBOX.width - 260) return "left";
+    if (position.x < 260) return "right";
+    if (isL2FocusNode) return relativeX >= 0 ? "left" : "right";
+    return relativeX < 0 ? "left" : "right";
+  }
+
+  function labelCandidates(node, position, radius, currentPosition, strategy = "") {
+    const labelLength = node.type === "standard_status" ? 16 : node.type === "standard_control" ? 16 : node.type === "security_function" ? 15 : 14;
+    const lines = labelLines(node.label, labelLength, 2);
+    if (!lines.length) return [];
+    const preferred = defaultLabelSide(node, position, currentPosition, strategy);
+    const sides = [preferred, "right", "left", "top", "bottom", "top-right", "top-left", "bottom-right", "bottom-left"].filter((side, index, items) => items.indexOf(side) === index);
+    return sides.map((side, index) => {
+      const placement = labelPlacementFromSide(position, radius, side, lines);
+      return {
+        ...placement,
+        side,
+        box: labelBox(placement),
+        preferredRank: index,
+      };
+    });
+  }
+
+  function labelPlacementScore(candidate, node, businessNodes, positions, edges, occupiedBoxes) {
+    let score = candidate.preferredRank * 16;
+    const overflowLeft = Math.max(0, -candidate.box.left);
+    const overflowRight = Math.max(0, candidate.box.right - VIEWBOX.width);
+    const overflowTop = Math.max(0, -candidate.box.top);
+    const overflowBottom = Math.max(0, candidate.box.bottom - VIEWBOX.height);
+    score += (overflowLeft + overflowRight + overflowTop + overflowBottom) * 5;
+    businessNodes.forEach((other) => {
+      if (other.id === node.id) return;
+      const otherPosition = positions.get(other.id);
+      if (!otherPosition) return;
+      if (circleIntersectsBox(otherPosition, nodeRadius(other), candidate.box, 8)) score += 520;
+    });
+    occupiedBoxes.forEach((box) => {
+      if (boxesOverlap(candidate.box, box, 6)) score += 360;
+    });
+    edges.forEach((edge) => {
+      if (edge.isDecorative) return;
+      const source = positions.get(edge.source);
+      const target = positions.get(edge.target);
+      if (!source || !target) return;
+      if (!edgeIntersectsBox(edge, source, target, candidate.box, 10)) return;
+      const incident = edge.source === node.id || edge.target === node.id;
+      score += incident ? 160 : 320;
+    });
+    return score;
+  }
+
+  function buildLabelPlacements(model, businessNodes, positions) {
+    const current = model.nodes?.find((item) => item.isCurrent) || model.nodes?.find((item) => item.type === "current_focus");
+    const currentPosition = positions.get(current?.id);
+    const strategy = model.stats?.strategy || "";
+    const orderedNodes = [...businessNodes]
+      .filter((node) => !node.isCurrent)
+      .sort((a, b) => nodeRadius(b) - nodeRadius(a) || text(a.label || a.id).localeCompare(text(b.label || b.id), "zh-Hans-CN"));
+    const placements = new Map();
+    const occupiedBoxes = [];
+    orderedNodes.forEach((node) => {
+      const position = positions.get(node.id);
+      if (!position) return;
+      const radius = nodeRadius(node);
+      const candidates = labelCandidates(node, position, radius, currentPosition, strategy);
+      if (!candidates.length) return;
+      const best = candidates.reduce((winner, candidate) => {
+        const score = labelPlacementScore(candidate, node, businessNodes, positions, model.edges || [], occupiedBoxes);
+        return !winner || score < winner.score ? { ...candidate, score } : winner;
+      }, null);
+      if (!best) return;
+      placements.set(node.id, best);
+      occupiedBoxes.push(best.box);
+    });
+    return placements;
+  }
+
   function renderEdge(edge, positions, nodesById = new Map(), extraClass = "") {
     const source = positions.get(edge.source);
     const target = positions.get(edge.target);
@@ -639,7 +827,7 @@
     return "";
   }
 
-  function renderNodeText(node, position, radius, currentPosition, strategy = "") {
+  function renderNodeText(node, position, radius, currentPosition, strategy = "", placement = null) {
     if (node.isCurrent) {
       const code = text(node.meta?.currentCode || node.meta?.capabilityCode || node.meta?.code).trim();
       const title = text(node.meta?.currentTitle || node.meta?.capability || node.label).trim();
@@ -662,10 +850,10 @@
     const verticalOutward = Math.abs(relativeX) < 58 && Math.abs(relativeY) > 130;
     const focusVertical = isL2FocusNode && Math.abs(relativeX) < 95;
     if (node.type === "security_function_layer") {
-      const textY = position.y - radius - 14;
+      const safePlacement = placement || labelPlacementFromSide(position, radius, "top", lines);
       return `
-        <text class="network-node-title" x="${position.x}" y="${textY}" text-anchor="middle">
-          ${lines.map((line, index) => `<tspan x="${position.x}" dy="${index === 0 ? 0 : 12}">${escape(line)}</tspan>`).join("")}
+        <text class="network-node-title" x="${safePlacement.x}" y="${safePlacement.y}" text-anchor="${safePlacement.anchor}">
+          ${lines.map((line, index) => `<tspan x="${safePlacement.x}" dy="${index === 0 ? 0 : 12}">${escape(line)}</tspan>`).join("")}
         </text>
       `;
     }
@@ -677,14 +865,15 @@
       : verticalOutward
         ? position.y + (relativeY < 0 ? -radius - 14 : radius + 12)
         : position.y;
+    const safePlacement = placement || { x: textX, y: textY, anchor, lines };
     return `
-      <text class="network-node-title" x="${textX}" y="${textY}" text-anchor="${anchor}">
-        ${lines.map((line, index) => `<tspan x="${textX}" dy="${index === 0 ? 0 : 12}">${escape(line)}</tspan>`).join("")}
+      <text class="network-node-title" x="${safePlacement.x}" y="${safePlacement.y}" text-anchor="${safePlacement.anchor}">
+        ${lines.map((line, index) => `<tspan x="${safePlacement.x}" dy="${index === 0 ? 0 : 12}">${escape(line)}</tspan>`).join("")}
       </text>
     `;
   }
 
-  function renderNode(node, graphModel, positions, nodesById = new Map()) {
+  function renderNode(node, graphModel, positions, nodesById = new Map(), labelPlacements = new Map()) {
     const position = positions.get(node.id);
     if (!position || node.isDecorative) return "";
     const radius = nodeRadius(node);
@@ -699,7 +888,7 @@
         ${incidentEdges(node.id, graphModel.edges, positions, nodesById)}
         ${node.isCurrent ? `<circle class="network-node-halo" cx="${position.x}" cy="${position.y}" r="112" />` : ""}
         <circle class="network-node-shape" cx="${position.x}" cy="${position.y}" r="${radius}" />
-        ${renderNodeText(node, position, radius, currentPosition, strategy)}
+        ${renderNodeText(node, position, radius, currentPosition, strategy, labelPlacements.get(node.id))}
       </g>
     `;
   }
@@ -840,8 +1029,9 @@
       return `<section class="local-relation-network-graph"><div class="preview-table-empty"><strong>暂无本地关联图谱</strong><span>当前关注点尚未形成可展示的关系投影。</span></div></section>`;
     }
     const positions = buildLayout(model);
+    const labelPlacements = buildLabelPlacements(model, businessNodes, positions);
     const viewBox = visibleViewBox(businessNodes, positions);
-    const metrics = layoutMetrics(businessNodes, positions, viewBox);
+    const metrics = layoutMetrics(businessNodes, positions, viewBox, labelPlacements);
     const stats = model.stats || {};
     const title = stats.networkTitle || "能力关系图谱";
     const ariaLabel = stats.ariaLabel || "当前关注点能力关系图谱";
@@ -853,7 +1043,7 @@
           </div>
           ${renderLegend(model)}
         </header>
-        <div class="network-graph-canvas" role="img" aria-label="${escape(ariaLabel)}" data-viewbox-width="${viewBox.width}" data-viewbox-height="${viewBox.height}" data-layout-overlaps="${metrics.overlaps}" data-layout-min-gap="${metrics.minGap}" data-business-nodes="${businessNodes.length}" data-layout-viewbox="${escape(metrics.viewBox)}" data-zoom="1" data-pan-x="0" data-pan-y="0">
+        <div class="network-graph-canvas" role="img" aria-label="${escape(ariaLabel)}" data-viewbox-width="${viewBox.width}" data-viewbox-height="${viewBox.height}" data-layout-overlaps="${metrics.overlaps}" data-layout-label-overlaps="${metrics.labelOverlaps}" data-layout-min-gap="${metrics.minGap}" data-business-nodes="${businessNodes.length}" data-layout-viewbox="${escape(metrics.viewBox)}" data-zoom="1" data-pan-x="0" data-pan-y="0">
           <div class="network-graph-actions" aria-label="图谱缩放控制">
             <button type="button" data-network-zoom="out" title="缩小图谱" aria-label="缩小图谱">−</button>
             <span data-network-zoom-value>100%</span>
@@ -878,7 +1068,7 @@
               </g>
               ${renderGroupLabels()}
               <g class="network-node-layer" role="list">
-                ${businessNodes.map((node) => renderNode(node, model, positions, nodesById)).join("")}
+                ${businessNodes.map((node) => renderNode(node, model, positions, nodesById, labelPlacements)).join("")}
               </g>
             </g>
           </svg>

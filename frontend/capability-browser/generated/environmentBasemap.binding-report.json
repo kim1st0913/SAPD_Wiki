@@ -1,0 +1,3096 @@
+{
+  "source": {
+    "semantic": "frontend/capability-browser/generated/environmentBasemap.semantic.json",
+    "workbench": "frontend/capability-browser/public/data/environment-workbench.json",
+    "overrides": "frontend/capability-browser/generated/environmentBasemap.binding-overrides.json",
+    "generated_at": "2026-06-08T09:55:05.267Z"
+  },
+  "totalNodes": 97,
+  "totalEdges": 73,
+  "bound": 91,
+  "candidate": 0,
+  "unbound": 0,
+  "ignored": 6,
+  "byObjectType": {
+    "environment_segment": {
+      "bound": 16,
+      "candidate": 0,
+      "unbound": 0,
+      "ignored": 2
+    },
+    "information_environment": {
+      "bound": 10,
+      "candidate": 0,
+      "unbound": 0,
+      "ignored": 0
+    },
+    "environment_zone": {
+      "bound": 0,
+      "candidate": 0,
+      "unbound": 0,
+      "ignored": 1
+    },
+    "information_object": {
+      "bound": 65,
+      "candidate": 0,
+      "unbound": 0,
+      "ignored": 0
+    },
+    "external_network": {
+      "bound": 0,
+      "candidate": 0,
+      "unbound": 0,
+      "ignored": 2
+    },
+    "actor": {
+      "bound": 0,
+      "candidate": 0,
+      "unbound": 0,
+      "ignored": 1
+    }
+  },
+  "ambiguousCandidates": [],
+  "needsManualConfirmation": [],
+  "unboundNodes": [],
+  "ignoredNodes": [
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-252",
+      "label": "OT",
+      "objectType": "environment_segment",
+      "objectId": "",
+      "objectCode": "",
+      "objectName": "",
+      "bindStatus": "ignored",
+      "confidence": "none",
+      "bindingReason": "ignored_by_override",
+      "candidates": [],
+      "contextLabels": []
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-251",
+      "label": "IT",
+      "objectType": "environment_segment",
+      "objectId": "",
+      "objectCode": "",
+      "objectName": "",
+      "bindStatus": "ignored",
+      "confidence": "none",
+      "bindingReason": "ignored_by_override",
+      "candidates": [],
+      "contextLabels": []
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-216",
+      "label": "数据中心机房",
+      "objectType": "environment_zone",
+      "objectId": "",
+      "objectCode": "",
+      "objectName": "",
+      "bindStatus": "ignored",
+      "confidence": "none",
+      "bindingReason": "ignored_by_override",
+      "candidates": [],
+      "contextLabels": [
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-56",
+      "label": "互联网",
+      "objectType": "external_network",
+      "objectId": "",
+      "objectCode": "",
+      "objectName": "",
+      "bindStatus": "ignored",
+      "confidence": "none",
+      "bindingReason": "ignored_by_override",
+      "candidates": [],
+      "contextLabels": []
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-57",
+      "label": "外联网",
+      "objectType": "external_network",
+      "objectId": "",
+      "objectCode": "",
+      "objectName": "",
+      "bindStatus": "ignored",
+      "confidence": "none",
+      "bindingReason": "ignored_by_override",
+      "candidates": [],
+      "contextLabels": []
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-208",
+      "label": "客户",
+      "objectType": "actor",
+      "objectId": "",
+      "objectCode": "",
+      "objectName": "",
+      "bindStatus": "ignored",
+      "confidence": "none",
+      "bindingReason": "ignored_by_override",
+      "candidates": [],
+      "contextLabels": [
+        "客户访问接入"
+      ]
+    }
+  ],
+  "boundNodes": [
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-230",
+      "label": "工厂",
+      "objectType": "information_environment",
+      "objectId": "fe375438-1741-48b3-bf97-20ee88f9d3e6",
+      "objectCode": "",
+      "objectName": "工业控制网络",
+      "bindStatus": "bound",
+      "confidence": "alias",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_environment",
+          "objectId": "fe375438-1741-48b3-bf97-20ee88f9d3e6",
+          "objectCode": "",
+          "objectName": "工业控制网络",
+          "confidence": "alias",
+          "matchName": "工业控制网络",
+          "matchedBy": "alias",
+          "context": [
+            "工业控制网络"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "OT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-248",
+      "label": "L3",
+      "objectType": "environment_segment",
+      "objectId": "dc7a8266-199e-4c45-95f3-599a8bde854a",
+      "objectCode": "",
+      "objectName": "L3层",
+      "bindStatus": "bound",
+      "confidence": "alias",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "environment_segment",
+          "objectId": "dc7a8266-199e-4c45-95f3-599a8bde854a",
+          "objectCode": "",
+          "objectName": "L3层",
+          "confidence": "alias",
+          "matchName": "L3层",
+          "matchedBy": "alias",
+          "context": [
+            "工业控制网络 / L3层"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "工厂",
+        "OT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-249",
+      "label": "L2",
+      "objectType": "environment_segment",
+      "objectId": "3764dfbf-7094-4973-8ca9-c5bad2c9c688",
+      "objectCode": "",
+      "objectName": "L2层",
+      "bindStatus": "bound",
+      "confidence": "alias",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "environment_segment",
+          "objectId": "3764dfbf-7094-4973-8ca9-c5bad2c9c688",
+          "objectCode": "",
+          "objectName": "L2层",
+          "confidence": "alias",
+          "matchName": "L2层",
+          "matchedBy": "alias",
+          "context": [
+            "工业控制网络 / L2层"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "工厂",
+        "OT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-250",
+      "label": "L1",
+      "objectType": "environment_segment",
+      "objectId": "2326e423-059d-4cb0-8fcb-82c877a2792c",
+      "objectCode": "",
+      "objectName": "L1层",
+      "bindStatus": "bound",
+      "confidence": "alias",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "environment_segment",
+          "objectId": "2326e423-059d-4cb0-8fcb-82c877a2792c",
+          "objectCode": "",
+          "objectName": "L1层",
+          "confidence": "alias",
+          "matchName": "L1层",
+          "matchedBy": "alias",
+          "context": [
+            "工业控制网络 / L1层"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "工厂",
+        "OT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-247",
+      "label": "网络周界",
+      "objectType": "information_environment",
+      "objectId": "f0ddae58-b900-4eb5-854f-4c3b36513d61",
+      "objectCode": "",
+      "objectName": "网络周界",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_environment",
+          "objectId": "f0ddae58-b900-4eb5-854f-4c3b36513d61",
+          "objectCode": "",
+          "objectName": "网络周界",
+          "confidence": "exact",
+          "matchName": "网络周界",
+          "matchedBy": "label",
+          "context": [
+            "网络周界"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-200",
+      "label": "远程办公接入",
+      "objectType": "information_environment",
+      "objectId": "f987426d-4abd-4f5e-956f-3b6d093206f1",
+      "objectCode": "",
+      "objectName": "远程办公接入",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_environment",
+          "objectId": "f987426d-4abd-4f5e-956f-3b6d093206f1",
+          "objectCode": "",
+          "objectName": "远程办公接入",
+          "confidence": "exact",
+          "matchName": "远程办公接入",
+          "matchedBy": "label",
+          "context": [
+            "远程办公接入"
+          ]
+        }
+      ],
+      "contextLabels": []
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-181",
+      "label": "运维管理网",
+      "objectType": "information_environment",
+      "objectId": "8ac6c076-8aa3-402e-abd4-bdf116869b3f",
+      "objectCode": "",
+      "objectName": "运维管理网络",
+      "bindStatus": "bound",
+      "confidence": "alias",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_environment",
+          "objectId": "8ac6c076-8aa3-402e-abd4-bdf116869b3f",
+          "objectCode": "",
+          "objectName": "运维管理网络",
+          "confidence": "alias",
+          "matchName": "运维管理网络",
+          "matchedBy": "alias",
+          "context": [
+            "运维管理网络"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-123",
+      "label": "传统数据中心",
+      "objectType": "information_environment",
+      "objectId": "df92a491-8fca-4a28-9999-3715cfcdb6fd",
+      "objectCode": "",
+      "objectName": "传统数据中心",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_environment",
+          "objectId": "df92a491-8fca-4a28-9999-3715cfcdb6fd",
+          "objectCode": "",
+          "objectName": "传统数据中心",
+          "confidence": "exact",
+          "matchName": "传统数据中心",
+          "matchedBy": "label",
+          "context": [
+            "传统数据中心"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-143",
+      "label": "业务应用",
+      "objectType": "environment_segment",
+      "objectId": "6ef9a567-b895-41c5-9d02-5f1a599f4ee4",
+      "objectCode": "",
+      "objectName": "应用及数据",
+      "bindStatus": "bound",
+      "confidence": "parent_context",
+      "bindingReason": "parent_container_context",
+      "candidates": [
+        {
+          "objectType": "environment_segment",
+          "objectId": "6ef9a567-b895-41c5-9d02-5f1a599f4ee4",
+          "objectCode": "",
+          "objectName": "应用及数据",
+          "confidence": "parent_context",
+          "matchName": "应用及数据",
+          "matchedBy": "alias",
+          "context": [
+            "传统数据中心 / 应用及数据"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "传统数据中心",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-78",
+      "label": "云数据中心",
+      "objectType": "information_environment",
+      "objectId": "bfc540c6-7ca8-4142-a682-0bc7de04b6c5",
+      "objectCode": "",
+      "objectName": "云数据中心",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_environment",
+          "objectId": "bfc540c6-7ca8-4142-a682-0bc7de04b6c5",
+          "objectCode": "",
+          "objectName": "云数据中心",
+          "confidence": "exact",
+          "matchName": "云数据中心",
+          "matchedBy": "label",
+          "context": [
+            "云数据中心"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-112",
+      "label": "工作负载",
+      "objectType": "environment_segment",
+      "objectId": "111bd108-95a8-428b-a456-bc766e4d5e4b",
+      "objectCode": "",
+      "objectName": "工作负载",
+      "bindStatus": "bound",
+      "confidence": "parent_context",
+      "bindingReason": "parent_container_context",
+      "candidates": [
+        {
+          "objectType": "environment_segment",
+          "objectId": "111bd108-95a8-428b-a456-bc766e4d5e4b",
+          "objectCode": "",
+          "objectName": "工作负载",
+          "confidence": "parent_context",
+          "matchName": "工作负载",
+          "matchedBy": "label",
+          "context": [
+            "云数据中心 / 工作负载"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "云数据中心",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-111",
+      "label": "业务应用",
+      "objectType": "environment_segment",
+      "objectId": "ccca2519-375b-4ebd-8734-a1bef4a68cd5",
+      "objectCode": "",
+      "objectName": "业务应用",
+      "bindStatus": "bound",
+      "confidence": "parent_context",
+      "bindingReason": "parent_container_context",
+      "candidates": [
+        {
+          "objectType": "environment_segment",
+          "objectId": "ccca2519-375b-4ebd-8734-a1bef4a68cd5",
+          "objectCode": "",
+          "objectName": "业务应用",
+          "confidence": "parent_context",
+          "matchName": "业务应用",
+          "matchedBy": "label",
+          "context": [
+            "云数据中心 / 业务应用"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "云数据中心",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-110",
+      "label": "大数据平台/数据中台",
+      "objectType": "environment_segment",
+      "objectId": "7c4dcdcd-5c96-4f94-a3c5-c902182a684f",
+      "objectCode": "",
+      "objectName": "大数据平台/数据中台",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "environment_segment",
+          "objectId": "7c4dcdcd-5c96-4f94-a3c5-c902182a684f",
+          "objectCode": "",
+          "objectName": "大数据平台/数据中台",
+          "confidence": "exact",
+          "matchName": "大数据平台/数据中台",
+          "matchedBy": "label",
+          "context": [
+            "云数据中心 / 大数据平台/数据中台"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "云数据中心",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-45",
+      "label": "广域网",
+      "objectType": "information_environment",
+      "objectId": "29017e8d-ccc5-4dd2-8713-29b23e4d26f8",
+      "objectCode": "",
+      "objectName": "广域网",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_environment",
+          "objectId": "29017e8d-ccc5-4dd2-8713-29b23e4d26f8",
+          "objectCode": "",
+          "objectName": "广域网",
+          "confidence": "exact",
+          "matchName": "广域网",
+          "matchedBy": "label",
+          "context": [
+            "广域网"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-13",
+      "label": "园区",
+      "objectType": "information_environment",
+      "objectId": "2478232e-3c33-4b4f-9313-5d1aa10feb99",
+      "objectCode": "",
+      "objectName": "园区网",
+      "bindStatus": "bound",
+      "confidence": "alias",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_environment",
+          "objectId": "2478232e-3c33-4b4f-9313-5d1aa10feb99",
+          "objectCode": "",
+          "objectName": "园区网",
+          "confidence": "alias",
+          "matchName": "园区网",
+          "matchedBy": "alias",
+          "context": [
+            "园区网"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "IT"
+      ]
+    },
+    {
+      "mxId": "xDkBI2kzSbe3P-stVFY9-32",
+      "label": "园区内部网络",
+      "objectType": "information_object",
+      "objectId": "f471b170-312f-4774-85d6-c59efc05275f",
+      "objectCode": "",
+      "objectName": "园区网内部网络",
+      "bindStatus": "bound",
+      "confidence": "alias",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "f471b170-312f-4774-85d6-c59efc05275f",
+          "objectCode": "",
+          "objectName": "园区网内部网络",
+          "confidence": "alias",
+          "matchName": "园区网内部网络",
+          "matchedBy": "alias",
+          "context": [
+            "园区网 / 网络"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "园区",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "xDkBI2kzSbe3P-stVFY9-34",
+      "label": "PC终端",
+      "objectType": "environment_segment",
+      "objectId": "880c0aa8-7e15-4105-9463-0b20b0841ceb",
+      "objectCode": "",
+      "objectName": "PC终端",
+      "bindStatus": "bound",
+      "confidence": "parent_context",
+      "bindingReason": "parent_container_context",
+      "candidates": [
+        {
+          "objectType": "environment_segment",
+          "objectId": "880c0aa8-7e15-4105-9463-0b20b0841ceb",
+          "objectCode": "",
+          "objectName": "PC终端",
+          "confidence": "parent_context",
+          "matchName": "PC终端",
+          "matchedBy": "label",
+          "context": [
+            "园区网 / PC终端"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "园区",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "xDkBI2kzSbe3P-stVFY9-36",
+      "label": "移动终端",
+      "objectType": "environment_segment",
+      "objectId": "1f9a6750-f44a-48bc-aa86-5ee63317fd35",
+      "objectCode": "",
+      "objectName": "移动终端",
+      "bindStatus": "bound",
+      "confidence": "parent_context",
+      "bindingReason": "parent_container_context",
+      "candidates": [
+        {
+          "objectType": "environment_segment",
+          "objectId": "1f9a6750-f44a-48bc-aa86-5ee63317fd35",
+          "objectCode": "",
+          "objectName": "移动终端",
+          "confidence": "parent_context",
+          "matchName": "移动终端",
+          "matchedBy": "label",
+          "context": [
+            "园区网 / 移动终端"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "园区",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "xDkBI2kzSbe3P-stVFY9-38",
+      "label": "办公人员",
+      "objectType": "information_object",
+      "objectId": "98ba8ea8-5a5f-45d1-a16c-6d6e47ddf016",
+      "objectCode": "",
+      "objectName": "办公人员",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "98ba8ea8-5a5f-45d1-a16c-6d6e47ddf016",
+          "objectCode": "",
+          "objectName": "办公人员",
+          "confidence": "exact",
+          "matchName": "办公人员",
+          "matchedBy": "label",
+          "context": [
+            "园区网 / 人员",
+            "分支机构 / 人员",
+            "远程办公接入 / 人员"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "园区",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-2",
+      "label": "PC终端设备",
+      "objectType": "information_object",
+      "objectId": "f2b74758-d248-4128-af40-92eb9fa9fd19",
+      "objectCode": "",
+      "objectName": "终端设备",
+      "bindStatus": "bound",
+      "confidence": "alias",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "f2b74758-d248-4128-af40-92eb9fa9fd19",
+          "objectCode": "",
+          "objectName": "终端设备",
+          "confidence": "alias",
+          "matchName": "终端设备",
+          "matchedBy": "alias",
+          "context": [
+            "园区网 / PC终端",
+            "分支机构 / PC终端",
+            "远程办公接入 / PC终端",
+            "运维管理网络 / PC终端"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "PC终端",
+        "园区",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-3",
+      "label": "PC终端操作系统",
+      "objectType": "information_object",
+      "objectId": "c7cc41d2-ed8b-42b2-9b44-3f0c651b9fde",
+      "objectCode": "",
+      "objectName": "终端操作系统",
+      "bindStatus": "bound",
+      "confidence": "alias",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "c7cc41d2-ed8b-42b2-9b44-3f0c651b9fde",
+          "objectCode": "",
+          "objectName": "终端操作系统",
+          "confidence": "alias",
+          "matchName": "终端操作系统",
+          "matchedBy": "alias",
+          "context": [
+            "园区网 / PC终端",
+            "园区网 / 移动终端",
+            "分支机构 / PC终端",
+            "分支机构 / 移动终端",
+            "远程办公接入 / PC终端",
+            "运维管理网络 / PC终端"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "PC终端",
+        "园区",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-4",
+      "label": "PC终端软件应用",
+      "objectType": "information_object",
+      "objectId": "1737b4cf-c277-403d-b84b-b64841217332",
+      "objectCode": "",
+      "objectName": "终端软件应用",
+      "bindStatus": "bound",
+      "confidence": "alias",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "1737b4cf-c277-403d-b84b-b64841217332",
+          "objectCode": "",
+          "objectName": "终端软件应用",
+          "confidence": "alias",
+          "matchName": "终端软件应用",
+          "matchedBy": "alias",
+          "context": [
+            "园区网 / PC终端",
+            "园区网 / 移动终端",
+            "分支机构 / PC终端",
+            "分支机构 / 移动终端",
+            "远程办公接入 / PC终端",
+            "运维管理网络 / PC终端"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "PC终端",
+        "园区",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-8",
+      "label": "移动终端操作系统",
+      "objectType": "information_object",
+      "objectId": "c7cc41d2-ed8b-42b2-9b44-3f0c651b9fde",
+      "objectCode": "",
+      "objectName": "终端操作系统",
+      "bindStatus": "bound",
+      "confidence": "alias",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "c7cc41d2-ed8b-42b2-9b44-3f0c651b9fde",
+          "objectCode": "",
+          "objectName": "终端操作系统",
+          "confidence": "alias",
+          "matchName": "终端操作系统",
+          "matchedBy": "alias",
+          "context": [
+            "园区网 / PC终端",
+            "园区网 / 移动终端",
+            "分支机构 / PC终端",
+            "分支机构 / 移动终端",
+            "远程办公接入 / PC终端",
+            "运维管理网络 / PC终端"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "移动终端",
+        "园区",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-9",
+      "label": "移动终端软件应用",
+      "objectType": "information_object",
+      "objectId": "1737b4cf-c277-403d-b84b-b64841217332",
+      "objectCode": "",
+      "objectName": "终端软件应用",
+      "bindStatus": "bound",
+      "confidence": "alias",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "1737b4cf-c277-403d-b84b-b64841217332",
+          "objectCode": "",
+          "objectName": "终端软件应用",
+          "confidence": "alias",
+          "matchName": "终端软件应用",
+          "matchedBy": "alias",
+          "context": [
+            "园区网 / PC终端",
+            "园区网 / 移动终端",
+            "分支机构 / PC终端",
+            "分支机构 / 移动终端",
+            "远程办公接入 / PC终端",
+            "运维管理网络 / PC终端"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "移动终端",
+        "园区",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-15",
+      "label": "分支机构",
+      "objectType": "information_environment",
+      "objectId": "cdcc72a6-5f8d-46f9-844e-1400eafcd734",
+      "objectCode": "",
+      "objectName": "分支机构",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_environment",
+          "objectId": "cdcc72a6-5f8d-46f9-844e-1400eafcd734",
+          "objectCode": "",
+          "objectName": "分支机构",
+          "confidence": "exact",
+          "matchName": "分支机构",
+          "matchedBy": "label",
+          "context": [
+            "分支机构"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-16",
+      "label": "分支机构内部网络",
+      "objectType": "information_object",
+      "objectId": "0a1aafd8-cc07-4334-a004-379d4a627b02",
+      "objectCode": "",
+      "objectName": "分支机构内部网络",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "0a1aafd8-cc07-4334-a004-379d4a627b02",
+          "objectCode": "",
+          "objectName": "分支机构内部网络",
+          "confidence": "exact",
+          "matchName": "分支机构内部网络",
+          "matchedBy": "label",
+          "context": [
+            "分支机构 / 网络"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "分支机构",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-18",
+      "label": "PC终端",
+      "objectType": "environment_segment",
+      "objectId": "8f714983-4d03-41ca-a5f5-2ad0d526f6e8",
+      "objectCode": "",
+      "objectName": "PC终端",
+      "bindStatus": "bound",
+      "confidence": "parent_context",
+      "bindingReason": "parent_container_context",
+      "candidates": [
+        {
+          "objectType": "environment_segment",
+          "objectId": "8f714983-4d03-41ca-a5f5-2ad0d526f6e8",
+          "objectCode": "",
+          "objectName": "PC终端",
+          "confidence": "parent_context",
+          "matchName": "PC终端",
+          "matchedBy": "label",
+          "context": [
+            "分支机构 / PC终端"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "分支机构",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-20",
+      "label": "移动终端",
+      "objectType": "environment_segment",
+      "objectId": "44d5795f-a453-4b3f-ba94-384ce6be62f9",
+      "objectCode": "",
+      "objectName": "移动终端",
+      "bindStatus": "bound",
+      "confidence": "parent_context",
+      "bindingReason": "parent_container_context",
+      "candidates": [
+        {
+          "objectType": "environment_segment",
+          "objectId": "44d5795f-a453-4b3f-ba94-384ce6be62f9",
+          "objectCode": "",
+          "objectName": "移动终端",
+          "confidence": "parent_context",
+          "matchName": "移动终端",
+          "matchedBy": "label",
+          "context": [
+            "分支机构 / 移动终端"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "分支机构",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-22",
+      "label": "办公人员",
+      "objectType": "information_object",
+      "objectId": "98ba8ea8-5a5f-45d1-a16c-6d6e47ddf016",
+      "objectCode": "",
+      "objectName": "办公人员",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "98ba8ea8-5a5f-45d1-a16c-6d6e47ddf016",
+          "objectCode": "",
+          "objectName": "办公人员",
+          "confidence": "exact",
+          "matchName": "办公人员",
+          "matchedBy": "label",
+          "context": [
+            "园区网 / 人员",
+            "分支机构 / 人员",
+            "远程办公接入 / 人员"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "分支机构",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-24",
+      "label": "PC终端设备",
+      "objectType": "information_object",
+      "objectId": "f2b74758-d248-4128-af40-92eb9fa9fd19",
+      "objectCode": "",
+      "objectName": "终端设备",
+      "bindStatus": "bound",
+      "confidence": "alias",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "f2b74758-d248-4128-af40-92eb9fa9fd19",
+          "objectCode": "",
+          "objectName": "终端设备",
+          "confidence": "alias",
+          "matchName": "终端设备",
+          "matchedBy": "alias",
+          "context": [
+            "园区网 / PC终端",
+            "分支机构 / PC终端",
+            "远程办公接入 / PC终端",
+            "运维管理网络 / PC终端"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "PC终端",
+        "分支机构",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-25",
+      "label": "PC终端操作系统",
+      "objectType": "information_object",
+      "objectId": "c7cc41d2-ed8b-42b2-9b44-3f0c651b9fde",
+      "objectCode": "",
+      "objectName": "终端操作系统",
+      "bindStatus": "bound",
+      "confidence": "alias",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "c7cc41d2-ed8b-42b2-9b44-3f0c651b9fde",
+          "objectCode": "",
+          "objectName": "终端操作系统",
+          "confidence": "alias",
+          "matchName": "终端操作系统",
+          "matchedBy": "alias",
+          "context": [
+            "园区网 / PC终端",
+            "园区网 / 移动终端",
+            "分支机构 / PC终端",
+            "分支机构 / 移动终端",
+            "远程办公接入 / PC终端",
+            "运维管理网络 / PC终端"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "PC终端",
+        "分支机构",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-26",
+      "label": "PC终端软件应用",
+      "objectType": "information_object",
+      "objectId": "1737b4cf-c277-403d-b84b-b64841217332",
+      "objectCode": "",
+      "objectName": "终端软件应用",
+      "bindStatus": "bound",
+      "confidence": "alias",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "1737b4cf-c277-403d-b84b-b64841217332",
+          "objectCode": "",
+          "objectName": "终端软件应用",
+          "confidence": "alias",
+          "matchName": "终端软件应用",
+          "matchedBy": "alias",
+          "context": [
+            "园区网 / PC终端",
+            "园区网 / 移动终端",
+            "分支机构 / PC终端",
+            "分支机构 / 移动终端",
+            "远程办公接入 / PC终端",
+            "运维管理网络 / PC终端"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "PC终端",
+        "分支机构",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-29",
+      "label": "移动终端操作系统",
+      "objectType": "information_object",
+      "objectId": "c7cc41d2-ed8b-42b2-9b44-3f0c651b9fde",
+      "objectCode": "",
+      "objectName": "终端操作系统",
+      "bindStatus": "bound",
+      "confidence": "alias",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "c7cc41d2-ed8b-42b2-9b44-3f0c651b9fde",
+          "objectCode": "",
+          "objectName": "终端操作系统",
+          "confidence": "alias",
+          "matchName": "终端操作系统",
+          "matchedBy": "alias",
+          "context": [
+            "园区网 / PC终端",
+            "园区网 / 移动终端",
+            "分支机构 / PC终端",
+            "分支机构 / 移动终端",
+            "远程办公接入 / PC终端",
+            "运维管理网络 / PC终端"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "移动终端",
+        "分支机构",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-30",
+      "label": "移动终端软件应用",
+      "objectType": "information_object",
+      "objectId": "1737b4cf-c277-403d-b84b-b64841217332",
+      "objectCode": "",
+      "objectName": "终端软件应用",
+      "bindStatus": "bound",
+      "confidence": "alias",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "1737b4cf-c277-403d-b84b-b64841217332",
+          "objectCode": "",
+          "objectName": "终端软件应用",
+          "confidence": "alias",
+          "matchName": "终端软件应用",
+          "matchedBy": "alias",
+          "context": [
+            "园区网 / PC终端",
+            "园区网 / 移动终端",
+            "分支机构 / PC终端",
+            "分支机构 / 移动终端",
+            "远程办公接入 / PC终端",
+            "运维管理网络 / PC终端"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "移动终端",
+        "分支机构",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-40",
+      "label": "广域网骨干节点",
+      "objectType": "information_object",
+      "objectId": "3e3438e3-2f4d-4ca0-bfda-7e087dc6c721",
+      "objectCode": "",
+      "objectName": "广域网骨干节点",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "3e3438e3-2f4d-4ca0-bfda-7e087dc6c721",
+          "objectCode": "",
+          "objectName": "广域网骨干节点",
+          "confidence": "exact",
+          "matchName": "广域网骨干节点",
+          "matchedBy": "label",
+          "context": [
+            "广域网 / 广域网骨干节点"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "广域网",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-41",
+      "label": "分支机构接入互联网边界",
+      "objectType": "information_object",
+      "objectId": "60c695da-672e-472b-946c-cd443e505889",
+      "objectCode": "",
+      "objectName": "分支机构接入互联网边界",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "60c695da-672e-472b-946c-cd443e505889",
+          "objectCode": "",
+          "objectName": "分支机构接入互联网边界",
+          "confidence": "exact",
+          "matchName": "分支机构接入互联网边界",
+          "matchedBy": "label",
+          "context": [
+            "分支机构 / 网络"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "分支机构",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-42",
+      "label": "园区出口边界",
+      "objectType": "information_object",
+      "objectId": "663bb076-7ffb-4550-b196-a1276606f7c8",
+      "objectCode": "",
+      "objectName": "园区网出口边界",
+      "bindStatus": "bound",
+      "confidence": "alias",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "663bb076-7ffb-4550-b196-a1276606f7c8",
+          "objectCode": "",
+          "objectName": "园区网出口边界",
+          "confidence": "alias",
+          "matchName": "园区网出口边界",
+          "matchedBy": "alias",
+          "context": [
+            "园区网 / 网络"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-43",
+      "label": "分支机构接入广域网边界",
+      "objectType": "information_object",
+      "objectId": "b7dfe9bf-4cc4-4e21-bbcf-69f0c8ec00de",
+      "objectCode": "",
+      "objectName": "分支机构接入广域网边界",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "b7dfe9bf-4cc4-4e21-bbcf-69f0c8ec00de",
+          "objectCode": "",
+          "objectName": "分支机构接入广域网边界",
+          "confidence": "exact",
+          "matchName": "分支机构接入广域网边界",
+          "matchedBy": "label",
+          "context": [
+            "分支机构 / 网络"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "分支机构",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-51",
+      "label": "互联网出口边界",
+      "objectType": "information_object",
+      "objectId": "4594abef-d89f-4dd0-92d0-98e76fc32657",
+      "objectCode": "",
+      "objectName": "互联网出口边界",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "4594abef-d89f-4dd0-92d0-98e76fc32657",
+          "objectCode": "",
+          "objectName": "互联网出口边界",
+          "confidence": "exact",
+          "matchName": "互联网出口边界",
+          "matchedBy": "label",
+          "context": [
+            "网络周界 / 互联网边界"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "网络周界",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-52",
+      "label": "互联网入口边界",
+      "objectType": "information_object",
+      "objectId": "964be62e-7910-49cf-8734-f6951448d486",
+      "objectCode": "",
+      "objectName": "互联网入口边界",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "964be62e-7910-49cf-8734-f6951448d486",
+          "objectCode": "",
+          "objectName": "互联网入口边界",
+          "confidence": "exact",
+          "matchName": "互联网入口边界",
+          "matchedBy": "label",
+          "context": [
+            "网络周界 / 互联网边界"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "网络周界",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-53",
+      "label": "外联网边界",
+      "objectType": "environment_segment",
+      "objectId": "88224b67-fcb1-4736-8e64-cdcfdb0f8212",
+      "objectCode": "",
+      "objectName": "外联网边界",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "environment_segment",
+          "objectId": "88224b67-fcb1-4736-8e64-cdcfdb0f8212",
+          "objectCode": "",
+          "objectName": "外联网边界",
+          "confidence": "exact",
+          "matchName": "外联网边界",
+          "matchedBy": "label",
+          "context": [
+            "网络周界 / 外联网边界"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "网络周界",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-54",
+      "label": "跨网边界",
+      "objectType": "information_object",
+      "objectId": "08fa0753-502a-47d6-97b6-e3e856f93e6e",
+      "objectCode": "",
+      "objectName": "跨网边界",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "08fa0753-502a-47d6-97b6-e3e856f93e6e",
+          "objectCode": "",
+          "objectName": "跨网边界",
+          "confidence": "exact",
+          "matchName": "跨网边界",
+          "matchedBy": "label",
+          "context": [
+            "网络周界 / 企业内跨网边界"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "网络周界",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-79",
+      "label": "数据中心出口边界",
+      "objectType": "information_object",
+      "objectId": "2e9a8fb2-5a18-4e27-a27e-4054736f608f",
+      "objectCode": "",
+      "objectName": "云数据中心出口边界",
+      "bindStatus": "bound",
+      "confidence": "parent_context",
+      "bindingReason": "parent_container_context",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "2e9a8fb2-5a18-4e27-a27e-4054736f608f",
+          "objectCode": "",
+          "objectName": "云数据中心出口边界",
+          "confidence": "parent_context",
+          "matchName": "云数据中心出口边界",
+          "matchedBy": "alias",
+          "context": [
+            "云数据中心 / 网络"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "云数据中心",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-80",
+      "label": "数据中心内部虚拟网络",
+      "objectType": "information_object",
+      "objectId": "ba95f9f8-e221-454d-ba68-2c775898a052",
+      "objectCode": "",
+      "objectName": "云数据中心内部 虚拟网络",
+      "bindStatus": "bound",
+      "confidence": "alias",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "ba95f9f8-e221-454d-ba68-2c775898a052",
+          "objectCode": "",
+          "objectName": "云数据中心内部 虚拟网络",
+          "confidence": "alias",
+          "matchName": "云数据中心内部 虚拟网络",
+          "matchedBy": "alias",
+          "context": [
+            "云数据中心 / 网络"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "云数据中心",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-94",
+      "label": "物理主机硬件",
+      "objectType": "information_object",
+      "objectId": "81f11ade-72b4-40d7-abb0-79697d3ccfc9",
+      "objectCode": "",
+      "objectName": "物理主机硬件",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "81f11ade-72b4-40d7-abb0-79697d3ccfc9",
+          "objectCode": "",
+          "objectName": "物理主机硬件",
+          "confidence": "exact",
+          "matchName": "物理主机硬件",
+          "matchedBy": "label",
+          "context": [
+            "云数据中心 / 工作负载",
+            "传统数据中心 / 工作负载"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "工作负载",
+        "云数据中心",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-95",
+      "label": "物理主机操作系统",
+      "objectType": "information_object",
+      "objectId": "edaa109e-9606-4b84-902b-33587c28d141",
+      "objectCode": "",
+      "objectName": "物理主机操作系统",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "edaa109e-9606-4b84-902b-33587c28d141",
+          "objectCode": "",
+          "objectName": "物理主机操作系统",
+          "confidence": "exact",
+          "matchName": "物理主机操作系统",
+          "matchedBy": "label",
+          "context": [
+            "云数据中心 / 工作负载",
+            "传统数据中心 / 工作负载"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "工作负载",
+        "云数据中心",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-96",
+      "label": "虚拟主机操作系统",
+      "objectType": "information_object",
+      "objectId": "001f4f7b-aa19-4553-ac84-84742a835e0c",
+      "objectCode": "",
+      "objectName": "虚拟主机操作系统",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "001f4f7b-aa19-4553-ac84-84742a835e0c",
+          "objectCode": "",
+          "objectName": "虚拟主机操作系统",
+          "confidence": "exact",
+          "matchName": "虚拟主机操作系统",
+          "matchedBy": "label",
+          "context": [
+            "云数据中心 / 工作负载"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "工作负载",
+        "云数据中心",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-97",
+      "label": "容器",
+      "objectType": "information_object",
+      "objectId": "abfbb2bd-232f-484f-a3e9-5e34a0cc2e24",
+      "objectCode": "",
+      "objectName": "容器",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "abfbb2bd-232f-484f-a3e9-5e34a0cc2e24",
+          "objectCode": "",
+          "objectName": "容器",
+          "confidence": "exact",
+          "matchName": "容器",
+          "matchedBy": "label",
+          "context": [
+            "云数据中心 / 工作负载"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "工作负载",
+        "云数据中心",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-98",
+      "label": "应用网关层",
+      "objectType": "information_object",
+      "objectId": "5c53cd9d-9cea-4943-999a-d788831dac55",
+      "objectCode": "",
+      "objectName": "应用网关层",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "5c53cd9d-9cea-4943-999a-d788831dac55",
+          "objectCode": "",
+          "objectName": "应用网关层",
+          "confidence": "exact",
+          "matchName": "应用网关层",
+          "matchedBy": "label",
+          "context": [
+            "云数据中心 / 业务应用"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "业务应用",
+        "云数据中心",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-99",
+      "label": "用户接口层",
+      "objectType": "information_object",
+      "objectId": "770c70d5-d1d6-4fe1-93e5-951180a4a38a",
+      "objectCode": "",
+      "objectName": "用户接口层",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "770c70d5-d1d6-4fe1-93e5-951180a4a38a",
+          "objectCode": "",
+          "objectName": "用户接口层",
+          "confidence": "exact",
+          "matchName": "用户接口层",
+          "matchedBy": "label",
+          "context": [
+            "云数据中心 / 业务应用"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "业务应用",
+        "云数据中心",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-100",
+      "label": "API网关层",
+      "objectType": "information_object",
+      "objectId": "9f77f642-d2a3-4143-8375-33925004d660",
+      "objectCode": "",
+      "objectName": "API网关层",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "9f77f642-d2a3-4143-8375-33925004d660",
+          "objectCode": "",
+          "objectName": "API网关层",
+          "confidence": "exact",
+          "matchName": "API网关层",
+          "matchedBy": "label",
+          "context": [
+            "云数据中心 / 业务应用"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "业务应用",
+        "云数据中心",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-101",
+      "label": "应用服务层",
+      "objectType": "information_object",
+      "objectId": "1713589f-0f0d-4b35-a1f8-c797c62ce864",
+      "objectCode": "",
+      "objectName": "应用服务层",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "1713589f-0f0d-4b35-a1f8-c797c62ce864",
+          "objectCode": "",
+          "objectName": "应用服务层",
+          "confidence": "exact",
+          "matchName": "应用服务层",
+          "matchedBy": "label",
+          "context": [
+            "云数据中心 / 业务应用"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "业务应用",
+        "云数据中心",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-102",
+      "label": "数据访问层",
+      "objectType": "information_object",
+      "objectId": "13e9bd79-ea86-4c11-8c16-6d9824271e56",
+      "objectCode": "",
+      "objectName": "数据访问层",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "13e9bd79-ea86-4c11-8c16-6d9824271e56",
+          "objectCode": "",
+          "objectName": "数据访问层",
+          "confidence": "exact",
+          "matchName": "数据访问层",
+          "matchedBy": "label",
+          "context": [
+            "云数据中心 / 业务应用"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "业务应用",
+        "云数据中心",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-103",
+      "label": "数据存储层",
+      "objectType": "information_object",
+      "objectId": "93eda1df-097b-4942-a593-f3318aa5f99d",
+      "objectCode": "",
+      "objectName": "数据存储层",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "93eda1df-097b-4942-a593-f3318aa5f99d",
+          "objectCode": "",
+          "objectName": "数据存储层",
+          "confidence": "exact",
+          "matchName": "数据存储层",
+          "matchedBy": "label",
+          "context": [
+            "云数据中心 / 业务应用"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "业务应用",
+        "云数据中心",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-104",
+      "label": "数据分析层",
+      "objectType": "information_object",
+      "objectId": "369a19ef-9ba5-45a4-ad26-65805bea78c9",
+      "objectCode": "",
+      "objectName": "数据分析层",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "369a19ef-9ba5-45a4-ad26-65805bea78c9",
+          "objectCode": "",
+          "objectName": "数据分析层",
+          "confidence": "exact",
+          "matchName": "数据分析层",
+          "matchedBy": "label",
+          "context": [
+            "云数据中心 / 大数据平台/数据中台"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "大数据平台/数据中台",
+        "云数据中心",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-105",
+      "label": "数据服务层",
+      "objectType": "information_object",
+      "objectId": "fd27a1f4-13d8-4bbc-95f1-475ff997a619",
+      "objectCode": "",
+      "objectName": "数据服务层",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "fd27a1f4-13d8-4bbc-95f1-475ff997a619",
+          "objectCode": "",
+          "objectName": "数据服务层",
+          "confidence": "exact",
+          "matchName": "数据服务层",
+          "matchedBy": "label",
+          "context": [
+            "云数据中心 / 大数据平台/数据中台"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "大数据平台/数据中台",
+        "云数据中心",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-106",
+      "label": "数据存储计算层",
+      "objectType": "information_object",
+      "objectId": "6ef4e338-9b73-42b3-b834-27279633f968",
+      "objectCode": "",
+      "objectName": "数据存储计算层",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "6ef4e338-9b73-42b3-b834-27279633f968",
+          "objectCode": "",
+          "objectName": "数据存储计算层",
+          "confidence": "exact",
+          "matchName": "数据存储计算层",
+          "matchedBy": "label",
+          "context": [
+            "云数据中心 / 大数据平台/数据中台"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "大数据平台/数据中台",
+        "云数据中心",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-107",
+      "label": "数据接入层",
+      "objectType": "information_object",
+      "objectId": "69142559-93cb-4b4a-aa84-b1057a472968",
+      "objectCode": "",
+      "objectName": "数据接入层",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "69142559-93cb-4b4a-aa84-b1057a472968",
+          "objectCode": "",
+          "objectName": "数据接入层",
+          "confidence": "exact",
+          "matchName": "数据接入层",
+          "matchedBy": "label",
+          "context": [
+            "云数据中心 / 大数据平台/数据中台"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "大数据平台/数据中台",
+        "云数据中心",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-126",
+      "label": "工作负载",
+      "objectType": "environment_segment",
+      "objectId": "af7800f8-9557-469d-a7e9-a9a36a4d468b",
+      "objectCode": "",
+      "objectName": "工作负载",
+      "bindStatus": "bound",
+      "confidence": "parent_context",
+      "bindingReason": "parent_container_context",
+      "candidates": [
+        {
+          "objectType": "environment_segment",
+          "objectId": "af7800f8-9557-469d-a7e9-a9a36a4d468b",
+          "objectCode": "",
+          "objectName": "工作负载",
+          "confidence": "parent_context",
+          "matchName": "工作负载",
+          "matchedBy": "label",
+          "context": [
+            "传统数据中心 / 工作负载"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "传统数据中心",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-127",
+      "label": "物理主机硬件",
+      "objectType": "information_object",
+      "objectId": "81f11ade-72b4-40d7-abb0-79697d3ccfc9",
+      "objectCode": "",
+      "objectName": "物理主机硬件",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "81f11ade-72b4-40d7-abb0-79697d3ccfc9",
+          "objectCode": "",
+          "objectName": "物理主机硬件",
+          "confidence": "exact",
+          "matchName": "物理主机硬件",
+          "matchedBy": "label",
+          "context": [
+            "云数据中心 / 工作负载",
+            "传统数据中心 / 工作负载"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "工作负载",
+        "传统数据中心",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-128",
+      "label": "物理主机操作系统",
+      "objectType": "information_object",
+      "objectId": "edaa109e-9606-4b84-902b-33587c28d141",
+      "objectCode": "",
+      "objectName": "物理主机操作系统",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "edaa109e-9606-4b84-902b-33587c28d141",
+          "objectCode": "",
+          "objectName": "物理主机操作系统",
+          "confidence": "exact",
+          "matchName": "物理主机操作系统",
+          "matchedBy": "label",
+          "context": [
+            "云数据中心 / 工作负载",
+            "传统数据中心 / 工作负载"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "工作负载",
+        "传统数据中心",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-138",
+      "label": "数据中心出口边界",
+      "objectType": "information_object",
+      "objectId": "bbe7c2cc-0cfb-42a5-a2a3-ff41c883c45e",
+      "objectCode": "",
+      "objectName": "数据中心出口边界",
+      "bindStatus": "bound",
+      "confidence": "parent_context",
+      "bindingReason": "parent_container_context",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "bbe7c2cc-0cfb-42a5-a2a3-ff41c883c45e",
+          "objectCode": "",
+          "objectName": "数据中心出口边界",
+          "confidence": "parent_context",
+          "matchName": "数据中心出口边界",
+          "matchedBy": "label",
+          "context": [
+            "传统数据中心 / 网络"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "传统数据中心",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-139",
+      "label": "数据中心内部网络",
+      "objectType": "information_object",
+      "objectId": "7e1da6c4-9dd5-4171-91cd-525a93963238",
+      "objectCode": "",
+      "objectName": "数据中心内部网络",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "7e1da6c4-9dd5-4171-91cd-525a93963238",
+          "objectCode": "",
+          "objectName": "数据中心内部网络",
+          "confidence": "exact",
+          "matchName": "数据中心内部网络",
+          "matchedBy": "label",
+          "context": [
+            "传统数据中心 / 网络"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "传统数据中心",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-145",
+      "label": "应用前端",
+      "objectType": "information_object",
+      "objectId": "bd46fece-0f23-48bb-812b-88e8a92b5ff5",
+      "objectCode": "",
+      "objectName": "应用前端",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "bd46fece-0f23-48bb-812b-88e8a92b5ff5",
+          "objectCode": "",
+          "objectName": "应用前端",
+          "confidence": "exact",
+          "matchName": "应用前端",
+          "matchedBy": "label",
+          "context": [
+            "传统数据中心 / 应用及数据"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "业务应用",
+        "传统数据中心",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-146",
+      "label": "应用后端",
+      "objectType": "information_object",
+      "objectId": "9d3b67f5-e5ea-42bd-866d-77c39b8f57fd",
+      "objectCode": "",
+      "objectName": "应用后端",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "9d3b67f5-e5ea-42bd-866d-77c39b8f57fd",
+          "objectCode": "",
+          "objectName": "应用后端",
+          "confidence": "exact",
+          "matchName": "应用后端",
+          "matchedBy": "label",
+          "context": [
+            "传统数据中心 / 应用及数据"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "业务应用",
+        "传统数据中心",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-147",
+      "label": "数据库",
+      "objectType": "information_object",
+      "objectId": "da718f1a-1a94-4063-bfb5-4a1b65222d22",
+      "objectCode": "",
+      "objectName": "数据库",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "da718f1a-1a94-4063-bfb5-4a1b65222d22",
+          "objectCode": "",
+          "objectName": "数据库",
+          "confidence": "exact",
+          "matchName": "数据库",
+          "matchedBy": "label",
+          "context": [
+            "传统数据中心 / 应用及数据"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "业务应用",
+        "传统数据中心",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-168",
+      "label": "数据管理层",
+      "objectType": "information_object",
+      "objectId": "2603e4f4-ac94-4bf7-8d88-07256ee0ad3d",
+      "objectCode": "",
+      "objectName": "数据管理层",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "2603e4f4-ac94-4bf7-8d88-07256ee0ad3d",
+          "objectCode": "",
+          "objectName": "数据管理层",
+          "confidence": "exact",
+          "matchName": "数据管理层",
+          "matchedBy": "label",
+          "context": [
+            "云数据中心 / 大数据平台/数据中台"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "大数据平台/数据中台",
+        "云数据中心",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-169",
+      "label": "运维管理终端",
+      "objectType": "environment_segment",
+      "objectId": "b51a0761-f906-472e-908c-c0dc99af057d",
+      "objectCode": "",
+      "objectName": "PC终端",
+      "bindStatus": "bound",
+      "confidence": "parent_context",
+      "bindingReason": "parent_container_context",
+      "candidates": [
+        {
+          "objectType": "environment_segment",
+          "objectId": "b51a0761-f906-472e-908c-c0dc99af057d",
+          "objectCode": "",
+          "objectName": "PC终端",
+          "confidence": "parent_context",
+          "matchName": "PC终端",
+          "matchedBy": "alias",
+          "context": [
+            "运维管理网络 / PC终端"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "运维管理网",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-170",
+      "label": "PC终端设备",
+      "objectType": "information_object",
+      "objectId": "f2b74758-d248-4128-af40-92eb9fa9fd19",
+      "objectCode": "",
+      "objectName": "终端设备",
+      "bindStatus": "bound",
+      "confidence": "alias",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "f2b74758-d248-4128-af40-92eb9fa9fd19",
+          "objectCode": "",
+          "objectName": "终端设备",
+          "confidence": "alias",
+          "matchName": "终端设备",
+          "matchedBy": "alias",
+          "context": [
+            "园区网 / PC终端",
+            "分支机构 / PC终端",
+            "远程办公接入 / PC终端",
+            "运维管理网络 / PC终端"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "运维管理终端",
+        "运维管理网",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-171",
+      "label": "PC终端操作系统",
+      "objectType": "information_object",
+      "objectId": "c7cc41d2-ed8b-42b2-9b44-3f0c651b9fde",
+      "objectCode": "",
+      "objectName": "终端操作系统",
+      "bindStatus": "bound",
+      "confidence": "alias",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "c7cc41d2-ed8b-42b2-9b44-3f0c651b9fde",
+          "objectCode": "",
+          "objectName": "终端操作系统",
+          "confidence": "alias",
+          "matchName": "终端操作系统",
+          "matchedBy": "alias",
+          "context": [
+            "园区网 / PC终端",
+            "园区网 / 移动终端",
+            "分支机构 / PC终端",
+            "分支机构 / 移动终端",
+            "远程办公接入 / PC终端",
+            "运维管理网络 / PC终端"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "运维管理终端",
+        "运维管理网",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-172",
+      "label": "PC终端软件应用",
+      "objectType": "information_object",
+      "objectId": "1737b4cf-c277-403d-b84b-b64841217332",
+      "objectCode": "",
+      "objectName": "终端软件应用",
+      "bindStatus": "bound",
+      "confidence": "alias",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "1737b4cf-c277-403d-b84b-b64841217332",
+          "objectCode": "",
+          "objectName": "终端软件应用",
+          "confidence": "alias",
+          "matchName": "终端软件应用",
+          "matchedBy": "alias",
+          "context": [
+            "园区网 / PC终端",
+            "园区网 / 移动终端",
+            "分支机构 / PC终端",
+            "分支机构 / 移动终端",
+            "远程办公接入 / PC终端",
+            "运维管理网络 / PC终端"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "运维管理终端",
+        "运维管理网",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-175",
+      "label": "运维管理人员",
+      "objectType": "information_object",
+      "objectId": "c23fd75b-62dd-4a0f-b8c8-25e4c9966005",
+      "objectCode": "",
+      "objectName": "运维管理人员",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "c23fd75b-62dd-4a0f-b8c8-25e4c9966005",
+          "objectCode": "",
+          "objectName": "运维管理人员",
+          "confidence": "exact",
+          "matchName": "运维管理人员",
+          "matchedBy": "label",
+          "context": [
+            "运维管理网络 / 人员"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "运维管理网",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-176",
+      "label": "运维管理网络接入边界",
+      "objectType": "information_object",
+      "objectId": "aefb23d0-1142-4739-b3fd-61e968175413",
+      "objectCode": "",
+      "objectName": "运维管理终端接入边界",
+      "bindStatus": "bound",
+      "confidence": "alias",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "aefb23d0-1142-4739-b3fd-61e968175413",
+          "objectCode": "",
+          "objectName": "运维管理终端接入边界",
+          "confidence": "alias",
+          "matchName": "运维管理终端接入边界",
+          "matchedBy": "alias",
+          "context": [
+            "运维管理网络 / 网络"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "运维管理网",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-177",
+      "label": "运维管理网络入口边界",
+      "objectType": "information_object",
+      "objectId": "5a634e62-a21d-496e-93a7-58e24e4d1f64",
+      "objectCode": "",
+      "objectName": "运维管理网络入口边界",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "5a634e62-a21d-496e-93a7-58e24e4d1f64",
+          "objectCode": "",
+          "objectName": "运维管理网络入口边界",
+          "confidence": "exact",
+          "matchName": "运维管理网络入口边界",
+          "matchedBy": "label",
+          "context": [
+            "运维管理网络 / 网络"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "运维管理网",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-188",
+      "label": "运维管理网络内部边界",
+      "objectType": "information_object",
+      "objectId": "99595e23-cc76-465f-9cfe-605163560c30",
+      "objectCode": "",
+      "objectName": "运维管理网络内部边界",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "99595e23-cc76-465f-9cfe-605163560c30",
+          "objectCode": "",
+          "objectName": "运维管理网络内部边界",
+          "confidence": "exact",
+          "matchName": "运维管理网络内部边界",
+          "matchedBy": "label",
+          "context": [
+            "运维管理网络 / 网络"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "运维管理网",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-191",
+      "label": "PC终端",
+      "objectType": "environment_segment",
+      "objectId": "3d35d396-ed33-4354-aa5a-6e2ea293efaa",
+      "objectCode": "",
+      "objectName": "PC终端",
+      "bindStatus": "bound",
+      "confidence": "parent_context",
+      "bindingReason": "parent_container_context",
+      "candidates": [
+        {
+          "objectType": "environment_segment",
+          "objectId": "3d35d396-ed33-4354-aa5a-6e2ea293efaa",
+          "objectCode": "",
+          "objectName": "PC终端",
+          "confidence": "parent_context",
+          "matchName": "PC终端",
+          "matchedBy": "label",
+          "context": [
+            "远程办公接入 / PC终端"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "远程办公接入"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-192",
+      "label": "PC终端设备",
+      "objectType": "information_object",
+      "objectId": "f2b74758-d248-4128-af40-92eb9fa9fd19",
+      "objectCode": "",
+      "objectName": "终端设备",
+      "bindStatus": "bound",
+      "confidence": "alias",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "f2b74758-d248-4128-af40-92eb9fa9fd19",
+          "objectCode": "",
+          "objectName": "终端设备",
+          "confidence": "alias",
+          "matchName": "终端设备",
+          "matchedBy": "alias",
+          "context": [
+            "园区网 / PC终端",
+            "分支机构 / PC终端",
+            "远程办公接入 / PC终端",
+            "运维管理网络 / PC终端"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "PC终端",
+        "远程办公接入"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-193",
+      "label": "PC终端操作系统",
+      "objectType": "information_object",
+      "objectId": "c7cc41d2-ed8b-42b2-9b44-3f0c651b9fde",
+      "objectCode": "",
+      "objectName": "终端操作系统",
+      "bindStatus": "bound",
+      "confidence": "alias",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "c7cc41d2-ed8b-42b2-9b44-3f0c651b9fde",
+          "objectCode": "",
+          "objectName": "终端操作系统",
+          "confidence": "alias",
+          "matchName": "终端操作系统",
+          "matchedBy": "alias",
+          "context": [
+            "园区网 / PC终端",
+            "园区网 / 移动终端",
+            "分支机构 / PC终端",
+            "分支机构 / 移动终端",
+            "远程办公接入 / PC终端",
+            "运维管理网络 / PC终端"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "PC终端",
+        "远程办公接入"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-194",
+      "label": "PC终端软件应用",
+      "objectType": "information_object",
+      "objectId": "1737b4cf-c277-403d-b84b-b64841217332",
+      "objectCode": "",
+      "objectName": "终端软件应用",
+      "bindStatus": "bound",
+      "confidence": "alias",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "1737b4cf-c277-403d-b84b-b64841217332",
+          "objectCode": "",
+          "objectName": "终端软件应用",
+          "confidence": "alias",
+          "matchName": "终端软件应用",
+          "matchedBy": "alias",
+          "context": [
+            "园区网 / PC终端",
+            "园区网 / 移动终端",
+            "分支机构 / PC终端",
+            "分支机构 / 移动终端",
+            "远程办公接入 / PC终端",
+            "运维管理网络 / PC终端"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "PC终端",
+        "远程办公接入"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-197",
+      "label": "办公人员",
+      "objectType": "information_object",
+      "objectId": "98ba8ea8-5a5f-45d1-a16c-6d6e47ddf016",
+      "objectCode": "",
+      "objectName": "办公人员",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "98ba8ea8-5a5f-45d1-a16c-6d6e47ddf016",
+          "objectCode": "",
+          "objectName": "办公人员",
+          "confidence": "exact",
+          "matchName": "办公人员",
+          "matchedBy": "label",
+          "context": [
+            "园区网 / 人员",
+            "分支机构 / 人员",
+            "远程办公接入 / 人员"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "远程办公接入"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-201",
+      "label": "客户访问接入",
+      "objectType": "information_environment",
+      "objectId": "fd8f2e00-00e2-4edc-aaf1-a458a958dc67",
+      "objectCode": "",
+      "objectName": "客户访问接入",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_environment",
+          "objectId": "fd8f2e00-00e2-4edc-aaf1-a458a958dc67",
+          "objectCode": "",
+          "objectName": "客户访问接入",
+          "confidence": "exact",
+          "matchName": "客户访问接入",
+          "matchedBy": "label",
+          "context": [
+            "客户访问接入"
+          ]
+        }
+      ],
+      "contextLabels": []
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-202",
+      "label": "移动终端",
+      "objectType": "environment_segment",
+      "objectId": "0c0b1337-7839-4475-abee-cbbdc40556c1",
+      "objectCode": "",
+      "objectName": "移动终端",
+      "bindStatus": "bound",
+      "confidence": "parent_context",
+      "bindingReason": "parent_container_context",
+      "candidates": [
+        {
+          "objectType": "environment_segment",
+          "objectId": "0c0b1337-7839-4475-abee-cbbdc40556c1",
+          "objectCode": "",
+          "objectName": "移动终端",
+          "confidence": "parent_context",
+          "matchName": "移动终端",
+          "matchedBy": "label",
+          "context": [
+            "客户访问接入 / 移动终端"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "客户访问接入"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-205",
+      "label": "移动应用",
+      "objectType": "information_object",
+      "objectId": "cbd0a14b-9c3d-4779-adea-7fa3a22d0a37",
+      "objectCode": "",
+      "objectName": "移动应用",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "cbd0a14b-9c3d-4779-adea-7fa3a22d0a37",
+          "objectCode": "",
+          "objectName": "移动应用",
+          "confidence": "exact",
+          "matchName": "移动应用",
+          "matchedBy": "label",
+          "context": [
+            "客户访问接入 / 移动终端"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "移动终端",
+        "客户访问接入"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-215",
+      "label": "基础设施管理平台",
+      "objectType": "information_object",
+      "objectId": "ce391bdb-6e54-443a-948e-b59affafb951",
+      "objectCode": "",
+      "objectName": "基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "bindStatus": "bound",
+      "confidence": "alias",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "ce391bdb-6e54-443a-948e-b59affafb951",
+          "objectCode": "",
+          "objectName": "基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+          "confidence": "alias",
+          "matchName": "基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+          "matchedBy": "alias",
+          "context": [
+            "云数据中心 / 管理平台"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "云数据中心",
+        "数据中心机房",
+        "IT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-231",
+      "label": "L4-L3间网络边界",
+      "objectType": "information_object",
+      "objectId": "4292a70e-c0ee-44ba-b584-3d162a7d684f",
+      "objectCode": "",
+      "objectName": "L4-L3间网络边界",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "4292a70e-c0ee-44ba-b584-3d162a7d684f",
+          "objectCode": "",
+          "objectName": "L4-L3间网络边界",
+          "confidence": "exact",
+          "matchName": "L4-L3间网络边界",
+          "matchedBy": "label",
+          "context": [
+            "工业控制网络 / L3层"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "工厂",
+        "OT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-232",
+      "label": "L3内部网络",
+      "objectType": "information_object",
+      "objectId": "f56e4867-13b1-4c6e-8a5e-476ea468b3bb",
+      "objectCode": "",
+      "objectName": "L3内部网络",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "f56e4867-13b1-4c6e-8a5e-476ea468b3bb",
+          "objectCode": "",
+          "objectName": "L3内部网络",
+          "confidence": "exact",
+          "matchName": "L3内部网络",
+          "matchedBy": "label",
+          "context": [
+            "工业控制网络 / L3层"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "L3",
+        "工厂",
+        "OT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-233",
+      "label": "L3主机操作系统",
+      "objectType": "information_object",
+      "objectId": "6192be7d-c430-4d03-8584-50189a23a50a",
+      "objectCode": "",
+      "objectName": "L3主机操作系统",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "6192be7d-c430-4d03-8584-50189a23a50a",
+          "objectCode": "",
+          "objectName": "L3主机操作系统",
+          "confidence": "exact",
+          "matchName": "L3主机操作系统",
+          "matchedBy": "label",
+          "context": [
+            "工业控制网络 / L3层"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "L3",
+        "工厂",
+        "OT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-239",
+      "label": "L3-L2间网络边界",
+      "objectType": "information_object",
+      "objectId": "f11790bc-cdea-457e-8288-5e891fea9b5c",
+      "objectCode": "",
+      "objectName": "L3-L2间网络边界",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "f11790bc-cdea-457e-8288-5e891fea9b5c",
+          "objectCode": "",
+          "objectName": "L3-L2间网络边界",
+          "confidence": "exact",
+          "matchName": "L3-L2间网络边界",
+          "matchedBy": "label",
+          "context": [
+            "工业控制网络 / L2层"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "L2",
+        "工厂",
+        "OT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-240",
+      "label": "L2内部网络",
+      "objectType": "information_object",
+      "objectId": "d234457f-58fc-4991-a7e4-f1189bc4db4f",
+      "objectCode": "",
+      "objectName": "L2内部网络",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "d234457f-58fc-4991-a7e4-f1189bc4db4f",
+          "objectCode": "",
+          "objectName": "L2内部网络",
+          "confidence": "exact",
+          "matchName": "L2内部网络",
+          "matchedBy": "label",
+          "context": [
+            "工业控制网络 / L2层"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "L2",
+        "工厂",
+        "OT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-241",
+      "label": "L2主机操作系统",
+      "objectType": "information_object",
+      "objectId": "07c590e5-b558-46e3-b6e4-9b373ff4edcb",
+      "objectCode": "",
+      "objectName": "L2层主机操作系统",
+      "bindStatus": "bound",
+      "confidence": "alias",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "07c590e5-b558-46e3-b6e4-9b373ff4edcb",
+          "objectCode": "",
+          "objectName": "L2层主机操作系统",
+          "confidence": "alias",
+          "matchName": "L2层主机操作系统",
+          "matchedBy": "alias",
+          "context": [
+            "工业控制网络 / L2层"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "L2",
+        "工厂",
+        "OT"
+      ]
+    },
+    {
+      "mxId": "7M0SGe99AU4GMtvV9rx2-243",
+      "label": "L2-L1间网络边界",
+      "objectType": "information_object",
+      "objectId": "fff3cdfb-d8ed-4bac-8ea2-88b92e6701fd",
+      "objectCode": "",
+      "objectName": "L2-L1间网络边界",
+      "bindStatus": "bound",
+      "confidence": "exact",
+      "bindingReason": "name_match",
+      "candidates": [
+        {
+          "objectType": "information_object",
+          "objectId": "fff3cdfb-d8ed-4bac-8ea2-88b92e6701fd",
+          "objectCode": "",
+          "objectName": "L2-L1间网络边界",
+          "confidence": "exact",
+          "matchName": "L2-L1间网络边界",
+          "matchedBy": "label",
+          "context": [
+            "工业控制网络 / L1层"
+          ]
+        }
+      ],
+      "contextLabels": [
+        "L1",
+        "工厂",
+        "OT"
+      ]
+    }
+  ],
+  "duplicateBoundObjectIds": [
+    {
+      "objectId": "98ba8ea8-5a5f-45d1-a16c-6d6e47ddf016",
+      "objectType": "information_object",
+      "objectName": "办公人员",
+      "count": 3,
+      "mxIds": [
+        "xDkBI2kzSbe3P-stVFY9-38",
+        "7M0SGe99AU4GMtvV9rx2-22",
+        "7M0SGe99AU4GMtvV9rx2-197"
+      ],
+      "labels": [
+        "办公人员"
+      ],
+      "contextLabels": [
+        "园区",
+        "IT",
+        "分支机构",
+        "远程办公接入"
+      ],
+      "allowed": true,
+      "reason": "same catalog object reused across environment contexts"
+    },
+    {
+      "objectId": "f2b74758-d248-4128-af40-92eb9fa9fd19",
+      "objectType": "information_object",
+      "objectName": "终端设备",
+      "count": 4,
+      "mxIds": [
+        "7M0SGe99AU4GMtvV9rx2-2",
+        "7M0SGe99AU4GMtvV9rx2-24",
+        "7M0SGe99AU4GMtvV9rx2-170",
+        "7M0SGe99AU4GMtvV9rx2-192"
+      ],
+      "labels": [
+        "PC终端设备"
+      ],
+      "contextLabels": [
+        "PC终端",
+        "园区",
+        "IT",
+        "分支机构",
+        "运维管理终端",
+        "运维管理网",
+        "数据中心机房",
+        "远程办公接入"
+      ],
+      "allowed": true,
+      "reason": "same catalog object reused across environment contexts"
+    },
+    {
+      "objectId": "c7cc41d2-ed8b-42b2-9b44-3f0c651b9fde",
+      "objectType": "information_object",
+      "objectName": "终端操作系统",
+      "count": 6,
+      "mxIds": [
+        "7M0SGe99AU4GMtvV9rx2-3",
+        "7M0SGe99AU4GMtvV9rx2-8",
+        "7M0SGe99AU4GMtvV9rx2-25",
+        "7M0SGe99AU4GMtvV9rx2-29",
+        "7M0SGe99AU4GMtvV9rx2-171",
+        "7M0SGe99AU4GMtvV9rx2-193"
+      ],
+      "labels": [
+        "PC终端操作系统",
+        "移动终端操作系统"
+      ],
+      "contextLabels": [
+        "PC终端",
+        "园区",
+        "IT",
+        "移动终端",
+        "分支机构",
+        "运维管理终端",
+        "运维管理网",
+        "数据中心机房",
+        "远程办公接入"
+      ],
+      "allowed": true,
+      "reason": "same catalog object reused across environment contexts"
+    },
+    {
+      "objectId": "1737b4cf-c277-403d-b84b-b64841217332",
+      "objectType": "information_object",
+      "objectName": "终端软件应用",
+      "count": 6,
+      "mxIds": [
+        "7M0SGe99AU4GMtvV9rx2-4",
+        "7M0SGe99AU4GMtvV9rx2-9",
+        "7M0SGe99AU4GMtvV9rx2-26",
+        "7M0SGe99AU4GMtvV9rx2-30",
+        "7M0SGe99AU4GMtvV9rx2-172",
+        "7M0SGe99AU4GMtvV9rx2-194"
+      ],
+      "labels": [
+        "PC终端软件应用",
+        "移动终端软件应用"
+      ],
+      "contextLabels": [
+        "PC终端",
+        "园区",
+        "IT",
+        "移动终端",
+        "分支机构",
+        "运维管理终端",
+        "运维管理网",
+        "数据中心机房",
+        "远程办公接入"
+      ],
+      "allowed": true,
+      "reason": "same catalog object reused across environment contexts"
+    },
+    {
+      "objectId": "81f11ade-72b4-40d7-abb0-79697d3ccfc9",
+      "objectType": "information_object",
+      "objectName": "物理主机硬件",
+      "count": 2,
+      "mxIds": [
+        "7M0SGe99AU4GMtvV9rx2-94",
+        "7M0SGe99AU4GMtvV9rx2-127"
+      ],
+      "labels": [
+        "物理主机硬件"
+      ],
+      "contextLabels": [
+        "工作负载",
+        "云数据中心",
+        "数据中心机房",
+        "IT",
+        "传统数据中心"
+      ],
+      "allowed": true,
+      "reason": "same catalog object reused across environment contexts"
+    },
+    {
+      "objectId": "edaa109e-9606-4b84-902b-33587c28d141",
+      "objectType": "information_object",
+      "objectName": "物理主机操作系统",
+      "count": 2,
+      "mxIds": [
+        "7M0SGe99AU4GMtvV9rx2-95",
+        "7M0SGe99AU4GMtvV9rx2-128"
+      ],
+      "labels": [
+        "物理主机操作系统"
+      ],
+      "contextLabels": [
+        "工作负载",
+        "云数据中心",
+        "数据中心机房",
+        "IT",
+        "传统数据中心"
+      ],
+      "allowed": true,
+      "reason": "same catalog object reused across environment contexts"
+    }
+  ],
+  "disallowedDuplicateBoundObjectIds": [],
+  "missingExpectedObjects": [],
+  "rules": [
+    "manual overrides by mxId win first",
+    "exact normalized name match",
+    "alias table match",
+    "parent/container context narrows duplicate candidates",
+    "candidateOnlyLabels prevent uncertain aliases from becoming bound",
+    "no fuzzy matching and no coordinate-only binding"
+  ]
+}

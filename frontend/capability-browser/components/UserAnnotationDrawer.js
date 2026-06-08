@@ -68,7 +68,7 @@
 
   function restoreDrawerScroll() {
     restoreScheduled = false;
-    const panel = document.querySelector(".user-annotation-drawer.is-open .annotation-drawer-panel");
+    const panel = document.querySelector(".user-annotation-drawer.is-open .annotation-drawer-scroll, .user-annotation-drawer.is-open .annotation-drawer-panel");
     if (!panel) return;
     const remembered = drawerScrollMemory.get(drawerScrollKey(panel));
     if (Number.isFinite(remembered) && remembered > 0) panel.scrollTop = remembered;
@@ -86,7 +86,7 @@
     document.addEventListener(
       "scroll",
       (event) => {
-        const panel = event.target?.closest?.(".annotation-drawer-panel");
+        const panel = event.target?.closest?.(".annotation-drawer-scroll, .annotation-drawer-panel");
         if (panel) rememberDrawerScroll(panel);
       },
       true,
@@ -94,7 +94,7 @@
     document.addEventListener(
       "click",
       (event) => {
-        const panel = event.target?.closest?.(".annotation-drawer-panel");
+        const panel = event.target?.closest?.(".annotation-drawer-scroll, .annotation-drawer-panel");
         if (panel) rememberDrawerScroll(panel);
         if (event.target?.closest?.("[data-annotation-drawer-toggle]")) scheduleDrawerScrollRestore();
       },
@@ -236,39 +236,42 @@
             </div>
             <button type="button" class="annotation-drawer-close" data-annotation-drawer-close aria-label="收起批注面板">收起</button>
           </header>
-          <div class="annotation-anchor-strip">
-            <span>${escape(anchorLabel)}</span>
-            <strong title="${escape(title)}" data-annotation-tooltip="${escape(title)}">${escape(title)}</strong>
-            <small title="${escape(currentTarget.code || currentTarget.id || currentTarget.targetRef)}" data-annotation-tooltip="${escape(currentTarget.code || currentTarget.id || currentTarget.targetRef)}">${escape(currentTarget.code || currentTarget.id || currentTarget.targetRef)}</small>
-          </div>
-          ${
-            draftGuard
-              ? `
-                <div class="annotation-draft-guard" role="alert">
-                  <strong>当前批注尚未保存</strong>
-                  <span>准备切换到：${escape(pendingTargetLabel || "新页面")}</span>
-                  <div>
-                    <button type="button" data-annotation-draft-save-switch${disabledAttr}>保存并切换</button>
-                    <button type="button" data-annotation-draft-discard-switch${disabledAttr}>放弃并切换</button>
-                    <button type="button" data-annotation-draft-cancel-switch>继续编辑</button>
-                  </div>
-                </div>
-              `
-              : ""
-          }
-          <form class="annotation-create-form" data-user-note-form>
-            <label for="userAnnotationDraft">添加批注</label>
-            <textarea id="userAnnotationDraft" data-user-note-draft rows="5" placeholder="记录复核结论、待确认点或需要后续处理的问题。" ${disabledAttr}>${escape(draft)}</textarea>
-            <div class="annotation-form-tools">
-              <span>${escape(unavailable ? "用户库不可用" : loading ? "正在读取用户库" : "写入用户库，不修改基础数据")}</span>
-              <button type="submit"${disabledAttr}>${escape(saving ? "保存中" : "保存批注")}</button>
+          <div class="annotation-drawer-fixed">
+            <div class="annotation-anchor-strip">
+              <span>${escape(anchorLabel)}</span>
+              <strong title="${escape(title)}" data-annotation-tooltip="${escape(title)}">${escape(title)}</strong>
+              <small title="${escape(currentTarget.code || currentTarget.id || currentTarget.targetRef)}" data-annotation-tooltip="${escape(currentTarget.code || currentTarget.id || currentTarget.targetRef)}">${escape(currentTarget.code || currentTarget.id || currentTarget.targetRef)}</small>
             </div>
-          </form>
-          ${renderLegacyFavorite(favorite)}
-          <section class="annotation-section">
-            <h3>${escape(pageTitle)}批注</h3>
-            ${renderNoteList(pageNotes, loading ? "正在读取批注..." : "当前页面暂无批注", { editingNoteId, editDraft, expandedNoteIds, currentTargetRef: currentTarget.targetRef })}
-          </section>
+            ${
+              draftGuard
+                ? `
+                  <div class="annotation-draft-guard" role="alert">
+                    <strong>当前批注尚未保存</strong>
+                    <span>准备切换到：${escape(pendingTargetLabel || "新页面")}</span>
+                    <div>
+                      <button type="button" data-annotation-draft-save-switch${disabledAttr}>保存并切换</button>
+                      <button type="button" data-annotation-draft-discard-switch${disabledAttr}>放弃并切换</button>
+                      <button type="button" data-annotation-draft-cancel-switch>继续编辑</button>
+                    </div>
+                  </div>
+                `
+                : ""
+            }
+            <form class="annotation-create-form" data-user-note-form>
+              <label for="userAnnotationDraft">添加批注</label>
+              <textarea id="userAnnotationDraft" data-user-note-draft rows="5" placeholder="记录复核结论、待确认点或需要后续处理的问题。" ${disabledAttr}>${escape(draft)}</textarea>
+              <div class="annotation-form-tools">
+                <button type="submit"${disabledAttr}>${escape(saving ? "保存中" : "保存批注")}</button>
+              </div>
+            </form>
+          </div>
+          <div class="annotation-drawer-scroll">
+            ${renderLegacyFavorite(favorite)}
+            <section class="annotation-section">
+              <h3>${escape(pageTitle)}批注</h3>
+              ${renderNoteList(pageNotes, loading ? "正在读取批注..." : "当前页面暂无批注", { editingNoteId, editDraft, expandedNoteIds, currentTargetRef: currentTarget.targetRef })}
+            </section>
+          </div>
         </section>
       </aside>
     `;

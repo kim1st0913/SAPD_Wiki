@@ -411,9 +411,14 @@ GET /api/v1/user/data-baskets/:id/items
 POST /api/v1/user/data-baskets/:id/items
 DELETE /api/v1/user/data-baskets/:id/items/:item_id
 
+GET /api/v1/user/export-profiles
+POST /api/v1/user/export-profiles
+GET /api/v1/user/export-profiles/:id
+DELETE /api/v1/user/export-profiles/:id
 POST /api/v1/user/exports/preview
 POST /api/v1/user/exports
 GET /api/v1/user/exports/:id
+GET /api/v1/user/exports/:id/download
 
 GET /api/v1/user/capability-models
 POST /api/v1/user/capability-models
@@ -424,6 +429,8 @@ GET /api/v1/user/import-drafts
 POST /api/v1/user/import-drafts
 PATCH /api/v1/user/import-drafts/:id
 ```
+
+导出格式契约入口：`docs/06-implementation/user-export-format-contract.md`。当前 runtime 只完成受控 JSON 最小闭环；2026-06-07 用户已确认后续表格导出基本参考原始数据，优先 Excel / CSV / Markdown，幻灯片材料单独导出 PDF；第一批业务数据集为能力全量映射、信息化环境安全映射、字典与标准框架数据。
 
 ### 7.2 read model 合并原则
 

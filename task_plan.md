@@ -57,11 +57,12 @@ Frontend Baseline 1.0 当前关系工作台实现重点仍覆盖三页：
 
 | 优先级组 | 工作包 | 当前状态 | 推荐下一步 | 改动边界 |
 |---|---|---|---|---|
-| P0-A | 用户库长期治理 | `OI-135` / `DB-11` 正式迁移脚本完成 / 工作台总览和数据篮最小 API 已完成 / 真实库 apply 待显式确认 | 已有默认 dry-run、临时库 apply、自动备份和项目库写入确认门；工作台与数据篮 API 已完成创建、读取、条目 upsert、删除和 token 防护，下一步进入导出配置最小 API | 后端最小 API 先行，不直接改前端按钮 |
+| P0-A | 用户库长期治理 | `OI-135` / `DB-11` 正式迁移脚本完成 / 工作台总览、数据篮和导出最小闭环已完成 / 真实库 apply 待显式确认 | 已有默认 dry-run、临时库 apply、自动备份和项目库写入确认门；工作台、数据篮、导出配置、导出预览、导出执行和下载 API 已完成 token 防护与临时 ZIP runtime smoke；用户已确认第一批导出以原始业务数据口径为主，优先 Excel / CSV / Markdown，幻灯片导出 PDF；`capability_full_mapping`、`environment_technology_mapping`、`reference_dictionary_and_standards` 三个业务数据集的 CSV / Excel sheet 字段草案已固化，下一步可进入导出器实现 | 后端最小 API 先行，不直接改前端按钮；当前导出文件为受控 JSON 验证闭环，不是最终多格式契约 |
 | P0-A | `stable_key` / 基础库升级兼容 | `DB-2` 正式迁移脚本完成 / 真实库 apply 待显式确认 | 已可对临时复制基础库补齐 `stable_key` / `stable_ref` / `public_id` 和 `base_id_redirects`；真实库 apply 需显式确认和备份 | 支撑批注、收藏、Delivery 和后续基础库升级 |
 | P0-B | `analytics_summary` 落地 | exporter / audit / `data_package_summary` / `dataClient` / dashboard 消费已完成 / 已提交 | 后续只按视觉或业务反馈小修 | 已按数据契约消费，不在前端重新拼跨包指标 |
 | P0-C | 深层路由稳定性 | `OI-136 / FE-ROUTE` 已修复 / 待 checkpoint | 已通过根 `base href` 修复 `/guides/*`、`/knowledge/*`、`/standards/*` 直接访问资源相对路径问题；轻量 smoke 已覆盖三类深链根资源加载 | 单线写入，不和 dashboard 或批注混写 |
 | P0-D | ArchiMate 建模语言页优化 | `OI-133` 已修复 / 待人工验收 | 已按用户最新纠偏修正：恢复两层标题，最大标题为 `安全架构建模语言`，第二标题为 `ArchiMate® 3.2 - 企业架构建模标准`；tab 跟在最大标题后面，工具按钮跟在第二标题后面；主体只保留可滚动整张 Poster 且图片贴合容器；点击图片或 `全页面显示` 时打开页面内 Image Lightbox / Fullscreen Modal，不使用新窗口或 `Blob` 页面；预览工具栏无下载按钮，支持滚轮缩放和拖动平移，高分整图为 `6741 x 4768` | 不改数据库、不改数据包、不改 `SAPD 元素图例` registry |
+| P0-E | 信息化环境首页底图导入 | `OI-137` 已修复 / 待人工验收 | 已从 draw.io 第三页 `信息化环境及对象底图` 生成语义 HTML 底图：vertex 按 `mxGeometry` 转为绝对定位 HTML 节点，edge 转为 SVG overlay 连线，并输出 `environmentBasemap.semantic.json`；`/environment-mapping` 第一个 tab 为 `环境底图`，提供适应、缩放、拖拽平移、全屏和节点点击高亮 | 不使用 `SAPD 元素图例` 样例文字，不按截图 / 业务语义重排，不做 CSS grid / flex 自动布局；本机无 `drawio` / `diagrams.net` CLI，复杂私有图标和 edgeStyle 路由为直接解析近似 |
 | P1 | Delivery Bundle 1.0-alpha | macOS alpha 已准备，Windows 未实测 | 打包任务后排；待 user DB / stable_key 前置设计稳定后，再决定是否恢复 Windows UAT 或正式打包 | 不和前端 UI 混写 |
 
 ## analytics_summary P0 落地计划
@@ -159,7 +160,7 @@ Frontend Baseline 1.0 当前关系工作台实现重点仍覆盖三页：
 | DB-2 | `stable_key` / deterministic ID 策略 | P0 正式迁移脚本完成 / 真实库 apply 待显式确认 | 已新增 `scripts/audit_stable_key_contract.mjs`、`scripts/smoke_db_migration_contracts.mjs`、`scripts/migrate_db_contracts.mjs` 和 `base-stable-key-and-redirect-migration-design-2026-06-06.md`；临时复制基础库已验证 4660 个对象和 7654 条关系的 `stable_key` / `stable_ref` / `public_id` 覆盖，真实库 apply 必须显式确认和备份 |
 | DB-3 | base manifest 与版本规范 | 最小契约已完成 | 生成 `base-manifest.json`，绑定 app 版本、base 数据版本、schema 版本、fallback JSON hash 和关键计数 |
 | DB-4 | 用户库 schema / migration | 最小 schema 与创建脚本已完成 | 初始化用户库，覆盖备注、收藏、个人标签、overlay、修正建议、用户导入 staging / review / change log |
-| DB-11 | 用户库治理与兼容表迁移清理 | P0 正式迁移脚本完成 / 工作台总览和数据篮最小 API 已完成 / 真实库 apply 待显式确认 | 已新增 `scripts/audit_user_db_governance_contract.mjs`、用户库兼容报告、`scripts/plan_user_schema_0_3_migration.mjs`、`scripts/smoke_db_migration_contracts.mjs` 和 `scripts/migrate_db_contracts.mjs`；临时复制用户库已验证 `user_schema_0.3` 13 张新表；runtime 已确保 `user_workspaces` / `user_workspace_items` / `user_data_baskets` / `user_data_basket_items` 表并提供最小 API；真实库 apply 必须显式确认和备份 |
+| DB-11 | 用户库治理与兼容表迁移清理 | P0 正式迁移脚本完成 / 工作台总览、数据篮和导出最小闭环已完成 / 真实库 apply 待显式确认 | 已新增 `scripts/audit_user_db_governance_contract.mjs`、用户库兼容报告、`scripts/plan_user_schema_0_3_migration.mjs`、`scripts/smoke_db_migration_contracts.mjs` 和 `scripts/migrate_db_contracts.mjs`；临时复制用户库已验证 `user_schema_0.3` 13 张新表；runtime 已确保 `user_workspaces` / `user_workspace_items` / `user_data_baskets` / `user_data_basket_items` / `user_export_profiles` / `user_export_jobs` 表，并提供工作台、数据篮、导出配置、导出预览、导出执行和下载最小 API；真实库 apply 必须显式确认和备份 |
 | DB-5 | base/user 合并 read model | 连接与命名空间规则已设计 | API 层输出 `base:<id>` / `user:<id>` 命名空间，前端不关心数据来自哪个 SQLite |
 | DB-6 | ZIP Bundle Builder alpha | 真实运行 ZIP 构建规则已收紧 | 从已审批正式库生成 `sapd_wiki_base.sqlite3`、manifest、`frontend-dist`、分平台 start/stop / diagnostics 脚本、logs、diagnostics 和平台 zip 目录；默认输出到 `/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle`；真实 ZIP 必须传入 `--backend-binary`，结构验证包必须显式 `--allow-placeholder` |
 | DB-7 | 本地后端可执行文件 alpha | macOS arm64 已打包验证，Windows 待实测 | `scripts/run_local_server.py` 已用 PyInstaller 打包为 macOS arm64 `SAPD-Wiki-Backend` 并完成 ZIP 解压启动验证；Windows 构建脚本 `scripts/package_backend_windows.ps1` 和 `docs/09-delivery/windows-zip-build-guide.md` 已就绪，待 Windows x64 环境生成并验证 `SAPD-Wiki-Backend.exe` |

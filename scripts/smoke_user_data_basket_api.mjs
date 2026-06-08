@@ -68,6 +68,39 @@ async function requestJson(url, options = {}) {
   return { response, json };
 }
 
+function forbiddenExportKeys(value) {
+  const forbidden = new Set([
+    "sheet",
+    "row",
+    "column",
+    "raw_value",
+    "source_file",
+    "import_id",
+    "source_id",
+    "source_ref",
+    "source_label",
+    "debug",
+    "raw",
+    "metadata",
+    "intermediate",
+    "generated_at",
+  ]);
+  const found = new Set();
+  function walk(node) {
+    if (Array.isArray(node)) {
+      node.forEach(walk);
+      return;
+    }
+    if (!node || typeof node !== "object") return;
+    for (const [key, child] of Object.entries(node)) {
+      if (forbidden.has(key)) found.add(key);
+      walk(child);
+    }
+  }
+  walk(value);
+  return [...found].sort();
+}
+
 async function waitForHealth(baseUrl, serverOutputRef) {
   const deadline = Date.now() + 10_000;
   let lastError;
@@ -309,6 +342,131 @@ async function main() {
       fail("workspace delete failed", deleteWorkspace.json);
     }
 
+    const rejectedExportProfile = await requestJson(`${baseUrl}/api/v1/user/export-profiles`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Origin: baseUrl },
+      body: JSON.stringify({ name: "should fail", export_type: "data_basket" }),
+    });
+    if (rejectedExportProfile.response.status !== 403) {
+      fail("export profile write without token should be rejected", {
+        status: rejectedExportProfile.response.status,
+        body: rejectedExportProfile.json,
+      });
+    }
+
+    const createExportProfile = await requestJson(`${baseUrl}/api/v1/user/export-profiles`, {
+      method: "POST",
+      headers: writeHeaders,
+      body: JSON.stringify({
+        name: "数据篮 JSON 导出",
+        export_type: "data_basket",
+        config: {
+          format: "json",
+          include: ["target_ref", "object_type", "object_title"],
+        },
+      }),
+    });
+    const exportProfile = createExportProfile.json.export_profile;
+    if (!createExportProfile.json.ok || !exportProfile?.id || exportProfile.config?.format !== "json") {
+      fail("export profile create failed", createExportProfile.json);
+    }
+
+    const listExportProfiles = await requestJson(`${baseUrl}/api/v1/user/export-profiles`);
+    if (!listExportProfiles.json.export_profiles?.some((item) => item.id === exportProfile.id && item.export_type === "data_basket")) {
+      fail("created export profile was not listed", listExportProfiles.json);
+    }
+
+    const getExportProfile = await requestJson(`${baseUrl}/api/v1/user/export-profiles/${encodeURIComponent(exportProfile.id)}`);
+    if (!getExportProfile.json.ok || getExportProfile.json.export_profile?.id !== exportProfile.id) {
+      fail("export profile get failed", getExportProfile.json);
+    }
+
+    const rejectedForbiddenField = await requestJson(`${baseUrl}/api/v1/user/export-profiles`, {
+      method: "POST",
+      headers: writeHeaders,
+      body: JSON.stringify({
+        name: "禁止字段导出",
+        export_type: "data_basket",
+        config: { include: ["target_ref", "raw_value"] },
+      }),
+    });
+    if (rejectedForbiddenField.response.status !== 400 || !String(rejectedForbiddenField.json.error || "").includes("raw_value")) {
+      fail("export profile should reject forbidden fields", {
+        status: rejectedForbiddenField.response.status,
+        body: rejectedForbiddenField.json,
+      });
+    }
+
+    const createExportBasket = await requestJson(`${baseUrl}/api/v1/user/data-baskets`, {
+      method: "POST",
+      headers: writeHeaders,
+      body: JSON.stringify({ name: "导出执行数据篮", description: "smoke export" }),
+    });
+    const exportBasket = createExportBasket.json.data_basket;
+    if (!createExportBasket.json.ok || !exportBasket?.id) {
+      fail("export basket create failed", createExportBasket.json);
+    }
+
+    const addExportItem = await requestJson(`${baseUrl}/api/v1/user/data-baskets/${encodeURIComponent(exportBasket.id)}/items`, {
+      method: "POST",
+      headers: writeHeaders,
+      body: JSON.stringify({
+        target_ref: "base:capability_focus:G-SP.EX-01",
+        object_type: "capability_focus",
+        object_title: "导出执行烟测对象",
+        payload: { route: "/capability-mapping", source: "export-smoke" },
+      }),
+    });
+    if (!addExportItem.json.ok || addExportItem.json.item?.payload?.source !== "export-smoke") {
+      fail("export basket item create failed", addExportItem.json);
+    }
+
+    const createExportPreview = await requestJson(`${baseUrl}/api/v1/user/exports/preview`, {
+      method: "POST",
+      headers: writeHeaders,
+      body: JSON.stringify({
+        profile_id: exportProfile.id,
+        source_ref: `user:data_basket:${exportBasket.id}`,
+      }),
+    });
+    const exportJob = createExportPreview.json.export_job;
+    if (!createExportPreview.json.ok || !exportJob?.id || exportJob.status !== "draft" || exportJob.preview?.field_boundary?.status !== "passed") {
+      fail("export preview create failed", createExportPreview.json);
+    }
+
+    const getExportJob = await requestJson(`${baseUrl}/api/v1/user/exports/${encodeURIComponent(exportJob.id)}`);
+    if (!getExportJob.json.ok || getExportJob.json.export_job?.id !== exportJob.id || getExportJob.json.export_job?.output_path !== null) {
+      fail("export job get failed", getExportJob.json);
+    }
+
+    const executeExport = await requestJson(`${baseUrl}/api/v1/user/exports`, {
+      method: "POST",
+      headers: writeHeaders,
+      body: JSON.stringify({ job_id: exportJob.id }),
+    });
+    const completedExportJob = executeExport.json.export_job;
+    if (!executeExport.json.ok || completedExportJob?.status !== "completed" || !completedExportJob.output_path) {
+      fail("export execute failed", executeExport.json);
+    }
+
+    const downloadExport = await requestJson(`${baseUrl}/api/v1/user/exports/${encodeURIComponent(exportJob.id)}/download`);
+    if (!downloadExport.response.ok || downloadExport.json.data?.items?.[0]?.payload?.source !== "export-smoke") {
+      fail("export download failed", { status: downloadExport.response.status, body: downloadExport.json });
+    }
+    const forbiddenDownloadedKeys = forbiddenExportKeys(downloadExport.json);
+    if (forbiddenDownloadedKeys.length) {
+      fail("downloaded export contained forbidden fields", { forbiddenDownloadedKeys, body: downloadExport.json });
+    }
+
+    const deleteExportProfile = await requestJson(`${baseUrl}/api/v1/user/export-profiles/${encodeURIComponent(exportProfile.id)}`, {
+      method: "DELETE",
+      headers: writeHeaders,
+      body: "{}",
+    });
+    if (!deleteExportProfile.json.ok || deleteExportProfile.json.deleted !== 1) {
+      fail("export profile delete failed", deleteExportProfile.json);
+    }
+
     console.log(
       JSON.stringify(
         {
@@ -326,6 +484,16 @@ async function main() {
             workspaceItemCreated: true,
             workspaceItemDeleted: true,
             workspaceDeleted: true,
+            exportProfileAuthRejected: true,
+            exportProfileCreated: true,
+            exportProfileListed: true,
+            exportProfileForbiddenFieldsRejected: true,
+            exportPreviewCreated: true,
+            exportJobRead: true,
+            exportExecuted: true,
+            exportDownloaded: true,
+            exportDownloadBoundaryChecked: true,
+            exportProfileDeleted: true,
           },
         },
         null,

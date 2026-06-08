@@ -58,6 +58,23 @@ USER_NOTE_STATUSES = {"todo", "reviewing", "waiting_confirm", "confirmed", "clos
 USER_DATA_BASKET_STATUSES = {"active", "draft", "archived"}
 USER_WORKSPACE_STATUSES = {"active", "draft", "archived"}
 USER_WORKSPACE_ITEM_STATUSES = {"active", "pinned", "reviewing", "closed", "archived"}
+USER_EXPORT_TYPES = {"current_view", "workspace", "data_basket", "user_overlay", "full_backup"}
+FORBIDDEN_EXPORT_FIELDS = {
+    "sheet",
+    "row",
+    "column",
+    "raw_value",
+    "source_file",
+    "import_id",
+    "source_id",
+    "source_ref",
+    "source_label",
+    "debug",
+    "raw",
+    "metadata",
+    "intermediate",
+    "generated_at",
+}
 
 USER_WORKSPACE_TABLES = [
     """
@@ -113,6 +130,32 @@ USER_DATA_BASKET_TABLES = [
     """,
 ]
 
+USER_EXPORT_TABLES = [
+    """
+    CREATE TABLE IF NOT EXISTS user_export_profiles (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        export_type TEXT NOT NULL,
+        config_json TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS user_export_jobs (
+        id TEXT PRIMARY KEY,
+        profile_id TEXT,
+        export_type TEXT NOT NULL,
+        source_ref TEXT,
+        status TEXT NOT NULL DEFAULT 'draft',
+        preview_json TEXT,
+        output_path TEXT,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """,
+]
+
 USER_DATA_BASKET_SELECT_COLUMNS = """
 id, name, description, status, created_at, updated_at
 """
@@ -127,6 +170,14 @@ id, name, description, status, created_at, updated_at
 
 USER_WORKSPACE_ITEM_SELECT_COLUMNS = """
 id, workspace_id, target_ref, item_status, sort_order, payload_json, created_at, updated_at
+"""
+
+USER_EXPORT_PROFILE_SELECT_COLUMNS = """
+id, name, export_type, config_json, created_at, updated_at
+"""
+
+USER_EXPORT_JOB_SELECT_COLUMNS = """
+id, profile_id, export_type, source_ref, status, preview_json, output_path, created_at, updated_at
 """
 
 
@@ -191,6 +242,7 @@ class BundleRuntime:
         self.manifest_path = self.root / "data" / "base" / "base-manifest.json"
         self.config_path = self.root / "config" / "app-config.json"
         self.frontend_dir = self.root / "app" / "frontend-dist"
+        self.export_dir = self.root / "data" / "exports"
         self.manifest = load_json(self.manifest_path)
         self.config = load_json(self.config_path)
         base_file = self.manifest["base_database"].get("file", "sapd_wiki_base.sqlite3")
@@ -200,6 +252,8 @@ class BundleRuntime:
         self.ensure_user_note_columns()
         self.ensure_user_workspace_tables()
         self.ensure_user_data_basket_tables()
+        self.ensure_user_export_tables()
+        self.export_dir.mkdir(parents=True, exist_ok=True)
 
     def ensure_user_note_columns(self) -> None:
         user_uri = self.user_db.resolve().as_uri() + "?mode=rwc"
@@ -222,6 +276,13 @@ class BundleRuntime:
         with sqlite3.connect(user_uri, uri=True) as connection:
             connection.execute("PRAGMA foreign_keys = ON")
             for statement in USER_WORKSPACE_TABLES:
+                connection.execute(statement)
+
+    def ensure_user_export_tables(self) -> None:
+        user_uri = self.user_db.resolve().as_uri() + "?mode=rwc"
+        with sqlite3.connect(user_uri, uri=True) as connection:
+            connection.execute("PRAGMA foreign_keys = ON")
+            for statement in USER_EXPORT_TABLES:
                 connection.execute(statement)
 
     def open_connection(self) -> sqlite3.Connection:
@@ -952,6 +1013,381 @@ class BundleRuntime:
         self.logger.write("info", "user data basket item deleted", basket_id=normalized_basket_id, item_id=normalized_item_id, deleted=deleted)
         return {"ok": True, "deleted": deleted}
 
+    def normalize_export_type(self, value: Any) -> str:
+        status = str(value or "current_view").strip()
+        if status not in USER_EXPORT_TYPES:
+            raise ValueError(f"unsupported export_type: {status}")
+        return status
+
+    def normalize_export_config_json(self, value: Any) -> str:
+        if value is None:
+            parsed: Any = {}
+        elif isinstance(value, str):
+            stripped = value.strip()
+            if not stripped:
+                parsed = {}
+            else:
+                try:
+                    parsed = json.loads(stripped)
+                except json.JSONDecodeError:
+                    raise ValueError("config must be a JSON object") from None
+        else:
+            parsed = value
+        if not isinstance(parsed, dict):
+            raise ValueError("config must be a JSON object")
+        forbidden = self.forbidden_export_fields(parsed)
+        if forbidden:
+            raise ValueError(f"export config contains forbidden fields: {', '.join(forbidden)}")
+        return json.dumps(parsed, ensure_ascii=False)
+
+    def forbidden_export_fields(self, value: Any) -> list[str]:
+        found: set[str] = set()
+
+        def walk(node: Any) -> None:
+            if isinstance(node, dict):
+                for key, child in node.items():
+                    normalized_key = str(key).strip()
+                    if normalized_key in FORBIDDEN_EXPORT_FIELDS:
+                        found.add(normalized_key)
+                    walk(child)
+            elif isinstance(node, list):
+                for item in node:
+                    if isinstance(item, str) and item.strip() in FORBIDDEN_EXPORT_FIELDS:
+                        found.add(item.strip())
+                    walk(item)
+
+        walk(value)
+        return sorted(found)
+
+    def export_profile_row_to_dict(self, row: sqlite3.Row | None) -> dict[str, Any] | None:
+        if not row:
+            return None
+        profile = dict(row)
+        try:
+            profile["config"] = json.loads(profile.get("config_json") or "{}")
+        except json.JSONDecodeError:
+            profile["config"] = {}
+        profile.pop("config_json", None)
+        return profile
+
+    def export_job_row_to_dict(self, row: sqlite3.Row | None) -> dict[str, Any] | None:
+        if not row:
+            return None
+        job = dict(row)
+        try:
+            job["preview"] = json.loads(job.get("preview_json") or "null")
+        except json.JSONDecodeError:
+            job["preview"] = None
+        job.pop("preview_json", None)
+        return job
+
+    def list_export_profiles(self) -> dict[str, Any]:
+        with self.open_connection() as connection:
+            rows = connection.execute(
+                f"""
+                SELECT {USER_EXPORT_PROFILE_SELECT_COLUMNS}
+                FROM user_export_profiles
+                ORDER BY updated_at DESC
+                """
+            ).fetchall()
+        return {"ok": True, "data_state": "ready", "export_profiles": [self.export_profile_row_to_dict(row) for row in rows]}
+
+    def get_export_profile(self, profile_id: str) -> dict[str, Any]:
+        normalized_id = str(profile_id or "").strip()
+        if not normalized_id:
+            raise ValueError("profile_id is required")
+        with self.open_connection() as connection:
+            row = connection.execute(
+                f"""
+                SELECT {USER_EXPORT_PROFILE_SELECT_COLUMNS}
+                FROM user_export_profiles
+                WHERE id = ?
+                """,
+                (normalized_id,),
+            ).fetchone()
+        return {"ok": bool(row), "data_state": "ready", "export_profile": self.export_profile_row_to_dict(row)}
+
+    def create_export_profile(self, payload: dict[str, Any]) -> dict[str, Any]:
+        name = str(payload.get("name") or "").strip()
+        if not name:
+            raise ValueError("name is required")
+        export_type = self.normalize_export_type(payload.get("export_type"))
+        config_json = self.normalize_export_config_json(payload.get("config"))
+        profile_id = str(uuid.uuid4())
+        with self.open_connection() as connection:
+            connection.execute(
+                """
+                INSERT INTO user_export_profiles(id, name, export_type, config_json, created_at, updated_at)
+                VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                """,
+                (profile_id, name, export_type, config_json),
+            )
+            row = connection.execute(
+                f"""
+                SELECT {USER_EXPORT_PROFILE_SELECT_COLUMNS}
+                FROM user_export_profiles
+                WHERE id = ?
+                """,
+                (profile_id,),
+            ).fetchone()
+            connection.execute(
+                """
+                INSERT INTO user_change_logs(id, action, target_ref, payload_json)
+                VALUES (?, 'create_export_profile', ?, ?)
+                """,
+                (
+                    str(uuid.uuid4()),
+                    f"user:export_profile:{profile_id}",
+                    json.dumps({"id": profile_id, "name": name, "export_type": export_type}, ensure_ascii=False),
+                ),
+            )
+        self.logger.write("info", "user export profile created", profile_id=profile_id, export_type=export_type)
+        return {"ok": True, "export_profile": self.export_profile_row_to_dict(row)}
+
+    def delete_export_profile(self, profile_id: str) -> dict[str, Any]:
+        normalized_id = str(profile_id or "").strip()
+        if not normalized_id:
+            raise ValueError("profile_id is required")
+        with self.open_connection() as connection:
+            cursor = connection.execute("DELETE FROM user_export_profiles WHERE id = ?", (normalized_id,))
+            deleted = cursor.rowcount
+            connection.execute(
+                """
+                INSERT INTO user_change_logs(id, action, target_ref, payload_json)
+                VALUES (?, 'delete_export_profile', ?, ?)
+                """,
+                (
+                    str(uuid.uuid4()),
+                    f"user:export_profile:{normalized_id}",
+                    json.dumps({"id": normalized_id, "deleted": deleted}, ensure_ascii=False),
+                ),
+            )
+        self.logger.write("info", "user export profile deleted", profile_id=normalized_id, deleted=deleted)
+        return {"ok": True, "deleted": deleted}
+
+    def build_export_preview(self, export_type: str, source_ref: str | None, config: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "export_type": export_type,
+            "source": {
+                "ref": source_ref,
+                "kind": source_ref.split(":", 1)[0] if source_ref else None,
+            },
+            "config_keys": sorted(config.keys()),
+            "format": config.get("format") or "json",
+            "field_boundary": {
+                "status": "passed",
+                "forbidden_fields": [],
+            },
+            "file_generation": "not_started",
+        }
+
+    def create_export_preview(self, payload: dict[str, Any]) -> dict[str, Any]:
+        profile_id = str(payload.get("profile_id") or "").strip() or None
+        source_ref = str(payload.get("source_ref") or "").strip() or None
+        export_type = self.normalize_export_type(payload.get("export_type"))
+        config: dict[str, Any] = {}
+        if payload.get("config") is not None:
+            config = json.loads(self.normalize_export_config_json(payload.get("config")))
+        with self.open_connection() as connection:
+            if profile_id:
+                profile = connection.execute(
+                    f"""
+                    SELECT {USER_EXPORT_PROFILE_SELECT_COLUMNS}
+                    FROM user_export_profiles
+                    WHERE id = ?
+                    """,
+                    (profile_id,),
+                ).fetchone()
+                if not profile:
+                    return {"ok": False, "error": "export_profile_not_found", "export_job": None}
+                profile_dict = self.export_profile_row_to_dict(profile) or {}
+                export_type = str(profile_dict.get("export_type") or export_type)
+                if not config:
+                    config = profile_dict.get("config") or {}
+            forbidden = self.forbidden_export_fields(config)
+            if forbidden:
+                raise ValueError(f"export config contains forbidden fields: {', '.join(forbidden)}")
+            preview = self.build_export_preview(export_type, source_ref, config)
+            job_id = str(uuid.uuid4())
+            connection.execute(
+                """
+                INSERT INTO user_export_jobs(id, profile_id, export_type, source_ref, status, preview_json, output_path, created_at, updated_at)
+                VALUES (?, ?, ?, ?, 'draft', ?, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                """,
+                (job_id, profile_id, export_type, source_ref, json.dumps(preview, ensure_ascii=False)),
+            )
+            row = connection.execute(
+                f"""
+                SELECT {USER_EXPORT_JOB_SELECT_COLUMNS}
+                FROM user_export_jobs
+                WHERE id = ?
+                """,
+                (job_id,),
+            ).fetchone()
+            connection.execute(
+                """
+                INSERT INTO user_change_logs(id, action, target_ref, payload_json)
+                VALUES (?, 'create_export_preview', ?, ?)
+                """,
+                (
+                    str(uuid.uuid4()),
+                    f"user:export_job:{job_id}",
+                    json.dumps({"id": job_id, "profile_id": profile_id, "export_type": export_type, "source_ref": source_ref}, ensure_ascii=False),
+                ),
+            )
+        self.logger.write("info", "user export preview created", job_id=job_id, export_type=export_type)
+        return {"ok": True, "export_job": self.export_job_row_to_dict(row)}
+
+    def get_export_job(self, job_id: str) -> dict[str, Any]:
+        normalized_id = str(job_id or "").strip()
+        if not normalized_id:
+            raise ValueError("job_id is required")
+        with self.open_connection() as connection:
+            row = connection.execute(
+                f"""
+                SELECT {USER_EXPORT_JOB_SELECT_COLUMNS}
+                FROM user_export_jobs
+                WHERE id = ?
+                """,
+                (normalized_id,),
+            ).fetchone()
+        return {"ok": bool(row), "data_state": "ready", "export_job": self.export_job_row_to_dict(row)}
+
+    def export_data_for_source(self, connection: sqlite3.Connection, export_type: str, source_ref: str | None) -> dict[str, Any]:
+        if export_type == "data_basket" and source_ref and source_ref.startswith("user:data_basket:"):
+            basket_id = source_ref.rsplit(":", 1)[-1]
+            basket = connection.execute(
+                f"""
+                SELECT {USER_DATA_BASKET_SELECT_COLUMNS}
+                FROM user_data_baskets
+                WHERE id = ?
+                """,
+                (basket_id,),
+            ).fetchone()
+            rows = connection.execute(
+                f"""
+                SELECT {USER_DATA_BASKET_ITEM_SELECT_COLUMNS}
+                FROM user_data_basket_items
+                WHERE basket_id = ?
+                ORDER BY updated_at DESC
+                """,
+                (basket_id,),
+            ).fetchall()
+            return {
+                "source": dict(basket) if basket else None,
+                "items": [self.data_basket_item_row_to_dict(row) for row in rows],
+            }
+        if export_type == "workspace" and source_ref and source_ref.startswith("user:workspace:"):
+            workspace_id = source_ref.rsplit(":", 1)[-1]
+            workspace = connection.execute(
+                f"""
+                SELECT {USER_WORKSPACE_SELECT_COLUMNS}
+                FROM user_workspaces
+                WHERE id = ?
+                """,
+                (workspace_id,),
+            ).fetchone()
+            rows = connection.execute(
+                f"""
+                SELECT {USER_WORKSPACE_ITEM_SELECT_COLUMNS}
+                FROM user_workspace_items
+                WHERE workspace_id = ?
+                ORDER BY COALESCE(sort_order, 999999), updated_at DESC
+                """,
+                (workspace_id,),
+            ).fetchall()
+            return {
+                "source": dict(workspace) if workspace else None,
+                "items": [self.workspace_item_row_to_dict(row) for row in rows],
+            }
+        return {"source": None, "items": []}
+
+    def execute_export_job(self, payload: dict[str, Any]) -> dict[str, Any]:
+        job_id = str(payload.get("job_id") or "").strip()
+        if not job_id:
+            raise ValueError("job_id is required")
+        with self.open_connection() as connection:
+            row = connection.execute(
+                f"""
+                SELECT {USER_EXPORT_JOB_SELECT_COLUMNS}
+                FROM user_export_jobs
+                WHERE id = ?
+                """,
+                (job_id,),
+            ).fetchone()
+            if not row:
+                return {"ok": False, "error": "export_job_not_found", "export_job": None}
+            job = self.export_job_row_to_dict(row) or {}
+            preview = job.get("preview") or {}
+            export_type = str(job.get("export_type") or "current_view")
+            source_ref = job.get("source_ref")
+            data = self.export_data_for_source(connection, export_type, source_ref)
+            output = {
+                "version": 1,
+                "export_created_at": now_iso(),
+                "export_type": export_type,
+                "source": {"ref": source_ref},
+                "profile_id": job.get("profile_id"),
+                "preview": preview,
+                "data": data,
+            }
+            file_name = f"user-export-{job_id}.json"
+            output_path = self.export_dir / file_name
+            output_path.write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding="utf-8")
+            relative_output_path = f"data/exports/{file_name}"
+            connection.execute(
+                """
+                UPDATE user_export_jobs
+                SET status = 'completed',
+                    output_path = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                """,
+                (relative_output_path, job_id),
+            )
+            updated = connection.execute(
+                f"""
+                SELECT {USER_EXPORT_JOB_SELECT_COLUMNS}
+                FROM user_export_jobs
+                WHERE id = ?
+                """,
+                (job_id,),
+            ).fetchone()
+            connection.execute(
+                """
+                INSERT INTO user_change_logs(id, action, target_ref, payload_json)
+                VALUES (?, 'execute_export_job', ?, ?)
+                """,
+                (
+                    str(uuid.uuid4()),
+                    f"user:export_job:{job_id}",
+                    json.dumps({"id": job_id, "export_type": export_type, "output_path": relative_output_path}, ensure_ascii=False),
+                ),
+            )
+        self.logger.write("info", "user export job completed", job_id=job_id, export_type=export_type)
+        return {"ok": True, "export_job": self.export_job_row_to_dict(updated)}
+
+    def export_job_download_path(self, job_id: str) -> Path | None:
+        normalized_id = str(job_id or "").strip()
+        if not normalized_id:
+            raise ValueError("job_id is required")
+        with self.open_connection() as connection:
+            row = connection.execute(
+                """
+                SELECT output_path
+                FROM user_export_jobs
+                WHERE id = ?
+                """,
+                (normalized_id,),
+            ).fetchone()
+        output_path = str(row["output_path"] or "").strip() if row else ""
+        if not output_path:
+            return None
+        path = safe_bundle_child(self.root, output_path, f"data/exports/user-export-{normalized_id}.json")
+        if not path.is_file():
+            return None
+        return path
+
 
 def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: str) -> type[BaseHTTPRequestHandler]:
     class LocalHandler(BaseHTTPRequestHandler):
@@ -979,6 +1415,17 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
             self.end_headers()
             self.wfile.write(body)
 
+        def send_download(self, path: Path) -> None:
+            body = path.read_bytes()
+            content_type = mimetypes.guess_type(str(path))[0] or "application/octet-stream"
+            self.send_response(200)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Disposition", f'attachment; filename="{path.name}"')
+            self.end_headers()
+            self.wfile.write(body)
+
         def resolve_static_path(self, request_path: str) -> Path:
             relative = request_path.lstrip("/") or "index.html"
             candidate = (runtime.frontend_dir / relative).resolve()
@@ -996,6 +1443,16 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
 
         def user_workspace_parts(self, request_path: str) -> list[str]:
             if not request_path.startswith("/api/v1/user/workspaces"):
+                return []
+            return [unquote(part) for part in request_path.strip("/").split("/")]
+
+        def user_export_profile_parts(self, request_path: str) -> list[str]:
+            if not request_path.startswith("/api/v1/user/export-profiles"):
+                return []
+            return [unquote(part) for part in request_path.strip("/").split("/")]
+
+        def user_export_parts(self, request_path: str) -> list[str]:
+            if not request_path.startswith("/api/v1/user/exports"):
                 return []
             return [unquote(part) for part in request_path.strip("/").split("/")]
 
@@ -1048,6 +1505,24 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
                 if len(parts) == 6 and parts[:4] == ["api", "v1", "user", "data-baskets"] and parts[5] == "items":
                     self.send_json(200, runtime.list_data_basket_items(parts[4]))
                     return
+                export_profile_parts = self.user_export_profile_parts(parsed.path)
+                if export_profile_parts == ["api", "v1", "user", "export-profiles"]:
+                    self.send_json(200, runtime.list_export_profiles())
+                    return
+                if len(export_profile_parts) == 5 and export_profile_parts[:4] == ["api", "v1", "user", "export-profiles"]:
+                    self.send_json(200, runtime.get_export_profile(export_profile_parts[4]))
+                    return
+                export_parts = self.user_export_parts(parsed.path)
+                if len(export_parts) == 6 and export_parts[:4] == ["api", "v1", "user", "exports"] and export_parts[5] == "download":
+                    download_path = runtime.export_job_download_path(export_parts[4])
+                    if not download_path:
+                        self.send_json(404, {"ok": False, "error": "export output not found"})
+                        return
+                    self.send_download(download_path)
+                    return
+                if len(export_parts) == 5 and export_parts[:4] == ["api", "v1", "user", "exports"]:
+                    self.send_json(200, runtime.get_export_job(export_parts[4]))
+                    return
                 if parsed.path.startswith(API_PREFIX):
                     self.send_json(404, {"ok": False, "error": "not found", "path": parsed.path})
                     return
@@ -1091,7 +1566,12 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
                 parts = self.user_data_basket_parts(parsed.path)
                 is_data_basket_create = parts == ["api", "v1", "user", "data-baskets"]
                 is_data_basket_item_create = len(parts) == 6 and parts[:4] == ["api", "v1", "user", "data-baskets"] and parts[5] == "items"
-                if parsed.path not in {"/api/v1/user/favorites", "/api/v1/user/notes"} and not is_workspace_create and not is_workspace_item_create and not is_data_basket_create and not is_data_basket_item_create:
+                export_profile_parts = self.user_export_profile_parts(parsed.path)
+                is_export_profile_create = export_profile_parts == ["api", "v1", "user", "export-profiles"]
+                export_parts = self.user_export_parts(parsed.path)
+                is_export_preview_create = export_parts == ["api", "v1", "user", "exports", "preview"]
+                is_export_execute = export_parts == ["api", "v1", "user", "exports"]
+                if parsed.path not in {"/api/v1/user/favorites", "/api/v1/user/notes"} and not is_workspace_create and not is_workspace_item_create and not is_data_basket_create and not is_data_basket_item_create and not is_export_profile_create and not is_export_preview_create and not is_export_execute:
                     self.send_json(404, {"ok": False, "error": "not found"})
                     return
                 auth_error = self.validate_write_request()
@@ -1111,6 +1591,12 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
                     self.send_json(200, runtime.create_data_basket(payload))
                 elif is_data_basket_item_create:
                     self.send_json(200, runtime.add_data_basket_item(parts[4], payload))
+                elif is_export_profile_create:
+                    self.send_json(200, runtime.create_export_profile(payload))
+                elif is_export_preview_create:
+                    self.send_json(200, runtime.create_export_preview(payload))
+                elif is_export_execute:
+                    self.send_json(200, runtime.execute_export_job(payload))
                 else:
                     self.send_json(200, runtime.add_favorite(payload))
             except ValueError as error:
@@ -1149,7 +1635,9 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
                 parts = self.user_data_basket_parts(parsed.path)
                 is_data_basket_delete = len(parts) == 5 and parts[:4] == ["api", "v1", "user", "data-baskets"]
                 is_data_basket_item_delete = len(parts) == 7 and parts[:4] == ["api", "v1", "user", "data-baskets"] and parts[5] == "items"
-                if parsed.path != "/api/v1/user/favorites" and not parsed.path.startswith("/api/v1/user/notes/") and not is_workspace_delete and not is_workspace_item_delete and not is_data_basket_delete and not is_data_basket_item_delete:
+                export_profile_parts = self.user_export_profile_parts(parsed.path)
+                is_export_profile_delete = len(export_profile_parts) == 5 and export_profile_parts[:4] == ["api", "v1", "user", "export-profiles"]
+                if parsed.path != "/api/v1/user/favorites" and not parsed.path.startswith("/api/v1/user/notes/") and not is_workspace_delete and not is_workspace_item_delete and not is_data_basket_delete and not is_data_basket_item_delete and not is_export_profile_delete:
                     self.send_json(404, {"ok": False, "error": "not found"})
                     return
                 auth_error = self.validate_write_request()
@@ -1168,6 +1656,8 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
                     self.send_json(200, runtime.delete_data_basket_item(parts[4], parts[6]))
                 elif is_data_basket_delete:
                     self.send_json(200, runtime.delete_data_basket(parts[4]))
+                elif is_export_profile_delete:
+                    self.send_json(200, runtime.delete_export_profile(export_profile_parts[4]))
                 else:
                     params = parse_qs(parsed.query)
                     target_ref = unquote((params.get("target_ref") or [""])[0])

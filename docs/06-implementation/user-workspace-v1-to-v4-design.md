@@ -160,6 +160,8 @@ UI 结构：
 
 ### 3.5 V4：按需 / 全量导出
 
+导出格式与字段边界以 `docs/06-implementation/user-export-format-contract.md` 为准。2026-06-07 用户已确认后续导出表格基本参考原始数据，优先使用 Excel / CSV / Markdown；幻灯片类材料导出为 PDF；第一批业务数据集为能力全量映射、信息化环境安全映射、字典与标准框架数据。
+
 入口位置：
 
 - 当前页面顶部：`导出当前视图`
@@ -342,13 +344,17 @@ DELETE /api/v1/user/custom-relations/:id
 ### 5.5 V4 导出 API
 
 ```text
+GET /api/v1/user/export-profiles
+POST /api/v1/user/export-profiles
+GET /api/v1/user/export-profiles/:id
+DELETE /api/v1/user/export-profiles/:id
 POST /api/v1/user/exports/preview
 POST /api/v1/user/exports
 GET /api/v1/user/exports/:id
 GET /api/v1/user/exports/:id/download
 ```
 
-导出必须先生成预览摘要，确认字段边界后再生成文件。
+2026-06-07 已先落地导出最小闭环：`export-profiles` 可创建、读取、删除配置；`exports/preview` 生成 `draft` 预览记录和字段边界摘要；`POST /api/v1/user/exports` 基于已有 `job_id` 生成受控 JSON 文件并更新 `output_path`；`GET /api/v1/user/exports/:id/download` 下载该文件。当前只支持最小 JSON 验证闭环，正式格式、字段结构和实现顺序以 `docs/06-implementation/user-export-format-contract.md` 为准；后续第一批实现应围绕 `capability_full_mapping`、`environment_technology_mapping`、`reference_dictionary_and_standards` 三个业务数据集。
 
 ## 6. 阶段路线
 

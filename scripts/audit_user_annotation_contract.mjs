@@ -636,6 +636,29 @@ if (
   });
 }
 
+const annotationDrawerHeaderUsesSticky = /\.annotation-drawer-header\s*\{[^}]*position:\s*sticky/s.test(stylesCss);
+
+if (
+  !userAnnotationDrawerJs.includes("annotation-drawer-scroll") ||
+  !userAnnotationDrawerJs.includes("annotation-drawer-fixed") ||
+  userAnnotationDrawerJs.includes("写入用户库，不修改基础数据") ||
+  !includesAll(stylesCss, [
+    ".annotation-drawer-panel",
+    "overflow: hidden",
+    ".annotation-drawer-fixed",
+    "flex: 0 0 auto",
+    ".annotation-drawer-scroll",
+    "overflow-y: auto",
+  ]) ||
+  annotationDrawerHeaderUsesSticky
+) {
+  issues.push({
+    severity: "error",
+    type: "annotation_drawer_locked_header_contract_missing",
+    message: "批注抽屉必须采用固定 header/form + 独立 scroll body，不得用 sticky header 叠在同一滚动层上，也不得恢复保存按钮左侧说明文字。",
+  });
+}
+
 const result = {
   result: issues.some((issue) => issue.severity === "error") ? "fail" : "pass",
   checked: {

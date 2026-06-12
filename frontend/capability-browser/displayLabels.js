@@ -95,7 +95,8 @@
   function relationChip(utils, item, { empty = state("missing"), kind = "", showKind = false, preferCodeTitle = true } = {}) {
     const escaped = utils.escapeHtml;
     const itemKind = text((item && typeof item === "object" && (item.objectKind || item.kind)) || kind).trim();
-    const visibleKind = showKind ? itemKind : "";
+    const itemKindKey = kindKey(itemKind);
+    const visibleKind = showKind && itemKindKey !== "security_technical_service" ? itemKind : "";
     const kindPrefix = visibleKind ? `<em>${escaped(visibleKind)}</em>` : "";
     const visibleText = itemText(utils, item, empty, preferCodeTitle);
     const copyText = [visibleKind, visibleText].filter(Boolean).join(" | ");

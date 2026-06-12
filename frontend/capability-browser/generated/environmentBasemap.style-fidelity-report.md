@@ -1,6 +1,6 @@
 # Environment Basemap Style Fidelity Report
 
-生成时间：2026-06-08T09:54:44.219Z
+生成时间：2026-06-12T15:34:47.546Z
 
 ## 图例样式来源
 
@@ -19,17 +19,17 @@ actor, application_component, communication_network, data_object, device, facili
 ```json
 {
   "edgeRouteKinds": {
-    "orthogonal_fallback": 32,
-    "orthogonal_straight": 36,
+    "orthogonal_fallback": 34,
+    "orthogonal_straight": 35,
     "original_waypoints": 5
   },
   "textModes": {
     "horizontal": 79,
-    "vertical": 18
+    "vertical": 19
   },
   "zIndexLayers": {
     "container": 28,
-    "node": 69
+    "node": 70
   },
   "whiteboardBackgroundRendered": false,
   "unsupportedEdges": 0,
@@ -89,22 +89,22 @@ actor, application_component, communication_network, data_object, device, facili
 ```json
 {
   "canvas": {
-    "x": 112,
-    "y": 102,
+    "x": 882,
+    "y": 1812,
     "width": 3086,
     "height": 2126
   },
   "contentBounds": {
-    "minX": 160,
-    "minY": 150,
-    "maxX": 3150,
-    "maxY": 2180,
+    "minX": 930,
+    "minY": 1860,
+    "maxX": 3920,
+    "maxY": 3890,
     "padding": 48
   },
   "stats": {
-    "cells": 170,
-    "nodes": 97,
-    "edges": 73,
+    "cells": 172,
+    "nodes": 98,
+    "edges": 74,
     "ignoredEdges": 0
   }
 }

@@ -97,6 +97,8 @@
     ],
   };
 
+  const SIDEBAR_STATE_KEY = "sapd.appShell.sidebarCollapsed";
+
   const ROUTE_TARGETS = {
     "/": { view: "overview" },
     "/guides": { view: "content", contentPage: "html" },
@@ -267,6 +269,58 @@
     `;
   }
 
+  function readSidebarCollapsed() {
+    try {
+      return window.localStorage?.getItem(SIDEBAR_STATE_KEY) === "true";
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function writeSidebarCollapsed(collapsed) {
+    try {
+      window.localStorage?.setItem(SIDEBAR_STATE_KEY, collapsed ? "true" : "false");
+    } catch (error) {
+      // Local storage can be disabled in restricted browser modes.
+    }
+  }
+
+  function applySidebarState(collapsed, { persist = true } = {}) {
+    const app = document.getElementById("app");
+    const sidebar = document.querySelector(".app-sidebar");
+    const toggle = document.getElementById("globalSidebarToggle");
+    app?.classList.toggle("sidebar-collapsed", collapsed);
+    sidebar?.setAttribute("data-collapsed", collapsed ? "true" : "false");
+    if (toggle) {
+      toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+      toggle.setAttribute("aria-label", collapsed ? "展开全局导航" : "收起全局导航");
+      toggle.setAttribute("title", collapsed ? "展开全局导航" : "收起全局导航");
+    }
+    document.querySelectorAll(".secondary-navigation").forEach((nav) => {
+      nav.setAttribute("aria-hidden", collapsed ? "true" : "false");
+      nav.querySelectorAll("button").forEach((button) => {
+        if (collapsed) button.setAttribute("tabindex", "-1");
+        else button.removeAttribute("tabindex");
+      });
+    });
+    if (persist) writeSidebarCollapsed(collapsed);
+  }
+
+  function renderSidebarToggle(collapsed = false) {
+    return `
+      <button
+        id="globalSidebarToggle"
+        class="sidebar-collapse-toggle"
+        type="button"
+        aria-label="${collapsed ? "展开全局导航" : "收起全局导航"}"
+        aria-expanded="${collapsed ? "false" : "true"}"
+        title="${collapsed ? "展开全局导航" : "收起全局导航"}"
+      >
+        <span class="sidebar-collapse-glyph" aria-hidden="true"></span>
+      </button>
+    `;
+  }
+
   function renderNavigationItem(item, activeRoute) {
     const children = components.utils.list(item.children);
     const active = item.route === activeRoute || childRouteActive(item, activeRoute);
@@ -301,6 +355,7 @@
   }
 
   function renderSideNavigation(activeRoute = "/") {
+    const collapsed = readSidebarCollapsed();
     return `
       <div class="brand shell-sidebar-brand">
         <div class="brand-mark">S</div>
@@ -308,6 +363,7 @@
           <h1>SAPD Wiki</h1>
           <p>本地业务关系工作台</p>
         </div>
+        ${renderSidebarToggle(collapsed)}
       </div>
       <nav class="module-tabs manifest-navigation" aria-label="SAPD Wiki 全局导航">
         ${NAV_MANIFEST.navigation.map((item) => renderNavigationItem(item, activeRoute)).join("")}
@@ -318,6 +374,15 @@
         <small>Manifest 导航已接入，页面数据仍通过 dataClient 读取</small>
       </div>
     `;
+  }
+
+  function bindSidebarControls() {
+    const toggle = document.getElementById("globalSidebarToggle");
+    if (!toggle) return;
+    toggle.addEventListener("click", () => {
+      const collapsed = !document.getElementById("app")?.classList.contains("sidebar-collapsed");
+      applySidebarState(collapsed);
+    });
   }
 
   function breadcrumbItems(route) {
@@ -363,6 +428,7 @@
     const tabs = [
       { id: "topology", label: "环境底图" },
       { id: "mapping", label: "归纳表格" },
+      { id: "review", label: "数据核对（临时）" },
     ];
     const normalizedActiveTab = tabs.some((tab) => tab.id === activeTab) ? activeTab : "topology";
     return `
@@ -467,6 +533,8 @@
     const topbar = document.querySelector(".topbar");
     if (sidebar) sidebar.innerHTML = renderSideNavigation(activeRoute);
     if (topbar) topbar.innerHTML = renderTopBar();
+    bindSidebarControls();
+    applySidebarState(readSidebarCollapsed(), { persist: false });
     ensurePageHeader({ activeRoute, activeModelingLanguageTab, activeEnvironmentTab });
     applyWorkbenchContainers();
     updateApplicationShell({ activeRoute, activeModelingLanguageTab, activeEnvironmentTab });

@@ -395,6 +395,87 @@
     }
   }
 
+  function sortedChildrenByCurrentAngle(parent, children, positions) {
+    const parentPosition = positions.get(parent?.id);
+    if (!parentPosition) return stableSort(children);
+    return [...list(children)].sort((left, right) => {
+      const leftPosition = positions.get(left.id);
+      const rightPosition = positions.get(right.id);
+      const leftAngle = leftPosition ? Math.atan2(leftPosition.y - parentPosition.y, leftPosition.x - parentPosition.x) : 0;
+      const rightAngle = rightPosition ? Math.atan2(rightPosition.y - parentPosition.y, rightPosition.x - parentPosition.x) : 0;
+      return leftAngle - rightAngle || text(left.label || left.id).localeCompare(text(right.label || right.id), "zh-Hans-CN");
+    });
+  }
+
+  function placeBranchNode(node, origin, angle, distance, positions, blend = 0.82) {
+    const current = positions.get(node.id) || origin;
+    const target = polar(origin, angle, distance);
+    positions.set(node.id, {
+      x: current.x * (1 - blend) + target.x * blend,
+      y: current.y * (1 - blend) + target.y * blend,
+    });
+  }
+
+  function preferredTechnicalBranchAngle(node = {}) {
+    const label = text(`${node.label || ""} ${node.meta?.code || ""} ${node.id || ""}`);
+    if (/硬件|计算与存储|I-HD/.test(label)) return -2.32;
+    if (/主机|终端|操作系统|I-OS/.test(label)) return -1.42;
+    if (/网络|I-NT/.test(label)) return -0.22;
+    if (/物理|I-PE/.test(label)) return 0.58;
+    if (/软件|应用|I-AP/.test(label)) return 1.18;
+    if (/数据|信息|I-DI/.test(label)) return 2.28;
+    return null;
+  }
+
+  function untangleFocusBranches({ current, businessNodes, liveEdges, nodesById, positions, fixedIds }) {
+    if (!current) return;
+    const currentPosition = positions.get(current.id);
+    if (!currentPosition) return;
+    const childrenBySource = new Map();
+    liveEdges.forEach((edge) => {
+      const target = nodesById.get(edge.target);
+      if (!target || target.isDecorative) return;
+      if (!childrenBySource.has(edge.source)) childrenBySource.set(edge.source, []);
+      childrenBySource.get(edge.source).push(target);
+    });
+    const viewNodes = stableSort(childrenBySource.get(current.id)).filter((node) => node.type === "view_technical");
+    viewNodes.forEach((viewNode) => {
+      const viewPosition = positions.get(viewNode.id);
+      if (!viewPosition) return;
+      fixedIds.add(viewNode.id);
+      const firstRing = sortedChildrenByCurrentAngle(viewNode, childrenBySource.get(viewNode.id), positions);
+      if (!firstRing.length) return;
+      const fallbackSpread = Math.PI * 1.7;
+      firstRing.forEach((child, index) => {
+        const ratio = firstRing.length === 1 ? 0.5 : index / (firstRing.length - 1);
+        const fallbackAngle = -fallbackSpread / 2 + fallbackSpread * ratio;
+        const childAngle = preferredTechnicalBranchAngle(child) ?? fallbackAngle;
+        placeBranchNode(child, viewPosition, childAngle, 300, positions, 0.9);
+
+        const childPosition = positions.get(child.id);
+        const secondRing = sortedChildrenByCurrentAngle(child, childrenBySource.get(child.id), positions);
+        if (!childPosition || !secondRing.length) return;
+        const secondSpread = Math.min(Math.PI * 0.62, Math.max(0.24, secondRing.length * 0.2));
+        secondRing.forEach((grandchild, grandIndex) => {
+          const grandRatio = secondRing.length === 1 ? 0.5 : grandIndex / (secondRing.length - 1);
+          const grandAngle = childAngle - secondSpread / 2 + secondSpread * grandRatio;
+          placeBranchNode(grandchild, childPosition, grandAngle, grandchild.type === "standard_control" ? 126 : 176, positions, 0.92);
+
+          const grandPosition = positions.get(grandchild.id);
+          const thirdRing = sortedChildrenByCurrentAngle(grandchild, childrenBySource.get(grandchild.id), positions);
+          if (!grandPosition || !thirdRing.length) return;
+          const thirdSpread = Math.min(Math.PI * 0.46, Math.max(0.18, thirdRing.length * 0.14));
+          thirdRing.forEach((leaf, leafIndex) => {
+            const leafRatio = thirdRing.length === 1 ? 0.5 : leafIndex / (thirdRing.length - 1);
+            const leafAngle = grandAngle - thirdSpread / 2 + thirdSpread * leafRatio;
+            placeBranchNode(leaf, grandPosition, leafAngle, 132, positions, 0.92);
+          });
+        });
+      });
+    });
+    clampPositions(businessNodes, positions);
+  }
+
   function buildLayout(graphModel = {}) {
     const nodes = list(graphModel.nodes);
     const edges = list(graphModel.edges);
@@ -513,6 +594,9 @@
         position.y += velocity.y;
       });
     }
+    if (graphModel.stats?.graphScope === "focus") {
+      untangleFocusBranches({ current, businessNodes, liveEdges, nodesById, positions, fixedIds });
+    }
     settleCollisions(businessNodes, positions, fixedIds, strategy);
     clampPositions(businessNodes, positions);
 
@@ -558,7 +642,98 @@
     };
   }
 
-  function layoutMetrics(businessNodes, positions, viewBox, labelPlacements = new Map()) {
+  function segmentCrossesSegment(a, b, c, d) {
+    const epsilon = 0.01;
+    const cross = (p, q, r) => (q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x);
+    const abC = cross(a, b, c);
+    const abD = cross(a, b, d);
+    const cdA = cross(c, d, a);
+    const cdB = cross(c, d, b);
+    if (Math.max(a.x, b.x) + epsilon < Math.min(c.x, d.x) || Math.max(c.x, d.x) + epsilon < Math.min(a.x, b.x)) return false;
+    if (Math.max(a.y, b.y) + epsilon < Math.min(c.y, d.y) || Math.max(c.y, d.y) + epsilon < Math.min(a.y, b.y)) return false;
+    return abC * abD < -epsilon && cdA * cdB < -epsilon;
+  }
+
+  function cubicPolyline(start, controlA, controlB, end, samples = 24) {
+    const points = [start];
+    for (let index = 1; index <= samples; index += 1) {
+      points.push(cubicPoint(start, controlA, controlB, end, index / samples));
+    }
+    return points;
+  }
+
+  function edgePolyline(edge, positions, nodesById = new Map(), obstacleNodes = []) {
+    const rawSource = positions.get(edge.source);
+    const rawTarget = positions.get(edge.target);
+    if (!rawSource || !rawTarget) return [];
+    if (managementFunctionEdgeType(edge.type)) {
+      const sourceRadius = nodeRadius(nodesById.get(edge.source));
+      const targetRadius = nodeRadius(nodesById.get(edge.target));
+      const start = boundaryPoint(rawSource, rawTarget, sourceRadius + 4, 1);
+      const end = boundaryPoint(rawTarget, rawSource, targetRadius + 4, 1);
+      const deltaX = end.x - start.x;
+      const deltaY = end.y - start.y;
+      if (edge.type === "layer_to_function" && Math.abs(deltaX) < 120) {
+        const handle = Math.max(34, Math.abs(deltaY) * 0.42);
+        const direction = deltaY >= 0 ? 1 : -1;
+        return cubicPolyline(start, { x: start.x, y: start.y + handle * direction }, { x: end.x, y: end.y - handle * direction }, end, 18);
+      }
+      const dx = Math.max(28, Math.abs(deltaX) * 0.4);
+      const direction = deltaX >= 0 ? 1 : -1;
+      return cubicPolyline(start, { x: start.x + dx * direction, y: start.y }, { x: end.x - dx * direction, y: end.y }, end, 18);
+    }
+    const { controlA, controlB } = radialEdgeControls(edge, rawSource, rawTarget, obstacleNodes, positions);
+    return cubicPolyline(rawSource, controlA, controlB, rawTarget, 24);
+  }
+
+  function edgeCrossingCount(edges, positions, nodesById = new Map(), obstacleNodes = []) {
+    const routes = list(edges)
+      .filter((edge) => !edge.isDecorative && positions.has(edge.source) && positions.has(edge.target))
+      .map((edge) => ({ edge, points: edgePolyline(edge, positions, nodesById, obstacleNodes) }))
+      .filter((route) => route.points.length > 1);
+    let crossings = 0;
+    for (let a = 0; a < routes.length; a += 1) {
+      for (let b = a + 1; b < routes.length; b += 1) {
+        const left = routes[a];
+        const right = routes[b];
+        if (left.edge.source === right.edge.source || left.edge.source === right.edge.target || left.edge.target === right.edge.source || left.edge.target === right.edge.target) continue;
+        let crossed = false;
+        for (let i = 1; i < left.points.length && !crossed; i += 1) {
+          for (let j = 1; j < right.points.length; j += 1) {
+            if (!segmentCrossesSegment(left.points[i - 1], left.points[i], right.points[j - 1], right.points[j])) continue;
+            crossings += 1;
+            crossed = true;
+            break;
+          }
+        }
+      }
+    }
+    return crossings;
+  }
+
+  function edgeNodeIntrusionCount(edges, positions, nodesById = new Map(), obstacleNodes = []) {
+    const routes = list(edges)
+      .filter((edge) => !edge.isDecorative && positions.has(edge.source) && positions.has(edge.target))
+      .map((edge) => ({ edge, points: edgePolyline(edge, positions, nodesById, obstacleNodes) }))
+      .filter((route) => route.points.length > 1);
+    let intrusions = 0;
+    routes.forEach((route) => {
+      obstacleNodes.forEach((node) => {
+        if (!node || node.isDecorative || node.id === route.edge.source || node.id === route.edge.target) return;
+        const position = positions.get(node.id);
+        if (!position) return;
+        const clearance = nodeRadius(node) + 12;
+        for (let index = 1; index < route.points.length; index += 1) {
+          if (distanceToSegment(position, route.points[index - 1], route.points[index]).distance >= clearance) continue;
+          intrusions += 1;
+          break;
+        }
+      });
+    });
+    return intrusions;
+  }
+
+  function layoutMetrics(businessNodes, positions, viewBox, labelPlacements = new Map(), edges = [], nodesById = new Map()) {
     let overlaps = 0;
     let minGap = Infinity;
     let labelOverlaps = 0;
@@ -583,6 +758,8 @@
     return {
       overlaps,
       labelOverlaps,
+      edgeCrossings: edgeCrossingCount(edges, positions, nodesById, businessNodes),
+      edgeNodeIntrusions: edgeNodeIntrusionCount(edges, positions, nodesById, businessNodes),
       minGap: Number.isFinite(minGap) ? Math.round(minGap) : 0,
       viewBox: `${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`,
     };
@@ -602,7 +779,72 @@
     };
   }
 
-  function edgePath(source, target, type = "", sourceRadius = 0, targetRadius = 0) {
+  function distanceToSegment(point, start, end) {
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const lengthSquared = dx * dx + dy * dy || 1;
+    const ratio = Math.max(0, Math.min(1, ((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSquared));
+    const projected = {
+      x: start.x + dx * ratio,
+      y: start.y + dy * ratio,
+    };
+    return {
+      distance: Math.hypot(point.x - projected.x, point.y - projected.y),
+      ratio,
+      side: Math.sign(dx * (point.y - start.y) - dy * (point.x - start.x)) || 1,
+    };
+  }
+
+  function edgeAvoidanceOffset(edge, source, target, obstacleNodes = [], positions = new Map()) {
+    const dx = target.x - source.x;
+    const dy = target.y - source.y;
+    const distance = Math.hypot(dx, dy) || 1;
+    const normal = { x: -dy / distance, y: dx / distance };
+    let offset = 0;
+    obstacleNodes.forEach((node) => {
+      if (!node || node.isDecorative || node.id === edge.source || node.id === edge.target) return;
+      const obstacle = positions.get(node.id);
+      if (!obstacle) return;
+      const proximity = distanceToSegment(obstacle, source, target);
+      if (proximity.ratio <= 0.08 || proximity.ratio >= 0.92) return;
+      const clearance = nodeRadius(node) + (edge.type?.startsWith("standard") ? 28 : 30);
+      if (proximity.distance >= clearance) return;
+      const direction = proximity.side >= 0 ? -1 : 1;
+      const strength = Math.min(78, Math.max(24, (clearance - proximity.distance) * 1.45));
+      offset += direction * strength;
+    });
+    offset = Math.max(-92, Math.min(92, offset));
+    return { x: normal.x * offset, y: normal.y * offset };
+  }
+
+  function radialEdgeControls(edge, source, target, obstacleNodes = [], positions = new Map()) {
+    const dx = target.x - source.x;
+    const dy = target.y - source.y;
+    const distance = Math.hypot(dx, dy) || 1;
+    const unit = { x: dx / distance, y: dy / distance };
+    const normal = { x: -unit.y, y: unit.x };
+    const midpoint = { x: (source.x + target.x) / 2, y: (source.y + target.y) / 2 };
+    const awayFromCenter = { x: midpoint.x - VIEWBOX.width / 2, y: midpoint.y - VIEWBOX.height / 2 };
+    const outwardSign = normal.x * awayFromCenter.x + normal.y * awayFromCenter.y >= 0 ? 1 : -1;
+    const avoid = edgeAvoidanceOffset(edge, source, target, obstacleNodes, positions);
+    const baseBend = edge.type === "decorative_link" ? 0 : edge.type === "focus_to_standard_status" ? 20 : Math.min(24, Math.max(6, distance * 0.018));
+    const offset = {
+      x: normal.x * baseBend * outwardSign + avoid.x,
+      y: normal.y * baseBend * outwardSign + avoid.y,
+    };
+    return {
+      controlA: {
+        x: source.x + unit.x * distance * 0.36 + offset.x,
+        y: source.y + unit.y * distance * 0.36 + offset.y,
+      },
+      controlB: {
+        x: source.x + unit.x * distance * 0.72 + offset.x,
+        y: source.y + unit.y * distance * 0.72 + offset.y,
+      },
+    };
+  }
+
+  function edgePath(source, target, type = "", sourceRadius = 0, targetRadius = 0, obstacleNodes = [], positions = new Map(), edge = {}) {
     if (managementFunctionEdgeType(type)) {
       const start = boundaryPoint(source, target, sourceRadius + 4, 1);
       const end = boundaryPoint(target, source, targetRadius + 4, 1);
@@ -617,10 +859,8 @@
       const direction = deltaX >= 0 ? 1 : -1;
       return `M ${start.x} ${start.y} C ${start.x + dx * direction} ${start.y}, ${end.x - dx * direction} ${end.y}, ${end.x} ${end.y}`;
     }
-    const dx = Math.max(80, Math.abs(target.x - source.x) * 0.44);
-    const direction = target.x >= source.x ? 1 : -1;
-    const bend = type === "focus_to_standard_status" ? 34 : type === "decorative_link" ? 0 : 6;
-    return `M ${source.x} ${source.y} C ${source.x + dx * direction} ${source.y - bend}, ${target.x - dx * direction} ${target.y + bend}, ${target.x} ${target.y}`;
+    const { controlA, controlB } = radialEdgeControls({ ...edge, type }, source, target, obstacleNodes, positions);
+    return `M ${source.x} ${source.y} C ${controlA.x} ${controlA.y}, ${controlB.x} ${controlB.y}, ${target.x} ${target.y}`;
   }
 
   function edgeClass(edge) {
@@ -691,12 +931,8 @@
     };
   }
 
-  function edgeIntersectsBox(edge, source, target, box, gap = 0) {
-    const dx = Math.max(80, Math.abs(target.x - source.x) * 0.44);
-    const direction = target.x >= source.x ? 1 : -1;
-    const bend = edge.type === "focus_to_standard_status" ? 34 : edge.type === "decorative_link" ? 0 : 6;
-    const controlA = { x: source.x + dx * direction, y: source.y - bend };
-    const controlB = { x: target.x - dx * direction, y: target.y + bend };
+  function edgeIntersectsBox(edge, source, target, box, gap = 0, obstacleNodes = [], positions = new Map()) {
+    const { controlA, controlB } = radialEdgeControls(edge, source, target, obstacleNodes, positions);
     let previous = source;
     const samples = 18;
     for (let index = 1; index <= samples; index += 1) {
@@ -774,7 +1010,7 @@
       const source = positions.get(edge.source);
       const target = positions.get(edge.target);
       if (!source || !target) return;
-      if (!edgeIntersectsBox(edge, source, target, candidate.box, 10)) return;
+      if (!edgeIntersectsBox(edge, source, target, candidate.box, 10, businessNodes, positions)) return;
       const incident = edge.source === node.id || edge.target === node.id;
       score += incident ? 160 : 320;
     });
@@ -807,13 +1043,13 @@
     return placements;
   }
 
-  function renderEdge(edge, positions, nodesById = new Map(), extraClass = "") {
+  function renderEdge(edge, positions, nodesById = new Map(), extraClass = "", obstacleNodes = []) {
     const source = positions.get(edge.source);
     const target = positions.get(edge.target);
     if (!source || !target) return "";
     const sourceRadius = managementFunctionEdgeType(edge.type) ? nodeRadius(nodesById.get(edge.source)) : 0;
     const targetRadius = managementFunctionEdgeType(edge.type) ? nodeRadius(nodesById.get(edge.target)) : 0;
-    return `<path class="${escape(`${edgeClass(edge)} ${extraClass}`)}" d="${edgePath(source, target, edge.type, sourceRadius, targetRadius)}" />`;
+    return `<path class="${escape(`${edgeClass(edge)} ${extraClass}`)}" d="${edgePath(source, target, edge.type, sourceRadius, targetRadius, obstacleNodes, positions, edge)}" />`;
   }
 
   function incidentEdges(nodeId, edges, positions, nodesById = new Map()) {
@@ -1031,7 +1267,7 @@
     const positions = buildLayout(model);
     const labelPlacements = buildLabelPlacements(model, businessNodes, positions);
     const viewBox = visibleViewBox(businessNodes, positions);
-    const metrics = layoutMetrics(businessNodes, positions, viewBox, labelPlacements);
+    const metrics = layoutMetrics(businessNodes, positions, viewBox, labelPlacements, model.edges, nodesById);
     const stats = model.stats || {};
     const title = stats.networkTitle || "能力关系图谱";
     const ariaLabel = stats.ariaLabel || "当前关注点能力关系图谱";
@@ -1043,7 +1279,7 @@
           </div>
           ${renderLegend(model)}
         </header>
-        <div class="network-graph-canvas" role="img" aria-label="${escape(ariaLabel)}" data-viewbox-width="${viewBox.width}" data-viewbox-height="${viewBox.height}" data-layout-overlaps="${metrics.overlaps}" data-layout-label-overlaps="${metrics.labelOverlaps}" data-layout-min-gap="${metrics.minGap}" data-business-nodes="${businessNodes.length}" data-layout-viewbox="${escape(metrics.viewBox)}" data-zoom="1" data-pan-x="0" data-pan-y="0">
+        <div class="network-graph-canvas" role="img" aria-label="${escape(ariaLabel)}" data-viewbox-width="${viewBox.width}" data-viewbox-height="${viewBox.height}" data-layout-overlaps="${metrics.overlaps}" data-layout-label-overlaps="${metrics.labelOverlaps}" data-layout-edge-crossings="${metrics.edgeCrossings}" data-layout-edge-node-intrusions="${metrics.edgeNodeIntrusions}" data-layout-min-gap="${metrics.minGap}" data-business-nodes="${businessNodes.length}" data-layout-viewbox="${escape(metrics.viewBox)}" data-zoom="1" data-pan-x="0" data-pan-y="0">
           <div class="network-graph-actions" aria-label="图谱缩放控制">
             <button type="button" data-network-zoom="out" title="缩小图谱" aria-label="缩小图谱">−</button>
             <span data-network-zoom-value>100%</span>
@@ -1063,7 +1299,7 @@
               <g class="network-business-edge-layer" aria-hidden="true">
                 ${list(model.edges)
                   .filter((edge) => !edge.isDecorative)
-                  .map((edge) => renderEdge(edge, positions, nodesById))
+                  .map((edge) => renderEdge(edge, positions, nodesById, "", businessNodes))
                   .join("")}
               </g>
               ${renderGroupLabels()}

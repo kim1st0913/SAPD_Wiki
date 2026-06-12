@@ -203,7 +203,6 @@ resources/database/sapd_wiki.seed.sqlite3
 |---|---|
 | 安全能力目录 | 能力层级与关注点基础主数据 |
 | 安全能力作用域目录 | 作用域类型基础主数据 |
-| 信息化环境-信息化对象-安全作用域映射 | 信息化环境、对象、作用域与服务关系 |
 | 安全能力-安全技术服务 | 安全技术服务权威主数据 |
 | 安全技术模块清单 | 系统、模块、产品与服务关系 |
 | 作用域-安全技术服务-安全技术模块映射 | 作用域、服务、模块、系统/产品连续映射 |
@@ -212,6 +211,8 @@ resources/database/sapd_wiki.seed.sqlite3
 | 安全职能流程清单（完善L4） | 流程清单专项知识维护 |
 | 安全工作职能清单 | 职能清单专项知识维护 |
 | Gartner 工作岗位参考 | 岗位参考专项知识维护 |
+
+退役说明：旧 Sheet `信息化环境-信息化对象-安全作用域映射` 已于 2026-06-11 归档，不再作为 Sheet Parser 输入；归档记录见 `docs/05-archive/retired-sheets/2026-06-11-information-environment-scope-mapping.md`。
 
 ### 4.4 Normalization 标准化服务
 

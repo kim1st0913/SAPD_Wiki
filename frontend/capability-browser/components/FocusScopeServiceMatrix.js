@@ -25,8 +25,9 @@
       .map((item) => {
         const kind = item.kind || item.objectKind || fallbackKind;
         const label = utils.codeTitleOf(item);
-        const annotationText = [kind, label].filter(Boolean).join(" | ");
-        return `<span class="relation-chip ${technicalChipClass(kind)}"${annotationAttrs(annotationText)}>${kind ? `<em>${utils.escapeHtml(kind)}</em>` : ""}<span class="relation-chip-text">${utils.escapeHtml(label)}</span></span>`;
+        const isService = utils.text(kind).includes("服务");
+        const annotationText = [isService ? "" : kind, label].filter(Boolean).join(" | ");
+        return `<span class="relation-chip ${technicalChipClass(kind)}"${annotationAttrs(annotationText)}>${kind && !isService ? `<em>${utils.escapeHtml(kind)}</em>` : ""}<span class="relation-chip-text">${utils.escapeHtml(label)}</span></span>`;
       })
       .join("")}${more > 0 ? `<span class="relation-chip muted">+${more}</span>` : ""}`;
   }

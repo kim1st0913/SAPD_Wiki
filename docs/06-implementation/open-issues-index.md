@@ -60,7 +60,7 @@
 | OI-022 | 已修复 | 需要单独 Frontend Design Owner 接管前端设计 | 前端 / Agent 分工 / 需求 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-023 | 已修复 | 前端信息架构数据契约待确认 | 前端 / ETL / 需求 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-019 | 已修复 | 安全能力作用域目录需要按原始表格样式展示 | 前端 / 需求 | docs/05-archive/open-issues-history/2026-06.md |
-| OI-020 | 已修复 | 信息化环境-信息化对象-安全作用域映射缺少一级页面和连续映射展示 | ETL / 前端 / 需求 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-020 | 已修复 / 旧表已归档 | 旧环境作用域映射表曾缺少一级页面和连续映射展示 | ETL / 前端 / 需求 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-024 | 已修复 | 主控 Agent 过早判断子 Agent 无响应 | Agent 分工 / 治理 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-025 | 已修复 | 关系工作台需要支持人工调宽、表格筛选和作用域清单核对 | 前端 / 需求 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-026 | 已修复 | 前端页面不应展示原始数据来源 | 前端 / 需求 | docs/05-archive/open-issues-history/2026-06.md |

@@ -2,8 +2,8 @@
 (function () {
   window.sapdEnvironmentBasemapData = Object.freeze({
   "title": "信息化环境及对象底图",
-  "pageIndex": 3,
-  "source": "data/raw-samples/drawio sample.drawio",
+  "pageIndex": 1,
+  "source": "data/raw-samples/drawio sample-信息化环境及对象底图.drawio.svg",
   "generatedFrom": "direct mxGraphModel parser; drawio CLI unavailable locally",
   "htmlPath": "./generated/environmentBasemap.html",
   "cssPath": "./generated/environmentBasemap.css",
@@ -12,22 +12,22 @@
   "bindingReportMarkdownPath": "./generated/environmentBasemap.binding-report.md",
   "bindingOverridesPath": "./generated/environmentBasemap.binding-overrides.json",
   "canvas": {
-    "x": 112,
-    "y": 102,
+    "x": 882,
+    "y": 1812,
     "width": 3086,
     "height": 2126
   },
   "stats": {
-    "cells": 170,
-    "nodes": 97,
-    "edges": 73,
+    "cells": 172,
+    "nodes": 98,
+    "edges": 74,
     "ignoredEdges": 0
   },
   "binding": {
-    "generatedAt": "2026-06-08T09:55:05.267Z",
-    "totalNodes": 97,
-    "totalEdges": 73,
-    "bound": 91,
+    "generatedAt": "2026-06-12T15:37:09.998Z",
+    "totalNodes": 98,
+    "totalEdges": 74,
+    "bound": 92,
     "candidate": 0,
     "unbound": 0,
     "ignored": 6,

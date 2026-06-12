@@ -57,6 +57,7 @@
 | PyInstaller 打包边界 | PyInstaller 首次在沙箱内运行会尝试写 `~/Library/Application Support/pyinstaller`，本项目打包脚本已把 `PYINSTALLER_CONFIG_DIR` 指向输出目录；一文件模式在 Codex 沙箱内直接运行可能遇到系统信号量限制，真实 macOS 验证需使用普通本机权限执行 |
 | Delivery Bundle 缺少稳定业务键风险 | 如果基础库 clean rebuild 后 UUID 改变，用户库中指向基础对象的备注、收藏、个人标签、关系和修正建议会断裂；进入正式交付前必须补 `stable_key` / deterministic ID、`base_id_redirects` 和 base release 兼容策略 |
 | 前端 JSON 职责混杂 | `management-knowledge.json` 的职责混杂已完成退役；后续重点是继续缩小 `capability-tree.json` 与 `lifecycle-knowledge.json` 的非页面级职责 |
+| 信息化环境映射源表结构丢失风险 | `作用域-安全技术服务-安全技术模块映射` 审计确认该 Sheet 依赖 417 个 merged ranges 和样式区分模块 / 措施；对象实例唯一键已修订为 `信息化环境 + 环境子类 + 信息化对象`，原 8 个同名对象降级为 `sameNameDifferentContexts` 信息提示；1.4 已正式替换 `environment-workbench.json` 与 `environmentBasemap.node-details.json`，替换后 `detailReadyNodes=91`、`missingDetailNodes=0`、`moduleSystemRelations=214`、`securitySystemCells=566`、`moduleCells=612`、`measureCells=123`。当前仍需人工页面验收，并单独决定是否让前端展示已进入数据包的 `securitySystems` 字段 |
 | 源数据一致性仍有待确认项 | `OI-073` 记录源 Sheet `作用域-安全技术服务-安全技术模块映射` 仍残留 5 行旧模块名 `网络数据防泄露`，是否统一替换为 `数据流转监测和泄漏防护` 需要用户确认 |
 
 ## 历史入口

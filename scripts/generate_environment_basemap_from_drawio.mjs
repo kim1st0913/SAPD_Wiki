@@ -3,7 +3,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const SOURCE_PATH = "data/raw-samples/drawio sample.drawio";
+const SOURCE_PATH = "data/raw-samples/drawio sample-信息化环境及对象底图.drawio.svg";
 const OUTPUT_DIR = "frontend/capability-browser/generated";
 const OUTPUT_HTML_PATH = `${OUTPUT_DIR}/environmentBasemap.html`;
 const OUTPUT_CSS_PATH = `${OUTPUT_DIR}/environmentBasemap.css`;
@@ -471,6 +471,22 @@ function extractPage(sourceXml) {
   const page = diagrams.find((item) => item.attrs.name === PAGE_NAME);
   if (!page) throw new Error(`Cannot find draw.io page "${PAGE_NAME}" in ${SOURCE_PATH}`);
   return page;
+}
+
+function extractDrawioXmlFromSvg(svgText) {
+  const contentMatch = String(svgText).match(/\scontent="([^"]+)"/);
+  if (!contentMatch) return "";
+  return decodeXml(contentMatch[1]);
+}
+
+function loadDrawioSourceXml(sourcePath) {
+  const raw = fs.readFileSync(sourcePath, "utf8");
+  if (sourcePath.endsWith(".svg")) {
+    const embedded = extractDrawioXmlFromSvg(raw);
+    if (!embedded) throw new Error(`Cannot find draw.io mxfile content in SVG: ${sourcePath}`);
+    return embedded;
+  }
+  return raw;
 }
 
 function rawGeometry(cell) {
@@ -1706,7 +1722,7 @@ ${unsupported || "- 无 unknown 节点；仅保留官方 renderer / router 不�
 `;
 }
 
-const sourceXml = fs.readFileSync(SOURCE_PATH, "utf8");
+const sourceXml = loadDrawioSourceXml(SOURCE_PATH);
 const page = extractPage(sourceXml);
 const cells = parseCells(page.body);
 const cellMap = new Map(cells.map((cell) => [cell.id, cell]));

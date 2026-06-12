@@ -8,6 +8,7 @@ const state = {
   sharedLookups: null,
   environmentWorkbench: null,
   environmentWorkbenchViewModel: null,
+  environmentManualReview: null,
   lifecycle: null,
   lifecycleWorkbench: null,
   lifecycleWorkbenchViewModel: null,
@@ -37,6 +38,24 @@ const state = {
   selectedEnvironmentObjectId: null,
   selectedEnvironmentRowId: null,
   activeEnvironmentTab: "topology",
+  environmentReviewFilters: {
+    query: "",
+    environment: "",
+    segment: "",
+    object: "",
+    contextKey: "",
+    scope: "",
+    service: "",
+    sameNameOnly: false,
+    nodeMissingOnly: false,
+    manyServicesOnly: false,
+    missingSystemWithModuleOnly: false,
+    abnormalModuleMeasureOnly: false,
+    duplicateServiceOnly: false,
+    missingScopeOnly: false,
+    relationIssueOnly: false,
+  },
+  selectedEnvironmentReviewRowKey: "",
   environmentCatalogCollapsed: false,
   selectedDevProcessId: null,
   selectedDataProcessId: null,
@@ -388,6 +407,7 @@ const PACKAGE_GETTERS = {
   capabilityInitial: "getCapabilityWorkspaceInitial",
   capabilityProjection: "getCapabilityWorkspaceProjection",
   environmentWorkbench: "getEnvironmentWorkbench",
+  environmentManualReview: "getEnvironmentManualReviewChecklist",
   lifecycleWorkbench: "getLifecycleWorkbench",
   analyticsSummary: "getAnalyticsSummary",
   maintenanceIndex: "getMaintenanceIndex",
@@ -422,6 +442,7 @@ function assignPackageData(name, data) {
   if (name === "capabilityProjection") state.capabilityProjection = data;
   if (name === "sharedLookups") state.sharedLookups = data;
   if (name === "environmentWorkbench") state.environmentWorkbench = data;
+  if (name === "environmentManualReview") state.environmentManualReview = data;
   if (name === "lifecycleWorkbench") state.lifecycleWorkbench = data;
   if (name === "analyticsSummary") state.analyticsSummary = data;
   if (name === "maintenanceIndex") state.maintenanceIndex = data;
@@ -461,7 +482,9 @@ function routePackagesForCurrentState() {
   if (state.activeView === "placeholder") return [];
   if (state.activeView === "overview") return ["analyticsSummary"];
   if (state.activeView === "capabilities") return ["capabilityInitial"];
-  if (state.activeView === "environment") return ["environmentWorkbench"];
+  if (state.activeView === "environment") {
+    return state.activeEnvironmentTab === "review" ? ["environmentWorkbench", "environmentManualReview"] : ["environmentWorkbench"];
+  }
   if (state.activeView === "dev-lifecycle") return ["lifecycleWorkbench", "lifecycle"];
   if (state.activeView === "data-lifecycle") return ["lifecycleWorkbench", "lifecycle"];
   if (state.activeView === "content") {
@@ -4891,11 +4914,12 @@ function renderCapabilities() {
 function renderEnvironmentHeaderTabs() {
   const root = $("environmentHeaderTabs");
   if (!root) return;
-  const activeTab = state.activeEnvironmentTab === "mapping" ? "mapping" : "topology";
   const tabs = [
     { id: "topology", label: "环境底图" },
     { id: "mapping", label: "归纳表格" },
+    { id: "review", label: "数据核对（临时）" },
   ];
+  const activeTab = tabs.some((tab) => tab.id === state.activeEnvironmentTab) ? state.activeEnvironmentTab : "topology";
   root.innerHTML = `
     <div class="maintenance-section-tabs environment-page-tabs" role="tablist" aria-label="信息化环境页面视图">
       ${tabs
@@ -4966,11 +4990,17 @@ function renderEnvironment() {
           activeTab: state.activeEnvironmentTab,
           expandedIds: state.expandedEnvironmentIds,
           catalogCollapsed: state.environmentCatalogCollapsed,
+          reviewData: state.environmentManualReview,
+          reviewFilters: state.environmentReviewFilters,
+          selectedReviewRowKey: state.selectedEnvironmentReviewRowKey,
         }) || emptyState("环境图谱组件未加载")
       }
     `,
   );
-  hydrateEnvironmentBasemapHtml();
+  const basemapRoot = $("environmentDetail")?.querySelector("[data-environment-basemap-viewer-svg]");
+  if (basemapRoot && components.EnvironmentBasemapViewer?.mount) {
+    components.EnvironmentBasemapViewer.mount(basemapRoot);
+  }
 }
 
 function renderLifecycle(kind) {
@@ -5842,6 +5872,13 @@ function bindEvents() {
     renderEnvironment();
   });
   $("environmentDetail")?.addEventListener("click", (event) => {
+    const reviewRowButton = event.target.closest("[data-environment-review-row-key]");
+    if (reviewRowButton) {
+      state.activeEnvironmentTab = "review";
+      state.selectedEnvironmentReviewRowKey = reviewRowButton.dataset.environmentReviewRowKey || "";
+      renderEnvironment();
+      return;
+    }
     const environmentCatalogToggle = event.target.closest("[data-toggle-environment-catalog]");
     if (environmentCatalogToggle) {
       state.activeEnvironmentTab = "mapping";
@@ -5877,10 +5914,33 @@ function bindEvents() {
     renderEnvironment();
   });
   $("environmentDetail")?.addEventListener("change", (event) => {
+    const reviewFilter = event.target?.closest?.("[data-environment-review-filter]");
+    if (reviewFilter && reviewFilter.closest("#environmentDetail")) {
+      state.environmentReviewFilters[reviewFilter.dataset.environmentReviewFilter] = reviewFilter.value;
+      state.selectedEnvironmentReviewRowKey = "";
+      renderEnvironment();
+      return;
+    }
+    const reviewToggle = event.target?.closest?.("[data-environment-review-toggle]");
+    if (reviewToggle) {
+      state.environmentReviewFilters[reviewToggle.dataset.environmentReviewToggle] = Boolean(reviewToggle.checked);
+      state.selectedEnvironmentReviewRowKey = "";
+      renderEnvironment();
+      return;
+    }
     if (event.target?.name !== "environmentDetailTab") return;
-    state.activeEnvironmentTab = event.target.id === "environmentTabMapping" ? "mapping" : "topology";
+    state.activeEnvironmentTab =
+      event.target.id === "environmentTabMapping" ? "mapping" : event.target.id === "environmentTabReview" ? "review" : "topology";
+    if (state.activeEnvironmentTab === "review") ensureRoutePackages();
   });
   document.addEventListener("input", (event) => {
+    const reviewFilter = event.target?.closest?.("[data-environment-review-filter]");
+    if (reviewFilter && reviewFilter.closest("#environmentDetail")) {
+      state.environmentReviewFilters[reviewFilter.dataset.environmentReviewFilter] = reviewFilter.value;
+      state.selectedEnvironmentReviewRowKey = "";
+      renderEnvironment();
+      return;
+    }
     if (event.target?.id !== "sourceSearchInput") return;
     state.search = event.target.value.trim();
     renderMaintenance();
@@ -6142,8 +6202,10 @@ function bindEvents() {
     }
     const environmentPageTab = event.target.closest("[data-environment-tab]");
     if (environmentPageTab) {
-      state.activeEnvironmentTab = environmentPageTab.dataset.environmentTab === "mapping" ? "mapping" : "topology";
+      const nextEnvironmentTab = environmentPageTab.dataset.environmentTab;
+      state.activeEnvironmentTab = nextEnvironmentTab === "mapping" || nextEnvironmentTab === "review" ? nextEnvironmentTab : "topology";
       renderEnvironment();
+      if (state.activeEnvironmentTab === "review") ensureRoutePackages();
       return;
     }
     const contentPage = event.target.closest("[data-content-page]");
@@ -6197,11 +6259,11 @@ function bindEvents() {
 async function init() {
   const dataClient = window.sapdDataClient;
   if (!dataClient) throw new Error("SAPD Wiki dataClient 未加载");
-  await loadScriptOnce("./models/relationGraphModel.js?v=capability-graph-strategy-20260526-1", () => Boolean(window.sapdModels?.buildLocalRelationGraphModel));
-  await loadScriptOnce("./components/LocalRelationNetworkGraph.js?v=capability-graph-label-avoidance-20260608-1", () => Boolean(window.sapdComponents?.LocalRelationNetworkGraph));
+  await loadScriptOnce("./models/relationGraphModel.js?v=capability-graph-focus-untangle-20260608-3", () => Boolean(window.sapdModels?.buildLocalRelationGraphModel));
+  await loadScriptOnce("./components/LocalRelationNetworkGraph.js?v=capability-graph-focus-untangle-20260608-3", () => Boolean(window.sapdComponents?.LocalRelationNetworkGraph));
   await loadScriptOnce("./components/CapabilityLocalRelationMap.js?v=annotation-framework-anchor-20260605-1", () => Boolean(window.sapdComponents?.CapabilityLocalRelationMap));
   await loadScriptOnce("./models/environmentRelationGraphModel.js?v=environment-graph-20260521-1", () => Boolean(window.sapdModels?.buildEnvironmentRelationGraphModel));
-  await loadScriptOnce("./components/EnvironmentLocalRelationMap.js?v=environment-basemap-page-structure-20260608-1", () => Boolean(window.sapdComponents?.EnvironmentLocalRelationMap));
+  await loadScriptOnce("./components/EnvironmentLocalRelationMap.js?v=environment-reimport-1-5-review-20260612-1", () => Boolean(window.sapdComponents?.EnvironmentLocalRelationMap));
   mountAppShellComponents();
   setupAnnotationSurfaceObserver();
   bindEvents();

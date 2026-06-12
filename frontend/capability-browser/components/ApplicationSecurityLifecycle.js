@@ -182,8 +182,9 @@
     }
     const kindClass = objectKind.includes("措施") ? "measure-chip" : objectKind.includes("模块") ? "module-chip" : objectKind.includes("服务") ? "service-chip" : "";
     const visibleText = [code, title].filter(Boolean).join(" ");
-    const annotationText = [objectKind, visibleText].filter(Boolean).join(" | ");
-    return `<span class="relation-chip technical-chip ${kindClass}"${annotationValueAttrs(annotationText)}>${objectKind ? `<em>${escapeHtml(objectKind)}</em>` : ""}<span class="relation-chip-text">${escapeHtml(visibleText)}</span></span>`;
+    const isService = objectKind.includes("服务");
+    const annotationText = [isService ? "" : objectKind, visibleText].filter(Boolean).join(" | ");
+    return `<span class="relation-chip technical-chip ${kindClass}"${annotationValueAttrs(annotationText)}>${objectKind && !isService ? `<em>${escapeHtml(objectKind)}</em>` : ""}<span class="relation-chip-text">${escapeHtml(visibleText)}</span></span>`;
   }
 
   function renderDataScenarioList(scenes) {

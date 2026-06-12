@@ -1,9 +1,9 @@
 # Environment Basemap Binding Report
 
-- Generated at: 2026-06-08T09:55:05.267Z
-- Total nodes: 97
-- Total edges: 73
-- Bound: 91
+- Generated at: 2026-06-12T15:37:09.998Z
+- Total nodes: 98
+- Total edges: 74
+- Bound: 92
 - Candidate: 0
 - Unbound: 0
 - Ignored: 6
@@ -20,97 +20,98 @@
 
 | mxId | label | status | confidence | objectType | objectName | objectId | candidates | context |
 |---|---|---|---|---|---|---|---|---|
-|7M0SGe99AU4GMtvV9rx2-230|工厂|bound|alias|information_environment|工业控制网络|fe375438-1741-48b3-bf97-20ee88f9d3e6||OT|
-|7M0SGe99AU4GMtvV9rx2-248|L3|bound|alias|environment_segment|L3层|dc7a8266-199e-4c45-95f3-599a8bde854a||工厂 / OT|
-|7M0SGe99AU4GMtvV9rx2-249|L2|bound|alias|environment_segment|L2层|3764dfbf-7094-4973-8ca9-c5bad2c9c688||工厂 / OT|
-|7M0SGe99AU4GMtvV9rx2-250|L1|bound|alias|environment_segment|L1层|2326e423-059d-4cb0-8fcb-82c877a2792c||工厂 / OT|
-|7M0SGe99AU4GMtvV9rx2-247|网络周界|bound|exact|information_environment|网络周界|f0ddae58-b900-4eb5-854f-4c3b36513d61||数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-200|远程办公接入|bound|exact|information_environment|远程办公接入|f987426d-4abd-4f5e-956f-3b6d093206f1|||
-|7M0SGe99AU4GMtvV9rx2-181|运维管理网|bound|alias|information_environment|运维管理网络|8ac6c076-8aa3-402e-abd4-bdf116869b3f||数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-123|传统数据中心|bound|exact|information_environment|传统数据中心|df92a491-8fca-4a28-9999-3715cfcdb6fd||数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-143|业务应用|bound|parent_context|environment_segment|应用及数据|6ef9a567-b895-41c5-9d02-5f1a599f4ee4||传统数据中心 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-78|云数据中心|bound|exact|information_environment|云数据中心|bfc540c6-7ca8-4142-a682-0bc7de04b6c5||数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-112|工作负载|bound|parent_context|environment_segment|工作负载|111bd108-95a8-428b-a456-bc766e4d5e4b||云数据中心 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-111|业务应用|bound|parent_context|environment_segment|业务应用|ccca2519-375b-4ebd-8734-a1bef4a68cd5||云数据中心 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-110|大数据平台/数据中台|bound|exact|environment_segment|大数据平台/数据中台|7c4dcdcd-5c96-4f94-a3c5-c902182a684f||云数据中心 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-45|广域网|bound|exact|information_environment|广域网|29017e8d-ccc5-4dd2-8713-29b23e4d26f8||IT|
-|7M0SGe99AU4GMtvV9rx2-13|园区|bound|alias|information_environment|园区网|2478232e-3c33-4b4f-9313-5d1aa10feb99||IT|
-|xDkBI2kzSbe3P-stVFY9-32|园区内部网络|bound|alias|information_object|园区网内部网络|f471b170-312f-4774-85d6-c59efc05275f||园区 / IT|
-|xDkBI2kzSbe3P-stVFY9-34|PC终端|bound|parent_context|environment_segment|PC终端|880c0aa8-7e15-4105-9463-0b20b0841ceb||园区 / IT|
-|xDkBI2kzSbe3P-stVFY9-36|移动终端|bound|parent_context|environment_segment|移动终端|1f9a6750-f44a-48bc-aa86-5ee63317fd35||园区 / IT|
-|xDkBI2kzSbe3P-stVFY9-38|办公人员|bound|exact|information_object|办公人员|98ba8ea8-5a5f-45d1-a16c-6d6e47ddf016||园区 / IT|
-|7M0SGe99AU4GMtvV9rx2-2|PC终端设备|bound|alias|information_object|终端设备|f2b74758-d248-4128-af40-92eb9fa9fd19||PC终端 / 园区 / IT|
-|7M0SGe99AU4GMtvV9rx2-3|PC终端操作系统|bound|alias|information_object|终端操作系统|c7cc41d2-ed8b-42b2-9b44-3f0c651b9fde||PC终端 / 园区 / IT|
-|7M0SGe99AU4GMtvV9rx2-4|PC终端软件应用|bound|alias|information_object|终端软件应用|1737b4cf-c277-403d-b84b-b64841217332||PC终端 / 园区 / IT|
-|7M0SGe99AU4GMtvV9rx2-8|移动终端操作系统|bound|alias|information_object|终端操作系统|c7cc41d2-ed8b-42b2-9b44-3f0c651b9fde||移动终端 / 园区 / IT|
-|7M0SGe99AU4GMtvV9rx2-9|移动终端软件应用|bound|alias|information_object|终端软件应用|1737b4cf-c277-403d-b84b-b64841217332||移动终端 / 园区 / IT|
-|7M0SGe99AU4GMtvV9rx2-15|分支机构|bound|exact|information_environment|分支机构|cdcc72a6-5f8d-46f9-844e-1400eafcd734||IT|
-|7M0SGe99AU4GMtvV9rx2-16|分支机构内部网络|bound|exact|information_object|分支机构内部网络|0a1aafd8-cc07-4334-a004-379d4a627b02||分支机构 / IT|
-|7M0SGe99AU4GMtvV9rx2-18|PC终端|bound|parent_context|environment_segment|PC终端|8f714983-4d03-41ca-a5f5-2ad0d526f6e8||分支机构 / IT|
-|7M0SGe99AU4GMtvV9rx2-20|移动终端|bound|parent_context|environment_segment|移动终端|44d5795f-a453-4b3f-ba94-384ce6be62f9||分支机构 / IT|
-|7M0SGe99AU4GMtvV9rx2-22|办公人员|bound|exact|information_object|办公人员|98ba8ea8-5a5f-45d1-a16c-6d6e47ddf016||分支机构 / IT|
-|7M0SGe99AU4GMtvV9rx2-24|PC终端设备|bound|alias|information_object|终端设备|f2b74758-d248-4128-af40-92eb9fa9fd19||PC终端 / 分支机构 / IT|
-|7M0SGe99AU4GMtvV9rx2-25|PC终端操作系统|bound|alias|information_object|终端操作系统|c7cc41d2-ed8b-42b2-9b44-3f0c651b9fde||PC终端 / 分支机构 / IT|
-|7M0SGe99AU4GMtvV9rx2-26|PC终端软件应用|bound|alias|information_object|终端软件应用|1737b4cf-c277-403d-b84b-b64841217332||PC终端 / 分支机构 / IT|
-|7M0SGe99AU4GMtvV9rx2-29|移动终端操作系统|bound|alias|information_object|终端操作系统|c7cc41d2-ed8b-42b2-9b44-3f0c651b9fde||移动终端 / 分支机构 / IT|
-|7M0SGe99AU4GMtvV9rx2-30|移动终端软件应用|bound|alias|information_object|终端软件应用|1737b4cf-c277-403d-b84b-b64841217332||移动终端 / 分支机构 / IT|
-|7M0SGe99AU4GMtvV9rx2-40|广域网骨干节点|bound|exact|information_object|广域网骨干节点|3e3438e3-2f4d-4ca0-bfda-7e087dc6c721||广域网 / IT|
-|7M0SGe99AU4GMtvV9rx2-41|分支机构接入互联网边界|bound|exact|information_object|分支机构接入互联网边界|60c695da-672e-472b-946c-cd443e505889||分支机构 / IT|
-|7M0SGe99AU4GMtvV9rx2-42|园区出口边界|bound|alias|information_object|园区网出口边界|663bb076-7ffb-4550-b196-a1276606f7c8||IT|
-|7M0SGe99AU4GMtvV9rx2-43|分支机构接入广域网边界|bound|exact|information_object|分支机构接入广域网边界|b7dfe9bf-4cc4-4e21-bbcf-69f0c8ec00de||分支机构 / IT|
-|7M0SGe99AU4GMtvV9rx2-51|互联网出口边界|bound|exact|information_object|互联网出口边界|4594abef-d89f-4dd0-92d0-98e76fc32657||网络周界 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-52|互联网入口边界|bound|exact|information_object|互联网入口边界|964be62e-7910-49cf-8734-f6951448d486||网络周界 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-53|外联网边界|bound|exact|environment_segment|外联网边界|88224b67-fcb1-4736-8e64-cdcfdb0f8212||网络周界 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-54|跨网边界|bound|exact|information_object|跨网边界|08fa0753-502a-47d6-97b6-e3e856f93e6e||网络周界 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-79|数据中心出口边界|bound|parent_context|information_object|云数据中心出口边界|2e9a8fb2-5a18-4e27-a27e-4054736f608f||云数据中心 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-80|数据中心内部虚拟网络|bound|alias|information_object|云数据中心内部 虚拟网络|ba95f9f8-e221-454d-ba68-2c775898a052||云数据中心 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-94|物理主机硬件|bound|exact|information_object|物理主机硬件|81f11ade-72b4-40d7-abb0-79697d3ccfc9||工作负载 / 云数据中心 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-95|物理主机操作系统|bound|exact|information_object|物理主机操作系统|edaa109e-9606-4b84-902b-33587c28d141||工作负载 / 云数据中心 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-96|虚拟主机操作系统|bound|exact|information_object|虚拟主机操作系统|001f4f7b-aa19-4553-ac84-84742a835e0c||工作负载 / 云数据中心 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-97|容器|bound|exact|information_object|容器|abfbb2bd-232f-484f-a3e9-5e34a0cc2e24||工作负载 / 云数据中心 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-98|应用网关层|bound|exact|information_object|应用网关层|5c53cd9d-9cea-4943-999a-d788831dac55||业务应用 / 云数据中心 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-99|用户接口层|bound|exact|information_object|用户接口层|770c70d5-d1d6-4fe1-93e5-951180a4a38a||业务应用 / 云数据中心 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-100|API网关层|bound|exact|information_object|API网关层|9f77f642-d2a3-4143-8375-33925004d660||业务应用 / 云数据中心 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-101|应用服务层|bound|exact|information_object|应用服务层|1713589f-0f0d-4b35-a1f8-c797c62ce864||业务应用 / 云数据中心 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-102|数据访问层|bound|exact|information_object|数据访问层|13e9bd79-ea86-4c11-8c16-6d9824271e56||业务应用 / 云数据中心 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-103|数据存储层|bound|exact|information_object|数据存储层|93eda1df-097b-4942-a593-f3318aa5f99d||业务应用 / 云数据中心 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-104|数据分析层|bound|exact|information_object|数据分析层|369a19ef-9ba5-45a4-ad26-65805bea78c9||大数据平台/数据中台 / 云数据中心 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-105|数据服务层|bound|exact|information_object|数据服务层|fd27a1f4-13d8-4bbc-95f1-475ff997a619||大数据平台/数据中台 / 云数据中心 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-106|数据存储计算层|bound|exact|information_object|数据存储计算层|6ef4e338-9b73-42b3-b834-27279633f968||大数据平台/数据中台 / 云数据中心 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-107|数据接入层|bound|exact|information_object|数据接入层|69142559-93cb-4b4a-aa84-b1057a472968||大数据平台/数据中台 / 云数据中心 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-126|工作负载|bound|parent_context|environment_segment|工作负载|af7800f8-9557-469d-a7e9-a9a36a4d468b||传统数据中心 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-127|物理主机硬件|bound|exact|information_object|物理主机硬件|81f11ade-72b4-40d7-abb0-79697d3ccfc9||工作负载 / 传统数据中心 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-128|物理主机操作系统|bound|exact|information_object|物理主机操作系统|edaa109e-9606-4b84-902b-33587c28d141||工作负载 / 传统数据中心 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-138|数据中心出口边界|bound|parent_context|information_object|数据中心出口边界|bbe7c2cc-0cfb-42a5-a2a3-ff41c883c45e||传统数据中心 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-139|数据中心内部网络|bound|exact|information_object|数据中心内部网络|7e1da6c4-9dd5-4171-91cd-525a93963238||传统数据中心 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-145|应用前端|bound|exact|information_object|应用前端|bd46fece-0f23-48bb-812b-88e8a92b5ff5||业务应用 / 传统数据中心 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-146|应用后端|bound|exact|information_object|应用后端|9d3b67f5-e5ea-42bd-866d-77c39b8f57fd||业务应用 / 传统数据中心 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-147|数据库|bound|exact|information_object|数据库|da718f1a-1a94-4063-bfb5-4a1b65222d22||业务应用 / 传统数据中心 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-168|数据管理层|bound|exact|information_object|数据管理层|2603e4f4-ac94-4bf7-8d88-07256ee0ad3d||大数据平台/数据中台 / 云数据中心 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-169|运维管理终端|bound|parent_context|environment_segment|PC终端|b51a0761-f906-472e-908c-c0dc99af057d||运维管理网 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-170|PC终端设备|bound|alias|information_object|终端设备|f2b74758-d248-4128-af40-92eb9fa9fd19||运维管理终端 / 运维管理网 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-171|PC终端操作系统|bound|alias|information_object|终端操作系统|c7cc41d2-ed8b-42b2-9b44-3f0c651b9fde||运维管理终端 / 运维管理网 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-172|PC终端软件应用|bound|alias|information_object|终端软件应用|1737b4cf-c277-403d-b84b-b64841217332||运维管理终端 / 运维管理网 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-175|运维管理人员|bound|exact|information_object|运维管理人员|c23fd75b-62dd-4a0f-b8c8-25e4c9966005||运维管理网 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-176|运维管理网络接入边界|bound|alias|information_object|运维管理终端接入边界|aefb23d0-1142-4739-b3fd-61e968175413||运维管理网 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-177|运维管理网络入口边界|bound|exact|information_object|运维管理网络入口边界|5a634e62-a21d-496e-93a7-58e24e4d1f64||运维管理网 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-188|运维管理网络内部边界|bound|exact|information_object|运维管理网络内部边界|99595e23-cc76-465f-9cfe-605163560c30||运维管理网 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-191|PC终端|bound|parent_context|environment_segment|PC终端|3d35d396-ed33-4354-aa5a-6e2ea293efaa||远程办公接入|
-|7M0SGe99AU4GMtvV9rx2-192|PC终端设备|bound|alias|information_object|终端设备|f2b74758-d248-4128-af40-92eb9fa9fd19||PC终端 / 远程办公接入|
-|7M0SGe99AU4GMtvV9rx2-193|PC终端操作系统|bound|alias|information_object|终端操作系统|c7cc41d2-ed8b-42b2-9b44-3f0c651b9fde||PC终端 / 远程办公接入|
-|7M0SGe99AU4GMtvV9rx2-194|PC终端软件应用|bound|alias|information_object|终端软件应用|1737b4cf-c277-403d-b84b-b64841217332||PC终端 / 远程办公接入|
-|7M0SGe99AU4GMtvV9rx2-197|办公人员|bound|exact|information_object|办公人员|98ba8ea8-5a5f-45d1-a16c-6d6e47ddf016||远程办公接入|
-|7M0SGe99AU4GMtvV9rx2-201|客户访问接入|bound|exact|information_environment|客户访问接入|fd8f2e00-00e2-4edc-aaf1-a458a958dc67|||
-|7M0SGe99AU4GMtvV9rx2-202|移动终端|bound|parent_context|environment_segment|移动终端|0c0b1337-7839-4475-abee-cbbdc40556c1||客户访问接入|
-|7M0SGe99AU4GMtvV9rx2-205|移动应用|bound|exact|information_object|移动应用|cbd0a14b-9c3d-4779-adea-7fa3a22d0a37||移动终端 / 客户访问接入|
-|7M0SGe99AU4GMtvV9rx2-215|基础设施管理平台|bound|alias|information_object|基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）|ce391bdb-6e54-443a-948e-b59affafb951||云数据中心 / 数据中心机房 / IT|
-|7M0SGe99AU4GMtvV9rx2-231|L4-L3间网络边界|bound|exact|information_object|L4-L3间网络边界|4292a70e-c0ee-44ba-b584-3d162a7d684f||工厂 / OT|
-|7M0SGe99AU4GMtvV9rx2-232|L3内部网络|bound|exact|information_object|L3内部网络|f56e4867-13b1-4c6e-8a5e-476ea468b3bb||L3 / 工厂 / OT|
-|7M0SGe99AU4GMtvV9rx2-233|L3主机操作系统|bound|exact|information_object|L3主机操作系统|6192be7d-c430-4d03-8584-50189a23a50a||L3 / 工厂 / OT|
-|7M0SGe99AU4GMtvV9rx2-239|L3-L2间网络边界|bound|exact|information_object|L3-L2间网络边界|f11790bc-cdea-457e-8288-5e891fea9b5c||L2 / 工厂 / OT|
-|7M0SGe99AU4GMtvV9rx2-240|L2内部网络|bound|exact|information_object|L2内部网络|d234457f-58fc-4991-a7e4-f1189bc4db4f||L2 / 工厂 / OT|
-|7M0SGe99AU4GMtvV9rx2-241|L2主机操作系统|bound|alias|information_object|L2层主机操作系统|07c590e5-b558-46e3-b6e4-9b373ff4edcb||L2 / 工厂 / OT|
-|7M0SGe99AU4GMtvV9rx2-243|L2-L1间网络边界|bound|exact|information_object|L2-L1间网络边界|fff3cdfb-d8ed-4bac-8ea2-88b92e6701fd||L1 / 工厂 / OT|
+|AkYI7P9UyD1rbXxni8A_-3|工厂|bound|alias|information_environment|工业控制网络|shadow:information_environment:d24d3f70aacc4002||OT|
+|AkYI7P9UyD1rbXxni8A_-4|L3|bound|alias|environment_segment|L3层|shadow:environment_segment:7d7c77f753885da1||工厂 / OT|
+|AkYI7P9UyD1rbXxni8A_-5|L2|bound|alias|environment_segment|L2层|shadow:environment_segment:d5f849bcd5faee6a||工厂 / OT|
+|AkYI7P9UyD1rbXxni8A_-6|L1|bound|alias|environment_segment|L1层|shadow:environment_segment:babb81e242dac156||工厂 / OT|
+|AkYI7P9UyD1rbXxni8A_-8|网络周界|bound|exact|information_environment|网络周界|shadow:information_environment:f63e716ac2e47a80||数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-9|远程办公接入|bound|exact|information_environment|远程办公接入|shadow:information_environment:9486d4eca0610e0b|||
+|AkYI7P9UyD1rbXxni8A_-10|运维管理网|bound|alias|information_environment|运维管理网络|shadow:information_environment:eda884e02269d4a7||数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-11|传统数据中心|bound|exact|information_environment|传统数据中心|shadow:information_environment:83dcf14d157e81b7||数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-12|业务应用|bound|parent_context|environment_segment|应用及数据|shadow:environment_segment:d8ae65d579fb5d25||传统数据中心 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-13|云数据中心|bound|exact|information_environment|云数据中心|shadow:information_environment:135ca0edbf6c0450||数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-14|工作负载|bound|parent_context|environment_segment|工作负载|shadow:environment_segment:be682cc6f17c76e2||云数据中心 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-15|业务应用|bound|parent_context|environment_segment|业务应用|shadow:environment_segment:52296e4c24c5b9d2||云数据中心 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-16|大数据平台/数据中台|bound|exact|environment_segment|大数据平台/数据中台|shadow:environment_segment:84df534045c32937||云数据中心 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-17|广域网|bound|exact|information_environment|广域网|shadow:information_environment:0bce7fa32411a3e2||IT|
+|AkYI7P9UyD1rbXxni8A_-18|园区|bound|alias|information_environment|园区网|shadow:information_environment:2becb9c86368df93||IT|
+|AkYI7P9UyD1rbXxni8A_-19|园区网内部网络|bound|exact|information_object|园区网内部网络|shadow:information_object_context:b4cdf0caf60b5ad3||园区 / IT|
+|AkYI7P9UyD1rbXxni8A_-21|PC终端|bound|parent_context|environment_segment|PC终端|shadow:environment_segment:742c252119cd1402||园区 / IT|
+|AkYI7P9UyD1rbXxni8A_-23|移动终端|bound|parent_context|environment_segment|移动终端|shadow:environment_segment:25cd3cf9d177cd68||园区 / IT|
+|AkYI7P9UyD1rbXxni8A_-25|办公人员|bound|parent_context|information_object|办公人员|shadow:information_object_context:c01133731e66d2e8||园区 / IT|
+|AkYI7P9UyD1rbXxni8A_-27|PC终端设备|bound|parent_context|information_object|PC终端设备|shadow:information_object_context:27bce3f61ab3d9fe||PC终端 / 园区 / IT|
+|AkYI7P9UyD1rbXxni8A_-28|PC终端操作系统|bound|parent_context|information_object|PC终端操作系统|shadow:information_object_context:faadbf9097accc56||PC终端 / 园区 / IT|
+|AkYI7P9UyD1rbXxni8A_-29|PC终端软件应用|bound|parent_context|information_object|PC终端软件应用|shadow:information_object_context:96da0a96ce1cdc69||PC终端 / 园区 / IT|
+|AkYI7P9UyD1rbXxni8A_-32|移动终端操作系统|bound|parent_context|information_object|移动终端操作系统|shadow:information_object_context:695c3804df9364b3||移动终端 / 园区 / IT|
+|AkYI7P9UyD1rbXxni8A_-33|移动终端软件应用|bound|parent_context|information_object|移动终端软件应用|shadow:information_object_context:537ad4c3f163fc86||移动终端 / 园区 / IT|
+|AkYI7P9UyD1rbXxni8A_-35|分支机构|bound|exact|information_environment|分支机构|shadow:information_environment:6f1d6c3e35c9fc8d||IT|
+|AkYI7P9UyD1rbXxni8A_-37|分支机构内部网络|bound|exact|information_object|分支机构内部网络|shadow:information_object_context:9003bfbf8359ef8b||分支机构 / IT|
+|AkYI7P9UyD1rbXxni8A_-38|PC终端|bound|parent_context|environment_segment|PC终端|shadow:environment_segment:bf0aed81eb85ee59||分支机构 / IT|
+|AkYI7P9UyD1rbXxni8A_-39|移动终端|bound|parent_context|environment_segment|移动终端|shadow:environment_segment:549d572065dc99ae||分支机构 / IT|
+|AkYI7P9UyD1rbXxni8A_-41|办公人员|bound|parent_context|information_object|办公人员|shadow:information_object_context:60ecbfb7ea4af62d||分支机构 / IT|
+|AkYI7P9UyD1rbXxni8A_-43|PC终端设备|bound|parent_context|information_object|PC终端设备|shadow:information_object_context:86c7556b86a20b4d||PC终端 / 分支机构 / IT|
+|AkYI7P9UyD1rbXxni8A_-44|PC终端操作系统|bound|parent_context|information_object|PC终端操作系统|shadow:information_object_context:445b12c5a33f1269||PC终端 / 分支机构 / IT|
+|AkYI7P9UyD1rbXxni8A_-45|PC终端软件应用|bound|parent_context|information_object|PC终端软件应用|shadow:information_object_context:a88d854c83fa2212||PC终端 / 分支机构 / IT|
+|AkYI7P9UyD1rbXxni8A_-48|移动终端操作系统|bound|parent_context|information_object|移动终端操作系统|shadow:information_object_context:6b6627aa0646010a||移动终端 / 分支机构 / IT|
+|AkYI7P9UyD1rbXxni8A_-49|移动终端软件应用|bound|parent_context|information_object|移动终端软件应用|shadow:information_object_context:4cd8eb8ea67e3eb9||移动终端 / 分支机构 / IT|
+|AkYI7P9UyD1rbXxni8A_-55|广域网骨干节点|bound|exact|information_object|广域网骨干节点|shadow:information_object_context:ddbe4a155c057fe4||广域网 / IT|
+|AkYI7P9UyD1rbXxni8A_-56|分支机构接入互联网边界|bound|exact|information_object|分支机构接入互联网边界|shadow:information_object_context:4833100b22557f4f||分支机构 / IT|
+|AkYI7P9UyD1rbXxni8A_-57|园区网出口边界|bound|exact|information_object|园区网出口边界|shadow:information_object_context:a1dc6455b30c9a2f||IT|
+|AkYI7P9UyD1rbXxni8A_-58|分支机构接入广域网边界|bound|exact|information_object|分支机构接入广域网边界|shadow:information_object_context:66b04c4aa557e6a8||分支机构 / IT|
+|AkYI7P9UyD1rbXxni8A_-64|互联网出口边界|bound|exact|information_object|互联网出口边界|shadow:information_object_context:844776c9162f2dd0||网络周界 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-65|互联网入口边界|bound|exact|information_object|互联网入口边界|shadow:information_object_context:2937e39db287f261||网络周界 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-66|外联网出口边界|bound|exact|information_object|外联网出口边界|shadow:information_object_context:65642ed125f8d83d||网络周界 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-67|跨网边界|bound|exact|information_object|跨网边界|shadow:information_object_context:9a64531f9c0909c8||网络周界 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-73|云数据中心出口边界|bound|exact|information_object|云数据中心出口边界|shadow:information_object_context:5cdb405ace1d527c||云数据中心 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-74|云数据中心内部虚拟网络|bound|exact|information_object|云数据中心内部 虚拟网络|shadow:information_object_context:1614d9543e7454bf||云数据中心 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-75|物理主机硬件|bound|parent_context|information_object|物理主机硬件|shadow:information_object_context:f8b265922e4f2692||工作负载 / 云数据中心 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-76|物理主机操作系统|bound|parent_context|information_object|物理主机操作系统|shadow:information_object_context:3e7fef51ff56a820||工作负载 / 云数据中心 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-77|虚拟主机操作系统|bound|exact|information_object|虚拟主机操作系统|shadow:information_object_context:43381dd3efc03d7d||工作负载 / 云数据中心 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-78|容器|bound|exact|information_object|容器|shadow:information_object_context:03e9d0c236fabc91||工作负载 / 云数据中心 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-79|应用网关层|bound|exact|information_object|应用网关层|shadow:information_object_context:9d4c538e5835d52c||业务应用 / 云数据中心 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-80|用户接口层|bound|exact|information_object|用户接口层|shadow:information_object_context:2ed960f25f14d774||业务应用 / 云数据中心 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-81|API网关层|bound|exact|information_object|API网关层|shadow:information_object_context:b0e2109a6fd43812||业务应用 / 云数据中心 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-82|应用服务层|bound|exact|information_object|应用服务层|shadow:information_object_context:df7b4628b9ded587||业务应用 / 云数据中心 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-83|数据访问层|bound|exact|information_object|数据访问层|shadow:information_object_context:66a6d40e2811157f||业务应用 / 云数据中心 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-84|数据存储层|bound|exact|information_object|数据存储层|shadow:information_object_context:e2c40efc35d39fe1||业务应用 / 云数据中心 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-85|数据分析层|bound|exact|information_object|数据分析层|shadow:information_object_context:351cb474eefbc1ce||大数据平台/数据中台 / 云数据中心 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-86|数据服务层|bound|exact|information_object|数据服务层|shadow:information_object_context:12f515b36ecbec1f||大数据平台/数据中台 / 云数据中心 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-87|数据存储计算层|bound|exact|information_object|数据存储计算层|shadow:information_object_context:8b0a48ddb9493eec||大数据平台/数据中台 / 云数据中心 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-88|数据接入层|bound|exact|information_object|数据接入层|shadow:information_object_context:21c564fd87332e30||大数据平台/数据中台 / 云数据中心 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-97|工作负载|bound|parent_context|environment_segment|工作负载|shadow:environment_segment:fe94187fe804e991||传统数据中心 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-98|物理主机硬件|bound|parent_context|information_object|物理主机硬件|shadow:information_object_context:e1316731b608533e||工作负载 / 传统数据中心 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-99|物理主机操作系统|bound|parent_context|information_object|物理主机操作系统|shadow:information_object_context:234402e7a966e64b||工作负载 / 传统数据中心 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-101|数据中心出口边界|bound|parent_context|information_object|数据中心出口边界|shadow:information_object_context:55d48f9bbbe56734||传统数据中心 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-102|数据中心内部网络|bound|exact|information_object|数据中心内部网络|shadow:information_object_context:dfd9cd35189def7a||传统数据中心 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-105|应用前端|bound|exact|information_object|应用前端|shadow:information_object_context:d8bdf51387211608||业务应用 / 传统数据中心 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-106|应用后端|bound|exact|information_object|应用后端|shadow:information_object_context:656cd64ab09c0a2e||业务应用 / 传统数据中心 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-107|数据库|bound|exact|information_object|数据库|shadow:information_object_context:9ebf9e69218001bf||业务应用 / 传统数据中心 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-122|数据管理层|bound|exact|information_object|数据管理层|shadow:information_object_context:b1e337da1a9b2701||大数据平台/数据中台 / 云数据中心 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-123|PC终端|bound|parent_context|environment_segment|PC终端|shadow:environment_segment:c80e2fd64e9b63d6||运维管理网 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-124|PC终端设备|bound|parent_context|information_object|PC终端设备|shadow:information_object_context:8d3d5d9bdba16854||PC终端 / 运维管理网 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-125|PC终端操作系统|bound|parent_context|information_object|PC终端操作系统|shadow:information_object_context:dc57582cd64573c6||PC终端 / 运维管理网 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-126|PC终端软件应用|bound|parent_context|information_object|PC终端软件应用|shadow:information_object_context:151e42e0ac32ca36||PC终端 / 运维管理网 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-129|运维管理人员|bound|exact|information_object|运维管理人员|shadow:information_object_context:490fb8b7384f5809||运维管理网 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-130|运维管理终端接入边界|bound|exact|information_object|运维管理终端接入边界|shadow:information_object_context:e9ec307e31dc8b9b||运维管理网 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-133|运维管理网络入口边界|bound|exact|information_object|运维管理网络入口边界|shadow:information_object_context:38a8797ed24fc7dc||运维管理网 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-137|运维管理网络内部边界|bound|exact|information_object|运维管理网络内部边界|shadow:information_object_context:96b1e3958f325f89||运维管理网 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-140|PC终端|bound|parent_context|environment_segment|PC终端|shadow:environment_segment:9d3e0d771b3aed35||远程办公接入|
+|AkYI7P9UyD1rbXxni8A_-141|PC终端设备|bound|parent_context|information_object|PC终端设备|shadow:information_object_context:a15d7679ea02656a||PC终端 / 远程办公接入|
+|AkYI7P9UyD1rbXxni8A_-142|PC终端操作系统|bound|parent_context|information_object|PC终端操作系统|shadow:information_object_context:3cb2ae0671d6b889||PC终端 / 远程办公接入|
+|AkYI7P9UyD1rbXxni8A_-143|PC终端软件应用|bound|parent_context|information_object|PC终端软件应用|shadow:information_object_context:a1a60bea92a1f9ad||PC终端 / 远程办公接入|
+|AkYI7P9UyD1rbXxni8A_-146|办公人员|bound|parent_context|information_object|办公人员|shadow:information_object_context:8ba92773e3b5c4b4||远程办公接入|
+|AkYI7P9UyD1rbXxni8A_-148|客户访问接入|bound|exact|information_environment|客户访问接入|shadow:information_environment:b2aaaf052ed690b4|||
+|AkYI7P9UyD1rbXxni8A_-150|移动终端|bound|parent_context|environment_segment|移动终端|shadow:environment_segment:09ad6e9bc66e2ceb||客户访问接入|
+|AkYI7P9UyD1rbXxni8A_-151|移动终端软件应用|bound|parent_context|information_object|移动终端软件应用|shadow:information_object_context:8b00dedbc5dc9e0b||移动终端 / 客户访问接入|
+|AkYI7P9UyD1rbXxni8A_-154|基础设施管理平台|bound|alias|information_object|基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）|shadow:information_object_context:c3961efc0902c3bd||云数据中心 / 数据中心机房 / IT|
+|AkYI7P9UyD1rbXxni8A_-157|L4-L3间网络边界|bound|exact|information_object|L4-L3间网络边界|shadow:information_object_context:b55b5a56a9455253||工厂 / OT|
+|AkYI7P9UyD1rbXxni8A_-159|L3内部网络|bound|exact|information_object|L3内部网络|shadow:information_object_context:efc4ff4b706de0d6||L3 / 工厂 / OT|
+|AkYI7P9UyD1rbXxni8A_-160|L3主机操作系统|bound|exact|information_object|L3主机操作系统|shadow:information_object_context:c420dad6abf41ba6||L3 / 工厂 / OT|
+|AkYI7P9UyD1rbXxni8A_-164|L3-L2间网络边界|bound|exact|information_object|L3-L2间网络边界|shadow:information_object_context:83655c3226d9161a||L2 / 工厂 / OT|
+|AkYI7P9UyD1rbXxni8A_-165|L2内部网络|bound|exact|information_object|L2内部网络|shadow:information_object_context:579ba08b09d12193||L2 / 工厂 / OT|
+|AkYI7P9UyD1rbXxni8A_-166|L2主机操作系统|bound|alias|information_object|L2层主机操作系统|shadow:information_object_context:943cb0459c6b360f||L2 / 工厂 / OT|
+|AkYI7P9UyD1rbXxni8A_-168|L2-L1间网络边界|bound|exact|information_object|L2-L1间网络边界|shadow:information_object_context:f282317920a21f01||L1 / 工厂 / OT|
+|AkYI7P9UyD1rbXxni8A_-171|数据共享层|bound|exact|information_object|数据共享层|shadow:information_object_context:705a42ba90bb50a0||大数据平台/数据中台 / 云数据中心 / 数据中心机房 / IT|
 
 ## Candidate Nodes - Manual Confirmation Needed
 
@@ -124,23 +125,16 @@ None.
 
 | mxId | label | status | confidence | objectType | objectName | objectId | candidates | context |
 |---|---|---|---|---|---|---|---|---|
-|7M0SGe99AU4GMtvV9rx2-252|OT|ignored|none|environment_segment|||||
-|7M0SGe99AU4GMtvV9rx2-251|IT|ignored|none|environment_segment|||||
-|7M0SGe99AU4GMtvV9rx2-216|数据中心机房|ignored|none|environment_zone||||IT|
-|7M0SGe99AU4GMtvV9rx2-56|互联网|ignored|none|external_network|||||
-|7M0SGe99AU4GMtvV9rx2-57|外联网|ignored|none|external_network|||||
-|7M0SGe99AU4GMtvV9rx2-208|客户|ignored|none|actor||||客户访问接入|
+|AkYI7P9UyD1rbXxni8A_-1|OT|ignored|none|environment_segment|||||
+|AkYI7P9UyD1rbXxni8A_-2|IT|ignored|none|environment_segment|||||
+|AkYI7P9UyD1rbXxni8A_-7|数据中心机房|ignored|none|environment_zone||||IT|
+|AkYI7P9UyD1rbXxni8A_-68|互联网|ignored|none|external_network|||||
+|AkYI7P9UyD1rbXxni8A_-69|外联网|ignored|none|external_network|||||
+|AkYI7P9UyD1rbXxni8A_-152|客户|ignored|none|actor||||客户访问接入|
 
 ## Duplicate Bound Object IDs
 
-| objectId | objectName | count | allowed | reason | labels |
-|---|---|---:|---|---|---|
-|98ba8ea8-5a5f-45d1-a16c-6d6e47ddf016|办公人员|3|yes|same catalog object reused across environment contexts|办公人员|
-|f2b74758-d248-4128-af40-92eb9fa9fd19|终端设备|4|yes|same catalog object reused across environment contexts|PC终端设备|
-|c7cc41d2-ed8b-42b2-9b44-3f0c651b9fde|终端操作系统|6|yes|same catalog object reused across environment contexts|PC终端操作系统, 移动终端操作系统|
-|1737b4cf-c277-403d-b84b-b64841217332|终端软件应用|6|yes|same catalog object reused across environment contexts|PC终端软件应用, 移动终端软件应用|
-|81f11ade-72b4-40d7-abb0-79697d3ccfc9|物理主机硬件|2|yes|same catalog object reused across environment contexts|物理主机硬件|
-|edaa109e-9606-4b84-902b-33587c28d141|物理主机操作系统|2|yes|same catalog object reused across environment contexts|物理主机操作系统|
+None.
 
 ## Missing Expected Objects
 

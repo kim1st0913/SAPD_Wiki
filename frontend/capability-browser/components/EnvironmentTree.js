@@ -9,9 +9,9 @@
   };
 
   const levelLabel = {
-    environment: "E0",
-    segment: "E1",
-    object: "E2",
+    environment: "环境",
+    segment: "子类",
+    object: "对象",
   };
 
   function rowsFromTree(navigationTree) {

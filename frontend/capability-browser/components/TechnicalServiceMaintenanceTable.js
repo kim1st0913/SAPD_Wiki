@@ -38,8 +38,9 @@
       .map((item) => {
         const kind = utils.text(item.objectKind || item.kind || fallbackKind).trim();
         const label = displayValue(item, empty);
-        const annotationText = [showKind && kind ? kind : "", label].filter(Boolean).join(" | ");
-        return `<span class="relation-chip ${chipClass(kind)}"${annotationAttrs(annotationText)}>${showKind && kind ? `<em>${utils.escapeHtml(kind)}</em>` : ""}${utils.escapeHtml(label)}</span>`;
+        const isService = kind.includes("服务");
+        const annotationText = [showKind && kind && !isService ? kind : "", label].filter(Boolean).join(" | ");
+        return `<span class="relation-chip ${chipClass(kind)}"${annotationAttrs(annotationText)}>${showKind && kind && !isService ? `<em>${utils.escapeHtml(kind)}</em>` : ""}${utils.escapeHtml(label)}</span>`;
       })
       .join("");
   }

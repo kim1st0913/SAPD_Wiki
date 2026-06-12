@@ -587,6 +587,12 @@ def parse_scene_sheet(
     last_object = ""
     last_scopes = ""
     last_system = ""
+    last_system_cell: str | None = None
+    last_service_raw: object = ""
+    last_service_cell: str | None = None
+    last_module_raw: object = ""
+    last_module_cell: str | None = None
+    last_module_is_scene_module = False
     for row_index, row in enumerate(ws.iter_rows(min_row=3), start=3):
         if normalize_text(row[1].value):
             last_environment = normalize_text(row[1].value)
@@ -594,12 +600,37 @@ def parse_scene_sheet(
             last_segment = normalize_text(row[2].value)
         if normalize_text(row[3].value):
             last_object = normalize_text(row[3].value)
+            last_service_raw = ""
+            last_service_cell = None
+            last_module_raw = ""
+            last_module_cell = None
+            last_module_is_scene_module = False
+            last_system = ""
+            last_system_cell = None
         if normalize_text(row[4].value):
             last_scopes = normalize_text(row[4].value)
         if normalize_text(row[7].value):
             last_system = normalize_text(row[7].value)
-        service_raw = row[5].value
+            last_system_cell = _coord(row[7])
         module_raw = row[6].value
+        module_cell = _coord(row[6])
+        module_is_scene_module = not is_blank_or_placeholder(module_raw) and _is_scene_module_fill(row[6])
+        service_raw = row[5].value
+        service_cell = _coord(row[5])
+        if not is_blank_or_placeholder(module_raw):
+            last_module_raw = module_raw
+            last_module_cell = module_cell
+            last_module_is_scene_module = module_is_scene_module
+        if not is_blank_or_placeholder(service_raw):
+            last_service_raw = service_raw
+            last_service_cell = service_cell
+            if is_blank_or_placeholder(module_raw) and last_module_raw:
+                module_raw = last_module_raw
+                module_cell = last_module_cell
+                module_is_scene_module = last_module_is_scene_module
+        elif not is_blank_or_placeholder(module_raw) and last_service_raw:
+            service_raw = last_service_raw
+            service_cell = last_service_cell
         if not last_environment or not last_object:
             continue
 
@@ -643,7 +674,7 @@ def parse_scene_sheet(
                         authoritative_scope_titles.get(service_scope_code) or service_scope_code,
                         code=service_scope_code,
                         metadata={"derived_from_service_code": True},
-                        source=_source(sheet_name, row_index, "安全技术服务派生作用域", _coord(row[5]), service_raw),
+                        source=_source(sheet_name, row_index, "安全技术服务派生作用域", service_cell, service_raw),
                     )
                     result.objects.append(service_scope)
                     scope_objects.append(service_scope)
@@ -655,7 +686,7 @@ def parse_scene_sheet(
                 code=parts["code"],
                 category=parts["scope_code"],
                 metadata={"scope_code": parts["scope_code"], "capability_focus_code": parts["capability_focus_code"]},
-                source=_source(sheet_name, row_index, "安全技术服务", _coord(row[5]), service_raw),
+                source=_source(sheet_name, row_index, "安全技术服务", service_cell, service_raw),
             )
             result.objects.append(service)
             result.relations.append(_relation(service.key, "protects_object", info_obj.key, "作用于信息化对象", source=service.sources[0]))
@@ -663,126 +694,20 @@ def parse_scene_sheet(
                 result.relations.append(_relation(service.key, "applies_to_scope", scope.key, "适用于作用域", source=service.sources[0]))
 
         module = None
-        if not is_blank_or_placeholder(module_raw) and _is_scene_module_fill(row[6]):
+        if not is_blank_or_placeholder(module_raw) and module_is_scene_module:
             module_titles = _security_module_titles_from_catalog_alias(module_raw, authoritative_module_titles)
             if not module_titles:
                 result.validations.append(ValidationMessage("warning", sheet_name, row_index, f"安全技术模块未匹配安全技术模块清单：{normalize_text(module_raw)}"))
             for module_title in module_titles:
-                module = _object("security_technology_module", module_title, source=_source(sheet_name, row_index, "安全技术模块/措施", _coord(row[6]), module_raw))
+                module = _object("security_technology_module", module_title, source=_source(sheet_name, row_index, "安全技术模块/措施", module_cell, module_raw))
                 result.objects.append(module)
                 result.relations.append(_relation(module.key, "deployed_in_environment", env.key, "部署/适用于环境", source=module.sources[0]))
                 if service:
                     result.relations.append(_relation(module.key, "implements_service", service.key, "实现技术服务", source=module.sources[0]))
                 if last_system:
-                    system = _object("security_system", last_system, source=_source(sheet_name, row_index, "安全系统", _coord(row[7]), last_system))
+                    system = _object("security_system", last_system, source=_source(sheet_name, row_index, "安全系统", last_system_cell, last_system))
                     result.objects.append(system)
                     result.relations.append(_relation(module.key, "part_of_system", system.key, "属于安全系统", source=module.sources[0]))
-    return result
-
-
-def parse_environment_scope_sheet(
-    workbook,
-    authoritative_service_titles: dict[str, str] | None = None,
-    authoritative_scope_titles: dict[str, str] | None = None,
-) -> ParseResult:
-    sheet_name = "信息化环境-信息化对象-安全作用域映射"
-    ws = workbook[sheet_name]
-    result = ParseResult()
-    authoritative_scope_titles = authoritative_scope_titles or {}
-    last_environment = ""
-    last_segment = ""
-    last_object = ""
-    last_scopes = ""
-    for row_index, row in enumerate(ws.iter_rows(min_row=3), start=3):
-        if _cell_text(row, 1):
-            last_environment = _cell_text(row, 1)
-        if _cell_text(row, 2):
-            last_segment = _cell_text(row, 2)
-        if _cell_text(row, 3):
-            last_object = _cell_text(row, 3)
-        if _cell_text(row, 4):
-            last_scopes = _cell_raw(row, 4)
-        service_raw = _cell_raw(row, 5)
-        if not last_object:
-            continue
-        if not last_environment:
-            result.validations.append(ValidationMessage("error", sheet_name, row_index, f"信息化对象缺少信息化环境：{last_object}"))
-            continue
-        environment = _object(
-            "information_environment",
-            last_environment,
-            metadata={"display_order": row_index},
-            source=_source(sheet_name, row_index, "信息化环境", _coord(row[1]), _cell_raw(row, 1) or last_environment),
-        )
-        segment = None
-        if last_segment:
-            segment = _object(
-                "environment_segment",
-                last_segment,
-                qualifier=last_environment,
-                metadata={"information_environment": last_environment, "display_order": row_index},
-                source=_source(sheet_name, row_index, "环境分段", _coord(row[2]), _cell_raw(row, 2) or last_segment),
-            )
-        information_object = _object(
-            "information_object",
-            last_object,
-            metadata={"source_role": "information_object", "display_order": row_index},
-            source=_source(sheet_name, row_index, "信息化对象", _coord(row[3]), _cell_raw(row, 3) or last_object),
-        )
-        result.objects.extend([environment, information_object])
-        if segment:
-            result.objects.append(segment)
-            result.relations.append(_relation(segment.key, "belongs_to", environment.key, "属于信息化环境", source=segment.sources[0]))
-            result.relations.append(_relation(information_object.key, "belongs_to", segment.key, "属于环境分段", source=information_object.sources[0]))
-        else:
-            result.relations.append(_relation(information_object.key, "belongs_to", environment.key, "属于信息化环境", source=information_object.sources[0]))
-
-        scope_objects: list[ObjectCandidate] = []
-        for scope_code, scope_title in split_scope_values(last_scopes):
-            if not scope_code and not scope_title:
-                continue
-            scope = _object(
-                "scope_type",
-                scope_title or scope_code or "",
-                code=scope_code,
-                metadata={"display_order": row_index},
-                source=_source(sheet_name, row_index, "安全能力作用域", _coord(row[4]), last_scopes),
-            )
-            result.objects.append(scope)
-            scope_objects.append(scope)
-            result.relations.append(_relation(information_object.key, "applies_to_scope", scope.key, "适用于作用域", source=scope.sources[0]))
-
-        if not is_blank_or_placeholder(service_raw):
-            parts = service_parts(service_raw)
-            _validate_service_reference(result, sheet_name, row_index, service_raw, parts, authoritative_service_titles)
-            service_scope_objects: list[ObjectCandidate] = []
-            service_scope_code = normalize_text(parts.get("scope_code"))
-            if service_scope_code:
-                service_scope = next((scope for scope in scope_objects if scope.code == service_scope_code), None)
-                if service_scope is None:
-                    service_scope = _object(
-                        "scope_type",
-                        authoritative_scope_titles.get(service_scope_code) or service_scope_code,
-                        code=service_scope_code,
-                        metadata={"derived_from_service_code": True},
-                        source=_source(sheet_name, row_index, "安全技术服务派生作用域", _coord(row[5]), service_raw),
-                    )
-                    result.objects.append(service_scope)
-                    scope_objects.append(service_scope)
-                    result.relations.append(_relation(information_object.key, "applies_to_scope", service_scope.key, "适用于作用域", source=service_scope.sources[0]))
-                service_scope_objects = [service_scope]
-            service = _object(
-                "security_technical_service",
-                _service_title(parts, service_raw, authoritative_service_titles),
-                code=parts["code"],
-                category=parts["scope_code"],
-                metadata={"scope_code": parts["scope_code"], "capability_focus_code": parts["capability_focus_code"]},
-                source=_source(sheet_name, row_index, "安全技术服务", _coord(row[5]), service_raw),
-            )
-            result.objects.append(service)
-            result.relations.append(_relation(service.key, "protects_object", information_object.key, "作用于信息化对象", source=service.sources[0]))
-            for scope in service_scope_objects or scope_objects:
-                result.relations.append(_relation(service.key, "applies_to_scope", scope.key, "适用于作用域", source=service.sources[0]))
     return result
 
 
@@ -2663,7 +2588,6 @@ def parse_core_sheets(path: str | Path, sheets: list[str] | None = None) -> Pars
     selected = sheets or [
         "安全能力目录",
         "安全能力作用域目录",
-        "信息化环境-信息化对象-安全作用域映射",
         "安全能力-安全技术服务",
         "安全技术模块清单",
         "作用域-安全技术服务-安全技术模块映射",
@@ -2671,7 +2595,6 @@ def parse_core_sheets(path: str | Path, sheets: list[str] | None = None) -> Pars
     parsers = {
         "安全能力目录": parse_capability_sheet,
         "安全能力作用域目录": parse_scope_sheet,
-        "信息化环境-信息化对象-安全作用域映射": None,
         "安全能力-安全技术服务": parse_service_sheet,
         "安全技术模块清单": None,
         "作用域-安全技术服务-安全技术模块映射": None,
@@ -2682,9 +2605,6 @@ def parse_core_sheets(path: str | Path, sheets: list[str] | None = None) -> Pars
         authoritative_service_titles = _build_authoritative_service_titles(workbook)
         authoritative_module_titles = _build_authoritative_module_titles(workbook)
         authoritative_scope_titles = _build_authoritative_scope_titles(workbook)
-        parsers["信息化环境-信息化对象-安全作用域映射"] = (
-            lambda wb: parse_environment_scope_sheet(wb, authoritative_service_titles, authoritative_scope_titles)
-        )
         parsers["安全技术模块清单"] = lambda wb: parse_module_sheet(wb, authoritative_service_titles)
         parsers["作用域-安全技术服务-安全技术模块映射"] = lambda wb: parse_scene_sheet(wb, authoritative_service_titles, authoritative_module_titles, authoritative_scope_titles)
         for sheet_name in selected:

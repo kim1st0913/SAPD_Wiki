@@ -57,6 +57,7 @@ function buildCatalog(workbench) {
 
   for (const objectType of BUSINESS_TYPES) {
     for (const object of Object.values(workbench.objects?.[objectType] || {})) {
+      if (String(object?.id || "").startsWith("reimport:")) continue;
       const name = objectLabel(object);
       const entry = {
         objectType,
@@ -83,6 +84,37 @@ function buildCatalog(workbench) {
     ].join("|");
     if (entry.paths.some((item) => item.key === key)) return;
     entry.paths.push({ ...pathInfo, key });
+  }
+
+  for (const object of Object.values(workbench.objects?.information_object || {})) {
+    if (String(object?.id || "").startsWith("reimport:")) continue;
+    const [environmentName, segmentName, infoObjectName] = String(object.contextKey || "")
+      .split("||")
+      .map((item) => item.trim());
+    if (!environmentName || !segmentName || !infoObjectName) continue;
+
+    addPath(object.id, {
+      environmentName,
+      segmentName,
+      objectId: object.id,
+      objectName: infoObjectName,
+    });
+
+    for (const segment of object.segments || []) {
+      addPath(segment.id, {
+        environmentName,
+        segmentId: segment.id,
+        segmentName,
+      });
+    }
+
+    for (const environment of byName.get(normalize(environmentName)) || []) {
+      if (environment.objectType !== "information_environment") continue;
+      addPath(environment.objectId, {
+        environmentId: environment.objectId,
+        environmentName,
+      });
+    }
   }
 
   function visitTree(nodes = [], context = {}) {
@@ -285,6 +317,21 @@ function applyManualOverride(node, override, catalog) {
 
 function bindNode(node, overrides, catalog, contextLabels) {
   const label = node.label || "";
+  const ignoredMxId = (overrides.ignoredMxIds || []).find((item) => item.mxId === node.mxId);
+  if (ignoredMxId) {
+    return {
+      ...node,
+      drawioObjectType: node.drawioObjectType || node.objectType || "unknown",
+      bindStatus: "ignored",
+      confidence: "none",
+      objectId: "",
+      objectCode: "",
+      objectName: "",
+      candidates: [],
+      bindingReason: ignoredMxId.reason || "ignored_by_mxid_override",
+      contextLabels,
+    };
+  }
   const manualOverride = (overrides.bindings || []).find((item) => item.mxId === node.mxId);
   if (manualOverride) return applyManualOverride(node, manualOverride, catalog);
 

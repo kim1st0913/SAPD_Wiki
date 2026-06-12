@@ -3,6 +3,7 @@
     capability: "./public/data/capability-tree.json",
     capabilityWorkbench: "./public/data/capability-workbench.json",
     environmentWorkbench: "./public/data/environment-workbench.json",
+    environmentManualReview: "./public/data/review/environment-manual-review-checklist.json",
     lifecycleWorkbench: "./public/data/lifecycle-workbench.json",
     analyticsSummary: "./public/data/analytics-summary.json",
     maintenanceIndex: "./public/data/maintenance-index.json",
@@ -20,6 +21,7 @@
     capability: "/api/v1/data-packages/capability",
     capabilityWorkbench: "/api/v1/data-packages/capability-workbench",
     environmentWorkbench: "/api/v1/data-packages/environment-workbench",
+    environmentManualReview: "/api/v1/data-packages/environment-manual-review",
     lifecycleWorkbench: "/api/v1/data-packages/lifecycle-workbench",
     analyticsSummary: "/api/v1/data-packages/analytics-summary",
     maintenanceIndex: "/api/v1/data-packages/maintenance-index",
@@ -46,6 +48,15 @@
     capability: { generated_at: null, stats: {}, categories: [], unlinked_focuses: [] },
     capabilityWorkbench: null,
     environmentWorkbench: null,
+    environmentManualReview: {
+      generatedAt: null,
+      task: "Environment Mapping Manual Data Review Pack",
+      summary: {},
+      sourceRelationStats: {},
+      contextSummaries: [],
+      topPriorityReviewItems: [],
+      rows: [],
+    },
     lifecycleWorkbench: null,
     analyticsSummary: {
       meta: {
@@ -1160,6 +1171,10 @@
 
     async getLifecycleKnowledge() {
       return createEnvelope(await fetchPackage("lifecycle"));
+    },
+
+    async getEnvironmentManualReviewChecklist() {
+      return createEnvelope(await fetchPackage("environmentManualReview"));
     },
 
     async getLifecycleWorkbench() {

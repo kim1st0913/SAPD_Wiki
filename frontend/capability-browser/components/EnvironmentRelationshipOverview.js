@@ -30,7 +30,7 @@
         <div class="matrix-section-head">
           <div>
             <h3>${utils.escapeHtml(subtitle)}概览</h3>
-            <p>信息化环境 → 环境子类 → 信息化对象 → 安全作用域 → 安全技术服务 → 安全技术模块/措施</p>
+            <p>信息化环境 → 环境子类 → 信息化对象 → 安全作用域 → 安全技术服务 → 安全技术模块 / 措施 → 安全系统</p>
           </div>
         </div>
         <div class="environment-object-overview">
@@ -45,7 +45,9 @@
             { label: "对象数", value: summary.selectedObjectCount ?? 0 },
             { label: display.label?.("scope_type", "作用域") || "作用域", value: summary.scopeCount ?? 0 },
             { label: display.label?.("security_technical_service", "安全技术服务") || "安全技术服务", value: summary.serviceCount ?? 0 },
-            { label: display.label?.("security_module_or_measure", "安全技术模块/措施") || "安全技术模块/措施", value: summary.moduleCount ?? 0 },
+            { label: "安全系统", value: summary.systemCount ?? 0 },
+            { label: display.label?.("security_technology_module", "安全技术模块") || "安全技术模块", value: summary.moduleCount ?? 0 },
+            { label: display.label?.("security_technical_measure", "安全技术措施") || "安全技术措施", value: summary.measureCount ?? 0 },
             { label: display.state?.("no_applicable_service") || "无适用服务", value: summary.notApplicableCount ?? 0 },
           ])}
         </div>

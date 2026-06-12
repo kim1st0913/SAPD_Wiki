@@ -1,0 +1,830 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SAPD Wiki 知识库使用介绍</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: oklch(24% 0.025 253);
+        --muted: oklch(48% 0.027 253);
+        --soft: oklch(63% 0.023 253);
+        --paper: oklch(98% 0.006 253);
+        --surface: oklch(95.5% 0.012 253);
+        --panel: oklch(99% 0.007 253);
+        --line: oklch(84% 0.018 253);
+        --blue: oklch(62% 0.12 249);
+        --blue-soft: oklch(92% 0.036 249);
+        --sage: oklch(68% 0.07 158);
+        --sage-soft: oklch(93% 0.032 158);
+        --sand: oklch(76% 0.066 82);
+        --sand-soft: oklch(95% 0.028 82);
+        --clay: oklch(68% 0.066 35);
+        --clay-soft: oklch(94% 0.03 35);
+        --violet: oklch(65% 0.055 298);
+        --violet-soft: oklch(94% 0.026 298);
+        --radius: 8px;
+        --shadow: 0 20px 48px oklch(24% 0.025 253 / 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+        line-height: 1.62;
+        background:
+          linear-gradient(90deg, oklch(86% 0.016 253 / 0.18) 1px, transparent 1px) 0 0 / 28px 28px,
+          linear-gradient(0deg, oklch(86% 0.016 253 / 0.18) 1px, transparent 1px) 0 0 / 28px 28px,
+          radial-gradient(circle at 18% 0%, oklch(92% 0.04 249 / 0.82), transparent 34rem),
+          linear-gradient(180deg, var(--paper), var(--surface));
+      }
+
+      a {
+        color: var(--blue);
+        text-decoration: none;
+      }
+
+      a:hover {
+        text-decoration: underline;
+      }
+
+      .page {
+        max-width: 1220px;
+        margin: 0 auto;
+        padding: 32px 24px 56px;
+      }
+
+      .topline {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 12px 0 28px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
+        color: var(--ink);
+      }
+
+      .brand-mark {
+        display: grid;
+        width: 30px;
+        height: 30px;
+        place-items: center;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: var(--panel);
+        color: var(--blue);
+        box-shadow: 0 8px 20px oklch(24% 0.025 253 / 0.06);
+      }
+
+      .nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .nav a {
+        padding: 6px 10px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: oklch(99% 0.006 253 / 0.78);
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 0.95fr) minmax(360px, 1.05fr);
+        gap: 28px;
+        align-items: stretch;
+        min-height: 520px;
+      }
+
+      .hero-copy {
+        padding: 46px 0 32px;
+      }
+
+      .kicker {
+        margin: 0 0 16px;
+        color: var(--blue);
+        font-size: 12px;
+        font-weight: 760;
+        letter-spacing: 0;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      h3 {
+        margin: 0;
+        line-height: 1.18;
+        letter-spacing: 0;
+      }
+
+      h1 {
+        max-width: 13ch;
+        font-size: 54px;
+        font-weight: 780;
+      }
+
+      h2 {
+        font-size: 28px;
+        font-weight: 760;
+      }
+
+      h3 {
+        font-size: 18px;
+        font-weight: 740;
+      }
+
+      .lead {
+        max-width: 64ch;
+        margin: 22px 0 0;
+        color: var(--muted);
+        font-size: 18px;
+      }
+
+      .quick-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 28px;
+      }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 38px;
+        padding: 8px 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        color: var(--ink);
+        font-weight: 690;
+        box-shadow: 0 10px 24px oklch(24% 0.025 253 / 0.06);
+      }
+
+      .button.primary {
+        border-color: oklch(62% 0.12 249 / 0.55);
+        background: var(--blue);
+        color: oklch(99% 0.007 253);
+      }
+
+      .status-line {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 30px;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        min-height: 28px;
+        padding: 5px 9px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--panel);
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 660;
+      }
+
+      .chip::before {
+        content: "";
+        width: 7px;
+        height: 7px;
+        border-radius: 99px;
+        background: var(--blue);
+      }
+
+      .hero-visual {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background:
+          linear-gradient(145deg, oklch(99% 0.006 253 / 0.96), oklch(94% 0.022 249 / 0.8)),
+          var(--panel);
+        box-shadow: var(--shadow);
+      }
+
+      .hero-visual-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .map-shell {
+        position: relative;
+        min-height: 450px;
+        padding: 18px;
+      }
+
+      .map-shell svg {
+        width: 100%;
+        height: 100%;
+        min-height: 410px;
+      }
+
+      .node-label {
+        font: 650 12px -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+        fill: var(--ink);
+      }
+
+      .node-small {
+        font: 600 10px -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+        fill: var(--muted);
+      }
+
+      .section {
+        margin-top: 58px;
+      }
+
+      .section-head {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 18px;
+      }
+
+      .section-head p {
+        max-width: 68ch;
+        margin: 8px 0 0;
+        color: var(--muted);
+      }
+
+      .grid-2 {
+        display: grid;
+        grid-template-columns: minmax(0, 1.05fr) minmax(330px, 0.95fr);
+        gap: 18px;
+      }
+
+      .grid-3 {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: oklch(99% 0.006 253 / 0.9);
+        box-shadow: 0 14px 32px oklch(24% 0.025 253 / 0.055);
+      }
+
+      .panel-pad {
+        padding: 18px;
+      }
+
+      .panel p {
+        color: var(--muted);
+      }
+
+      .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        border-top: 1px solid var(--line);
+        border-left: 1px solid var(--line);
+      }
+
+      .stat {
+        padding: 18px;
+        border-right: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        background: oklch(99% 0.007 253 / 0.72);
+      }
+
+      .stat strong {
+        display: block;
+        font-size: 27px;
+        line-height: 1.1;
+      }
+
+      .stat span {
+        display: block;
+        margin-top: 5px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--panel);
+      }
+
+      th,
+      td {
+        padding: 12px 13px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+        font-size: 14px;
+      }
+
+      th {
+        background: oklch(94% 0.018 253);
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 760;
+      }
+
+      tr:last-child td {
+        border-bottom: 0;
+      }
+
+      td strong {
+        display: block;
+        margin-bottom: 3px;
+      }
+
+      .tag {
+        display: inline-flex;
+        margin: 2px 4px 2px 0;
+        padding: 3px 7px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 660;
+        white-space: nowrap;
+      }
+
+      .tag.blue {
+        background: var(--blue-soft);
+        color: oklch(43% 0.095 249);
+      }
+
+      .tag.sage {
+        background: var(--sage-soft);
+        color: oklch(43% 0.065 158);
+      }
+
+      .tag.sand {
+        background: var(--sand-soft);
+        color: oklch(45% 0.06 82);
+      }
+
+      .tag.clay {
+        background: var(--clay-soft);
+        color: oklch(45% 0.06 35);
+      }
+
+      .tag.violet {
+        background: var(--violet-soft);
+        color: oklch(45% 0.06 298);
+      }
+
+      .flow {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .flow-step {
+        position: relative;
+        min-height: 130px;
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--panel);
+      }
+
+      .flow-step:not(:last-child)::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        right: -10px;
+        width: 10px;
+        height: 1px;
+        background: var(--line);
+      }
+
+      .flow-step b {
+        display: grid;
+        width: 28px;
+        height: 28px;
+        place-items: center;
+        margin-bottom: 12px;
+        border-radius: 7px;
+        background: var(--blue-soft);
+        color: var(--blue);
+        font-size: 12px;
+      }
+
+      .flow-step p {
+        margin: 8px 0 0;
+        font-size: 13px;
+      }
+
+      .image-frame {
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--panel);
+      }
+
+      .image-frame img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      .image-caption {
+        padding: 10px 13px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .usage-list {
+        display: grid;
+        gap: 10px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .usage-list li {
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr);
+        gap: 12px;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--panel);
+      }
+
+      .usage-list b {
+        display: grid;
+        width: 34px;
+        height: 34px;
+        place-items: center;
+        border-radius: 7px;
+        background: var(--sage-soft);
+        color: var(--sage);
+      }
+
+      .usage-list strong {
+        display: block;
+      }
+
+      .usage-list span {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .footer-note {
+        margin-top: 42px;
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: oklch(95% 0.028 82 / 0.52);
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      @media (max-width: 940px) {
+        .hero,
+        .grid-2,
+        .grid-3,
+        .flow {
+          grid-template-columns: 1fr;
+        }
+
+        h1 {
+          font-size: 40px;
+        }
+
+        .stat-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 620px) {
+        .page {
+          padding: 20px 14px 40px;
+        }
+
+        .topline,
+        .section-head {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        h1 {
+          font-size: 34px;
+        }
+
+        .lead {
+          font-size: 16px;
+        }
+
+        .stat-grid {
+          grid-template-columns: 1fr;
+        }
+
+        th,
+        td {
+          padding: 10px;
+          font-size: 13px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header class="topline" aria-label="页面导航">
+        <div class="brand"><span class="brand-mark">S</span><span>SAPD Wiki 使用介绍</span></div>
+        <nav class="nav">
+          <a href="#what">它是什么</a>
+          <a href="#modules">怎么使用</a>
+          <a href="#data">数据覆盖</a>
+          <a href="#workflow">工作流</a>
+        </nav>
+      </header>
+
+      <section class="hero" id="what">
+        <div class="hero-copy">
+          <p class="kicker">Local Security Architecture Knowledge Workspace</p>
+          <h1>把安全知识从表格变成可核对的关系工作台</h1>
+          <p class="lead">
+            SAPD Wiki 面向安全架构和治理工作，把已导入的 Excel、指南、标准和底图资料整理成能力、环境、生命周期、知识目录和标准框架的结构化视图。使用时先从业务对象进入，再沿技术、管理、标准和来源证据逐层核对。
+          </p>
+          <div class="quick-actions">
+            <a class="button primary" href="../../frontend/capability-browser/index.html">打开本地工作台</a>
+            <a class="button" href="../../frontend/capability-browser/README.md">查看运行说明</a>
+          </div>
+          <div class="status-line" aria-label="当前数据状态">
+            <span class="chip">dataState ready</span>
+            <span class="chip">静态优先</span>
+            <span class="chip">本地 API 可选</span>
+            <span class="chip">来源证据折叠</span>
+          </div>
+        </div>
+
+        <figure class="hero-visual" aria-label="SAPD Wiki 关系地图示意">
+          <figcaption class="hero-visual-header">
+            <span>关系视图主线</span>
+            <span>Capability Focus as Primary Grain</span>
+          </figcaption>
+          <div class="map-shell">
+            <svg viewBox="0 0 640 420" role="img" aria-label="从能力关注点连接到技术、管理、标准、环境和生命周期">
+              <defs>
+                <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="oklch(24% 0.025 253)" flood-opacity="0.12" />
+                </filter>
+              </defs>
+              <path d="M320 210 C235 110 155 115 90 70" fill="none" stroke="oklch(62% 0.12 249)" stroke-width="2" />
+              <path d="M320 210 C430 88 515 130 560 70" fill="none" stroke="oklch(68% 0.07 158)" stroke-width="2" />
+              <path d="M320 210 C190 250 150 305 78 340" fill="none" stroke="oklch(76% 0.066 82)" stroke-width="2" />
+              <path d="M320 210 C462 248 495 304 560 340" fill="none" stroke="oklch(65% 0.055 298)" stroke-width="2" />
+              <path d="M320 210 C320 92 320 76 320 46" fill="none" stroke="oklch(68% 0.066 35)" stroke-width="2" />
+
+              <g filter="url(#softShadow)">
+                <rect x="222" y="168" width="196" height="86" rx="8" fill="oklch(99% 0.007 253)" stroke="oklch(62% 0.12 249)" />
+                <text x="320" y="204" text-anchor="middle" class="node-label">安全能力关注点</text>
+                <text x="320" y="226" text-anchor="middle" class="node-small">91 个主粒度对象</text>
+              </g>
+
+              <g>
+                <rect x="34" y="38" width="116" height="64" rx="8" fill="oklch(92% 0.036 249)" stroke="oklch(62% 0.12 249)" />
+                <text x="92" y="67" text-anchor="middle" class="node-label">技术服务</text>
+                <text x="92" y="84" text-anchor="middle" class="node-small">服务 / 模块 / 措施</text>
+              </g>
+              <g>
+                <rect x="502" y="38" width="116" height="64" rx="8" fill="oklch(93% 0.032 158)" stroke="oklch(68% 0.07 158)" />
+                <text x="560" y="67" text-anchor="middle" class="node-label">管理工作</text>
+                <text x="560" y="84" text-anchor="middle" class="node-small">职能 / 流程</text>
+              </g>
+              <g>
+                <rect x="262" y="20" width="116" height="64" rx="8" fill="oklch(94% 0.03 35)" stroke="oklch(68% 0.066 35)" />
+                <text x="320" y="49" text-anchor="middle" class="node-label">标准框架</text>
+                <text x="320" y="66" text-anchor="middle" class="node-small">7 类框架入口</text>
+              </g>
+              <g>
+                <rect x="24" y="310" width="116" height="64" rx="8" fill="oklch(95% 0.028 82)" stroke="oklch(76% 0.066 82)" />
+                <text x="82" y="339" text-anchor="middle" class="node-label">信息化环境</text>
+                <text x="82" y="356" text-anchor="middle" class="node-small">底图与对象</text>
+              </g>
+              <g>
+                <rect x="502" y="310" width="116" height="64" rx="8" fill="oklch(94% 0.026 298)" stroke="oklch(65% 0.055 298)" />
+                <text x="560" y="339" text-anchor="middle" class="node-label">生命周期</text>
+                <text x="560" y="356" text-anchor="middle" class="node-small">LC-AP / LC-DT</text>
+              </g>
+            </svg>
+          </div>
+        </figure>
+      </section>
+
+      <section class="section" id="data">
+        <div class="section-head">
+          <div>
+            <p class="kicker">Current Imported Data</p>
+            <h2>当前已导入数据的可用范围</h2>
+            <p>下面的数量来自当前前端数据包摘要和环境底图绑定结果，用于说明“现在可以看什么”。说明页只展示业务级统计，不展开原始导入字段。</p>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="stat-grid">
+            <div class="stat"><strong>91</strong><span>安全能力关注点</span></div>
+            <div class="stat"><strong>32</strong><span>安全能力</span></div>
+            <div class="stat"><strong>52</strong><span>信息化对象</span></div>
+            <div class="stat"><strong>15</strong><span>生命周期阶段</span></div>
+            <div class="stat"><strong>158</strong><span>能力页技术服务</span></div>
+            <div class="stat"><strong>102</strong><span>能力页技术模块</span></div>
+            <div class="stat"><strong>1,745</strong><span>能力可达标准控制项</span></div>
+            <div class="stat"><strong>91 / 97</strong><span>环境底图已绑定节点</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="modules">
+        <div class="section-head">
+          <div>
+            <p class="kicker">Use The Workspace</p>
+            <h2>推荐从四类入口进入知识库</h2>
+            <p>不要把它当普通文档库使用。更高效的方式是选中一个业务对象，然后沿它的关系链去核对技术服务、管理工作、标准映射和来源证据。</p>
+          </div>
+        </div>
+
+        <table aria-label="知识库主要入口说明">
+          <thead>
+            <tr>
+              <th>入口</th>
+              <th>适合回答的问题</th>
+              <th>主要展示</th>
+              <th>建议动作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>安全能力映射</strong><span class="tag blue">能力关注点</span><span class="tag sage">管理视角</span></td>
+              <td>某个安全能力关注点由哪些作用域、服务、模块、管理工作和标准控制项支撑。</td>
+              <td>左侧能力树、当前关注点关系图、技术视角矩阵、管理视角矩阵、标准映射。</td>
+              <td>先选 L0 / L1 / L2 / 关注点，再比较图谱摘要和表格明细是否一致。</td>
+            </tr>
+            <tr>
+              <td><strong>信息化环境安全能力映射</strong><span class="tag sand">环境底图</span><span class="tag blue">对象关系</span></td>
+              <td>某个信息化对象涉及哪些作用域、技术服务、模块、措施、系统和产品。</td>
+              <td>Draw.io 官方 SVG 视觉底图、透明交互层、对象浮层、归纳表格。</td>
+              <td>先在底图里点对象，再到归纳表格核对服务和模块列表。</td>
+            </tr>
+            <tr>
+              <td><strong>LC-AP / LC-DT 生命周期</strong><span class="tag violet">阶段</span><span class="tag clay">活动</span></td>
+              <td>开发或数据处理阶段需要匹配哪些安全活动、策略要求、服务和措施。</td>
+              <td>阶段页签、活动关系明细、右侧阶段详情和专项关系投影。</td>
+              <td>按阶段浏览，再用搜索定位活动或场景，检查阶段与能力关注点的覆盖。</td>
+            </tr>
+            <tr>
+              <td><strong>知识库字典与标准框架</strong><span class="tag sage">目录</span><span class="tag sand">标准</span></td>
+              <td>单独维护作用域、技术服务、模块、措施、管理流程、职能和标准条目。</td>
+              <td>维护表格、目录树、详情面板、标准控制项列表。</td>
+              <td>用于做数据核对和术语确认，不在这里临时推断跨表关系。</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <div>
+            <p class="kicker">Visual Evidence</p>
+            <h2>真实页面与底图效果</h2>
+            <p>这些图来自当前工程中的前端交接图和已生成环境底图资源。用户查看时应优先关注关系是否能被核对，而不是把页面当作静态海报。</p>
+          </div>
+        </div>
+        <div class="grid-2">
+          <figure class="image-frame">
+            <img src="../../frontend/design-handoff/stitch-input-v1-application-shell/capability-mapping-preview.png" alt="安全能力映射工作台预览" />
+            <figcaption class="image-caption">安全能力映射：能力树、关系图和矩阵明细共同支撑核对。</figcaption>
+          </figure>
+          <figure class="image-frame">
+            <img src="../../frontend/design-handoff/stitch-input-v1-application-shell/environment-mapping-preview.png" alt="信息化环境映射工作台预览" />
+            <figcaption class="image-caption">信息化环境映射：从环境和对象进入，展开作用域、服务和模块关系。</figcaption>
+          </figure>
+        </div>
+        <figure class="image-frame" style="margin-top: 18px">
+          <img src="../../frontend/capability-browser/generated/environmentBasemap.svg" alt="信息化环境及对象底图" />
+          <figcaption class="image-caption">信息化环境及对象底图：当前资源为 Draw.io 导出的 SVG 视觉层，正式页面叠加可点击的 HTML 命中层。</figcaption>
+        </figure>
+      </section>
+
+      <section class="section" id="workflow">
+        <div class="section-head">
+          <div>
+            <p class="kicker">Recommended Review Flow</p>
+            <h2>一次典型核对怎么走</h2>
+            <p>知识库的价值在于发现映射缺口、命名不一致和关系断点。建议每次只围绕一个对象或一个业务问题推进。</p>
+          </div>
+        </div>
+        <div class="flow" aria-label="使用流程">
+          <section class="flow-step">
+            <b>01</b>
+            <h3>选对象</h3>
+            <p>从能力关注点、信息化对象、生命周期阶段或标准框架进入。</p>
+          </section>
+          <section class="flow-step">
+            <b>02</b>
+            <h3>看关系</h3>
+            <p>先看图谱或底图的上下游，再进入表格核对明细。</p>
+          </section>
+          <section class="flow-step">
+            <b>03</b>
+            <h3>查覆盖</h3>
+            <p>比较技术支撑、管理支撑、标准映射、环境可达和生命周期可达。</p>
+          </section>
+          <section class="flow-step">
+            <b>04</b>
+            <h3>看证据</h3>
+            <p>需要追溯时展开来源证据，普通浏览时不让证据字段干扰主视图。</p>
+          </section>
+          <section class="flow-step">
+            <b>05</b>
+            <h3>记录问题</h3>
+            <p>把缺口标为待确认，后续由导入规则或业务口径统一修正。</p>
+          </section>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="grid-2">
+          <div class="panel panel-pad">
+            <p class="kicker">Coverage Reading</p>
+            <h2>如何读覆盖率</h2>
+            <p>首页的覆盖率不是工程健康分，也不是成熟度评分。它只是说明以 91 个安全能力关注点为主粒度时，哪些维度已经能被关系数据支撑。</p>
+            <table aria-label="覆盖率说明">
+              <thead>
+                <tr>
+                  <th>维度</th>
+                  <th>当前结果</th>
+                  <th>含义</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>技术服务支撑</td><td>72.5%</td><td>已有服务关系的能力关注点比例。</td></tr>
+                <tr><td>技术作用域</td><td>83.5%</td><td>已有作用域关系的能力关注点比例。</td></tr>
+                <tr><td>管理工作</td><td>100%</td><td>已有管理工作映射的能力关注点比例。</td></tr>
+                <tr><td>标准映射</td><td>96.7%</td><td>已能映射到标准控制项的能力关注点比例。</td></tr>
+                <tr><td>环境可达</td><td>38.5%</td><td>能从信息化环境视角触达的能力关注点比例。</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="panel panel-pad">
+            <p class="kicker">Operating Notes</p>
+            <h2>使用时的边界</h2>
+            <ul class="usage-list">
+              <li><b>1</b><span><strong>先看业务字段</strong>主展示区只放用户能理解的能力、对象、服务、模块、措施、流程和标准信息。</span></li>
+              <li><b>2</b><span><strong>不在前端造事实</strong>如果表格没有关系，不通过页面临时拼接或推断。</span></li>
+              <li><b>3</b><span><strong>来源证据后置</strong>证据用于追溯和审计，默认不抢占业务视图。</span></li>
+              <li><b>4</b><span><strong>本地优先运行</strong>固定预览入口为 <code>http://127.0.0.1:5173/</code>，静态数据包可作为降级读取来源。</span></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <div>
+            <p class="kicker">Guide Assets</p>
+            <h2>指南材料也在同一工作台中浏览</h2>
+            <p>除结构化数据外，当前工作台也承载本地幻灯片式指南和 ArchiMate 建模语言参考，方便在做关系核对时回到方法论说明。</p>
+          </div>
+        </div>
+        <figure class="image-frame">
+          <img src="../../frontend/capability-browser/public/data/guides/security-architecture-design/slides/slide_001.png" alt="安全技术架构设计方法幻灯片首页" />
+          <figcaption class="image-caption">安全技术架构设计方法：以本地图片资源形式随工作台一起浏览，不依赖在线文档服务。</figcaption>
+        </figure>
+      </section>
+
+      <footer class="footer-note">
+        生成说明：本页根据当前工程的前端导航、数据包摘要和已生成视觉资源制作。若后续重新导入数据、替换底图或调整导航入口，应同步刷新本说明页中的数量、截图和模块说明。
+      </footer>
+    </div>
+  </body>
+</html>

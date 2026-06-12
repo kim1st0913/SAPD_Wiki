@@ -7,7 +7,7 @@ const SEMANTIC_PATH = "frontend/capability-browser/generated/environmentBasemap.
 const WORKBENCH_PATH = "frontend/capability-browser/public/data/environment-workbench.json";
 const OUTPUT_PATH = "frontend/capability-browser/generated/environmentBasemap.node-details.json";
 
-const DETAILS_VERSION = "environment-basemap-node-detail-projection-1.0";
+const DETAILS_VERSION = "environment-basemap-node-detail-semantics-3.1";
 const EVIDENCE_REF_LIMIT = 120;
 const EVIDENCE_RECORD_LIMIT = 40;
 
@@ -26,6 +26,17 @@ function asArray(value) {
 
 function uniqueStrings(values) {
   return [...new Set(values.filter(Boolean))];
+}
+
+function cleanText(value) {
+  return value == null ? "" : String(value).trim();
+}
+
+function splitLines(value) {
+  return cleanText(value)
+    .split(/\n+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 function objectName(object) {
@@ -47,11 +58,25 @@ function compactObject(object) {
 }
 
 function compactNode(node) {
+  const contextLabels = contextLabelsForNode(node);
+  const contextPath = uniqueStrings([
+    ...contextLabels,
+    node.objectName || node.label || "",
+  ]);
   return {
     mxId: node.mxId || "",
     label: node.label || "",
     bindStatus: node.bindStatus || "",
+    drawioType: node.drawioType || "",
+    iconType: node.iconType || "",
+    detailType: detailTypeForNode(node),
+    objectSubtype: objectSubtypeForNode(node),
     objectType: node.objectType || node.drawioObjectType || "",
+    objectId: node.objectId || "",
+    objectCode: node.objectCode || "",
+    objectName: node.objectName || "",
+    contextPath,
+    contextPathText: contextPath.join(" / "),
     bindingReason: node.bindingReason || "",
   };
 }
@@ -71,6 +96,50 @@ function compactSemanticSource(source = {}) {
     pageName: source.pageName || "",
     parser: source.parser || "",
   };
+}
+
+const CONTEXT_IGNORE_LABELS = new Set(["IT", "OT", "客户"]);
+const OBJECT_CATEGORY_LABELS = new Set([
+  "PC终端",
+  "移动终端",
+  "业务应用",
+  "大数据平台/数据中台",
+  "工作负载",
+  "网络",
+  "应用及数据",
+  "人员",
+  "管理平台",
+  "运维管理终端",
+  "容器",
+]);
+
+const ENVIRONMENT_ALIAS = new Map([
+  ["园区网", "园区"],
+  ["工业控制网络", "工厂"],
+]);
+
+function displayEnvironmentName(name) {
+  return ENVIRONMENT_ALIAS.get(name) || name || "";
+}
+
+function objectSubtypeForNode(node = {}) {
+  const drawioType = node.drawioType || "";
+  const label = node.label || "";
+  if (/边界/.test(label) || drawioType === "network_boundary") return "网络边界";
+  if (drawioType === "actor") return "人员";
+  if (drawioType === "device") return "设备";
+  if (drawioType === "system_software") return "系统软件";
+  if (drawioType === "application_component") return "软件应用";
+  if (drawioType === "data_object") return "数据对象";
+  if (drawioType === "communication_network") return "通信网络";
+  if (drawioType === "node") return "节点";
+  return "";
+}
+
+function contextLabelsForNode(node = {}) {
+  return asArray(node.contextLabels)
+    .map(cleanText)
+    .filter((label) => label && !CONTEXT_IGNORE_LABELS.has(label));
 }
 
 function dedupeObjects(objects) {
@@ -221,11 +290,13 @@ function serviceSummary(service, index, evidenceCollector) {
       return compactObject(measure);
     }),
   );
+  const securitySystems = dedupeObjects(modules.flatMap((module) => asArray(module.systems)));
 
   return {
     ...compactObject(service),
     modules,
     measures,
+    securitySystems,
   };
 }
 
@@ -233,7 +304,66 @@ function serviceAppliesToScope(service, scopeId, index) {
   return fromSource(index, service.id, "applies_to_scope", "scope_type").some((relation) => relation.targetId === scopeId);
 }
 
+function compactEmbeddedObject(object) {
+  if (!object) return null;
+  return {
+    objectType: object.type || "",
+    objectId: object.id || "",
+    objectCode: object.code || "",
+    objectName: object.title || object.name || object.text || object.raw || "",
+  };
+}
+
+function compactEmbeddedService(service) {
+  const systems = dedupeObjects(asArray(service.securitySystems).map(compactEmbeddedObject).filter(Boolean));
+  return {
+    ...compactEmbeddedObject(service),
+    modules: dedupeObjects(
+      asArray(service.modules)
+        .map((module) => ({
+          ...compactEmbeddedObject(module),
+          systems,
+        }))
+        .filter((module) => module.objectName || module.objectId),
+    ),
+    measures: dedupeObjects(asArray(service.measures).map(compactEmbeddedObject).filter(Boolean)),
+    securitySystems: systems,
+  };
+}
+
+function buildEmbeddedScopeMappings(informationObjectIds, index, evidenceCollector) {
+  const mappings = [];
+  for (const informationObjectId of uniqueStrings(informationObjectIds)) {
+    const informationObject = index.objectsById.get(informationObjectId);
+    if (!informationObject || !asArray(informationObject.scope_mappings).length) continue;
+    evidenceCollector.addObject(informationObject);
+    for (const mapping of asArray(informationObject.scope_mappings)) {
+      const services = dedupeObjects(asArray(mapping.services).map(compactEmbeddedService).filter(Boolean));
+      const modules = dedupeObjects(services.flatMap((service) => asArray(service.modules)));
+      const measures = dedupeObjects(services.flatMap((service) => asArray(service.measures)));
+      const securitySystems = dedupeObjects(services.flatMap((service) => asArray(service.securitySystems)));
+      mappings.push({
+        informationObject: compactObject(informationObject),
+        scope: compactEmbeddedObject(mapping.scope),
+        services,
+        modules,
+        measures,
+        securitySystems,
+      });
+    }
+  }
+
+  return mappings.sort((a, b) => {
+    const aKey = `${a.informationObject?.objectName || ""}|${a.scope?.objectCode || ""}|${a.scope?.objectName || ""}`;
+    const bKey = `${b.informationObject?.objectName || ""}|${b.scope?.objectCode || ""}|${b.scope?.objectName || ""}`;
+    return aKey.localeCompare(bKey, "zh-Hans-CN");
+  });
+}
+
 function buildScopeMappings(informationObjectIds, index, evidenceCollector) {
+  const embeddedMappings = buildEmbeddedScopeMappings(informationObjectIds, index, evidenceCollector);
+  if (embeddedMappings.length) return embeddedMappings;
+
   const mappings = [];
 
   for (const informationObjectId of uniqueStrings(informationObjectIds)) {
@@ -255,11 +385,17 @@ function buildScopeMappings(informationObjectIds, index, evidenceCollector) {
 
       const servicesForScope = protectedServices.filter((service) => serviceAppliesToScope(service, scope.id, index));
       const services = dedupeObjects(servicesForScope.map((service) => serviceSummary(service, index, evidenceCollector)));
+      const modules = dedupeObjects(services.flatMap((service) => asArray(service.modules)));
+      const measures = dedupeObjects(services.flatMap((service) => asArray(service.measures)));
+      const securitySystems = dedupeObjects(services.flatMap((service) => asArray(service.securitySystems)));
 
       mappings.push({
         informationObject: compactObject(informationObject),
         scope: compactObject(scope),
         services,
+        modules,
+        measures,
+        securitySystems,
       });
     }
   }
@@ -289,11 +425,135 @@ function collectRelatedCapabilities(scopeMappings, index) {
   };
 }
 
-function hierarchyContext(object, index, evidenceCollector) {
+function isBoundaryLabel(label = "") {
+  return /边界|内部网络|骨干节点/.test(label);
+}
+
+function detailTypeForNode(node = {}, object = null) {
+  const drawioType = node.drawioType || "";
+  const objectType = object?.type || node.objectType || node.drawioObjectType || "";
+  const label = node.label || "";
+
+  if (node.bindStatus === "ignored") return "ignored";
+  if (drawioType === "network_boundary" || isBoundaryLabel(label)) {
+    return objectType === "scope_type" ? "security_scope" : "network_boundary";
+  }
+  if (objectType === "information_object") return "information_object";
+  if (drawioType === "actor" || objectType === "actor") return "actor";
+  if (objectType === "information_environment") {
+    if (/数据中心机房/.test(label)) return "environment_container";
+    return "environment";
+  }
+  if (objectType === "environment_segment") {
+    if (OBJECT_CATEGORY_LABELS.has(label) || OBJECT_CATEGORY_LABELS.has(objectName(object))) return "environment_object_category";
+    return "environment_segment";
+  }
+  if (drawioType === "communication_network") return "communication_network";
+  if (["application_component", "system_software", "device", "node", "data_object"].includes(drawioType)) return "internal_component";
+  if (/网络周界|IT|OT/.test(label)) return "environment_category";
+  return objectType || drawioType || "unknown";
+}
+
+function isInternalDetailType(detailType) {
+  return detailType === "internal_component";
+}
+
+function shouldExposeDirectScopeGroups(detailType) {
+  return ["information_object", "network_boundary", "security_scope", "communication_network"].includes(detailType);
+}
+
+function summarizeScopeGroups(scopeGroups) {
+  const scopes = dedupeObjects(scopeGroups.map((group) => group.scope));
+  const services = dedupeObjects(scopeGroups.flatMap((group) => asArray(group.services)));
+  const modules = dedupeObjects(scopeGroups.flatMap((group) => asArray(group.modules)));
+  const measures = dedupeObjects(scopeGroups.flatMap((group) => asArray(group.measures)));
+  const securitySystems = dedupeObjects(scopeGroups.flatMap((group) => asArray(group.securitySystems)));
+  return {
+    scopeCount: scopes.length,
+    serviceCount: services.length,
+    moduleCount: modules.length,
+    measureCount: measures.length,
+    securitySystemCount: securitySystems.length,
+  };
+}
+
+function compactObjectsByIds(ids, index) {
+  return dedupeObjects(uniqueStrings(ids).map((id) => compactObject(index.objectsById.get(id))).filter(Boolean));
+}
+
+function boundaryObjects(objects) {
+  return dedupeObjects(objects.filter((object) => isBoundaryLabel(object.objectName || object.objectCode || "")));
+}
+
+function scoreEnvironmentForLabels(environment, labels) {
+  const name = objectName(environment);
+  const displayName = displayEnvironmentName(name);
+  let score = 0;
+  if (labels.includes(name)) score += 6;
+  if (displayName && labels.includes(displayName)) score += 6;
+  if (name === "园区网" && labels.includes("园区")) score += 6;
+  if (name === "工业控制网络" && labels.includes("工厂")) score += 6;
+  if (/云数据中心|传统数据中心/.test(name) && labels.includes(name)) score += 5;
+  if (/数据中心/.test(name) && labels.includes("数据中心机房")) score += 2;
+  if (/远程办公接入|分支机构/.test(name) && labels.includes(name)) score += 5;
+  return score;
+}
+
+function contextForEnvironment(environment, labels = []) {
+  const envName = objectName(environment);
+  if (/云数据中心|传统数据中心/.test(envName) || labels.includes("数据中心机房")) {
+    return {
+      environmentName: "数据中心机房",
+      segmentName: envName,
+    };
+  }
+  return {
+    environmentName: displayEnvironmentName(envName),
+    segmentName: "",
+  };
+}
+
+function chooseSegmentContext(object, index, labels, evidenceCollector) {
+  const segmentRelations = toTarget(index, object.id, "contains_object", "environment_segment");
+  evidenceCollector.addRelations(segmentRelations);
+  const candidates = [];
+  for (const relation of segmentRelations) {
+    const segment = index.objectsById.get(relation.sourceId);
+    if (!segment) continue;
+    evidenceCollector.addObject(segment);
+    const environmentRelations = toTarget(index, segment.id, "contains_segment", "information_environment");
+    evidenceCollector.addRelations(environmentRelations);
+    const environments = environmentRelations.map((envRelation) => index.objectsById.get(envRelation.sourceId)).filter(Boolean);
+    for (const environment of environments) {
+      evidenceCollector.addObject(environment);
+      const segmentName = objectName(segment);
+      let score = scoreEnvironmentForLabels(environment, labels);
+      if (labels.includes(segmentName)) score += 5;
+      if (!labels.length) score += 1;
+      candidates.push({ segment, environment, score });
+    }
+  }
+  candidates.sort((a, b) => b.score - a.score || objectName(a.environment).localeCompare(objectName(b.environment), "zh-Hans-CN"));
+  return candidates[0] || null;
+}
+
+function buildContextPath({ environmentName, segmentName, objectCategoryName, informationObjectName, internalComponentName }) {
+  const path = [];
+  path.push(environmentName || "待补充");
+  const category = objectCategoryName || segmentName;
+  if (category) path.push(category);
+  if (informationObjectName) path.push(informationObjectName);
+  if (internalComponentName && internalComponentName !== informationObjectName) path.push(internalComponentName);
+  return uniqueStrings(path);
+}
+
+function hierarchyContext(node, object, index, evidenceCollector) {
+  const labels = contextLabelsForNode(node);
   if (object.type === "information_environment") {
     const segmentRelations = fromSource(index, object.id, "contains_segment", "environment_segment");
     evidenceCollector.addObject(object);
     evidenceCollector.addRelations(segmentRelations);
+    const environmentContext = contextForEnvironment(object, labels);
 
     const segments = dedupeObjects(
       segmentRelations.map((relation) => {
@@ -309,10 +569,12 @@ function hierarchyContext(object, index, evidenceCollector) {
       informationObjectIds.push(...objectRelations.map((relation) => relation.targetId));
     }
     return {
+      ...environmentContext,
       environment: compactObject(object),
       segments,
       informationObject: null,
       informationObjectIds: uniqueStrings(informationObjectIds),
+      childInformationObjects: compactObjectsByIds(informationObjectIds, index),
     };
   }
 
@@ -325,35 +587,57 @@ function hierarchyContext(object, index, evidenceCollector) {
 
     const environments = dedupeObjects(environmentRelations.map((relation) => compactObject(index.objectsById.get(relation.sourceId))));
     for (const environment of environments) evidenceCollector.addObject(index.objectsById.get(environment.objectId));
+    const selectedEnvironment = environments
+      .map((environment) => index.objectsById.get(environment.objectId))
+      .filter(Boolean)
+      .sort((a, b) => scoreEnvironmentForLabels(b, labels) - scoreEnvironmentForLabels(a, labels))[0];
+    const environmentContext = contextForEnvironment(selectedEnvironment || index.objectsById.get(environments[0]?.objectId), labels);
 
     return {
-      environment: environments[0] || null,
+      ...environmentContext,
+      objectCategoryName: node.label && node.label !== objectName(object) ? node.label : objectName(object),
+      environment: compactObject(selectedEnvironment) || environments[0] || null,
       segments: [compactObject(object)].filter(Boolean),
       informationObject: null,
       informationObjectIds: uniqueStrings(objectRelations.map((relation) => relation.targetId)),
+      childInformationObjects: compactObjectsByIds(objectRelations.map((relation) => relation.targetId), index),
     };
   }
 
   if (object.type === "information_object") {
-    const segmentRelations = toTarget(index, object.id, "contains_object", "environment_segment");
     evidenceCollector.addObject(object);
-    evidenceCollector.addRelations(segmentRelations);
-
-    const segments = dedupeObjects(segmentRelations.map((relation) => compactObject(index.objectsById.get(relation.sourceId))));
-    const environmentRelations = [];
-    for (const segment of segments) {
-      const parentRelations = toTarget(index, segment.objectId, "contains_segment", "information_environment");
-      environmentRelations.push(...parentRelations);
-      evidenceCollector.addRelations(parentRelations);
+    const [contextEnvironmentName, contextSegmentName] = cleanText(object.contextKey)
+      .split("||")
+      .map(cleanText);
+    if (contextEnvironmentName && contextSegmentName) {
+      return {
+        environmentName: contextEnvironmentName,
+        objectCategoryName: contextSegmentName,
+        environment: null,
+        segments: asArray(object.segments).map(compactEmbeddedObject).filter(Boolean),
+        informationObject: compactObject(object),
+        informationObjectIds: [object.id],
+        childInformationObjects: [],
+      };
     }
-    const environments = dedupeObjects(environmentRelations.map((relation) => compactObject(index.objectsById.get(relation.sourceId))));
-    for (const environment of environments) evidenceCollector.addObject(index.objectsById.get(environment.objectId));
+
+    const selected = chooseSegmentContext(object, index, labels, evidenceCollector);
+    const segment = selected?.segment || null;
+    const environment = selected?.environment || null;
+    const environmentContext = contextForEnvironment(environment, labels);
+    const objectCategoryName =
+      labels.find((label) => OBJECT_CATEGORY_LABELS.has(label) && label !== objectName(object)) ||
+      objectName(segment) ||
+      "";
 
     return {
-      environment: environments[0] || null,
-      segments,
+      ...environmentContext,
+      objectCategoryName,
+      environment: compactObject(environment),
+      segments: [compactObject(segment)].filter(Boolean),
       informationObject: compactObject(object),
       informationObjectIds: [object.id],
+      childInformationObjects: [],
     };
   }
 
@@ -362,6 +646,9 @@ function hierarchyContext(object, index, evidenceCollector) {
     segments: [],
     informationObject: object.type === "information_object" ? compactObject(object) : null,
     informationObjectIds: [],
+    childInformationObjects: [],
+    environmentName: "待补充",
+    objectCategoryName: "",
   };
 }
 
@@ -380,22 +667,78 @@ function buildDetail(node, index, issues) {
   }
 
   const evidenceCollector = createEvidenceCollector(index);
-  const context = hierarchyContext(object, index, evidenceCollector);
-  const scopeMappings = buildScopeMappings(context.informationObjectIds, index, evidenceCollector);
+  const context = hierarchyContext(node, object, index, evidenceCollector);
+  const detailType = detailTypeForNode(node, object);
+  const allContextScopeGroups = buildScopeMappings(context.informationObjectIds, index, evidenceCollector);
+  const directScopeGroups = shouldExposeDirectScopeGroups(detailType)
+    ? buildScopeMappings(object.type === "information_object" ? [object.id] : [], index, evidenceCollector)
+    : [];
+  const directKeys = new Set(directScopeGroups.map((group) => `${group.informationObject?.objectId || ""}:${group.scope?.objectId || ""}`));
+  const inheritedScopeGroups = allContextScopeGroups.filter(
+    (group) => !directKeys.has(`${group.informationObject?.objectId || ""}:${group.scope?.objectId || ""}`),
+  );
+  const directSummary = summarizeScopeGroups(directScopeGroups);
+  const inheritedSummary = summarizeScopeGroups(inheritedScopeGroups);
+  const contextPath = buildContextPath({
+    environmentName: context.environmentName,
+    segmentName: context.segmentName,
+    objectCategoryName: context.objectCategoryName,
+    informationObjectName: detailType === "information_object" || detailType === "network_boundary" || detailType === "security_scope" ? objectName(object) : "",
+  });
+  const summary = {
+    directScopeCount: directSummary.scopeCount,
+    directServiceCount: directSummary.serviceCount,
+    directModuleCount: directSummary.moduleCount,
+    directMeasureCount: directSummary.measureCount,
+    directSecuritySystemCount: directSummary.securitySystemCount,
+    inheritedScopeCount: inheritedSummary.scopeCount,
+    inheritedServiceCount: inheritedSummary.serviceCount,
+    inheritedModuleCount: inheritedSummary.moduleCount,
+    inheritedMeasureCount: inheritedSummary.measureCount,
+    inheritedSecuritySystemCount: inheritedSummary.securitySystemCount,
+    scopeCount: directSummary.scopeCount,
+    serviceCount: directSummary.serviceCount,
+    moduleCount: directSummary.moduleCount,
+    measureCount: directSummary.measureCount,
+    securitySystemCount: directSummary.securitySystemCount,
+    childInformationObjectCount: context.childInformationObjects.length,
+    inheritedScopeGroupCount: inheritedScopeGroups.length,
+    directScopeGroupCount: directScopeGroups.length,
+  };
 
   return {
     mxId: node.mxId || "",
     label: node.label || "",
     bindStatus: node.bindStatus || "",
+    drawioType: node.drawioType || "",
+    iconType: node.iconType || "",
+    detailType,
+    objectSubtype: objectSubtypeForNode(node),
     objectType: object.type || node.objectType || "",
     objectId: object.id || node.objectId || "",
     objectCode: object.code || node.objectCode || "",
     objectName: objectName(object) || node.objectName || "",
+    objectContextKey: object.contextKey || "",
+    matchedObjectContextKey: object.contextKey || "",
+    contextPath,
+    contextPathText: contextPath.join(" / "),
+    environmentName: context.environmentName || "",
+    objectCategoryName: context.objectCategoryName || context.segmentName || "",
+    independentModeling: !isInternalDetailType(detailType),
+    detailNote: isInternalDetailType(detailType)
+      ? "该元素按底图内部组成元素展示，不展开继承的安全技术服务 / 模块 / 措施清单。"
+      : "",
     environment: context.environment,
     segments: context.segments,
     informationObject: context.informationObject,
-    scopeMappings,
-    relatedCapabilities: collectRelatedCapabilities(scopeMappings, index),
+    childInformationObjects: context.childInformationObjects,
+    relatedBoundaries: boundaryObjects(context.childInformationObjects),
+    summary,
+    directScopeGroups,
+    inheritedScopeGroups,
+    scopeMappings: directScopeGroups,
+    inheritedScopeMappingsCount: inheritedScopeGroups.length,
+    relatedCapabilities: collectRelatedCapabilities(directScopeGroups, index),
     sourceEvidence: evidenceCollector.build(),
   };
 }
@@ -430,6 +773,27 @@ function buildProjection(semantic, workbench) {
 
   const missingDetailNodes = issues.filter((issue) => issue.type === "missingDetail").length;
   const detailReadyNodes = Object.keys(nodeDetailsByMxId).length;
+  const detailTypeDistribution = {};
+  const internalComponentNodes = [];
+  const unknownDetailNodes = [];
+  for (const detail of Object.values(nodeDetailsByMxId)) {
+    detailTypeDistribution[detail.detailType] = (detailTypeDistribution[detail.detailType] || 0) + 1;
+    if (isInternalDetailType(detail.detailType)) {
+      internalComponentNodes.push({
+        mxId: detail.mxId,
+        label: detail.label,
+        detailType: detail.detailType,
+        objectType: detail.objectType,
+        objectName: detail.objectName,
+      });
+    }
+    if (detail.detailType === "unknown") {
+      unknownDetailNodes.push({ mxId: detail.mxId, label: detail.label, objectType: detail.objectType });
+    }
+  }
+  for (const node of ignoredNodes) {
+    detailTypeDistribution[node.detailType] = (detailTypeDistribution[node.detailType] || 0) + 1;
+  }
 
   return {
     source: {
@@ -457,6 +821,23 @@ function buildProjection(semantic, workbench) {
       nodeDetails: detailReadyNodes,
       workbenchObjects: index.objectsById.size,
       workbenchRelations: asArray(workbench.relations).length,
+      detailTypeDistribution,
+      informationObjectNodes: detailTypeDistribution.information_object || 0,
+      environmentContainerNodes: detailTypeDistribution.environment_container || 0,
+      environmentSegmentNodes: detailTypeDistribution.environment_segment || 0,
+      securityScopeNodes: detailTypeDistribution.security_scope || 0,
+      networkBoundaryNodes: detailTypeDistribution.network_boundary || 0,
+      internalComponentNodes: internalComponentNodes.length,
+      actorNodes: detailTypeDistribution.actor || 0,
+      ignoredNodesByDetailType: detailTypeDistribution.ignored || 0,
+      unknownDetailNodes: unknownDetailNodes.length,
+    },
+    detailProjectionReport: {
+      detailTypeDistribution,
+      internalComponentNodes,
+      unknownDetailNodes,
+      note:
+        "Detail Projection 2.0 separates visual/detail types from business objectType. Internal component nodes do not expose inherited service/module/measure lists by default.",
     },
     nodeDetailsByMxId,
     ignoredNodes,
@@ -479,6 +860,7 @@ function main() {
         ignoredNodes: projection.stats.ignoredNodes,
         detailReadyNodes: projection.stats.detailReadyNodes,
         missingDetailNodes: projection.stats.missingDetailNodes,
+        detailTypeDistribution: projection.stats.detailTypeDistribution,
         issues: projection.issues.length,
       },
       null,

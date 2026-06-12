@@ -316,6 +316,34 @@ def _combine_sources(*source_lists: list[dict[str, Any]] | None, limit: int = 12
     return combined
 
 
+def _source_rows_for_sheet(
+    source_list: list[dict[str, Any]] | None,
+    sheet: str,
+) -> set[int]:
+    rows: set[int] = set()
+    for source in source_list or []:
+        if source.get("sheet") != sheet:
+            continue
+        row = source.get("row")
+        if isinstance(row, int):
+            rows.add(row)
+    return rows
+
+
+def _sources_for_sheet_rows(
+    source_list: list[dict[str, Any]] | None,
+    sheet: str,
+    rows: set[int],
+) -> list[dict[str, Any]]:
+    if not rows:
+        return []
+    return [
+        source
+        for source in source_list or []
+        if source.get("sheet") == sheet and source.get("row") in rows
+    ]
+
+
 def _brief_item_sources(item: dict[str, Any], source_refs: dict[str, list[dict[str, Any]]], limit: int = 8) -> list[dict[str, Any]]:
     sources = source_refs.get(item["id"], [])
     if item.get("type") not in {"security_system", "security_technology_module"}:
@@ -1603,9 +1631,14 @@ def _split_measure_names(value: object) -> list[tuple[str, bool]]:
 
 
 def _measure_category_status(name: str, style: str, was_note_wrapper: bool = False) -> tuple[str | None, str]:
-    if style == "measure_note" or was_note_wrapper or name.upper().startswith("N/A"):
+    if name.upper().startswith("N/A"):
         return None, "pending"
     return None, "normal"
+
+
+def _is_empty_security_system_value(value: object) -> bool:
+    text = _normalize_measure_name(value).upper()
+    return is_blank_or_placeholder(value) or text in {"N/A", "NA"}
 
 
 def _scope_value_with_service_scope(scope_raw: object, service_raw: object) -> str:
@@ -1676,19 +1709,28 @@ def _scene_measure_candidates_from_xlsx(path: Path) -> list[dict[str, Any]]:
                 "fill": style_fills.get(cell.attrib.get("s", "0"), {}),
             }
 
-    inherited_values = {"B": "", "C": "", "D": "", "E": "", "H": ""}
+    inherited_values = {"B": "", "C": "", "D": "", "E": "", "G": "", "H": ""}
     inherited_sources: dict[str, dict[str, Any]] = {}
+    inherited_fills: dict[str, dict[str, Any]] = {}
     source_columns = {
         "B": "信息化环境",
         "C": "environment_segment",
         "D": "信息化对象",
         "E": "作用域",
+        "G": TECHNICAL_MEASURE_SOURCE_COLUMN,
         "H": "安全系统",
     }
     candidates: list[dict[str, Any]] = []
     for row_number in sorted(rows):
         row = rows[row_number]
-        for column in ("B", "C", "D", "E", "H"):
+        if _normalize_measure_name(row.get("D", {}).get("value")):
+            inherited_values["G"] = ""
+            inherited_sources.pop("G", None)
+            inherited_fills.pop("G", None)
+            inherited_values["H"] = ""
+            inherited_sources.pop("H", None)
+            inherited_fills.pop("H", None)
+        for column in ("B", "C", "D", "E", "G", "H"):
             raw_value = row.get(column, {}).get("value")
             normalized = _normalize_measure_name(raw_value)
             if normalized:
@@ -1699,21 +1741,27 @@ def _scene_measure_candidates_from_xlsx(path: Path) -> list[dict[str, Any]]:
                     row.get(column, {}).get("cell"),
                     raw_value,
                 )
+                inherited_fills[column] = row.get(column, {}).get("fill", {})
 
         if not inherited_values["B"] or not inherited_values["D"]:
             continue
         measure_cell = row.get("G", {})
+        raw_measure = measure_cell.get("value")
         style = _technical_measure_style(measure_cell.get("fill", {}))
+        if is_blank_or_placeholder(raw_measure) and inherited_values["G"]:
+            raw_measure = inherited_values["G"]
+            style = _technical_measure_style(inherited_fills.get("G", {}))
+        if not style and raw_measure and _is_empty_security_system_value(inherited_values.get("H")):
+            style = "measure"
         if not style:
             continue
-        raw_measure = measure_cell.get("value")
         if is_blank_or_placeholder(raw_measure):
             continue
         for name, was_note_wrapper in _split_measure_names(raw_measure):
             category, status = _measure_category_status(name, style, was_note_wrapper)
             service_cell = row.get("F", {})
             sources = _combine_sources(
-                [_source_payload(row_number, TECHNICAL_MEASURE_SOURCE_COLUMN, measure_cell.get("cell"), raw_measure)],
+                [_source_payload(row_number, TECHNICAL_MEASURE_SOURCE_COLUMN, measure_cell.get("cell") or inherited_sources.get("G", {}).get("cell"), raw_measure)],
                 [_source_payload(row_number, "安全技术服务", service_cell.get("cell"), service_cell.get("value"))]
                 if service_cell.get("value")
                 else None,
@@ -2566,6 +2614,64 @@ def export_management_knowledge(
     def item_sources(item_ids: list[str]) -> list[dict[str, Any]]:
         return _combine_sources(*(refs.get(item_id) for item_id in item_ids))
 
+    def scene_row_sources(source_list: list[dict[str, Any]], rows: set[int]) -> list[dict[str, Any]]:
+        return _sources_for_sheet_rows(source_list, SCENE_TECHNICAL_MAPPING_SHEET, rows)
+
+    def scene_rows(source_list: list[dict[str, Any]]) -> set[int]:
+        return _source_rows_for_sheet(source_list, SCENE_TECHNICAL_MAPPING_SHEET)
+
+    def scene_module_payloads_for_service(
+        service_id: str,
+        *,
+        environment_id: str,
+        service_scene_rows: set[int],
+    ) -> list[dict[str, Any]]:
+        module_payloads: list[dict[str, Any]] = []
+        for module_id in sort_source_ids(technology_modules, modules_by_service.get(service_id, [])):
+            if module_id not in technology_modules:
+                continue
+            module_sources = scene_row_sources(relation_sources(module_id, "implements_service", service_id), service_scene_rows)
+            if not module_sources:
+                continue
+            module_environment_ids = environments_by_module.get(module_id, [])
+            if module_environment_ids and environment_id not in module_environment_ids:
+                continue
+            module_source_rows = scene_rows(module_sources)
+            module_payload = _brief_item(technology_modules[module_id], refs) or {}
+            module_payload["mapping_sources"] = module_sources
+            system_payloads = []
+            for system_id in sort_source_ids(security_systems, systems_by_module.get(module_id, [])):
+                system_sources = scene_row_sources(relation_sources(module_id, "part_of_system", system_id), module_source_rows)
+                if not system_sources:
+                    continue
+                system_payload = _brief_item(security_systems[system_id], refs) or {}
+                system_payload["mapping_sources"] = system_sources
+                system_payloads.append(system_payload)
+            module_payload["systems"] = system_payloads
+            module_payload["products"] = brief_many(products, products_by_module.get(module_id, []))
+            module_payloads.append(module_payload)
+        return module_payloads
+
+    def scene_measure_payloads_for_service(service_id: str, service_scene_rows: set[int]) -> list[dict[str, Any]]:
+        if not service_scene_rows:
+            return []
+        measure_payloads: list[dict[str, Any]] = []
+        for measure in security_technical_measures:
+            measure_sources = scene_row_sources(measure.get("sources", []), service_scene_rows)
+            if not measure_sources:
+                continue
+            measure_payload = {
+                **measure,
+                "type": "security_technical_measure",
+                "objectKind": "安全技术措施",
+                "kind": "安全技术措施",
+                "title": measure.get("title") or measure.get("name"),
+                "mapping_sources": measure_sources,
+                "sources": measure_sources,
+            }
+            measure_payloads.append(measure_payload)
+        return measure_payloads
+
     scope_catalog_sheet = "安全能力作用域目录"
     scope_payloads = []
     scope_catalog_rows = _scope_catalog_rows_from_xlsx(conn)
@@ -2695,27 +2801,27 @@ def export_management_knowledge(
                     if service_id not in technical_services:
                         continue
                     service_payload = _brief_item(technical_services[service_id], refs) or {}
-                    service_payload["mapping_sources"] = _combine_sources(
+                    service_object_sources = _combine_sources(
                         *(
                             relation_sources(service_id, "protects_object", current_object_id)
                             for current_object_id in object_ids
                         ),
-                        relation_sources(service_id, "applies_to_scope", scope_id),
                     )
-                    module_payloads_for_service = []
-                    for module_id in sort_source_ids(technology_modules, modules_by_service.get(service_id, [])):
-                        if module_id not in technology_modules:
-                            continue
-                        module_environment_ids = environments_by_module.get(module_id, [])
-                        if module_environment_ids and environment_id not in module_environment_ids:
-                            continue
-                        module_payload = _brief_item(technology_modules[module_id], refs) or {}
-                        module_payload["mapping_sources"] = relation_sources(module_id, "implements_service", service_id)
-                        module_payload["systems"] = brief_many(security_systems, systems_by_module.get(module_id, []))
-                        module_payload["products"] = brief_many(products, products_by_module.get(module_id, []))
-                        module_payloads_for_service.append(module_payload)
+                    service_scope_sources = relation_sources(service_id, "applies_to_scope", scope_id)
+                    service_payload["mapping_sources"] = _combine_sources(service_object_sources, service_scope_sources)
+                    object_service_rows = scene_rows(service_object_sources)
+                    scope_service_rows = scene_rows(service_scope_sources)
+                    service_scene_rows = object_service_rows.intersection(scope_service_rows) if object_service_rows and scope_service_rows else object_service_rows or scope_service_rows
+                    module_payloads_for_service = scene_module_payloads_for_service(
+                        service_id,
+                        environment_id=environment_id,
+                        service_scene_rows=service_scene_rows,
+                    )
+                    measure_payloads_for_service = scene_measure_payloads_for_service(service_id, service_scene_rows)
                     service_payload["modules"] = module_payloads_for_service
+                    service_payload["measures"] = measure_payloads_for_service
                     service_payload["module_count"] = len(module_payloads_for_service)
+                    service_payload["measure_count"] = len(measure_payloads_for_service)
                     service_payloads.append(service_payload)
                 scope_mappings.append(
                     {
@@ -3949,6 +4055,7 @@ def export_environment_workbench(
         "description": "以信息化环境和信息化对象为主语，展示对象、作用域、服务、模块、措施、系统、产品和能力关联。",
     }
     payload = _empty_workbench(page, generated_at, ["database", "capability-tree.json", "maintenance-knowledge.json"])
+    payload["environment_scope_tree"] = _wb_list(management.get("environment_scope_tree"))
     objects: dict[str, dict[str, dict[str, Any]]] = {key: {} for key in (
         "information_environment",
         "environment_segment",
@@ -3968,7 +4075,6 @@ def export_environment_workbench(
     capability_by_code, focus_by_code = _capability_lookups(capability_tree)
     navigator_tree: list[dict[str, Any]] = []
     default_object_id = None
-    measures = _wb_list(management.get("security_technical_measures"))
 
     for environment in _wb_list(management.get("environment_scope_tree")):
         env_obj = _wb_add_object(objects, evidence_refs, environment, "information_environment", fallback_name="未命名环境")
@@ -4017,12 +4123,12 @@ def export_environment_workbench(
                         _wb_add_relation(relations, seen_relations, "implemented_by_module", service_obj, module_obj, label="由模块实现", evidence_refs=module_evidence)
                         for system in _wb_list(module.get("systems")):
                             system_obj = _wb_add_object(objects, evidence_refs, system, "security_system", fallback_name="未命名系统")
-                            _wb_add_relation(relations, seen_relations, "part_of_system", module_obj, system_obj, label="属于系统")
+                            _wb_add_relation(relations, seen_relations, "part_of_system", module_obj, system_obj, label="属于系统", evidence_refs=_wb_collect_evidence(evidence_refs, module, system))
                         for product in _wb_list(module.get("products")):
                             product_obj = _wb_add_object(objects, evidence_refs, product, "product", fallback_name="未命名产品")
                             _wb_add_relation(relations, seen_relations, "maps_to_product", module_obj, product_obj, label="映射产品")
-                    for measure in measures:
-                        if isinstance(measure, dict) and _measure_matches_service(measure, service):
+                    for measure in _wb_list(service.get("measures")):
+                        if isinstance(measure, dict):
                             measure_obj = _wb_add_object(objects, evidence_refs, measure, "security_technical_measure", fallback_name="未命名措施")
                             _wb_add_relation(relations, seen_relations, "has_measure", service_obj, measure_obj, label="关联措施", evidence_refs=_wb_collect_evidence(evidence_refs, service, measure))
         navigator_tree.append(_wb_navigator_node(environment, "information_environment", object_nodes))

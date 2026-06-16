@@ -104,6 +104,15 @@
 - 禁止用 `rows[0]`、默认关注点、首个子节点、最近一次选中对象或旧投影数据驱动主展示区当前对象；当前对象必须来自左侧显式选中 ID 或后端明确返回的同粒度对象。
 - 修改 `dataClient`、`ViewModel`、按需加载、刷新恢复、缓存版本或图谱输入时，必须验证 L0、L1、L2、关注点四类选择，并断言左侧选中对象、右侧标题 / 图谱中心和 `localRelationMap.focus` 或等价当前对象一致。
 
+知识库字典与安全标准 / 框架是全局只读基准：
+
+- `maintenance-knowledge.json`、`maintenance/*`、`lifecycle-knowledge.json` 中的应用系统目录、`standards-index.json`、`standards-data.json`、`standards/*` 一旦导入确认，业务模块不得反向改写。
+- 环境映射、能力映射、LC-AP / LC-DT、临时核对表和 review / worker-verify 产物只能引用上述基准或输出问题报告，不得把引用方结果写回基准包。
+- 修改字典或标准基准必须有用户明确授权；如果只是发现不一致、缺失、别名或覆盖风险，先记录 `open-issues.md` 和审计报告，不自动修复或重导。
+- 禁止用 `bootstrap-local-data --profile core --reset` 或 core-only 导出覆盖已存在的字典 / 标准 / 生命周期保护基线；如确需执行，必须先取得用户明确授权，使用 `--allow-protected-baseline-reset` 并保留自动备份和审计报告。
+- 涉及数据导入、导出、重导入或正式前端数据包替换后，必须执行 `python3 scripts/audit_dictionary_standard_baseline_integrity.py`；关键数组为 0 时不得交付为通过。
+- 分析 Excel 时必须读取并保留 merged ranges；合并单元格是业务关系边界，不允许 CSV 化后反推，也不允许对非合并空值做全局 forward fill。
+
 V1 不应一开始追求所有格式深度解析。优先跑通：
 
 1. GitHub 工程骨架；
@@ -188,6 +197,13 @@ V1 不应一开始追求所有格式深度解析。优先跑通：
 - 页面主展示区不得展示非用户需求的衍生字段、占位字段、中间字段或调试字段。
 - 即使数据包中存在某个字段，也不能自动上表；新增列前必须确认它来自原始业务字段或已被用户明确要求展示。
 - 对于导出模型里的辅助字段，例如临时 `category`、映射状态、来源追踪和中间统计，只能在有明确业务用途或维护端需求时展示。
+
+排序字段缺省值必须显式判断：
+
+- `sortOrder`、`sourceOrder`、`tree_order`、`display_order`、`rowIndex` 等业务顺序字段中，`0` 可能是合法顺序值。
+- 不得使用 `value || fallback`、`Number(value) || fallback`、`order || 999999` 这类 truthy 判断处理排序字段缺省值。
+- 必须显式判断 `null`、`undefined`、空字符串或非有限数字，例如使用 `value == null || value === ""`、`Number.isFinite(...)` 或 `??`。
+- 排序回归检查必须覆盖首个顺序值为 `0` 或分组内第一行的场景，避免首项被误判为缺失并排到末尾。
 
 不同知识类型可以使用不同模板：
 

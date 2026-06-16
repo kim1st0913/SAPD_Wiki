@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import csv
 import json
+import re
 from collections import Counter, defaultdict
 from datetime import datetime
 from pathlib import Path
@@ -30,8 +31,10 @@ RELATIONS_PATH = OUTPUT_DIR / "scope-service-module-mapping-relations.json"
 AUDIT_PATH = OUTPUT_DIR / "scope-service-module-mapping-reimport-audit.json"
 CONSISTENCY_AUDIT_PATH = OUTPUT_DIR / "environment-module-catalog-consistency-audit.json"
 CONSISTENCY_REVIEW_ROWS_PATH = OUTPUT_DIR / "environment-module-catalog-consistency-review-rows.json"
+CONSISTENCY_TRIAGE_PATH = OUTPUT_DIR / "environment-module-catalog-consistency-triage.json"
 WORKBENCH_PATH = ROOT / "frontend/capability-browser/public/data/environment-workbench.json"
 NODE_DETAILS_PATH = ROOT / "frontend/capability-browser/generated/environmentBasemap.node-details.json"
+MAINTENANCE_SERVICES_PATH = ROOT / "frontend/capability-browser/public/data/maintenance/services.json"
 
 JSON_OUT = OUTPUT_DIR / "environment-manual-review-checklist.json"
 CSV_OUT = OUTPUT_DIR / "environment-manual-review-checklist.csv"
@@ -54,6 +57,15 @@ TARGET_OBJECTS = [
 
 SERVICE_COUNT_REVIEW_THRESHOLD = 25
 MODULE_MEASURE_COUNT_REVIEW_THRESHOLD = 25
+SERVICE_CODE_RE = re.compile(r"(I-[A-Z]{2}&T-[A-Z]{2}\.[A-Z]{2}-\d{2})(?:\s+([^,，;；|\\n]+))?")
+KNOWN_SERVICE_CODE_MIGRATIONS = {
+    "I-OS&T-AS.DS-01": "I-AP&T-AS.DS-01",
+    "I-OS&T-AS.DS-02": "I-AP&T-AS.DS-02",
+    "I-OS&T-AS.DS-03": "I-AP&T-AS.DS-03",
+    "I-OS&T-AS.DS-04": "I-AP&T-AS.DS-04",
+    "I-OS&T-AS.DS-05": "I-AP&T-AS.DS-05",
+    "I-OS&T-AS.DS-06": "I-AP&T-AS.DS-06",
+}
 
 
 def load_json(path: Path) -> Any:
@@ -78,6 +90,69 @@ def as_list(value: Any) -> list[Any]:
     if isinstance(value, list):
         return value
     return [value]
+
+
+def service_catalog_by_code() -> dict[str, dict[str, Any]]:
+    payload = load_json(MAINTENANCE_SERVICES_PATH)
+    items = payload.get("security_technical_services") or []
+    index: dict[str, dict[str, Any]] = {}
+    for item in items:
+        service = item.get("service") if isinstance(item, dict) else None
+        if not isinstance(service, dict):
+            service = item if isinstance(item, dict) else {}
+        code = text(service.get("code"))
+        title = text(service.get("title") or service.get("name"))
+        if code and title:
+            index[code] = {
+                "id": text(service.get("id")),
+                "code": code,
+                "title": title,
+                "category": text(service.get("category")),
+            }
+    return index
+
+
+def canonical_service_for_code(code: str, catalog: dict[str, dict[str, Any]]) -> dict[str, Any] | None:
+    canonical_code = KNOWN_SERVICE_CODE_MIGRATIONS.get(code, code)
+    return catalog.get(canonical_code)
+
+
+def canonicalize_service_text(value: str, catalog: dict[str, dict[str, Any]]) -> str:
+    def replace(match: re.Match[str]) -> str:
+        code = match.group(1)
+        title = text(match.group(2))
+        service = canonical_service_for_code(code, catalog)
+        if not service:
+            return match.group(0)
+        if title:
+            return f"{service['code']} {service['title']}"
+        return service["code"]
+
+    return SERVICE_CODE_RE.sub(replace, value)
+
+
+def canonicalize_review_service_refs(value: Any, catalog: dict[str, dict[str, Any]]) -> Any:
+    if isinstance(value, str):
+        return canonicalize_service_text(value, catalog)
+    if isinstance(value, list):
+        return [canonicalize_review_service_refs(item, catalog) for item in value]
+    if not isinstance(value, dict):
+        return value
+
+    normalized = {key: canonicalize_review_service_refs(item, catalog) for key, item in value.items()}
+    code = text(normalized.get("code"))
+    service = canonical_service_for_code(code, catalog) if code else None
+    if service:
+        normalized["code"] = service["code"]
+        if "title" in normalized:
+            normalized["title"] = service["title"]
+        if "name" in normalized:
+            normalized["name"] = service["title"]
+        if "category" in normalized:
+            normalized["category"] = service["category"]
+        if "id" in normalized and service["id"]:
+            normalized["id"] = service["id"]
+    return normalized
 
 
 def relation_rows(rel: dict[str, Any]) -> set[int]:
@@ -297,6 +372,39 @@ def consistency_issue_index(consistency_audit: dict[str, Any], review_rows: list
     return {"byRow": by_row, "byContext": by_context}
 
 
+def triage_index(triage: dict[str, Any]) -> dict[str, Any]:
+    by_row: dict[int, list[dict[str, Any]]] = defaultdict(list)
+    top_by_row: dict[int, list[dict[str, Any]]] = defaultdict(list)
+    alias_by_row: dict[int, list[dict[str, Any]]] = defaultdict(list)
+    pattern_by_signature: dict[str, dict[str, Any]] = {}
+
+    for clusters in (triage.get("patternClusters") or {}).values():
+        for pattern in clusters or []:
+            signature = text(pattern.get("patternSignature"))
+            if signature:
+                pattern_by_signature[signature] = pattern
+            for row in pattern.get("sourceRows") or []:
+                if isinstance(row, int) or str(row).isdigit():
+                    by_row[int(row)].append(pattern)
+
+    for item in triage.get("topManualReviewItems") or []:
+        for row in item.get("sourceRows") or []:
+            if isinstance(row, int) or str(row).isdigit():
+                top_by_row[int(row)].append(item)
+
+    for item in triage.get("possibleAliasMatches") or []:
+        for row in item.get("rows") or []:
+            if isinstance(row, int) or str(row).isdigit():
+                alias_by_row[int(row)].append(item)
+
+    return {
+        "byRow": by_row,
+        "topByRow": top_by_row,
+        "aliasByRow": alias_by_row,
+        "patternBySignature": pattern_by_signature,
+    }
+
+
 def declared_scope_text(rows: list[dict[str, Any]]) -> str:
     values = []
     for row in rows:
@@ -336,6 +444,7 @@ def build_checklist() -> dict[str, Any]:
     audit = load_json(AUDIT_PATH)
     consistency_audit = load_json_if_exists(CONSISTENCY_AUDIT_PATH, {})
     consistency_review_rows = load_json_if_exists(CONSISTENCY_REVIEW_ROWS_PATH, [])
+    consistency_triage = load_json_if_exists(CONSISTENCY_TRIAGE_PATH, {})
     workbench = load_json(WORKBENCH_PATH)
     node_details = load_json(NODE_DETAILS_PATH)
 
@@ -346,6 +455,7 @@ def build_checklist() -> dict[str, Any]:
         consistency_audit if isinstance(consistency_audit, dict) else {},
         consistency_review_rows if isinstance(consistency_review_rows, list) else [],
     )
+    triage_lookup = triage_index(consistency_triage if isinstance(consistency_triage, dict) else {})
     modules_with_systems = build_modules_with_systems(source_relations)
     same_name_contexts: dict[str, set[str]] = defaultdict(set)
     for row in normalized_rows:
@@ -474,6 +584,17 @@ def build_checklist() -> dict[str, Any]:
                     row_risk = "high"
                 elif row_risk != "high":
                     row_risk = "medium"
+            triage_patterns = triage_lookup["byRow"].get(row_number, [])
+            top_items_for_row = triage_lookup["topByRow"].get(row_number, [])
+            alias_items_for_row = triage_lookup["aliasByRow"].get(row_number, [])
+            triage_categories = unique_nonempty([text(item.get("triageCategory")) for item in triage_patterns])
+            pattern_signatures = unique_nonempty([text(item.get("patternSignature")) for item in triage_patterns])
+            if top_items_for_row:
+                row_prompts.append("Top 人工核对项")
+            if any(item.get("issueType") == "repeatedServiceWithDifferentChildren" for item in triage_patterns):
+                row_prompts.append("服务多模块/措施展开，按 1:N 展开展示")
+            if alias_items_for_row:
+                row_prompts.append("可能存在命名/别名/标点差异，需人工确认")
             if scope_issues:
                 missing = unique_nonempty([scope for item in scope_issues for scope in item.get("missingScopes", [])])
                 row_prompts.append(f"缺少作用域：{', '.join(missing)}")
@@ -533,6 +654,27 @@ def build_checklist() -> dict[str, Any]:
                 "workbenchServiceModuleRelation": "不适用" if not expected["service_module"] else ("是" if found["service_module"] else "否"),
                 "workbenchServiceMeasureRelation": "不适用" if not expected["service_measure"] else ("是" if found["service_measure"] else "否"),
                 "workbenchModuleSystemRelation": "不适用" if not expected["module_system"] else ("是" if found["module_system"] else "否"),
+                "triageCategories": triage_categories,
+                "triageCategoryLabels": unique_nonempty([text(item.get("triageCategoryLabel")) for item in triage_patterns]),
+                "patternSignatures": pattern_signatures,
+                "isTopManualReviewItem": bool(top_items_for_row),
+                "topManualReviewPriority": min([int(item.get("priority")) for item in top_items_for_row if str(item.get("priority")).isdigit()] or [0]),
+                "possibleAliasMatches": alias_items_for_row,
+                "directoryEvidence": {
+                    "patterns": triage_patterns[:5],
+                    "topManualReviewItems": top_items_for_row[:5],
+                    "environmentRelation": {
+                        "objectContextKey": context,
+                        "securityTechnicalService": text(row.get("securityTechnicalService")),
+                        "childType": module_measure_kind(row),
+                        "securityTechnologyModuleOrMeasure": module_measure_text(row),
+                        "securitySystem": security_system_text(row),
+                        "excelRow": row_number,
+                    },
+                    "suggestedManualAction": "；".join(
+                        unique_nonempty([text(item.get("suggestedManualAction")) for item in (top_items_for_row or triage_patterns)])
+                    ),
+                },
             }
             rows_out.append(output_row)
 
@@ -582,6 +724,7 @@ def build_checklist() -> dict[str, Any]:
             "audit": str(AUDIT_PATH.relative_to(ROOT)),
             "consistencyAudit": str(CONSISTENCY_AUDIT_PATH.relative_to(ROOT)) if CONSISTENCY_AUDIT_PATH.exists() else "",
             "consistencyReviewRows": str(CONSISTENCY_REVIEW_ROWS_PATH.relative_to(ROOT)) if CONSISTENCY_REVIEW_ROWS_PATH.exists() else "",
+            "consistencyTriage": str(CONSISTENCY_TRIAGE_PATH.relative_to(ROOT)) if CONSISTENCY_TRIAGE_PATH.exists() else "",
             "officialWorkbench": str(WORKBENCH_PATH.relative_to(ROOT)),
             "officialNodeDetails": str(NODE_DETAILS_PATH.relative_to(ROOT)),
         },
@@ -596,6 +739,8 @@ def build_checklist() -> dict[str, Any]:
             "duplicateServiceRowCount": sum(1 for row in rows_out if "duplicate_exact_service_child_relation" in row.get("issueTypes", [])),
             "moduleServiceMismatchRowCount": sum(1 for row in rows_out if "moduleServiceMismatch" in row.get("issueTypes", [])),
             "systemModuleMismatchRowCount": sum(1 for row in rows_out if "systemModuleMismatch" in row.get("issueTypes", [])),
+            "topManualReviewRowCount": sum(1 for row in rows_out if row.get("isTopManualReviewItem")),
+            "possibleAliasRowCount": sum(1 for row in rows_out if row.get("possibleAliasMatches")),
             "scopeCompletenessIssueContextCount": len(audit.get("scopeCompletenessIssues") or []) if isinstance(audit, dict) else 0,
             "unknownScopeEvidenceContextCount": len(audit.get("unknownScopeEvidence") or []) if isinstance(audit, dict) else 0,
             "shouldPauseUiAlignment": bool(high_risk_contexts),
@@ -613,12 +758,27 @@ def build_checklist() -> dict[str, Any]:
             ]
         },
         "contextSummaries": context_summaries,
-        "topPriorityReviewItems": top_priority,
+        "topPriorityReviewItems": (consistency_triage.get("topManualReviewItems") or top_priority)[:50]
+        if isinstance(consistency_triage, dict)
+        else top_priority,
+        "triageSummary": {
+            "triageReport": str(CONSISTENCY_TRIAGE_PATH.relative_to(ROOT)) if CONSISTENCY_TRIAGE_PATH.exists() else "",
+            "issueTypeCounts": consistency_triage.get("issueTypeCounts") or {},
+            "triageCategoryCounts": consistency_triage.get("triageCategoryCounts") or {},
+            "triageCategoryLabels": consistency_triage.get("triageCategoryLabels") or {},
+            "patternClusterCounts": consistency_triage.get("patternClusterCounts") or {},
+            "dualTableReviewSummary": (consistency_triage.get("dualTableReview") or {}).get("summary") or {},
+            "possibleAliasMatchCount": len(consistency_triage.get("possibleAliasMatches") or []) if isinstance(consistency_triage, dict) else 0,
+            "topManualReviewItemCount": len(consistency_triage.get("topManualReviewItems") or []) if isinstance(consistency_triage, dict) else 0,
+        },
+        "dualTableReview": consistency_triage.get("dualTableReview") or {} if isinstance(consistency_triage, dict) else {},
+        "possibleAliasMatches": consistency_triage.get("possibleAliasMatches") or [] if isinstance(consistency_triage, dict) else [],
         "rows": rows_out,
     }
 
 
 def write_outputs(payload: dict[str, Any]) -> None:
+    payload = canonicalize_review_service_refs(payload, service_catalog_by_code())
     JSON_OUT.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     PUBLIC_REVIEW_OUT.parent.mkdir(parents=True, exist_ok=True)
     PUBLIC_REVIEW_OUT.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -648,6 +808,10 @@ def write_outputs(payload: dict[str, Any]) -> None:
         "workbenchServiceModuleRelation",
         "workbenchServiceMeasureRelation",
         "workbenchModuleSystemRelation",
+        "triageCategories",
+        "patternSignatures",
+        "isTopManualReviewItem",
+        "topManualReviewPriority",
     ]
     with CSV_OUT.open("w", encoding="utf-8-sig", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
@@ -673,16 +837,22 @@ def write_outputs(payload: dict[str, Any]) -> None:
     md.append(f"- 服务反查作用域缺漏上下文数：`{summary.get('scopeCompletenessIssueContextCount', 0)}`")
     md.append(f"- 是否建议暂停 UI 改造：`{'是' if summary['shouldPauseUiAlignment'] else '否'}`")
     md.append("")
-    md.append("## Top 20 优先人工核对")
+    md.append("## Top 人工核对")
     md.append("")
-    md.append("| 优先级 | 风险 | 对象上下文 | 行数 | 服务 | 模块 | 措施 | 安全系统 | node-details | 提示 |")
-    md.append("|---:|---|---|---:|---:|---:|---:|---:|---|---|")
+    md.append("| 优先级 | 类别 | issueType | patternSignature | 影响行 | 影响上下文 | 建议动作 |")
+    md.append("|---:|---|---|---|---:|---:|---|")
     for index, item in enumerate(payload["topPriorityReviewItems"], start=1):
-        prompts = "；".join(item.get("reviewPrompts") or [])
-        node_text = "是" if item.get("nodeDetailsContains") else "否"
+        if "patternSignature" not in item:
+            prompts = "；".join(item.get("reviewPrompts") or [])
+            md.append(
+                f"| {index} | {item.get('riskLevel', '')} | contextSummary | {item.get('objectContextKey', '')} | "
+                f"{len(item.get('excelRows') or [])} | 1 | {prompts} |"
+            )
+            continue
         md.append(
-            f"| {index} | {item['riskLevel']} | {item['objectContextKey']} | {len(item['excelRows'])} | "
-            f"{item['serviceCount']} | {item['moduleCount']} | {item['measureCount']} | {item['securitySystemCount']} | {node_text} | {prompts} |"
+            f"| {item.get('priority', index)} | {item.get('triageCategory', '')} | {item.get('issueType', '')} | "
+            f"{item.get('patternSignature', '')} | {item.get('affectedRows', 0)} | {item.get('affectedObjectContexts', 0)} | "
+            f"{item.get('suggestedManualAction', '')} |"
         )
     md.append("")
     md.append("## 抽查对象上下文汇总")

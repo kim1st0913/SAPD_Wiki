@@ -56,10 +56,33 @@
     return [item?.id, item?.code, item?.name, item?.title, item?.serviceName, item?.scopeName, item?.relationKind].map(text).filter(Boolean).join("::");
   }
 
-  function unique(items) {
+  function standardKey(item) {
+    const code = text(item?.frameworkCode || item?.code).trim().toLowerCase();
+    if (code) return `code:${code.replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "")}`;
+    const title = text(item?.frameworkTitle || item?.title || item?.name).trim().toLowerCase();
+    if (title) return `title:${title.replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "")}`;
+    return entityKey(item);
+  }
+
+  function standardControlKey(item) {
+    const framework = text(item?.frameworkCode || item?.frameworkTitle).trim().toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "");
+    const control = text(item?.originalControlId || item?.code || item?.title || item?.name).trim().toLowerCase().replace(/\s+/g, "");
+    return `${framework}:${control}` || entityKey(item);
+  }
+
+  function isPlaceholder(value) {
+    const normalized = text(value).trim().toLowerCase();
+    return !normalized || ["/", "n/a", "na", "none", "null", "待补充", "暂无", "未编号", "待确认"].includes(normalized);
+  }
+
+  function isDisplayableStandardControl(item = {}) {
+    return !isPlaceholder(item.originalControlId || item.code) && !isPlaceholder(item.title || item.name);
+  }
+
+  function unique(items, keyFn = entityKey) {
     const seen = new Set();
     return list(items).filter((item) => {
-      const key = entityKey(item) || JSON.stringify(item);
+      const key = keyFn(item) || JSON.stringify(item);
       if (!key || seen.has(key)) return false;
       seen.add(key);
       return true;
@@ -224,7 +247,7 @@
   }
 
   function standardControlChips(items, empty = "暂无控制项") {
-    const rows = unique(items).filter(Boolean);
+    const rows = unique(items, standardControlKey).filter(Boolean).filter(isDisplayableStandardControl);
     if (!rows.length) return `<span class="empty-inline">${escape(window.sapdDisplay?.emptyMark?.() || "/")}</span>`;
     return rows.map((item) => standardControlChip(item)).join("");
   }
@@ -355,8 +378,8 @@
   }
 
   function standardTableRows(map = {}) {
-    const standards = list(map.standards?.frameworks || map.standardFrameworks);
-    const controls = list(map.standards?.controls || map.standardControls);
+    const standards = unique(list(map.standards?.frameworks || map.standardFrameworks), standardKey);
+    const controls = list(map.standards?.controls || map.standardControls).filter(isDisplayableStandardControl);
     return standards.map((standard) => ({
       standard: entityName(standard),
       controls: controls.filter((control) => !control.frameworkCode || !entityCode(standard) || control.frameworkCode === entityCode(standard)),

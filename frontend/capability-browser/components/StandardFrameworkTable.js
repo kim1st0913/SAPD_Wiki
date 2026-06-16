@@ -4,6 +4,8 @@
   const detailTextCache = new Map();
   let renderSerial = 0;
   let detailSerial = 0;
+  const STANDARD_INITIAL_RENDER_LIMIT = 600;
+  const STANDARD_SEARCH_RENDER_LIMIT = 1200;
 
   function cellValue(value) {
     if (value == null || value === "") return "";
@@ -454,13 +456,22 @@
   }
 
   function renderTable({ activeFrameworkId, tableId, rows, columns, selectedId, focusByCode = {}, search = "" }) {
-    const tableRows = utils.list(rows);
+    const allRows = utils.list(rows);
+    const searchActive = Boolean(utils.text(search).trim());
+    const renderLimit = searchActive ? STANDARD_SEARCH_RENDER_LIMIT : STANDARD_INITIAL_RENDER_LIMIT;
+    const capped = allRows.length > renderLimit;
+    const tableRows = capped ? allRows.slice(0, renderLimit) : allRows;
     const tableColumns = visibleColumns(activeFrameworkId, columns, tableId);
     if (!tableRows.length || !tableColumns.length) return "";
     const groups = groupedRows(tableRows, groupConfig(activeFrameworkId, tableId));
     const frameworkClass = frameworkTableClass(activeFrameworkId, tableId);
     const expandAll = Boolean(utils.text(search).trim());
     return `
+      ${
+        capped
+          ? `<div class="standard-framework-render-limit">当前表共 ${utils.escapeHtml(allRows.length)} 条，已先显示 ${utils.escapeHtml(tableRows.length)} 条；请用搜索词缩小范围后核对完整命中。</div>`
+          : ""
+      }
       <div class="maintenance-table-scroll standard-framework-table-scroll">
         <table class="maintenance-data-table standard-framework-table${frameworkClass}">
           <thead>

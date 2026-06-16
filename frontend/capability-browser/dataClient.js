@@ -466,6 +466,7 @@
       gbt_42446_references: [],
       gartner_roles: [],
       scope_types: [],
+      security_works: [],
       security_processes: [],
       security_technical_measures: [],
       security_technology_modules: [],

@@ -1037,7 +1037,59 @@
     });
   }
 
-  function buildCapabilityStandardRowsFromWorkbench(workbench, focuses) {
+  function standardCatalogByCode(standards = {}) {
+    const byCode = {};
+    for (const framework of list(standards?.frameworks)) {
+      const code = text(framework.frameworkCode || framework.code).trim();
+      if (!code) continue;
+      byCode[code] = {
+        id: framework.id || code,
+        type: "standard_framework",
+        code,
+        frameworkCode: code,
+        title: framework.title || framework.name || code,
+        name: framework.title || framework.name || code,
+      };
+    }
+    return byCode;
+  }
+
+  function canonicalStandardEntity(standard = {}, catalogByCode = {}) {
+    const code = text(standard.frameworkCode || standard.code || standard.id).trim();
+    const canonical = code ? catalogByCode[code] : null;
+    if (!canonical) return standard;
+    return {
+      ...standard,
+      id: canonical.id,
+      code: canonical.code,
+      frameworkCode: canonical.frameworkCode,
+      title: canonical.title,
+      name: canonical.name,
+    };
+  }
+
+  function canonicalStandardEntityKey(standard = {}) {
+    const entity = typeof standard === "object" && standard ? standard : { title: standard };
+    const code = text(entity.frameworkCode || entity.code).trim();
+    if (code) return `code:${canonicalStandardKey(code)}`;
+    const title = text(entity.frameworkTitle || entity.title || entity.name).trim();
+    if (title) return `title:${canonicalStandardKey(title)}`;
+    const id = text(entity.id).trim();
+    return id ? `id:${canonicalStandardKey(id)}` : "";
+  }
+
+  function isPlaceholderControlCode(value) {
+    const normalized = text(value).trim().toLowerCase();
+    return !normalized || ["/", "n/a", "na", "none", "null", "待补充", "暂无", "未编号", "待确认"].includes(normalized);
+  }
+
+  function isDisplayableStandardControl(control = {}) {
+    const code = text(control.originalControlId || control.controlId || control.code).trim();
+    const title = text(control.title || control.name || control.controlName || control.control_name).trim();
+    return !isPlaceholderControlCode(code) && !isPlaceholderControlCode(title);
+  }
+
+  function buildCapabilityStandardRowsFromWorkbench(workbench, focuses, catalogByCode = {}) {
     if (!workbench || workbench.__data_state === "missing_file") return [];
     if (isInitialProjectionWorkbench(workbench)) return [];
     const objectsById = workbenchObjectsById(workbench);
@@ -1051,15 +1103,21 @@
       const controls = workbenchTargets(workbench, objectsById, focusId, "maps_to_standard", "standard_control");
       const frameworks = uniqueBy(
         controls
-          .map((control) => frameworksByCode[control.frameworkCode] || (control.frameworkCode ? { id: control.frameworkCode, code: control.frameworkCode, title: control.frameworkTitle || control.frameworkCode } : null))
+          .filter(isDisplayableStandardControl)
+          .map((control) =>
+            canonicalStandardEntity(
+              frameworksByCode[control.frameworkCode] || (control.frameworkCode ? { id: control.frameworkCode, code: control.frameworkCode, frameworkCode: control.frameworkCode, title: control.frameworkTitle || control.frameworkCode } : null),
+              catalogByCode,
+            ),
+          )
           .filter(Boolean),
-        (framework) => framework.id || framework.code || framework.title,
+        canonicalStandardEntityKey,
       );
       return {
         id: `${focusId}:standard`,
         focus: focusEntity,
         standards: frameworks,
-        controls,
+        controls: controls.filter(isDisplayableStandardControl),
         dataSource: "capability-workbench.json",
       };
     });
@@ -1152,14 +1210,14 @@
         rows.push(supplement);
         continue;
       }
-      match.standards = uniqueBy([...list(match.standards), ...list(supplement.standards)], (standard) => canonicalStandardKey(standard.id || standard.code || standard.title || standard.name));
-      match.controls = uniqueBy([...list(match.controls), ...list(supplement.controls)], (control) => `${canonicalStandardKey(control.frameworkCode || control.frameworkTitle)}:${text(control.originalControlId || control.code || control.title).trim()}`);
+      match.standards = uniqueBy([...list(match.standards), ...list(supplement.standards)], canonicalStandardEntityKey);
+      match.controls = uniqueBy([...list(match.controls), ...list(supplement.controls)].filter(isDisplayableStandardControl), (control) => `${canonicalStandardKey(control.frameworkCode || control.frameworkTitle)}:${text(control.originalControlId || control.code || control.title).trim()}`);
       match.dataSource = [match.dataSource, supplement.dataSource].filter(Boolean).join("+");
     }
     return rows;
   }
 
-  function buildCapabilityStandardRowsFromStandards(standards, focuses) {
+  function buildCapabilityStandardRowsFromStandards(standards, focuses, catalogByCode = {}) {
     const loadedFrameworks = Object.values(standards?.loadedFrameworks || standards?.loaded_frameworks || {});
     if (!loadedFrameworks.length) return [];
     return list(focuses).flatMap((focus) => {
@@ -1174,14 +1232,19 @@
               .filter((row) => standardRowRelatedFocusCodes(row).includes(focusCode))
               .map((row) => standardControlFromRow(row, framework)),
             (control) => `${control.frameworkCode}:${control.originalControlId || control.title}`,
-          );
+          ).filter(isDisplayableStandardControl);
           if (!controls.length) return null;
-          const standard = {
-            id: framework.id || framework.frameworkCode || framework.title || "",
-            type: "standard_framework",
-            code: framework.frameworkCode || framework.code || framework.id || "",
-            title: framework.title || framework.name || framework.frameworkCode || framework.id || "标准 / 框架",
-          };
+          const frameworkCode = framework.frameworkCode || framework.code || framework.id || "";
+          const standard = canonicalStandardEntity(
+            {
+              id: framework.id || frameworkCode,
+              type: "standard_framework",
+              code: frameworkCode,
+              frameworkCode,
+              title: framework.title || framework.name || frameworkCode || "标准 / 框架",
+            },
+            catalogByCode,
+          );
           return {
             id: `${focus.id}:${standard.id || standard.code}:standard-package`,
             focus: focusEntity,
@@ -1221,8 +1284,9 @@
     const visibleFocusIdSet = new Set(visibleFocuses.map((focus) => focus.id));
     const workbenchTechnicalRows = buildCapabilityTechnicalRowsFromWorkbench(capabilityWorkbench, visibleFocuses);
     const workbenchManagementRows = buildCapabilityManagementRowsFromWorkbench(capabilityWorkbench, visibleFocuses);
-    const workbenchStandardRows = buildCapabilityStandardRowsFromWorkbench(capabilityWorkbench, visibleFocuses);
-    const standardsPackageRows = buildCapabilityStandardRowsFromStandards(standards, visibleFocuses);
+    const standardsCatalogByCode = standardCatalogByCode(standards);
+    const workbenchStandardRows = buildCapabilityStandardRowsFromWorkbench(capabilityWorkbench, visibleFocuses, standardsCatalogByCode);
+    const standardsPackageRows = buildCapabilityStandardRowsFromStandards(standards, visibleFocuses, standardsCatalogByCode);
     const isFocus = selectedDetail?.type === "capability_focus";
     const canUseObjectProjection = capabilityProjectionMatchesSelected(capabilityProjection, selectedDetail);
     const projectedTechnicalRows = canUseObjectProjection ? list(capabilityProjection?.technicalMappingRows || capabilityProjection?.technical_mapping_rows) : [];
@@ -1587,6 +1651,17 @@
     );
   }
 
+  function capabilityFocusPathByCode(capabilityTree, focus) {
+    const focusId = text(focus?.id).trim();
+    const focusCode = text(focus?.code).trim();
+    return (
+      capabilityFocusRows(capabilityTree).find((path) => {
+        const candidate = path.focus || {};
+        return (focusId && candidate.id === focusId) || (focusCode && candidate.code === focusCode);
+      }) || { category: null, domain: null, capability: null, focus }
+    );
+  }
+
   function compactSecurityWorkRow({ category, domain, capability, focus, work }, index, focusWorkIndex) {
     const workTitle = businessText(work?.title || work?.name);
     const missing = [
@@ -1610,11 +1685,21 @@
     };
   }
 
-  function buildSecurityWorkMaintenanceViewModel({ capabilityTree, search }) {
+  function buildSecurityWorkMaintenanceViewModel({ capabilityTree, management, search }) {
     const query = normalizeSearch(search);
-    const rawRows = capabilityFocusRows(capabilityTree).flatMap((path) =>
+    const treeRows = capabilityFocusRows(capabilityTree).flatMap((path) =>
       list(path.focus.security_works).map((work, focusWorkIndex) => ({ ...path, work, focusWorkIndex })),
     );
+    const packageRows = list(management?.security_works).flatMap((work, workIndex) => {
+      const focuses = list(work.focuses);
+      if (!focuses.length) return [{ ...capabilityFocusPathByCode(capabilityTree, {}), work, focusWorkIndex: workIndex }];
+      return focuses.map((focus, focusWorkIndex) => ({
+        ...capabilityFocusPathByCode(capabilityTree, focus),
+        work,
+        focusWorkIndex,
+      }));
+    });
+    const rawRows = treeRows.length ? treeRows : packageRows;
     const rowPairs = rawRows.map((item, index) => ({
       item,
       row: compactSecurityWorkRow(item, index, item.focusWorkIndex),
@@ -1643,7 +1728,7 @@
         pendingFields: rows.filter((row) => row.status === "待补充").length,
       },
       sourceEvidenceById: Object.fromEntries(rowPairs.map(({ item, row }) => [row.id, uniqueBy(list(item.work?.sources), sourceEvidenceKey)])),
-      emptyState: rows.length ? "" : "暂无安全工作数据，请确认 ETL 是否已在 capability-tree 中导出 security_works。",
+      emptyState: rows.length ? "" : "暂无安全工作数据，请确认 ETL 是否已导出 security_works。",
     };
   }
 
@@ -2161,6 +2246,7 @@
       code: service?.code || "待补充",
       title: titleOf(service, "待补充"),
       serviceLabel: codeTitle(service, "待补充"),
+      sourceOrder: index + 1,
       capabilityCode,
       capabilityTitle,
       focusCode,
@@ -2187,11 +2273,16 @@
     };
   }
 
+  function orderValue(value) {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : 999999;
+  }
+
   function compareTechnicalServiceRows(left, right) {
     return (
-      (Number(left.sortOrder) || 999999) - (Number(right.sortOrder) || 999999) ||
-      text(left.focusCode).localeCompare(text(right.focusCode), "zh-Hans-CN") ||
-      text(left.code).localeCompare(text(right.code), "zh-Hans-CN") ||
+      orderValue(left.sortOrder) - orderValue(right.sortOrder) ||
+      orderValue(left.sourceOrder) - orderValue(right.sourceOrder) ||
+      text(left.code).localeCompare(text(right.code), "zh-Hans-CN", { numeric: true, sensitivity: "base" }) ||
       text(left.title).localeCompare(text(right.title), "zh-Hans-CN")
     );
   }
@@ -2533,9 +2624,10 @@
     const processCount = list(management?.security_processes).flatMap((domain) => list(domain.groups).flatMap((group) => list(group.references))).length;
     const workFunctionCount = list(management?.work_function_layers).flatMap((layer) => list(layer.groups).flatMap((group) => list(group.functions))).length;
     const referenceCount = list(management?.gbt_42446_references).length + list(management?.gartner_roles).length;
-    const securityWorkCount = list(capabilityTree?.categories).flatMap((category) =>
+    const securityWorkReferenceCount = list(capabilityTree?.categories).flatMap((category) =>
       list(category.domains).flatMap((domain) => list(domain.capabilities).flatMap((capability) => list(capability.focuses).flatMap((focus) => list(focus.security_works)))),
     ).length;
+    const securityWorkCount = configuredCount("security-works", list(management?.security_works).length || securityWorkReferenceCount);
     const applicationSystemCount = list(lifecycle?.application_security_development?.application_system_types).length;
     return [
       { id: "capability-directory", label: "安全能力清单", count: capabilityDirectoryCount, implemented: true },
@@ -2977,7 +3069,8 @@
       return list(source?.sources);
     }
     if (section === "security-works") {
-      return [];
+      const source = list(management?.security_works).find((work, index) => (work?.id || work?.code || work?.title || `security-work-${index}`) === row.rawId);
+      return list(source?.sources);
     }
     if (section === "modules") {
       const source = list(management?.security_technology_modules).find((module, index) => (module?.id || module?.code || module?.title || `technology-module-${index}`) === row.id);
@@ -3014,7 +3107,7 @@
           : normalizedSection === "work-functions"
           ? buildWorkFunctionMaintenanceViewModel({ management: maintenanceKnowledge, search })
           : normalizedSection === "security-works"
-          ? buildSecurityWorkMaintenanceViewModel({ capabilityTree, search })
+          ? buildSecurityWorkMaintenanceViewModel({ capabilityTree, management: maintenanceKnowledge, search })
             : normalizedSection === "services"
               ? buildTechnicalServiceMaintenanceViewModel({ capabilityTree, management: maintenanceKnowledge, search })
               : normalizedSection === "modules"

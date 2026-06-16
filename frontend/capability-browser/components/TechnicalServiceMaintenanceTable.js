@@ -2,7 +2,7 @@
   const components = (window.sapdComponents = window.sapdComponents || {});
   const utils = components.utils;
   const display = window.sapdDisplay || {};
-  const TABLE_STATE_KEY = "sapd:technical-service-maintenance-table:v1";
+  const TABLE_STATE_KEY = "sapd:technical-service-maintenance-table:v4";
   let pendingScrollRestore = true;
   let scrollSaveTimer = 0;
 
@@ -100,9 +100,12 @@
     }
   }
 
-  function expandedGroupSet() {
+  function expandedGroupState() {
     const groups = readTableState().expandedGroups;
-    return new Set(Array.isArray(groups) ? groups.filter(Boolean) : []);
+    return {
+      expandedGroups: new Set(Array.isArray(groups) ? groups.filter(Boolean) : []),
+      hasSavedExpandedGroups: Array.isArray(groups),
+    };
   }
 
   function shouldExpandGroups(search) {
@@ -135,12 +138,12 @@
 
   function renderGroupedRows(rows, scopeGroups, selectedId, search) {
     const groups = utils.list(scopeGroups).length ? utils.list(scopeGroups) : [{ id: "ungrouped", label: "全部服务", count: utils.list(rows).length, rows }];
-    const expandedGroups = expandedGroupSet();
+    const { expandedGroups, hasSavedExpandedGroups } = expandedGroupState();
     const expandAll = shouldExpandGroups(search);
     return groups
       .map((group, index) => {
         const id = groupId(`technical-service-scope-${index}-${group.id || group.label}`);
-        const expanded = expandAll || expandedGroups.has(id);
+        const expanded = expandAll || !hasSavedExpandedGroups || expandedGroups.has(id);
         const serviceRows = utils.list(group.rows);
         return `
           <tr class="standard-group-row service-scope-table-group depth-0 ${expanded ? "expanded" : ""}" data-standard-group="${utils.escapeHtml(id)}">

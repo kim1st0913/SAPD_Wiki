@@ -40,6 +40,7 @@ const state = {
   activeEnvironmentTab: "topology",
   environmentReviewFilters: {
     query: "",
+    reviewMode: "environment",
     environment: "",
     segment: "",
     object: "",
@@ -54,8 +55,19 @@ const state = {
     duplicateServiceOnly: false,
     missingScopeOnly: false,
     relationIssueOnly: false,
+    topOnly: false,
+    possibleAliasOnly: false,
+    serviceExpansionOnly: false,
+    directoryMismatchOnly: false,
+    coverageGapOnly: false,
+    directoryQuery: "",
+    directoryDifference: "",
+    directorySystem: "",
+    directoryModule: "",
+    directoryService: "",
   },
   selectedEnvironmentReviewRowKey: "",
+  selectedEnvironmentReviewDirectoryKey: "",
   environmentCatalogCollapsed: false,
   selectedDevProcessId: null,
   selectedDataProcessId: null,
@@ -70,6 +82,7 @@ const state = {
   modelingPosterLightboxDragging: false,
   contentSlideScrollMode: "preserve",
   standardFrameworkLoads: new Map(),
+  standardFrameworkLoadErrors: new Map(),
   maintenanceSectionLoads: new Map(),
   loadedMaintenanceSections: new Set(),
   maintenanceSectionStaleReloads: new Set(),
@@ -2504,9 +2517,9 @@ const MAINTENANCE_PAGE_LOAD_CONTRACT = {
     supplementalSections: ["services", "scopes"],
   },
   "security-works": {
-    requiredPackages: ["capability"],
-    requiredSections: [],
-    supplementalPackages: [],
+    requiredPackages: [],
+    requiredSections: ["security-works"],
+    supplementalPackages: ["capability"],
     supplementalSections: [],
   },
   processes: {
@@ -2585,6 +2598,7 @@ function maintenanceRenderPackagesForPage(page) {
 
 const MAINTENANCE_SECTION_FIELDS = {
   scopes: ["scope_types"],
+  "security-works": ["security_works"],
   services: ["security_technical_services"],
   modules: ["security_technology_modules"],
   measures: ["security_technical_measures"],
@@ -2757,6 +2771,21 @@ function mergeLoadedStandardFrameworkTable(frameworkId, loadedTable) {
   };
 }
 
+function standardFrameworkLoadError(key) {
+  return state.standardFrameworkLoadErrors.get(key) || "";
+}
+
+function setStandardFrameworkLoadError(key, error) {
+  if (!key) return;
+  const message = error?.message || String(error || "标准 / 框架数据加载失败");
+  state.standardFrameworkLoadErrors.set(key, message);
+}
+
+function clearStandardFrameworkLoadError(key) {
+  if (!key) return;
+  state.standardFrameworkLoadErrors.delete(key);
+}
+
 function ensureStandardFrameworkTableLoaded(frameworkId, tableId) {
   const framework = loadedStandardFramework(frameworkId);
   const table = standardTableById(framework, tableId);
@@ -2765,13 +2794,22 @@ function ensureStandardFrameworkTableLoaded(frameworkId, tableId) {
   if (state.standardFrameworkLoads.has(loadKey)) return true;
   const dataClient = window.sapdDataClient;
   if (!dataClient?.getStandardFrameworkTable) return false;
-  const loadPromise = dataClient.getStandardFrameworkTable(frameworkId, tableId).then((envelope) => {
-    mergeLoadedStandardFrameworkTable(frameworkId, envelope?.data || table);
-    state.standardFrameworkLoads.delete(loadKey);
-    if (state.activeMaintenancePage === "standards" && state.activeStandardFramework === frameworkId && state.activeStandardTableId === tableId) {
-      renderMaintenance();
-    }
-  });
+  const loadPromise = dataClient
+    .getStandardFrameworkTable(frameworkId, tableId)
+    .then((envelope) => {
+      clearStandardFrameworkLoadError(loadKey);
+      mergeLoadedStandardFrameworkTable(frameworkId, envelope?.data || table);
+    })
+    .catch((error) => {
+      console.warn(`标准 / 框架表格加载失败：${loadKey}`, error);
+      setStandardFrameworkLoadError(loadKey, error);
+    })
+    .finally(() => {
+      state.standardFrameworkLoads.delete(loadKey);
+      if (state.activeMaintenancePage === "standards" && state.activeStandardFramework === frameworkId && state.activeStandardTableId === tableId) {
+        renderMaintenance();
+      }
+    });
   state.standardFrameworkLoads.set(loadKey, loadPromise);
   return true;
 }
@@ -4993,6 +5031,7 @@ function renderEnvironment() {
           reviewData: state.environmentManualReview,
           reviewFilters: state.environmentReviewFilters,
           selectedReviewRowKey: state.selectedEnvironmentReviewRowKey,
+          selectedReviewDirectoryKey: state.selectedEnvironmentReviewDirectoryKey,
         }) || emptyState("环境图谱组件未加载")
       }
     `,
@@ -5223,28 +5262,57 @@ function renderMaintenance() {
   if (state.activeMaintenancePage === "standards" && dataClient?.getStandardFramework) {
     const frameworkId = state.activeStandardFramework || "mlps-level-3";
     const loadedFramework = state.standards?.loadedFrameworks?.[frameworkId];
+    const frameworkLoadError = standardFrameworkLoadError(frameworkId);
+    if (!loadedFramework && frameworkLoadError) {
+      setHtml(
+        "sourceList",
+        `<div class="maintenance-empty-state">标准 / 框架数据加载失败：${escapeHtml(frameworkLoadError)}</div>`,
+      );
+      setText("sourceDetailType", "");
+      setHtml("sourceDetail", "");
+      return;
+    }
     if (!loadedFramework) {
       setHtml("sourceList", `<div class="maintenance-empty-state">正在加载 ${escapeHtml(frameworkId)} 标准 / 框架数据...</div>`);
       const existingLoad = state.standardFrameworkLoads.get(frameworkId);
       const loadPromise =
         existingLoad ||
-        dataClient.getStandardFramework(frameworkId).then((envelope) => {
-          state.standards = {
-            ...(state.standards || {}),
-            loadedFrameworks: {
-              ...(state.standards?.loadedFrameworks || {}),
-              [frameworkId]: envelope.data,
-            },
-          };
-          state.standardFrameworkLoads.delete(frameworkId);
-          if (state.activeMaintenancePage === "standards" && state.activeStandardFramework === frameworkId) renderMaintenance();
-        });
+        dataClient
+          .getStandardFramework(frameworkId)
+          .then((envelope) => {
+            clearStandardFrameworkLoadError(frameworkId);
+            state.standards = {
+              ...(state.standards || {}),
+              loadedFrameworks: {
+                ...(state.standards?.loadedFrameworks || {}),
+                [frameworkId]: envelope?.data || { id: frameworkId, rows: [], tabs: [], loaded: true },
+              },
+            };
+          })
+          .catch((error) => {
+            console.warn(`标准 / 框架加载失败：${frameworkId}`, error);
+            setStandardFrameworkLoadError(frameworkId, error);
+          })
+          .finally(() => {
+            state.standardFrameworkLoads.delete(frameworkId);
+            if (state.activeMaintenancePage === "standards" && state.activeStandardFramework === frameworkId) renderMaintenance();
+          });
       state.standardFrameworkLoads.set(frameworkId, loadPromise);
       return;
     }
     state.activeStandardTableId = activeStandardTableIdForFramework(loadedFramework);
     const activeTable = standardTableById(loadedFramework, state.activeStandardTableId);
     const activeTableLoading = ensureStandardFrameworkTableLoaded(frameworkId, state.activeStandardTableId);
+    const activeTableLoadError = standardFrameworkLoadError(`${frameworkId}:${state.activeStandardTableId}`);
+    if (activeTableLoadError) {
+      setHtml(
+        "sourceList",
+        `<div class="maintenance-empty-state">标准 / 框架表格加载失败：${escapeHtml(activeTableLoadError)}</div>`,
+      );
+      setText("sourceDetailType", "");
+      setHtml("sourceDetail", "");
+      return;
+    }
     if (activeTableLoading && activeTable && !standardTableHasRows(activeTable)) {
       setHtml("sourceList", `<div class="maintenance-empty-state">正在加载 ${escapeHtml(activeTable.title || frameworkId)} 数据...</div>`);
       setText("sourceDetailType", "");
@@ -5872,9 +5940,66 @@ function bindEvents() {
     renderEnvironment();
   });
   $("environmentDetail")?.addEventListener("click", (event) => {
+    const reviewModeButton = event.target.closest("[data-environment-review-mode]");
+    if (reviewModeButton) {
+      state.activeEnvironmentTab = "review";
+      state.environmentReviewFilters.reviewMode = reviewModeButton.dataset.environmentReviewMode || "environment";
+      state.selectedEnvironmentReviewRowKey = "";
+      state.selectedEnvironmentReviewDirectoryKey = "";
+      renderEnvironment();
+      return;
+    }
+    const reviewDirectoryClearButton = event.target.closest("[data-environment-review-clear-directory-filters]");
+    if (reviewDirectoryClearButton) {
+      state.activeEnvironmentTab = "review";
+      state.environmentReviewFilters = {
+        ...state.environmentReviewFilters,
+        reviewMode: "directory",
+        query: "",
+        directoryQuery: "",
+        directoryDifference: "",
+        directorySystem: "",
+        directoryModule: "",
+        directoryService: "",
+        possibleAliasOnly: false,
+        directoryMismatchOnly: false,
+        coverageGapOnly: false,
+      };
+      state.selectedEnvironmentReviewDirectoryKey = "";
+      renderEnvironment();
+      return;
+    }
+    const reviewDirectoryFilter = event.target.closest("[data-environment-review-directory-filter-name]");
+    if (reviewDirectoryFilter) {
+      state.activeEnvironmentTab = "review";
+      const filterName = reviewDirectoryFilter.dataset.environmentReviewDirectoryFilterName;
+      if (filterName) state.environmentReviewFilters[filterName] = reviewDirectoryFilter.dataset.environmentReviewDirectoryFilterValue || "";
+      const systemValue = reviewDirectoryFilter.dataset.environmentReviewDirectorySystemValue || "";
+      if (filterName === "directorySystem") {
+        state.environmentReviewFilters.directoryModule = "";
+        state.environmentReviewFilters.directoryService = "";
+      }
+      if (filterName === "directoryModule" && systemValue) {
+        state.environmentReviewFilters.directorySystem = systemValue;
+        state.environmentReviewFilters.directoryService = "";
+      }
+      state.environmentReviewFilters.reviewMode = "directory";
+      state.selectedEnvironmentReviewDirectoryKey = "";
+      renderEnvironment();
+      return;
+    }
+    const reviewDirectoryButton = event.target.closest("[data-environment-review-directory-key]");
+    if (reviewDirectoryButton) {
+      state.activeEnvironmentTab = "review";
+      state.environmentReviewFilters.reviewMode = "directory";
+      state.selectedEnvironmentReviewDirectoryKey = reviewDirectoryButton.dataset.environmentReviewDirectoryKey || "";
+      renderEnvironment();
+      return;
+    }
     const reviewRowButton = event.target.closest("[data-environment-review-row-key]");
     if (reviewRowButton) {
       state.activeEnvironmentTab = "review";
+      state.environmentReviewFilters.reviewMode = "environment";
       state.selectedEnvironmentReviewRowKey = reviewRowButton.dataset.environmentReviewRowKey || "";
       renderEnvironment();
       return;
@@ -5918,6 +6043,7 @@ function bindEvents() {
     if (reviewFilter && reviewFilter.closest("#environmentDetail")) {
       state.environmentReviewFilters[reviewFilter.dataset.environmentReviewFilter] = reviewFilter.value;
       state.selectedEnvironmentReviewRowKey = "";
+      state.selectedEnvironmentReviewDirectoryKey = "";
       renderEnvironment();
       return;
     }
@@ -5925,6 +6051,7 @@ function bindEvents() {
     if (reviewToggle) {
       state.environmentReviewFilters[reviewToggle.dataset.environmentReviewToggle] = Boolean(reviewToggle.checked);
       state.selectedEnvironmentReviewRowKey = "";
+      state.selectedEnvironmentReviewDirectoryKey = "";
       renderEnvironment();
       return;
     }
@@ -5938,6 +6065,7 @@ function bindEvents() {
     if (reviewFilter && reviewFilter.closest("#environmentDetail")) {
       state.environmentReviewFilters[reviewFilter.dataset.environmentReviewFilter] = reviewFilter.value;
       state.selectedEnvironmentReviewRowKey = "";
+      state.selectedEnvironmentReviewDirectoryKey = "";
       renderEnvironment();
       return;
     }

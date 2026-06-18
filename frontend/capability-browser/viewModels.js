@@ -2149,7 +2149,7 @@
         l2: l2Count,
         focuses: focusCount,
       },
-      emptyState: rows.length ? "" : "暂无安全能力清单数据，请确认 capability-tree.json 是否已导出安全能力和关注点。",
+      emptyState: rows.length ? "" : query ? "未找到匹配的安全能力，请调整搜索条件。" : "暂无安全能力清单数据，请确认 capability-tree.json 是否已导出安全能力和关注点。",
     };
   }
 
@@ -3949,9 +3949,8 @@
   function buildLifecycleNavigation(processes, search) {
     const query = normalizeSearch(search);
     return list(processes)
-      .filter((process) =>
-        includesSearch(
-          query,
+      .map((process) => {
+        const searchText = [
           process.code,
           process.title,
           process.description,
@@ -3963,18 +3962,48 @@
           ...list(process.development_technical_modules).map(titleOf),
           ...list(process.technology_modules).map(titleOf),
           ...list(process.technical_measures).map(titleOf),
-        ),
-      )
-      .map((process) => ({
-        id: process.id,
-        code: process.code || `AP-${String(process.order || "").padStart(2, "0")}`,
-        title: titleOf(process, "未命名阶段"),
-        description: businessText(process.goal || process.description, ""),
-        order: process.order || process.metadata?.order || "",
-        serviceCount: list(process.technical_services).length,
-        moduleCount: list(process.technology_modules).length,
-        measureCount: list(process.technical_measures).length,
-      }));
+        ].join(" ");
+        return {
+          id: process.id,
+          code: process.code || `AP-${String(process.order || "").padStart(2, "0")}`,
+          title: titleOf(process, "未命名阶段"),
+          description: businessText(process.goal || process.description, ""),
+          order: process.order || process.metadata?.order || "",
+          serviceCount: list(process.technical_services).length,
+          moduleCount: list(process.technology_modules).length,
+          measureCount: list(process.technical_measures).length,
+          searchText,
+        };
+      })
+      .filter((process) => includesSearch(query, process.searchText));
+  }
+
+  function lifecycleWorkbenchStageSearchText(lifecycleWorkbench, objectsById, stage) {
+    if (!stage?.id) return [stage?.code, stage?.title, stage?.description].join(" ");
+    const relationSets = [
+      ["contains_activity", "lifecycle_activity"],
+      ["contains_control", "lifecycle_control"],
+      ["belongs_to", "lifecycle_requirement", "source"],
+      ["applies_to_development_type", "software_development_type"],
+      ["maps_to_service", "security_technical_service"],
+      ["implemented_by_module", "security_technology_module"],
+      ["uses_measure", "security_technical_measure"],
+      ["uses_development_technical_service", "development_technical_service"],
+      ["uses_development_technical_module", "development_technical_module"],
+      ["contains_scene", "lifecycle_activity"],
+    ];
+    const related = relationSets.flatMap(([relationType, objectType, direction]) =>
+      direction === "source"
+        ? workbenchSources(lifecycleWorkbench, objectsById, stage.id, relationType, objectType)
+        : workbenchTargets(lifecycleWorkbench, objectsById, stage.id, relationType, objectType),
+    );
+    return [
+      stage.code,
+      stage.title,
+      stage.description,
+      stage.goal,
+      ...related.flatMap((item) => [item.code, item.title, item.name, item.description, item.category, item.objectKind]),
+    ].join(" ");
   }
 
   function buildLifecycleStageRows(processes) {
@@ -4101,11 +4130,12 @@
       .filter((stage) => !stage.lifecycleType || stage.lifecycleType === "application_security_development");
     const query = normalizeSearch(search);
     const navigationTree = stages
-      .filter((stage) => includesSearch(query, stage.code, stage.title, stage.description))
       .map((stage) => ({
         ...stage,
         order: stage.code,
-      }));
+        searchText: lifecycleWorkbenchStageSearchText(lifecycleWorkbench, objectsById, stage),
+      }))
+      .filter((stage) => includesSearch(query, stage.searchText));
     const selectedId = selectedProcessId && navigationTree.some((row) => row.id === selectedProcessId) ? selectedProcessId : navigationTree[0]?.id || null;
     const selectedStage = navigationTree.find((stage) => stage.id === selectedId) || navigationTree[0] || null;
     const stageActivities = selectedStage ? workbenchTargets(lifecycleWorkbench, objectsById, selectedStage.id, "contains_activity", "lifecycle_activity").map(compactLifecycleItem) : [];
@@ -4236,11 +4266,12 @@
       .filter((stage) => stage.lifecycleType === "data");
     const query = normalizeSearch(search);
     const navigationTree = stages
-      .filter((stage) => includesSearch(query, stage.code, stage.title, stage.description))
       .map((stage) => ({
         ...stage,
         order: stage.code,
-      }));
+        searchText: lifecycleWorkbenchStageSearchText(lifecycleWorkbench, objectsById, stage),
+      }))
+      .filter((stage) => includesSearch(query, stage.searchText));
     const selectedId = selectedProcessId && navigationTree.some((row) => row.id === selectedProcessId) ? selectedProcessId : navigationTree[0]?.id || null;
     const selectedStage = navigationTree.find((stage) => stage.id === selectedId) || navigationTree[0] || null;
     const scenes = selectedStage ? workbenchTargets(lifecycleWorkbench, objectsById, selectedStage.id, "contains_scene", "lifecycle_activity").map((scene) => ({ ...compactLifecycleItem(scene), objectKind: "数据处理场景" })) : [];

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SAPD Wiki 关系工作台</title>
     <base href="/" />
-    <link rel="stylesheet" href="./styles.css?v=environment-reimport-1-5-review-20260612-1" />
+    <link rel="stylesheet" href="./styles.css?v=global-search-20260617-9" />
     <link rel="stylesheet" href="./generated/environmentBasemap.css?v=environment-basemap-20260607-5" />
   </head>
   <body>
@@ -61,7 +61,8 @@
           </div>
           <div class="search-wrap">
             <span class="search-icon" aria-hidden="true">⌕</span>
-            <input id="searchInput" type="search" placeholder="搜索能力、对象、作用域、服务、流程或模块" />
+            <input id="searchInput" type="search" placeholder="全局搜索知识、能力、标准、指南" autocomplete="off" />
+            <button id="globalSearchActionButton" class="global-search-shortcut" type="button" title="聚焦全局搜索 / 打开搜索结果" aria-label="聚焦全局搜索或打开搜索结果">⌘K</button>
           </div>
           <div id="localModeStatus" class="topbar-status" aria-label="本地运行状态"></div>
           <div class="metrics" id="metrics"></div>
@@ -108,7 +109,7 @@
               <h2>当前关注点工作台</h2>
             </div>
             <div class="capability-workbench-tools">
-              <input id="capabilitySearchInput" type="search" placeholder="搜索能力、服务、作用域、流程、模块" />
+              <input id="capabilitySearchInput" type="search" placeholder="搜索能力、作用域、安全技术服务、流程或安全技术模块/措施" autocomplete="off" />
               <span class="filter-chip">关注点</span>
               <span class="filter-chip">服务</span>
               <span class="filter-chip">流程</span>
@@ -261,8 +262,8 @@
     </div>
     <script src="./dataClient.js?v=p0-baseline-canonical-correction-20260615-1"></script>
     <script src="./displayLabels.js?v=global-service-chip-text-20260611-1"></script>
-    <script src="./viewModels.js?v=technical-service-order-visibility-20260615-2"></script>
-    <script src="./components/AppShell.js?v=standard-canonical-name-20260615-1"></script>
+    <script src="./viewModels.js?v=global-search-20260617-9"></script>
+    <script src="./components/AppShell.js?v=global-search-20260617-9"></script>
     <script src="./components/StatusBadge.js"></script>
     <script src="./components/DimensionTree.js?v=capability-tree-l0-20260520-1"></script>
     <script src="./components/FocusOverview.js"></script>
@@ -273,7 +274,7 @@
     <script src="./components/EnvironmentScopeServiceMatrix.js?v=environment-n-to-one-rowspan-20260611-1"></script>
     <script src="./components/EnvironmentDataReviewTable.js?v=environment-reimport-1-5-review-20260612-1"></script>
     <script src="./components/EnvironmentDetailPanel.js"></script>
-    <script src="./components/ApplicationSecurityLifecycle.js?v=global-service-chip-text-20260611-1"></script>
+    <script src="./components/ApplicationSecurityLifecycle.js?v=global-search-20260617-9"></script>
     <script src="./components/MaintenanceNavigation.js"></script>
     <script src="./components/MaintenanceShell.js?v=knowledge-dictionary-label-20260601-1"></script>
     <script src="./components/CapabilityDirectoryMaintenanceTable.js?v=knowledge-collapsed-default-20260601-1"></script>
@@ -286,7 +287,7 @@
     <script src="./components/ApplicationSystemDirectoryTable.js?v=application-system-directory-20260525-1"></script>
     <script src="./components/LcapReferenceMaintenanceTable.js?v=annotation-global-20260605-7"></script>
     <script src="./components/StandardRoleReferenceTable.js?v=p0-baseline-canonical-correction-20260615-1"></script>
-    <script src="./components/StandardFrameworkTable.js?v=annotation-global-20260605-7"></script>
+    <script src="./components/StandardFrameworkTable.js?v=global-search-20260617-9"></script>
     <script src="./components/MaintenanceDetailPanel.js?v=annotation-global-20260605-7"></script>
     <script src="./components/TechnicalMeasureMaintenance.js"></script>
     <script src="./components/DetailInspector.js?v=annotation-global-20260605-7"></script>
@@ -294,6 +295,6 @@
     <script src="./components/EnvironmentBasemapViewer.js?v=environment-basemap-outer-extranet-20260612-1"></script>
     <script src="./generated/archimateNotationRegistry.generated.js?v=archimate-registry-derived-20260603-1"></script>
     <script src="./generated/environmentBasemap.generated.js?v=environment-basemap-20260607-5"></script>
-    <script src="./app.js?v=p0-baseline-canonical-correction-20260615-1"></script>
+    <script src="./app.js?v=global-search-20260617-9"></script>
   </body>
 </html>

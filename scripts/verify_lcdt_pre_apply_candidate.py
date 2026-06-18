@@ -67,6 +67,8 @@ BACKUP_PLAN_FILES = [
     "maintenance/measures.json",
 ]
 
+SOURCE_AUDIT_SHEETS = (LIFECYCLE_SHEET, MAPPING_SHEET)
+
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
@@ -115,7 +117,7 @@ def compare_workbooks(before_path: Path, after_path: Path, label: str) -> dict[s
     changed_cells: list[dict[str, Any]] = []
     changed_merged_ranges: list[dict[str, Any]] = []
     changed_sheets: set[str] = set()
-    all_sheets = sorted(set(before.sheetnames) | set(after.sheetnames))
+    all_sheets = [sheet for sheet in SOURCE_AUDIT_SHEETS if sheet in before.sheetnames or sheet in after.sheetnames]
     for sheet_name in all_sheets:
         if sheet_name not in before.sheetnames or sheet_name not in after.sheetnames:
             changed_sheets.add(sheet_name)
@@ -228,7 +230,7 @@ def scan_replacement_terms(before_path: Path, after_path: Path) -> dict[str, Any
     rows: list[dict[str, Any]] = []
     blocking: list[dict[str, Any]] = []
     review: list[dict[str, Any]] = []
-    for sheet_name in sorted(set(before.sheetnames) | set(after.sheetnames)):
+    for sheet_name in SOURCE_AUDIT_SHEETS:
         if sheet_name not in before.sheetnames or sheet_name not in after.sheetnames:
             continue
         ws_before = before[sheet_name]

@@ -123,7 +123,7 @@ input {
   height: 44px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 0 14px 0 42px;
+  padding: 0 70px 0 42px;
   background: var(--panel);
   outline: none;
 }
@@ -9635,6 +9635,7 @@ button.source-sheet-row.active,
   display: block;
 }
 
+.global-search-shortcut,
 .global-search kbd {
   position: absolute;
   top: 50%;
@@ -9647,6 +9648,20 @@ button.source-sheet-row.active,
   color: var(--soft);
   font-size: 11px;
   font-family: inherit;
+}
+
+.global-search-shortcut {
+  min-width: 40px;
+  height: 26px;
+  cursor: pointer;
+}
+
+.global-search-shortcut:hover,
+.global-search-shortcut:focus-visible {
+  border-color: var(--shell-primary);
+  background: var(--shell-surface);
+  color: var(--shell-primary);
+  outline: none;
 }
 
 .topbar-actions {
@@ -10145,6 +10160,7 @@ summary:focus-visible {
   height: 38px;
   border-color: var(--shell-line);
   border-radius: var(--radius);
+  padding-right: 66px;
   background: var(--shell-surface-soft);
   color: var(--shell-text);
   font-size: 13px;
@@ -10162,6 +10178,7 @@ summary:focus-visible {
   font-size: 17px;
 }
 
+.global-search-shortcut,
 .global-search kbd {
   right: 8px;
   border-color: var(--shell-line);
@@ -10170,6 +10187,132 @@ summary:focus-visible {
   color: var(--shell-soft);
   font-size: 10px;
   box-shadow: none;
+}
+
+.lifecycle-search-mark {
+  display: inline;
+  padding: 0 4px;
+  margin: 0 1px;
+  border-radius: 6px;
+  background-color: rgba(255, 232, 88, 0.78);
+  background-image:
+    linear-gradient(90deg, rgba(10, 132, 255, 0.1) 0%, transparent 36%, rgba(255, 255, 255, 0.28) 58%, transparent 100%),
+    linear-gradient(180deg, rgba(255, 252, 210, 0.76), rgba(255, 221, 59, 0.82));
+  background-repeat: no-repeat;
+  background-size: 100% 100%, 100% 100%;
+  color: inherit;
+  text-decoration: none;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  animation: annotationGlowSweep 1.15s ease-in-out 0s 1;
+  box-shadow:
+    0 0 0 1.5px rgba(10, 132, 255, 0.5),
+    0 0 0 4px rgba(10, 132, 255, 0.12);
+}
+
+.global-search-panel {
+  position: fixed;
+  z-index: 2000;
+  width: min(760px, calc(100vw - 32px));
+  max-height: min(520px, calc(100vh - 96px));
+  overflow: auto;
+  padding: 8px;
+  border: 1px solid var(--shell-line);
+  border-radius: var(--radius);
+  background: var(--shell-surface);
+  box-shadow: 0 18px 42px rgba(40, 57, 84, 0.16);
+}
+
+.global-search-state {
+  padding: 18px 16px;
+  color: var(--shell-soft);
+  font-size: 13px;
+  text-align: center;
+}
+
+.global-search-result-list {
+  display: grid;
+  gap: 4px;
+}
+
+.global-search-result {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--shell-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.global-search-result:hover,
+.global-search-result:focus-visible {
+  border-color: var(--shell-line);
+  background: var(--shell-surface-soft);
+  outline: none;
+}
+
+.global-search-result-type {
+  display: inline-flex;
+  min-width: 0;
+  justify-content: center;
+  padding: 3px 7px;
+  border-radius: var(--radius);
+  background: var(--shell-surface-soft);
+  color: var(--shell-soft);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.global-search-result-main {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.global-search-result-main strong {
+  overflow: hidden;
+  color: var(--shell-text);
+  font-size: 13px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.global-search-result-main small {
+  overflow: hidden;
+  color: var(--shell-soft);
+  font-size: 12px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.global-search-target-highlight,
+.page-search-target-highlight {
+  position: relative;
+  outline: 0 !important;
+  border-radius: 7px;
+  background-color: rgba(255, 232, 88, 0.78) !important;
+  background-image:
+    linear-gradient(90deg, rgba(10, 132, 255, 0.1) 0%, transparent 36%, rgba(255, 255, 255, 0.28) 58%, transparent 100%),
+    linear-gradient(180deg, rgba(255, 252, 210, 0.76), rgba(255, 221, 59, 0.82)) !important;
+  background-repeat: no-repeat;
+  background-size: 100% 100%, 100% 100%;
+  text-decoration: none;
+  animation:
+    annotationGlowSweep 1.15s ease-in-out 0s 2,
+    annotationSoftPulse 1.65s ease-in-out 0s 1;
+  box-shadow:
+    0 0 0 2px rgba(10, 132, 255, 0.62),
+    0 0 0 6px rgba(10, 132, 255, 0.16),
+    0 5px 18px rgba(10, 132, 255, 0.15) !important;
 }
 
 .topbar-status .status-badge {

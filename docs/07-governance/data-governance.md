@@ -132,6 +132,220 @@ python3 scripts/prune_database_backups.py --apply
 node scripts/audit_dictionary_reference_consistency.mjs
 ```
 
+## 3.2 字典与标准框架只读基准保护规则
+
+`知识库字典` 与 `安全标准 / 框架` 是业务模块引用的只读基准，不是环境映射、能力映射、生命周期页面或临时核对表的反向写入目标。
+
+受保护数据包：
+
+- `frontend/capability-browser/public/data/maintenance-knowledge.json`
+- `frontend/capability-browser/public/data/maintenance/*`
+- `frontend/capability-browser/public/data/source-evidence/maintenance/*`
+- `frontend/capability-browser/public/data/lifecycle-knowledge.json` 中的应用系统目录
+- `frontend/capability-browser/public/data/standards-index.json`
+- `frontend/capability-browser/public/data/standards-data.json`
+- `frontend/capability-browser/public/data/standards/*`
+
+执行规则：
+
+- 业务模块只能引用、映射或生成差异报告，不得把业务模块的推断结果写回上述基准包。
+- 调整字典或标准框架数据必须有用户明确授权；未授权时，只能输出 issue / findings / audit report。
+- `coverage gap`、别名、跨表不一致和选择性引用不等于错误，不得自动补齐到基准包。
+- 不允许用空数组 fallback 掩盖导出失败；数据包文件存在但核心数组为 0 必须视为基准完整性问题。
+- 不允许用 `bootstrap-local-data --profile core --reset` 或 core-only 导出覆盖已存在的字典 / 标准 / 生命周期保护基线；当前 CLI 已默认拦截该操作。确需执行时，必须先取得用户明确授权，使用 `--allow-protected-baseline-reset`，并保留自动备份和后续审计结果。
+- 当前 SQLite 若缺少 `work_function_layer`、`process_reference`、`application_system_type`、`standard_control` 等保护类型，不得作为重新生成字典 / 标准基准包的来源。
+- 每次数据导入、导出、重导入或正式前端数据包替换后，必须执行：
+
+```bash
+python3 scripts/audit_dictionary_standard_baseline_integrity.py
+```
+
+如果该脚本出现 `errors>0`，不得继续交付；如果出现 `current_database_missing_protected_baseline_type` 警告，说明当前前端包可能已恢复，但当前 SQLite 不足以重新导出这些基准包，后续导出前必须先确认恢复策略。
+
+## 3.3 P0 恢复收口与修改边界
+
+2026-06-15 已完成 `P0 Baseline Recovery Closure 1.5`，当前恢复状态已冻结为本地快照：
+
+- 快照目录：`data/exports/worker-verify/p0-recovery-stable-snapshot/`
+- Manifest：`data/exports/worker-verify/p0-recovery-stable-snapshot/snapshot-manifest.json`
+- 修改边界：`data/exports/worker-verify/p0-recovery-modification-boundary.md`
+- 根因分析：`data/exports/worker-verify/p0-root-cause-analysis.md`
+- 防复发方案：`data/exports/worker-verify/p0-prevention-plan.md`
+- 人工核对计划：`data/exports/worker-verify/p0-post-recovery-manual-validation-plan.md`
+- JSON 分拆边界审计：`python3 scripts/audit_json_package_boundary.py`
+
+收口后默认冻结规则：
+
+- `A 类 Protected Baseline`：知识库字典、安全标准 / 框架、能力 / 作用域 / 服务 / 模块 / 措施 / 管理工作 / 流程 / 职能 / 应用系统目录，只读引用，修改必须用户明确授权。
+- `B 类 Workbench Projection`：`capability-workbench.json`、`environment-workbench.json`、`lifecycle-workbench.json`、`capability-tree.json`、`environmentBasemap.node-details.json` 只允许确认后的定向重建，必须先备份、后 diff、再验证，不得反向写回基线。
+- `C 类 Review / Worker-verify`：`data/exports/worker-verify/*` 与 `frontend/capability-browser/public/data/review/*` 只能作为临时审计材料，不得进入正式业务页面或成为正式事实源。
+- `D 类禁止触碰数据`：原始 Excel、Draw.io / SVG、数据库 schema、胶囊样式、maturity / Phase 7 数据，除非用户明确授权，否则不得修改。
+
+在完成人工数据准确性核对前，不建议继续 Environment Mapping Triage、正式 UI 字段对齐、maturity、新页面功能或视觉修复。
+
+### 3.3.1 P0 Runtime Baseline Freeze 1.0
+
+2026-06-15 已完成 `P0 Recovery Runtime Baseline Freeze 1.0`，当前前端冻结 JSON 固化为运行基线：
+
+- 冻结目录：`data/exports/worker-verify/p0-runtime-baseline-freeze/`
+- Manifest：`data/exports/worker-verify/p0-runtime-baseline-freeze/runtime-baseline-manifest.json`
+- 计数报告：`data/exports/worker-verify/p0-runtime-baseline-freeze/runtime-baseline-counts.md`
+- 风险边界：`data/exports/worker-verify/p0-runtime-baseline-freeze/runtime-baseline-risk-boundary.md`
+- 后续原始数据修改流程：`data/exports/worker-verify/p0-runtime-baseline-freeze/future-source-data-change-procedure.md`
+- 生成脚本：`scripts/build_p0_runtime_baseline_freeze.py`
+
+运行基线结论：
+
+- 前端冻结 JSON：当前可运行基线，已人工基本通过。
+- 页面运行态：恢复完成。
+- 当前 SQLite：1.2 已按用户批准替换为 reconciled candidate，6 类受保护类型已补齐并通过替换后审计。
+- `OI-140`：P0 事故已止血，运行基线冻结和 SQLite Source-of-Truth Reconciliation 已完成；关闭前只读巡检通过，当前已关闭。
+
+关键计数：
+
+| 指标 | 当前值 |
+|---|---:|
+| `securityWorks` | 80 |
+| `securityProcesses` | 10 |
+| `workFunctionLayers` | 4 |
+| `securityTechnicalMeasures` | 30 |
+| `standards.controls` | 4893 |
+| `managementMapping` | 613 |
+| `standardMapping` | 4033 |
+| `lifecycle.relations` | 542 |
+| `standards.frameworks` | 7 |
+
+后续原始数据修改必须遵守 `future-source-data-change-procedure.md`：用户明确修改项、确认原始表 / 字段 / 关系、判断是否影响 Protected Baseline 与 Workbench Projection、只读审计、候选导入 / 候选 JSON / 候选 workbench、normalized diff、人工确认、备份当前正式数据、定向替换、内容级 smoke、更新 runtime baseline manifest。
+
+禁止事项：
+
+- 全量导入、全量导出、全量恢复。
+- 从不完整 SQLite 生成正式包。
+- 用业务映射反向改字典 / 标准。
+- 忽略 Excel merged ranges；合并单元格是业务关系边界。
+- 新增复杂导入条件判断，除非先形成明确业务规则和审计样例。
+
+## 3.4 P0 Source-of-Truth Reconciliation 1.0
+
+2026-06-15 已完成只读事实源对账：
+
+- 对账报告：`data/exports/worker-verify/p0-source-of-truth-reconciliation/p0-source-of-truth-reconciliation-report.md`
+- 候选库：`data/exports/worker-verify/p0-source-of-truth-reconciliation/protected-baseline-reconciled-candidate.sqlite`
+- 候选导出：`data/exports/worker-verify/p0-source-of-truth-reconciliation/exports-candidate-sqlite/`
+
+本轮边界：
+
+- 不替换 `data/database/sapd_wiki.sqlite3`。
+- 不覆盖 `frontend/capability-browser/public/data`。
+- 不修改正式页面、原始 Excel、Draw.io / SVG 或数据库 schema。
+- 候选库只作为审计材料，不能自动成为正式事实源。
+
+对账结论：
+
+- 当前 SQLite 缺 6 类受保护基线：`work_function_layer`、`work_function`、`security_work`、`process_reference`、`application_system_type`、`standard_control`。
+- 候选库从 2026-06-01 备份补入当前缺失的 reconciliation 范围对象后，针对候选库执行 `audit_dictionary_standard_baseline_integrity.py --db ...candidate.sqlite` 已返回 `errors=0 warnings=0`。
+- `P0 Baseline Canonical Data Correction 1.1` 已按用户确认把 4 个生命周期来源安全技术措施正式补入前端维护基线，当前正式前端维护包 `maintenance.security_technical_measures=30`；新增项为 `IaC代码安全测试`、`制品安全加固`、`应用程序威胁建模`、`数据销毁`。
+- 这 4 个差异不再对应旧 B 类误恢复风险；当前 SQLite 曾缺 6 类受保护基线，后续已在 `P0 Source-of-Truth Reconciliation 1.2` 经用户批准、备份和替换后补齐。
+
+后续若进入 `P0 Source-of-Truth Reconciliation 1.1`，必须由用户明确批准，并至少满足：
+
+- 确认是否用 reconciliation 候选库修复当前 SQLite 的 6 类受保护基线缺口。
+- 替换前再次备份当前 SQLite。
+- 用候选库导出到隔离目录，normalized diff 通过后才允许替换。
+- 替换后立即运行 protected baseline 审计、JSON 分拆边界审计、内容级 smoke 和 GitHub 数据边界检查。
+
+### 3.4.1 P0 Source-of-Truth Reconciliation 1.1
+
+2026-06-15 已完成 `P0 Source-of-Truth Reconciliation 1.1`，只生成隔离候选库、候选导出和 normalized diff；未替换当前 SQLite，未覆盖正式 `frontend/capability-browser/public/data`。
+
+- 输出目录：`data/exports/worker-verify/p0-source-of-truth-reconciliation-1.1/`
+- 候选库：`data/exports/worker-verify/p0-source-of-truth-reconciliation-1.1/protected-baseline-reconciled-candidate.sqlite`
+- 候选库 hash：`7880968a6d10cf2ed4d4b3546329098d555ca265e5965c2f3e23327c058fc8eb`
+- 候选导出：`data/exports/worker-verify/p0-source-of-truth-reconciliation-1.1/exports-candidate-sqlite/`
+- 2026-06-01 备份：`data/database/backups/sapd_wiki-before-cleanup-20260601-current.sqlite3`
+- 2026-06-01 备份 hash：`d78d974ef1479609218ba42de5e6cbeab4d832fb3872dee9e2f0de0fac3ec4a7`
+
+候选库补齐结果：
+
+| 类型 | 当前 SQLite | 2026-06-01 备份 | 候选库 |
+|---|---:|---:|---:|
+| `work_function_layer` | 0 | 4 | 4 |
+| `work_function` | 0 | 86 | 86 |
+| `security_work` | 0 | 80 | 80 |
+| `process_reference` | 0 | 78 | 78 |
+| `application_system_type` | 0 | 3 | 3 |
+| `standard_control` | 0 | 3416 | 3416 |
+
+Normalized diff 结论：
+
+| 对比 | count diff | key-set diff |
+|---|---:|---:|
+| 当前 SQLite 导出 vs 运行冻结 JSON | 2 | 19 |
+| 2026-06-01 备份导出 vs 运行冻结 JSON | 0 | 0 |
+| 候选库导出 vs 运行冻结 JSON | 0 | 0 |
+
+候选 readiness：`ready_for_manual_approval`。
+
+说明：
+
+- 候选导出阶段仅在 `worker-verify` 隔离目录内按候选库 `standard_framework` 标题同步标准 canonical title，不修改正式标准数据包。
+- 候选库 baseline audit 返回 `errors=0 warnings=0`。
+- 候选导出 JSON boundary audit 返回 `errors=0 warnings=0`。
+- 1.1 阶段未自动替换当前 SQLite；该候选库已在 1.2 阶段经用户明确批准后用于正式 SQLite 替换。
+
+### 3.4.2 P0 Source-of-Truth Reconciliation 1.2
+
+2026-06-15 用户明确批准后，已完成 `P0 Source-of-Truth Reconciliation 1.2`：用 1.1 reconciled candidate 替换当前正式 SQLite，并完成替换后完整审计。
+
+替换边界：
+
+- 替换对象：`data/database/sapd_wiki.sqlite3`
+- 候选库：`data/exports/worker-verify/p0-source-of-truth-reconciliation-1.1/protected-baseline-reconciled-candidate.sqlite`
+- 替换前备份：`data/exports/worker-verify/p0-source-of-truth-reconciliation-1.2/pre-replacement-backup/sapd_wiki.before-p0-sotr-1.2.20260615-162417.sqlite3`
+- 替换报告：`data/exports/worker-verify/p0-source-of-truth-reconciliation-1.2/sqlite-replacement-report.md`
+- 替换后审计报告：`data/exports/worker-verify/p0-source-of-truth-reconciliation-1.2/post-replacement-baseline-audit.md`
+- 正式 JSON hash check：`data/exports/worker-verify/p0-source-of-truth-reconciliation-1.2/post-replacement-json-hash-check.md`
+- 内容级 smoke：`data/exports/worker-verify/p0-source-of-truth-reconciliation-1.2/post-replacement-content-smoke-report.md`
+
+SQLite hash：
+
+| name | sha256 |
+|---|---|
+| currentBefore | `52470cbd6fd7cb15852fba352705dd6f028b21f06ffa580cbf7f6edcd5c49f0b` |
+| candidate | `7880968a6d10cf2ed4d4b3546329098d555ca265e5965c2f3e23327c058fc8eb` |
+| backup | `52470cbd6fd7cb15852fba352705dd6f028b21f06ffa580cbf7f6edcd5c49f0b` |
+| currentAfter | `7880968a6d10cf2ed4d4b3546329098d555ca265e5965c2f3e23327c058fc8eb` |
+
+替换后受保护类型计数：
+
+| 类型 | 替换后计数 |
+|---|---:|
+| `work_function_layer` | 4 |
+| `work_function` | 86 |
+| `security_work` | 80 |
+| `process_reference` | 78 |
+| `application_system_type` | 3 |
+| `standard_control` | 3416 |
+
+替换后审计结论：
+
+- `audit_dictionary_standard_baseline_integrity.py`：`pass`，`errors=0 warnings=0`
+- `audit_protected_baseline_no_regression.py`：`pass`，`errors=0 warnings=0`
+- `audit_json_package_boundary.py`：`pass`，`errors=0 warnings=0`
+- 正式 JSON hash check：`pass`，runtime baseline JSON hash 全部一致。
+- 内容级 smoke：`pass`，代表对象均为 `dataState=ready`，关键计数保持 `securityWorks=80`、`securityTechnicalMeasures=30`、`securityProcesses=10`、`managementMapping=613`、`standardMapping=4033`、`standards.controls=4893`、`lifecycle.relations=542`。
+
+安全边界：
+
+- 已替换正式 SQLite，且替换前已完成备份。
+- 未覆盖正式 `frontend/capability-browser/public/data`。
+- 未执行全量 `public/data` 导出。
+- 未执行 `bootstrap-local-data --profile core --reset`。
+- 未恢复 Environment Mapping 写入线。
+- 未修改前端 UI。
+
+治理结论：`OI-140` 已关闭。当前运行基线与 SQLite 导出基线已对齐；后续任何原始数据修改、导入、导出或 workbench 重建，都必须先基于 runtime baseline 生成候选包和 normalized diff，不允许全量重导或直接覆盖，且不能绕过备份、人工确认、定向替换和内容级 smoke。后续恢复 Environment Mapping 时必须基于当前 runtime baseline，不得触碰字典、标准、LC、能力基线。
+
 ## 4. Work Function 主数据规则
 
 `安全工作职能清单` 是工作职能主数据来源。

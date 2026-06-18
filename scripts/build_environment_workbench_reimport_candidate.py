@@ -21,6 +21,7 @@ SCRIPTS_DIR = PROJECT_ROOT / "scripts"
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
+from audit_environment_module_catalog_consistency import read_module_catalog
 from audit_scope_service_module_mapping import compare_relations, current_environment_relations, load_json, relation_identity
 
 OUTPUT_DIR = PROJECT_ROOT / "data" / "exports" / "worker-verify"
@@ -28,6 +29,7 @@ NORMALIZED_ROWS_PATH = OUTPUT_DIR / "scope-service-module-mapping-normalized-row
 RELATIONS_PATH = OUTPUT_DIR / "scope-service-module-mapping-relations.json"
 AUDIT_PATH = OUTPUT_DIR / "scope-service-module-mapping-reimport-audit.json"
 CURRENT_ENVIRONMENT_WORKBENCH = PROJECT_ROOT / "frontend" / "capability-browser" / "public" / "data" / "environment-workbench.json"
+DEFAULT_WORKBOOK = PROJECT_ROOT / "data" / "raw-samples" / "wiki sample.xlsx"
 
 
 def text(value: Any) -> str:
@@ -137,6 +139,50 @@ def filtered_relations(relations: dict[str, list[dict[str, Any]]], blocked_conte
         name: [row for row in rows if not relation_is_blocked(row, blocked_contexts)]
         for name, rows in relations.items()
     }
+
+
+def authoritative_module_system_relations(relations: dict[str, list[dict[str, Any]]], workbook_path: Path) -> list[dict[str, Any]]:
+    catalog_relations, _catalog_summary = read_module_catalog(workbook_path)
+    module_systems: dict[str, dict[str, dict[str, Any]]] = defaultdict(dict)
+    for item in catalog_relations:
+        module_title = text(item.get("securityTechnologyModule"))
+        system_title = text(item.get("securitySystem"))
+        if not module_title or not system_title:
+            continue
+        module_systems[module_title][system_title] = {
+            "title": system_title,
+            "category": text(item.get("securitySystemCategory")),
+            "sourceRows": sorted(set(module_systems[module_title].get(system_title, {}).get("sourceRows", []) + [item.get("sourceRow")])),
+            "sourceCells": item.get("sourceCells") or {},
+            "mergedRanges": item.get("mergedRanges") or {},
+        }
+
+    output: dict[str, dict[str, Any]] = {}
+    for row in relations.get("serviceModuleRelations", []):
+        module_title = text((row.get("module") or {}).get("title"))
+        if not module_title:
+            continue
+        for system_title, system_payload in module_systems.get(module_title, {}).items():
+            key = relation_key(row.get("informationEnvironment"), row.get("environmentSegment"), row.get("informationObject"), module_title, system_title)
+            payload = output.setdefault(
+                key,
+                {
+                    "informationEnvironment": row.get("informationEnvironment"),
+                    "environmentSegment": row.get("environmentSegment"),
+                    "informationObject": row.get("informationObject"),
+                    "module": {"title": module_title, "raw": (row.get("module") or {}).get("raw", "")},
+                    "securitySystem": {"title": system_title, "category": system_payload.get("category", "")},
+                    "authoritySource": "安全技术模块清单",
+                    "authoritySourceRows": system_payload.get("sourceRows", []),
+                    "authoritySourceCells": system_payload.get("sourceCells", {}),
+                    "authorityMergedRanges": system_payload.get("mergedRanges", {}),
+                    "rows": [],
+                },
+            )
+            for source_row in row.get("rows", []):
+                if source_row not in payload["rows"]:
+                    payload["rows"].append(source_row)
+    return list(output.values())
 
 
 def candidate_objects_and_rows(relations: dict[str, list[dict[str, Any]]]) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
@@ -445,6 +491,7 @@ def build_candidate(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str,
 
     resolution, blocked_contexts = duplicate_resolution(audit)
     candidate_relations = filtered_relations(relations, blocked_contexts)
+    candidate_relations["moduleSystemRelations"] = authoritative_module_system_relations(candidate_relations, PROJECT_ROOT / args.catalog_workbook)
     objects, environment_rows, scope_service_rows = candidate_objects_and_rows(candidate_relations)
     relation_rows = candidate_relation_rows(candidate_relations)
     blocked_rows = [row for row in normalized_rows if object_context_key(row) in blocked_contexts]
@@ -544,6 +591,8 @@ def build_candidate(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str,
             "replacementStatus": "candidate_only_not_public",
             "objectInstanceUniqueKey": "informationEnvironment + environmentSegment + informationObject",
             "duplicateObjectPolicy": "block_duplicate_context_only; same_name_different_context_is_info",
+            "moduleSystemAuthority": "安全技术模块清单",
+            "scopeMappingSheetRole": "作用域表只提供对象-服务-模块/措施使用关系；安全技术模块主数据和模块-安全系统归属不从作用域表 H 列生成。",
         },
         "objects": objects,
         "relations": relation_rows,
@@ -566,6 +615,7 @@ def main() -> int:
     parser.add_argument("--relations", default="data/exports/worker-verify/scope-service-module-mapping-relations.json")
     parser.add_argument("--audit", default="data/exports/worker-verify/scope-service-module-mapping-reimport-audit.json")
     parser.add_argument("--current-environment-workbench", default="frontend/capability-browser/public/data/environment-workbench.json")
+    parser.add_argument("--catalog-workbook", default="data/raw-samples/wiki sample.xlsx")
     parser.add_argument("--output-dir", default="data/exports/worker-verify")
     args = parser.parse_args()
 

@@ -216,14 +216,41 @@ function validateLocalPackages() {
 
   const cacheVersion = "p0-baseline-canonical-correction-20260615-1";
   const technicalServiceOrderVisibilityVersion = "technical-service-order-visibility-20260615-2";
+  const searchStateIsolationVersion = "global-search-20260617-9";
+  const globalSearchVersion = "global-search-20260617-9";
   assert(indexHtml.includes(`dataClient.js?v=${cacheVersion}`), "index.html does not cache-bust dataClient.js for P0 capability work recovery");
-  assert(indexHtml.includes(`viewModels.js?v=${technicalServiceOrderVisibilityVersion}`), "index.html does not cache-bust viewModels.js for technical service order visibility fix");
+  assert(indexHtml.includes(`viewModels.js?v=${searchStateIsolationVersion}`), "index.html does not cache-bust viewModels.js for search state isolation fix");
   assert(indexHtml.includes(`StandardRoleReferenceTable.js?v=${cacheVersion}`), "index.html does not cache-bust security work table component for P0 capability work recovery");
-  assert(indexHtml.includes(`app.js?v=${cacheVersion}`), "index.html does not cache-bust app.js for P0 capability work recovery");
+  assert(indexHtml.includes(`app.js?v=${globalSearchVersion}`), "index.html does not cache-bust app.js for global search implementation");
+  assert(indexHtml.includes(`AppShell.js?v=${globalSearchVersion}`), "index.html does not cache-bust AppShell.js for global search implementation");
+  assert(indexHtml.includes(`styles.css?v=${globalSearchVersion}`), "index.html does not cache-bust styles.css for global search implementation");
+  assert(indexHtml.includes(`ApplicationSecurityLifecycle.js?v=${globalSearchVersion}`), "index.html does not cache-bust ApplicationSecurityLifecycle.js for lifecycle search implementation");
+  assert(indexHtml.includes(`StandardFrameworkTable.js?v=${globalSearchVersion}`), "index.html does not cache-bust StandardFrameworkTable.js for standard search reveal anchors");
   assert(indexHtml.includes(`TechnicalServiceMaintenanceTable.js?v=${technicalServiceOrderVisibilityVersion}`), "index.html does not cache-bust TechnicalServiceMaintenanceTable.js for technical service order visibility fix");
   const viewModelsSource = readFrontendFile("viewModels.js");
+  const appSource = readFrontendFile("app.js");
+  const lifecycleComponentSource = readFrontendFile("components/ApplicationSecurityLifecycle.js");
+  const stylesSource = readFrontendFile("styles.css");
   const technicalServiceComparator = viewModelsSource.match(/function compareTechnicalServiceRows\([\s\S]*?\n  \}/)?.[0] || "";
   assert(!/\b(?:sortOrder|sourceOrder|order)\b[\s\S]{0,80}\|\|\s*(?:999999|Infinity|0|null)/.test(technicalServiceComparator), "technical service comparator must not use truthy OR fallback for order fields");
+  assert(viewModelsSource.includes("function lifecycleWorkbenchStageSearchText"), "lifecycle stage search must build text from stage cell content");
+  assert(viewModelsSource.includes("uses_development_technical_module"), "lifecycle stage search must include development technical module workbench relations");
+  assert(appSource.includes('["development_technical_modules", "开发技术模块"]'), "global search must index LC-AP development technical modules");
+  assert(appSource.includes("search: state.devLifecycleStageSearch"), "LC-AP local search must use dedicated lifecycle search state");
+  assert(lifecycleComponentSource.includes("row.searchText"), "lifecycle navigation search must include stage searchText");
+  assert(lifecycleComponentSource.includes("lifecycle-search-mark"), "lifecycle search must visibly highlight matched cell text");
+  assert(stylesSource.includes(".lifecycle-search-mark") && stylesSource.includes("annotationGlowSweep"), "lifecycle search highlight must reuse the annotation highlight visual baseline");
+  assert(stylesSource.includes(".global-search-target-highlight") && stylesSource.includes("annotationSoftPulse"), "global search target highlight must reuse the annotation active highlight visual baseline");
+  assert(appSource.includes("function lifecycleSearchValueTargetElement"), "global search result activation must prefer lifecycle matched values");
+  assert(appSource.includes("function globalSearchTextTargetElement"), "global search result activation must fall back to current-page text targets");
+  assert(appSource.includes("function activeGlobalSearchRootElement"), "global search text fallback must be scoped to the active workspace");
+  assert(appSource.includes("return globalSearchTextTargetElement(result);"), "global search target resolution must not stop at route-only activation");
+  assert(appSource.includes("function queuePageSearchReveal") && appSource.includes("function revealPageSearchTarget"), "page search boxes must queue content-level reveal after rendering");
+  assert(appSource.includes("page-search-target-highlight") && stylesSource.includes(".page-search-target-highlight"), "page search matches must use a visible target highlight");
+  assert(appSource.includes("queuePageSearchReveal(event.target.value, \"development-security\")") && appSource.includes("queuePageSearchReveal(event.target.value, \"data-security\")"), "LC-AP and LC-DT page search boxes must reveal matched content");
+  assert(appSource.includes("clearGlobalSearchPanel({ keepQuery: true })") && appSource.includes("setScopedSearch(activationQuery)"), "global search activation must keep the search query and pass it to page search");
+  assert(appSource.includes("data-standard-row-text") && readFrontendFile("components/StandardFrameworkTable.js").includes("data-standard-row-text"), "standard/framework search must expose row-level anchors for clause reveal");
+  assert(indexHtml.includes('id="globalSearchActionButton"'), "global search shortcut affordance must be an actionable button");
 
   assert(list(maintenance.security_works).length > 0, "maintenance-knowledge.security_works is empty");
   validateTechnicalMeasures({ maintenance, technicalMeasures, maintenanceIndex });
@@ -248,6 +275,11 @@ function validateLocalPackages() {
   assert(Number(lifecycle.stats?.application_processes || 0) > 0, "LC-AP lifecycle processes are empty");
   assert(Number(lifecycle.stats?.data_processes || 0) > 0, "LC-DT lifecycle processes are empty");
   assert(Number(lifecycleWorkbench.meta?.stats?.relations || 0) > 0, "lifecycle-workbench relations are empty");
+  const lcapProcesses = list(lifecycle?.application_security_development?.processes);
+  const lifecycleJiraProcess = lcapProcesses.find((process) =>
+    list(process?.development_technical_modules).some((module) => text(module?.title || module?.name) === "Jira"),
+  );
+  assert(lifecycleJiraProcess, "LC-AP source package must contain Jira in development technical modules");
 
   const viewModelSmoke = validateSecurityWorkViewModel({ capabilityTree, maintenance });
   const technicalServiceSmoke = validateTechnicalServiceCatalogViewModel({ capabilityTree, maintenance });

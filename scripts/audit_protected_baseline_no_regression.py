@@ -18,6 +18,11 @@ SECURITY_TECHNICAL_SERVICE_UPDATE_RESULT = (
     / "security-technical-service-update"
     / "security-technical-service-update-apply-result.json"
 )
+PROTECTED_GLOBAL_REFERENCE_FIX_APPLY_DIR = (
+    OUTPUT_DIR
+    / "protected-dictionary-standard-global-audit"
+    / "formal-apply"
+)
 CONFIRMED_LIFECYCLE_SECURITY_TECHNICAL_MEASURES = {
     "应用程序威胁建模": "LC-AP 应用安全开发生命周期 R5 / AP-02 架构设计",
     "制品安全加固": "LC-AP 应用安全开发生命周期 R7 / AP-04 集成构建",
@@ -60,6 +65,16 @@ def standard_rows(path: Path) -> int:
     if isinstance(tabs, list):
         rows += sum(list_count(tab.get("rows")) for tab in tabs if isinstance(tab, dict))
     return rows
+
+
+def latest_global_reference_fix_report() -> tuple[dict[str, Any], Path | None]:
+    if not PROTECTED_GLOBAL_REFERENCE_FIX_APPLY_DIR.exists():
+        return {}, None
+    reports = sorted(PROTECTED_GLOBAL_REFERENCE_FIX_APPLY_DIR.glob("*/protected-global-reference-fix-apply-report.json"))
+    if not reports:
+        return {}, None
+    report_path = reports[-1]
+    return read_json(report_path), report_path
 
 
 def audit() -> dict[str, Any]:
@@ -141,6 +156,7 @@ def audit() -> dict[str, Any]:
     }
     current_hashes = {name: sha256(path) for name, path in protected_paths.items()}
     service_update_result = read_json(SECURITY_TECHNICAL_SERVICE_UPDATE_RESULT)
+    global_reference_fix_result, global_reference_fix_report_path = latest_global_reference_fix_report()
     service_update_paths = {
         item.get("path")
         for item in service_update_result.get("backups", [])
@@ -166,6 +182,26 @@ def audit() -> dict[str, Any]:
                             "current": current_hash,
                             "approvedBy": "security-technical-service-update-apply-result",
                             "applyResult": str(SECURITY_TECHNICAL_SERVICE_UPDATE_RESULT.relative_to(ROOT)),
+                        }
+                    )
+                    continue
+                global_reference_files = {
+                    item.get("file")
+                    for item in global_reference_fix_result.get("fileReports", [])
+                    if isinstance(item, dict) and item.get("changed")
+                }
+                if (
+                    global_reference_fix_result.get("status") == "applied"
+                    and protected_rel in global_reference_files
+                    and global_reference_fix_report_path is not None
+                ):
+                    approved_hash_changes.append(
+                        {
+                            "file": name,
+                            "previousExpected": expected_hash,
+                            "current": current_hash,
+                            "approvedBy": "protected-dictionary-standard-global-reference-fix",
+                            "applyResult": str(global_reference_fix_report_path.relative_to(ROOT)),
                         }
                     )
                     continue

@@ -8,7 +8,7 @@ const sourcePath = path.join(root, "docs/06-implementation/open-issues.md");
 const indexPath = path.join(root, "docs/06-implementation/open-issues-index.md");
 const archiveDir = path.join(root, "docs/05-archive/open-issues-history");
 const archivePath = path.join(archiveDir, "2026-06.md");
-const closedStatuses = new Set(["已修复", "业务接受", "已回退", "已修复，后续可继续优化"]);
+const closedStatuses = new Set(["已修复", "已关闭", "业务接受", "已回退", "已修复，后续可继续优化"]);
 
 function escapeTable(value) {
   return String(value || "").replace(/\|/g, "\\|");
@@ -141,7 +141,7 @@ const archiveContent = [
   "本文件归档 `docs/06-implementation/open-issues.md` 中已关闭的问题长记录，生成日期：2026-06-01。",
   "",
   `- 归档数量：${allClosed.length}`,
-  "- 归档状态：`已修复`、`业务接受`、`已回退`、`已修复，后续可继续优化`",
+  "- 归档状态：`已修复`、`已关闭`、`业务接受`、`已回退`、`已修复，后续可继续优化`",
   "- 当前入口：`docs/06-implementation/open-issues.md`",
   "- 全量索引：`docs/06-implementation/open-issues-index.md`",
   "",

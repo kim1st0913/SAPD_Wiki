@@ -59,18 +59,6 @@ def _is_lcap_development_type_fill(cell: object) -> bool:
         return False
 
 
-LCAP_TECHNICAL_MEASURE_TITLES = {
-    "应用程序威胁建模",
-    "应用程序静态安全测试（安全函数和组件库）",
-    "制品安全加固",
-    "IaC代码安全测试",
-}
-
-DATA_LIFECYCLE_TECHNICAL_MEASURE_TITLES = {
-    "数据销毁",
-}
-
-
 def _lcap_authoritative_module_title(value: str, authoritative_module_titles: set[str]) -> str | None:
     """Resolve LC-AP module aliases to the existing security technology module master data."""
     title = normalize_text(value)
@@ -512,25 +500,38 @@ def parse_module_sheet(workbook, authoritative_service_titles: dict[str, str] | 
     sheet_name = "安全技术模块清单"
     ws = workbook[sheet_name]
     result = ParseResult()
+    merged_values = _merged_cell_values(ws)
     last_category = ""
     last_system = ""
     last_module = ""
     last_definition = ""
     last_product = ""
     for row_index, row in enumerate(ws.iter_rows(min_row=3), start=3):
-        if _is_numeric_summary_value(row[2].value) or _is_numeric_summary_value(row[3].value):
+        category_raw = normalize_text(_cell_raw_with_merged(row, 1, merged_values))
+        system_raw = normalize_text(_cell_raw_with_merged(row, 2, merged_values))
+        module_raw = normalize_text(_cell_raw_with_merged(row, 3, merged_values))
+        definition_raw = normalize_text(_cell_raw_with_merged(row, 4, merged_values))
+        product_raw = normalize_text(_cell_raw_with_merged(row, 6, merged_values))
+        service_raw = _cell_raw_with_merged(row, 5, merged_values)
+        explicit_module_anchor = bool(normalize_text(row[3].value))
+        if _is_numeric_summary_value(system_raw) or _is_numeric_summary_value(module_raw):
             continue
-        if normalize_text(row[1].value):
-            last_category = normalize_text(row[1].value)
-        if normalize_text(row[2].value):
-            last_system = normalize_text(row[2].value)
-        if normalize_text(row[3].value):
-            last_module = normalize_text(row[3].value)
-        if normalize_text(row[4].value):
-            last_definition = normalize_text(row[4].value)
-        if normalize_text(row[6].value):
-            last_product = normalize_text(row[6].value)
-        service_raw = row[5].value
+        if category_raw:
+            last_category = category_raw
+        if explicit_module_anchor:
+            last_system = system_raw
+            last_module = module_raw
+            last_definition = definition_raw
+            last_product = product_raw
+        else:
+            if system_raw:
+                last_system = system_raw
+            if module_raw:
+                last_module = module_raw
+            if definition_raw:
+                last_definition = definition_raw
+            if product_raw:
+                last_product = product_raw
         if not last_module:
             continue
         system = _object(
@@ -580,6 +581,7 @@ def parse_scene_sheet(
     sheet_name = "作用域-安全技术服务-安全技术模块映射"
     ws = workbook[sheet_name]
     result = ParseResult()
+    merged_values = _merged_cell_values(ws)
     authoritative_module_titles = authoritative_module_titles or set()
     authoritative_scope_titles = authoritative_scope_titles or {}
     last_environment = ""
@@ -594,12 +596,17 @@ def parse_scene_sheet(
     last_module_cell: str | None = None
     last_module_is_scene_module = False
     for row_index, row in enumerate(ws.iter_rows(min_row=3), start=3):
-        if normalize_text(row[1].value):
-            last_environment = normalize_text(row[1].value)
-        if normalize_text(row[2].value):
-            last_segment = normalize_text(row[2].value)
+        environment_raw = normalize_text(_cell_raw_with_merged(row, 1, merged_values))
+        segment_raw = normalize_text(_cell_raw_with_merged(row, 2, merged_values))
+        object_raw = normalize_text(_cell_raw_with_merged(row, 3, merged_values))
+        scope_raw = normalize_text(_cell_raw_with_merged(row, 4, merged_values))
+        system_raw = normalize_text(_cell_raw_with_merged(row, 7, merged_values))
+        if environment_raw:
+            last_environment = environment_raw
+        if segment_raw:
+            last_segment = segment_raw
         if normalize_text(row[3].value):
-            last_object = normalize_text(row[3].value)
+            last_object = object_raw
             last_service_raw = ""
             last_service_cell = None
             last_module_raw = ""
@@ -607,10 +614,10 @@ def parse_scene_sheet(
             last_module_is_scene_module = False
             last_system = ""
             last_system_cell = None
-        if normalize_text(row[4].value):
-            last_scopes = normalize_text(row[4].value)
-        if normalize_text(row[7].value):
-            last_system = normalize_text(row[7].value)
+        if scope_raw:
+            last_scopes = scope_raw
+        if system_raw:
+            last_system = system_raw
             last_system_cell = _coord(row[7])
         module_raw = row[6].value
         module_cell = _coord(row[6])
@@ -889,6 +896,8 @@ def _append_lcap_module_or_measure(
     authoritative_module_titles: set[str],
 ) -> None:
     normalized_module = normalize_text(module_title)
+    if not normalized_module or normalized_module == "\\":
+        return
     authoritative_module = _lcap_authoritative_module_title(normalized_module, authoritative_module_titles)
     if authoritative_module:
         module = _object(
@@ -899,25 +908,15 @@ def _append_lcap_module_or_measure(
         result.objects.append(module)
         result.relations.append(_relation(process.key, "uses_module", module.key, "关联安全技术模块", source=module.sources[0]))
         return
-    if normalized_module in LCAP_TECHNICAL_MEASURE_TITLES:
-        measure = _object(
-            "security_technical_measure",
-            normalized_module,
-            category="安全技术措施",
-            metadata={"lifecycle_type": "application_security_development", "process_title": process_title},
-            source=_source(sheet_name, row_index, "安全技术模块", _coord(cell), module_title),
-        )
-        result.objects.append(measure)
-        result.relations.append(_relation(process.key, "uses_measure", measure.key, "关联安全技术措施", source=measure.sources[0]))
-        return
-    result.validations.append(
-        ValidationMessage(
-            "warning",
-            sheet_name,
-            row_index,
-            f"LC-AP 安全技术模块未匹配安全技术模块清单：{normalized_module}（阶段：{process_title}）",
-        )
+    measure = _object(
+        "security_technical_measure",
+        normalized_module,
+        category="安全技术措施",
+        metadata={"lifecycle_type": "application_security_development", "process_title": process_title},
+        source=_source(sheet_name, row_index, "安全技术模块", _coord(cell), module_title),
     )
+    result.objects.append(measure)
+    result.relations.append(_relation(process.key, "uses_measure", measure.key, "关联安全技术措施", source=measure.sources[0]))
 
 
 def _build_work_function_lookup(workbook) -> dict[str, dict[str, str | None]]:
@@ -1404,7 +1403,10 @@ def parse_data_lifecycle_sheet(
 
         for module_raw in _split_lines(_cell_raw(row, 8)):
             module_title = normalize_text(module_raw)
-            if module_title in DATA_LIFECYCLE_TECHNICAL_MEASURE_TITLES:
+            if module_title == "\\":
+                continue
+            module_titles = _security_module_titles_from_catalog_alias(module_raw, authoritative_module_titles)
+            if not module_titles:
                 measure = _object(
                     "security_technical_measure",
                     module_title,
@@ -1413,10 +1415,6 @@ def parse_data_lifecycle_sheet(
                 )
                 result.objects.append(measure)
                 result.relations.append(_relation(measure.key, "maps_to_lifecycle", process.key, "映射到生命周期", source=measure.sources[0]))
-                continue
-            module_titles = _security_module_titles_from_catalog_alias(module_raw, authoritative_module_titles)
-            if not module_titles:
-                result.validations.append(ValidationMessage("warning", sheet_name, row_index, f"LC-DT 安全技术模块未匹配安全技术模块清单：{module_title}"))
                 continue
             for catalog_module_title in module_titles:
                 module = _object(
@@ -1510,7 +1508,8 @@ def parse_data_lifecycle_mapping_sheet(
             module_title = normalize_text(module_raw)
             if module_title == "\\":
                 continue
-            if module_title in DATA_LIFECYCLE_TECHNICAL_MEASURE_TITLES:
+            module_titles = _security_module_titles_from_catalog_alias(module_raw, authoritative_module_titles)
+            if not module_titles:
                 measure = _object(
                     "security_technical_measure",
                     module_title,
@@ -1521,10 +1520,6 @@ def parse_data_lifecycle_mapping_sheet(
                 result.relations.append(
                     _relation(measure.key, "maps_to_lifecycle", process.key, "映射到生命周期", source=measure.sources[0], metadata=relation_metadata)
                 )
-                continue
-            module_titles = _security_module_titles_from_catalog_alias(module_raw, authoritative_module_titles)
-            if not module_titles:
-                result.validations.append(ValidationMessage("warning", sheet_name, row_index, f"LC-DT 安全技术模块未匹配安全技术模块清单：{module_title}"))
                 continue
             for catalog_module_title in module_titles:
                 module = _object(

@@ -193,6 +193,9 @@ def style_evidence_payload(row_values: dict[str, dict[str, Any]]) -> dict[str, A
 
 
 def split_systems(value: Any) -> list[str]:
+    text = as_text(value)
+    if text == "监测、研判和响应":
+        return [text]
     return split_multivalue_text(value, split_on_ideographic_comma=True)
 
 

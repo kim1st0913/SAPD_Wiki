@@ -248,11 +248,11 @@
 
   function renderGlobalSearch() {
     return `
-      <label class="global-search" for="searchInput">
+      <div class="global-search" aria-label="全局搜索">
         <span class="search-icon" aria-hidden="true">⌕</span>
-        <input id="searchInput" type="search" placeholder="搜索知识、能力、标准、指南" autocomplete="off" />
-        <kbd>⌘K</kbd>
-      </label>
+        <input id="searchInput" type="search" placeholder="全局搜索知识、能力、标准、指南" autocomplete="off" />
+        <button id="globalSearchActionButton" class="global-search-shortcut" type="button" title="聚焦全局搜索 / 打开搜索结果" aria-label="聚焦全局搜索或打开搜索结果">⌘K</button>
+      </div>
     `;
   }
 

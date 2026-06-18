@@ -4,10 +4,10 @@
 
 ## 摘要
 
-- 生成日期：2026-06-01
-- 问题总数：138
-- 当前未关闭问题数：4
-- 已关闭归档问题数：134
+- 生成日期：2026-06-17
+- 问题总数：144
+- 当前未关闭问题数：9
+- 已关闭归档问题数：137
 - 当前入口：`docs/06-implementation/open-issues.md`
 - 已关闭归档：`docs/05-archive/open-issues-history/2026-06.md`
 
@@ -17,13 +17,18 @@
 |---|---:|
 | (空) | 1 |
 | 部分完成 | 1 |
+| 部分修复 / 待人工验收 | 1 |
+| 持续数据清理 / 待人工核对 | 1 |
 | 待确认 | 1 |
-| 待设计 | 1 |
-| 临时库 smoke 通过 / 真实迁移待确认 | 1 |
+| 待用户确认 / 候选包已生成 | 1 |
 | 业务接受 | 5 |
+| 已关闭 | 1 |
 | 已回退 | 1 |
 | 已修复 | 127 |
+| 已修复 / 待人工验收 | 2 |
+| 已修复 / 待页面验收 | 1 |
 | 已修复，后续可继续优化 | 1 |
+| 正式迁移脚本完成 / 真实库 apply 待显式确认 | 1 |
 
 ## 重复编号
 
@@ -39,6 +44,7 @@
 
 | 索引键 | 状态 | 标题 | 类型 | 位置 |
 |---|---|---|---|---|
+| OI-141 | 待用户确认 / 候选包已生成 | LC-DT 原始数据更新后的服务、模块与分类候选问题 | 数据 / ETL / 候选包 | docs/06-implementation/open-issues.md |
 | OI-001 | 已修复 | 关注点被误判为未挂接 | ETL | docs/05-archive/open-issues-history/2026-06.md |
 | OI-002 | 已修复 | `ALL&T-AD.IR-02` 与 `ALL&T-AD.IR-03` 源数据编码混淆 | 数据 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-003 | 已修复 | 左侧能力树编码和标题重叠 | 前端 | docs/05-archive/open-issues-history/2026-06.md |
@@ -60,7 +66,7 @@
 | OI-022 | 已修复 | 需要单独 Frontend Design Owner 接管前端设计 | 前端 / Agent 分工 / 需求 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-023 | 已修复 | 前端信息架构数据契约待确认 | 前端 / ETL / 需求 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-019 | 已修复 | 安全能力作用域目录需要按原始表格样式展示 | 前端 / 需求 | docs/05-archive/open-issues-history/2026-06.md |
-| OI-020 | 已修复 / 旧表已归档 | 旧环境作用域映射表曾缺少一级页面和连续映射展示 | ETL / 前端 / 需求 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-020 | 已修复 | 信息化环境-信息化对象-安全作用域映射缺少一级页面和连续映射展示 | ETL / 前端 / 需求 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-024 | 已修复 | 主控 Agent 过早判断子 Agent 无响应 | Agent 分工 / 治理 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-025 | 已修复 | 关系工作台需要支持人工调宽、表格筛选和作用域清单核对 | 前端 / 需求 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-026 | 已修复 | 前端页面不应展示原始数据来源 | 前端 / 需求 | docs/05-archive/open-issues-history/2026-06.md |
@@ -173,7 +179,13 @@
 | OI-132 | 已修复 | 安全能力映射页数据加载稳定性与空态可信度治理 | 前端 / 数据契约 / 验证 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-134 | 已修复 | 安全能力 T-AD.SA 权威名称缺少“能力”后缀 | 数据 / 前端 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-136 | 已修复 | 深层路由直接访问未加载前端样式 | 前端 / 路由 / 交付体验 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-140 | 已关闭 | 知识库字典与安全标准 / 框架基准包被 core-only 导出覆盖 | 数据 / ETL / 前端数据包 / 治理 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-139 | 持续数据清理 / 待人工核对 | 作用域-安全技术服务-安全技术模块映射导入关系与当前 JSON 投影不一致 | 数据 / ETL / 投影 | docs/06-implementation/open-issues.md |
+| OI-138 | 部分修复 / 待人工验收 | 关注点关系图谱标签与节点 / 连线碰撞 | 前端 / 图谱布局 / 设计 | docs/06-implementation/open-issues.md |
+| OI-137 | 已修复 / 待人工验收 | 信息化环境首页需导入 draw.io 第三页实例底图 | 前端 / 设计 / Draw.io 导入 | docs/06-implementation/open-issues.md |
 | OI-038 | 待确认 | Gartner 与安全职能候选映射需后续人工校对 | 数据 / 需求 | docs/06-implementation/open-issues.md |
 | OI-128 | 部分完成 | USER-WRITE-UI-1：批注 / 工作台用户写入入口 | 前端 / 用户数据 / Delivery Bundle | docs/06-implementation/open-issues.md |
-| OI-133 | 待设计 | ArchiMate 建模语言页显示效果与加载效率优化 | 前端 / 设计 / 性能 | docs/06-implementation/open-issues.md |
-| OI-135 | 临时库 smoke 通过 / 真实迁移待确认 | 用户库治理与兼容表迁移清理 | 数据 / 前端 / Delivery Bundle / 治理 | docs/06-implementation/open-issues.md |
+| OI-133 | 已关闭 | ArchiMate 建模语言页显示效果与加载效率优化 | 前端 / 设计 / 性能 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-135 | 正式迁移脚本完成 / 真实库 apply 待显式确认 | 用户库治理与兼容表迁移清理 | 数据 / 前端 / Delivery Bundle / 治理 | docs/06-implementation/open-issues.md |
+| OI-143 | 已关闭 | 安全技术服务字典更新后运行包和派生产物仍有旧服务引用 | 数据 / ETL / 引用一致性 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-144 | 已修复 / 待页面验收 | 全局搜索与页面内搜索状态串线 | 前端 / 交互 / 状态管理 | docs/06-implementation/open-issues.md |

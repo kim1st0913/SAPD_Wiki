@@ -299,7 +299,7 @@
     `;
   }
 
-  function renderReviewTab({ reviewData, reviewFilters, selectedReviewRowKey } = {}) {
+  function renderReviewTab({ reviewData, reviewFilters, selectedReviewRowKey, selectedReviewDirectoryKey } = {}) {
     if (!components.EnvironmentDataReviewTable?.render) {
       return '<div class="reference-empty">环境映射人工核对组件未加载。</div>';
     }
@@ -307,10 +307,11 @@
       reviewData,
       filters: reviewFilters,
       selectedRowKey: selectedReviewRowKey,
+      selectedDirectoryRelationKey: selectedReviewDirectoryKey,
     });
   }
 
-  function render({ viewModel, selectedRowId = "", selectedEnvironmentId = "", selectedSegmentId = "", selectedObjectId = "", search = "", activeTab = "topology", expandedIds, catalogCollapsed = false, reviewData = null, reviewFilters = {}, selectedReviewRowKey = "" } = {}) {
+  function render({ viewModel, selectedRowId = "", selectedEnvironmentId = "", selectedSegmentId = "", selectedObjectId = "", search = "", activeTab = "topology", expandedIds, catalogCollapsed = false, reviewData = null, reviewFilters = {}, selectedReviewRowKey = "", selectedReviewDirectoryKey = "" } = {}) {
     const normalizedActiveTab = activeTab === "mapping" || activeTab === "review" ? activeTab : "topology";
     const showMapping = normalizedActiveTab === "mapping";
     const showReview = normalizedActiveTab === "review";
@@ -327,7 +328,7 @@
             ${renderMappingTab({ viewModel, selectedRowId, selectedEnvironmentId, selectedSegmentId, selectedObjectId, search, expandedIds, catalogCollapsed })}
           </div>
           <div class="environment-tab-panel environment-tab-panel-review">
-            ${renderReviewTab({ reviewData, reviewFilters, selectedReviewRowKey })}
+            ${renderReviewTab({ reviewData, reviewFilters, selectedReviewRowKey, selectedReviewDirectoryKey })}
           </div>
         </div>
       </section>

@@ -7,6 +7,7 @@
   const escapeHtml = (value) => utils.escapeHtml(value);
   const titleOf = (item, fallback = "/") => utils.titleOf(item, fallback);
   const EMPTY_VALUE = "/";
+  let activeHighlightQuery = "";
 
   function splitLines(value) {
     if (Array.isArray(value)) return value.flatMap(splitLines);
@@ -57,13 +58,35 @@
     return ` data-annotation-value="true" data-copy-text="${escaped}" title="${escaped}" data-annotation-tooltip="${escaped}"`;
   }
 
+  function highlightText(value) {
+    const raw = String(value || "");
+    const query = String(activeHighlightQuery || "").trim();
+    if (!query) return escapeHtml(raw);
+    const lowerRaw = raw.toLowerCase();
+    const lowerQuery = query.toLowerCase();
+    if (!lowerQuery || !lowerRaw.includes(lowerQuery)) return escapeHtml(raw);
+    let cursor = 0;
+    let output = "";
+    while (cursor < raw.length) {
+      const index = lowerRaw.indexOf(lowerQuery, cursor);
+      if (index < 0) {
+        output += escapeHtml(raw.slice(cursor));
+        break;
+      }
+      output += escapeHtml(raw.slice(cursor, index));
+      output += `<mark class="lifecycle-search-mark">${escapeHtml(raw.slice(index, index + query.length))}</mark>`;
+      cursor = index + query.length;
+    }
+    return output;
+  }
+
   function renderFieldLine(line) {
     const numbered = line.match(/^(\d+['’′]?)[).）、]\s*(.+)$/);
     if (numbered) {
       return `
         <span class="lifecycle-field-line is-numbered"${annotationValueAttrs(line)}>
           <span class="line-marker">${escapeHtml(numbered[1])}</span>
-          <span class="line-text">${escapeHtml(numbered[2])}</span>
+          <span class="line-text">${highlightText(numbered[2])}</span>
         </span>
       `;
     }
@@ -72,13 +95,13 @@
     if (term) {
       return `
         <span class="lifecycle-field-line is-term"${annotationValueAttrs(line)}>
-          <span class="line-term">${escapeHtml(term[1])}</span>
-          <span class="line-text">${escapeHtml(term[2])}</span>
+          <span class="line-term">${highlightText(term[1])}</span>
+          <span class="line-text">${highlightText(term[2])}</span>
         </span>
       `;
     }
 
-    return `<span class="lifecycle-field-line"${annotationValueAttrs(line)}><span class="line-text">${escapeHtml(line)}</span></span>`;
+    return `<span class="lifecycle-field-line"${annotationValueAttrs(line)}><span class="line-text">${highlightText(line)}</span></span>`;
   }
 
   function renderMainActivityLine(line) {
@@ -94,11 +117,11 @@
 
   function renderMainActivityText(text) {
     const match = String(text || "").match(/^([^：:\[]+)([：:\[].*)?$/);
-    if (!match) return escapeHtml(text);
+    if (!match) return highlightText(text);
     const title = match[1].trim();
     const suffix = match[2] || "";
-    if (!isSecurityMainActivityTitle(title)) return escapeHtml(text);
-    return `<span class="security-main-activity-title">${escapeHtml(title)}</span>${escapeHtml(suffix)}`;
+    if (!isSecurityMainActivityTitle(title)) return highlightText(text);
+    return `<span class="security-main-activity-title">${highlightText(title)}</span>${highlightText(suffix)}`;
   }
 
   function isSecurityMainActivityTitle(title) {
@@ -135,7 +158,7 @@
     if (!items.length) return `<span class="empty-inline">${EMPTY_VALUE}</span>`;
     return `
       <div class="lifecycle-inline-chips ${escapeHtml(tone)}">
-        ${items.map((item) => `<span class="lifecycle-chip-item"${annotationValueAttrs(item.label)}><em>${escapeHtml(item.label)}</em></span>`).join("")}
+        ${items.map((item) => `<span class="lifecycle-chip-item"${annotationValueAttrs(item.label)}><em>${highlightText(item.label)}</em></span>`).join("")}
       </div>
     `;
   }
@@ -177,14 +200,14 @@
     const code = isBusinessText(item.code) ? item.code : "";
     const title = isBusinessText(item.title) ? item.title : "";
     if (!code && !title) return "";
-    if (display.relationChip) {
+    if (display.relationChip && !activeHighlightQuery) {
       return display.relationChip(utils, { ...item, code, title, objectKind }, { kind: objectKind, showKind: true, preferCodeTitle: true });
     }
     const kindClass = objectKind.includes("措施") ? "measure-chip" : objectKind.includes("模块") ? "module-chip" : objectKind.includes("服务") ? "service-chip" : "";
     const visibleText = [code, title].filter(Boolean).join(" ");
     const isService = objectKind.includes("服务");
     const annotationText = [isService ? "" : objectKind, visibleText].filter(Boolean).join(" | ");
-    return `<span class="relation-chip technical-chip ${kindClass}"${annotationValueAttrs(annotationText)}>${objectKind && !isService ? `<em>${escapeHtml(objectKind)}</em>` : ""}<span class="relation-chip-text">${escapeHtml(visibleText)}</span></span>`;
+    return `<span class="relation-chip technical-chip ${kindClass}"${annotationValueAttrs(annotationText)}>${objectKind && !isService ? `<em>${escapeHtml(objectKind)}</em>` : ""}<span class="relation-chip-text">${highlightText(visibleText)}</span></span>`;
   }
 
   function renderDataScenarioList(scenes) {
@@ -555,12 +578,15 @@
   }
 
   function renderNavigation({ stageTree, navigationTree, selectedProcessId, search = "", kind = "dev" }) {
+    const previousHighlightQuery = activeHighlightQuery;
+    activeHighlightQuery = search;
     const query = String(search || "").trim().toLowerCase();
     const rows = list(stageTree || navigationTree).filter((row) => {
       if (!query) return true;
-      return [titleOf(row, ""), row.code, row.order].map((value) => String(value || "")).join(" ").toLowerCase().includes(query);
+      return [titleOf(row, ""), row.code, row.order, row.searchText].map((value) => String(value || "")).join(" ").toLowerCase().includes(query);
     });
     if (!rows.length) {
+      activeHighlightQuery = previousHighlightQuery;
       return `
         <div class="lifecycle-stage-empty">
           <strong>没有匹配阶段</strong>
@@ -578,29 +604,33 @@
     const maxTitleUnits = Math.max(...stageMeta.map((item) => textUnits(item.title)), 0);
     const maxCodeUnits = Math.max(...stageMeta.map((item) => textUnits(item.code)), 0);
     const tabWidth = Math.ceil(Math.max(maxTitleUnits * 15, maxCodeUnits * 8) + 58);
-    return `
+    const html = `
       ${stageMeta
         .map(({ row, code, title }) => {
           return `
             <button class="lifecycle-nav-row ${row.id === selectedProcessId ? "active" : ""}" type="button" data-lifecycle-kind="${escapeHtml(kind)}" data-lifecycle-id="${escapeHtml(row.id)}" style="--stage-tab-width: ${tabWidth}px;">
-              <span class="stage-tab-code">${escapeHtml(code)}</span>
-              <strong>${escapeHtml(title)}</strong>
+              <span class="stage-tab-code">${highlightText(code)}</span>
+              <strong>${highlightText(title)}</strong>
             </button>
           `;
         })
         .join("")}
     `;
+    activeHighlightQuery = previousHighlightQuery;
+    return html;
   }
 
   function renderStageOverview(viewModel) {
     return "";
   }
 
-  function renderRelationTable({ rows, profileRows, policyRows, overview }) {
+  function renderRelationTable({ rows, profileRows, policyRows, overview, searchQuery = "" }) {
+    const previousHighlightQuery = activeHighlightQuery;
+    activeHighlightQuery = searchQuery;
     const relationRows = list(rows);
     const allProfileRows = list(profileRows).length ? list(profileRows) : relationRows;
     const selectedStageId = relationRows[0]?.stageId || "";
-    return `
+    const html = `
       <section class="semantic-panel lifecycle-relation-section">
         <div class="lifecycle-record-scroll">
           ${
@@ -613,6 +643,8 @@
         </div>
       </section>
     `;
+    activeHighlightQuery = previousHighlightQuery;
+    return html;
   }
 
   function renderLocalRelationNotes(notes) {

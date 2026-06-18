@@ -359,12 +359,13 @@
       .map((row) => {
         const tone = activeFrameworkId === "nist-csf-2" ? csfTone(row) : "";
         const active = selectedId && row.id === selectedId;
+        const rowText = [row.id, ...tableColumns.map((column) => row.values?.[column])].map((value) => utils.text(value)).filter(Boolean).join(" ");
         return `
-          <tr class="maintenance-data-row standard-group-detail ${tone ? `csf-row csf-${tone}` : ""} ${active ? "active" : ""}"${parentAttr}${lineageAttr}${hiddenAttr} data-maintenance-id="${utils.escapeHtml(row.id || "")}">
+          <tr class="maintenance-data-row standard-group-detail ${tone ? `csf-row csf-${tone}` : ""} ${active ? "active" : ""}"${parentAttr}${lineageAttr}${hiddenAttr} data-maintenance-id="${utils.escapeHtml(row.id || "")}" data-standard-row-text="${utils.escapeHtml(rowText)}">
             ${tableColumns
               .map(
                 (column) =>
-                  `<td class="${columnClass(column)}" data-column="${utils.escapeHtml(column)}">${renderCell(column, row.values?.[column], focusByCode, { activeFrameworkId, tableId })}</td>`,
+                  `<td class="${columnClass(column)}" data-column="${utils.escapeHtml(column)}" data-copy-text="${utils.escapeHtml(row.values?.[column] || "")}">${renderCell(column, row.values?.[column], focusByCode, { activeFrameworkId, tableId })}</td>`,
               )
               .join("")}
           </tr>
@@ -423,7 +424,7 @@
               focusByCode,
             });
         return `
-          <tr class="standard-group-row depth-${group.depth} ${expanded ? "expanded" : ""}" data-standard-group="${utils.escapeHtml(groupId)}"${parentAttr}${lineageAttr}${hiddenAttr}>
+          <tr class="standard-group-row depth-${group.depth} ${expanded ? "expanded" : ""}" data-standard-group="${utils.escapeHtml(groupId)}" data-copy-text="${utils.escapeHtml([group.label, group.description].filter(Boolean).join(" "))}"${parentAttr}${lineageAttr}${hiddenAttr}>
             <td colspan="${tableColumns.length}">
               <button class="standard-group-toggle" type="button" aria-expanded="${expanded ? "true" : "false"}">
                 <span class="standard-group-caret">›</span>

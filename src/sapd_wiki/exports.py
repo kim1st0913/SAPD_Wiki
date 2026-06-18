@@ -128,11 +128,13 @@ LIFECYCLE_RELATION_TYPES = (
 
 STAKEHOLDER_LAYERS = ("决策层", "管理层", "执行层", "监督层")
 
+MODULE_CATALOG_SHEET = "安全技术模块清单"
 SCENE_TECHNICAL_MAPPING_SHEET = "作用域-安全技术服务-安全技术模块映射"
 DATA_LIFECYCLE_POLICY_MAPPING_SHEET = "LC-DT 安全技术服务、模块、策略映射表"
 TECHNICAL_MEASURE_SOURCE_COLUMN = "安全技术模块/措施"
 MAINTENANCE_KNOWLEDGE_FIELDS = (
     "scope_types",
+    "security_works",
     "security_processes",
     "work_function_layers",
     "security_technical_services",
@@ -165,6 +167,12 @@ MAINTENANCE_SECTION_CONFIGS = (
         "title": "安全技术措施清单",
         "fields": ("security_technical_measures",),
         "route": "/knowledge/technical",
+    },
+    {
+        "id": "security-works",
+        "title": "安全工作清单",
+        "fields": ("security_works",),
+        "route": "/knowledge/management-workflows",
     },
     {
         "id": "processes",
@@ -348,7 +356,7 @@ def _brief_item_sources(item: dict[str, Any], source_refs: dict[str, list[dict[s
     sources = source_refs.get(item["id"], [])
     if item.get("type") not in {"security_system", "security_technology_module"}:
         return sources[:limit]
-    preferred_sheets = ("安全技术模块清单",)
+    preferred_sheets = (MODULE_CATALOG_SHEET,)
     sheet_rank = {sheet: index for index, sheet in enumerate(preferred_sheets)}
 
     def sort_key(source: dict[str, Any]) -> tuple[int, int, int, str, str]:
@@ -1636,11 +1644,6 @@ def _measure_category_status(name: str, style: str, was_note_wrapper: bool = Fal
     return None, "normal"
 
 
-def _is_empty_security_system_value(value: object) -> bool:
-    text = _normalize_measure_name(value).upper()
-    return is_blank_or_placeholder(value) or text in {"N/A", "NA"}
-
-
 def _scope_value_with_service_scope(scope_raw: object, service_raw: object) -> str:
     scope_text = str(scope_raw or "").strip()
     service_scope = service_parts(service_raw).get("scope_code")
@@ -1751,8 +1754,6 @@ def _scene_measure_candidates_from_xlsx(path: Path) -> list[dict[str, Any]]:
         if is_blank_or_placeholder(raw_measure) and inherited_values["G"]:
             raw_measure = inherited_values["G"]
             style = _technical_measure_style(inherited_fills.get("G", {}))
-        if not style and raw_measure and _is_empty_security_system_value(inherited_values.get("H")):
-            style = "measure"
         if not style:
             continue
         if is_blank_or_placeholder(raw_measure):
@@ -2242,10 +2243,12 @@ def export_management_knowledge(
     tasks = {item_id: item for item_id, item in items.items() if item["type"] == "work_task"}
     gbt_refs = {item_id: item for item_id, item in items.items() if item["type"] == "gbt_42446_task_reference"}
     gartner_roles = {item_id: item for item_id, item in items.items() if item["type"] == "work_role_reference"}
+    security_works = {item_id: item for item_id, item in items.items() if item["type"] == "security_work"}
     process_domains = {item_id: item for item_id, item in items.items() if item["type"] == "process_domain"}
     process_groups = {item_id: item for item_id, item in items.items() if item["type"] == "process_group"}
     process_references = {item_id: item for item_id, item in items.items() if item["type"] == "process_reference"}
     process_activities = {item_id: item for item_id, item in items.items() if item["type"] == "process_activity"}
+    capability_focuses = {item_id: item for item_id, item in items.items() if item["type"] == "capability_focus"}
     scope_types = {item_id: item for item_id, item in items.items() if item["type"] == "scope_type"}
     technical_services = {item_id: item for item_id, item in items.items() if item["type"] == "security_technical_service"}
     technology_modules = {item_id: item for item_id, item in items.items() if item["type"] == "security_technology_module"}
@@ -2276,6 +2279,7 @@ def export_management_knowledge(
     process_reference_to_group: dict[str, str] = {}
     activities_by_process_reference: dict[str, list[str]] = {}
     stakeholders_by_process: dict[str, list[str]] = {}
+    focuses_by_security_work: dict[str, list[str]] = {}
     segment_to_environment: dict[str, str] = {}
     object_to_segments: dict[str, list[str]] = {}
     services_by_scope: dict[str, list[str]] = {}
@@ -2318,6 +2322,8 @@ def export_management_knowledge(
             activities_by_process_reference.setdefault(source_id, []).append(target_id)
         elif relation_type == "stakeholder_by" and source_type == "process_reference" and target_type == "work_function":
             stakeholders_by_process.setdefault(source_id, []).append(target_id)
+        elif relation_type == "maps_to_work" and source_type == "capability_focus" and target_type == "security_work":
+            focuses_by_security_work.setdefault(target_id, []).append(source_id)
         elif relation_type == "belongs_to" and source_type == "environment_segment" and target_type == "information_environment":
             segment_to_environment[source_id] = target_id
         elif relation_type == "belongs_to" and source_type == "information_object":
@@ -2595,6 +2601,14 @@ def export_management_knowledge(
         domain_payload["groups"] = sorted(groups_for_domain, key=lambda item: _source_position_key(refs.get(item.get("id") or ""), (process_catalog_sheet,)))
         security_processes.append(domain_payload)
 
+    security_work_payloads = []
+    for item in _sort_item_rows(list(security_works.values())):
+        payload_item = _brief_item(item, refs) or {}
+        focus_payloads = _brief_many(capability_focuses, focuses_by_security_work.get(item["id"], []), refs)
+        payload_item["focuses"] = focus_payloads
+        payload_item["focus_count"] = len(focus_payloads)
+        security_work_payloads.append(payload_item)
+
     def brief_many(source: dict[str, dict[str, Any]], item_ids: list[str]) -> list[dict[str, Any]]:
         return [
             _brief_item(source[item_id], refs) or {}
@@ -2610,6 +2624,18 @@ def export_management_knowledge(
 
     def relation_sources(source_id: str, relation_type: str, target_id: str) -> list[dict[str, Any]]:
         return relation_sources_by_key.get((source_id, relation_type, target_id), [])
+
+    def relation_target_ids_from_sheet(
+        source_id: str,
+        relation_type: str,
+        target_ids: list[str],
+        sheet: str,
+    ) -> list[str]:
+        return [
+            target_id
+            for target_id in target_ids
+            if _source_rows_for_sheet(relation_sources(source_id, relation_type, target_id), sheet)
+        ]
 
     def item_sources(item_ids: list[str]) -> list[dict[str, Any]]:
         return _combine_sources(*(refs.get(item_id) for item_id in item_ids))
@@ -2708,9 +2734,18 @@ def export_management_knowledge(
     module_payloads = []
     for item in _sort_item_rows(list(technology_modules.values())):
         payload_item = _brief_item(item, refs) or {}
-        payload_item["services"] = brief_many(technical_services, services_by_module.get(item["id"], []))
-        payload_item["systems"] = brief_many(security_systems, systems_by_module.get(item["id"], []))
-        payload_item["products"] = brief_many(products, products_by_module.get(item["id"], []))
+        payload_item["services"] = brief_many(
+            technical_services,
+            relation_target_ids_from_sheet(item["id"], "implements_service", services_by_module.get(item["id"], []), MODULE_CATALOG_SHEET),
+        )
+        payload_item["systems"] = brief_many(
+            security_systems,
+            relation_target_ids_from_sheet(item["id"], "part_of_system", systems_by_module.get(item["id"], []), MODULE_CATALOG_SHEET),
+        )
+        payload_item["products"] = brief_many(
+            products,
+            relation_target_ids_from_sheet(item["id"], "maps_to_product", products_by_module.get(item["id"], []), MODULE_CATALOG_SHEET),
+        )
         payload_item["environments"] = brief_many(information_environments, environments_by_module.get(item["id"], []))
         module_payloads.append(payload_item)
     security_technical_services, _service_module_index_by_id = _build_service_module_index(conn)
@@ -2855,6 +2890,7 @@ def export_management_knowledge(
         "stats": {
             "work_function_layers": len(work_function_layers),
             "work_functions": len(functions),
+            "security_works": len(security_work_payloads),
             "process_domains": len(security_processes),
             "process_groups": sum(len(domain.get("groups", [])) for domain in security_processes),
             "process_references": sum(len(group.get("references", [])) for domain in security_processes for group in domain.get("groups", [])),
@@ -2878,6 +2914,7 @@ def export_management_knowledge(
             "environment_module_mappings": sum(environment["module_count"] for environment in environment_scope_tree),
         },
         "work_function_layers": work_function_layers,
+        "security_works": security_work_payloads,
         "security_processes": security_processes,
         "gbt_42446_references": gbt_42446_references,
         "gartner_roles": gartner_role_payloads,
@@ -4977,7 +5014,7 @@ def export_standard_frameworks_data(
 
     def public_data_path(path: Path) -> str:
         try:
-            relative = path.relative_to(FRONTEND_DATA_DIR)
+            relative = path.relative_to(output.parent)
             return f"./public/data/{relative.as_posix()}"
         except ValueError:
             return path.as_posix()

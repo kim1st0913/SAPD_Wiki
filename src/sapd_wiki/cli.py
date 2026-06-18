@@ -3,7 +3,9 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
+import subprocess
 import sys
+from datetime import datetime
 
 from .db import connect, run_migrations
 from .exports import (
@@ -77,6 +79,35 @@ BOOTSTRAP_OPTIONAL_INPUTS = [
     "data/raw-samples/drawio sample.drawio",
     "data/raw-samples/ds design/T00-面向业务的数据安全专项设计方法（V2.1）.pdf",
     "data/raw-samples/ds design/安全技术架构设计方法 V2.0.pdf",
+]
+
+PROTECTED_BASELINE_ITEM_TYPES = [
+    "work_function_layer",
+    "work_function",
+    "process_domain",
+    "process_group",
+    "security_process",
+    "process_reference",
+    "gbt_42446_reference",
+    "gartner_role",
+    "application_system_type",
+    "application_component",
+    "standard_framework",
+    "standard_control",
+]
+
+PROTECTED_FRONTEND_BASELINE_PATHS = [
+    "frontend/capability-browser/public/data/maintenance-knowledge.json",
+    "frontend/capability-browser/public/data/maintenance",
+    "frontend/capability-browser/public/data/source-evidence/maintenance",
+    "frontend/capability-browser/public/data/lifecycle-knowledge.json",
+    "frontend/capability-browser/public/data/lifecycle-workbench.json",
+    "frontend/capability-browser/public/data/standards-index.json",
+    "frontend/capability-browser/public/data/standards-data.json",
+    "frontend/capability-browser/public/data/standards",
+    "frontend/capability-browser/public/data/environment-workbench.json",
+    "frontend/capability-browser/public/data/capability-workbench.json",
+    "frontend/capability-browser/generated/environmentBasemap.node-details.json",
 ]
 
 
@@ -353,6 +384,137 @@ def _ensure_bootstrap_dirs(db_path) -> None:
         path.mkdir(parents=True, exist_ok=True)
 
 
+def _json_package(path) -> dict:
+    if not path.exists() or not path.is_file():
+        return {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _list_count(value) -> int:
+    return len(value) if isinstance(value, list) else 0
+
+
+def _nested_count(payload: dict, *keys: str) -> int:
+    current = payload
+    for key in keys:
+        if not isinstance(current, dict):
+            return 0
+        current = current.get(key)
+    return _list_count(current)
+
+
+def _protected_baseline_db_counts(db_path) -> dict[str, int]:
+    if not db_path.exists():
+        return {}
+    placeholders = ",".join("?" for _ in PROTECTED_BASELINE_ITEM_TYPES)
+    try:
+        with connect(db_path) as conn:
+            rows = conn.execute(
+                f"""
+                SELECT type, COUNT(*) AS count
+                FROM knowledge_items
+                WHERE status = 'active'
+                  AND type IN ({placeholders})
+                GROUP BY type
+                """,
+                PROTECTED_BASELINE_ITEM_TYPES,
+            ).fetchall()
+    except Exception:
+        return {}
+    return {str(row[0]): int(row[1]) for row in rows}
+
+
+def _protected_frontend_baseline_counts() -> dict[str, int]:
+    maintenance = _json_package(FRONTEND_DATA_DIR / "maintenance-knowledge.json")
+    lifecycle = _json_package(FRONTEND_DATA_DIR / "lifecycle-knowledge.json")
+    lifecycle_workbench = _json_package(FRONTEND_DATA_DIR / "lifecycle-workbench.json")
+    standards = _json_package(FRONTEND_DATA_DIR / "standards-index.json")
+    return {
+        "maintenance.work_function_layers": _list_count(maintenance.get("work_function_layers")),
+        "maintenance.security_processes": _list_count(maintenance.get("security_processes")),
+        "maintenance.gbt_42446_references": _list_count(maintenance.get("gbt_42446_references")),
+        "maintenance.gartner_roles": _list_count(maintenance.get("gartner_roles")),
+        "lifecycle.application_system_types": _nested_count(
+            lifecycle,
+            "application_security_development",
+            "application_system_types",
+        ),
+        "lifecycle_workbench.relations": _list_count(lifecycle_workbench.get("relations")),
+        "standards.controls": int((standards.get("stats") or {}).get("controls") or 0),
+    }
+
+
+def _positive_counts(counts: dict[str, int]) -> dict[str, int]:
+    return {key: value for key, value in counts.items() if value > 0}
+
+
+def _backup_protected_frontend_data(reason: str) -> str:
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    target = PROJECT_ROOT / "data" / "exports" / "worker-verify" / "protected-baseline-cli-guard-backup" / stamp
+    target.mkdir(parents=True, exist_ok=True)
+    copied: list[str] = []
+    for relative_path in PROTECTED_FRONTEND_BASELINE_PATHS:
+        source = PROJECT_ROOT / relative_path
+        if not source.exists():
+            continue
+        dest = target / relative_path
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        if source.is_dir():
+            shutil.copytree(source, dest, dirs_exist_ok=True)
+        else:
+            shutil.copy2(source, dest)
+        copied.append(relative_path)
+    manifest = {
+        "created_at": datetime.now().isoformat(timespec="seconds"),
+        "reason": reason,
+        "copied": copied,
+    }
+    (target / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return display_path(target)
+
+
+def _guard_core_bootstrap_against_protected_baseline(args: argparse.Namespace, db_path) -> int | None:
+    if args.profile != "core":
+        return None
+    db_counts = _positive_counts(_protected_baseline_db_counts(db_path)) if args.reset else {}
+    frontend_counts = (
+        _positive_counts(_protected_frontend_baseline_counts())
+        if args.reset or not args.skip_frontend_export
+        else {}
+    )
+    if not db_counts and not frontend_counts:
+        return None
+    if args.allow_protected_baseline_reset:
+        backup_dir = _backup_protected_frontend_data("allowed core bootstrap touching protected baseline")
+        print(f"已按显式授权备份保护基线数据包: {backup_dir}")
+        return None
+
+    print("error: 已拦截 core-only bootstrap，避免覆盖知识库字典 / 安全标准 / 生命周期保护基线。", file=sys.stderr)
+    if db_counts:
+        print("当前 SQLite 中存在保护基线类型:", file=sys.stderr)
+        for key, value in sorted(db_counts.items()):
+            print(f"  - {key}: {value}", file=sys.stderr)
+    if frontend_counts:
+        print("当前前端数据包中存在保护基线数据:", file=sys.stderr)
+        for key, value in sorted(frontend_counts.items()):
+            print(f"  - {key}: {value}", file=sys.stderr)
+    print("如确需执行，请先取得用户明确确认，再追加 --allow-protected-baseline-reset。", file=sys.stderr)
+    return 3
+
+
+def _audit_protected_baseline_after_export() -> int:
+    script = PROJECT_ROOT / "scripts" / "audit_dictionary_standard_baseline_integrity.py"
+    if not script.exists():
+        print(f"warning: baseline audit script missing: {display_path(script)}", file=sys.stderr)
+        return 0
+    result = subprocess.run([sys.executable, str(script)], cwd=PROJECT_ROOT)
+    return int(result.returncode)
+
+
 def _reset_bootstrap_database(db_path) -> None:
     if not db_path.exists():
         return
@@ -475,6 +637,9 @@ def cmd_bootstrap_local_data(args: argparse.Namespace) -> int:
         print("如果要重新初始化，请执行: python scripts/sapd_wiki.py bootstrap-local-data --reset")
         print("如果确认要追加导入，请执行: python scripts/sapd_wiki.py bootstrap-local-data --append")
         return 2
+    guard_result = _guard_core_bootstrap_against_protected_baseline(args, db_path)
+    if guard_result is not None:
+        return guard_result
     if args.reset:
         _reset_bootstrap_database(db_path)
 
@@ -494,6 +659,10 @@ def cmd_bootstrap_local_data(args: argparse.Namespace) -> int:
 
     if not args.skip_frontend_export:
         _export_bootstrap_outputs(db_path, imported_jobs[-1] if imported_jobs else None)
+        if args.profile == "full" or args.allow_protected_baseline_reset:
+            audit_result = _audit_protected_baseline_after_export()
+            if audit_result != 0:
+                return audit_result
 
     with connect(db_path) as conn:
         payload = {
@@ -823,6 +992,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--allow-validation-errors",
         action="store_true",
         help="Continue approval even when error/blocking validations exist. Intended for investigation only.",
+    )
+    bootstrap.add_argument(
+        "--allow-protected-baseline-reset",
+        action="store_true",
+        help="Explicitly allow core-only bootstrap to touch protected dictionary, standard and lifecycle baselines after backing them up.",
     )
     bootstrap.add_argument(
         "--sensitive-level",

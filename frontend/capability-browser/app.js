@@ -116,7 +116,15 @@ const state = {
   annotationMarkerFrame: 0,
   annotationMarkerTimers: [],
   annotationSurfaceObserver: null,
+  globalSearch: "",
+  globalSearchOpen: false,
+  globalSearchLoading: false,
+  globalSearchResults: [],
+  globalSearchRequestSeq: 0,
+  globalSearchStandardsReady: false,
   search: "",
+  pageSearches: {},
+  pendingPageSearchReveal: null,
   pageHeaderSummary: [],
   pageHeaderNote: "",
   relationshipFilters: {},
@@ -142,6 +150,817 @@ const environmentBasemapDragState = {
   moved: false,
   suppressNextClick: false,
 };
+
+function searchScopeForCurrentState() {
+  if (state.activeView === "capabilities") return "capability-mapping";
+  if (state.activeView === "environment") return "environment-mapping";
+  if (state.activeView === "dev-lifecycle") return "development-security";
+  if (state.activeView === "data-lifecycle") return "data-security";
+  if (state.activeView === "maintenance") {
+    if (state.activeMaintenancePage === "standards") {
+      return `standards:${state.activeStandardFramework || ""}:${state.activeStandardTableId || ""}`;
+    }
+    return `knowledge:${state.activeMaintenancePage || ""}:${state.activeReferenceTab || ""}`;
+  }
+  if (state.activeView === "content") return `content:${state.activeRoute || state.activeContentPage || ""}`;
+  if (state.activeView === "placeholder") return `placeholder:${state.activeRoute || ""}`;
+  return state.activeView || "overview";
+}
+
+function currentScopedSearch() {
+  const scope = searchScopeForCurrentState();
+  return text(state.pageSearches?.[scope] || "").trim();
+}
+
+function restoreScopedSearch() {
+  state.search = currentScopedSearch();
+}
+
+function setScopedSearch(value) {
+  const scope = searchScopeForCurrentState();
+  const nextValue = text(value).trim();
+  state.search = nextValue;
+  state.pageSearches = { ...(state.pageSearches || {}), [scope]: nextValue };
+}
+
+function queuePageSearchReveal(value, scope = searchScopeForCurrentState()) {
+  const query = text(value).trim();
+  state.pendingPageSearchReveal = query ? { scope, query } : null;
+  if (!query) clearPageSearchHighlights();
+}
+
+function routeHasPageSearch(route = state.activeRoute) {
+  const value = text(route).trim();
+  return (
+    value === "/capability-mapping" ||
+    value === "/environment-mapping" ||
+    value.startsWith("/knowledge/") ||
+    value.startsWith("/standards/") ||
+    value.startsWith("/guides/")
+  );
+}
+
+function searchTextForActivatedResult(result = {}) {
+  return text(state.globalSearch || result.targetText || result.title || result.code).trim();
+}
+
+function syncSearchInputs() {
+  const globalInput = $("searchInput");
+  if (globalInput && globalInput.value !== state.globalSearch) globalInput.value = state.globalSearch;
+  const capabilityInput = $("capabilitySearchInput");
+  if (capabilityInput && capabilityInput.value !== state.search) capabilityInput.value = state.search;
+  const sourceInput = $("sourceSearchInput");
+  if (sourceInput && sourceInput.value !== state.search) sourceInput.value = state.search;
+  const environmentInput = $("environmentSearchInput");
+  if (environmentInput && environmentInput.value !== state.search) environmentInput.value = state.search;
+}
+
+const GLOBAL_SEARCH_MIN_QUERY_LENGTH = 1;
+const GLOBAL_SEARCH_RESULT_LIMIT = 40;
+
+function normalizeSearchText(value) {
+  return text(value).trim().toLowerCase();
+}
+
+function compactSearchText(...values) {
+  return values
+    .flatMap((value) => (Array.isArray(value) ? value : [value]))
+    .map((value) => (typeof value === "object" ? [value?.code, value?.title, value?.name, value?.description, value?.summary].filter(Boolean).join(" ") : text(value)))
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function scoreGlobalSearchResult(result, query) {
+  const q = normalizeSearchText(query);
+  const title = normalizeSearchText(result.title);
+  const code = normalizeSearchText(result.code);
+  const haystack = normalizeSearchText(result.searchText);
+  if (!q) return 0;
+  if (code === q || title === q) return 120;
+  if (code.startsWith(q) || title.startsWith(q)) return 100;
+  if (code.includes(q)) return 90;
+  if (title.includes(q)) return 80;
+  if (haystack.includes(q)) return 50;
+  return 0;
+}
+
+function addGlobalSearchResult(results, result) {
+  const key = result.key || [result.type, result.route, result.id, result.title].filter(Boolean).join("::");
+  if (!key || results.has(key)) return;
+  results.set(key, { ...result, key });
+}
+
+function flattenCapabilitySearchItems(capability) {
+  const rows = [];
+  const visit = (item, route, trail = []) => {
+    if (!item || typeof item !== "object") return;
+    const id = text(item.id || item.code || item.title).trim();
+    const code = text(item.code).trim();
+    const title = text(item.title || item.name || code || id).trim();
+    const typeLabels = {
+      capability_category: "能力分类",
+      capability_domain: "能力域",
+      capability: "安全能力",
+      capability_focus: "安全关注点",
+    };
+    if (title || code) {
+      rows.push({
+        id,
+        code,
+        title: [code, title].filter(Boolean).join(" "),
+        type: "capability",
+        typeLabel: typeLabels[item.type] || "安全能力",
+        route: "/capability-mapping",
+        subtitle: [...trail, title].filter(Boolean).join(" / "),
+        selectedCapabilityId: id,
+        targetText: title,
+        searchText: compactSearchText(code, title, item.description, trail),
+      });
+    }
+    const nextTrail = [...trail, title].filter(Boolean);
+    list(item.domains).forEach((child) => visit(child, route, nextTrail));
+    list(item.capabilities).forEach((child) => visit(child, route, nextTrail));
+    list(item.focuses).forEach((child) => visit(child, route, nextTrail));
+  };
+  list(capability?.categories).forEach((category) => visit(category, "/capability-mapping"));
+  list(capability?.unlinked_focuses).forEach((focus) => visit(focus, "/capability-mapping", ["未挂接关注点"]));
+  return rows;
+}
+
+function maintenanceSearchSections() {
+  return [
+    { key: "scope_types", typeLabel: "作用域", route: "/knowledge/scopes" },
+    { key: "security_technical_services", typeLabel: "安全技术服务", route: "/knowledge/technical-services" },
+    { key: "security_technology_modules", typeLabel: "安全技术模块", route: "/knowledge/technical" },
+    { key: "security_technical_measures", typeLabel: "安全技术措施", route: "/knowledge/technical" },
+    { key: "security_works", typeLabel: "安全工作", route: "/knowledge/management-workflows" },
+    { key: "security_processes", typeLabel: "安全流程", route: "/knowledge/management-workflows" },
+    { key: "work_function_layers", typeLabel: "安全职能", route: "/knowledge/functions" },
+    { key: "gbt_42446_references", typeLabel: "GB/T 42446 任务", route: "/knowledge/gbt-42446" },
+    { key: "gartner_roles", typeLabel: "Gartner 岗位参考", route: "/knowledge/role-references" },
+  ];
+}
+
+function flattenMaintenanceSearchItems(maintenance, lifecycle) {
+  const rows = [];
+  for (const section of maintenanceSearchSections()) {
+    list(maintenance?.[section.key]).forEach((item, index) => {
+      const id = text(item.id || item.code || item.title || item.name || `${section.key}:${index}`).trim();
+      const code = text(item.code || item.serviceCode || item.processCode || item.referenceCode).trim();
+      const title = text(item.title || item.name || item.serviceName || item.processName || item.description || code || id).trim();
+      if (!title && !code) return;
+      rows.push({
+        id,
+        code,
+        title: [code, title].filter(Boolean).join(" "),
+        type: "maintenance",
+        typeLabel: section.typeLabel,
+        route: section.route,
+        selectedMaintenanceId: id,
+        targetText: title,
+        subtitle: compactSearchText(item.category, item.layer, item.group, item.capability, item.focus),
+        searchText: compactSearchText(code, title, item.description, item.definition, item.summary, item.category, item.layer, item.group),
+      });
+    });
+  }
+  list(lifecycle?.application_security_development?.application_system_types).forEach((item, index) => {
+    const id = text(item.id || item.code || item.title || `application-system:${index}`).trim();
+    const code = text(item.code).trim();
+    const title = text(item.title || item.name || code || id).trim();
+    rows.push({
+      id,
+      code,
+      title: [code, title].filter(Boolean).join(" "),
+      type: "maintenance",
+      typeLabel: "应用系统目录",
+      route: "/knowledge/application-systems",
+      selectedMaintenanceId: id,
+      targetText: title,
+      subtitle: compactSearchText(item.description),
+      searchText: compactSearchText(code, title, item.description, item.components),
+    });
+  });
+  return rows;
+}
+
+function flattenLifecycleSearchItems(lifecycleWorkbench, lifecycle) {
+  const rows = [];
+  const addLifecycleObject = (item, route, typeLabel, selectedProcessId = "", index = 0, options = {}) => {
+    const id = text(item.id || item.code || item.title || `${typeLabel}:${index}`).trim();
+    const code = text(item.code).trim();
+    const title = text(item.title || item.name || code || id).trim();
+    if (!title && !code) return;
+    const targetProcessId = selectedProcessId || (options.useOwnIdAsSelection ? id : "");
+    rows.push({
+      id,
+      code,
+      title: [code, title].filter(Boolean).join(" "),
+      type: "lifecycle",
+      typeLabel,
+      route,
+      selectedProcessId: targetProcessId,
+      targetText: title,
+      subtitle: compactSearchText(item.description, item.stage, item.phase, targetProcessId ? "生命周期阶段明细" : ""),
+      searchText: compactSearchText(code, title, item.description, item.stage, item.phase, item.objectKind, item.category),
+    });
+  };
+  const addProcess = (item, route, typeLabel, index) => {
+    addLifecycleObject(
+      {
+        ...item,
+        description: compactSearchText(
+          item.description,
+          item.goal,
+          ...list(item.main_activities).map((row) => row?.title || row?.name || row?.description),
+          ...list(item.security_activities).map((row) => row?.title || row?.name || row?.description),
+          ...list(item.technical_services).map((row) => row?.title || row?.name),
+          ...list(item.development_technical_services).map((row) => row?.title || row?.name),
+          ...list(item.development_technical_modules).map((row) => row?.title || row?.name),
+          ...list(item.technology_modules).map((row) => row?.title || row?.name),
+          ...list(item.technical_measures).map((row) => row?.title || row?.name),
+        ),
+      },
+      route,
+      typeLabel,
+      "",
+      index,
+      { useOwnIdAsSelection: true },
+    );
+    [
+      ["development_technical_services", "开发技术服务"],
+      ["development_technical_modules", "开发技术模块"],
+      ["technical_services", "安全技术服务"],
+      ["technology_modules", "安全技术模块"],
+      ["technical_measures", "安全技术措施"],
+    ].forEach(([key, label]) => {
+      list(item[key]).forEach((child, childIndex) => addLifecycleObject(child, route, label, item.id, childIndex));
+    });
+  };
+  list(lifecycle?.application_security_development?.processes).forEach((item, index) => addProcess(item, "/development-security", "LC-AP 阶段", index));
+  list(lifecycle?.data_lifecycle?.processes).forEach((item, index) => addProcess(item, "/data-security", "LC-DT 过程", index));
+  list(lifecycle?.application_security_development?.development_technical_services).forEach((item, index) => addLifecycleObject(item, "/development-security", "开发技术服务", "", index));
+  list(lifecycle?.application_security_development?.development_technical_modules).forEach((item, index) => addLifecycleObject(item, "/development-security", "开发技术模块", "", index));
+  list(lifecycleWorkbench?.applicationProcesses || lifecycleWorkbench?.application_processes).forEach((item, index) =>
+    addLifecycleObject(item, "/development-security", "LC-AP 阶段", "", index, { useOwnIdAsSelection: true }),
+  );
+  list(lifecycleWorkbench?.dataProcesses || lifecycleWorkbench?.data_processes).forEach((item, index) =>
+    addLifecycleObject(item, "/data-security", "LC-DT 过程", "", index, { useOwnIdAsSelection: true }),
+  );
+  return rows;
+}
+
+function flattenContentSearchItems(content) {
+  return [
+    ...list(content?.html_documents).map((item, index) => ({ item, route: "/guides", typeLabel: "指南内容", fallback: `html:${index}` })),
+    ...list(content?.diagram_views).map((item, index) => ({ item, route: "/guides/others", typeLabel: "Draw.io 视图", fallback: `drawio:${index}` })),
+    ...list(content?.guide_pages).map((item, index) => ({ item, route: "/guides/others", typeLabel: "PPT 指南", fallback: `ppt:${index}` })),
+  ].map(({ item, route, typeLabel, fallback }) => {
+    const id = text(item.id || item.code || item.title || fallback).trim();
+    const title = text(item.title || item.name || id).trim();
+    return {
+      id,
+      code: text(item.code || item.slide_number || item.page_index).trim(),
+      title,
+      type: "content",
+      typeLabel,
+      route,
+      selectedContentId: id,
+      targetText: title,
+      subtitle: compactSearchText(item.category, item.view_type),
+      searchText: compactSearchText(title, item.summary, item.description, item.category, item.view_type),
+    };
+  });
+}
+
+function flattenNavigationSearchItems() {
+  const components = window.sapdComponents || {};
+  const walk = (items = [], parent = "") =>
+    list(items).flatMap((item) => [
+      {
+        id: item.id || item.route,
+        code: "",
+        title: item.label || item.route,
+        type: "navigation",
+        typeLabel: "页面",
+        route: item.route || "/",
+        targetText: item.label || item.route,
+        subtitle: parent,
+        searchText: compactSearchText(item.label, item.route, parent),
+      },
+      ...walk(item.children, item.label || parent),
+    ]);
+  return walk(components.AppShell?.manifest?.navigation || []);
+}
+
+function flattenStandardSearchItems(standards) {
+  const rows = [];
+  list(standards?.frameworks).forEach((framework) => {
+    rows.push({
+      id: framework.id,
+      code: text(framework.frameworkCode || framework.id),
+      title: framework.title || framework.id,
+      type: "standard",
+      typeLabel: "标准 / 框架",
+      route: framework.route || `/standards/${framework.id}`,
+      standardFramework: framework.id,
+      targetText: framework.title || framework.id,
+      subtitle: compactSearchText(framework.totalRows ? `${framework.totalRows} 条控制项` : "", framework.frameworkCode),
+      searchText: compactSearchText(framework.title, framework.id, framework.frameworkCode),
+    });
+  });
+  Object.entries(standards?.loadedFrameworks || {}).forEach(([frameworkId, framework]) => {
+    const frameworkTitle = framework?.title || list(standards?.frameworks).find((item) => item.id === frameworkId)?.title || frameworkId;
+    const addRows = (sourceRows, tableTitle = "", tableId = "") => {
+      list(sourceRows).forEach((row, index) => {
+        const values = row?.values || row;
+        const code = text(row?.controlId || row?.controlCode || values?.["控制项"] || values?.["控制编号"] || values?.["保护措施编号"] || values?.["等保控制项"] || values?.["编号"] || row?.code).trim();
+        const title = text(row?.title || values?.["名称"] || values?.["控制项名称"] || values?.["安全控制项名称"] || values?.["等保三级控制要求"] || values?.["描述"] || code || `control:${index}`).trim();
+        const id = text(row?.id || [frameworkId, tableTitle, code || index].filter(Boolean).join(":")).trim();
+        if (!title && !code) return;
+        rows.push({
+          id,
+          code,
+          title: [code, title].filter(Boolean).join(" "),
+          type: "standard-control",
+          typeLabel: "标准控制项",
+          route: framework.route || `/standards/${frameworkId}`,
+          standardFramework: frameworkId,
+          standardTableId: tableId,
+          selectedMaintenanceId: id,
+          targetText: title,
+          subtitle: [frameworkTitle, tableTitle].filter(Boolean).join(" / "),
+          searchText: compactSearchText(code, title, Object.values(values || {})),
+        });
+      });
+    };
+    addRows(framework?.rows, "");
+    list(framework?.tabs).forEach((tab) => addRows(tab.rows, tab.title || tab.id, tab.id || ""));
+  });
+  return rows;
+}
+
+function flattenEnvironmentSearchItems(environmentWorkbench) {
+  const rows = [];
+  const pushObject = (item, typeLabel, subtitle = "") => {
+    const id = text(item?.id || item?.code || item?.title || item?.name).trim();
+    const code = text(item?.code).trim();
+    const title = text(item?.title || item?.name || code || id).trim();
+    if (!id && !title && !code) return;
+    rows.push({
+      id,
+      code,
+      title: [code, title].filter(Boolean).join(" "),
+      type: "environment",
+      typeLabel,
+      route: "/environment-mapping",
+      selectedEnvironmentId: typeLabel === "信息化环境" ? id : "",
+      selectedEnvironmentSegmentId: typeLabel === "环境子类" ? id : "",
+      selectedEnvironmentObjectId: typeLabel === "信息化对象" ? id : "",
+      targetText: title,
+      subtitle,
+      searchText: compactSearchText(code, title, item?.description, subtitle),
+    });
+  };
+  list(environmentWorkbench?.environments).forEach((environment) => {
+    pushObject(environment, "信息化环境");
+    list(environment.segments).forEach((segment) => {
+      pushObject(segment, "环境子类", text(environment.title || environment.name));
+      list(segment.objects).forEach((object) => pushObject(object, "信息化对象", [environment.title || environment.name, segment.title || segment.name].filter(Boolean).join(" / ")));
+    });
+  });
+  list(environmentWorkbench?.mappingRows || environmentWorkbench?.rows).forEach((row) => {
+    pushObject(row.information_object || row.object, "信息化对象", compactSearchText(row.environment, row.segments));
+  });
+  return rows;
+}
+
+async function ensureGlobalSearchPackages() {
+  await Promise.all(["capability", "maintenanceKnowledge", "lifecycle", "lifecycleWorkbench", "content", "standards", "environmentWorkbench"].map((name) => loadDataPackage(name)));
+}
+
+async function ensureGlobalSearchStandardDetails() {
+  if (state.globalSearchStandardsReady) return;
+  await loadDataPackage("standards");
+  const dataClient = window.sapdDataClient;
+  const frameworks = list(state.standards?.frameworks);
+  await Promise.all(
+    frameworks.map(async (framework) => {
+      if (!framework?.id || state.standards?.loadedFrameworks?.[framework.id]) return;
+      const envelope = await dataClient?.getStandardFramework?.(framework.id);
+      let loaded = envelope?.data || framework;
+      const loadedTabs = await Promise.all(
+        list(loaded?.tabs).map(async (tab) => {
+          if (!tab?.id || list(tab.rows).length || !dataClient?.getStandardFrameworkTable) return tab;
+          const tableEnvelope = await dataClient.getStandardFrameworkTable(framework.id, tab.id);
+          return { ...tab, ...(tableEnvelope?.data || {}) };
+        }),
+      );
+      if (loadedTabs.length) loaded = { ...loaded, tabs: loadedTabs };
+      state.standards = {
+        ...(state.standards || {}),
+        loadedFrameworks: {
+          ...(state.standards?.loadedFrameworks || {}),
+          [framework.id]: loaded,
+        },
+      };
+    }),
+  );
+  state.globalSearchStandardsReady = true;
+}
+
+function buildGlobalSearchResults(query) {
+  const q = normalizeSearchText(query);
+  if (q.length < GLOBAL_SEARCH_MIN_QUERY_LENGTH) return [];
+  const resultMap = new Map();
+  [
+    ...flattenNavigationSearchItems(),
+    ...flattenCapabilitySearchItems(state.capability),
+    ...flattenMaintenanceSearchItems(state.maintenanceKnowledge, state.lifecycle),
+    ...flattenLifecycleSearchItems(state.lifecycleWorkbench, state.lifecycle),
+    ...flattenContentSearchItems(state.content),
+    ...flattenStandardSearchItems(state.standards),
+    ...flattenEnvironmentSearchItems(state.environmentWorkbench),
+  ].forEach((result) => {
+    const score = scoreGlobalSearchResult(result, q);
+    if (score > 0) addGlobalSearchResult(resultMap, { ...result, score });
+  });
+  return [...resultMap.values()]
+    .sort((left, right) => right.score - left.score || text(left.typeLabel).localeCompare(text(right.typeLabel), "zh-Hans-CN") || text(left.title).localeCompare(text(right.title), "zh-Hans-CN"))
+    .slice(0, GLOBAL_SEARCH_RESULT_LIMIT);
+}
+
+function renderGlobalSearchPanel() {
+  let panel = document.getElementById("globalSearchPanel");
+  const root = document.querySelector(".global-search");
+  if (!root) return;
+  if (!panel) {
+    document.body.insertAdjacentHTML("beforeend", '<div id="globalSearchPanel" class="global-search-panel" hidden></div>');
+    panel = document.getElementById("globalSearchPanel");
+  } else if (panel.parentElement !== document.body) {
+    document.body.appendChild(panel);
+  }
+  const query = text(state.globalSearch).trim();
+  const shouldShow = state.globalSearchOpen && query.length >= GLOBAL_SEARCH_MIN_QUERY_LENGTH;
+  panel.hidden = !shouldShow;
+  if (!shouldShow) {
+    panel.innerHTML = "";
+    return;
+  }
+  const rect = root.getBoundingClientRect();
+  panel.style.left = `${Math.round(rect.left)}px`;
+  panel.style.top = `${Math.round(rect.bottom + 8)}px`;
+  panel.style.width = `${Math.round(rect.width)}px`;
+  if (state.globalSearchLoading) {
+    panel.innerHTML = '<div class="global-search-state">正在搜索...</div>';
+    return;
+  }
+  if (!state.globalSearchResults.length) {
+    panel.innerHTML = '<div class="global-search-state">未找到匹配结果</div>';
+    return;
+  }
+  panel.innerHTML = `
+    <div class="global-search-result-list" role="listbox" aria-label="全局搜索结果">
+      ${state.globalSearchResults
+        .map(
+          (result, index) => `
+            <button class="global-search-result" type="button" role="option" data-global-search-result="${index}">
+              <span class="global-search-result-type">${escapeHtml(result.typeLabel || "结果")}</span>
+              <span class="global-search-result-main">
+                <strong>${escapeHtml(result.title || "未命名结果")}</strong>
+                ${result.subtitle ? `<small>${escapeHtml(result.subtitle)}</small>` : ""}
+              </span>
+            </button>
+          `,
+        )
+        .join("")}
+    </div>
+  `;
+}
+
+async function runGlobalSearch() {
+  const requestSeq = ++state.globalSearchRequestSeq;
+  const query = text(state.globalSearch).trim();
+  state.globalSearchOpen = Boolean(query);
+  if (query.length < GLOBAL_SEARCH_MIN_QUERY_LENGTH) {
+    state.globalSearchLoading = false;
+    state.globalSearchResults = [];
+    renderGlobalSearchPanel();
+    return;
+  }
+  state.globalSearchLoading = true;
+  renderGlobalSearchPanel();
+  await ensureGlobalSearchPackages();
+  await ensureGlobalSearchStandardDetails();
+  if (requestSeq !== state.globalSearchRequestSeq) return;
+  state.globalSearchResults = buildGlobalSearchResults(query);
+  state.globalSearchLoading = false;
+  renderGlobalSearchPanel();
+}
+
+function clearGlobalSearchPanel({ keepQuery = false } = {}) {
+  state.globalSearchOpen = false;
+  state.globalSearchLoading = false;
+  state.globalSearchResults = [];
+  if (!keepQuery) state.globalSearch = "";
+  syncSearchInputs();
+  renderGlobalSearchPanel();
+}
+
+function findElementByDataAttr(attributeName, value) {
+  const expected = text(value).trim();
+  if (!expected) return null;
+  return Array.from(document.querySelectorAll(`[${attributeName}]`)).find((node) => text(node.getAttribute(attributeName)).trim() === expected) || null;
+}
+
+function activeGlobalSearchRootElement() {
+  return activeSearchRootElement();
+}
+
+function activeSearchRootElement() {
+  const workspaceMap = {
+    overview: "overviewWorkspace",
+    capabilities: "capabilityWorkspace",
+    environment: "environmentWorkspace",
+    "dev-lifecycle": "devLifecycleWorkspace",
+    "data-lifecycle": "dataLifecycleWorkspace",
+    maintenance: "maintenanceWorkspace",
+    content: "contentWorkspace",
+    placeholder: "placeholderWorkspace",
+  };
+  return $(workspaceMap[state.activeView]) || document.querySelector(".app-main") || document.body;
+}
+
+function globalSearchTargetTexts(result = {}) {
+  const values = [
+    result.targetText,
+    result.title,
+    result.code,
+    result.subtitle,
+  ]
+    .map((value) => text(value).trim())
+    .filter(Boolean);
+  return [...new Set(values.flatMap((value) => [value, value.replace(/^\S+\s+/, "").trim()].filter(Boolean)))];
+}
+
+function nodeBusinessText(node) {
+  if (!node) return "";
+  return text(
+      node.getAttribute?.("data-copy-text") ||
+      node.getAttribute?.("data-annotation-tooltip") ||
+      node.getAttribute?.("data-standard-row-text") ||
+      node.getAttribute?.("title") ||
+      node.getAttribute?.("aria-label") ||
+      node.textContent,
+  ).trim();
+}
+
+function isSearchChromeNode(node) {
+  return Boolean(node?.closest?.("#globalSearchPanel, .global-search, .topbar, [data-annotation-drawer], [data-annotation-context-menu]"));
+}
+
+function isVisibleSearchTarget(node) {
+  if (!node || node.hidden || isSearchChromeNode(node)) return false;
+  const rect = node.getBoundingClientRect?.();
+  return Boolean(rect && rect.width > 0 && rect.height > 0);
+}
+
+function searchTargetCandidates(root) {
+  if (!root) return [];
+  const selectors = [
+    "[data-copy-text]",
+    '[data-annotation-value="true"]',
+    "[data-annotation-target-ref]",
+    "[data-maintenance-id]",
+    "[data-capability-id]",
+    "[data-environment-id]",
+    "[data-environment-segment-id]",
+    "[data-environment-object-id]",
+    "[data-content-id]",
+    "[data-standard-group]",
+    "[data-standard-row-text]",
+    "[data-standard-detail-key]",
+    ".relation-chip",
+    ".standard-tooltip-chip",
+    ".standard-framework-name",
+    ".management-chip",
+    ".taxonomy-chip",
+    ".catalog-row",
+    ".tree-row",
+    ".lifecycle-nav-row",
+    ".source-nav-button",
+    ".relationship-table td",
+    ".relationship-table th",
+    ".maintenance-table td",
+    ".maintenance-table th",
+    ".standard-framework-table td",
+    ".standard-framework-table th",
+    ".review-table td",
+    ".review-table th",
+    "td",
+    "th",
+    "tr",
+    "button",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "p",
+    "li",
+  ];
+  return Array.from(root.querySelectorAll(selectors.join(","))).filter(isVisibleSearchTarget);
+}
+
+function textTargetElement(targetTexts = [], root = activeSearchRootElement()) {
+  if (!root || !targetTexts.length) return null;
+  const candidates = searchTargetCandidates(root);
+  for (const targetText of targetTexts) {
+    const exact = candidates.find((node) => nodeBusinessText(node) === targetText);
+    if (exact) return exact;
+  }
+  for (const targetText of targetTexts) {
+    const normalized = targetText.toLowerCase();
+    const fuzzy = candidates.find((node) => {
+      const value = nodeBusinessText(node).toLowerCase();
+      return value && normalized && (value.includes(normalized) || normalized.includes(value));
+    });
+    if (fuzzy) return fuzzy;
+  }
+  return null;
+}
+
+function globalSearchTextTargetElement(result = {}) {
+  return textTargetElement(globalSearchTargetTexts(result), activeGlobalSearchRootElement());
+}
+
+function pageSearchTextTargetElement(query = "") {
+  const searchText = text(query).trim();
+  if (!searchText) return null;
+  const targets = [searchText, searchText.replace(/^\S+\s+/, "").trim()].filter(Boolean);
+  return textTargetElement([...new Set(targets)], activeSearchRootElement());
+}
+
+function clearPageSearchHighlights() {
+  document.querySelectorAll(".page-search-target-highlight").forEach((node) => node.classList.remove("page-search-target-highlight"));
+}
+
+function revealPageSearchTarget(pending = state.pendingPageSearchReveal, attempt = 0) {
+  if (!pending?.query) return false;
+  if (pending.scope && pending.scope !== searchScopeForCurrentState()) return false;
+  const target = pageSearchTextTargetElement(pending.query);
+  if (target) {
+    expandAnnotationHiddenLineage(target);
+    target.hidden = false;
+    clearPageSearchHighlights();
+    target.scrollIntoView({ block: "center", inline: "nearest", behavior: attempt ? "auto" : "smooth" });
+    target.classList.add("page-search-target-highlight");
+    window.setTimeout(() => target.classList.remove("page-search-target-highlight"), 2600);
+    state.pendingPageSearchReveal = null;
+    return true;
+  }
+  if (attempt >= 10) return false;
+  window.setTimeout(() => revealPageSearchTarget(pending, attempt + 1), attempt < 4 ? 80 : 180);
+  return false;
+}
+
+function flushPageSearchReveal() {
+  const pending = state.pendingPageSearchReveal;
+  if (!pending?.query) return;
+  requestAnimationFrame(() => revealPageSearchTarget(pending));
+}
+
+function lifecycleSearchValueTargetElement(result = {}, kind = "dev") {
+  const processId = text(result.selectedProcessId).trim();
+  const targetText = text(result.targetText || result.title).trim();
+  if (!processId || !targetText) return null;
+  const safeProcessId = window.CSS?.escape ? window.CSS.escape(processId) : processId.replace(/["\\]/g, "\\$&");
+  const selector = `[data-lifecycle-kind="${kind}"][data-lifecycle-id="${safeProcessId}"] [data-copy-text]`;
+  const candidates = Array.from(document.querySelectorAll(selector));
+  const exact = candidates.find((node) => text(node.getAttribute("data-copy-text")).trim() === targetText);
+  if (exact) return exact;
+  const normalized = targetText.toLowerCase();
+  return candidates.find((node) => text(node.getAttribute("data-copy-text")).toLowerCase().includes(normalized)) || null;
+}
+
+function globalSearchTargetElement(result = {}) {
+  if (result.selectedCapabilityId) {
+    const target = findElementByDataAttr("data-capability-id", result.selectedCapabilityId);
+    if (target) return target;
+  }
+  if (result.selectedMaintenanceId) {
+    const target = findElementByDataAttr("data-maintenance-id", result.selectedMaintenanceId);
+    if (target) return target;
+  }
+  if (result.selectedProcessId) {
+    const kind = result.route === "/data-security" ? "data" : "dev";
+    const valueTarget = lifecycleSearchValueTargetElement(result, kind);
+    if (valueTarget) return valueTarget;
+    const target = Array.from(document.querySelectorAll(`[data-lifecycle-kind="${kind}"][data-lifecycle-id]`)).find((node) => text(node.dataset.lifecycleId).trim() === text(result.selectedProcessId).trim()) || null;
+    if (target) return target;
+  }
+  if (result.selectedEnvironmentObjectId) {
+    const target = findElementByDataAttr("data-environment-object-id", result.selectedEnvironmentObjectId);
+    if (target) return target;
+  }
+  if (result.selectedEnvironmentSegmentId) {
+    const target = findElementByDataAttr("data-environment-segment-id", result.selectedEnvironmentSegmentId);
+    if (target) return target;
+  }
+  if (result.selectedEnvironmentId) {
+    const target = findElementByDataAttr("data-environment-id", result.selectedEnvironmentId);
+    if (target) return target;
+  }
+  if (result.selectedContentId) {
+    const target = findElementByDataAttr("data-content-id", result.selectedContentId);
+    if (target) return target;
+  }
+  return globalSearchTextTargetElement(result);
+}
+
+function revealGlobalSearchTarget(result, attempt = 0) {
+  const target = globalSearchTargetElement(result);
+  if (target) {
+    expandAnnotationHiddenLineage(target);
+    target.hidden = false;
+    target.scrollIntoView({ block: "center", inline: "nearest", behavior: attempt ? "auto" : "smooth" });
+    target.classList.add("global-search-target-highlight");
+    window.setTimeout(() => target.classList.remove("global-search-target-highlight"), 2200);
+    return true;
+  }
+  if (attempt >= 14) return false;
+  window.setTimeout(() => revealGlobalSearchTarget(result, attempt + 1), attempt < 4 ? 120 : 260);
+  return false;
+}
+
+function expandCapabilityAncestors(targetId) {
+  if (!targetId) return;
+  const path = [];
+  const visit = (item, ancestors = []) => {
+    if (!item) return false;
+    if (item.id === targetId) {
+      path.push(...ancestors);
+      return true;
+    }
+    const children = [...list(item.domains), ...list(item.capabilities), ...list(item.focuses)];
+    return children.some((child) => visit(child, [...ancestors, item.id].filter(Boolean)));
+  };
+  list(state.capability?.categories).some((category) => visit(category, []));
+  path.forEach((id) => state.expandedCapabilityIds.add(id));
+}
+
+function activateGlobalSearchResult(result) {
+  if (!result?.route) return;
+  const activationQuery = searchTextForActivatedResult(result);
+  if (activationQuery) state.globalSearch = activationQuery;
+  clearGlobalSearchPanel({ keepQuery: true });
+  activateRoute(result.route);
+  if (result.standardFramework) state.activeStandardFramework = result.standardFramework;
+  if (result.standardTableId) state.activeStandardTableId = result.standardTableId;
+  if (activationQuery && routeHasPageSearch(result.route)) {
+    setScopedSearch(activationQuery);
+    queuePageSearchReveal(activationQuery);
+  }
+  if (result.selectedCapabilityId) {
+    state.selectedCapabilityId = result.selectedCapabilityId;
+    expandCapabilityAncestors(result.selectedCapabilityId);
+    ensureCapabilityWorkspaceViewForSelection(result.selectedCapabilityId);
+    renderCapabilities();
+  }
+  if (result.selectedMaintenanceId) {
+    state.selectedMaintenanceId = result.selectedMaintenanceId;
+    renderMaintenance();
+  }
+  if (result.selectedProcessId && result.route === "/development-security") {
+    state.selectedDevProcessId = result.selectedProcessId;
+    if (activationQuery) {
+      state.devLifecycleStageSearch = activationQuery;
+      queuePageSearchReveal(activationQuery, "development-security");
+    }
+    renderLifecycle("dev");
+  }
+  if (result.selectedProcessId && result.route === "/data-security") {
+    state.selectedDataProcessId = result.selectedProcessId;
+    if (activationQuery) {
+      state.dataLifecycleStageSearch = activationQuery;
+      queuePageSearchReveal(activationQuery, "data-security");
+    }
+    renderLifecycle("data");
+  }
+  if (result.selectedContentId) {
+    state.selectedContentId = result.selectedContentId;
+    renderContent();
+  }
+  if (result.selectedEnvironmentId || result.selectedEnvironmentSegmentId || result.selectedEnvironmentObjectId) {
+    state.activeEnvironmentTab = "mapping";
+    state.selectedEnvironmentId = result.selectedEnvironmentId || null;
+    state.selectedEnvironmentSegmentId = result.selectedEnvironmentSegmentId || null;
+    state.selectedEnvironmentObjectId = result.selectedEnvironmentObjectId || null;
+    renderEnvironment();
+  }
+  persistWorkspaceState();
+  revealGlobalSearchTarget(result);
+  flushPageSearchReveal();
+}
 
 const ENVIRONMENT_BASEMAP_MIN_SCALE = 0.12;
 const ENVIRONMENT_BASEMAP_MAX_SCALE = 4;
@@ -4649,6 +5468,7 @@ function activateRoute(route, options = {}) {
   if (routeChanged) resetAnnotationInteraction({ collapse: true, clearDraft: !options.preserveAnnotationDraft });
   state.activeRoute = target.route || "/";
   applyRouteTarget(target);
+  restoreScopedSearch();
   setActiveView(target.view || "overview", { syncRoute: false, skipAnnotationGuard: true });
   if (!options.fromBrowser) syncBrowserRoute(state.activeRoute, { replace: Boolean(options.replace) });
 }
@@ -4690,6 +5510,7 @@ function updateApplicationShellChrome() {
     activeEnvironmentTab: state.activeEnvironmentTab,
   });
   updatePageHeaderSummary();
+  syncSearchInputs();
 }
 
 function applyCapabilityCatalogState() {
@@ -5073,10 +5894,10 @@ function renderLifecycle(kind) {
       lifecycleWorkbenchViewModel,
       lifecycle: state.lifecycle,
       selectedProcessId: state.selectedDevProcessId,
-      search: state.search,
+      search: state.devLifecycleStageSearch,
     });
     const stageQuery = text(state.devLifecycleStageSearch).trim();
-    const matchedStages = list(viewModel.stageTree).filter((row) => matchesTextQuery(stageQuery, row.title, row.code, row.order));
+    const matchedStages = list(viewModel.stageTree).filter((row) => matchesTextQuery(stageQuery, row.title, row.code, row.order, row.searchText));
     if (stageQuery && matchedStages.length && !matchedStages.some((row) => row.id === viewModel.relationshipSummary?.selectedProcessId)) {
       state.selectedDevProcessId = matchedStages[0].id;
       viewModel = viewModels.buildApplicationSecurityLifecycleViewModel({
@@ -5084,7 +5905,7 @@ function renderLifecycle(kind) {
         lifecycleWorkbenchViewModel,
         lifecycle: state.lifecycle,
         selectedProcessId: state.selectedDevProcessId,
-        search: state.search,
+        search: state.devLifecycleStageSearch,
       });
     }
     state.selectedDevProcessId = viewModel.relationshipSummary?.selectedProcessId || viewModel.selectedProcess?.id || null;
@@ -5104,7 +5925,7 @@ function renderLifecycle(kind) {
       "devLifecycleLane",
       `
         ${components.ApplicationSecurityLifecycle?.renderStageOverview(viewModel) || ""}
-        ${components.ApplicationSecurityLifecycle?.renderRelationTable({ rows: viewModel.relationRows, policyRows: viewModel.policyRows, overview: viewModel.stageOverview }) || ""}
+        ${components.ApplicationSecurityLifecycle?.renderRelationTable({ rows: viewModel.relationRows, policyRows: viewModel.policyRows, overview: viewModel.stageOverview, searchQuery: state.devLifecycleStageSearch }) || ""}
       `,
     );
     setHtml("devLifecycleDetail", "");
@@ -5140,10 +5961,10 @@ function renderLifecycle(kind) {
       lifecycleWorkbenchViewModel,
       lifecycle: state.lifecycle,
       selectedProcessId: state.selectedDataProcessId,
-      search: state.search,
+      search: state.dataLifecycleStageSearch,
     });
     const stageQuery = text(state.dataLifecycleStageSearch).trim();
-    const matchedStages = list(viewModel.stageTree).filter((row) => matchesTextQuery(stageQuery, row.title, row.code, row.order));
+    const matchedStages = list(viewModel.stageTree).filter((row) => matchesTextQuery(stageQuery, row.title, row.code, row.order, row.searchText));
     if (stageQuery && matchedStages.length && !matchedStages.some((row) => row.id === viewModel.relationshipSummary?.selectedProcessId)) {
       state.selectedDataProcessId = matchedStages[0].id;
       viewModel = viewModels.buildDataSecurityLifecycleViewModel({
@@ -5151,7 +5972,7 @@ function renderLifecycle(kind) {
         lifecycleWorkbenchViewModel,
         lifecycle: state.lifecycle,
         selectedProcessId: state.selectedDataProcessId,
-        search: state.search,
+        search: state.dataLifecycleStageSearch,
       });
     }
     state.selectedDataProcessId = viewModel.relationshipSummary?.selectedProcessId || viewModel.selectedProcess?.id || null;
@@ -5172,7 +5993,7 @@ function renderLifecycle(kind) {
       "dataLifecycleMatrix",
       `
         ${components.ApplicationSecurityLifecycle?.renderStageOverview(viewModel) || ""}
-        ${components.ApplicationSecurityLifecycle?.renderRelationTable({ rows: viewModel.relationRows, policyRows: viewModel.policyRows, overview: viewModel.stageOverview }) || ""}
+        ${components.ApplicationSecurityLifecycle?.renderRelationTable({ rows: viewModel.relationRows, policyRows: viewModel.policyRows, overview: viewModel.stageOverview, searchQuery: state.dataLifecycleStageSearch }) || ""}
       `,
     );
     setHtml("dataLifecycleDetail", "");
@@ -5743,6 +6564,8 @@ function renderActiveView() {
   if (state.activeView === "content") renderContent();
   if (state.activeView === "placeholder") renderPlaceholder();
   scheduleAnnotationAnchorMarkers("render-active-view");
+  syncSearchInputs();
+  flushPageSearchReveal();
 }
 
 function setActiveView(view, options = {}) {
@@ -5758,6 +6581,7 @@ function setActiveView(view, options = {}) {
     state.expandedSelectionId = null;
   }
   state.activeView = view;
+  restoreScopedSearch();
   document.body.dataset.activeView = view;
   for (const button of document.querySelectorAll(".module-tab")) {
     const active = button.dataset.view === view;
@@ -5776,6 +6600,7 @@ function setActiveView(view, options = {}) {
   };
   for (const [key, id] of Object.entries(workspaceMap)) $(id)?.classList.toggle("is-hidden", key !== view);
   renderActiveView();
+  syncSearchInputs();
   setupResizableWorkspaces();
   if (view === "capabilities") applyCapabilityCatalogState();
   if (options.syncRoute !== false) {
@@ -5806,14 +6631,51 @@ function bindEvents() {
     });
   });
   $("searchInput")?.addEventListener("input", (event) => {
-    state.search = event.target.value.trim();
-    if ($("capabilitySearchInput")) $("capabilitySearchInput").value = event.target.value;
-    renderActiveView();
+    state.globalSearch = event.target.value.trim();
+    syncSearchInputs();
+    runGlobalSearch();
+  });
+  $("searchInput")?.addEventListener("focus", () => {
+    if (text(state.globalSearch).trim().length >= GLOBAL_SEARCH_MIN_QUERY_LENGTH) {
+      state.globalSearchOpen = true;
+      runGlobalSearch();
+    }
+  });
+  $("searchInput")?.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      clearGlobalSearchPanel({ keepQuery: true });
+      event.target.blur();
+      return;
+    }
+    if (event.key === "Enter" && state.globalSearchResults[0]) {
+      event.preventDefault();
+      activateGlobalSearchResult(state.globalSearchResults[0]);
+    }
+  });
+  $("globalSearchActionButton")?.addEventListener("click", () => {
+    const input = $("searchInput");
+    input?.focus();
+    state.globalSearch = text(input?.value || state.globalSearch).trim();
+    if (state.globalSearch.length >= GLOBAL_SEARCH_MIN_QUERY_LENGTH) {
+      state.globalSearchOpen = true;
+      runGlobalSearch();
+    }
+  });
+  document.addEventListener("click", (event) => {
+    const resultButton = event.target.closest("[data-global-search-result]");
+    if (resultButton) {
+      const index = Number(resultButton.dataset.globalSearchResult);
+      activateGlobalSearchResult(state.globalSearchResults[index]);
+      return;
+    }
+    if (!event.target.closest(".global-search") && !event.target.closest("#globalSearchPanel")) clearGlobalSearchPanel({ keepQuery: true });
   });
   $("capabilitySearchInput")?.addEventListener("input", (event) => {
-    state.search = event.target.value.trim();
-    if ($("searchInput")) $("searchInput").value = event.target.value;
+    setScopedSearch(event.target.value);
+    queuePageSearchReveal(event.target.value);
     renderCapabilities();
+    flushPageSearchReveal();
   });
   document.addEventListener("input", (event) => {
     if (!event.target?.matches?.("[data-user-note-draft]")) return;
@@ -5899,9 +6761,11 @@ function bindEvents() {
     const input = event.target.closest("[data-relation-filter]");
     if (!input) return;
     state.relationshipFilters[input.dataset.relationFilter] = input.value;
+    queuePageSearchReveal(input.value);
     const field = input.dataset.relationFilter;
     const cursor = input.selectionStart;
     renderCapabilities();
+    flushPageSearchReveal();
     requestAnimationFrame(() => {
       const nextInput = $("detail")?.querySelector(`[data-relation-filter="${field}"]`);
       if (nextInput) {
@@ -5917,16 +6781,22 @@ function bindEvents() {
   document.addEventListener("input", (event) => {
     if (event.target?.id !== "environmentSearchInput") return;
     state.activeEnvironmentTab = "mapping";
-    state.search = event.target.value.trim();
+    setScopedSearch(event.target.value);
+    queuePageSearchReveal(event.target.value);
     renderEnvironment();
+    flushPageSearchReveal();
   });
   $("devLifecycleStageSearch")?.addEventListener("input", (event) => {
     state.devLifecycleStageSearch = event.target.value.trim();
+    queuePageSearchReveal(event.target.value, "development-security");
     renderLifecycle("dev");
+    flushPageSearchReveal();
   });
   $("dataLifecycleStageSearch")?.addEventListener("input", (event) => {
     state.dataLifecycleStageSearch = event.target.value.trim();
+    queuePageSearchReveal(event.target.value, "data-security");
     renderLifecycle("data");
+    flushPageSearchReveal();
   });
   $("environmentTree")?.addEventListener("click", (event) => {
     const objectRow = event.target.closest("[data-environment-object-id]");
@@ -6066,12 +6936,16 @@ function bindEvents() {
       state.environmentReviewFilters[reviewFilter.dataset.environmentReviewFilter] = reviewFilter.value;
       state.selectedEnvironmentReviewRowKey = "";
       state.selectedEnvironmentReviewDirectoryKey = "";
+      queuePageSearchReveal(reviewFilter.value);
       renderEnvironment();
+      flushPageSearchReveal();
       return;
     }
     if (event.target?.id !== "sourceSearchInput") return;
-    state.search = event.target.value.trim();
+    setScopedSearch(event.target.value);
+    queuePageSearchReveal(event.target.value);
     renderMaintenance();
+    flushPageSearchReveal();
   });
   document.addEventListener("click", (event) => {
     const button = event.target.closest("[data-source-page]");
@@ -6083,6 +6957,7 @@ function bindEvents() {
       state.activeRoute = routeForCurrentState("maintenance");
       if (state.activeMaintenancePage === "references" && !state.activeReferenceTab) state.activeReferenceTab = "gbt";
       if (state.activeMaintenancePage === "standards") state.activeRoute = `/standards/${state.activeStandardFramework}`;
+      restoreScopedSearch();
       state.selectedMaintenanceId = null;
       renderMaintenance();
       syncBrowserRoute(state.activeRoute);
@@ -6095,6 +6970,7 @@ function bindEvents() {
     const tab = event.target.closest("[data-reference-tab]");
     if (tab && !tab.dataset.sourcePage) {
       state.activeReferenceTab = tab.dataset.referenceTab;
+      restoreScopedSearch();
       state.selectedMaintenanceId = null;
       renderMaintenance();
       return;
@@ -6111,6 +6987,7 @@ function bindEvents() {
     if (!tableId || state.activeMaintenancePage !== "standards") return;
     if (frameworkId && frameworkId !== state.activeStandardFramework) return;
     state.activeStandardTableId = tableId;
+    restoreScopedSearch();
     state.selectedMaintenanceId = null;
     renderMaintenance();
   });
@@ -6341,6 +7218,7 @@ function bindEvents() {
       const switchContentPage = () => {
         state.activeContentPage = contentPage.dataset.contentPage;
         state.activeRoute = routeForCurrentState("content");
+        restoreScopedSearch();
         state.selectedContentId = null;
         state.selectedContentSlideIndex = 0;
         renderContent();
@@ -6381,6 +7259,13 @@ function bindEvents() {
   });
   document.addEventListener("keydown", () => {
     window.setTimeout(persistWorkspaceState, 0);
+  });
+  document.addEventListener("keydown", (event) => {
+    if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "k") return;
+    event.preventDefault();
+    const input = $("searchInput");
+    input?.focus();
+    input?.select?.();
   });
 }
 

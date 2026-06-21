@@ -40,6 +40,7 @@
     securityService: "安全技术服务",
     securityModule: "安全技术模块",
     securityMeasure: "安全技术措施",
+    securitySystemProduct: "安全系统 / 产品",
     securityModuleMeasure: "安全技术模块 / 措施",
     childInformationObject: "下属信息化对象",
     summary: "汇总统计",
@@ -95,18 +96,61 @@
 
   function collectModules(detail) {
     const modules = [];
+    for (const mapping of detail?.directScopeGroups || detail?.scopeMappings || []) modules.push(...(mapping.modules || []));
     for (const service of collectServices(detail)) modules.push(...(service.modules || []));
     return uniqueById(modules);
   }
 
   function collectMeasures(detail) {
     const measures = [];
+    for (const mapping of detail?.directScopeGroups || detail?.scopeMappings || []) measures.push(...(mapping.measures || []));
     for (const service of collectServices(detail)) measures.push(...(service.measures || []));
+    for (const module of collectModules(detail)) measures.push(...(module.measures || []));
     return uniqueById(measures);
   }
 
+  function splitScopeItem(scope) {
+    if (!scope) return [];
+    const code = text(scope.objectCode || scope.code).trim();
+    if (code) return [scope];
+    const label = text(scope.objectName || scope.title || scope.text || scope.name).trim();
+    if (!label) return [scope];
+    const parsed = label
+      .split(/(?=I-[A-Z]{2}\b)/g)
+      .map((chunk) => chunk.trim())
+      .filter(Boolean)
+      .map((chunk) => {
+        const match = chunk.match(/^(I-[A-Z]{2})\s*(.+)$/);
+        if (!match) return null;
+        return {
+          ...scope,
+          objectId: match[1],
+          objectCode: match[1],
+          objectName: match[2].trim(),
+        };
+      })
+      .filter(Boolean);
+    return parsed.length ? parsed : [scope];
+  }
+
   function collectScopes(detail) {
-    return uniqueById((detail?.directScopeGroups || detail?.scopeMappings || []).map((mapping) => mapping.scope));
+    return uniqueById((detail?.directScopeGroups || detail?.scopeMappings || []).flatMap((mapping) => splitScopeItem(mapping.scope)));
+  }
+
+  function collectSecuritySystems(detail) {
+    const systems = [];
+    for (const mapping of detail?.directScopeGroups || detail?.scopeMappings || []) systems.push(...(mapping.securitySystems || []), ...(mapping.systems || []));
+    for (const service of collectServices(detail)) systems.push(...(service.securitySystems || []), ...(service.systems || []));
+    for (const module of collectModules(detail)) systems.push(...(module.securitySystems || []), ...(module.systems || []));
+    return uniqueById(systems);
+  }
+
+  function collectProducts(detail) {
+    const products = [];
+    for (const mapping of detail?.directScopeGroups || detail?.scopeMappings || []) products.push(...(mapping.products || []));
+    for (const service of collectServices(detail)) products.push(...(service.products || []));
+    for (const module of collectModules(detail)) products.push(...(module.products || []));
+    return uniqueById(products);
   }
 
   function parseViewBox(svg) {
@@ -616,6 +660,8 @@
     if (kind === "service") return "relation-chip technical-chip service-chip";
     if (kind === "module") return "relation-chip technical-chip module-chip";
     if (kind === "measure") return "relation-chip technical-chip measure-chip";
+    if (kind === "system") return "relation-chip system-chip";
+    if (kind === "product") return "relation-chip environment-chip";
     if (kind === "environment") return "sapd-pill pill--environment";
     if (kind === "segment") return "sapd-pill pill--segment";
     if (kind === "object") return "sapd-pill pill--object";
@@ -629,6 +675,8 @@
     if (kind === "service") return "安全技术服务";
     if (kind === "module") return "安全技术模块";
     if (kind === "measure") return "安全技术措施";
+    if (kind === "system") return "安全系统";
+    if (kind === "product") return "产品";
     if (kind === "scope") return "作用域";
     if (kind === "environment") return "信息化环境";
     if (kind === "segment") return "环境子类";
@@ -759,6 +807,11 @@
     return field(SOURCE_FIELD_LABELS[key] || key, body);
   }
 
+  function countedField(label, items, kind) {
+    const rows = uniqueById(items || []);
+    return field(`${label}（${rows.length}）`, renderList(rows, kind));
+  }
+
   function typeLabel(detailType) {
     return DETAIL_TYPE_LABELS[detailType] || detailType || DETAIL_TYPE_LABELS.unknown;
   }
@@ -855,14 +908,20 @@
   }
 
   function renderInformationObjectDetail(root, node, detail) {
+    const scopes = collectScopes(detail);
+    const services = collectServices(detail);
+    const modules = collectModules(detail);
+    const measures = collectMeasures(detail);
+    const systemProducts = uniqueById([...collectSecuritySystems(detail), ...collectProducts(detail)]);
     const body = `
         <dl>
           ${sourceField("owningEnvironment", renderValue(detail.environmentName))}
           ${sourceField("owningSegment", renderValue(segmentLabel(detail)))}
-          ${sourceField("scope", renderScopesFromGroups(detail.directScopeGroups || []))}
-          ${sourceField("securityService", renderList(groupsToItems(detail.directScopeGroups || [], "services"), "service"))}
-          ${sourceField("securityModule", renderList(groupsToItems(detail.directScopeGroups || [], "modules"), "module"))}
-          ${sourceField("securityMeasure", renderList(groupsToItems(detail.directScopeGroups || [], "measures"), "measure"))}
+          ${countedField("作用域", scopes, "scope")}
+          ${countedField("安全技术服务", services, "service")}
+          ${countedField("安全技术模块", modules, "module")}
+          ${countedField("安全技术措施", measures, "measure")}
+          ${countedField("安全系统 / 产品", systemProducts, "system")}
           ${renderInheritedScopeGroups(detail)}
         </dl>
     `;
@@ -870,14 +929,20 @@
   }
 
   function renderBoundaryDetail(root, node, detail) {
+    const scopes = collectScopes(detail);
+    const services = collectServices(detail);
+    const modules = collectModules(detail);
+    const measures = collectMeasures(detail);
+    const systemProducts = uniqueById([...collectSecuritySystems(detail), ...collectProducts(detail)]);
     const body = `
       <dl>
         ${sourceField("owningEnvironment", renderValue(detail.environmentName))}
         ${sourceField("relatedObject", renderValue(detail.objectName || node.objectName || node.label))}
-        ${sourceField("scope", renderScopesFromGroups(detail.directScopeGroups || []))}
-        ${sourceField("securityService", renderList(groupsToItems(detail.directScopeGroups || [], "services"), "service"))}
-        ${sourceField("securityModule", renderList(groupsToItems(detail.directScopeGroups || [], "modules"), "module"))}
-        ${sourceField("securityMeasure", renderList(groupsToItems(detail.directScopeGroups || [], "measures"), "measure"))}
+        ${countedField("作用域", scopes, "scope")}
+        ${countedField("安全技术服务", services, "service")}
+        ${countedField("安全技术模块", modules, "module")}
+        ${countedField("安全技术措施", measures, "measure")}
+        ${countedField("安全系统 / 产品", systemProducts, "system")}
       </dl>
     `;
     return renderDetailShell("网络边界 / 作用域", node, detail, body);

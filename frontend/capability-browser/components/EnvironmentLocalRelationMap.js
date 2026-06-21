@@ -289,6 +289,7 @@
           ${
             components.EnvironmentScopeServiceMatrix?.render({
               rows: viewModel?.scopeServiceRows,
+              groups: viewModel?.scopeServiceGroups,
               showObjectColumn: viewModel?.detailPanel?.showObjectColumn,
               selectedRowId,
               grouped: false,

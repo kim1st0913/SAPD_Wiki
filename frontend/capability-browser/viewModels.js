@@ -1495,6 +1495,12 @@
     const modules = compactMeasureEntities(measure, ["modules", "related_modules", "technology_modules"]);
     const scopes = compactMeasureEntities(measure, ["scopes", "scope_types", "applicable_scopes"]);
     const focuses = compactMeasureEntities(measure, ["focuses", "capability_focuses", "related_focuses"]);
+    if (!services.length) {
+      services.push(...compactMeasureEntities(measure, ["related_service_names"]));
+    }
+    if (!scopes.length) {
+      scopes.push(...compactMeasureEntities(measure, ["related_scope_names"]));
+    }
     const environmentRows = measureRelatedEnvironmentRows(management, services, scopes);
     const environments = uniqueBy(
       environmentRows.map((row) => compactEntity(row.environment, "待补充")).filter(Boolean),
@@ -3191,27 +3197,51 @@
     const directEnvironmentTree = list(workbenchViewModel?.environmentScopeTree);
     if (directEnvironmentTree.length) {
       const segmentObjects = new Map();
+      const splitScopeLabel = (scope) => {
+        const title = titleOf(scope, "").trim();
+        const code = text(scope?.code).trim();
+        if (code || !title) return [scope];
+        const chunks = title
+          .split(/(?=I-[A-Z]{2}\b)/g)
+          .map((chunk) => chunk.trim())
+          .filter(Boolean);
+        const parsed = chunks
+          .map((chunk) => {
+            const match = chunk.match(/^(I-[A-Z]{2})\s*(.+)$/);
+            if (!match) return null;
+            return {
+              ...scope,
+              id: match[1],
+              code: match[1],
+              title: match[2].trim(),
+              name: match[2].trim(),
+            };
+          })
+          .filter(Boolean);
+        return parsed.length ? parsed : [scope];
+      };
       const normalizeEnvironmentObject = (object) => ({
         ...object,
         title: titleOf(object, "未命名对象"),
         segments: list(object.segments).map((segment) => ({ ...segment, title: titleOf(segment, "未定义环境子类") })),
-        scope_mappings: list(object.scope_mappings).map((mapping) => ({
-          ...mapping,
-          services: list(mapping.services).map((service) => ({
-            ...service,
-            title: titleOf(service, "未命名服务"),
-            modules: [
-              ...list(service.modules),
-              ...list(service.measures).map((measure) => ({
+        scope_mappings: list(object.scope_mappings).flatMap((mapping) =>
+          splitScopeLabel(mapping.scope).map((scope) => ({
+            ...mapping,
+            scope,
+            services: list(mapping.services).map((service) => ({
+              ...service,
+              title: titleOf(service, "未命名服务"),
+              modules: list(service.modules),
+              measures: list(service.measures).map((measure) => ({
                 ...measure,
                 type: "security_technical_measure",
                 objectKind: "安全技术措施",
                 kind: "安全技术措施",
                 title: titleOf(measure, "未命名措施"),
               })),
-            ],
+            })),
           })),
-        })),
+        ),
       });
       const environment_scope_tree = directEnvironmentTree.map((environment) => {
         const objects = list(environment.objects).map(normalizeEnvironmentObject);
@@ -3505,80 +3535,265 @@
     if (!selectedObject) return [];
     const objectScopes = uniqueBy(
       list(selectedObject.scope_mappings).map((mapping) => compactEntity(mapping.scope, "未命名作用域")).filter(Boolean),
-      (scope) => scope.id || scope.code || scope.title,
+      (scope) => scope.code || scope.id || scope.title,
     );
+    const segments = list(selectedObject.segments).map(compactEntity);
     const baseForObject = () => ({
-      object: showObjectColumn ? compactEntity(selectedObject, "未命名对象") : null,
-      segments: list(selectedObject.segments).map(compactEntity),
+      object: compactEntity(selectedObject, "未命名对象"),
+      segments,
       scopes: objectScopes,
       scope: objectScopes[0] || null,
     });
-    const rowId = (service, relation, index) =>
+    const rowId = (scope, service, index) =>
       [
         selectedObject.id,
+        scope?.id || scope?.code || scope?.title || "scope",
         service?.id || service?.code || service?.title || "service",
-        relation?.id || relation?.code || relation?.title || relation?.name || "relation",
         index,
       ]
         .filter(Boolean)
         .join("::");
+
+    const compactSystem = (system) => compactEntity(system, "未命名安全系统");
+    const compactProduct = (product) => compactEntity(product, "未命名产品");
+    const relationNodeKey = (item) => [item?.id, item?.code, item?.title, item?.name, item?.objectKind, item?.type].filter(Boolean).join("::");
+    const serviceKey = (service) => service?.code || service?.id || service?.title || service?.name;
+    const enrichRelationNode = (item, fallbackKind) => {
+      const objectKind = item?.objectKind || item?.kind || fallbackKind;
+      return {
+        ...item,
+        objectKind,
+        kind: objectKind,
+        relationKind: objectKind.includes("措施") ? "measure" : "module",
+        measures: uniqueBy(list(item?.measures).map((measure) => compactTechnicalObject({ ...measure, type: "security_technical_measure" }, "安全技术措施")), relationNodeKey),
+        securitySystems: uniqueBy(list(item?.systems || item?.linkedSystems || item?.securitySystems).map(compactSystem), (system) => system?.id || system?.code || system?.title),
+        products: uniqueBy(list(item?.products || item?.linkedProducts).map(compactProduct), (product) => product?.id || product?.code || product?.title),
+      };
+    };
+    const rawServiceRelationNodes = (service) => {
+      const moduleObjects = list(service.modules)
+        .filter((item) => !isSecurityTechnicalMeasure(item))
+        .map((module) => enrichRelationNode(compactTechnicalObject(module, "安全技术模块"), "安全技术模块"));
+      const moduleMeasures = list(service.modules)
+        .filter(isSecurityTechnicalMeasure)
+        .map((measure) => enrichRelationNode(compactTechnicalObject({ ...measure, type: "security_technical_measure" }, "安全技术措施"), "安全技术措施"));
+      const directMeasures = list(service.measures)
+        .map((measure) => enrichRelationNode(compactTechnicalObject({ ...measure, type: "security_technical_measure" }, "安全技术措施"), "安全技术措施"));
+      return [...moduleObjects, ...moduleMeasures, ...directMeasures];
+    };
+    const exactRelationKey = (service, relationNode) =>
+      [
+        service?.code || service?.id || service?.title,
+        relationNode?.id || relationNode?.code || relationNode?.title,
+        relationNode?.objectKind || relationNode?.type,
+        list(relationNode?.measures).map(relationNodeKey).sort().join("|"),
+        list(relationNode?.securitySystems).map((system) => system?.id || system?.code || system?.title).sort().join("|"),
+        list(relationNode?.products).map((product) => product?.id || product?.code || product?.title).sort().join("|"),
+      ].join("::");
+
     const base = baseForObject();
-    const services = list(selectedObject.scope_mappings).flatMap((mapping) => list(mapping.services));
-    if (!services.length) {
+    const rows = [];
+    let index = 0;
+    for (const mapping of list(selectedObject.scope_mappings)) {
+      const scope = compactEntity(mapping.scope, "未命名作用域");
+      const services = uniqueBy(list(mapping.services), serviceKey);
+      if (!services.length) {
+        rows.push({
+          id: rowId(scope, null, index++),
+          ...base,
+          scopes: scope ? [scope] : objectScopes,
+          scope: scope || objectScopes[0] || null,
+          services: [],
+          service: null,
+          securitySystems: [],
+          products: [],
+          modules: [],
+          measures: [],
+          relationNodes: [],
+          relationType: "none",
+          exactDuplicateCount: 0,
+          coverageStatus: "不适用",
+          note: "该作用域无适用安全技术服务。",
+        });
+        continue;
+      }
+      for (const service of services) {
+        const compactService = compactEntity(service, "未命名服务");
+        const rawRelationNodes = rawServiceRelationNodes(service);
+        const relationNodes = uniqueBy(rawRelationNodes, relationNodeKey);
+        const exactSeen = new Set();
+        let exactDuplicateCount = 0;
+        for (const node of rawRelationNodes) {
+          const key = exactRelationKey(compactService, node);
+          if (exactSeen.has(key)) exactDuplicateCount += 1;
+          exactSeen.add(key);
+        }
+        const modules = uniqueBy(relationNodes.filter((item) => item.relationKind !== "measure"), relationNodeKey);
+        const measures = uniqueBy(
+          [
+            ...relationNodes.filter((item) => item.relationKind === "measure"),
+            ...relationNodes.flatMap((item) => list(item.measures)),
+          ],
+          relationNodeKey,
+        );
+        const securitySystems = uniqueBy(
+          [
+            ...list(service.systems || service.linkedSystems || service.securitySystems).map(compactSystem),
+            ...relationNodes.flatMap((item) => list(item.securitySystems)),
+          ],
+          (system) => system?.id || system?.code || system?.title,
+        );
+        const products = uniqueBy(relationNodes.flatMap((item) => list(item.products)), (product) => product?.id || product?.code || product?.title);
+        rows.push({
+          id: rowId(scope, compactService, index++),
+          ...base,
+          scopes: scope ? [scope] : objectScopes,
+          scope: scope || objectScopes[0] || null,
+          services: [compactService],
+          service: compactService,
+          securitySystems,
+          products,
+          modules,
+          measures,
+          relationNodes,
+          relationType: relationNodes.length > 1 ? "1:N" : relationNodes.length === 1 ? "1:1" : "no_relation",
+          exactDuplicateCount,
+          coverageStatus: relationNodes.length ? "已覆盖" : "无模块/措施映射",
+          note: relationNodes.length ? "服务唯一显示，右侧聚合模块 / 措施 / 系统。" : "已有安全技术服务，未形成模块 / 措施映射。",
+        });
+      }
+    }
+    if (!rows.length) {
       return [
         {
           id: rowId(null, null, 0),
           ...base,
           services: [],
+          service: null,
           securitySystems: [],
+          products: [],
           modules: [],
           measures: [],
+          relationNodes: [],
+          relationType: "none",
+          exactDuplicateCount: 0,
           coverageStatus: "不适用",
           note: "该对象无适用安全技术服务。",
         },
       ];
     }
-    const relationRows = [];
-    const noRelationRows = [];
-    for (const service of services) {
-        const serviceTechnicalObjects = list(service.modules);
-        const moduleObjects = uniqueBy(serviceTechnicalObjects.filter((item) => !isSecurityTechnicalMeasure(item)), (module) => module.id || module.code || module.title).map((module) =>
-          compactTechnicalObject(module, "安全技术模块"),
-        );
-        const measureObjects = uniqueBy(serviceTechnicalObjects.filter(isSecurityTechnicalMeasure), (measure) => measure.id || measure.code || measure.title || measure.name).map((measure) =>
-          compactTechnicalObject({ ...measure, type: "security_technical_measure" }, "安全技术措施"),
-        );
-        const relationItems = [
-          ...moduleObjects.map((module) => ({ relation: module, kind: "module", item: module })),
-          ...measureObjects.map((measure) => ({ relation: measure, kind: "measure", item: measure })),
-        ];
-        if (!relationItems.length) {
-          noRelationRows.push({
-            id: rowId(service, null, noRelationRows.length),
-            ...base,
-            services: [compactEntity(service)],
-            securitySystems: uniqueBy(list(service.systems || service.linkedSystems || service.securitySystems).map(compactEntity), (system) => system?.id || system?.code || system?.title),
-            modules: [],
-            measures: [],
-            coverageStatus: "模块/措施待补充",
-            note: "已有安全技术服务，安全技术模块 / 措施待补充。",
-          });
-          continue;
+    return rows;
+  }
+
+  function buildEnvironmentScopeServiceGroups(rows) {
+    const relationNodeKey = (item) => [item?.id, item?.code, item?.title, item?.name, item?.objectKind, item?.type].filter(Boolean).join("::");
+    const serviceKey = (service) => service?.code || service?.id || service?.title || service?.name;
+    const objectKey = (row, index) => row?.object?.id || row?.object?.code || row?.object?.title || `environment-object:${index}`;
+    const groupsByKey = new Map();
+    const serviceScopesByGroup = new Map();
+
+    const ensureGroup = (row, index) => {
+      const key = objectKey(row, index);
+      if (!groupsByKey.has(key)) {
+        const object = row?.object || {
+          id: key,
+          title: "当前信息化对象",
+        };
+        groupsByKey.set(key, {
+          id: key,
+          objectKey: key,
+          object,
+          objectTitle: titleOf(object, "当前信息化对象"),
+          segments: [],
+          scopes: [],
+          services: [],
+          modules: [],
+          edges: [],
+          exactDuplicateCount: 0,
+          emptyScopeCount: 0,
+        });
+      }
+      return groupsByKey.get(key);
+    };
+
+    const addUnique = (items, item, keyFn) => {
+      if (!item) return;
+      const key = keyFn(item);
+      if (!key || items.some((row) => keyFn(row) === key)) return;
+      items.push(item);
+    };
+
+    for (const [index, row] of list(rows).entries()) {
+      const group = ensureGroup(row, index);
+      const currentObjectKey = group.objectKey;
+      if (!serviceScopesByGroup.has(currentObjectKey)) serviceScopesByGroup.set(currentObjectKey, new Map());
+      const serviceScopes = serviceScopesByGroup.get(currentObjectKey);
+      const rowScopes = list(row.scopes).length ? list(row.scopes) : [row.scope];
+      for (const segment of list(row.segments)) addUnique(group.segments, segment, (item) => item.id || item.code || item.title);
+      for (const scope of rowScopes) addUnique(group.scopes, scope, (item) => item?.code || item?.id || item?.title);
+      group.exactDuplicateCount += Number(row.exactDuplicateCount || 0);
+      if (!list(row.services).length) group.emptyScopeCount += 1;
+
+      for (const service of list(row.services)) {
+        const currentServiceKey = serviceKey(service);
+        addUnique(group.services, service, serviceKey);
+        if (currentServiceKey) {
+          const existingScopes = serviceScopes.get(currentServiceKey) || [];
+          for (const scope of rowScopes) addUnique(existingScopes, scope, (item) => item?.code || item?.id || item?.title);
+          serviceScopes.set(currentServiceKey, existingScopes);
         }
-        for (const relationItem of relationItems) {
-          relationRows.push({
-            id: rowId(service, relationItem.item, relationRows.length),
-            ...base,
-            services: [compactEntity(service)],
-            securitySystems: uniqueBy(list(relationItem.item.systems).map(compactEntity), (system) => system?.id || system?.code || system?.title),
-            modules: relationItem.kind === "module" ? [relationItem.item] : [],
-            measures: relationItem.kind === "measure" ? [relationItem.item] : [],
-            coverageStatus: "已覆盖",
-            note: "已建立服务、模块 / 措施与安全系统映射。",
+        const relationNodes = list(row.relationNodes).length ? list(row.relationNodes) : [...list(row.modules), ...list(row.measures)];
+        for (const module of relationNodes) {
+          const currentModuleKey = relationNodeKey(module);
+          addUnique(group.modules, module, relationNodeKey);
+          if (!currentServiceKey || !currentModuleKey) continue;
+          const edgeKey = `${currentServiceKey}::${currentModuleKey}`;
+          if (group.edges.some((edge) => edge.edgeKey === edgeKey)) continue;
+          group.edges.push({
+            edgeKey,
+            serviceKey: currentServiceKey,
+            moduleKey: currentModuleKey,
+            service,
+            module,
           });
         }
+      }
     }
-    return [...relationRows, ...noRelationRows];
+
+    return [...groupsByKey.values()].map((group) => {
+      const serviceLinkCounts = new Map();
+      const moduleLinkCounts = new Map();
+      for (const edge of group.edges) {
+        serviceLinkCounts.set(edge.serviceKey, (serviceLinkCounts.get(edge.serviceKey) || 0) + 1);
+        moduleLinkCounts.set(edge.moduleKey, (moduleLinkCounts.get(edge.moduleKey) || 0) + 1);
+      }
+      const defaultFocusServiceKey =
+        [...serviceLinkCounts.entries()].sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0], "zh-Hans-CN"))[0]?.[0] || "";
+      return {
+        ...group,
+        services: group.services.map((service) => {
+          const key = serviceKey(service);
+          return {
+            ...service,
+            scopes: serviceScopesByGroup.get(group.objectKey)?.get(key) || [],
+            relationCount: serviceLinkCounts.get(key) || 0,
+            relationType: (serviceLinkCounts.get(key) || 0) > 1 ? "1:N" : "1:1",
+            isDefaultFocus: key === defaultFocusServiceKey,
+          };
+        }),
+        modules: group.modules.map((module) => {
+          const key = relationNodeKey(module);
+          return {
+            ...module,
+            relationCount: moduleLinkCounts.get(key) || 0,
+            relationType: (moduleLinkCounts.get(key) || 0) > 1 ? "N:1" : "1:1",
+          };
+        }),
+        oneToManyCount: [...serviceLinkCounts.values()].filter((count) => count > 1).length,
+        manyToOneCount: [...moduleLinkCounts.values()].filter((count) => count > 1).length,
+        defaultFocusServiceKey,
+      };
+    });
   }
 
   function buildEnvironmentLocalRelationNotes({ selectionType, selectedEnvironment, selectedSegment, selectedObject, summary, detailPanel }) {
@@ -3648,6 +3863,7 @@
       : isSegmentSelection
         ? list(selected?.objects).flatMap((object) => buildEnvironmentScopeServiceRows(environmentManagement, object, true))
       : buildEnvironmentScopeServiceRows(environmentManagement, selected?.object, false);
+    const scopeServiceGroups = buildEnvironmentScopeServiceGroups(scopeServiceRows);
     const summary = {
       objectCount: uniqueBy(navigationTree.flatMap((environment) => list(environment.objects)), (object) => object.id || object.title).length,
       selectedObjectCount: isEnvironmentSelection || isSegmentSelection ? list(selected?.objects).length : selectedObject ? 1 : 0,
@@ -3684,6 +3900,7 @@
       selectedMode: selected?.selectionType || "",
       relationshipSummary: summary,
       scopeServiceRows,
+      scopeServiceGroups,
       detailPanel,
       localRelationNotes: buildEnvironmentLocalRelationNotes({ selectionType: selected?.selectionType, selectedEnvironment, selectedSegment, selectedObject, summary, detailPanel }),
       sourceEvidence: environmentSourceEvidence(selected?.environment, selected?.object, selected?.objects),
@@ -3702,6 +3919,7 @@
             ? [selectedSegment]
             : list(selected?.object?.segments).map(compactEntity),
         scopeServiceRows,
+        scopeServiceGroups,
         summary,
         workbenchViewModel: environmentWorkbenchViewModel || null,
       },

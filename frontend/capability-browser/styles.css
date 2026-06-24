@@ -25097,32 +25097,43 @@ body.app-shell-locked {
   grid-template-rows: auto minmax(0, 1fr);
   gap: 0;
   padding: 12px 0;
-  overflow: hidden;
+  position: relative;
+  z-index: 60;
+  overflow: visible;
 }
 
 .app-shell-integrated.sidebar-collapsed .shell-sidebar-brand {
-  min-height: 112px;
+  min-height: 62px;
   display: grid;
-  grid-template-columns: 1fr;
-  grid-template-rows: 40px 36px;
+  grid-template-columns: 38px 30px;
+  grid-template-rows: 38px;
+  justify-content: center;
   justify-items: center;
   align-items: center;
-  gap: 10px;
-  padding: 6px 0 14px;
+  gap: 8px;
+  padding: 10px 0 12px;
   border-bottom: 1px solid rgba(132, 143, 159, 0.18);
 }
 
 .app-shell-integrated.sidebar-collapsed .shell-sidebar-brand .brand-mark {
-  width: 40px;
-  height: 40px;
+  grid-column: 1;
+  grid-row: 1;
+  width: 38px;
+  height: 38px;
   justify-self: center;
   border-radius: 13px;
   transform: none;
 }
 
+.app-shell-integrated.sidebar-collapsed .shell-sidebar-brand > div:not(.brand-mark) {
+  display: none;
+}
+
 .app-shell-integrated.sidebar-collapsed .sidebar-collapse-toggle {
-  width: 34px;
-  height: 34px;
+  grid-column: 2;
+  grid-row: 1;
+  width: 30px;
+  height: 30px;
   position: static;
   transform: none;
   border-color: rgba(132, 143, 159, 0.2);
@@ -25144,8 +25155,7 @@ body.app-shell-locked {
   align-items: center;
   gap: 8px;
   padding: 12px 0 18px;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: visible;
   scrollbar-width: none;
 }
 
@@ -25156,6 +25166,7 @@ body.app-shell-locked {
 
 .app-shell-integrated.sidebar-collapsed .navigation-group,
 .app-shell-integrated.sidebar-collapsed .module-tabs.manifest-navigation > .module-tab {
+  position: relative;
   width: 100%;
   display: grid;
   justify-items: center;
@@ -25163,6 +25174,7 @@ body.app-shell-locked {
 
 .app-shell-integrated.sidebar-collapsed .module-tabs.manifest-navigation .module-tab,
 .app-shell-integrated.sidebar-collapsed .module-tabs.manifest-navigation .navigation-parent {
+  position: relative;
   width: 48px;
   min-width: 48px;
   max-width: 48px;
@@ -25174,7 +25186,7 @@ body.app-shell-locked {
   justify-content: center;
   gap: 0;
   padding: 0;
-  overflow: hidden;
+  overflow: visible;
   border-radius: 16px;
   background: transparent;
 }
@@ -25190,6 +25202,57 @@ body.app-shell-locked {
   border-color: rgba(10, 132, 255, 0.18);
   background: rgba(10, 132, 255, 0.11);
   box-shadow: inset 0 0 0 1px rgba(10, 132, 255, 0.08);
+}
+
+.app-shell-integrated.sidebar-collapsed .module-tabs.manifest-navigation .module-tab:hover::after,
+.app-shell-integrated.sidebar-collapsed .module-tabs.manifest-navigation .module-tab:focus-visible::after,
+.app-shell-integrated.sidebar-collapsed .navigation-group > .navigation-parent:hover::after,
+.app-shell-integrated.sidebar-collapsed .navigation-group > .navigation-parent:focus-visible::after {
+  content: attr(title);
+  position: absolute;
+  left: calc(100% + 14px);
+  top: 50%;
+  z-index: 999;
+  min-width: 92px;
+  max-width: 240px;
+  padding: 9px 14px 10px;
+  border: 1px solid rgba(149, 170, 197, 0.34);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(245, 249, 255, 0.88)),
+    oklch(98.5% 0.007 246);
+  color: #182230;
+  font-size: 13px;
+  font-weight: 780;
+  line-height: 1.25;
+  text-align: left;
+  white-space: normal;
+  box-shadow:
+    0 20px 44px rgba(29, 35, 48, 0.16),
+    0 2px 10px rgba(10, 132, 255, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  transform: translateY(-50%) translateX(0);
+  pointer-events: none;
+  backdrop-filter: blur(18px) saturate(1.12);
+}
+
+.app-shell-integrated.sidebar-collapsed .module-tabs.manifest-navigation .module-tab:hover::before,
+.app-shell-integrated.sidebar-collapsed .module-tabs.manifest-navigation .module-tab:focus-visible::before,
+.app-shell-integrated.sidebar-collapsed .navigation-group > .navigation-parent:hover::before,
+.app-shell-integrated.sidebar-collapsed .navigation-group > .navigation-parent:focus-visible::before {
+  content: "";
+  position: absolute;
+  left: calc(100% + 9px);
+  top: 50%;
+  z-index: 1000;
+  width: 10px;
+  height: 10px;
+  border-left: 1px solid rgba(149, 170, 197, 0.34);
+  border-bottom: 1px solid rgba(149, 170, 197, 0.34);
+  background: rgba(255, 255, 255, 0.96);
+  transform: translateY(-50%) rotate(45deg);
+  pointer-events: none;
+  backdrop-filter: blur(18px) saturate(1.12);
 }
 
 .app-shell-integrated.sidebar-collapsed .module-tabs.manifest-navigation .nav-symbol {

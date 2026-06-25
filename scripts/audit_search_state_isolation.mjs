@@ -20,7 +20,6 @@ const indexHtml = read("frontend/capability-browser/index.html");
 const appShell = read("frontend/capability-browser/components/AppShell.js");
 const lifecycleComponent = read("frontend/capability-browser/components/ApplicationSecurityLifecycle.js");
 const standardTable = read("frontend/capability-browser/components/StandardFrameworkTable.js");
-const environmentReviewTable = read("frontend/capability-browser/components/EnvironmentDataReviewTable.js");
 const stylesCss = read("frontend/capability-browser/styles.css");
 
 const searchInputHandler = snippet(appJs, '$("searchInput")?.addEventListener("input"', '$("capabilitySearchInput")?.addEventListener("input"');
@@ -30,7 +29,6 @@ const sourceInputHandler = snippet(appJs, 'if (event.target?.id !== "sourceSearc
 const devLifecycleInputHandler = snippet(appJs, '$("devLifecycleStageSearch")?.addEventListener("input"', '$("dataLifecycleStageSearch")?.addEventListener("input"');
 const dataLifecycleInputHandler = snippet(appJs, '$("dataLifecycleStageSearch")?.addEventListener("input"', '$("environmentTree")?.addEventListener("click"');
 const relationFilterHandler = snippet(appJs, 'const input = event.target.closest("[data-relation-filter]");', '$("detail")?.addEventListener("pointerdown"');
-const environmentReviewFilterHandler = snippet(appJs, 'const reviewFilter = event.target?.closest?.("[data-environment-review-filter]");', 'if (event.target?.id !== "sourceSearchInput") return;');
 
 const checks = [
   {
@@ -85,14 +83,6 @@ const checks = [
     message: "capability relationship table filters must use relationshipFilters, not global or page search.",
   },
   {
-    id: "environment_review_filters_use_dedicated_review_state",
-    ok:
-      environmentReviewFilterHandler.includes("state.environmentReviewFilters[reviewFilter.dataset.environmentReviewFilter] = reviewFilter.value") &&
-      !environmentReviewFilterHandler.includes("state.search") &&
-      environmentReviewTable.includes('data-environment-review-filter="${escape(name)}"'),
-    message: "environment review table filters must use environmentReviewFilters, not global or page search.",
-  },
-  {
     id: "search_inputs_sync_from_state",
     ok: appJs.includes("function syncSearchInputs()") && appJs.includes("globalInput.value !== state.globalSearch") && appJs.includes("sourceInput.value !== state.search"),
     message: "search inputs must sync from their own state owner.",
@@ -135,8 +125,7 @@ const checks = [
       appJs.includes("pageSearches:") &&
       appJs.includes("devLifecycleStageSearch:") &&
       appJs.includes("dataLifecycleStageSearch:") &&
-      appJs.includes("relationshipFilters:") &&
-      appJs.includes("environmentReviewFilters:"),
+      appJs.includes("relationshipFilters:"),
     message: "all known search/filter inputs must have explicit owner state.",
   },
   {

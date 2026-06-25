@@ -4,6 +4,12 @@
 This script is read-only for official data. It compares source-derived
 normalized rows from ``作用域-安全技术服务-安全技术模块映射`` with the source
 ``安全技术模块清单`` sheet, preserving merged-cell evidence in both inputs.
+
+Environment Mapping business rule: information environment/object mappings are
+architect-defined dictionary entries. Do not use global service-module catalog
+coverage to backfill every object. Global catalog coverage is emitted only as
+optional cross-reference evidence, never as an issue, blocker, or replacement
+risk.
 """
 
 from __future__ import annotations
@@ -314,14 +320,14 @@ def coverage_candidates(review_rows: list[dict[str, Any]], indices: dict[str, di
         first = first_row_by_context_service[key]
         service_module_gaps.append(
             {
-                "type": "serviceModuleCoverageGapCandidate",
+                "type": "serviceModuleGlobalCatalogReference",
                 "objectContextKey": context_key,
                 "securityTechnicalService": service,
                 "allowedModulesFromCatalog": sorted(allowed_modules),
                 "actualModulesInEnvironmentMapping": sorted(actual_modules),
-                "missingModulesCandidate": missing,
-                "severity": "review",
-                "reason": "安全技术模块清单中该服务关联更多模块；需人工确认环境映射表是否应完整列出",
+                "notUsedModulesFromGlobalCatalog": missing,
+                "severity": "info",
+                "reason": "全局模块清单中该服务还有其他理论可关联模块；按 Environment Mapping 字典型对象规则，不反推该对象必须补齐",
                 "sampleExcelRow": first.get("excelRow"),
             }
         )
@@ -336,14 +342,14 @@ def coverage_candidates(review_rows: list[dict[str, Any]], indices: dict[str, di
         first = first_row_by_context_module[key]
         module_service_gaps.append(
             {
-                "type": "moduleServiceCoverageGapCandidate",
+                "type": "moduleServiceGlobalCatalogReference",
                 "objectContextKey": context_key,
                 "securityTechnologyModule": module,
                 "allowedServicesFromCatalog": sorted(allowed_services),
                 "actualServicesInEnvironmentMapping": sorted(actual_services),
-                "missingServicesCandidate": missing,
-                "severity": "review",
-                "reason": "安全技术模块清单中该模块关联更多服务；需人工确认环境对象是否应包含这些服务",
+                "notUsedServicesFromGlobalCatalog": missing,
+                "severity": "info",
+                "reason": "全局模块清单中该模块还有其他理论可关联服务；按 Environment Mapping 字典型对象规则，不反推该对象必须补齐",
                 "sampleExcelRow": first.get("excelRow"),
             }
         )
@@ -373,8 +379,8 @@ TRIAGE_LABELS = {
     "B": "高优先级核对：模块/措施分类问题",
     "C": "目录不一致：模块-服务关系不在模块清单目录",
     "D": "目录不一致：系统-模块关系不在模块清单目录",
-    "E": "覆盖差异候选：目录中有更多模块，但环境映射表可能只是选择性引用",
-    "F": "覆盖差异候选：目录中有更多服务，但环境映射表可能只是选择性引用",
+    "E": "非问题：服务-模块全局目录对照项，不进入业务核对主流程",
+    "F": "非问题：模块-服务全局目录对照项，不进入业务核对主流程",
     "G": "安全系统候选差异：安全系统为空、多个候选或系统不一致",
     "H": "可能命名/别名问题：空格、标点、全半角、别名、后缀差异",
     "I": "低风险提示：同一服务多模块/措施/系统合法 1:N 展开",
@@ -386,12 +392,15 @@ ISSUE_TRIAGE_CATEGORY = {
     "moduleMeasureClassificationIssue": "B",
     "moduleServiceMismatch": "C",
     "systemModuleMismatch": "D",
-    "serviceModuleCoverageGapCandidate": "E",
-    "moduleServiceCoverageGapCandidate": "F",
+    "serviceModuleGlobalCatalogReference": "E",
+    "moduleServiceGlobalCatalogReference": "F",
     "securitySystemCoverageOrMismatch": "G",
     "possibleAliasMatches": "H",
     "repeatedServiceWithDifferentChildren": "I",
 }
+
+CANDIDATE_TRIAGE_CATEGORIES = {"A", "B", "C", "D", "G", "H"}
+DISPLAY_ONLY_TRIAGE_CATEGORIES = {"E", "F", "I"}
 
 
 def sorted_unique(values: list[Any], limit: int | None = None) -> list[str]:
@@ -807,12 +816,12 @@ def cluster_review_rows(
 def cluster_coverage_gaps(items: list[dict[str, Any]], issue_type: str, category: str) -> list[dict[str, Any]]:
     groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for item in items:
-        if issue_type == "serviceModuleCoverageGapCandidate":
+        if issue_type == "serviceModuleGlobalCatalogReference":
             key = as_text(item.get("securityTechnicalService"))
-            pattern = f"coverageGap::serviceModule::{key}"
+            pattern = f"globalCatalogReference::serviceModule::{key}"
         else:
             key = as_text(item.get("securityTechnologyModule"))
-            pattern = f"coverageGap::moduleService::{key}"
+            pattern = f"globalCatalogReference::moduleService::{key}"
         groups[pattern].append(item)
     clusters = []
     for pattern, group_items in sorted(groups.items(), key=lambda item: (-len(item[1]), item[0])):
@@ -830,7 +839,7 @@ def cluster_coverage_gaps(items: list[dict[str, Any]], issue_type: str, category
                 "securitySystems": [],
                 "sourceRows": compact_rows(rows, limit=50),
                 "sampleRows": group_items[:5],
-                "suggestedManualAction": "确认环境映射表是否应按目录全量覆盖，还是允许按对象场景选择性引用。",
+                "suggestedManualAction": "仅作为全局目录对照信息保留；不得反推源表补齐，不计入 blocker 或业务核对主流程。",
             }
         )
     return clusters
@@ -960,6 +969,8 @@ def build_top_manual_review_items(patterns: dict[str, list[dict[str, Any]]], ali
         add_pattern(pattern)
     for pattern in patterns.get("systemModuleMismatch", [])[:12]:
         add_pattern(pattern)
+    for pattern in patterns.get("securitySystemCoverageOrMismatch", [])[:12]:
+        add_pattern(pattern)
     for match in alias_matches[:6]:
         items.append(
             {
@@ -979,13 +990,6 @@ def build_top_manual_review_items(patterns: dict[str, list[dict[str, Any]]], ali
                 "sourceRows": match.get("rows") or [],
             }
         )
-    for pattern in patterns.get("serviceModuleCoverageGapCandidate", [])[:4]:
-        add_pattern(pattern)
-    for pattern in patterns.get("moduleServiceCoverageGapCandidate", [])[:4]:
-        add_pattern(pattern)
-    for pattern in patterns.get("repeatedServiceWithDifferentChildren", [])[:4]:
-        add_pattern(pattern)
-
     items = sorted(
         items,
         key=lambda item: (
@@ -1059,8 +1063,8 @@ def build_triage(audit: dict[str, Any]) -> dict[str, Any]:
             "G",
             "核对安全系统是否为空、候选过多或与模块清单不一致；确认哪个目录是准的。",
         ),
-        "serviceModuleCoverageGapCandidate": cluster_coverage_gaps(issues.get("serviceModuleCoverageGapCandidate") or [], "serviceModuleCoverageGapCandidate", "E"),
-        "moduleServiceCoverageGapCandidate": cluster_coverage_gaps(issues.get("moduleServiceCoverageGapCandidate") or [], "moduleServiceCoverageGapCandidate", "F"),
+        "serviceModuleGlobalCatalogReference": cluster_coverage_gaps(issues.get("serviceModuleGlobalCatalogReference") or [], "serviceModuleGlobalCatalogReference", "E"),
+        "moduleServiceGlobalCatalogReference": cluster_coverage_gaps(issues.get("moduleServiceGlobalCatalogReference") or [], "moduleServiceGlobalCatalogReference", "F"),
         "repeatedServiceWithDifferentChildren": cluster_repeated_service_expansion(audit.get("repeatedServiceWithDifferentChildren") or []),
     }
     alias_matches = possible_alias_matches(review_rows)
@@ -1070,8 +1074,8 @@ def build_triage(audit: dict[str, Any]) -> dict[str, Any]:
         "B": len(issues.get("moduleMeasureClassificationIssue") or []),
         "C": len(issues.get("moduleServiceMismatch") or []),
         "D": len(issues.get("systemModuleMismatch") or []),
-        "E": len(issues.get("serviceModuleCoverageGapCandidate") or []),
-        "F": len(issues.get("moduleServiceCoverageGapCandidate") or []),
+        "E": len(issues.get("serviceModuleGlobalCatalogReference") or []),
+        "F": len(issues.get("moduleServiceGlobalCatalogReference") or []),
         "G": len(issues.get("securitySystemCoverageOrMismatch") or []),
         "H": len(alias_matches),
         "I": len(audit.get("repeatedServiceWithDifferentChildren") or []),
@@ -1091,6 +1095,7 @@ def build_triage(audit: dict[str, Any]) -> dict[str, Any]:
         "issueTypeCounts": issue_type_counts,
         "triageCategoryLabels": TRIAGE_LABELS,
         "triageCategoryCounts": {key: category_counts.get(key, 0) for key in sorted(TRIAGE_LABELS)},
+        "candidateTriageCategoryCounts": {key: category_counts.get(key, 0) for key in sorted(CANDIDATE_TRIAGE_CATEGORIES)},
         "patternClusters": patterns,
         "patternClusterCounts": {key: len(value) for key, value in patterns.items()},
         "possibleAliasMatches": alias_matches,
@@ -1099,10 +1104,16 @@ def build_triage(audit: dict[str, Any]) -> dict[str, Any]:
         "conclusion": {
             "formalDataModified": False,
             "formalUiModified": False,
-            "coverageGapsAreErrors": False,
-            "serviceExpansionIsError": False,
+            "globalCatalogReferencesAreNotIssues": True,
+            "coverageGapsNeedBusinessAnalysis": False,
+            "serviceExpansionNeedsBusinessAnalysis": False,
             "duplicateExactServiceChildRelationCountUsesAuditValue": True,
         },
+        "governanceNotes": [
+            "A/B/C/D/G/H 是明确异常或待确认异常。",
+            "E/F 是全局目录对照项，不是问题、风险、blocker 或业务待确认项；不得反推对象级关系补齐。",
+            "I 是 1:N 展示说明，不作为错误；只用于确认导出和展示能表达多模块/措施/系统关系。",
+        ],
     }
 
 
@@ -1120,13 +1131,13 @@ def build_triage_markdown(triage: dict[str, Any]) -> str:
         f"- 双表对照目录关系：`{(triage.get('dualTableReview') or {}).get('summary', {}).get('directoryRelationCount', 0)}`",
         f"- Top 人工核对项：`{len(triage.get('topManualReviewItems') or [])}`",
         "",
-        "## triageCategory 数量",
+        "## 候选分类数量",
         "",
         "| 类别 | 含义 | 数量 |",
         "|---|---|---:|",
     ]
-    for category, label in TRIAGE_LABELS.items():
-        lines.append(f"| {category} | {label} | {triage['triageCategoryCounts'].get(category, 0)} |")
+    for category in sorted(CANDIDATE_TRIAGE_CATEGORIES):
+        lines.append(f"| {category} | {TRIAGE_LABELS[category]} | {triage['candidateTriageCategoryCounts'].get(category, 0)} |")
     lines.extend(["", "## Top 人工核对项", ""])
     lines.append(
         markdown_table(
@@ -1164,8 +1175,8 @@ def build_triage_markdown(triage: dict[str, Any]) -> str:
             "",
             "## 治理说明",
             "",
-            "- `serviceModuleCoverageGapCandidate` 和 `moduleServiceCoverageGapCandidate` 默认是目录覆盖差异候选，不作为错误。",
-            "- `repeatedServiceWithDifferentChildren` 显示为 1:N 展开，不作为错误。",
+            "- `serviceModuleGlobalCatalogReference` 和 `moduleServiceGlobalCatalogReference` 是全局目录对照项，不是问题、风险、blocker 或业务待确认项。",
+            "- `repeatedServiceWithDifferentChildren` 仅说明 1:N 展示关系存在，不作为错误；后续重点验证导出和页面展示是否正确。",
             "- `possibleAliasMatches` 只提示命名疑似差异，不自动替换，不建立正式 alias 字典。",
         ]
     )
@@ -1197,8 +1208,8 @@ def build_markdown(audit: dict[str, Any]) -> str:
         f"- 合法服务多下级展开提示：`{summary['repeatedServiceWithDifferentChildrenCount']}`",
         f"- moduleServiceMismatch：`{summary['moduleServiceMismatchCount']}`",
         f"- systemModuleMismatch：`{summary['systemModuleMismatchCount']}`",
-        f"- serviceModuleCoverageGapCandidate：`{summary['serviceModuleCoverageGapCandidateCount']}`",
-        f"- moduleServiceCoverageGapCandidate：`{summary['moduleServiceCoverageGapCandidateCount']}`",
+        f"- serviceModuleGlobalCatalogReference：`{summary['serviceModuleGlobalCatalogReferenceCount']}`（非问题，仅全局目录对照）",
+        f"- moduleServiceGlobalCatalogReference：`{summary['moduleServiceGlobalCatalogReferenceCount']}`（非问题，仅全局目录对照）",
         f"- securitySystemCoverageOrMismatch：`{summary['securitySystemCoverageOrMismatchCount']}`",
         f"- moduleMeasureClassificationIssue：`{summary['moduleMeasureClassificationIssueCount']}`",
         f"- scopeCompletenessIssues：`{summary['scopeCompletenessIssueCount']}`",
@@ -1233,7 +1244,7 @@ def build_markdown(audit: dict[str, Any]) -> str:
         "",
         "- 本报告只做跨表一致性审计，不自动补齐、替换或修改正式业务数据。",
         "- `repeatedServiceWithDifferentChildren` 属于 1:N 展开的信息提示，不作为高风险错误。",
-        "- `serviceModuleCoverageGapCandidate` / `moduleServiceCoverageGapCandidate` 只表示目录覆盖差异候选，需要人工判断环境映射表是否应完整列出。",
+        "- `serviceModuleGlobalCatalogReference` / `moduleServiceGlobalCatalogReference` 只保留全局目录对照，不作为问题、风险、blocker 或业务待确认项。",
     ]
     return "\n".join(lines) + "\n"
 
@@ -1254,8 +1265,8 @@ def main() -> int:
     issues = {
         "moduleServiceMismatch": issue_items(review_rows, "moduleServiceMismatch"),
         "systemModuleMismatch": issue_items(review_rows, "systemModuleMismatch"),
-        "serviceModuleCoverageGapCandidate": service_module_gaps,
-        "moduleServiceCoverageGapCandidate": module_service_gaps,
+        "serviceModuleGlobalCatalogReference": service_module_gaps,
+        "moduleServiceGlobalCatalogReference": module_service_gaps,
         "securitySystemCoverageOrMismatch": issue_items(review_rows, "securitySystemCoverageOrMismatch"),
         "moduleMeasureClassificationIssue": issue_items(review_rows, "moduleMeasureClassificationIssue"),
         "scopeCompletenessIssues": scope_audit.get("scopeCompletenessIssues") or [],
@@ -1270,8 +1281,10 @@ def main() -> int:
         "repeatedServiceWithDifferentChildrenCount": len(scope_audit.get("repeatedServiceWithDifferentChildren") or []),
         "moduleServiceMismatchCount": len(issues["moduleServiceMismatch"]),
         "systemModuleMismatchCount": len(issues["systemModuleMismatch"]),
-        "serviceModuleCoverageGapCandidateCount": len(service_module_gaps),
-        "moduleServiceCoverageGapCandidateCount": len(module_service_gaps),
+        "serviceModuleCoverageGapCandidateCount": 0,
+        "moduleServiceCoverageGapCandidateCount": 0,
+        "serviceModuleGlobalCatalogReferenceCount": len(service_module_gaps),
+        "moduleServiceGlobalCatalogReferenceCount": len(module_service_gaps),
         "securitySystemCoverageOrMismatchCount": len(issues["securitySystemCoverageOrMismatch"]),
         "moduleMeasureClassificationIssueCount": len(issues["moduleMeasureClassificationIssue"]),
         "scopeCompletenessIssueCount": len(issues["scopeCompletenessIssues"]),

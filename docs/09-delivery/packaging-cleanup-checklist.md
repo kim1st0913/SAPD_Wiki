@@ -215,7 +215,7 @@ xattr -dr com.apple.quarantine .
 内部 alpha 发行目录：
 
 ```text
-"/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle/dist/releases/0.1.0-alpha/"
+"/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/sapd wiki bundle/dist/releases/0.1.0-alpha/"
 ```
 
 发行目录应包含：

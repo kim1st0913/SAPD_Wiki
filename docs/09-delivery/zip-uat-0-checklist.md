@@ -3,7 +3,7 @@
 > 适用包：`SAPD-Wiki-v0.1.0-mac-arm64.zip`  
 > 状态：内部小范围试用清单  
 > 记录方式：每位试用人员复制本清单，逐项填写结果。
-> 试发目录：`/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle/dist/releases/0.1.0-alpha/`
+> 试发目录：`/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/sapd wiki bundle/dist/releases/0.1.0-alpha/`
 
 | 编号 | 检查项 | 结果 | 备注 |
 |---|---|---|---|

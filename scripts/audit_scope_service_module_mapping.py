@@ -927,6 +927,36 @@ def compact_title(item: dict[str, Any] | None) -> str:
     return as_text(item.get("title") or item.get("name") or item.get("code") or item.get("id"))
 
 
+def normalized_scope_items_from_tree(scope: dict[str, Any] | None) -> list[dict[str, str]]:
+    scope = scope or {}
+    scope_code = as_text(scope.get("code"))
+    scope_title = compact_title(scope)
+    if scope_code:
+        return [{"code": scope_code, "title": scope_title}]
+    split_items = normalize_scope_items(scope_title)
+    if split_items:
+        return [{"code": item["code"], "title": item["title"]} for item in split_items]
+    return [{"code": "", "title": scope_title}]
+
+
+def direct_relation_payloads(environment_workbench: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
+    relation_type_map = {
+        "applies_to_scope": "objectScopeRelations",
+        "protects_object": "objectServiceRelations",
+        "implemented_by_module": "serviceModuleRelations",
+        "has_measure": "serviceMeasureRelations",
+        "part_of_system": "moduleSystemRelations",
+    }
+    payloads: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for relation in environment_workbench.get("relations") or []:
+        bucket_name = relation_type_map.get(as_text(relation.get("type")))
+        payload = relation.get("payload")
+        if not bucket_name or not isinstance(payload, dict):
+            continue
+        payloads[bucket_name].append(payload)
+    return payloads
+
+
 def current_environment_relations(environment_workbench: dict[str, Any] | None) -> dict[str, list[dict[str, Any]]]:
     buckets = {
         "objectScopeRelations": {},
@@ -937,6 +967,16 @@ def current_environment_relations(environment_workbench: dict[str, Any] | None) 
     }
     if not environment_workbench:
         return {name: [] for name in buckets}
+
+    for name, payloads in direct_relation_payloads(environment_workbench).items():
+        for payload in payloads:
+            add_unique_relation(
+                buckets[name],
+                relation_identity(name, payload),
+                payload,
+                0,
+            )
+
     for environment in environment_workbench.get("environment_scope_tree") or environment_workbench.get("environmentScopeTree") or []:
         environment_title = compact_title(environment)
         for obj in environment.get("objects") or []:
@@ -946,76 +986,82 @@ def current_environment_relations(environment_workbench: dict[str, Any] | None) 
             for segment_title in segment_titles:
                 for mapping in obj.get("scope_mappings") or []:
                     scope = mapping.get("scope") or {}
-                    scope_code = as_text(scope.get("code"))
-                    scope_title = compact_title(scope)
-                    add_unique_relation(
-                        buckets["objectScopeRelations"],
-                        relation_key(environment_title, segment_title, object_title, scope_code, scope_title),
-                        {
-                            "informationEnvironment": environment_title,
-                            "environmentSegment": segment_title,
-                            "informationObject": object_title,
-                            "scope": {"code": scope_code, "title": scope_title},
-                        },
-                        0,
-                    )
-                    for service in mapping.get("services") or []:
-                        service_code = as_text(service.get("code"))
-                        service_title = compact_title(service)
-                        add_unique_relation(
-                            buckets["objectServiceRelations"],
-                            relation_key(environment_title, segment_title, object_title, service_code or service_title),
-                            {
-                                "informationEnvironment": environment_title,
-                                "environmentSegment": segment_title,
-                                "informationObject": object_title,
-                                "scope": scope_title,
-                                "service": {"code": service_code, "title": service_title},
-                            },
-                            0,
-                        )
-                        for module in service.get("modules") or []:
-                            module_title = compact_title(module)
+                    if not buckets["objectScopeRelations"]:
+                        for scope_item in normalized_scope_items_from_tree(scope):
+                            scope_code = as_text(scope_item.get("code"))
+                            scope_title = as_text(scope_item.get("title"))
                             add_unique_relation(
-                                buckets["serviceModuleRelations"],
-                                relation_key(environment_title, segment_title, object_title, service_code or service_title, module_title),
+                                buckets["objectScopeRelations"],
+                                relation_key(environment_title, segment_title, object_title, scope_code, scope_title),
                                 {
                                     "informationEnvironment": environment_title,
                                     "environmentSegment": segment_title,
                                     "informationObject": object_title,
-                                    "service": {"code": service_code, "title": service_title},
-                                    "module": {"title": module_title},
+                                    "scope": {"code": scope_code, "title": scope_title},
                                 },
                                 0,
                             )
-                            for system in module.get("systems") or []:
-                                system_title = compact_title(system)
+                    for service in mapping.get("services") or []:
+                        service_code = as_text(service.get("code"))
+                        service_title = compact_title(service)
+                        if not buckets["objectServiceRelations"]:
+                            add_unique_relation(
+                                buckets["objectServiceRelations"],
+                                relation_key(environment_title, segment_title, object_title, service_code or service_title),
+                                {
+                                    "informationEnvironment": environment_title,
+                                    "environmentSegment": segment_title,
+                                    "informationObject": object_title,
+                                    "scope": compact_title(scope),
+                                    "service": {"code": service_code, "title": service_title},
+                                },
+                                0,
+                            )
+                        for module in service.get("modules") or []:
+                            module_title = compact_title(module)
+                            if not buckets["serviceModuleRelations"]:
                                 add_unique_relation(
-                                    buckets["moduleSystemRelations"],
-                                    relation_key(environment_title, segment_title, object_title, module_title, system_title),
+                                    buckets["serviceModuleRelations"],
+                                    relation_key(environment_title, segment_title, object_title, service_code or service_title, module_title),
                                     {
                                         "informationEnvironment": environment_title,
                                         "environmentSegment": segment_title,
                                         "informationObject": object_title,
+                                        "service": {"code": service_code, "title": service_title},
                                         "module": {"title": module_title},
-                                        "securitySystem": {"title": system_title},
                                     },
                                     0,
                                 )
+                            for system in (module.get("systems") or module.get("securitySystems") or []):
+                                system_title = compact_title(system)
+                                if not buckets["moduleSystemRelations"]:
+                                    add_unique_relation(
+                                        buckets["moduleSystemRelations"],
+                                        relation_key(environment_title, segment_title, object_title, module_title, system_title),
+                                        {
+                                            "informationEnvironment": environment_title,
+                                            "environmentSegment": segment_title,
+                                            "informationObject": object_title,
+                                            "module": {"title": module_title},
+                                            "securitySystem": {"title": system_title},
+                                        },
+                                        0,
+                                    )
                         for measure in service.get("measures") or []:
                             measure_title = compact_title(measure)
-                            add_unique_relation(
-                                buckets["serviceMeasureRelations"],
-                                relation_key(environment_title, segment_title, object_title, service_code or service_title, measure_title),
-                                {
-                                    "informationEnvironment": environment_title,
-                                    "environmentSegment": segment_title,
-                                    "informationObject": object_title,
-                                    "service": {"code": service_code, "title": service_title},
-                                    "measure": {"title": measure_title},
-                                },
-                                0,
-                            )
+                            if not buckets["serviceMeasureRelations"]:
+                                add_unique_relation(
+                                    buckets["serviceMeasureRelations"],
+                                    relation_key(environment_title, segment_title, object_title, service_code or service_title, measure_title),
+                                    {
+                                        "informationEnvironment": environment_title,
+                                        "environmentSegment": segment_title,
+                                        "informationObject": object_title,
+                                        "service": {"code": service_code, "title": service_title},
+                                        "measure": {"title": measure_title},
+                                    },
+                                    0,
+                                )
     return {name: list(bucket.values()) for name, bucket in buckets.items()}
 
 
@@ -1047,6 +1093,27 @@ def relation_identity(name: str, row: dict[str, Any]) -> str:
 
 def relation_by_identity(relations: dict[str, list[dict[str, Any]]], name: str) -> dict[str, dict[str, Any]]:
     return {relation_identity(name, row): row for row in relations.get(name, [])}
+
+
+def composite_scope_title_issues(relations: dict[str, list[dict[str, Any]]]) -> list[dict[str, Any]]:
+    issues: list[dict[str, Any]] = []
+    for row in relations.get("objectScopeRelations", []):
+        scope = row.get("scope") or {}
+        scope_title = as_text(scope.get("title") or scope.get("text"))
+        parsed_scopes = normalize_scope_items(scope_title)
+        if len(parsed_scopes) <= 1:
+            continue
+        issues.append(
+            {
+                "informationEnvironment": row.get("informationEnvironment"),
+                "environmentSegment": row.get("environmentSegment"),
+                "informationObject": row.get("informationObject"),
+                "scope": scope,
+                "parsedScopes": parsed_scopes,
+                "reason": "objectScopeRelations 中不得把多个 scope code 拼接文本作为单个作用域关系",
+            }
+        )
+    return issues
 
 
 def find_current_same_name_different_contexts(current_relations: dict[str, list[dict[str, Any]]]) -> list[dict[str, Any]]:
@@ -1417,6 +1484,7 @@ def main() -> int:
     }
     environment_workbench = load_json(package_paths["environmentWorkbench"])
     current_relations = current_environment_relations(environment_workbench if isinstance(environment_workbench, dict) else None)
+    current_composite_scope_title_issues = composite_scope_title_issues(current_relations)
     comparison = compare_relations(relations, current_relations, max_items=args.max_differences)
     package_summaries = {name: package_summary(path) for name, path in package_paths.items()}
 
@@ -1451,6 +1519,8 @@ def main() -> int:
         "repeatedServiceWithDifferentChildrenCount": len(repeated_services),
         "scopeCompletenessIssueCount": len(scope_issues),
         "unknownScopeEvidenceCount": len(unknown_scope_evidence),
+        "currentObjectScopeRelationCount": len(current_relations["objectScopeRelations"]),
+        "currentCompositeScopeTitleIssueCount": len(current_composite_scope_title_issues),
     }
     audit = {
         "generatedAt": datetime.now().isoformat(timespec="seconds"),
@@ -1466,6 +1536,7 @@ def main() -> int:
         "duplicateServicesInObjectContext": duplicate_services,
         "scopeCompletenessIssues": scope_issues,
         "unknownScopeEvidence": unknown_scope_evidence,
+        "currentCompositeScopeTitleIssues": current_composite_scope_title_issues,
         "currentJsonComparison": comparison,
         "packageSummaries": package_summaries,
         "conclusion": {

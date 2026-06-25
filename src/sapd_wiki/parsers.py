@@ -81,6 +81,7 @@ def _security_module_titles_from_catalog_alias(value: object, authoritative_modu
     rules: list[tuple[bool, list[str]]] = [
         ("API安全防护" in title, ["API安全防护"]),
         ("主机安全管理" in title or "主机系统安全管理" in title or title == "应用程序控制", ["主机安全管理"]),
+        ("容器镜像安全" in title, ["容器镜像安全"]),
         ("文件完整性监控" in title or title == "主机入侵防御", ["主机入侵防御（HIPS）"]),
         ("终端安全检测与响应" in title, ["终端安全检测与响应（EDR）"]),
         ("终端恶意代码防护" in title, ["终端恶意代码防护(EPP)"]),
@@ -496,6 +497,16 @@ def _validate_service_reference(
         )
 
 
+def _is_authoritative_service_reference(
+    authoritative_service_titles: dict[str, str] | None,
+    parts: dict[str, str | None],
+) -> bool:
+    if authoritative_service_titles is None:
+        return True
+    code = parts.get("code")
+    return bool(code and code in authoritative_service_titles)
+
+
 def parse_module_sheet(workbook, authoritative_service_titles: dict[str, str] | None = None) -> ParseResult:
     sheet_name = "安全技术模块清单"
     ws = workbook[sheet_name]
@@ -559,6 +570,8 @@ def parse_module_sheet(workbook, authoritative_service_titles: dict[str, str] | 
         if not is_blank_or_placeholder(service_raw):
             parts = service_parts(service_raw)
             _validate_service_reference(result, sheet_name, row_index, service_raw, parts, authoritative_service_titles)
+            if not _is_authoritative_service_reference(authoritative_service_titles, parts):
+                continue
             service = _object(
                 "security_technical_service",
                 _service_title(parts, service_raw, authoritative_service_titles),
@@ -687,18 +700,19 @@ def parse_scene_sheet(
                     scope_objects.append(service_scope)
                     result.relations.append(_relation(info_obj.key, "applies_to_scope", service_scope.key, "适用于作用域", source=service_scope.sources[0]))
                 service_scope_objects = [service_scope]
-            service = _object(
-                "security_technical_service",
-                _service_title(parts, service_raw, authoritative_service_titles),
-                code=parts["code"],
-                category=parts["scope_code"],
-                metadata={"scope_code": parts["scope_code"], "capability_focus_code": parts["capability_focus_code"]},
-                source=_source(sheet_name, row_index, "安全技术服务", service_cell, service_raw),
-            )
-            result.objects.append(service)
-            result.relations.append(_relation(service.key, "protects_object", info_obj.key, "作用于信息化对象", source=service.sources[0]))
-            for scope in service_scope_objects or scope_objects:
-                result.relations.append(_relation(service.key, "applies_to_scope", scope.key, "适用于作用域", source=service.sources[0]))
+            if _is_authoritative_service_reference(authoritative_service_titles, parts):
+                service = _object(
+                    "security_technical_service",
+                    _service_title(parts, service_raw, authoritative_service_titles),
+                    code=parts["code"],
+                    category=parts["scope_code"],
+                    metadata={"scope_code": parts["scope_code"], "capability_focus_code": parts["capability_focus_code"]},
+                    source=_source(sheet_name, row_index, "安全技术服务", service_cell, service_raw),
+                )
+                result.objects.append(service)
+                result.relations.append(_relation(service.key, "protects_object", info_obj.key, "作用于信息化对象", source=service.sources[0]))
+                for scope in service_scope_objects or scope_objects:
+                    result.relations.append(_relation(service.key, "applies_to_scope", scope.key, "适用于作用域", source=service.sources[0]))
 
         module = None
         if not is_blank_or_placeholder(module_raw) and module_is_scene_module:
@@ -850,8 +864,11 @@ def _append_lcap_service(
     service_title: str,
     service_category: str | None = None,
     authoritative_service_titles: dict[str, str],
-) -> ObjectCandidate:
+) -> ObjectCandidate | None:
     parts = service_parts(service_title)
+    _validate_service_reference(result, sheet_name, row_index, service_title, parts, authoritative_service_titles)
+    if not _is_authoritative_service_reference(authoritative_service_titles, parts):
+        return None
     metadata = {
         "lifecycle_type": "application_security_development",
         "scope_code": parts["scope_code"],
@@ -1386,6 +1403,8 @@ def parse_data_lifecycle_sheet(
             parts = service_parts(service_raw)
             service_code = parts["code"]
             _validate_service_reference(result, sheet_name, row_index, service_raw, parts, authoritative_service_titles)
+            if not _is_authoritative_service_reference(authoritative_service_titles, parts):
+                continue
             service = _object(
                 "security_technical_service",
                 _service_title(parts, service_raw, authoritative_service_titles),
@@ -1486,6 +1505,8 @@ def parse_data_lifecycle_mapping_sheet(
             parts = service_parts(service_raw)
             service_code = parts["code"]
             _validate_service_reference(result, sheet_name, row_index, service_raw, parts, authoritative_service_titles)
+            if not _is_authoritative_service_reference(authoritative_service_titles, parts):
+                continue
             service = _object(
                 "security_technical_service",
                 _service_title(parts, service_raw, authoritative_service_titles),
@@ -1812,7 +1833,7 @@ def parse_application_lifecycle_element_sheet(workbook) -> ParseResult:
 
 STANDARD_FRAMEWORK_SHEETS = [
     "等保三级测评清单",
-    "CIS CSC V8",
+    "CIS CSC V8.1.2",
     "CSF2.0",
     "27001-2022",
     "DSP策略清单（2026）",
@@ -1820,6 +1841,10 @@ STANDARD_FRAMEWORK_SHEETS = [
     "CRF Maturity Model 2026",
     "NIST 800-53rev5",
 ]
+
+STANDARD_FRAMEWORK_SHEET_ALIASES = {
+    "CIS CSC V8": "CIS CSC V8.1.2",
+}
 
 
 def _framework_object(title: str, *, code: str, standard_family: str, source: SourceRef) -> ObjectCandidate:
@@ -1913,12 +1938,12 @@ def parse_debao_level3_sheet(workbook) -> ParseResult:
 
 
 def parse_cis_csc_v8_sheet(workbook) -> ParseResult:
-    sheet_name = "CIS CSC V8"
+    sheet_name = "CIS CSC V8.1.2" if "CIS CSC V8.1.2" in workbook.sheetnames else "CIS CSC V8"
     ws = workbook[sheet_name]
     result = ParseResult()
     framework_code = "CIS-CSC-V8.1.2"
     framework_title = "CIS Controls v8.1.2"
-    framework_source = _source(sheet_name, 2, "B:J", "B2:J2", "CIS CSC V8")
+    framework_source = _source(sheet_name, 2, "B:J", "B2:J2", sheet_name)
     framework = _framework_object(
         framework_title,
         code=framework_code,
@@ -2510,6 +2535,7 @@ def parse_standard_framework_sheets(path: str | Path, sheets: list[str] | None =
         result = ParseResult()
         parsers = {
             "等保三级测评清单": parse_debao_level3_sheet,
+            "CIS CSC V8.1.2": parse_cis_csc_v8_sheet,
             "CIS CSC V8": parse_cis_csc_v8_sheet,
             "CSF2.0": parse_csf_2_sheet,
             "27001-2022": parse_iso_27001_2022_sheet,
@@ -2519,10 +2545,12 @@ def parse_standard_framework_sheets(path: str | Path, sheets: list[str] | None =
             "NIST 800-53rev5": parse_nist_800_53_rev5_sheet,
         }
         for sheet_name in selected:
-            if sheet_name not in workbook.sheetnames:
+            canonical_sheet_name = STANDARD_FRAMEWORK_SHEET_ALIASES.get(sheet_name, sheet_name)
+            actual_sheet_name = canonical_sheet_name if canonical_sheet_name in workbook.sheetnames else sheet_name
+            if actual_sheet_name not in workbook.sheetnames:
                 result.validations.append(ValidationMessage("error", sheet_name, None, "缺少标准框架 Sheet"))
                 continue
-            parser = parsers.get(sheet_name)
+            parser = parsers.get(canonical_sheet_name) or parsers.get(sheet_name)
             if parser is None:
                 result.validations.append(ValidationMessage("error", sheet_name, None, "缺少标准框架 Sheet 解析器"))
                 continue

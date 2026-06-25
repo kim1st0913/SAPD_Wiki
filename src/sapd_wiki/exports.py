@@ -2050,6 +2050,115 @@ def _canonical_security_technical_measure_payload(
     return payload
 
 
+def _lcap_measure_relation_hints(
+    items: dict[str, dict[str, Any]],
+    relations: list[dict[str, Any]],
+    service_by_code: dict[str, str],
+    service_by_title: dict[str, str],
+) -> dict[str, dict[str, Any]]:
+    hints: dict[str, dict[str, Any]] = {}
+    for relation in relations:
+        if relation.get("relation_type") != "uses_measure":
+            continue
+        source = items.get(relation.get("source_item_id"))
+        measure = items.get(relation.get("target_item_id"))
+        if not source or not measure or measure.get("type") != "security_technical_measure":
+            continue
+        source_metadata = _metadata(source)
+        if source.get("type") != "lifecycle_process" or source_metadata.get("lifecycle_type") != "application_security_development":
+            continue
+        fields = source_metadata.get("original_business_fields") or {}
+        raw_services = fields.get("安全技术服务")
+        service_ids: list[str] = []
+        for raw_service in split_multivalue_text(raw_services):
+            parts = service_parts(raw_service)
+            service_id = service_by_code.get(parts.get("code") or "") or service_by_title.get(_normalize_measure_name(parts.get("title")))
+            if service_id:
+                service_ids.append(service_id)
+        if not service_ids:
+            continue
+        entry = hints.setdefault(
+            measure["id"],
+            {"service_ids": set(), "stage_sources": [], "source_labels": set(), "source_kinds": set()},
+        )
+        entry["service_ids"].update(service_ids)
+        entry["source_labels"].add("LC-AP 生命周期措施")
+        entry["source_kinds"].add("lifecycle_application")
+        entry["stage_sources"].append(
+            {
+                "sheet": "LC-AP 应用安全开发生命周期",
+                "row": None,
+                "column": "安全技术服务 / 安全技术模块",
+                "cell": None,
+                "raw_value": f"{source.get('code') or ''} {source.get('title') or ''} -> {raw_services or ''} -> {measure.get('title') or ''}",
+            }
+        )
+    return hints
+
+
+def _lcdt_measure_relation_hints(
+    conn: sqlite3.Connection,
+    technical_measures: dict[str, dict[str, Any]],
+    service_by_code: dict[str, str],
+    service_by_title: dict[str, str],
+) -> dict[str, dict[str, Any]]:
+    measure_by_title = {_normalize_measure_name(item.get("title")): item_id for item_id, item in technical_measures.items()}
+    hints: dict[str, dict[str, Any]] = {}
+    load_workbook = _load_openpyxl()
+    for path in _latest_xlsx_source_paths(conn):
+        if not path.exists():
+            continue
+        workbook = load_workbook(path, read_only=True, data_only=True)
+        try:
+            if DATA_LIFECYCLE_POLICY_MAPPING_SHEET not in workbook.sheetnames:
+                continue
+            worksheet = workbook[DATA_LIFECYCLE_POLICY_MAPPING_SHEET]
+            last_stage = ""
+            for row_number, row in enumerate(worksheet.iter_rows(min_row=4), start=4):
+                raw_stage = row[1].value if len(row) > 1 else None
+                stage = _data_lifecycle_stage_title(raw_stage) or last_stage
+                if stage:
+                    last_stage = stage
+                service_raw = row[12].value if len(row) > 12 else None
+                measure_raw = row[13].value if len(row) > 13 else None
+                service_ids: list[str] = []
+                for raw_service in split_multivalue_text(service_raw):
+                    parts = service_parts(raw_service)
+                    service_id = service_by_code.get(parts.get("code") or "") or service_by_title.get(
+                        _normalize_measure_name(parts.get("title"))
+                    )
+                    if service_id:
+                        service_ids.append(service_id)
+                measure_ids = [
+                    measure_by_title[_normalize_measure_name(raw_measure)]
+                    for raw_measure in split_multivalue_text(measure_raw)
+                    if _normalize_measure_name(raw_measure) in measure_by_title
+                ]
+                if len(set(service_ids)) != 1 or len(set(measure_ids)) != 1:
+                    continue
+                measure_id = measure_ids[0]
+                entry = hints.setdefault(
+                    measure_id,
+                    {"service_ids": set(), "stage_sources": [], "source_labels": set(), "source_kinds": set()},
+                )
+                entry["service_ids"].update(service_ids)
+                entry["source_labels"].add("LC-DT 生命周期措施")
+                entry["source_kinds"].add("lifecycle_data")
+                entry["stage_sources"].append(
+                    {
+                        "sheet": DATA_LIFECYCLE_POLICY_MAPPING_SHEET,
+                        "row": row_number,
+                        "column": "安全技术服务 / 安全技术模块",
+                        "cell": f"{_cell_coordinate(row[12]) or ''}/{_cell_coordinate(row[13]) or ''}".strip("/"),
+                        "raw_value": f"{stage or ''} -> {service_raw or ''} -> {measure_raw or ''}",
+                    }
+                )
+            return hints
+        finally:
+            workbook.close()
+    return hints
+
+
 def _build_security_technical_measures(
     conn: sqlite3.Connection,
     items: dict[str, dict[str, Any]],
@@ -2066,6 +2175,19 @@ def _build_security_technical_measures(
     scope_by_code = {item["code"]: item_id for item_id, item in scopes.items() if item.get("code")}
     scope_by_title = {_normalize_measure_name(item["title"]): item_id for item_id, item in scopes.items()}
     focus_by_code = {item["code"]: item_id for item_id, item in focuses.items() if item.get("code")}
+    measure_relations = _relation_rows(conn, ("uses_measure", "applies_to_scope", "supports_focus"))
+    lcap_hint_items = {**items, **_active_items(conn, ("lifecycle_process",))}
+    lcap_measure_hints = _lcap_measure_relation_hints(lcap_hint_items, measure_relations, service_by_code, service_by_title)
+    lcdt_measure_hints = _lcdt_measure_relation_hints(conn, technical_measure_items, service_by_code, service_by_title)
+    scopes_by_service: dict[str, set[str]] = {}
+    focuses_by_service: dict[str, set[str]] = {}
+    for relation in measure_relations:
+        source_id = relation["source_item_id"]
+        target_id = relation["target_item_id"]
+        if relation["relation_type"] == "applies_to_scope" and source_id in technical_services and target_id in scopes:
+            scopes_by_service.setdefault(source_id, set()).add(target_id)
+        elif relation["relation_type"] == "supports_focus" and source_id in technical_services and target_id in focuses:
+            focuses_by_service.setdefault(source_id, set()).add(target_id)
 
     def measure_source_label(sources: list[dict[str, Any]]) -> tuple[str, str]:
         source_sheets = {source.get("sheet") for source in sources}
@@ -2156,6 +2278,20 @@ def _build_security_technical_measures(
         label, kind = measure_source_label(refs.get(measure_id, []))
         entry["source_labels"].add(label)
         entry["source_kinds"].add(kind)
+        hint_sources = [hint for hint in (lcap_measure_hints.get(measure_id), lcdt_measure_hints.get(measure_id)) if hint]
+        for hint in hint_sources:
+            entry["sources"] = _combine_sources(entry["sources"], hint.get("stage_sources", []), limit=50)
+            entry["source_labels"].update(hint.get("source_labels", set()))
+            entry["source_kinds"].update(hint.get("source_kinds", set()))
+            for service_id in hint["service_ids"]:
+                entry["service_ids"].add(service_id)
+                entry["service_names"].add(technical_services[service_id]["title"])
+                for scope_id in scopes_by_service.get(service_id, set()):
+                    entry["scope_ids"].add(scope_id)
+                    entry["scope_names"].add(scopes[scope_id]["title"])
+                for focus_id in focuses_by_service.get(service_id, set()):
+                    entry["focus_ids"].add(focus_id)
+                    entry["focus_names"].add(focuses[focus_id]["title"])
 
     payloads = []
     for (name, category), entry in grouped.items():

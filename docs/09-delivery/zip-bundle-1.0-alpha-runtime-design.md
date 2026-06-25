@@ -326,7 +326,7 @@ docs/09-delivery/windows-zip-build-guide.md
 默认打包输出目录为：
 
 ```text
-/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle
+/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/sapd wiki bundle
 ```
 
 Windows 实机构建、CI 或一次性验证可以显式传入 `--output-dir` 覆盖该默认路径。
@@ -334,7 +334,7 @@ Windows 实机构建、CI 或一次性验证可以显式传入 `--output-dir` �
 内部 alpha 发行目录为：
 
 ```text
-"/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle/dist/releases/0.1.0-alpha/"
+"/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/sapd wiki bundle/dist/releases/0.1.0-alpha/"
 ```
 
 该目录由 `scripts/create_alpha_release.py` 组装，包含平台 ZIP、checksum、`release-manifest.json`、`README-FIRST.md`、UAT checklist、反馈模板和 Windows 验证报告。Windows 真实构建未完成时，manifest 中 Windows 平台必须保持 `pending / not_verified`。

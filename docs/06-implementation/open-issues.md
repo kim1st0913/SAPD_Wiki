@@ -4,7 +4,7 @@
 
 ## 治理入口
 
-- 当前未关闭问题数：9
+- 当前未关闭问题数：10
 - 已关闭归档问题数：137
 - 全量索引：`docs/06-implementation/open-issues-index.md`
 - 已关闭问题归档：`docs/05-archive/open-issues-history/2026-06.md`
@@ -14,6 +14,7 @@
 
 | 编号 | 状态 | 标题 |
 |---|---|---|
+| OI-145 | 新发现 / 待修复 | 本地 API Host/token 边界未统一拦截 |
 | OI-144 | 已修复 / 待页面验收 | 全局搜索与页面内搜索状态串线 |
 | OI-142 | 已修复 / 用户已验收 | 安全技术服务清单能力-关注点顺序下服务显示不全 |
 | OI-141 | 正式投影已替换 / 待页面验收 | LC-DT 原始数据更新后的服务、模块与分类候选问题 |
@@ -39,6 +40,18 @@
 - 验证结果：
 
 ## 当前问题详情
+
+## OI-145：本地 API Host/token 边界未统一拦截
+
+- 状态：新发现 / 待修复
+- 类型：安全 / 本地 API / 用户数据
+- 对象或页面：`src/sapd_wiki/api_server.py`、固定本地服务 `http://127.0.0.1:5173/`、`/api/v1/*` 与 `/api/v1/user/notes`。
+- 现象：2026-06-21 执行当前安全测试时，用原始 socket 发送 `Host: attacker.example:5173` 请求，当前 `5173` 本地 API 未按预期先拒绝异常 Host。`GET /api/v1/health` 返回 `200 OK`，`GET /api/v1/user/notes` 返回 `200 OK` 且可读取备注列表；`POST /api/v1/user/notes` 在无 `X-SAPD-Session-Token` 且异常 Host 的情况下进入业务字段校验，返回 `400 target_ref is required`，而不是先返回 `403`。`/api/v1/base/summary` 当前返回 `404`，但同样不是 Host 边界拦截。
+- 影响：本地页面或恶意网页若能通过浏览器访问用户本机 `127.0.0.1:5173`，可能借 DNS rebinding / 异常 Host 绕过本地服务边界读取用户备注等本地用户数据；写接口也未在当前 dev API 层统一要求 loopback Host、同源 Origin / Referer 和 `X-SAPD-Session-Token`，存在误写入风险。注意：`scripts/run_local_server.py` 已有部分 Host/token 防护，但当前固定预览服务实际走的是 `src/sapd_wiki/api_server.py`，该层尚未统一落地。
+- 当前处理：本轮只执行安全测试和登记问题，未修改 API 行为，未写入 SQLite 或用户数据。POST 探测故意使用 `{}` 缺少必填字段，验证到达业务校验但没有创建记录。
+- 需要确认：下一步建议优先修复 `src/sapd_wiki/api_server.py`：对所有 `/api/v1/*` 请求统一校验 Host 为 loopback + 当前端口；对 POST / PATCH / DELETE 统一校验 `Content-Type`、loopback Host、同源 Origin / Referer，并要求有效 `X-SAPD-Session-Token`；同时补回归脚本，断言异常 Host 的 GET / 写请求均返回 `403`。
+- 修复说明：待修复。
+- 验证结果：2026-06-21 已执行 `python3 scripts/dev_server_guard.py --status` 通过，确认 `5173` 项目服务可用；`python3 scripts/check_github_data_boundary.py` 通过；`python3 scripts/audit_json_package_boundary.py` 通过，`errors=0 warnings=0`；`node scripts/audit_user_db_governance_contract.mjs --json` 通过，包含 `user_write_api_security_present` 静态片段检查；`git diff --check` 通过。提升权限后执行本机 socket 安全探测，结果显示异常 Host 下 `GET /api/v1/health=200`、`GET /api/v1/user/notes=200`、`POST /api/v1/user/notes=400`，因此本问题成立。
 
 ## OI-144：全局搜索与页面内搜索状态串线
 

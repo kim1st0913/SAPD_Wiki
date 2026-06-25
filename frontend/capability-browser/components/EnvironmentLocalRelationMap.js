@@ -11,7 +11,10 @@
     const objects = new Set();
     for (const environment of utils.list(tree)) {
       for (const segment of utils.list(environment.segments)) segments.add(segment.id || segment.title);
-      for (const object of utils.list(environment.objects)) objects.add(object.id || object.title);
+      const environmentObjects = utils.list(environment.objects).length
+        ? utils.list(environment.objects)
+        : utils.list(environment.segments).flatMap((segment) => utils.list(segment.objects));
+      for (const object of environmentObjects) objects.add(object.id || object.title);
     }
     return {
       environmentCount: utils.list(tree).length,
@@ -41,6 +44,184 @@
           showTitle: false,
           showStatus: false,
         })}
+      </section>
+    `;
+  }
+
+  function hierarchyNodeKind(node) {
+    if (node?.relationKind === "measure" || node?.objectKind === "安全技术措施" || node?.kind === "安全技术措施") return "安全技术措施";
+    return node?.kind || node?.objectKind || "安全技术模块";
+  }
+
+  function relationNodeKey(node) {
+    return [node?.id, node?.code, node?.title, node?.name, node?.objectKind, node?.type].filter(Boolean).join("::");
+  }
+
+  function uniqueRelationNodes(nodes) {
+    const seen = new Set();
+    return utils.list(nodes).filter((node) => {
+      const key = relationNodeKey(node) || utils.codeTitleOf(node);
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  function partitionRelationNodes(nodes) {
+    const uniqueNodes = uniqueRelationNodes(nodes);
+    return {
+      modules: uniqueNodes.filter((node) => !hierarchyNodeKind(node).includes("措施")),
+      measures: uniqueNodes.filter((node) => hierarchyNodeKind(node).includes("措施")),
+    };
+  }
+
+  function relationNodeTooltip(node, kind) {
+    const title = utils.codeTitleOf(node) || "未命名对象";
+    const definition = node?.definition || node?.description || node?.summary || "";
+    const dictionaryHint = kind.includes("措施") ? "可在安全技术措施字典中查看完整定义。" : "可在安全技术模块字典中查看完整定义。";
+    return [kind, title, definition, dictionaryHint].filter(Boolean).join("\n");
+  }
+
+  function renderHierarchyModuleNode(node) {
+    const kind = hierarchyNodeKind(node);
+    return `
+      <span
+        class="environment-hierarchy-module-node ${kind.includes("措施") ? "is-measure" : "is-module"}"
+        data-tooltip="${escape(relationNodeTooltip(node, kind))}"
+        aria-label="${escape(relationNodeTooltip(node, kind))}"
+      >
+        <em>${escape(kind)}</em>
+        <strong>${escape(utils.codeTitleOf(node))}</strong>
+      </span>
+    `;
+  }
+
+  function renderCapabilityZone(label, nodes, emptyText, toneClass) {
+    return `
+      <section class="environment-hierarchy-capability-zone ${toneClass}">
+        <div class="environment-hierarchy-capability-head">
+          <span>${escape(label)}</span>
+          <b>${escape(utils.list(nodes).length)}</b>
+        </div>
+        <div class="environment-hierarchy-module-list" aria-label="${escape(label)}">
+          ${utils.list(nodes).length ? utils.list(nodes).map(renderHierarchyModuleNode).join("") : `<span class="empty-inline">${escape(emptyText)}</span>`}
+        </div>
+      </section>
+    `;
+  }
+
+  function renderHierarchyObjectCard(environment, object, selectedObjectId) {
+    const { modules, measures } = partitionRelationNodes(object.relationNodes);
+    const relationCount = modules.length + measures.length;
+    return `
+      <section class="environment-hierarchy-object-card${selectedClass(object.id, selectedObjectId)}" data-environment-id="${escape(environment.id || "")}" data-environment-object-id="${escape(object.id || "")}">
+        <button class="environment-hierarchy-object-main" type="button">
+          <span>信息化对象</span>
+          <strong>${escape(object.title || "未命名对象")}</strong>
+          <em>${escape(object.scopeCount || 0)} 作用域 · ${escape(relationCount)} 模块/措施</em>
+        </button>
+        <div class="environment-hierarchy-capability-panel">
+          ${renderCapabilityZone("安全技术模块", modules, "暂无模块", "is-module-zone")}
+          ${renderCapabilityZone("安全技术措施", measures, "暂无措施", "is-measure-zone")}
+        </div>
+      </section>
+    `;
+  }
+
+  function segmentObjectCount(segment) {
+    return utils.list(segment.objects).length;
+  }
+
+  function aggregateEnvironmentObjects(segments) {
+    const seen = new Set();
+    const objects = [];
+    for (const segment of utils.list(segments)) {
+      for (const object of utils.list(segment.objects)) {
+        const key = object.id || object.title;
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        objects.push(object);
+      }
+    }
+    return objects;
+  }
+
+  function scopedHierarchyTree(viewModel) {
+    const tree = utils.list(viewModel?.topologyTree || viewModel?.navigationTree);
+    const selectedMode = viewModel?.selectedMode || "";
+    const selectedEnvironmentId = viewModel?.selectedEnvironment?.id || "";
+    const selectedSegmentId = viewModel?.selectedSegment?.id || "";
+    if (selectedMode !== "environment" && selectedMode !== "segment") return tree;
+    return tree
+      .filter((environment) => !selectedEnvironmentId || environment.id === selectedEnvironmentId)
+      .map((environment) => {
+        const segments = utils
+          .list(environment.segments)
+          .filter((segment) => selectedMode !== "segment" || !selectedSegmentId || segment.id === selectedSegmentId);
+        const objects = aggregateEnvironmentObjects(segments);
+        return {
+          ...environment,
+          segments,
+          objects,
+          segmentCount: segments.length,
+          objectCount: objects.length,
+        };
+      })
+      .filter((environment) => utils.list(environment.segments).length || selectedMode === "environment");
+  }
+
+  function renderHierarchySegment(environment, segment, selectedSegmentId, selectedObjectId) {
+    const objectCount = segmentObjectCount(segment);
+    const capabilityCount = uniqueRelationNodes(utils.list(segment.objects).flatMap((object) => utils.list(object.relationNodes))).length;
+    return `
+      <section class="environment-hierarchy-segment${selectedClass(segment.id, selectedSegmentId)}" data-environment-id="${escape(environment.id || "")}" data-environment-segment-id="${escape(segment.id || "")}">
+        <div class="environment-hierarchy-track-head">
+          <button class="environment-hierarchy-segment-main" type="button">
+            <span>环境子类</span>
+            <strong>${escape(segment.title || "未定义环境子类")}</strong>
+            <em>${escape(objectCount)} 对象 · ${escape(capabilityCount)} 模块/措施</em>
+          </button>
+        </div>
+        <div class="environment-hierarchy-object-list">
+          ${utils.list(segment.objects).map((object) => renderHierarchyObjectCard(environment, object, selectedObjectId)).join("")}
+        </div>
+      </section>
+    `;
+  }
+
+  function renderHierarchySegmentFlow(environment, segment, selectedSegmentId, selectedObjectId) {
+    const objectCount = segmentObjectCount(segment);
+    const capabilityCount = uniqueRelationNodes(utils.list(segment.objects).flatMap((object) => utils.list(object.relationNodes))).length;
+    return `
+      <section class="environment-hierarchy-segment-flow${selectedClass(segment.id, selectedSegmentId)}" data-environment-id="${escape(environment.id || "")}" data-environment-segment-id="${escape(segment.id || "")}">
+        <div class="environment-hierarchy-track-head">
+          <button class="environment-hierarchy-segment-main" type="button">
+            <span>环境子类</span>
+            <strong>${escape(segment.title || "未定义环境子类")}</strong>
+            <em>${escape(objectCount)} 对象 · ${escape(capabilityCount)} 模块/措施</em>
+          </button>
+        </div>
+        <div class="environment-hierarchy-object-list">
+          ${utils.list(segment.objects).map((object) => renderHierarchyObjectCard(environment, object, selectedObjectId)).join("")}
+        </div>
+      </section>
+    `;
+  }
+
+  function renderHierarchyEnvironment(environment, selectedEnvironmentId, selectedSegmentId, selectedObjectId) {
+    const capabilityCount = uniqueRelationNodes(utils.list(environment.objects).flatMap((object) => utils.list(object.relationNodes))).length;
+    return `
+      <section class="environment-hierarchy-environment${selectedClass(environment.id, selectedEnvironmentId)}" data-environment-id="${escape(environment.id || "")}">
+        <div class="environment-hierarchy-environment-head">
+          <button class="environment-hierarchy-environment-main" type="button">
+            <span>信息化环境</span>
+            <strong>${escape(environment.title || "未命名环境")}</strong>
+            <em>${escape(environment.segmentCount || utils.list(environment.segments).length)} 子类 · ${escape(environment.objectCount || utils.list(environment.objects).length)} 对象 · ${escape(capabilityCount)} 模块/措施</em>
+          </button>
+        </div>
+        <div class="environment-hierarchy-segment-list">
+          ${utils.list(environment.segments).map((segment) => renderHierarchySegment(environment, segment, selectedSegmentId, selectedObjectId)).join("")}
+        </div>
       </section>
     `;
   }
@@ -184,20 +365,30 @@
     };
   }
 
-  function renderTopology({ viewModel } = {}) {
-    const basemap = renderDrawioBasemap();
+  function renderTopology({ viewModel, preferBasemap = true } = {}) {
+    const basemap = preferBasemap ? renderDrawioBasemap() : "";
     if (basemap) return basemap;
-    const tree = utils.list(viewModel?.topologyTree || viewModel?.navigationTree);
+    const tree = scopedHierarchyTree(viewModel);
     const stats = topologyStats(tree);
     const selectedEnvironmentId = viewModel?.selectedEnvironment?.id || "";
     const selectedSegmentId = viewModel?.selectedSegment?.id || "";
     const selectedObjectId = viewModel?.selectedObject?.id || "";
+    const selectedMode = viewModel?.selectedMode || "";
+    const isSegmentView = selectedMode === "segment" && selectedSegmentId;
+    const title = isSegmentView ? "环境子类层级视图" : "环境层级视图";
+    const description = isSegmentView
+      ? "只表达当前环境子类、信息化对象和安全技术模块 / 措施。"
+      : "只表达环境、环境子类、信息化对象和安全技术模块 / 措施。";
+    const layerLabels = isSegmentView ? ["环境子类层", "信息化对象层", "能力层"] : ["环境核心层", "环境子类层", "信息化对象层", "能力层"];
+    const segmentFlow = isSegmentView
+      ? tree.flatMap((environment) => utils.list(environment.segments).map((segment) => renderHierarchySegmentFlow(environment, segment, selectedSegmentId, selectedObjectId))).join("")
+      : "";
     return `
-      <section class="environment-topology-map">
+      <section class="environment-hierarchy-view">
         <div class="matrix-section-head">
           <div>
-            <h3>信息化环境拓扑</h3>
-            <p>首页只展示环境对象结构，避免在顶层展开安全作用域、服务、模块和措施。</p>
+            <h3>${escape(title)}</h3>
+            <p>${escape(description)}</p>
           </div>
           <div class="environment-graph-status">
             ${statBadge("环境", stats.environmentCount)}
@@ -205,41 +396,24 @@
             ${statBadge("对象", stats.objectCount)}
           </div>
         </div>
-        <div class="environment-topology-canvas physical-topology-canvas" aria-label="信息化环境与对象网络物理拓扑图">
-          <div class="physical-topology-backbone" aria-hidden="true">
-            <span>Core Backbone</span>
-          </div>
-          <div class="environment-topology-root">
-            <span class="topology-root-node">
-              <strong>信息化环境</strong>
-              <em>${escape(stats.environmentCount)} 环境 · ${escape(stats.objectCount)} 对象</em>
-            </span>
-          </div>
-          <div class="environment-topology-grid">
-            ${
-              tree
-                .map(
-                  (environment) => `
-                    <section class="environment-topology-environment">
-                      <button class="environment-topology-node environment-node${selectedClass(environment.id, selectedEnvironmentId)}" type="button" data-environment-id="${escape(environment.id || "")}">
-                        <strong>${escape(environment.title || "未命名环境")}</strong>
-                        <span>${escape(environment.segmentCount || utils.list(environment.segments).length)} 类 · ${escape(environment.objectCount || utils.list(environment.objects).length)} 对象</span>
-                      </button>
-                      <div class="environment-topology-segments">
-                        ${utils.list(environment.segments).map((segment) => renderSegmentNode(environment, segment, selectedSegmentId, selectedObjectId)).join("")}
-                      </div>
-                    </section>
-                  `,
-                )
-                .join("") || '<div class="reference-empty">暂无信息化环境拓扑数据。</div>'
-            }
-          </div>
+        <div class="environment-hierarchy-layer-rail" aria-hidden="true">
+          ${layerLabels.map((label) => `<span>${escape(label)}</span>`).join("")}
+        </div>
+        <div class="environment-hierarchy-canvas" aria-label="环境层级视图">
+          ${
+            tree.length
+              ? isSegmentView
+                ? segmentFlow
+                : tree.map((environment) => renderHierarchyEnvironment(environment, selectedEnvironmentId, selectedSegmentId, selectedObjectId)).join("")
+              : '<div class="reference-empty">暂无信息化环境层级数据。</div>'
+          }
         </div>
       </section>
     `;
   }
 
   function renderMappingTab({ viewModel, selectedRowId, selectedEnvironmentId, selectedSegmentId, selectedObjectId, search, expandedIds, catalogCollapsed }) {
+    const showObjectRelations = viewModel?.selectedMode === "object";
     return `
       <div class="environment-mapping-workbench ${catalogCollapsed ? "catalog-collapsed" : ""}">
         <button
@@ -287,49 +461,34 @@
         </aside>
         <section class="environment-tab-table-pane">
           ${
-            components.EnvironmentScopeServiceMatrix?.render({
-              rows: viewModel?.scopeServiceRows,
-              groups: viewModel?.scopeServiceGroups,
-              showObjectColumn: viewModel?.detailPanel?.showObjectColumn,
-              selectedRowId,
-              grouped: false,
-            }) || '<div class="reference-empty">环境映射表组件未加载。</div>'
+            showObjectRelations
+              ? components.EnvironmentScopeServiceMatrix?.render({
+                  rows: viewModel?.scopeServiceRows,
+                  groups: viewModel?.scopeServiceGroups,
+                  showObjectColumn: viewModel?.detailPanel?.showObjectColumn,
+                  selectedRowId,
+                  grouped: false,
+                }) || '<div class="reference-empty">环境映射表组件未加载。</div>'
+              : renderTopology({ viewModel, preferBasemap: false })
           }
         </section>
       </div>
     `;
   }
 
-  function renderReviewTab({ reviewData, reviewFilters, selectedReviewRowKey, selectedReviewDirectoryKey } = {}) {
-    if (!components.EnvironmentDataReviewTable?.render) {
-      return '<div class="reference-empty">环境映射人工核对组件未加载。</div>';
-    }
-    return components.EnvironmentDataReviewTable.render({
-      reviewData,
-      filters: reviewFilters,
-      selectedRowKey: selectedReviewRowKey,
-      selectedDirectoryRelationKey: selectedReviewDirectoryKey,
-    });
-  }
-
-  function render({ viewModel, selectedRowId = "", selectedEnvironmentId = "", selectedSegmentId = "", selectedObjectId = "", search = "", activeTab = "topology", expandedIds, catalogCollapsed = false, reviewData = null, reviewFilters = {}, selectedReviewRowKey = "", selectedReviewDirectoryKey = "" } = {}) {
-    const normalizedActiveTab = activeTab === "mapping" || activeTab === "review" ? activeTab : "topology";
+  function render({ viewModel, selectedRowId = "", selectedEnvironmentId = "", selectedSegmentId = "", selectedObjectId = "", search = "", activeTab = "topology", expandedIds, catalogCollapsed = false } = {}) {
+    const normalizedActiveTab = activeTab === "mapping" ? activeTab : "topology";
     const showMapping = normalizedActiveTab === "mapping";
-    const showReview = normalizedActiveTab === "review";
     return `
       <section class="semantic-panel environment-relation-map environment-tabbed-map">
-        <input class="environment-tab-input" id="environmentTabTopology" type="radio" name="environmentDetailTab" ${showMapping || showReview ? "" : "checked"}>
+        <input class="environment-tab-input" id="environmentTabTopology" type="radio" name="environmentDetailTab" ${showMapping ? "" : "checked"}>
         <input class="environment-tab-input" id="environmentTabMapping" type="radio" name="environmentDetailTab" ${showMapping ? "checked" : ""}>
-        <input class="environment-tab-input" id="environmentTabReview" type="radio" name="environmentDetailTab" ${showReview ? "checked" : ""}>
         <div class="environment-tab-panels">
           <div class="environment-tab-panel environment-tab-panel-topology">
             ${renderTopology({ viewModel })}
           </div>
           <div class="environment-tab-panel environment-tab-panel-mapping">
             ${renderMappingTab({ viewModel, selectedRowId, selectedEnvironmentId, selectedSegmentId, selectedObjectId, search, expandedIds, catalogCollapsed })}
-          </div>
-          <div class="environment-tab-panel environment-tab-panel-review">
-            ${renderReviewTab({ reviewData, reviewFilters, selectedReviewRowKey, selectedReviewDirectoryKey })}
           </div>
         </div>
       </section>

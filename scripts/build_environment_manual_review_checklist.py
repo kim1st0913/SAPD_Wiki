@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 """Build a manual review checklist for environment mapping reimport data.
 
-This script is intentionally read-only for official data packages. It compares
+By default this script is read-only for official data packages. It compares
 source-derived normalized rows against the current official workbench and
-node-details, then writes human-review artifacts under worker-verify.
+node-details, then writes human-review artifacts under worker-verify. The
+former frontend manual review page has been retired, so this script no longer
+writes public review JSON.
 """
 
 from __future__ import annotations
 
+import argparse
 import csv
 import json
 import re
@@ -39,7 +42,6 @@ MAINTENANCE_SERVICES_PATH = ROOT / "frontend/capability-browser/public/data/main
 JSON_OUT = OUTPUT_DIR / "environment-manual-review-checklist.json"
 CSV_OUT = OUTPUT_DIR / "environment-manual-review-checklist.csv"
 MD_OUT = OUTPUT_DIR / "environment-manual-review-checklist.md"
-PUBLIC_REVIEW_OUT = ROOT / "frontend/capability-browser/public/data/review/environment-manual-review-checklist.json"
 
 TARGET_OBJECTS = [
     "PC终端设备",
@@ -65,6 +67,16 @@ KNOWN_SERVICE_CODE_MIGRATIONS = {
     "I-OS&T-AS.DS-04": "I-AP&T-AS.DS-04",
     "I-OS&T-AS.DS-05": "I-AP&T-AS.DS-05",
     "I-OS&T-AS.DS-06": "I-AP&T-AS.DS-06",
+}
+
+CANDIDATE_TRIAGE_CATEGORIES = {"A", "B", "C", "D", "E", "F", "G", "H", "I"}
+CANDIDATE_DIFFERENCE_TYPES = {
+    "catalog_unused",
+    "environment_only",
+    "module_service_mismatch",
+    "system_module_mismatch",
+    "possible_alias",
+    "selective_reference_candidate",
 }
 
 
@@ -356,19 +368,6 @@ def consistency_issue_index(consistency_audit: dict[str, Any], review_rows: list
             }
             by_row[int(row_number)].append(payload)
             by_context[payload["objectContextKey"]].append(payload)
-    for issue_type in ("serviceModuleCoverageGapCandidate", "moduleServiceCoverageGapCandidate"):
-        for issue in (consistency_audit.get("issues") or {}).get(issue_type) or []:
-            row_number = issue.get("sampleExcelRow")
-            if not (isinstance(row_number, int) or str(row_number).isdigit()):
-                continue
-            payload = {
-                "type": issue_type,
-                "severity": text(issue.get("severity") or "review"),
-                "reason": text(issue.get("reason")),
-                "objectContextKey": text(issue.get("objectContextKey")),
-            }
-            by_row[int(row_number)].append(payload)
-            by_context[payload["objectContextKey"]].append(payload)
     return {"byRow": by_row, "byContext": by_context}
 
 
@@ -380,6 +379,8 @@ def triage_index(triage: dict[str, Any]) -> dict[str, Any]:
 
     for clusters in (triage.get("patternClusters") or {}).values():
         for pattern in clusters or []:
+            if text(pattern.get("triageCategory")) not in CANDIDATE_TRIAGE_CATEGORIES:
+                continue
             signature = text(pattern.get("patternSignature"))
             if signature:
                 pattern_by_signature[signature] = pattern
@@ -388,6 +389,8 @@ def triage_index(triage: dict[str, Any]) -> dict[str, Any]:
                     by_row[int(row)].append(pattern)
 
     for item in triage.get("topManualReviewItems") or []:
+        if text(item.get("triageCategory")) not in CANDIDATE_TRIAGE_CATEGORIES:
+            continue
         for row in item.get("sourceRows") or []:
             if isinstance(row, int) or str(row).isdigit():
                 top_by_row[int(row)].append(item)
@@ -402,6 +405,82 @@ def triage_index(triage: dict[str, Any]) -> dict[str, Any]:
         "topByRow": top_by_row,
         "aliasByRow": alias_by_row,
         "patternBySignature": pattern_by_signature,
+    }
+
+
+def candidate_triage_summary(triage: dict[str, Any]) -> dict[str, Any]:
+    labels = triage.get("triageCategoryLabels") or {}
+    counts = triage.get("triageCategoryCounts") or {}
+    return {
+        "triageReport": str(CONSISTENCY_TRIAGE_PATH.relative_to(ROOT)) if CONSISTENCY_TRIAGE_PATH.exists() else "",
+        "issueTypeCounts": {key: value for key, value in (triage.get("issueTypeCounts") or {}).items()},
+        "triageCategoryCounts": {key: counts.get(key, 0) for key in sorted(CANDIDATE_TRIAGE_CATEGORIES)},
+        "triageCategoryLabels": {key: labels.get(key, key) for key in sorted(CANDIDATE_TRIAGE_CATEGORIES)},
+        "patternClusterCounts": {
+            key: len([item for item in value or [] if text(item.get("triageCategory")) in CANDIDATE_TRIAGE_CATEGORIES])
+            for key, value in (triage.get("patternClusters") or {}).items()
+        },
+        "dualTableReviewSummary": {},
+        "possibleAliasMatchCount": len(triage.get("possibleAliasMatches") or []) if isinstance(triage, dict) else 0,
+        "topManualReviewItemCount": len(
+            [
+                item
+                for item in (triage.get("topManualReviewItems") or [])
+                if text(item.get("triageCategory")) in CANDIDATE_TRIAGE_CATEGORIES
+            ]
+        )
+        if isinstance(triage, dict)
+        else 0,
+    }
+
+
+def candidate_top_items(triage: dict[str, Any]) -> list[dict[str, Any]]:
+    return [
+        item
+        for item in (triage.get("topManualReviewItems") or [])
+        if text(item.get("triageCategory")) in CANDIDATE_TRIAGE_CATEGORIES
+    ]
+
+
+def candidate_dual_table_review(triage: dict[str, Any]) -> dict[str, Any]:
+    dual = triage.get("dualTableReview") or {}
+    rows = []
+    for row in dual.get("directoryRelationRows") or []:
+        difference_types = [text(item) for item in row.get("differenceTypes") or [] if text(item)]
+        if any(item in CANDIDATE_DIFFERENCE_TYPES for item in difference_types):
+            rows.append(row)
+    labels = {
+        key: value
+        for key, value in (dual.get("differenceTypeLabels") or {}).items()
+        if key in CANDIDATE_DIFFERENCE_TYPES
+    }
+    difference_counter = Counter(
+        item
+        for row in rows
+        for item in [text(value) for value in row.get("differenceTypes") or []]
+        if item
+    )
+    return {
+        **dual,
+        "summary": {
+            **(dual.get("summary") or {}),
+            "directoryRelationCount": len(rows),
+            "catalogUnusedRelationCount": difference_counter.get("catalog_unused", 0),
+            "environmentOnlyRelationCount": difference_counter.get("environment_only", 0),
+            "moduleServiceMismatchRelationCount": difference_counter.get("module_service_mismatch", 0),
+            "systemModuleMismatchRelationCount": difference_counter.get("system_module_mismatch", 0),
+            "possibleAliasRelationCount": difference_counter.get("possible_alias", 0),
+            "selectiveReferenceCandidateCount": difference_counter.get("selective_reference_candidate", 0),
+            "differenceTypeCounts": dict(difference_counter),
+            "candidateOnly": True,
+        },
+        "directoryRelationRows": rows,
+        "differenceTypeLabels": labels,
+        "clusters": {
+            key: value
+            for key, value in (dual.get("clusters") or {}).items()
+            if key in {"environmentOnlyRelations", "possibleAliasRelationClusters", "catalogUnusedRelations"}
+        },
     }
 
 
@@ -514,14 +593,6 @@ def build_checklist() -> dict[str, Any]:
                 context_risk = "high"
             elif context_risk != "high":
                 context_risk = "medium"
-        if len(service_values) > SERVICE_COUNT_REVIEW_THRESHOLD:
-            context_prompts.append(f"服务数量较多({len(service_values)})，建议核对是否符合原表合并范围")
-            if context_risk != "high":
-                context_risk = "medium"
-        if len(module_values) + len(measure_values) > MODULE_MEASURE_COUNT_REVIEW_THRESHOLD:
-            context_prompts.append(f"模块/措施数量较多({len(module_values) + len(measure_values)})，建议核对是否过度展开")
-            if context_risk != "high":
-                context_risk = "medium"
         missing_system_modules_by_context = unique_nonempty(
             [
                 module
@@ -572,7 +643,10 @@ def build_checklist() -> dict[str, Any]:
                 row_risk = "high"
             repeated_service_items = issues["repeatedByRow"].get(row_number, [])
             if repeated_service_items:
-                row_prompts.append("同一安全技术服务映射多个模块/措施/系统，按 1:N 展开展示")
+                row_prompts.append("同一安全技术服务映射多个模块/措施/安全系统，需分析是合法 1:N 展开，还是合并单元格、重复录入或生成逻辑问题")
+                row_issue_types.append("repeatedServiceWithDifferentChildren")
+                if row_risk != "high":
+                    row_risk = "medium"
             for consistency_issue in consistency_issues["byRow"].get(row_number, []):
                 issue_type = text(consistency_issue.get("type"))
                 if issue_type:
@@ -591,8 +665,6 @@ def build_checklist() -> dict[str, Any]:
             pattern_signatures = unique_nonempty([text(item.get("patternSignature")) for item in triage_patterns])
             if top_items_for_row:
                 row_prompts.append("Top 人工核对项")
-            if any(item.get("issueType") == "repeatedServiceWithDifferentChildren" for item in triage_patterns):
-                row_prompts.append("服务多模块/措施展开，按 1:N 展开展示")
             if alias_items_for_row:
                 row_prompts.append("可能存在命名/别名/标点差异，需人工确认")
             if scope_issues:
@@ -676,33 +748,36 @@ def build_checklist() -> dict[str, Any]:
                     ),
                 },
             }
-            rows_out.append(output_row)
+            if output_row["issueTypes"] or output_row["possibleAliasMatches"] or output_row["isTopManualReviewItem"]:
+                rows_out.append(output_row)
 
-        context_summaries.append(
-            {
-                "riskLevel": "high" if missing_rows else context_risk,
-                "reviewTarget": target,
-                "informationEnvironment": text(first.get("informationEnvironment")),
-                "environmentSegment": text(first.get("environmentSegment")),
-                "informationObject": text(first.get("informationObject")),
-                "objectContextKey": context_key,
-                "excelRows": [int(row.get("row")) for row in rows],
-                "scopeCount": len(scope_values),
-                "serviceCount": len(service_values),
-                "securitySystemCount": len(system_values),
-                "moduleCount": len(module_values),
-                "measureCount": len(measure_values),
-                "duplicateServiceCount": len(duplicate_service_rows_in_context),
-                "missingScopesByServiceReverseCheck": unique_nonempty([scope for item in scope_issues for scope in item.get("missingScopes", [])]),
-                "nodeDetailsContains": bool(detail_matches),
-                "nodeDetailMxIds": [detail.get("mxId") for detail in detail_matches],
-                "sameNameDifferentContext": len(same_name_contexts[text(first.get("informationObject"))]) > 1,
-                "missingOfficialRelationRows": missing_rows,
-                "reviewPrompts": unique_nonempty(context_prompts + ([f"存在 {len(missing_rows)} 行正式关系缺失"] if missing_rows else [])),
-            }
-        )
+        if context_risk != "low" or missing_rows or context_prompts:
+            context_summaries.append(
+                {
+                    "riskLevel": "high" if missing_rows else context_risk,
+                    "reviewTarget": target,
+                    "informationEnvironment": text(first.get("informationEnvironment")),
+                    "environmentSegment": text(first.get("environmentSegment")),
+                    "informationObject": text(first.get("informationObject")),
+                    "objectContextKey": context_key,
+                    "excelRows": [int(row.get("row")) for row in rows],
+                    "scopeCount": len(scope_values),
+                    "serviceCount": len(service_values),
+                    "securitySystemCount": len(system_values),
+                    "moduleCount": len(module_values),
+                    "measureCount": len(measure_values),
+                    "duplicateServiceCount": len(duplicate_service_rows_in_context),
+                    "missingScopesByServiceReverseCheck": unique_nonempty([scope for item in scope_issues for scope in item.get("missingScopes", [])]),
+                    "nodeDetailsContains": bool(detail_matches),
+                    "nodeDetailMxIds": [detail.get("mxId") for detail in detail_matches],
+                    "sameNameDifferentContext": len(same_name_contexts[text(first.get("informationObject"))]) > 1,
+                    "missingOfficialRelationRows": missing_rows,
+                    "reviewPrompts": unique_nonempty(context_prompts + ([f"存在 {len(missing_rows)} 行正式关系缺失"] if missing_rows else [])),
+                }
+            )
 
     risk_counter = Counter(row["riskLevel"] for row in rows_out)
+    selected_context_count = len({row.get("objectContextKey") for row in rows_out if text(row.get("objectContextKey"))})
     high_risk_contexts = [item for item in context_summaries if item["riskLevel"] == "high"]
     medium_risk_contexts = [item for item in context_summaries if item["riskLevel"] == "medium"]
     top_priority = sorted(
@@ -730,7 +805,7 @@ def build_checklist() -> dict[str, Any]:
         },
         "targets": TARGET_OBJECTS,
         "summary": {
-            "selectedContextCount": len(context_summaries),
+            "selectedContextCount": selected_context_count,
             "selectedRowCount": len(rows_out),
             "highRiskContextCount": len(high_risk_contexts),
             "mediumRiskContextCount": len(medium_risk_contexts),
@@ -758,20 +833,9 @@ def build_checklist() -> dict[str, Any]:
             ]
         },
         "contextSummaries": context_summaries,
-        "topPriorityReviewItems": (consistency_triage.get("topManualReviewItems") or top_priority)[:50]
-        if isinstance(consistency_triage, dict)
-        else top_priority,
-        "triageSummary": {
-            "triageReport": str(CONSISTENCY_TRIAGE_PATH.relative_to(ROOT)) if CONSISTENCY_TRIAGE_PATH.exists() else "",
-            "issueTypeCounts": consistency_triage.get("issueTypeCounts") or {},
-            "triageCategoryCounts": consistency_triage.get("triageCategoryCounts") or {},
-            "triageCategoryLabels": consistency_triage.get("triageCategoryLabels") or {},
-            "patternClusterCounts": consistency_triage.get("patternClusterCounts") or {},
-            "dualTableReviewSummary": (consistency_triage.get("dualTableReview") or {}).get("summary") or {},
-            "possibleAliasMatchCount": len(consistency_triage.get("possibleAliasMatches") or []) if isinstance(consistency_triage, dict) else 0,
-            "topManualReviewItemCount": len(consistency_triage.get("topManualReviewItems") or []) if isinstance(consistency_triage, dict) else 0,
-        },
-        "dualTableReview": consistency_triage.get("dualTableReview") or {} if isinstance(consistency_triage, dict) else {},
+        "topPriorityReviewItems": candidate_top_items(consistency_triage)[:50] if isinstance(consistency_triage, dict) else [],
+        "triageSummary": candidate_triage_summary(consistency_triage) if isinstance(consistency_triage, dict) else {},
+        "dualTableReview": candidate_dual_table_review(consistency_triage) if isinstance(consistency_triage, dict) else {},
         "possibleAliasMatches": consistency_triage.get("possibleAliasMatches") or [] if isinstance(consistency_triage, dict) else [],
         "rows": rows_out,
     }
@@ -780,8 +844,6 @@ def build_checklist() -> dict[str, Any]:
 def write_outputs(payload: dict[str, Any]) -> None:
     payload = canonicalize_review_service_refs(payload, service_catalog_by_code())
     JSON_OUT.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-    PUBLIC_REVIEW_OUT.parent.mkdir(parents=True, exist_ok=True)
-    PUBLIC_REVIEW_OUT.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     fieldnames = [
         "informationEnvironment",
         "environmentSegment",
@@ -879,7 +941,31 @@ def write_outputs(payload: dict[str, Any]) -> None:
     MD_OUT.write_text("\n".join(md) + "\n", encoding="utf-8")
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Build Environment Mapping manual review artifacts. "
+            "Output is worker-verify only; the frontend manual review page is retired."
+        )
+    )
+    parser.add_argument(
+        "--apply",
+        action="store_true",
+        help=argparse.SUPPRESS,
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=None,
+        help=argparse.SUPPRESS,
+    )
+    return parser.parse_args()
+
+
 def main() -> None:
+    args = parse_args()
+    if args.apply or args.output is not None:
+        raise SystemExit("前端数据核对页已删除；该脚本只允许输出 worker-verify 审计产物。")
     payload = build_checklist()
     write_outputs(payload)
     print(
@@ -887,7 +973,8 @@ def main() -> None:
             {
                 "result": "pass",
                 "outputs": [str(JSON_OUT.relative_to(ROOT)), str(CSV_OUT.relative_to(ROOT)), str(MD_OUT.relative_to(ROOT))],
-                "publicReviewData": str(PUBLIC_REVIEW_OUT.relative_to(ROOT)),
+                "publicReviewDataWritten": False,
+                "publicReviewData": None,
                 "selectedContextCount": payload["summary"]["selectedContextCount"],
                 "selectedRowCount": payload["summary"]["selectedRowCount"],
                 "highRiskContextCount": payload["summary"]["highRiskContextCount"],

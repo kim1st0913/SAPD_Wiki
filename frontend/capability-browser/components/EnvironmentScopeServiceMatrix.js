@@ -1,31 +1,22 @@
 (function () {
   const components = (window.sapdComponents = window.sapdComponents || {});
   const utils = components.utils;
-  const display = window.sapdDisplay || {};
-  const ROW_HEIGHT = 48;
-  const NODE_CENTER_Y = 24;
-  const CONNECTOR_WIDTH = 150;
+  const ROW_HEIGHT = 74;
+  const NODE_HEIGHT = 56;
+  const SERVICE_WIDTH = 322;
+  const TARGET_WIDTH = 286;
+  const TARGET_GAP = 12;
+  const STAGE_PADDING_X = 22;
+  const STAGE_PADDING_Y = 58;
+  const TARGET_GROUP_GAP = 46;
+  const CLUSTER_INSET = 8;
 
-  function technicalChipClass(kind) {
-    if (display.chipClass) return display.chipClass(kind);
-    if (kind.includes("服务")) return "technical-chip service-chip";
-    if (kind.includes("模块")) return "technical-chip module-chip";
-    if (kind.includes("措施")) return "technical-chip measure-chip";
-    if (kind.includes("安全系统")) return "system-chip";
-    if (kind.includes("产品")) return "environment-chip";
-    return "note-chip";
-  }
-
-  function annotationAttrs(value) {
-    return display.annotationValueAttrs?.(utils, value) || "";
+  function serviceKey(item) {
+    return item?.code || item?.id || item?.title || item?.name || "";
   }
 
   function relationNodeKey(item) {
     return [item?.id, item?.code, item?.title, item?.name, item?.objectKind, item?.type].filter(Boolean).join("::");
-  }
-
-  function serviceKey(item) {
-    return item?.code || item?.id || item?.title || item?.name || "";
   }
 
   function relationNodeKind(node) {
@@ -54,6 +45,17 @@
     items.push(item);
   }
 
+  function scopeCodeFromService(service) {
+    const explicit = utils.list(service?.scopes)[0]?.code || utils.list(service?.scopes)[0]?.id || "";
+    if (explicit) return explicit;
+    const code = service?.code || "";
+    return String(code).split("&")[0] || "";
+  }
+
+  function scopeTitle(scope) {
+    return utils.codeTitleOf(scope || {});
+  }
+
   function fallbackGroupsFromRows(rows) {
     const groups = new Map();
     const serviceScopesByGroup = new Map();
@@ -64,6 +66,7 @@
         groups.set(objectKey, {
           id: objectKey,
           objectKey,
+          environment: row.environment || null,
           object,
           objectTitle: utils.titleOf(object, "当前信息化对象"),
           segments: [],
@@ -77,100 +80,203 @@
         serviceScopesByGroup.set(objectKey, new Map());
       }
       const group = groups.get(objectKey);
-      const scopeRows = utils.list(row.scopes).length ? utils.list(row.scopes) : [row.scope];
+      if (!group.environment && row.environment) group.environment = row.environment;
+      const rowScopes = utils.list(row.scopes).length ? utils.list(row.scopes) : [row.scope];
       group.segments = uniqueBy([...group.segments, ...utils.list(row.segments)], (segment) => segment.id || segment.code || segment.title);
-      group.scopes = uniqueBy([...group.scopes, ...scopeRows], (scope) => scope?.code || scope?.id || scope?.title);
+      group.scopes = uniqueBy([...group.scopes, ...rowScopes], (scope) => scope?.code || scope?.id || scope?.title);
       group.services = uniqueBy([...group.services, ...utils.list(row.services)], serviceKey);
+
       const serviceScopes = serviceScopesByGroup.get(objectKey);
       for (const service of utils.list(row.services)) {
-        const currentServiceKey = serviceKey(service);
-        if (!serviceScopes.has(currentServiceKey)) serviceScopes.set(currentServiceKey, []);
-        for (const scope of scopeRows) addUnique(serviceScopes.get(currentServiceKey), scope, (item) => item?.code || item?.id || item?.title);
+        const key = serviceKey(service);
+        if (!serviceScopes.has(key)) serviceScopes.set(key, []);
+        for (const scope of rowScopes) addUnique(serviceScopes.get(key), scope, (item) => item?.code || item?.id || item?.title);
       }
+
       const nodes = utils.list(row.relationNodes).length ? utils.list(row.relationNodes) : [...utils.list(row.modules), ...utils.list(row.measures)];
       group.modules = uniqueBy([...group.modules, ...nodes], relationNodeKey);
       for (const service of utils.list(row.services)) {
-        for (const module of nodes) {
+        for (const node of nodes) {
           const edge = {
-            edgeKey: `${serviceKey(service)}::${relationNodeKey(module)}`,
+            edgeKey: `${serviceKey(service)}::${relationNodeKey(node)}`,
             serviceKey: serviceKey(service),
-            moduleKey: relationNodeKey(module),
+            moduleKey: relationNodeKey(node),
             service,
-            module,
+            module: node,
           };
           if (!group.edges.some((item) => item.edgeKey === edge.edgeKey)) group.edges.push(edge);
         }
       }
     }
-    return [...groups.values()].map((group) => {
-      const serviceCounts = new Map();
-      const moduleCounts = new Map();
-      for (const edge of group.edges) {
-        serviceCounts.set(edge.serviceKey, (serviceCounts.get(edge.serviceKey) || 0) + 1);
-        moduleCounts.set(edge.moduleKey, (moduleCounts.get(edge.moduleKey) || 0) + 1);
-      }
-      const defaultFocusServiceKey = [...serviceCounts.entries()].sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0], "zh-Hans-CN"))[0]?.[0] || "";
-      return {
-        ...group,
-        defaultFocusServiceKey,
-        services: group.services.map((service) => {
-          const key = serviceKey(service);
-          const count = serviceCounts.get(key) || 0;
-          return { ...service, scopes: serviceScopesByGroup.get(group.objectKey)?.get(key) || [], relationCount: count, relationType: count > 1 ? "1:N" : "1:1", isDefaultFocus: key === defaultFocusServiceKey };
-        }),
-        modules: group.modules.map((module) => {
-          const key = relationNodeKey(module);
-          const count = moduleCounts.get(key) || 0;
-          return { ...module, relationCount: count, relationType: count > 1 ? "N:1" : "1:1" };
-        }),
-        oneToManyCount: [...serviceCounts.values()].filter((count) => count > 1).length,
-        manyToOneCount: [...moduleCounts.values()].filter((count) => count > 1).length,
-      };
+
+    return [...groups.values()].map((group) => normalizeGroup(group, serviceScopesByGroup.get(group.objectKey)));
+  }
+
+  function normalizeGroup(group, serviceScopeMap = null) {
+    const serviceCounts = new Map();
+    const targetCounts = new Map();
+    for (const edge of utils.list(group.edges)) {
+      serviceCounts.set(edge.serviceKey, (serviceCounts.get(edge.serviceKey) || 0) + 1);
+      targetCounts.set(edge.moduleKey, (targetCounts.get(edge.moduleKey) || 0) + 1);
+    }
+    const defaultFocusServiceKey =
+      group.defaultFocusServiceKey ||
+      [...serviceCounts.entries()].sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0], "zh-Hans-CN"))[0]?.[0] ||
+      "";
+    const serviceScopes = serviceScopeMap || new Map(utils.list(group.services).map((service) => [serviceKey(service), utils.list(service.scopes)]));
+    return {
+      ...group,
+      defaultFocusServiceKey,
+      services: utils.list(group.services).map((service) => {
+        const key = serviceKey(service);
+        const count = serviceCounts.get(key) || Number(service.relationCount || 0);
+        return {
+          ...service,
+          scopes: serviceScopes.get(key) || utils.list(service.scopes),
+          relationCount: count,
+          relationType: count > 1 ? "one_to_many" : "one_to_one",
+          isDefaultFocus: key === defaultFocusServiceKey,
+        };
+      }),
+      modules: utils.list(group.modules).map((module) => {
+        const key = relationNodeKey(module);
+        const count = targetCounts.get(key) || Number(module.relationCount || 0);
+        return {
+          ...module,
+          relationCount: count,
+          relationType: count > 1 ? "many_to_one" : "one_to_one",
+        };
+      }),
+      oneToManyCount: [...serviceCounts.values()].filter((count) => count > 1).length,
+      manyToOneCount: [...targetCounts.values()].filter((count) => count > 1).length,
+    };
+  }
+
+  function splitServices(services) {
+    const left = [];
+    const right = [];
+    utils.list(services).forEach((service, index) => {
+      (index % 2 === 0 ? left : right).push(service);
     });
+    return { left, right };
   }
 
-  function scopeChips(scopes) {
-    const rows = utils.list(scopes).filter(Boolean);
-    if (!rows.length) return `<span class="empty-inline">暂无映射</span>`;
-    const value = rows.map((scope) => utils.codeTitleOf(scope)).filter(Boolean).join("\n");
-    return `<div class="environment-workbench-scope-chips"${annotationAttrs(value)}>${rows
-      .map((scope) => `<span class="environment-workbench-scope-chip">${utils.escapeHtml(utils.codeTitleOf(scope))}</span>`)
-      .join("")}</div>`;
+  function targetGroups(targets) {
+    const modules = utils.list(targets).filter((target) => relationCategory(target) === "module");
+    const measures = utils.list(targets).filter((target) => relationCategory(target) === "measure");
+    return [
+      { key: "modules", title: "安全技术模块", type: "module", targets: modules },
+      { key: "measures", title: "安全技术措施", type: "measure", targets: measures },
+    ].filter((group) => group.targets.length);
   }
 
-  function segmentChips(segments) {
-    const rows = utils.list(segments).filter(Boolean);
-    if (!rows.length) return `<span class="empty-inline">未定义环境子类</span>`;
-    return `<div class="environment-workbench-segment-chips">${rows.map((segment) => `<span>${utils.escapeHtml(utils.codeTitleOf(segment))}</span>`).join("")}</div>`;
+  function layoutGraph(group) {
+    const services = utils.list(group.services);
+    const targets = utils.list(group.modules);
+    const { left, right } = splitServices(services);
+    const groups = targetGroups(targets);
+    const serviceRows = Math.max(left.length, right.length, 1);
+    const targetRows = groups.reduce((sum, row) => sum + row.targets.length, 0) + Math.max(0, groups.length - 1);
+    const graphHeight = Math.max(520, STAGE_PADDING_Y * 2 + Math.max(serviceRows, targetRows) * ROW_HEIGHT);
+    const graphWidth = 1120;
+    const centerX = graphWidth / 2;
+    const leftX = STAGE_PADDING_X;
+    const rightX = graphWidth - STAGE_PADDING_X - SERVICE_WIDTH;
+    const targetX = centerX - TARGET_WIDTH / 2;
+    const serviceStartY = STAGE_PADDING_Y;
+    const targetStartY = STAGE_PADDING_Y;
+    const servicePositions = new Map();
+    const targetPositions = new Map();
+    const nodes = [];
+    const clusters = [];
+
+    const placeService = (service, index, side) => {
+      const key = serviceKey(service);
+      const x = side === "left" ? leftX + CLUSTER_INSET : rightX - CLUSTER_INSET;
+      const y = serviceStartY + index * ROW_HEIGHT;
+      servicePositions.set(key, { x, y, side });
+      nodes.push({ kind: "service", side, item: service, key, x, y, width: SERVICE_WIDTH, height: NODE_HEIGHT });
+    };
+    left.forEach((service, index) => placeService(service, index, "left"));
+    right.forEach((service, index) => placeService(service, index, "right"));
+
+    if (left.length) clusters.push({ key: "services-left", label: "安全技术服务", count: `${left.length} 项`, type: "service", side: "left", x: leftX - 12, y: serviceStartY - 46, width: SERVICE_WIDTH + 24, height: left.length * ROW_HEIGHT + 38 });
+    if (right.length) clusters.push({ key: "services-right", label: "安全技术服务", count: `${right.length} 项`, type: "service", side: "right", x: rightX - 12, y: serviceStartY - 46, width: SERVICE_WIDTH + 24, height: right.length * ROW_HEIGHT + 38 });
+
+    let targetCursor = targetStartY;
+    for (const groupRow of groups) {
+      const height = groupRow.targets.length * ROW_HEIGHT + 38;
+      clusters.push({ key: groupRow.key, label: groupRow.title, count: `${groupRow.targets.length} 项`, type: groupRow.type, x: targetX - 12, y: targetCursor - 46, width: TARGET_WIDTH + 24, height });
+      for (const target of groupRow.targets) {
+        const key = relationNodeKey(target);
+        const x = targetX + CLUSTER_INSET;
+        targetPositions.set(key, { x, y: targetCursor, side: "center" });
+        nodes.push({ kind: "target", targetType: groupRow.type, item: target, key, x, y: targetCursor, width: TARGET_WIDTH - CLUSTER_INSET * 2, height: NODE_HEIGHT });
+        targetCursor += ROW_HEIGHT;
+      }
+      targetCursor += TARGET_GROUP_GAP;
+    }
+
+    const edges = utils.list(group.edges)
+      .map((edge) => {
+        const source = servicePositions.get(edge.serviceKey);
+        const target = targetPositions.get(edge.moduleKey);
+        if (!source || !target) return null;
+        const targetNode = targets.find((item) => relationNodeKey(item) === edge.moduleKey);
+        const sourceIsLeft = source.side === "left";
+        const start = {
+          x: sourceIsLeft ? source.x + SERVICE_WIDTH : source.x,
+          y: source.y + NODE_HEIGHT / 2,
+        };
+        const end = {
+          x: sourceIsLeft ? target.x : target.x + TARGET_WIDTH,
+          y: target.y + NODE_HEIGHT / 2,
+        };
+        const dx = Math.max(92, Math.abs(end.x - start.x));
+        const direction = sourceIsLeft ? 1 : -1;
+        return {
+          ...edge,
+          category: relationCategory(targetNode),
+          d: `M ${start.x} ${start.y} C ${start.x + direction * dx * 0.46} ${start.y}, ${end.x - direction * dx * 0.46} ${end.y}, ${end.x} ${end.y}`,
+        };
+      })
+      .filter(Boolean);
+
+    return { graphWidth, graphHeight, nodes, edges, clusters };
   }
 
-  function smallScopeBadges(scopes) {
+  function segmentText(segments) {
+    const rows = utils.list(segments).map((segment) => utils.codeTitleOf(segment)).filter(Boolean);
+    return rows.length ? rows.join(" / ") : "未定义环境子类";
+  }
+
+  function contextPath(group) {
+    const environment = utils.titleOf(group.environment, "信息化环境");
+    const object = group.objectTitle || utils.titleOf(group.object, "当前信息化对象");
+    return [environment, segmentText(group.segments), object].filter(Boolean).join(" - ");
+  }
+
+  function renderScopeLegend(scopes, extraClass = "") {
     const rows = utils.list(scopes).filter(Boolean);
     if (!rows.length) return "";
-    return `<div class="environment-workbench-service-scopes">${rows.map((scope) => `<span>${utils.escapeHtml(scope.code || utils.codeTitleOf(scope))}</span>`).join("")}</div>`;
-  }
-
-  function relationPill(value) {
-    if (!value || value === "1:1") return "";
-    return `<span class="environment-workbench-relation-pill">${utils.escapeHtml(value)}</span>`;
+    return `
+      <div class="environment-object-graph-legend ${utils.escapeHtml(extraClass)}">
+        ${rows
+          .map((scope) => `<span class="environment-object-scope-key" data-scope="${utils.escapeHtml(scope.code || scope.id || "")}">${utils.escapeHtml(scopeTitle(scope))}</span>`)
+          .join("")}
+      </div>
+    `;
   }
 
   function metric(label, value) {
     return `<span><b>${utils.escapeHtml(String(value))}</b>${utils.escapeHtml(label)}</span>`;
   }
 
-  function renderObjectSummary(group) {
-    const object = group.object || {};
+  function renderHud(group) {
     return `
-      <aside class="environment-workbench-context">
-        <div class="environment-workbench-object-kicker">信息化对象</div>
-        <h4>${utils.escapeHtml(group.objectTitle || object.title || "未命名对象")}</h4>
-        ${segmentChips(group.segments)}
-        <div class="environment-workbench-context-block">
-          <span class="environment-workbench-label">作用域</span>
-          ${scopeChips(group.scopes)}
-        </div>
-        <div class="environment-workbench-metrics">
+      <aside class="environment-object-graph-hud">
+        <div class="environment-object-context-line">${utils.escapeHtml(contextPath(group))}</div>
+        <div class="environment-object-graph-metrics">
           ${metric("作用域", utils.list(group.scopes).length)}
           ${metric("服务", utils.list(group.services).length)}
           ${metric("模块/措施", utils.list(group.modules).length)}
@@ -180,151 +286,122 @@
     `;
   }
 
-  function renderServiceNode(service, index, defaultFocusServiceKey) {
-    const key = serviceKey(service);
-    const isDefault = key && key === defaultFocusServiceKey;
+  function renderCluster(cluster) {
+    const classNames = [
+      "environment-object-graph-cluster",
+      cluster.type === "service" ? "is-service-cluster" : "is-module-cluster",
+      cluster.side === "left" ? "is-services-left" : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
     return `
-      <button
-        type="button"
-        class="environment-workbench-node environment-workbench-service-node ${isDefault ? "is-default-focus" : ""}"
-        style="grid-row:${index + 1};"
-        data-relation-service-key="${utils.escapeHtml(key)}"
-      >
-        ${smallScopeBadges(service.scopes)}
-        <span class="environment-workbench-node-main">
-          <span class="relation-chip ${technicalChipClass("安全技术服务")} environment-service-anchor-chip">
-            <span class="relation-chip-text">${utils.escapeHtml(utils.codeTitleOf(service))}</span>
-          </span>
-          ${relationPill(service.relationType)}
-        </span>
-      </button>
-    `;
-  }
-
-  function moduleMeta(module) {
-    const systems = utils.list(module.securitySystems || module.systems);
-    const products = utils.list(module.products);
-    const rows = [
-      systems.length ? `<span>系统 ${systems.length}</span>` : "",
-      products.length ? `<span>产品 ${products.length}</span>` : "",
-    ].filter(Boolean);
-    return rows.length ? `<div class="environment-workbench-module-meta">${rows.join("")}</div>` : "";
-  }
-
-  function renderModuleNode(module, index, activeModuleKeys) {
-    const key = relationNodeKey(module);
-    const kind = relationNodeKind(module);
-    const isDefault = activeModuleKeys.has(key);
-    return `
-      <button
-        type="button"
-        class="environment-workbench-node environment-workbench-module-node ${isDefault ? "is-default-focus" : ""}"
-        style="grid-row:${index + 1};"
-        data-relation-module-key="${utils.escapeHtml(key)}"
-      >
-        <span class="environment-workbench-node-main">
-          <span class="relation-chip ${technicalChipClass(kind)} environment-relation-target-chip">
-            <em>${utils.escapeHtml(kind)}</em>
-            <span class="relation-chip-text">${utils.escapeHtml(utils.codeTitleOf(module))}</span>
-          </span>
-          ${relationPill(module.relationType)}
-        </span>
-        <span class="environment-workbench-link-count">关联 ${utils.escapeHtml(String(module.relationCount || 0))} 项服务</span>
-        ${moduleMeta(module)}
-      </button>
-    `;
-  }
-
-  function renderModuleGroups(modules, moduleIndex, activeModuleKeys) {
-    const rows = utils.list(modules);
-    if (!rows.length) return `<span class="empty-inline">暂无映射</span>`;
-    return rows.map((module, index) => renderModuleNode(module, moduleIndex.get(relationNodeKey(module)) ?? index, activeModuleKeys)).join("");
-  }
-
-  function renderConnectorLayer(group, serviceIndex, moduleIndex, maxRows, defaultFocusServiceKey) {
-    const height = Math.max(maxRows, 1) * ROW_HEIGHT;
-    const paths = utils
-      .list(group.edges)
-      .map((edge) => {
-        const leftIndex = serviceIndex.get(edge.serviceKey);
-        const rightIndex = moduleIndex.get(edge.moduleKey);
-        if (!Number.isFinite(leftIndex) || !Number.isFinite(rightIndex)) return "";
-        const y1 = NODE_CENTER_Y + leftIndex * ROW_HEIGHT;
-        const y2 = NODE_CENTER_Y + rightIndex * ROW_HEIGHT;
-        const isDefault = defaultFocusServiceKey && edge.serviceKey === defaultFocusServiceKey;
-        return `<path class="${isDefault ? "is-default-focus" : ""}" data-edge-service-key="${utils.escapeHtml(edge.serviceKey)}" data-edge-module-key="${utils.escapeHtml(edge.moduleKey)}" d="M1 ${y1} C42 ${y1} 108 ${y2} ${CONNECTOR_WIDTH - 1} ${y2}"></path>`;
-      })
-      .join("");
-    return `
-      <svg class="environment-workbench-connector-layer" viewBox="0 0 ${CONNECTOR_WIDTH} ${height}" style="height:${height}px;" aria-hidden="true" focusable="false">
-        ${paths}
-      </svg>
-    `;
-  }
-
-  function defaultFocusServiceKey(group) {
-    if (group.defaultFocusServiceKey) return group.defaultFocusServiceKey;
-    return utils
-      .list(group.services)
-      .slice()
-      .sort((left, right) => Number(right.relationCount || 0) - Number(left.relationCount || 0) || serviceKey(left).localeCompare(serviceKey(right), "zh-Hans-CN"))[0]
-      ? serviceKey(
-          utils
-            .list(group.services)
-            .slice()
-            .sort((left, right) => Number(right.relationCount || 0) - Number(left.relationCount || 0) || serviceKey(left).localeCompare(serviceKey(right), "zh-Hans-CN"))[0],
-        )
-      : "";
-  }
-
-  function renderRelationWorkbench(group) {
-    const services = utils.list(group.services);
-    const modules = utils.list(group.modules);
-    const serviceIndex = new Map(services.map((service, index) => [serviceKey(service), index]));
-    const moduleIndex = new Map(modules.map((module, index) => [relationNodeKey(module), index]));
-    const defaultService = defaultFocusServiceKey(group);
-    const activeModuleKeys = new Set(utils.list(group.edges).filter((edge) => edge.serviceKey === defaultService).map((edge) => edge.moduleKey));
-    const maxRows = Math.max(services.length, modules.length, 1);
-    return `
-      <div class="environment-workbench-relation-panel" style="--relation-row-count:${maxRows};" data-default-service-key="${utils.escapeHtml(defaultService)}">
-        <div class="environment-workbench-column-head">安全技术服务</div>
-        <div class="environment-workbench-column-head environment-workbench-connector-title">映射</div>
-        <div class="environment-workbench-column-head">安全技术模块</div>
-        <div class="environment-workbench-service-list">
-          ${services.length ? services.map((service, index) => renderServiceNode(service, index, defaultService)).join("") : `<span class="empty-inline">无适用服务</span>`}
-        </div>
-        <div class="environment-workbench-connector-cell">
-          ${renderConnectorLayer(group, serviceIndex, moduleIndex, maxRows, defaultService)}
-        </div>
-        <div class="environment-workbench-module-list">
-          ${renderModuleGroups(modules, moduleIndex, activeModuleKeys)}
-        </div>
+      <div class="${classNames}" style="--cluster-x:${cluster.x}px; --cluster-y:${cluster.y}px; --cluster-width:${cluster.width}px; --cluster-height:${cluster.height}px;">
+        <span>${utils.escapeHtml(cluster.label)}</span>
+        <em>${utils.escapeHtml(cluster.count)}</em>
       </div>
     `;
   }
 
-  function renderGroup(group) {
+  function nodeMeta(item, kind) {
+    if (kind === "service") {
+      const moduleCount = Number(item.relationCount || 0);
+      return `关联 ${moduleCount} 个模块/措施`;
+    }
+    return `关联 ${Number(item.relationCount || 0)} 项服务`;
+  }
+
+  function renderNode(node, group, activeServiceKey, activeTargetKeys) {
+    const isService = node.kind === "service";
+    const active = isService ? node.key === activeServiceKey : activeTargetKeys.has(node.key);
+    const muted = activeServiceKey && !active;
+    const scopeCode = isService ? scopeCodeFromService(node.item) : "";
+    const classNames = [
+      "environment-object-graph-node",
+      isService ? "environment-object-service-node" : "environment-object-target-node",
+      isService && node.side === "left" ? "is-left-service" : "",
+      isService && node.side === "right" ? "is-right-service" : "",
+      !isService && node.targetType === "module" ? "is-module-node" : "",
+      !isService && node.targetType === "measure" ? "is-measure-node" : "",
+      active ? "is-active" : "",
+      muted ? "is-muted" : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+    const attrs = isService
+      ? `data-graph-node-kind="service" data-graph-service-key="${utils.escapeHtml(node.key)}" data-scope="${utils.escapeHtml(scopeCode)}"`
+      : `data-graph-node-kind="target" data-graph-module-key="${utils.escapeHtml(node.key)}"`;
     return `
-      <article class="environment-object-workbench" data-environment-object-key="${utils.escapeHtml(group.objectKey || group.id || "")}">
-        ${renderObjectSummary(group)}
-        ${renderRelationWorkbench(group)}
+      <button
+        type="button"
+        class="${classNames}"
+        style="--node-x:${node.x}px; --node-y:${node.y}px; --node-width:${node.width}px; --node-height:${node.height}px;"
+        data-graph-node-key="${utils.escapeHtml(node.key)}"
+        ${attrs}
+      >
+        <span class="environment-object-node-type">${utils.escapeHtml(isService ? "安全技术服务" : relationNodeKind(node.item))}</span>
+        <span class="environment-object-node-title">${utils.escapeHtml(utils.codeTitleOf(node.item))}</span>
+        <span class="environment-object-node-meta">${utils.escapeHtml(nodeMeta(node.item, node.kind))}</span>
+      </button>
+    `;
+  }
+
+  function renderEdges(edges, activeServiceKey, activeTargetKeys, graphWidth, graphHeight) {
+    return `
+      <svg class="environment-object-graph-links" viewBox="0 0 ${graphWidth} ${graphHeight}" aria-hidden="true" focusable="false">
+        ${utils
+          .list(edges)
+          .map((edge) => {
+            const active = edge.serviceKey === activeServiceKey || activeTargetKeys.has(edge.moduleKey);
+            const muted = activeServiceKey && !active;
+            const classNames = [
+              edge.category === "measure" ? "is-measure-edge" : "is-module-edge",
+              active ? "is-active" : "",
+              muted ? "is-muted" : "",
+            ]
+              .filter(Boolean)
+              .join(" ");
+            return `<path class="${classNames}" data-edge-service-key="${utils.escapeHtml(edge.serviceKey)}" data-edge-module-key="${utils.escapeHtml(edge.moduleKey)}" d="${utils.escapeHtml(edge.d)}"></path>`;
+          })
+          .join("")}
+      </svg>
+    `;
+  }
+
+  function renderGraph(group) {
+    const normalized = normalizeGroup(group);
+    const layout = layoutGraph(normalized);
+    const activeServiceKey = "";
+    const activeTargetKeys = new Set(utils.list(normalized.edges).filter((edge) => edge.serviceKey === activeServiceKey).map((edge) => edge.moduleKey));
+    return `
+      <article
+        class="environment-object-graph"
+        style="--graph-width:${layout.graphWidth}px; --graph-height:${layout.graphHeight}px;"
+        data-default-service-key="${utils.escapeHtml(activeServiceKey)}"
+      >
+        ${renderHud(normalized)}
+        ${renderScopeLegend(normalized.scopes, "environment-object-graph-scope-legend")}
+        <div class="environment-object-graph-stage">
+          ${renderEdges(layout.edges, activeServiceKey, activeTargetKeys, layout.graphWidth, layout.graphHeight)}
+          <div class="environment-object-graph-cluster-layer">${layout.clusters.map(renderCluster).join("")}</div>
+          ${layout.nodes.map((node) => renderNode(node, normalized, activeServiceKey, activeTargetKeys)).join("")}
+        </div>
       </article>
     `;
   }
 
-  function clearDynamicFocus(workbench) {
-    workbench.classList.remove("is-live-focus", "is-locked-focus");
-    workbench.querySelectorAll(".is-active, .is-muted").forEach((item) => item.classList.remove("is-active", "is-muted"));
+  function resetFocus(graph) {
+    graph.classList.remove("is-live-focus", "is-locked-focus");
+    graph.querySelectorAll(".is-active, .is-muted").forEach((item) => item.classList.remove("is-active", "is-muted"));
   }
 
-  function applyRelationFocus(workbench, kind, key, locked = false) {
-    clearDynamicFocus(workbench);
+  function applyFocus(graph, kind, key, locked = false) {
+    resetFocus(graph);
     if (!kind || !key) return;
-    workbench.classList.add("is-live-focus");
-    if (locked) workbench.classList.add("is-locked-focus");
+    graph.classList.add("is-live-focus");
+    if (locked) graph.classList.add("is-locked-focus");
     const serviceKeys = new Set();
     const moduleKeys = new Set();
-    workbench.querySelectorAll(".environment-workbench-connector-layer path").forEach((edge) => {
+    graph.querySelectorAll(".environment-object-graph-links path").forEach((edge) => {
       const edgeServiceKey = edge.getAttribute("data-edge-service-key");
       const edgeModuleKey = edge.getAttribute("data-edge-module-key");
       const active = kind === "service" ? edgeServiceKey === key : edgeModuleKey === key;
@@ -336,76 +413,69 @@
         edge.classList.add("is-muted");
       }
     });
-    workbench.querySelectorAll("[data-relation-service-key]").forEach((node) => {
-      const nodeKey = node.getAttribute("data-relation-service-key");
+    graph.querySelectorAll("[data-graph-service-key]").forEach((node) => {
+      const nodeKey = node.getAttribute("data-graph-service-key");
       if (serviceKeys.has(nodeKey) || (kind === "service" && nodeKey === key)) node.classList.add("is-active");
       else node.classList.add("is-muted");
     });
-    workbench.querySelectorAll("[data-relation-module-key]").forEach((node) => {
-      const nodeKey = node.getAttribute("data-relation-module-key");
-      if (moduleKeys.has(nodeKey) || (kind === "module" && nodeKey === key)) node.classList.add("is-active");
+    graph.querySelectorAll("[data-graph-module-key]").forEach((node) => {
+      const nodeKey = node.getAttribute("data-graph-module-key");
+      if (moduleKeys.has(nodeKey) || (kind === "target" && nodeKey === key)) node.classList.add("is-active");
       else node.classList.add("is-muted");
     });
   }
 
-  function lockedFocus(workbench) {
-    const kind = workbench.dataset.lockedFocusKind || "";
-    const key = workbench.dataset.lockedFocusKey || "";
-    if (kind && key) applyRelationFocus(workbench, kind, key, true);
-    else clearDynamicFocus(workbench);
+  function restoreLockedFocus(graph) {
+    const kind = graph.dataset.lockedFocusKind || "";
+    const key = graph.dataset.lockedFocusKey || "";
+    if (kind && key) applyFocus(graph, kind, key, true);
+    else {
+      const defaultService = graph.dataset.defaultServiceKey || "";
+      if (defaultService) applyFocus(graph, "service", defaultService, false);
+      else resetFocus(graph);
+    }
   }
 
-  function bindRelationFocus() {
-    if (window.__sapdEnvironmentRelationWorkbenchBound || typeof document === "undefined" || !document?.addEventListener) return;
-    window.__sapdEnvironmentRelationWorkbenchBound = true;
+  function bindGraphFocus() {
+    if (window.__sapdEnvironmentObjectGraphBound || typeof document === "undefined" || !document?.addEventListener) return;
+    window.__sapdEnvironmentObjectGraphBound = true;
     document.addEventListener("mouseover", (event) => {
-      const node = event.target.closest?.("[data-relation-service-key], [data-relation-module-key]");
-      const workbench = node?.closest?.(".environment-object-workbench");
-      if (!node || !workbench) return;
-      const serviceKeyValue = node.getAttribute("data-relation-service-key");
-      const moduleKeyValue = node.getAttribute("data-relation-module-key");
-      applyRelationFocus(workbench, serviceKeyValue ? "service" : "module", serviceKeyValue || moduleKeyValue, false);
+      const node = event.target.closest?.("[data-graph-node-key]");
+      const graph = node?.closest?.(".environment-object-graph");
+      if (!node || !graph) return;
+      const kind = node.getAttribute("data-graph-node-kind") === "service" ? "service" : "target";
+      applyFocus(graph, kind, node.getAttribute("data-graph-node-key") || "", false);
     });
     document.addEventListener("mouseout", (event) => {
-      const workbench = event.target.closest?.(".environment-object-workbench");
-      if (!workbench || workbench.contains(event.relatedTarget)) return;
-      lockedFocus(workbench);
+      const graph = event.target.closest?.(".environment-object-graph");
+      if (!graph || graph.contains(event.relatedTarget)) return;
+      restoreLockedFocus(graph);
     });
     document.addEventListener("click", (event) => {
-      const node = event.target.closest?.("[data-relation-service-key], [data-relation-module-key]");
-      const workbench = event.target.closest?.(".environment-object-workbench");
-      if (!workbench) return;
+      const graph = event.target.closest?.(".environment-object-graph");
+      if (!graph) return;
+      const node = event.target.closest?.("[data-graph-node-key]");
       if (!node) {
-        delete workbench.dataset.lockedFocusKind;
-        delete workbench.dataset.lockedFocusKey;
-        clearDynamicFocus(workbench);
+        delete graph.dataset.lockedFocusKind;
+        delete graph.dataset.lockedFocusKey;
+        restoreLockedFocus(graph);
         return;
       }
-      const serviceKeyValue = node.getAttribute("data-relation-service-key");
-      const moduleKeyValue = node.getAttribute("data-relation-module-key");
-      workbench.dataset.lockedFocusKind = serviceKeyValue ? "service" : "module";
-      workbench.dataset.lockedFocusKey = serviceKeyValue || moduleKeyValue;
-      applyRelationFocus(workbench, workbench.dataset.lockedFocusKind, workbench.dataset.lockedFocusKey, true);
+      const kind = node.getAttribute("data-graph-node-kind") === "service" ? "service" : "target";
+      const key = node.getAttribute("data-graph-node-key") || "";
+      graph.dataset.lockedFocusKind = kind;
+      graph.dataset.lockedFocusKey = key;
+      applyFocus(graph, kind, key, true);
     });
   }
 
-  function render({ rows, groups, grouped = false }) {
-    bindRelationFocus();
-    const objectGroups = utils.list(groups).length ? utils.list(groups) : fallbackGroupsFromRows(rows);
-    const uniqueServices = new Set(objectGroups.flatMap((group) => utils.list(group.services).map(serviceKey)).filter(Boolean)).size;
-    const uniqueModules = new Set(objectGroups.flatMap((group) => utils.list(group.modules).map(relationNodeKey)).filter(Boolean)).size;
-    const oneToManyCount = objectGroups.reduce((sum, group) => sum + Number(group.oneToManyCount || 0), 0);
+  function render({ rows, groups }) {
+    bindGraphFocus();
+    const objectGroups = utils.list(groups).length ? utils.list(groups).map((group) => normalizeGroup(group)) : fallbackGroupsFromRows(rows);
     return `
-      <section class="semantic-panel environment-mapping-section environment-workbench-section">
-        <div class="matrix-section-head">
-          <div>
-            <h3>${grouped ? "环境视角归纳表" : "环境视角映射表"}</h3>
-            <p>单对象关系工作台；默认弱线总览，hover 或 click 聚焦服务与模块关系。</p>
-          </div>
-          <span>${utils.escapeHtml(`${objectGroups.length} 个对象 · ${uniqueServices} 项服务 · ${uniqueModules} 个模块 · ${oneToManyCount} 个 1:N`)}</span>
-        </div>
-        <div class="environment-workbench-list">
-          ${objectGroups.length ? objectGroups.map(renderGroup).join("") : `<div class="reference-empty">暂无环境映射</div>`}
+      <section class="semantic-panel environment-mapping-section environment-object-graph-section">
+        <div class="environment-object-graph-list">
+          ${objectGroups.length ? objectGroups.map(renderGraph).join("") : `<div class="reference-empty">暂无环境映射</div>`}
         </div>
       </section>
     `;

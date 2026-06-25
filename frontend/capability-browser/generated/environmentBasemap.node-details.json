@@ -28,7 +28,7 @@
     "missingDetailNodes": 0,
     "nodeDetails": 92,
     "workbenchObjects": 647,
-    "workbenchRelations": 1987,
+    "workbenchRelations": 2029,
     "detailTypeDistribution": {
       "environment": 10,
       "environment_segment": 3,
@@ -656,7 +656,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:3fce2192de72815d",
               "objectCode": "I-DI&T-PD.DP-01",
-              "objectName": "应用页面水印",
+              "objectName": "数据内容水印",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -1942,9 +1942,9 @@
         "directSecuritySystemCount": 0,
         "inheritedScopeCount": 10,
         "inheritedServiceCount": 46,
-        "inheritedModuleCount": 11,
+        "inheritedModuleCount": 12,
         "inheritedMeasureCount": 14,
-        "inheritedSecuritySystemCount": 5,
+        "inheritedSecuritySystemCount": 6,
         "scopeCount": 0,
         "serviceCount": 0,
         "moduleCount": 0,
@@ -2384,6 +2384,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -2393,6 +2399,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -2407,6 +2419,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -2416,6 +2434,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -2446,6 +2470,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -2455,6 +2485,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -2469,6 +2505,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -2478,6 +2520,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -2572,6 +2620,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -2581,6 +2635,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -2595,6 +2655,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -2604,6 +2670,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             }
@@ -2614,6 +2686,12 @@
               "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
               "objectCode": "",
               "objectName": "主机安全管理"
+            },
+            {
+              "objectType": "security_technology_module",
+              "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+              "objectCode": "",
+              "objectName": "容器镜像安全"
             }
           ],
           "measures": [
@@ -2666,6 +2744,12 @@
               "objectId": "shadow:security_system:09a15eb5cb64afa6",
               "objectCode": "",
               "objectName": "主机安全防护"
+            },
+            {
+              "objectType": "security_system",
+              "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+              "objectCode": "",
+              "objectName": "容器安全防护"
             }
           ]
         },
@@ -3925,7 +4009,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:3fce2192de72815d",
               "objectCode": "I-DI&T-PD.DP-01",
-              "objectName": "应用页面水印",
+              "objectName": "数据内容水印",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -4166,6 +4250,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -4175,6 +4265,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -4189,6 +4285,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -4198,6 +4300,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -4212,6 +4320,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -4221,6 +4335,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -4235,6 +4355,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -4244,6 +4370,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -4290,6 +4422,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -4299,6 +4437,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -4313,6 +4457,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -4322,6 +4472,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -4352,7 +4508,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:3fce2192de72815d",
               "objectCode": "I-DI&T-PD.DP-01",
-              "objectName": "应用页面水印",
+              "objectName": "数据内容水印",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -4375,7 +4531,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:d341f48682771615",
               "objectCode": "I-DI&T-PD.DP-02",
-              "objectName": "应用动态数据脱敏",
+              "objectName": "静态数据脱敏",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -4481,6 +4637,12 @@
             },
             {
               "objectType": "security_technology_module",
+              "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+              "objectCode": "",
+              "objectName": "容器镜像安全"
+            },
+            {
+              "objectType": "security_technology_module",
               "objectId": "shadow:security_technology_module:95e5c0caaf36c331",
               "objectCode": "",
               "objectName": "数据水印溯源"
@@ -4548,6 +4710,12 @@
               "objectId": "shadow:security_system:09a15eb5cb64afa6",
               "objectCode": "",
               "objectName": "主机安全防护"
+            },
+            {
+              "objectType": "security_system",
+              "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+              "objectCode": "",
+              "objectName": "容器安全防护"
             },
             {
               "objectType": "security_system",
@@ -6453,9 +6621,9 @@
         "directSecuritySystemCount": 0,
         "inheritedScopeCount": 10,
         "inheritedServiceCount": 46,
-        "inheritedModuleCount": 11,
+        "inheritedModuleCount": 12,
         "inheritedMeasureCount": 14,
-        "inheritedSecuritySystemCount": 5,
+        "inheritedSecuritySystemCount": 6,
         "scopeCount": 0,
         "serviceCount": 0,
         "moduleCount": 0,
@@ -6895,6 +7063,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -6904,6 +7078,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -6918,6 +7098,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -6927,6 +7113,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -6957,6 +7149,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -6966,6 +7164,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -6980,6 +7184,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -6989,6 +7199,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -7083,6 +7299,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -7092,6 +7314,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -7106,6 +7334,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -7115,6 +7349,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             }
@@ -7125,6 +7365,12 @@
               "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
               "objectCode": "",
               "objectName": "主机安全管理"
+            },
+            {
+              "objectType": "security_technology_module",
+              "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+              "objectCode": "",
+              "objectName": "容器镜像安全"
             }
           ],
           "measures": [
@@ -7177,6 +7423,12 @@
               "objectId": "shadow:security_system:09a15eb5cb64afa6",
               "objectCode": "",
               "objectName": "主机安全防护"
+            },
+            {
+              "objectType": "security_system",
+              "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+              "objectCode": "",
+              "objectName": "容器安全防护"
             }
           ]
         },
@@ -8436,7 +8688,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:3fce2192de72815d",
               "objectCode": "I-DI&T-PD.DP-01",
-              "objectName": "应用页面水印",
+              "objectName": "数据内容水印",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -8677,6 +8929,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -8686,6 +8944,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -8700,6 +8964,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -8709,6 +8979,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -8723,6 +8999,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -8732,6 +9014,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -8746,6 +9034,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -8755,6 +9049,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -8801,6 +9101,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -8810,6 +9116,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -8824,6 +9136,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -8833,6 +9151,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -8863,7 +9187,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:3fce2192de72815d",
               "objectCode": "I-DI&T-PD.DP-01",
-              "objectName": "应用页面水印",
+              "objectName": "数据内容水印",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -8886,7 +9210,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:d341f48682771615",
               "objectCode": "I-DI&T-PD.DP-02",
-              "objectName": "应用动态数据脱敏",
+              "objectName": "静态数据脱敏",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -8992,6 +9316,12 @@
             },
             {
               "objectType": "security_technology_module",
+              "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+              "objectCode": "",
+              "objectName": "容器镜像安全"
+            },
+            {
+              "objectType": "security_technology_module",
               "objectId": "shadow:security_technology_module:95e5c0caaf36c331",
               "objectCode": "",
               "objectName": "数据水印溯源"
@@ -9059,6 +9389,12 @@
               "objectId": "shadow:security_system:09a15eb5cb64afa6",
               "objectCode": "",
               "objectName": "主机安全防护"
+            },
+            {
+              "objectType": "security_system",
+              "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+              "objectCode": "",
+              "objectName": "容器安全防护"
             },
             {
               "objectType": "security_system",
@@ -9143,9 +9479,9 @@
         "directSecuritySystemCount": 0,
         "inheritedScopeCount": 10,
         "inheritedServiceCount": 40,
-        "inheritedModuleCount": 10,
+        "inheritedModuleCount": 11,
         "inheritedMeasureCount": 6,
-        "inheritedSecuritySystemCount": 4,
+        "inheritedSecuritySystemCount": 5,
         "scopeCount": 0,
         "serviceCount": 0,
         "moduleCount": 0,
@@ -9401,6 +9737,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -9410,6 +9752,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -9424,6 +9772,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -9433,6 +9787,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -9447,6 +9807,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -9456,6 +9822,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -9470,6 +9842,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -9479,6 +9857,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -9651,6 +10035,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -9660,6 +10050,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -9674,6 +10070,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -9683,6 +10085,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -9765,7 +10173,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:3fce2192de72815d",
               "objectCode": "I-DI&T-PD.DP-01",
-              "objectName": "应用页面水印",
+              "objectName": "数据内容水印",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -9788,7 +10196,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:d341f48682771615",
               "objectCode": "I-DI&T-PD.DP-02",
-              "objectName": "应用动态数据脱敏",
+              "objectName": "静态数据脱敏",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -10080,6 +10488,12 @@
             },
             {
               "objectType": "security_technology_module",
+              "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+              "objectCode": "",
+              "objectName": "容器镜像安全"
+            },
+            {
+              "objectType": "security_technology_module",
               "objectId": "shadow:security_technology_module:41d3fa8e4983d8f8",
               "objectCode": "",
               "objectName": "零信任访问控制台"
@@ -10147,6 +10561,12 @@
               "objectId": "shadow:security_system:09a15eb5cb64afa6",
               "objectCode": "",
               "objectName": "主机安全防护"
+            },
+            {
+              "objectType": "security_system",
+              "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+              "objectCode": "",
+              "objectName": "容器安全防护"
             },
             {
               "objectType": "security_system",
@@ -10574,7 +10994,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:3fce2192de72815d",
               "objectCode": "I-DI&T-PD.DP-01",
-              "objectName": "应用页面水印",
+              "objectName": "数据内容水印",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -10597,7 +11017,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:d341f48682771615",
               "objectCode": "I-DI&T-PD.DP-02",
-              "objectName": "应用动态数据脱敏",
+              "objectName": "静态数据脱敏",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -10840,6 +11260,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -10849,6 +11275,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -10863,6 +11295,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -10872,6 +11310,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -10886,6 +11330,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -10895,6 +11345,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -10909,6 +11365,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -10918,6 +11380,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -11012,6 +11480,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -11021,6 +11495,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -11035,6 +11515,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -11044,6 +11530,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             }
@@ -11054,6 +11546,12 @@
               "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
               "objectCode": "",
               "objectName": "主机安全管理"
+            },
+            {
+              "objectType": "security_technology_module",
+              "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+              "objectCode": "",
+              "objectName": "容器镜像安全"
             }
           ],
           "measures": [
@@ -11100,6 +11598,12 @@
               "objectId": "shadow:security_system:09a15eb5cb64afa6",
               "objectCode": "",
               "objectName": "主机安全防护"
+            },
+            {
+              "objectType": "security_system",
+              "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+              "objectCode": "",
+              "objectName": "容器安全防护"
             }
           ]
         },
@@ -11214,6 +11718,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -11223,6 +11733,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -11237,6 +11753,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -11246,6 +11768,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -11260,6 +11788,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -11269,6 +11803,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -11283,6 +11823,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -11292,6 +11838,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -11390,6 +11942,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -11399,6 +11957,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -11413,6 +11977,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -11422,6 +11992,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -11505,7 +12081,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:3fce2192de72815d",
               "objectCode": "I-DI&T-PD.DP-01",
-              "objectName": "应用页面水印",
+              "objectName": "数据内容水印",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -11610,6 +12186,12 @@
             },
             {
               "objectType": "security_technology_module",
+              "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+              "objectCode": "",
+              "objectName": "容器镜像安全"
+            },
+            {
+              "objectType": "security_technology_module",
               "objectId": "shadow:security_technology_module:e53de23bda760782",
               "objectCode": "",
               "objectName": "数据安全网关"
@@ -11659,6 +12241,12 @@
               "objectId": "shadow:security_system:09a15eb5cb64afa6",
               "objectCode": "",
               "objectName": "主机安全防护"
+            },
+            {
+              "objectType": "security_system",
+              "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+              "objectCode": "",
+              "objectName": "容器安全防护"
             },
             {
               "objectType": "security_system",
@@ -11765,6 +12353,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -11774,6 +12368,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -11788,6 +12388,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -11797,6 +12403,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -11811,6 +12423,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -11820,6 +12438,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -11834,6 +12458,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -11843,6 +12473,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -12036,6 +12672,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -12045,6 +12687,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -12059,6 +12707,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -12068,6 +12722,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -12398,6 +13058,12 @@
             },
             {
               "objectType": "security_technology_module",
+              "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+              "objectCode": "",
+              "objectName": "容器镜像安全"
+            },
+            {
+              "objectType": "security_technology_module",
               "objectId": "shadow:security_technology_module:41d3fa8e4983d8f8",
               "objectCode": "",
               "objectName": "零信任访问控制台"
@@ -12447,6 +13113,12 @@
               "objectId": "shadow:security_system:09a15eb5cb64afa6",
               "objectCode": "",
               "objectName": "主机安全防护"
+            },
+            {
+              "objectType": "security_system",
+              "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+              "objectCode": "",
+              "objectName": "容器安全防护"
             },
             {
               "objectType": "security_system",
@@ -13019,7 +13691,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:3fce2192de72815d",
               "objectCode": "I-DI&T-PD.DP-01",
-              "objectName": "应用页面水印",
+              "objectName": "数据内容水印",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -16731,7 +17403,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:3fce2192de72815d",
               "objectCode": "I-DI&T-PD.DP-01",
-              "objectName": "应用页面水印",
+              "objectName": "数据内容水印",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -17463,7 +18135,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:3fce2192de72815d",
               "objectCode": "I-DI&T-PD.DP-01",
-              "objectName": "应用页面水印",
+              "objectName": "数据内容水印",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -19925,7 +20597,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:3fce2192de72815d",
               "objectCode": "I-DI&T-PD.DP-01",
-              "objectName": "应用页面水印",
+              "objectName": "数据内容水印",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -23910,7 +24582,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:3fce2192de72815d",
               "objectCode": "I-DI&T-PD.DP-01",
-              "objectName": "应用页面水印",
+              "objectName": "数据内容水印",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -24642,7 +25314,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:3fce2192de72815d",
               "objectCode": "I-DI&T-PD.DP-01",
-              "objectName": "应用页面水印",
+              "objectName": "数据内容水印",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -39064,9 +39736,9 @@
       "summary": {
         "directScopeCount": 4,
         "directServiceCount": 18,
-        "directModuleCount": 5,
+        "directModuleCount": 6,
         "directMeasureCount": 6,
-        "directSecuritySystemCount": 4,
+        "directSecuritySystemCount": 5,
         "inheritedScopeCount": 0,
         "inheritedServiceCount": 0,
         "inheritedModuleCount": 0,
@@ -39074,9 +39746,9 @@
         "inheritedSecuritySystemCount": 0,
         "scopeCount": 4,
         "serviceCount": 18,
-        "moduleCount": 5,
+        "moduleCount": 6,
         "measureCount": 6,
-        "securitySystemCount": 4,
+        "securitySystemCount": 5,
         "childInformationObjectCount": 0,
         "inheritedScopeGroupCount": 0,
         "directScopeGroupCount": 4
@@ -39216,6 +39888,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -39225,6 +39903,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -39239,6 +39923,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -39248,6 +39938,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -39262,6 +39958,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -39271,6 +39973,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -39285,6 +39993,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -39294,6 +40008,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -39340,6 +40060,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -39349,6 +40075,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -39363,6 +40095,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -39372,6 +40110,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -39402,7 +40146,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:3fce2192de72815d",
               "objectCode": "I-DI&T-PD.DP-01",
-              "objectName": "应用页面水印",
+              "objectName": "数据内容水印",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -39425,7 +40169,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:d341f48682771615",
               "objectCode": "I-DI&T-PD.DP-02",
-              "objectName": "应用动态数据脱敏",
+              "objectName": "静态数据脱敏",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -39531,6 +40275,12 @@
             },
             {
               "objectType": "security_technology_module",
+              "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+              "objectCode": "",
+              "objectName": "容器镜像安全"
+            },
+            {
+              "objectType": "security_technology_module",
               "objectId": "shadow:security_technology_module:95e5c0caaf36c331",
               "objectCode": "",
               "objectName": "数据水印溯源"
@@ -39598,6 +40348,12 @@
               "objectId": "shadow:security_system:09a15eb5cb64afa6",
               "objectCode": "",
               "objectName": "主机安全防护"
+            },
+            {
+              "objectType": "security_system",
+              "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+              "objectCode": "",
+              "objectName": "容器安全防护"
             },
             {
               "objectType": "security_system",
@@ -39750,6 +40506,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -39759,6 +40521,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -39773,6 +40541,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -39782,6 +40556,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -39796,6 +40576,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -39805,6 +40591,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -39819,6 +40611,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -39828,6 +40626,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -39874,6 +40678,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -39883,6 +40693,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -39897,6 +40713,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -39906,6 +40728,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -39936,7 +40764,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:3fce2192de72815d",
               "objectCode": "I-DI&T-PD.DP-01",
-              "objectName": "应用页面水印",
+              "objectName": "数据内容水印",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -39959,7 +40787,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:d341f48682771615",
               "objectCode": "I-DI&T-PD.DP-02",
-              "objectName": "应用动态数据脱敏",
+              "objectName": "静态数据脱敏",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -40065,6 +40893,12 @@
             },
             {
               "objectType": "security_technology_module",
+              "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+              "objectCode": "",
+              "objectName": "容器镜像安全"
+            },
+            {
+              "objectType": "security_technology_module",
               "objectId": "shadow:security_technology_module:95e5c0caaf36c331",
               "objectCode": "",
               "objectName": "数据水印溯源"
@@ -40132,6 +40966,12 @@
               "objectId": "shadow:security_system:09a15eb5cb64afa6",
               "objectCode": "",
               "objectName": "主机安全防护"
+            },
+            {
+              "objectType": "security_system",
+              "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+              "objectCode": "",
+              "objectName": "容器安全防护"
             },
             {
               "objectType": "security_system",
@@ -40960,9 +41800,9 @@
       "summary": {
         "directScopeCount": 3,
         "directServiceCount": 14,
-        "directModuleCount": 1,
+        "directModuleCount": 2,
         "directMeasureCount": 7,
-        "directSecuritySystemCount": 1,
+        "directSecuritySystemCount": 2,
         "inheritedScopeCount": 0,
         "inheritedServiceCount": 0,
         "inheritedModuleCount": 0,
@@ -40970,9 +41810,9 @@
         "inheritedSecuritySystemCount": 0,
         "scopeCount": 3,
         "serviceCount": 14,
-        "moduleCount": 1,
+        "moduleCount": 2,
         "measureCount": 7,
-        "securitySystemCount": 1,
+        "securitySystemCount": 2,
         "childInformationObjectCount": 0,
         "inheritedScopeGroupCount": 0,
         "directScopeGroupCount": 3
@@ -41071,6 +41911,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -41080,6 +41926,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -41094,6 +41946,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -41103,6 +41961,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -41133,6 +41997,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -41142,6 +42012,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -41156,6 +42032,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -41165,6 +42047,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -41259,6 +42147,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -41268,6 +42162,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -41282,6 +42182,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -41291,6 +42197,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             }
@@ -41301,6 +42213,12 @@
               "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
               "objectCode": "",
               "objectName": "主机安全管理"
+            },
+            {
+              "objectType": "security_technology_module",
+              "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+              "objectCode": "",
+              "objectName": "容器镜像安全"
             }
           ],
           "measures": [
@@ -41353,6 +42271,12 @@
               "objectId": "shadow:security_system:09a15eb5cb64afa6",
               "objectCode": "",
               "objectName": "主机安全防护"
+            },
+            {
+              "objectType": "security_system",
+              "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+              "objectCode": "",
+              "objectName": "容器安全防护"
             }
           ]
         }
@@ -41452,6 +42376,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -41461,6 +42391,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -41475,6 +42411,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -41484,6 +42426,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -41514,6 +42462,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -41523,6 +42477,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -41537,6 +42497,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -41546,6 +42512,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -41640,6 +42612,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -41649,6 +42627,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -41663,6 +42647,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -41672,6 +42662,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             }
@@ -41682,6 +42678,12 @@
               "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
               "objectCode": "",
               "objectName": "主机安全管理"
+            },
+            {
+              "objectType": "security_technology_module",
+              "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+              "objectCode": "",
+              "objectName": "容器镜像安全"
             }
           ],
           "measures": [
@@ -41734,6 +42736,12 @@
               "objectId": "shadow:security_system:09a15eb5cb64afa6",
               "objectCode": "",
               "objectName": "主机安全防护"
+            },
+            {
+              "objectType": "security_system",
+              "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+              "objectCode": "",
+              "objectName": "容器安全防护"
             }
           ]
         }
@@ -41980,7 +42988,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:3fce2192de72815d",
               "objectCode": "I-DI&T-PD.DP-01",
-              "objectName": "应用页面水印",
+              "objectName": "数据内容水印",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -42254,7 +43262,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:3fce2192de72815d",
               "objectCode": "I-DI&T-PD.DP-01",
-              "objectName": "应用页面水印",
+              "objectName": "数据内容水印",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -43544,9 +44552,9 @@
       "summary": {
         "directScopeCount": 6,
         "directServiceCount": 29,
-        "directModuleCount": 5,
+        "directModuleCount": 6,
         "directMeasureCount": 6,
-        "directSecuritySystemCount": 3,
+        "directSecuritySystemCount": 4,
         "inheritedScopeCount": 0,
         "inheritedServiceCount": 0,
         "inheritedModuleCount": 0,
@@ -43554,9 +44562,9 @@
         "inheritedSecuritySystemCount": 0,
         "scopeCount": 6,
         "serviceCount": 29,
-        "moduleCount": 5,
+        "moduleCount": 6,
         "measureCount": 6,
-        "securitySystemCount": 3,
+        "securitySystemCount": 4,
         "childInformationObjectCount": 0,
         "inheritedScopeGroupCount": 0,
         "directScopeGroupCount": 6
@@ -43709,6 +44717,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -43718,6 +44732,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -43732,6 +44752,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -43741,6 +44767,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -43755,6 +44787,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -43764,6 +44802,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -43778,6 +44822,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -43787,6 +44837,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -43959,6 +45015,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -43968,6 +45030,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -43982,6 +45050,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -43991,6 +45065,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -44073,7 +45153,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:3fce2192de72815d",
               "objectCode": "I-DI&T-PD.DP-01",
-              "objectName": "应用页面水印",
+              "objectName": "数据内容水印",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -44096,7 +45176,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:d341f48682771615",
               "objectCode": "I-DI&T-PD.DP-02",
-              "objectName": "应用动态数据脱敏",
+              "objectName": "静态数据脱敏",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -44388,6 +45468,12 @@
             },
             {
               "objectType": "security_technology_module",
+              "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+              "objectCode": "",
+              "objectName": "容器镜像安全"
+            },
+            {
+              "objectType": "security_technology_module",
               "objectId": "shadow:security_technology_module:41d3fa8e4983d8f8",
               "objectCode": "",
               "objectName": "零信任访问控制台"
@@ -44455,6 +45541,12 @@
               "objectId": "shadow:security_system:09a15eb5cb64afa6",
               "objectCode": "",
               "objectName": "主机安全防护"
+            },
+            {
+              "objectType": "security_system",
+              "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+              "objectCode": "",
+              "objectName": "容器安全防护"
             },
             {
               "objectType": "security_system",
@@ -44620,6 +45712,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -44629,6 +45727,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -44643,6 +45747,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -44652,6 +45762,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -44666,6 +45782,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -44675,6 +45797,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -44689,6 +45817,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -44698,6 +45832,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -44870,6 +46010,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -44879,6 +46025,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -44893,6 +46045,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -44902,6 +46060,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -44984,7 +46148,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:3fce2192de72815d",
               "objectCode": "I-DI&T-PD.DP-01",
-              "objectName": "应用页面水印",
+              "objectName": "数据内容水印",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -45007,7 +46171,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:d341f48682771615",
               "objectCode": "I-DI&T-PD.DP-02",
-              "objectName": "应用动态数据脱敏",
+              "objectName": "静态数据脱敏",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -45299,6 +46463,12 @@
             },
             {
               "objectType": "security_technology_module",
+              "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+              "objectCode": "",
+              "objectName": "容器镜像安全"
+            },
+            {
+              "objectType": "security_technology_module",
               "objectId": "shadow:security_technology_module:41d3fa8e4983d8f8",
               "objectCode": "",
               "objectName": "零信任访问控制台"
@@ -45366,6 +46536,12 @@
               "objectId": "shadow:security_system:09a15eb5cb64afa6",
               "objectCode": "",
               "objectName": "主机安全防护"
+            },
+            {
+              "objectType": "security_system",
+              "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+              "objectCode": "",
+              "objectName": "容器安全防护"
             },
             {
               "objectType": "security_system",
@@ -45443,9 +46619,9 @@
       "summary": {
         "directScopeCount": 4,
         "directServiceCount": 19,
-        "directModuleCount": 2,
+        "directModuleCount": 3,
         "directMeasureCount": 6,
-        "directSecuritySystemCount": 2,
+        "directSecuritySystemCount": 3,
         "inheritedScopeCount": 0,
         "inheritedServiceCount": 0,
         "inheritedModuleCount": 0,
@@ -45453,9 +46629,9 @@
         "inheritedSecuritySystemCount": 0,
         "scopeCount": 4,
         "serviceCount": 19,
-        "moduleCount": 2,
+        "moduleCount": 3,
         "measureCount": 6,
-        "securitySystemCount": 2,
+        "securitySystemCount": 3,
         "childInformationObjectCount": 0,
         "inheritedScopeGroupCount": 0,
         "directScopeGroupCount": 4
@@ -45572,6 +46748,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -45581,6 +46763,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -45595,6 +46783,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -45604,6 +46798,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -45618,6 +46818,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -45627,6 +46833,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -45641,6 +46853,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -45650,6 +46868,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -45748,6 +46972,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -45757,6 +46987,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -45771,6 +47007,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -45780,6 +47022,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -45863,7 +47111,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:3fce2192de72815d",
               "objectCode": "I-DI&T-PD.DP-01",
-              "objectName": "应用页面水印",
+              "objectName": "数据内容水印",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -45968,6 +47216,12 @@
             },
             {
               "objectType": "security_technology_module",
+              "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+              "objectCode": "",
+              "objectName": "容器镜像安全"
+            },
+            {
+              "objectType": "security_technology_module",
               "objectId": "shadow:security_technology_module:e53de23bda760782",
               "objectCode": "",
               "objectName": "数据安全网关"
@@ -46017,6 +47271,12 @@
               "objectId": "shadow:security_system:09a15eb5cb64afa6",
               "objectCode": "",
               "objectName": "主机安全防护"
+            },
+            {
+              "objectType": "security_system",
+              "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+              "objectCode": "",
+              "objectName": "容器安全防护"
             },
             {
               "objectType": "security_system",
@@ -46140,6 +47400,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -46149,6 +47415,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -46163,6 +47435,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -46172,6 +47450,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -46186,6 +47470,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -46195,6 +47485,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -46209,6 +47505,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -46218,6 +47520,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -46316,6 +47624,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -46325,6 +47639,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -46339,6 +47659,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -46348,6 +47674,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -46431,7 +47763,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:3fce2192de72815d",
               "objectCode": "I-DI&T-PD.DP-01",
-              "objectName": "应用页面水印",
+              "objectName": "数据内容水印",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -46536,6 +47868,12 @@
             },
             {
               "objectType": "security_technology_module",
+              "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+              "objectCode": "",
+              "objectName": "容器镜像安全"
+            },
+            {
+              "objectType": "security_technology_module",
               "objectId": "shadow:security_technology_module:e53de23bda760782",
               "objectCode": "",
               "objectName": "数据安全网关"
@@ -46585,6 +47923,12 @@
               "objectId": "shadow:security_system:09a15eb5cb64afa6",
               "objectCode": "",
               "objectName": "主机安全防护"
+            },
+            {
+              "objectType": "security_system",
+              "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+              "objectCode": "",
+              "objectName": "容器安全防护"
             },
             {
               "objectType": "security_system",
@@ -47086,7 +48430,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:3fce2192de72815d",
               "objectCode": "I-DI&T-PD.DP-01",
-              "objectName": "应用页面水印",
+              "objectName": "数据内容水印",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -47109,7 +48453,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:d341f48682771615",
               "objectCode": "I-DI&T-PD.DP-02",
-              "objectName": "应用动态数据脱敏",
+              "objectName": "静态数据脱敏",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -47674,7 +49018,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:3fce2192de72815d",
               "objectCode": "I-DI&T-PD.DP-01",
-              "objectName": "应用页面水印",
+              "objectName": "数据内容水印",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -47697,7 +49041,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:d341f48682771615",
               "objectCode": "I-DI&T-PD.DP-02",
-              "objectName": "应用动态数据脱敏",
+              "objectName": "静态数据脱敏",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -47909,9 +49253,9 @@
       "summary": {
         "directScopeCount": 3,
         "directServiceCount": 13,
-        "directModuleCount": 1,
+        "directModuleCount": 2,
         "directMeasureCount": 6,
-        "directSecuritySystemCount": 1,
+        "directSecuritySystemCount": 2,
         "inheritedScopeCount": 0,
         "inheritedServiceCount": 0,
         "inheritedModuleCount": 0,
@@ -47919,9 +49263,9 @@
         "inheritedSecuritySystemCount": 0,
         "scopeCount": 3,
         "serviceCount": 13,
-        "moduleCount": 1,
+        "moduleCount": 2,
         "measureCount": 6,
-        "securitySystemCount": 1,
+        "securitySystemCount": 2,
         "childInformationObjectCount": 0,
         "inheritedScopeGroupCount": 0,
         "directScopeGroupCount": 3
@@ -48020,6 +49364,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -48029,6 +49379,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -48043,6 +49399,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -48052,6 +49414,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -48066,6 +49434,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -48075,6 +49449,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -48089,6 +49469,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -48098,6 +49484,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -48192,6 +49584,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -48201,6 +49599,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -48215,6 +49619,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -48224,6 +49634,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             }
@@ -48234,6 +49650,12 @@
               "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
               "objectCode": "",
               "objectName": "主机安全管理"
+            },
+            {
+              "objectType": "security_technology_module",
+              "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+              "objectCode": "",
+              "objectName": "容器镜像安全"
             }
           ],
           "measures": [
@@ -48280,6 +49702,12 @@
               "objectId": "shadow:security_system:09a15eb5cb64afa6",
               "objectCode": "",
               "objectName": "主机安全防护"
+            },
+            {
+              "objectType": "security_system",
+              "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+              "objectCode": "",
+              "objectName": "容器安全防护"
             }
           ]
         }
@@ -48379,6 +49807,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -48388,6 +49822,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -48402,6 +49842,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -48411,6 +49857,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -48425,6 +49877,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -48434,6 +49892,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -48448,6 +49912,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -48457,6 +49927,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -48551,6 +50027,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -48560,6 +50042,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -48574,6 +50062,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -48583,6 +50077,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             }
@@ -48593,6 +50093,12 @@
               "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
               "objectCode": "",
               "objectName": "主机安全管理"
+            },
+            {
+              "objectType": "security_technology_module",
+              "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+              "objectCode": "",
+              "objectName": "容器镜像安全"
             }
           ],
           "measures": [
@@ -48639,6 +50145,12 @@
               "objectId": "shadow:security_system:09a15eb5cb64afa6",
               "objectCode": "",
               "objectName": "主机安全防护"
+            },
+            {
+              "objectType": "security_system",
+              "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+              "objectCode": "",
+              "objectName": "容器安全防护"
             }
           ]
         }
@@ -54508,7 +56020,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:3fce2192de72815d",
               "objectCode": "I-DI&T-PD.DP-01",
-              "objectName": "应用页面水印",
+              "objectName": "数据内容水印",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -54531,7 +56043,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:d341f48682771615",
               "objectCode": "I-DI&T-PD.DP-02",
-              "objectName": "应用动态数据脱敏",
+              "objectName": "静态数据脱敏",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -55512,7 +57024,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:3fce2192de72815d",
               "objectCode": "I-DI&T-PD.DP-01",
-              "objectName": "应用页面水印",
+              "objectName": "数据内容水印",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -55535,7 +57047,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:d341f48682771615",
               "objectCode": "I-DI&T-PD.DP-02",
-              "objectName": "应用动态数据脱敏",
+              "objectName": "静态数据脱敏",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -57377,7 +58889,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:3fce2192de72815d",
               "objectCode": "I-DI&T-PD.DP-01",
-              "objectName": "应用页面水印",
+              "objectName": "数据内容水印",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -57406,7 +58918,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:d341f48682771615",
               "objectCode": "I-DI&T-PD.DP-02",
-              "objectName": "应用动态数据脱敏",
+              "objectName": "静态数据脱敏",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -58129,7 +59641,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:3fce2192de72815d",
               "objectCode": "I-DI&T-PD.DP-01",
-              "objectName": "应用页面水印",
+              "objectName": "数据内容水印",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -58158,7 +59670,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:d341f48682771615",
               "objectCode": "I-DI&T-PD.DP-02",
-              "objectName": "应用动态数据脱敏",
+              "objectName": "静态数据脱敏",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -58435,9 +59947,9 @@
       "summary": {
         "directScopeCount": 5,
         "directServiceCount": 25,
-        "directModuleCount": 3,
+        "directModuleCount": 4,
         "directMeasureCount": 5,
-        "directSecuritySystemCount": 2,
+        "directSecuritySystemCount": 3,
         "inheritedScopeCount": 0,
         "inheritedServiceCount": 0,
         "inheritedModuleCount": 0,
@@ -58445,9 +59957,9 @@
         "inheritedSecuritySystemCount": 0,
         "scopeCount": 5,
         "serviceCount": 25,
-        "moduleCount": 3,
+        "moduleCount": 4,
         "measureCount": 5,
-        "securitySystemCount": 2,
+        "securitySystemCount": 3,
         "childInformationObjectCount": 0,
         "inheritedScopeGroupCount": 0,
         "directScopeGroupCount": 5
@@ -58550,6 +60062,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -58559,6 +60077,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -58573,6 +60097,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -58582,6 +60112,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -58596,6 +60132,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -58605,6 +60147,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -58619,6 +60167,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -58628,6 +60182,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -58821,6 +60381,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -58830,6 +60396,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -58844,6 +60416,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -58853,6 +60431,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -59183,6 +60767,12 @@
             },
             {
               "objectType": "security_technology_module",
+              "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+              "objectCode": "",
+              "objectName": "容器镜像安全"
+            },
+            {
+              "objectType": "security_technology_module",
               "objectId": "shadow:security_technology_module:41d3fa8e4983d8f8",
               "objectCode": "",
               "objectName": "零信任访问控制台"
@@ -59232,6 +60822,12 @@
               "objectId": "shadow:security_system:09a15eb5cb64afa6",
               "objectCode": "",
               "objectName": "主机安全防护"
+            },
+            {
+              "objectType": "security_system",
+              "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+              "objectCode": "",
+              "objectName": "容器安全防护"
             },
             {
               "objectType": "security_system",
@@ -59341,6 +60937,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -59350,6 +60952,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -59364,6 +60972,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -59373,6 +60987,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -59387,6 +61007,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -59396,6 +61022,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -59410,6 +61042,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -59419,6 +61057,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -59612,6 +61256,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -59621,6 +61271,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -59635,6 +61291,12 @@
                   "objectId": "shadow:security_technology_module:e04e055cfcd1e612",
                   "objectCode": "",
                   "objectName": "主机安全管理"
+                },
+                {
+                  "objectType": "security_technology_module",
+                  "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+                  "objectCode": "",
+                  "objectName": "容器镜像安全"
                 }
               ],
               "measures": [],
@@ -59644,6 +61306,12 @@
                   "objectId": "shadow:security_system:09a15eb5cb64afa6",
                   "objectCode": "",
                   "objectName": "主机安全防护"
+                },
+                {
+                  "objectType": "security_system",
+                  "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+                  "objectCode": "",
+                  "objectName": "容器安全防护"
                 }
               ]
             },
@@ -59974,6 +61642,12 @@
             },
             {
               "objectType": "security_technology_module",
+              "objectId": "shadow:security_technology_module:021d0cd1dc3d4a82",
+              "objectCode": "",
+              "objectName": "容器镜像安全"
+            },
+            {
+              "objectType": "security_technology_module",
               "objectId": "shadow:security_technology_module:41d3fa8e4983d8f8",
               "objectCode": "",
               "objectName": "零信任访问控制台"
@@ -60023,6 +61697,12 @@
               "objectId": "shadow:security_system:09a15eb5cb64afa6",
               "objectCode": "",
               "objectName": "主机安全防护"
+            },
+            {
+              "objectType": "security_system",
+              "objectId": "shadow:security_system:24cc75a7a1d7aac6",
+              "objectCode": "",
+              "objectName": "容器安全防护"
             },
             {
               "objectType": "security_system",
@@ -60688,7 +62368,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:3fce2192de72815d",
               "objectCode": "I-DI&T-PD.DP-01",
-              "objectName": "应用页面水印",
+              "objectName": "数据内容水印",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -61391,7 +63071,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:3fce2192de72815d",
               "objectCode": "I-DI&T-PD.DP-01",
-              "objectName": "应用页面水印",
+              "objectName": "数据内容水印",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -65392,7 +67072,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:3fce2192de72815d",
               "objectCode": "I-DI&T-PD.DP-01",
-              "objectName": "应用页面水印",
+              "objectName": "数据内容水印",
               "modules": [
                 {
                   "objectType": "security_technology_module",
@@ -66124,7 +67804,7 @@
               "objectType": "security_technical_service",
               "objectId": "shadow:security_technical_service:3fce2192de72815d",
               "objectCode": "I-DI&T-PD.DP-01",
-              "objectName": "应用页面水印",
+              "objectName": "数据内容水印",
               "modules": [
                 {
                   "objectType": "security_technology_module",

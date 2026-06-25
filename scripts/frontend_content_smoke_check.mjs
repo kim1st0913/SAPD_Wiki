@@ -331,16 +331,17 @@ function validateLocalPackages() {
 }
 
 function validateTechnicalMeasures({ maintenance, technicalMeasures, maintenanceIndex }) {
-  const requiredMeasures = ["应用程序威胁建模", "制品安全加固", "IaC代码安全测试", "数据销毁"];
+  const expectedMeasureCount = 32;
+  const requiredMeasures = ["应用程序威胁建模", "制品安全加固", "IaC代码安全测试", "数据销毁", "API网关", "应用自身数据加解密模块"];
   const maintenanceMeasures = list(maintenance.security_technical_measures);
   const splitMeasures = list(technicalMeasures.security_technical_measures);
   const names = new Set(maintenanceMeasures.map((item) => item.name || item.title).filter(Boolean));
   const splitNames = new Set(splitMeasures.map((item) => item.name || item.title).filter(Boolean));
-  assert(maintenanceMeasures.length === 30, `maintenance-knowledge security_technical_measures should be 30, got ${maintenanceMeasures.length}`);
-  assert(splitMeasures.length === 30, `maintenance/measures security_technical_measures should be 30, got ${splitMeasures.length}`);
-  assert(Number(maintenance.stats?.security_technical_measures || 0) === 30, "maintenance-knowledge stats.security_technical_measures should be 30");
-  assert(Number(technicalMeasures.stats?.security_technical_measures || 0) === 30, "maintenance/measures stats.security_technical_measures should be 30");
-  assert(Number(maintenanceIndex.section_counts?.measures || 0) === 30, "maintenance-index section_counts.measures should be 30");
+  assert(maintenanceMeasures.length === expectedMeasureCount, `maintenance-knowledge security_technical_measures should be ${expectedMeasureCount}, got ${maintenanceMeasures.length}`);
+  assert(splitMeasures.length === expectedMeasureCount, `maintenance/measures security_technical_measures should be ${expectedMeasureCount}, got ${splitMeasures.length}`);
+  assert(Number(maintenance.stats?.security_technical_measures || 0) === expectedMeasureCount, `maintenance-knowledge stats.security_technical_measures should be ${expectedMeasureCount}`);
+  assert(Number(technicalMeasures.stats?.security_technical_measures || 0) === expectedMeasureCount, `maintenance/measures stats.security_technical_measures should be ${expectedMeasureCount}`);
+  assert(Number(maintenanceIndex.section_counts?.measures || 0) === expectedMeasureCount, `maintenance-index section_counts.measures should be ${expectedMeasureCount}`);
   for (const name of requiredMeasures) {
     assert(names.has(name), `maintenance-knowledge missing confirmed lifecycle measure: ${name}`);
     assert(splitNames.has(name), `maintenance/measures missing confirmed lifecycle measure: ${name}`);

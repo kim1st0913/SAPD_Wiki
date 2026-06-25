@@ -8,7 +8,6 @@ const state = {
   sharedLookups: null,
   environmentWorkbench: null,
   environmentWorkbenchViewModel: null,
-  environmentManualReview: null,
   lifecycle: null,
   lifecycleWorkbench: null,
   lifecycleWorkbenchViewModel: null,
@@ -38,36 +37,6 @@ const state = {
   selectedEnvironmentObjectId: null,
   selectedEnvironmentRowId: null,
   activeEnvironmentTab: "topology",
-  environmentReviewFilters: {
-    query: "",
-    reviewMode: "environment",
-    environment: "",
-    segment: "",
-    object: "",
-    contextKey: "",
-    scope: "",
-    service: "",
-    sameNameOnly: false,
-    nodeMissingOnly: false,
-    manyServicesOnly: false,
-    missingSystemWithModuleOnly: false,
-    abnormalModuleMeasureOnly: false,
-    duplicateServiceOnly: false,
-    missingScopeOnly: false,
-    relationIssueOnly: false,
-    topOnly: false,
-    possibleAliasOnly: false,
-    serviceExpansionOnly: false,
-    directoryMismatchOnly: false,
-    coverageGapOnly: false,
-    directoryQuery: "",
-    directoryDifference: "",
-    directorySystem: "",
-    directoryModule: "",
-    directoryService: "",
-  },
-  selectedEnvironmentReviewRowKey: "",
-  selectedEnvironmentReviewDirectoryKey: "",
   environmentCatalogCollapsed: false,
   selectedDevProcessId: null,
   selectedDataProcessId: null,
@@ -1215,7 +1184,7 @@ function applyWorkspaceState(snapshot) {
   state.selectedEnvironmentObjectId = snapshot.selectedEnvironmentObjectId || state.selectedEnvironmentObjectId;
   state.selectedEnvironmentRowId = snapshot.selectedEnvironmentRowId || state.selectedEnvironmentRowId;
   state.expandedEnvironmentIds = new Set(list(snapshot.expandedEnvironmentIds));
-  state.activeEnvironmentTab = snapshot.activeEnvironmentTab || state.activeEnvironmentTab;
+  state.activeEnvironmentTab = snapshot.activeEnvironmentTab === "mapping" ? "mapping" : "topology";
   state.environmentCatalogCollapsed = Boolean(snapshot.environmentCatalogCollapsed);
   state.selectedDevProcessId = snapshot.selectedDevProcessId || state.selectedDevProcessId;
   state.devLifecycleStageSearch = snapshot.devLifecycleStageSearch || state.devLifecycleStageSearch;
@@ -1239,7 +1208,6 @@ const PACKAGE_GETTERS = {
   capabilityInitial: "getCapabilityWorkspaceInitial",
   capabilityProjection: "getCapabilityWorkspaceProjection",
   environmentWorkbench: "getEnvironmentWorkbench",
-  environmentManualReview: "getEnvironmentManualReviewChecklist",
   lifecycleWorkbench: "getLifecycleWorkbench",
   analyticsSummary: "getAnalyticsSummary",
   maintenanceIndex: "getMaintenanceIndex",
@@ -1274,7 +1242,6 @@ function assignPackageData(name, data) {
   if (name === "capabilityProjection") state.capabilityProjection = data;
   if (name === "sharedLookups") state.sharedLookups = data;
   if (name === "environmentWorkbench") state.environmentWorkbench = data;
-  if (name === "environmentManualReview") state.environmentManualReview = data;
   if (name === "lifecycleWorkbench") state.lifecycleWorkbench = data;
   if (name === "analyticsSummary") state.analyticsSummary = data;
   if (name === "maintenanceIndex") state.maintenanceIndex = data;
@@ -1315,7 +1282,7 @@ function routePackagesForCurrentState() {
   if (state.activeView === "overview") return ["analyticsSummary"];
   if (state.activeView === "capabilities") return ["capabilityInitial"];
   if (state.activeView === "environment") {
-    return state.activeEnvironmentTab === "review" ? ["environmentWorkbench", "environmentManualReview"] : ["environmentWorkbench"];
+    return ["environmentWorkbench"];
   }
   if (state.activeView === "dev-lifecycle") return ["lifecycleWorkbench", "lifecycle"];
   if (state.activeView === "data-lifecycle") return ["lifecycleWorkbench", "lifecycle"];
@@ -5775,8 +5742,7 @@ function renderEnvironmentHeaderTabs() {
   if (!root) return;
   const tabs = [
     { id: "topology", label: "环境底图" },
-    { id: "mapping", label: "归纳表格" },
-    { id: "review", label: "数据核对（临时）" },
+    { id: "mapping", label: "信息化环境-安全技术" },
   ];
   const activeTab = tabs.some((tab) => tab.id === state.activeEnvironmentTab) ? state.activeEnvironmentTab : "topology";
   root.innerHTML = `
@@ -5849,10 +5815,6 @@ function renderEnvironment() {
           activeTab: state.activeEnvironmentTab,
           expandedIds: state.expandedEnvironmentIds,
           catalogCollapsed: state.environmentCatalogCollapsed,
-          reviewData: state.environmentManualReview,
-          reviewFilters: state.environmentReviewFilters,
-          selectedReviewRowKey: state.selectedEnvironmentReviewRowKey,
-          selectedReviewDirectoryKey: state.selectedEnvironmentReviewDirectoryKey,
         }) || emptyState("环境图谱组件未加载")
       }
     `,
@@ -6798,82 +6760,7 @@ function bindEvents() {
     renderLifecycle("data");
     flushPageSearchReveal();
   });
-  $("environmentTree")?.addEventListener("click", (event) => {
-    const objectRow = event.target.closest("[data-environment-object-id]");
-    const segmentRow = event.target.closest("[data-environment-segment-id]");
-    const environmentRow = event.target.closest("[data-environment-id]");
-    if (!objectRow && !segmentRow && !environmentRow) return;
-    state.selectedEnvironmentId = environmentRow?.dataset.environmentId || null;
-    state.selectedEnvironmentSegmentId = segmentRow?.dataset.environmentSegmentId || null;
-    state.selectedEnvironmentObjectId = objectRow?.dataset.environmentObjectId || null;
-    state.selectedEnvironmentRowId = null;
-    renderEnvironment();
-  });
   $("environmentDetail")?.addEventListener("click", (event) => {
-    const reviewModeButton = event.target.closest("[data-environment-review-mode]");
-    if (reviewModeButton) {
-      state.activeEnvironmentTab = "review";
-      state.environmentReviewFilters.reviewMode = reviewModeButton.dataset.environmentReviewMode || "environment";
-      state.selectedEnvironmentReviewRowKey = "";
-      state.selectedEnvironmentReviewDirectoryKey = "";
-      renderEnvironment();
-      return;
-    }
-    const reviewDirectoryClearButton = event.target.closest("[data-environment-review-clear-directory-filters]");
-    if (reviewDirectoryClearButton) {
-      state.activeEnvironmentTab = "review";
-      state.environmentReviewFilters = {
-        ...state.environmentReviewFilters,
-        reviewMode: "directory",
-        query: "",
-        directoryQuery: "",
-        directoryDifference: "",
-        directorySystem: "",
-        directoryModule: "",
-        directoryService: "",
-        possibleAliasOnly: false,
-        directoryMismatchOnly: false,
-        coverageGapOnly: false,
-      };
-      state.selectedEnvironmentReviewDirectoryKey = "";
-      renderEnvironment();
-      return;
-    }
-    const reviewDirectoryFilter = event.target.closest("[data-environment-review-directory-filter-name]");
-    if (reviewDirectoryFilter) {
-      state.activeEnvironmentTab = "review";
-      const filterName = reviewDirectoryFilter.dataset.environmentReviewDirectoryFilterName;
-      if (filterName) state.environmentReviewFilters[filterName] = reviewDirectoryFilter.dataset.environmentReviewDirectoryFilterValue || "";
-      const systemValue = reviewDirectoryFilter.dataset.environmentReviewDirectorySystemValue || "";
-      if (filterName === "directorySystem") {
-        state.environmentReviewFilters.directoryModule = "";
-        state.environmentReviewFilters.directoryService = "";
-      }
-      if (filterName === "directoryModule" && systemValue) {
-        state.environmentReviewFilters.directorySystem = systemValue;
-        state.environmentReviewFilters.directoryService = "";
-      }
-      state.environmentReviewFilters.reviewMode = "directory";
-      state.selectedEnvironmentReviewDirectoryKey = "";
-      renderEnvironment();
-      return;
-    }
-    const reviewDirectoryButton = event.target.closest("[data-environment-review-directory-key]");
-    if (reviewDirectoryButton) {
-      state.activeEnvironmentTab = "review";
-      state.environmentReviewFilters.reviewMode = "directory";
-      state.selectedEnvironmentReviewDirectoryKey = reviewDirectoryButton.dataset.environmentReviewDirectoryKey || "";
-      renderEnvironment();
-      return;
-    }
-    const reviewRowButton = event.target.closest("[data-environment-review-row-key]");
-    if (reviewRowButton) {
-      state.activeEnvironmentTab = "review";
-      state.environmentReviewFilters.reviewMode = "environment";
-      state.selectedEnvironmentReviewRowKey = reviewRowButton.dataset.environmentReviewRowKey || "";
-      renderEnvironment();
-      return;
-    }
     const environmentCatalogToggle = event.target.closest("[data-toggle-environment-catalog]");
     if (environmentCatalogToggle) {
       state.activeEnvironmentTab = "mapping";
@@ -6894,7 +6781,7 @@ function bindEvents() {
     const segmentRow = event.target.closest("[data-environment-segment-id]");
     const environmentRow = event.target.closest("[data-environment-id]");
     if (objectRow || segmentRow || environmentRow) {
-      state.activeEnvironmentTab = event.target.closest(".environment-tab-panel-mapping") ? "mapping" : "topology";
+      state.activeEnvironmentTab = objectRow ? "mapping" : event.target.closest(".environment-tab-panel-mapping") ? "mapping" : "topology";
       state.selectedEnvironmentId = environmentRow?.dataset.environmentId || null;
       state.selectedEnvironmentSegmentId = segmentRow?.dataset.environmentSegmentId || null;
       state.selectedEnvironmentObjectId = objectRow?.dataset.environmentObjectId || null;
@@ -6909,38 +6796,10 @@ function bindEvents() {
     renderEnvironment();
   });
   $("environmentDetail")?.addEventListener("change", (event) => {
-    const reviewFilter = event.target?.closest?.("[data-environment-review-filter]");
-    if (reviewFilter && reviewFilter.closest("#environmentDetail")) {
-      state.environmentReviewFilters[reviewFilter.dataset.environmentReviewFilter] = reviewFilter.value;
-      state.selectedEnvironmentReviewRowKey = "";
-      state.selectedEnvironmentReviewDirectoryKey = "";
-      renderEnvironment();
-      return;
-    }
-    const reviewToggle = event.target?.closest?.("[data-environment-review-toggle]");
-    if (reviewToggle) {
-      state.environmentReviewFilters[reviewToggle.dataset.environmentReviewToggle] = Boolean(reviewToggle.checked);
-      state.selectedEnvironmentReviewRowKey = "";
-      state.selectedEnvironmentReviewDirectoryKey = "";
-      renderEnvironment();
-      return;
-    }
     if (event.target?.name !== "environmentDetailTab") return;
-    state.activeEnvironmentTab =
-      event.target.id === "environmentTabMapping" ? "mapping" : event.target.id === "environmentTabReview" ? "review" : "topology";
-    if (state.activeEnvironmentTab === "review") ensureRoutePackages();
+    state.activeEnvironmentTab = event.target.id === "environmentTabMapping" ? "mapping" : "topology";
   });
   document.addEventListener("input", (event) => {
-    const reviewFilter = event.target?.closest?.("[data-environment-review-filter]");
-    if (reviewFilter && reviewFilter.closest("#environmentDetail")) {
-      state.environmentReviewFilters[reviewFilter.dataset.environmentReviewFilter] = reviewFilter.value;
-      state.selectedEnvironmentReviewRowKey = "";
-      state.selectedEnvironmentReviewDirectoryKey = "";
-      queuePageSearchReveal(reviewFilter.value);
-      renderEnvironment();
-      flushPageSearchReveal();
-      return;
-    }
     if (event.target?.id !== "sourceSearchInput") return;
     setScopedSearch(event.target.value);
     queuePageSearchReveal(event.target.value);
@@ -7208,9 +7067,8 @@ function bindEvents() {
     const environmentPageTab = event.target.closest("[data-environment-tab]");
     if (environmentPageTab) {
       const nextEnvironmentTab = environmentPageTab.dataset.environmentTab;
-      state.activeEnvironmentTab = nextEnvironmentTab === "mapping" || nextEnvironmentTab === "review" ? nextEnvironmentTab : "topology";
+      state.activeEnvironmentTab = nextEnvironmentTab === "mapping" ? nextEnvironmentTab : "topology";
       renderEnvironment();
-      if (state.activeEnvironmentTab === "review") ensureRoutePackages();
       return;
     }
     const contentPage = event.target.closest("[data-content-page]");
@@ -7276,7 +7134,7 @@ async function init() {
   await loadScriptOnce("./components/LocalRelationNetworkGraph.js?v=capability-graph-focus-untangle-20260608-3", () => Boolean(window.sapdComponents?.LocalRelationNetworkGraph));
   await loadScriptOnce("./components/CapabilityLocalRelationMap.js?v=annotation-framework-anchor-20260605-1", () => Boolean(window.sapdComponents?.CapabilityLocalRelationMap));
   await loadScriptOnce("./models/environmentRelationGraphModel.js?v=environment-graph-20260521-1", () => Boolean(window.sapdModels?.buildEnvironmentRelationGraphModel));
-  await loadScriptOnce("./components/EnvironmentLocalRelationMap.js?v=environment-object-workbench-20260621-2", () => Boolean(window.sapdComponents?.EnvironmentLocalRelationMap));
+  await loadScriptOnce("./components/EnvironmentLocalRelationMap.js?v=environment-object-center-axis-20260624-8", () => Boolean(window.sapdComponents?.EnvironmentLocalRelationMap));
   mountAppShellComponents();
   setupAnnotationSurfaceObserver();
   bindEvents();

@@ -55,10 +55,10 @@ dist\zip-alpha\bundle\SAPD-Wiki-v0.1.0-win-x64.zip
 
 注意：`build_zip_bundle.py` 必须传入真实 `--backend-binary`。如果没有真实 `SAPD-Wiki-Backend.exe`，不要生成或试发 Windows ZIP。`--allow-placeholder` 只能用于目录结构检查，不能用于用户试发。
 
-说明：本项目在 macOS 主工作区的默认打包输出目录为 `/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle`。Windows 实机构建建议继续显式传入 `--output-dir`，避免误用 macOS 本地路径。真实 Windows ZIP 回传到 macOS 后，统一放入：
+说明：本项目在 macOS 主工作区的默认打包输出目录为 `/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/sapd wiki bundle`。Windows 实机构建建议继续显式传入 `--output-dir`，避免误用 macOS 本地路径。真实 Windows ZIP 回传到 macOS 后，统一放入：
 
 ```text
-"/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle/dist/releases/0.1.0-alpha/"
+"/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/sapd wiki bundle/dist/releases/0.1.0-alpha/"
 ```
 
 路径包含空格和中文，命令或脚本示例中必须加引号。

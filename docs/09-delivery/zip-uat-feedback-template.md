@@ -5,7 +5,7 @@
 当前 macOS arm64 alpha 试发材料来自：
 
 ```text
-"/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle/dist/releases/0.1.0-alpha/"
+"/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/sapd wiki bundle/dist/releases/0.1.0-alpha/"
 ```
 
 ## 1. 基本信息

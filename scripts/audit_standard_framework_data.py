@@ -44,7 +44,8 @@ STANDARD_PACKAGES = {
     },
     "CIS-CSC-V8.1.2": {
         "label": "CIS CSC v8",
-        "sheet": "CIS CSC V8",
+        "sheet": "CIS CSC V8.1.2",
+        "sheet_aliases": ["CIS CSC V8"],
         "json": ["cis-csc-v8.json"],
         "id_field": "保护措施编号",
         "id_regex": NUMBERED_ID_RE,
@@ -116,6 +117,14 @@ def text(value: Any) -> str:
     if value is None:
         return ""
     return str(value).strip()
+
+
+def resolve_sheet_name(wb: Any, config: dict[str, Any]) -> str:
+    candidates = [config["sheet"], *config.get("sheet_aliases", [])]
+    for sheet_name in candidates:
+        if sheet_name in wb.sheetnames:
+            return sheet_name
+    return config["sheet"]
 
 
 def compact(value: Any) -> str:
@@ -210,7 +219,9 @@ def parse_source_records(workbook_path: Path, issues: list[dict[str, Any]]) -> d
     expected_sheets = {config["sheet"] for config in STANDARD_PACKAGES.values()}
     expected_sheets.add("安全能力-网络安全制度、框架映射")
     for sheet in sorted(expected_sheets):
-        if sheet not in wb.sheetnames:
+        config = next((item for item in STANDARD_PACKAGES.values() if item.get("sheet") == sheet), None)
+        aliases = config.get("sheet_aliases", []) if config else []
+        if sheet not in wb.sheetnames and not any(alias in wb.sheetnames for alias in aliases):
             issue(issues, "error", "ALL", "missing_sheet", f"原始 workbook 缺少 Sheet：{sheet}", source=str(workbook_path))
 
     if "等保三级测评清单" in wb.sheetnames:
@@ -239,8 +250,9 @@ def parse_source_records(workbook_path: Path, issues: list[dict[str, Any]]) -> d
                 if not rec["fields"][field]:
                     issue(issues, "warn", "GB-T-22239-2019-L3", "missing_inherited_context", f"等保数据行缺少层级字段：{field}", source=ws.title, row=row, control_id=control_id, field=field)
 
-    if "CIS CSC V8" in wb.sheetnames:
-        ws = wb["CIS CSC V8"]
+    cis_sheet_name = resolve_sheet_name(wb, STANDARD_PACKAGES["CIS-CSC-V8.1.2"])
+    if cis_sheet_name in wb.sheetnames:
+        ws = wb[cis_sheet_name]
         current_control_id = current_control_name = current_control_description = ""
         for row in range(3, ws.max_row + 1):
             if cell(ws, row, 2):

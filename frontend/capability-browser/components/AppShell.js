@@ -246,6 +246,12 @@
     return components.utils.list(parent.children).some((child) => child.route === route || childRouteActive(child, route));
   }
 
+  function activeNavigationLabel(item, activeRoute) {
+    const activeChild = components.utils.list(item.children).find((child) => child.route === activeRoute || childRouteActive(child, activeRoute));
+    if (!activeChild) return item.label;
+    return activeNavigationLabel(activeChild, activeRoute);
+  }
+
   function renderGlobalSearch() {
     return `
       <div class="global-search" aria-label="全局搜索">
@@ -326,9 +332,10 @@
     const active = item.route === activeRoute || childRouteActive(item, activeRoute);
     const symbol = NAV_SYMBOLS[item.id] || "•";
     if (children.length) {
+      const activeLabel = activeNavigationLabel(item, activeRoute);
       return `
         <details class="navigation-group" ${active ? "open" : ""} data-nav-id="${escapeHtml(item.id)}">
-          <summary class="module-tab navigation-parent ${active ? "active" : ""}" title="${escapeHtml(item.label)}">
+          <summary class="module-tab navigation-parent ${active ? "active" : ""}" title="${escapeHtml(active ? activeLabel : item.label)}">
             <span class="nav-symbol">${escapeHtml(symbol)}</span>
             <span>${escapeHtml(item.label)}</span>
           </summary>
@@ -378,10 +385,20 @@
 
   function bindSidebarControls() {
     const toggle = document.getElementById("globalSidebarToggle");
-    if (!toggle) return;
-    toggle.addEventListener("click", () => {
+    toggle?.addEventListener("click", () => {
       const collapsed = !document.getElementById("app")?.classList.contains("sidebar-collapsed");
       applySidebarState(collapsed);
+    });
+    document.querySelectorAll(".navigation-group > .navigation-parent").forEach((summary) => {
+      summary.addEventListener("click", (event) => {
+        const app = document.getElementById("app");
+        const collapsed = app?.classList.contains("sidebar-collapsed");
+        if (!collapsed) return;
+        event.preventDefault();
+        const group = summary.closest(".navigation-group");
+        if (group) group.open = true;
+        applySidebarState(false);
+      });
     });
   }
 
@@ -426,9 +443,8 @@
 
   function renderEnvironmentHeaderTabs(activeTab = "topology") {
     const tabs = [
-      { id: "topology", label: "环境底图" },
-      { id: "mapping", label: "归纳表格" },
-      { id: "review", label: "数据核对（临时）" },
+      { id: "topology", label: "环境层级视图" },
+      { id: "mapping", label: "信息化环境-安全技术" },
     ];
     const normalizedActiveTab = tabs.some((tab) => tab.id === activeTab) ? activeTab : "topology";
     return `

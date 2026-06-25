@@ -1,0 +1,922 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Environment Object Apple Shell Demo</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #172235;
+        --muted: #657287;
+        --soft: #8a97aa;
+        --page: #f5f8fb;
+        --panel: rgba(250, 253, 255, 0.72);
+        --panel-strong: rgba(255, 255, 255, 0.88);
+        --line: rgba(118, 139, 166, 0.22);
+        --blue: #0a84ff;
+        --blue-soft: rgba(10, 132, 255, 0.18);
+        --service: #5a9fd8;
+        --service-deep: #24699e;
+        --module: #76ad90;
+        --module-deep: #326a4c;
+        --measure: #cf956d;
+        --measure-deep: #8a553d;
+        --ap: #0a84ff;
+        --di: #00a6b7;
+        --nt: #6366d6;
+        --us: #ad65c9;
+        --os: #687789;
+        --service-card-width: 318px;
+        --target-card-width: 270px;
+        --shadow: 0 30px 76px rgba(35, 47, 68, 0.14);
+        --shadow-soft: 0 14px 38px rgba(35, 47, 68, 0.1);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        overflow: hidden;
+        color: var(--ink);
+        font-family:
+          -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "PingFang SC",
+          "Microsoft YaHei", sans-serif;
+        background:
+          radial-gradient(circle at 18% 2%, rgba(90, 159, 216, 0.2), transparent 28%),
+          radial-gradient(circle at 76% 16%, rgba(118, 173, 144, 0.18), transparent 30%),
+          radial-gradient(circle at 58% 88%, rgba(207, 149, 109, 0.12), transparent 24%),
+          linear-gradient(135deg, #f8fbff 0%, #f3f6fa 54%, #eef4f8 100%);
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0.42;
+        background-image:
+          linear-gradient(rgba(74, 103, 138, 0.07) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(74, 103, 138, 0.07) 1px, transparent 1px);
+        background-size: 48px 48px;
+        mask-image: radial-gradient(circle at 50% 42%, #000 0%, transparent 72%);
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      button {
+        font: inherit;
+      }
+
+      .shell {
+        height: 100vh;
+        padding: 18px;
+      }
+
+      .glass-window {
+        position: relative;
+        height: 100%;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.72);
+        border-radius: 32px;
+        background:
+          linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(246, 251, 255, 0.56)),
+          rgba(255, 255, 255, 0.58);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(24px) saturate(1.12);
+      }
+
+      .topbar {
+        min-height: 112px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 22px;
+        align-items: start;
+        padding: 22px 26px 16px;
+        border-bottom: 1px solid rgba(112, 132, 156, 0.16);
+      }
+
+      .title-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        height: 26px;
+        padding: 0 10px;
+        border: 1px solid rgba(112, 132, 156, 0.18);
+        border-radius: 999px;
+        color: #526175;
+        background: rgba(255, 255, 255, 0.62);
+        font-size: 12px;
+        font-weight: 760;
+      }
+
+      h1 {
+        font-size: clamp(26px, 3vw, 38px);
+        letter-spacing: 0;
+        line-height: 1.05;
+      }
+
+      .subtitle {
+        margin-top: 9px;
+        color: #4b5b70;
+        font-size: 15px;
+        font-weight: 680;
+      }
+
+      .scope-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        margin-top: 12px;
+      }
+
+      .scope-legend-label {
+        color: #657287;
+        font-size: 12px;
+        font-weight: 820;
+      }
+
+      .scope-key {
+        --scope-color: var(--service);
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        min-height: 26px;
+        padding: 3px 9px 3px 6px;
+        border: 1px solid color-mix(in srgb, var(--scope-color) 58%, rgba(112, 132, 156, 0.16));
+        border-radius: 999px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.54)),
+          color-mix(in srgb, var(--scope-color) 24%, transparent);
+        color: color-mix(in srgb, var(--scope-color) 82%, #15263a);
+        font-size: 12px;
+        font-weight: 840;
+        white-space: nowrap;
+      }
+
+      .scope-key::before {
+        content: "";
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: var(--scope-color);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.38),
+          0 0 0 3px color-mix(in srgb, var(--scope-color) 24%, transparent),
+          0 0 14px color-mix(in srgb, var(--scope-color) 34%, transparent);
+      }
+
+      .scope-key[data-scope="I-AP"] {
+        --scope-color: var(--ap);
+      }
+
+      .scope-key[data-scope="I-DI"] {
+        --scope-color: var(--di);
+      }
+
+      .scope-key[data-scope="I-NT"] {
+        --scope-color: var(--nt);
+      }
+
+      .scope-key[data-scope="I-US"] {
+        --scope-color: var(--us);
+      }
+
+      .scope-key[data-scope="I-OS"] {
+        --scope-color: var(--os);
+      }
+
+      .stat-chip,
+      .mini-chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 4px 10px;
+        border: 1px solid rgba(112, 132, 156, 0.2);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.64);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+        color: #274358;
+        font-size: 13px;
+        font-weight: 780;
+        white-space: nowrap;
+      }
+
+      .stats {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+        max-width: 430px;
+      }
+
+      .stat-chip {
+        min-height: 38px;
+        padding: 6px 13px;
+        font-size: 14px;
+      }
+
+      .stat-chip strong {
+        margin-right: 4px;
+        color: #122033;
+        font-size: 19px;
+      }
+
+      .canvas-shell {
+        min-height: 0;
+        padding: 16px 20px 20px;
+      }
+
+      .canvas-frame {
+        position: relative;
+        height: 100%;
+        overflow: hidden;
+        border: 1px solid rgba(136, 157, 181, 0.22);
+        border-radius: 28px;
+        background:
+          radial-gradient(circle at 42% 48%, rgba(10, 132, 255, 0.11), transparent 27%),
+          radial-gradient(circle at 80% 20%, rgba(118, 173, 144, 0.11), transparent 26%),
+          rgba(250, 253, 255, 0.56);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.86),
+          inset 0 -22px 60px rgba(111, 143, 178, 0.08),
+          var(--shadow-soft);
+      }
+
+      .viewport {
+        height: 100%;
+        overflow: auto;
+        cursor: grab;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(99, 125, 154, 0.34) transparent;
+      }
+
+      .viewport:active {
+        cursor: grabbing;
+      }
+
+      .relation-board {
+        position: relative;
+        min-width: 1080px;
+        min-height: 760px;
+        padding: 42px 32px 36px;
+      }
+
+      .relation-board::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 72px;
+        bottom: 52px;
+        width: 2px;
+        border: 1px solid rgba(10, 132, 255, 0.08);
+        border-radius: 999px;
+        background:
+          linear-gradient(180deg, transparent, rgba(10, 132, 255, 0.18), transparent),
+          rgba(255, 255, 255, 0.28);
+        filter: blur(0.2px);
+        box-shadow: 0 0 28px rgba(10, 132, 255, 0.1);
+      }
+
+      .edge-layer {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        overflow: visible;
+        pointer-events: none;
+      }
+
+      .edge-path {
+        fill: none;
+        stroke-linecap: round;
+        stroke-width: 1.15;
+        opacity: 0.14;
+        transition:
+          opacity 180ms ease,
+          stroke-width 180ms ease,
+          filter 180ms ease;
+      }
+
+      .edge-path.module-edge {
+        stroke: rgba(82, 155, 181, 0.46);
+      }
+
+      .edge-path.measure-edge {
+        stroke: rgba(202, 139, 94, 0.4);
+        stroke-dasharray: 5 9;
+      }
+
+      .edge-path.is-active {
+        stroke-width: 1.9;
+        opacity: 0.82;
+        filter: drop-shadow(0 0 5px rgba(10, 132, 255, 0.2));
+        animation: fiberPulse 2.2s linear infinite;
+      }
+
+      .edge-path.is-active.measure-edge {
+        filter: drop-shadow(0 0 5px rgba(210, 143, 92, 0.22));
+      }
+
+      .edge-path.is-muted {
+        opacity: 0.04;
+      }
+
+      @keyframes fiberPulse {
+        0% {
+          stroke-dashoffset: 0;
+        }
+        100% {
+          stroke-dashoffset: -34;
+        }
+      }
+
+      .board-grid {
+        position: relative;
+        z-index: 2;
+        display: grid;
+        grid-template-columns: var(--service-card-width) minmax(288px, 330px) var(--service-card-width);
+        justify-content: center;
+        gap: 32px;
+        min-height: 660px;
+      }
+
+      .board-section {
+        min-width: 0;
+        align-self: stretch;
+      }
+
+      .section-head {
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        padding: 0 10px;
+        color: #47576a;
+        font-size: 14px;
+        font-weight: 840;
+      }
+
+      .section-head strong {
+        color: #243348;
+        font-size: 16px;
+      }
+
+      .service-field {
+        display: grid;
+        grid-template-columns: var(--service-card-width);
+        align-content: flex-start;
+        justify-content: start;
+        gap: 8px;
+      }
+
+      .node {
+        position: relative;
+        min-width: 0;
+        text-align: left;
+        border: 1px solid rgba(140, 164, 190, 0.32);
+        border-radius: 20px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(245, 251, 255, 0.8)),
+          rgba(255, 255, 255, 0.72);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.92),
+          0 12px 26px rgba(31, 50, 76, 0.07);
+        backdrop-filter: blur(18px) saturate(1.05);
+        transition:
+          opacity 180ms ease,
+          transform 180ms ease,
+          border-color 180ms ease,
+          box-shadow 180ms ease;
+      }
+
+      .service-node {
+        height: 54px;
+        width: var(--service-card-width);
+        display: grid;
+        align-content: center;
+        gap: 2px;
+        padding: 8px 14px 8px 18px;
+        overflow: hidden;
+      }
+
+      .service-node::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 6px;
+        bottom: 6px;
+        width: 7px;
+        border-radius: 0 999px 999px 0;
+        background: var(--scope-color, var(--service));
+        box-shadow: 0 0 18px color-mix(in srgb, var(--scope-color, var(--service)) 48%, transparent);
+      }
+
+      .service-column-right .service-node {
+        padding: 8px 18px 8px 14px;
+      }
+
+      .service-column-right .service-node::after {
+        right: 0;
+        left: auto;
+        border-radius: 999px 0 0 999px;
+      }
+
+      .node-title {
+        max-width: calc(100% - 4px);
+        overflow: hidden;
+        color: #19314a;
+        font-size: 13.5px;
+        font-weight: 850;
+        line-height: 1.25;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .node-meta {
+        color: #68778b;
+        font-size: 11.5px;
+        font-weight: 730;
+      }
+
+      .service-node[data-scope="I-AP"] {
+        --scope-color: var(--ap);
+        --scope-deep: #115e96;
+        border-color: color-mix(in srgb, var(--ap) 68%, rgba(140, 164, 190, 0.18));
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(232, 246, 255, 0.8)),
+          color-mix(in srgb, var(--ap) 22%, transparent);
+      }
+
+      .service-node[data-scope="I-DI"] {
+        --scope-color: var(--di);
+        --scope-deep: #116c79;
+        border-color: color-mix(in srgb, var(--di) 68%, rgba(140, 164, 190, 0.18));
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(228, 251, 253, 0.8)),
+          color-mix(in srgb, var(--di) 22%, transparent);
+      }
+
+      .service-node[data-scope="I-NT"] {
+        --scope-color: var(--nt);
+        --scope-deep: #3d4fa8;
+        border-color: color-mix(in srgb, var(--nt) 68%, rgba(140, 164, 190, 0.18));
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(239, 241, 255, 0.8)),
+          color-mix(in srgb, var(--nt) 21%, transparent);
+      }
+
+      .service-node[data-scope="I-US"] {
+        --scope-color: var(--us);
+        --scope-deep: #56477e;
+        border-color: color-mix(in srgb, var(--us) 66%, rgba(140, 164, 190, 0.18));
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(244, 240, 253, 0.8)),
+          color-mix(in srgb, var(--us) 20%, transparent);
+      }
+
+      .service-node[data-scope="I-OS"] {
+        --scope-color: var(--os);
+        --scope-deep: #354357;
+        border-color: color-mix(in srgb, var(--os) 66%, rgba(140, 164, 190, 0.18));
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(237, 242, 247, 0.82)),
+          color-mix(in srgb, var(--os) 19%, transparent);
+      }
+
+      .routing-channel {
+        display: none;
+      }
+
+      .target-stack {
+        display: grid;
+        gap: 14px;
+        justify-items: center;
+      }
+
+      .target-zone {
+        width: calc(var(--target-card-width) + 20px);
+        min-width: 0;
+        max-width: 100%;
+        border: 1px solid rgba(141, 161, 185, 0.18);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.35);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+        overflow: hidden;
+      }
+
+      .target-zone.measure-zone {
+        border-color: rgba(207, 149, 109, 0.18);
+      }
+
+      .target-zone .section-head {
+        margin: 0;
+        border-bottom: 1px solid rgba(141, 161, 185, 0.14);
+        background: rgba(255, 255, 255, 0.44);
+      }
+
+      .target-list {
+        display: grid;
+        gap: 7px;
+        justify-items: center;
+        padding: 9px;
+      }
+
+      .target-node {
+        min-height: 56px;
+        width: var(--target-card-width);
+        max-width: 100%;
+        display: grid;
+        align-content: center;
+        gap: 3px;
+        padding: 9px 12px;
+      }
+
+      .module-node {
+        color: var(--module-deep);
+        border-color: rgba(118, 173, 144, 0.38);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(237, 250, 242, 0.76)),
+          rgba(118, 173, 144, 0.12);
+      }
+
+      .measure-node {
+        color: var(--measure-deep);
+        border-color: rgba(207, 149, 109, 0.36);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(255, 244, 234, 0.78)),
+          rgba(207, 149, 109, 0.12);
+      }
+
+      .target-node small {
+        color: #667287;
+        font-size: 11px;
+        font-weight: 820;
+      }
+
+      .node.is-active {
+        transform: translateY(-1px) scale(1.012);
+        border-color: rgba(10, 132, 255, 0.58);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.96),
+          0 0 0 4px rgba(10, 132, 255, 0.08),
+          0 18px 40px rgba(10, 132, 255, 0.16);
+      }
+
+      .node.is-linked {
+        opacity: 1;
+        transform: translateY(-1px);
+      }
+
+      .node.is-muted {
+        opacity: 0.68;
+        filter: saturate(0.92);
+      }
+
+      .mini-map {
+        position: absolute;
+        z-index: 9;
+        right: 18px;
+        bottom: 18px;
+        width: 146px;
+        height: 92px;
+        border: 1px solid rgba(112, 132, 156, 0.22);
+        border-radius: 18px;
+        background:
+          linear-gradient(90deg, rgba(90, 159, 216, 0.16) 0 46%, rgba(10, 132, 255, 0.08) 46% 58%, rgba(118, 173, 144, 0.14) 58% 100%),
+          rgba(255, 255, 255, 0.66);
+        box-shadow: 0 16px 36px rgba(31, 50, 76, 0.1);
+        backdrop-filter: blur(16px);
+      }
+
+      .mini-map::before {
+        content: "";
+        position: absolute;
+        inset: 10px 12px;
+        border: 1.5px solid rgba(10, 132, 255, 0.44);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      .mini-map span {
+        position: absolute;
+        left: 12px;
+        bottom: 8px;
+        color: #536277;
+        font-size: 11px;
+        font-weight: 780;
+      }
+
+      @media (max-width: 1180px) {
+        body {
+          overflow: auto;
+        }
+
+        .shell {
+          min-width: 980px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <div class="glass-window">
+        <header class="topbar">
+          <div>
+            <div class="title-row">
+              <span class="eyebrow">Apple shell demo</span>
+              <span class="eyebrow">对象关系图</span>
+            </div>
+            <h1>数据分析层</h1>
+            <p class="subtitle">大数据平台/数据中台，只表达安全技术服务到模块和措施的映射。</p>
+            <div class="scope-legend" aria-label="作用域颜色图例">
+              <span class="scope-legend-label">作用域颜色</span>
+              <span class="scope-key" data-scope="I-AP">I-AP 软件应用</span>
+              <span class="scope-key" data-scope="I-DI">I-DI 数据与信息</span>
+              <span class="scope-key" data-scope="I-NT">I-NT 网络</span>
+              <span class="scope-key" data-scope="I-US">I-US 用户</span>
+              <span class="scope-key" data-scope="I-OS">I-OS 操作系统</span>
+            </div>
+          </div>
+          <div class="stats" aria-label="统计">
+            <span class="stat-chip"><strong>29</strong>服务</span>
+            <span class="stat-chip"><strong>6</strong>模块</span>
+            <span class="stat-chip"><strong>6</strong>措施</span>
+            <span class="stat-chip"><strong>44</strong>关系</span>
+          </div>
+        </header>
+
+        <main class="canvas-shell">
+          <section class="canvas-frame" aria-label="服务到模块和措施关系图">
+            <div class="viewport" id="relationViewport">
+              <div class="relation-board" id="relationBoard">
+                <svg class="edge-layer" id="edgeLayer" aria-hidden="true"></svg>
+                <div class="board-grid">
+                  <section class="board-section">
+                    <div class="section-head">
+                      <strong>安全技术服务</strong>
+                    </div>
+                    <div class="service-field" id="serviceField">
+                      <button class="node service-node" type="button" data-node="iap-ad02" data-scope="I-AP" data-targets="measure-ha"><span class="node-title">I-AP&amp;T-AS.AD-02 应用冗余</span><span class="node-meta">关联 1 个措施</span></button>
+                      <button class="node service-node" type="button" data-node="iap-ad03" data-scope="I-AP" data-targets="module-host"><span class="node-title">I-AP&amp;T-AS.AD-03 应用备份</span><span class="node-meta">关联 1 个模块</span></button>
+                      <button class="node service-node" type="button" data-node="iap-am01" data-scope="I-AP" data-targets="module-console,measure-auth"><span class="node-title">I-AP&amp;T-AS.AM-01 软件资产清单</span><span class="node-meta">关联 1 个模块 / 1 个措施</span></button>
+                      <button class="node service-node" type="button" data-node="iap-am02" data-scope="I-AP" data-targets="module-proxy,module-console"><span class="node-title">I-AP&amp;T-AS.AM-02 软件资产安全管理</span><span class="node-meta">关联 2 个模块</span></button>
+                      <button class="node service-node" type="button" data-node="iap-cm01" data-scope="I-AP" data-targets="module-image,module-host"><span class="node-title">I-AP&amp;T-AS.CM-01 应用安全基线配置</span><span class="node-meta">关联 2 个模块</span></button>
+                      <button class="node service-node" type="button" data-node="iap-cm02" data-scope="I-AP" data-targets="module-image,module-host"><span class="node-title">I-AP&amp;T-AS.CM-02 应用安全加固</span><span class="node-meta">关联 2 个模块</span></button>
+                      <button class="node service-node" type="button" data-node="iap-ia01" data-scope="I-AP" data-targets="module-console"><span class="node-title">I-AP&amp;T-AS.IA-01 应用身份管理</span><span class="node-meta">关联 1 个模块</span></button>
+                      <button class="node service-node" type="button" data-node="iap-ia02" data-scope="I-AP" data-targets="module-console,module-proxy"><span class="node-title">I-AP&amp;T-AS.IA-02 应用身份认证</span><span class="node-meta">关联 2 个模块</span></button>
+                      <button class="node service-node" type="button" data-node="iap-ia03" data-scope="I-AP" data-targets="module-proxy,module-console,measure-self-auth"><span class="node-title">I-AP&amp;T-AS.IA-03 应用资源授权</span><span class="node-meta">关联 2 个模块 / 1 个措施</span></button>
+                      <button class="node service-node" type="button" data-node="iap-ia04" data-scope="I-AP" data-targets="module-console,measure-cert"><span class="node-title">I-AP&amp;T-AS.IA-04 应用凭证管理</span><span class="node-meta">关联 1 个模块 / 1 个措施</span></button>
+                      <button class="node service-node" type="button" data-node="iap-la01" data-scope="I-AP" data-targets="measure-log"><span class="node-title">I-AP&amp;T-AS.LA-01 应用日志记录</span><span class="node-meta">关联 1 个措施</span></button>
+                      <button class="node service-node" type="button" data-node="iap-la03" data-scope="I-AP" data-targets="module-console"><span class="node-title">I-AP&amp;T-AS.LA-03 应用操作审计</span><span class="node-meta">关联 1 个模块</span></button>
+                      <button class="node service-node" type="button" data-node="iap-vm01" data-scope="I-AP" data-targets="module-image,module-host"><span class="node-title">I-AP&amp;T-AS.VM-01 应用漏洞管理</span><span class="node-meta">关联 2 个模块</span></button>
+                      <button class="node service-node" type="button" data-node="iap-vm02" data-scope="I-AP" data-targets="module-image,module-host"><span class="node-title">I-AP&amp;T-AS.VM-02 应用补丁管理</span><span class="node-meta">关联 2 个模块</span></button>
+                      <button class="node service-node" type="button" data-node="iap-ac01" data-scope="I-AP" data-targets="module-proxy,module-console"><span class="node-title">I-AP&amp;T-PD.AC-01 应用访问控制</span><span class="node-meta">关联 2 个模块</span></button>
+                      <button class="node service-node" type="button" data-node="iap-ac02" data-scope="I-AP" data-targets="module-proxy"><span class="node-title">I-AP&amp;T-PD.AC-02 应用软件信誉评估</span><span class="node-meta">关联 1 个模块</span></button>
+                      <button class="node service-node" type="button" data-node="iap-pp01" data-scope="I-AP" data-targets="module-proxy,measure-auth"><span class="node-title">I-AP&amp;T-PD.PP-01 应用安全访问</span><span class="node-meta">关联 1 个模块 / 1 个措施</span></button>
+                      <button class="node service-node" type="button" data-node="idi-am01" data-scope="I-DI" data-targets="measure-auth"><span class="node-title">I-DI&amp;T-AS.AM-01 数据资产清单</span><span class="node-meta">关联 1 个措施</span></button>
+                      <button class="node service-node" type="button" data-node="idi-ia03" data-scope="I-DI" data-targets="module-proxy,module-console"><span class="node-title">I-DI&amp;T-AS.IA-03 数据资源授权</span><span class="node-meta">关联 2 个模块</span></button>
+                      <button class="node service-node" type="button" data-node="idi-la03" data-scope="I-DI" data-targets="measure-log"><span class="node-title">I-DI&amp;T-AS.LA-03 数据访问和操作审计</span><span class="node-meta">关联 1 个措施</span></button>
+                      <button class="node service-node" type="button" data-node="idi-dp01" data-scope="I-DI" data-targets="module-watermark"><span class="node-title">I-DI&amp;T-PD.DP-01 数据内容水印</span><span class="node-meta">关联 1 个模块</span></button>
+                      <button class="node service-node" type="button" data-node="idi-dp02" data-scope="I-DI" data-targets="module-desensitize"><span class="node-title">I-DI&amp;T-PD.DP-02 静态数据脱敏</span><span class="node-meta">关联 1 个模块</span></button>
+                      <button class="node service-node" type="button" data-node="idi-dp04" data-scope="I-DI" data-targets="module-desensitize,module-watermark"><span class="node-title">I-DI&amp;T-PD.DP-04 数据访问鉴权</span><span class="node-meta">关联 2 个模块</span></button>
+                      <button class="node service-node" type="button" data-node="int-cg01" data-scope="I-NT" data-targets="module-proxy"><span class="node-title">I-NT&amp;T-AS.CG-01 网络传输通道</span><span class="node-meta">关联 1 个模块</span></button>
+                      <button class="node service-node" type="button" data-node="int-ia03" data-scope="I-NT" data-targets="module-proxy,module-console"><span class="node-title">I-NT&amp;T-AS.IA-03 网络资源授权</span><span class="node-meta">关联 2 个模块</span></button>
+                      <button class="node service-node" type="button" data-node="int-dp02" data-scope="I-NT" data-targets="module-watermark"><span class="node-title">I-NT&amp;T-PD.DP-02 网络动态数据脱敏</span><span class="node-meta">关联 1 个模块</span></button>
+                      <button class="node service-node" type="button" data-node="ius-la03" data-scope="I-US" data-targets="measure-log"><span class="node-title">I-US&amp;T-AS.LA-03 用户行为审计</span><span class="node-meta">关联 1 个措施</span></button>
+                      <button class="node service-node" type="button" data-node="ius-ac02" data-scope="I-US" data-targets="module-proxy"><span class="node-title">I-US&amp;T-PD.AC-02 用户信誉评估</span><span class="node-meta">关联 1 个模块</span></button>
+                      <button class="node service-node" type="button" data-node="ios-ac02" data-scope="I-OS" data-targets="module-host"><span class="node-title">I-OS&amp;T-PD.AC-02 主机/终端信誉评估</span><span class="node-meta">关联 1 个模块</span></button>
+                    </div>
+                  </section>
+
+                  <div class="routing-channel" aria-hidden="true"></div>
+
+                  <aside class="board-section">
+                    <div class="target-stack">
+                      <section class="target-zone">
+                        <div class="section-head">
+                          <strong>安全技术模块</strong>
+                          <span class="mini-chip">6 项</span>
+                        </div>
+                        <div class="target-list">
+                          <button class="node target-node module-node" type="button" data-node="module-proxy"><small>安全技术模块</small><span class="node-title">零信任访问代理</span><span class="node-meta">关联 8 项服务</span></button>
+                          <button class="node target-node module-node" type="button" data-node="module-console"><small>安全技术模块</small><span class="node-title">零信任访问控制台</span><span class="node-meta">关联 15 项服务</span></button>
+                          <button class="node target-node module-node" type="button" data-node="module-image"><small>安全技术模块</small><span class="node-title">容器镜像安全</span><span class="node-meta">关联 6 项服务</span></button>
+                          <button class="node target-node module-node" type="button" data-node="module-watermark"><small>安全技术模块</small><span class="node-title">数据水印溯源</span><span class="node-meta">关联 1 项服务</span></button>
+                          <button class="node target-node module-node" type="button" data-node="module-desensitize"><small>安全技术模块</small><span class="node-title">数据脱敏(去标识化)</span><span class="node-meta">关联 1 项服务</span></button>
+                          <button class="node target-node module-node" type="button" data-node="module-host"><small>安全技术模块</small><span class="node-title">主机安全管理</span><span class="node-meta">关联 6 项服务</span></button>
+                        </div>
+                      </section>
+
+                      <section class="target-zone measure-zone">
+                        <div class="section-head">
+                          <strong>安全技术措施</strong>
+                          <span class="mini-chip">6 项，单列</span>
+                        </div>
+                        <div class="target-list">
+                          <button class="node target-node measure-node" type="button" data-node="measure-ha"><small>安全技术措施</small><span class="node-title">应用系统高可用性设计</span><span class="node-meta">关联 2 项服务</span></button>
+                          <button class="node target-node measure-node" type="button" data-node="measure-cert"><small>安全技术措施</small><span class="node-title">应用系统自身凭证管理模块</span><span class="node-meta">关联 1 项服务</span></button>
+                          <button class="node target-node measure-node" type="button" data-node="measure-auth"><small>安全技术措施</small><span class="node-title">应用系统自身认证模块</span><span class="node-meta">关联 1 项服务</span></button>
+                          <button class="node target-node measure-node" type="button" data-node="measure-self-auth"><small>安全技术措施</small><span class="node-title">应用系统自身授权管理模块</span><span class="node-meta">关联 1 项服务</span></button>
+                          <button class="node target-node measure-node" type="button" data-node="measure-log"><small>安全技术措施</small><span class="node-title">应用系统自身日志记录模块</span><span class="node-meta">关联 1 项服务</span></button>
+                          <button class="node target-node measure-node" type="button" data-node="measure-backup"><small>安全技术措施</small><span class="node-title">应用系统自身备份恢复模块</span><span class="node-meta">关联 1 项服务</span></button>
+                        </div>
+                      </section>
+                    </div>
+                  </aside>
+
+                  <section class="board-section service-column-right">
+                    <div class="section-head">
+                      <strong>安全技术服务</strong>
+                    </div>
+                    <div class="service-field service-field-right" id="serviceFieldRight"></div>
+                  </section>
+                </div>
+              </div>
+            </div>
+            <div class="mini-map" aria-hidden="true"><span>fit + drag</span></div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <script>
+      const board = document.getElementById("relationBoard");
+      const viewport = document.getElementById("relationViewport");
+      const edgeLayer = document.getElementById("edgeLayer");
+      const serviceFieldRight = document.getElementById("serviceFieldRight");
+      const nodes = Array.from(document.querySelectorAll("[data-node]"));
+      const serviceNodes = Array.from(document.querySelectorAll(".service-node"));
+      const rightSideServiceKeys = new Set([
+        "iap-ac02",
+        "iap-pp01",
+        "idi-am01",
+        "idi-ia03",
+        "idi-la03",
+        "idi-dp01",
+        "idi-dp02",
+        "idi-dp04",
+        "int-cg01",
+        "int-ia03",
+        "int-dp02",
+        "ius-la03",
+        "ius-ac02",
+        "ios-ac02",
+      ]);
+      let activeKey = "iap-ia03";
+      let drawFrame = 0;
+
+      serviceNodes.forEach((node) => {
+        if (rightSideServiceKeys.has(node.dataset.node)) serviceFieldRight.appendChild(node);
+      });
+
+      function getNode(key) {
+        return document.querySelector(`[data-node="${CSS.escape(key)}"]`);
+      }
+
+      function targetType(target) {
+        return target.startsWith("measure-") ? "measure" : "module";
+      }
+
+      function buildEdges() {
+        return serviceNodes.flatMap((service) => {
+          const source = service.dataset.node;
+          return (service.dataset.targets || "")
+            .split(",")
+            .filter(Boolean)
+            .map((target) => ({ source, target, type: targetType(target) }));
+        });
+      }
+
+      function centerOf(element, side) {
+        const rect = element.getBoundingClientRect();
+        const base = board.getBoundingClientRect();
+        const x = side === "right" ? rect.right - base.left : side === "left" ? rect.left - base.left : rect.left + rect.width / 2 - base.left;
+        const y = rect.top + rect.height / 2 - base.top;
+        return { x, y };
+      }
+
+      function drawEdges() {
+        drawFrame = 0;
+        const width = board.scrollWidth;
+        const height = board.scrollHeight;
+        edgeLayer.setAttribute("viewBox", `0 0 ${width} ${height}`);
+        edgeLayer.setAttribute("width", width);
+        edgeLayer.setAttribute("height", height);
+        edgeLayer.innerHTML = "";
+        const edges = buildEdges();
+        for (const edge of edges) {
+          const sourceEl = getNode(edge.source);
+          const targetEl = getNode(edge.target);
+          if (!sourceEl || !targetEl) continue;
+          const sourceCenter = centerOf(sourceEl);
+          const targetCenter = centerOf(targetEl);
+          const sourceIsLeft = sourceCenter.x < targetCenter.x;
+          const start = centerOf(sourceEl, sourceIsLeft ? "right" : "left");
+          const end = centerOf(targetEl, sourceIsLeft ? "left" : "right");
+          const direction = sourceIsLeft ? 1 : -1;
+          const dx = Math.max(86, Math.abs(end.x - start.x));
+          const c1 = { x: start.x + direction * dx * 0.44, y: start.y };
+          const c2 = { x: end.x - direction * dx * 0.44, y: end.y };
+          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          path.setAttribute("d", `M ${start.x} ${start.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${end.x} ${end.y}`);
+          path.classList.add("edge-path", `${edge.type}-edge`);
+          path.dataset.source = edge.source;
+          path.dataset.target = edge.target;
+          edgeLayer.appendChild(path);
+        }
+        applyFocus(activeKey);
+      }
+
+      function linkedKeysFor(key) {
+        const service = getNode(key);
+        if (service && service.classList.contains("service-node")) {
+          return new Set((service.dataset.targets || "").split(",").filter(Boolean));
+        }
+        const linked = new Set();
+        for (const item of serviceNodes) {
+          const targets = (item.dataset.targets || "").split(",").filter(Boolean);
+          if (targets.includes(key)) linked.add(item.dataset.node);
+        }
+        return linked;
+      }
+
+      function applyFocus(key) {
+        activeKey = key;
+        const linked = linkedKeysFor(key);
+        nodes.forEach((node) => {
+          const nodeKey = node.dataset.node;
+          const isActive = nodeKey === key;
+          const isLinked = linked.has(nodeKey);
+          node.classList.toggle("is-active", isActive);
+          node.classList.toggle("is-linked", isLinked);
+          node.classList.toggle("is-muted", !isActive && !isLinked);
+        });
+        document.querySelectorAll(".edge-path").forEach((path) => {
+          const onSource = path.dataset.source === key || path.dataset.target === key;
+          path.classList.toggle("is-active", onSource);
+          path.classList.toggle("is-muted", !onSource);
+        });
+      }
+
+      nodes.forEach((node) => {
+        node.addEventListener("pointerenter", () => applyFocus(node.dataset.node));
+        node.addEventListener("click", () => applyFocus(node.dataset.node));
+      });
+
+      function scheduleDrawEdges() {
+        if (drawFrame) return;
+        drawFrame = window.requestAnimationFrame(drawEdges);
+      }
+
+      board.addEventListener("pointerleave", () => applyFocus(activeKey));
+      window.addEventListener("resize", scheduleDrawEdges);
+
+      let dragging = false;
+      let dragStart = { x: 0, y: 0, left: 0, top: 0 };
+      viewport.addEventListener("pointerdown", (event) => {
+        if (event.target.closest("button")) return;
+        dragging = true;
+        dragStart = {
+          x: event.clientX,
+          y: event.clientY,
+          left: viewport.scrollLeft,
+          top: viewport.scrollTop,
+        };
+        viewport.setPointerCapture(event.pointerId);
+      });
+      viewport.addEventListener("pointermove", (event) => {
+        if (!dragging) return;
+        viewport.scrollLeft = dragStart.left - (event.clientX - dragStart.x);
+        viewport.scrollTop = dragStart.top - (event.clientY - dragStart.y);
+      });
+      viewport.addEventListener("pointerup", () => {
+        dragging = false;
+      });
+
+      window.addEventListener("load", () => {
+        drawEdges();
+        const activeNode = getNode(activeKey);
+        if (activeNode) activeNode.scrollIntoView({ block: "center", inline: "nearest" });
+        if (document.fonts?.ready) document.fonts.ready.then(scheduleDrawEdges);
+      });
+    </script>
+  </body>
+</html>

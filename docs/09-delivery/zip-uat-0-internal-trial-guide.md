@@ -28,10 +28,10 @@ Windows x64 仍处于：
 | 项 | 值 |
 |---|---|
 | ZIP 文件名 | `SAPD-Wiki-v0.1.0-mac-arm64.zip` |
-| 当前试发路径 | `/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle/dist/releases/0.1.0-alpha/SAPD-Wiki-v0.1.0-mac-arm64.zip` |
-| 当前 release manifest | `/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle/dist/releases/0.1.0-alpha/release-manifest.json` |
-| 默认生成目录 | `/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle` |
-| 默认发行目录 | `/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle/dist/releases/0.1.0-alpha/` |
+| 当前试发路径 | `/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/sapd wiki bundle/dist/releases/0.1.0-alpha/SAPD-Wiki-v0.1.0-mac-arm64.zip` |
+| 当前 release manifest | `/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/sapd wiki bundle/dist/releases/0.1.0-alpha/release-manifest.json` |
+| 默认生成目录 | `/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/sapd wiki bundle` |
+| 默认发行目录 | `/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/sapd wiki bundle/dist/releases/0.1.0-alpha/` |
 | `app_version` | `0.1.0-alpha` |
 | `bundle_type` | `zip-portable` |
 | `platform` | `mac-arm64` |
@@ -53,7 +53,7 @@ Windows x64 仍处于：
 当前内部试发材料统一来自：
 
 ```text
-"/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle/dist/releases/0.1.0-alpha/"
+"/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/sapd wiki bundle/dist/releases/0.1.0-alpha/"
 ```
 
 该目录包含：

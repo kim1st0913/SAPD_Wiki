@@ -3441,17 +3441,31 @@
               ...list(object.scope_mappings).flatMap((mapping) => list(mapping.services).map(titleOf)),
             ),
           )
-          .map((object) => ({
-            id: object.id,
-            environmentId: environment.id,
-            type: "information_object",
-            title: titleOf(object, "未命名对象"),
-            description: object.description || "",
-            segments: list(object.segments),
-            scopeCount: Number(object.scope_count ?? list(object.scope_mappings).length) || 0,
-            serviceCount: Number(object.service_count ?? 0) || 0,
-            moduleCount: Number(object.module_count ?? 0) || 0,
-          }));
+          .map((object) => {
+            const relationNodes = uniqueBy(
+              list(object.scope_mappings).flatMap((mapping) =>
+                list(mapping.services).flatMap((service) => [
+                  ...list(service.modules).map((module) =>
+                    compactTechnicalObject(module, isSecurityTechnicalMeasure(module) ? "安全技术措施" : "安全技术模块"),
+                  ),
+                  ...list(service.measures).map((measure) => compactTechnicalObject({ ...measure, type: "security_technical_measure" }, "安全技术措施")),
+                ]),
+              ),
+              (item) => [item?.id, item?.code, item?.title, item?.name, item?.objectKind, item?.type].filter(Boolean).join("::"),
+            );
+            return {
+              id: object.id,
+              environmentId: environment.id,
+              type: "information_object",
+              title: titleOf(object, "未命名对象"),
+              description: object.description || "",
+              segments: list(object.segments),
+              scopeCount: Number(object.scope_count ?? list(object.scope_mappings).length) || 0,
+              serviceCount: Number(object.service_count ?? 0) || 0,
+              moduleCount: Number(object.module_count ?? relationNodes.length) || 0,
+              relationNodes,
+            };
+          });
         const segmentsById = new Map();
         for (const object of objects) {
           const segments = list(object.segments).length ? list(object.segments) : [{ id: `${environment.id}:segment:unclassified`, title: "未定义环境子类" }];
@@ -3531,14 +3545,16 @@
       : { selectionType: "environment", environment: fallback.environment, object: null, objects: fallback.objects };
   }
 
-  function buildEnvironmentScopeServiceRows(management, selectedObject, showObjectColumn) {
+  function buildEnvironmentScopeServiceRows(management, selectedObject, showObjectColumn, selectedEnvironment) {
     if (!selectedObject) return [];
+    const environment = selectedEnvironment ? compactEntity(selectedEnvironment, "未命名环境") : null;
     const objectScopes = uniqueBy(
       list(selectedObject.scope_mappings).map((mapping) => compactEntity(mapping.scope, "未命名作用域")).filter(Boolean),
       (scope) => scope.code || scope.id || scope.title,
     );
     const segments = list(selectedObject.segments).map(compactEntity);
     const baseForObject = () => ({
+      environment,
       object: compactEntity(selectedObject, "未命名对象"),
       segments,
       scopes: objectScopes,
@@ -3656,7 +3672,7 @@
           modules,
           measures,
           relationNodes,
-          relationType: relationNodes.length > 1 ? "1:N" : relationNodes.length === 1 ? "1:1" : "no_relation",
+          relationType: relationNodes.length > 1 ? "one_to_many" : relationNodes.length === 1 ? "one_to_one" : "no_relation",
           exactDuplicateCount,
           coverageStatus: relationNodes.length ? "已覆盖" : "无模块/措施映射",
           note: relationNodes.length ? "服务唯一显示，右侧聚合模块 / 措施 / 系统。" : "已有安全技术服务，未形成模块 / 措施映射。",
@@ -3702,6 +3718,7 @@
         groupsByKey.set(key, {
           id: key,
           objectKey: key,
+          environment: row?.environment || null,
           object,
           objectTitle: titleOf(object, "当前信息化对象"),
           segments: [],
@@ -3713,7 +3730,9 @@
           emptyScopeCount: 0,
         });
       }
-      return groupsByKey.get(key);
+      const group = groupsByKey.get(key);
+      if (!group.environment && row?.environment) group.environment = row.environment;
+      return group;
     };
 
     const addUnique = (items, item, keyFn) => {
@@ -3777,7 +3796,7 @@
             ...service,
             scopes: serviceScopesByGroup.get(group.objectKey)?.get(key) || [],
             relationCount: serviceLinkCounts.get(key) || 0,
-            relationType: (serviceLinkCounts.get(key) || 0) > 1 ? "1:N" : "1:1",
+            relationType: (serviceLinkCounts.get(key) || 0) > 1 ? "one_to_many" : "one_to_one",
             isDefaultFocus: key === defaultFocusServiceKey,
           };
         }),
@@ -3786,7 +3805,7 @@
           return {
             ...module,
             relationCount: moduleLinkCounts.get(key) || 0,
-            relationType: (moduleLinkCounts.get(key) || 0) > 1 ? "N:1" : "1:1",
+            relationType: (moduleLinkCounts.get(key) || 0) > 1 ? "many_to_one" : "one_to_one",
           };
         }),
         oneToManyCount: [...serviceLinkCounts.values()].filter((count) => count > 1).length,
@@ -3859,10 +3878,10 @@
     const isEnvironmentSelection = selected?.selectionType === "environment";
     const isSegmentSelection = selected?.selectionType === "segment";
     const scopeServiceRows = isEnvironmentSelection
-      ? list(selected?.objects).flatMap((object) => buildEnvironmentScopeServiceRows(environmentManagement, object, true))
+      ? list(selected?.objects).flatMap((object) => buildEnvironmentScopeServiceRows(environmentManagement, object, true, selected?.environment))
       : isSegmentSelection
-        ? list(selected?.objects).flatMap((object) => buildEnvironmentScopeServiceRows(environmentManagement, object, true))
-      : buildEnvironmentScopeServiceRows(environmentManagement, selected?.object, false);
+        ? list(selected?.objects).flatMap((object) => buildEnvironmentScopeServiceRows(environmentManagement, object, true, selected?.environment))
+      : buildEnvironmentScopeServiceRows(environmentManagement, selected?.object, false, selected?.environment);
     const scopeServiceGroups = buildEnvironmentScopeServiceGroups(scopeServiceRows);
     const summary = {
       objectCount: uniqueBy(navigationTree.flatMap((environment) => list(environment.objects)), (object) => object.id || object.title).length,

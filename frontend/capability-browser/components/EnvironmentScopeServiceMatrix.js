@@ -10,6 +10,7 @@
   const STAGE_PADDING_Y = 58;
   const TARGET_GROUP_GAP = 46;
   const CLUSTER_INSET = 8;
+  const scrollTimers = new WeakMap();
 
   function serviceKey(item) {
     return item?.code || item?.id || item?.title || item?.name || "";
@@ -439,10 +440,29 @@
   function bindGraphFocus() {
     if (window.__sapdEnvironmentObjectGraphBound || typeof document === "undefined" || !document?.addEventListener) return;
     window.__sapdEnvironmentObjectGraphBound = true;
+    document.addEventListener(
+      "scroll",
+      (event) => {
+        const graph = event.target?.closest?.(".environment-object-graph");
+        if (!graph) return;
+        graph.classList.add("is-scrolling");
+        if (!graph.classList.contains("is-locked-focus")) resetFocus(graph);
+        window.clearTimeout(scrollTimers.get(graph));
+        scrollTimers.set(
+          graph,
+          window.setTimeout(() => {
+            graph.classList.remove("is-scrolling");
+            restoreLockedFocus(graph);
+          }, 90)
+        );
+      },
+      true
+    );
     document.addEventListener("mouseover", (event) => {
       const node = event.target.closest?.("[data-graph-node-key]");
       const graph = node?.closest?.(".environment-object-graph");
       if (!node || !graph) return;
+      if (graph.classList.contains("is-scrolling")) return;
       const kind = node.getAttribute("data-graph-node-kind") === "service" ? "service" : "target";
       applyFocus(graph, kind, node.getAttribute("data-graph-node-key") || "", false);
     });

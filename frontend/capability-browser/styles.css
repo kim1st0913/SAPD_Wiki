@@ -25850,7 +25850,6 @@ body.app-shell-locked {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.92),
     0 12px 26px rgba(31, 50, 76, 0.07);
-  backdrop-filter: blur(18px) saturate(1.05);
   transition: opacity 180ms ease, transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
 }
 
@@ -25961,6 +25960,21 @@ body.app-shell-locked {
 
 .environment-object-graph .environment-object-graph-links path.is-muted {
   opacity: 0.04;
+}
+
+.environment-object-graph.is-scrolling .environment-object-graph-node,
+.environment-object-graph.is-scrolling .environment-object-graph-links path {
+  opacity: 1;
+  filter: none;
+}
+
+.environment-object-graph.is-scrolling .environment-object-graph-node {
+  transform: none;
+}
+
+.environment-object-graph.is-scrolling .environment-object-graph-links path {
+  opacity: 0.16;
+  animation: none;
 }
 
 @keyframes environmentRelationFlow {

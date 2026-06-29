@@ -85,16 +85,28 @@ def compact_named(kind: str, title: Any) -> dict[str, str]:
     return {"id": stable_id(kind, value), "type": kind, "title": value}
 
 
+def entity_key(item: dict[str, Any]) -> str:
+    return text(item.get("id") or item.get("title") or item.get("name"))
+
+
 def unique_by_id(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     seen: set[str] = set()
     result = []
     for item in items:
-        item_id = text(item.get("id") or item.get("title"))
+        item_id = entity_key(item)
         if not item_id or item_id in seen:
             continue
         seen.add(item_id)
         result.append(item)
     return result
+
+
+def merge_entities(items: list[dict[str, Any]], additions: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return unique_by_id([*(items or []), *(additions or [])])
+
+
+def target_systems(row: dict[str, Any]) -> list[dict[str, Any]]:
+    return merge_entities(row.get("systems") or [], row.get("securitySystems") or [])
 
 
 def unique_text(values: list[str]) -> list[str]:
@@ -121,6 +133,7 @@ def build_shadow(candidate: dict[str, Any], current: dict[str, Any]) -> dict[str
     module_payloads = relation_payloads(candidate, "service_module")
     measure_payloads = relation_payloads(candidate, "service_measure")
     system_payloads = relation_payloads(candidate, "module_system")
+    measure_system_payloads = relation_payloads(candidate, "measure_system")
     scope_payloads = relation_payloads(candidate, "object_scope")
 
     envs: dict[str, dict[str, Any]] = {}
@@ -191,7 +204,20 @@ def build_shadow(candidate: dict[str, Any], current: dict[str, Any]) -> dict[str
         if not service_item:
             continue
         module = compact_named("security_technology_module", (row.get("module") or {}).get("title"))
+        systems = target_systems(row)
+        if systems:
+            module["systems"] = systems
         service_item["modules"] = unique_by_id([*service_item["modules"], module])
+
+    systems_by_context_service_measure: dict[str, list[dict[str, str]]] = defaultdict(list)
+    for row in measure_system_payloads:
+        service = compact_service(row.get("service"))
+        measure_title = text((row.get("measure") or {}).get("title"))
+        system_title = text((row.get("securitySystem") or {}).get("title"))
+        if not measure_title or not system_title:
+            continue
+        key = relation_key(object_context_key(row), service.get("code") or service.get("title"), measure_title)
+        systems_by_context_service_measure[key] = merge_entities(systems_by_context_service_measure[key], [compact_named("security_system", system_title)])
 
     for row in measure_payloads:
         service = compact_service(row.get("service"))
@@ -199,7 +225,14 @@ def build_shadow(candidate: dict[str, Any], current: dict[str, Any]) -> dict[str
         service_item = service_rows.get(service_key)
         if not service_item:
             continue
-        measure = compact_named("security_technical_measure", (row.get("measure") or {}).get("title"))
+        measure_title = text((row.get("measure") or {}).get("title"))
+        measure = compact_named("security_technical_measure", measure_title)
+        systems = merge_entities(
+            target_systems(row),
+            systems_by_context_service_measure.get(relation_key(object_context_key(row), service.get("code") or service.get("title"), measure_title), []),
+        )
+        if systems:
+            measure["systems"] = systems
         service_item["measures"] = unique_by_id([*service_item["measures"], measure])
 
     systems_by_context_module: dict[str, list[dict[str, str]]] = defaultdict(list)
@@ -219,6 +252,10 @@ def build_shadow(candidate: dict[str, Any], current: dict[str, Any]) -> dict[str
                     systems.extend(systems_by_context_module.get(relation_key(context_key, module["title"]), []))
                 service["securitySystems"] = unique_by_id(systems)
                 object_systems.extend(service["securitySystems"])
+                for module in service["modules"]:
+                    object_systems.extend(module.get("systems") or module.get("securitySystems") or [])
+                for measure in service["measures"]:
+                    object_systems.extend(measure.get("systems") or measure.get("securitySystems") or [])
             mapping["services"] = sorted(mapping["services"], key=lambda item: (item.get("code") or item.get("title")))
         scopes = [mapping["scope"] for mapping in obj["scope_mappings"]]
         services = [service for mapping in obj["scope_mappings"] for service in mapping["services"]]
@@ -288,7 +325,13 @@ def build_matrix_rows(shadow: dict[str, Any]) -> list[dict[str, Any]]:
                 for service in mapping.get("services", []):
                     modules = service.get("modules") or []
                     measures = service.get("measures") or []
-                    systems = service.get("securitySystems") or []
+                    systems = unique_by_id(
+                        [
+                            *(service.get("securitySystems") or []),
+                            *[system for module in modules for system in (module.get("systems") or module.get("securitySystems") or [])],
+                            *[system for measure in measures for system in (measure.get("systems") or measure.get("securitySystems") or [])],
+                        ]
+                    )
                     max_rows = max(1, len(modules), len(measures), len(systems))
                     for index in range(max_rows):
                         rows.append(

@@ -93,6 +93,94 @@ def compact_named(kind: str, title: str, raw: str = "") -> dict[str, Any]:
     }
 
 
+def normal_relation_value(value: Any) -> str:
+    raw = text(value)
+    if not raw or raw in {"/", "-", "—"} or raw.upper() in {"N/A", "NA", "NULL"}:
+        return ""
+    return raw
+
+
+def service_from_raw(raw: Any) -> dict[str, Any]:
+    value = text(raw)
+    if not value:
+        return {}
+    parts = value.split(maxsplit=1)
+    code = parts[0]
+    title = parts[1] if len(parts) > 1 else code
+    return {
+        "raw": value,
+        "code": code,
+        "title": title,
+        "scopeCode": code.split("&T-", 1)[0] if "&T-" in code else "",
+        "capabilityFocusCode": code.split("&", 1)[1] if "&" in code else "",
+    }
+
+
+def merge_entities(items: list[dict[str, Any]], additions: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    by_id = {text(item.get("id") or item.get("title")): item for item in items if text(item.get("id") or item.get("title"))}
+    result = list(items)
+    for addition in additions:
+        key = text(addition.get("id") or addition.get("title"))
+        if not key or key in by_id:
+            continue
+        by_id[key] = addition
+        result.append(addition)
+    return result
+
+
+def merge_source_rows(items: list[Any], additions: list[Any]) -> list[Any]:
+    result = list(items or [])
+    for item in additions or []:
+        if item not in result:
+            result.append(item)
+    return sorted(result)
+
+
+def merge_relation_item(items: list[dict[str, Any]], item: dict[str, Any]) -> None:
+    item_id = text(item.get("id") or item.get("title"))
+    existing = next((candidate for candidate in items if text(candidate.get("id") or candidate.get("title")) == item_id), None)
+    if not existing:
+        items.append(item)
+        return
+    for key in ("systems", "securitySystems", "linkedSystems"):
+        existing[key] = merge_entities(existing.get(key, []), item.get(key, []))
+    if item.get("sourceRows"):
+        existing["sourceRows"] = merge_source_rows(existing.get("sourceRows", []), item.get("sourceRows", []))
+
+
+def relation_measure_system_identity(row: dict[str, Any]) -> str:
+    service = row.get("service") or {}
+    measure = row.get("measure") or {}
+    system = row.get("securitySystem") or {}
+    return relation_key(
+        row.get("informationEnvironment"),
+        row.get("environmentSegment"),
+        row.get("informationObject"),
+        service.get("code") or service.get("title"),
+        measure.get("title"),
+        system.get("title"),
+    )
+
+
+def relation_target_system_identity(row: dict[str, Any]) -> str:
+    service = row.get("service") or {}
+    target = row.get("target") or row.get("module") or row.get("measure") or {}
+    system = row.get("securitySystem") or {}
+    return relation_key(
+        row.get("informationEnvironment"),
+        row.get("environmentSegment"),
+        row.get("informationObject"),
+        service.get("code") or service.get("title"),
+        row.get("targetKind"),
+        target.get("title"),
+        system.get("title"),
+    )
+
+
+def split_target_titles(value: Any) -> list[str]:
+    return [item for item in (text(part) for part in text(value).split(" / ")) if item]
+
+
 def duplicate_resolution(audit: dict[str, Any]) -> tuple[dict[str, Any], set[str]]:
     resolutions = []
     blocked = set()
@@ -184,6 +272,77 @@ def authoritative_module_system_relations(relations: dict[str, list[dict[str, An
                     payload["rows"].append(source_row)
     return list(output.values())
 
+
+def source_target_system_relations(normalized_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    output: dict[str, dict[str, Any]] = {}
+    for row in normalized_rows:
+        kind = text(row.get("moduleOrMeasureKind"))
+        if kind not in {"module", "measure"}:
+            continue
+        target_titles = split_target_titles(
+            row.get("securityTechnologyModule") if kind == "module" else row.get("securityTechnicalMeasure") or row.get("moduleOrMeasureRaw")
+        )
+        system_title = normal_relation_value(row.get("securitySystem"))
+        if not target_titles or not system_title:
+            continue
+        for target_title in target_titles:
+            target_key = "module" if kind == "module" else "measure"
+            payload = {
+                "informationEnvironment": row.get("informationEnvironment"),
+                "environmentSegment": row.get("environmentSegment"),
+                "informationObject": row.get("informationObject"),
+                "service": service_from_raw(row.get("securityTechnicalService")),
+                "targetKind": kind,
+                target_key: {"title": target_title, "raw": text(row.get("moduleOrMeasureRaw") or target_title)},
+                "target": {"title": target_title, "raw": text(row.get("moduleOrMeasureRaw") or target_title)},
+                "securitySystem": {"title": system_title},
+                "sourceCells": row.get("sourceCells") or {},
+                "mergedRanges": row.get("mergedRanges") or {},
+                "rows": [row.get("row")] if row.get("row") is not None else [],
+            }
+            key = relation_target_system_identity(payload)
+            existing = output.setdefault(key, payload)
+            existing["rows"] = merge_source_rows(existing.get("rows", []), payload.get("rows", []))
+    return list(output.values())
+
+
+def attach_target_systems_to_service_targets(relations: dict[str, list[dict[str, Any]]]) -> None:
+    systems_by_target: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    rows_by_target: dict[str, list[Any]] = defaultdict(list)
+    for row in relations.get("targetSystemRelations", []):
+        system_title = normal_relation_value((row.get("securitySystem") or {}).get("title"))
+        if not system_title:
+            continue
+        target = row.get("target") or row.get("module") or row.get("measure") or {}
+        key = relation_key(
+            row.get("informationEnvironment"),
+            row.get("environmentSegment"),
+            row.get("informationObject"),
+            (row.get("service") or {}).get("code") or (row.get("service") or {}).get("title"),
+            row.get("targetKind"),
+            target.get("title"),
+        )
+        systems_by_target[key] = merge_entities(systems_by_target[key], [compact_named("security_system", system_title)])
+        rows_by_target[key] = merge_source_rows(rows_by_target[key], row.get("rows", []))
+    for relation_name, target_kind, field_name in (
+        ("serviceModuleRelations", "module", "module"),
+        ("serviceMeasureRelations", "measure", "measure"),
+    ):
+        for row in relations.get(relation_name, []):
+            target = row.get(field_name) or {}
+            key = relation_key(
+                row.get("informationEnvironment"),
+                row.get("environmentSegment"),
+                row.get("informationObject"),
+                (row.get("service") or {}).get("code") or (row.get("service") or {}).get("title"),
+                target_kind,
+                target.get("title"),
+            )
+            systems = systems_by_target.get(key, [])
+            if not systems:
+                continue
+            row["systems"] = merge_entities(row.get("systems", []), systems)
+            row["systemSourceRows"] = merge_source_rows(row.get("systemSourceRows", []), rows_by_target.get(key, []))
 
 def candidate_objects_and_rows(relations: dict[str, list[dict[str, Any]]]) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     objects: dict[str, dict[str, Any]] = {}
@@ -286,23 +445,33 @@ def candidate_objects_and_rows(relations: dict[str, list[dict[str, Any]]]) -> tu
 
     for row in relations.get("serviceModuleRelations", []):
         module = compact_named("security_technology_module", (row.get("module") or {}).get("title"), (row.get("module") or {}).get("raw", ""))
+        module_systems = merge_entities(row.get("systems", []), row.get("securitySystems", []))
+        if module_systems:
+            module["systems"] = module_systems
+            module["sourceRows"] = merge_source_rows(row.get("rows", []), row.get("systemSourceRows", []))
+            for system in module_systems:
+                add_object(system)
         add_object(module)
         scope_row = ensure_scope_service_row(row)
-        if module["id"] not in {item["id"] for item in scope_row["modules"]}:
-            scope_row["modules"].append(module)
+        merge_relation_item(scope_row["modules"], module)
         context_key = object_context_key(row)
-        if context_key in environment_rows and module["id"] not in {item["id"] for item in environment_rows[context_key]["modules"]}:
-            environment_rows[context_key]["modules"].append(module)
+        if context_key in environment_rows:
+            merge_relation_item(environment_rows[context_key]["modules"], module)
 
     for row in relations.get("serviceMeasureRelations", []):
         measure = compact_named("security_technical_measure", (row.get("measure") or {}).get("title"), (row.get("measure") or {}).get("raw", ""))
+        measure_systems = merge_entities(row.get("systems", []), row.get("securitySystems", []))
+        if measure_systems:
+            measure["systems"] = measure_systems
+            measure["sourceRows"] = merge_source_rows(row.get("rows", []), row.get("systemSourceRows", []))
+            for system in measure_systems:
+                add_object(system)
         add_object(measure)
         scope_row = ensure_scope_service_row(row)
-        if measure["id"] not in {item["id"] for item in scope_row["measures"]}:
-            scope_row["measures"].append(measure)
+        merge_relation_item(scope_row["measures"], measure)
         context_key = object_context_key(row)
-        if context_key in environment_rows and measure["id"] not in {item["id"] for item in environment_rows[context_key]["measures"]}:
-            environment_rows[context_key]["measures"].append(measure)
+        if context_key in environment_rows:
+            merge_relation_item(environment_rows[context_key]["measures"], measure)
 
     for row in relations.get("moduleSystemRelations", []):
         system = compact_named("security_system", (row.get("securitySystem") or {}).get("title"))
@@ -330,10 +499,17 @@ def candidate_relation_rows(relations: dict[str, list[dict[str, Any]]]) -> list[
         "serviceModuleRelations": "service_module",
         "serviceMeasureRelations": "service_measure",
         "moduleSystemRelations": "module_system",
+        "measureSystemRelations": "measure_system",
+        "targetSystemRelations": "target_system",
     }
     for relation_name, relation_type in relation_specs.items():
         for row in relations.get(relation_name, []):
-            identity = relation_identity(relation_name, row)
+            if relation_name == "measureSystemRelations":
+                identity = relation_measure_system_identity(row)
+            elif relation_name == "targetSystemRelations":
+                identity = relation_target_system_identity(row)
+            else:
+                identity = relation_identity(relation_name, row)
             rows.append(
                 {
                     "id": stable_id("relation", relation_type, identity),
@@ -492,6 +668,11 @@ def build_candidate(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str,
     resolution, blocked_contexts = duplicate_resolution(audit)
     candidate_relations = filtered_relations(relations, blocked_contexts)
     candidate_relations["moduleSystemRelations"] = authoritative_module_system_relations(candidate_relations, PROJECT_ROOT / args.catalog_workbook)
+    candidate_relations["targetSystemRelations"] = source_target_system_relations(normalized_rows)
+    candidate_relations["measureSystemRelations"] = [
+        row for row in candidate_relations["targetSystemRelations"] if row.get("targetKind") == "measure"
+    ]
+    attach_target_systems_to_service_targets(candidate_relations)
     objects, environment_rows, scope_service_rows = candidate_objects_and_rows(candidate_relations)
     relation_rows = candidate_relation_rows(candidate_relations)
     blocked_rows = [row for row in normalized_rows if object_context_key(row) in blocked_contexts]
@@ -561,6 +742,8 @@ def build_candidate(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str,
         "serviceModuleRelations": len(candidate_relations.get("serviceModuleRelations", [])),
         "serviceMeasureRelations": len(candidate_relations.get("serviceMeasureRelations", [])),
         "moduleSystemRelations": len(candidate_relations.get("moduleSystemRelations", [])),
+        "measureSystemRelations": len(candidate_relations.get("measureSystemRelations", [])),
+        "targetSystemRelations": len(candidate_relations.get("targetSystemRelations", [])),
         "blockedDuplicateObjectContexts": len(blocked_contexts),
         "sameNameDifferentContexts": len(resolution["sameNameDifferentContexts"]),
         "blockedSourceRows": len(blocked_rows),
@@ -592,7 +775,8 @@ def build_candidate(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str,
             "objectInstanceUniqueKey": "informationEnvironment + environmentSegment + informationObject",
             "duplicateObjectPolicy": "block_duplicate_context_only; same_name_different_context_is_info",
             "moduleSystemAuthority": "安全技术模块清单",
-            "scopeMappingSheetRole": "作用域表只提供对象-服务-模块/措施使用关系；安全技术模块主数据和模块-安全系统归属不从作用域表 H 列生成。",
+            "measureSystemAuthority": "作用域-安全技术服务-安全技术模块映射 H 列行级值",
+            "scopeMappingSheetRole": "作用域表提供对象-服务-模块/措施使用关系；模块-安全系统归属以安全技术模块清单为准，措施-安全系统只按作用域表 H 列行级非空值生成。",
         },
         "objects": objects,
         "relations": relation_rows,

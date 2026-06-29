@@ -4,7 +4,7 @@
 
 ## 治理入口
 
-- 当前未关闭问题数：10
+- 当前未关闭问题数：16
 - 已关闭归档问题数：137
 - 全量索引：`docs/06-implementation/open-issues-index.md`
 - 已关闭问题归档：`docs/05-archive/open-issues-history/2026-06.md`
@@ -14,6 +14,12 @@
 
 | 编号 | 状态 | 标题 |
 |---|---|---|
+| OI-151 | 已修复 / 待页面验收 | 信息化环境汇聚图节点缺少稳定业务锚点导致定位不到 |
+| OI-150 | 已修复 / 待真实浏览器验收 | 全局批注值定位缺少运行时索引导致定位慢 |
+| OI-149 | 新发现 / 待治理设计 | 前端 JSON 加载体量与首屏性能需分层治理 |
+| OI-148 | 已修复 / 待页面验收 | 全局批注在新环境页面缺少值级锚点与路由切换遮挡治理 |
+| OI-147 | 已修复 / 待页面验收 | 信息化环境安全技术汇聚图措施误继承安全系统 |
+| OI-146 | 已修复 / 待页面验收 | 信息化环境安全技术汇聚图安全系统列未带出 |
 | OI-145 | 新发现 / 待修复 | 本地 API Host/token 边界未统一拦截 |
 | OI-144 | 已修复 / 待页面验收 | 全局搜索与页面内搜索状态串线 |
 | OI-142 | 已修复 / 用户已验收 | 安全技术服务清单能力-关注点顺序下服务显示不全 |
@@ -40,6 +46,78 @@
 - 验证结果：
 
 ## 当前问题详情
+
+## OI-151：信息化环境汇聚图节点缺少稳定业务锚点导致定位不到
+
+- 状态：已修复 / 待页面验收
+- 类型：前端 / 批注 / 信息化环境映射 / 锚点契约
+- 对象或页面：`/capability-mapping` 与 `/environment-mapping` 下的信息化环境安全能力映射页、`信息化环境-安全技术` tab、`EnvironmentScopeServiceMatrix` 汇聚图中的安全技术服务、安全技术模块、安全技术措施和安全系统节点。
+- 现象：用户截图指出环境汇聚图中的 `零信任访问控制台` 等节点批注定位不到；定位不到后会触发多轮 fallback / retry，放大为页面加载和交互变慢。根因不是原始数据问题，而是节点只输出显示文本和值级锚点，缺少稳定 `data-annotation-target-ref` 业务对象锚点；页面重渲染、节点位置变化、滚动容器变化或右侧抽屉遮挡后，旧的 `field_value` 坐标式定位容易失效。
+- 影响：环境图节点上的批注可能只能在抽屉列表出现，无法稳定定位回具体服务 / 模块 / 措施 / 安全系统；失败定位会继续拖慢当前页。
+- 当前处理：已给汇聚图节点补稳定业务锚点。`app.js` 将 `annotationTargetAttrsForHtml()` 暴露为 `window.sapdDisplay.annotationTargetAttrs`；`EnvironmentScopeServiceMatrix.js` 新增 `annotationObjectAttrs()`，并在安全技术服务、安全技术模块、安全技术措施、安全系统按钮上输出 `data-annotation-target-ref`、对象类型、对象标题和 `data-annotation-prefer-target="true"`。后续用户在这些节点上新增批注时，优先保存为稳定对象锚点，不再优先落到易漂移的 `field_value`。
+- 需要确认：请在固定入口 `http://127.0.0.1:5173/?v=env-fix-7#/capability-mapping` 打开 `信息化环境-安全技术` tab，抽查安全系统节点如 `零信任访问控制台`：新增批注后点击“定位”应回到对应节点；旧的值级批注若仍存在，会先走运行时索引和文本兜底。
+- 修复说明：修改 `frontend/capability-browser/app.js`、`frontend/capability-browser/components/EnvironmentScopeServiceMatrix.js`、`frontend/capability-browser/index.html` 和 `scripts/audit_user_annotation_contract.mjs`。未修改正式 JSON、SQLite、原始 Excel 或用户批注数据库。
+- 验证结果：`node scripts/audit_user_annotation_contract.mjs` 已通过，新增断言覆盖环境汇聚图稳定锚点；`node --check frontend/capability-browser/app.js`、`node --check frontend/capability-browser/components/EnvironmentScopeServiceMatrix.js`、`node --check scripts/audit_user_annotation_contract.mjs` 均通过；`node scripts/frontend_content_smoke_check.mjs --skip-api` 通过。未启动系统 Chrome，真实点击回归待用户批准后再做。
+
+## OI-150：全局批注值定位缺少运行时索引导致定位慢
+
+- 状态：已修复 / 待真实浏览器验收
+- 类型：前端 / 批注 / 性能 / 定位索引
+- 对象或页面：全局 `UserAnnotationDrawer`、`app.js` 批注定位链路、标准 / 框架页、信息化环境映射页、生命周期页、字典和指南 / 幻灯片页。
+- 现象：用户截图指出 `ISO/IEC 27001:2022` 这类值级批注定位非常慢；环境页节点定位不到时还会导致整体页面加载慢。代码复核确认：旧链路在 `jumpToUserNote()` 定位失败时最多重试 28 次，每次都会调用 `applyAnnotationAnchorMarkers()`；而旧 marker / finder 会分别扫描 `data-annotation-target-ref`、`data-annotation-value`、`td`、`data-capability-id`、`data-maintenance-id` 和 `tr`，并继续做文本 fallback。失败时重复全 DOM 扫描，慢是架构问题，不是视觉问题。
+- 影响：值级批注越多、当前页表格或图节点越多，定位和常态标记越容易拖慢；定位失败时会触发多轮扫描和重试，造成用户感知的卡顿。
+- 当前处理：已在 `app.js` 增加运行时 `annotationAnchorIndex` / `annotationHiddenAnchorIndex` / `annotationNoteIndex`。当前页面渲染后先建立 `target_ref -> anchors`、旧 `field_value`、表格行、能力行、维护行和文本候选索引；`applyAnnotationAnchorMarkers()` 改为构建一次索引后按 `target_ref` 批量标记；`findAnnotationAnchorElement()` 先查索引，找不到再进入历史坐标和文本兜底；DOM 变更、页面切换或批注标记调度时会使索引失效并重建。
+- 需要确认：该问题和 `OI-149` 不同。`OI-149` 管 JSON 包体和首屏数据加载；本问题只管批注定位算法。后续若真实浏览器仍慢，应继续做点击耗时采样和 retry 次数上限治理，而不是混到 JSON 拆包里。
+- 修复说明：修改 `frontend/capability-browser/app.js`，新增运行时索引、索引失效、索引候选查找和 note 页面索引；修改 `scripts/audit_user_annotation_contract.mjs` 增加 `annotation_anchor_runtime_index_missing` 防回归断言；同步更新 `frontend/capability-browser/index.html` 缓存版本。未修改正式 JSON、SQLite、原始 Excel 或用户批注数据库。
+- 验证结果：`node scripts/audit_user_annotation_contract.mjs` 通过，静态确认索引函数和环境稳定锚点存在；`node --check frontend/capability-browser/app.js`、`node --check scripts/audit_user_annotation_contract.mjs` 通过；`node scripts/frontend_content_smoke_check.mjs --skip-api` 通过。未启动系统 Chrome，真实点击耗时和“定位不到”复现回归待用户批准后再做。
+
+## OI-149：前端 JSON 加载体量与首屏性能需分层治理
+
+- 状态：新发现 / 待治理设计
+- 类型：前端 / 数据包 / 性能 / JSON 治理
+- 对象或页面：`/capability-mapping` 安全能力页、`/environment-mapping` 信息化环境页、知识库字典页、标准 / 框架页、指南 / 幻灯片页，以及 `frontend/capability-browser/dataClient.js` / `app.js` 的数据加载契约。
+- 现象：用户反馈安全能力页面再次出现数据加载缓慢，部分页面曾出现切换后无法点击、字典 / 标准模块偶发无法加载；同时要求“所有数据加载 JSON 需要再次治理”。本轮检查未复现 ViewModel 数据错配，`routePackagesForCurrentState()` 仍能保证能力页首屏优先请求 `capabilityInitial`，但当前主数据包体量仍偏大：`capability-tree.json` 约 `6394.8 KB`、`capability-workbench.json` 约 `5659.7 KB`、`maintenance-knowledge.json` 约 `10193.2 KB`、`standards` 分片总量约 `8463.5 KB`、`environment-workbench.json` 约 `4626.8 KB`。
+- 影响：即使懒加载契约未违规，较大 JSON 与全局搜索、标准详情、能力完整 workbench 兜底加载叠加时，仍可能造成用户感知慢加载；若后续页面新增时绕开 `routePackagesForCurrentState()` 或全局搜索一次性预热过多包，性能问题会反复出现。
+- 当前处理：本轮只做代码级防回归与状态登记，未重导或拆分任何正式 JSON。已执行 `node scripts/audit_frontend_lazy_load_contract.mjs`、`node scripts/audit_capability_viewmodel_contract.mjs --url http://127.0.0.1:5173`、`python3 scripts/data_package_summary.py --package all`，确认现有懒加载契约通过、能力 ViewModel 契约通过、主要 JSON 均为 `data_state=ready`。页面切换不可点击的直接风险已在 `OI-148` 中先修批注抽屉 closing 状态遮挡。
+- 需要确认：建议后续单独做“JSON 加载治理”任务，设计包分层目标：首屏轻量 index / selected view、按对象 projection、标准按表分片、维护字典按 section 分片、全局搜索索引单独压缩；不要在本问题下直接重建数据包或覆盖正式 JSON。
+- 修复说明：待治理设计；本轮未修改任何 `public/data/*.json`。
+- 验证结果：本轮数据包摘要显示所有主要包 `result=pass`、`data_state=ready`；能力页契约审计 11 个 L0/L1/L2/关注点样本均通过，`localRelationMapSource` 在关注点样本为 `backend_projection`，上层能力样本为 `viewmodel_fallback`。
+
+## OI-148：全局批注在新环境页面缺少值级锚点与路由切换遮挡治理
+
+- 状态：已修复 / 待页面验收
+- 类型：前端 / 批注 / 全局交互 / 信息化环境映射
+- 对象或页面：`/environment-mapping` 信息化环境页、`信息化环境-安全技术` tab、`EnvironmentScopeServiceMatrix`、`EnvironmentBasemapViewer`、右侧 `UserAnnotationDrawer`，以及用户截图涉及的 LC-AP / 幻灯片 / 字典 / 标准等全局批注入口。
+- 现象：用户反馈部分页面批注定位功能失效，信息化环境安全能力映射页面批注没有加载，说明批注功能只在之前调试过的页面生效；同时反馈页面切换后部分页面无法点击。代码审计复现为：`scripts/audit_user_annotation_contract.mjs` 失败，动态渲染样例中 `environment` 值级批注锚点数量为 `0`；`EnvironmentBasemapViewer` 的图谱详情 chip 也未接入值级批注属性。页面切换不可点击的风险点为批注抽屉关闭动画期间 `.annotation-drawer-panel` 仍保持 `pointer-events:auto`，会在短时间内遮挡右侧工作区。
+- 影响：新开发的信息化环境映射区域无法被全局批注稳定识别，已有批注可能只显示在抽屉列表但无法定位到具体值；关闭批注抽屉或路由切换时，右侧面板可能短暂吞掉点击事件，放大为“页面无法点击”的体验问题。
+- 当前处理：已在 `EnvironmentScopeServiceMatrix.js` 接入共享 `display.annotationValueAttrs`，覆盖环境上下文、作用域、服务、模块 / 措施和安全系统节点；已在 `EnvironmentBasemapViewer.js` 为底图详情 chip 输出 `data-annotation-value` / `data-copy-text` / `data-annotation-tooltip`；已在 `app.js` 为信息化环境页设置当前选中信息化环境 / 环境子类 / 信息化对象的业务批注目标；已在 `styles.css` 禁用批注抽屉 closing 状态面板的 pointer events；已收窄 `audit_user_annotation_contract.mjs` 的手写 chip 扫描，避免把只返回 class 名称的函数误报为缺少锚点。
+- 需要确认：请用户在固定入口 `http://127.0.0.1:5173/?v=env-fix-7#/environment-mapping` 或导航进入信息化环境页，打开 `信息化环境-安全技术` tab 后抽查：批注抽屉应显示当前页批注数量；对服务、模块 / 措施、安全系统节点右键添加批注后应能定位回对应节点；切换到幻灯片、字典、标准页后页面不应被旧批注面板遮挡。
+- 修复说明：修改 `frontend/capability-browser/components/EnvironmentScopeServiceMatrix.js`、`frontend/capability-browser/components/EnvironmentBasemapViewer.js`、`frontend/capability-browser/app.js`、`frontend/capability-browser/styles.css` 和 `scripts/audit_user_annotation_contract.mjs`。未修改用户批注数据库、原始 Excel、SQLite 或正式数据包。
+- 验证结果：`node scripts/audit_user_annotation_contract.mjs` 已通过，动态样例 `environment` 值级锚点从 `0` 提升到 `5`；`node scripts/audit_frontend_lazy_load_contract.mjs` 通过；`node scripts/audit_frontend_route_refresh_contract.mjs` 通过；相关 JS 语法检查通过。未启动系统 Chrome，真实点击回归待用户批准后再做。
+
+## OI-147：信息化环境安全技术汇聚图措施误继承安全系统
+
+- 状态：已修复 / 待页面验收
+- 类型：数据 / 前端 / ViewModel / 信息化环境映射
+- 对象或页面：`/capability-mapping` 信息化环境页，`信息化环境-安全技术` tab，组件 `EnvironmentScopeServiceMatrix`，ViewModel `buildEnvironmentScopeServiceRows`，原始 Sheet `作用域-安全技术服务-安全技术模块映射`。
+- 现象：用户截图指出 `应用系统自身身份管理模块`、`应用系统自身认证模块`、`应用系统自身授权管理模块`、`应用系统自身凭证管理模块`、`应用系统自身日志记录模块` 等安全技术措施在汇聚图中显示 `1 服务 / 1 系统`，并连到 `零信任网络访问控制`；但原始表对应 H 列 `安全系统` 为 `N/A`。
+- 影响：措施被错误连到安全系统，会让用户误判原始环境映射中存在措施到系统关系。该问题由上一轮 `OI-146` 修复时把服务行 `securitySystems` 下推到所有模块 / 措施节点触发；正式包当前又把同一服务下多行系统聚合到 `service.securitySystems`，因此服务级系统不能被视为每个措施的行级事实。
+- 当前处理：已用 openpyxl / normalized rows / review rows 重新核对原始 Excel 合并单元格，并新增页面业务逻辑审计。最终口径不是只补 `8` 条或 `10` 条措施关系，而是把页面消费结构改为完整目标级关系：`服务 -> 模块/措施 -> 安全系统`。严格审计覆盖 `871` 个目标键，其中 `690` 个模块目标、`181` 个措施目标，`700` 个目标系统关系已全部落到目标节点自身 `systems` 字段；`service.securitySystems` 只保留为聚合信息，不再作为模块 / 措施继承来源。措施目标不再写重复 `securitySystems` 字段。用户要求再次复核后，当前仓库磁盘源 `data/raw-samples/wiki sample.xlsx` 已确认同步截图修改：`G34='单向光闸'`、`G35='双向网闸'`，两行服务均为 `I-NT&T-PD.PP-03 网络隔离`，安全系统来自合并区 `H34:H39` 的 `网络安全隔离与交换`。已基于该已保存源表重新执行源表审计、candidate、shadow、replacement bundle，并覆盖正式运行 `environment-workbench.json`；当前 JSON 中不再存在组合目标节点，只有 `单向光闸`、`双向网闸` 两个独立模块目标。
+- 需要确认：请用户在固定入口 `http://127.0.0.1:5173/?v=env-fix-7#/capability-mapping` 人工验收截图对象所在视图：上述 `应用系统自身...` 措施不应显示 `1 系统`，也不应连到 `零信任网络访问控制`；`API网关`、`应用自身数据加解密模块`、`云自身网络ACL及安全组` 等源表 H 列有值的目标应只连到对应安全系统；`网络周界 / 企业内跨网边界 / 跨网边界` 下应显示 `单向光闸`、`双向网闸` 两个独立模块，并分别关联 `网络安全隔离与交换`。
+- 修复说明：修改 `frontend/capability-browser/viewModels.js`，彻底取消模块 / 措施从服务级 `securitySystems` 继承系统，只读取目标自身 `systems / linkedSystems / securitySystems`；新增 `scripts/audit_environment_page_business_logic.mjs` 严格核对页面业务逻辑与 JSON 结构；更新 `scripts/apply_environment_measure_system_relations.mjs`，按 normalized rows 对正式 `environment-workbench.json` 写入模块和措施目标级 `systems`；修改 `scripts/build_environment_workbench_reimport_candidate.py`、`scripts/verify_environment_reimport_candidate_downstream.py`、`scripts/build_environment_reimport_replacement_bundle.py`，让候选包 / shadow / replacement bundle 保留 `target_system` 目标级关系，并避免 replacement bundle 对象索引混入 `reimport:*` 与 `shadow:*` 双套 ID。未修改原始 Excel、SQLite、node-details、标准包、字典包或 LC 数据包。
+- 验证结果：严格业务审计 `node scripts/audit_environment_page_business_logic.mjs` 为 `pass`：`expectedTargetKeys=871`、`actualTargetKeys=871`、`missingTargetCount=0`、`missingSystemCount=0`、`unexpectedSystemCount=0`、`ownTargetSystemMissingCount=0`、`jsonWarningCount=0`；候选生成链路通过，`targetSystemRelations=700`；downstream shadow 验证通过，`validationErrorCount=0`；replacement bundle 验证通过，`validationErrors=[]`；正式运行包 `dataState=ready`，对象索引为 `information_environment=10`、`information_object=67`、`security_technology_module=57`、`security_technical_measure=28`。源表 normalized rows 精确显示 `单向光闸` 来自第 `34` 行、`双向网闸` 来自第 `35` 行；candidate relations 也分别保留 `sourceRows=[34]` 和 `sourceRows=[35]`。本地正式 JSON 抽样确认 `combo=0`，`单向光闸`、`双向网闸` 均从目标节点自身 `systems` 返回 `网络安全隔离与交换`，有系统的措施只写 `systems`。HTTP 抽样因当前 Codex 权限 / 额度限制未执行，但 5173 服务状态检查通过。
+
+## OI-146：信息化环境安全技术汇聚图安全系统列未带出
+
+- 状态：已修复 / 待页面验收
+- 类型：前端 / ViewModel / 信息化环境映射
+- 对象或页面：`/capability-mapping` 信息化环境页，`信息化环境-安全技术` tab，组件 `EnvironmentScopeServiceMatrix`，ViewModel `buildEnvironmentScopeServiceRows`。
+- 现象：用户抽查 `云数据中心 / 业务应用 / API网关层` 时，左侧服务和中间 `API安全防护` / `API网关` 能显示，但右侧 `安全系统` 显示 `0 项 / 暂无安全系统`；实际该对象的服务映射行已带有 `应用安全防护` 安全系统。
+- 影响：汇聚图误把已有安全系统显示为空，会让用户误判正式数据缺失；该问题仅影响新迁移的汇聚图展示，不代表 `environment-workbench.json` 源数据为空。
+- 当前处理：该问题已被 `OI-147` 收敛为目标级关系修复：正式运行包中 `API安全防护` / `API网关` 等模块或措施目标节点自身已写入 `systems`，ViewModel 只读取目标自身 `systems / linkedSystems / securitySystems`，不再从服务级 `securitySystems` 继承。`service.securitySystems` 仅保留为服务级聚合信息，不能作为模块 / 措施行级事实。
+- 需要确认：请用户在固定入口 `http://127.0.0.1:5173/?v=env-fix-7#/capability-mapping` 人工验收 `API网关层`：`信息化环境-安全技术` tab 右侧应显示 `安全系统 1 项`，节点为 `应用安全防护`。
+- 修复说明：修改 `frontend/capability-browser/viewModels.js` 和 `frontend/capability-browser/components/EnvironmentScopeServiceMatrix.js`；更新 `frontend/capability-browser/index.html` 中 `viewModels.js` 缓存版本；后续 `OI-147` 已同步补齐正式运行包目标节点自身 `systems`。未修改 node-details、原始 Excel、SQLite 或标准 / 字典包。
+- 验证结果：严格业务审计和授权本地 HTTP 抽样均确认 `API网关层` 的 `API安全防护 -> 应用安全防护` 关系来自目标节点自身 `systems`；组件渲染级检查确认汇聚图 HTML 包含 `安全系统 1 项` 和 `应用安全防护`。最终项目验证见本轮 `progress.md` 记录。
 
 ## OI-145：本地 API Host/token 边界未统一拦截
 

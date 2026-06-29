@@ -61,6 +61,13 @@
 
   const stateByRoot = new WeakMap();
 
+  function annotationValueAttrs(value) {
+    const raw = text(value).trim();
+    if (!raw) return "";
+    const escaped = escapeHtml(raw);
+    return ` data-annotation-value="true" data-copy-text="${escaped}" title="${escaped}" data-annotation-tooltip="${escaped}"`;
+  }
+
   async function fetchText(url) {
     const response = await fetch(url, { cache: "no-store" });
     if (!response.ok) throw new Error(`${url} HTTP ${response.status}`);
@@ -697,13 +704,14 @@
     const unique = uniqueById(items);
     if (!unique.length) return `<span class="environment-basemap-lab-empty">暂无映射</span>`;
     const chipClass = chipClassForKind(kind);
+    const kindLabel = chipKindLabel(kind);
     return `
       <div class="environment-basemap-lab-chips">
         ${unique
-          .map(
-            (item) =>
-              `<span class="${chipClass}" title="${escapeHtml([item.objectCode, item.objectName].map((value) => text(value).trim()).filter(Boolean).join(" ") || item.objectId)}">${renderChipContent(item, kind)}</span>`,
-          )
+          .map((item) => {
+            const label = [item.objectCode, item.objectName].map((value) => text(value).trim()).filter(Boolean).join(" ") || item.objectId;
+            return `<span class="${chipClass}"${annotationValueAttrs([kindLabel, label].filter(Boolean).join(" | "))}>${renderChipContent(item, kind)}</span>`;
+          })
           .join("")}
       </div>
     `;

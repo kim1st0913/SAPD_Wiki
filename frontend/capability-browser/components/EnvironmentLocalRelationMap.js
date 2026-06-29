@@ -31,6 +31,172 @@
     return id && selectedId && id === selectedId ? " is-current" : "";
   }
 
+  const ENVIRONMENT_CAPABILITY_PREVIEW_LIMIT = 5;
+  const SUBCATEGORY_CAPABILITY_PREVIEW_LIMIT = 6;
+
+  function relationNodeTitle(node, fallback = "未命名能力") {
+    return utils.codeTitleOf(node) || node?.title || node?.name || fallback;
+  }
+
+  function relationNodeCount(object) {
+    return uniqueRelationNodes(utils.list(object?.relationNodes)).length;
+  }
+
+  function partitionObjectsCapability(objects) {
+    return partitionRelationNodes(utils.list(objects).flatMap((object) => utils.list(object.relationNodes)));
+  }
+
+  function scopeKindsFromRows(rows) {
+    const scopesByKey = new Map();
+    for (const row of utils.list(rows)) {
+      const rowScopes = utils.list(row?.scopes).length ? utils.list(row.scopes) : [row?.scope];
+      for (const scope of rowScopes) {
+        const key = scope?.code || scope?.id || scope?.title || scope?.name;
+        if (key && !scopesByKey.has(key)) scopesByKey.set(key, scope);
+      }
+    }
+    return [...scopesByKey.values()];
+  }
+
+  function sortObjectsByCapability(objects) {
+    return [...utils.list(objects)].sort((left, right) => {
+      const countDiff = relationNodeCount(right) - relationNodeCount(left);
+      if (countDiff) return countDiff;
+      return (left.title || "").localeCompare(right.title || "", "zh-Hans-CN");
+    });
+  }
+
+  function capabilityFrequency(objects) {
+    const rowsByKey = new Map();
+    for (const object of utils.list(objects)) {
+      for (const node of uniqueRelationNodes(utils.list(object.relationNodes))) {
+        const key = relationNodeKey(node) || relationNodeTitle(node);
+        if (!key) continue;
+        const kind = hierarchyNodeKind(node);
+        const row = rowsByKey.get(key) || {
+          node,
+          kind,
+          count: 0,
+          title: relationNodeTitle(node),
+        };
+        row.count += 1;
+        rowsByKey.set(key, row);
+      }
+    }
+    return [...rowsByKey.values()].sort((left, right) => right.count - left.count || left.title.localeCompare(right.title, "zh-Hans-CN"));
+  }
+
+  function renderStatsBadges(rows) {
+    return `
+      <div class="environment-statistics-status">
+        ${utils.list(rows).map((row) => statBadge(row.label, row.value)).join("")}
+      </div>
+    `;
+  }
+
+  function renderStatsMetricCells(rows) {
+    return `
+      <div class="environment-statistics-metrics">
+        ${utils
+          .list(rows)
+          .map(
+            (row) => `
+              <div class="environment-statistics-metric">
+                <strong>${escape(row.value)}</strong>
+                <span>${escape(row.label)}</span>
+              </div>
+            `,
+          )
+          .join("")}
+      </div>
+    `;
+  }
+
+  function renderStatisticsSummary({ kind, title, coverage, metrics }) {
+    return `
+      <section class="environment-statistics-summary">
+        <div class="environment-statistics-summary-head">
+          <div class="environment-statistics-summary-title">
+            <span class="environment-statistics-badge">${escape(kind)}</span>
+            <span>${escape(title)}</span>
+          </div>
+          <span class="environment-statistics-coverage">${escape(coverage)}</span>
+        </div>
+        ${renderStatsMetricCells(metrics)}
+      </section>
+    `;
+  }
+
+  function renderStatisticChiplet(row, shortKind = false) {
+    const kind = row.kind || hierarchyNodeKind(row.node);
+    const label = shortKind ? (kind.includes("措施") ? "措施" : "模块") : kind;
+    return `
+      <span class="environment-statistics-chiplet ${kind.includes("措施") ? "is-measure" : "is-module"}">
+        <small>${escape(label)}</small>
+        <strong>${escape(relationNodeTitle(row.node))}</strong>
+      </span>
+    `;
+  }
+
+  function renderCapabilityChipGrid(rows, limit, emptyText, { shortKind = false, moreLabel = "更多模块/措施" } = {}) {
+    const items = utils.list(rows);
+    if (!items.length) return `<div class="environment-statistics-empty">${escape(emptyText)}</div>`;
+    const visible = items.slice(0, limit);
+    const hiddenCount = Math.max(0, items.length - visible.length);
+    return `
+      <div class="environment-statistics-chip-grid">
+        ${visible.map((row) => renderStatisticChiplet(row, shortKind)).join("")}
+        ${
+          hiddenCount
+            ? `<span class="environment-statistics-chiplet is-more"><small>未展开</small><strong>${escape(`+${hiddenCount} ${moreLabel}`)}</strong></span>`
+            : ""
+        }
+      </div>
+    `;
+  }
+
+  function renderCoverageRows(objects, limit = Number.POSITIVE_INFINITY) {
+    const rows = sortObjectsByCapability(objects);
+    if (!rows.length) return `<div class="environment-statistics-empty">暂无信息化对象</div>`;
+    const visible = Number.isFinite(limit) ? rows.slice(0, limit) : rows;
+    const hiddenCount = Math.max(0, rows.length - visible.length);
+    const maxCount = Math.max(1, ...rows.map(relationNodeCount));
+    return `
+      <div class="environment-statistics-coverage-list">
+        ${visible
+          .map((object) => {
+            const count = relationNodeCount(object);
+            const width = Math.max(8, Math.round((count / maxCount) * 100));
+            return `
+              <div class="environment-statistics-coverage-row">
+                <span>${escape(object.title || "未命名对象")}</span>
+                <span class="environment-statistics-track"><span class="environment-statistics-fill" style="width: ${width}%"></span></span>
+                <span>${escape(`${count} 模块/措施`)}</span>
+              </div>
+            `;
+          })
+          .join("")}
+        ${
+          hiddenCount
+            ? `<div class="environment-statistics-coverage-row is-more"><span>${escape(`还有 ${hiddenCount} 个对象未展开`)}</span><span>${escape(`+${hiddenCount}`)}</span></div>`
+            : ""
+        }
+      </div>
+    `;
+  }
+
+  function renderStatisticsPane({ title, count, toneClass, body }) {
+    return `
+      <section class="environment-statistics-pane ${escape(toneClass || "")}">
+        <div class="environment-statistics-pane-head">
+          <span>${escape(title)}</span>
+          <span>${escape(count)}</span>
+        </div>
+        ${body}
+      </section>
+    `;
+  }
+
   function renderDrawioBasemap() {
     const viewer = components.EnvironmentBasemapViewer;
     if (!viewer?.render) return "";
@@ -379,7 +545,6 @@
     const description = isSegmentView
       ? "只表达当前环境子类、信息化对象和安全技术模块 / 措施。"
       : "只表达环境、环境子类、信息化对象和安全技术模块 / 措施。";
-    const layerLabels = isSegmentView ? ["环境子类层", "信息化对象层", "能力层"] : ["环境核心层", "环境子类层", "信息化对象层", "能力层"];
     const segmentFlow = isSegmentView
       ? tree.flatMap((environment) => utils.list(environment.segments).map((segment) => renderHierarchySegmentFlow(environment, segment, selectedSegmentId, selectedObjectId))).join("")
       : "";
@@ -396,9 +561,6 @@
             ${statBadge("对象", stats.objectCount)}
           </div>
         </div>
-        <div class="environment-hierarchy-layer-rail" aria-hidden="true">
-          ${layerLabels.map((label) => `<span>${escape(label)}</span>`).join("")}
-        </div>
         <div class="environment-hierarchy-canvas" aria-label="环境层级视图">
           ${
             tree.length
@@ -412,7 +574,156 @@
     `;
   }
 
-  function renderMappingTab({ viewModel, selectedRowId, selectedEnvironmentId, selectedSegmentId, selectedObjectId, search, expandedIds, catalogCollapsed }) {
+  function renderEnvironmentStatisticsSegment(environment, segment) {
+    const objects = utils.list(segment.objects);
+    const { modules, measures } = partitionObjectsCapability(objects);
+    const capabilityRows = capabilityFrequency(objects);
+    const capabilityCount = modules.length + measures.length;
+    return `
+      <section class="environment-statistics-row is-subcategory">
+        <button class="environment-statistics-entity" type="button" data-environment-id="${escape(environment.id || "")}" data-environment-segment-id="${escape(segment.id || "")}">
+          <small>环境子类</small>
+          <strong>${escape(segment.title || "未定义环境子类")}</strong>
+          <span>${escape(objects.length)} 对象 · ${escape(capabilityCount)} 模块/措施</span>
+        </button>
+        ${renderStatisticsPane({
+          title: "对象覆盖",
+          count: `${objects.length} 项`,
+          toneClass: "is-module",
+          body: renderCoverageRows(objects),
+        })}
+        ${renderStatisticsPane({
+          title: "主要安全技术模块/措施",
+          count: `${capabilityCount} 项`,
+          toneClass: "is-measure",
+          body: renderCapabilityChipGrid(capabilityRows, ENVIRONMENT_CAPABILITY_PREVIEW_LIMIT, "暂无模块/措施", { shortKind: true }),
+        })}
+      </section>
+    `;
+  }
+
+  function renderEnvironmentStatistics(viewModel) {
+    const tree = scopedHierarchyTree(viewModel);
+    const environment = tree[0];
+    if (!environment) return `<div class="reference-empty">暂无信息化环境层级数据。</div>`;
+    const segments = utils.list(environment.segments);
+    const objects = aggregateEnvironmentObjects(segments);
+    const { modules, measures } = partitionObjectsCapability(objects);
+    const title = environment.title || "未命名环境";
+    return `
+      <section class="environment-statistics-view is-environment" aria-label="环境统计型层级视图">
+        <div class="environment-statistics-head">
+          <div>
+            <h3>环境层级视图</h3>
+            <p>只表达环境、环境子类、信息化对象和安全技术模块 / 措施的统计覆盖。</p>
+          </div>
+          ${renderStatsBadges([
+            { label: "环境", value: 1 },
+            { label: "环境子类", value: segments.length },
+            { label: "对象", value: objects.length },
+          ])}
+        </div>
+        <div class="environment-statistics-body">
+          ${renderStatisticsSummary({
+            kind: "信息化环境",
+            title,
+            coverage: `${segments.length} 子类 · ${objects.length} 对象 · ${modules.length + measures.length} 模块/措施`,
+            metrics: [
+              { label: "环境子类", value: segments.length },
+              { label: "信息化对象", value: objects.length },
+              { label: "安全技术模块", value: modules.length },
+              { label: "安全技术措施", value: measures.length },
+            ],
+          })}
+          <div class="environment-statistics-section">
+            ${segments.map((segment) => renderEnvironmentStatisticsSegment(environment, segment)).join("")}
+          </div>
+        </div>
+      </section>
+    `;
+  }
+
+  function renderSubcategoryStatisticsObject(environment, object) {
+    const { modules, measures } = partitionRelationNodes(object.relationNodes);
+    const capabilityCount = modules.length + measures.length;
+    return `
+      <section class="environment-statistics-row is-object">
+        <button class="environment-statistics-entity" type="button" data-environment-id="${escape(environment.id || "")}" data-environment-object-id="${escape(object.id || "")}">
+          <small>信息化对象</small>
+          <strong>${escape(object.title || "未命名对象")}</strong>
+          <span>${escape(object.scopeCount || 0)} 作用域种类 · ${escape(capabilityCount)} 模块/措施</span>
+        </button>
+        ${renderStatisticsPane({
+          title: "安全技术模块",
+          count: modules.length,
+          toneClass: "is-module",
+          body: renderCapabilityChipGrid(
+            modules.map((node) => ({ node, kind: "安全技术模块" })),
+            SUBCATEGORY_CAPABILITY_PREVIEW_LIMIT,
+            "暂无模块",
+          ),
+        })}
+        ${renderStatisticsPane({
+          title: "安全技术措施",
+          count: measures.length,
+          toneClass: "is-measure",
+          body: renderCapabilityChipGrid(
+            measures.map((node) => ({ node, kind: "安全技术措施" })),
+            SUBCATEGORY_CAPABILITY_PREVIEW_LIMIT,
+            "暂无措施",
+          ),
+        })}
+      </section>
+    `;
+  }
+
+  function renderSubcategoryStatistics(viewModel) {
+    const tree = scopedHierarchyTree(viewModel);
+    const environment = tree[0];
+    const segment = utils.list(environment?.segments)[0];
+    if (!environment || !segment) return `<div class="reference-empty">暂无环境子类层级数据。</div>`;
+    const objects = utils.list(segment.objects);
+    const { modules, measures } = partitionObjectsCapability(objects);
+    const scopeKindCount = scopeKindsFromRows(viewModel?.scopeServiceRows).length;
+    return `
+      <section class="environment-statistics-view is-subcategory" aria-label="环境子类统计型层级视图">
+        <div class="environment-statistics-head">
+          <div>
+            <h3>环境子类层级视图</h3>
+            <p>只表达当前环境子类、信息化对象和安全技术模块 / 措施，不展开服务级路由。</p>
+          </div>
+          ${renderStatsBadges([
+            { label: "环境", value: 1 },
+            { label: "环境子类", value: 1 },
+            { label: "对象", value: objects.length },
+          ])}
+        </div>
+        <div class="environment-statistics-body">
+          ${renderStatisticsSummary({
+            kind: "环境子类",
+            title: segment.title || "未定义环境子类",
+            coverage: `${objects.length} 对象 · ${modules.length + measures.length} 模块/措施`,
+            metrics: [
+              { label: "信息化对象", value: objects.length },
+              { label: "作用域种类", value: scopeKindCount },
+              { label: "安全技术模块", value: modules.length },
+              { label: "安全技术措施", value: measures.length },
+            ],
+          })}
+          <div class="environment-statistics-more-row">对象行全量滚动展示；单个对象内模块 / 措施默认展示前 6 个，超出以 +N 收束</div>
+          <div class="environment-statistics-section">
+            ${objects.length ? objects.map((object) => renderSubcategoryStatisticsObject(environment, object)).join("") : '<div class="reference-empty">暂无信息化对象。</div>'}
+          </div>
+        </div>
+      </section>
+    `;
+  }
+
+  function renderStatisticsMapping({ viewModel } = {}) {
+    return viewModel?.selectedMode === "segment" ? renderSubcategoryStatistics(viewModel) : renderEnvironmentStatistics(viewModel);
+  }
+
+  function renderMappingTab({ viewModel, selectedRowId, selectedEnvironmentId, selectedSegmentId, selectedObjectId, search, expandedIds, catalogCollapsed, graphVariant = "funnel" }) {
     const showObjectRelations = viewModel?.selectedMode === "object";
     return `
       <div class="environment-mapping-workbench ${catalogCollapsed ? "catalog-collapsed" : ""}">
@@ -468,8 +779,9 @@
                   showObjectColumn: viewModel?.detailPanel?.showObjectColumn,
                   selectedRowId,
                   grouped: false,
+                  variant: graphVariant,
                 }) || '<div class="reference-empty">环境映射表组件未加载。</div>'
-              : renderTopology({ viewModel, preferBasemap: false })
+              : renderStatisticsMapping({ viewModel })
           }
         </section>
       </div>
@@ -477,8 +789,9 @@
   }
 
   function render({ viewModel, selectedRowId = "", selectedEnvironmentId = "", selectedSegmentId = "", selectedObjectId = "", search = "", activeTab = "topology", expandedIds, catalogCollapsed = false } = {}) {
-    const normalizedActiveTab = activeTab === "mapping" ? activeTab : "topology";
+    const normalizedActiveTab = activeTab === "mapping" ? "mapping" : "topology";
     const showMapping = normalizedActiveTab === "mapping";
+    const graphVariant = "funnel";
     return `
       <section class="semantic-panel environment-relation-map environment-tabbed-map">
         <input class="environment-tab-input" id="environmentTabTopology" type="radio" name="environmentDetailTab" ${showMapping ? "" : "checked"}>
@@ -488,7 +801,7 @@
             ${renderTopology({ viewModel })}
           </div>
           <div class="environment-tab-panel environment-tab-panel-mapping">
-            ${renderMappingTab({ viewModel, selectedRowId, selectedEnvironmentId, selectedSegmentId, selectedObjectId, search, expandedIds, catalogCollapsed })}
+            ${renderMappingTab({ viewModel, selectedRowId, selectedEnvironmentId, selectedSegmentId, selectedObjectId, search, expandedIds, catalogCollapsed, graphVariant })}
           </div>
         </div>
       </section>

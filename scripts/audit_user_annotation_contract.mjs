@@ -35,11 +35,20 @@ const stylesCss = readText("frontend/capability-browser/styles.css");
 const displayLabelsJs = readText("frontend/capability-browser/displayLabels.js");
 const userAnnotationDrawerJs = readText("frontend/capability-browser/components/UserAnnotationDrawer.js");
 const lifecycleJs = readText("frontend/capability-browser/components/ApplicationSecurityLifecycle.js");
+const environmentScopeMatrixJs = readText("frontend/capability-browser/components/EnvironmentScopeServiceMatrix.js");
 const globalBaseline = readText("docs/06-implementation/frontend-global-design-baseline-2026-05-30.md");
 const annotationDesign = readText("docs/06-implementation/workspace-annotation-and-capability-remix-design.md");
 const annotationRequirements = readText("docs/06-implementation/global-annotation-requirements-and-regression-matrix.md");
 
 const issues = [];
+
+if (!includesAll(appJs, ["annotationAnchorIndex", "createAnnotationAnchorIndex", "buildAnnotationNoteIndex", "annotationIndexEntriesForTargetRef", "annotationCandidatesFromIndex"])) {
+  issues.push("annotation_anchor_runtime_index_missing");
+}
+
+if (!includesAll(environmentScopeMatrixJs, ["annotationObjectAttrs", "data-annotation-prefer-target", "security_technical_service", "security_technology_module", "security_technical_measure", "security_system"])) {
+  issues.push("environment_funnel_stable_annotation_targets_missing");
+}
 
 function renderedAnchorCount(html) {
   return countOccurrences(html, 'data-annotation-value="true"');
@@ -449,6 +458,8 @@ const uncheckedRelationChipLines = [
 ].flatMap((relativePath) =>
   lineFindings(relativePath, ({ line }) => {
     if (!line.includes("relation-chip")) return false;
+    if (line.includes('return "relation-chip')) return false;
+    if (line.includes("return 'relation-chip")) return false;
     if (line.includes("ANNOTATION_VALUE_SELECTOR")) return false;
     if (line.trim().startsWith("\".relation-chip\"")) return false;
     if (line.includes("relation-chip muted")) return false;

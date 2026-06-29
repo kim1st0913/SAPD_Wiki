@@ -93,14 +93,14 @@ def replacement_objects(shadow: dict[str, Any]) -> dict[str, dict[str, dict[str,
                     add({key: service.get(key) for key in ("id", "type", "code", "title", "raw")})
                     for module in service.get("modules", []):
                         add(module)
+                        for system in module.get("systems", []) or module.get("securitySystems", []):
+                            add(system)
                     for measure in service.get("measures", []):
                         add(measure)
+                        for system in measure.get("systems", []) or measure.get("securitySystems", []):
+                            add(system)
                     for system in service.get("securitySystems", []):
                         add(system)
-    for item in shadow.get("objects", {}).values():
-        if isinstance(item, list):
-            for child in item:
-                add(child)
     return dict(buckets)
 
 

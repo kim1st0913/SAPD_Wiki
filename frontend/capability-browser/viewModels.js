@@ -227,7 +227,8 @@
       ...compact,
       objectKind: kind,
       kind,
-      systems: list(item?.systems).map(compactEntity).filter(Boolean),
+      systems: uniqueBy([...list(item?.systems), ...list(item?.securitySystems), ...list(item?.linkedSystems)].map(compactEntity).filter(Boolean), (system) => system?.id || system?.code || system?.title),
+      securitySystems: uniqueBy([...list(item?.securitySystems), ...list(item?.systems), ...list(item?.linkedSystems)].map(compactEntity).filter(Boolean), (system) => system?.id || system?.code || system?.title),
       products: list(item?.products).map(compactEntity).filter(Boolean),
     };
   }
@@ -3574,27 +3575,43 @@
     const compactProduct = (product) => compactEntity(product, "未命名产品");
     const relationNodeKey = (item) => [item?.id, item?.code, item?.title, item?.name, item?.objectKind, item?.type].filter(Boolean).join("::");
     const serviceKey = (service) => service?.code || service?.id || service?.title || service?.name;
-    const enrichRelationNode = (item, fallbackKind) => {
+    const enrichRelationNode = (item, fallbackKind, context = {}) => {
       const objectKind = item?.objectKind || item?.kind || fallbackKind;
+      const relationKind = objectKind.includes("措施") ? "measure" : "module";
       return {
         ...item,
         objectKind,
         kind: objectKind,
-        relationKind: objectKind.includes("措施") ? "measure" : "module",
+        relationKind,
         measures: uniqueBy(list(item?.measures).map((measure) => compactTechnicalObject({ ...measure, type: "security_technical_measure" }, "安全技术措施")), relationNodeKey),
-        securitySystems: uniqueBy(list(item?.systems || item?.linkedSystems || item?.securitySystems).map(compactSystem), (system) => system?.id || system?.code || system?.title),
-        products: uniqueBy(list(item?.products || item?.linkedProducts).map(compactProduct), (product) => product?.id || product?.code || product?.title),
+        securitySystems: uniqueBy(
+          [
+            ...list(item?.systems),
+            ...list(item?.linkedSystems),
+            ...list(item?.securitySystems),
+          ].map(compactSystem),
+          (system) => system?.id || system?.code || system?.title,
+        ),
+        products: uniqueBy(
+          [
+            ...list(item?.products),
+            ...list(item?.linkedProducts),
+            ...list(context?.products),
+            ...list(context?.linkedProducts),
+          ].map(compactProduct),
+          (product) => product?.id || product?.code || product?.title,
+        ),
       };
     };
     const rawServiceRelationNodes = (service) => {
       const moduleObjects = list(service.modules)
         .filter((item) => !isSecurityTechnicalMeasure(item))
-        .map((module) => enrichRelationNode(compactTechnicalObject(module, "安全技术模块"), "安全技术模块"));
+        .map((module) => enrichRelationNode(compactTechnicalObject(module, "安全技术模块"), "安全技术模块", service));
       const moduleMeasures = list(service.modules)
         .filter(isSecurityTechnicalMeasure)
-        .map((measure) => enrichRelationNode(compactTechnicalObject({ ...measure, type: "security_technical_measure" }, "安全技术措施"), "安全技术措施"));
+        .map((measure) => enrichRelationNode(compactTechnicalObject({ ...measure, type: "security_technical_measure" }, "安全技术措施"), "安全技术措施", service));
       const directMeasures = list(service.measures)
-        .map((measure) => enrichRelationNode(compactTechnicalObject({ ...measure, type: "security_technical_measure" }, "安全技术措施"), "安全技术措施"));
+        .map((measure) => enrichRelationNode(compactTechnicalObject({ ...measure, type: "security_technical_measure" }, "安全技术措施"), "安全技术措施", service));
       return [...moduleObjects, ...moduleMeasures, ...directMeasures];
     };
     const exactRelationKey = (service, relationNode) =>

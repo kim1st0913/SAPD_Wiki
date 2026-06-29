@@ -14842,6 +14842,10 @@ summary:focus-visible {
   pointer-events: auto;
 }
 
+.user-annotation-drawer.is-closing .annotation-drawer-panel {
+  pointer-events: none;
+}
+
 .annotation-drawer-header {
   flex: 0 0 auto;
   display: flex;
@@ -25977,6 +25981,508 @@ body.app-shell-locked {
   animation: none;
 }
 
+.environment-object-graph.is-funnel-layout {
+  grid-template-columns: var(--object-hud-width) minmax(260px, 1fr);
+  overflow: hidden;
+}
+
+.environment-object-funnel-shell {
+  grid-area: stage;
+  min-width: 0;
+  min-height: 520px;
+}
+
+.environment-object-funnel-frame {
+  position: relative;
+  height: min(720px, calc(100vh - 296px));
+  min-height: 520px;
+  overflow: hidden;
+  border: 1px solid rgba(136, 157, 181, 0.22);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 34% 34%, rgba(10, 132, 255, 0.12), transparent 25%),
+    radial-gradient(circle at 58% 48%, rgba(118, 173, 144, 0.14), transparent 28%),
+    radial-gradient(circle at 86% 38%, rgba(127, 138, 170, 0.14), transparent 24%),
+    linear-gradient(135deg, rgba(250, 253, 255, 0.76), rgba(241, 247, 253, 0.58));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    inset 0 -22px 60px rgba(111, 143, 178, 0.08),
+    0 14px 38px rgba(35, 47, 68, 0.1);
+}
+
+.environment-object-funnel-viewport {
+  height: 100%;
+  overflow: auto;
+  cursor: grab;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 125, 154, 0.34) transparent;
+}
+
+.environment-object-funnel-viewport:active {
+  cursor: grabbing;
+}
+
+.environment-object-funnel-board {
+  position: relative;
+  min-width: 1280px;
+  min-height: 900px;
+  padding: 34px 38px 38px;
+}
+
+.environment-object-funnel-board::before,
+.environment-object-funnel-board::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.environment-object-funnel-board::before {
+  left: 38.2%;
+  top: 46%;
+  width: var(--funnel-service-band-width, 118px);
+  height: var(--funnel-service-band-height, 520px);
+  opacity: var(--funnel-service-band-opacity, 0.62);
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, transparent, rgba(10, 132, 255, 0.12), transparent),
+    radial-gradient(circle at 50% 22%, rgba(10, 132, 255, 0.18), transparent 34%),
+    radial-gradient(circle at 50% 72%, rgba(0, 166, 183, 0.11), transparent 36%);
+  box-shadow:
+    inset 0 0 0 1px rgba(10, 132, 255, 0.06),
+    0 0 42px rgba(10, 132, 255, 0.1);
+  transition: height 180ms ease, opacity 180ms ease, width 180ms ease;
+}
+
+.environment-object-funnel-board::after {
+  left: 68%;
+  top: 46%;
+  width: var(--funnel-system-band-width, 82px);
+  height: var(--funnel-system-band-height, 440px);
+  opacity: var(--funnel-system-band-opacity, 0.48);
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, transparent, rgba(127, 138, 170, 0.12), transparent),
+    radial-gradient(circle at 50% 52%, rgba(118, 173, 144, 0.14), transparent 48%);
+  transition: height 180ms ease, opacity 180ms ease, width 180ms ease;
+}
+
+.environment-object-funnel-edge-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.environment-object-funnel-edge,
+.environment-object-funnel-rail {
+  fill: none;
+  stroke-linecap: round;
+  transition: opacity 180ms ease, stroke-width 180ms ease, filter 180ms ease;
+}
+
+.environment-object-funnel-edge {
+  stroke: rgba(91, 132, 168, 0.28);
+  stroke-width: 1.05;
+  opacity: 0.25;
+}
+
+.environment-object-funnel-edge.is-module {
+  stroke: rgba(82, 155, 181, 0.46);
+}
+
+.environment-object-funnel-edge.is-measure {
+  stroke: rgba(207, 149, 109, 0.34);
+  stroke-dasharray: 5 9;
+}
+
+.environment-object-funnel-edge.is-system {
+  stroke: rgba(112, 132, 156, 0.42);
+  stroke-dasharray: 2 8;
+}
+
+.environment-object-funnel-edge.is-active {
+  stroke: rgba(10, 132, 255, 0.74);
+  stroke-width: 2.85;
+  opacity: 0.98;
+  filter:
+    drop-shadow(0 0 8px rgba(10, 132, 255, 0.34))
+    drop-shadow(0 0 18px rgba(10, 132, 255, 0.16));
+  animation: environmentRelationFlow 2.2s linear infinite;
+}
+
+.environment-object-funnel-edge.is-muted {
+  opacity: 0.1;
+}
+
+.environment-object-funnel-rail {
+  stroke: rgba(91, 132, 168, 0.24);
+  stroke-width: 1.25;
+  stroke-dasharray: 6 10;
+  opacity: 0.14;
+}
+
+.environment-object-funnel-rail.environment-object-funnel-system-rail {
+  stroke-dasharray: 2 8;
+  opacity: 0.12;
+}
+
+.environment-object-funnel-rail.is-active {
+  stroke: rgba(10, 132, 255, 0.46);
+  stroke-width: 2.15;
+  opacity: 0.46;
+  filter:
+    drop-shadow(0 0 8px rgba(10, 132, 255, 0.18))
+    drop-shadow(0 0 16px rgba(10, 132, 255, 0.08));
+}
+
+.environment-object-funnel-rail.is-muted {
+  opacity: 0.06;
+}
+
+.environment-object-funnel-grid {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(540px, 570px) minmax(292px, 324px) minmax(300px, 336px);
+  gap: 38px;
+  align-items: stretch;
+}
+
+.environment-object-funnel-column {
+  min-width: 0;
+}
+
+.environment-object-funnel-column:nth-child(2),
+.environment-object-funnel-column:nth-child(3) {
+  align-self: center;
+}
+
+.environment-object-funnel-section-head {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 0 10px;
+  color: #47576a;
+  font-size: 14px;
+  font-weight: 840;
+}
+
+.environment-object-funnel-section-head strong {
+  color: #243348;
+  font-size: 16px;
+}
+
+.environment-object-funnel-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 3px 9px;
+  border: 1px solid rgba(112, 132, 156, 0.2);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.64);
+  color: #274358;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  font-weight: 780;
+  white-space: nowrap;
+}
+
+.environment-object-funnel-services,
+.environment-object-funnel-center-stack,
+.environment-object-funnel-system-stack {
+  display: grid;
+  gap: 13px;
+}
+
+.environment-object-funnel-scope-group {
+  --scope-color: var(--service);
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--scope-color) 30%, rgba(140, 164, 190, 0.18));
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(247, 251, 255, 0.5)),
+    radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--scope-color) 14%, transparent), transparent 48%),
+    rgba(255, 255, 255, 0.42);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    0 16px 34px rgba(31, 50, 76, 0.07);
+}
+
+.environment-object-funnel-scope-group[data-scope="I-AP"],
+.environment-object-funnel-service[data-scope="I-AP"] {
+  --scope-color: var(--ap);
+}
+
+.environment-object-funnel-scope-group[data-scope="I-DI"],
+.environment-object-funnel-service[data-scope="I-DI"] {
+  --scope-color: var(--di);
+}
+
+.environment-object-funnel-scope-group[data-scope="I-NT"],
+.environment-object-funnel-service[data-scope="I-NT"] {
+  --scope-color: var(--nt);
+}
+
+.environment-object-funnel-scope-group[data-scope="I-US"],
+.environment-object-funnel-service[data-scope="I-US"] {
+  --scope-color: var(--us);
+}
+
+.environment-object-funnel-scope-group[data-scope="I-OS"],
+.environment-object-funnel-service[data-scope="I-OS"] {
+  --scope-color: var(--os);
+}
+
+.environment-object-funnel-scope-group header {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 10px 6px 13px;
+  border-bottom: 1px solid color-mix(in srgb, var(--scope-color) 18%, rgba(140, 164, 190, 0.12));
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--scope-color) 10%, transparent), transparent 55%),
+    rgba(255, 255, 255, 0.3);
+}
+
+.environment-object-funnel-scope-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: color-mix(in srgb, var(--scope-color) 76%, #172235);
+  font-size: 12px;
+  font-weight: 860;
+}
+
+.environment-object-funnel-scope-title::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--scope-color);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--scope-color) 20%, transparent);
+}
+
+.environment-object-funnel-service-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  padding: 10px;
+}
+
+.environment-object-funnel-node {
+  appearance: none;
+  position: relative;
+  min-width: 0;
+  border: 1px solid rgba(140, 164, 190, 0.32);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(245, 251, 255, 0.76)),
+    rgba(255, 255, 255, 0.72);
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    0 10px 22px rgba(31, 50, 76, 0.06);
+  transition: opacity 180ms ease, transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+}
+
+.environment-object-funnel-service {
+  min-height: 45px;
+  display: grid;
+  align-content: center;
+  gap: 2px;
+  padding: 7px 9px 7px 13px;
+  overflow: hidden;
+  border-radius: 16px;
+  border-color: color-mix(in srgb, var(--scope-color, var(--service)) 60%, rgba(140, 164, 190, 0.18));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), color-mix(in srgb, var(--scope-color, var(--service)) 14%, rgba(245, 251, 255, 0.84))),
+    color-mix(in srgb, var(--scope-color, var(--service)) 18%, transparent);
+}
+
+.environment-object-funnel-service::after,
+.environment-object-funnel-system::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 7px;
+  bottom: 7px;
+  width: 5px;
+  border-radius: 0 999px 999px 0;
+}
+
+.environment-object-funnel-service::after {
+  background: var(--scope-color, var(--service));
+  box-shadow: 0 0 14px color-mix(in srgb, var(--scope-color, var(--service)) 34%, transparent);
+}
+
+.environment-object-funnel-node-title,
+.environment-object-funnel-node-meta,
+.environment-object-funnel-node-type {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.environment-object-funnel-service .environment-object-funnel-node-title {
+  color: #19314a;
+  font-size: 11.4px;
+  font-weight: 850;
+  line-height: 1.18;
+}
+
+.environment-object-funnel-service .environment-object-funnel-node-meta {
+  color: #68778b;
+  font-size: 10.2px;
+  font-weight: 730;
+  line-height: 1.1;
+}
+
+.environment-object-funnel-zone {
+  overflow: hidden;
+  border: 1px solid rgba(141, 161, 185, 0.2);
+  border-radius: 26px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.68), rgba(247, 251, 255, 0.44)),
+    rgba(255, 255, 255, 0.34);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.74),
+    0 18px 42px rgba(31, 50, 76, 0.07);
+}
+
+.environment-object-funnel-zone .environment-object-funnel-section-head {
+  margin: 0;
+  border-bottom: 1px solid rgba(141, 161, 185, 0.14);
+  background: rgba(255, 255, 255, 0.44);
+}
+
+.environment-object-funnel-zone.is-measure-zone {
+  border-color: rgba(207, 149, 109, 0.18);
+}
+
+.environment-object-funnel-zone-list {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+}
+
+.environment-object-funnel-target,
+.environment-object-funnel-system {
+  min-height: 60px;
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  padding: 10px 13px;
+}
+
+.environment-object-funnel-target .environment-object-funnel-node-title,
+.environment-object-funnel-system .environment-object-funnel-node-title {
+  color: #19314a;
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.2;
+}
+
+.environment-object-funnel-target .environment-object-funnel-node-meta,
+.environment-object-funnel-system .environment-object-funnel-node-meta,
+.environment-object-funnel-node-type {
+  color: #68778b;
+  font-size: 11px;
+  font-weight: 730;
+  line-height: 1.15;
+}
+
+.environment-object-funnel-node-type {
+  font-weight: 820;
+}
+
+.environment-object-funnel-target.is-module {
+  color: var(--module-deep);
+  border-color: rgba(118, 173, 144, 0.38);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(237, 250, 242, 0.76)),
+    rgba(118, 173, 144, 0.12);
+}
+
+.environment-object-funnel-target.is-measure {
+  color: var(--measure-deep);
+  border-color: rgba(207, 149, 109, 0.36);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(255, 244, 234, 0.78)),
+    rgba(207, 149, 109, 0.12);
+}
+
+.environment-object-funnel-system {
+  color: #4e5c78;
+  border-color: rgba(119, 131, 159, 0.32);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(244, 247, 255, 0.78)),
+    rgba(127, 138, 170, 0.1);
+}
+
+.environment-object-funnel-system::after {
+  background: #7f8aaa;
+  box-shadow: 0 0 16px rgba(127, 138, 170, 0.32);
+}
+
+.environment-object-funnel-node:hover,
+.environment-object-funnel-node:focus-visible {
+  border-color: rgba(10, 132, 255, 0.46);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.94),
+    0 0 0 3px rgba(10, 132, 255, 0.06),
+    0 12px 28px rgba(31, 50, 76, 0.08);
+  outline: none;
+}
+
+.environment-object-funnel-node.is-active {
+  z-index: 8;
+  opacity: 1;
+  transform: translateY(-6px) scale(1.045);
+  border-color: rgba(10, 132, 255, 0.98);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(221, 240, 255, 0.94)),
+    rgba(10, 132, 255, 0.14);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.96),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.78),
+    0 0 0 5px rgba(10, 132, 255, 0.14),
+    0 0 34px rgba(10, 132, 255, 0.26),
+    0 26px 56px rgba(31, 50, 76, 0.22);
+  filter: drop-shadow(0 12px 18px rgba(10, 132, 255, 0.16));
+}
+
+.environment-object-funnel-node.is-linked {
+  z-index: 5;
+  opacity: 1;
+  transform: translateY(-3px) scale(1.024);
+  border-color: rgba(10, 132, 255, 0.52);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(237, 248, 255, 0.82)),
+    rgba(10, 132, 255, 0.06);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.94),
+    0 0 0 3px rgba(10, 132, 255, 0.065),
+    0 16px 34px rgba(31, 50, 76, 0.12);
+}
+
+.environment-object-funnel-node.is-muted {
+  opacity: 0.66;
+  filter: saturate(0.92);
+}
+
 @keyframes environmentRelationFlow {
   to { stroke-dashoffset: -36; }
 }
@@ -25994,31 +26500,6 @@ body.app-shell-locked {
   --hierarchy-measure-text: oklch(43% 0.062 58);
   display: grid;
   gap: 12px;
-}
-
-.environment-hierarchy-layer-rail {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 10px;
-  padding: 0 14px;
-}
-
-.environment-hierarchy-layer-rail span {
-  min-height: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(184, 199, 217, 0.44);
-  border-radius: 999px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(246, 250, 255, 0.58)),
-    rgba(255, 255, 255, 0.52);
-  color: oklch(46% 0.042 248);
-  font-size: 11px;
-  font-weight: 780;
-  box-shadow:
-    0 12px 22px rgba(45, 71, 96, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.82);
 }
 
 .environment-hierarchy-canvas {
@@ -26578,9 +27059,462 @@ body.app-shell-locked {
     inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
+.environment-statistics-view {
+  --environment-stat-ink: #172235;
+  --environment-stat-muted: #657287;
+  --environment-stat-line: rgba(136, 157, 181, 0.22);
+  position: relative;
+  min-width: 980px;
+  min-height: min(780px, calc(100dvh - 286px));
+  overflow: hidden;
+  border: 1px solid rgba(136, 157, 181, 0.22);
+  border-radius: 28px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(247, 250, 252, 0.72)),
+    rgba(255, 255, 255, 0.64);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.46),
+    0 18px 44px rgba(31, 50, 76, 0.08);
+}
+
+.environment-statistics-view::before,
+.environment-statistics-view::after {
+  content: none;
+  display: none;
+}
+
+.environment-statistics-head {
+  position: relative;
+  z-index: 1;
+  min-height: 82px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid rgba(136, 157, 181, 0.14);
+  background: rgba(255, 255, 255, 0.42);
+  backdrop-filter: blur(18px) saturate(1.08);
+}
+
+.environment-statistics-head h3 {
+  margin: 0;
+  color: var(--environment-stat-ink);
+  font-size: 19px;
+  font-weight: 880;
+  line-height: 1.16;
+}
+
+.environment-statistics-head p {
+  margin: 6px 0 0;
+  color: var(--environment-stat-muted);
+  font-size: 12px;
+  font-weight: 720;
+  line-height: 1.45;
+}
+
+.environment-statistics-status {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.environment-statistics-status span {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border: 1px solid rgba(136, 157, 181, 0.2);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.68);
+  color: #425770;
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+
+.environment-statistics-status strong {
+  color: #172235;
+  font-size: 13px;
+  font-weight: 880;
+}
+
+.environment-statistics-body {
+  position: relative;
+  z-index: 1;
+  max-height: calc(100dvh - 370px);
+  overflow: auto;
+  padding: 16px 18px 20px;
+}
+
+.environment-statistics-summary {
+  margin-bottom: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(10, 132, 255, 0.28);
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 252, 0.72)),
+    rgba(255, 255, 255, 0.62);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    0 16px 36px rgba(31, 50, 76, 0.07);
+}
+
+.environment-statistics-summary-head {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(10, 132, 255, 0.16);
+}
+
+.environment-statistics-summary-title {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--environment-stat-ink);
+  font-size: 18px;
+  font-weight: 880;
+}
+
+.environment-statistics-summary-title > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.environment-statistics-badge,
+.environment-statistics-coverage {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 10px;
+  border: 1px solid rgba(10, 132, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.68);
+  color: #1b67a8;
+  font-size: 12px;
+  font-weight: 820;
+  white-space: nowrap;
+}
+
+.environment-statistics-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px 16px 14px;
+}
+
+.environment-statistics-metric {
+  min-height: 66px;
+  display: grid;
+  align-content: center;
+  gap: 5px;
+  padding: 10px 12px;
+  border: 1px solid rgba(136, 157, 181, 0.18);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.54);
+}
+
+.environment-statistics-metric strong {
+  color: var(--environment-stat-ink);
+  font-size: 21px;
+  font-weight: 880;
+  line-height: 1;
+}
+
+.environment-statistics-metric span {
+  color: var(--environment-stat-muted);
+  font-size: 11.5px;
+  font-weight: 760;
+}
+
+.environment-statistics-section {
+  display: grid;
+  gap: 18px;
+}
+
+.environment-statistics-row {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid rgba(136, 157, 181, 0.24);
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(248, 250, 252, 0.56)),
+    rgba(255, 255, 255, 0.42);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    0 18px 44px rgba(31, 50, 76, 0.08);
+  backdrop-filter: blur(18px) saturate(1.08);
+}
+
+.environment-statistics-row.is-subcategory {
+  grid-template-columns: minmax(170px, 0.58fr) minmax(320px, 1.22fr) minmax(300px, 1fr);
+}
+
+.environment-statistics-row.is-object {
+  grid-template-columns: minmax(180px, 0.64fr) minmax(320px, 1.08fr) minmax(320px, 1.08fr);
+}
+
+.environment-statistics-entity,
+.environment-statistics-pane {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgba(136, 157, 181, 0.2);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(249, 252, 255, 0.58)),
+    rgba(255, 255, 255, 0.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.88),
+    0 12px 26px rgba(31, 50, 76, 0.06);
+}
+
+.environment-statistics-entity {
+  appearance: none;
+  display: grid;
+  align-content: center;
+  gap: 5px;
+  width: 100%;
+  min-height: 86px;
+  padding: 11px 12px;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.environment-statistics-entity:hover,
+.environment-statistics-entity:focus-visible {
+  border-color: rgba(10, 132, 255, 0.48);
+  outline: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 0 0 3px rgba(10, 132, 255, 0.07),
+    0 14px 30px rgba(31, 50, 76, 0.08);
+}
+
+.environment-statistics-entity small {
+  color: #68778b;
+  font-size: 10.8px;
+  font-weight: 820;
+}
+
+.environment-statistics-entity strong {
+  overflow: hidden;
+  color: var(--environment-stat-ink);
+  font-size: 15px;
+  font-weight: 880;
+  line-height: 1.22;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.environment-statistics-entity span {
+  color: var(--environment-stat-muted);
+  font-size: 11.3px;
+  font-weight: 760;
+}
+
+.environment-statistics-pane.is-module {
+  border-color: rgba(118, 173, 144, 0.34);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(239, 251, 245, 0.6)),
+    rgba(118, 173, 144, 0.08);
+}
+
+.environment-statistics-pane.is-measure {
+  border-color: rgba(207, 149, 109, 0.32);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(255, 247, 239, 0.62)),
+    rgba(207, 149, 109, 0.07);
+}
+
+.environment-statistics-pane-head {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(136, 157, 181, 0.13);
+  background: rgba(255, 255, 255, 0.48);
+  color: #526175;
+  font-size: 12.5px;
+  font-weight: 860;
+}
+
+.environment-statistics-chip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px;
+}
+
+.environment-statistics-chiplet {
+  position: relative;
+  display: grid;
+  flex: 1 1 132px;
+  gap: 4px;
+  min-width: 118px;
+  min-height: 52px;
+  padding: 8px 10px;
+  border: 1px solid rgba(136, 157, 181, 0.2);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(246, 250, 255, 0.68)),
+    rgba(255, 255, 255, 0.62);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 12px 26px rgba(31, 50, 76, 0.07);
+}
+
+.environment-statistics-chiplet.is-module {
+  color: #1d6a46;
+  border-color: rgba(118, 173, 144, 0.42);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(234, 249, 241, 0.82)),
+    rgba(118, 173, 144, 0.12);
+}
+
+.environment-statistics-chiplet.is-measure {
+  color: #8a4f37;
+  border-color: rgba(207, 149, 109, 0.4);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(255, 241, 229, 0.82)),
+    rgba(207, 149, 109, 0.12);
+}
+
+.environment-statistics-chiplet.is-more {
+  color: #34516f;
+  border-style: dashed;
+  border-color: rgba(10, 132, 255, 0.38);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(231, 243, 255, 0.64)),
+    rgba(10, 132, 255, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    0 12px 28px rgba(10, 132, 255, 0.08);
+}
+
+.environment-statistics-chiplet small {
+  color: #68778b;
+  font-size: 10.8px;
+  font-weight: 820;
+}
+
+.environment-statistics-chiplet strong {
+  overflow: hidden;
+  color: inherit;
+  font-size: 13.6px;
+  font-weight: 880;
+  line-height: 1.22;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.environment-statistics-coverage-list {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+}
+
+.environment-statistics-coverage-row {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.9fr) minmax(180px, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  color: #45576c;
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.environment-statistics-coverage-row > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.environment-statistics-coverage-row > span:last-child {
+  white-space: nowrap;
+}
+
+.environment-statistics-coverage-row.is-more {
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px dashed rgba(10, 132, 255, 0.26);
+  border-radius: 999px;
+  background: rgba(235, 247, 255, 0.58);
+  color: #2f618d;
+}
+
+.environment-statistics-track {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(136, 157, 181, 0.16);
+}
+
+.environment-statistics-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(10, 132, 255, 0.72), rgba(118, 173, 144, 0.68));
+}
+
+.environment-statistics-empty {
+  padding: 13px 14px;
+  color: #6b788b;
+  font-size: 12.5px;
+  font-weight: 780;
+}
+
+.environment-statistics-more-row {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px dashed rgba(10, 132, 255, 0.32);
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(232, 246, 255, 0.56)),
+    rgba(10, 132, 255, 0.08);
+  color: #315f89;
+  font-size: 13px;
+  font-weight: 840;
+  text-align: center;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+
 @media (max-width: 1180px) {
   .environment-object-graph {
     min-width: 0;
+  }
+
+  .environment-statistics-view {
+    min-width: 0;
+  }
+
+  .environment-statistics-row.is-subcategory,
+  .environment-statistics-row.is-object {
+    grid-template-columns: 1fr;
+  }
+
+  .environment-statistics-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .environment-hierarchy-environment,

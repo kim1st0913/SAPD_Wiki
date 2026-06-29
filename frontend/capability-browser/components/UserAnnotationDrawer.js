@@ -80,6 +80,43 @@
     window.requestAnimationFrame(restoreDrawerScroll);
   }
 
+  function ensureAnnotationNoteFullyVisible(noteCard) {
+    if (!noteCard?.open) return;
+    const panel = noteCard.closest?.(".annotation-drawer-scroll") || noteCard.closest?.(".annotation-drawer-panel");
+    if (!panel) return;
+    const panelRect = panel.getBoundingClientRect();
+    const noteRect = noteCard.getBoundingClientRect();
+    if (!panelRect.height || !noteRect.height) return;
+
+    const topGutter = 10;
+    const bottomGutter = 18;
+    const availableHeight = Math.max(1, panelRect.height - topGutter - bottomGutter);
+    let delta = 0;
+    if (noteRect.height > availableHeight) {
+      delta = noteRect.top - panelRect.top - topGutter;
+    } else if (noteRect.bottom > panelRect.bottom - bottomGutter) {
+      delta = noteRect.bottom - panelRect.bottom + bottomGutter;
+    } else if (noteRect.top < panelRect.top + topGutter) {
+      delta = noteRect.top - panelRect.top - topGutter;
+    }
+
+    if (Math.abs(delta) > 1) {
+      const reduceMotion = Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
+      if (typeof panel.scrollBy === "function") panel.scrollBy({ top: delta, behavior: reduceMotion ? "auto" : "smooth" });
+      else panel.scrollTop += delta;
+      window.setTimeout(() => rememberDrawerScroll(panel), reduceMotion ? 0 : 260);
+      return;
+    }
+    rememberDrawerScroll(panel);
+  }
+
+  function scheduleAnnotationNoteVisibilityCheck(noteCard) {
+    if (!noteCard?.open) return;
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => ensureAnnotationNoteFullyVisible(noteCard));
+    });
+  }
+
   function installDrawerScrollMemory() {
     if (installDrawerScrollMemory.installed) return;
     installDrawerScrollMemory.installed = true;
@@ -97,6 +134,14 @@
         const panel = event.target?.closest?.(".annotation-drawer-scroll, .annotation-drawer-panel");
         if (panel) rememberDrawerScroll(panel);
         if (event.target?.closest?.("[data-annotation-drawer-toggle]")) scheduleDrawerScrollRestore();
+      },
+      true,
+    );
+    document.addEventListener(
+      "toggle",
+      (event) => {
+        const noteCard = event.target?.closest?.(".annotation-note-card[data-user-note-id]");
+        if (noteCard?.open) scheduleAnnotationNoteVisibilityCheck(noteCard);
       },
       true,
     );

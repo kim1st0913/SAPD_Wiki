@@ -14882,6 +14882,7 @@ summary:focus-visible {
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
+  scroll-padding: 10px 0 18px;
   scrollbar-gutter: stable;
   overflow-anchor: none;
 }

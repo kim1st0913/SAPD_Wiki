@@ -4,7 +4,7 @@
 
 ## 治理入口
 
-- 当前未关闭问题数：17
+- 当前未关闭问题数：18
 - 已关闭归档问题数：137
 - 全量索引：`docs/06-implementation/open-issues-index.md`
 - 已关闭问题归档：`docs/05-archive/open-issues-history/2026-06.md`
@@ -14,10 +14,11 @@
 
 | 编号 | 状态 | 标题 |
 |---|---|---|
+| OI-153 | 已修复 / 待页面验收 | 批注抽屉底部卡片展开后当前批注显示不完整 |
 | OI-152 | 已修复 / 待页面验收 | LC-AP / LC-DT 旧批注阶段 ID 失效导致定位不到 |
 | OI-151 | 已修复 / 待页面验收 | 信息化环境汇聚图节点缺少稳定业务锚点导致定位不到 |
 | OI-150 | 已修复 / 待真实浏览器验收 | 全局批注值定位缺少运行时索引导致定位慢 |
-| OI-149 | 新发现 / 待治理设计 | 前端 JSON 加载体量与首屏性能需分层治理 |
+| OI-149 | 治理设计完成 / 待 P0 实施 | 前端 JSON 加载体量与首屏性能需分层治理 |
 | OI-148 | 已修复 / 待页面验收 | 全局批注在新环境页面缺少值级锚点与路由切换遮挡治理 |
 | OI-147 | 已修复 / 待页面验收 | 信息化环境安全技术汇聚图措施误继承安全系统 |
 | OI-146 | 已修复 / 待页面验收 | 信息化环境安全技术汇聚图安全系统列未带出 |
@@ -47,6 +48,18 @@
 - 验证结果：
 
 ## 当前问题详情
+
+## OI-153：批注抽屉底部卡片展开后当前批注显示不完整
+
+- 状态：已修复 / 待页面验收
+- 类型：前端 / 批注 / 交互 / 滚动可见性
+- 对象或页面：右侧 `UserAnnotationDrawer` 批注抽屉，尤其是列表靠下的批注卡片。
+- 现象：用户截图显示点击靠下的批注后，卡片只展开到标题区域，当前批注正文和操作区被抽屉底部截住，需要手工继续滚动才能看完整。
+- 影响：批注列表较长时，靠近底部的批注展开反馈不完整，用户无法直接确认当前批注内容，也容易误判为展开失败。
+- 当前处理：已在 `UserAnnotationDrawer.js` 增加 `ensureAnnotationNoteFullyVisible()` 和 `scheduleAnnotationNoteVisibilityCheck()`。当 `details.annotation-note-card` 展开时，组件会在布局完成后计算卡片与 `.annotation-drawer-scroll` 的可视区域：若底部内容超出，则自动补滚到完整可见；若卡片高度超过抽屉可视区，则优先对齐卡片顶部。`styles.css` 为抽屉滚动层补 `scroll-padding`，保留上下安全余量。
+- 需要确认：请在固定入口 `http://127.0.0.1:5173/` 打开任意批注较多的页面，展开靠近抽屉底部的批注，例如截图中的 `#16`；预期展开后正文、状态选择和操作按钮会自动进入可视区域，不再只看到卡片头部。
+- 修复说明：修改 `frontend/capability-browser/components/UserAnnotationDrawer.js`、`frontend/capability-browser/styles.css`、`frontend/capability-browser/index.html` 和 `scripts/audit_user_annotation_contract.mjs`。未修改用户批注数据库、正式 JSON、原始 Excel、SQLite、标准包、字典包或 LC 数据包。
+- 验证结果：`node --check frontend/capability-browser/components/UserAnnotationDrawer.js` 和 `node --check scripts/audit_user_annotation_contract.mjs` 通过；`node scripts/audit_user_annotation_contract.mjs` 通过并新增 `expandedNoteVisibilityContract` 防回归；`node scripts/frontend_content_smoke_check.mjs --skip-api`、`python3 scripts/audit_json_package_boundary.py`、`python3 scripts/check_github_data_boundary.py`、`python3 scripts/dev_server_guard.py --status` 和 `git diff --check` 均通过。未启动系统 Chrome，真实点击视觉验收待用户页面确认。
 
 ## OI-152：LC-AP / LC-DT 旧批注阶段 ID 失效导致定位不到
 
@@ -86,15 +99,15 @@
 
 ## OI-149：前端 JSON 加载体量与首屏性能需分层治理
 
-- 状态：新发现 / 待治理设计
+- 状态：治理设计完成 / 待 P0 实施
 - 类型：前端 / 数据包 / 性能 / JSON 治理
 - 对象或页面：`/capability-mapping` 安全能力页、`/environment-mapping` 信息化环境页、知识库字典页、标准 / 框架页、指南 / 幻灯片页，以及 `frontend/capability-browser/dataClient.js` / `app.js` 的数据加载契约。
 - 现象：用户反馈安全能力页面再次出现数据加载缓慢，部分页面曾出现切换后无法点击、字典 / 标准模块偶发无法加载；同时要求“所有数据加载 JSON 需要再次治理”。本轮检查未复现 ViewModel 数据错配，`routePackagesForCurrentState()` 仍能保证能力页首屏优先请求 `capabilityInitial`，但当前主数据包体量仍偏大：`capability-tree.json` 约 `6394.8 KB`、`capability-workbench.json` 约 `5659.7 KB`、`maintenance-knowledge.json` 约 `10193.2 KB`、`standards` 分片总量约 `8463.5 KB`、`environment-workbench.json` 约 `4626.8 KB`。
 - 影响：即使懒加载契约未违规，较大 JSON 与全局搜索、标准详情、能力完整 workbench 兜底加载叠加时，仍可能造成用户感知慢加载；若后续页面新增时绕开 `routePackagesForCurrentState()` 或全局搜索一次性预热过多包，性能问题会反复出现。
-- 当前处理：本轮只做代码级防回归与状态登记，未重导或拆分任何正式 JSON。已执行 `node scripts/audit_frontend_lazy_load_contract.mjs`、`node scripts/audit_capability_viewmodel_contract.mjs --url http://127.0.0.1:5173`、`python3 scripts/data_package_summary.py --package all`，确认现有懒加载契约通过、能力 ViewModel 契约通过、主要 JSON 均为 `data_state=ready`。页面切换不可点击的直接风险已在 `OI-148` 中先修批注抽屉 closing 状态遮挡。
-- 需要确认：建议后续单独做“JSON 加载治理”任务，设计包分层目标：首屏轻量 index / selected view、按对象 projection、标准按表分片、维护字典按 section 分片、全局搜索索引单独压缩；不要在本问题下直接重建数据包或覆盖正式 JSON。
-- 修复说明：待治理设计；本轮未修改任何 `public/data/*.json`。
-- 验证结果：本轮数据包摘要显示所有主要包 `result=pass`、`data_state=ready`；能力页契约审计 11 个 L0/L1/L2/关注点样本均通过，`localRelationMapSource` 在关注点样本为 `backend_projection`，上层能力样本为 `viewmodel_fallback`。
+- 当前处理：已输出治理设计文档 `docs/06-implementation/oi-149-json-loading-governance-design.md`。本轮只做设计和登记，未重导或拆分任何正式 JSON。复核发现慢加载反复出现不是单一包体过大，而是四类绕过懒加载的入口：`dataClient.getHealth()` 触发全部 `DATA_PATHS` 预热；全局搜索输入会加载多个重包并加载标准详情全表；能力页 L0 / L1 / L2 仍可能走 `viewmodel_fallback` 拉完整 workbench；后端 projection 每次重复读取大 JSON 且缺包级缓存。
+- 需要确认：建议下一步先做 P0 止血，不直接拆正式 JSON：切断 `getHealth()` 全包预热，限制全局搜索全包预热，新增加载预算 / health 边界 / search index 契约审计。随后再做能力页 L0 / L1 / L2 projection 收口、后端包缓存、搜索索引和正式 JSON 分层候选。
+- 修复说明：治理设计已完成；运行代码和 `public/data/*.json` 本轮未修改。
+- 验证结果：`python3 scripts/data_package_summary.py --package all` 已复核主要包大小和 `data_state=ready`；`node scripts/audit_frontend_lazy_load_contract.mjs` 通过；`node scripts/audit_capability_viewmodel_contract.mjs --url http://127.0.0.1:5173` 通过，但结果显示 L0 / L1 / L2 样本仍为 `viewmodel_fallback`，关注点样本为 `backend_projection`，该点已纳入 P2 projection 收口验收。
 
 ## OI-148：全局批注在新环境页面缺少值级锚点与路由切换遮挡治理
 

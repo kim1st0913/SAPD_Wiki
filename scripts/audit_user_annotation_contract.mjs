@@ -722,6 +722,23 @@ if (
   });
 }
 
+if (
+  !includesAll(userAnnotationDrawerJs, [
+    "function ensureAnnotationNoteFullyVisible",
+    "function scheduleAnnotationNoteVisibilityCheck",
+    ".annotation-note-card[data-user-note-id]",
+    "noteRect.bottom > panelRect.bottom - bottomGutter",
+    "panel.scrollBy",
+  ]) ||
+  !includesAll(stylesCss, [".annotation-drawer-scroll", "scroll-padding: 10px 0 18px"])
+) {
+  issues.push({
+    severity: "error",
+    type: "annotation_drawer_expanded_note_visibility_missing",
+    message: "批注抽屉缺少靠底部批注展开后的完整可见滚动校正，低位卡片可能只显示标题而看不到当前批注内容。",
+  });
+}
+
 const result = {
   result: issues.some((issue) => issue.severity === "error") ? "fail" : "pass",
   checked: {
@@ -735,6 +752,7 @@ const result = {
     visualScopeBaseline: true,
     requirementsMatrix: true,
     productContract: true,
+    expandedNoteVisibilityContract: true,
   },
   issues,
 };

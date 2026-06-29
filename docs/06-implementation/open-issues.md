@@ -4,7 +4,7 @@
 
 ## 治理入口
 
-- 当前未关闭问题数：16
+- 当前未关闭问题数：17
 - 已关闭归档问题数：137
 - 全量索引：`docs/06-implementation/open-issues-index.md`
 - 已关闭问题归档：`docs/05-archive/open-issues-history/2026-06.md`
@@ -14,13 +14,14 @@
 
 | 编号 | 状态 | 标题 |
 |---|---|---|
+| OI-152 | 已修复 / 待页面验收 | LC-AP / LC-DT 旧批注阶段 ID 失效导致定位不到 |
 | OI-151 | 已修复 / 待页面验收 | 信息化环境汇聚图节点缺少稳定业务锚点导致定位不到 |
 | OI-150 | 已修复 / 待真实浏览器验收 | 全局批注值定位缺少运行时索引导致定位慢 |
 | OI-149 | 新发现 / 待治理设计 | 前端 JSON 加载体量与首屏性能需分层治理 |
 | OI-148 | 已修复 / 待页面验收 | 全局批注在新环境页面缺少值级锚点与路由切换遮挡治理 |
 | OI-147 | 已修复 / 待页面验收 | 信息化环境安全技术汇聚图措施误继承安全系统 |
 | OI-146 | 已修复 / 待页面验收 | 信息化环境安全技术汇聚图安全系统列未带出 |
-| OI-145 | 新发现 / 待修复 | 本地 API Host/token 边界未统一拦截 |
+| OI-145 | 已修复 / 待页面验收 | 本地 API Host/token 边界未统一拦截 |
 | OI-144 | 已修复 / 待页面验收 | 全局搜索与页面内搜索状态串线 |
 | OI-142 | 已修复 / 用户已验收 | 安全技术服务清单能力-关注点顺序下服务显示不全 |
 | OI-141 | 正式投影已替换 / 待页面验收 | LC-DT 原始数据更新后的服务、模块与分类候选问题 |
@@ -47,6 +48,18 @@
 
 ## 当前问题详情
 
+## OI-152：LC-AP / LC-DT 旧批注阶段 ID 失效导致定位不到
+
+- 状态：已修复 / 待页面验收
+- 类型：前端 / 批注 / 生命周期页面 / 定位恢复
+- 对象或页面：`/development-security` LC-AP 安全开发生命周期、`/data-security` LC-DT 数据生命周期安全、右侧批注抽屉定位链路。
+- 现象：用户反馈 LC-AP 和 LC-DT 批注仍定位不到、不高亮，而此前这些页面没有问题。本地用户批注 API 抽样显示现有 6 条生命周期批注均为旧 `base:field_value:v2:...` 值级锚点，锚点中记录的生命周期阶段 / 过程 ID 已不在当前 `lifecycle-workbench.json` 中；旧 ID 失效后，`annotationTargetContextMatchesCurrent()` 会拦截后续文本兜底，导致定位失败。
+- 影响：LC-AP / LC-DT 页面上的旧批注只能显示在抽屉列表，点击“定位”无法稳定恢复到具体阶段 / 过程和字段值；失败定位还会进入多轮重试，放大交互卡顿。
+- 当前处理：已在 `app.js` 增加生命周期批注旧 ID 恢复逻辑：当旧 `v2` 锚点中的阶段 / 过程 ID 不存在时，改用批注 `object_title` / 正文短文本在当前生命周期 ViewModel 的 `stageTree.searchText` 中反查所属阶段 / 过程，再恢复 `selectedDevProcessId` 或 `selectedDataProcessId`。同时补充 `lifecycleUserTarget()`，让 LC-AP / LC-DT 当前阶段 / 过程成为全局批注当前对象；`ApplicationSecurityLifecycle.js` 为阶段 / 过程导航按钮输出稳定 `data-annotation-target-ref` 和 `data-annotation-prefer-target="true"`，后续新增阶段级批注不再依赖易漂移坐标。`viewModels.js` 已将 `originalBusinessFields` 纳入生命周期阶段搜索文本，修复 `- 窃取凭证` 这类只存在于原始业务字段中的旧批注无法反查阶段的问题。
+- 需要确认：请在固定入口 `http://127.0.0.1:5173/?v=env-fix-7#/development-security` 和 `http://127.0.0.1:5173/?v=env-fix-7#/data-security` 中分别打开右侧批注，点击现有批注的“定位”；预期 LC-AP 的 `Jira`、`需求管理系统`、`相关方需求分析`、`窃取凭证` 等会恢复到对应 AP 阶段并临时黄色高亮，LC-DT 的 `接收其他应用数据` 会恢复到 `DT-01 收集/采集`。
+- 修复说明：修改 `frontend/capability-browser/app.js`、`frontend/capability-browser/viewModels.js`、`frontend/capability-browser/components/ApplicationSecurityLifecycle.js`、`frontend/capability-browser/index.html` 和 `scripts/audit_user_annotation_contract.mjs`。未修改用户批注数据库、`lifecycle-workbench.json`、`lifecycle-knowledge.json`、原始 Excel、SQLite、标准包、字典包或环境数据包。
+- 验证结果：`node --check` 覆盖 `app.js`、`viewModels.js`、`ApplicationSecurityLifecycle.js` 和批注契约脚本；`node scripts/audit_user_annotation_contract.mjs` 通过并新增 LC 导航稳定锚点 / `originalBusinessFields` 搜索文本防回归；真实本地用户批注 API 抽样 6 条生命周期批注均可反查到当前阶段 / 过程：`窃取凭证 -> AP-04 集成构建`、`接收其他应用数据 -> DT-01 收集/采集`、其余 LC-AP 旧批注 -> `AP-01 需求分析`；`node scripts/audit_search_state_isolation.mjs`、`node scripts/frontend_content_smoke_check.mjs --skip-api`、`python3 scripts/audit_json_package_boundary.py`、`python3 scripts/check_github_data_boundary.py`、`python3 scripts/dev_server_guard.py --status` 均通过。未启动系统 Chrome，真实点击视觉验收待用户页面确认。
+
 ## OI-151：信息化环境汇聚图节点缺少稳定业务锚点导致定位不到
 
 - 状态：已修复 / 待页面验收
@@ -54,10 +67,10 @@
 - 对象或页面：`/capability-mapping` 与 `/environment-mapping` 下的信息化环境安全能力映射页、`信息化环境-安全技术` tab、`EnvironmentScopeServiceMatrix` 汇聚图中的安全技术服务、安全技术模块、安全技术措施和安全系统节点。
 - 现象：用户截图指出环境汇聚图中的 `零信任访问控制台` 等节点批注定位不到；定位不到后会触发多轮 fallback / retry，放大为页面加载和交互变慢。根因不是原始数据问题，而是节点只输出显示文本和值级锚点，缺少稳定 `data-annotation-target-ref` 业务对象锚点；页面重渲染、节点位置变化、滚动容器变化或右侧抽屉遮挡后，旧的 `field_value` 坐标式定位容易失效。
 - 影响：环境图节点上的批注可能只能在抽屉列表出现，无法稳定定位回具体服务 / 模块 / 措施 / 安全系统；失败定位会继续拖慢当前页。
-- 当前处理：已给汇聚图节点补稳定业务锚点。`app.js` 将 `annotationTargetAttrsForHtml()` 暴露为 `window.sapdDisplay.annotationTargetAttrs`；`EnvironmentScopeServiceMatrix.js` 新增 `annotationObjectAttrs()`，并在安全技术服务、安全技术模块、安全技术措施、安全系统按钮上输出 `data-annotation-target-ref`、对象类型、对象标题和 `data-annotation-prefer-target="true"`。后续用户在这些节点上新增批注时，优先保存为稳定对象锚点，不再优先落到易漂移的 `field_value`。
+- 当前处理：已给汇聚图节点补稳定业务锚点。`app.js` 将 `annotationTargetAttrsForHtml()` 暴露为 `window.sapdDisplay.annotationTargetAttrs`；`EnvironmentScopeServiceMatrix.js` 新增 `annotationObjectAttrs()`，并在安全技术服务、安全技术模块、安全技术措施、安全系统按钮上输出 `data-annotation-target-ref`、对象类型、对象标题和 `data-annotation-prefer-target="true"`。后续用户在这些节点上新增批注时，优先保存为稳定对象锚点，不再优先落到易漂移的 `field_value`。2026-06-29 追加修复定位后目标节点不变黄的问题：`styles.css` 已将 `[data-annotation-prefer-target="true"]` 纳入保存后常驻态和点击定位临时态样式，稳定对象锚点定位后会显示黄色高亮；`app.js` 新增 `clearAnnotationActiveAnchorState()`，统一清除多次 resolve 后的临时 active 状态，避免残留。
 - 需要确认：请在固定入口 `http://127.0.0.1:5173/?v=env-fix-7#/capability-mapping` 打开 `信息化环境-安全技术` tab，抽查安全系统节点如 `零信任访问控制台`：新增批注后点击“定位”应回到对应节点；旧的值级批注若仍存在，会先走运行时索引和文本兜底。
 - 修复说明：修改 `frontend/capability-browser/app.js`、`frontend/capability-browser/components/EnvironmentScopeServiceMatrix.js`、`frontend/capability-browser/index.html` 和 `scripts/audit_user_annotation_contract.mjs`。未修改正式 JSON、SQLite、原始 Excel 或用户批注数据库。
-- 验证结果：`node scripts/audit_user_annotation_contract.mjs` 已通过，新增断言覆盖环境汇聚图稳定锚点；`node --check frontend/capability-browser/app.js`、`node --check frontend/capability-browser/components/EnvironmentScopeServiceMatrix.js`、`node --check scripts/audit_user_annotation_contract.mjs` 均通过；`node scripts/frontend_content_smoke_check.mjs --skip-api` 通过。未启动系统 Chrome，真实点击回归待用户批准后再做。
+- 验证结果：`node scripts/audit_user_annotation_contract.mjs` 已通过，新增断言覆盖环境汇聚图稳定锚点和稳定对象锚点定位高亮样式；`node --check frontend/capability-browser/app.js`、`node --check frontend/capability-browser/components/EnvironmentScopeServiceMatrix.js`、`node --check scripts/audit_user_annotation_contract.mjs` 均通过；`node scripts/frontend_content_smoke_check.mjs --skip-api` 通过。未启动系统 Chrome，真实点击回归待用户批准后再做。
 
 ## OI-150：全局批注值定位缺少运行时索引导致定位慢
 
@@ -121,15 +134,15 @@
 
 ## OI-145：本地 API Host/token 边界未统一拦截
 
-- 状态：新发现 / 待修复
+- 状态：已修复 / 待页面验收
 - 类型：安全 / 本地 API / 用户数据
-- 对象或页面：`src/sapd_wiki/api_server.py`、固定本地服务 `http://127.0.0.1:5173/`、`/api/v1/*` 与 `/api/v1/user/notes`。
-- 现象：2026-06-21 执行当前安全测试时，用原始 socket 发送 `Host: attacker.example:5173` 请求，当前 `5173` 本地 API 未按预期先拒绝异常 Host。`GET /api/v1/health` 返回 `200 OK`，`GET /api/v1/user/notes` 返回 `200 OK` 且可读取备注列表；`POST /api/v1/user/notes` 在无 `X-SAPD-Session-Token` 且异常 Host 的情况下进入业务字段校验，返回 `400 target_ref is required`，而不是先返回 `403`。`/api/v1/base/summary` 当前返回 `404`，但同样不是 Host 边界拦截。
-- 影响：本地页面或恶意网页若能通过浏览器访问用户本机 `127.0.0.1:5173`，可能借 DNS rebinding / 异常 Host 绕过本地服务边界读取用户备注等本地用户数据；写接口也未在当前 dev API 层统一要求 loopback Host、同源 Origin / Referer 和 `X-SAPD-Session-Token`，存在误写入风险。注意：`scripts/run_local_server.py` 已有部分 Host/token 防护，但当前固定预览服务实际走的是 `src/sapd_wiki/api_server.py`，该层尚未统一落地。
-- 当前处理：本轮只执行安全测试和登记问题，未修改 API 行为，未写入 SQLite 或用户数据。POST 探测故意使用 `{}` 缺少必填字段，验证到达业务校验但没有创建记录。
-- 需要确认：下一步建议优先修复 `src/sapd_wiki/api_server.py`：对所有 `/api/v1/*` 请求统一校验 Host 为 loopback + 当前端口；对 POST / PATCH / DELETE 统一校验 `Content-Type`、loopback Host、同源 Origin / Referer，并要求有效 `X-SAPD-Session-Token`；同时补回归脚本，断言异常 Host 的 GET / 写请求均返回 `403`。
-- 修复说明：待修复。
-- 验证结果：2026-06-21 已执行 `python3 scripts/dev_server_guard.py --status` 通过，确认 `5173` 项目服务可用；`python3 scripts/check_github_data_boundary.py` 通过；`python3 scripts/audit_json_package_boundary.py` 通过，`errors=0 warnings=0`；`node scripts/audit_user_db_governance_contract.mjs --json` 通过，包含 `user_write_api_security_present` 静态片段检查；`git diff --check` 通过。提升权限后执行本机 socket 安全探测，结果显示异常 Host 下 `GET /api/v1/health=200`、`GET /api/v1/user/notes=200`、`POST /api/v1/user/notes=400`，因此本问题成立。
+- 对象或页面：`src/sapd_wiki/api_server.py`、固定本地服务 `http://127.0.0.1:5173/`、`/api/v1/*`、`/api/v1/user/notes`、`/api/v1/user/favorites`。
+- 现象：2026-06-21 执行当前安全测试时，用原始 socket 发送 `Host: attacker.example:5173` 请求，当前 `5173` 本地 API 未按预期先拒绝异常 Host。`GET /api/v1/health` 返回 `200 OK`，`GET /api/v1/user/notes` 返回 `200 OK` 且可读取备注列表；`POST /api/v1/user/notes` 在无 `X-SAPD-Session-Token` 且异常 Host 的情况下进入业务字段校验，返回 `400 target_ref is required`，而不是先返回 `403`。
+- 影响：修复前本地页面或恶意网页若能通过浏览器访问用户本机 `127.0.0.1:5173`，可能借 DNS rebinding / 异常 Host 绕过本地服务边界读取用户备注等本地用户数据；写接口也未在当前 dev API 层统一要求 loopback Host、同源 Origin / Referer 和 `X-SAPD-Session-Token`，存在误写入风险。
+- 当前处理：已在 `src/sapd_wiki/api_server.py` 对所有 `/api/v1/*` 请求统一校验 `Host` 必须是 loopback + 当前端口；`POST` / `PATCH` / `DELETE` 用户写接口统一要求 `Content-Type: application/json`、有效 `X-SAPD-Session-Token`，并拒绝非 loopback 同端口的 `Origin` / `Referer`。`/api/v1/health` 现在返回当前服务进程内 session token，前端 `dataClient.userWriteHeaders()` 已按该契约自动带 token；若 5173 服务重启导致旧页面缓存 token 过期，`fetchUserApi()` 会在用户写接口首次 `403` 后清理 health 缓存、重取 token 并重试一次。
+- 影响评估：固定入口 `http://127.0.0.1:5173/` 与 `http://localhost:5173/` 下的只读页面、批注和收藏写入应继续可用；通过外部域名、局域网 IP、端口不一致、DNS rebinding Host、`file://` 静态打开后跨源调用 5173 API，或手工脚本不带 token 调用用户写接口，会被拒绝。可能受影响页面不是某一个业务页，而是所有依赖 `/api/v1/*` 的入口：批注抽屉、收藏、能力映射、信息化环境映射、LC-AP / LC-DT、知识库字典、标准 / 框架、指南和幻灯片等；只要按固定本地入口访问，这些页面不应不可用。若用户在服务重启前已经打开旧页面，用户写入会自动重取 token 重试一次；极端情况下仍失败时刷新页面可恢复。
+- 修复说明：新增 `scripts/audit_local_api_security_boundary.mjs`，用 raw socket 覆盖异常 Host 复现路径，并用临时批注创建 / 删除验证合法 loopback token 写入未被误伤。脚本会自动清理 `page:/oi-145-regression*` 临时记录。
+- 验证结果：2026-06-29 执行 `python3 -m py_compile src/sapd_wiki/api_server.py` 通过；`node --check scripts/audit_local_api_security_boundary.mjs` 通过；`python3 scripts/dev_server_guard.py --restart` 通过，首页 `200`、workspace projection `200`；提升权限执行 `node scripts/audit_local_api_security_boundary.mjs` 通过，确认异常 Host 下 `GET /api/v1/health=403`、`GET /api/v1/user/notes=403`、`POST /api/v1/user/notes=403`，正常 loopback health / notes 读取为 `200`，无 token 写入为 `403`，带 token 临时批注创建和删除均为 `200`。
 
 ## OI-144：全局搜索与页面内搜索状态串线
 

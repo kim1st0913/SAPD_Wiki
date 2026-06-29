@@ -377,13 +377,39 @@
     return headers;
   }
 
+  function isUserWriteMethod(method) {
+    return ["POST", "PATCH", "DELETE"].includes(String(method || "GET").toUpperCase());
+  }
+
+  function headersToObject(headers) {
+    if (!headers) return {};
+    if (typeof Headers !== "undefined" && headers instanceof Headers) {
+      const result = {};
+      headers.forEach((value, key) => {
+        result[key] = value;
+      });
+      return result;
+    }
+    if (Array.isArray(headers)) return Object.fromEntries(headers);
+    return { ...headers };
+  }
+
   async function fetchUserApi(path, options = {}) {
     const url = path ? apiUrl(path) : "";
     if (!url) return { ok: false, data_state: "api_unavailable", favorites: [], notes: [] };
+    const { sapdAuthRetry, ...fetchOptions } = options || {};
     try {
-      const response = await fetch(url, { cache: "no-store", ...options });
+      const response = await fetch(url, { cache: "no-store", ...fetchOptions });
       const payload = response.headers.get("Content-Type")?.includes("application/json") ? await response.json() : {};
       const data = normalizeUserPayload(payload);
+      if (!response.ok && response.status === 403 && isUserWriteMethod(fetchOptions.method) && !sapdAuthRetry) {
+        runtimeHealthCache = null;
+        const retryHeaders = {
+          ...headersToObject(fetchOptions.headers),
+          ...(await userWriteHeaders()),
+        };
+        return fetchUserApi(path, { ...fetchOptions, headers: retryHeaders, sapdAuthRetry: true });
+      }
       return response.ok ? data : { ok: false, data_state: "api_error", error: data.error || data.message || `HTTP ${response.status}` };
     } catch (error) {
       return { ok: false, data_state: "api_unavailable", error: error?.message || "user api unavailable" };

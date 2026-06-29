@@ -32,6 +32,7 @@ function lineFindings(relativePath, predicate) {
 
 const appJs = readText("frontend/capability-browser/app.js");
 const stylesCss = readText("frontend/capability-browser/styles.css");
+const viewModelsJs = readText("frontend/capability-browser/viewModels.js");
 const displayLabelsJs = readText("frontend/capability-browser/displayLabels.js");
 const userAnnotationDrawerJs = readText("frontend/capability-browser/components/UserAnnotationDrawer.js");
 const lifecycleJs = readText("frontend/capability-browser/components/ApplicationSecurityLifecycle.js");
@@ -52,6 +53,10 @@ if (!includesAll(environmentScopeMatrixJs, ["annotationObjectAttrs", "data-annot
 
 function renderedAnchorCount(html) {
   return countOccurrences(html, 'data-annotation-value="true"');
+}
+
+function renderedTargetRefCount(html) {
+  return countOccurrences(html, "data-annotation-target-ref=");
 }
 
 function createSandbox() {
@@ -196,7 +201,17 @@ function renderLifecycleSamples() {
     softwareDevelopmentTypes: [{ title: "瀑布开发" }],
     applicationSystemTypes: [{ title: "核心业务系统", components: [{ title: "交易组件" }] }],
   });
-  return { devHtml, dataHtml, referenceHtml };
+  const devNavHtml = component.renderNavigation({
+    kind: "dev",
+    stageTree: [{ id: "ap-01-id", code: "AP-01", title: "需求分析", searchText: "需求分析 Jira" }],
+    selectedProcessId: "ap-01-id",
+  });
+  const dataNavHtml = component.renderNavigation({
+    kind: "data",
+    stageTree: [{ id: "dt-01-id", code: "DT-01", title: "数据收集", searchText: "接收其他应用数据" }],
+    selectedProcessId: "dt-01-id",
+  });
+  return { devHtml, dataHtml, referenceHtml, devNavHtml, dataNavHtml };
 }
 
 function renderGlobalSamples() {
@@ -361,6 +376,7 @@ if (
     "function hydrateMaintenanceAnnotationTargets",
     "function resolveAnnotationAnchorElement",
     "function expandAnnotationHiddenLineage",
+    "function clearAnnotationActiveAnchorState",
     'data-annotation-slide-stage="true"',
     "findAnnotationAnchorElement(note, { includeHidden: true })",
     '[data-annotation-value="true"]',
@@ -402,6 +418,12 @@ if (
     "state.selectedDataProcessId",
     'view === "dev-lifecycle"',
     'view === "data-lifecycle"',
+    "function lifecycleAnnotationProcessIdForNote",
+    "function lifecycleAnnotationProcessMatchScore",
+    "function lifecycleSearchIncludesProcess",
+    "function lifecycleUserTarget",
+    "setCurrentAnnotationTarget(lifecycleUserTarget(viewModel, \"dev\")",
+    "setCurrentAnnotationTarget(lifecycleUserTarget(viewModel, \"data\")",
   ])
 ) {
   issues.push({
@@ -412,11 +434,30 @@ if (
 }
 
 if (
+  !includesAll(viewModelsJs, [
+    "function lifecycleWorkbenchStageSearchText",
+    "stage.originalBusinessFields",
+    "...originalBusinessFields",
+  ])
+) {
+  issues.push({
+    severity: "error",
+    type: "lifecycle_original_business_fields_search_missing",
+    message: "LC-AP / LC-DT 阶段搜索文本缺少 originalBusinessFields，旧批注阶段 ID 失效后可能无法按业务文本恢复到正确阶段 / 过程。",
+  });
+}
+
+if (
   !includesAll(lifecycleJs, [
     "function annotationValueAttrs",
     'data-annotation-value="true"',
     "data-copy-text",
     "data-annotation-tooltip",
+    "function lifecycleTargetAttrs",
+    "data-annotation-target-ref",
+    "data-annotation-prefer-target",
+    "lifecycle_application_stage",
+    "lifecycle_data_process",
     'class="lifecycle-field-line is-numbered"${annotationValueAttrs(line)}',
     'class="lifecycle-chip-item"${annotationValueAttrs(item.label)}',
     'class="data-scenario-title-cell"${annotationValueAttrs(titleText)}',
@@ -486,12 +527,22 @@ const lifecycleAnchorCounts = {
   dev: renderedAnchorCount(renderedSamples.devHtml),
   data: renderedAnchorCount(renderedSamples.dataHtml),
   reference: renderedAnchorCount(renderedSamples.referenceHtml),
+  devNavigationTargets: renderedTargetRefCount(renderedSamples.devNavHtml),
+  dataNavigationTargets: renderedTargetRefCount(renderedSamples.dataNavHtml),
 };
 if (lifecycleAnchorCounts.dev < 8 || lifecycleAnchorCounts.data < 8 || lifecycleAnchorCounts.reference < 3) {
   issues.push({
     severity: "error",
     type: "lifecycle_rendered_value_anchors_missing",
     message: `LC-AP / LC-DT 渲染样例值锚点数量不足：${JSON.stringify(lifecycleAnchorCounts)}`,
+  });
+}
+
+if (lifecycleAnchorCounts.devNavigationTargets < 1 || lifecycleAnchorCounts.dataNavigationTargets < 1) {
+  issues.push({
+    severity: "error",
+    type: "lifecycle_rendered_stable_targets_missing",
+    message: `LC-AP / LC-DT 阶段导航缺少稳定 data-annotation-target-ref：${JSON.stringify(lifecycleAnchorCounts)}`,
   });
 }
 
@@ -610,6 +661,7 @@ if (
     '[data-user-note-anchor-row-active="true"]',
     '[data-user-note-anchor-cell-marked="true"]',
     '[data-user-note-anchor-cell-active="true"]',
+    '[data-annotation-prefer-target="true"]',
     'tr[data-user-note-anchor-marked="true"] > td',
     'tr[data-user-note-anchor-active="true"] > td',
     '[data-maintenance-id][data-user-note-anchor-marked="true"] > td',

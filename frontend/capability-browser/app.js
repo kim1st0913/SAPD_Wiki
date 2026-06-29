@@ -1645,6 +1645,17 @@ function uniqueAnnotationTextVariants(values) {
   return variants;
 }
 
+function annotationTextCoreVariants(value = "") {
+  const raw = text(value).trim();
+  if (!raw) return [];
+  return [
+    raw,
+    raw.replace(/^[\s\-*•·]+/u, "").trim(),
+    raw.replace(/^\(?[A-Za-z]\)?[).）、]\s*/u, "").trim(),
+    raw.replace(/^\d+(?:\.\d+)*['’′]?[).）、]\s*/u, "").trim(),
+  ].filter(Boolean);
+}
+
 function noteLookupTextVariants(note = {}) {
   const objectTitle = text(note.object_title).trim();
   const body = text(note.body).trim();
@@ -1659,7 +1670,9 @@ function noteLookupTextVariants(note = {}) {
       .replace(/^(选中值|表格行|标准控制项|安全技术服务|安全技术模块|安全技术措施|能力|关注点|页面)\s*/u, "")
       .trim(),
   );
+  annotationTextCoreVariants(objectTitle).forEach((item) => values.push(item));
   if (body && body.length <= 80) values.push(body);
+  if (body && body.length <= 80) annotationTextCoreVariants(body).forEach((item) => values.push(item));
   return uniqueAnnotationTextVariants(values);
 }
 
@@ -1908,6 +1921,12 @@ function legacyAnnotationTargetMeta(targetRef = "") {
 function annotationTargetContextMatchesCurrent(note = {}) {
   const meta = legacyAnnotationTargetMeta(note.target_ref);
   if (!meta) return true;
+  if (meta.view === "dev-lifecycle" || meta.view === "data-lifecycle") {
+    const preferredProcessId = decodeLegacyAnchorPart(meta.context?.[2] || "");
+    const resolvedProcessId = lifecycleAnnotationProcessIdForNote(note, meta.view, preferredProcessId);
+    const currentProcessId = meta.view === "dev-lifecycle" ? state.selectedDevProcessId : state.selectedDataProcessId;
+    if (resolvedProcessId) return !currentProcessId || resolvedProcessId === currentProcessId;
+  }
   const current = annotationContextId().split(":").map(decodeLegacyAnchorPart);
   return meta.context.every((part, index) => !part || part === "_" || current[index] === part);
 }
@@ -2322,6 +2341,84 @@ function environmentUserTarget(viewModel) {
   return null;
 }
 
+function lifecycleAnnotationKindFromView(view = "") {
+  if (view === "dev-lifecycle") return "dev";
+  if (view === "data-lifecycle") return "data";
+  return "";
+}
+
+function lifecycleViewModelForAnnotation(kind = "", { selectedProcessId = null, search = "" } = {}) {
+  const viewModels = window.sapdViewModels;
+  if (!viewModels) return null;
+  const lifecycleWorkbenchViewModel =
+    viewModels.buildLifecycleWorkbenchViewModel?.({ workbench: state.lifecycleWorkbench }) || state.lifecycleWorkbenchViewModel;
+  if (lifecycleWorkbenchViewModel) state.lifecycleWorkbenchViewModel = lifecycleWorkbenchViewModel;
+  const args = {
+    lifecycleWorkbench: state.lifecycleWorkbench,
+    lifecycleWorkbenchViewModel,
+    lifecycle: state.lifecycle,
+    selectedProcessId,
+    search,
+  };
+  if (kind === "dev") return viewModels.buildApplicationSecurityLifecycleViewModel?.(args) || null;
+  if (kind === "data") return viewModels.buildDataSecurityLifecycleViewModel?.(args) || null;
+  return null;
+}
+
+function lifecycleAnnotationProcessMatchScore(row = {}, note = {}) {
+  const rowText = compactAnnotationLookupText([row.id, row.code, row.order, row.title, row.name, row.searchText].filter(Boolean).join(" "));
+  if (!rowText) return 0;
+  let score = 0;
+  for (const noteText of noteLookupTextVariants(note)) {
+    const compactNote = compactAnnotationLookupText(noteText);
+    if (!compactNote || compactNote.length < 2) continue;
+    if (rowText === compactNote) score = Math.max(score, 260);
+    else if (rowText.includes(compactNote)) score = Math.max(score, 110 + Math.min(compactNote.length, 80));
+    else if (compactNote.includes(rowText) && rowText.length >= 3) score = Math.max(score, 76);
+  }
+  return score;
+}
+
+function lifecycleAnnotationProcessIdForNote(note = {}, view = "", preferredProcessId = "") {
+  const kind = lifecycleAnnotationKindFromView(view);
+  if (!kind) return "";
+  const viewModel = lifecycleViewModelForAnnotation(kind, { selectedProcessId: null, search: "" });
+  const rows = list(viewModel?.stageTree || viewModel?.navigationTree);
+  const preferred = text(preferredProcessId).trim();
+  if (preferred && preferred !== "_" && rows.some((row) => text(row.id).trim() === preferred)) return preferred;
+  let bestRow = null;
+  let bestScore = 0;
+  for (const row of rows) {
+    const score = lifecycleAnnotationProcessMatchScore(row, note);
+    if (score > bestScore) {
+      bestRow = row;
+      bestScore = score;
+    }
+  }
+  return bestScore >= 90 ? text(bestRow?.id).trim() : "";
+}
+
+function lifecycleSearchIncludesProcess(kind = "", processId = "", search = "") {
+  const normalizedProcessId = text(processId).trim();
+  if (!normalizedProcessId) return false;
+  if (!text(search).trim()) return true;
+  const viewModel = lifecycleViewModelForAnnotation(kind, { selectedProcessId: normalizedProcessId, search });
+  return list(viewModel?.stageTree || viewModel?.navigationTree).some((row) => text(row.id).trim() === normalizedProcessId);
+}
+
+function lifecycleUserTarget(viewModel, kind = "dev") {
+  const selected = viewModel?.selectedProcess || viewModel?.selectedStage;
+  if (!selected?.id) return null;
+  const isData = kind === "data";
+  return buildBaseUserTarget({
+    objectType: isData ? "lifecycle_data_process" : "lifecycle_application_stage",
+    objectLabel: isData ? "LC-DT 数据过程" : "LC-AP 阶段",
+    id: selected.id,
+    code: selected.code || selected.id,
+    title: codeTitle(selected, isData ? "LC-DT 数据过程" : "LC-AP 阶段"),
+  });
+}
+
 function renderActiveUserActionScope() {
   if (state.activeView === "maintenance") {
     renderMaintenance();
@@ -2458,6 +2555,22 @@ function clearAnnotationAnchorState() {
       node.removeAttribute("data-user-note-anchor-row-marked");
       node.removeAttribute("data-user-note-anchor-row-active");
       node.removeAttribute("data-user-note-count");
+    });
+}
+
+function clearAnnotationActiveAnchorState() {
+  document
+    .querySelectorAll(
+      [
+        "[data-user-note-anchor-active='true']",
+        "[data-user-note-anchor-cell-active='true']",
+        "[data-user-note-anchor-row-active='true']",
+      ].join(","),
+    )
+    .forEach((node) => {
+      node.removeAttribute("data-user-note-anchor-active");
+      node.removeAttribute("data-user-note-anchor-cell-active");
+      node.removeAttribute("data-user-note-anchor-row-active");
     });
 }
 
@@ -2739,15 +2852,25 @@ function restoreAnnotationContextFromNote(note) {
       changed = true;
     }
   } else if (view === "dev-lifecycle") {
-    const processId = decoded[2] === "_" ? "" : decoded[2];
+    const legacyProcessId = decoded[2] === "_" ? "" : decoded[2];
+    const processId = lifecycleAnnotationProcessIdForNote(note, view, legacyProcessId) || legacyProcessId;
     if (processId && processId !== state.selectedDevProcessId) {
       state.selectedDevProcessId = processId;
       changed = true;
     }
+    if (processId && !lifecycleSearchIncludesProcess("dev", processId, state.devLifecycleStageSearch)) {
+      state.devLifecycleStageSearch = "";
+      changed = true;
+    }
   } else if (view === "data-lifecycle") {
-    const processId = decoded[2] === "_" ? "" : decoded[2];
+    const legacyProcessId = decoded[2] === "_" ? "" : decoded[2];
+    const processId = lifecycleAnnotationProcessIdForNote(note, view, legacyProcessId) || legacyProcessId;
     if (processId && processId !== state.selectedDataProcessId) {
       state.selectedDataProcessId = processId;
+      changed = true;
+    }
+    if (processId && !lifecycleSearchIncludesProcess("data", processId, state.dataLifecycleStageSearch)) {
+      state.dataLifecycleStageSearch = "";
       changed = true;
     }
   }
@@ -2861,11 +2984,9 @@ function jumpToUserNote(noteId) {
   const note = list(state.userNotes).find((row) => text(row.id).trim() === text(noteId).trim());
   if (!note) return;
   const route = text(note.page_route).trim();
-  const clearActiveAnchor = (anchor) => {
+  const clearActiveAnchor = () => {
     window.setTimeout(() => {
-      anchor.removeAttribute("data-user-note-anchor-active");
-      anchor.closest?.("td, th")?.removeAttribute("data-user-note-anchor-cell-active");
-      anchor.closest?.("tr")?.removeAttribute("data-user-note-anchor-row-active");
+      clearAnnotationActiveAnchorState();
       scheduleAnnotationAnchorMarkers("clear-active-after-jump", { delays: [0, 80] });
     }, 2600);
   };
@@ -2888,7 +3009,7 @@ function jumpToUserNote(noteId) {
         markAnnotationAnchorContext(current, "active", anchorType, note);
       }, delay);
     });
-    clearActiveAnchor(anchor);
+    clearActiveAnchor();
   };
   const doJump = () => {
     const changed = restoreAnnotationContextFromNote(note);
@@ -5976,6 +6097,7 @@ function renderLifecycle(kind) {
       });
     }
     state.selectedDevProcessId = viewModel.relationshipSummary?.selectedProcessId || viewModel.selectedProcess?.id || null;
+    setCurrentAnnotationTarget(lifecycleUserTarget(viewModel, "dev"), { pageTitle: "LC-AP安全开发生命周期" });
     if ($("devLifecycleStageSearch")) $("devLifecycleStageSearch").value = state.devLifecycleStageSearch;
     setText("devLifecyclePageTitle", "");
     setText("devLifecycleCount", viewModel.navigationTree.length);
@@ -6043,6 +6165,7 @@ function renderLifecycle(kind) {
       });
     }
     state.selectedDataProcessId = viewModel.relationshipSummary?.selectedProcessId || viewModel.selectedProcess?.id || null;
+    setCurrentAnnotationTarget(lifecycleUserTarget(viewModel, "data"), { pageTitle: "LC-DT数据生命周期安全" });
     if ($("dataLifecycleStageSearch")) $("dataLifecycleStageSearch").value = state.dataLifecycleStageSearch;
     setText("dataLifecyclePageTitle", "");
     setText("dataLifecycleCount", viewModel.navigationTree.length);

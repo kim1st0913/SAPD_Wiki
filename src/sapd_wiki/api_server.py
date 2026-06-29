@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import argparse
+import ipaddress
 import json
+import secrets
 import sqlite3
 import uuid
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -53,6 +55,7 @@ MAINTENANCE_SECTIONS = (
 FRONTEND_PUBLIC_DATA_ROOT = (PROJECT_ROOT / "frontend" / "capability-browser" / "public" / "data").resolve()
 USER_DB_PATH = (PROJECT_ROOT / "data" / "user" / "sapd_wiki_user.sqlite3").resolve()
 USER_SCHEMA_VERSION = "user_schema_0.2"
+LOCAL_API_AUTH_HEADER = "X-SAPD-Session-Token"
 USER_SCHEMA_SQL = """
 PRAGMA foreign_keys = ON;
 
@@ -288,6 +291,44 @@ def create_envelope(data: Any, warnings: list[str] | None = None) -> dict[str, A
         "data": data,
         "warnings": warning_list,
     }
+
+
+def is_json_content_type(value: str) -> bool:
+    return value.split(";", 1)[0].strip().lower() == "application/json"
+
+
+def is_loopback_host(value: str) -> bool:
+    host = str(value or "").strip().strip("[]").lower()
+    if host == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
+
+
+def is_allowed_host_header(value: str, port: int) -> bool:
+    raw_value = str(value or "").strip()
+    if not raw_value:
+        return False
+    parsed = urlparse(f"//{raw_value}")
+    try:
+        parsed_port = parsed.port or 80
+    except ValueError:
+        return False
+    return parsed_port == port and is_loopback_host(parsed.hostname or "")
+
+
+def is_allowed_loopback_origin(value: str, port: int) -> bool:
+    raw_value = str(value or "").strip()
+    if not raw_value:
+        return True
+    parsed = urlparse(raw_value)
+    try:
+        parsed_port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    except ValueError:
+        return False
+    return parsed.scheme == "http" and parsed_port == port and is_loopback_host(parsed.hostname or "")
 
 
 def ensure_user_db() -> None:
@@ -1628,12 +1669,17 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
         super().end_headers()
 
     def do_OPTIONS(self) -> None:
+        parsed = urlparse(self.path)
+        if parsed.path.startswith("/api/v1/") and not self._require_api_host():
+            return
         self.send_response(204)
         self.end_headers()
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
         if parsed.path.startswith("/api/v1/"):
+            if not self._require_api_host():
+                return
             self._handle_api(parsed.path, parse_qs(parsed.query))
             return
         if parsed.path not in {"", "/"} and "." not in Path(parsed.path).name:
@@ -1648,6 +1694,8 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
         parsed = urlparse(self.path)
         if parsed.path not in {"/api/v1/user/favorites", "/api/v1/user/notes"}:
             self._send_json(create_envelope({"error": "not_found", "path": parsed.path}), status=404)
+            return
+        if not self._require_user_write_boundary():
             return
         try:
             payload = self._read_json_body()
@@ -1665,6 +1713,8 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
         if not parsed.path.startswith("/api/v1/user/notes/"):
             self._send_json(create_envelope({"error": "not_found", "path": parsed.path}), status=404)
             return
+        if not self._require_user_write_boundary():
+            return
         try:
             note_id = unquote(parsed.path.rsplit("/", 1)[-1])
             payload = self._read_json_body()
@@ -1678,6 +1728,8 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
         parsed = urlparse(self.path)
         if parsed.path != "/api/v1/user/favorites" and not parsed.path.startswith("/api/v1/user/notes/"):
             self._send_json(create_envelope({"error": "not_found", "path": parsed.path}), status=404)
+            return
+        if not self._require_user_write_boundary():
             return
         try:
             if parsed.path.startswith("/api/v1/user/notes/"):
@@ -1700,8 +1752,48 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(encoded)
 
+    def _api_port(self) -> int:
+        return int(getattr(self.server, "server_port", self.server.server_address[1]))
+
+    def _session_token(self) -> str:
+        return str(getattr(self.server, "sapd_session_token", ""))
+
+    def _send_api_forbidden(self, message: str) -> None:
+        self._send_json(create_envelope({"error": "forbidden", "message": message}), status=403)
+
+    def _require_api_host(self) -> bool:
+        if is_allowed_host_header(self.headers.get("Host", ""), self._api_port()):
+            return True
+        self._send_api_forbidden("invalid Host header")
+        return False
+
+    def _require_user_write_boundary(self) -> bool:
+        if not self._require_api_host():
+            return False
+        if not is_json_content_type(self.headers.get("Content-Type", "")):
+            self._send_json(
+                create_envelope({"error": "unsupported_media_type", "message": "writes require Content-Type: application/json"}),
+                status=415,
+            )
+            return False
+        token = self.headers.get(LOCAL_API_AUTH_HEADER, "").strip()
+        session_token = self._session_token()
+        if not token or not session_token or not secrets.compare_digest(token, session_token):
+            self._send_api_forbidden(f"writes require a valid {LOCAL_API_AUTH_HEADER} header")
+            return False
+        port = self._api_port()
+        origin = self.headers.get("Origin", "").strip()
+        if origin and not is_allowed_loopback_origin(origin, port):
+            self._send_api_forbidden("cross-origin writes are not allowed")
+            return False
+        referer = self.headers.get("Referer", "").strip()
+        if referer and not is_allowed_loopback_origin(referer, port):
+            self._send_api_forbidden("cross-origin write referer is not allowed")
+            return False
+        return True
+
     def _read_json_body(self) -> dict[str, Any]:
-        if self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower() != "application/json":
+        if not is_json_content_type(self.headers.get("Content-Type", "")):
             raise ValueError("Content-Type must be application/json")
         length = int(self.headers.get("Content-Length", "0"))
         raw = self.rfile.read(length).decode("utf-8") if length else "{}"
@@ -1720,7 +1812,11 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
                             "status": "ok",
                             "app": "SAPD Wiki",
                             "mode": "local-api",
-                            "auth": {"writes_require_token": False, "header": "X-SAPD-Session-Token", "session_token": None},
+                            "auth": {
+                                "writes_require_token": True,
+                                "header": LOCAL_API_AUTH_HEADER,
+                                "session_token": self._session_token(),
+                            },
                             "user_database": {"ready": True, "schema_version": USER_SCHEMA_VERSION},
                         }
                     )
@@ -1775,6 +1871,7 @@ def serve(args: argparse.Namespace) -> None:
     static_dir = resolve_project_path(args.static_dir)
     handler = lambda *handler_args, **kwargs: SapdWikiRequestHandler(*handler_args, directory=str(static_dir), **kwargs)
     server = ThreadingHTTPServer((args.host, args.port), handler)
+    server.sapd_session_token = secrets.token_urlsafe(32)
     url = f"http://{args.host}:{args.port}"
     print(f"SAPD Wiki local API: {url}/api/v1/health")
     print(f"SAPD Wiki frontend:  {url}/")

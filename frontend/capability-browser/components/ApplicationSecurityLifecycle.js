@@ -58,6 +58,26 @@
     return ` data-annotation-value="true" data-copy-text="${escaped}" title="${escaped}" data-annotation-tooltip="${escaped}"`;
   }
 
+  function lifecycleTargetAttrs(row, kind = "dev") {
+    const id = String(row?.id || "").trim();
+    const code = String(row?.code || row?.order || id).trim();
+    const title = [code, titleOf(row, "")].filter(Boolean).join(" ").trim();
+    const stableKey = code || id;
+    if (!stableKey) return "";
+    const isData = kind === "data";
+    const target = {
+      targetRef: `base:${isData ? "lifecycle_data_process" : "lifecycle_application_stage"}:${stableKey}`,
+      objectType: isData ? "lifecycle_data_process" : "lifecycle_application_stage",
+      objectLabel: isData ? "LC-DT 数据过程" : "LC-AP 阶段",
+      id: id || stableKey,
+      code: stableKey,
+      title: title || stableKey,
+      anchorType: "object",
+    };
+    if (display.annotationTargetAttrs) return ` ${display.annotationTargetAttrs(target, { title: title || stableKey })}`;
+    return ` data-annotation-target-ref="${escapeHtml(target.targetRef)}" data-annotation-anchor-type="object" data-annotation-object-type="${escapeHtml(target.objectType)}" data-annotation-object-label="${escapeHtml(target.objectLabel)}" data-annotation-object-id="${escapeHtml(target.id)}" data-annotation-object-code="${escapeHtml(target.code)}" data-annotation-title="${escapeHtml(target.title)}" data-annotation-tooltip="${escapeHtml(target.title)}" title="${escapeHtml(target.title)}"`;
+  }
+
   function highlightText(value) {
     const raw = String(value || "");
     const query = String(activeHighlightQuery || "").trim();
@@ -608,7 +628,7 @@
       ${stageMeta
         .map(({ row, code, title }) => {
           return `
-            <button class="lifecycle-nav-row ${row.id === selectedProcessId ? "active" : ""}" type="button" data-lifecycle-kind="${escapeHtml(kind)}" data-lifecycle-id="${escapeHtml(row.id)}" style="--stage-tab-width: ${tabWidth}px;">
+            <button class="lifecycle-nav-row ${row.id === selectedProcessId ? "active" : ""}" type="button" data-lifecycle-kind="${escapeHtml(kind)}" data-lifecycle-id="${escapeHtml(row.id)}" data-annotation-prefer-target="true"${lifecycleTargetAttrs(row, kind)} style="--stage-tab-width: ${tabWidth}px;">
               <span class="stage-tab-code">${highlightText(code)}</span>
               <strong>${highlightText(title)}</strong>
             </button>

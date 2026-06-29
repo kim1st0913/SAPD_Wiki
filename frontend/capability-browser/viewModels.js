@@ -4234,6 +4234,8 @@
 
   function lifecycleWorkbenchStageSearchText(lifecycleWorkbench, objectsById, stage) {
     if (!stage?.id) return [stage?.code, stage?.title, stage?.description].join(" ");
+    const originalBusinessFields =
+      stage.originalBusinessFields && typeof stage.originalBusinessFields === "object" ? Object.values(stage.originalBusinessFields) : [];
     const relationSets = [
       ["contains_activity", "lifecycle_activity"],
       ["contains_control", "lifecycle_control"],
@@ -4256,6 +4258,7 @@
       stage.title,
       stage.description,
       stage.goal,
+      ...originalBusinessFields,
       ...related.flatMap((item) => [item.code, item.title, item.name, item.description, item.category, item.objectKind]),
     ].join(" ");
   }

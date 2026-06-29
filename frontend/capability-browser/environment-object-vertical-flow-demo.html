@@ -1,0 +1,1013 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Environment Object Vertical Flow Demo</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #172235;
+        --muted: #66748a;
+        --line: rgba(91, 132, 168, 0.2);
+        --blue: #0a84ff;
+        --module: #76ad90;
+        --module-deep: #326a4c;
+        --measure: #cf956d;
+        --measure-deep: #8a553d;
+        --system: #7f8aaa;
+        --ap: #0a84ff;
+        --di: #00a6b7;
+        --nt: #6366d6;
+        --us: #ad65c9;
+        --os: #687789;
+        --shadow: 0 30px 76px rgba(35, 47, 68, 0.14);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        overflow: hidden;
+        color: var(--ink);
+        font-family:
+          -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "PingFang SC",
+          "Microsoft YaHei", sans-serif;
+        background:
+          radial-gradient(circle at 16% 4%, rgba(10, 132, 255, 0.2), transparent 26%),
+          radial-gradient(circle at 78% 16%, rgba(118, 173, 144, 0.18), transparent 28%),
+          radial-gradient(circle at 50% 88%, rgba(207, 149, 109, 0.12), transparent 25%),
+          linear-gradient(135deg, #f8fbff 0%, #f3f7fb 56%, #edf4f8 100%);
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0.34;
+        background-image:
+          linear-gradient(rgba(74, 103, 138, 0.07) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(74, 103, 138, 0.07) 1px, transparent 1px);
+        background-size: 48px 48px;
+        mask-image: radial-gradient(circle at 50% 45%, #000 0%, transparent 74%);
+      }
+
+      button {
+        font: inherit;
+      }
+
+      h1,
+      p {
+        margin: 0;
+      }
+
+      .shell {
+        height: 100vh;
+        padding: 18px;
+      }
+
+      .window {
+        position: relative;
+        height: 100%;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.72);
+        border-radius: 32px;
+        background:
+          linear-gradient(135deg, rgba(255, 255, 255, 0.84), rgba(246, 251, 255, 0.58)),
+          rgba(255, 255, 255, 0.6);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(24px) saturate(1.12);
+      }
+
+      .topbar {
+        min-height: 112px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 18px;
+        align-items: start;
+        padding: 22px 26px 16px;
+        border-bottom: 1px solid rgba(112, 132, 156, 0.16);
+      }
+
+      .eyebrow-row,
+      .legend,
+      .stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        height: 26px;
+        padding: 0 10px;
+        border: 1px solid rgba(112, 132, 156, 0.18);
+        border-radius: 999px;
+        color: #526175;
+        background: rgba(255, 255, 255, 0.62);
+        font-size: 12px;
+        font-weight: 760;
+      }
+
+      h1 {
+        margin-top: 8px;
+        font-size: clamp(24px, 2.7vw, 34px);
+        line-height: 1.05;
+      }
+
+      .subtitle {
+        margin-top: 8px;
+        color: #4b5b70;
+        font-size: 14px;
+        font-weight: 680;
+      }
+
+      .legend {
+        margin-top: 12px;
+      }
+
+      .scope-key {
+        --scope-color: var(--ap);
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        min-height: 26px;
+        padding: 3px 9px 3px 6px;
+        border: 1px solid color-mix(in srgb, var(--scope-color) 58%, rgba(112, 132, 156, 0.16));
+        border-radius: 999px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(255, 255, 255, 0.56)),
+          color-mix(in srgb, var(--scope-color) 24%, transparent);
+        color: color-mix(in srgb, var(--scope-color) 82%, #15263a);
+        font-size: 12px;
+        font-weight: 840;
+        white-space: nowrap;
+      }
+
+      .scope-key::before {
+        content: "";
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: var(--scope-color);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.38),
+          0 0 0 3px color-mix(in srgb, var(--scope-color) 24%, transparent),
+          0 0 14px color-mix(in srgb, var(--scope-color) 34%, transparent);
+      }
+
+      .scope-key[data-scope="I-AP"],
+      .node[data-scope="I-AP"] {
+        --scope-color: var(--ap);
+      }
+
+      .scope-key[data-scope="I-DI"],
+      .node[data-scope="I-DI"] {
+        --scope-color: var(--di);
+      }
+
+      .scope-key[data-scope="I-NT"],
+      .node[data-scope="I-NT"] {
+        --scope-color: var(--nt);
+      }
+
+      .scope-key[data-scope="I-US"],
+      .node[data-scope="I-US"] {
+        --scope-color: var(--us);
+      }
+
+      .scope-key[data-scope="I-OS"],
+      .node[data-scope="I-OS"] {
+        --scope-color: var(--os);
+      }
+
+      .stats {
+        justify-content: flex-end;
+        max-width: 500px;
+      }
+
+      .stat-chip,
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 32px;
+        padding: 5px 11px;
+        border: 1px solid rgba(112, 132, 156, 0.2);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.66);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+        color: #274358;
+        font-size: 13px;
+        font-weight: 780;
+        white-space: nowrap;
+      }
+
+      .stat-chip strong {
+        margin-right: 4px;
+        color: #122033;
+        font-size: 18px;
+      }
+
+      .view-switch {
+        display: inline-flex;
+        gap: 4px;
+        padding: 5px;
+        border: 1px solid rgba(112, 132, 156, 0.18);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.62);
+      }
+
+      .view-switch button {
+        min-height: 34px;
+        border: 0;
+        border-radius: 999px;
+        padding: 0 13px;
+        color: #4e6075;
+        background: transparent;
+        cursor: pointer;
+        font-weight: 840;
+      }
+
+      .view-switch button.is-active {
+        color: #142236;
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: 0 8px 18px rgba(35, 47, 68, 0.1);
+      }
+
+      .canvas-shell {
+        min-height: 0;
+        padding: 16px 20px 20px;
+      }
+
+      .canvas {
+        position: relative;
+        height: 100%;
+        overflow: auto;
+        border: 1px solid rgba(112, 132, 156, 0.2);
+        border-radius: 28px;
+        background:
+          radial-gradient(circle at 50% 24%, rgba(10, 132, 255, 0.1), transparent 30%),
+          radial-gradient(circle at 50% 56%, rgba(118, 173, 144, 0.12), transparent 34%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.64), rgba(244, 250, 255, 0.42));
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.76),
+          0 18px 42px rgba(31, 50, 76, 0.08);
+      }
+
+      .board {
+        position: relative;
+        min-width: 1180px;
+        min-height: 1240px;
+        padding: 30px 40px 44px;
+      }
+
+      .edge-layer {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        pointer-events: none;
+        overflow: visible;
+      }
+
+      .flow-layer {
+        position: relative;
+        z-index: 2;
+        display: grid;
+        gap: 74px;
+      }
+
+      .board.is-bottom-up .flow-layer {
+        transform: scaleY(-1);
+      }
+
+      .board.is-bottom-up .flow-section,
+      .board.is-bottom-up .object-hud {
+        transform: scaleY(-1);
+      }
+
+      .object-hud {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 14px;
+        width: min(780px, 100%);
+        min-height: 82px;
+        margin: 0 auto;
+        padding: 14px 18px;
+        border: 1px solid rgba(112, 132, 156, 0.2);
+        border-radius: 24px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(245, 251, 255, 0.68)),
+          rgba(255, 255, 255, 0.62);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.86),
+          0 20px 42px rgba(31, 50, 76, 0.1);
+      }
+
+      .object-hud strong {
+        display: block;
+        color: #102033;
+        font-size: 20px;
+        font-weight: 900;
+      }
+
+      .object-hud span {
+        display: block;
+        margin-top: 4px;
+        color: #4f6075;
+        font-size: 13px;
+        font-weight: 760;
+      }
+
+      .flow-section {
+        position: relative;
+        display: grid;
+        gap: 12px;
+      }
+
+      .section-head {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        align-items: center;
+        color: #102033;
+        font-size: 18px;
+        font-weight: 900;
+      }
+
+      .section-count {
+        min-width: 42px;
+        justify-content: center;
+      }
+
+      .node-grid {
+        display: grid;
+        gap: 8px;
+        justify-content: center;
+      }
+
+      .service-grid {
+        grid-template-columns: repeat(5, minmax(0, 204px));
+      }
+
+      .target-grid {
+        grid-template-columns: repeat(6, minmax(0, 168px));
+      }
+
+      .system-grid {
+        grid-template-columns: repeat(5, minmax(0, 190px));
+      }
+
+      .node {
+        position: relative;
+        min-width: 0;
+        min-height: 54px;
+        display: grid;
+        align-content: center;
+        gap: 2px;
+        border: 1px solid rgba(140, 164, 190, 0.32);
+        border-radius: 17px;
+        padding: 8px 12px 8px 16px;
+        color: var(--ink);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(245, 251, 255, 0.76)),
+          rgba(255, 255, 255, 0.72);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.92),
+          0 10px 22px rgba(31, 50, 76, 0.06);
+        cursor: pointer;
+        font: inherit;
+        text-align: left;
+        transition:
+          opacity 180ms ease,
+          transform 180ms ease,
+          border-color 180ms ease,
+          box-shadow 180ms ease,
+          background 180ms ease;
+      }
+
+      .node::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 7px;
+        bottom: 7px;
+        width: 5px;
+        border-radius: 0 999px 999px 0;
+        background: var(--scope-color, var(--blue));
+        box-shadow: 0 0 14px color-mix(in srgb, var(--scope-color, var(--blue)) 32%, transparent);
+      }
+
+      .node-title {
+        overflow: hidden;
+        color: #19314a;
+        font-size: 11.5px;
+        font-weight: 860;
+        line-height: 1.18;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .node-meta {
+        overflow: hidden;
+        color: #68778b;
+        font-size: 10.2px;
+        font-weight: 760;
+        line-height: 1.1;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .target-node {
+        min-height: 62px;
+      }
+
+      .target-node::after,
+      .system-node::after {
+        background: var(--module);
+      }
+
+      .measure-node {
+        border-color: rgba(207, 149, 109, 0.36);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 244, 234, 0.78)),
+          rgba(207, 149, 109, 0.12);
+      }
+
+      .measure-node::after {
+        background: var(--measure);
+      }
+
+      .system-node {
+        min-height: 62px;
+        border-color: rgba(119, 131, 159, 0.32);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(244, 247, 255, 0.78)),
+          rgba(127, 138, 170, 0.1);
+      }
+
+      .system-node::after {
+        background: var(--system);
+      }
+
+      .node:hover,
+      .node:focus-visible {
+        border-color: rgba(10, 132, 255, 0.46);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.94),
+          0 0 0 3px rgba(10, 132, 255, 0.06),
+          0 12px 28px rgba(31, 50, 76, 0.08);
+        outline: none;
+      }
+
+      .node.is-active {
+        z-index: 8;
+        opacity: 1;
+        transform: translateY(-6px) scale(1.045);
+        border-color: rgba(10, 132, 255, 0.98);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(221, 240, 255, 0.94)),
+          rgba(10, 132, 255, 0.14);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.96),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.78),
+          0 0 0 5px rgba(10, 132, 255, 0.14),
+          0 0 34px rgba(10, 132, 255, 0.26),
+          0 26px 56px rgba(31, 50, 76, 0.22);
+      }
+
+      .node.is-linked {
+        z-index: 5;
+        opacity: 1;
+        transform: translateY(-3px) scale(1.024);
+        border-color: rgba(10, 132, 255, 0.52);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(237, 248, 255, 0.82)),
+          rgba(10, 132, 255, 0.06);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.94),
+          0 0 0 3px rgba(10, 132, 255, 0.065),
+          0 16px 34px rgba(31, 50, 76, 0.12);
+      }
+
+      .node.is-muted {
+        opacity: 0.64;
+        filter: saturate(0.92);
+      }
+
+      .edge {
+        fill: none;
+        stroke: rgba(91, 132, 168, 0.22);
+        stroke-width: 1.1;
+        stroke-linecap: round;
+        opacity: 0.24;
+        transition: opacity 180ms ease, stroke-width 180ms ease, filter 180ms ease;
+      }
+
+      .edge.is-measure {
+        stroke: rgba(207, 149, 109, 0.34);
+        stroke-dasharray: 5 9;
+      }
+
+      .edge.is-system {
+        stroke: rgba(112, 132, 156, 0.4);
+        stroke-dasharray: 2 8;
+      }
+
+      .edge.is-active {
+        opacity: 0.98;
+        stroke: rgba(10, 132, 255, 0.74);
+        stroke-width: 2.8;
+        filter:
+          drop-shadow(0 0 8px rgba(10, 132, 255, 0.34))
+          drop-shadow(0 0 18px rgba(10, 132, 255, 0.16));
+      }
+
+      .edge.is-muted {
+        opacity: 0.08;
+      }
+
+      .routing-spine {
+        fill: none;
+        stroke: rgba(91, 132, 168, 0.22);
+        stroke-width: 1.45;
+        stroke-linecap: round;
+        stroke-dasharray: 7 12;
+        opacity: 0.16;
+        pointer-events: none;
+        transition: opacity 180ms ease, stroke 180ms ease, stroke-width 180ms ease, filter 180ms ease;
+      }
+
+      .routing-spine.is-active {
+        stroke: rgba(10, 132, 255, 0.46);
+        stroke-width: 2.1;
+        opacity: 0.5;
+        filter:
+          drop-shadow(0 0 8px rgba(10, 132, 255, 0.18))
+          drop-shadow(0 0 16px rgba(10, 132, 255, 0.08));
+      }
+
+      .routing-spine.is-muted {
+        opacity: 0.05;
+      }
+
+      .popover {
+        position: fixed;
+        z-index: 80;
+        width: min(360px, calc(100vw - 40px));
+        pointer-events: none;
+        opacity: 0;
+        transform: translate3d(0, 6px, 0) scale(0.98);
+        transition: opacity 140ms ease, transform 140ms ease;
+      }
+
+      .popover.is-visible {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+      }
+
+      .popover-card {
+        border: 1px solid rgba(138, 164, 191, 0.34);
+        border-radius: 18px;
+        padding: 12px 14px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(244, 249, 255, 0.84)),
+          rgba(255, 255, 255, 0.82);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.94),
+          0 18px 46px rgba(31, 50, 76, 0.16);
+        backdrop-filter: blur(20px) saturate(1.12);
+      }
+
+      .popover-kicker {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 780;
+      }
+
+      .popover-title {
+        margin-top: 6px;
+        color: var(--ink);
+        font-size: 14px;
+        font-weight: 860;
+        line-height: 1.36;
+      }
+
+      .popover-meta {
+        margin-top: 6px;
+        color: #66748a;
+        font-size: 12px;
+        font-weight: 760;
+      }
+
+      @media (max-width: 1180px) {
+        body {
+          overflow: auto;
+        }
+
+        .shell {
+          min-width: 1060px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <div class="window">
+        <header class="topbar">
+          <div>
+            <div class="eyebrow-row">
+              <span class="eyebrow">Apple shell demo</span>
+              <span class="eyebrow">纵向流向试验</span>
+            </div>
+            <h1>信息化对象安全技术纵向流</h1>
+            <p class="subtitle">用从上到下 / 从下到上的方式，查看安全技术服务、模块 / 措施与安全系统的承接关系。</p>
+            <div class="legend" aria-label="作用域颜色图例">
+              <span class="scope-key" data-scope="I-AP">I-AP 软件应用</span>
+              <span class="scope-key" data-scope="I-DI">I-DI 数据与信息</span>
+              <span class="scope-key" data-scope="I-NT">I-NT 网络</span>
+              <span class="scope-key" data-scope="I-US">I-US 用户</span>
+              <span class="scope-key" data-scope="I-OS">I-OS 操作系统</span>
+            </div>
+          </div>
+          <div>
+            <div class="view-switch" aria-label="流向切换">
+              <button class="is-active" type="button" data-direction="top-down">从上到下</button>
+              <button type="button" data-direction="bottom-up">从下到上</button>
+            </div>
+            <div class="stats" aria-label="对象统计">
+              <span class="stat-chip"><strong>29</strong>服务</span>
+              <span class="stat-chip"><strong>12</strong>模块/措施</span>
+              <span class="stat-chip"><strong>5</strong>系统</span>
+              <span class="stat-chip"><strong>44</strong>关系</span>
+            </div>
+          </div>
+        </header>
+
+        <main class="canvas-shell">
+          <section class="canvas" id="viewport">
+            <div class="board" id="board">
+              <svg class="edge-layer" id="edgeLayer" aria-hidden="true"></svg>
+              <div class="flow-layer" id="flowLayer">
+                <section class="object-hud">
+                  <div>
+                    <strong>云数据中心 - 大数据平台/数据中台 - 数据分析层</strong>
+                    <span>对象作为上下文，不参与连线；主关系为服务 → 模块/措施 → 安全系统。</span>
+                  </div>
+                  <span class="pill">纵向映射</span>
+                </section>
+
+                <section class="flow-section" data-layer="service">
+                  <div class="section-head">安全技术服务 <span class="pill section-count">29 项</span></div>
+                  <div class="node-grid service-grid" id="serviceGrid"></div>
+                </section>
+
+                <section class="flow-section" data-layer="target">
+                  <div class="section-head">安全技术模块 / 措施 <span class="pill section-count">12 项</span></div>
+                  <div class="node-grid target-grid" id="targetGrid"></div>
+                </section>
+
+                <section class="flow-section" data-layer="system">
+                  <div class="section-head">安全系统 <span class="pill section-count">5 项</span></div>
+                  <div class="node-grid system-grid" id="systemGrid"></div>
+                </section>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <div class="popover" id="popover" role="status" aria-live="polite" aria-hidden="true">
+      <div class="popover-card">
+        <div class="popover-kicker" id="popoverKicker"></div>
+        <div class="popover-title" id="popoverTitle"></div>
+        <div class="popover-meta" id="popoverMeta"></div>
+      </div>
+    </div>
+
+    <script>
+      const services = [
+        ["s-iap-ad02", "I-AP", "I-AP&T-AS.AD-02 应用冗余", "1 措施", ["t-measure-ha"]],
+        ["s-iap-ad03", "I-AP", "I-AP&T-AS.AD-03 应用备份", "1 模块", ["t-module-host"]],
+        ["s-iap-am01", "I-AP", "I-AP&T-AS.AM-01 软件资产清单", "1 模块 / 1 措施", ["t-module-console", "t-measure-auth"]],
+        ["s-iap-am02", "I-AP", "I-AP&T-AS.AM-02 软件资产安全管理", "2 模块", ["t-module-proxy", "t-module-console"]],
+        ["s-iap-cm01", "I-AP", "I-AP&T-AS.CM-01 应用安全基线配置", "2 模块", ["t-module-image", "t-module-host"]],
+        ["s-iap-cm02", "I-AP", "I-AP&T-AS.CM-02 应用安全加固", "2 模块", ["t-module-image", "t-module-host"]],
+        ["s-iap-ia01", "I-AP", "I-AP&T-AS.IA-01 应用身份管理", "1 模块", ["t-module-console"]],
+        ["s-iap-ia02", "I-AP", "I-AP&T-AS.IA-02 应用身份认证", "2 模块", ["t-module-console", "t-module-proxy"]],
+        ["s-iap-ia03", "I-AP", "I-AP&T-AS.IA-03 应用资源授权", "2 模块 / 1 措施", ["t-module-proxy", "t-module-console", "t-measure-self-auth"]],
+        ["s-iap-ia04", "I-AP", "I-AP&T-AS.IA-04 应用凭证管理", "1 模块 / 1 措施", ["t-module-console", "t-measure-cert"]],
+        ["s-iap-la01", "I-AP", "I-AP&T-AS.LA-01 应用日志记录", "1 措施", ["t-measure-log"]],
+        ["s-iap-la03", "I-AP", "I-AP&T-AS.LA-03 应用操作审计", "1 模块", ["t-module-console"]],
+        ["s-iap-vm01", "I-AP", "I-AP&T-AS.VM-01 应用漏洞管理", "2 模块", ["t-module-image", "t-module-host"]],
+        ["s-iap-vm02", "I-AP", "I-AP&T-AS.VM-02 应用补丁管理", "2 模块", ["t-module-image", "t-module-host"]],
+        ["s-iap-ac01", "I-AP", "I-AP&T-PD.AC-01 应用访问控制", "2 模块", ["t-module-proxy", "t-module-console"]],
+        ["s-iap-ac02", "I-AP", "I-AP&T-PD.AC-02 应用软件信誉评估", "1 模块", ["t-module-proxy"]],
+        ["s-iap-pp01", "I-AP", "I-AP&T-PD.PP-01 应用安全访问", "1 模块 / 1 措施", ["t-module-proxy", "t-measure-auth"]],
+        ["s-idi-am01", "I-DI", "I-DI&T-AS.AM-01 数据资产清单", "1 措施", ["t-measure-auth"]],
+        ["s-idi-ia03", "I-DI", "I-DI&T-AS.IA-03 数据资源授权", "2 模块", ["t-module-proxy", "t-module-console"]],
+        ["s-idi-la03", "I-DI", "I-DI&T-AS.LA-03 数据访问和操作审计", "1 措施", ["t-measure-log"]],
+        ["s-idi-dp01", "I-DI", "I-DI&T-PD.DP-01 数据内容水印", "1 模块", ["t-module-watermark"]],
+        ["s-idi-dp02", "I-DI", "I-DI&T-PD.DP-02 静态数据脱敏", "1 模块", ["t-module-desensitize"]],
+        ["s-idi-dp04", "I-DI", "I-DI&T-PD.DP-04 数据访问鉴权", "2 模块", ["t-module-desensitize", "t-module-watermark"]],
+        ["s-int-cg01", "I-NT", "I-NT&T-AS.CG-01 网络传输通道", "1 模块", ["t-module-proxy"]],
+        ["s-int-ia03", "I-NT", "I-NT&T-AS.IA-03 网络资源授权", "2 模块", ["t-module-proxy", "t-module-console"]],
+        ["s-int-dp02", "I-NT", "I-NT&T-PD.DP-02 网络动态数据脱敏", "1 模块", ["t-module-watermark"]],
+        ["s-ius-la03", "I-US", "I-US&T-AS.LA-03 用户行为审计", "1 措施", ["t-measure-log"]],
+        ["s-ius-ac02", "I-US", "I-US&T-PD.AC-02 用户信誉评估", "1 模块", ["t-module-proxy"]],
+        ["s-ios-ac02", "I-OS", "I-OS&T-PD.AC-02 主机/终端信誉评估", "1 模块", ["t-module-host"]],
+      ];
+
+      const targets = [
+        ["t-module-proxy", "module", "零信任访问代理", "8 服务 / 1 系统", ["sys-zero"]],
+        ["t-module-console", "module", "零信任访问控制台", "15 服务 / 1 系统", ["sys-zero"]],
+        ["t-module-image", "module", "容器镜像安全", "6 服务 / 1 系统", ["sys-container"]],
+        ["t-module-watermark", "module", "数据水印溯源", "1 服务 / 1 系统", ["sys-data"]],
+        ["t-module-desensitize", "module", "数据脱敏(去标识化)", "1 服务 / 1 系统", ["sys-data"]],
+        ["t-module-host", "module", "主机安全管理", "6 服务 / 1 系统", ["sys-host"]],
+        ["t-measure-ha", "measure", "应用系统高可用性设计", "2 服务 / 1 系统", ["sys-app"]],
+        ["t-measure-cert", "measure", "应用系统自身凭证管理模块", "1 服务 / 1 系统", ["sys-app"]],
+        ["t-measure-auth", "measure", "应用系统自身认证模块", "1 服务 / 1 系统", ["sys-app"]],
+        ["t-measure-self-auth", "measure", "应用系统自身授权管理模块", "1 服务 / 1 系统", ["sys-app"]],
+        ["t-measure-log", "measure", "应用系统自身日志记录模块", "1 服务 / 1 系统", ["sys-app"]],
+        ["t-measure-backup", "measure", "应用系统自身备份恢复模块", "1 服务 / 1 系统", ["sys-app"]],
+      ];
+
+      const systems = [
+        ["sys-zero", "零信任安全系统", "承接 2 个模块"],
+        ["sys-data", "数据安全平台", "承接 2 个模块"],
+        ["sys-host", "主机安全防护系统", "承接 1 个模块"],
+        ["sys-container", "容器安全防护系统", "承接 1 个模块"],
+        ["sys-app", "应用安全内建能力", "承接 6 项措施"],
+      ];
+
+      const board = document.getElementById("board");
+      const viewport = document.getElementById("viewport");
+      const edgeLayer = document.getElementById("edgeLayer");
+      const serviceGrid = document.getElementById("serviceGrid");
+      const targetGrid = document.getElementById("targetGrid");
+      const systemGrid = document.getElementById("systemGrid");
+      const popover = document.getElementById("popover");
+      const popoverKicker = document.getElementById("popoverKicker");
+      const popoverTitle = document.getElementById("popoverTitle");
+      const popoverMeta = document.getElementById("popoverMeta");
+      let activeKey = "s-iap-ia03";
+      let drawFrame = 0;
+      let tooltipTimer = 0;
+
+      function nodeButton({ key, title, meta, type, scope, targets: targetKeys, systems: systemKeys }) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `node ${type}-node`;
+        button.dataset.key = key;
+        if (scope) button.dataset.scope = scope;
+        if (targetKeys) button.dataset.targets = targetKeys.join(",");
+        if (systemKeys) button.dataset.systems = systemKeys.join(",");
+        button.dataset.type = type;
+        button.innerHTML = `<span class="node-title"></span><span class="node-meta"></span>`;
+        button.querySelector(".node-title").textContent = title;
+        button.querySelector(".node-meta").textContent = meta;
+        button.setAttribute("aria-label", `${title}，${meta}`);
+        button.addEventListener("click", () => applyFocus(key));
+        button.addEventListener("pointerenter", () => showTooltip(button));
+        button.addEventListener("pointerleave", hideTooltip);
+        button.addEventListener("focus", () => showTooltip(button));
+        button.addEventListener("blur", hideTooltip);
+        return button;
+      }
+
+      function renderNodes() {
+        services.forEach(([key, scope, title, meta, targetKeys]) => {
+          serviceGrid.appendChild(nodeButton({ key, scope, title, meta, type: "service", targets: targetKeys }));
+        });
+        targets.forEach(([key, kind, title, meta, systemKeys]) => {
+          targetGrid.appendChild(nodeButton({ key, title, meta, type: kind === "measure" ? "target measure" : "target", systems: systemKeys }));
+        });
+        systems.forEach(([key, title, meta]) => {
+          systemGrid.appendChild(nodeButton({ key, title, meta, type: "system" }));
+        });
+      }
+
+      function getNode(key) {
+        return document.querySelector(`[data-key="${CSS.escape(key)}"]`);
+      }
+
+      function allNodes() {
+        return Array.from(document.querySelectorAll("[data-key]"));
+      }
+
+      function edges() {
+        const serviceEdges = services.flatMap(([source, , , , targetKeys]) =>
+          targetKeys.map((target) => ({
+            source,
+            target,
+            type: target.includes("measure") ? "measure" : "module",
+            phase: "service-target",
+          }))
+        );
+        const systemEdges = targets.flatMap(([source, , , , systemKeys]) =>
+          systemKeys.map((target) => ({ source, target, type: "system", phase: "target-system" }))
+        );
+        return [...serviceEdges, ...systemEdges];
+      }
+
+      function linkedKeysFor(key) {
+        const node = getNode(key);
+        if (!node) return new Set();
+        if (node.classList.contains("service-node")) {
+          const targetKeys = (node.dataset.targets || "").split(",").filter(Boolean);
+          const systemKeys = targetKeys.flatMap((target) => (getNode(target)?.dataset.systems || "").split(",").filter(Boolean));
+          return new Set([...targetKeys, ...systemKeys]);
+        }
+        if (node.classList.contains("target-node")) {
+          const serviceKeys = services.filter(([, , , , targetKeys]) => targetKeys.includes(key)).map(([source]) => source);
+          const systemKeys = (node.dataset.systems || "").split(",").filter(Boolean);
+          return new Set([...serviceKeys, ...systemKeys]);
+        }
+        if (node.classList.contains("system-node")) {
+          const targetKeys = targets.filter(([, , , , systemKeys]) => systemKeys.includes(key)).map(([target]) => target);
+          const serviceKeys = services
+            .filter(([, , , , keys]) => keys.some((target) => targetKeys.includes(target)))
+            .map(([source]) => source);
+          return new Set([...targetKeys, ...serviceKeys]);
+        }
+        return new Set();
+      }
+
+      function applyFocus(key) {
+        activeKey = key;
+        const linked = linkedKeysFor(key);
+        const activeSet = new Set([key, ...linked]);
+        allNodes().forEach((node) => {
+          const isActive = node.dataset.key === key;
+          const isLinked = linked.has(node.dataset.key);
+          node.classList.toggle("is-active", isActive);
+          node.classList.toggle("is-linked", isLinked);
+          node.classList.toggle("is-muted", !isActive && !isLinked);
+        });
+        document.querySelectorAll(".edge").forEach((path) => {
+          const active = activeSet.has(path.dataset.source) && activeSet.has(path.dataset.target);
+          path.classList.toggle("is-active", active);
+          path.classList.toggle("is-muted", !active);
+        });
+        document.querySelectorAll(".routing-spine").forEach((spine) => {
+          const active = Array.from(document.querySelectorAll(`.edge[data-phase="${spine.dataset.phase}"]`))
+            .some((path) => path.classList.contains("is-active"));
+          spine.classList.toggle("is-active", active);
+          spine.classList.toggle("is-muted", !active);
+        });
+      }
+
+      function pointFor(element, side) {
+        const rect = element.getBoundingClientRect();
+        const base = board.getBoundingClientRect();
+        const midX = rect.left + rect.width / 2 - base.left;
+        const top = rect.top - base.top;
+        const bottom = rect.bottom - base.top;
+        return side === "top" ? { x: midX, y: top } : { x: midX, y: bottom };
+      }
+
+      function sectionBounds(element) {
+        const rect = element?.getBoundingClientRect();
+        const base = board.getBoundingClientRect();
+        if (!rect) return null;
+        return {
+          left: rect.left - base.left,
+          right: rect.right - base.left,
+          top: rect.top - base.top,
+          bottom: rect.bottom - base.top,
+        };
+      }
+
+      function drawRoutingSpine(y, left, right, phase) {
+        if (!Number.isFinite(y) || !Number.isFinite(left) || !Number.isFinite(right) || right <= left) return;
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", `M ${left} ${y} L ${right} ${y}`);
+        path.classList.add("routing-spine");
+        path.dataset.phase = phase;
+        edgeLayer.appendChild(path);
+      }
+
+      function gapMidline(first, second) {
+        if (first.bottom <= second.top) return (first.bottom + second.top) / 2;
+        if (second.bottom <= first.top) return (second.bottom + first.top) / 2;
+        return (first.top + first.bottom + second.top + second.bottom) / 4;
+      }
+
+      function drawRoutingSpines() {
+        const serviceBounds = sectionBounds(serviceGrid);
+        const targetBounds = sectionBounds(targetGrid);
+        const systemBounds = sectionBounds(systemGrid);
+        if (!serviceBounds || !targetBounds || !systemBounds) return {};
+        const left = Math.min(serviceBounds.left, targetBounds.left, systemBounds.left) + 28;
+        const right = Math.max(serviceBounds.right, targetBounds.right, systemBounds.right) - 28;
+        const serviceTargetY = gapMidline(serviceBounds, targetBounds);
+        const targetSystemY = gapMidline(targetBounds, systemBounds);
+        drawRoutingSpine(serviceTargetY, left, right, "service-target");
+        drawRoutingSpine(targetSystemY, left, right, "target-system");
+        return { "service-target": serviceTargetY, "target-system": targetSystemY };
+      }
+
+      function drawEdges() {
+        drawFrame = 0;
+        const width = board.scrollWidth;
+        const height = board.scrollHeight;
+        edgeLayer.setAttribute("viewBox", `0 0 ${width} ${height}`);
+        edgeLayer.setAttribute("width", width);
+        edgeLayer.setAttribute("height", height);
+        edgeLayer.innerHTML = "";
+        const routing = drawRoutingSpines();
+        const bottomUp = board.classList.contains("is-bottom-up");
+        for (const edge of edges()) {
+          const sourceEl = getNode(edge.source);
+          const targetEl = getNode(edge.target);
+          if (!sourceEl || !targetEl) continue;
+          const start = pointFor(sourceEl, bottomUp ? "top" : "bottom");
+          const end = pointFor(targetEl, bottomUp ? "bottom" : "top");
+          const delta = Math.max(70, Math.abs(end.y - start.y) * 0.42);
+          const sign = bottomUp ? -1 : 1;
+          const routeY = routing[edge.phase];
+          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          if (Number.isFinite(routeY)) {
+            const bend = Math.max(28, Math.abs(end.y - routeY) * 0.38);
+            path.setAttribute(
+              "d",
+              `M ${start.x} ${start.y} C ${start.x} ${start.y + sign * 28}, ${start.x} ${routeY - sign * 24}, ${start.x} ${routeY} C ${start.x} ${routeY + sign * bend}, ${end.x} ${end.y - sign * bend}, ${end.x} ${end.y}`
+            );
+          } else {
+            path.setAttribute("d", `M ${start.x} ${start.y} C ${start.x} ${start.y + sign * delta}, ${end.x} ${end.y - sign * delta}, ${end.x} ${end.y}`);
+          }
+          path.classList.add("edge", `is-${edge.type}`);
+          path.dataset.source = edge.source;
+          path.dataset.target = edge.target;
+          path.dataset.phase = edge.phase;
+          edgeLayer.appendChild(path);
+        }
+        applyFocus(activeKey);
+      }
+
+      function scheduleDraw() {
+        if (drawFrame) return;
+        drawFrame = window.requestAnimationFrame(drawEdges);
+      }
+
+      function showTooltip(node) {
+        const title = node.querySelector(".node-title");
+        const meta = node.querySelector(".node-meta");
+        if (!title || title.scrollWidth <= title.clientWidth + 1) return;
+        window.clearTimeout(tooltipTimer);
+        tooltipTimer = window.setTimeout(() => {
+          const rect = node.getBoundingClientRect();
+          popoverKicker.textContent = node.dataset.type?.includes("service")
+            ? "安全技术服务"
+            : node.dataset.type?.includes("system")
+              ? "安全系统"
+              : node.classList.contains("measure-node")
+                ? "安全技术措施"
+                : "安全技术模块";
+          popoverTitle.textContent = title.textContent.trim();
+          popoverMeta.textContent = meta.textContent.trim();
+          popover.classList.add("is-visible");
+          popover.setAttribute("aria-hidden", "false");
+          const width = Math.min(360, window.innerWidth - 40);
+          let left = rect.left + rect.width / 2 - width / 2;
+          left = Math.max(16, Math.min(left, window.innerWidth - width - 16));
+          let top = rect.bottom + 10;
+          if (top + 130 > window.innerHeight) top = rect.top - 136;
+          popover.style.left = `${left}px`;
+          popover.style.top = `${Math.max(16, top)}px`;
+        }, 220);
+      }
+
+      function hideTooltip() {
+        window.clearTimeout(tooltipTimer);
+        popover.classList.remove("is-visible");
+        popover.setAttribute("aria-hidden", "true");
+      }
+
+      document.querySelectorAll("[data-direction]").forEach((button) => {
+        button.addEventListener("click", () => {
+          document.querySelectorAll("[data-direction]").forEach((item) => item.classList.toggle("is-active", item === button));
+          board.classList.toggle("is-bottom-up", button.dataset.direction === "bottom-up");
+          scheduleDraw();
+        });
+      });
+
+      window.addEventListener("resize", scheduleDraw);
+      renderNodes();
+      window.addEventListener("load", () => {
+        drawEdges();
+        if (document.fonts?.ready) document.fonts.ready.then(scheduleDraw);
+      });
+    </script>
+  </body>
+</html>

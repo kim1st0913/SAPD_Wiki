@@ -27,8 +27,9 @@
         --nt: #6366d6;
         --us: #ad65c9;
         --os: #687789;
-        --service-card-width: 318px;
+        --service-card-width: 252px;
         --target-card-width: 270px;
+        --system-card-width: 286px;
         --shadow: 0 30px 76px rgba(35, 47, 68, 0.14);
         --shadow-soft: 0 14px 38px rgba(35, 47, 68, 0.1);
       }
@@ -244,6 +245,49 @@
         padding: 16px 20px 20px;
       }
 
+      .demo-tabbar {
+        display: inline-flex;
+        gap: 6px;
+        align-items: center;
+        margin-bottom: 12px;
+        padding: 5px;
+        border: 1px solid rgba(112, 132, 156, 0.18);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.58);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.84);
+        backdrop-filter: blur(18px);
+      }
+
+      .demo-tab {
+        min-height: 34px;
+        padding: 0 14px;
+        border: 0;
+        border-radius: 999px;
+        background: transparent;
+        color: #536277;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 820;
+      }
+
+      .demo-tab.is-active {
+        color: #142236;
+        background: rgba(255, 255, 255, 0.86);
+        box-shadow:
+          0 10px 24px rgba(35, 47, 68, 0.1),
+          inset 0 1px 0 rgba(255, 255, 255, 0.9);
+      }
+
+      .demo-panel {
+        display: none;
+        height: calc(100% - 51px);
+        min-height: 0;
+      }
+
+      .demo-panel.is-active {
+        display: block;
+      }
+
       .canvas-frame {
         position: relative;
         height: 100%;
@@ -274,15 +318,15 @@
 
       .relation-board {
         position: relative;
-        min-width: 1080px;
-        min-height: 760px;
-        padding: 42px 32px 36px;
+        min-width: 1280px;
+        min-height: 860px;
+        padding: 38px 34px 36px;
       }
 
       .relation-board::before {
         content: "";
         position: absolute;
-        left: 50%;
+        left: 64.5%;
         top: 72px;
         bottom: 52px;
         width: 2px;
@@ -323,6 +367,11 @@
         stroke-dasharray: 5 9;
       }
 
+      .edge-path.system-edge {
+        stroke: rgba(112, 132, 156, 0.42);
+        stroke-dasharray: 2 7;
+      }
+
       .edge-path.is-active {
         stroke-width: 1.9;
         opacity: 0.82;
@@ -338,6 +387,30 @@
         opacity: 0.04;
       }
 
+      .routing-spine {
+        fill: none;
+        stroke: rgba(91, 132, 168, 0.22);
+        stroke-width: 1.45;
+        stroke-linecap: round;
+        stroke-dasharray: 7 12;
+        opacity: 0.16;
+        pointer-events: none;
+        transition: opacity 180ms ease, stroke 180ms ease, stroke-width 180ms ease, filter 180ms ease;
+      }
+
+      .routing-spine.is-active {
+        stroke: rgba(10, 132, 255, 0.46);
+        stroke-width: 2.1;
+        opacity: 0.48;
+        filter:
+          drop-shadow(0 0 8px rgba(10, 132, 255, 0.18))
+          drop-shadow(0 0 16px rgba(10, 132, 255, 0.08));
+      }
+
+      .routing-spine.is-muted {
+        opacity: 0.05;
+      }
+
       @keyframes fiberPulse {
         0% {
           stroke-dashoffset: 0;
@@ -351,10 +424,10 @@
         position: relative;
         z-index: 2;
         display: grid;
-        grid-template-columns: var(--service-card-width) minmax(288px, 330px) var(--service-card-width);
+        grid-template-columns: minmax(520px, 540px) minmax(300px, 340px) minmax(286px, 330px);
         justify-content: center;
-        gap: 32px;
-        min-height: 660px;
+        gap: 34px;
+        min-height: 760px;
       }
 
       .board-section {
@@ -381,7 +454,7 @@
 
       .service-field {
         display: grid;
-        grid-template-columns: var(--service-card-width);
+        grid-template-columns: repeat(2, minmax(0, var(--service-card-width)));
         align-content: flex-start;
         justify-content: start;
         gap: 8px;
@@ -427,16 +500,6 @@
         border-radius: 0 999px 999px 0;
         background: var(--scope-color, var(--service));
         box-shadow: 0 0 18px color-mix(in srgb, var(--scope-color, var(--service)) 48%, transparent);
-      }
-
-      .service-column-right .service-node {
-        padding: 8px 18px 8px 14px;
-      }
-
-      .service-column-right .service-node::after {
-        right: 0;
-        left: auto;
-        border-radius: 999px 0 0 999px;
       }
 
       .node-title {
@@ -565,6 +628,40 @@
           rgba(207, 149, 109, 0.12);
       }
 
+      .system-stack {
+        display: grid;
+        gap: 10px;
+        align-content: start;
+        justify-items: stretch;
+      }
+
+      .system-node {
+        min-height: 60px;
+        width: var(--system-card-width);
+        max-width: 100%;
+        display: grid;
+        align-content: center;
+        gap: 3px;
+        padding: 10px 14px;
+        color: #4e5c78;
+        border-color: rgba(119, 131, 159, 0.32);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(244, 247, 255, 0.78)),
+          rgba(127, 138, 170, 0.1);
+      }
+
+      .system-node::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 7px;
+        bottom: 7px;
+        width: 7px;
+        border-radius: 0 999px 999px 0;
+        background: #7f8aaa;
+        box-shadow: 0 0 16px rgba(127, 138, 170, 0.32);
+      }
+
       .target-node small {
         color: #667287;
         font-size: 11px;
@@ -572,17 +669,28 @@
       }
 
       .node.is-active {
-        transform: translateY(-1px) scale(1.012);
-        border-color: rgba(10, 132, 255, 0.58);
+        z-index: 8;
+        transform: translateY(-5px) scale(1.036);
+        border-color: rgba(10, 132, 255, 0.88);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(225, 242, 255, 0.9)),
+          rgba(10, 132, 255, 0.12);
         box-shadow:
           inset 0 1px 0 rgba(255, 255, 255, 0.96),
-          0 0 0 4px rgba(10, 132, 255, 0.08),
-          0 18px 40px rgba(10, 132, 255, 0.16);
+          0 0 0 5px rgba(10, 132, 255, 0.12),
+          0 0 28px rgba(10, 132, 255, 0.22),
+          0 22px 46px rgba(31, 50, 76, 0.18);
       }
 
       .node.is-linked {
+        z-index: 5;
         opacity: 1;
-        transform: translateY(-1px);
+        transform: translateY(-3px) scale(1.022);
+        border-color: rgba(10, 132, 255, 0.46);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.94),
+          0 0 0 3px rgba(10, 132, 255, 0.06),
+          0 16px 34px rgba(31, 50, 76, 0.12);
       }
 
       .node.is-muted {
@@ -624,6 +732,576 @@
         font-weight: 780;
       }
 
+      .funnel-frame {
+        height: 100%;
+        background:
+          radial-gradient(circle at 34% 34%, rgba(10, 132, 255, 0.14), transparent 25%),
+          radial-gradient(circle at 58% 48%, rgba(118, 173, 144, 0.16), transparent 28%),
+          radial-gradient(circle at 86% 38%, rgba(127, 138, 170, 0.16), transparent 24%),
+          linear-gradient(135deg, rgba(250, 253, 255, 0.76), rgba(241, 247, 253, 0.58));
+      }
+
+      .funnel-board {
+        position: relative;
+        min-width: 1280px;
+        min-height: 900px;
+        padding: 34px 38px 38px;
+      }
+
+      .funnel-board::before,
+      .funnel-board::after {
+        content: "";
+        position: absolute;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .funnel-board::before {
+        left: 38.2%;
+        top: 14%;
+        bottom: 14%;
+        width: 118px;
+        border-radius: 999px;
+        background:
+          linear-gradient(90deg, transparent, rgba(10, 132, 255, 0.12), transparent),
+          radial-gradient(circle at 50% 22%, rgba(10, 132, 255, 0.18), transparent 34%),
+          radial-gradient(circle at 50% 72%, rgba(0, 166, 183, 0.11), transparent 36%);
+        filter: blur(0.2px);
+        box-shadow:
+          inset 0 0 0 1px rgba(10, 132, 255, 0.06),
+          0 0 42px rgba(10, 132, 255, 0.1);
+      }
+
+      .funnel-board::after {
+        left: 68%;
+        top: 20%;
+        bottom: 20%;
+        width: 82px;
+        border-radius: 999px;
+        background:
+          linear-gradient(90deg, transparent, rgba(127, 138, 170, 0.12), transparent),
+          radial-gradient(circle at 50% 52%, rgba(118, 173, 144, 0.14), transparent 48%);
+      }
+
+      .funnel-edge-layer {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        overflow: visible;
+        pointer-events: none;
+      }
+
+      .funnel-edge {
+        fill: none;
+        stroke: rgba(91, 132, 168, 0.28);
+        stroke-width: 1.05;
+        stroke-linecap: round;
+        opacity: 0.25;
+        transition: opacity 180ms ease, stroke-width 180ms ease, filter 180ms ease;
+      }
+
+      .funnel-rail {
+        fill: none;
+        stroke: rgba(91, 132, 168, 0.24);
+        stroke-width: 1.25;
+        stroke-linecap: round;
+        stroke-dasharray: 6 10;
+        opacity: 0.14;
+        filter: none;
+        transition: opacity 180ms ease, stroke-width 180ms ease, filter 180ms ease;
+      }
+
+      .funnel-rail.is-active {
+        opacity: 0.46;
+        stroke: rgba(10, 132, 255, 0.46);
+        stroke-width: 2.15;
+        filter:
+          drop-shadow(0 0 8px rgba(10, 132, 255, 0.18))
+          drop-shadow(0 0 16px rgba(10, 132, 255, 0.08));
+      }
+
+      .funnel-rail.is-muted {
+        opacity: 0.06;
+      }
+
+      .funnel-rail.funnel-system-rail {
+        stroke-dasharray: 2 8;
+        opacity: 0.12;
+      }
+
+      .funnel-edge.is-measure {
+        stroke: rgba(207, 149, 109, 0.34);
+        stroke-dasharray: 5 9;
+      }
+
+      .funnel-edge.is-system {
+        stroke: rgba(112, 132, 156, 0.42);
+        stroke-dasharray: 2 8;
+      }
+
+      .funnel-edge.is-active {
+        opacity: 0.98;
+        stroke: rgba(10, 132, 255, 0.74);
+        stroke-width: 2.85;
+        filter:
+          drop-shadow(0 0 8px rgba(10, 132, 255, 0.34))
+          drop-shadow(0 0 18px rgba(10, 132, 255, 0.16));
+        animation: fiberPulse 2.2s linear infinite;
+      }
+
+      .funnel-edge.is-muted {
+        opacity: 0.1;
+      }
+
+      .funnel-grid {
+        position: relative;
+        z-index: 2;
+        display: grid;
+        grid-template-columns: minmax(540px, 570px) minmax(292px, 324px) minmax(300px, 336px);
+        gap: 38px;
+        align-items: stretch;
+      }
+
+      .funnel-column {
+        min-width: 0;
+      }
+
+      .funnel-column:nth-child(2) {
+        align-self: center;
+        padding-top: 0;
+      }
+
+      .funnel-column:nth-child(3) {
+        align-self: center;
+        padding-top: 0;
+      }
+
+      .funnel-services {
+        display: grid;
+        gap: 13px;
+      }
+
+      .scope-group {
+        --scope-color: var(--service);
+        border: 1px solid color-mix(in srgb, var(--scope-color) 30%, rgba(140, 164, 190, 0.18));
+        border-radius: 24px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(247, 251, 255, 0.5)),
+          radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--scope-color) 14%, transparent), transparent 48%),
+          rgba(255, 255, 255, 0.42);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.78),
+          0 16px 34px rgba(31, 50, 76, 0.07);
+        overflow: hidden;
+      }
+
+      .scope-group[data-scope="I-AP"] {
+        --scope-color: var(--ap);
+      }
+
+      .scope-group[data-scope="I-DI"] {
+        --scope-color: var(--di);
+      }
+
+      .scope-group[data-scope="I-NT"] {
+        --scope-color: var(--nt);
+      }
+
+      .scope-group[data-scope="I-US"] {
+        --scope-color: var(--us);
+      }
+
+      .scope-group[data-scope="I-OS"] {
+        --scope-color: var(--os);
+      }
+
+      .scope-group header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 34px;
+        padding: 7px 10px 6px 13px;
+        border-bottom: 1px solid color-mix(in srgb, var(--scope-color) 18%, rgba(140, 164, 190, 0.12));
+        background:
+          linear-gradient(90deg, color-mix(in srgb, var(--scope-color) 10%, transparent), transparent 55%),
+          rgba(255, 255, 255, 0.3);
+      }
+
+      .scope-group-title {
+        --scope-color: var(--service);
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        color: color-mix(in srgb, var(--scope-color) 76%, #172235);
+        font-size: 12px;
+        font-weight: 860;
+      }
+
+      .scope-group-title::before {
+        content: "";
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--scope-color);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--scope-color) 20%, transparent);
+      }
+
+      .scope-group[data-scope="I-AP"] .scope-group-title,
+      .funnel-service[data-scope="I-AP"] {
+        --scope-color: var(--ap);
+      }
+
+      .scope-group[data-scope="I-DI"] .scope-group-title,
+      .funnel-service[data-scope="I-DI"] {
+        --scope-color: var(--di);
+      }
+
+      .scope-group[data-scope="I-NT"] .scope-group-title,
+      .funnel-service[data-scope="I-NT"] {
+        --scope-color: var(--nt);
+      }
+
+      .scope-group[data-scope="I-US"] .scope-group-title,
+      .funnel-service[data-scope="I-US"] {
+        --scope-color: var(--us);
+      }
+
+      .scope-group[data-scope="I-OS"] .scope-group-title,
+      .funnel-service[data-scope="I-OS"] {
+        --scope-color: var(--os);
+      }
+
+      .scope-service-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+        padding: 10px;
+      }
+
+      .funnel-node {
+        appearance: none;
+        position: relative;
+        min-width: 0;
+        border: 1px solid rgba(140, 164, 190, 0.32);
+        border-radius: 18px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(245, 251, 255, 0.76)),
+          rgba(255, 255, 255, 0.72);
+        color: var(--ink);
+        cursor: pointer;
+        font: inherit;
+        text-align: left;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.92),
+          0 10px 22px rgba(31, 50, 76, 0.06);
+        transition: opacity 180ms ease, transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+      }
+
+      .funnel-service {
+        min-height: 45px;
+        display: grid;
+        align-content: center;
+        gap: 2px;
+        padding: 7px 9px 7px 13px;
+        overflow: hidden;
+        border-radius: 16px;
+        border-color: color-mix(in srgb, var(--scope-color, var(--service)) 60%, rgba(140, 164, 190, 0.18));
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.9), color-mix(in srgb, var(--scope-color, var(--service)) 14%, rgba(245, 251, 255, 0.84))),
+          color-mix(in srgb, var(--scope-color, var(--service)) 18%, transparent);
+      }
+
+      .funnel-service::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 7px;
+        bottom: 7px;
+        width: 5px;
+        border-radius: 0 999px 999px 0;
+        background: var(--scope-color, var(--service));
+        box-shadow: 0 0 14px color-mix(in srgb, var(--scope-color, var(--service)) 34%, transparent);
+      }
+
+      .funnel-service .node-title {
+        display: block;
+        max-width: 100%;
+        overflow: hidden;
+        font-size: 11.4px;
+        font-weight: 850;
+        line-height: 1.18;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .funnel-service .node-meta {
+        display: block;
+        overflow: hidden;
+        font-size: 10.2px;
+        line-height: 1.1;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .funnel-center-stack,
+      .funnel-system-stack {
+        display: grid;
+        gap: 13px;
+      }
+
+      .funnel-zone {
+        border: 1px solid rgba(141, 161, 185, 0.2);
+        border-radius: 26px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.68), rgba(247, 251, 255, 0.44)),
+          rgba(255, 255, 255, 0.34);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.74),
+          0 18px 42px rgba(31, 50, 76, 0.07);
+        overflow: hidden;
+      }
+
+      .funnel-zone .section-head {
+        margin: 0;
+        border-bottom: 1px solid rgba(141, 161, 185, 0.14);
+        background: rgba(255, 255, 255, 0.44);
+      }
+
+      .funnel-zone-list {
+        display: grid;
+        gap: 8px;
+        padding: 10px;
+      }
+
+      .funnel-target,
+      .funnel-system {
+        min-height: 60px;
+        display: grid;
+        align-content: center;
+        gap: 3px;
+        padding: 10px 13px;
+      }
+
+      .funnel-target .node-title,
+      .funnel-system .node-title {
+        display: block;
+        overflow: hidden;
+        font-size: 13px;
+        line-height: 1.2;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .funnel-target .node-meta,
+      .funnel-system .node-meta {
+        font-size: 11px;
+        line-height: 1.15;
+      }
+
+      .funnel-target.is-module {
+        color: var(--module-deep);
+        border-color: rgba(118, 173, 144, 0.38);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(237, 250, 242, 0.76)),
+          rgba(118, 173, 144, 0.12);
+      }
+
+      .funnel-target.is-measure {
+        color: var(--measure-deep);
+        border-color: rgba(207, 149, 109, 0.36);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(255, 244, 234, 0.78)),
+          rgba(207, 149, 109, 0.12);
+      }
+
+      .funnel-system {
+        color: #4e5c78;
+        border-color: rgba(119, 131, 159, 0.32);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(244, 247, 255, 0.78)),
+          rgba(127, 138, 170, 0.1);
+      }
+
+      .funnel-node.is-active {
+        z-index: 8;
+        opacity: 1;
+        transform: translateY(-6px) scale(1.045);
+        border-color: rgba(10, 132, 255, 0.98);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(221, 240, 255, 0.94)),
+          rgba(10, 132, 255, 0.14);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.96),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.78),
+          0 0 0 5px rgba(10, 132, 255, 0.14),
+          0 0 34px rgba(10, 132, 255, 0.26),
+          0 26px 56px rgba(31, 50, 76, 0.22);
+        filter: drop-shadow(0 12px 18px rgba(10, 132, 255, 0.16));
+      }
+
+      .funnel-service.is-active::after {
+        width: 7px;
+        background: #0a84ff;
+        box-shadow:
+          0 0 12px rgba(10, 132, 255, 0.58),
+          0 0 24px rgba(10, 132, 255, 0.24);
+      }
+
+      .funnel-node.is-active .node-title {
+        color: #0b1e33;
+      }
+
+      .funnel-node.is-active .node-meta {
+        color: #36546f;
+      }
+
+      .funnel-node.is-linked {
+        z-index: 5;
+        opacity: 1;
+        transform: translateY(-3px) scale(1.024);
+        border-color: rgba(10, 132, 255, 0.52);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(237, 248, 255, 0.82)),
+          rgba(10, 132, 255, 0.06);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.94),
+          0 0 0 3px rgba(10, 132, 255, 0.065),
+          0 16px 34px rgba(31, 50, 76, 0.12);
+      }
+
+      .funnel-service.is-linked::after {
+        width: 6px;
+        box-shadow:
+          0 0 10px color-mix(in srgb, var(--scope-color, var(--service)) 48%, transparent),
+          0 0 18px color-mix(in srgb, var(--scope-color, var(--service)) 22%, transparent);
+      }
+
+      .funnel-node.is-muted {
+        opacity: 0.66;
+        filter: saturate(0.92);
+      }
+
+      .node:hover,
+      .node:focus-visible,
+      .funnel-node:hover,
+      .funnel-node:focus-visible {
+        border-color: rgba(10, 132, 255, 0.46);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.94),
+          0 0 0 3px rgba(10, 132, 255, 0.06),
+          0 12px 28px rgba(31, 50, 76, 0.08);
+        outline: none;
+      }
+
+      .node-fulltext-popover {
+        position: fixed;
+        z-index: 80;
+        width: min(360px, calc(100vw - 40px));
+        pointer-events: none;
+        opacity: 0;
+        transform: translate3d(0, 6px, 0) scale(0.98);
+        transition: opacity 140ms ease, transform 140ms ease;
+      }
+
+      .node-fulltext-popover.is-visible {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+      }
+
+      .node-fulltext-popover.is-pinned {
+        pointer-events: auto;
+      }
+
+      .node-fulltext-card {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(138, 164, 191, 0.34);
+        border-radius: 18px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(244, 249, 255, 0.84)),
+          rgba(255, 255, 255, 0.82);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.94),
+          0 18px 46px rgba(31, 50, 76, 0.16),
+          0 0 0 1px rgba(255, 255, 255, 0.68);
+        backdrop-filter: blur(20px) saturate(1.12);
+      }
+
+      .node-fulltext-card::before {
+        content: "";
+        position: absolute;
+        inset: -40% auto auto -16%;
+        width: 170px;
+        height: 170px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(10, 132, 255, 0.14), transparent 66%);
+        pointer-events: none;
+      }
+
+      .node-fulltext-content {
+        position: relative;
+        display: grid;
+        gap: 7px;
+        padding: 12px 42px 12px 14px;
+      }
+
+      .node-fulltext-kicker {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 780;
+      }
+
+      .node-fulltext-pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 20px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        border: 1px solid rgba(138, 164, 191, 0.24);
+        background: rgba(255, 255, 255, 0.64);
+      }
+
+      .node-fulltext-title {
+        color: var(--ink);
+        font-size: 14px;
+        font-weight: 860;
+        line-height: 1.36;
+        word-break: break-word;
+      }
+
+      .node-fulltext-meta {
+        color: #66748a;
+        font-size: 12px;
+        font-weight: 760;
+        line-height: 1.28;
+      }
+
+      .node-fulltext-close {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        display: none;
+        width: 26px;
+        height: 26px;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid rgba(138, 164, 191, 0.28);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.72);
+        color: #5e718a;
+        cursor: pointer;
+        font-size: 16px;
+        line-height: 1;
+      }
+
+      .node-fulltext-popover.is-pinned .node-fulltext-close {
+        display: inline-flex;
+      }
+
       @media (max-width: 1180px) {
         body {
           overflow: auto;
@@ -632,6 +1310,14 @@
         .shell {
           min-width: 980px;
         }
+      }
+
+      .vertical-demo-frame {
+        width: 100%;
+        height: 100%;
+        border: 0;
+        border-radius: 28px;
+        background: transparent;
       }
     </style>
   </head>
@@ -645,7 +1331,7 @@
               <span class="eyebrow">对象关系图</span>
             </div>
             <h1>数据分析层</h1>
-            <p class="subtitle">大数据平台/数据中台，只表达安全技术服务到模块和措施的映射。</p>
+            <p class="subtitle">大数据平台/数据中台，左侧汇总安全技术服务，中间承接模块/措施，右侧表达对应安全系统。</p>
             <div class="scope-legend" aria-label="作用域颜色图例">
               <span class="scope-legend-label">作用域颜色</span>
               <span class="scope-key" data-scope="I-AP">I-AP 软件应用</span>
@@ -659,11 +1345,19 @@
             <span class="stat-chip"><strong>29</strong>服务</span>
             <span class="stat-chip"><strong>6</strong>模块</span>
             <span class="stat-chip"><strong>6</strong>措施</span>
-            <span class="stat-chip"><strong>44</strong>关系</span>
+            <span class="stat-chip"><strong>5</strong>安全系统</span>
+            <span class="stat-chip"><strong>49</strong>关系</span>
           </div>
         </header>
 
         <main class="canvas-shell">
+          <nav class="demo-tabbar" aria-label="Demo 视图切换">
+            <button class="demo-tab is-active" type="button" data-demo-tab="current">当前布局</button>
+            <button class="demo-tab" type="button" data-demo-tab="funnel">汇聚布局试验</button>
+            <button class="demo-tab" type="button" data-demo-tab="vertical">纵向流试验</button>
+          </nav>
+
+          <section class="demo-panel is-active" data-demo-panel="current">
           <section class="canvas-frame" aria-label="服务到模块和措施关系图">
             <div class="viewport" id="relationViewport">
               <div class="relation-board" id="relationBoard">
@@ -716,12 +1410,12 @@
                           <span class="mini-chip">6 项</span>
                         </div>
                         <div class="target-list">
-                          <button class="node target-node module-node" type="button" data-node="module-proxy"><small>安全技术模块</small><span class="node-title">零信任访问代理</span><span class="node-meta">关联 8 项服务</span></button>
-                          <button class="node target-node module-node" type="button" data-node="module-console"><small>安全技术模块</small><span class="node-title">零信任访问控制台</span><span class="node-meta">关联 15 项服务</span></button>
-                          <button class="node target-node module-node" type="button" data-node="module-image"><small>安全技术模块</small><span class="node-title">容器镜像安全</span><span class="node-meta">关联 6 项服务</span></button>
-                          <button class="node target-node module-node" type="button" data-node="module-watermark"><small>安全技术模块</small><span class="node-title">数据水印溯源</span><span class="node-meta">关联 1 项服务</span></button>
-                          <button class="node target-node module-node" type="button" data-node="module-desensitize"><small>安全技术模块</small><span class="node-title">数据脱敏(去标识化)</span><span class="node-meta">关联 1 项服务</span></button>
-                          <button class="node target-node module-node" type="button" data-node="module-host"><small>安全技术模块</small><span class="node-title">主机安全管理</span><span class="node-meta">关联 6 项服务</span></button>
+                          <button class="node target-node module-node" type="button" data-node="module-proxy" data-systems="system-zero-trust"><small>安全技术模块</small><span class="node-title">零信任访问代理</span><span class="node-meta">关联 8 项服务 / 1 个系统</span></button>
+                          <button class="node target-node module-node" type="button" data-node="module-console" data-systems="system-zero-trust"><small>安全技术模块</small><span class="node-title">零信任访问控制台</span><span class="node-meta">关联 15 项服务 / 1 个系统</span></button>
+                          <button class="node target-node module-node" type="button" data-node="module-image" data-systems="system-container"><small>安全技术模块</small><span class="node-title">容器镜像安全</span><span class="node-meta">关联 6 项服务 / 1 个系统</span></button>
+                          <button class="node target-node module-node" type="button" data-node="module-watermark" data-systems="system-data"><small>安全技术模块</small><span class="node-title">数据水印溯源</span><span class="node-meta">关联 1 项服务 / 1 个系统</span></button>
+                          <button class="node target-node module-node" type="button" data-node="module-desensitize" data-systems="system-data"><small>安全技术模块</small><span class="node-title">数据脱敏(去标识化)</span><span class="node-meta">关联 1 项服务 / 1 个系统</span></button>
+                          <button class="node target-node module-node" type="button" data-node="module-host" data-systems="system-host"><small>安全技术模块</small><span class="node-title">主机安全管理</span><span class="node-meta">关联 6 项服务 / 1 个系统</span></button>
                         </div>
                       </section>
 
@@ -731,29 +1425,198 @@
                           <span class="mini-chip">6 项，单列</span>
                         </div>
                         <div class="target-list">
-                          <button class="node target-node measure-node" type="button" data-node="measure-ha"><small>安全技术措施</small><span class="node-title">应用系统高可用性设计</span><span class="node-meta">关联 2 项服务</span></button>
-                          <button class="node target-node measure-node" type="button" data-node="measure-cert"><small>安全技术措施</small><span class="node-title">应用系统自身凭证管理模块</span><span class="node-meta">关联 1 项服务</span></button>
-                          <button class="node target-node measure-node" type="button" data-node="measure-auth"><small>安全技术措施</small><span class="node-title">应用系统自身认证模块</span><span class="node-meta">关联 1 项服务</span></button>
-                          <button class="node target-node measure-node" type="button" data-node="measure-self-auth"><small>安全技术措施</small><span class="node-title">应用系统自身授权管理模块</span><span class="node-meta">关联 1 项服务</span></button>
-                          <button class="node target-node measure-node" type="button" data-node="measure-log"><small>安全技术措施</small><span class="node-title">应用系统自身日志记录模块</span><span class="node-meta">关联 1 项服务</span></button>
-                          <button class="node target-node measure-node" type="button" data-node="measure-backup"><small>安全技术措施</small><span class="node-title">应用系统自身备份恢复模块</span><span class="node-meta">关联 1 项服务</span></button>
+                          <button class="node target-node measure-node" type="button" data-node="measure-ha" data-systems="system-app"><small>安全技术措施</small><span class="node-title">应用系统高可用性设计</span><span class="node-meta">关联 2 项服务 / 1 个系统</span></button>
+                          <button class="node target-node measure-node" type="button" data-node="measure-cert" data-systems="system-app"><small>安全技术措施</small><span class="node-title">应用系统自身凭证管理模块</span><span class="node-meta">关联 1 项服务 / 1 个系统</span></button>
+                          <button class="node target-node measure-node" type="button" data-node="measure-auth" data-systems="system-app"><small>安全技术措施</small><span class="node-title">应用系统自身认证模块</span><span class="node-meta">关联 1 项服务 / 1 个系统</span></button>
+                          <button class="node target-node measure-node" type="button" data-node="measure-self-auth" data-systems="system-app"><small>安全技术措施</small><span class="node-title">应用系统自身授权管理模块</span><span class="node-meta">关联 1 项服务 / 1 个系统</span></button>
+                          <button class="node target-node measure-node" type="button" data-node="measure-log" data-systems="system-app"><small>安全技术措施</small><span class="node-title">应用系统自身日志记录模块</span><span class="node-meta">关联 1 项服务 / 1 个系统</span></button>
+                          <button class="node target-node measure-node" type="button" data-node="measure-backup" data-systems="system-app"><small>安全技术措施</small><span class="node-title">应用系统自身备份恢复模块</span><span class="node-meta">关联 1 项服务 / 1 个系统</span></button>
                         </div>
                       </section>
                     </div>
                   </aside>
 
-                  <section class="board-section service-column-right">
+                  <section class="board-section system-column">
                     <div class="section-head">
-                      <strong>安全技术服务</strong>
+                      <strong>安全系统</strong>
+                      <span class="mini-chip">5 项</span>
                     </div>
-                    <div class="service-field service-field-right" id="serviceFieldRight"></div>
+                    <div class="system-stack" id="systemField">
+                      <button class="node system-node" type="button" data-node="system-zero-trust"><span class="node-title">零信任安全系统</span><span class="node-meta">承接 2 个模块</span></button>
+                      <button class="node system-node" type="button" data-node="system-data"><span class="node-title">数据安全平台</span><span class="node-meta">承接 2 个模块</span></button>
+                      <button class="node system-node" type="button" data-node="system-host"><span class="node-title">主机安全防护系统</span><span class="node-meta">承接 1 个模块</span></button>
+                      <button class="node system-node" type="button" data-node="system-container"><span class="node-title">容器安全防护系统</span><span class="node-meta">承接 1 个模块</span></button>
+                      <button class="node system-node" type="button" data-node="system-app"><span class="node-title">应用安全内建能力</span><span class="node-meta">承接 6 项措施</span></button>
+                    </div>
                   </section>
                 </div>
               </div>
             </div>
             <div class="mini-map" aria-hidden="true"><span>fit + drag</span></div>
           </section>
+          </section>
+
+          <section class="demo-panel" data-demo-panel="funnel">
+            <section class="canvas-frame funnel-frame" aria-label="服务汇聚到模块措施和安全系统关系图">
+              <div class="viewport" id="funnelViewport">
+                <div class="funnel-board" id="funnelBoard">
+                  <svg class="funnel-edge-layer" id="funnelEdgeLayer" aria-hidden="true"></svg>
+                  <div class="funnel-grid">
+                    <section class="funnel-column">
+                      <div class="section-head">
+                        <strong>安全技术服务</strong>
+                        <span class="mini-chip">按作用域分组</span>
+                      </div>
+                      <div class="funnel-services">
+                        <section class="scope-group" data-scope="I-AP">
+                          <header>
+                            <span class="scope-group-title">I-AP 软件应用</span>
+                            <span class="mini-chip">17 项</span>
+                          </header>
+                          <div class="scope-service-list">
+                            <button class="funnel-node funnel-service" type="button" data-funnel-node="f-iap-ad02" data-scope="I-AP" data-funnel-targets="f-measure-ha"><span class="node-title">I-AP&amp;T-AS.AD-02 应用冗余</span><span class="node-meta">1 措施</span></button>
+                            <button class="funnel-node funnel-service" type="button" data-funnel-node="f-iap-ad03" data-scope="I-AP" data-funnel-targets="f-module-host"><span class="node-title">I-AP&amp;T-AS.AD-03 应用备份</span><span class="node-meta">1 模块</span></button>
+                            <button class="funnel-node funnel-service" type="button" data-funnel-node="f-iap-am01" data-scope="I-AP" data-funnel-targets="f-module-console,f-measure-auth"><span class="node-title">I-AP&amp;T-AS.AM-01 软件资产清单</span><span class="node-meta">1 模块 / 1 措施</span></button>
+                            <button class="funnel-node funnel-service" type="button" data-funnel-node="f-iap-am02" data-scope="I-AP" data-funnel-targets="f-module-proxy,f-module-console"><span class="node-title">I-AP&amp;T-AS.AM-02 软件资产安全管理</span><span class="node-meta">2 模块</span></button>
+                            <button class="funnel-node funnel-service" type="button" data-funnel-node="f-iap-cm01" data-scope="I-AP" data-funnel-targets="f-module-image,f-module-host"><span class="node-title">I-AP&amp;T-AS.CM-01 应用安全基线配置</span><span class="node-meta">2 模块</span></button>
+                            <button class="funnel-node funnel-service" type="button" data-funnel-node="f-iap-cm02" data-scope="I-AP" data-funnel-targets="f-module-image,f-module-host"><span class="node-title">I-AP&amp;T-AS.CM-02 应用安全加固</span><span class="node-meta">2 模块</span></button>
+                            <button class="funnel-node funnel-service" type="button" data-funnel-node="f-iap-ia01" data-scope="I-AP" data-funnel-targets="f-module-console"><span class="node-title">I-AP&amp;T-AS.IA-01 应用身份管理</span><span class="node-meta">1 模块</span></button>
+                            <button class="funnel-node funnel-service" type="button" data-funnel-node="f-iap-ia02" data-scope="I-AP" data-funnel-targets="f-module-console,f-module-proxy"><span class="node-title">I-AP&amp;T-AS.IA-02 应用身份认证</span><span class="node-meta">2 模块</span></button>
+                            <button class="funnel-node funnel-service" type="button" data-funnel-node="f-iap-ia03" data-scope="I-AP" data-funnel-targets="f-module-proxy,f-module-console,f-measure-self-auth"><span class="node-title">I-AP&amp;T-AS.IA-03 应用资源授权</span><span class="node-meta">2 模块 / 1 措施</span></button>
+                            <button class="funnel-node funnel-service" type="button" data-funnel-node="f-iap-ia04" data-scope="I-AP" data-funnel-targets="f-module-console,f-measure-cert"><span class="node-title">I-AP&amp;T-AS.IA-04 应用凭证管理</span><span class="node-meta">1 模块 / 1 措施</span></button>
+                            <button class="funnel-node funnel-service" type="button" data-funnel-node="f-iap-la01" data-scope="I-AP" data-funnel-targets="f-measure-log"><span class="node-title">I-AP&amp;T-AS.LA-01 应用日志记录</span><span class="node-meta">1 措施</span></button>
+                            <button class="funnel-node funnel-service" type="button" data-funnel-node="f-iap-la03" data-scope="I-AP" data-funnel-targets="f-module-console"><span class="node-title">I-AP&amp;T-AS.LA-03 应用操作审计</span><span class="node-meta">1 模块</span></button>
+                            <button class="funnel-node funnel-service" type="button" data-funnel-node="f-iap-vm01" data-scope="I-AP" data-funnel-targets="f-module-image,f-module-host"><span class="node-title">I-AP&amp;T-AS.VM-01 应用漏洞管理</span><span class="node-meta">2 模块</span></button>
+                            <button class="funnel-node funnel-service" type="button" data-funnel-node="f-iap-vm02" data-scope="I-AP" data-funnel-targets="f-module-image,f-module-host"><span class="node-title">I-AP&amp;T-AS.VM-02 应用补丁管理</span><span class="node-meta">2 模块</span></button>
+                            <button class="funnel-node funnel-service" type="button" data-funnel-node="f-iap-ac01" data-scope="I-AP" data-funnel-targets="f-module-proxy,f-module-console"><span class="node-title">I-AP&amp;T-PD.AC-01 应用访问控制</span><span class="node-meta">2 模块</span></button>
+                            <button class="funnel-node funnel-service" type="button" data-funnel-node="f-iap-ac02" data-scope="I-AP" data-funnel-targets="f-module-proxy"><span class="node-title">I-AP&amp;T-PD.AC-02 应用软件信誉评估</span><span class="node-meta">1 模块</span></button>
+                            <button class="funnel-node funnel-service" type="button" data-funnel-node="f-iap-pp01" data-scope="I-AP" data-funnel-targets="f-module-proxy,f-measure-auth"><span class="node-title">I-AP&amp;T-PD.PP-01 应用安全访问</span><span class="node-meta">1 模块 / 1 措施</span></button>
+                          </div>
+                        </section>
+
+                        <section class="scope-group" data-scope="I-DI">
+                          <header>
+                            <span class="scope-group-title">I-DI 数据与信息</span>
+                            <span class="mini-chip">6 项</span>
+                          </header>
+                          <div class="scope-service-list">
+                            <button class="funnel-node funnel-service" type="button" data-funnel-node="f-idi-am01" data-scope="I-DI" data-funnel-targets="f-measure-auth"><span class="node-title">I-DI&amp;T-AS.AM-01 数据资产清单</span><span class="node-meta">1 措施</span></button>
+                            <button class="funnel-node funnel-service" type="button" data-funnel-node="f-idi-ia03" data-scope="I-DI" data-funnel-targets="f-module-proxy,f-module-console"><span class="node-title">I-DI&amp;T-AS.IA-03 数据资源授权</span><span class="node-meta">2 模块</span></button>
+                            <button class="funnel-node funnel-service" type="button" data-funnel-node="f-idi-la03" data-scope="I-DI" data-funnel-targets="f-measure-log"><span class="node-title">I-DI&amp;T-AS.LA-03 数据访问和操作审计</span><span class="node-meta">1 措施</span></button>
+                            <button class="funnel-node funnel-service" type="button" data-funnel-node="f-idi-dp01" data-scope="I-DI" data-funnel-targets="f-module-watermark"><span class="node-title">I-DI&amp;T-PD.DP-01 数据内容水印</span><span class="node-meta">1 模块</span></button>
+                            <button class="funnel-node funnel-service" type="button" data-funnel-node="f-idi-dp02" data-scope="I-DI" data-funnel-targets="f-module-desensitize"><span class="node-title">I-DI&amp;T-PD.DP-02 静态数据脱敏</span><span class="node-meta">1 模块</span></button>
+                            <button class="funnel-node funnel-service" type="button" data-funnel-node="f-idi-dp04" data-scope="I-DI" data-funnel-targets="f-module-desensitize,f-module-watermark"><span class="node-title">I-DI&amp;T-PD.DP-04 数据访问鉴权</span><span class="node-meta">2 模块</span></button>
+                          </div>
+                        </section>
+
+                        <section class="scope-group" data-scope="I-NT">
+                          <header>
+                            <span class="scope-group-title">I-NT 网络</span>
+                            <span class="mini-chip">3 项</span>
+                          </header>
+                          <div class="scope-service-list">
+                            <button class="funnel-node funnel-service" type="button" data-funnel-node="f-int-cg01" data-scope="I-NT" data-funnel-targets="f-module-proxy"><span class="node-title">I-NT&amp;T-AS.CG-01 网络传输通道</span><span class="node-meta">1 模块</span></button>
+                            <button class="funnel-node funnel-service" type="button" data-funnel-node="f-int-ia03" data-scope="I-NT" data-funnel-targets="f-module-proxy,f-module-console"><span class="node-title">I-NT&amp;T-AS.IA-03 网络资源授权</span><span class="node-meta">2 模块</span></button>
+                            <button class="funnel-node funnel-service" type="button" data-funnel-node="f-int-dp02" data-scope="I-NT" data-funnel-targets="f-module-watermark"><span class="node-title">I-NT&amp;T-PD.DP-02 网络动态数据脱敏</span><span class="node-meta">1 模块</span></button>
+                          </div>
+                        </section>
+
+                        <section class="scope-group" data-scope="I-US">
+                          <header>
+                            <span class="scope-group-title">I-US 用户</span>
+                            <span class="mini-chip">2 项</span>
+                          </header>
+                          <div class="scope-service-list">
+                            <button class="funnel-node funnel-service" type="button" data-funnel-node="f-ius-la03" data-scope="I-US" data-funnel-targets="f-measure-log"><span class="node-title">I-US&amp;T-AS.LA-03 用户行为审计</span><span class="node-meta">1 措施</span></button>
+                            <button class="funnel-node funnel-service" type="button" data-funnel-node="f-ius-ac02" data-scope="I-US" data-funnel-targets="f-module-proxy"><span class="node-title">I-US&amp;T-PD.AC-02 用户信誉评估</span><span class="node-meta">1 模块</span></button>
+                          </div>
+                        </section>
+
+                        <section class="scope-group" data-scope="I-OS">
+                          <header>
+                            <span class="scope-group-title">I-OS 操作系统</span>
+                            <span class="mini-chip">1 项</span>
+                          </header>
+                          <div class="scope-service-list">
+                            <button class="funnel-node funnel-service" type="button" data-funnel-node="f-ios-ac02" data-scope="I-OS" data-funnel-targets="f-module-host"><span class="node-title">I-OS&amp;T-PD.AC-02 主机/终端信誉评估</span><span class="node-meta">1 模块</span></button>
+                          </div>
+                        </section>
+                      </div>
+                    </section>
+
+                    <aside class="funnel-column">
+                      <div class="funnel-center-stack">
+                        <section class="funnel-zone">
+                          <div class="section-head">
+                            <strong>安全技术模块</strong>
+                            <span class="mini-chip">6 项</span>
+                          </div>
+                          <div class="funnel-zone-list">
+                            <button class="funnel-node funnel-target is-module" type="button" data-funnel-node="f-module-proxy" data-funnel-systems="f-system-zero-trust"><span class="node-title">零信任访问代理</span><span class="node-meta">8 服务 / 1 系统</span></button>
+                            <button class="funnel-node funnel-target is-module" type="button" data-funnel-node="f-module-console" data-funnel-systems="f-system-zero-trust"><span class="node-title">零信任访问控制台</span><span class="node-meta">15 服务 / 1 系统</span></button>
+                            <button class="funnel-node funnel-target is-module" type="button" data-funnel-node="f-module-image" data-funnel-systems="f-system-container"><span class="node-title">容器镜像安全</span><span class="node-meta">6 服务 / 1 系统</span></button>
+                            <button class="funnel-node funnel-target is-module" type="button" data-funnel-node="f-module-watermark" data-funnel-systems="f-system-data"><span class="node-title">数据水印溯源</span><span class="node-meta">1 服务 / 1 系统</span></button>
+                            <button class="funnel-node funnel-target is-module" type="button" data-funnel-node="f-module-desensitize" data-funnel-systems="f-system-data"><span class="node-title">数据脱敏(去标识化)</span><span class="node-meta">1 服务 / 1 系统</span></button>
+                            <button class="funnel-node funnel-target is-module" type="button" data-funnel-node="f-module-host" data-funnel-systems="f-system-host"><span class="node-title">主机安全管理</span><span class="node-meta">6 服务 / 1 系统</span></button>
+                          </div>
+                        </section>
+
+                        <section class="funnel-zone">
+                          <div class="section-head">
+                            <strong>安全技术措施</strong>
+                            <span class="mini-chip">6 项，单列</span>
+                          </div>
+                          <div class="funnel-zone-list">
+                            <button class="funnel-node funnel-target is-measure" type="button" data-funnel-node="f-measure-ha" data-funnel-systems="f-system-app"><span class="node-title">应用系统高可用性设计</span><span class="node-meta">2 服务 / 1 系统</span></button>
+                            <button class="funnel-node funnel-target is-measure" type="button" data-funnel-node="f-measure-cert" data-funnel-systems="f-system-app"><span class="node-title">应用系统自身凭证管理模块</span><span class="node-meta">1 服务 / 1 系统</span></button>
+                            <button class="funnel-node funnel-target is-measure" type="button" data-funnel-node="f-measure-auth" data-funnel-systems="f-system-app"><span class="node-title">应用系统自身认证模块</span><span class="node-meta">1 服务 / 1 系统</span></button>
+                            <button class="funnel-node funnel-target is-measure" type="button" data-funnel-node="f-measure-self-auth" data-funnel-systems="f-system-app"><span class="node-title">应用系统自身授权管理模块</span><span class="node-meta">1 服务 / 1 系统</span></button>
+                            <button class="funnel-node funnel-target is-measure" type="button" data-funnel-node="f-measure-log" data-funnel-systems="f-system-app"><span class="node-title">应用系统自身日志记录模块</span><span class="node-meta">1 服务 / 1 系统</span></button>
+                            <button class="funnel-node funnel-target is-measure" type="button" data-funnel-node="f-measure-backup" data-funnel-systems="f-system-app"><span class="node-title">应用系统自身备份恢复模块</span><span class="node-meta">1 服务 / 1 系统</span></button>
+                          </div>
+                        </section>
+                      </div>
+                    </aside>
+
+                    <section class="funnel-column">
+                      <div class="section-head">
+                        <strong>安全系统</strong>
+                        <span class="mini-chip">5 项</span>
+                      </div>
+                      <div class="funnel-system-stack">
+                        <button class="funnel-node funnel-system" type="button" data-funnel-node="f-system-zero-trust"><span class="node-title">零信任安全系统</span><span class="node-meta">承接 2 个模块</span></button>
+                        <button class="funnel-node funnel-system" type="button" data-funnel-node="f-system-data"><span class="node-title">数据安全平台</span><span class="node-meta">承接 2 个模块</span></button>
+                        <button class="funnel-node funnel-system" type="button" data-funnel-node="f-system-host"><span class="node-title">主机安全防护系统</span><span class="node-meta">承接 1 个模块</span></button>
+                        <button class="funnel-node funnel-system" type="button" data-funnel-node="f-system-container"><span class="node-title">容器安全防护系统</span><span class="node-meta">承接 1 个模块</span></button>
+                        <button class="funnel-node funnel-system" type="button" data-funnel-node="f-system-app"><span class="node-title">应用安全内建能力</span><span class="node-meta">承接 6 项措施</span></button>
+                      </div>
+                    </section>
+                  </div>
+                </div>
+              </div>
+              <div class="mini-map" aria-hidden="true"><span>grouped flow</span></div>
+            </section>
+          </section>
+
+          <section class="demo-panel" data-demo-panel="vertical">
+            <iframe
+              class="vertical-demo-frame"
+              src="environment-object-vertical-flow-demo.html"
+              title="信息化对象安全技术纵向流 demo"
+            ></iframe>
+          </section>
         </main>
+      </div>
+    </div>
+
+    <div class="node-fulltext-popover" id="nodeFulltextPopover" role="status" aria-live="polite" aria-hidden="true">
+      <div class="node-fulltext-card">
+        <button class="node-fulltext-close" type="button" aria-label="关闭详情">×</button>
+        <div class="node-fulltext-content">
+          <div class="node-fulltext-kicker" id="nodeFulltextKicker"></div>
+          <div class="node-fulltext-title" id="nodeFulltextTitle"></div>
+          <div class="node-fulltext-meta" id="nodeFulltextMeta"></div>
+        </div>
       </div>
     </div>
 
@@ -761,31 +1624,12 @@
       const board = document.getElementById("relationBoard");
       const viewport = document.getElementById("relationViewport");
       const edgeLayer = document.getElementById("edgeLayer");
-      const serviceFieldRight = document.getElementById("serviceFieldRight");
       const nodes = Array.from(document.querySelectorAll("[data-node]"));
       const serviceNodes = Array.from(document.querySelectorAll(".service-node"));
-      const rightSideServiceKeys = new Set([
-        "iap-ac02",
-        "iap-pp01",
-        "idi-am01",
-        "idi-ia03",
-        "idi-la03",
-        "idi-dp01",
-        "idi-dp02",
-        "idi-dp04",
-        "int-cg01",
-        "int-ia03",
-        "int-dp02",
-        "ius-la03",
-        "ius-ac02",
-        "ios-ac02",
-      ]);
+      const targetNodes = Array.from(document.querySelectorAll(".target-node"));
+      const systemNodes = Array.from(document.querySelectorAll(".system-node"));
       let activeKey = "iap-ia03";
       let drawFrame = 0;
-
-      serviceNodes.forEach((node) => {
-        if (rightSideServiceKeys.has(node.dataset.node)) serviceFieldRight.appendChild(node);
-      });
 
       function getNode(key) {
         return document.querySelector(`[data-node="${CSS.escape(key)}"]`);
@@ -796,13 +1640,58 @@
       }
 
       function buildEdges() {
-        return serviceNodes.flatMap((service) => {
+        const serviceEdges = serviceNodes.flatMap((service) => {
           const source = service.dataset.node;
           return (service.dataset.targets || "")
             .split(",")
             .filter(Boolean)
-            .map((target) => ({ source, target, type: targetType(target) }));
+            .map((target) => ({ source, target, type: targetType(target), phase: "service-target" }));
         });
+        const systemEdges = targetNodes.flatMap((target) => {
+          const source = target.dataset.node;
+          return (target.dataset.systems || "")
+            .split(",")
+            .filter(Boolean)
+            .map((system) => ({ source, target: system, type: "system", phase: "target-system" }));
+        });
+        return [...serviceEdges, ...systemEdges];
+      }
+
+      function boundsFor(elements) {
+        const rects = elements
+          .map((element) => element?.getBoundingClientRect())
+          .filter(Boolean);
+        const base = board.getBoundingClientRect();
+        if (!rects.length) return null;
+        return {
+          left: Math.min(...rects.map((rect) => rect.left)) - base.left,
+          right: Math.max(...rects.map((rect) => rect.right)) - base.left,
+          top: Math.min(...rects.map((rect) => rect.top)) - base.top,
+          bottom: Math.max(...rects.map((rect) => rect.bottom)) - base.top,
+        };
+      }
+
+      function drawRoutingSpine(x, top, bottom, phase) {
+        if (!Number.isFinite(x) || !Number.isFinite(top) || !Number.isFinite(bottom) || bottom <= top) return;
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", `M ${x} ${top} L ${x} ${bottom}`);
+        path.classList.add("routing-spine");
+        path.dataset.phase = phase;
+        edgeLayer.appendChild(path);
+      }
+
+      function drawCurrentRoutingSpines() {
+        const serviceBounds = boundsFor([document.getElementById("serviceField")]);
+        const targetBounds = boundsFor([document.querySelector(".target-stack")]);
+        const systemBounds = boundsFor([document.getElementById("systemField")]);
+        if (!serviceBounds || !targetBounds || !systemBounds) return {};
+        const serviceTargetX = (serviceBounds.right + targetBounds.left) / 2;
+        const targetSystemX = (targetBounds.right + systemBounds.left) / 2;
+        const top = Math.min(serviceBounds.top, targetBounds.top, systemBounds.top) + 10;
+        const bottom = Math.max(serviceBounds.bottom, targetBounds.bottom, systemBounds.bottom) - 10;
+        drawRoutingSpine(serviceTargetX, top, bottom, "service-target");
+        drawRoutingSpine(targetSystemX, top, bottom, "target-system");
+        return { "service-target": serviceTargetX, "target-system": targetSystemX };
       }
 
       function centerOf(element, side) {
@@ -821,6 +1710,7 @@
         edgeLayer.setAttribute("width", width);
         edgeLayer.setAttribute("height", height);
         edgeLayer.innerHTML = "";
+        const routing = drawCurrentRoutingSpines();
         const edges = buildEdges();
         for (const edge of edges) {
           const sourceEl = getNode(edge.source);
@@ -836,10 +1726,20 @@
           const c1 = { x: start.x + direction * dx * 0.44, y: start.y };
           const c2 = { x: end.x - direction * dx * 0.44, y: end.y };
           const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-          path.setAttribute("d", `M ${start.x} ${start.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${end.x} ${end.y}`);
+          const routeX = routing[edge.phase];
+          if (Number.isFinite(routeX)) {
+            const bend = Math.max(38, Math.abs(end.x - routeX) * 0.34);
+            path.setAttribute(
+              "d",
+              `M ${start.x} ${start.y} C ${start.x + direction * 28} ${start.y}, ${routeX - direction * 28} ${start.y}, ${routeX} ${start.y} C ${routeX + direction * bend} ${start.y}, ${end.x - direction * bend} ${end.y}, ${end.x} ${end.y}`
+            );
+          } else {
+            path.setAttribute("d", `M ${start.x} ${start.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${end.x} ${end.y}`);
+          }
           path.classList.add("edge-path", `${edge.type}-edge`);
           path.dataset.source = edge.source;
           path.dataset.target = edge.target;
+          path.dataset.phase = edge.phase;
           edgeLayer.appendChild(path);
         }
         applyFocus(activeKey);
@@ -848,7 +1748,29 @@
       function linkedKeysFor(key) {
         const service = getNode(key);
         if (service && service.classList.contains("service-node")) {
-          return new Set((service.dataset.targets || "").split(",").filter(Boolean));
+          const targets = (service.dataset.targets || "").split(",").filter(Boolean);
+          const systems = targets.flatMap((target) => (getNode(target)?.dataset.systems || "").split(",").filter(Boolean));
+          return new Set([...targets, ...systems]);
+        }
+        const target = getNode(key);
+        if (target && target.classList.contains("target-node")) {
+          const linkedServices = serviceNodes
+            .filter((item) => (item.dataset.targets || "").split(",").filter(Boolean).includes(key))
+            .map((item) => item.dataset.node);
+          const systems = (target.dataset.systems || "").split(",").filter(Boolean);
+          return new Set([...linkedServices, ...systems]);
+        }
+        if (systemNodes.some((item) => item.dataset.node === key)) {
+          const linkedTargets = targetNodes
+            .filter((item) => (item.dataset.systems || "").split(",").filter(Boolean).includes(key))
+            .map((item) => item.dataset.node);
+          const linkedServices = serviceNodes
+            .filter((serviceNode) => {
+              const targets = (serviceNode.dataset.targets || "").split(",").filter(Boolean);
+              return targets.some((targetKey) => linkedTargets.includes(targetKey));
+            })
+            .map((item) => item.dataset.node);
+          return new Set([...linkedTargets, ...linkedServices]);
         }
         const linked = new Set();
         for (const item of serviceNodes) {
@@ -861,6 +1783,7 @@
       function applyFocus(key) {
         activeKey = key;
         const linked = linkedKeysFor(key);
+        const activeSet = new Set([key, ...linked]);
         nodes.forEach((node) => {
           const nodeKey = node.dataset.node;
           const isActive = nodeKey === key;
@@ -870,14 +1793,19 @@
           node.classList.toggle("is-muted", !isActive && !isLinked);
         });
         document.querySelectorAll(".edge-path").forEach((path) => {
-          const onSource = path.dataset.source === key || path.dataset.target === key;
+          const onSource = activeSet.has(path.dataset.source) && activeSet.has(path.dataset.target);
           path.classList.toggle("is-active", onSource);
           path.classList.toggle("is-muted", !onSource);
+        });
+        document.querySelectorAll(".routing-spine").forEach((spine) => {
+          const active = Array.from(document.querySelectorAll(`.edge-path[data-phase="${spine.dataset.phase}"]`))
+            .some((path) => path.classList.contains("is-active"));
+          spine.classList.toggle("is-active", active);
+          spine.classList.toggle("is-muted", !active);
         });
       }
 
       nodes.forEach((node) => {
-        node.addEventListener("pointerenter", () => applyFocus(node.dataset.node));
         node.addEventListener("click", () => applyFocus(node.dataset.node));
       });
 
@@ -909,6 +1837,368 @@
       });
       viewport.addEventListener("pointerup", () => {
         dragging = false;
+      });
+
+      const tabButtons = Array.from(document.querySelectorAll("[data-demo-tab]"));
+      const demoPanels = Array.from(document.querySelectorAll("[data-demo-panel]"));
+      const funnelBoard = document.getElementById("funnelBoard");
+      const funnelViewport = document.getElementById("funnelViewport");
+      const funnelEdgeLayer = document.getElementById("funnelEdgeLayer");
+      const funnelNodes = Array.from(document.querySelectorAll("[data-funnel-node]"));
+      const funnelServiceNodes = Array.from(document.querySelectorAll(".funnel-service"));
+      const funnelTargetNodes = Array.from(document.querySelectorAll(".funnel-target"));
+      const funnelSystemNodes = Array.from(document.querySelectorAll(".funnel-system"));
+      let activeFunnelKey = "f-iap-ia03";
+      let funnelDrawFrame = 0;
+      const nodeFulltextPopover = document.getElementById("nodeFulltextPopover");
+      const nodeFulltextKicker = document.getElementById("nodeFulltextKicker");
+      const nodeFulltextTitle = document.getElementById("nodeFulltextTitle");
+      const nodeFulltextMeta = document.getElementById("nodeFulltextMeta");
+      const nodeFulltextClose = nodeFulltextPopover?.querySelector(".node-fulltext-close");
+      let fulltextTimer = 0;
+      let fulltextPinnedNode = null;
+
+      function nodeKindLabel(node) {
+        if (node.classList.contains("service-node") || node.classList.contains("funnel-service")) return "安全技术服务";
+        if (node.classList.contains("target-node") || node.classList.contains("funnel-target")) {
+          if (node.classList.contains("measure-node") || node.classList.contains("is-measure")) return "安全技术措施";
+          return "安全技术模块";
+        }
+        if (node.classList.contains("system-node") || node.classList.contains("funnel-system")) return "安全系统";
+        return "关系节点";
+      }
+
+      function nodeFulltextPayload(node) {
+        const title = node.querySelector(".node-title")?.textContent?.trim() || node.textContent.trim();
+        const meta = node.querySelector(".node-meta")?.textContent?.trim() || "";
+        const scope = node.dataset.scope || "";
+        return {
+          title,
+          meta,
+          kind: nodeKindLabel(node),
+          scope,
+        };
+      }
+
+      function renderNodeFulltext(node, pinned = false) {
+        if (!nodeFulltextPopover || !nodeFulltextTitle || !nodeFulltextMeta || !nodeFulltextKicker) return;
+        const payload = nodeFulltextPayload(node);
+        nodeFulltextKicker.innerHTML = "";
+        [payload.kind, payload.scope].filter(Boolean).forEach((item) => {
+          const pill = document.createElement("span");
+          pill.className = "node-fulltext-pill";
+          pill.textContent = item;
+          nodeFulltextKicker.appendChild(pill);
+        });
+        nodeFulltextTitle.textContent = payload.title;
+        nodeFulltextMeta.textContent = payload.meta || "双击节点可固定查看完整信息";
+        nodeFulltextPopover.classList.toggle("is-pinned", pinned);
+        nodeFulltextPopover.classList.add("is-visible");
+        nodeFulltextPopover.setAttribute("aria-hidden", "false");
+        positionNodeFulltext(node);
+      }
+
+      function positionNodeFulltext(node) {
+        if (!nodeFulltextPopover) return;
+        const rect = node.getBoundingClientRect();
+        const popoverWidth = Math.min(360, window.innerWidth - 40);
+        const popoverHeight = nodeFulltextPopover.offsetHeight || 132;
+        const gutter = 14;
+        let left = rect.right + gutter;
+        if (left + popoverWidth > window.innerWidth - 16) left = rect.left - popoverWidth - gutter;
+        if (left < 16) left = Math.min(Math.max(16, rect.left), window.innerWidth - popoverWidth - 16);
+        let top = rect.top + rect.height / 2 - popoverHeight / 2;
+        top = Math.max(16, Math.min(top, window.innerHeight - popoverHeight - 16));
+        nodeFulltextPopover.style.left = `${left}px`;
+        nodeFulltextPopover.style.top = `${top}px`;
+      }
+
+      function showNodeFulltext(node) {
+        window.clearTimeout(fulltextTimer);
+        if (fulltextPinnedNode) return;
+        if (!isNodeTextTruncated(node)) return;
+        fulltextTimer = window.setTimeout(() => renderNodeFulltext(node, false), 220);
+      }
+
+      function hideNodeFulltext() {
+        window.clearTimeout(fulltextTimer);
+        if (fulltextPinnedNode || !nodeFulltextPopover) return;
+        nodeFulltextPopover.classList.remove("is-visible", "is-pinned");
+        nodeFulltextPopover.setAttribute("aria-hidden", "true");
+      }
+
+      function pinNodeFulltext(node) {
+        fulltextPinnedNode = node;
+        renderNodeFulltext(node, true);
+      }
+
+      function closePinnedNodeFulltext() {
+        fulltextPinnedNode = null;
+        hideNodeFulltext();
+      }
+
+      function attachNodeFulltext(nodesToAttach) {
+        nodesToAttach.forEach((node) => {
+          const payload = nodeFulltextPayload(node);
+          node.setAttribute("aria-label", `${payload.kind}：${payload.title}${payload.meta ? `，${payload.meta}` : ""}`);
+          node.addEventListener("pointerenter", () => showNodeFulltext(node));
+          node.addEventListener("pointerleave", hideNodeFulltext);
+          node.addEventListener("focus", () => showNodeFulltext(node));
+          node.addEventListener("blur", hideNodeFulltext);
+          node.addEventListener("dblclick", () => pinNodeFulltext(node));
+        });
+      }
+
+      function isNodeTextTruncated(node) {
+        const title = node.querySelector(".node-title");
+        const meta = node.querySelector(".node-meta");
+        return [title, meta].some((item) => item && item.scrollWidth > item.clientWidth + 1);
+      }
+
+      attachNodeFulltext([...nodes, ...funnelNodes]);
+      nodeFulltextClose?.addEventListener("click", closePinnedNodeFulltext);
+      document.addEventListener("click", (event) => {
+        if (!fulltextPinnedNode) return;
+        if (event.target.closest(".node-fulltext-popover") || event.target.closest(".node, .funnel-node")) return;
+        closePinnedNodeFulltext();
+      });
+      window.addEventListener("scroll", () => {
+        if (fulltextPinnedNode) positionNodeFulltext(fulltextPinnedNode);
+      }, true);
+
+      function activateDemoTab(tabName) {
+        tabButtons.forEach((button) => button.classList.toggle("is-active", button.dataset.demoTab === tabName));
+        demoPanels.forEach((panel) => panel.classList.toggle("is-active", panel.dataset.demoPanel === tabName));
+        if (tabName === "funnel") {
+          scheduleFunnelDrawEdges();
+        } else if (tabName === "vertical") {
+          hideNodeFulltext();
+        } else {
+          scheduleDrawEdges();
+        }
+      }
+
+      tabButtons.forEach((button) => {
+        button.addEventListener("click", () => activateDemoTab(button.dataset.demoTab));
+      });
+
+      function getFunnelNode(key) {
+        return document.querySelector(`[data-funnel-node="${CSS.escape(key)}"]`);
+      }
+
+      function funnelTargetType(target) {
+        return target.startsWith("f-measure-") ? "measure" : "module";
+      }
+
+      function buildFunnelEdges() {
+        const serviceEdges = funnelServiceNodes.flatMap((service) => {
+          const source = service.dataset.funnelNode;
+          return (service.dataset.funnelTargets || "")
+            .split(",")
+            .filter(Boolean)
+            .map((target) => ({ source, target, type: funnelTargetType(target), phase: "service-target" }));
+        });
+        const systemEdges = funnelTargetNodes.flatMap((target) => {
+          const source = target.dataset.funnelNode;
+          return (target.dataset.funnelSystems || "")
+            .split(",")
+            .filter(Boolean)
+            .map((system) => ({ source, target: system, type: "system", phase: "target-system" }));
+        });
+        return [...serviceEdges, ...systemEdges];
+      }
+
+      function centerOfFunnel(element, side) {
+        const rect = element.getBoundingClientRect();
+        const base = funnelBoard.getBoundingClientRect();
+        const x = side === "right" ? rect.right - base.left : side === "left" ? rect.left - base.left : rect.left + rect.width / 2 - base.left;
+        const y = rect.top + rect.height / 2 - base.top;
+        return { x, y };
+      }
+
+      function drawFunnelRails() {
+        const base = funnelBoard.getBoundingClientRect();
+        document.querySelectorAll(".scope-group").forEach((group) => {
+          const rect = group.getBoundingClientRect();
+          const x = rect.right - base.left + 18;
+          const top = rect.top - base.top + 40;
+          const bottom = rect.bottom - base.top - 12;
+          if (bottom <= top) return;
+          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          path.setAttribute("d", `M ${x} ${top} L ${x} ${bottom}`);
+          path.classList.add("funnel-rail", "routing-spine");
+          path.dataset.phase = "service-target";
+          path.dataset.scope = group.dataset.scope || "";
+          funnelEdgeLayer.appendChild(path);
+        });
+      }
+
+      function drawFunnelSystemRail() {
+        const base = funnelBoard.getBoundingClientRect();
+        const targetRect = funnelBoard.querySelector(".funnel-center-stack")?.getBoundingClientRect();
+        const systemRect = funnelBoard.querySelector(".funnel-system-stack")?.getBoundingClientRect();
+        if (!targetRect || !systemRect) return;
+        const x = (targetRect.right + systemRect.left) / 2 - base.left;
+        const top = Math.min(targetRect.top, systemRect.top) - base.top + 22;
+        const bottom = Math.max(targetRect.bottom, systemRect.bottom) - base.top - 16;
+        if (bottom <= top) return;
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", `M ${x} ${top} L ${x} ${bottom}`);
+        path.classList.add("funnel-rail", "funnel-system-rail", "routing-spine");
+        path.dataset.phase = "target-system";
+        funnelEdgeLayer.appendChild(path);
+      }
+
+      function drawFunnelEdges() {
+        funnelDrawFrame = 0;
+        if (!funnelBoard || !funnelEdgeLayer || !funnelBoard.offsetParent) return;
+        const width = funnelBoard.scrollWidth;
+        const height = funnelBoard.scrollHeight;
+        funnelEdgeLayer.setAttribute("viewBox", `0 0 ${width} ${height}`);
+        funnelEdgeLayer.setAttribute("width", width);
+        funnelEdgeLayer.setAttribute("height", height);
+        funnelEdgeLayer.innerHTML = "";
+        drawFunnelRails();
+        drawFunnelSystemRail();
+        const systemRailPath = funnelEdgeLayer.querySelector(".funnel-system-rail");
+        const systemRailX = systemRailPath
+          ? Number((systemRailPath.getAttribute("d") || "").match(/M ([\d.]+)/)?.[1])
+          : null;
+        for (const edge of buildFunnelEdges()) {
+          const sourceEl = getFunnelNode(edge.source);
+          const targetEl = getFunnelNode(edge.target);
+          if (!sourceEl || !targetEl) continue;
+          const sourceCenter = centerOfFunnel(sourceEl);
+          const targetCenter = centerOfFunnel(targetEl);
+          const sourceIsLeft = sourceCenter.x < targetCenter.x;
+          const start = centerOfFunnel(sourceEl, sourceIsLeft ? "right" : "left");
+          const end = centerOfFunnel(targetEl, sourceIsLeft ? "left" : "right");
+          const direction = sourceIsLeft ? 1 : -1;
+          const dx = Math.max(72, Math.abs(end.x - start.x));
+          const c1 = { x: start.x + direction * dx * 0.46, y: start.y };
+          const c2 = { x: end.x - direction * dx * 0.46, y: end.y };
+          const scopeGroup = sourceEl.closest(".scope-group");
+          const railX = scopeGroup && edge.phase === "service-target"
+            ? scopeGroup.getBoundingClientRect().right - funnelBoard.getBoundingClientRect().left + 18
+            : null;
+          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          if (railX) {
+            const railBend = Math.max(58, Math.abs(end.x - railX));
+            path.setAttribute(
+              "d",
+              `M ${start.x} ${start.y} C ${start.x + 18} ${start.y}, ${railX - 18} ${start.y}, ${railX} ${start.y} C ${railX + railBend * 0.45} ${start.y}, ${end.x - railBend * 0.42} ${end.y}, ${end.x} ${end.y}`
+            );
+            path.dataset.scope = sourceEl.dataset.scope || "";
+          } else if (edge.phase === "target-system" && Number.isFinite(systemRailX)) {
+            const railBend = Math.max(48, Math.abs(end.x - systemRailX) * 0.42);
+            path.setAttribute(
+              "d",
+              `M ${start.x} ${start.y} C ${start.x + direction * 28} ${start.y}, ${systemRailX - direction * 24} ${start.y}, ${systemRailX} ${start.y} C ${systemRailX + direction * railBend} ${start.y}, ${end.x - direction * railBend} ${end.y}, ${end.x} ${end.y}`
+            );
+          } else {
+            path.setAttribute("d", `M ${start.x} ${start.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${end.x} ${end.y}`);
+          }
+          path.classList.add("funnel-edge", `is-${edge.type}`);
+          path.dataset.source = edge.source;
+          path.dataset.target = edge.target;
+          path.dataset.phase = edge.phase;
+          funnelEdgeLayer.appendChild(path);
+        }
+        applyFunnelFocus(activeFunnelKey);
+      }
+
+      function linkedFunnelKeysFor(key) {
+        const service = getFunnelNode(key);
+        if (service && service.classList.contains("funnel-service")) {
+          const targets = (service.dataset.funnelTargets || "").split(",").filter(Boolean);
+          const systems = targets.flatMap((target) => (getFunnelNode(target)?.dataset.funnelSystems || "").split(",").filter(Boolean));
+          return new Set([...targets, ...systems]);
+        }
+        const target = getFunnelNode(key);
+        if (target && target.classList.contains("funnel-target")) {
+          const linkedServices = funnelServiceNodes
+            .filter((item) => (item.dataset.funnelTargets || "").split(",").filter(Boolean).includes(key))
+            .map((item) => item.dataset.funnelNode);
+          const systems = (target.dataset.funnelSystems || "").split(",").filter(Boolean);
+          return new Set([...linkedServices, ...systems]);
+        }
+        if (funnelSystemNodes.some((item) => item.dataset.funnelNode === key)) {
+          const linkedTargets = funnelTargetNodes
+            .filter((item) => (item.dataset.funnelSystems || "").split(",").filter(Boolean).includes(key))
+            .map((item) => item.dataset.funnelNode);
+          const linkedServices = funnelServiceNodes
+            .filter((serviceNode) => {
+              const targets = (serviceNode.dataset.funnelTargets || "").split(",").filter(Boolean);
+              return targets.some((targetKey) => linkedTargets.includes(targetKey));
+            })
+            .map((item) => item.dataset.funnelNode);
+          return new Set([...linkedTargets, ...linkedServices]);
+        }
+        return new Set();
+      }
+
+      function applyFunnelFocus(key) {
+        activeFunnelKey = key;
+        const linked = linkedFunnelKeysFor(key);
+        const activeSet = new Set([key, ...linked]);
+        funnelNodes.forEach((node) => {
+          const nodeKey = node.dataset.funnelNode;
+          const isActive = nodeKey === key;
+          const isLinked = linked.has(nodeKey);
+          node.classList.toggle("is-active", isActive);
+          node.classList.toggle("is-linked", isLinked);
+          node.classList.toggle("is-muted", !isActive && !isLinked);
+        });
+        document.querySelectorAll(".funnel-edge").forEach((path) => {
+          const active = activeSet.has(path.dataset.source) && activeSet.has(path.dataset.target);
+          path.classList.toggle("is-active", active);
+          path.classList.toggle("is-muted", !active);
+        });
+        document.querySelectorAll(".funnel-rail[data-scope]").forEach((rail) => {
+          const scope = rail.dataset.scope;
+          const active = funnelServiceNodes.some((serviceNode) => serviceNode.dataset.scope === scope && activeSet.has(serviceNode.dataset.funnelNode));
+          rail.classList.toggle("is-active", active);
+          rail.classList.toggle("is-muted", !active);
+        });
+        document.querySelectorAll(".funnel-system-rail").forEach((rail) => {
+          const active = Array.from(document.querySelectorAll('.funnel-edge[data-phase="target-system"]'))
+            .some((path) => path.classList.contains("is-active"));
+          rail.classList.toggle("is-active", active);
+          rail.classList.toggle("is-muted", !active);
+        });
+      }
+
+      funnelNodes.forEach((node) => {
+        node.addEventListener("click", () => applyFunnelFocus(node.dataset.funnelNode));
+      });
+
+      function scheduleFunnelDrawEdges() {
+        if (funnelDrawFrame) return;
+        funnelDrawFrame = window.requestAnimationFrame(drawFunnelEdges);
+      }
+
+      window.addEventListener("resize", scheduleFunnelDrawEdges);
+
+      let funnelDragging = false;
+      let funnelDragStart = { x: 0, y: 0, left: 0, top: 0 };
+      funnelViewport.addEventListener("pointerdown", (event) => {
+        if (event.target.closest("button")) return;
+        funnelDragging = true;
+        funnelDragStart = {
+          x: event.clientX,
+          y: event.clientY,
+          left: funnelViewport.scrollLeft,
+          top: funnelViewport.scrollTop,
+        };
+        funnelViewport.setPointerCapture(event.pointerId);
+      });
+      funnelViewport.addEventListener("pointermove", (event) => {
+        if (!funnelDragging) return;
+        funnelViewport.scrollLeft = funnelDragStart.left - (event.clientX - funnelDragStart.x);
+        funnelViewport.scrollTop = funnelDragStart.top - (event.clientY - funnelDragStart.y);
+      });
+      funnelViewport.addEventListener("pointerup", () => {
+        funnelDragging = false;
       });
 
       window.addEventListener("load", () => {

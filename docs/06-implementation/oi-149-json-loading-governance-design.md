@@ -25,7 +25,7 @@
 - P1：新增 `/api/v1/search-index` 运行时轻量索引，前端全局搜索优先读取索引结果，并只合并当前会话已加载数据作为补充；`audit_global_search_index_contract.mjs` 已防止回退为全包扫描。
 - P2：能力页 L0 / L1 / L2 / 关注点对象级 projection 已补齐聚合 `localRelationMap` 和 `localRelationMapsByFocusId`；`audit_capability_viewmodel_contract.mjs` 样本全部为 `backend_projection`。
 - P3：后端 `read_data_package()` 与 standards compat 读取已增加按 `size + mtime_ns` 的进程内缓存。
-- P4：已新增 `scripts/build_oi149_split_candidate.mjs` 和 `scripts/audit_oi149_split_candidate.mjs`，生成候选目录 `data/exports/worker-verify/oi-149-p4-json-split-candidate/`；候选首屏最大 `758.7 KB`、对象详情最大 `1202.2 KB`、字段边界失败 `0`。正式 JSON 分层尚未 apply，后续必须由用户确认是否进入正式替换与前端契约切换。
+- P4：已新增 `scripts/build_oi149_split_candidate.mjs` 和 `scripts/audit_oi149_split_candidate.mjs`，生成候选目录 `data/exports/worker-verify/oi-149-p4-json-split-candidate/`；候选首屏最大 `758.7 KB`、对象详情最大 `1202.2 KB`、字段边界失败 `0`。用户已接受 P4 候选方向、预算、顶层能力标准明细延迟加载和 `shared-lookups` 暂不继续拆；正式 JSON 分层尚未 apply，后续必须先保持 environment projection key 与 `navigator -> projection` 唯一命中审计通过，再由用户确认是否进入正式替换与前端契约切换。
 
 原始排查时，现有懒加载审计通过，但仍有四类绕过点；下列绕过点中的 P0 / P1 / P2 / P3 项已在 2026-06-30 收口，保留在这里作为根因记录和防回归依据：
 
@@ -180,6 +180,8 @@
 - 任何核心页面首屏 JSON 小于 `1 MB`。
 - 当前对象详情加载 JSON 小于 `1.5 MB`，特殊大标准表除外。
 - 全量包只允许在导出、诊断或显式“加载全部”场景出现。
+- `environment-navigator` 中每个导航行必须携带唯一 `projectionKey` / `projectionPath`；即使原始 navigator 存在重复 `node.id`，也必须满足 `navigator -> projection` 一行一文件、一 key 一命中。
+- `audit_oi149_split_candidate.mjs` 必须检查 manifest path 唯一、navigator projection 字段完整、projection path 存在且唯一、projection 本体 roundtrip 一致，以及 projection index 与 navigator 对齐。
 
 ## 可能导致页面不可用的影响面
 

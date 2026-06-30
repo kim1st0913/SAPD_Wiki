@@ -40,6 +40,29 @@ function sizeKb(filePath) {
   return Math.round((fs.statSync(filePath).size / 1024) * 10) / 10;
 }
 
+function asArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function duplicateValues(values) {
+  const counts = new Map();
+  for (const value of values.filter(Boolean)) counts.set(value, (counts.get(value) || 0) + 1);
+  return [...counts.entries()]
+    .filter(([, count]) => count > 1)
+    .map(([value, count]) => ({ value, count }));
+}
+
+function sampleRows(rows, limit = 10) {
+  return rows.slice(0, limit).map((row) => ({
+    navOrdinal: row.navOrdinal,
+    id: row.id,
+    type: row.type,
+    title: row.title,
+    projectionKey: row.projectionKey,
+    projectionPath: row.projectionPath,
+  }));
+}
+
 function scanForbiddenKeys(value) {
   const hits = {};
   function walk(item) {
@@ -64,6 +87,24 @@ function listJsonFiles(dir) {
     const stat = fs.statSync(filePath);
     if (stat.isDirectory()) result.push(...listJsonFiles(filePath));
     if (stat.isFile() && name.endsWith(".json")) result.push(filePath);
+  }
+  return result;
+}
+
+function flattenEnvironmentNavigator(nodes, ancestors = []) {
+  const result = [];
+  for (const node of asArray(nodes)) {
+    result.push({
+      id: node.id || "",
+      type: node.type || "",
+      title: node.title || node.name || "",
+      navOrdinal: node.navOrdinal,
+      projectionKey: node.projectionKey || "",
+      projectionPath: node.projectionPath || "",
+      navigationPath: node.navigationPath || [],
+      ancestors,
+    });
+    result.push(...flattenEnvironmentNavigator(node.children, [...ancestors, node]));
   }
   return result;
 }
@@ -95,6 +136,13 @@ if (manifest) {
   addCheck("formal_public_data_not_modified", manifest.formalPublicDataModified === false, {
     formalPublicDataModified: manifest.formalPublicDataModified,
   });
+  const manifestPaths = asArray(manifest.files).map((file) => file.path);
+  const duplicateManifestPaths = duplicateValues(manifestPaths);
+  addCheck("manifest_file_paths_unique", duplicateManifestPaths.length === 0, {
+    fileCount: manifestPaths.length,
+    duplicateCount: duplicateManifestPaths.length,
+    duplicates: duplicateManifestPaths.slice(0, 10),
+  });
   const required = [
     "capability/index.json",
     "environment/navigator.json",
@@ -121,6 +169,9 @@ if (readiness) {
   addCheck("field_boundary_pass", (readiness.fieldBoundary?.failures || []).length === 0, {
     checkedFiles: readiness.fieldBoundary?.checkedFiles,
     skippedEvidenceFiles: readiness.fieldBoundary?.skippedEvidenceFiles,
+  });
+  addCheck("candidate_path_boundary_pass", (readiness.pathBoundary?.duplicatePathFailures || []).length === 0, {
+    duplicatePathFailures: readiness.pathBoundary?.duplicatePathFailures || [],
   });
 }
 
@@ -156,6 +207,81 @@ if (fs.existsSync(publicDataDir)) {
     if (Object.keys(hits).length) fieldFailures.push({ path: relativePath, hits });
   }
   addCheck("runtime_field_boundary_pass", fieldFailures.length === 0, { fieldFailures });
+
+  const environmentNavigatorPath = path.join(publicDataDir, "environment/navigator.json");
+  if (fs.existsSync(environmentNavigatorPath)) {
+    const environmentNavigator = readJson(environmentNavigatorPath);
+    const navRows = flattenEnvironmentNavigator(environmentNavigator.tree || []);
+    const indexRows = asArray(environmentNavigator.projections);
+    const fieldFailures = navRows.filter(
+      (row) => !Number.isInteger(row.navOrdinal) || !row.projectionKey || !row.projectionPath
+    );
+    addCheck("environment_navigator_projection_fields", fieldFailures.length === 0, {
+      navRowCount: navRows.length,
+      failureCount: fieldFailures.length,
+      failures: sampleRows(fieldFailures),
+    });
+
+    const duplicateNavigatorPaths = duplicateValues(navRows.map((row) => row.projectionPath));
+    addCheck("environment_navigator_projection_paths_unique", duplicateNavigatorPaths.length === 0, {
+      navRowCount: navRows.length,
+      duplicateCount: duplicateNavigatorPaths.length,
+      duplicates: duplicateNavigatorPaths.slice(0, 10),
+    });
+
+    const missingProjectionFiles = navRows.filter(
+      (row) => row.projectionPath && !fs.existsSync(path.join(publicDataDir, row.projectionPath))
+    );
+    addCheck("environment_navigator_projection_paths_exist", missingProjectionFiles.length === 0, {
+      failureCount: missingProjectionFiles.length,
+      failures: sampleRows(missingProjectionFiles),
+    });
+
+    const roundtripFailures = [];
+    for (const row of navRows) {
+      if (!row.projectionPath) continue;
+      const projectionPath = path.join(publicDataDir, row.projectionPath);
+      if (!fs.existsSync(projectionPath)) continue;
+      const projection = readJson(projectionPath);
+      if (
+        projection.navOrdinal !== row.navOrdinal ||
+        projection.projectionKey !== row.projectionKey ||
+        projection.projectionPath !== row.projectionPath
+      ) {
+        roundtripFailures.push({
+          navOrdinal: row.navOrdinal,
+          navigatorProjectionKey: row.projectionKey,
+          projectionProjectionKey: projection.projectionKey,
+          navigatorProjectionPath: row.projectionPath,
+          projectionProjectionPath: projection.projectionPath,
+        });
+      }
+    }
+    addCheck("environment_projection_key_roundtrip", roundtripFailures.length === 0, {
+      failureCount: roundtripFailures.length,
+      failures: roundtripFailures.slice(0, 10),
+    });
+
+    const duplicateIndexPaths = duplicateValues(indexRows.map((row) => row.path));
+    addCheck("environment_projection_index_paths_unique", duplicateIndexPaths.length === 0, {
+      indexRowCount: indexRows.length,
+      duplicateCount: duplicateIndexPaths.length,
+      duplicates: duplicateIndexPaths.slice(0, 10),
+    });
+    addCheck("environment_projection_index_row_count", indexRows.length === navRows.length, {
+      navRowCount: navRows.length,
+      indexRowCount: indexRows.length,
+    });
+    const indexByOrdinal = new Map(indexRows.map((row) => [row.navOrdinal, row]));
+    const indexMismatchRows = navRows.filter((row) => {
+      const indexRow = indexByOrdinal.get(row.navOrdinal);
+      return !indexRow || indexRow.path !== row.projectionPath || indexRow.projectionKey !== row.projectionKey;
+    });
+    addCheck("environment_projection_index_matches_navigator", indexMismatchRows.length === 0, {
+      failureCount: indexMismatchRows.length,
+      failures: sampleRows(indexMismatchRows),
+    });
+  }
 }
 
 const failures = checks.filter((check) => !check.ok);

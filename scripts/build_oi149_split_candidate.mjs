@@ -71,6 +71,18 @@ function safeName(value) {
   return String(value || "unknown").replace(/[^a-zA-Z0-9._-]+/g, "_").slice(0, 140);
 }
 
+function shortHash(value, length = 12) {
+  return crypto.createHash("sha1").update(String(value || "")).digest("hex").slice(0, length);
+}
+
+function duplicateValues(values) {
+  const counts = new Map();
+  for (const value of values.filter(Boolean)) counts.set(value, (counts.get(value) || 0) + 1);
+  return [...counts.entries()]
+    .filter(([, count]) => count > 1)
+    .map(([value, count]) => ({ value, count }));
+}
+
 function asArray(value) {
   return Array.isArray(value) ? value : [];
 }
@@ -359,18 +371,89 @@ function environmentContextIndex(workbench) {
   return { byContextKey, scopeTreeByContextKey };
 }
 
-function annotateEnvironmentNav(nodes, pathParts = [], contextIndex = null) {
+function navTitle(node) {
+  return node?.name || node?.title || "";
+}
+
+function environmentNavigationPath(row) {
+  return [...row.ancestors, row.node].map((item, index) =>
+    sanitizeUiValue({
+      depth: index,
+      id: item.id || "",
+      type: item.type || "",
+      code: item.code || "",
+      title: navTitle(item),
+    })
+  );
+}
+
+function environmentContextIdentity(contextKeys) {
+  if (!contextKeys.length) return "no-context";
+  if (contextKeys.length === 1) return contextKeys[0];
+  return `contexts-${contextKeys.length}-${shortHash(contextKeys.join("|"))}`;
+}
+
+function uniqueProjectionKey(rawParts, usedKeys) {
+  const raw = rawParts.filter(Boolean).join("__") || "environment-navigation";
+  const compactBase = safeName(raw).replace(/^_+|_+$/g, "").slice(0, 100) || "environment-navigation";
+  const base = `${compactBase}__${shortHash(raw)}`;
+  let key = base;
+  let suffix = 2;
+  while (usedKeys.has(key)) {
+    key = `${base}__${suffix}`;
+    suffix += 1;
+  }
+  usedKeys.add(key);
+  return key;
+}
+
+function environmentProjectionIdentity(row, navOrdinal, objectContexts, usedKeys) {
+  const pathTitles = [...row.ancestors, row.node].map(navTitle);
+  const contextKeys = [...new Set(objectContexts.map((item) => item.contextKey).filter(Boolean))].sort();
+  const contextPart = environmentContextIdentity(contextKeys);
+  const node = row.node || {};
+  let rawParts = [node.type || "environment_node", pathTitles.join("||"), node.id || ""];
+
+  if (node.type === "information_environment") {
+    rawParts = [node.type, pathTitles[0] || navTitle(node), node.id || ""];
+  } else if (node.type === "environment_segment") {
+    rawParts = [node.type, pathTitles[0] || "", pathTitles[1] || navTitle(node), contextPart, node.id || ""];
+  } else if (node.type === "information_object") {
+    rawParts = [node.type, contextPart, node.id || ""];
+  }
+
+  const projectionKey = uniqueProjectionKey(rawParts, usedKeys);
+  return {
+    navOrdinal,
+    projectionKey,
+    path: `environment/projections/${projectionKey}.json`,
+    navigationPath: environmentNavigationPath(row),
+    contextKeys,
+    objectContextIds: objectContexts.map((item) => item.id).filter(Boolean),
+  };
+}
+
+function annotateEnvironmentNav(nodes, projectionByOrdinal = new Map(), contextIndex = null, state = { ordinal: 0 }, pathParts = []) {
   return asArray(nodes).map((node) => {
-    const title = node.name || node.title || "";
+    const title = navTitle(node);
     const nextPath = [...pathParts, title];
+    const navOrdinal = state.ordinal;
+    state.ordinal += 1;
     const result = treeSummary(node);
+    const projection = projectionByOrdinal.get(navOrdinal);
+    if (projection) {
+      result.navOrdinal = navOrdinal;
+      result.projectionKey = projection.projectionKey;
+      result.projectionPath = projection.path;
+      result.navigationPath = projection.navigationPath;
+    }
     if (node.type === "information_object" && nextPath.length >= 3 && contextIndex) {
-      const contextKey = `${nextPath[0]}||${nextPath[1]}||${nextPath[2]}`;
+      const contextKey = projection?.contextKeys?.[0] || `${nextPath[0]}||${nextPath[1]}||${nextPath[2]}`;
       const objectContext = contextIndex.byContextKey.get(contextKey);
       result.contextKey = contextKey;
-      result.objectContextId = objectContext?.id || "";
+      result.objectContextId = projection?.objectContextIds?.[0] || objectContext?.id || "";
     }
-    result.children = annotateEnvironmentNav(node.children, nextPath, contextIndex);
+    result.children = annotateEnvironmentNav(node.children, projectionByOrdinal, contextIndex, state, nextPath);
     return result;
   });
 }
@@ -431,10 +514,13 @@ function buildEnvironmentCandidate(records) {
   const contextIndex = environmentContextIndex(workbench);
   const navRows = flattenEnvironmentNav(workbench.navigator?.tree || []);
   const projectionIndex = [];
+  const projectionByOrdinal = new Map();
+  const usedProjectionKeys = new Set();
 
-  for (const row of navRows) {
+  navRows.forEach((row, navOrdinal) => {
     const objectContexts = collectEnvironmentObjectsUnder(row.node, row.ancestors, contextIndex);
     const contextKeys = new Set(objectContexts.map((item) => item.contextKey).filter(Boolean));
+    const projectionIdentity = environmentProjectionIdentity(row, navOrdinal, objectContexts, usedProjectionKeys);
     const seedIds = new Set([row.node.id, ...row.ancestors.map((item) => item.id), ...objectContexts.map((item) => item.id)]);
     const relations = asArray(workbench.relations).filter((relation) => {
       return (
@@ -454,11 +540,18 @@ function buildEnvironmentCandidate(records) {
     const projection = {
       packageType: "oi-149-environment-object-projection-candidate",
       dataState: "candidate",
+      navOrdinal,
+      projectionKey: projectionIdentity.projectionKey,
+      projectionPath: projectionIdentity.path,
+      navigationPath: projectionIdentity.navigationPath,
       selectedNavigation: sanitizeUiValue({
         id: row.node.id,
         type: row.node.type,
         code: row.node.code || "",
         title: row.node.name || row.node.title || "",
+        navOrdinal,
+        projectionKey: projectionIdentity.projectionKey,
+        projectionPath: projectionIdentity.path,
       }),
       ancestorNavigation: row.ancestors.map((item) =>
         sanitizeUiValue({ id: item.id, type: item.type, code: item.code || "", title: item.name || item.title || "" })
@@ -470,28 +563,32 @@ function buildEnvironmentCandidate(records) {
       relations: relations.map(relationSummary),
       relationCount: relations.length,
     };
-    const relativePath = `environment/projections/${safeName(row.node.id)}.json`;
-    writeBudgeted(relativePath, projection, records, {
+    writeBudgeted(projectionIdentity.path, projection, records, {
       category: "environmentProjection",
       detailProjection: true,
       budgetKB: DETAIL_PROJECTION_BUDGET_KB,
     });
+    projectionByOrdinal.set(navOrdinal, projectionIdentity);
     projectionIndex.push({
+      navOrdinal,
       id: row.node.id,
       type: row.node.type,
       code: row.node.code || "",
       title: row.node.name || row.node.title || "",
+      projectionKey: projectionIdentity.projectionKey,
+      navigationPath: projectionIdentity.navigationPath,
+      objectContextIds: projectionIdentity.objectContextIds,
       objectContextCount: objectContexts.length,
-      path: relativePath,
+      path: projectionIdentity.path,
     });
-  }
+  });
 
   const navigator = {
     packageType: "oi-149-environment-navigator-candidate",
     dataState: "candidate",
     stats: sanitizeUiValue(workbench.meta?.stats || {}),
     defaultSelectedObjectId: workbench.navigator?.defaultSelectedObjectId || "",
-    tree: annotateEnvironmentNav(workbench.navigator?.tree || [], [], contextIndex),
+    tree: annotateEnvironmentNav(workbench.navigator?.tree || [], projectionByOrdinal, contextIndex),
     projections: projectionIndex,
   };
   writeBudgeted("environment/navigator.json", navigator, records, {
@@ -628,6 +725,7 @@ function scanForbiddenKeys(value) {
 
 function auditGeneratedFiles(records) {
   const fieldBoundaryFailures = [];
+  const duplicatePathFailures = duplicateValues(records.map((record) => record.path));
   for (const record of records) {
     if (record.evidence) continue;
     const value = JSON.parse(fs.readFileSync(path.join(CANDIDATE_DATA_DIR, record.path), "utf8"));
@@ -641,7 +739,10 @@ function auditGeneratedFiles(records) {
     (record) => record.detailProjection && record.sizeKB > DETAIL_PROJECTION_BUDGET_KB
   );
   return {
-    result: firstScreenFailures.length || detailProjectionFailures.length || fieldBoundaryFailures.length ? "fail" : "pass",
+    result:
+      firstScreenFailures.length || detailProjectionFailures.length || fieldBoundaryFailures.length || duplicatePathFailures.length
+        ? "fail"
+        : "pass",
     budgets: {
       firstScreenBudgetKB: FIRST_SCREEN_BUDGET_KB,
       detailProjectionBudgetKB: DETAIL_PROJECTION_BUDGET_KB,
@@ -654,6 +755,9 @@ function auditGeneratedFiles(records) {
       checkedFiles: records.filter((item) => !item.evidence).length,
       skippedEvidenceFiles: records.filter((item) => item.evidence).length,
       failures: fieldBoundaryFailures,
+    },
+    pathBoundary: {
+      duplicatePathFailures,
     },
   };
 }
@@ -672,6 +776,7 @@ function writeMarkdown(manifest, audit) {
     `- maxFirstScreenKB: \`${audit.budgets.maxFirstScreenKB}\``,
     `- maxDetailProjectionKB: \`${audit.budgets.maxDetailProjectionKB}\``,
     `- fieldBoundaryFailures: \`${audit.fieldBoundary.failures.length}\``,
+    `- duplicatePathFailures: \`${audit.pathBoundary.duplicatePathFailures.length}\``,
     "",
     "## Candidate Packages",
     "",

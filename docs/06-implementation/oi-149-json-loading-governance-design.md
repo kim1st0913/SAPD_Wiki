@@ -19,13 +19,13 @@
 | standards split 总量 | 8463.5 KB | `standards-index.json` 很小，但详情分片总量大 |
 | `lifecycle-workbench.json` | 1871.1 KB | 生命周期 workbench |
 
-2026-06-30 继续实施后，P0 / P1 / P2 / P3 已完成代码级收口：
+2026-06-30 继续实施后，P0 / P1 / P2 / P3 已完成代码级收口，P4 已完成候选拆包与预算审计：
 
 - P0：`dataClient.getHealth()` 已只读运行健康，不再预热全部 `DATA_PATHS`；全局搜索输入阶段不再预加载完整 workbench、完整字典、环境全量包或标准详情全表。
 - P1：新增 `/api/v1/search-index` 运行时轻量索引，前端全局搜索优先读取索引结果，并只合并当前会话已加载数据作为补充；`audit_global_search_index_contract.mjs` 已防止回退为全包扫描。
 - P2：能力页 L0 / L1 / L2 / 关注点对象级 projection 已补齐聚合 `localRelationMap` 和 `localRelationMapsByFocusId`；`audit_capability_viewmodel_contract.mjs` 样本全部为 `backend_projection`。
 - P3：后端 `read_data_package()` 与 standards compat 读取已增加按 `size + mtime_ns` 的进程内缓存。
-- P4：正式 JSON 分层尚未 apply。涉及正式包结构调整，后续必须先生成候选包、diff 与审计报告，再由用户确认是否替换。
+- P4：已新增 `scripts/build_oi149_split_candidate.mjs` 和 `scripts/audit_oi149_split_candidate.mjs`，生成候选目录 `data/exports/worker-verify/oi-149-p4-json-split-candidate/`；候选首屏最大 `758.7 KB`、对象详情最大 `1202.2 KB`、字段边界失败 `0`。正式 JSON 分层尚未 apply，后续必须由用户确认是否进入正式替换与前端契约切换。
 
 原始排查时，现有懒加载审计通过，但仍有四类绕过点；下列绕过点中的 P0 / P1 / P2 / P3 项已在 2026-06-30 收口，保留在这里作为根因记录和防回归依据：
 

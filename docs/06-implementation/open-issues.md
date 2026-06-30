@@ -20,7 +20,7 @@
 | OI-152 | 已修复 / 待页面验收 | LC-AP / LC-DT 旧批注阶段 ID 失效导致定位不到 |
 | OI-151 | 已修复 / 待页面验收 | 信息化环境汇聚图节点缺少稳定业务锚点导致定位不到 |
 | OI-150 | 已修复 / 待真实浏览器验收 | 全局批注值定位缺少运行时索引导致定位慢 |
-| OI-149 | 进行中 / P1-P3 已实施（P4 候选拆包待确认） | 前端 JSON 加载体量与首屏性能需分层治理 |
+| OI-149 | 进行中 / P1-P4 候选已生成（正式 apply 待确认） | 前端 JSON 加载体量与首屏性能需分层治理 |
 | OI-148 | 已修复 / 待页面验收 | 全局批注在新环境页面缺少值级锚点与路由切换遮挡治理 |
 | OI-147 | 已修复 / 待页面验收 | 信息化环境安全技术汇聚图措施误继承安全系统 |
 | OI-146 | 已修复 / 待页面验收 | 信息化环境安全技术汇聚图安全系统列未带出 |
@@ -125,15 +125,15 @@
 
 ## OI-149：前端 JSON 加载体量与首屏性能需分层治理
 
-- 状态：进行中 / P1-P3 已实施，P4 正式 JSON 分层待候选包与用户确认
+- 状态：进行中 / P1-P4 候选已生成，正式 JSON 分层 apply 待用户确认
 - 类型：前端 / 数据包 / 性能 / JSON 治理
 - 对象或页面：`/capability-mapping` 安全能力页、`/environment-mapping` 信息化环境页、知识库字典页、标准 / 框架页、指南 / 幻灯片页，以及 `frontend/capability-browser/dataClient.js` / `app.js` 的数据加载契约。
 - 现象：用户反馈安全能力页面再次出现数据加载缓慢，部分页面曾出现切换后无法点击、字典 / 标准模块偶发无法加载；同时要求“所有数据加载 JSON 需要再次治理”。本轮检查未复现 ViewModel 数据错配，`routePackagesForCurrentState()` 仍能保证能力页首屏优先请求 `capabilityInitial`，但当前主数据包体量仍偏大：`capability-tree.json` 约 `6394.8 KB`、`capability-workbench.json` 约 `5659.7 KB`、`maintenance-knowledge.json` 约 `10193.2 KB`、`standards` 分片总量约 `8463.5 KB`、`environment-workbench.json` 约 `4626.8 KB`。
 - 影响：即使懒加载契约未违规，较大 JSON 与全局搜索、标准详情、能力完整 workbench 兜底加载叠加时，仍可能造成用户感知慢加载；若后续页面新增时绕开 `routePackagesForCurrentState()` 或全局搜索一次性预热过多包，性能问题会反复出现。
-- 当前处理：P0 止血已落地：`dataClient.getHealth()` 不再触发 `DATA_PATHS` 全量预热；全局搜索输入阶段不再预加载完整 workbench、完整字典、环境全量包或标准详情全表。P1 已新增 `/api/v1/search-index` 运行时轻量索引，前端全局搜索优先读取该索引，只合并当前会话已加载的数据作为补充；索引响应不暴露 `sheet`、`row`、`column`、`raw_value`、`metadata` 等来源 / 调试字段。P2 已补齐能力页 L0 / L1 / L2 / 关注点对象级 projection，`localRelationMapSource` 全部收口为 `backend_projection`。P3 已在 `read_data_package()` 与 standards compat 读取中增加按 `size + mtime_ns` 的进程内缓存。
-- 需要确认：P4 正式 JSON 分层仍未执行，因为它会涉及生成候选包和正式包替换风险；下一步只能先生成候选包 / diff / 审计报告，再由用户确认是否 apply。
+- 当前处理：P0 止血已落地：`dataClient.getHealth()` 不再触发 `DATA_PATHS` 全量预热；全局搜索输入阶段不再预加载完整 workbench、完整字典、环境全量包或标准详情全表。P1 已新增 `/api/v1/search-index` 运行时轻量索引，前端全局搜索优先读取该索引，只合并当前会话已加载的数据作为补充；索引响应不暴露 `sheet`、`row`、`column`、`raw_value`、`metadata` 等来源 / 调试字段。P2 已补齐能力页 L0 / L1 / L2 / 关注点对象级 projection，`localRelationMapSource` 全部收口为 `backend_projection`。P3 已在 `read_data_package()` 与 standards compat 读取中增加按 `size + mtime_ns` 的进程内缓存。P4 已新增候选拆包生成和审计脚本，候选产物输出到 `data/exports/worker-verify/oi-149-p4-json-split-candidate/`，不覆盖正式 `public/data`。
+- 需要确认：P4 正式 JSON 分层 apply 仍未执行，因为它会涉及正式包替换和前端契约切换风险；当前只能作为候选结构和预算评审依据，后续需用户确认后才能进入 apply 设计。
 - 修复说明：修改 `api_server.py`、`dataClient.js`、`app.js`、`viewModels.js`、`index.html` 和审计脚本；未修改 public 正式数据包、SQLite、原始 Excel、标准包、字典包或用户批注数据库。
-- 验证结果：`node scripts/audit_capability_viewmodel_contract.mjs --url http://127.0.0.1:5173` 通过，样本 `T`、`T-AS`、`T-AS.AD`、`T-AS.AD-01`、`T-PD.PP`、`T-OF`、`T-OF.AT` 等全部为 `backend_projection`；`node scripts/audit_global_search_index_contract.mjs --url http://127.0.0.1:5173` 通过，`/api/v1/search-index?q=安全&limit=40` 运行时响应低于 `800KB` 且字段边界通过；`frontend_smoke_check` 能力页和环境页通过；完整数据边界和 GitHub 数据边界检查通过。
+- 验证结果：`node scripts/audit_capability_viewmodel_contract.mjs --url http://127.0.0.1:5173` 通过，样本 `T`、`T-AS`、`T-AS.AD`、`T-AS.AD-01`、`T-PD.PP`、`T-OF`、`T-OF.AT` 等全部为 `backend_projection`；`node scripts/audit_global_search_index_contract.mjs --url http://127.0.0.1:5173` 通过，`/api/v1/search-index?q=安全&limit=40` 运行时响应低于 `800KB` 且字段边界通过；`node scripts/build_oi149_split_candidate.mjs` 和 `node scripts/audit_oi149_split_candidate.mjs` 通过，P4 候选首屏最大 `758.7 KB`、对象详情最大 `1202.2 KB`、字段边界失败 `0`；`frontend_smoke_check` 能力页和环境页通过；完整数据边界和 GitHub 数据边界检查通过。
 
 ## OI-148：全局批注在新环境页面缺少值级锚点与路由切换遮挡治理
 

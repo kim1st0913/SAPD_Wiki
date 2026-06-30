@@ -4,7 +4,7 @@
 
 ## 治理入口
 
-- 当前未关闭问题数：18
+- 当前未关闭问题数：20
 - 已关闭归档问题数：137
 - 全量索引：`docs/06-implementation/open-issues-index.md`
 - 已关闭问题归档：`docs/05-archive/open-issues-history/2026-06.md`
@@ -14,11 +14,13 @@
 
 | 编号 | 状态 | 标题 |
 |---|---|---|
+| OI-155 | 设计完成 / 待用户确认 | 全局搜索产品形态与搜索结果页重设计 |
+| OI-154 | 待设计落地 / 待修复 | 页面内搜索功能回归与环境页搜索不可用 |
 | OI-153 | 已修复 / 待页面验收 | 批注抽屉底部卡片展开后当前批注显示不完整 |
 | OI-152 | 已修复 / 待页面验收 | LC-AP / LC-DT 旧批注阶段 ID 失效导致定位不到 |
 | OI-151 | 已修复 / 待页面验收 | 信息化环境汇聚图节点缺少稳定业务锚点导致定位不到 |
 | OI-150 | 已修复 / 待真实浏览器验收 | 全局批注值定位缺少运行时索引导致定位慢 |
-| OI-149 | 治理设计完成 / 待 P0 实施 | 前端 JSON 加载体量与首屏性能需分层治理 |
+| OI-149 | 进行中 / P0 已实施（继续分层治理） | 前端 JSON 加载体量与首屏性能需分层治理 |
 | OI-148 | 已修复 / 待页面验收 | 全局批注在新环境页面缺少值级锚点与路由切换遮挡治理 |
 | OI-147 | 已修复 / 待页面验收 | 信息化环境安全技术汇聚图措施误继承安全系统 |
 | OI-146 | 已修复 / 待页面验收 | 信息化环境安全技术汇聚图安全系统列未带出 |
@@ -48,6 +50,30 @@
 - 验证结果：
 
 ## 当前问题详情
+
+## OI-155：全局搜索产品形态与搜索结果页重设计
+
+- 状态：设计完成 / 待用户确认
+- 类型：前端 / 产品设计 / 搜索 / 信息架构 / 性能边界
+- 对象或页面：顶部全局搜索框、未来 `#/search?q=...` 搜索结果页、各模块页面内搜索入口、`OI-149` search-index 加载治理。
+- 现象：用户反馈全局搜索需要重新设计，当前显然是“全局搜索与模块搜索都有”，但两者职责、状态、加载边界和定位行为混杂。此前 `OI-144` 已修过状态串线，但它只解决“互相写状态”的局部问题，不能回答全局搜索是否应该有独立结果页、页面内搜索是否保留、两者如何分工。
+- 影响：如果继续沿现状补丁，全局搜索会继续承担跨域搜索、局部过滤、结果定位和数据预热，容易再次触发 `OI-149` 慢加载、`OI-154` 页面搜索不可用、`OI-144` 状态串线和定位高亮混乱。
+- 当前处理：新增设计文档 `docs/06-implementation/global-search-redesign-2026-06-30.md`。设计结论为：顶部保留一个全局搜索入口，新增独立搜索结果页 `#/search?q=...`；页面内搜索继续保留，但明确降级为当前模块 / 当前树 / 当前表格 / 当前映射图的局部查找或筛选工具。全局搜索输入阶段只允许使用轻量 `search-index`，不得加载完整 workbench、字典全量包、标准详情全表或环境全量包。
+- 需要确认：请用户确认是否接受该产品形态：`顶部全局搜索 + 独立搜索结果页 + 模块内局部查找`。确认后才能进入代码实现；不建议直接在旧搜索面板上继续补丁。
+- 修复说明：本轮只完成设计文档和 issue 登记，未修改运行代码、正式 JSON、SQLite、原始 Excel、标准包、字典包、LC 数据包或用户批注数据库。
+- 验证结果：文档设计已与 `OI-149`、`OI-154`、`OI-150`、`OI-151`、`OI-144` 做边界拆分；待后续实现时新增 `audit_global_search_index_contract.mjs`、`audit_environment_search_contract.mjs` 并继续执行 `audit_search_state_isolation.mjs`。
+
+## OI-154：页面内搜索功能回归与环境页搜索不可用
+
+- 状态：待设计落地 / 待修复
+- 类型：前端 / 搜索 / 页面内筛选 / 信息化环境映射
+- 对象或页面：`/environment-mapping` 和 `#/capability-mapping` 下的信息化环境安全能力映射页，后续扩展到能力页、标准 / 框架页、知识库字典页、LC-AP / LC-DT 页面内搜索。
+- 现象：用户反馈全局搜索之外，环境页下面的搜索无法使用。该问题不是 `OI-149` JSON 慢加载本身，也不是 `OI-144` 已修复的状态串线本身，而是页面内搜索的功能正确性、作用域、定位和空态契约没有统一治理。
+- 影响：用户在当前页面内无法快速筛选环境、对象、服务、模块、措施或安全系统；如果页面内搜索继续用全局搜索兜底，还会拖慢页面并污染全局搜索状态。
+- 当前处理：已在 `docs/06-implementation/global-search-redesign-2026-06-30.md` 中把 `OI-154` 作为页面内搜索治理线拆出。建议后续逐页治理，优先修环境页搜索：树搜索、对象搜索、服务 / 模块 / 措施 / 系统搜索，并确保只使用当前页面已加载 projection。
+- 需要确认：该问题应在 `OI-155` 产品形态确认后实施，避免先修环境页搜索，后续又因全局搜索形态重设而返工。
+- 修复说明：本轮只登记问题和方案边界，未改运行代码。
+- 验证结果：待实现后新增 `audit_environment_search_contract.mjs`，并继续执行 `audit_search_state_isolation.mjs`、`frontend_content_smoke_check.mjs --skip-api` 和轻量 5173 状态检查。
 
 ## OI-153：批注抽屉底部卡片展开后当前批注显示不完整
 
@@ -99,14 +125,17 @@
 
 ## OI-149：前端 JSON 加载体量与首屏性能需分层治理
 
-- 状态：治理设计完成 / 待 P0 实施
+- 状态：进行中 / P0 已实施（继续分层治理）
 - 类型：前端 / 数据包 / 性能 / JSON 治理
 - 对象或页面：`/capability-mapping` 安全能力页、`/environment-mapping` 信息化环境页、知识库字典页、标准 / 框架页、指南 / 幻灯片页，以及 `frontend/capability-browser/dataClient.js` / `app.js` 的数据加载契约。
 - 现象：用户反馈安全能力页面再次出现数据加载缓慢，部分页面曾出现切换后无法点击、字典 / 标准模块偶发无法加载；同时要求“所有数据加载 JSON 需要再次治理”。本轮检查未复现 ViewModel 数据错配，`routePackagesForCurrentState()` 仍能保证能力页首屏优先请求 `capabilityInitial`，但当前主数据包体量仍偏大：`capability-tree.json` 约 `6394.8 KB`、`capability-workbench.json` 约 `5659.7 KB`、`maintenance-knowledge.json` 约 `10193.2 KB`、`standards` 分片总量约 `8463.5 KB`、`environment-workbench.json` 约 `4626.8 KB`。
 - 影响：即使懒加载契约未违规，较大 JSON 与全局搜索、标准详情、能力完整 workbench 兜底加载叠加时，仍可能造成用户感知慢加载；若后续页面新增时绕开 `routePackagesForCurrentState()` 或全局搜索一次性预热过多包，性能问题会反复出现。
-- 当前处理：已输出治理设计文档 `docs/06-implementation/oi-149-json-loading-governance-design.md`。本轮只做设计和登记，未重导或拆分任何正式 JSON。复核发现慢加载反复出现不是单一包体过大，而是四类绕过懒加载的入口：`dataClient.getHealth()` 触发全部 `DATA_PATHS` 预热；全局搜索输入会加载多个重包并加载标准详情全表；能力页 L0 / L1 / L2 仍可能走 `viewmodel_fallback` 拉完整 workbench；后端 projection 每次重复读取大 JSON 且缺包级缓存。
-- 需要确认：建议下一步先做 P0 止血，不直接拆正式 JSON：切断 `getHealth()` 全包预热，限制全局搜索全包预热，新增加载预算 / health 边界 / search index 契约审计。随后再做能力页 L0 / L1 / L2 projection 收口、后端包缓存、搜索索引和正式 JSON 分层候选。
-- 修复说明：治理设计已完成；运行代码和 `public/data/*.json` 本轮未修改。
+- 当前处理：P0 止血第一阶段已开始并已落地：`dataClient.getHealth()` 切断 `DATA_PATHS` 全量预热；全局搜索移除全量包加载与标准详情全表预热，改为先基于已加载数据做结果索引扫描；搜索面板不再在首字输入阶段阻塞标准/字典等大包热身。
+- 需要确认：请核对你那一侧的 2~3 秒首屏卡顿感是否明显下降，若仍有慢点，继续进入 P1/P2：
+  - 能力页 L0 / L1 / L2 `viewmodel_fallback` 回退收口与投影缓存。
+  - 标准控件搜索改走独立 search-index（或同类轻量索引）。
+  - 后端投影与大包缓存收紧（避免重复拉取）。
+- 修复说明：本轮开始调整运行代码（前端 `app.js` 与 `dataClient.js`）；未修改 public 数据包。
 - 验证结果：`python3 scripts/data_package_summary.py --package all` 已复核主要包大小和 `data_state=ready`；`node scripts/audit_frontend_lazy_load_contract.mjs` 通过；`node scripts/audit_capability_viewmodel_contract.mjs --url http://127.0.0.1:5173` 通过，但结果显示 L0 / L1 / L2 样本仍为 `viewmodel_fallback`，关注点样本为 `backend_projection`，该点已纳入 P2 projection 收口验收。
 
 ## OI-148：全局批注在新环境页面缺少值级锚点与路由切换遮挡治理

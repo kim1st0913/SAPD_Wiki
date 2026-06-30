@@ -815,14 +815,13 @@
 
   const dataClient = {
     async getHealth() {
-      const [runtimeHealth, results] = await Promise.all([fetchRuntimeHealth(), Promise.allSettled(Object.keys(DATA_PATHS).map((name) => fetchPackage(name)))]);
-      const failedCount = results.filter((result) => result.status === "rejected").length;
+      const runtimeHealth = await fetchRuntimeHealth();
       return createEnvelope({
-        status: failedCount ? "degraded" : "ok",
+        status: runtimeHealth?.status === "degraded" ? "degraded" : "ok",
         app: "SAPD Wiki",
         version: "v1",
-        database_ready: true,
-        generated_data_ready: failedCount === 0,
+        database_ready: runtimeHealth?.database_ready !== false,
+        generated_data_ready: runtimeHealth?.generated_data_ready ?? true,
         runtime: runtimeHealth,
         checked_at: new Date().toISOString(),
       });

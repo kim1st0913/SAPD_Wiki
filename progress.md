@@ -2,18 +2,20 @@
 
 本文件是当前会话恢复入口，只保留最近状态、最近关键动作、验证摘要和历史索引。完整执行历史已归档到 `docs/05-archive/progress-history/`。
 
-## 当前状态（2026-06-29）
+## 当前状态（2026-06-30）
 
 - 当前分支：`main`；交接时 `main...origin/main` 同步，当前工作区已有本轮与前序未提交改动，后续提交需只 stage 明确相关文件。
 - 固定预览入口：`http://127.0.0.1:5173/`；当前 5173 为项目服务，`python3 scripts/dev_server_guard.py --status` 通过。
 - 最新 GitHub checkpoint：`d69063a Checkpoint environment object demos`，已推送。
 - 当前主线：继续按用户要求治理信息化环境安全技术映射页、LC-AP / LC-DT 批注定位、批注抽屉交互、页面切换交互和 JSON 加载边界；不要主动重导数据包，不创建子线程。
-- 当前用户要求：作为主控重新设计 `OI-149` 前端 JSON 加载体量与首屏性能治理，避免慢加载和前后端 fallback 混乱反复出现。
+- 当前用户要求：重新设计全局搜索功能，形成设计文档供参考，并将全局搜索产品形态、页面内搜索功能回归和 `OI-149` JSON 加载治理拆清边界。
 - 数据核对边界：连接语义保持 `安全技术服务 -> 安全技术模块`、`安全技术服务 -> 安全技术措施`、`安全技术模块 / 措施 -> 安全系统`；不得新增 `安全技术模块 -> 安全技术措施`；安全系统关系必须落在模块 / 措施目标节点自身，不能从服务级聚合字段继承。
 - 禁止范围：不修改原始 Excel、SQLite、`frontend/capability-browser/generated/environmentBasemap.node-details.json`、正式 review checklist、标准包、字典包、LC-AP / LC-DT 数据包；不写用户批注数据库。
 
 ## 最近完成事项
 
+- 2026-06-30 `Global Search Redesign Demo Tab`：按用户要求基于 `OI-155` 全局搜索重设计方案，在 `frontend/capability-browser/environment-object-apple-shell-demo.html` 追加 `全局搜索方案` demo tab。该 tab 以静态样例展示“顶部全局搜索 + 轻量结果面板 + 独立搜索结果页 + 模块内局部查找”的产品形态，并提供结果类型筛选和结果详情切换；所有示例数据均为前端静态 demo 内容，不接入正式 `search-index`、不读取正式 JSON、不修改正式搜索逻辑。验证已通过 demo 内联脚本语法检查、`frontend_content_smoke_check.mjs --skip-api`、5173 服务状态检查和本地 HTTP 抽样，确认 `environment-object-apple-shell-demo.html` 返回 `200` 且包含 `全局搜索方案` / `search-demo-frame` / `search-index`；未启动系统 Chrome。
+- 2026-06-30 `Global Search Product Redesign`：按用户要求重新设计全局搜索功能，新增 `docs/06-implementation/global-search-redesign-2026-06-30.md`。本轮设计结论为：顶部保留一个全局搜索入口，新增独立搜索结果页 `#/search?q=...`，页面内搜索保留但明确限定为当前模块 / 当前树 / 当前表格 / 当前映射图的局部查找或筛选工具。全局搜索输入阶段只能走轻量 `search-index`，不得加载完整 workbench、完整字典、完整标准详情或环境全量包。已新增 `OI-155` 作为全局搜索产品形态与搜索结果页重设计问题，新增 `OI-154` 作为页面内搜索功能回归与环境页搜索不可用问题，并更新 `docs/06-implementation/search-logic-design.md` 和 `docs/06-implementation/oi-149-json-loading-governance-design.md`，明确 `OI-149` 只负责搜索加载边界和索引预算，不负责搜索产品形态。本轮仅修改文档，未改运行代码、未修改正式 JSON、SQLite、原始 Excel、标准包、字典包、LC 数据包或用户批注数据库。
 - 2026-06-29 `OI-149 JSON Loading Governance Design`：按用户要求重新设计 `OI-149` 治理方案，新增 `docs/06-implementation/oi-149-json-loading-governance-design.md`。本轮确认慢加载反复出现不是单一包体过大，而是加载职责边界被多处绕过：`dataClient.getHealth()` 会触发全部 `DATA_PATHS` 预热；全局搜索输入会加载 `capability`、`maintenanceKnowledge`、`lifecycle`、`lifecycleWorkbench`、`content`、`standards`、`environmentWorkbench` 并加载标准详情全表；能力页 L0 / L1 / L2 样本仍为 `viewmodel_fallback`，关注点样本为 `backend_projection`；后端 `capability_workspace_projection()` 每次请求会重复读取大 JSON 且缺包级缓存。治理设计将 OI-149 拆为 P0 止血与可观测、P1 搜索索引独立化、P2 能力页 projection 收口、P3 后端包缓存、P4 正式 JSON 分层，并明确可能导致不可用的页面影响面和必跑验证。已更新 `docs/06-implementation/open-issues.md` 状态为 `治理设计完成 / 待 P0 实施`。本轮未修改运行代码、未修改正式 JSON、未写 SQLite 或原始 Excel。
 - 2026-06-29 `Annotation Drawer Expanded Note Visibility Fix`：按用户截图修复右侧批注抽屉靠底部批注展开后只显示标题、正文和操作区被底部截住的问题。`UserAnnotationDrawer.js` 新增 `ensureAnnotationNoteFullyVisible()` 和 `scheduleAnnotationNoteVisibilityCheck()`：当 `details.annotation-note-card` 展开时，在布局完成后计算卡片与 `.annotation-drawer-scroll` 可视区，底部超出则自动补滚，卡片过高则优先对齐顶部；`styles.css` 为抽屉滚动层补 `scroll-padding`；`index.html` 提升抽屉组件和样式缓存版本；`audit_user_annotation_contract.mjs` 增加 `expandedNoteVisibilityContract` 防回归。验证通过：相关 `node --check`、`audit_user_annotation_contract.mjs`、`frontend_content_smoke_check.mjs --skip-api`、`audit_json_package_boundary.py`、`check_github_data_boundary.py`、`dev_server_guard.py --status`、`git diff --check`。未修改用户批注数据库、正式 JSON、原始 Excel、SQLite、标准包、字典包或 LC 数据包；未启动系统 Chrome，真实点击效果待用户页面验收。
 - 2026-06-29 `OI-145 Local API Host Token Boundary Fix`：已修复固定 5173 预览服务实际使用的 `src/sapd_wiki/api_server.py` 中 `/api/v1/*` Host/token 边界缺口。所有 API 读请求现在先校验 `Host` 必须为 loopback + 当前端口；用户写接口 `POST` / `PATCH` / `DELETE` 统一要求 `Content-Type: application/json`、有效 `X-SAPD-Session-Token`，并拒绝非 loopback 同端口的 `Origin` / `Referer`。`/api/v1/health` 返回进程内 session token，现有前端 `dataClient` 已自动带 token；若服务重启导致旧页面 token 过期，用户写接口首次 `403` 后会清理 health 缓存、重取 token 并重试一次。新增 `scripts/audit_local_api_security_boundary.mjs`，用 raw socket 覆盖异常 Host，并用临时批注创建 / 删除验证合法写入未被误伤；脚本会清理 `page:/oi-145-regression*` 临时记录。影响评估：固定入口 `http://127.0.0.1:5173/` 与 `http://localhost:5173/` 下的能力映射、信息化环境映射、LC-AP / LC-DT、知识库字典、标准 / 框架、指南、幻灯片、批注和收藏应继续可用；外部域名、局域网 IP、端口不一致、DNS rebinding Host、`file://` 跨源调用 5173 API、手工脚本不带 token 写用户数据会被拒绝。验证通过：`python3 -m py_compile src/sapd_wiki/api_server.py`、`node --check scripts/audit_local_api_security_boundary.mjs`、`python3 scripts/dev_server_guard.py --restart`、提升权限执行 `node scripts/audit_local_api_security_boundary.mjs`；异常 Host health / notes / write 均为 `403`，正常 loopback 读为 `200`，无 token 写为 `403`，带 token 临时批注创建 / 删除为 `200`。未修改原始 Excel、SQLite、正式 JSON、node-details、标准包、字典包或 LC 数据包。
@@ -48,6 +50,8 @@
 
 ## 当前问题索引
 
+- `OI-155`：全局搜索产品形态与搜索结果页重设计，状态 `设计完成 / 待用户确认`；设计入口为 `docs/06-implementation/global-search-redesign-2026-06-30.md`。
+- `OI-154`：页面内搜索功能回归与环境页搜索不可用，状态 `待设计落地 / 待修复`；建议在 `OI-155` 产品形态确认后优先治理环境页搜索。
 - `OI-153`：批注抽屉底部卡片展开后当前批注显示不完整，状态 `已修复 / 待页面验收`；已在抽屉展开事件后自动滚动校正，使靠底部批注展开后正文和操作区进入可视区域。
 - `OI-152`：LC-AP / LC-DT 旧批注阶段 ID 失效导致定位不到，状态 `已修复 / 待页面验收`；已用批注标题 / 短正文反查当前生命周期阶段 / 过程，并给 LC 导航补稳定批注锚点，真实点击黄色高亮待用户页面验收。
 - `OI-151`：信息化环境汇聚图节点缺少稳定业务锚点导致定位不到，状态 `已修复 / 待页面验收`；已给服务、模块、措施和安全系统节点补稳定 `data-annotation-target-ref`，真实点击回归待用户批准。

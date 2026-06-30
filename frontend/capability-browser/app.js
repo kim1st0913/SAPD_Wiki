@@ -508,37 +508,17 @@ function flattenEnvironmentSearchItems(environmentWorkbench) {
 }
 
 async function ensureGlobalSearchPackages() {
-  await Promise.all(["capability", "maintenanceKnowledge", "lifecycle", "lifecycleWorkbench", "content", "standards", "environmentWorkbench"].map((name) => loadDataPackage(name)));
+  // P0 缓解：不再在全局搜索输入时做全量业务包预加载。
+  // 全局搜索改为优先命中已加载数据，避免绕过路由懒加载契约导致 1-2 秒以上卡顿。
+  return Promise.resolve();
 }
 
 async function ensureGlobalSearchStandardDetails() {
+  // P0 缓解：暂不在全局搜索里预加载标准详情表。
+  // 如需标准控制级检索，请先通过标准索引或目标页打开对应标准并完成 OI-150+。
   if (state.globalSearchStandardsReady) return;
-  await loadDataPackage("standards");
-  const dataClient = window.sapdDataClient;
-  const frameworks = list(state.standards?.frameworks);
-  await Promise.all(
-    frameworks.map(async (framework) => {
-      if (!framework?.id || state.standards?.loadedFrameworks?.[framework.id]) return;
-      const envelope = await dataClient?.getStandardFramework?.(framework.id);
-      let loaded = envelope?.data || framework;
-      const loadedTabs = await Promise.all(
-        list(loaded?.tabs).map(async (tab) => {
-          if (!tab?.id || list(tab.rows).length || !dataClient?.getStandardFrameworkTable) return tab;
-          const tableEnvelope = await dataClient.getStandardFrameworkTable(framework.id, tab.id);
-          return { ...tab, ...(tableEnvelope?.data || {}) };
-        }),
-      );
-      if (loadedTabs.length) loaded = { ...loaded, tabs: loadedTabs };
-      state.standards = {
-        ...(state.standards || {}),
-        loadedFrameworks: {
-          ...(state.standards?.loadedFrameworks || {}),
-          [framework.id]: loaded,
-        },
-      };
-    }),
-  );
   state.globalSearchStandardsReady = true;
+  return Promise.resolve();
 }
 
 function buildGlobalSearchResults(query) {

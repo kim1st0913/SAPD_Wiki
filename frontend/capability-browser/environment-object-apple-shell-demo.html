@@ -1884,52 +1884,49 @@
         height: 100%;
         overflow: auto;
         border: 1px solid rgba(136, 157, 181, 0.22);
-        border-radius: 28px;
-        background:
-          radial-gradient(circle at 20% 18%, rgba(10, 132, 255, 0.12), transparent 28%),
-          radial-gradient(circle at 82% 12%, rgba(191, 164, 226, 0.14), transparent 25%),
-          linear-gradient(135deg, rgba(248, 252, 255, 0.88), rgba(241, 247, 249, 0.68));
+        border-radius: 24px;
+        background: linear-gradient(180deg, rgba(248, 251, 255, 0.96), rgba(239, 245, 249, 0.9));
         box-shadow:
           inset 0 1px 0 rgba(255, 255, 255, 0.88),
           var(--shadow-soft);
       }
 
       .search-demo-shell {
-        display: grid;
-        grid-template-columns: 270px minmax(0, 1fr);
-        gap: 14px;
-        min-width: 1220px;
-        min-height: 748px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        min-width: 1280px;
+        min-height: 760px;
         padding: 16px;
       }
 
-      .search-demo-side,
+      .search-demo-appbar,
+      .search-demo-page-header,
       .search-demo-workspace,
       .search-demo-pane,
       .search-demo-result,
       .search-demo-detail,
       .search-demo-local-card {
         border: 1px solid rgba(136, 157, 181, 0.22);
-        background:
-          linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(247, 251, 254, 0.66)),
-          rgba(255, 255, 255, 0.58);
+        background: rgba(255, 255, 255, 0.76);
         box-shadow:
           inset 0 1px 0 rgba(255, 255, 255, 0.88),
-          0 18px 40px rgba(31, 50, 76, 0.08);
+          0 14px 30px rgba(31, 50, 76, 0.06);
       }
 
-      .search-demo-side {
-        display: flex;
-        flex-direction: column;
-        gap: 14px;
-        padding: 18px;
-        border-radius: 24px;
+      .search-demo-appbar {
+        display: grid;
+        grid-template-columns: minmax(420px, 1fr) auto;
+        align-items: center;
+        gap: 16px;
+        padding: 10px 12px;
+        border-radius: 18px;
       }
 
-      .search-demo-badge,
       .search-demo-chip,
       .search-demo-type,
-      .search-demo-status {
+      .search-demo-status,
+      .search-demo-route {
         display: inline-flex;
         align-items: center;
         width: fit-content;
@@ -1944,7 +1941,7 @@
         white-space: nowrap;
       }
 
-      .search-demo-side h2,
+      .search-demo-page-header h2,
       .search-demo-detail h3 {
         margin: 0;
         color: #172437;
@@ -1952,7 +1949,7 @@
         line-height: 1.18;
       }
 
-      .search-demo-side p,
+      .search-demo-page-header p,
       .search-demo-detail p,
       .search-demo-local-card p {
         margin: 0;
@@ -1962,92 +1959,24 @@
         line-height: 1.55;
       }
 
-      .search-demo-contracts {
-        display: grid;
-        gap: 8px;
-      }
-
-      .search-demo-contract {
-        display: grid;
-        gap: 4px;
-        padding: 12px;
-        border: 1px solid rgba(136, 157, 181, 0.2);
-        border-radius: 18px;
-        background: rgba(255, 255, 255, 0.58);
-      }
-
-      .search-demo-contract strong {
-        color: #1b2b40;
-        font-size: 14px;
-      }
-
-      .search-demo-contract span {
-        color: #708095;
-        font-size: 12px;
-        font-weight: 780;
-      }
-
-      .search-demo-flow {
-        display: grid;
-        gap: 7px;
-        margin-top: auto;
-      }
-
-      .search-demo-flow-step {
-        display: grid;
-        grid-template-columns: 26px minmax(0, 1fr);
-        gap: 8px;
-        align-items: center;
-        color: #42546a;
-        font-size: 12px;
-        font-weight: 820;
-      }
-
-      .search-demo-flow-step i {
-        display: grid;
-        place-items: center;
-        width: 26px;
-        height: 26px;
-        border-radius: 999px;
-        background: rgba(10, 132, 255, 0.12);
-        color: #2072aa;
-        font-style: normal;
-      }
-
       .search-demo-workspace {
-        display: grid;
-        grid-template-rows: auto minmax(0, 1fr) auto;
+        display: flex;
+        flex-direction: column;
         gap: 12px;
         padding: 14px;
-        border-radius: 24px;
-      }
-
-      .search-demo-topbar {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) 360px;
-        gap: 12px;
-        align-items: start;
+        border-radius: 20px;
       }
 
       .search-demo-global-input {
         display: grid;
-        grid-template-columns: auto minmax(0, 1fr) auto auto;
+        grid-template-columns: auto minmax(0, 1fr) auto;
         align-items: center;
         gap: 10px;
-        min-height: 54px;
+        min-height: 44px;
         padding: 0 14px;
         border: 1px solid rgba(136, 157, 181, 0.26);
-        border-radius: 18px;
-        background: rgba(255, 255, 255, 0.82);
-        box-shadow:
-          inset 0 1px 0 rgba(255, 255, 255, 0.9),
-          0 12px 30px rgba(31, 50, 76, 0.08);
-      }
-
-      .search-demo-global-input label {
-        color: #5e6f84;
-        font-size: 12px;
-        font-weight: 860;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.9);
       }
 
       .search-demo-global-input input {
@@ -2058,8 +1987,14 @@
         background: transparent;
         color: #162438;
         font: inherit;
-        font-size: 18px;
+        font-size: 15px;
         font-weight: 860;
+      }
+
+      .search-demo-icon {
+        color: #6c7b8f;
+        font-size: 18px;
+        font-weight: 900;
       }
 
       .search-demo-kbd {
@@ -2072,16 +2007,50 @@
         font-weight: 840;
       }
 
-      .search-demo-quick-panel {
-        display: grid;
+      .search-demo-app-metrics,
+      .search-demo-breadcrumb,
+      .search-demo-title-row,
+      .search-demo-query-summary,
+      .search-demo-local-head,
+      .search-demo-local-meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
         gap: 8px;
-        padding: 12px;
-        border: 1px solid rgba(136, 157, 181, 0.22);
-        border-radius: 18px;
-        background: rgba(255, 255, 255, 0.7);
       }
 
-      .search-demo-quick-panel h3,
+      .search-demo-app-metrics {
+        justify-content: flex-end;
+      }
+
+      .search-demo-page-header {
+        display: grid;
+        gap: 6px;
+        padding: 16px 18px;
+        border-radius: 20px;
+      }
+
+      .search-demo-breadcrumb {
+        color: #66778b;
+        font-size: 12px;
+        font-weight: 820;
+      }
+
+      .search-demo-title-row {
+        justify-content: space-between;
+      }
+
+      .search-demo-query-summary {
+        justify-content: space-between;
+        padding: 10px 12px;
+        border: 1px solid rgba(136, 157, 181, 0.18);
+        border-radius: 14px;
+        background: rgba(246, 250, 253, 0.76);
+        color: #43566d;
+        font-size: 12px;
+        font-weight: 820;
+      }
+
       .search-demo-pane h3,
       .search-demo-local-card h3 {
         margin: 0;
@@ -2090,47 +2059,11 @@
         line-height: 1.25;
       }
 
-      .search-demo-quick-list {
-        display: grid;
-        gap: 6px;
-      }
-
-      .search-demo-quick-item {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        gap: 8px;
-        align-items: center;
-        min-height: 38px;
-        padding: 8px 10px;
-        border: 1px solid rgba(136, 157, 181, 0.18);
-        border-radius: 12px;
-        background: rgba(248, 252, 255, 0.68);
-        color: #33465e;
-        cursor: pointer;
-        font: inherit;
-        font-size: 12px;
-        font-weight: 820;
-        text-align: left;
-      }
-
-      .search-demo-quick-item span {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .search-demo-quick-item em {
-        color: #6a7b8f;
-        font-size: 11px;
-        font-style: normal;
-        font-weight: 860;
-      }
-
       .search-demo-result-shell {
         display: grid;
-        grid-template-columns: 210px minmax(0, 1fr) 320px;
+        grid-template-columns: 230px minmax(0, 1fr) 330px;
         gap: 12px;
-        min-height: 0;
+        min-height: 360px;
       }
 
       .search-demo-pane {
@@ -2180,7 +2113,7 @@
         display: grid;
         gap: 8px;
         padding: 12px;
-        border-radius: 16px;
+        border-radius: 14px;
         color: #40536a;
         cursor: pointer;
         font: inherit;
@@ -2199,7 +2132,8 @@
 
       .search-demo-result-head,
       .search-demo-detail-tags,
-      .search-demo-actions {
+      .search-demo-actions,
+      .search-demo-result-meta {
         display: flex;
         flex-wrap: wrap;
         align-items: center;
@@ -2214,7 +2148,8 @@
 
       .search-demo-result-path,
       .search-demo-result-summary,
-      .search-demo-detail-row {
+      .search-demo-detail-row,
+      .search-demo-result-meta {
         color: #637387;
         font-size: 12px;
         font-weight: 760;
@@ -2275,15 +2210,41 @@
       .search-demo-local-card {
         display: grid;
         gap: 8px;
-        min-height: 118px;
+        align-content: start;
+        min-height: 148px;
         padding: 13px;
         border-radius: 18px;
+      }
+
+      .search-demo-local-section {
+        display: grid;
+        gap: 10px;
+      }
+
+      .search-demo-local-title {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: end;
+        color: #213349;
+      }
+
+      .search-demo-local-title h3 {
+        margin: 0;
+        font-size: 16px;
+      }
+
+      .search-demo-local-title span {
+        color: #64758a;
+        font-size: 12px;
+        font-weight: 780;
       }
 
       .search-demo-local-input {
         min-height: 34px;
         display: flex;
         align-items: center;
+        gap: 8px;
         padding: 0 10px;
         border: 1px solid rgba(136, 157, 181, 0.22);
         border-radius: 10px;
@@ -2291,6 +2252,16 @@
         color: #56677c;
         font-size: 12px;
         font-weight: 800;
+      }
+
+      .search-demo-local-meta span {
+        min-height: 23px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: rgba(232, 239, 246, 0.72);
+        color: #617187;
+        font-size: 11px;
+        font-weight: 820;
       }
     </style>
   </head>
@@ -2329,7 +2300,7 @@
             <button class="demo-tab" type="button" data-demo-tab="funnel">汇聚布局试验</button>
             <button class="demo-tab" type="button" data-demo-tab="environment-stats">环境统计页</button>
             <button class="demo-tab" type="button" data-demo-tab="subcategory-stats">子类统计页</button>
-            <button class="demo-tab" type="button" data-demo-tab="global-search">全局搜索方案</button>
+            <button class="demo-tab" type="button" data-demo-tab="global-search">全局搜索页</button>
             <button class="demo-tab" type="button" data-demo-tab="vertical">纵向流试验</button>
           </nav>
 
@@ -3020,57 +2991,41 @@
           </section>
 
           <section class="demo-panel" data-demo-panel="global-search">
-            <section class="search-demo-frame" aria-label="全局搜索重设计 demo">
+            <section class="search-demo-frame" aria-label="全局搜索页 demo">
               <div class="search-demo-shell">
-                <aside class="search-demo-side" aria-label="全局搜索设计边界">
-                  <span class="search-demo-badge">OI-155</span>
-                  <h2>全局搜索重设计</h2>
-                  <p>顶部入口用于跨知识域发现；搜索结果页承接完整检索；模块内搜索只保留当前上下文筛选。</p>
-                  <div class="search-demo-contracts" aria-label="搜索契约">
-                    <div class="search-demo-contract">
-                      <strong>全局搜索</strong>
-                      <span>只读取 search-index，点击结果后再加载目标 projection。</span>
-                    </div>
-                    <div class="search-demo-contract">
-                      <strong>搜索结果页</strong>
-                      <span>按知识域、对象类型和可定位状态筛选结果。</span>
-                    </div>
-                    <div class="search-demo-contract">
-                      <strong>模块内搜索</strong>
-                      <span>只影响当前页面，不写入顶部全局搜索状态。</span>
-                    </div>
+                <header class="search-demo-appbar" aria-label="现有工程顶部栏参考">
+                  <div class="search-demo-global-input" aria-label="顶部全局搜索入口">
+                    <span class="search-demo-icon" aria-hidden="true">⌕</span>
+                    <input id="searchDemoGlobalInput" type="text" value="API 安全" readonly />
+                    <span class="search-demo-kbd">⌘K</span>
                   </div>
-                  <div class="search-demo-flow" aria-label="全局搜索流程">
-                    <div class="search-demo-flow-step"><i>1</i><span>顶部输入关键词</span></div>
-                    <div class="search-demo-flow-step"><i>2</i><span>轻量结果面板预览</span></div>
-                    <div class="search-demo-flow-step"><i>3</i><span>进入搜索结果页</span></div>
-                    <div class="search-demo-flow-step"><i>4</i><span>打开目标并按 targetRef 定位</span></div>
+                  <div class="search-demo-app-metrics" aria-label="搜索状态">
+                    <span class="search-demo-chip">本地</span>
+                    <span class="search-demo-chip">search-index ready</span>
+                    <span class="search-demo-chip">7 结果</span>
                   </div>
-                </aside>
+                </header>
+
+                <section class="search-demo-page-header" aria-label="全局搜索页头">
+                  <div class="search-demo-breadcrumb">全局导航 / 全局搜索</div>
+                  <div class="search-demo-title-row">
+                    <h2>全局搜索</h2>
+                    <span class="search-demo-route">#/search?q=API%20安全</span>
+                  </div>
+                  <p>跨能力、环境、字典、标准、生命周期和指南检索业务对象；打开结果后再进入目标页面并定位到业务锚点。</p>
+                </section>
 
                 <section class="search-demo-workspace" aria-label="搜索结果页工作区">
-                  <div class="search-demo-topbar">
-                    <div class="search-demo-global-input" aria-label="顶部全局搜索入口">
-                      <label for="searchDemoGlobalInput">全局搜索</label>
-                      <input id="searchDemoGlobalInput" type="text" value="API 安全" readonly />
-                      <span class="search-demo-chip">search-index</span>
-                      <span class="search-demo-kbd">⌘K</span>
-                    </div>
-                    <aside class="search-demo-quick-panel" aria-label="顶部轻量结果面板">
-                      <h3>轻量结果面板</h3>
-                      <div class="search-demo-quick-list">
-                        <button class="search-demo-quick-item" type="button" data-search-demo-result="api-module"><span>API安全防护</span><em>环境</em></button>
-                        <button class="search-demo-quick-item" type="button" data-search-demo-result="api-object"><span>API网关层</span><em>对象</em></button>
-                        <button class="search-demo-quick-item" type="button" data-search-demo-result="api-service"><span>应用架构管控</span><em>服务</em></button>
-                      </div>
-                    </aside>
+                  <div class="search-demo-query-summary">
+                    <span>搜索词：API 安全</span>
+                    <span>结果页只展示索引摘要，详情由目标页按需加载。</span>
                   </div>
-
                   <div class="search-demo-result-shell">
                     <aside class="search-demo-pane" aria-label="搜索结果筛选">
-                      <h3>结果筛选</h3>
+                      <h3>搜索范围</h3>
                       <div class="search-demo-filters">
-                        <button class="search-demo-filter is-active" type="button" data-search-demo-filter="全部"><span>全部</span><strong>6</strong></button>
+                        <button class="search-demo-filter is-active" type="button" data-search-demo-filter="全部"><span>全部</span><strong>7</strong></button>
+                        <button class="search-demo-filter" type="button" data-search-demo-filter="安全能力"><span>安全能力</span><strong>1</strong></button>
                         <button class="search-demo-filter" type="button" data-search-demo-filter="信息化环境"><span>信息化环境</span><strong>2</strong></button>
                         <button class="search-demo-filter" type="button" data-search-demo-filter="知识库字典"><span>知识库字典</span><strong>1</strong></button>
                         <button class="search-demo-filter" type="button" data-search-demo-filter="标准 / 框架"><span>标准 / 框架</span><strong>1</strong></button>
@@ -3082,27 +3037,75 @@
 
                     <aside class="search-demo-detail" id="searchDemoDetail" aria-label="搜索结果详情"></aside>
                   </div>
+                </section>
 
-                  <section class="search-demo-local-strip" aria-label="模块内搜索边界">
+                <section class="search-demo-local-section" aria-label="现有页面内搜索栏测试样例">
+                  <div class="search-demo-local-title">
+                    <h3>页面内搜索栏测试样例</h3>
+                    <span>引用当前工程已有入口，不替代顶部全局搜索。</span>
+                  </div>
+                  <div class="search-demo-local-strip">
                     <div class="search-demo-local-card">
                       <span class="search-demo-status">页面内搜索</span>
-                      <h3>信息化环境页</h3>
-                      <div class="search-demo-local-input">筛选环境、对象、服务或模块</div>
-                      <p>只过滤当前环境树和当前映射图，不能触发全局大包加载。</p>
+                      <div class="search-demo-local-head">
+                        <h3>安全能力映射</h3>
+                        <span class="search-demo-route">#/capability-mapping</span>
+                      </div>
+                      <div class="search-demo-local-input"><span aria-hidden="true">⌕</span>搜索能力、作用域、安全技术服务、流程或安全技术模块/措施</div>
+                      <div class="search-demo-local-meta"><span>capabilitySearchInput</span><span>能力树 + 当前工作台</span></div>
+                      <p>测试输入“API”，应只过滤当前能力页对象，不触发跨知识域全局检索。</p>
                     </div>
                     <div class="search-demo-local-card">
                       <span class="search-demo-status">页面内搜索</span>
-                      <h3>标准 / 框架页</h3>
-                      <div class="search-demo-local-input">筛选当前标准控制项</div>
-                      <p>只查当前标准分片，不能回写顶部搜索框。</p>
+                      <div class="search-demo-local-head">
+                        <h3>信息化环境安全能力映射</h3>
+                        <span class="search-demo-route">#/environment-mapping</span>
+                      </div>
+                      <div class="search-demo-local-input"><span aria-hidden="true">⌕</span>搜索环境、对象、作用域、服务或模块</div>
+                      <div class="search-demo-local-meta"><span>environmentSearchInput</span><span>环境对象树 + 当前映射 tab</span></div>
+                      <p>测试输入“API网关”，应过滤环境目录并保持当前映射图可定位。</p>
                     </div>
                     <div class="search-demo-local-card">
                       <span class="search-demo-status">页面内搜索</span>
-                      <h3>LC-AP / LC-DT</h3>
-                      <div class="search-demo-local-input">查找阶段内容</div>
-                      <p>只定位当前生命周期阶段，不承担跨知识域发现。</p>
+                      <div class="search-demo-local-head">
+                        <h3>知识库字典 / 服务清单</h3>
+                        <span class="search-demo-route">#/knowledge/technical-services</span>
+                      </div>
+                      <div class="search-demo-local-input"><span aria-hidden="true">⌕</span>搜索名称、编码、分组或关系</div>
+                      <div class="search-demo-local-meta"><span>sourceSearchInput</span><span>当前字典表</span></div>
+                      <p>测试输入“I-AP&amp;T-AS.AD”，应只缩小当前清单，不读取标准或环境大包。</p>
                     </div>
-                  </section>
+                    <div class="search-demo-local-card">
+                      <span class="search-demo-status">页面内搜索</span>
+                      <div class="search-demo-local-head">
+                        <h3>标准 / 框架</h3>
+                        <span class="search-demo-route">#/standards/iso-27001-2022</span>
+                      </div>
+                      <div class="search-demo-local-input"><span aria-hidden="true">⌕</span>搜索控制项编号、标题或域</div>
+                      <div class="search-demo-local-meta"><span>标准表分片搜索</span><span>当前标准页</span></div>
+                      <p>测试输入“A.5”，应在当前标准分片内缩小命中，避免全量标准详情预热。</p>
+                    </div>
+                    <div class="search-demo-local-card">
+                      <span class="search-demo-status">页面内搜索</span>
+                      <div class="search-demo-local-head">
+                        <h3>LC-AP 安全开发生命周期</h3>
+                        <span class="search-demo-route">#/development-security</span>
+                      </div>
+                      <div class="search-demo-local-input"><span aria-hidden="true">⌕</span>搜索阶段、编码或活动...</div>
+                      <div class="search-demo-local-meta"><span>devLifecycleStageSearch</span><span>阶段栏 + 关系表</span></div>
+                      <p>测试输入“需求”，应只定位 LC-AP 阶段和阶段内关系行。</p>
+                    </div>
+                    <div class="search-demo-local-card">
+                      <span class="search-demo-status">页面内搜索</span>
+                      <div class="search-demo-local-head">
+                        <h3>LC-DT 数据生命周期安全</h3>
+                        <span class="search-demo-route">#/data-lifecycle-security</span>
+                      </div>
+                      <div class="search-demo-local-input"><span aria-hidden="true">⌕</span>搜索过程、编码或场景...</div>
+                      <div class="search-demo-local-meta"><span>dataLifecycleStageSearch</span><span>过程栏 + 关系表</span></div>
+                      <p>测试输入“收集”，应只影响当前 LC-DT 页面内定位。</p>
+                    </div>
+                  </div>
                 </section>
               </div>
             </section>
@@ -3478,11 +3481,24 @@
 
       const searchDemoItems = [
         {
+          id: "capability-api",
+          domain: "安全能力",
+          type: "安全关注点",
+          title: "API 安全能力映射",
+          code: "capability_focus",
+          route: "#/capability-mapping",
+          path: "安全能力映射 / 技术视角 / API 安全",
+          summary: "命中能力页关注点或相关服务，打开后进入安全能力映射并定位到当前能力对象。",
+          targetRef: "capability_focus:api-security",
+          load: "capability workspace-view",
+        },
+        {
           id: "api-module",
           domain: "信息化环境",
           type: "安全技术模块",
           title: "API安全防护",
           code: "security_technology_module",
+          route: "#/environment-mapping",
           path: "信息化环境 / 云数据中心 / 业务应用 / API网关层",
           summary: "命中 API 安全模块，打开后加载目标对象 projection 并定位到模块节点。",
           targetRef: "security_technology_module:api_security_protection",
@@ -3494,6 +3510,7 @@
           type: "信息化对象",
           title: "API网关层",
           code: "information_object",
+          route: "#/environment-mapping",
           path: "信息化环境 / 云数据中心 / 业务应用",
           summary: "命中信息化对象，进入环境页后定位到对象上下文。",
           targetRef: "information_object:api_gateway_layer",
@@ -3505,6 +3522,7 @@
           type: "安全技术服务",
           title: "I-AP&T-AS.AD-01 应用架构管控",
           code: "I-AP&T-AS.AD-01",
+          route: "#/knowledge/technical-services",
           path: "知识库字典 / 安全技术服务清单 / I-AP 软件应用",
           summary: "命中服务编码和标题，打开服务清单后定位到业务行。",
           targetRef: "security_technical_service:I-AP&T-AS.AD-01",
@@ -3516,6 +3534,7 @@
           type: "标准 / 框架",
           title: "ISO/IEC 27001:2022",
           code: "standard_framework",
+          route: "#/standards/iso-27001-2022",
           path: "标准 / 框架 / ISO/IEC 27001:2022",
           summary: "命中标准标题，进入标准页后再按需加载对应表分片。",
           targetRef: "standard_framework:iso-iec-27001-2022",
@@ -3527,6 +3546,7 @@
           type: "LC-AP 阶段",
           title: "AP-01 需求分析",
           code: "AP-01",
+          route: "#/development-security",
           path: "LC-AP安全开发生命周期 / 需求分析",
           summary: "命中阶段和阶段内需求管理内容，打开后定位到生命周期阶段。",
           targetRef: "lifecycle_stage:AP-01",
@@ -3538,6 +3558,7 @@
           type: "LC-DT 过程",
           title: "DT-01 收集/采集",
           code: "DT-01",
+          route: "#/data-lifecycle-security",
           path: "LC-DT数据生命周期安全 / 收集/采集",
           summary: "命中数据处理过程，打开后定位到当前数据生命周期过程。",
           targetRef: "lifecycle_process:DT-01",
@@ -3549,7 +3570,7 @@
       const searchDemoFilterButtons = Array.from(document.querySelectorAll("[data-search-demo-filter]"));
       const searchDemoQuickButtons = Array.from(document.querySelectorAll("[data-search-demo-result]"));
       let activeSearchDemoFilter = "全部";
-      let activeSearchDemoItemId = "api-module";
+      let activeSearchDemoItemId = "capability-api";
 
       function searchDemoEscapeHtml(value) {
         return String(value ?? "")
@@ -3585,16 +3606,20 @@
           <h3>${searchDemoHighlight(item.title)}</h3>
           <p>${searchDemoEscapeHtml(item.summary)}</p>
           <div class="search-demo-detail-row">
+            <strong>目标入口</strong>
+            <span>${searchDemoEscapeHtml(item.route)}</span>
+          </div>
+          <div class="search-demo-detail-row">
             <strong>所属路径</strong>
             <span>${searchDemoEscapeHtml(item.path)}</span>
           </div>
           <div class="search-demo-detail-row">
-            <strong>targetRef</strong>
-            <span>${searchDemoEscapeHtml(item.targetRef)}</span>
-          </div>
-          <div class="search-demo-detail-row">
             <strong>按需加载</strong>
             <span>${searchDemoEscapeHtml(item.load)}</span>
+          </div>
+          <div class="search-demo-detail-row">
+            <strong>业务锚点</strong>
+            <span>${searchDemoEscapeHtml(item.targetRef)}</span>
           </div>
           <div class="search-demo-actions">
             <button class="search-demo-action" type="button">打开目标页</button>
@@ -3614,6 +3639,10 @@
             </div>
             <div class="search-demo-result-title">${searchDemoHighlight(item.title)}</div>
             <div class="search-demo-result-path">${searchDemoEscapeHtml(item.path)}</div>
+            <div class="search-demo-result-meta">
+              <span>${searchDemoEscapeHtml(item.route)}</span>
+              <span>${searchDemoEscapeHtml(item.code)}</span>
+            </div>
             <div class="search-demo-result-summary">${searchDemoEscapeHtml(item.summary)}</div>
           </button>
         `).join("");

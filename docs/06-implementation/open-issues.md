@@ -125,7 +125,7 @@
 
 ## OI-149：前端 JSON 加载体量与首屏性能需分层治理
 
-- 状态：进行中 / P0 已实施（继续分层治理）
+- 状态：进行中 / P2 与 P3 实施完成，P1/P4 待产品线与数据分层确认
 - 类型：前端 / 数据包 / 性能 / JSON 治理
 - 对象或页面：`/capability-mapping` 安全能力页、`/environment-mapping` 信息化环境页、知识库字典页、标准 / 框架页、指南 / 幻灯片页，以及 `frontend/capability-browser/dataClient.js` / `app.js` 的数据加载契约。
 - 现象：用户反馈安全能力页面再次出现数据加载缓慢，部分页面曾出现切换后无法点击、字典 / 标准模块偶发无法加载；同时要求“所有数据加载 JSON 需要再次治理”。本轮检查未复现 ViewModel 数据错配，`routePackagesForCurrentState()` 仍能保证能力页首屏优先请求 `capabilityInitial`，但当前主数据包体量仍偏大：`capability-tree.json` 约 `6394.8 KB`、`capability-workbench.json` 约 `5659.7 KB`、`maintenance-knowledge.json` 约 `10193.2 KB`、`standards` 分片总量约 `8463.5 KB`、`environment-workbench.json` 约 `4626.8 KB`。

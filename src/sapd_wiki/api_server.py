@@ -182,6 +182,14 @@ def _list(value: Any) -> list[Any]:
     return value if isinstance(value, list) else []
 
 
+_DATA_PACKAGE_CACHE: dict[str, tuple[tuple[int, int], dict[str, Any] | list[Any] | Any]] = {}
+
+
+def _package_cache_key(path: Path) -> tuple[int, int]:
+    stat = path.stat()
+    return (stat.st_size, int(stat.st_mtime_ns))
+
+
 def _read_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -198,7 +206,12 @@ def read_data_package(name: str) -> dict[str, Any]:
     path = _data_package_path(name)
     if not path.exists():
         return {"generated_at": None, "stats": {}, "__data_state": "missing_file"}
+    cache_key = _package_cache_key(path)
+    cached = _DATA_PACKAGE_CACHE.get(name)
+    if cached and cached[0] == cache_key:
+        return cached[1] if isinstance(cached[1], dict) else {"generated_at": None, "items": cached[1]}
     data = _read_json(path)
+    _DATA_PACKAGE_CACHE[name] = (cache_key, data)
     if isinstance(data, dict):
         return data
     return {"generated_at": None, "items": data}
@@ -243,6 +256,10 @@ def read_standards_compat_package() -> dict[str, Any]:
     path = _data_package_path("standards-index")
     if not path.exists():
         return {"generated_at": None, "stats": {}, "__data_state": "missing_file"}
+    cache_key = _package_cache_key(path)
+    cached = _DATA_PACKAGE_CACHE.get("standards:compat")
+    if cached and cached[0] == cache_key:
+        return cached[1] if isinstance(cached[1], dict) else {"generated_at": None, "stats": {}, "__data_state": "invalid_file"}
     index = _read_json(path)
     if not isinstance(index, dict):
         return {"generated_at": None, "stats": {}, "__data_state": "invalid_file"}
@@ -271,11 +288,13 @@ def read_standards_compat_package() -> dict[str, Any]:
             assembled["loaded"] = True
         frameworks.append(assembled)
 
-    return {
+    payload = {
         **index,
         "package_type": "standards-full-compat",
         "frameworks": frameworks,
     }
+    _DATA_PACKAGE_CACHE["standards:compat"] = (cache_key, payload)
+    return payload
 
 
 def create_envelope(data: Any, warnings: list[str] | None = None) -> dict[str, Any]:

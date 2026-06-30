@@ -3041,8 +3041,8 @@
 
                 <section class="search-demo-local-section" aria-label="现有页面内搜索栏测试样例">
                   <div class="search-demo-local-title">
-                    <h3>页面内搜索栏测试样例</h3>
-                    <span>引用当前工程已有入口，不替代顶部全局搜索。</span>
+                    <h3>页面内搜索（局部查找）</h3>
+                    <span>引用当前工程真实页面结构：全局检索只做入口统一，页面内仅做当前区域过滤。</span>
                   </div>
                   <div class="search-demo-local-strip">
                     <div class="search-demo-local-card">
@@ -3052,8 +3052,12 @@
                         <span class="search-demo-route">#/capability-mapping</span>
                       </div>
                       <div class="search-demo-local-input"><span aria-hidden="true">⌕</span>搜索能力、作用域、安全技术服务、流程或安全技术模块/措施</div>
-                      <div class="search-demo-local-meta"><span>capabilitySearchInput</span><span>能力树 + 当前工作台</span></div>
-                      <p>测试输入“API”，应只过滤当前能力页对象，不触发跨知识域全局检索。</p>
+                      <div class="search-demo-local-meta">
+                        <span>capabilitySearchInput</span>
+                        <span>挂载点：capability-relation-pane / capability-workbench-tools</span>
+                        <span>作用域：能力树 + 当前关注点工作台</span>
+                      </div>
+                      <p>测试输入“API”，只过滤当前安全能力映射页，不触发跨知识域检索或页面跳转。</p>
                     </div>
                     <div class="search-demo-local-card">
                       <span class="search-demo-status">页面内搜索</span>
@@ -3062,8 +3066,12 @@
                         <span class="search-demo-route">#/environment-mapping</span>
                       </div>
                       <div class="search-demo-local-input"><span aria-hidden="true">⌕</span>搜索环境、对象、作用域、服务或模块</div>
-                      <div class="search-demo-local-meta"><span>environmentSearchInput</span><span>环境对象树 + 当前映射 tab</span></div>
-                      <p>测试输入“API网关”，应过滤环境目录并保持当前映射图可定位。</p>
+                      <div class="search-demo-local-meta">
+                        <span>environmentSearchInput</span>
+                        <span>挂载点：environment-tab-tree-pane / source-catalog-tools</span>
+                        <span>作用域：当前环境映射 tab 的环境对象树与映射区域</span>
+                      </div>
+                      <p>测试输入“API网关”，只过滤当前环境对象树并联动当前映射页锚定，不影响其他页面。</p>
                     </div>
                     <div class="search-demo-local-card">
                       <span class="search-demo-status">页面内搜索</span>
@@ -3072,8 +3080,12 @@
                         <span class="search-demo-route">#/knowledge/technical-services</span>
                       </div>
                       <div class="search-demo-local-input"><span aria-hidden="true">⌕</span>搜索名称、编码、分组或关系</div>
-                      <div class="search-demo-local-meta"><span>sourceSearchInput</span><span>当前字典表</span></div>
-                      <p>测试输入“I-AP&amp;T-AS.AD”，应只缩小当前清单，不读取标准或环境大包。</p>
+                      <div class="search-demo-local-meta">
+                        <span>sourceSearchInput</span>
+                        <span>挂载点：app-page-header / page-header-search</span>
+                        <span>作用域：当前知识库字典清单页</span>
+                      </div>
+                      <p>测试输入“I-AP&amp;T-AS.AD-01”，只缩小当前字典列表，不读取标准或环境大包。</p>
                     </div>
                     <div class="search-demo-local-card">
                       <span class="search-demo-status">页面内搜索</span>
@@ -3082,8 +3094,12 @@
                         <span class="search-demo-route">#/standards/iso-27001-2022</span>
                       </div>
                       <div class="search-demo-local-input"><span aria-hidden="true">⌕</span>搜索控制项编号、标题或域</div>
-                      <div class="search-demo-local-meta"><span>标准表分片搜索</span><span>当前标准页</span></div>
-                      <p>测试输入“A.5”，应在当前标准分片内缩小命中，避免全量标准详情预热。</p>
+                      <div class="search-demo-local-meta">
+                        <span>标准控制表过滤</span>
+                        <span>挂载点：app-page-header / page-header-search</span>
+                        <span>作用域：当前标准框架分片</span>
+                      </div>
+                      <p>测试输入“A.5”，只缩小当前标准页内命中，避免一次性加载全部标准详情。</p>
                     </div>
                     <div class="search-demo-local-card">
                       <span class="search-demo-status">页面内搜索</span>
@@ -3092,18 +3108,26 @@
                         <span class="search-demo-route">#/development-security</span>
                       </div>
                       <div class="search-demo-local-input"><span aria-hidden="true">⌕</span>搜索阶段、编码或活动...</div>
-                      <div class="search-demo-local-meta"><span>devLifecycleStageSearch</span><span>阶段栏 + 关系表</span></div>
-                      <p>测试输入“需求”，应只定位 LC-AP 阶段和阶段内关系行。</p>
+                      <div class="search-demo-local-meta">
+                        <span>devLifecycleStageSearch</span>
+                        <span>挂载点：devLifecycleWorkspace / lifecycle-stage-bar</span>
+                        <span>作用域：LC-AP 阶段栏与关系详情</span>
+                      </div>
+                      <p>测试输入“需求”，只定位 LC-AP 阶段和阶段内关系行，不影响其他模块。</p>
                     </div>
                     <div class="search-demo-local-card">
                       <span class="search-demo-status">页面内搜索</span>
                       <div class="search-demo-local-head">
                         <h3>LC-DT 数据生命周期安全</h3>
-                        <span class="search-demo-route">#/data-lifecycle-security</span>
+                        <span class="search-demo-route">#/data-security</span>
                       </div>
                       <div class="search-demo-local-input"><span aria-hidden="true">⌕</span>搜索过程、编码或场景...</div>
-                      <div class="search-demo-local-meta"><span>dataLifecycleStageSearch</span><span>过程栏 + 关系表</span></div>
-                      <p>测试输入“收集”，应只影响当前 LC-DT 页面内定位。</p>
+                      <div class="search-demo-local-meta">
+                        <span>dataLifecycleStageSearch</span>
+                        <span>挂载点：dataLifecycleWorkspace / lifecycle-stage-bar</span>
+                        <span>作用域：LC-DT 过程栏与关系详情</span>
+                      </div>
+                      <p>测试输入“收集”，只影响当前 LC-DT 页面内定位与筛选，不回写全局检索。</p>
                     </div>
                   </div>
                 </section>
@@ -3558,7 +3582,7 @@
           type: "LC-DT 过程",
           title: "DT-01 收集/采集",
           code: "DT-01",
-          route: "#/data-lifecycle-security",
+          route: "#/data-security",
           path: "LC-DT数据生命周期安全 / 收集/采集",
           summary: "命中数据处理过程，打开后定位到当前数据生命周期过程。",
           targetRef: "lifecycle_process:DT-01",

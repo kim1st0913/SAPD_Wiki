@@ -6,15 +6,15 @@ import vm from "node:vm";
 const DEFAULT_BASE_URL = "http://127.0.0.1:5173";
 
 const cases = [
-  { code: "T", objectType: "capability_category", expectedLocalRelationMapSource: "viewmodel_fallback" },
-  { code: "T-AS", objectType: "capability_domain", expectedLocalRelationMapSource: "viewmodel_fallback" },
-  { code: "T-AS.AD", objectType: "capability", expectedLocalRelationMapSource: "viewmodel_fallback" },
+  { code: "T", objectType: "capability_category", expectedLocalRelationMapSource: "backend_projection" },
+  { code: "T-AS", objectType: "capability_domain", expectedLocalRelationMapSource: "backend_projection" },
+  { code: "T-AS.AD", objectType: "capability", expectedLocalRelationMapSource: "backend_projection" },
   { code: "T-AS.AD-01", objectType: "capability_focus", expectedLocalRelationMapSource: "backend_projection", minStandardControls: 1 },
-  { code: "T-PD.PP", objectType: "capability", expectedLocalRelationMapSource: "viewmodel_fallback", expectedSecurityWorkByFocus: { "T-PD.PP-01": "边界防护策略持续管理", "T-PD.PP-02": "边界防护策略持续管理", "T-PD.PP-03": "边界防护策略持续管理" } },
+  { code: "T-PD.PP", objectType: "capability", expectedLocalRelationMapSource: "backend_projection", expectedSecurityWorkByFocus: { "T-PD.PP-01": "边界防护策略持续管理", "T-PD.PP-02": "边界防护策略持续管理", "T-PD.PP-03": "边界防护策略持续管理" } },
   { code: "T-PD.PP-02", objectType: "capability_focus", expectedLocalRelationMapSource: "backend_projection", expectedSecurityWorkByFocus: { "T-PD.PP-02": "边界防护策略持续管理" } },
   { code: "T-PD.PP-03", objectType: "capability_focus", expectedLocalRelationMapSource: "backend_projection", expectedSecurityWorkByFocus: { "T-PD.PP-03": "边界防护策略持续管理" } },
-  { code: "T-OF", objectType: "capability_domain", expectedLocalRelationMapSource: "viewmodel_fallback" },
-  { code: "T-OF.AT", objectType: "capability", expectedLocalRelationMapSource: "viewmodel_fallback" },
+  { code: "T-OF", objectType: "capability_domain", expectedLocalRelationMapSource: "backend_projection" },
+  { code: "T-OF.AT", objectType: "capability", expectedLocalRelationMapSource: "backend_projection" },
   { code: "T-OF.AT-02", objectType: "capability_focus", expectedLocalRelationMapSource: "backend_projection" },
   { code: "G-SP.SM-02", objectType: "capability_focus", expectedLocalRelationMapSource: "backend_projection" },
 ];

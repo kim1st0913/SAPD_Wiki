@@ -169,15 +169,12 @@ const checks = [
     message: "global search shortcut affordance must be a real actionable button, not a decorative keycap.",
   },
   {
-    id: "global_search_loads_searchable_packages",
+    id: "global_search_uses_lightweight_search_index",
     ok:
-      appJs.includes("ensureGlobalSearchPackages") &&
-      appJs.includes('"capability"') &&
-      appJs.includes('"maintenanceKnowledge"') &&
-      appJs.includes('"standards"') &&
-      appJs.includes('"lifecycle"') &&
-      appJs.includes('"content"'),
-    message: "global search must load the searchable package set lazily.",
+      appJs.includes("async function searchIndexResultsForQuery") &&
+      appJs.includes("getSearchIndex") &&
+      appJs.includes("mergeGlobalSearchResults(indexedResults, buildGlobalSearchResults(query))"),
+    message: "global search must use the lightweight search index and only merge already-loaded page data.",
   },
   {
     id: "global_search_keyboard_shortcut_focuses_input",

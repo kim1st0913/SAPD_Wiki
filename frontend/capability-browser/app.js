@@ -188,6 +188,7 @@ function syncSearchInputs() {
 
 const GLOBAL_SEARCH_MIN_QUERY_LENGTH = 1;
 const GLOBAL_SEARCH_RESULT_LIMIT = 40;
+const globalSearchIndexQueryCache = new Map();
 
 function normalizeSearchText(value) {
   return text(value).trim().toLowerCase();
@@ -541,6 +542,61 @@ function buildGlobalSearchResults(query) {
     .slice(0, GLOBAL_SEARCH_RESULT_LIMIT);
 }
 
+function normalizeGlobalSearchIndexResult(result = {}) {
+  const route = text(result.route).trim();
+  const objectType = text(result.object_type || result.objectType).trim();
+  const objectId = text(result.object_id || result.objectId || result.id).trim();
+  const targetRef = text(result.target_ref || result.targetRef).trim();
+  const normalized = {
+    ...result,
+    key: text(result.key || [result.type, route, targetRef || objectId, result.title].filter(Boolean).join("::")).trim(),
+    route,
+    targetRef,
+    targetText: text(result.targetText || result.target_text || result.title || result.code).trim(),
+    typeLabel: text(result.typeLabel || result.type_label || "结果").trim(),
+    score: Number(result.score) || 0,
+  };
+  if (route === "/capability-mapping" && objectId) normalized.selectedCapabilityId = objectId;
+  if (route === "/environment-mapping" && objectId) {
+    if (objectType === "information_environment") normalized.selectedEnvironmentId = objectId;
+    if (objectType === "environment_segment") normalized.selectedEnvironmentSegmentId = objectId;
+    if (objectType === "information_object") normalized.selectedEnvironmentObjectId = objectId;
+  }
+  if (route.startsWith("/knowledge/") && objectId) normalized.selectedMaintenanceId = objectId;
+  if ((route === "/development-security" || route === "/data-security") && objectId) normalized.selectedProcessId = objectId;
+  if (route.startsWith("/guides/") && objectId) normalized.selectedContentId = objectId;
+  if (objectType === "standard_framework" && objectId) normalized.standardFramework = objectId;
+  if (targetRef.startsWith("standard_table:")) {
+    const [, frameworkId, tableId] = targetRef.split(":");
+    if (frameworkId) normalized.standardFramework = frameworkId;
+    if (tableId) normalized.standardTableId = tableId;
+  }
+  return normalized;
+}
+
+async function searchIndexResultsForQuery(query) {
+  const normalizedQuery = text(query).trim();
+  if (normalizedQuery.length < GLOBAL_SEARCH_MIN_QUERY_LENGTH) return [];
+  if (globalSearchIndexQueryCache.has(normalizedQuery)) return globalSearchIndexQueryCache.get(normalizedQuery);
+  const dataClient = window.sapdDataClient;
+  const envelope = await dataClient?.getSearchIndex?.({ q: normalizedQuery, limit: GLOBAL_SEARCH_RESULT_LIMIT });
+  const payload = envelope?.data;
+  const rows = list(payload?.results).map(normalizeGlobalSearchIndexResult).filter((result) => result.route);
+  if (payload?.data_state === "ready" && rows.length) {
+    globalSearchIndexQueryCache.set(normalizedQuery, rows);
+    return rows;
+  }
+  return [];
+}
+
+function mergeGlobalSearchResults(primary = [], secondary = []) {
+  const resultMap = new Map();
+  [...primary, ...secondary].forEach((result) => addGlobalSearchResult(resultMap, result));
+  return [...resultMap.values()]
+    .sort((left, right) => (Number(right.score) || 0) - (Number(left.score) || 0) || text(left.typeLabel).localeCompare(text(right.typeLabel), "zh-Hans-CN") || text(left.title).localeCompare(text(right.title), "zh-Hans-CN"))
+    .slice(0, GLOBAL_SEARCH_RESULT_LIMIT);
+}
+
 function renderGlobalSearchPanel() {
   let panel = document.getElementById("globalSearchPanel");
   const root = document.querySelector(".global-search");
@@ -603,8 +659,9 @@ async function runGlobalSearch() {
   renderGlobalSearchPanel();
   await ensureGlobalSearchPackages();
   await ensureGlobalSearchStandardDetails();
+  const indexedResults = await searchIndexResultsForQuery(query);
   if (requestSeq !== state.globalSearchRequestSeq) return;
-  state.globalSearchResults = buildGlobalSearchResults(query);
+  state.globalSearchResults = mergeGlobalSearchResults(indexedResults, buildGlobalSearchResults(query));
   state.globalSearchLoading = false;
   renderGlobalSearchPanel();
 }

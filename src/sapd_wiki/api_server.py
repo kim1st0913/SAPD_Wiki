@@ -297,6 +297,429 @@ def read_standards_compat_package() -> dict[str, Any]:
     return payload
 
 
+SEARCH_INDEX_SOURCE_PACKAGES = (
+    "capability",
+    "environment-workbench",
+    "lifecycle-workbench",
+    "maintenance-index",
+    "maintenance-scopes",
+    "maintenance-services",
+    "maintenance-modules",
+    "maintenance-measures",
+    "maintenance-processes",
+    "maintenance-work-functions",
+    "maintenance-references",
+    "content",
+    "standards-index",
+)
+_SEARCH_INDEX_CACHE: tuple[tuple[tuple[str, int, int], ...], dict[str, Any]] | None = None
+
+
+def _search_source_signature() -> tuple[tuple[str, int, int], ...]:
+    signature: list[tuple[str, int, int]] = []
+    for name in SEARCH_INDEX_SOURCE_PACKAGES:
+        path = _data_package_path(name)
+        if not path.exists():
+            signature.append((name, -1, -1))
+            continue
+        size, mtime_ns = _package_cache_key(path)
+        signature.append((name, size, mtime_ns))
+    return tuple(signature)
+
+
+def _search_text(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, dict):
+        return " ".join(str(value.get(key) or "") for key in ("code", "title", "name", "description", "summary"))
+    if isinstance(value, list):
+        return " ".join(_search_text(item) for item in value)
+    return str(value)
+
+
+def _search_compact(*values: Any) -> str:
+    return " ".join(_search_text(value).strip() for value in values if _search_text(value).strip()).replace("\n", " ").strip()
+
+
+def _search_score(item: dict[str, Any], query: str) -> int:
+    normalized = str(query or "").strip().lower()
+    if not normalized:
+        return 1
+    title = str(item.get("title") or "").lower()
+    code = str(item.get("code") or "").lower()
+    haystack = str(item.get("_search") or "").lower()
+    if code == normalized or title == normalized:
+        return 120
+    if code.startswith(normalized) or title.startswith(normalized):
+        return 100
+    if code and normalized in code:
+        return 90
+    if title and normalized in title:
+        return 80
+    if haystack and normalized in haystack:
+        return 50
+    return 0
+
+
+def _add_search_item(
+    rows: list[dict[str, Any]],
+    seen: set[str],
+    *,
+    item_id: Any,
+    item_type: str,
+    type_label: str,
+    title: str,
+    route: str,
+    code: str = "",
+    subtitle: str = "",
+    target_ref: str = "",
+    target_text: str = "",
+    object_type: str = "",
+    object_id: str = "",
+    search_text: Any = "",
+) -> None:
+    normalized_title = str(title or code or item_id or "").strip()
+    normalized_code = str(code or "").strip()
+    normalized_id = str(item_id or object_id or target_ref or normalized_title).strip()
+    normalized_route = str(route or "").strip()
+    if not normalized_id and not normalized_title:
+        return
+    key = f"{item_type}:{normalized_route}:{normalized_id}:{normalized_title}"
+    if key in seen:
+        return
+    seen.add(key)
+    rows.append(
+        {
+            "id": normalized_id,
+            "type": item_type,
+            "typeLabel": type_label,
+            "title": " ".join(part for part in (normalized_code, normalized_title) if part),
+            "code": normalized_code,
+            "subtitle": str(subtitle or "").strip(),
+            "route": normalized_route,
+            "target_ref": str(target_ref or f"{object_type or item_type}:{normalized_id}").strip(),
+            "target_text": str(target_text or normalized_title or normalized_code).strip(),
+            "object_type": str(object_type or item_type).strip(),
+            "object_id": str(object_id or normalized_id).strip(),
+            "_search": _search_compact(normalized_code, normalized_title, subtitle, search_text),
+        }
+    )
+
+
+def _add_navigation_search_items(rows: list[dict[str, Any]], seen: set[str]) -> None:
+    for item in (
+        ("/capability-mapping", "安全能力映射", "安全能力 / 安全关注点 / 技术与管理映射"),
+        ("/environment-mapping", "信息化环境安全能力映射", "环境 / 子类 / 信息化对象 / 安全技术"),
+        ("/development-security", "LC-AP安全开发生命周期", "应用安全开发生命周期"),
+        ("/data-security", "LC-DT数据生命周期安全", "数据生命周期安全"),
+        ("/knowledge/technical-services", "安全技术服务清单", "知识库字典"),
+        ("/standards/mlps-level-3", "安全标准 / 框架", "标准控制项索引"),
+        ("/guides/security-architecture-design", "安全指南", "指南 / 幻灯片"),
+    ):
+        route, title, subtitle = item
+        _add_search_item(rows, seen, item_id=route, item_type="navigation", type_label="导航", title=title, route=route, subtitle=subtitle, target_ref=f"route:{route}", target_text=title, object_type="route", object_id=route)
+
+
+def _add_capability_search_items(rows: list[dict[str, Any]], seen: set[str]) -> None:
+    capability = read_data_package("capability")
+    type_labels = {
+        "capability_category": "能力分类",
+        "capability_domain": "能力域",
+        "capability": "安全能力",
+        "capability_focus": "安全关注点",
+    }
+
+    def visit(item: dict[str, Any], object_type: str, trail: list[str]) -> None:
+        title = _title_of(item, "")
+        code = str(item.get("code") or "").strip()
+        item_id = str(item.get("id") or code or title).strip()
+        subtitle = " / ".join(part for part in trail if part)
+        _add_search_item(
+            rows,
+            seen,
+            item_id=item_id,
+            item_type="capability",
+            type_label=type_labels.get(object_type, "安全能力"),
+            title=title,
+            code=code,
+            subtitle=subtitle,
+            route="/capability-mapping",
+            target_ref=f"{object_type}:{item_id}",
+            target_text=title,
+            object_type=object_type,
+            object_id=item_id,
+            search_text=item.get("description") or item.get("summary"),
+        )
+        next_trail = [*trail, " ".join(part for part in (code, title) if part)]
+        for domain in _list(item.get("domains")):
+            if isinstance(domain, dict):
+                visit(domain, "capability_domain", next_trail)
+        for cap in _list(item.get("capabilities")):
+            if isinstance(cap, dict):
+                visit(cap, "capability", next_trail)
+        for focus in _list(item.get("focuses")):
+            if isinstance(focus, dict):
+                visit(focus, "capability_focus", next_trail)
+
+    for category in _list(capability.get("categories")):
+        if isinstance(category, dict):
+            visit(category, "capability_category", [])
+
+
+def _add_maintenance_search_items(rows: list[dict[str, Any]], seen: set[str]) -> None:
+    sections = {
+        "maintenance-scopes": ("scope_types", "作用域", "/knowledge/scopes", "scope_type"),
+        "maintenance-services": ("security_technical_services", "安全技术服务", "/knowledge/technical-services", "security_technical_service"),
+        "maintenance-modules": ("security_technology_modules", "安全技术模块", "/knowledge/technical", "security_technology_module"),
+        "maintenance-measures": ("security_technical_measures", "安全技术措施", "/knowledge/technical", "security_technical_measure"),
+        "maintenance-processes": ("security_processes", "安全流程", "/knowledge/management-workflows", "security_process"),
+        "maintenance-work-functions": ("work_function_layers", "安全职能", "/knowledge/functions", "work_function"),
+        "maintenance-references": ("gbt_42446_references", "GB/T 42446 任务", "/knowledge/role-references", "reference"),
+    }
+    for package_name, (field, type_label, route, object_type) in sections.items():
+        payload = read_data_package(package_name)
+        items = _list(payload.get(field))
+        if field == "work_function_layers":
+            items = [item for layer in items for group in _list(layer.get("groups")) for item in _list(group.get("functions"))]
+        elif field == "security_processes":
+            items = [reference for domain in items for group in _list(domain.get("groups")) for reference in _list(group.get("references"))]
+        for index, item in enumerate(items):
+            if not isinstance(item, dict):
+                continue
+            title = _title_of(item, "")
+            code = str(item.get("code") or item.get("id") or "").strip()
+            item_id = str(item.get("id") or code or title or f"{field}:{index}").strip()
+            _add_search_item(
+                rows,
+                seen,
+                item_id=item_id,
+                item_type="maintenance",
+                type_label=type_label,
+                title=title,
+                code=code,
+                subtitle=_search_compact(item.get("category"), item.get("group"), item.get("layer")),
+                route=route,
+                target_ref=f"{object_type}:{item_id}",
+                target_text=title,
+                object_type=object_type,
+                object_id=item_id,
+                search_text=_search_compact(item.get("description"), item.get("summary"), item.get("definition")),
+            )
+
+
+def _add_environment_search_items(rows: list[dict[str, Any]], seen: set[str]) -> None:
+    workbench = read_data_package("environment-workbench")
+
+    def visit(node: dict[str, Any], trail: list[str]) -> None:
+        title = _title_of(node, "")
+        item_id = str(node.get("id") or node.get("code") or title).strip()
+        object_type = str(node.get("type") or "").strip() or "environment_object"
+        type_label = {
+            "information_environment": "信息化环境",
+            "environment_segment": "环境子类",
+            "information_object": "信息化对象",
+        }.get(object_type, "信息化环境")
+        _add_search_item(
+            rows,
+            seen,
+            item_id=item_id,
+            item_type="environment",
+            type_label=type_label,
+            title=title,
+            code=str(node.get("code") or "").strip(),
+            subtitle=" / ".join(part for part in trail if part),
+            route="/environment-mapping",
+            target_ref=f"{object_type}:{item_id}",
+            target_text=title,
+            object_type=object_type,
+            object_id=item_id,
+            search_text=node.get("description") or "",
+        )
+        next_trail = [*trail, title]
+        for child in _list(node.get("children")):
+            if isinstance(child, dict):
+                visit(child, next_trail)
+
+    for node in _list((workbench.get("navigator") or {}).get("tree")):
+        if isinstance(node, dict):
+            visit(node, [])
+
+
+def _add_lifecycle_search_items(rows: list[dict[str, Any]], seen: set[str]) -> None:
+    workbench = read_data_package("lifecycle-workbench")
+
+    def visit(node: dict[str, Any], route: str, trail: list[str]) -> None:
+        title = _title_of(node, "")
+        item_id = str(node.get("id") or node.get("code") or title).strip()
+        object_type = str(node.get("type") or "").strip() or "lifecycle_stage"
+        if object_type in {"lifecycle_stage", "lifecycle_process"}:
+            _add_search_item(
+                rows,
+                seen,
+                item_id=item_id,
+                item_type="lifecycle",
+                type_label="生命周期阶段",
+                title=title,
+                code=str(node.get("code") or "").strip(),
+                subtitle=" / ".join(part for part in trail if part),
+                route=route,
+                target_ref=f"{object_type}:{item_id}",
+                target_text=title,
+                object_type=object_type,
+                object_id=item_id,
+                search_text=node.get("description") or "",
+            )
+        next_route = route
+        if str(node.get("code") or "").strip().startswith("DT-") or str(node.get("id") or "").strip().startswith("lifecycle_domain:LC-DT"):
+            next_route = "/data-security"
+        elif str(node.get("code") or "").strip().startswith("AP-") or str(node.get("id") or "").strip().startswith("lifecycle_domain:LC-AP"):
+            next_route = "/development-security"
+        for child in _list(node.get("children")):
+            if isinstance(child, dict):
+                visit(child, next_route, [*trail, title])
+
+    for node in _list((workbench.get("navigator") or {}).get("tree")):
+        if isinstance(node, dict):
+            route = "/data-security" if "LC-DT" in str(node.get("id") or node.get("code") or "") else "/development-security"
+            visit(node, route, [])
+
+
+def _add_standard_search_items(rows: list[dict[str, Any]], seen: set[str]) -> None:
+    standards = read_data_package("standards-index")
+    for framework in _list(standards.get("frameworks")):
+        if not isinstance(framework, dict):
+            continue
+        framework_id = str(framework.get("id") or "").strip()
+        title = _title_of(framework, framework_id)
+        route = str(framework.get("route") or f"/standards/{framework_id}").strip()
+        _add_search_item(
+            rows,
+            seen,
+            item_id=framework_id,
+            item_type="standard",
+            type_label="标准 / 框架",
+            title=title,
+            code=str(framework.get("frameworkCode") or framework_id).strip(),
+            subtitle=_search_compact(framework.get("totalRows") and f"{framework.get('totalRows')} 条控制项"),
+            route=route,
+            target_ref=f"standard_framework:{framework_id}",
+            target_text=title,
+            object_type="standard_framework",
+            object_id=framework_id,
+            search_text=framework.get("columns"),
+        )
+        for tab in _list(framework.get("tabs")):
+            if not isinstance(tab, dict):
+                continue
+            tab_id = str(tab.get("id") or tab.get("title") or "").strip()
+            tab_title = _title_of(tab, tab_id)
+            _add_search_item(
+                rows,
+                seen,
+                item_id=tab_id,
+                item_type="standard",
+                type_label="标准表",
+                title=tab_title,
+                code=framework.get("frameworkCode") or framework_id,
+                subtitle=title,
+                route=route,
+                target_ref=f"standard_table:{framework_id}:{tab_id}",
+                target_text=tab_title,
+                object_type="standard_table",
+                object_id=tab_id,
+                search_text=tab.get("columns"),
+            )
+
+
+def _add_content_search_items(rows: list[dict[str, Any]], seen: set[str]) -> None:
+    content = read_data_package("content")
+    for field, type_label in (("html_documents", "HTML 文档"), ("diagram_views", "图示"), ("guide_pages", "指南")):
+        for item in _list(content.get(field)):
+            if not isinstance(item, dict):
+                continue
+            item_id = str(item.get("id") or item.get("route") or item.get("title") or "").strip()
+            title = _title_of(item, item_id)
+            route = str(item.get("route") or f"/guides/{item_id}").strip()
+            _add_search_item(
+                rows,
+                seen,
+                item_id=item_id,
+                item_type="content",
+                type_label=type_label,
+                title=title,
+                subtitle=_search_compact(item.get("category"), item.get("view_type")),
+                route=route,
+                target_ref=f"content:{item_id}",
+                target_text=title,
+                object_type="content",
+                object_id=item_id,
+                search_text=_search_compact(item.get("summary"), item.get("description")),
+            )
+
+
+def build_search_index() -> dict[str, Any]:
+    global _SEARCH_INDEX_CACHE
+    signature = _search_source_signature()
+    if _SEARCH_INDEX_CACHE and _SEARCH_INDEX_CACHE[0] == signature:
+        return _SEARCH_INDEX_CACHE[1]
+    rows: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    _add_navigation_search_items(rows, seen)
+    _add_capability_search_items(rows, seen)
+    _add_maintenance_search_items(rows, seen)
+    _add_environment_search_items(rows, seen)
+    _add_lifecycle_search_items(rows, seen)
+    _add_standard_search_items(rows, seen)
+    _add_content_search_items(rows, seen)
+    generated_at_values = [
+        str(read_data_package(name).get("generated_at") or "")
+        for name in ("capability", "environment-workbench", "lifecycle-workbench", "maintenance-index", "standards-index", "content")
+    ]
+    payload = {
+        "generated_at": max((value for value in generated_at_values if value), default=None),
+        "data_state": "ready",
+        "package_type": "runtime-search-index",
+        "items": rows,
+        "stats": {
+            "items": len(rows),
+            "source_packages": len(SEARCH_INDEX_SOURCE_PACKAGES),
+            "contract": "oi-149-search-index-p1",
+        },
+    }
+    _SEARCH_INDEX_CACHE = (signature, payload)
+    return payload
+
+
+def search_index_payload(query: str = "", limit: int = 80) -> dict[str, Any]:
+    index = build_search_index()
+    normalized_query = str(query or "").strip()
+    safe_limit = max(1, min(int(limit or 80), 120))
+    rows: list[dict[str, Any]] = []
+    for item in _list(index.get("items")):
+        if not isinstance(item, dict):
+            continue
+        score = _search_score(item, normalized_query)
+        if normalized_query and score <= 0:
+            continue
+        public_item = {key: value for key, value in item.items() if key != "_search"}
+        public_item["score"] = score
+        rows.append(public_item)
+    rows.sort(key=lambda item: (-int(item.get("score") or 0), str(item.get("typeLabel") or ""), str(item.get("title") or "")))
+    return {
+        "generated_at": index.get("generated_at"),
+        "data_state": index.get("data_state") or "ready",
+        "package_type": index.get("package_type") or "runtime-search-index",
+        "query": normalized_query,
+        "results": rows[:safe_limit],
+        "stats": {
+            **(index.get("stats") or {}),
+            "returned": min(len(rows), safe_limit),
+            "matched": len(rows),
+            "limit": safe_limit,
+        },
+    }
+
+
 def create_envelope(data: Any, warnings: list[str] | None = None) -> dict[str, Any]:
     warning_list = warnings or []
     generated_at = data.get("generated_at") if isinstance(data, dict) else None
@@ -1218,6 +1641,134 @@ def _capability_local_relation_maps(
     ]
 
 
+def _process_tree_from_management_rows(management_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    groups: dict[str, dict[str, Any]] = {}
+    for row in management_rows:
+        activities = [
+            {
+                "id": activity.get("id") or activity.get("code") or _title_of(activity, "待确认活动"),
+                "code": activity.get("code") or "",
+                "name": _title_of(activity, "待确认活动"),
+                "description": activity.get("description") or activity.get("summary") or "",
+                "status": activity.get("status") or activity.get("state") or "",
+            }
+            for activity in _list(row.get("activities"))
+            if isinstance(activity, dict)
+        ]
+        for process_group in _list(row.get("processGroups")):
+            if not isinstance(process_group, dict):
+                continue
+            group_key = _entity_key(process_group) or _title_of(process_group, "待确认流程组")
+            group = groups.setdefault(
+                group_key,
+                {
+                    "l2ProcessGroup": _compact_entity(process_group, "待确认流程组"),
+                    "l3Processes": [],
+                    "_l3Index": {},
+                },
+            )
+            for process_reference in _list(row.get("processReferences")):
+                if not isinstance(process_reference, dict):
+                    continue
+                process_key = _entity_key(process_reference) or f"{group_key}:{_title_of(process_reference, '待确认流程')}"
+                process_index = group["_l3Index"]
+                process = process_index.get(process_key)
+                if process is None:
+                    process = {
+                        "id": process_reference.get("id") or process_key,
+                        "code": process_reference.get("code") or "",
+                        "name": _title_of(process_reference, "待确认流程"),
+                        "description": process_reference.get("description") or process_reference.get("summary") or "",
+                        "activities": [],
+                    }
+                    process_index[process_key] = process
+                    group["l3Processes"].append(process)
+                process["activities"] = _unique_by([*process["activities"], *activities])
+    rows: list[dict[str, Any]] = []
+    for group in groups.values():
+        group.pop("_l3Index", None)
+        rows.append(group)
+    return rows
+
+
+def _capability_aggregate_local_relation_map(
+    selected_item: dict[str, Any],
+    object_type: str,
+    technical_rows: list[dict[str, Any]],
+    management_rows: list[dict[str, Any]],
+    standard_rows: list[dict[str, Any]],
+) -> dict[str, Any]:
+    focus_entity = _compact_projection_object(selected_item, object_type)
+    scope_service_pairs: list[dict[str, Any]] = []
+    service_links_by_id: dict[str, dict[str, Any]] = {}
+    for row in technical_rows:
+        status = str(row.get("status") or "").strip() or "unknown"
+        services = _list(row.get("services"))
+        candidate_services = _list(row.get("candidateServices"))
+        row_services = services or candidate_services
+        if not row_services:
+            scope_service_pairs.append(_compact_scope_service_pair(row, None, status))
+            continue
+        for service in row_services:
+            if not isinstance(service, dict):
+                continue
+            pair = _compact_scope_service_pair(row, service, status)
+            scope_service_pairs.append(pair)
+            service_key = service.get("id") or service.get("code") or service.get("title") or pair["serviceName"]
+            link = service_links_by_id.setdefault(
+                service_key,
+                {
+                    "serviceId": service.get("id") or "",
+                    "serviceCode": service.get("code") or "",
+                    "serviceName": _title_of(service, ""),
+                    "scopes": [],
+                    "modules": [],
+                    "measures": [],
+                    "status": status,
+                },
+            )
+            link["scopes"] = _unique_by([*link["scopes"], row.get("scope")])
+            link["modules"] = _unique_by([*link["modules"], *_list(row.get("technologyModules"))])
+            link["measures"] = _unique_by([*link["measures"], *_list(row.get("technicalMeasures"))])
+            if link["status"] != "covered" or status != "covered":
+                link["status"] = status
+
+    work_functions_by_layer = _empty_work_functions_by_layer()
+    for stakeholder in [stakeholder for row in management_rows for stakeholder in _list(row.get("stakeholders"))]:
+        if not isinstance(stakeholder, dict):
+            continue
+        layer = _layer_key(stakeholder.get("layer") or "")
+        work_functions_by_layer[layer].append(stakeholder)
+    for key, layer_rows in work_functions_by_layer.items():
+        work_functions_by_layer[key] = _unique_by(layer_rows)
+
+    return {
+        "focus": focus_entity,
+        "technical": {
+            "scopeServicePairs": scope_service_pairs,
+            "serviceModuleMeasureLinks": [
+                {
+                    **link,
+                    "scopes": [_compact_entity(scope, "未命名作用域") for scope in _list(link["scopes"]) if scope],
+                    "modules": _list(link["modules"]),
+                    "measures": _list(link["measures"]),
+                }
+                for link in service_links_by_id.values()
+            ],
+        },
+        "management": {
+            "securityWorks": _unique_by([work for row in management_rows for work in _list(row.get("securityWorks"))]),
+            "workFunctionsByLayer": work_functions_by_layer,
+            "processTree": _process_tree_from_management_rows(management_rows),
+        },
+        "standards": {
+            "frameworks": _unique_by([framework for row in standard_rows for framework in _list(row.get("standards"))]),
+            "controls": _unique_by([control for row in standard_rows for control in _list(row.get("controls"))]),
+        },
+        "sourceEvidence": [],
+    }
+
+
 def _graph_node(item: dict[str, Any], object_type: str, group: str = "capability", weight: int = 1) -> dict[str, Any]:
     selected = _compact_projection_object(item, object_type)
     return {
@@ -1454,11 +2005,9 @@ def capability_workspace_projection(
     if selected_focus_ids:
         technical_rows = [row for row in technical_rows if str((row.get("focus") or {}).get("id") or "").strip() in selected_focus_ids]
         management_rows = [row for row in management_rows if str((row.get("focus") or {}).get("id") or "").strip() in selected_focus_ids]
-    local_relation_maps: list[dict[str, Any]] = []
-    if not normalized_object_type or normalized_object_type == "capability_focus":
-        local_relation_maps = _capability_local_relation_maps(capability, technical_rows, management_rows)
-        if selected_focus_ids:
-            local_relation_maps = [row for row in local_relation_maps if str((row.get("focus") or {}).get("id") or "").strip() in selected_focus_ids]
+    local_relation_maps: list[dict[str, Any]] = _capability_local_relation_maps(capability, technical_rows, management_rows)
+    if selected_focus_ids:
+        local_relation_maps = [row for row in local_relation_maps if str((row.get("focus") or {}).get("id") or "").strip() in selected_focus_ids]
     local_relation_maps_by_focus_id: dict[str, dict[str, Any]] = {}
     for row in local_relation_maps:
         focus = row.get("focus", {})
@@ -1476,6 +2025,11 @@ def capability_workspace_projection(
     data_state = "ready" if graph.get("nodes") or technical_rows or management_rows or standard_summary.get("standard_controls") else "empty"
     summary = _projection_summary(selected_focuses, technical_rows, management_rows, standard_summary) if selected_item else {}
     standard_rows = _capability_standard_mapping_rows_for_focus_ids(selected_focuses) if selected_item else []
+    aggregate_local_relation_map = (
+        _capability_aggregate_local_relation_map(selected_item, normalized_object_type, technical_rows, management_rows, standard_rows)
+        if selected_item and normalized_object_type
+        else (local_relation_maps[0] if local_relation_maps else None)
+    )
     return {
         "generated_at": capability.get("generated_at") or shared_lookups.get("generated_at") or maintenance.get("generated_at"),
         "contract": "capability-workspace-view",
@@ -1496,7 +2050,7 @@ def capability_workspace_projection(
         "technicalMappingRows": technical_rows,
         "managementMappingRows": management_rows,
         "standardMappingRows": standard_rows,
-        "localRelationMap": local_relation_maps[0] if local_relation_maps else None,
+        "localRelationMap": aggregate_local_relation_map,
         "localRelationMaps": local_relation_maps,
         "localRelationMapsByFocusId": local_relation_maps_by_focus_id,
         "stats": {
@@ -1849,6 +2403,14 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
                 return
             if path == "/api/v1/data-packages":
                 self._send_json(create_envelope({"packages": [{"name": name, "path": path} for name, path in DATA_PACKAGES.items()]}))
+                return
+            if path == "/api/v1/search-index":
+                raw_limit = (query.get("limit") or ["80"])[0]
+                try:
+                    limit = int(raw_limit)
+                except (TypeError, ValueError):
+                    limit = 80
+                self._send_json(create_envelope(search_index_payload(query=(query.get("q") or [""])[0], limit=limit)))
                 return
             if len(parts) == 4 and parts[:3] == ["api", "v1", "data-packages"]:
                 self._send_json(create_envelope(read_data_package(parts[3])))

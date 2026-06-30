@@ -1325,7 +1325,7 @@
     const detailSecurityWorks = isFocus ? managementMappingRows.find((row) => row.focus.id === selectedDetail.id)?.securityWorks || [] : uniqueBy(managementMappingRows.flatMap((row) => row.securityWorks), (work) => work.id || work.code || work.title);
     const detailSourceItems = [...list(detailRaw?.security_works), ...list(detailRaw?.scope_mappings)];
     const detailSourceEvidence = sourceEvidenceFor(detailRaw, detailRawProcesses, detailSourceItems);
-    const projectedFocusId = canUseObjectProjection && isFocus ? selectedDetail.id : null;
+    const projectedFocusId = canUseObjectProjection ? selectedDetail.id : null;
     const projectedLocalRelationMap = projectedFocusId ? projectedLocalRelationMapFor(capabilityProjection, projectedFocusId) : null;
     const usingWorkbenchMappingRows = Boolean(workbenchTechnicalRows.length || workbenchManagementRows.length);
     const usingProjectedLocalRelationMap = Boolean(!usingWorkbenchMappingRows && projectedLocalRelationMap);

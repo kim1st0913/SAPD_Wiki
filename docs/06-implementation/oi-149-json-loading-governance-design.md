@@ -19,12 +19,20 @@
 | standards split 总量 | 8463.5 KB | `standards-index.json` 很小，但详情分片总量大 |
 | `lifecycle-workbench.json` | 1871.1 KB | 生命周期 workbench |
 
-现有懒加载审计通过，但仍有四类绕过点：
+2026-06-30 继续实施后，P0 / P1 / P2 / P3 已完成代码级收口：
 
-1. `dataClient.getHealth()` 当前会 `Promise.allSettled(Object.keys(DATA_PATHS).map(fetchPackage))`，健康检查会触发全部数据包读取与解析。
-2. 全局搜索 `ensureGlobalSearchPackages()` 会一次性加载 `capability`、`maintenanceKnowledge`、`lifecycle`、`lifecycleWorkbench`、`content`、`standards`、`environmentWorkbench`；随后 `ensureGlobalSearchStandardDetails()` 会继续加载所有标准详情表。
-3. 能力页虽然有 `/api/v1/capabilities/workspace-view`，但当前契约审计显示 L0 / L1 / L2 样本仍为 `viewmodel_fallback`，只有关注点级样本为 `backend_projection`。这会让上层能力选择重新依赖前端完整 workbench 兜底。
-4. 后端 `capability_workspace_projection()` 每次请求都会重新读取并解析 `capability`、`maintenance`、`shared-lookups`，标准摘要还会读取 `capability-workbench`。`read_data_package()` 当前没有包级缓存。
+- P0：`dataClient.getHealth()` 已只读运行健康，不再预热全部 `DATA_PATHS`；全局搜索输入阶段不再预加载完整 workbench、完整字典、环境全量包或标准详情全表。
+- P1：新增 `/api/v1/search-index` 运行时轻量索引，前端全局搜索优先读取索引结果，并只合并当前会话已加载数据作为补充；`audit_global_search_index_contract.mjs` 已防止回退为全包扫描。
+- P2：能力页 L0 / L1 / L2 / 关注点对象级 projection 已补齐聚合 `localRelationMap` 和 `localRelationMapsByFocusId`；`audit_capability_viewmodel_contract.mjs` 样本全部为 `backend_projection`。
+- P3：后端 `read_data_package()` 与 standards compat 读取已增加按 `size + mtime_ns` 的进程内缓存。
+- P4：正式 JSON 分层尚未 apply。涉及正式包结构调整，后续必须先生成候选包、diff 与审计报告，再由用户确认是否替换。
+
+原始排查时，现有懒加载审计通过，但仍有四类绕过点；下列绕过点中的 P0 / P1 / P2 / P3 项已在 2026-06-30 收口，保留在这里作为根因记录和防回归依据：
+
+1. `dataClient.getHealth()` 曾经会 `Promise.allSettled(Object.keys(DATA_PATHS).map(fetchPackage))`，健康检查会触发全部数据包读取与解析。
+2. 全局搜索 `ensureGlobalSearchPackages()` 曾经会一次性加载 `capability`、`maintenanceKnowledge`、`lifecycle`、`lifecycleWorkbench`、`content`、`standards`、`environmentWorkbench`；随后 `ensureGlobalSearchStandardDetails()` 会继续加载所有标准详情表。
+3. 能力页虽然有 `/api/v1/capabilities/workspace-view`，但原始契约审计曾显示 L0 / L1 / L2 样本仍为 `viewmodel_fallback`，只有关注点级样本为 `backend_projection`。这会让上层能力选择重新依赖前端完整 workbench 兜底。
+4. 后端 `capability_workspace_projection()` 每次请求曾经都会重新读取并解析 `capability`、`maintenance`、`shared-lookups`，标准摘要还会读取 `capability-workbench`；`read_data_package()` 当时没有包级缓存。
 
 因此，慢加载反复出现的根因不是“某个 JSON 偶然大”，而是加载职责没有硬边界：健康检查、搜索、fallback、后端 projection 都可能绕过路由懒加载。
 

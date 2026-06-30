@@ -8,11 +8,14 @@
 - 固定预览入口：`http://127.0.0.1:5173/`；当前 5173 为项目服务，`python3 scripts/dev_server_guard.py --status` 通过。
 - 最新 GitHub checkpoint：`d69063a Checkpoint environment object demos`，已推送。
 - 当前主线：继续按用户要求治理信息化环境安全技术映射页、LC-AP / LC-DT 批注定位、批注抽屉交互、页面切换交互和 JSON 加载边界；不要主动重导数据包，不创建子线程。
-- 当前用户要求：重新设计全局搜索功能，形成设计文档供参考，并将全局搜索产品形态、页面内搜索功能回归和 `OI-149` JSON 加载治理拆清边界。
+- 当前用户要求：继续推进 `OI-149` JSON 加载治理，优先保证全局搜索输入、能力页 projection 和后端数据包读取不会绕过懒加载契约。
 - 数据核对边界：连接语义保持 `安全技术服务 -> 安全技术模块`、`安全技术服务 -> 安全技术措施`、`安全技术模块 / 措施 -> 安全系统`；不得新增 `安全技术模块 -> 安全技术措施`；安全系统关系必须落在模块 / 措施目标节点自身，不能从服务级聚合字段继承。
 - 禁止范围：不修改原始 Excel、SQLite、`frontend/capability-browser/generated/environmentBasemap.node-details.json`、正式 review checklist、标准包、字典包、LC-AP / LC-DT 数据包；不写用户批注数据库。
 
 ## 最近完成事项
+
+- 2026-06-30 `OI-149 P1/P2 完整收口`：继续推进 JSON 加载治理。新增 `/api/v1/search-index` 运行时轻量索引，前端全局搜索优先调用 `dataClient.getSearchIndex()`，不在输入阶段预加载完整 workbench、完整字典、环境全量包或标准详情全表；保留当前会话已加载数据作为补充结果。能力页 L0 / L1 / L2 / 关注点对象级 projection 已补齐聚合 `localRelationMap` 与 `localRelationMapsByFocusId`，`audit_capability_viewmodel_contract` 样本全部收口为 `backend_projection`。新增 `scripts/audit_global_search_index_contract.mjs` 并更新搜索状态审计，防止搜索链路回退为全包扫描。未修改正式 `public/data/*.json`、SQLite、原始 Excel、标准包、字典包或用户批注数据库。
+  - 验证命令：`python3 -m py_compile src/sapd_wiki/api_server.py`、`node --check` 覆盖 `app.js` / `dataClient.js` / `viewModels.js` / 新增审计脚本、`node scripts/audit_global_search_index_contract.mjs --url http://127.0.0.1:5173`、`node scripts/audit_capability_viewmodel_contract.mjs --url http://127.0.0.1:5173`、`node scripts/audit_frontend_lazy_load_contract.mjs`、`node scripts/audit_search_state_isolation.mjs`、`node scripts/audit_user_annotation_contract.mjs`、`node scripts/frontend_content_smoke_check.mjs --skip-api`、`node scripts/frontend_smoke_check.mjs --page capability-mapping --route /capability-mapping --url http://127.0.0.1:5173`、`node scripts/frontend_smoke_check.mjs --page environment-mapping --route /environment-mapping --url http://127.0.0.1:5173`、`python3 scripts/audit_json_package_boundary.py`、`python3 scripts/check_github_data_boundary.py`、`python3 scripts/data_package_summary.py --package all`、`python3 scripts/dev_server_guard.py --status`、`git diff --check`。含本机 fetch 的脚本需在允许访问 5173 的执行上下文运行，结果通过。
 
 - 2026-06-30 `OI-149 P2/P3 实施`：完成能力页 projection 回退收口与后端包缓存两项收口。`app.js` 去掉能力焦点/非焦点向 `capabilityWorkbench` 的兜底强制加载入口，`api_server.py` 增加读取缓存（按 path/mtime/size key）以收紧后端重复 parse；同时保持 fallback 记录与兼容 fallback 的行为未替换。
   - 验证命令：`node scripts/audit_frontend_lazy_load_contract.mjs`、`node scripts/audit_capability_viewmodel_contract.mjs --url http://127.0.0.1:5173`、`node scripts/audit_user_annotation_contract.mjs`、`node scripts/frontend_content_smoke_check.mjs --skip-api`、`python3 scripts/audit_json_package_boundary.py`、`python3 scripts/check_github_data_boundary.py`、`python3 scripts/data_package_summary.py --package all`、`python3 scripts/dev_server_guard.py --status`、`git diff --check`。其中 `audit_capability_viewmodel_contract` 在受限环境需用可联网执行上下文运行，结果 `pass`。
@@ -62,7 +65,7 @@
 - `OI-151`：信息化环境汇聚图节点缺少稳定业务锚点导致定位不到，状态 `已修复 / 待页面验收`；已给服务、模块、措施和安全系统节点补稳定 `data-annotation-target-ref`，真实点击回归待用户批准。
 - `OI-150`：全局批注值定位缺少运行时索引导致定位慢，状态 `已修复 / 待真实浏览器验收`；已新增运行时 anchor / note 索引并让定位索引优先，真实点击耗时回归待用户批准。
 - `OI-146`：信息化环境安全技术汇聚图安全系统列未带出，状态 `已修复 / 待页面验收`；用户抽查 `API网关层` 时安全系统列显示 0，已由 `OI-147` 收敛为目标节点自身 `systems` 关系，不再依赖服务级继承。
-- `OI-149`：前端 JSON 加载体量与首屏性能治理，状态 `治理设计完成 / 待 P0 实施`；治理设计入口为 `docs/06-implementation/oi-149-json-loading-governance-design.md`，下一步先切断 health / global search / fallback 这些绕过懒加载的入口。
+- `OI-149`：前端 JSON 加载体量与首屏性能治理，状态 `进行中 / P1-P3 已实施，P4 候选拆包待确认`；P0 health 止血、P1 `/api/v1/search-index`、P2 能力页 projection 收口、P3 后端包缓存已完成并通过审计；下一步若继续推进，只能先生成 P4 正式 JSON 分层候选包 / diff / 审计报告，再由用户确认是否 apply。
 - `OI-148`：全局批注新页面接入与路由切换遮挡，状态 `已修复 / 待页面验收`；本轮已补环境页值级批注锚点、当前环境对象批注目标和抽屉 closing 状态 pointer-events。
 - `OI-147`：信息化环境安全技术汇聚图措施误继承安全系统，状态 `已修复 / 待页面验收`；前端已防止模块 / 措施继承服务级系统，正式运行包已补齐 `871` 个目标键下的 `700` 个目标级安全系统关系。
 - `OI-139`：`作用域-安全技术服务-安全技术模块映射` 重导入与环境映射事实源修正，状态 `进行中`；当前完整重复服务-模块/措施-系统关系已清零，重点转为继续人工核对跨表目录一致性缺口、模块/系统不匹配和 UI 字段对齐。

@@ -37,6 +37,7 @@
     capabilityWorkspaceProjection: "/api/v1/capabilities/workspace-projection",
     capabilityWorkspaceView: "/api/v1/capabilities/workspace-view",
     capabilityWorkspaceInitial: "/api/v1/capabilities/workspace-initial",
+    searchIndex: "/api/v1/search-index",
     health: "/api/v1/health",
     userFavorites: "/api/v1/user/favorites",
     userNotes: "/api/v1/user/notes",
@@ -829,6 +830,25 @@
 
     async getRuntimeHealth() {
       return createEnvelope(await fetchRuntimeHealth());
+    },
+
+    async getSearchIndex(params = {}) {
+      const query = text(params.q || params.query || "").trim();
+      const limit = Number.isFinite(Number(params.limit)) ? Math.max(1, Math.min(Number(params.limit), 120)) : 80;
+      const queryParams = new URLSearchParams();
+      if (query) queryParams.set("q", query);
+      queryParams.set("limit", String(limit));
+      const payload = await fetchApiData(`${API_PATHS.searchIndex}?${queryParams.toString()}`);
+      return createEnvelope(
+        payload || {
+          generated_at: null,
+          data_state: "api_unavailable",
+          package_type: "runtime-search-index",
+          query,
+          results: [],
+          stats: { items: 0, matched: 0, returned: 0, limit },
+        },
+      );
     },
 
     async getUserFavorites() {

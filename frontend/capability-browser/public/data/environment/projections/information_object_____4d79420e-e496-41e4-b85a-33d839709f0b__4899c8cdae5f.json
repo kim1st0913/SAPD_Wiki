@@ -1,0 +1,333 @@
+{
+  "packageType": "oi-149-p4-environment-object-projection",
+  "dataState": "ready",
+  "navOrdinal": 16,
+  "projectionKey": "information_object_____4d79420e-e496-41e4-b85a-33d839709f0b__4899c8cdae5f",
+  "projectionPath": "environment/projections/information_object_____4d79420e-e496-41e4-b85a-33d839709f0b__4899c8cdae5f.json",
+  "navigationPath": [
+    {
+      "depth": 0,
+      "id": "bae3aa1e-f7e6-43fd-9b13-362edeb373a4",
+      "type": "information_environment",
+      "code": "",
+      "title": "云数据中心"
+    },
+    {
+      "depth": 1,
+      "id": "2c38259d-483d-4e1d-a9f2-758b8f6d83f2",
+      "type": "environment_segment",
+      "code": "",
+      "title": "大数据平台/数据中台"
+    },
+    {
+      "depth": 2,
+      "id": "4d79420e-e496-41e4-b85a-33d839709f0b",
+      "type": "information_object",
+      "code": "",
+      "title": "数据共享层"
+    }
+  ],
+  "selectedNavigation": {
+    "id": "4d79420e-e496-41e4-b85a-33d839709f0b",
+    "type": "information_object",
+    "code": "",
+    "title": "数据共享层",
+    "navOrdinal": 16,
+    "projectionKey": "information_object_____4d79420e-e496-41e4-b85a-33d839709f0b__4899c8cdae5f",
+    "projectionPath": "environment/projections/information_object_____4d79420e-e496-41e4-b85a-33d839709f0b__4899c8cdae5f.json"
+  },
+  "ancestorNavigation": [
+    {
+      "id": "bae3aa1e-f7e6-43fd-9b13-362edeb373a4",
+      "type": "information_environment",
+      "code": "",
+      "title": "云数据中心"
+    },
+    {
+      "id": "2c38259d-483d-4e1d-a9f2-758b8f6d83f2",
+      "type": "environment_segment",
+      "code": "",
+      "title": "大数据平台/数据中台"
+    }
+  ],
+  "objectContextIds": [
+    "shadow:information_object_context:705a42ba90bb50a0"
+  ],
+  "contextKeys": [
+    "云数据中心||大数据平台/数据中台||数据共享层"
+  ],
+  "objects": {
+    "information_object": {
+      "shadow:information_object_context:705a42ba90bb50a0": {
+        "id": "shadow:information_object_context:705a42ba90bb50a0",
+        "type": "information_object",
+        "code": "",
+        "title": "数据共享层",
+        "name": "数据共享层",
+        "category": "",
+        "status": "",
+        "contextKey": "云数据中心||大数据平台/数据中台||数据共享层"
+      }
+    },
+    "scope_type": {
+      "shadow:scope_type:3c7c53a6f343e04f": {
+        "id": "shadow:scope_type:3c7c53a6f343e04f",
+        "type": "scope_type",
+        "code": "I-DI",
+        "title": "数据与信息",
+        "name": "数据与信息",
+        "category": "",
+        "status": "",
+        "text": "I-DI 数据与信息"
+      }
+    },
+    "security_technical_service": {
+      "shadow:security_technical_service:b0175dc0e8dd80b9": {
+        "id": "shadow:security_technical_service:b0175dc0e8dd80b9",
+        "type": "security_technical_service",
+        "code": "I-DI&T-PD.PP-03",
+        "title": "数据隔离",
+        "name": "数据隔离",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:4dee9fb02c561ba7": {
+        "id": "shadow:security_technical_service:4dee9fb02c561ba7",
+        "type": "security_technical_service",
+        "code": "I-DI&T-AS.IA-03",
+        "title": "数据资源授权",
+        "name": "数据资源授权",
+        "category": "",
+        "status": ""
+      }
+    },
+    "security_technology_module": {
+      "shadow:security_technology_module:9a56f4e1b9c450c8": {
+        "id": "shadow:security_technology_module:9a56f4e1b9c450c8",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "隐私计算平台",
+        "name": "隐私计算平台",
+        "category": "",
+        "status": ""
+      }
+    },
+    "security_system": {
+      "shadow:security_system:2fc36b48de06ff77": {
+        "id": "shadow:security_system:2fc36b48de06ff77",
+        "type": "security_system",
+        "code": "",
+        "title": "数据安全共享流通",
+        "name": "数据安全共享流通",
+        "category": "",
+        "status": ""
+      }
+    }
+  },
+  "objectScopeTree": [
+    {
+      "id": "shadow:information_object_context:705a42ba90bb50a0",
+      "type": "information_object",
+      "title": "数据共享层",
+      "contextKey": "云数据中心||大数据平台/数据中台||数据共享层",
+      "segments": [
+        {
+          "id": "shadow:environment_segment:84df534045c32937",
+          "type": "environment_segment",
+          "title": "大数据平台/数据中台"
+        }
+      ],
+      "scope_mappings": [
+        {
+          "scope": {
+            "id": "shadow:scope_type:3c7c53a6f343e04f",
+            "type": "scope_type",
+            "code": "I-DI",
+            "title": "数据与信息",
+            "text": "I-DI 数据与信息"
+          },
+          "services": []
+        },
+        {
+          "scope": {
+            "id": "shadow:scope_type:0abd7e59d88c88df",
+            "type": "scope_type",
+            "code": "",
+            "title": "I-DI 数据与信息",
+            "text": "I-DI 数据与信息"
+          },
+          "services": [
+            {
+              "id": "shadow:security_technical_service:4dee9fb02c561ba7",
+              "type": "security_technical_service",
+              "code": "I-DI&T-AS.IA-03",
+              "title": "数据资源授权",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:9a56f4e1b9c450c8",
+                  "type": "security_technology_module",
+                  "title": "隐私计算平台",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:d63b5f079751a0f8",
+                      "type": "security_system",
+                      "title": "数据安全共享流通"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:2fc36b48de06ff77",
+                  "type": "security_system",
+                  "title": "数据安全共享流通"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:b0175dc0e8dd80b9",
+              "type": "security_technical_service",
+              "code": "I-DI&T-PD.PP-03",
+              "title": "数据隔离",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:9a56f4e1b9c450c8",
+                  "type": "security_technology_module",
+                  "title": "隐私计算平台",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:d63b5f079751a0f8",
+                      "type": "security_system",
+                      "title": "数据安全共享流通"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:2fc36b48de06ff77",
+                  "type": "security_system",
+                  "title": "数据安全共享流通"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "scope_mapping_count": 2,
+      "service_count": 2,
+      "module_count": 1,
+      "measure_count": 0,
+      "security_system_count": 2
+    }
+  ],
+  "relations": [
+    {
+      "id": "reimport:relation:b71d5701e536b83b",
+      "type": "applies_to_scope",
+      "sourceId": "shadow:information_object_context:705a42ba90bb50a0",
+      "sourceType": "information_object",
+      "targetId": "shadow:scope_type:3c7c53a6f343e04f",
+      "targetType": "scope_type",
+      "label": "applies_to_scope",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||大数据平台/数据中台||数据共享层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:aa2dc8faec72d958",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:b0175dc0e8dd80b9",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:705a42ba90bb50a0",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||大数据平台/数据中台||数据共享层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:4c66adf438f7a73b",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:4dee9fb02c561ba7",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:705a42ba90bb50a0",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||大数据平台/数据中台||数据共享层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:170076a7e6808fc4",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:b0175dc0e8dd80b9",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:9a56f4e1b9c450c8",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||大数据平台/数据中台||数据共享层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:da8fe5b7047bba7b",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:4dee9fb02c561ba7",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:9a56f4e1b9c450c8",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||大数据平台/数据中台||数据共享层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:bf0706867fcc5b6e",
+      "type": "part_of_system",
+      "sourceId": "shadow:security_technology_module:9a56f4e1b9c450c8",
+      "sourceType": "security_technology_module",
+      "targetId": "shadow:security_system:2fc36b48de06ff77",
+      "targetType": "security_system",
+      "label": "part_of_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||大数据平台/数据中台||数据共享层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:cda9c49a50ec2fd0",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||大数据平台/数据中台||数据共享层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:696ecdeab6df979e",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||大数据平台/数据中台||数据共享层",
+      "evidenceRefCount": 0
+    }
+  ],
+  "relationCount": 8
+}

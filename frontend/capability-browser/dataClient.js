@@ -14,6 +14,7 @@
     dataSecurityDesignGuide: "./public/data/guides/data-security-design.json",
     lightPlanningGuide: "./public/data/guides/light-planning.json",
     standards: "./public/data/standards-index.json",
+    oi149SplitManifest: "./public/data/oi149-split-manifest.json",
   };
 
   const API_PACKAGE_PATHS = {
@@ -41,6 +42,7 @@
     health: "/api/v1/health",
     userFavorites: "/api/v1/user/favorites",
     userNotes: "/api/v1/user/notes",
+    userNotesExport: "/api/v1/user/notes/export",
   };
 
   const FALLBACKS = {
@@ -109,6 +111,7 @@
     dataSecurityDesignGuide: { generated_at: null, data_state: "empty", guide_id: "data-security-design", slides: {} },
     lightPlanningGuide: { generated_at: null, data_state: "empty", guide_id: "light-planning", slides: {} },
     standards: { generated_at: null, data_state: "empty", stats: {}, frameworks: [] },
+    oi149SplitManifest: null,
   };
 
   const cache = new Map();
@@ -460,6 +463,193 @@
       cache.set(cacheKey, fallback);
       return fallback;
     }
+  }
+
+  function publicDataPath(relativePath) {
+    const clean = text(relativePath).replace(/^\.?\/*/, "");
+    return clean ? `./public/data/${clean}` : "";
+  }
+
+  function isReadySplitManifest(manifest) {
+    return Boolean(manifest && typeof manifest === "object" && manifest.__data_state !== "missing_file" && manifest.contract === "oi149-p4-split-v1");
+  }
+
+  async function getOi149SplitManifest() {
+    const manifest = await fetchPackage("oi149SplitManifest");
+    return isReadySplitManifest(manifest) ? manifest : null;
+  }
+
+  async function fetchOi149SplitJson(relativePath, fallback = null) {
+    const path = publicDataPath(relativePath);
+    if (!path) return fallback;
+    const data = await fetchJsonPath(path, fallback);
+    return data && typeof data === "object" ? data : fallback;
+  }
+
+  function capabilityWorkbenchFromSplitIndex(index, manifest) {
+    if (!index || typeof index !== "object") return null;
+    const tree = list(index.tree);
+    if (!tree.length) return null;
+    return {
+      meta: {
+        version: "v1",
+        viewModelVersion: "capability-workbench-initial-split-1.0",
+        generated_at: manifest?.generatedAt || null,
+        sourcePackages: ["capability/index.json", "oi149-split-manifest.json"],
+        stats: index.stats || {},
+        dataSource: "oi149-split-index",
+      },
+      page: {
+        route: "/capability-mapping",
+        pageType: "capability-mapping-workbench",
+        title: "安全能力映射",
+      },
+      navigator: {
+        defaultSelectedFocusId: index.defaultSelectedFocusId || null,
+        tree,
+      },
+      overview: {
+        defaultObjectId: index.defaultSelectedFocusId || null,
+        object_type: "capability_focus",
+        stats: index.stats || {},
+      },
+      relationshipGroups: [],
+      objects: {},
+      relations: [],
+      evidenceRefs: [],
+      compatibility: {
+        mode: "initial_projection",
+        sourcePackages: ["capability/index.json", "oi149-split-manifest.json"],
+        splitContract: manifest?.contract || "oi149-p4-split-v1",
+        warnings: ["当前使用 OI-149 P4 split index 作为能力页首屏导航；对象详情继续按需加载 workspace-view。"],
+      },
+    };
+  }
+
+  async function getCapabilityWorkspaceInitialFromSplit() {
+    const manifest = await getOi149SplitManifest();
+    const indexPath = manifest?.domains?.capability?.indexPath || "";
+    if (!indexPath) return null;
+    const index = await fetchOi149SplitJson(indexPath, null);
+    return capabilityWorkbenchFromSplitIndex(index, manifest);
+  }
+
+  function environmentNavigatorFromSplit(navigator, manifest) {
+    if (!navigator || typeof navigator !== "object") return null;
+    const tree = list(navigator.tree);
+    if (!tree.length) return null;
+    return {
+      generated_at: manifest?.generatedAt || null,
+      dataSource: "oi149-split-environment-navigator",
+      splitContract: manifest?.contract || "oi149-p4-split-v1",
+      stats: navigator.stats || {},
+      defaultSelectedObjectId: navigator.defaultSelectedObjectId || "",
+      environments: tree,
+      projections: list(navigator.projections),
+      compatibility: {
+        mode: "split_navigator",
+        sourcePackages: ["environment/navigator.json", "oi149-split-manifest.json"],
+        warnings: ["当前使用 OI-149 P4 split navigator 作为信息化环境首屏导航；对象映射详情继续读取 environment-workbench。"],
+      },
+    };
+  }
+
+  async function getEnvironmentNavigatorFromSplit() {
+    const manifest = await getOi149SplitManifest();
+    const navigatorPath = manifest?.domains?.environment?.navigatorPath || "";
+    if (!navigatorPath) return null;
+    const navigator = await fetchOi149SplitJson(navigatorPath, null);
+    return environmentNavigatorFromSplit(navigator, manifest);
+  }
+
+  function environmentProjectionRequest(params = {}) {
+    const rawOrdinal = params.navOrdinal ?? params.nav_ordinal ?? "";
+    const navOrdinal = rawOrdinal === "" || rawOrdinal == null ? null : Number(rawOrdinal);
+    return {
+      projectionKey: text(params.projectionKey || params.projection_key).trim(),
+      projectionPath: text(params.projectionPath || params.projection_path || params.path).trim(),
+      id: text(params.id || params.objectId || params.object_id || params.environmentId || params.environment_id || params.segmentId || params.segment_id).trim(),
+      type: text(params.type || params.objectType || params.object_type).trim(),
+      navOrdinal: Number.isFinite(navOrdinal) ? navOrdinal : null,
+    };
+  }
+
+  function environmentProjectionRowMatches(row, request) {
+    if (!row || !request) return false;
+    if (request.projectionKey && row.projectionKey === request.projectionKey) return true;
+    if (request.projectionPath && row.path === request.projectionPath) return true;
+    if (request.navOrdinal != null && row.navOrdinal === request.navOrdinal) return true;
+    if (!request.id) return false;
+    const typeMatches = !request.type || row.type === request.type;
+    if (row.id === request.id && typeMatches) return true;
+    return list(row.objectContextIds).includes(request.id);
+  }
+
+  function findEnvironmentProjectionRow(navigator, params = {}) {
+    const rows = list(navigator?.projections);
+    if (!rows.length) return null;
+    const request = environmentProjectionRequest(params);
+    return rows.find((row) => environmentProjectionRowMatches(row, request)) || rows[0] || null;
+  }
+
+  function environmentProjectionFromSplit(projection, row, manifest) {
+    if (!projection || typeof projection !== "object" || projection.dataState !== "ready") return null;
+    return {
+      ...projection,
+      generated_at: manifest?.generatedAt || null,
+      dataSource: "oi149-split-environment-projection",
+      splitContract: manifest?.contract || "oi149-p4-split-v1",
+      selectedNavigation:
+        projection.selectedNavigation ||
+        {
+          id: row?.id || "",
+          type: row?.type || "",
+          code: row?.code || "",
+          title: row?.title || "",
+          navOrdinal: row?.navOrdinal ?? null,
+          projectionKey: row?.projectionKey || "",
+          projectionPath: row?.path || "",
+        },
+      relationCount: Number.isFinite(Number(projection.relationCount)) ? Number(projection.relationCount) : list(projection.relations).length,
+      compatibility: {
+        ...(projection.compatibility || {}),
+        mode: "split_projection",
+        sourcePackages: [row?.path || projection.projectionPath || "", "environment/navigator.json", "oi149-split-manifest.json"].filter(Boolean),
+        warnings: ["当前使用 OI-149 P4 split projection 作为信息化环境对象详情；缺失时回退 environment-workbench。"],
+      },
+    };
+  }
+
+  async function getEnvironmentWorkspaceProjectionFromSplit(params = {}) {
+    const manifest = await getOi149SplitManifest();
+    const navigatorPath = manifest?.domains?.environment?.navigatorPath || "";
+    if (!navigatorPath) return null;
+    const navigator = await fetchOi149SplitJson(navigatorPath, null);
+    const row = findEnvironmentProjectionRow(navigator, params);
+    if (!row?.path) return null;
+    const projection = await fetchOi149SplitJson(row.path, null);
+    return environmentProjectionFromSplit(projection, row, manifest);
+  }
+
+  function environmentProjectionFromWorkbenchFallback(workbench, params = {}) {
+    const request = environmentProjectionRequest(params);
+    return {
+      generated_at: workbench?.meta?.generated_at || null,
+      dataSource: "environment-workbench-fallback",
+      splitContract: null,
+      requested: request,
+      stats: workbench?.meta?.stats || {},
+      selectedNavigation: null,
+      objects: workbench?.objects || {},
+      objectScopeTree: list(workbench?.environment_scope_tree || workbench?.environmentScopeTree),
+      relations: list(workbench?.relations),
+      relationCount: list(workbench?.relations).length,
+      compatibility: {
+        mode: "full_workbench_fallback",
+        sourcePackages: ["environment-workbench.json"],
+        warnings: ["OI-149 P4 split projection 不可用，已回退到完整 environment-workbench。"],
+      },
+    };
   }
 
   function frameworkIndexById(standards, frameworkId) {
@@ -897,6 +1087,33 @@
       });
     },
 
+    async exportUserNotes(options = {}) {
+      const query = new URLSearchParams();
+      if (options?.download !== false) query.set("download", "1");
+      const path = `${API_PATHS.userNotesExport}${query.toString() ? `?${query.toString()}` : ""}`;
+      const url = apiUrl(path);
+      if (!url) return { ok: false, data_state: "api_unavailable", error: "当前运行模式未提供批注导出服务" };
+      try {
+        const response = await fetch(url, { cache: "no-store", headers: { Accept: "text/markdown" } });
+        if (!response.ok) return { ok: false, data_state: "api_error", error: `HTTP ${response.status}` };
+        const blob = await response.blob();
+        const contentDisposition = response.headers.get("Content-Disposition") || "";
+        const match = /filename\\*=UTF-8''([^;]+)|filename=\"([^\"]+)\"/i.exec(contentDisposition || "");
+        const encodedName = match ? match[1] || match[2] || "" : "";
+        let filename = "user-notes-export.md";
+        if (encodedName) {
+          try {
+            filename = decodeURIComponent(encodedName);
+          } catch {
+            filename = encodedName;
+          }
+        }
+        return { ok: true, data_state: "ready", blob, filename, size: blob?.size || 0 };
+      } catch (error) {
+        return { ok: false, data_state: "api_unavailable", error: error?.message || "用户批注导出失败" };
+      }
+    },
+
     async createUserNote(payload) {
       const result = await fetchUserApi(API_PATHS.userNotes, {
         method: "POST",
@@ -977,6 +1194,8 @@
     },
 
     async getCapabilityWorkspaceInitial() {
+      const splitInitial = await getCapabilityWorkspaceInitialFromSplit();
+      if (splitInitial) return createEnvelope(splitInitial);
       const initial = await fetchApiData(API_PATHS.capabilityWorkspaceInitial);
       if (initial) return createEnvelope(initial);
       const workbench = await fetchPackage("capabilityWorkbench");
@@ -1054,12 +1273,29 @@
     },
 
     async getEnvironmentTree() {
+      const splitNavigator = await getEnvironmentNavigatorFromSplit();
+      if (splitNavigator) return createEnvelope(splitNavigator);
       const workbench = await fetchPackage("environmentWorkbench");
       return createEnvelope({
         generated_at: workbench?.meta?.generated_at || null,
+        dataSource: "environment-workbench",
         stats: workbench?.meta?.stats || {},
         environments: list(workbench?.navigator?.tree),
       });
+    },
+
+    async getEnvironmentNavigator() {
+      const splitNavigator = await getEnvironmentNavigatorFromSplit();
+      if (splitNavigator) return createEnvelope(splitNavigator);
+      return this.getEnvironmentTree();
+    },
+
+    async getEnvironmentWorkspaceProjection(params = {}) {
+      const splitProjection = await getEnvironmentWorkspaceProjectionFromSplit(params);
+      if (splitProjection) return createEnvelope(splitProjection);
+      const workbench = await fetchPackage("environmentWorkbench");
+      const fallback = workbench?.__data_state === "missing_file" ? createLegacyEnvironmentWorkbenchFallback() : workbench;
+      return createEnvelope(environmentProjectionFromWorkbenchFallback(fallback, params), ["environment split projection 不可用，已回退到完整 environment-workbench。"]);
     },
 
     async getEnvironmentWorkbench() {

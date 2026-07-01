@@ -16,7 +16,7 @@ Product UI for a local security architecture relationship workspace.
 - Light, calm, enterprise workspace.
 - Use an Apple shell direction on top of the restrained Morandi palette: bright tinted neutrals, macOS-like sidebar surfaces, clear iOS-blue selected states, and low-noise panels.
 - Apple direction handoff is tracked in `docs/06-implementation/apple-color-direction-handoff-2026-05-29.md`; current formal frontend colors should follow that token path rather than the older warm Morandi baseline alone.
-- The canonical color demo is `frontend/capability-browser/apple-morandi-color-demo.html` and can be viewed at `http://127.0.0.1:5173/apple-morandi-color-demo.html`. Future frontend color changes must check this demo first and keep shell neutrals, selected states, tabs, status badges, relationship chips, table row colors, lifecycle tones, standard-framework colors, and graph semantic colors aligned with it.
+- The canonical demo workspace is `frontend/capability-browser/environment-object-apple-shell-demo.html` and can be viewed at `http://127.0.0.1:5173/environment-object-apple-shell-demo.html#color-system`. Future frontend color changes must check the `颜色系统` tab first and keep shell neutrals, selected states, tabs, status badges, relationship chips, table row colors, lifecycle tones, standard-framework colors, and graph semantic colors aligned with it. Future new page demos should be added to this workspace instead of creating a new standalone canonical demo route.
 - Keep chroma low. Avoid pure blue, bright green, saturated orange, purple-blue gradients, and high-contrast candy colors in normal UI.
 - Keep color semantic: selected, pending review, missing, warning, normal.
 - Avoid one-note purple or blue gradients.

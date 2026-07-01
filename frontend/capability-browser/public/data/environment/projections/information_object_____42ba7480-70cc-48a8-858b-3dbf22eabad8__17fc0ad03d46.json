@@ -1,0 +1,1898 @@
+{
+  "packageType": "oi-149-p4-environment-object-projection",
+  "dataState": "ready",
+  "navOrdinal": 14,
+  "projectionKey": "information_object_____42ba7480-70cc-48a8-858b-3dbf22eabad8__17fc0ad03d46",
+  "projectionPath": "environment/projections/information_object_____42ba7480-70cc-48a8-858b-3dbf22eabad8__17fc0ad03d46.json",
+  "navigationPath": [
+    {
+      "depth": 0,
+      "id": "bae3aa1e-f7e6-43fd-9b13-362edeb373a4",
+      "type": "information_environment",
+      "code": "",
+      "title": "云数据中心"
+    },
+    {
+      "depth": 1,
+      "id": "74004db1-d891-48f4-b655-6fa5e7db4de8",
+      "type": "environment_segment",
+      "code": "",
+      "title": "业务应用"
+    },
+    {
+      "depth": 2,
+      "id": "42ba7480-70cc-48a8-858b-3dbf22eabad8",
+      "type": "information_object",
+      "code": "",
+      "title": "应用网关层"
+    }
+  ],
+  "selectedNavigation": {
+    "id": "42ba7480-70cc-48a8-858b-3dbf22eabad8",
+    "type": "information_object",
+    "code": "",
+    "title": "应用网关层",
+    "navOrdinal": 14,
+    "projectionKey": "information_object_____42ba7480-70cc-48a8-858b-3dbf22eabad8__17fc0ad03d46",
+    "projectionPath": "environment/projections/information_object_____42ba7480-70cc-48a8-858b-3dbf22eabad8__17fc0ad03d46.json"
+  },
+  "ancestorNavigation": [
+    {
+      "id": "bae3aa1e-f7e6-43fd-9b13-362edeb373a4",
+      "type": "information_environment",
+      "code": "",
+      "title": "云数据中心"
+    },
+    {
+      "id": "74004db1-d891-48f4-b655-6fa5e7db4de8",
+      "type": "environment_segment",
+      "code": "",
+      "title": "业务应用"
+    }
+  ],
+  "objectContextIds": [
+    "shadow:information_object_context:9d4c538e5835d52c"
+  ],
+  "contextKeys": [
+    "云数据中心||业务应用||应用网关层"
+  ],
+  "objects": {
+    "information_object": {
+      "shadow:information_object_context:9d4c538e5835d52c": {
+        "id": "shadow:information_object_context:9d4c538e5835d52c",
+        "type": "information_object",
+        "code": "",
+        "title": "应用网关层",
+        "name": "应用网关层",
+        "category": "",
+        "status": "",
+        "contextKey": "云数据中心||业务应用||应用网关层"
+      }
+    },
+    "scope_type": {
+      "shadow:scope_type:8c823ba8ecddbfea": {
+        "id": "shadow:scope_type:8c823ba8ecddbfea",
+        "type": "scope_type",
+        "code": "I-AP",
+        "title": "软件应用",
+        "name": "软件应用",
+        "category": "",
+        "status": "",
+        "text": "I-AP 软件应用"
+      },
+      "shadow:scope_type:c7ebc38ae1f4adc8": {
+        "id": "shadow:scope_type:c7ebc38ae1f4adc8",
+        "type": "scope_type",
+        "code": "I-NT",
+        "title": "网络",
+        "name": "网络",
+        "category": "",
+        "status": "",
+        "text": "I-NT 网络"
+      },
+      "shadow:scope_type:998405d9eaef340e": {
+        "id": "shadow:scope_type:998405d9eaef340e",
+        "type": "scope_type",
+        "code": "I-US",
+        "title": "用户",
+        "name": "用户",
+        "category": "",
+        "status": "",
+        "text": "I-US 用户"
+      },
+      "shadow:scope_type:4569e1d810feca0d": {
+        "id": "shadow:scope_type:4569e1d810feca0d",
+        "type": "scope_type",
+        "code": "I-OS",
+        "title": "操作系统",
+        "name": "操作系统",
+        "category": "",
+        "status": "",
+        "text": "I-OS 操作系统"
+      }
+    },
+    "security_technical_service": {
+      "shadow:security_technical_service:14364f10e09e223e": {
+        "id": "shadow:security_technical_service:14364f10e09e223e",
+        "type": "security_technical_service",
+        "code": "I-NT&T-PD.PP-01",
+        "title": "网络安全接入",
+        "name": "网络安全接入",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:fb9cd6e50fedc799": {
+        "id": "shadow:security_technical_service:fb9cd6e50fedc799",
+        "type": "security_technical_service",
+        "code": "I-NT&T-AS.CG-01",
+        "title": "网络传输通道加解密",
+        "name": "网络传输通道加解密",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:bb407fd6db15b2c4": {
+        "id": "shadow:security_technical_service:bb407fd6db15b2c4",
+        "type": "security_technical_service",
+        "code": "I-NT&T-AS.IA-03",
+        "title": "网络资源授权",
+        "name": "网络资源授权",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:bce0ee1c884e482d": {
+        "id": "shadow:security_technical_service:bce0ee1c884e482d",
+        "type": "security_technical_service",
+        "code": "I-NT&T-PD.AC-01",
+        "title": "网络访问控制",
+        "name": "网络访问控制",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:99997815cb459916": {
+        "id": "shadow:security_technical_service:99997815cb459916",
+        "type": "security_technical_service",
+        "code": "I-AP&T-PD.PP-01",
+        "title": "应用安全访问",
+        "name": "应用安全访问",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:e888e485ab86fa13": {
+        "id": "shadow:security_technical_service:e888e485ab86fa13",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.IA-03",
+        "title": "应用资源授权",
+        "name": "应用资源授权",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:dade085fe967cf4b": {
+        "id": "shadow:security_technical_service:dade085fe967cf4b",
+        "type": "security_technical_service",
+        "code": "I-AP&T-PD.AC-01",
+        "title": "应用访问控制",
+        "name": "应用访问控制",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:a76e89c99ba80af2": {
+        "id": "shadow:security_technical_service:a76e89c99ba80af2",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.LA-01",
+        "title": "应用日志记录",
+        "name": "应用日志记录",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:80600d37b9a6e0d2": {
+        "id": "shadow:security_technical_service:80600d37b9a6e0d2",
+        "type": "security_technical_service",
+        "code": "I-US&T-AS.IA-01",
+        "title": "用户身份管理",
+        "name": "用户身份管理",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:cc3e857dac7ca788": {
+        "id": "shadow:security_technical_service:cc3e857dac7ca788",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.IA-01",
+        "title": "应用身份管理",
+        "name": "应用身份管理",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:812f64e6ca9af9cc": {
+        "id": "shadow:security_technical_service:812f64e6ca9af9cc",
+        "type": "security_technical_service",
+        "code": "I-US&T-AS.IA-04",
+        "title": "用户凭证管理",
+        "name": "用户凭证管理",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:5089669036f8944a": {
+        "id": "shadow:security_technical_service:5089669036f8944a",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.IA-04",
+        "title": "应用凭证管理",
+        "name": "应用凭证管理",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:41f4afc92863cfbf": {
+        "id": "shadow:security_technical_service:41f4afc92863cfbf",
+        "type": "security_technical_service",
+        "code": "I-US&T-AS.IA-02",
+        "title": "用户认证",
+        "name": "用户认证",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:852c1f0568a72d31": {
+        "id": "shadow:security_technical_service:852c1f0568a72d31",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.IA-02",
+        "title": "应用身份认证",
+        "name": "应用身份认证",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:f60aff1b2b8a70fb": {
+        "id": "shadow:security_technical_service:f60aff1b2b8a70fb",
+        "type": "security_technical_service",
+        "code": "I-US&T-PD.AC-02",
+        "title": "用户信誉评估",
+        "name": "用户信誉评估",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:37c9046eb19f6c9d": {
+        "id": "shadow:security_technical_service:37c9046eb19f6c9d",
+        "type": "security_technical_service",
+        "code": "I-AP&T-PD.AC-02",
+        "title": "应用软件信誉评估",
+        "name": "应用软件信誉评估",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:95a354571e7febf0": {
+        "id": "shadow:security_technical_service:95a354571e7febf0",
+        "type": "security_technical_service",
+        "code": "I-OS&T-PD.AC-02",
+        "title": "主机/终端信誉评估",
+        "name": "主机/终端信誉评估",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:2fef3e132b1b79a3": {
+        "id": "shadow:security_technical_service:2fef3e132b1b79a3",
+        "type": "security_technical_service",
+        "code": "I-US&T-AS.LA-03",
+        "title": "用户行为审计",
+        "name": "用户行为审计",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:0c27a2cc57ac56d8": {
+        "id": "shadow:security_technical_service:0c27a2cc57ac56d8",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.LA-03",
+        "title": "应用操作审计",
+        "name": "应用操作审计",
+        "category": "",
+        "status": ""
+      }
+    },
+    "security_technology_module": {
+      "shadow:security_technology_module:d381c9c09195d8cf": {
+        "id": "shadow:security_technology_module:d381c9c09195d8cf",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "零信任访问代理",
+        "name": "零信任访问代理",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technology_module:41d3fa8e4983d8f8": {
+        "id": "shadow:security_technology_module:41d3fa8e4983d8f8",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "零信任访问控制台",
+        "name": "零信任访问控制台",
+        "category": "",
+        "status": ""
+      }
+    },
+    "security_system": {
+      "shadow:security_system:e3ddf8d0ec7e0f1e": {
+        "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+        "type": "security_system",
+        "code": "",
+        "title": "零信任网络访问控制",
+        "name": "零信任网络访问控制",
+        "category": "",
+        "status": ""
+      }
+    }
+  },
+  "objectScopeTree": [
+    {
+      "id": "shadow:information_object_context:9d4c538e5835d52c",
+      "type": "information_object",
+      "title": "应用网关层",
+      "contextKey": "云数据中心||业务应用||应用网关层",
+      "segments": [
+        {
+          "id": "shadow:environment_segment:52296e4c24c5b9d2",
+          "type": "environment_segment",
+          "title": "业务应用"
+        }
+      ],
+      "scope_mappings": [
+        {
+          "scope": {
+            "id": "shadow:scope_type:8c823ba8ecddbfea",
+            "type": "scope_type",
+            "code": "I-AP",
+            "title": "软件应用",
+            "text": "I-AP 软件应用"
+          },
+          "services": []
+        },
+        {
+          "scope": {
+            "id": "shadow:scope_type:c7ebc38ae1f4adc8",
+            "type": "scope_type",
+            "code": "I-NT",
+            "title": "网络",
+            "text": "I-NT 网络"
+          },
+          "services": []
+        },
+        {
+          "scope": {
+            "id": "shadow:scope_type:998405d9eaef340e",
+            "type": "scope_type",
+            "code": "I-US",
+            "title": "用户",
+            "text": "I-US 用户"
+          },
+          "services": []
+        },
+        {
+          "scope": {
+            "id": "shadow:scope_type:4569e1d810feca0d",
+            "type": "scope_type",
+            "code": "I-OS",
+            "title": "操作系统",
+            "text": "I-OS 操作系统"
+          },
+          "services": []
+        },
+        {
+          "scope": {
+            "id": "shadow:scope_type:5d71c4626fa95954",
+            "type": "scope_type",
+            "code": "",
+            "title": "I-AP 软件应用 I-NT 网络 I-US 用户",
+            "text": "I-AP 软件应用 I-NT 网络 I-US 用户"
+          },
+          "services": [
+            {
+              "id": "shadow:security_technical_service:cc3e857dac7ca788",
+              "type": "security_technical_service",
+              "code": "I-AP&T-AS.IA-01",
+              "title": "应用身份管理",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:41d3fa8e4983d8f8",
+                  "type": "security_technology_module",
+                  "title": "零信任访问控制台",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+                  "type": "security_system",
+                  "title": "零信任网络访问控制"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:852c1f0568a72d31",
+              "type": "security_technical_service",
+              "code": "I-AP&T-AS.IA-02",
+              "title": "应用身份认证",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:41d3fa8e4983d8f8",
+                  "type": "security_technology_module",
+                  "title": "零信任访问控制台",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+                  "type": "security_system",
+                  "title": "零信任网络访问控制"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:e888e485ab86fa13",
+              "type": "security_technical_service",
+              "code": "I-AP&T-AS.IA-03",
+              "title": "应用资源授权",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:d381c9c09195d8cf",
+                  "type": "security_technology_module",
+                  "title": "零信任访问代理",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                },
+                {
+                  "id": "shadow:security_technology_module:41d3fa8e4983d8f8",
+                  "type": "security_technology_module",
+                  "title": "零信任访问控制台",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+                  "type": "security_system",
+                  "title": "零信任网络访问控制"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:5089669036f8944a",
+              "type": "security_technical_service",
+              "code": "I-AP&T-AS.IA-04",
+              "title": "应用凭证管理",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:41d3fa8e4983d8f8",
+                  "type": "security_technology_module",
+                  "title": "零信任访问控制台",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+                  "type": "security_system",
+                  "title": "零信任网络访问控制"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:a76e89c99ba80af2",
+              "type": "security_technical_service",
+              "code": "I-AP&T-AS.LA-01",
+              "title": "应用日志记录",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:d381c9c09195d8cf",
+                  "type": "security_technology_module",
+                  "title": "零信任访问代理",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+                  "type": "security_system",
+                  "title": "零信任网络访问控制"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:0c27a2cc57ac56d8",
+              "type": "security_technical_service",
+              "code": "I-AP&T-AS.LA-03",
+              "title": "应用操作审计",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:41d3fa8e4983d8f8",
+                  "type": "security_technology_module",
+                  "title": "零信任访问控制台",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+                  "type": "security_system",
+                  "title": "零信任网络访问控制"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:dade085fe967cf4b",
+              "type": "security_technical_service",
+              "code": "I-AP&T-PD.AC-01",
+              "title": "应用访问控制",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:d381c9c09195d8cf",
+                  "type": "security_technology_module",
+                  "title": "零信任访问代理",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                },
+                {
+                  "id": "shadow:security_technology_module:41d3fa8e4983d8f8",
+                  "type": "security_technology_module",
+                  "title": "零信任访问控制台",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+                  "type": "security_system",
+                  "title": "零信任网络访问控制"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:37c9046eb19f6c9d",
+              "type": "security_technical_service",
+              "code": "I-AP&T-PD.AC-02",
+              "title": "应用软件信誉评估",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:41d3fa8e4983d8f8",
+                  "type": "security_technology_module",
+                  "title": "零信任访问控制台",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+                  "type": "security_system",
+                  "title": "零信任网络访问控制"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:99997815cb459916",
+              "type": "security_technical_service",
+              "code": "I-AP&T-PD.PP-01",
+              "title": "应用安全访问",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:d381c9c09195d8cf",
+                  "type": "security_technology_module",
+                  "title": "零信任访问代理",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+                  "type": "security_system",
+                  "title": "零信任网络访问控制"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:fb9cd6e50fedc799",
+              "type": "security_technical_service",
+              "code": "I-NT&T-AS.CG-01",
+              "title": "网络传输通道加解密",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:d381c9c09195d8cf",
+                  "type": "security_technology_module",
+                  "title": "零信任访问代理",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+                  "type": "security_system",
+                  "title": "零信任网络访问控制"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:bb407fd6db15b2c4",
+              "type": "security_technical_service",
+              "code": "I-NT&T-AS.IA-03",
+              "title": "网络资源授权",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:d381c9c09195d8cf",
+                  "type": "security_technology_module",
+                  "title": "零信任访问代理",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                },
+                {
+                  "id": "shadow:security_technology_module:41d3fa8e4983d8f8",
+                  "type": "security_technology_module",
+                  "title": "零信任访问控制台",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+                  "type": "security_system",
+                  "title": "零信任网络访问控制"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:bce0ee1c884e482d",
+              "type": "security_technical_service",
+              "code": "I-NT&T-PD.AC-01",
+              "title": "网络访问控制",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:d381c9c09195d8cf",
+                  "type": "security_technology_module",
+                  "title": "零信任访问代理",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                },
+                {
+                  "id": "shadow:security_technology_module:41d3fa8e4983d8f8",
+                  "type": "security_technology_module",
+                  "title": "零信任访问控制台",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+                  "type": "security_system",
+                  "title": "零信任网络访问控制"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:14364f10e09e223e",
+              "type": "security_technical_service",
+              "code": "I-NT&T-PD.PP-01",
+              "title": "网络安全接入",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:d381c9c09195d8cf",
+                  "type": "security_technology_module",
+                  "title": "零信任访问代理",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+                  "type": "security_system",
+                  "title": "零信任网络访问控制"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:95a354571e7febf0",
+              "type": "security_technical_service",
+              "code": "I-OS&T-PD.AC-02",
+              "title": "主机/终端信誉评估",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:41d3fa8e4983d8f8",
+                  "type": "security_technology_module",
+                  "title": "零信任访问控制台",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+                  "type": "security_system",
+                  "title": "零信任网络访问控制"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:80600d37b9a6e0d2",
+              "type": "security_technical_service",
+              "code": "I-US&T-AS.IA-01",
+              "title": "用户身份管理",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:41d3fa8e4983d8f8",
+                  "type": "security_technology_module",
+                  "title": "零信任访问控制台",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+                  "type": "security_system",
+                  "title": "零信任网络访问控制"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:41f4afc92863cfbf",
+              "type": "security_technical_service",
+              "code": "I-US&T-AS.IA-02",
+              "title": "用户认证",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:41d3fa8e4983d8f8",
+                  "type": "security_technology_module",
+                  "title": "零信任访问控制台",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+                  "type": "security_system",
+                  "title": "零信任网络访问控制"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:812f64e6ca9af9cc",
+              "type": "security_technical_service",
+              "code": "I-US&T-AS.IA-04",
+              "title": "用户凭证管理",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:41d3fa8e4983d8f8",
+                  "type": "security_technology_module",
+                  "title": "零信任访问控制台",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+                  "type": "security_system",
+                  "title": "零信任网络访问控制"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:2fef3e132b1b79a3",
+              "type": "security_technical_service",
+              "code": "I-US&T-AS.LA-03",
+              "title": "用户行为审计",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:41d3fa8e4983d8f8",
+                  "type": "security_technology_module",
+                  "title": "零信任访问控制台",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+                  "type": "security_system",
+                  "title": "零信任网络访问控制"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:f60aff1b2b8a70fb",
+              "type": "security_technical_service",
+              "code": "I-US&T-PD.AC-02",
+              "title": "用户信誉评估",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:41d3fa8e4983d8f8",
+                  "type": "security_technology_module",
+                  "title": "零信任访问控制台",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+                  "type": "security_system",
+                  "title": "零信任网络访问控制"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "scope_mapping_count": 5,
+      "service_count": 19,
+      "module_count": 2,
+      "measure_count": 0,
+      "security_system_count": 2
+    }
+  ],
+  "relations": [
+    {
+      "id": "reimport:relation:c848d7b01419d3ac",
+      "type": "applies_to_scope",
+      "sourceId": "shadow:information_object_context:9d4c538e5835d52c",
+      "sourceType": "information_object",
+      "targetId": "shadow:scope_type:8c823ba8ecddbfea",
+      "targetType": "scope_type",
+      "label": "applies_to_scope",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:e0737754e7dc1956",
+      "type": "applies_to_scope",
+      "sourceId": "shadow:information_object_context:9d4c538e5835d52c",
+      "sourceType": "information_object",
+      "targetId": "shadow:scope_type:c7ebc38ae1f4adc8",
+      "targetType": "scope_type",
+      "label": "applies_to_scope",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:3675635090421df0",
+      "type": "applies_to_scope",
+      "sourceId": "shadow:information_object_context:9d4c538e5835d52c",
+      "sourceType": "information_object",
+      "targetId": "shadow:scope_type:998405d9eaef340e",
+      "targetType": "scope_type",
+      "label": "applies_to_scope",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:1578825470a9645b",
+      "type": "applies_to_scope",
+      "sourceId": "shadow:information_object_context:9d4c538e5835d52c",
+      "sourceType": "information_object",
+      "targetId": "shadow:scope_type:4569e1d810feca0d",
+      "targetType": "scope_type",
+      "label": "applies_to_scope",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:47f8de2da0fe3fd5",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:14364f10e09e223e",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:9d4c538e5835d52c",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:e35f635364c44ee8",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:fb9cd6e50fedc799",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:9d4c538e5835d52c",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:252a26b7928b9a47",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:bb407fd6db15b2c4",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:9d4c538e5835d52c",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:f297ee58a9dfd109",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:bce0ee1c884e482d",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:9d4c538e5835d52c",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:632bc10530a41206",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:99997815cb459916",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:9d4c538e5835d52c",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:336e30772c7a699d",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:e888e485ab86fa13",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:9d4c538e5835d52c",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:84adb8dea907b810",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:dade085fe967cf4b",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:9d4c538e5835d52c",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:8f17b53ba281fdcc",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:a76e89c99ba80af2",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:9d4c538e5835d52c",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:6b8599f3a486714d",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:80600d37b9a6e0d2",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:9d4c538e5835d52c",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:f7d9ac2df8c1d119",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:cc3e857dac7ca788",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:9d4c538e5835d52c",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:8baf0875786111fe",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:812f64e6ca9af9cc",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:9d4c538e5835d52c",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:28b2a04e9c0faaa0",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:5089669036f8944a",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:9d4c538e5835d52c",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:58b5fcd6ff5a4afb",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:41f4afc92863cfbf",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:9d4c538e5835d52c",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:7ed3445cb31fcee8",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:852c1f0568a72d31",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:9d4c538e5835d52c",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:3338695250114dce",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:f60aff1b2b8a70fb",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:9d4c538e5835d52c",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:71c3d44cbd794288",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:37c9046eb19f6c9d",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:9d4c538e5835d52c",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:a609eafdace71232",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:95a354571e7febf0",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:9d4c538e5835d52c",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:30eda7ead7e4f411",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:2fef3e132b1b79a3",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:9d4c538e5835d52c",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:4abbfab072b2b4e3",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:0c27a2cc57ac56d8",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:9d4c538e5835d52c",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:973e73080b403e98",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:14364f10e09e223e",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:d381c9c09195d8cf",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:ca37b40225578b23",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:fb9cd6e50fedc799",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:d381c9c09195d8cf",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:e69039dbb551f88b",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:bb407fd6db15b2c4",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:d381c9c09195d8cf",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:c7e8bfd5e2cd4bb2",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:bce0ee1c884e482d",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:d381c9c09195d8cf",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:18c9aa89e62e405c",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:99997815cb459916",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:d381c9c09195d8cf",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:b5a4ccb1077f94ba",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:e888e485ab86fa13",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:d381c9c09195d8cf",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:c626cad4da7aabe2",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:dade085fe967cf4b",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:d381c9c09195d8cf",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:4904dc2d0d5af2ca",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:a76e89c99ba80af2",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:d381c9c09195d8cf",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:9c6fa19e1b85df85",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:80600d37b9a6e0d2",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:41d3fa8e4983d8f8",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:576ccfe98c5e9a64",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:cc3e857dac7ca788",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:41d3fa8e4983d8f8",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:2a58e3a303ecd881",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:812f64e6ca9af9cc",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:41d3fa8e4983d8f8",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:6ab4091734ec438f",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:5089669036f8944a",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:41d3fa8e4983d8f8",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:c0b081d09c2a7c5d",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:41f4afc92863cfbf",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:41d3fa8e4983d8f8",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:e78a7d38ab88a18e",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:852c1f0568a72d31",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:41d3fa8e4983d8f8",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:9d710c5239e013f5",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:f60aff1b2b8a70fb",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:41d3fa8e4983d8f8",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:87587eb76457cb16",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:37c9046eb19f6c9d",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:41d3fa8e4983d8f8",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:fdedd3d9f108f76b",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:95a354571e7febf0",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:41d3fa8e4983d8f8",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:e128e8721af305b7",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:bb407fd6db15b2c4",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:41d3fa8e4983d8f8",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:b73c17e10f350dc4",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:e888e485ab86fa13",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:41d3fa8e4983d8f8",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:30687dcc7283729e",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:bce0ee1c884e482d",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:41d3fa8e4983d8f8",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:c7f1bfbba41d4491",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:dade085fe967cf4b",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:41d3fa8e4983d8f8",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:97c1325c785c2fe9",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:2fef3e132b1b79a3",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:41d3fa8e4983d8f8",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:e6e85c58de2f3254",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:0c27a2cc57ac56d8",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:41d3fa8e4983d8f8",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:291cb38139f454ef",
+      "type": "part_of_system",
+      "sourceId": "shadow:security_technology_module:d381c9c09195d8cf",
+      "sourceType": "security_technology_module",
+      "targetId": "shadow:security_system:e3ddf8d0ec7e0f1e",
+      "targetType": "security_system",
+      "label": "part_of_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:0bf34da890abe956",
+      "type": "part_of_system",
+      "sourceId": "shadow:security_technology_module:41d3fa8e4983d8f8",
+      "sourceType": "security_technology_module",
+      "targetId": "shadow:security_system:e3ddf8d0ec7e0f1e",
+      "targetType": "security_system",
+      "label": "part_of_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:16da53ec1d51423a",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:c321c9081fa4b6c2",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:f42fb2f60fc83085",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:e069202793aab7ad",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:0f300194ca681c8a",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:8991076f63480ce6",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:fea5994bfe54a6f0",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:238e2ac4afc91597",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:1299188c799255ac",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:d91290fc0afed610",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:3289c56e225dd5a1",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:8c2983a11c7c02ae",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:40c67896cba6f4a3",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:ebc46ec0dcb4557a",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:6cb1b4dc849749cf",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:3463f2c6abc42244",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:472c33882177e9d3",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:36a6ae4271fbd268",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:2e4475d4ff77a71e",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:c544a20f60efd25c",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:ad327d3a0066a0dc",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:3d19d28c868a4c8a",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:8cde6c60ca126cfe",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||业务应用||应用网关层",
+      "evidenceRefCount": 0
+    }
+  ],
+  "relationCount": 71
+}

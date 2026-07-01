@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import mimetypes
 import os
@@ -29,6 +30,57 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 from check_bundle_runtime import check_bundle, is_loopback_host, load_json, safe_bundle_child, sha256_file
 from export_diagnostics import export_diagnostics
+
+SOURCE_ROOT = Path(__file__).resolve().parents[1] / "src"
+if SOURCE_ROOT.exists() and str(SOURCE_ROOT) not in sys.path:
+    sys.path.insert(0, str(SOURCE_ROOT))
+
+projection_api_import_error = ""
+
+
+def load_projection_api_module() -> Any | None:
+    global projection_api_import_error
+
+    candidate_roots: list[Path] = []
+    frozen_root = getattr(sys, "_MEIPASS", "")
+    if frozen_root:
+        candidate_roots.append(Path(frozen_root) / "runtime_src")
+    candidate_roots.append(SOURCE_ROOT)
+
+    for source_root in candidate_roots:
+        package_dir = source_root / "sapd_wiki"
+        init_path = package_dir / "__init__.py"
+        api_path = package_dir / "api_server.py"
+        if not init_path.is_file() or not api_path.is_file():
+            continue
+        package_name = "_sapd_wiki_projection"
+        try:
+            package_spec = importlib.util.spec_from_file_location(
+                package_name,
+                init_path,
+                submodule_search_locations=[str(package_dir)],
+            )
+            if package_spec is None or package_spec.loader is None:
+                raise ImportError(f"cannot create package spec for {init_path}")
+            package_module = importlib.util.module_from_spec(package_spec)
+            sys.modules[package_name] = package_module
+            package_spec.loader.exec_module(package_module)
+
+            api_spec = importlib.util.spec_from_file_location(f"{package_name}.api_server", api_path)
+            if api_spec is None or api_spec.loader is None:
+                raise ImportError(f"cannot create api spec for {api_path}")
+            api_module = importlib.util.module_from_spec(api_spec)
+            sys.modules[f"{package_name}.api_server"] = api_module
+            api_spec.loader.exec_module(api_module)
+            return api_module
+        except Exception as error:  # noqa: BLE001 - keep trying other bundled/source roots.
+            projection_api_import_error = str(error)
+    if not projection_api_import_error:
+        projection_api_import_error = "src/sapd_wiki/api_server.py not found"
+    return None
+
+
+projection_api = load_projection_api_module()
 
 
 API_PREFIX = "/api/v1/"
@@ -50,11 +102,35 @@ USER_NOTE_COLUMNS = {
     "tags_json": "TEXT",
 }
 
+USER_NOTE_INDEX_SQL = [
+    "CREATE INDEX IF NOT EXISTS idx_user_notes_page_route_updated ON user_notes(page_route, updated_at DESC)",
+    "CREATE INDEX IF NOT EXISTS idx_user_notes_target_ref ON user_notes(target_ref)",
+    "CREATE INDEX IF NOT EXISTS idx_user_notes_page_target ON user_notes(page_route, target_ref)",
+    "CREATE INDEX IF NOT EXISTS idx_user_notes_anchor_type ON user_notes(anchor_type)",
+    "CREATE INDEX IF NOT EXISTS idx_user_notes_object_type ON user_notes(object_type)",
+    "CREATE INDEX IF NOT EXISTS idx_user_notes_status ON user_notes(status)",
+]
+
 USER_NOTE_SELECT_COLUMNS = """
 id, target_ref, body, status, page_route, page_title, anchor_type, object_type, object_title, tags_json, created_at, updated_at
 """
 
 USER_NOTE_STATUSES = {"todo", "reviewing", "waiting_confirm", "confirmed", "closed", "deferred"}
+USER_NOTE_STATUS_LABELS = {
+    "todo": "待处理",
+    "reviewing": "处理中",
+    "waiting_confirm": "待确认",
+    "confirmed": "已确认",
+    "closed": "已关闭",
+    "deferred": "暂不处理",
+}
+USER_NOTE_ANCHOR_LABELS = {
+    "page": "页面",
+    "object": "对象",
+    "row": "行",
+    "field": "值",
+    "relation": "关系",
+}
 USER_DATA_BASKET_STATUSES = {"active", "draft", "archived"}
 USER_WORKSPACE_STATUSES = {"active", "draft", "archived"}
 USER_WORKSPACE_ITEM_STATUSES = {"active", "pinned", "reviewing", "closed", "archived"}
@@ -193,6 +269,109 @@ def now_iso() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 
+def markdown_list(value: Any) -> list[Any]:
+    return value if isinstance(value, list) else []
+
+
+def markdown_value(value: Any, fallback: str = "未设置") -> str:
+    text = str(value or "").replace("\r\n", "\n").replace("\r", "\n").strip()
+    return text or fallback
+
+
+def markdown_inline(value: Any, fallback: str = "未设置") -> str:
+    return " / ".join(markdown_value(value, fallback).splitlines()) or fallback
+
+
+def markdown_count_lines(counts: Any, label_map: dict[str, str] | None = None) -> list[str]:
+    if not isinstance(counts, dict) or not counts:
+        return ["- 无"]
+    lines = []
+    for key, count in counts.items():
+        label = label_map.get(key, key) if label_map else key
+        lines.append(f"- {label}：{count}")
+    return lines
+
+
+def markdown_note_body(value: Any) -> str:
+    body = markdown_value(value, "（无正文）")
+    return "\n".join(f"> {line}" if line else ">" for line in body.splitlines())
+
+
+def user_notes_export_markdown(payload: dict[str, Any]) -> str:
+    summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+    source = payload.get("source") if isinstance(payload.get("source"), dict) else {}
+    notes = [note for note in markdown_list(payload.get("notes")) if isinstance(note, dict)]
+    project_or_bundle = source.get("project_root") or source.get("bundle_root")
+    lines = [
+        "# SAPD Wiki 批注导出",
+        "",
+        f"- 导出时间：{markdown_inline(payload.get('export_created_at'))}",
+        f"- 批注数量：{summary.get('note_count', len(notes))}",
+        "- 隐私提醒：本文件包含用户批注正文，仅在需要反馈问题时主动分享。",
+        "",
+        "## 导出来源",
+        "",
+        f"- 项目 / Bundle：{markdown_inline(project_or_bundle)}",
+        f"- 用户数据库：{markdown_inline(source.get('user_database'))}",
+        "",
+        "## 汇总",
+        "",
+        "### 按状态",
+        "",
+        *markdown_count_lines(summary.get("by_status"), USER_NOTE_STATUS_LABELS),
+        "",
+        "### 按页面",
+        "",
+        *markdown_count_lines(summary.get("by_page_route")),
+        "",
+        "### 按锚点类型",
+        "",
+        *markdown_count_lines(summary.get("by_anchor_type"), USER_NOTE_ANCHOR_LABELS),
+        "",
+        "### 按对象类型",
+        "",
+        *markdown_count_lines(summary.get("by_object_type")),
+        "",
+        "## 批注清单",
+        "",
+    ]
+    if not notes:
+        lines.append("暂无批注。")
+        return "\n".join(lines).rstrip() + "\n"
+    for index, note in enumerate(notes, start=1):
+        status = markdown_inline(note.get("status") or "todo")
+        status_label = USER_NOTE_STATUS_LABELS.get(status, status)
+        anchor_type = markdown_inline(note.get("anchor_type") or "object")
+        anchor_label = USER_NOTE_ANCHOR_LABELS.get(anchor_type, anchor_type)
+        page_title = markdown_inline(note.get("page_title"))
+        page_route = markdown_inline(note.get("page_route"))
+        object_title = markdown_inline(note.get("object_title"))
+        object_type = markdown_inline(note.get("object_type"))
+        target_ref = markdown_inline(note.get("target_ref"))
+        tags = "、".join(markdown_inline(tag) for tag in markdown_list(note.get("tags"))) or "无"
+        title = object_title if object_title != "未设置" else page_title if page_title != "未设置" else target_ref
+        lines.extend(
+            [
+                f"### {index}. {title}",
+                "",
+                f"- 状态：{status_label}",
+                f"- 页面：{page_title}（{page_route}）",
+                f"- 锚点：{anchor_label}",
+                f"- 对象：{object_title}（{object_type}）",
+                f"- 标签：{tags}",
+                f"- 目标引用：{target_ref}",
+                f"- 创建时间：{markdown_inline(note.get('created_at'))}",
+                f"- 更新时间：{markdown_inline(note.get('updated_at'))}",
+                "",
+                "批注正文：",
+                "",
+                markdown_note_body(note.get("body")),
+                "",
+            ]
+        )
+    return "\n".join(lines).rstrip() + "\n"
+
+
 def hash_text(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
@@ -263,6 +442,8 @@ class BundleRuntime:
             for column, definition in USER_NOTE_COLUMNS.items():
                 if column not in existing:
                     connection.execute(f"ALTER TABLE user_notes ADD COLUMN {column} {definition}")
+            for statement in USER_NOTE_INDEX_SQL:
+                connection.execute(statement)
 
     def ensure_user_data_basket_tables(self) -> None:
         user_uri = self.user_db.resolve().as_uri() + "?mode=rwc"
@@ -292,6 +473,13 @@ class BundleRuntime:
         connection.row_factory = sqlite3.Row
         connection.execute("PRAGMA foreign_keys = ON")
         connection.execute("ATTACH DATABASE ? AS base", (base_uri,))
+        return connection
+
+    def open_user_connection(self) -> sqlite3.Connection:
+        user_uri = self.user_db.resolve().as_uri() + "?mode=rwc"
+        connection = sqlite3.connect(user_uri, uri=True)
+        connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA foreign_keys = ON")
         return connection
 
     def base_tables(self) -> list[str]:
@@ -454,7 +642,7 @@ class BundleRuntime:
             filters.append("page_route = ?")
             params.append(page_route)
         where = f"WHERE {' AND '.join(filters)}" if filters else ""
-        with self.open_connection() as connection:
+        with self.open_user_connection() as connection:
             rows = connection.execute(
                 f"""
                 SELECT {USER_NOTE_SELECT_COLUMNS}
@@ -465,6 +653,48 @@ class BundleRuntime:
                 params,
             ).fetchall()
         return {"ok": True, "data_state": "ready", "notes": [self.note_row_to_dict(row) for row in rows]}
+
+    def user_notes_export_payload(self) -> dict[str, Any]:
+        notes = [note for note in self.list_notes({}).get("notes", []) if isinstance(note, dict)]
+
+        def count_by(field: str) -> dict[str, int]:
+            counts: dict[str, int] = {}
+            for note in notes:
+                key = str(note.get(field) or "未设置").strip() or "未设置"
+                counts[key] = counts.get(key, 0) + 1
+            return dict(sorted(counts.items(), key=lambda item: (-item[1], item[0])))
+
+        return {
+            "ok": True,
+            "version": 1,
+            "export_type": "user_notes",
+            "export_created_at": now_iso(),
+            "data_state": "ready",
+            "contains_user_note_body": True,
+            "privacy_note": "本导出包含用户批注正文，仅在需要反馈问题时主动分享。",
+            "source": {
+                "bundle_root": self.root.name,
+                "user_database": str(self.user_db.relative_to(self.root)),
+            },
+            "summary": {
+                "note_count": len(notes),
+                "by_status": count_by("status"),
+                "by_page_route": count_by("page_route"),
+                "by_anchor_type": count_by("anchor_type"),
+                "by_object_type": count_by("object_type"),
+            },
+            "notes": notes,
+        }
+
+    def user_notes_export_file_name(self) -> str:
+        return f"user-notes-export-{time.strftime('%Y%m%d-%H%M%SZ', time.gmtime())}.md"
+
+    def export_user_notes_file(self) -> Path:
+        payload = self.user_notes_export_payload()
+        output_path = self.export_dir / self.user_notes_export_file_name()
+        output_path.write_text(user_notes_export_markdown(payload), encoding="utf-8")
+        self.logger.write("info", "user notes exported", output_path=str(output_path), note_count=payload["summary"]["note_count"])
+        return output_path
 
     def add_note(self, payload: dict[str, Any]) -> dict[str, Any]:
         target_ref = str(payload.get("target_ref", "")).strip()
@@ -1389,6 +1619,33 @@ class BundleRuntime:
         return path
 
 
+def configure_projection_api(runtime: BundleRuntime) -> None:
+    if projection_api is None:
+        runtime.logger.write("warning", "projection api module unavailable", error=projection_api_import_error)
+        return
+
+    frontend_prefix = "frontend/capability-browser/"
+
+    def resolve_runtime_project_path(value: str | Path) -> Path:
+        raw = Path(value)
+        if raw.is_absolute():
+            return raw
+        normalized = raw.as_posix()
+        if normalized.startswith(frontend_prefix):
+            return (runtime.frontend_dir / normalized.removeprefix(frontend_prefix)).resolve()
+        if normalized.startswith("data/user/"):
+            return (runtime.root / normalized).resolve()
+        return (runtime.root / normalized).resolve()
+
+    projection_api.PROJECT_ROOT = runtime.root.resolve()
+    projection_api.resolve_project_path = resolve_runtime_project_path
+    projection_api.FRONTEND_PUBLIC_DATA_ROOT = (runtime.frontend_dir / "public" / "data").resolve()
+    projection_api.USER_DB_PATH = runtime.user_db.resolve()
+    if hasattr(projection_api, "_DATA_PACKAGE_CACHE"):
+        projection_api._DATA_PACKAGE_CACHE.clear()
+    runtime.logger.write("info", "projection api configured", frontend_data_root=str(projection_api.FRONTEND_PUBLIC_DATA_ROOT))
+
+
 def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: str) -> type[BaseHTTPRequestHandler]:
     class LocalHandler(BaseHTTPRequestHandler):
         server_version = "SAPDWikiZIPAlpha/0.1"
@@ -1402,6 +1659,26 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
             self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(body)
+
+        def send_json_download(self, status: int, data: Any, file_name: str) -> None:
+            body = json_dumps(data)
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Disposition", f'attachment; filename="{file_name}"')
+            self.end_headers()
+            self.wfile.write(body)
+
+        def send_text_download(self, status: int, content: str, file_name: str, content_type: str = "text/plain; charset=utf-8") -> None:
+            body = content.encode("utf-8")
+            self.send_response(status)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Disposition", f'attachment; filename="{file_name}"')
             self.end_headers()
             self.wfile.write(body)
 
@@ -1485,8 +1762,57 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
                     limit = int(params.get("limit", ["20"])[0])
                     self.send_json(200, runtime.base_items(limit=max(1, min(limit, 100))))
                     return
+                if projection_api is not None:
+                    params = parse_qs(parsed.query)
+                    path_parts = [unquote(part) for part in parsed.path.strip("/").split("/") if part]
+                    if parsed.path == "/api/v1/data-packages":
+                        self.send_json(200, projection_api.create_envelope({"packages": [{"name": name, "path": path} for name, path in projection_api.DATA_PACKAGES.items()]}))
+                        return
+                    if len(path_parts) == 4 and path_parts[:3] == ["api", "v1", "data-packages"]:
+                        package_name = path_parts[3]
+                        if package_name not in projection_api.DATA_PACKAGES:
+                            self.send_json(404, {"ok": False, "error": "data package not found", "name": package_name})
+                            return
+                        self.send_json(200, projection_api.create_envelope(projection_api.read_data_package(package_name)))
+                        return
+                    if parsed.path == "/api/v1/search-index":
+                        raw_limit = (params.get("limit") or ["80"])[0]
+                        try:
+                            limit = int(raw_limit)
+                        except (TypeError, ValueError):
+                            limit = 80
+                        self.send_json(200, projection_api.create_envelope(projection_api.search_index_payload(query=(params.get("q") or [""])[0], limit=limit)))
+                        return
+                    if parsed.path == "/api/v1/capabilities/workspace-initial":
+                        self.send_json(200, projection_api.create_envelope(projection_api.capability_workspace_initial_projection()))
+                        return
+                    if parsed.path == "/api/v1/capabilities/workspace-projection":
+                        focus_id = (params.get("focus_id") or params.get("focusId") or [""])[0] or None
+                        object_type = (params.get("object_type") or params.get("objectType") or [""])[0] or None
+                        object_id = (params.get("object_id") or params.get("objectId") or [""])[0] or None
+                        self.send_json(200, projection_api.create_envelope(projection_api.capability_workspace_projection(focus_id=focus_id, object_type=object_type, object_id=object_id)))
+                        return
+                    if parsed.path == "/api/v1/capabilities/workspace-view":
+                        focus_id = (params.get("focus_id") or params.get("focusId") or [""])[0] or None
+                        object_type = (params.get("object_type") or params.get("objectType") or [""])[0] or None
+                        object_id = (params.get("object_id") or params.get("objectId") or [""])[0] or None
+                        self.send_json(200, projection_api.create_envelope(projection_api.capability_workspace_view(focus_id=focus_id, object_type=object_type, object_id=object_id)))
+                        return
                 if parsed.path == "/api/v1/user/favorites":
                     self.send_json(200, runtime.list_favorites())
+                    return
+                if parsed.path == "/api/v1/user/notes/export":
+                    port = int(state["port"])
+                    if not is_allowed_host_header(self.headers.get("Host", ""), port):
+                        self.send_json(403, {"ok": False, "error": "invalid Host header"})
+                        return
+                    params = parse_qs(parsed.query)
+                    payload = runtime.user_notes_export_payload()
+                    should_download = str((params.get("download") or [""])[0]).strip().lower() in {"1", "true", "yes"}
+                    if should_download:
+                        self.send_text_download(200, user_notes_export_markdown(payload), runtime.user_notes_export_file_name(), "text/markdown; charset=utf-8")
+                    else:
+                        self.send_json(200, payload)
                     return
                 if parsed.path == "/api/v1/user/notes":
                     self.send_json(200, runtime.list_notes(parse_qs(parsed.query)))
@@ -1701,6 +2027,7 @@ def run_server(bundle_root: Path, no_browser: bool = False) -> int:
         return 2
 
     runtime = BundleRuntime(root, logger)
+    configure_projection_api(runtime)
     host = str(runtime.config.get("host", "127.0.0.1")).strip() or "127.0.0.1"
     if not is_loopback_host(host):
         logger.write("error", "refusing to bind non-loopback host", host=host)
@@ -1747,6 +2074,7 @@ def main() -> int:
     parser.add_argument("--no-browser", action="store_true", help="Do not open the default browser.")
     parser.add_argument("--check-only", action="store_true", help="Run runtime checks and exit.")
     parser.add_argument("--export-diagnostics", action="store_true", help="Export diagnostics and exit.")
+    parser.add_argument("--export-user-notes", action="store_true", help="Export user notes and exit.")
     args = parser.parse_args()
 
     root = args.bundle_root.resolve()
@@ -1755,6 +2083,16 @@ def main() -> int:
         output = export_diagnostics(root)
         print(f"diagnostics={output}")
         return 0
+    if args.export_user_notes:
+        try:
+            runtime = BundleRuntime(root, logger)
+            output = runtime.export_user_notes_file()
+            print(f"user_notes_export={output}")
+            return 0
+        except Exception as error:  # noqa: BLE001 - command should explain local export failures.
+            logger.write("error", "user notes export failed", error=str(error))
+            print(f"user_notes_export_error={error}")
+            return 2
     if args.check_only:
         result = perform_startup_check(root, logger)
         print(json.dumps(result, ensure_ascii=False, indent=2))

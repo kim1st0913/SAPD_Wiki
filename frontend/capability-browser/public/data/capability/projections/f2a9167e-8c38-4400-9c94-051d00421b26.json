@@ -1,0 +1,61 @@
+{
+  "packageType": "oi-149-p4-capability-object-projection",
+  "dataState": "ready",
+  "detailMode": "overview",
+  "selected": {
+    "id": "f2a9167e-8c38-4400-9c94-051d00421b26",
+    "type": "capability_domain",
+    "code": "M-PS",
+    "title": "人员安全管理与能力提升 Personnel Security",
+    "name": "人员安全管理与能力提升 Personnel Security",
+    "category": "",
+    "status": "active"
+  },
+  "ancestorIds": [
+    "697c2bdb-baa4-4899-a2a7-d0f5da9bd5fe"
+  ],
+  "focusIds": [
+    "cb3f5a21-c859-4bbc-a9ee-2b37b3e88170",
+    "69af923e-fb08-44fc-8260-7f0e0a7501da",
+    "64121b16-8fd5-42d8-abf7-806770fefcc0",
+    "c5f4f4c5-5d4c-4bc3-ba41-7e28808c70d7",
+    "8509938c-7fbc-4cf1-b978-ea9b9ec8fa52"
+  ],
+  "focusCount": 5,
+  "childOverview": [
+    {
+      "id": "bc59df3a-3ce4-4da3-8f42-1819249c7355",
+      "type": "capability",
+      "code": "M-PS.CT",
+      "title": "安全意识教育与技能培养能力",
+      "focusCount": 2,
+      "childCount": 2
+    },
+    {
+      "id": "4637772b-424f-4aeb-92c7-12b047bab8f5",
+      "type": "capability",
+      "code": "M-PS.HS",
+      "title": "人员安全管理能力",
+      "focusCount": 3,
+      "childCount": 3
+    }
+  ],
+  "coverageSummary": {
+    "focusCount": 5,
+    "technicalServiceCount": 1,
+    "scopeTypeCount": 1,
+    "managementWorkCount": 5,
+    "processReferenceCount": 5,
+    "standardControlCount": 100,
+    "moduleCount": 0,
+    "measureCount": 0
+  },
+  "relationCount": 142,
+  "deferred": {
+    "reason": "L0 / L1 能力层级只生成总览型 projection；标准控制项、技术映射明细和管理映射明细按 L2 / 关注点延迟加载。",
+    "technicalMappingRows": true,
+    "managementMappingRows": true,
+    "standardMappingRows": true,
+    "standardControls": true
+  }
+}

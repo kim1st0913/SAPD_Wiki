@@ -23,7 +23,7 @@ Codex 就必须自动执行以下动作：
 1. 读取 `DESIGN.md`。
 2. 读取本文。
 3. 读取 `docs/06-implementation/frontend-display-design-principles-2026-05-30.md`。
-4. 对照 `frontend/capability-browser/apple-morandi-color-demo.html`。
+4. 对照 `frontend/capability-browser/environment-object-apple-shell-demo.html#color-system`。
 5. 判断当前页面涉及哪些展示类型。
 6. 使用 scoped 样式和组件级修正统一页面。
 7. 验证不破坏其他页面。
@@ -508,7 +508,7 @@ Codex 必须自己补齐：
 - 本文是全局设计基线。
 - `frontend-display-design-principles-2026-05-30.md` 是展示类型细则。
 - `apple-color-direction-handoff-2026-05-29.md` 是颜色方向交接。
-- `apple-morandi-color-demo.html` 是可视化参考。
+- `environment-object-apple-shell-demo.html#color-system` 是统一 demo 工作台中的可视化参考。
 
 后续如果这些文档冲突，执行顺序为：
 

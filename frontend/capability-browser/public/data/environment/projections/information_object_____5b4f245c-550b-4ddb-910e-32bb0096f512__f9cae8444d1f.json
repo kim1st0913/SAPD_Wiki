@@ -1,0 +1,1043 @@
+{
+  "packageType": "oi-149-p4-environment-object-projection",
+  "dataState": "ready",
+  "navOrdinal": 8,
+  "projectionKey": "information_object_____5b4f245c-550b-4ddb-910e-32bb0096f512__f9cae8444d1f",
+  "projectionPath": "environment/projections/information_object_____5b4f245c-550b-4ddb-910e-32bb0096f512__f9cae8444d1f.json",
+  "navigationPath": [
+    {
+      "depth": 0,
+      "id": "bae3aa1e-f7e6-43fd-9b13-362edeb373a4",
+      "type": "information_environment",
+      "code": "",
+      "title": "云数据中心"
+    },
+    {
+      "depth": 1,
+      "id": "7212680e-d007-4200-bb27-2d7201bb6223",
+      "type": "environment_segment",
+      "code": "",
+      "title": "管理平台"
+    },
+    {
+      "depth": 2,
+      "id": "5b4f245c-550b-4ddb-910e-32bb0096f512",
+      "type": "information_object",
+      "code": "",
+      "title": "基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）"
+    }
+  ],
+  "selectedNavigation": {
+    "id": "5b4f245c-550b-4ddb-910e-32bb0096f512",
+    "type": "information_object",
+    "code": "",
+    "title": "基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+    "navOrdinal": 8,
+    "projectionKey": "information_object_____5b4f245c-550b-4ddb-910e-32bb0096f512__f9cae8444d1f",
+    "projectionPath": "environment/projections/information_object_____5b4f245c-550b-4ddb-910e-32bb0096f512__f9cae8444d1f.json"
+  },
+  "ancestorNavigation": [
+    {
+      "id": "bae3aa1e-f7e6-43fd-9b13-362edeb373a4",
+      "type": "information_environment",
+      "code": "",
+      "title": "云数据中心"
+    },
+    {
+      "id": "7212680e-d007-4200-bb27-2d7201bb6223",
+      "type": "environment_segment",
+      "code": "",
+      "title": "管理平台"
+    }
+  ],
+  "objectContextIds": [
+    "shadow:information_object_context:c3961efc0902c3bd"
+  ],
+  "contextKeys": [
+    "云数据中心||管理平台||基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）"
+  ],
+  "objects": {
+    "information_object": {
+      "shadow:information_object_context:c3961efc0902c3bd": {
+        "id": "shadow:information_object_context:c3961efc0902c3bd",
+        "type": "information_object",
+        "code": "",
+        "title": "基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+        "name": "基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+        "category": "",
+        "status": "",
+        "contextKey": "云数据中心||管理平台||基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）"
+      }
+    },
+    "scope_type": {
+      "shadow:scope_type:8c823ba8ecddbfea": {
+        "id": "shadow:scope_type:8c823ba8ecddbfea",
+        "type": "scope_type",
+        "code": "I-AP",
+        "title": "软件应用",
+        "name": "软件应用",
+        "category": "",
+        "status": "",
+        "text": "I-AP 软件应用"
+      }
+    },
+    "security_technical_service": {
+      "shadow:security_technical_service:41822c1756289d95": {
+        "id": "shadow:security_technical_service:41822c1756289d95",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.AM-01",
+        "title": "软件资产清单",
+        "name": "软件资产清单",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:1d7180fb160a0897": {
+        "id": "shadow:security_technical_service:1d7180fb160a0897",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.AM-02",
+        "title": "软件资产安全管控",
+        "name": "软件资产安全管控",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:2f7ebebc4fd0acac": {
+        "id": "shadow:security_technical_service:2f7ebebc4fd0acac",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.CM-01",
+        "title": "应用安全基线配置管理",
+        "name": "应用安全基线配置管理",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:70d491688e0ff0f8": {
+        "id": "shadow:security_technical_service:70d491688e0ff0f8",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.CM-02",
+        "title": "应用安全加固",
+        "name": "应用安全加固",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:0f1a263c2a61280e": {
+        "id": "shadow:security_technical_service:0f1a263c2a61280e",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.VM-01",
+        "title": "应用漏洞管理",
+        "name": "应用漏洞管理",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:65dcce95724fa9dc": {
+        "id": "shadow:security_technical_service:65dcce95724fa9dc",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.VM-02",
+        "title": "应用补丁管理",
+        "name": "应用补丁管理",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:a76e89c99ba80af2": {
+        "id": "shadow:security_technical_service:a76e89c99ba80af2",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.LA-01",
+        "title": "应用日志记录",
+        "name": "应用日志记录",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:cc3e857dac7ca788": {
+        "id": "shadow:security_technical_service:cc3e857dac7ca788",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.IA-01",
+        "title": "应用身份管理",
+        "name": "应用身份管理",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:852c1f0568a72d31": {
+        "id": "shadow:security_technical_service:852c1f0568a72d31",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.IA-02",
+        "title": "应用身份认证",
+        "name": "应用身份认证",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:e888e485ab86fa13": {
+        "id": "shadow:security_technical_service:e888e485ab86fa13",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.IA-03",
+        "title": "应用资源授权",
+        "name": "应用资源授权",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:5089669036f8944a": {
+        "id": "shadow:security_technical_service:5089669036f8944a",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.IA-04",
+        "title": "应用凭证管理",
+        "name": "应用凭证管理",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:23ee5ec0151bf055": {
+        "id": "shadow:security_technical_service:23ee5ec0151bf055",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.AD-02",
+        "title": "应用冗余",
+        "name": "应用冗余",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:e6e99667b34eb6a1": {
+        "id": "shadow:security_technical_service:e6e99667b34eb6a1",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.AD-03",
+        "title": "应用备份",
+        "name": "应用备份",
+        "category": "",
+        "status": ""
+      }
+    },
+    "security_technology_module": {
+      "shadow:security_technology_module:e04e055cfcd1e612": {
+        "id": "shadow:security_technology_module:e04e055cfcd1e612",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "主机安全管理",
+        "name": "主机安全管理",
+        "category": "",
+        "status": ""
+      }
+    },
+    "security_technical_measure": {
+      "shadow:security_technical_measure:057ed82a71f4ba9f": {
+        "id": "shadow:security_technical_measure:057ed82a71f4ba9f",
+        "type": "security_technical_measure",
+        "code": "",
+        "title": "应用系统自身日志记录模块",
+        "name": "应用系统自身日志记录模块",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_measure:cde9c43f7f052cd1": {
+        "id": "shadow:security_technical_measure:cde9c43f7f052cd1",
+        "type": "security_technical_measure",
+        "code": "",
+        "title": "应用系统自身身份管理模块",
+        "name": "应用系统自身身份管理模块",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_measure:c3df87baa049c319": {
+        "id": "shadow:security_technical_measure:c3df87baa049c319",
+        "type": "security_technical_measure",
+        "code": "",
+        "title": "应用系统自身认证模块",
+        "name": "应用系统自身认证模块",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_measure:96834760b19971c4": {
+        "id": "shadow:security_technical_measure:96834760b19971c4",
+        "type": "security_technical_measure",
+        "code": "",
+        "title": "应用系统自身授权管理模块",
+        "name": "应用系统自身授权管理模块",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_measure:0170a23423ea7194": {
+        "id": "shadow:security_technical_measure:0170a23423ea7194",
+        "type": "security_technical_measure",
+        "code": "",
+        "title": "应用系统自身凭证管理模块",
+        "name": "应用系统自身凭证管理模块",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_measure:c7e95b699797d215": {
+        "id": "shadow:security_technical_measure:c7e95b699797d215",
+        "type": "security_technical_measure",
+        "code": "",
+        "title": "应用系统高可用性设计",
+        "name": "应用系统高可用性设计",
+        "category": "",
+        "status": ""
+      }
+    },
+    "security_system": {
+      "shadow:security_system:09a15eb5cb64afa6": {
+        "id": "shadow:security_system:09a15eb5cb64afa6",
+        "type": "security_system",
+        "code": "",
+        "title": "主机安全防护",
+        "name": "主机安全防护",
+        "category": "",
+        "status": ""
+      }
+    }
+  },
+  "objectScopeTree": [
+    {
+      "id": "shadow:information_object_context:c3961efc0902c3bd",
+      "type": "information_object",
+      "title": "基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "contextKey": "云数据中心||管理平台||基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "segments": [
+        {
+          "id": "shadow:environment_segment:52bd6f031a12d1d7",
+          "type": "environment_segment",
+          "title": "管理平台"
+        }
+      ],
+      "scope_mappings": [
+        {
+          "scope": {
+            "id": "shadow:scope_type:8c823ba8ecddbfea",
+            "type": "scope_type",
+            "code": "I-AP",
+            "title": "软件应用",
+            "text": "I-AP 软件应用"
+          },
+          "services": []
+        },
+        {
+          "scope": {
+            "id": "shadow:scope_type:617eecaba8d1c85f",
+            "type": "scope_type",
+            "code": "",
+            "title": "I-AP 软件应用",
+            "text": "I-AP 软件应用"
+          },
+          "services": [
+            {
+              "id": "shadow:security_technical_service:23ee5ec0151bf055",
+              "type": "security_technical_service",
+              "code": "I-AP&T-AS.AD-02",
+              "title": "应用冗余",
+              "modules": [],
+              "measures": [
+                {
+                  "id": "shadow:security_technical_measure:c7e95b699797d215",
+                  "type": "security_technical_measure",
+                  "title": "应用系统高可用性设计"
+                }
+              ],
+              "securitySystems": []
+            },
+            {
+              "id": "shadow:security_technical_service:e6e99667b34eb6a1",
+              "type": "security_technical_service",
+              "code": "I-AP&T-AS.AD-03",
+              "title": "应用备份",
+              "modules": [],
+              "measures": [
+                {
+                  "id": "shadow:security_technical_measure:c7e95b699797d215",
+                  "type": "security_technical_measure",
+                  "title": "应用系统高可用性设计"
+                }
+              ],
+              "securitySystems": []
+            },
+            {
+              "id": "shadow:security_technical_service:41822c1756289d95",
+              "type": "security_technical_service",
+              "code": "I-AP&T-AS.AM-01",
+              "title": "软件资产清单",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:e04e055cfcd1e612",
+                  "type": "security_technology_module",
+                  "title": "主机安全管理",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:c24ab5d021e1792e",
+                      "type": "security_system",
+                      "title": "主机安全防护"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:09a15eb5cb64afa6",
+                  "type": "security_system",
+                  "title": "主机安全防护"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:1d7180fb160a0897",
+              "type": "security_technical_service",
+              "code": "I-AP&T-AS.AM-02",
+              "title": "软件资产安全管控",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:e04e055cfcd1e612",
+                  "type": "security_technology_module",
+                  "title": "主机安全管理",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:c24ab5d021e1792e",
+                      "type": "security_system",
+                      "title": "主机安全防护"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:09a15eb5cb64afa6",
+                  "type": "security_system",
+                  "title": "主机安全防护"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:2f7ebebc4fd0acac",
+              "type": "security_technical_service",
+              "code": "I-AP&T-AS.CM-01",
+              "title": "应用安全基线配置管理",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:e04e055cfcd1e612",
+                  "type": "security_technology_module",
+                  "title": "主机安全管理",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:c24ab5d021e1792e",
+                      "type": "security_system",
+                      "title": "主机安全防护"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:09a15eb5cb64afa6",
+                  "type": "security_system",
+                  "title": "主机安全防护"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:70d491688e0ff0f8",
+              "type": "security_technical_service",
+              "code": "I-AP&T-AS.CM-02",
+              "title": "应用安全加固",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:e04e055cfcd1e612",
+                  "type": "security_technology_module",
+                  "title": "主机安全管理",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:c24ab5d021e1792e",
+                      "type": "security_system",
+                      "title": "主机安全防护"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:09a15eb5cb64afa6",
+                  "type": "security_system",
+                  "title": "主机安全防护"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:cc3e857dac7ca788",
+              "type": "security_technical_service",
+              "code": "I-AP&T-AS.IA-01",
+              "title": "应用身份管理",
+              "modules": [],
+              "measures": [
+                {
+                  "id": "shadow:security_technical_measure:cde9c43f7f052cd1",
+                  "type": "security_technical_measure",
+                  "title": "应用系统自身身份管理模块"
+                }
+              ],
+              "securitySystems": []
+            },
+            {
+              "id": "shadow:security_technical_service:852c1f0568a72d31",
+              "type": "security_technical_service",
+              "code": "I-AP&T-AS.IA-02",
+              "title": "应用身份认证",
+              "modules": [],
+              "measures": [
+                {
+                  "id": "shadow:security_technical_measure:c3df87baa049c319",
+                  "type": "security_technical_measure",
+                  "title": "应用系统自身认证模块"
+                }
+              ],
+              "securitySystems": []
+            },
+            {
+              "id": "shadow:security_technical_service:e888e485ab86fa13",
+              "type": "security_technical_service",
+              "code": "I-AP&T-AS.IA-03",
+              "title": "应用资源授权",
+              "modules": [],
+              "measures": [
+                {
+                  "id": "shadow:security_technical_measure:96834760b19971c4",
+                  "type": "security_technical_measure",
+                  "title": "应用系统自身授权管理模块"
+                }
+              ],
+              "securitySystems": []
+            },
+            {
+              "id": "shadow:security_technical_service:5089669036f8944a",
+              "type": "security_technical_service",
+              "code": "I-AP&T-AS.IA-04",
+              "title": "应用凭证管理",
+              "modules": [],
+              "measures": [
+                {
+                  "id": "shadow:security_technical_measure:0170a23423ea7194",
+                  "type": "security_technical_measure",
+                  "title": "应用系统自身凭证管理模块"
+                }
+              ],
+              "securitySystems": []
+            },
+            {
+              "id": "shadow:security_technical_service:a76e89c99ba80af2",
+              "type": "security_technical_service",
+              "code": "I-AP&T-AS.LA-01",
+              "title": "应用日志记录",
+              "modules": [],
+              "measures": [
+                {
+                  "id": "shadow:security_technical_measure:057ed82a71f4ba9f",
+                  "type": "security_technical_measure",
+                  "title": "应用系统自身日志记录模块"
+                }
+              ],
+              "securitySystems": []
+            },
+            {
+              "id": "shadow:security_technical_service:0f1a263c2a61280e",
+              "type": "security_technical_service",
+              "code": "I-AP&T-AS.VM-01",
+              "title": "应用漏洞管理",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:e04e055cfcd1e612",
+                  "type": "security_technology_module",
+                  "title": "主机安全管理",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:c24ab5d021e1792e",
+                      "type": "security_system",
+                      "title": "主机安全防护"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:09a15eb5cb64afa6",
+                  "type": "security_system",
+                  "title": "主机安全防护"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:65dcce95724fa9dc",
+              "type": "security_technical_service",
+              "code": "I-AP&T-AS.VM-02",
+              "title": "应用补丁管理",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:e04e055cfcd1e612",
+                  "type": "security_technology_module",
+                  "title": "主机安全管理",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:c24ab5d021e1792e",
+                      "type": "security_system",
+                      "title": "主机安全防护"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:09a15eb5cb64afa6",
+                  "type": "security_system",
+                  "title": "主机安全防护"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "scope_mapping_count": 2,
+      "service_count": 13,
+      "module_count": 1,
+      "measure_count": 6,
+      "security_system_count": 2
+    }
+  ],
+  "relations": [
+    {
+      "id": "reimport:relation:388e516d37d4b26d",
+      "type": "applies_to_scope",
+      "sourceId": "shadow:information_object_context:c3961efc0902c3bd",
+      "sourceType": "information_object",
+      "targetId": "shadow:scope_type:8c823ba8ecddbfea",
+      "targetType": "scope_type",
+      "label": "applies_to_scope",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||管理平台||基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:ddd60bc6de84c0cd",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:41822c1756289d95",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:c3961efc0902c3bd",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||管理平台||基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:20d5f4cbd84f34ff",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:1d7180fb160a0897",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:c3961efc0902c3bd",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||管理平台||基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:5f1a8c8607b37a2e",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:2f7ebebc4fd0acac",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:c3961efc0902c3bd",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||管理平台||基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:192a44f66e6ee96d",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:70d491688e0ff0f8",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:c3961efc0902c3bd",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||管理平台||基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:3547940c6c312e8e",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:0f1a263c2a61280e",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:c3961efc0902c3bd",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||管理平台||基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:74991ece011a63c5",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:65dcce95724fa9dc",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:c3961efc0902c3bd",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||管理平台||基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:fed094f64b628853",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:a76e89c99ba80af2",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:c3961efc0902c3bd",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||管理平台||基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:1c94dff74e881209",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:cc3e857dac7ca788",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:c3961efc0902c3bd",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||管理平台||基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:5e5145f07a31df00",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:852c1f0568a72d31",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:c3961efc0902c3bd",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||管理平台||基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:9fa02031982125d1",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:e888e485ab86fa13",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:c3961efc0902c3bd",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||管理平台||基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:8c2b7b638acafa3e",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:5089669036f8944a",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:c3961efc0902c3bd",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||管理平台||基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:bb9795ff23bfc4f0",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:23ee5ec0151bf055",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:c3961efc0902c3bd",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||管理平台||基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:562ffb88226680c1",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:e6e99667b34eb6a1",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:c3961efc0902c3bd",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||管理平台||基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:cb992999307d41c4",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:41822c1756289d95",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:e04e055cfcd1e612",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||管理平台||基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:af8d2f6c6a33aa0f",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:1d7180fb160a0897",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:e04e055cfcd1e612",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||管理平台||基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:9ad5f641c48dbff4",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:2f7ebebc4fd0acac",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:e04e055cfcd1e612",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||管理平台||基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:844fab6015df7283",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:70d491688e0ff0f8",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:e04e055cfcd1e612",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||管理平台||基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:50d37459f3d2d0b3",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:0f1a263c2a61280e",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:e04e055cfcd1e612",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||管理平台||基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:7532f83fff9421db",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:65dcce95724fa9dc",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:e04e055cfcd1e612",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||管理平台||基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:6d627d2f43e21038",
+      "type": "has_measure",
+      "sourceId": "shadow:security_technical_service:a76e89c99ba80af2",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technical_measure:057ed82a71f4ba9f",
+      "targetType": "security_technical_measure",
+      "label": "has_measure",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||管理平台||基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:51b5f50f16b51990",
+      "type": "has_measure",
+      "sourceId": "shadow:security_technical_service:cc3e857dac7ca788",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technical_measure:cde9c43f7f052cd1",
+      "targetType": "security_technical_measure",
+      "label": "has_measure",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||管理平台||基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:1d92289417769f55",
+      "type": "has_measure",
+      "sourceId": "shadow:security_technical_service:852c1f0568a72d31",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technical_measure:c3df87baa049c319",
+      "targetType": "security_technical_measure",
+      "label": "has_measure",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||管理平台||基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:697e36217402970c",
+      "type": "has_measure",
+      "sourceId": "shadow:security_technical_service:e888e485ab86fa13",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technical_measure:96834760b19971c4",
+      "targetType": "security_technical_measure",
+      "label": "has_measure",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||管理平台||基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:7b0d12dc27a38d75",
+      "type": "has_measure",
+      "sourceId": "shadow:security_technical_service:5089669036f8944a",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technical_measure:0170a23423ea7194",
+      "targetType": "security_technical_measure",
+      "label": "has_measure",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||管理平台||基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:30318dcb613582e9",
+      "type": "has_measure",
+      "sourceId": "shadow:security_technical_service:23ee5ec0151bf055",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technical_measure:c7e95b699797d215",
+      "targetType": "security_technical_measure",
+      "label": "has_measure",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||管理平台||基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:fc10e7cba52cf4bf",
+      "type": "has_measure",
+      "sourceId": "shadow:security_technical_service:e6e99667b34eb6a1",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technical_measure:c7e95b699797d215",
+      "targetType": "security_technical_measure",
+      "label": "has_measure",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||管理平台||基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:2ea39478869dd08b",
+      "type": "part_of_system",
+      "sourceId": "shadow:security_technology_module:e04e055cfcd1e612",
+      "sourceType": "security_technology_module",
+      "targetId": "shadow:security_system:09a15eb5cb64afa6",
+      "targetType": "security_system",
+      "label": "part_of_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||管理平台||基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:d8eb135dfc64114a",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||管理平台||基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:6515133c73f535b4",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||管理平台||基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:acb2c9d9f5860c86",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||管理平台||基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:e56feb3b6f043605",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||管理平台||基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:94b6c9878694083b",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||管理平台||基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:314accca544b87cc",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "云数据中心||管理平台||基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "evidenceRefCount": 0
+    }
+  ],
+  "relationCount": 34
+}

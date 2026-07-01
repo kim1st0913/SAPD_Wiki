@@ -1,0 +1,397 @@
+{
+  "packageType": "oi-149-p4-environment-object-projection",
+  "dataState": "ready",
+  "navOrdinal": 92,
+  "projectionKey": "information_object_____76c5b6ff-e237-4b2c-84b9-27d0b643c9ed__fa13dd2b64dc",
+  "projectionPath": "environment/projections/information_object_____76c5b6ff-e237-4b2c-84b9-27d0b643c9ed__fa13dd2b64dc.json",
+  "navigationPath": [
+    {
+      "depth": 0,
+      "id": "3a2490b4-7c83-466d-bb6a-dcc77667c744",
+      "type": "information_environment",
+      "code": "",
+      "title": "客户访问接入"
+    },
+    {
+      "depth": 1,
+      "id": "3b652bf5-857a-4ef5-9c4a-2a40642eadc1",
+      "type": "environment_segment",
+      "code": "",
+      "title": "移动终端"
+    },
+    {
+      "depth": 2,
+      "id": "76c5b6ff-e237-4b2c-84b9-27d0b643c9ed",
+      "type": "information_object",
+      "code": "",
+      "title": "移动终端软件应用"
+    }
+  ],
+  "selectedNavigation": {
+    "id": "76c5b6ff-e237-4b2c-84b9-27d0b643c9ed",
+    "type": "information_object",
+    "code": "",
+    "title": "移动终端软件应用",
+    "navOrdinal": 92,
+    "projectionKey": "information_object_____76c5b6ff-e237-4b2c-84b9-27d0b643c9ed__fa13dd2b64dc",
+    "projectionPath": "environment/projections/information_object_____76c5b6ff-e237-4b2c-84b9-27d0b643c9ed__fa13dd2b64dc.json"
+  },
+  "ancestorNavigation": [
+    {
+      "id": "3a2490b4-7c83-466d-bb6a-dcc77667c744",
+      "type": "information_environment",
+      "code": "",
+      "title": "客户访问接入"
+    },
+    {
+      "id": "3b652bf5-857a-4ef5-9c4a-2a40642eadc1",
+      "type": "environment_segment",
+      "code": "",
+      "title": "移动终端"
+    }
+  ],
+  "objectContextIds": [
+    "shadow:information_object_context:8b00dedbc5dc9e0b"
+  ],
+  "contextKeys": [
+    "客户访问接入||移动终端||移动终端软件应用"
+  ],
+  "objects": {
+    "information_object": {
+      "shadow:information_object_context:8b00dedbc5dc9e0b": {
+        "id": "shadow:information_object_context:8b00dedbc5dc9e0b",
+        "type": "information_object",
+        "code": "",
+        "title": "移动终端软件应用",
+        "name": "移动终端软件应用",
+        "category": "",
+        "status": "",
+        "contextKey": "客户访问接入||移动终端||移动终端软件应用"
+      }
+    },
+    "scope_type": {
+      "shadow:scope_type:8c823ba8ecddbfea": {
+        "id": "shadow:scope_type:8c823ba8ecddbfea",
+        "type": "scope_type",
+        "code": "I-AP",
+        "title": "软件应用",
+        "name": "软件应用",
+        "category": "",
+        "status": "",
+        "text": "I-AP 软件应用"
+      },
+      "shadow:scope_type:3c7c53a6f343e04f": {
+        "id": "shadow:scope_type:3c7c53a6f343e04f",
+        "type": "scope_type",
+        "code": "I-DI",
+        "title": "数据与信息",
+        "name": "数据与信息",
+        "category": "",
+        "status": "",
+        "text": "I-DI 数据与信息"
+      }
+    },
+    "security_technical_service": {
+      "shadow:security_technical_service:70d491688e0ff0f8": {
+        "id": "shadow:security_technical_service:70d491688e0ff0f8",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.CM-02",
+        "title": "应用安全加固",
+        "name": "应用安全加固",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:424d41e12b3745a7": {
+        "id": "shadow:security_technical_service:424d41e12b3745a7",
+        "type": "security_technical_service",
+        "code": "I-DI&T-PD.DP-07",
+        "title": "隐私数据检测",
+        "name": "隐私数据检测",
+        "category": "",
+        "status": ""
+      }
+    },
+    "security_technology_module": {
+      "shadow:security_technology_module:205560e402b92ab5": {
+        "id": "shadow:security_technology_module:205560e402b92ab5",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "移动应用安全加固",
+        "name": "移动应用安全加固",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technology_module:384195a484c0df1a": {
+        "id": "shadow:security_technology_module:384195a484c0df1a",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "知情同意管理",
+        "name": "知情同意管理",
+        "category": "",
+        "status": ""
+      }
+    },
+    "security_system": {
+      "shadow:security_system:e087d2086ee20f20": {
+        "id": "shadow:security_system:e087d2086ee20f20",
+        "type": "security_system",
+        "code": "",
+        "title": "移动应用安全",
+        "name": "移动应用安全",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_system:e27ed65b6f215d6b": {
+        "id": "shadow:security_system:e27ed65b6f215d6b",
+        "type": "security_system",
+        "code": "",
+        "title": "数据安全管理与运营",
+        "name": "数据安全管理与运营",
+        "category": "",
+        "status": ""
+      }
+    }
+  },
+  "objectScopeTree": [
+    {
+      "id": "shadow:information_object_context:8b00dedbc5dc9e0b",
+      "type": "information_object",
+      "title": "移动终端软件应用",
+      "contextKey": "客户访问接入||移动终端||移动终端软件应用",
+      "segments": [
+        {
+          "id": "shadow:environment_segment:09ad6e9bc66e2ceb",
+          "type": "environment_segment",
+          "title": "移动终端"
+        }
+      ],
+      "scope_mappings": [
+        {
+          "scope": {
+            "id": "shadow:scope_type:8c823ba8ecddbfea",
+            "type": "scope_type",
+            "code": "I-AP",
+            "title": "软件应用",
+            "text": "I-AP 软件应用"
+          },
+          "services": []
+        },
+        {
+          "scope": {
+            "id": "shadow:scope_type:3c7c53a6f343e04f",
+            "type": "scope_type",
+            "code": "I-DI",
+            "title": "数据与信息",
+            "text": "I-DI 数据与信息"
+          },
+          "services": []
+        },
+        {
+          "scope": {
+            "id": "shadow:scope_type:c767af2b362f2404",
+            "type": "scope_type",
+            "code": "",
+            "title": "I-AP 软件应用 I-DI 数据与信息",
+            "text": "I-AP 软件应用 I-DI 数据与信息"
+          },
+          "services": [
+            {
+              "id": "shadow:security_technical_service:70d491688e0ff0f8",
+              "type": "security_technical_service",
+              "code": "I-AP&T-AS.CM-02",
+              "title": "应用安全加固",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:205560e402b92ab5",
+                  "type": "security_technology_module",
+                  "title": "移动应用安全加固",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:a319679b03f0eb03",
+                      "type": "security_system",
+                      "title": "移动应用安全"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e087d2086ee20f20",
+                  "type": "security_system",
+                  "title": "移动应用安全"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:424d41e12b3745a7",
+              "type": "security_technical_service",
+              "code": "I-DI&T-PD.DP-07",
+              "title": "隐私数据检测",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:384195a484c0df1a",
+                  "type": "security_technology_module",
+                  "title": "知情同意管理",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:3d8642408040edb5",
+                      "type": "security_system",
+                      "title": "数据安全管理与运营"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e27ed65b6f215d6b",
+                  "type": "security_system",
+                  "title": "数据安全管理与运营"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "scope_mapping_count": 3,
+      "service_count": 2,
+      "module_count": 2,
+      "measure_count": 0,
+      "security_system_count": 4
+    }
+  ],
+  "relations": [
+    {
+      "id": "reimport:relation:d54b3aa2c3f466e2",
+      "type": "applies_to_scope",
+      "sourceId": "shadow:information_object_context:8b00dedbc5dc9e0b",
+      "sourceType": "information_object",
+      "targetId": "shadow:scope_type:8c823ba8ecddbfea",
+      "targetType": "scope_type",
+      "label": "applies_to_scope",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "客户访问接入||移动终端||移动终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:1649ae45f1e6547d",
+      "type": "applies_to_scope",
+      "sourceId": "shadow:information_object_context:8b00dedbc5dc9e0b",
+      "sourceType": "information_object",
+      "targetId": "shadow:scope_type:3c7c53a6f343e04f",
+      "targetType": "scope_type",
+      "label": "applies_to_scope",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "客户访问接入||移动终端||移动终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:5165ba6926a1601c",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:70d491688e0ff0f8",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:8b00dedbc5dc9e0b",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "客户访问接入||移动终端||移动终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:99cbebf41ffa140d",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:424d41e12b3745a7",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:8b00dedbc5dc9e0b",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "客户访问接入||移动终端||移动终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:27ec6120a70c58bd",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:70d491688e0ff0f8",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:205560e402b92ab5",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "客户访问接入||移动终端||移动终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:b8c82423b242af81",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:424d41e12b3745a7",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:384195a484c0df1a",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "客户访问接入||移动终端||移动终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:374a52d55feac7f4",
+      "type": "part_of_system",
+      "sourceId": "shadow:security_technology_module:205560e402b92ab5",
+      "sourceType": "security_technology_module",
+      "targetId": "shadow:security_system:e087d2086ee20f20",
+      "targetType": "security_system",
+      "label": "part_of_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "客户访问接入||移动终端||移动终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:7f8675112f832793",
+      "type": "part_of_system",
+      "sourceId": "shadow:security_technology_module:384195a484c0df1a",
+      "sourceType": "security_technology_module",
+      "targetId": "shadow:security_system:e27ed65b6f215d6b",
+      "targetType": "security_system",
+      "label": "part_of_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "客户访问接入||移动终端||移动终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:6892dd908316f5e7",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "客户访问接入||移动终端||移动终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:1f3a1720b9971940",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "客户访问接入||移动终端||移动终端软件应用",
+      "evidenceRefCount": 0
+    }
+  ],
+  "relationCount": 10
+}

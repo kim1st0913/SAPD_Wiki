@@ -1,0 +1,484 @@
+{
+  "packageType": "oi-149-p4-capability-object-projection",
+  "dataState": "ready",
+  "detailMode": "detail",
+  "selected": {
+    "id": "6486a035-efdd-4ad8-a366-d2d8701ab6a6",
+    "type": "capability_focus",
+    "code": "M-SA.AM-01",
+    "title": "保障与落实网络安全投资",
+    "name": "保障与落实网络安全投资",
+    "category": "",
+    "status": "active",
+    "description": "确保组织对网络安全的投资得到充分保障并有效利用，包括对安全投资的合理规划、优先级设置和投资效果后评估，确保投资能够优先保障最关键的安全领域和最大的风险点。"
+  },
+  "ancestorIds": [
+    "697c2bdb-baa4-4899-a2a7-d0f5da9bd5fe",
+    "d5164338-2577-4b4a-b83f-a04998054f48",
+    "59516fab-857b-41e2-ab8c-2479c96ac673"
+  ],
+  "focusIds": [
+    "6486a035-efdd-4ad8-a366-d2d8701ab6a6"
+  ],
+  "focusCount": 1,
+  "childOverview": [],
+  "coverageSummary": {
+    "focusCount": 1,
+    "technicalServiceCount": 0,
+    "scopeTypeCount": 0,
+    "managementWorkCount": 1,
+    "processReferenceCount": 1,
+    "standardControlCount": 2,
+    "moduleCount": 0,
+    "measureCount": 0
+  },
+  "objects": {
+    "capability_focus": {
+      "6486a035-efdd-4ad8-a366-d2d8701ab6a6": {
+        "id": "6486a035-efdd-4ad8-a366-d2d8701ab6a6",
+        "type": "capability_focus",
+        "code": "M-SA.AM-01",
+        "title": "保障与落实网络安全投资",
+        "name": "保障与落实网络安全投资",
+        "category": "",
+        "status": "active",
+        "description": "确保组织对网络安全的投资得到充分保障并有效利用，包括对安全投资的合理规划、优先级设置和投资效果后评估，确保投资能够优先保障最关键的安全领域和最大的风险点。"
+      },
+      "303045b7-a241-41a4-97a3-ce86a3d3bda1": {
+        "id": "303045b7-a241-41a4-97a3-ce86a3d3bda1",
+        "type": "capability_focus",
+        "code": "M-SA.AM-02",
+        "title": "实现信创环境网络安全防护措施的适配与推广",
+        "name": "实现信创环境网络安全防护措施的适配与推广",
+        "category": "",
+        "status": "active"
+      }
+    },
+    "capability_category": {
+      "697c2bdb-baa4-4899-a2a7-d0f5da9bd5fe": {
+        "id": "697c2bdb-baa4-4899-a2a7-d0f5da9bd5fe",
+        "type": "capability_category",
+        "code": "",
+        "title": "安全管理能力 M",
+        "name": "安全管理能力 M",
+        "category": "",
+        "status": "active"
+      }
+    },
+    "capability_domain": {
+      "d5164338-2577-4b4a-b83f-a04998054f48": {
+        "id": "d5164338-2577-4b4a-b83f-a04998054f48",
+        "type": "capability_domain",
+        "code": "M-SA",
+        "title": "安全支撑与资源保障 Supportance and Assurance",
+        "name": "安全支撑与资源保障 Supportance and Assurance",
+        "category": "",
+        "status": "active"
+      },
+      "6a8b013d-e22b-4e8c-acfd-184fb4c78baa": {
+        "id": "6a8b013d-e22b-4e8c-acfd-184fb4c78baa",
+        "type": "capability_domain",
+        "code": "M-PM",
+        "title": "网络安全规划与项目建设 Project Management",
+        "name": "网络安全规划与项目建设 Project Management",
+        "category": "",
+        "status": "active"
+      },
+      "2a8d20c6-3244-4c1e-83ca-24b3391dd386": {
+        "id": "2a8d20c6-3244-4c1e-83ca-24b3391dd386",
+        "type": "capability_domain",
+        "code": "M-SE",
+        "title": "网络安全监督检查与绩效考核 Supervision & Evaluation",
+        "name": "网络安全监督检查与绩效考核 Supervision & Evaluation",
+        "category": "",
+        "status": "active"
+      },
+      "f2a9167e-8c38-4400-9c94-051d00421b26": {
+        "id": "f2a9167e-8c38-4400-9c94-051d00421b26",
+        "type": "capability_domain",
+        "code": "M-PS",
+        "title": "人员安全管理与能力提升 Personnel Security",
+        "name": "人员安全管理与能力提升 Personnel Security",
+        "category": "",
+        "status": "active"
+      }
+    },
+    "capability": {
+      "59516fab-857b-41e2-ab8c-2479c96ac673": {
+        "id": "59516fab-857b-41e2-ab8c-2479c96ac673",
+        "type": "capability",
+        "code": "M-SA.AM",
+        "title": "安全保障管理能力",
+        "name": "安全保障管理能力",
+        "category": "",
+        "status": "active"
+      },
+      "92d4fb18-815b-42eb-9948-0df683a4b830": {
+        "id": "92d4fb18-815b-42eb-9948-0df683a4b830",
+        "type": "capability",
+        "code": "M-SA.CO",
+        "title": "安全协同能力",
+        "name": "安全协同能力",
+        "category": "",
+        "status": "active"
+      },
+      "629cc5f5-f78b-4dcd-a228-867d59baa28d": {
+        "id": "629cc5f5-f78b-4dcd-a228-867d59baa28d",
+        "type": "capability",
+        "code": "M-SA.OP",
+        "title": "安全运行管理能力",
+        "name": "安全运行管理能力",
+        "category": "",
+        "status": "active"
+      },
+      "7748c478-9e64-43f0-8b50-6fd69c81fbac": {
+        "id": "7748c478-9e64-43f0-8b50-6fd69c81fbac",
+        "type": "capability",
+        "code": "M-SA.RE",
+        "title": "安全合规管理能力",
+        "name": "安全合规管理能力",
+        "category": "",
+        "status": "active"
+      },
+      "3d8d883b-6b4d-4f4f-b153-220a9708e8f8": {
+        "id": "3d8d883b-6b4d-4f4f-b153-220a9708e8f8",
+        "type": "capability",
+        "code": "M-SA.RM",
+        "title": "安全风险管理能力",
+        "name": "安全风险管理能力",
+        "category": "",
+        "status": "active"
+      },
+      "e227e850-097c-4b6e-9dab-6295ab3456b3": {
+        "id": "e227e850-097c-4b6e-9dab-6295ab3456b3",
+        "type": "capability",
+        "code": "M-SA.TP",
+        "title": "第三方安全管理能力",
+        "name": "第三方安全管理能力",
+        "category": "",
+        "status": "active"
+      }
+    },
+    "security_work": {
+      "a437808a-3507-42b7-8d4f-72c2080fc65d": {
+        "id": "a437808a-3507-42b7-8d4f-72c2080fc65d",
+        "type": "security_work",
+        "code": "",
+        "title": "规划计划（投资）管理",
+        "name": "规划计划（投资）管理",
+        "category": "",
+        "status": "active"
+      }
+    },
+    "process_reference": {
+      "2ca9f9d3-75bd-4c4d-90d8-0f230a0ba6ad": {
+        "id": "2ca9f9d3-75bd-4c4d-90d8-0f230a0ba6ad",
+        "type": "process_reference",
+        "code": "",
+        "title": "规划计划（投资）管理流程",
+        "name": "规划计划（投资）管理流程",
+        "category": "",
+        "status": ""
+      }
+    },
+    "standard_control": {
+      "15d61448-9caa-4ef7-a378-8171f68e1559": {
+        "id": "15d61448-9caa-4ef7-a378-8171f68e1559",
+        "type": "standard_control",
+        "code": "NIST-800-53-REV5-PM-3",
+        "title": "PM-3 Information Security And Privacy Resources",
+        "name": "PM-3 Information Security And Privacy Resources",
+        "category": "NIST SP 800-53 Rev.5",
+        "status": "active"
+      },
+      "b68331ba-f8d8-4040-8275-9e45afb870e9": {
+        "id": "b68331ba-f8d8-4040-8275-9e45afb870e9",
+        "type": "standard_control",
+        "code": "NIST-800-53-REV5-SA-2",
+        "title": "SA-2 Allocation Of Resources",
+        "name": "SA-2 Allocation Of Resources",
+        "category": "NIST SP 800-53 Rev.5",
+        "status": "active"
+      }
+    },
+    "work_function": {
+      "21c82d64-5a7a-4d6f-a6dd-ec6ef53c8a6b": {
+        "id": "21c82d64-5a7a-4d6f-a6dd-ec6ef53c8a6b",
+        "type": "work_function",
+        "code": "13",
+        "title": "信息化管理职能",
+        "name": "信息化管理职能",
+        "category": "",
+        "status": ""
+      },
+      "432e5bc3-61f4-4257-b20a-ea5482853053": {
+        "id": "432e5bc3-61f4-4257-b20a-ea5482853053",
+        "type": "work_function",
+        "code": "27",
+        "title": "规划计划管理职能",
+        "name": "规划计划管理职能",
+        "category": "",
+        "status": ""
+      },
+      "8a647902-9b1f-4320-ac5e-c9829dbe9ea9": {
+        "id": "8a647902-9b1f-4320-ac5e-c9829dbe9ea9",
+        "type": "work_function",
+        "code": "10",
+        "title": "安全管理职能",
+        "name": "安全管理职能",
+        "category": "",
+        "status": ""
+      }
+    }
+  },
+  "relations": [
+    {
+      "id": "relation:7116013c9eb5814c",
+      "type": "belongs_to",
+      "sourceId": "6a8b013d-e22b-4e8c-acfd-184fb4c78baa",
+      "sourceType": "capability_domain",
+      "targetId": "697c2bdb-baa4-4899-a2a7-d0f5da9bd5fe",
+      "targetType": "capability_category",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:c03ce86190f63d48",
+      "type": "belongs_to",
+      "sourceId": "d5164338-2577-4b4a-b83f-a04998054f48",
+      "sourceType": "capability_domain",
+      "targetId": "697c2bdb-baa4-4899-a2a7-d0f5da9bd5fe",
+      "targetType": "capability_category",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:c4ecd39564505f62",
+      "type": "belongs_to",
+      "sourceId": "59516fab-857b-41e2-ab8c-2479c96ac673",
+      "sourceType": "capability",
+      "targetId": "d5164338-2577-4b4a-b83f-a04998054f48",
+      "targetType": "capability_domain",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:6ab57c0e3904699f",
+      "type": "belongs_to",
+      "sourceId": "6486a035-efdd-4ad8-a366-d2d8701ab6a6",
+      "sourceType": "capability_focus",
+      "targetId": "59516fab-857b-41e2-ab8c-2479c96ac673",
+      "targetType": "capability",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:7265a699670a9f15",
+      "type": "maps_to_work",
+      "sourceId": "6486a035-efdd-4ad8-a366-d2d8701ab6a6",
+      "sourceType": "capability_focus",
+      "targetId": "a437808a-3507-42b7-8d4f-72c2080fc65d",
+      "targetType": "security_work",
+      "label": "映射安全工作",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:542c50b92e954ad8",
+      "type": "maps_to_process",
+      "sourceId": "6486a035-efdd-4ad8-a366-d2d8701ab6a6",
+      "sourceType": "capability_focus",
+      "targetId": "2ca9f9d3-75bd-4c4d-90d8-0f230a0ba6ad",
+      "targetType": "process_reference",
+      "label": "映射流程",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 6
+    },
+    {
+      "id": "relation:744bdb7964fedb01",
+      "type": "belongs_to",
+      "sourceId": "303045b7-a241-41a4-97a3-ce86a3d3bda1",
+      "sourceType": "capability_focus",
+      "targetId": "59516fab-857b-41e2-ab8c-2479c96ac673",
+      "targetType": "capability",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:745a03bf322daa2d",
+      "type": "belongs_to",
+      "sourceId": "92d4fb18-815b-42eb-9948-0df683a4b830",
+      "sourceType": "capability",
+      "targetId": "d5164338-2577-4b4a-b83f-a04998054f48",
+      "targetType": "capability_domain",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:ceb384c0ee6f110b",
+      "type": "belongs_to",
+      "sourceId": "629cc5f5-f78b-4dcd-a228-867d59baa28d",
+      "sourceType": "capability",
+      "targetId": "d5164338-2577-4b4a-b83f-a04998054f48",
+      "targetType": "capability_domain",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:bb897808105fdace",
+      "type": "belongs_to",
+      "sourceId": "7748c478-9e64-43f0-8b50-6fd69c81fbac",
+      "sourceType": "capability",
+      "targetId": "d5164338-2577-4b4a-b83f-a04998054f48",
+      "targetType": "capability_domain",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:6ff38caa1cab48ef",
+      "type": "belongs_to",
+      "sourceId": "3d8d883b-6b4d-4f4f-b153-220a9708e8f8",
+      "sourceType": "capability",
+      "targetId": "d5164338-2577-4b4a-b83f-a04998054f48",
+      "targetType": "capability_domain",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:2195ac51f00046f6",
+      "type": "belongs_to",
+      "sourceId": "e227e850-097c-4b6e-9dab-6295ab3456b3",
+      "sourceType": "capability",
+      "targetId": "d5164338-2577-4b4a-b83f-a04998054f48",
+      "targetType": "capability_domain",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:7100f5ff6f4b843b",
+      "type": "belongs_to",
+      "sourceId": "2a8d20c6-3244-4c1e-83ca-24b3391dd386",
+      "sourceType": "capability_domain",
+      "targetId": "697c2bdb-baa4-4899-a2a7-d0f5da9bd5fe",
+      "targetType": "capability_category",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:163c8336caaca002",
+      "type": "belongs_to",
+      "sourceId": "f2a9167e-8c38-4400-9c94-051d00421b26",
+      "sourceType": "capability_domain",
+      "targetId": "697c2bdb-baa4-4899-a2a7-d0f5da9bd5fe",
+      "targetType": "capability_category",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:1fb44070f17bb843",
+      "type": "maps_to_standard",
+      "sourceId": "6486a035-efdd-4ad8-a366-d2d8701ab6a6",
+      "sourceType": "capability_focus",
+      "targetId": "15d61448-9caa-4ef7-a378-8171f68e1559",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:1f2c62830c3dbf08",
+      "type": "maps_to_standard",
+      "sourceId": "6486a035-efdd-4ad8-a366-d2d8701ab6a6",
+      "sourceType": "capability_focus",
+      "targetId": "b68331ba-f8d8-4040-8275-9e45afb870e9",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:1c8bd30315dd3a9c",
+      "type": "stakeholder_by",
+      "sourceId": "2ca9f9d3-75bd-4c4d-90d8-0f230a0ba6ad",
+      "sourceType": "process_reference",
+      "targetId": "21c82d64-5a7a-4d6f-a6dd-ec6ef53c8a6b",
+      "targetType": "work_function",
+      "label": "涉及职能",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:1d79d395464ff78a",
+      "type": "stakeholder_by",
+      "sourceId": "2ca9f9d3-75bd-4c4d-90d8-0f230a0ba6ad",
+      "sourceType": "process_reference",
+      "targetId": "432e5bc3-61f4-4257-b20a-ea5482853053",
+      "targetType": "work_function",
+      "label": "涉及职能",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:3b366cb9bebf8dad",
+      "type": "stakeholder_by",
+      "sourceId": "2ca9f9d3-75bd-4c4d-90d8-0f230a0ba6ad",
+      "sourceType": "process_reference",
+      "targetId": "8a647902-9b1f-4320-ac5e-c9829dbe9ea9",
+      "targetType": "work_function",
+      "label": "涉及职能",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    }
+  ],
+  "relationCount": 19
+}

@@ -1,0 +1,946 @@
+{
+  "packageType": "oi-149-p4-capability-object-projection",
+  "dataState": "ready",
+  "detailMode": "detail",
+  "selected": {
+    "id": "8c8190a8-b48f-40d2-85f0-6850c604d745",
+    "type": "capability_focus",
+    "code": "T-PD.TP-05",
+    "title": "对仅允许预定义的程序或行为进行控制",
+    "name": "对仅允许预定义的程序或行为进行控制",
+    "category": "",
+    "status": "active",
+    "description": "针对操作系统、应用程序的预期进程或行为，建立值得信任允许访问或者允许通过验证的名单，提高访问控制过程安全性与便捷性的能力"
+  },
+  "ancestorIds": [
+    "94bba6df-c6bc-41b5-ad60-7c6e87a173ac",
+    "9cd70765-5c70-4085-89dc-c512779f4b7f",
+    "c097b3c8-f951-409f-8422-59ff30e782e5"
+  ],
+  "focusIds": [
+    "8c8190a8-b48f-40d2-85f0-6850c604d745"
+  ],
+  "focusCount": 1,
+  "childOverview": [],
+  "coverageSummary": {
+    "focusCount": 1,
+    "technicalServiceCount": 2,
+    "scopeTypeCount": 2,
+    "managementWorkCount": 1,
+    "processReferenceCount": 0,
+    "standardControlCount": 21,
+    "moduleCount": 0,
+    "measureCount": 0
+  },
+  "objects": {
+    "capability_focus": {
+      "8c8190a8-b48f-40d2-85f0-6850c604d745": {
+        "id": "8c8190a8-b48f-40d2-85f0-6850c604d745",
+        "type": "capability_focus",
+        "code": "T-PD.TP-05",
+        "title": "对仅允许预定义的程序或行为进行控制",
+        "name": "对仅允许预定义的程序或行为进行控制",
+        "category": "",
+        "status": "active",
+        "description": "针对操作系统、应用程序的预期进程或行为，建立值得信任允许访问或者允许通过验证的名单，提高访问控制过程安全性与便捷性的能力"
+      },
+      "44817bda-17a6-4c50-9e1b-a976ca9bd1aa": {
+        "id": "44817bda-17a6-4c50-9e1b-a976ca9bd1aa",
+        "type": "capability_focus",
+        "code": "T-PD.TP-01",
+        "title": "对恶意代码进行检测和防护，抑制或阻止恶意代码带来威胁",
+        "name": "对恶意代码进行检测和防护，抑制或阻止恶意代码带来威胁",
+        "category": "",
+        "status": "active"
+      },
+      "da78919c-d048-42d4-b95e-e2869b07138d": {
+        "id": "da78919c-d048-42d4-b95e-e2869b07138d",
+        "type": "capability_focus",
+        "code": "T-PD.TP-02",
+        "title": "识别与检测已知及新出现安全威胁",
+        "name": "识别与检测已知及新出现安全威胁",
+        "category": "",
+        "status": "active"
+      },
+      "85aefc20-d2ad-425b-92ff-41938d24c543": {
+        "id": "85aefc20-d2ad-425b-92ff-41938d24c543",
+        "type": "capability_focus",
+        "code": "T-PD.TP-03",
+        "title": "实施入侵防护技术和策略，及时阻断攻击行为",
+        "name": "实施入侵防护技术和策略，及时阻断攻击行为",
+        "category": "",
+        "status": "active"
+      },
+      "52587aa8-a348-4f68-9965-e88007d35567": {
+        "id": "52587aa8-a348-4f68-9965-e88007d35567",
+        "type": "capability_focus",
+        "code": "T-PD.TP-04",
+        "title": "收集网络安全流量",
+        "name": "收集网络安全流量",
+        "category": "",
+        "status": "active"
+      }
+    },
+    "capability_category": {
+      "94bba6df-c6bc-41b5-ad60-7c6e87a173ac": {
+        "id": "94bba6df-c6bc-41b5-ad60-7c6e87a173ac",
+        "type": "capability_category",
+        "code": "",
+        "title": "安全技术能力 T",
+        "name": "安全技术能力 T",
+        "category": "",
+        "status": "active"
+      }
+    },
+    "capability_domain": {
+      "9cd70765-5c70-4085-89dc-c512779f4b7f": {
+        "id": "9cd70765-5c70-4085-89dc-c512779f4b7f",
+        "type": "capability_domain",
+        "code": "T-PD",
+        "title": "被动防御 Passive Defense",
+        "name": "被动防御 Passive Defense",
+        "category": "",
+        "status": "active"
+      },
+      "52656e45-e93d-4cb8-93eb-36a7e14b7655": {
+        "id": "52656e45-e93d-4cb8-93eb-36a7e14b7655",
+        "type": "capability_domain",
+        "code": "T-AS",
+        "title": "基础架构安全 Architectural Security",
+        "name": "基础架构安全 Architectural Security",
+        "category": "",
+        "status": "active"
+      },
+      "86565325-5087-42c6-aab9-372940ed915a": {
+        "id": "86565325-5087-42c6-aab9-372940ed915a",
+        "type": "capability_domain",
+        "code": "T-AD",
+        "title": "积极防御 Active Defense",
+        "name": "积极防御 Active Defense",
+        "category": "",
+        "status": "active"
+      },
+      "bdf00d1b-c193-4c48-8bbc-5e30e35d8186": {
+        "id": "bdf00d1b-c193-4c48-8bbc-5e30e35d8186",
+        "type": "capability_domain",
+        "code": "T-IN",
+        "title": "情报 Intelligence",
+        "name": "情报 Intelligence",
+        "category": "",
+        "status": "active"
+      },
+      "f6c5bbc5-1c27-4bbe-ba4e-7ccfead1f827": {
+        "id": "f6c5bbc5-1c27-4bbe-ba4e-7ccfead1f827",
+        "type": "capability_domain",
+        "code": "T-OF",
+        "title": "进攻 Offense",
+        "name": "进攻 Offense",
+        "category": "",
+        "status": "active"
+      }
+    },
+    "capability": {
+      "c097b3c8-f951-409f-8422-59ff30e782e5": {
+        "id": "c097b3c8-f951-409f-8422-59ff30e782e5",
+        "type": "capability",
+        "code": "T-PD.TP",
+        "title": "威胁检测与防护能力",
+        "name": "威胁检测与防护能力",
+        "category": "",
+        "status": "active"
+      },
+      "53a980f0-6183-4feb-827b-c93e5c6b456d": {
+        "id": "53a980f0-6183-4feb-827b-c93e5c6b456d",
+        "type": "capability",
+        "code": "T-PD.AC",
+        "title": "网络访问控制能力",
+        "name": "网络访问控制能力",
+        "category": "",
+        "status": "active"
+      },
+      "184af5ec-6ca8-4b73-9ad6-ed6ce7ffb4e9": {
+        "id": "184af5ec-6ca8-4b73-9ad6-ed6ce7ffb4e9",
+        "type": "capability",
+        "code": "T-PD.DP",
+        "title": "数据安全防护能力",
+        "name": "数据安全防护能力",
+        "category": "",
+        "status": "active"
+      },
+      "7b902b73-7f08-4235-95a8-577ef0d0ce5b": {
+        "id": "7b902b73-7f08-4235-95a8-577ef0d0ce5b",
+        "type": "capability",
+        "code": "T-PD.PP",
+        "title": "网络边界防护能力",
+        "name": "网络边界防护能力",
+        "category": "",
+        "status": "active"
+      }
+    },
+    "security_technical_service": {
+      "e3753813-c06b-468c-8be0-f6f98715acb9": {
+        "id": "e3753813-c06b-468c-8be0-f6f98715acb9",
+        "type": "security_technical_service",
+        "code": "I-AP&T-PD.TP-05",
+        "title": "应用程序白名单",
+        "name": "应用程序白名单",
+        "category": "I-AP",
+        "status": "active"
+      },
+      "f44dcce7-e046-4482-890b-429a35360415": {
+        "id": "f44dcce7-e046-4482-890b-429a35360415",
+        "type": "security_technical_service",
+        "code": "I-OS&T-PD.TP-05",
+        "title": "操作系统进程白名单",
+        "name": "操作系统进程白名单",
+        "category": "I-OS",
+        "status": "active"
+      }
+    },
+    "security_work": {
+      "252cb7ba-1684-40e9-ac10-e529243ade98": {
+        "id": "252cb7ba-1684-40e9-ac10-e529243ade98",
+        "type": "security_work",
+        "code": "",
+        "title": "入侵检测规则持续管理",
+        "name": "入侵检测规则持续管理",
+        "category": "",
+        "status": "active"
+      }
+    },
+    "standard_control": {
+      "520bc37f-69ac-4150-8683-bd76ce10e48e": {
+        "id": "520bc37f-69ac-4150-8683-bd76ce10e48e",
+        "type": "standard_control",
+        "code": "ISO-IEC-27001-2022-8.19",
+        "title": "8.19 在操作系统上安装软件",
+        "name": "8.19 在操作系统上安装软件",
+        "category": "ISO/IEC 27001:2022",
+        "status": "active"
+      },
+      "90b9a383-f3ea-4b36-a23c-7331e0a2c556": {
+        "id": "90b9a383-f3ea-4b36-a23c-7331e0a2c556",
+        "type": "standard_control",
+        "code": "NIST-CSF-2.0-PR.PS-05",
+        "title": "防止安装和执行未经授权的软件",
+        "name": "防止安装和执行未经授权的软件",
+        "category": "平台安全（Platform Security）： 物理和虚拟平台的硬件、软件（例如固件、操作系统、应用程序）和服务，按照组织风险战略进行管理，以保护其机密性、完整性和可用性",
+        "status": "active"
+      },
+      "caa6d24d-7152-4c6f-9a66-c45d8c7c5dd4": {
+        "id": "caa6d24d-7152-4c6f-9a66-c45d8c7c5dd4",
+        "type": "standard_control",
+        "code": "GB-T-22239-2019-L3-8.3.3.2",
+        "title": "移动",
+        "name": "移动",
+        "category": "等保三级",
+        "status": "active"
+      },
+      "7a006ea1-8b79-481a-9e5a-54164262c06f": {
+        "id": "7a006ea1-8b79-481a-9e5a-54164262c06f",
+        "type": "standard_control",
+        "code": "CIS-CSC-V8.1.2-2.5",
+        "title": "2.5 授权软件允许列表",
+        "name": "2.5 授权软件允许列表",
+        "category": "CIS Controls",
+        "status": "active"
+      },
+      "880bb207-fbae-4536-9b89-18d5874f07a2": {
+        "id": "880bb207-fbae-4536-9b89-18d5874f07a2",
+        "type": "standard_control",
+        "code": "CIS-CSC-V8.1.2-2.6",
+        "title": "2.6 授权库允许列表",
+        "name": "2.6 授权库允许列表",
+        "category": "CIS Controls",
+        "status": "active"
+      },
+      "933b3609-ee2c-4b84-a895-19713941f5e5": {
+        "id": "933b3609-ee2c-4b84-a895-19713941f5e5",
+        "type": "standard_control",
+        "code": "CIS-CSC-V8.1.2-2.7",
+        "title": "2.7 授权脚本允许列表",
+        "name": "2.7 授权脚本允许列表",
+        "category": "CIS Controls",
+        "status": "active"
+      },
+      "e9826f8a-0ff9-47f8-8532-88798d538ee6": {
+        "id": "e9826f8a-0ff9-47f8-8532-88798d538ee6",
+        "type": "standard_control",
+        "code": "CRF-SAFEGUARDS-CORE-2026-SW-10",
+        "title": "SW-10 在每个组织的计算机系统上维护软件应用控制系统，确保只有经过授权的软件才能执行。",
+        "name": "SW-10 在每个组织的计算机系统上维护软件应用控制系统，确保只有经过授权的软件才能执行。",
+        "category": "CRF Safeguards Core 2026",
+        "status": "active"
+      },
+      "97d26907-aa14-4f48-8216-24c5e7b69351": {
+        "id": "97d26907-aa14-4f48-8216-24c5e7b69351",
+        "type": "standard_control",
+        "code": "CRF-SAFEGUARDS-CORE-2026-SW-11",
+        "title": "SW-11 确保组织的应用程序控制系统只允许在组织的每个计算系统上执行经授权的二进制文件。",
+        "name": "SW-11 确保组织的应用程序控制系统只允许在组织的每个计算系统上执行经授权的二进制文件。",
+        "category": "CRF Safeguards Core 2026",
+        "status": "active"
+      },
+      "adf4a5ef-8e17-4ca7-90bb-49886c487c9f": {
+        "id": "adf4a5ef-8e17-4ca7-90bb-49886c487c9f",
+        "type": "standard_control",
+        "code": "CRF-SAFEGUARDS-CORE-2026-SW-12",
+        "title": "SW-12 确保组织的应用控制系统只允许在组织的每个计算系统上使用经授权的软件库（如 DLL",
+        "name": "SW-12 确保组织的应用控制系统只允许在组织的每个计算系统上使用经授权的软件库（如 DLL",
+        "category": "CRF Safeguards Core 2026",
+        "status": "active"
+      },
+      "a84f760b-255f-4766-9496-7c0d1d0e0b34": {
+        "id": "a84f760b-255f-4766-9496-7c0d1d0e0b34",
+        "type": "standard_control",
+        "code": "CRF-SAFEGUARDS-CORE-2026-SW-13",
+        "title": "SW-13 确保组织的应用程序控制系统只允许在组织的每个计算系统上使用经授权的软件脚本。",
+        "name": "SW-13 确保组织的应用程序控制系统只允许在组织的每个计算系统上使用经授权的软件脚本。",
+        "category": "CRF Safeguards Core 2026",
+        "status": "active"
+      },
+      "1bf24966-d195-4279-8516-b4407fb0a91f": {
+        "id": "1bf24966-d195-4279-8516-b4407fb0a91f",
+        "type": "standard_control",
+        "code": "CRF-SAFEGUARDS-CORE-2026-SW-14",
+        "title": "SW-14 确保组织的应用程序控制系统只允许在每个计算系统上使用授权的操作系统Shell（如",
+        "name": "SW-14 确保组织的应用程序控制系统只允许在每个计算系统上使用授权的操作系统Shell（如",
+        "category": "CRF Safeguards Core 2026",
+        "status": "active"
+      },
+      "b976be3d-6770-4698-a15b-3425616d7fbf": {
+        "id": "b976be3d-6770-4698-a15b-3425616d7fbf",
+        "type": "standard_control",
+        "code": "NIST-800-53-REV5-CM-7",
+        "title": "CM-7 Least Functionality",
+        "name": "CM-7 Least Functionality",
+        "category": "NIST SP 800-53 Rev.5",
+        "status": "active"
+      },
+      "17d5a75a-561d-4acd-bfcb-11adade63f8f": {
+        "id": "17d5a75a-561d-4acd-bfcb-11adade63f8f",
+        "type": "standard_control",
+        "code": "NIST-800-53-REV5-CM-7(1)",
+        "title": "CM-7(1) Periodic Review",
+        "name": "CM-7(1) Periodic Review",
+        "category": "NIST SP 800-53 Rev.5",
+        "status": "active"
+      },
+      "563fb3d4-5d9b-48ca-9d91-c74c30edc96f": {
+        "id": "563fb3d4-5d9b-48ca-9d91-c74c30edc96f",
+        "type": "standard_control",
+        "code": "NIST-800-53-REV5-CM-7(2)",
+        "title": "CM-7(2) Prevent Program Execution",
+        "name": "CM-7(2) Prevent Program Execution",
+        "category": "NIST SP 800-53 Rev.5",
+        "status": "active"
+      },
+      "2ecc9465-0341-4954-a2d9-1e89b833f44a": {
+        "id": "2ecc9465-0341-4954-a2d9-1e89b833f44a",
+        "type": "standard_control",
+        "code": "NIST-800-53-REV5-CM-7(3)",
+        "title": "CM-7(3) Registration Compliance",
+        "name": "CM-7(3) Registration Compliance",
+        "category": "NIST SP 800-53 Rev.5",
+        "status": "active"
+      },
+      "61902613-9fc2-4084-9bd4-81c4a3989c15": {
+        "id": "61902613-9fc2-4084-9bd4-81c4a3989c15",
+        "type": "standard_control",
+        "code": "NIST-800-53-REV5-CM-7(4)",
+        "title": "CM-7(4) Unauthorized Software — Deny-By-Exception",
+        "name": "CM-7(4) Unauthorized Software — Deny-By-Exception",
+        "category": "NIST SP 800-53 Rev.5",
+        "status": "active"
+      },
+      "cd05d613-2bf2-4eeb-9251-68f11412f163": {
+        "id": "cd05d613-2bf2-4eeb-9251-68f11412f163",
+        "type": "standard_control",
+        "code": "NIST-800-53-REV5-CM-7(5)",
+        "title": "CM-7(5) Authorized Software — Allow-By-Exception",
+        "name": "CM-7(5) Authorized Software — Allow-By-Exception",
+        "category": "NIST SP 800-53 Rev.5",
+        "status": "active"
+      },
+      "270926b9-ba0e-45bb-a824-e09b7474f0e6": {
+        "id": "270926b9-ba0e-45bb-a824-e09b7474f0e6",
+        "type": "standard_control",
+        "code": "NIST-800-53-REV5-CM-7(6)",
+        "title": "CM-7(6) Confined Environments With Limited Privileges",
+        "name": "CM-7(6) Confined Environments With Limited Privileges",
+        "category": "NIST SP 800-53 Rev.5",
+        "status": "active"
+      },
+      "5207ec3c-0ff9-47dc-8da5-ed47297030a3": {
+        "id": "5207ec3c-0ff9-47dc-8da5-ed47297030a3",
+        "type": "standard_control",
+        "code": "NIST-800-53-REV5-CM-7(7)",
+        "title": "CM-7(7) Code Execution In Protected Environments",
+        "name": "CM-7(7) Code Execution In Protected Environments",
+        "category": "NIST SP 800-53 Rev.5",
+        "status": "active"
+      },
+      "6fb72ffc-b709-4a8b-9a01-d27a8f0a1142": {
+        "id": "6fb72ffc-b709-4a8b-9a01-d27a8f0a1142",
+        "type": "standard_control",
+        "code": "NIST-800-53-REV5-CM-7(8)",
+        "title": "CM-7(8) Binary Or Machine Executable Code",
+        "name": "CM-7(8) Binary Or Machine Executable Code",
+        "category": "NIST SP 800-53 Rev.5",
+        "status": "active"
+      },
+      "a58ae888-5636-490a-94b9-b5c1ec152b94": {
+        "id": "a58ae888-5636-490a-94b9-b5c1ec152b94",
+        "type": "standard_control",
+        "code": "NIST-800-53-REV5-CM-7(9)",
+        "title": "CM-7(9) Prohibiting The Use Of Unauthorized Hardware",
+        "name": "CM-7(9) Prohibiting The Use Of Unauthorized Hardware",
+        "category": "NIST SP 800-53 Rev.5",
+        "status": "active"
+      }
+    },
+    "scope_type": {
+      "7f4b920b-2eca-4ddd-a3ca-55ace40efeb9": {
+        "id": "7f4b920b-2eca-4ddd-a3ca-55ace40efeb9",
+        "type": "scope_type",
+        "code": "I-AP",
+        "title": "软件应用",
+        "name": "软件应用",
+        "category": "网络空间",
+        "status": ""
+      },
+      "4abd36d3-4ba1-495c-8fb9-3957167f4833": {
+        "id": "4abd36d3-4ba1-495c-8fb9-3957167f4833",
+        "type": "scope_type",
+        "code": "I-OS",
+        "title": "操作系统（主机/终端）",
+        "name": "操作系统（主机/终端）",
+        "category": "网络空间",
+        "status": ""
+      }
+    }
+  },
+  "relations": [
+    {
+      "id": "relation:80e909e6a4ea3a70",
+      "type": "belongs_to",
+      "sourceId": "52656e45-e93d-4cb8-93eb-36a7e14b7655",
+      "sourceType": "capability_domain",
+      "targetId": "94bba6df-c6bc-41b5-ad60-7c6e87a173ac",
+      "targetType": "capability_category",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:0ede7cd576b2ee63",
+      "type": "belongs_to",
+      "sourceId": "9cd70765-5c70-4085-89dc-c512779f4b7f",
+      "sourceType": "capability_domain",
+      "targetId": "94bba6df-c6bc-41b5-ad60-7c6e87a173ac",
+      "targetType": "capability_category",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:3dc8a4e24d690afb",
+      "type": "belongs_to",
+      "sourceId": "53a980f0-6183-4feb-827b-c93e5c6b456d",
+      "sourceType": "capability",
+      "targetId": "9cd70765-5c70-4085-89dc-c512779f4b7f",
+      "targetType": "capability_domain",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:7c309796dd509ecc",
+      "type": "belongs_to",
+      "sourceId": "184af5ec-6ca8-4b73-9ad6-ed6ce7ffb4e9",
+      "sourceType": "capability",
+      "targetId": "9cd70765-5c70-4085-89dc-c512779f4b7f",
+      "targetType": "capability_domain",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:9a3d7dbd44a8c139",
+      "type": "belongs_to",
+      "sourceId": "7b902b73-7f08-4235-95a8-577ef0d0ce5b",
+      "sourceType": "capability",
+      "targetId": "9cd70765-5c70-4085-89dc-c512779f4b7f",
+      "targetType": "capability_domain",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:1c22c150ece54b3f",
+      "type": "belongs_to",
+      "sourceId": "c097b3c8-f951-409f-8422-59ff30e782e5",
+      "sourceType": "capability",
+      "targetId": "9cd70765-5c70-4085-89dc-c512779f4b7f",
+      "targetType": "capability_domain",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:e98a84ef30b1f2b7",
+      "type": "belongs_to",
+      "sourceId": "44817bda-17a6-4c50-9e1b-a976ca9bd1aa",
+      "sourceType": "capability_focus",
+      "targetId": "c097b3c8-f951-409f-8422-59ff30e782e5",
+      "targetType": "capability",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:1770fafd1290162b",
+      "type": "belongs_to",
+      "sourceId": "da78919c-d048-42d4-b95e-e2869b07138d",
+      "sourceType": "capability_focus",
+      "targetId": "c097b3c8-f951-409f-8422-59ff30e782e5",
+      "targetType": "capability",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:3bce17ec6b9421f6",
+      "type": "belongs_to",
+      "sourceId": "85aefc20-d2ad-425b-92ff-41938d24c543",
+      "sourceType": "capability_focus",
+      "targetId": "c097b3c8-f951-409f-8422-59ff30e782e5",
+      "targetType": "capability",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:7e82205872ce675b",
+      "type": "belongs_to",
+      "sourceId": "52587aa8-a348-4f68-9965-e88007d35567",
+      "sourceType": "capability_focus",
+      "targetId": "c097b3c8-f951-409f-8422-59ff30e782e5",
+      "targetType": "capability",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:9b8d6bd2cba89f8f",
+      "type": "belongs_to",
+      "sourceId": "8c8190a8-b48f-40d2-85f0-6850c604d745",
+      "sourceType": "capability_focus",
+      "targetId": "c097b3c8-f951-409f-8422-59ff30e782e5",
+      "targetType": "capability",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:269d2c5213ba6293",
+      "type": "supports_focus",
+      "sourceId": "e3753813-c06b-468c-8be0-f6f98715acb9",
+      "sourceType": "security_technical_service",
+      "targetId": "8c8190a8-b48f-40d2-85f0-6850c604d745",
+      "targetType": "capability_focus",
+      "label": "支撑关注点",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 4
+    },
+    {
+      "id": "relation:79148b6b19a4ae96",
+      "type": "supports_focus",
+      "sourceId": "f44dcce7-e046-4482-890b-429a35360415",
+      "sourceType": "security_technical_service",
+      "targetId": "8c8190a8-b48f-40d2-85f0-6850c604d745",
+      "targetType": "capability_focus",
+      "label": "支撑关注点",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 4
+    },
+    {
+      "id": "relation:9cb4b848e06b746e",
+      "type": "maps_to_work",
+      "sourceId": "8c8190a8-b48f-40d2-85f0-6850c604d745",
+      "sourceType": "capability_focus",
+      "targetId": "252cb7ba-1684-40e9-ac10-e529243ade98",
+      "targetType": "security_work",
+      "label": "映射安全工作",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:5214f77d74fcabaf",
+      "type": "belongs_to",
+      "sourceId": "86565325-5087-42c6-aab9-372940ed915a",
+      "sourceType": "capability_domain",
+      "targetId": "94bba6df-c6bc-41b5-ad60-7c6e87a173ac",
+      "targetType": "capability_category",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:99aa02fbe914c73a",
+      "type": "belongs_to",
+      "sourceId": "bdf00d1b-c193-4c48-8bbc-5e30e35d8186",
+      "sourceType": "capability_domain",
+      "targetId": "94bba6df-c6bc-41b5-ad60-7c6e87a173ac",
+      "targetType": "capability_category",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:90a358d75886f833",
+      "type": "belongs_to",
+      "sourceId": "f6c5bbc5-1c27-4bbe-ba4e-7ccfead1f827",
+      "sourceType": "capability_domain",
+      "targetId": "94bba6df-c6bc-41b5-ad60-7c6e87a173ac",
+      "targetType": "capability_category",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:38b9d30ac40c309e",
+      "type": "maps_to_standard",
+      "sourceId": "8c8190a8-b48f-40d2-85f0-6850c604d745",
+      "sourceType": "capability_focus",
+      "targetId": "520bc37f-69ac-4150-8683-bd76ce10e48e",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:d341eb5fffb53636",
+      "type": "maps_to_standard",
+      "sourceId": "8c8190a8-b48f-40d2-85f0-6850c604d745",
+      "sourceType": "capability_focus",
+      "targetId": "90b9a383-f3ea-4b36-a23c-7331e0a2c556",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:a47f049236a5e4c8",
+      "type": "maps_to_standard",
+      "sourceId": "8c8190a8-b48f-40d2-85f0-6850c604d745",
+      "sourceType": "capability_focus",
+      "targetId": "caa6d24d-7152-4c6f-9a66-c45d8c7c5dd4",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:632fae214910131b",
+      "type": "maps_to_standard",
+      "sourceId": "8c8190a8-b48f-40d2-85f0-6850c604d745",
+      "sourceType": "capability_focus",
+      "targetId": "7a006ea1-8b79-481a-9e5a-54164262c06f",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:382640fd881d4016",
+      "type": "maps_to_standard",
+      "sourceId": "8c8190a8-b48f-40d2-85f0-6850c604d745",
+      "sourceType": "capability_focus",
+      "targetId": "880bb207-fbae-4536-9b89-18d5874f07a2",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:c88f8369f3571d26",
+      "type": "maps_to_standard",
+      "sourceId": "8c8190a8-b48f-40d2-85f0-6850c604d745",
+      "sourceType": "capability_focus",
+      "targetId": "933b3609-ee2c-4b84-a895-19713941f5e5",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:74e638b6ed002168",
+      "type": "maps_to_standard",
+      "sourceId": "8c8190a8-b48f-40d2-85f0-6850c604d745",
+      "sourceType": "capability_focus",
+      "targetId": "e9826f8a-0ff9-47f8-8532-88798d538ee6",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:66405d6a1ea0dccd",
+      "type": "maps_to_standard",
+      "sourceId": "8c8190a8-b48f-40d2-85f0-6850c604d745",
+      "sourceType": "capability_focus",
+      "targetId": "97d26907-aa14-4f48-8216-24c5e7b69351",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:47706b6d9a81a1b4",
+      "type": "maps_to_standard",
+      "sourceId": "8c8190a8-b48f-40d2-85f0-6850c604d745",
+      "sourceType": "capability_focus",
+      "targetId": "adf4a5ef-8e17-4ca7-90bb-49886c487c9f",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:03bcfa44c6ee6995",
+      "type": "maps_to_standard",
+      "sourceId": "8c8190a8-b48f-40d2-85f0-6850c604d745",
+      "sourceType": "capability_focus",
+      "targetId": "a84f760b-255f-4766-9496-7c0d1d0e0b34",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:7e02703987769044",
+      "type": "maps_to_standard",
+      "sourceId": "8c8190a8-b48f-40d2-85f0-6850c604d745",
+      "sourceType": "capability_focus",
+      "targetId": "1bf24966-d195-4279-8516-b4407fb0a91f",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:b40a862e6f550d10",
+      "type": "maps_to_standard",
+      "sourceId": "8c8190a8-b48f-40d2-85f0-6850c604d745",
+      "sourceType": "capability_focus",
+      "targetId": "b976be3d-6770-4698-a15b-3425616d7fbf",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:cc91138fb49ad395",
+      "type": "maps_to_standard",
+      "sourceId": "8c8190a8-b48f-40d2-85f0-6850c604d745",
+      "sourceType": "capability_focus",
+      "targetId": "17d5a75a-561d-4acd-bfcb-11adade63f8f",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:8ee9d739c3c7f9a3",
+      "type": "maps_to_standard",
+      "sourceId": "8c8190a8-b48f-40d2-85f0-6850c604d745",
+      "sourceType": "capability_focus",
+      "targetId": "563fb3d4-5d9b-48ca-9d91-c74c30edc96f",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:4c49c7dda8a528a0",
+      "type": "maps_to_standard",
+      "sourceId": "8c8190a8-b48f-40d2-85f0-6850c604d745",
+      "sourceType": "capability_focus",
+      "targetId": "2ecc9465-0341-4954-a2d9-1e89b833f44a",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:c58aaaaefda3e6bf",
+      "type": "maps_to_standard",
+      "sourceId": "8c8190a8-b48f-40d2-85f0-6850c604d745",
+      "sourceType": "capability_focus",
+      "targetId": "61902613-9fc2-4084-9bd4-81c4a3989c15",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:7607501cae7251a5",
+      "type": "maps_to_standard",
+      "sourceId": "8c8190a8-b48f-40d2-85f0-6850c604d745",
+      "sourceType": "capability_focus",
+      "targetId": "cd05d613-2bf2-4eeb-9251-68f11412f163",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:6fe8b3b6b2784294",
+      "type": "maps_to_standard",
+      "sourceId": "8c8190a8-b48f-40d2-85f0-6850c604d745",
+      "sourceType": "capability_focus",
+      "targetId": "270926b9-ba0e-45bb-a824-e09b7474f0e6",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:8e2679a42932c7e0",
+      "type": "maps_to_standard",
+      "sourceId": "8c8190a8-b48f-40d2-85f0-6850c604d745",
+      "sourceType": "capability_focus",
+      "targetId": "5207ec3c-0ff9-47dc-8da5-ed47297030a3",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:f98b1f21bf9f0038",
+      "type": "maps_to_standard",
+      "sourceId": "8c8190a8-b48f-40d2-85f0-6850c604d745",
+      "sourceType": "capability_focus",
+      "targetId": "6fb72ffc-b709-4a8b-9a01-d27a8f0a1142",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:b60fc998d919338c",
+      "type": "maps_to_standard",
+      "sourceId": "8c8190a8-b48f-40d2-85f0-6850c604d745",
+      "sourceType": "capability_focus",
+      "targetId": "a58ae888-5636-490a-94b9-b5c1ec152b94",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:8b693f627ffdf2a7",
+      "type": "applies_to_scope",
+      "sourceId": "e3753813-c06b-468c-8be0-f6f98715acb9",
+      "sourceType": "security_technical_service",
+      "targetId": "7f4b920b-2eca-4ddd-a3ca-55ace40efeb9",
+      "targetType": "scope_type",
+      "label": "适用作用域",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 3
+    },
+    {
+      "id": "relation:95989853b16f96b6",
+      "type": "applies_to_scope",
+      "sourceId": "f44dcce7-e046-4482-890b-429a35360415",
+      "sourceType": "security_technical_service",
+      "targetId": "4abd36d3-4ba1-495c-8fb9-3957167f4833",
+      "targetType": "scope_type",
+      "label": "适用作用域",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 3
+    }
+  ],
+  "relationCount": 40
+}

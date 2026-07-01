@@ -1,0 +1,300 @@
+{
+  "packageType": "oi-149-p4-lifecycle-index",
+  "dataState": "ready",
+  "stats": {
+    "lifecycle_domain": 2,
+    "lifecycle_stage": 15,
+    "lifecycle_activity": 74,
+    "lifecycle_control": 6,
+    "lifecycle_requirement": 76,
+    "software_development_type": 4,
+    "capability": 10,
+    "capability_focus": 27,
+    "development_technical_service": 11,
+    "development_technical_module": 14,
+    "security_technical_service": 32,
+    "security_technology_module": 44,
+    "security_technical_measure": 6,
+    "objects": 321,
+    "relations": 536,
+    "evidenceRefs": 1205
+  },
+  "tree": [
+    {
+      "id": "lifecycle_domain:LC-AP",
+      "type": "lifecycle_domain",
+      "code": "LC-AP",
+      "name": "开发安全生命周期",
+      "title": "开发安全生命周期",
+      "children": [
+        {
+          "id": "90680fc6-afe0-4ba1-a611-397e6199651f",
+          "type": "lifecycle_stage",
+          "code": "AP-01",
+          "name": "需求分析",
+          "title": "需求分析",
+          "children": []
+        },
+        {
+          "id": "203ba521-8264-44de-883b-9ae8fd56043f",
+          "type": "lifecycle_stage",
+          "code": "AP-02",
+          "name": "架构设计",
+          "title": "架构设计",
+          "children": []
+        },
+        {
+          "id": "2651db79-fec3-4702-b54d-3c01fd73f0f7",
+          "type": "lifecycle_stage",
+          "code": "AP-03",
+          "name": "编码开发",
+          "title": "编码开发",
+          "children": []
+        },
+        {
+          "id": "219c59da-cfa7-461d-870e-643141c4096e",
+          "type": "lifecycle_stage",
+          "code": "AP-04",
+          "name": "集成构建",
+          "title": "集成构建",
+          "children": []
+        },
+        {
+          "id": "10e12a65-c1fc-47c5-85dd-bef817516997",
+          "type": "lifecycle_stage",
+          "code": "AP-05",
+          "name": "测试验证",
+          "title": "测试验证",
+          "children": []
+        },
+        {
+          "id": "f52421b7-bfc6-4293-9e70-28565727eb83",
+          "type": "lifecycle_stage",
+          "code": "AP-06",
+          "name": "交付部署",
+          "title": "交付部署",
+          "children": []
+        },
+        {
+          "id": "bff4a7f5-f689-4236-a37a-5bc8f34db42a",
+          "type": "lifecycle_stage",
+          "code": "AP-07",
+          "name": "运行监控",
+          "title": "运行监控",
+          "children": []
+        },
+        {
+          "id": "2fed505b-300a-41ba-88cb-eeedac456c97",
+          "type": "lifecycle_stage",
+          "code": "AP-08",
+          "name": "维护处置",
+          "title": "维护处置",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "lifecycle_domain:LC-DT",
+      "type": "lifecycle_domain",
+      "code": "LC-DT",
+      "name": "数据生命周期安全",
+      "title": "数据生命周期安全",
+      "children": [
+        {
+          "id": "b27c8aaf-5f58-45bf-8755-53ecd6f2ee39",
+          "type": "lifecycle_stage",
+          "code": "DT-01",
+          "name": "收集/采集",
+          "title": "收集/采集",
+          "children": []
+        },
+        {
+          "id": "bf585ff2-ebab-4eeb-a155-e08b2f5f1713",
+          "type": "lifecycle_stage",
+          "code": "DT-02",
+          "name": "存储",
+          "title": "存储",
+          "children": []
+        },
+        {
+          "id": "65e61b8f-047b-499f-8e18-23b3459e4925",
+          "type": "lifecycle_stage",
+          "code": "DT-03",
+          "name": "传输",
+          "title": "传输",
+          "children": []
+        },
+        {
+          "id": "bc7709b0-9feb-4241-8935-c10743f2b22e",
+          "type": "lifecycle_stage",
+          "code": "DT-04",
+          "name": "加工/使用",
+          "title": "加工/使用",
+          "children": []
+        },
+        {
+          "id": "32130b85-e1aa-4ba2-9f68-c9e0dcf78849",
+          "type": "lifecycle_stage",
+          "code": "DT-05",
+          "name": "提供",
+          "title": "提供",
+          "children": []
+        },
+        {
+          "id": "d36e8e7f-804a-4986-93d6-07384260c42c",
+          "type": "lifecycle_stage",
+          "code": "DT-06",
+          "name": "公开",
+          "title": "公开",
+          "children": []
+        },
+        {
+          "id": "a09e71c0-78cd-4b0e-823b-673d0520361c",
+          "type": "lifecycle_stage",
+          "code": "DT-07",
+          "name": "删除",
+          "title": "删除",
+          "children": []
+        }
+      ]
+    }
+  ],
+  "projections": [
+    {
+      "id": "lifecycle_domain:LC-AP",
+      "type": "lifecycle_domain",
+      "code": "LC-AP",
+      "title": "开发安全生命周期",
+      "stageCount": 8,
+      "path": "lifecycle/projections/lifecycle_domain_LC-AP.json"
+    },
+    {
+      "id": "90680fc6-afe0-4ba1-a611-397e6199651f",
+      "type": "lifecycle_stage",
+      "code": "AP-01",
+      "title": "需求分析",
+      "stageCount": 1,
+      "path": "lifecycle/projections/90680fc6-afe0-4ba1-a611-397e6199651f.json"
+    },
+    {
+      "id": "203ba521-8264-44de-883b-9ae8fd56043f",
+      "type": "lifecycle_stage",
+      "code": "AP-02",
+      "title": "架构设计",
+      "stageCount": 1,
+      "path": "lifecycle/projections/203ba521-8264-44de-883b-9ae8fd56043f.json"
+    },
+    {
+      "id": "2651db79-fec3-4702-b54d-3c01fd73f0f7",
+      "type": "lifecycle_stage",
+      "code": "AP-03",
+      "title": "编码开发",
+      "stageCount": 1,
+      "path": "lifecycle/projections/2651db79-fec3-4702-b54d-3c01fd73f0f7.json"
+    },
+    {
+      "id": "219c59da-cfa7-461d-870e-643141c4096e",
+      "type": "lifecycle_stage",
+      "code": "AP-04",
+      "title": "集成构建",
+      "stageCount": 1,
+      "path": "lifecycle/projections/219c59da-cfa7-461d-870e-643141c4096e.json"
+    },
+    {
+      "id": "10e12a65-c1fc-47c5-85dd-bef817516997",
+      "type": "lifecycle_stage",
+      "code": "AP-05",
+      "title": "测试验证",
+      "stageCount": 1,
+      "path": "lifecycle/projections/10e12a65-c1fc-47c5-85dd-bef817516997.json"
+    },
+    {
+      "id": "f52421b7-bfc6-4293-9e70-28565727eb83",
+      "type": "lifecycle_stage",
+      "code": "AP-06",
+      "title": "交付部署",
+      "stageCount": 1,
+      "path": "lifecycle/projections/f52421b7-bfc6-4293-9e70-28565727eb83.json"
+    },
+    {
+      "id": "bff4a7f5-f689-4236-a37a-5bc8f34db42a",
+      "type": "lifecycle_stage",
+      "code": "AP-07",
+      "title": "运行监控",
+      "stageCount": 1,
+      "path": "lifecycle/projections/bff4a7f5-f689-4236-a37a-5bc8f34db42a.json"
+    },
+    {
+      "id": "2fed505b-300a-41ba-88cb-eeedac456c97",
+      "type": "lifecycle_stage",
+      "code": "AP-08",
+      "title": "维护处置",
+      "stageCount": 1,
+      "path": "lifecycle/projections/2fed505b-300a-41ba-88cb-eeedac456c97.json"
+    },
+    {
+      "id": "lifecycle_domain:LC-DT",
+      "type": "lifecycle_domain",
+      "code": "LC-DT",
+      "title": "数据生命周期安全",
+      "stageCount": 7,
+      "path": "lifecycle/projections/lifecycle_domain_LC-DT.json"
+    },
+    {
+      "id": "b27c8aaf-5f58-45bf-8755-53ecd6f2ee39",
+      "type": "lifecycle_stage",
+      "code": "DT-01",
+      "title": "收集/采集",
+      "stageCount": 1,
+      "path": "lifecycle/projections/b27c8aaf-5f58-45bf-8755-53ecd6f2ee39.json"
+    },
+    {
+      "id": "bf585ff2-ebab-4eeb-a155-e08b2f5f1713",
+      "type": "lifecycle_stage",
+      "code": "DT-02",
+      "title": "存储",
+      "stageCount": 1,
+      "path": "lifecycle/projections/bf585ff2-ebab-4eeb-a155-e08b2f5f1713.json"
+    },
+    {
+      "id": "65e61b8f-047b-499f-8e18-23b3459e4925",
+      "type": "lifecycle_stage",
+      "code": "DT-03",
+      "title": "传输",
+      "stageCount": 1,
+      "path": "lifecycle/projections/65e61b8f-047b-499f-8e18-23b3459e4925.json"
+    },
+    {
+      "id": "bc7709b0-9feb-4241-8935-c10743f2b22e",
+      "type": "lifecycle_stage",
+      "code": "DT-04",
+      "title": "加工/使用",
+      "stageCount": 1,
+      "path": "lifecycle/projections/bc7709b0-9feb-4241-8935-c10743f2b22e.json"
+    },
+    {
+      "id": "32130b85-e1aa-4ba2-9f68-c9e0dcf78849",
+      "type": "lifecycle_stage",
+      "code": "DT-05",
+      "title": "提供",
+      "stageCount": 1,
+      "path": "lifecycle/projections/32130b85-e1aa-4ba2-9f68-c9e0dcf78849.json"
+    },
+    {
+      "id": "d36e8e7f-804a-4986-93d6-07384260c42c",
+      "type": "lifecycle_stage",
+      "code": "DT-06",
+      "title": "公开",
+      "stageCount": 1,
+      "path": "lifecycle/projections/d36e8e7f-804a-4986-93d6-07384260c42c.json"
+    },
+    {
+      "id": "a09e71c0-78cd-4b0e-823b-673d0520361c",
+      "type": "lifecycle_stage",
+      "code": "DT-07",
+      "title": "删除",
+      "stageCount": 1,
+      "path": "lifecycle/projections/a09e71c0-78cd-4b0e-823b-673d0520361c.json"
+    }
+  ]
+}

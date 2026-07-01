@@ -521,10 +521,11 @@ async function annotationAuditInPage(note, ordinal, options = {}) {
   const drawerElements = () => {
     const drawer = document.querySelector(".user-annotation-drawer");
     const panel = drawer?.querySelector?.(".annotation-drawer-panel") || null;
-    const card = Array.from(panel?.querySelectorAll?.(".annotation-note-card[data-user-note-id]") || []).find(
+    const scroll = panel?.querySelector?.(".annotation-drawer-scroll") || null;
+    const card = Array.from(scroll?.querySelectorAll?.(".annotation-note-card[data-user-note-id]") || panel?.querySelectorAll?.(".annotation-note-card[data-user-note-id]") || []).find(
       (element) => String(element.dataset?.userNoteId || "") === String(note.id || ""),
     );
-    return { drawer, panel, card };
+    return { drawer, panel, scroll, card };
   };
   const fullyInside = (inner, outer, tolerance = 2) =>
     Boolean(
@@ -549,26 +550,29 @@ async function annotationAuditInPage(note, ordinal, options = {}) {
         }
       : null;
   const drawerSnapshot = () => {
-    const { drawer, panel, card } = drawerElements();
+    const { drawer, panel, scroll, card } = drawerElements();
     const drawerOpen = drawer?.classList?.contains("is-open") || false;
     const panelRect = panel?.getBoundingClientRect?.();
+    const scrollRect = scroll?.getBoundingClientRect?.();
     const cardRect = card?.getBoundingClientRect?.();
     const viewportRect = { top: 0, left: 0, right: window.innerWidth, bottom: window.innerHeight };
     const panelFitsViewport = Boolean(panelRect && fullyInside(panelRect, viewportRect, 2));
-    const cardFullyVisibleInPanel = Boolean(cardRect && panelRect && fullyInside(cardRect, panelRect, 6));
+    const cardFullyVisibleInPanel = Boolean(cardRect && scrollRect && fullyInside(cardRect, scrollRect, 6));
     const cardFullyVisibleInViewport = Boolean(cardRect && fullyInside(cardRect, viewportRect, 2));
     return {
       drawerOpen,
       panelExists: Boolean(panel),
+      scrollExists: Boolean(scroll),
       cardExists: Boolean(card),
       panelFitsViewport,
       cardFullyVisibleInPanel,
       cardFullyVisibleInViewport,
-      scrollTop: panel ? Math.round(panel.scrollTop) : null,
-      scrollHeight: panel ? Math.round(panel.scrollHeight) : null,
-      clientHeight: panel ? Math.round(panel.clientHeight) : null,
+      scrollTop: scroll ? Math.round(scroll.scrollTop) : null,
+      scrollHeight: scroll ? Math.round(scroll.scrollHeight) : null,
+      clientHeight: scroll ? Math.round(scroll.clientHeight) : null,
       cardOffsetTop: card ? Math.round(card.offsetTop) : null,
       panelRect: rectSnapshot(panelRect),
+      scrollRect: rectSnapshot(scrollRect),
       cardRect: rectSnapshot(cardRect),
     };
   };
@@ -577,15 +581,32 @@ async function annotationAuditInPage(note, ordinal, options = {}) {
     if (!appState || typeof renderUserAnnotationDrawer !== "function") return drawerSnapshot();
     appState.userAnnotationDrawerOpen = true;
     if (appState.userAnnotationExpandedNoteIds?.add) appState.userAnnotationExpandedNoteIds.add(String(note.id || ""));
-    renderUserAnnotationDrawer({ preserveScroll: true });
+    renderUserAnnotationDrawer({ preserveScroll: true, focusNoteId: String(note.id || "") });
     await waitFrames();
     await wait(80);
-    const { panel, card } = drawerElements();
-    if (panel && card) {
-      const desiredTop = Math.max(0, card.offsetTop - Math.round(panel.clientHeight * 0.45));
-      panel.scrollTop = desiredTop;
+    if (typeof scrollAnnotationDrawerNoteIntoView === "function") {
+      scrollAnnotationDrawerNoteIntoView(String(note.id || ""), { attempts: 3 });
       await waitFrames();
+      await wait(40);
     }
+    const alignIfNeeded = async () => {
+      const { scroll, card } = drawerElements();
+      if (!scroll || !card) return;
+      const scrollRect = scroll.getBoundingClientRect();
+      const cardRect = card.getBoundingClientRect();
+      const visible = cardRect.top >= scrollRect.top + 12 && cardRect.bottom <= scrollRect.bottom - 18;
+      if (visible) return;
+      const deltaTop = cardRect.top < scrollRect.top + 12 ? cardRect.top - scrollRect.top - 12 : 0;
+      const deltaBottom = cardRect.bottom > scrollRect.bottom - 18 ? cardRect.bottom - scrollRect.bottom + 18 : 0;
+      const delta = deltaTop || deltaBottom;
+      if (Math.abs(delta) > 1) {
+        scroll.scrollTop = Math.max(0, scroll.scrollTop + delta);
+        await waitFrames();
+      }
+    };
+    await alignIfNeeded();
+    await wait(120);
+    await alignIfNeeded();
     return drawerSnapshot();
   };
   const clickLocateButtonFromDrawer = async () => {
@@ -846,7 +867,12 @@ async function annotationAuditInPage(note, ordinal, options = {}) {
         ? Math.abs(drawerAfterLocate.scrollTop - drawerBeforeLocate.scrollTop)
         : null;
     const shouldPreserveDrawerScroll = Boolean(drawerAfterLocate.drawerOpen && (drawerBeforeLocate.scrollTop || 0) > 24);
-    const drawerScrollPreserved = !shouldPreserveDrawerScroll || (scrollDelta !== null && scrollDelta <= 48);
+    const currentCardRemainedVisible =
+      drawerBeforeLocate.cardFullyVisibleInPanel &&
+      drawerBeforeLocate.cardFullyVisibleInViewport &&
+      drawerAfterLocate.cardFullyVisibleInPanel &&
+      drawerAfterLocate.cardFullyVisibleInViewport;
+    const drawerScrollPreserved = !shouldPreserveDrawerScroll || (scrollDelta !== null && scrollDelta <= 48) || currentCardRemainedVisible;
     const failureReasons = [
       !anchorAfterJump ? "not_found" : "",
       anchorAfterJump && !isVisible(anchorAfterJump) ? "not_visible" : "",

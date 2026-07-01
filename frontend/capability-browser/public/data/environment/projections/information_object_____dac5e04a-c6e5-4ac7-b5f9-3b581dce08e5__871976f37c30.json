@@ -1,0 +1,1027 @@
+{
+  "packageType": "oi-149-p4-environment-object-projection",
+  "dataState": "ready",
+  "navOrdinal": 70,
+  "projectionKey": "information_object_____dac5e04a-c6e5-4ac7-b5f9-3b581dce08e5__871976f37c30",
+  "projectionPath": "environment/projections/information_object_____dac5e04a-c6e5-4ac7-b5f9-3b581dce08e5__871976f37c30.json",
+  "navigationPath": [
+    {
+      "depth": 0,
+      "id": "638d6ac0-4cd9-4433-9612-c43697f70f97",
+      "type": "information_environment",
+      "code": "",
+      "title": "分支机构"
+    },
+    {
+      "depth": 1,
+      "id": "ade1dcb0-f677-46eb-8fe1-6012be2f5235",
+      "type": "environment_segment",
+      "code": "",
+      "title": "移动终端"
+    },
+    {
+      "depth": 2,
+      "id": "dac5e04a-c6e5-4ac7-b5f9-3b581dce08e5",
+      "type": "information_object",
+      "code": "",
+      "title": "移动终端操作系统"
+    }
+  ],
+  "selectedNavigation": {
+    "id": "dac5e04a-c6e5-4ac7-b5f9-3b581dce08e5",
+    "type": "information_object",
+    "code": "",
+    "title": "移动终端操作系统",
+    "navOrdinal": 70,
+    "projectionKey": "information_object_____dac5e04a-c6e5-4ac7-b5f9-3b581dce08e5__871976f37c30",
+    "projectionPath": "environment/projections/information_object_____dac5e04a-c6e5-4ac7-b5f9-3b581dce08e5__871976f37c30.json"
+  },
+  "ancestorNavigation": [
+    {
+      "id": "638d6ac0-4cd9-4433-9612-c43697f70f97",
+      "type": "information_environment",
+      "code": "",
+      "title": "分支机构"
+    },
+    {
+      "id": "ade1dcb0-f677-46eb-8fe1-6012be2f5235",
+      "type": "environment_segment",
+      "code": "",
+      "title": "移动终端"
+    }
+  ],
+  "objectContextIds": [
+    "shadow:information_object_context:6b6627aa0646010a"
+  ],
+  "contextKeys": [
+    "分支机构||移动终端||移动终端操作系统"
+  ],
+  "objects": {
+    "information_object": {
+      "shadow:information_object_context:6b6627aa0646010a": {
+        "id": "shadow:information_object_context:6b6627aa0646010a",
+        "type": "information_object",
+        "code": "",
+        "title": "移动终端操作系统",
+        "name": "移动终端操作系统",
+        "category": "",
+        "status": "",
+        "contextKey": "分支机构||移动终端||移动终端操作系统"
+      }
+    },
+    "scope_type": {
+      "shadow:scope_type:4569e1d810feca0d": {
+        "id": "shadow:scope_type:4569e1d810feca0d",
+        "type": "scope_type",
+        "code": "I-OS",
+        "title": "操作系统",
+        "name": "操作系统",
+        "category": "",
+        "status": "",
+        "text": "I-OS 操作系统"
+      },
+      "shadow:scope_type:3c7c53a6f343e04f": {
+        "id": "shadow:scope_type:3c7c53a6f343e04f",
+        "type": "scope_type",
+        "code": "I-DI",
+        "title": "数据与信息",
+        "name": "数据与信息",
+        "category": "",
+        "status": "",
+        "text": "I-DI 数据与信息"
+      }
+    },
+    "security_technical_service": {
+      "shadow:security_technical_service:ce434e2defddac58": {
+        "id": "shadow:security_technical_service:ce434e2defddac58",
+        "type": "security_technical_service",
+        "code": "I-OS&T-AS.AM-01",
+        "title": "主机/终端资产清单",
+        "name": "主机/终端资产清单",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:a76ae927042481c2": {
+        "id": "shadow:security_technical_service:a76ae927042481c2",
+        "type": "security_technical_service",
+        "code": "I-OS&T-AS.AM-02",
+        "title": "主机/终端资产安全管控",
+        "name": "主机/终端资产安全管控",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:18bc72a95e0662e8": {
+        "id": "shadow:security_technical_service:18bc72a95e0662e8",
+        "type": "security_technical_service",
+        "code": "I-OS&T-AS.CM-01",
+        "title": "主机/终端安全基线配置管理",
+        "name": "主机/终端安全基线配置管理",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:9090569b0b68988a": {
+        "id": "shadow:security_technical_service:9090569b0b68988a",
+        "type": "security_technical_service",
+        "code": "I-OS&T-AS.CM-02",
+        "title": "主机/终端安全加固",
+        "name": "主机/终端安全加固",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:ba8de69be91e4756": {
+        "id": "shadow:security_technical_service:ba8de69be91e4756",
+        "type": "security_technical_service",
+        "code": "I-OS&T-AS.VM-01",
+        "title": "主机/终端漏洞管理",
+        "name": "主机/终端漏洞管理",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:26e711b706bab17f": {
+        "id": "shadow:security_technical_service:26e711b706bab17f",
+        "type": "security_technical_service",
+        "code": "I-OS&T-AS.VM-02",
+        "title": "主机/终端补丁管理",
+        "name": "主机/终端补丁管理",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:fc3d9a757f8d5f34": {
+        "id": "shadow:security_technical_service:fc3d9a757f8d5f34",
+        "type": "security_technical_service",
+        "code": "I-OS&T-PD.TP-01",
+        "title": "操作系统恶意代码防护",
+        "name": "操作系统恶意代码防护",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:c33bd9efdef80fa0": {
+        "id": "shadow:security_technical_service:c33bd9efdef80fa0",
+        "type": "security_technical_service",
+        "code": "I-DI&T-PD.DP-06",
+        "title": "数据销毁",
+        "name": "数据销毁",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:95a354571e7febf0": {
+        "id": "shadow:security_technical_service:95a354571e7febf0",
+        "type": "security_technical_service",
+        "code": "I-OS&T-PD.AC-02",
+        "title": "主机/终端信誉评估",
+        "name": "主机/终端信誉评估",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:12d2bc73508635e6": {
+        "id": "shadow:security_technical_service:12d2bc73508635e6",
+        "type": "security_technical_service",
+        "code": "I-OS&T-AS.AD-01",
+        "title": "主机/终端安全工作区划分",
+        "name": "主机/终端安全工作区划分",
+        "category": "",
+        "status": ""
+      }
+    },
+    "security_technology_module": {
+      "shadow:security_technology_module:44c5e42478501e8b": {
+        "id": "shadow:security_technology_module:44c5e42478501e8b",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "移动安全管理（MTD）",
+        "name": "移动安全管理（MTD）",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technology_module:b41d7dd55319ce17": {
+        "id": "shadow:security_technology_module:b41d7dd55319ce17",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "移动终端环境感知",
+        "name": "移动终端环境感知",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technology_module:5ac69881dd00b861": {
+        "id": "shadow:security_technology_module:5ac69881dd00b861",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "移动终端安全工作区",
+        "name": "移动终端安全工作区",
+        "category": "",
+        "status": ""
+      }
+    },
+    "security_system": {
+      "shadow:security_system:5fa796b8fc49ea73": {
+        "id": "shadow:security_system:5fa796b8fc49ea73",
+        "type": "security_system",
+        "code": "",
+        "title": "移动终端安全管控",
+        "name": "移动终端安全管控",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_system:e3ddf8d0ec7e0f1e": {
+        "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+        "type": "security_system",
+        "code": "",
+        "title": "零信任网络访问控制",
+        "name": "零信任网络访问控制",
+        "category": "",
+        "status": ""
+      }
+    }
+  },
+  "objectScopeTree": [
+    {
+      "id": "shadow:information_object_context:6b6627aa0646010a",
+      "type": "information_object",
+      "title": "移动终端操作系统",
+      "contextKey": "分支机构||移动终端||移动终端操作系统",
+      "segments": [
+        {
+          "id": "shadow:environment_segment:549d572065dc99ae",
+          "type": "environment_segment",
+          "title": "移动终端"
+        }
+      ],
+      "scope_mappings": [
+        {
+          "scope": {
+            "id": "shadow:scope_type:4569e1d810feca0d",
+            "type": "scope_type",
+            "code": "I-OS",
+            "title": "操作系统",
+            "text": "I-OS 操作系统"
+          },
+          "services": []
+        },
+        {
+          "scope": {
+            "id": "shadow:scope_type:3c7c53a6f343e04f",
+            "type": "scope_type",
+            "code": "I-DI",
+            "title": "数据与信息",
+            "text": "I-DI 数据与信息"
+          },
+          "services": []
+        },
+        {
+          "scope": {
+            "id": "shadow:scope_type:74ce327954461792",
+            "type": "scope_type",
+            "code": "",
+            "title": "I-OS 操作系统 I-DI 数据与信息",
+            "text": "I-OS 操作系统 I-DI 数据与信息"
+          },
+          "services": [
+            {
+              "id": "shadow:security_technical_service:c33bd9efdef80fa0",
+              "type": "security_technical_service",
+              "code": "I-DI&T-PD.DP-06",
+              "title": "数据销毁",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:44c5e42478501e8b",
+                  "type": "security_technology_module",
+                  "title": "移动安全管理（MTD）",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:d5a1c6dcfc22cfdc",
+                      "type": "security_system",
+                      "title": "移动终端安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:5fa796b8fc49ea73",
+                  "type": "security_system",
+                  "title": "移动终端安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:12d2bc73508635e6",
+              "type": "security_technical_service",
+              "code": "I-OS&T-AS.AD-01",
+              "title": "主机/终端安全工作区划分",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:5ac69881dd00b861",
+                  "type": "security_technology_module",
+                  "title": "移动终端安全工作区",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:d5a1c6dcfc22cfdc",
+                      "type": "security_system",
+                      "title": "移动终端安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:5fa796b8fc49ea73",
+                  "type": "security_system",
+                  "title": "移动终端安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:ce434e2defddac58",
+              "type": "security_technical_service",
+              "code": "I-OS&T-AS.AM-01",
+              "title": "主机/终端资产清单",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:44c5e42478501e8b",
+                  "type": "security_technology_module",
+                  "title": "移动安全管理（MTD）",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:d5a1c6dcfc22cfdc",
+                      "type": "security_system",
+                      "title": "移动终端安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:5fa796b8fc49ea73",
+                  "type": "security_system",
+                  "title": "移动终端安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:a76ae927042481c2",
+              "type": "security_technical_service",
+              "code": "I-OS&T-AS.AM-02",
+              "title": "主机/终端资产安全管控",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:44c5e42478501e8b",
+                  "type": "security_technology_module",
+                  "title": "移动安全管理（MTD）",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:d5a1c6dcfc22cfdc",
+                      "type": "security_system",
+                      "title": "移动终端安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:5fa796b8fc49ea73",
+                  "type": "security_system",
+                  "title": "移动终端安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:18bc72a95e0662e8",
+              "type": "security_technical_service",
+              "code": "I-OS&T-AS.CM-01",
+              "title": "主机/终端安全基线配置管理",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:44c5e42478501e8b",
+                  "type": "security_technology_module",
+                  "title": "移动安全管理（MTD）",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:d5a1c6dcfc22cfdc",
+                      "type": "security_system",
+                      "title": "移动终端安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:5fa796b8fc49ea73",
+                  "type": "security_system",
+                  "title": "移动终端安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:9090569b0b68988a",
+              "type": "security_technical_service",
+              "code": "I-OS&T-AS.CM-02",
+              "title": "主机/终端安全加固",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:44c5e42478501e8b",
+                  "type": "security_technology_module",
+                  "title": "移动安全管理（MTD）",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:d5a1c6dcfc22cfdc",
+                      "type": "security_system",
+                      "title": "移动终端安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:5fa796b8fc49ea73",
+                  "type": "security_system",
+                  "title": "移动终端安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:ba8de69be91e4756",
+              "type": "security_technical_service",
+              "code": "I-OS&T-AS.VM-01",
+              "title": "主机/终端漏洞管理",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:44c5e42478501e8b",
+                  "type": "security_technology_module",
+                  "title": "移动安全管理（MTD）",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:d5a1c6dcfc22cfdc",
+                      "type": "security_system",
+                      "title": "移动终端安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:5fa796b8fc49ea73",
+                  "type": "security_system",
+                  "title": "移动终端安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:26e711b706bab17f",
+              "type": "security_technical_service",
+              "code": "I-OS&T-AS.VM-02",
+              "title": "主机/终端补丁管理",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:44c5e42478501e8b",
+                  "type": "security_technology_module",
+                  "title": "移动安全管理（MTD）",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:d5a1c6dcfc22cfdc",
+                      "type": "security_system",
+                      "title": "移动终端安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:5fa796b8fc49ea73",
+                  "type": "security_system",
+                  "title": "移动终端安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:95a354571e7febf0",
+              "type": "security_technical_service",
+              "code": "I-OS&T-PD.AC-02",
+              "title": "主机/终端信誉评估",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:b41d7dd55319ce17",
+                  "type": "security_technology_module",
+                  "title": "移动终端环境感知",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+                  "type": "security_system",
+                  "title": "零信任网络访问控制"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:fc3d9a757f8d5f34",
+              "type": "security_technical_service",
+              "code": "I-OS&T-PD.TP-01",
+              "title": "操作系统恶意代码防护",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:44c5e42478501e8b",
+                  "type": "security_technology_module",
+                  "title": "移动安全管理（MTD）",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:d5a1c6dcfc22cfdc",
+                      "type": "security_system",
+                      "title": "移动终端安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:5fa796b8fc49ea73",
+                  "type": "security_system",
+                  "title": "移动终端安全管控"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "scope_mapping_count": 3,
+      "service_count": 10,
+      "module_count": 3,
+      "measure_count": 0,
+      "security_system_count": 4
+    }
+  ],
+  "relations": [
+    {
+      "id": "reimport:relation:92f942d9d4959f2f",
+      "type": "applies_to_scope",
+      "sourceId": "shadow:information_object_context:6b6627aa0646010a",
+      "sourceType": "information_object",
+      "targetId": "shadow:scope_type:4569e1d810feca0d",
+      "targetType": "scope_type",
+      "label": "applies_to_scope",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||移动终端||移动终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:99bded9eeaede3a9",
+      "type": "applies_to_scope",
+      "sourceId": "shadow:information_object_context:6b6627aa0646010a",
+      "sourceType": "information_object",
+      "targetId": "shadow:scope_type:3c7c53a6f343e04f",
+      "targetType": "scope_type",
+      "label": "applies_to_scope",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||移动终端||移动终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:fa69b6afa7a5a3ca",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:ce434e2defddac58",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:6b6627aa0646010a",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||移动终端||移动终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:3fc38b978699af6e",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:a76ae927042481c2",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:6b6627aa0646010a",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||移动终端||移动终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:eb2be2dd660354a9",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:18bc72a95e0662e8",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:6b6627aa0646010a",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||移动终端||移动终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:8ec4eb943f26347e",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:9090569b0b68988a",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:6b6627aa0646010a",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||移动终端||移动终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:a200be3f63df22dc",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:ba8de69be91e4756",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:6b6627aa0646010a",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||移动终端||移动终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:0109a6791c05ce2f",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:26e711b706bab17f",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:6b6627aa0646010a",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||移动终端||移动终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:e1da2c2012122869",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:fc3d9a757f8d5f34",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:6b6627aa0646010a",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||移动终端||移动终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:c9334d875b0516f3",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:c33bd9efdef80fa0",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:6b6627aa0646010a",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||移动终端||移动终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:f447d7335dd5e1c1",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:95a354571e7febf0",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:6b6627aa0646010a",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||移动终端||移动终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:33387f9f6f534871",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:12d2bc73508635e6",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:6b6627aa0646010a",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||移动终端||移动终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:be67bc1d75a82449",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:ce434e2defddac58",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:44c5e42478501e8b",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||移动终端||移动终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:b8d5650a1bd69922",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:a76ae927042481c2",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:44c5e42478501e8b",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||移动终端||移动终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:e9e564dd7371e76f",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:18bc72a95e0662e8",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:44c5e42478501e8b",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||移动终端||移动终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:8a7b8ce0685df1e2",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:9090569b0b68988a",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:44c5e42478501e8b",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||移动终端||移动终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:5af8e1bf2b9282fa",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:ba8de69be91e4756",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:44c5e42478501e8b",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||移动终端||移动终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:373aaf1c895e6d9c",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:26e711b706bab17f",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:44c5e42478501e8b",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||移动终端||移动终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:b32ec88f262e643d",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:fc3d9a757f8d5f34",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:44c5e42478501e8b",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||移动终端||移动终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:2d10c931d153c8a9",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:c33bd9efdef80fa0",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:44c5e42478501e8b",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||移动终端||移动终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:1cd504c8df4b3860",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:95a354571e7febf0",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:b41d7dd55319ce17",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||移动终端||移动终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:e88f734251c18e33",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:12d2bc73508635e6",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:5ac69881dd00b861",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||移动终端||移动终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:ad0de480c3a2d133",
+      "type": "part_of_system",
+      "sourceId": "shadow:security_technology_module:44c5e42478501e8b",
+      "sourceType": "security_technology_module",
+      "targetId": "shadow:security_system:5fa796b8fc49ea73",
+      "targetType": "security_system",
+      "label": "part_of_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||移动终端||移动终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:2ae23d100da4899f",
+      "type": "part_of_system",
+      "sourceId": "shadow:security_technology_module:b41d7dd55319ce17",
+      "sourceType": "security_technology_module",
+      "targetId": "shadow:security_system:e3ddf8d0ec7e0f1e",
+      "targetType": "security_system",
+      "label": "part_of_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||移动终端||移动终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:1cee4f7bb61a79b5",
+      "type": "part_of_system",
+      "sourceId": "shadow:security_technology_module:5ac69881dd00b861",
+      "sourceType": "security_technology_module",
+      "targetId": "shadow:security_system:5fa796b8fc49ea73",
+      "targetType": "security_system",
+      "label": "part_of_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||移动终端||移动终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:a567d0d89c828540",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||移动终端||移动终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:a390ccd6e68a5c02",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||移动终端||移动终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:9fd2ab0fed1f1e0b",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||移动终端||移动终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:ae3cd1a44a578f7a",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||移动终端||移动终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:dfce999baa444cc2",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||移动终端||移动终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:06c0e92731109827",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||移动终端||移动终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:62040f7f29240ad0",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||移动终端||移动终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:40886d57e8044c8d",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||移动终端||移动终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:3857fa382b0171db",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||移动终端||移动终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:4540b268318aa4b0",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||移动终端||移动终端操作系统",
+      "evidenceRefCount": 0
+    }
+  ],
+  "relationCount": 35
+}

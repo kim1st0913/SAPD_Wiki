@@ -16,8 +16,8 @@
 
 ## 2. 基准与强制入口
 
-- 正式前端视觉方向以 `DESIGN.md` 和 `frontend/capability-browser/apple-morandi-color-demo.html` 为准。
-- 后续所有视觉改动必须先查看 `http://127.0.0.1:5173/apple-morandi-color-demo.html` 的 token、表格、tab、chip、状态色和 graph 语义色。
+- 正式前端视觉方向以 `DESIGN.md` 和统一 demo 工作台 `frontend/capability-browser/environment-object-apple-shell-demo.html` 为准。
+- 后续所有视觉改动必须先查看 `http://127.0.0.1:5173/environment-object-apple-shell-demo.html#color-system` 的 token、表格、tab、chip、状态色和 graph 语义色。
 - 组件样式优先复用 `styles.css` 已有 token、语义 class 和展示 helper，不新增一次性颜色、一次性字号或一次性边框。
 - 新增展示类型前，必须先判断是否能归入本文已有类型；确实不能归入时，应同步更新本文。
 
@@ -545,7 +545,7 @@
 任何修改 `frontend/capability-browser/` 的任务，开工前必须完成：
 
 1. 读取 `DESIGN.md`。
-2. 查看或至少对照 `apple-morandi-color-demo.html`。
+2. 查看或至少对照 `environment-object-apple-shell-demo.html#color-system`。
 3. 判断本次修改涉及本文哪一类展示类型。
 4. 确认是否触碰字段边界、数据投影或 ViewModel。
 

@@ -1,0 +1,2290 @@
+{
+  "packageType": "oi-149-p4-environment-object-projection",
+  "dataState": "ready",
+  "navOrdinal": 56,
+  "projectionKey": "information_object___PC_PC___2c2ed2c8-d124-42bc-8e7f-c7e9a329a866__769cfa4149bd",
+  "projectionPath": "environment/projections/information_object___PC_PC___2c2ed2c8-d124-42bc-8e7f-c7e9a329a866__769cfa4149bd.json",
+  "navigationPath": [
+    {
+      "depth": 0,
+      "id": "638d6ac0-4cd9-4433-9612-c43697f70f97",
+      "type": "information_environment",
+      "code": "",
+      "title": "分支机构"
+    },
+    {
+      "depth": 1,
+      "id": "6ca0d799-fb88-46de-89bd-cf5619e5a4c0",
+      "type": "environment_segment",
+      "code": "",
+      "title": "PC终端"
+    },
+    {
+      "depth": 2,
+      "id": "2c2ed2c8-d124-42bc-8e7f-c7e9a329a866",
+      "type": "information_object",
+      "code": "",
+      "title": "PC终端操作系统"
+    }
+  ],
+  "selectedNavigation": {
+    "id": "2c2ed2c8-d124-42bc-8e7f-c7e9a329a866",
+    "type": "information_object",
+    "code": "",
+    "title": "PC终端操作系统",
+    "navOrdinal": 56,
+    "projectionKey": "information_object___PC_PC___2c2ed2c8-d124-42bc-8e7f-c7e9a329a866__769cfa4149bd",
+    "projectionPath": "environment/projections/information_object___PC_PC___2c2ed2c8-d124-42bc-8e7f-c7e9a329a866__769cfa4149bd.json"
+  },
+  "ancestorNavigation": [
+    {
+      "id": "638d6ac0-4cd9-4433-9612-c43697f70f97",
+      "type": "information_environment",
+      "code": "",
+      "title": "分支机构"
+    },
+    {
+      "id": "6ca0d799-fb88-46de-89bd-cf5619e5a4c0",
+      "type": "environment_segment",
+      "code": "",
+      "title": "PC终端"
+    }
+  ],
+  "objectContextIds": [
+    "shadow:information_object_context:445b12c5a33f1269"
+  ],
+  "contextKeys": [
+    "分支机构||PC终端||PC终端操作系统"
+  ],
+  "objects": {
+    "information_object": {
+      "shadow:information_object_context:445b12c5a33f1269": {
+        "id": "shadow:information_object_context:445b12c5a33f1269",
+        "type": "information_object",
+        "code": "",
+        "title": "PC终端操作系统",
+        "name": "PC终端操作系统",
+        "category": "",
+        "status": "",
+        "contextKey": "分支机构||PC终端||PC终端操作系统"
+      }
+    },
+    "scope_type": {
+      "shadow:scope_type:4569e1d810feca0d": {
+        "id": "shadow:scope_type:4569e1d810feca0d",
+        "type": "scope_type",
+        "code": "I-OS",
+        "title": "操作系统",
+        "name": "操作系统",
+        "category": "",
+        "status": "",
+        "text": "I-OS 操作系统"
+      },
+      "shadow:scope_type:3c7c53a6f343e04f": {
+        "id": "shadow:scope_type:3c7c53a6f343e04f",
+        "type": "scope_type",
+        "code": "I-DI",
+        "title": "数据与信息",
+        "name": "数据与信息",
+        "category": "",
+        "status": "",
+        "text": "I-DI 数据与信息"
+      },
+      "shadow:scope_type:998405d9eaef340e": {
+        "id": "shadow:scope_type:998405d9eaef340e",
+        "type": "scope_type",
+        "code": "I-US",
+        "title": "用户",
+        "name": "用户",
+        "category": "",
+        "status": "",
+        "text": "I-US 用户"
+      }
+    },
+    "security_technical_service": {
+      "shadow:security_technical_service:ce434e2defddac58": {
+        "id": "shadow:security_technical_service:ce434e2defddac58",
+        "type": "security_technical_service",
+        "code": "I-OS&T-AS.AM-01",
+        "title": "主机/终端资产清单",
+        "name": "主机/终端资产清单",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:a76ae927042481c2": {
+        "id": "shadow:security_technical_service:a76ae927042481c2",
+        "type": "security_technical_service",
+        "code": "I-OS&T-AS.AM-02",
+        "title": "主机/终端资产安全管控",
+        "name": "主机/终端资产安全管控",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:18bc72a95e0662e8": {
+        "id": "shadow:security_technical_service:18bc72a95e0662e8",
+        "type": "security_technical_service",
+        "code": "I-OS&T-AS.CM-01",
+        "title": "主机/终端安全基线配置管理",
+        "name": "主机/终端安全基线配置管理",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:9090569b0b68988a": {
+        "id": "shadow:security_technical_service:9090569b0b68988a",
+        "type": "security_technical_service",
+        "code": "I-OS&T-AS.CM-02",
+        "title": "主机/终端安全加固",
+        "name": "主机/终端安全加固",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:ba8de69be91e4756": {
+        "id": "shadow:security_technical_service:ba8de69be91e4756",
+        "type": "security_technical_service",
+        "code": "I-OS&T-AS.VM-01",
+        "title": "主机/终端漏洞管理",
+        "name": "主机/终端漏洞管理",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:26e711b706bab17f": {
+        "id": "shadow:security_technical_service:26e711b706bab17f",
+        "type": "security_technical_service",
+        "code": "I-OS&T-AS.VM-02",
+        "title": "主机/终端补丁管理",
+        "name": "主机/终端补丁管理",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:11cc4bb6b48f742c": {
+        "id": "shadow:security_technical_service:11cc4bb6b48f742c",
+        "type": "security_technical_service",
+        "code": "I-OS&T-PD.TP-02",
+        "title": "操作系统异常特征检测",
+        "name": "操作系统异常特征检测",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:39ecb2b9007ab0ba": {
+        "id": "shadow:security_technical_service:39ecb2b9007ab0ba",
+        "type": "security_technical_service",
+        "code": "I-OS&T-AD.SA-01",
+        "title": "操作系统异常行为检测",
+        "name": "操作系统异常行为检测",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:3e0525788ba5bde3": {
+        "id": "shadow:security_technical_service:3e0525788ba5bde3",
+        "type": "security_technical_service",
+        "code": "I-OS&T-AS.LA-03",
+        "title": "操作系统操作审计",
+        "name": "操作系统操作审计",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:95a354571e7febf0": {
+        "id": "shadow:security_technical_service:95a354571e7febf0",
+        "type": "security_technical_service",
+        "code": "I-OS&T-PD.AC-02",
+        "title": "主机/终端信誉评估",
+        "name": "主机/终端信誉评估",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:fc3d9a757f8d5f34": {
+        "id": "shadow:security_technical_service:fc3d9a757f8d5f34",
+        "type": "security_technical_service",
+        "code": "I-OS&T-PD.TP-01",
+        "title": "操作系统恶意代码防护",
+        "name": "操作系统恶意代码防护",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:be04fb350771030e": {
+        "id": "shadow:security_technical_service:be04fb350771030e",
+        "type": "security_technical_service",
+        "code": "I-OS&T-AS.CG-02",
+        "title": "操作系统文件完整性校验",
+        "name": "操作系统文件完整性校验",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:c1dd09a60b86331e": {
+        "id": "shadow:security_technical_service:c1dd09a60b86331e",
+        "type": "security_technical_service",
+        "code": "I-OS&T-PD.TP-03",
+        "title": "操作系统攻击入侵防御",
+        "name": "操作系统攻击入侵防御",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:12d2bc73508635e6": {
+        "id": "shadow:security_technical_service:12d2bc73508635e6",
+        "type": "security_technical_service",
+        "code": "I-OS&T-AS.AD-01",
+        "title": "主机/终端安全工作区划分",
+        "name": "主机/终端安全工作区划分",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:cf6e15f51ebe1daa": {
+        "id": "shadow:security_technical_service:cf6e15f51ebe1daa",
+        "type": "security_technical_service",
+        "code": "I-DI&T-AS.AM-01",
+        "title": "数据资产清单",
+        "name": "数据资产清单",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:4dee9fb02c561ba7": {
+        "id": "shadow:security_technical_service:4dee9fb02c561ba7",
+        "type": "security_technical_service",
+        "code": "I-DI&T-AS.IA-03",
+        "title": "数据资源授权",
+        "name": "数据资源授权",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:b006caf5c9de56d9": {
+        "id": "shadow:security_technical_service:b006caf5c9de56d9",
+        "type": "security_technical_service",
+        "code": "I-DI&T-AS.LA-03",
+        "title": "数据访问和操作审计",
+        "name": "数据访问和操作审计",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:8a0fbe01321a2731": {
+        "id": "shadow:security_technical_service:8a0fbe01321a2731",
+        "type": "security_technical_service",
+        "code": "I-DI&T-AS.CG-01",
+        "title": "数据内容加解密",
+        "name": "数据内容加解密",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:20d65bd30cab83cf": {
+        "id": "shadow:security_technical_service:20d65bd30cab83cf",
+        "type": "security_technical_service",
+        "code": "I-OS&T-PD.DP-01",
+        "title": "操作系统屏幕水印",
+        "name": "操作系统屏幕水印",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:3fce2192de72815d": {
+        "id": "shadow:security_technical_service:3fce2192de72815d",
+        "type": "security_technical_service",
+        "code": "I-DI&T-PD.DP-01",
+        "title": "数据内容水印",
+        "name": "数据内容水印",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:7fa9f81f5d38c66f": {
+        "id": "shadow:security_technical_service:7fa9f81f5d38c66f",
+        "type": "security_technical_service",
+        "code": "I-OS&T-PD.DP-03",
+        "title": "操作系统数据防泄漏",
+        "name": "操作系统数据防泄漏",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:2421e23cafbcc2f4": {
+        "id": "shadow:security_technical_service:2421e23cafbcc2f4",
+        "type": "security_technical_service",
+        "code": "I-OS&T-AS.LA-01",
+        "title": "操作系统日志记录",
+        "name": "操作系统日志记录",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:41f4afc92863cfbf": {
+        "id": "shadow:security_technical_service:41f4afc92863cfbf",
+        "type": "security_technical_service",
+        "code": "I-US&T-AS.IA-02",
+        "title": "用户认证",
+        "name": "用户认证",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:e8676b1721378381": {
+        "id": "shadow:security_technical_service:e8676b1721378381",
+        "type": "security_technical_service",
+        "code": "I-OS&T-AS.IA-01",
+        "title": "主机/终端身份管理",
+        "name": "主机/终端身份管理",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:b80b733706dbd721": {
+        "id": "shadow:security_technical_service:b80b733706dbd721",
+        "type": "security_technical_service",
+        "code": "I-OS&T-AS.IA-03",
+        "title": "操作系统资源授权",
+        "name": "操作系统资源授权",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:f166c34f7adc5f8e": {
+        "id": "shadow:security_technical_service:f166c34f7adc5f8e",
+        "type": "security_technical_service",
+        "code": "I-OS&T-AS.IA-04",
+        "title": "操作系统凭证管理",
+        "name": "操作系统凭证管理",
+        "category": "",
+        "status": ""
+      }
+    },
+    "security_technology_module": {
+      "shadow:security_technology_module:f53146f292a651e9": {
+        "id": "shadow:security_technology_module:f53146f292a651e9",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "桌面安全管理（UEM）",
+        "name": "桌面安全管理（UEM）",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technology_module:ecbd6c55fb039ee0": {
+        "id": "shadow:security_technology_module:ecbd6c55fb039ee0",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "终端安全检测与响应（EDR）",
+        "name": "终端安全检测与响应（EDR）",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technology_module:37db3eb44d01087f": {
+        "id": "shadow:security_technology_module:37db3eb44d01087f",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "终端环境感知",
+        "name": "终端环境感知",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technology_module:0b874e308cb01e40": {
+        "id": "shadow:security_technology_module:0b874e308cb01e40",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "终端恶意代码防护(EPP)",
+        "name": "终端恶意代码防护(EPP)",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technology_module:60cedc17f39f171d": {
+        "id": "shadow:security_technology_module:60cedc17f39f171d",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "主机入侵防御（HIPS）",
+        "name": "主机入侵防御（HIPS）",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technology_module:b8dc1d227914b655": {
+        "id": "shadow:security_technology_module:b8dc1d227914b655",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "终端安全工作区",
+        "name": "终端安全工作区",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technology_module:b44fcf05125a0609": {
+        "id": "shadow:security_technology_module:b44fcf05125a0609",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "终端数据防泄露（EDLP）",
+        "name": "终端数据防泄露（EDLP）",
+        "category": "",
+        "status": ""
+      }
+    },
+    "security_technical_measure": {
+      "shadow:security_technical_measure:042f1ad5aca12523": {
+        "id": "shadow:security_technical_measure:042f1ad5aca12523",
+        "type": "security_technical_measure",
+        "code": "",
+        "title": "操作系统自身日志记录模块",
+        "name": "操作系统自身日志记录模块",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_measure:35c47baee1092de5": {
+        "id": "shadow:security_technical_measure:35c47baee1092de5",
+        "type": "security_technical_measure",
+        "code": "",
+        "title": "操作系统自身认证模块",
+        "name": "操作系统自身认证模块",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_measure:560c58bd4eccd72c": {
+        "id": "shadow:security_technical_measure:560c58bd4eccd72c",
+        "type": "security_technical_measure",
+        "code": "",
+        "title": "操作系统自身身份管理模块",
+        "name": "操作系统自身身份管理模块",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_measure:ceba57afe20b0653": {
+        "id": "shadow:security_technical_measure:ceba57afe20b0653",
+        "type": "security_technical_measure",
+        "code": "",
+        "title": "操作系统自身授权模块",
+        "name": "操作系统自身授权模块",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_measure:4e537b7dbb7d79a5": {
+        "id": "shadow:security_technical_measure:4e537b7dbb7d79a5",
+        "type": "security_technical_measure",
+        "code": "",
+        "title": "操作系统自身凭证管理模块",
+        "name": "操作系统自身凭证管理模块",
+        "category": "",
+        "status": ""
+      }
+    },
+    "security_system": {
+      "shadow:security_system:5f95d8f2389925bb": {
+        "id": "shadow:security_system:5f95d8f2389925bb",
+        "type": "security_system",
+        "code": "",
+        "title": "终端安全管控",
+        "name": "终端安全管控",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_system:e3ddf8d0ec7e0f1e": {
+        "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+        "type": "security_system",
+        "code": "",
+        "title": "零信任网络访问控制",
+        "name": "零信任网络访问控制",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_system:09a15eb5cb64afa6": {
+        "id": "shadow:security_system:09a15eb5cb64afa6",
+        "type": "security_system",
+        "code": "",
+        "title": "主机安全防护",
+        "name": "主机安全防护",
+        "category": "",
+        "status": ""
+      }
+    }
+  },
+  "objectScopeTree": [
+    {
+      "id": "shadow:information_object_context:445b12c5a33f1269",
+      "type": "information_object",
+      "title": "PC终端操作系统",
+      "contextKey": "分支机构||PC终端||PC终端操作系统",
+      "segments": [
+        {
+          "id": "shadow:environment_segment:bf0aed81eb85ee59",
+          "type": "environment_segment",
+          "title": "PC终端"
+        }
+      ],
+      "scope_mappings": [
+        {
+          "scope": {
+            "id": "shadow:scope_type:4569e1d810feca0d",
+            "type": "scope_type",
+            "code": "I-OS",
+            "title": "操作系统",
+            "text": "I-OS 操作系统"
+          },
+          "services": []
+        },
+        {
+          "scope": {
+            "id": "shadow:scope_type:3c7c53a6f343e04f",
+            "type": "scope_type",
+            "code": "I-DI",
+            "title": "数据与信息",
+            "text": "I-DI 数据与信息"
+          },
+          "services": []
+        },
+        {
+          "scope": {
+            "id": "shadow:scope_type:998405d9eaef340e",
+            "type": "scope_type",
+            "code": "I-US",
+            "title": "用户",
+            "text": "I-US 用户"
+          },
+          "services": []
+        },
+        {
+          "scope": {
+            "id": "shadow:scope_type:8d7434ff2182abaa",
+            "type": "scope_type",
+            "code": "",
+            "title": "I-OS 操作系统 I-DI 数据与信息 I-US 用户",
+            "text": "I-OS 操作系统 I-DI 数据与信息 I-US 用户"
+          },
+          "services": [
+            {
+              "id": "shadow:security_technical_service:cf6e15f51ebe1daa",
+              "type": "security_technical_service",
+              "code": "I-DI&T-AS.AM-01",
+              "title": "数据资产清单",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:b44fcf05125a0609",
+                  "type": "security_technology_module",
+                  "title": "终端数据防泄露（EDLP）",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:0f779dc3ddbcc7e1",
+                      "type": "security_system",
+                      "title": "终端安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:5f95d8f2389925bb",
+                  "type": "security_system",
+                  "title": "终端安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:8a0fbe01321a2731",
+              "type": "security_technical_service",
+              "code": "I-DI&T-AS.CG-01",
+              "title": "数据内容加解密",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:b44fcf05125a0609",
+                  "type": "security_technology_module",
+                  "title": "终端数据防泄露（EDLP）",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:0f779dc3ddbcc7e1",
+                      "type": "security_system",
+                      "title": "终端安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:5f95d8f2389925bb",
+                  "type": "security_system",
+                  "title": "终端安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:4dee9fb02c561ba7",
+              "type": "security_technical_service",
+              "code": "I-DI&T-AS.IA-03",
+              "title": "数据资源授权",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:b44fcf05125a0609",
+                  "type": "security_technology_module",
+                  "title": "终端数据防泄露（EDLP）",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:0f779dc3ddbcc7e1",
+                      "type": "security_system",
+                      "title": "终端安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:5f95d8f2389925bb",
+                  "type": "security_system",
+                  "title": "终端安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:b006caf5c9de56d9",
+              "type": "security_technical_service",
+              "code": "I-DI&T-AS.LA-03",
+              "title": "数据访问和操作审计",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:b44fcf05125a0609",
+                  "type": "security_technology_module",
+                  "title": "终端数据防泄露（EDLP）",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:0f779dc3ddbcc7e1",
+                      "type": "security_system",
+                      "title": "终端安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:5f95d8f2389925bb",
+                  "type": "security_system",
+                  "title": "终端安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:3fce2192de72815d",
+              "type": "security_technical_service",
+              "code": "I-DI&T-PD.DP-01",
+              "title": "数据内容水印",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:b44fcf05125a0609",
+                  "type": "security_technology_module",
+                  "title": "终端数据防泄露（EDLP）",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:0f779dc3ddbcc7e1",
+                      "type": "security_system",
+                      "title": "终端安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:5f95d8f2389925bb",
+                  "type": "security_system",
+                  "title": "终端安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:39ecb2b9007ab0ba",
+              "type": "security_technical_service",
+              "code": "I-OS&T-AD.SA-01",
+              "title": "操作系统异常行为检测",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:ecbd6c55fb039ee0",
+                  "type": "security_technology_module",
+                  "title": "终端安全检测与响应（EDR）",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:0f779dc3ddbcc7e1",
+                      "type": "security_system",
+                      "title": "终端安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:5f95d8f2389925bb",
+                  "type": "security_system",
+                  "title": "终端安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:12d2bc73508635e6",
+              "type": "security_technical_service",
+              "code": "I-OS&T-AS.AD-01",
+              "title": "主机/终端安全工作区划分",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:b8dc1d227914b655",
+                  "type": "security_technology_module",
+                  "title": "终端安全工作区",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:0f779dc3ddbcc7e1",
+                      "type": "security_system",
+                      "title": "终端安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:5f95d8f2389925bb",
+                  "type": "security_system",
+                  "title": "终端安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:ce434e2defddac58",
+              "type": "security_technical_service",
+              "code": "I-OS&T-AS.AM-01",
+              "title": "主机/终端资产清单",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:f53146f292a651e9",
+                  "type": "security_technology_module",
+                  "title": "桌面安全管理（UEM）",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:0f779dc3ddbcc7e1",
+                      "type": "security_system",
+                      "title": "终端安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:5f95d8f2389925bb",
+                  "type": "security_system",
+                  "title": "终端安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:a76ae927042481c2",
+              "type": "security_technical_service",
+              "code": "I-OS&T-AS.AM-02",
+              "title": "主机/终端资产安全管控",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:f53146f292a651e9",
+                  "type": "security_technology_module",
+                  "title": "桌面安全管理（UEM）",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:0f779dc3ddbcc7e1",
+                      "type": "security_system",
+                      "title": "终端安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:5f95d8f2389925bb",
+                  "type": "security_system",
+                  "title": "终端安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:be04fb350771030e",
+              "type": "security_technical_service",
+              "code": "I-OS&T-AS.CG-02",
+              "title": "操作系统文件完整性校验",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:60cedc17f39f171d",
+                  "type": "security_technology_module",
+                  "title": "主机入侵防御（HIPS）",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:c24ab5d021e1792e",
+                      "type": "security_system",
+                      "title": "主机安全防护"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:09a15eb5cb64afa6",
+                  "type": "security_system",
+                  "title": "主机安全防护"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:18bc72a95e0662e8",
+              "type": "security_technical_service",
+              "code": "I-OS&T-AS.CM-01",
+              "title": "主机/终端安全基线配置管理",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:f53146f292a651e9",
+                  "type": "security_technology_module",
+                  "title": "桌面安全管理（UEM）",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:0f779dc3ddbcc7e1",
+                      "type": "security_system",
+                      "title": "终端安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:5f95d8f2389925bb",
+                  "type": "security_system",
+                  "title": "终端安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:9090569b0b68988a",
+              "type": "security_technical_service",
+              "code": "I-OS&T-AS.CM-02",
+              "title": "主机/终端安全加固",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:f53146f292a651e9",
+                  "type": "security_technology_module",
+                  "title": "桌面安全管理（UEM）",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:0f779dc3ddbcc7e1",
+                      "type": "security_system",
+                      "title": "终端安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:5f95d8f2389925bb",
+                  "type": "security_system",
+                  "title": "终端安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:e8676b1721378381",
+              "type": "security_technical_service",
+              "code": "I-OS&T-AS.IA-01",
+              "title": "主机/终端身份管理",
+              "modules": [],
+              "measures": [
+                {
+                  "id": "shadow:security_technical_measure:560c58bd4eccd72c",
+                  "type": "security_technical_measure",
+                  "title": "操作系统自身身份管理模块"
+                }
+              ],
+              "securitySystems": []
+            },
+            {
+              "id": "shadow:security_technical_service:b80b733706dbd721",
+              "type": "security_technical_service",
+              "code": "I-OS&T-AS.IA-03",
+              "title": "操作系统资源授权",
+              "modules": [],
+              "measures": [
+                {
+                  "id": "shadow:security_technical_measure:ceba57afe20b0653",
+                  "type": "security_technical_measure",
+                  "title": "操作系统自身授权模块"
+                }
+              ],
+              "securitySystems": []
+            },
+            {
+              "id": "shadow:security_technical_service:f166c34f7adc5f8e",
+              "type": "security_technical_service",
+              "code": "I-OS&T-AS.IA-04",
+              "title": "操作系统凭证管理",
+              "modules": [],
+              "measures": [
+                {
+                  "id": "shadow:security_technical_measure:4e537b7dbb7d79a5",
+                  "type": "security_technical_measure",
+                  "title": "操作系统自身凭证管理模块"
+                }
+              ],
+              "securitySystems": []
+            },
+            {
+              "id": "shadow:security_technical_service:2421e23cafbcc2f4",
+              "type": "security_technical_service",
+              "code": "I-OS&T-AS.LA-01",
+              "title": "操作系统日志记录",
+              "modules": [],
+              "measures": [
+                {
+                  "id": "shadow:security_technical_measure:042f1ad5aca12523",
+                  "type": "security_technical_measure",
+                  "title": "操作系统自身日志记录模块"
+                }
+              ],
+              "securitySystems": []
+            },
+            {
+              "id": "shadow:security_technical_service:3e0525788ba5bde3",
+              "type": "security_technical_service",
+              "code": "I-OS&T-AS.LA-03",
+              "title": "操作系统操作审计",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:ecbd6c55fb039ee0",
+                  "type": "security_technology_module",
+                  "title": "终端安全检测与响应（EDR）",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:0f779dc3ddbcc7e1",
+                      "type": "security_system",
+                      "title": "终端安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:5f95d8f2389925bb",
+                  "type": "security_system",
+                  "title": "终端安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:ba8de69be91e4756",
+              "type": "security_technical_service",
+              "code": "I-OS&T-AS.VM-01",
+              "title": "主机/终端漏洞管理",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:f53146f292a651e9",
+                  "type": "security_technology_module",
+                  "title": "桌面安全管理（UEM）",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:0f779dc3ddbcc7e1",
+                      "type": "security_system",
+                      "title": "终端安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:5f95d8f2389925bb",
+                  "type": "security_system",
+                  "title": "终端安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:26e711b706bab17f",
+              "type": "security_technical_service",
+              "code": "I-OS&T-AS.VM-02",
+              "title": "主机/终端补丁管理",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:f53146f292a651e9",
+                  "type": "security_technology_module",
+                  "title": "桌面安全管理（UEM）",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:0f779dc3ddbcc7e1",
+                      "type": "security_system",
+                      "title": "终端安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:5f95d8f2389925bb",
+                  "type": "security_system",
+                  "title": "终端安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:95a354571e7febf0",
+              "type": "security_technical_service",
+              "code": "I-OS&T-PD.AC-02",
+              "title": "主机/终端信誉评估",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:37db3eb44d01087f",
+                  "type": "security_technology_module",
+                  "title": "终端环境感知",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+                  "type": "security_system",
+                  "title": "零信任网络访问控制"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:20d65bd30cab83cf",
+              "type": "security_technical_service",
+              "code": "I-OS&T-PD.DP-01",
+              "title": "操作系统屏幕水印",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:b44fcf05125a0609",
+                  "type": "security_technology_module",
+                  "title": "终端数据防泄露（EDLP）",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:0f779dc3ddbcc7e1",
+                      "type": "security_system",
+                      "title": "终端安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:5f95d8f2389925bb",
+                  "type": "security_system",
+                  "title": "终端安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:7fa9f81f5d38c66f",
+              "type": "security_technical_service",
+              "code": "I-OS&T-PD.DP-03",
+              "title": "操作系统数据防泄漏",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:b44fcf05125a0609",
+                  "type": "security_technology_module",
+                  "title": "终端数据防泄露（EDLP）",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:0f779dc3ddbcc7e1",
+                      "type": "security_system",
+                      "title": "终端安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:5f95d8f2389925bb",
+                  "type": "security_system",
+                  "title": "终端安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:fc3d9a757f8d5f34",
+              "type": "security_technical_service",
+              "code": "I-OS&T-PD.TP-01",
+              "title": "操作系统恶意代码防护",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:0b874e308cb01e40",
+                  "type": "security_technology_module",
+                  "title": "终端恶意代码防护(EPP)",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:0f779dc3ddbcc7e1",
+                      "type": "security_system",
+                      "title": "终端安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:5f95d8f2389925bb",
+                  "type": "security_system",
+                  "title": "终端安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:11cc4bb6b48f742c",
+              "type": "security_technical_service",
+              "code": "I-OS&T-PD.TP-02",
+              "title": "操作系统异常特征检测",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:ecbd6c55fb039ee0",
+                  "type": "security_technology_module",
+                  "title": "终端安全检测与响应（EDR）",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:0f779dc3ddbcc7e1",
+                      "type": "security_system",
+                      "title": "终端安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:5f95d8f2389925bb",
+                  "type": "security_system",
+                  "title": "终端安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:c1dd09a60b86331e",
+              "type": "security_technical_service",
+              "code": "I-OS&T-PD.TP-03",
+              "title": "操作系统攻击入侵防御",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:60cedc17f39f171d",
+                  "type": "security_technology_module",
+                  "title": "主机入侵防御（HIPS）",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:c24ab5d021e1792e",
+                      "type": "security_system",
+                      "title": "主机安全防护"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:09a15eb5cb64afa6",
+                  "type": "security_system",
+                  "title": "主机安全防护"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:41f4afc92863cfbf",
+              "type": "security_technical_service",
+              "code": "I-US&T-AS.IA-02",
+              "title": "用户认证",
+              "modules": [],
+              "measures": [
+                {
+                  "id": "shadow:security_technical_measure:35c47baee1092de5",
+                  "type": "security_technical_measure",
+                  "title": "操作系统自身认证模块"
+                }
+              ],
+              "securitySystems": []
+            }
+          ]
+        }
+      ],
+      "scope_mapping_count": 4,
+      "service_count": 26,
+      "module_count": 7,
+      "measure_count": 5,
+      "security_system_count": 6
+    }
+  ],
+  "relations": [
+    {
+      "id": "reimport:relation:c99505de285e6c9e",
+      "type": "applies_to_scope",
+      "sourceId": "shadow:information_object_context:445b12c5a33f1269",
+      "sourceType": "information_object",
+      "targetId": "shadow:scope_type:4569e1d810feca0d",
+      "targetType": "scope_type",
+      "label": "applies_to_scope",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:501f54ac6ae7ac76",
+      "type": "applies_to_scope",
+      "sourceId": "shadow:information_object_context:445b12c5a33f1269",
+      "sourceType": "information_object",
+      "targetId": "shadow:scope_type:3c7c53a6f343e04f",
+      "targetType": "scope_type",
+      "label": "applies_to_scope",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:1b3b0021742f8b9c",
+      "type": "applies_to_scope",
+      "sourceId": "shadow:information_object_context:445b12c5a33f1269",
+      "sourceType": "information_object",
+      "targetId": "shadow:scope_type:998405d9eaef340e",
+      "targetType": "scope_type",
+      "label": "applies_to_scope",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:2937e63a425102ac",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:ce434e2defddac58",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:445b12c5a33f1269",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:174a221350d663d9",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:a76ae927042481c2",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:445b12c5a33f1269",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:07d568374db60c1c",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:18bc72a95e0662e8",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:445b12c5a33f1269",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:652726d81cbf9629",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:9090569b0b68988a",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:445b12c5a33f1269",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:16bf44d026ff0b62",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:ba8de69be91e4756",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:445b12c5a33f1269",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:70fe27cafb3ed803",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:26e711b706bab17f",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:445b12c5a33f1269",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:e1c1d18f66123f04",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:11cc4bb6b48f742c",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:445b12c5a33f1269",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:bbcc607af72b40b9",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:39ecb2b9007ab0ba",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:445b12c5a33f1269",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:b2d0cd2a1f58850d",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:3e0525788ba5bde3",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:445b12c5a33f1269",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:48fd949b385de9f4",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:95a354571e7febf0",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:445b12c5a33f1269",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:d4af6a16f00faf11",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:fc3d9a757f8d5f34",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:445b12c5a33f1269",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:601dc2f144889e8a",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:be04fb350771030e",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:445b12c5a33f1269",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:63b301cce14217e5",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:c1dd09a60b86331e",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:445b12c5a33f1269",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:4daa71cc9d8e10dc",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:12d2bc73508635e6",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:445b12c5a33f1269",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:90e43a52a416f8a9",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:cf6e15f51ebe1daa",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:445b12c5a33f1269",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:5da0936acff1e824",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:4dee9fb02c561ba7",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:445b12c5a33f1269",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:387741ebd7cb1402",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:b006caf5c9de56d9",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:445b12c5a33f1269",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:a5752d120bca8d9a",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:8a0fbe01321a2731",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:445b12c5a33f1269",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:c791f0c0bbd45321",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:20d65bd30cab83cf",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:445b12c5a33f1269",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:53d2ffc396270df7",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:3fce2192de72815d",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:445b12c5a33f1269",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:8f40898612d06d6c",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:7fa9f81f5d38c66f",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:445b12c5a33f1269",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:dcb928bb30106f5a",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:2421e23cafbcc2f4",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:445b12c5a33f1269",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:724995f6b1d587da",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:41f4afc92863cfbf",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:445b12c5a33f1269",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:ef270429e317fbd8",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:e8676b1721378381",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:445b12c5a33f1269",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:ca118bb42fa435ba",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:b80b733706dbd721",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:445b12c5a33f1269",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:93a36efb717d4fd7",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:f166c34f7adc5f8e",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:445b12c5a33f1269",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:1dee76ef450c020f",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:ce434e2defddac58",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:f53146f292a651e9",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:4e04e74796ffa6f3",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:a76ae927042481c2",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:f53146f292a651e9",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:ba9d5e1bda85d814",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:18bc72a95e0662e8",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:f53146f292a651e9",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:6ddf12b522eeadfe",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:9090569b0b68988a",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:f53146f292a651e9",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:f106b91044ba2762",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:ba8de69be91e4756",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:f53146f292a651e9",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:16a2036d793bafa7",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:26e711b706bab17f",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:f53146f292a651e9",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:bc8739654469f248",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:11cc4bb6b48f742c",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:ecbd6c55fb039ee0",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:330d719dc2b03be9",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:39ecb2b9007ab0ba",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:ecbd6c55fb039ee0",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:f4ca88ba8baa6739",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:3e0525788ba5bde3",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:ecbd6c55fb039ee0",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:5af3940824e82fcd",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:95a354571e7febf0",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:37db3eb44d01087f",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:aaa815da0f50ef4d",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:fc3d9a757f8d5f34",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:0b874e308cb01e40",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:9286322b96949db0",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:be04fb350771030e",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:60cedc17f39f171d",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:1bb5b267801336b8",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:c1dd09a60b86331e",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:60cedc17f39f171d",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:9c1d94397b08acf1",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:12d2bc73508635e6",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:b8dc1d227914b655",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:a8b5eb013a46fd57",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:cf6e15f51ebe1daa",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:b44fcf05125a0609",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:eeabc647dec117ba",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:4dee9fb02c561ba7",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:b44fcf05125a0609",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:5e2986635399b376",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:b006caf5c9de56d9",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:b44fcf05125a0609",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:7850b525e0ed6066",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:8a0fbe01321a2731",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:b44fcf05125a0609",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:957316e93b8ae16d",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:20d65bd30cab83cf",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:b44fcf05125a0609",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:bca8de66b2d806ca",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:3fce2192de72815d",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:b44fcf05125a0609",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:0606577e75f3aac8",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:7fa9f81f5d38c66f",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:b44fcf05125a0609",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:09be6b925fafc1a8",
+      "type": "has_measure",
+      "sourceId": "shadow:security_technical_service:2421e23cafbcc2f4",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technical_measure:042f1ad5aca12523",
+      "targetType": "security_technical_measure",
+      "label": "has_measure",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:b1b82b3072a00f4c",
+      "type": "has_measure",
+      "sourceId": "shadow:security_technical_service:41f4afc92863cfbf",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technical_measure:35c47baee1092de5",
+      "targetType": "security_technical_measure",
+      "label": "has_measure",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:a2dc7a4e18781da8",
+      "type": "has_measure",
+      "sourceId": "shadow:security_technical_service:e8676b1721378381",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technical_measure:560c58bd4eccd72c",
+      "targetType": "security_technical_measure",
+      "label": "has_measure",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:ea6444e7a83fa663",
+      "type": "has_measure",
+      "sourceId": "shadow:security_technical_service:b80b733706dbd721",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technical_measure:ceba57afe20b0653",
+      "targetType": "security_technical_measure",
+      "label": "has_measure",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:21cc8078d0129979",
+      "type": "has_measure",
+      "sourceId": "shadow:security_technical_service:f166c34f7adc5f8e",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technical_measure:4e537b7dbb7d79a5",
+      "targetType": "security_technical_measure",
+      "label": "has_measure",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:e8b21cd5a9839f38",
+      "type": "part_of_system",
+      "sourceId": "shadow:security_technology_module:f53146f292a651e9",
+      "sourceType": "security_technology_module",
+      "targetId": "shadow:security_system:5f95d8f2389925bb",
+      "targetType": "security_system",
+      "label": "part_of_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:6fc29e7454438e41",
+      "type": "part_of_system",
+      "sourceId": "shadow:security_technology_module:ecbd6c55fb039ee0",
+      "sourceType": "security_technology_module",
+      "targetId": "shadow:security_system:5f95d8f2389925bb",
+      "targetType": "security_system",
+      "label": "part_of_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:1e8d988049b46202",
+      "type": "part_of_system",
+      "sourceId": "shadow:security_technology_module:37db3eb44d01087f",
+      "sourceType": "security_technology_module",
+      "targetId": "shadow:security_system:e3ddf8d0ec7e0f1e",
+      "targetType": "security_system",
+      "label": "part_of_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:80439b51293e3449",
+      "type": "part_of_system",
+      "sourceId": "shadow:security_technology_module:0b874e308cb01e40",
+      "sourceType": "security_technology_module",
+      "targetId": "shadow:security_system:5f95d8f2389925bb",
+      "targetType": "security_system",
+      "label": "part_of_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:8cd33ad7ec917585",
+      "type": "part_of_system",
+      "sourceId": "shadow:security_technology_module:60cedc17f39f171d",
+      "sourceType": "security_technology_module",
+      "targetId": "shadow:security_system:09a15eb5cb64afa6",
+      "targetType": "security_system",
+      "label": "part_of_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:2e1b05741f89d3e5",
+      "type": "part_of_system",
+      "sourceId": "shadow:security_technology_module:b8dc1d227914b655",
+      "sourceType": "security_technology_module",
+      "targetId": "shadow:security_system:5f95d8f2389925bb",
+      "targetType": "security_system",
+      "label": "part_of_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:468b8f9bcb2da501",
+      "type": "part_of_system",
+      "sourceId": "shadow:security_technology_module:b44fcf05125a0609",
+      "sourceType": "security_technology_module",
+      "targetId": "shadow:security_system:5f95d8f2389925bb",
+      "targetType": "security_system",
+      "label": "part_of_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:478493016d5f5b91",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:ac05a75e020f3afa",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:c6a1f0d5822db3f6",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:3fee08e360c5d6b7",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:52eb853a107e2b97",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:9c03ecc9c5f74bbc",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:22ccd3ccdc01c539",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:a6467186dadbc18a",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:1d031bc8cd1d9e0c",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:f87a17d2fe448f8e",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:d32928f43f6748b5",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:26d23c962ca937f2",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:9c63a782c712cdd3",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:5b3841d43d782079",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:c20f21cdafd873b4",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:16c11abb2f5df3e9",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:baa7f197e0112dbf",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:1b0ce1079ecfd224",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:d57e8f80450cc5bb",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:544a3d57ef6206e5",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:a0494f16b0987d81",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "分支机构||PC终端||PC终端操作系统",
+      "evidenceRefCount": 0
+    }
+  ],
+  "relationCount": 83
+}

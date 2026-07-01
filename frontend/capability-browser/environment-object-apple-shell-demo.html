@@ -1313,7 +1313,8 @@
         }
       }
 
-      .vertical-demo-frame {
+      .vertical-demo-frame,
+      .demo-iframe-frame {
         width: 100%;
         height: 100%;
         border: 0;
@@ -2271,11 +2272,11 @@
         <header class="topbar">
           <div>
             <div class="title-row">
-              <span class="eyebrow">Apple shell demo</span>
-              <span class="eyebrow">对象关系图</span>
+              <span class="eyebrow">SAPD demo hub</span>
+              <span class="eyebrow">统一设计入口</span>
             </div>
-            <h1>数据分析层</h1>
-            <p class="subtitle">大数据平台/数据中台，左侧汇总安全技术服务，中间承接模块/措施，右侧表达对应安全系统。</p>
+            <h1>SAPD Wiki Demo 工作台</h1>
+            <p class="subtitle">集中放置颜色基准、信息化环境、搜索和后续新页面 demo，统一入口为 /environment-object-apple-shell-demo.html。</p>
             <div class="scope-legend" aria-label="作用域颜色图例">
               <span class="scope-legend-label">作用域颜色</span>
               <span class="scope-key" data-scope="I-AP">I-AP 软件应用</span>
@@ -2286,17 +2287,17 @@
             </div>
           </div>
           <div class="stats" aria-label="统计">
-            <span class="stat-chip"><strong>29</strong>服务</span>
-            <span class="stat-chip"><strong>6</strong>模块</span>
-            <span class="stat-chip"><strong>6</strong>措施</span>
-            <span class="stat-chip"><strong>5</strong>安全系统</span>
-            <span class="stat-chip"><strong>49</strong>关系</span>
+            <span class="stat-chip"><strong>1</strong>颜色基准</span>
+            <span class="stat-chip"><strong>4</strong>环境方案</span>
+            <span class="stat-chip"><strong>1</strong>搜索方案</span>
+            <span class="stat-chip"><strong>1</strong>纵向流</span>
+            <span class="stat-chip"><strong>统一</strong>入口</span>
           </div>
         </header>
 
         <main class="canvas-shell">
           <nav class="demo-tabbar" aria-label="Demo 视图切换">
-            <button class="demo-tab is-active" type="button" data-demo-tab="current">当前布局</button>
+            <button class="demo-tab is-active" type="button" data-demo-tab="color-system">颜色系统</button>
             <button class="demo-tab" type="button" data-demo-tab="funnel">汇聚布局试验</button>
             <button class="demo-tab" type="button" data-demo-tab="environment-stats">环境统计页</button>
             <button class="demo-tab" type="button" data-demo-tab="subcategory-stats">子类统计页</button>
@@ -2304,7 +2305,16 @@
             <button class="demo-tab" type="button" data-demo-tab="vertical">纵向流试验</button>
           </nav>
 
-          <section class="demo-panel is-active" data-demo-panel="current">
+          <section class="demo-panel is-active" data-demo-panel="color-system">
+            <iframe
+              class="demo-iframe-frame"
+              src="apple-morandi-color-demo.html"
+              title="SAPD Wiki Apple Morandi 颜色系统 demo"
+              loading="lazy"
+            ></iframe>
+          </section>
+
+          <section class="demo-panel" data-demo-panel="current" aria-hidden="true">
           <section class="canvas-frame" aria-label="服务到模块和措施关系图">
             <div class="viewport" id="relationViewport">
               <div class="relation-board" id="relationBoard">
@@ -3378,6 +3388,7 @@
 
       const tabButtons = Array.from(document.querySelectorAll("[data-demo-tab]"));
       const demoPanels = Array.from(document.querySelectorAll("[data-demo-panel]"));
+      const demoPanelIds = new Set(demoPanels.map((panel) => panel.dataset.demoPanel).filter(Boolean));
       const funnelBoard = document.getElementById("funnelBoard");
       const funnelViewport = document.getElementById("funnelViewport");
       const funnelEdgeLayer = document.getElementById("funnelEdgeLayer");
@@ -3708,9 +3719,17 @@
 
       renderSearchDemo();
 
-      function activateDemoTab(tabName) {
+      function activateDemoTab(tabName, options = {}) {
+        if (!demoPanelIds.has(tabName)) return;
         tabButtons.forEach((button) => button.classList.toggle("is-active", button.dataset.demoTab === tabName));
-        demoPanels.forEach((panel) => panel.classList.toggle("is-active", panel.dataset.demoPanel === tabName));
+        demoPanels.forEach((panel) => {
+          const active = panel.dataset.demoPanel === tabName;
+          panel.classList.toggle("is-active", active);
+          panel.setAttribute("aria-hidden", active ? "false" : "true");
+        });
+        if (options.updateHash !== false && window.location.hash.slice(1) !== tabName) {
+          history.replaceState(null, "", `#${tabName}`);
+        }
         if (tabName === "funnel") {
           scheduleFunnelDrawEdges();
         } else if (tabName === "vertical") {
@@ -3718,6 +3737,8 @@
         } else if (tabName === "global-search") {
           hideNodeFulltext();
           renderSearchDemo();
+        } else if (tabName === "color-system") {
+          hideNodeFulltext();
         } else if (tabName === "environment-stats" || tabName === "subcategory-stats") {
           hideNodeFulltext();
         } else {
@@ -3728,6 +3749,13 @@
       tabButtons.forEach((button) => {
         button.addEventListener("click", () => activateDemoTab(button.dataset.demoTab));
       });
+
+      const initialDemoTab = window.location.hash.slice(1);
+      if (demoPanelIds.has(initialDemoTab) && tabButtons.some((button) => button.dataset.demoTab === initialDemoTab)) {
+        activateDemoTab(initialDemoTab, { updateHash: false });
+      } else {
+        activateDemoTab("color-system", { updateHash: false });
+      }
 
       function getFunnelNode(key) {
         return document.querySelector(`[data-funnel-node="${CSS.escape(key)}"]`);

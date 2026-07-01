@@ -253,6 +253,59 @@ function capabilityDirectedProjection(relations, focusIds, hierarchyIds) {
   return { ids, relations: [...relationMap.values()] };
 }
 
+function capabilityChildOverview(node) {
+  return asArray(node.children).map((child) =>
+    sanitizeUiValue({
+      id: child.id || "",
+      type: child.type || "",
+      code: child.code || "",
+      title: child.name || child.title || "",
+      focusCount: collectDescendants(child, (item) => item.type === "capability_focus").length,
+      childCount: asArray(child.children).length,
+    })
+  );
+}
+
+function capabilityCoverageSummary(relations, focusIds) {
+  const focusSet = new Set(focusIds);
+  const technicalServices = new Set();
+  const scopeTypes = new Set();
+  const managementWorks = new Set();
+  const processReferences = new Set();
+  const standardControls = new Set();
+  const modules = new Set();
+  const measures = new Set();
+
+  for (const relation of relations) {
+    if (relation.type === "supports_focus" && focusSet.has(relation.targetId)) technicalServices.add(relation.sourceId);
+    if (relation.type === "maps_to_work" && focusSet.has(relation.sourceId)) managementWorks.add(relation.targetId);
+    if (relation.type === "maps_to_process" && focusSet.has(relation.sourceId)) processReferences.add(relation.targetId);
+    if (relation.type === "maps_to_standard" && focusSet.has(relation.sourceId)) standardControls.add(relation.targetId);
+  }
+  for (const relation of relations) {
+    if (relation.type === "applies_to_scope" && technicalServices.has(relation.sourceId)) scopeTypes.add(relation.targetId);
+    if (relation.type === "implemented_by_module" && technicalServices.has(relation.sourceId)) modules.add(relation.targetId);
+    if (relation.type === "has_measure" && technicalServices.has(relation.sourceId)) measures.add(relation.targetId);
+  }
+
+  return sanitizeUiValue({
+    focusCount: focusIds.length,
+    technicalServiceCount: technicalServices.size,
+    scopeTypeCount: scopeTypes.size,
+    managementWorkCount: managementWorks.size,
+    processReferenceCount: processReferences.size,
+    standardControlCount: standardControls.size,
+    moduleCount: modules.size,
+    measureCount: measures.size,
+  });
+}
+
+function capabilityProjectionMode(node, focusIds, relations) {
+  if (["capability_category", "capability_domain"].includes(node?.type)) return "overview";
+  if (node?.type === "capability" && (focusIds.length > 8 || relations.length > 420)) return "mixed_summary";
+  return "detail";
+}
+
 function groupedObjectsForIds(objectsById, ids, selectedId = "") {
   const grouped = {};
   for (const id of ids) {
@@ -266,9 +319,9 @@ function groupedObjectsForIds(objectsById, ids, selectedId = "") {
 
 function flattenEvidenceRefs(workbench) {
   return {
-    packageType: "oi-149-candidate-evidence",
-    dataState: "candidate",
-    note: "候选 evidence 包仅用于 P4 拆包评估；正式 UI 首屏 / projection 不应直接加载该文件。",
+    packageType: "oi-149-p4-runtime-evidence",
+    dataState: "ready",
+    note: "Evidence 包仅用于 P4 拆包后的详情、审计或追溯；正式 UI 首屏 / projection 不应直接加载该文件。",
     evidenceRefs: asArray(workbench.evidenceRefs),
   };
 }
@@ -299,18 +352,41 @@ function buildCapabilityCandidate(records) {
     const focusIds = collectDescendants(row.node, (item) => item.type === "capability_focus").map((item) => item.id);
     const hierarchyIds = new Set([row.node.id, ...row.ancestors.map((item) => item.id)]);
     const { ids, relations } = capabilityDirectedProjection(asArray(workbench.relations), focusIds, hierarchyIds);
-    const projection = {
-      packageType: "oi-149-capability-object-projection-candidate",
-      dataState: "candidate",
+    const detailMode = capabilityProjectionMode(row.node, focusIds, relations);
+    const baseProjection = {
+      packageType: "oi-149-p4-capability-object-projection",
+      dataState: "ready",
+      detailMode,
       selected: objectSummary(objectsById.get(row.node.id) || row.node, { includeDescription: true }),
       ancestorIds: row.ancestors.map((item) => item.id),
       focusIds,
       focusCount: focusIds.length,
+      childOverview: capabilityChildOverview(row.node),
+      coverageSummary: capabilityCoverageSummary(asArray(workbench.relations), focusIds),
+    };
+    let projection = {
+      ...baseProjection,
       objects: groupedObjectsForIds(objectsById, ids, row.node.id),
       relations: relations.map(relationSummary),
       relationCount: relations.length,
     };
-    if (focusIds.length > 50) {
+
+    if (detailMode !== "detail") {
+      projection = {
+        ...baseProjection,
+        relationCount: relations.length,
+        deferred: {
+          reason:
+            detailMode === "overview"
+              ? "L0 / L1 能力层级只生成总览型 projection；标准控制项、技术映射明细和管理映射明细按 L2 / 关注点延迟加载。"
+              : "该 L2 能力明细超过候选阈值，默认生成汇总 projection；关注点 projection 保留完整明细。",
+          technicalMappingRows: true,
+          managementMappingRows: true,
+          standardMappingRows: true,
+          standardControls: true,
+        },
+      };
+    } else if (focusIds.length > 50) {
       const standardControls = projection.objects.standard_control || {};
       const standardRelationCount = projection.relations.filter((relation) => relation.type === "maps_to_standard").length;
       delete projection.objects.standard_control;
@@ -334,13 +410,14 @@ function buildCapabilityCandidate(records) {
       code: row.node.code || "",
       title: row.node.name || row.node.title || "",
       focusCount: focusIds.length,
+      detailMode,
       path: relativePath,
     });
   }
 
   const index = {
-    packageType: "oi-149-capability-index-candidate",
-    dataState: "candidate",
+    packageType: "oi-149-p4-capability-index",
+    dataState: "ready",
     stats: sanitizeUiValue({ ...tree.stats, ...(workbench.meta?.stats || {}) }),
     defaultSelectedFocusId: workbench.navigator?.defaultSelectedFocusId || "",
     tree: asArray(workbench.navigator?.tree).map(treeSummary),
@@ -538,8 +615,8 @@ function buildEnvironmentCandidate(records) {
       .filter(Boolean)
       .map(sanitizeUiValue);
     const projection = {
-      packageType: "oi-149-environment-object-projection-candidate",
-      dataState: "candidate",
+      packageType: "oi-149-p4-environment-object-projection",
+      dataState: "ready",
       navOrdinal,
       projectionKey: projectionIdentity.projectionKey,
       projectionPath: projectionIdentity.path,
@@ -584,8 +661,8 @@ function buildEnvironmentCandidate(records) {
   });
 
   const navigator = {
-    packageType: "oi-149-environment-navigator-candidate",
-    dataState: "candidate",
+    packageType: "oi-149-p4-environment-navigator",
+    dataState: "ready",
     stats: sanitizeUiValue(workbench.meta?.stats || {}),
     defaultSelectedObjectId: workbench.navigator?.defaultSelectedObjectId || "",
     tree: annotateEnvironmentNav(workbench.navigator?.tree || [], projectionByOrdinal, contextIndex),
@@ -613,8 +690,8 @@ function buildLifecycleCandidate(records) {
     const seedIds = new Set([row.node.id, ...row.ancestors.map((item) => item.id), ...stageIds]);
     const { ids, relations } = closureFromRelations(asArray(workbench.relations), seedIds, 2);
     const projection = {
-      packageType: "oi-149-lifecycle-process-projection-candidate",
-      dataState: "candidate",
+      packageType: "oi-149-p4-lifecycle-process-projection",
+      dataState: "ready",
       selected: objectSummary(objectsById.get(row.node.id) || row.node, { includeDescription: true }),
       stageIds,
       objects: groupedObjectsForIds(objectsById, ids, row.node.id),
@@ -638,8 +715,8 @@ function buildLifecycleCandidate(records) {
   }
 
   const index = {
-    packageType: "oi-149-lifecycle-index-candidate",
-    dataState: "candidate",
+    packageType: "oi-149-p4-lifecycle-index",
+    dataState: "ready",
     stats: sanitizeUiValue(workbench.meta?.stats || {}),
     tree: asArray(workbench.navigator?.tree).map(treeSummary),
     projections: projectionIndex,
@@ -658,9 +735,9 @@ function buildLifecycleCandidate(records) {
 function buildMaintenanceCandidate(records) {
   const index = sanitizeUiValue(readJson("maintenance-index.json"));
   writeBudgeted("maintenance/index.json", {
-    packageType: "oi-149-maintenance-index-candidate",
-    dataState: "candidate",
     ...index,
+    packageType: "oi-149-p4-maintenance-index",
+    dataState: "ready",
   }, records, {
     category: "maintenanceIndex",
     firstScreen: true,
@@ -682,8 +759,8 @@ function buildSharedLookupCandidate(records) {
   const shared = readJson("shared-lookups.json");
   const serviceModuleIndex = asArray(shared.service_module_index).map((entry) => sanitizeUiValue(entry));
   writeBudgeted("shared-lookups/service-module-index.json", {
-    packageType: "oi-149-shared-lookup-service-module-index-candidate",
-    dataState: "candidate",
+    packageType: "oi-149-p4-shared-lookup-service-module-index",
+    dataState: "ready",
     stats: { serviceModuleIndex: serviceModuleIndex.length },
     serviceModuleIndex,
   }, records, {
@@ -696,11 +773,73 @@ function buildSharedLookupCandidate(records) {
 function buildStandardsCandidate(records) {
   const index = sanitizeUiValue(readJson("standards-index.json"));
   writeBudgeted("standards/index.json", {
-    packageType: "oi-149-standards-index-candidate",
-    dataState: "candidate",
     ...index,
+    packageType: "oi-149-p4-standards-index",
+    dataState: "ready",
   }, records, {
     category: "standardsIndex",
+    firstScreen: true,
+    budgetKB: FIRST_SCREEN_BUDGET_KB,
+  });
+}
+
+function writeRuntimeSplitManifest(records, sourcePackages, generatedAt) {
+  const runtimeFiles = records.map((record) =>
+    sanitizeUiValue({
+      path: record.path,
+      sizeKB: record.sizeKB,
+      category: record.category,
+      firstScreen: record.firstScreen,
+      detailProjection: record.detailProjection,
+    })
+  );
+  return writeBudgeted("oi149-split-manifest.json", {
+    packageType: "oi-149-p4-runtime-split-manifest",
+    dataState: "ready",
+    contract: "oi149-p4-split-v1",
+    generatedAt,
+    sourcePackages,
+    domains: {
+      capability: {
+        indexPath: "capability/index.json",
+        projectionIndexField: "projections",
+        projectionPathBase: "capability/projections",
+        runtimeMode: "split-index-first-screen",
+        fallback: "capability-workbench.json",
+      },
+      environment: {
+        navigatorPath: "environment/navigator.json",
+        projectionIndexField: "projections",
+        projectionPathBase: "environment/projections",
+        runtimeMode: "candidate-ready",
+        fallback: "environment-workbench.json",
+      },
+      lifecycle: {
+        indexPath: "lifecycle/index.json",
+        projectionPathBase: "lifecycle/projections",
+        runtimeMode: "candidate-ready",
+        fallback: "lifecycle-workbench.json",
+      },
+      maintenance: {
+        indexPath: "maintenance/index.json",
+        sectionPathBase: "maintenance/sections",
+        runtimeMode: "candidate-ready",
+        fallback: "maintenance-knowledge.json",
+      },
+      sharedLookups: {
+        serviceModuleIndexPath: "shared-lookups/service-module-index.json",
+        runtimeMode: "candidate-ready",
+        fallback: "shared-lookups.json",
+      },
+      standards: {
+        indexPath: "standards/index.json",
+        runtimeMode: "candidate-ready",
+        fallback: "standards-index.json",
+      },
+    },
+    files: runtimeFiles,
+  }, records, {
+    category: "splitManifest",
     firstScreen: true,
     budgetKB: FIRST_SCREEN_BUDGET_KB,
   });
@@ -823,11 +962,13 @@ function main() {
       ];
     })
   );
+  const generatedAt = new Date().toISOString();
+  writeRuntimeSplitManifest(records, sourcePackages, generatedAt);
   const audit = auditGeneratedFiles(records);
   const manifest = {
     packageType: "oi-149-p4-json-split-candidate-manifest",
     dataState: "candidate",
-    generatedAt: new Date().toISOString(),
+    generatedAt,
     candidateDir: path.relative(ROOT, OUT_DIR),
     formalApplyRequired: false,
     formalPublicDataModified: false,

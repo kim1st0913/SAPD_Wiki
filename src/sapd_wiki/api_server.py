@@ -5,6 +5,7 @@ import ipaddress
 import json
 import secrets
 import sqlite3
+import time
 import uuid
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -15,6 +16,7 @@ from .paths import PROJECT_ROOT, resolve_project_path
 
 
 DATA_PACKAGES = {
+    "analytics-summary": "frontend/capability-browser/public/data/analytics-summary.json",
     "capability": "frontend/capability-browser/public/data/capability-tree.json",
     "capability-workbench": "frontend/capability-browser/public/data/capability-workbench.json",
     "environment-workbench": "frontend/capability-browser/public/data/environment-workbench.json",
@@ -88,6 +90,13 @@ CREATE TABLE IF NOT EXISTS user_notes (
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX IF NOT EXISTS idx_user_notes_page_route_updated ON user_notes(page_route, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_user_notes_target_ref ON user_notes(target_ref);
+CREATE INDEX IF NOT EXISTS idx_user_notes_page_target ON user_notes(page_route, target_ref);
+CREATE INDEX IF NOT EXISTS idx_user_notes_anchor_type ON user_notes(anchor_type);
+CREATE INDEX IF NOT EXISTS idx_user_notes_object_type ON user_notes(object_type);
+CREATE INDEX IF NOT EXISTS idx_user_notes_status ON user_notes(status);
 
 CREATE TABLE IF NOT EXISTS user_tags (
   id TEXT PRIMARY KEY,
@@ -163,11 +172,35 @@ USER_NOTE_COLUMNS = {
     "tags_json": "TEXT",
 }
 
+USER_NOTE_INDEX_SQL = [
+    "CREATE INDEX IF NOT EXISTS idx_user_notes_page_route_updated ON user_notes(page_route, updated_at DESC)",
+    "CREATE INDEX IF NOT EXISTS idx_user_notes_target_ref ON user_notes(target_ref)",
+    "CREATE INDEX IF NOT EXISTS idx_user_notes_page_target ON user_notes(page_route, target_ref)",
+    "CREATE INDEX IF NOT EXISTS idx_user_notes_anchor_type ON user_notes(anchor_type)",
+    "CREATE INDEX IF NOT EXISTS idx_user_notes_object_type ON user_notes(object_type)",
+    "CREATE INDEX IF NOT EXISTS idx_user_notes_status ON user_notes(status)",
+]
+
 USER_NOTE_SELECT_COLUMNS = """
 id, target_ref, body, status, page_route, page_title, anchor_type, object_type, object_title, tags_json, created_at, updated_at
 """
 
 USER_NOTE_STATUSES = {"todo", "reviewing", "waiting_confirm", "confirmed", "closed", "deferred"}
+USER_NOTE_STATUS_LABELS = {
+    "todo": "待处理",
+    "reviewing": "处理中",
+    "waiting_confirm": "待确认",
+    "confirmed": "已确认",
+    "closed": "已关闭",
+    "deferred": "暂不处理",
+}
+USER_NOTE_ANCHOR_LABELS = {
+    "page": "页面",
+    "object": "对象",
+    "row": "行",
+    "field": "值",
+    "relation": "关系",
+}
 
 
 def ensure_user_note_columns(connection: sqlite3.Connection) -> None:
@@ -176,6 +209,8 @@ def ensure_user_note_columns(connection: sqlite3.Connection) -> None:
     for column, definition in USER_NOTE_COLUMNS.items():
         if column not in existing:
             connection.execute(f"ALTER TABLE user_notes ADD COLUMN {column} {definition}")
+    for statement in USER_NOTE_INDEX_SQL:
+        connection.execute(statement)
 
 
 def _list(value: Any) -> list[Any]:
@@ -939,6 +974,141 @@ def list_user_notes(query: dict[str, list[str]]) -> dict[str, Any]:
             params,
         ).fetchall()
     return {"ok": True, "data_state": "ready", "notes": [note_row_to_dict(row) for row in rows]}
+
+
+def user_notes_export_payload() -> dict[str, Any]:
+    notes = [note for note in list_user_notes({}).get("notes", []) if isinstance(note, dict)]
+
+    def count_by(field: str) -> dict[str, int]:
+        counts: dict[str, int] = {}
+        for note in notes:
+            key = str(note.get(field) or "未设置").strip() or "未设置"
+            counts[key] = counts.get(key, 0) + 1
+        return dict(sorted(counts.items(), key=lambda item: (-item[1], item[0])))
+
+    return {
+        "ok": True,
+        "version": 1,
+        "export_type": "user_notes",
+        "export_created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "data_state": "ready",
+        "contains_user_note_body": True,
+        "privacy_note": "本导出包含用户批注正文，仅在需要反馈问题时主动分享。",
+        "source": {
+            "project_root": str(PROJECT_ROOT),
+            "user_database": str(USER_DB_PATH),
+        },
+        "summary": {
+            "note_count": len(notes),
+            "by_status": count_by("status"),
+            "by_page_route": count_by("page_route"),
+            "by_anchor_type": count_by("anchor_type"),
+            "by_object_type": count_by("object_type"),
+        },
+        "notes": notes,
+    }
+
+
+def _markdown_value(value: Any, fallback: str = "未设置") -> str:
+    text = str(value or "").replace("\r\n", "\n").replace("\r", "\n").strip()
+    return text or fallback
+
+
+def _markdown_inline(value: Any, fallback: str = "未设置") -> str:
+    return " / ".join(_markdown_value(value, fallback).splitlines()) or fallback
+
+
+def _markdown_count_lines(counts: Any, label_map: dict[str, str] | None = None) -> list[str]:
+    if not isinstance(counts, dict) or not counts:
+        return ["- 无"]
+    lines = []
+    for key, count in counts.items():
+        label = label_map.get(key, key) if label_map else key
+        lines.append(f"- {label}：{count}")
+    return lines
+
+
+def _markdown_note_body(value: Any) -> str:
+    body = _markdown_value(value, "（无正文）")
+    return "\n".join(f"> {line}" if line else ">" for line in body.splitlines())
+
+
+def user_notes_export_markdown(payload: dict[str, Any]) -> str:
+    summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+    source = payload.get("source") if isinstance(payload.get("source"), dict) else {}
+    notes = [note for note in _list(payload.get("notes")) if isinstance(note, dict)]
+    lines = [
+        "# SAPD Wiki 批注导出",
+        "",
+        f"- 导出时间：{_markdown_inline(payload.get('export_created_at'))}",
+        f"- 批注数量：{summary.get('note_count', len(notes))}",
+        "- 隐私提醒：本文件包含用户批注正文，仅在需要反馈问题时主动分享。",
+        "",
+        "## 导出来源",
+        "",
+        f"- 项目目录：{_markdown_inline(source.get('project_root'))}",
+        f"- 用户数据库：{_markdown_inline(source.get('user_database'))}",
+        "",
+        "## 汇总",
+        "",
+        "### 按状态",
+        "",
+        *_markdown_count_lines(summary.get("by_status"), USER_NOTE_STATUS_LABELS),
+        "",
+        "### 按页面",
+        "",
+        *_markdown_count_lines(summary.get("by_page_route")),
+        "",
+        "### 按锚点类型",
+        "",
+        *_markdown_count_lines(summary.get("by_anchor_type"), USER_NOTE_ANCHOR_LABELS),
+        "",
+        "### 按对象类型",
+        "",
+        *_markdown_count_lines(summary.get("by_object_type")),
+        "",
+        "## 批注清单",
+        "",
+    ]
+    if not notes:
+        lines.append("暂无批注。")
+        return "\n".join(lines).rstrip() + "\n"
+    for index, note in enumerate(notes, start=1):
+        status = _markdown_inline(note.get("status") or "todo")
+        status_label = USER_NOTE_STATUS_LABELS.get(status, status)
+        anchor_type = _markdown_inline(note.get("anchor_type") or "object")
+        anchor_label = USER_NOTE_ANCHOR_LABELS.get(anchor_type, anchor_type)
+        page_title = _markdown_inline(note.get("page_title"))
+        page_route = _markdown_inline(note.get("page_route"))
+        object_title = _markdown_inline(note.get("object_title"))
+        object_type = _markdown_inline(note.get("object_type"))
+        target_ref = _markdown_inline(note.get("target_ref"))
+        tags = "、".join(_markdown_inline(tag) for tag in _list(note.get("tags"))) or "无"
+        title = object_title if object_title != "未设置" else page_title if page_title != "未设置" else target_ref
+        lines.extend(
+            [
+                f"### {index}. {title}",
+                "",
+                f"- 状态：{status_label}",
+                f"- 页面：{page_title}（{page_route}）",
+                f"- 锚点：{anchor_label}",
+                f"- 对象：{object_title}（{object_type}）",
+                f"- 标签：{tags}",
+                f"- 目标引用：{target_ref}",
+                f"- 创建时间：{_markdown_inline(note.get('created_at'))}",
+                f"- 更新时间：{_markdown_inline(note.get('updated_at'))}",
+                "",
+                "批注正文：",
+                "",
+                _markdown_note_body(note.get("body")),
+                "",
+            ]
+        )
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def user_notes_export_file_name() -> str:
+    return f"user-notes-export-{time.strftime('%Y%m%d-%H%M%SZ', time.gmtime())}.md"
 
 
 def create_user_note(payload: dict[str, Any]) -> dict[str, Any]:
@@ -2325,6 +2495,24 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(encoded)
 
+    def _send_json_download(self, payload: Any, file_name: str, status: int = 200) -> None:
+        encoded = json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(encoded)))
+        self.send_header("Content-Disposition", f'attachment; filename="{file_name}"')
+        self.end_headers()
+        self.wfile.write(encoded)
+
+    def _send_text_download(self, content: str, file_name: str, content_type: str = "text/plain; charset=utf-8", status: int = 200) -> None:
+        encoded = content.encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(encoded)))
+        self.send_header("Content-Disposition", f'attachment; filename="{file_name}"')
+        self.end_headers()
+        self.wfile.write(encoded)
+
     def _api_port(self) -> int:
         return int(getattr(self.server, "server_port", self.server.server_address[1]))
 
@@ -2397,6 +2585,14 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
                 return
             if path == "/api/v1/user/favorites":
                 self._send_json(create_envelope(list_user_favorites()))
+                return
+            if path == "/api/v1/user/notes/export":
+                payload = user_notes_export_payload()
+                should_download = str((query.get("download") or [""])[0]).strip().lower() in {"1", "true", "yes"}
+                if should_download:
+                    self._send_text_download(user_notes_export_markdown(payload), user_notes_export_file_name(), "text/markdown; charset=utf-8")
+                else:
+                    self._send_json(payload)
                 return
             if path == "/api/v1/user/notes":
                 self._send_json(create_envelope(list_user_notes(query)))

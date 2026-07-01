@@ -1,0 +1,60 @@
+{
+  "packageType": "oi-149-p4-capability-object-projection",
+  "dataState": "ready",
+  "detailMode": "overview",
+  "selected": {
+    "id": "bdf00d1b-c193-4c48-8bbc-5e30e35d8186",
+    "type": "capability_domain",
+    "code": "T-IN",
+    "title": "情报 Intelligence",
+    "name": "情报 Intelligence",
+    "category": "",
+    "status": "active"
+  },
+  "ancestorIds": [
+    "94bba6df-c6bc-41b5-ad60-7c6e87a173ac"
+  ],
+  "focusIds": [
+    "6ced00d1-70d1-4dff-9d8a-2c30191ed8f3",
+    "8cec61ed-aedb-45af-a9a3-36a99a6f3c83",
+    "1771201d-11cc-4a1f-b243-c73880d9f732",
+    "fa1cbe0c-bfae-4384-9913-a1301eeaa9ba"
+  ],
+  "focusCount": 4,
+  "childOverview": [
+    {
+      "id": "63df9858-fcd2-479a-b5c0-f450e0185a2c",
+      "type": "capability",
+      "code": "T-IN.IO",
+      "title": "威胁情报运营能力",
+      "focusCount": 3,
+      "childCount": 3
+    },
+    {
+      "id": "1cdc4eee-878a-46a3-b71e-1f8bd88d817e",
+      "type": "capability",
+      "code": "T-IN.IP",
+      "title": "威胁情报生产能力",
+      "focusCount": 1,
+      "childCount": 1
+    }
+  ],
+  "coverageSummary": {
+    "focusCount": 4,
+    "technicalServiceCount": 4,
+    "scopeTypeCount": 1,
+    "managementWorkCount": 4,
+    "processReferenceCount": 3,
+    "standardControlCount": 11,
+    "moduleCount": 1,
+    "measureCount": 0
+  },
+  "relationCount": 45,
+  "deferred": {
+    "reason": "L0 / L1 能力层级只生成总览型 projection；标准控制项、技术映射明细和管理映射明细按 L2 / 关注点延迟加载。",
+    "technicalMappingRows": true,
+    "managementMappingRows": true,
+    "standardMappingRows": true,
+    "standardControls": true
+  }
+}

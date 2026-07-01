@@ -25,7 +25,7 @@
 - P1：新增 `/api/v1/search-index` 运行时轻量索引，前端全局搜索优先读取索引结果，并只合并当前会话已加载数据作为补充；`audit_global_search_index_contract.mjs` 已防止回退为全包扫描。
 - P2：能力页 L0 / L1 / L2 / 关注点对象级 projection 已补齐聚合 `localRelationMap` 和 `localRelationMapsByFocusId`；`audit_capability_viewmodel_contract.mjs` 样本全部为 `backend_projection`。
 - P3：后端 `read_data_package()` 与 standards compat 读取已增加按 `size + mtime_ns` 的进程内缓存。
-- P4：已新增 `scripts/build_oi149_split_candidate.mjs` 和 `scripts/audit_oi149_split_candidate.mjs`，生成候选目录 `data/exports/worker-verify/oi-149-p4-json-split-candidate/`；候选首屏最大 `758.7 KB`、对象详情最大 `1202.2 KB`、字段边界失败 `0`。用户已接受 P4 候选方向、预算、顶层能力标准明细延迟加载和 `shared-lookups` 暂不继续拆；正式 JSON 分层尚未 apply，后续必须先保持 environment projection key 与 `navigator -> projection` 唯一命中审计通过，再由用户确认是否进入正式替换与前端契约切换。
+- P4：已新增 `scripts/build_oi149_split_candidate.mjs`、`scripts/audit_oi149_split_candidate.mjs`、`scripts/audit_oi149_split_runtime_contract.mjs`、`scripts/apply_oi149_split_candidate.mjs` 和 `scripts/audit_oi149_readiness.mjs`，生成候选目录 `data/exports/worker-verify/oi-149-p4-json-split-candidate/`。用户已接受 P4 候选方向、预算、顶层能力标准明细延迟加载和 `shared-lookups` 暂不继续拆；随后完成 Fix-A 和 P4-B：能力页加载态请求结束后会重渲染，projection mismatch / error 会进入失败态并支持重试；能力 L0 / L1 projection 改为总览型，不默认携带完整标准控制项、技术映射明细和管理映射明细。最新候选首屏最大 `758.7 KB`、对象详情最大 `915.5 KB`、字段边界失败 `0`。正式 apply 已于 2026-06-30 执行：`frontend/capability-browser/public/data/` 新增 `oi149-split-manifest.json`、`capability/`、`environment/`、`lifecycle/`、`maintenance/`、`shared-lookups/`、`standards/` 分片目录，共创建 `315` 个分片文件，`wouldOverwriteCount=0`；旧全量包继续保留作为 fallback。前端 `dataClient` 已具备 manifest 探测、`capability/index.json` 能力首屏读取、`environment/navigator.json` 环境首屏导航读取和 `environment/projections/*` 环境详情 projection 读取路径：manifest 缺失时仍回退 `/api/v1/capabilities/workspace-initial` 或旧 `environment-workbench.json`。post-apply readiness 已通过 `commandCount=27`、`failedCommandCount=0`、`failedGateCount=0`。后续重点不是继续扩大拆包，而是人工验收核心页面、保留旧全量包观察，并在 `OI-156` 中一次性修批注终态。
 
 原始排查时，现有懒加载审计通过，但仍有四类绕过点；下列绕过点中的 P0 / P1 / P2 / P3 项已在 2026-06-30 收口，保留在这里作为根因记录和防回归依据：
 
@@ -49,9 +49,21 @@
 | 顶部全局搜索是否保留、是否新增独立搜索结果页 | `OI-155` |
 | 全局搜索与模块内搜索的产品职责划分 | `OI-155` |
 | 环境页等页面内搜索无法使用 | `OI-154` |
-| 批注定位慢、定位不到 | `OI-150` / `OI-151` |
+| 批注定位慢、定位不到、高亮不稳定 | `OI-150` / `OI-151` / `OI-156` |
 
 因此，`OI-149` 后续实施不得直接重做搜索 UI 或搜索结果页；它只负责确保全局搜索不再绕过懒加载和数据包边界。全局搜索产品形态以 `docs/06-implementation/global-search-redesign-2026-06-30.md` 为准。
+
+## 批注准出边界
+
+2026-06-30 用户修正主线：批注定位 / 高亮终态修复不应抢在 `OI-149` 前完成。批注依赖页面 DOM、当前选中对象、`target_ref`、projection 字段和懒加载后的节点；如果 JSON 分片和 projection key 还会变化，先全面修批注会反复失效。
+
+`OI-149` 的批注准出只做三件事：
+
+1. projection 必须明确稳定对象身份字段：`object_type` / `object_id` / `code` / `title` / `target_ref` 或等价字段不能在拆包后丢失。
+2. 旧批注兼容策略必须在 apply 前写清楚：旧 `target_ref` 能直接命中、需要进入子节点 / 关注点、或只能显示“目标未加载 / 可重试”的场景要可区分。
+3. 批注失败定位不能拖死页面：`jumpToUserNote()` 的失败重试、DOM 标记刷新和文本 fallback 必须有次数 / 耗时熔断。
+
+本阶段不把环境页、能力页、LC 页面旧批注兼容、高亮统一样式和真实浏览器定位作为终态修复目标；这些归入 `OI-156` 后续专项，在 `OI-149` 正式 apply 稳定后一次性修。
 
 ## 治理原则
 
@@ -179,9 +191,12 @@
 
 - 任何核心页面首屏 JSON 小于 `1 MB`。
 - 当前对象详情加载 JSON 小于 `1.5 MB`，特殊大标准表除外。
+- 能力 L0 / L1 projection 必须是总览型：能力关系图谱、子能力列表、统计和主要覆盖摘要；不得默认携带完整 `objects` / `relations` 明细、完整标准控制项或完整映射行。
+- 能力 L2 projection 可以按体量进入 `detail` 或 `mixed_summary`；关注点 projection 必须保留完整明细。
 - 全量包只允许在导出、诊断或显式“加载全部”场景出现。
 - `environment-navigator` 中每个导航行必须携带唯一 `projectionKey` / `projectionPath`；即使原始 navigator 存在重复 `node.id`，也必须满足 `navigator -> projection` 一行一文件、一 key 一命中。
-- `audit_oi149_split_candidate.mjs` 必须检查 manifest path 唯一、navigator projection 字段完整、projection path 存在且唯一、projection 本体 roundtrip 一致，以及 projection index 与 navigator 对齐。
+- `audit_oi149_split_candidate.mjs` 必须检查 manifest path 唯一、navigator projection 字段完整、projection path 存在且唯一、projection 本体 roundtrip 一致、projection index 与 navigator 对齐、能力 L0 / L1 总览型 projection 和关注点明细 projection。
+- `audit_user_annotation_contract.mjs` 在本阶段只作为批注熔断和基础锚点门禁：必须保证失败定位受控、失败态可见、目标身份字段不被 projection 调整删除；不得要求本轮提前完成旧批注全模块兼容和高亮终态修复。
 
 ## 可能导致页面不可用的影响面
 
@@ -193,9 +208,9 @@
 | 信息化环境映射 | 拆包后对象上下文、系统关系、批注锚点可能断开 | 先输出 selected object projection，不直接删 full workbench |
 | 知识库字典 | section split 如果缺字段会导致某些目录空 | 保留 `maintenanceIndex` + section fallback |
 | 标准 / 框架 | search index 不含表内目标会导致搜索只能跳页面 | 索引保留 `framework/table/control` 三级 target |
-| LC-AP / LC-DT | projection 若不含原始业务字段搜索文本，旧批注恢复会失败 | 旧批注恢复字段纳入 projection 验收 |
+| LC-AP / LC-DT | projection 若不含原始业务字段搜索文本，旧批注恢复会失败 | 身份字段和兼容策略纳入 projection 验收，终态恢复后置到 `OI-156` |
 | 指南 / 幻灯片 | 如果全局搜索不再全量扫 content，可能短期搜不到正文 | content 可先保留轻量索引，不加载完整 slide 内容 |
-| 批注抽屉 | 依赖当前页面锚点和用户 API，不能被搜索/加载改造误伤 | 批注契约审计必须作为每轮必跑项 |
+| 批注抽屉 | 依赖当前页面锚点和用户 API，不能被搜索/加载改造误伤 | 本轮只保证失败定位熔断和失败态，不提前做全模块高亮终态 |
 
 ## 防失败机制
 
@@ -209,14 +224,58 @@
    - 如何回退。
 5. 如果真实浏览器仍慢，先取加载 trace 和 network 摘要，不再凭感觉改 UI。
 
+## P4 正式 Apply 结果与回退
+
+当前 P4 已完成正式 apply，执行原则仍是“小步启用、旧包兜底、可回退”。
+
+1. **Pre-apply 冻结**
+   - 先运行 `node scripts/audit_oi149_readiness.mjs --url http://127.0.0.1:5173`，确认总控报告 `result=pass`、`failedCommandCount=0`、`failedGateCount=0`；如沙箱阻止访问本机 5173，只能先运行 `node scripts/audit_oi149_readiness.mjs --skip-runtime` 作为离线门禁，完整 runtime 门禁仍需在允许访问本机服务的执行上下文重跑。
+   - 重新运行 `scripts/build_oi149_split_candidate.mjs` 和 `scripts/audit_oi149_split_candidate.mjs`。
+   - 确认候选 `public-data` 运行文件为 `dataState=ready`，不得出现 `dataState=candidate` 或 `packageType` 含 `candidate` 的正式待复制文件。
+   - 先运行 `node scripts/apply_oi149_split_candidate.mjs` 默认 dry-run，确认 `writesPerformed=false`、`formalPublicDataModified=false`、候选写入数量、备份目录和回退说明。
+   - 记录候选目录、manifest、预算和 `navigator -> projection` 唯一命中结果。
+   - 备份将要新增 / 替换的 `frontend/capability-browser/public/data/capability/`、`environment/`、`lifecycle/`、`maintenance/`、`shared-lookups/`、`standards/` 分片目录；旧全量包先保留，不删除。
+
+2. **数据文件 apply**
+   - 已运行 `node scripts/apply_oi149_split_candidate.mjs --apply --confirm-oi149-public-data-write`，将候选 `public-data/*` 复制到正式 `frontend/capability-browser/public/data/*` 的同名分片目录。
+   - Apply 报告：`data/exports/worker-verify/oi-149-p4-json-split-candidate/formal-apply-reports/oi149-p4-apply-20260630T123957Z.json/md`。
+   - 本次 `candidateFileCount=315`、`wouldWriteCount=315`、`wouldOverwriteCount=0`、`backupFileCount=0`，即只新增分片文件，没有覆盖旧文件。
+   - 保留 `capability-tree.json`、`capability-workbench.json`、`environment-workbench.json`、`lifecycle-workbench.json`、`maintenance-knowledge.json`、`shared-lookups.json` 一轮作为兼容 fallback。
+   - 已新增 split manifest，用于前端和审计确认当前运行的是 `OI-149 P4` 分片契约。
+
+3. **运行时切换**
+  - `dataClient` 先探测 split manifest / index；存在且版本匹配时，优先按 index + projection 读取。
+   - `capability`：首屏读 `capability/index.json`；对象详情第一阶段继续走旧 `/api/v1/capabilities/workspace-view`，保持当前 ViewModel 契约稳定。后续再逐步把 L0 / L1 总览型 projection、L2 / 关注点 projection 接入运行时，不和正式数据 apply 混在一步里。
+   - `environment`：首屏读 `environment/navigator.json`；选择环境 / 子类 / 对象后可按 `projectionKey`、`projectionPath`、`navOrdinal` 或对象 ID 读取 `environment/projections/*`；projection 缺失时回退旧 `environment-workbench.json`。页面 UI 是否立即切到 projection 详情可单独小步接入，不和正式数据复制混在一个不可回退步骤里。
+   - `lifecycle`、`maintenance`、`standards` 按 index / section / projection 渐进切换；不在首屏加载全量知识包。
+
+4. **Post-apply 验证**
+   - 已运行 `node scripts/audit_oi149_readiness.mjs --mode postapply --url http://127.0.0.1:5173`。
+   - post-apply readiness 已确认正式 `frontend/capability-browser/public/data/oi149-split-manifest.json` 存在、`contract=oi149-p4-split-v1`、`dataState=ready`，关键 split 文件存在，旧全量包仍保留作为 fallback；结果为 `commandCount=27`、`failedCommandCount=0`、`failedGateCount=0`。
+
+5. **缓存版本**
+   - `index.html` 中 `app.js`、`dataClient.js`、相关组件和 `styles.css` 版本已在本轮 OI-149 相关变更中提升。
+   - 若用户浏览器仍出现旧链路，先看加载的脚本版本和 network 摘要，不直接改业务逻辑。
+
+6. **回退方案**
+   - 第一层回退：前端禁用 split manifest / split path，恢复读取旧全量包。
+   - 第二层回退：删除或移走新增分片目录，保留旧全量包不变。
+   - 第三层回退：按 `scripts/apply_oi149_split_candidate.mjs` 写出的 apply report 恢复 `formal-apply-backups/<timestamp>/public-data` 中的备份文件；对 apply 前不存在的新 split 文件按 report 删除；随后重跑 `frontend_content_smoke_check`、`audit_json_package_boundary`、`check_github_data_boundary`、5173 状态检查。
+
+正式 apply 后不能立即删除旧全量包；至少保留到能力、环境、LC、维护、标准和批注熔断门禁全部通过并完成人工验收。
+
 ## 必跑验证
 
 基础验证：
 
+- `node scripts/audit_oi149_readiness.mjs --url http://127.0.0.1:5173`
+- `node scripts/audit_oi149_readiness.mjs --skip-runtime`（仅在本机 5173 访问受限时作为离线补充，不替代完整 runtime 门禁）
+- 正式 apply 后：`node scripts/audit_oi149_readiness.mjs --mode postapply --url http://127.0.0.1:5173`
 - `node --check` 修改的 JS 文件。
 - `node scripts/audit_frontend_lazy_load_contract.mjs`
 - `node scripts/audit_capability_viewmodel_contract.mjs --url http://127.0.0.1:5173`
 - `node scripts/audit_user_annotation_contract.mjs`
+- `node scripts/audit_oi149_split_runtime_contract.mjs`
 - `node scripts/frontend_content_smoke_check.mjs --skip-api`
 - `python3 scripts/audit_json_package_boundary.py`
 - `python3 scripts/check_github_data_boundary.py`

@@ -1,0 +1,60 @@
+{
+  "packageType": "oi-149-p4-capability-object-projection",
+  "dataState": "ready",
+  "detailMode": "overview",
+  "selected": {
+    "id": "2a8d20c6-3244-4c1e-83ca-24b3391dd386",
+    "type": "capability_domain",
+    "code": "M-SE",
+    "title": "网络安全监督检查与绩效考核 Supervision & Evaluation",
+    "name": "网络安全监督检查与绩效考核 Supervision & Evaluation",
+    "category": "",
+    "status": "active"
+  },
+  "ancestorIds": [
+    "697c2bdb-baa4-4899-a2a7-d0f5da9bd5fe"
+  ],
+  "focusIds": [
+    "38296ed3-c9e1-43d3-9e8d-deaaee1cb8ec",
+    "06a78fd6-f3cf-4e38-a0e0-924db572b331",
+    "ca81f762-200c-4ee7-828f-c124d08909d3",
+    "63d45d0d-d2e4-4c21-be2e-d386c9552b85"
+  ],
+  "focusCount": 4,
+  "childOverview": [
+    {
+      "id": "ee1c0263-d4dd-48d4-b38d-ac64109cecaa",
+      "type": "capability",
+      "code": "M-SE.PE",
+      "title": "网络安全绩效考核能力",
+      "focusCount": 1,
+      "childCount": 1
+    },
+    {
+      "id": "70fa769c-b313-48b4-bf48-ad3d637a707e",
+      "type": "capability",
+      "code": "M-SE.SE",
+      "title": "网络安全监督检查能力",
+      "focusCount": 3,
+      "childCount": 3
+    }
+  ],
+  "coverageSummary": {
+    "focusCount": 4,
+    "technicalServiceCount": 1,
+    "scopeTypeCount": 1,
+    "managementWorkCount": 4,
+    "processReferenceCount": 4,
+    "standardControlCount": 45,
+    "moduleCount": 0,
+    "measureCount": 0
+  },
+  "relationCount": 87,
+  "deferred": {
+    "reason": "L0 / L1 能力层级只生成总览型 projection；标准控制项、技术映射明细和管理映射明细按 L2 / 关注点延迟加载。",
+    "technicalMappingRows": true,
+    "managementMappingRows": true,
+    "standardMappingRows": true,
+    "standardControls": true
+  }
+}

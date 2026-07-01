@@ -124,7 +124,7 @@
   function standardControlChip(item) {
     const code = text(item?.originalControlId || entityCode(item) || entityName(item, "未编号")).trim();
     const tooltip = tooltipText(item);
-    return `<span class="standard-tooltip-chip standard-control-code-chip standard-control-inline standard-code-breaks" data-tooltip="${escape(tooltip)}" aria-label="${escape(tooltip || code)}" tabindex="0">${codeWithBreaks(code)}</span>`;
+    return `<span class="standard-tooltip-chip standard-control-code-chip standard-control-inline standard-code-breaks" data-tooltip="${escape(tooltip)}" aria-label="${escape(tooltip || code)}" tabindex="0"${annotationValueAttrs(code)}>${codeWithBreaks(code)}</span>`;
   }
 
   function linkByServiceKey(links = []) {

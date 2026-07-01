@@ -4,8 +4,8 @@
 
 ## 治理入口
 
-- 当前未关闭问题数：20
-- 已关闭归档问题数：137
+- 当前未关闭问题数：22
+- 已关闭归档问题数：138
 - 全量索引：`docs/06-implementation/open-issues-index.md`
 - 已关闭问题归档：`docs/05-archive/open-issues-history/2026-06.md`
 - 重复编号待治理：`OI-044`、`OI-092`，索引中使用 `OI-xxx#n` 区分历史条目。
@@ -14,13 +14,15 @@
 
 | 编号 | 状态 | 标题 |
 |---|---|---|
+| OI-157 | 已修复 / 待打包验收 | 打包测试反馈需要单独导出用户批注 |
+| OI-156 | 已修复 / 批注治理 7 项已落地 / Apple 侧边把手与锚点契约已补 / 待人工视觉验收 | 全局批注定位 / 高亮性能退化导致页面假死 |
 | OI-155 | 设计完成 / 待用户确认 | 全局搜索产品形态与搜索结果页重设计 |
 | OI-154 | 待设计落地 / 待修复 | 页面内搜索功能回归与环境页搜索不可用 |
 | OI-153 | 已修复 / 待页面验收 | 批注抽屉底部卡片展开后当前批注显示不完整 |
 | OI-152 | 已修复 / 待页面验收 | LC-AP / LC-DT 旧批注阶段 ID 失效导致定位不到 |
 | OI-151 | 已修复 / 待页面验收 | 信息化环境汇聚图节点缺少稳定业务锚点导致定位不到 |
 | OI-150 | 已修复 / 待真实浏览器验收 | 全局批注值定位缺少运行时索引导致定位慢 |
-| OI-149 | 进行中 / P1-P4 候选已生成（正式 apply 待确认） | 前端 JSON 加载体量与首屏性能需分层治理 |
+| OI-149 | P4 正式 split apply 已完成 / 待页面人工验收与观察 | 前端 JSON 加载体量与首屏性能需分层治理 |
 | OI-148 | 已修复 / 待页面验收 | 全局批注在新环境页面缺少值级锚点与路由切换遮挡治理 |
 | OI-147 | 已修复 / 待页面验收 | 信息化环境安全技术汇聚图措施误继承安全系统 |
 | OI-146 | 已修复 / 待页面验收 | 信息化环境安全技术汇聚图安全系统列未带出 |
@@ -51,6 +53,29 @@
 
 ## 当前问题详情
 
+## OI-157：打包测试反馈需要单独导出用户批注
+
+- 状态：已修复 / 待打包验收
+- 类型：Delivery Bundle / 用户数据 / 批注 / 诊断
+- 对象或页面：打包后的 SAPD Wiki 本地后端、`user_notes` 批注表、`diagnostics/` 目录。
+- 现象：用户在打包后测试阶段发现多个 bug，希望把系统内部批注作为反馈材料导出；现有诊断包默认排除 SQLite 数据库内容和用户批注正文，避免无意泄露个人备注，但缺少显式的批注专项导出入口。
+- 影响：测试同事只能截图或手工复制批注，问题上下文、页面路由、锚点类型、对象标题和状态容易丢失；若直接要求发送用户库，又会扩大隐私和数据暴露范围。
+- 当前处理：新增显式批注导出能力：本地 API `GET /api/v1/user/notes/export?download=1` 下载 Markdown 文件，内容包含导出摘要、状态 / 页面 / 锚点 / 对象统计、页面路由、锚点信息、对象标题、标签、创建更新时间和批注正文，面向测试反馈直接阅读；不再把一键导出文件交付为 JSON。打包脚本同步生成 `diagnostics/export-user-notes.command` 和 `diagnostics/export-user-notes.bat`，即使页面打不开，也可通过本地后端命令把 `.md` 导出文件写入 `data/exports/`。
+- 需要确认：批注导出包含用户批注正文，只应在需要反馈问题时主动运行并分享；通用诊断包继续默认不包含批注正文和 SQLite 数据库内容。
+- 修复说明：修改 `scripts/run_local_server.py`、`src/sapd_wiki/api_server.py`、`frontend/capability-browser/dataClient.js`、`frontend/capability-browser/app.js`、`scripts/build_zip_bundle.py`，未修改业务数据包、SQLite 用户库、原始 Excel、标准包、字典包或 LC 数据包。
+- 验证结果：历史打包链路已通过 `python3 -m py_compile scripts/run_local_server.py scripts/build_zip_bundle.py scripts/package_backend_pyinstaller.py src/sapd_wiki/api_server.py`；临时 mac bundle `--export-user-notes` 原可生成 JSON，本轮已改为生成 `user-notes-export-*.md`；5173 预览服务 `/api/v1/user/notes/export?download=1` 应返回 Markdown 附件文件名。强制重建 macOS backend 后，App Runtime 后端 `--help` 已包含 `--export-user-notes`；最终 DMG 通过 `codesign --verify --deep --strict --verbose=2`、`hdiutil verify` 和 `python3 scripts/check_bundle_runtime.py`。本轮 Markdown 改动的最新验证见 `progress.md`。
+## OI-156：全局批注定位 / 高亮性能退化导致页面假死
+
+- 状态：已修复 / 批注治理 7 项已落地 / Apple 侧边把手与锚点契约已补 / 待人工视觉验收
+- 类型：前端 / 批注 / 性能 / 定位 / 高亮
+- 对象或页面：全局 `UserAnnotationDrawer`、`app.js` 批注定位链路、能力页、信息化环境页、LC-AP、LC-DT、标准 / 字典、指南 / 幻灯片页。
+- 现象：用户反馈批注定位 / 高亮已扩大为全模块问题，定位不到时会拖慢页面甚至造成假死。复查确认 `jumpToUserNote()` 失败定位旧链路最多重试 `28` 次，每次都会调用 `applyAnnotationAnchorMarkers()`；而 marker 会扫描全页锚点并对未命中批注继续做文本 fallback。目标不存在、目标未加载或页面筛选未展开时，最容易触发重复全 DOM 标记和多轮重试。
+- 影响：该问题会影响用户感知。`OI-149` P4 split apply 已完成并进入待页面验收 / 观察，本轮不再扩大 JSON 拆包，而是专门收口批注终态：稳定 `target_ref`、旧锚点兼容、运行时 anchor index、高亮统一和失败熔断。
+- 当前处理：已完成根因修复。`app.js` 保留定位预算：单次批注跳转最多 `12` 次短重试、总耗时上限 `1800ms`，单次跳转只允许 `1` 次批注标记刷新，跳转中的标记刷新关闭文本 fallback；并修正 context pending 期间绕过预算的问题。点击批注后的 active 定位态不再约 `2.6s` 自动清除，而是记录 `activeUserNoteId / activeUserNoteTargetRef / activeUserNoteAnchorType` 并在 marker 重跑、组件重渲染和抽屉状态变化后重新标记当前定位目标；新跳转开始即清旧 active，失败不保留上一条高亮。`annotationJumpToken` 继续取消切页后的旧跳转任务，失败态只在当前页展示。环境页批注会自动切到 `mapping` 子视图，并按批注目标匹配环境 / 子类 / 信息化对象或对象下服务、模块、措施、安全系统后恢复选中上下文；已兼容 OI-149 后的 `environment_scope_tree`、`navigator.tree` 和对象内 `scope_mappings[].services[].modules/measures/systems`。能力页值级批注新增 projection 懒索引恢复，并补 `field_value / table_row` 旧锚点兼容、泛值 `ALL` 兄弟值线索、标准框架值锚点归一、业务前缀 / 后缀归一。抽屉侧新增 `focusNoteId / data-annotation-current-note` 和当前卡片滚动优先级，连续跨页定位时当前批注卡片保持可见，避免回到旧批注。
+- 后续治理：用户新提出的 7 项已完成代码 / 文档 / 脚本落地。批注清单现在按每条记录生成业务上下文，值级批注显示页面、所属能力 / 环境对象 / 生命周期 / 标准上下文和视角，而不是只显示孤立值；`app.js` 增加 `userNoteIndex` 运行时索引，统一 `id`、`page_route`、`target_ref`、`page_route + target_ref`、`anchor_type`、`object_type` 查询；`src/sapd_wiki/api_server.py` 与 `scripts/run_local_server.py` 为 `user_notes` 声明 page / target / anchor / object / status 查询索引；新增 `scripts/audit_user_notes_integrity.mjs`，默认 dry-run 输出无效 / 重复批注候选，删除必须显式 `--apply --confirm-user-notes-cleanup`；新增 `scripts/seed_user_annotation_test_notes.mjs`，默认 dry-run 生成覆盖能力、环境、LC、知识库、标准和指南的测试批注，写入 / 清理必须显式确认；`global-annotation-requirements-and-regression-matrix.md` 补充上下文、索引、清理、测试数据、Apple shell 窄边缘把手、抽屉动画和全局锚点准入契约；右侧抽屉已改为贴 viewport 右侧、只通过整体 `transform` 收回，触发器不再使用大半圆数字徽章，避免展开 / 收起时尺寸跳变和视觉抢占。
+- 需要确认：请在固定入口 `http://127.0.0.1:5173/` 抽查已有批注。预期：能定位的批注应短暂蓝环 + 黄色定位高亮，保存后的批注有低噪声常驻提示；定位不到时应短时间停止并显示可重试，不应假死；连续点击不同页面批注时当前卡片应保持在抽屉可见区。
+- 修复说明：修改 `frontend/capability-browser/app.js`、`frontend/capability-browser/components/UserAnnotationDrawer.js`、`frontend/capability-browser/components/CapabilityLocalRelationMap.js`、`frontend/capability-browser/components/EnvironmentLocalRelationMap.js`、`frontend/capability-browser/components/EnvironmentTree.js`、`frontend/capability-browser/styles.css`、`frontend/capability-browser/index.html`、`src/sapd_wiki/api_server.py`、`scripts/run_local_server.py`、`scripts/audit_saved_user_annotations.mjs`、`scripts/audit_user_annotation_contract.mjs`；新增 `scripts/audit_user_notes_integrity.mjs`、`scripts/seed_user_annotation_test_notes.mjs`。未修改 OI-149 split manifest、`public/data` 分片、正式 JSON 全量包、SQLite 数据内容、原始 Excel、标准包、字典包、LC 数据包、环境数据包或用户批注数据库。
+- 验证结果：`node --check` 覆盖 `app.js`、`UserAnnotationDrawer.js`、`audit_saved_user_annotations.mjs`、`audit_user_annotation_contract.mjs`、`audit_user_notes_integrity.mjs`、`seed_user_annotation_test_notes.mjs`；`python3 -m py_compile src/sapd_wiki/api_server.py scripts/run_local_server.py` 通过；`node scripts/audit_user_annotation_contract.mjs` 通过。真实 Chrome 全量回归在本轮治理前已通过：`node scripts/audit_saved_user_annotations.mjs --url 'http://127.0.0.1:5173/?v=env-fix-7#/capability-mapping' --allow-system-chrome --compact` 返回 `noteCount=45`、`audited=45`、`passed=45`、`failed=0`。本轮新增 dry-run 验证：`node scripts/audit_user_notes_integrity.mjs --url http://127.0.0.1:5173/ --write-report` 返回 `note_count=45`、`invalid_count=0`、`duplicate_group_count=1`，仅发现 `G-SP 网络安全战略计划 Strategy Planning` 1 组同 route / target / body 疑似重复，未自动删除；`node scripts/seed_user_annotation_test_notes.mjs --url http://127.0.0.1:5173/` dry-run 生成 `fixture_count=17`，覆盖能力、环境、LC-AP、LC-DT、知识库、标准 / 框架、指南 / 幻灯片。`node scripts/frontend_content_smoke_check.mjs --skip-api`、`python3 scripts/audit_json_package_boundary.py`、`python3 scripts/check_github_data_boundary.py`、`python3 scripts/dev_server_guard.py --status`、`git diff --check` 通过。未启动系统 Chrome 做本轮贴边 / 动画截图级验收，待用户人工确认或明确批准系统 Chrome 回归。
 ## OI-155：全局搜索产品形态与搜索结果页重设计
 
 - 状态：设计完成 / 待用户确认
@@ -62,7 +87,6 @@
 - 需要确认：请用户确认是否接受该产品形态：`顶部全局搜索 + 独立搜索结果页 + 模块内局部查找`。确认后才能进入代码实现；不建议直接在旧搜索面板上继续补丁。
 - 修复说明：本轮只完成设计文档和 issue 登记，未修改运行代码、正式 JSON、SQLite、原始 Excel、标准包、字典包、LC 数据包或用户批注数据库。
 - 验证结果：文档设计已与 `OI-149`、`OI-154`、`OI-150`、`OI-151`、`OI-144` 做边界拆分；待后续实现时新增 `audit_global_search_index_contract.mjs`、`audit_environment_search_contract.mjs` 并继续执行 `audit_search_state_isolation.mjs`。
-
 ## OI-154：页面内搜索功能回归与环境页搜索不可用
 
 - 状态：待设计落地 / 待修复
@@ -74,7 +98,6 @@
 - 需要确认：该问题应在 `OI-155` 产品形态确认后实施，避免先修环境页搜索，后续又因全局搜索形态重设而返工。
 - 修复说明：本轮只登记问题和方案边界，未改运行代码。
 - 验证结果：待实现后新增 `audit_environment_search_contract.mjs`，并继续执行 `audit_search_state_isolation.mjs`、`frontend_content_smoke_check.mjs --skip-api` 和轻量 5173 状态检查。
-
 ## OI-153：批注抽屉底部卡片展开后当前批注显示不完整
 
 - 状态：已修复 / 待页面验收
@@ -86,7 +109,6 @@
 - 需要确认：请在固定入口 `http://127.0.0.1:5173/` 打开任意批注较多的页面，展开靠近抽屉底部的批注，例如截图中的 `#16`；预期展开后正文、状态选择和操作按钮会自动进入可视区域，不再只看到卡片头部。
 - 修复说明：修改 `frontend/capability-browser/components/UserAnnotationDrawer.js`、`frontend/capability-browser/styles.css`、`frontend/capability-browser/index.html` 和 `scripts/audit_user_annotation_contract.mjs`。未修改用户批注数据库、正式 JSON、原始 Excel、SQLite、标准包、字典包或 LC 数据包。
 - 验证结果：`node --check frontend/capability-browser/components/UserAnnotationDrawer.js` 和 `node --check scripts/audit_user_annotation_contract.mjs` 通过；`node scripts/audit_user_annotation_contract.mjs` 通过并新增 `expandedNoteVisibilityContract` 防回归；`node scripts/frontend_content_smoke_check.mjs --skip-api`、`python3 scripts/audit_json_package_boundary.py`、`python3 scripts/check_github_data_boundary.py`、`python3 scripts/dev_server_guard.py --status` 和 `git diff --check` 均通过。未启动系统 Chrome，真实点击视觉验收待用户页面确认。
-
 ## OI-152：LC-AP / LC-DT 旧批注阶段 ID 失效导致定位不到
 
 - 状态：已修复 / 待页面验收
@@ -98,7 +120,6 @@
 - 需要确认：请在固定入口 `http://127.0.0.1:5173/?v=env-fix-7#/development-security` 和 `http://127.0.0.1:5173/?v=env-fix-7#/data-security` 中分别打开右侧批注，点击现有批注的“定位”；预期 LC-AP 的 `Jira`、`需求管理系统`、`相关方需求分析`、`窃取凭证` 等会恢复到对应 AP 阶段并临时黄色高亮，LC-DT 的 `接收其他应用数据` 会恢复到 `DT-01 收集/采集`。
 - 修复说明：修改 `frontend/capability-browser/app.js`、`frontend/capability-browser/viewModels.js`、`frontend/capability-browser/components/ApplicationSecurityLifecycle.js`、`frontend/capability-browser/index.html` 和 `scripts/audit_user_annotation_contract.mjs`。未修改用户批注数据库、`lifecycle-workbench.json`、`lifecycle-knowledge.json`、原始 Excel、SQLite、标准包、字典包或环境数据包。
 - 验证结果：`node --check` 覆盖 `app.js`、`viewModels.js`、`ApplicationSecurityLifecycle.js` 和批注契约脚本；`node scripts/audit_user_annotation_contract.mjs` 通过并新增 LC 导航稳定锚点 / `originalBusinessFields` 搜索文本防回归；真实本地用户批注 API 抽样 6 条生命周期批注均可反查到当前阶段 / 过程：`窃取凭证 -> AP-04 集成构建`、`接收其他应用数据 -> DT-01 收集/采集`、其余 LC-AP 旧批注 -> `AP-01 需求分析`；`node scripts/audit_search_state_isolation.mjs`、`node scripts/frontend_content_smoke_check.mjs --skip-api`、`python3 scripts/audit_json_package_boundary.py`、`python3 scripts/check_github_data_boundary.py`、`python3 scripts/dev_server_guard.py --status` 均通过。未启动系统 Chrome，真实点击视觉验收待用户页面确认。
-
 ## OI-151：信息化环境汇聚图节点缺少稳定业务锚点导致定位不到
 
 - 状态：已修复 / 待页面验收
@@ -110,7 +131,6 @@
 - 需要确认：请在固定入口 `http://127.0.0.1:5173/?v=env-fix-7#/capability-mapping` 打开 `信息化环境-安全技术` tab，抽查安全系统节点如 `零信任访问控制台`：新增批注后点击“定位”应回到对应节点；旧的值级批注若仍存在，会先走运行时索引和文本兜底。
 - 修复说明：修改 `frontend/capability-browser/app.js`、`frontend/capability-browser/components/EnvironmentScopeServiceMatrix.js`、`frontend/capability-browser/index.html` 和 `scripts/audit_user_annotation_contract.mjs`。未修改正式 JSON、SQLite、原始 Excel 或用户批注数据库。
 - 验证结果：`node scripts/audit_user_annotation_contract.mjs` 已通过，新增断言覆盖环境汇聚图稳定锚点和稳定对象锚点定位高亮样式；`node --check frontend/capability-browser/app.js`、`node --check frontend/capability-browser/components/EnvironmentScopeServiceMatrix.js`、`node --check scripts/audit_user_annotation_contract.mjs` 均通过；`node scripts/frontend_content_smoke_check.mjs --skip-api` 通过。未启动系统 Chrome，真实点击回归待用户批准后再做。
-
 ## OI-150：全局批注值定位缺少运行时索引导致定位慢
 
 - 状态：已修复 / 待真实浏览器验收
@@ -122,19 +142,17 @@
 - 需要确认：该问题和 `OI-149` 不同。`OI-149` 管 JSON 包体和首屏数据加载；本问题只管批注定位算法。后续若真实浏览器仍慢，应继续做点击耗时采样和 retry 次数上限治理，而不是混到 JSON 拆包里。
 - 修复说明：修改 `frontend/capability-browser/app.js`，新增运行时索引、索引失效、索引候选查找和 note 页面索引；修改 `scripts/audit_user_annotation_contract.mjs` 增加 `annotation_anchor_runtime_index_missing` 防回归断言；同步更新 `frontend/capability-browser/index.html` 缓存版本。未修改正式 JSON、SQLite、原始 Excel 或用户批注数据库。
 - 验证结果：`node scripts/audit_user_annotation_contract.mjs` 通过，静态确认索引函数和环境稳定锚点存在；`node --check frontend/capability-browser/app.js`、`node --check scripts/audit_user_annotation_contract.mjs` 通过；`node scripts/frontend_content_smoke_check.mjs --skip-api` 通过。未启动系统 Chrome，真实点击耗时和“定位不到”复现回归待用户批准后再做。
-
 ## OI-149：前端 JSON 加载体量与首屏性能需分层治理
 
-- 状态：进行中 / P1-P4 候选已生成，正式 JSON 分层 apply 待前置门禁通过后再确认
+- 状态：P4 正式 split apply 已完成 / 待页面人工验收与观察
 - 类型：前端 / 数据包 / 性能 / JSON 治理
 - 对象或页面：`/capability-mapping` 安全能力页、`/environment-mapping` 信息化环境页、知识库字典页、标准 / 框架页、指南 / 幻灯片页，以及 `frontend/capability-browser/dataClient.js` / `app.js` 的数据加载契约。
 - 现象：用户反馈安全能力页面再次出现数据加载缓慢，部分页面曾出现切换后无法点击、字典 / 标准模块偶发无法加载；同时要求“所有数据加载 JSON 需要再次治理”。本轮检查未复现 ViewModel 数据错配，`routePackagesForCurrentState()` 仍能保证能力页首屏优先请求 `capabilityInitial`，但当前主数据包体量仍偏大：`capability-tree.json` 约 `6394.8 KB`、`capability-workbench.json` 约 `5659.7 KB`、`maintenance-knowledge.json` 约 `10193.2 KB`、`standards` 分片总量约 `8463.5 KB`、`environment-workbench.json` 约 `4626.8 KB`。
 - 影响：即使懒加载契约未违规，较大 JSON 与全局搜索、标准详情、能力完整 workbench 兜底加载叠加时，仍可能造成用户感知慢加载；若后续页面新增时绕开 `routePackagesForCurrentState()` 或全局搜索一次性预热过多包，性能问题会反复出现。
-- 当前处理：P0 止血已落地：`dataClient.getHealth()` 不再触发 `DATA_PATHS` 全量预热；全局搜索输入阶段不再预加载完整 workbench、完整字典、环境全量包或标准详情全表。P1 已新增 `/api/v1/search-index` 运行时轻量索引，前端全局搜索优先读取该索引，只合并当前会话已加载的数据作为补充；索引响应不暴露 `sheet`、`row`、`column`、`raw_value`、`metadata` 等来源 / 调试字段。P2 已补齐能力页 L0 / L1 / L2 / 关注点对象级 projection，`localRelationMapSource` 全部收口为 `backend_projection`。P3 已在 `read_data_package()` 与 standards compat 读取中增加按 `size + mtime_ns` 的进程内缓存。P4 已新增候选拆包生成和审计脚本，候选产物输出到 `data/exports/worker-verify/oi-149-p4-json-split-candidate/`，不覆盖正式 `public/data`。用户已接受 P4 候选方向、预算、顶层能力标准明细延迟加载和 `shared-lookups` 暂不继续拆；正式 apply 前置门禁为：先修复 environment projection key，确保 `navigator -> projection` 唯一命中，并由审计脚本阻断重复路径。
-- 需要确认：P4 正式 JSON 分层 apply 仍未执行，因为它会涉及正式包替换和前端契约切换风险；当前只能作为候选结构和预算评审依据。即使用户后续确认进入 apply，也必须先保持 environment projection 唯一命中审计为 `pass`，再设计正式替换与前端契约切换。
-- 修复说明：修改 `api_server.py`、`dataClient.js`、`app.js`、`viewModels.js`、`index.html` 和审计脚本；未修改 public 正式数据包、SQLite、原始 Excel、标准包、字典包或用户批注数据库。
-- 验证结果：`node scripts/audit_capability_viewmodel_contract.mjs --url http://127.0.0.1:5173` 通过，样本 `T`、`T-AS`、`T-AS.AD`、`T-AS.AD-01`、`T-PD.PP`、`T-OF`、`T-OF.AT` 等全部为 `backend_projection`；`node scripts/audit_global_search_index_contract.mjs --url http://127.0.0.1:5173` 通过，`/api/v1/search-index?q=安全&limit=40` 运行时响应低于 `800KB` 且字段边界通过；`node scripts/build_oi149_split_candidate.mjs` 和 `node scripts/audit_oi149_split_candidate.mjs` 通过，P4 候选首屏最大 `758.7 KB`、对象详情最大 `1202.2 KB`、字段边界失败 `0`；最新 environment 唯一命中审计通过：`navigatorRows=144`、`projectionIndexRows=144`、`projectionFileCount=144`、`duplicateProjectionPathCount=0`；`frontend_smoke_check` 能力页和环境页通过；完整数据边界和 GitHub 数据边界检查通过。
-
+- 当前处理：P0 止血已落地：`dataClient.getHealth()` 不再触发 `DATA_PATHS` 全量预热；全局搜索输入阶段不再预加载完整 workbench、完整字典、环境全量包或标准详情全表。P1 已新增 `/api/v1/search-index` 运行时轻量索引，前端全局搜索优先读取该索引，只合并当前会话已加载的数据作为补充；索引响应不暴露 `sheet`、`row`、`column`、`raw_value`、`metadata` 等来源 / 调试字段。P2 已补齐能力页 L0 / L1 / L2 / 关注点对象级 projection，`localRelationMapSource` 全部收口为 `backend_projection`。P3 已在 `read_data_package()` 与 standards compat 读取中增加按 `size + mtime_ns` 的进程内缓存。Fix-A 已修复能力页加载态退出：`packageLoads` 清理后会再次触发 `renderCapabilities()`；projection mismatch / error 会进入失败态，提供 `重试加载`，不再无限显示加载态。P4-B 已将 L0 / L1 能力 projection 改为总览型，标准控制项、技术映射明细和管理映射明细延迟到 L2 / 关注点 projection。P4 正式 apply 已执行：正式 `public/data` 已新增 `oi149-split-manifest.json`、`capability/`、`environment/`、`lifecycle/`、`maintenance/`、`shared-lookups/`、`standards/` 分片目录；旧全量包继续保留作为 fallback。`dataClient` 已具备 split manifest 探测、能力首屏 `capability/index.json` 优先读取、环境首屏 `environment/navigator.json` 优先读取和环境详情 `environment/projections/*` 读取；manifest 缺失时仍回退 `/api/v1/capabilities/workspace-initial` 或旧 `environment-workbench.json`。
+- 需要确认：请用户在固定入口 `http://127.0.0.1:5173/` 人工抽查能力页、环境页、LC、标准和字典页面：预期是首屏加载不再被全量包预热拖慢，页面仍可切换，搜索不触发全包扫描，批注定位失败时短时间停止并显示可重试。P4 apply 后不要立即删除旧全量包；至少观察一轮页面验收。批注旧锚点兼容、高亮统一和真实浏览器定位回归不在 `OI-149` 内继续抢修，转入 `OI-156` 终态专项。
+- 修复说明：修改 `api_server.py`、`dataClient.js`、`app.js`、`viewModels.js`、`index.html` 和审计脚本；新增 `scripts/apply_oi149_split_candidate.mjs`、`scripts/audit_oi149_readiness.mjs`、`scripts/audit_oi149_split_runtime_contract.mjs`；新增正式分片目录和 manifest。未修改 SQLite、原始 Excel、标准包、字典包、LC 源数据包或用户批注数据库。回退方式：删除本次新增 split manifest / 分片目录即可恢复旧全量包路径；如未来出现 overwrite，再按 apply report 和 `formal-apply-backups/<timestamp>/` 恢复。
+- 验证结果：正式 apply 命令 `node scripts/apply_oi149_split_candidate.mjs --apply --confirm-oi149-public-data-write` 返回 `apply_pass`：`candidateFileCount=315`、`wouldWriteCount=315`、`wouldOverwriteCount=0`、`backupFileCount=0`，报告为 `data/exports/worker-verify/oi-149-p4-json-split-candidate/formal-apply-reports/oi149-p4-apply-20260630T123957Z.json/md`。完整 post-apply readiness 已通过：`node scripts/audit_oi149_readiness.mjs --mode postapply --url http://127.0.0.1:5173` 返回 `commandCount=27`、`failedCommandCount=0`、`failedGateCount=0`；离线 post-apply readiness 通过 `commandCount=22`；`node scripts/audit_oi149_split_runtime_contract.mjs --source formal` 通过，确认正式 manifest 存在时能力首屏读 `oi149-split-manifest.json` + `capability/index.json`，环境首屏读 `environment/navigator.json`，环境详情读对应 `environment/projections/*`，manifest 缺失时才回退旧 API / 全量包。`node scripts/audit_oi149_split_candidate.mjs`、`node scripts/audit_frontend_lazy_load_contract.mjs`、`node scripts/audit_user_annotation_contract.mjs`、`node scripts/frontend_content_smoke_check.mjs --skip-api`、能力页和环境页 `frontend_smoke_check`、`audit_search_state_isolation`、`audit_frontend_route_refresh_contract`、`audit_json_package_boundary.py`、`check_github_data_boundary.py`、`data_package_summary.py --package all`、`dev_server_guard.py --status` 和 `git diff --check` 均通过。未启动系统 Chrome。
 ## OI-148：全局批注在新环境页面缺少值级锚点与路由切换遮挡治理
 
 - 状态：已修复 / 待页面验收
@@ -146,7 +164,6 @@
 - 需要确认：请用户在固定入口 `http://127.0.0.1:5173/?v=env-fix-7#/environment-mapping` 或导航进入信息化环境页，打开 `信息化环境-安全技术` tab 后抽查：批注抽屉应显示当前页批注数量；对服务、模块 / 措施、安全系统节点右键添加批注后应能定位回对应节点；切换到幻灯片、字典、标准页后页面不应被旧批注面板遮挡。
 - 修复说明：修改 `frontend/capability-browser/components/EnvironmentScopeServiceMatrix.js`、`frontend/capability-browser/components/EnvironmentBasemapViewer.js`、`frontend/capability-browser/app.js`、`frontend/capability-browser/styles.css` 和 `scripts/audit_user_annotation_contract.mjs`。未修改用户批注数据库、原始 Excel、SQLite 或正式数据包。
 - 验证结果：`node scripts/audit_user_annotation_contract.mjs` 已通过，动态样例 `environment` 值级锚点从 `0` 提升到 `5`；`node scripts/audit_frontend_lazy_load_contract.mjs` 通过；`node scripts/audit_frontend_route_refresh_contract.mjs` 通过；相关 JS 语法检查通过。未启动系统 Chrome，真实点击回归待用户批准后再做。
-
 ## OI-147：信息化环境安全技术汇聚图措施误继承安全系统
 
 - 状态：已修复 / 待页面验收
@@ -158,7 +175,6 @@
 - 需要确认：请用户在固定入口 `http://127.0.0.1:5173/?v=env-fix-7#/capability-mapping` 人工验收截图对象所在视图：上述 `应用系统自身...` 措施不应显示 `1 系统`，也不应连到 `零信任网络访问控制`；`API网关`、`应用自身数据加解密模块`、`云自身网络ACL及安全组` 等源表 H 列有值的目标应只连到对应安全系统；`网络周界 / 企业内跨网边界 / 跨网边界` 下应显示 `单向光闸`、`双向网闸` 两个独立模块，并分别关联 `网络安全隔离与交换`。
 - 修复说明：修改 `frontend/capability-browser/viewModels.js`，彻底取消模块 / 措施从服务级 `securitySystems` 继承系统，只读取目标自身 `systems / linkedSystems / securitySystems`；新增 `scripts/audit_environment_page_business_logic.mjs` 严格核对页面业务逻辑与 JSON 结构；更新 `scripts/apply_environment_measure_system_relations.mjs`，按 normalized rows 对正式 `environment-workbench.json` 写入模块和措施目标级 `systems`；修改 `scripts/build_environment_workbench_reimport_candidate.py`、`scripts/verify_environment_reimport_candidate_downstream.py`、`scripts/build_environment_reimport_replacement_bundle.py`，让候选包 / shadow / replacement bundle 保留 `target_system` 目标级关系，并避免 replacement bundle 对象索引混入 `reimport:*` 与 `shadow:*` 双套 ID。未修改原始 Excel、SQLite、node-details、标准包、字典包或 LC 数据包。
 - 验证结果：严格业务审计 `node scripts/audit_environment_page_business_logic.mjs` 为 `pass`：`expectedTargetKeys=871`、`actualTargetKeys=871`、`missingTargetCount=0`、`missingSystemCount=0`、`unexpectedSystemCount=0`、`ownTargetSystemMissingCount=0`、`jsonWarningCount=0`；候选生成链路通过，`targetSystemRelations=700`；downstream shadow 验证通过，`validationErrorCount=0`；replacement bundle 验证通过，`validationErrors=[]`；正式运行包 `dataState=ready`，对象索引为 `information_environment=10`、`information_object=67`、`security_technology_module=57`、`security_technical_measure=28`。源表 normalized rows 精确显示 `单向光闸` 来自第 `34` 行、`双向网闸` 来自第 `35` 行；candidate relations 也分别保留 `sourceRows=[34]` 和 `sourceRows=[35]`。本地正式 JSON 抽样确认 `combo=0`，`单向光闸`、`双向网闸` 均从目标节点自身 `systems` 返回 `网络安全隔离与交换`，有系统的措施只写 `systems`。HTTP 抽样因当前 Codex 权限 / 额度限制未执行，但 5173 服务状态检查通过。
-
 ## OI-146：信息化环境安全技术汇聚图安全系统列未带出
 
 - 状态：已修复 / 待页面验收
@@ -170,7 +186,6 @@
 - 需要确认：请用户在固定入口 `http://127.0.0.1:5173/?v=env-fix-7#/capability-mapping` 人工验收 `API网关层`：`信息化环境-安全技术` tab 右侧应显示 `安全系统 1 项`，节点为 `应用安全防护`。
 - 修复说明：修改 `frontend/capability-browser/viewModels.js` 和 `frontend/capability-browser/components/EnvironmentScopeServiceMatrix.js`；更新 `frontend/capability-browser/index.html` 中 `viewModels.js` 缓存版本；后续 `OI-147` 已同步补齐正式运行包目标节点自身 `systems`。未修改 node-details、原始 Excel、SQLite 或标准 / 字典包。
 - 验证结果：严格业务审计和授权本地 HTTP 抽样均确认 `API网关层` 的 `API安全防护 -> 应用安全防护` 关系来自目标节点自身 `systems`；组件渲染级检查确认汇聚图 HTML 包含 `安全系统 1 项` 和 `应用安全防护`。最终项目验证见本轮 `progress.md` 记录。
-
 ## OI-145：本地 API Host/token 边界未统一拦截
 
 - 状态：已修复 / 待页面验收
@@ -182,7 +197,6 @@
 - 影响评估：固定入口 `http://127.0.0.1:5173/` 与 `http://localhost:5173/` 下的只读页面、批注和收藏写入应继续可用；通过外部域名、局域网 IP、端口不一致、DNS rebinding Host、`file://` 静态打开后跨源调用 5173 API，或手工脚本不带 token 调用用户写接口，会被拒绝。可能受影响页面不是某一个业务页，而是所有依赖 `/api/v1/*` 的入口：批注抽屉、收藏、能力映射、信息化环境映射、LC-AP / LC-DT、知识库字典、标准 / 框架、指南和幻灯片等；只要按固定本地入口访问，这些页面不应不可用。若用户在服务重启前已经打开旧页面，用户写入会自动重取 token 重试一次；极端情况下仍失败时刷新页面可恢复。
 - 修复说明：新增 `scripts/audit_local_api_security_boundary.mjs`，用 raw socket 覆盖异常 Host 复现路径，并用临时批注创建 / 删除验证合法 loopback token 写入未被误伤。脚本会自动清理 `page:/oi-145-regression*` 临时记录。
 - 验证结果：2026-06-29 执行 `python3 -m py_compile src/sapd_wiki/api_server.py` 通过；`node --check scripts/audit_local_api_security_boundary.mjs` 通过；`python3 scripts/dev_server_guard.py --restart` 通过，首页 `200`、workspace projection `200`；提升权限执行 `node scripts/audit_local_api_security_boundary.mjs` 通过，确认异常 Host 下 `GET /api/v1/health=403`、`GET /api/v1/user/notes=403`、`POST /api/v1/user/notes=403`，正常 loopback health / notes 读取为 `200`，无 token 写入为 `403`，带 token 临时批注创建和删除均为 `200`。
-
 ## OI-144：全局搜索与页面内搜索状态串线
 
 - 状态：已修复 / 待页面验收
@@ -195,7 +209,6 @@
 - 需要确认：请在固定入口 `http://127.0.0.1:5173/` 人工验收：1）顶部全局搜索输入内容不会出现在能力映射页内搜索框；2）能力映射页内搜索不会写回顶部全局搜索；3）从能力映射切到 `知识库字典 -> 安全能力清单` 后不会继承能力映射搜索词；4）安全能力清单搜索无结果时显示搜索空态，而不是数据包缺失文案；5）LC-AP / LC-DT 阶段搜索、能力关系表字段过滤、环境核对表字段过滤不会污染顶部全局搜索或其他页面搜索。
 - 修复说明：修改 `frontend/capability-browser/app.js`，新增 `searchScopeForCurrentState`、`setScopedSearch`、`restoreScopedSearch` 和 `syncSearchInputs`，并替换 `searchInput`、`capabilitySearchInput`、`environmentSearchInput`、`sourceSearchInput` 的共享状态写法；新增全局搜索本地索引、结果面板、结果跳转、键盘行为、生命周期单元格级服务 / 模块索引和值级定位；新增 `activeGlobalSearchRootElement`、`globalSearchTargetTexts`、`nodeBusinessText` 和 `globalSearchTextTargetElement`，全局搜索结果先按 ID 定位，失败后在当前页面业务区域内做文本锚点回退定位，并排除搜索面板、顶部栏和批注浮层等 chrome；新增 `routeHasPageSearch`、`searchTextForActivatedResult`，全局搜索结果点击后保留搜索词并同步到目标页搜索；新增 `queuePageSearchReveal`、`pageSearchTextTargetElement`、`revealPageSearchTarget` 和 `flushPageSearchReveal`，页面内搜索框和过滤框输入后在渲染完成再定位并高亮实际命中内容；修改 `frontend/capability-browser/components/StandardFrameworkTable.js`，为标准 / 框架分组行、控制行和单元格输出可定位业务锚点；修改 `frontend/capability-browser/viewModels.js` 的安全能力清单空态，并为 LC-AP / LC-DT 阶段构建包含单元格内容的 `searchText`；修改 `frontend/capability-browser/components/ApplicationSecurityLifecycle.js`，让生命周期导航过滤使用 `row.searchText`，并对本地搜索命中词输出 `lifecycle-search-mark`；修改 `frontend/capability-browser/components/AppShell.js` 与 `frontend/capability-browser/index.html`，将 `⌘K` 改为真实按钮并提升缓存版本；修改 `frontend/capability-browser/styles.css`，新增全局搜索按钮和命中词高亮样式，并将搜索高亮样式对齐批注 active 基准，页面搜索命中使用 `page-search-target-highlight` 复用该基准；新增 `docs/06-implementation/search-logic-design.md`；扩展 `scripts/audit_search_state_isolation.mjs` 和 `scripts/frontend_content_smoke_check.mjs` 防止所有搜索 / 过滤入口再次串线，并断言全局搜索结果面板、结果激活能力、生命周期单元格内容搜索、值级高亮、批注高亮视觉基准、`⌘K` 按钮行为、跨页面文本锚点定位能力、页面内搜索定位高亮能力、标准 / 框架条款锚点和全局搜索词保留。
 - 验证结果：已通过 `node --check frontend/capability-browser/app.js`、`node --check frontend/capability-browser/viewModels.js`、`node --check frontend/capability-browser/components/AppShell.js`、`node --check frontend/capability-browser/components/ApplicationSecurityLifecycle.js`、`node --check frontend/capability-browser/components/StandardFrameworkTable.js`、`node --check scripts/audit_search_state_isolation.mjs`、`node --check scripts/frontend_content_smoke_check.mjs`、`node scripts/audit_search_state_isolation.mjs`、`node scripts/frontend_content_smoke_check.mjs --skip-api`、提升权限后的 `node scripts/frontend_content_smoke_check.mjs --url http://127.0.0.1:5173`、`python3 scripts/dev_server_guard.py --status`、`node scripts/frontend_smoke_check.mjs --page standards --route /standards/mlps-level-3 --url http://127.0.0.1:5173`、`python3 scripts/check_github_data_boundary.py` 和 scoped `git diff --check`。本地 ViewModel 回归确认 `Jira` 搜索命中 `AP-01 需求分析`，选中阶段的开发技术模块包含 `Jira`；组件渲染级回归确认 `Jira` 会输出 `<mark class="lifecycle-search-mark">Jira</mark>`；搜索状态隔离审计已扩展到 `25/25`，覆盖跨页面文本锚点定位、页面内搜索定位高亮、标准 / 框架条款锚点和全局搜索词保留；提升权限读取 5173 实际 HTML 确认 `app.js`、`viewModels.js`、`ApplicationSecurityLifecycle.js`、`AppShell.js`、`StandardFrameworkTable.js` 和 `styles.css` 均加载 `global-search-20260617-9`，且不再加载 `global-search-20260617-8`。本轮未启动系统 Chrome，未修改数据包、SQLite、原始 Excel、标准 / 框架数据或 Environment Mapping 业务数据。
-
 ## OI-142：安全技术服务清单能力-关注点顺序下服务显示不全
 
 - 状态：已修复 / 用户已验收
@@ -207,7 +220,6 @@
 - 需要确认：请在固定预览入口 `http://127.0.0.1:5173/` 进入 `知识库字典 -> 安全技术服务清单`，按截图证据路径人工复核；若用户自己的浏览器仍不可见，下一步重点比较用户浏览器是否加载旧缓存、旧 profile 状态或不同窗口尺寸，不再改排序 / 字典 / 数据。
 - 修复说明：升级 `scripts/audit_technical_service_maintenance_catalog_visibility.mjs`，除原审计和 runtime trace 外，新增 / 刷新 `data/exports/worker-verify/technical-service-order-and-visibility-correction.json/md`，读取 5173 实际入口、脚本版本和运行包后，用同版本 ViewModel / 组件渲染检查目标服务，并输出 dictionary、ViewModel、group rows、filtered rows、rendered rows、DOM、搜索链路证据。新增强制差集审计：`missingRenderedServices = dictionaryServices - renderedServiceRows`，结果必须为 `0`；新增无模块/措施服务不隐藏断言；新增 `expectedPositionInGroup=1` 断言，防止 `AD-01` 再次被排到组尾。`scripts/frontend_content_smoke_check.mjs` 已新增同样的位置断言。新增 `scripts/prove_technical_service_real_browser_visibility.mjs` 生成真实浏览器截图报告 `data/exports/worker-verify/technical-service-real-browser-proof/technical-service-real-browser-proof.json/md`。未修改正式服务字典数据、LC-DT 运行包、Environment Mapping 数据、SQLite、原始 Excel、SVG / Draw.io、数据库 schema 或胶囊样式。
 - 验证结果：`node --check` 覆盖 `viewModels.js`、`audit_technical_service_maintenance_catalog_visibility.mjs`、`frontend_content_smoke_check.mjs` 和 `prove_technical_service_real_browser_visibility.mjs`；order & visibility trace 为 `status=pass`，`defaultCodeOrderPrimary=false`，正式服务字典 / split / index 均为 `160`，ViewModel rows 为 `160`，最终表格服务行 `160`，`missingRenderedServices=0`，无模块/措施关系服务 `41` 条、隐藏数 `0`。目标服务均为各自分组第 1 行：`I-DI&T-AS.AD-01`、`I-NT&T-AS.AD-01`、`I-AP&T-AS.AD-01`、`I-OS&T-AS.AD-01`、`I-HD&T-AS.AD-01`、`I-PE&T-AS.AD-01` 的 `positionInGroup=1`。真实系统 Chrome 取证已刷新：实际加载 `viewModels.js?v=technical-service-order-visibility-20260615-2` 和 `TechnicalServiceMaintenanceTable.js?v=technical-service-order-visibility-20260615-2`，截图中 `I-DI` 分组第一行已为 `I-DI&T-AS.AD-01 数据分库分表`，第二行为 `I-DI&T-AS.AD-02 冗余存储`。内容级 smoke、5173 页面 HTTP smoke、字典标准基线完整性、保护基线回归、JSON 包边界、GitHub 数据边界和 `git diff --check` 均通过；取证 Chrome 进程已确认无残留。
-
 ## OI-141：LC-DT 原始数据更新后的服务、模块与分类候选问题
 
 - 状态：正式投影已替换 / 待页面验收
@@ -219,7 +231,6 @@
 - 需要确认：请在固定预览入口 `http://127.0.0.1:5173/` 进入 `LC-DT数据生命周期安全` 页面验收替换后的阶段服务、模块和措施展示；本条当前不继续修改维护包、SQLite、Environment Mapping 或其他页面数据。
 - 修复说明：已新增 `scripts/audit_security_technical_service_dictionary_update.py`、`scripts/build_security_technical_service_update_candidate.py`、`scripts/apply_security_technical_service_dictionary_update.py`、`scripts/apply_lcdt_confirmed_source_updates.py`、`scripts/audit_technical_service_maintenance_catalog_visibility.mjs` 和 `scripts/verify_lcdt_pre_apply_candidate.py`，并修订 LC-DT 审计脚本优先使用原始服务清单候选字典、从原始模块清单读取合并单元格系统分类，且不再把 `info_only` 作为待确认问题输出。已修改正式维护字典、能力 / 生命周期 / 环境引用包和 SQLite 中的安全技术服务事实源；已按用户授权修改原始 Excel 的 LC-DT 两张源表。2026-06-15 已按用户确认正式替换 `frontend/capability-browser/public/data/lifecycle-workbench.json`，替换前备份为 `data/exports/worker-verify/lcdt-source-update/formal-apply/20260615T115526Z/lifecycle-workbench.before-lcdt-preapply-20260615T115526Z.json`，正式替换报告为 `lifecycle-workbench-formal-apply-report.json/md`。本轮 formal apply 未修改维护包、能力包、环境包、标准包、SQLite、原始 Excel、SVG / Draw.io、数据库 schema、Environment Mapping 导入 / triage 逻辑或前端 UI。针对 `I-AP&T-AS.AD-01 应用架构管控` 搜得到但展开看不到的问题，已确认正式数据中该服务在 `I-AP 软件应用` 分组按能力树排序为可见序号 1，并将 `TechnicalServiceMaintenanceTable.js` 本地表格状态键提升到 `v2`、提升组件缓存版本以清除旧滚动 / 展开状态。
 - 验证结果：2026-06-15 `py_compile` 覆盖安全技术服务更新、LC-DT、候选构建和保护审计脚本；`audit_security_technical_service_dictionary_update.py --post-apply` 通过且差异为 0；`audit_lcdt_source_update.py` 与 `build_lcdt_update_candidate.py` 当前无待确认问题；`verify_lcdt_pre_apply_candidate.py` 输出 `ready_for_user_confirmation`、`formalDataReplaced=false`；formal apply 后 `semanticEqualsCandidate=true`，正式 `lifecycle-workbench.json` 业务内容与候选包一致，仅追加 `formalApply` 元信息。`audit_technical_service_maintenance_catalog_visibility.mjs` 通过，确认 `I-AP&T-AS.AD-01` 在 `I-AP` 分组可见序号为 1；`audit_dictionary_standard_baseline_integrity.py`、`audit_protected_baseline_no_regression.py`、`audit_json_package_boundary.py`、`audit_lcdt_source_update.py`、`frontend_content_smoke_check.mjs --skip-api`、`dev_server_guard.py --status`、`frontend_smoke_check.mjs --page data-security --route /data-security --url http://127.0.0.1:5173`、`check_github_data_boundary.py` 和 `git diff --check` 均通过。
-
 ## OI-139：作用域-安全技术服务-安全技术模块映射导入关系与当前 JSON 投影不一致
 
 - 状态：持续数据清理 / 待人工核对

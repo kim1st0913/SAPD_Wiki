@@ -1,0 +1,244 @@
+{
+  "packageType": "oi-149-p4-environment-object-projection",
+  "dataState": "ready",
+  "navOrdinal": 76,
+  "projectionKey": "environment_segment_____PC____PC_PC___f0a326df-08da-4ce9-b76b-ebccad17fcbc__b3a7a39c0321",
+  "projectionPath": "environment/projections/environment_segment_____PC____PC_PC___f0a326df-08da-4ce9-b76b-ebccad17fcbc__b3a7a39c0321.json",
+  "navigationPath": [
+    {
+      "depth": 0,
+      "id": "4abdf7e2-a2c3-42df-8cf4-fa9c9a38981e",
+      "type": "information_environment",
+      "code": "",
+      "title": "园区网"
+    },
+    {
+      "depth": 1,
+      "id": "f0a326df-08da-4ce9-b76b-ebccad17fcbc",
+      "type": "environment_segment",
+      "code": "",
+      "title": "PC终端"
+    }
+  ],
+  "selectedNavigation": {
+    "id": "f0a326df-08da-4ce9-b76b-ebccad17fcbc",
+    "type": "environment_segment",
+    "code": "",
+    "title": "PC终端",
+    "navOrdinal": 76,
+    "projectionKey": "environment_segment_____PC____PC_PC___f0a326df-08da-4ce9-b76b-ebccad17fcbc__b3a7a39c0321",
+    "projectionPath": "environment/projections/environment_segment_____PC____PC_PC___f0a326df-08da-4ce9-b76b-ebccad17fcbc__b3a7a39c0321.json"
+  },
+  "ancestorNavigation": [
+    {
+      "id": "4abdf7e2-a2c3-42df-8cf4-fa9c9a38981e",
+      "type": "information_environment",
+      "code": "",
+      "title": "园区网"
+    }
+  ],
+  "objectContextIds": [
+    "shadow:information_object_context:27bce3f61ab3d9fe"
+  ],
+  "contextKeys": [
+    "园区网||PC终端||PC终端设备"
+  ],
+  "objects": {
+    "information_object": {
+      "shadow:information_object_context:27bce3f61ab3d9fe": {
+        "id": "shadow:information_object_context:27bce3f61ab3d9fe",
+        "type": "information_object",
+        "code": "",
+        "title": "PC终端设备",
+        "name": "PC终端设备",
+        "category": "",
+        "status": "",
+        "contextKey": "园区网||PC终端||PC终端设备"
+      }
+    },
+    "scope_type": {
+      "shadow:scope_type:9ee74fd70e4da8dd": {
+        "id": "shadow:scope_type:9ee74fd70e4da8dd",
+        "type": "scope_type",
+        "code": "I-HD",
+        "title": "硬件",
+        "name": "硬件",
+        "category": "",
+        "status": "",
+        "text": "I-HD 硬件"
+      }
+    },
+    "security_technical_service": {
+      "shadow:security_technical_service:0848812b00e8fa6c": {
+        "id": "shadow:security_technical_service:0848812b00e8fa6c",
+        "type": "security_technical_service",
+        "code": "I-HD&T-AS.AM-01",
+        "title": "硬件资产清单",
+        "name": "硬件资产清单",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:4fcd36c36a57fc2d": {
+        "id": "shadow:security_technical_service:4fcd36c36a57fc2d",
+        "type": "security_technical_service",
+        "code": "I-HD&T-AS.CM-01",
+        "title": "固件安全基线配置管理",
+        "name": "固件安全基线配置管理",
+        "category": "",
+        "status": ""
+      }
+    },
+    "security_technical_measure": {
+      "shadow:security_technical_measure:fd36f49bc72dd2bb": {
+        "id": "shadow:security_technical_measure:fd36f49bc72dd2bb",
+        "type": "security_technical_measure",
+        "code": "",
+        "title": "设备管理系统/人工服务",
+        "name": "设备管理系统/人工服务",
+        "category": "",
+        "status": ""
+      }
+    }
+  },
+  "objectScopeTree": [
+    {
+      "id": "shadow:information_object_context:27bce3f61ab3d9fe",
+      "type": "information_object",
+      "title": "PC终端设备",
+      "contextKey": "园区网||PC终端||PC终端设备",
+      "segments": [
+        {
+          "id": "shadow:environment_segment:742c252119cd1402",
+          "type": "environment_segment",
+          "title": "PC终端"
+        }
+      ],
+      "scope_mappings": [
+        {
+          "scope": {
+            "id": "shadow:scope_type:9ee74fd70e4da8dd",
+            "type": "scope_type",
+            "code": "I-HD",
+            "title": "硬件",
+            "text": "I-HD 硬件"
+          },
+          "services": []
+        },
+        {
+          "scope": {
+            "id": "shadow:scope_type:9a6a10e0d6c24191",
+            "type": "scope_type",
+            "code": "",
+            "title": "I-HD 硬件",
+            "text": "I-HD 硬件"
+          },
+          "services": [
+            {
+              "id": "shadow:security_technical_service:0848812b00e8fa6c",
+              "type": "security_technical_service",
+              "code": "I-HD&T-AS.AM-01",
+              "title": "硬件资产清单",
+              "modules": [],
+              "measures": [
+                {
+                  "id": "shadow:security_technical_measure:fd36f49bc72dd2bb",
+                  "type": "security_technical_measure",
+                  "title": "设备管理系统/人工服务"
+                }
+              ],
+              "securitySystems": []
+            },
+            {
+              "id": "shadow:security_technical_service:4fcd36c36a57fc2d",
+              "type": "security_technical_service",
+              "code": "I-HD&T-AS.CM-01",
+              "title": "固件安全基线配置管理",
+              "modules": [],
+              "measures": [
+                {
+                  "id": "shadow:security_technical_measure:fd36f49bc72dd2bb",
+                  "type": "security_technical_measure",
+                  "title": "设备管理系统/人工服务"
+                }
+              ],
+              "securitySystems": []
+            }
+          ]
+        }
+      ],
+      "scope_mapping_count": 2,
+      "service_count": 2,
+      "module_count": 0,
+      "measure_count": 1,
+      "security_system_count": 0
+    }
+  ],
+  "relations": [
+    {
+      "id": "reimport:relation:e110a3a4adbaca65",
+      "type": "applies_to_scope",
+      "sourceId": "shadow:information_object_context:27bce3f61ab3d9fe",
+      "sourceType": "information_object",
+      "targetId": "shadow:scope_type:9ee74fd70e4da8dd",
+      "targetType": "scope_type",
+      "label": "applies_to_scope",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||PC终端||PC终端设备",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:0dc9f5c87ad7dd5d",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:0848812b00e8fa6c",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:27bce3f61ab3d9fe",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||PC终端||PC终端设备",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:9facb0579399f9a4",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:4fcd36c36a57fc2d",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:27bce3f61ab3d9fe",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||PC终端||PC终端设备",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:e2b59f0ee68654a1",
+      "type": "has_measure",
+      "sourceId": "shadow:security_technical_service:0848812b00e8fa6c",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technical_measure:fd36f49bc72dd2bb",
+      "targetType": "security_technical_measure",
+      "label": "has_measure",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||PC终端||PC终端设备",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:047e4b6e90cf42f7",
+      "type": "has_measure",
+      "sourceId": "shadow:security_technical_service:4fcd36c36a57fc2d",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technical_measure:fd36f49bc72dd2bb",
+      "targetType": "security_technical_measure",
+      "label": "has_measure",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||PC终端||PC终端设备",
+      "evidenceRefCount": 0
+    }
+  ],
+  "relationCount": 5
+}

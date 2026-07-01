@@ -35,11 +35,19 @@ const stylesCss = readText("frontend/capability-browser/styles.css");
 const viewModelsJs = readText("frontend/capability-browser/viewModels.js");
 const displayLabelsJs = readText("frontend/capability-browser/displayLabels.js");
 const userAnnotationDrawerJs = readText("frontend/capability-browser/components/UserAnnotationDrawer.js");
+const savedAnnotationAuditJs = readText("scripts/audit_saved_user_annotations.mjs");
+const userNotesIntegrityAuditJs = readText("scripts/audit_user_notes_integrity.mjs");
+const userNotesSeedJs = readText("scripts/seed_user_annotation_test_notes.mjs");
+const capabilityLocalRelationMapJs = readText("frontend/capability-browser/components/CapabilityLocalRelationMap.js");
 const lifecycleJs = readText("frontend/capability-browser/components/ApplicationSecurityLifecycle.js");
+const environmentTreeJs = readText("frontend/capability-browser/components/EnvironmentTree.js");
+const environmentLocalRelationMapJs = readText("frontend/capability-browser/components/EnvironmentLocalRelationMap.js");
 const environmentScopeMatrixJs = readText("frontend/capability-browser/components/EnvironmentScopeServiceMatrix.js");
 const globalBaseline = readText("docs/06-implementation/frontend-global-design-baseline-2026-05-30.md");
 const annotationDesign = readText("docs/06-implementation/workspace-annotation-and-capability-remix-design.md");
 const annotationRequirements = readText("docs/06-implementation/global-annotation-requirements-and-regression-matrix.md");
+const apiServerPy = readText("src/sapd_wiki/api_server.py");
+const runLocalServerPy = readText("scripts/run_local_server.py");
 
 const issues = [];
 
@@ -47,8 +55,275 @@ if (!includesAll(appJs, ["annotationAnchorIndex", "createAnnotationAnchorIndex",
   issues.push("annotation_anchor_runtime_index_missing");
 }
 
+if (
+  !includesAll(appJs, [
+    "function annotationTargetRefAliasesForNode",
+    "annotationTargetRefAliasesForNode(node).forEach",
+    "dataset.annotationObjectId",
+    "dataset.annotationObjectCode",
+    "dataset.annotationTitle",
+    "base:field_value:${fieldAnnotationId(value, node)}",
+  ])
+) {
+  issues.push({
+    severity: "error",
+    type: "annotation_anchor_alias_index_missing",
+    message: "批注运行时索引缺少稳定对象锚点别名，旧 target_ref 仍可能只能回退到坐标 / 文本全页扫描。",
+  });
+}
+
 if (!includesAll(environmentScopeMatrixJs, ["annotationObjectAttrs", "data-annotation-prefer-target", "security_technical_service", "security_technology_module", "security_technical_measure", "security_system"])) {
   issues.push("environment_funnel_stable_annotation_targets_missing");
+}
+
+if (
+  !includesAll(environmentLocalRelationMapJs, [
+    "function relationNodeAnnotationTarget",
+    "security_technology_module",
+    "security_technical_measure",
+    "data-annotation-prefer-target",
+    "annotationTargetAttrs(target",
+  ]) ||
+  !includesAll(environmentTreeJs, ["function annotationTargetForRow", "information_object", "environment_segment", "information_environment", "data-annotation-prefer-target"])
+) {
+  issues.push({
+    severity: "error",
+    type: "environment_mapping_annotation_targets_missing",
+    message: "环境映射页层级 / 统计 / 对象树缺少稳定批注锚点，默认底图或切换布局后仍可能定位失败。",
+  });
+}
+
+if (!includesAll(capabilityLocalRelationMapJs, ["standardControlChip", "standard-control-code-chip", "annotationValueAttrs(code)"])) {
+  issues.push({
+    severity: "error",
+    type: "capability_standard_value_anchor_missing",
+    message: "安全能力映射标准控制项缺少值级批注锚点，PR.DS-02 等控制项无法稳定定位 / 高亮。",
+  });
+}
+
+const jumpToUserNoteMatch = appJs.match(/function jumpToUserNote\(noteId\) \{[\s\S]*?\n\}\n\nfunction annotationTooltipTextFromTarget/);
+const jumpToUserNoteBody = jumpToUserNoteMatch?.[0] || "";
+const jumpDirectMarkerCalls = countOccurrences(jumpToUserNoteBody, "applyAnnotationAnchorMarkers();");
+const jumpMarkerBudgetCalls = countOccurrences(jumpToUserNoteBody, 'source: "jumpToUserNote"');
+const jumpBudgetCheckIndex = jumpToUserNoteBody.indexOf("const budget = annotationJumpBudgetStatus(startedAt, attempt);");
+const contextPendingRetryIndex = jumpToUserNoteBody.indexOf("if (contextPending && attempt < ANNOTATION_JUMP_MAX_ATTEMPTS * 2)");
+
+if (
+  !includesAll(appJs, [
+    "const ANNOTATION_JUMP_MAX_ATTEMPTS = 12",
+    "const ANNOTATION_JUMP_RETRY_DELAY_MS = 120",
+    "const ANNOTATION_JUMP_TIMEOUT_MS = 1800",
+    "const ANNOTATION_JUMP_MARKER_REFRESH_LIMIT = 1",
+    "const ANNOTATION_MARKER_TEXT_FALLBACK_TIMEOUT_MS = 120",
+    "const ANNOTATION_MARKER_MAX_TEXT_FALLBACKS = 40",
+    "function annotationJumpBudgetStatus",
+    "function setAnnotationJumpFailure",
+    "function clearAnnotationJumpFailure",
+    "function annotationPerfNow",
+    "restoreAnnotationContextFromNote(note);",
+    "applyAnnotationAnchorMarkers({ refreshIndex: true, fallbackText: false, source: \"jumpToUserNote\" })",
+  ]) ||
+  !jumpToUserNoteBody ||
+  jumpDirectMarkerCalls > 0 ||
+  jumpMarkerBudgetCalls !== 1 ||
+  jumpBudgetCheckIndex < 0 ||
+  contextPendingRetryIndex < 0 ||
+  jumpBudgetCheckIndex > contextPendingRetryIndex ||
+  appJs.includes("attempt < 28")
+) {
+  issues.push({
+    severity: "error",
+    type: "annotation_jump_performance_guard_missing",
+    message: "批注定位缺少 P0 性能止血：失败重试、定位耗时和单次跳转标记刷新必须受控，不能恢复 28 次重试或每轮全 DOM 标记。",
+    details: { jumpDirectMarkerCalls, jumpMarkerBudgetCalls, hasJumpFunction: Boolean(jumpToUserNoteBody) },
+  });
+}
+
+if (
+  !includesAll(appJs, [
+    "meta.view !== state.activeView",
+    "noteRoute === currentRoute",
+    "metaRoute === currentRoute",
+    "return true;",
+  ])
+) {
+  issues.push({
+    severity: "error",
+    type: "annotation_legacy_context_compat_missing",
+    message: "旧 v2 批注锚点缺少同一路由下的上下文漂移兼容，OI-149 后页面 / projection 稳定但旧批注仍可能被 context guard 拦截。",
+  });
+}
+
+if (
+  !includesAll(appJs, [
+    "function ensureCapabilityAnnotationProjectionForNote",
+    "function findCapabilityProjectionForAnnotationValue",
+    "function capabilityProjectionRowsForAnnotation",
+    "annotationCapabilityProjectionValueCache",
+    "annotationBusinessTextVariants",
+    "[\"field_value\", \"table_row\"].includes(meta.objectType)",
+    "function isGenericAnnotationCapabilityValue",
+    "function relatedCapabilityAnnotationValueNotes",
+    "findAnnotationAnchorElement(note)",
+    "applyCapabilityAnnotationProjection(match.projection, match.row, note)",
+  ])
+) {
+  issues.push({
+    severity: "error",
+    type: "capability_annotation_projection_index_missing",
+    message:
+      "能力页值级批注缺少 projection 懒索引 / 业务值归一 / 旧 capability id 兼容，OI-149 L0/L1 总览 projection 下 PR.DS-02、AT-6 等值可能再次定位失败。",
+  });
+}
+
+if (
+  !includesAll(appJs + userAnnotationDrawerJs + savedAnnotationAuditJs, [
+    "function scrollAnnotationDrawerNoteIntoView",
+    "focusNoteId",
+    "data-annotation-current-note",
+    "scrollAnnotationDrawerNoteIntoView(note.id",
+    "currentCardRemainedVisible",
+  ])
+) {
+  issues.push({
+    severity: "error",
+    type: "annotation_current_note_visibility_guard_missing",
+    message: "批注定位缺少当前卡片可见性门禁，连续跨页面定位时容易回到旧批注或当前卡片不显示。",
+  });
+}
+
+if (
+  !includesAll(appJs, [
+    "annotationJumpToken",
+    "activeUserNoteId",
+    "activeUserNoteTargetRef",
+    "activeUserNoteAnchorType",
+    "activeUserNoteForCurrentPage",
+    "markActiveAnnotationTargetFromState",
+    "const jumpToken = ++state.annotationJumpToken;",
+    "const isCurrentJump = () => jumpToken === state.annotationJumpToken;",
+    "annotationJumpFailureForCurrentPage",
+    "restoreEnvironmentContextFromNote(note)",
+    "environmentAnnotationSelectionForNote",
+    "environmentAnnotationObjectSelections",
+    "environment_scope_tree",
+    "scope_mappings",
+    "environmentObjectServicesForAnnotation",
+  ]) ||
+  jumpToUserNoteBody.includes("clearActiveAnchor") ||
+  jumpToUserNoteBody.includes("clear-active-after-jump")
+) {
+  issues.push({
+    severity: "error",
+    type: "annotation_jump_state_machine_guard_missing",
+    message: "批注定位缺少旧跳转取消、当前定位态持久化、失败态按当前页隔离或环境页上下文恢复，切页后可能回到旧批注或 active 高亮几秒后消失。",
+  });
+}
+
+if (
+  !includesAll(userAnnotationDrawerJs, ["function renderJumpFailure", "data-annotation-jump-failure", "data-annotation-jump-retry", "定位失败", "重试定位"]) ||
+  !includesAll(stylesCss, [
+    ".annotation-jump-failure",
+    ':where([data-user-note-anchor-marked="true"])',
+    ':where([data-user-note-anchor-active="true"])',
+    '.environment-object-funnel-node[data-user-note-anchor-active="true"]',
+    '.environment-object-graph-node[data-user-note-anchor-active="true"]',
+  ])
+) {
+  issues.push({
+    severity: "error",
+    type: "annotation_jump_failure_feedback_missing",
+    message: "批注定位失败缺少可见失败态、可重试按钮或统一属性高亮兜底。",
+  });
+}
+
+if (
+  !includesAll(appJs + userAnnotationDrawerJs, [
+    "userNoteIndex",
+    "function createUserNoteRuntimeIndex",
+    "function refreshUserNoteRuntimeIndex",
+    "function userNotesForPageRoute",
+    "function annotationNoteContextForDrawer",
+    "noteContexts",
+    "annotation-note-context",
+  ])
+) {
+  issues.push({
+    severity: "error",
+    type: "annotation_note_context_or_runtime_index_missing",
+    message: "批注清单缺少统一运行时索引或业务上下文展示，值批注仍可能只显示孤立值并反复全量过滤 state.userNotes。",
+  });
+}
+
+if (
+  !includesAll(stylesCss, [
+    "right: 0;",
+    "--annotation-tab-peek: 18px",
+    "--annotation-tab-width: 18px",
+    ".annotation-drawer-tab::before",
+    "transition: transform 320ms",
+    ".annotation-note-context",
+  ])
+) {
+  issues.push({
+    severity: "error",
+    type: "annotation_drawer_edge_animation_contract_missing",
+    message: "批注抽屉缺少贴右侧窗口、恒定侧耳或上下文行样式，收回动画可能继续出现尺寸跳变。",
+  });
+}
+
+if (
+  !includesAll(apiServerPy + runLocalServerPy, [
+    "idx_user_notes_page_route_updated",
+    "idx_user_notes_target_ref",
+    "idx_user_notes_page_target",
+    "idx_user_notes_anchor_type",
+    "idx_user_notes_object_type",
+    "idx_user_notes_status",
+  ]) ||
+  !includesAll(userNotesIntegrityAuditJs, ["--confirm-user-notes-cleanup", "duplicate_same_route_target_body", "saved_annotation_audit_failed"]) ||
+  !includesAll(userNotesSeedJs, ["--confirm-user-notes-test-data", "SAPD批注回归测试", "mode: apply ? \"apply\" : \"dry_run\""])
+) {
+  issues.push({
+    severity: "error",
+    type: "annotation_governance_scripts_or_indexes_missing",
+    message: "批注治理缺少 user_notes 索引声明、无效批注 dry-run 审计脚本或可清理测试批注种子脚本。",
+  });
+}
+
+if (
+  !includesAll(annotationRequirements, [
+    "13.1 批注上下文",
+    "13.2 批注索引",
+    "13.3 无效批注清理",
+    "13.4 测试批注数据",
+    "13.5 抽屉贴边与动画",
+  ])
+) {
+  issues.push({
+    severity: "error",
+    type: "annotation_governance_design_contract_missing",
+    message: "全局批注文档缺少上下文、索引、清理、测试数据和抽屉动画治理规则。",
+  });
+}
+
+if (
+  !includesAll(appJs, [
+    "function capabilityUserTarget(viewModel)",
+    "const userTarget = capabilityUserTarget(viewModel)",
+    "setCurrentAnnotationTarget(userTarget)",
+    "setCurrentAnnotationTarget(environmentUserTarget(viewModel)",
+    'setCurrentAnnotationTarget(lifecycleUserTarget(viewModel, "dev")',
+    'setCurrentAnnotationTarget(lifecycleUserTarget(viewModel, "data")',
+    "hydrateMaintenanceAnnotationTargets(viewModel)",
+    "contentSlideUserTarget(selected, activeSlide, activeSlideIndex)",
+  ])
+) {
+  issues.push({
+    severity: "error",
+    type: "annotation_jump_module_coverage_missing",
+    message: "批注定位门禁缺少能力、环境、LC-AP、LC-DT、标准 / 字典、指南 / 幻灯片页面接入覆盖。",
+  });
 }
 
 function renderedAnchorCount(html) {
@@ -655,13 +930,18 @@ if (
 
 if (
   !includesAll(stylesCss, [
+    "OI-156 final annotation overlay",
     '[data-user-note-anchor-marked="true"]',
     '[data-user-note-anchor-active="true"]',
     '[data-user-note-anchor-row-marked="true"]',
     '[data-user-note-anchor-row-active="true"]',
     '[data-user-note-anchor-cell-marked="true"]',
     '[data-user-note-anchor-cell-active="true"]',
+    "[data-annotation-target-ref]",
     '[data-annotation-prefer-target="true"]',
+    ".standard-control-code-chip",
+    ".guide-slide-stage",
+    ".guide-thumb",
     'tr[data-user-note-anchor-marked="true"] > td',
     'tr[data-user-note-anchor-active="true"] > td',
     '[data-maintenance-id][data-user-note-anchor-marked="true"] > td',
@@ -673,6 +953,7 @@ if (
     "--annotation-tab-preview",
     "annotation-tab-count",
     "annotation-tab-label",
+    ".annotation-drawer-tab::before",
     "is-closing",
   ])
 ) {

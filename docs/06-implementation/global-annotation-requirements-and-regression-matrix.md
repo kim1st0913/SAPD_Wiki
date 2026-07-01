@@ -373,3 +373,69 @@ node scripts/audit_saved_user_annotations.mjs --url http://127.0.0.1:5173 --allo
 - 在未拆出独立组件前继续扩大 `app.js` 中批注业务逻辑。
 - 为单页新增私有批注样式或私有定位分支。
 - 在 `OI-128C` checkpoint 前混入工作台总览、数据篮、导出、能力重组或用户库治理。
+
+## 13. 2026-07-01 统一治理补充
+
+本节对应 `OI-156` 后续治理，处理用户反馈的 7 个批注模块问题：批注记录上下文不足、无效批注清理、测试批注数据、前后端解耦、批注索引、抽屉贴边和收回动画。
+
+### 13.1 批注上下文
+
+批注清单中的每条记录必须显示业务上下文，而不是只显示孤立值。
+
+- 值批注必须显示其所属页面、所属能力 / 环境对象 / 生命周期阶段 / 标准页，以及当前视角或 tab。
+- 行批注必须显示所属页面和行级业务对象类型。
+- 对象批注必须显示对象类型和对象标题。
+- 主视觉不得把 `target_ref`、`source_ref`、`raw`、`debug`、`metadata` 当成上下文展示；这些只能作为诊断导出或 tooltip 的低优先级信息。
+- 旧锚点若无法恢复精确业务路径，应显示“历史能力映射”或等价提示，不能假装已经精确定位。
+
+### 13.2 批注索引
+
+批注模块必须有两层索引：
+
+- 后端 / 本地库索引：`user_notes(page_route, updated_at)`、`target_ref`、`(page_route, target_ref)`、`anchor_type`、`object_type`、`status`。
+- 前端运行时索引：`id -> note`、`page_route -> notes`、`target_ref -> notes`、`page_route + target_ref -> notes`、`anchor_type -> notes`、`object_type -> notes`。
+
+前端列表过滤、当前页数量、定位失败态、保存后刷新和标记逻辑都必须使用统一运行时索引，不得各自全量过滤 `state.userNotes`。
+
+### 13.3 无效批注清理
+
+批注清理必须先审计、再确认、再执行。
+
+- 默认只运行 `scripts/audit_user_notes_integrity.mjs` 输出候选报告。
+- 不得在没有显式确认参数的情况下删除用户批注。
+- 无效批注候选至少包括：缺少 `id`、缺少 `page_route`、缺少 `target_ref`、缺少正文、未知路由、真实浏览器定位失败、完全重复的同 route / target / body 记录。
+- 重复记录和旧锚点记录默认进入人工 review，不自动删除。
+
+### 13.4 测试批注数据
+
+后续批注回归必须能快速生成可清理的测试数据。
+
+- 使用 `scripts/seed_user_annotation_test_notes.mjs` 生成带固定前缀的测试批注。
+- 默认 dry-run，只输出将创建的测试批注。
+- 写入必须显式传 `--apply --confirm-user-notes-test-data`。
+- 清理必须显式传 `--cleanup --confirm-user-notes-test-data`。
+- 测试数据至少覆盖能力、环境、LC-AP、LC-DT、知识库、标准 / 框架、指南 / 幻灯片，并覆盖页面、对象、行和值批注。
+
+### 13.5 抽屉贴边与动画
+
+右侧批注抽屉必须紧贴浏览器右侧窗口，展开和收回只改变抽屉整体 `transform`。
+
+- 抽屉不再使用展开前后尺寸不同的横胶囊 / 竖按钮切换。
+- 右侧触发器采用低噪声 Apple shell 边缘把手，不使用大半圆徽章、浮夸数字泡或会抢主画面的装饰。
+- 右侧边缘把手保持恒定宽度和高度，避免收回时出现大小跳变。
+- 面板右边缘贴住 viewport 右边缘，不留固定 12px 缝隙。
+- 收起动画期间面板禁用 `pointer-events`，避免遮挡页面点击。
+- 若用户开启 `prefers-reduced-motion`，后续动画必须可降级。
+
+### 13.6 全局锚点契约
+
+批注能力必须和前后端页面迭代解耦。后续修改数据 projection、ViewModel、页面组件或导航结构时，必须遵守以下锚点契约，不能让批注再次依赖易漂移的 DOM 文本和当前页面偶然状态。
+
+- 每个可批注页面必须声明稳定 `page_route`，并提供页面级、对象级、行级和值级锚点的恢复路径。
+- 对象级锚点必须使用稳定业务身份：`data-annotation-target-ref`、`data-annotation-object-type`、`data-annotation-object-id` 或等价字段；不得只用展示标题。
+- 值级锚点必须使用 `data-annotation-value="true"` 与 `data-copy-text`，并通过所属对象 / 行 / tab / projection key 绑定上下文；不得把孤立文本值当成唯一身份。
+- 后端 split manifest、projection、ViewModel 必须保留稳定对象身份字段，至少包含页面路由、对象类型、对象 ID / code、标题、粒度和可恢复的 projection key。
+- 旧批注锚点变更时必须提供兼容映射或降级提示；不能静默失效，也不能把旧值误定位到同名但不同上下文的对象。
+- 搜索、筛选、折叠分组、虚拟列表和懒加载 projection 必须在定位前可恢复目标上下文；无法恢复时显示“目标未加载 / 可重试”，不得循环扫描 DOM。
+- 前端定位必须先走运行时 `anchorIndex` / `noteIndex`，文本扫描只能作为最后兜底，且必须受 retry 次数和耗时预算限制。
+- 新增页面或重构页面前，必须把批注锚点纳入验收清单；提交前至少运行 `node scripts/audit_user_annotation_contract.mjs`，涉及真实保存批注时再执行保存批注回归。

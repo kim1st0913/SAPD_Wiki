@@ -1,0 +1,49 @@
+{
+  "packageType": "oi-149-p4-capability-object-projection",
+  "dataState": "ready",
+  "detailMode": "overview",
+  "selected": {
+    "id": "772fc0a1-683f-43e7-bdcd-a2d5b04c4227",
+    "type": "capability_category",
+    "code": "",
+    "title": "安全治理能力 G",
+    "name": "安全治理能力 G",
+    "category": "",
+    "status": "active"
+  },
+  "ancestorIds": [],
+  "focusIds": [
+    "6c6b8338-118d-4813-a325-cac971404e16",
+    "7abcdf28-1708-41fb-968b-0628888d65f0",
+    "96f36aa9-0758-4020-bb94-758c9184f416"
+  ],
+  "focusCount": 3,
+  "childOverview": [
+    {
+      "id": "7eeec333-2fa5-4f50-b693-ea2d25826328",
+      "type": "capability_domain",
+      "code": "G-SP",
+      "title": "网络安全战略计划 Strategy Planning",
+      "focusCount": 3,
+      "childCount": 1
+    }
+  ],
+  "coverageSummary": {
+    "focusCount": 3,
+    "technicalServiceCount": 0,
+    "scopeTypeCount": 0,
+    "managementWorkCount": 3,
+    "processReferenceCount": 3,
+    "standardControlCount": 51,
+    "moduleCount": 0,
+    "measureCount": 0
+  },
+  "relationCount": 90,
+  "deferred": {
+    "reason": "L0 / L1 能力层级只生成总览型 projection；标准控制项、技术映射明细和管理映射明细按 L2 / 关注点延迟加载。",
+    "technicalMappingRows": true,
+    "managementMappingRows": true,
+    "standardMappingRows": true,
+    "standardControls": true
+  }
+}

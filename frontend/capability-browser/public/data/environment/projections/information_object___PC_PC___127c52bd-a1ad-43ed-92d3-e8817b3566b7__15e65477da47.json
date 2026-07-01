@@ -1,0 +1,887 @@
+{
+  "packageType": "oi-149-p4-environment-object-projection",
+  "dataState": "ready",
+  "navOrdinal": 79,
+  "projectionKey": "information_object___PC_PC___127c52bd-a1ad-43ed-92d3-e8817b3566b7__15e65477da47",
+  "projectionPath": "environment/projections/information_object___PC_PC___127c52bd-a1ad-43ed-92d3-e8817b3566b7__15e65477da47.json",
+  "navigationPath": [
+    {
+      "depth": 0,
+      "id": "4abdf7e2-a2c3-42df-8cf4-fa9c9a38981e",
+      "type": "information_environment",
+      "code": "",
+      "title": "园区网"
+    },
+    {
+      "depth": 1,
+      "id": "f0a326df-08da-4ce9-b76b-ebccad17fcbc",
+      "type": "environment_segment",
+      "code": "",
+      "title": "PC终端"
+    },
+    {
+      "depth": 2,
+      "id": "127c52bd-a1ad-43ed-92d3-e8817b3566b7",
+      "type": "information_object",
+      "code": "",
+      "title": "PC终端软件应用"
+    }
+  ],
+  "selectedNavigation": {
+    "id": "127c52bd-a1ad-43ed-92d3-e8817b3566b7",
+    "type": "information_object",
+    "code": "",
+    "title": "PC终端软件应用",
+    "navOrdinal": 79,
+    "projectionKey": "information_object___PC_PC___127c52bd-a1ad-43ed-92d3-e8817b3566b7__15e65477da47",
+    "projectionPath": "environment/projections/information_object___PC_PC___127c52bd-a1ad-43ed-92d3-e8817b3566b7__15e65477da47.json"
+  },
+  "ancestorNavigation": [
+    {
+      "id": "4abdf7e2-a2c3-42df-8cf4-fa9c9a38981e",
+      "type": "information_environment",
+      "code": "",
+      "title": "园区网"
+    },
+    {
+      "id": "f0a326df-08da-4ce9-b76b-ebccad17fcbc",
+      "type": "environment_segment",
+      "code": "",
+      "title": "PC终端"
+    }
+  ],
+  "objectContextIds": [
+    "shadow:information_object_context:96da0a96ce1cdc69"
+  ],
+  "contextKeys": [
+    "园区网||PC终端||PC终端软件应用"
+  ],
+  "objects": {
+    "information_object": {
+      "shadow:information_object_context:96da0a96ce1cdc69": {
+        "id": "shadow:information_object_context:96da0a96ce1cdc69",
+        "type": "information_object",
+        "code": "",
+        "title": "PC终端软件应用",
+        "name": "PC终端软件应用",
+        "category": "",
+        "status": "",
+        "contextKey": "园区网||PC终端||PC终端软件应用"
+      }
+    },
+    "scope_type": {
+      "shadow:scope_type:8c823ba8ecddbfea": {
+        "id": "shadow:scope_type:8c823ba8ecddbfea",
+        "type": "scope_type",
+        "code": "I-AP",
+        "title": "软件应用",
+        "name": "软件应用",
+        "category": "",
+        "status": "",
+        "text": "I-AP 软件应用"
+      }
+    },
+    "security_technical_service": {
+      "shadow:security_technical_service:41822c1756289d95": {
+        "id": "shadow:security_technical_service:41822c1756289d95",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.AM-01",
+        "title": "软件资产清单",
+        "name": "软件资产清单",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:1d7180fb160a0897": {
+        "id": "shadow:security_technical_service:1d7180fb160a0897",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.AM-02",
+        "title": "软件资产安全管控",
+        "name": "软件资产安全管控",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:2f7ebebc4fd0acac": {
+        "id": "shadow:security_technical_service:2f7ebebc4fd0acac",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.CM-01",
+        "title": "应用安全基线配置管理",
+        "name": "应用安全基线配置管理",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:70d491688e0ff0f8": {
+        "id": "shadow:security_technical_service:70d491688e0ff0f8",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.CM-02",
+        "title": "应用安全加固",
+        "name": "应用安全加固",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:0f1a263c2a61280e": {
+        "id": "shadow:security_technical_service:0f1a263c2a61280e",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.VM-01",
+        "title": "应用漏洞管理",
+        "name": "应用漏洞管理",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:65dcce95724fa9dc": {
+        "id": "shadow:security_technical_service:65dcce95724fa9dc",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.VM-02",
+        "title": "应用补丁管理",
+        "name": "应用补丁管理",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:99997815cb459916": {
+        "id": "shadow:security_technical_service:99997815cb459916",
+        "type": "security_technical_service",
+        "code": "I-AP&T-PD.PP-01",
+        "title": "应用安全访问",
+        "name": "应用安全访问",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:e888e485ab86fa13": {
+        "id": "shadow:security_technical_service:e888e485ab86fa13",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.IA-03",
+        "title": "应用资源授权",
+        "name": "应用资源授权",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:0e293455193f77aa": {
+        "id": "shadow:security_technical_service:0e293455193f77aa",
+        "type": "security_technical_service",
+        "code": "I-AP&T-PD.TP-03",
+        "title": "应用攻击入侵防御",
+        "name": "应用攻击入侵防御",
+        "category": "",
+        "status": ""
+      }
+    },
+    "security_technology_module": {
+      "shadow:security_technology_module:f53146f292a651e9": {
+        "id": "shadow:security_technology_module:f53146f292a651e9",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "桌面安全管理（UEM）",
+        "name": "桌面安全管理（UEM）",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technology_module:9da3ee8f79815a2a": {
+        "id": "shadow:security_technology_module:9da3ee8f79815a2a",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "安全Web浏览器",
+        "name": "安全Web浏览器",
+        "category": "",
+        "status": ""
+      }
+    },
+    "security_system": {
+      "shadow:security_system:5f95d8f2389925bb": {
+        "id": "shadow:security_system:5f95d8f2389925bb",
+        "type": "security_system",
+        "code": "",
+        "title": "终端安全管控",
+        "name": "终端安全管控",
+        "category": "",
+        "status": ""
+      }
+    }
+  },
+  "objectScopeTree": [
+    {
+      "id": "shadow:information_object_context:96da0a96ce1cdc69",
+      "type": "information_object",
+      "title": "PC终端软件应用",
+      "contextKey": "园区网||PC终端||PC终端软件应用",
+      "segments": [
+        {
+          "id": "shadow:environment_segment:742c252119cd1402",
+          "type": "environment_segment",
+          "title": "PC终端"
+        }
+      ],
+      "scope_mappings": [
+        {
+          "scope": {
+            "id": "shadow:scope_type:8c823ba8ecddbfea",
+            "type": "scope_type",
+            "code": "I-AP",
+            "title": "软件应用",
+            "text": "I-AP 软件应用"
+          },
+          "services": []
+        },
+        {
+          "scope": {
+            "id": "shadow:scope_type:617eecaba8d1c85f",
+            "type": "scope_type",
+            "code": "",
+            "title": "I-AP 软件应用",
+            "text": "I-AP 软件应用"
+          },
+          "services": [
+            {
+              "id": "shadow:security_technical_service:41822c1756289d95",
+              "type": "security_technical_service",
+              "code": "I-AP&T-AS.AM-01",
+              "title": "软件资产清单",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:f53146f292a651e9",
+                  "type": "security_technology_module",
+                  "title": "桌面安全管理（UEM）",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:0f779dc3ddbcc7e1",
+                      "type": "security_system",
+                      "title": "终端安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:5f95d8f2389925bb",
+                  "type": "security_system",
+                  "title": "终端安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:1d7180fb160a0897",
+              "type": "security_technical_service",
+              "code": "I-AP&T-AS.AM-02",
+              "title": "软件资产安全管控",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:f53146f292a651e9",
+                  "type": "security_technology_module",
+                  "title": "桌面安全管理（UEM）",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:0f779dc3ddbcc7e1",
+                      "type": "security_system",
+                      "title": "终端安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:5f95d8f2389925bb",
+                  "type": "security_system",
+                  "title": "终端安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:2f7ebebc4fd0acac",
+              "type": "security_technical_service",
+              "code": "I-AP&T-AS.CM-01",
+              "title": "应用安全基线配置管理",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:f53146f292a651e9",
+                  "type": "security_technology_module",
+                  "title": "桌面安全管理（UEM）",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:0f779dc3ddbcc7e1",
+                      "type": "security_system",
+                      "title": "终端安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:5f95d8f2389925bb",
+                  "type": "security_system",
+                  "title": "终端安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:70d491688e0ff0f8",
+              "type": "security_technical_service",
+              "code": "I-AP&T-AS.CM-02",
+              "title": "应用安全加固",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:f53146f292a651e9",
+                  "type": "security_technology_module",
+                  "title": "桌面安全管理（UEM）",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:0f779dc3ddbcc7e1",
+                      "type": "security_system",
+                      "title": "终端安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:5f95d8f2389925bb",
+                  "type": "security_system",
+                  "title": "终端安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:e888e485ab86fa13",
+              "type": "security_technical_service",
+              "code": "I-AP&T-AS.IA-03",
+              "title": "应用资源授权",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:9da3ee8f79815a2a",
+                  "type": "security_technology_module",
+                  "title": "安全Web浏览器",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:0f779dc3ddbcc7e1",
+                      "type": "security_system",
+                      "title": "终端安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:5f95d8f2389925bb",
+                  "type": "security_system",
+                  "title": "终端安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:0f1a263c2a61280e",
+              "type": "security_technical_service",
+              "code": "I-AP&T-AS.VM-01",
+              "title": "应用漏洞管理",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:f53146f292a651e9",
+                  "type": "security_technology_module",
+                  "title": "桌面安全管理（UEM）",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:0f779dc3ddbcc7e1",
+                      "type": "security_system",
+                      "title": "终端安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:5f95d8f2389925bb",
+                  "type": "security_system",
+                  "title": "终端安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:65dcce95724fa9dc",
+              "type": "security_technical_service",
+              "code": "I-AP&T-AS.VM-02",
+              "title": "应用补丁管理",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:f53146f292a651e9",
+                  "type": "security_technology_module",
+                  "title": "桌面安全管理（UEM）",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:0f779dc3ddbcc7e1",
+                      "type": "security_system",
+                      "title": "终端安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:5f95d8f2389925bb",
+                  "type": "security_system",
+                  "title": "终端安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:99997815cb459916",
+              "type": "security_technical_service",
+              "code": "I-AP&T-PD.PP-01",
+              "title": "应用安全访问",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:9da3ee8f79815a2a",
+                  "type": "security_technology_module",
+                  "title": "安全Web浏览器",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:0f779dc3ddbcc7e1",
+                      "type": "security_system",
+                      "title": "终端安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:5f95d8f2389925bb",
+                  "type": "security_system",
+                  "title": "终端安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:0e293455193f77aa",
+              "type": "security_technical_service",
+              "code": "I-AP&T-PD.TP-03",
+              "title": "应用攻击入侵防御",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:9da3ee8f79815a2a",
+                  "type": "security_technology_module",
+                  "title": "安全Web浏览器",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:0f779dc3ddbcc7e1",
+                      "type": "security_system",
+                      "title": "终端安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:5f95d8f2389925bb",
+                  "type": "security_system",
+                  "title": "终端安全管控"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "scope_mapping_count": 2,
+      "service_count": 9,
+      "module_count": 2,
+      "measure_count": 0,
+      "security_system_count": 2
+    }
+  ],
+  "relations": [
+    {
+      "id": "reimport:relation:9ecde7894ddfeb12",
+      "type": "applies_to_scope",
+      "sourceId": "shadow:information_object_context:96da0a96ce1cdc69",
+      "sourceType": "information_object",
+      "targetId": "shadow:scope_type:8c823ba8ecddbfea",
+      "targetType": "scope_type",
+      "label": "applies_to_scope",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||PC终端||PC终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:65577323a3a45f52",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:41822c1756289d95",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:96da0a96ce1cdc69",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||PC终端||PC终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:32e6cf03ac0b4859",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:1d7180fb160a0897",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:96da0a96ce1cdc69",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||PC终端||PC终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:763330601a62356b",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:2f7ebebc4fd0acac",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:96da0a96ce1cdc69",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||PC终端||PC终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:9c2528e60fda6035",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:70d491688e0ff0f8",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:96da0a96ce1cdc69",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||PC终端||PC终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:d507e5594a043210",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:0f1a263c2a61280e",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:96da0a96ce1cdc69",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||PC终端||PC终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:bbed657d14dbbe7b",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:65dcce95724fa9dc",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:96da0a96ce1cdc69",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||PC终端||PC终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:4cc10847d1f190a0",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:99997815cb459916",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:96da0a96ce1cdc69",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||PC终端||PC终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:f3b7f0f301c3fadb",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:e888e485ab86fa13",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:96da0a96ce1cdc69",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||PC终端||PC终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:ac16464d4b591a31",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:0e293455193f77aa",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:96da0a96ce1cdc69",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||PC终端||PC终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:ade9495e8216aa34",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:41822c1756289d95",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:f53146f292a651e9",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||PC终端||PC终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:d9606784c438ffe0",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:1d7180fb160a0897",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:f53146f292a651e9",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||PC终端||PC终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:d890f13ffb7a2093",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:2f7ebebc4fd0acac",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:f53146f292a651e9",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||PC终端||PC终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:af3fa33eb943ac6b",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:70d491688e0ff0f8",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:f53146f292a651e9",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||PC终端||PC终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:0b1ea33731f5f807",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:0f1a263c2a61280e",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:f53146f292a651e9",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||PC终端||PC终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:5bb6750472698c58",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:65dcce95724fa9dc",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:f53146f292a651e9",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||PC终端||PC终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:15863059a02d6e6c",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:99997815cb459916",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:9da3ee8f79815a2a",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||PC终端||PC终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:f601ad2843ccd1a5",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:e888e485ab86fa13",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:9da3ee8f79815a2a",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||PC终端||PC终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:3b63d2dc761aaff6",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:0e293455193f77aa",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:9da3ee8f79815a2a",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||PC终端||PC终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:49f9fc20c2f6304e",
+      "type": "part_of_system",
+      "sourceId": "shadow:security_technology_module:f53146f292a651e9",
+      "sourceType": "security_technology_module",
+      "targetId": "shadow:security_system:5f95d8f2389925bb",
+      "targetType": "security_system",
+      "label": "part_of_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||PC终端||PC终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:fc6c1562416887f2",
+      "type": "part_of_system",
+      "sourceId": "shadow:security_technology_module:9da3ee8f79815a2a",
+      "sourceType": "security_technology_module",
+      "targetId": "shadow:security_system:5f95d8f2389925bb",
+      "targetType": "security_system",
+      "label": "part_of_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||PC终端||PC终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:f3e8f7fe74ed71f3",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||PC终端||PC终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:48030d9ac35e048e",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||PC终端||PC终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:08a36f5619241119",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||PC终端||PC终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:79cca29d26cb7fbd",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||PC终端||PC终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:81920908828d7ab7",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||PC终端||PC终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:f83c332c4bee8eda",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||PC终端||PC终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:f384f03b64e68234",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||PC终端||PC终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:875bb7f67ccf9055",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||PC终端||PC终端软件应用",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:3f19b134094645c9",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||PC终端||PC终端软件应用",
+      "evidenceRefCount": 0
+    }
+  ],
+  "relationCount": 30
+}

@@ -70,6 +70,11 @@
     restoreScheduled = false;
     const panel = document.querySelector(".user-annotation-drawer.is-open .annotation-drawer-scroll, .user-annotation-drawer.is-open .annotation-drawer-panel");
     if (!panel) return;
+    const currentNoteCard = panel.querySelector?.(".annotation-note-card[data-annotation-current-note='true']");
+    if (currentNoteCard?.open) {
+      ensureAnnotationNoteFullyVisible(currentNoteCard, { behavior: "auto" });
+      return;
+    }
     const remembered = drawerScrollMemory.get(drawerScrollKey(panel));
     if (Number.isFinite(remembered) && remembered > 0) panel.scrollTop = remembered;
   }
@@ -80,7 +85,7 @@
     window.requestAnimationFrame(restoreDrawerScroll);
   }
 
-  function ensureAnnotationNoteFullyVisible(noteCard) {
+  function ensureAnnotationNoteFullyVisible(noteCard, { behavior = "smooth" } = {}) {
     if (!noteCard?.open) return;
     const panel = noteCard.closest?.(".annotation-drawer-scroll") || noteCard.closest?.(".annotation-drawer-panel");
     if (!panel) return;
@@ -102,9 +107,11 @@
 
     if (Math.abs(delta) > 1) {
       const reduceMotion = Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
-      if (typeof panel.scrollBy === "function") panel.scrollBy({ top: delta, behavior: reduceMotion ? "auto" : "smooth" });
+      const scrollBehavior = reduceMotion || behavior === "auto" ? "auto" : "smooth";
+      if (scrollBehavior === "auto") panel.scrollTop += delta;
+      else if (typeof panel.scrollBy === "function") panel.scrollBy({ top: delta, behavior: "smooth" });
       else panel.scrollTop += delta;
-      window.setTimeout(() => rememberDrawerScroll(panel), reduceMotion ? 0 : 260);
+      window.setTimeout(() => rememberDrawerScroll(panel), scrollBehavior === "auto" ? 0 : 260);
       return;
     }
     rememberDrawerScroll(panel);
@@ -166,22 +173,36 @@
     return raw.replace("T", " ").replace("Z", "").slice(0, 16);
   }
 
-  function renderNoteCard(note, { editingNoteId = "", editDraft = "", currentTargetRef = "", index = 0, expandedNoteIds = [] } = {}) {
+  function renderNoteCard(note, { editingNoteId = "", editDraft = "", currentTargetRef = "", currentNoteId = "", index = 0, expandedNoteIds = [], noteContexts = {} } = {}) {
     const status = text(note.status || "todo");
     const editing = text(note.id).trim() === text(editingNoteId).trim();
     const anchorType = text(note.anchor_type || "object");
     const anchorLabel = ANCHOR_LABELS[anchorType] || "对象";
     const noteTarget = text(note.object_title || note.object_type || note.page_title || "当前页面");
-    const isCurrent = text(note.target_ref).trim() === text(currentTargetRef).trim();
+    const isCurrent = text(note.id).trim() === text(currentNoteId).trim() || text(note.target_ref).trim() === text(currentTargetRef).trim();
     const noteNumber = index + 1;
     const expanded = editing || list(expandedNoteIds).map(text).includes(text(note.id).trim());
+    const context = noteContexts[text(note.id).trim()] || note.display_context || {};
+    const pathLabel = text(context.pathLabel || context.path_label || context.pageLabel || context.page_label || note.page_title || note.page_route).trim();
+    const detailLabel = text(context.detailLabel || context.detail_label || context.targetLabel || context.target_label || "").trim();
+    const contextTitle = [pathLabel, detailLabel].filter(Boolean).join(" / ");
     return `
-      <details class="annotation-note-card ${isCurrent ? "is-current-anchor" : ""}" data-user-note-id="${escape(note.id)}"${expanded ? " open" : ""}>
+      <details class="annotation-note-card ${isCurrent ? "is-current-anchor" : ""}" data-user-note-id="${escape(note.id)}"${isCurrent ? ' data-annotation-current-note="true"' : ""}${expanded ? " open" : ""}>
         <summary class="annotation-note-summary">
           <span class="annotation-status-pill status-${escape(status)}">${escape(STATUS_LABELS[status] || STATUS_LABELS.todo)}</span>
           <span class="annotation-note-number">#${escape(noteNumber)}</span>
           <span class="annotation-anchor-pill anchor-${escape(anchorType)}">${escape(anchorLabel)}</span>
           <strong title="${escape(noteTarget)}" data-annotation-tooltip="${escape(noteTarget)}">${escape(noteTarget)}</strong>
+          ${
+            pathLabel || detailLabel
+              ? `
+                <span class="annotation-note-context" title="${escape(contextTitle)}" data-annotation-tooltip="${escape(contextTitle)}">
+                  ${pathLabel ? `<span>${escape(pathLabel)}</span>` : ""}
+                  ${detailLabel ? `<small>${escape(detailLabel)}</small>` : ""}
+                </span>
+              `
+              : ""
+          }
         </summary>
         <div class="annotation-note-body">
           <div class="annotation-note-meta">
@@ -250,7 +271,23 @@
     `;
   }
 
-  function render({ open = false, target, pageTarget, notes = [], favorite, status = {}, draft = "", editingNoteId = "", editDraft = "", expandedNoteIds = [], pendingTargetLabel = "", contextMenu = null }) {
+  function renderJumpFailure(jumpFailure) {
+    if (!jumpFailure?.noteId) return "";
+    const title = text(jumpFailure.targetTitle || "目标位置").trim();
+    const message = text(jumpFailure.message || "目标未加载。已停止自动重试，可点击重试定位。").trim();
+    return `
+      <div class="annotation-jump-failure" role="status" data-annotation-jump-failure>
+        <div>
+          <strong>定位失败</strong>
+          <span title="${escape(title)}" data-annotation-tooltip="${escape(title)}">${escape(title)}</span>
+        </div>
+        <p>${escape(message)}</p>
+        <button type="button" data-annotation-jump-retry="${escape(jumpFailure.noteId)}">重试定位</button>
+      </div>
+    `;
+  }
+
+  function render({ open = false, target, pageTarget, notes = [], noteContexts = {}, favorite, status = {}, draft = "", editingNoteId = "", editDraft = "", expandedNoteIds = [], currentNoteId = "", pendingTargetLabel = "", contextMenu = null, jumpFailure = null }) {
     const currentTarget = target || pageTarget;
     if (!currentTarget?.targetRef) return "";
     const loading = status.state === "loading";
@@ -302,6 +339,7 @@
                 `
                 : ""
             }
+            ${renderJumpFailure(jumpFailure)}
             <form class="annotation-create-form" data-user-note-form>
               <label for="userAnnotationDraft">添加批注</label>
               <textarea id="userAnnotationDraft" data-user-note-draft rows="5" placeholder="记录复核结论、待确认点或需要后续处理的问题。" ${disabledAttr}>${escape(draft)}</textarea>
@@ -314,7 +352,7 @@
             ${renderLegacyFavorite(favorite)}
             <section class="annotation-section">
               <h3>${escape(pageTitle)}批注</h3>
-              ${renderNoteList(pageNotes, loading ? "正在读取批注..." : "当前页面暂无批注", { editingNoteId, editDraft, expandedNoteIds, currentTargetRef: currentTarget.targetRef })}
+              ${renderNoteList(pageNotes, loading ? "正在读取批注..." : "当前页面暂无批注", { editingNoteId, editDraft, expandedNoteIds, currentTargetRef: currentTarget.targetRef, currentNoteId, noteContexts })}
             </section>
           </div>
         </section>

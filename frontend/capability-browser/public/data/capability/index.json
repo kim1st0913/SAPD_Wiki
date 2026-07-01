@@ -1,0 +1,2393 @@
+{
+  "packageType": "oi-149-p4-capability-index",
+  "dataState": "ready",
+  "stats": {
+    "categories": 3,
+    "domains": 10,
+    "capabilities": 32,
+    "focuses": 91,
+    "services": 160,
+    "focus_scope_mappings": 387,
+    "unlinked_focuses": 0,
+    "capability_category": 3,
+    "capability_domain": 10,
+    "capability": 32,
+    "capability_focus": 91,
+    "scope_type": 8,
+    "security_technical_service": 160,
+    "security_technology_module": 102,
+    "security_technical_measure": 28,
+    "security_work": 92,
+    "work_function": 75,
+    "process_group": 32,
+    "process_reference": 78,
+    "process_activity": 0,
+    "standard_framework": 6,
+    "standard_control": 1745,
+    "objects": 2462,
+    "relations": 6094,
+    "evidenceRefs": 4580
+  },
+  "defaultSelectedFocusId": "72cd12e2-f784-4775-8b3f-6d3ed4e7d398",
+  "tree": [
+    {
+      "id": "94bba6df-c6bc-41b5-ad60-7c6e87a173ac",
+      "type": "capability_category",
+      "code": "",
+      "name": "安全技术能力 T",
+      "title": "安全技术能力 T",
+      "children": [
+        {
+          "id": "52656e45-e93d-4cb8-93eb-36a7e14b7655",
+          "type": "capability_domain",
+          "code": "T-AS",
+          "name": "基础架构安全 Architectural Security",
+          "title": "基础架构安全 Architectural Security",
+          "children": [
+            {
+              "id": "99db293b-2029-49ab-b84c-a86b68ada3ce",
+              "type": "capability",
+              "code": "T-AS.AD",
+              "name": "网络安全体系架构管控能力",
+              "title": "网络安全体系架构管控能力",
+              "children": [
+                {
+                  "id": "72cd12e2-f784-4775-8b3f-6d3ed4e7d398",
+                  "type": "capability_focus",
+                  "code": "T-AS.AD-01",
+                  "name": "遵循安全设计原则对网络安全架构进行设计和管控",
+                  "title": "遵循安全设计原则对网络安全架构进行设计和管控",
+                  "children": []
+                },
+                {
+                  "id": "6c872817-38b8-4b19-9307-112520735747",
+                  "type": "capability_focus",
+                  "code": "T-AS.AD-02",
+                  "name": "实施网络安全架构的冗余设计",
+                  "title": "实施网络安全架构的冗余设计",
+                  "children": []
+                },
+                {
+                  "id": "1b72dcb4-a4df-49c9-90fc-895bed051abb",
+                  "type": "capability_focus",
+                  "code": "T-AS.AD-03",
+                  "name": "确保系统、应用的可靠性与可恢复性",
+                  "title": "确保系统、应用的可靠性与可恢复性",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "865efd41-fd51-42a1-9c0a-6f46162d1d68",
+              "type": "capability",
+              "code": "T-AS.AM",
+              "name": "信息化资产安全管理能力",
+              "title": "信息化资产安全管理能力",
+              "children": [
+                {
+                  "id": "b17f570a-0a41-4aaf-86ab-10f3a1b1c8d3",
+                  "type": "capability_focus",
+                  "code": "T-AS.AM-01",
+                  "name": "监测和持续管理组织的动态资产清单（IT&OT）",
+                  "title": "监测和持续管理组织的动态资产清单（IT&OT）",
+                  "children": []
+                },
+                {
+                  "id": "5f990233-75df-46ff-a04f-45f4ae456a0d",
+                  "type": "capability_focus",
+                  "code": "T-AS.AM-02",
+                  "name": "实现主机、终端等信息化资产的安全管理",
+                  "title": "实现主机、终端等信息化资产的安全管理",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "f0014de5-8bb2-457b-a2a4-b40011faef8f",
+              "type": "capability",
+              "code": "T-AS.CG",
+              "name": "密码服务能力",
+              "title": "密码服务能力",
+              "children": [
+                {
+                  "id": "dacf7142-6ac7-48e1-b463-5d42275bfc6f",
+                  "type": "capability_focus",
+                  "code": "T-AS.CG-01",
+                  "name": "确保信息传输或是存储状态下不被未授权的访问或泄露",
+                  "title": "确保信息传输或是存储状态下不被未授权的访问或泄露",
+                  "children": []
+                },
+                {
+                  "id": "580a4463-e07b-432c-bde4-ec33d24b4913",
+                  "type": "capability_focus",
+                  "code": "T-AS.CG-02",
+                  "name": "确保在信息交互过程中，主体和客体均源自可信赖的来源，并且不被非法篡改或删除",
+                  "title": "确保在信息交互过程中，主体和客体均源自可信赖的来源，并且不被非法篡改或删除",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "53bfcca7-3660-4630-b7a2-d4bd9610b166",
+              "type": "capability",
+              "code": "T-AS.CM",
+              "name": "安全配置与加固措施管理能力",
+              "title": "安全配置与加固措施管理能力",
+              "children": [
+                {
+                  "id": "f481d6ed-0cff-49cf-9a45-859a2e524fc4",
+                  "type": "capability_focus",
+                  "code": "T-AS.CM-01",
+                  "name": "持续管理和维护组织的安全配置基线集合",
+                  "title": "持续管理和维护组织的安全配置基线集合",
+                  "children": []
+                },
+                {
+                  "id": "3ba28f0a-e5c9-48af-9e9b-0614a264d7af",
+                  "type": "capability_focus",
+                  "code": "T-AS.CM-02",
+                  "name": "实施对信息化资产的安全加固",
+                  "title": "实施对信息化资产的安全加固",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "aa33c509-d01e-41b4-bd19-01d81535bba3",
+              "type": "capability",
+              "code": "T-AS.DG",
+              "name": "数据安全管理和治理能力",
+              "title": "数据安全管理和治理能力",
+              "children": [
+                {
+                  "id": "4ebac402-6b13-416d-96d7-ab8e3e15e52f",
+                  "type": "capability_focus",
+                  "code": "T-AS.DG-01",
+                  "name": "持续管理数据分类分级策略，执行数据分类分级",
+                  "title": "持续管理数据分类分级策略，执行数据分类分级",
+                  "children": []
+                },
+                {
+                  "id": "40c42943-962d-4154-8689-4910d29d6d93",
+                  "type": "capability_focus",
+                  "code": "T-AS.DG-02",
+                  "name": "制定并实施数据安全策略",
+                  "title": "制定并实施数据安全策略",
+                  "children": []
+                },
+                {
+                  "id": "641fd4ce-e317-45c2-bf34-21078be37041",
+                  "type": "capability_focus",
+                  "code": "T-AS.DG-03",
+                  "name": "确保数据的可靠性与可恢复性",
+                  "title": "确保数据的可靠性与可恢复性",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "9f952bed-4aee-4e71-8038-4b4183b1aae5",
+              "type": "capability",
+              "code": "T-AS.DS",
+              "name": "开发安全管控能力",
+              "title": "开发安全管控能力",
+              "children": [
+                {
+                  "id": "0711626d-97e3-4a0a-b2ae-13a7af5ccfda",
+                  "type": "capability_focus",
+                  "code": "T-AS.DS-01",
+                  "name": "持续管理软件安全需求",
+                  "title": "持续管理软件安全需求",
+                  "children": []
+                },
+                {
+                  "id": "41225a46-2d90-48d6-ba61-ba6b093bf9e1",
+                  "type": "capability_focus",
+                  "code": "T-AS.DS-02",
+                  "name": "实施代码安全检查",
+                  "title": "实施代码安全检查",
+                  "children": []
+                },
+                {
+                  "id": "fe0df93f-a252-40c3-8390-e410a5548eed",
+                  "type": "capability_focus",
+                  "code": "T-AS.DS-03",
+                  "name": "实施软件供应链安全检查",
+                  "title": "实施软件供应链安全检查",
+                  "children": []
+                },
+                {
+                  "id": "77f3844f-350e-42d8-bde5-2a4727cbeb5b",
+                  "type": "capability_focus",
+                  "code": "T-AS.DS-04",
+                  "name": "实施软件制品安全检查",
+                  "title": "实施软件制品安全检查",
+                  "children": []
+                },
+                {
+                  "id": "c7aadf7d-a94b-430b-a2d8-bbb379682d35",
+                  "type": "capability_focus",
+                  "code": "T-AS.DS-05",
+                  "name": "实施软件上线安全检查",
+                  "title": "实施软件上线安全检查",
+                  "children": []
+                },
+                {
+                  "id": "18977352-86af-48a6-8f6a-f3df936b27d3",
+                  "type": "capability_focus",
+                  "code": "T-AS.DS-06",
+                  "name": "持续管理可复用的开发安全资源",
+                  "title": "持续管理可复用的开发安全资源",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "9055b901-36c1-4337-b6d2-0df8a65dec23",
+              "type": "capability",
+              "code": "T-AS.IA",
+              "name": "身份、凭证与访问管理能力",
+              "title": "身份、凭证与访问管理能力",
+              "children": [
+                {
+                  "id": "c1d0dca3-d4a3-4a3f-bfb8-3230b0781cea",
+                  "type": "capability_focus",
+                  "code": "T-AS.IA-01",
+                  "name": "实现组织数字化身份的身份生命周期管理",
+                  "title": "实现组织数字化身份的身份生命周期管理",
+                  "children": []
+                },
+                {
+                  "id": "9bb22f45-3d49-4c1d-becc-ffce3b2c446a",
+                  "type": "capability_focus",
+                  "code": "T-AS.IA-02",
+                  "name": "针对不同访问主体执行满足安全需求的身份认证机制",
+                  "title": "针对不同访问主体执行满足安全需求的身份认证机制",
+                  "children": []
+                },
+                {
+                  "id": "2c4e3200-3551-4297-9188-53376e6b0693",
+                  "type": "capability_focus",
+                  "code": "T-AS.IA-03",
+                  "name": "实施人员实体的访问控制管理",
+                  "title": "实施人员实体的访问控制管理",
+                  "children": []
+                },
+                {
+                  "id": "fa079362-7b74-4f89-b239-8b8d5718e191",
+                  "type": "capability_focus",
+                  "code": "T-AS.IA-04",
+                  "name": "管理和维护凭证的完整生命周期",
+                  "title": "管理和维护凭证的完整生命周期",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "27fcd3f8-36ee-4be1-a449-be8e9f97e2b1",
+              "type": "capability",
+              "code": "T-AS.LA",
+              "name": "日志收集与审计能力",
+              "title": "日志收集与审计能力",
+              "children": [
+                {
+                  "id": "c39337c6-4b00-4192-a457-1366e2d13e15",
+                  "type": "capability_focus",
+                  "code": "T-AS.LA-01",
+                  "name": "在信息化资产上记录保存日志",
+                  "title": "在信息化资产上记录保存日志",
+                  "children": []
+                },
+                {
+                  "id": "e206c28d-f81a-4eba-9da4-a15f96a6719e",
+                  "type": "capability_focus",
+                  "code": "T-AS.LA-02",
+                  "name": "实现日志的收集与集中存储机制",
+                  "title": "实现日志的收集与集中存储机制",
+                  "children": []
+                },
+                {
+                  "id": "78bd3e69-0e74-4d52-bc1e-d88b8d7d6f7f",
+                  "type": "capability_focus",
+                  "code": "T-AS.LA-03",
+                  "name": "对安全日志进行审计分析",
+                  "title": "对安全日志进行审计分析",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "ca3679e4-a177-4436-a7e9-a94b037eb830",
+              "type": "capability",
+              "code": "T-AS.VM",
+              "name": "漏洞与补丁管理能力",
+              "title": "漏洞与补丁管理能力",
+              "children": [
+                {
+                  "id": "09275fd5-5034-4b6b-a9c8-eebf381d2442",
+                  "type": "capability_focus",
+                  "code": "T-AS.VM-01",
+                  "name": "实施漏洞本地化管理以降低资产安全风险",
+                  "title": "实施漏洞本地化管理以降低资产安全风险",
+                  "children": []
+                },
+                {
+                  "id": "5b992744-35eb-4bf0-b0e3-097df663e2e3",
+                  "type": "capability_focus",
+                  "code": "T-AS.VM-02",
+                  "name": "加强补丁信息的运营管理。",
+                  "title": "加强补丁信息的运营管理。",
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "9cd70765-5c70-4085-89dc-c512779f4b7f",
+          "type": "capability_domain",
+          "code": "T-PD",
+          "name": "被动防御 Passive Defense",
+          "title": "被动防御 Passive Defense",
+          "children": [
+            {
+              "id": "53a980f0-6183-4feb-827b-c93e5c6b456d",
+              "type": "capability",
+              "code": "T-PD.AC",
+              "name": "网络访问控制能力",
+              "title": "网络访问控制能力",
+              "children": [
+                {
+                  "id": "dd0eaca8-aec0-4bf4-bd9e-ed1e72839dbe",
+                  "type": "capability_focus",
+                  "code": "T-PD.AC-01",
+                  "name": "实施非人员实体的访问控制管理",
+                  "title": "实施非人员实体的访问控制管理",
+                  "children": []
+                },
+                {
+                  "id": "037b603c-407d-4649-b1b8-830a83d1c6b3",
+                  "type": "capability_focus",
+                  "code": "T-PD.AC-02",
+                  "name": "对访问实体执行信誉评估",
+                  "title": "对访问实体执行信誉评估",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "184af5ec-6ca8-4b73-9ad6-ed6ce7ffb4e9",
+              "type": "capability",
+              "code": "T-PD.DP",
+              "name": "数据安全防护能力",
+              "title": "数据安全防护能力",
+              "children": [
+                {
+                  "id": "3bbc4d06-3468-4a8d-99c0-44a5257f57c0",
+                  "type": "capability_focus",
+                  "code": "T-PD.DP-01",
+                  "name": "实施水印技术，加强数据泄漏的追踪溯源",
+                  "title": "实施水印技术，加强数据泄漏的追踪溯源",
+                  "children": []
+                },
+                {
+                  "id": "48f076b2-5a98-4c8d-abab-366aaea936d7",
+                  "type": "capability_focus",
+                  "code": "T-PD.DP-02",
+                  "name": "实施敏感数据的脱敏处理措施",
+                  "title": "实施敏感数据的脱敏处理措施",
+                  "children": []
+                },
+                {
+                  "id": "683037c4-d18c-4f91-98a7-e90207be2df4",
+                  "type": "capability_focus",
+                  "code": "T-PD.DP-03",
+                  "name": "实施数据防泄漏控制技术和策略",
+                  "title": "实施数据防泄漏控制技术和策略",
+                  "children": []
+                },
+                {
+                  "id": "59a9c959-2a86-40d2-b63b-c15400c3d919",
+                  "type": "capability_focus",
+                  "code": "T-PD.DP-04",
+                  "name": "实施数据访问控制技术",
+                  "title": "实施数据访问控制技术",
+                  "children": []
+                },
+                {
+                  "id": "75cf3e63-ebe4-48de-99cc-06b255464ed8",
+                  "type": "capability_focus",
+                  "code": "T-PD.DP-05",
+                  "name": "监测数据全生命周期流转过程",
+                  "title": "监测数据全生命周期流转过程",
+                  "children": []
+                },
+                {
+                  "id": "ff015a81-5568-46b3-b0e8-3b63ae380722",
+                  "type": "capability_focus",
+                  "code": "T-PD.DP-06",
+                  "name": "在数据生命周期结束时执行数据销毁策略",
+                  "title": "在数据生命周期结束时执行数据销毁策略",
+                  "children": []
+                },
+                {
+                  "id": "ff418da8-05f3-4d27-adba-e4575670aeb7",
+                  "type": "capability_focus",
+                  "code": "T-PD.DP-07",
+                  "name": "执行隐私数据识别和监控以保护隐私数据",
+                  "title": "执行隐私数据识别和监控以保护隐私数据",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "7b902b73-7f08-4235-95a8-577ef0d0ce5b",
+              "type": "capability",
+              "code": "T-PD.PP",
+              "name": "网络边界防护能力",
+              "title": "网络边界防护能力",
+              "children": [
+                {
+                  "id": "7e4922f0-05fa-4438-b33b-e498af49decb",
+                  "type": "capability_focus",
+                  "code": "T-PD.PP-01",
+                  "name": "构建和维护安全可靠的网络访问路径",
+                  "title": "构建和维护安全可靠的网络访问路径",
+                  "children": []
+                },
+                {
+                  "id": "4eecede4-4f58-4ba8-ad90-a52382168121",
+                  "type": "capability_focus",
+                  "code": "T-PD.PP-02",
+                  "name": "实施控制措施以监测和管理网络异常流量",
+                  "title": "实施控制措施以监测和管理网络异常流量",
+                  "children": []
+                },
+                {
+                  "id": "8df9c875-0812-4ff3-b13f-0b79be561419",
+                  "type": "capability_focus",
+                  "code": "T-PD.PP-03",
+                  "name": "执行网络的隔离与边界保护措施",
+                  "title": "执行网络的隔离与边界保护措施",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "c097b3c8-f951-409f-8422-59ff30e782e5",
+              "type": "capability",
+              "code": "T-PD.TP",
+              "name": "威胁检测与防护能力",
+              "title": "威胁检测与防护能力",
+              "children": [
+                {
+                  "id": "44817bda-17a6-4c50-9e1b-a976ca9bd1aa",
+                  "type": "capability_focus",
+                  "code": "T-PD.TP-01",
+                  "name": "对恶意代码进行检测和防护，抑制或阻止恶意代码带来威胁",
+                  "title": "对恶意代码进行检测和防护，抑制或阻止恶意代码带来威胁",
+                  "children": []
+                },
+                {
+                  "id": "da78919c-d048-42d4-b95e-e2869b07138d",
+                  "type": "capability_focus",
+                  "code": "T-PD.TP-02",
+                  "name": "识别与检测已知及新出现安全威胁",
+                  "title": "识别与检测已知及新出现安全威胁",
+                  "children": []
+                },
+                {
+                  "id": "85aefc20-d2ad-425b-92ff-41938d24c543",
+                  "type": "capability_focus",
+                  "code": "T-PD.TP-03",
+                  "name": "实施入侵防护技术和策略，及时阻断攻击行为",
+                  "title": "实施入侵防护技术和策略，及时阻断攻击行为",
+                  "children": []
+                },
+                {
+                  "id": "52587aa8-a348-4f68-9965-e88007d35567",
+                  "type": "capability_focus",
+                  "code": "T-PD.TP-04",
+                  "name": "收集网络安全流量",
+                  "title": "收集网络安全流量",
+                  "children": []
+                },
+                {
+                  "id": "8c8190a8-b48f-40d2-85f0-6850c604d745",
+                  "type": "capability_focus",
+                  "code": "T-PD.TP-05",
+                  "name": "对仅允许预定义的程序或行为进行控制",
+                  "title": "对仅允许预定义的程序或行为进行控制",
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "86565325-5087-42c6-aab9-372940ed915a",
+          "type": "capability_domain",
+          "code": "T-AD",
+          "name": "积极防御 Active Defense",
+          "title": "积极防御 Active Defense",
+          "children": [
+            {
+              "id": "c5a2eb30-8797-406f-8df0-568719fba3e5",
+              "type": "capability",
+              "code": "T-AD.IR",
+              "name": "网络安全事件分析与响应能力",
+              "title": "网络安全事件分析与响应能力",
+              "children": [
+                {
+                  "id": "8bccd956-50a6-4ad6-b5ef-746b499cb923",
+                  "type": "capability_focus",
+                  "code": "T-AD.IR-01",
+                  "name": "网络安全事件分析与事件定性、公布",
+                  "title": "网络安全事件分析与事件定性、公布",
+                  "children": []
+                },
+                {
+                  "id": "5aab4ef0-77a7-41e3-9c98-59dada1e8062",
+                  "type": "capability_focus",
+                  "code": "T-AD.IR-02",
+                  "name": "管理网络安全事件",
+                  "title": "管理网络安全事件",
+                  "children": []
+                },
+                {
+                  "id": "b6a88845-1e0c-49c0-9d57-949afe305a99",
+                  "type": "capability_focus",
+                  "code": "T-AD.IR-03",
+                  "name": "持续维护应急计划，执行网络安全事件响应处置",
+                  "title": "持续维护应急计划，执行网络安全事件响应处置",
+                  "children": []
+                },
+                {
+                  "id": "0d795004-edd0-4c2f-bdd4-28107ae629b7",
+                  "type": "capability_focus",
+                  "code": "T-AD.IR-04",
+                  "name": "对网络安全事件造成的影响执行恢复操作",
+                  "title": "对网络安全事件造成的影响执行恢复操作",
+                  "children": []
+                },
+                {
+                  "id": "2eeb3353-8e02-420b-9323-0c715d18d05e",
+                  "type": "capability_focus",
+                  "code": "T-AD.IR-05",
+                  "name": "对网络安全事件执行调查取证",
+                  "title": "对网络安全事件执行调查取证",
+                  "children": []
+                },
+                {
+                  "id": "4d623910-66db-4eca-b09c-0f8dd5193bd5",
+                  "type": "capability_focus",
+                  "code": "T-AD.IR-06",
+                  "name": "对网络攻击进行诱捕",
+                  "title": "对网络攻击进行诱捕",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "5ccd742f-bbd3-46f2-91b8-62266c5d894a",
+              "type": "capability",
+              "code": "T-AD.SA",
+              "name": "态势感知能力",
+              "title": "态势感知能力",
+              "children": [
+                {
+                  "id": "1160f208-678b-4031-9277-041a1b175f0b",
+                  "type": "capability_focus",
+                  "code": "T-AD.SA-01",
+                  "name": "实施高级威胁检测，识别复杂、隐蔽的攻击行为",
+                  "title": "实施高级威胁检测，识别复杂、隐蔽的攻击行为",
+                  "children": []
+                },
+                {
+                  "id": "92412408-7d0f-4763-8c02-25f535b7ed67",
+                  "type": "capability_focus",
+                  "code": "T-AD.SA-02",
+                  "name": "执行网络安全监控",
+                  "title": "执行网络安全监控",
+                  "children": []
+                },
+                {
+                  "id": "b99c17a6-1ae8-4c75-8195-42f00991caca",
+                  "type": "capability_focus",
+                  "code": "T-AD.SA-03",
+                  "name": "建立并维护态势感知",
+                  "title": "建立并维护态势感知",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "9992c62d-29ee-4e13-933e-8374d71f0d14",
+              "type": "capability",
+              "code": "T-AD.SV",
+              "name": "安全架构评估能力",
+              "title": "安全架构评估能力",
+              "children": [
+                {
+                  "id": "b5a0d426-d43a-46f8-badb-f9437f5077d4",
+                  "type": "capability_focus",
+                  "code": "T-AD.SV-01",
+                  "name": "实现网络安全策略可视化（全局网络安全策略集合管理）",
+                  "title": "实现网络安全策略可视化（全局网络安全策略集合管理）",
+                  "children": []
+                },
+                {
+                  "id": "b13b84ac-4bc1-4264-a5b6-61d5ce163a6d",
+                  "type": "capability_focus",
+                  "code": "T-AD.SV-02",
+                  "name": "对安全架构和网络防护策略进行评估验证",
+                  "title": "对安全架构和网络防护策略进行评估验证",
+                  "children": []
+                },
+                {
+                  "id": "35896dca-f457-437e-ba2c-4cb288ad23e6",
+                  "type": "capability_focus",
+                  "code": "T-AD.SV-03",
+                  "name": "开展攻防演练和沙盘推演",
+                  "title": "开展攻防演练和沙盘推演",
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "bdf00d1b-c193-4c48-8bbc-5e30e35d8186",
+          "type": "capability_domain",
+          "code": "T-IN",
+          "name": "情报 Intelligence",
+          "title": "情报 Intelligence",
+          "children": [
+            {
+              "id": "63df9858-fcd2-479a-b5c0-f450e0185a2c",
+              "type": "capability",
+              "code": "T-IN.IO",
+              "name": "威胁情报运营能力",
+              "title": "威胁情报运营能力",
+              "children": [
+                {
+                  "id": "6ced00d1-70d1-4dff-9d8a-2c30191ed8f3",
+                  "type": "capability_focus",
+                  "code": "T-IN.IO-01",
+                  "name": "选取来自不同渠道的威胁情报源",
+                  "title": "选取来自不同渠道的威胁情报源",
+                  "children": []
+                },
+                {
+                  "id": "8cec61ed-aedb-45af-a9a3-36a99a6f3c83",
+                  "type": "capability_focus",
+                  "code": "T-IN.IO-02",
+                  "name": "对多源异构威胁情报进行融合与治理",
+                  "title": "对多源异构威胁情报进行融合与治理",
+                  "children": []
+                },
+                {
+                  "id": "1771201d-11cc-4a1f-b243-c73880d9f732",
+                  "type": "capability_focus",
+                  "code": "T-IN.IO-03",
+                  "name": "在组织内部共享成品威胁情报",
+                  "title": "在组织内部共享成品威胁情报",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "1cdc4eee-878a-46a3-b71e-1f8bd88d817e",
+              "type": "capability",
+              "code": "T-IN.IP",
+              "name": "威胁情报生产能力",
+              "title": "威胁情报生产能力",
+              "children": [
+                {
+                  "id": "fa1cbe0c-bfae-4384-9913-a1301eeaa9ba",
+                  "type": "capability_focus",
+                  "code": "T-IN.IP-01",
+                  "name": "生产组织本地威胁情报",
+                  "title": "生产组织本地威胁情报",
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "f6c5bbc5-1c27-4bbe-ba4e-7ccfead1f827",
+          "type": "capability_domain",
+          "code": "T-OF",
+          "name": "进攻 Offense",
+          "title": "进攻 Offense",
+          "children": [
+            {
+              "id": "dabb0ceb-cff5-438b-abdf-3316283683f5",
+              "type": "capability",
+              "code": "T-OF.AT",
+              "name": "进攻反制能力",
+              "title": "进攻反制能力",
+              "children": [
+                {
+                  "id": "ab5fc355-e4a3-432a-b074-e98576b2a663",
+                  "type": "capability_focus",
+                  "code": "T-OF.AT-01",
+                  "name": "对攻击行为进行溯源",
+                  "title": "对攻击行为进行溯源",
+                  "children": []
+                },
+                {
+                  "id": "ae8ac926-e4e5-4ade-b2e8-f73df09f0ae2",
+                  "type": "capability_focus",
+                  "code": "T-OF.AT-02",
+                  "name": "网络攻击入侵目标选择及评估分析",
+                  "title": "网络攻击入侵目标选择及评估分析",
+                  "children": []
+                },
+                {
+                  "id": "5494f571-773f-4a5f-8347-f17c0c0922af",
+                  "type": "capability_focus",
+                  "code": "T-OF.AT-03",
+                  "name": "网络攻击执行与效果评估",
+                  "title": "网络攻击执行与效果评估",
+                  "children": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "772fc0a1-683f-43e7-bdcd-a2d5b04c4227",
+      "type": "capability_category",
+      "code": "",
+      "name": "安全治理能力 G",
+      "title": "安全治理能力 G",
+      "children": [
+        {
+          "id": "7eeec333-2fa5-4f50-b693-ea2d25826328",
+          "type": "capability_domain",
+          "code": "G-SP",
+          "name": "网络安全战略计划 Strategy Planning",
+          "title": "网络安全战略计划 Strategy Planning",
+          "children": [
+            {
+              "id": "3e73d80d-c078-4b73-a9ae-5178b9a1467f",
+              "type": "capability",
+              "code": "G-SP.SM",
+              "name": "安全战略管理能力",
+              "title": "安全战略管理能力",
+              "children": [
+                {
+                  "id": "6c6b8338-118d-4813-a325-cac971404e16",
+                  "type": "capability_focus",
+                  "code": "G-SP.SM-01",
+                  "name": "具有明确的网络安全战略计划与目标",
+                  "title": "具有明确的网络安全战略计划与目标",
+                  "children": []
+                },
+                {
+                  "id": "7abcdf28-1708-41fb-968b-0628888d65f0",
+                  "type": "capability_focus",
+                  "code": "G-SP.SM-02",
+                  "name": "完善网络安全组织架构，合理分配网络安全组织职责",
+                  "title": "完善网络安全组织架构，合理分配网络安全组织职责",
+                  "children": []
+                },
+                {
+                  "id": "96f36aa9-0758-4020-bb94-758c9184f416",
+                  "type": "capability_focus",
+                  "code": "G-SP.SM-03",
+                  "name": "对组织网络安全活动执行决策监督",
+                  "title": "对组织网络安全活动执行决策监督",
+                  "children": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "697c2bdb-baa4-4899-a2a7-d0f5da9bd5fe",
+      "type": "capability_category",
+      "code": "",
+      "name": "安全管理能力 M",
+      "title": "安全管理能力 M",
+      "children": [
+        {
+          "id": "6a8b013d-e22b-4e8c-acfd-184fb4c78baa",
+          "type": "capability_domain",
+          "code": "M-PM",
+          "name": "网络安全规划与项目建设 Project Management",
+          "title": "网络安全规划与项目建设 Project Management",
+          "children": [
+            {
+              "id": "f6941283-2400-40b6-b23e-18299820bdf4",
+              "type": "capability",
+              "code": "M-PM.PL",
+              "name": "安全规划管理能力",
+              "title": "安全规划管理能力",
+              "children": [
+                {
+                  "id": "b8cc2ea4-e9d5-4564-af34-4ff560dec22e",
+                  "type": "capability_focus",
+                  "code": "M-PM.PL-01",
+                  "name": "定期开展网络安全规划及持续更新修订",
+                  "title": "定期开展网络安全规划及持续更新修订",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "c79d749e-9f70-44ad-9c99-970bbd5d62e0",
+              "type": "capability",
+              "code": "M-PM.PR",
+              "name": "安全建设管理能力",
+              "title": "安全建设管理能力",
+              "children": [
+                {
+                  "id": "3aa503a1-3b05-4ed7-bde6-5503f54cc104",
+                  "type": "capability_focus",
+                  "code": "M-PM.PR-01",
+                  "name": "网络安全与信息化项目生命周期紧密结合",
+                  "title": "网络安全与信息化项目生命周期紧密结合",
+                  "children": []
+                },
+                {
+                  "id": "9696ff37-c533-4e33-993e-b3333d3357a2",
+                  "type": "capability_focus",
+                  "code": "M-PM.PR-02",
+                  "name": "有完整的安全项目生命周期管理",
+                  "title": "有完整的安全项目生命周期管理",
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "d5164338-2577-4b4a-b83f-a04998054f48",
+          "type": "capability_domain",
+          "code": "M-SA",
+          "name": "安全支撑与资源保障 Supportance and Assurance",
+          "title": "安全支撑与资源保障 Supportance and Assurance",
+          "children": [
+            {
+              "id": "59516fab-857b-41e2-ab8c-2479c96ac673",
+              "type": "capability",
+              "code": "M-SA.AM",
+              "name": "安全保障管理能力",
+              "title": "安全保障管理能力",
+              "children": [
+                {
+                  "id": "6486a035-efdd-4ad8-a366-d2d8701ab6a6",
+                  "type": "capability_focus",
+                  "code": "M-SA.AM-01",
+                  "name": "保障与落实网络安全投资",
+                  "title": "保障与落实网络安全投资",
+                  "children": []
+                },
+                {
+                  "id": "303045b7-a241-41a4-97a3-ce86a3d3bda1",
+                  "type": "capability_focus",
+                  "code": "M-SA.AM-02",
+                  "name": "实现信创环境网络安全防护措施的适配与推广",
+                  "title": "实现信创环境网络安全防护措施的适配与推广",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "92d4fb18-815b-42eb-9948-0df683a4b830",
+              "type": "capability",
+              "code": "M-SA.CO",
+              "name": "安全协同能力",
+              "title": "安全协同能力",
+              "children": [
+                {
+                  "id": "0a4dbe3b-545d-4011-bfa9-3cffdba1445d",
+                  "type": "capability_focus",
+                  "code": "M-SA.CO-01",
+                  "name": "在组织内共享网络安全信息",
+                  "title": "在组织内共享网络安全信息",
+                  "children": []
+                },
+                {
+                  "id": "077908f1-4c56-453a-a1a0-53c3eb2475ac",
+                  "type": "capability_focus",
+                  "code": "M-SA.CO-02",
+                  "name": "对外部通报进行响应、处置与反馈",
+                  "title": "对外部通报进行响应、处置与反馈",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "629cc5f5-f78b-4dcd-a228-867d59baa28d",
+              "type": "capability",
+              "code": "M-SA.OP",
+              "name": "安全运行管理能力",
+              "title": "安全运行管理能力",
+              "children": [
+                {
+                  "id": "1ea6aa55-2a16-4c9b-8ef4-40b04bc16beb",
+                  "type": "capability_focus",
+                  "code": "M-SA.OP-01",
+                  "name": "持续优化组织的安全运行流程与操作规程",
+                  "title": "持续优化组织的安全运行流程与操作规程",
+                  "children": []
+                },
+                {
+                  "id": "f369c528-9681-4feb-ac6f-538f9cf95b53",
+                  "type": "capability_focus",
+                  "code": "M-SA.OP-02",
+                  "name": "持续优化网络安全运行指标，开展运行活动效果评价",
+                  "title": "持续优化网络安全运行指标，开展运行活动效果评价",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "7748c478-9e64-43f0-8b50-6fd69c81fbac",
+              "type": "capability",
+              "code": "M-SA.RE",
+              "name": "安全合规管理能力",
+              "title": "安全合规管理能力",
+              "children": [
+                {
+                  "id": "8a092001-e555-48e8-89ed-11e8bb8213ee",
+                  "type": "capability_focus",
+                  "code": "M-SA.RE-01",
+                  "name": "完善网络安全制度体系",
+                  "title": "完善网络安全制度体系",
+                  "children": []
+                },
+                {
+                  "id": "03c983ed-4cd5-4854-8cb9-24ca4a34ac8f",
+                  "type": "capability_focus",
+                  "code": "M-SA.RE-02",
+                  "name": "开展网络安全合规审查，满足国内外法律法规与监管要求",
+                  "title": "开展网络安全合规审查，满足国内外法律法规与监管要求",
+                  "children": []
+                },
+                {
+                  "id": "eb12fcf3-cf8b-4141-9a4a-2479e30f1579",
+                  "type": "capability_focus",
+                  "code": "M-SA.RE-03",
+                  "name": "满足个人隐私保护要求",
+                  "title": "满足个人隐私保护要求",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "3d8d883b-6b4d-4f4f-b153-220a9708e8f8",
+              "type": "capability",
+              "code": "M-SA.RM",
+              "name": "安全风险管理能力",
+              "title": "安全风险管理能力",
+              "children": [
+                {
+                  "id": "baa9f450-396e-43d3-9d94-5d4cdced56a0",
+                  "type": "capability_focus",
+                  "code": "M-SA.RM-01",
+                  "name": "持续优化组织网络安全风险管理策略和计划",
+                  "title": "持续优化组织网络安全风险管理策略和计划",
+                  "children": []
+                },
+                {
+                  "id": "6a87ea60-9960-46b6-823f-b438138a5868",
+                  "type": "capability_focus",
+                  "code": "M-SA.RM-02",
+                  "name": "开展组织网络安全风险识别、分析、处置与后评估",
+                  "title": "开展组织网络安全风险识别、分析、处置与后评估",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "e227e850-097c-4b6e-9dab-6295ab3456b3",
+              "type": "capability",
+              "code": "M-SA.TP",
+              "name": "第三方安全管理能力",
+              "title": "第三方安全管理能力",
+              "children": [
+                {
+                  "id": "18f38d1f-db77-4b46-adf8-4c35b2b625bc",
+                  "type": "capability_focus",
+                  "code": "M-SA.TP-01",
+                  "name": "强化软件供应商及其它第三方的安全管理",
+                  "title": "强化软件供应商及其它第三方的安全管理",
+                  "children": []
+                },
+                {
+                  "id": "61a24982-b0f4-4f7b-b74f-031adf41df8c",
+                  "type": "capability_focus",
+                  "code": "M-SA.TP-02",
+                  "name": "实施第三方人员生命周期安全控制",
+                  "title": "实施第三方人员生命周期安全控制",
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "2a8d20c6-3244-4c1e-83ca-24b3391dd386",
+          "type": "capability_domain",
+          "code": "M-SE",
+          "name": "网络安全监督检查与绩效考核 Supervision & Evaluation",
+          "title": "网络安全监督检查与绩效考核 Supervision & Evaluation",
+          "children": [
+            {
+              "id": "ee1c0263-d4dd-48d4-b38d-ac64109cecaa",
+              "type": "capability",
+              "code": "M-SE.PE",
+              "name": "网络安全绩效考核能力",
+              "title": "网络安全绩效考核能力",
+              "children": [
+                {
+                  "id": "38296ed3-c9e1-43d3-9e8d-deaaee1cb8ec",
+                  "type": "capability_focus",
+                  "code": "M-SE.PE-01",
+                  "name": "定义组织网络安全绩效考核指标，开展网络安全考核工作",
+                  "title": "定义组织网络安全绩效考核指标，开展网络安全考核工作",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "70fa769c-b313-48b4-bf48-ad3d637a707e",
+              "type": "capability",
+              "code": "M-SE.SE",
+              "name": "网络安全监督检查能力",
+              "title": "网络安全监督检查能力",
+              "children": [
+                {
+                  "id": "06a78fd6-f3cf-4e38-a0e0-924db572b331",
+                  "type": "capability_focus",
+                  "code": "M-SE.SE-01",
+                  "name": "持续开展信息化环境网络安全（控制措施）检查与整改",
+                  "title": "持续开展信息化环境网络安全（控制措施）检查与整改",
+                  "children": []
+                },
+                {
+                  "id": "ca81f762-200c-4ee7-828f-c124d08909d3",
+                  "type": "capability_focus",
+                  "code": "M-SE.SE-02",
+                  "name": "持续开展管理体系有效性检查与整改",
+                  "title": "持续开展管理体系有效性检查与整改",
+                  "children": []
+                },
+                {
+                  "id": "63d45d0d-d2e4-4c21-be2e-d386c9552b85",
+                  "type": "capability_focus",
+                  "code": "M-SE.SE-03",
+                  "name": "执行网络安全监督工作（建设监督、运营监督、整改监督）",
+                  "title": "执行网络安全监督工作（建设监督、运营监督、整改监督）",
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "f2a9167e-8c38-4400-9c94-051d00421b26",
+          "type": "capability_domain",
+          "code": "M-PS",
+          "name": "人员安全管理与能力提升 Personnel Security",
+          "title": "人员安全管理与能力提升 Personnel Security",
+          "children": [
+            {
+              "id": "bc59df3a-3ce4-4da3-8f42-1819249c7355",
+              "type": "capability",
+              "code": "M-PS.CT",
+              "name": "安全意识教育与技能培养能力",
+              "title": "安全意识教育与技能培养能力",
+              "children": [
+                {
+                  "id": "cb3f5a21-c859-4bbc-a9ee-2b37b3e88170",
+                  "type": "capability_focus",
+                  "code": "M-PS.CT-01",
+                  "name": "提高组织全员网络安全意识",
+                  "title": "提高组织全员网络安全意识",
+                  "children": []
+                },
+                {
+                  "id": "69af923e-fb08-44fc-8260-7f0e0a7501da",
+                  "type": "capability_focus",
+                  "code": "M-PS.CT-02",
+                  "name": "培养网络安全人才，提升网络安全人员能力",
+                  "title": "培养网络安全人才，提升网络安全人员能力",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "4637772b-424f-4aeb-92c7-12b047bab8f5",
+              "type": "capability",
+              "code": "M-PS.HS",
+              "name": "人员安全管理能力",
+              "title": "人员安全管理能力",
+              "children": [
+                {
+                  "id": "64121b16-8fd5-42d8-abf7-806770fefcc0",
+                  "type": "capability_focus",
+                  "code": "M-PS.HS-01",
+                  "name": "实施内部人员生命周期安全控制",
+                  "title": "实施内部人员生命周期安全控制",
+                  "children": []
+                },
+                {
+                  "id": "c5f4f4c5-5d4c-4bc3-ba41-7e28808c70d7",
+                  "type": "capability_focus",
+                  "code": "M-PS.HS-02",
+                  "name": "建立组织的网络安全专家团队",
+                  "title": "建立组织的网络安全专家团队",
+                  "children": []
+                },
+                {
+                  "id": "8509938c-7fbc-4cf1-b978-ea9b9ec8fa52",
+                  "type": "capability_focus",
+                  "code": "M-PS.HS-03",
+                  "name": "建设组织的红蓝军团队/紫军",
+                  "title": "建设组织的红蓝军团队/紫军",
+                  "children": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "projections": [
+    {
+      "id": "94bba6df-c6bc-41b5-ad60-7c6e87a173ac",
+      "type": "capability_category",
+      "code": "",
+      "title": "安全技术能力 T",
+      "focusCount": 63,
+      "detailMode": "overview",
+      "path": "capability/projections/94bba6df-c6bc-41b5-ad60-7c6e87a173ac.json"
+    },
+    {
+      "id": "52656e45-e93d-4cb8-93eb-36a7e14b7655",
+      "type": "capability_domain",
+      "code": "T-AS",
+      "title": "基础架构安全 Architectural Security",
+      "focusCount": 27,
+      "detailMode": "overview",
+      "path": "capability/projections/52656e45-e93d-4cb8-93eb-36a7e14b7655.json"
+    },
+    {
+      "id": "99db293b-2029-49ab-b84c-a86b68ada3ce",
+      "type": "capability",
+      "code": "T-AS.AD",
+      "title": "网络安全体系架构管控能力",
+      "focusCount": 3,
+      "detailMode": "detail",
+      "path": "capability/projections/99db293b-2029-49ab-b84c-a86b68ada3ce.json"
+    },
+    {
+      "id": "72cd12e2-f784-4775-8b3f-6d3ed4e7d398",
+      "type": "capability_focus",
+      "code": "T-AS.AD-01",
+      "title": "遵循安全设计原则对网络安全架构进行设计和管控",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/72cd12e2-f784-4775-8b3f-6d3ed4e7d398.json"
+    },
+    {
+      "id": "6c872817-38b8-4b19-9307-112520735747",
+      "type": "capability_focus",
+      "code": "T-AS.AD-02",
+      "title": "实施网络安全架构的冗余设计",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/6c872817-38b8-4b19-9307-112520735747.json"
+    },
+    {
+      "id": "1b72dcb4-a4df-49c9-90fc-895bed051abb",
+      "type": "capability_focus",
+      "code": "T-AS.AD-03",
+      "title": "确保系统、应用的可靠性与可恢复性",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/1b72dcb4-a4df-49c9-90fc-895bed051abb.json"
+    },
+    {
+      "id": "865efd41-fd51-42a1-9c0a-6f46162d1d68",
+      "type": "capability",
+      "code": "T-AS.AM",
+      "title": "信息化资产安全管理能力",
+      "focusCount": 2,
+      "detailMode": "detail",
+      "path": "capability/projections/865efd41-fd51-42a1-9c0a-6f46162d1d68.json"
+    },
+    {
+      "id": "b17f570a-0a41-4aaf-86ab-10f3a1b1c8d3",
+      "type": "capability_focus",
+      "code": "T-AS.AM-01",
+      "title": "监测和持续管理组织的动态资产清单（IT&OT）",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/b17f570a-0a41-4aaf-86ab-10f3a1b1c8d3.json"
+    },
+    {
+      "id": "5f990233-75df-46ff-a04f-45f4ae456a0d",
+      "type": "capability_focus",
+      "code": "T-AS.AM-02",
+      "title": "实现主机、终端等信息化资产的安全管理",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/5f990233-75df-46ff-a04f-45f4ae456a0d.json"
+    },
+    {
+      "id": "f0014de5-8bb2-457b-a2a4-b40011faef8f",
+      "type": "capability",
+      "code": "T-AS.CG",
+      "title": "密码服务能力",
+      "focusCount": 2,
+      "detailMode": "detail",
+      "path": "capability/projections/f0014de5-8bb2-457b-a2a4-b40011faef8f.json"
+    },
+    {
+      "id": "dacf7142-6ac7-48e1-b463-5d42275bfc6f",
+      "type": "capability_focus",
+      "code": "T-AS.CG-01",
+      "title": "确保信息传输或是存储状态下不被未授权的访问或泄露",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/dacf7142-6ac7-48e1-b463-5d42275bfc6f.json"
+    },
+    {
+      "id": "580a4463-e07b-432c-bde4-ec33d24b4913",
+      "type": "capability_focus",
+      "code": "T-AS.CG-02",
+      "title": "确保在信息交互过程中，主体和客体均源自可信赖的来源，并且不被非法篡改或删除",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/580a4463-e07b-432c-bde4-ec33d24b4913.json"
+    },
+    {
+      "id": "53bfcca7-3660-4630-b7a2-d4bd9610b166",
+      "type": "capability",
+      "code": "T-AS.CM",
+      "title": "安全配置与加固措施管理能力",
+      "focusCount": 2,
+      "detailMode": "detail",
+      "path": "capability/projections/53bfcca7-3660-4630-b7a2-d4bd9610b166.json"
+    },
+    {
+      "id": "f481d6ed-0cff-49cf-9a45-859a2e524fc4",
+      "type": "capability_focus",
+      "code": "T-AS.CM-01",
+      "title": "持续管理和维护组织的安全配置基线集合",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/f481d6ed-0cff-49cf-9a45-859a2e524fc4.json"
+    },
+    {
+      "id": "3ba28f0a-e5c9-48af-9e9b-0614a264d7af",
+      "type": "capability_focus",
+      "code": "T-AS.CM-02",
+      "title": "实施对信息化资产的安全加固",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/3ba28f0a-e5c9-48af-9e9b-0614a264d7af.json"
+    },
+    {
+      "id": "aa33c509-d01e-41b4-bd19-01d81535bba3",
+      "type": "capability",
+      "code": "T-AS.DG",
+      "title": "数据安全管理和治理能力",
+      "focusCount": 3,
+      "detailMode": "detail",
+      "path": "capability/projections/aa33c509-d01e-41b4-bd19-01d81535bba3.json"
+    },
+    {
+      "id": "4ebac402-6b13-416d-96d7-ab8e3e15e52f",
+      "type": "capability_focus",
+      "code": "T-AS.DG-01",
+      "title": "持续管理数据分类分级策略，执行数据分类分级",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/4ebac402-6b13-416d-96d7-ab8e3e15e52f.json"
+    },
+    {
+      "id": "40c42943-962d-4154-8689-4910d29d6d93",
+      "type": "capability_focus",
+      "code": "T-AS.DG-02",
+      "title": "制定并实施数据安全策略",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/40c42943-962d-4154-8689-4910d29d6d93.json"
+    },
+    {
+      "id": "641fd4ce-e317-45c2-bf34-21078be37041",
+      "type": "capability_focus",
+      "code": "T-AS.DG-03",
+      "title": "确保数据的可靠性与可恢复性",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/641fd4ce-e317-45c2-bf34-21078be37041.json"
+    },
+    {
+      "id": "9f952bed-4aee-4e71-8038-4b4183b1aae5",
+      "type": "capability",
+      "code": "T-AS.DS",
+      "title": "开发安全管控能力",
+      "focusCount": 6,
+      "detailMode": "detail",
+      "path": "capability/projections/9f952bed-4aee-4e71-8038-4b4183b1aae5.json"
+    },
+    {
+      "id": "0711626d-97e3-4a0a-b2ae-13a7af5ccfda",
+      "type": "capability_focus",
+      "code": "T-AS.DS-01",
+      "title": "持续管理软件安全需求",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/0711626d-97e3-4a0a-b2ae-13a7af5ccfda.json"
+    },
+    {
+      "id": "41225a46-2d90-48d6-ba61-ba6b093bf9e1",
+      "type": "capability_focus",
+      "code": "T-AS.DS-02",
+      "title": "实施代码安全检查",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/41225a46-2d90-48d6-ba61-ba6b093bf9e1.json"
+    },
+    {
+      "id": "fe0df93f-a252-40c3-8390-e410a5548eed",
+      "type": "capability_focus",
+      "code": "T-AS.DS-03",
+      "title": "实施软件供应链安全检查",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/fe0df93f-a252-40c3-8390-e410a5548eed.json"
+    },
+    {
+      "id": "77f3844f-350e-42d8-bde5-2a4727cbeb5b",
+      "type": "capability_focus",
+      "code": "T-AS.DS-04",
+      "title": "实施软件制品安全检查",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/77f3844f-350e-42d8-bde5-2a4727cbeb5b.json"
+    },
+    {
+      "id": "c7aadf7d-a94b-430b-a2d8-bbb379682d35",
+      "type": "capability_focus",
+      "code": "T-AS.DS-05",
+      "title": "实施软件上线安全检查",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/c7aadf7d-a94b-430b-a2d8-bbb379682d35.json"
+    },
+    {
+      "id": "18977352-86af-48a6-8f6a-f3df936b27d3",
+      "type": "capability_focus",
+      "code": "T-AS.DS-06",
+      "title": "持续管理可复用的开发安全资源",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/18977352-86af-48a6-8f6a-f3df936b27d3.json"
+    },
+    {
+      "id": "9055b901-36c1-4337-b6d2-0df8a65dec23",
+      "type": "capability",
+      "code": "T-AS.IA",
+      "title": "身份、凭证与访问管理能力",
+      "focusCount": 4,
+      "detailMode": "mixed_summary",
+      "path": "capability/projections/9055b901-36c1-4337-b6d2-0df8a65dec23.json"
+    },
+    {
+      "id": "c1d0dca3-d4a3-4a3f-bfb8-3230b0781cea",
+      "type": "capability_focus",
+      "code": "T-AS.IA-01",
+      "title": "实现组织数字化身份的身份生命周期管理",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/c1d0dca3-d4a3-4a3f-bfb8-3230b0781cea.json"
+    },
+    {
+      "id": "9bb22f45-3d49-4c1d-becc-ffce3b2c446a",
+      "type": "capability_focus",
+      "code": "T-AS.IA-02",
+      "title": "针对不同访问主体执行满足安全需求的身份认证机制",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/9bb22f45-3d49-4c1d-becc-ffce3b2c446a.json"
+    },
+    {
+      "id": "2c4e3200-3551-4297-9188-53376e6b0693",
+      "type": "capability_focus",
+      "code": "T-AS.IA-03",
+      "title": "实施人员实体的访问控制管理",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/2c4e3200-3551-4297-9188-53376e6b0693.json"
+    },
+    {
+      "id": "fa079362-7b74-4f89-b239-8b8d5718e191",
+      "type": "capability_focus",
+      "code": "T-AS.IA-04",
+      "title": "管理和维护凭证的完整生命周期",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/fa079362-7b74-4f89-b239-8b8d5718e191.json"
+    },
+    {
+      "id": "27fcd3f8-36ee-4be1-a449-be8e9f97e2b1",
+      "type": "capability",
+      "code": "T-AS.LA",
+      "title": "日志收集与审计能力",
+      "focusCount": 3,
+      "detailMode": "detail",
+      "path": "capability/projections/27fcd3f8-36ee-4be1-a449-be8e9f97e2b1.json"
+    },
+    {
+      "id": "c39337c6-4b00-4192-a457-1366e2d13e15",
+      "type": "capability_focus",
+      "code": "T-AS.LA-01",
+      "title": "在信息化资产上记录保存日志",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/c39337c6-4b00-4192-a457-1366e2d13e15.json"
+    },
+    {
+      "id": "e206c28d-f81a-4eba-9da4-a15f96a6719e",
+      "type": "capability_focus",
+      "code": "T-AS.LA-02",
+      "title": "实现日志的收集与集中存储机制",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/e206c28d-f81a-4eba-9da4-a15f96a6719e.json"
+    },
+    {
+      "id": "78bd3e69-0e74-4d52-bc1e-d88b8d7d6f7f",
+      "type": "capability_focus",
+      "code": "T-AS.LA-03",
+      "title": "对安全日志进行审计分析",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/78bd3e69-0e74-4d52-bc1e-d88b8d7d6f7f.json"
+    },
+    {
+      "id": "ca3679e4-a177-4436-a7e9-a94b037eb830",
+      "type": "capability",
+      "code": "T-AS.VM",
+      "title": "漏洞与补丁管理能力",
+      "focusCount": 2,
+      "detailMode": "detail",
+      "path": "capability/projections/ca3679e4-a177-4436-a7e9-a94b037eb830.json"
+    },
+    {
+      "id": "09275fd5-5034-4b6b-a9c8-eebf381d2442",
+      "type": "capability_focus",
+      "code": "T-AS.VM-01",
+      "title": "实施漏洞本地化管理以降低资产安全风险",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/09275fd5-5034-4b6b-a9c8-eebf381d2442.json"
+    },
+    {
+      "id": "5b992744-35eb-4bf0-b0e3-097df663e2e3",
+      "type": "capability_focus",
+      "code": "T-AS.VM-02",
+      "title": "加强补丁信息的运营管理。",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/5b992744-35eb-4bf0-b0e3-097df663e2e3.json"
+    },
+    {
+      "id": "9cd70765-5c70-4085-89dc-c512779f4b7f",
+      "type": "capability_domain",
+      "code": "T-PD",
+      "title": "被动防御 Passive Defense",
+      "focusCount": 17,
+      "detailMode": "overview",
+      "path": "capability/projections/9cd70765-5c70-4085-89dc-c512779f4b7f.json"
+    },
+    {
+      "id": "53a980f0-6183-4feb-827b-c93e5c6b456d",
+      "type": "capability",
+      "code": "T-PD.AC",
+      "title": "网络访问控制能力",
+      "focusCount": 2,
+      "detailMode": "detail",
+      "path": "capability/projections/53a980f0-6183-4feb-827b-c93e5c6b456d.json"
+    },
+    {
+      "id": "dd0eaca8-aec0-4bf4-bd9e-ed1e72839dbe",
+      "type": "capability_focus",
+      "code": "T-PD.AC-01",
+      "title": "实施非人员实体的访问控制管理",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/dd0eaca8-aec0-4bf4-bd9e-ed1e72839dbe.json"
+    },
+    {
+      "id": "037b603c-407d-4649-b1b8-830a83d1c6b3",
+      "type": "capability_focus",
+      "code": "T-PD.AC-02",
+      "title": "对访问实体执行信誉评估",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/037b603c-407d-4649-b1b8-830a83d1c6b3.json"
+    },
+    {
+      "id": "184af5ec-6ca8-4b73-9ad6-ed6ce7ffb4e9",
+      "type": "capability",
+      "code": "T-PD.DP",
+      "title": "数据安全防护能力",
+      "focusCount": 7,
+      "detailMode": "detail",
+      "path": "capability/projections/184af5ec-6ca8-4b73-9ad6-ed6ce7ffb4e9.json"
+    },
+    {
+      "id": "3bbc4d06-3468-4a8d-99c0-44a5257f57c0",
+      "type": "capability_focus",
+      "code": "T-PD.DP-01",
+      "title": "实施水印技术，加强数据泄漏的追踪溯源",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/3bbc4d06-3468-4a8d-99c0-44a5257f57c0.json"
+    },
+    {
+      "id": "48f076b2-5a98-4c8d-abab-366aaea936d7",
+      "type": "capability_focus",
+      "code": "T-PD.DP-02",
+      "title": "实施敏感数据的脱敏处理措施",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/48f076b2-5a98-4c8d-abab-366aaea936d7.json"
+    },
+    {
+      "id": "683037c4-d18c-4f91-98a7-e90207be2df4",
+      "type": "capability_focus",
+      "code": "T-PD.DP-03",
+      "title": "实施数据防泄漏控制技术和策略",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/683037c4-d18c-4f91-98a7-e90207be2df4.json"
+    },
+    {
+      "id": "59a9c959-2a86-40d2-b63b-c15400c3d919",
+      "type": "capability_focus",
+      "code": "T-PD.DP-04",
+      "title": "实施数据访问控制技术",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/59a9c959-2a86-40d2-b63b-c15400c3d919.json"
+    },
+    {
+      "id": "75cf3e63-ebe4-48de-99cc-06b255464ed8",
+      "type": "capability_focus",
+      "code": "T-PD.DP-05",
+      "title": "监测数据全生命周期流转过程",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/75cf3e63-ebe4-48de-99cc-06b255464ed8.json"
+    },
+    {
+      "id": "ff015a81-5568-46b3-b0e8-3b63ae380722",
+      "type": "capability_focus",
+      "code": "T-PD.DP-06",
+      "title": "在数据生命周期结束时执行数据销毁策略",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/ff015a81-5568-46b3-b0e8-3b63ae380722.json"
+    },
+    {
+      "id": "ff418da8-05f3-4d27-adba-e4575670aeb7",
+      "type": "capability_focus",
+      "code": "T-PD.DP-07",
+      "title": "执行隐私数据识别和监控以保护隐私数据",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/ff418da8-05f3-4d27-adba-e4575670aeb7.json"
+    },
+    {
+      "id": "7b902b73-7f08-4235-95a8-577ef0d0ce5b",
+      "type": "capability",
+      "code": "T-PD.PP",
+      "title": "网络边界防护能力",
+      "focusCount": 3,
+      "detailMode": "detail",
+      "path": "capability/projections/7b902b73-7f08-4235-95a8-577ef0d0ce5b.json"
+    },
+    {
+      "id": "7e4922f0-05fa-4438-b33b-e498af49decb",
+      "type": "capability_focus",
+      "code": "T-PD.PP-01",
+      "title": "构建和维护安全可靠的网络访问路径",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/7e4922f0-05fa-4438-b33b-e498af49decb.json"
+    },
+    {
+      "id": "4eecede4-4f58-4ba8-ad90-a52382168121",
+      "type": "capability_focus",
+      "code": "T-PD.PP-02",
+      "title": "实施控制措施以监测和管理网络异常流量",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/4eecede4-4f58-4ba8-ad90-a52382168121.json"
+    },
+    {
+      "id": "8df9c875-0812-4ff3-b13f-0b79be561419",
+      "type": "capability_focus",
+      "code": "T-PD.PP-03",
+      "title": "执行网络的隔离与边界保护措施",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/8df9c875-0812-4ff3-b13f-0b79be561419.json"
+    },
+    {
+      "id": "c097b3c8-f951-409f-8422-59ff30e782e5",
+      "type": "capability",
+      "code": "T-PD.TP",
+      "title": "威胁检测与防护能力",
+      "focusCount": 5,
+      "detailMode": "detail",
+      "path": "capability/projections/c097b3c8-f951-409f-8422-59ff30e782e5.json"
+    },
+    {
+      "id": "44817bda-17a6-4c50-9e1b-a976ca9bd1aa",
+      "type": "capability_focus",
+      "code": "T-PD.TP-01",
+      "title": "对恶意代码进行检测和防护，抑制或阻止恶意代码带来威胁",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/44817bda-17a6-4c50-9e1b-a976ca9bd1aa.json"
+    },
+    {
+      "id": "da78919c-d048-42d4-b95e-e2869b07138d",
+      "type": "capability_focus",
+      "code": "T-PD.TP-02",
+      "title": "识别与检测已知及新出现安全威胁",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/da78919c-d048-42d4-b95e-e2869b07138d.json"
+    },
+    {
+      "id": "85aefc20-d2ad-425b-92ff-41938d24c543",
+      "type": "capability_focus",
+      "code": "T-PD.TP-03",
+      "title": "实施入侵防护技术和策略，及时阻断攻击行为",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/85aefc20-d2ad-425b-92ff-41938d24c543.json"
+    },
+    {
+      "id": "52587aa8-a348-4f68-9965-e88007d35567",
+      "type": "capability_focus",
+      "code": "T-PD.TP-04",
+      "title": "收集网络安全流量",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/52587aa8-a348-4f68-9965-e88007d35567.json"
+    },
+    {
+      "id": "8c8190a8-b48f-40d2-85f0-6850c604d745",
+      "type": "capability_focus",
+      "code": "T-PD.TP-05",
+      "title": "对仅允许预定义的程序或行为进行控制",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/8c8190a8-b48f-40d2-85f0-6850c604d745.json"
+    },
+    {
+      "id": "86565325-5087-42c6-aab9-372940ed915a",
+      "type": "capability_domain",
+      "code": "T-AD",
+      "title": "积极防御 Active Defense",
+      "focusCount": 12,
+      "detailMode": "overview",
+      "path": "capability/projections/86565325-5087-42c6-aab9-372940ed915a.json"
+    },
+    {
+      "id": "c5a2eb30-8797-406f-8df0-568719fba3e5",
+      "type": "capability",
+      "code": "T-AD.IR",
+      "title": "网络安全事件分析与响应能力",
+      "focusCount": 6,
+      "detailMode": "detail",
+      "path": "capability/projections/c5a2eb30-8797-406f-8df0-568719fba3e5.json"
+    },
+    {
+      "id": "8bccd956-50a6-4ad6-b5ef-746b499cb923",
+      "type": "capability_focus",
+      "code": "T-AD.IR-01",
+      "title": "网络安全事件分析与事件定性、公布",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/8bccd956-50a6-4ad6-b5ef-746b499cb923.json"
+    },
+    {
+      "id": "5aab4ef0-77a7-41e3-9c98-59dada1e8062",
+      "type": "capability_focus",
+      "code": "T-AD.IR-02",
+      "title": "管理网络安全事件",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/5aab4ef0-77a7-41e3-9c98-59dada1e8062.json"
+    },
+    {
+      "id": "b6a88845-1e0c-49c0-9d57-949afe305a99",
+      "type": "capability_focus",
+      "code": "T-AD.IR-03",
+      "title": "持续维护应急计划，执行网络安全事件响应处置",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/b6a88845-1e0c-49c0-9d57-949afe305a99.json"
+    },
+    {
+      "id": "0d795004-edd0-4c2f-bdd4-28107ae629b7",
+      "type": "capability_focus",
+      "code": "T-AD.IR-04",
+      "title": "对网络安全事件造成的影响执行恢复操作",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/0d795004-edd0-4c2f-bdd4-28107ae629b7.json"
+    },
+    {
+      "id": "2eeb3353-8e02-420b-9323-0c715d18d05e",
+      "type": "capability_focus",
+      "code": "T-AD.IR-05",
+      "title": "对网络安全事件执行调查取证",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/2eeb3353-8e02-420b-9323-0c715d18d05e.json"
+    },
+    {
+      "id": "4d623910-66db-4eca-b09c-0f8dd5193bd5",
+      "type": "capability_focus",
+      "code": "T-AD.IR-06",
+      "title": "对网络攻击进行诱捕",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/4d623910-66db-4eca-b09c-0f8dd5193bd5.json"
+    },
+    {
+      "id": "5ccd742f-bbd3-46f2-91b8-62266c5d894a",
+      "type": "capability",
+      "code": "T-AD.SA",
+      "title": "态势感知能力",
+      "focusCount": 3,
+      "detailMode": "detail",
+      "path": "capability/projections/5ccd742f-bbd3-46f2-91b8-62266c5d894a.json"
+    },
+    {
+      "id": "1160f208-678b-4031-9277-041a1b175f0b",
+      "type": "capability_focus",
+      "code": "T-AD.SA-01",
+      "title": "实施高级威胁检测，识别复杂、隐蔽的攻击行为",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/1160f208-678b-4031-9277-041a1b175f0b.json"
+    },
+    {
+      "id": "92412408-7d0f-4763-8c02-25f535b7ed67",
+      "type": "capability_focus",
+      "code": "T-AD.SA-02",
+      "title": "执行网络安全监控",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/92412408-7d0f-4763-8c02-25f535b7ed67.json"
+    },
+    {
+      "id": "b99c17a6-1ae8-4c75-8195-42f00991caca",
+      "type": "capability_focus",
+      "code": "T-AD.SA-03",
+      "title": "建立并维护态势感知",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/b99c17a6-1ae8-4c75-8195-42f00991caca.json"
+    },
+    {
+      "id": "9992c62d-29ee-4e13-933e-8374d71f0d14",
+      "type": "capability",
+      "code": "T-AD.SV",
+      "title": "安全架构评估能力",
+      "focusCount": 3,
+      "detailMode": "detail",
+      "path": "capability/projections/9992c62d-29ee-4e13-933e-8374d71f0d14.json"
+    },
+    {
+      "id": "b5a0d426-d43a-46f8-badb-f9437f5077d4",
+      "type": "capability_focus",
+      "code": "T-AD.SV-01",
+      "title": "实现网络安全策略可视化（全局网络安全策略集合管理）",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/b5a0d426-d43a-46f8-badb-f9437f5077d4.json"
+    },
+    {
+      "id": "b13b84ac-4bc1-4264-a5b6-61d5ce163a6d",
+      "type": "capability_focus",
+      "code": "T-AD.SV-02",
+      "title": "对安全架构和网络防护策略进行评估验证",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/b13b84ac-4bc1-4264-a5b6-61d5ce163a6d.json"
+    },
+    {
+      "id": "35896dca-f457-437e-ba2c-4cb288ad23e6",
+      "type": "capability_focus",
+      "code": "T-AD.SV-03",
+      "title": "开展攻防演练和沙盘推演",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/35896dca-f457-437e-ba2c-4cb288ad23e6.json"
+    },
+    {
+      "id": "bdf00d1b-c193-4c48-8bbc-5e30e35d8186",
+      "type": "capability_domain",
+      "code": "T-IN",
+      "title": "情报 Intelligence",
+      "focusCount": 4,
+      "detailMode": "overview",
+      "path": "capability/projections/bdf00d1b-c193-4c48-8bbc-5e30e35d8186.json"
+    },
+    {
+      "id": "63df9858-fcd2-479a-b5c0-f450e0185a2c",
+      "type": "capability",
+      "code": "T-IN.IO",
+      "title": "威胁情报运营能力",
+      "focusCount": 3,
+      "detailMode": "detail",
+      "path": "capability/projections/63df9858-fcd2-479a-b5c0-f450e0185a2c.json"
+    },
+    {
+      "id": "6ced00d1-70d1-4dff-9d8a-2c30191ed8f3",
+      "type": "capability_focus",
+      "code": "T-IN.IO-01",
+      "title": "选取来自不同渠道的威胁情报源",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/6ced00d1-70d1-4dff-9d8a-2c30191ed8f3.json"
+    },
+    {
+      "id": "8cec61ed-aedb-45af-a9a3-36a99a6f3c83",
+      "type": "capability_focus",
+      "code": "T-IN.IO-02",
+      "title": "对多源异构威胁情报进行融合与治理",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/8cec61ed-aedb-45af-a9a3-36a99a6f3c83.json"
+    },
+    {
+      "id": "1771201d-11cc-4a1f-b243-c73880d9f732",
+      "type": "capability_focus",
+      "code": "T-IN.IO-03",
+      "title": "在组织内部共享成品威胁情报",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/1771201d-11cc-4a1f-b243-c73880d9f732.json"
+    },
+    {
+      "id": "1cdc4eee-878a-46a3-b71e-1f8bd88d817e",
+      "type": "capability",
+      "code": "T-IN.IP",
+      "title": "威胁情报生产能力",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/1cdc4eee-878a-46a3-b71e-1f8bd88d817e.json"
+    },
+    {
+      "id": "fa1cbe0c-bfae-4384-9913-a1301eeaa9ba",
+      "type": "capability_focus",
+      "code": "T-IN.IP-01",
+      "title": "生产组织本地威胁情报",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/fa1cbe0c-bfae-4384-9913-a1301eeaa9ba.json"
+    },
+    {
+      "id": "f6c5bbc5-1c27-4bbe-ba4e-7ccfead1f827",
+      "type": "capability_domain",
+      "code": "T-OF",
+      "title": "进攻 Offense",
+      "focusCount": 3,
+      "detailMode": "overview",
+      "path": "capability/projections/f6c5bbc5-1c27-4bbe-ba4e-7ccfead1f827.json"
+    },
+    {
+      "id": "dabb0ceb-cff5-438b-abdf-3316283683f5",
+      "type": "capability",
+      "code": "T-OF.AT",
+      "title": "进攻反制能力",
+      "focusCount": 3,
+      "detailMode": "detail",
+      "path": "capability/projections/dabb0ceb-cff5-438b-abdf-3316283683f5.json"
+    },
+    {
+      "id": "ab5fc355-e4a3-432a-b074-e98576b2a663",
+      "type": "capability_focus",
+      "code": "T-OF.AT-01",
+      "title": "对攻击行为进行溯源",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/ab5fc355-e4a3-432a-b074-e98576b2a663.json"
+    },
+    {
+      "id": "ae8ac926-e4e5-4ade-b2e8-f73df09f0ae2",
+      "type": "capability_focus",
+      "code": "T-OF.AT-02",
+      "title": "网络攻击入侵目标选择及评估分析",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/ae8ac926-e4e5-4ade-b2e8-f73df09f0ae2.json"
+    },
+    {
+      "id": "5494f571-773f-4a5f-8347-f17c0c0922af",
+      "type": "capability_focus",
+      "code": "T-OF.AT-03",
+      "title": "网络攻击执行与效果评估",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/5494f571-773f-4a5f-8347-f17c0c0922af.json"
+    },
+    {
+      "id": "772fc0a1-683f-43e7-bdcd-a2d5b04c4227",
+      "type": "capability_category",
+      "code": "",
+      "title": "安全治理能力 G",
+      "focusCount": 3,
+      "detailMode": "overview",
+      "path": "capability/projections/772fc0a1-683f-43e7-bdcd-a2d5b04c4227.json"
+    },
+    {
+      "id": "7eeec333-2fa5-4f50-b693-ea2d25826328",
+      "type": "capability_domain",
+      "code": "G-SP",
+      "title": "网络安全战略计划 Strategy Planning",
+      "focusCount": 3,
+      "detailMode": "overview",
+      "path": "capability/projections/7eeec333-2fa5-4f50-b693-ea2d25826328.json"
+    },
+    {
+      "id": "3e73d80d-c078-4b73-a9ae-5178b9a1467f",
+      "type": "capability",
+      "code": "G-SP.SM",
+      "title": "安全战略管理能力",
+      "focusCount": 3,
+      "detailMode": "detail",
+      "path": "capability/projections/3e73d80d-c078-4b73-a9ae-5178b9a1467f.json"
+    },
+    {
+      "id": "6c6b8338-118d-4813-a325-cac971404e16",
+      "type": "capability_focus",
+      "code": "G-SP.SM-01",
+      "title": "具有明确的网络安全战略计划与目标",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/6c6b8338-118d-4813-a325-cac971404e16.json"
+    },
+    {
+      "id": "7abcdf28-1708-41fb-968b-0628888d65f0",
+      "type": "capability_focus",
+      "code": "G-SP.SM-02",
+      "title": "完善网络安全组织架构，合理分配网络安全组织职责",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/7abcdf28-1708-41fb-968b-0628888d65f0.json"
+    },
+    {
+      "id": "96f36aa9-0758-4020-bb94-758c9184f416",
+      "type": "capability_focus",
+      "code": "G-SP.SM-03",
+      "title": "对组织网络安全活动执行决策监督",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/96f36aa9-0758-4020-bb94-758c9184f416.json"
+    },
+    {
+      "id": "697c2bdb-baa4-4899-a2a7-d0f5da9bd5fe",
+      "type": "capability_category",
+      "code": "",
+      "title": "安全管理能力 M",
+      "focusCount": 25,
+      "detailMode": "overview",
+      "path": "capability/projections/697c2bdb-baa4-4899-a2a7-d0f5da9bd5fe.json"
+    },
+    {
+      "id": "6a8b013d-e22b-4e8c-acfd-184fb4c78baa",
+      "type": "capability_domain",
+      "code": "M-PM",
+      "title": "网络安全规划与项目建设 Project Management",
+      "focusCount": 3,
+      "detailMode": "overview",
+      "path": "capability/projections/6a8b013d-e22b-4e8c-acfd-184fb4c78baa.json"
+    },
+    {
+      "id": "f6941283-2400-40b6-b23e-18299820bdf4",
+      "type": "capability",
+      "code": "M-PM.PL",
+      "title": "安全规划管理能力",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/f6941283-2400-40b6-b23e-18299820bdf4.json"
+    },
+    {
+      "id": "b8cc2ea4-e9d5-4564-af34-4ff560dec22e",
+      "type": "capability_focus",
+      "code": "M-PM.PL-01",
+      "title": "定期开展网络安全规划及持续更新修订",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/b8cc2ea4-e9d5-4564-af34-4ff560dec22e.json"
+    },
+    {
+      "id": "c79d749e-9f70-44ad-9c99-970bbd5d62e0",
+      "type": "capability",
+      "code": "M-PM.PR",
+      "title": "安全建设管理能力",
+      "focusCount": 2,
+      "detailMode": "detail",
+      "path": "capability/projections/c79d749e-9f70-44ad-9c99-970bbd5d62e0.json"
+    },
+    {
+      "id": "3aa503a1-3b05-4ed7-bde6-5503f54cc104",
+      "type": "capability_focus",
+      "code": "M-PM.PR-01",
+      "title": "网络安全与信息化项目生命周期紧密结合",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/3aa503a1-3b05-4ed7-bde6-5503f54cc104.json"
+    },
+    {
+      "id": "9696ff37-c533-4e33-993e-b3333d3357a2",
+      "type": "capability_focus",
+      "code": "M-PM.PR-02",
+      "title": "有完整的安全项目生命周期管理",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/9696ff37-c533-4e33-993e-b3333d3357a2.json"
+    },
+    {
+      "id": "d5164338-2577-4b4a-b83f-a04998054f48",
+      "type": "capability_domain",
+      "code": "M-SA",
+      "title": "安全支撑与资源保障 Supportance and Assurance",
+      "focusCount": 13,
+      "detailMode": "overview",
+      "path": "capability/projections/d5164338-2577-4b4a-b83f-a04998054f48.json"
+    },
+    {
+      "id": "59516fab-857b-41e2-ab8c-2479c96ac673",
+      "type": "capability",
+      "code": "M-SA.AM",
+      "title": "安全保障管理能力",
+      "focusCount": 2,
+      "detailMode": "detail",
+      "path": "capability/projections/59516fab-857b-41e2-ab8c-2479c96ac673.json"
+    },
+    {
+      "id": "6486a035-efdd-4ad8-a366-d2d8701ab6a6",
+      "type": "capability_focus",
+      "code": "M-SA.AM-01",
+      "title": "保障与落实网络安全投资",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/6486a035-efdd-4ad8-a366-d2d8701ab6a6.json"
+    },
+    {
+      "id": "303045b7-a241-41a4-97a3-ce86a3d3bda1",
+      "type": "capability_focus",
+      "code": "M-SA.AM-02",
+      "title": "实现信创环境网络安全防护措施的适配与推广",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/303045b7-a241-41a4-97a3-ce86a3d3bda1.json"
+    },
+    {
+      "id": "92d4fb18-815b-42eb-9948-0df683a4b830",
+      "type": "capability",
+      "code": "M-SA.CO",
+      "title": "安全协同能力",
+      "focusCount": 2,
+      "detailMode": "detail",
+      "path": "capability/projections/92d4fb18-815b-42eb-9948-0df683a4b830.json"
+    },
+    {
+      "id": "0a4dbe3b-545d-4011-bfa9-3cffdba1445d",
+      "type": "capability_focus",
+      "code": "M-SA.CO-01",
+      "title": "在组织内共享网络安全信息",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/0a4dbe3b-545d-4011-bfa9-3cffdba1445d.json"
+    },
+    {
+      "id": "077908f1-4c56-453a-a1a0-53c3eb2475ac",
+      "type": "capability_focus",
+      "code": "M-SA.CO-02",
+      "title": "对外部通报进行响应、处置与反馈",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/077908f1-4c56-453a-a1a0-53c3eb2475ac.json"
+    },
+    {
+      "id": "629cc5f5-f78b-4dcd-a228-867d59baa28d",
+      "type": "capability",
+      "code": "M-SA.OP",
+      "title": "安全运行管理能力",
+      "focusCount": 2,
+      "detailMode": "detail",
+      "path": "capability/projections/629cc5f5-f78b-4dcd-a228-867d59baa28d.json"
+    },
+    {
+      "id": "1ea6aa55-2a16-4c9b-8ef4-40b04bc16beb",
+      "type": "capability_focus",
+      "code": "M-SA.OP-01",
+      "title": "持续优化组织的安全运行流程与操作规程",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/1ea6aa55-2a16-4c9b-8ef4-40b04bc16beb.json"
+    },
+    {
+      "id": "f369c528-9681-4feb-ac6f-538f9cf95b53",
+      "type": "capability_focus",
+      "code": "M-SA.OP-02",
+      "title": "持续优化网络安全运行指标，开展运行活动效果评价",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/f369c528-9681-4feb-ac6f-538f9cf95b53.json"
+    },
+    {
+      "id": "7748c478-9e64-43f0-8b50-6fd69c81fbac",
+      "type": "capability",
+      "code": "M-SA.RE",
+      "title": "安全合规管理能力",
+      "focusCount": 3,
+      "detailMode": "detail",
+      "path": "capability/projections/7748c478-9e64-43f0-8b50-6fd69c81fbac.json"
+    },
+    {
+      "id": "8a092001-e555-48e8-89ed-11e8bb8213ee",
+      "type": "capability_focus",
+      "code": "M-SA.RE-01",
+      "title": "完善网络安全制度体系",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/8a092001-e555-48e8-89ed-11e8bb8213ee.json"
+    },
+    {
+      "id": "03c983ed-4cd5-4854-8cb9-24ca4a34ac8f",
+      "type": "capability_focus",
+      "code": "M-SA.RE-02",
+      "title": "开展网络安全合规审查，满足国内外法律法规与监管要求",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/03c983ed-4cd5-4854-8cb9-24ca4a34ac8f.json"
+    },
+    {
+      "id": "eb12fcf3-cf8b-4141-9a4a-2479e30f1579",
+      "type": "capability_focus",
+      "code": "M-SA.RE-03",
+      "title": "满足个人隐私保护要求",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/eb12fcf3-cf8b-4141-9a4a-2479e30f1579.json"
+    },
+    {
+      "id": "3d8d883b-6b4d-4f4f-b153-220a9708e8f8",
+      "type": "capability",
+      "code": "M-SA.RM",
+      "title": "安全风险管理能力",
+      "focusCount": 2,
+      "detailMode": "detail",
+      "path": "capability/projections/3d8d883b-6b4d-4f4f-b153-220a9708e8f8.json"
+    },
+    {
+      "id": "baa9f450-396e-43d3-9d94-5d4cdced56a0",
+      "type": "capability_focus",
+      "code": "M-SA.RM-01",
+      "title": "持续优化组织网络安全风险管理策略和计划",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/baa9f450-396e-43d3-9d94-5d4cdced56a0.json"
+    },
+    {
+      "id": "6a87ea60-9960-46b6-823f-b438138a5868",
+      "type": "capability_focus",
+      "code": "M-SA.RM-02",
+      "title": "开展组织网络安全风险识别、分析、处置与后评估",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/6a87ea60-9960-46b6-823f-b438138a5868.json"
+    },
+    {
+      "id": "e227e850-097c-4b6e-9dab-6295ab3456b3",
+      "type": "capability",
+      "code": "M-SA.TP",
+      "title": "第三方安全管理能力",
+      "focusCount": 2,
+      "detailMode": "detail",
+      "path": "capability/projections/e227e850-097c-4b6e-9dab-6295ab3456b3.json"
+    },
+    {
+      "id": "18f38d1f-db77-4b46-adf8-4c35b2b625bc",
+      "type": "capability_focus",
+      "code": "M-SA.TP-01",
+      "title": "强化软件供应商及其它第三方的安全管理",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/18f38d1f-db77-4b46-adf8-4c35b2b625bc.json"
+    },
+    {
+      "id": "61a24982-b0f4-4f7b-b74f-031adf41df8c",
+      "type": "capability_focus",
+      "code": "M-SA.TP-02",
+      "title": "实施第三方人员生命周期安全控制",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/61a24982-b0f4-4f7b-b74f-031adf41df8c.json"
+    },
+    {
+      "id": "2a8d20c6-3244-4c1e-83ca-24b3391dd386",
+      "type": "capability_domain",
+      "code": "M-SE",
+      "title": "网络安全监督检查与绩效考核 Supervision & Evaluation",
+      "focusCount": 4,
+      "detailMode": "overview",
+      "path": "capability/projections/2a8d20c6-3244-4c1e-83ca-24b3391dd386.json"
+    },
+    {
+      "id": "ee1c0263-d4dd-48d4-b38d-ac64109cecaa",
+      "type": "capability",
+      "code": "M-SE.PE",
+      "title": "网络安全绩效考核能力",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/ee1c0263-d4dd-48d4-b38d-ac64109cecaa.json"
+    },
+    {
+      "id": "38296ed3-c9e1-43d3-9e8d-deaaee1cb8ec",
+      "type": "capability_focus",
+      "code": "M-SE.PE-01",
+      "title": "定义组织网络安全绩效考核指标，开展网络安全考核工作",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/38296ed3-c9e1-43d3-9e8d-deaaee1cb8ec.json"
+    },
+    {
+      "id": "70fa769c-b313-48b4-bf48-ad3d637a707e",
+      "type": "capability",
+      "code": "M-SE.SE",
+      "title": "网络安全监督检查能力",
+      "focusCount": 3,
+      "detailMode": "detail",
+      "path": "capability/projections/70fa769c-b313-48b4-bf48-ad3d637a707e.json"
+    },
+    {
+      "id": "06a78fd6-f3cf-4e38-a0e0-924db572b331",
+      "type": "capability_focus",
+      "code": "M-SE.SE-01",
+      "title": "持续开展信息化环境网络安全（控制措施）检查与整改",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/06a78fd6-f3cf-4e38-a0e0-924db572b331.json"
+    },
+    {
+      "id": "ca81f762-200c-4ee7-828f-c124d08909d3",
+      "type": "capability_focus",
+      "code": "M-SE.SE-02",
+      "title": "持续开展管理体系有效性检查与整改",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/ca81f762-200c-4ee7-828f-c124d08909d3.json"
+    },
+    {
+      "id": "63d45d0d-d2e4-4c21-be2e-d386c9552b85",
+      "type": "capability_focus",
+      "code": "M-SE.SE-03",
+      "title": "执行网络安全监督工作（建设监督、运营监督、整改监督）",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/63d45d0d-d2e4-4c21-be2e-d386c9552b85.json"
+    },
+    {
+      "id": "f2a9167e-8c38-4400-9c94-051d00421b26",
+      "type": "capability_domain",
+      "code": "M-PS",
+      "title": "人员安全管理与能力提升 Personnel Security",
+      "focusCount": 5,
+      "detailMode": "overview",
+      "path": "capability/projections/f2a9167e-8c38-4400-9c94-051d00421b26.json"
+    },
+    {
+      "id": "bc59df3a-3ce4-4da3-8f42-1819249c7355",
+      "type": "capability",
+      "code": "M-PS.CT",
+      "title": "安全意识教育与技能培养能力",
+      "focusCount": 2,
+      "detailMode": "detail",
+      "path": "capability/projections/bc59df3a-3ce4-4da3-8f42-1819249c7355.json"
+    },
+    {
+      "id": "cb3f5a21-c859-4bbc-a9ee-2b37b3e88170",
+      "type": "capability_focus",
+      "code": "M-PS.CT-01",
+      "title": "提高组织全员网络安全意识",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/cb3f5a21-c859-4bbc-a9ee-2b37b3e88170.json"
+    },
+    {
+      "id": "69af923e-fb08-44fc-8260-7f0e0a7501da",
+      "type": "capability_focus",
+      "code": "M-PS.CT-02",
+      "title": "培养网络安全人才，提升网络安全人员能力",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/69af923e-fb08-44fc-8260-7f0e0a7501da.json"
+    },
+    {
+      "id": "4637772b-424f-4aeb-92c7-12b047bab8f5",
+      "type": "capability",
+      "code": "M-PS.HS",
+      "title": "人员安全管理能力",
+      "focusCount": 3,
+      "detailMode": "detail",
+      "path": "capability/projections/4637772b-424f-4aeb-92c7-12b047bab8f5.json"
+    },
+    {
+      "id": "64121b16-8fd5-42d8-abf7-806770fefcc0",
+      "type": "capability_focus",
+      "code": "M-PS.HS-01",
+      "title": "实施内部人员生命周期安全控制",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/64121b16-8fd5-42d8-abf7-806770fefcc0.json"
+    },
+    {
+      "id": "c5f4f4c5-5d4c-4bc3-ba41-7e28808c70d7",
+      "type": "capability_focus",
+      "code": "M-PS.HS-02",
+      "title": "建立组织的网络安全专家团队",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/c5f4f4c5-5d4c-4bc3-ba41-7e28808c70d7.json"
+    },
+    {
+      "id": "8509938c-7fbc-4cf1-b978-ea9b9ec8fa52",
+      "type": "capability_focus",
+      "code": "M-PS.HS-03",
+      "title": "建设组织的红蓝军团队/紫军",
+      "focusCount": 1,
+      "detailMode": "detail",
+      "path": "capability/projections/8509938c-7fbc-4cf1-b978-ea9b9ec8fa52.json"
+    }
+  ]
+}

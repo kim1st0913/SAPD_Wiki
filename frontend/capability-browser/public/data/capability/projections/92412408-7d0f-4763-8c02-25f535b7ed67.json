@@ -1,0 +1,1062 @@
+{
+  "packageType": "oi-149-p4-capability-object-projection",
+  "dataState": "ready",
+  "detailMode": "detail",
+  "selected": {
+    "id": "92412408-7d0f-4763-8c02-25f535b7ed67",
+    "type": "capability_focus",
+    "code": "T-AD.SA-02",
+    "title": "执行网络安全监控",
+    "name": "执行网络安全监控",
+    "category": "",
+    "status": "active",
+    "description": "实施全面的安全监控策略，确保对组织的关键资产（软硬件、应用、服务）、网络活动、员工活动以及外部服务进行实时监控，收集、分析和报告告警和安全事件，以便快速识别和响应潜在的安全威胁。"
+  },
+  "ancestorIds": [
+    "94bba6df-c6bc-41b5-ad60-7c6e87a173ac",
+    "86565325-5087-42c6-aab9-372940ed915a",
+    "5ccd742f-bbd3-46f2-91b8-62266c5d894a"
+  ],
+  "focusIds": [
+    "92412408-7d0f-4763-8c02-25f535b7ed67"
+  ],
+  "focusCount": 1,
+  "childOverview": [],
+  "coverageSummary": {
+    "focusCount": 1,
+    "technicalServiceCount": 1,
+    "scopeTypeCount": 1,
+    "managementWorkCount": 1,
+    "processReferenceCount": 1,
+    "standardControlCount": 19,
+    "moduleCount": 6,
+    "measureCount": 0
+  },
+  "objects": {
+    "capability_focus": {
+      "92412408-7d0f-4763-8c02-25f535b7ed67": {
+        "id": "92412408-7d0f-4763-8c02-25f535b7ed67",
+        "type": "capability_focus",
+        "code": "T-AD.SA-02",
+        "title": "执行网络安全监控",
+        "name": "执行网络安全监控",
+        "category": "",
+        "status": "active",
+        "description": "实施全面的安全监控策略，确保对组织的关键资产（软硬件、应用、服务）、网络活动、员工活动以及外部服务进行实时监控，收集、分析和报告告警和安全事件，以便快速识别和响应潜在的安全威胁。"
+      },
+      "1160f208-678b-4031-9277-041a1b175f0b": {
+        "id": "1160f208-678b-4031-9277-041a1b175f0b",
+        "type": "capability_focus",
+        "code": "T-AD.SA-01",
+        "title": "实施高级威胁检测，识别复杂、隐蔽的攻击行为",
+        "name": "实施高级威胁检测，识别复杂、隐蔽的攻击行为",
+        "category": "",
+        "status": "active"
+      },
+      "b99c17a6-1ae8-4c75-8195-42f00991caca": {
+        "id": "b99c17a6-1ae8-4c75-8195-42f00991caca",
+        "type": "capability_focus",
+        "code": "T-AD.SA-03",
+        "title": "建立并维护态势感知",
+        "name": "建立并维护态势感知",
+        "category": "",
+        "status": "active"
+      }
+    },
+    "capability_category": {
+      "94bba6df-c6bc-41b5-ad60-7c6e87a173ac": {
+        "id": "94bba6df-c6bc-41b5-ad60-7c6e87a173ac",
+        "type": "capability_category",
+        "code": "",
+        "title": "安全技术能力 T",
+        "name": "安全技术能力 T",
+        "category": "",
+        "status": "active"
+      }
+    },
+    "capability_domain": {
+      "86565325-5087-42c6-aab9-372940ed915a": {
+        "id": "86565325-5087-42c6-aab9-372940ed915a",
+        "type": "capability_domain",
+        "code": "T-AD",
+        "title": "积极防御 Active Defense",
+        "name": "积极防御 Active Defense",
+        "category": "",
+        "status": "active"
+      },
+      "52656e45-e93d-4cb8-93eb-36a7e14b7655": {
+        "id": "52656e45-e93d-4cb8-93eb-36a7e14b7655",
+        "type": "capability_domain",
+        "code": "T-AS",
+        "title": "基础架构安全 Architectural Security",
+        "name": "基础架构安全 Architectural Security",
+        "category": "",
+        "status": "active"
+      },
+      "9cd70765-5c70-4085-89dc-c512779f4b7f": {
+        "id": "9cd70765-5c70-4085-89dc-c512779f4b7f",
+        "type": "capability_domain",
+        "code": "T-PD",
+        "title": "被动防御 Passive Defense",
+        "name": "被动防御 Passive Defense",
+        "category": "",
+        "status": "active"
+      },
+      "bdf00d1b-c193-4c48-8bbc-5e30e35d8186": {
+        "id": "bdf00d1b-c193-4c48-8bbc-5e30e35d8186",
+        "type": "capability_domain",
+        "code": "T-IN",
+        "title": "情报 Intelligence",
+        "name": "情报 Intelligence",
+        "category": "",
+        "status": "active"
+      },
+      "f6c5bbc5-1c27-4bbe-ba4e-7ccfead1f827": {
+        "id": "f6c5bbc5-1c27-4bbe-ba4e-7ccfead1f827",
+        "type": "capability_domain",
+        "code": "T-OF",
+        "title": "进攻 Offense",
+        "name": "进攻 Offense",
+        "category": "",
+        "status": "active"
+      }
+    },
+    "capability": {
+      "5ccd742f-bbd3-46f2-91b8-62266c5d894a": {
+        "id": "5ccd742f-bbd3-46f2-91b8-62266c5d894a",
+        "type": "capability",
+        "code": "T-AD.SA",
+        "title": "态势感知能力",
+        "name": "态势感知能力",
+        "category": "",
+        "status": "active"
+      },
+      "c5a2eb30-8797-406f-8df0-568719fba3e5": {
+        "id": "c5a2eb30-8797-406f-8df0-568719fba3e5",
+        "type": "capability",
+        "code": "T-AD.IR",
+        "title": "网络安全事件分析与响应能力",
+        "name": "网络安全事件分析与响应能力",
+        "category": "",
+        "status": "active"
+      },
+      "9992c62d-29ee-4e13-933e-8374d71f0d14": {
+        "id": "9992c62d-29ee-4e13-933e-8374d71f0d14",
+        "type": "capability",
+        "code": "T-AD.SV",
+        "title": "安全架构评估能力",
+        "name": "安全架构评估能力",
+        "category": "",
+        "status": "active"
+      }
+    },
+    "security_technical_service": {
+      "a2ea819a-b782-46cf-b4e7-5366af1fc0fc": {
+        "id": "a2ea819a-b782-46cf-b4e7-5366af1fc0fc",
+        "type": "security_technical_service",
+        "code": "ALL&T-AD.SA-02",
+        "title": "安全告警监测",
+        "name": "安全告警监测",
+        "category": "ALL",
+        "status": "active"
+      }
+    },
+    "security_work": {
+      "25670e69-2989-4cd7-8a23-f4cacc6dca08": {
+        "id": "25670e69-2989-4cd7-8a23-f4cacc6dca08",
+        "type": "security_work",
+        "code": "",
+        "title": "安全告警监测",
+        "name": "安全告警监测",
+        "category": "",
+        "status": "active"
+      }
+    },
+    "process_reference": {
+      "bb9adaf9-768e-49e6-82bd-87ac1dfb1a0f": {
+        "id": "bb9adaf9-768e-49e6-82bd-87ac1dfb1a0f",
+        "type": "process_reference",
+        "code": "",
+        "title": "安全告警监测流程",
+        "name": "安全告警监测流程",
+        "category": "",
+        "status": ""
+      }
+    },
+    "standard_control": {
+      "5d7b2244-3e5c-4533-a575-794181c5408f": {
+        "id": "5d7b2244-3e5c-4533-a575-794181c5408f",
+        "type": "standard_control",
+        "code": "ISO-IEC-27001-2022-8.16",
+        "title": "8.16 活动监视",
+        "name": "8.16 活动监视",
+        "category": "ISO/IEC 27001:2022",
+        "status": "active"
+      },
+      "de709653-f2d3-440a-8018-e14a55ecca52": {
+        "id": "de709653-f2d3-440a-8018-e14a55ecca52",
+        "type": "standard_control",
+        "code": "NIST-CSF-2.0-ID.RA-03",
+        "title": "识别和记录组织的内部和外部威胁",
+        "name": "识别和记录组织的内部和外部威胁",
+        "category": "风险评估（Risk Assessment）： 了解组织、资产和个人面临的网络安全风险",
+        "status": "active"
+      },
+      "fd38af7e-625a-40f2-930f-a1285449f5c9": {
+        "id": "fd38af7e-625a-40f2-930f-a1285449f5c9",
+        "type": "standard_control",
+        "code": "NIST-CSF-2.0-DE.CM-01",
+        "title": "监控网络和网络服务以发现潜在的不良事件",
+        "name": "监控网络和网络服务以发现潜在的不良事件",
+        "category": "持续监控（Continuous Monitoring）： 对资产进行监控，以发现异常情况、入侵指标和其他潜在的不良事件",
+        "status": "active"
+      },
+      "d9d305b0-7866-45d4-8d60-288d265f3905": {
+        "id": "d9d305b0-7866-45d4-8d60-288d265f3905",
+        "type": "standard_control",
+        "code": "NIST-CSF-2.0-DE.CM-03",
+        "title": "监控人员活动和技术使用，以发现潜在的不良事件",
+        "name": "监控人员活动和技术使用，以发现潜在的不良事件",
+        "category": "持续监控（Continuous Monitoring）： 对资产进行监控，以发现异常情况、入侵指标和其他潜在的不良事件",
+        "status": "active"
+      },
+      "9407b713-6fdd-4a7b-81dc-5150359fc22c": {
+        "id": "9407b713-6fdd-4a7b-81dc-5150359fc22c",
+        "type": "standard_control",
+        "code": "NIST-CSF-2.0-DE.CM-06",
+        "title": "监控外部服务提供者的活动和服务，以发现潜在的不良事件",
+        "name": "监控外部服务提供者的活动和服务，以发现潜在的不良事件",
+        "category": "持续监控（Continuous Monitoring）： 对资产进行监控，以发现异常情况、入侵指标和其他潜在的不良事件",
+        "status": "active"
+      },
+      "08007c9c-eb0c-4769-bfcf-d855c0e3d1fc": {
+        "id": "08007c9c-eb0c-4769-bfcf-d855c0e3d1fc",
+        "type": "standard_control",
+        "code": "NIST-CSF-2.0-DE.CM-09",
+        "title": "监控计算硬件和软件、运行环境及其数据发现潜在的不良事件",
+        "name": "监控计算硬件和软件、运行环境及其数据发现潜在的不良事件",
+        "category": "持续监控（Continuous Monitoring）： 对资产进行监控，以发现异常情况、入侵指标和其他潜在的不良事件",
+        "status": "active"
+      },
+      "bd5614f8-562f-492b-8268-bac07cc40a8d": {
+        "id": "bd5614f8-562f-492b-8268-bac07cc40a8d",
+        "type": "standard_control",
+        "code": "GB-T-22239-2019-L3-8.1.5.4",
+        "title": "集中管控",
+        "name": "集中管控",
+        "category": "等保三级",
+        "status": "active"
+      },
+      "44673768-e081-4dde-ae6f-d832d0a63381": {
+        "id": "44673768-e081-4dde-ae6f-d832d0a63381",
+        "type": "standard_control",
+        "code": "CIS-CSC-V8.1.2-13.1",
+        "title": "13.1 安全事件（event）告警集中化",
+        "name": "13.1 安全事件（event）告警集中化",
+        "category": "CIS Controls",
+        "status": "active"
+      },
+      "dc8880e0-0c73-4846-8a14-832cc68a49ae": {
+        "id": "dc8880e0-0c73-4846-8a14-832cc68a49ae",
+        "type": "standard_control",
+        "code": "CIS-CSC-V8.1.2-13.11",
+        "title": "13.11 调整安全事件警报阈值",
+        "name": "13.11 调整安全事件警报阈值",
+        "category": "CIS Controls",
+        "status": "active"
+      },
+      "797551b7-aaff-4d9b-97d7-a4b0bdcc5d26": {
+        "id": "797551b7-aaff-4d9b-97d7-a4b0bdcc5d26",
+        "type": "standard_control",
+        "code": "CIS-CSC-V8.1.2-13.2",
+        "title": "13.2 部署主机入侵检测解决方案",
+        "name": "13.2 部署主机入侵检测解决方案",
+        "category": "CIS Controls",
+        "status": "active"
+      },
+      "89c097a6-85a2-469f-b59b-0679b076fcd2": {
+        "id": "89c097a6-85a2-469f-b59b-0679b076fcd2",
+        "type": "standard_control",
+        "code": "CIS-CSC-V8.1.2-13.3",
+        "title": "13.3 部署网络入侵检测解决方案",
+        "name": "13.3 部署网络入侵检测解决方案",
+        "category": "CIS Controls",
+        "status": "active"
+      },
+      "05d0e7d3-19c5-4b34-812a-e49321b57502": {
+        "id": "05d0e7d3-19c5-4b34-812a-e49321b57502",
+        "type": "standard_control",
+        "code": "CRF-SAFEGUARDS-CORE-2026-LOG-15",
+        "title": "LOG-15 实施日志管理系统（例如 SIEM、SOAR 或服务管理平台）来跟踪组织日志管理系",
+        "name": "LOG-15 实施日志管理系统（例如 SIEM、SOAR 或服务管理平台）来跟踪组织日志管理系",
+        "category": "CRF Safeguards Core 2026",
+        "status": "active"
+      },
+      "e0644530-40e9-47bb-a615-a88405ccfc21": {
+        "id": "e0644530-40e9-47bb-a615-a88405ccfc21",
+        "type": "standard_control",
+        "code": "CRF-SAFEGUARDS-CORE-2026-NDM-10",
+        "title": "NDM-10 确保组织的网络设备管理系统监控每个网络设备的状态，并在设备离线时记录和告警。",
+        "name": "NDM-10 确保组织的网络设备管理系统监控每个网络设备的状态，并在设备离线时记录和告警。",
+        "category": "CRF Safeguards Core 2026",
+        "status": "active"
+      },
+      "1ebed907-c098-4b67-bfb9-01460b73d9cb": {
+        "id": "1ebed907-c098-4b67-bfb9-01460b73d9cb",
+        "type": "standard_control",
+        "code": "CRF-SAFEGUARDS-CORE-2026-NDM-12",
+        "title": "NDM-12 确保组织的网络设备管理系统记录每个网络设备的网络流数据。",
+        "name": "NDM-12 确保组织的网络设备管理系统记录每个网络设备的网络流数据。",
+        "category": "CRF Safeguards Core 2026",
+        "status": "active"
+      },
+      "805258c0-d177-4c19-a18e-224fb9b4074e": {
+        "id": "805258c0-d177-4c19-a18e-224fb9b4074e",
+        "type": "standard_control",
+        "code": "CRF-SAFEGUARDS-CORE-2026-NDM-13",
+        "title": "NDM-13 确保组织的网络设备管理系统定期比较每个网络设备的配置，以记录配置的任何变化并告警",
+        "name": "NDM-13 确保组织的网络设备管理系统定期比较每个网络设备的配置，以记录配置的任何变化并告警",
+        "category": "CRF Safeguards Core 2026",
+        "status": "active"
+      },
+      "4ce24d8c-679c-4700-8cc1-ffb439a4225d": {
+        "id": "4ce24d8c-679c-4700-8cc1-ffb439a4225d",
+        "type": "standard_control",
+        "code": "NIST-800-53-REV5-SI-4(2)",
+        "title": "SI-4(2) Automated Tools And Mechanisms For Real-Time Analysis",
+        "name": "SI-4(2) Automated Tools And Mechanisms For Real-Time Analysis",
+        "category": "NIST SP 800-53 Rev.5",
+        "status": "active"
+      },
+      "bf1d60e5-98da-4976-ae54-ad30cdef739e": {
+        "id": "bf1d60e5-98da-4976-ae54-ad30cdef739e",
+        "type": "standard_control",
+        "code": "NIST-800-53-REV5-SI-4(5)",
+        "title": "SI-4(5) System-Generated Alerts",
+        "name": "SI-4(5) System-Generated Alerts",
+        "category": "NIST SP 800-53 Rev.5",
+        "status": "active"
+      },
+      "8fa84328-e0e0-481b-8c5e-e2491cd7dd91": {
+        "id": "8fa84328-e0e0-481b-8c5e-e2491cd7dd91",
+        "type": "standard_control",
+        "code": "NIST-800-53-REV5-SI-4(7)",
+        "title": "SI-4(7) Automated Response To Suspicious Events",
+        "name": "SI-4(7) Automated Response To Suspicious Events",
+        "category": "NIST SP 800-53 Rev.5",
+        "status": "active"
+      },
+      "95a0cd0e-5aa3-4851-b279-e2f9b321e974": {
+        "id": "95a0cd0e-5aa3-4851-b279-e2f9b321e974",
+        "type": "standard_control",
+        "code": "NIST-800-53-REV5-SI-4(12)",
+        "title": "SI-4(12) Automated Organization-Generated Alerts",
+        "name": "SI-4(12) Automated Organization-Generated Alerts",
+        "category": "NIST SP 800-53 Rev.5",
+        "status": "active"
+      }
+    },
+    "scope_type": {
+      "d6c92c4a-fe81-4fa9-a0c3-f26a0c68e48f": {
+        "id": "d6c92c4a-fe81-4fa9-a0c3-f26a0c68e48f",
+        "type": "scope_type",
+        "code": "ALL",
+        "title": "全部作用域",
+        "name": "全部作用域",
+        "category": "",
+        "status": ""
+      }
+    },
+    "security_technology_module": {
+      "fda293e5-2d88-40ce-8be6-2882bad5effa": {
+        "id": "fda293e5-2d88-40ce-8be6-2882bad5effa",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "统一终端安全运营（UES）",
+        "name": "统一终端安全运营（UES）",
+        "category": "终端安全",
+        "status": ""
+      },
+      "5f915d2b-6d61-4e8f-994c-f5bd365f02fe": {
+        "id": "5f915d2b-6d61-4e8f-994c-f5bd365f02fe",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "云安全运营平台",
+        "name": "云安全运营平台",
+        "category": "云安全",
+        "status": ""
+      },
+      "b2ce8879-a1c4-4b52-b8b2-c65af85286dc": {
+        "id": "b2ce8879-a1c4-4b52-b8b2-c65af85286dc",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "云原生应用防护（CNAPP）",
+        "name": "云原生应用防护（CNAPP）",
+        "category": "应用安全",
+        "status": ""
+      },
+      "7f5af2bb-20c9-44fa-8533-d23ee591317d": {
+        "id": "7f5af2bb-20c9-44fa-8533-d23ee591317d",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "工业安全态势感知",
+        "name": "工业安全态势感知",
+        "category": "工业安全",
+        "status": ""
+      },
+      "0f0585b5-6047-424a-a302-c9ff9611c4ef": {
+        "id": "0f0585b5-6047-424a-a302-c9ff9611c4ef",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "安全信息和事件管理（SIEM）",
+        "name": "安全信息和事件管理（SIEM）",
+        "category": "安全运营",
+        "status": ""
+      },
+      "c61c2afb-5f11-47b2-9d30-224965a32e3d": {
+        "id": "c61c2afb-5f11-47b2-9d30-224965a32e3d",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "数据安全管控平台",
+        "name": "数据安全管控平台",
+        "category": "数据安全",
+        "status": ""
+      }
+    },
+    "work_function": {
+      "8a647902-9b1f-4320-ac5e-c9829dbe9ea9": {
+        "id": "8a647902-9b1f-4320-ac5e-c9829dbe9ea9",
+        "type": "work_function",
+        "code": "10",
+        "title": "安全管理职能",
+        "name": "安全管理职能",
+        "category": "",
+        "status": ""
+      },
+      "347700af-24f5-4829-830b-74304e9c3b81": {
+        "id": "347700af-24f5-4829-830b-74304e9c3b81",
+        "type": "work_function",
+        "code": "52",
+        "title": "安全监控职能",
+        "name": "安全监控职能",
+        "category": "",
+        "status": ""
+      },
+      "76ea24d1-1f84-4972-b7a5-9ef2f3288d39": {
+        "id": "76ea24d1-1f84-4972-b7a5-9ef2f3288d39",
+        "type": "work_function",
+        "code": "53",
+        "title": "威胁建模职能",
+        "name": "威胁建模职能",
+        "category": "",
+        "status": ""
+      },
+      "9ff29e00-4398-44e8-9000-a669b716b0fa": {
+        "id": "9ff29e00-4398-44e8-9000-a669b716b0fa",
+        "type": "work_function",
+        "code": "54",
+        "title": "安全分析职能",
+        "name": "安全分析职能",
+        "category": "",
+        "status": ""
+      },
+      "ed71629f-437e-4ddd-873e-e2a9aca2ec56": {
+        "id": "ed71629f-437e-4ddd-873e-e2a9aca2ec56",
+        "type": "work_function",
+        "code": "69",
+        "title": "安全实施职能（规划咨询、方案设计、技术实施、项目管理）",
+        "name": "安全实施职能（规划咨询、方案设计、技术实施、项目管理）",
+        "category": "",
+        "status": ""
+      }
+    }
+  },
+  "relations": [
+    {
+      "id": "relation:80e909e6a4ea3a70",
+      "type": "belongs_to",
+      "sourceId": "52656e45-e93d-4cb8-93eb-36a7e14b7655",
+      "sourceType": "capability_domain",
+      "targetId": "94bba6df-c6bc-41b5-ad60-7c6e87a173ac",
+      "targetType": "capability_category",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:0ede7cd576b2ee63",
+      "type": "belongs_to",
+      "sourceId": "9cd70765-5c70-4085-89dc-c512779f4b7f",
+      "sourceType": "capability_domain",
+      "targetId": "94bba6df-c6bc-41b5-ad60-7c6e87a173ac",
+      "targetType": "capability_category",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:5214f77d74fcabaf",
+      "type": "belongs_to",
+      "sourceId": "86565325-5087-42c6-aab9-372940ed915a",
+      "sourceType": "capability_domain",
+      "targetId": "94bba6df-c6bc-41b5-ad60-7c6e87a173ac",
+      "targetType": "capability_category",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:acbbc2352acf53fa",
+      "type": "belongs_to",
+      "sourceId": "c5a2eb30-8797-406f-8df0-568719fba3e5",
+      "sourceType": "capability",
+      "targetId": "86565325-5087-42c6-aab9-372940ed915a",
+      "targetType": "capability_domain",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:cfd3eb2b7df4ca31",
+      "type": "belongs_to",
+      "sourceId": "5ccd742f-bbd3-46f2-91b8-62266c5d894a",
+      "sourceType": "capability",
+      "targetId": "86565325-5087-42c6-aab9-372940ed915a",
+      "targetType": "capability_domain",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:894dae945c16498c",
+      "type": "belongs_to",
+      "sourceId": "1160f208-678b-4031-9277-041a1b175f0b",
+      "sourceType": "capability_focus",
+      "targetId": "5ccd742f-bbd3-46f2-91b8-62266c5d894a",
+      "targetType": "capability",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:306c06f680068f60",
+      "type": "belongs_to",
+      "sourceId": "92412408-7d0f-4763-8c02-25f535b7ed67",
+      "sourceType": "capability_focus",
+      "targetId": "5ccd742f-bbd3-46f2-91b8-62266c5d894a",
+      "targetType": "capability",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:2f85d037778afa9e",
+      "type": "supports_focus",
+      "sourceId": "a2ea819a-b782-46cf-b4e7-5366af1fc0fc",
+      "sourceType": "security_technical_service",
+      "targetId": "92412408-7d0f-4763-8c02-25f535b7ed67",
+      "targetType": "capability_focus",
+      "label": "支撑关注点",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 11
+    },
+    {
+      "id": "relation:235960780b09c5e6",
+      "type": "maps_to_work",
+      "sourceId": "92412408-7d0f-4763-8c02-25f535b7ed67",
+      "sourceType": "capability_focus",
+      "targetId": "25670e69-2989-4cd7-8a23-f4cacc6dca08",
+      "targetType": "security_work",
+      "label": "映射安全工作",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:a00ef3d4a8e48f05",
+      "type": "maps_to_process",
+      "sourceId": "92412408-7d0f-4763-8c02-25f535b7ed67",
+      "sourceType": "capability_focus",
+      "targetId": "bb9adaf9-768e-49e6-82bd-87ac1dfb1a0f",
+      "targetType": "process_reference",
+      "label": "映射流程",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 8
+    },
+    {
+      "id": "relation:b4348943976b3895",
+      "type": "belongs_to",
+      "sourceId": "b99c17a6-1ae8-4c75-8195-42f00991caca",
+      "sourceType": "capability_focus",
+      "targetId": "5ccd742f-bbd3-46f2-91b8-62266c5d894a",
+      "targetType": "capability",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:e55eb7022890f347",
+      "type": "belongs_to",
+      "sourceId": "9992c62d-29ee-4e13-933e-8374d71f0d14",
+      "sourceType": "capability",
+      "targetId": "86565325-5087-42c6-aab9-372940ed915a",
+      "targetType": "capability_domain",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:99aa02fbe914c73a",
+      "type": "belongs_to",
+      "sourceId": "bdf00d1b-c193-4c48-8bbc-5e30e35d8186",
+      "sourceType": "capability_domain",
+      "targetId": "94bba6df-c6bc-41b5-ad60-7c6e87a173ac",
+      "targetType": "capability_category",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:90a358d75886f833",
+      "type": "belongs_to",
+      "sourceId": "f6c5bbc5-1c27-4bbe-ba4e-7ccfead1f827",
+      "sourceType": "capability_domain",
+      "targetId": "94bba6df-c6bc-41b5-ad60-7c6e87a173ac",
+      "targetType": "capability_category",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:9dba6e80fb1ec950",
+      "type": "maps_to_standard",
+      "sourceId": "92412408-7d0f-4763-8c02-25f535b7ed67",
+      "sourceType": "capability_focus",
+      "targetId": "5d7b2244-3e5c-4533-a575-794181c5408f",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:0c049700477d5042",
+      "type": "maps_to_standard",
+      "sourceId": "92412408-7d0f-4763-8c02-25f535b7ed67",
+      "sourceType": "capability_focus",
+      "targetId": "de709653-f2d3-440a-8018-e14a55ecca52",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:c3cbf1e66b72b34c",
+      "type": "maps_to_standard",
+      "sourceId": "92412408-7d0f-4763-8c02-25f535b7ed67",
+      "sourceType": "capability_focus",
+      "targetId": "fd38af7e-625a-40f2-930f-a1285449f5c9",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:540956135b435a3c",
+      "type": "maps_to_standard",
+      "sourceId": "92412408-7d0f-4763-8c02-25f535b7ed67",
+      "sourceType": "capability_focus",
+      "targetId": "d9d305b0-7866-45d4-8d60-288d265f3905",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:0fc7bbfa1f049487",
+      "type": "maps_to_standard",
+      "sourceId": "92412408-7d0f-4763-8c02-25f535b7ed67",
+      "sourceType": "capability_focus",
+      "targetId": "9407b713-6fdd-4a7b-81dc-5150359fc22c",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:40c3f2539ad433a1",
+      "type": "maps_to_standard",
+      "sourceId": "92412408-7d0f-4763-8c02-25f535b7ed67",
+      "sourceType": "capability_focus",
+      "targetId": "08007c9c-eb0c-4769-bfcf-d855c0e3d1fc",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:6a0a487727501554",
+      "type": "maps_to_standard",
+      "sourceId": "92412408-7d0f-4763-8c02-25f535b7ed67",
+      "sourceType": "capability_focus",
+      "targetId": "bd5614f8-562f-492b-8268-bac07cc40a8d",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:0d2b2ca7b513a582",
+      "type": "maps_to_standard",
+      "sourceId": "92412408-7d0f-4763-8c02-25f535b7ed67",
+      "sourceType": "capability_focus",
+      "targetId": "44673768-e081-4dde-ae6f-d832d0a63381",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:d419cbeac711cc7b",
+      "type": "maps_to_standard",
+      "sourceId": "92412408-7d0f-4763-8c02-25f535b7ed67",
+      "sourceType": "capability_focus",
+      "targetId": "dc8880e0-0c73-4846-8a14-832cc68a49ae",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:fda072cf2441fe86",
+      "type": "maps_to_standard",
+      "sourceId": "92412408-7d0f-4763-8c02-25f535b7ed67",
+      "sourceType": "capability_focus",
+      "targetId": "797551b7-aaff-4d9b-97d7-a4b0bdcc5d26",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:ec5fc1196aa36e40",
+      "type": "maps_to_standard",
+      "sourceId": "92412408-7d0f-4763-8c02-25f535b7ed67",
+      "sourceType": "capability_focus",
+      "targetId": "89c097a6-85a2-469f-b59b-0679b076fcd2",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:1fdc69c6a66da127",
+      "type": "maps_to_standard",
+      "sourceId": "92412408-7d0f-4763-8c02-25f535b7ed67",
+      "sourceType": "capability_focus",
+      "targetId": "05d0e7d3-19c5-4b34-812a-e49321b57502",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:ab1805a8e09651b8",
+      "type": "maps_to_standard",
+      "sourceId": "92412408-7d0f-4763-8c02-25f535b7ed67",
+      "sourceType": "capability_focus",
+      "targetId": "e0644530-40e9-47bb-a615-a88405ccfc21",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:03551a5c00badc04",
+      "type": "maps_to_standard",
+      "sourceId": "92412408-7d0f-4763-8c02-25f535b7ed67",
+      "sourceType": "capability_focus",
+      "targetId": "1ebed907-c098-4b67-bfb9-01460b73d9cb",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:0133a03384cccb7d",
+      "type": "maps_to_standard",
+      "sourceId": "92412408-7d0f-4763-8c02-25f535b7ed67",
+      "sourceType": "capability_focus",
+      "targetId": "805258c0-d177-4c19-a18e-224fb9b4074e",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:2ea21d2c19a52bab",
+      "type": "maps_to_standard",
+      "sourceId": "92412408-7d0f-4763-8c02-25f535b7ed67",
+      "sourceType": "capability_focus",
+      "targetId": "4ce24d8c-679c-4700-8cc1-ffb439a4225d",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:8c7e6975943abfeb",
+      "type": "maps_to_standard",
+      "sourceId": "92412408-7d0f-4763-8c02-25f535b7ed67",
+      "sourceType": "capability_focus",
+      "targetId": "bf1d60e5-98da-4976-ae54-ad30cdef739e",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:7b2e6e73574f395f",
+      "type": "maps_to_standard",
+      "sourceId": "92412408-7d0f-4763-8c02-25f535b7ed67",
+      "sourceType": "capability_focus",
+      "targetId": "8fa84328-e0e0-481b-8c5e-e2491cd7dd91",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:ff2c85154e9ce012",
+      "type": "maps_to_standard",
+      "sourceId": "92412408-7d0f-4763-8c02-25f535b7ed67",
+      "sourceType": "capability_focus",
+      "targetId": "95a0cd0e-5aa3-4851-b279-e2f9b321e974",
+      "targetType": "standard_control",
+      "label": "映射标准控制项",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 1
+    },
+    {
+      "id": "relation:3c5304667d54045a",
+      "type": "applies_to_scope",
+      "sourceId": "a2ea819a-b782-46cf-b4e7-5366af1fc0fc",
+      "sourceType": "security_technical_service",
+      "targetId": "d6c92c4a-fe81-4fa9-a0c3-f26a0c68e48f",
+      "targetType": "scope_type",
+      "label": "适用作用域",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 18
+    },
+    {
+      "id": "relation:a29e67a7a2d754bd",
+      "type": "implemented_by_module",
+      "sourceId": "a2ea819a-b782-46cf-b4e7-5366af1fc0fc",
+      "sourceType": "security_technical_service",
+      "targetId": "fda293e5-2d88-40ce-8be6-2882bad5effa",
+      "targetType": "security_technology_module",
+      "label": "由模块实现",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 11
+    },
+    {
+      "id": "relation:4189a017a5d7c214",
+      "type": "implemented_by_module",
+      "sourceId": "a2ea819a-b782-46cf-b4e7-5366af1fc0fc",
+      "sourceType": "security_technical_service",
+      "targetId": "5f915d2b-6d61-4e8f-994c-f5bd365f02fe",
+      "targetType": "security_technology_module",
+      "label": "由模块实现",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 15
+    },
+    {
+      "id": "relation:1b0ff9e7ac00226e",
+      "type": "implemented_by_module",
+      "sourceId": "a2ea819a-b782-46cf-b4e7-5366af1fc0fc",
+      "sourceType": "security_technical_service",
+      "targetId": "b2ce8879-a1c4-4b52-b8b2-c65af85286dc",
+      "targetType": "security_technology_module",
+      "label": "由模块实现",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 15
+    },
+    {
+      "id": "relation:8ce6ebd3f0a364b1",
+      "type": "implemented_by_module",
+      "sourceId": "a2ea819a-b782-46cf-b4e7-5366af1fc0fc",
+      "sourceType": "security_technical_service",
+      "targetId": "7f5af2bb-20c9-44fa-8533-d23ee591317d",
+      "targetType": "security_technology_module",
+      "label": "由模块实现",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 11
+    },
+    {
+      "id": "relation:e379c40f27b4226c",
+      "type": "implemented_by_module",
+      "sourceId": "a2ea819a-b782-46cf-b4e7-5366af1fc0fc",
+      "sourceType": "security_technical_service",
+      "targetId": "0f0585b5-6047-424a-a302-c9ff9611c4ef",
+      "targetType": "security_technology_module",
+      "label": "由模块实现",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 14
+    },
+    {
+      "id": "relation:fcaef6d56f40d1f9",
+      "type": "implemented_by_module",
+      "sourceId": "a2ea819a-b782-46cf-b4e7-5366af1fc0fc",
+      "sourceType": "security_technical_service",
+      "targetId": "c61c2afb-5f11-47b2-9d30-224965a32e3d",
+      "targetType": "security_technology_module",
+      "label": "由模块实现",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 15
+    },
+    {
+      "id": "relation:19011bf4561ed993",
+      "type": "stakeholder_by",
+      "sourceId": "bb9adaf9-768e-49e6-82bd-87ac1dfb1a0f",
+      "sourceType": "process_reference",
+      "targetId": "8a647902-9b1f-4320-ac5e-c9829dbe9ea9",
+      "targetType": "work_function",
+      "label": "涉及职能",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:a98d98c587329a1d",
+      "type": "stakeholder_by",
+      "sourceId": "bb9adaf9-768e-49e6-82bd-87ac1dfb1a0f",
+      "sourceType": "process_reference",
+      "targetId": "347700af-24f5-4829-830b-74304e9c3b81",
+      "targetType": "work_function",
+      "label": "涉及职能",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:bc78e6d0237aac5a",
+      "type": "stakeholder_by",
+      "sourceId": "bb9adaf9-768e-49e6-82bd-87ac1dfb1a0f",
+      "sourceType": "process_reference",
+      "targetId": "76ea24d1-1f84-4972-b7a5-9ef2f3288d39",
+      "targetType": "work_function",
+      "label": "涉及职能",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:b6ac93ffa59287ea",
+      "type": "stakeholder_by",
+      "sourceId": "bb9adaf9-768e-49e6-82bd-87ac1dfb1a0f",
+      "sourceType": "process_reference",
+      "targetId": "9ff29e00-4398-44e8-9000-a669b716b0fa",
+      "targetType": "work_function",
+      "label": "涉及职能",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:0ba36a5915c1a566",
+      "type": "stakeholder_by",
+      "sourceId": "bb9adaf9-768e-49e6-82bd-87ac1dfb1a0f",
+      "sourceType": "process_reference",
+      "targetId": "ed71629f-437e-4ddd-873e-e2a9aca2ec56",
+      "targetType": "work_function",
+      "label": "涉及职能",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    }
+  ],
+  "relationCount": 45
+}

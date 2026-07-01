@@ -1,0 +1,257 @@
+{
+  "packageType": "oi-149-p4-environment-object-projection",
+  "dataState": "ready",
+  "navOrdinal": 139,
+  "projectionKey": "information_object___PC_PC___9a60d5f1-2cab-4c47-8604-a13bfc0c81cb__81c06d55c625",
+  "projectionPath": "environment/projections/information_object___PC_PC___9a60d5f1-2cab-4c47-8604-a13bfc0c81cb__81c06d55c625.json",
+  "navigationPath": [
+    {
+      "depth": 0,
+      "id": "1fb4bf2d-7efd-4474-af53-e47dab39b178",
+      "type": "information_environment",
+      "code": "",
+      "title": "远程办公接入"
+    },
+    {
+      "depth": 1,
+      "id": "d3267dea-1481-4cc3-8d95-31b465ce8c86",
+      "type": "environment_segment",
+      "code": "",
+      "title": "PC终端"
+    },
+    {
+      "depth": 2,
+      "id": "9a60d5f1-2cab-4c47-8604-a13bfc0c81cb",
+      "type": "information_object",
+      "code": "",
+      "title": "PC终端设备"
+    }
+  ],
+  "selectedNavigation": {
+    "id": "9a60d5f1-2cab-4c47-8604-a13bfc0c81cb",
+    "type": "information_object",
+    "code": "",
+    "title": "PC终端设备",
+    "navOrdinal": 139,
+    "projectionKey": "information_object___PC_PC___9a60d5f1-2cab-4c47-8604-a13bfc0c81cb__81c06d55c625",
+    "projectionPath": "environment/projections/information_object___PC_PC___9a60d5f1-2cab-4c47-8604-a13bfc0c81cb__81c06d55c625.json"
+  },
+  "ancestorNavigation": [
+    {
+      "id": "1fb4bf2d-7efd-4474-af53-e47dab39b178",
+      "type": "information_environment",
+      "code": "",
+      "title": "远程办公接入"
+    },
+    {
+      "id": "d3267dea-1481-4cc3-8d95-31b465ce8c86",
+      "type": "environment_segment",
+      "code": "",
+      "title": "PC终端"
+    }
+  ],
+  "objectContextIds": [
+    "shadow:information_object_context:a15d7679ea02656a"
+  ],
+  "contextKeys": [
+    "远程办公接入||PC终端||PC终端设备"
+  ],
+  "objects": {
+    "information_object": {
+      "shadow:information_object_context:a15d7679ea02656a": {
+        "id": "shadow:information_object_context:a15d7679ea02656a",
+        "type": "information_object",
+        "code": "",
+        "title": "PC终端设备",
+        "name": "PC终端设备",
+        "category": "",
+        "status": "",
+        "contextKey": "远程办公接入||PC终端||PC终端设备"
+      }
+    },
+    "scope_type": {
+      "shadow:scope_type:9ee74fd70e4da8dd": {
+        "id": "shadow:scope_type:9ee74fd70e4da8dd",
+        "type": "scope_type",
+        "code": "I-HD",
+        "title": "硬件",
+        "name": "硬件",
+        "category": "",
+        "status": "",
+        "text": "I-HD 硬件"
+      }
+    },
+    "security_technical_service": {
+      "shadow:security_technical_service:0848812b00e8fa6c": {
+        "id": "shadow:security_technical_service:0848812b00e8fa6c",
+        "type": "security_technical_service",
+        "code": "I-HD&T-AS.AM-01",
+        "title": "硬件资产清单",
+        "name": "硬件资产清单",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:4fcd36c36a57fc2d": {
+        "id": "shadow:security_technical_service:4fcd36c36a57fc2d",
+        "type": "security_technical_service",
+        "code": "I-HD&T-AS.CM-01",
+        "title": "固件安全基线配置管理",
+        "name": "固件安全基线配置管理",
+        "category": "",
+        "status": ""
+      }
+    },
+    "security_technical_measure": {
+      "shadow:security_technical_measure:fd36f49bc72dd2bb": {
+        "id": "shadow:security_technical_measure:fd36f49bc72dd2bb",
+        "type": "security_technical_measure",
+        "code": "",
+        "title": "设备管理系统/人工服务",
+        "name": "设备管理系统/人工服务",
+        "category": "",
+        "status": ""
+      }
+    }
+  },
+  "objectScopeTree": [
+    {
+      "id": "shadow:information_object_context:a15d7679ea02656a",
+      "type": "information_object",
+      "title": "PC终端设备",
+      "contextKey": "远程办公接入||PC终端||PC终端设备",
+      "segments": [
+        {
+          "id": "shadow:environment_segment:9d3e0d771b3aed35",
+          "type": "environment_segment",
+          "title": "PC终端"
+        }
+      ],
+      "scope_mappings": [
+        {
+          "scope": {
+            "id": "shadow:scope_type:9ee74fd70e4da8dd",
+            "type": "scope_type",
+            "code": "I-HD",
+            "title": "硬件",
+            "text": "I-HD 硬件"
+          },
+          "services": []
+        },
+        {
+          "scope": {
+            "id": "shadow:scope_type:9a6a10e0d6c24191",
+            "type": "scope_type",
+            "code": "",
+            "title": "I-HD 硬件",
+            "text": "I-HD 硬件"
+          },
+          "services": [
+            {
+              "id": "shadow:security_technical_service:0848812b00e8fa6c",
+              "type": "security_technical_service",
+              "code": "I-HD&T-AS.AM-01",
+              "title": "硬件资产清单",
+              "modules": [],
+              "measures": [
+                {
+                  "id": "shadow:security_technical_measure:fd36f49bc72dd2bb",
+                  "type": "security_technical_measure",
+                  "title": "设备管理系统/人工服务"
+                }
+              ],
+              "securitySystems": []
+            },
+            {
+              "id": "shadow:security_technical_service:4fcd36c36a57fc2d",
+              "type": "security_technical_service",
+              "code": "I-HD&T-AS.CM-01",
+              "title": "固件安全基线配置管理",
+              "modules": [],
+              "measures": [
+                {
+                  "id": "shadow:security_technical_measure:fd36f49bc72dd2bb",
+                  "type": "security_technical_measure",
+                  "title": "设备管理系统/人工服务"
+                }
+              ],
+              "securitySystems": []
+            }
+          ]
+        }
+      ],
+      "scope_mapping_count": 2,
+      "service_count": 2,
+      "module_count": 0,
+      "measure_count": 1,
+      "security_system_count": 0
+    }
+  ],
+  "relations": [
+    {
+      "id": "reimport:relation:889a8b533cc4e028",
+      "type": "applies_to_scope",
+      "sourceId": "shadow:information_object_context:a15d7679ea02656a",
+      "sourceType": "information_object",
+      "targetId": "shadow:scope_type:9ee74fd70e4da8dd",
+      "targetType": "scope_type",
+      "label": "applies_to_scope",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "远程办公接入||PC终端||PC终端设备",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:9a556cca32357528",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:0848812b00e8fa6c",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:a15d7679ea02656a",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "远程办公接入||PC终端||PC终端设备",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:635751cdfae4866e",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:4fcd36c36a57fc2d",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:a15d7679ea02656a",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "远程办公接入||PC终端||PC终端设备",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:a9d0bec7113c7c74",
+      "type": "has_measure",
+      "sourceId": "shadow:security_technical_service:0848812b00e8fa6c",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technical_measure:fd36f49bc72dd2bb",
+      "targetType": "security_technical_measure",
+      "label": "has_measure",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "远程办公接入||PC终端||PC终端设备",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:99e34582b46006a5",
+      "type": "has_measure",
+      "sourceId": "shadow:security_technical_service:4fcd36c36a57fc2d",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technical_measure:fd36f49bc72dd2bb",
+      "targetType": "security_technical_measure",
+      "label": "has_measure",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "远程办公接入||PC终端||PC终端设备",
+      "evidenceRefCount": 0
+    }
+  ],
+  "relationCount": 5
+}

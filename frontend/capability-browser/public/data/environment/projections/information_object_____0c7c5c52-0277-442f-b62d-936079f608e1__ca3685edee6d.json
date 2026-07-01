@@ -1,0 +1,1137 @@
+{
+  "packageType": "oi-149-p4-environment-object-projection",
+  "dataState": "ready",
+  "navOrdinal": 115,
+  "projectionKey": "information_object_____0c7c5c52-0277-442f-b62d-936079f608e1__ca3685edee6d",
+  "projectionPath": "environment/projections/information_object_____0c7c5c52-0277-442f-b62d-936079f608e1__ca3685edee6d.json",
+  "navigationPath": [
+    {
+      "depth": 0,
+      "id": "e802a1c0-b681-41ef-9aaa-c7fa16d3f261",
+      "type": "information_environment",
+      "code": "",
+      "title": "网络周界"
+    },
+    {
+      "depth": 1,
+      "id": "5d3c0f0b-e768-4305-9462-bae9976fb0d3",
+      "type": "environment_segment",
+      "code": "",
+      "title": "互联网边界"
+    },
+    {
+      "depth": 2,
+      "id": "0c7c5c52-0277-442f-b62d-936079f608e1",
+      "type": "information_object",
+      "code": "",
+      "title": "互联网出口边界"
+    }
+  ],
+  "selectedNavigation": {
+    "id": "0c7c5c52-0277-442f-b62d-936079f608e1",
+    "type": "information_object",
+    "code": "",
+    "title": "互联网出口边界",
+    "navOrdinal": 115,
+    "projectionKey": "information_object_____0c7c5c52-0277-442f-b62d-936079f608e1__ca3685edee6d",
+    "projectionPath": "environment/projections/information_object_____0c7c5c52-0277-442f-b62d-936079f608e1__ca3685edee6d.json"
+  },
+  "ancestorNavigation": [
+    {
+      "id": "e802a1c0-b681-41ef-9aaa-c7fa16d3f261",
+      "type": "information_environment",
+      "code": "",
+      "title": "网络周界"
+    },
+    {
+      "id": "5d3c0f0b-e768-4305-9462-bae9976fb0d3",
+      "type": "environment_segment",
+      "code": "",
+      "title": "互联网边界"
+    }
+  ],
+  "objectContextIds": [
+    "shadow:information_object_context:844776c9162f2dd0"
+  ],
+  "contextKeys": [
+    "网络周界||互联网边界||互联网出口边界"
+  ],
+  "objects": {
+    "information_object": {
+      "shadow:information_object_context:844776c9162f2dd0": {
+        "id": "shadow:information_object_context:844776c9162f2dd0",
+        "type": "information_object",
+        "code": "",
+        "title": "互联网出口边界",
+        "name": "互联网出口边界",
+        "category": "",
+        "status": "",
+        "contextKey": "网络周界||互联网边界||互联网出口边界"
+      }
+    },
+    "scope_type": {
+      "shadow:scope_type:c7ebc38ae1f4adc8": {
+        "id": "shadow:scope_type:c7ebc38ae1f4adc8",
+        "type": "scope_type",
+        "code": "I-NT",
+        "title": "网络",
+        "name": "网络",
+        "category": "",
+        "status": "",
+        "text": "I-NT 网络"
+      },
+      "shadow:scope_type:3c7c53a6f343e04f": {
+        "id": "shadow:scope_type:3c7c53a6f343e04f",
+        "type": "scope_type",
+        "code": "I-DI",
+        "title": "数据与信息",
+        "name": "数据与信息",
+        "category": "",
+        "status": "",
+        "text": "I-DI 数据与信息"
+      },
+      "shadow:scope_type:8c823ba8ecddbfea": {
+        "id": "shadow:scope_type:8c823ba8ecddbfea",
+        "type": "scope_type",
+        "code": "I-AP",
+        "title": "软件应用",
+        "name": "软件应用",
+        "category": "",
+        "status": "",
+        "text": "I-AP 软件应用"
+      },
+      "shadow:scope_type:998405d9eaef340e": {
+        "id": "shadow:scope_type:998405d9eaef340e",
+        "type": "scope_type",
+        "code": "I-US",
+        "title": "用户",
+        "name": "用户",
+        "category": "",
+        "status": "",
+        "text": "I-US 用户"
+      }
+    },
+    "security_technical_service": {
+      "shadow:security_technical_service:8d9504d5dac695d0": {
+        "id": "shadow:security_technical_service:8d9504d5dac695d0",
+        "type": "security_technical_service",
+        "code": "I-NT&T-PD.PP-03",
+        "title": "网络隔离",
+        "name": "网络隔离",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:22f8422e048c33ed": {
+        "id": "shadow:security_technical_service:22f8422e048c33ed",
+        "type": "security_technical_service",
+        "code": "I-NT&T-AD.SA-01",
+        "title": "网络高级威胁检测（启发式、行为式）",
+        "name": "网络高级威胁检测（启发式、行为式）",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:41f4afc92863cfbf": {
+        "id": "shadow:security_technical_service:41f4afc92863cfbf",
+        "type": "security_technical_service",
+        "code": "I-US&T-AS.IA-02",
+        "title": "用户认证",
+        "name": "用户认证",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:99997815cb459916": {
+        "id": "shadow:security_technical_service:99997815cb459916",
+        "type": "security_technical_service",
+        "code": "I-AP&T-PD.PP-01",
+        "title": "应用安全访问",
+        "name": "应用安全访问",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:bb407fd6db15b2c4": {
+        "id": "shadow:security_technical_service:bb407fd6db15b2c4",
+        "type": "security_technical_service",
+        "code": "I-NT&T-AS.IA-03",
+        "title": "网络资源授权",
+        "name": "网络资源授权",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:2fef3e132b1b79a3": {
+        "id": "shadow:security_technical_service:2fef3e132b1b79a3",
+        "type": "security_technical_service",
+        "code": "I-US&T-AS.LA-03",
+        "title": "用户行为审计",
+        "name": "用户行为审计",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:e27c25785a7e8e38": {
+        "id": "shadow:security_technical_service:e27c25785a7e8e38",
+        "type": "security_technical_service",
+        "code": "I-NT&T-PD.TP-01",
+        "title": "网络恶意代码防护",
+        "name": "网络恶意代码防护",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:86dad60629bfcfaa": {
+        "id": "shadow:security_technical_service:86dad60629bfcfaa",
+        "type": "security_technical_service",
+        "code": "I-NT&T-PD.TP-03",
+        "title": "网络攻击入侵防御",
+        "name": "网络攻击入侵防御",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:b0dc379e824b1495": {
+        "id": "shadow:security_technical_service:b0dc379e824b1495",
+        "type": "security_technical_service",
+        "code": "I-NT&T-PD.DP-03",
+        "title": "网络数据防泄漏",
+        "name": "网络数据防泄漏",
+        "category": "",
+        "status": ""
+      }
+    },
+    "security_technology_module": {
+      "shadow:security_technology_module:ff91979f76aa48e8": {
+        "id": "shadow:security_technology_module:ff91979f76aa48e8",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "网络防火墙",
+        "name": "网络防火墙",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technology_module:9c5091e9b1e85623": {
+        "id": "shadow:security_technology_module:9c5091e9b1e85623",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "高级威胁检测",
+        "name": "高级威胁检测",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technology_module:b57879b221ecf2ea": {
+        "id": "shadow:security_technology_module:b57879b221ecf2ea",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "文件检测沙箱",
+        "name": "文件检测沙箱",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technology_module:10f6ea91ef9d6434": {
+        "id": "shadow:security_technology_module:10f6ea91ef9d6434",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "DNS威胁检测与响应",
+        "name": "DNS威胁检测与响应",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technology_module:0a9a9de06846fc3b": {
+        "id": "shadow:security_technology_module:0a9a9de06846fc3b",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "安全Web网关",
+        "name": "安全Web网关",
+        "category": "",
+        "status": ""
+      }
+    },
+    "security_system": {
+      "shadow:security_system:8a34f55c60037368": {
+        "id": "shadow:security_system:8a34f55c60037368",
+        "type": "security_system",
+        "code": "",
+        "title": "网络边界安全防护",
+        "name": "网络边界安全防护",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_system:b5b2cc475b422293": {
+        "id": "shadow:security_system:b5b2cc475b422293",
+        "type": "security_system",
+        "code": "",
+        "title": "上网行为安全管控",
+        "name": "上网行为安全管控",
+        "category": "",
+        "status": ""
+      }
+    }
+  },
+  "objectScopeTree": [
+    {
+      "id": "shadow:information_object_context:844776c9162f2dd0",
+      "type": "information_object",
+      "title": "互联网出口边界",
+      "contextKey": "网络周界||互联网边界||互联网出口边界",
+      "segments": [
+        {
+          "id": "shadow:environment_segment:65c99ea475a598ff",
+          "type": "environment_segment",
+          "title": "互联网边界"
+        }
+      ],
+      "scope_mappings": [
+        {
+          "scope": {
+            "id": "shadow:scope_type:c7ebc38ae1f4adc8",
+            "type": "scope_type",
+            "code": "I-NT",
+            "title": "网络",
+            "text": "I-NT 网络"
+          },
+          "services": []
+        },
+        {
+          "scope": {
+            "id": "shadow:scope_type:3c7c53a6f343e04f",
+            "type": "scope_type",
+            "code": "I-DI",
+            "title": "数据与信息",
+            "text": "I-DI 数据与信息"
+          },
+          "services": []
+        },
+        {
+          "scope": {
+            "id": "shadow:scope_type:8c823ba8ecddbfea",
+            "type": "scope_type",
+            "code": "I-AP",
+            "title": "软件应用",
+            "text": "I-AP 软件应用"
+          },
+          "services": []
+        },
+        {
+          "scope": {
+            "id": "shadow:scope_type:998405d9eaef340e",
+            "type": "scope_type",
+            "code": "I-US",
+            "title": "用户",
+            "text": "I-US 用户"
+          },
+          "services": []
+        },
+        {
+          "scope": {
+            "id": "shadow:scope_type:b0f934847455b79a",
+            "type": "scope_type",
+            "code": "",
+            "title": "I-NT 网络 I-DI 数据与信息 I-AP 软件应用 I-US 用户",
+            "text": "I-NT 网络 I-DI 数据与信息 I-AP 软件应用 I-US 用户"
+          },
+          "services": [
+            {
+              "id": "shadow:security_technical_service:99997815cb459916",
+              "type": "security_technical_service",
+              "code": "I-AP&T-PD.PP-01",
+              "title": "应用安全访问",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:0a9a9de06846fc3b",
+                  "type": "security_technology_module",
+                  "title": "安全Web网关",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:9f103143433a054c",
+                      "type": "security_system",
+                      "title": "上网行为安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:b5b2cc475b422293",
+                  "type": "security_system",
+                  "title": "上网行为安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:22f8422e048c33ed",
+              "type": "security_technical_service",
+              "code": "I-NT&T-AD.SA-01",
+              "title": "网络高级威胁检测（启发式、行为式）",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:9c5091e9b1e85623",
+                  "type": "security_technology_module",
+                  "title": "高级威胁检测",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:03ea78377cc99b30",
+                      "type": "security_system",
+                      "title": "网络边界安全防护"
+                    }
+                  ]
+                },
+                {
+                  "id": "shadow:security_technology_module:b57879b221ecf2ea",
+                  "type": "security_technology_module",
+                  "title": "文件检测沙箱",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:03ea78377cc99b30",
+                      "type": "security_system",
+                      "title": "网络边界安全防护"
+                    }
+                  ]
+                },
+                {
+                  "id": "shadow:security_technology_module:10f6ea91ef9d6434",
+                  "type": "security_technology_module",
+                  "title": "DNS威胁检测与响应",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:03ea78377cc99b30",
+                      "type": "security_system",
+                      "title": "网络边界安全防护"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:8a34f55c60037368",
+                  "type": "security_system",
+                  "title": "网络边界安全防护"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:bb407fd6db15b2c4",
+              "type": "security_technical_service",
+              "code": "I-NT&T-AS.IA-03",
+              "title": "网络资源授权",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:0a9a9de06846fc3b",
+                  "type": "security_technology_module",
+                  "title": "安全Web网关",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:9f103143433a054c",
+                      "type": "security_system",
+                      "title": "上网行为安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:b5b2cc475b422293",
+                  "type": "security_system",
+                  "title": "上网行为安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:b0dc379e824b1495",
+              "type": "security_technical_service",
+              "code": "I-NT&T-PD.DP-03",
+              "title": "网络数据防泄漏",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:0a9a9de06846fc3b",
+                  "type": "security_technology_module",
+                  "title": "安全Web网关",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:9f103143433a054c",
+                      "type": "security_system",
+                      "title": "上网行为安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:b5b2cc475b422293",
+                  "type": "security_system",
+                  "title": "上网行为安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:8d9504d5dac695d0",
+              "type": "security_technical_service",
+              "code": "I-NT&T-PD.PP-03",
+              "title": "网络隔离",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:ff91979f76aa48e8",
+                  "type": "security_technology_module",
+                  "title": "网络防火墙",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:03ea78377cc99b30",
+                      "type": "security_system",
+                      "title": "网络边界安全防护"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:8a34f55c60037368",
+                  "type": "security_system",
+                  "title": "网络边界安全防护"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:e27c25785a7e8e38",
+              "type": "security_technical_service",
+              "code": "I-NT&T-PD.TP-01",
+              "title": "网络恶意代码防护",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:0a9a9de06846fc3b",
+                  "type": "security_technology_module",
+                  "title": "安全Web网关",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:9f103143433a054c",
+                      "type": "security_system",
+                      "title": "上网行为安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:b5b2cc475b422293",
+                  "type": "security_system",
+                  "title": "上网行为安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:86dad60629bfcfaa",
+              "type": "security_technical_service",
+              "code": "I-NT&T-PD.TP-03",
+              "title": "网络攻击入侵防御",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:0a9a9de06846fc3b",
+                  "type": "security_technology_module",
+                  "title": "安全Web网关",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:9f103143433a054c",
+                      "type": "security_system",
+                      "title": "上网行为安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:b5b2cc475b422293",
+                  "type": "security_system",
+                  "title": "上网行为安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:41f4afc92863cfbf",
+              "type": "security_technical_service",
+              "code": "I-US&T-AS.IA-02",
+              "title": "用户认证",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:0a9a9de06846fc3b",
+                  "type": "security_technology_module",
+                  "title": "安全Web网关",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:9f103143433a054c",
+                      "type": "security_system",
+                      "title": "上网行为安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:b5b2cc475b422293",
+                  "type": "security_system",
+                  "title": "上网行为安全管控"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:2fef3e132b1b79a3",
+              "type": "security_technical_service",
+              "code": "I-US&T-AS.LA-03",
+              "title": "用户行为审计",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:0a9a9de06846fc3b",
+                  "type": "security_technology_module",
+                  "title": "安全Web网关",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:9f103143433a054c",
+                      "type": "security_system",
+                      "title": "上网行为安全管控"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:b5b2cc475b422293",
+                  "type": "security_system",
+                  "title": "上网行为安全管控"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "scope_mapping_count": 5,
+      "service_count": 9,
+      "module_count": 5,
+      "measure_count": 0,
+      "security_system_count": 4
+    }
+  ],
+  "relations": [
+    {
+      "id": "reimport:relation:da9ddf25fefc156c",
+      "type": "applies_to_scope",
+      "sourceId": "shadow:information_object_context:844776c9162f2dd0",
+      "sourceType": "information_object",
+      "targetId": "shadow:scope_type:c7ebc38ae1f4adc8",
+      "targetType": "scope_type",
+      "label": "applies_to_scope",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:a679068f4ea8745e",
+      "type": "applies_to_scope",
+      "sourceId": "shadow:information_object_context:844776c9162f2dd0",
+      "sourceType": "information_object",
+      "targetId": "shadow:scope_type:3c7c53a6f343e04f",
+      "targetType": "scope_type",
+      "label": "applies_to_scope",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:53b02459afcc1179",
+      "type": "applies_to_scope",
+      "sourceId": "shadow:information_object_context:844776c9162f2dd0",
+      "sourceType": "information_object",
+      "targetId": "shadow:scope_type:8c823ba8ecddbfea",
+      "targetType": "scope_type",
+      "label": "applies_to_scope",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:c83031e5236ee275",
+      "type": "applies_to_scope",
+      "sourceId": "shadow:information_object_context:844776c9162f2dd0",
+      "sourceType": "information_object",
+      "targetId": "shadow:scope_type:998405d9eaef340e",
+      "targetType": "scope_type",
+      "label": "applies_to_scope",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:c1504bfca2e3c041",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:8d9504d5dac695d0",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:844776c9162f2dd0",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:1e3521a3359e495d",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:22f8422e048c33ed",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:844776c9162f2dd0",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:7de83ef2dcaa903e",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:41f4afc92863cfbf",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:844776c9162f2dd0",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:5b88a7d4a771fc77",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:99997815cb459916",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:844776c9162f2dd0",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:83eefcfd46a1dc1e",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:bb407fd6db15b2c4",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:844776c9162f2dd0",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:ea32c8c1ba3cc099",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:2fef3e132b1b79a3",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:844776c9162f2dd0",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:c4066e8b5a263a30",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:e27c25785a7e8e38",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:844776c9162f2dd0",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:4e4a212d590a75fd",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:86dad60629bfcfaa",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:844776c9162f2dd0",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:8e11c46b0bdb9237",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:b0dc379e824b1495",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:844776c9162f2dd0",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:b5fc67694125de9f",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:8d9504d5dac695d0",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:ff91979f76aa48e8",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:cfac8624ce91b9c1",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:22f8422e048c33ed",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:9c5091e9b1e85623",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:cd6ccb6249950264",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:22f8422e048c33ed",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:b57879b221ecf2ea",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:5452e9bc16ddf1f0",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:22f8422e048c33ed",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:10f6ea91ef9d6434",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:fd29c38a2102c13a",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:41f4afc92863cfbf",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:0a9a9de06846fc3b",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:69ed5c9ba97996a1",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:99997815cb459916",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:0a9a9de06846fc3b",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:57f91c04fc415866",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:bb407fd6db15b2c4",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:0a9a9de06846fc3b",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:7d543802037fa9e0",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:2fef3e132b1b79a3",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:0a9a9de06846fc3b",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:7844c32b7e94436c",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:e27c25785a7e8e38",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:0a9a9de06846fc3b",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:3ac1a64a6a541568",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:86dad60629bfcfaa",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:0a9a9de06846fc3b",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:f6e6ee032f77605a",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:b0dc379e824b1495",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:0a9a9de06846fc3b",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:9470aa3475ba4c16",
+      "type": "part_of_system",
+      "sourceId": "shadow:security_technology_module:ff91979f76aa48e8",
+      "sourceType": "security_technology_module",
+      "targetId": "shadow:security_system:8a34f55c60037368",
+      "targetType": "security_system",
+      "label": "part_of_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:ebf9d5a5d06988d1",
+      "type": "part_of_system",
+      "sourceId": "shadow:security_technology_module:9c5091e9b1e85623",
+      "sourceType": "security_technology_module",
+      "targetId": "shadow:security_system:8a34f55c60037368",
+      "targetType": "security_system",
+      "label": "part_of_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:a208c9040edbe98c",
+      "type": "part_of_system",
+      "sourceId": "shadow:security_technology_module:b57879b221ecf2ea",
+      "sourceType": "security_technology_module",
+      "targetId": "shadow:security_system:8a34f55c60037368",
+      "targetType": "security_system",
+      "label": "part_of_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:35997dbc83070594",
+      "type": "part_of_system",
+      "sourceId": "shadow:security_technology_module:10f6ea91ef9d6434",
+      "sourceType": "security_technology_module",
+      "targetId": "shadow:security_system:8a34f55c60037368",
+      "targetType": "security_system",
+      "label": "part_of_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:688795075b48b420",
+      "type": "part_of_system",
+      "sourceId": "shadow:security_technology_module:0a9a9de06846fc3b",
+      "sourceType": "security_technology_module",
+      "targetId": "shadow:security_system:b5b2cc475b422293",
+      "targetType": "security_system",
+      "label": "part_of_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:f0b69216a2e5e3bd",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:3b6e4a106903124c",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:90b5b876ceed0384",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:8136bfb6b5019af7",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:cfb966bbeab1fb16",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:5ed9b9ee1c0a0858",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:a27f4eabc7c46918",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:5b8aa6defdcb2847",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:28bcaa197b530a92",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:3425a2de8207bd4c",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:9e8e0042f321b85a",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "网络周界||互联网边界||互联网出口边界",
+      "evidenceRefCount": 0
+    }
+  ],
+  "relationCount": 40
+}

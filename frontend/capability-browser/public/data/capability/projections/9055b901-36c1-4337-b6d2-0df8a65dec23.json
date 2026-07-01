@@ -1,0 +1,78 @@
+{
+  "packageType": "oi-149-p4-capability-object-projection",
+  "dataState": "ready",
+  "detailMode": "mixed_summary",
+  "selected": {
+    "id": "9055b901-36c1-4337-b6d2-0df8a65dec23",
+    "type": "capability",
+    "code": "T-AS.IA",
+    "title": "身份、凭证与访问管理能力",
+    "name": "身份、凭证与访问管理能力",
+    "category": "",
+    "status": "active",
+    "description": "身份、凭证与访问管理能力是指组织在管理用户身份和权限、凭证生命周期和以及访问控制策略的能力。这包括实施数字化身份全生命周期管理策略、强有力的身份验证和授权机制，管理用户帐号和访问权限，以及持续监控和审计访问行为。此能力还涉及使用如多因素认证等高级技术来增强安全性，以及确保访问控制策略符合组织的安全政策和合规要求。"
+  },
+  "ancestorIds": [
+    "94bba6df-c6bc-41b5-ad60-7c6e87a173ac",
+    "52656e45-e93d-4cb8-93eb-36a7e14b7655"
+  ],
+  "focusIds": [
+    "c1d0dca3-d4a3-4a3f-bfb8-3230b0781cea",
+    "9bb22f45-3d49-4c1d-becc-ffce3b2c446a",
+    "2c4e3200-3551-4297-9188-53376e6b0693",
+    "fa079362-7b74-4f89-b239-8b8d5718e191"
+  ],
+  "focusCount": 4,
+  "childOverview": [
+    {
+      "id": "c1d0dca3-d4a3-4a3f-bfb8-3230b0781cea",
+      "type": "capability_focus",
+      "code": "T-AS.IA-01",
+      "title": "实现组织数字化身份的身份生命周期管理",
+      "focusCount": 1,
+      "childCount": 0
+    },
+    {
+      "id": "9bb22f45-3d49-4c1d-becc-ffce3b2c446a",
+      "type": "capability_focus",
+      "code": "T-AS.IA-02",
+      "title": "针对不同访问主体执行满足安全需求的身份认证机制",
+      "focusCount": 1,
+      "childCount": 0
+    },
+    {
+      "id": "2c4e3200-3551-4297-9188-53376e6b0693",
+      "type": "capability_focus",
+      "code": "T-AS.IA-03",
+      "title": "实施人员实体的访问控制管理",
+      "focusCount": 1,
+      "childCount": 0
+    },
+    {
+      "id": "fa079362-7b74-4f89-b239-8b8d5718e191",
+      "type": "capability_focus",
+      "code": "T-AS.IA-04",
+      "title": "管理和维护凭证的完整生命周期",
+      "focusCount": 1,
+      "childCount": 0
+    }
+  ],
+  "coverageSummary": {
+    "focusCount": 4,
+    "technicalServiceCount": 18,
+    "scopeTypeCount": 7,
+    "managementWorkCount": 4,
+    "processReferenceCount": 4,
+    "standardControlCount": 250,
+    "moduleCount": 21,
+    "measureCount": 13
+  },
+  "relationCount": 462,
+  "deferred": {
+    "reason": "该 L2 能力明细超过候选阈值，默认生成汇总 projection；关注点 projection 保留完整明细。",
+    "technicalMappingRows": true,
+    "managementMappingRows": true,
+    "standardMappingRows": true,
+    "standardControls": true
+  }
+}

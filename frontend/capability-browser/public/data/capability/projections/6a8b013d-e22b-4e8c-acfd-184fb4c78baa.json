@@ -1,0 +1,59 @@
+{
+  "packageType": "oi-149-p4-capability-object-projection",
+  "dataState": "ready",
+  "detailMode": "overview",
+  "selected": {
+    "id": "6a8b013d-e22b-4e8c-acfd-184fb4c78baa",
+    "type": "capability_domain",
+    "code": "M-PM",
+    "title": "网络安全规划与项目建设 Project Management",
+    "name": "网络安全规划与项目建设 Project Management",
+    "category": "",
+    "status": "active"
+  },
+  "ancestorIds": [
+    "697c2bdb-baa4-4899-a2a7-d0f5da9bd5fe"
+  ],
+  "focusIds": [
+    "b8cc2ea4-e9d5-4564-af34-4ff560dec22e",
+    "3aa503a1-3b05-4ed7-bde6-5503f54cc104",
+    "9696ff37-c533-4e33-993e-b3333d3357a2"
+  ],
+  "focusCount": 3,
+  "childOverview": [
+    {
+      "id": "f6941283-2400-40b6-b23e-18299820bdf4",
+      "type": "capability",
+      "code": "M-PM.PL",
+      "title": "安全规划管理能力",
+      "focusCount": 1,
+      "childCount": 1
+    },
+    {
+      "id": "c79d749e-9f70-44ad-9c99-970bbd5d62e0",
+      "type": "capability",
+      "code": "M-PM.PR",
+      "title": "安全建设管理能力",
+      "focusCount": 2,
+      "childCount": 2
+    }
+  ],
+  "coverageSummary": {
+    "focusCount": 3,
+    "technicalServiceCount": 1,
+    "scopeTypeCount": 1,
+    "managementWorkCount": 3,
+    "processReferenceCount": 3,
+    "standardControlCount": 115,
+    "moduleCount": 0,
+    "measureCount": 0
+  },
+  "relationCount": 171,
+  "deferred": {
+    "reason": "L0 / L1 能力层级只生成总览型 projection；标准控制项、技术映射明细和管理映射明细按 L2 / 关注点延迟加载。",
+    "technicalMappingRows": true,
+    "managementMappingRows": true,
+    "standardMappingRows": true,
+    "standardControls": true
+  }
+}

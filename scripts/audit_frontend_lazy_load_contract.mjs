@@ -23,7 +23,9 @@ function includesAll(source, values) {
 }
 
 const appJs = readText("frontend/capability-browser/app.js");
+const dataClientJs = readText("frontend/capability-browser/dataClient.js");
 const viewModelsJs = readText("frontend/capability-browser/viewModels.js");
+const oi149ApplyScriptJs = readText("scripts/apply_oi149_split_candidate.mjs");
 const standardFrameworkTableJs = readText("frontend/capability-browser/components/StandardFrameworkTable.js");
 const standardsIndex = readJson("frontend/capability-browser/public/data/standards-index.json");
 
@@ -135,6 +137,79 @@ if (!appJs.includes("maintenancePackagesForPage") || !appJs.includes("ensureMain
   });
 }
 
+if (
+  !appJs.includes("scheduleCapabilityRenderAfterPackageLoad") ||
+  !appJs.includes("state.packageLoads.delete(name);\n      scheduleCapabilityRenderAfterPackageLoad(name);") ||
+  !appJs.includes("state.packageLoads.delete(loadKey);\n      state.capabilityProjectionRequests.delete(loadKey);\n      scheduleCapabilityRenderAfterPackageLoad(loadKey);")
+) {
+  issues.push({
+    severity: "error",
+    type: "capability_loading_state_rerender_missing",
+    message: "能力页对象级 projection 请求在 finally 清理 packageLoads 后必须再次触发 renderCapabilities，防止加载态在请求结束后残留。",
+  });
+}
+
+if (!includesAll(appJs, ["capabilityProjectionLoadResults", "capabilityLoadFailure(loadKey)", "object_view_failed", "focus_projection_failed", "data-capability-load-retry"])) {
+  issues.push({
+    severity: "error",
+    type: "capability_projection_failure_state_missing",
+    message: "能力页 projection mismatch / error 必须进入失败态并提供重试入口，不能无限显示加载态。",
+  });
+}
+
+if (
+  !includesAll(dataClientJs, [
+    "oi149SplitManifest",
+    "function getOi149SplitManifest",
+    "function getCapabilityWorkspaceInitialFromSplit",
+    "function getEnvironmentNavigatorFromSplit",
+    "function getEnvironmentWorkspaceProjectionFromSplit",
+    "capability/index.json",
+    "environment/navigator.json",
+    "oi149-p4-split-v1",
+    "对象详情继续按需加载 workspace-view",
+    "对象映射详情继续读取 environment-workbench",
+  ]) ||
+  !/async getCapabilityWorkspaceInitial\(\) \{[\s\S]*?getCapabilityWorkspaceInitialFromSplit\(\)[\s\S]*?fetchApiData\(API_PATHS\.capabilityWorkspaceInitial\)/.test(dataClientJs)
+) {
+  issues.push({
+    severity: "error",
+    type: "oi149_split_initial_loader_missing",
+    message: "OI-149 P4 正式 apply 前必须具备 split manifest 探测和 capability/index.json 首屏读取路径；manifest 缺失时再回退 workspace-initial API。",
+  });
+}
+
+if (
+  !/async getEnvironmentTree\(\) \{[\s\S]*?getEnvironmentNavigatorFromSplit\(\)[\s\S]*?fetchPackage\("environmentWorkbench"\)/.test(dataClientJs) ||
+  !/async getEnvironmentNavigator\(\) \{[\s\S]*?getEnvironmentNavigatorFromSplit\(\)[\s\S]*?this\.getEnvironmentTree\(\)/.test(dataClientJs) ||
+  !/async getEnvironmentWorkspaceProjection\(params = \{\}\) \{[\s\S]*?getEnvironmentWorkspaceProjectionFromSplit\(params\)[\s\S]*?fetchPackage\("environmentWorkbench"\)/.test(dataClientJs)
+) {
+  issues.push({
+    severity: "error",
+    type: "oi149_environment_split_navigator_loader_missing",
+    message: "OI-149 P4 正式 apply 前必须具备 environment/navigator.json 首屏读取和 environment projection 详情读取路径；manifest 缺失时再回退 environment-workbench。",
+  });
+}
+
+if (
+  !includesAll(oi149ApplyScriptJs, [
+    "--confirm-oi149-public-data-write",
+    "candidate-readiness.json",
+    "oi149-split-manifest.json",
+    "formal-apply-backups",
+    "writesPerformed",
+    "formalPublicDataModified",
+    "rollbackInstructions",
+  ]) ||
+  !/mode === "apply" && !hasFlag\(CONFIRM_FLAG\)/.test(oi149ApplyScriptJs)
+) {
+  issues.push({
+    severity: "error",
+    type: "oi149_formal_apply_confirmation_gate_missing",
+    message: "OI-149 P4 正式 apply 工具必须默认 dry-run，并且写正式 public/data 前必须显式确认、记录写入状态和回退路径。",
+  });
+}
+
 if (!appJs.includes("activeTableLoading") || !appJs.includes("standardTableHasRows(activeTable)")) {
   issues.push({
     severity: "error",
@@ -175,6 +250,10 @@ const result = {
     standardFrameworks: frameworks.length,
     standardTabs: frameworks.reduce((sum, framework) => sum + (Array.isArray(framework.tabs) ? framework.tabs.length : 0), 0),
     componentFetchForbidden: true,
+    capabilityLoadingStateRerender: true,
+    oi149SplitInitialLoader: true,
+    oi149EnvironmentSplitNavigatorAndProjectionLoader: true,
+    oi149FormalApplyConfirmationGate: true,
   },
   issues,
 };

@@ -265,7 +265,7 @@
   function renderTopBar() {
     return `
       ${renderGlobalSearch()}
-      <div id="localModeStatus" class="topbar-status" aria-label="本地运行状态"></div>
+      <div id="localModeStatus" class="topbar-status" aria-label="批注导出入口"></div>
       <div class="topbar-actions" aria-label="全局操作">
         <button type="button" title="通知" aria-label="通知">!</button>
         <button type="button" title="设置" aria-label="设置">⚙</button>
@@ -443,7 +443,7 @@
 
   function renderEnvironmentHeaderTabs(activeTab = "topology") {
     const tabs = [
-      { id: "topology", label: "环境层级视图" },
+      { id: "topology", label: "信息化环境视图" },
       { id: "mapping", label: "信息化环境-安全技术" },
     ];
     const normalizedActiveTab = tabs.some((tab) => tab.id === activeTab) ? activeTab : "topology";
@@ -658,8 +658,7 @@
   }
 
   function renderLocalModeStatus() {
-    if (components.StatusBadge) return components.StatusBadge.render({ label: "运行模式", value: "本地", tone: "ok" });
-    return '<span class="status-badge status-badge-ok"><small>运行模式</small><strong>本地</strong></span>';
+    return '<button class="topbar-export-action" type="button" data-user-notes-export>批注一键导出</button>';
   }
 
   components.AppShell = {

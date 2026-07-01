@@ -1,0 +1,561 @@
+{
+  "packageType": "oi-149-p4-environment-object-projection",
+  "dataState": "ready",
+  "navOrdinal": 128,
+  "projectionKey": "information_object_____c3dbf411-2189-4a7f-9ae3-753b7036b1f4__496ba4162849",
+  "projectionPath": "environment/projections/information_object_____c3dbf411-2189-4a7f-9ae3-753b7036b1f4__496ba4162849.json",
+  "navigationPath": [
+    {
+      "depth": 0,
+      "id": "5aaa6996-5d3d-414f-92dc-59afb5d72e1f",
+      "type": "information_environment",
+      "code": "",
+      "title": "运维管理网络"
+    },
+    {
+      "depth": 1,
+      "id": "a7fb5d12-c505-442e-a232-4da55c4abe45",
+      "type": "environment_segment",
+      "code": "",
+      "title": "人员"
+    },
+    {
+      "depth": 2,
+      "id": "c3dbf411-2189-4a7f-9ae3-753b7036b1f4",
+      "type": "information_object",
+      "code": "",
+      "title": "运维管理人员"
+    }
+  ],
+  "selectedNavigation": {
+    "id": "c3dbf411-2189-4a7f-9ae3-753b7036b1f4",
+    "type": "information_object",
+    "code": "",
+    "title": "运维管理人员",
+    "navOrdinal": 128,
+    "projectionKey": "information_object_____c3dbf411-2189-4a7f-9ae3-753b7036b1f4__496ba4162849",
+    "projectionPath": "environment/projections/information_object_____c3dbf411-2189-4a7f-9ae3-753b7036b1f4__496ba4162849.json"
+  },
+  "ancestorNavigation": [
+    {
+      "id": "5aaa6996-5d3d-414f-92dc-59afb5d72e1f",
+      "type": "information_environment",
+      "code": "",
+      "title": "运维管理网络"
+    },
+    {
+      "id": "a7fb5d12-c505-442e-a232-4da55c4abe45",
+      "type": "environment_segment",
+      "code": "",
+      "title": "人员"
+    }
+  ],
+  "objectContextIds": [
+    "shadow:information_object_context:490fb8b7384f5809"
+  ],
+  "contextKeys": [
+    "运维管理网络||人员||运维管理人员"
+  ],
+  "objects": {
+    "information_object": {
+      "shadow:information_object_context:490fb8b7384f5809": {
+        "id": "shadow:information_object_context:490fb8b7384f5809",
+        "type": "information_object",
+        "code": "",
+        "title": "运维管理人员",
+        "name": "运维管理人员",
+        "category": "",
+        "status": "",
+        "contextKey": "运维管理网络||人员||运维管理人员"
+      }
+    },
+    "scope_type": {
+      "shadow:scope_type:998405d9eaef340e": {
+        "id": "shadow:scope_type:998405d9eaef340e",
+        "type": "scope_type",
+        "code": "I-US",
+        "title": "用户",
+        "name": "用户",
+        "category": "",
+        "status": "",
+        "text": "I-US 用户"
+      }
+    },
+    "security_technical_service": {
+      "shadow:security_technical_service:80600d37b9a6e0d2": {
+        "id": "shadow:security_technical_service:80600d37b9a6e0d2",
+        "type": "security_technical_service",
+        "code": "I-US&T-AS.IA-01",
+        "title": "用户身份管理",
+        "name": "用户身份管理",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:812f64e6ca9af9cc": {
+        "id": "shadow:security_technical_service:812f64e6ca9af9cc",
+        "type": "security_technical_service",
+        "code": "I-US&T-AS.IA-04",
+        "title": "用户凭证管理",
+        "name": "用户凭证管理",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:41f4afc92863cfbf": {
+        "id": "shadow:security_technical_service:41f4afc92863cfbf",
+        "type": "security_technical_service",
+        "code": "I-US&T-AS.IA-02",
+        "title": "用户认证",
+        "name": "用户认证",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:2fef3e132b1b79a3": {
+        "id": "shadow:security_technical_service:2fef3e132b1b79a3",
+        "type": "security_technical_service",
+        "code": "I-US&T-AS.LA-03",
+        "title": "用户行为审计",
+        "name": "用户行为审计",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:f60aff1b2b8a70fb": {
+        "id": "shadow:security_technical_service:f60aff1b2b8a70fb",
+        "type": "security_technical_service",
+        "code": "I-US&T-PD.AC-02",
+        "title": "用户信誉评估",
+        "name": "用户信誉评估",
+        "category": "",
+        "status": ""
+      }
+    },
+    "security_technology_module": {
+      "shadow:security_technology_module:41d3fa8e4983d8f8": {
+        "id": "shadow:security_technology_module:41d3fa8e4983d8f8",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "零信任访问控制台",
+        "name": "零信任访问控制台",
+        "category": "",
+        "status": ""
+      }
+    },
+    "security_system": {
+      "shadow:security_system:e3ddf8d0ec7e0f1e": {
+        "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+        "type": "security_system",
+        "code": "",
+        "title": "零信任网络访问控制",
+        "name": "零信任网络访问控制",
+        "category": "",
+        "status": ""
+      }
+    }
+  },
+  "objectScopeTree": [
+    {
+      "id": "shadow:information_object_context:490fb8b7384f5809",
+      "type": "information_object",
+      "title": "运维管理人员",
+      "contextKey": "运维管理网络||人员||运维管理人员",
+      "segments": [
+        {
+          "id": "shadow:environment_segment:9c4ddebf40922a21",
+          "type": "environment_segment",
+          "title": "人员"
+        }
+      ],
+      "scope_mappings": [
+        {
+          "scope": {
+            "id": "shadow:scope_type:998405d9eaef340e",
+            "type": "scope_type",
+            "code": "I-US",
+            "title": "用户",
+            "text": "I-US 用户"
+          },
+          "services": []
+        },
+        {
+          "scope": {
+            "id": "shadow:scope_type:152d886c135212f2",
+            "type": "scope_type",
+            "code": "",
+            "title": "I-US 用户",
+            "text": "I-US 用户"
+          },
+          "services": [
+            {
+              "id": "shadow:security_technical_service:80600d37b9a6e0d2",
+              "type": "security_technical_service",
+              "code": "I-US&T-AS.IA-01",
+              "title": "用户身份管理",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:41d3fa8e4983d8f8",
+                  "type": "security_technology_module",
+                  "title": "零信任访问控制台",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+                  "type": "security_system",
+                  "title": "零信任网络访问控制"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:41f4afc92863cfbf",
+              "type": "security_technical_service",
+              "code": "I-US&T-AS.IA-02",
+              "title": "用户认证",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:41d3fa8e4983d8f8",
+                  "type": "security_technology_module",
+                  "title": "零信任访问控制台",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+                  "type": "security_system",
+                  "title": "零信任网络访问控制"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:812f64e6ca9af9cc",
+              "type": "security_technical_service",
+              "code": "I-US&T-AS.IA-04",
+              "title": "用户凭证管理",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:41d3fa8e4983d8f8",
+                  "type": "security_technology_module",
+                  "title": "零信任访问控制台",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+                  "type": "security_system",
+                  "title": "零信任网络访问控制"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:2fef3e132b1b79a3",
+              "type": "security_technical_service",
+              "code": "I-US&T-AS.LA-03",
+              "title": "用户行为审计",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:41d3fa8e4983d8f8",
+                  "type": "security_technology_module",
+                  "title": "零信任访问控制台",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+                  "type": "security_system",
+                  "title": "零信任网络访问控制"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:f60aff1b2b8a70fb",
+              "type": "security_technical_service",
+              "code": "I-US&T-PD.AC-02",
+              "title": "用户信誉评估",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:41d3fa8e4983d8f8",
+                  "type": "security_technology_module",
+                  "title": "零信任访问控制台",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+                  "type": "security_system",
+                  "title": "零信任网络访问控制"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "scope_mapping_count": 2,
+      "service_count": 5,
+      "module_count": 1,
+      "measure_count": 0,
+      "security_system_count": 2
+    }
+  ],
+  "relations": [
+    {
+      "id": "reimport:relation:74301dfeb44ef4cf",
+      "type": "applies_to_scope",
+      "sourceId": "shadow:information_object_context:490fb8b7384f5809",
+      "sourceType": "information_object",
+      "targetId": "shadow:scope_type:998405d9eaef340e",
+      "targetType": "scope_type",
+      "label": "applies_to_scope",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "运维管理网络||人员||运维管理人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:1ac194f880081212",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:80600d37b9a6e0d2",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:490fb8b7384f5809",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "运维管理网络||人员||运维管理人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:d7df5baf7f613b0c",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:812f64e6ca9af9cc",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:490fb8b7384f5809",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "运维管理网络||人员||运维管理人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:7e874b11f3931c52",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:41f4afc92863cfbf",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:490fb8b7384f5809",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "运维管理网络||人员||运维管理人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:46997959cdfe956c",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:2fef3e132b1b79a3",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:490fb8b7384f5809",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "运维管理网络||人员||运维管理人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:143bbb800f432adc",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:f60aff1b2b8a70fb",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:490fb8b7384f5809",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "运维管理网络||人员||运维管理人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:dcd7c294e116773a",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:80600d37b9a6e0d2",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:41d3fa8e4983d8f8",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "运维管理网络||人员||运维管理人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:1fe9c9582fb7eda7",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:812f64e6ca9af9cc",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:41d3fa8e4983d8f8",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "运维管理网络||人员||运维管理人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:56bed860522096e4",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:41f4afc92863cfbf",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:41d3fa8e4983d8f8",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "运维管理网络||人员||运维管理人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:7c5c11764e341779",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:2fef3e132b1b79a3",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:41d3fa8e4983d8f8",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "运维管理网络||人员||运维管理人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:18589ff962aab3e7",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:f60aff1b2b8a70fb",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:41d3fa8e4983d8f8",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "运维管理网络||人员||运维管理人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:f5d27da6363a3bff",
+      "type": "part_of_system",
+      "sourceId": "shadow:security_technology_module:41d3fa8e4983d8f8",
+      "sourceType": "security_technology_module",
+      "targetId": "shadow:security_system:e3ddf8d0ec7e0f1e",
+      "targetType": "security_system",
+      "label": "part_of_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "运维管理网络||人员||运维管理人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:eca30ffb0b352c36",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "运维管理网络||人员||运维管理人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:c404035622703a1a",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "运维管理网络||人员||运维管理人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:76d48fac509f10a8",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "运维管理网络||人员||运维管理人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:b9981bed8f23cb38",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "运维管理网络||人员||运维管理人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:b53c1ed6a32a3752",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "运维管理网络||人员||运维管理人员",
+      "evidenceRefCount": 0
+    }
+  ],
+  "relationCount": 17
+}

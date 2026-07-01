@@ -75,6 +75,32 @@
     return `${environmentAttr}${segmentAttr}${objectAttr}`;
   }
 
+  function annotationTargetForRow(row) {
+    const typeByLevel = {
+      environment: ["information_environment", "信息化环境"],
+      segment: ["environment_segment", "环境子类"],
+      object: ["information_object", "信息化对象"],
+    };
+    const [objectType, objectLabel] = typeByLevel[row.level] || ["environment_object", "环境对象"];
+    const stableKey = row.code || row.id || row.title;
+    if (!stableKey) return null;
+    return {
+      targetRef: `base:${objectType}:${stableKey}`,
+      objectType,
+      objectLabel,
+      id: row.id || stableKey,
+      code: row.code || "",
+      title: row.title || stableKey,
+      anchorType: "object",
+    };
+  }
+
+  function annotationAttrs(row) {
+    const target = annotationTargetForRow(row);
+    if (!target) return "";
+    return window.sapdDisplay?.annotationTargetAttrs?.(target, { title: row.title || row.id }) || "";
+  }
+
   function render({ navigationTree, selectedObjectId, selectedEnvironmentId, selectedSegmentId, expandedIds, search }) {
     const rows = rowsFromTree(navigationTree);
     if (!rows.length) {
@@ -90,7 +116,7 @@
         const expandedText = row.hasChildren ? (expanded.has(row.id) ? "▾" : "▸") : "";
         const ariaExpanded = row.hasChildren ? ` aria-expanded="${expanded.has(row.id) ? "true" : "false"}"` : "";
         return `
-          <button class="tree-row tree-node-row environment-tree-row ${levelClass[row.level] || ""} ${active ? "active" : ""}" type="button"${dataAttrs(row)}${ariaExpanded}>
+          <button class="tree-row tree-node-row environment-tree-row ${levelClass[row.level] || ""} ${active ? "active" : ""}" type="button"${dataAttrs(row)} data-annotation-prefer-target="true" ${annotationAttrs(row)}${ariaExpanded}>
             <span class="node-expander ${row.hasChildren ? "has-children" : "is-empty"}" ${row.hasChildren ? `data-environment-tree-toggle-id="${utils.escapeHtml(row.id)}"` : ""} aria-hidden="true">${expandedText}</span>
             <span class="node-level-label">${utils.escapeHtml(levelLabel[row.level] || row.level)}</span>
             <span class="node-copy">

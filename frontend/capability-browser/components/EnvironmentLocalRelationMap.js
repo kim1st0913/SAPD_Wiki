@@ -130,8 +130,9 @@
   function renderStatisticChiplet(row, shortKind = false) {
     const kind = row.kind || hierarchyNodeKind(row.node);
     const label = shortKind ? (kind.includes("措施") ? "措施" : "模块") : kind;
+    const target = relationNodeAnnotationTarget(row.node, kind);
     return `
-      <span class="environment-statistics-chiplet ${kind.includes("措施") ? "is-measure" : "is-module"}">
+      <span class="environment-statistics-chiplet ${kind.includes("措施") ? "is-measure" : "is-module"}" data-annotation-prefer-target="true" ${annotationTargetAttrs(target, relationNodeTitle(row.node))}>
         <small>${escape(label)}</small>
         <strong>${escape(relationNodeTitle(row.node))}</strong>
       </span>
@@ -248,13 +249,51 @@
     return [kind, title, definition, dictionaryHint].filter(Boolean).join("\n");
   }
 
+  function annotationTargetAttrs(target, title = "") {
+    if (!target?.targetRef) return "";
+    return window.sapdDisplay?.annotationTargetAttrs?.(target, { title }) || "";
+  }
+
+  function baseAnnotationTarget({ objectType, objectLabel, item, title = "", anchorType = "object" }) {
+    const id = utils.text(item?.id || "").trim();
+    const code = utils.text(item?.code || item?.serviceCode || item?.scopeCode || "").trim();
+    const visibleTitle = title || utils.codeTitleOf(item) || item?.title || item?.name || code || id;
+    const stableKey = code || id || visibleTitle;
+    if (!stableKey) return null;
+    return {
+      targetRef: `base:${objectType}:${stableKey}`,
+      objectType,
+      objectLabel,
+      id: id || stableKey,
+      code,
+      title: visibleTitle,
+      anchorType,
+    };
+  }
+
+  function relationNodeAnnotationTarget(node, kind) {
+    return baseAnnotationTarget({
+      objectType: kind.includes("措施") ? "security_technical_measure" : "security_technology_module",
+      objectLabel: kind.includes("措施") ? "安全技术措施" : "安全技术模块",
+      item: node,
+      title: utils.codeTitleOf(node),
+    });
+  }
+
+  function environmentAnnotationTarget(item, objectType, objectLabel, title = "") {
+    return baseAnnotationTarget({ objectType, objectLabel, item, title });
+  }
+
   function renderHierarchyModuleNode(node) {
     const kind = hierarchyNodeKind(node);
+    const target = relationNodeAnnotationTarget(node, kind);
     return `
       <span
         class="environment-hierarchy-module-node ${kind.includes("措施") ? "is-measure" : "is-module"}"
         data-tooltip="${escape(relationNodeTooltip(node, kind))}"
         aria-label="${escape(relationNodeTooltip(node, kind))}"
+        data-annotation-prefer-target="true"
+        ${annotationTargetAttrs(target, utils.codeTitleOf(node))}
       >
         <em>${escape(kind)}</em>
         <strong>${escape(utils.codeTitleOf(node))}</strong>
@@ -279,8 +318,9 @@
   function renderHierarchyObjectCard(environment, object, selectedObjectId) {
     const { modules, measures } = partitionRelationNodes(object.relationNodes);
     const relationCount = modules.length + measures.length;
+    const target = environmentAnnotationTarget(object, "information_object", "信息化对象", object.title || "未命名对象");
     return `
-      <section class="environment-hierarchy-object-card${selectedClass(object.id, selectedObjectId)}" data-environment-id="${escape(environment.id || "")}" data-environment-object-id="${escape(object.id || "")}">
+      <section class="environment-hierarchy-object-card${selectedClass(object.id, selectedObjectId)}" data-environment-id="${escape(environment.id || "")}" data-environment-object-id="${escape(object.id || "")}" data-annotation-prefer-target="true" ${annotationTargetAttrs(target, object.title || "未命名对象")}>
         <button class="environment-hierarchy-object-main" type="button">
           <span>信息化对象</span>
           <strong>${escape(object.title || "未命名对象")}</strong>
@@ -339,8 +379,9 @@
   function renderHierarchySegment(environment, segment, selectedSegmentId, selectedObjectId) {
     const objectCount = segmentObjectCount(segment);
     const capabilityCount = uniqueRelationNodes(utils.list(segment.objects).flatMap((object) => utils.list(object.relationNodes))).length;
+    const target = environmentAnnotationTarget(segment, "environment_segment", "环境子类", segment.title || "未定义环境子类");
     return `
-      <section class="environment-hierarchy-segment${selectedClass(segment.id, selectedSegmentId)}" data-environment-id="${escape(environment.id || "")}" data-environment-segment-id="${escape(segment.id || "")}">
+      <section class="environment-hierarchy-segment${selectedClass(segment.id, selectedSegmentId)}" data-environment-id="${escape(environment.id || "")}" data-environment-segment-id="${escape(segment.id || "")}" data-annotation-prefer-target="true" ${annotationTargetAttrs(target, segment.title || "未定义环境子类")}>
         <div class="environment-hierarchy-track-head">
           <button class="environment-hierarchy-segment-main" type="button">
             <span>环境子类</span>
@@ -358,8 +399,9 @@
   function renderHierarchySegmentFlow(environment, segment, selectedSegmentId, selectedObjectId) {
     const objectCount = segmentObjectCount(segment);
     const capabilityCount = uniqueRelationNodes(utils.list(segment.objects).flatMap((object) => utils.list(object.relationNodes))).length;
+    const target = environmentAnnotationTarget(segment, "environment_segment", "环境子类", segment.title || "未定义环境子类");
     return `
-      <section class="environment-hierarchy-segment-flow${selectedClass(segment.id, selectedSegmentId)}" data-environment-id="${escape(environment.id || "")}" data-environment-segment-id="${escape(segment.id || "")}">
+      <section class="environment-hierarchy-segment-flow${selectedClass(segment.id, selectedSegmentId)}" data-environment-id="${escape(environment.id || "")}" data-environment-segment-id="${escape(segment.id || "")}" data-annotation-prefer-target="true" ${annotationTargetAttrs(target, segment.title || "未定义环境子类")}>
         <div class="environment-hierarchy-track-head">
           <button class="environment-hierarchy-segment-main" type="button">
             <span>环境子类</span>
@@ -376,8 +418,9 @@
 
   function renderHierarchyEnvironment(environment, selectedEnvironmentId, selectedSegmentId, selectedObjectId) {
     const capabilityCount = uniqueRelationNodes(utils.list(environment.objects).flatMap((object) => utils.list(object.relationNodes))).length;
+    const target = environmentAnnotationTarget(environment, "information_environment", "信息化环境", environment.title || "未命名环境");
     return `
-      <section class="environment-hierarchy-environment${selectedClass(environment.id, selectedEnvironmentId)}" data-environment-id="${escape(environment.id || "")}">
+      <section class="environment-hierarchy-environment${selectedClass(environment.id, selectedEnvironmentId)}" data-environment-id="${escape(environment.id || "")}" data-annotation-prefer-target="true" ${annotationTargetAttrs(target, environment.title || "未命名环境")}>
         <div class="environment-hierarchy-environment-head">
           <button class="environment-hierarchy-environment-main" type="button">
             <span>信息化环境</span>
@@ -398,8 +441,9 @@
       object.serviceCount ? `${object.serviceCount} 服务` : "",
       object.moduleCount ? `${object.moduleCount} 模块/措施` : "",
     ].filter(Boolean);
+    const target = environmentAnnotationTarget(object, "information_object", "信息化对象", object.title || "未命名对象");
     return `
-      <button class="environment-topology-node object-node${selectedClass(object.id, selectedObjectId)}" type="button" data-environment-id="${escape(environment.id || "")}" data-environment-object-id="${escape(object.id || "")}">
+      <button class="environment-topology-node object-node${selectedClass(object.id, selectedObjectId)}" type="button" data-environment-id="${escape(environment.id || "")}" data-environment-object-id="${escape(object.id || "")}" data-annotation-prefer-target="true" ${annotationTargetAttrs(target, object.title || "未命名对象")}>
         <strong>${escape(object.title || "未命名对象")}</strong>
         ${badges.length ? `<span>${badges.map(escape).join(" · ")}</span>` : ""}
       </button>
@@ -407,9 +451,10 @@
   }
 
   function renderSegmentNode(environment, segment, selectedSegmentId, selectedObjectId) {
+    const target = environmentAnnotationTarget(segment, "environment_segment", "环境子类", segment.title || "未定义环境子类");
     return `
       <section class="environment-topology-segment">
-        <button class="environment-topology-node segment-node${selectedClass(segment.id, selectedSegmentId)}" type="button" data-environment-id="${escape(environment.id || "")}" data-environment-segment-id="${escape(segment.id || "")}">
+        <button class="environment-topology-node segment-node${selectedClass(segment.id, selectedSegmentId)}" type="button" data-environment-id="${escape(environment.id || "")}" data-environment-segment-id="${escape(segment.id || "")}" data-annotation-prefer-target="true" ${annotationTargetAttrs(target, segment.title || "未定义环境子类")}>
           <strong>${escape(segment.title || "未定义环境子类")}</strong>
           <span>${escape(utils.list(segment.objects).length)} 个对象</span>
         </button>
@@ -579,9 +624,10 @@
     const { modules, measures } = partitionObjectsCapability(objects);
     const capabilityRows = capabilityFrequency(objects);
     const capabilityCount = modules.length + measures.length;
+    const target = environmentAnnotationTarget(segment, "environment_segment", "环境子类", segment.title || "未定义环境子类");
     return `
       <section class="environment-statistics-row is-subcategory">
-        <button class="environment-statistics-entity" type="button" data-environment-id="${escape(environment.id || "")}" data-environment-segment-id="${escape(segment.id || "")}">
+        <button class="environment-statistics-entity" type="button" data-environment-id="${escape(environment.id || "")}" data-environment-segment-id="${escape(segment.id || "")}" data-annotation-prefer-target="true" ${annotationTargetAttrs(target, segment.title || "未定义环境子类")}>
           <small>环境子类</small>
           <strong>${escape(segment.title || "未定义环境子类")}</strong>
           <span>${escape(objects.length)} 对象 · ${escape(capabilityCount)} 模块/措施</span>
@@ -646,9 +692,10 @@
   function renderSubcategoryStatisticsObject(environment, object) {
     const { modules, measures } = partitionRelationNodes(object.relationNodes);
     const capabilityCount = modules.length + measures.length;
+    const target = environmentAnnotationTarget(object, "information_object", "信息化对象", object.title || "未命名对象");
     return `
       <section class="environment-statistics-row is-object">
-        <button class="environment-statistics-entity" type="button" data-environment-id="${escape(environment.id || "")}" data-environment-object-id="${escape(object.id || "")}">
+        <button class="environment-statistics-entity" type="button" data-environment-id="${escape(environment.id || "")}" data-environment-object-id="${escape(object.id || "")}" data-annotation-prefer-target="true" ${annotationTargetAttrs(target, object.title || "未命名对象")}>
           <small>信息化对象</small>
           <strong>${escape(object.title || "未命名对象")}</strong>
           <span>${escape(object.scopeCount || 0)} 作用域种类 · ${escape(capabilityCount)} 模块/措施</span>

@@ -1,0 +1,51 @@
+{
+  "packageType": "oi-149-p4-capability-object-projection",
+  "dataState": "ready",
+  "detailMode": "overview",
+  "selected": {
+    "id": "f6c5bbc5-1c27-4bbe-ba4e-7ccfead1f827",
+    "type": "capability_domain",
+    "code": "T-OF",
+    "title": "进攻 Offense",
+    "name": "进攻 Offense",
+    "category": "",
+    "status": "active"
+  },
+  "ancestorIds": [
+    "94bba6df-c6bc-41b5-ad60-7c6e87a173ac"
+  ],
+  "focusIds": [
+    "ab5fc355-e4a3-432a-b074-e98576b2a663",
+    "ae8ac926-e4e5-4ade-b2e8-f73df09f0ae2",
+    "5494f571-773f-4a5f-8347-f17c0c0922af"
+  ],
+  "focusCount": 3,
+  "childOverview": [
+    {
+      "id": "dabb0ceb-cff5-438b-abdf-3316283683f5",
+      "type": "capability",
+      "code": "T-OF.AT",
+      "title": "进攻反制能力",
+      "focusCount": 3,
+      "childCount": 3
+    }
+  ],
+  "coverageSummary": {
+    "focusCount": 3,
+    "technicalServiceCount": 0,
+    "scopeTypeCount": 0,
+    "managementWorkCount": 3,
+    "processReferenceCount": 3,
+    "standardControlCount": 0,
+    "moduleCount": 0,
+    "measureCount": 0
+  },
+  "relationCount": 24,
+  "deferred": {
+    "reason": "L0 / L1 能力层级只生成总览型 projection；标准控制项、技术映射明细和管理映射明细按 L2 / 关注点延迟加载。",
+    "technicalMappingRows": true,
+    "managementMappingRows": true,
+    "standardMappingRows": true,
+    "standardControls": true
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "packageType": "oi-149-p4-runtime-evidence",
+  "dataState": "ready",
+  "note": "Evidence 包仅用于 P4 拆包后的详情、审计或追溯；正式 UI 首屏 / projection 不应直接加载该文件。",
+  "evidenceRefs": []
+}

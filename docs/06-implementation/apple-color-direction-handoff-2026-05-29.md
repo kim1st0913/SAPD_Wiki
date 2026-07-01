@@ -5,16 +5,17 @@
 ## 当前结论
 
 - 正式页当前已经统一到 Morandi 低饱和基线。
-- `apple-morandi-color-demo.html` 是当前前端颜色设计要求的基准样张，不是正式业务页面实现。
-- 后续新增或调整前端颜色时，必须先对照该 demo，确保 shell neutral、Apple blue 选中态、tabs、状态徽标、关系 chip、表格行色、标准 / 框架行色、生命周期 tone 和图谱语义色不发生口径漂移。
+- 统一 demo 工作台 `environment-object-apple-shell-demo.html#color-system` 是当前前端颜色设计要求的基准样张，不是正式业务页面实现。
+- 后续新增或调整前端颜色时，必须先对照统一 demo 工作台的 `颜色系统` tab，确保 shell neutral、Apple blue 选中态、tabs、状态徽标、关系 chip、表格行色、标准 / 框架行色、生命周期 tone 和图谱语义色不发生口径漂移。
 - 后续推进应先替换全局 token，再逐步治理组件，不建议在组件里零散写局部色值。
 - 业务语义颜色必须保留：安全技术服务、模块、措施、当前关注点、管理视角、标准 / 框架不能混成同一种绿色或灰色。
 
 ## 可查看入口
 
 - 正式前端：`http://127.0.0.1:5173/`
-- Apple 方向 demo：`http://127.0.0.1:5173/apple-morandi-color-demo.html`
-- Demo 文件：`frontend/capability-browser/apple-morandi-color-demo.html`
+- Apple 方向 demo：`http://127.0.0.1:5173/environment-object-apple-shell-demo.html#color-system`
+- Demo 工作台文件：`frontend/capability-browser/environment-object-apple-shell-demo.html`
+- 颜色系统嵌入来源：`frontend/capability-browser/apple-morandi-color-demo.html`
 - 正式样式主文件：`frontend/capability-browser/styles.css`
 - 显示标签和 chip 类型入口：`frontend/capability-browser/displayLabels.js`
 
@@ -46,7 +47,7 @@ Apple 方向不是把页面做成系统设置的复制品，而是借鉴这些�
 
 优先维护 `styles.css` 中这些集中位置：
 
-- 颜色 demo 基准：`frontend/capability-browser/apple-morandi-color-demo.html`，用于集中核对所有颜色角色和组件状态。
+- 颜色 demo 基准：`frontend/capability-browser/environment-object-apple-shell-demo.html#color-system`，用于集中核对所有颜色角色和组件状态。
 - 全局语义色：`--morandi-blue`、`--morandi-sage`、`--morandi-clay`、`--morandi-lavender`、`--morandi-sand`、`--morandi-slate`。
 - 生命周期 chip：`--lifecycle-service-*`、`--lifecycle-module-*`、`--lifecycle-measure-*`。
 - 图谱语义色：`--graph-role-current`、`--graph-role-technical`、`--graph-role-management`、`--graph-role-standard`。
@@ -98,7 +99,7 @@ Apple 方向不是把页面做成系统设置的复制品，而是借鉴这些�
 
 视觉验收：
 
-- `apple-morandi-color-demo.html` 能覆盖当前所有前端颜色角色，不只展示单一色板。
+- 统一 demo 工作台的 `颜色系统` tab 能覆盖当前所有前端颜色角色，不只展示单一色板。
 - 服务、模块、措施三个 chip 在同一行时能一眼区分。
 - 图谱中心、技术、管理、标准四类节点和图例一致。
 - L0 / L1 / L2 / L3 在低饱和体系下有明显亮度差。
@@ -129,13 +130,13 @@ rg -n "#2563eb|#16a34a|#c56b2c|#0c56d0|#0052cc|#168957|#b86a1f|#6754c8|#e8f0ff|#
 
 第一步建议只做这些，不做更大结构改造：
 
-1. 把 `apple-morandi-color-demo.html` 中的整体 neutral、sidebar、search、segmented control 观感迁移到 `styles.css` 的全局 token 和 app shell。
+1. 把统一 demo 工作台 `颜色系统` tab 中的整体 neutral、sidebar、search、segmented control 观感迁移到 `styles.css` 的全局 token 和 app shell。
 2. 只调整颜色、背景、边框、阴影和圆角，不改业务布局和数据读取。
 3. 保持关系表、矩阵、图谱的现有 DOM 结构，避免把验证范围扩大。
 4. 完成后用上面的三条 smoke 覆盖 `capability`、`environment`、`lifecycle`。
 
 ## 当前状态
 
-- `apple-morandi-color-demo.html` 已扩展为当前颜色系统 demo，可通过 `5173` 打开。
+- 当前颜色系统 demo 已合并到统一 demo 工作台，可通过 `http://127.0.0.1:5173/environment-object-apple-shell-demo.html#color-system` 打开；`apple-morandi-color-demo.html` 仅作为嵌入来源保留。
 - `capability-workbench` 当前 `data_state=ready`。
 - 本轮配色交接不需要重新生成数据包。

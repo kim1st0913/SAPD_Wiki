@@ -1,0 +1,548 @@
+{
+  "packageType": "oi-149-p4-environment-object-projection",
+  "dataState": "ready",
+  "navOrdinal": 142,
+  "projectionKey": "environment_segment___________50fde557-c461-4ac6-9c9d-9e57dc653dd1__8eb22b46b054",
+  "projectionPath": "environment/projections/environment_segment___________50fde557-c461-4ac6-9c9d-9e57dc653dd1__8eb22b46b054.json",
+  "navigationPath": [
+    {
+      "depth": 0,
+      "id": "1fb4bf2d-7efd-4474-af53-e47dab39b178",
+      "type": "information_environment",
+      "code": "",
+      "title": "远程办公接入"
+    },
+    {
+      "depth": 1,
+      "id": "50fde557-c461-4ac6-9c9d-9e57dc653dd1",
+      "type": "environment_segment",
+      "code": "",
+      "title": "人员"
+    }
+  ],
+  "selectedNavigation": {
+    "id": "50fde557-c461-4ac6-9c9d-9e57dc653dd1",
+    "type": "environment_segment",
+    "code": "",
+    "title": "人员",
+    "navOrdinal": 142,
+    "projectionKey": "environment_segment___________50fde557-c461-4ac6-9c9d-9e57dc653dd1__8eb22b46b054",
+    "projectionPath": "environment/projections/environment_segment___________50fde557-c461-4ac6-9c9d-9e57dc653dd1__8eb22b46b054.json"
+  },
+  "ancestorNavigation": [
+    {
+      "id": "1fb4bf2d-7efd-4474-af53-e47dab39b178",
+      "type": "information_environment",
+      "code": "",
+      "title": "远程办公接入"
+    }
+  ],
+  "objectContextIds": [
+    "shadow:information_object_context:8ba92773e3b5c4b4"
+  ],
+  "contextKeys": [
+    "远程办公接入||人员||办公人员"
+  ],
+  "objects": {
+    "information_object": {
+      "shadow:information_object_context:8ba92773e3b5c4b4": {
+        "id": "shadow:information_object_context:8ba92773e3b5c4b4",
+        "type": "information_object",
+        "code": "",
+        "title": "办公人员",
+        "name": "办公人员",
+        "category": "",
+        "status": "",
+        "contextKey": "远程办公接入||人员||办公人员"
+      }
+    },
+    "scope_type": {
+      "shadow:scope_type:998405d9eaef340e": {
+        "id": "shadow:scope_type:998405d9eaef340e",
+        "type": "scope_type",
+        "code": "I-US",
+        "title": "用户",
+        "name": "用户",
+        "category": "",
+        "status": "",
+        "text": "I-US 用户"
+      }
+    },
+    "security_technical_service": {
+      "shadow:security_technical_service:80600d37b9a6e0d2": {
+        "id": "shadow:security_technical_service:80600d37b9a6e0d2",
+        "type": "security_technical_service",
+        "code": "I-US&T-AS.IA-01",
+        "title": "用户身份管理",
+        "name": "用户身份管理",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:812f64e6ca9af9cc": {
+        "id": "shadow:security_technical_service:812f64e6ca9af9cc",
+        "type": "security_technical_service",
+        "code": "I-US&T-AS.IA-04",
+        "title": "用户凭证管理",
+        "name": "用户凭证管理",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:41f4afc92863cfbf": {
+        "id": "shadow:security_technical_service:41f4afc92863cfbf",
+        "type": "security_technical_service",
+        "code": "I-US&T-AS.IA-02",
+        "title": "用户认证",
+        "name": "用户认证",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:2fef3e132b1b79a3": {
+        "id": "shadow:security_technical_service:2fef3e132b1b79a3",
+        "type": "security_technical_service",
+        "code": "I-US&T-AS.LA-03",
+        "title": "用户行为审计",
+        "name": "用户行为审计",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:f60aff1b2b8a70fb": {
+        "id": "shadow:security_technical_service:f60aff1b2b8a70fb",
+        "type": "security_technical_service",
+        "code": "I-US&T-PD.AC-02",
+        "title": "用户信誉评估",
+        "name": "用户信誉评估",
+        "category": "",
+        "status": ""
+      }
+    },
+    "security_technology_module": {
+      "shadow:security_technology_module:41d3fa8e4983d8f8": {
+        "id": "shadow:security_technology_module:41d3fa8e4983d8f8",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "零信任访问控制台",
+        "name": "零信任访问控制台",
+        "category": "",
+        "status": ""
+      }
+    },
+    "security_system": {
+      "shadow:security_system:e3ddf8d0ec7e0f1e": {
+        "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+        "type": "security_system",
+        "code": "",
+        "title": "零信任网络访问控制",
+        "name": "零信任网络访问控制",
+        "category": "",
+        "status": ""
+      }
+    }
+  },
+  "objectScopeTree": [
+    {
+      "id": "shadow:information_object_context:8ba92773e3b5c4b4",
+      "type": "information_object",
+      "title": "办公人员",
+      "contextKey": "远程办公接入||人员||办公人员",
+      "segments": [
+        {
+          "id": "shadow:environment_segment:003ac57509028e3b",
+          "type": "environment_segment",
+          "title": "人员"
+        }
+      ],
+      "scope_mappings": [
+        {
+          "scope": {
+            "id": "shadow:scope_type:998405d9eaef340e",
+            "type": "scope_type",
+            "code": "I-US",
+            "title": "用户",
+            "text": "I-US 用户"
+          },
+          "services": []
+        },
+        {
+          "scope": {
+            "id": "shadow:scope_type:152d886c135212f2",
+            "type": "scope_type",
+            "code": "",
+            "title": "I-US 用户",
+            "text": "I-US 用户"
+          },
+          "services": [
+            {
+              "id": "shadow:security_technical_service:80600d37b9a6e0d2",
+              "type": "security_technical_service",
+              "code": "I-US&T-AS.IA-01",
+              "title": "用户身份管理",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:41d3fa8e4983d8f8",
+                  "type": "security_technology_module",
+                  "title": "零信任访问控制台",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+                  "type": "security_system",
+                  "title": "零信任网络访问控制"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:41f4afc92863cfbf",
+              "type": "security_technical_service",
+              "code": "I-US&T-AS.IA-02",
+              "title": "用户认证",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:41d3fa8e4983d8f8",
+                  "type": "security_technology_module",
+                  "title": "零信任访问控制台",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+                  "type": "security_system",
+                  "title": "零信任网络访问控制"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:812f64e6ca9af9cc",
+              "type": "security_technical_service",
+              "code": "I-US&T-AS.IA-04",
+              "title": "用户凭证管理",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:41d3fa8e4983d8f8",
+                  "type": "security_technology_module",
+                  "title": "零信任访问控制台",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+                  "type": "security_system",
+                  "title": "零信任网络访问控制"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:2fef3e132b1b79a3",
+              "type": "security_technical_service",
+              "code": "I-US&T-AS.LA-03",
+              "title": "用户行为审计",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:41d3fa8e4983d8f8",
+                  "type": "security_technology_module",
+                  "title": "零信任访问控制台",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+                  "type": "security_system",
+                  "title": "零信任网络访问控制"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:f60aff1b2b8a70fb",
+              "type": "security_technical_service",
+              "code": "I-US&T-PD.AC-02",
+              "title": "用户信誉评估",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:41d3fa8e4983d8f8",
+                  "type": "security_technology_module",
+                  "title": "零信任访问控制台",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+                  "type": "security_system",
+                  "title": "零信任网络访问控制"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "scope_mapping_count": 2,
+      "service_count": 5,
+      "module_count": 1,
+      "measure_count": 0,
+      "security_system_count": 2
+    }
+  ],
+  "relations": [
+    {
+      "id": "reimport:relation:5a682617c9f2e69a",
+      "type": "applies_to_scope",
+      "sourceId": "shadow:information_object_context:8ba92773e3b5c4b4",
+      "sourceType": "information_object",
+      "targetId": "shadow:scope_type:998405d9eaef340e",
+      "targetType": "scope_type",
+      "label": "applies_to_scope",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "远程办公接入||人员||办公人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:dfa8d689b0f30897",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:80600d37b9a6e0d2",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:8ba92773e3b5c4b4",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "远程办公接入||人员||办公人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:09f75a71b9c5393e",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:812f64e6ca9af9cc",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:8ba92773e3b5c4b4",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "远程办公接入||人员||办公人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:992176653a447ba6",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:41f4afc92863cfbf",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:8ba92773e3b5c4b4",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "远程办公接入||人员||办公人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:b8c2492cb291103a",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:2fef3e132b1b79a3",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:8ba92773e3b5c4b4",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "远程办公接入||人员||办公人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:283100179100c844",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:f60aff1b2b8a70fb",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:8ba92773e3b5c4b4",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "远程办公接入||人员||办公人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:f42db1b0c156afa8",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:80600d37b9a6e0d2",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:41d3fa8e4983d8f8",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "远程办公接入||人员||办公人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:3de3572a34ba20b1",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:812f64e6ca9af9cc",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:41d3fa8e4983d8f8",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "远程办公接入||人员||办公人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:db37d061c8c362fa",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:41f4afc92863cfbf",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:41d3fa8e4983d8f8",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "远程办公接入||人员||办公人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:fce26bb66e32f420",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:2fef3e132b1b79a3",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:41d3fa8e4983d8f8",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "远程办公接入||人员||办公人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:7e7273c73d4ff2e3",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:f60aff1b2b8a70fb",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:41d3fa8e4983d8f8",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "远程办公接入||人员||办公人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:2c2e04e9a328b114",
+      "type": "part_of_system",
+      "sourceId": "shadow:security_technology_module:41d3fa8e4983d8f8",
+      "sourceType": "security_technology_module",
+      "targetId": "shadow:security_system:e3ddf8d0ec7e0f1e",
+      "targetType": "security_system",
+      "label": "part_of_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "远程办公接入||人员||办公人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:5f9057f7c9fe818d",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "远程办公接入||人员||办公人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:4591d3c485ba1d64",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "远程办公接入||人员||办公人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:9ae3424dc467face",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "远程办公接入||人员||办公人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:36356e6c04827e7a",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "远程办公接入||人员||办公人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:af324401b497679d",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "远程办公接入||人员||办公人员",
+      "evidenceRefCount": 0
+    }
+  ],
+  "relationCount": 17
+}

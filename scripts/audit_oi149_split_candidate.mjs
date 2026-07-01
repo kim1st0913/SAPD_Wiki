@@ -144,6 +144,7 @@ if (manifest) {
     duplicates: duplicateManifestPaths.slice(0, 10),
   });
   const required = [
+    "oi149-split-manifest.json",
     "capability/index.json",
     "environment/navigator.json",
     "maintenance/index.json",
@@ -153,6 +154,20 @@ if (manifest) {
   ];
   for (const relativePath of required) {
     addCheck(`required:${relativePath}`, fs.existsSync(path.join(publicDataDir, relativePath)), { path: relativePath });
+  }
+  const runtimeManifestPath = path.join(publicDataDir, "oi149-split-manifest.json");
+  if (fs.existsSync(runtimeManifestPath)) {
+    const runtimeManifest = readJson(runtimeManifestPath);
+    addCheck("runtime_split_manifest_contract", runtimeManifest.contract === "oi149-p4-split-v1", {
+      contract: runtimeManifest.contract,
+      packageType: runtimeManifest.packageType,
+    });
+    addCheck("runtime_split_manifest_capability_index", runtimeManifest.domains?.capability?.indexPath === "capability/index.json", {
+      capability: runtimeManifest.domains?.capability,
+    });
+    addCheck("runtime_split_manifest_environment_navigator", runtimeManifest.domains?.environment?.navigatorPath === "environment/navigator.json", {
+      environment: runtimeManifest.domains?.environment,
+    });
   }
 }
 
@@ -186,6 +201,7 @@ if (fs.existsSync(publicDataDir)) {
       "shared-lookups/service-module-index.json",
       "lifecycle/index.json",
       "standards/index.json",
+      "oi149-split-manifest.json",
     ].includes(path.relative(publicDataDir, filePath))
   );
   const firstScreenFailures = firstScreenFiles
@@ -200,12 +216,26 @@ if (fs.existsSync(publicDataDir)) {
   addCheck("runtime_projection_files_under_budget", projectionFailures.length === 0, { projectionFailures });
 
   const fieldFailures = [];
+  const runtimeStateFailures = [];
   for (const filePath of files) {
     const relativePath = path.relative(publicDataDir, filePath);
+    const value = readJson(filePath);
+    const packageType = String(value?.packageType || value?.package_type || "");
+    if (value?.dataState === "candidate" || value?.data_state === "candidate" || packageType.includes("candidate")) {
+      runtimeStateFailures.push({
+        path: relativePath,
+        packageType,
+        dataState: value?.dataState || value?.data_state || "",
+      });
+    }
     if (relativePath.endsWith("evidence.json")) continue;
-    const hits = scanForbiddenKeys(readJson(filePath));
+    const hits = scanForbiddenKeys(value);
     if (Object.keys(hits).length) fieldFailures.push({ path: relativePath, hits });
   }
+  addCheck("runtime_public_data_not_candidate_state", runtimeStateFailures.length === 0, {
+    failureCount: runtimeStateFailures.length,
+    failures: runtimeStateFailures.slice(0, 10),
+  });
   addCheck("runtime_field_boundary_pass", fieldFailures.length === 0, { fieldFailures });
 
   const environmentNavigatorPath = path.join(publicDataDir, "environment/navigator.json");
@@ -280,6 +310,66 @@ if (fs.existsSync(publicDataDir)) {
     addCheck("environment_projection_index_matches_navigator", indexMismatchRows.length === 0, {
       failureCount: indexMismatchRows.length,
       failures: sampleRows(indexMismatchRows),
+    });
+  }
+
+  const capabilityIndexPath = path.join(publicDataDir, "capability/index.json");
+  if (fs.existsSync(capabilityIndexPath)) {
+    const capabilityIndex = readJson(capabilityIndexPath);
+    const projectionRows = asArray(capabilityIndex.projections);
+    const topLevelRows = projectionRows.filter((row) => ["capability_category", "capability_domain"].includes(row.type));
+    const topLevelDetailFailures = [];
+    for (const row of topLevelRows) {
+      const projectionPath = path.join(publicDataDir, row.path || "");
+      if (!row.path || !fs.existsSync(projectionPath)) {
+        topLevelDetailFailures.push({ code: row.code, type: row.type, reason: "missing_projection_file", path: row.path || "" });
+        continue;
+      }
+      const projection = readJson(projectionPath);
+      if (
+        projection.detailMode !== "overview" ||
+        projection.objects ||
+        projection.relations ||
+        !projection.deferred?.technicalMappingRows ||
+        !projection.deferred?.managementMappingRows ||
+        !projection.deferred?.standardMappingRows ||
+        !projection.deferred?.standardControls
+      ) {
+        topLevelDetailFailures.push({
+          code: row.code,
+          type: row.type,
+          detailMode: projection.detailMode,
+          hasObjects: Boolean(projection.objects),
+          hasRelations: Boolean(projection.relations),
+          deferred: projection.deferred || null,
+        });
+      }
+    }
+    addCheck("capability_top_level_projections_are_overview_only", topLevelDetailFailures.length === 0, {
+      checkedRows: topLevelRows.length,
+      failureCount: topLevelDetailFailures.length,
+      failures: topLevelDetailFailures.slice(0, 10),
+    });
+
+    const focusRows = projectionRows.filter((row) => row.type === "capability_focus");
+    const focusDetailFailures = [];
+    for (const row of focusRows) {
+      const projectionPath = path.join(publicDataDir, row.path || "");
+      if (!row.path || !fs.existsSync(projectionPath)) continue;
+      const projection = readJson(projectionPath);
+      if (projection.detailMode !== "detail" || !projection.objects || !Array.isArray(projection.relations)) {
+        focusDetailFailures.push({
+          code: row.code,
+          detailMode: projection.detailMode,
+          hasObjects: Boolean(projection.objects),
+          hasRelations: Array.isArray(projection.relations),
+        });
+      }
+    }
+    addCheck("capability_focus_projections_keep_detail", focusDetailFailures.length === 0, {
+      checkedRows: focusRows.length,
+      failureCount: focusDetailFailures.length,
+      failures: focusDetailFailures.slice(0, 10),
     });
   }
 }

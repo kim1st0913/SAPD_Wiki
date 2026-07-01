@@ -4,10 +4,10 @@
 
 ## 摘要
 
-- 生成日期：2026-06-17
-- 问题总数：144
-- 当前未关闭问题数：9
-- 已关闭归档问题数：137
+- 生成日期：2026-06-01
+- 问题总数：160
+- 当前未关闭问题数：22
+- 已关闭归档问题数：138
 - 当前入口：`docs/06-implementation/open-issues.md`
 - 已关闭归档：`docs/05-archive/open-issues-history/2026-06.md`
 
@@ -20,15 +20,22 @@
 | 部分修复 / 待人工验收 | 1 |
 | 持续数据清理 / 待人工核对 | 1 |
 | 待确认 | 1 |
-| 待用户确认 / 候选包已生成 | 1 |
+| 待设计落地 / 待修复 | 1 |
+| 设计完成 / 待用户确认 | 1 |
 | 业务接受 | 5 |
-| 已关闭 | 1 |
+| 已关闭 | 4 |
 | 已回退 | 1 |
 | 已修复 | 127 |
-| 已修复 / 待人工验收 | 2 |
-| 已修复 / 待页面验收 | 1 |
+| 已修复 / 待打包验收 | 1 |
+| 已修复 / 待人工验收 | 1 |
+| 已修复 / 待页面验收 | 8 |
+| 已修复 / 待真实浏览器验收 | 1 |
+| 已修复 / 用户已验收 | 1 |
 | 已修复，后续可继续优化 | 1 |
 | 正式迁移脚本完成 / 真实库 apply 待显式确认 | 1 |
+| 正式投影已替换 / 待页面验收 | 1 |
+| P0 熔断已修复 / 终态修复后置 | 1 |
+| P4 正式 split apply 已完成 / 待页面人工验收与观察 | 1 |
 
 ## 重复编号
 
@@ -44,7 +51,6 @@
 
 | 索引键 | 状态 | 标题 | 类型 | 位置 |
 |---|---|---|---|---|
-| OI-141 | 待用户确认 / 候选包已生成 | LC-DT 原始数据更新后的服务、模块与分类候选问题 | 数据 / ETL / 候选包 | docs/06-implementation/open-issues.md |
 | OI-001 | 已修复 | 关注点被误判为未挂接 | ETL | docs/05-archive/open-issues-history/2026-06.md |
 | OI-002 | 已修复 | `ALL&T-AD.IR-02` 与 `ALL&T-AD.IR-03` 源数据编码混淆 | 数据 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-003 | 已修复 | 左侧能力树编码和标题重叠 | 前端 | docs/05-archive/open-issues-history/2026-06.md |
@@ -180,12 +186,28 @@
 | OI-134 | 已修复 | 安全能力 T-AD.SA 权威名称缺少“能力”后缀 | 数据 / 前端 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-136 | 已修复 | 深层路由直接访问未加载前端样式 | 前端 / 路由 / 交付体验 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-140 | 已关闭 | 知识库字典与安全标准 / 框架基准包被 core-only 导出覆盖 | 数据 / ETL / 前端数据包 / 治理 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-133 | 已关闭 | ArchiMate 建模语言页显示效果与加载效率优化 | 前端 / 设计 / 性能 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-143 | 已关闭 | 安全技术服务字典更新后运行包和派生产物仍有旧服务引用 | 数据 / ETL / 引用一致性 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-158 | 已关闭 | 指南幻灯片页面响应式尺寸不稳定且翻页控件不可用 | 前端 / 指南幻灯片 / 响应式布局 / 打包 App | docs/05-archive/open-issues-history/2026-06.md |
+| OI-157 | 已修复 / 待打包验收 | 打包测试反馈需要单独导出用户批注 | Delivery Bundle / 用户数据 / 批注 / 诊断 | docs/06-implementation/open-issues.md |
+| OI-156 | 已修复 / Apple 侧边把手与锚点契约已补 / 待人工视觉验收 | 全局批注定位 / 高亮性能退化导致页面假死 | 前端 / 批注 / 性能 / 定位 / 高亮 | docs/06-implementation/open-issues.md |
+| OI-155 | 设计完成 / 待用户确认 | 全局搜索产品形态与搜索结果页重设计 | 前端 / 产品设计 / 搜索 / 信息架构 / 性能边界 | docs/06-implementation/open-issues.md |
+| OI-154 | 待设计落地 / 待修复 | 页面内搜索功能回归与环境页搜索不可用 | 前端 / 搜索 / 页面内筛选 / 信息化环境映射 | docs/06-implementation/open-issues.md |
+| OI-153 | 已修复 / 待页面验收 | 批注抽屉底部卡片展开后当前批注显示不完整 | 前端 / 批注 / 交互 / 滚动可见性 | docs/06-implementation/open-issues.md |
+| OI-152 | 已修复 / 待页面验收 | LC-AP / LC-DT 旧批注阶段 ID 失效导致定位不到 | 前端 / 批注 / 生命周期页面 / 定位恢复 | docs/06-implementation/open-issues.md |
+| OI-151 | 已修复 / 待页面验收 | 信息化环境汇聚图节点缺少稳定业务锚点导致定位不到 | 前端 / 批注 / 信息化环境映射 / 锚点契约 | docs/06-implementation/open-issues.md |
+| OI-150 | 已修复 / 待真实浏览器验收 | 全局批注值定位缺少运行时索引导致定位慢 | 前端 / 批注 / 性能 / 定位索引 | docs/06-implementation/open-issues.md |
+| OI-149 | P4 正式 split apply 已完成 / 待页面人工验收与观察 | 前端 JSON 加载体量与首屏性能需分层治理 | 前端 / 数据包 / 性能 / JSON 治理 | docs/06-implementation/open-issues.md |
+| OI-148 | 已修复 / 待页面验收 | 全局批注在新环境页面缺少值级锚点与路由切换遮挡治理 | 前端 / 批注 / 全局交互 / 信息化环境映射 | docs/06-implementation/open-issues.md |
+| OI-147 | 已修复 / 待页面验收 | 信息化环境安全技术汇聚图措施误继承安全系统 | 数据 / 前端 / ViewModel / 信息化环境映射 | docs/06-implementation/open-issues.md |
+| OI-146 | 已修复 / 待页面验收 | 信息化环境安全技术汇聚图安全系统列未带出 | 前端 / ViewModel / 信息化环境映射 | docs/06-implementation/open-issues.md |
+| OI-145 | 已修复 / 待页面验收 | 本地 API Host/token 边界未统一拦截 | 安全 / 本地 API / 用户数据 | docs/06-implementation/open-issues.md |
+| OI-144 | 已修复 / 待页面验收 | 全局搜索与页面内搜索状态串线 | 前端 / 交互 / 状态管理 | docs/06-implementation/open-issues.md |
+| OI-142 | 已修复 / 用户已验收 | 安全技术服务清单能力-关注点顺序下服务显示不全 | 前端 / 数据消费链路 / 页面可见性 | docs/06-implementation/open-issues.md |
+| OI-141 | 正式投影已替换 / 待页面验收 | LC-DT 原始数据更新后的服务、模块与分类候选问题 | 数据 / ETL / 候选包 | docs/06-implementation/open-issues.md |
 | OI-139 | 持续数据清理 / 待人工核对 | 作用域-安全技术服务-安全技术模块映射导入关系与当前 JSON 投影不一致 | 数据 / ETL / 投影 | docs/06-implementation/open-issues.md |
 | OI-138 | 部分修复 / 待人工验收 | 关注点关系图谱标签与节点 / 连线碰撞 | 前端 / 图谱布局 / 设计 | docs/06-implementation/open-issues.md |
 | OI-137 | 已修复 / 待人工验收 | 信息化环境首页需导入 draw.io 第三页实例底图 | 前端 / 设计 / Draw.io 导入 | docs/06-implementation/open-issues.md |
 | OI-038 | 待确认 | Gartner 与安全职能候选映射需后续人工校对 | 数据 / 需求 | docs/06-implementation/open-issues.md |
 | OI-128 | 部分完成 | USER-WRITE-UI-1：批注 / 工作台用户写入入口 | 前端 / 用户数据 / Delivery Bundle | docs/06-implementation/open-issues.md |
-| OI-133 | 已关闭 | ArchiMate 建模语言页显示效果与加载效率优化 | 前端 / 设计 / 性能 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-135 | 正式迁移脚本完成 / 真实库 apply 待显式确认 | 用户库治理与兼容表迁移清理 | 数据 / 前端 / Delivery Bundle / 治理 | docs/06-implementation/open-issues.md |
-| OI-143 | 已关闭 | 安全技术服务字典更新后运行包和派生产物仍有旧服务引用 | 数据 / ETL / 引用一致性 | docs/05-archive/open-issues-history/2026-06.md |
-| OI-144 | 已修复 / 待页面验收 | 全局搜索与页面内搜索状态串线 | 前端 / 交互 / 状态管理 | docs/06-implementation/open-issues.md |

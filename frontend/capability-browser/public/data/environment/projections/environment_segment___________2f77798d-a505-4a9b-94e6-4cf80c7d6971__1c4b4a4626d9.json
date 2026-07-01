@@ -1,0 +1,799 @@
+{
+  "packageType": "oi-149-p4-environment-object-projection",
+  "dataState": "ready",
+  "navOrdinal": 109,
+  "projectionKey": "environment_segment___________2f77798d-a505-4a9b-94e6-4cf80c7d6971__1c4b4a4626d9",
+  "projectionPath": "environment/projections/environment_segment___________2f77798d-a505-4a9b-94e6-4cf80c7d6971__1c4b4a4626d9.json",
+  "navigationPath": [
+    {
+      "depth": 0,
+      "id": "e47b60c0-5c3e-401c-abb7-b6b44503bdb0",
+      "type": "information_environment",
+      "code": "",
+      "title": "广域网"
+    },
+    {
+      "depth": 1,
+      "id": "2f77798d-a505-4a9b-94e6-4cf80c7d6971",
+      "type": "environment_segment",
+      "code": "",
+      "title": "广域网骨干节点"
+    }
+  ],
+  "selectedNavigation": {
+    "id": "2f77798d-a505-4a9b-94e6-4cf80c7d6971",
+    "type": "environment_segment",
+    "code": "",
+    "title": "广域网骨干节点",
+    "navOrdinal": 109,
+    "projectionKey": "environment_segment___________2f77798d-a505-4a9b-94e6-4cf80c7d6971__1c4b4a4626d9",
+    "projectionPath": "environment/projections/environment_segment___________2f77798d-a505-4a9b-94e6-4cf80c7d6971__1c4b4a4626d9.json"
+  },
+  "ancestorNavigation": [
+    {
+      "id": "e47b60c0-5c3e-401c-abb7-b6b44503bdb0",
+      "type": "information_environment",
+      "code": "",
+      "title": "广域网"
+    }
+  ],
+  "objectContextIds": [
+    "shadow:information_object_context:ddbe4a155c057fe4"
+  ],
+  "contextKeys": [
+    "广域网||广域网骨干节点||广域网骨干节点"
+  ],
+  "objects": {
+    "information_object": {
+      "shadow:information_object_context:ddbe4a155c057fe4": {
+        "id": "shadow:information_object_context:ddbe4a155c057fe4",
+        "type": "information_object",
+        "code": "",
+        "title": "广域网骨干节点",
+        "name": "广域网骨干节点",
+        "category": "",
+        "status": "",
+        "contextKey": "广域网||广域网骨干节点||广域网骨干节点"
+      }
+    },
+    "scope_type": {
+      "shadow:scope_type:c7ebc38ae1f4adc8": {
+        "id": "shadow:scope_type:c7ebc38ae1f4adc8",
+        "type": "scope_type",
+        "code": "I-NT",
+        "title": "网络",
+        "name": "网络",
+        "category": "",
+        "status": "",
+        "text": "I-NT 网络"
+      },
+      "shadow:scope_type:3c7c53a6f343e04f": {
+        "id": "shadow:scope_type:3c7c53a6f343e04f",
+        "type": "scope_type",
+        "code": "I-DI",
+        "title": "数据与信息",
+        "name": "数据与信息",
+        "category": "",
+        "status": "",
+        "text": "I-DI 数据与信息"
+      }
+    },
+    "security_technical_service": {
+      "shadow:security_technical_service:8d9504d5dac695d0": {
+        "id": "shadow:security_technical_service:8d9504d5dac695d0",
+        "type": "security_technical_service",
+        "code": "I-NT&T-PD.PP-03",
+        "title": "网络隔离",
+        "name": "网络隔离",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:7bb10a5cb5d52149": {
+        "id": "shadow:security_technical_service:7bb10a5cb5d52149",
+        "type": "security_technical_service",
+        "code": "I-NT&T-PD.TP-02",
+        "title": "网络流量特征检测",
+        "name": "网络流量特征检测",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:22f8422e048c33ed": {
+        "id": "shadow:security_technical_service:22f8422e048c33ed",
+        "type": "security_technical_service",
+        "code": "I-NT&T-AD.SA-01",
+        "title": "网络高级威胁检测（启发式、行为式）",
+        "name": "网络高级威胁检测（启发式、行为式）",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:70fd99d9cfadbdd5": {
+        "id": "shadow:security_technical_service:70fd99d9cfadbdd5",
+        "type": "security_technical_service",
+        "code": "I-NT&T-AS.LA-03",
+        "title": "网络流量（行为）日志审计",
+        "name": "网络流量（行为）日志审计",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:c3c9ef99fe7e3046": {
+        "id": "shadow:security_technical_service:c3c9ef99fe7e3046",
+        "type": "security_technical_service",
+        "code": "I-DI&T-PD.DP-05",
+        "title": "数据流转监测",
+        "name": "数据流转监测",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:65ff5b466a69a47b": {
+        "id": "shadow:security_technical_service:65ff5b466a69a47b",
+        "type": "security_technical_service",
+        "code": "I-NT&T-AS.AD-02",
+        "title": "网络冗余",
+        "name": "网络冗余",
+        "category": "",
+        "status": ""
+      }
+    },
+    "security_technology_module": {
+      "shadow:security_technology_module:ff91979f76aa48e8": {
+        "id": "shadow:security_technology_module:ff91979f76aa48e8",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "网络防火墙",
+        "name": "网络防火墙",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technology_module:95383e3ec5edaf2b": {
+        "id": "shadow:security_technology_module:95383e3ec5edaf2b",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "网络入侵检测",
+        "name": "网络入侵检测",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technology_module:9c5091e9b1e85623": {
+        "id": "shadow:security_technology_module:9c5091e9b1e85623",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "高级威胁检测",
+        "name": "高级威胁检测",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technology_module:b57879b221ecf2ea": {
+        "id": "shadow:security_technology_module:b57879b221ecf2ea",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "文件检测沙箱",
+        "name": "文件检测沙箱",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technology_module:905eba2a8ff58050": {
+        "id": "shadow:security_technology_module:905eba2a8ff58050",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "网络安全审计",
+        "name": "网络安全审计",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technology_module:e3eed2140115631f": {
+        "id": "shadow:security_technology_module:e3eed2140115631f",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "数据流转监测和泄漏防护",
+        "name": "数据流转监测和泄漏防护",
+        "category": "",
+        "status": ""
+      }
+    },
+    "security_technical_measure": {
+      "shadow:security_technical_measure:3260cba7cc735403": {
+        "id": "shadow:security_technical_measure:3260cba7cc735403",
+        "type": "security_technical_measure",
+        "code": "",
+        "title": "网络高可用性设计",
+        "name": "网络高可用性设计",
+        "category": "",
+        "status": ""
+      }
+    },
+    "security_system": {
+      "shadow:security_system:8a34f55c60037368": {
+        "id": "shadow:security_system:8a34f55c60037368",
+        "type": "security_system",
+        "code": "",
+        "title": "网络边界安全防护",
+        "name": "网络边界安全防护",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_system:61adeb464d9967f8": {
+        "id": "shadow:security_system:61adeb464d9967f8",
+        "type": "security_system",
+        "code": "",
+        "title": "数据安全防护",
+        "name": "数据安全防护",
+        "category": "",
+        "status": ""
+      }
+    }
+  },
+  "objectScopeTree": [
+    {
+      "id": "shadow:information_object_context:ddbe4a155c057fe4",
+      "type": "information_object",
+      "title": "广域网骨干节点",
+      "contextKey": "广域网||广域网骨干节点||广域网骨干节点",
+      "segments": [
+        {
+          "id": "shadow:environment_segment:caa65bc585a90982",
+          "type": "environment_segment",
+          "title": "广域网骨干节点"
+        }
+      ],
+      "scope_mappings": [
+        {
+          "scope": {
+            "id": "shadow:scope_type:c7ebc38ae1f4adc8",
+            "type": "scope_type",
+            "code": "I-NT",
+            "title": "网络",
+            "text": "I-NT 网络"
+          },
+          "services": []
+        },
+        {
+          "scope": {
+            "id": "shadow:scope_type:3c7c53a6f343e04f",
+            "type": "scope_type",
+            "code": "I-DI",
+            "title": "数据与信息",
+            "text": "I-DI 数据与信息"
+          },
+          "services": []
+        },
+        {
+          "scope": {
+            "id": "shadow:scope_type:3e3727a53ab1d629",
+            "type": "scope_type",
+            "code": "",
+            "title": "I-NT 网络 I-DI 数据与信息",
+            "text": "I-NT 网络 I-DI 数据与信息"
+          },
+          "services": [
+            {
+              "id": "shadow:security_technical_service:c3c9ef99fe7e3046",
+              "type": "security_technical_service",
+              "code": "I-DI&T-PD.DP-05",
+              "title": "数据流转监测",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:e3eed2140115631f",
+                  "type": "security_technology_module",
+                  "title": "数据流转监测和泄漏防护",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:e337aee03d959fea",
+                      "type": "security_system",
+                      "title": "数据安全防护"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:61adeb464d9967f8",
+                  "type": "security_system",
+                  "title": "数据安全防护"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:22f8422e048c33ed",
+              "type": "security_technical_service",
+              "code": "I-NT&T-AD.SA-01",
+              "title": "网络高级威胁检测（启发式、行为式）",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:9c5091e9b1e85623",
+                  "type": "security_technology_module",
+                  "title": "高级威胁检测",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:03ea78377cc99b30",
+                      "type": "security_system",
+                      "title": "网络边界安全防护"
+                    }
+                  ]
+                },
+                {
+                  "id": "shadow:security_technology_module:b57879b221ecf2ea",
+                  "type": "security_technology_module",
+                  "title": "文件检测沙箱",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:03ea78377cc99b30",
+                      "type": "security_system",
+                      "title": "网络边界安全防护"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:8a34f55c60037368",
+                  "type": "security_system",
+                  "title": "网络边界安全防护"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:65ff5b466a69a47b",
+              "type": "security_technical_service",
+              "code": "I-NT&T-AS.AD-02",
+              "title": "网络冗余",
+              "modules": [],
+              "measures": [
+                {
+                  "id": "shadow:security_technical_measure:3260cba7cc735403",
+                  "type": "security_technical_measure",
+                  "title": "网络高可用性设计"
+                }
+              ],
+              "securitySystems": []
+            },
+            {
+              "id": "shadow:security_technical_service:70fd99d9cfadbdd5",
+              "type": "security_technical_service",
+              "code": "I-NT&T-AS.LA-03",
+              "title": "网络流量（行为）日志审计",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:905eba2a8ff58050",
+                  "type": "security_technology_module",
+                  "title": "网络安全审计",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:03ea78377cc99b30",
+                      "type": "security_system",
+                      "title": "网络边界安全防护"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:8a34f55c60037368",
+                  "type": "security_system",
+                  "title": "网络边界安全防护"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:8d9504d5dac695d0",
+              "type": "security_technical_service",
+              "code": "I-NT&T-PD.PP-03",
+              "title": "网络隔离",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:ff91979f76aa48e8",
+                  "type": "security_technology_module",
+                  "title": "网络防火墙",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:03ea78377cc99b30",
+                      "type": "security_system",
+                      "title": "网络边界安全防护"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:8a34f55c60037368",
+                  "type": "security_system",
+                  "title": "网络边界安全防护"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:7bb10a5cb5d52149",
+              "type": "security_technical_service",
+              "code": "I-NT&T-PD.TP-02",
+              "title": "网络流量特征检测",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:95383e3ec5edaf2b",
+                  "type": "security_technology_module",
+                  "title": "网络入侵检测",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:03ea78377cc99b30",
+                      "type": "security_system",
+                      "title": "网络边界安全防护"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:8a34f55c60037368",
+                  "type": "security_system",
+                  "title": "网络边界安全防护"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "scope_mapping_count": 3,
+      "service_count": 6,
+      "module_count": 6,
+      "measure_count": 1,
+      "security_system_count": 4
+    }
+  ],
+  "relations": [
+    {
+      "id": "reimport:relation:223e9627d6537534",
+      "type": "applies_to_scope",
+      "sourceId": "shadow:information_object_context:ddbe4a155c057fe4",
+      "sourceType": "information_object",
+      "targetId": "shadow:scope_type:c7ebc38ae1f4adc8",
+      "targetType": "scope_type",
+      "label": "applies_to_scope",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "广域网||广域网骨干节点||广域网骨干节点",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:defc17db564ceda6",
+      "type": "applies_to_scope",
+      "sourceId": "shadow:information_object_context:ddbe4a155c057fe4",
+      "sourceType": "information_object",
+      "targetId": "shadow:scope_type:3c7c53a6f343e04f",
+      "targetType": "scope_type",
+      "label": "applies_to_scope",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "广域网||广域网骨干节点||广域网骨干节点",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:5170092f596a9f68",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:8d9504d5dac695d0",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:ddbe4a155c057fe4",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "广域网||广域网骨干节点||广域网骨干节点",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:b11637e90bcd4adf",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:7bb10a5cb5d52149",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:ddbe4a155c057fe4",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "广域网||广域网骨干节点||广域网骨干节点",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:66bd7e5b4e3d5dc7",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:22f8422e048c33ed",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:ddbe4a155c057fe4",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "广域网||广域网骨干节点||广域网骨干节点",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:34451489f70e7c07",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:70fd99d9cfadbdd5",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:ddbe4a155c057fe4",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "广域网||广域网骨干节点||广域网骨干节点",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:966da242e93f5dac",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:c3c9ef99fe7e3046",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:ddbe4a155c057fe4",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "广域网||广域网骨干节点||广域网骨干节点",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:f970c3c3277d284d",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:65ff5b466a69a47b",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:ddbe4a155c057fe4",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "广域网||广域网骨干节点||广域网骨干节点",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:a8f89ff421eb23f9",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:8d9504d5dac695d0",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:ff91979f76aa48e8",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "广域网||广域网骨干节点||广域网骨干节点",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:0fc792abc796b762",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:7bb10a5cb5d52149",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:95383e3ec5edaf2b",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "广域网||广域网骨干节点||广域网骨干节点",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:1687fb1c39d42a7c",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:22f8422e048c33ed",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:9c5091e9b1e85623",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "广域网||广域网骨干节点||广域网骨干节点",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:77bc76f79c0de0c0",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:22f8422e048c33ed",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:b57879b221ecf2ea",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "广域网||广域网骨干节点||广域网骨干节点",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:23e82105090aa2d6",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:70fd99d9cfadbdd5",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:905eba2a8ff58050",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "广域网||广域网骨干节点||广域网骨干节点",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:571bbafec1b9eabe",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:c3c9ef99fe7e3046",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:e3eed2140115631f",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "广域网||广域网骨干节点||广域网骨干节点",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:bf7ad5ad657ce059",
+      "type": "has_measure",
+      "sourceId": "shadow:security_technical_service:65ff5b466a69a47b",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technical_measure:3260cba7cc735403",
+      "targetType": "security_technical_measure",
+      "label": "has_measure",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "广域网||广域网骨干节点||广域网骨干节点",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:ecb3e85b57bc0693",
+      "type": "part_of_system",
+      "sourceId": "shadow:security_technology_module:ff91979f76aa48e8",
+      "sourceType": "security_technology_module",
+      "targetId": "shadow:security_system:8a34f55c60037368",
+      "targetType": "security_system",
+      "label": "part_of_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "广域网||广域网骨干节点||广域网骨干节点",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:396c8b0e19d47d0f",
+      "type": "part_of_system",
+      "sourceId": "shadow:security_technology_module:95383e3ec5edaf2b",
+      "sourceType": "security_technology_module",
+      "targetId": "shadow:security_system:8a34f55c60037368",
+      "targetType": "security_system",
+      "label": "part_of_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "广域网||广域网骨干节点||广域网骨干节点",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:6c5c02d0dc300ce4",
+      "type": "part_of_system",
+      "sourceId": "shadow:security_technology_module:9c5091e9b1e85623",
+      "sourceType": "security_technology_module",
+      "targetId": "shadow:security_system:8a34f55c60037368",
+      "targetType": "security_system",
+      "label": "part_of_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "广域网||广域网骨干节点||广域网骨干节点",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:79f62b6bd6ccd70a",
+      "type": "part_of_system",
+      "sourceId": "shadow:security_technology_module:b57879b221ecf2ea",
+      "sourceType": "security_technology_module",
+      "targetId": "shadow:security_system:8a34f55c60037368",
+      "targetType": "security_system",
+      "label": "part_of_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "广域网||广域网骨干节点||广域网骨干节点",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:0876bdc8db988089",
+      "type": "part_of_system",
+      "sourceId": "shadow:security_technology_module:905eba2a8ff58050",
+      "sourceType": "security_technology_module",
+      "targetId": "shadow:security_system:8a34f55c60037368",
+      "targetType": "security_system",
+      "label": "part_of_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "广域网||广域网骨干节点||广域网骨干节点",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:a3c21c267325e313",
+      "type": "part_of_system",
+      "sourceId": "shadow:security_technology_module:e3eed2140115631f",
+      "sourceType": "security_technology_module",
+      "targetId": "shadow:security_system:61adeb464d9967f8",
+      "targetType": "security_system",
+      "label": "part_of_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "广域网||广域网骨干节点||广域网骨干节点",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:6b83133fc7cffcaa",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "广域网||广域网骨干节点||广域网骨干节点",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:46e5ec76637b4024",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "广域网||广域网骨干节点||广域网骨干节点",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:69ff37e80a0a3694",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "广域网||广域网骨干节点||广域网骨干节点",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:887268793ec80e71",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "广域网||广域网骨干节点||广域网骨干节点",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:e9ede23144b9392c",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "广域网||广域网骨干节点||广域网骨干节点",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:e0604451860bebb4",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "广域网||广域网骨干节点||广域网骨干节点",
+      "evidenceRefCount": 0
+    }
+  ],
+  "relationCount": 27
+}

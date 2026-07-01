@@ -249,6 +249,7 @@ async function main() {
   const guideExpectation = GUIDE_ROUTE_EXPECTATIONS[route] || null;
   const expectedGuidePage21 = guideExpectation ? `第 21 / ${guideExpectation.thumbs} 页` : "";
   const expectedGuidePage22 = guideExpectation ? `第 22 / ${guideExpectation.thumbs} 页` : "";
+  const expectedGuidePage23 = guideExpectation ? `第 23 / ${guideExpectation.thumbs} 页` : "";
   const usesSystemGoogleChrome = chromePath.includes("/Applications/Google Chrome.app/");
   if (usesSystemGoogleChrome && !allowSystemChrome) {
     await lightweightHttpSmoke({
@@ -448,6 +449,25 @@ async function main() {
             overlayPointerEventsAfterLeave: controls ? getComputedStyle(controls).pointerEvents : ''
           };
         })()`);
+        const nextButtonPoint = await evaluate(`(() => {
+          const button = document.querySelector('[data-content-slide-step="1"]');
+          const rect = button?.getBoundingClientRect();
+          if (!button || button.disabled || !rect) return null;
+          return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+        })()`);
+        if (nextButtonPoint) {
+          await send("Input.dispatchMouseEvent", { type: "mouseMoved", x: nextButtonPoint.x, y: nextButtonPoint.y });
+          await send("Input.dispatchMouseEvent", { type: "mousePressed", x: nextButtonPoint.x, y: nextButtonPoint.y, button: "left", clickCount: 1 });
+          await send("Input.dispatchMouseEvent", { type: "mouseReleased", x: nextButtonPoint.x, y: nextButtonPoint.y, button: "left", clickCount: 1 });
+          await sleep(260);
+          await evaluate(`(() => {
+            window.__sapdGuideInteractionProbe = {
+              ...(window.__sapdGuideInteractionProbe || {}),
+              afterPointerClickPage: document.querySelector('.guide-slide-page')?.textContent || '',
+              activeThumbAfterPointerClick: document.querySelector('.guide-thumb.active span')?.textContent || ''
+            };
+          })()`);
+        }
       }
     }
     if (maintenanceSearch) {
@@ -661,12 +681,20 @@ async function main() {
         guideToolbarPresent: Boolean(document.querySelector('.guide-slide-toolbar')),
         pageHeaderActionButtons: document.querySelectorAll('#appPageHeader .page-header-actions button').length,
         guideThumbs: document.querySelectorAll('.guide-thumb').length,
-        guideCurrentPage: document.querySelector('.guide-slide-page')?.textContent || '',
-        guideImageLoaded: (document.querySelector('.guide-slide-stage img')?.naturalWidth || 0) > 0,
-        guideStageBottomGap: (() => {
-          const rect = document.querySelector('.guide-slide-stage')?.getBoundingClientRect();
-          return rect ? Math.round(window.innerHeight - rect.bottom) : null;
-        })(),
+          guideCurrentPage: document.querySelector('.guide-slide-page')?.textContent || '',
+          guideImageLoaded: (document.querySelector('.guide-slide-stage img')?.naturalWidth || 0) > 0,
+          guideStageAspectRatio: (() => {
+            const rect = document.querySelector('.guide-slide-stage')?.getBoundingClientRect();
+            return rect ? Number((rect.width / rect.height).toFixed(4)) : null;
+          })(),
+          guideStageViewportOverflow: (() => {
+            const rect = document.querySelector('.guide-slide-stage')?.getBoundingClientRect();
+            return rect ? rect.bottom - window.innerHeight : null;
+          })(),
+          guideStageBottomGap: (() => {
+            const rect = document.querySelector('.guide-slide-stage')?.getBoundingClientRect();
+            return rect ? Math.round(window.innerHeight - rect.bottom) : null;
+          })(),
         guideImageBottomGap: (() => {
           const rect = document.querySelector('.guide-slide-stage img')?.getBoundingClientRect();
           return rect ? Math.round(window.innerHeight - rect.bottom) : null;
@@ -739,17 +767,21 @@ async function main() {
         (!metrics.guideInteractionProbe?.clickScrollPreserved ||
           metrics.guideInteractionProbe?.afterClickPage !== expectedGuidePage21 ||
           metrics.guideInteractionProbe?.afterKeyPage !== expectedGuidePage22 ||
+          metrics.guideInteractionProbe?.afterPointerClickPage !== expectedGuidePage23 ||
           metrics.guideInteractionProbe?.activeThumbText !== "22" ||
+          metrics.guideInteractionProbe?.activeThumbAfterPointerClick !== "23" ||
           metrics.guideInteractionProbe?.navTitle !== "幻灯片目录" ||
           metrics.guideInteractionProbe?.navTitleTextAlign !== "center" ||
           metrics.guideInteractionProbe?.navHeadJustify !== "center" ||
-          metrics.guideInteractionProbe?.overlayOpacityBeforeHover !== "0" ||
+          Number(metrics.guideInteractionProbe?.overlayOpacityBeforeHover || 0) < 0.95 ||
           Number(metrics.guideInteractionProbe?.overlayOpacityAfterHover || 0) < 0.95 ||
           metrics.guideInteractionProbe?.overlayPointerEventsAfterHover !== "auto" ||
           metrics.guideInteractionProbe?.overlayPageText !== expectedGuidePage22 ||
-          metrics.guideInteractionProbe?.overlayOpacityAfterMoveToSlide !== "0" ||
-          metrics.guideInteractionProbe?.overlayOpacityAfterLeave !== "0" ||
-          metrics.guideInteractionProbe?.overlayPointerEventsAfterLeave !== "auto")) ||
+          Number(metrics.guideInteractionProbe?.overlayOpacityAfterMoveToSlide || 0) < 0.95 ||
+          Number(metrics.guideInteractionProbe?.overlayOpacityAfterLeave || 0) < 0.95 ||
+          metrics.guideInteractionProbe?.overlayPointerEventsAfterLeave !== "auto" ||
+          Math.abs((metrics.guideStageAspectRatio || 0) - 1.7778) > 0.02 ||
+          Number(metrics.guideStageViewportOverflow || 0) > 4)) ||
       metrics.tooltipProbe?.visible > 1;
     const summary = {
       page: pageName,

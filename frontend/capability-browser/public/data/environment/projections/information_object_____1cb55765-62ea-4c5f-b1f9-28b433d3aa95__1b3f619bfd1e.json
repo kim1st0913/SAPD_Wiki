@@ -1,0 +1,561 @@
+{
+  "packageType": "oi-149-p4-environment-object-projection",
+  "dataState": "ready",
+  "navOrdinal": 81,
+  "projectionKey": "information_object_____1cb55765-62ea-4c5f-b1f9-28b433d3aa95__1b3f619bfd1e",
+  "projectionPath": "environment/projections/information_object_____1cb55765-62ea-4c5f-b1f9-28b433d3aa95__1b3f619bfd1e.json",
+  "navigationPath": [
+    {
+      "depth": 0,
+      "id": "4abdf7e2-a2c3-42df-8cf4-fa9c9a38981e",
+      "type": "information_environment",
+      "code": "",
+      "title": "园区网"
+    },
+    {
+      "depth": 1,
+      "id": "1b0ccff9-09bd-4e6c-9345-f1126f45b772",
+      "type": "environment_segment",
+      "code": "",
+      "title": "人员"
+    },
+    {
+      "depth": 2,
+      "id": "1cb55765-62ea-4c5f-b1f9-28b433d3aa95",
+      "type": "information_object",
+      "code": "",
+      "title": "办公人员"
+    }
+  ],
+  "selectedNavigation": {
+    "id": "1cb55765-62ea-4c5f-b1f9-28b433d3aa95",
+    "type": "information_object",
+    "code": "",
+    "title": "办公人员",
+    "navOrdinal": 81,
+    "projectionKey": "information_object_____1cb55765-62ea-4c5f-b1f9-28b433d3aa95__1b3f619bfd1e",
+    "projectionPath": "environment/projections/information_object_____1cb55765-62ea-4c5f-b1f9-28b433d3aa95__1b3f619bfd1e.json"
+  },
+  "ancestorNavigation": [
+    {
+      "id": "4abdf7e2-a2c3-42df-8cf4-fa9c9a38981e",
+      "type": "information_environment",
+      "code": "",
+      "title": "园区网"
+    },
+    {
+      "id": "1b0ccff9-09bd-4e6c-9345-f1126f45b772",
+      "type": "environment_segment",
+      "code": "",
+      "title": "人员"
+    }
+  ],
+  "objectContextIds": [
+    "shadow:information_object_context:c01133731e66d2e8"
+  ],
+  "contextKeys": [
+    "园区网||人员||办公人员"
+  ],
+  "objects": {
+    "information_object": {
+      "shadow:information_object_context:c01133731e66d2e8": {
+        "id": "shadow:information_object_context:c01133731e66d2e8",
+        "type": "information_object",
+        "code": "",
+        "title": "办公人员",
+        "name": "办公人员",
+        "category": "",
+        "status": "",
+        "contextKey": "园区网||人员||办公人员"
+      }
+    },
+    "scope_type": {
+      "shadow:scope_type:998405d9eaef340e": {
+        "id": "shadow:scope_type:998405d9eaef340e",
+        "type": "scope_type",
+        "code": "I-US",
+        "title": "用户",
+        "name": "用户",
+        "category": "",
+        "status": "",
+        "text": "I-US 用户"
+      }
+    },
+    "security_technical_service": {
+      "shadow:security_technical_service:80600d37b9a6e0d2": {
+        "id": "shadow:security_technical_service:80600d37b9a6e0d2",
+        "type": "security_technical_service",
+        "code": "I-US&T-AS.IA-01",
+        "title": "用户身份管理",
+        "name": "用户身份管理",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:812f64e6ca9af9cc": {
+        "id": "shadow:security_technical_service:812f64e6ca9af9cc",
+        "type": "security_technical_service",
+        "code": "I-US&T-AS.IA-04",
+        "title": "用户凭证管理",
+        "name": "用户凭证管理",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:41f4afc92863cfbf": {
+        "id": "shadow:security_technical_service:41f4afc92863cfbf",
+        "type": "security_technical_service",
+        "code": "I-US&T-AS.IA-02",
+        "title": "用户认证",
+        "name": "用户认证",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:2fef3e132b1b79a3": {
+        "id": "shadow:security_technical_service:2fef3e132b1b79a3",
+        "type": "security_technical_service",
+        "code": "I-US&T-AS.LA-03",
+        "title": "用户行为审计",
+        "name": "用户行为审计",
+        "category": "",
+        "status": ""
+      },
+      "shadow:security_technical_service:f60aff1b2b8a70fb": {
+        "id": "shadow:security_technical_service:f60aff1b2b8a70fb",
+        "type": "security_technical_service",
+        "code": "I-US&T-PD.AC-02",
+        "title": "用户信誉评估",
+        "name": "用户信誉评估",
+        "category": "",
+        "status": ""
+      }
+    },
+    "security_technology_module": {
+      "shadow:security_technology_module:41d3fa8e4983d8f8": {
+        "id": "shadow:security_technology_module:41d3fa8e4983d8f8",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "零信任访问控制台",
+        "name": "零信任访问控制台",
+        "category": "",
+        "status": ""
+      }
+    },
+    "security_system": {
+      "shadow:security_system:e3ddf8d0ec7e0f1e": {
+        "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+        "type": "security_system",
+        "code": "",
+        "title": "零信任网络访问控制",
+        "name": "零信任网络访问控制",
+        "category": "",
+        "status": ""
+      }
+    }
+  },
+  "objectScopeTree": [
+    {
+      "id": "shadow:information_object_context:c01133731e66d2e8",
+      "type": "information_object",
+      "title": "办公人员",
+      "contextKey": "园区网||人员||办公人员",
+      "segments": [
+        {
+          "id": "shadow:environment_segment:d00fb5da312742f4",
+          "type": "environment_segment",
+          "title": "人员"
+        }
+      ],
+      "scope_mappings": [
+        {
+          "scope": {
+            "id": "shadow:scope_type:998405d9eaef340e",
+            "type": "scope_type",
+            "code": "I-US",
+            "title": "用户",
+            "text": "I-US 用户"
+          },
+          "services": []
+        },
+        {
+          "scope": {
+            "id": "shadow:scope_type:152d886c135212f2",
+            "type": "scope_type",
+            "code": "",
+            "title": "I-US 用户",
+            "text": "I-US 用户"
+          },
+          "services": [
+            {
+              "id": "shadow:security_technical_service:80600d37b9a6e0d2",
+              "type": "security_technical_service",
+              "code": "I-US&T-AS.IA-01",
+              "title": "用户身份管理",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:41d3fa8e4983d8f8",
+                  "type": "security_technology_module",
+                  "title": "零信任访问控制台",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+                  "type": "security_system",
+                  "title": "零信任网络访问控制"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:41f4afc92863cfbf",
+              "type": "security_technical_service",
+              "code": "I-US&T-AS.IA-02",
+              "title": "用户认证",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:41d3fa8e4983d8f8",
+                  "type": "security_technology_module",
+                  "title": "零信任访问控制台",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+                  "type": "security_system",
+                  "title": "零信任网络访问控制"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:812f64e6ca9af9cc",
+              "type": "security_technical_service",
+              "code": "I-US&T-AS.IA-04",
+              "title": "用户凭证管理",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:41d3fa8e4983d8f8",
+                  "type": "security_technology_module",
+                  "title": "零信任访问控制台",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+                  "type": "security_system",
+                  "title": "零信任网络访问控制"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:2fef3e132b1b79a3",
+              "type": "security_technical_service",
+              "code": "I-US&T-AS.LA-03",
+              "title": "用户行为审计",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:41d3fa8e4983d8f8",
+                  "type": "security_technology_module",
+                  "title": "零信任访问控制台",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+                  "type": "security_system",
+                  "title": "零信任网络访问控制"
+                }
+              ]
+            },
+            {
+              "id": "shadow:security_technical_service:f60aff1b2b8a70fb",
+              "type": "security_technical_service",
+              "code": "I-US&T-PD.AC-02",
+              "title": "用户信誉评估",
+              "modules": [
+                {
+                  "id": "shadow:security_technology_module:41d3fa8e4983d8f8",
+                  "type": "security_technology_module",
+                  "title": "零信任访问控制台",
+                  "systems": [
+                    {
+                      "id": "reimport:security_system:1aa40a7e80303fe8",
+                      "type": "security_system",
+                      "title": "零信任网络访问控制"
+                    }
+                  ]
+                }
+              ],
+              "measures": [],
+              "securitySystems": [
+                {
+                  "id": "shadow:security_system:e3ddf8d0ec7e0f1e",
+                  "type": "security_system",
+                  "title": "零信任网络访问控制"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "scope_mapping_count": 2,
+      "service_count": 5,
+      "module_count": 1,
+      "measure_count": 0,
+      "security_system_count": 2
+    }
+  ],
+  "relations": [
+    {
+      "id": "reimport:relation:9b189ac77e252385",
+      "type": "applies_to_scope",
+      "sourceId": "shadow:information_object_context:c01133731e66d2e8",
+      "sourceType": "information_object",
+      "targetId": "shadow:scope_type:998405d9eaef340e",
+      "targetType": "scope_type",
+      "label": "applies_to_scope",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||人员||办公人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:d8491a3521cb7ae0",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:80600d37b9a6e0d2",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:c01133731e66d2e8",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||人员||办公人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:85423c9d25a32dda",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:812f64e6ca9af9cc",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:c01133731e66d2e8",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||人员||办公人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:f390b4c3b28c6216",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:41f4afc92863cfbf",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:c01133731e66d2e8",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||人员||办公人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:c4b4349cbed9f82d",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:2fef3e132b1b79a3",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:c01133731e66d2e8",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||人员||办公人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:023c4637012aeb90",
+      "type": "protects_object",
+      "sourceId": "shadow:security_technical_service:f60aff1b2b8a70fb",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:information_object_context:c01133731e66d2e8",
+      "targetType": "information_object",
+      "label": "protects_object",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||人员||办公人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:8084530054d46f67",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:80600d37b9a6e0d2",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:41d3fa8e4983d8f8",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||人员||办公人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:f79406d42b03fd6c",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:812f64e6ca9af9cc",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:41d3fa8e4983d8f8",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||人员||办公人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:3c6dc8b2f29195a2",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:41f4afc92863cfbf",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:41d3fa8e4983d8f8",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||人员||办公人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:101357746fd488c7",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:2fef3e132b1b79a3",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:41d3fa8e4983d8f8",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||人员||办公人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:bd755b35106e50e3",
+      "type": "implemented_by_module",
+      "sourceId": "shadow:security_technical_service:f60aff1b2b8a70fb",
+      "sourceType": "security_technical_service",
+      "targetId": "shadow:security_technology_module:41d3fa8e4983d8f8",
+      "targetType": "security_technology_module",
+      "label": "implemented_by_module",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||人员||办公人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:56d9121fd3aa1dc7",
+      "type": "part_of_system",
+      "sourceId": "shadow:security_technology_module:41d3fa8e4983d8f8",
+      "sourceType": "security_technology_module",
+      "targetId": "shadow:security_system:e3ddf8d0ec7e0f1e",
+      "targetType": "security_system",
+      "label": "part_of_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||人员||办公人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:be38f0587c845fe4",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||人员||办公人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:00bcb0e3e1e73931",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||人员||办公人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:3eb93ac9dd66b4ca",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||人员||办公人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:1b6357c9fe556687",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||人员||办公人员",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "reimport:relation:37947d4826edf7dc",
+      "type": "target_system",
+      "sourceId": "",
+      "sourceType": "",
+      "targetId": "",
+      "targetType": "",
+      "label": "target_system",
+      "status": "candidate",
+      "confidence": 1,
+      "objectContextKey": "园区网||人员||办公人员",
+      "evidenceRefCount": 0
+    }
+  ],
+  "relationCount": 17
+}

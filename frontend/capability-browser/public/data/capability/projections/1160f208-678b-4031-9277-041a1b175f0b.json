@@ -575,19 +575,6 @@
       "evidenceRefCount": 0
     },
     {
-      "id": "relation:acbbc2352acf53fa",
-      "type": "belongs_to",
-      "sourceId": "c5a2eb30-8797-406f-8df0-568719fba3e5",
-      "sourceType": "capability",
-      "targetId": "86565325-5087-42c6-aab9-372940ed915a",
-      "targetType": "capability_domain",
-      "label": "属于",
-      "status": "active",
-      "confidence": "explicit",
-      "objectContextKey": "",
-      "evidenceRefCount": 0
-    },
-    {
       "id": "relation:cfd3eb2b7df4ca31",
       "type": "belongs_to",
       "sourceId": "5ccd742f-bbd3-46f2-91b8-62266c5d894a",
@@ -624,7 +611,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 10
+      "evidenceRefCount": 9
     },
     {
       "id": "relation:66f3ed1231ea3777",
@@ -637,7 +624,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 10
+      "evidenceRefCount": 9
     },
     {
       "id": "relation:2e6783540c74cfd2",
@@ -650,7 +637,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 10
+      "evidenceRefCount": 9
     },
     {
       "id": "relation:28affb49e9b85723",
@@ -663,7 +650,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 4
+      "evidenceRefCount": 3
     },
     {
       "id": "relation:139d7b5c0e909394",
@@ -711,6 +698,19 @@
       "sourceType": "capability_focus",
       "targetId": "5ccd742f-bbd3-46f2-91b8-62266c5d894a",
       "targetType": "capability",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:acbbc2352acf53fa",
+      "type": "belongs_to",
+      "sourceId": "c5a2eb30-8797-406f-8df0-568719fba3e5",
+      "sourceType": "capability",
+      "targetId": "86565325-5087-42c6-aab9-372940ed915a",
+      "targetType": "capability_domain",
       "label": "属于",
       "status": "active",
       "confidence": "explicit",

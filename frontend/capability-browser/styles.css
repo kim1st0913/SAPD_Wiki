@@ -13960,15 +13960,17 @@ summary:focus-visible {
 }
 
 .capability-overview-summary-shell {
-  align-content: start;
+  min-height: 100%;
+  grid-template-rows: auto minmax(0, 1fr);
+  align-content: stretch;
 }
 
 .capability-overview-summary-grid {
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 300px);
-  gap: 10px;
-  align-items: start;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 280px);
+  gap: 8px;
+  align-items: stretch;
 }
 
 .capability-overview-pane {
@@ -13979,23 +13981,54 @@ summary:focus-visible {
   overflow: hidden;
 }
 
+.capability-overview-summary-grid > .capability-overview-pane {
+  height: 100%;
+  min-height: clamp(320px, 38vh, 430px);
+  align-content: start;
+}
+
 .capability-overview-brief {
-  gap: 8px;
-  padding: 12px 14px;
+  gap: 7px;
+  padding: 10px 12px;
+}
+
+.capability-overview-brief-header {
+  display: block;
+}
+
+.capability-overview-definition {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.capability-overview-definition strong {
+  overflow: hidden;
+  color: var(--workbench-text);
+  font-size: 14px;
+  line-height: 1.22;
+  font-weight: 820;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.capability-overview-definition p {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  color: var(--workbench-muted);
+  font-size: 11.5px;
+  line-height: 1.34;
+  font-weight: 650;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .capability-overview-brief-body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.82fr);
-  gap: 12px;
-  align-items: stretch;
-}
-
-.capability-overview-brief-body p {
-  margin: 0;
-  color: var(--workbench-muted);
-  font-size: 12px;
-  line-height: 1.42;
+  grid-template-columns: minmax(0, 0.56fr) minmax(340px, 1fr);
+  gap: 8px;
+  align-items: center;
 }
 
 .capability-overview-brief-copy {
@@ -14009,7 +14042,7 @@ summary:focus-visible {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   color: var(--workbench-muted);
   font-size: 11px;
   font-weight: 720;
@@ -14018,7 +14051,7 @@ summary:focus-visible {
 .capability-overview-flow span {
   display: inline-flex;
   align-items: center;
-  min-height: 22px;
+  min-height: 20px;
   padding: 2px 7px;
   border: 1px solid rgba(202, 216, 235, 0.78);
   border-radius: 999px;
@@ -14030,7 +14063,7 @@ summary:focus-visible {
   min-width: 0;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: 6px;
 }
 
 .capability-overview-signal {
@@ -14038,8 +14071,8 @@ summary:focus-visible {
   display: grid;
   align-content: center;
   gap: 3px;
-  min-height: 58px;
-  padding: 7px 10px;
+  min-height: 48px;
+  padding: 6px 9px;
   border: 1px solid rgba(199, 212, 231, 0.84);
   border-radius: 8px;
   background: rgba(249, 252, 255, 0.78);
@@ -14056,10 +14089,20 @@ summary:focus-visible {
 }
 
 .capability-overview-signal strong {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
   color: var(--workbench-text);
-  font-size: 19px;
+  font-size: 17px;
   line-height: 1.05;
   font-weight: 820;
+}
+
+.capability-overview-signal strong em {
+  color: var(--workbench-muted);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 760;
 }
 
 .capability-overview-signal.tone-technical {
@@ -14180,15 +14223,22 @@ summary:focus-visible {
 
 .capability-overview-row-list {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(172px, 1fr));
   gap: 6px;
+  align-items: stretch;
+}
+
+.capability-overview-row-list.is-five-up {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .capability-overview-row {
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(172px, 0.45fr) minmax(184px, 0.46fr) minmax(300px, 0.88fr);
-  gap: 6px 10px;
-  align-items: center;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+  align-content: start;
+  min-height: 68px;
   padding: 8px 10px;
   border: 1px solid rgba(203, 215, 231, 0.78);
   border-radius: 8px;
@@ -14214,75 +14264,35 @@ summary:focus-visible {
 .capability-overview-row-main {
   min-width: 0;
   display: grid;
-  gap: 1px;
+  gap: 7px;
 }
 
 .capability-overview-row-main b {
+  display: -webkit-box;
   overflow: hidden;
   color: var(--workbench-text);
-  font-size: 12.5px;
+  font-size: 12px;
   line-height: 1.28;
   font-weight: 760;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
-.capability-overview-row-main small,
-.capability-overview-row-stats,
-.capability-overview-row-coverage {
+.capability-overview-row-stats {
   color: var(--workbench-muted);
   font-size: 10.5px;
   font-weight: 690;
 }
 
-.capability-overview-row-stats,
-.capability-overview-row-coverage {
+.capability-overview-row-stats {
   color: var(--workbench-soft);
 }
 
 .capability-overview-row-stats {
+  overflow: hidden;
   line-height: 1.28;
-}
-
-.capability-overview-row-coverage {
-  min-width: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.capability-overview-row-signal {
-  display: inline-flex;
-  align-items: center;
-  max-width: 100%;
-  min-height: 20px;
-  padding: 2px 6px;
-  border: 1px solid rgba(199, 212, 231, 0.84);
-  border-radius: 999px;
-  background: rgba(248, 251, 255, 0.84);
-  color: var(--workbench-muted);
-  font-size: 9.8px;
-  font-weight: 740;
+  text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.capability-overview-row-signal.tone-technical.is-ready {
-  border-color: rgba(144, 182, 226, 0.72);
-  background: rgba(239, 247, 255, 0.82);
-}
-
-.capability-overview-row-signal.tone-management.is-ready {
-  border-color: rgba(146, 190, 158, 0.72);
-  background: rgba(243, 250, 245, 0.82);
-}
-
-.capability-overview-row-signal.tone-standard.is-ready {
-  border-color: rgba(214, 185, 121, 0.72);
-  background: rgba(253, 249, 239, 0.82);
-}
-
-.capability-overview-row-signal.is-muted {
-  color: var(--workbench-soft);
 }
 
 .capability-overview-row-preview {
@@ -14306,6 +14316,29 @@ summary:focus-visible {
 .capability-overview-row-preview .preview-chip,
 .capability-overview-child-preview .preview-chip {
   max-width: none;
+}
+
+.capability-sliding-scale-reference {
+  min-width: 0;
+  display: grid;
+  place-items: center;
+  margin: 8px 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.capability-sliding-scale-reference img {
+  display: block;
+  width: min(100%, 1050px);
+  max-height: 226px;
+  object-fit: contain;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .capability-next-chip {
@@ -14361,25 +14394,48 @@ summary:focus-visible {
 
 .capability-overview-coverage {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
-.capability-overview-coverage-row {
-  --coverage: 0%;
-  position: relative;
-  min-height: 58px;
+.capability-overview-coverage-group {
+  min-width: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: center;
+  gap: 7px;
   overflow: hidden;
-  padding: 10px 12px;
+  padding: 9px 10px;
   border: 1px solid rgba(203, 215, 231, 0.8);
   border-radius: 8px;
   background: rgba(250, 252, 255, 0.9);
 }
 
-.capability-overview-coverage-row i {
+.capability-overview-coverage-group > strong {
+  color: var(--workbench-text);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.capability-overview-coverage-lines {
+  display: grid;
+  gap: 6px;
+}
+
+.capability-overview-coverage-line {
+  --coverage: 0%;
+  position: relative;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+  overflow: hidden;
+  min-height: 28px;
+  padding: 5px 7px 7px;
+  border: 1px solid rgba(211, 221, 235, 0.78);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.capability-overview-coverage-line i {
   position: absolute;
   left: 0;
   bottom: 0;
@@ -14388,27 +14444,29 @@ summary:focus-visible {
   background: #6da5e7;
 }
 
-.capability-overview-coverage-row.tone-management i {
+.capability-overview-coverage-group.tone-management .capability-overview-coverage-line i {
   background: #8ebf9d;
 }
 
-.capability-overview-coverage-row.tone-standard i {
-  background: #d4b46f;
-}
-
-.capability-overview-coverage-row strong,
-.capability-overview-coverage-row em {
+.capability-overview-coverage-line span,
+.capability-overview-coverage-line b,
+.capability-overview-coverage-line em {
   color: var(--workbench-text);
-  font-size: 13px;
+  font-size: 11px;
   font-style: normal;
-  font-weight: 780;
+  font-weight: 760;
 }
 
-.capability-overview-coverage-row span {
-  display: block;
-  margin-top: 3px;
+.capability-overview-coverage-line span {
+  overflow: hidden;
   color: var(--workbench-muted);
-  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.capability-overview-coverage-line em {
+  min-width: 34px;
+  text-align: right;
 }
 
 .capability-overview-graph {
@@ -14470,6 +14528,7 @@ summary:focus-visible {
   .capability-overview-summary-grid,
   .capability-overview-brief-body,
   .capability-overview-signal-grid,
+  .capability-overview-row-list.is-five-up,
   .capability-overview-insights,
   .capability-overview-row {
     grid-template-columns: 1fr;

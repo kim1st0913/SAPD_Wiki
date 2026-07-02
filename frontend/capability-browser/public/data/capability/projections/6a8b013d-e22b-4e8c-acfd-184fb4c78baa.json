@@ -9,7 +9,8 @@
     "title": "网络安全规划与项目建设 Project Management",
     "name": "网络安全规划与项目建设 Project Management",
     "category": "",
-    "status": "active"
+    "status": "active",
+    "description": "将安全战略、目标架构和能力蓝图转化为具体建设项目、实施计划、预算、里程碑、交付物和验收机制的管理能力，确保安全能力建设可计划、可执行、可验收、可追踪。"
   },
   "ancestorIds": [
     "697c2bdb-baa4-4899-a2a7-d0f5da9bd5fe"

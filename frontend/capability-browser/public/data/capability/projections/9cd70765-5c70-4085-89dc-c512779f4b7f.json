@@ -9,48 +9,33 @@
     "title": "被动防御 Passive Defense",
     "name": "被动防御 Passive Defense",
     "category": "",
-    "status": "active"
+    "status": "active",
+    "description": "添加到架构中的系统，用于在没有持续人工交互的情况下，对威胁提供持续保护或洞察。它建立在良好架构之上，用于在存在对手时保护系统。即使架构良好，具备机会、意图和能力的威胁仍可能绕过架构，因此需要防火墙、反恶意代码、入侵检测 / 防护、访问控制、边界控制、日志监测等被动防御系统。这类能力需要维护、调优和运营照料，但核心价值是持续降低威胁接触概率、限制已知安全缺口，并消耗攻击者时间与资源。"
   },
   "ancestorIds": [
     "94bba6df-c6bc-41b5-ad60-7c6e87a173ac"
   ],
   "focusIds": [
+    "7e4922f0-05fa-4438-b33b-e498af49decb",
+    "4eecede4-4f58-4ba8-ad90-a52382168121",
+    "8df9c875-0812-4ff3-b13f-0b79be561419",
     "dd0eaca8-aec0-4bf4-bd9e-ed1e72839dbe",
     "037b603c-407d-4649-b1b8-830a83d1c6b3",
+    "44817bda-17a6-4c50-9e1b-a976ca9bd1aa",
+    "da78919c-d048-42d4-b95e-e2869b07138d",
+    "85aefc20-d2ad-425b-92ff-41938d24c543",
+    "52587aa8-a348-4f68-9965-e88007d35567",
+    "8c8190a8-b48f-40d2-85f0-6850c604d745",
     "3bbc4d06-3468-4a8d-99c0-44a5257f57c0",
     "48f076b2-5a98-4c8d-abab-366aaea936d7",
     "683037c4-d18c-4f91-98a7-e90207be2df4",
     "59a9c959-2a86-40d2-b63b-c15400c3d919",
     "75cf3e63-ebe4-48de-99cc-06b255464ed8",
     "ff015a81-5568-46b3-b0e8-3b63ae380722",
-    "ff418da8-05f3-4d27-adba-e4575670aeb7",
-    "7e4922f0-05fa-4438-b33b-e498af49decb",
-    "4eecede4-4f58-4ba8-ad90-a52382168121",
-    "8df9c875-0812-4ff3-b13f-0b79be561419",
-    "44817bda-17a6-4c50-9e1b-a976ca9bd1aa",
-    "da78919c-d048-42d4-b95e-e2869b07138d",
-    "85aefc20-d2ad-425b-92ff-41938d24c543",
-    "52587aa8-a348-4f68-9965-e88007d35567",
-    "8c8190a8-b48f-40d2-85f0-6850c604d745"
+    "ff418da8-05f3-4d27-adba-e4575670aeb7"
   ],
   "focusCount": 17,
   "childOverview": [
-    {
-      "id": "53a980f0-6183-4feb-827b-c93e5c6b456d",
-      "type": "capability",
-      "code": "T-PD.AC",
-      "title": "网络访问控制能力",
-      "focusCount": 2,
-      "childCount": 2
-    },
-    {
-      "id": "184af5ec-6ca8-4b73-9ad6-ed6ce7ffb4e9",
-      "type": "capability",
-      "code": "T-PD.DP",
-      "title": "数据安全防护能力",
-      "focusCount": 7,
-      "childCount": 7
-    },
     {
       "id": "7b902b73-7f08-4235-95a8-577ef0d0ce5b",
       "type": "capability",
@@ -60,12 +45,28 @@
       "childCount": 3
     },
     {
+      "id": "53a980f0-6183-4feb-827b-c93e5c6b456d",
+      "type": "capability",
+      "code": "T-PD.AC",
+      "title": "网络访问控制能力",
+      "focusCount": 2,
+      "childCount": 2
+    },
+    {
       "id": "c097b3c8-f951-409f-8422-59ff30e782e5",
       "type": "capability",
       "code": "T-PD.TP",
       "title": "威胁检测与防护能力",
       "focusCount": 5,
       "childCount": 5
+    },
+    {
+      "id": "184af5ec-6ca8-4b73-9ad6-ed6ce7ffb4e9",
+      "type": "capability",
+      "code": "T-PD.DP",
+      "title": "数据安全防护能力",
+      "focusCount": 7,
+      "childCount": 7
     }
   ],
   "coverageSummary": {

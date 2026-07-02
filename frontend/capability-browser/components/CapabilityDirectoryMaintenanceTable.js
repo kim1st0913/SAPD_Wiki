@@ -17,6 +17,10 @@
     return `<span${classAttr} title="${safeValue}">${safeValue}</span>`;
   }
 
+  function optionalFullText(value, className = "") {
+    return utils.text(value).trim() ? fullText(value, className) : "";
+  }
+
   function groupId(parts) {
     return parts
       .map((part) =>
@@ -92,6 +96,7 @@
     const domainId = groupId([...lineage, "domain", domain.code || domain.title]);
     const hiddenAttr = hidden ? " hidden" : "";
     const nextLineage = [...lineage, domainId];
+    const definition = domain.description;
     return `
       <tr class="standard-group-row capability-directory-group depth-1 ${expanded ? "expanded" : ""}" data-standard-group="${utils.escapeHtml(domainId)}" data-standard-parent="${utils.escapeHtml(parentId)}" data-standard-lineage="${utils.escapeHtml(lineage.join(" "))}"${hiddenAttr}>
         <td colspan="3">
@@ -99,6 +104,7 @@
             <span class="standard-group-caret">›</span>
             <span class="standard-group-main">
               <strong>${levelChip("能力域")} ${cell(groupTitle(domain))}</strong>
+              ${optionalFullText(definition, "standard-group-description")}
             </span>
             <em>${cell(`${utils.list(domain.capabilities).length} 个安全能力`)}</em>
           </button>
@@ -114,6 +120,7 @@
   function renderCategoryGroup(category, selectedId, index, expandAll) {
     const categoryId = groupId(["capability-directory", index, category.code || category.title]);
     const expanded = expandAll;
+    const definition = category.description;
     return `
       <tr class="standard-group-row capability-directory-group depth-0 ${expanded ? "expanded" : ""}" data-standard-group="${utils.escapeHtml(categoryId)}">
         <td colspan="3">
@@ -121,6 +128,7 @@
             <span class="standard-group-caret">›</span>
             <span class="standard-group-main">
               <strong>${levelChip("能力分类")} ${cell(groupTitle(category))}</strong>
+              ${optionalFullText(definition, "standard-group-description")}
             </span>
             <em>${cell(`${utils.list(category.domains).length} 个能力域`)}</em>
           </button>
@@ -151,7 +159,7 @@
             <tr>
               <th>编码</th>
               <th>名称</th>
-              <th>关注点描述</th>
+              <th>定义 / 描述</th>
             </tr>
           </thead>
           <tbody>

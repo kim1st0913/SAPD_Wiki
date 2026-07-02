@@ -109,6 +109,16 @@ function flattenEnvironmentNavigator(nodes, ancestors = []) {
   return result;
 }
 
+function flattenCapabilityTree(nodes) {
+  const result = [];
+  function visit(node) {
+    result.push(node);
+    for (const child of asArray(node.children)) visit(child);
+  }
+  for (const node of asArray(nodes)) visit(node);
+  return result;
+}
+
 const candidateDir = path.resolve(argValue("--candidate-dir") || DEFAULT_DIR);
 const manifestPath = path.join(candidateDir, "candidate-manifest.json");
 const readinessPath = path.join(candidateDir, "candidate-readiness.json");
@@ -316,6 +326,20 @@ if (fs.existsSync(publicDataDir)) {
   const capabilityIndexPath = path.join(publicDataDir, "capability/index.json");
   if (fs.existsSync(capabilityIndexPath)) {
     const capabilityIndex = readJson(capabilityIndexPath);
+    const topLevelTreeRows = flattenCapabilityTree(capabilityIndex.tree).filter((row) =>
+      ["capability_category", "capability_domain"].includes(row.type)
+    );
+    const missingTopLevelDescriptions = topLevelTreeRows.filter((row) => !String(row.description || "").trim());
+    addCheck("capability_index_top_level_descriptions_present", missingTopLevelDescriptions.length === 0, {
+      checkedRows: topLevelTreeRows.length,
+      missingCount: missingTopLevelDescriptions.length,
+      missingRows: missingTopLevelDescriptions.slice(0, 10).map((row) => ({
+        code: row.code || "",
+        type: row.type || "",
+        title: row.title || row.name || "",
+      })),
+    });
+
     const projectionRows = asArray(capabilityIndex.projections);
     const topLevelRows = projectionRows.filter((row) => ["capability_category", "capability_domain"].includes(row.type));
     const topLevelDetailFailures = [];

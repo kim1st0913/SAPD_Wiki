@@ -16,11 +16,11 @@
 |---|---|---|
 | OI-162 | 已修复 / 待页面验收 | 安全能力管理视角安全工作合并单元格修正重导 |
 | OI-161 | 已修复 / 待页面验收 | 工作台 Issue 清单入口与列表项点击失效 |
-| OI-159 | 工作区控制轨修复 / 待页面验收 | 能力页 L0 / L1 双 tab 总览型阅读模式 |
+| OI-159 | 暂时关闭 / 待观察 | 能力页 L0 / L1 双 tab 总览型阅读模式 |
 | OI-157 | 已修复 / 待打包验收 | 打包测试反馈需要单独导出用户批注 |
 | OI-156 | 已修复 / 批注治理 7 项已落地 / Apple 侧边把手与锚点契约已补 / 待人工视觉验收 | 全局批注定位 / 高亮性能退化导致页面假死 |
-| OI-155 | 设计完成 / 待用户确认 | 全局搜索产品形态与搜索结果页重设计 |
-| OI-154 | 待设计落地 / 待修复 | 页面内搜索功能回归与环境页搜索不可用 |
+| OI-155 | 同步设计完成 / 待实施确认 | 全局搜索产品形态与搜索结果页重设计 |
+| OI-154 | 同步设计完成 / 待实施确认 | 页面内搜索功能回归与环境页搜索不可用 |
 | OI-153 | 已修复 / 待页面验收 | 批注抽屉底部卡片展开后当前批注显示不完整 |
 | OI-152 | 已修复 / 待页面验收 | LC-AP / LC-DT 旧批注阶段 ID 失效导致定位不到 |
 | OI-151 | 已修复 / 待页面验收 | 信息化环境汇聚图节点缺少稳定业务锚点导致定位不到 |
@@ -80,7 +80,7 @@
 
 ## OI-159：能力页 L0 / L1 双 tab 总览型阅读模式
 
-- 状态：工作区控制轨修复 / 待页面验收
+- 状态：暂时关闭 / 待观察
 - 类型：前端 / 产品设计 / 性能 / 能力映射 / projection
 - 对象或页面：`/capability-mapping` 安全能力映射页，L0 / L1 能力节点、能力关系图谱、技术视角 / 管理视角 / 标准框架映射区域。
 - 现象：`OI-149` P4-B 已在 JSON / projection 治理中提出“能力 L0 / L1 projection 改为总览型，不默认携带完整标准控制项、技术映射明细和管理映射明细”，但该设计没有作为独立 issue 管理，也没有形成面向正式页面的可验收产品改造任务。当前仍容易把 L0 / L1 当成明细全集页面处理，导致大批量映射行在上层能力节点铺开，阅读负担大，也会继续放大数据加载和渲染压力。
@@ -99,6 +99,7 @@
 - 2026-07-02 搜索框误移动回退：用户反馈“怎么又移动了搜索框？”后确认真实根因是 `AppShell.js` 运行模板缺少 `#capabilityViewControls` 槽位，不是搜索框本身。已将搜索框恢复为已认可右侧基线：`width: min(34vw, 430px)`、`max-width: 430px`、`min-width: 300px`，工作区控制轨恢复为 `justify-content: space-between`；保留 AppShell 补槽和 Chrome tab 探针。
 - 2026-07-02 工作区控制轨圆角裁切修复：用户截图指出控制轨左右两端出现半截圆弧。确认这不是有意设计，而是外层 `capability-workspace-surface` 圆角边界与内部 `capability-workspace-control` 背景未同步裁切造成的视觉缺陷。已给控制轨增加 `overflow: hidden` 和 `border-radius: 25px 25px 0 0`，让顶部背景贴合外层 Apple shell 面板圆角；未改搜索框位置 / 宽度。
 - 2026-07-02 Chrome 真实回归通过：最终系统 Chrome headless 回归通过，`capabilityControlProbe.present=true`、`visibleCount=2`、`labels=["关系图谱","总览摘要"]`，搜索框 `searchRect.width=430`。截图路径：`/var/folders/81/8nwy3h2n00s1dw1g5bnvj7j40000gn/T/sapd-capability-tabs-real-chrome-20260702-search-baseline-smoke.png`。现有 smoke 会主动打开批注抽屉验证抽屉功能，因此截图右侧可能被抽屉遮挡；控件坐标来自真实 DOM。
+- 2026-07-02 暂时关闭：按用户确认，当前能力页 L0 / L1 / L2 摘要总览与工作区控制轨 issue 暂时关闭，进入待观察状态。后续不继续在 `OI-159` 内扩大设计改动；如再次出现统计口径、布局截断或真实浏览器回归问题，重新打开本 issue 或拆分新 issue。
 - 需要确认：仍需用户在页面人工验收 L0 / L1 关系图谱显示是否与前序预期一致。当前 L2 摘要阈值为 `30` 条映射行，低于阈值的 L2 仍直接展示原明细，超过阈值时进入摘要 / 关注点入口模式；该阈值后续可按真实页面体验微调。
 - 修复说明：修改 `frontend/capability-browser/components/CapabilityLocalRelationMap.js`、`frontend/capability-browser/components/LocalRelationNetworkGraph.js`、`frontend/capability-browser/styles.css`、`frontend/capability-browser/app.js`、`frontend/capability-browser/index.html`、`frontend/capability-browser/viewModels.js` 和 `scripts/audit_capability_viewmodel_contract.mjs`，并更新本 issue / progress。L0 / L1 渲染时只输出 `summary` / `technical` 两个 radio tab：`summary` 对应 `关系图谱`，`technical` 对应 `总览摘要`；不再渲染 `management` / `standard` 两个上层 tab。总览摘要不再渲染 `capability-overview-hero` 或 `capability-overview-metrics`，改用 `capability-overview-signal-grid`、`capability-overview-insights`、行式下级入口和覆盖结构。能力标题区不再渲染 `preview-focus-stats` 统计卡；能力契约审计新增断言，要求 L0 / L1 只出现两个 tab，默认 `summary-panel` 内必须包含 `local-relation-network-graph`，`总览摘要` 可切换，旧 `management / standard` tab 状态会回退到 `关系图谱`；图谱图例和缩放控件必须位于 `network-graph-canvas` 内，且不得恢复 `network-graph-head` 单独行；当前正式结构中，能力页 tab 必须注入到工作区控制轨 `capabilityViewControls`，标题区 `capabilityFocusHeader` 只保留当前能力身份，不得再把 tab / 搜索塞回标题区硬分割线；能力映射 shell、stage、图谱 wrapper 和图谱 canvas 不得再叠加内层框线 / 底板 / 阴影；第二个 tab 必须包含有效信号、核对信号、`capability-overview-row-list`、下级能力字段和 `覆盖结构`，且不得渲染 `semantic-mapping-table`、`preview-mapping-table`、`original-matrix-panel` 或说明书式解释标签。未修改环境映射页、工作台模块、LC-AP / LC-DT、原始 Excel、SQLite、review checklist、标准包、字典包或用户批注数据库。
 - 验证结果：最新修复已通过 `node --check frontend/capability-browser/components/AppShell.js`、`node --check scripts/audit_capability_viewmodel_contract.mjs`、`node --check scripts/frontend_smoke_check.mjs`、`node scripts/frontend_content_smoke_check.mjs --skip-api --url http://127.0.0.1:5173`、`python3 scripts/audit_json_package_boundary.py`、`python3 scripts/check_github_data_boundary.py`、`python3 scripts/dev_server_guard.py --status`、`git diff --check`。系统 Chrome 真实回归已执行并通过：`node scripts/frontend_smoke_check.mjs --page capability-mapping --route /capability-mapping --url http://127.0.0.1:5173 --allow-system-chrome --screenshot-name capability-tabs-real-chrome-20260702-search-baseline` 返回 `result=pass`，`capabilityControlProbe.visibleCount=2`、`searchRect.width=430`。`node scripts/audit_capability_viewmodel_contract.mjs --url http://127.0.0.1:5173` 在当前沙箱内 `fetch failed`，尝试提权重跑被环境拒绝，未绕行；上一轮完整样本契约通过记录仍见 `progress.md`。
@@ -128,26 +129,26 @@
 - 验证结果：`node --check` 覆盖 `app.js`、`UserAnnotationDrawer.js`、`audit_saved_user_annotations.mjs`、`audit_user_annotation_contract.mjs`、`audit_user_notes_integrity.mjs`、`seed_user_annotation_test_notes.mjs`；`python3 -m py_compile src/sapd_wiki/api_server.py scripts/run_local_server.py` 通过；`node scripts/audit_user_annotation_contract.mjs` 通过。真实 Chrome 全量回归在本轮治理前已通过：`node scripts/audit_saved_user_annotations.mjs --url 'http://127.0.0.1:5173/?v=env-fix-7#/capability-mapping' --allow-system-chrome --compact` 返回 `noteCount=45`、`audited=45`、`passed=45`、`failed=0`。本轮新增 dry-run 验证：`node scripts/audit_user_notes_integrity.mjs --url http://127.0.0.1:5173/ --write-report` 返回 `note_count=45`、`invalid_count=0`、`duplicate_group_count=1`，仅发现 `G-SP 网络安全战略计划 Strategy Planning` 1 组同 route / target / body 疑似重复，未自动删除；`node scripts/seed_user_annotation_test_notes.mjs --url http://127.0.0.1:5173/` dry-run 生成 `fixture_count=17`，覆盖能力、环境、LC-AP、LC-DT、知识库、标准 / 框架、指南 / 幻灯片。`node scripts/frontend_content_smoke_check.mjs --skip-api`、`python3 scripts/audit_json_package_boundary.py`、`python3 scripts/check_github_data_boundary.py`、`python3 scripts/dev_server_guard.py --status`、`git diff --check` 通过。未启动系统 Chrome 做本轮贴边 / 动画截图级验收，待用户人工确认或明确批准系统 Chrome 回归。
 ## OI-155：全局搜索产品形态与搜索结果页重设计
 
-- 状态：设计完成 / 待用户确认
+- 状态：同步设计完成 / 待实施确认
 - 类型：前端 / 产品设计 / 搜索 / 信息架构 / 性能边界
 - 对象或页面：顶部全局搜索框、未来 `#/search?q=...` 搜索结果页、各模块页面内搜索入口、`OI-149` search-index 加载治理。
 - 现象：用户反馈全局搜索需要重新设计，当前显然是“全局搜索与模块搜索都有”，但两者职责、状态、加载边界和定位行为混杂。此前 `OI-144` 已修过状态串线，但它只解决“互相写状态”的局部问题，不能回答全局搜索是否应该有独立结果页、页面内搜索是否保留、两者如何分工。
 - 影响：如果继续沿现状补丁，全局搜索会继续承担跨域搜索、局部过滤、结果定位和数据预热，容易再次触发 `OI-149` 慢加载、`OI-154` 页面搜索不可用、`OI-144` 状态串线和定位高亮混乱。
-- 当前处理：新增设计文档 `docs/06-implementation/global-search-redesign-2026-06-30.md`。设计结论为：顶部保留一个全局搜索入口，新增独立搜索结果页 `#/search?q=...`；页面内搜索继续保留，但明确降级为当前模块 / 当前树 / 当前表格 / 当前映射图的局部查找或筛选工具。全局搜索输入阶段只允许使用轻量 `search-index`，不得加载完整 workbench、字典全量包、标准详情全表或环境全量包。
-- 需要确认：请用户确认是否接受该产品形态：`顶部全局搜索 + 独立搜索结果页 + 模块内局部查找`。确认后才能进入代码实现；不建议直接在旧搜索面板上继续补丁。
-- 修复说明：本轮只完成设计文档和 issue 登记，未修改运行代码、正式 JSON、SQLite、原始 Excel、标准包、字典包、LC 数据包或用户批注数据库。
-- 验证结果：文档设计已与 `OI-149`、`OI-154`、`OI-150`、`OI-151`、`OI-144` 做边界拆分；待后续实现时新增 `audit_global_search_index_contract.mjs`、`audit_environment_search_contract.mjs` 并继续执行 `audit_search_state_isolation.mjs`。
+- 当前处理：已形成两层设计入口。`docs/06-implementation/global-search-redesign-2026-06-30.md` 保留全局搜索产品形态基础方案；`docs/06-implementation/search-governance-oi154-oi155-synchronized-design-2026-07-02.md` 作为 `OI-155` 与 `OI-154` 的同步设计入口，明确 `OI-155` 只管顶部全局搜索、轻量面板、独立 `#/search?q=...` 结果页、结果筛选、打开目标和 `targetRef` 定位，不再承担页面内筛选。
+- 需要确认：建议先实施 `OI-155 P1`：新增搜索结果页骨架，顶部搜索 `Enter` 进入 `#/search?q=...`，轻量面板只做 quick access，结果点击只带 `targetRef`，不再把关键词灌入页面内搜索框。
+- 修复说明：本轮为同步设计与 issue 边界更新，未修改运行代码、正式 JSON、SQLite、原始 Excel、标准包、字典包、LC 数据包或用户批注数据库。
+- 验证结果：同步设计已与 `OI-149`、`OI-154`、`OI-150`、`OI-151`、`OI-144` 做边界拆分；后续实现时继续执行 `audit_search_state_isolation.mjs`、`audit_global_search_index_contract.mjs`，并补充搜索结果页路由与结果点击契约断言。
 ## OI-154：页面内搜索功能回归与环境页搜索不可用
 
-- 状态：待设计落地 / 待修复
+- 状态：同步设计完成 / 待实施确认
 - 类型：前端 / 搜索 / 页面内筛选 / 信息化环境映射
 - 对象或页面：`/environment-mapping` 和 `#/capability-mapping` 下的信息化环境安全能力映射页，后续扩展到能力页、标准 / 框架页、知识库字典页、LC-AP / LC-DT 页面内搜索。
 - 现象：用户反馈全局搜索之外，环境页下面的搜索无法使用。该问题不是 `OI-149` JSON 慢加载本身，也不是 `OI-144` 已修复的状态串线本身，而是页面内搜索的功能正确性、作用域、定位和空态契约没有统一治理。
 - 影响：用户在当前页面内无法快速筛选环境、对象、服务、模块、措施或安全系统；如果页面内搜索继续用全局搜索兜底，还会拖慢页面并污染全局搜索状态。
-- 当前处理：已在 `docs/06-implementation/global-search-redesign-2026-06-30.md` 中把 `OI-154` 作为页面内搜索治理线拆出。建议后续逐页治理，优先修环境页搜索：树搜索、对象搜索、服务 / 模块 / 措施 / 系统搜索，并确保只使用当前页面已加载 projection。
-- 需要确认：该问题应在 `OI-155` 产品形态确认后实施，避免先修环境页搜索，后续又因全局搜索形态重设而返工。
-- 修复说明：本轮只登记问题和方案边界，未改运行代码。
-- 验证结果：待实现后新增 `audit_environment_search_contract.mjs`，并继续执行 `audit_search_state_isolation.mjs`、`frontend_content_smoke_check.mjs --skip-api` 和轻量 5173 状态检查。
+- 当前处理：已新增同步设计入口 `docs/06-implementation/search-governance-oi154-oi155-synchronized-design-2026-07-02.md`。`OI-154` 明确只管页面内局部查找 / 筛选：当前页面、当前树、当前表格、当前映射图内的筛选、展开、定位和空态；第一优先级为环境页搜索，覆盖环境、子类、对象、作用域、服务、模块、措施和安全系统。
+- 需要确认：建议在 `OI-155 P1` 搜索结果页骨架完成后实施 `OI-154 P2`，先修环境页搜索，再逐页治理能力页、字典页、标准页和 LC-AP / LC-DT；不得把所有页面搜索在一个提交中一起改。
+- 修复说明：本轮为同步设计与 issue 边界更新，未改运行代码。
+- 验证结果：待实现后新增 `audit_environment_search_contract.mjs`，并继续执行 `audit_search_state_isolation.mjs`、`audit_global_search_index_contract.mjs`、`frontend_content_smoke_check.mjs --skip-api` 和轻量 5173 状态检查。
 ## OI-153：批注抽屉底部卡片展开后当前批注显示不完整
 
 - 状态：已修复 / 待页面验收

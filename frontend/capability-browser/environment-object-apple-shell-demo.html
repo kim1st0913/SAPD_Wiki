@@ -4036,6 +4036,1108 @@
         color: #1d2b3e;
       }
 
+      .capability-hierarchy-demo-frame {
+        height: 100%;
+        min-height: 650px;
+        overflow: auto;
+        padding: 16px;
+        border: 1px solid rgba(202, 214, 230, 0.72);
+        border-radius: 28px;
+        background:
+          radial-gradient(circle at 12% 0%, rgba(255, 255, 255, 0.96), transparent 32%),
+          linear-gradient(180deg, rgba(246, 249, 253, 0.98), rgba(236, 242, 250, 0.9));
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.9),
+          0 22px 60px rgba(63, 77, 99, 0.14);
+        color: #192332;
+      }
+
+      .capability-hierarchy-page {
+        max-width: 1660px;
+        min-width: 1080px;
+        margin: 0 auto;
+        display: grid;
+        gap: 12px;
+      }
+
+      .capability-hierarchy-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 18px;
+        padding: 2px 6px 0;
+      }
+
+      .capability-hierarchy-kicker {
+        display: block;
+        margin-bottom: 5px;
+        color: #53647b;
+        font-size: 12px;
+        font-weight: 850;
+      }
+
+      .capability-hierarchy-title h2 {
+        margin: 0;
+        color: #25344a;
+        font-size: 23px;
+        line-height: 1.18;
+        letter-spacing: 0;
+      }
+
+      .capability-hierarchy-title p {
+        margin: 5px 0 0;
+        color: #65748a;
+        font-size: 13px;
+        font-weight: 650;
+      }
+
+      .capability-hierarchy-status {
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .capability-hierarchy-status span {
+        display: inline-flex;
+        align-items: center;
+        min-height: 27px;
+        padding: 0 10px;
+        border: 1px solid rgba(197, 210, 226, 0.76);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.58);
+        color: #56667a;
+        font-size: 12px;
+        font-weight: 780;
+      }
+
+      .capability-hierarchy-workspace {
+        display: grid;
+        grid-template-columns: 288px minmax(0, 1fr);
+        min-height: 535px;
+        overflow: hidden;
+        border: 1px solid rgba(196, 210, 228, 0.78);
+        border-radius: 30px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(248, 251, 255, 0.74) 18%, rgba(244, 248, 253, 0.9)),
+          rgba(247, 250, 254, 0.92);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.92),
+          inset 0 -1px 0 rgba(180, 194, 212, 0.32),
+          0 22px 48px rgba(54, 70, 92, 0.13);
+      }
+
+      .capability-hierarchy-tree {
+        padding: 14px;
+        border-right: 1px solid rgba(199, 212, 230, 0.66);
+        background: rgba(238, 245, 252, 0.52);
+      }
+
+      .capability-hierarchy-tree h3,
+      .capability-hierarchy-stage h3 {
+        margin: 0;
+        color: #233247;
+        font-size: 14px;
+        letter-spacing: 0;
+      }
+
+      .capability-hierarchy-tree-list {
+        display: grid;
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .capability-hierarchy-tree-item {
+        display: grid;
+        grid-template-columns: 46px minmax(0, 1fr);
+        gap: 9px;
+        align-items: center;
+        min-height: 47px;
+        padding: 8px 10px;
+        border: 1px solid rgba(206, 218, 233, 0.72);
+        border-radius: 17px;
+        background: rgba(249, 252, 255, 0.68);
+        color: inherit;
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .capability-hierarchy-tree-item.is-active {
+        border-color: rgba(88, 150, 225, 0.72);
+        background: rgba(236, 246, 255, 0.9);
+        box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.08);
+      }
+
+      .capability-hierarchy-tree-item code {
+        color: #516177;
+        font-family: inherit;
+        font-weight: 860;
+      }
+
+      .capability-hierarchy-tree-item strong {
+        display: block;
+        overflow: hidden;
+        color: #1c2b3e;
+        font-size: 13px;
+        font-weight: 840;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .capability-hierarchy-tree-item span {
+        display: block;
+        margin-top: 2px;
+        color: #718197;
+        font-size: 12px;
+        font-weight: 720;
+      }
+
+      .capability-hierarchy-stage {
+        min-width: 0;
+        padding: 14px;
+      }
+
+      .capability-hierarchy-object {
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 13px 16px;
+        border: 1px solid rgba(202, 216, 232, 0.78);
+        border-radius: 22px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(248, 251, 255, 0.62));
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.86);
+      }
+
+      .capability-hierarchy-object code {
+        color: #506177;
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 860;
+      }
+
+      .capability-hierarchy-object h3 {
+        margin: 4px 0 0;
+        font-size: 20px;
+        line-height: 1.22;
+      }
+
+      .capability-hierarchy-object p {
+        margin: 5px 0 0;
+        color: #66758b;
+        font-size: 13px;
+        font-weight: 650;
+      }
+
+      .capability-hierarchy-mode {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+        align-content: flex-start;
+      }
+
+      .capability-hierarchy-mode span {
+        display: inline-flex;
+        align-items: center;
+        min-height: 27px;
+        padding: 0 10px;
+        border: 1px solid rgba(197, 210, 226, 0.76);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.62);
+        color: #56667a;
+        font-size: 12px;
+        font-weight: 780;
+      }
+
+      .capability-hierarchy-control {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-top: 9px;
+        padding: 8px 0;
+      }
+
+      .capability-hierarchy-tabs {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        min-height: 36px;
+        padding: 4px;
+        border: 1px solid rgba(199, 213, 231, 0.82);
+        border-radius: 22px;
+        background: rgba(238, 244, 251, 0.78);
+      }
+
+      .capability-hierarchy-tabs button {
+        min-height: 28px;
+        padding: 0 13px;
+        border: 0;
+        border-radius: 17px;
+        background: transparent;
+        color: #526175;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 820;
+        white-space: nowrap;
+        cursor: pointer;
+      }
+
+      .capability-hierarchy-tabs button.is-active {
+        background: rgba(255, 255, 255, 0.96);
+        color: #172033;
+        box-shadow: 0 8px 18px rgba(41, 55, 75, 0.12);
+      }
+
+      .capability-hierarchy-search {
+        width: min(28vw, 350px);
+        min-width: 250px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 15px;
+        border: 1px solid rgba(186, 202, 222, 0.78);
+        border-radius: 21px;
+        background: rgba(247, 250, 254, 0.82);
+        color: #6b7a90;
+      }
+
+      .capability-hierarchy-content {
+        min-height: 0;
+        border: 1px solid rgba(202, 216, 232, 0.76);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.58);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88);
+      }
+
+      .capability-hierarchy-overview {
+        display: grid;
+        grid-template-rows: auto;
+        gap: 8px;
+        height: auto;
+        padding: 10px;
+      }
+
+      .capability-hierarchy-overview-main {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(250px, 280px);
+        gap: 8px;
+        align-items: start;
+      }
+
+      .capability-hierarchy-entry-section,
+      .capability-hierarchy-coverage {
+        min-width: 0;
+        display: grid;
+        gap: 8px;
+        padding: 10px;
+        overflow: hidden;
+        border: 1px solid rgba(202, 216, 232, 0.78);
+        border-radius: 15px;
+        background: rgba(255, 255, 255, 0.66);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.86);
+      }
+
+      .capability-hierarchy-section-head,
+      .capability-hierarchy-brief > header,
+      .capability-hierarchy-graph h3 {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .capability-hierarchy-entry-section h3,
+      .capability-hierarchy-coverage h3,
+      .capability-hierarchy-brief h3,
+      .capability-hierarchy-graph h3 {
+        margin: 0;
+        color: #223147;
+        font-size: 13px;
+        font-weight: 880;
+      }
+
+      .capability-hierarchy-section-head span,
+      .capability-hierarchy-brief > header span {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 0 8px;
+        border: 1px solid rgba(196, 210, 228, 0.76);
+        border-radius: 999px;
+        background: rgba(248, 251, 255, 0.88);
+        color: #65748a;
+        font-size: 10px;
+        font-weight: 800;
+      }
+
+      .capability-hierarchy-brief {
+        display: grid;
+        gap: 8px;
+        padding: 10px 12px;
+        border: 1px solid rgba(202, 216, 232, 0.78);
+        border-radius: 15px;
+        background: rgba(255, 255, 255, 0.68);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88);
+      }
+
+      .capability-hierarchy-brief-body {
+        display: grid;
+        grid-template-columns: minmax(280px, 0.7fr) minmax(520px, 1fr);
+        gap: 10px;
+        align-items: stretch;
+      }
+
+      .capability-hierarchy-brief-copy {
+        min-width: 0;
+        display: grid;
+        align-content: start;
+        gap: 6px;
+      }
+
+      .capability-hierarchy-brief-copy p {
+        margin: 0;
+        color: #64748a;
+        font-size: 12.5px;
+        line-height: 1.35;
+        font-weight: 700;
+      }
+
+      .capability-hierarchy-flow {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .capability-hierarchy-flow span {
+        display: inline-flex;
+        align-items: center;
+        min-height: 21px;
+        padding: 1px 7px;
+        border: 1px solid rgba(202, 216, 235, 0.78);
+        border-radius: 999px;
+        background: rgba(248, 251, 255, 0.86);
+        color: #5f7087;
+        font-size: 10.5px;
+        font-weight: 760;
+        white-space: nowrap;
+      }
+
+      .capability-hierarchy-signal-grid {
+        min-width: 0;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 7px;
+      }
+
+      .capability-hierarchy-signal {
+        min-width: 0;
+        display: grid;
+        align-content: center;
+        gap: 2px;
+        min-height: 54px;
+        padding: 7px 9px;
+        border: 1px solid rgba(199, 212, 231, 0.84);
+        border-radius: 11px;
+        background: rgba(249, 252, 255, 0.78);
+      }
+
+      .capability-hierarchy-signal.is-technical {
+        background: rgba(240, 247, 255, 0.84);
+      }
+
+      .capability-hierarchy-signal.is-management {
+        background: rgba(244, 250, 245, 0.84);
+      }
+
+      .capability-hierarchy-signal.is-standard {
+        background: rgba(253, 249, 238, 0.86);
+      }
+
+      .capability-hierarchy-signal span,
+      .capability-hierarchy-signal small {
+        overflow: hidden;
+        color: #63748a;
+        font-size: 11px;
+        font-weight: 720;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .capability-hierarchy-signal strong {
+        color: #172033;
+        font-size: 18px;
+        line-height: 1.05;
+        font-weight: 880;
+      }
+
+      .capability-hierarchy-insight-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .capability-hierarchy-insight-title strong {
+        color: #223147;
+        font-size: 13px;
+        font-weight: 860;
+      }
+
+      .capability-hierarchy-insight-title span {
+        color: #7a8799;
+        font-size: 11px;
+        font-weight: 740;
+      }
+
+      .capability-hierarchy-insights {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+      }
+
+      .capability-hierarchy-insight {
+        min-width: 0;
+        display: grid;
+        gap: 2px;
+        padding: 6px 8px;
+        border: 1px solid rgba(202, 214, 230, 0.76);
+        border-radius: 10px;
+        background: rgba(250, 252, 255, 0.78);
+      }
+
+      .capability-hierarchy-insight span {
+        color: #7a8799;
+        font-size: 10px;
+        font-weight: 780;
+      }
+
+      .capability-hierarchy-insight strong {
+        overflow: hidden;
+        color: #24344b;
+        font-size: 12px;
+        line-height: 1.36;
+        font-weight: 780;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .capability-hierarchy-insight.is-good {
+        border-color: rgba(148, 190, 158, 0.72);
+        background: rgba(245, 251, 246, 0.82);
+      }
+
+      .capability-hierarchy-insight.is-warn {
+        border-color: rgba(216, 185, 122, 0.72);
+        background: rgba(255, 250, 239, 0.84);
+      }
+
+      .capability-hierarchy-insight.is-info {
+        border-color: rgba(151, 184, 226, 0.72);
+        background: rgba(242, 248, 255, 0.82);
+      }
+
+      .capability-hierarchy-summary-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(168px, 220px));
+        gap: 8px;
+        align-items: stretch;
+        justify-content: start;
+      }
+
+      .capability-hierarchy-summary-row.is-five {
+        grid-template-columns:
+          minmax(96px, 0.48fr)
+          minmax(120px, 0.56fr)
+          minmax(340px, 1.58fr)
+          minmax(260px, 1.14fr)
+          minmax(280px, 1.2fr);
+        justify-content: stretch;
+      }
+
+      .capability-hierarchy-metrics {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(168px, 220px));
+        gap: 8px;
+        justify-content: start;
+      }
+
+      .capability-hierarchy-metrics.is-two {
+        grid-template-columns: repeat(2, minmax(168px, 220px));
+      }
+
+      .capability-hierarchy-metric {
+        min-height: 78px;
+        display: grid;
+        align-content: center;
+        padding: 9px 11px;
+        border: 1px solid rgba(202, 216, 232, 0.76);
+        border-radius: 15px;
+        background: rgba(249, 252, 255, 0.74);
+      }
+
+      .capability-hierarchy-metric.is-structure {
+        border-color: rgba(159, 181, 208, 0.56);
+        background: rgba(239, 246, 253, 0.82);
+      }
+
+      .capability-hierarchy-metric span {
+        color: #68788e;
+        font-size: 10px;
+        font-weight: 780;
+      }
+
+      .capability-hierarchy-metric strong {
+        display: block;
+        margin-top: 2px;
+        color: #172033;
+        font-size: 21px;
+        line-height: 1;
+      }
+
+      .capability-hierarchy-stat-groups {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 380px));
+        gap: 8px;
+        justify-content: start;
+      }
+
+      .capability-hierarchy-stat-group {
+        min-height: 78px;
+        display: grid;
+        grid-template-rows: auto 1fr;
+        padding: 9px 10px;
+        border: 1px solid rgba(202, 216, 232, 0.76);
+        border-radius: 16px;
+        background: rgba(249, 252, 255, 0.74);
+      }
+
+      .capability-hierarchy-stat-group.is-technical {
+        border-color: rgba(116, 166, 221, 0.42);
+        background: rgba(235, 246, 255, 0.82);
+      }
+
+      .capability-hierarchy-stat-group.is-management {
+        border-color: rgba(132, 184, 152, 0.42);
+        background: rgba(240, 249, 244, 0.84);
+      }
+
+      .capability-hierarchy-stat-group.is-standard {
+        border-color: rgba(216, 185, 108, 0.44);
+        background: rgba(255, 250, 236, 0.86);
+      }
+
+      .capability-hierarchy-stat-group > strong {
+        display: block;
+        margin-bottom: 7px;
+        color: #24344b;
+        font-size: 11px;
+        font-weight: 860;
+      }
+
+      .capability-hierarchy-stat-group dl {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(86px, 1fr));
+        gap: 6px;
+        margin: 0;
+      }
+
+      .capability-hierarchy-stat-group div {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: baseline;
+        min-height: 28px;
+        padding: 5px 8px;
+        border: 1px solid rgba(214, 225, 239, 0.72);
+        border-radius: 11px;
+        background: rgba(255, 255, 255, 0.62);
+      }
+
+      .capability-hierarchy-stat-group dt {
+        color: #65758a;
+        font-size: 10px;
+        font-weight: 760;
+      }
+
+      .capability-hierarchy-stat-group dd {
+        margin: 0;
+        color: #182338;
+        font-size: 16px;
+        font-weight: 880;
+      }
+
+      .capability-hierarchy-child-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(218px, 1fr));
+        gap: 7px;
+      }
+
+      .capability-hierarchy-child-card {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 8px;
+        align-items: center;
+        min-height: 42px;
+        padding: 7px 9px;
+        border: 1px solid rgba(203, 217, 233, 0.7);
+        border-radius: 13px;
+        background: rgba(250, 253, 255, 0.82);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+      }
+
+      .capability-hierarchy-child-card strong {
+        display: block;
+        overflow: hidden;
+        color: #1c2b3e;
+        font-size: 12px;
+        font-weight: 840;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .capability-hierarchy-child-card span {
+        display: inline-flex;
+        align-items: center;
+        min-height: 20px;
+        margin-top: 3px;
+        padding: 0 7px;
+        border: 1px solid rgba(200, 214, 231, 0.7);
+        border-radius: 999px;
+        background: rgba(239, 246, 253, 0.7);
+        color: #68788e;
+        font-size: 10px;
+        font-weight: 760;
+      }
+
+      .capability-hierarchy-child-card code,
+      .capability-hierarchy-chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 0 8px;
+        border: 1px solid rgba(135, 154, 178, 0.72);
+        border-radius: 999px;
+        color: #26364c;
+        font-family: inherit;
+        font-size: 11px;
+        font-weight: 860;
+      }
+
+      .capability-hierarchy-child-card code {
+        background: rgba(246, 249, 253, 0.86);
+        white-space: nowrap;
+      }
+
+      .capability-hierarchy-row-list {
+        display: grid;
+        gap: 5px;
+      }
+
+      .capability-hierarchy-row {
+        min-width: 0;
+        display: grid;
+        grid-template-columns: minmax(230px, 1.15fr) minmax(112px, 0.38fr) minmax(170px, 0.48fr) minmax(210px, 0.58fr);
+        gap: 5px 8px;
+        align-items: center;
+        min-height: 43px;
+        padding: 6px 9px;
+        border: 1px solid rgba(203, 215, 231, 0.78);
+        border-radius: 11px;
+        background: rgba(253, 254, 255, 0.86);
+        color: inherit;
+        text-align: left;
+      }
+
+      .capability-hierarchy-row-main {
+        min-width: 0;
+        display: grid;
+        gap: 2px;
+      }
+
+      .capability-hierarchy-row-main b {
+        overflow: hidden;
+        color: #1c2b3e;
+        font-size: 12px;
+        line-height: 1.28;
+        font-weight: 820;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .capability-hierarchy-row-main small,
+      .capability-hierarchy-row-stats {
+        color: #68788e;
+        font-size: 10px;
+        font-weight: 720;
+      }
+
+      .capability-hierarchy-row-signals {
+        min-width: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+
+      .capability-hierarchy-row-signal {
+        display: inline-flex;
+        align-items: center;
+        max-width: 100%;
+        min-height: 18px;
+        padding: 0 6px;
+        border: 1px solid rgba(199, 212, 231, 0.84);
+        border-radius: 999px;
+        background: rgba(248, 251, 255, 0.84);
+        color: #5f7087;
+        font-size: 9.5px;
+        font-weight: 760;
+        white-space: nowrap;
+      }
+
+      .capability-hierarchy-row-signal.is-technical {
+        border-color: rgba(144, 182, 226, 0.72);
+        background: rgba(239, 247, 255, 0.84);
+      }
+
+      .capability-hierarchy-row-signal.is-management {
+        border-color: rgba(146, 190, 158, 0.72);
+        background: rgba(243, 250, 245, 0.84);
+      }
+
+      .capability-hierarchy-row-signal.is-standard {
+        border-color: rgba(214, 185, 121, 0.72);
+        background: rgba(253, 249, 239, 0.84);
+      }
+
+      .capability-hierarchy-row-preview {
+        min-width: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+
+      .capability-hierarchy-next-chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 19px;
+        padding: 0 7px;
+        border: 1px solid rgba(135, 154, 178, 0.72);
+        border-radius: 999px;
+        background: rgba(246, 249, 253, 0.86);
+        color: #26364c;
+        font-size: 10px;
+        font-weight: 860;
+        white-space: nowrap;
+      }
+
+      .capability-hierarchy-coverage-row {
+        --coverage-accent: #78aee7;
+        --coverage-bg: rgba(235, 246, 255, 0.76);
+        position: relative;
+        overflow: hidden;
+        min-height: 48px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+        padding: 8px 10px;
+        border: 1px solid rgba(202, 216, 232, 0.76);
+        border-radius: 11px;
+        background: var(--coverage-bg);
+      }
+
+      .capability-hierarchy-coverage-row::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: var(--coverage);
+        height: 3px;
+        background: var(--coverage-accent);
+      }
+
+      .capability-hierarchy-coverage-row.is-service {
+        --coverage-accent: #75aee9;
+        --coverage-bg: rgba(235, 246, 255, 0.86);
+      }
+
+      .capability-hierarchy-coverage-row.is-module-measure {
+        --coverage-accent: #9ab0ca;
+        --coverage-bg: rgba(244, 248, 253, 0.9);
+      }
+
+      .capability-hierarchy-coverage-row.is-function {
+        --coverage-accent: #89bea1;
+        --coverage-bg: rgba(240, 249, 244, 0.88);
+      }
+
+      .capability-hierarchy-coverage-row strong,
+      .capability-hierarchy-coverage-row > span,
+      .capability-hierarchy-coverage-row > span > span {
+        position: relative;
+        z-index: 1;
+      }
+
+      .capability-hierarchy-coverage-row strong {
+        color: #182338;
+        font-size: 12px;
+        font-weight: 880;
+      }
+
+      .capability-hierarchy-coverage-row em {
+        color: #111a2b;
+        font-style: normal;
+        font-size: 16px;
+        line-height: 1;
+        font-weight: 900;
+      }
+
+      .capability-hierarchy-coverage-row > span {
+        display: block;
+        margin: 0;
+      }
+
+      .capability-hierarchy-coverage-row > span > span {
+        display: block;
+        margin-top: 3px;
+        color: #63748a;
+        font-size: 10.5px;
+        font-weight: 720;
+      }
+
+      .capability-hierarchy-l2 {
+        display: grid;
+        gap: 10px;
+        padding: 13px;
+      }
+
+      .capability-hierarchy-map-preview {
+        min-height: 176px;
+        display: grid;
+        place-items: center;
+        border: 1px solid rgba(210, 222, 236, 0.64);
+        border-radius: 17px;
+        background:
+          linear-gradient(rgba(176, 194, 216, 0.16) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(176, 194, 216, 0.14) 1px, transparent 1px),
+          rgba(250, 253, 255, 0.58);
+        background-size: 38px 38px;
+      }
+
+      .capability-hierarchy-focus-row {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+        max-width: 720px;
+      }
+
+      .capability-hierarchy-focus-row .capability-hierarchy-chip {
+        min-height: 28px;
+        padding: 0 11px;
+        background: rgba(255, 255, 255, 0.86);
+        font-size: 12px;
+      }
+
+      .capability-hierarchy-graph {
+        display: grid;
+        gap: 10px;
+        min-height: 356px;
+        padding: 13px;
+        border-radius: 24px;
+        background:
+          radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.92), transparent 34%),
+          linear-gradient(rgba(176, 194, 216, 0.12) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(176, 194, 216, 0.1) 1px, transparent 1px),
+          rgba(250, 253, 255, 0.58);
+        background-size: auto, 36px 36px, 36px 36px, auto;
+      }
+
+      .capability-hierarchy-graph-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .capability-hierarchy-graph-legend {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 6px;
+      }
+
+      .capability-hierarchy-graph-legend span {
+        display: inline-flex;
+        align-items: center;
+        min-height: 22px;
+        padding: 0 8px;
+        border: 1px solid rgba(197, 210, 226, 0.74);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.7);
+        color: #63748a;
+        font-size: 10px;
+        font-weight: 780;
+      }
+
+      .capability-hierarchy-graph-body {
+        position: relative;
+        display: grid;
+        grid-template-columns: minmax(170px, 0.9fr) minmax(210px, 1.05fr) minmax(330px, 1.55fr);
+        gap: 18px;
+        align-items: center;
+        min-height: 286px;
+      }
+
+      .capability-hierarchy-graph-body::before,
+      .capability-hierarchy-graph-body::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        height: 2px;
+        background: linear-gradient(90deg, rgba(126, 162, 205, 0.18), rgba(126, 162, 205, 0.48), rgba(126, 162, 205, 0.18));
+      }
+
+      .capability-hierarchy-graph-body::before {
+        left: 20%;
+        right: 58%;
+      }
+
+      .capability-hierarchy-graph-body::after {
+        left: 43%;
+        right: 20%;
+      }
+
+      .capability-hierarchy-graph-column,
+      .capability-hierarchy-graph-targets {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        gap: 8px;
+      }
+
+      .capability-hierarchy-graph-column small,
+      .capability-hierarchy-graph-targets small {
+        color: #6a7a90;
+        font-size: 10px;
+        font-weight: 820;
+      }
+
+      .capability-hierarchy-graph-node {
+        display: grid;
+        gap: 3px;
+        padding: 9px 11px;
+        border: 1px solid rgba(198, 212, 230, 0.78);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.8);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.9),
+          0 10px 20px rgba(62, 78, 104, 0.08);
+      }
+
+      .capability-hierarchy-graph-node code {
+        color: #53647b;
+        font-family: inherit;
+        font-size: 10px;
+        font-weight: 860;
+      }
+
+      .capability-hierarchy-graph-node strong {
+        overflow: hidden;
+        color: #1b2a3d;
+        font-size: 12px;
+        font-weight: 860;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .capability-hierarchy-graph-center {
+        position: relative;
+        z-index: 2;
+        display: grid;
+        place-items: center;
+        min-height: 132px;
+        padding: 18px;
+        border: 1px solid rgba(159, 176, 213, 0.56);
+        border-radius: 28px;
+        background:
+          radial-gradient(circle at 50% 10%, rgba(255, 255, 255, 0.92), transparent 58%),
+          rgba(241, 243, 252, 0.94);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.9),
+          0 16px 32px rgba(77, 89, 125, 0.14);
+        text-align: center;
+      }
+
+      .capability-hierarchy-graph-center code {
+        color: #56667c;
+        font-family: inherit;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .capability-hierarchy-graph-center strong {
+        display: block;
+        margin-top: 7px;
+        color: #182338;
+        font-size: 16px;
+        line-height: 1.22;
+        font-weight: 900;
+      }
+
+      .capability-hierarchy-graph-band {
+        display: grid;
+        grid-template-columns: 74px minmax(0, 1fr);
+        gap: 8px;
+        align-items: center;
+        min-height: 50px;
+        padding: 7px;
+        border: 1px solid rgba(203, 217, 233, 0.74);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.72);
+      }
+
+      .capability-hierarchy-graph-band strong {
+        color: #25344a;
+        font-size: 11px;
+        font-weight: 880;
+      }
+
+      .capability-hierarchy-graph-band div {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .capability-hierarchy-graph-band span {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 0 8px;
+        border-radius: 999px;
+        color: #26364c;
+        font-size: 10px;
+        font-weight: 820;
+      }
+
+      .capability-hierarchy-graph-band.is-technical span {
+        border: 1px solid rgba(116, 166, 221, 0.42);
+        background: rgba(235, 246, 255, 0.86);
+      }
+
+      .capability-hierarchy-graph-band.is-management span {
+        border: 1px solid rgba(132, 184, 152, 0.42);
+        background: rgba(240, 249, 244, 0.88);
+      }
+
+      .capability-hierarchy-graph-band.is-standard span {
+        border: 1px solid rgba(216, 185, 108, 0.44);
+        background: rgba(255, 250, 236, 0.88);
+      }
+
       @media (max-width: 1280px) {
         .capability-rail-page {
           min-width: 980px;
@@ -4047,6 +5149,26 @@
 
         .capability-rail-search {
           width: 360px;
+        }
+
+        .capability-hierarchy-page {
+          min-width: 1000px;
+        }
+
+        .capability-hierarchy-workspace {
+          grid-template-columns: 300px minmax(0, 1fr);
+        }
+
+        .capability-hierarchy-overview-main {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .capability-hierarchy-graph-body {
+          grid-template-columns: minmax(150px, 0.8fr) minmax(190px, 0.95fr) minmax(280px, 1.45fr);
+        }
+
+        .capability-hierarchy-child-grid {
+          grid-template-columns: 1fr;
         }
       }
     </style>
@@ -4075,7 +5197,7 @@
             <span class="stat-chip"><strong>1</strong>颜色基准</span>
             <span class="stat-chip"><strong>4</strong>环境 demo</span>
             <span class="stat-chip"><strong>1</strong>搜索 demo</span>
-            <span class="stat-chip"><strong>1</strong>能力页设计</span>
+            <span class="stat-chip"><strong>2</strong>能力页设计</span>
             <span class="stat-chip"><strong>1</strong>工作台原型</span>
             <span class="stat-chip"><strong>1</strong>纵向流</span>
             <span class="stat-chip"><strong>统一</strong>入口</span>
@@ -4090,6 +5212,7 @@
             <button class="demo-tab" type="button" data-demo-tab="subcategory-stats">子类统计页</button>
             <button class="demo-tab" type="button" data-demo-tab="global-search">全局搜索页</button>
             <button class="demo-tab" type="button" data-demo-tab="capability-rail">能力页控制轨</button>
+            <button class="demo-tab" type="button" data-demo-tab="capability-hierarchy">能力层级总览</button>
             <button class="demo-tab" type="button" data-demo-tab="workbench-module">工作台设计</button>
             <button class="demo-tab" type="button" data-demo-tab="vertical">纵向流试验</button>
           </nav>
@@ -5047,6 +6170,56 @@
                       </div>
                     </aside>
                   </div>
+                </section>
+              </div>
+            </section>
+          </section>
+
+          <section class="demo-panel" data-demo-panel="capability-hierarchy">
+            <section class="capability-hierarchy-demo-frame" aria-label="L0 L1 L2 能力层级总览 demo">
+              <div class="capability-hierarchy-page">
+                <header class="capability-hierarchy-title">
+                  <div>
+                    <span class="capability-hierarchy-kicker">Capability hierarchy demo</span>
+                    <h2>L0 / L1 / L2 分层展示基线</h2>
+                    <p>L0 / L1 / L2 统一为关系图谱与摘要总览，摘要展示覆盖率、去重统计和下钻入口，不展开底层映射明细。</p>
+                  </div>
+                  <div class="capability-hierarchy-status" aria-label="demo 状态">
+                    <span>静态 mock</span>
+                    <span>不改正式页</span>
+                  </div>
+                </header>
+
+                <section class="capability-hierarchy-workspace" aria-label="能力层级工作区">
+                  <aside class="capability-hierarchy-tree" aria-label="能力树样例">
+                    <h3>能力树</h3>
+                    <div class="capability-hierarchy-tree-list">
+                      <button class="capability-hierarchy-tree-item is-active" type="button" data-capability-hierarchy-level="l0">
+                        <code>L0</code>
+                        <div><strong>安全技术能力 T</strong><span>5 L1 / 19 L2 / 63 关注点</span></div>
+                      </button>
+                      <button class="capability-hierarchy-tree-item" type="button" data-capability-hierarchy-level="l1">
+                        <code>L1</code>
+                        <div><strong>T-AS 基础架构安全 Architecture...</strong><span>9 L2 / 27 关注点</span></div>
+                      </button>
+                      <button class="capability-hierarchy-tree-item" type="button" data-capability-hierarchy-level="l2">
+                        <code>L2</code>
+                        <div><strong>T-AS.AD 网络安全体系架构...</strong><span>4 关注点 / 2tab 总览</span></div>
+                      </button>
+                    </div>
+                  </aside>
+
+                  <main class="capability-hierarchy-stage" aria-label="层级展示区">
+                    <section class="capability-hierarchy-object" id="capabilityHierarchyObject"></section>
+                    <div class="capability-hierarchy-control">
+                      <div class="capability-hierarchy-tabs" id="capabilityHierarchyTabs" aria-label="当前层级视图"></div>
+                      <label class="capability-hierarchy-search" aria-label="能力页局部搜索">
+                        <span aria-hidden="true">⌕</span>
+                        <span>搜索能力、服务、流程或模块/措施</span>
+                      </label>
+                    </div>
+                    <section class="capability-hierarchy-content" id="capabilityHierarchyContent" aria-label="当前层级内容"></section>
+                  </main>
                 </section>
               </div>
             </section>
@@ -6361,6 +7534,573 @@
         }
       });
 
+      const capabilityHierarchyDemoState = {
+        level: "l0",
+        tab: "summary",
+      };
+
+      const capabilityHierarchyDemoData = {
+        l0: {
+          code: "T",
+          title: "安全技术能力 T",
+          levelLabel: "L0 总览",
+          mode: "能力总览",
+          summary: "只抽取能力结构和下级入口，不展示底层映射明细。",
+          tabs: [
+            { key: "graph", label: "关系图谱" },
+            { key: "summary", label: "摘要总览" },
+          ],
+          metrics: [
+            { label: "L1", value: "5", hint: "一级能力", role: "structure" },
+            { label: "L2", value: "19", hint: "二级能力", role: "structure" },
+            { label: "关注点", value: "63", hint: "下钻后查看", role: "structure" },
+          ],
+          coverage: [
+            { label: "安全技术服务覆盖率", value: "100%", meta: "160 / 160 服务", ratio: 100, role: "service" },
+            { label: "模块 / 措施覆盖率", value: "100%", meta: "132 模块 / 22 措施", ratio: 100, role: "module-measure" },
+            { label: "安全职能覆盖率", value: "100%", meta: "75 / 75 职能", ratio: 100, role: "function" },
+          ],
+          statGroups: [
+            { label: "技术覆盖", role: "technical", signal: { value: "160", meta: "8 作用域 / 154 模块措施" } },
+            { label: "管理落地", role: "management", signal: { value: "75", meta: "75 职能 / 60 流程" } },
+            { label: "标准映射", role: "standard", signal: { value: "1745", meta: "7 标准 / 63 关注点" } },
+          ],
+          insights: [
+            { tone: "good", label: "总览判断", text: "技术、管理与标准三类映射均已纳入 L1 抽查" },
+            { tone: "info", label: "下钻建议", text: "优先查看 T-AS 基础架构安全" },
+          ],
+          childrenLabel: "L1 入口",
+          children: [
+            { code: "T-AS", title: "基础架构安全 Architectural Security", meta: "9 L2 / 27 关注点 / 243 映射", signals: ["技术 86", "管理 28", "标准 843"], next: ["T-AS.AD", "T-AS.AM", "T-AS.CG"] },
+            { code: "T-PD", title: "被动防御 Passive Defense", meta: "4 L2 / 17 关注点 / 153 映射", signals: ["技术 40", "管理 17", "标准 330"], next: ["T-PD.AC", "T-PD.DP", "T-PD.PP"] },
+            { code: "T-AD", title: "主动防御 Active Defense", meta: "3 L2 / 9 关注点 / 64 映射", signals: ["技术 18", "管理 11", "标准 218"], next: ["T-AD.TH", "T-AD.DT", "T-AD.RS"] },
+            { code: "T-IN", title: "安全情报 Intelligence", meta: "2 L2 / 6 关注点 / 37 映射", signals: ["技术 12", "管理 8", "标准 142"], next: ["T-IN.CT", "T-IN.IO"] },
+            { code: "T-OF", title: "进攻 Offense", meta: "1 L2 / 4 关注点 / 29 映射", signals: ["技术 9", "管理 5", "标准 86"], next: ["T-OF.AT"] },
+          ],
+        },
+        l1: {
+          code: "T-AS",
+          title: "基础架构安全 Architectural Security",
+          levelLabel: "L1 总览",
+          mode: "能力域总览",
+          summary: "展示当前能力域下全部 L2 入口，并用去重数量说明技术、管理、标准覆盖，不展开底层映射明细。",
+          tabs: [
+            { key: "graph", label: "关系图谱" },
+            { key: "summary", label: "摘要总览" },
+          ],
+          metrics: [
+            { label: "L2", value: "9", hint: "二级能力", role: "structure" },
+            { label: "关注点", value: "27", hint: "下钻后查看", role: "structure" },
+          ],
+          statGroups: [
+            {
+              label: "技术视角统计",
+              role: "technical",
+              signal: { label: "技术覆盖", value: "86", meta: "7 作用域 / 96 模块措施" },
+              items: [
+                { label: "安全技术服务", value: "86" },
+                { label: "安全技术模块", value: "132" },
+                { label: "安全技术措施", value: "22" },
+              ],
+            },
+            {
+              label: "管理视角统计",
+              role: "management",
+              signal: { label: "管理落地", value: "28", meta: "34 职能 / 25 流程" },
+              items: [
+                { label: "职能", value: "58" },
+                { label: "流程", value: "50" },
+              ],
+            },
+            {
+              label: "标准 / 框架",
+              role: "standard",
+              signal: { label: "标准映射", value: "843", meta: "6 标准 / 27 关注点" },
+              items: [
+                { label: "标准", value: "6" },
+                { label: "控制项", value: "843" },
+              ],
+            },
+          ],
+          coverage: [
+            { label: "安全技术服务覆盖率", value: "54%", meta: "86 / 160 服务", ratio: 54, role: "service" },
+            { label: "模块 / 措施覆盖率", value: "70%", meta: "132 模块 / 22 措施", ratio: 70, role: "module-measure" },
+            { label: "安全职能覆盖率", value: "77%", meta: "58 / 75 职能", ratio: 77, role: "function" },
+          ],
+          insights: [
+            { tone: "warn", label: "技术覆盖", text: "103 个关注点暂无技术服务" },
+            { tone: "warn", label: "管理流程", text: "26 条管理映射缺少活动承接" },
+          ],
+          childrenLabel: "L2 入口",
+          children: [
+            { code: "T-AS.AD", title: "网络安全体系架构能力", meta: "1 L2 / 3 关注点 / 27 映射", signals: ["技术 14", "管理 3", "标准 105"], next: ["T-AS.AD-01", "T-AS.AD-02", "T-AS.AD-03"] },
+            { code: "T-AS.AM", title: "信息化资产安全管理能力", meta: "1 L2 / 2 关注点 / 18 映射", signals: ["技术 8", "管理 3", "标准 135"], next: ["T-AS.AM-01", "T-AS.AM-02"] },
+            { code: "T-AS.CG", title: "密码服务能力", meta: "1 L2 / 2 关注点 / 18 映射", signals: ["技术 9", "管理 2", "标准 28"], next: ["T-AS.CG-01", "T-AS.CG-02"] },
+            { code: "T-AS.CM", title: "安全配置与加固措施管理能力", meta: "1 L2 / 2 关注点 / 18 映射", signals: ["技术 7", "管理 2", "标准 76"], next: ["T-AS.CM-01", "T-AS.CM-02"] },
+            { code: "T-AS.DG", title: "数据防护基础能力", meta: "1 L2 / 2 关注点 / 16 映射", signals: ["技术 7", "管理 2", "标准 67"], next: ["T-AS.DG-01", "T-AS.DG-02"] },
+            { code: "T-AS.DS", title: "数据交换与共享安全能力", meta: "1 L2 / 2 关注点 / 15 映射", signals: ["技术 6", "管理 2", "标准 54"], next: ["T-AS.DS-01", "T-AS.DS-02"] },
+            { code: "T-AS.IA", title: "身份、凭证与访问管理能力", meta: "1 L2 / 2 关注点 / 14 映射", signals: ["技术 6", "管理 2", "标准 51"], next: ["T-AS.IA-01", "T-AS.IA-02"] },
+            { code: "T-AS.LA", title: "日志收集与审计能力", meta: "1 L2 / 2 关注点 / 13 映射", signals: ["技术 5", "管理 2", "标准 49"], next: ["T-AS.LA-01", "T-AS.LA-02"] },
+            { code: "T-AS.VM", title: "漏洞与补丁管理能力", meta: "1 L2 / 2 关注点 / 12 映射", signals: ["技术 4", "管理 2", "标准 42"], next: ["T-AS.VM-01", "T-AS.VM-02"] },
+          ],
+        },
+        l2: {
+          code: "T-AS.AD",
+          title: "网络安全体系架构能力",
+          levelLabel: "L2 能力",
+          mode: "2tab 总览",
+          summary: "L2 摘要总览展示关注点入口、覆盖率和去重统计，不展示技术、管理、标准的底层映射明细。",
+          tabs: [
+            { key: "graph", label: "关系图谱" },
+            { key: "summary", label: "摘要总览" },
+          ],
+          metrics: [
+            { label: "关注点", value: "4", hint: "全部展示", role: "structure" },
+            { label: "展示模式", value: "2", hint: "摘要 / 入口", role: "structure" },
+          ],
+          statGroups: [
+            {
+              label: "技术视角统计",
+              role: "technical",
+              signal: { label: "技术覆盖", value: "24", meta: "4 作用域 / 44 模块措施" },
+              items: [
+                { label: "安全技术服务", value: "24" },
+                { label: "安全技术模块", value: "36" },
+                { label: "安全技术措施", value: "8" },
+              ],
+            },
+            {
+              label: "管理视角统计",
+              role: "management",
+              signal: { label: "管理落地", value: "12", meta: "12 职能 / 10 流程" },
+              items: [
+                { label: "职能", value: "12" },
+                { label: "流程", value: "10" },
+              ],
+            },
+            {
+              label: "标准 / 框架",
+              role: "standard",
+              signal: { label: "标准映射", value: "39", meta: "6 标准 / 4 关注点" },
+              items: [
+                { label: "标准", value: "6" },
+                { label: "控制项", value: "39" },
+              ],
+            },
+          ],
+          coverage: [
+            { label: "安全技术服务覆盖率", value: "15%", meta: "24 / 160 服务", ratio: 15, role: "service" },
+            { label: "模块 / 措施覆盖率", value: "20%", meta: "36 模块 / 8 措施", ratio: 20, role: "module-measure" },
+            { label: "安全职能覆盖率", value: "16%", meta: "12 / 75 职能", ratio: 16, role: "function" },
+          ],
+          insights: [
+            { tone: "info", label: "摘要边界", text: "底层映射明细进入关注点后查看" },
+            { tone: "good", label: "入口完整", text: "4 个关注点均在本页完整展示" },
+          ],
+          focus: [
+            "T-AS.AD-01 安全设计原则",
+            "T-AS.AD-02 纵深防御架构",
+            "T-AS.AD-03 网络分区隔离",
+            "T-AS.AD-04 网络边界管控",
+          ],
+        },
+      };
+
+      function hierarchyEscape(value) {
+        return String(value ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function hierarchyRoleClass(role) {
+        const safeRole = String(role || "structure").replace(/[^a-z0-9_-]/gi, "");
+        return safeRole ? ` is-${safeRole}` : "";
+      }
+
+      function renderCapabilityHierarchyObject(data) {
+        return `
+          <div>
+            <code>${hierarchyEscape(data.code)}</code>
+            <h3>${hierarchyEscape(data.title)}</h3>
+            <p>${hierarchyEscape(data.summary)}</p>
+          </div>
+          <div class="capability-hierarchy-mode" aria-label="当前层级模式">
+            <span>${hierarchyEscape(data.levelLabel)}</span>
+            <span>${hierarchyEscape(data.mode)}</span>
+          </div>
+        `;
+      }
+
+      function renderCapabilityHierarchyMetrics(metrics = [], className = "capability-hierarchy-metrics") {
+        if (!metrics.length) return "";
+        const densityClass = metrics.length === 2 && className === "capability-hierarchy-metrics" ? " is-two" : "";
+        return `
+          <div class="${className}${densityClass}">
+            ${metrics.map((metric) => `
+              <div class="capability-hierarchy-metric${hierarchyRoleClass(metric.role)}">
+                <span>${hierarchyEscape(metric.label)}</span>
+                <strong>${hierarchyEscape(metric.value)}</strong>
+                <span>${hierarchyEscape(metric.hint)}</span>
+              </div>
+            `).join("")}
+          </div>
+        `;
+      }
+
+      function renderCapabilityHierarchyStatGroups(groups = []) {
+        if (!groups.length) return "";
+        return `
+          <div class="capability-hierarchy-stat-groups" aria-label="去重统计">
+            ${groups.map((group) => `
+              <section class="capability-hierarchy-stat-group${hierarchyRoleClass(group.role)}">
+                <strong>${hierarchyEscape(group.label)}</strong>
+                <dl>
+                  ${(group.items || []).map((item) => `
+                    <div>
+                      <dt>${hierarchyEscape(item.label)}</dt>
+                      <dd>${hierarchyEscape(item.value)}</dd>
+                    </div>
+                  `).join("")}
+                </dl>
+              </section>
+            `).join("")}
+          </div>
+        `;
+      }
+
+      function renderCapabilityHierarchySummaryRow(metrics = [], groups = []) {
+        const totalBlocks = metrics.length + groups.length;
+        if (!totalBlocks) return "";
+        const fiveClass = totalBlocks === 5 ? " is-five" : "";
+        return `
+          <div class="capability-hierarchy-summary-row${fiveClass}" aria-label="层级摘要统计">
+            ${metrics.map((metric) => `
+              <div class="capability-hierarchy-metric${hierarchyRoleClass(metric.role)}">
+                <span>${hierarchyEscape(metric.label)}</span>
+                <strong>${hierarchyEscape(metric.value)}</strong>
+                <span>${hierarchyEscape(metric.hint)}</span>
+              </div>
+            `).join("")}
+            ${groups.map((group) => `
+              <section class="capability-hierarchy-stat-group${hierarchyRoleClass(group.role)}">
+                <strong>${hierarchyEscape(group.label)}</strong>
+                <dl>
+                  ${(group.items || []).map((item) => `
+                    <div>
+                      <dt>${hierarchyEscape(item.label)}</dt>
+                      <dd>${hierarchyEscape(item.value)}</dd>
+                    </div>
+                  `).join("")}
+                </dl>
+              </section>
+            `).join("")}
+          </div>
+        `;
+      }
+
+      function getCapabilityHierarchyEntries(data) {
+        if (Array.isArray(data.children) && data.children.length) {
+          return {
+            label: "下级能力入口",
+            entries: data.children,
+          };
+        }
+        if (Array.isArray(data.focus) && data.focus.length) {
+          return {
+            label: "关注点入口",
+            entries: data.focus.map((item) => {
+              const [code, ...titleParts] = String(item).split(" ");
+              return {
+                code,
+                title: titleParts.join(" "),
+                meta: "关注点",
+              };
+            }),
+          };
+        }
+        return { label: "下级入口", entries: [] };
+      }
+
+      function getCapabilityHierarchyFlowItems(data) {
+        return (data.metrics || []).map((metric) => `${metric.value} ${metric.label}`);
+      }
+
+      function getCapabilityHierarchySignalCards(data) {
+        return (data.statGroups || []).slice(0, 3).map((group) => {
+          const signal = group.signal || {};
+          const items = group.items || [];
+          return {
+            role: group.role,
+            label: signal.label || group.label,
+            value: signal.value || items[0]?.value || "-",
+            meta: signal.meta || items.map((item) => `${item.value} ${item.label}`).join(" / "),
+          };
+        });
+      }
+
+      function renderCapabilityHierarchyBrief(data) {
+        const flowItems = getCapabilityHierarchyFlowItems(data);
+        const signals = getCapabilityHierarchySignalCards(data);
+        const insights = Array.isArray(data.insights) ? data.insights : [];
+        return `
+          <section class="capability-hierarchy-brief" aria-label="阅读摘要">
+            <header>
+              <h3>阅读摘要</h3>
+              <span>${hierarchyEscape(data.levelLabel)}</span>
+            </header>
+            <div class="capability-hierarchy-brief-body">
+              <div class="capability-hierarchy-brief-copy">
+                <p>${hierarchyEscape(data.title)}</p>
+                <div class="capability-hierarchy-flow">
+                  ${flowItems.map((item) => `<span>${hierarchyEscape(item)}</span>`).join("")}
+                </div>
+              </div>
+              <div class="capability-hierarchy-signal-grid" aria-label="摘要统计">
+                ${signals.map((signal) => `
+                  <article class="capability-hierarchy-signal${hierarchyRoleClass(signal.role)}">
+                    <span>${hierarchyEscape(signal.label)}</span>
+                    <strong>${hierarchyEscape(signal.value)}</strong>
+                    <small>${hierarchyEscape(signal.meta)}</small>
+                  </article>
+                `).join("")}
+              </div>
+            </div>
+            ${insights.length ? `
+              <div class="capability-hierarchy-insight-title">
+                <strong>核对信号</strong>
+                <span>${hierarchyEscape(`${insights.length} 项`)}</span>
+              </div>
+              <div class="capability-hierarchy-insights" aria-label="核对信号">
+                ${insights.map((signal) => `
+                  <article class="capability-hierarchy-insight is-${hierarchyEscape(signal.tone || "info")}">
+                    <span>${hierarchyEscape(signal.label)}</span>
+                    <strong>${hierarchyEscape(signal.text)}</strong>
+                  </article>
+                `).join("")}
+              </div>
+            ` : ""}
+          </section>
+        `;
+      }
+
+      function capabilityHierarchyChildSignals(child, index = 0) {
+        const values = Array.isArray(child.signals) && child.signals.length
+          ? child.signals
+          : [`技术 ${Math.max(4, 14 - index)}`, `管理 ${Math.max(1, 4 - (index % 3))}`, `标准 ${Math.max(24, 108 - index * 9)}`];
+        return values.map((value, valueIndex) => ({
+          value,
+          role: ["technical", "management", "standard"][valueIndex] || "structure",
+        }));
+      }
+
+      function capabilityHierarchyChildNext(child) {
+        if (Array.isArray(child.next) && child.next.length) return child.next;
+        return [`${child.code}-01`, `${child.code}-02`];
+      }
+
+      function renderCapabilityHierarchyEntrySection(data) {
+        const { label, entries } = getCapabilityHierarchyEntries(data);
+        if (!entries.length) return "";
+        return `
+          <section class="capability-hierarchy-entry-section" aria-label="${hierarchyEscape(label)}">
+            <div class="capability-hierarchy-section-head">
+              <h3>${hierarchyEscape(label)}</h3>
+              <span>${hierarchyEscape(`${entries.length} 项`)}</span>
+            </div>
+            <div class="capability-hierarchy-row-list">
+              ${entries.map((child, index) => `
+                <article class="capability-hierarchy-row">
+                  <span class="capability-hierarchy-row-main">
+                    <b>${hierarchyEscape(`${child.code} ${child.title}`)}</b>
+                    <small>${hierarchyEscape(child.level || label.replace("入口", ""))}</small>
+                  </span>
+                  <span class="capability-hierarchy-row-stats">${hierarchyEscape(child.meta)}</span>
+                  <span class="capability-hierarchy-row-signals">
+                    ${capabilityHierarchyChildSignals(child, index).map((signal) => `
+                      <span class="capability-hierarchy-row-signal${hierarchyRoleClass(signal.role)}">${hierarchyEscape(signal.value)}</span>
+                    `).join("")}
+                  </span>
+                  <span class="capability-hierarchy-row-preview" aria-label="下级入口">
+                    ${capabilityHierarchyChildNext(child).map((code) => `<span class="capability-hierarchy-next-chip">${hierarchyEscape(code)}</span>`).join("")}
+                  </span>
+                </article>
+              `).join("")}
+            </div>
+          </section>
+        `;
+      }
+
+      function renderCapabilityHierarchyCoverage(data) {
+        const coverage = Array.isArray(data.coverage) ? data.coverage : [];
+        if (!coverage.length) return "";
+        return `
+          <aside class="capability-hierarchy-coverage" aria-label="覆盖结构">
+            <div class="capability-hierarchy-section-head">
+              <h3>覆盖结构</h3>
+              <span>技术 / 管理</span>
+            </div>
+            ${coverage.map((item) => {
+              const ratio = Math.max(0, Math.min(100, Number(item.ratio) || 0));
+              return `
+                <div class="capability-hierarchy-coverage-row${hierarchyRoleClass(item.role)}" style="--coverage: ${ratio}%">
+                  <span>
+                    <strong>${hierarchyEscape(item.label)}</strong>
+                    <span>${hierarchyEscape(item.meta)}</span>
+                  </span>
+                  <em>${hierarchyEscape(item.value)}</em>
+                </div>
+              `;
+            }).join("")}
+          </aside>
+        `;
+      }
+
+      function renderCapabilityHierarchyOverview(data) {
+        return `
+          <div class="capability-hierarchy-overview">
+            ${renderCapabilityHierarchyBrief(data)}
+            <div class="capability-hierarchy-overview-main">
+              ${renderCapabilityHierarchyEntrySection(data)}
+              ${renderCapabilityHierarchyCoverage(data)}
+            </div>
+          </div>
+        `;
+      }
+
+      function getCapabilityHierarchyGraphBands(data) {
+        const groupMap = new Map((data.statGroups || []).map((group) => [group.role, group]));
+        const coverageMap = new Map((data.coverage || []).map((item) => [item.role, item]));
+        const technicalGroup = groupMap.get("technical");
+        const managementGroup = groupMap.get("management");
+        const standardGroup = groupMap.get("standard");
+        return [
+          {
+            role: "technical",
+            label: "技术映射",
+            items: (technicalGroup?.items || []).length
+              ? technicalGroup.items.map((item) => `${item.label} ${item.value}`)
+              : [
+                `服务 ${coverageMap.get("service")?.value || "-"}`,
+                `模块 / 措施 ${coverageMap.get("module-measure")?.value || "-"}`,
+              ],
+          },
+          {
+            role: "management",
+            label: "管理映射",
+            items: (managementGroup?.items || []).length
+              ? managementGroup.items.map((item) => `${item.label} ${item.value}`)
+              : [`安全职能 ${coverageMap.get("function")?.value || "-"}`],
+          },
+          {
+            role: "standard",
+            label: "标准映射",
+            items: (standardGroup?.items || []).length
+              ? standardGroup.items.map((item) => `${item.label} ${item.value}`)
+              : ["标准 / 控制项按下级汇总"],
+          },
+        ];
+      }
+
+      function renderCapabilityHierarchyGraph(data) {
+        const { entries } = getCapabilityHierarchyEntries(data);
+        const graphNodes = entries.slice(0, 5);
+        const bands = getCapabilityHierarchyGraphBands(data);
+        return `
+          <section class="capability-hierarchy-graph" aria-label="关系图谱">
+            <div class="capability-hierarchy-graph-head">
+              <h3>关系图谱</h3>
+              <div class="capability-hierarchy-graph-legend" aria-label="图例">
+                <span>当前能力</span>
+                <span>下级节点</span>
+                <span>技术 / 管理 / 标准映射</span>
+              </div>
+            </div>
+            <div class="capability-hierarchy-graph-body">
+              <div class="capability-hierarchy-graph-column">
+                <small>下级入口</small>
+                ${graphNodes.map((node) => `
+                  <article class="capability-hierarchy-graph-node">
+                    <code>${hierarchyEscape(node.code)}</code>
+                    <strong>${hierarchyEscape(node.title)}</strong>
+                  </article>
+                `).join("")}
+              </div>
+              <div class="capability-hierarchy-graph-center">
+                <div>
+                  <code>${hierarchyEscape(data.code)}</code>
+                  <strong>${hierarchyEscape(data.title)}</strong>
+                </div>
+              </div>
+              <div class="capability-hierarchy-graph-targets">
+                <small>映射对象</small>
+                ${bands.map((band) => `
+                  <section class="capability-hierarchy-graph-band${hierarchyRoleClass(band.role)}">
+                    <strong>${hierarchyEscape(band.label)}</strong>
+                    <div>
+                      ${band.items.map((item) => `<span>${hierarchyEscape(item)}</span>`).join("")}
+                    </div>
+                  </section>
+                `).join("")}
+              </div>
+            </div>
+          </section>
+        `;
+      }
+
+      function renderCapabilityHierarchyContent(data, activeTab) {
+        if (activeTab === "graph") {
+          return renderCapabilityHierarchyGraph(data);
+        }
+        return renderCapabilityHierarchyOverview(data);
+      }
+
+      function renderCapabilityHierarchyTabs(data) {
+        if (!data.tabs) {
+          return `<button class="is-active" type="button">能力总览</button>`;
+        }
+        return data.tabs.map((tab) => `
+          <button class="${tab.key === capabilityHierarchyDemoState.tab ? "is-active" : ""}" type="button" data-capability-hierarchy-tab="${hierarchyEscape(tab.key)}">
+            ${hierarchyEscape(tab.label)}
+          </button>
+        `).join("");
+      }
+
+      function renderCapabilityHierarchyDemo() {
+        const data = capabilityHierarchyDemoData[capabilityHierarchyDemoState.level] || capabilityHierarchyDemoData.l0;
+        if (!data.tabs) {
+          capabilityHierarchyDemoState.tab = "summary";
+        } else if (!data.tabs.some((tab) => tab.key === capabilityHierarchyDemoState.tab)) {
+          capabilityHierarchyDemoState.tab = data.tabs[0]?.key || "summary";
+        }
+        document.querySelectorAll("[data-capability-hierarchy-level]").forEach((button) => {
+          button.classList.toggle("is-active", button.dataset.capabilityHierarchyLevel === capabilityHierarchyDemoState.level);
+        });
+        const objectEl = document.getElementById("capabilityHierarchyObject");
+        const tabsEl = document.getElementById("capabilityHierarchyTabs");
+        const contentEl = document.getElementById("capabilityHierarchyContent");
+        if (!objectEl || !tabsEl || !contentEl) return;
+        objectEl.innerHTML = renderCapabilityHierarchyObject(data);
+        tabsEl.innerHTML = renderCapabilityHierarchyTabs(data);
+        contentEl.innerHTML = renderCapabilityHierarchyContent(data, capabilityHierarchyDemoState.tab);
+      }
+
+      document.addEventListener("click", (event) => {
+        const levelButton = event.target.closest("[data-capability-hierarchy-level]");
+        if (levelButton) {
+          capabilityHierarchyDemoState.level = levelButton.dataset.capabilityHierarchyLevel || "l0";
+          capabilityHierarchyDemoState.tab = "summary";
+          renderCapabilityHierarchyDemo();
+          return;
+        }
+        const tabButton = event.target.closest("[data-capability-hierarchy-tab]");
+        if (tabButton) {
+          capabilityHierarchyDemoState.tab = tabButton.dataset.capabilityHierarchyTab || "summary";
+          renderCapabilityHierarchyDemo();
+        }
+      });
+
       function activateDemoTab(tabName, options = {}) {
         if (!demoPanelIds.has(tabName)) return;
         tabButtons.forEach((button) => button.classList.toggle("is-active", button.dataset.demoTab === tabName));
@@ -6381,6 +8121,9 @@
           renderSearchDemo();
         } else if (tabName === "capability-rail") {
           hideNodeFulltext();
+        } else if (tabName === "capability-hierarchy") {
+          hideNodeFulltext();
+          renderCapabilityHierarchyDemo();
         } else if (tabName === "workbench-module") {
           hideNodeFulltext();
           renderWorkbenchPrototype(options.workbenchRoute || getWorkbenchRouteFromHash(), { updateHash: options.updateHash !== false });

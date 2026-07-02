@@ -414,6 +414,55 @@
     };
   }
 
+  function capabilityDisplayCode(item = {}) {
+    const explicit = text(item.code).trim();
+    if (explicit) return explicit;
+    const title = titleOf(item, "").trim();
+    const match = title.match(/\s([TGM])$/);
+    return match ? match[1] : "";
+  }
+
+  function capabilityDisplayTitle(item = {}, fallback = "未命名") {
+    const code = capabilityDisplayCode(item);
+    const title = titleOf(item, fallback).trim();
+    if (!code || title === code) return title || fallback;
+    const spacedSuffix = ` ${code}`;
+    if (title.endsWith(spacedSuffix)) return title.slice(0, -spacedSuffix.length).trim() || fallback;
+    return title || fallback;
+  }
+
+  const CAPABILITY_SUMMARY_DEFINITIONS = {
+    T: "面向业务系统、信息化环境和数字基础设施的技术性安全能力集合，覆盖安全架构设计、被动防护、主动防御、威胁情报和攻防验证等能力，用于降低攻击面、建立防护控制、提升监测响应和对抗验证能力。",
+    G: "面向组织层面的网络安全方向、原则、目标架构、建设路线和投资决策能力，将业务战略、风险偏好、监管要求和企业架构约束转化为可执行的安全战略计划与治理闭环。",
+    M: "面向安全能力落地和持续运行的管理能力集合，通过项目建设、资源保障、监督评价、人员能力和流程机制，确保安全战略、技术能力和治理要求能够稳定执行、持续改进。",
+    "T-AS": "在考虑安全的前提下，对系统进行规划、建立和维护。它强调安全应被设计进系统本身，而不是在系统建成后再外加补救。基础架构需要与组织使命、业务目标、资金、人力和运行环境相匹配，覆盖系统规划、工程设计、采购实施、网络分段、配置加固、补丁维护、攻击面降低和系统韧性。良好的基础架构为后续被动防御、积极防御、情报和进攻性验证提供基础，使这些能力更有效、成本更低。",
+    "T-PD": "添加到架构中的系统，用于在没有持续人工交互的情况下，对威胁提供持续保护或洞察。它建立在良好架构之上，用于在存在对手时保护系统。即使架构良好，具备机会、意图和能力的威胁仍可能绕过架构，因此需要防火墙、反恶意代码、入侵检测 / 防护、访问控制、边界控制、日志监测等被动防御系统。这类能力需要维护、调优和运营照料，但核心价值是持续降低威胁接触概率、限制已知安全缺口，并消耗攻击者时间与资源。",
+    "T-AD": "分析人员对己方网络内部的威胁进行监测、响应、学习，并将其知识应用回防御过程。它不是“反黑”或越界攻击，而是在良好的基础架构和被动防御之上，由训练有素的安全人员主动发现、分析、处置和改进防御。积极防御强调人员行动、机动性和适应性，覆盖网络安全监控、事件响应、威胁狩猎、恶意代码分析、遏制处置、复盘学习和检测优化等活动。",
+    "T-IN": "收集数据，将其加工为信息，并产出情报。它强调情报不是工具自动生成的结果，而是分析人员围绕知识缺口，从多来源数据中进行处理、关联、分析和判断后形成的产物。情报能力既包括关于对手、攻击活动、TTPs、能力和意图的分析，也包括将这些判断转化为可支撑检测、响应、风险判断和防御决策的情报评估。生成情报属于 Intelligence，消费情报则服务于 Active Defense。",
+    "T-OF": "为了自卫，在友方系统之外，针对对手采取的合法反制和反击行动。它位于滑动标尺最右侧，对前面架构、被动防御、积极防御和情报能力依赖最高，成本也最高。文档强调，进攻行动必须合法，普通民间组织通常不应把它理解为自行报复或越界攻击。在 SAPD Wiki 中，该能力更适合作为合法授权边界内的红队演练、渗透测试、攻防验证和对抗模拟能力，用于检验防御体系和暴露真实攻击路径。",
+    "G-SP": "指从组织战略、业务目标、风险偏好、监管要求和企业架构出发，制定网络安全目标、原则、能力蓝图、建设路线图和投资优先级。它用于回答“为什么建设、建设到什么状态、按什么顺序建设、如何衡量成效”。",
+    "M-PM": "指将安全战略、目标架构和能力蓝图转化为具体建设项目、实施计划、预算、里程碑、交付物和验收机制的管理能力，确保安全能力建设可计划、可执行、可验收、可追踪。",
+    "M-SA": "指为安全能力运行提供组织、制度、资源、工具、流程、供应商、资产和证据支撑的保障能力，确保安全工作具备稳定的人力、技术、流程和管理基础。",
+    "M-SE": "指对安全制度执行、控制有效性、风险整改、合规状态、项目成效和能力成熟度进行监督、检查、审计、度量和绩效评价的能力，用于形成问题发现、整改跟踪和持续改进闭环。",
+    "M-PS": "指围绕人员身份、岗位职责、权限边界、安全意识、技能培养、任职资格、行为规范和离岗交接等方面建立管理机制，降低人员风险并提升组织安全能力水平。",
+  };
+
+  function capabilitySummaryDefinition(item = {}) {
+    const code = capabilityDisplayCode(item);
+    return text(item.description || item.summary || item.definition || CAPABILITY_SUMMARY_DEFINITIONS[code]).trim();
+  }
+
+  function compactCapabilitySummaryEntity(item, fallback = "未命名") {
+    const compact = compactEntity(item, fallback);
+    if (!compact) return null;
+    return {
+      ...compact,
+      code: capabilityDisplayCode(item),
+      title: capabilityDisplayTitle(item, fallback),
+      description: capabilitySummaryDefinition(item),
+    };
+  }
+
   function compactStakeholder(stakeholder) {
     return {
       ...compactEntity(stakeholder, "未命名职能"),
@@ -449,8 +498,8 @@
       parentId: parentId || "",
       hasChildren: Boolean(hasChildren),
       type: item.type || "",
-      code: item.code || "",
-      title: titleOf(item),
+      code: capabilityDisplayCode(item),
+      title: capabilityDisplayTitle(item),
       description: item.description || "",
     };
   }
@@ -459,7 +508,7 @@
     const query = normalizeSearch(search);
     const rows = [];
     const shouldInclude = (item, level, inheritedMatch = false) =>
-      !query || inheritedMatch || includesSearch(query, level, item.code, item.title, item.description);
+      !query || inheritedMatch || includesSearch(query, level, item.code, capabilityDisplayCode(item), item.title, capabilityDisplayTitle(item), item.description);
 
     for (const category of list(capabilityTree?.categories)) {
       const categoryMatches = shouldInclude(category, "分类");
@@ -528,10 +577,27 @@
   }
 
   function summarizeTechnical(rows) {
+    const technicalObjects = uniqueBy(list(rows).flatMap((row) => list(row.modules)), (module) => module.id || module.code || module.title);
+    const technologyModules = uniqueBy(
+      [
+        ...list(rows).flatMap((row) => list(row.technologyModules)),
+        ...technicalObjects.filter((module) => !isSecurityTechnicalMeasure(module)),
+      ],
+      (module) => module.id || module.code || module.title || module.name,
+    );
+    const technicalMeasures = uniqueBy(
+      [
+        ...list(rows).flatMap((row) => list(row.technicalMeasures)),
+        ...technicalObjects.filter((module) => isSecurityTechnicalMeasure(module)),
+      ],
+      (measure) => measure.id || measure.code || measure.title || measure.name,
+    );
     return {
       scopeCount: uniqueBy(rows.map((row) => row.scope), (scope) => scope?.id || scope?.title).length,
       serviceCount: uniqueBy(rows.flatMap((row) => row.services), (service) => service.id || service.code || service.title).length,
-      moduleCount: uniqueBy(rows.flatMap((row) => row.modules), (module) => module.id || module.code || module.title).length,
+      moduleCount: technicalObjects.length,
+      technologyModuleCount: technologyModules.length,
+      measureCount: technicalMeasures.length,
       uncoveredCount: rows.filter((row) => !row.services.length).length,
       noServiceCount: rows.filter((row) => row.status === "no_service").length,
       ambiguousCount: rows.filter((row) => row.status === "ambiguous_service_mapping").length,
@@ -546,6 +612,58 @@
       processReferenceCount: uniqueBy(rows.flatMap((row) => row.processReferences), (process) => process.id || process.title).length,
       stakeholderLayers: uniqueBy(rows.flatMap((row) => row.stakeholders.map((stakeholder) => stakeholder.layer).filter(Boolean)), (layer) => layer),
       missingActivityCount: rows.filter((row) => row.hasMissingActivity).length,
+    };
+  }
+
+  function nestedWorkFunctions(management) {
+    return uniqueBy(
+      list(management?.work_function_layers).flatMap((layer) => list(layer.groups).flatMap((group) => list(group.functions))),
+      (item) => item.id || item.code || item.title || item.name,
+    );
+  }
+
+  function nestedProcessReferences(management) {
+    return uniqueBy(
+      list(management?.security_processes).flatMap((domain) => list(domain.groups).flatMap((group) => list(group.references))),
+      (item) => item.id || item.code || item.title || item.name,
+    );
+  }
+
+  function maintenanceStatsCount(management, key) {
+    const candidates = [
+      management?.stats?.[key],
+      management?.maintenance_index?.stats?.[key],
+      management?.maintenanceIndex?.stats?.[key],
+    ];
+    for (const candidate of candidates) {
+      const number = Number(candidate);
+      if (Number.isFinite(number) && number > 0) return number;
+    }
+    return 0;
+  }
+
+  function coverageTotalCount(total, value) {
+    const totalNumber = Number(total);
+    const valueNumber = Number(value);
+    const normalizedValue = Number.isFinite(valueNumber) && valueNumber > 0 ? valueNumber : 0;
+    if (Number.isFinite(totalNumber) && totalNumber > 0) return Math.max(totalNumber, normalizedValue);
+    return normalizedValue;
+  }
+
+  function dictionaryCoverageDenominators(management, technicalRows = [], managementRows = []) {
+    const technicalFallback = summarizeTechnical(technicalRows);
+    const managementFallback = summarizeManagement(managementRows);
+    return {
+      technicalSummary: {
+        scopeCount: coverageTotalCount(maintenanceStatsCount(management, "scope_types") || list(management?.scope_types).length, technicalFallback.scopeCount),
+        serviceCount: coverageTotalCount(maintenanceStatsCount(management, "security_technical_services") || list(management?.security_technical_services).length, technicalFallback.serviceCount),
+        technologyModuleCount: coverageTotalCount(maintenanceStatsCount(management, "security_technology_modules") || list(management?.security_technology_modules).length, technicalFallback.technologyModuleCount),
+        measureCount: coverageTotalCount(maintenanceStatsCount(management, "security_technical_measures") || list(management?.security_technical_measures).length, technicalFallback.measureCount),
+      },
+      managementSummary: {
+        securityFunctionCount: coverageTotalCount(maintenanceStatsCount(management, "work_functions") || nestedWorkFunctions(management).length, managementFallback.securityFunctionCount),
+        processReferenceCount: coverageTotalCount(maintenanceStatsCount(management, "process_references") || nestedProcessReferences(management).length, managementFallback.processReferenceCount),
+      },
     };
   }
 
@@ -606,14 +724,29 @@
     };
   }
 
-  function capabilityMappingStats({ focusCount = 0, technicalRows = [], managementRows = [], standardRows = [] } = {}) {
+  function ratioOf(value, total) {
+    const numerator = Number(value);
+    const denominator = Number(total);
+    if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator <= 0) return 0;
+    return Math.max(0, Math.min(1, numerator / denominator));
+  }
+
+  function capabilityMappingStats({ focusCount = 0, technicalRows = [], managementRows = [], standardRows = [], coverageDenominators = null } = {}) {
     const technicalSummary = summarizeTechnical(technicalRows);
     const managementSummary = summarizeManagement(managementRows);
     const standardSummary = summarizeStandards(standardRows);
-    const technicalCoveredRows = list(technicalRows).filter((row) => list(row.services).length).length;
-    const managementCoveredRows = list(managementRows).filter((row) => list(row.securityWorks).length || list(row.stakeholders).length).length;
-    const standardCoveredRows = list(standardRows).filter((row) => list(row.controls).length).length;
-    const safeFocusCount = Math.max(1, focusCount || list(technicalRows).length || list(managementRows).length || list(standardRows).length);
+    const technicalTotal = coverageDenominators?.technicalSummary || technicalSummary;
+    const managementTotal = coverageDenominators?.managementSummary || managementSummary;
+    const technicalCoverageTotal = {
+      scopeCount: coverageTotalCount(technicalTotal.scopeCount, technicalSummary.scopeCount),
+      serviceCount: coverageTotalCount(technicalTotal.serviceCount, technicalSummary.serviceCount),
+      technologyModuleCount: coverageTotalCount(technicalTotal.technologyModuleCount, technicalSummary.technologyModuleCount),
+      measureCount: coverageTotalCount(technicalTotal.measureCount, technicalSummary.measureCount),
+    };
+    const managementCoverageTotal = {
+      securityFunctionCount: coverageTotalCount(managementTotal.securityFunctionCount, managementSummary.securityFunctionCount),
+      processReferenceCount: coverageTotalCount(managementTotal.processReferenceCount, managementSummary.processReferenceCount),
+    };
     return {
       focusCount,
       technicalRowCount: list(technicalRows).length,
@@ -627,23 +760,19 @@
         {
           key: "technical",
           label: "技术映射",
-          value: technicalSummary.serviceCount,
-          meta: `${technicalSummary.scopeCount} 作用域 / ${technicalSummary.moduleCount} 模块措施`,
-          ratio: Math.min(1, technicalCoveredRows / Math.max(1, list(technicalRows).length || safeFocusCount)),
+          items: [
+            { label: "安全技术服务", value: technicalSummary.serviceCount, total: technicalCoverageTotal.serviceCount, ratio: ratioOf(technicalSummary.serviceCount, technicalCoverageTotal.serviceCount) },
+            { label: "安全技术模块", value: technicalSummary.technologyModuleCount, total: technicalCoverageTotal.technologyModuleCount, ratio: ratioOf(technicalSummary.technologyModuleCount, technicalCoverageTotal.technologyModuleCount) },
+            { label: "安全技术措施", value: technicalSummary.measureCount, total: technicalCoverageTotal.measureCount, ratio: ratioOf(technicalSummary.measureCount, technicalCoverageTotal.measureCount) },
+          ],
         },
         {
           key: "management",
           label: "管理映射",
-          value: managementSummary.securityWorkCount,
-          meta: `${managementSummary.securityFunctionCount} 职能 / ${managementSummary.processReferenceCount} 流程`,
-          ratio: Math.min(1, managementCoveredRows / Math.max(1, list(managementRows).length || safeFocusCount)),
-        },
-        {
-          key: "standard",
-          label: "标准映射",
-          value: standardSummary.controlCount,
-          meta: `${standardSummary.frameworkCount} 标准 / ${standardSummary.rowCount} 关注点`,
-          ratio: Math.min(1, standardCoveredRows / safeFocusCount),
+          items: [
+            { label: "职能", value: managementSummary.securityFunctionCount, total: managementCoverageTotal.securityFunctionCount, ratio: ratioOf(managementSummary.securityFunctionCount, managementCoverageTotal.securityFunctionCount) },
+            { label: "流程", value: managementSummary.processReferenceCount, total: managementCoverageTotal.processReferenceCount, ratio: ratioOf(managementSummary.processReferenceCount, managementCoverageTotal.processReferenceCount) },
+          ],
         },
       ],
     };
@@ -657,17 +786,17 @@
     const managementRows = rowsForFocusIds(mappingRows.managementMappingRows, focusIds);
     const standardRows = rowsForFocusIds(mappingRows.standardMappingRows, focusIds);
     const structure = capabilityStructureCounts(item);
-    const stats = capabilityMappingStats({ focusCount: focuses.length, technicalRows, managementRows, standardRows });
+    const stats = capabilityMappingStats({ focusCount: focuses.length, technicalRows, managementRows, standardRows, coverageDenominators: mappingRows.coverageDenominators });
     return {
-      ...compactEntity(item),
+      ...compactCapabilitySummaryEntity(item),
       levelLabel: capabilityLevelLabel(item?.type),
       structure,
       stats,
-      previewChildren: childItems.map(compactEntity).filter(Boolean),
+      previewChildren: childItems.map(compactCapabilitySummaryEntity).filter(Boolean),
     };
   }
 
-  function buildCapabilityOverview({ selectedRaw, selectedDetail, visibleFocuses, technicalMappingRows, managementMappingRows, standardMappingRows }) {
+  function buildCapabilityOverview({ selectedRaw, selectedDetail, visibleFocuses, technicalMappingRows, managementMappingRows, standardMappingRows, coverageDenominators }) {
     const selectedType = selectedRaw?.type || selectedDetail?.type || "";
     const childItems = childCapabilityItems(selectedRaw);
     const structure = capabilityStructureCounts(selectedRaw);
@@ -676,13 +805,14 @@
       technicalRows: technicalMappingRows,
       managementRows: managementMappingRows,
       standardRows: standardMappingRows,
+      coverageDenominators,
     });
     const isL0OrL1 = selectedType === "capability_category" || selectedType === "capability_domain";
     const isL2 = selectedType === "capability";
     const detailRowCount = stats.technicalRowCount + stats.managementRowCount + stats.standardRowCount;
-    const detailPolicy = isL0OrL1 ? "overview" : isL2 && detailRowCount > CAPABILITY_DETAIL_ROW_THRESHOLD ? "mixed_summary" : "full_detail";
+    const detailPolicy = isL0OrL1 || isL2 ? "overview" : "full_detail";
     return {
-      selected: compactEntity(selectedRaw || selectedDetail),
+      selected: compactCapabilitySummaryEntity(selectedRaw || selectedDetail),
       selectedType,
       levelLabel: capabilityLevelLabel(selectedType),
       detailPolicy,
@@ -697,11 +827,14 @@
             technicalMappingRows,
             managementMappingRows,
             standardMappingRows,
+            coverageDenominators,
           }),
         )
         .filter(Boolean),
       summaryHint: isL0OrL1
         ? "当前层级默认呈现结构、覆盖和下钻入口，完整映射明细请进入 L2 或关注点核对。"
+        : isL2
+          ? "当前 L2 默认呈现关注点摘要和入口，完整映射明细请进入关注点核对。"
         : detailPolicy === "mixed_summary"
           ? "当前 L2 映射量较大，默认收拢为摘要；进入关注点可查看完整核对明细。"
           : "当前层级可展示完整映射明细。",
@@ -1448,6 +1581,12 @@
     const standardsCatalogByCode = standardCatalogByCode(standards);
     const workbenchStandardRows = buildCapabilityStandardRowsFromWorkbench(capabilityWorkbench, visibleFocuses, standardsCatalogByCode);
     const standardsPackageRows = buildCapabilityStandardRowsFromStandards(standards, visibleFocuses, standardsCatalogByCode);
+    const allFocuses = focusRows(capabilityTree).map((row) => row.item);
+    const allWorkbenchTechnicalRows = buildCapabilityTechnicalRowsFromWorkbench(capabilityWorkbench, allFocuses);
+    const allWorkbenchManagementRows = buildCapabilityManagementRowsFromWorkbench(capabilityWorkbench, allFocuses);
+    const allTechnicalRows = allWorkbenchTechnicalRows.length ? allWorkbenchTechnicalRows : buildTechnicalMappingRows({ management, focuses: allFocuses });
+    const allManagementRows = allWorkbenchManagementRows.length ? allWorkbenchManagementRows : buildManagementMappingRows({ focuses: allFocuses });
+    const coverageDenominators = dictionaryCoverageDenominators(management, allTechnicalRows, allManagementRows);
     const isFocus = selectedDetail?.type === "capability_focus";
     const canUseObjectProjection = capabilityProjectionMatchesSelected(capabilityProjection, selectedDetail);
     const projectedTechnicalRows = canUseObjectProjection ? list(capabilityProjection?.technicalMappingRows || capabilityProjection?.technical_mapping_rows) : [];
@@ -1480,6 +1619,7 @@
       technicalMappingRows,
       managementMappingRows,
       standardMappingRows,
+      coverageDenominators,
     });
     const selectedFocusRow = rows.find((row) => row.focus.id === selectedId) || rows[0] || null;
     const chainFocus = selectedFocusRow || null;

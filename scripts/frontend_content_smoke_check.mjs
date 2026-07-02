@@ -162,6 +162,39 @@ function renderTechnicalServiceTable(viewModel, search = "") {
   });
 }
 
+function renderCapabilityDirectoryTable(viewModel, search = "") {
+  const context = {
+    console,
+    window: {
+      sapdComponents: {
+        utils: {
+          text,
+          list,
+          escapeHtml(value) {
+            return text(value)
+              .replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;")
+              .replace(/"/g, "&quot;");
+          },
+        },
+      },
+    },
+  };
+  context.window.window = context.window;
+  vm.createContext(context);
+  vm.runInContext(readFrontendFile("components/CapabilityDirectoryMaintenanceTable.js"), context, { filename: "CapabilityDirectoryMaintenanceTable.js" });
+  const renderer = context.window.sapdComponents.CapabilityDirectoryMaintenanceTable;
+  assert(renderer?.render, "CapabilityDirectoryMaintenanceTable.render is unavailable");
+  return renderer.render({
+    rows: viewModel.rows,
+    capabilityGroups: viewModel.capabilityGroups,
+    selectedId: "",
+    emptyState: viewModel.emptyState,
+    search,
+  });
+}
+
 function unwrapEnvelope(payload) {
   return payload && typeof payload === "object" && Object.prototype.hasOwnProperty.call(payload, "data") ? payload.data : payload;
 }
@@ -227,6 +260,7 @@ function validateLocalPackages() {
   assert(indexHtml.includes(`ApplicationSecurityLifecycle.js?v=${globalSearchVersion}`), "index.html does not cache-bust ApplicationSecurityLifecycle.js for lifecycle search implementation");
   assert(indexHtml.includes(`StandardFrameworkTable.js?v=${globalSearchVersion}`), "index.html does not cache-bust StandardFrameworkTable.js for standard search reveal anchors");
   assert(indexHtml.includes(`TechnicalServiceMaintenanceTable.js?v=${technicalServiceOrderVisibilityVersion}`), "index.html does not cache-bust TechnicalServiceMaintenanceTable.js for technical service order visibility fix");
+  assert(indexHtml.includes("CapabilityDirectoryMaintenanceTable.js?v=capability-directory-definitions-20260702-1"), "index.html does not cache-bust CapabilityDirectoryMaintenanceTable.js for L0/L1 definition display");
   const viewModelsSource = readFrontendFile("viewModels.js");
   const appSource = readFrontendFile("app.js");
   const lifecycleComponentSource = readFrontendFile("components/ApplicationSecurityLifecycle.js");
@@ -283,6 +317,7 @@ function validateLocalPackages() {
 
   const viewModelSmoke = validateSecurityWorkViewModel({ capabilityTree, maintenance });
   const technicalServiceSmoke = validateTechnicalServiceCatalogViewModel({ capabilityTree, maintenance });
+  const capabilityDirectoryDefinitionSmoke = validateCapabilityDirectoryDefinitions({ capabilityTree, maintenance });
   const standardCanonicalSmoke = validateCapabilityStandardCanonicalization({
     capabilityTree,
     capabilityWorkbench,
@@ -325,6 +360,7 @@ function validateLocalPackages() {
     viewModels: {
       ...viewModelSmoke,
       technicalServiceCatalogVisibility: technicalServiceSmoke,
+      capabilityDirectoryDefinitions: capabilityDirectoryDefinitionSmoke,
       capabilityStandardCanonicalization: standardCanonicalSmoke,
     },
   };
@@ -351,6 +387,37 @@ function validateTechnicalMeasures({ maintenance, technicalMeasures, maintenance
     .filter(Boolean)
     .filter((name, index, all) => all.indexOf(name) !== index);
   assert(duplicateNames.length === 0, `security_technical_measures contains duplicate names: ${[...new Set(duplicateNames)].join(", ")}`);
+}
+
+function validateCapabilityDirectoryDefinitions({ capabilityTree, maintenance }) {
+  const context = { window: {}, console };
+  vm.createContext(context);
+  vm.runInContext(readFrontendFile("viewModels.js"), context, { filename: "viewModels.js" });
+  const viewModels = context.window.sapdViewModels || {};
+  assert(typeof viewModels.buildMaintenanceWorkspaceViewModel === "function", "buildMaintenanceWorkspaceViewModel is unavailable");
+  const viewModel = viewModels.buildMaintenanceWorkspaceViewModel({
+    capabilityTree,
+    management: maintenance,
+    maintenance,
+    lifecycle: {},
+    standards: {},
+    section: "capability-directory",
+    search: "安全",
+  });
+  const renderedText = htmlToText(renderCapabilityDirectoryTable(viewModel, "安全"));
+  const category = list(capabilityTree.categories).find((item) => text(item?.title).includes("安全技术能力"));
+  const domain = list(category?.domains).find((item) => text(item?.code) === "T-AS");
+  assert(text(category?.description), "capability-tree L0 security technology definition is empty");
+  assert(text(domain?.description), "capability-tree L1 T-AS definition is empty");
+  assert(renderedText.includes(text(category.description).slice(0, 24)), "安全能力清单未渲染 L0 能力分类定义");
+  assert(renderedText.includes(text(domain.description).slice(0, 24)), "安全能力清单未渲染 L1 能力域定义");
+  assert(renderedText.includes("定义 / 描述"), "安全能力清单表头应为定义 / 描述");
+  return {
+    category: category?.title || "",
+    domain: domain?.code || "",
+    renderedCategoryDefinition: true,
+    renderedDomainDefinition: true,
+  };
 }
 
 function validateSecurityWorkViewModel({ capabilityTree, maintenance }) {

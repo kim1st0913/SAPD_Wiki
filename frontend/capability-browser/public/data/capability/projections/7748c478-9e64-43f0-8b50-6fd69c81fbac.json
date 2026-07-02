@@ -10,7 +10,7 @@
     "name": "安全合规管理能力",
     "category": "",
     "status": "active",
-    "description": "安全合规管理能力指的是组织按照相关法律、法规和标准，识别、实施和维护必要的网络安全要求的能力。这包括对合规性框架的理解、制定制度和执行合规策略、进行合规审查以监控和报告合规状态，以及对变化的法律法规作出响应。"
+    "description": "组织建设网络安全制度体系，开展合规审查，满足法律法规、监管要求和个人隐私保护要求。"
   },
   "ancestorIds": [
     "697c2bdb-baa4-4899-a2a7-d0f5da9bd5fe",
@@ -97,7 +97,7 @@
         "name": "安全合规管理能力",
         "category": "",
         "status": "active",
-        "description": "安全合规管理能力指的是组织按照相关法律、法规和标准，识别、实施和维护必要的网络安全要求的能力。这包括对合规性框架的理解、制定制度和执行合规策略、进行合规审查以监控和报告合规状态，以及对变化的法律法规作出响应。"
+        "description": "组织建设网络安全制度体系，开展合规审查，满足法律法规、监管要求和个人隐私保护要求。"
       },
       "59516fab-857b-41e2-ab8c-2479c96ac673": {
         "id": "59516fab-857b-41e2-ab8c-2479c96ac673",
@@ -105,24 +105,6 @@
         "code": "M-SA.AM",
         "title": "安全保障管理能力",
         "name": "安全保障管理能力",
-        "category": "",
-        "status": "active"
-      },
-      "92d4fb18-815b-42eb-9948-0df683a4b830": {
-        "id": "92d4fb18-815b-42eb-9948-0df683a4b830",
-        "type": "capability",
-        "code": "M-SA.CO",
-        "title": "安全协同能力",
-        "name": "安全协同能力",
-        "category": "",
-        "status": "active"
-      },
-      "629cc5f5-f78b-4dcd-a228-867d59baa28d": {
-        "id": "629cc5f5-f78b-4dcd-a228-867d59baa28d",
-        "type": "capability",
-        "code": "M-SA.OP",
-        "title": "安全运行管理能力",
-        "name": "安全运行管理能力",
         "category": "",
         "status": "active"
       },
@@ -139,8 +121,26 @@
         "id": "e227e850-097c-4b6e-9dab-6295ab3456b3",
         "type": "capability",
         "code": "M-SA.TP",
-        "title": "第三方安全管理能力",
-        "name": "第三方安全管理能力",
+        "title": "第三方管理能力",
+        "name": "第三方管理能力",
+        "category": "",
+        "status": "active"
+      },
+      "629cc5f5-f78b-4dcd-a228-867d59baa28d": {
+        "id": "629cc5f5-f78b-4dcd-a228-867d59baa28d",
+        "type": "capability",
+        "code": "M-SA.OP",
+        "title": "安全运行管理能力",
+        "name": "安全运行管理能力",
+        "category": "",
+        "status": "active"
+      },
+      "92d4fb18-815b-42eb-9948-0df683a4b830": {
+        "id": "92d4fb18-815b-42eb-9948-0df683a4b830",
+        "type": "capability",
+        "code": "M-SA.CO",
+        "title": "安全协同能力",
+        "name": "安全协同能力",
         "category": "",
         "status": "active"
       }
@@ -1247,22 +1247,9 @@
       "evidenceRefCount": 0
     },
     {
-      "id": "relation:745a03bf322daa2d",
+      "id": "relation:6ff38caa1cab48ef",
       "type": "belongs_to",
-      "sourceId": "92d4fb18-815b-42eb-9948-0df683a4b830",
-      "sourceType": "capability",
-      "targetId": "d5164338-2577-4b4a-b83f-a04998054f48",
-      "targetType": "capability_domain",
-      "label": "属于",
-      "status": "active",
-      "confidence": "explicit",
-      "objectContextKey": "",
-      "evidenceRefCount": 0
-    },
-    {
-      "id": "relation:ceb384c0ee6f110b",
-      "type": "belongs_to",
-      "sourceId": "629cc5f5-f78b-4dcd-a228-867d59baa28d",
+      "sourceId": "3d8d883b-6b4d-4f4f-b153-220a9708e8f8",
       "sourceType": "capability",
       "targetId": "d5164338-2577-4b4a-b83f-a04998054f48",
       "targetType": "capability_domain",
@@ -1309,7 +1296,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 3
+      "evidenceRefCount": 2
     },
     {
       "id": "relation:634844d3d170b404",
@@ -1416,9 +1403,9 @@
       "evidenceRefCount": 8
     },
     {
-      "id": "relation:6ff38caa1cab48ef",
+      "id": "relation:2195ac51f00046f6",
       "type": "belongs_to",
-      "sourceId": "3d8d883b-6b4d-4f4f-b153-220a9708e8f8",
+      "sourceId": "e227e850-097c-4b6e-9dab-6295ab3456b3",
       "sourceType": "capability",
       "targetId": "d5164338-2577-4b4a-b83f-a04998054f48",
       "targetType": "capability_domain",
@@ -1429,9 +1416,22 @@
       "evidenceRefCount": 0
     },
     {
-      "id": "relation:2195ac51f00046f6",
+      "id": "relation:ceb384c0ee6f110b",
       "type": "belongs_to",
-      "sourceId": "e227e850-097c-4b6e-9dab-6295ab3456b3",
+      "sourceId": "629cc5f5-f78b-4dcd-a228-867d59baa28d",
+      "sourceType": "capability",
+      "targetId": "d5164338-2577-4b4a-b83f-a04998054f48",
+      "targetType": "capability_domain",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:745a03bf322daa2d",
+      "type": "belongs_to",
+      "sourceId": "92d4fb18-815b-42eb-9948-0df683a4b830",
       "sourceType": "capability",
       "targetId": "d5164338-2577-4b4a-b83f-a04998054f48",
       "targetType": "capability_domain",

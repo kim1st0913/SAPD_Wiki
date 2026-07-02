@@ -10,7 +10,7 @@
     "name": "人员安全管理能力",
     "category": "",
     "status": "active",
-    "description": "人员安全管理能力是指组织在确保员工、合作伙伴和其他相关人员遵守组织安全制度和流程方面的能力。包括对人员进行安全培训以提升安全意识、管理人员全生命周期访问权限、监控员工行为以应对内部威胁，以及在招聘和人员变动过程中考虑安全因素。"
+    "description": "组织实施内部人员生命周期安全控制，建立网络安全专家团队，并建设红蓝军 / 紫军等实战化队伍。"
   },
   "ancestorIds": [
     "697c2bdb-baa4-4899-a2a7-d0f5da9bd5fe",
@@ -97,7 +97,7 @@
         "name": "人员安全管理能力",
         "category": "",
         "status": "active",
-        "description": "人员安全管理能力是指组织在确保员工、合作伙伴和其他相关人员遵守组织安全制度和流程方面的能力。包括对人员进行安全培训以提升安全意识、管理人员全生命周期访问权限、监控员工行为以应对内部威胁，以及在招聘和人员变动过程中考虑安全因素。"
+        "description": "组织实施内部人员生命周期安全控制，建立网络安全专家团队，并建设红蓝军 / 紫军等实战化队伍。"
       },
       "bc59df3a-3ce4-4da3-8f42-1819249c7355": {
         "id": "bc59df3a-3ce4-4da3-8f42-1819249c7355",
@@ -761,19 +761,6 @@
       "evidenceRefCount": 0
     },
     {
-      "id": "relation:b347f6cb978ebb2d",
-      "type": "belongs_to",
-      "sourceId": "bc59df3a-3ce4-4da3-8f42-1819249c7355",
-      "sourceType": "capability",
-      "targetId": "f2a9167e-8c38-4400-9c94-051d00421b26",
-      "targetType": "capability_domain",
-      "label": "属于",
-      "status": "active",
-      "confidence": "explicit",
-      "objectContextKey": "",
-      "evidenceRefCount": 0
-    },
-    {
       "id": "relation:dcb5203477571049",
       "type": "belongs_to",
       "sourceId": "4637772b-424f-4aeb-92c7-12b047bab8f5",
@@ -902,6 +889,19 @@
       "confidence": "explicit",
       "objectContextKey": "",
       "evidenceRefCount": 8
+    },
+    {
+      "id": "relation:b347f6cb978ebb2d",
+      "type": "belongs_to",
+      "sourceId": "bc59df3a-3ce4-4da3-8f42-1819249c7355",
+      "sourceType": "capability",
+      "targetId": "f2a9167e-8c38-4400-9c94-051d00421b26",
+      "targetType": "capability_domain",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
     },
     {
       "id": "relation:98026349c6636046",

@@ -149,21 +149,12 @@
         "category": "",
         "status": "active"
       },
-      "aa33c509-d01e-41b4-bd19-01d81535bba3": {
-        "id": "aa33c509-d01e-41b4-bd19-01d81535bba3",
+      "ca3679e4-a177-4436-a7e9-a94b037eb830": {
+        "id": "ca3679e4-a177-4436-a7e9-a94b037eb830",
         "type": "capability",
-        "code": "T-AS.DG",
-        "title": "数据安全管理和治理能力",
-        "name": "数据安全管理和治理能力",
-        "category": "",
-        "status": "active"
-      },
-      "9f952bed-4aee-4e71-8038-4b4183b1aae5": {
-        "id": "9f952bed-4aee-4e71-8038-4b4183b1aae5",
-        "type": "capability",
-        "code": "T-AS.DS",
-        "title": "开发安全管控能力",
-        "name": "开发安全管控能力",
+        "code": "T-AS.VM",
+        "title": "漏洞与补丁管理能力",
+        "name": "漏洞与补丁管理能力",
         "category": "",
         "status": "active"
       },
@@ -176,6 +167,15 @@
         "category": "",
         "status": "active"
       },
+      "9f952bed-4aee-4e71-8038-4b4183b1aae5": {
+        "id": "9f952bed-4aee-4e71-8038-4b4183b1aae5",
+        "type": "capability",
+        "code": "T-AS.DS",
+        "title": "开发安全管控能力",
+        "name": "开发安全管控能力",
+        "category": "",
+        "status": "active"
+      },
       "27fcd3f8-36ee-4be1-a449-be8e9f97e2b1": {
         "id": "27fcd3f8-36ee-4be1-a449-be8e9f97e2b1",
         "type": "capability",
@@ -185,12 +185,12 @@
         "category": "",
         "status": "active"
       },
-      "ca3679e4-a177-4436-a7e9-a94b037eb830": {
-        "id": "ca3679e4-a177-4436-a7e9-a94b037eb830",
+      "aa33c509-d01e-41b4-bd19-01d81535bba3": {
+        "id": "aa33c509-d01e-41b4-bd19-01d81535bba3",
         "type": "capability",
-        "code": "T-AS.VM",
-        "title": "漏洞与补丁管理能力",
-        "name": "漏洞与补丁管理能力",
+        "code": "T-AS.DG",
+        "title": "数据安全管理和治理能力",
+        "name": "数据安全管理和治理能力",
         "category": "",
         "status": "active"
       }
@@ -694,6 +694,71 @@
       "evidenceRefCount": 0
     },
     {
+      "id": "relation:4a711ded9b8a554e",
+      "type": "belongs_to",
+      "sourceId": "53bfcca7-3660-4630-b7a2-d4bd9610b166",
+      "sourceType": "capability",
+      "targetId": "52656e45-e93d-4cb8-93eb-36a7e14b7655",
+      "targetType": "capability_domain",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:4674c995910cb88a",
+      "type": "belongs_to",
+      "sourceId": "ca3679e4-a177-4436-a7e9-a94b037eb830",
+      "sourceType": "capability",
+      "targetId": "52656e45-e93d-4cb8-93eb-36a7e14b7655",
+      "targetType": "capability_domain",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:2e5f35eb133d1a69",
+      "type": "belongs_to",
+      "sourceId": "9055b901-36c1-4337-b6d2-0df8a65dec23",
+      "sourceType": "capability",
+      "targetId": "52656e45-e93d-4cb8-93eb-36a7e14b7655",
+      "targetType": "capability_domain",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:89a86008ae299ca3",
+      "type": "belongs_to",
+      "sourceId": "9f952bed-4aee-4e71-8038-4b4183b1aae5",
+      "sourceType": "capability",
+      "targetId": "52656e45-e93d-4cb8-93eb-36a7e14b7655",
+      "targetType": "capability_domain",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:c8260f5bdc914f22",
+      "type": "belongs_to",
+      "sourceId": "27fcd3f8-36ee-4be1-a449-be8e9f97e2b1",
+      "sourceType": "capability",
+      "targetId": "52656e45-e93d-4cb8-93eb-36a7e14b7655",
+      "targetType": "capability_domain",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
       "id": "relation:a4c656c5180d04bd",
       "type": "belongs_to",
       "sourceId": "f0014de5-8bb2-457b-a2a4-b40011faef8f",
@@ -730,7 +795,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 8
+      "evidenceRefCount": 7
     },
     {
       "id": "relation:1e3ade131f1b4800",
@@ -743,7 +808,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 10
+      "evidenceRefCount": 9
     },
     {
       "id": "relation:c2dd498ff0991928",
@@ -756,7 +821,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 3
+      "evidenceRefCount": 2
     },
     {
       "id": "relation:c8aaa86dd85a4112",
@@ -769,7 +834,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 10
+      "evidenceRefCount": 9
     },
     {
       "id": "relation:349aa392bbfe77af",
@@ -782,7 +847,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 3
+      "evidenceRefCount": 2
     },
     {
       "id": "relation:5348f8889a22e68d",
@@ -824,74 +889,9 @@
       "evidenceRefCount": 0
     },
     {
-      "id": "relation:4a711ded9b8a554e",
-      "type": "belongs_to",
-      "sourceId": "53bfcca7-3660-4630-b7a2-d4bd9610b166",
-      "sourceType": "capability",
-      "targetId": "52656e45-e93d-4cb8-93eb-36a7e14b7655",
-      "targetType": "capability_domain",
-      "label": "属于",
-      "status": "active",
-      "confidence": "explicit",
-      "objectContextKey": "",
-      "evidenceRefCount": 0
-    },
-    {
       "id": "relation:6f7338392eb4691b",
       "type": "belongs_to",
       "sourceId": "aa33c509-d01e-41b4-bd19-01d81535bba3",
-      "sourceType": "capability",
-      "targetId": "52656e45-e93d-4cb8-93eb-36a7e14b7655",
-      "targetType": "capability_domain",
-      "label": "属于",
-      "status": "active",
-      "confidence": "explicit",
-      "objectContextKey": "",
-      "evidenceRefCount": 0
-    },
-    {
-      "id": "relation:89a86008ae299ca3",
-      "type": "belongs_to",
-      "sourceId": "9f952bed-4aee-4e71-8038-4b4183b1aae5",
-      "sourceType": "capability",
-      "targetId": "52656e45-e93d-4cb8-93eb-36a7e14b7655",
-      "targetType": "capability_domain",
-      "label": "属于",
-      "status": "active",
-      "confidence": "explicit",
-      "objectContextKey": "",
-      "evidenceRefCount": 0
-    },
-    {
-      "id": "relation:2e5f35eb133d1a69",
-      "type": "belongs_to",
-      "sourceId": "9055b901-36c1-4337-b6d2-0df8a65dec23",
-      "sourceType": "capability",
-      "targetId": "52656e45-e93d-4cb8-93eb-36a7e14b7655",
-      "targetType": "capability_domain",
-      "label": "属于",
-      "status": "active",
-      "confidence": "explicit",
-      "objectContextKey": "",
-      "evidenceRefCount": 0
-    },
-    {
-      "id": "relation:c8260f5bdc914f22",
-      "type": "belongs_to",
-      "sourceId": "27fcd3f8-36ee-4be1-a449-be8e9f97e2b1",
-      "sourceType": "capability",
-      "targetId": "52656e45-e93d-4cb8-93eb-36a7e14b7655",
-      "targetType": "capability_domain",
-      "label": "属于",
-      "status": "active",
-      "confidence": "explicit",
-      "objectContextKey": "",
-      "evidenceRefCount": 0
-    },
-    {
-      "id": "relation:4674c995910cb88a",
-      "type": "belongs_to",
-      "sourceId": "ca3679e4-a177-4436-a7e9-a94b037eb830",
       "sourceType": "capability",
       "targetId": "52656e45-e93d-4cb8-93eb-36a7e14b7655",
       "targetType": "capability_domain",

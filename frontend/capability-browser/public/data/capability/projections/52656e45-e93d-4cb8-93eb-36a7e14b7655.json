@@ -9,7 +9,8 @@
     "title": "基础架构安全 Architectural Security",
     "name": "基础架构安全 Architectural Security",
     "category": "",
-    "status": "active"
+    "status": "active",
+    "description": "在考虑安全的前提下，对系统进行规划、建立和维护。它强调安全应被设计进系统本身，而不是在系统建成后再外加补救。基础架构需要与组织使命、业务目标、资金、人力和运行环境相匹配，覆盖系统规划、工程设计、采购实施、网络分段、配置加固、补丁维护、攻击面降低和系统韧性。良好的基础架构为后续被动防御、积极防御、情报和进攻性验证提供基础，使这些能力更有效、成本更低。"
   },
   "ancestorIds": [
     "94bba6df-c6bc-41b5-ad60-7c6e87a173ac"
@@ -20,28 +21,28 @@
     "1b72dcb4-a4df-49c9-90fc-895bed051abb",
     "b17f570a-0a41-4aaf-86ab-10f3a1b1c8d3",
     "5f990233-75df-46ff-a04f-45f4ae456a0d",
-    "dacf7142-6ac7-48e1-b463-5d42275bfc6f",
-    "580a4463-e07b-432c-bde4-ec33d24b4913",
     "f481d6ed-0cff-49cf-9a45-859a2e524fc4",
     "3ba28f0a-e5c9-48af-9e9b-0614a264d7af",
-    "4ebac402-6b13-416d-96d7-ab8e3e15e52f",
-    "40c42943-962d-4154-8689-4910d29d6d93",
-    "641fd4ce-e317-45c2-bf34-21078be37041",
+    "09275fd5-5034-4b6b-a9c8-eebf381d2442",
+    "5b992744-35eb-4bf0-b0e3-097df663e2e3",
+    "c1d0dca3-d4a3-4a3f-bfb8-3230b0781cea",
+    "9bb22f45-3d49-4c1d-becc-ffce3b2c446a",
+    "2c4e3200-3551-4297-9188-53376e6b0693",
+    "fa079362-7b74-4f89-b239-8b8d5718e191",
     "0711626d-97e3-4a0a-b2ae-13a7af5ccfda",
     "41225a46-2d90-48d6-ba61-ba6b093bf9e1",
     "fe0df93f-a252-40c3-8390-e410a5548eed",
     "77f3844f-350e-42d8-bde5-2a4727cbeb5b",
     "c7aadf7d-a94b-430b-a2d8-bbb379682d35",
     "18977352-86af-48a6-8f6a-f3df936b27d3",
-    "c1d0dca3-d4a3-4a3f-bfb8-3230b0781cea",
-    "9bb22f45-3d49-4c1d-becc-ffce3b2c446a",
-    "2c4e3200-3551-4297-9188-53376e6b0693",
-    "fa079362-7b74-4f89-b239-8b8d5718e191",
     "c39337c6-4b00-4192-a457-1366e2d13e15",
     "e206c28d-f81a-4eba-9da4-a15f96a6719e",
     "78bd3e69-0e74-4d52-bc1e-d88b8d7d6f7f",
-    "09275fd5-5034-4b6b-a9c8-eebf381d2442",
-    "5b992744-35eb-4bf0-b0e3-097df663e2e3"
+    "dacf7142-6ac7-48e1-b463-5d42275bfc6f",
+    "580a4463-e07b-432c-bde4-ec33d24b4913",
+    "4ebac402-6b13-416d-96d7-ab8e3e15e52f",
+    "40c42943-962d-4154-8689-4910d29d6d93",
+    "641fd4ce-e317-45c2-bf34-21078be37041"
   ],
   "focusCount": 27,
   "childOverview": [
@@ -62,14 +63,6 @@
       "childCount": 2
     },
     {
-      "id": "f0014de5-8bb2-457b-a2a4-b40011faef8f",
-      "type": "capability",
-      "code": "T-AS.CG",
-      "title": "密码服务能力",
-      "focusCount": 2,
-      "childCount": 2
-    },
-    {
       "id": "53bfcca7-3660-4630-b7a2-d4bd9610b166",
       "type": "capability",
       "code": "T-AS.CM",
@@ -78,20 +71,12 @@
       "childCount": 2
     },
     {
-      "id": "aa33c509-d01e-41b4-bd19-01d81535bba3",
+      "id": "ca3679e4-a177-4436-a7e9-a94b037eb830",
       "type": "capability",
-      "code": "T-AS.DG",
-      "title": "数据安全管理和治理能力",
-      "focusCount": 3,
-      "childCount": 3
-    },
-    {
-      "id": "9f952bed-4aee-4e71-8038-4b4183b1aae5",
-      "type": "capability",
-      "code": "T-AS.DS",
-      "title": "开发安全管控能力",
-      "focusCount": 6,
-      "childCount": 6
+      "code": "T-AS.VM",
+      "title": "漏洞与补丁管理能力",
+      "focusCount": 2,
+      "childCount": 2
     },
     {
       "id": "9055b901-36c1-4337-b6d2-0df8a65dec23",
@@ -102,6 +87,14 @@
       "childCount": 4
     },
     {
+      "id": "9f952bed-4aee-4e71-8038-4b4183b1aae5",
+      "type": "capability",
+      "code": "T-AS.DS",
+      "title": "开发安全管控能力",
+      "focusCount": 6,
+      "childCount": 6
+    },
+    {
       "id": "27fcd3f8-36ee-4be1-a449-be8e9f97e2b1",
       "type": "capability",
       "code": "T-AS.LA",
@@ -110,12 +103,20 @@
       "childCount": 3
     },
     {
-      "id": "ca3679e4-a177-4436-a7e9-a94b037eb830",
+      "id": "f0014de5-8bb2-457b-a2a4-b40011faef8f",
       "type": "capability",
-      "code": "T-AS.VM",
-      "title": "漏洞与补丁管理能力",
+      "code": "T-AS.CG",
+      "title": "密码服务能力",
       "focusCount": 2,
       "childCount": 2
+    },
+    {
+      "id": "aa33c509-d01e-41b4-bd19-01d81535bba3",
+      "type": "capability",
+      "code": "T-AS.DG",
+      "title": "数据安全管理和治理能力",
+      "focusCount": 3,
+      "childCount": 3
     }
   ],
   "coverageSummary": {

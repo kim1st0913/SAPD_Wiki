@@ -8,6 +8,8 @@
 
 全局搜索的产品形态、独立搜索结果页、`search-index` 加载边界和后续实施路线，以 `docs/06-implementation/global-search-redesign-2026-06-30.md` 为准。后续不得只按本文件继续给现有顶部搜索面板打补丁。
 
+2026-07-02 起，`OI-155` 与 `OI-154` 的同步设计入口为 `docs/06-implementation/search-governance-oi154-oi155-synchronized-design-2026-07-02.md`。本文只保留状态隔离和页面搜索作用域基线。
+
 ## 设计结论
 
 SAPD Wiki 的搜索分为两类：

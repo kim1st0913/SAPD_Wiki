@@ -533,19 +533,6 @@
       "evidenceRefCount": 0
     },
     {
-      "id": "relation:19f55f3a74985424",
-      "type": "belongs_to",
-      "sourceId": "ee1c0263-d4dd-48d4-b38d-ac64109cecaa",
-      "sourceType": "capability",
-      "targetId": "2a8d20c6-3244-4c1e-83ca-24b3391dd386",
-      "targetType": "capability_domain",
-      "label": "属于",
-      "status": "active",
-      "confidence": "explicit",
-      "objectContextKey": "",
-      "evidenceRefCount": 0
-    },
-    {
       "id": "relation:b7b02304c3740f9f",
       "type": "belongs_to",
       "sourceId": "70fa769c-b313-48b4-bf48-ad3d637a707e",
@@ -617,6 +604,19 @@
       "sourceType": "capability_focus",
       "targetId": "70fa769c-b313-48b4-bf48-ad3d637a707e",
       "targetType": "capability",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:19f55f3a74985424",
+      "type": "belongs_to",
+      "sourceId": "ee1c0263-d4dd-48d4-b38d-ac64109cecaa",
+      "sourceType": "capability",
+      "targetId": "2a8d20c6-3244-4c1e-83ca-24b3391dd386",
+      "targetType": "capability_domain",
       "label": "属于",
       "status": "active",
       "confidence": "explicit",

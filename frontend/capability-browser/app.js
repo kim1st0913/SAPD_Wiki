@@ -1347,6 +1347,7 @@ function scheduleCapabilityRenderAfterPackageLoad(name) {
     "capabilityInitial",
     "capabilityWorkbench",
     "capabilityProjection",
+    "maintenanceIndex",
     "maintenanceKnowledge",
     "sharedLookups",
     "standards",
@@ -1362,7 +1363,7 @@ function routePackagesForCurrentState() {
   if (state.activeView === "placeholder") return [];
   if (state.activeView === "workbench") return [];
   if (state.activeView === "overview") return ["analyticsSummary"];
-  if (state.activeView === "capabilities") return ["capabilityInitial"];
+  if (state.activeView === "capabilities") return ["capabilityInitial", "maintenanceIndex"];
   if (state.activeView === "environment") {
     return ["environmentWorkbench"];
   }
@@ -7717,6 +7718,23 @@ function resolveCapabilityDetailLoadState(viewModel, loadState) {
   return { ...loadState, phase: "ready", blocksDetail: false };
 }
 
+function capabilityManagementForViewModel() {
+  const maintenanceKnowledge = state.maintenanceKnowledge || {};
+  const maintenanceIndex = state.maintenanceIndex || maintenanceKnowledge.maintenance_index || maintenanceKnowledge.maintenanceIndex || null;
+  return mergeSharedLookups({
+    ...maintenanceKnowledge,
+    maintenance_index: maintenanceIndex,
+    stats: {
+      ...(maintenanceIndex?.stats || {}),
+      ...(maintenanceKnowledge.stats || {}),
+    },
+    section_counts: {
+      ...(maintenanceIndex?.section_counts || {}),
+      ...(maintenanceKnowledge.section_counts || {}),
+    },
+  });
+}
+
 function buildCapabilityViewModel(viewModels) {
   const capabilityWorkbenchViewModel =
     viewModels.buildCapabilityWorkbenchViewModel?.({ workbench: state.capabilityWorkbench }) || state.capabilityWorkbenchViewModel;
@@ -7726,7 +7744,7 @@ function buildCapabilityViewModel(viewModels) {
     capabilityWorkbenchViewModel,
     capabilityTree: state.capability,
     capabilityProjection: currentCapabilityObjectView(),
-    management: mergeSharedLookups(state.maintenanceKnowledge),
+    management: capabilityManagementForViewModel(),
     standards: state.standards,
     selectedCapabilityId: state.selectedCapabilityId,
     search: state.search,
@@ -7786,7 +7804,7 @@ function renderCapabilityDetail(components, viewModel) {
   const selectedCapabilityId = viewModel.selectedCapability?.id || "";
   if (selectedCapabilityId && state.lastCapabilityRelationSelectionId !== selectedCapabilityId) {
     state.lastCapabilityRelationSelectionId = selectedCapabilityId;
-    if ((capabilityOverview.detailPolicy === "overview" || capabilityOverview.detailPolicy === "mixed_summary") && state.activeCapabilityRelationTab !== "summary") {
+    if (state.activeCapabilityRelationTab !== "summary") {
       state.activeCapabilityRelationTab = "summary";
       persistWorkspaceState();
     }
@@ -8958,7 +8976,9 @@ function bindEvents() {
   }
   const row = event.target.closest("[data-capability-id]");
   if (!row) return;
+  const previousCapabilityId = state.selectedCapabilityId;
   state.selectedCapabilityId = row.dataset.capabilityId;
+  if (previousCapabilityId !== state.selectedCapabilityId) state.activeCapabilityRelationTab = "summary";
   const selectedType = capabilityItemTypeById(state.selectedCapabilityId);
   if (selectedType === "capability_focus") {
     ensureCapabilityProjectionForFocus(state.selectedCapabilityId);
@@ -8981,7 +9001,9 @@ function bindEvents() {
   }
   const row = event.target.closest("[data-capability-id]");
   if (!row) return;
+  const previousCapabilityId = state.selectedCapabilityId;
   state.selectedCapabilityId = row.dataset.capabilityId;
+  if (previousCapabilityId !== state.selectedCapabilityId) state.activeCapabilityRelationTab = "summary";
   if (capabilityItemTypeById(state.selectedCapabilityId) === "capability_focus") ensureCapabilityProjectionForFocus(state.selectedCapabilityId);
   renderCapabilities();
   });
@@ -9412,7 +9434,7 @@ async function init() {
   if (!dataClient) throw new Error("SAPD Wiki dataClient 未加载");
   await loadScriptOnce("./models/relationGraphModel.js?v=capability-graph-focus-untangle-20260608-3", () => Boolean(window.sapdModels?.buildLocalRelationGraphModel));
   await loadScriptOnce("./components/LocalRelationNetworkGraph.js?v=capability-graph-controls-20260701-1", () => Boolean(window.sapdComponents?.LocalRelationNetworkGraph));
-  await loadScriptOnce("./components/CapabilityLocalRelationMap.js?v=annotation-framework-anchor-20260605-1-oi156-anchor-20260630-1-oi159-overview-mode-20260701-1-capability-tabs-20260701-2-oi159-summary-20260701-1-oi159-title-tabs-20260701-1-oi159-title-baseline-20260701-1-oi159-summary-compact-20260702-1-oi159-attached-control-20260702-2", () => Boolean(window.sapdComponents?.CapabilityLocalRelationMap));
+  await loadScriptOnce("./components/CapabilityLocalRelationMap.js?v=annotation-framework-anchor-20260605-1-oi156-anchor-20260630-1-oi159-overview-mode-20260701-1-capability-tabs-20260701-2-oi159-summary-20260701-1-oi159-title-tabs-20260701-1-oi159-title-baseline-20260701-1-oi159-summary-compact-20260702-1-oi159-attached-control-20260702-2-oi159-l2-summary-tabs-20260702-1-oi159-reader-summary-cards-20260702-1-oi159-definition-source-20260702-1-oi159-coverage-ratio-20260702-1-oi159-coverage-denominator-scale-20260702-1-oi159-service-coverage-scale-crop-20260702-1", () => Boolean(window.sapdComponents?.CapabilityLocalRelationMap));
   await loadScriptOnce("./models/environmentRelationGraphModel.js?v=environment-graph-20260521-1", () => Boolean(window.sapdModels?.buildEnvironmentRelationGraphModel));
   await loadScriptOnce("./components/EnvironmentLocalRelationMap.js?v=environment-backup-tab-removal-20260629-1-oi156-anchor-20260630-1", () => Boolean(window.sapdComponents?.EnvironmentLocalRelationMap));
   mountAppShellComponents();

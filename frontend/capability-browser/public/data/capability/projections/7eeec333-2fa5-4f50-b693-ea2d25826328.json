@@ -9,7 +9,8 @@
     "title": "网络安全战略计划 Strategy Planning",
     "name": "网络安全战略计划 Strategy Planning",
     "category": "",
-    "status": "active"
+    "status": "active",
+    "description": "从组织战略、业务目标、风险偏好、监管要求和企业架构出发，制定网络安全目标、原则、能力蓝图、建设路线图和投资优先级。它用于回答“为什么建设、建设到什么状态、按什么顺序建设、如何衡量成效”。"
   },
   "ancestorIds": [
     "772fc0a1-683f-43e7-bdcd-a2d5b04c4227"

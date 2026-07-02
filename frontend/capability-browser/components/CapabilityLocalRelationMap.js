@@ -2,6 +2,7 @@
   const components = (window.sapdComponents = window.sapdComponents || {});
   const utils = components.utils;
   const display = window.sapdDisplay || {};
+  const SLIDING_SCALE_IMAGE_PATH = "./assets/sliding-scale-page-4.png";
 
   const LAYERS = [
     { key: "decision", label: "决策层" },
@@ -103,14 +104,6 @@
 
   function chip(label, tone = "") {
     return `<span class="preview-chip ${tone ? `tone-${escape(tone)}` : ""}">${escape(label)}</span>`;
-  }
-
-  function overviewChildChip(item = {}) {
-    const code = entityCode(item);
-    const title = entityName(item, "");
-    const label = code || title || "进入查看";
-    const tooltip = [code, title].filter(Boolean).join(" ");
-    return `<span class="preview-chip capability-next-chip" title="${escape(tooltip || label)}">${escape(label)}</span>`;
   }
 
   function tooltipText(item) {
@@ -459,15 +452,24 @@
     if (!rows.length) return `<div class="capability-overview-empty">暂无覆盖统计</div>`;
     return rows
       .map(
-        (item) => `
-          <div class="capability-overview-coverage-row tone-${escape(item.key || "")}" style="--coverage:${percent(item.ratio)}%">
-            <div>
-              <strong>${escape(item.label || "覆盖项")}</strong>
-              <span>${escape(item.meta || "")}</span>
+        (group) => `
+          <section class="capability-overview-coverage-group tone-${escape(group.key || "")}">
+            <strong>${escape(group.label || "覆盖项")}</strong>
+            <div class="capability-overview-coverage-lines">
+              ${list(group.items)
+                .map(
+                  (item) => `
+                    <div class="capability-overview-coverage-line" style="--coverage:${percent(item.ratio)}%">
+                      <span>${escape(item.label || "覆盖项")}</span>
+                      <b>${escape(item.value ?? 0)}/${escape(item.total ?? 0)}</b>
+                      <em>${escape(`${percent(item.ratio)}%`)}</em>
+                      <i aria-hidden="true"></i>
+                    </div>
+                  `,
+                )
+                .join("")}
             </div>
-            <em>${escape(item.value ?? 0)}</em>
-            <i aria-hidden="true"></i>
-          </div>
+          </section>
         `,
       )
       .join("");
@@ -476,79 +478,38 @@
   function childStatsLine(child = {}) {
     const structure = child.structure || {};
     const stats = child.stats || {};
+    if (child.type === "capability_focus") return "关注点";
+    if (child.type === "capability") return stats.focusCount ? `${stats.focusCount} 关注点` : "暂无关注点";
     return [
-      structure.l2Count ? `${structure.l2Count} L2` : "",
+      structure.l2Count ? `${structure.l2Count} L2 能力` : "",
       stats.focusCount ? `${stats.focusCount} 关注点` : "",
-      stats.mappingCount ? `${stats.mappingCount} 映射` : "",
     ]
       .filter(Boolean)
       .join(" / ");
   }
 
-  function renderOverviewChild(child = {}) {
-    const title = entityName(child, "未命名能力");
-    const statsLine = childStatsLine(child) || "暂无下级统计";
-    const previewChildren = list(child.previewChildren);
-    return `
-      <button type="button" class="capability-overview-child" data-capability-id="${escape(child.id || "")}">
-        <span>${escape(child.levelLabel || "下级")}</span>
-        <strong>${escape([child.code, title].filter(Boolean).join(" "))}</strong>
-        <small>${escape(statsLine)}</small>
-        <div class="capability-overview-child-preview">
-          ${previewChildren.length ? previewChildren.map(overviewChildChip).join("") : chip("进入查看")}
-        </div>
-      </button>
-    `;
-  }
-
-  function childCoverageLine(child = {}) {
-    const stats = child.stats || {};
-    const technical = stats.technicalSummary || {};
-    const management = stats.managementSummary || {};
-    const standard = stats.standardSummary || {};
-    return [
-      technical.serviceCount ? `技术 ${technical.serviceCount} 服务` : "技术待补充",
-      management.securityWorkCount ? `管理 ${management.securityWorkCount} 工作` : "管理待补充",
-      standard.controlCount ? `标准 ${standard.controlCount} 控制项` : "标准待补充",
-    ].join(" / ");
-  }
-
-  function childCoverageBadges(child = {}) {
-    const stats = child.stats || {};
-    const technical = stats.technicalSummary || {};
-    const management = stats.managementSummary || {};
-    const standard = stats.standardSummary || {};
-    const rows = [
-      { key: "technical", label: "技术", value: technical.serviceCount || 0, empty: "待补充" },
-      { key: "management", label: "管理", value: management.securityWorkCount || 0, empty: "待补充" },
-      { key: "standard", label: "标准", value: standard.controlCount || 0, empty: "待补充" },
-    ];
-    return rows
-      .map((row) => {
-        const hasValue = Number(row.value) > 0;
-        return `<span class="capability-overview-row-signal tone-${escape(row.key)} ${hasValue ? "is-ready" : "is-muted"}">${escape(row.label)} ${escape(hasValue ? row.value : row.empty)}</span>`;
-      })
-      .join("");
-  }
-
   function renderOverviewChildRow(child = {}) {
     const title = entityName(child, "未命名能力");
     const statsLine = childStatsLine(child) || "暂无下级统计";
-    const previewChildren = list(child.previewChildren);
     return `
       <button type="button" class="capability-overview-row" data-capability-id="${escape(child.id || "")}">
         <span class="capability-overview-row-main">
           <b>${escape([child.code, title].filter(Boolean).join(" "))}</b>
-          <small>${escape(child.levelLabel || "下级能力")}</small>
-        </span>
-        <span class="capability-overview-row-stats">${escape(statsLine)}</span>
-        <span class="capability-overview-row-coverage">${childCoverageBadges(child)}</span>
-        <span class="capability-overview-row-next" aria-label="下级能力">
-          <span class="capability-overview-row-preview">
-          ${previewChildren.length ? previewChildren.map(overviewChildChip).join("") : chip("进入查看")}
-          </span>
+          <span class="capability-overview-row-stats">${escape(statsLine)}</span>
         </span>
       </button>
+    `;
+  }
+
+  function shouldRenderSlidingScaleReference(overview = {}, children = []) {
+    return text(overview?.selected?.code).trim() === "T" && children.length === 5;
+  }
+
+  function renderSlidingScaleReference() {
+    return `
+      <figure class="capability-sliding-scale-reference">
+        <img src="${escape(SLIDING_SCALE_IMAGE_PATH)}" alt="The Sliding Scale of Cyber Security 第 4 页五象限示意图" loading="lazy" />
+      </figure>
     `;
   }
 
@@ -559,7 +520,6 @@
       structure.l1Count ? `${structure.l1Count} L1` : "",
       structure.l2Count ? `${structure.l2Count} L2` : "",
       stats.focusCount ? `${stats.focusCount} 关注点` : "",
-      stats.mappingCount ? `${stats.mappingCount} 映射` : "",
     ]
       .filter(Boolean)
       .join(" / ");
@@ -575,19 +535,22 @@
         key: "technical",
         label: "技术覆盖",
         value: technical.serviceCount || 0,
-        meta: `${technical.scopeCount || 0} 作用域 / ${technical.moduleCount || 0} 模块措施`,
+        unit: "安全技术服务",
+        meta: `${technical.technologyModuleCount || 0} 安全技术模块 / ${technical.measureCount || 0} 安全技术措施`,
       },
       {
         key: "management",
         label: "管理落地",
-        value: management.securityWorkCount || 0,
-        meta: `${management.securityFunctionCount || 0} 职能 / ${management.processReferenceCount || 0} 流程`,
+        value: management.securityFunctionCount || 0,
+        unit: "职能",
+        meta: `${management.processReferenceCount || 0} 流程`,
       },
       {
         key: "standard",
         label: "标准映射",
-        value: standard.controlCount || 0,
-        meta: `${standard.frameworkCount || 0} 标准 / ${standard.rowCount || 0} 关注点`,
+        value: standard.frameworkCount || 0,
+        unit: "标准",
+        meta: `${standard.controlCount || 0} 控制项`,
       },
     ];
     return rows
@@ -595,7 +558,7 @@
         (row) => `
           <div class="capability-overview-signal tone-${escape(row.key)}">
             <span>${escape(row.label)}</span>
-            <strong>${escape(row.value)}</strong>
+            <strong><span>${escape(row.value)}</span><em>${escape(row.unit || "")}</em></strong>
             <small>${escape(row.meta)}</small>
           </div>
         `,
@@ -603,39 +566,21 @@
       .join("");
   }
 
-  function overviewReviewSignals(overview = {}) {
-    const stats = overview.stats || {};
-    const technical = stats.technicalSummary || {};
-    const management = stats.managementSummary || {};
-    const standard = stats.standardSummary || {};
-    const children = list(overview.children);
-    const weakChild = children.find((child) => {
-      const childStats = child.stats || {};
-      return !(childStats.technicalSummary?.serviceCount > 0) || !(childStats.managementSummary?.securityWorkCount > 0) || !(childStats.standardSummary?.controlCount > 0);
-    });
-    const signals = [];
-    if (technical.ambiguousCount) signals.push({ tone: "warn", label: "技术关系", text: `${technical.ambiguousCount} 条服务映射需要复核` });
-    if (technical.uncoveredCount) signals.push({ tone: "warn", label: "技术覆盖", text: `${technical.uncoveredCount} 个关注点暂无技术服务` });
-    if (management.missingActivityCount) signals.push({ tone: "warn", label: "管理流程", text: `${management.missingActivityCount} 条管理映射缺少活动承接` });
-    if (!standard.controlCount) signals.push({ tone: "muted", label: "标准映射", text: "当前层级暂无可展示控制项" });
-    if (weakChild) signals.push({ tone: "info", label: "下钻建议", text: `优先查看 ${[weakChild.code, entityName(weakChild)].filter(Boolean).join(" ")}` });
-    if (!signals.length) signals.push({ tone: "good", label: "总览判断", text: "技术、管理与标准三类映射均已有覆盖，可按下级能力继续抽查" });
-    return signals.slice(0, 4);
-  }
-
   function renderOverviewBrief(overview = {}) {
     const selected = overview.selected || {};
+    const selectedTitle = [selected.code, entityName(selected, "当前能力")].filter(Boolean).join(" ");
+    const selectedDefinition = text(selected.description).trim() || "暂无定义";
     const scopeLine = overviewMetricLine(overview) || "当前层级暂无结构统计";
-    const signals = overviewReviewSignals(overview);
     return `
       <section class="capability-overview-pane capability-overview-brief">
-        <header>
-          <strong>阅读摘要</strong>
-          <span>${escape(overview.levelLabel || "总览")}</span>
+        <header class="capability-overview-brief-header">
+          <div class="capability-overview-definition">
+            <strong>${escape(selectedTitle)}</strong>
+            <p>${escape(selectedDefinition)}</p>
+          </div>
         </header>
         <div class="capability-overview-brief-body">
           <div class="capability-overview-brief-copy">
-            <p>${escape(selected.description || entityName(selected, "上层能力总览"))}</p>
             <div class="capability-overview-flow">
               ${scopeLine
                 .split(" / ")
@@ -648,46 +593,34 @@
             ${overviewSignalCards(overview)}
           </div>
         </div>
-        <div class="capability-overview-insight-title">
-          <strong>核对信号</strong>
-          <span>${escape(`${signals.length} 项`)}</span>
-        </div>
-        <div class="capability-overview-insights" aria-label="总览摘要重点核对">
-          ${signals
-            .map(
-              (signal) => `
-                <div class="capability-overview-insight is-${escape(signal.tone)}">
-                  <span>${escape(signal.label)}</span>
-                  <strong>${escape(signal.text)}</strong>
-                </div>
-              `,
-            )
-            .join("")}
-        </div>
       </section>
     `;
   }
 
   function renderOverviewHomePanel(overview = {}, panelClass = "summary-panel") {
     const children = list(overview.children);
+    const isL2 = overview.selectedType === "capability" || overview.levelLabel === "L2 能力";
+    const childTitle = isL2 ? "关注点入口" : "下级能力入口";
+    const emptyText = isL2 ? "暂无关注点" : "暂无下级能力";
+    const showSlidingScale = shouldRenderSlidingScaleReference(overview, children);
+    const rowListClass = `capability-overview-row-list${showSlidingScale ? " is-five-up" : ""}`;
     return `
       <div class="preview-tab-panel ${escape(panelClass)}">
         <section class="capability-overview-shell capability-overview-summary-shell">
           ${renderOverviewBrief(overview)}
           <div class="capability-overview-summary-grid">
-            <section class="capability-overview-pane capability-overview-children-pane">
+            <section class="capability-overview-pane capability-overview-children-pane${showSlidingScale ? " has-sliding-scale" : ""}">
               <header>
-                <strong>下级能力入口</strong>
-                <span>${escape(children.length ? `${children.length} 项` : "暂无")}</span>
+                <strong>${escape(childTitle)}</strong>
               </header>
-              <div class="capability-overview-row-list">
-                ${children.length ? children.map(renderOverviewChildRow).join("") : `<div class="capability-overview-empty">暂无下级能力</div>`}
+              <div class="${escape(rowListClass)}">
+                ${children.length ? children.map(renderOverviewChildRow).join("") : `<div class="capability-overview-empty">${escape(emptyText)}</div>`}
               </div>
+              ${showSlidingScale ? renderSlidingScaleReference() : ""}
             </section>
             <section class="capability-overview-pane capability-overview-coverage-pane">
               <header>
                 <strong>覆盖结构</strong>
-                <span>技术 / 管理 / 标准</span>
               </header>
               <div class="capability-overview-coverage">
                 ${coverageBars(overview.coverage)}
@@ -1133,7 +1066,7 @@
       return `
         <div class="relation-view-tabs preview-tabs capability-title-tabs" role="tablist" aria-label="安全能力映射视角">
           ${tabLabel("summary", "关系图谱")}
-          ${tabLabel("technical", "总览摘要")}
+          ${tabLabel("technical", "摘要总览")}
         </div>
       `;
     }

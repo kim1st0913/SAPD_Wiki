@@ -122,15 +122,6 @@
         "category": "",
         "status": "active"
       },
-      "184af5ec-6ca8-4b73-9ad6-ed6ce7ffb4e9": {
-        "id": "184af5ec-6ca8-4b73-9ad6-ed6ce7ffb4e9",
-        "type": "capability",
-        "code": "T-PD.DP",
-        "title": "数据安全防护能力",
-        "name": "数据安全防护能力",
-        "category": "",
-        "status": "active"
-      },
       "7b902b73-7f08-4235-95a8-577ef0d0ce5b": {
         "id": "7b902b73-7f08-4235-95a8-577ef0d0ce5b",
         "type": "capability",
@@ -146,6 +137,15 @@
         "code": "T-PD.TP",
         "title": "威胁检测与防护能力",
         "name": "威胁检测与防护能力",
+        "category": "",
+        "status": "active"
+      },
+      "184af5ec-6ca8-4b73-9ad6-ed6ce7ffb4e9": {
+        "id": "184af5ec-6ca8-4b73-9ad6-ed6ce7ffb4e9",
+        "type": "capability",
+        "code": "T-PD.DP",
+        "title": "数据安全防护能力",
+        "name": "数据安全防护能力",
         "category": "",
         "status": "active"
       }
@@ -373,6 +373,19 @@
       "evidenceRefCount": 0
     },
     {
+      "id": "relation:9a3d7dbd44a8c139",
+      "type": "belongs_to",
+      "sourceId": "7b902b73-7f08-4235-95a8-577ef0d0ce5b",
+      "sourceType": "capability",
+      "targetId": "9cd70765-5c70-4085-89dc-c512779f4b7f",
+      "targetType": "capability_domain",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
       "id": "relation:3dc8a4e24d690afb",
       "type": "belongs_to",
       "sourceId": "53a980f0-6183-4feb-827b-c93e5c6b456d",
@@ -422,7 +435,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 8
+      "evidenceRefCount": 7
     },
     {
       "id": "relation:1ee1240c0b1e595a",
@@ -435,7 +448,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 10
+      "evidenceRefCount": 9
     },
     {
       "id": "relation:af7ff482596f6591",
@@ -448,7 +461,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 10
+      "evidenceRefCount": 9
     },
     {
       "id": "relation:75c99bfe523d07a2",
@@ -477,35 +490,22 @@
       "evidenceRefCount": 8
     },
     {
-      "id": "relation:7c309796dd509ecc",
-      "type": "belongs_to",
-      "sourceId": "184af5ec-6ca8-4b73-9ad6-ed6ce7ffb4e9",
-      "sourceType": "capability",
-      "targetId": "9cd70765-5c70-4085-89dc-c512779f4b7f",
-      "targetType": "capability_domain",
-      "label": "属于",
-      "status": "active",
-      "confidence": "explicit",
-      "objectContextKey": "",
-      "evidenceRefCount": 0
-    },
-    {
-      "id": "relation:9a3d7dbd44a8c139",
-      "type": "belongs_to",
-      "sourceId": "7b902b73-7f08-4235-95a8-577ef0d0ce5b",
-      "sourceType": "capability",
-      "targetId": "9cd70765-5c70-4085-89dc-c512779f4b7f",
-      "targetType": "capability_domain",
-      "label": "属于",
-      "status": "active",
-      "confidence": "explicit",
-      "objectContextKey": "",
-      "evidenceRefCount": 0
-    },
-    {
       "id": "relation:1c22c150ece54b3f",
       "type": "belongs_to",
       "sourceId": "c097b3c8-f951-409f-8422-59ff30e782e5",
+      "sourceType": "capability",
+      "targetId": "9cd70765-5c70-4085-89dc-c512779f4b7f",
+      "targetType": "capability_domain",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:7c309796dd509ecc",
+      "type": "belongs_to",
+      "sourceId": "184af5ec-6ca8-4b73-9ad6-ed6ce7ffb4e9",
       "sourceType": "capability",
       "targetId": "9cd70765-5c70-4085-89dc-c512779f4b7f",
       "targetType": "capability_domain",

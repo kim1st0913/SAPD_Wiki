@@ -10,7 +10,7 @@
     "name": "网络安全事件分析与响应能力",
     "category": "",
     "status": "active",
-    "description": "网络安全事件分析与响应处置能力是指组织在识别、评估、处理和恢复网络安全事件的能力。这包括建立和维护事件响应机制和流程流程，快速准确地分析安全事件，制定有效的响应策略，以及采取必要措施以减轻影响和防止未来发生类似事件。此能力还涉及对事件的调查取证，包括根本原因分析，以及持续改进安全策略和控制措施。"
+    "description": "组织对网络安全事件进行分析、定性、管理、响应、恢复、取证和诱捕，并将处置经验反馈到后续防御。"
   },
   "ancestorIds": [
     "94bba6df-c6bc-41b5-ad60-7c6e87a173ac",
@@ -151,7 +151,7 @@
         "name": "网络安全事件分析与响应能力",
         "category": "",
         "status": "active",
-        "description": "网络安全事件分析与响应处置能力是指组织在识别、评估、处理和恢复网络安全事件的能力。这包括建立和维护事件响应机制和流程流程，快速准确地分析安全事件，制定有效的响应策略，以及采取必要措施以减轻影响和防止未来发生类似事件。此能力还涉及对事件的调查取证，包括根本原因分析，以及持续改进安全策略和控制措施。"
+        "description": "组织对网络安全事件进行分析、定性、管理、响应、恢复、取证和诱捕，并将处置经验反馈到后续防御。"
       },
       "5ccd742f-bbd3-46f2-91b8-62266c5d894a": {
         "id": "5ccd742f-bbd3-46f2-91b8-62266c5d894a",
@@ -1960,6 +1960,19 @@
       "evidenceRefCount": 0
     },
     {
+      "id": "relation:cfd3eb2b7df4ca31",
+      "type": "belongs_to",
+      "sourceId": "5ccd742f-bbd3-46f2-91b8-62266c5d894a",
+      "sourceType": "capability",
+      "targetId": "86565325-5087-42c6-aab9-372940ed915a",
+      "targetType": "capability_domain",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
       "id": "relation:acbbc2352acf53fa",
       "type": "belongs_to",
       "sourceId": "c5a2eb30-8797-406f-8df0-568719fba3e5",
@@ -1996,7 +2009,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 10
+      "evidenceRefCount": 9
     },
     {
       "id": "relation:13ae113980d79a60",
@@ -2048,7 +2061,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 4
+      "evidenceRefCount": 3
     },
     {
       "id": "relation:e36b4e96330956be",
@@ -2100,7 +2113,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 10
+      "evidenceRefCount": 9
     },
     {
       "id": "relation:7720d824c5b19653",
@@ -2152,7 +2165,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 3
+      "evidenceRefCount": 2
     },
     {
       "id": "relation:c9c78c72697ef8d4",
@@ -2204,7 +2217,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 4
+      "evidenceRefCount": 3
     },
     {
       "id": "relation:5f0f8d89a23ab876",
@@ -2217,7 +2230,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 9
+      "evidenceRefCount": 8
     },
     {
       "id": "relation:fbb59bd58eb878ff",
@@ -2230,7 +2243,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 9
+      "evidenceRefCount": 8
     },
     {
       "id": "relation:9ee817f4d8a69c7c",
@@ -2243,7 +2256,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 9
+      "evidenceRefCount": 8
     },
     {
       "id": "relation:2a55afd3f803f2d8",
@@ -2295,7 +2308,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 8
+      "evidenceRefCount": 7
     },
     {
       "id": "relation:f8f06519c797a02a",
@@ -2308,7 +2321,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 3
+      "evidenceRefCount": 2
     },
     {
       "id": "relation:d2e6d6c224d3a12f",
@@ -2321,7 +2334,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 3
+      "evidenceRefCount": 2
     },
     {
       "id": "relation:5823f4f1310f58f9",
@@ -2334,7 +2347,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 3
+      "evidenceRefCount": 2
     },
     {
       "id": "relation:f75819c36bb00a9a",
@@ -2347,7 +2360,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 8
+      "evidenceRefCount": 7
     },
     {
       "id": "relation:bd83dcbb9c06f044",
@@ -2374,19 +2387,6 @@
       "confidence": "explicit",
       "objectContextKey": "",
       "evidenceRefCount": 12
-    },
-    {
-      "id": "relation:cfd3eb2b7df4ca31",
-      "type": "belongs_to",
-      "sourceId": "5ccd742f-bbd3-46f2-91b8-62266c5d894a",
-      "sourceType": "capability",
-      "targetId": "86565325-5087-42c6-aab9-372940ed915a",
-      "targetType": "capability_domain",
-      "label": "属于",
-      "status": "active",
-      "confidence": "explicit",
-      "objectContextKey": "",
-      "evidenceRefCount": 0
     },
     {
       "id": "relation:e55eb7022890f347",

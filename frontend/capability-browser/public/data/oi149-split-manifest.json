@@ -2,17 +2,17 @@
   "packageType": "oi-149-p4-runtime-split-manifest",
   "dataState": "ready",
   "contract": "oi149-p4-split-v1",
-  "generatedAt": "2026-07-01T13:55:26.918Z",
+  "generatedAt": "2026-07-02T09:22:15.166Z",
   "sourcePackages": {
     "capability-tree": {
       "path": "frontend/capability-browser/public/data/capability-tree.json",
-      "sizeKB": 6328.7,
-      "sha256": "1a5eb7143d0830821d38f3824b478f5aaf053f5cf3590d93caf3ce7798891392"
+      "sizeKB": 6302.4,
+      "sha256": "51184dd0f6b74ff368c4220472185cae3a11846be4fcbea7a109b128a437c855"
     },
     "capability-workbench": {
       "path": "frontend/capability-browser/public/data/capability-workbench.json",
-      "sizeKB": 5634.6,
-      "sha256": "c97598762cc177881c1fdfc3dea9398451b6e72c7eee78ce85d30d63007522d9"
+      "sizeKB": 5610.4,
+      "sha256": "616e35813031eb765659542373e5b54f80d2d38876bb7a421adf5ef365685de1"
     },
     "environment-workbench": {
       "path": "frontend/capability-browser/public/data/environment-workbench.json",
@@ -86,21 +86,21 @@
   "files": [
     {
       "path": "capability/projections/94bba6df-c6bc-41b5-ad60-7c6e87a173ac.json",
-      "sizeKB": 4.7,
+      "sizeKB": 5,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/52656e45-e93d-4cb8-93eb-36a7e14b7655.json",
-      "sizeKB": 4.1,
+      "sizeKB": 4.7,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/99db293b-2029-49ab-b84c-a86b68ada3ce.json",
-      "sizeKB": 154.5,
+      "sizeKB": 154.1,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -128,7 +128,7 @@
     },
     {
       "path": "capability/projections/865efd41-fd51-42a1-9c0a-6f46162d1d68.json",
-      "sizeKB": 177.6,
+      "sizeKB": 177.3,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -148,29 +148,8 @@
       "detailProjection": true
     },
     {
-      "path": "capability/projections/f0014de5-8bb2-457b-a2a4-b40011faef8f.json",
-      "sizeKB": 77.5,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/dacf7142-6ac7-48e1-b463-5d42275bfc6f.json",
-      "sizeKB": 52.2,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/580a4463-e07b-432c-bde4-ec33d24b4913.json",
-      "sizeKB": 47.3,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
       "path": "capability/projections/53bfcca7-3660-4630-b7a2-d4bd9610b166.json",
-      "sizeKB": 117,
+      "sizeKB": 116.6,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -190,36 +169,64 @@
       "detailProjection": true
     },
     {
-      "path": "capability/projections/aa33c509-d01e-41b4-bd19-01d81535bba3.json",
-      "sizeKB": 92.7,
+      "path": "capability/projections/ca3679e4-a177-4436-a7e9-a94b037eb830.json",
+      "sizeKB": 99,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "capability/projections/4ebac402-6b13-416d-96d7-ab8e3e15e52f.json",
-      "sizeKB": 41,
+      "path": "capability/projections/09275fd5-5034-4b6b-a9c8-eebf381d2442.json",
+      "sizeKB": 70.9,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "capability/projections/40c42943-962d-4154-8689-4910d29d6d93.json",
-      "sizeKB": 42.8,
+      "path": "capability/projections/5b992744-35eb-4bf0-b0e3-097df663e2e3.json",
+      "sizeKB": 48.3,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "capability/projections/641fd4ce-e317-45c2-bf34-21078be37041.json",
-      "sizeKB": 45.8,
+      "path": "capability/projections/9055b901-36c1-4337-b6d2-0df8a65dec23.json",
+      "sizeKB": 2.4,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "capability/projections/c1d0dca3-d4a3-4a3f-bfb8-3230b0781cea.json",
+      "sizeKB": 85.3,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "capability/projections/9bb22f45-3d49-4c1d-becc-ffce3b2c446a.json",
+      "sizeKB": 124.2,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "capability/projections/2c4e3200-3551-4297-9188-53376e6b0693.json",
+      "sizeKB": 143.5,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "capability/projections/fa079362-7b74-4f89-b239-8b8d5718e191.json",
+      "sizeKB": 54.5,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/9f952bed-4aee-4e71-8038-4b4183b1aae5.json",
-      "sizeKB": 172.8,
+      "sizeKB": 172.1,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -267,43 +274,8 @@
       "detailProjection": true
     },
     {
-      "path": "capability/projections/9055b901-36c1-4337-b6d2-0df8a65dec23.json",
-      "sizeKB": 2.7,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/c1d0dca3-d4a3-4a3f-bfb8-3230b0781cea.json",
-      "sizeKB": 85.3,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/9bb22f45-3d49-4c1d-becc-ffce3b2c446a.json",
-      "sizeKB": 124.2,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/2c4e3200-3551-4297-9188-53376e6b0693.json",
-      "sizeKB": 143.5,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/fa079362-7b74-4f89-b239-8b8d5718e191.json",
-      "sizeKB": 54.5,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
       "path": "capability/projections/27fcd3f8-36ee-4be1-a449-be8e9f97e2b1.json",
-      "sizeKB": 161.2,
+      "sizeKB": 160.6,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -330,36 +302,92 @@
       "detailProjection": true
     },
     {
-      "path": "capability/projections/ca3679e4-a177-4436-a7e9-a94b037eb830.json",
-      "sizeKB": 99.4,
+      "path": "capability/projections/f0014de5-8bb2-457b-a2a4-b40011faef8f.json",
+      "sizeKB": 77.3,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "capability/projections/09275fd5-5034-4b6b-a9c8-eebf381d2442.json",
-      "sizeKB": 70.9,
+      "path": "capability/projections/dacf7142-6ac7-48e1-b463-5d42275bfc6f.json",
+      "sizeKB": 52.2,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "capability/projections/5b992744-35eb-4bf0-b0e3-097df663e2e3.json",
-      "sizeKB": 48.3,
+      "path": "capability/projections/580a4463-e07b-432c-bde4-ec33d24b4913.json",
+      "sizeKB": 47.3,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "capability/projections/aa33c509-d01e-41b4-bd19-01d81535bba3.json",
+      "sizeKB": 92.5,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "capability/projections/4ebac402-6b13-416d-96d7-ab8e3e15e52f.json",
+      "sizeKB": 41,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "capability/projections/40c42943-962d-4154-8689-4910d29d6d93.json",
+      "sizeKB": 42.8,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "capability/projections/641fd4ce-e317-45c2-bf34-21078be37041.json",
+      "sizeKB": 45.8,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/9cd70765-5c70-4085-89dc-c512779f4b7f.json",
-      "sizeKB": 2.6,
+      "sizeKB": 3.2,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "capability/projections/7b902b73-7f08-4235-95a8-577ef0d0ce5b.json",
+      "sizeKB": 125.7,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "capability/projections/7e4922f0-05fa-4438-b33b-e498af49decb.json",
+      "sizeKB": 54.6,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "capability/projections/4eecede4-4f58-4ba8-ad90-a52382168121.json",
+      "sizeKB": 29.4,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "capability/projections/8df9c875-0812-4ff3-b13f-0b79be561419.json",
+      "sizeKB": 75.5,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/53a980f0-6183-4feb-827b-c93e5c6b456d.json",
-      "sizeKB": 76.7,
+      "sizeKB": 76.1,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -379,8 +407,50 @@
       "detailProjection": true
     },
     {
+      "path": "capability/projections/c097b3c8-f951-409f-8422-59ff30e782e5.json",
+      "sizeKB": 161.3,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "capability/projections/44817bda-17a6-4c50-9e1b-a976ca9bd1aa.json",
+      "sizeKB": 49.7,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "capability/projections/da78919c-d048-42d4-b95e-e2869b07138d.json",
+      "sizeKB": 75,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "capability/projections/85aefc20-d2ad-425b-92ff-41938d24c543.json",
+      "sizeKB": 50.1,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "capability/projections/52587aa8-a348-4f68-9965-e88007d35567.json",
+      "sizeKB": 24.9,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "capability/projections/8c8190a8-b48f-40d2-85f0-6850c604d745.json",
+      "sizeKB": 33.6,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
       "path": "capability/projections/184af5ec-6ca8-4b73-9ad6-ed6ce7ffb4e9.json",
-      "sizeKB": 168.5,
+      "sizeKB": 168,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -435,85 +505,43 @@
       "detailProjection": true
     },
     {
-      "path": "capability/projections/7b902b73-7f08-4235-95a8-577ef0d0ce5b.json",
-      "sizeKB": 126,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/7e4922f0-05fa-4438-b33b-e498af49decb.json",
-      "sizeKB": 54.6,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/4eecede4-4f58-4ba8-ad90-a52382168121.json",
-      "sizeKB": 29.4,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/8df9c875-0812-4ff3-b13f-0b79be561419.json",
-      "sizeKB": 75.5,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/c097b3c8-f951-409f-8422-59ff30e782e5.json",
-      "sizeKB": 161.9,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/44817bda-17a6-4c50-9e1b-a976ca9bd1aa.json",
-      "sizeKB": 49.7,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/da78919c-d048-42d4-b95e-e2869b07138d.json",
-      "sizeKB": 75,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/85aefc20-d2ad-425b-92ff-41938d24c543.json",
-      "sizeKB": 50.1,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/52587aa8-a348-4f68-9965-e88007d35567.json",
-      "sizeKB": 24.9,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/8c8190a8-b48f-40d2-85f0-6850c604d745.json",
-      "sizeKB": 33.6,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
       "path": "capability/projections/86565325-5087-42c6-aab9-372940ed915a.json",
-      "sizeKB": 2.2,
+      "sizeKB": 2.7,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "capability/projections/5ccd742f-bbd3-46f2-91b8-62266c5d894a.json",
+      "sizeKB": 80.5,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "capability/projections/1160f208-678b-4031-9277-041a1b175f0b.json",
+      "sizeKB": 42.7,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "capability/projections/92412408-7d0f-4763-8c02-25f535b7ed67.json",
+      "sizeKB": 37.7,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "capability/projections/b99c17a6-1ae8-4c75-8195-42f00991caca.json",
+      "sizeKB": 25.4,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/c5a2eb30-8797-406f-8df0-568719fba3e5.json",
-      "sizeKB": 215.2,
+      "sizeKB": 214.6,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -561,36 +589,8 @@
       "detailProjection": true
     },
     {
-      "path": "capability/projections/5ccd742f-bbd3-46f2-91b8-62266c5d894a.json",
-      "sizeKB": 81.1,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/1160f208-678b-4031-9277-041a1b175f0b.json",
-      "sizeKB": 42.7,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/92412408-7d0f-4763-8c02-25f535b7ed67.json",
-      "sizeKB": 37.7,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/b99c17a6-1ae8-4c75-8195-42f00991caca.json",
-      "sizeKB": 25.4,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
       "path": "capability/projections/9992c62d-29ee-4e13-933e-8374d71f0d14.json",
-      "sizeKB": 52.3,
+      "sizeKB": 51.7,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -618,14 +618,14 @@
     },
     {
       "path": "capability/projections/bdf00d1b-c193-4c48-8bbc-5e30e35d8186.json",
-      "sizeKB": 1.6,
+      "sizeKB": 2.1,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/63df9858-fcd2-479a-b5c0-f450e0185a2c.json",
-      "sizeKB": 29.1,
+      "sizeKB": 28.4,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -653,7 +653,7 @@
     },
     {
       "path": "capability/projections/1cdc4eee-878a-46a3-b71e-1f8bd88d817e.json",
-      "sizeKB": 16.4,
+      "sizeKB": 16.1,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -667,14 +667,14 @@
     },
     {
       "path": "capability/projections/f6c5bbc5-1c27-4bbe-ba4e-7ccfead1f827.json",
-      "sizeKB": 1.4,
+      "sizeKB": 1.9,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/dabb0ceb-cff5-438b-abdf-3316283683f5.json",
-      "sizeKB": 19.3,
+      "sizeKB": 19.4,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -702,21 +702,21 @@
     },
     {
       "path": "capability/projections/772fc0a1-683f-43e7-bdcd-a2d5b04c4227.json",
-      "sizeKB": 1.3,
+      "sizeKB": 1.6,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/7eeec333-2fa5-4f50-b693-ea2d25826328.json",
-      "sizeKB": 1.4,
+      "sizeKB": 1.7,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/3e73d80d-c078-4b73-a9ae-5178b9a1467f.json",
-      "sizeKB": 72.8,
+      "sizeKB": 72.6,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -744,21 +744,21 @@
     },
     {
       "path": "capability/projections/697c2bdb-baa4-4899-a2a7-d0f5da9bd5fe.json",
-      "sizeKB": 3,
+      "sizeKB": 3.3,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/6a8b013d-e22b-4e8c-acfd-184fb4c78baa.json",
-      "sizeKB": 1.6,
+      "sizeKB": 1.9,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/f6941283-2400-40b6-b23e-18299820bdf4.json",
-      "sizeKB": 26.2,
+      "sizeKB": 25.9,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -772,7 +772,7 @@
     },
     {
       "path": "capability/projections/c79d749e-9f70-44ad-9c99-970bbd5d62e0.json",
-      "sizeKB": 121.1,
+      "sizeKB": 120.9,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -793,14 +793,14 @@
     },
     {
       "path": "capability/projections/d5164338-2577-4b4a-b83f-a04998054f48.json",
-      "sizeKB": 2.9,
+      "sizeKB": 3.1,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/59516fab-857b-41e2-ab8c-2479c96ac673.json",
-      "sizeKB": 21,
+      "sizeKB": 20.6,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -820,50 +820,29 @@
       "detailProjection": true
     },
     {
-      "path": "capability/projections/92d4fb18-815b-42eb-9948-0df683a4b830.json",
-      "sizeKB": 45.7,
+      "path": "capability/projections/3d8d883b-6b4d-4f4f-b153-220a9708e8f8.json",
+      "sizeKB": 53.1,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "capability/projections/0a4dbe3b-545d-4011-bfa9-3cffdba1445d.json",
-      "sizeKB": 24.5,
+      "path": "capability/projections/baa9f450-396e-43d3-9d94-5d4cdced56a0.json",
+      "sizeKB": 34.5,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "capability/projections/077908f1-4c56-453a-a1a0-53c3eb2475ac.json",
-      "sizeKB": 32.7,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/629cc5f5-f78b-4dcd-a228-867d59baa28d.json",
-      "sizeKB": 25.2,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/1ea6aa55-2a16-4c9b-8ef4-40b04bc16beb.json",
-      "sizeKB": 19.9,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/f369c528-9681-4feb-ac6f-538f9cf95b53.json",
-      "sizeKB": 16.5,
+      "path": "capability/projections/6a87ea60-9960-46b6-823f-b438138a5868.json",
+      "sizeKB": 30.7,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/7748c478-9e64-43f0-8b50-6fd69c81fbac.json",
-      "sizeKB": 106.4,
+      "sizeKB": 106,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -890,29 +869,8 @@
       "detailProjection": true
     },
     {
-      "path": "capability/projections/3d8d883b-6b4d-4f4f-b153-220a9708e8f8.json",
-      "sizeKB": 53.8,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/baa9f450-396e-43d3-9d94-5d4cdced56a0.json",
-      "sizeKB": 34.6,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/6a87ea60-9960-46b6-823f-b438138a5868.json",
-      "sizeKB": 30.8,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
       "path": "capability/projections/e227e850-097c-4b6e-9dab-6295ab3456b3.json",
-      "sizeKB": 119.8,
+      "sizeKB": 119.2,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -932,29 +890,57 @@
       "detailProjection": true
     },
     {
+      "path": "capability/projections/629cc5f5-f78b-4dcd-a228-867d59baa28d.json",
+      "sizeKB": 24.7,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "capability/projections/1ea6aa55-2a16-4c9b-8ef4-40b04bc16beb.json",
+      "sizeKB": 19.9,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "capability/projections/f369c528-9681-4feb-ac6f-538f9cf95b53.json",
+      "sizeKB": 16.5,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "capability/projections/92d4fb18-815b-42eb-9948-0df683a4b830.json",
+      "sizeKB": 45.2,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "capability/projections/0a4dbe3b-545d-4011-bfa9-3cffdba1445d.json",
+      "sizeKB": 24.5,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "capability/projections/077908f1-4c56-453a-a1a0-53c3eb2475ac.json",
+      "sizeKB": 32.6,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
       "path": "capability/projections/2a8d20c6-3244-4c1e-83ca-24b3391dd386.json",
-      "sizeKB": 1.7,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/ee1c0263-d4dd-48d4-b38d-ac64109cecaa.json",
-      "sizeKB": 18.1,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/38296ed3-c9e1-43d3-9e8d-deaaee1cb8ec.json",
-      "sizeKB": 17.8,
+      "sizeKB": 2,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/70fa769c-b313-48b4-bf48-ad3d637a707e.json",
-      "sizeKB": 59.2,
+      "sizeKB": 58.5,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -981,36 +967,29 @@
       "detailProjection": true
     },
     {
+      "path": "capability/projections/ee1c0263-d4dd-48d4-b38d-ac64109cecaa.json",
+      "sizeKB": 17.6,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "capability/projections/38296ed3-c9e1-43d3-9e8d-deaaee1cb8ec.json",
+      "sizeKB": 17.8,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
       "path": "capability/projections/f2a9167e-8c38-4400-9c94-051d00421b26.json",
-      "sizeKB": 1.7,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/bc59df3a-3ce4-4da3-8f42-1819249c7355.json",
-      "sizeKB": 62.9,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/cb3f5a21-c859-4bbc-a9ee-2b37b3e88170.json",
-      "sizeKB": 45.4,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/69af923e-fb08-44fc-8260-7f0e0a7501da.json",
-      "sizeKB": 30.7,
+      "sizeKB": 2,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/4637772b-424f-4aeb-92c7-12b047bab8f5.json",
-      "sizeKB": 59.9,
+      "sizeKB": 59.5,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -1037,15 +1016,36 @@
       "detailProjection": true
     },
     {
+      "path": "capability/projections/bc59df3a-3ce4-4da3-8f42-1819249c7355.json",
+      "sizeKB": 62.5,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "capability/projections/cb3f5a21-c859-4bbc-a9ee-2b37b3e88170.json",
+      "sizeKB": 45.4,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "capability/projections/69af923e-fb08-44fc-8260-7f0e0a7501da.json",
+      "sizeKB": 30.7,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
       "path": "capability/index.json",
-      "sizeKB": 89.8,
+      "sizeKB": 128.9,
       "category": "capabilityIndex",
       "firstScreen": true,
       "detailProjection": false
     },
     {
       "path": "capability/evidence.json",
-      "sizeKB": 617.4,
+      "sizeKB": 605.3,
       "category": "capabilityEvidence",
       "firstScreen": false,
       "detailProjection": false

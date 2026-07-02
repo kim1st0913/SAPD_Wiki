@@ -424,7 +424,7 @@
         <div class="brand-mark">S</div>
         <div>
           <h1>SAPD Wiki</h1>
-          <p>本地业务关系工作台</p>
+          <p>咨询规划工作台</p>
         </div>
         ${renderSidebarToggle(collapsed)}
       </div>
@@ -432,9 +432,8 @@
         ${NAV_MANIFEST.navigation.map((item) => renderNavigationItem(item, activeRoute)).join("")}
       </nav>
       <div class="sidebar-status">
-        <span>运行模式</span>
-        <strong>本地静态页面</strong>
-        <small>Manifest 导航已接入，页面数据仍通过 dataClient 读取</small>
+        <span>开发维护</span>
+        <strong>SAPD 架构组</strong>
       </div>
     `;
   }

@@ -10,7 +10,7 @@
     "name": "数据安全管理和治理能力",
     "category": "",
     "status": "active",
-    "description": "数据安全管理和治理能力是指组织在数据安全风险的评估和应对、组织资产管理的能力。这包括数据治理、数据资产管理以及制定和执行数据安全政策和程序。"
+    "description": "组织围绕数据分类分级、数据安全策略、数据可靠性与可恢复性，建立数据安全治理、策略执行和风险控制机制。"
   },
   "ancestorIds": [
     "94bba6df-c6bc-41b5-ad60-7c6e87a173ac",
@@ -97,7 +97,7 @@
         "name": "数据安全管理和治理能力",
         "category": "",
         "status": "active",
-        "description": "数据安全管理和治理能力是指组织在数据安全风险的评估和应对、组织资产管理的能力。这包括数据治理、数据资产管理以及制定和执行数据安全政策和程序。"
+        "description": "组织围绕数据分类分级、数据安全策略、数据可靠性与可恢复性，建立数据安全治理、策略执行和风险控制机制。"
       },
       "99db293b-2029-49ab-b84c-a86b68ada3ce": {
         "id": "99db293b-2029-49ab-b84c-a86b68ada3ce",
@@ -117,15 +117,6 @@
         "category": "",
         "status": "active"
       },
-      "f0014de5-8bb2-457b-a2a4-b40011faef8f": {
-        "id": "f0014de5-8bb2-457b-a2a4-b40011faef8f",
-        "type": "capability",
-        "code": "T-AS.CG",
-        "title": "密码服务能力",
-        "name": "密码服务能力",
-        "category": "",
-        "status": "active"
-      },
       "53bfcca7-3660-4630-b7a2-d4bd9610b166": {
         "id": "53bfcca7-3660-4630-b7a2-d4bd9610b166",
         "type": "capability",
@@ -135,12 +126,12 @@
         "category": "",
         "status": "active"
       },
-      "9f952bed-4aee-4e71-8038-4b4183b1aae5": {
-        "id": "9f952bed-4aee-4e71-8038-4b4183b1aae5",
+      "ca3679e4-a177-4436-a7e9-a94b037eb830": {
+        "id": "ca3679e4-a177-4436-a7e9-a94b037eb830",
         "type": "capability",
-        "code": "T-AS.DS",
-        "title": "开发安全管控能力",
-        "name": "开发安全管控能力",
+        "code": "T-AS.VM",
+        "title": "漏洞与补丁管理能力",
+        "name": "漏洞与补丁管理能力",
         "category": "",
         "status": "active"
       },
@@ -153,6 +144,15 @@
         "category": "",
         "status": "active"
       },
+      "9f952bed-4aee-4e71-8038-4b4183b1aae5": {
+        "id": "9f952bed-4aee-4e71-8038-4b4183b1aae5",
+        "type": "capability",
+        "code": "T-AS.DS",
+        "title": "开发安全管控能力",
+        "name": "开发安全管控能力",
+        "category": "",
+        "status": "active"
+      },
       "27fcd3f8-36ee-4be1-a449-be8e9f97e2b1": {
         "id": "27fcd3f8-36ee-4be1-a449-be8e9f97e2b1",
         "type": "capability",
@@ -162,12 +162,12 @@
         "category": "",
         "status": "active"
       },
-      "ca3679e4-a177-4436-a7e9-a94b037eb830": {
-        "id": "ca3679e4-a177-4436-a7e9-a94b037eb830",
+      "f0014de5-8bb2-457b-a2a4-b40011faef8f": {
+        "id": "f0014de5-8bb2-457b-a2a4-b40011faef8f",
         "type": "capability",
-        "code": "T-AS.VM",
-        "title": "漏洞与补丁管理能力",
-        "name": "漏洞与补丁管理能力",
+        "code": "T-AS.CG",
+        "title": "密码服务能力",
+        "name": "密码服务能力",
         "category": "",
         "status": "active"
       }
@@ -1042,9 +1042,9 @@
       "evidenceRefCount": 0
     },
     {
-      "id": "relation:a4c656c5180d04bd",
+      "id": "relation:4a711ded9b8a554e",
       "type": "belongs_to",
-      "sourceId": "f0014de5-8bb2-457b-a2a4-b40011faef8f",
+      "sourceId": "53bfcca7-3660-4630-b7a2-d4bd9610b166",
       "sourceType": "capability",
       "targetId": "52656e45-e93d-4cb8-93eb-36a7e14b7655",
       "targetType": "capability_domain",
@@ -1055,9 +1055,61 @@
       "evidenceRefCount": 0
     },
     {
-      "id": "relation:4a711ded9b8a554e",
+      "id": "relation:4674c995910cb88a",
       "type": "belongs_to",
-      "sourceId": "53bfcca7-3660-4630-b7a2-d4bd9610b166",
+      "sourceId": "ca3679e4-a177-4436-a7e9-a94b037eb830",
+      "sourceType": "capability",
+      "targetId": "52656e45-e93d-4cb8-93eb-36a7e14b7655",
+      "targetType": "capability_domain",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:2e5f35eb133d1a69",
+      "type": "belongs_to",
+      "sourceId": "9055b901-36c1-4337-b6d2-0df8a65dec23",
+      "sourceType": "capability",
+      "targetId": "52656e45-e93d-4cb8-93eb-36a7e14b7655",
+      "targetType": "capability_domain",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:89a86008ae299ca3",
+      "type": "belongs_to",
+      "sourceId": "9f952bed-4aee-4e71-8038-4b4183b1aae5",
+      "sourceType": "capability",
+      "targetId": "52656e45-e93d-4cb8-93eb-36a7e14b7655",
+      "targetType": "capability_domain",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:c8260f5bdc914f22",
+      "type": "belongs_to",
+      "sourceId": "27fcd3f8-36ee-4be1-a449-be8e9f97e2b1",
+      "sourceType": "capability",
+      "targetId": "52656e45-e93d-4cb8-93eb-36a7e14b7655",
+      "targetType": "capability_domain",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:a4c656c5180d04bd",
+      "type": "belongs_to",
+      "sourceId": "f0014de5-8bb2-457b-a2a4-b40011faef8f",
       "sourceType": "capability",
       "targetId": "52656e45-e93d-4cb8-93eb-36a7e14b7655",
       "targetType": "capability_domain",
@@ -1104,7 +1156,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 6
+      "evidenceRefCount": 5
     },
     {
       "id": "relation:db6ef5e0ba3319aa",
@@ -1156,7 +1208,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 10
+      "evidenceRefCount": 9
     },
     {
       "id": "relation:b36bf6c2b5aca29d",
@@ -1218,58 +1270,6 @@
       "targetId": "77261cbf-b81c-4c28-9d55-ca59ca454430",
       "targetType": "security_work",
       "label": "映射安全工作",
-      "status": "active",
-      "confidence": "explicit",
-      "objectContextKey": "",
-      "evidenceRefCount": 0
-    },
-    {
-      "id": "relation:89a86008ae299ca3",
-      "type": "belongs_to",
-      "sourceId": "9f952bed-4aee-4e71-8038-4b4183b1aae5",
-      "sourceType": "capability",
-      "targetId": "52656e45-e93d-4cb8-93eb-36a7e14b7655",
-      "targetType": "capability_domain",
-      "label": "属于",
-      "status": "active",
-      "confidence": "explicit",
-      "objectContextKey": "",
-      "evidenceRefCount": 0
-    },
-    {
-      "id": "relation:2e5f35eb133d1a69",
-      "type": "belongs_to",
-      "sourceId": "9055b901-36c1-4337-b6d2-0df8a65dec23",
-      "sourceType": "capability",
-      "targetId": "52656e45-e93d-4cb8-93eb-36a7e14b7655",
-      "targetType": "capability_domain",
-      "label": "属于",
-      "status": "active",
-      "confidence": "explicit",
-      "objectContextKey": "",
-      "evidenceRefCount": 0
-    },
-    {
-      "id": "relation:c8260f5bdc914f22",
-      "type": "belongs_to",
-      "sourceId": "27fcd3f8-36ee-4be1-a449-be8e9f97e2b1",
-      "sourceType": "capability",
-      "targetId": "52656e45-e93d-4cb8-93eb-36a7e14b7655",
-      "targetType": "capability_domain",
-      "label": "属于",
-      "status": "active",
-      "confidence": "explicit",
-      "objectContextKey": "",
-      "evidenceRefCount": 0
-    },
-    {
-      "id": "relation:4674c995910cb88a",
-      "type": "belongs_to",
-      "sourceId": "ca3679e4-a177-4436-a7e9-a94b037eb830",
-      "sourceType": "capability",
-      "targetId": "52656e45-e93d-4cb8-93eb-36a7e14b7655",
-      "targetType": "capability_domain",
-      "label": "属于",
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",

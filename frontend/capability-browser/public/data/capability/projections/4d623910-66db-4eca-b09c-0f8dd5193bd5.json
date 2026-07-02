@@ -530,6 +530,19 @@
       "evidenceRefCount": 0
     },
     {
+      "id": "relation:cfd3eb2b7df4ca31",
+      "type": "belongs_to",
+      "sourceId": "5ccd742f-bbd3-46f2-91b8-62266c5d894a",
+      "sourceType": "capability",
+      "targetId": "86565325-5087-42c6-aab9-372940ed915a",
+      "targetType": "capability_domain",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
       "id": "relation:acbbc2352acf53fa",
       "type": "belongs_to",
       "sourceId": "c5a2eb30-8797-406f-8df0-568719fba3e5",
@@ -631,7 +644,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 8
+      "evidenceRefCount": 7
     },
     {
       "id": "relation:f8f06519c797a02a",
@@ -644,7 +657,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 3
+      "evidenceRefCount": 2
     },
     {
       "id": "relation:d2e6d6c224d3a12f",
@@ -657,7 +670,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 3
+      "evidenceRefCount": 2
     },
     {
       "id": "relation:5823f4f1310f58f9",
@@ -670,7 +683,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 3
+      "evidenceRefCount": 2
     },
     {
       "id": "relation:f75819c36bb00a9a",
@@ -683,7 +696,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 8
+      "evidenceRefCount": 7
     },
     {
       "id": "relation:bd83dcbb9c06f044",
@@ -710,19 +723,6 @@
       "confidence": "explicit",
       "objectContextKey": "",
       "evidenceRefCount": 12
-    },
-    {
-      "id": "relation:cfd3eb2b7df4ca31",
-      "type": "belongs_to",
-      "sourceId": "5ccd742f-bbd3-46f2-91b8-62266c5d894a",
-      "sourceType": "capability",
-      "targetId": "86565325-5087-42c6-aab9-372940ed915a",
-      "targetType": "capability_domain",
-      "label": "属于",
-      "status": "active",
-      "confidence": "explicit",
-      "objectContextKey": "",
-      "evidenceRefCount": 0
     },
     {
       "id": "relation:e55eb7022890f347",

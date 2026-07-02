@@ -131,21 +131,21 @@
         "category": "",
         "status": "active"
       },
-      "c5a2eb30-8797-406f-8df0-568719fba3e5": {
-        "id": "c5a2eb30-8797-406f-8df0-568719fba3e5",
-        "type": "capability",
-        "code": "T-AD.IR",
-        "title": "网络安全事件分析与响应能力",
-        "name": "网络安全事件分析与响应能力",
-        "category": "",
-        "status": "active"
-      },
       "5ccd742f-bbd3-46f2-91b8-62266c5d894a": {
         "id": "5ccd742f-bbd3-46f2-91b8-62266c5d894a",
         "type": "capability",
         "code": "T-AD.SA",
         "title": "态势感知能力",
         "name": "态势感知能力",
+        "category": "",
+        "status": "active"
+      },
+      "c5a2eb30-8797-406f-8df0-568719fba3e5": {
+        "id": "c5a2eb30-8797-406f-8df0-568719fba3e5",
+        "type": "capability",
+        "code": "T-AD.IR",
+        "title": "网络安全事件分析与响应能力",
+        "name": "网络安全事件分析与响应能力",
         "category": "",
         "status": "active"
       }
@@ -494,9 +494,9 @@
       "evidenceRefCount": 0
     },
     {
-      "id": "relation:acbbc2352acf53fa",
+      "id": "relation:cfd3eb2b7df4ca31",
       "type": "belongs_to",
-      "sourceId": "c5a2eb30-8797-406f-8df0-568719fba3e5",
+      "sourceId": "5ccd742f-bbd3-46f2-91b8-62266c5d894a",
       "sourceType": "capability",
       "targetId": "86565325-5087-42c6-aab9-372940ed915a",
       "targetType": "capability_domain",
@@ -507,9 +507,9 @@
       "evidenceRefCount": 0
     },
     {
-      "id": "relation:cfd3eb2b7df4ca31",
+      "id": "relation:acbbc2352acf53fa",
       "type": "belongs_to",
-      "sourceId": "5ccd742f-bbd3-46f2-91b8-62266c5d894a",
+      "sourceId": "c5a2eb30-8797-406f-8df0-568719fba3e5",
       "sourceType": "capability",
       "targetId": "86565325-5087-42c6-aab9-372940ed915a",
       "targetType": "capability_domain",
@@ -569,7 +569,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 4
+      "evidenceRefCount": 3
     },
     {
       "id": "relation:e946dd3925e87cc7",

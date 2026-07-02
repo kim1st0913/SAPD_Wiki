@@ -10,7 +10,7 @@
     "name": "安全意识教育与技能培养能力",
     "category": "",
     "status": "active",
-    "description": "安全意识教育与技能培养能力是指组织在提高员工网络安全意识和技能方面的能力。这涉及设计和实施全面的安全教育和培训计划，包括定期的安全意识培训、针对特定岗位的安全技能培训等。此能力还包括评估培训效果，确保员工能够理解和应用安全最佳实践。"
+    "description": "组织提升全员网络安全意识，并培养网络安全专业人才和岗位技能，确保人员具备履行安全职责的能力。"
   },
   "ancestorIds": [
     "697c2bdb-baa4-4899-a2a7-d0f5da9bd5fe",
@@ -79,7 +79,7 @@
         "name": "安全意识教育与技能培养能力",
         "category": "",
         "status": "active",
-        "description": "安全意识教育与技能培养能力是指组织在提高员工网络安全意识和技能方面的能力。这涉及设计和实施全面的安全教育和培训计划，包括定期的安全意识培训、针对特定岗位的安全技能培训等。此能力还包括评估培训效果，确保员工能够理解和应用安全最佳实践。"
+        "description": "组织提升全员网络安全意识，并培养网络安全专业人才和岗位技能，确保人员具备履行安全职责的能力。"
       },
       "4637772b-424f-4aeb-92c7-12b047bab8f5": {
         "id": "4637772b-424f-4aeb-92c7-12b047bab8f5",
@@ -720,6 +720,19 @@
       "evidenceRefCount": 0
     },
     {
+      "id": "relation:dcb5203477571049",
+      "type": "belongs_to",
+      "sourceId": "4637772b-424f-4aeb-92c7-12b047bab8f5",
+      "sourceType": "capability",
+      "targetId": "f2a9167e-8c38-4400-9c94-051d00421b26",
+      "targetType": "capability_domain",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
       "id": "relation:b347f6cb978ebb2d",
       "type": "belongs_to",
       "sourceId": "bc59df3a-3ce4-4da3-8f42-1819249c7355",
@@ -756,7 +769,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 3
+      "evidenceRefCount": 2
     },
     {
       "id": "relation:487cd8f0af598a59",
@@ -822,19 +835,6 @@
       "confidence": "explicit",
       "objectContextKey": "",
       "evidenceRefCount": 12
-    },
-    {
-      "id": "relation:dcb5203477571049",
-      "type": "belongs_to",
-      "sourceId": "4637772b-424f-4aeb-92c7-12b047bab8f5",
-      "sourceType": "capability",
-      "targetId": "f2a9167e-8c38-4400-9c94-051d00421b26",
-      "targetType": "capability_domain",
-      "label": "属于",
-      "status": "active",
-      "confidence": "explicit",
-      "objectContextKey": "",
-      "evidenceRefCount": 0
     },
     {
       "id": "relation:17f33b817882bfe2",

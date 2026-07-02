@@ -193,11 +193,11 @@
 | OI-160 | 已关闭 | 知识库字典维护页页签未冻结导致滚动后被遮挡 | 前端 / 交互 / 知识库字典 / sticky tab | docs/05-archive/open-issues-history/2026-06.md |
 | OI-162 | 已修复 / 待页面验收 | 安全能力管理视角安全工作合并单元格修正重导 | 数据 / ETL / 能力映射 / 安全管理工作 | docs/06-implementation/open-issues.md |
 | OI-161 | 已修复 / 待页面验收 | 工作台 Issue 清单入口与列表项点击失效 | 前端 / 工作台 / Issue / 交互 | docs/06-implementation/open-issues.md |
-| OI-159 | 工作区吸附控制轨正式迁移 / 待页面验收 | 能力页 L0 / L1 双 tab 总览型阅读模式 | 前端 / 产品设计 / 性能 / 能力映射 / projection | docs/06-implementation/open-issues.md |
+| OI-159 | 暂时关闭 / 待观察 | 能力页 L0 / L1 双 tab 总览型阅读模式 | 前端 / 产品设计 / 性能 / 能力映射 / projection | docs/06-implementation/open-issues.md |
 | OI-157 | 已修复 / 待打包验收 | 打包测试反馈需要单独导出用户批注 | Delivery Bundle / 用户数据 / 批注 / 诊断 | docs/06-implementation/open-issues.md |
 | OI-156 | 已修复 / 批注治理 7 项已落地 / Apple 侧边把手与锚点契约已补 / 待人工视觉验收 | 全局批注定位 / 高亮性能退化导致页面假死 | 前端 / 批注 / 性能 / 定位 / 高亮 | docs/06-implementation/open-issues.md |
-| OI-155 | 设计完成 / 待用户确认 | 全局搜索产品形态与搜索结果页重设计 | 前端 / 产品设计 / 搜索 / 信息架构 / 性能边界 | docs/06-implementation/open-issues.md |
-| OI-154 | 待设计落地 / 待修复 | 页面内搜索功能回归与环境页搜索不可用 | 前端 / 搜索 / 页面内筛选 / 信息化环境映射 | docs/06-implementation/open-issues.md |
+| OI-155 | 同步设计完成 / 待实施确认 | 全局搜索产品形态与搜索结果页重设计 | 前端 / 产品设计 / 搜索 / 信息架构 / 性能边界 | docs/06-implementation/open-issues.md |
+| OI-154 | 同步设计完成 / 待实施确认 | 页面内搜索功能回归与环境页搜索不可用 | 前端 / 搜索 / 页面内筛选 / 信息化环境映射 | docs/06-implementation/open-issues.md |
 | OI-153 | 已修复 / 待页面验收 | 批注抽屉底部卡片展开后当前批注显示不完整 | 前端 / 批注 / 交互 / 滚动可见性 | docs/06-implementation/open-issues.md |
 | OI-152 | 已修复 / 待页面验收 | LC-AP / LC-DT 旧批注阶段 ID 失效导致定位不到 | 前端 / 批注 / 生命周期页面 / 定位恢复 | docs/06-implementation/open-issues.md |
 | OI-151 | 已修复 / 待页面验收 | 信息化环境汇聚图节点缺少稳定业务锚点导致定位不到 | 前端 / 批注 / 信息化环境映射 / 锚点契约 | docs/06-implementation/open-issues.md |

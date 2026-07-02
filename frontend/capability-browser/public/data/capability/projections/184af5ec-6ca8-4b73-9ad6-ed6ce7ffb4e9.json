@@ -10,7 +10,7 @@
     "name": "数据安全防护能力",
     "category": "",
     "status": "active",
-    "description": "数据安全防护能力是指组织在确保其存储和传输的数据免受未授权访问、泄露、篡改和破坏的能力。这包括应用数据加密和脱敏技术，实施数据丢失预防（DLP）措施，以及执行对数据的精细化访问控制。此能力还涉及对隐私数据访问进行严格控制和监控，确保数据处理过程符合数据保护法规和标准。"
+    "description": "组织通过水印、脱敏、防泄漏、访问控制、流转监测、销毁和隐私识别监控等措施，保护数据全生命周期安全。"
   },
   "ancestorIds": [
     "94bba6df-c6bc-41b5-ad60-7c6e87a173ac",
@@ -169,16 +169,7 @@
         "name": "数据安全防护能力",
         "category": "",
         "status": "active",
-        "description": "数据安全防护能力是指组织在确保其存储和传输的数据免受未授权访问、泄露、篡改和破坏的能力。这包括应用数据加密和脱敏技术，实施数据丢失预防（DLP）措施，以及执行对数据的精细化访问控制。此能力还涉及对隐私数据访问进行严格控制和监控，确保数据处理过程符合数据保护法规和标准。"
-      },
-      "53a980f0-6183-4feb-827b-c93e5c6b456d": {
-        "id": "53a980f0-6183-4feb-827b-c93e5c6b456d",
-        "type": "capability",
-        "code": "T-PD.AC",
-        "title": "网络访问控制能力",
-        "name": "网络访问控制能力",
-        "category": "",
-        "status": "active"
+        "description": "组织通过水印、脱敏、防泄漏、访问控制、流转监测、销毁和隐私识别监控等措施，保护数据全生命周期安全。"
       },
       "7b902b73-7f08-4235-95a8-577ef0d0ce5b": {
         "id": "7b902b73-7f08-4235-95a8-577ef0d0ce5b",
@@ -186,6 +177,15 @@
         "code": "T-PD.PP",
         "title": "网络边界防护能力",
         "name": "网络边界防护能力",
+        "category": "",
+        "status": "active"
+      },
+      "53a980f0-6183-4feb-827b-c93e5c6b456d": {
+        "id": "53a980f0-6183-4feb-827b-c93e5c6b456d",
+        "type": "capability",
+        "code": "T-PD.AC",
+        "title": "网络访问控制能力",
+        "name": "网络访问控制能力",
         "category": "",
         "status": "active"
       },
@@ -1616,9 +1616,35 @@
       "evidenceRefCount": 0
     },
     {
+      "id": "relation:9a3d7dbd44a8c139",
+      "type": "belongs_to",
+      "sourceId": "7b902b73-7f08-4235-95a8-577ef0d0ce5b",
+      "sourceType": "capability",
+      "targetId": "9cd70765-5c70-4085-89dc-c512779f4b7f",
+      "targetType": "capability_domain",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
       "id": "relation:3dc8a4e24d690afb",
       "type": "belongs_to",
       "sourceId": "53a980f0-6183-4feb-827b-c93e5c6b456d",
+      "sourceType": "capability",
+      "targetId": "9cd70765-5c70-4085-89dc-c512779f4b7f",
+      "targetType": "capability_domain",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:1c22c150ece54b3f",
+      "type": "belongs_to",
+      "sourceId": "c097b3c8-f951-409f-8422-59ff30e782e5",
       "sourceType": "capability",
       "targetId": "9cd70765-5c70-4085-89dc-c512779f4b7f",
       "targetType": "capability_domain",
@@ -1665,7 +1691,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 3
+      "evidenceRefCount": 2
     },
     {
       "id": "relation:e9b91ef2e100fe2b",
@@ -1678,7 +1704,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 10
+      "evidenceRefCount": 9
     },
     {
       "id": "relation:083d0a9f72a4da16",
@@ -1691,7 +1717,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 10
+      "evidenceRefCount": 9
     },
     {
       "id": "relation:ff5d4f2fa687e2a1",
@@ -1743,7 +1769,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 3
+      "evidenceRefCount": 2
     },
     {
       "id": "relation:051787e3a5fd53c8",
@@ -1756,7 +1782,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 10
+      "evidenceRefCount": 9
     },
     {
       "id": "relation:d447a24033f5559c",
@@ -1769,7 +1795,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 10
+      "evidenceRefCount": 9
     },
     {
       "id": "relation:4cb6ddd6b0c3c81e",
@@ -1821,7 +1847,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 10
+      "evidenceRefCount": 9
     },
     {
       "id": "relation:b7d80c1b226c1ba9",
@@ -1834,7 +1860,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 10
+      "evidenceRefCount": 9
     },
     {
       "id": "relation:40cc93163711d375",
@@ -1886,7 +1912,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 10
+      "evidenceRefCount": 9
     },
     {
       "id": "relation:f059168c37d93110",
@@ -1938,7 +1964,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 10
+      "evidenceRefCount": 9
     },
     {
       "id": "relation:032632cb6ea0d909",
@@ -1990,7 +2016,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 9
+      "evidenceRefCount": 8
     },
     {
       "id": "relation:90138b02cc060100",
@@ -2042,7 +2068,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 10
+      "evidenceRefCount": 9
     },
     {
       "id": "relation:4d0c8e389c688cb6",
@@ -2069,32 +2095,6 @@
       "confidence": "explicit",
       "objectContextKey": "",
       "evidenceRefCount": 12
-    },
-    {
-      "id": "relation:9a3d7dbd44a8c139",
-      "type": "belongs_to",
-      "sourceId": "7b902b73-7f08-4235-95a8-577ef0d0ce5b",
-      "sourceType": "capability",
-      "targetId": "9cd70765-5c70-4085-89dc-c512779f4b7f",
-      "targetType": "capability_domain",
-      "label": "属于",
-      "status": "active",
-      "confidence": "explicit",
-      "objectContextKey": "",
-      "evidenceRefCount": 0
-    },
-    {
-      "id": "relation:1c22c150ece54b3f",
-      "type": "belongs_to",
-      "sourceId": "c097b3c8-f951-409f-8422-59ff30e782e5",
-      "sourceType": "capability",
-      "targetId": "9cd70765-5c70-4085-89dc-c512779f4b7f",
-      "targetType": "capability_domain",
-      "label": "属于",
-      "status": "active",
-      "confidence": "explicit",
-      "objectContextKey": "",
-      "evidenceRefCount": 0
     },
     {
       "id": "relation:5214f77d74fcabaf",

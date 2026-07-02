@@ -10,7 +10,7 @@
     "name": "网络安全监督检查能力",
     "category": "",
     "status": "active",
-    "description": "安全监督检查能力是指组织在定期审查和评估其网络安全措施、政策和程序的有效性方面的能力。这包括实施安全审计、定期对内部组织开展全面安全检查、对网络安全整改事项进行监督、对违反网络安全制度和要求的行为进行惩罚，以及评估员工对安全政策的遵守情况。此能力还涉及根据检查结果调整安全策略，以确保不断改进安全防御。"
+    "description": "组织持续开展信息化环境安全控制检查、管理体系有效性检查，以及建设、运营和整改监督。"
   },
   "ancestorIds": [
     "697c2bdb-baa4-4899-a2a7-d0f5da9bd5fe",
@@ -97,7 +97,7 @@
         "name": "网络安全监督检查能力",
         "category": "",
         "status": "active",
-        "description": "安全监督检查能力是指组织在定期审查和评估其网络安全措施、政策和程序的有效性方面的能力。这包括实施安全审计、定期对内部组织开展全面安全检查、对网络安全整改事项进行监督、对违反网络安全制度和要求的行为进行惩罚，以及评估员工对安全政策的遵守情况。此能力还涉及根据检查结果调整安全策略，以确保不断改进安全防御。"
+        "description": "组织持续开展信息化环境安全控制检查、管理体系有效性检查，以及建设、运营和整改监督。"
       },
       "ee1c0263-d4dd-48d4-b38d-ac64109cecaa": {
         "id": "ee1c0263-d4dd-48d4-b38d-ac64109cecaa",
@@ -694,19 +694,6 @@
       "evidenceRefCount": 0
     },
     {
-      "id": "relation:19f55f3a74985424",
-      "type": "belongs_to",
-      "sourceId": "ee1c0263-d4dd-48d4-b38d-ac64109cecaa",
-      "sourceType": "capability",
-      "targetId": "2a8d20c6-3244-4c1e-83ca-24b3391dd386",
-      "targetType": "capability_domain",
-      "label": "属于",
-      "status": "active",
-      "confidence": "explicit",
-      "objectContextKey": "",
-      "evidenceRefCount": 0
-    },
-    {
       "id": "relation:b7b02304c3740f9f",
       "type": "belongs_to",
       "sourceId": "70fa769c-b313-48b4-bf48-ad3d637a707e",
@@ -835,6 +822,19 @@
       "confidence": "explicit",
       "objectContextKey": "",
       "evidenceRefCount": 8
+    },
+    {
+      "id": "relation:19f55f3a74985424",
+      "type": "belongs_to",
+      "sourceId": "ee1c0263-d4dd-48d4-b38d-ac64109cecaa",
+      "sourceType": "capability",
+      "targetId": "2a8d20c6-3244-4c1e-83ca-24b3391dd386",
+      "targetType": "capability_domain",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
     },
     {
       "id": "relation:163c8336caaca002",

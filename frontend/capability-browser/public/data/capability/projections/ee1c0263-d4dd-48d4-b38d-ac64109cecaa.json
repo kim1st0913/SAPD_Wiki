@@ -10,7 +10,7 @@
     "name": "网络安全绩效考核能力",
     "category": "",
     "status": "active",
-    "description": "络安全绩效考核能力是指组织在制定、实施和监测网络安全相关绩效指标的能力。这包括确定针对不同考核对象的关键绩效考核指标，评估安全措施的有效性，监控安全事件和响应时间，以及定期审查和调整绩效考核标准，以确保安全策略和措施能够满足组织的安全需求和业务目标。"
+    "description": "组织定义网络安全绩效考核指标，开展考核、评价控制效果，并将结果用于改进安全管理和运行。"
   },
   "ancestorIds": [
     "697c2bdb-baa4-4899-a2a7-d0f5da9bd5fe",
@@ -61,7 +61,7 @@
         "name": "网络安全绩效考核能力",
         "category": "",
         "status": "active",
-        "description": "络安全绩效考核能力是指组织在制定、实施和监测网络安全相关绩效指标的能力。这包括确定针对不同考核对象的关键绩效考核指标，评估安全措施的有效性，监控安全事件和响应时间，以及定期审查和调整绩效考核标准，以确保安全策略和措施能够满足组织的安全需求和业务目标。"
+        "description": "组织定义网络安全绩效考核指标，开展考核、评价控制效果，并将结果用于改进安全管理和运行。"
       },
       "70fa769c-b313-48b4-bf48-ad3d637a707e": {
         "id": "70fa769c-b313-48b4-bf48-ad3d637a707e",
@@ -293,6 +293,19 @@
       "evidenceRefCount": 0
     },
     {
+      "id": "relation:b7b02304c3740f9f",
+      "type": "belongs_to",
+      "sourceId": "70fa769c-b313-48b4-bf48-ad3d637a707e",
+      "sourceType": "capability",
+      "targetId": "2a8d20c6-3244-4c1e-83ca-24b3391dd386",
+      "targetType": "capability_domain",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
       "id": "relation:19f55f3a74985424",
       "type": "belongs_to",
       "sourceId": "ee1c0263-d4dd-48d4-b38d-ac64109cecaa",
@@ -329,7 +342,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 3
+      "evidenceRefCount": 2
     },
     {
       "id": "relation:0b85567f35a4294b",
@@ -356,19 +369,6 @@
       "confidence": "explicit",
       "objectContextKey": "",
       "evidenceRefCount": 4
-    },
-    {
-      "id": "relation:b7b02304c3740f9f",
-      "type": "belongs_to",
-      "sourceId": "70fa769c-b313-48b4-bf48-ad3d637a707e",
-      "sourceType": "capability",
-      "targetId": "2a8d20c6-3244-4c1e-83ca-24b3391dd386",
-      "targetType": "capability_domain",
-      "label": "属于",
-      "status": "active",
-      "confidence": "explicit",
-      "objectContextKey": "",
-      "evidenceRefCount": 0
     },
     {
       "id": "relation:163c8336caaca002",

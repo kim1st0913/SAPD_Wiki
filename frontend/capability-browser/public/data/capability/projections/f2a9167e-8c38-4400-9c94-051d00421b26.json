@@ -9,28 +9,21 @@
     "title": "人员安全管理与能力提升 Personnel Security",
     "name": "人员安全管理与能力提升 Personnel Security",
     "category": "",
-    "status": "active"
+    "status": "active",
+    "description": "围绕人员身份、岗位职责、权限边界、安全意识、技能培养、任职资格、行为规范和离岗交接等方面建立管理机制，降低人员风险并提升组织安全能力水平。"
   },
   "ancestorIds": [
     "697c2bdb-baa4-4899-a2a7-d0f5da9bd5fe"
   ],
   "focusIds": [
-    "cb3f5a21-c859-4bbc-a9ee-2b37b3e88170",
-    "69af923e-fb08-44fc-8260-7f0e0a7501da",
     "64121b16-8fd5-42d8-abf7-806770fefcc0",
     "c5f4f4c5-5d4c-4bc3-ba41-7e28808c70d7",
-    "8509938c-7fbc-4cf1-b978-ea9b9ec8fa52"
+    "8509938c-7fbc-4cf1-b978-ea9b9ec8fa52",
+    "cb3f5a21-c859-4bbc-a9ee-2b37b3e88170",
+    "69af923e-fb08-44fc-8260-7f0e0a7501da"
   ],
   "focusCount": 5,
   "childOverview": [
-    {
-      "id": "bc59df3a-3ce4-4da3-8f42-1819249c7355",
-      "type": "capability",
-      "code": "M-PS.CT",
-      "title": "安全意识教育与技能培养能力",
-      "focusCount": 2,
-      "childCount": 2
-    },
     {
       "id": "4637772b-424f-4aeb-92c7-12b047bab8f5",
       "type": "capability",
@@ -38,6 +31,14 @@
       "title": "人员安全管理能力",
       "focusCount": 3,
       "childCount": 3
+    },
+    {
+      "id": "bc59df3a-3ce4-4da3-8f42-1819249c7355",
+      "type": "capability",
+      "code": "M-PS.CT",
+      "title": "安全意识教育与技能培养能力",
+      "focusCount": 2,
+      "childCount": 2
     }
   ],
   "coverageSummary": {

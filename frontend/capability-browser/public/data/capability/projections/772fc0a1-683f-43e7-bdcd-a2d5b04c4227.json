@@ -9,7 +9,8 @@
     "title": "安全治理能力 G",
     "name": "安全治理能力 G",
     "category": "",
-    "status": "active"
+    "status": "active",
+    "description": "面向组织层面的网络安全方向、原则、目标架构、建设路线和投资决策能力，将业务战略、风险偏好、监管要求和企业架构约束转化为可执行的安全战略计划与治理闭环。"
   },
   "ancestorIds": [],
   "focusIds": [

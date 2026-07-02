@@ -10,7 +10,7 @@
     "name": "威胁情报运营能力",
     "category": "",
     "status": "active",
-    "description": "威胁情报运营能力是指组织在收集、分析和应用有关网络安全威胁的信息的能力。这包括从多种来源（如开源情报、行业共享、政府报告和私有情报服务）收集威胁数据，对这些信息进行分析以识别相关的威胁和漏洞，以及将威胁情报整合到安全运营中，以提高防御措施的有效性。此能力还涉及定期更新威胁情报库和分析工具，以及与其他组织共享情报，共同提升安全防护水平。"
+    "description": "组织选择威胁情报源，治理和融合多源异构情报，并在组织内部共享成品情报以支撑检测、防御和响应。"
   },
   "ancestorIds": [
     "94bba6df-c6bc-41b5-ad60-7c6e87a173ac",
@@ -97,7 +97,7 @@
         "name": "威胁情报运营能力",
         "category": "",
         "status": "active",
-        "description": "威胁情报运营能力是指组织在收集、分析和应用有关网络安全威胁的信息的能力。这包括从多种来源（如开源情报、行业共享、政府报告和私有情报服务）收集威胁数据，对这些信息进行分析以识别相关的威胁和漏洞，以及将威胁情报整合到安全运营中，以提高防御措施的有效性。此能力还涉及定期更新威胁情报库和分析工具，以及与其他组织共享情报，共同提升安全防护水平。"
+        "description": "组织选择威胁情报源，治理和融合多源异构情报，并在组织内部共享成品情报以支撑检测、防御和响应。"
       },
       "1cdc4eee-878a-46a3-b71e-1f8bd88d817e": {
         "id": "1cdc4eee-878a-46a3-b71e-1f8bd88d817e",
@@ -452,7 +452,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 4
+      "evidenceRefCount": 3
     },
     {
       "id": "relation:27b3def61ee76854",
@@ -504,7 +504,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 4
+      "evidenceRefCount": 3
     },
     {
       "id": "relation:03d57203590247ed",
@@ -556,7 +556,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 4
+      "evidenceRefCount": 3
     },
     {
       "id": "relation:8064ee182c5e1106",

@@ -68,6 +68,19 @@ function titleOf(item) {
   return text(item?.title || item?.name || item?.code).trim();
 }
 
+function statsCount(payload, key) {
+  const candidates = [
+    payload?.stats?.[key],
+    payload?.maintenance_index?.stats?.[key],
+    payload?.maintenanceIndex?.stats?.[key],
+  ];
+  for (const candidate of candidates) {
+    const number = Number(candidate);
+    if (Number.isFinite(number) && number > 0) return number;
+  }
+  return 0;
+}
+
 function findForbiddenKey(value, path = "") {
   if (!value || typeof value !== "object") return null;
   if (Array.isArray(value)) {
@@ -218,6 +231,11 @@ async function validateNetworkGraphOverlayContract() {
   const mapShellBlock = cssSource.match(/\.app-shell-integrated \.capability-map-preview-r2\.capability-local-relation-map\s*\{[\s\S]*?\n\}/)?.[0] || "";
   const relationGraphBlock = cssSource.match(/\.app-shell-integrated \.capability-map-preview-r2 \.summary-panel \.local-relation-network-graph\s*\{[\s\S]*?\n\}/)?.[0] || "";
   const relationCanvasBlock = cssSource.match(/\.app-shell-integrated \.capability-map-preview-r2 \.summary-panel \.network-graph-canvas\s*\{[\s\S]*?\n\}/)?.[0] || "";
+  const overviewSummaryShellBlock = cssSource.match(/\.capability-overview-summary-shell\s*\{[\s\S]*?\n\}/)?.[0] || "";
+  const overviewSummaryGridBlock = cssSource.match(/\.capability-overview-summary-grid\s*\{[\s\S]*?\n\}/)?.[0] || "";
+  const overviewPaneStretchBlock = cssSource.match(/\.capability-overview-summary-grid > \.capability-overview-pane\s*\{[\s\S]*?\n\}/)?.[0] || "";
+  const slidingScaleBlock = cssSource.match(/\.capability-sliding-scale-reference\s*\{[\s\S]*?\n\}/)?.[0] || "";
+  const slidingScaleImageBlock = cssSource.match(/\.capability-sliding-scale-reference img\s*\{[\s\S]*?\n\}/)?.[0] || "";
   assert(!graphSource.includes('<header class="network-graph-head">'), "LocalRelationNetworkGraph should not render a separate legend/header row");
   assert(/network-graph-canvas[\s\S]*\$\{renderLegend\(model\)\}[\s\S]*network-graph-actions/.test(graphSource), "LocalRelationNetworkGraph should render legend and zoom controls inside the canvas");
   const actionsBlock = cssSource.match(/\.network-graph-actions\s*\{[\s\S]*?\n\}/)?.[0] || "";
@@ -267,6 +285,20 @@ async function validateNetworkGraphOverlayContract() {
   assert(relationCanvasBlock.includes("border: 0;"), "relation graph canvas should not draw an inner frame line");
   assert(relationCanvasBlock.includes("box-shadow: none;"), "relation graph canvas should blend into the parent white surface");
   assert(cssSource.includes(".app-shell-integrated .capability-map-preview-r2 .preview-tab-panel:not(.summary-panel)") && cssSource.includes("padding-top: 0;"), "non-graph panels should not reserve space for canvas inset tabs");
+  assert(overviewSummaryShellBlock.includes("grid-template-rows: auto minmax(0, 1fr);"), "overview summary shell should reserve a stable content region across levels");
+  assert(overviewSummaryGridBlock.includes("align-items: stretch;"), "overview summary lower region should use equal-height panes");
+  assert(overviewPaneStretchBlock.includes("height: 100%;") && overviewPaneStretchBlock.includes("min-height: clamp(320px, 38vh, 430px);"), "overview panes should keep a consistent area across L0/L1/L2");
+  assert(slidingScaleBlock.includes("border: 0;"), "Sliding Scale image wrapper should not draw an outer frame");
+  assert(slidingScaleBlock.includes("background: transparent;") && slidingScaleBlock.includes("box-shadow: none;"), "Sliding Scale image wrapper should sit directly under the five entries");
+  assert(slidingScaleImageBlock.includes("width: min(100%, 1050px);") && slidingScaleImageBlock.includes("background: transparent;"), "Sliding Scale image should render as the direct visual asset, not as a framed card");
+}
+
+async function validateCapabilityRuntimeStatsContract() {
+  const source = await readFile("frontend/capability-browser/app.js", "utf8");
+  assert(source.includes('if (state.activeView === "capabilities") return ["capabilityInitial", "maintenanceIndex"];'), "capability route should load maintenanceIndex for overview coverage denominators");
+  assert(source.includes("function capabilityManagementForViewModel()"), "capability runtime should merge maintenanceIndex stats for the ViewModel");
+  assert(source.includes("management: capabilityManagementForViewModel()"), "capability ViewModel should receive maintenanceIndex-backed management stats");
+  assert(source.includes('"maintenanceIndex"') && source.includes("scheduleCapabilityRenderAfterPackageLoad"), "capability page should rerender after maintenanceIndex loads");
 }
 
 function validateRowsStayInsideSelection(item, rows, selectedFocusIds, label) {
@@ -300,9 +332,9 @@ function validateViewModel(item, target, projection, viewModel, selectedFocusIds
   assert(viewModel.capabilityOverview?.selected?.type === item.objectType, `${item.code}: capabilityOverview.selected.type=${viewModel.capabilityOverview?.selected?.type}`);
   assert(keysMatch(viewModel.capabilityOverview?.selected, projection.selected), `${item.code}: capabilityOverview.selected does not match workspace-view selected`);
   assert(viewModel.capabilityOverview?.stats?.focusCount === selectedFocusIds.size, `${item.code}: capabilityOverview.stats.focusCount=${viewModel.capabilityOverview?.stats?.focusCount}, expected=${selectedFocusIds.size}`);
-  if (item.objectType === "capability_category" || item.objectType === "capability_domain") {
-    assert(viewModel.capabilityOverview?.detailPolicy === "overview", `${item.code}: L0/L1 detailPolicy=${viewModel.capabilityOverview?.detailPolicy}`);
-    assert(list(viewModel.capabilityOverview?.children).length > 0, `${item.code}: L0/L1 overview children missing`);
+  if (item.objectType === "capability_category" || item.objectType === "capability_domain" || item.objectType === "capability") {
+    assert(viewModel.capabilityOverview?.detailPolicy === "overview", `${item.code}: L0/L1/L2 detailPolicy=${viewModel.capabilityOverview?.detailPolicy}`);
+    assert(list(viewModel.capabilityOverview?.children).length > 0, `${item.code}: L0/L1/L2 overview children missing`);
   }
   if (item.objectType === "capability_focus") {
     assert(viewModel.capabilityOverview?.detailPolicy === "full_detail", `${item.code}: focus detailPolicy=${viewModel.capabilityOverview?.detailPolicy}`);
@@ -345,8 +377,8 @@ function validateViewModel(item, target, projection, viewModel, selectedFocusIds
   };
 }
 
-function validateOverviewRender(item, component, viewModel) {
-  if (item.objectType !== "capability_category" && item.objectType !== "capability_domain") return null;
+function validateOverviewRender(item, component, viewModel, management) {
+  if (item.objectType !== "capability_category" && item.objectType !== "capability_domain" && item.objectType !== "capability") return null;
   const renderOverview = (activeTab) =>
     component.render({
       localRelationMap: viewModel.localRelationMap,
@@ -367,32 +399,47 @@ function validateOverviewRender(item, component, viewModel) {
   assert(/id="capability-relation-tab-summary"[^>]*value="summary" checked/.test(html), `${item.code}: relation graph tab should be default active`);
   assert(/id="capability-relation-tab-technical"[^>]*value="technical" checked/.test(summaryActiveHtml), `${item.code}: overview summary tab cannot be activated`);
   assert(/id="capability-relation-tab-summary"[^>]*value="summary" checked/.test(staleTabHtml), `${item.code}: stale L0/L1 tab state should fall back to relation graph`);
-  assert(!summaryActiveHtml.includes('id="capability-relation-tab-management"'), `${item.code}: switched L0/L1 render should still only render two tabs`);
-  assert(!summaryActiveHtml.includes('id="capability-relation-tab-standard"'), `${item.code}: switched L0/L1 render should still only render two tabs`);
+  assert(!summaryActiveHtml.includes('id="capability-relation-tab-management"'), `${item.code}: switched L0/L1/L2 render should still only render two tabs`);
+  assert(!summaryActiveHtml.includes('id="capability-relation-tab-standard"'), `${item.code}: switched L0/L1/L2 render should still only render two tabs`);
   assert(summaryActiveHtml.includes("capability-overview-row-list"), `${item.code}: activated overview summary content missing`);
   assert(!summaryActiveHtml.includes("capability-overview-hero"), `${item.code}: activated overview summary should not duplicate the page header hero`);
   assert(!summaryActiveHtml.includes("capability-overview-metrics"), `${item.code}: activated overview summary should not duplicate top-level metric cards`);
-  assert(!staleTabHtml.includes('id="capability-relation-tab-management"'), `${item.code}: stale L0/L1 render should not restore management tab`);
-  assert(!staleTabHtml.includes('id="capability-relation-tab-standard"'), `${item.code}: stale L0/L1 render should not restore standard tab`);
-  assert(!staleTabHtml.includes("original-matrix-panel"), `${item.code}: stale L0/L1 render should not render original matrix panel`);
+  assert(!staleTabHtml.includes('id="capability-relation-tab-management"'), `${item.code}: stale L0/L1/L2 render should not restore management tab`);
+  assert(!staleTabHtml.includes('id="capability-relation-tab-standard"'), `${item.code}: stale L0/L1/L2 render should not restore standard tab`);
+  assert(!staleTabHtml.includes("original-matrix-panel"), `${item.code}: stale L0/L1/L2 render should not render original matrix panel`);
   assert(html.includes("capability-overview-shell"), `${item.code}: overview shell missing`);
   assert(titleTabsHtml.includes("capability-title-tabs"), `${item.code}: workspace control relation tabs missing`);
   assert(titleTabsHtml.includes(">关系图谱<"), `${item.code}: relation graph tab label missing`);
-  assert(titleTabsHtml.includes(">总览摘要<"), `${item.code}: overview summary tab label missing`);
+  assert(titleTabsHtml.includes(">摘要总览<"), `${item.code}: overview summary tab label missing`);
   assert(titleTabsHtml.includes('class="relation-view-tab is-active"') && titleTabsSummaryHtml.includes('for="capability-relation-tab-technical" class="relation-view-tab is-active"'), `${item.code}: workspace control tab active state missing`);
   assert(!focusStripHtml.includes("preview-focus-stats"), `${item.code}: capability title strip should not render ambiguous metric cards`);
   assert(!html.includes("relation-view-tabs preview-tabs"), `${item.code}: relation tabs should not render inside the canvas stage`);
   assert(!html.includes(">覆盖统计<"), `${item.code}: legacy coverage tab label should not render on L0/L1`);
   assert(!html.includes(">下级索引<"), `${item.code}: legacy child index tab label should not render on L0/L1`);
-  assert(!html.includes('id="capability-relation-tab-management"'), `${item.code}: L0/L1 should only render two tabs`);
-  assert(!html.includes('id="capability-relation-tab-standard"'), `${item.code}: L0/L1 should only render two tabs`);
-  assert(html.includes("local-relation-network-graph"), `${item.code}: L0/L1 relation graph tab missing original relation graph`);
+  assert(!html.includes('id="capability-relation-tab-management"'), `${item.code}: L0/L1/L2 should only render two tabs`);
+  assert(!html.includes('id="capability-relation-tab-standard"'), `${item.code}: L0/L1/L2 should only render two tabs`);
+  assert(html.includes("local-relation-network-graph"), `${item.code}: L0/L1/L2 relation graph tab missing original relation graph`);
   assert(html.includes("network-graph-canvas"), `${item.code}: relation graph canvas missing`);
   assert(/network-graph-canvas[\s\S]*network-legend[\s\S]*network-graph-actions/.test(html), `${item.code}: legend and zoom controls should live inside relation graph canvas`);
   assert(!html.includes("network-graph-head"), `${item.code}: relation graph legend should not occupy a separate header row`);
-  assert(/summary-panel[\s\S]*local-relation-network-graph/.test(html), `${item.code}: L0/L1 relation graph is not inside the default summary-panel tab`);
-  assert(/technical-panel[\s\S]*capability-overview-shell/.test(html), `${item.code}: L0/L1 overview summary is not inside the second tab`);
+  assert(/summary-panel[\s\S]*local-relation-network-graph/.test(html), `${item.code}: L0/L1/L2 relation graph is not inside the default summary-panel tab`);
+  assert(/technical-panel[\s\S]*capability-overview-shell/.test(html), `${item.code}: L0/L1/L2 overview summary is not inside the second tab`);
   assert(html.includes("capability-overview-brief"), `${item.code}: redesigned overview summary brief missing`);
+  assert(html.includes("capability-overview-definition"), `${item.code}: overview selected definition missing`);
+  assert(text(viewModel.capabilityOverview?.selected?.description).trim(), `${item.code}: overview selected definition should not be empty`);
+  if (item.code === "T") {
+    assert(text(viewModel.capabilityOverview?.selected?.description).includes("面向业务系统、信息化环境和数字基础设施"), `${item.code}: L0 definition should use the curated session definition`);
+  }
+  if (item.code === "T-AS") {
+    assert(text(viewModel.capabilityOverview?.selected?.description).includes("在考虑安全的前提下"), `${item.code}: L1 definition should use the curated session definition`);
+  }
+  if (item.code === "T-AS.AD") {
+    assert(text(viewModel.capabilityOverview?.selected?.description).includes("组织依据安全设计原则"), `${item.code}: L2 definition should come from capability dictionary data`);
+  }
+  assert(html.includes(text(viewModel.capabilityOverview?.selected?.title || "")), `${item.code}: overview selected name missing`);
+  assert(!html.includes("阅读摘要"), `${item.code}: overview should not show the old reading summary label`);
+  assert(!html.includes("核对信号"), `${item.code}: overview should not show maker-facing review signals`);
+  assert(!html.includes("capability-overview-insights"), `${item.code}: overview review signal cards should be removed`);
   assert(!html.includes("块用途："), `${item.code}: overview summary should not use explanatory training labels`);
   assert(!html.includes("统计价值："), `${item.code}: overview summary should not use explanatory training labels`);
   assert(!html.includes("直接下级完整展示"), `${item.code}: overview summary should not explain full child display in page copy`);
@@ -401,25 +448,77 @@ function validateOverviewRender(item, component, viewModel) {
   assert(html.includes("技术覆盖"), `${item.code}: overview technical signal missing`);
   assert(html.includes("管理落地"), `${item.code}: overview management signal missing`);
   assert(html.includes("标准映射"), `${item.code}: overview standard signal missing`);
-  assert(html.includes("核对信号"), `${item.code}: overview review signals heading missing`);
-  assert(html.includes("capability-overview-insights"), `${item.code}: overview review signals missing`);
+  assert(html.includes("安全技术服务"), `${item.code}: technical signal should show security technical service count`);
+  assert(html.includes("安全技术模块"), `${item.code}: technical signal should show security technology module count`);
+  assert(html.includes("安全技术措施"), `${item.code}: technical signal should show security technical measure count`);
+  assert(html.includes("职能"), `${item.code}: management signal should show function count`);
+  assert(html.includes("流程"), `${item.code}: management signal should show process count`);
+  assert(html.includes("标准"), `${item.code}: standard signal should show framework count`);
+  assert(html.includes("控制项"), `${item.code}: standard signal should show control count`);
+  assert(!html.includes("capability-overview-stat-groups"), `${item.code}: duplicate lower statistic groups should be removed`);
+  assert(!html.includes("capability-overview-stat-group"), `${item.code}: duplicate lower statistic cards should be removed`);
+  assert(!html.includes("技术视角统计"), `${item.code}: duplicate technical statistic group should be removed`);
+  assert(!html.includes("管理视角统计"), `${item.code}: duplicate management statistic group should be removed`);
+  const flowHtml = html.match(/<div class="capability-overview-flow">([\s\S]*?)<\/div>/)?.[1] || "";
+  assert(!flowHtml.includes("映射"), `${item.code}: overview identity pills should not include mapping count`);
   assert(html.includes("capability-overview-row-list"), `${item.code}: redesigned overview child rows missing`);
-  assert(html.includes("capability-overview-row-signal"), `${item.code}: overview child row coverage signals missing`);
-  assert(html.includes('aria-label="下级能力"'), `${item.code}: overview child row next-level semantic label missing`);
+  assert(!html.includes("capability-overview-row-signal"), `${item.code}: overview child row should not show technical/management/standard pills`);
+  assert(!html.includes("capability-overview-row-definition"), `${item.code}: overview child card should not show dense definitions`);
   assert(!html.includes("<small>下级能力</small>"), `${item.code}: overview child entry label should not consume a separate row`);
+  assert(!html.includes("<small>L1 总览</small>"), `${item.code}: overview child card should not show L1 overview label`);
+  assert(!html.includes("<small>L2 能力</small>"), `${item.code}: overview child card should not show L2 capability label`);
   for (const child of list(viewModel.capabilityOverview?.children)) {
-    const directChildren = list(child.previewChildren);
-    if (directChildren.length <= 3) continue;
-    for (const directChild of directChildren) {
-      assert(html.includes(text(directChild.code)), `${item.code}: overview child ${child.code} missing direct child ${directChild.code}`);
-    }
+    assert(html.includes(text(child.code)), `${item.code}: overview child card missing ${child.code}`);
   }
   assert(html.includes("覆盖结构"), `${item.code}: redesigned coverage structure missing`);
+  assert(html.includes("capability-overview-coverage-group tone-technical"), `${item.code}: coverage should include technical mapping group`);
+  assert(html.includes("capability-overview-coverage-group tone-management"), `${item.code}: coverage should include management mapping group`);
+  assert(!html.includes("capability-overview-coverage-group tone-standard"), `${item.code}: coverage should not include standard/framework group`);
+  assert(html.includes("capability-overview-coverage-line"), `${item.code}: coverage should render ratio rows`);
+  assert(html.includes("安全技术服务"), `${item.code}: coverage should include security technical service ratio`);
+  assert(html.includes("安全技术模块"), `${item.code}: coverage should include module ratio`);
+  assert(html.includes("安全技术措施"), `${item.code}: coverage should include measure ratio`);
+  assert(html.includes("职能"), `${item.code}: coverage should include function ratio`);
+  assert(html.includes("流程"), `${item.code}: coverage should include process ratio`);
+  assert(html.includes("%"), `${item.code}: coverage should show percentages`);
+  for (const group of list(viewModel.capabilityOverview?.coverage)) {
+    for (const coverageItem of list(group.items)) {
+      const value = Number(coverageItem.value || 0);
+      const total = Number(coverageItem.total || 0);
+      assert(total > 0 || value === 0, `${item.code}: coverage denominator missing for ${group.key}/${coverageItem.label}: ${value}/${total}`);
+      assert(total >= value, `${item.code}: coverage denominator smaller than value for ${group.key}/${coverageItem.label}: ${value}/${total}`);
+    }
+  }
+  if (item.code === "T") {
+    const functionCoverage = list(viewModel.capabilityOverview?.coverage)
+      .find((group) => group.key === "management")
+      ?.items?.find((coverageItem) => coverageItem.label === "职能");
+    const processCoverage = list(viewModel.capabilityOverview?.coverage)
+      .find((group) => group.key === "management")
+      ?.items?.find((coverageItem) => coverageItem.label === "流程");
+    assert(Number(functionCoverage?.total) === statsCount(management, "work_functions"), `${item.code}: function coverage denominator should use maintenance work function total`);
+    assert(Number(processCoverage?.total) === statsCount(management, "process_references"), `${item.code}: process coverage denominator should use maintenance process reference total`);
+  }
+  assert(!/\/0<\/b>/.test(html), `${item.code}: coverage should not render non-zero values against /0 denominators`);
+  assert(!html.includes("技术 / 管理 / 标准"), `${item.code}: coverage header badge should be removed`);
+  const childHeaderHtml = html.match(/<section class="capability-overview-pane capability-overview-children-pane">[\s\S]*?<header>([\s\S]*?)<\/header>/)?.[1] || "";
+  const briefHeaderHtml = html.match(/<header class="capability-overview-brief-header">([\s\S]*?)<\/header>/)?.[1] || "";
+  assert(!childHeaderHtml.includes("<span"), `${item.code}: child pane count badge should be removed`);
+  assert(!briefHeaderHtml.includes("<span"), `${item.code}: overview level badge should be removed`);
   assert(!html.includes("capability-overview-hero"), `${item.code}: overview summary should not duplicate the page header hero`);
   assert(!html.includes("capability-overview-metrics"), `${item.code}: overview summary should not duplicate top-level metric cards`);
-  assert(!html.includes("semantic-mapping-table"), `${item.code}: L0/L1 overview rendered semantic mapping table`);
-  assert(!html.includes("preview-mapping-table"), `${item.code}: L0/L1 overview rendered preview mapping table`);
-  assert(!html.includes("original-matrix-panel"), `${item.code}: L0/L1 overview rendered original matrix panel`);
+  if (item.objectType === "capability") {
+    assert(html.includes("关注点入口"), `${item.code}: L2 overview should label child entry as focus entry`);
+  }
+  if (item.code === "T") {
+    assert(html.includes("capability-overview-row-list is-five-up"), `${item.code}: five Sliding Scale entries should render in one row`);
+    assert(html.includes("capability-sliding-scale-reference"), `${item.code}: Sliding Scale reference panel missing`);
+    assert(!html.includes("滑动标尺参考"), `${item.code}: Sliding Scale image should not render a separate reference title`);
+    assert(html.includes("./assets/sliding-scale-page-4.png"), `${item.code}: Sliding Scale page 4 image missing`);
+  }
+  assert(!html.includes("semantic-mapping-table"), `${item.code}: L0/L1/L2 overview rendered semantic mapping table`);
+  assert(!html.includes("preview-mapping-table"), `${item.code}: L0/L1/L2 overview rendered preview mapping table`);
+  assert(!html.includes("original-matrix-panel"), `${item.code}: L0/L1/L2 overview rendered original matrix panel`);
   return "overview_two_tab_relation_graph_and_summary";
 }
 
@@ -428,6 +527,7 @@ async function main() {
   const viewModels = await loadViewModels();
   const relationComponent = await loadCapabilityRelationComponent();
   await validateNetworkGraphOverlayContract();
+  await validateCapabilityRuntimeStatsContract();
   const [capabilityTree, maintenance, sharedLookups, capabilityInitial] = await Promise.all([
     fetchData(baseUrl, "/api/v1/data-packages/capability"),
     fetchData(baseUrl, "/api/v1/data-packages/maintenance"),
@@ -452,8 +552,17 @@ async function main() {
       search: "",
       relationshipFilters: {},
     });
+    const l0Rows = list(viewModel.navigationTree).filter((row) => row.level === "分类");
+    for (const [code, title] of [
+      ["T", "安全技术能力"],
+      ["G", "安全治理能力"],
+      ["M", "安全管理能力"],
+    ]) {
+      assert(l0Rows.some((row) => row.code === code && row.title === title), `${item.code}: L0 navigation should render ${code} before ${title}`);
+    }
+    assert(!l0Rows.some((row) => / [TGM]$/.test(text(row.title))), `${item.code}: L0 navigation title should not keep trailing code`);
     const result = validateViewModel(item, target, projection, viewModel, new Set(focusIdsForItem(capabilityTree, target)));
-    result.renderPolicy = validateOverviewRender(item, relationComponent, viewModel) || "";
+    result.renderPolicy = validateOverviewRender(item, relationComponent, viewModel, management) || "";
     checked.push(result);
   }
 

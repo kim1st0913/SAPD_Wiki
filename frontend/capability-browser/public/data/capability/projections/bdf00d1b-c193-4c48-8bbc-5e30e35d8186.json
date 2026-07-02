@@ -9,7 +9,8 @@
     "title": "情报 Intelligence",
     "name": "情报 Intelligence",
     "category": "",
-    "status": "active"
+    "status": "active",
+    "description": "收集数据，将其加工为信息，并产出情报。它强调情报不是工具自动生成的结果，而是分析人员围绕知识缺口，从多来源数据中进行处理、关联、分析和判断后形成的产物。情报能力既包括关于对手、攻击活动、TTPs、能力和意图的分析，也包括将这些判断转化为可支撑检测、响应、风险判断和防御决策的情报评估。生成情报属于 Intelligence，消费情报则服务于 Active Defense。"
   },
   "ancestorIds": [
     "94bba6df-c6bc-41b5-ad60-7c6e87a173ac"

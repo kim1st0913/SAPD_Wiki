@@ -586,6 +586,19 @@
       "evidenceRefCount": 0
     },
     {
+      "id": "relation:dcb5203477571049",
+      "type": "belongs_to",
+      "sourceId": "4637772b-424f-4aeb-92c7-12b047bab8f5",
+      "sourceType": "capability",
+      "targetId": "f2a9167e-8c38-4400-9c94-051d00421b26",
+      "targetType": "capability_domain",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
       "id": "relation:b347f6cb978ebb2d",
       "type": "belongs_to",
       "sourceId": "bc59df3a-3ce4-4da3-8f42-1819249c7355",
@@ -622,7 +635,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 3
+      "evidenceRefCount": 2
     },
     {
       "id": "relation:487cd8f0af598a59",
@@ -657,19 +670,6 @@
       "sourceType": "capability_focus",
       "targetId": "bc59df3a-3ce4-4da3-8f42-1819249c7355",
       "targetType": "capability",
-      "label": "属于",
-      "status": "active",
-      "confidence": "explicit",
-      "objectContextKey": "",
-      "evidenceRefCount": 0
-    },
-    {
-      "id": "relation:dcb5203477571049",
-      "type": "belongs_to",
-      "sourceId": "4637772b-424f-4aeb-92c7-12b047bab8f5",
-      "sourceType": "capability",
-      "targetId": "f2a9167e-8c38-4400-9c94-051d00421b26",
-      "targetType": "capability_domain",
       "label": "属于",
       "status": "active",
       "confidence": "explicit",

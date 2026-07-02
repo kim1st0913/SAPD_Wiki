@@ -149,6 +149,15 @@
         "category": "",
         "status": "active"
       },
+      "7b902b73-7f08-4235-95a8-577ef0d0ce5b": {
+        "id": "7b902b73-7f08-4235-95a8-577ef0d0ce5b",
+        "type": "capability",
+        "code": "T-PD.PP",
+        "title": "网络边界防护能力",
+        "name": "网络边界防护能力",
+        "category": "",
+        "status": "active"
+      },
       "53a980f0-6183-4feb-827b-c93e5c6b456d": {
         "id": "53a980f0-6183-4feb-827b-c93e5c6b456d",
         "type": "capability",
@@ -164,15 +173,6 @@
         "code": "T-PD.DP",
         "title": "数据安全防护能力",
         "name": "数据安全防护能力",
-        "category": "",
-        "status": "active"
-      },
-      "7b902b73-7f08-4235-95a8-577ef0d0ce5b": {
-        "id": "7b902b73-7f08-4235-95a8-577ef0d0ce5b",
-        "type": "capability",
-        "code": "T-PD.PP",
-        "title": "网络边界防护能力",
-        "name": "网络边界防护能力",
         "category": "",
         "status": "active"
       }
@@ -448,35 +448,22 @@
       "evidenceRefCount": 0
     },
     {
-      "id": "relation:3dc8a4e24d690afb",
-      "type": "belongs_to",
-      "sourceId": "53a980f0-6183-4feb-827b-c93e5c6b456d",
-      "sourceType": "capability",
-      "targetId": "9cd70765-5c70-4085-89dc-c512779f4b7f",
-      "targetType": "capability_domain",
-      "label": "属于",
-      "status": "active",
-      "confidence": "explicit",
-      "objectContextKey": "",
-      "evidenceRefCount": 0
-    },
-    {
-      "id": "relation:7c309796dd509ecc",
-      "type": "belongs_to",
-      "sourceId": "184af5ec-6ca8-4b73-9ad6-ed6ce7ffb4e9",
-      "sourceType": "capability",
-      "targetId": "9cd70765-5c70-4085-89dc-c512779f4b7f",
-      "targetType": "capability_domain",
-      "label": "属于",
-      "status": "active",
-      "confidence": "explicit",
-      "objectContextKey": "",
-      "evidenceRefCount": 0
-    },
-    {
       "id": "relation:9a3d7dbd44a8c139",
       "type": "belongs_to",
       "sourceId": "7b902b73-7f08-4235-95a8-577ef0d0ce5b",
+      "sourceType": "capability",
+      "targetId": "9cd70765-5c70-4085-89dc-c512779f4b7f",
+      "targetType": "capability_domain",
+      "label": "属于",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:3dc8a4e24d690afb",
+      "type": "belongs_to",
+      "sourceId": "53a980f0-6183-4feb-827b-c93e5c6b456d",
       "sourceType": "capability",
       "targetId": "9cd70765-5c70-4085-89dc-c512779f4b7f",
       "targetType": "capability_domain",
@@ -598,6 +585,19 @@
       "targetId": "252cb7ba-1684-40e9-ac10-e529243ade98",
       "targetType": "security_work",
       "label": "映射安全工作",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:7c309796dd509ecc",
+      "type": "belongs_to",
+      "sourceId": "184af5ec-6ca8-4b73-9ad6-ed6ce7ffb4e9",
+      "sourceType": "capability",
+      "targetId": "9cd70765-5c70-4085-89dc-c512779f4b7f",
+      "targetType": "capability_domain",
+      "label": "属于",
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",

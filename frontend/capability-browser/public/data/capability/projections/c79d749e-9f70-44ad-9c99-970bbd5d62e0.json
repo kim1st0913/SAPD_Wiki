@@ -10,7 +10,7 @@
     "name": "安全建设管理能力",
     "category": "",
     "status": "active",
-    "description": "安全建设管理能力是指组织规划、实施和优化网络安全架构和控制措施的能力。这包括确定安全需求，设计和部署安全解决方案，持续改进安全基础设施，以及确保安全措施与业务目标和技术发展同步。"
+    "description": "组织将网络安全要求嵌入信息化项目生命周期，并对安全项目从立项、建设、验收到移交运行进行完整管理。"
   },
   "ancestorIds": [
     "697c2bdb-baa4-4899-a2a7-d0f5da9bd5fe",
@@ -79,7 +79,7 @@
         "name": "安全建设管理能力",
         "category": "",
         "status": "active",
-        "description": "安全建设管理能力是指组织规划、实施和优化网络安全架构和控制措施的能力。这包括确定安全需求，设计和部署安全解决方案，持续改进安全基础设施，以及确保安全措施与业务目标和技术发展同步。"
+        "description": "组织将网络安全要求嵌入信息化项目生命周期，并对安全项目从立项、建设、验收到移交运行进行完整管理。"
       },
       "f6941283-2400-40b6-b23e-18299820bdf4": {
         "id": "f6941283-2400-40b6-b23e-18299820bdf4",
@@ -1369,7 +1369,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 3
+      "evidenceRefCount": 2
     },
     {
       "id": "relation:b825bea88c3f9b9b",

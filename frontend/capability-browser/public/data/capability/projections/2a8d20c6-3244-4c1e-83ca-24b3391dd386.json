@@ -9,27 +9,20 @@
     "title": "网络安全监督检查与绩效考核 Supervision & Evaluation",
     "name": "网络安全监督检查与绩效考核 Supervision & Evaluation",
     "category": "",
-    "status": "active"
+    "status": "active",
+    "description": "对安全制度执行、控制有效性、风险整改、合规状态、项目成效和能力成熟度进行监督、检查、审计、度量和绩效评价的能力，用于形成问题发现、整改跟踪和持续改进闭环。"
   },
   "ancestorIds": [
     "697c2bdb-baa4-4899-a2a7-d0f5da9bd5fe"
   ],
   "focusIds": [
-    "38296ed3-c9e1-43d3-9e8d-deaaee1cb8ec",
     "06a78fd6-f3cf-4e38-a0e0-924db572b331",
     "ca81f762-200c-4ee7-828f-c124d08909d3",
-    "63d45d0d-d2e4-4c21-be2e-d386c9552b85"
+    "63d45d0d-d2e4-4c21-be2e-d386c9552b85",
+    "38296ed3-c9e1-43d3-9e8d-deaaee1cb8ec"
   ],
   "focusCount": 4,
   "childOverview": [
-    {
-      "id": "ee1c0263-d4dd-48d4-b38d-ac64109cecaa",
-      "type": "capability",
-      "code": "M-SE.PE",
-      "title": "网络安全绩效考核能力",
-      "focusCount": 1,
-      "childCount": 1
-    },
     {
       "id": "70fa769c-b313-48b4-bf48-ad3d637a707e",
       "type": "capability",
@@ -37,6 +30,14 @@
       "title": "网络安全监督检查能力",
       "focusCount": 3,
       "childCount": 3
+    },
+    {
+      "id": "ee1c0263-d4dd-48d4-b38d-ac64109cecaa",
+      "type": "capability",
+      "code": "M-SE.PE",
+      "title": "网络安全绩效考核能力",
+      "focusCount": 1,
+      "childCount": 1
     }
   ],
   "coverageSummary": {

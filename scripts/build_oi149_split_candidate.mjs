@@ -145,15 +145,18 @@ function relationSummary(item) {
   });
 }
 
-function treeSummary(node) {
-  return sanitizeUiValue({
-    id: node.id || "",
-    type: node.type || "",
-    code: node.code || "",
-    name: node.name || node.title || "",
-    title: node.title || node.name || "",
-    children: asArray(node.children).map(treeSummary),
-  });
+function treeSummary(node, objectsById = null) {
+  const item = objectsById?.get?.(node.id) || node;
+  const summary = {
+    id: node.id || item.id || "",
+    type: node.type || item.type || "",
+    code: node.code || item.code || "",
+    name: node.name || node.title || item.name || item.title || "",
+    title: node.title || node.name || item.title || item.name || "",
+    children: asArray(node.children).map((child) => treeSummary(child, objectsById)),
+  };
+  if (item.description) summary.description = compactText(item.description, 720);
+  return sanitizeUiValue(summary);
 }
 
 function flattenTree(nodes, ancestors = []) {
@@ -420,7 +423,7 @@ function buildCapabilityCandidate(records) {
     dataState: "ready",
     stats: sanitizeUiValue({ ...tree.stats, ...(workbench.meta?.stats || {}) }),
     defaultSelectedFocusId: workbench.navigator?.defaultSelectedFocusId || "",
-    tree: asArray(workbench.navigator?.tree).map(treeSummary),
+    tree: asArray(workbench.navigator?.tree).map((node) => treeSummary(node, objectsById)),
     projections: projectionIndex,
   };
   writeBudgeted("capability/index.json", index, records, {

@@ -9,7 +9,8 @@
     "title": "安全支撑与资源保障 Supportance and Assurance",
     "name": "安全支撑与资源保障 Supportance and Assurance",
     "category": "",
-    "status": "active"
+    "status": "active",
+    "description": "为安全能力运行提供组织、制度、资源、工具、流程、供应商、资产和证据支撑的保障能力，确保安全工作具备稳定的人力、技术、流程和管理基础。"
   },
   "ancestorIds": [
     "697c2bdb-baa4-4899-a2a7-d0f5da9bd5fe"
@@ -17,17 +18,17 @@
   "focusIds": [
     "6486a035-efdd-4ad8-a366-d2d8701ab6a6",
     "303045b7-a241-41a4-97a3-ce86a3d3bda1",
-    "0a4dbe3b-545d-4011-bfa9-3cffdba1445d",
-    "077908f1-4c56-453a-a1a0-53c3eb2475ac",
-    "1ea6aa55-2a16-4c9b-8ef4-40b04bc16beb",
-    "f369c528-9681-4feb-ac6f-538f9cf95b53",
+    "baa9f450-396e-43d3-9d94-5d4cdced56a0",
+    "6a87ea60-9960-46b6-823f-b438138a5868",
     "8a092001-e555-48e8-89ed-11e8bb8213ee",
     "03c983ed-4cd5-4854-8cb9-24ca4a34ac8f",
     "eb12fcf3-cf8b-4141-9a4a-2479e30f1579",
-    "baa9f450-396e-43d3-9d94-5d4cdced56a0",
-    "6a87ea60-9960-46b6-823f-b438138a5868",
     "18f38d1f-db77-4b46-adf8-4c35b2b625bc",
-    "61a24982-b0f4-4f7b-b74f-031adf41df8c"
+    "61a24982-b0f4-4f7b-b74f-031adf41df8c",
+    "1ea6aa55-2a16-4c9b-8ef4-40b04bc16beb",
+    "f369c528-9681-4feb-ac6f-538f9cf95b53",
+    "0a4dbe3b-545d-4011-bfa9-3cffdba1445d",
+    "077908f1-4c56-453a-a1a0-53c3eb2475ac"
   ],
   "focusCount": 13,
   "childOverview": [
@@ -40,18 +41,10 @@
       "childCount": 2
     },
     {
-      "id": "92d4fb18-815b-42eb-9948-0df683a4b830",
+      "id": "3d8d883b-6b4d-4f4f-b153-220a9708e8f8",
       "type": "capability",
-      "code": "M-SA.CO",
-      "title": "安全协同能力",
-      "focusCount": 2,
-      "childCount": 2
-    },
-    {
-      "id": "629cc5f5-f78b-4dcd-a228-867d59baa28d",
-      "type": "capability",
-      "code": "M-SA.OP",
-      "title": "安全运行管理能力",
+      "code": "M-SA.RM",
+      "title": "安全风险管理能力",
       "focusCount": 2,
       "childCount": 2
     },
@@ -64,18 +57,26 @@
       "childCount": 3
     },
     {
-      "id": "3d8d883b-6b4d-4f4f-b153-220a9708e8f8",
+      "id": "e227e850-097c-4b6e-9dab-6295ab3456b3",
       "type": "capability",
-      "code": "M-SA.RM",
-      "title": "安全风险管理能力",
+      "code": "M-SA.TP",
+      "title": "第三方管理能力",
       "focusCount": 2,
       "childCount": 2
     },
     {
-      "id": "e227e850-097c-4b6e-9dab-6295ab3456b3",
+      "id": "629cc5f5-f78b-4dcd-a228-867d59baa28d",
       "type": "capability",
-      "code": "M-SA.TP",
-      "title": "第三方安全管理能力",
+      "code": "M-SA.OP",
+      "title": "安全运行管理能力",
+      "focusCount": 2,
+      "childCount": 2
+    },
+    {
+      "id": "92d4fb18-815b-42eb-9948-0df683a4b830",
+      "type": "capability",
+      "code": "M-SA.CO",
+      "title": "安全协同能力",
       "focusCount": 2,
       "childCount": 2
     }

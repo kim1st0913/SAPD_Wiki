@@ -2,17 +2,17 @@
   "packageType": "oi-149-p4-runtime-split-manifest",
   "dataState": "ready",
   "contract": "oi149-p4-split-v1",
-  "generatedAt": "2026-06-30T12:39:26.952Z",
+  "generatedAt": "2026-07-01T13:55:26.918Z",
   "sourcePackages": {
     "capability-tree": {
       "path": "frontend/capability-browser/public/data/capability-tree.json",
-      "sizeKB": 6394.8,
-      "sha256": "8e355cef3f4ec72297c123f29791c71e6bba2109fc93ea54b9d4bda41047439e"
+      "sizeKB": 6328.7,
+      "sha256": "1a5eb7143d0830821d38f3824b478f5aaf053f5cf3590d93caf3ce7798891392"
     },
     "capability-workbench": {
       "path": "frontend/capability-browser/public/data/capability-workbench.json",
-      "sizeKB": 5659.7,
-      "sha256": "0d70d29a8aeb76639b5fe72f560e9b6193075af2f138c2bd5099a0188e51f90c"
+      "sizeKB": 5634.6,
+      "sha256": "c97598762cc177881c1fdfc3dea9398451b6e72c7eee78ce85d30d63007522d9"
     },
     "environment-workbench": {
       "path": "frontend/capability-browser/public/data/environment-workbench.json",
@@ -22,12 +22,12 @@
     "maintenance-index": {
       "path": "frontend/capability-browser/public/data/maintenance-index.json",
       "sizeKB": 3.8,
-      "sha256": "17351faddfe0f66736ba0d788a94206fe4d4630032ef38b93100ddbb97e4d206"
+      "sha256": "2fb854fad35b0f182d230edcb17f395feb9cadcc1ebe020882b47f8670fe3d87"
     },
     "maintenance-knowledge": {
       "path": "frontend/capability-browser/public/data/maintenance-knowledge.json",
-      "sizeKB": 10193.2,
-      "sha256": "896fabc4f40edf5ee6ac2afc839f37c7f2eb023665d2b20dcdec681da6686e5d"
+      "sizeKB": 10116,
+      "sha256": "ad0847f8d0f3c5508d410feca4893191e599af2e417bb79838a115ff64c8326d"
     },
     "shared-lookups": {
       "path": "frontend/capability-browser/public/data/shared-lookups.json",
@@ -219,14 +219,14 @@
     },
     {
       "path": "capability/projections/9f952bed-4aee-4e71-8038-4b4183b1aae5.json",
-      "sizeKB": 170,
+      "sizeKB": 172.8,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/0711626d-97e3-4a0a-b2ae-13a7af5ccfda.json",
-      "sizeKB": 43.2,
+      "sizeKB": 44,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -240,21 +240,21 @@
     },
     {
       "path": "capability/projections/fe0df93f-a252-40c3-8390-e410a5548eed.json",
-      "sizeKB": 52.3,
+      "sizeKB": 53.2,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/77f3844f-350e-42d8-bde5-2a4727cbeb5b.json",
-      "sizeKB": 30.5,
+      "sizeKB": 31.3,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/c7aadf7d-a94b-430b-a2d8-bbb379682d35.json",
-      "sizeKB": 59,
+      "sizeKB": 59.9,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -380,7 +380,7 @@
     },
     {
       "path": "capability/projections/184af5ec-6ca8-4b73-9ad6-ed6ce7ffb4e9.json",
-      "sizeKB": 167.8,
+      "sizeKB": 168.5,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -422,7 +422,7 @@
     },
     {
       "path": "capability/projections/ff015a81-5568-46b3-b0e8-3b63ae380722.json",
-      "sizeKB": 32.9,
+      "sizeKB": 33.7,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -548,7 +548,7 @@
     },
     {
       "path": "capability/projections/2eeb3353-8e02-420b-9323-0c715d18d05e.json",
-      "sizeKB": 42.4,
+      "sizeKB": 42.3,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -1045,7 +1045,7 @@
     },
     {
       "path": "capability/evidence.json",
-      "sizeKB": 630.9,
+      "sizeKB": 617.4,
       "category": "capabilityEvidence",
       "firstScreen": false,
       "detailProjection": false
@@ -2213,6 +2213,13 @@
       "detailProjection": false
     },
     {
+      "path": "maintenance/sections/index.json",
+      "sizeKB": 3.8,
+      "category": "maintenanceSection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
       "path": "maintenance/sections/measures.json",
       "sizeKB": 111.4,
       "category": "maintenanceSection",
@@ -2235,7 +2242,7 @@
     },
     {
       "path": "maintenance/sections/references.json",
-      "sizeKB": 69.2,
+      "sizeKB": 48.5,
       "category": "maintenanceSection",
       "firstScreen": false,
       "detailProjection": true

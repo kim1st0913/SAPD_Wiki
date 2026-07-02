@@ -1092,7 +1092,7 @@
       if (options?.download !== false) query.set("download", "1");
       const path = `${API_PATHS.userNotesExport}${query.toString() ? `?${query.toString()}` : ""}`;
       const url = apiUrl(path);
-      if (!url) return { ok: false, data_state: "api_unavailable", error: "当前运行模式未提供批注导出服务" };
+      if (!url) return { ok: false, data_state: "api_unavailable", error: "当前运行模式未提供 Issue 导出服务" };
       try {
         const response = await fetch(url, { cache: "no-store", headers: { Accept: "text/markdown" } });
         if (!response.ok) return { ok: false, data_state: "api_error", error: `HTTP ${response.status}` };
@@ -1110,7 +1110,7 @@
         }
         return { ok: true, data_state: "ready", blob, filename, size: blob?.size || 0 };
       } catch (error) {
-        return { ok: false, data_state: "api_unavailable", error: error?.message || "用户批注导出失败" };
+        return { ok: false, data_state: "api_unavailable", error: error?.message || "用户 Issue 导出失败" };
       }
     },
 

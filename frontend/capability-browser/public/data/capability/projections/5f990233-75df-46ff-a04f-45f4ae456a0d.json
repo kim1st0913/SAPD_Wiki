@@ -1142,7 +1142,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 12
+      "evidenceRefCount": 10
     },
     {
       "id": "relation:5059ea619ce0aa54",
@@ -1155,7 +1155,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 6
+      "evidenceRefCount": 4
     },
     {
       "id": "relation:aed375439428acfe",
@@ -1168,7 +1168,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 12
+      "evidenceRefCount": 10
     },
     {
       "id": "relation:f1f4547f9932b0aa",

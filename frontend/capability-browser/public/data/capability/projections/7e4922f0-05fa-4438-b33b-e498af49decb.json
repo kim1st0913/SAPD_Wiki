@@ -770,7 +770,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 12
+      "evidenceRefCount": 10
     },
     {
       "id": "relation:2652ff42f215f92d",
@@ -783,7 +783,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 12
+      "evidenceRefCount": 10
     },
     {
       "id": "relation:446a32a06d2653c2",
@@ -796,7 +796,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 12
+      "evidenceRefCount": 10
     },
     {
       "id": "relation:3a2665bf8fe63405",
@@ -809,7 +809,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 5
+      "evidenceRefCount": 3
     },
     {
       "id": "relation:bdd2533e79b04ede",
@@ -1381,7 +1381,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 19
+      "evidenceRefCount": 20
     },
     {
       "id": "relation:7d5b7af9fabb0a1d",

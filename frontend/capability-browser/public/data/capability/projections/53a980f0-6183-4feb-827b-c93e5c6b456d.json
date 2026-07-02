@@ -242,12 +242,12 @@
         "category": "",
         "status": "active"
       },
-      "3ff42e9e-dbc9-46af-8b28-53aedfb0f146": {
-        "id": "3ff42e9e-dbc9-46af-8b28-53aedfb0f146",
+      "6a650425-695f-4db4-b274-71c7dc65f10a": {
+        "id": "6a650425-695f-4db4-b274-71c7dc65f10a",
         "type": "security_work",
         "code": "",
-        "title": "入侵检测规则持续管理",
-        "name": "入侵检测规则持续管理",
+        "title": "网络访问控制策略持续管理",
+        "name": "网络访问控制策略持续管理",
         "category": "",
         "status": "active"
       }
@@ -975,7 +975,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 12
+      "evidenceRefCount": 10
     },
     {
       "id": "relation:ef6a093047a6b9d6",
@@ -988,7 +988,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 5
+      "evidenceRefCount": 3
     },
     {
       "id": "relation:7c6417594f25c8ca",
@@ -1001,7 +1001,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 12
+      "evidenceRefCount": 10
     },
     {
       "id": "relation:fa4dfe8d254110ba",
@@ -1014,7 +1014,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 5
+      "evidenceRefCount": 3
     },
     {
       "id": "relation:b7586d5c52af9a2c",
@@ -1066,7 +1066,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 10
+      "evidenceRefCount": 8
     },
     {
       "id": "relation:1ee1240c0b1e595a",
@@ -1079,7 +1079,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 12
+      "evidenceRefCount": 10
     },
     {
       "id": "relation:af7ff482596f6591",
@@ -1092,14 +1092,14 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 12
+      "evidenceRefCount": 10
     },
     {
-      "id": "relation:5b8c701d90d7f310",
+      "id": "relation:75c99bfe523d07a2",
       "type": "maps_to_work",
       "sourceId": "037b603c-407d-4649-b1b8-830a83d1c6b3",
       "sourceType": "capability_focus",
-      "targetId": "3ff42e9e-dbc9-46af-8b28-53aedfb0f146",
+      "targetId": "6a650425-695f-4db4-b274-71c7dc65f10a",
       "targetType": "security_work",
       "label": "映射安全工作",
       "status": "active",

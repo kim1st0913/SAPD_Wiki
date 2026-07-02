@@ -126,9 +126,9 @@
     "processReferenceCount": 25,
     "standardControlCount": 843,
     "moduleCount": 66,
-    "measureCount": 27
+    "measureCount": 30
   },
-  "relationCount": 1737,
+  "relationCount": 1741,
   "deferred": {
     "reason": "L0 / L1 能力层级只生成总览型 projection；标准控制项、技术映射明细和管理映射明细按 L2 / 关注点延迟加载。",
     "technicalMappingRows": true,

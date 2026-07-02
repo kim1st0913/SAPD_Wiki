@@ -178,6 +178,34 @@
     return utils.escapeHtml(valueText(value));
   }
 
+  function securityWorkCodeList(codes) {
+    const rows = utils.list(codes).filter(Boolean);
+    if (!rows.length) return `<span class="empty-inline">待补充</span>`;
+    return `
+      <div class="security-work-code-list">
+        ${rows.map((code) => `<span>${utils.escapeHtml(code)}</span>`).join("")}
+      </div>
+    `;
+  }
+
+  function securityWorkRelationList(items, empty = "待补充") {
+    const rows = utils.list(items).filter((item) => item && (item.code || item.title || item.name || item.id));
+    if (!rows.length) return `<span class="empty-inline">${utils.escapeHtml(empty)}</span>`;
+    return `
+      <div class="security-work-relation-list">
+        ${rows
+          .map(
+            (item) => `
+              <span class="security-work-map-pill">
+                ${utils.escapeHtml([item.code, utils.titleOf(item, "")].filter(Boolean).join(" "))}
+              </span>
+            `,
+          )
+          .join("")}
+      </div>
+    `;
+  }
+
   function renderSecurityWorkTable({ rows, selectedId, emptyState }) {
     const tableRows = utils.list(rows);
     if (!tableRows.length) {
@@ -192,7 +220,7 @@
               <th>安全工作编码</th>
               <th>安全工作名称</th>
               <th>关联安全能力</th>
-              <th>关联关注点</th>
+              <th>关联关注点（1:N）</th>
             </tr>
           </thead>
           <tbody>
@@ -201,10 +229,10 @@
                 (row) => `
                   <tr class="${row.id === selectedId ? "active" : ""}" data-maintenance-id="${utils.escapeHtml(row.id)}">
                     <td>${securityWorkCell(row.index)}</td>
-                    <td><strong>${securityWorkCell(row.displayCode)}</strong></td>
+                    <td>${securityWorkCodeList([row.displayCode])}</td>
                     <td>${securityWorkCell(row.title)}</td>
-                    <td>${securityWorkCell(utils.titleOf(row.capability, "待补充"))}</td>
-                    <td>${securityWorkCell([row.focusCode, row.focusTitle].filter(Boolean).join(" ") || "待补充")}</td>
+                    <td>${securityWorkRelationList(row.relatedCapabilities || [row.capability])}</td>
+                    <td>${securityWorkRelationList(row.relatedFocuses || [row.focus])}</td>
                   </tr>
                 `,
               )

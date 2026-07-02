@@ -753,7 +753,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 12
+      "evidenceRefCount": 10
     },
     {
       "id": "relation:72744a9b2c887109",
@@ -766,7 +766,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 12
+      "evidenceRefCount": 10
     },
     {
       "id": "relation:69ad3c82534c031a",
@@ -779,7 +779,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 12
+      "evidenceRefCount": 10
     },
     {
       "id": "relation:821dc80d8f3ef734",

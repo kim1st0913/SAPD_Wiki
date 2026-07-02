@@ -709,7 +709,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 12
+      "evidenceRefCount": 10
     },
     {
       "id": "relation:579ee1423d02575e",
@@ -722,7 +722,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 12
+      "evidenceRefCount": 10
     },
     {
       "id": "relation:96a5833ec061f602",

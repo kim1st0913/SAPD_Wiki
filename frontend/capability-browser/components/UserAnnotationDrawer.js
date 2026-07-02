@@ -351,7 +351,7 @@
           <div class="annotation-drawer-scroll">
             ${renderLegacyFavorite(favorite)}
             <section class="annotation-section">
-              <h3>${escape(pageTitle)}批注</h3>
+              <h3>${escape(pageTitle)} 批注</h3>
               ${renderNoteList(pageNotes, loading ? "正在读取批注..." : "当前页面暂无批注", { editingNoteId, editDraft, expandedNoteIds, currentTargetRef: currentTarget.targetRef, currentNoteId, noteContexts })}
             </section>
           </div>

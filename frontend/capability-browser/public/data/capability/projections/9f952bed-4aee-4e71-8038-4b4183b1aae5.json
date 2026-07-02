@@ -83,7 +83,7 @@
     "processReferenceCount": 6,
     "standardControlCount": 107,
     "moduleCount": 4,
-    "measureCount": 0
+    "measureCount": 3
   },
   "objects": {
     "capability_focus": {
@@ -1428,6 +1428,35 @@
         "status": ""
       }
     },
+    "security_technical_measure": {
+      "security_technical_measure:810c09bb220cca81": {
+        "id": "security_technical_measure:810c09bb220cca81",
+        "type": "security_technical_measure",
+        "code": "",
+        "title": "应用程序威胁建模",
+        "name": "应用程序威胁建模",
+        "category": "安全技术措施",
+        "status": "normal"
+      },
+      "security_technical_measure:7192dcbbc1306d7f": {
+        "id": "security_technical_measure:7192dcbbc1306d7f",
+        "type": "security_technical_measure",
+        "code": "",
+        "title": "制品安全加固",
+        "name": "制品安全加固",
+        "category": "安全技术措施",
+        "status": "normal"
+      },
+      "security_technical_measure:0316e9bea694b356": {
+        "id": "security_technical_measure:0316e9bea694b356",
+        "type": "security_technical_measure",
+        "code": "",
+        "title": "IaC代码安全测试",
+        "name": "IaC代码安全测试",
+        "category": "安全技术措施",
+        "status": "normal"
+      }
+    },
     "work_function": {
       "21c82d64-5a7a-4d6f-a6dd-ec6ef53c8a6b": {
         "id": "21c82d64-5a7a-4d6f-a6dd-ec6ef53c8a6b",
@@ -1675,7 +1704,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 6
+      "evidenceRefCount": 4
     },
     {
       "id": "relation:738dba171ab975cf",
@@ -1727,7 +1756,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 7
+      "evidenceRefCount": 5
     },
     {
       "id": "relation:f4aab9cd104043fc",
@@ -1779,7 +1808,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 8
+      "evidenceRefCount": 6
     },
     {
       "id": "relation:8b017708e01f9df3",
@@ -1831,7 +1860,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 6
+      "evidenceRefCount": 4
     },
     {
       "id": "relation:87b5d58abde7a19f",
@@ -1883,7 +1912,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 9
+      "evidenceRefCount": 7
     },
     {
       "id": "relation:3a0141c0bce8623f",
@@ -1935,7 +1964,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 6
+      "evidenceRefCount": 4
     },
     {
       "id": "relation:ca86a250122b2331",
@@ -3745,6 +3774,19 @@
       "evidenceRefCount": 4
     },
     {
+      "id": "relation:7352ff76afaf6f42",
+      "type": "has_measure",
+      "sourceId": "6b355bcf-1f27-4550-a044-eb86df0ebb1b",
+      "sourceType": "security_technical_service",
+      "targetId": "security_technical_measure:810c09bb220cca81",
+      "targetType": "security_technical_measure",
+      "label": "关联措施",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 4
+    },
+    {
       "id": "relation:898e10802ad28a8b",
       "type": "stakeholder_by",
       "sourceId": "4b10f4df-82f6-4996-8dea-e0a53c3f0440",
@@ -4057,6 +4099,19 @@
       "evidenceRefCount": 7
     },
     {
+      "id": "relation:cdb1d7d3a054ce73",
+      "type": "has_measure",
+      "sourceId": "e42eaa0e-2c3b-4f20-a780-7bf20c0abe55",
+      "sourceType": "security_technical_service",
+      "targetId": "security_technical_measure:7192dcbbc1306d7f",
+      "targetType": "security_technical_measure",
+      "label": "关联措施",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 6
+    },
+    {
       "id": "relation:e69f3e65b598f3c4",
       "type": "stakeholder_by",
       "sourceId": "887c10d5-ea75-4e62-9192-b78d21cf0e7f",
@@ -4194,6 +4249,19 @@
       "targetId": "7f4b920b-2eca-4ddd-a3ca-55ace40efeb9",
       "targetType": "scope_type",
       "label": "适用作用域",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 4
+    },
+    {
+      "id": "relation:8fb07c11fe3e071c",
+      "type": "has_measure",
+      "sourceId": "3806c715-1b30-4465-ad90-471e5dd05e10",
+      "sourceType": "security_technical_service",
+      "targetId": "security_technical_measure:7192dcbbc1306d7f",
+      "targetType": "security_technical_measure",
+      "label": "关联措施",
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
@@ -4367,6 +4435,19 @@
       "confidence": "explicit",
       "objectContextKey": "",
       "evidenceRefCount": 8
+    },
+    {
+      "id": "relation:3295bc88ee6bcf4c",
+      "type": "has_measure",
+      "sourceId": "96046fed-af12-4f04-94ba-7fdd2677dc55",
+      "sourceType": "security_technical_service",
+      "targetId": "security_technical_measure:0316e9bea694b356",
+      "targetType": "security_technical_measure",
+      "label": "关联措施",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 7
     },
     {
       "id": "relation:b51d49946b0d4cc6",
@@ -4642,5 +4723,5 @@
       "evidenceRefCount": 0
     }
   ],
-  "relationCount": 237
+  "relationCount": 241
 }

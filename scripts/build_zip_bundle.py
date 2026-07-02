@@ -122,6 +122,19 @@ pause
 """
 
 
+def windows_user_notes_export_script() -> str:
+    return """@echo off
+setlocal
+cd /d "%~dp0.."
+if not exist "SAPD-Wiki-Backend.exe" (
+  echo SAPD-Wiki-Backend.exe is missing. Cannot export user notes.
+  exit /b 1
+)
+"%~dp0..\\SAPD-Wiki-Backend.exe" --bundle-root "%~dp0.." --export-user-notes
+pause
+"""
+
+
 def mac_start_script() -> str:
     return """#!/bin/sh
 DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -171,6 +184,17 @@ if [ ! -x "$DIR/SAPD-Wiki-Backend" ]; then
   exit 1
 fi
 "$DIR/SAPD-Wiki-Backend" --bundle-root "$DIR" --export-diagnostics
+"""
+
+
+def mac_user_notes_export_script() -> str:
+    return """#!/bin/sh
+DIR="$(cd "$(dirname "$0")/.." && pwd)"
+if [ ! -x "$DIR/SAPD-Wiki-Backend" ]; then
+  echo "SAPD-Wiki-Backend is missing or not executable. Cannot export user notes."
+  exit 1
+fi
+"$DIR/SAPD-Wiki-Backend" --bundle-root "$DIR" --export-user-notes
 """
 
 
@@ -240,6 +264,7 @@ def readme_content(platform_name: str, placeholder: bool = False) -> str:
 - 启动失败时，先查看 `logs/runtime.log`。
 - 需要发给维护人员时，运行 `diagnostics/` 目录下的诊断脚本导出诊断包。
 - 诊断包默认不包含用户备注全文或 SQLite 数据库内容。
+- 如果需要单独导出批注正文，请运行 `diagnostics/` 目录下的 `export-user-notes` 脚本；导出文件会写入 `data/exports/`。
 - macOS 内部 alpha 未签名。如果出现“Apple 无法验证 SAPD-Wiki-Backend”，可在解压后的 ZIP 根目录运行 `xattr -dr com.apple.quarantine .` 后再启动。
 {security_note}
 """
@@ -269,6 +294,9 @@ def build_bundle(args: argparse.Namespace) -> Path:
         shutil.copy2(args.backend_binary.resolve(), backend_target)
         if not args.platform.startswith("win"):
             backend_target.chmod(backend_target.stat().st_mode | 0o755)
+        backend_internal = args.backend_binary.resolve().parent / "_internal"
+        if backend_internal.is_dir():
+            copy_tree(backend_internal, bundle_root / "_internal")
     elif args.allow_placeholder:
         backend_target = bundle_root / backend_name(args.platform)
         write_text(
@@ -335,14 +363,17 @@ def build_bundle(args: argparse.Namespace) -> Path:
         write_text(bundle_root / "start-windows.bat", windows_start_script().replace("\n", "\r\n"))
         write_text(bundle_root / "stop-windows.bat", windows_stop_script().replace("\n", "\r\n"))
         write_text(bundle_root / "diagnostics" / "export-diagnostics.bat", windows_diagnostics_script().replace("\n", "\r\n"))
+        write_text(bundle_root / "diagnostics" / "export-user-notes.bat", windows_user_notes_export_script().replace("\n", "\r\n"))
     else:
         write_text(bundle_root / "start-macos.command", mac_start_script())
         write_text(bundle_root / "stop-macos.command", mac_stop_script())
         write_text(bundle_root / "diagnostics" / "export-diagnostics.command", mac_diagnostics_script())
+        write_text(bundle_root / "diagnostics" / "export-user-notes.command", mac_user_notes_export_script())
         for script_path in [
             bundle_root / "start-macos.command",
             bundle_root / "stop-macos.command",
             bundle_root / "diagnostics" / "export-diagnostics.command",
+            bundle_root / "diagnostics" / "export-user-notes.command",
         ]:
             script_path.chmod(script_path.stat().st_mode | 0o755)
 

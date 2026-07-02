@@ -366,21 +366,62 @@ function validateSecurityWorkViewModel({ capabilityTree, maintenance }) {
     search: "",
   });
   const rows = list(viewModel.rows);
-  const uniqueWorks = new Set(rows.map((row) => row.rawId || row.title).filter(Boolean));
+  const titleKey = (value) => String(value || "").trim().replace(/\s+/g, "");
+  const focusOrderMap = new Map();
+  list(capabilityTree.categories).forEach((category) => {
+    list(category.domains).forEach((domain) => {
+      list(domain.capabilities).forEach((capability) => {
+        list(capability.focuses).forEach((focus) => {
+          const order = focusOrderMap.size;
+          if (text(focus.id)) focusOrderMap.set(`id:${text(focus.id)}`, order);
+          if (text(focus.code)) focusOrderMap.set(`code:${text(focus.code)}`, order);
+        });
+      });
+    });
+  });
+  const focusOrder = (focus) => {
+    const byId = focusOrderMap.get(`id:${text(focus?.id)}`);
+    if (Number.isFinite(byId)) return byId;
+    const byCode = focusOrderMap.get(`code:${text(focus?.code)}`);
+    if (Number.isFinite(byCode)) return byCode;
+    return Number.MAX_SAFE_INTEGER;
+  };
+  const rowFocusOrder = (row) => Math.min(...list(row.relatedFocuses).map(focusOrder), Number.MAX_SAFE_INTEGER);
+  const expectedLogicalWorks = new Set(list(maintenance.security_works).map((row) => titleKey(row.title || row.name || row.code || row.id)).filter(Boolean));
+  const uniqueWorks = new Set(rows.map((row) => titleKey(row.title || row.rawId)).filter(Boolean));
   const navigationSecurityWorks = list(viewModel.navigationItems).find((item) => item.id === "security-works");
   const tabSecurityWorks = list(viewModel.sectionTabs).find((item) => item.id === "security-works");
   assert(rows.length > 0, "security-works ViewModel rows are empty");
   assert(!viewModel.emptyState, `security-works ViewModel returned emptyState: ${viewModel.emptyState}`);
-  assert(uniqueWorks.size >= list(maintenance.security_works).length, `security-works ViewModel unique works ${uniqueWorks.size} < package works ${list(maintenance.security_works).length}`);
-  assert(Number(navigationSecurityWorks?.count || 0) >= list(maintenance.security_works).length, `security-works navigation count ${navigationSecurityWorks?.count || 0} < package works ${list(maintenance.security_works).length}`);
-  assert(Number(tabSecurityWorks?.count || 0) >= list(maintenance.security_works).length, `security-works tab count ${tabSecurityWorks?.count || 0} < package works ${list(maintenance.security_works).length}`);
+  assert(rows.length === expectedLogicalWorks.size, `security-works ViewModel rows ${rows.length} != logical work count ${expectedLogicalWorks.size}`);
+  assert(uniqueWorks.size === expectedLogicalWorks.size, `security-works ViewModel unique works ${uniqueWorks.size} != logical work count ${expectedLogicalWorks.size}`);
+  assert(Number(navigationSecurityWorks?.count || 0) === expectedLogicalWorks.size, `security-works navigation count ${navigationSecurityWorks?.count || 0} != logical work count ${expectedLogicalWorks.size}`);
+  assert(Number(tabSecurityWorks?.count || 0) === expectedLogicalWorks.size, `security-works tab count ${tabSecurityWorks?.count || 0} != logical work count ${expectedLogicalWorks.size}`);
+  const aggregatedNetworkAccessWork = rows.find((row) => row.title === "网络访问控制策略持续管理");
+  assert(aggregatedNetworkAccessWork, "security-works ViewModel missing 网络访问控制策略持续管理");
+  const networkAccessFocusCodes = new Set(list(aggregatedNetworkAccessWork.relatedFocuses).map((focus) => focus.code));
+  assert(networkAccessFocusCodes.has("T-PD.AC-01") && networkAccessFocusCodes.has("T-PD.AC-02"), "网络访问控制策略持续管理 should aggregate T-PD.AC-01 and T-PD.AC-02");
+  const displayCodes = rows.map((row) => text(row.displayCode)).filter(Boolean);
+  const multiCodeRows = rows.filter((row) => list(row.displayCodes).length !== 1 || list(row.displayCodes)[0] !== row.displayCode);
+  assert(displayCodes.length === rows.length, `security-works unique display code missing for ${rows.length - displayCodes.length} rows`);
+  assert(new Set(displayCodes).size === displayCodes.length, "security-works display codes should be unique per logical work");
+  assert(multiCodeRows.length === 0, `security-works should render one display code per logical work, got ${multiCodeRows.length} multi-code rows`);
+  const rowOrders = rows.map(rowFocusOrder);
+  const outOfOrderIndex = rowOrders.findIndex((order, index) => index > 0 && order < rowOrders[index - 1]);
+  assert(outOfOrderIndex < 0, `security-works rows should follow capability-focus source order, first out-of-order row index=${outOfOrderIndex + 1}`);
+  assert(!/SW-T-PD\.AC-\d{2}-\d{2}/.test(aggregatedNetworkAccessWork.displayCode || ""), "网络访问控制策略持续管理 code should not be focus-derived");
+  const intrusionRuleWork = rows.find((row) => row.title === "入侵检测规则持续管理");
+  assert(intrusionRuleWork, "security-works ViewModel missing 入侵检测规则持续管理");
+  assert(!/SW-T-PD\.TP-\d{2}-\d{2}/.test(intrusionRuleWork.displayCode || ""), "入侵检测规则持续管理 code should not be focus-derived");
   return {
     securityWorkRows: rows.length,
     uniqueSecurityWorks: uniqueWorks.size,
+    packageSecurityWorkRows: list(maintenance.security_works).length,
     navigationSecurityWorks: Number(navigationSecurityWorks?.count || 0),
     tabSecurityWorks: Number(tabSecurityWorks?.count || 0),
     linkedCapabilities: Number(viewModel.summary?.linkedCapabilities || 0),
     linkedFocuses: Number(viewModel.summary?.linkedFocuses || 0),
+    relationRows: Number(viewModel.summary?.relationRows || 0),
   };
 }
 

@@ -678,7 +678,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 12
+      "evidenceRefCount": 10
     },
     {
       "id": "relation:6a530a88f57e8c8d",
@@ -691,7 +691,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 8
+      "evidenceRefCount": 6
     },
     {
       "id": "relation:f78846c95e665498",
@@ -704,7 +704,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 5
+      "evidenceRefCount": 3
     },
     {
       "id": "relation:2350935fe5a1bba2",
@@ -717,7 +717,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 12
+      "evidenceRefCount": 10
     },
     {
       "id": "relation:788b544c7704fc48",

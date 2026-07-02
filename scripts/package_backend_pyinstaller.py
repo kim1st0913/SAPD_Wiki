@@ -56,6 +56,10 @@ def ensure_pyinstaller() -> None:
         )
 
 
+def add_data_arg(source: Path, destination: str) -> str:
+    return f"{source}{os.pathsep}{destination}"
+
+
 def package_backend(args: argparse.Namespace) -> Path:
     target_platform = args.platform or current_platform()
     actual_platform = current_platform()
@@ -80,11 +84,20 @@ def package_backend(args: argparse.Namespace) -> Path:
         "-m",
         "PyInstaller",
         "--clean",
-        "--onefile",
+        "--noconfirm",
+        "--onedir",
         "--name",
         "SAPD-Wiki-Backend",
         "--paths",
+        str(REPO_ROOT / "src"),
+        "--paths",
         str(SCRIPT_DIR),
+        "--add-data",
+        add_data_arg(REPO_ROOT / "src" / "sapd_wiki" / "__init__.py", "runtime_src/sapd_wiki"),
+        "--add-data",
+        add_data_arg(REPO_ROOT / "src" / "sapd_wiki" / "paths.py", "runtime_src/sapd_wiki"),
+        "--add-data",
+        add_data_arg(REPO_ROOT / "src" / "sapd_wiki" / "api_server.py", "runtime_src/sapd_wiki"),
         "--distpath",
         str(dist_dir),
         "--workpath",
@@ -96,18 +109,20 @@ def package_backend(args: argparse.Namespace) -> Path:
     env = dict(**os.environ, PYINSTALLER_CONFIG_DIR=str(config_dir))
     subprocess.run(command, check=True, env=env)
 
-    produced = dist_dir / binary_name(target_platform)
+    produced_dir = dist_dir / "SAPD-Wiki-Backend"
+    if not produced_dir.is_dir():
+        raise FileNotFoundError(f"PyInstaller did not produce {produced_dir}")
+    produced = produced_dir / binary_name(target_platform)
     if not produced.exists() and not target_platform.startswith("win"):
-        produced = dist_dir / "SAPD-Wiki-Backend"
+        produced = produced_dir / "SAPD-Wiki-Backend"
     if not produced.exists():
         raise FileNotFoundError(f"PyInstaller did not produce {produced}")
 
     final_dir = output_dir / "backend" / target_platform
-    final_dir.mkdir(parents=True, exist_ok=True)
+    if final_dir.exists():
+        shutil.rmtree(final_dir)
+    shutil.copytree(produced_dir, final_dir)
     final_binary = final_dir / binary_name(target_platform)
-    if final_binary.exists():
-        final_binary.unlink()
-    shutil.copy2(produced, final_binary)
     if not target_platform.startswith("win"):
         final_binary.chmod(final_binary.stat().st_mode | 0o755)
     return final_binary

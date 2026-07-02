@@ -1,0 +1,376 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+MODE="${1:-run}"
+APP_NAME="SAPD Wiki"
+EXECUTABLE_NAME="SAPDWiki"
+BUNDLE_ID="com.sapd.wiki.macos"
+BUNDLE_VERSION="${SAPD_WIKI_APP_VERSION:-0.1.0-alpha}"
+MIN_SYSTEM_VERSION="13.0"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+APP_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPO_ROOT="$(cd "$APP_ROOT/../../.." && pwd)"
+DIST_DIR="$APP_ROOT/dist"
+APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
+APP_CONTENTS="$APP_BUNDLE/Contents"
+APP_MACOS="$APP_CONTENTS/MacOS"
+APP_RESOURCES="$APP_CONTENTS/Resources"
+APP_BINARY="$APP_MACOS/$EXECUTABLE_NAME"
+INFO_PLIST="$APP_CONTENTS/Info.plist"
+RUNTIME_WORK="$APP_ROOT/.build/runtime-work"
+BACKEND_WORK="$APP_ROOT/.build/backend-work"
+BACKEND_SOURCE_STAMP="$BACKEND_WORK/backend-source.sha256"
+CODE_SIGN_IDENTITY="${SAPD_WIKI_CODESIGN_IDENTITY:--}"
+
+export CLANG_MODULE_CACHE_PATH="${CLANG_MODULE_CACHE_PATH:-$APP_ROOT/.build/module-cache}"
+export SWIFTPM_HOME="${SWIFTPM_HOME:-$APP_ROOT/.build/swiftpm-cache}"
+mkdir -p "$CLANG_MODULE_CACHE_PATH" "$SWIFTPM_HOME"
+
+if [[ "$(uname -m)" == "arm64" ]]; then
+  PLATFORM="mac-arm64"
+else
+  PLATFORM="mac-x64"
+fi
+
+FRONTEND_DIST="${SAPD_WIKI_FRONTEND_DIST:-$REPO_ROOT/frontend/capability-browser}"
+BASE_DB="${SAPD_WIKI_BASE_DB:-$REPO_ROOT/data/database/sapd_wiki.sqlite3}"
+DEFAULT_PYINSTALLER_PYTHON="$APP_ROOT/.build/pyinstaller-venv/bin/python"
+if [[ -z "${PYTHON_BIN:-}" && -x "$DEFAULT_PYINSTALLER_PYTHON" ]]; then
+  PYTHON_BIN="$DEFAULT_PYINSTALLER_PYTHON"
+else
+  PYTHON_BIN="${PYTHON_BIN:-python3}"
+fi
+
+backend_source_hash() {
+  "$PYTHON_BIN" - "$REPO_ROOT" <<'PY'
+import hashlib
+import sys
+from pathlib import Path
+
+root = Path(sys.argv[1])
+paths = [root / "scripts" / "run_local_server.py"]
+paths.extend(sorted((root / "src" / "sapd_wiki").rglob("*.py")))
+digest = hashlib.sha256()
+for path in paths:
+    if not path.exists():
+        continue
+    digest.update(str(path.relative_to(root)).encode("utf-8"))
+    digest.update(b"\0")
+    digest.update(path.read_bytes())
+    digest.update(b"\0")
+print(digest.hexdigest())
+PY
+}
+
+local_backend_binary() {
+  printf '%s\n' "$BACKEND_WORK/backend/$PLATFORM/SAPD-Wiki-Backend"
+}
+
+ensure_local_backend_binary() {
+  local backend_binary
+  backend_binary="$(local_backend_binary)"
+  local current_hash
+  current_hash="$(backend_source_hash)"
+  local recorded_hash=""
+  if [[ -f "$BACKEND_SOURCE_STAMP" ]]; then
+    recorded_hash="$(cat "$BACKEND_SOURCE_STAMP")"
+  fi
+
+  if [[ -x "$backend_binary" && "${SAPD_WIKI_REBUILD_BACKEND:-auto}" != "1" && "$recorded_hash" == "$current_hash" ]]; then
+    printf '%s\n' "$backend_binary"
+    return 0
+  fi
+
+  echo "building_backend_from_current_source=1" >&2
+  "$PYTHON_BIN" "$REPO_ROOT/scripts/package_backend_pyinstaller.py" \
+    --output-dir "$BACKEND_WORK" \
+    --platform "$PLATFORM" \
+    --require-native >&2
+  mkdir -p "$(dirname "$BACKEND_SOURCE_STAMP")"
+  printf '%s\n' "$current_hash" >"$BACKEND_SOURCE_STAMP"
+
+  if [[ ! -x "$backend_binary" ]]; then
+    echo "current-source backend was not produced: $backend_binary" >&2
+    return 1
+  fi
+  printf '%s\n' "$backend_binary"
+}
+
+find_external_backend_binary() {
+  if [[ -n "${SAPD_WIKI_MAC_BACKEND:-}" && -f "${SAPD_WIKI_MAC_BACKEND:-}" ]]; then
+    printf '%s\n' "$SAPD_WIKI_MAC_BACKEND"
+    return 0
+  fi
+
+  local candidates=(
+    "$REPO_ROOT/dist/macos/backend/$PLATFORM/SAPD-Wiki-Backend"
+    "$REPO_ROOT/dist/zip-alpha/backend/$PLATFORM/SAPD-Wiki-Backend"
+    "$REPO_ROOT/dist/zip-alpha/dist/$PLATFORM/SAPD-Wiki-Backend"
+    "/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/sapd wiki bundle/package-work/backend/$PLATFORM/SAPD-Wiki-Backend"
+    "/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/sapd wiki bundle/package-work/dist/$PLATFORM/SAPD-Wiki-Backend"
+    "/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/sapd wiki bundle/SAPD-Wiki-v0.1.0-$PLATFORM/SAPD-Wiki-Backend"
+  )
+
+  local candidate
+  for candidate in "${candidates[@]}"; do
+    if [[ -f "$candidate" ]]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+BACKEND_BINARY=""
+
+resolve_backend_binary() {
+  if [[ -n "$BACKEND_BINARY" ]]; then
+    return 0
+  fi
+  BACKEND_BINARY="$(ensure_local_backend_binary || true)"
+  if [[ -z "$BACKEND_BINARY" && "${SAPD_WIKI_ALLOW_EXTERNAL_BACKEND:-0}" == "1" ]]; then
+    BACKEND_BINARY="$(find_external_backend_binary || true)"
+  fi
+  if [[ -z "$BACKEND_BINARY" ]]; then
+    cat >&2 <<ERROR
+Cannot build SAPD-Wiki-Backend for $PLATFORM from current source.
+
+Install PyInstaller for this Python, then retry:
+  $PYTHON_BIN -m pip install pyinstaller
+
+For emergency diagnostics only, you may explicitly allow an external backend:
+  SAPD_WIKI_ALLOW_EXTERNAL_BACKEND=1 SAPD_WIKI_MAC_BACKEND=/path/to/SAPD-Wiki-Backend $0 build
+ERROR
+    exit 1
+  fi
+}
+
+if [[ ! -d "$FRONTEND_DIST" ]]; then
+  echo "frontend dist does not exist: $FRONTEND_DIST" >&2
+  exit 1
+fi
+
+if [[ ! -f "$BASE_DB" ]]; then
+  echo "base database does not exist: $BASE_DB" >&2
+  exit 1
+fi
+
+kill_existing_app() {
+  local runtime_backend="$HOME/Library/Application Support/SAPD Wiki/Runtime/SAPD-Wiki-Backend"
+  pkill -x "$EXECUTABLE_NAME" >/dev/null 2>&1 || true
+  sleep 0.6
+  pkill -f "$runtime_backend" >/dev/null 2>&1 || true
+  sleep 0.4
+  pkill -9 -f "$runtime_backend" >/dev/null 2>&1 || true
+}
+
+build_runtime() {
+  resolve_backend_binary
+  rm -rf "$RUNTIME_WORK"
+  mkdir -p "$RUNTIME_WORK"
+  "$PYTHON_BIN" "$REPO_ROOT/scripts/build_zip_bundle.py" \
+    --output-dir "$RUNTIME_WORK" \
+    --platform "$PLATFORM" \
+    --bundle-version "v0.1.0" \
+    --app-version "$BUNDLE_VERSION" \
+    --frontend-dist "$FRONTEND_DIST" \
+    --backend-binary "$BACKEND_BINARY" \
+    --base-db "$BASE_DB"
+}
+
+write_runtime_fingerprint() {
+  local runtime_bundle="$1"
+  "$PYTHON_BIN" - "$runtime_bundle" <<'PY'
+import hashlib
+import sys
+from pathlib import Path
+
+root = Path(sys.argv[1])
+include_roots = [
+    root / "SAPD-Wiki-Backend",
+    root / "_internal",
+    root / "README-FIRST.md",
+    root / "start-macos.command",
+    root / "stop-macos.command",
+    root / "app" / "frontend-dist",
+    root / "config",
+    root / "data" / "base",
+    root / "diagnostics",
+]
+paths = []
+for item in include_roots:
+    if item.is_file():
+        paths.append(item)
+    elif item.is_dir():
+        paths.extend(path for path in item.rglob("*") if path.is_file())
+digest = hashlib.sha256()
+for path in sorted(paths):
+    rel = path.relative_to(root).as_posix()
+    digest.update(rel.encode("utf-8"))
+    digest.update(b"\0")
+    digest.update(path.read_bytes())
+    digest.update(b"\0")
+(root / ".sapd-runtime-fingerprint").write_text(digest.hexdigest() + "\n", encoding="utf-8")
+print(f"runtime_fingerprint={digest.hexdigest()}")
+PY
+}
+
+write_info_plist() {
+  cat >"$INFO_PLIST" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleExecutable</key>
+  <string>$EXECUTABLE_NAME</string>
+  <key>CFBundleIdentifier</key>
+  <string>$BUNDLE_ID</string>
+  <key>CFBundleName</key>
+  <string>$APP_NAME</string>
+  <key>CFBundleDisplayName</key>
+  <string>$APP_NAME</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>CFBundleShortVersionString</key>
+  <string>$BUNDLE_VERSION</string>
+  <key>CFBundleVersion</key>
+  <string>1</string>
+  <key>LSMinimumSystemVersion</key>
+  <string>$MIN_SYSTEM_VERSION</string>
+  <key>NSHighResolutionCapable</key>
+  <true/>
+  <key>NSPrincipalClass</key>
+  <string>NSApplication</string>
+  <key>NSAppTransportSecurity</key>
+  <dict>
+    <key>NSAllowsLocalNetworking</key>
+    <true/>
+  </dict>
+</dict>
+</plist>
+PLIST
+}
+
+codesign_args() {
+  printf '%s\0' --force --sign "$CODE_SIGN_IDENTITY"
+  if [[ "$CODE_SIGN_IDENTITY" != "-" ]]; then
+    printf '%s\0' --options runtime --timestamp
+  fi
+}
+
+sign_path() {
+  local target="$1"
+  local -a args=()
+  while IFS= read -r -d '' item; do
+    args+=("$item")
+  done < <(codesign_args)
+  codesign "${args[@]}" "$target"
+}
+
+sign_macho_tree() {
+  local root="$1"
+  if ! command -v codesign >/dev/null 2>&1 || ! command -v file >/dev/null 2>&1; then
+    return 0
+  fi
+
+  while IFS= read -r -d '' candidate; do
+    if file "$candidate" | grep -q "Mach-O"; then
+      sign_path "$candidate" >/dev/null 2>&1
+    fi
+  done < <(find "$root" -type f \( -perm -111 -o -name "*.dylib" -o -name "*.so" \) -print0)
+}
+
+stage_app_bundle() {
+  swift build --package-path "$APP_ROOT"
+  local build_bin_dir
+  build_bin_dir="$(swift build --package-path "$APP_ROOT" --show-bin-path)"
+  local build_binary="$build_bin_dir/$EXECUTABLE_NAME"
+  if [[ ! -x "$build_binary" ]]; then
+    echo "SwiftPM did not produce executable: $build_binary" >&2
+    exit 1
+  fi
+
+  build_runtime
+  local runtime_bundle="$RUNTIME_WORK/SAPD-Wiki-v0.1.0-$PLATFORM"
+  if [[ ! -d "$runtime_bundle" ]]; then
+    echo "runtime bundle missing: $runtime_bundle" >&2
+    exit 1
+  fi
+  write_runtime_fingerprint "$runtime_bundle"
+
+  rm -rf "$APP_BUNDLE"
+  mkdir -p "$APP_MACOS" "$APP_RESOURCES"
+  cp "$build_binary" "$APP_BINARY"
+  chmod +x "$APP_BINARY"
+  write_info_plist
+  cp -R "$runtime_bundle" "$APP_RESOURCES/Runtime"
+  if command -v xattr >/dev/null 2>&1; then
+    xattr -cr "$APP_BUNDLE" >/dev/null 2>&1 || true
+  fi
+
+  if command -v codesign >/dev/null 2>&1; then
+    sign_macho_tree "$APP_RESOURCES/Runtime" || {
+      echo "warning: nested runtime codesign failed; continuing with existing signatures" >&2
+    }
+    sign_path "$APP_BUNDLE" >/dev/null 2>&1 || {
+      echo "warning: app codesign failed; continuing with unsigned local bundle" >&2
+    }
+  fi
+
+  echo "app_bundle=$APP_BUNDLE"
+  echo "backend_binary=$BACKEND_BINARY"
+  echo "base_db=$BASE_DB"
+}
+
+open_app() {
+  /usr/bin/open -n "$APP_BUNDLE"
+}
+
+case "$MODE" in
+  run|--run)
+    kill_existing_app
+    stage_app_bundle
+    open_app
+    ;;
+  --build-only|build)
+    stage_app_bundle
+    ;;
+  --debug|debug)
+    kill_existing_app
+    stage_app_bundle
+    lldb -- "$APP_BINARY"
+    ;;
+  --logs|logs)
+    kill_existing_app
+    stage_app_bundle
+    open_app
+    /usr/bin/log stream --info --style compact --predicate "process == \"$EXECUTABLE_NAME\""
+    ;;
+  --telemetry|telemetry)
+    kill_existing_app
+    stage_app_bundle
+    open_app
+    /usr/bin/log stream --info --style compact --predicate "subsystem == \"$BUNDLE_ID\""
+    ;;
+  --verify|verify)
+    kill_existing_app
+    stage_app_bundle
+    open_app
+    sleep 3
+    pgrep -x "$EXECUTABLE_NAME" >/dev/null
+    echo "verify=pass"
+    ;;
+  --stop|stop)
+    kill_existing_app
+    echo "stop=ok"
+    ;;
+  --package|package|--dmg|dmg)
+    "$SCRIPT_DIR/package_dmg.sh"
+    ;;
+  *)
+    echo "usage: $0 [run|build|--debug|--logs|--telemetry|--verify|--package]" >&2
+    exit 2
+    ;;
+esac

@@ -575,7 +575,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 4
+      "evidenceRefCount": 2
     },
     {
       "id": "relation:79148b6b19a4ae96",
@@ -588,7 +588,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 4
+      "evidenceRefCount": 2
     },
     {
       "id": "relation:9cb4b848e06b746e",

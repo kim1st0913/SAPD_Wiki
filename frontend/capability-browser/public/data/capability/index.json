@@ -16,7 +16,7 @@
     "scope_type": 8,
     "security_technical_service": 160,
     "security_technology_module": 102,
-    "security_technical_measure": 28,
+    "security_technical_measure": 32,
     "security_work": 92,
     "work_function": 75,
     "process_group": 32,
@@ -24,9 +24,9 @@
     "process_activity": 0,
     "standard_framework": 6,
     "standard_control": 1745,
-    "objects": 2462,
-    "relations": 6094,
-    "evidenceRefs": 4580
+    "objects": 2466,
+    "relations": 6099,
+    "evidenceRefs": 4482
   },
   "defaultSelectedFocusId": "72cd12e2-f784-4775-8b3f-6d3ed4e7d398",
   "tree": [

@@ -165,6 +165,110 @@ async function loadViewModels() {
   return context.window.sapdViewModels;
 }
 
+async function loadCapabilityRelationComponent() {
+  const source = await readFile("frontend/capability-browser/components/CapabilityLocalRelationMap.js", "utf8");
+  const escapeHtml = (value) =>
+    text(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;");
+  const context = {
+    window: {
+      sapdDisplay: {},
+      sapdComponents: {
+        utils: {
+          list,
+          text,
+          escapeHtml,
+        },
+        LocalRelationNetworkGraph: {
+          render: () => '<section class="local-relation-network-graph"><div class="network-graph-canvas"><div class="network-legend"></div><div class="network-graph-actions"></div></div></section>',
+        },
+      },
+      sapdModels: {
+        buildLocalRelationGraphModel: () => ({ nodes: [], edges: [] }),
+      },
+    },
+    console,
+  };
+  vm.runInNewContext(source, context, { filename: "frontend/capability-browser/components/CapabilityLocalRelationMap.js" });
+  assert(context.window.sapdComponents?.CapabilityLocalRelationMap?.render, "CapabilityLocalRelationMap.render is unavailable");
+  assert(context.window.sapdComponents?.CapabilityLocalRelationMap?.renderTabControls, "CapabilityLocalRelationMap.renderTabControls is unavailable");
+  return context.window.sapdComponents.CapabilityLocalRelationMap;
+}
+
+async function validateNetworkGraphOverlayContract() {
+  const graphSource = await readFile("frontend/capability-browser/components/LocalRelationNetworkGraph.js", "utf8");
+  const indexSource = await readFile("frontend/capability-browser/index.html", "utf8");
+  const appShellSource = await readFile("frontend/capability-browser/components/AppShell.js", "utf8");
+  const appSource = await readFile("frontend/capability-browser/app.js", "utf8");
+  const cssSource = await readFile("frontend/capability-browser/styles.css", "utf8");
+  const headBlocks = [...cssSource.matchAll(/\.app-shell-integrated \.capability-workbench-head\s*\{[\s\S]*?\n\}/g)].map((match) => match[0]);
+  const headBlock = headBlocks.find((block) => block.includes("grid-template-rows: auto;") && block.includes("box-shadow: none;")) || "";
+  const headShelfBlock = cssSource.match(/\.app-shell-integrated \.capability-workbench-head::after\s*\{[\s\S]*?\n\}/)?.[0] || "";
+  const workspaceSurfaceBlock = cssSource.match(/\.app-shell-integrated \.capability-workspace-surface\s*\{[\s\S]*?\n\}/)?.[0] || "";
+  const workspaceControlBlock = cssSource.match(/\.app-shell-integrated \.capability-workspace-control\s*\{[\s\S]*?\n\}/)?.[0] || "";
+  const workspaceControlDividerBlock = cssSource.match(/\.app-shell-integrated \.capability-workspace-control::after\s*\{[\s\S]*?\n\}/)?.[0] || "";
+  const tabShellBlock = cssSource.match(/\.app-shell-integrated \.capability-view-controls \.capability-title-tabs\s*\{[\s\S]*?\n\}/)?.[0] || "";
+  const toolsBlocks = cssSource.match(/\.app-shell-integrated \.capability-workbench-tools\s*\{[\s\S]*?\n\}/g) || [];
+  const toolsBlock = toolsBlocks.find((block) => block.includes("width: min(34vw, 430px);")) || "";
+  const tabItemBlock = cssSource.match(/\.app-shell-integrated \.capability-map-preview-r2 \.relation-view-tab\s*\{[\s\S]*?\n\}/)?.[0] || "";
+  const stageScrollBlock = cssSource.match(/\.app-shell-integrated \.capability-map-preview-r2 \.preview-stage-scroll\s*\{[\s\S]*?\n\}/)?.[0] || "";
+  const mapShellBlock = cssSource.match(/\.app-shell-integrated \.capability-map-preview-r2\.capability-local-relation-map\s*\{[\s\S]*?\n\}/)?.[0] || "";
+  const relationGraphBlock = cssSource.match(/\.app-shell-integrated \.capability-map-preview-r2 \.summary-panel \.local-relation-network-graph\s*\{[\s\S]*?\n\}/)?.[0] || "";
+  const relationCanvasBlock = cssSource.match(/\.app-shell-integrated \.capability-map-preview-r2 \.summary-panel \.network-graph-canvas\s*\{[\s\S]*?\n\}/)?.[0] || "";
+  assert(!graphSource.includes('<header class="network-graph-head">'), "LocalRelationNetworkGraph should not render a separate legend/header row");
+  assert(/network-graph-canvas[\s\S]*\$\{renderLegend\(model\)\}[\s\S]*network-graph-actions/.test(graphSource), "LocalRelationNetworkGraph should render legend and zoom controls inside the canvas");
+  const actionsBlock = cssSource.match(/\.network-graph-actions\s*\{[\s\S]*?\n\}/)?.[0] || "";
+  const legendBlock = cssSource.match(/\.network-legend\s*\{[\s\S]*?\n\}/)?.[0] || "";
+  assert(actionsBlock.includes("bottom: 12px;"), "network zoom controls should be anchored to the canvas bottom right");
+  assert(!actionsBlock.includes("top: 12px;"), "network zoom controls should not stay at the canvas top right");
+  assert(legendBlock.includes("position: absolute;"), "network legend should be an overlay inside the canvas");
+  assert(legendBlock.includes("top: 14px;") && legendBlock.includes("right: 14px;"), "network legend should be anchored to the canvas top right");
+  assert(indexSource.includes('id="capabilityFocusHeader"'), "capability title identity slot should be explicit in index.html");
+  assert(indexSource.includes('id="capabilityViewControls"'), "capability view controls should have a dedicated workspace control slot");
+  assert(indexSource.includes('class="capability-workspace-surface"'), "capability detail area should be wrapped by the workspace surface");
+  assert(indexSource.includes('class="capability-workspace-control"'), "capability tab/search controls should live in the workspace control rail");
+  assert(indexSource.includes("AppShell.js?v=") && indexSource.includes("oi159-attached-control-20260702-2"), "AppShell.js should be cache-busted for workspace control tabs");
+  assert(appShellSource.includes('id="capabilityViewControls"'), "AppShell capability template should render the workspace control tab slot");
+  assert(appShellSource.includes('class="capability-workspace-surface"'), "AppShell capability template should wrap detail in the workspace surface");
+  assert(appShellSource.includes('class="capability-workspace-control"'), "AppShell capability template should render the workspace control rail");
+  assert(/CapabilityLocalRelationMap\.js\?v=[^"]*oi159-attached-control/.test(appSource), "CapabilityLocalRelationMap dynamic script URL must be cache-busted for workspace control tabs");
+  assert(!headBlock.includes('"tabs search";'), "capability header should no longer own tab/search grid areas");
+  assert(headBlock.includes("grid-template-columns: minmax(0, 1fr);"), "capability header should only reserve the identity row");
+  assert(headBlock.includes("grid-template-rows: auto;"), "capability header should stay a single identity row");
+  assert(headBlock.includes("padding: 16px 20px 10px;"), "capability identity header should stay compact above the workspace");
+  assert(headBlock.includes("border-bottom: 0;"), "capability header should not keep the old hard divider line");
+  assert(headBlock.includes("box-shadow: none;"), "capability identity header should not create another visual shelf");
+  assert(headShelfBlock.includes("display: none;"), "capability header shelf divider should be disabled when controls attach to the workspace");
+  assert(workspaceSurfaceBlock.includes("grid-template-rows: auto minmax(0, 1fr);"), "capability workspace surface should own the control rail and detail area");
+  assert(workspaceSurfaceBlock.includes("border-radius: 26px;"), "capability workspace surface should provide the rounded Apple shell panel");
+  assert(workspaceSurfaceBlock.includes("box-shadow:"), "capability workspace surface should carry the panel separation, not the title header");
+  assert(workspaceControlBlock.includes("justify-content: space-between;"), "capability workspace control rail should keep the accepted tab/search baseline spacing");
+  assert(workspaceControlBlock.includes("overflow: hidden;"), "capability workspace control rail should clip its own top background to avoid half-rendered corner arcs");
+  assert(workspaceControlBlock.includes("border-radius: 25px 25px 0 0;"), "capability workspace control rail should align with the surface top corners");
+  assert(workspaceControlBlock.includes("backdrop-filter: blur(16px) saturate(138%);"), "capability workspace control rail should use the accepted Apple shell glass treatment");
+  assert(workspaceControlDividerBlock.includes("linear-gradient(90deg, transparent"), "workspace control rail should use a soft internal divider");
+  assert(!tabShellBlock.includes("position: absolute;"), "capability relation tabs should not be an inset canvas overlay");
+  assert(tabShellBlock.includes("max-width: min(58vw, 720px);"), "capability relation tabs should fit the workspace control rail without occupying the full width");
+  assert(tabShellBlock.includes("border-radius: 23px;"), "capability relation tabs should use the accepted rounded segmented container");
+  assert(tabShellBlock.includes("backdrop-filter: blur(14px) saturate(135%);"), "capability relation tabs should use restrained Apple shell glass treatment");
+  assert(toolsBlock.includes("width: min(34vw, 430px);"), "capability search should keep the accepted right-side baseline width");
+  assert(toolsBlock.includes("max-width: 430px;"), "capability search should keep the accepted right-side maximum width");
+  assert(toolsBlock.includes("min-width: 300px;"), "capability search should keep the accepted desktop minimum width");
+  assert(cssSource.includes(".app-shell-integrated .capability-view-controls .capability-title-tabs .relation-view-tab.is-active"), "capability workspace control tabs should have an active state class");
+  assert(!tabItemBlock.includes("13px 13px 0 0"), "capability relation tab items should not use old browser-tab top corners");
+  assert(stageScrollBlock.includes("grid-template-rows: minmax(0, 1fr);"), "capability relation stage should not reserve a separate tab row");
+  assert(stageScrollBlock.includes("padding: 0;"), "capability relation stage should not create an extra inset board");
+  assert(stageScrollBlock.includes("background: transparent;"), "capability relation stage should blend into the page surface");
+  assert(mapShellBlock.includes("border: 0;") && mapShellBlock.includes("background: transparent;"), "capability relation map shell should not add another framed board");
+  assert(relationGraphBlock.includes("border: 0;") && relationGraphBlock.includes("background: transparent;"), "relation graph wrapper should not add an inner framed board");
+  assert(relationCanvasBlock.includes("border: 0;"), "relation graph canvas should not draw an inner frame line");
+  assert(relationCanvasBlock.includes("box-shadow: none;"), "relation graph canvas should blend into the parent white surface");
+  assert(cssSource.includes(".app-shell-integrated .capability-map-preview-r2 .preview-tab-panel:not(.summary-panel)") && cssSource.includes("padding-top: 0;"), "non-graph panels should not reserve space for canvas inset tabs");
+}
+
 function validateRowsStayInsideSelection(item, rows, selectedFocusIds, label) {
   for (const row of rows) {
     assert(selectedFocusIds.has(row?.focus?.id), `${item.code}: ${label} row escaped selected focus set with focus=${row?.focus?.id || ""}`);
@@ -175,6 +279,7 @@ function validateMainDisplayBoundary(item, viewModel) {
   const boundaryObjects = {
     selectedCapability: viewModel.selectedCapability,
     relationshipSummary: viewModel.relationshipSummary,
+    capabilityOverview: viewModel.capabilityOverview,
     focusOverviewSelected: viewModel.focusOverview?.selected,
     localRelationMapFocus: viewModel.localRelationMap?.focus,
   };
@@ -192,6 +297,16 @@ function validateViewModel(item, target, projection, viewModel, selectedFocusIds
   assert(viewModel.relationshipSummary?.selectedType === item.objectType, `${item.code}: relationshipSummary.selectedType=${viewModel.relationshipSummary?.selectedType}`);
   assert(viewModel.focusOverview?.focusCount === selectedFocusIds.size, `${item.code}: focusOverview.focusCount=${viewModel.focusOverview?.focusCount}, expected=${selectedFocusIds.size}`);
   assert(viewModel.localRelationMapSource === item.expectedLocalRelationMapSource, `${item.code}: localRelationMapSource=${viewModel.localRelationMapSource}`);
+  assert(viewModel.capabilityOverview?.selected?.type === item.objectType, `${item.code}: capabilityOverview.selected.type=${viewModel.capabilityOverview?.selected?.type}`);
+  assert(keysMatch(viewModel.capabilityOverview?.selected, projection.selected), `${item.code}: capabilityOverview.selected does not match workspace-view selected`);
+  assert(viewModel.capabilityOverview?.stats?.focusCount === selectedFocusIds.size, `${item.code}: capabilityOverview.stats.focusCount=${viewModel.capabilityOverview?.stats?.focusCount}, expected=${selectedFocusIds.size}`);
+  if (item.objectType === "capability_category" || item.objectType === "capability_domain") {
+    assert(viewModel.capabilityOverview?.detailPolicy === "overview", `${item.code}: L0/L1 detailPolicy=${viewModel.capabilityOverview?.detailPolicy}`);
+    assert(list(viewModel.capabilityOverview?.children).length > 0, `${item.code}: L0/L1 overview children missing`);
+  }
+  if (item.objectType === "capability_focus") {
+    assert(viewModel.capabilityOverview?.detailPolicy === "full_detail", `${item.code}: focus detailPolicy=${viewModel.capabilityOverview?.detailPolicy}`);
+  }
 
   const projectedTechnicalRows = list(projection.technicalMappingRows).filter((row) => selectedFocusIds.has(row?.focus?.id));
   const projectedManagementRows = list(projection.managementMappingRows).filter((row) => selectedFocusIds.has(row?.focus?.id));
@@ -226,12 +341,93 @@ function validateViewModel(item, target, projection, viewModel, selectedFocusIds
     standardRows: viewModel.standardMappingRows.length,
     standardControls: viewModelStandardControls,
     localRelationMapSource: viewModel.localRelationMapSource,
+    detailPolicy: viewModel.capabilityOverview?.detailPolicy,
   };
+}
+
+function validateOverviewRender(item, component, viewModel) {
+  if (item.objectType !== "capability_category" && item.objectType !== "capability_domain") return null;
+  const renderOverview = (activeTab) =>
+    component.render({
+      localRelationMap: viewModel.localRelationMap,
+      focusOverview: viewModel.focusOverview,
+      capabilityOverview: viewModel.capabilityOverview,
+      activeTab,
+      technicalMappingRows: [],
+      managementMappingRows: [],
+      standardMappingRows: [],
+    });
+  const renderTitleTabs = (activeTab) => component.renderTabControls(viewModel.localRelationMap, viewModel.capabilityOverview, activeTab);
+  const html = renderOverview("summary");
+  const summaryActiveHtml = renderOverview("technical");
+  const staleTabHtml = renderOverview("management");
+  const titleTabsHtml = renderTitleTabs("summary");
+  const titleTabsSummaryHtml = renderTitleTabs("technical");
+  const focusStripHtml = component.renderFocusStrip(viewModel.localRelationMap, viewModel.focusOverview, viewModel.capabilityOverview);
+  assert(/id="capability-relation-tab-summary"[^>]*value="summary" checked/.test(html), `${item.code}: relation graph tab should be default active`);
+  assert(/id="capability-relation-tab-technical"[^>]*value="technical" checked/.test(summaryActiveHtml), `${item.code}: overview summary tab cannot be activated`);
+  assert(/id="capability-relation-tab-summary"[^>]*value="summary" checked/.test(staleTabHtml), `${item.code}: stale L0/L1 tab state should fall back to relation graph`);
+  assert(!summaryActiveHtml.includes('id="capability-relation-tab-management"'), `${item.code}: switched L0/L1 render should still only render two tabs`);
+  assert(!summaryActiveHtml.includes('id="capability-relation-tab-standard"'), `${item.code}: switched L0/L1 render should still only render two tabs`);
+  assert(summaryActiveHtml.includes("capability-overview-row-list"), `${item.code}: activated overview summary content missing`);
+  assert(!summaryActiveHtml.includes("capability-overview-hero"), `${item.code}: activated overview summary should not duplicate the page header hero`);
+  assert(!summaryActiveHtml.includes("capability-overview-metrics"), `${item.code}: activated overview summary should not duplicate top-level metric cards`);
+  assert(!staleTabHtml.includes('id="capability-relation-tab-management"'), `${item.code}: stale L0/L1 render should not restore management tab`);
+  assert(!staleTabHtml.includes('id="capability-relation-tab-standard"'), `${item.code}: stale L0/L1 render should not restore standard tab`);
+  assert(!staleTabHtml.includes("original-matrix-panel"), `${item.code}: stale L0/L1 render should not render original matrix panel`);
+  assert(html.includes("capability-overview-shell"), `${item.code}: overview shell missing`);
+  assert(titleTabsHtml.includes("capability-title-tabs"), `${item.code}: workspace control relation tabs missing`);
+  assert(titleTabsHtml.includes(">关系图谱<"), `${item.code}: relation graph tab label missing`);
+  assert(titleTabsHtml.includes(">总览摘要<"), `${item.code}: overview summary tab label missing`);
+  assert(titleTabsHtml.includes('class="relation-view-tab is-active"') && titleTabsSummaryHtml.includes('for="capability-relation-tab-technical" class="relation-view-tab is-active"'), `${item.code}: workspace control tab active state missing`);
+  assert(!focusStripHtml.includes("preview-focus-stats"), `${item.code}: capability title strip should not render ambiguous metric cards`);
+  assert(!html.includes("relation-view-tabs preview-tabs"), `${item.code}: relation tabs should not render inside the canvas stage`);
+  assert(!html.includes(">覆盖统计<"), `${item.code}: legacy coverage tab label should not render on L0/L1`);
+  assert(!html.includes(">下级索引<"), `${item.code}: legacy child index tab label should not render on L0/L1`);
+  assert(!html.includes('id="capability-relation-tab-management"'), `${item.code}: L0/L1 should only render two tabs`);
+  assert(!html.includes('id="capability-relation-tab-standard"'), `${item.code}: L0/L1 should only render two tabs`);
+  assert(html.includes("local-relation-network-graph"), `${item.code}: L0/L1 relation graph tab missing original relation graph`);
+  assert(html.includes("network-graph-canvas"), `${item.code}: relation graph canvas missing`);
+  assert(/network-graph-canvas[\s\S]*network-legend[\s\S]*network-graph-actions/.test(html), `${item.code}: legend and zoom controls should live inside relation graph canvas`);
+  assert(!html.includes("network-graph-head"), `${item.code}: relation graph legend should not occupy a separate header row`);
+  assert(/summary-panel[\s\S]*local-relation-network-graph/.test(html), `${item.code}: L0/L1 relation graph is not inside the default summary-panel tab`);
+  assert(/technical-panel[\s\S]*capability-overview-shell/.test(html), `${item.code}: L0/L1 overview summary is not inside the second tab`);
+  assert(html.includes("capability-overview-brief"), `${item.code}: redesigned overview summary brief missing`);
+  assert(!html.includes("块用途："), `${item.code}: overview summary should not use explanatory training labels`);
+  assert(!html.includes("统计价值："), `${item.code}: overview summary should not use explanatory training labels`);
+  assert(!html.includes("直接下级完整展示"), `${item.code}: overview summary should not explain full child display in page copy`);
+  assert(!html.includes("按覆盖负载选择下一步"), `${item.code}: overview summary should not explain workflow in page copy`);
+  assert(html.includes("capability-overview-signal-grid"), `${item.code}: overview effective signal grid missing`);
+  assert(html.includes("技术覆盖"), `${item.code}: overview technical signal missing`);
+  assert(html.includes("管理落地"), `${item.code}: overview management signal missing`);
+  assert(html.includes("标准映射"), `${item.code}: overview standard signal missing`);
+  assert(html.includes("核对信号"), `${item.code}: overview review signals heading missing`);
+  assert(html.includes("capability-overview-insights"), `${item.code}: overview review signals missing`);
+  assert(html.includes("capability-overview-row-list"), `${item.code}: redesigned overview child rows missing`);
+  assert(html.includes("capability-overview-row-signal"), `${item.code}: overview child row coverage signals missing`);
+  assert(html.includes('aria-label="下级能力"'), `${item.code}: overview child row next-level semantic label missing`);
+  assert(!html.includes("<small>下级能力</small>"), `${item.code}: overview child entry label should not consume a separate row`);
+  for (const child of list(viewModel.capabilityOverview?.children)) {
+    const directChildren = list(child.previewChildren);
+    if (directChildren.length <= 3) continue;
+    for (const directChild of directChildren) {
+      assert(html.includes(text(directChild.code)), `${item.code}: overview child ${child.code} missing direct child ${directChild.code}`);
+    }
+  }
+  assert(html.includes("覆盖结构"), `${item.code}: redesigned coverage structure missing`);
+  assert(!html.includes("capability-overview-hero"), `${item.code}: overview summary should not duplicate the page header hero`);
+  assert(!html.includes("capability-overview-metrics"), `${item.code}: overview summary should not duplicate top-level metric cards`);
+  assert(!html.includes("semantic-mapping-table"), `${item.code}: L0/L1 overview rendered semantic mapping table`);
+  assert(!html.includes("preview-mapping-table"), `${item.code}: L0/L1 overview rendered preview mapping table`);
+  assert(!html.includes("original-matrix-panel"), `${item.code}: L0/L1 overview rendered original matrix panel`);
+  return "overview_two_tab_relation_graph_and_summary";
 }
 
 async function main() {
   const baseUrl = argValue("--url", DEFAULT_BASE_URL).replace(/\/$/, "");
   const viewModels = await loadViewModels();
+  const relationComponent = await loadCapabilityRelationComponent();
+  await validateNetworkGraphOverlayContract();
   const [capabilityTree, maintenance, sharedLookups, capabilityInitial] = await Promise.all([
     fetchData(baseUrl, "/api/v1/data-packages/capability"),
     fetchData(baseUrl, "/api/v1/data-packages/maintenance"),
@@ -256,7 +452,9 @@ async function main() {
       search: "",
       relationshipFilters: {},
     });
-    checked.push(validateViewModel(item, target, projection, viewModel, new Set(focusIdsForItem(capabilityTree, target))));
+    const result = validateViewModel(item, target, projection, viewModel, new Set(focusIdsForItem(capabilityTree, target)));
+    result.renderPolicy = validateOverviewRender(item, relationComponent, viewModel) || "";
+    checked.push(result);
   }
 
   console.log(

@@ -30,7 +30,7 @@
     "processReferenceCount": 1,
     "standardControlCount": 18,
     "moduleCount": 0,
-    "measureCount": 0
+    "measureCount": 1
   },
   "objects": {
     "capability_focus": {
@@ -439,6 +439,17 @@
         "status": ""
       }
     },
+    "security_technical_measure": {
+      "security_technical_measure:810c09bb220cca81": {
+        "id": "security_technical_measure:810c09bb220cca81",
+        "type": "security_technical_measure",
+        "code": "",
+        "title": "应用程序威胁建模",
+        "name": "应用程序威胁建模",
+        "category": "安全技术措施",
+        "status": "normal"
+      }
+    },
     "work_function": {
       "21c82d64-5a7a-4d6f-a6dd-ec6ef53c8a6b": {
         "id": "21c82d64-5a7a-4d6f-a6dd-ec6ef53c8a6b",
@@ -648,7 +659,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 6
+      "evidenceRefCount": 4
     },
     {
       "id": "relation:738dba171ab975cf",
@@ -1080,6 +1091,19 @@
       "evidenceRefCount": 4
     },
     {
+      "id": "relation:7352ff76afaf6f42",
+      "type": "has_measure",
+      "sourceId": "6b355bcf-1f27-4550-a044-eb86df0ebb1b",
+      "sourceType": "security_technical_service",
+      "targetId": "security_technical_measure:810c09bb220cca81",
+      "targetType": "security_technical_measure",
+      "label": "关联措施",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 4
+    },
+    {
       "id": "relation:898e10802ad28a8b",
       "type": "stakeholder_by",
       "sourceId": "4b10f4df-82f6-4996-8dea-e0a53c3f0440",
@@ -1210,5 +1234,5 @@
       "evidenceRefCount": 0
     }
   ],
-  "relationCount": 52
+  "relationCount": 53
 }

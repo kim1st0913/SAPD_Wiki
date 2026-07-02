@@ -549,6 +549,165 @@
     };
   }
 
+  const CAPABILITY_DETAIL_ROW_THRESHOLD = 30;
+
+  function capabilityLevelLabel(type) {
+    if (type === "capability_category") return "L0 总览";
+    if (type === "capability_domain") return "L1 总览";
+    if (type === "capability") return "L2 能力";
+    if (type === "capability_focus") return "关注点";
+    return "能力对象";
+  }
+
+  function childCapabilityItems(item = {}) {
+    if (!item) return [];
+    if (item.type === "capability_category" || list(item.domains).length) return list(item.domains);
+    if (item.type === "capability_domain" || list(item.capabilities).length) return list(item.capabilities);
+    if (item.type === "capability" || list(item.focuses).length) return list(item.focuses);
+    return [];
+  }
+
+  function descendantFocusItems(item = {}) {
+    if (!item) return [];
+    if (item.type === "capability_focus") return [item];
+    if (list(item.focuses).length) return list(item.focuses);
+    if (list(item.capabilities).length) return list(item.capabilities).flatMap(descendantFocusItems);
+    if (list(item.domains).length) return list(item.domains).flatMap(descendantFocusItems);
+    return [];
+  }
+
+  function capabilityStructureCounts(item = {}) {
+    const domains = list(item.domains);
+    const capabilities = item.type === "capability_domain" ? list(item.capabilities) : domains.flatMap((domain) => list(domain.capabilities));
+    const directFocuses = item.type === "capability" ? list(item.focuses) : [];
+    const focuses = descendantFocusItems(item);
+    return {
+      l1Count: domains.length,
+      l2Count: capabilities.length || (item.type === "capability" ? 1 : 0),
+      focusCount: focuses.length || directFocuses.length,
+    };
+  }
+
+  function rowFocusId(row = {}) {
+    return text(row.focus?.id || row.focusId || row.focus_id || row.focus?.code).trim();
+  }
+
+  function rowsForFocusIds(rows = [], focusIds = new Set()) {
+    if (!focusIds.size) return [];
+    return list(rows).filter((row) => focusIds.has(rowFocusId(row)));
+  }
+
+  function summarizeStandards(rows) {
+    const displayableRows = list(rows).filter((row) => list(row.controls).length);
+    return {
+      frameworkCount: uniqueBy(list(rows).flatMap((row) => list(row.standards || row.frameworks)), (standard) => standard.id || standard.code || standard.title || standard.name).length,
+      controlCount: uniqueBy(displayableRows.flatMap((row) => list(row.controls)), (control) => control.id || control.code || control.originalControlId || control.title).length,
+      rowCount: displayableRows.length,
+    };
+  }
+
+  function capabilityMappingStats({ focusCount = 0, technicalRows = [], managementRows = [], standardRows = [] } = {}) {
+    const technicalSummary = summarizeTechnical(technicalRows);
+    const managementSummary = summarizeManagement(managementRows);
+    const standardSummary = summarizeStandards(standardRows);
+    const technicalCoveredRows = list(technicalRows).filter((row) => list(row.services).length).length;
+    const managementCoveredRows = list(managementRows).filter((row) => list(row.securityWorks).length || list(row.stakeholders).length).length;
+    const standardCoveredRows = list(standardRows).filter((row) => list(row.controls).length).length;
+    const safeFocusCount = Math.max(1, focusCount || list(technicalRows).length || list(managementRows).length || list(standardRows).length);
+    return {
+      focusCount,
+      technicalRowCount: list(technicalRows).length,
+      managementRowCount: list(managementRows).length,
+      standardRowCount: standardSummary.rowCount,
+      mappingCount: list(technicalRows).length + list(managementRows).length + standardSummary.rowCount,
+      technicalSummary,
+      managementSummary,
+      standardSummary,
+      coverage: [
+        {
+          key: "technical",
+          label: "技术映射",
+          value: technicalSummary.serviceCount,
+          meta: `${technicalSummary.scopeCount} 作用域 / ${technicalSummary.moduleCount} 模块措施`,
+          ratio: Math.min(1, technicalCoveredRows / Math.max(1, list(technicalRows).length || safeFocusCount)),
+        },
+        {
+          key: "management",
+          label: "管理映射",
+          value: managementSummary.securityWorkCount,
+          meta: `${managementSummary.securityFunctionCount} 职能 / ${managementSummary.processReferenceCount} 流程`,
+          ratio: Math.min(1, managementCoveredRows / Math.max(1, list(managementRows).length || safeFocusCount)),
+        },
+        {
+          key: "standard",
+          label: "标准映射",
+          value: standardSummary.controlCount,
+          meta: `${standardSummary.frameworkCount} 标准 / ${standardSummary.rowCount} 关注点`,
+          ratio: Math.min(1, standardCoveredRows / safeFocusCount),
+        },
+      ],
+    };
+  }
+
+  function capabilityChildOverview(item, mappingRows) {
+    const focuses = descendantFocusItems(item);
+    const focusIds = new Set(focuses.map((focus) => focus.id).filter(Boolean));
+    const childItems = childCapabilityItems(item);
+    const technicalRows = rowsForFocusIds(mappingRows.technicalMappingRows, focusIds);
+    const managementRows = rowsForFocusIds(mappingRows.managementMappingRows, focusIds);
+    const standardRows = rowsForFocusIds(mappingRows.standardMappingRows, focusIds);
+    const structure = capabilityStructureCounts(item);
+    const stats = capabilityMappingStats({ focusCount: focuses.length, technicalRows, managementRows, standardRows });
+    return {
+      ...compactEntity(item),
+      levelLabel: capabilityLevelLabel(item?.type),
+      structure,
+      stats,
+      previewChildren: childItems.map(compactEntity).filter(Boolean),
+    };
+  }
+
+  function buildCapabilityOverview({ selectedRaw, selectedDetail, visibleFocuses, technicalMappingRows, managementMappingRows, standardMappingRows }) {
+    const selectedType = selectedRaw?.type || selectedDetail?.type || "";
+    const childItems = childCapabilityItems(selectedRaw);
+    const structure = capabilityStructureCounts(selectedRaw);
+    const stats = capabilityMappingStats({
+      focusCount: visibleFocuses.length,
+      technicalRows: technicalMappingRows,
+      managementRows: managementMappingRows,
+      standardRows: standardMappingRows,
+    });
+    const isL0OrL1 = selectedType === "capability_category" || selectedType === "capability_domain";
+    const isL2 = selectedType === "capability";
+    const detailRowCount = stats.technicalRowCount + stats.managementRowCount + stats.standardRowCount;
+    const detailPolicy = isL0OrL1 ? "overview" : isL2 && detailRowCount > CAPABILITY_DETAIL_ROW_THRESHOLD ? "mixed_summary" : "full_detail";
+    return {
+      selected: compactEntity(selectedRaw || selectedDetail),
+      selectedType,
+      levelLabel: capabilityLevelLabel(selectedType),
+      detailPolicy,
+      detailThreshold: CAPABILITY_DETAIL_ROW_THRESHOLD,
+      detailRowCount,
+      structure,
+      stats,
+      coverage: stats.coverage,
+      children: childItems
+        .map((item) =>
+          capabilityChildOverview(item, {
+            technicalMappingRows,
+            managementMappingRows,
+            standardMappingRows,
+          }),
+        )
+        .filter(Boolean),
+      summaryHint: isL0OrL1
+        ? "当前层级默认呈现结构、覆盖和下钻入口，完整映射明细请进入 L2 或关注点核对。"
+        : detailPolicy === "mixed_summary"
+          ? "当前 L2 映射量较大，默认收拢为摘要；进入关注点可查看完整核对明细。"
+          : "当前层级可展示完整映射明细。",
+    };
+  }
+
   function buildDetailInspector(selectedDetail, selectedType, processMappings, services, modules, sourceItem, sourceMappings, technicalSummary, managementSummary, securityWorks, sourceItems) {
     return {
       type: selectedDetail?.type || selectedType || "能力对象",
@@ -1283,6 +1442,7 @@
     const visibleFocusIds = new Set(rows.map((row) => row.focus.id));
     const visibleFocuses = selectedFocuses.filter((focus) => !query || visibleFocusIds.has(focus.id) || includesSearch(query, focus.code, focus.title, focus.description));
     const visibleFocusIdSet = new Set(visibleFocuses.map((focus) => focus.id));
+    const securityWorkCodeLookup = buildSecurityWorkCodeLookup(capabilityTree, management);
     const workbenchTechnicalRows = buildCapabilityTechnicalRowsFromWorkbench(capabilityWorkbench, visibleFocuses);
     const workbenchManagementRows = buildCapabilityManagementRowsFromWorkbench(capabilityWorkbench, visibleFocuses);
     const standardsCatalogByCode = standardCatalogByCode(standards);
@@ -1299,11 +1459,12 @@
       : projectedTechnicalRows.length
       ? projectedTechnicalRows.filter((row) => visibleFocusIdSet.has(row.focus?.id))
       : buildTechnicalMappingRows({ management, focuses: visibleFocuses });
-    const managementMappingRows = workbenchManagementRows.length
+    const rawManagementMappingRows = workbenchManagementRows.length
       ? workbenchManagementRows
       : projectedManagementRows.length
       ? projectedManagementRows.filter((row) => visibleFocusIdSet.has(row.focus?.id))
       : buildManagementMappingRows({ focuses: visibleFocuses });
+    const managementMappingRows = applySecurityWorkCodesToRows(rawManagementMappingRows, securityWorkCodeLookup);
     const workbenchAndLoadedStandardRows = workbenchStandardRows.length ? mergeSupplementalStandardRows(workbenchStandardRows, standardsPackageRows) : [];
     const projectedAndLoadedStandardRows = mergeSupplementalStandardRows(selectedProjectedStandardRows, standardsPackageRows);
     const standardMappingRows = workbenchAndLoadedStandardRows.length
@@ -1312,6 +1473,14 @@
       ? projectedAndLoadedStandardRows
       : [];
     const focusOverview = buildFocusOverview({ capabilityTree, focuses: visibleFocuses, selectedDetail, technicalRows: technicalMappingRows, managementRows: managementMappingRows });
+    const capabilityOverview = buildCapabilityOverview({
+      selectedRaw,
+      selectedDetail,
+      visibleFocuses,
+      technicalMappingRows,
+      managementMappingRows,
+      standardMappingRows,
+    });
     const selectedFocusRow = rows.find((row) => row.focus.id === selectedId) || rows[0] || null;
     const chainFocus = selectedFocusRow || null;
     const detailRaw = selectedDetail?.id ? findCapabilityItemAndFocuses(capabilityTree, selectedDetail.id).selected : selectedRaw;
@@ -1337,9 +1506,10 @@
       detailStandardRows,
       detailSourceEvidence,
     });
-    const localRelationMap = usingProjectedLocalRelationMap
+    const rawLocalRelationMap = usingProjectedLocalRelationMap
       ? mergeFallbackStandardsIntoProjected(projectedLocalRelationMap, fallbackLocalRelationMap)
       : mergeProjectedStandards(fallbackLocalRelationMap, projectedLocalRelationMap);
+    const localRelationMap = applySecurityWorkCodesToLocalRelationMap(rawLocalRelationMap, securityWorkCodeLookup);
 
     return {
       navigationTree,
@@ -1353,7 +1523,9 @@
         standardRowCount: standardMappingRows.filter((row) => list(row.controls).length).length,
         noServiceCount: summarizeTechnical(technicalMappingRows).noServiceCount,
         ambiguousCount: summarizeTechnical(technicalMappingRows).ambiguousCount,
+        detailPolicy: capabilityOverview.detailPolicy,
       },
+      capabilityOverview,
       focusOverview,
       technicalMappingRows,
       managementMappingRows,
@@ -1635,12 +1807,157 @@
     return list(management?.security_technology_modules).filter((module) => hasTechnologyModuleCatalogSource(module) || text(module?.category).trim());
   }
 
-  function securityWorkDisplayCode(work, focus, index) {
+  function securityWorkBaseCodeFromPath(path = {}) {
+    const capabilityCode = text(path?.capability?.code || path?.capabilityCode).trim();
+    if (capabilityCode) return capabilityCode;
+    const focusCode = text(path?.focus?.code || path?.focusCode).trim();
+    const focusBaseCode = focusCode.replace(/-\d+$/, "");
+    if (focusBaseCode) return focusBaseCode;
+    const domainCode = text(path?.domain?.code || path?.domainCode).trim();
+    if (domainCode) return domainCode;
+    return "GENERAL";
+  }
+
+  function securityWorkDisplayCode(work, path, index) {
     const explicitCode = text(work?.code).trim();
     if (explicitCode.startsWith("SW-")) return explicitCode;
-    const focusCode = businessText(focus?.code, "FOCUS");
+    const focusCode = securityWorkBaseCodeFromPath(path);
     const sequence = String(index + 1).padStart(2, "0");
     return `SW-${focusCode}-${sequence}`;
+  }
+
+  function securityWorkTitleKey(value) {
+    const raw = typeof value === "object" ? value?.title || value?.name || value?.code || value?.id : value;
+    const normalized = text(raw).trim().replace(/\s+/g, "");
+    return normalized || "";
+  }
+
+  function securityWorkLogicalCount(management, fallback = 0) {
+    const count = uniqueBy(list(management?.security_works), (work) => securityWorkTitleKey(work) || work?.id || work?.code).length;
+    return count || fallback;
+  }
+
+  function securityWorkRawRows(capabilityTree, management) {
+    const treeRows = capabilityFocusRows(capabilityTree).flatMap((path) =>
+      list(path.focus.security_works).map((work, focusWorkIndex) => ({ ...path, work, focusWorkIndex })),
+    );
+    const packageRows = list(management?.security_works).flatMap((work, workIndex) => {
+      const focuses = list(work.focuses);
+      if (!focuses.length) return [{ ...capabilityFocusPathByCode(capabilityTree, {}), work, focusWorkIndex: workIndex }];
+      return focuses.map((focus, focusWorkIndex) => ({
+        ...capabilityFocusPathByCode(capabilityTree, focus),
+        work,
+        focusWorkIndex,
+      }));
+    });
+    return packageRows.length ? packageRows : treeRows;
+  }
+
+  function capabilityFocusOrderMap(capabilityTree) {
+    const map = new Map();
+    capabilityFocusRows(capabilityTree).forEach((path, index) => {
+      const id = text(path.focus?.id).trim();
+      const code = text(path.focus?.code).trim();
+      if (id) map.set(`id:${id}`, index);
+      if (code) map.set(`code:${code}`, index);
+    });
+    return map;
+  }
+
+  function securityWorkFocusSortOrder(item, focusOrderMap) {
+    const focusId = text(item?.focus?.id).trim();
+    const focusCode = text(item?.focus?.code).trim();
+    if (focusId && focusOrderMap.has(`id:${focusId}`)) return focusOrderMap.get(`id:${focusId}`);
+    if (focusCode && focusOrderMap.has(`code:${focusCode}`)) return focusOrderMap.get(`code:${focusCode}`);
+    return Number.MAX_SAFE_INTEGER;
+  }
+
+  function compareSecurityWorkGroups(left, right) {
+    const leftOrder = Number.isFinite(Number(left.sortOrder)) ? Number(left.sortOrder) : Number.MAX_SAFE_INTEGER;
+    const rightOrder = Number.isFinite(Number(right.sortOrder)) ? Number(right.sortOrder) : Number.MAX_SAFE_INTEGER;
+    const leftRawIndex = Number.isFinite(Number(left.rawIndex)) ? Number(left.rawIndex) : 0;
+    const rightRawIndex = Number.isFinite(Number(right.rawIndex)) ? Number(right.rawIndex) : 0;
+    return (
+      leftOrder - rightOrder ||
+      leftRawIndex - rightRawIndex ||
+      text(left.title).localeCompare(text(right.title), "zh-Hans-CN")
+    );
+  }
+
+  function buildSecurityWorkCodeLookup(capabilityTree, management) {
+    const grouped = new Map();
+    const focusOrderMap = capabilityFocusOrderMap(capabilityTree);
+    securityWorkRawRows(capabilityTree, management).forEach((item, rawIndex) => {
+      const titleKey = securityWorkTitleKey(item.work);
+      const key = titleKey ? `title:${titleKey}` : `id:${item.work?.id || item.work?.code || grouped.size}`;
+      const sortOrder = securityWorkFocusSortOrder(item, focusOrderMap);
+      if (!grouped.has(key)) grouped.set(key, { key, rows: [], rawIndex, sortOrder, title: item.work?.title || item.work?.name || "" });
+      const group = grouped.get(key);
+      group.rows.push(item);
+      group.sortOrder = Math.min(group.sortOrder, sortOrder);
+      group.rawIndex = Math.min(group.rawIndex, rawIndex);
+    });
+    const sequenceByBaseCode = new Map();
+    const byTitle = new Map();
+    const byId = new Map();
+    const groupCodes = new Map();
+    const orderedGroups = [...grouped.values()].sort(compareSecurityWorkGroups);
+    for (const group of orderedGroups) {
+      const first = group.rows[0] || {};
+      const explicitCode = group.rows.map((row) => text(row.work?.code).trim()).find((code) => code.startsWith("SW-"));
+      const baseCode = securityWorkBaseCodeFromPath(first);
+      const nextSequence = (sequenceByBaseCode.get(baseCode) || 0) + 1;
+      sequenceByBaseCode.set(baseCode, nextSequence);
+      const displayCode = explicitCode || `SW-${baseCode}-${String(nextSequence).padStart(2, "0")}`;
+      groupCodes.set(group.key, displayCode);
+      const titleKey = securityWorkTitleKey(first.work);
+      if (titleKey) byTitle.set(titleKey, displayCode);
+      for (const item of group.rows) {
+        const id = text(item.work?.id).trim();
+        if (id) byId.set(id, displayCode);
+        const rawCode = text(item.work?.code).trim();
+        if (rawCode) byId.set(rawCode, displayCode);
+      }
+    }
+    return { byTitle, byId, groupCodes };
+  }
+
+  function securityWorkUniqueDisplayCode(work, codeLookup) {
+    const explicitCode = text(work?.code).trim();
+    if (explicitCode.startsWith("SW-")) return explicitCode;
+    const titleKey = securityWorkTitleKey(work);
+    if (titleKey && codeLookup?.byTitle?.has(titleKey)) return codeLookup.byTitle.get(titleKey);
+    const id = text(work?.id).trim();
+    if (id && codeLookup?.byId?.has(id)) return codeLookup.byId.get(id);
+    return explicitCode;
+  }
+
+  function applySecurityWorkCodesToRows(rows, codeLookup) {
+    if (!codeLookup) return rows;
+    return list(rows).map((row) => ({
+      ...row,
+      securityWorks: list(row.securityWorks).map((work) => {
+        const code = securityWorkUniqueDisplayCode(work, codeLookup);
+        return code ? { ...work, code, displayCode: code } : work;
+      }),
+    }));
+  }
+
+  function applySecurityWorkCodesToLocalRelationMap(map, codeLookup) {
+    if (!map || !codeLookup) return map;
+    const management = map.management || {};
+    const withCode = (work) => {
+      const code = securityWorkUniqueDisplayCode(work, codeLookup);
+      return code ? { ...work, code, displayCode: code } : work;
+    };
+    return {
+      ...map,
+      management: {
+        ...management,
+        securityWorks: list(management.securityWorks).map(withCode),
+        works: list(management.works).map(withCode),
+      },
+    };
   }
 
   function capabilityFocusRows(capabilityTree) {
@@ -1679,7 +1996,7 @@
       id: [focus?.id || focus?.code || index, work?.id || work?.title || focusWorkIndex].join("::"),
       rawId: work?.id || work?.title || `security-work-${index}`,
       index: index + 1,
-      displayCode: securityWorkDisplayCode(work, focus, focusWorkIndex),
+      displayCode: securityWorkDisplayCode(work, { category, domain, capability, focus }, focusWorkIndex),
       title: workTitle,
       capability: compactEntity(capability, "待补充"),
       focus: compactEntity(focus, "待补充"),
@@ -1694,34 +2011,93 @@
 
   function buildSecurityWorkMaintenanceViewModel({ capabilityTree, management, search }) {
     const query = normalizeSearch(search);
-    const treeRows = capabilityFocusRows(capabilityTree).flatMap((path) =>
-      list(path.focus.security_works).map((work, focusWorkIndex) => ({ ...path, work, focusWorkIndex })),
-    );
-    const packageRows = list(management?.security_works).flatMap((work, workIndex) => {
-      const focuses = list(work.focuses);
-      if (!focuses.length) return [{ ...capabilityFocusPathByCode(capabilityTree, {}), work, focusWorkIndex: workIndex }];
-      return focuses.map((focus, focusWorkIndex) => ({
-        ...capabilityFocusPathByCode(capabilityTree, focus),
-        work,
-        focusWorkIndex,
-      }));
-    });
-    const rawRows = treeRows.length ? treeRows : packageRows;
+    const rawRows = securityWorkRawRows(capabilityTree, management);
+    const codeLookup = buildSecurityWorkCodeLookup(capabilityTree, management);
+    const focusOrderMap = capabilityFocusOrderMap(capabilityTree);
     const rowPairs = rawRows.map((item, index) => ({
       item,
       row: compactSecurityWorkRow(item, index, item.focusWorkIndex),
     }));
-    const rows = rowPairs
-      .map(({ row }) => row)
+    const grouped = new Map();
+    rowPairs.forEach((pair, rawIndex) => {
+      const titleKey = securityWorkTitleKey(pair.row.title);
+      const key = titleKey ? `title:${titleKey}` : `id:${pair.row.rawId || pair.row.id}`;
+      const sortOrder = securityWorkFocusSortOrder(pair.item, focusOrderMap);
+      if (!grouped.has(key)) grouped.set(key, { key, pairs: [], rawIndex, sortOrder, title: pair.row.title });
+      const group = grouped.get(key);
+      group.pairs.push(pair);
+      group.sortOrder = Math.min(group.sortOrder, sortOrder);
+      group.rawIndex = Math.min(group.rawIndex, rawIndex);
+    });
+    const groupedRows = Array.from(grouped.values()).sort(compareSecurityWorkGroups).map((group, index) => {
+      const rows = group.pairs.map((pair) => pair.row);
+      const first = rows[0] || {};
+      const displayCode = codeLookup.groupCodes.get(group.key) || securityWorkUniqueDisplayCode(group.pairs[0]?.item?.work, codeLookup) || first.displayCode;
+      const displayCodes = displayCode ? [displayCode] : [];
+      const relatedFocuses = uniqueBy(
+        rows
+          .map((row) => row.focus)
+          .filter((focus) => focus && (focus.id || focus.code || focus.title)),
+        (focus) => focus.id || focus.code || focus.title,
+      );
+      const relatedCapabilities = uniqueBy(
+        rows
+          .map((row) => row.capability)
+          .filter((capability) => capability && (capability.id || capability.code || capability.title)),
+        (capability) => capability.id || capability.code || capability.title,
+      );
+      const relatedCategories = uniqueBy(
+        rows
+          .map((row) => row.category)
+          .filter((category) => category && (category.id || category.code || category.title)),
+        (category) => category.id || category.code || category.title,
+      );
+      const relatedDomains = uniqueBy(
+        rows
+          .map((row) => row.domain)
+          .filter((domain) => domain && (domain.id || domain.code || domain.title)),
+        (domain) => domain.id || domain.code || domain.title,
+      );
+      const sourceEvidence = uniqueBy(group.pairs.flatMap((pair) => list(pair.item?.work?.sources)), sourceEvidenceKey);
+      const missingFields = uniqueBy(rows.flatMap((row) => list(row.missingFields)), (field) => field);
+      return {
+        ...first,
+        id: `security-work-group:${group.key}`,
+        rawIds: uniqueBy(rows.map((row) => row.rawId).filter(Boolean), (id) => id),
+        index: index + 1,
+        displayCode: displayCodes[0] || first.displayCode,
+        displayCodes,
+        codeCount: displayCodes.length,
+        relatedFocuses,
+        relatedCapabilities,
+        relatedCategories,
+        relatedDomains,
+        focus: relatedFocuses[0] || first.focus,
+        focusCode: relatedFocuses[0]?.code || first.focusCode,
+        focusTitle: relatedFocuses[0]?.title || first.focusTitle,
+        capability: relatedCapabilities[0] || first.capability,
+        category: relatedCategories[0] || first.category,
+        domain: relatedDomains[0] || first.domain,
+        focusCount: relatedFocuses.length,
+        capabilityCount: relatedCapabilities.length,
+        missingFields,
+        sourceEvidence,
+        status: missingFields.length ? "待补充" : rows.some((row) => row.status === "待补充") ? "待补充" : "正常",
+      };
+    });
+    const rows = groupedRows
       .filter((row) =>
         includesSearch(
           query,
           row.displayCode,
+          ...list(row.displayCodes),
           row.title,
           row.status,
           row.capability?.title,
+          ...list(row.relatedCapabilities).map((item) => codeTitle(item)),
           row.focusCode,
           row.focusTitle,
+          ...list(row.relatedFocuses).map((item) => codeTitle(item)),
           row.category?.title,
           row.domain?.title,
         ),
@@ -1730,11 +2106,12 @@
       rows,
       summary: {
         totalSecurityWorks: rows.length,
-        linkedCapabilities: countLinked(rows.map((row) => row.capability)),
-        linkedFocuses: countLinked(rows.map((row) => row.focus)),
+        linkedCapabilities: countLinked(rows.flatMap((row) => row.relatedCapabilities)),
+        linkedFocuses: countLinked(rows.flatMap((row) => row.relatedFocuses)),
         pendingFields: rows.filter((row) => row.status === "待补充").length,
+        relationRows: rows.reduce((sum, row) => sum + list(row.relatedFocuses).length, 0),
       },
-      sourceEvidenceById: Object.fromEntries(rowPairs.map(({ item, row }) => [row.id, uniqueBy(list(item.work?.sources), sourceEvidenceKey)])),
+      sourceEvidenceById: Object.fromEntries(groupedRows.map((row) => [row.id, list(row.sourceEvidence)])),
       emptyState: rows.length ? "" : "暂无安全工作数据，请确认 ETL 是否已导出 security_works。",
     };
   }
@@ -2634,7 +3011,7 @@
     const securityWorkReferenceCount = list(capabilityTree?.categories).flatMap((category) =>
       list(category.domains).flatMap((domain) => list(domain.capabilities).flatMap((capability) => list(capability.focuses).flatMap((focus) => list(focus.security_works)))),
     ).length;
-    const securityWorkCount = configuredCount("security-works", list(management?.security_works).length || securityWorkReferenceCount);
+    const securityWorkCount = securityWorkLogicalCount(management, securityWorkReferenceCount);
     const applicationSystemCount = list(lifecycle?.application_security_development?.application_system_types).length;
     return [
       { id: "capability-directory", label: "安全能力清单", count: capabilityDirectoryCount, implemented: true },
@@ -2915,16 +3292,16 @@
         type: "安全工作",
         code: row.displayCode,
         title: row.title,
-        description: "安全工作作为独立对象展示；与安全职能不建立直接关系。",
+        description: "安全工作作为独立对象展示；一个安全工作可关联多个能力关注点。",
         facts: [
-          { label: "正式编码", value: row.displayCode },
-          { label: "关联安全能力", value: titleOf(row.capability, "待补充") },
-          { label: "关联关注点", value: [row.focusCode, row.focusTitle].filter(Boolean).join(" ") || "待补充" },
+          { label: "工作编码", value: list(row.displayCodes).join("、") || row.displayCode },
+          { label: "关联安全能力", value: row.capabilityCount ? `${row.capabilityCount} 项` : "待补充" },
+          { label: "关联关注点", value: row.focusCount ? `${row.focusCount} 项` : "待补充" },
           { label: "状态", value: row.status },
         ],
         sections: [
-          { title: "关联安全能力", items: row.capability ? [row.capability] : [] },
-          { title: "关联关注点", items: row.focus ? [row.focus] : [] },
+          { title: "关联安全能力", items: row.relatedCapabilities },
+          { title: "关联关注点", items: row.relatedFocuses },
         ],
         sourceEvidence,
       };

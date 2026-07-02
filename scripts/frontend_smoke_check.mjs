@@ -10,7 +10,9 @@ const PAGE_TO_VIEW = {
   overview: "overview",
   capability: "capabilities",
   capabilities: "capabilities",
+  "capability-mapping": "capabilities",
   environment: "environment",
+  "environment-mapping": "environment",
   lifecycle: "dev-lifecycle",
   "dev-lifecycle": "dev-lifecycle",
   standards: "maintenance",
@@ -557,6 +559,34 @@ async function main() {
         workspaceOverflowX: workspace ? workspace.scrollWidth - workspace.clientWidth : null,
         capabilityMap: Boolean(document.querySelector('.capability-local-relation-map, .relation-network-graph')),
         capabilityDetailText: document.querySelector('#detail')?.textContent?.replace(/\\s+/g, ' ').trim().slice(0, 180) || '',
+        capabilityControlProbe: (() => {
+          const control = document.querySelector('#capabilityViewControls');
+          const labels = [...document.querySelectorAll('#capabilityViewControls .relation-view-tab')];
+          const rectOf = (item) => {
+            const rect = item?.getBoundingClientRect?.();
+            return rect
+              ? {
+                  left: Math.round(rect.left),
+                  top: Math.round(rect.top),
+                  width: Math.round(rect.width),
+                  height: Math.round(rect.height),
+                }
+              : null;
+          };
+          return {
+            present: Boolean(control),
+            text: control?.textContent?.replace(/\\s+/g, ' ').trim() || '',
+            labels: labels.map((item) => item.textContent.replace(/\\s+/g, ' ').trim()),
+            visibleCount: labels.filter((item) => {
+              const rect = item.getBoundingClientRect();
+              const style = getComputedStyle(item);
+              return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+            }).length,
+            controlRect: rectOf(control),
+            labelRects: labels.map(rectOf),
+            searchRect: rectOf(document.querySelector('.capability-workbench-tools')),
+          };
+        })(),
         capabilityManagementChipProbe: (() => {
           const chips = [...document.querySelectorAll('.original-matrix-panel .management-mapping-section .function-layer-bucket em span')]
             .filter((item) => item.offsetParent !== null);
@@ -730,6 +760,7 @@ async function main() {
       activeViewMismatch ||
       (pageName === "standards" && !metrics.standardTable) ||
       (pageName === "standards" && !metrics.standardHeaderCenterAligned) ||
+      (pageName === "capability-mapping" && (!metrics.capabilityControlProbe?.present || metrics.capabilityControlProbe.visibleCount < 2)) ||
       (pageName === "standards" && metrics.standardHeaderEmphasis?.count > 0 && (metrics.standardHeaderEmphasis.minFontSize < 14 || metrics.standardHeaderEmphasis.minFontWeight < 800)) ||
       (pageName === "standards" &&
         metrics.standardDescriptionAligned?.count > 0 &&

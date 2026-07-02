@@ -2264,6 +2264,1791 @@
         font-size: 11px;
         font-weight: 820;
       }
+
+      .workbench-demo-frame {
+        height: 100%;
+        overflow: auto;
+        border: 1px solid rgba(136, 157, 181, 0.22);
+        border-radius: 24px;
+        background:
+          radial-gradient(circle at 82% 0%, rgba(10, 132, 255, 0.1), transparent 26%),
+          linear-gradient(180deg, rgba(248, 251, 255, 0.96), rgba(239, 245, 249, 0.92));
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.88),
+          var(--shadow-soft);
+      }
+
+      .workbench-demo-shell {
+        display: grid;
+        gap: 14px;
+        min-width: 1480px;
+        min-height: 920px;
+        padding: 16px;
+      }
+
+      .workbench-design-header,
+      .workbench-scheme,
+      .workbench-screen,
+      .workbench-fit,
+      .workbench-component-list {
+        border: 1px solid rgba(136, 157, 181, 0.22);
+        background: rgba(255, 255, 255, 0.74);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.88),
+          0 14px 30px rgba(31, 50, 76, 0.06);
+      }
+
+      .workbench-design-header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 18px;
+        align-items: end;
+        padding: 16px 18px;
+        border-radius: 22px;
+      }
+
+      .workbench-design-header h2 {
+        color: #172437;
+        font-size: 22px;
+        line-height: 1.18;
+      }
+
+      .workbench-design-header p {
+        margin-top: 6px;
+        color: #5f6e82;
+        font-size: 13px;
+        font-weight: 720;
+        line-height: 1.55;
+      }
+
+      .workbench-design-tags,
+      .workbench-screen-tags,
+      .workbench-summary-row,
+      .workbench-actions,
+      .workbench-status-row,
+      .workbench-filter-row,
+      .workbench-page-row,
+      .workbench-note-row,
+      .workbench-project-row,
+      .workbench-dimension-row,
+      .workbench-score-row,
+      .workbench-bars,
+      .workbench-eval-meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .workbench-design-tags {
+        justify-content: flex-end;
+      }
+
+      .workbench-pill {
+        display: inline-flex;
+        align-items: center;
+        width: fit-content;
+        min-height: 26px;
+        padding: 0 10px;
+        border: 1px solid rgba(10, 132, 255, 0.22);
+        border-radius: 999px;
+        background: rgba(237, 247, 255, 0.78);
+        color: #22669a;
+        font-size: 12px;
+        font-weight: 860;
+        white-space: nowrap;
+      }
+
+      .workbench-pill.is-muted {
+        color: #617187;
+        border-color: rgba(136, 157, 181, 0.22);
+        background: rgba(238, 243, 248, 0.72);
+      }
+
+      .workbench-pill.is-good {
+        color: #2f6c50;
+        border-color: rgba(118, 173, 144, 0.34);
+        background: rgba(235, 248, 241, 0.78);
+      }
+
+      .workbench-pill.is-warn {
+        color: #9a673f;
+        border-color: rgba(207, 149, 109, 0.34);
+        background: rgba(255, 244, 235, 0.82);
+      }
+
+      .workbench-scheme {
+        display: grid;
+        gap: 12px;
+        padding: 14px;
+        border-radius: 24px;
+      }
+
+      .workbench-scheme-head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 14px;
+        align-items: start;
+      }
+
+      .workbench-scheme-title {
+        display: grid;
+        gap: 5px;
+      }
+
+      .workbench-scheme-title small {
+        color: #657287;
+        font-size: 12px;
+        font-weight: 860;
+      }
+
+      .workbench-scheme-title h3 {
+        margin: 0;
+        color: #172437;
+        font-size: 18px;
+        line-height: 1.2;
+      }
+
+      .workbench-scheme-title p,
+      .workbench-fit p {
+        margin: 0;
+        color: #607186;
+        font-size: 12.5px;
+        font-weight: 720;
+        line-height: 1.5;
+      }
+
+      .workbench-scheme-fit {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 10px;
+      }
+
+      .workbench-fit,
+      .workbench-component-list {
+        display: grid;
+        gap: 8px;
+        padding: 12px;
+        border-radius: 18px;
+      }
+
+      .workbench-fit strong,
+      .workbench-component-list strong {
+        color: #26384f;
+        font-size: 12px;
+      }
+
+      .workbench-preview-grid {
+        display: grid;
+        grid-template-columns: minmax(280px, 0.82fr) minmax(470px, 1.28fr) minmax(420px, 1.1fr);
+        gap: 12px;
+        align-items: stretch;
+      }
+
+      .workbench-screen {
+        min-height: 300px;
+        overflow: hidden;
+        border-radius: 20px;
+      }
+
+      .workbench-screen-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: start;
+        padding: 12px 14px;
+        border-bottom: 1px solid rgba(136, 157, 181, 0.18);
+        background: rgba(247, 250, 253, 0.82);
+      }
+
+      .workbench-screen-head h4 {
+        margin: 0;
+        color: #1f2e42;
+        font-size: 14px;
+        line-height: 1.25;
+      }
+
+      .workbench-screen-head span {
+        color: #6b7b90;
+        font-size: 11px;
+        font-weight: 820;
+      }
+
+      .workbench-screen-body {
+        display: grid;
+        gap: 10px;
+        padding: 12px;
+      }
+
+      .workbench-dashboard-mini {
+        display: grid;
+        grid-template-columns: 74px minmax(0, 1fr);
+        gap: 10px;
+      }
+
+      .workbench-mini-sidebar {
+        display: grid;
+        gap: 7px;
+        align-content: start;
+        padding: 9px;
+        border: 1px solid rgba(136, 157, 181, 0.18);
+        border-radius: 16px;
+        background: rgba(243, 248, 252, 0.7);
+      }
+
+      .workbench-mini-nav {
+        min-height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        color: #617187;
+        font-size: 11px;
+        font-weight: 850;
+      }
+
+      .workbench-mini-nav.is-active {
+        color: #1769aa;
+        background: rgba(231, 244, 255, 0.9);
+        box-shadow: inset 0 0 0 1px rgba(10, 132, 255, 0.22);
+      }
+
+      .workbench-entry-card {
+        display: grid;
+        gap: 10px;
+        padding: 13px;
+        border: 1px solid rgba(10, 132, 255, 0.22);
+        border-radius: 18px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(232, 245, 255, 0.74)),
+          rgba(10, 132, 255, 0.07);
+      }
+
+      .workbench-entry-card h5 {
+        margin: 0;
+        color: #172437;
+        font-size: 16px;
+      }
+
+      .workbench-summary-row {
+        justify-content: space-between;
+      }
+
+      .workbench-summary-unit {
+        display: grid;
+        gap: 2px;
+      }
+
+      .workbench-summary-unit strong {
+        color: #172437;
+        font-size: 18px;
+        line-height: 1;
+      }
+
+      .workbench-summary-unit span {
+        color: #657287;
+        font-size: 11px;
+        font-weight: 820;
+      }
+
+      .workbench-action {
+        min-height: 32px;
+        padding: 0 12px;
+        border: 1px solid rgba(10, 132, 255, 0.26);
+        border-radius: 999px;
+        background: rgba(232, 245, 255, 0.76);
+        color: #1769aa;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 860;
+      }
+
+      .workbench-action.is-secondary {
+        color: #53647a;
+        border-color: rgba(136, 157, 181, 0.22);
+        background: rgba(255, 255, 255, 0.7);
+      }
+
+      .workbench-filter-row {
+        padding: 10px;
+        border: 1px solid rgba(136, 157, 181, 0.16);
+        border-radius: 14px;
+        background: rgba(246, 250, 253, 0.76);
+      }
+
+      .workbench-filter {
+        min-height: 28px;
+        padding: 0 9px;
+        border: 1px solid rgba(136, 157, 181, 0.22);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.72);
+        color: #52647a;
+        font-size: 11px;
+        font-weight: 820;
+      }
+
+      .workbench-annotation-layout {
+        display: grid;
+        grid-template-columns: minmax(210px, 0.92fr) minmax(240px, 1fr);
+        gap: 10px;
+      }
+
+      .workbench-page-list,
+      .workbench-note-list,
+      .workbench-detail-pane,
+      .workbench-project-list,
+      .workbench-score-form,
+      .workbench-result-panel {
+        display: grid;
+        gap: 8px;
+        align-content: start;
+        padding: 10px;
+        border: 1px solid rgba(136, 157, 181, 0.18);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.62);
+      }
+
+      .workbench-page-row,
+      .workbench-note-row,
+      .workbench-project-row,
+      .workbench-dimension-row,
+      .workbench-score-row {
+        justify-content: space-between;
+        min-height: 36px;
+        padding: 8px 9px;
+        border: 1px solid rgba(136, 157, 181, 0.16);
+        border-radius: 12px;
+        background: rgba(248, 251, 254, 0.76);
+        color: #475a70;
+        font-size: 12px;
+        font-weight: 780;
+      }
+
+      .workbench-page-row.is-active,
+      .workbench-note-row.is-active,
+      .workbench-project-row.is-active,
+      .workbench-dimension-row.is-active {
+        border-color: rgba(10, 132, 255, 0.36);
+        background: rgba(232, 245, 255, 0.82);
+        color: #1769aa;
+      }
+
+      .workbench-note-title {
+        min-width: 0;
+        color: #203349;
+        font-weight: 900;
+      }
+
+      .workbench-detail-pane h5,
+      .workbench-project-list h5,
+      .workbench-score-form h5,
+      .workbench-result-panel h5,
+      .workbench-page-list h5,
+      .workbench-note-list h5 {
+        margin: 0;
+        color: #26384f;
+        font-size: 13px;
+      }
+
+      .workbench-detail-pane p,
+      .workbench-result-panel p {
+        margin: 0;
+        color: #607186;
+        font-size: 12px;
+        font-weight: 720;
+        line-height: 1.5;
+      }
+
+      .workbench-timeline {
+        display: grid;
+        gap: 6px;
+        color: #68798e;
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .workbench-maturity-layout {
+        display: grid;
+        grid-template-columns: minmax(180px, 0.72fr) minmax(280px, 1fr) minmax(190px, 0.78fr);
+        gap: 10px;
+      }
+
+      .workbench-score-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+      }
+
+      .workbench-score-options {
+        display: inline-flex;
+        gap: 4px;
+      }
+
+      .workbench-score-dot {
+        width: 20px;
+        height: 20px;
+        border: 1px solid rgba(136, 157, 181, 0.22);
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.8);
+      }
+
+      .workbench-score-dot.is-on {
+        border-color: rgba(10, 132, 255, 0.38);
+        background: rgba(10, 132, 255, 0.72);
+        box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.14);
+      }
+
+      .workbench-radar {
+        width: 118px;
+        height: 118px;
+        margin: 4px auto;
+        border: 1px solid rgba(136, 157, 181, 0.22);
+        border-radius: 50%;
+        background:
+          radial-gradient(circle, rgba(255, 255, 255, 0.86) 0 24%, transparent 25% 100%),
+          conic-gradient(from 18deg, rgba(10, 132, 255, 0.72), rgba(118, 173, 144, 0.66), rgba(207, 149, 109, 0.62), rgba(99, 102, 214, 0.58), rgba(10, 132, 255, 0.72));
+        box-shadow: inset 0 0 0 12px rgba(248, 251, 254, 0.84);
+      }
+
+      .workbench-bar {
+        display: grid;
+        grid-template-columns: 64px minmax(0, 1fr) 32px;
+        gap: 8px;
+        align-items: center;
+        color: #5d6f84;
+        font-size: 11px;
+        font-weight: 820;
+      }
+
+      .workbench-bar span:nth-child(2) {
+        height: 7px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: rgba(136, 157, 181, 0.16);
+      }
+
+      .workbench-bar i {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, rgba(10, 132, 255, 0.68), rgba(118, 173, 144, 0.64));
+      }
+
+      .workbench-report-strip {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .workbench-report-tile {
+        display: grid;
+        gap: 4px;
+        min-height: 62px;
+        padding: 9px;
+        border: 1px solid rgba(118, 173, 144, 0.22);
+        border-radius: 14px;
+        background: rgba(246, 251, 247, 0.78);
+      }
+
+      .workbench-report-tile strong {
+        color: #244e3b;
+        font-size: 17px;
+      }
+
+      .workbench-report-tile span {
+        color: #617187;
+        font-size: 11px;
+        font-weight: 820;
+      }
+
+      .workbench-scheme.is-ops .workbench-screen-head {
+        background: linear-gradient(180deg, rgba(245, 249, 253, 0.92), rgba(236, 244, 251, 0.82));
+      }
+
+      .workbench-scheme.is-report .workbench-entry-card,
+      .workbench-scheme.is-report .workbench-page-row.is-active,
+      .workbench-scheme.is-report .workbench-note-row.is-active,
+      .workbench-scheme.is-report .workbench-project-row.is-active,
+      .workbench-scheme.is-report .workbench-dimension-row.is-active {
+        border-color: rgba(118, 173, 144, 0.36);
+        background: rgba(239, 249, 242, 0.84);
+        color: #2f6c50;
+      }
+
+      .workbench-scheme.is-report .workbench-action {
+        color: #2f6c50;
+        border-color: rgba(118, 173, 144, 0.3);
+        background: rgba(236, 248, 241, 0.82);
+      }
+
+      .workbench-scheme.is-vision {
+        background:
+          radial-gradient(circle at 18% 0%, rgba(10, 132, 255, 0.12), transparent 24%),
+          radial-gradient(circle at 88% 8%, rgba(118, 173, 144, 0.12), transparent 24%),
+          rgba(255, 255, 255, 0.68);
+      }
+
+      .workbench-scheme.is-vision .workbench-screen,
+      .workbench-scheme.is-vision .workbench-fit,
+      .workbench-scheme.is-vision .workbench-component-list {
+        background: rgba(255, 255, 255, 0.66);
+        backdrop-filter: blur(18px) saturate(1.08);
+      }
+
+      .workbench-prototype-shell {
+        display: grid;
+        grid-template-columns: 248px minmax(0, 1fr);
+        gap: 14px;
+        min-width: 1480px;
+        min-height: 860px;
+        padding: 14px;
+      }
+
+      .workbench-prototype-sidebar,
+      .workbench-prototype-main,
+      .workbench-prototype-card,
+      .workbench-prototype-panel,
+      .workbench-prototype-table,
+      .workbench-prototype-detail,
+      .workbench-prototype-chart-card {
+        border: 1px solid rgba(136, 157, 181, 0.22);
+        background: rgba(255, 255, 255, 0.72);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.88),
+          0 14px 30px rgba(31, 50, 76, 0.06);
+      }
+
+      .workbench-prototype-sidebar {
+        display: grid;
+        align-content: start;
+        gap: 8px;
+        padding: 14px;
+        border-radius: 22px;
+      }
+
+      .workbench-prototype-brand {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        padding: 8px 8px 14px;
+        margin-bottom: 4px;
+        border-bottom: 1px solid rgba(136, 157, 181, 0.18);
+      }
+
+      .workbench-prototype-logo {
+        width: 34px;
+        height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        color: #f7fbff;
+        background: linear-gradient(180deg, rgba(10, 132, 255, 0.92), rgba(42, 107, 190, 0.86));
+        font-size: 15px;
+        font-weight: 900;
+        box-shadow: 0 10px 20px rgba(10, 132, 255, 0.18);
+      }
+
+      .workbench-prototype-brand strong,
+      .workbench-prototype-card h3,
+      .workbench-prototype-panel h3,
+      .workbench-prototype-detail h3,
+      .workbench-prototype-chart-card h3 {
+        margin: 0;
+        color: #172437;
+        font-size: 15px;
+        line-height: 1.24;
+      }
+
+      .workbench-prototype-brand span:not(.workbench-prototype-logo),
+      .workbench-prototype-muted,
+      .workbench-prototype-breadcrumb,
+      .workbench-prototype-route,
+      .workbench-prototype-card p,
+      .workbench-prototype-panel p,
+      .workbench-prototype-detail p,
+      .workbench-prototype-chart-card p {
+        margin: 0;
+        color: #607186;
+        font-size: 12px;
+        font-weight: 740;
+        line-height: 1.48;
+      }
+
+      .workbench-prototype-nav {
+        min-height: 40px;
+        padding: 0 12px;
+        border: 1px solid transparent;
+        border-radius: 14px;
+        background: transparent;
+        color: #53647a;
+        cursor: pointer;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 840;
+        text-align: left;
+      }
+
+      .workbench-prototype-nav-label {
+        margin-top: 6px;
+        padding: 8px 10px 2px;
+        color: #76869a;
+        font-size: 11px;
+        font-weight: 880;
+        letter-spacing: 0;
+      }
+
+      .workbench-prototype-nav.is-parent {
+        font-size: 14px;
+        color: #1d2c3f;
+      }
+
+      .workbench-prototype-nav.is-child {
+        min-height: 34px;
+        margin-left: 20px;
+        padding-left: 12px;
+        border-radius: 12px;
+        color: #617187;
+        font-size: 12px;
+      }
+
+      .workbench-prototype-nav:hover,
+      .workbench-prototype-nav.is-active {
+        color: #1769aa;
+        border-color: rgba(10, 132, 255, 0.22);
+        background: rgba(232, 245, 255, 0.76);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.84);
+      }
+
+      .workbench-prototype-main {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        min-width: 0;
+        overflow: hidden;
+        border-radius: 24px;
+      }
+
+      .workbench-prototype-topbar {
+        min-height: 78px;
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: center;
+        padding: 16px 18px;
+        border-bottom: 1px solid rgba(136, 157, 181, 0.18);
+        background:
+          radial-gradient(circle at 90% 10%, rgba(10, 132, 255, 0.09), transparent 25%),
+          rgba(248, 251, 254, 0.84);
+      }
+
+      .workbench-prototype-topbar h2 {
+        margin: 4px 0 0;
+        color: #172437;
+        font-size: 24px;
+        line-height: 1.16;
+      }
+
+      .workbench-prototype-route {
+        min-height: 30px;
+        display: inline-flex;
+        align-items: center;
+        padding: 0 11px;
+        border: 1px solid rgba(136, 157, 181, 0.22);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.72);
+        white-space: nowrap;
+      }
+
+      .workbench-prototype-page {
+        min-height: 0;
+        overflow: auto;
+        padding: 16px;
+        outline: 0;
+      }
+
+      .workbench-route-page {
+        display: grid;
+        gap: 14px;
+      }
+
+      .workbench-route-page.is-dashboard {
+        grid-template-rows: auto auto minmax(0, 1fr);
+      }
+
+      .workbench-section-title {
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+        align-items: end;
+      }
+
+      .workbench-section-title h3 {
+        margin: 0;
+        color: #1d2c3f;
+        font-size: 17px;
+      }
+
+      .workbench-section-title span {
+        color: #64758a;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .workbench-prototype-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .workbench-prototype-grid.is-two {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .workbench-prototype-grid.is-three {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .workbench-prototype-card,
+      .workbench-prototype-panel,
+      .workbench-prototype-detail,
+      .workbench-prototype-chart-card {
+        display: grid;
+        gap: 10px;
+        align-content: start;
+        padding: 14px;
+        border-radius: 20px;
+      }
+
+      .workbench-prototype-card.is-entry {
+        min-height: 158px;
+        cursor: pointer;
+        text-align: left;
+        font: inherit;
+      }
+
+      .workbench-prototype-card.is-entry:hover {
+        border-color: rgba(10, 132, 255, 0.36);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(232, 245, 255, 0.74)),
+          rgba(10, 132, 255, 0.06);
+      }
+
+      .workbench-prototype-chip-row,
+      .workbench-prototype-action-row,
+      .workbench-prototype-filter-row,
+      .workbench-prototype-row,
+      .workbench-prototype-list-head,
+      .workbench-prototype-score-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .workbench-prototype-row,
+      .workbench-prototype-score-row {
+        justify-content: space-between;
+        min-height: 40px;
+        padding: 8px 10px;
+        border: 1px solid rgba(136, 157, 181, 0.16);
+        border-radius: 13px;
+        background: rgba(248, 251, 254, 0.76);
+        color: #475a70;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .workbench-prototype-row.is-active {
+        border-color: rgba(10, 132, 255, 0.34);
+        background: rgba(232, 245, 255, 0.82);
+        color: #1769aa;
+      }
+
+      .workbench-prototype-row button,
+      .workbench-prototype-card button,
+      .workbench-prototype-action {
+        min-height: 32px;
+        padding: 0 12px;
+        border: 1px solid rgba(10, 132, 255, 0.26);
+        border-radius: 999px;
+        background: rgba(232, 245, 255, 0.76);
+        color: #1769aa;
+        cursor: pointer;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 860;
+      }
+
+      .workbench-prototype-action.is-secondary {
+        color: #53647a;
+        border-color: rgba(136, 157, 181, 0.22);
+        background: rgba(255, 255, 255, 0.72);
+      }
+
+      .workbench-prototype-pill {
+        display: inline-flex;
+        align-items: center;
+        width: fit-content;
+        min-height: 26px;
+        padding: 0 10px;
+        border: 1px solid rgba(10, 132, 255, 0.22);
+        border-radius: 999px;
+        background: rgba(237, 247, 255, 0.78);
+        color: #22669a;
+        font-size: 12px;
+        font-weight: 860;
+        white-space: nowrap;
+      }
+
+      .workbench-prototype-pill.is-muted {
+        color: #617187;
+        border-color: rgba(136, 157, 181, 0.22);
+        background: rgba(238, 243, 248, 0.72);
+      }
+
+      .workbench-prototype-pill.is-good {
+        color: #2f6c50;
+        border-color: rgba(118, 173, 144, 0.32);
+        background: rgba(235, 248, 241, 0.76);
+      }
+
+      .workbench-prototype-pill.is-warn {
+        color: #9a673f;
+        border-color: rgba(207, 149, 109, 0.32);
+        background: rgba(255, 244, 235, 0.8);
+      }
+
+      .workbench-prototype-metric {
+        display: grid;
+        gap: 3px;
+      }
+
+      .workbench-prototype-metric strong {
+        color: #172437;
+        font-size: 20px;
+        line-height: 1;
+      }
+
+      .workbench-prototype-metric span {
+        color: #657287;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .workbench-prototype-dashboard-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 390px;
+        gap: 14px;
+      }
+
+      .workbench-prototype-dashboard-main {
+        display: grid;
+        gap: 14px;
+      }
+
+      .workbench-prototype-module-card {
+        display: grid;
+        gap: 12px;
+        padding: 16px;
+        border: 1px solid rgba(10, 132, 255, 0.24);
+        border-radius: 22px;
+        background:
+          radial-gradient(circle at 92% 8%, rgba(10, 132, 255, 0.12), transparent 30%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(232, 245, 255, 0.74));
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.9),
+          0 18px 38px rgba(10, 132, 255, 0.1);
+      }
+
+      .workbench-prototype-module-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .workbench-prototype-annotation-layout {
+        display: grid;
+        grid-template-columns: 260px minmax(520px, 1fr) 380px;
+        gap: 12px;
+        align-items: stretch;
+        min-height: 600px;
+      }
+
+      .workbench-review-stats {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .workbench-review-stat {
+        display: grid;
+        gap: 4px;
+        min-height: 70px;
+        padding: 12px;
+        border: 1px solid rgba(136, 157, 181, 0.2);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.72);
+        cursor: pointer;
+        font: inherit;
+        text-align: left;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.86);
+      }
+
+      .workbench-review-stat strong {
+        color: #172437;
+        font-size: 22px;
+        line-height: 1;
+      }
+
+      .workbench-review-stat span {
+        color: #657287;
+        font-size: 12px;
+        font-weight: 840;
+      }
+
+      .workbench-review-stat:hover,
+      .workbench-review-stat.is-active {
+        border-color: rgba(10, 132, 255, 0.38);
+        background: rgba(232, 245, 255, 0.82);
+      }
+
+      .workbench-review-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 10px;
+        border: 1px solid rgba(136, 157, 181, 0.16);
+        border-radius: 16px;
+        background: rgba(246, 250, 253, 0.76);
+      }
+
+      .workbench-review-filter-group,
+      .workbench-review-export-group,
+      .workbench-review-bulk-actions,
+      .workbench-review-form-row,
+      .workbench-review-inspector-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .workbench-review-select,
+      .workbench-review-search,
+      .workbench-review-input,
+      .workbench-review-textarea {
+        border: 1px solid rgba(136, 157, 181, 0.24);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.78);
+        color: #26384f;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 760;
+        outline: 0;
+      }
+
+      .workbench-review-select,
+      .workbench-review-search {
+        min-height: 32px;
+        padding: 0 10px;
+      }
+
+      .workbench-review-search {
+        min-width: 190px;
+      }
+
+      .workbench-review-input {
+        min-height: 36px;
+        padding: 0 10px;
+      }
+
+      .workbench-review-textarea {
+        min-height: 84px;
+        padding: 10px;
+        resize: vertical;
+        line-height: 1.5;
+      }
+
+      .workbench-review-bulkbar {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: center;
+        padding: 10px 12px;
+        border: 1px solid rgba(10, 132, 255, 0.26);
+        border-radius: 16px;
+        background: rgba(232, 245, 255, 0.76);
+      }
+
+      .workbench-review-bulkbar[hidden] {
+        display: none;
+      }
+
+      .workbench-review-scope,
+      .workbench-review-queue,
+      .workbench-review-inspector {
+        display: grid;
+        align-content: start;
+        gap: 10px;
+        min-width: 0;
+        padding: 12px;
+        border: 1px solid rgba(136, 157, 181, 0.22);
+        background: rgba(255, 255, 255, 0.72);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.88),
+          0 14px 30px rgba(31, 50, 76, 0.06);
+      }
+
+      .workbench-review-scope {
+        border-radius: 20px;
+      }
+
+      .workbench-review-queue {
+        border-radius: 20px;
+      }
+
+      .workbench-review-inspector {
+        border-radius: 22px;
+        background:
+          radial-gradient(circle at 100% 0%, rgba(10, 132, 255, 0.1), transparent 32%),
+          rgba(255, 255, 255, 0.76);
+      }
+
+      .workbench-review-panel-title {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: center;
+        color: #172437;
+        font-size: 14px;
+        font-weight: 900;
+      }
+
+      .workbench-review-scope-row {
+        display: grid;
+        gap: 4px;
+        padding: 10px;
+        border: 1px solid rgba(136, 157, 181, 0.16);
+        border-radius: 14px;
+        background: rgba(248, 251, 254, 0.76);
+        color: #43566d;
+        cursor: pointer;
+        font: inherit;
+        text-align: left;
+      }
+
+      .workbench-review-scope-row strong {
+        color: #1f2e42;
+        font-size: 13px;
+      }
+
+      .workbench-review-scope-row span {
+        color: #64758a;
+        font-size: 12px;
+        font-weight: 820;
+      }
+
+      .workbench-review-scope-row:hover,
+      .workbench-review-scope-row.is-active {
+        border-color: rgba(10, 132, 255, 0.34);
+        background: rgba(232, 245, 255, 0.8);
+      }
+
+      .workbench-review-queue-head {
+        display: grid;
+        grid-template-columns: 28px minmax(220px, 1.2fr) minmax(140px, 0.8fr) 78px 74px 96px;
+        gap: 10px;
+        align-items: center;
+        min-height: 36px;
+        padding: 0 10px;
+        color: #64758a;
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .workbench-review-item {
+        display: grid;
+        grid-template-columns: 28px minmax(220px, 1.2fr) minmax(140px, 0.8fr) 78px 74px 96px;
+        gap: 10px;
+        align-items: center;
+        padding: 12px 10px;
+        border: 1px solid rgba(136, 157, 181, 0.16);
+        border-radius: 16px;
+        background: rgba(248, 251, 254, 0.74);
+        color: #43566d;
+        cursor: pointer;
+      }
+
+      .workbench-review-item:hover,
+      .workbench-review-item.is-active {
+        border-color: rgba(10, 132, 255, 0.42);
+        background: rgba(232, 245, 255, 0.84);
+        box-shadow: 0 10px 24px rgba(10, 132, 255, 0.09);
+      }
+
+      .workbench-review-item-title {
+        display: grid;
+        gap: 4px;
+        min-width: 0;
+      }
+
+      .workbench-review-item-title strong {
+        overflow: hidden;
+        color: #172437;
+        font-size: 13px;
+        font-weight: 920;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .workbench-review-item-title span,
+      .workbench-review-item-meta {
+        overflow: hidden;
+        color: #607186;
+        font-size: 11px;
+        font-weight: 760;
+        line-height: 1.4;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .workbench-review-checkbox {
+        width: 18px;
+        height: 18px;
+        accent-color: #0a84ff;
+      }
+
+      .workbench-review-form {
+        display: grid;
+        gap: 10px;
+      }
+
+      .workbench-review-field {
+        display: grid;
+        gap: 6px;
+      }
+
+      .workbench-review-field label {
+        color: #64758a;
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .workbench-review-field-value {
+        min-height: 34px;
+        display: flex;
+        align-items: center;
+        padding: 0 10px;
+        border: 1px solid rgba(136, 157, 181, 0.16);
+        border-radius: 12px;
+        background: rgba(246, 250, 253, 0.7);
+        color: #40536a;
+        font-size: 12px;
+        font-weight: 780;
+      }
+
+      .workbench-review-warning {
+        padding: 9px 10px;
+        border: 1px solid rgba(207, 149, 109, 0.3);
+        border-radius: 12px;
+        background: rgba(255, 244, 235, 0.82);
+        color: #8d5d38;
+        font-size: 12px;
+        font-weight: 820;
+      }
+
+      .workbench-review-warning[hidden] {
+        display: none;
+      }
+
+      .workbench-review-timeline {
+        display: grid;
+        gap: 6px;
+        padding: 10px;
+        border: 1px solid rgba(136, 157, 181, 0.16);
+        border-radius: 14px;
+        background: rgba(248, 251, 254, 0.72);
+        color: #5f7085;
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .workbench-prototype-filter-row {
+        padding: 10px;
+        border: 1px solid rgba(136, 157, 181, 0.16);
+        border-radius: 16px;
+        background: rgba(246, 250, 253, 0.76);
+      }
+
+      .workbench-prototype-filter {
+        min-height: 30px;
+        display: inline-flex;
+        align-items: center;
+        padding: 0 10px;
+        border: 1px solid rgba(136, 157, 181, 0.22);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.72);
+        color: #52647a;
+        font-size: 12px;
+        font-weight: 820;
+      }
+
+      .workbench-prototype-table {
+        overflow: hidden;
+        border-radius: 18px;
+      }
+
+      .workbench-prototype-table-row {
+        display: grid;
+        grid-template-columns: minmax(130px, 1fr) minmax(120px, 0.9fr) 58px 58px 74px 104px 126px;
+        gap: 10px;
+        align-items: center;
+        min-height: 50px;
+        padding: 10px 12px;
+        border-bottom: 1px solid rgba(136, 157, 181, 0.14);
+        color: #43566d;
+        font-size: 12px;
+        font-weight: 780;
+      }
+
+      .workbench-prototype-table-row.is-head {
+        min-height: 42px;
+        color: #64758a;
+        background: rgba(243, 248, 252, 0.86);
+        font-weight: 860;
+      }
+
+      .workbench-prototype-table-row:last-child {
+        border-bottom: 0;
+      }
+
+      .workbench-prototype-row-actions {
+        display: inline-flex;
+        gap: 6px;
+        justify-content: flex-end;
+      }
+
+      .workbench-prototype-row-actions button {
+        min-height: 28px;
+        padding: 0 9px;
+        border: 1px solid rgba(136, 157, 181, 0.22);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.72);
+        color: #53647a;
+        cursor: pointer;
+        font: inherit;
+        font-size: 11px;
+        font-weight: 840;
+      }
+
+      .workbench-prototype-maturity-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 360px;
+        gap: 14px;
+      }
+
+      .workbench-prototype-project-layout {
+        display: grid;
+        grid-template-columns: 250px minmax(0, 1fr) 360px;
+        gap: 14px;
+      }
+
+      .workbench-prototype-score-options {
+        display: inline-flex;
+        gap: 4px;
+      }
+
+      .workbench-prototype-score-dot {
+        width: 20px;
+        height: 20px;
+        border: 1px solid rgba(136, 157, 181, 0.22);
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.82);
+      }
+
+      .workbench-prototype-score-dot.is-on {
+        border-color: rgba(10, 132, 255, 0.36);
+        background: rgba(10, 132, 255, 0.7);
+        box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.13);
+      }
+
+      .workbench-prototype-radar {
+        width: 136px;
+        height: 136px;
+        margin: 6px auto;
+        border: 1px solid rgba(136, 157, 181, 0.22);
+        border-radius: 50%;
+        background:
+          radial-gradient(circle, rgba(255, 255, 255, 0.9) 0 22%, transparent 23% 100%),
+          conic-gradient(from 18deg, rgba(10, 132, 255, 0.72), rgba(118, 173, 144, 0.66), rgba(207, 149, 109, 0.62), rgba(99, 102, 214, 0.58), rgba(10, 132, 255, 0.72));
+        box-shadow: inset 0 0 0 13px rgba(248, 251, 254, 0.84);
+      }
+
+      .workbench-prototype-bar {
+        display: grid;
+        grid-template-columns: 72px minmax(0, 1fr) 34px;
+        gap: 8px;
+        align-items: center;
+        color: #5d6f84;
+        font-size: 12px;
+        font-weight: 820;
+      }
+
+      .workbench-prototype-bar span:nth-child(2) {
+        height: 8px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: rgba(136, 157, 181, 0.16);
+      }
+
+      .workbench-prototype-bar i {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, rgba(10, 132, 255, 0.68), rgba(118, 173, 144, 0.64));
+      }
+
+      .capability-rail-demo-frame {
+        height: 100%;
+        min-height: 760px;
+        overflow: auto;
+        padding: 24px;
+        border: 1px solid rgba(202, 214, 230, 0.72);
+        border-radius: 28px;
+        background:
+          radial-gradient(circle at 14% 0%, rgba(255, 255, 255, 0.96), transparent 30%),
+          linear-gradient(180deg, rgba(246, 249, 253, 0.98), rgba(235, 241, 249, 0.9));
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.9),
+          0 22px 60px rgba(63, 77, 99, 0.14);
+        color: #192332;
+      }
+
+      .capability-rail-page {
+        max-width: 1660px;
+        min-width: 1040px;
+        margin: 0 auto;
+        display: grid;
+        gap: 18px;
+      }
+
+      .capability-rail-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 18px;
+        padding: 2px 6px 0;
+      }
+
+      .capability-rail-kicker {
+        display: block;
+        margin-bottom: 8px;
+        color: #53647b;
+        font-size: 13px;
+        font-weight: 850;
+        letter-spacing: 0.02em;
+      }
+
+      .capability-rail-title h2 {
+        margin: 0;
+        color: #25344a;
+        font-size: 28px;
+        line-height: 1.18;
+        letter-spacing: 0;
+      }
+
+      .capability-rail-title p {
+        margin: 8px 0 0;
+        color: #65748a;
+        font-size: 14px;
+        font-weight: 650;
+      }
+
+      .capability-rail-status {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        padding-bottom: 2px;
+      }
+
+      .capability-rail-status span {
+        display: inline-flex;
+        align-items: center;
+        min-height: 30px;
+        padding: 0 12px;
+        border: 1px solid rgba(197, 210, 226, 0.76);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.58);
+        color: #56667a;
+        font-size: 12px;
+        font-weight: 780;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+      }
+
+      .capability-rail-workspace {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(196, 210, 228, 0.78);
+        border-radius: 30px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(248, 251, 255, 0.74) 18%, rgba(244, 248, 253, 0.9)),
+          rgba(247, 250, 254, 0.92);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.92),
+          inset 0 -1px 0 rgba(180, 194, 212, 0.32),
+          0 22px 48px rgba(54, 70, 92, 0.13);
+      }
+
+      .capability-rail-workspace::before {
+        content: "";
+        position: absolute;
+        inset: 0 0 auto;
+        height: 92px;
+        pointer-events: none;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.66), rgba(255, 255, 255, 0));
+      }
+
+      .capability-rail-control {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 18px;
+        padding: 14px 18px 12px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(246, 250, 255, 0.42));
+        backdrop-filter: blur(16px) saturate(138%);
+      }
+
+      .capability-rail-control::after {
+        content: "";
+        position: absolute;
+        left: 18px;
+        right: 18px;
+        bottom: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(156, 174, 198, 0.36) 18%, rgba(156, 174, 198, 0.16) 82%, transparent);
+      }
+
+      .capability-rail-tabs {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        min-height: 44px;
+        padding: 5px;
+        border: 1px solid rgba(199, 213, 231, 0.82);
+        border-radius: 23px;
+        background: rgba(238, 244, 251, 0.78);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.86),
+          0 12px 26px rgba(40, 54, 73, 0.08);
+      }
+
+      .capability-rail-tabs button {
+        min-height: 34px;
+        padding: 0 18px;
+        border: 0;
+        border-radius: 18px;
+        background: transparent;
+        color: #526175;
+        font: inherit;
+        font-size: 14px;
+        font-weight: 800;
+        letter-spacing: 0;
+        white-space: nowrap;
+      }
+
+      .capability-rail-tabs button.is-active {
+        background: rgba(255, 255, 255, 0.96);
+        color: #172033;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.96),
+          0 8px 20px rgba(41, 55, 75, 0.13);
+      }
+
+      .capability-rail-search {
+        width: min(34vw, 430px);
+        min-width: 300px;
+        height: 42px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 16px;
+        border: 1px solid rgba(186, 202, 222, 0.78);
+        border-radius: 22px;
+        background: rgba(247, 250, 254, 0.82);
+        color: #6b7a90;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.88),
+          0 10px 24px rgba(40, 54, 73, 0.07);
+      }
+
+      .capability-rail-search input {
+        width: 100%;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        color: #34445a;
+        font: inherit;
+        font-size: 14px;
+        font-weight: 720;
+      }
+
+      .capability-rail-body {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: 270px minmax(0, 1fr) 320px;
+        gap: 14px;
+        min-height: 590px;
+        padding: 16px;
+      }
+
+      .capability-rail-pane {
+        min-width: 0;
+        border: 1px solid rgba(202, 215, 232, 0.72);
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.62);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.86),
+          0 12px 28px rgba(50, 66, 88, 0.08);
+      }
+
+      .capability-rail-tree {
+        padding: 14px;
+      }
+
+      .capability-rail-pane h3 {
+        margin: 0 0 12px;
+        color: #233247;
+        font-size: 15px;
+        letter-spacing: 0;
+      }
+
+      .capability-rail-tree-list {
+        display: grid;
+        gap: 9px;
+      }
+
+      .capability-rail-tree-item {
+        display: grid;
+        grid-template-columns: 52px minmax(0, 1fr);
+        gap: 10px;
+        align-items: center;
+        min-height: 48px;
+        padding: 9px 10px;
+        border: 1px solid rgba(206, 218, 233, 0.7);
+        border-radius: 16px;
+        background: rgba(249, 252, 255, 0.66);
+      }
+
+      .capability-rail-tree-item.is-active {
+        border-color: rgba(88, 150, 225, 0.72);
+        background: rgba(236, 246, 255, 0.86);
+        box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.08);
+      }
+
+      .capability-rail-tree-item code {
+        color: #506177;
+        font-family: inherit;
+        font-weight: 850;
+      }
+
+      .capability-rail-tree-item strong {
+        display: block;
+        overflow: hidden;
+        color: #1c2b3e;
+        font-size: 13px;
+        font-weight: 830;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .capability-rail-tree-item span {
+        display: block;
+        margin-top: 3px;
+        color: #718197;
+        font-size: 11px;
+        font-weight: 720;
+      }
+
+      .capability-rail-map {
+        padding: 16px;
+        background:
+          radial-gradient(circle at 50% 30%, rgba(10, 132, 255, 0.06), transparent 34%),
+          rgba(255, 255, 255, 0.56);
+      }
+
+      .capability-rail-map-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+
+      .capability-rail-mini-legend {
+        display: flex;
+        gap: 7px;
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 760;
+      }
+
+      .capability-rail-mini-legend span {
+        padding: 4px 8px;
+        border: 1px solid rgba(199, 213, 231, 0.72);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.58);
+      }
+
+      .capability-rail-graph {
+        position: relative;
+        min-height: 505px;
+        overflow: hidden;
+        border: 1px solid rgba(210, 222, 236, 0.64);
+        border-radius: 20px;
+        background:
+          linear-gradient(rgba(176, 194, 216, 0.16) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(176, 194, 216, 0.14) 1px, transparent 1px),
+          rgba(250, 253, 255, 0.58);
+        background-size: 42px 42px;
+      }
+
+      .capability-rail-node {
+        position: absolute;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 112px;
+        min-height: 42px;
+        padding: 0 16px;
+        border: 1px solid rgba(119, 137, 160, 0.72);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.84);
+        color: #27364a;
+        font-size: 13px;
+        font-weight: 840;
+        box-shadow: 0 10px 24px rgba(53, 70, 94, 0.12);
+      }
+
+      .capability-rail-node.is-root {
+        left: 50%;
+        top: 44px;
+        transform: translateX(-50%);
+        min-width: 170px;
+        border-color: rgba(77, 139, 215, 0.66);
+        background: rgba(238, 247, 255, 0.92);
+      }
+
+      .capability-rail-node.is-l1-a { left: 18%; top: 176px; }
+      .capability-rail-node.is-l1-b { left: 43%; top: 176px; }
+      .capability-rail-node.is-l1-c { right: 15%; top: 176px; }
+      .capability-rail-node.is-l2-a { left: 10%; bottom: 84px; }
+      .capability-rail-node.is-l2-b { left: 30%; bottom: 118px; }
+      .capability-rail-node.is-l2-c { right: 33%; bottom: 104px; }
+      .capability-rail-node.is-l2-d { right: 10%; bottom: 78px; }
+
+      .capability-rail-edge {
+        position: absolute;
+        height: 1px;
+        transform-origin: left center;
+        background: linear-gradient(90deg, rgba(83, 119, 160, 0.42), rgba(83, 119, 160, 0.1));
+      }
+
+      .capability-rail-edge.e1 { left: 45%; top: 118px; width: 220px; transform: rotate(25deg); }
+      .capability-rail-edge.e2 { left: 47%; top: 118px; width: 110px; transform: rotate(90deg); }
+      .capability-rail-edge.e3 { right: 27%; top: 118px; width: 220px; transform: rotate(155deg); }
+      .capability-rail-edge.e4 { left: 21%; top: 226px; width: 140px; transform: rotate(80deg); }
+      .capability-rail-edge.e5 { left: 47%; top: 226px; width: 180px; transform: rotate(72deg); }
+      .capability-rail-edge.e6 { right: 18%; top: 226px; width: 165px; transform: rotate(104deg); }
+
+      .capability-rail-inspector {
+        display: grid;
+        grid-template-rows: auto auto minmax(0, 1fr);
+        gap: 12px;
+        padding: 14px;
+      }
+
+      .capability-rail-score {
+        display: grid;
+        gap: 10px;
+      }
+
+      .capability-rail-score-card {
+        padding: 14px;
+        border: 1px solid rgba(202, 216, 232, 0.78);
+        border-radius: 18px;
+        background: rgba(249, 252, 255, 0.72);
+      }
+
+      .capability-rail-score-card span {
+        color: #69798e;
+        font-size: 12px;
+        font-weight: 760;
+      }
+
+      .capability-rail-score-card strong {
+        display: block;
+        margin-top: 5px;
+        color: #172033;
+        font-size: 25px;
+        line-height: 1;
+      }
+
+      .capability-rail-progress {
+        height: 7px;
+        margin-top: 10px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: rgba(221, 229, 240, 0.9);
+      }
+
+      .capability-rail-progress i {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #73a8e8, #8dc3a0);
+      }
+
+      .capability-rail-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .capability-rail-list span {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 9px 10px;
+        border: 1px solid rgba(210, 222, 236, 0.7);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.58);
+        color: #526175;
+        font-size: 12px;
+        font-weight: 760;
+      }
+
+      .capability-rail-list strong {
+        color: #1d2b3e;
+      }
+
+      @media (max-width: 1280px) {
+        .capability-rail-page {
+          min-width: 980px;
+        }
+
+        .capability-rail-body {
+          grid-template-columns: 230px minmax(0, 1fr) 280px;
+        }
+
+        .capability-rail-search {
+          width: 360px;
+        }
+      }
     </style>
   </head>
   <body>
@@ -2288,8 +4073,10 @@
           </div>
           <div class="stats" aria-label="统计">
             <span class="stat-chip"><strong>1</strong>颜色基准</span>
-            <span class="stat-chip"><strong>4</strong>环境方案</span>
-            <span class="stat-chip"><strong>1</strong>搜索方案</span>
+            <span class="stat-chip"><strong>4</strong>环境 demo</span>
+            <span class="stat-chip"><strong>1</strong>搜索 demo</span>
+            <span class="stat-chip"><strong>1</strong>能力页设计</span>
+            <span class="stat-chip"><strong>1</strong>工作台原型</span>
             <span class="stat-chip"><strong>1</strong>纵向流</span>
             <span class="stat-chip"><strong>统一</strong>入口</span>
           </div>
@@ -2302,6 +4089,8 @@
             <button class="demo-tab" type="button" data-demo-tab="environment-stats">环境统计页</button>
             <button class="demo-tab" type="button" data-demo-tab="subcategory-stats">子类统计页</button>
             <button class="demo-tab" type="button" data-demo-tab="global-search">全局搜索页</button>
+            <button class="demo-tab" type="button" data-demo-tab="capability-rail">能力页控制轨</button>
+            <button class="demo-tab" type="button" data-demo-tab="workbench-module">工作台设计</button>
             <button class="demo-tab" type="button" data-demo-tab="vertical">纵向流试验</button>
           </nav>
 
@@ -3145,6 +4934,158 @@
             </section>
           </section>
 
+          <section class="demo-panel" data-demo-panel="capability-rail">
+            <section class="capability-rail-demo-frame" aria-label="能力页工作区吸附控制轨设计效果图">
+              <div class="capability-rail-page">
+                <header class="capability-rail-title">
+                  <div>
+                    <span class="capability-rail-kicker">T-AS.AD-01</span>
+                    <h2>遵循安全设计原则对网络安全架构进行设计和管控</h2>
+                    <p>标题区只承载对象身份；视图切换和搜索作为工作区顶部控制轨进入同一操作平面。</p>
+                  </div>
+                  <div class="capability-rail-status" aria-label="当前视图状态">
+                    <span>L2 能力</span>
+                    <span>backend projection</span>
+                  </div>
+                </header>
+
+                <section class="capability-rail-workspace" aria-label="能力映射工作区">
+                  <div class="capability-rail-control" aria-label="工作区控制轨">
+                    <nav class="capability-rail-tabs" aria-label="能力页视图切换">
+                      <button class="is-active" type="button">能力关系图谱</button>
+                      <button type="button">技术视角</button>
+                      <button type="button">管理视角</button>
+                      <button type="button">标准 / 框架映射</button>
+                    </nav>
+                    <label class="capability-rail-search" aria-label="能力页局部搜索">
+                      <span aria-hidden="true">⌕</span>
+                      <input type="text" value="" placeholder="搜索能力、服务、流程或模块/措施" readonly />
+                    </label>
+                  </div>
+
+                  <div class="capability-rail-body">
+                    <aside class="capability-rail-pane capability-rail-tree" aria-label="能力树">
+                      <h3>能力树</h3>
+                      <div class="capability-rail-tree-list">
+                        <div class="capability-rail-tree-item">
+                          <code>L0</code>
+                          <div><strong>安全技术能力 T</strong><span>5 L1 / 19 L2</span></div>
+                        </div>
+                        <div class="capability-rail-tree-item">
+                          <code>L1</code>
+                          <div><strong>T-AS 基础架构安全</strong><span>9 L2 / 27 关注点</span></div>
+                        </div>
+                        <div class="capability-rail-tree-item is-active">
+                          <code>L2</code>
+                          <div><strong>T-AS.AD 网络安全体系架构</strong><span>4 关注点 / 154 技术映射</span></div>
+                        </div>
+                        <div class="capability-rail-tree-item">
+                          <code>01</code>
+                          <div><strong>安全设计原则</strong><span>当前选中</span></div>
+                        </div>
+                        <div class="capability-rail-tree-item">
+                          <code>02</code>
+                          <div><strong>纵深防御架构</strong><span>待下钻</span></div>
+                        </div>
+                        <div class="capability-rail-tree-item">
+                          <code>03</code>
+                          <div><strong>网络分区隔离</strong><span>待下钻</span></div>
+                        </div>
+                      </div>
+                    </aside>
+
+                    <main class="capability-rail-pane capability-rail-map" aria-label="能力关系图谱画布">
+                      <div class="capability-rail-map-head">
+                        <h3>关系图谱</h3>
+                        <div class="capability-rail-mini-legend" aria-label="图例">
+                          <span>能力</span>
+                          <span>关注点</span>
+                          <span>映射摘要</span>
+                        </div>
+                      </div>
+                      <div class="capability-rail-graph">
+                        <i class="capability-rail-edge e1" aria-hidden="true"></i>
+                        <i class="capability-rail-edge e2" aria-hidden="true"></i>
+                        <i class="capability-rail-edge e3" aria-hidden="true"></i>
+                        <i class="capability-rail-edge e4" aria-hidden="true"></i>
+                        <i class="capability-rail-edge e5" aria-hidden="true"></i>
+                        <i class="capability-rail-edge e6" aria-hidden="true"></i>
+                        <span class="capability-rail-node is-root">T-AS.AD</span>
+                        <span class="capability-rail-node is-l1-a">T-AS.AD-01</span>
+                        <span class="capability-rail-node is-l1-b">T-AS.AD-02</span>
+                        <span class="capability-rail-node is-l1-c">T-AS.AD-03</span>
+                        <span class="capability-rail-node is-l2-a">技术 86</span>
+                        <span class="capability-rail-node is-l2-b">管理 28</span>
+                        <span class="capability-rail-node is-l2-c">标准 843</span>
+                        <span class="capability-rail-node is-l2-d">下级入口 4</span>
+                      </div>
+                    </main>
+
+                    <aside class="capability-rail-pane capability-rail-inspector" aria-label="总览摘要">
+                      <h3>总览摘要</h3>
+                      <div class="capability-rail-score">
+                        <div class="capability-rail-score-card">
+                          <span>技术覆盖</span>
+                          <strong>154</strong>
+                          <div class="capability-rail-progress"><i style="width: 76%"></i></div>
+                        </div>
+                        <div class="capability-rail-score-card">
+                          <span>管理落地</span>
+                          <strong>64</strong>
+                          <div class="capability-rail-progress"><i style="width: 58%"></i></div>
+                        </div>
+                        <div class="capability-rail-score-card">
+                          <span>标准映射</span>
+                          <strong>1283</strong>
+                          <div class="capability-rail-progress"><i style="width: 82%"></i></div>
+                        </div>
+                      </div>
+                      <div class="capability-rail-list" aria-label="重点核对">
+                        <span><strong>重点核对</strong><em>3 项</em></span>
+                        <span><strong>下钻建议</strong><em>T-OF 进攻</em></span>
+                        <span><strong>映射状态</strong><em>按需加载</em></span>
+                      </div>
+                    </aside>
+                  </div>
+                </section>
+              </div>
+            </section>
+          </section>
+
+          <section class="demo-panel" data-demo-panel="workbench-module">
+            <section class="workbench-demo-frame" aria-label="工作台模块多页面原型">
+              <div class="workbench-prototype-shell">
+                <aside class="workbench-prototype-sidebar" aria-label="工作台原型导航">
+                  <div class="workbench-prototype-brand">
+                    <span class="workbench-prototype-logo">W</span>
+                    <div>
+                      <strong>SAPD Workbench</strong>
+                      <span>静态多页面 mock</span>
+                    </div>
+                  </div>
+                  <div class="workbench-prototype-nav-label">目录</div>
+                  <button class="workbench-prototype-nav is-parent is-active" type="button" data-workbench-route="/dashboard">Dashboard</button>
+                  <button class="workbench-prototype-nav is-parent" type="button" data-workbench-route="/workbench">工作台</button>
+                  <button class="workbench-prototype-nav is-child" type="button" data-workbench-route="/workbench/maturity">成熟度评估</button>
+                  <button class="workbench-prototype-nav is-child" type="button" data-workbench-route="/workbench/annotations">Issue 总览</button>
+                  <div class="workbench-prototype-nav-label">项目工作流</div>
+                  <button class="workbench-prototype-nav" type="button" data-workbench-route="/workbench/maturity/project-001">评估项目详情</button>
+                </aside>
+
+                <section class="workbench-prototype-main" aria-label="工作台原型页面">
+                  <header class="workbench-prototype-topbar">
+                    <div>
+                      <div class="workbench-prototype-breadcrumb" id="workbenchPrototypeBreadcrumb">全局导航 / Dashboard</div>
+                      <h2 id="workbenchPrototypeTitle">Dashboard</h2>
+                    </div>
+                    <div class="workbench-prototype-route" id="workbenchPrototypeRoute">/dashboard</div>
+                  </header>
+                  <main class="workbench-prototype-page" id="workbenchPrototypePage" tabindex="-1"></main>
+                </section>
+              </div>
+            </section>
+          </section>
+
           <section class="demo-panel" data-demo-panel="vertical">
             <iframe
               class="vertical-demo-frame"
@@ -3719,6 +5660,707 @@
 
       renderSearchDemo();
 
+      const workbenchPrototypePage = document.getElementById("workbenchPrototypePage");
+      const workbenchPrototypeTitle = document.getElementById("workbenchPrototypeTitle");
+      const workbenchPrototypeBreadcrumb = document.getElementById("workbenchPrototypeBreadcrumb");
+      const workbenchPrototypeRoute = document.getElementById("workbenchPrototypeRoute");
+      const workbenchPrototypeNavButtons = Array.from(document.querySelectorAll("[data-workbench-route]"));
+      const workbenchRouteMeta = {
+        "/dashboard": { title: "Dashboard", breadcrumb: "全局导航 / Dashboard" },
+        "/workbench": { title: "工作台", breadcrumb: "全局导航 / 工作台" },
+        "/workbench/annotations": { title: "Issue 处理工作台", breadcrumb: "全局导航 / 工作台 / Issue 处理工作台" },
+        "/workbench/maturity": { title: "成熟度评估", breadcrumb: "全局导航 / 工作台 / 成熟度评估" },
+        "/workbench/maturity/project-001": { title: "华东政企云成熟度评估", breadcrumb: "全局导航 / 工作台 / 成熟度评估 / 华东政企云" },
+      };
+
+      function workbenchEscapeHtml(value) {
+        return String(value ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function normalizeWorkbenchRoute(route) {
+        const value = String(route || "/dashboard");
+        if (workbenchRouteMeta[value]) return value;
+        if (value.startsWith("/workbench/maturity/")) return "/workbench/maturity/project-001";
+        return "/dashboard";
+      }
+
+      function getWorkbenchRouteFromHash() {
+        const hash = window.location.hash.slice(1);
+        if (!hash.startsWith("workbench-module")) return "/dashboard";
+        const route = hash.slice("workbench-module".length) || "/dashboard";
+        return normalizeWorkbenchRoute(route.startsWith("/") ? route : `/${route}`);
+      }
+
+      function workbenchHashForRoute(route) {
+        return `#workbench-module${route}`;
+      }
+
+      function renderWorkbenchDashboard() {
+        return `
+          <section class="workbench-route-page is-dashboard" aria-label="Dashboard mock">
+            <div class="workbench-section-title">
+              <div>
+                <h3>Dashboard</h3>
+                <span>目录中 Dashboard 后第二位新增「工作台」一级模块，首页只放入口摘要。</span>
+              </div>
+              <span>1920px：左侧目录固定，主区域保留现有概览与工作台入口</span>
+            </div>
+            <div class="workbench-prototype-grid">
+              <div class="workbench-prototype-card"><span class="workbench-prototype-pill">能力</span><span class="workbench-prototype-metric"><strong>32</strong><span>能力对象</span></span></div>
+              <div class="workbench-prototype-card"><span class="workbench-prototype-pill">关注点</span><span class="workbench-prototype-metric"><strong>91</strong><span>安全关注点</span></span></div>
+              <div class="workbench-prototype-card"><span class="workbench-prototype-pill">服务</span><span class="workbench-prototype-metric"><strong>160</strong><span>安全技术服务</span></span></div>
+              <div class="workbench-prototype-card"><span class="workbench-prototype-pill">环境</span><span class="workbench-prototype-metric"><strong>10</strong><span>信息化环境</span></span></div>
+            </div>
+            <div class="workbench-prototype-dashboard-layout">
+              <div class="workbench-prototype-dashboard-main">
+                <div class="workbench-prototype-module-card">
+                  <div class="workbench-section-title">
+                    <div>
+                      <h3>工作台</h3>
+                      <span>集中处理 Issue 和客户成熟度评估项目。</span>
+                    </div>
+                    <span class="workbench-prototype-pill is-warn">18 待处理</span>
+                  </div>
+                  <div class="workbench-prototype-module-actions">
+                    <button class="workbench-prototype-card is-entry" type="button" data-workbench-route="/workbench/maturity">
+                      <span class="workbench-prototype-pill is-good">成熟度评估</span>
+                      <h3>评估工作与历史项目</h3>
+                      <p>继续暂存评估工作，查询历史项目，预留编辑和导出。</p>
+                      <span class="workbench-prototype-metric"><strong>1</strong><span>暂存评估</span></span>
+                    </button>
+                    <button class="workbench-prototype-card is-entry" type="button" data-workbench-route="/workbench/annotations">
+                      <span class="workbench-prototype-pill">Issue 总览</span>
+                      <h3>集中处理页面 Issue</h3>
+                      <p>按页面汇总、筛选、查看详情，并预留批量导出。</p>
+                      <span class="workbench-prototype-metric"><strong>45</strong><span>全部 Issue</span></span>
+                    </button>
+                  </div>
+                  <div class="workbench-prototype-action-row">
+                    <button class="workbench-prototype-action" type="button" data-workbench-route="/workbench">进入工作台</button>
+                    <button class="workbench-prototype-action is-secondary" type="button" data-workbench-route="/workbench/maturity/project-001">打开最近项目</button>
+                  </div>
+                </div>
+              </div>
+              <aside class="workbench-prototype-panel">
+                <h3>目录位置</h3>
+                <span class="workbench-prototype-metric"><strong>09:42</strong><span>本地 mock 数据</span></span>
+                <div class="workbench-prototype-row is-active"><span>1</span><strong>Dashboard</strong></div>
+                <div class="workbench-prototype-row"><span>2</span><strong>工作台</strong></div>
+                <div class="workbench-prototype-row"><span>子页面</span><strong>成熟度评估 / Issue 总览</strong></div>
+              </aside>
+            </div>
+          </section>
+        `;
+      }
+
+      function renderWorkbenchHome() {
+        return `
+          <section class="workbench-route-page" aria-label="工作台首页 mock">
+            <div class="workbench-section-title">
+              <div>
+                <h3>工作台</h3>
+                <span>模块总入口，只承接入口和最近动态。</span>
+              </div>
+              <span>1920px：上方双入口，下方两列最近动态</span>
+            </div>
+            <div class="workbench-prototype-grid is-two">
+              <button class="workbench-prototype-card is-entry" type="button" data-workbench-route="/workbench/maturity">
+                <span class="workbench-prototype-pill is-good">成熟度评估</span>
+                <h3>管理客户评估项目</h3>
+                <p>包含当前评估工作、状态暂存、历史项目查询、编辑和导出占位。</p>
+                <div class="workbench-prototype-chip-row">
+                  <span class="workbench-prototype-pill is-warn">1 暂存</span>
+                  <span class="workbench-prototype-pill">3 项目</span>
+                </div>
+              </button>
+              <button class="workbench-prototype-card is-entry" type="button" data-workbench-route="/workbench/annotations">
+                <span class="workbench-prototype-pill">Issue 总览</span>
+                <h3>处理全局 Issue</h3>
+                <p>汇总所有页面 Issue，支持状态筛选、页面分组、详情查看和导出占位。</p>
+                <div class="workbench-prototype-chip-row">
+                  <span class="workbench-prototype-pill is-warn">18 待处理</span>
+                  <span class="workbench-prototype-pill">45 全部</span>
+                </div>
+              </button>
+            </div>
+            <div class="workbench-prototype-grid is-two">
+              <section class="workbench-prototype-panel">
+                <div class="workbench-section-title"><h3>最近 Issue</h3><span>只展示摘要</span></div>
+                <div class="workbench-prototype-row is-active"><span>信息化环境安全能力映射</span><strong>零信任访问控制台定位慢</strong></div>
+                <div class="workbench-prototype-row"><span>安全能力映射</span><strong>ISO/IEC 27001:2022 高亮复核</strong></div>
+                <div class="workbench-prototype-row"><span>LC-AP</span><strong>阶段 Issue 锚点恢复</strong></div>
+              </section>
+              <section class="workbench-prototype-panel">
+                <div class="workbench-section-title"><h3>最近评估项目</h3><span>项目状态</span></div>
+                <div class="workbench-prototype-row is-active"><span>华东政企云</span><strong>L3 / 72 / 草稿</strong></div>
+                <div class="workbench-prototype-row"><span>制造集团数据域</span><strong>L2 / 61 / 已完成</strong></div>
+                <div class="workbench-prototype-row"><span>金融数据平台</span><strong>L3 / 76 / 已导出</strong></div>
+              </section>
+            </div>
+          </section>
+        `;
+      }
+
+      function renderWorkbenchAnnotations() {
+        return `
+          <section class="workbench-route-page" aria-label="Issue 处理工作台 mock">
+            <div class="workbench-section-title">
+              <div>
+                <h3>Issue 处理工作台</h3>
+                <span>Review Queue：筛选、选择、编辑、流转和导出所有 Issue。</span>
+              </div>
+              <div class="workbench-prototype-action-row">
+                <button class="workbench-prototype-action" type="button">导出全部</button>
+                <button class="workbench-prototype-action is-secondary" type="button">导出筛选结果</button>
+                <button class="workbench-prototype-action is-secondary" type="button">导出所选</button>
+              </div>
+            </div>
+            <div class="workbench-review-stats" aria-label="Issue 状态筛选">
+              <button class="workbench-review-stat is-active" type="button" data-review-filter="全部"><strong>45</strong><span>全部</span></button>
+              <button class="workbench-review-stat" type="button" data-review-filter="待处理"><strong>18</strong><span>待处理</span></button>
+              <button class="workbench-review-stat" type="button" data-review-filter="处理中"><strong>7</strong><span>处理中</span></button>
+              <button class="workbench-review-stat" type="button" data-review-filter="已采纳"><strong>14</strong><span>已采纳</span></button>
+              <button class="workbench-review-stat" type="button" data-review-filter="已忽略"><strong>6</strong><span>已忽略</span></button>
+              <button class="workbench-review-stat" type="button" data-review-filter="高优先级"><strong>8</strong><span>高优先级</span></button>
+            </div>
+            <div class="workbench-review-toolbar" aria-label="Issue 筛选工具条">
+              <div class="workbench-review-filter-group">
+                <select class="workbench-review-select" aria-label="状态筛选"><option>状态：全部</option><option>待处理</option><option>处理中</option><option>已采纳</option><option>已忽略</option><option>已关闭</option></select>
+                <select class="workbench-review-select" aria-label="页面筛选"><option>页面：全部页面</option><option>信息化环境安全能力映射</option><option>安全能力映射</option><option>LC-AP 安全开发生命周期</option><option>标准 / 框架</option></select>
+                <select class="workbench-review-select" aria-label="优先级筛选"><option>优先级：全部</option><option>高</option><option>中</option><option>低</option></select>
+                <input class="workbench-review-search" type="search" value="零信任" aria-label="关键词搜索" />
+                <button class="workbench-prototype-action is-secondary" type="button" data-review-clear-filters>清除筛选</button>
+              </div>
+              <span class="workbench-prototype-pill is-muted" data-review-filter-state>当前筛选：全部</span>
+            </div>
+            <div class="workbench-review-bulkbar" data-review-bulkbar>
+              <strong data-review-selection-count>已选 2 条</strong>
+              <div class="workbench-review-bulk-actions">
+                <button class="workbench-prototype-action is-secondary" type="button" data-review-bulk-status="处理中">改为处理中</button>
+                <button class="workbench-prototype-action is-secondary" type="button" data-review-bulk-status="已采纳">标记已采纳</button>
+                <button class="workbench-prototype-action is-secondary" type="button" data-review-bulk-status="已忽略">忽略</button>
+                <button class="workbench-prototype-action" type="button">导出所选</button>
+                <button class="workbench-prototype-action is-secondary" type="button" data-review-clear-selection>清除选择</button>
+              </div>
+            </div>
+            <div class="workbench-prototype-annotation-layout">
+              <aside class="workbench-review-scope" aria-label="Issue 范围导航">
+                <div class="workbench-review-panel-title">Issue 范围 <span class="workbench-prototype-pill is-muted">45 条</span></div>
+                <button class="workbench-review-scope-row is-active" type="button"><strong>全部 Issue</strong><span>45 条 / 18 待处理</span></button>
+                <button class="workbench-review-scope-row" type="button"><strong>信息化环境安全能力映射</strong><span>12 条 / 6 待处理</span></button>
+                <button class="workbench-review-scope-row" type="button"><strong>安全能力映射</strong><span>15 条 / 5 待处理</span></button>
+                <button class="workbench-review-scope-row" type="button"><strong>LC-AP 安全开发生命周期</strong><span>9 条 / 3 待处理</span></button>
+                <button class="workbench-review-scope-row" type="button"><strong>标准 / 框架</strong><span>7 条 / 4 待处理</span></button>
+                <button class="workbench-review-scope-row" type="button"><strong>轻规划</strong><span>2 条 / 0 待处理</span></button>
+              </aside>
+              <section class="workbench-review-queue" aria-label="Issue 处理队列">
+                <div class="workbench-review-panel-title">Issue 处理队列 <span class="workbench-prototype-pill is-muted" data-review-queue-context>全部 Issue</span></div>
+                <div class="workbench-review-queue-head">
+                  <span></span><span>Issue</span><span>所属页面 / 对象</span><span>状态</span><span>优先级</span><span>更新时间</span>
+                </div>
+                <article class="workbench-review-item is-active" role="button" tabindex="0" data-review-item data-title="零信任访问控制台定位慢" data-body="值定位加载慢，定位不到时会拖慢页面，需要进入 Issue 定位索引治理。" data-page="信息化环境安全能力映射" data-object="数据存储计算层 / 零信任访问控制台" data-status="处理中" data-priority="高">
+                  <input class="workbench-review-checkbox" type="checkbox" aria-label="选择零信任访问控制台定位慢" checked />
+                  <span class="workbench-review-item-title"><strong>零信任访问控制台定位慢</strong><span>定位不到时触发慢 fallback，影响页面操作。</span></span>
+                  <span class="workbench-review-item-meta">信息化环境安全能力映射<br />数据存储计算层</span>
+                  <span class="workbench-prototype-pill">处理中</span>
+                  <span class="workbench-prototype-pill is-warn">高</span>
+                  <span class="workbench-review-item-meta">今天 09:42</span>
+                </article>
+                <article class="workbench-review-item" role="button" tabindex="0" data-review-item data-title="API安全防护系统关系复核" data-body="检查 API 安全防护和 API 网关之间的目标系统关系，确认不继承服务级系统。" data-page="信息化环境安全能力映射" data-object="API网关层 / API安全防护" data-status="待处理" data-priority="中">
+                  <input class="workbench-review-checkbox" type="checkbox" aria-label="选择 API安全防护系统关系复核" checked />
+                  <span class="workbench-review-item-title"><strong>API安全防护系统关系复核</strong><span>确认目标节点自身系统关系是否正确。</span></span>
+                  <span class="workbench-review-item-meta">信息化环境安全能力映射<br />API网关层</span>
+                  <span class="workbench-prototype-pill is-muted">待处理</span>
+                  <span class="workbench-prototype-pill">中</span>
+                  <span class="workbench-review-item-meta">昨天 18:20</span>
+                </article>
+                <article class="workbench-review-item" role="button" tabindex="0" data-review-item data-title="环境对象树搜索不可用" data-body="页面内搜索应定位环境、对象、作用域、服务和模块，但当前对象树搜索没有稳定结果。" data-page="信息化环境安全能力映射" data-object="环境对象树" data-status="待处理" data-priority="高">
+                  <input class="workbench-review-checkbox" type="checkbox" aria-label="选择 环境对象树搜索不可用" />
+                  <span class="workbench-review-item-title"><strong>环境对象树搜索不可用</strong><span>页面内搜索没有命中，后续与搜索治理拆分。</span></span>
+                  <span class="workbench-review-item-meta">信息化环境安全能力映射<br />环境对象树</span>
+                  <span class="workbench-prototype-pill is-muted">待处理</span>
+                  <span class="workbench-prototype-pill is-warn">高</span>
+                  <span class="workbench-review-item-meta">06-30 21:16</span>
+                </article>
+                <article class="workbench-review-item" role="button" tabindex="0" data-review-item data-title="ISO/IEC 27001:2022 值定位慢" data-body="标准值级 Issue 需要稳定业务锚点，避免每次靠文本扫描。" data-page="安全能力映射" data-object="标准 / 框架映射" data-status="已采纳" data-priority="中">
+                  <input class="workbench-review-checkbox" type="checkbox" aria-label="选择 ISO/IEC 27001:2022 值定位慢" />
+                  <span class="workbench-review-item-title"><strong>ISO/IEC 27001:2022 值定位慢</strong><span>标准值级定位需要使用稳定 target_ref。</span></span>
+                  <span class="workbench-review-item-meta">安全能力映射<br />标准 / 框架映射</span>
+                  <span class="workbench-prototype-pill is-good">已采纳</span>
+                  <span class="workbench-prototype-pill">中</span>
+                  <span class="workbench-review-item-meta">06-29 12:39</span>
+                </article>
+                <article class="workbench-review-item" role="button" tabindex="0" data-review-item data-title="幻灯片翻页控件不可用" data-body="页面切换几次后底部翻页控件不可点击，需要确认遮挡层和播放器层级。" data-page="轻规划" data-object="幻灯片播放器" data-status="已忽略" data-priority="低">
+                  <input class="workbench-review-checkbox" type="checkbox" aria-label="选择 幻灯片翻页控件不可用" />
+                  <span class="workbench-review-item-title"><strong>幻灯片翻页控件不可用</strong><span>当前已作为幻灯片播放器问题单独跟踪。</span></span>
+                  <span class="workbench-review-item-meta">轻规划<br />幻灯片播放器</span>
+                  <span class="workbench-prototype-pill is-muted">已忽略</span>
+                  <span class="workbench-prototype-pill is-muted">低</span>
+                  <span class="workbench-review-item-meta">06-29 08:12</span>
+                </article>
+              </section>
+              <aside class="workbench-review-inspector" aria-label="Issue 编辑面板" data-review-inspector data-dirty="false">
+                <div class="workbench-review-panel-title">
+                  选中 Issue
+                  <span class="workbench-prototype-pill is-good" data-review-dirty>已保存</span>
+                </div>
+                <div class="workbench-review-warning" data-review-warning hidden>切换 Issue 前，如有未保存内容，需要提示确认。</div>
+                <div class="workbench-review-form">
+                  <div class="workbench-review-field">
+                    <label>Issue 标题</label>
+                    <input class="workbench-review-input" value="零信任访问控制台定位慢" data-review-field="title" />
+                  </div>
+                  <div class="workbench-review-field">
+                    <label>Issue 内容</label>
+                    <textarea class="workbench-review-textarea" data-review-field="body">值定位加载慢，定位不到时会拖慢页面，需要进入 Issue 定位索引治理。</textarea>
+                  </div>
+                  <div class="workbench-review-form-row">
+                    <div class="workbench-review-field">
+                      <label>状态</label>
+                      <select class="workbench-review-select" data-review-field="status"><option>待处理</option><option selected>处理中</option><option>已采纳</option><option>已忽略</option><option>已关闭</option><option>重新打开</option></select>
+                    </div>
+                    <div class="workbench-review-field">
+                      <label>优先级</label>
+                      <select class="workbench-review-select" data-review-field="priority"><option selected>高</option><option>中</option><option>低</option></select>
+                    </div>
+                  </div>
+                  <div class="workbench-review-field">
+                    <label>关联页面</label>
+                    <span class="workbench-review-field-value" data-review-field="page">信息化环境安全能力映射</span>
+                  </div>
+                  <div class="workbench-review-field">
+                    <label>关联对象</label>
+                    <span class="workbench-review-field-value" data-review-field="object">数据存储计算层 / 零信任访问控制台</span>
+                  </div>
+                  <div class="workbench-review-field">
+                    <label>处理备注</label>
+                    <textarea class="workbench-review-textarea" data-review-field="remark">已归入 OI-156 Issue 定位治理，保存前先确认是否还需要页面级复现。</textarea>
+                  </div>
+                  <div class="workbench-review-field">
+                    <label>状态流转记录</label>
+                    <div class="workbench-review-timeline">
+                      <span>待处理 > 处理中 > 已采纳 / 已忽略 / 已关闭</span>
+                      <span>已关闭后允许重新打开，继续进入 Review Queue。</span>
+                      <span>2026-07-01 09:42：用户更新备注，当前未保存。</span>
+                    </div>
+                  </div>
+                  <div class="workbench-review-inspector-actions">
+                    <button class="workbench-prototype-action" type="button" data-review-save>保存</button>
+                    <button class="workbench-prototype-action is-secondary" type="button" data-review-cancel>取消</button>
+                    <button class="workbench-prototype-action is-secondary" type="button" data-review-status-action="已采纳">标记已采纳</button>
+                    <button class="workbench-prototype-action is-secondary" type="button" data-review-status-action="已忽略">忽略</button>
+                    <button class="workbench-prototype-action is-secondary" type="button">删除</button>
+                  </div>
+                </div>
+              </aside>
+            </div>
+          </section>
+        `;
+      }
+
+      function renderWorkbenchMaturity() {
+        const rows = [
+          ["华东政企云", "SAPD 成熟度 V1", "L3", "72", "暂存", "2026-07-01 09:42", "/workbench/maturity/project-001"],
+          ["制造集团数据域", "数据安全成熟度", "L2", "61", "已完成", "2026-06-28 17:20", "/workbench/maturity/project-001"],
+          ["金融数据平台", "SAPD 成熟度 V1", "L3", "76", "已导出", "2026-06-22 15:10", "/workbench/maturity/project-001"],
+        ];
+        return `
+          <section class="workbench-route-page" aria-label="成熟度评估页 mock">
+            <div class="workbench-section-title">
+              <div>
+                <h3>成熟度评估</h3>
+                <span>独立页面，包含评估工作流暂存、历史项目查询、编辑和导出入口。</span>
+              </div>
+              <button class="workbench-prototype-action" type="button">新建评估项目</button>
+            </div>
+            <div class="workbench-prototype-grid is-three">
+              <section class="workbench-prototype-card">
+                <span class="workbench-prototype-pill is-warn">当前评估工作</span>
+                <h3>华东政企云</h3>
+                <p>状态暂存于评分维度「治理体系」，下一步继续补充证据说明和备注。</p>
+                <div class="workbench-prototype-action-row">
+                  <button class="workbench-prototype-action" type="button" data-workbench-route="/workbench/maturity/project-001">继续评估</button>
+                  <button class="workbench-prototype-action is-secondary" type="button">保存暂存</button>
+                </div>
+              </section>
+              <section class="workbench-prototype-card">
+                <span class="workbench-prototype-pill is-good">工作流状态</span>
+                <div class="workbench-prototype-row is-active"><span>已完成维度</span><strong>3 / 6</strong></div>
+                <div class="workbench-prototype-row"><span>待补证据</span><strong>4 项</strong></div>
+              </section>
+              <section class="workbench-prototype-card">
+                <span class="workbench-prototype-pill">历史项目查询</span>
+                <p>支持按客户、模板、状态、更新时间过滤历史项目，后续接用户库 project 索引。</p>
+                <div class="workbench-prototype-chip-row">
+                  <span class="workbench-prototype-pill is-muted">编辑</span>
+                  <span class="workbench-prototype-pill is-muted">导出报告</span>
+                  <span class="workbench-prototype-pill is-muted">导出 project 包</span>
+                </div>
+              </section>
+            </div>
+            <div class="workbench-prototype-filter-row">
+              <span class="workbench-prototype-filter">客户：全部</span>
+              <span class="workbench-prototype-filter">模板：全部模板</span>
+              <span class="workbench-prototype-filter">状态：暂存 / 草稿 / 已完成 / 已导出</span>
+              <span class="workbench-prototype-filter">关键词：客户或项目名</span>
+              <span class="workbench-prototype-filter">最近更新：近 90 天</span>
+            </div>
+            <div class="workbench-prototype-maturity-layout">
+              <section class="workbench-prototype-table" aria-label="评估项目列表">
+                <div class="workbench-prototype-table-row is-head"><span>客户名称</span><span>模板名称</span><span>等级</span><span>总分</span><span>状态</span><span>最近更新</span><span>操作</span></div>
+                ${rows.map((row, index) => `
+                  <div class="workbench-prototype-table-row${index === 0 ? " is-active" : ""}">
+                    <span>${workbenchEscapeHtml(row[0])}</span>
+                    <span>${workbenchEscapeHtml(row[1])}</span>
+                    <span>${workbenchEscapeHtml(row[2])}</span>
+                    <span>${workbenchEscapeHtml(row[3])}</span>
+                    <span>${workbenchEscapeHtml(row[4])}</span>
+                    <span>${workbenchEscapeHtml(row[5])}</span>
+                    <span class="workbench-prototype-row-actions">
+                      <button type="button" data-workbench-route="${workbenchEscapeHtml(row[6])}">编辑</button>
+                      <button type="button">导出</button>
+                    </span>
+                  </div>
+                `).join("")}
+              </section>
+              <aside class="workbench-prototype-chart-card">
+                <h3>项目概览</h3>
+                <div class="workbench-prototype-radar" aria-hidden="true"></div>
+                <div class="workbench-prototype-bar"><span>治理</span><span><i style="width: 68%"></i></span><b>68</b></div>
+                <div class="workbench-prototype-bar"><span>技术</span><span><i style="width: 78%"></i></span><b>78</b></div>
+                <div class="workbench-prototype-bar"><span>运营</span><span><i style="width: 61%"></i></span><b>61</b></div>
+                <button class="workbench-prototype-action" type="button" data-workbench-route="/workbench/maturity/project-001">打开项目详情</button>
+              </aside>
+            </div>
+          </section>
+        `;
+      }
+
+      function renderWorkbenchProject() {
+        return `
+          <section class="workbench-route-page" aria-label="成熟度评估项目详情页 mock">
+            <div class="workbench-section-title">
+              <div>
+                <h3>华东政企云成熟度评估</h3>
+                <span>项目详情页，左侧维度导航，中间评分表单，右侧实时结果。</span>
+              </div>
+              <div class="workbench-prototype-action-row">
+                <button class="workbench-prototype-action" type="button">保存</button>
+                <button class="workbench-prototype-action is-secondary" type="button">修改</button>
+                <button class="workbench-prototype-action is-secondary" type="button">导出报告</button>
+                <button class="workbench-prototype-action is-secondary" type="button">导出 project 包</button>
+              </div>
+            </div>
+            <div class="workbench-prototype-project-layout">
+              <aside class="workbench-prototype-panel">
+                <h3>评分维度</h3>
+                <div class="workbench-prototype-row is-active"><span>治理体系</span><strong>68</strong></div>
+                <div class="workbench-prototype-row"><span>技术能力</span><strong>78</strong></div>
+                <div class="workbench-prototype-row"><span>运营闭环</span><strong>61</strong></div>
+                <div class="workbench-prototype-row"><span>证据完整性</span><strong>58</strong></div>
+              </aside>
+              <section class="workbench-prototype-panel">
+                <h3>评分表单</h3>
+                <div class="workbench-prototype-score-row"><span>制度完整性</span><span class="workbench-prototype-score-options"><i class="workbench-prototype-score-dot is-on"></i><i class="workbench-prototype-score-dot is-on"></i><i class="workbench-prototype-score-dot"></i><i class="workbench-prototype-score-dot"></i></span></div>
+                <div class="workbench-prototype-score-row"><span>职责边界清晰度</span><span class="workbench-prototype-score-options"><i class="workbench-prototype-score-dot is-on"></i><i class="workbench-prototype-score-dot"></i><i class="workbench-prototype-score-dot"></i><i class="workbench-prototype-score-dot"></i></span></div>
+                <div class="workbench-prototype-score-row"><span>评审记录完整性</span><span class="workbench-prototype-score-options"><i class="workbench-prototype-score-dot is-on"></i><i class="workbench-prototype-score-dot is-on"></i><i class="workbench-prototype-score-dot"></i><i class="workbench-prototype-score-dot"></i></span></div>
+                <div class="workbench-prototype-filter-row">
+                  <span class="workbench-prototype-filter">证据说明：已填写</span>
+                  <span class="workbench-prototype-filter">备注：待客户确认</span>
+                </div>
+              </section>
+              <aside class="workbench-prototype-detail">
+                <span class="workbench-prototype-pill is-good">成熟度等级</span>
+                <span class="workbench-prototype-metric"><strong>L3</strong><span>总分 72</span></span>
+                <div class="workbench-prototype-radar" aria-hidden="true"></div>
+                <div class="workbench-prototype-bar"><span>治理</span><span><i style="width: 68%"></i></span><b>68</b></div>
+                <div class="workbench-prototype-bar"><span>技术</span><span><i style="width: 78%"></i></span><b>78</b></div>
+                <div class="workbench-prototype-bar"><span>运营</span><span><i style="width: 61%"></i></span><b>61</b></div>
+                <h3>评价摘要</h3>
+                <p>当前客户已具备基础治理与技术能力覆盖，但证据完整性和持续运营记录仍是主要短板。</p>
+              </aside>
+            </div>
+          </section>
+        `;
+      }
+
+      function renderWorkbenchPrototype(route, options = {}) {
+        const normalizedRoute = normalizeWorkbenchRoute(route);
+        const meta = workbenchRouteMeta[normalizedRoute] || workbenchRouteMeta["/dashboard"];
+        if (workbenchPrototypeTitle) workbenchPrototypeTitle.textContent = meta.title;
+        if (workbenchPrototypeBreadcrumb) workbenchPrototypeBreadcrumb.textContent = meta.breadcrumb;
+        if (workbenchPrototypeRoute) workbenchPrototypeRoute.textContent = normalizedRoute === "/workbench/maturity/project-001" ? "/workbench/maturity/:projectId" : normalizedRoute;
+        workbenchPrototypeNavButtons.forEach((button) => {
+          const buttonRoute = normalizeWorkbenchRoute(button.dataset.workbenchRoute);
+          const isActive =
+            normalizedRoute === buttonRoute ||
+            (buttonRoute === "/workbench" && normalizedRoute.startsWith("/workbench")) ||
+            (buttonRoute === "/workbench/maturity" && normalizedRoute.startsWith("/workbench/maturity/")) ||
+            (normalizedRoute.startsWith("/workbench/maturity/") && buttonRoute === "/workbench/maturity/project-001");
+          button.classList.toggle("is-active", isActive);
+        });
+        if (workbenchPrototypePage) {
+          const template = {
+            "/dashboard": renderWorkbenchDashboard,
+            "/workbench": renderWorkbenchHome,
+            "/workbench/annotations": renderWorkbenchAnnotations,
+            "/workbench/maturity": renderWorkbenchMaturity,
+            "/workbench/maturity/project-001": renderWorkbenchProject,
+          }[normalizedRoute] || renderWorkbenchDashboard;
+          workbenchPrototypePage.innerHTML = template();
+          workbenchPrototypePage.focus({ preventScroll: true });
+        }
+        if (options.updateHash !== false) {
+          const nextHash = workbenchHashForRoute(normalizedRoute);
+          if (window.location.hash !== nextHash) history.replaceState(null, "", nextHash);
+        }
+      }
+
+      function updateWorkbenchReviewSelection() {
+        const page = document.querySelector(".workbench-route-page[aria-label='Issue 处理工作台 mock']");
+        if (!page) return;
+        const checkedCount = page.querySelectorAll(".workbench-review-checkbox:checked").length;
+        const bulkbar = page.querySelector("[data-review-bulkbar]");
+        const counter = page.querySelector("[data-review-selection-count]");
+        if (counter) counter.textContent = `已选 ${checkedCount} 条`;
+        if (bulkbar) bulkbar.hidden = checkedCount === 0;
+      }
+
+      function setWorkbenchReviewDirty(isDirty) {
+        const inspector = document.querySelector("[data-review-inspector]");
+        if (!inspector) return;
+        inspector.dataset.dirty = isDirty ? "true" : "false";
+        const dirtyPill = inspector.querySelector("[data-review-dirty]");
+        if (dirtyPill) {
+          dirtyPill.textContent = isDirty ? "未保存" : "已保存";
+          dirtyPill.classList.toggle("is-warn", isDirty);
+          dirtyPill.classList.toggle("is-good", !isDirty);
+        }
+      }
+
+      function workbenchReviewPillTone(value, kind = "status") {
+        const normalized = String(value || "").trim();
+        if (kind === "priority") {
+          if (normalized === "高") return "is-warn";
+          if (normalized === "低") return "is-muted";
+          return "";
+        }
+        if (normalized === "已采纳") return "is-good";
+        if (normalized === "待处理" || normalized === "已忽略" || normalized === "已关闭") return "is-muted";
+        if (normalized === "处理中") return "";
+        return "is-muted";
+      }
+
+      function setWorkbenchReviewPill(pill, value, kind = "status") {
+        if (!pill) return;
+        pill.textContent = value || "待处理";
+        pill.classList.remove("is-muted", "is-good", "is-warn");
+        const tone = workbenchReviewPillTone(value, kind);
+        if (tone) pill.classList.add(tone);
+      }
+
+      function activeWorkbenchReviewItem() {
+        return document.querySelector(".workbench-route-page[aria-label='Issue 处理工作台 mock'] [data-review-item].is-active");
+      }
+
+      function setWorkbenchReviewWarning(message, visible = true) {
+        const warning = document.querySelector("[data-review-warning]");
+        if (!warning) return;
+        warning.textContent = message;
+        warning.hidden = !visible;
+      }
+
+      function saveWorkbenchReviewInspector() {
+        const inspector = document.querySelector("[data-review-inspector]");
+        const activeItem = activeWorkbenchReviewItem();
+        if (!inspector || !activeItem) return;
+        const title = inspector.querySelector('[data-review-field="title"]')?.value || activeItem.dataset.title || "";
+        const body = inspector.querySelector('[data-review-field="body"]')?.value || activeItem.dataset.body || "";
+        const status = inspector.querySelector('[data-review-field="status"]')?.value || activeItem.dataset.status || "待处理";
+        const priority = inspector.querySelector('[data-review-field="priority"]')?.value || activeItem.dataset.priority || "中";
+        activeItem.dataset.title = title;
+        activeItem.dataset.body = body;
+        activeItem.dataset.status = status;
+        activeItem.dataset.priority = priority;
+        const titleNode = activeItem.querySelector(".workbench-review-item-title strong");
+        const summaryNode = activeItem.querySelector(".workbench-review-item-title span");
+        if (titleNode) titleNode.textContent = title;
+        if (summaryNode) summaryNode.textContent = body;
+        const pills = activeItem.querySelectorAll(".workbench-prototype-pill");
+        setWorkbenchReviewPill(pills[0], status, "status");
+        setWorkbenchReviewPill(pills[1], priority, "priority");
+        setWorkbenchReviewWarning("已保存，列表状态已同步。", false);
+        setWorkbenchReviewDirty(false);
+      }
+
+      function updateWorkbenchReviewInspector(item) {
+        const inspector = document.querySelector("[data-review-inspector]");
+        if (!inspector || !item) return;
+        const warning = inspector.querySelector("[data-review-warning]");
+        if (warning) warning.hidden = true;
+        const fields = {
+          title: item.dataset.title,
+          body: item.dataset.body,
+          status: item.dataset.status,
+          priority: item.dataset.priority,
+          page: item.dataset.page,
+          object: item.dataset.object,
+        };
+        Object.entries(fields).forEach(([key, value]) => {
+          const field = inspector.querySelector(`[data-review-field="${key}"]`);
+          if (!field || value == null) return;
+          if ("value" in field) {
+            field.value = value;
+          } else {
+            field.textContent = value;
+          }
+        });
+        setWorkbenchReviewDirty(false);
+      }
+
+      document.addEventListener("click", (event) => {
+        const routeButton = event.target.closest("[data-workbench-route]");
+        if (routeButton) {
+          const targetRoute = routeButton.dataset.workbenchRoute;
+          if (!targetRoute) return;
+          event.preventDefault();
+          activateDemoTab("workbench-module", { workbenchRoute: targetRoute });
+          return;
+        }
+
+        const reviewFilterButton = event.target.closest("[data-review-filter]");
+        if (reviewFilterButton) {
+          const page = reviewFilterButton.closest(".workbench-route-page");
+          if (!page) return;
+          page.querySelectorAll("[data-review-filter]").forEach((button) => {
+            button.classList.toggle("is-active", button === reviewFilterButton);
+          });
+          const state = page.querySelector("[data-review-filter-state]");
+          if (state) state.textContent = `当前筛选：${reviewFilterButton.dataset.reviewFilter}`;
+          return;
+        }
+
+        const reviewScopeButton = event.target.closest(".workbench-review-scope-row");
+        if (reviewScopeButton) {
+          const page = reviewScopeButton.closest(".workbench-route-page");
+          if (!page) return;
+          page.querySelectorAll(".workbench-review-scope-row").forEach((button) => {
+            button.classList.toggle("is-active", button === reviewScopeButton);
+          });
+          const queueTitle = page.querySelector(".workbench-review-queue [data-review-queue-context]");
+          if (queueTitle) queueTitle.textContent = reviewScopeButton.querySelector("strong")?.textContent || "全部 Issue";
+          return;
+        }
+
+        const clearSelectionButton = event.target.closest("[data-review-clear-selection]");
+        if (clearSelectionButton) {
+          const page = clearSelectionButton.closest(".workbench-route-page");
+          if (!page) return;
+          page.querySelectorAll(".workbench-review-checkbox").forEach((checkbox) => {
+            checkbox.checked = false;
+          });
+          updateWorkbenchReviewSelection();
+          return;
+        }
+
+        const clearFiltersButton = event.target.closest("[data-review-clear-filters]");
+        if (clearFiltersButton) {
+          const page = clearFiltersButton.closest(".workbench-route-page");
+          if (!page) return;
+          page.querySelectorAll(".workbench-review-select").forEach((select) => {
+            select.selectedIndex = 0;
+          });
+          const search = page.querySelector(".workbench-review-search");
+          if (search) search.value = "";
+          page.querySelectorAll("[data-review-filter]").forEach((button) => {
+            button.classList.toggle("is-active", button.dataset.reviewFilter === "全部");
+          });
+          const state = page.querySelector("[data-review-filter-state]");
+          if (state) state.textContent = "当前筛选：全部";
+          return;
+        }
+
+        const bulkStatusButton = event.target.closest("[data-review-bulk-status]");
+        if (bulkStatusButton) {
+          const page = bulkStatusButton.closest(".workbench-route-page");
+          if (!page) return;
+          const nextStatus = bulkStatusButton.dataset.reviewBulkStatus;
+          page.querySelectorAll(".workbench-review-checkbox:checked").forEach((checkbox) => {
+            const item = checkbox.closest("[data-review-item]");
+            if (!item) return;
+            item.dataset.status = nextStatus;
+            const pills = item.querySelectorAll(".workbench-prototype-pill");
+            setWorkbenchReviewPill(pills[0], nextStatus, "status");
+          });
+          const activeItem = activeWorkbenchReviewItem();
+          if (activeItem) updateWorkbenchReviewInspector(activeItem);
+          const state = page.querySelector("[data-review-filter-state]");
+          if (state) state.textContent = `批量操作：已改为${nextStatus}`;
+          return;
+        }
+
+        const saveReviewButton = event.target.closest("[data-review-save]");
+        if (saveReviewButton) {
+          saveWorkbenchReviewInspector();
+          return;
+        }
+
+        const cancelReviewButton = event.target.closest("[data-review-cancel]");
+        if (cancelReviewButton) {
+          const activeItem = activeWorkbenchReviewItem();
+          if (activeItem) updateWorkbenchReviewInspector(activeItem);
+          setWorkbenchReviewWarning("已放弃未保存修改。", false);
+          return;
+        }
+
+        const reviewStatusAction = event.target.closest("[data-review-status-action]");
+        if (reviewStatusAction) {
+          const inspector = document.querySelector("[data-review-inspector]");
+          const status = reviewStatusAction.dataset.reviewStatusAction;
+          const statusField = inspector?.querySelector('[data-review-field="status"]');
+          if (statusField && status) {
+            statusField.value = status;
+            setWorkbenchReviewDirty(true);
+          }
+          return;
+        }
+
+        const reviewItem = event.target.closest("[data-review-item]");
+        if (reviewItem && !event.target.closest("input, select, textarea, button")) {
+          const page = reviewItem.closest(".workbench-route-page");
+          if (!page) return;
+          const inspector = page.querySelector("[data-review-inspector]");
+          if (inspector?.dataset.dirty === "true" && !reviewItem.classList.contains("is-active")) {
+            setWorkbenchReviewWarning("当前 Issue 有未保存修改，请先保存或取消，再切换到其他 Issue。", true);
+            return;
+          }
+          page.querySelectorAll("[data-review-item]").forEach((item) => {
+            item.classList.toggle("is-active", item === reviewItem);
+          });
+          updateWorkbenchReviewInspector(reviewItem);
+        }
+      });
+
+      document.addEventListener("change", (event) => {
+        if (event.target.matches(".workbench-review-checkbox")) {
+          updateWorkbenchReviewSelection();
+          return;
+        }
+        if (event.target.closest("[data-review-inspector]")) {
+          setWorkbenchReviewDirty(true);
+        }
+      });
+
+      document.addEventListener("input", (event) => {
+        if (event.target.closest("[data-review-inspector]")) {
+          setWorkbenchReviewDirty(true);
+        }
+      });
+
       function activateDemoTab(tabName, options = {}) {
         if (!demoPanelIds.has(tabName)) return;
         tabButtons.forEach((button) => button.classList.toggle("is-active", button.dataset.demoTab === tabName));
@@ -3727,7 +6369,7 @@
           panel.classList.toggle("is-active", active);
           panel.setAttribute("aria-hidden", active ? "false" : "true");
         });
-        if (options.updateHash !== false && window.location.hash.slice(1) !== tabName) {
+        if (options.updateHash !== false && tabName !== "workbench-module" && window.location.hash.slice(1) !== tabName) {
           history.replaceState(null, "", `#${tabName}`);
         }
         if (tabName === "funnel") {
@@ -3737,6 +6379,11 @@
         } else if (tabName === "global-search") {
           hideNodeFulltext();
           renderSearchDemo();
+        } else if (tabName === "capability-rail") {
+          hideNodeFulltext();
+        } else if (tabName === "workbench-module") {
+          hideNodeFulltext();
+          renderWorkbenchPrototype(options.workbenchRoute || getWorkbenchRouteFromHash(), { updateHash: options.updateHash !== false });
         } else if (tabName === "color-system") {
           hideNodeFulltext();
         } else if (tabName === "environment-stats" || tabName === "subcategory-stats") {
@@ -3750,9 +6397,10 @@
         button.addEventListener("click", () => activateDemoTab(button.dataset.demoTab));
       });
 
-      const initialDemoTab = window.location.hash.slice(1);
+      const initialDemoHash = window.location.hash.slice(1);
+      const initialDemoTab = initialDemoHash.split("/")[0];
       if (demoPanelIds.has(initialDemoTab) && tabButtons.some((button) => button.dataset.demoTab === initialDemoTab)) {
-        activateDemoTab(initialDemoTab, { updateHash: false });
+        activateDemoTab(initialDemoTab, { updateHash: false, workbenchRoute: getWorkbenchRouteFromHash() });
       } else {
         activateDemoTab("color-system", { updateHash: false });
       }

@@ -1273,13 +1273,8 @@
     const ariaLabel = stats.ariaLabel || "当前关注点能力关系图谱";
     return `
       <section class="local-relation-network-graph" aria-label="${escape(title)}">
-        <header class="network-graph-head">
-          <div>
-            <h3>${escape(title)}</h3>
-          </div>
-          ${renderLegend(model)}
-        </header>
         <div class="network-graph-canvas" role="img" aria-label="${escape(ariaLabel)}" data-viewbox-width="${viewBox.width}" data-viewbox-height="${viewBox.height}" data-layout-overlaps="${metrics.overlaps}" data-layout-label-overlaps="${metrics.labelOverlaps}" data-layout-edge-crossings="${metrics.edgeCrossings}" data-layout-edge-node-intrusions="${metrics.edgeNodeIntrusions}" data-layout-min-gap="${metrics.minGap}" data-business-nodes="${businessNodes.length}" data-layout-viewbox="${escape(metrics.viewBox)}" data-zoom="1" data-pan-x="0" data-pan-y="0">
+          ${renderLegend(model)}
           <div class="network-graph-actions" aria-label="图谱缩放控制">
             <button type="button" data-network-zoom="out" title="缩小图谱" aria-label="缩小图谱">−</button>
             <span data-network-zoom-value>100%</span>

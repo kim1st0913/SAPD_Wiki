@@ -42,6 +42,10 @@ build/
 # Tauri / Rust build artifacts
 target/
 
+# macOS app side-line artifacts
+apps/macos/SAPDWiki/.build/
+*.dmg
+
 # Python artifacts
 __pycache__/
 *.py[cod]

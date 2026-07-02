@@ -30,7 +30,7 @@
     "processReferenceCount": 1,
     "standardControlCount": 33,
     "moduleCount": 2,
-    "measureCount": 0
+    "measureCount": 1
   },
   "objects": {
     "capability_focus": {
@@ -594,6 +594,17 @@
         "status": ""
       }
     },
+    "security_technical_measure": {
+      "security_technical_measure:0316e9bea694b356": {
+        "id": "security_technical_measure:0316e9bea694b356",
+        "type": "security_technical_measure",
+        "code": "",
+        "title": "IaC代码安全测试",
+        "name": "IaC代码安全测试",
+        "category": "安全技术措施",
+        "status": "normal"
+      }
+    },
     "work_function": {
       "21c82d64-5a7a-4d6f-a6dd-ec6ef53c8a6b": {
         "id": "21c82d64-5a7a-4d6f-a6dd-ec6ef53c8a6b",
@@ -855,7 +866,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 9
+      "evidenceRefCount": 7
     },
     {
       "id": "relation:3a0141c0bce8623f",
@@ -1456,6 +1467,19 @@
       "evidenceRefCount": 8
     },
     {
+      "id": "relation:3295bc88ee6bcf4c",
+      "type": "has_measure",
+      "sourceId": "96046fed-af12-4f04-94ba-7fdd2677dc55",
+      "sourceType": "security_technical_service",
+      "targetId": "security_technical_measure:0316e9bea694b356",
+      "targetType": "security_technical_measure",
+      "label": "关联措施",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 7
+    },
+    {
       "id": "relation:b51d49946b0d4cc6",
       "type": "stakeholder_by",
       "sourceId": "1478a530-821e-4556-a43b-540a30f6410f",
@@ -1586,5 +1610,5 @@
       "evidenceRefCount": 0
     }
   ],
-  "relationCount": 69
+  "relationCount": 70
 }

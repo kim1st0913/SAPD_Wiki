@@ -30,7 +30,7 @@
     "processReferenceCount": 1,
     "standardControlCount": 5,
     "moduleCount": 0,
-    "measureCount": 0
+    "measureCount": 1
   },
   "objects": {
     "capability_focus": {
@@ -322,6 +322,17 @@
         "status": ""
       }
     },
+    "security_technical_measure": {
+      "security_technical_measure:7192dcbbc1306d7f": {
+        "id": "security_technical_measure:7192dcbbc1306d7f",
+        "type": "security_technical_measure",
+        "code": "",
+        "title": "制品安全加固",
+        "name": "制品安全加固",
+        "category": "安全技术措施",
+        "status": "normal"
+      }
+    },
     "work_function": {
       "21c82d64-5a7a-4d6f-a6dd-ec6ef53c8a6b": {
         "id": "21c82d64-5a7a-4d6f-a6dd-ec6ef53c8a6b",
@@ -570,7 +581,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 6
+      "evidenceRefCount": 4
     },
     {
       "id": "relation:87b5d58abde7a19f",
@@ -794,6 +805,19 @@
       "evidenceRefCount": 4
     },
     {
+      "id": "relation:8fb07c11fe3e071c",
+      "type": "has_measure",
+      "sourceId": "3806c715-1b30-4465-ad90-471e5dd05e10",
+      "sourceType": "security_technical_service",
+      "targetId": "security_technical_measure:7192dcbbc1306d7f",
+      "targetType": "security_technical_measure",
+      "label": "关联措施",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 4
+    },
+    {
       "id": "relation:2c0886c4f13a7ed2",
       "type": "stakeholder_by",
       "sourceId": "64363a9b-3c8c-46f8-aab9-1c940064a7d7",
@@ -924,5 +948,5 @@
       "evidenceRefCount": 0
     }
   ],
-  "relationCount": 39
+  "relationCount": 40
 }

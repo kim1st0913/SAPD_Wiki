@@ -33,6 +33,24 @@
     navigation: [
       { id: "global-navigation", label: "全局导航", route: "/", type: "application-shell", children: [] },
       {
+        id: "workbench",
+        label: "工作台",
+        route: "/workbench",
+        type: "workbench-module",
+        children: [
+          {
+            id: "workbench-maturity",
+            label: "成熟度评估",
+            route: "/workbench/maturity",
+            type: "workbench-page",
+            children: [
+              { id: "workbench-maturity-project-001", label: "华东政企云成熟度评估", route: "/workbench/maturity/project-001", type: "workbench-page", children: [] },
+            ],
+          },
+          { id: "workbench-issues", label: "Issue 清单", route: "/workbench/annotations", type: "workbench-page", children: [] },
+        ],
+      },
+      {
         id: "guides",
         label: "安全指南",
         route: "/guides",
@@ -101,6 +119,10 @@
 
   const ROUTE_TARGETS = {
     "/": { view: "overview" },
+    "/workbench": { view: "workbench" },
+    "/workbench/annotations": { view: "workbench" },
+    "/workbench/maturity": { view: "workbench" },
+    "/workbench/maturity/project-001": { view: "workbench" },
     "/guides": { view: "content", contentPage: "html" },
     "/guides/security-architecture-design": { view: "content", contentPage: "html" },
     "/guides/security-architecture-modeling-language": { view: "content", contentPage: "html" },
@@ -147,6 +169,7 @@
     environment: "/environment-mapping",
     "dev-lifecycle": "/development-security",
     "data-lifecycle": "/data-security",
+    workbench: "/workbench",
     content: "/guides",
     maintenance: "/knowledge/scopes",
   };
@@ -171,8 +194,21 @@
     ppt: "/guides/others",
   };
 
+  function normalizeRoute(route) {
+    const value = text(route).trim();
+    if (!value) return "/";
+    const withoutHash = value.startsWith("#") ? value.slice(1) : value;
+    const withoutQuery = withoutHash.split("?")[0];
+    const normalized = withoutQuery.startsWith("/") ? withoutQuery : `/${withoutQuery}`;
+    return normalized.replace(/\/+$/, "") || "/";
+  }
+
   const PAGE_DESCRIPTIONS = {
     "/": "查看当前已导入安全能力、信息化环境、生命周期和知识维护数据的关系覆盖状态。",
+    "/workbench": "集中进入 Issue 处理和成熟度评估工作流，当前为静态 mock 页面，不接真实用户数据。",
+    "/workbench/annotations": "以 Review Queue 方式查看、筛选、编辑、批量处理和导出所有 Issue。",
+    "/workbench/maturity": "管理成熟度评估工作、历史项目、编辑和导出入口，当前使用 mock project 数据。",
+    "/workbench/maturity/project-001": "成熟度评估项目详情页，展示评分维度、评分表单、实时结果和导出占位。",
     "/guides": "承载安全架构、数据安全、管控模式和成熟度模型等方法论说明。",
     "/guides/security-architecture-modeling-language": "安全架构设计元素图例，安全架构中的各种元素都需要映射到 ArchiMate 的元素。",
     "/guides/data-security-design": "以本地幻灯片形式浏览数据安全设计方法，后续可扩展为数据安全设计指南目录。",
@@ -194,6 +230,8 @@
 
   const TYPE_LABELS = {
     "application-shell": "应用壳",
+    "workbench-module": "工作台",
+    "workbench-page": "工作台页面",
     "document-hub": "文档集合",
     "document-page": "文档页",
     "capability-mapping-workbench": "能力工作台",
@@ -207,6 +245,7 @@
 
   const NAV_SYMBOLS = {
     "global-navigation": "⌂",
+    workbench: "▦",
     guides: "□",
     "capability-mapping": "▣",
     "environment-mapping": "◫",
@@ -230,9 +269,26 @@
   }
 
   function getRouteTarget(route) {
-    const normalized = ROUTE_TARGETS[route] ? route : "/";
-    const target = ROUTE_TARGETS[normalized];
-    return { ...target, route: target.canonicalRoute || normalized };
+    const normalized = normalizeRoute(route);
+    if (ROUTE_TARGETS[normalized]) {
+      const target = ROUTE_TARGETS[normalized];
+      return { ...target, route: target.canonicalRoute || normalized };
+    }
+
+    if (normalized === "/workbench") return { view: "workbench", route: "/workbench", canonicalRoute: "/workbench" };
+
+    if (normalized.startsWith("/workbench/annotations")) {
+      return { view: "workbench", route: "/workbench/annotations", canonicalRoute: "/workbench/annotations" };
+    }
+
+    if (normalized.startsWith("/workbench/maturity")) {
+      return { view: "workbench", route: normalized, canonicalRoute: normalized };
+    }
+
+    if (normalized.startsWith("/workbench")) return { view: "workbench", route: "/workbench", canonicalRoute: "/workbench" };
+
+    const target = ROUTE_TARGETS[normalized] || { view: "overview", route: "/" };
+    return { ...target, route: target.canonicalRoute || target.route || "/" };
   }
 
   function routeForView({ view, activeMaintenancePage, activeReferenceTab, activeContentPage, activeStandardFramework } = {}) {
@@ -265,7 +321,7 @@
   function renderTopBar() {
     return `
       ${renderGlobalSearch()}
-      <div id="localModeStatus" class="topbar-status" aria-label="批注导出入口"></div>
+      <div id="localModeStatus" class="topbar-status" aria-label="本地运行状态"></div>
       <div class="topbar-actions" aria-label="全局操作">
         <button type="button" title="通知" aria-label="通知">!</button>
         <button type="button" title="设置" aria-label="设置">⚙</button>
@@ -478,14 +534,16 @@
     const isStandardFrameworkPage = target.view === "maintenance" && target.maintenancePage === "standards";
     const isGuidePage = activeRoute.startsWith("/guides/");
     const isPlaceholderPage = target.placeholder || target.view === "placeholder";
+    const isWorkbenchIssuePage = activeRoute === "/workbench/annotations";
     return `
       <section class="app-page-header" id="appPageHeader">
         <div class="page-header-copy">
           ${renderBreadcrumb(activeRoute)}
           <div class="page-title-row">
             <h1>${escapeHtml(pageTitle)}</h1>
+            ${isWorkbenchIssuePage ? '<span id="workbenchIssueHeaderStats" class="workbench-review-stats is-compact page-title-issue-stats" aria-label="Issue 状态筛选"></span>' : ""}
             ${isSourceTablePage ? '<span id="pageHeaderCount" class="page-title-summary" hidden></span>' : ""}
-            ${isSourceTablePage ? "" : `<span class="shell-tag muted">${escapeHtml(TYPE_LABELS[item.type] || item.type)}</span>`}
+            ${isSourceTablePage || isWorkbenchIssuePage ? "" : `<span class="shell-tag muted">${escapeHtml(TYPE_LABELS[item.type] || item.type)}</span>`}
             ${activeRoute === "/guides/security-architecture-modeling-language" ? renderModelingLanguageHeaderTabs(activeModelingLanguageTab) : ""}
             ${activeRoute === "/environment-mapping" ? renderEnvironmentHeaderTabs(activeEnvironmentTab) : ""}
           </div>
@@ -497,6 +555,8 @@
                 <span class="search-icon" aria-hidden="true">⌕</span>
                 <input id="sourceSearchInput" type="search" placeholder="搜索名称、编码、分组或关系" autocomplete="off" />
               </label>`
+            : isWorkbenchIssuePage
+              ? `<div id="workbenchIssueHeaderActions" class="workbench-issue-page-actions" aria-label="Issue 导出操作"></div>`
             : isGuidePage || isPlaceholderPage
               ? ""
               : ""
@@ -520,6 +580,7 @@
   function applyWorkbenchContainers() {
     [
       ["overviewWorkspace", "three"],
+      ["workbenchWorkspace", "one"],
       ["capabilityWorkspace", "two"],
       ["environmentWorkspace", "two"],
       ["devLifecycleWorkspace", "three"],
@@ -622,11 +683,17 @@
         <button id="expandCapabilityCatalogTab" class="catalog-expand-tab" type="button" aria-label="展开安全能力目录" aria-expanded="false">目录</button>
         <div class="capability-workbench-head">
           <div id="capabilityFocusHeader" class="capability-focus-head-slot"></div>
-          <div class="capability-workbench-tools">
-            <input id="capabilitySearchInput" type="search" placeholder="搜索能力、作用域、安全技术服务、流程或安全技术模块/措施" />
-          </div>
         </div>
-        <div id="detail" class="capability-relation-workspace"></div>
+        <div class="capability-workspace-surface">
+          <div class="capability-workspace-control" aria-label="能力映射工作区控制轨">
+            <div id="capabilityViewControls" class="capability-view-controls" aria-label="能力页视图切换"></div>
+            <label class="capability-workbench-tools" aria-label="能力页局部搜索">
+              <span class="capability-search-icon" aria-hidden="true">⌕</span>
+              <input id="capabilitySearchInput" type="search" placeholder="搜索能力、服务、流程或模块/措施" autocomplete="off" />
+            </label>
+          </div>
+          <div id="detail" class="capability-relation-workspace"></div>
+        </div>
       </section>
     `;
   }
@@ -658,7 +725,7 @@
   }
 
   function renderLocalModeStatus() {
-    return '<button class="topbar-export-action" type="button" data-user-notes-export>批注一键导出</button>';
+    return '<span class="status-badge"><small>运行模式</small><strong>本地</strong></span>';
   }
 
   components.AppShell = {

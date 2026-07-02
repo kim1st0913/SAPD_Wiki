@@ -30,7 +30,7 @@
     "processReferenceCount": 1,
     "standardControlCount": 14,
     "moduleCount": 1,
-    "measureCount": 0
+    "measureCount": 1
   },
   "objects": {
     "capability_focus": {
@@ -378,6 +378,17 @@
         "status": ""
       }
     },
+    "security_technical_measure": {
+      "security_technical_measure:4485bb10664f4952": {
+        "id": "security_technical_measure:4485bb10664f4952",
+        "type": "security_technical_measure",
+        "code": "",
+        "title": "数据销毁",
+        "name": "数据销毁",
+        "category": "",
+        "status": "normal"
+      }
+    },
     "work_function": {
       "479b7f39-f43b-4ea8-bcfe-7820fbdf313d": {
         "id": "479b7f39-f43b-4ea8-bcfe-7820fbdf313d",
@@ -577,7 +588,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 11
+      "evidenceRefCount": 9
     },
     {
       "id": "relation:90138b02cc060100",
@@ -892,6 +903,19 @@
       "evidenceRefCount": 17
     },
     {
+      "id": "relation:f7edae17b5afca9a",
+      "type": "has_measure",
+      "sourceId": "af232384-5135-4a45-88b1-d0b2bbf673ee",
+      "sourceType": "security_technical_service",
+      "targetId": "security_technical_measure:4485bb10664f4952",
+      "targetType": "security_technical_measure",
+      "label": "关联措施",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 12
+    },
+    {
       "id": "relation:866b7f180999dcd5",
       "type": "stakeholder_by",
       "sourceId": "4971d25f-d294-4fe1-aa05-ba407d9f08af",
@@ -970,5 +994,5 @@
       "evidenceRefCount": 0
     }
   ],
-  "relationCount": 41
+  "relationCount": 42
 }

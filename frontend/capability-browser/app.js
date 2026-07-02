@@ -32,6 +32,7 @@ const state = {
   activeContentPage: "html",
   selectedCapabilityId: null,
   activeCapabilityRelationTab: "summary",
+  lastCapabilityRelationSelectionId: "",
   selectedEnvironmentId: null,
   selectedEnvironmentSegmentId: null,
   selectedEnvironmentObjectId: null,
@@ -75,6 +76,12 @@ const state = {
   userNotesLoaded: false,
   userNotesLoadPromise: null,
   userNotesExporting: false,
+  workbenchIssueStatusFilter: "全部",
+  workbenchIssuePageFilter: "全部",
+  workbenchIssuePriorityFilter: "全部",
+  workbenchIssueSearch: "",
+  workbenchSelectedIssueId: "",
+  workbenchIssueSaving: false,
   activeUserTarget: null,
   activePageAnnotationTarget: null,
   userAnnotationDrawerOpen: false,
@@ -144,6 +151,7 @@ function searchScopeForCurrentState() {
     }
     return `knowledge:${state.activeMaintenancePage || ""}:${state.activeReferenceTab || ""}`;
   }
+  if (state.activeView === "workbench") return `workbench:${state.activeRoute || "/workbench"}`;
   if (state.activeView === "content") return `content:${state.activeRoute || state.activeContentPage || ""}`;
   if (state.activeView === "placeholder") return `placeholder:${state.activeRoute || ""}`;
   return state.activeView || "overview";
@@ -704,6 +712,7 @@ function activeSearchRootElement() {
     "dev-lifecycle": "devLifecycleWorkspace",
     "data-lifecycle": "dataLifecycleWorkspace",
     maintenance: "maintenanceWorkspace",
+    workbench: "workbenchWorkspace",
     content: "contentWorkspace",
     placeholder: "placeholderWorkspace",
   };
@@ -1351,6 +1360,7 @@ function scheduleCapabilityRenderAfterPackageLoad(name) {
 
 function routePackagesForCurrentState() {
   if (state.activeView === "placeholder") return [];
+  if (state.activeView === "workbench") return [];
   if (state.activeView === "overview") return ["analyticsSummary"];
   if (state.activeView === "capabilities") return ["capabilityInitial"];
   if (state.activeView === "environment") {
@@ -3399,7 +3409,7 @@ async function capabilityProjectionRowsForAnnotation() {
       return rows;
     })
     .catch((error) => {
-      console.warn("能力批注 projection 索引加载失败", error);
+      console.warn("能力 Issue projection 索引加载失败", error);
       state.annotationCapabilityProjectionIndex = [];
       return [];
     })
@@ -3971,13 +3981,14 @@ function ensureUserNotesLoaded() {
       state.userNotesLoaded = true;
     })
     .catch((error) => {
-      console.warn("用户批注加载失败", error);
+      console.warn("用户 Issue 加载失败", error);
       state.userWriteStatus = { ...state.userWriteStatus, state: "api_unavailable", savingNote: false };
       state.userNotesLoaded = true;
     })
     .finally(() => {
       state.userNotesLoadPromise = null;
       renderUserAnnotationDrawer();
+      if (state.activeView === "workbench" || state.activeView === "overview") renderActiveView();
       scheduleAnnotationAnchorMarkers("user-notes-loaded");
     });
   return state.userNotesLoadPromise;
@@ -4008,16 +4019,16 @@ function downloadBlobFile(blob, filename = "") {
 }
 
 function syncUserNotesExportButton() {
-  const exportButton = document.querySelector("[data-user-notes-export]");
-  if (!exportButton) return;
-  exportButton.disabled = Boolean(state.userNotesExporting);
-  exportButton.textContent = state.userNotesExporting ? "批注导出中..." : "批注一键导出";
+  document.querySelectorAll("[data-user-notes-export]").forEach((exportButton) => {
+    exportButton.disabled = Boolean(state.userNotesExporting);
+    exportButton.textContent = state.userNotesExporting ? "导出中..." : "导出全部";
+  });
 }
 
 async function handleUserNotesExport() {
   const dataClient = window.sapdDataClient;
   if (!dataClient?.exportUserNotes) {
-    window.alert("当前运行环境未提供批注导出能力。");
+    window.alert("当前运行环境未提供 Issue 导出能力。");
     return;
   }
   state.userNotesExporting = true;
@@ -4030,12 +4041,59 @@ async function handleUserNotesExport() {
     }
     downloadBlobFile(result.blob, result.filename || userNotesExportFileNameFallback());
   } catch (error) {
-    console.warn("用户批注导出失败", error);
-    window.alert(`批注一键导出失败：${text(error?.message || error) || "请检查应用服务是否可用"}`);
+    console.warn("用户 Issue 导出失败", error);
+    window.alert(`Issue 导出失败：${text(error?.message || error) || "请检查应用服务是否可用"}`);
   } finally {
     state.userNotesExporting = false;
     syncUserNotesExportButton();
   }
+}
+
+function workbenchSelectedIssueRows() {
+  const selectedIds = Array.from(activeWorkbenchReviewPage()?.querySelectorAll(".workbench-review-checkbox:checked") || [])
+    .map((checkbox) => text(checkbox.dataset.noteId).trim())
+    .filter(Boolean);
+  if (!selectedIds.length) return [];
+  const selectedIdSet = new Set(selectedIds);
+  return workbenchAllIssueRows().filter((issue) => selectedIdSet.has(issue.id));
+}
+
+function workbenchIssueExportMarkdown(rows = [], title = "SAPD Wiki Issue 导出") {
+  const exportedAt = new Date().toISOString();
+  const body = list(rows)
+    .map(
+      (issue, index) => [
+        `## ${index + 1}. ${issue.title || "未命名 Issue"}`,
+        "",
+        `- 状态：${issue.status || "-"}`,
+        `- 优先级：${issue.priority || "-"}`,
+        `- 所属页面：${issue.page || "-"}`,
+        `- 关联对象：${issue.object || "-"}`,
+        `- 更新时间：${issue.updated || "-"}`,
+        "",
+        issue.body || issue.summary || "",
+      ].join("\n"),
+    )
+    .join("\n\n");
+  return [`# ${title}`, "", `导出时间：${exportedAt}`, `Issue 数量：${rows.length}`, "", body || "无可导出的 Issue。", ""].join("\n");
+}
+
+function workbenchIssueExportFilename(prefix = "sapd-issues-selected") {
+  const now = new Date();
+  const iso = now.toISOString();
+  return `${prefix}-${iso.slice(0, 4)}${iso.slice(5, 7)}${iso.slice(8, 10)}-${iso.slice(11, 13)}${iso.slice(14, 16)}${iso.slice(17, 19)}Z.md`;
+}
+
+function handleWorkbenchIssueSelectedExport() {
+  const rows = workbenchSelectedIssueRows();
+  if (!rows.length) {
+    setWorkbenchReviewWarning("请先勾选需要导出的 Issue。", true);
+    syncWorkbenchIssueHeaderControls();
+    return;
+  }
+  const markdown = workbenchIssueExportMarkdown(rows, "SAPD Wiki 所选 Issue");
+  const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+  downloadBlobFile(blob, workbenchIssueExportFilename());
 }
 
 function favoriteForTarget(targetRef) {
@@ -4247,7 +4305,7 @@ function annotationNoteContextForDrawer(note = {}) {
   const targetLabel = text(note.object_title || note.object_code || note.page_title || note.target_ref).trim();
   const detailParts = [
     annotationObjectTypeLabel(objectType),
-    anchorType === "field" ? "值级批注" : anchorType === "row" ? "行级批注" : anchorType === "page" ? "页面批注" : "对象批注",
+    anchorType === "field" ? "值级 Issue" : anchorType === "row" ? "行级 Issue" : anchorType === "page" ? "页面 Issue" : "对象 Issue",
     targetLabel,
   ].filter(Boolean);
   return {
@@ -4347,7 +4405,7 @@ async function handleUserNoteCreate() {
     renderUserAnnotationDrawer();
     return true;
   } catch (error) {
-    console.warn("用户批注保存失败", error);
+    console.warn("用户 Issue 保存失败", error);
     state.userWriteStatus = { ...state.userWriteStatus, state: "api_error", savingNote: false, draftGuard: false };
   }
   renderUserAnnotationDrawer();
@@ -4365,7 +4423,7 @@ async function handleUserNoteStatus(noteId, status) {
     upsertNoteInState(envelope?.data?.note);
     state.userWriteStatus = { ...state.userWriteStatus, state: "ready", savingNote: false };
   } catch (error) {
-    console.warn("用户批注状态保存失败", error);
+    console.warn("用户 Issue 状态保存失败", error);
     state.userWriteStatus = { ...state.userWriteStatus, state: "api_error", savingNote: false };
   }
   renderUserAnnotationDrawer({ preserveScroll: true });
@@ -4394,7 +4452,7 @@ async function handleUserNoteEditSave(noteId) {
     state.userAnnotationEditDraft = "";
     state.userWriteStatus = { ...state.userWriteStatus, state: "ready", savingNote: false };
   } catch (error) {
-    console.warn("用户批注修改失败", error);
+    console.warn("用户 Issue 修改失败", error);
     state.userWriteStatus = { ...state.userWriteStatus, state: "api_error", savingNote: false };
   }
   renderUserAnnotationDrawer({ preserveScroll: true });
@@ -4417,7 +4475,7 @@ async function handleUserNoteDelete(noteId) {
     removeNoteFromState(noteId);
     state.userWriteStatus = { ...state.userWriteStatus, state: "ready", savingNote: false };
   } catch (error) {
-    console.warn("用户批注删除失败", error);
+    console.warn("用户 Issue 删除失败", error);
     state.userWriteStatus = { ...state.userWriteStatus, state: "api_error", savingNote: false };
   }
   renderUserAnnotationDrawer();
@@ -6444,6 +6502,38 @@ function renderDashboardSatellite(entries) {
   `;
 }
 
+function renderDashboardWorkbenchEntry() {
+  if (!state.userNotesLoaded && !state.userNotesLoadPromise) ensureUserNotesLoaded();
+  const issueSummary = workbenchIssueSummary();
+  const latestIssue = issueSummary.latestIssue;
+  return `
+    <section class="dashboard-workbench-entry" aria-label="工作台入口">
+      <div class="dashboard-workbench-copy">
+        <span class="dashboard-chip">工作台</span>
+        <h3>Issue 与成熟度评估工作入口</h3>
+        <p>集中处理页面 Issue、继续客户成熟度评估项目。Issue 数据来自本地用户库。</p>
+        <div class="dashboard-workbench-meta">
+          <span><strong>${escapeHtml(formatNumber(issueSummary.todoCount))}</strong> 待处理 Issue</span>
+          <span><strong>1</strong> 暂存评估</span>
+          <span><strong>${escapeHtml(latestIssue?.updated || "-")}</strong> 最近更新</span>
+        </div>
+      </div>
+      <div class="dashboard-workbench-actions">
+        <button type="button" class="dashboard-workbench-card" data-app-route="/workbench/annotations">
+          <span>Issue 清单</span>
+          <strong>${escapeHtml(formatNumber(issueSummary.total))} 条真实 Issue</strong>
+          <small>${escapeHtml(latestIssue?.title || "筛选、编辑、流转和导出")}</small>
+        </button>
+        <button type="button" class="dashboard-workbench-card" data-app-route="/workbench/maturity">
+          <span>成熟度评估</span>
+          <strong>评估工作与历史项目</strong>
+          <small>暂存、编辑和导出占位</small>
+        </button>
+      </div>
+    </section>
+  `;
+}
+
 function renderOverview() {
   const summary = dashboardSummaries();
   const technicalCoverage = summary.metricById.technical_service_coverage || {};
@@ -6475,6 +6565,7 @@ function renderOverview() {
         ${renderDashboardMetric({ label: "生命周期可达", value: lifecycleReach.percent || 0, unit: "%", hint: `${formatNumber(lifecycleReach.covered || 0)}/${formatNumber(lifecycleReach.total || summary.totalFocuses)} 关注点`, tone: "slate" })}
         ${renderDashboardMetric({ label: "分析入口", value: list(summary.entryViews).length || summary.metricById.module_entry_count?.value || 0, unit: "个", hint: "可进入的业务页面", tone: "neutral" })}
       </section>
+      ${renderDashboardWorkbenchEntry()}
       <section class="dashboard-grid dashboard-grid-primary">
         <article class="dashboard-panel dashboard-panel-bars">
           <header>
@@ -6570,6 +6661,734 @@ function renderOverview() {
   );
 }
 
+function workbenchRouteType(route = state.activeRoute) {
+  const normalized = normalizeAppRoute(route);
+  if (normalized === "/workbench/annotations") return "issues";
+  if (normalized === "/workbench/maturity") return "maturity";
+  if (normalized.startsWith("/workbench/maturity/")) return "maturity-project";
+  return "home";
+}
+
+function renderWorkbenchHome() {
+  if (!state.userNotesLoaded && !state.userNotesLoadPromise) ensureUserNotesLoaded();
+  const issueRows = workbenchAllIssueRows();
+  const issueSummary = workbenchIssueSummary(issueRows);
+  const recentIssues = issueRows.slice(0, 3);
+  return `
+    <section class="workbench-route-page" aria-label="工作台首页">
+      <div class="workbench-section-title">
+        <div>
+          <h3>工作台</h3>
+          <span>模块总入口，只承接入口和最近动态。</span>
+        </div>
+        <span>Issue data / local user DB</span>
+      </div>
+      <div class="workbench-prototype-grid is-two">
+        <button class="workbench-prototype-card is-entry" type="button" data-app-route="/workbench/maturity">
+          <span class="workbench-prototype-pill is-good">成熟度评估</span>
+          <h3>管理客户评估项目</h3>
+          <p>包含当前评估工作、状态暂存、历史项目查询、编辑和导出占位。</p>
+          <div class="workbench-prototype-chip-row">
+            <span class="workbench-prototype-pill is-warn">1 暂存</span>
+            <span class="workbench-prototype-pill">3 项目</span>
+          </div>
+        </button>
+        <button class="workbench-prototype-card is-entry" type="button" data-app-route="/workbench/annotations">
+          <span class="workbench-prototype-pill">Issue 清单</span>
+          <h3>处理全局 Issue</h3>
+          <p>汇总本地用户库中的真实 Issue，支持状态筛选、页面分组、详情查看和导出占位。</p>
+          <div class="workbench-prototype-chip-row">
+            <span class="workbench-prototype-pill is-warn">${escapeHtml(formatNumber(issueSummary.todoCount))} 待处理</span>
+            <span class="workbench-prototype-pill">${escapeHtml(formatNumber(issueSummary.total))} 全部</span>
+          </div>
+        </button>
+      </div>
+      <div class="workbench-prototype-grid is-two">
+        <section class="workbench-prototype-panel">
+          <div class="workbench-section-title"><h3>最近 Issue</h3><span>只展示摘要</span></div>
+          ${
+            recentIssues.length
+              ? recentIssues
+                  .map(
+                    (issue, index) =>
+                      `<button class="workbench-prototype-row ${index === 0 ? "is-active" : ""}" type="button" data-app-route="/workbench/annotations"><span>${escapeHtml(issue.page)}</span><strong>${escapeHtml(issue.title)}</strong></button>`,
+                  )
+                  .join("")
+              : `<div class="workbench-review-empty">当前没有真实 Issue。</div>`
+          }
+        </section>
+        <section class="workbench-prototype-panel">
+          <div class="workbench-section-title"><h3>最近评估项目</h3><span>项目状态</span></div>
+          <button class="workbench-prototype-row is-active" type="button" data-app-route="/workbench/maturity/project-001"><span>华东政企云</span><strong>L3 / 72 / 草稿</strong></button>
+          <button class="workbench-prototype-row" type="button" data-app-route="/workbench/maturity"><span>制造集团数据域</span><strong>L2 / 61 / 已完成</strong></button>
+          <button class="workbench-prototype-row" type="button" data-app-route="/workbench/maturity"><span>金融数据平台</span><strong>L3 / 76 / 已导出</strong></button>
+        </section>
+      </div>
+    </section>
+  `;
+}
+
+const WORKBENCH_ISSUE_STATUS_LABELS = {
+  todo: "待处理",
+  reviewing: "处理中",
+  waiting_confirm: "待确认",
+  confirmed: "已采纳",
+  closed: "已关闭",
+  deferred: "已忽略",
+};
+
+const WORKBENCH_ISSUE_STATUS_BY_LABEL = Object.fromEntries(
+  Object.entries(WORKBENCH_ISSUE_STATUS_LABELS).map(([value, label]) => [label, value]),
+);
+
+function workbenchIssueStatusLabel(status = "") {
+  const normalized = text(status || "todo").trim();
+  return WORKBENCH_ISSUE_STATUS_LABELS[normalized] || WORKBENCH_ISSUE_STATUS_LABELS.todo;
+}
+
+function workbenchIssueStatusValue(labelOrValue = "") {
+  const normalized = text(labelOrValue || "todo").trim();
+  return WORKBENCH_ISSUE_STATUS_LABELS[normalized] ? normalized : WORKBENCH_ISSUE_STATUS_BY_LABEL[normalized] || "todo";
+}
+
+function workbenchIssueShortText(value = "", maxLength = 72) {
+  const normalized = text(value).replace(/\s+/g, " ").trim();
+  if (normalized.length <= maxLength) return normalized;
+  return `${normalized.slice(0, Math.max(1, maxLength - 1))}…`;
+}
+
+function workbenchIssueUpdatedLabel(note = {}) {
+  const raw = text(note.updated_at || note.created_at).trim();
+  if (!raw) return "-";
+  const normalized = raw.replace("T", " ").replace("Z", "");
+  return normalized.slice(0, 16);
+}
+
+function workbenchIssuePriority(note = {}) {
+  const haystack = [note.priority, note.severity, note.body, note.object_title, ...list(note.tags)].map(text).join(" ");
+  if (/(高优先级|紧急|严重|阻塞|P0|P1|high|urgent|blocker)/i.test(haystack)) return "高";
+  if (/(低优先级|可后置|low|later)/i.test(haystack)) return "低";
+  return "未标注";
+}
+
+function workbenchIssueTitle(note = {}, index = 0) {
+  return workbenchIssueShortText(note.object_title || note.page_title || note.target_ref || `Issue #${index + 1}`, 48);
+}
+
+function workbenchIssueObjectLabel(note = {}) {
+  const context = annotationNoteContextForDrawer(note);
+  return text(context.detailLabel || note.object_title || note.object_type || note.target_ref || "业务对象").trim();
+}
+
+function workbenchIssuePageLabel(note = {}) {
+  return text(note.page_title || annotationNoteContextForDrawer(note).pageLabel || annotationPageLabel(note.page_route) || note.page_route || "未命名页面").trim();
+}
+
+function workbenchIssueTagsLabel(note = {}) {
+  const tags = list(note.tags).map((item) => text(item).trim()).filter(Boolean);
+  return tags.length ? tags.join(" / ") : "无标签";
+}
+
+function workbenchAllIssueRows() {
+  const rows = list(state.userNotes)
+    .map((note, index) => {
+      const statusValue = workbenchIssueStatusValue(note.status);
+      const status = workbenchIssueStatusLabel(statusValue);
+      const title = workbenchIssueTitle(note, index);
+      const body = text(note.body).trim();
+      const page = workbenchIssuePageLabel(note);
+      const pageRoute = canonicalAnnotationRoute(note.page_route || "/");
+      const object = workbenchIssueObjectLabel(note);
+      const priority = workbenchIssuePriority(note);
+      return {
+        id: text(note.id).trim(),
+        note,
+        title,
+        summary: workbenchIssueShortText(body || object || page, 76),
+        body,
+        page,
+        pageRoute,
+        object,
+        status,
+        statusValue,
+        priority,
+        updated: workbenchIssueUpdatedLabel(note),
+        created: workbenchIssueUpdatedLabel({ updated_at: note.created_at }),
+        anchorType: text(note.anchor_type || "object").trim() || "object",
+        objectType: text(note.object_type || "").trim() || "unknown",
+        tags: workbenchIssueTagsLabel(note),
+      };
+    })
+    .filter((row) => row.id);
+  return rows.sort((a, b) => text(b.note.updated_at || b.note.created_at).localeCompare(text(a.note.updated_at || a.note.created_at)));
+}
+
+function workbenchIssueMatchesFilters(issue) {
+  const statusFilter = text(state.workbenchIssueStatusFilter || "全部").trim();
+  const pageFilter = text(state.workbenchIssuePageFilter || "全部").trim();
+  const priorityFilter = text(state.workbenchIssuePriorityFilter || "全部").trim();
+  const query = compactAnnotationLookupText(state.workbenchIssueSearch || "");
+  if (statusFilter && statusFilter !== "全部" && issue.status !== statusFilter) return false;
+  if (pageFilter && pageFilter !== "全部" && issue.pageRoute !== pageFilter) return false;
+  if (priorityFilter && priorityFilter !== "全部" && issue.priority !== priorityFilter) return false;
+  if (query) {
+    const haystack = compactAnnotationLookupText(
+      [issue.title, issue.summary, issue.body, issue.page, issue.object, issue.tags, issue.status, issue.priority].join(" "),
+    );
+    if (!haystack.includes(query)) return false;
+  }
+  return true;
+}
+
+function workbenchIssueRows() {
+  const rows = workbenchAllIssueRows();
+  const filteredRows = rows.filter(workbenchIssueMatchesFilters);
+  const selectedStillVisible = filteredRows.some((issue) => issue.id === state.workbenchSelectedIssueId);
+  if (!selectedStillVisible) state.workbenchSelectedIssueId = filteredRows[0]?.id || "";
+  return filteredRows.map((issue, index) => ({
+    ...issue,
+    selected: state.workbenchSelectedIssueId ? issue.id === state.workbenchSelectedIssueId : index === 0,
+  }));
+}
+
+function workbenchIssueSummary(rows = workbenchAllIssueRows()) {
+  const statusCount = (statusLabel) => rows.filter((issue) => issue.status === statusLabel).length;
+  const highCount = rows.filter((issue) => issue.priority === "高").length;
+  return {
+    total: rows.length,
+    todoCount: statusCount("待处理"),
+    reviewingCount: statusCount("处理中"),
+    confirmedCount: statusCount("已采纳"),
+    ignoredCount: statusCount("已忽略"),
+    closedCount: statusCount("已关闭"),
+    waitingCount: statusCount("待确认"),
+    highCount,
+    latestIssue: rows[0] || null,
+  };
+}
+
+function renderWorkbenchIssueStatusCapsules(summary = workbenchIssueSummary()) {
+  const activeStatusFilter = state.workbenchIssueStatusFilter || "全部";
+  const activePriorityFilter = state.workbenchIssuePriorityFilter || "全部";
+  return [
+    ["全部", summary.total, activeStatusFilter === "全部" && activePriorityFilter === "全部"],
+    ["待处理", summary.todoCount, activeStatusFilter === "待处理"],
+    ["处理中", summary.reviewingCount, activeStatusFilter === "处理中"],
+    ["已采纳", summary.confirmedCount, activeStatusFilter === "已采纳"],
+    ["已忽略", summary.ignoredCount, activeStatusFilter === "已忽略"],
+    ["高优先级", summary.highCount, activePriorityFilter === "高"],
+  ]
+    .map(
+      ([label, value, active]) =>
+        `<button class="workbench-review-stat ${active ? "is-active" : ""}" type="button" data-review-filter="${escapeHtml(label)}"><span>${escapeHtml(label)}</span><strong>${escapeHtml(formatNumber(value))}</strong></button>`,
+    )
+    .join("");
+}
+
+function syncWorkbenchIssueHeaderControls() {
+  const statsHost = $("workbenchIssueHeaderStats");
+  const actionsHost = $("workbenchIssueHeaderActions");
+  if (!statsHost && !actionsHost) return;
+  if (state.activeRoute !== "/workbench/annotations") {
+    if (statsHost) statsHost.innerHTML = "";
+    if (actionsHost) actionsHost.innerHTML = "";
+    return;
+  }
+  if (statsHost) statsHost.innerHTML = renderWorkbenchIssueStatusCapsules(workbenchIssueSummary(workbenchAllIssueRows()));
+  if (actionsHost) {
+    const selectedCount = activeWorkbenchReviewPage()?.querySelectorAll(".workbench-review-checkbox:checked").length || 0;
+    actionsHost.innerHTML = `
+      <button class="workbench-prototype-action" type="button" data-user-notes-export>导出全部</button>
+      <button class="workbench-prototype-action is-secondary" type="button" data-review-export-selected ${selectedCount ? "" : "disabled"} title="${selectedCount ? `导出已选 ${selectedCount} 条 Issue` : "请先勾选需要导出的 Issue"}">导出所选${selectedCount ? ` ${escapeHtml(formatNumber(selectedCount))}` : ""}</button>
+    `;
+    syncUserNotesExportButton();
+  }
+}
+
+function workbenchIssuePageGroups(rows = workbenchAllIssueRows()) {
+  const groups = new Map();
+  for (const issue of rows) {
+    const key = issue.pageRoute || "全部";
+    const current = groups.get(key) || { page: issue.page, pageRoute: key, total: 0, todo: 0, latest: "" };
+    current.total += 1;
+    if (issue.status === "待处理") current.todo += 1;
+    current.latest = [current.latest, issue.updated].filter(Boolean).sort().at(-1) || issue.updated;
+    groups.set(key, current);
+  }
+  return Array.from(groups.values()).sort((a, b) => b.total - a.total || a.page.localeCompare(b.page, "zh-Hans-CN"));
+}
+
+function workbenchReviewPillTone(value, kind = "status") {
+  const normalized = text(value).trim();
+  if (kind === "priority") {
+    if (normalized === "高") return "is-warn";
+    if (normalized === "低") return "is-muted";
+    return "";
+  }
+  if (normalized === "已采纳") return "is-good";
+  if (normalized === "待处理" || normalized === "已忽略" || normalized === "已关闭") return "is-muted";
+  return "";
+}
+
+function renderWorkbenchPill(value, kind = "status") {
+  const tone = workbenchReviewPillTone(value, kind);
+  return `<span class="workbench-prototype-pill${tone ? ` ${tone}` : ""}">${escapeHtml(value)}</span>`;
+}
+
+function renderWorkbenchIssueItem(issue, index) {
+  return `
+    <article class="workbench-review-item ${issue.selected ? "is-active" : ""}" role="button" tabindex="0" data-review-item
+      data-note-id="${escapeHtml(issue.id)}"
+      data-title="${escapeHtml(issue.title)}"
+      data-body="${escapeHtml(issue.body)}"
+      data-page="${escapeHtml(issue.page)}"
+      data-page-route="${escapeHtml(issue.pageRoute)}"
+      data-object="${escapeHtml(issue.object)}"
+      data-status="${escapeHtml(issue.status)}"
+      data-status-value="${escapeHtml(issue.statusValue)}"
+      data-priority="${escapeHtml(issue.priority)}"
+      data-anchor-type="${escapeHtml(issue.anchorType)}"
+      data-object-type="${escapeHtml(issue.objectType)}"
+      data-tags="${escapeHtml(issue.tags)}"
+      data-created="${escapeHtml(issue.created)}"
+      data-updated="${escapeHtml(issue.updated)}">
+      <input class="workbench-review-checkbox" type="checkbox" aria-label="选择 ${escapeHtml(issue.title)}" data-note-id="${escapeHtml(issue.id)}" />
+      <span class="workbench-review-item-title"><strong>${escapeHtml(issue.title)}</strong><span>${escapeHtml(issue.summary)}</span></span>
+      <span class="workbench-review-item-meta">${escapeHtml(issue.page)}<br />${escapeHtml(issue.object)}</span>
+      ${renderWorkbenchPill(issue.status)}
+      ${renderWorkbenchPill(issue.priority, "priority")}
+      <span class="workbench-review-item-meta">${escapeHtml(issue.updated || `#${index + 1}`)}</span>
+    </article>
+  `;
+}
+
+function renderWorkbenchIssues() {
+  if (!state.userNotesLoaded && !state.userNotesLoadPromise) ensureUserNotesLoaded();
+  const allIssues = workbenchAllIssueRows();
+  const issues = workbenchIssueRows();
+  const summary = workbenchIssueSummary(allIssues);
+  const active = issues.find((issue) => issue.selected) || issues[0];
+  const pageGroups = workbenchIssuePageGroups(allIssues);
+  const isLoading = state.userWriteStatus.state === "loading" && !state.userNotesLoaded;
+  const statusOptions = [
+    ["全部", "状态：全部"],
+    ["待处理", "待处理"],
+    ["处理中", "处理中"],
+    ["待确认", "待确认"],
+    ["已采纳", "已采纳"],
+    ["已忽略", "已忽略"],
+    ["已关闭", "已关闭"],
+  ];
+  const pageOptions = [["全部", "页面：全部页面"], ...pageGroups.map((group) => [group.pageRoute, group.page])];
+  const priorityOptions = [
+    ["全部", "优先级：全部"],
+    ["高", "高"],
+    ["未标注", "未标注"],
+    ["低", "低"],
+  ];
+  const activeStatusFilter = state.workbenchIssueStatusFilter || "全部";
+  const activePageFilter = state.workbenchIssuePageFilter || "全部";
+  const activePriorityFilter = state.workbenchIssuePriorityFilter || "全部";
+  const filterText = [
+    activeStatusFilter !== "全部" ? activeStatusFilter : "",
+    activePageFilter !== "全部" ? pageGroups.find((group) => group.pageRoute === activePageFilter)?.page : "",
+    activePriorityFilter !== "全部" ? `${activePriorityFilter}优先级` : "",
+    state.workbenchIssueSearch ? `关键词：${state.workbenchIssueSearch}` : "",
+  ].filter(Boolean);
+  return `
+    <section class="workbench-route-page" aria-label="Issue 清单">
+      <div class="workbench-review-toolbar" aria-label="Issue 筛选工具条">
+        <div class="workbench-review-filter-group">
+          <select class="workbench-review-select" aria-label="状态筛选" data-review-filter-control="status">${statusOptions.map(([value, label]) => `<option value="${escapeHtml(value)}"${value === activeStatusFilter ? " selected" : ""}>${escapeHtml(label)}</option>`).join("")}</select>
+          <select class="workbench-review-select" aria-label="页面筛选" data-review-filter-control="page">${pageOptions.map(([value, label]) => `<option value="${escapeHtml(value)}"${value === activePageFilter ? " selected" : ""}>${escapeHtml(label)}</option>`).join("")}</select>
+          <select class="workbench-review-select" aria-label="优先级筛选" data-review-filter-control="priority">${priorityOptions.map(([value, label]) => `<option value="${escapeHtml(value)}"${value === activePriorityFilter ? " selected" : ""}>${escapeHtml(label)}</option>`).join("")}</select>
+          <input class="workbench-review-search" type="search" value="${escapeHtml(state.workbenchIssueSearch || "")}" aria-label="关键词搜索" data-review-filter-control="search" />
+          <button class="workbench-prototype-action is-secondary" type="button" data-review-clear-filters>清除筛选</button>
+        </div>
+        <span class="workbench-prototype-pill is-muted" data-review-filter-state>当前筛选：${escapeHtml(filterText.join(" / ") || "全部")}</span>
+      </div>
+      <div class="workbench-review-bulkbar" data-review-bulkbar>
+        <strong data-review-selection-count>已选 0 条</strong>
+        <div class="workbench-review-bulk-actions">
+          <button class="workbench-prototype-action is-secondary" type="button" data-review-bulk-status="reviewing">改为处理中</button>
+          <button class="workbench-prototype-action is-secondary" type="button" data-review-bulk-status="confirmed">标记已采纳</button>
+          <button class="workbench-prototype-action is-secondary" type="button" data-review-bulk-status="deferred">忽略</button>
+          <button class="workbench-prototype-action" type="button" data-review-export-selected>导出所选</button>
+          <button class="workbench-prototype-action is-secondary" type="button" data-review-clear-selection>清除选择</button>
+        </div>
+      </div>
+      <div class="workbench-prototype-annotation-layout">
+        <aside class="workbench-review-scope" aria-label="Issue 范围导航">
+          <div class="workbench-review-panel-title">Issue 范围 <span class="workbench-prototype-pill is-muted">${escapeHtml(formatNumber(summary.total))} 条</span></div>
+          <button class="workbench-review-scope-row ${activePageFilter === "全部" ? "is-active" : ""}" type="button" data-review-page-route="全部"><strong>全部 Issue</strong><span>${escapeHtml(formatNumber(summary.total))} 条 / ${escapeHtml(formatNumber(summary.todoCount))} 待处理</span></button>
+          ${pageGroups
+            .map(
+              (group) => `
+                <button class="workbench-review-scope-row ${activePageFilter === group.pageRoute ? "is-active" : ""}" type="button" data-review-page-route="${escapeHtml(group.pageRoute)}">
+                  <strong>${escapeHtml(group.page)}</strong><span>${escapeHtml(formatNumber(group.total))} 条 / ${escapeHtml(formatNumber(group.todo))} 待处理</span>
+                </button>
+              `,
+            )
+            .join("")}
+        </aside>
+        <section class="workbench-review-queue" aria-label="Issue 处理队列">
+          <div class="workbench-review-panel-title">Issue 处理队列 <span class="workbench-prototype-pill is-muted" data-review-queue-context>${escapeHtml(filterText.join(" / ") || "全部 Issue")}</span></div>
+          <div class="workbench-review-queue-head"><span></span><span>Issue</span><span>所属页面 / 对象</span><span>状态</span><span>优先级</span><span>更新时间</span></div>
+          ${isLoading ? `<div class="workbench-review-loading">正在读取本地 Issue...</div>` : issues.length ? issues.map(renderWorkbenchIssueItem).join("") : `<div class="workbench-review-empty">当前筛选下没有 Issue。</div>`}
+        </section>
+        <aside class="workbench-review-inspector" aria-label="Issue 编辑面板" data-review-inspector data-dirty="false" data-note-id="${escapeHtml(active?.id || "")}">
+          <div class="workbench-review-panel-title">选中 Issue <span class="workbench-prototype-pill is-good" data-review-dirty>已保存</span></div>
+          <div class="workbench-review-warning" data-review-warning hidden>切换 Issue 前，如有未保存内容，需要提示确认。</div>
+          ${
+            active
+              ? `<div class="workbench-review-form">
+            <div class="workbench-review-field"><label>Issue 标题</label><input class="workbench-review-input" value="${escapeHtml(active.title)}" data-review-field="title" readonly /></div>
+            <div class="workbench-review-field"><label>Issue 内容</label><textarea class="workbench-review-textarea" data-review-field="body">${escapeHtml(active.body)}</textarea></div>
+            <div class="workbench-review-form-row">
+              <div class="workbench-review-field"><label>状态</label><select class="workbench-review-select" data-review-field="status">${Object.entries(WORKBENCH_ISSUE_STATUS_LABELS).map(([value, label]) => `<option value="${escapeHtml(value)}"${value === active.statusValue ? " selected" : ""}>${escapeHtml(label)}</option>`).join("")}</select></div>
+              <div class="workbench-review-field"><label>优先级</label><span class="workbench-review-field-value" data-review-field="priority">${escapeHtml(active.priority)}</span></div>
+            </div>
+            <div class="workbench-review-field"><label>关联页面</label><span class="workbench-review-field-value" data-review-field="page">${escapeHtml(active.page)}</span></div>
+            <div class="workbench-review-field"><label>关联对象</label><span class="workbench-review-field-value" data-review-field="object">${escapeHtml(active.object)}</span></div>
+            <div class="workbench-review-field"><label>锚点 / 类型</label><span class="workbench-review-field-value" data-review-field="anchor">${escapeHtml(`${active.anchorType} / ${active.objectType}`)}</span></div>
+            <div class="workbench-review-field"><label>标签</label><span class="workbench-review-field-value" data-review-field="tags">${escapeHtml(active.tags)}</span></div>
+            <div class="workbench-review-field">
+              <label>状态流转记录</label>
+              <div class="workbench-review-timeline">
+                <span>创建：${escapeHtml(active.created || "-")}</span>
+                <span>更新：${escapeHtml(active.updated || "-")}</span>
+                <span>当前状态：${escapeHtml(active.status)}</span>
+              </div>
+            </div>
+            <div class="workbench-review-inspector-actions">
+              <button class="workbench-prototype-action" type="button" data-review-save>${escapeHtml(state.workbenchIssueSaving ? "保存中" : "保存")}</button>
+              <button class="workbench-prototype-action is-secondary" type="button" data-review-cancel>取消</button>
+              <button class="workbench-prototype-action is-secondary" type="button" data-review-status-action="confirmed">标记已采纳</button>
+              <button class="workbench-prototype-action is-secondary" type="button" data-review-status-action="deferred">忽略</button>
+              <button class="workbench-prototype-action is-secondary" type="button" data-review-delete>删除</button>
+            </div>
+          </div>
+        `
+              : `<div class="workbench-review-empty">请选择一个 Issue 查看详情。</div>`
+          }
+        </aside>
+      </div>
+    </section>
+  `;
+}
+
+function renderWorkbenchMaturity() {
+  const rows = [
+    ["华东政企云", "SAPD 成熟度 V1", "L3", "72", "暂存", "2026-07-01 09:42", "/workbench/maturity/project-001"],
+    ["制造集团数据域", "数据安全成熟度", "L2", "61", "已完成", "2026-06-28 17:20", "/workbench/maturity/project-001"],
+    ["金融数据平台", "SAPD 成熟度 V1", "L3", "76", "已导出", "2026-06-22 15:10", "/workbench/maturity/project-001"],
+  ];
+  return `
+    <section class="workbench-route-page" aria-label="成熟度评估页">
+      <div class="workbench-section-title">
+        <div>
+          <h3>成熟度评估</h3>
+          <span>独立页面，包含评估工作流暂存、历史项目查询、编辑和导出入口。</span>
+        </div>
+        <button class="workbench-prototype-action" type="button">新建评估项目</button>
+      </div>
+      <div class="workbench-prototype-grid is-three">
+        <section class="workbench-prototype-card">
+          <span class="workbench-prototype-pill is-warn">当前评估工作</span>
+          <h3>华东政企云</h3>
+          <p>状态暂存于评分维度「治理体系」，下一步继续补充证据说明和备注。</p>
+          <div class="workbench-prototype-action-row">
+            <button class="workbench-prototype-action" type="button" data-app-route="/workbench/maturity/project-001">继续评估</button>
+            <button class="workbench-prototype-action is-secondary" type="button">保存暂存</button>
+          </div>
+        </section>
+        <section class="workbench-prototype-card">
+          <span class="workbench-prototype-pill is-good">工作流状态</span>
+          <div class="workbench-prototype-row is-active"><span>已完成维度</span><strong>3 / 6</strong></div>
+          <div class="workbench-prototype-row"><span>待补证据</span><strong>4 项</strong></div>
+        </section>
+        <section class="workbench-prototype-card">
+          <span class="workbench-prototype-pill">历史项目查询</span>
+          <p>支持按客户、模板、状态、更新时间过滤历史项目，后续接用户库 project 索引。</p>
+          <div class="workbench-prototype-chip-row">
+            <span class="workbench-prototype-pill is-muted">编辑</span>
+            <span class="workbench-prototype-pill is-muted">导出报告</span>
+            <span class="workbench-prototype-pill is-muted">导出 project 包</span>
+          </div>
+        </section>
+      </div>
+      <div class="workbench-prototype-filter-row">
+        <span class="workbench-prototype-filter">客户：全部</span>
+        <span class="workbench-prototype-filter">模板：全部模板</span>
+        <span class="workbench-prototype-filter">状态：暂存 / 草稿 / 已完成 / 已导出</span>
+        <span class="workbench-prototype-filter">关键词：客户或项目名</span>
+        <span class="workbench-prototype-filter">最近更新：近 90 天</span>
+      </div>
+      <div class="workbench-prototype-maturity-layout">
+        <section class="workbench-prototype-table" aria-label="评估项目列表">
+          <div class="workbench-prototype-table-row is-head"><span>客户名称</span><span>模板名称</span><span>等级</span><span>总分</span><span>状态</span><span>最近更新</span><span>操作</span></div>
+          ${rows
+            .map(
+              (row, index) => `
+                <div class="workbench-prototype-table-row${index === 0 ? " is-active" : ""}">
+                  <span>${escapeHtml(row[0])}</span><span>${escapeHtml(row[1])}</span><span>${escapeHtml(row[2])}</span><span>${escapeHtml(row[3])}</span><span>${escapeHtml(row[4])}</span><span>${escapeHtml(row[5])}</span>
+                  <span class="workbench-prototype-row-actions"><button type="button" data-app-route="${escapeHtml(row[6])}">编辑</button><button type="button">导出</button></span>
+                </div>
+              `,
+            )
+            .join("")}
+        </section>
+        <aside class="workbench-prototype-chart-card">
+          <h3>项目概览</h3>
+          <div class="workbench-prototype-radar" aria-hidden="true"></div>
+          <div class="workbench-prototype-bar"><span>治理</span><span><i style="width: 68%"></i></span><b>68</b></div>
+          <div class="workbench-prototype-bar"><span>技术</span><span><i style="width: 78%"></i></span><b>78</b></div>
+          <div class="workbench-prototype-bar"><span>运营</span><span><i style="width: 61%"></i></span><b>61</b></div>
+          <button class="workbench-prototype-action" type="button" data-app-route="/workbench/maturity/project-001">打开项目详情</button>
+        </aside>
+      </div>
+    </section>
+  `;
+}
+
+function renderWorkbenchProject() {
+  return `
+    <section class="workbench-route-page" aria-label="成熟度评估项目详情页">
+      <div class="workbench-section-title">
+        <div>
+          <h3>华东政企云成熟度评估</h3>
+          <span>项目详情页，左侧维度导航，中间评分表单，右侧实时结果。</span>
+        </div>
+        <div class="workbench-prototype-action-row">
+          <button class="workbench-prototype-action" type="button">保存</button>
+          <button class="workbench-prototype-action is-secondary" type="button">修改</button>
+          <button class="workbench-prototype-action is-secondary" type="button">导出报告</button>
+          <button class="workbench-prototype-action is-secondary" type="button">导出 project 包</button>
+        </div>
+      </div>
+      <div class="workbench-prototype-project-layout">
+        <aside class="workbench-prototype-panel">
+          <h3>评分维度</h3>
+          <button class="workbench-prototype-row is-active" type="button"><span>治理体系</span><strong>68</strong></button>
+          <button class="workbench-prototype-row" type="button"><span>技术能力</span><strong>78</strong></button>
+          <button class="workbench-prototype-row" type="button"><span>运营闭环</span><strong>61</strong></button>
+          <button class="workbench-prototype-row" type="button"><span>证据完整性</span><strong>58</strong></button>
+        </aside>
+        <section class="workbench-prototype-panel">
+          <h3>评分表单</h3>
+          <div class="workbench-prototype-score-row"><span>制度完整性</span><span class="workbench-prototype-score-options"><i class="workbench-prototype-score-dot is-on"></i><i class="workbench-prototype-score-dot is-on"></i><i class="workbench-prototype-score-dot"></i><i class="workbench-prototype-score-dot"></i></span></div>
+          <div class="workbench-prototype-score-row"><span>职责边界清晰度</span><span class="workbench-prototype-score-options"><i class="workbench-prototype-score-dot is-on"></i><i class="workbench-prototype-score-dot"></i><i class="workbench-prototype-score-dot"></i><i class="workbench-prototype-score-dot"></i></span></div>
+          <div class="workbench-prototype-score-row"><span>评审记录完整性</span><span class="workbench-prototype-score-options"><i class="workbench-prototype-score-dot is-on"></i><i class="workbench-prototype-score-dot is-on"></i><i class="workbench-prototype-score-dot"></i><i class="workbench-prototype-score-dot"></i></span></div>
+          <div class="workbench-prototype-filter-row">
+            <span class="workbench-prototype-filter">证据说明：已填写</span>
+            <span class="workbench-prototype-filter">备注：待客户确认</span>
+          </div>
+        </section>
+        <aside class="workbench-prototype-detail">
+          <span class="workbench-prototype-pill is-good">成熟度等级</span>
+          <span class="workbench-prototype-metric"><strong>L3</strong><span>总分 72</span></span>
+          <div class="workbench-prototype-radar" aria-hidden="true"></div>
+          <div class="workbench-prototype-bar"><span>治理</span><span><i style="width: 68%"></i></span><b>68</b></div>
+          <div class="workbench-prototype-bar"><span>技术</span><span><i style="width: 78%"></i></span><b>78</b></div>
+          <div class="workbench-prototype-bar"><span>运营</span><span><i style="width: 61%"></i></span><b>61</b></div>
+          <h3>评价摘要</h3>
+          <p>当前客户已具备基础治理与技术能力覆盖，但证据完整性和持续运营记录仍是主要短板。</p>
+        </aside>
+      </div>
+    </section>
+  `;
+}
+
+function renderWorkbench() {
+  const routeType = workbenchRouteType();
+  const templates = {
+    home: renderWorkbenchHome,
+    issues: renderWorkbenchIssues,
+    maturity: renderWorkbenchMaturity,
+    "maturity-project": renderWorkbenchProject,
+  };
+  setHtml("workbenchWorkspace", (templates[routeType] || renderWorkbenchHome)());
+  updateWorkbenchReviewSelection();
+  syncWorkbenchIssueHeaderControls();
+}
+
+function activeWorkbenchReviewPage() {
+  return $("workbenchWorkspace")?.querySelector(".workbench-route-page[aria-label='Issue 清单']") || null;
+}
+
+function activeWorkbenchReviewItem() {
+  return activeWorkbenchReviewPage()?.querySelector("[data-review-item].is-active") || null;
+}
+
+function updateWorkbenchReviewSelection() {
+  const page = activeWorkbenchReviewPage();
+  if (!page) {
+    syncWorkbenchIssueHeaderControls();
+    return;
+  }
+  const checkedCount = page.querySelectorAll(".workbench-review-checkbox:checked").length;
+  const bulkbar = page.querySelector("[data-review-bulkbar]");
+  const counter = page.querySelector("[data-review-selection-count]");
+  if (counter) counter.textContent = `已选 ${checkedCount} 条`;
+  if (bulkbar) bulkbar.hidden = checkedCount === 0;
+  syncWorkbenchIssueHeaderControls();
+}
+
+function setWorkbenchReviewDirty(isDirty) {
+  const inspector = activeWorkbenchReviewPage()?.querySelector("[data-review-inspector]");
+  if (!inspector) return;
+  inspector.dataset.dirty = isDirty ? "true" : "false";
+  const dirtyPill = inspector.querySelector("[data-review-dirty]");
+  if (dirtyPill) {
+    dirtyPill.textContent = isDirty ? "未保存" : "已保存";
+    dirtyPill.classList.toggle("is-warn", isDirty);
+    dirtyPill.classList.toggle("is-good", !isDirty);
+  }
+}
+
+function setWorkbenchReviewWarning(message, visible = true) {
+  const warning = activeWorkbenchReviewPage()?.querySelector("[data-review-warning]");
+  if (!warning) return;
+  warning.textContent = message;
+  warning.hidden = !visible;
+}
+
+function setWorkbenchReviewPill(pill, value, kind = "status") {
+  if (!pill) return;
+  pill.textContent = value || "待处理";
+  pill.classList.remove("is-muted", "is-good", "is-warn");
+  const tone = workbenchReviewPillTone(value, kind);
+  if (tone) pill.classList.add(tone);
+}
+
+function updateWorkbenchReviewInspector(item) {
+  const inspector = activeWorkbenchReviewPage()?.querySelector("[data-review-inspector]");
+  if (!inspector || !item) return;
+  state.workbenchSelectedIssueId = text(item.dataset.noteId).trim();
+  inspector.dataset.noteId = state.workbenchSelectedIssueId;
+  const fields = {
+    title: item.dataset.title,
+    body: item.dataset.body,
+    status: item.dataset.statusValue,
+    priority: item.dataset.priority,
+    page: item.dataset.page,
+    object: item.dataset.object,
+    anchor: `${item.dataset.anchorType || "object"} / ${item.dataset.objectType || "unknown"}`,
+    tags: item.dataset.tags,
+  };
+  Object.entries(fields).forEach(([key, value]) => {
+    const field = inspector.querySelector(`[data-review-field="${key}"]`);
+    if (!field || value == null) return;
+    if ("value" in field) field.value = value;
+    else field.textContent = value;
+  });
+  setWorkbenchReviewWarning("", false);
+  setWorkbenchReviewDirty(false);
+}
+
+function selectWorkbenchReviewItem(reviewItem) {
+  if (!reviewItem) return false;
+  const page = reviewItem.closest(".workbench-route-page");
+  const inspector = page?.querySelector("[data-review-inspector]");
+  if (!page || !inspector) return false;
+  if (inspector.dataset.dirty === "true" && !reviewItem.classList.contains("is-active")) {
+    setWorkbenchReviewWarning("当前 Issue 有未保存修改，请先保存或取消，再切换到其他 Issue。", true);
+    return false;
+  }
+  page.querySelectorAll("[data-review-item]").forEach((item) => item.classList.toggle("is-active", item === reviewItem));
+  state.workbenchSelectedIssueId = text(reviewItem.dataset.noteId).trim();
+  updateWorkbenchReviewInspector(reviewItem);
+  return true;
+}
+
+async function saveWorkbenchReviewInspector() {
+  const inspector = activeWorkbenchReviewPage()?.querySelector("[data-review-inspector]");
+  const activeItem = activeWorkbenchReviewItem();
+  if (!inspector || !activeItem) return;
+  const noteId = text(inspector.dataset.noteId || activeItem.dataset.noteId).trim();
+  const body = inspector.querySelector('[data-review-field="body"]')?.value || activeItem.dataset.body || "";
+  const statusValue = inspector.querySelector('[data-review-field="status"]')?.value || activeItem.dataset.statusValue || "todo";
+  const dataClient = window.sapdDataClient;
+  if (!noteId || !dataClient?.updateUserNote) {
+    setWorkbenchReviewWarning("当前运行环境未提供 Issue 更新能力。", true);
+    return;
+  }
+  state.workbenchIssueSaving = true;
+  setWorkbenchReviewWarning("正在保存到本地用户库...", false);
+  renderWorkbench();
+  try {
+    const envelope = await dataClient.updateUserNote(noteId, { body, status: statusValue });
+    if (envelope?.data?.ok === false) throw new Error(envelope.data.error || "update note failed");
+    upsertNoteInState(envelope?.data?.note);
+    state.workbenchSelectedIssueId = noteId;
+    state.workbenchIssueSaving = false;
+    renderWorkbench();
+    setWorkbenchReviewWarning("已保存到本地用户库。", false);
+    setWorkbenchReviewDirty(false);
+  } catch (error) {
+    console.warn("工作台 Issue 保存失败", error);
+    state.workbenchIssueSaving = false;
+    renderWorkbench();
+    setWorkbenchReviewWarning(`保存失败：${text(error?.message || error) || "请检查本地服务"}`, true);
+  }
+}
+
+async function handleWorkbenchIssueBulkStatus(statusValue = "") {
+  const page = activeWorkbenchReviewPage();
+  const dataClient = window.sapdDataClient;
+  const noteIds = Array.from(page?.querySelectorAll(".workbench-review-checkbox:checked") || [])
+    .map((checkbox) => text(checkbox.dataset.noteId).trim())
+    .filter(Boolean);
+  if (!noteIds.length) return;
+  if (!dataClient?.updateUserNote) {
+    setWorkbenchReviewWarning("当前运行环境未提供 Issue 更新能力。", true);
+    return;
+  }
+  state.workbenchIssueSaving = true;
+  setWorkbenchReviewWarning(`正在批量更新 ${noteIds.length} 条 Issue...`, false);
+  try {
+    const results = await Promise.all(noteIds.map((noteId) => dataClient.updateUserNote(noteId, { status: statusValue })));
+    results.forEach((envelope) => {
+      if (envelope?.data?.note) upsertNoteInState(envelope.data.note);
+    });
+    state.workbenchIssueSaving = false;
+    renderWorkbench();
+    setWorkbenchReviewWarning(`已批量更新 ${noteIds.length} 条 Issue。`, false);
+  } catch (error) {
+    console.warn("工作台 Issue 批量状态更新失败", error);
+    state.workbenchIssueSaving = false;
+    renderWorkbench();
+    setWorkbenchReviewWarning(`批量更新失败：${text(error?.message || error) || "请检查本地服务"}`, true);
+  }
+}
+
+async function handleWorkbenchIssueDelete() {
+  const inspector = activeWorkbenchReviewPage()?.querySelector("[data-review-inspector]");
+  const noteId = text(inspector?.dataset.noteId || state.workbenchSelectedIssueId).trim();
+  if (!noteId) return;
+  if (!window.confirm?.("确认删除当前 Issue？此操作会写入本地用户库。")) return;
+  const dataClient = window.sapdDataClient;
+  if (!dataClient?.deleteUserNote) {
+    setWorkbenchReviewWarning("当前运行环境未提供 Issue 删除能力。", true);
+    return;
+  }
+  state.workbenchIssueSaving = true;
+  try {
+    const envelope = await dataClient.deleteUserNote(noteId);
+    if (envelope?.data?.ok === false) throw new Error(envelope.data.error || "delete note failed");
+    removeNoteFromState(noteId);
+    state.workbenchSelectedIssueId = "";
+    state.workbenchIssueSaving = false;
+    renderWorkbench();
+    setWorkbenchReviewWarning("Issue 已删除。", false);
+  } catch (error) {
+    console.warn("工作台 Issue 删除失败", error);
+    state.workbenchIssueSaving = false;
+    renderWorkbench();
+    setWorkbenchReviewWarning(`删除失败：${text(error?.message || error) || "请检查本地服务"}`, true);
+  }
+}
+
 function mountAppShellComponents() {
   const components = window.sapdComponents || {};
   components.AppShell?.mountApplicationShell?.({
@@ -6609,6 +7428,31 @@ function normalizeAppRoute(route) {
   return normalized.replace(/\/+$/, "") || "/";
 }
 
+function resolveRouteTarget(route) {
+  const normalized = normalizeAppRoute(route);
+  const components = window.sapdComponents || {};
+  const shellTarget = components.AppShell?.getRouteTarget?.(normalized);
+  if (shellTarget?.route) return shellTarget;
+
+  if (normalized === "/workbench") {
+    return { route: "/workbench", view: "workbench" };
+  }
+
+  if (normalized.startsWith("/workbench/annotations")) {
+    return { route: "/workbench/annotations", view: "workbench" };
+  }
+
+  if (normalized.startsWith("/workbench/maturity")) {
+    return { route: normalized, view: "workbench" };
+  }
+
+  if (normalized.startsWith("/workbench")) {
+    return { route: "/workbench", view: "workbench" };
+  }
+
+  return { route: "/", view: "overview" };
+}
+
 function routeFromBrowserLocation() {
   const hashRoute = normalizeAppRoute(window.location.hash || "");
   if (hashRoute !== "/") return hashRoute;
@@ -6634,13 +7478,16 @@ function syncBrowserRoute(route, { replace = false } = {}) {
 }
 
 function activateRoute(route, options = {}) {
-  const components = window.sapdComponents || {};
-  const target = components.AppShell?.getRouteTarget?.(normalizeAppRoute(route)) || { route: "/", view: "overview" };
+  const target = resolveRouteTarget(route);
   const routeChanged = target.route !== state.activeRoute;
-  if (!options.skipAnnotationGuard && routeChanged && hasUnsavedAnnotationDraft()) {
+  const isWorkbenchIssueRoute = target.route === "/workbench/annotations";
+  if (!options.skipAnnotationGuard && routeChanged && hasUnsavedAnnotationDraft() && !isWorkbenchIssueRoute) {
     requestAnnotationContextSwitch(() => activateRoute(route, { ...options, skipAnnotationGuard: true }), target.description || target.route || "新页面");
     if (options.fromBrowser) syncBrowserRoute(state.activeRoute, { replace: true });
     return;
+  }
+  if (routeChanged && hasUnsavedAnnotationDraft() && isWorkbenchIssueRoute) {
+    resetAnnotationInteraction({ collapse: true, clearDraft: true });
   }
   if (routeChanged) resetAnnotationInteraction({ collapse: true, clearDraft: !options.preserveAnnotationDraft });
   state.activeRoute = target.route || "/";
@@ -6652,6 +7499,9 @@ function activateRoute(route, options = {}) {
 
 function routeForCurrentState(view = state.activeView) {
   const components = window.sapdComponents || {};
+  if (view === "workbench" && normalizeAppRoute(state.activeRoute).startsWith("/workbench")) {
+    return normalizeAppRoute(state.activeRoute);
+  }
   return (
     components.AppShell?.routeForView?.({
       view,
@@ -6687,6 +7537,7 @@ function updateApplicationShellChrome() {
     activeEnvironmentTab: state.activeEnvironmentTab,
   });
   updatePageHeaderSummary();
+  syncWorkbenchIssueHeaderControls();
   syncSearchInputs();
 }
 
@@ -6910,6 +7761,7 @@ function renderCapabilityTree(components, viewModel) {
 function renderCapabilityPendingDetail(loadState) {
   if (!loadState.blocksDetail) return false;
   setHtml("capabilityFocusHeader", "");
+  setHtml("capabilityViewControls", "");
   if (loadState.loadFailure) {
     setHtml(
       "detail",
@@ -6930,10 +7782,26 @@ function renderCapabilityPendingDetail(loadState) {
 
 function renderCapabilityDetail(components, viewModel) {
   const userTarget = capabilityUserTarget(viewModel);
+  const capabilityOverview = viewModel.capabilityOverview || {};
+  const selectedCapabilityId = viewModel.selectedCapability?.id || "";
+  if (selectedCapabilityId && state.lastCapabilityRelationSelectionId !== selectedCapabilityId) {
+    state.lastCapabilityRelationSelectionId = selectedCapabilityId;
+    if ((capabilityOverview.detailPolicy === "overview" || capabilityOverview.detailPolicy === "mixed_summary") && state.activeCapabilityRelationTab !== "summary") {
+      state.activeCapabilityRelationTab = "summary";
+      persistWorkspaceState();
+    }
+  }
+  const availableRelationTabs = capabilityOverview.detailPolicy === "overview" ? ["summary", "technical"] : ["summary", "technical", "management", "standard"];
+  if (!availableRelationTabs.includes(state.activeCapabilityRelationTab)) state.activeCapabilityRelationTab = "summary";
+  const shouldRenderDetailMatrices = capabilityOverview.detailPolicy !== "overview" && capabilityOverview.detailPolicy !== "mixed_summary";
   setCurrentAnnotationTarget(userTarget);
   setHtml(
     "capabilityFocusHeader",
-    `${components.CapabilityLocalRelationMap?.renderFocusStrip?.(viewModel.localRelationMap, viewModel.focusOverview) || ""}`,
+    components.CapabilityLocalRelationMap?.renderFocusStrip?.(viewModel.localRelationMap, viewModel.focusOverview, capabilityOverview) || "",
+  );
+  setHtml(
+    "capabilityViewControls",
+    components.CapabilityLocalRelationMap?.renderTabControls?.(viewModel.localRelationMap, capabilityOverview, state.activeCapabilityRelationTab) || "",
   );
   setHtml(
     "detail",
@@ -6942,10 +7810,11 @@ function renderCapabilityDetail(components, viewModel) {
         components.CapabilityLocalRelationMap?.render({
           localRelationMap: viewModel.localRelationMap,
           focusOverview: viewModel.focusOverview,
+          capabilityOverview,
           activeTab: state.activeCapabilityRelationTab,
-          technicalMappingRows: viewModel.technicalMappingRows,
-          managementMappingRows: viewModel.managementMappingRows,
-          standardMappingRows: viewModel.standardMappingRows,
+          technicalMappingRows: shouldRenderDetailMatrices ? viewModel.technicalMappingRows : [],
+          managementMappingRows: shouldRenderDetailMatrices ? viewModel.managementMappingRows : [],
+          standardMappingRows: shouldRenderDetailMatrices ? viewModel.standardMappingRows : [],
         }) || emptyState("局部关系图组件未加载")
       }
     `,
@@ -6960,6 +7829,7 @@ function renderCapabilities() {
   if (!capabilityInitialDataReady()) {
     setHtml("tree", emptyState("正在加载安全能力数据"));
     setHtml("capabilityFocusHeader", "");
+    setHtml("capabilityViewControls", "");
     setHtml("detail", emptyState("正在加载安全能力映射数据", "当前页面优先加载，完成后会自动显示。"));
     return;
   }
@@ -7503,6 +8373,7 @@ function maintenanceHeaderSummary(viewModel) {
 function visibleWorkspaceElements() {
   return [
     "overviewWorkspace",
+    "workbenchWorkspace",
     "capabilityWorkspace",
     "environmentWorkspace",
     "devLifecycleWorkspace",
@@ -7765,6 +8636,7 @@ function renderActiveView() {
   setCurrentAnnotationTarget(null);
   renderMetrics();
   if (state.activeView === "overview") renderOverview();
+  if (state.activeView === "workbench") renderWorkbench();
   if (state.activeView === "capabilities") renderCapabilities();
   if (state.activeView === "environment") renderEnvironment();
   if (state.activeView === "dev-lifecycle") renderLifecycle("dev");
@@ -7802,6 +8674,7 @@ function setActiveView(view, options = {}) {
   }
   const workspaceMap = {
     overview: "overviewWorkspace",
+    workbench: "workbenchWorkspace",
     capabilities: "capabilityWorkspace",
     environment: "environmentWorkspace",
     "dev-lifecycle": "devLifecycleWorkspace",
@@ -7835,10 +8708,97 @@ function bindEvents() {
     activateContentSlideStep(slideStep, event);
   }, true);
   document.addEventListener("click", (event) => {
-    const routeButton = event.target.closest("[data-app-route]");
+    const routeButton = event.target?.closest?.("[data-app-route]");
     if (!routeButton) return;
     event.preventDefault();
+    event.stopPropagation();
     activateRoute(routeButton.dataset.appRoute);
+  }, true);
+  document.addEventListener("click", (event) => {
+    const reviewFilterButton = event.target.closest("[data-review-filter]");
+    if (reviewFilterButton && (reviewFilterButton.closest("#workbenchWorkspace") || reviewFilterButton.closest("#appPageHeader"))) {
+      const filter = text(reviewFilterButton.dataset.reviewFilter).trim() || "全部";
+      if (filter === "高优先级") {
+        state.workbenchIssueStatusFilter = "全部";
+        state.workbenchIssuePriorityFilter = "高";
+      } else {
+        state.workbenchIssueStatusFilter = filter;
+        state.workbenchIssuePriorityFilter = "全部";
+      }
+      renderWorkbench();
+      return;
+    }
+
+    const reviewScopeButton = event.target.closest(".workbench-review-scope-row");
+    if (reviewScopeButton && reviewScopeButton.closest("#workbenchWorkspace")) {
+      state.workbenchIssuePageFilter = text(reviewScopeButton.dataset.reviewPageRoute || "全部").trim() || "全部";
+      renderWorkbench();
+      return;
+    }
+
+    const clearSelectionButton = event.target.closest("[data-review-clear-selection]");
+    if (clearSelectionButton && clearSelectionButton.closest("#workbenchWorkspace")) {
+      clearSelectionButton.closest(".workbench-route-page")?.querySelectorAll(".workbench-review-checkbox").forEach((checkbox) => {
+        checkbox.checked = false;
+      });
+      updateWorkbenchReviewSelection();
+      return;
+    }
+
+    const clearFiltersButton = event.target.closest("[data-review-clear-filters]");
+    if (clearFiltersButton && clearFiltersButton.closest("#workbenchWorkspace")) {
+      state.workbenchIssueStatusFilter = "全部";
+      state.workbenchIssuePageFilter = "全部";
+      state.workbenchIssuePriorityFilter = "全部";
+      state.workbenchIssueSearch = "";
+      renderWorkbench();
+      return;
+    }
+
+    const bulkStatusButton = event.target.closest("[data-review-bulk-status]");
+    if (bulkStatusButton && bulkStatusButton.closest("#workbenchWorkspace")) {
+      handleWorkbenchIssueBulkStatus(bulkStatusButton.dataset.reviewBulkStatus);
+      return;
+    }
+
+    const selectedExportButton = event.target.closest("[data-review-export-selected]");
+    if (selectedExportButton && (selectedExportButton.closest("#workbenchWorkspace") || selectedExportButton.closest("#appPageHeader"))) {
+      handleWorkbenchIssueSelectedExport();
+      return;
+    }
+
+    if (event.target.closest("[data-review-save]") && event.target.closest("#workbenchWorkspace")) {
+      saveWorkbenchReviewInspector();
+      return;
+    }
+
+    if (event.target.closest("[data-review-cancel]") && event.target.closest("#workbenchWorkspace")) {
+      const activeItem = activeWorkbenchReviewItem();
+      if (activeItem) updateWorkbenchReviewInspector(activeItem);
+      setWorkbenchReviewWarning("已放弃未保存修改。", false);
+      return;
+    }
+
+    const reviewStatusAction = event.target.closest("[data-review-status-action]");
+    if (reviewStatusAction && reviewStatusAction.closest("#workbenchWorkspace")) {
+      const status = reviewStatusAction.dataset.reviewStatusAction;
+      const statusField = activeWorkbenchReviewPage()?.querySelector('[data-review-field="status"]');
+      if (statusField && status) {
+        statusField.value = status;
+        setWorkbenchReviewDirty(true);
+      }
+      return;
+    }
+
+    if (event.target.closest("[data-review-delete]") && event.target.closest("#workbenchWorkspace")) {
+      handleWorkbenchIssueDelete();
+      return;
+    }
+
+    const reviewItem = event.target.closest("[data-review-item]");
+    if (reviewItem && reviewItem.closest("#workbenchWorkspace") && !event.target.closest("select, textarea, button")) {
+      selectWorkbenchReviewItem(reviewItem);
+    }
   });
   document.addEventListener("click", (event) => {
     const exportButton = event.target.closest("[data-user-notes-export]");
@@ -7929,9 +8889,51 @@ function bindEvents() {
     handleUserNoteCreate();
   });
   document.addEventListener("change", (event) => {
+    if (event.target?.matches?.(".workbench-review-checkbox") && event.target.closest("#workbenchWorkspace")) {
+      updateWorkbenchReviewSelection();
+      return;
+    }
+    const filterControl = event.target?.closest?.("[data-review-filter-control]");
+    if (filterControl && filterControl.closest("#workbenchWorkspace")) {
+      const control = filterControl.dataset.reviewFilterControl;
+      if (control === "status") state.workbenchIssueStatusFilter = filterControl.value || "全部";
+      if (control === "page") state.workbenchIssuePageFilter = filterControl.value || "全部";
+      if (control === "priority") state.workbenchIssuePriorityFilter = filterControl.value || "全部";
+      renderWorkbench();
+      return;
+    }
+    if (event.target?.closest?.("[data-review-inspector]") && event.target.closest("#workbenchWorkspace")) {
+      setWorkbenchReviewDirty(true);
+      return;
+    }
     const statusSelect = event.target?.closest?.("[data-user-note-status]");
     if (!statusSelect) return;
     handleUserNoteStatus(statusSelect.dataset.userNoteStatus, statusSelect.value);
+  });
+  document.addEventListener("input", (event) => {
+    const filterControl = event.target?.closest?.("[data-review-filter-control='search']");
+    if (filterControl && filterControl.closest("#workbenchWorkspace")) {
+      state.workbenchIssueSearch = filterControl.value || "";
+      renderWorkbench();
+      requestAnimationFrame(() => {
+        const input = activeWorkbenchReviewPage()?.querySelector("[data-review-filter-control='search']");
+        if (!input) return;
+        input.focus();
+        const end = text(input.value).length;
+        input.setSelectionRange?.(end, end);
+      });
+      return;
+    }
+    if (!event.target?.closest?.("[data-review-inspector]") || !event.target.closest("#workbenchWorkspace")) return;
+    setWorkbenchReviewDirty(true);
+  });
+  document.addEventListener("keydown", (event) => {
+    const reviewItem = event.target?.closest?.("[data-review-item]");
+    if (!reviewItem || !reviewItem.closest("#workbenchWorkspace")) return;
+    if (event.key !== "Enter" && event.key !== " ") return;
+    if (event.target.closest("input, select, textarea, button")) return;
+    event.preventDefault();
+    selectWorkbenchReviewItem(reviewItem);
   });
   document.addEventListener(
     "toggle",
@@ -7988,6 +8990,9 @@ function bindEvents() {
     const tab = event.target.closest(".relation-view-radio");
     if (!tab) return;
     state.activeCapabilityRelationTab = tab.value || "summary";
+    document.querySelectorAll("#capabilityViewControls .relation-view-tab").forEach((label) => {
+      label.classList.toggle("is-active", label.getAttribute("for") === `capability-relation-tab-${state.activeCapabilityRelationTab}`);
+    });
     persistWorkspaceState();
   });
   $("detail")?.addEventListener("input", (event) => {
@@ -8406,8 +9411,8 @@ async function init() {
   const dataClient = window.sapdDataClient;
   if (!dataClient) throw new Error("SAPD Wiki dataClient 未加载");
   await loadScriptOnce("./models/relationGraphModel.js?v=capability-graph-focus-untangle-20260608-3", () => Boolean(window.sapdModels?.buildLocalRelationGraphModel));
-  await loadScriptOnce("./components/LocalRelationNetworkGraph.js?v=capability-graph-focus-untangle-20260608-3", () => Boolean(window.sapdComponents?.LocalRelationNetworkGraph));
-  await loadScriptOnce("./components/CapabilityLocalRelationMap.js?v=annotation-framework-anchor-20260605-1-oi156-anchor-20260630-1", () => Boolean(window.sapdComponents?.CapabilityLocalRelationMap));
+  await loadScriptOnce("./components/LocalRelationNetworkGraph.js?v=capability-graph-controls-20260701-1", () => Boolean(window.sapdComponents?.LocalRelationNetworkGraph));
+  await loadScriptOnce("./components/CapabilityLocalRelationMap.js?v=annotation-framework-anchor-20260605-1-oi156-anchor-20260630-1-oi159-overview-mode-20260701-1-capability-tabs-20260701-2-oi159-summary-20260701-1-oi159-title-tabs-20260701-1-oi159-title-baseline-20260701-1-oi159-summary-compact-20260702-1-oi159-attached-control-20260702-2", () => Boolean(window.sapdComponents?.CapabilityLocalRelationMap));
   await loadScriptOnce("./models/environmentRelationGraphModel.js?v=environment-graph-20260521-1", () => Boolean(window.sapdModels?.buildEnvironmentRelationGraphModel));
   await loadScriptOnce("./components/EnvironmentLocalRelationMap.js?v=environment-backup-tab-removal-20260629-1-oi156-anchor-20260630-1", () => Boolean(window.sapdComponents?.EnvironmentLocalRelationMap));
   mountAppShellComponents();

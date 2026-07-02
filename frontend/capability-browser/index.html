@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SAPD Wiki 关系工作台</title>
     <base href="/" />
-    <link rel="stylesheet" href="./styles.css?v=global-search-20260617-9-annotation-jump-p0-20260630-1-guide-slide-frame-20260630-2-oi156-final-20260630-2-annotation-governance-20260701-1" />
+    <link rel="stylesheet" href="./styles.css?v=global-search-20260617-9-annotation-jump-p0-20260630-1-guide-slide-frame-20260630-2-oi156-final-20260630-2-annotation-governance-20260701-1-maintenance-tabs-20260701-1-workbench-module-20260701-4-capability-tabs-20260701-5-oi159-summary-20260701-1-oi159-title-tabs-20260701-1-oi159-header-position-20260701-1-oi159-summary-compact-20260702-1-oi159-header-toolbar-20260702-1-oi159-header-shelf-20260702-1-oi159-attached-control-20260702-2-oi159-corner-fix-20260702-1" />
     <link rel="stylesheet" href="./generated/environmentBasemap.css?v=environment-basemap-20260607-5" />
   </head>
   <body>
@@ -94,6 +94,8 @@
         </aside>
       </main>
 
+      <main id="workbenchWorkspace" class="workbench-workspace is-hidden" aria-label="工作台"></main>
+
       <main id="capabilityWorkspace" class="capability-workspace is-hidden">
         <aside class="capability-tree-pane">
           <div class="pane-head">
@@ -104,19 +106,21 @@
 
         <section class="capability-relation-pane">
           <div class="capability-workbench-head">
-            <div>
+            <div id="capabilityFocusHeader" class="capability-focus-head-slot">
               <p class="eyebrow">Capability Relationship Workspace</p>
               <h2>当前关注点工作台</h2>
             </div>
-            <div class="capability-workbench-tools">
-              <input id="capabilitySearchInput" type="search" placeholder="搜索能力、作用域、安全技术服务、流程或安全技术模块/措施" autocomplete="off" />
-              <span class="filter-chip">关注点</span>
-              <span class="filter-chip">服务</span>
-              <span class="filter-chip">流程</span>
-              <span class="filter-chip">模块</span>
-            </div>
           </div>
-          <div id="detail" class="capability-relation-workspace"></div>
+          <div class="capability-workspace-surface">
+            <div class="capability-workspace-control" aria-label="能力映射工作区控制轨">
+              <div id="capabilityViewControls" class="capability-view-controls" aria-label="能力页视图切换"></div>
+              <label class="capability-workbench-tools" aria-label="能力页局部搜索">
+                <span class="capability-search-icon" aria-hidden="true">⌕</span>
+                <input id="capabilitySearchInput" type="search" placeholder="搜索能力、服务、流程或模块/措施" autocomplete="off" />
+              </label>
+            </div>
+            <div id="detail" class="capability-relation-workspace"></div>
+          </div>
         </section>
       </main>
 
@@ -260,10 +264,10 @@
         </section>
       </div>
     </div>
-    <script src="./dataClient.js?v=p0-baseline-canonical-correction-20260615-1-environment-review-cleanup-20260624-1-local-api-auth-refresh-20260629-1-search-index-20260630-1-oi149-split-initial-20260630-1-oi149-env-projection-20260630-1-user-notes-export-20260630-1"></script>
+    <script src="./dataClient.js?v=p0-baseline-canonical-correction-20260615-1-environment-review-cleanup-20260624-1-local-api-auth-refresh-20260629-1-search-index-20260630-1-oi149-split-initial-20260630-1-oi149-env-projection-20260630-1-user-notes-export-20260630-1-issue-label-20260701-1"></script>
     <script src="./displayLabels.js?v=global-service-chip-text-20260611-1"></script>
-    <script src="./viewModels.js?v=global-search-20260617-9-lifecycle-annotation-jump-20260629-1-capability-projection-20260630-1"></script>
-    <script src="./components/AppShell.js?v=global-search-20260617-9-environment-view-tab-20260630-1"></script>
+    <script src="./viewModels.js?v=global-search-20260617-9-lifecycle-annotation-jump-20260629-1-capability-projection-20260630-1-oi159-overview-mode-20260701-1-security-work-order-20260701-1-oi159-full-child-entry-20260701-1"></script>
+    <script src="./components/AppShell.js?v=global-search-20260617-9-environment-view-tab-20260630-1-workbench-module-20260701-3-issue-list-click-20260701-3-oi159-attached-control-20260702-2"></script>
     <script src="./components/StatusBadge.js"></script>
     <script src="./components/DimensionTree.js?v=capability-tree-l0-20260520-1"></script>
     <script src="./components/FocusOverview.js"></script>
@@ -285,15 +289,15 @@
     <script src="./components/TechnicalMeasureMaintenanceTable.js?v=annotation-global-20260605-7"></script>
     <script src="./components/ApplicationSystemDirectoryTable.js?v=application-system-directory-20260525-1"></script>
     <script src="./components/LcapReferenceMaintenanceTable.js?v=annotation-global-20260605-7"></script>
-    <script src="./components/StandardRoleReferenceTable.js?v=p0-baseline-canonical-correction-20260615-1"></script>
+    <script src="./components/StandardRoleReferenceTable.js?v=p0-baseline-canonical-correction-20260615-1-security-work-code-20260701-1"></script>
     <script src="./components/StandardFrameworkTable.js?v=global-search-20260617-9"></script>
     <script src="./components/MaintenanceDetailPanel.js?v=annotation-global-20260605-7"></script>
     <script src="./components/TechnicalMeasureMaintenance.js"></script>
     <script src="./components/DetailInspector.js?v=annotation-global-20260605-7"></script>
-    <script src="./components/UserAnnotationDrawer.js?v=annotation-jump-p0-20260630-1-oi156-current-note-20260701-1-annotation-governance-20260701-1"></script>
+    <script src="./components/UserAnnotationDrawer.js?v=annotation-jump-p0-20260630-1-oi156-current-note-20260701-1-annotation-governance-20260701-1-issue-label-20260701-1"></script>
     <script src="./components/EnvironmentBasemapViewer.js?v=environment-1n-aggregated-ui-20260620-1"></script>
     <script src="./generated/archimateNotationRegistry.generated.js?v=archimate-registry-derived-20260603-1"></script>
     <script src="./generated/environmentBasemap.generated.js?v=environment-basemap-20260607-5"></script>
-    <script src="./app.js?v=global-search-20260617-9-lifecycle-annotation-jump-20260629-1-oi149-loading-state-20260630-1-annotation-jump-p0-20260630-2-guide-slide-frame-20260630-2-user-notes-export-20260630-2-topbar-20260630-3-environment-view-tab-20260630-1-oi156-final-20260701-6-annotation-governance-20260701-1"></script>
+    <script src="./app.js?v=global-search-20260617-9-lifecycle-annotation-jump-20260629-1-oi149-loading-state-20260630-1-annotation-jump-p0-20260630-2-guide-slide-frame-20260630-2-user-notes-export-20260630-2-topbar-20260630-3-environment-view-tab-20260630-1-oi156-final-20260701-6-annotation-governance-20260701-1-oi159-overview-mode-20260701-1-workbench-module-20260701-5-capability-tabs-20260701-3-issue-list-click-20260701-3-oi159-summary-20260701-1-oi159-title-tabs-20260701-1-oi159-title-baseline-20260701-1-oi159-summary-compact-20260702-1-oi159-attached-control-20260702-2"></script>
   </body>
 </html>

@@ -312,7 +312,7 @@
 
   function renderSecurityControlRow(row) {
     return `
-      <tr>
+      <tr data-lifecycle-kind="dev" data-lifecycle-id="${escapeHtml(row.stageId || "")}">
         <td class="${emptyValueCellClass(row.securityActivities)}">${securityActivityCell(row)}</td>
         <td class="${emptyValueCellClass(row.policyRequirements)}">${tableText(row.policyRequirements)}</td>
         <td class="${emptyValueCellClass(row.threatScenarios)}">${tableText(row.threatScenarios, "threat")}</td>
@@ -359,7 +359,7 @@
   function renderDataTechnicalSummary(row) {
     if (!row) return "";
     return `
-      <div class="relationship-matrix-scroll semantic-scroll data-lifecycle-technical-scroll">
+      <div class="relationship-matrix-scroll semantic-scroll data-lifecycle-technical-scroll" data-lifecycle-kind="data" data-lifecycle-id="${escapeHtml(row.stageId || "")}">
         <table class="semantic-mapping-table data-lifecycle-technical-table">
           <colgroup>
             <col style="width: 62%" />
@@ -400,7 +400,7 @@
 
   function renderDataPolicyRow(row, { showCategory = true } = {}) {
     return `
-      <tr>
+      <tr data-lifecycle-kind="data" data-lifecycle-id="${escapeHtml(row.stageId || "")}">
         ${showCategory ? `<td>${tableText([row.category, row.sequence || ""].filter(Boolean).join("\n"))}</td>` : `<td>${tableText(row.sequence || "")}</td>`}
         <td>${renderDataPolicyCell(policyByLevel(row, "I"))}</td>
         <td>${renderDataPolicyCell(policyByLevel(row, "S"))}</td>

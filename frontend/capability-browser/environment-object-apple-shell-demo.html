@@ -1895,9 +1895,9 @@
       .search-demo-shell {
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: 14px;
         min-width: 1280px;
-        min-height: 760px;
+        min-height: 820px;
         padding: 16px;
       }
 
@@ -1917,11 +1917,133 @@
 
       .search-demo-appbar {
         display: grid;
-        grid-template-columns: minmax(420px, 1fr) auto;
-        align-items: center;
+        grid-template-columns: 240px minmax(440px, 560px) minmax(260px, 1fr);
+        align-items: start;
         gap: 16px;
-        padding: 10px 12px;
+        padding: 14px;
+        border-radius: 22px;
+        overflow: visible;
+      }
+
+      .search-demo-brand {
+        display: grid;
+        gap: 3px;
+        min-height: 48px;
+        align-content: center;
+      }
+
+      .search-demo-brand strong {
+        color: #1a293e;
+        font-size: 17px;
+        font-weight: 900;
+      }
+
+      .search-demo-brand span {
+        color: #64758a;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .search-demo-search-cluster {
+        position: relative;
+        z-index: 2;
+        display: grid;
+        gap: 9px;
+      }
+
+      .search-demo-preview-panel {
+        display: grid;
+        gap: 8px;
+        padding: 10px;
+        border: 1px solid rgba(136, 157, 181, 0.2);
         border-radius: 18px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(245, 249, 253, 0.82)),
+          rgba(255, 255, 255, 0.72);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.92),
+          0 18px 42px rgba(31, 50, 76, 0.1);
+      }
+
+      .search-demo-preview-header,
+      .search-demo-preview-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        color: #627388;
+        font-size: 11px;
+        font-weight: 840;
+      }
+
+      .search-demo-preview-list {
+        display: grid;
+        gap: 6px;
+      }
+
+      .search-demo-preview-item {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 8px;
+        align-items: center;
+        min-height: 40px;
+        padding: 7px 9px;
+        border: 1px solid rgba(136, 157, 181, 0.18);
+        border-radius: 13px;
+        background: rgba(249, 252, 255, 0.74);
+        color: #52647a;
+        cursor: pointer;
+        font: inherit;
+        text-align: left;
+      }
+
+      .search-demo-preview-item.is-active {
+        border-color: rgba(10, 132, 255, 0.38);
+        background: rgba(231, 244, 255, 0.82);
+        box-shadow: inset 3px 0 0 rgba(10, 132, 255, 0.72);
+      }
+
+      .search-demo-preview-rank {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 999px;
+        background: rgba(226, 236, 247, 0.82);
+        color: #506176;
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .search-demo-preview-main {
+        display: grid;
+        min-width: 0;
+        gap: 2px;
+      }
+
+      .search-demo-preview-main strong {
+        overflow: hidden;
+        color: #1e2e43;
+        font-size: 13px;
+        font-weight: 900;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .search-demo-preview-main span {
+        overflow: hidden;
+        color: #66778b;
+        font-size: 11px;
+        font-weight: 780;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .search-demo-preview-domain {
+        color: #24699e;
+        font-size: 11px;
+        font-weight: 880;
       }
 
       .search-demo-chip,
@@ -1973,11 +2095,16 @@
         grid-template-columns: auto minmax(0, 1fr) auto;
         align-items: center;
         gap: 10px;
-        min-height: 44px;
-        padding: 0 14px;
-        border: 1px solid rgba(136, 157, 181, 0.26);
-        border-radius: 14px;
-        background: rgba(255, 255, 255, 0.9);
+        min-height: 46px;
+        padding: 0 16px;
+        border: 1px solid rgba(10, 132, 255, 0.3);
+        border-radius: 999px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(243, 248, 253, 0.86)),
+          rgba(255, 255, 255, 0.86);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.96),
+          0 14px 30px rgba(10, 132, 255, 0.1);
       }
 
       .search-demo-global-input input {
@@ -2022,11 +2149,14 @@
 
       .search-demo-app-metrics {
         justify-content: flex-end;
+        padding-top: 9px;
       }
 
       .search-demo-page-header {
         display: grid;
-        gap: 6px;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px 18px;
+        align-items: end;
         padding: 16px 18px;
         border-radius: 20px;
       }
@@ -2041,9 +2171,20 @@
         justify-content: space-between;
       }
 
+      .search-demo-page-header p {
+        max-width: 760px;
+      }
+
+      .search-demo-scope-strip {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 7px;
+      }
+
       .search-demo-query-summary {
         justify-content: space-between;
-        padding: 10px 12px;
+        padding: 9px 12px;
         border: 1px solid rgba(136, 157, 181, 0.18);
         border-radius: 14px;
         background: rgba(246, 250, 253, 0.76);
@@ -2062,9 +2203,9 @@
 
       .search-demo-result-shell {
         display: grid;
-        grid-template-columns: 230px minmax(0, 1fr) 330px;
+        grid-template-columns: 230px minmax(0, 1fr) 360px;
         gap: 12px;
-        min-height: 360px;
+        min-height: 398px;
       }
 
       .search-demo-pane {
@@ -5210,7 +5351,7 @@
             <button class="demo-tab" type="button" data-demo-tab="funnel">汇聚布局试验</button>
             <button class="demo-tab" type="button" data-demo-tab="environment-stats">环境统计页</button>
             <button class="demo-tab" type="button" data-demo-tab="subcategory-stats">子类统计页</button>
-            <button class="demo-tab" type="button" data-demo-tab="global-search">全局搜索页</button>
+            <button class="demo-tab" type="button" data-demo-tab="global-search">全局搜索</button>
             <button class="demo-tab" type="button" data-demo-tab="capability-rail">能力页控制轨</button>
             <button class="demo-tab" type="button" data-demo-tab="capability-hierarchy">能力层级总览</button>
             <button class="demo-tab" type="button" data-demo-tab="workbench-module">工作台设计</button>
@@ -5916,31 +6057,80 @@
             <section class="search-demo-frame" aria-label="全局搜索页 demo">
               <div class="search-demo-shell">
                 <header class="search-demo-appbar" aria-label="现有工程顶部栏参考">
-                  <div class="search-demo-global-input" aria-label="顶部全局搜索入口">
-                    <span class="search-demo-icon" aria-hidden="true">⌕</span>
-                    <input id="searchDemoGlobalInput" type="text" value="API 安全" readonly />
-                    <span class="search-demo-kbd">⌘K</span>
+                  <div class="search-demo-brand" aria-label="应用身份">
+                    <strong>SAPD Wiki</strong>
+                    <span>全局入口保持轻量，搜索结果页承接深度浏览。</span>
+                  </div>
+                  <div class="search-demo-search-cluster" aria-label="顶部全局搜索入口和即时结果">
+                    <div class="search-demo-global-input" aria-label="顶部全局搜索入口">
+                      <span class="search-demo-icon" aria-hidden="true">⌕</span>
+                      <input id="searchDemoGlobalInput" type="text" value="API 安全" readonly />
+                      <span class="search-demo-kbd">⌘K</span>
+                    </div>
+                    <div class="search-demo-preview-panel" aria-label="即时搜索结果浮层">
+                      <div class="search-demo-preview-header">
+                        <span>高可信结果</span>
+                        <span>Enter 查看全部</span>
+                      </div>
+                      <div class="search-demo-preview-list">
+                        <button class="search-demo-preview-item is-active" type="button" data-search-demo-result="capability-api">
+                          <span class="search-demo-preview-rank">1</span>
+                          <span class="search-demo-preview-main">
+                            <strong>API 安全能力映射</strong>
+                            <span>安全能力映射 / 技术视角 / API 安全</span>
+                          </span>
+                          <span class="search-demo-preview-domain">安全能力</span>
+                        </button>
+                        <button class="search-demo-preview-item" type="button" data-search-demo-result="api-service">
+                          <span class="search-demo-preview-rank">2</span>
+                          <span class="search-demo-preview-main">
+                            <strong>I-AP&amp;T-AS.AD-01 应用架构管控</strong>
+                            <span>知识库字典 / 安全技术服务清单</span>
+                          </span>
+                          <span class="search-demo-preview-domain">字典</span>
+                        </button>
+                        <button class="search-demo-preview-item" type="button" data-search-demo-result="api-object">
+                          <span class="search-demo-preview-rank">3</span>
+                          <span class="search-demo-preview-main">
+                            <strong>API网关层</strong>
+                            <span>信息化环境 / 云数据中心 / 业务应用</span>
+                          </span>
+                          <span class="search-demo-preview-domain">环境</span>
+                        </button>
+                      </div>
+                      <div class="search-demo-preview-footer">
+                        <span>输入阶段只读轻量索引</span>
+                        <span>#/search?q=API%20安全</span>
+                      </div>
+                    </div>
                   </div>
                   <div class="search-demo-app-metrics" aria-label="搜索状态">
-                    <span class="search-demo-chip">本地</span>
-                    <span class="search-demo-chip">search-index ready</span>
+                    <span class="search-demo-chip">本地索引</span>
+                    <span class="search-demo-chip">跨模块</span>
                     <span class="search-demo-chip">7 结果</span>
                   </div>
                 </header>
 
                 <section class="search-demo-page-header" aria-label="全局搜索页头">
-                  <div class="search-demo-breadcrumb">全局导航 / 全局搜索</div>
-                  <div class="search-demo-title-row">
-                    <h2>全局搜索</h2>
-                    <span class="search-demo-route">#/search?q=API%20安全</span>
+                  <div>
+                    <div class="search-demo-breadcrumb">全局导航 / 全局搜索</div>
+                    <div class="search-demo-title-row">
+                      <h2>搜索结果页</h2>
+                      <span class="search-demo-route">#/search?q=API%20安全</span>
+                    </div>
+                    <p>结果页负责跨能力、环境、字典、标准、生命周期和指南统一浏览；打开目标时再进入业务页面并按锚点定位。</p>
                   </div>
-                  <p>跨能力、环境、字典、标准、生命周期和指南检索业务对象；打开结果后再进入目标页面并定位到业务锚点。</p>
+                  <div class="search-demo-scope-strip" aria-label="结果摘要">
+                    <span class="search-demo-chip">轻量索引命中 7</span>
+                    <span class="search-demo-chip">可定位 6</span>
+                    <span class="search-demo-chip">按需加载详情</span>
+                  </div>
                 </section>
 
                 <section class="search-demo-workspace" aria-label="搜索结果页工作区">
                   <div class="search-demo-query-summary">
                     <span>搜索词：API 安全</span>
-                    <span>结果页只展示索引摘要，详情由目标页按需加载。</span>
+                    <span>当前页只承载结果筛选、排序、预览和跳转；目标页负责业务详情和页面内定位。</span>
                   </div>
                   <div class="search-demo-result-shell">
                     <aside class="search-demo-pane" aria-label="搜索结果筛选">
@@ -6767,8 +6957,8 @@
             <span>${searchDemoEscapeHtml(item.load)}</span>
           </div>
           <div class="search-demo-detail-row">
-            <strong>业务锚点</strong>
-            <span>${searchDemoEscapeHtml(item.targetRef)}</span>
+            <strong>定位方式</strong>
+            <span>打开目标页后定位到当前业务对象，并触发页面内高亮。</span>
           </div>
           <div class="search-demo-actions">
             <button class="search-demo-action" type="button">打开目标页</button>

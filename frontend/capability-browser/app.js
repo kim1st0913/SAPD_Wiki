@@ -111,9 +111,15 @@ const state = {
   globalSearchResults: [],
   globalSearchRequestSeq: 0,
   globalSearchStandardsReady: false,
+  globalSearchLoadedQuery: "",
+  globalSearchPageFilter: "全部",
+  globalSearchPageSelectedKey: "",
   search: "",
   pageSearches: {},
   pendingPageSearchReveal: null,
+  pageSearchNavigation: { scope: "", query: "", index: 0, count: 0 },
+  pageSearchMatchSets: {},
+  composingSearchInputId: "",
   pageHeaderSummary: [],
   pageHeaderNote: "",
   relationshipFilters: {},
@@ -139,6 +145,83 @@ const environmentBasemapDragState = {
   moved: false,
   suppressNextClick: false,
 };
+
+const TEXT_SELECTION_CLICK_EXEMPT_SELECTOR = [
+  "input",
+  "textarea",
+  "select",
+  "option",
+  "[contenteditable='true']",
+  "[data-allow-selection-click]",
+].join(", ");
+
+const TEXT_SELECTION_DRAG_SURFACE_SELECTOR = [
+  ".workspace-resizer",
+  ".relationship-column-resizer",
+  ".network-graph-canvas",
+  "[data-environment-basemap-viewport]",
+  ".modeling-poster-lightbox-scroll",
+  ".basemap-lab-viewport",
+  ".environment-object-funnel-viewport",
+].join(", ");
+
+function activeTextSelection() {
+  const selection = window.getSelection?.();
+  if (!selection || selection.isCollapsed || !selection.rangeCount) return null;
+  const selectedText = String(selection.toString() || "").trim();
+  if (!selectedText) return null;
+  return selection;
+}
+
+function selectionIntersectsNode(selection, node) {
+  if (!selection || !node) return false;
+  for (let index = 0; index < selection.rangeCount; index += 1) {
+    try {
+      if (selection.getRangeAt(index).intersectsNode(node)) return true;
+    } catch (_) {
+      // Some SVG or detached nodes cannot be tested by Range.intersectsNode.
+    }
+  }
+  return false;
+}
+
+function shouldSuppressClickForTextSelection(event) {
+  const target = event.target;
+  if (!target?.closest) return false;
+  if (target.closest(TEXT_SELECTION_CLICK_EXEMPT_SELECTOR)) return false;
+  if (target.closest(TEXT_SELECTION_DRAG_SURFACE_SELECTOR)) return false;
+  const selection = activeTextSelection();
+  if (!selection) return false;
+  const clickableHost = target.closest(
+    [
+      "[data-app-route]",
+      "[data-review-item]",
+      "[data-search-page-result]",
+      "[data-global-search-result]",
+      "[data-capability-id]",
+      "[data-maintenance-id]",
+      "[data-environment-id]",
+      "[data-environment-segment-id]",
+      "[data-environment-object-id]",
+      "[data-environment-row-id]",
+      "[data-content-id]",
+      "[data-lifecycle-kind]",
+      "[data-source-page]",
+      "[data-reference-tab]",
+      ".catalog-row",
+      ".source-nav-button",
+      ".tree-row",
+      "tr",
+    ].join(", "),
+  );
+  return Boolean(clickableHost && selectionIntersectsNode(selection, clickableHost));
+}
+
+function suppressClickIfTextSelection(event) {
+  if (!shouldSuppressClickForTextSelection(event)) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+}
 
 function searchScopeForCurrentState() {
   if (state.activeView === "capabilities") return "capability-mapping";
@@ -173,10 +256,98 @@ function setScopedSearch(value) {
   state.pageSearches = { ...(state.pageSearches || {}), [scope]: nextValue };
 }
 
+const SEARCH_COMPOSITION_INPUT_SELECTOR = [
+  "#searchInput",
+  "#searchPageQueryInput",
+  "#capabilitySearchInput",
+  "#sourceSearchInput",
+  "#environmentSearchInput",
+  "#devLifecycleStageSearch",
+  "#dataLifecycleStageSearch",
+  "[data-relation-filter]",
+  "[data-review-filter-control='search']",
+].join(", ");
+
+function isManagedSearchInput(target) {
+  return Boolean(target?.matches?.(SEARCH_COMPOSITION_INPUT_SELECTOR));
+}
+
+function isComposingSearchInput(event) {
+  const target = event?.target;
+  return Boolean(event?.isComposing || target?.dataset?.searchComposing === "true" || (target?.id && state.composingSearchInputId === target.id));
+}
+
+function restoreSearchInputFocus(inputId = "", cursor = null) {
+  if (!inputId) return;
+  requestAnimationFrame(() => {
+    const input = $(inputId);
+    if (!input) return;
+    input.focus({ preventScroll: true });
+    if (Number.isFinite(Number(cursor)) && typeof input.setSelectionRange === "function") {
+      const offset = Math.max(0, Math.min(Number(cursor), text(input.value).length));
+      input.setSelectionRange(offset, offset);
+    }
+  });
+}
+
 function queuePageSearchReveal(value, scope = searchScopeForCurrentState()) {
   const query = text(value).trim();
-  state.pendingPageSearchReveal = query ? { scope, query } : null;
-  if (!query) clearPageSearchHighlights();
+  const current = state.pageSearchNavigation || {};
+  const activeIndex = current.scope === scope && current.query === query ? Number(current.index) || 0 : 0;
+  state.pageSearchNavigation = query ? { scope, query, index: activeIndex, count: 0 } : { scope, query: "", index: 0, count: 0 };
+  state.pendingPageSearchReveal = query ? { scope, query, index: activeIndex } : null;
+  if (!query) {
+    clearPageSearchHighlights();
+    updatePageSearchControls();
+  }
+}
+
+function pageSearchQueryForScope(scope = searchScopeForCurrentState()) {
+  if (scope === "development-security") return text(state.devLifecycleStageSearch).trim();
+  if (scope === "data-security") return text(state.dataLifecycleStageSearch).trim();
+  if (scope === searchScopeForCurrentState()) return text(state.search || currentScopedSearch()).trim();
+  return text(state.pageSearches?.[scope] || "").trim();
+}
+
+function clearPageSearchMatchSet(scope = searchScopeForCurrentState()) {
+  const nextSets = { ...(state.pageSearchMatchSets || {}) };
+  delete nextSets[scope];
+  state.pageSearchMatchSets = nextSets;
+}
+
+function pageSearchMatchSet(scope = searchScopeForCurrentState(), query = pageSearchQueryForScope(scope)) {
+  const set = state.pageSearchMatchSets?.[scope] || null;
+  const normalizedQuery = text(query).trim();
+  if (!set || !normalizedQuery || text(set.query).trim() !== normalizedQuery) return null;
+  return set;
+}
+
+function setPageSearchMatchSet(scope = searchScopeForCurrentState(), query = "", matches = [], activeId = "") {
+  const normalizedQuery = text(query).trim();
+  if (!normalizedQuery) {
+    clearPageSearchMatchSet(scope);
+    if (state.pageSearchNavigation?.scope === scope) state.pageSearchNavigation = { scope, query: "", index: 0, count: 0 };
+    return;
+  }
+  const normalizedMatches = list(matches)
+    .map((match) => ({
+      ...match,
+      id: text(match?.id).trim(),
+      title: text(match?.title || match?.label || match?.code).trim(),
+    }))
+    .filter((match) => match.id);
+  state.pageSearchMatchSets = {
+    ...(state.pageSearchMatchSets || {}),
+    [scope]: { query: normalizedQuery, matches: normalizedMatches },
+  };
+  const selectedIndex = Math.max(0, normalizedMatches.findIndex((match) => match.id === text(activeId).trim()));
+  const count = normalizedMatches.length;
+  state.pageSearchNavigation = { scope, query: normalizedQuery, index: count ? selectedIndex : 0, count };
+  if (state.pendingPageSearchReveal?.scope === scope && state.pendingPageSearchReveal.query === normalizedQuery) {
+    state.pendingPageSearchReveal.displayIndex = count ? selectedIndex : 0;
+    state.pendingPageSearchReveal.displayCount = count;
+    state.pendingPageSearchReveal.index = Number.isFinite(Number(state.pendingPageSearchReveal.index)) ? Number(state.pendingPageSearchReveal.index) : 0;
+  }
 }
 
 function routeHasPageSearch(route = state.activeRoute) {
@@ -190,8 +361,25 @@ function routeHasPageSearch(route = state.activeRoute) {
   );
 }
 
+function clearScopedSearchForCurrentDestination() {
+  const scope = searchScopeForCurrentState();
+  const pageSearches = { ...(state.pageSearches || {}) };
+  if (scope && Object.prototype.hasOwnProperty.call(pageSearches, scope)) {
+    delete pageSearches[scope];
+    state.pageSearches = pageSearches;
+  }
+  state.search = "";
+}
+
+function clearDestinationSearchForGlobalActivation(route = "") {
+  clearScopedSearchForCurrentDestination();
+  if (route === "/development-security") state.devLifecycleStageSearch = "";
+  if (route === "/data-security") state.dataLifecycleStageSearch = "";
+  syncSearchInputs();
+}
+
 function searchTextForActivatedResult(result = {}) {
-  return text(state.globalSearch || result.targetText || result.title || result.code).trim();
+  return cleanGlobalSearchDisplayText(result.targetText || result.title || result.code || state.globalSearch);
 }
 
 function syncSearchInputs() {
@@ -222,6 +410,41 @@ function compactSearchText(...values) {
     .trim();
 }
 
+function isInternalSearchCode(value) {
+  const normalized = text(value).trim();
+  if (!normalized) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(normalized) || /^(?:[a-z][a-z0-9_]*:)?[0-9a-f]{12,}$/i.test(normalized);
+}
+
+function cleanGlobalSearchDisplayText(value) {
+  let normalized = text(value).replace(/\s+/g, " ").trim();
+  const internalPrefix = /^(?:(?:[a-z][a-z0-9_]*:)?[0-9a-f]{12,}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\s+/i;
+  while (normalized && internalPrefix.test(normalized)) {
+    normalized = normalized.replace(internalPrefix, "").trim();
+  }
+  return normalized;
+}
+
+function sanitizeGlobalSearchResult(result = {}) {
+  const cleanCode = isInternalSearchCode(result.code) ? "" : text(result.code).trim();
+  const cleanTitle = cleanGlobalSearchDisplayText(result.title || result.name || result.label || cleanCode || result.targetText || result.target_text);
+  const cleanTargetText = cleanGlobalSearchDisplayText(result.targetText || result.target_text || cleanTitle || cleanCode);
+  const targetRef = text(result.targetRef || result.target_ref).trim();
+  const objectType = text(result.objectType || result.object_type).trim();
+  const objectId = text(result.objectId || result.object_id).trim();
+  const matchContext = cleanGlobalSearchDisplayText(result.matchContext || result.match_context || result.summary || "");
+  return {
+    ...result,
+    code: cleanCode,
+    title: cleanTitle,
+    targetText: cleanTargetText,
+    matchContext,
+    targetRef,
+    objectType,
+    objectId,
+  };
+}
+
 function scoreGlobalSearchResult(result, query) {
   const q = normalizeSearchText(query);
   const title = normalizeSearchText(result.title);
@@ -237,9 +460,180 @@ function scoreGlobalSearchResult(result, query) {
 }
 
 function addGlobalSearchResult(results, result) {
-  const key = result.key || [result.type, result.route, result.id, result.title].filter(Boolean).join("::");
+  const displayResult = sanitizeGlobalSearchResult(result);
+  const key = globalSearchResultDedupKey(displayResult);
   if (!key || results.has(key)) return;
-  results.set(key, { ...result, key });
+  results.set(key, { ...displayResult, key });
+}
+
+function globalSearchSemanticTargetKey(result = {}) {
+  const route = text(result.route).trim();
+  const targetRef = text(result.targetRef || result.target_ref).trim();
+  if (targetRef) {
+    const [targetType, ...targetParts] = targetRef.split(":");
+    if (targetType && targetParts.length) {
+      return ["target", route, targetType, targetParts.join(":")].filter(Boolean).join("::");
+    }
+    return ["target", route, targetRef].filter(Boolean).join("::");
+  }
+
+  const explicitObjectType = text(result.objectType || result.object_type).trim();
+  const explicitObjectId = text(result.objectId || result.object_id).trim();
+  if (explicitObjectType && explicitObjectId) {
+    return ["target", route, explicitObjectType, explicitObjectId].filter(Boolean).join("::");
+  }
+
+  const semanticSelectors = [
+    ["maintenance", result.selectedMaintenanceId],
+    ["capability", result.selectedCapabilityId],
+    ["environment_object", result.selectedEnvironmentObjectId],
+    ["environment_segment", result.selectedEnvironmentSegmentId],
+    ["environment", result.selectedEnvironmentId],
+    ["process", result.selectedProcessId],
+    ["content", result.selectedContentId],
+    ["standard_table", result.standardTableId],
+    ["standard_framework", result.standardFramework],
+  ];
+  const matchedSelector = semanticSelectors.find(([, value]) => text(value).trim());
+  if (!matchedSelector) return "";
+  const [semanticType, semanticId] = matchedSelector;
+  return ["target", route, semanticType, text(semanticId).trim()].filter(Boolean).join("::");
+}
+
+function globalSearchResultDedupKey(result = {}) {
+  const semanticKey = globalSearchSemanticTargetKey(result);
+  if (semanticKey) return semanticKey;
+
+  const route = text(result.route).trim();
+  const type = text(result.typeLabel || result.type).trim();
+  const title = cleanGlobalSearchDisplayText(result.title || result.targetText || result.code);
+  const subtitle = cleanGlobalSearchDisplayText(result.subtitle || result.summary || result.description || "");
+  return ["visible", type, route, title, subtitle].filter(Boolean).join("::");
+}
+
+function globalSearchNormalizedDisplayText(value) {
+  return normalizeSearchText(cleanGlobalSearchDisplayText(value));
+}
+
+function isLifecycleGlobalSearchResult(result = {}) {
+  const route = text(result.route).trim();
+  return route === "/development-security" || route === "/data-security" || text(result.type).trim() === "lifecycle";
+}
+
+function globalSearchTargetRefDepth(result = {}) {
+  const targetRef = text(result.targetRef || result.target_ref).trim();
+  if (!targetRef) return 0;
+  return targetRef.split(":").filter(Boolean).length;
+}
+
+function globalSearchHasLifecycleContext(result = {}) {
+  return Boolean(text(result.selectedProcessId).trim() || globalSearchTargetRefDepth(result) >= 3);
+}
+
+function isLifecycleNonContextResult(result = {}) {
+  return isLifecycleGlobalSearchResult(result) && !globalSearchHasLifecycleContext(result);
+}
+
+function isLifecycleContainerSearchResult(result = {}) {
+  if (!isLifecycleGlobalSearchResult(result)) return false;
+  const typeLabel = text(result.typeLabel || result.type_label).trim();
+  const title = text(result.title || result.code).trim();
+  return /(?:LC-AP|LC-DT|阶段|过程)/.test(typeLabel) || /^(?:AP|DT)-\d{2}\b/i.test(title);
+}
+
+function globalSearchResultSpecificity(result = {}, query = "") {
+  const q = normalizeSearchText(query);
+  const title = globalSearchNormalizedDisplayText(result.title);
+  const targetText = globalSearchNormalizedDisplayText(result.targetText || result.target_text);
+  let weight = Number(result.score) || 0;
+  if (title && title === q) weight += 400;
+  if (targetText && targetText === q) weight += 260;
+  if (globalSearchTargetRefDepth(result) >= 3) weight += 160;
+  if (text(result.targetRef || result.target_ref).trim()) weight += 80;
+  if (globalSearchHasLifecycleContext(result)) weight += 50;
+  if (text(result.objectType || result.object_type).trim()) weight += 20;
+  if (isLifecycleContainerSearchResult(result) && title !== q) weight -= 240;
+  return weight;
+}
+
+function chooseMoreSpecificGlobalSearchResult(left, right, query = "") {
+  if (!left) return right;
+  const leftWeight = globalSearchResultSpecificity(left, query);
+  const rightWeight = globalSearchResultSpecificity(right, query);
+  if (rightWeight !== leftWeight) return rightWeight > leftWeight ? right : left;
+  const rightScore = Number(right?.score) || 0;
+  const leftScore = Number(left?.score) || 0;
+  if (rightScore !== leftScore) return rightScore > leftScore ? right : left;
+  return text(left.title).localeCompare(text(right.title), "zh-Hans-CN") <= 0 ? left : right;
+}
+
+function globalSearchVisibleDedupeKey(result = {}) {
+  const route = text(result.route).trim();
+  const category = globalSearchResultCategory(result);
+  const title = globalSearchNormalizedDisplayText(result.title || result.targetText || result.code);
+  const subtitle = globalSearchNormalizedDisplayText(result.subtitle || result.summary || result.description || "");
+  const targetText = globalSearchNormalizedDisplayText(result.targetText || result.title || result.code);
+  if (!route || !title) return "";
+  return ["display", route, category, title, subtitle, targetText].join("::");
+}
+
+function pruneGlobalSearchResultsForQuery(results = [], query = "") {
+  const q = normalizeSearchText(query);
+  if (!q) return list(results);
+
+  const visibleMap = new Map();
+  list(results).forEach((result) => {
+    const displayKey = globalSearchVisibleDedupeKey(result);
+    if (!displayKey) return;
+    visibleMap.set(displayKey, chooseMoreSpecificGlobalSearchResult(visibleMap.get(displayKey), result, q));
+  });
+
+  const rows = [...visibleMap.values()];
+  const dropRows = new WeakSet();
+  const lifecycleExactTitleGroups = new Map();
+  rows.forEach((result) => {
+    if (!isLifecycleGlobalSearchResult(result)) return;
+    const title = globalSearchNormalizedDisplayText(result.title);
+    if (title !== q) return;
+    const groupKey = [text(result.route).trim(), title].join("::");
+    const group = lifecycleExactTitleGroups.get(groupKey) || [];
+    group.push(result);
+    lifecycleExactTitleGroups.set(groupKey, group);
+  });
+
+  lifecycleExactTitleGroups.forEach((group) => {
+    const contextualRows = group.filter(globalSearchHasLifecycleContext);
+    const candidateRows = contextualRows.length ? contextualRows : group;
+    if (contextualRows.length) group.filter((row) => !globalSearchHasLifecycleContext(row)).forEach((row) => dropRows.add(row));
+
+    const contextMap = new Map();
+    candidateRows.forEach((row) => {
+      const contextKey = text(row.selectedProcessId || row.targetRef || row.target_ref || row.subtitle || row.objectId || row.object_id || "").trim() || "__global";
+      contextMap.set(contextKey, chooseMoreSpecificGlobalSearchResult(contextMap.get(contextKey), row, q));
+    });
+    candidateRows.forEach((row) => {
+      const contextKey = text(row.selectedProcessId || row.targetRef || row.target_ref || row.subtitle || row.objectId || row.object_id || "").trim() || "__global";
+      if (contextMap.get(contextKey) !== row) dropRows.add(row);
+    });
+  });
+
+  const exactLifecycleRoutes = new Set(
+    rows
+      .filter((row) => !dropRows.has(row) && isLifecycleGlobalSearchResult(row) && globalSearchNormalizedDisplayText(row.title) === q)
+      .map((row) => text(row.route).trim())
+      .filter(Boolean),
+  );
+
+  return rows.filter((result) => {
+    if (dropRows.has(result)) return false;
+    const route = text(result.route).trim();
+    const title = globalSearchNormalizedDisplayText(result.title);
+    const targetText = globalSearchNormalizedDisplayText(result.targetText || result.target_text);
+    const score = Number(result.score) || 0;
+    if (exactLifecycleRoutes.has(route) && isLifecycleNonContextResult(result) && (title.includes(q) || targetText.includes(q))) return false;
+    if (exactLifecycleRoutes.has(route) && isLifecycleContainerSearchResult(result) && title !== q && score <= 60) return false;
+    return true;
+  });
 }
 
 function flattenCapabilitySearchItems(capability) {
@@ -283,23 +677,65 @@ function maintenanceSearchSections() {
   return [
     { key: "scope_types", typeLabel: "作用域", route: "/knowledge/scopes" },
     { key: "security_technical_services", typeLabel: "安全技术服务", route: "/knowledge/technical-services" },
-    { key: "security_technology_modules", typeLabel: "安全技术模块", route: "/knowledge/technical" },
-    { key: "security_technical_measures", typeLabel: "安全技术措施", route: "/knowledge/technical" },
+    { key: "security_technology_modules", typeLabel: "安全技术模块", route: "/knowledge/technical-modules" },
+    { key: "security_technical_measures", typeLabel: "安全技术措施", route: "/knowledge/technical-measures" },
     { key: "security_works", typeLabel: "安全工作", route: "/knowledge/management-workflows" },
     { key: "security_processes", typeLabel: "安全流程", route: "/knowledge/management-workflows" },
     { key: "work_function_layers", typeLabel: "安全职能", route: "/knowledge/functions" },
-    { key: "gbt_42446_references", typeLabel: "GB/T 42446 任务", route: "/knowledge/gbt-42446" },
-    { key: "gartner_roles", typeLabel: "Gartner 岗位参考", route: "/knowledge/role-references" },
+    {
+      key: "gbt_42446_references",
+      typeLabel: "GB/T 42446 任务",
+      route: "/standards/workforce-reference",
+      standardFramework: "workforce-reference-standards",
+      standardTableId: "gbt-42446-classification",
+    },
+    {
+      key: "gartner_roles",
+      typeLabel: "Gartner 岗位参考",
+      route: "/standards/workforce-reference",
+      standardFramework: "workforce-reference-standards",
+      standardTableId: "gartner-work-roles",
+    },
   ];
+}
+
+function searchSlug(value, fallback = "item") {
+  return (
+    text(value)
+      .trim()
+      .replace(/[^\w\u4e00-\u9fa5-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 72) || fallback
+  );
+}
+
+function gbtSearchTaskName(title) {
+  const value = text(title).trim();
+  const parts = value.split(/[-－—]/).map((part) => part.trim()).filter(Boolean);
+  return parts.length > 1 ? parts.slice(1).join("-") : value;
+}
+
+function workforceReferenceSearchId(section, item, index, title) {
+  if (section.key === "gbt_42446_references") {
+    const category = text(item?.category).trim();
+    const task = gbtSearchTaskName(title);
+    return `gbt-42446-classification-${searchSlug(category, "category")}-${searchSlug(task, `task-${index + 1}`)}-${index + 1}`;
+  }
+  if (section.key === "gartner_roles") {
+    const category = text(item?.category).trim();
+    return `gartner-work-role-${searchSlug(category, "category")}-${searchSlug(title, `role-${index + 1}`)}-${index + 1}`;
+  }
+  return text(item.id || item.code || item.title || item.name || `${section.key}:${index}`).trim();
 }
 
 function flattenMaintenanceSearchItems(maintenance, lifecycle) {
   const rows = [];
   for (const section of maintenanceSearchSections()) {
     list(maintenance?.[section.key]).forEach((item, index) => {
-      const id = text(item.id || item.code || item.title || item.name || `${section.key}:${index}`).trim();
+      const rawId = text(item.id || item.code || item.title || item.name || `${section.key}:${index}`).trim();
       const code = text(item.code || item.serviceCode || item.processCode || item.referenceCode).trim();
-      const title = text(item.title || item.name || item.serviceName || item.processName || item.description || code || id).trim();
+      const title = text(item.title || item.name || item.serviceName || item.processName || item.description || code || rawId).trim();
+      const id = workforceReferenceSearchId(section, item, index, title);
       if (!title && !code) return;
       rows.push({
         id,
@@ -309,6 +745,9 @@ function flattenMaintenanceSearchItems(maintenance, lifecycle) {
         typeLabel: section.typeLabel,
         route: section.route,
         selectedMaintenanceId: id,
+        standardFramework: section.standardFramework || "",
+        standardTableId: section.standardTableId || "",
+        referenceTab: "",
         targetText: title,
         subtitle: compactSearchText(item.category, item.layer, item.group, item.capability, item.focus),
         searchText: compactSearchText(code, title, item.description, item.definition, item.summary, item.category, item.layer, item.group),
@@ -562,16 +1001,18 @@ function buildGlobalSearchResults(query) {
 }
 
 function normalizeGlobalSearchIndexResult(result = {}) {
+  const displayResult = sanitizeGlobalSearchResult(result);
   const route = text(result.route).trim();
   const objectType = text(result.object_type || result.objectType).trim();
   const objectId = text(result.object_id || result.objectId || result.id).trim();
   const targetRef = text(result.target_ref || result.targetRef).trim();
   const normalized = {
-    ...result,
-    key: text(result.key || [result.type, route, targetRef || objectId, result.title].filter(Boolean).join("::")).trim(),
+    ...displayResult,
+    key: text(result.key || [result.type, route, targetRef || objectId, displayResult.title].filter(Boolean).join("::")).trim(),
     route,
     targetRef,
-    targetText: text(result.targetText || result.target_text || result.title || result.code).trim(),
+    targetText: displayResult.targetText,
+    matchContext: displayResult.matchContext,
     typeLabel: text(result.typeLabel || result.type_label || "结果").trim(),
     score: Number(result.score) || 0,
   };
@@ -582,6 +1023,14 @@ function normalizeGlobalSearchIndexResult(result = {}) {
     if (objectType === "information_object") normalized.selectedEnvironmentObjectId = objectId;
   }
   if (route.startsWith("/knowledge/") && objectId) normalized.selectedMaintenanceId = objectId;
+  if (route === "/knowledge/gbt-42446") normalized.referenceTab = "gbt";
+  if (route === "/knowledge/role-references") normalized.referenceTab = "gartner";
+  if (route === "/standards/workforce-reference") {
+    normalized.standardFramework = "workforce-reference-standards";
+    if (objectId) normalized.selectedMaintenanceId = objectId;
+    if (["gbt_42446_task_reference", "gbt_42446_task_definition"].includes(objectType)) normalized.standardTableId = "gbt-42446-classification";
+    if (objectType === "work_role_reference") normalized.standardTableId = "gartner-work-roles";
+  }
   if ((route === "/development-security" || route === "/data-security") && objectId) normalized.selectedProcessId = objectId;
   if (route.startsWith("/guides/") && objectId) normalized.selectedContentId = objectId;
   if (objectType === "standard_framework" && objectId) normalized.standardFramework = objectId;
@@ -593,25 +1042,34 @@ function normalizeGlobalSearchIndexResult(result = {}) {
   return normalized;
 }
 
+function searchIndexPayloadFromEnvelope(envelope) {
+  const firstLayer = envelope && typeof envelope === "object" ? envelope : {};
+  const secondLayer = firstLayer.data && typeof firstLayer.data === "object" ? firstLayer.data : firstLayer;
+  if (secondLayer?.data && typeof secondLayer.data === "object" && (Array.isArray(secondLayer.data.results) || secondLayer.data.data_state)) {
+    return secondLayer.data;
+  }
+  return secondLayer;
+}
+
 async function searchIndexResultsForQuery(query) {
   const normalizedQuery = text(query).trim();
   if (normalizedQuery.length < GLOBAL_SEARCH_MIN_QUERY_LENGTH) return [];
   if (globalSearchIndexQueryCache.has(normalizedQuery)) return globalSearchIndexQueryCache.get(normalizedQuery);
   const dataClient = window.sapdDataClient;
   const envelope = await dataClient?.getSearchIndex?.({ q: normalizedQuery, limit: GLOBAL_SEARCH_RESULT_LIMIT });
-  const payload = envelope?.data;
+  const payload = searchIndexPayloadFromEnvelope(envelope);
   const rows = list(payload?.results).map(normalizeGlobalSearchIndexResult).filter((result) => result.route);
-  if (payload?.data_state === "ready" && rows.length) {
+  if (payload?.data_state === "ready" || rows.length) {
     globalSearchIndexQueryCache.set(normalizedQuery, rows);
     return rows;
   }
   return [];
 }
 
-function mergeGlobalSearchResults(primary = [], secondary = []) {
+function mergeGlobalSearchResults(primary = [], secondary = [], query = "") {
   const resultMap = new Map();
   [...primary, ...secondary].forEach((result) => addGlobalSearchResult(resultMap, result));
-  return [...resultMap.values()]
+  return pruneGlobalSearchResultsForQuery([...resultMap.values()], query)
     .sort((left, right) => (Number(right.score) || 0) - (Number(left.score) || 0) || text(left.typeLabel).localeCompare(text(right.typeLabel), "zh-Hans-CN") || text(left.title).localeCompare(text(right.title), "zh-Hans-CN"))
     .slice(0, GLOBAL_SEARCH_RESULT_LIMIT);
 }
@@ -649,40 +1107,56 @@ function renderGlobalSearchPanel() {
     <div class="global-search-result-list" role="listbox" aria-label="全局搜索结果">
       ${state.globalSearchResults
         .map(
-          (result, index) => `
+          (result, index) => {
+            const metaLine = globalSearchResultMetaLine(result);
+            const snippet = globalSearchResultSnippetLabel(result, query);
+            return `
             <button class="global-search-result" type="button" role="option" data-global-search-result="${index}">
               <span class="global-search-result-type">${escapeHtml(result.typeLabel || "结果")}</span>
               <span class="global-search-result-main">
                 <strong>${escapeHtml(result.title || "未命名结果")}</strong>
-                ${result.subtitle ? `<small>${escapeHtml(result.subtitle)}</small>` : ""}
+                ${metaLine ? `<small>${escapeHtml(metaLine)}</small>` : ""}
+                <em>${highlightSearchText(snippet, query)}</em>
               </span>
             </button>
-          `,
+          `;
+          },
         )
         .join("")}
+    </div>
+    <div class="global-search-panel-footer">
+      <button class="global-search-view-all" type="button" data-global-search-view-all>
+        查看全部搜索结果
+      </button>
     </div>
   `;
 }
 
 async function runGlobalSearch() {
+  const options = arguments[0] || {};
+  const renderPanel = options.panel !== false;
   const requestSeq = ++state.globalSearchRequestSeq;
   const query = text(state.globalSearch).trim();
-  state.globalSearchOpen = Boolean(query);
+  state.globalSearchOpen = renderPanel && Boolean(query);
   if (query.length < GLOBAL_SEARCH_MIN_QUERY_LENGTH) {
     state.globalSearchLoading = false;
     state.globalSearchResults = [];
-    renderGlobalSearchPanel();
+    state.globalSearchLoadedQuery = query;
+    if (renderPanel) renderGlobalSearchPanel();
+    if (!renderPanel && state.activeView === "search") renderSearchPage();
     return;
   }
   state.globalSearchLoading = true;
-  renderGlobalSearchPanel();
+  if (renderPanel) renderGlobalSearchPanel();
   await ensureGlobalSearchPackages();
   await ensureGlobalSearchStandardDetails();
   const indexedResults = await searchIndexResultsForQuery(query);
   if (requestSeq !== state.globalSearchRequestSeq) return;
-  state.globalSearchResults = mergeGlobalSearchResults(indexedResults, buildGlobalSearchResults(query));
+  state.globalSearchResults = mergeGlobalSearchResults(indexedResults, buildGlobalSearchResults(query), query);
   state.globalSearchLoading = false;
-  renderGlobalSearchPanel();
+  state.globalSearchLoadedQuery = query;
+  if (renderPanel) renderGlobalSearchPanel();
+  if (!renderPanel && state.activeView === "search") renderSearchPage();
 }
 
 function clearGlobalSearchPanel({ keepQuery = false } = {}) {
@@ -707,6 +1181,7 @@ function activeGlobalSearchRootElement() {
 function activeSearchRootElement() {
   const workspaceMap = {
     overview: "overviewWorkspace",
+    search: "searchWorkspace",
     capabilities: "capabilityWorkspace",
     environment: "environmentWorkspace",
     "dev-lifecycle": "devLifecycleWorkspace",
@@ -726,7 +1201,7 @@ function globalSearchTargetTexts(result = {}) {
     result.code,
     result.subtitle,
   ]
-    .map((value) => text(value).trim())
+    .map((value) => cleanGlobalSearchDisplayText(value))
     .filter(Boolean);
   return [...new Set(values.flatMap((value) => [value, value.replace(/^\S+\s+/, "").trim()].filter(Boolean)))];
 }
@@ -744,7 +1219,7 @@ function nodeBusinessText(node) {
 }
 
 function isSearchChromeNode(node) {
-  return Boolean(node?.closest?.("#globalSearchPanel, .global-search, .topbar, [data-annotation-drawer], [data-annotation-context-menu]"));
+  return Boolean(node?.closest?.("#globalSearchPanel, .global-search, .topbar, .page-search-control, .capability-workbench-tools, .source-catalog-tools, .lifecycle-stage-search, [data-annotation-drawer], [data-annotation-context-menu]"));
 }
 
 function isVisibleSearchTarget(node) {
@@ -821,40 +1296,366 @@ function globalSearchTextTargetElement(result = {}) {
   return textTargetElement(globalSearchTargetTexts(result), activeGlobalSearchRootElement());
 }
 
-function pageSearchTextTargetElement(query = "") {
+function dedupeNestedSearchTargets(nodes = []) {
+  const unique = [];
+  list(nodes).forEach((node) => {
+    if (!node) return;
+    const nested = unique.some((existing) => existing === node || existing.contains(node) || node.contains(existing));
+    if (!nested) unique.push(node);
+  });
+  return unique;
+}
+
+function pageSearchTargetElements(query = "", root = activeSearchRootElement()) {
   const searchText = text(query).trim();
-  if (!searchText) return null;
+  if (!searchText || !root) return [];
   const targets = [searchText, searchText.replace(/^\S+\s+/, "").trim()].filter(Boolean);
-  return textTargetElement([...new Set(targets)], activeSearchRootElement());
+  const normalizedTargets = [...new Set(targets.map((value) => value.toLowerCase()).filter(Boolean))];
+  if (!normalizedTargets.length) return [];
+  const candidates = searchTargetCandidates(root);
+  const matches = candidates.filter((node) => {
+    const value = nodeBusinessText(node).toLowerCase();
+    if (!value) return false;
+    return normalizedTargets.some((target) => value.includes(target) || target.includes(value));
+  });
+  return dedupeNestedSearchTargets(matches);
+}
+
+function pageSearchTextTargetElement(query = "") {
+  return pageSearchTargetElements(query)[0] || null;
 }
 
 function clearPageSearchHighlights() {
-  document.querySelectorAll(".page-search-target-highlight").forEach((node) => node.classList.remove("page-search-target-highlight"));
+  document.querySelectorAll(".page-search-target-highlight, .page-search-current-match, .page-search-current-container").forEach((node) => {
+    node.classList.remove("page-search-target-highlight", "page-search-current-match", "page-search-current-container");
+    node.removeAttribute("data-page-search-current");
+    node.removeAttribute("data-page-search-context");
+  });
+}
+
+function pageSearchContextTarget(target) {
+  return (
+    target?.closest?.(
+      [
+        ".tree-row",
+        ".environment-tree-row",
+        ".lifecycle-nav-row",
+        "[data-lifecycle-kind][data-lifecycle-id]",
+        "[data-capability-id]",
+        "[data-environment-id]",
+        "[data-environment-segment-id]",
+        "[data-environment-object-id]",
+        "[data-environment-row-id]",
+        "[data-maintenance-id]",
+        "[data-search-page-result]",
+        "tr",
+      ].join(", "),
+    ) || null
+  );
+}
+
+function pageSearchHighlightTargets(target) {
+  return [...new Set([target, pageSearchContextTarget(target)].filter(Boolean))];
+}
+
+function markPageSearchTarget(target) {
+  if (!target) return;
+  target.classList.add("page-search-current-match");
+  target.setAttribute("data-page-search-current", "true");
+  const context = pageSearchContextTarget(target);
+  if (context && context !== target) {
+    context.classList.add("page-search-current-container");
+    context.setAttribute("data-page-search-context", "true");
+  }
+}
+
+function scrollSearchTargetIntoView(target, attempt = 0) {
+  if (!target?.scrollIntoView) return;
+  const behavior = attempt ? "auto" : "smooth";
+  target.scrollIntoView({ block: "center", inline: "nearest", behavior });
+  requestAnimationFrame(() => {
+    const targetRect = target.getBoundingClientRect?.();
+    if (!targetRect) return;
+    let node = target.parentElement;
+    while (node && node !== document.body) {
+      const style = window.getComputedStyle(node);
+      const canScrollY = /(auto|scroll)/.test(style.overflowY) && node.scrollHeight > node.clientHeight + 2;
+      const canScrollX = /(auto|scroll)/.test(style.overflowX) && node.scrollWidth > node.clientWidth + 2;
+      if (canScrollY || canScrollX) {
+        const rect = node.getBoundingClientRect();
+        if (canScrollY && (targetRect.top < rect.top + 24 || targetRect.bottom > rect.bottom - 24)) {
+          node.scrollTop += targetRect.top - rect.top - Math.max(24, (node.clientHeight - targetRect.height) / 2);
+        }
+        if (canScrollX && (targetRect.left < rect.left + 24 || targetRect.right > rect.right - 24)) {
+          node.scrollLeft += targetRect.left - rect.left - Math.max(24, (node.clientWidth - targetRect.width) / 2);
+        }
+      }
+      node = node.parentElement;
+    }
+  });
+}
+
+function updatePageSearchControls() {
+  const currentScope = searchScopeForCurrentState();
+  const nav = state.pageSearchNavigation || {};
+  document.querySelectorAll("[data-page-search-status]").forEach((node) => {
+    const scope = text(node.dataset.pageSearchStatus).trim() || currentScope;
+    const query = pageSearchQueryForScope(scope);
+    const matchSet = pageSearchMatchSet(scope, query);
+    const isActive = scope === nav.scope && query && query === nav.query;
+    const count = matchSet ? matchSet.matches.length : isActive ? Number(nav.count) || 0 : 0;
+    const rawIndex = isActive && count ? Number(nav.index) || 0 : 0;
+    const index = count ? Math.max(0, Math.min(count - 1, rawIndex)) : 0;
+    node.textContent = query ? `${count ? index + 1 : 0}/${count}` : "";
+  });
+  document.querySelectorAll("[data-page-search-step]").forEach((button) => {
+    const scope = text(button.dataset.pageSearchScope).trim() || currentScope;
+    const query = pageSearchQueryForScope(scope);
+    const matchSet = pageSearchMatchSet(scope, query);
+    const isActive = scope === nav.scope && query && query === nav.query;
+    const count = matchSet ? matchSet.matches.length : isActive ? Number(nav.count) || 0 : 0;
+    button.disabled = !query || count < 2;
+  });
 }
 
 function revealPageSearchTarget(pending = state.pendingPageSearchReveal, attempt = 0) {
   if (!pending?.query) return false;
   if (pending.scope && pending.scope !== searchScopeForCurrentState()) return false;
-  const target = pageSearchTextTargetElement(pending.query);
+  const targets = pageSearchTargetElements(pending.query);
+  const count = targets.length;
+  const requestedIndex = Number.isFinite(Number(pending.index)) ? Number(pending.index) : Number(state.pageSearchNavigation?.index) || 0;
+  const activeIndex = count ? ((requestedIndex % count) + count) % count : 0;
+  const displayCount = Number.isFinite(Number(pending.displayCount)) ? Number(pending.displayCount) : count;
+  const displayIndex = Number.isFinite(Number(pending.displayIndex)) ? Number(pending.displayIndex) : activeIndex;
+  state.pageSearchNavigation = {
+    scope: pending.scope || searchScopeForCurrentState(),
+    query: pending.query,
+    index: displayIndex,
+    count: displayCount,
+  };
+  updatePageSearchControls();
+  let target = null;
+  if (pending.targetAttribute === "data-lifecycle-id" && pending.targetId) {
+    const kind = pending.scope === "data-security" ? "data" : "dev";
+    const safeTargetId = window.CSS?.escape ? window.CSS.escape(pending.targetId) : text(pending.targetId).replace(/["\\]/g, "\\$&");
+    const contentRoot = kind === "data" ? $("dataLifecycleMatrix") : $("devLifecycleLane");
+    const selector = `[data-lifecycle-kind="${kind}"][data-lifecycle-id="${safeTargetId}"] .lifecycle-search-mark`;
+    const marks = Array.from((contentRoot || document).querySelectorAll(selector)).filter(isVisibleSearchTarget);
+    const markIndex = Number.isFinite(Number(pending.lifecycleOccurrenceIndex)) ? Number(pending.lifecycleOccurrenceIndex) : activeIndex;
+    target = marks[Math.max(0, Math.min(marks.length - 1, markIndex))] || null;
+  }
+  if (!target && pending.targetAttribute && pending.targetId) {
+    const preferredTarget = findElementByDataAttr(pending.targetAttribute, pending.targetId);
+    if (preferredTarget && isVisibleSearchTarget(preferredTarget)) target = preferredTarget;
+  }
+  target = target || targets[activeIndex] || null;
   if (target) {
     expandAnnotationHiddenLineage(target);
     target.hidden = false;
     clearPageSearchHighlights();
-    target.scrollIntoView({ block: "center", inline: "nearest", behavior: attempt ? "auto" : "smooth" });
+    scrollSearchTargetIntoView(target, attempt);
+    markPageSearchTarget(target);
     target.classList.add("page-search-target-highlight");
     window.setTimeout(() => target.classList.remove("page-search-target-highlight"), 2600);
     state.pendingPageSearchReveal = null;
     return true;
   }
-  if (attempt >= 10) return false;
+  if (attempt >= 10) {
+    state.pendingPageSearchReveal = null;
+    return false;
+  }
   window.setTimeout(() => revealPageSearchTarget(pending, attempt + 1), attempt < 4 ? 80 : 180);
   return false;
 }
 
 function flushPageSearchReveal() {
   const pending = state.pendingPageSearchReveal;
-  if (!pending?.query) return;
+  if (!pending?.query) {
+    updatePageSearchControls();
+    return;
+  }
   requestAnimationFrame(() => revealPageSearchTarget(pending));
+}
+
+function movePageSearchMatch(delta = 1, scope = searchScopeForCurrentState()) {
+  const query = pageSearchQueryForScope(scope);
+  if (!query) return;
+  if (scope === "development-security" || scope === "data-security") {
+    moveLifecyclePageSearchMatch(scope === "data-security" ? "data" : "dev", delta, query);
+    return;
+  }
+  if (scope === "capability-mapping" && moveCapabilityPageSearchMatch(delta, query)) return;
+  const targets = pageSearchTargetElements(query);
+  const count = targets.length;
+  const nav = state.pageSearchNavigation || {};
+  const currentIndex = nav.scope === scope && nav.query === query ? Number(nav.index) || 0 : 0;
+  const nextIndex = count ? ((currentIndex + delta) % count + count) % count : 0;
+  state.pendingPageSearchReveal = { scope, query, index: nextIndex };
+  revealPageSearchTarget(state.pendingPageSearchReveal, 1);
+}
+
+function lifecycleSearchRowsForKind(kind = "dev") {
+  const safeKind = kind === "data" ? "data" : "dev";
+  return Array.from(document.querySelectorAll(`[data-lifecycle-kind="${safeKind}"][data-lifecycle-id]`));
+}
+
+function lifecycleSearchScopeForKind(kind = "dev") {
+  return kind === "data" ? "data-security" : "development-security";
+}
+
+function searchQueryOccurrenceCount(value = "", query = "") {
+  const source = text(value).toLowerCase();
+  const needle = text(query).trim().toLowerCase();
+  if (!source || !needle) return 0;
+  let count = 0;
+  let cursor = 0;
+  while (cursor < source.length) {
+    const index = source.indexOf(needle, cursor);
+    if (index < 0) break;
+    count += 1;
+    cursor = index + Math.max(needle.length, 1);
+  }
+  return count;
+}
+
+function lifecycleSearchOccurrenceSources(row = {}) {
+  const values = [row.code, row.title, row.description, row.goal, row.order];
+  const originalFields = row.originalBusinessFields && typeof row.originalBusinessFields === "object" ? Object.values(row.originalBusinessFields) : [];
+  values.push(...originalFields);
+  [
+    "mainActivities",
+    "securityActivities",
+    "policyRequirements",
+    "developmentTypes",
+    "developmentServices",
+    "developmentModules",
+    "technicalServices",
+    "technologyModules",
+    "technicalMeasures",
+    "dataPolicyRows",
+    "scenes",
+  ].forEach((key) => {
+    list(row[key]).forEach((item) => {
+      if (item && typeof item === "object") {
+        values.push(item.code, item.title, item.name, item.description, item.category, item.objectKind, item.value, item.requirement);
+        list(item.modules).forEach((module) => values.push(module?.code, module?.title, module?.name, module?.description, module?.objectKind));
+      } else {
+        values.push(item);
+      }
+    });
+  });
+  return values.map(text).filter(Boolean);
+}
+
+function lifecycleOccurrenceMatches(matchedStages = [], query = "") {
+  const normalizedQuery = text(query).trim();
+  if (!normalizedQuery) return [];
+  return list(matchedStages).flatMap((row) => {
+    const sources = lifecycleSearchOccurrenceSources(row);
+    let count = sources.reduce((total, value) => total + searchQueryOccurrenceCount(value, normalizedQuery), 0);
+    if (!count) count = searchQueryOccurrenceCount(row.searchText, normalizedQuery);
+    if (!count) count = 1;
+    return Array.from({ length: count }, (_, occurrenceIndex) => ({
+      id: `${row.id || "stage"}::${occurrenceIndex}`,
+      stageId: row.id,
+      occurrenceIndex,
+      title: [row.code, row.title].filter(Boolean).join(" "),
+    }));
+  });
+}
+
+function updateLifecyclePageSearchNavigation(kind = "dev", matchedStages = [], query = "") {
+  const scope = lifecycleSearchScopeForKind(kind);
+  const normalizedQuery = text(query).trim();
+  if (!normalizedQuery) {
+    clearPageSearchMatchSet(scope);
+    if (state.pageSearchNavigation?.scope === scope) state.pageSearchNavigation = { scope, query: "", index: 0, count: 0 };
+    updatePageSearchControls();
+    return;
+  }
+  const rows = lifecycleOccurrenceMatches(matchedStages, normalizedQuery);
+  const selectedId = kind === "data" ? state.selectedDataProcessId : state.selectedDevProcessId;
+  const nav = state.pageSearchNavigation || {};
+  const previousIndex = nav.scope === scope && nav.query === normalizedQuery ? Number(nav.index) || 0 : 0;
+  const previousMatch = rows[Math.max(0, Math.min(rows.length - 1, previousIndex))];
+  const activeMatch = previousMatch?.stageId === selectedId ? previousMatch : rows.find((row) => row.stageId === selectedId) || rows[0] || null;
+  setPageSearchMatchSet(scope, normalizedQuery, rows, activeMatch?.id || "");
+  if (activeMatch && state.pendingPageSearchReveal?.scope === scope && state.pendingPageSearchReveal?.query === normalizedQuery) {
+    state.pendingPageSearchReveal.targetAttribute = "data-lifecycle-id";
+    state.pendingPageSearchReveal.targetId = activeMatch.stageId;
+    state.pendingPageSearchReveal.lifecycleOccurrenceIndex = activeMatch.occurrenceIndex;
+    state.pendingPageSearchReveal.displayIndex = rows.findIndex((row) => row.id === activeMatch.id);
+    state.pendingPageSearchReveal.displayCount = rows.length;
+  }
+  updatePageSearchControls();
+}
+
+function moveLifecyclePageSearchMatch(kind = "dev", delta = 1, query = "") {
+  const scope = lifecycleSearchScopeForKind(kind);
+  const matchSet = pageSearchMatchSet(scope, query);
+  const rows = matchSet?.matches || [];
+  const count = rows.length;
+  if (!count) {
+    state.pageSearchNavigation = { scope, query, index: 0, count: 0 };
+    updatePageSearchControls();
+    return;
+  }
+  const selectedId = kind === "data" ? state.selectedDataProcessId : state.selectedDevProcessId;
+  const nav = state.pageSearchNavigation || {};
+  const selectedIndex = Math.max(0, rows.findIndex((row) => text(row.stageId || row.id).trim() === text(selectedId).trim()));
+  const currentIndex = nav.scope === scope && nav.query === text(query).trim() ? Number(nav.index) || selectedIndex : selectedIndex;
+  const nextIndex = ((currentIndex + delta) % count + count) % count;
+  const nextMatch = rows[nextIndex] || {};
+  const nextId = text(nextMatch.stageId || nextMatch.id).trim();
+  if (kind === "data") state.selectedDataProcessId = nextId;
+  else state.selectedDevProcessId = nextId;
+  state.pageSearchNavigation = { scope, query, index: nextIndex, count };
+  state.pendingPageSearchReveal = {
+    scope,
+    query,
+    index: 0,
+    targetAttribute: "data-lifecycle-id",
+    targetId: nextId,
+    lifecycleOccurrenceIndex: Number(nextMatch.occurrenceIndex) || 0,
+    displayIndex: nextIndex,
+    displayCount: count,
+  };
+  renderLifecycle(kind);
+  flushPageSearchReveal();
+}
+
+function globalSearchResultMetaLine(result = {}) {
+  const category = globalSearchResultCategory(result);
+  const parts = [globalSearchRouteLabel(result.route), result.typeLabel && result.typeLabel !== category ? result.typeLabel : "", result.subtitle]
+    .map((value) => text(value).trim())
+    .filter(Boolean);
+  return [...new Set(parts)].join(" · ");
+}
+
+function globalSearchResultSnippetLabel(result = {}, query = "") {
+  const snippet = globalSearchResultSnippet(result, query);
+  return snippet ? `命中：${snippet}` : "该结果来自全局轻量索引，可打开目标页查看完整上下文。";
+}
+
+function highlightSearchText(value = "", query = "") {
+  const source = text(value);
+  const needle = text(query).trim();
+  if (!source || !needle) return escapeHtml(source);
+  const lowerSource = source.toLowerCase();
+  const lowerNeedle = needle.toLowerCase();
+  let cursor = 0;
+  let output = "";
+  while (cursor < source.length) {
+    const nextIndex = lowerSource.indexOf(lowerNeedle, cursor);
+    if (nextIndex < 0) {
+      output += escapeHtml(source.slice(cursor));
+      break;
+    }
+    output += escapeHtml(source.slice(cursor, nextIndex));
+    output += `<mark class="global-search-snippet-mark">${escapeHtml(source.slice(nextIndex, nextIndex + needle.length))}</mark>`;
+    cursor = nextIndex + needle.length;
+  }
+  return output || escapeHtml(source);
 }
 
 function lifecycleSearchValueTargetElement(result = {}, kind = "dev") {
@@ -939,13 +1740,13 @@ function expandCapabilityAncestors(targetId) {
 function activateGlobalSearchResult(result) {
   if (!result?.route) return;
   const activationQuery = searchTextForActivatedResult(result);
-  if (activationQuery) state.globalSearch = activationQuery;
   clearGlobalSearchPanel({ keepQuery: true });
   activateRoute(result.route);
   if (result.standardFramework) state.activeStandardFramework = result.standardFramework;
   if (result.standardTableId) state.activeStandardTableId = result.standardTableId;
+  if (result.referenceTab) state.activeReferenceTab = result.referenceTab;
+  clearDestinationSearchForGlobalActivation(result.route);
   if (activationQuery && routeHasPageSearch(result.route)) {
-    setScopedSearch(activationQuery);
     queuePageSearchReveal(activationQuery);
   }
   if (result.selectedCapabilityId) {
@@ -961,7 +1762,6 @@ function activateGlobalSearchResult(result) {
   if (result.selectedProcessId && result.route === "/development-security") {
     state.selectedDevProcessId = result.selectedProcessId;
     if (activationQuery) {
-      state.devLifecycleStageSearch = activationQuery;
       queuePageSearchReveal(activationQuery, "development-security");
     }
     renderLifecycle("dev");
@@ -969,7 +1769,6 @@ function activateGlobalSearchResult(result) {
   if (result.selectedProcessId && result.route === "/data-security") {
     state.selectedDataProcessId = result.selectedProcessId;
     if (activationQuery) {
-      state.dataLifecycleStageSearch = activationQuery;
       queuePageSearchReveal(activationQuery, "data-security");
     }
     renderLifecycle("data");
@@ -1362,6 +2161,7 @@ function scheduleCapabilityRenderAfterPackageLoad(name) {
 function routePackagesForCurrentState() {
   if (state.activeView === "placeholder") return [];
   if (state.activeView === "workbench") return [];
+  if (state.activeView === "search") return [];
   if (state.activeView === "overview") return ["analyticsSummary"];
   if (state.activeView === "capabilities") return ["capabilityInitial", "maintenanceIndex"];
   if (state.activeView === "environment") {
@@ -6593,71 +7393,6 @@ function renderOverview() {
           ${renderDashboardCapabilityMap(summary.capabilityMap)}
         </article>
       </section>
-      <section class="dashboard-grid dashboard-grid-secondary">
-        <article class="dashboard-panel dashboard-panel-satellite">
-          <header>
-            <div>
-              <h3>工作入口关系图</h3>
-              <p>从能力知识地图进入核心业务页面，不在首页重新推断关系。</p>
-            </div>
-            <span class="dashboard-chip">入口</span>
-          </header>
-          ${renderDashboardSatellite(summary.entryViews)}
-        </article>
-        <article class="dashboard-panel">
-          <header>
-            <div>
-              <h3>分析入口</h3>
-              <p>每个入口保留自己的业务粒度，dashboard 只做导航和摘要。</p>
-            </div>
-            <span class="dashboard-chip">模块</span>
-          </header>
-          <div class="dashboard-package-list">
-            ${summary.entryViews
-              .map(
-                (item) => `
-                  <button class="dashboard-package-row" type="button" data-app-route="${escapeHtml(item.route)}">
-                    <span class="dashboard-package-title"><strong>${escapeHtml(item.label)}</strong><small>${escapeHtml(item.sourcePackage || "")}</small></span>
-                    <span><b>${escapeHtml(formatNumber(item.objectCount || 0))}</b><small>对象</small></span>
-                    <span><b>${escapeHtml(item.primaryGrain || "-")}</b><small>grain</small></span>
-                    <i>${escapeHtml(item.id)}</i>
-                  </button>
-                `,
-              )
-              .join("")}
-          </div>
-        </article>
-      </section>
-      <section class="dashboard-panel dashboard-panel-table">
-        <header>
-          <div>
-            <h3>覆盖率来源矩阵</h3>
-            <p>覆盖率只展示业务口径、来源包和关系类型，不暴露来源追踪中间字段。</p>
-          </div>
-          <span class="dashboard-chip">覆盖</span>
-        </header>
-        <div class="dashboard-table-wrap">
-          <table class="dashboard-table">
-            <thead><tr><th>维度</th><th>覆盖</th><th>百分比</th><th>来源包</th><th>关系类型</th><th>入口</th></tr></thead>
-            <tbody>
-              ${summary.coverageDimensions
-                .map(
-                  (item) => `
-                    <tr>
-                      <td><button type="button" data-app-route="${escapeHtml(item.route)}">${escapeHtml(item.label)}</button><small>${escapeHtml(item.id)}</small></td>
-                      <td>${escapeHtml(`${formatNumber(item.covered)}/${formatNumber(item.total)}`)}</td>
-                      <td>${escapeHtml(`${item.percent}%`)}</td>
-                      <td>${escapeHtml(item.sourcePackage)}</td>
-                      <td>${escapeHtml(list(item.relationTypes).join("、"))}</td>
-                      <td><span class="dashboard-status">${escapeHtml(item.displayRole || "secondary")}</span></td>
-                    </tr>
-                  `,
-                )
-                .join("")}
-            </tbody>
-          </table>
-        </div>
-      </section>
     `,
   );
 }
@@ -6997,7 +7732,7 @@ function renderWorkbenchIssues() {
     state.workbenchIssueSearch ? `关键词：${state.workbenchIssueSearch}` : "",
   ].filter(Boolean);
   return `
-    <section class="workbench-route-page" aria-label="Issue 清单">
+    <section class="workbench-route-page workbench-issues-route" aria-label="Issue 清单">
       <div class="workbench-review-toolbar" aria-label="Issue 筛选工具条">
         <div class="workbench-review-filter-group">
           <select class="workbench-review-select" aria-label="状态筛选" data-review-filter-control="status">${statusOptions.map(([value, label]) => `<option value="${escapeHtml(value)}"${value === activeStatusFilter ? " selected" : ""}>${escapeHtml(label)}</option>`).join("")}</select>
@@ -7398,7 +8133,7 @@ function mountAppShellComponents() {
     activeEnvironmentTab: state.activeEnvironmentTab,
   });
   components.AppShell?.mountCapabilityWorkspace($("capabilityWorkspace"));
-  if ($("localModeStatus")) setHtml("localModeStatus", components.AppShell?.renderLocalModeStatus?.() || '<span class="type-pill">本地模式</span>');
+  if ($("localModeStatus")) setHtml("localModeStatus", components.AppShell?.renderLocalModeStatus?.() || "");
   syncUserNotesExportButton();
 }
 
@@ -7413,6 +8148,7 @@ function applyRouteTarget(target = {}) {
     state.activeStandardFramework = target.standardFramework;
     state.selectedMaintenanceId = null;
   }
+  if (target.standardTableId) state.activeStandardTableId = target.standardTableId;
   if (target.contentPage) {
     state.activeContentPage = target.contentPage;
     state.selectedContentId = null;
@@ -7427,6 +8163,37 @@ function normalizeAppRoute(route) {
   const withoutQuery = withoutHash.split("?")[0];
   const normalized = withoutQuery.startsWith("/") ? withoutQuery : `/${withoutQuery}`;
   return normalized.replace(/\/+$/, "") || "/";
+}
+
+function routeQueryString(route) {
+  const value = text(route).trim();
+  if (!value) return "";
+  const withoutHash = value.startsWith("#") ? value.slice(1) : value;
+  const queryStart = withoutHash.indexOf("?");
+  if (queryStart < 0) return "";
+  const query = withoutHash.slice(queryStart + 1).split("#")[0];
+  return query ? `?${query}` : "";
+}
+
+function globalSearchRoute(query = state.globalSearch) {
+  const q = text(query).trim();
+  return q ? `/search?q=${encodeURIComponent(q)}` : "/search";
+}
+
+function globalSearchQueryFromRoute(route = "") {
+  const value = text(route).trim();
+  const normalizedRoute = value.startsWith("#") ? value.slice(1) : value;
+  const query = routeQueryString(normalizedRoute);
+  if (!query) return "";
+  return text(new URLSearchParams(query.slice(1)).get("q")).trim();
+}
+
+function globalSearchQueryFromBrowser() {
+  return globalSearchQueryFromRoute(window.location.hash || "");
+}
+
+function globalSearchQueryFromLocationSearch() {
+  return text(new URLSearchParams(window.location.search || "").get("q")).trim();
 }
 
 function resolveRouteTarget(route) {
@@ -7451,12 +8218,17 @@ function resolveRouteTarget(route) {
     return { route: "/workbench", view: "workbench" };
   }
 
+  if (normalized.startsWith("/search")) {
+    return { route: "/search", view: "search" };
+  }
+
   return { route: "/", view: "overview" };
 }
 
 function routeFromBrowserLocation() {
-  const hashRoute = normalizeAppRoute(window.location.hash || "");
-  if (hashRoute !== "/") return hashRoute;
+  const rawHashRoute = text(window.location.hash || "").trim();
+  const hashRoute = normalizeAppRoute(rawHashRoute);
+  if (hashRoute !== "/") return rawHashRoute.startsWith("#") ? rawHashRoute.slice(1) : rawHashRoute;
   const pathname = window.location.pathname || "/";
   if (pathname.includes("/frontend/capability-browser")) return "/";
   return normalizeAppRoute(pathname);
@@ -7470,7 +8242,8 @@ function appRouteBasePath() {
 
 function syncBrowserRoute(route, { replace = false } = {}) {
   const normalized = normalizeAppRoute(route);
-  const nextHash = normalized === "/" ? "" : `#${normalized}`;
+  const query = normalized === "/search" ? routeQueryString(route) : "";
+  const nextHash = normalized === "/" ? "" : `#${normalized}${query}`;
   const nextPath = appRouteBasePath();
   if (window.location.pathname === nextPath && window.location.hash === nextHash) return;
   const nextUrl = `${nextPath}${window.location.search}${nextHash}`;
@@ -7492,14 +8265,35 @@ function activateRoute(route, options = {}) {
   }
   if (routeChanged) resetAnnotationInteraction({ collapse: true, clearDraft: !options.preserveAnnotationDraft });
   state.activeRoute = target.route || "/";
+  if (target.route === "/search") {
+    const nextSearchQuery = globalSearchQueryFromRoute(route) || globalSearchQueryFromLocationSearch();
+    if (state.globalSearch !== nextSearchQuery) state.globalSearchLoadedQuery = "";
+    state.globalSearch = nextSearchQuery;
+    syncSearchInputs();
+  }
   applyRouteTarget(target);
   restoreScopedSearch();
   setActiveView(target.view || "overview", { syncRoute: false, skipAnnotationGuard: true });
-  if (!options.fromBrowser) syncBrowserRoute(state.activeRoute, { replace: Boolean(options.replace) });
+  const browserRoute = target.route === "/search" ? route : state.activeRoute;
+  if (!options.fromBrowser) syncBrowserRoute(browserRoute, { replace: Boolean(options.replace) });
+}
+
+function openGlobalSearchPage(query = state.globalSearch, options = {}) {
+  const nextSearchQuery = text(query).trim();
+  state.globalSearch = nextSearchQuery;
+  state.globalSearchLoadedQuery = "";
+  state.globalSearchOpen = false;
+  state.globalSearchResults = [];
+  state.globalSearchPageFilter = "全部";
+  state.globalSearchPageSelectedKey = "";
+  syncSearchInputs();
+  renderGlobalSearchPanel();
+  activateRoute(globalSearchRoute(state.globalSearch), { replace: Boolean(options.replace) });
 }
 
 function routeForCurrentState(view = state.activeView) {
   const components = window.sapdComponents || {};
+  if (view === "search") return globalSearchRoute();
   if (view === "workbench" && normalizeAppRoute(state.activeRoute).startsWith("/workbench")) {
     return normalizeAppRoute(state.activeRoute);
   }
@@ -7752,8 +8546,43 @@ function buildCapabilityViewModel(viewModels) {
   });
 }
 
+function capabilitySearchDirectMatches(viewModel, query = state.search) {
+  const normalizedQuery = text(query).trim();
+  if (!normalizedQuery) return [];
+  const directRowMatches = (row) =>
+    matchesTextQuery(
+      normalizedQuery,
+      row?.level,
+      row?.code,
+      row?.title,
+      row?.label,
+      row?.subtitle,
+    );
+  return list(viewModel?.navigationTree)
+    .filter(directRowMatches)
+    .map((row) => ({
+      id: row.id,
+      title: [row.code, row.title].filter(Boolean).join(" "),
+      type: row.type,
+    }));
+}
+
 function resolveCapabilitySelection(viewModel) {
   const hadSelectedCapability = Boolean(state.selectedCapabilityId);
+  const query = normalizeSearchText(state.search);
+  const navigationRows = list(viewModel.navigationTree);
+  const currentNavigationRow = navigationRows.find((row) => row.id === state.selectedCapabilityId);
+  const rowMatchesDirectly = (row) => {
+    if (!query || !row) return false;
+    return normalizeSearchText([row.level, row.code, row.title].filter(Boolean).join(" ")).includes(query);
+  };
+  if (query && navigationRows.length && !rowMatchesDirectly(currentNavigationRow)) {
+    const nextRow = navigationRows.find(rowMatchesDirectly) || navigationRows[0];
+    if (nextRow?.id && nextRow.id !== state.selectedCapabilityId) {
+      state.selectedCapabilityId = nextRow.id;
+      state.activeCapabilityRelationTab = "summary";
+    }
+  }
   if (!state.selectedCapabilityId) state.selectedCapabilityId = viewModel.selectedCapability?.id || null;
   if (!hadSelectedCapability && viewModel.selectedCapability?.type === "capability_category" && state.selectedCapabilityId) {
     capabilityCategoryIds().forEach((id) => state.expandedCapabilityIds.add(id));
@@ -7762,6 +8591,60 @@ function resolveCapabilitySelection(viewModel) {
     capabilityAncestorIds(state.selectedCapabilityId).forEach((id) => state.expandedCapabilityIds.add(id));
     state.expandedSelectionId = state.selectedCapabilityId;
   }
+}
+
+function updateCapabilityPageSearchNavigation(viewModel) {
+  const scope = "capability-mapping";
+  const query = text(state.search).trim();
+  if (!query) {
+    clearPageSearchMatchSet(scope);
+    updatePageSearchControls();
+    return;
+  }
+  const matches = capabilitySearchDirectMatches(viewModel, query);
+  if (matches.length) {
+    const activeMatch = matches.find((row) => row.id === state.selectedCapabilityId) || matches[0];
+    setPageSearchMatchSet(scope, query, matches, activeMatch?.id || state.selectedCapabilityId);
+    if (activeMatch && state.pendingPageSearchReveal?.scope === scope && state.pendingPageSearchReveal?.query === query) {
+      const activeIndex = Math.max(0, matches.findIndex((row) => row.id === activeMatch.id));
+      state.pendingPageSearchReveal.targetAttribute = "data-capability-id";
+      state.pendingPageSearchReveal.targetId = activeMatch.id;
+      state.pendingPageSearchReveal.displayIndex = activeIndex;
+      state.pendingPageSearchReveal.displayCount = matches.length;
+      state.pageSearchNavigation = { scope, query, index: activeIndex, count: matches.length };
+    }
+  } else {
+    clearPageSearchMatchSet(scope);
+  }
+  updatePageSearchControls();
+}
+
+function moveCapabilityPageSearchMatch(delta = 1, query = state.search) {
+  const scope = "capability-mapping";
+  const matchSet = pageSearchMatchSet(scope, query);
+  if (!matchSet?.matches?.length) return false;
+  const count = matchSet.matches.length;
+  const nav = state.pageSearchNavigation || {};
+  const currentIndex = nav.scope === scope && nav.query === text(query).trim() ? Number(nav.index) || 0 : 0;
+  const nextIndex = ((currentIndex + delta) % count + count) % count;
+  const nextId = matchSet.matches[nextIndex]?.id;
+  if (!nextId) return false;
+  state.selectedCapabilityId = nextId;
+  state.activeCapabilityRelationTab = "summary";
+  capabilityAncestorIds(nextId).forEach((id) => state.expandedCapabilityIds.add(id));
+  state.pageSearchNavigation = { scope, query: text(query).trim(), index: nextIndex, count };
+  state.pendingPageSearchReveal = {
+    scope,
+    query: text(query).trim(),
+    index: 0,
+    displayIndex: nextIndex,
+    displayCount: count,
+    targetAttribute: "data-capability-id",
+    targetId: nextId,
+  };
+  renderCapabilities();
+  flushPageSearchReveal();
+  return true;
 }
 
 function renderCapabilityTree(components, viewModel) {
@@ -7857,15 +8740,22 @@ function renderCapabilities() {
   }
   const selectedType = capabilityItemTypeById(state.selectedCapabilityId);
   let loadState = createCapabilityLoadState(selectedType, state.selectedCapabilityId);
-  const viewModel = buildCapabilityViewModel(viewModels);
+  let viewModel = buildCapabilityViewModel(viewModels);
+  const previousSelectedCapabilityId = state.selectedCapabilityId;
   resolveCapabilitySelection(viewModel);
+  if (state.selectedCapabilityId !== previousSelectedCapabilityId) {
+    viewModel = buildCapabilityViewModel(viewModels);
+    loadState = createCapabilityLoadState(capabilityItemTypeById(state.selectedCapabilityId), state.selectedCapabilityId);
+  }
   if (!loadState.selectedId && state.selectedCapabilityId) {
     loadState = createCapabilityLoadState(capabilityItemTypeById(state.selectedCapabilityId), state.selectedCapabilityId);
   }
   renderCapabilityTree(components, viewModel);
+  updateCapabilityPageSearchNavigation(viewModel);
   if (renderCapabilityPendingDetail(resolveCapabilityDetailLoadState(viewModel, loadState))) return;
   renderCapabilityDetail(components, viewModel);
   applyCapabilityCatalogState();
+  updateCapabilityPageSearchNavigation(viewModel);
 }
 
 function renderEnvironmentHeaderTabs() {
@@ -7928,7 +8818,7 @@ function renderEnvironment() {
     environmentAncestorIds(viewModel).forEach((id) => state.expandedEnvironmentIds.add(id));
     state.expandedEnvironmentSelectionId = `${state.selectedEnvironmentId}:${state.selectedEnvironmentSegmentId || ""}:${state.selectedEnvironmentObjectId || ""}`;
   }
-  if (!viewModel.selectedEnvironment) {
+  if (!viewModel.selectedEnvironment && !text(state.search).trim()) {
     setHtml("environmentDetail", emptyState("请选择信息化环境或对象"));
     return;
   }
@@ -7956,6 +8846,7 @@ function renderEnvironment() {
     components.EnvironmentBasemapViewer.mount(basemapRoot);
   }
   components.EnvironmentScopeServiceMatrix?.mount?.($("environmentDetail"));
+  updatePageSearchControls();
 }
 
 function renderLifecycle(kind) {
@@ -8004,6 +8895,7 @@ function renderLifecycle(kind) {
       });
     }
     state.selectedDevProcessId = viewModel.relationshipSummary?.selectedProcessId || viewModel.selectedProcess?.id || null;
+    updateLifecyclePageSearchNavigation("dev", matchedStages, state.devLifecycleStageSearch);
     setCurrentAnnotationTarget(lifecycleUserTarget(viewModel, "dev"), { pageTitle: "LC-AP安全开发生命周期" });
     if ($("devLifecycleStageSearch")) $("devLifecycleStageSearch").value = state.devLifecycleStageSearch;
     setText("devLifecyclePageTitle", "");
@@ -8026,6 +8918,7 @@ function renderLifecycle(kind) {
     );
     setHtml("devLifecycleDetail", "");
     applyDevLifecycleCatalogState();
+    updatePageSearchControls();
     return;
   }
   if (kind === "data") {
@@ -8072,6 +8965,7 @@ function renderLifecycle(kind) {
       });
     }
     state.selectedDataProcessId = viewModel.relationshipSummary?.selectedProcessId || viewModel.selectedProcess?.id || null;
+    updateLifecyclePageSearchNavigation("data", matchedStages, state.dataLifecycleStageSearch);
     setCurrentAnnotationTarget(lifecycleUserTarget(viewModel, "data"), { pageTitle: "LC-DT数据生命周期安全" });
     if ($("dataLifecycleStageSearch")) $("dataLifecycleStageSearch").value = state.dataLifecycleStageSearch;
     setText("dataLifecyclePageTitle", "");
@@ -8094,6 +8988,7 @@ function renderLifecycle(kind) {
       `,
     );
     setHtml("dataLifecycleDetail", "");
+    updatePageSearchControls();
     return;
   }
 }
@@ -8623,6 +9518,153 @@ function renderContent() {
   setHtml("contentDetail", renderContentDetail(selected));
 }
 
+function globalSearchResultKey(result = {}, index = 0) {
+  return text(result.key || [result.route, result.targetRef, result.targetText, result.title, index].filter(Boolean).join("::")).trim();
+}
+
+function globalSearchRouteLabel(route = "") {
+  const components = window.sapdComponents || {};
+  const routeInfo = components.AppShell?.getRouteInfo?.(route) || {};
+  return text(routeInfo.item?.label || routeInfo.title || route).trim() || "未知页面";
+}
+
+function globalSearchResultCategory(result = {}) {
+  const route = text(result.route).trim();
+  if (route === "/capability-mapping") return "安全能力";
+  if (route === "/environment-mapping") return "信息化环境";
+  if (route === "/development-security" || route === "/data-security") return "生命周期";
+  if (route.startsWith("/knowledge/")) return "知识库";
+  if (route.startsWith("/standards")) return "标准 / 框架";
+  if (route.startsWith("/guides/")) return "指南";
+  if (route.startsWith("/workbench")) return "工作台";
+  return text(result.typeLabel || "其他").trim() || "其他";
+}
+
+function globalSearchResultSnippet(result = {}, query = "") {
+  const source = text(result.matchContext || result.match_context || result.summary || result.description || result.subtitle || result.searchText || result.targetText || "");
+  const compact = cleanGlobalSearchDisplayText(source.replace(/\s+/g, " ").trim());
+  if (!compact) return "该结果来自全局轻量索引，可打开目标页查看完整上下文。";
+  const q = normalizeSearchText(query);
+  const lower = normalizeSearchText(compact);
+  const index = q ? lower.indexOf(q) : -1;
+  if (index < 0) return compact.length > 120 ? `${compact.slice(0, 118)}...` : compact;
+  const start = Math.max(0, index - 44);
+  const end = Math.min(compact.length, index + q.length + 76);
+  const prefix = start > 0 ? "..." : "";
+  const suffix = end < compact.length ? "..." : "";
+  return `${prefix}${compact.slice(start, end)}${suffix}`;
+}
+
+function globalSearchPageResults() {
+  const filter = text(state.globalSearchPageFilter || "全部").trim() || "全部";
+  const results = list(state.globalSearchResults);
+  if (filter === "全部") return results;
+  return results.filter((result) => globalSearchResultCategory(result) === filter);
+}
+
+function globalSearchPageFilterRows(results = state.globalSearchResults) {
+  const order = ["全部", "安全能力", "信息化环境", "生命周期", "知识库", "标准 / 框架", "指南", "工作台", "其他"];
+  const counts = new Map([["全部", list(results).length]]);
+  list(results).forEach((result) => {
+    const category = globalSearchResultCategory(result);
+    counts.set(category, (counts.get(category) || 0) + 1);
+  });
+  return order
+    .filter((label) => label === "全部" || counts.has(label))
+    .map((label) => ({ label, count: counts.get(label) || 0 }));
+}
+
+function selectedGlobalSearchPageResult(results = globalSearchPageResults()) {
+  const selectedKey = text(state.globalSearchPageSelectedKey).trim();
+  const matched = list(results).find((result, index) => globalSearchResultKey(result, index) === selectedKey);
+  return matched || list(results)[0] || null;
+}
+
+function globalSearchPageResultForKey(key, results = globalSearchPageResults()) {
+  const targetKey = text(key).trim();
+  if (!targetKey) return null;
+  return list(results).find((result, index) => globalSearchResultKey(result, index) === targetKey) || null;
+}
+
+function renderSearchPage() {
+  const query = text(state.globalSearch).trim();
+  const hasQuery = query.length >= GLOBAL_SEARCH_MIN_QUERY_LENGTH;
+  const needsLoad = hasQuery && state.globalSearchLoadedQuery !== query && !state.globalSearchLoading;
+  const isLoading = hasQuery && (state.globalSearchLoading || state.globalSearchLoadedQuery !== query);
+  const allResults = hasQuery && !isLoading ? list(state.globalSearchResults) : [];
+  const filters = globalSearchPageFilterRows(allResults);
+  if (state.globalSearchPageFilter !== "全部" && !filters.some((row) => row.label === state.globalSearchPageFilter)) {
+    state.globalSearchPageFilter = "全部";
+  }
+  const filteredResults = hasQuery && !isLoading ? globalSearchPageResults() : [];
+  const statusLabel = isLoading ? "搜索中" : hasQuery ? `${filteredResults.length} 条结果` : "等待输入";
+  setHtml(
+    "searchWorkspace",
+    `
+      <section class="global-search-page">
+        <div class="global-search-page-toolbar">
+          <label class="global-search-page-query" for="searchPageQueryInput">
+            <span aria-hidden="true">⌕</span>
+            <input id="searchPageQueryInput" type="search" value="${escapeHtml(query)}" placeholder="搜索能力、环境对象、流程、标准或关键字" autocomplete="off" />
+            <button type="button" data-search-page-submit>搜索</button>
+          </label>
+          <div class="global-search-page-summary" aria-live="polite">
+            <strong>${escapeHtml(hasQuery ? String(filteredResults.length) : "0")}</strong>
+            <span>${escapeHtml(statusLabel)}</span>
+          </div>
+        </div>
+        <div class="global-search-filter-strip" aria-label="搜索结果范围">
+          ${filters
+            .map(
+              (row) => `
+                <button class="${row.label === state.globalSearchPageFilter ? "active" : ""}" type="button" data-search-page-filter="${escapeHtml(row.label)}">
+                  <span>${escapeHtml(row.label)}</span>
+                  <strong>${escapeHtml(String(row.count))}</strong>
+                </button>
+              `,
+            )
+            .join("")}
+        </div>
+        <div class="global-search-page-layout">
+          <section class="global-search-page-results" aria-label="搜索结果列表">
+            <div class="pane-head">
+              <h2>结果队列</h2>
+              <span class="global-search-page-hint">点击任一结果进入定位</span>
+            </div>
+            ${
+              !hasQuery
+                ? `<div class="global-search-page-empty"><strong>请输入关键词</strong><span>建议搜索能力编码、对象名称、安全技术服务、标准名称或流程关键词。</span></div>`
+                : isLoading
+                  ? `<div class="global-search-page-empty"><strong>正在搜索...</strong><span>优先读取轻量索引，不触发全量数据包加载。</span></div>`
+                  : !filteredResults.length
+                    ? `<div class="global-search-page-empty"><strong>未找到匹配结果</strong><span>可以更换关键词，或进入具体模块使用页面内搜索。</span></div>`
+                    : `<div class="global-search-page-list">
+                        ${filteredResults
+                          .map((result, index) => {
+                            const key = globalSearchResultKey(result, index);
+                            const metaLine = globalSearchResultMetaLine(result);
+                            return `
+                              <article class="global-search-page-row" role="button" tabindex="0" data-search-page-result="${escapeHtml(key)}">
+                                <span class="global-search-page-row-type">${escapeHtml(globalSearchResultCategory(result))}</span>
+                                <span class="global-search-page-row-main">
+                                  <strong>${escapeHtml(result.title || "未命名结果")}</strong>
+                                  <small>${escapeHtml(metaLine)}</small>
+                                  <em>${highlightSearchText(globalSearchResultSnippetLabel(result, query), query)}</em>
+                                </span>
+                              </article>
+                            `;
+                          })
+                          .join("")}
+                      </div>`
+            }
+          </section>
+        </div>
+      </section>
+    `,
+  );
+  if (needsLoad) runGlobalSearch({ panel: false });
+}
+
 function renderPlaceholder() {
   const components = window.sapdComponents || {};
   const routeInfo = components.AppShell?.getRouteInfo?.(state.activeRoute) || {};
@@ -8654,6 +9696,7 @@ function renderActiveView() {
   setCurrentAnnotationTarget(null);
   renderMetrics();
   if (state.activeView === "overview") renderOverview();
+  if (state.activeView === "search") renderSearchPage();
   if (state.activeView === "workbench") renderWorkbench();
   if (state.activeView === "capabilities") renderCapabilities();
   if (state.activeView === "environment") renderEnvironment();
@@ -8692,6 +9735,7 @@ function setActiveView(view, options = {}) {
   }
   const workspaceMap = {
     overview: "overviewWorkspace",
+    search: "searchWorkspace",
     workbench: "workbenchWorkspace",
     capabilities: "capabilityWorkspace",
     environment: "environmentWorkspace",
@@ -8720,6 +9764,7 @@ function bindEvents() {
     const label = button.querySelector("span:not(.nav-symbol)")?.textContent || button.textContent.trim();
     button.title = label;
   });
+  document.addEventListener("click", suppressClickIfTextSelection, true);
   document.addEventListener("click", (event) => {
     const slideStep = event.target?.closest?.("[data-content-slide-step]");
     if (!slideStep) return;
@@ -8832,7 +9877,19 @@ function bindEvents() {
       setActiveView(button.dataset.view);
     });
   });
+  document.addEventListener("compositionstart", (event) => {
+    if (!isManagedSearchInput(event.target)) return;
+    event.target.dataset.searchComposing = "true";
+    state.composingSearchInputId = event.target.id || "";
+  });
+  document.addEventListener("compositionend", (event) => {
+    if (!isManagedSearchInput(event.target)) return;
+    event.target.dataset.searchComposing = "false";
+    state.composingSearchInputId = "";
+    event.target.dispatchEvent(new Event("input", { bubbles: true }));
+  });
   $("searchInput")?.addEventListener("input", (event) => {
+    if (isComposingSearchInput(event)) return;
     state.globalSearch = event.target.value.trim();
     syncSearchInputs();
     runGlobalSearch();
@@ -8850,9 +9907,9 @@ function bindEvents() {
       event.target.blur();
       return;
     }
-    if (event.key === "Enter" && state.globalSearchResults[0]) {
+    if (event.key === "Enter") {
       event.preventDefault();
-      activateGlobalSearchResult(state.globalSearchResults[0]);
+      openGlobalSearchPage(event.target.value);
     }
   });
   $("globalSearchActionButton")?.addEventListener("click", () => {
@@ -8860,11 +9917,16 @@ function bindEvents() {
     input?.focus();
     state.globalSearch = text(input?.value || state.globalSearch).trim();
     if (state.globalSearch.length >= GLOBAL_SEARCH_MIN_QUERY_LENGTH) {
-      state.globalSearchOpen = true;
-      runGlobalSearch();
+      openGlobalSearchPage(state.globalSearch);
     }
   });
   document.addEventListener("click", (event) => {
+    const viewAllButton = event.target.closest("[data-global-search-view-all]");
+    if (viewAllButton) {
+      event.preventDefault();
+      openGlobalSearchPage(state.globalSearch);
+      return;
+    }
     const resultButton = event.target.closest("[data-global-search-result]");
     if (resultButton) {
       const index = Number(resultButton.dataset.globalSearchResult);
@@ -8873,11 +9935,55 @@ function bindEvents() {
     }
     if (!event.target.closest(".global-search") && !event.target.closest("#globalSearchPanel")) clearGlobalSearchPanel({ keepQuery: true });
   });
+  document.addEventListener("click", (event) => {
+    const submit = event.target.closest("[data-search-page-submit]");
+    if (submit) {
+      event.preventDefault();
+      event.stopPropagation();
+      const query = $("searchPageQueryInput")?.value || state.globalSearch;
+      openGlobalSearchPage(query, { replace: true });
+      return;
+    }
+    const filter = event.target.closest("[data-search-page-filter]");
+    if (filter) {
+      event.preventDefault();
+      event.stopPropagation();
+      state.globalSearchPageFilter = text(filter.dataset.searchPageFilter).trim() || "全部";
+      state.globalSearchPageSelectedKey = "";
+      renderSearchPage();
+      return;
+    }
+    const row = event.target.closest("[data-search-page-result]");
+    if (row) {
+      event.preventDefault();
+      event.stopPropagation();
+      const result = globalSearchPageResultForKey(row.dataset.searchPageResult);
+      activateGlobalSearchResult(result);
+      return;
+    }
+  }, true);
+  document.addEventListener("keydown", (event) => {
+    if (event.target?.id !== "searchPageQueryInput") return;
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    openGlobalSearchPage(event.target.value, { replace: true });
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    const row = event.target?.closest?.("[data-search-page-result]");
+    if (!row) return;
+    event.preventDefault();
+    const result = globalSearchPageResultForKey(row.dataset.searchPageResult);
+    activateGlobalSearchResult(result);
+  });
   $("capabilitySearchInput")?.addEventListener("input", (event) => {
+    if (isComposingSearchInput(event)) return;
+    const cursor = event.target.selectionStart;
     setScopedSearch(event.target.value);
-    queuePageSearchReveal(event.target.value);
+    queuePageSearchReveal(event.target.value, "capability-mapping");
     renderCapabilities();
     flushPageSearchReveal();
+    restoreSearchInputFocus("capabilitySearchInput", cursor);
   });
   document.addEventListener("input", (event) => {
     if (!event.target?.matches?.("[data-user-note-draft]")) return;
@@ -8930,6 +10036,7 @@ function bindEvents() {
   });
   document.addEventListener("input", (event) => {
     const filterControl = event.target?.closest?.("[data-review-filter-control='search']");
+    if (filterControl && isComposingSearchInput(event)) return;
     if (filterControl && filterControl.closest("#workbenchWorkspace")) {
       state.workbenchIssueSearch = filterControl.value || "";
       renderWorkbench();
@@ -9020,6 +10127,7 @@ function bindEvents() {
   $("detail")?.addEventListener("input", (event) => {
     const input = event.target.closest("[data-relation-filter]");
     if (!input) return;
+    if (isComposingSearchInput(event)) return;
     state.relationshipFilters[input.dataset.relationFilter] = input.value;
     queuePageSearchReveal(input.value);
     const field = input.dataset.relationFilter;
@@ -9040,23 +10148,32 @@ function bindEvents() {
   });
   document.addEventListener("input", (event) => {
     if (event.target?.id !== "environmentSearchInput") return;
+    if (isComposingSearchInput(event)) return;
+    const cursor = event.target.selectionStart;
     state.activeEnvironmentTab = "mapping";
     setScopedSearch(event.target.value);
-    queuePageSearchReveal(event.target.value);
+    queuePageSearchReveal(event.target.value, "environment-mapping");
     renderEnvironment();
     flushPageSearchReveal();
+    restoreSearchInputFocus("environmentSearchInput", cursor);
   });
   $("devLifecycleStageSearch")?.addEventListener("input", (event) => {
+    if (isComposingSearchInput(event)) return;
+    const cursor = event.target.selectionStart;
     state.devLifecycleStageSearch = event.target.value.trim();
     queuePageSearchReveal(event.target.value, "development-security");
     renderLifecycle("dev");
     flushPageSearchReveal();
+    restoreSearchInputFocus("devLifecycleStageSearch", cursor);
   });
   $("dataLifecycleStageSearch")?.addEventListener("input", (event) => {
+    if (isComposingSearchInput(event)) return;
+    const cursor = event.target.selectionStart;
     state.dataLifecycleStageSearch = event.target.value.trim();
     queuePageSearchReveal(event.target.value, "data-security");
     renderLifecycle("data");
     flushPageSearchReveal();
+    restoreSearchInputFocus("dataLifecycleStageSearch", cursor);
   });
   $("environmentDetail")?.addEventListener("click", (event) => {
     const environmentCatalogToggle = event.target.closest("[data-toggle-environment-catalog]");
@@ -9099,10 +10216,13 @@ function bindEvents() {
   });
   document.addEventListener("input", (event) => {
     if (event.target?.id !== "sourceSearchInput") return;
+    if (isComposingSearchInput(event)) return;
+    const cursor = event.target.selectionStart;
     setScopedSearch(event.target.value);
     queuePageSearchReveal(event.target.value);
     renderMaintenance();
     flushPageSearchReveal();
+    restoreSearchInputFocus("sourceSearchInput", cursor);
   });
   document.addEventListener("click", (event) => {
     const button = event.target.closest("[data-source-page]");
@@ -9225,6 +10345,13 @@ function bindEvents() {
     button.addEventListener("click", () => {});
   });
   document.addEventListener("click", (event) => {
+    const pageSearchStep = event.target.closest("[data-page-search-step]");
+    if (pageSearchStep) {
+      event.preventDefault();
+      event.stopPropagation();
+      movePageSearchMatch(Number(pageSearchStep.dataset.pageSearchStep) || 1, pageSearchStep.dataset.pageSearchScope || searchScopeForCurrentState());
+      return;
+    }
     const drawerToggle = event.target.closest("[data-annotation-drawer-toggle]");
     if (drawerToggle) {
       state.userAnnotationDrawerOpen = !state.userAnnotationDrawerOpen;
@@ -9436,7 +10563,7 @@ async function init() {
   await loadScriptOnce("./components/LocalRelationNetworkGraph.js?v=capability-graph-controls-20260701-1", () => Boolean(window.sapdComponents?.LocalRelationNetworkGraph));
   await loadScriptOnce("./components/CapabilityLocalRelationMap.js?v=annotation-framework-anchor-20260605-1-oi156-anchor-20260630-1-oi159-overview-mode-20260701-1-capability-tabs-20260701-2-oi159-summary-20260701-1-oi159-title-tabs-20260701-1-oi159-title-baseline-20260701-1-oi159-summary-compact-20260702-1-oi159-attached-control-20260702-2-oi159-l2-summary-tabs-20260702-1-oi159-reader-summary-cards-20260702-1-oi159-definition-source-20260702-1-oi159-coverage-ratio-20260702-1-oi159-coverage-denominator-scale-20260702-1-oi159-service-coverage-scale-crop-20260702-1", () => Boolean(window.sapdComponents?.CapabilityLocalRelationMap));
   await loadScriptOnce("./models/environmentRelationGraphModel.js?v=environment-graph-20260521-1", () => Boolean(window.sapdModels?.buildEnvironmentRelationGraphModel));
-  await loadScriptOnce("./components/EnvironmentLocalRelationMap.js?v=environment-backup-tab-removal-20260629-1-oi156-anchor-20260630-1", () => Boolean(window.sapdComponents?.EnvironmentLocalRelationMap));
+  await loadScriptOnce("./components/EnvironmentLocalRelationMap.js?v=environment-backup-tab-removal-20260629-1-oi156-anchor-20260630-1-oi154-page-search-nav-20260703-1-oi154-search-p6-20260703-1-oi154-search-p7-20260703-1", () => Boolean(window.sapdComponents?.EnvironmentLocalRelationMap));
   mountAppShellComponents();
   setupAnnotationSurfaceObserver();
   bindEvents();

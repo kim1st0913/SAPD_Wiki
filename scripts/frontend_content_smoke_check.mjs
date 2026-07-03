@@ -264,6 +264,7 @@ function validateLocalPackages() {
   const viewModelsSource = readFrontendFile("viewModels.js");
   const appSource = readFrontendFile("app.js");
   const lifecycleComponentSource = readFrontendFile("components/ApplicationSecurityLifecycle.js");
+  const environmentTreeSource = readFrontendFile("components/EnvironmentTree.js");
   const stylesSource = readFrontendFile("styles.css");
   const technicalServiceComparator = viewModelsSource.match(/function compareTechnicalServiceRows\([\s\S]*?\n  \}/)?.[0] || "";
   assert(!/\b(?:sortOrder|sourceOrder|order)\b[\s\S]{0,80}\|\|\s*(?:999999|Infinity|0|null)/.test(technicalServiceComparator), "technical service comparator must not use truthy OR fallback for order fields");
@@ -279,11 +280,146 @@ function validateLocalPackages() {
   assert(appSource.includes("function globalSearchTextTargetElement"), "global search result activation must fall back to current-page text targets");
   assert(appSource.includes("function activeGlobalSearchRootElement"), "global search text fallback must be scoped to the active workspace");
   assert(appSource.includes("return globalSearchTextTargetElement(result);"), "global search target resolution must not stop at route-only activation");
+  assert(
+    appSource.includes("function pruneGlobalSearchResultsForQuery") &&
+      appSource.includes("function globalSearchVisibleDedupeKey") &&
+      appSource.includes("function isLifecycleContainerSearchResult") &&
+      appSource.includes("mergeGlobalSearchResults(indexedResults, buildGlobalSearchResults(query), query)") &&
+      indexHtml.includes("global-search-result-prune-20260703-1"),
+    "global search must prune display duplicates and lifecycle parent-container fallback hits after merging indexed and loaded fallback results",
+  );
   assert(appSource.includes("function queuePageSearchReveal") && appSource.includes("function revealPageSearchTarget"), "page search boxes must queue content-level reveal after rendering");
   assert(appSource.includes("page-search-target-highlight") && stylesSource.includes(".page-search-target-highlight"), "page search matches must use a visible target highlight");
+  assert(
+    appSource.includes("function pageSearchContextTarget") &&
+      appSource.includes("function markPageSearchTarget") &&
+      appSource.includes("function scrollSearchTargetIntoView") &&
+      appSource.includes('target.setAttribute("data-page-search-current", "true")') &&
+      appSource.includes('context.setAttribute("data-page-search-context", "true")') &&
+      stylesSource.includes(".page-search-current-container") &&
+      stylesSource.includes('[data-page-search-context="true"]') &&
+      stylesSource.includes(".environment-search-empty"),
+    "page search must keep a strong word-level match highlight, mark surrounding context lightly, and scroll nested panes",
+  );
+  assert(
+    appSource.includes("SEARCH_COMPOSITION_INPUT_SELECTOR") &&
+      appSource.includes("function isComposingSearchInput") &&
+      appSource.includes("function restoreSearchInputFocus") &&
+      appSource.includes('document.addEventListener("compositionstart"') &&
+      appSource.includes('document.addEventListener("compositionend"'),
+    "page search inputs must preserve IME/composition input and restore focus after rerender",
+  );
+  assert(
+    appSource.includes("function lifecycleOccurrenceMatches") &&
+      appSource.includes("function searchQueryOccurrenceCount") &&
+      appSource.includes("lifecycleOccurrenceIndex") &&
+      appSource.includes('const contentRoot = kind === "data" ? $("dataLifecycleMatrix") : $("devLifecycleLane")') &&
+      appSource.includes('targetAttribute: "data-lifecycle-id"'),
+    "LC-AP/LC-DT page search navigation must count field-level occurrences, not only stage rows",
+  );
   assert(appSource.includes("queuePageSearchReveal(event.target.value, \"development-security\")") && appSource.includes("queuePageSearchReveal(event.target.value, \"data-security\")"), "LC-AP and LC-DT page search boxes must reveal matched content");
-  assert(appSource.includes("clearGlobalSearchPanel({ keepQuery: true })") && appSource.includes("setScopedSearch(activationQuery)"), "global search activation must keep the search query and pass it to page search");
+  assert(
+    appSource.includes("function pageSearchTargetElements") &&
+      appSource.includes("function movePageSearchMatch") &&
+      appSource.includes("function moveLifecyclePageSearchMatch") &&
+      appSource.includes("function updateLifecyclePageSearchNavigation") &&
+      appSource.includes("function updatePageSearchControls") &&
+      appSource.includes("pageSearchNavigation") &&
+      appSource.includes("pageSearchMatchSets") &&
+      appSource.includes("function setPageSearchMatchSet") &&
+      appSource.includes("[data-page-search-step]") &&
+      indexHtml.includes('data-page-search-status="development-security"') &&
+      indexHtml.includes('data-page-search-status="data-security"') &&
+      readFrontendFile("components/AppShell.js").includes('data-page-search-status="capability-mapping"') &&
+      readFrontendFile("components/EnvironmentLocalRelationMap.js").includes('data-page-search-status="environment-mapping"') &&
+      stylesSource.includes(".page-search-match-status") &&
+      stylesSource.includes(".page-search-step"),
+    "page search boxes must expose match counts and previous/next navigation controls.",
+  );
+  assert(
+    appSource.includes("function resolveCapabilitySelection") &&
+      appSource.includes("function capabilitySearchDirectMatches") &&
+      appSource.includes("function moveCapabilityPageSearchMatch") &&
+      appSource.includes("rowMatchesDirectly") &&
+      appSource.includes("state.selectedCapabilityId = nextRow.id"),
+    "capability search must select the first direct matching capability row instead of leaving stale detail content.",
+  );
+  assert(
+      viewModelsSource.includes("environmentObjectSearchValues") &&
+      viewModelsSource.includes("environmentObjectSecuritySystems") &&
+      environmentTreeSource.includes("未找到匹配的信息化环境对象") &&
+      environmentTreeSource.includes('data-copy-text="${utils.escapeHtml(copyText)}"') &&
+      readFrontendFile("components/EnvironmentLocalRelationMap.js").includes("environment-shared-search-rail") &&
+      readFrontendFile("components/EnvironmentLocalRelationMap.js").includes("renderEnvironmentSearchRail(search)") &&
+      readFrontendFile("components/EnvironmentLocalRelationMap.js").includes("environment-search-empty") &&
+      appSource.includes('if (!viewModel.selectedEnvironment && !text(state.search).trim())') &&
+      !readFrontendFile("components/EnvironmentLocalRelationMap.js").includes("source-catalog-tools page-search-control") &&
+      indexHtml.includes("oi154-search-second-pass-20260703-1") &&
+      indexHtml.includes("oi154-search-final-pass-20260703-1") &&
+      indexHtml.includes("oi154-search-p6-20260703-1") &&
+      indexHtml.includes("oi154-search-p7-20260703-1") &&
+      appSource.includes("oi154-search-p7-20260703-1"),
+    "environment page search must index object services, modules, measures and security systems, expose tree anchors, sit in the workspace rail, and cache-bust the changed resources",
+  );
+  assert(
+    appSource.includes("function highlightSearchText") &&
+      appSource.includes("globalSearchResultMetaLine(result)") &&
+      appSource.includes("highlightSearchText(globalSearchResultSnippetLabel(result, query), query)") &&
+      stylesSource.includes(".global-search-snippet-mark"),
+    "global search previews and result rows must show context and highlight the query inside the matched snippet.",
+  );
+  assert(
+    appSource.includes("clearGlobalSearchPanel({ keepQuery: true })") &&
+      appSource.includes("clearDestinationSearchForGlobalActivation(result.route)") &&
+      appSource.includes("queuePageSearchReveal(activationQuery)") &&
+      !appSource.includes("setScopedSearch(activationQuery)") &&
+      !appSource.includes("state.devLifecycleStageSearch = activationQuery") &&
+      !appSource.includes("state.dataLifecycleStageSearch = activationQuery"),
+    "global search activation must keep the search query, clear destination local filters, and use targetText only for reveal/highlight",
+  );
   assert(appSource.includes("data-standard-row-text") && readFrontendFile("components/StandardFrameworkTable.js").includes("data-standard-row-text"), "standard/framework search must expose row-level anchors for clause reveal");
+  assert(
+    !appSource.includes("覆盖率来源矩阵") &&
+      !appSource.includes("dashboard-panel-table") &&
+      indexHtml.includes("dashboard-coverage-matrix-remove-20260703-1"),
+    "dashboard must not render the coverage source matrix panel.",
+  );
+  assert(
+    !appSource.includes("工作入口关系图") &&
+      !appSource.includes("dashboard-grid-secondary") &&
+      !appSource.includes("dashboard-package-list") &&
+      indexHtml.includes("dashboard-entry-panels-remove-20260703-1"),
+    "dashboard must not render the entry relation graph and analysis entry panels.",
+  );
+  assert(
+    appSource.includes("suppressClickIfTextSelection") &&
+      appSource.includes("window.getSelection?.()") &&
+      appSource.includes("event.stopImmediatePropagation()") &&
+      stylesSource.includes(".app-shell-integrated .workspace-stage") &&
+      stylesSource.includes("-webkit-user-select: text") &&
+      stylesSource.includes("[data-copy-text]") &&
+      stylesSource.includes(".global-search-page-result") &&
+      indexHtml.includes("text-selection-copy-20260703-1"),
+    "frontend business text must remain selectable and selection clicks must not trigger row rerenders.",
+  );
+  const standardFrameworkTableSource = readFrontendFile("components/StandardFrameworkTable.js");
+  const dataClientSource = readFrontendFile("dataClient.js");
+  assert(
+    standardFrameworkTableSource.includes("groupedStandardTabs") &&
+      standardFrameworkTableSource.includes('/GB\\/T\\s*42446/i') &&
+      standardFrameworkTableSource.includes("GB/T 42446-2023") &&
+      standardFrameworkTableSource.includes("standard-framework-tab-group") &&
+      standardFrameworkTableSource.includes("standard-framework-tab-group-label") &&
+      dataClientSource.includes('groupId: "gbt-42446"') &&
+      dataClientSource.includes('groupId: "gartner"') &&
+      dataClientSource.includes('shortTitle: "任务定义"') &&
+      stylesSource.includes(".standard-framework-tabs.has-tab-groups") &&
+      stylesSource.includes("gap: 20px") &&
+      stylesSource.includes("min-height: 44px") &&
+      stylesSource.includes("font-size: 12.5px") &&
+      indexHtml.includes("workforce-reference-tab-groups-20260703-4"),
+    "workforce reference tabs must render grouped source sections for GB/T and Gartner.",
+  );
   assert(indexHtml.includes('id="globalSearchActionButton"'), "global search shortcut affordance must be an actionable button");
 
   assert(list(maintenance.security_works).length > 0, "maintenance-knowledge.security_works is empty");
@@ -314,6 +450,7 @@ function validateLocalPackages() {
     list(process?.development_technical_modules).some((module) => text(module?.title || module?.name) === "Jira"),
   );
   assert(lifecycleJiraProcess, "LC-AP source package must contain Jira in development technical modules");
+  const searchQueueSmoke = validatePageSearchQueueSamples({ capabilityTree, capabilityWorkbench, lifecycle, lifecycleWorkbench });
 
   const viewModelSmoke = validateSecurityWorkViewModel({ capabilityTree, maintenance });
   const technicalServiceSmoke = validateTechnicalServiceCatalogViewModel({ capabilityTree, maintenance });
@@ -359,6 +496,7 @@ function validateLocalPackages() {
     },
     viewModels: {
       ...viewModelSmoke,
+      pageSearchQueueSamples: searchQueueSmoke,
       technicalServiceCatalogVisibility: technicalServiceSmoke,
       capabilityDirectoryDefinitions: capabilityDirectoryDefinitionSmoke,
       capabilityStandardCanonicalization: standardCanonicalSmoke,
@@ -417,6 +555,112 @@ function validateCapabilityDirectoryDefinitions({ capabilityTree, maintenance })
     domain: domain?.code || "",
     renderedCategoryDefinition: true,
     renderedDomainDefinition: true,
+  };
+}
+
+function validatePageSearchQueueSamples({ capabilityTree, capabilityWorkbench, lifecycle, lifecycleWorkbench }) {
+  const context = { window: { sapdDisplay: {} }, console };
+  vm.createContext(context);
+  vm.runInContext(readFrontendFile("viewModels.js"), context, { filename: "viewModels.js" });
+  const viewModels = context.window.sapdViewModels || {};
+  assert(typeof viewModels.buildLifecycleWorkbenchViewModel === "function", "buildLifecycleWorkbenchViewModel is unavailable");
+  assert(typeof viewModels.buildApplicationSecurityLifecycleViewModel === "function", "buildApplicationSecurityLifecycleViewModel is unavailable");
+  assert(typeof viewModels.buildCapabilityWorkspaceViewModel === "function", "buildCapabilityWorkspaceViewModel is unavailable");
+
+  const lifecycleWorkbenchViewModel = viewModels.buildLifecycleWorkbenchViewModel({ workbench: lifecycleWorkbench });
+  const lcapOutsource = viewModels.buildApplicationSecurityLifecycleViewModel({
+    lifecycleWorkbench,
+    lifecycleWorkbenchViewModel,
+    lifecycle,
+    selectedProcessId: "",
+    search: "外包",
+  });
+  const lcapOutsourceRows = list(lcapOutsource.stageTree);
+  assert(lcapOutsourceRows.length > 1, `LC-AP page search for 外包 should expose multiple stage matches, got ${lcapOutsourceRows.length}`);
+
+  const countQueryOccurrences = (value = "", query = "") => {
+    const source = text(value).toLowerCase();
+    const needle = text(query).trim().toLowerCase();
+    if (!source || !needle) return 0;
+    let count = 0;
+    let cursor = 0;
+    while (cursor < source.length) {
+      const index = source.indexOf(needle, cursor);
+      if (index < 0) break;
+      count += 1;
+      cursor = index + Math.max(needle.length, 1);
+    }
+    return count;
+  };
+  const lifecycleOccurrenceSources = (row = {}) => {
+    const values = [row.code, row.title, row.description, row.goal, row.order];
+    const originalFields = row.originalBusinessFields && typeof row.originalBusinessFields === "object" ? Object.values(row.originalBusinessFields) : [];
+    values.push(...originalFields);
+    [
+      "mainActivities",
+      "securityActivities",
+      "policyRequirements",
+      "developmentTypes",
+      "developmentServices",
+      "developmentModules",
+      "technicalServices",
+      "technologyModules",
+      "technicalMeasures",
+      "dataPolicyRows",
+      "scenes",
+    ].forEach((key) => {
+      list(row[key]).forEach((item) => {
+        if (item && typeof item === "object") {
+          values.push(item.code, item.title, item.name, item.description, item.category, item.objectKind, item.value, item.requirement);
+          list(item.modules).forEach((module) => values.push(module?.code, module?.title, module?.name, module?.description, module?.objectKind));
+        } else {
+          values.push(item);
+        }
+      });
+    });
+    return values.map(text).filter(Boolean);
+  };
+  const lcapDeploy = viewModels.buildApplicationSecurityLifecycleViewModel({
+    lifecycleWorkbench,
+    lifecycleWorkbenchViewModel,
+    lifecycle,
+    selectedProcessId: "",
+    search: "部署",
+  });
+  const lcapDeployRows = list(lcapDeploy.stageTree);
+  const lcapDeployOccurrenceCount = lcapDeployRows.reduce((total, row) => {
+    const sourceCount = lifecycleOccurrenceSources(row).reduce((sum, value) => sum + countQueryOccurrences(value, "部署"), 0);
+    return total + (sourceCount || countQueryOccurrences(row.searchText, "部署") || 1);
+  }, 0);
+  assert(lcapDeployRows.length > 1, `LC-AP page search for 部署 should expose multiple stage matches, got ${lcapDeployRows.length}`);
+  assert(
+    lcapDeployOccurrenceCount > lcapDeployRows.length,
+    `LC-AP page search for 部署 should count field-level occurrences, got ${lcapDeployOccurrenceCount} occurrences across ${lcapDeployRows.length} stages`,
+  );
+
+  const capabilityWorkbenchViewModel = viewModels.buildCapabilityWorkbenchViewModel({ workbench: capabilityWorkbench });
+  const capabilityContinue = viewModels.buildCapabilityWorkspaceViewModel({
+    capabilityWorkbench,
+    capabilityWorkbenchViewModel,
+    capabilityTree,
+    capabilityProjection: null,
+    management: null,
+    standards: null,
+    selectedCapabilityId: "",
+    search: "持续",
+    relationshipFilters: {},
+  });
+  const directCapabilityRows = list(capabilityContinue.navigationTree).filter((row) =>
+    [row?.level, row?.code, row?.title, row?.label, row?.subtitle].map(text).join(" ").toLowerCase().includes("持续"),
+  );
+  assert(directCapabilityRows.length > 1, `capability page search for 持续 should expose multiple direct matches, got ${directCapabilityRows.length}`);
+  return {
+    lcapOutsourceCount: lcapOutsourceRows.length,
+    lcapOutsourceTitles: lcapOutsourceRows.slice(0, 8).map((row) => [row.code, row.title].filter(Boolean).join(" ")),
+    lcapDeployStageCount: lcapDeployRows.length,
+    lcapDeployOccurrenceCount,
+    capabilityContinueCount: directCapabilityRows.length,
+    capabilityContinueTitles: directCapabilityRows.slice(0, 8).map((row) => [row.code, row.title].filter(Boolean).join(" ")),
   };
 }
 

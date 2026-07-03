@@ -770,8 +770,27 @@
     return viewModel?.selectedMode === "segment" ? renderSubcategoryStatistics(viewModel) : renderEnvironmentStatistics(viewModel);
   }
 
+  function renderEnvironmentSearchRail(search) {
+    return `
+      <div class="environment-shared-search-rail" role="search" aria-label="信息化环境页面内搜索">
+        <span class="environment-search-rail-label">页面内搜索</span>
+        <div class="environment-search-control page-search-control">
+          <label class="page-search-input-shell" for="environmentSearchInput">
+            <span class="capability-search-icon" aria-hidden="true">⌕</span>
+            <input id="environmentSearchInput" type="search" value="${escape(search || "")}" placeholder="搜索环境、对象、作用域、服务、模块、措施或系统" />
+          </label>
+          <span class="page-search-match-status" data-page-search-status="environment-mapping" aria-live="polite"></span>
+          <button class="page-search-step" type="button" data-page-search-step="-1" data-page-search-scope="environment-mapping" title="上一个匹配" aria-label="上一个匹配">‹</button>
+          <button class="page-search-step" type="button" data-page-search-step="1" data-page-search-scope="environment-mapping" title="下一个匹配" aria-label="下一个匹配">›</button>
+        </div>
+      </div>
+    `;
+  }
+
   function renderMappingTab({ viewModel, selectedRowId, selectedEnvironmentId, selectedSegmentId, selectedObjectId, search, expandedIds, catalogCollapsed, graphVariant = "funnel" }) {
     const showObjectRelations = viewModel?.selectedMode === "object";
+    const hasSearch = String(search || "").trim().length > 0;
+    const isSearchEmpty = hasSearch && !utils.list(viewModel?.navigationTree).length;
     return `
       <div class="environment-mapping-workbench ${catalogCollapsed ? "catalog-collapsed" : ""}">
         <button
@@ -801,9 +820,6 @@
               </button>
             </div>
           </div>
-          <div class="source-catalog-tools">
-            <input id="environmentSearchInput" type="search" value="${escape(search || "")}" placeholder="搜索环境、对象、作用域、服务或模块" />
-          </div>
           <div id="environmentTree" class="environment-tree">
             ${
               components.EnvironmentTree?.render({
@@ -819,7 +835,9 @@
         </aside>
         <section class="environment-tab-table-pane">
           ${
-            showObjectRelations
+            isSearchEmpty
+              ? `<div class="reference-empty environment-search-empty">未找到匹配的信息化环境对象。请调整页面内搜索条件。</div>`
+              : showObjectRelations
               ? components.EnvironmentScopeServiceMatrix?.render({
                   rows: viewModel?.scopeServiceRows,
                   groups: viewModel?.scopeServiceGroups,
@@ -841,6 +859,7 @@
     const graphVariant = "funnel";
     return `
       <section class="semantic-panel environment-relation-map environment-tabbed-map">
+        ${renderEnvironmentSearchRail(search)}
         <input class="environment-tab-input" id="environmentTabTopology" type="radio" name="environmentDetailTab" ${showMapping ? "" : "checked"}>
         <input class="environment-tab-input" id="environmentTabMapping" type="radio" name="environmentDetailTab" ${showMapping ? "checked" : ""}>
         <div class="environment-tab-panels">

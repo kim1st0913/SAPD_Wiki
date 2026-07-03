@@ -3147,7 +3147,6 @@
     );
     const processCount = list(management?.security_processes).flatMap((domain) => list(domain.groups).flatMap((group) => list(group.references))).length;
     const workFunctionCount = list(management?.work_function_layers).flatMap((layer) => list(layer.groups).flatMap((group) => list(group.functions))).length;
-    const referenceCount = list(management?.gbt_42446_references).length + list(management?.gartner_roles).length;
     const securityWorkReferenceCount = list(capabilityTree?.categories).flatMap((category) =>
       list(category.domains).flatMap((domain) => list(domain.capabilities).flatMap((capability) => list(capability.focuses).flatMap((focus) => list(focus.security_works)))),
     ).length;
@@ -3168,7 +3167,6 @@
       { id: "processes", label: "流程清单", count: configuredCount("processes", processCount), implemented: true },
       { id: "application-systems", label: "应用系统目录", count: applicationSystemCount, implemented: true },
       { id: "work-functions", label: "职能清单", count: configuredCount("work-functions", workFunctionCount), implemented: true },
-      { id: "references", label: "岗位 / 职能参考", count: configuredCount("references", referenceCount), implemented: true },
     ].map((item) => ({ ...item, active: item.id === section }));
   }
 
@@ -3191,11 +3189,8 @@
     ],
     "work-functions": [
       { id: "work-functions", label: "安全工作职能清单" },
-      { id: "references-gbt", sourcePage: "references", referenceTab: "gbt", label: "GB/T 42446-2023" },
-      { id: "references-gartner", sourcePage: "references", referenceTab: "gartner", label: "Gartner 工作岗位参考" },
     ],
     references: [
-      { id: "work-functions", label: "安全工作职能清单" },
       { id: "references-gbt", sourcePage: "references", referenceTab: "gbt", label: "GB/T 42446-2023" },
       { id: "references-gartner", sourcePage: "references", referenceTab: "gartner", label: "Gartner 工作岗位参考" },
     ],
@@ -3244,11 +3239,19 @@
       };
     }
     if (section === "work-functions" || section === "references") {
+      if (section === "references") {
+        return {
+          title: "人力资源 Workforce 参考标准",
+          description: "GB/T 42446-2023 与 Gartner 工作岗位参考已迁移到安全标准 / 框架模块，旧路由仅保留兼容。",
+          implemented: true,
+          notice: "请从安全标准 / 框架进入“人力资源 Workforce 参考标准”。",
+        };
+      }
       return {
         title: "安全职能清单",
-        description: "集中维护安全工作职能清单、GB/T 42446-2023 任务参考和 Gartner 工作岗位参考，按页签核对安全职能分层、标准任务和岗位参考。",
+        description: "集中维护安全工作职能清单，按安全职能层和职能组核对职能定义、流程关联及参考映射。",
         implemented: true,
-        notice: section === "references" ? "当前页签为职能参考数据；主表只展示已确认的原始业务字段。" : "当前页签为安全工作职能清单，统一使用“安全职能”业务口径。",
+        notice: "GB/T 42446-2023 与 Gartner 工作岗位参考已迁移到安全标准 / 框架模块。",
       };
     }
     if (section === "application-systems") {
@@ -3944,33 +3947,53 @@
 
   function buildEnvironmentNavigationTree(management, search) {
     const query = normalizeSearch(search);
+    const relationNodeKey = (item) => [item?.id, item?.code, item?.title, item?.name, item?.objectKind, item?.type].filter(Boolean).join("::");
+    const environmentObjectServices = (object) => list(object?.scope_mappings).flatMap((mapping) => list(mapping.services));
+    const environmentObjectRelationNodes = (object) =>
+      uniqueBy(
+        environmentObjectServices(object).flatMap((service) => [
+          ...list(service.modules).map((module) => compactTechnicalObject(module, isSecurityTechnicalMeasure(module) ? "安全技术措施" : "安全技术模块")),
+          ...list(service.measures).map((measure) => compactTechnicalObject({ ...measure, type: "security_technical_measure" }, "安全技术措施")),
+          ...list(service.relationNodes).map((node) => compactTechnicalObject(node, isSecurityTechnicalMeasure(node) ? "安全技术措施" : "安全技术模块")),
+        ]),
+        relationNodeKey,
+      );
+    const environmentObjectSecuritySystems = (object) => {
+      const services = environmentObjectServices(object);
+      const relationNodes = environmentObjectRelationNodes(object);
+      return uniqueBy(
+        [
+          ...list(object?.securitySystems),
+          ...list(object?.systems),
+          ...list(object?.linkedSystems),
+          ...services.flatMap((service) => [...list(service.securitySystems), ...list(service.systems), ...list(service.linkedSystems)]),
+          ...relationNodes.flatMap((node) => [...list(node.securitySystems), ...list(node.systems), ...list(node.linkedSystems)]),
+        ].map(compactEntity).filter(Boolean),
+        (system) => system?.id || system?.code || system?.title,
+      );
+    };
+    const environmentObjectSearchValues = (environment, object) => [
+      environment?.id,
+      environment?.code,
+      environment?.title,
+      environment?.description,
+      object?.id,
+      object?.code,
+      object?.title,
+      object?.description,
+      ...list(object?.segments).flatMap((segment) => [segment?.id, segment?.code, segment?.title, segment?.description]),
+      ...list(object?.scope_mappings).flatMap((mapping) => [mapping?.scope?.id, mapping?.scope?.code, mapping?.scope?.title, mapping?.scope?.description]),
+      ...environmentObjectServices(object).flatMap((service) => [service?.id, service?.code, service?.title, service?.name, codeTitle(service)]),
+      ...environmentObjectRelationNodes(object).flatMap((node) => [node?.id, node?.code, node?.title, node?.name, node?.objectKind, node?.kind, codeTitle(node)]),
+      ...environmentObjectSecuritySystems(object).flatMap((system) => [system?.id, system?.code, system?.title, system?.name, codeTitle(system)]),
+    ];
+    const environmentObjectMatchesSearch = (environment, object) => includesSearch(query, ...environmentObjectSearchValues(environment, object));
     return list(management?.environment_scope_tree)
       .map((environment) => {
         const objects = list(environment.objects)
-          .filter((object) =>
-            includesSearch(
-              query,
-              environment.title,
-              environment.description,
-              ...list(object.segments).map(titleOf),
-              object.title,
-              object.description,
-              ...list(object.scope_mappings).map((mapping) => titleOf(mapping.scope)),
-              ...list(object.scope_mappings).flatMap((mapping) => list(mapping.services).map(titleOf)),
-            ),
-          )
+          .filter((object) => environmentObjectMatchesSearch(environment, object))
           .map((object) => {
-            const relationNodes = uniqueBy(
-              list(object.scope_mappings).flatMap((mapping) =>
-                list(mapping.services).flatMap((service) => [
-                  ...list(service.modules).map((module) =>
-                    compactTechnicalObject(module, isSecurityTechnicalMeasure(module) ? "安全技术措施" : "安全技术模块"),
-                  ),
-                  ...list(service.measures).map((measure) => compactTechnicalObject({ ...measure, type: "security_technical_measure" }, "安全技术措施")),
-                ]),
-              ),
-              (item) => [item?.id, item?.code, item?.title, item?.name, item?.objectKind, item?.type].filter(Boolean).join("::"),
-            );
+            const relationNodes = environmentObjectRelationNodes(object);
             return {
               id: object.id,
               environmentId: environment.id,
@@ -3982,6 +4005,7 @@
               serviceCount: Number(object.service_count ?? 0) || 0,
               moduleCount: Number(object.module_count ?? relationNodes.length) || 0,
               relationNodes,
+              searchText: environmentObjectSearchValues(environment, object).map(text).join(" "),
             };
           });
         const segmentsById = new Map();
@@ -4021,19 +4045,51 @@
 
   function findEnvironmentSelection(management, selectedObjectId, selectedEnvironmentId, selectedSegmentId, search) {
     const query = normalizeSearch(search);
+    const relationNodeKey = (item) => [item?.id, item?.code, item?.title, item?.name, item?.objectKind, item?.type].filter(Boolean).join("::");
+    const environmentObjectServices = (object) => list(object?.scope_mappings).flatMap((mapping) => list(mapping.services));
+    const environmentObjectRelationNodes = (object) =>
+      uniqueBy(
+        environmentObjectServices(object).flatMap((service) => [
+          ...list(service.modules).map((module) => compactTechnicalObject(module, isSecurityTechnicalMeasure(module) ? "安全技术措施" : "安全技术模块")),
+          ...list(service.measures).map((measure) => compactTechnicalObject({ ...measure, type: "security_technical_measure" }, "安全技术措施")),
+          ...list(service.relationNodes).map((node) => compactTechnicalObject(node, isSecurityTechnicalMeasure(node) ? "安全技术措施" : "安全技术模块")),
+        ]),
+        relationNodeKey,
+      );
+    const environmentObjectSecuritySystems = (object) => {
+      const services = environmentObjectServices(object);
+      const relationNodes = environmentObjectRelationNodes(object);
+      return uniqueBy(
+        [
+          ...list(object?.securitySystems),
+          ...list(object?.systems),
+          ...list(object?.linkedSystems),
+          ...services.flatMap((service) => [...list(service.securitySystems), ...list(service.systems), ...list(service.linkedSystems)]),
+          ...relationNodes.flatMap((node) => [...list(node.securitySystems), ...list(node.systems), ...list(node.linkedSystems)]),
+        ].map(compactEntity).filter(Boolean),
+        (system) => system?.id || system?.code || system?.title,
+      );
+    };
+    const environmentObjectMatchesSearch = (environment, object) =>
+      includesSearch(
+        query,
+        environment?.id,
+        environment?.code,
+        environment?.title,
+        environment?.description,
+        object?.id,
+        object?.code,
+        object?.title,
+        object?.description,
+        ...list(object?.segments).flatMap((segment) => [segment?.id, segment?.code, segment?.title, segment?.description]),
+        ...list(object?.scope_mappings).flatMap((mapping) => [mapping?.scope?.id, mapping?.scope?.code, mapping?.scope?.title, mapping?.scope?.description]),
+        ...environmentObjectServices(object).flatMap((service) => [service?.id, service?.code, service?.title, service?.name, codeTitle(service)]),
+        ...environmentObjectRelationNodes(object).flatMap((node) => [node?.id, node?.code, node?.title, node?.name, node?.objectKind, node?.kind, codeTitle(node)]),
+        ...environmentObjectSecuritySystems(object).flatMap((system) => [system?.id, system?.code, system?.title, system?.name, codeTitle(system)]),
+      );
     const environments = list(management?.environment_scope_tree)
       .map((environment) => {
-        const objects = list(environment.objects).filter((object) =>
-          includesSearch(
-            query,
-            environment.title,
-            environment.description,
-            object.title,
-            object.description,
-            ...list(object.scope_mappings).map((mapping) => titleOf(mapping.scope)),
-            ...list(object.scope_mappings).flatMap((mapping) => list(mapping.services).map(titleOf)),
-          ),
-        );
+        const objects = list(environment.objects).filter((object) => environmentObjectMatchesSearch(environment, object));
         return { environment, objects };
       })
       .filter((row) => row.objects.length || includesSearch(query, row.environment.title, row.environment.description));

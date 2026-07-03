@@ -498,6 +498,106 @@ async function main() {
         return false;
       })()`, true);
     }
+    if (pageName === "search") {
+      await evaluate(`(async () => {
+        const route = ${JSON.stringify(route || "/search?q=密码")};
+        const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+        const waitFrame = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        const normalize = (value) => String(value || "").replace(/\\s+/g, " ").trim();
+        const queryFromRoute = (() => {
+          const rawQuery = route.includes("?") ? route.slice(route.indexOf("?") + 1) : "";
+          return new URLSearchParams(rawQuery).get("q") || "";
+        })();
+        const waitForRows = async () => {
+          for (let i = 0; i < 50; i += 1) {
+            const rows = [...document.querySelectorAll("[data-search-page-result]")].filter((item) => item.offsetParent !== null);
+            if (rows.length) return rows;
+            await wait(100);
+          }
+          return [];
+        };
+        const waitForActivation = async (beforeHref) => {
+          for (let i = 0; i < 40; i += 1) {
+            const activeView = document.body.dataset.activeView || "";
+            const highlighted = Boolean(document.querySelector(".global-search-target-highlight, .page-search-target-highlight, .annotation-active-highlight"));
+            if (activeView !== "search" || location.href !== beforeHref || highlighted) {
+              return { activeView, href: location.href, highlighted };
+            }
+            await wait(100);
+          }
+          return { activeView: document.body.dataset.activeView || "", href: location.href, highlighted: false };
+        };
+        const visibleKeyForRow = (row) => {
+          const type = normalize(row.querySelector(".global-search-page-row-type")?.textContent);
+          const title = normalize(row.querySelector(".global-search-page-row-main strong")?.textContent);
+          const meta = normalize(row.querySelector(".global-search-page-row-main small")?.textContent);
+          const path = normalize(row.querySelector(".global-search-page-row-main em")?.textContent);
+          return [type, title, meta, path].filter(Boolean).join("::");
+        };
+        const workspace = document.querySelector("#searchWorkspace");
+        const resultList = document.querySelector(".global-search-page-list");
+        const rows = await waitForRows();
+        const visibleKeys = rows.map(visibleKeyForRow).filter(Boolean);
+        const duplicateVisibleKeys = [...visibleKeys.reduce((map, key) => map.set(key, (map.get(key) || 0) + 1), new Map()).entries()]
+          .filter(([, count]) => count > 1)
+          .map(([key, count]) => ({ key, count }));
+        const beforeScrollTop = workspace?.scrollTop || 0;
+        if (workspace) workspace.scrollTop = workspace.scrollHeight;
+        const listBeforeScrollTop = resultList?.scrollTop || 0;
+        if (resultList) resultList.scrollTop = resultList.scrollHeight;
+        await waitFrame();
+        const afterScrollTop = workspace?.scrollTop || 0;
+        const listAfterScrollTop = resultList?.scrollTop || 0;
+
+        const probe = {
+          route,
+          rowCount: rows.length,
+          duplicateVisibleKeys,
+          workspaceClientHeight: workspace?.clientHeight || 0,
+          workspaceScrollHeight: workspace?.scrollHeight || 0,
+          beforeScrollTop,
+          afterScrollTop,
+          workspaceNeedsScroll: Boolean(workspace && workspace.scrollHeight > workspace.clientHeight + 1),
+          workspaceScrollOk: Boolean(!workspace || workspace.scrollHeight <= workspace.clientHeight + 1 || afterScrollTop > beforeScrollTop),
+          listClientHeight: resultList?.clientHeight || 0,
+          listScrollHeight: resultList?.scrollHeight || 0,
+          listBeforeScrollTop,
+          listAfterScrollTop,
+          listNeedsScroll: Boolean(resultList && resultList.scrollHeight > resultList.clientHeight + 1),
+          listScrollOk: Boolean(!resultList || resultList.scrollHeight <= resultList.clientHeight + 1 || listAfterScrollTop > listBeforeScrollTop),
+          actionButtonCount: document.querySelectorAll("[data-search-page-open-result], .global-search-page-row-action").length,
+          rowClickActivated: false,
+          rowClickTarget: "",
+        };
+
+        if (typeof openGlobalSearchPage === "function") {
+          await openGlobalSearchPage(queryFromRoute || route, { replace: true });
+          await waitForRows();
+          await waitFrame();
+        } else if (typeof activateRoute === "function") {
+          await activateRoute(route);
+          await waitForRows();
+          await waitFrame();
+        }
+        const rowsAfterButton = await waitForRows();
+        if (rowsAfterButton[0]) {
+          probe.rowClickTarget = normalize(rowsAfterButton[0].querySelector(".global-search-page-row-main strong")?.textContent);
+          const beforeHref = location.href;
+          rowsAfterButton[0].dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window }));
+          const rowResult = await waitForActivation(beforeHref);
+          probe.rowClickActivated = rowResult.activeView !== "search" || rowResult.href !== beforeHref || rowResult.highlighted;
+          probe.rowClickResult = rowResult;
+        }
+
+        if (typeof openGlobalSearchPage === "function") {
+          await openGlobalSearchPage(queryFromRoute || route, { replace: true });
+          await waitForRows();
+          await waitFrame();
+        }
+        window.__sapdSearchPageProbe = probe;
+        return probe;
+      })()`, true);
+    }
     await sleep(800);
 
     const metrics = await evaluate(`(() => {
@@ -738,6 +838,7 @@ async function main() {
           return rect ? Number((rect.width / rect.height).toFixed(4)) : null;
         })(),
         guideInteractionProbe: window.__sapdGuideInteractionProbe || null,
+        searchPageProbe: window.__sapdSearchPageProbe || null,
         emptyStateText: document.querySelector('.content-list .detail-empty')?.textContent?.replace(/\\s+/g, ' ').trim() || '',
         mappingDrawerOpen: document.querySelector('.mapping-detail-drawer')?.open ?? null,
         evidenceDrawerOpen: document.querySelector('.capability-evidence-drawer')?.open ?? null,
@@ -787,6 +888,13 @@ async function main() {
           !metrics.userAnnotationDrawerProbe?.panelVisible ||
           metrics.userAnnotationDrawerProbe?.oldHorizontalCount !== 0 ||
           Math.abs(metrics.userAnnotationDrawerProbe?.workspaceWidthDelta || 0) > 2)) ||
+      (pageName === "search" &&
+        (!metrics.searchPageProbe?.rowCount ||
+          metrics.searchPageProbe?.duplicateVisibleKeys?.length ||
+          !metrics.searchPageProbe?.workspaceScrollOk ||
+          !metrics.searchPageProbe?.listScrollOk ||
+          metrics.searchPageProbe?.actionButtonCount !== 0 ||
+          !metrics.searchPageProbe?.rowClickActivated)) ||
       (pageName === "environment" && !metrics.environmentTree) ||
       ((pageName === "lifecycle" || pageName === "dev-lifecycle") && !metrics.lifecycleLane) ||
       (pageName === "content" && guideExpectation && !metrics.guideSlidePlayer) ||

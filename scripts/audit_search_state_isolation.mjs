@@ -19,6 +19,7 @@ const viewModels = read("frontend/capability-browser/viewModels.js");
 const indexHtml = read("frontend/capability-browser/index.html");
 const appShell = read("frontend/capability-browser/components/AppShell.js");
 const lifecycleComponent = read("frontend/capability-browser/components/ApplicationSecurityLifecycle.js");
+const environmentLocalRelationMap = read("frontend/capability-browser/components/EnvironmentLocalRelationMap.js");
 const standardTable = read("frontend/capability-browser/components/StandardFrameworkTable.js");
 const stylesCss = read("frontend/capability-browser/styles.css");
 
@@ -123,10 +124,94 @@ const checks = [
     ok:
       appJs.includes("globalSearch:") &&
       appJs.includes("pageSearches:") &&
+      appJs.includes("pageSearchMatchSets:") &&
       appJs.includes("devLifecycleStageSearch:") &&
       appJs.includes("dataLifecycleStageSearch:") &&
       appJs.includes("relationshipFilters:"),
     message: "all known search/filter inputs must have explicit owner state.",
+  },
+  {
+    id: "page_search_inputs_preserve_composition_and_focus",
+    ok:
+      appJs.includes("SEARCH_COMPOSITION_INPUT_SELECTOR") &&
+      appJs.includes("function isComposingSearchInput") &&
+      appJs.includes("function restoreSearchInputFocus") &&
+      appJs.includes('document.addEventListener("compositionstart"') &&
+      appJs.includes('document.addEventListener("compositionend"') &&
+      capabilityInputHandler.includes("if (isComposingSearchInput(event)) return;") &&
+      environmentInputHandler.includes("if (isComposingSearchInput(event)) return;") &&
+      sourceInputHandler.includes("if (isComposingSearchInput(event)) return;") &&
+      devLifecycleInputHandler.includes("if (isComposingSearchInput(event)) return;") &&
+      dataLifecycleInputHandler.includes("if (isComposingSearchInput(event)) return;") &&
+      relationFilterHandler.includes("if (isComposingSearchInput(event)) return;"),
+    message: "page search inputs must preserve IME/composition typing and restore focus after rerenders.",
+  },
+  {
+    id: "page_search_current_match_is_word_level_with_light_context",
+    ok:
+      appJs.includes("page-search-current-match") &&
+      appJs.includes("function pageSearchContextTarget") &&
+      appJs.includes("function markPageSearchTarget") &&
+      appJs.includes('context.setAttribute("data-page-search-context", "true")') &&
+      appJs.includes('target.setAttribute("data-page-search-current", "true")') &&
+      appJs.includes('target.classList.add("page-search-target-highlight")') &&
+      stylesCss.includes(".page-search-current-match") &&
+      stylesCss.includes(".page-search-current-container") &&
+      stylesCss.includes('[data-page-search-context="true"]') &&
+      !stylesCss.includes('tr[data-page-search-current="true"] > th') &&
+      stylesCss.includes(".lifecycle-search-mark.page-search-current-match"),
+    message: "page search must highlight the matched word strongly while using only a light context outline for the surrounding row/card.",
+  },
+  {
+    id: "page_search_scrolls_internal_containers",
+    ok:
+      appJs.includes("function scrollSearchTargetIntoView") &&
+      appJs.includes("node.scrollTop +=") &&
+      appJs.includes("node.scrollLeft +=") &&
+      appJs.includes("scrollSearchTargetIntoView(target, attempt)"),
+    message: "page search reveal must scroll nested workspace panes, not only the document viewport.",
+  },
+  {
+    id: "page_search_uses_business_match_sets",
+    ok:
+      appJs.includes("function setPageSearchMatchSet") &&
+      appJs.includes("function pageSearchMatchSet") &&
+      appJs.includes("matchSet ? matchSet.matches.length") &&
+      appJs.includes("pending.displayCount") &&
+      appJs.includes("pending.targetAttribute") &&
+      appJs.includes("pending.targetId"),
+    message: "page search counters and navigation must support business-object match sets, not only currently visible DOM text.",
+  },
+  {
+    id: "capability_page_search_has_direct_match_queue",
+    ok:
+      appJs.includes("function capabilitySearchDirectMatches") &&
+      appJs.includes("function updateCapabilityPageSearchNavigation") &&
+      appJs.includes("function moveCapabilityPageSearchMatch") &&
+      appJs.includes('scope = "capability-mapping"') &&
+      appJs.includes('targetAttribute: "data-capability-id"') &&
+      appJs.includes("state.pendingPageSearchReveal.targetId = activeMatch.id") &&
+      appJs.includes("state.selectedCapabilityId = nextId"),
+    message: "capability page search must expose a direct business-row queue and bind the first input match as the reveal target.",
+  },
+  {
+    id: "lifecycle_page_search_uses_occurrence_match_queue",
+    ok:
+      appJs.includes("function searchQueryOccurrenceCount") &&
+      appJs.includes("function lifecycleSearchOccurrenceSources") &&
+      appJs.includes("function lifecycleOccurrenceMatches") &&
+      appJs.includes("const rows = lifecycleOccurrenceMatches(matchedStages, normalizedQuery)") &&
+      appJs.includes("stageId") &&
+      appJs.includes("occurrenceIndex") &&
+      appJs.includes("const matchSet = pageSearchMatchSet(scope, query)") &&
+      appJs.includes("const rows = matchSet?.matches || []") &&
+      appJs.includes('targetAttribute: "data-lifecycle-id"') &&
+      appJs.includes("lifecycleOccurrenceIndex") &&
+      appJs.includes('const contentRoot = kind === "data" ? $("dataLifecycleMatrix") : $("devLifecycleLane")') &&
+      lifecycleComponent.includes('data-lifecycle-kind="dev" data-lifecycle-id="${escapeHtml(row.stageId || "")}"') &&
+      appJs.includes("state.selectedDevProcessId = nextId") &&
+      appJs.includes("state.selectedDataProcessId = nextId"),
+    message: "LC-AP and LC-DT previous/next navigation must count field-level occurrences, not only stage/page rows.",
   },
   {
     id: "global_search_has_result_panel",
@@ -173,13 +258,35 @@ const checks = [
     ok:
       appJs.includes("async function searchIndexResultsForQuery") &&
       appJs.includes("getSearchIndex") &&
-      appJs.includes("mergeGlobalSearchResults(indexedResults, buildGlobalSearchResults(query))"),
+      appJs.includes("mergeGlobalSearchResults(indexedResults, buildGlobalSearchResults(query), query)"),
     message: "global search must use the lightweight search index and only merge already-loaded page data.",
   },
   {
     id: "global_search_keyboard_shortcut_focuses_input",
     ok: appJs.includes('event.key.toLowerCase() !== "k"') && appJs.includes('const input = $("searchInput")') && appJs.includes("input?.focus()"),
     message: "global search keyboard shortcut must focus the top search input.",
+  },
+  {
+    id: "global_search_has_result_page_route",
+    ok:
+      indexHtml.includes('id="searchWorkspace"') &&
+      appShell.includes('"/search": { view: "search"') &&
+      appShell.includes('search: "/search"') &&
+      appJs.includes('if (state.activeView === "search") renderSearchPage();') &&
+      appJs.includes('search: "searchWorkspace"') &&
+      appJs.includes('function renderSearchPage()') &&
+      appJs.includes("function openGlobalSearchPage") &&
+      appJs.includes("globalSearchLoadedQuery") &&
+      appJs.includes("data-search-page-result") &&
+      !appJs.includes("data-search-page-open-result") &&
+      appJs.includes("function globalSearchPageResultForKey") &&
+      appJs.includes("activateGlobalSearchResult(result)") &&
+      appJs.includes("openGlobalSearchPage(event.target.value)") &&
+      stylesCss.includes(".global-search-filter-strip") &&
+      stylesCss.includes(".global-search-page-hint") &&
+      appJs.includes("点击任一结果进入定位") &&
+      !stylesCss.includes(".global-search-page-row-action"),
+    message: "global search must expose an independent /search result page with route, workspace, compact filters, and direct result-row activation.",
   },
   {
     id: "global_search_results_reveal_target_rows",
@@ -206,15 +313,30 @@ const checks = [
     message: "global search result items must carry targetText and fall back to current-page text anchors.",
   },
   {
-    id: "global_search_activation_keeps_query_and_sets_page_search",
+    id: "global_search_results_prune_display_noise",
+    ok:
+      appJs.includes("function pruneGlobalSearchResultsForQuery") &&
+      appJs.includes("function globalSearchVisibleDedupeKey") &&
+      appJs.includes("function isLifecycleContainerSearchResult") &&
+      appJs.includes("mergeGlobalSearchResults(indexedResults, buildGlobalSearchResults(query), query)") &&
+      indexHtml.includes("global-search-result-prune-20260703-1"),
+    message: "global search results must prune display duplicates and lifecycle parent fallback hits after API/fallback merge.",
+  },
+  {
+    id: "global_search_activation_keeps_query_without_local_filtering",
     ok:
       appJs.includes("const activationQuery = searchTextForActivatedResult(result)") &&
+      appJs.includes("return cleanGlobalSearchDisplayText(result.targetText || result.title || result.code || state.globalSearch);") &&
       appJs.includes("clearGlobalSearchPanel({ keepQuery: true })") &&
+      appJs.includes("clearDestinationSearchForGlobalActivation(result.route)") &&
       appJs.includes("routeHasPageSearch(result.route)") &&
-      appJs.includes("setScopedSearch(activationQuery)") &&
       appJs.includes("queuePageSearchReveal(activationQuery)") &&
-      appJs.includes("flushPageSearchReveal();"),
-    message: "global search activation must keep the query and hand it to the destination page search for content reveal.",
+      appJs.includes("flushPageSearchReveal();") &&
+      !appJs.includes("setScopedSearch(activationQuery)") &&
+      !appJs.includes("state.devLifecycleStageSearch = activationQuery") &&
+      !appJs.includes("state.dataLifecycleStageSearch = activationQuery") &&
+      !appJs.includes("if (activationQuery) state.globalSearch = activationQuery;"),
+    message: "global search activation must keep the original query, clear destination local filters, and use targetText only for reveal/highlight.",
   },
   {
     id: "standard_framework_search_has_clause_anchors",
@@ -241,6 +363,34 @@ const checks = [
       stylesCss.includes(".page-search-target-highlight") &&
       stylesCss.includes("annotationSoftPulse"),
     message: "page-level search boxes must scroll to and visibly highlight the matched business content.",
+  },
+  {
+    id: "page_search_has_match_navigation",
+    ok:
+      appJs.includes("pageSearchNavigation") &&
+      appJs.includes("function pageSearchTargetElements") &&
+      appJs.includes("function updatePageSearchControls") &&
+      appJs.includes("function movePageSearchMatch") &&
+      appJs.includes("function moveLifecyclePageSearchMatch") &&
+      appJs.includes("function updateLifecyclePageSearchNavigation") &&
+      appJs.includes("[data-page-search-step]") &&
+      appJs.includes("pageSearchQueryForScope") &&
+      appShell.includes('data-page-search-status="capability-mapping"') &&
+      environmentLocalRelationMap.includes('data-page-search-status="environment-mapping"') &&
+      indexHtml.includes('data-page-search-status="development-security"') &&
+      indexHtml.includes('data-page-search-status="data-security"') &&
+      stylesCss.includes(".page-search-match-status") &&
+      stylesCss.includes(".page-search-step"),
+    message: "page-level search boxes must expose match count and previous/next navigation within their own scope.",
+  },
+  {
+    id: "capability_search_selects_direct_match",
+    ok:
+      appJs.includes("function resolveCapabilitySelection") &&
+      appJs.includes("rowMatchesDirectly") &&
+      appJs.includes("state.selectedCapabilityId = nextRow.id") &&
+      appJs.includes("state.selectedCapabilityId !== previousSelectedCapabilityId"),
+    message: "capability page search must move the selected object to a direct match instead of leaving stale detail content.",
   },
 ];
 

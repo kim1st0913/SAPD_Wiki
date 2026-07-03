@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import ipaddress
 import json
+import re
 import secrets
 import sqlite3
 import time
@@ -348,6 +349,25 @@ SEARCH_INDEX_SOURCE_PACKAGES = (
     "standards-index",
 )
 _SEARCH_INDEX_CACHE: tuple[tuple[tuple[str, int, int], ...], dict[str, Any]] | None = None
+_INTERNAL_SEARCH_HEX_ID_RE = re.compile(r"^(?:[a-z][a-z0-9_]*:)?[0-9a-f]{12,}$", re.IGNORECASE)
+_INTERNAL_SEARCH_UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.IGNORECASE)
+_INTERNAL_SEARCH_TITLE_PREFIX_RE = re.compile(
+    r"^(?:(?:[a-z][a-z0-9_]*:)?[0-9a-f]{12,}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\s+",
+    re.IGNORECASE,
+)
+_SEARCH_TOKEN_RE = re.compile(r"[a-z0-9][a-z0-9._-]{1,}|[\u4e00-\u9fa5]{2,}", re.IGNORECASE)
+_SEARCH_QUERY_ALIASES = {
+    "mima": "密码",
+    "mi ma": "密码",
+    "jiagou": "架构",
+    "jia gou": "架构",
+    "fengxian": "风险",
+    "feng xian": "风险",
+    "renliziyuan": "人力资源",
+    "ren li zi yuan": "人力资源",
+    "lingxinren": "零信任",
+    "ling xin ren": "零信任",
+}
 
 
 def _search_source_signature() -> tuple[tuple[str, int, int], ...]:
@@ -376,24 +396,155 @@ def _search_compact(*values: Any) -> str:
     return " ".join(_search_text(value).strip() for value in values if _search_text(value).strip()).replace("\n", " ").strip()
 
 
-def _search_score(item: dict[str, Any], query: str) -> int:
+def _search_plain(value: Any) -> str:
+    return re.sub(r"[^a-z0-9\u4e00-\u9fa5]+", "", str(value or "").strip().lower())
+
+
+def _search_query_variants(query: Any) -> list[str]:
     normalized = str(query or "").strip().lower()
     if not normalized:
+        return []
+    compact = _search_plain(normalized)
+    variants = [normalized]
+    if compact and compact != normalized:
+        variants.append(compact)
+    for key in (normalized, compact):
+        alias = _SEARCH_QUERY_ALIASES.get(key)
+        if alias:
+            variants.append(alias.lower())
+            variants.append(_search_plain(alias))
+    return list(dict.fromkeys(value for value in variants if value))
+
+
+def _search_damerau_distance_at_most_one(left: str, right: str) -> bool:
+    if left == right:
+        return True
+    if not left or not right or abs(len(left) - len(right)) > 1:
+        return False
+    if len(left) == len(right):
+        diffs = [index for index, (a, b) in enumerate(zip(left, right)) if a != b]
+        if len(diffs) == 1:
+            return True
+        return len(diffs) == 2 and diffs[1] == diffs[0] + 1 and left[diffs[0]] == right[diffs[1]] and left[diffs[1]] == right[diffs[0]]
+    if len(left) > len(right):
+        left, right = right, left
+    index = 0
+    mismatches = 0
+    for char in right:
+        if index < len(left) and left[index] == char:
+            index += 1
+        else:
+            mismatches += 1
+            if mismatches > 1:
+                return False
+    return True
+
+
+def _search_fuzzy_token_match(query: str, *values: Any) -> bool:
+    compact_query = _search_plain(query)
+    if len(compact_query) < 4 or not re.fullmatch(r"[a-z0-9]+", compact_query):
+        return False
+    haystack = " ".join(str(value or "").lower() for value in values)
+    for token in _SEARCH_TOKEN_RE.findall(haystack):
+        compact_token = _search_plain(token)
+        if 4 <= len(compact_token) <= 48 and _search_damerau_distance_at_most_one(compact_query, compact_token):
+            return True
+    return False
+
+
+def _workforce_slug(value: Any, fallback: str = "item") -> str:
+    normalized = re.sub(r"[^\w\u4e00-\u9fa5-]+", "-", str(value or "").strip())
+    normalized = normalized.strip("-")[:72]
+    return normalized or fallback
+
+
+def _gbt_task_name_from_title(title: Any) -> str:
+    value = str(title or "").strip()
+    parts = [part.strip() for part in re.split(r"[-－—]", value) if part.strip()]
+    return "-".join(parts[1:]) if len(parts) > 1 else value
+
+
+def _workforce_reference_row_id(field: str, item: dict[str, Any], index: int, title: str) -> str:
+    if field == "gbt_42446_references":
+        category = str(item.get("category") or "").strip()
+        task = _gbt_task_name_from_title(title)
+        return f"gbt-42446-classification-{_workforce_slug(category, 'category')}-{_workforce_slug(task, f'task-{index + 1}')}-{index + 1}"
+    if field == "gartner_roles":
+        category = str(item.get("category") or "").strip()
+        return f"gartner-work-role-{_workforce_slug(category, 'category')}-{_workforce_slug(title, f'role-{index + 1}')}-{index + 1}"
+    return str(item.get("id") or item.get("code") or title or f"{field}:{index}").strip()
+
+
+def _is_internal_search_code(value: Any) -> bool:
+    normalized = str(value or "").strip()
+    if not normalized:
+        return False
+    return bool(_INTERNAL_SEARCH_UUID_RE.match(normalized) or _INTERNAL_SEARCH_HEX_ID_RE.match(normalized))
+
+
+def _clean_search_display_text(value: Any) -> str:
+    normalized = str(value or "").strip()
+    while normalized:
+        cleaned = _INTERNAL_SEARCH_TITLE_PREFIX_RE.sub("", normalized).strip()
+        if cleaned == normalized:
+            break
+        normalized = cleaned
+    return normalized
+
+
+def _search_score(item: dict[str, Any], query: str) -> int:
+    variants = _search_query_variants(query)
+    if not variants:
         return 1
     title = str(item.get("title") or "").lower()
     code = str(item.get("code") or "").lower()
     haystack = str(item.get("_search") or "").lower()
-    if code == normalized or title == normalized:
-        return 120
-    if code.startswith(normalized) or title.startswith(normalized):
-        return 100
-    if code and normalized in code:
-        return 90
-    if title and normalized in title:
-        return 80
-    if haystack and normalized in haystack:
-        return 50
+    compact_title = _search_plain(title)
+    compact_code = _search_plain(code)
+    compact_haystack = _search_plain(haystack)
+    for normalized in variants:
+        compact = _search_plain(normalized)
+        if code == normalized or title == normalized or (compact and (compact_code == compact or compact_title == compact)):
+            return 120
+        if code.startswith(normalized) or title.startswith(normalized) or (compact and (compact_code.startswith(compact) or compact_title.startswith(compact))):
+            return 100
+        if (code and normalized in code) or (compact and compact in compact_code):
+            return 90
+        if (title and normalized in title) or (compact and compact in compact_title):
+            return 80
+        if (haystack and normalized in haystack) or (compact and compact in compact_haystack):
+            return 50
+    if _search_fuzzy_token_match(variants[0], title, code, haystack):
+        return 30
     return 0
+
+
+def _search_match_context(item: dict[str, Any], query: str) -> str:
+    variants = _search_query_variants(query)
+    if not variants:
+        return ""
+    source = _search_compact(item.get("subtitle"), item.get("target_text"), item.get("_search"))
+    compact = _clean_search_display_text(re.sub(r"\s+", " ", source).strip())
+    if not compact:
+        return ""
+    lower = compact.lower()
+    match_index = -1
+    match_length = 0
+    for variant in variants:
+        if not variant:
+            continue
+        index = lower.find(variant.lower())
+        if index >= 0:
+            match_index = index
+            match_length = len(variant)
+            break
+    if match_index < 0:
+        return compact[:180]
+    start = max(0, match_index - 54)
+    end = min(len(compact), match_index + match_length + 96)
+    prefix = "..." if start > 0 else ""
+    suffix = "..." if end < len(compact) else ""
+    return f"{prefix}{compact[start:end]}{suffix}"
 
 
 def _add_search_item(
@@ -412,44 +563,58 @@ def _add_search_item(
     object_type: str = "",
     object_id: str = "",
     search_text: Any = "",
+    aliases: Any = "",
 ) -> None:
-    normalized_title = str(title or code or item_id or "").strip()
-    normalized_code = str(code or "").strip()
+    raw_title = str(title or code or item_id or "").strip()
+    raw_code = str(code or "").strip()
+    normalized_title = _clean_search_display_text(raw_title)
+    normalized_code = "" if _is_internal_search_code(raw_code) else raw_code
     normalized_id = str(item_id or object_id or target_ref or normalized_title).strip()
     normalized_route = str(route or "").strip()
-    if not normalized_id and not normalized_title:
+    if not normalized_id and not normalized_title and not normalized_code:
         return
     key = f"{item_type}:{normalized_route}:{normalized_id}:{normalized_title}"
     if key in seen:
         return
     seen.add(key)
+    display_title = " ".join(part for part in (normalized_code, normalized_title) if part)
+    display_target_text = _clean_search_display_text(target_text or normalized_title or normalized_code)
     rows.append(
         {
             "id": normalized_id,
             "type": item_type,
             "typeLabel": type_label,
-            "title": " ".join(part for part in (normalized_code, normalized_title) if part),
+            "title": display_title,
             "code": normalized_code,
             "subtitle": str(subtitle or "").strip(),
             "route": normalized_route,
             "target_ref": str(target_ref or f"{object_type or item_type}:{normalized_id}").strip(),
-            "target_text": str(target_text or normalized_title or normalized_code).strip(),
+            "target_text": display_target_text,
             "object_type": str(object_type or item_type).strip(),
             "object_id": str(object_id or normalized_id).strip(),
-            "_search": _search_compact(normalized_code, normalized_title, subtitle, search_text),
+            "_search": _search_compact(type_label, normalized_code, normalized_title, subtitle, search_text, aliases),
         }
     )
 
 
 def _add_navigation_search_items(rows: list[dict[str, Any]], seen: set[str]) -> None:
     for item in (
+        ("/", "Dashboard 首页", "总览 / 工作台入口 / 全局导航"),
+        ("/search", "全局搜索", "跨能力、环境、生命周期、知识库和标准检索"),
+        ("/workbench", "工作台", "Issue 清单 / 成熟度评估"),
+        ("/workbench/annotations", "Issue 清单", "集中处理 Issue、状态、导出和复核"),
+        ("/workbench/maturity", "成熟度评估", "评估项目 / 评分 / 报告"),
         ("/capability-mapping", "安全能力映射", "安全能力 / 安全关注点 / 技术与管理映射"),
         ("/environment-mapping", "信息化环境安全能力映射", "环境 / 子类 / 信息化对象 / 安全技术"),
         ("/development-security", "LC-AP安全开发生命周期", "应用安全开发生命周期"),
         ("/data-security", "LC-DT数据生命周期安全", "数据生命周期安全"),
         ("/knowledge/technical-services", "安全技术服务清单", "知识库字典"),
         ("/standards/mlps-level-3", "安全标准 / 框架", "标准控制项索引"),
+        ("/standards/workforce-reference", "人力资源 Workforce 参考标准", "GB/T 42446-2023 / Gartner 工作岗位参考"),
         ("/guides/security-architecture-design", "安全指南", "指南 / 幻灯片"),
+        ("/guides/security-architecture-modeling-language", "安全架构建模语言", "ArchiMate 3.2 企业架构建模标准 / 安全架构元素图例"),
+        ("/guides/data-security-design", "数据安全设计方法", "数据安全设计方法 / 幻灯片"),
+        ("/guides/light-planning", "轻规划", "轻规划设计报告模板 / 幻灯片"),
     ):
         route, title, subtitle = item
         _add_search_item(rows, seen, item_id=route, item_type="navigation", type_label="导航", title=title, route=route, subtitle=subtitle, target_ref=f"route:{route}", target_text=title, object_type="route", object_id=route)
@@ -502,16 +667,17 @@ def _add_capability_search_items(rows: list[dict[str, Any]], seen: set[str]) -> 
 
 
 def _add_maintenance_search_items(rows: list[dict[str, Any]], seen: set[str]) -> None:
-    sections = {
-        "maintenance-scopes": ("scope_types", "作用域", "/knowledge/scopes", "scope_type"),
-        "maintenance-services": ("security_technical_services", "安全技术服务", "/knowledge/technical-services", "security_technical_service"),
-        "maintenance-modules": ("security_technology_modules", "安全技术模块", "/knowledge/technical", "security_technology_module"),
-        "maintenance-measures": ("security_technical_measures", "安全技术措施", "/knowledge/technical", "security_technical_measure"),
-        "maintenance-processes": ("security_processes", "安全流程", "/knowledge/management-workflows", "security_process"),
-        "maintenance-work-functions": ("work_function_layers", "安全职能", "/knowledge/functions", "work_function"),
-        "maintenance-references": ("gbt_42446_references", "GB/T 42446 任务", "/knowledge/role-references", "reference"),
-    }
-    for package_name, (field, type_label, route, object_type) in sections.items():
+    sections = [
+        ("maintenance-scopes", "scope_types", "作用域", "/knowledge/scopes", "scope_type"),
+        ("maintenance-services", "security_technical_services", "安全技术服务", "/knowledge/technical-services", "security_technical_service"),
+        ("maintenance-modules", "security_technology_modules", "安全技术模块", "/knowledge/technical-modules", "security_technology_module"),
+        ("maintenance-measures", "security_technical_measures", "安全技术措施", "/knowledge/technical-measures", "security_technical_measure"),
+        ("maintenance-processes", "security_processes", "安全流程", "/knowledge/management-workflows", "security_process"),
+        ("maintenance-work-functions", "work_function_layers", "安全职能", "/knowledge/functions", "work_function"),
+        ("maintenance-references", "gbt_42446_references", "GB/T 42446 任务", "/standards/workforce-reference", "gbt_42446_task_reference"),
+        ("maintenance-references", "gartner_roles", "Gartner 岗位参考", "/standards/workforce-reference", "work_role_reference"),
+    ]
+    for package_name, field, type_label, route, object_type in sections:
         payload = read_data_package(package_name)
         items = _list(payload.get(field))
         if field == "work_function_layers":
@@ -523,7 +689,13 @@ def _add_maintenance_search_items(rows: list[dict[str, Any]], seen: set[str]) ->
                 continue
             title = _title_of(item, "")
             code = str(item.get("code") or item.get("id") or "").strip()
-            item_id = str(item.get("id") or code or title or f"{field}:{index}").strip()
+            item_id = _workforce_reference_row_id(field, item, index, title) if field in {"gbt_42446_references", "gartner_roles"} else str(item.get("id") or code or title or f"{field}:{index}").strip()
+            target_ref = item_id if item_id.startswith(f"{object_type}:") else f"{object_type}:{item_id}"
+            aliases = ""
+            if field == "gbt_42446_references":
+                aliases = "GB/T 42446 GB/T 42446-2023 网络安全从业人员能力基本要求 人力资源 Workforce 参考标准 工作任务 任务定义 工作类别分类"
+            elif field == "gartner_roles":
+                aliases = "Gartner 工作岗位参考 Gartner Role 人力资源 Workforce 参考标准 岗位 角色 职位"
             _add_search_item(
                 rows,
                 seen,
@@ -534,11 +706,12 @@ def _add_maintenance_search_items(rows: list[dict[str, Any]], seen: set[str]) ->
                 code=code,
                 subtitle=_search_compact(item.get("category"), item.get("group"), item.get("layer")),
                 route=route,
-                target_ref=f"{object_type}:{item_id}",
+                target_ref=target_ref,
                 target_text=title,
                 object_type=object_type,
                 object_id=item_id,
                 search_text=_search_compact(item.get("description"), item.get("summary"), item.get("definition")),
+                aliases=aliases,
             )
 
 
@@ -582,6 +755,7 @@ def _add_environment_search_items(rows: list[dict[str, Any]], seen: set[str]) ->
 
 def _add_lifecycle_search_items(rows: list[dict[str, Any]], seen: set[str]) -> None:
     workbench = read_data_package("lifecycle-workbench")
+    lifecycle = read_data_package("lifecycle")
 
     def visit(node: dict[str, Any], route: str, trail: list[str]) -> None:
         title = _title_of(node, "")
@@ -617,6 +791,58 @@ def _add_lifecycle_search_items(rows: list[dict[str, Any]], seen: set[str]) -> N
         if isinstance(node, dict):
             route = "/data-security" if "LC-DT" in str(node.get("id") or node.get("code") or "") else "/development-security"
             visit(node, route, [])
+
+    def add_process_detail_items(process: dict[str, Any], route: str, process_label: str) -> None:
+        process_id = str(process.get("id") or process.get("code") or process.get("title") or "").strip()
+        process_title = _title_of(process, "")
+        if not process_id:
+            return
+        detail_sections = (
+            ("main_activities", "lifecycle_activity", "阶段主要活动"),
+            ("security_activities", "lifecycle_control", "安全活动"),
+            ("policy_requirements", "lifecycle_requirement", "安全策略要求"),
+            ("development_types", "software_development_type", "软件开发模式"),
+            ("scenes", "lifecycle_scene", "数据处理子场景"),
+            ("technical_services", "security_technical_service", "安全技术服务"),
+            ("technology_modules", "security_technology_module", "安全技术模块"),
+            ("technical_measures", "security_technical_measure", "安全技术措施"),
+            ("development_technical_services", "development_technical_service", "开发技术服务"),
+            ("development_technical_modules", "development_technical_module", "开发技术模块"),
+        )
+        for field_name, object_type, type_label in detail_sections:
+            for index, item in enumerate(_list(process.get(field_name))):
+                if not isinstance(item, dict):
+                    continue
+                title = _title_of(item, "")
+                code = str(item.get("code") or "").strip()
+                if not title and not code:
+                    continue
+                child_id = str(item.get("id") or item.get("code") or title or f"{field_name}:{index}").strip()
+                _add_search_item(
+                    rows,
+                    seen,
+                    item_id=f"{process_id}:{field_name}:{child_id}",
+                    item_type="lifecycle",
+                    type_label=type_label,
+                    title=title,
+                    code=code,
+                    subtitle=" / ".join(part for part in (process_label, process_title) if part),
+                    route=route,
+                    target_ref=f"{object_type}:{process_id}:{child_id}",
+                    target_text=title,
+                    object_type=object_type,
+                    object_id=process_id,
+                    search_text=_search_compact(item.get("description"), item.get("category"), process_title, process.get("description")),
+                )
+
+    app_lifecycle = lifecycle.get("application_security_development") or {}
+    for process in _list(app_lifecycle.get("processes")):
+        if isinstance(process, dict):
+            add_process_detail_items(process, "/development-security", "LC-AP 阶段")
+    data_lifecycle = lifecycle.get("data_lifecycle") or {}
+    for process in _list(data_lifecycle.get("processes")):
+        if isinstance(process, dict):
+            add_process_detail_items(process, "/data-security", "LC-DT 过程")
 
 
 def _add_standard_search_items(rows: list[dict[str, Any]], seen: set[str]) -> None:
@@ -738,6 +964,9 @@ def search_index_payload(query: str = "", limit: int = 80) -> dict[str, Any]:
             continue
         public_item = {key: value for key, value in item.items() if key != "_search"}
         public_item["score"] = score
+        match_context = _search_match_context(item, normalized_query)
+        if match_context:
+            public_item["match_context"] = match_context
         rows.append(public_item)
     rows.sort(key=lambda item: (-int(item.get("score") or 0), str(item.get("typeLabel") or ""), str(item.get("title") or "")))
     return {

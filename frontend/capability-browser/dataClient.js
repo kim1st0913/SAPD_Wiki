@@ -121,6 +121,11 @@
   const text = (value) => (value == null ? "" : String(value));
   const TECHNICAL_MEASURES_FIELD = "security_technical_measures";
   const TECHNICAL_MEASURES_EMPTY_MESSAGE = "暂无安全技术措施数据，请确认 ETL 是否已导出 security_technical_measures。";
+  const WORKFORCE_REFERENCE_FRAMEWORK_ID = "workforce-reference-standards";
+  const WORKFORCE_REFERENCE_ROUTE = "/standards/workforce-reference";
+  const GBT_TASK_DEFINITION_TABLE_ID = "gbt-42446-task-definitions";
+  const GBT_TASK_CLASSIFICATION_TABLE_ID = "gbt-42446-classification";
+  const GARTNER_WORK_ROLE_TABLE_ID = "gartner-work-roles";
   const hasOwn = (object, key) => Boolean(object) && Object.prototype.hasOwnProperty.call(object, key);
   const titleOf = (value, fallback = "未命名") => {
     if (!value) return fallback;
@@ -128,6 +133,12 @@
     return text(value);
   };
   const objectIdOf = (item, fallback = "unknown") => text(item?.id || item?.code || item?.title || item?.name || fallback).trim();
+  const slugText = (value, fallback = "item") =>
+    text(value)
+      .trim()
+      .replace(/[^\w\u4e00-\u9fa5-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 72) || fallback;
 
   function emptyWorkbench(pageType, route, title, sourcePackages = []) {
     return {
@@ -710,7 +721,194 @@
     return mergeSharedLookups(payload, sharedLookups);
   }
 
+  function gbtTaskNameFromTitle(title) {
+    const value = text(title).trim();
+    const parts = value.split(/[-－—]/).map((part) => part.trim()).filter(Boolean);
+    return parts.length > 1 ? parts.slice(1).join("-") : value;
+  }
+
+  function addUniqueValue(target, value) {
+    const textValue = text(value).trim();
+    if (textValue && !target.includes(textValue)) target.push(textValue);
+  }
+
+  function gbtTaskRelationKey(category, task) {
+    return `${text(category).trim()}::${text(task).trim()}`;
+  }
+
+  function buildGbtTaskWorkFunctionIndex(workFunctionsPayload) {
+    const exact = new Map();
+    const byTask = new Map();
+    for (const layer of list(workFunctionsPayload?.work_function_layers)) {
+      for (const group of list(layer?.groups)) {
+        for (const workFunction of list(group?.functions)) {
+          const workFunctionTitle = titleOf(workFunction, "").trim();
+          if (!workFunctionTitle) continue;
+          for (const ref of list(workFunction?.gbt_42446_refs)) {
+            const task = gbtTaskNameFromTitle(ref?.title);
+            const category = text(ref?.category).trim();
+            if (!task) continue;
+            const exactKey = gbtTaskRelationKey(category, task);
+            if (!exact.has(exactKey)) exact.set(exactKey, []);
+            addUniqueValue(exact.get(exactKey), workFunctionTitle);
+            if (!byTask.has(task)) byTask.set(task, []);
+            addUniqueValue(byTask.get(task), workFunctionTitle);
+          }
+        }
+      }
+    }
+    return { exact, byTask };
+  }
+
+  function gbtRelatedWorkFunctions(index, category, task) {
+    const exactMatches = index?.exact?.get(gbtTaskRelationKey(category, task));
+    if (exactMatches?.length) return exactMatches;
+    return index?.byTask?.get(text(task).trim()) || [];
+  }
+
+  function gbtTaskDefinitionRows(standardRows, workFunctionIndex) {
+    const byTask = new Map();
+    for (const row of list(standardRows)) {
+      const task = gbtTaskNameFromTitle(row?.title);
+      if (!task) continue;
+      if (!byTask.has(task)) {
+        byTask.set(task, { task, description: text(row?.description).trim(), categories: [], workFunctions: [] });
+      }
+      const entry = byTask.get(task);
+      const category = text(row?.category).trim();
+      addUniqueValue(entry.categories, category);
+      for (const workFunction of gbtRelatedWorkFunctions(workFunctionIndex, category, task)) {
+        addUniqueValue(entry.workFunctions, workFunction);
+      }
+      if (!entry.description && row?.description) entry.description = text(row.description).trim();
+    }
+    return Array.from(byTask.values()).map((entry, index) => ({
+      id: `gbt-42446-task-definition-${slugText(entry.task, `task-${index + 1}`)}`,
+      "序号": index + 1,
+      "工作任务": entry.task,
+      "任务描述": entry.description,
+      "所属工作类别": entry.categories.join("、"),
+      "关联安全职能": entry.workFunctions.join("、"),
+      "分类数量": entry.categories.length,
+    }));
+  }
+
+  function gbtTaskClassificationRows(standardRows, workFunctionIndex) {
+    return list(standardRows).map((row, index) => {
+      const category = text(row?.category).trim();
+      const task = gbtTaskNameFromTitle(row?.title);
+      return {
+        id: `gbt-42446-classification-${slugText(category, "category")}-${slugText(task, `task-${index + 1}`)}-${index + 1}`,
+        "序号": index + 1,
+        "工作类别": category,
+        "工作任务": task,
+        "关联安全职能": gbtRelatedWorkFunctions(workFunctionIndex, category, task).join("、"),
+      };
+    });
+  }
+
+  function gartnerWorkRoleRows(roleRows) {
+    return list(roleRows).map((row, index) => {
+      const category = text(row?.category).trim();
+      const title = titleOf(row, "");
+      const candidates = list(row?.candidate_work_functions || row?.candidateSecurityFunctions || row?.candidate_security_functions)
+        .map((item) => titleOf(item, ""))
+        .filter(Boolean);
+      return {
+        id: `gartner-work-role-${slugText(category, "category")}-${slugText(title, `role-${index + 1}`)}-${index + 1}`,
+        "序号": index + 1,
+        "岗位分类": category,
+        "岗位/角色": title,
+        "说明": text(row?.description || row?.summary).trim(),
+        "关联安全职能": candidates.join("、"),
+      };
+    });
+  }
+
+  function workforceReferenceFrameworkFromMaintenance(management, workFunctionsPayload) {
+    const standardRows = list(management?.gbt_42446_references);
+    const roleRows = list(management?.gartner_roles);
+    const workFunctionIndex = buildGbtTaskWorkFunctionIndex(workFunctionsPayload);
+    const definitionRows = gbtTaskDefinitionRows(standardRows, workFunctionIndex);
+    const classificationRows = gbtTaskClassificationRows(standardRows, workFunctionIndex);
+    const gartnerRows = gartnerWorkRoleRows(roleRows);
+    const tabs = [
+      {
+        id: GBT_TASK_DEFINITION_TABLE_ID,
+        title: "GB/T 42446-2023｜任务定义",
+        shortTitle: "任务定义",
+        groupId: "gbt-42446",
+        groupLabel: "GB/T 42446-2023",
+        columns: ["序号", "工作任务", "任务描述", "所属工作类别", "关联安全职能", "分类数量"],
+        rows: definitionRows,
+        totalRows: definitionRows.length,
+        loaded: true,
+      },
+      {
+        id: GBT_TASK_CLASSIFICATION_TABLE_ID,
+        title: "GB/T 42446-2023｜工作类别分类",
+        shortTitle: "工作类别分类",
+        groupId: "gbt-42446",
+        groupLabel: "GB/T 42446-2023",
+        columns: ["序号", "工作任务", "关联安全职能"],
+        rows: classificationRows,
+        totalRows: classificationRows.length,
+        loaded: true,
+      },
+      {
+        id: GARTNER_WORK_ROLE_TABLE_ID,
+        title: "Gartner 工作岗位参考",
+        shortTitle: "工作岗位参考",
+        groupId: "gartner",
+        groupLabel: "Gartner",
+        columns: ["序号", "岗位分类", "岗位/角色", "说明", "关联安全职能"],
+        rows: gartnerRows,
+        totalRows: gartnerRows.length,
+        loaded: true,
+      },
+    ];
+    return {
+      id: WORKFORCE_REFERENCE_FRAMEWORK_ID,
+      route: WORKFORCE_REFERENCE_ROUTE,
+      title: "人力资源 Workforce 参考标准",
+      frameworkCode: "WORKFORCE-REFERENCE",
+      summaryNote: "GB/T 42446-2023 任务定义是工作任务唯一口径，工作类别分类展示任务归属关系；Gartner 提供岗位参考。",
+      summaryBadges: [
+        { label: "GB/T 任务定义", value: definitionRows.length, unit: "项", text: `${definitionRows.length} 项任务定义` },
+        { label: "GB/T 分类行", value: classificationRows.length, unit: "条", text: `${classificationRows.length} 条分类映射` },
+        { label: "Gartner 岗位参考", value: gartnerRows.length, unit: "条", text: `${gartnerRows.length} 条岗位参考` },
+      ],
+      tabs,
+      totalRows: definitionRows.length + classificationRows.length + gartnerRows.length,
+      split: false,
+      loaded: true,
+    };
+  }
+
+  async function getWorkforceReferenceFramework() {
+    const [management, workFunctionsPayload] = await Promise.all([
+      getMaintenanceSectionPayload("references"),
+      getMaintenanceSectionPayload("work-functions"),
+    ]);
+    return workforceReferenceFrameworkFromMaintenance(management, workFunctionsPayload);
+  }
+
+  async function getStandardsWithWorkforceReferences() {
+    const [standards, workforceFramework] = await Promise.all([fetchPackage("standards"), getWorkforceReferenceFramework()]);
+    const frameworks = list(standards?.frameworks).filter((framework) => framework?.id !== WORKFORCE_REFERENCE_FRAMEWORK_ID);
+    return {
+      ...(standards || {}),
+      stats: {
+        ...(standards?.stats || {}),
+        frameworks: frameworks.length + 1,
+        workforce_reference_rows: workforceFramework.totalRows,
+      },
+      frameworks: [...frameworks, workforceFramework],
+    };
+  }
+
   async function loadStandardFramework(frameworkId) {
+    if (frameworkId === WORKFORCE_REFERENCE_FRAMEWORK_ID) return getWorkforceReferenceFramework();
     const standards = await fetchPackage("standards");
     const framework = frameworkIndexById(standards, frameworkId);
     if (!framework) return null;
@@ -734,6 +932,10 @@
   }
 
   async function loadStandardFrameworkTable(frameworkId, tableId) {
+    if (frameworkId === WORKFORCE_REFERENCE_FRAMEWORK_ID) {
+      const framework = await getWorkforceReferenceFramework();
+      return list(framework.tabs).find((table) => table.id === tableId) || null;
+    }
     const standards = await fetchPackage("standards");
     const framework = frameworkIndexById(standards, frameworkId);
     const table = list(framework?.tabs).find((tab) => tab.id === tableId);
@@ -1404,7 +1606,7 @@
     },
 
     async getStandardFrameworks() {
-      const standards = await fetchPackage("standards");
+      const standards = await getStandardsWithWorkforceReferences();
       return createEnvelope(standards);
     },
 

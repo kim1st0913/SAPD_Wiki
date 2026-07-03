@@ -87,10 +87,7 @@
             label: "安全职能清单",
             route: "/knowledge/functions",
             type: "knowledge-directory",
-            children: [
-              { id: "security-functions-gbt", label: "GB/T 42446-2023", route: "/knowledge/gbt-42446", type: "knowledge-directory", children: [] },
-              { id: "security-functions-gartner", label: "Gartner 工作岗位参考", route: "/knowledge/role-references", type: "knowledge-directory", children: [] },
-            ],
+            children: [],
           },
           { id: "hype-cycle", label: "Hype Cycle", route: "/knowledge/hype-cycle", type: "placeholder-page", children: [] },
           { id: "other-knowledge", label: "其他知识目录", route: "/knowledge/others", type: "placeholder-page", children: [] },
@@ -109,6 +106,7 @@
           { id: "cis-csc-v8", label: "CIS Controls v8.1.2", route: "/standards/cis-csc-v8", type: "standard-framework-page", children: [] },
           { id: "crf", label: "CRF Safeguards Core Edition v2026", route: "/standards/crf", type: "standard-framework-page", children: [] },
           { id: "nist-800-53-rev5", label: "NIST SP 800-53 Rev.5", route: "/standards/nist-800-53-rev5", type: "standard-framework-page", children: [] },
+          { id: "workforce-reference-standards", label: "人力资源 Workforce 参考标准", route: "/standards/workforce-reference", type: "standard-framework-page", children: [] },
           { id: "other-standards", label: "其他标准 / 框架", route: "/standards/others", type: "placeholder-page", children: [] },
         ],
       },
@@ -119,6 +117,7 @@
 
   const ROUTE_TARGETS = {
     "/": { view: "overview" },
+    "/search": { view: "search" },
     "/workbench": { view: "workbench" },
     "/workbench/annotations": { view: "workbench" },
     "/workbench/maturity": { view: "workbench" },
@@ -148,8 +147,8 @@
     "/knowledge/processes": { view: "maintenance", maintenancePage: "processes", canonicalRoute: "/knowledge/management-workflows" },
     "/knowledge/application-systems": { view: "maintenance", maintenancePage: "application-systems" },
     "/knowledge/functions": { view: "maintenance", maintenancePage: "work-functions" },
-    "/knowledge/gbt-42446": { view: "maintenance", maintenancePage: "references", referenceTab: "gbt", canonicalRoute: "/knowledge/functions" },
-    "/knowledge/role-references": { view: "maintenance", maintenancePage: "references", referenceTab: "gartner", canonicalRoute: "/knowledge/functions" },
+    "/knowledge/gbt-42446": { view: "maintenance", maintenancePage: "standards", standardFramework: "workforce-reference-standards", standardTableId: "gbt-42446-task-definitions", canonicalRoute: "/standards/workforce-reference" },
+    "/knowledge/role-references": { view: "maintenance", maintenancePage: "standards", standardFramework: "workforce-reference-standards", standardTableId: "gartner-work-roles", canonicalRoute: "/standards/workforce-reference" },
     "/knowledge/hype-cycle": { view: "placeholder", placeholder: true },
     "/knowledge/others": { view: "placeholder", placeholder: true },
     "/standards": { view: "maintenance", maintenancePage: "standards", standardFramework: "mlps-level-3" },
@@ -160,11 +159,13 @@
     "/standards/cis-csc-v8": { view: "maintenance", maintenancePage: "standards", standardFramework: "cis-csc-v8" },
     "/standards/crf": { view: "maintenance", maintenancePage: "standards", standardFramework: "crf" },
     "/standards/nist-800-53-rev5": { view: "maintenance", maintenancePage: "standards", standardFramework: "nist-800-53-rev5" },
+    "/standards/workforce-reference": { view: "maintenance", maintenancePage: "standards", standardFramework: "workforce-reference-standards" },
     "/standards/others": { view: "placeholder", placeholder: true },
   };
 
   const VIEW_ROUTES = {
     overview: "/",
+    search: "/search",
     capabilities: "/capability-mapping",
     environment: "/environment-mapping",
     "dev-lifecycle": "/development-security",
@@ -205,6 +206,7 @@
 
   const PAGE_DESCRIPTIONS = {
     "/": "查看当前已导入安全能力、信息化环境、生命周期和知识维护数据的关系覆盖状态。",
+    "/search": "跨安全能力、信息化环境、生命周期、知识库和标准 / 框架检索知识对象，并进入目标页面定位。",
     "/workbench": "集中进入 Issue 处理和成熟度评估工作流，当前为静态 mock 页面，不接真实用户数据。",
     "/workbench/annotations": "以 Review Queue 方式查看、筛选、编辑、批量处理和导出所有 Issue。",
     "/workbench/maturity": "管理成熟度评估工作、历史项目、编辑和导出入口，当前使用 mock project 数据。",
@@ -218,18 +220,20 @@
     "/development-security": "以 LC-AP安全开发生命周期阶段和活动为主语，承载受控专项关系投影。",
     "/data-security": "以 LC-DT 数据生命周期过程和场景为主语，承载数据安全服务、模块和措施的受控专项关系投影。",
     "/sapd-maturity-assessment": "成熟度评估已纳入菜单规划，评分填报和结果生成将在独立模块中实现。",
-    "/knowledge": "集中维护作用域、技术服务、技术模块、技术措施、安全工作、流程、职能和岗位参考等知识对象。",
+    "/knowledge": "集中维护作用域、技术服务、技术模块、技术措施、安全工作、流程和安全职能等知识对象。",
     "/knowledge/capabilities": "安全能力清单按 L0 能力分类、L1 能力域、L2 安全能力逐层归纳展开，并展示安全关注点表格。",
     "/knowledge/technical-services": "安全技术服务清单用于核对服务编号、定义补充状态、归属安全能力/关注点和模块关联关系。",
     "/knowledge/technical": "安全系统（为解决某一场景 / 领域的安全问题，由多个安全模块组成、协同运行的实体）；安全技术模块（实现一个或多个安全能力的安全技术逻辑实体，可以独立部署运行，通常代表一类安全产品）。",
     "/knowledge/management-workflows": "用页签集中维护安全工作清单和安全职能流程清单。",
     "/knowledge/application-systems": "来自 LC-AP 应用安全开发生命周期元素目录，按应用系统、定义和应用组件归纳展开。",
-    "/knowledge/functions": "用页签集中维护安全工作职能清单和岗位 / 职能参考目录。",
+    "/knowledge/functions": "集中维护安全工作职能清单；GB/T 与 Gartner 人力资源参考已迁移到安全标准 / 框架模块。",
     "/standards": "集中查看标准 / 框架参考及其与能力、措施和管理工作的映射关系。",
+    "/standards/workforce-reference": "集中查看 GB/T 42446-2023 工作任务定义、工作类别分类和 Gartner 工作岗位参考。",
   };
 
   const TYPE_LABELS = {
     "application-shell": "应用壳",
+    "search-page": "检索页",
     "workbench-module": "工作台",
     "workbench-page": "工作台页面",
     "document-hub": "文档集合",
@@ -275,6 +279,8 @@
       return { ...target, route: target.canonicalRoute || normalized };
     }
 
+    if (normalized.startsWith("/search")) return { view: "search", route: "/search", canonicalRoute: "/search" };
+
     if (normalized === "/workbench") return { view: "workbench", route: "/workbench", canonicalRoute: "/workbench" };
 
     if (normalized.startsWith("/workbench/annotations")) {
@@ -293,6 +299,7 @@
 
   function routeForView({ view, activeMaintenancePage, activeReferenceTab, activeContentPage, activeStandardFramework } = {}) {
     if (view === "maintenance" && activeMaintenancePage === "standards") return `/standards/${activeStandardFramework || "mlps-level-3"}`;
+    if (view === "search") return VIEW_ROUTES.search;
     if (view === "maintenance") return MAINTENANCE_ROUTES[activeMaintenancePage] || VIEW_ROUTES.maintenance;
     if (view === "content") return CONTENT_ROUTES[activeContentPage] || VIEW_ROUTES.content;
     return VIEW_ROUTES[view] || "/";
@@ -525,7 +532,9 @@
         ? "LC-AP安全开发生命周期"
         : activeRoute === "/data-security"
           ? "LC-DT数据生命周期安全"
-          : item.label;
+          : activeRoute === "/search"
+            ? "全局搜索"
+            : item.label;
     const rootRoute = parentForRoute(activeRoute)?.route || activeRoute;
     const description = PAGE_DESCRIPTIONS[activeRoute] || PAGE_DESCRIPTIONS[rootRoute] || "当前页面通过 Manifest 导航进入，业务内容由现有前端 ViewModel 渲染。";
     const target = getRouteTarget(activeRoute);
@@ -534,6 +543,7 @@
     const isGuidePage = activeRoute.startsWith("/guides/");
     const isPlaceholderPage = target.placeholder || target.view === "placeholder";
     const isWorkbenchIssuePage = activeRoute === "/workbench/annotations";
+    const typeLabel = activeRoute === "/search" ? TYPE_LABELS["search-page"] : TYPE_LABELS[item.type] || item.type;
     return `
       <section class="app-page-header" id="appPageHeader">
         <div class="page-header-copy">
@@ -542,7 +552,7 @@
             <h1>${escapeHtml(pageTitle)}</h1>
             ${isWorkbenchIssuePage ? '<span id="workbenchIssueHeaderStats" class="workbench-review-stats is-compact page-title-issue-stats" aria-label="Issue 状态筛选"></span>' : ""}
             ${isSourceTablePage ? '<span id="pageHeaderCount" class="page-title-summary" hidden></span>' : ""}
-            ${isSourceTablePage || isWorkbenchIssuePage ? "" : `<span class="shell-tag muted">${escapeHtml(TYPE_LABELS[item.type] || item.type)}</span>`}
+            ${isSourceTablePage || isWorkbenchIssuePage ? "" : `<span class="shell-tag muted">${escapeHtml(typeLabel)}</span>`}
             ${activeRoute === "/guides/security-architecture-modeling-language" ? renderModelingLanguageHeaderTabs(activeModelingLanguageTab) : ""}
             ${activeRoute === "/environment-mapping" ? renderEnvironmentHeaderTabs(activeEnvironmentTab) : ""}
           </div>
@@ -579,6 +589,7 @@
   function applyWorkbenchContainers() {
     [
       ["overviewWorkspace", "three"],
+      ["searchWorkspace", "one"],
       ["workbenchWorkspace", "one"],
       ["capabilityWorkspace", "two"],
       ["environmentWorkspace", "two"],
@@ -686,10 +697,15 @@
         <div class="capability-workspace-surface">
           <div class="capability-workspace-control" aria-label="能力映射工作区控制轨">
             <div id="capabilityViewControls" class="capability-view-controls" aria-label="能力页视图切换"></div>
-            <label class="capability-workbench-tools" aria-label="能力页局部搜索">
-              <span class="capability-search-icon" aria-hidden="true">⌕</span>
-              <input id="capabilitySearchInput" type="search" placeholder="搜索能力、服务、流程或模块/措施" autocomplete="off" />
-            </label>
+            <div class="capability-workbench-tools page-search-control" aria-label="能力页局部搜索">
+              <label class="page-search-input-shell" for="capabilitySearchInput">
+                <span class="capability-search-icon" aria-hidden="true">⌕</span>
+                <input id="capabilitySearchInput" type="search" placeholder="搜索能力、服务、流程或模块/措施" autocomplete="off" />
+              </label>
+              <span class="page-search-match-status" data-page-search-status="capability-mapping" aria-live="polite"></span>
+              <button class="page-search-step" type="button" data-page-search-step="-1" data-page-search-scope="capability-mapping" title="上一个匹配" aria-label="上一个匹配">‹</button>
+              <button class="page-search-step" type="button" data-page-search-step="1" data-page-search-scope="capability-mapping" title="下一个匹配" aria-label="下一个匹配">›</button>
+            </div>
           </div>
           <div id="detail" class="capability-relation-workspace"></div>
         </div>
@@ -724,7 +740,7 @@
   }
 
   function renderLocalModeStatus() {
-    return '<span class="status-badge"><small>运行模式</small><strong>本地</strong></span>';
+    return "";
   }
 
   components.AppShell = {

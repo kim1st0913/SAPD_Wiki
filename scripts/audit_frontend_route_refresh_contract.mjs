@@ -6,7 +6,9 @@ const appSource = readFileSync("frontend/capability-browser/app.js", "utf8");
 const checks = [
   {
     id: "hash_route_priority",
-    ok: /function routeFromBrowserLocation\(\)[\s\S]*window\.location\.hash[\s\S]*if \(hashRoute !== "\/"\) return hashRoute;/.test(appSource),
+    ok:
+      /function routeFromBrowserLocation\(\)[\s\S]*window\.location\.hash[\s\S]*if \(hashRoute !== "\/"\) return hashRoute;/.test(appSource) ||
+      /function routeFromBrowserLocation\(\)[\s\S]*const rawHashRoute = text\(window\.location\.hash \|\| ""\)\.trim\(\);[\s\S]*const hashRoute = normalizeAppRoute\(rawHashRoute\);[\s\S]*if \(hashRoute !== "\/"\) return rawHashRoute\.startsWith\("#"\) \? rawHashRoute\.slice\(1\) : rawHashRoute;/.test(appSource),
   },
   {
     id: "root_route_is_not_restored_route",

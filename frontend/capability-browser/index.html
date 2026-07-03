@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SAPD Wiki 关系工作台</title>
     <base href="/" />
-    <link rel="stylesheet" href="./styles.css?v=global-search-20260617-9-annotation-jump-p0-20260630-1-guide-slide-frame-20260630-2-oi156-final-20260630-2-annotation-governance-20260701-1-maintenance-tabs-20260701-1-workbench-module-20260701-4-capability-tabs-20260701-5-oi159-summary-20260701-1-oi159-title-tabs-20260701-1-oi159-header-position-20260701-1-oi159-summary-compact-20260702-1-oi159-header-toolbar-20260702-1-oi159-header-shelf-20260702-1-oi159-attached-control-20260702-2-oi159-corner-fix-20260702-1-oi159-l2-summary-tabs-20260702-1-oi159-reader-summary-cards-20260702-1-oi159-definition-source-20260702-1-oi159-coverage-ratio-20260702-1-oi159-coverage-denominator-scale-20260702-1-oi159-service-coverage-scale-crop-20260702-1-oi159-summary-equal-area-20260702-1" />
+    <link rel="stylesheet" href="./styles.css?v=global-search-20260617-9-annotation-jump-p0-20260630-1-guide-slide-frame-20260630-2-oi156-final-20260630-2-annotation-governance-20260701-1-maintenance-tabs-20260701-1-workbench-module-20260701-4-capability-tabs-20260701-5-oi159-summary-20260701-1-oi159-title-tabs-20260701-1-oi159-header-position-20260701-1-oi159-summary-compact-20260702-1-oi159-header-toolbar-20260702-1-oi159-header-shelf-20260702-1-oi159-attached-control-20260702-2-oi159-corner-fix-20260702-1-oi159-l2-summary-tabs-20260702-1-oi159-reader-summary-cards-20260702-1-oi159-definition-source-20260702-1-oi159-coverage-ratio-20260702-1-oi159-coverage-denominator-scale-20260702-1-oi159-service-coverage-scale-crop-20260702-1-oi159-summary-equal-area-20260702-1-global-search-page-20260702-2-global-search-action-20260703-1-global-search-scroll-20260703-1-local-mode-status-remove-20260703-1-global-search-row-only-20260703-1-workforce-reference-scroll-20260703-1-sidebar-directory-scroll-20260703-1-workforce-reference-columns-20260703-1-sidebar-scroll-architecture-20260703-1-scroll-contract-20260703-1-workforce-reference-tab-groups-20260703-4-text-selection-copy-20260703-1-oi154-page-search-nav-20260703-1-oi154-search-second-pass-20260703-1-oi154-search-final-pass-20260703-1-oi154-search-p6-20260703-1-oi154-search-p7-20260703-1" />
     <link rel="stylesheet" href="./generated/environmentBasemap.css?v=environment-basemap-20260607-5" />
   </head>
   <body>
@@ -95,6 +95,8 @@
 
       <main id="workbenchWorkspace" class="workbench-workspace is-hidden" aria-label="工作台"></main>
 
+      <main id="searchWorkspace" class="global-search-page-workspace is-hidden" aria-label="全局搜索结果"></main>
+
       <main id="capabilityWorkspace" class="capability-workspace is-hidden">
         <aside class="capability-tree-pane">
           <div class="pane-head">
@@ -134,10 +136,15 @@
           <div class="pane-head lifecycle-stage-bar">
             <h2 id="devLifecyclePageTitle"></h2>
             <div id="devLifecycleNav" class="lifecycle-nav lifecycle-stage-tabs"></div>
-            <label class="lifecycle-stage-search" for="devLifecycleStageSearch">
-              <span aria-hidden="true">⌕</span>
-              <input id="devLifecycleStageSearch" type="search" placeholder="搜索阶段、编码或活动..." autocomplete="off" />
-            </label>
+            <div class="lifecycle-stage-search page-search-control" role="search" aria-label="LC-AP 页面内搜索">
+              <label class="page-search-input-shell" for="devLifecycleStageSearch">
+                <span aria-hidden="true">⌕</span>
+                <input id="devLifecycleStageSearch" type="search" placeholder="搜索阶段、编码或活动..." autocomplete="off" />
+              </label>
+              <span class="page-search-match-status" data-page-search-status="development-security" aria-live="polite"></span>
+              <button class="page-search-step" type="button" data-page-search-step="-1" data-page-search-scope="development-security" title="上一个匹配" aria-label="上一个匹配">‹</button>
+              <button class="page-search-step" type="button" data-page-search-step="1" data-page-search-scope="development-security" title="下一个匹配" aria-label="下一个匹配">›</button>
+            </div>
           </div>
           <div id="devLifecycleLane" class="lifecycle-lane"></div>
         </section>
@@ -155,10 +162,15 @@
           <div class="pane-head lifecycle-stage-bar">
             <h2 id="dataLifecyclePageTitle"></h2>
             <div id="dataLifecycleNav" class="lifecycle-nav lifecycle-stage-tabs"></div>
-            <label class="lifecycle-stage-search" for="dataLifecycleStageSearch">
-              <span aria-hidden="true">⌕</span>
-              <input id="dataLifecycleStageSearch" type="search" placeholder="搜索过程、编码或场景..." autocomplete="off" />
-            </label>
+            <div class="lifecycle-stage-search page-search-control" role="search" aria-label="LC-DT 页面内搜索">
+              <label class="page-search-input-shell" for="dataLifecycleStageSearch">
+                <span aria-hidden="true">⌕</span>
+                <input id="dataLifecycleStageSearch" type="search" placeholder="搜索过程、编码或场景..." autocomplete="off" />
+              </label>
+              <span class="page-search-match-status" data-page-search-status="data-security" aria-live="polite"></span>
+              <button class="page-search-step" type="button" data-page-search-step="-1" data-page-search-scope="data-security" title="上一个匹配" aria-label="上一个匹配">‹</button>
+              <button class="page-search-step" type="button" data-page-search-step="1" data-page-search-scope="data-security" title="下一个匹配" aria-label="下一个匹配">›</button>
+            </div>
           </div>
           <div id="dataLifecycleMatrix" class="lifecycle-lane"></div>
         </section>
@@ -263,20 +275,20 @@
         </section>
       </div>
     </div>
-    <script src="./dataClient.js?v=p0-baseline-canonical-correction-20260615-1-environment-review-cleanup-20260624-1-local-api-auth-refresh-20260629-1-search-index-20260630-1-oi149-split-initial-20260630-1-oi149-env-projection-20260630-1-user-notes-export-20260630-1-issue-label-20260701-1"></script>
+    <script src="./dataClient.js?v=p0-baseline-canonical-correction-20260615-1-environment-review-cleanup-20260624-1-local-api-auth-refresh-20260629-1-search-index-20260630-1-oi149-split-initial-20260630-1-oi149-env-projection-20260630-1-user-notes-export-20260630-1-issue-label-20260701-1-workforce-reference-functions-20260703-2-workforce-reference-tab-groups-20260703-1"></script>
     <script src="./displayLabels.js?v=global-service-chip-text-20260611-1"></script>
-    <script src="./viewModels.js?v=global-search-20260617-9-lifecycle-annotation-jump-20260629-1-capability-projection-20260630-1-oi159-overview-mode-20260701-1-security-work-order-20260701-1-oi159-full-child-entry-20260701-1-oi159-l2-summary-tabs-20260702-1-oi159-definition-source-20260702-1-oi159-coverage-ratio-20260702-1-oi159-coverage-denominator-scale-20260702-1-oi159-service-coverage-scale-crop-20260702-1-oi159-management-denominator-20260702-1"></script>
-    <script src="./components/AppShell.js?v=global-search-20260617-9-environment-view-tab-20260630-1-workbench-module-20260701-3-issue-list-click-20260701-3-oi159-attached-control-20260702-2-sidebar-maintainer-20260702-1-brand-subtitle-20260702-1"></script>
+    <script src="./viewModels.js?v=global-search-20260617-9-lifecycle-annotation-jump-20260629-1-capability-projection-20260630-1-oi159-overview-mode-20260701-1-security-work-order-20260701-1-oi159-full-child-entry-20260701-1-oi159-l2-summary-tabs-20260702-1-oi159-definition-source-20260702-1-oi159-coverage-ratio-20260702-1-oi159-coverage-denominator-scale-20260702-1-oi159-service-coverage-scale-crop-20260702-1-oi159-management-denominator-20260702-1-oi154-environment-search-20260703-1"></script>
+    <script src="./components/AppShell.js?v=global-search-20260617-9-environment-view-tab-20260630-1-workbench-module-20260701-3-issue-list-click-20260701-3-oi159-attached-control-20260702-2-sidebar-maintainer-20260702-1-brand-subtitle-20260702-1-global-search-page-20260702-2-local-mode-status-remove-20260703-1-oi154-page-search-nav-20260703-1"></script>
     <script src="./components/StatusBadge.js"></script>
     <script src="./components/DimensionTree.js?v=capability-tree-l0-20260520-1"></script>
     <script src="./components/FocusOverview.js"></script>
     <script src="./components/FocusScopeServiceMatrix.js?v=global-service-chip-text-20260611-1"></script>
     <script src="./components/FocusManagementMapping.js?v=annotation-global-20260605-7"></script>
-    <script src="./components/EnvironmentTree.js?v=environment-summary-table-fix-20260611-1-oi156-anchor-20260630-1"></script>
+    <script src="./components/EnvironmentTree.js?v=environment-summary-table-fix-20260611-1-oi156-anchor-20260630-1-oi154-environment-search-20260703-1"></script>
     <script src="./components/EnvironmentRelationshipOverview.js?v=environment-mapping-relation-fix-20260611-2"></script>
     <script src="./components/EnvironmentScopeServiceMatrix.js?v=annotation-anchor-index-20260629-1"></script>
     <script src="./components/EnvironmentDetailPanel.js"></script>
-    <script src="./components/ApplicationSecurityLifecycle.js?v=global-search-20260617-9-lifecycle-annotation-jump-20260629-1"></script>
+    <script src="./components/ApplicationSecurityLifecycle.js?v=global-search-20260617-9-lifecycle-annotation-jump-20260629-1-oi154-search-p7-20260703-1"></script>
     <script src="./components/MaintenanceNavigation.js"></script>
     <script src="./components/MaintenanceShell.js?v=knowledge-dictionary-label-20260601-1"></script>
     <script src="./components/CapabilityDirectoryMaintenanceTable.js?v=capability-directory-definitions-20260702-1"></script>
@@ -289,7 +301,7 @@
     <script src="./components/ApplicationSystemDirectoryTable.js?v=application-system-directory-20260525-1"></script>
     <script src="./components/LcapReferenceMaintenanceTable.js?v=annotation-global-20260605-7"></script>
     <script src="./components/StandardRoleReferenceTable.js?v=p0-baseline-canonical-correction-20260615-1-security-work-code-20260701-1"></script>
-    <script src="./components/StandardFrameworkTable.js?v=global-search-20260617-9"></script>
+    <script src="./components/StandardFrameworkTable.js?v=global-search-20260617-9-workforce-reference-columns-20260703-1-workforce-reference-tab-groups-20260703-2"></script>
     <script src="./components/MaintenanceDetailPanel.js?v=annotation-global-20260605-7"></script>
     <script src="./components/TechnicalMeasureMaintenance.js"></script>
     <script src="./components/DetailInspector.js?v=annotation-global-20260605-7"></script>
@@ -297,6 +309,6 @@
     <script src="./components/EnvironmentBasemapViewer.js?v=environment-1n-aggregated-ui-20260620-1"></script>
     <script src="./generated/archimateNotationRegistry.generated.js?v=archimate-registry-derived-20260603-1"></script>
     <script src="./generated/environmentBasemap.generated.js?v=environment-basemap-20260607-5"></script>
-    <script src="./app.js?v=global-search-20260617-9-lifecycle-annotation-jump-20260629-1-oi149-loading-state-20260630-1-annotation-jump-p0-20260630-2-guide-slide-frame-20260630-2-user-notes-export-20260630-2-topbar-20260630-3-environment-view-tab-20260630-1-oi156-final-20260701-6-annotation-governance-20260701-1-oi159-overview-mode-20260701-1-workbench-module-20260701-5-capability-tabs-20260701-3-issue-list-click-20260701-3-oi159-summary-20260701-1-oi159-title-tabs-20260701-1-oi159-title-baseline-20260701-1-oi159-summary-compact-20260702-1-oi159-attached-control-20260702-2-oi159-l2-summary-tabs-20260702-1-oi159-reader-summary-cards-20260702-1-oi159-definition-source-20260702-1-oi159-coverage-ratio-20260702-1-oi159-coverage-denominator-scale-20260702-1-oi159-runtime-stats-index-20260702-1"></script>
+    <script src="./app.js?v=global-search-20260617-9-lifecycle-annotation-jump-20260629-1-oi149-loading-state-20260630-1-annotation-jump-p0-20260630-2-guide-slide-frame-20260630-2-user-notes-export-20260630-2-topbar-20260630-3-environment-view-tab-20260630-1-oi156-final-20260701-6-annotation-governance-20260701-1-oi159-overview-mode-20260701-1-workbench-module-20260701-5-capability-tabs-20260701-3-issue-list-click-20260701-3-oi159-summary-20260701-1-oi159-title-tabs-20260701-1-oi159-title-baseline-20260701-1-oi159-summary-compact-20260702-1-oi159-attached-control-20260702-2-oi159-l2-summary-tabs-20260702-1-oi159-reader-summary-cards-20260702-1-oi159-definition-source-20260702-1-oi159-coverage-ratio-20260702-1-oi159-coverage-denominator-scale-20260702-1-oi159-runtime-stats-index-20260702-1-global-search-page-20260702-3-global-search-action-20260703-1-global-search-target-route-20260703-1-global-search-scroll-20260703-1-local-mode-status-remove-20260703-1-global-search-semantic-dedupe-20260703-1-global-search-row-only-20260703-1-global-search-local-isolation-20260703-1-global-search-result-prune-20260703-1-scroll-contract-20260703-1-dashboard-coverage-matrix-remove-20260703-1-dashboard-entry-panels-remove-20260703-1-text-selection-copy-20260703-1-oi154-page-search-nav-20260703-1-oi154-search-second-pass-20260703-1-oi154-search-final-pass-20260703-1-oi154-search-p6-20260703-1-oi154-search-p7-20260703-1"></script>
   </body>
 </html>

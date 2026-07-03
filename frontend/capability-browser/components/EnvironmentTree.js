@@ -72,7 +72,8 @@
     const environmentAttr = row.environmentId ? ` data-environment-id="${utils.escapeHtml(row.environmentId)}"` : "";
     const segmentAttr = row.segmentId ? ` data-environment-segment-id="${utils.escapeHtml(row.segmentId)}"` : "";
     const objectAttr = row.objectId ? ` data-environment-object-id="${utils.escapeHtml(row.objectId)}"` : "";
-    return `${environmentAttr}${segmentAttr}${objectAttr}`;
+    const copyText = [row.title, row.code, row.meta].filter(Boolean).join(" ");
+    return `${environmentAttr}${segmentAttr}${objectAttr} data-copy-text="${utils.escapeHtml(copyText)}"`;
   }
 
   function annotationTargetForRow(row) {
@@ -104,7 +105,9 @@
   function render({ navigationTree, selectedObjectId, selectedEnvironmentId, selectedSegmentId, expandedIds, search }) {
     const rows = rowsFromTree(navigationTree);
     if (!rows.length) {
-      return '<div class="detail-empty"><strong>暂无环境对象</strong><span>请确认信息化环境维度数据是否已导出。</span></div>';
+      return String(search || "").trim()
+        ? '<div class="detail-empty"><strong>未找到匹配的信息化环境对象</strong><span>请调整页面内搜索条件。</span></div>'
+        : '<div class="detail-empty"><strong>暂无环境对象</strong><span>请确认信息化环境维度数据是否已导出。</span></div>';
     }
     const expanded = expandedIds instanceof Set ? expandedIds : new Set(utils.list(expandedIds));
     return visibleRows(rows, expanded, search)

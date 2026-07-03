@@ -119,6 +119,16 @@
       "NIST CSF功能分组": "compact-status",
       "CRF成熟度等级": "compact-status",
       "保障措施系统": "compact-status",
+      "序号": "row-index",
+      "工作任务": "work-task",
+      "任务描述": "task-description",
+      "所属工作类别": "work-category",
+      "工作类别": "work-category",
+      "分类数量": "category-count",
+      "关联安全职能": "related-work-functions",
+      "岗位分类": "role-category",
+      "岗位/角色": "role-title",
+      "说明": "role-description",
     };
     if (known[column]) return known[column];
     return cellValue(column)
@@ -182,6 +192,43 @@
     );
   }
 
+  function tabGroupKey(table, index) {
+    const title = cellValue(table?.title || table?.id);
+    if (/GB\/T\s*42446/i.test(title) || /^gbt-42446/i.test(cellValue(table?.id))) return "gbt-42446";
+    if (/Gartner/i.test(title) || /^gartner/i.test(cellValue(table?.id))) return "gartner";
+    return cellValue(table?.groupId || table?.tabGroupId || table?.groupLabel || table?.tabGroup || `tab-group-${index}`);
+  }
+
+  function tabGroupLabel(table) {
+    const title = cellValue(table?.title || table?.id);
+    if (/GB\/T\s*42446/i.test(title) || /^gbt-42446/i.test(cellValue(table?.id))) return "GB/T 42446-2023";
+    if (/Gartner/i.test(title) || /^gartner/i.test(cellValue(table?.id))) return "Gartner";
+    return cellValue(table?.groupLabel || table?.tabGroupLabel || table?.tabGroup || "");
+  }
+
+  function tabButtonLabel(table) {
+    const explicit = cellValue(table?.shortTitle || table?.tabTitle);
+    if (explicit) return explicit;
+    const title = cellValue(table?.title || table?.id || "表格");
+    return title.replace(/^GB\/T\s*42446-2023[｜|\s]+/, "").replace(/^Gartner\s+/, "") || title;
+  }
+
+  function groupedStandardTabs(tables) {
+    const groups = [];
+    utils.list(tables).forEach((table, index) => {
+      const id = tabGroupKey(table, index);
+      const label = tabGroupLabel(table);
+      let group = groups.find((item) => item.id === id);
+      if (!group) {
+        group = { id, label, tables: [] };
+        groups.push(group);
+      }
+      if (!group.label && label) group.label = label;
+      group.tables.push(table);
+    });
+    return groups;
+  }
+
   function relatedFocusCodes(value) {
     const text = cellValue(value);
     if (!text) return [];
@@ -224,6 +271,18 @@
   }
 
   function renderCell(column, value, focusByCode = {}, context = {}) {
+    if (context.activeFrameworkId === "workforce-reference-standards" && column === "关联安全职能") {
+      const labels = cellValue(value)
+        .split(/[、,，]/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+      if (!labels.length) return "";
+      return `
+        <div class="workforce-function-chip-list">
+          ${labels.map((label) => `<span class="workforce-function-chip">${utils.escapeHtml(label)}</span>`).join("")}
+        </div>
+      `;
+    }
     if (column === "关联安全能力/关注点") {
       const codes = relatedFocusCodes(value);
       if (!codes.length) return "";
@@ -311,6 +370,16 @@
             description: scfGroupDescription,
           },
         ],
+      };
+    }
+    if (activeFrameworkId === "workforce-reference-standards" && tableId === "gbt-42446-classification") {
+      return {
+        levels: [{ fields: ["工作类别"], label: (values) => values["工作类别"] }],
+      };
+    }
+    if (activeFrameworkId === "workforce-reference-standards" && tableId === "gartner-work-roles") {
+      return {
+        levels: [{ fields: ["岗位分类"], label: (values) => values["岗位分类"] }],
       };
     }
     return null;
@@ -453,6 +522,7 @@
     if (activeFrameworkId === "dsp-level-2" && tableId === "dsp-scf-maturity-2026") return " dsp-scf-table dsp-scf-maturity-table";
     if (activeFrameworkId === "crf" && tableId === "crf-safeguards-core-2026") return " crf-table crf-safeguards-table";
     if (activeFrameworkId === "crf" && tableId === "crf-maturity-model-2026") return " crf-table crf-maturity-table";
+    if (activeFrameworkId === "workforce-reference-standards") return " workforce-reference-table";
     return "";
   }
 
@@ -536,18 +606,32 @@
     }
     const normalizedActiveTableId = normalizedTables.some((table) => table.id === activeTableId) ? activeTableId : normalizedTables[0]?.id;
     const instanceId = `standard-framework-${activeFrameworkId || "standard"}-${++renderSerial}`;
+    const tabGroups = groupedStandardTabs(normalizedTables);
+    const hasTabGroups = tabGroups.some((group) => group.label) && tabGroups.length > 1;
     return `
       <div class="reference-table-stack standard-framework-stack standard-framework-tabbed" data-standard-tab-instance="${utils.escapeHtml(instanceId)}">
-        <div class="standard-framework-tabs" role="tablist">
-          ${normalizedTables
-            .map((table) => {
-              const active = table.id === normalizedActiveTableId;
-              return `
-                <button class="standard-framework-tab ${active ? "active" : ""}" type="button" role="tab" aria-selected="${active ? "true" : "false"}" data-framework-id="${utils.escapeHtml(activeFrameworkId)}" data-tab-target="${utils.escapeHtml(table.id)}">
-                  <span>${utils.escapeHtml(table.title)}</span>
-                </button>
-              `;
-            })
+        <div class="standard-framework-tabs ${hasTabGroups ? "has-tab-groups" : ""}" role="tablist" aria-label="${utils.escapeHtml(`${activeFrameworkId || "标准框架"}表格`)}">
+          ${tabGroups
+            .map(
+              (group) => `
+                <div class="standard-framework-tab-group" role="group" aria-label="${utils.escapeHtml(group.label || "表格分组")}" data-tab-group="${utils.escapeHtml(group.id)}">
+                  ${group.label ? `<span class="standard-framework-tab-group-label">${utils.escapeHtml(group.label)}</span>` : ""}
+                  <span class="standard-framework-tab-options">
+                    ${group.tables
+                      .map((table) => {
+                        const active = table.id === normalizedActiveTableId;
+                        const label = hasTabGroups ? tabButtonLabel(table) : table.title;
+                        return `
+                          <button class="standard-framework-tab ${active ? "active" : ""}" type="button" role="tab" aria-selected="${active ? "true" : "false"}" aria-label="${utils.escapeHtml(table.title || label)}" data-framework-id="${utils.escapeHtml(activeFrameworkId)}" data-tab-target="${utils.escapeHtml(table.id)}">
+                            <span>${utils.escapeHtml(label)}</span>
+                          </button>
+                        `;
+                      })
+                      .join("")}
+                  </span>
+                </div>
+              `,
+            )
             .join("")}
         </div>
         <div class="standard-framework-tab-panels">

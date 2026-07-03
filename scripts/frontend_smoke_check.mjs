@@ -32,7 +32,6 @@ const PLACEHOLDER_ROUTES = new Set([
   "/knowledge/hype-cycle",
   "/knowledge/others",
   "/standards/others",
-  "/sapd-maturity-assessment",
 ]);
 
 function argValue(name, fallback = "") {

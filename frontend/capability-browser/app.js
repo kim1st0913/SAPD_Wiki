@@ -1219,7 +1219,7 @@ function nodeBusinessText(node) {
 }
 
 function isSearchChromeNode(node) {
-  return Boolean(node?.closest?.("#globalSearchPanel, .global-search, .topbar, .page-search-control, .capability-workbench-tools, .source-catalog-tools, .lifecycle-stage-search, [data-annotation-drawer], [data-annotation-context-menu]"));
+  return Boolean(node?.closest?.("#globalSearchPanel, .global-search, .topbar, .page-local-search-toolbar, .page-search-control, .capability-workbench-tools, .source-catalog-tools, .lifecycle-stage-search, [data-annotation-drawer], [data-annotation-context-menu]"));
 }
 
 function isVisibleSearchTarget(node) {
@@ -7948,6 +7948,38 @@ function renderWorkbench() {
   syncWorkbenchIssueHeaderControls();
 }
 
+function sourceSearchPlaceholder(section = state.activeMaintenancePage) {
+  if (section === "standards") return "搜索标准、框架、控制项或条款";
+  if (section === "capability-directory") return "搜索能力、关注点、编码或层级";
+  if (section === "application-systems") return "搜索应用系统、类型或组件";
+  if (section === "services") return "搜索服务、编码、作用域或模块/措施";
+  if (section === "modules") return "搜索模块、编码、服务或作用域";
+  if (section === "measures") return "搜索措施、编码、服务或环境对象";
+  if (section === "work-functions") return "搜索职能、层级、任务或流程";
+  if (section === "references") return "搜索标准任务、岗位或关联职能";
+  return "搜索名称、编码、分组或关系";
+}
+
+function renderSourceLocalSearchToolbar(viewModel = {}, { standardsMode = false } = {}) {
+  const components = window.sapdComponents || {};
+  const scope = searchScopeForCurrentState();
+  const leading = standardsMode ? "" : components.MaintenanceShell?.render({ viewModel }) || "";
+  return `
+    <div class="source-local-search-toolbar page-local-search-toolbar ${standardsMode ? "is-standards" : "is-knowledge"}" aria-label="${standardsMode ? "标准 / 框架局部搜索" : "知识库字典局部搜索"}">
+      <div class="source-local-toolbar-leading">${leading}</div>
+      <div class="source-catalog-tools page-search-control" role="search" aria-label="${standardsMode ? "标准 / 框架页面内搜索" : "知识库字典页面内搜索"}">
+        <label class="page-search-input-shell" for="sourceSearchInput">
+          <span class="capability-search-icon" aria-hidden="true">⌕</span>
+          <input id="sourceSearchInput" type="search" value="${escapeHtml(state.search || "")}" placeholder="${escapeHtml(sourceSearchPlaceholder(viewModel.section))}" autocomplete="off" />
+        </label>
+        <span class="page-search-match-status" data-page-search-status="${escapeHtml(scope)}" aria-live="polite"></span>
+        <button class="page-search-step" type="button" data-page-search-step="-1" data-page-search-scope="${escapeHtml(scope)}" title="上一个匹配" aria-label="上一个匹配">‹</button>
+        <button class="page-search-step" type="button" data-page-search-step="1" data-page-search-scope="${escapeHtml(scope)}" title="下一个匹配" aria-label="下一个匹配">›</button>
+      </div>
+    </div>
+  `;
+}
+
 function activeWorkbenchReviewPage() {
   return $("workbenchWorkspace")?.querySelector(".workbench-route-page[aria-label='Issue 清单']") || null;
 }
@@ -9222,9 +9254,11 @@ function renderMaintenance() {
   setHtml(
     "sourceList",
     `
-      ${standardsMode ? "" : components.MaintenanceShell?.render({ viewModel }) || ""}
-      ${tableHtml || ""}
-      ${knowledgeDirectoryMode && viewModel.rows.length ? `<div class="maintenance-table-endcap">已显示全部 ${escapeHtml(viewModel.rows.length)} 条记录</div>` : ""}
+      ${renderSourceLocalSearchToolbar(viewModel, { standardsMode })}
+      <div class="source-local-search-body">
+        ${tableHtml || ""}
+        ${knowledgeDirectoryMode && viewModel.rows.length ? `<div class="maintenance-table-endcap">已显示全部 ${escapeHtml(viewModel.rows.length)} 条记录</div>` : ""}
+      </div>
     `,
   );
   hydrateMaintenanceAnnotationTargets(viewModel);
@@ -10150,7 +10184,6 @@ function bindEvents() {
     if (event.target?.id !== "environmentSearchInput") return;
     if (isComposingSearchInput(event)) return;
     const cursor = event.target.selectionStart;
-    state.activeEnvironmentTab = "mapping";
     setScopedSearch(event.target.value);
     queuePageSearchReveal(event.target.value, "environment-mapping");
     renderEnvironment();
@@ -10563,7 +10596,7 @@ async function init() {
   await loadScriptOnce("./components/LocalRelationNetworkGraph.js?v=capability-graph-controls-20260701-1", () => Boolean(window.sapdComponents?.LocalRelationNetworkGraph));
   await loadScriptOnce("./components/CapabilityLocalRelationMap.js?v=annotation-framework-anchor-20260605-1-oi156-anchor-20260630-1-oi159-overview-mode-20260701-1-capability-tabs-20260701-2-oi159-summary-20260701-1-oi159-title-tabs-20260701-1-oi159-title-baseline-20260701-1-oi159-summary-compact-20260702-1-oi159-attached-control-20260702-2-oi159-l2-summary-tabs-20260702-1-oi159-reader-summary-cards-20260702-1-oi159-definition-source-20260702-1-oi159-coverage-ratio-20260702-1-oi159-coverage-denominator-scale-20260702-1-oi159-service-coverage-scale-crop-20260702-1", () => Boolean(window.sapdComponents?.CapabilityLocalRelationMap));
   await loadScriptOnce("./models/environmentRelationGraphModel.js?v=environment-graph-20260521-1", () => Boolean(window.sapdModels?.buildEnvironmentRelationGraphModel));
-  await loadScriptOnce("./components/EnvironmentLocalRelationMap.js?v=environment-backup-tab-removal-20260629-1-oi156-anchor-20260630-1-oi154-page-search-nav-20260703-1-oi154-search-p6-20260703-1-oi154-search-p7-20260703-1", () => Boolean(window.sapdComponents?.EnvironmentLocalRelationMap));
+  await loadScriptOnce("./components/EnvironmentLocalRelationMap.js?v=environment-backup-tab-removal-20260629-1-oi156-anchor-20260630-1-oi154-page-search-nav-20260703-1-oi154-search-p6-20260703-1-oi154-search-p7-20260703-1-oi154-search-p8-20260703-1-oi154-local-search-baseline-20260703-1-oi154-all-local-search-baseline-20260703-1-oi154-search-toolbar-align-20260703-1-oi154-env-search-tab-preserve-20260703-1-oi154-basemap-search-remove-20260703-1", () => Boolean(window.sapdComponents?.EnvironmentLocalRelationMap));
   mountAppShellComponents();
   setupAnnotationSurfaceObserver();
   bindEvents();

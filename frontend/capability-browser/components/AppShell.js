@@ -69,7 +69,6 @@
       { id: "environment-mapping", label: "信息化环境安全能力映射", route: "/environment-mapping", type: "environment-mapping-workbench", children: [] },
       { id: "development-security", label: "LC-AP安全开发生命周期", route: "/development-security", type: "domain-module", children: [] },
       { id: "data-security", label: "LC-DT数据生命周期安全", route: "/data-security", type: "domain-module", children: [] },
-      { id: "sapd-maturity-assessment", label: "SAPD成熟度评估", route: "/sapd-maturity-assessment", type: "placeholder-page", children: [] },
       {
         id: "knowledge",
         label: "知识库字典",
@@ -134,7 +133,7 @@
     "/environment-mapping": { view: "environment" },
     "/development-security": { view: "dev-lifecycle" },
     "/data-security": { view: "data-lifecycle" },
-    "/sapd-maturity-assessment": { view: "placeholder", placeholder: true },
+    "/sapd-maturity-assessment": { view: "workbench", canonicalRoute: "/workbench/maturity" },
     "/knowledge": { view: "maintenance", maintenancePage: "scopes" },
     "/knowledge/capabilities": { view: "maintenance", maintenancePage: "capability-directory" },
     "/knowledge/scopes": { view: "maintenance", maintenancePage: "scopes" },
@@ -219,7 +218,6 @@
     "/environment-mapping": "从信息化环境和对象出发，核对对象、作用域、服务、模块、措施和能力关联。",
     "/development-security": "以 LC-AP安全开发生命周期阶段和活动为主语，承载受控专项关系投影。",
     "/data-security": "以 LC-DT 数据生命周期过程和场景为主语，承载数据安全服务、模块和措施的受控专项关系投影。",
-    "/sapd-maturity-assessment": "成熟度评估已纳入菜单规划，评分填报和结果生成将在独立模块中实现。",
     "/knowledge": "集中维护作用域、技术服务、技术模块、技术措施、安全工作、流程和安全职能等知识对象。",
     "/knowledge/capabilities": "安全能力清单按 L0 能力分类、L1 能力域、L2 安全能力逐层归纳展开，并展示安全关注点表格。",
     "/knowledge/technical-services": "安全技术服务清单用于核对服务编号、定义补充状态、归属安全能力/关注点和模块关联关系。",
@@ -255,7 +253,6 @@
     "environment-mapping": "◫",
     "development-security": "◇",
     "data-security": "◎",
-    "sapd-maturity-assessment": "◌",
     knowledge: "☷",
     standards: "▤",
   };
@@ -539,7 +536,6 @@
     const description = PAGE_DESCRIPTIONS[activeRoute] || PAGE_DESCRIPTIONS[rootRoute] || "当前页面通过 Manifest 导航进入，业务内容由现有前端 ViewModel 渲染。";
     const target = getRouteTarget(activeRoute);
     const isSourceTablePage = target.view === "maintenance";
-    const isStandardFrameworkPage = target.view === "maintenance" && target.maintenancePage === "standards";
     const isGuidePage = activeRoute.startsWith("/guides/");
     const isPlaceholderPage = target.placeholder || target.view === "placeholder";
     const isWorkbenchIssuePage = activeRoute === "/workbench/annotations";
@@ -559,12 +555,7 @@
           ${description ? `<p>${escapeHtml(description)}</p>` : ""}
         </div>
         ${
-          isSourceTablePage
-            ? `<label class="page-header-search" for="sourceSearchInput">
-                <span class="search-icon" aria-hidden="true">⌕</span>
-                <input id="sourceSearchInput" type="search" placeholder="搜索名称、编码、分组或关系" autocomplete="off" />
-              </label>`
-            : isWorkbenchIssuePage
+          isWorkbenchIssuePage
               ? `<div id="workbenchIssueHeaderActions" class="workbench-issue-page-actions" aria-label="Issue 导出操作"></div>`
             : isGuidePage || isPlaceholderPage
               ? ""
@@ -695,7 +686,7 @@
           <div id="capabilityFocusHeader" class="capability-focus-head-slot"></div>
         </div>
         <div class="capability-workspace-surface">
-          <div class="capability-workspace-control" aria-label="能力映射工作区控制轨">
+          <div class="capability-workspace-control page-local-search-toolbar" aria-label="能力映射工作区控制轨">
             <div id="capabilityViewControls" class="capability-view-controls" aria-label="能力页视图切换"></div>
             <div class="capability-workbench-tools page-search-control" aria-label="能力页局部搜索">
               <label class="page-search-input-shell" for="capabilitySearchInput">

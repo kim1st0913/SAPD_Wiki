@@ -20,6 +20,7 @@ const indexHtml = read("frontend/capability-browser/index.html");
 const appShell = read("frontend/capability-browser/components/AppShell.js");
 const lifecycleComponent = read("frontend/capability-browser/components/ApplicationSecurityLifecycle.js");
 const environmentLocalRelationMap = read("frontend/capability-browser/components/EnvironmentLocalRelationMap.js");
+const environmentBasemapViewer = read("frontend/capability-browser/components/EnvironmentBasemapViewer.js");
 const standardTable = read("frontend/capability-browser/components/StandardFrameworkTable.js");
 const stylesCss = read("frontend/capability-browser/styles.css");
 
@@ -30,6 +31,7 @@ const sourceInputHandler = snippet(appJs, 'if (event.target?.id !== "sourceSearc
 const devLifecycleInputHandler = snippet(appJs, '$("devLifecycleStageSearch")?.addEventListener("input"', '$("dataLifecycleStageSearch")?.addEventListener("input"');
 const dataLifecycleInputHandler = snippet(appJs, '$("dataLifecycleStageSearch")?.addEventListener("input"', '$("environmentTree")?.addEventListener("click"');
 const relationFilterHandler = snippet(appJs, 'const input = event.target.closest("[data-relation-filter]");', '$("detail")?.addEventListener("pointerdown"');
+const drawioBasemapRenderer = snippet(environmentLocalRelationMap, "function renderDrawioBasemap", "function hierarchyNodeKind");
 
 const checks = [
   {
@@ -56,8 +58,10 @@ const checks = [
   },
   {
     id: "environment_search_uses_scoped_search",
-    ok: environmentInputHandler.includes("setScopedSearch(event.target.value)"),
-    message: "environment page search must use scoped page search.",
+    ok:
+      environmentInputHandler.includes("setScopedSearch(event.target.value)") &&
+      !environmentInputHandler.includes("activeEnvironmentTab ="),
+    message: "environment page search must use scoped page search and must not force-switch environment tabs.",
   },
   {
     id: "source_search_uses_scoped_search",
@@ -74,6 +78,42 @@ const checks = [
       indexHtml.includes('id="devLifecycleStageSearch"') &&
       indexHtml.includes('id="dataLifecycleStageSearch"'),
     message: "LC-AP and LC-DT stage searches must use dedicated lifecycle stage search state.",
+  },
+  {
+    id: "page_local_search_uses_shared_visual_baseline",
+    ok:
+      appShell.includes("capability-workspace-control page-local-search-toolbar") &&
+      !appShell.includes("page-header-search") &&
+      appJs.includes("function renderSourceLocalSearchToolbar") &&
+      appJs.includes("source-local-search-toolbar page-local-search-toolbar") &&
+      appJs.includes("sourceSearchPlaceholder(viewModel.section)") &&
+      appJs.includes('data-page-search-status="${escapeHtml(scope)}"') &&
+      appJs.includes('data-page-search-scope="${escapeHtml(scope)}"') &&
+      appJs.includes(".page-local-search-toolbar") &&
+      environmentLocalRelationMap.includes("environment-workspace-control-row page-local-search-toolbar") &&
+      environmentLocalRelationMap.includes("renderEnvironmentSearchControl(search)") &&
+      !drawioBasemapRenderer.includes("toolbarSearch") &&
+      !drawioBasemapRenderer.includes("renderEnvironmentSearchControl") &&
+      indexHtml.includes("lifecycle-stage-bar page-local-search-toolbar") &&
+      indexHtml.includes("oi154-all-local-search-baseline-20260703-1") &&
+      indexHtml.includes("oi154-search-toolbar-align-20260703-1") &&
+      appJs.includes("oi154-basemap-search-remove-20260703-1") &&
+      stylesCss.includes("--page-local-search-toolbar-height") &&
+      stylesCss.includes("--page-local-search-width") &&
+      stylesCss.includes("all page-local search controls follow the capability mapping baseline") &&
+      stylesCss.includes(".app-shell-integrated .capability-workbench-tools.page-search-control") &&
+      stylesCss.includes(".app-shell-integrated .source-catalog-tools.page-search-control") &&
+      stylesCss.includes(".app-shell-integrated .environment-search-control.page-search-control") &&
+      stylesCss.includes(".app-shell-integrated .lifecycle-stage-search.page-search-control") &&
+      stylesCss.includes(".source-local-search-toolbar.page-local-search-toolbar") &&
+      stylesCss.includes(".source-local-search-body") &&
+      stylesCss.includes(".source-local-toolbar-leading .maintenance-shell-head") &&
+      stylesCss.includes(".app-shell-integrated .page-search-control #sourceSearchInput") &&
+      stylesCss.includes(".app-shell-integrated .page-search-control .page-search-match-status") &&
+      stylesCss.includes(".app-shell-integrated .page-search-control .page-search-input-shell > span") &&
+      stylesCss.includes(".environment-workspace-control-row.page-local-search-toolbar .environment-search-control.page-search-control") &&
+      stylesCss.includes("margin: -12px -12px 0"),
+    message: "capability, environment safety-tech, LC, knowledge dictionary, and standards/framework local searches must share one visual baseline; basemap tab must keep only right-aligned canvas actions.",
   },
   {
     id: "relation_filters_use_dedicated_relation_state",

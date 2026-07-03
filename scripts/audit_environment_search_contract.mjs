@@ -4,7 +4,9 @@ import vm from "node:vm";
 const viewModelsSource = fs.readFileSync("frontend/capability-browser/viewModels.js", "utf8");
 const environmentTreeSource = fs.readFileSync("frontend/capability-browser/components/EnvironmentTree.js", "utf8");
 const environmentLocalRelationMapSource = fs.readFileSync("frontend/capability-browser/components/EnvironmentLocalRelationMap.js", "utf8");
+const environmentBasemapViewerSource = fs.readFileSync("frontend/capability-browser/components/EnvironmentBasemapViewer.js", "utf8");
 const appSource = fs.readFileSync("frontend/capability-browser/app.js", "utf8");
+const stylesSource = fs.readFileSync("frontend/capability-browser/styles.css", "utf8");
 
 function snippet(source, startNeedle, endNeedle) {
   const start = source.indexOf(startNeedle);
@@ -14,6 +16,7 @@ function snippet(source, startNeedle, endNeedle) {
 }
 
 const environmentInputHandler = snippet(appSource, 'if (event.target?.id !== "environmentSearchInput") return;', '$("devLifecycleStageSearch")?.addEventListener');
+const drawioBasemapRenderer = snippet(environmentLocalRelationMapSource, "function renderDrawioBasemap", "function hierarchyNodeKind");
 
 const staticChecks = [
   {
@@ -39,33 +42,67 @@ const staticChecks = [
     ok:
       environmentInputHandler.includes('if (event.target?.id !== "environmentSearchInput") return;') &&
       environmentInputHandler.includes("if (isComposingSearchInput(event)) return;") &&
-      environmentInputHandler.includes('state.activeEnvironmentTab = "mapping";') &&
       environmentInputHandler.includes("setScopedSearch(event.target.value)") &&
       environmentInputHandler.includes('queuePageSearchReveal(event.target.value, "environment-mapping")') &&
       environmentInputHandler.includes("renderEnvironment()") &&
+      !environmentInputHandler.includes("activeEnvironmentTab =") &&
       !environmentInputHandler.includes("state.globalSearch"),
-    message: "环境页搜索必须写入页面 scope，不能写入顶部全局搜索。",
+    message: "环境页搜索必须写入页面 scope，保留当前环境 tab，不能写入顶部全局搜索。",
+  },
+  {
+    id: "environment_search_input_preserves_active_tab",
+    ok:
+      environmentLocalRelationMapSource.includes("environment-workspace-control-row page-local-search-toolbar") &&
+      environmentLocalRelationMapSource.includes("renderEnvironmentSearchControl(search)") &&
+      environmentInputHandler.includes("setScopedSearch(event.target.value)") &&
+      !environmentInputHandler.includes('state.activeEnvironmentTab = "mapping"') &&
+      !environmentInputHandler.includes("state.activeEnvironmentTab = 'mapping'"),
+    message: "环境局部搜索输入时不得强制切到“信息化环境-安全技术”tab。",
+  },
+  {
+    id: "environment_basemap_tab_has_no_local_search",
+    ok:
+      drawioBasemapRenderer.includes("components.EnvironmentBasemapViewer") &&
+      !drawioBasemapRenderer.includes("toolbarSearch") &&
+      !drawioBasemapRenderer.includes("renderEnvironmentSearchControl") &&
+      environmentBasemapViewerSource.includes("${toolbarLeading || titleBlock}") &&
+      environmentBasemapViewerSource.includes("environment-basemap-lab-head-tools"),
+    message: "信息化环境视图底图 tab 不得渲染局部搜索；底图工具栏只保留画布操作并居右。",
   },
   {
     id: "environment_search_has_visible_match_navigation",
     ok:
-      environmentLocalRelationMapSource.includes("environment-shared-search-rail") &&
-      environmentLocalRelationMapSource.includes("renderEnvironmentSearchRail(search)") &&
+      environmentLocalRelationMapSource.includes("renderEnvironmentSearchControl(search)") &&
       environmentLocalRelationMapSource.includes("environment-search-control page-search-control") &&
       !environmentLocalRelationMapSource.includes("source-catalog-tools page-search-control") &&
       environmentLocalRelationMapSource.includes('data-page-search-status="environment-mapping"') &&
       environmentLocalRelationMapSource.includes('data-page-search-step="-1"') &&
       environmentLocalRelationMapSource.includes('data-page-search-step="1"') &&
       environmentLocalRelationMapSource.includes("服务、模块、措施或系统"),
-    message: "环境页搜索入口必须位于主工作区搜索栏，并提供命中计数与上一个/下一个控件。",
+    message: "环境页搜索入口必须复用统一 page-search-control，并提供命中计数与上一个/下一个控件。",
   },
   {
-    id: "environment_search_position_is_workspace_rail",
+    id: "environment_search_position_uses_tab_toolbars",
     ok:
-      environmentLocalRelationMapSource.indexOf("environment-shared-search-rail") < environmentLocalRelationMapSource.indexOf("environment-tab-panels") &&
+      !environmentLocalRelationMapSource.includes("environment-shared-search-rail") &&
+      !stylesSource.includes(".environment-shared-search-rail") &&
+      !stylesSource.includes(".environment-search-rail") &&
+      !drawioBasemapRenderer.includes("toolbarSearch") &&
+      !drawioBasemapRenderer.includes("renderEnvironmentSearchControl") &&
+      !environmentLocalRelationMapSource.includes("toolbarLeading: renderEnvironmentSearchControl(search)") &&
+      environmentLocalRelationMapSource.includes("environment-workspace-control-row page-local-search-toolbar") &&
+      environmentBasemapViewerSource.includes("toolbarSearch") &&
+      stylesSource.includes(".environment-workspace-control-row") &&
+      stylesSource.includes(".environment-workspace-control-row.page-local-search-toolbar") &&
+      stylesSource.includes("margin: -12px -12px 0") &&
+      stylesSource.includes("--page-local-search-toolbar-height") &&
+      stylesSource.includes("--page-local-search-width") &&
+      stylesSource.includes(".environment-basemap-lab-toolbar.page-local-search-toolbar") &&
+      stylesSource.includes(".environment-workspace-control-row.page-local-search-toolbar .environment-search-control.page-search-control") &&
       appSource.includes('queuePageSearchReveal(event.target.value, "environment-mapping")') &&
-      fs.readFileSync("frontend/capability-browser/styles.css", "utf8").includes(".environment-shared-search-rail"),
-    message: "环境页搜索必须是两种环境 tab 共用的工作区顶部控制带，不得继续挤在左侧对象树或单个映射 tab 里。",
+      appSource.includes("oi154-search-toolbar-align-20260703-1") &&
+      appSource.includes("oi154-basemap-search-remove-20260703-1"),
+    message: "环境页搜索必须复用页面内搜索基线；安全技术 tab 保留搜索，底图 tab 删除搜索并将画布操作按钮居右，不得再出现独立共享白条。",
   },
   {
     id: "environment_search_preserves_input_focus",
@@ -83,7 +120,7 @@ const staticChecks = [
       environmentLocalRelationMapSource.includes("isSearchEmpty") &&
       environmentLocalRelationMapSource.includes("environment-search-empty") &&
       environmentLocalRelationMapSource.includes("未找到匹配的信息化环境对象。请调整页面内搜索条件。") &&
-      appSource.includes("oi154-search-p7-20260703-1"),
+      appSource.includes("oi154-search-p8-20260703-1"),
     message: "环境页搜索无命中时必须保留搜索栏、对象树和工作区，只显示局部无结果空态。",
   },
 ];

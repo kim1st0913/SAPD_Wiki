@@ -1307,6 +1307,8 @@
     const rootClass = "is-lab-2";
     const rootAttr = options.rootAttr || "data-environment-basemap-lab";
     const actionsLabel = options.actionsLabel || "环境底图工具";
+    const toolbarLeading = options.toolbarLeading || null;
+    const toolbarSearch = options.toolbarSearch || null;
     const actions = `
       <div class="environment-basemap-lab-actions" aria-label="${escapeHtml(actionsLabel)}">
         <button type="button" data-basemap-lab-action="fit">适应屏幕</button>
@@ -1324,15 +1326,28 @@
           </div>
         `
       : `<div class="environment-basemap-lab-title-spacer" aria-hidden="true"></div>`;
+    const toolbarBody = toolbarSearch
+      ? `
+          <div class="environment-basemap-lab-head-tools is-action-side">
+            ${actions}
+          </div>
+          <div class="environment-basemap-lab-head-tools is-search-side">
+            ${toolbarSearch}
+            ${showStatus ? `<div class="environment-basemap-lab-status" data-basemap-lab-status>${renderStatus({})}</div>` : ""}
+          </div>
+        `
+      : `
+          ${toolbarLeading || titleBlock}
+          <div class="environment-basemap-lab-head-tools">
+            ${showStatus ? `<div class="environment-basemap-lab-status" data-basemap-lab-status>${renderStatus({})}</div>` : ""}
+            ${actions}
+          </div>
+        `;
     return `
       <section class="environment-basemap-lab-shell ${rootClass}" ${rootAttr}>
         <section class="environment-basemap-lab-main is-lab-view">
-          <div class="environment-basemap-lab-toolbar">
-            ${titleBlock}
-            <div class="environment-basemap-lab-head-tools">
-              ${showStatus ? `<div class="environment-basemap-lab-status" data-basemap-lab-status>${renderStatus({})}</div>` : ""}
-              ${actions}
-            </div>
+          <div class="environment-basemap-lab-toolbar page-local-search-toolbar ${toolbarSearch ? "has-toolbar-search" : ""}">
+            ${toolbarBody}
           </div>
           <div class="basemap-lab-viewport" data-basemap-lab-viewport>
             <div class="basemap-svg-host" data-basemap-svg-host></div>

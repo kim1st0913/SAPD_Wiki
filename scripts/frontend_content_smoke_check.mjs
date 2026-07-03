@@ -58,6 +58,13 @@ function readFrontendFile(relativePath) {
   return readFileSync(join(PROJECT_ROOT, "frontend/capability-browser", relativePath), "utf8");
 }
 
+function snippet(source, startNeedle, endNeedle) {
+  const start = source.indexOf(startNeedle);
+  if (start < 0) return "";
+  const end = source.indexOf(endNeedle, start + startNeedle.length);
+  return source.slice(start, end > start ? end : start + 1400);
+}
+
 function text(value) {
   return value == null ? "" : String(value).trim();
 }
@@ -263,10 +270,24 @@ function validateLocalPackages() {
   assert(indexHtml.includes("CapabilityDirectoryMaintenanceTable.js?v=capability-directory-definitions-20260702-1"), "index.html does not cache-bust CapabilityDirectoryMaintenanceTable.js for L0/L1 definition display");
   const viewModelsSource = readFrontendFile("viewModels.js");
   const appSource = readFrontendFile("app.js");
+  const appShellSource = readFrontendFile("components/AppShell.js");
   const lifecycleComponentSource = readFrontendFile("components/ApplicationSecurityLifecycle.js");
   const environmentTreeSource = readFrontendFile("components/EnvironmentTree.js");
+  const environmentLocalRelationMapSource = readFrontendFile("components/EnvironmentLocalRelationMap.js");
+  const environmentBasemapViewerSource = readFrontendFile("components/EnvironmentBasemapViewer.js");
   const stylesSource = readFrontendFile("styles.css");
+  const drawioBasemapRenderer = snippet(environmentLocalRelationMapSource, "function renderDrawioBasemap", "function hierarchyNodeKind");
   const technicalServiceComparator = viewModelsSource.match(/function compareTechnicalServiceRows\([\s\S]*?\n  \}/)?.[0] || "";
+  assert(
+    !appShellSource.includes('id: "sapd-maturity-assessment"') &&
+      !appShellSource.includes('label: "SAPD成熟度评估"') &&
+      !appShellSource.includes("成熟度评估已纳入菜单规划") &&
+      appShellSource.includes('id: "workbench-maturity"') &&
+      appShellSource.includes('route: "/workbench/maturity"') &&
+      appShellSource.includes('"/sapd-maturity-assessment": { view: "workbench", canonicalRoute: "/workbench/maturity" }') &&
+      indexHtml.includes("maturity-directory-remove-20260704-1"),
+    "SAPD maturity assessment must be removed from the top-level directory while remaining available under workbench maturity",
+  );
   assert(!/\b(?:sortOrder|sourceOrder|order)\b[\s\S]{0,80}\|\|\s*(?:999999|Infinity|0|null)/.test(technicalServiceComparator), "technical service comparator must not use truthy OR fallback for order fields");
   assert(viewModelsSource.includes("function lifecycleWorkbenchStageSearchText"), "lifecycle stage search must build text from stage cell content");
   assert(viewModelsSource.includes("uses_development_technical_module"), "lifecycle stage search must include development technical module workbench relations");
@@ -349,17 +370,61 @@ function validateLocalPackages() {
       viewModelsSource.includes("environmentObjectSecuritySystems") &&
       environmentTreeSource.includes("未找到匹配的信息化环境对象") &&
       environmentTreeSource.includes('data-copy-text="${utils.escapeHtml(copyText)}"') &&
-      readFrontendFile("components/EnvironmentLocalRelationMap.js").includes("environment-shared-search-rail") &&
-      readFrontendFile("components/EnvironmentLocalRelationMap.js").includes("renderEnvironmentSearchRail(search)") &&
-      readFrontendFile("components/EnvironmentLocalRelationMap.js").includes("environment-search-empty") &&
+      environmentLocalRelationMapSource.includes("renderEnvironmentSearchControl(search)") &&
+      !drawioBasemapRenderer.includes("toolbarSearch") &&
+      !drawioBasemapRenderer.includes("renderEnvironmentSearchControl") &&
+      !environmentLocalRelationMapSource.includes("toolbarLeading: renderEnvironmentSearchControl(search)") &&
+      environmentLocalRelationMapSource.includes("environment-workspace-control-row page-local-search-toolbar") &&
+      !environmentLocalRelationMapSource.includes("environment-shared-search-rail") &&
+      !stylesSource.includes(".environment-shared-search-rail") &&
+      !stylesSource.includes(".environment-search-rail") &&
+      stylesSource.includes("--page-local-search-toolbar-height") &&
+      stylesSource.includes("--page-local-search-width") &&
+      stylesSource.includes(".environment-basemap-lab-toolbar.page-local-search-toolbar") &&
+      environmentBasemapViewerSource.includes("${toolbarLeading || titleBlock}") &&
+      environmentLocalRelationMapSource.includes("environment-search-empty") &&
       appSource.includes('if (!viewModel.selectedEnvironment && !text(state.search).trim())') &&
-      !readFrontendFile("components/EnvironmentLocalRelationMap.js").includes("source-catalog-tools page-search-control") &&
+      !appSource
+        .slice(
+          appSource.indexOf('if (event.target?.id !== "environmentSearchInput") return;'),
+          appSource.indexOf('$("devLifecycleStageSearch")?.addEventListener')
+        )
+        .includes("activeEnvironmentTab =") &&
+      !environmentLocalRelationMapSource.includes("source-catalog-tools page-search-control") &&
       indexHtml.includes("oi154-search-second-pass-20260703-1") &&
       indexHtml.includes("oi154-search-final-pass-20260703-1") &&
       indexHtml.includes("oi154-search-p6-20260703-1") &&
       indexHtml.includes("oi154-search-p7-20260703-1") &&
-      appSource.includes("oi154-search-p7-20260703-1"),
-    "environment page search must index object services, modules, measures and security systems, expose tree anchors, sit in the workspace rail, and cache-bust the changed resources",
+      indexHtml.includes("oi154-search-p8-20260703-1") &&
+      indexHtml.includes("oi154-local-search-baseline-20260703-1") &&
+      indexHtml.includes("oi154-all-local-search-baseline-20260703-1") &&
+      indexHtml.includes("oi154-search-toolbar-align-20260703-1") &&
+      appSource.includes("oi154-search-toolbar-align-20260703-1") &&
+      indexHtml.includes("oi154-env-search-tab-preserve-20260703-1") &&
+      appSource.includes("oi154-basemap-search-remove-20260703-1"),
+    "environment page search must index object services, modules, measures and security systems, expose tree anchors, keep safety-tech local search, remove basemap-tab local search, and cache-bust the changed resources",
+  );
+  assert(
+    readFrontendFile("components/AppShell.js").includes("capability-workspace-control page-local-search-toolbar") &&
+      !readFrontendFile("components/AppShell.js").includes("page-header-search") &&
+      appSource.includes("function renderSourceLocalSearchToolbar") &&
+      appSource.includes("source-local-search-toolbar page-local-search-toolbar") &&
+      appSource.includes("sourceSearchPlaceholder(viewModel.section)") &&
+      indexHtml.includes("lifecycle-stage-bar page-local-search-toolbar") &&
+      stylesSource.includes("all page-local search controls follow the capability mapping baseline") &&
+      stylesSource.includes(".app-shell-integrated .capability-workbench-tools.page-search-control") &&
+      stylesSource.includes(".app-shell-integrated .source-catalog-tools.page-search-control") &&
+      stylesSource.includes(".app-shell-integrated .environment-search-control.page-search-control") &&
+      stylesSource.includes(".app-shell-integrated .lifecycle-stage-search.page-search-control") &&
+      stylesSource.includes(".source-local-search-toolbar.page-local-search-toolbar") &&
+      stylesSource.includes(".source-local-search-body") &&
+      stylesSource.includes(".app-shell-integrated .page-search-control #sourceSearchInput") &&
+      stylesSource.includes(".app-shell-integrated .page-search-control .page-search-match-status") &&
+      stylesSource.includes(".app-shell-integrated .page-search-control .page-search-input-shell > span") &&
+      stylesSource.includes(".environment-workspace-control-row.page-local-search-toolbar .environment-search-control.page-search-control") &&
+      stylesSource.includes("margin: -12px -12px 0") &&
+      !drawioBasemapRenderer.includes("toolbarSearch"),
+    "capability, environment safety-tech, lifecycle, dictionary, and standards page-local searches must share the same toolbar, search pill, and counter typography; basemap tab must not render local search",
   );
   assert(
     appSource.includes("function highlightSearchText") &&

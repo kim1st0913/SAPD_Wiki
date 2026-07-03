@@ -576,7 +576,7 @@
     };
   }
 
-  function renderTopology({ viewModel, preferBasemap = true } = {}) {
+  function renderTopology({ viewModel, search = "", preferBasemap = true } = {}) {
     const basemap = preferBasemap ? renderDrawioBasemap() : "";
     if (basemap) return basemap;
     const tree = scopedHierarchyTree(viewModel);
@@ -770,19 +770,16 @@
     return viewModel?.selectedMode === "segment" ? renderSubcategoryStatistics(viewModel) : renderEnvironmentStatistics(viewModel);
   }
 
-  function renderEnvironmentSearchRail(search) {
+  function renderEnvironmentSearchControl(search, extraClass = "") {
     return `
-      <div class="environment-shared-search-rail" role="search" aria-label="信息化环境页面内搜索">
-        <span class="environment-search-rail-label">页面内搜索</span>
-        <div class="environment-search-control page-search-control">
-          <label class="page-search-input-shell" for="environmentSearchInput">
-            <span class="capability-search-icon" aria-hidden="true">⌕</span>
-            <input id="environmentSearchInput" type="search" value="${escape(search || "")}" placeholder="搜索环境、对象、作用域、服务、模块、措施或系统" />
-          </label>
-          <span class="page-search-match-status" data-page-search-status="environment-mapping" aria-live="polite"></span>
-          <button class="page-search-step" type="button" data-page-search-step="-1" data-page-search-scope="environment-mapping" title="上一个匹配" aria-label="上一个匹配">‹</button>
-          <button class="page-search-step" type="button" data-page-search-step="1" data-page-search-scope="environment-mapping" title="下一个匹配" aria-label="下一个匹配">›</button>
-        </div>
+      <div class="environment-search-control page-search-control ${escape(extraClass || "")}" role="search" aria-label="信息化环境页面内搜索">
+        <label class="page-search-input-shell" for="environmentSearchInput">
+          <span class="capability-search-icon" aria-hidden="true">⌕</span>
+          <input id="environmentSearchInput" type="search" value="${escape(search || "")}" placeholder="搜索环境、对象、作用域、服务、模块、措施或系统" />
+        </label>
+        <span class="page-search-match-status" data-page-search-status="environment-mapping" aria-live="polite"></span>
+        <button class="page-search-step" type="button" data-page-search-step="-1" data-page-search-scope="environment-mapping" title="上一个匹配" aria-label="上一个匹配">‹</button>
+        <button class="page-search-step" type="button" data-page-search-step="1" data-page-search-scope="environment-mapping" title="下一个匹配" aria-label="下一个匹配">›</button>
       </div>
     `;
   }
@@ -793,6 +790,9 @@
     const isSearchEmpty = hasSearch && !utils.list(viewModel?.navigationTree).length;
     return `
       <div class="environment-mapping-workbench ${catalogCollapsed ? "catalog-collapsed" : ""}">
+        <div class="environment-workspace-control-row page-local-search-toolbar">
+          ${renderEnvironmentSearchControl(search)}
+        </div>
         <button
           id="expandEnvironmentCatalogTab"
           class="environment-catalog-expand-tab"
@@ -859,15 +859,14 @@
     const graphVariant = "funnel";
     return `
       <section class="semantic-panel environment-relation-map environment-tabbed-map">
-        ${renderEnvironmentSearchRail(search)}
         <input class="environment-tab-input" id="environmentTabTopology" type="radio" name="environmentDetailTab" ${showMapping ? "" : "checked"}>
         <input class="environment-tab-input" id="environmentTabMapping" type="radio" name="environmentDetailTab" ${showMapping ? "checked" : ""}>
         <div class="environment-tab-panels">
           <div class="environment-tab-panel environment-tab-panel-topology">
-            ${renderTopology({ viewModel })}
+            ${showMapping ? "" : renderTopology({ viewModel, search })}
           </div>
           <div class="environment-tab-panel environment-tab-panel-mapping">
-            ${renderMappingTab({ viewModel, selectedRowId, selectedEnvironmentId, selectedSegmentId, selectedObjectId, search, expandedIds, catalogCollapsed, graphVariant })}
+            ${showMapping ? renderMappingTab({ viewModel, selectedRowId, selectedEnvironmentId, selectedSegmentId, selectedObjectId, search, expandedIds, catalogCollapsed, graphVariant }) : ""}
           </div>
         </div>
       </section>

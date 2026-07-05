@@ -15,15 +15,6 @@
       .join("");
   }
 
-  function relationBlock(label, items, empty, fallbackKind = "") {
-    return `
-      <div class="measure-relation-block">
-        <em>${utils.escapeHtml(label)}</em>
-        <span>${chipList(items, empty, fallbackKind)}</span>
-      </div>
-    `;
-  }
-
   function displayValue(value, empty = "待补充") {
     if (value == null || value === "") return empty;
     if (typeof value === "number" && Number.isNaN(value)) return empty;
@@ -46,7 +37,7 @@
               <th>${utils.escapeHtml(display.label?.("security_technical_measure", "安全技术措施") || "安全技术措施")}</th>
               <th>${utils.escapeHtml(display.relationLabel?.("security_technical_service") || "关联安全技术服务")}</th>
               <th>${utils.escapeHtml(display.relationLabel?.("scope_type") || "关联作用域")}</th>
-              <th>关联信息化环境 / 对象</th>
+              <th>关联信息化环境</th>
             </tr>
           </thead>
           <tbody>
@@ -61,8 +52,9 @@
                     <td>${chipList(row.serviceNames, row.serviceEmptyText || "待补充关联安全技术服务", "安全技术服务")}</td>
                     <td>${chipList(row.scopeNames, row.scopeEmptyText || "待补充关联作用域")}</td>
                     <td>
-                      ${relationBlock("环境", row.environmentNames, "待补充关联信息化环境", "信息化环境")}
-                      ${relationBlock("对象", row.environmentObjectNames, "待补充关联信息化对象")}
+                      <div class="environment-combo-chip-list">
+                        ${chipList(row.environmentObjectPairs, "待补充关联信息化环境", "信息化环境")}
+                      </div>
                     </td>
                   </tr>
                 `,

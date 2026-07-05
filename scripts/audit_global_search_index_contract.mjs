@@ -20,11 +20,23 @@ function argValue(name) {
   return process.argv[index + 1] || "";
 }
 
+function facetCategoryCount(data, label) {
+  const categories = Array.isArray(data?.facets?.categories) ? data.facets.categories : [];
+  const matched = categories.find((row) => row?.label === label);
+  return Number(matched?.count || 0);
+}
+
 const appJs = read("frontend/capability-browser/app.js");
 const dataClientJs = read("frontend/capability-browser/dataClient.js");
 const indexHtml = read("frontend/capability-browser/index.html");
 const stylesCss = read("frontend/capability-browser/styles.css");
 const apiServerPy = read("src/sapd_wiki/api_server.py");
+const globalSearchContract = read("docs/06-implementation/global-search-contract-2026-07-05.md");
+const apiAddSearchItem = snippet(apiServerPy, "def _add_search_item(", "def _add_navigation_search_items");
+const apiCapabilityRelation = snippet(apiServerPy, "def add_capability_relation_item(", "for service_id, focus_ids");
+const appCapabilityRelation = snippet(appJs, "const pushCapabilityRelation =", "for (const [serviceId, focusIds]");
+const apiMaintenance = snippet(apiServerPy, "def _add_maintenance_search_items(", "def _add_environment_search_items");
+const appMaintenance = snippet(appJs, "function flattenMaintenanceSearchItems(", "function flattenLifecycleSearchItems");
 
 const ensurePackages = snippet(appJs, "async function ensureGlobalSearchPackages()", "async function ensureGlobalSearchStandardDetails()");
 const ensureStandards = snippet(appJs, "async function ensureGlobalSearchStandardDetails()", "function buildGlobalSearchResults(query)");
@@ -93,8 +105,118 @@ const checks = [
       apiServerPy.includes("GB/T 42446-2023") &&
       apiServerPy.includes("Gartner 工作岗位参考") &&
       apiServerPy.includes("ArchiMate 3.2") &&
-      apiServerPy.includes("_search_compact(type_label, normalized_code, normalized_title, subtitle, search_text, aliases)"),
+      apiServerPy.includes("_identity_search") &&
+      apiServerPy.includes("_content_search") &&
+      apiServerPy.includes("_context_search"),
     message: "search index must include user-facing business aliases and type labels, not only object titles.",
+  },
+  {
+    id: "api_index_separates_identity_content_and_context_channels",
+    ok:
+      apiServerPy.includes("def _search_match_details") &&
+      apiServerPy.includes("identity = str(item.get(\"_identity_search\")") &&
+      apiServerPy.includes("content = str(item.get(\"_content_search\")") &&
+      apiServerPy.includes("context = str(item.get(\"_context_search\")") &&
+      apiServerPy.includes("if normalized_query and any(_search_is_identity_match(row) for row in rows):") &&
+      apiServerPy.includes("rows = [row for row in rows if not _search_is_weak_match(row)]"),
+    message: "global search must separate identity/content/context match channels and prune weak full-text/context matches when identity matches exist.",
+  },
+  {
+    id: "api_index_reads_wrapped_technical_services",
+    ok:
+      apiServerPy.includes('field == "security_technical_services"') &&
+      apiServerPy.includes('item.get("service")') &&
+      apiServerPy.includes("_SEARCH_BUSINESS_ALIASES_BY_CODE") &&
+      !apiServerPy.includes('"I-AP&T-PD.DP-01": "应用页面水印"') &&
+      !apiServerPy.includes('"I-DI&T-PD.DP-01": "应用页面水印"') &&
+      !apiServerPy.includes('"应用页面水印": "数据内容水印"') &&
+      !appJs.includes('"I-AP&T-PD.DP-01": "应用页面水印"') &&
+      !appJs.includes('应用页面水印: ["数据内容水印"]') &&
+      appJs.includes("GLOBAL_SEARCH_BUSINESS_ALIASES_BY_CODE") &&
+      appJs.includes('section.key === "security_technical_services" && item?.service'),
+    message: "search index must read wrapped maintenance service rows through real service.code/title without carrying watermark search aliases.",
+  },
+  {
+    id: "api_index_covers_environment_relation_nodes",
+    ok:
+      apiServerPy.includes('workbench.get("environment_scope_tree")') &&
+      apiServerPy.includes('relation_type="security_technical_service"') &&
+      apiServerPy.includes('relation_type="security_technology_module"') &&
+      apiServerPy.includes('relation_type="security_technical_measure"') &&
+      apiServerPy.includes('relation_type="security_system"') &&
+      apiServerPy.includes('object_type="information_object"') &&
+      apiServerPy.includes('"selected_environment_id"') &&
+      apiServerPy.includes('"selected_environment_segment_id"') &&
+      apiServerPy.includes('"selected_environment_object_id"') &&
+      appJs.includes("pushRelation(service, \"环境安全技术服务\"") &&
+      appJs.includes("selectedEnvironmentObjectId: objectId") &&
+      appJs.includes("function environmentSelectionForObjectId") &&
+      appJs.includes("function environmentSearchValueTargetElement"),
+    message: "global search must index environment relation nodes and route them to their owning information object.",
+  },
+  {
+    id: "environment_non_service_relation_search_does_not_inherit_service_terms",
+    ok:
+      apiAddSearchItem.includes("search_subtitle: bool = True") &&
+      apiAddSearchItem.includes('subtitle if search_subtitle else ""') &&
+      apiServerPy.includes('search_text=_search_compact(item.get("description"), item.get("category"))') &&
+      apiServerPy.includes("search_subtitle=False") &&
+      appJs.includes("searchText: compactSearchText(code, title, businessSearchAliasesForCode(code), item.description, item.category)"),
+    message: "environment relation search rows must use display subtitles only for context; relation matching must come from the title object itself.",
+  },
+  {
+    id: "capability_relation_search_does_not_inherit_focus_terms",
+    ok:
+      apiCapabilityRelation.includes('search_text=_search_compact(item.get("description"), item.get("summary"))') &&
+      apiCapabilityRelation.includes("search_subtitle=False") &&
+      !apiCapabilityRelation.includes('search_text=_search_compact(item.get("description"), item.get("summary"), focus, trail)') &&
+      appCapabilityRelation.includes("searchText: compactSearchText(code, title, item.description, item.summary, globalSearchBusinessAliasesForCode(code))") &&
+      !appCapabilityRelation.includes("item.description, item.summary, trail"),
+    message: "capability relation rows must not inherit parent capability/focus terms such as 密码 into child service/module/measure search text.",
+  },
+  {
+    id: "maintenance_catalog_search_does_not_inherit_related_objects",
+    ok:
+      apiMaintenance.includes('search_text=_search_compact(entity.get("description"), entity.get("summary"), entity.get("definition"))') &&
+      !apiMaintenance.includes('item.get("modules"), item.get("systems"), item.get("products"), item.get("environments")') &&
+      appMaintenance.includes("searchText: compactSearchText(code, title, businessSearchAliasesForCode(code), entity.description, entity.definition, entity.summary)") &&
+      !appMaintenance.includes("item.modules, item.systems, item.products, item.environments"),
+    message: "maintenance catalog rows must not be searchable through related modules/systems/products/environments; related objects belong in context views, not main result matching.",
+  },
+  {
+    id: "api_index_covers_capability_relation_nodes",
+    ok:
+      apiServerPy.includes('read_data_package("capability-workbench")') &&
+      apiServerPy.includes('"capability-workbench"') &&
+      apiServerPy.includes('relation_type == "supports_focus"') &&
+      apiServerPy.includes('relation_type == "implemented_by_module"') &&
+      apiServerPy.includes('relation_type == "has_measure"') &&
+      apiServerPy.includes('"selected_capability_id"') &&
+      apiServerPy.includes('target_ref=f"capability_relation:{relation_type}:{focus_id}:{item_id}"') &&
+      appJs.includes("function capabilitySearchValueTargetElement") &&
+      appJs.includes("selected_capability_id") &&
+      appJs.includes("capability_relation:") &&
+      appJs.includes("flattenCapabilitySearchItems(state.capability, state.capabilityWorkbench)"),
+    message: "global search must index capability relation nodes and route them to their owning focus without using aliases.",
+  },
+  {
+    id: "capability_tree_search_uses_own_fields_not_parent_trail",
+    ok:
+      apiServerPy.includes("search_subtitle=False") &&
+      appJs.includes("searchText: compactSearchText(code, title, item.description)") &&
+      !appJs.includes("searchText: compactSearchText(code, title, item.description, trail)"),
+    message: "capability tree rows must not be searchable only through parent trail labels.",
+  },
+  {
+    id: "frontend_environment_global_search_reveals_catalog",
+    ok:
+      appJs.includes("function revealEnvironmentCatalogSelection") &&
+      appJs.includes('const root = $("environmentTree")') &&
+      appJs.includes('"data-environment-object-id"') &&
+      appJs.includes("state.environmentCatalogCollapsed = false") &&
+      appJs.includes("revealEnvironmentCatalogSelection(result)") &&
+      appJs.indexOf("revealEnvironmentCatalogSelection(result)") > appJs.indexOf("renderEnvironment();"),
+    message: "environment global-search activation must scroll the left catalog selection as well as the right-side relation node.",
   },
   {
     id: "api_index_supports_light_fuzzy_matching",
@@ -103,8 +225,19 @@ const checks = [
       apiServerPy.includes("def _search_plain") &&
       apiServerPy.includes("def _search_damerau_distance_at_most_one") &&
       apiServerPy.includes("def _search_fuzzy_token_match") &&
-      apiServerPy.includes("_search_fuzzy_token_match(variants[0], title, code, haystack)"),
+      apiServerPy.includes("_search_fuzzy_token_match(variants[0], title, code, target_text, identity)"),
     message: "search index must support controlled normalization and light fuzzy matching for codes, aliases, and common typos.",
+  },
+  {
+    id: "frontend_fallback_separates_identity_content_and_context_channels",
+    ok:
+      appJs.includes("function globalSearchMatchDetails") &&
+      appJs.includes("matchKind: \"content_contains\"") &&
+      appJs.includes("function isGlobalSearchIdentityMatch") &&
+      appJs.includes("function isGlobalSearchWeakMatch") &&
+      appJs.includes("rows.some(isGlobalSearchIdentityMatch)") &&
+      appJs.includes("rows.filter(isGlobalSearchWeakMatch).forEach((row) => dropRows.add(row))"),
+    message: "frontend fallback global search must mirror backend identity-first relevance pruning.",
   },
   {
     id: "api_index_returns_match_context",
@@ -142,7 +275,7 @@ const checks = [
       appJs.includes("chooseMoreSpecificGlobalSearchResult") &&
       appJs.includes("exactLifecycleRoutes.has(route)") &&
       appJs.includes("isLifecycleNonContextResult(result)") &&
-      appJs.includes("mergeGlobalSearchResults(indexedResults, buildGlobalSearchResults(query), query)") &&
+      appJs.includes("mergeGlobalSearchResults(indexedResults, buildGlobalSearchResults(query, resultLimit), query, resultLimit)") &&
       indexHtml.includes("global-search-result-prune-20260703-1") &&
       indexHtml.includes("oi154-page-search-nav-20260703-1"),
     message: "frontend search result merge must prune display duplicates and lifecycle parent-container hits after API/fallback merge.",
@@ -175,6 +308,152 @@ const checks = [
     message: "search index must use standards-index, not standards full compat with all detail tables.",
   },
   {
+    id: "global_search_indexes_standard_detail_rows",
+    ok:
+      apiServerPy.includes("STANDARD_SEARCH_CODE_FIELDS") &&
+      apiServerPy.includes('"Safeguard ID"') &&
+      apiServerPy.includes('"SCF编号"') &&
+      apiServerPy.includes('"保障措施描述"') &&
+      apiServerPy.includes('"SCF控制项"') &&
+      apiServerPy.includes("def _standard_detail_payloads") &&
+      apiServerPy.includes('object_type="standard_control"') &&
+      apiServerPy.includes("def _dedupe_search_results") &&
+      apiServerPy.includes("def _spread_standard_search_results") &&
+      apiServerPy.includes('"standardFramework": framework_id') &&
+      apiServerPy.includes('"standardTableId": table_id') &&
+      apiServerPy.includes('"selectedMaintenanceId": row_id') &&
+      appJs.includes('values?.["Safeguard ID"]') &&
+      appJs.includes('values?.["SCF编号"]') &&
+      appJs.includes('objectType === "standard_control"') &&
+      appJs.includes('targetRef.startsWith("standard_control:")'),
+    message: "global search must index standards/framework detail rows and carry row-level reveal fields.",
+  },
+  {
+    id: "global_search_counts_use_facets_not_result_window",
+    ok:
+      apiServerPy.includes("def _search_result_facets") &&
+      apiServerPy.includes('"facets": facets') &&
+      apiServerPy.includes('"by_category": facets["by_category"]') &&
+      appJs.includes("globalSearchResultStats") &&
+      appJs.includes("function normalizeGlobalSearchStats") &&
+      appJs.includes("GLOBAL_SEARCH_PAGE_RESULT_LIMIT = 120") &&
+      appJs.includes("globalSearchCategoryCount(resultStats, state.globalSearchPageFilter") &&
+      appJs.includes("const activeTotal = hasQuery ? globalSearchCategoryCount") &&
+      globalSearchContract.includes("全量命中计数") &&
+      globalSearchContract.includes("当前返回 / 展示窗口") &&
+      globalSearchContract.includes("facets.categories"),
+    message: "global search counts must come from API facets, not from the current returned result window.",
+  },
+  {
+    id: "global_search_result_page_pagination_and_sticky_context",
+    ok:
+      appJs.includes("GLOBAL_SEARCH_PAGE_SIZE = 20") &&
+      appJs.includes("globalSearchPageIndex") &&
+      appJs.includes("globalSearchPageRequestSeq") &&
+      appJs.includes("async function runGlobalSearchPage") &&
+      appJs.includes("const offset = (pageIndex - 1) * GLOBAL_SEARCH_PAGE_SIZE") &&
+      appJs.includes("searchIndexPayloadForQuery(query, GLOBAL_SEARCH_PAGE_SIZE, { offset, category })") &&
+      apiServerPy.includes("def search_index_payload(query: str = \"\", limit: int = 80, offset: int = 0, category: str = \"\")") &&
+      apiServerPy.includes("window_rows[safe_offset:safe_offset + safe_limit]") &&
+      apiServerPy.includes('"window": {') &&
+      dataClientJs.includes("queryParams.set(\"offset\", String(offset))") &&
+      dataClientJs.includes("queryParams.set(\"category\", category)") &&
+      appJs.includes("function renderGlobalSearchPagination") &&
+      appJs.includes("data-search-page-page") &&
+      appJs.includes("data-search-page-jump") &&
+      appJs.includes("state.globalSearchPageIndex = 1") &&
+      stylesCss.includes(".global-search-page-sticky") &&
+      stylesCss.includes("position: sticky") &&
+      stylesCss.includes(".global-search-pagination") &&
+      stylesCss.includes(".global-search-pagination.is-top") &&
+      stylesCss.includes(".global-search-pagination-jump") &&
+      indexHtml.includes("oi181-search-results-memory-offset-20260705-1") &&
+      globalSearchContract.includes("每页 `20` 条分页展示") &&
+      globalSearchContract.includes("sticky 固定上下文栏"),
+    message: "global search result page must paginate by API offset windows, expose top/bottom pagination and jump-to-page, and keep query/facet context sticky without changing search rules.",
+  },
+  {
+    id: "global_search_page_history_and_preview_are_isolated",
+    ok:
+      appJs.includes("globalSearchPageRequestSeq") &&
+      appJs.includes("++state.globalSearchPageRequestSeq") &&
+      appJs.includes("++state.globalSearchRequestSeq") &&
+      appJs.includes("searchHistoryKindForInput") &&
+      appJs.includes("SEARCH_HISTORY_MAX_ITEMS = 10") &&
+      appJs.includes("SEARCH_HISTORY_COLLAPSED_ITEMS = 5") &&
+      appJs.includes("data-search-history-clear") &&
+      appJs.includes("data-search-history-remove") &&
+      appJs.includes("data-search-history-expand") &&
+      appJs.includes("id=\"searchPageQueryInput\"") &&
+      indexHtml.includes("data-search-history-kind=\"global\"") &&
+      globalSearchContract.includes("预览面板和结果页搜索请求必须使用独立加载状态"),
+    message: "global search preview, search page loading, and custom search-history memory must be isolated and explicitly controlled.",
+  },
+  {
+    id: "global_search_history_commits_loaded_queries_immediately",
+    ok:
+      appJs.includes("function rememberCommittedSearchQuery") &&
+      appJs.includes("function commitLoadedSearchHistoryForInput") &&
+      appJs.includes("function globalSearchQueryHasLoaded") &&
+      appJs.includes("rememberCommittedSearchQuery(\"global\", query)") &&
+      appJs.includes("refreshSearchHistoryPanelForKind(targetKind)") &&
+      appJs.includes("clearSearchHistoryCommitTimersForKind(targetKind)") &&
+      globalSearchContract.includes("已经执行并完成加载的查询必须立即进入搜索历史") &&
+      globalSearchContract.includes("不得只依赖输入防抖"),
+    message: "executed global-search queries must be committed to custom history immediately and refresh an open history panel.",
+  },
+  {
+    id: "global_search_pagination_controls_keep_text_width",
+    ok:
+      appJs.includes("global-search-pagination-button is-boundary") &&
+      stylesCss.includes(".global-search-pagination-button.is-boundary") &&
+      stylesCss.includes(".global-search-page-results > .pane-head .global-search-pagination-button") &&
+      stylesCss.includes("white-space: nowrap") &&
+      globalSearchContract.includes("文字命令按钮") &&
+      globalSearchContract.includes("不得继承 30px 图标按钮宽度"),
+    message: "search pagination prev/next controls must keep stable text-button width inside pane headers.",
+  },
+  {
+    id: "local_search_history_scopes_are_domain_specific",
+    ok:
+      appJs.includes("SEARCH_HISTORY_INPUT_SELECTOR") &&
+      appJs.includes("function searchHistoryKindForInput") &&
+      appJs.includes("function sourceSearchHistoryKind") &&
+      appJs.includes('capability: "安全能力页搜索记录"') &&
+      appJs.includes('environment: "信息化环境页搜索记录"') &&
+      appJs.includes('"lc-ap": "LC-AP 页搜索记录"') &&
+      appJs.includes('"lc-dt": "LC-DT 页搜索记录"') &&
+      appJs.includes('knowledge: "知识库页搜索记录"') &&
+      appJs.includes('standards: "标准 / 框架页搜索记录"') &&
+      appJs.includes('"workbench-issues": "Issue 筛选记录"') &&
+      appJs.includes("#environmentSearchInput") &&
+      appJs.includes("#devLifecycleStageSearch") &&
+      appJs.includes("#dataLifecycleStageSearch") &&
+      appJs.includes("#sourceSearchInput") &&
+      appJs.includes("#workbenchIssueSearchInput") &&
+      appJs.includes('id="workbenchIssueSearchInput"') &&
+      appJs.includes('autocomplete="off" data-search-history-kind="workbench-issues" data-review-filter-control="search"') &&
+      appJs.includes("scheduleSearchHistoryCommit(event.target, event.target.value)") &&
+      appJs.includes("scheduleSearchHistoryCommit(filterControl, filterControl.value)") &&
+      indexHtml.includes('data-search-history-kind="capability"') &&
+      indexHtml.includes('data-search-history-kind="lc-ap"') &&
+      indexHtml.includes('data-search-history-kind="lc-dt"') &&
+      read("frontend/capability-browser/components/EnvironmentLocalRelationMap.js").includes('autocomplete="off" data-search-history-kind="environment"') &&
+      globalSearchContract.includes("按业务域隔离") &&
+      globalSearchContract.includes("工作台 Issue 使用 `workbench-issues`"),
+    message: "local page-search inputs must disable native browser autocomplete while keeping custom history scoped by business domain.",
+  },
+  {
+    id: "search_index_quality_probe_audit_exists",
+    ok:
+      fs.existsSync(path.join(ROOT, "scripts/audit_search_index_quality_probes.py")) &&
+      read("scripts/audit_search_index_quality_probes.py").includes("SEARCH_INDEX_COVERAGE_MATRIX") &&
+      read("scripts/audit_search_index_quality_probes.py").includes("coverage_{slug}_click_locator") &&
+      read("scripts/audit_search_index_quality_probes.py").includes("coverage_{slug}_counterexample") &&
+      globalSearchContract.includes("python3 scripts/audit_search_index_quality_probes.py"),
+    message: "global search must have a semantic quality probe audit for domain coverage, click locators, counterexamples, windowing, weak-hit pruning, and field boundaries.",
+  },
+  {
     id: "data_client_search_index_method",
     ok: dataClientJs.includes('searchIndex: "/api/v1/search-index"') && dataClientJs.includes("async getSearchIndex(params = {})"),
     message: "dataClient must expose getSearchIndex() against /api/v1/search-index.",
@@ -184,8 +463,10 @@ const checks = [
     ok:
       appJs.includes("function normalizeGlobalSearchIndexResult") &&
       appJs.includes("function searchIndexPayloadFromEnvelope") &&
+      appJs.includes("async function searchIndexPayloadForQuery") &&
       appJs.includes("async function searchIndexResultsForQuery") &&
-      runGlobalSearch.includes("searchIndexResultsForQuery(query)"),
+      runGlobalSearch.includes("searchIndexPayloadForQuery(query, resultLimit)") &&
+      runGlobalSearch.includes("const indexedResults = indexedPayload.results"),
     message: "runGlobalSearch must query the lightweight search index before rendering results.",
   },
   {
@@ -211,18 +492,19 @@ const checks = [
   },
   {
     id: "global_search_keeps_loaded_fallback",
-    ok: runGlobalSearch.includes("mergeGlobalSearchResults(indexedResults, buildGlobalSearchResults(query), query)"),
+    ok: runGlobalSearch.includes("mergeGlobalSearchResults(indexedResults, buildGlobalSearchResults(query, resultLimit), query, resultLimit)"),
     message: "global search should keep current loaded-data fallback while using search index first.",
   },
   {
     id: "global_search_result_page_uses_same_index_flow",
     ok:
       appJs.includes("function renderSearchPage()") &&
-      appJs.includes("runGlobalSearch({ panel: false })") &&
-      appJs.includes("state.globalSearchLoadedQuery !== query") &&
+      appJs.includes("runGlobalSearchPage()") &&
+      appJs.includes("globalSearchPageWindowMatches") &&
+      appJs.includes("state.globalSearchPageLoading") &&
       appJs.includes("function openGlobalSearchPage") &&
       indexHtml.includes('id="searchWorkspace"'),
-    message: "global search result page must reuse runGlobalSearch without triggering full package preloads.",
+    message: "global search result page must use its own page-window loader without triggering full package preloads or cancelling preview search.",
   },
   {
     id: "global_search_result_row_direct_activation",
@@ -231,11 +513,11 @@ const checks = [
       appJs.includes("data-search-page-result") &&
       appJs.includes("const result = globalSearchPageResultForKey(row.dataset.searchPageResult)") &&
       appJs.includes("activateGlobalSearchResult(result)") &&
-      appJs.includes("点击任一结果进入定位") &&
+      !appJs.includes("每页 20 条，点击任一结果进入定位") &&
       !appJs.includes("data-search-page-open-result") &&
       !appJs.includes("打开定位") &&
       !stylesCss.includes(".global-search-page-row-action"),
-    message: "search result page rows must be the only visible activation target.",
+    message: "search result page rows must be the only visible activation target and the old explanatory header text must not return.",
   },
   {
     id: "global_search_page_clicks_capture_before_shell_handlers",
@@ -290,6 +572,10 @@ const checks = [
       indexHtml.includes("global-search-row-only-20260703-1") &&
       indexHtml.includes("global-search-local-isolation-20260703-1") &&
       indexHtml.includes("global-search-result-prune-20260703-1") &&
+      indexHtml.includes("oi175-standards-detail-search-20260705-1") &&
+      indexHtml.includes("oi176-global-search-counts-20260705-1") &&
+      indexHtml.includes("oi182-search-history-pagination-20260705-1") &&
+      indexHtml.includes("oi184-search-index-quality-20260705-1") &&
       indexHtml.includes("app.js?v="),
     message: "index.html must cache-bust dataClient.js and app.js for search-index changes.",
   },
@@ -333,8 +619,38 @@ if (url) {
       message: "runtime search-index titles must not expose backend UUID/hash object IDs.",
       detail: { internalDisplayLeaks },
     });
+    const broadAiEndpoint = `${url.replace(/\/$/, "")}/api/v1/search-index?q=${encodeURIComponent("人工")}&limit=40`;
+    const broadAiResponse = await fetch(broadAiEndpoint, { cache: "no-store" });
+    const broadAiPayload = await broadAiResponse.json();
+    const broadAiData = broadAiPayload?.data || broadAiPayload;
+    const broadAiResults = Array.isArray(broadAiData?.results) ? broadAiData.results : [];
+    const returnedStandardCount = broadAiResults.filter((result) => String(result?.route || "").startsWith("/standards")).length;
+    const standardFacetCount = facetCategoryCount(broadAiData, "标准 / 框架");
+    checks.push({
+      id: "runtime_facets_count_broad_query_beyond_return_window",
+      ok:
+        broadAiResponse.ok &&
+        broadAiData?.facets?.total === broadAiData?.stats?.matched &&
+        broadAiData?.facets?.returned === broadAiResults.length &&
+        broadAiData?.facets?.truncated === true &&
+        standardFacetCount > returnedStandardCount &&
+        standardFacetCount >= 100,
+      message: "runtime broad queries such as 人工 must report total category counts via facets, not the first returned window.",
+      detail: {
+        status: broadAiResponse.status,
+        returned: broadAiResults.length,
+        total: broadAiData?.facets?.total,
+        returnedStandardCount,
+        standardFacetCount,
+      },
+    });
     const technicalTabRouteIssues = results
       .filter((result) => result?.object_type === "security_technical_measure" || result?.object_type === "security_technology_module")
+      .filter((result) => {
+        const targetRef = String(result?.target_ref || result?.targetRef || "");
+        if (targetRef.startsWith("capability_relation:")) return false;
+        return !/^security_technical_(?:measure|module):[^:]+:[^:]+/.test(targetRef);
+      })
       .filter((result) => {
         if (result.object_type === "security_technical_measure") return result.route !== "/knowledge/technical-measures";
         return result.route !== "/knowledge/technical-modules";
@@ -357,7 +673,14 @@ if (url) {
       .map((result) => ({ title: result.title, route: result.route }));
     const passwordKeys = new Map();
     for (const result of passwordResults) {
-      const key = [result?.type_label || result?.typeLabel || result?.type, result?.route, result?.object_id || result?.id, result?.title].join("::");
+      const contextId =
+        result?.selected_capability_id ||
+        result?.selectedCapabilityId ||
+        result?.selected_environment_object_id ||
+        result?.selectedEnvironmentObjectId ||
+        result?.object_id ||
+        result?.id;
+      const key = [result?.type_label || result?.typeLabel || result?.type, result?.route, contextId, result?.object_id || result?.id, result?.title].join("::");
       passwordKeys.set(key, (passwordKeys.get(key) || 0) + 1);
     }
     const duplicatePasswordResults = [...passwordKeys.entries()].filter(([, count]) => count > 1).map(([key, count]) => ({ key, count }));
@@ -424,6 +747,68 @@ if (url) {
         hits: contextualOutsourceHits.slice(0, 5).map((result) => ({ title: result.title, typeLabel: result.typeLabel || result.type_label, subtitle: result.subtitle, match_context: result.match_context })),
       },
     });
+    const desensitizationEndpoint = `${url.replace(/\/$/, "")}/api/v1/search-index?q=${encodeURIComponent("数据脱敏")}&limit=80`;
+    const desensitizationResponse = await fetch(desensitizationEndpoint, { cache: "no-store" });
+    const desensitizationPayload = await desensitizationResponse.json();
+    const desensitizationData = desensitizationPayload?.data || desensitizationPayload;
+    const desensitizationResults = Array.isArray(desensitizationData?.results) ? desensitizationData.results : [];
+    const forbiddenInheritedRelationTitles = ["数据安全防护", "数据安全网关", "云原生数据安全防护"];
+    const inheritedRelationHits = desensitizationResults
+      .filter((result) => forbiddenInheritedRelationTitles.some((title) => `${result?.title || ""} ${result?.target_text || result?.targetText || ""}`.includes(title)))
+      .map((result) => ({ title: result.title, route: result.route, typeLabel: result.typeLabel || result.type_label, target_ref: result.target_ref }));
+    const directDesensitizationHits = desensitizationResults.filter((result) => /数据脱敏/.test(`${result?.title || ""} ${result?.target_text || result?.targetText || ""}`));
+    checks.push({
+      id: "runtime_desensitization_query_stays_on_desensitization_targets",
+      ok: desensitizationResponse.ok && directDesensitizationHits.length > 0 && inheritedRelationHits.length === 0,
+      message: "runtime query 数据脱敏 must return concrete desensitization targets and must not surface related gateway/security-system/module rows through inherited service context.",
+      detail: {
+        status: desensitizationResponse.status,
+        directHitCount: directDesensitizationHits.length,
+        inheritedRelationHits,
+      },
+    });
+    const directPasswordGoldenTitles = ["T-AS.CG 密码服务能力", "密码管理器", "无密码和多因素认证", "网络安全建设-密码技术应用"];
+    const directPasswordForbiddenTitles = [
+      "API网关",
+      "I-AP&T-AS.CG-01 应用层数据加解密",
+      "I-AP&T-AS.CG-02 应用程序完整性校验",
+      "I-AP&T-AS.IA-02 应用身份认证",
+      "T-AS.IA-02 针对不同访问主体执行满足安全需求的身份认证机制",
+      "T-AS.IA-04 管理和维护凭证的完整生命周期",
+      "特权账号管理",
+    ];
+    const directPasswordGoldenHits = directPasswordGoldenTitles.filter((title) => passwordResults.some((result) => `${result?.title || ""} ${result?.target_text || result?.targetText || ""}`.includes(title)));
+    const directPasswordForbiddenHits = passwordResults
+      .filter((result) => directPasswordForbiddenTitles.some((title) => `${result?.title || ""} ${result?.target_text || result?.targetText || ""}`.includes(title)))
+      .map((result) => ({ title: result.title, route: result.route, typeLabel: result.typeLabel || result.type_label, target_ref: result.target_ref, match_kind: result.match_kind || result.matchKind }));
+    const weakPasswordHits = passwordResults.filter((result) => /^(?:content|context)_/.test(`${result?.match_kind || result?.matchKind || ""}`));
+    checks.push({
+      id: "runtime_password_query_stays_on_direct_password_targets",
+      ok: passwordResponse.ok && directPasswordGoldenHits.length >= 3 && directPasswordForbiddenHits.length === 0 && weakPasswordHits.length === 0,
+      message: "runtime query 密码 must be identity-first: direct title/code/name matches stay, broad description/context-only rows are pruned from the main result set.",
+      detail: {
+        status: passwordResponse.status,
+        resultCount: passwordResults.length,
+        directPasswordGoldenHits,
+        directPasswordForbiddenHits,
+        weakPasswordHits: weakPasswordHits.map((result) => ({ title: result.title, match_kind: result.match_kind || result.matchKind })),
+      },
+    });
+    const passwordEscrowEndpoint = `${url.replace(/\/$/, "")}/api/v1/search-index?q=${encodeURIComponent("密码托管")}&limit=20`;
+    const passwordEscrowResponse = await fetch(passwordEscrowEndpoint, { cache: "no-store" });
+    const passwordEscrowPayload = await passwordEscrowResponse.json();
+    const passwordEscrowData = passwordEscrowPayload?.data || passwordEscrowPayload;
+    const passwordEscrowResults = Array.isArray(passwordEscrowData?.results) ? passwordEscrowData.results : [];
+    const passwordEscrowHits = passwordEscrowResults.filter((result) => /特权账号管理/.test(`${result?.title || ""} ${result?.target_text || result?.targetText || ""}`));
+    checks.push({
+      id: "runtime_specific_content_query_still_finds_content_targets",
+      ok: passwordEscrowResponse.ok && passwordEscrowHits.length > 0 && passwordEscrowHits.every((result) => /^(?:content|title|identity)_/.test(`${result?.match_kind || result?.matchKind || ""}`)),
+      message: "specific content queries such as 密码托管 must still find their true content targets after broad weak-match pruning.",
+      detail: {
+        status: passwordEscrowResponse.status,
+        hits: passwordEscrowHits.map((result) => ({ title: result.title, typeLabel: result.typeLabel || result.type_label, match_kind: result.match_kind || result.matchKind })),
+      },
+    });
     const coverageCases = [
       {
         id: "runtime_workforce_gartner_alias",
@@ -434,6 +819,17 @@ if (url) {
         id: "runtime_workforce_gbt_alias",
         query: "GB/T 42446",
         match: (result) => result?.route === "/standards/workforce-reference" && /GB\/T 42446|任务|网络安全/i.test(`${result?.title || ""} ${result?.typeLabel || result?.type_label || ""} ${result?.target_text || ""}`),
+      },
+      {
+        id: "runtime_standard_detail_artificial_intelligence",
+        query: "人工智能",
+        match: (result) =>
+          result?.object_type === "standard_control" &&
+          /^\/standards\/(?:crf|dsp-level-2)$/.test(result?.route || "") &&
+          /人工智能|Artificial Intelligence|AI/.test(`${result?.title || ""} ${result?.target_text || result?.targetText || ""} ${result?.match_context || result?.matchContext || ""}`) &&
+          Boolean(result?.standardFramework || result?.standard_framework) &&
+          Boolean(result?.standardTableId || result?.standard_table_id) &&
+          Boolean(result?.selectedMaintenanceId || result?.selected_maintenance_id || result?.object_id),
       },
       {
         id: "runtime_archimate_navigation_alias",
@@ -461,6 +857,36 @@ if (url) {
         match: (result) => /零信任/.test(`${result?.title || ""} ${result?.target_text || ""}`),
       },
       {
+        id: "runtime_environment_relation_node_zero_trust",
+        query: "零信任访问控制台",
+        match: (result) => result?.route === "/environment-mapping" && result?.object_type === "information_object" && /^security_technology_module:/.test(result?.target_ref || ""),
+      },
+      {
+        id: "runtime_wrapped_service_code_iap_watermark",
+        query: "I-AP&T-PD.DP-01",
+        match: (result) => result?.route === "/knowledge/technical-services" && /I-AP&T-PD\.DP-01/.test(`${result?.title || ""} ${result?.code || ""}`),
+      },
+      {
+        id: "runtime_current_service_title_app_page_watermark",
+        query: "应用页面水印",
+        match: (result) =>
+          result?.route === "/knowledge/technical-services" &&
+          /I-AP&T-PD\.DP-01/.test(`${result?.title || ""} ${result?.code || ""}`) &&
+          /应用页面水印/.test(`${result?.title || ""} ${result?.target_text || ""}`),
+        forbiddenMatch: (result) => /I-DI&T-PD\.DP-01|数据内容水印/.test(`${result?.title || ""} ${result?.code || ""} ${result?.target_text || ""}`),
+      },
+      {
+        id: "runtime_current_service_title_app_page_watermark_capability_reference",
+        query: "应用页面水印",
+        match: (result) =>
+          result?.route === "/capability-mapping" &&
+          /能力安全技术服务/.test(`${result?.typeLabel || result?.type_label || ""}`) &&
+          /I-AP&T-PD\.DP-01/.test(`${result?.title || ""} ${result?.code || ""}`) &&
+          /应用页面水印/.test(`${result?.title || ""} ${result?.target_text || ""}`) &&
+          Boolean(result?.selected_capability_id || result?.selectedCapabilityId),
+        forbiddenMatch: (result) => /I-DI&T-PD\.DP-01|数据内容水印/.test(`${result?.title || ""} ${result?.code || ""} ${result?.target_text || ""}`),
+      },
+      {
         id: "runtime_lifecycle_measure_term",
         query: "数据销毁",
         match: (result) => /数据销毁/.test(`${result?.title || ""} ${result?.target_text || ""}`),
@@ -473,14 +899,16 @@ if (url) {
       const coverageData = coveragePayload?.data || coveragePayload;
       const coverageResults = Array.isArray(coverageData?.results) ? coverageData.results : [];
       const matched = coverageResults.filter(coverageCase.match);
+      const forbidden = coverageCase.forbiddenMatch ? coverageResults.filter(coverageCase.forbiddenMatch) : [];
       checks.push({
         id: coverageCase.id,
-        ok: coverageResponse.ok && matched.length > 0,
+        ok: coverageResponse.ok && matched.length > 0 && forbidden.length === 0,
         message: `runtime search-index must cover business query "${coverageCase.query}".`,
         detail: {
           status: coverageResponse.status,
           resultCount: coverageResults.length,
           matched: matched.slice(0, 5).map((result) => ({ title: result.title, route: result.route, typeLabel: result.typeLabel || result.type_label, target_ref: result.target_ref })),
+          forbidden: forbidden.slice(0, 5).map((result) => ({ title: result.title, route: result.route, typeLabel: result.typeLabel || result.type_label, target_ref: result.target_ref })),
         },
       });
     }

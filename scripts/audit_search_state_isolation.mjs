@@ -147,17 +147,23 @@ const checks = [
     id: "lifecycle_stage_search_indexes_cell_content",
     ok:
       viewModels.includes("function lifecycleWorkbenchStageSearchText") &&
+      viewModels.includes("function dataLifecycleStageSearchText") &&
       viewModels.includes("uses_development_technical_module") &&
       viewModels.includes("development_technical_modules") &&
+      viewModels.includes("data_policy_rows") &&
+      viewModels.includes("row.sequence") &&
       lifecycleComponent.includes("row.searchText") &&
       lifecycleComponent.includes("lifecycle-search-mark") &&
+      lifecycleComponent.includes('mode = ""') &&
+      lifecycleComponent.includes("暂无 LC-DT 数据安全关系") &&
       lifecycleComponent.includes("searchQuery =") &&
       stylesCss.includes(".lifecycle-search-mark") &&
       stylesCss.includes("annotationGlowSweep") &&
       appJs.includes("search: state.devLifecycleStageSearch") &&
       appJs.includes("search: state.dataLifecycleStageSearch") &&
+      appJs.includes('mode: "data"') &&
       appJs.includes("matchesTextQuery(stageQuery, row.title, row.code, row.order, row.searchText)"),
-    message: "LC-AP and LC-DT local searches must index stage cell content, including technical services and modules.",
+    message: "LC-AP and LC-DT local searches must index stage cell content, including LC-DT policy rows, and render domain-correct empty states.",
   },
   {
     id: "search_box_ownership_inventory",
@@ -167,8 +173,32 @@ const checks = [
       appJs.includes("pageSearchMatchSets:") &&
       appJs.includes("devLifecycleStageSearch:") &&
       appJs.includes("dataLifecycleStageSearch:") &&
+      appJs.includes("workbenchIssueSearch:") &&
       appJs.includes("relationshipFilters:"),
     message: "all known search/filter inputs must have explicit owner state.",
+  },
+  {
+    id: "workbench_issue_search_uses_domain_history_baseline",
+    ok:
+      appJs.includes("#workbenchIssueSearchInput") &&
+      appJs.includes('id="workbenchIssueSearchInput"') &&
+      appJs.includes('placeholder="搜索 Issue 标题、内容、页面或对象"') &&
+      appJs.includes('autocomplete="off" data-search-history-kind="workbench-issues" data-review-filter-control="search"') &&
+      appJs.includes("workbench-review-active-filters") &&
+      appJs.includes("workbench-review-filter-chip") &&
+      appJs.includes("scheduleSearchHistoryCommit(filterControl, filterControl.value)"),
+    message: "workbench Issue search must disable native autocomplete, use its own workbench-issues history scope, and render filter chips.",
+  },
+  {
+    id: "global_search_history_commits_executed_queries",
+    ok:
+      appJs.includes("function rememberCommittedSearchQuery") &&
+      appJs.includes("function commitLoadedSearchHistoryForInput") &&
+      appJs.includes("function globalSearchQueryHasLoaded") &&
+      appJs.includes("refreshSearchHistoryPanelForKind(targetKind)") &&
+      appJs.includes("clearSearchHistoryCommitTimersForKind(targetKind)") &&
+      indexHtml.includes("oi182-search-history-pagination-20260705-1"),
+    message: "global search history must remember executed/loaded queries immediately instead of relying only on debounced input events.",
   },
   {
     id: "page_search_inputs_preserve_composition_and_focus",
@@ -185,6 +215,18 @@ const checks = [
       dataLifecycleInputHandler.includes("if (isComposingSearchInput(event)) return;") &&
       relationFilterHandler.includes("if (isComposingSearchInput(event)) return;"),
     message: "page search inputs must preserve IME/composition typing and restore focus after rerenders.",
+  },
+  {
+    id: "local_search_history_uses_domain_scopes",
+    ok:
+      appJs.includes("function searchHistoryKindForInput") &&
+      appJs.includes("function sourceSearchHistoryKind") &&
+      appJs.includes('"workbench-issues": "Issue 筛选记录"') &&
+      indexHtml.includes('data-search-history-kind="capability"') &&
+      indexHtml.includes('data-search-history-kind="lc-ap"') &&
+      indexHtml.includes('data-search-history-kind="lc-dt"') &&
+      read("frontend/capability-browser/components/EnvironmentLocalRelationMap.js").includes('data-search-history-kind="environment"'),
+    message: "local search history must share the custom component but keep capability/environment/LC/workbench records in separate business-domain scopes.",
   },
   {
     id: "page_search_current_match_is_word_level_with_light_context",
@@ -258,7 +300,7 @@ const checks = [
     ok:
       appJs.includes("function runGlobalSearch()") &&
       appJs.includes("function renderGlobalSearchPanel()") &&
-      appJs.includes("function buildGlobalSearchResults(query)") &&
+      appJs.includes("function buildGlobalSearchResults(query, limit = GLOBAL_SEARCH_RESULT_LIMIT)") &&
       appJs.includes("data-global-search-result") &&
       appJs.includes("document.body.insertAdjacentHTML") &&
       stylesCss.includes(".global-search-panel"),
@@ -298,7 +340,7 @@ const checks = [
     ok:
       appJs.includes("async function searchIndexResultsForQuery") &&
       appJs.includes("getSearchIndex") &&
-      appJs.includes("mergeGlobalSearchResults(indexedResults, buildGlobalSearchResults(query), query)"),
+      appJs.includes("mergeGlobalSearchResults(indexedResults, buildGlobalSearchResults(query, resultLimit), query, resultLimit)"),
     message: "global search must use the lightweight search index and only merge already-loaded page data.",
   },
   {
@@ -317,16 +359,46 @@ const checks = [
       appJs.includes('function renderSearchPage()') &&
       appJs.includes("function openGlobalSearchPage") &&
       appJs.includes("globalSearchLoadedQuery") &&
+      appJs.includes("globalSearchPageRequestSeq") &&
+      appJs.includes("runGlobalSearchPage()") &&
+      appJs.includes("data-search-page-jump") &&
       appJs.includes("data-search-page-result") &&
       !appJs.includes("data-search-page-open-result") &&
       appJs.includes("function globalSearchPageResultForKey") &&
       appJs.includes("activateGlobalSearchResult(result)") &&
       appJs.includes("openGlobalSearchPage(event.target.value)") &&
       stylesCss.includes(".global-search-filter-strip") &&
-      stylesCss.includes(".global-search-page-hint") &&
-      appJs.includes("点击任一结果进入定位") &&
+      stylesCss.includes(".global-search-pagination.is-top") &&
+      !appJs.includes("每页 20 条，点击任一结果进入定位") &&
       !stylesCss.includes(".global-search-page-row-action"),
-    message: "global search must expose an independent /search result page with route, workspace, compact filters, and direct result-row activation.",
+    message: "global search must expose an independent /search result page with route, workspace, compact filters, API-offset pagination, and direct result-row activation.",
+  },
+  {
+    id: "global_search_page_state_isolated_from_preview",
+    ok:
+      appJs.includes("globalSearchRequestSeq: 0") &&
+      appJs.includes("globalSearchPageRequestSeq: 0") &&
+      appJs.includes("++state.globalSearchRequestSeq") &&
+      appJs.includes("++state.globalSearchPageRequestSeq") &&
+      appJs.includes("state.globalSearchPageLoading") &&
+      appJs.includes("state.globalSearchPageResults") &&
+      appJs.includes("globalSearchPageWindowMatches"),
+    message: "global search preview and result page must not share request cancellation or loaded-window state.",
+  },
+  {
+    id: "search_history_baseline_is_custom_and_domain_scoped",
+    ok:
+      appJs.includes("SEARCH_HISTORY_STORAGE_KEY") &&
+      appJs.includes("SEARCH_HISTORY_MAX_ITEMS = 10") &&
+      appJs.includes("SEARCH_HISTORY_COLLAPSED_ITEMS = 5") &&
+      appJs.includes("data-search-history-clear") &&
+      appJs.includes("data-search-history-remove") &&
+      appJs.includes("data-search-history-expand") &&
+      appJs.includes("#environmentSearchInput") &&
+      indexHtml.includes("data-search-history-kind=\"global\"") &&
+      indexHtml.includes("data-search-history-kind=\"capability\"") &&
+      read("frontend/capability-browser/components/EnvironmentLocalRelationMap.js").includes('autocomplete="off" data-search-history-kind="environment"'),
+    message: "global and local search memory must use one custom component baseline while keeping business-domain history scopes separate.",
   },
   {
     id: "global_search_results_reveal_target_rows",
@@ -358,7 +430,7 @@ const checks = [
       appJs.includes("function pruneGlobalSearchResultsForQuery") &&
       appJs.includes("function globalSearchVisibleDedupeKey") &&
       appJs.includes("function isLifecycleContainerSearchResult") &&
-      appJs.includes("mergeGlobalSearchResults(indexedResults, buildGlobalSearchResults(query), query)") &&
+      appJs.includes("mergeGlobalSearchResults(indexedResults, buildGlobalSearchResults(query, resultLimit), query, resultLimit)") &&
       indexHtml.includes("global-search-result-prune-20260703-1"),
     message: "global search results must prune display duplicates and lifecycle parent fallback hits after API/fallback merge.",
   },

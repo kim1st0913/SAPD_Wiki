@@ -252,8 +252,8 @@
       }
     },
     "security_work": {
-      "bcf795eb-2d80-4cc6-baa4-b2f424d9d87f": {
-        "id": "bcf795eb-2d80-4cc6-baa4-b2f424d9d87f",
+      "9be54ff0-e0b1-4966-8952-783398e4f7df": {
+        "id": "9be54ff0-e0b1-4966-8952-783398e4f7df",
         "type": "security_work",
         "code": "",
         "title": "安全日志持续管理",
@@ -543,8 +543,8 @@
         "id": "4abd36d3-4ba1-495c-8fb9-3957167f4833",
         "type": "scope_type",
         "code": "I-OS",
-        "title": "操作系统（主机/终端）",
-        "name": "操作系统（主机/终端）",
+        "title": "操作系统",
+        "name": "操作系统",
         "category": "网络空间",
         "status": ""
       },
@@ -752,7 +752,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 2
+      "evidenceRefCount": 3
     },
     {
       "id": "relation:331e4b96f89dc72f",
@@ -791,14 +791,14 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 2
+      "evidenceRefCount": 3
     },
     {
-      "id": "relation:c8cdbb6643cc90cf",
+      "id": "relation:4e44d5c42fc9ff03",
       "type": "maps_to_work",
       "sourceId": "e206c28d-f81a-4eba-9da4-a15f96a6719e",
       "sourceType": "capability_focus",
-      "targetId": "bcf795eb-2d80-4cc6-baa4-b2f424d9d87f",
+      "targetId": "9be54ff0-e0b1-4966-8952-783398e4f7df",
       "targetType": "security_work",
       "label": "映射安全工作",
       "status": "active",
@@ -1259,7 +1259,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 6
+      "evidenceRefCount": 15
     },
     {
       "id": "relation:5d6877716daded33",
@@ -1272,7 +1272,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 3
+      "evidenceRefCount": 12
     },
     {
       "id": "relation:bbd7dbc7d2cb4dcc",
@@ -1285,7 +1285,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 6
+      "evidenceRefCount": 15
     },
     {
       "id": "relation:315a980ed2e253a6",
@@ -1298,7 +1298,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 7
+      "evidenceRefCount": 16
     },
     {
       "id": "relation:d627121958445653",
@@ -1311,7 +1311,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 3
+      "evidenceRefCount": 12
     },
     {
       "id": "relation:cf8dd0f1c6116156",
@@ -1324,7 +1324,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 12
+      "evidenceRefCount": 14
     },
     {
       "id": "relation:f9ee3f740c0f12a2",
@@ -1337,7 +1337,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 10
+      "evidenceRefCount": 12
     },
     {
       "id": "relation:cbc6e206699431af",
@@ -1350,7 +1350,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 11
+      "evidenceRefCount": 13
     },
     {
       "id": "relation:bbe0adb9726c2653",
@@ -1363,7 +1363,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 12
+      "evidenceRefCount": 14
     },
     {
       "id": "relation:423e4189759ffbb4",
@@ -1376,7 +1376,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 10
+      "evidenceRefCount": 12
     },
     {
       "id": "relation:e2e81c688dcda7ff",
@@ -1384,19 +1384,6 @@
       "sourceId": "0c02d8bc-5f79-408b-88da-0f75d397b486",
       "sourceType": "security_technical_service",
       "targetId": "0f0585b5-6047-424a-a302-c9ff9611c4ef",
-      "targetType": "security_technology_module",
-      "label": "由模块实现",
-      "status": "active",
-      "confidence": "explicit",
-      "objectContextKey": "",
-      "evidenceRefCount": 11
-    },
-    {
-      "id": "relation:3fb43166640c27e1",
-      "type": "implemented_by_module",
-      "sourceId": "9c98888f-899e-4602-9933-4fccf9ad0551",
-      "sourceType": "security_technical_service",
-      "targetId": "9553dd60-cb6a-4efa-96f6-dcf88a568a73",
       "targetType": "security_technology_module",
       "label": "由模块实现",
       "status": "active",
@@ -1415,7 +1402,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 13
+      "evidenceRefCount": 15
     },
     {
       "id": "relation:ed572109474b725d",
@@ -1428,7 +1415,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 11
+      "evidenceRefCount": 13
     },
     {
       "id": "relation:9aaa02ea4bae1aff",
@@ -1441,7 +1428,20 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 12
+      "evidenceRefCount": 14
+    },
+    {
+      "id": "relation:3fb43166640c27e1",
+      "type": "implemented_by_module",
+      "sourceId": "9c98888f-899e-4602-9933-4fccf9ad0551",
+      "sourceType": "security_technical_service",
+      "targetId": "9553dd60-cb6a-4efa-96f6-dcf88a568a73",
+      "targetType": "security_technology_module",
+      "label": "由模块实现",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 15
     }
   ],
   "relationCount": 65

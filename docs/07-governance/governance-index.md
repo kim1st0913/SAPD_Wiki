@@ -22,6 +22,7 @@
 | `docs/07-governance/codex-performance-workflow.md` | Codex 轻量开发、验证摘要、重连减负和用户短指令默认执行规则 |
 | `docs/07-governance/execution-line-convergence-workflow.md` | 多会话 / 子 Agent 不稳定后的执行线收敛规则：单一主控、单一写入主线、dirty diff 优先验收和 checkpoint |
 | `docs/07-governance/current-execution-lines.md` | 当前已展开任务线和模块线程映射台账，用于暂停但不丢失任务，记录状态、证据、恢复条件、写入权限和下一步 |
+| `docs/06-implementation/global-search-contract-2026-07-05.md` | 全局搜索完整契约：产品职责、命中通道、禁止推断、计数 / 展示窗口、标准明细索引、定位和审计样例 |
 | `docs/06-implementation/open-issues.md` | 当前未关闭 bug、数据问题、页面问题和待确认事项的维护入口 |
 | `docs/06-implementation/open-issues-index.md` | Open Issues 全量索引，定位当前问题和历史归档问题 |
 | `docs/05-archive/open-issues-history/2026-06.md` | 已关闭 Open Issues 历史长记录归档 |

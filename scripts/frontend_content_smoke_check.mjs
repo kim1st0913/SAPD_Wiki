@@ -233,6 +233,7 @@ function validateLocalPackages() {
   const maintenance = readJson("maintenance-knowledge.json");
   const maintenanceIndex = readJson("maintenance-index.json");
   const securityWorks = readJson("maintenance/security-works.json");
+  const technicalModules = readJson("maintenance/modules.json");
   const technicalMeasures = readJson("maintenance/measures.json");
   const processes = readJson("maintenance/processes.json");
   const workFunctions = readJson("maintenance/work-functions.json");
@@ -245,6 +246,7 @@ function validateLocalPackages() {
   const cisCsc = readJson("standards/cis-csc-v8.json");
   const lifecycle = readJson("lifecycle-knowledge.json");
   const lifecycleWorkbench = readJson("lifecycle-workbench.json");
+  const environmentWorkbench = readJson("environment-workbench.json");
 
   const focusBindings = countFocusBindings(capabilityTree);
   const workbenchCounts = capabilityWorkbench.meta?.stats || {};
@@ -255,7 +257,7 @@ function validateLocalPackages() {
   };
 
   const cacheVersion = "p0-baseline-canonical-correction-20260615-1";
-  const technicalServiceOrderVisibilityVersion = "technical-service-order-visibility-20260615-2";
+  const technicalServiceOrderVisibilityVersion = "technical-service-order-visibility-20260615-2-oi166-reverse-env-20260704-1";
   const searchStateIsolationVersion = "global-search-20260617-9";
   const globalSearchVersion = "global-search-20260617-9";
   assert(indexHtml.includes(`dataClient.js?v=${cacheVersion}`), "index.html does not cache-bust dataClient.js for P0 capability work recovery");
@@ -302,10 +304,10 @@ function validateLocalPackages() {
   assert(appSource.includes("function activeGlobalSearchRootElement"), "global search text fallback must be scoped to the active workspace");
   assert(appSource.includes("return globalSearchTextTargetElement(result);"), "global search target resolution must not stop at route-only activation");
   assert(
-    appSource.includes("function pruneGlobalSearchResultsForQuery") &&
+      appSource.includes("function pruneGlobalSearchResultsForQuery") &&
       appSource.includes("function globalSearchVisibleDedupeKey") &&
       appSource.includes("function isLifecycleContainerSearchResult") &&
-      appSource.includes("mergeGlobalSearchResults(indexedResults, buildGlobalSearchResults(query), query)") &&
+      appSource.includes("mergeGlobalSearchResults(indexedResults, buildGlobalSearchResults(query, resultLimit), query, resultLimit)") &&
       indexHtml.includes("global-search-result-prune-20260703-1"),
     "global search must prune display duplicates and lifecycle parent-container fallback hits after merging indexed and loaded fallback results",
   );
@@ -337,6 +339,15 @@ function validateLocalPackages() {
       appSource.includes('const contentRoot = kind === "data" ? $("dataLifecycleMatrix") : $("devLifecycleLane")') &&
       appSource.includes('targetAttribute: "data-lifecycle-id"'),
     "LC-AP/LC-DT page search navigation must count field-level occurrences, not only stage rows",
+  );
+  assert(
+    viewModelsSource.includes("function dataLifecycleStageSearchText") &&
+      viewModelsSource.includes("data_policy_rows") &&
+      viewModelsSource.includes("row.sequence") &&
+      lifecycleComponentSource.includes('mode = ""') &&
+      lifecycleComponentSource.includes("暂无 LC-DT 数据安全关系") &&
+      appSource.includes('mode: "data"'),
+    "LC-DT page search must index policy rows such as PR.07 and keep LC-DT-specific empty states",
   );
   assert(appSource.includes("queuePageSearchReveal(event.target.value, \"development-security\")") && appSource.includes("queuePageSearchReveal(event.target.value, \"data-security\")"), "LC-AP and LC-DT page search boxes must reveal matched content");
   assert(
@@ -383,7 +394,21 @@ function validateLocalPackages() {
       stylesSource.includes(".environment-basemap-lab-toolbar.page-local-search-toolbar") &&
       environmentBasemapViewerSource.includes("${toolbarLeading || titleBlock}") &&
       environmentLocalRelationMapSource.includes("environment-search-empty") &&
-      appSource.includes('if (!viewModel.selectedEnvironment && !text(state.search).trim())') &&
+      environmentLocalRelationMapSource.includes("environment-selection-empty") &&
+      environmentLocalRelationMapSource.includes("const hasSelection = Boolean(viewModel?.selectedMode)") &&
+      environmentLocalRelationMapSource.includes("renderDrawioBasemap()") &&
+      environmentLocalRelationMapSource.includes('data-environment-active-tab="${escape(normalizedActiveTab)}"') &&
+      environmentLocalRelationMapSource.includes("environment-tab-panel-mapping") &&
+      environmentLocalRelationMapSource.includes("is-active") &&
+      !environmentLocalRelationMapSource.includes('type="radio"') &&
+      !environmentLocalRelationMapSource.includes('name="environmentDetailTab"') &&
+      !environmentLocalRelationMapSource.includes("environment-tab-input") &&
+      appSource.includes('data-environment-tab="${escapeHtml(tab.id)}"') &&
+      appSource.includes("state.activeEnvironmentTab = nextEnvironmentTab === \"mapping\" ? \"mapping\" : \"topology\"") &&
+      !appSource.includes('event.target?.name !== "environmentDetailTab"') &&
+      !appSource.includes("environmentTabMapping") &&
+      stylesSource.includes(".environment-tab-panel.is-active") &&
+      !appSource.includes('if (!viewModel.selectedEnvironment && !text(state.search).trim())') &&
       !appSource
         .slice(
           appSource.indexOf('if (event.target?.id !== "environmentSearchInput") return;'),
@@ -401,8 +426,12 @@ function validateLocalPackages() {
       indexHtml.includes("oi154-search-toolbar-align-20260703-1") &&
       appSource.includes("oi154-search-toolbar-align-20260703-1") &&
       indexHtml.includes("oi154-env-search-tab-preserve-20260703-1") &&
-      appSource.includes("oi154-basemap-search-remove-20260703-1"),
-    "environment page search must index object services, modules, measures and security systems, expose tree anchors, keep safety-tech local search, remove basemap-tab local search, and cache-bust the changed resources",
+      appSource.includes("oi154-basemap-search-remove-20260703-1") &&
+      appSource.includes("oi154-default-shell-20260704-1") &&
+      indexHtml.includes("oi154-default-shell-20260704-1") &&
+      appSource.includes("oi154-single-tab-state-20260704-1") &&
+      indexHtml.includes("oi154-single-tab-state-20260704-1"),
+    "environment page search must index object services, modules, measures and security systems, expose tree anchors, keep safety-tech local search, remove basemap-tab local search, keep the default basemap/catalog shell, keep a single tab state source, and cache-bust the changed resources",
   );
   assert(
     readFrontendFile("components/AppShell.js").includes("capability-workspace-control page-local-search-toolbar") &&
@@ -467,8 +496,66 @@ function validateLocalPackages() {
       indexHtml.includes("text-selection-copy-20260703-1"),
     "frontend business text must remain selectable and selection clicks must not trigger row rerenders.",
   );
+  assert(
+    appSource.includes("GLOBAL_SEARCH_PAGE_SIZE = 20") &&
+      appSource.includes("globalSearchPageRequestSeq") &&
+      appSource.includes("runGlobalSearchPage()") &&
+      appSource.includes("const offset = (pageIndex - 1) * GLOBAL_SEARCH_PAGE_SIZE") &&
+      appSource.includes("searchIndexPayloadForQuery(query, GLOBAL_SEARCH_PAGE_SIZE, { offset, category })") &&
+      appSource.includes("function renderGlobalSearchPagination") &&
+      appSource.includes("data-search-page-page") &&
+      appSource.includes("data-search-page-jump") &&
+      stylesSource.includes(".global-search-page-sticky") &&
+      stylesSource.includes("position: sticky") &&
+      stylesSource.includes(".global-search-pagination") &&
+      stylesSource.includes(".global-search-pagination.is-top") &&
+      indexHtml.includes("oi181-search-results-memory-offset-20260705-1"),
+    "global search result page must keep sticky query/facet context and API-offset 20-row pagination with jump controls.",
+  );
+  assert(
+    appSource.includes("SEARCH_HISTORY_MAX_ITEMS = 10") &&
+      appSource.includes("SEARCH_HISTORY_COLLAPSED_ITEMS = 5") &&
+      appSource.includes("rememberCommittedSearchQuery(\"global\", query)") &&
+      appSource.includes("commitLoadedSearchHistoryForInput") &&
+      appSource.includes("refreshSearchHistoryPanelForKind") &&
+      appSource.includes("data-search-history-clear") &&
+      appSource.includes("data-search-history-remove") &&
+      appSource.includes("data-search-history-expand") &&
+      appSource.includes("function sourceSearchHistoryKind") &&
+      appSource.includes("#environmentSearchInput") &&
+      appSource.includes("#workbenchIssueSearchInput") &&
+      appSource.includes('id="workbenchIssueSearchInput"') &&
+      appSource.includes('autocomplete="off" data-search-history-kind="workbench-issues" data-review-filter-control="search"') &&
+      appSource.includes("scheduleSearchHistoryCommit(filterControl, filterControl.value)") &&
+      indexHtml.includes('data-search-history-kind="capability"') &&
+      indexHtml.includes('data-search-history-kind="lc-ap"') &&
+      indexHtml.includes('data-search-history-kind="lc-dt"') &&
+      readFrontendFile("components/EnvironmentLocalRelationMap.js").includes('autocomplete="off" data-search-history-kind="environment"'),
+    "global/local search inputs must use the unified custom search-history component with domain-specific local history, immediately commit loaded global searches, and disable native autocomplete for environment and Issue search.",
+  );
+  assert(
+    appSource.includes("global-search-pagination-button is-boundary") &&
+      stylesSource.includes(".global-search-pagination-button.is-boundary") &&
+      stylesSource.includes(".global-search-page-results > .pane-head .global-search-pagination-button") &&
+      stylesSource.includes("white-space: nowrap") &&
+      indexHtml.includes("oi182-search-history-pagination-20260705-1"),
+    "search pagination previous/next buttons must keep text-button width and cache-bust the fixed CSS/JS.",
+  );
   const standardFrameworkTableSource = readFrontendFile("components/StandardFrameworkTable.js");
   const dataClientSource = readFrontendFile("dataClient.js");
+  assert(
+    dataClientSource.includes("function environmentProjectionRequestHasTarget") &&
+      dataClientSource.includes("const matched = rows.find((row) => environmentProjectionRowMatches(row, request)) || null") &&
+      !dataClientSource.includes("return rows.find((row) => environmentProjectionRowMatches(row, request)) || rows[0]") &&
+      dataClientSource.includes("const requestedId = text(id).trim()") &&
+      dataClientSource.includes("const relationshipRows = row ? rows : []") &&
+      viewModelsSource.includes("if (selectedFocusId)") &&
+      viewModelsSource.includes("const selectedFocusRow = selectedId ? rows.find") &&
+      viewModelsSource.includes("if (!query) return null;") &&
+      viewModelsSource.includes('selectionSource: "search"') &&
+      appSource.includes("const canSyncEnvironmentSelection = viewModel.selectionSource === \"explicit\" || viewModel.selectionSource === \"search\""),
+    "explicit selection misses must not fall back to the first row/object; only page search may auto-select the first matched environment object.",
+  );
   assert(
     standardFrameworkTableSource.includes("groupedStandardTabs") &&
       standardFrameworkTableSource.includes('/GB\\/T\\s*42446/i') &&
@@ -488,6 +575,7 @@ function validateLocalPackages() {
   assert(indexHtml.includes('id="globalSearchActionButton"'), "global search shortcut affordance must be an actionable button");
 
   assert(list(maintenance.security_works).length > 0, "maintenance-knowledge.security_works is empty");
+  validateTechnologyModuleSystems({ maintenance, technicalModules, maintenanceIndex });
   validateTechnicalMeasures({ maintenance, technicalMeasures, maintenanceIndex });
   assert(list(securityWorks.security_works).length > 0, "maintenance/security-works.json is empty");
   assert(list(processes.security_processes).length > 0, "maintenance/processes.json is empty");
@@ -519,6 +607,7 @@ function validateLocalPackages() {
 
   const viewModelSmoke = validateSecurityWorkViewModel({ capabilityTree, maintenance });
   const technicalServiceSmoke = validateTechnicalServiceCatalogViewModel({ capabilityTree, maintenance });
+  const maintenanceReverseMappingSmoke = validateMaintenanceEnvironmentReverseMapping({ capabilityTree, maintenance, environmentWorkbench });
   const capabilityDirectoryDefinitionSmoke = validateCapabilityDirectoryDefinitions({ capabilityTree, maintenance });
   const standardCanonicalSmoke = validateCapabilityStandardCanonicalization({
     capabilityTree,
@@ -530,6 +619,8 @@ function validateLocalPackages() {
     maintenance: {
       securityWorks: list(maintenance.security_works).length,
       splitSecurityWorks: list(securityWorks.security_works).length,
+      securityTechnologyModules: list(maintenance.security_technology_modules).length,
+      splitSecurityTechnologyModules: list(technicalModules.security_technology_modules).length,
       securityTechnicalMeasures: list(maintenance.security_technical_measures).length,
       splitSecurityTechnicalMeasures: list(technicalMeasures.security_technical_measures).length,
       securityProcesses: list(processes.security_processes).length,
@@ -561,6 +652,7 @@ function validateLocalPackages() {
     },
     viewModels: {
       ...viewModelSmoke,
+      maintenanceEnvironmentReverseMapping: maintenanceReverseMappingSmoke,
       pageSearchQueueSamples: searchQueueSmoke,
       technicalServiceCatalogVisibility: technicalServiceSmoke,
       capabilityDirectoryDefinitions: capabilityDirectoryDefinitionSmoke,
@@ -569,9 +661,37 @@ function validateLocalPackages() {
   };
 }
 
+function validateTechnologyModuleSystems({ maintenance, technicalModules, maintenanceIndex }) {
+  const expectedModuleCount = 102;
+  const requiredSystemsByModule = new Map([
+    ["运维访问管理", "访问管理"],
+    ["特权账号管理", "访问管理"],
+    ["数据水印溯源", "数据安全防护"],
+    ["数据脱敏(去标识化)", "数据安全防护"],
+  ]);
+  const maintenanceModules = list(maintenance.security_technology_modules);
+  const splitModules = list(technicalModules.security_technology_modules);
+  assert(maintenanceModules.length === expectedModuleCount, `maintenance-knowledge security_technology_modules should be ${expectedModuleCount}, got ${maintenanceModules.length}`);
+  assert(splitModules.length === expectedModuleCount, `maintenance/modules security_technology_modules should be ${expectedModuleCount}, got ${splitModules.length}`);
+  assert(Number(maintenance.stats?.security_technology_modules || 0) === expectedModuleCount, `maintenance-knowledge stats.security_technology_modules should be ${expectedModuleCount}`);
+  assert(Number(technicalModules.stats?.security_technology_modules || 0) === expectedModuleCount, `maintenance/modules stats.security_technology_modules should be ${expectedModuleCount}`);
+  assert(Number(maintenanceIndex.section_counts?.modules || 0) === expectedModuleCount, `maintenance-index section_counts.modules should be ${expectedModuleCount}`);
+  const missingSystemModules = maintenanceModules.filter((module) => list(module.systems).length === 0);
+  assert(missingSystemModules.length === 0, `maintenance module systems must not be empty: ${missingSystemModules.map((module) => module.title || module.name).slice(0, 12).join(", ")}`);
+  for (const [moduleTitle, expectedSystem] of requiredSystemsByModule.entries()) {
+    const module = maintenanceModules.find((item) => text(item?.title || item?.name) === moduleTitle);
+    const splitModule = splitModules.find((item) => text(item?.title || item?.name) === moduleTitle);
+    assert(module, `maintenance-knowledge missing technical module: ${moduleTitle}`);
+    assert(splitModule, `maintenance/modules missing technical module: ${moduleTitle}`);
+    assert(list(module.systems).some((system) => text(system?.title || system?.name) === expectedSystem), `maintenance-knowledge module ${moduleTitle} should belong to ${expectedSystem}`);
+    assert(list(splitModule.systems).some((system) => text(system?.title || system?.name) === expectedSystem), `maintenance/modules module ${moduleTitle} should belong to ${expectedSystem}`);
+  }
+}
+
 function validateTechnicalMeasures({ maintenance, technicalMeasures, maintenanceIndex }) {
   const expectedMeasureCount = 32;
   const requiredMeasures = ["应用程序威胁建模", "制品安全加固", "IaC代码安全测试", "数据销毁", "API网关", "应用自身数据加解密模块"];
+  const moduleOnlyNames = ["主机防火墙", "主机恶意代码防护", "主机入侵防御（HIPS）", "终端安全工作区"];
   const maintenanceMeasures = list(maintenance.security_technical_measures);
   const splitMeasures = list(technicalMeasures.security_technical_measures);
   const names = new Set(maintenanceMeasures.map((item) => item.name || item.title).filter(Boolean));
@@ -585,11 +705,131 @@ function validateTechnicalMeasures({ maintenance, technicalMeasures, maintenance
     assert(names.has(name), `maintenance-knowledge missing confirmed lifecycle measure: ${name}`);
     assert(splitNames.has(name), `maintenance/measures missing confirmed lifecycle measure: ${name}`);
   }
+  for (const name of moduleOnlyNames) {
+    assert(!names.has(name), `maintenance-knowledge must not promote module-only title to technical measure: ${name}`);
+    assert(!splitNames.has(name), `maintenance/measures must not promote module-only title to technical measure: ${name}`);
+  }
   const duplicateNames = maintenanceMeasures
     .map((item) => item.name || item.title)
     .filter(Boolean)
     .filter((name, index, all) => all.indexOf(name) !== index);
   assert(duplicateNames.length === 0, `security_technical_measures contains duplicate names: ${[...new Set(duplicateNames)].join(", ")}`);
+}
+
+function validateMaintenanceEnvironmentReverseMapping({ capabilityTree, maintenance, environmentWorkbench }) {
+  const context = { window: { sapdDisplay: {} }, console };
+  vm.createContext(context);
+  vm.runInContext(readFrontendFile("viewModels.js"), context, { filename: "viewModels.js" });
+  const viewModels = context.window.sapdViewModels || {};
+  assert(typeof viewModels.buildMaintenanceWorkspaceViewModel === "function", "buildMaintenanceWorkspaceViewModel is unavailable");
+  const environmentTree = list(environmentWorkbench.environment_scope_tree || environmentWorkbench.environmentScopeTree);
+  assert(environmentTree.length > 0, "environment-workbench environment_scope_tree is empty");
+  const management = {
+    ...maintenance,
+    environment_scope_tree: environmentTree,
+  };
+  const services = viewModels.buildMaintenanceWorkspaceViewModel({
+    capabilityTree,
+    management,
+    section: "services",
+    search: "",
+  });
+  const modules = viewModels.buildMaintenanceWorkspaceViewModel({
+    management,
+    section: "modules",
+    search: "",
+  });
+  const measures = viewModels.buildMaintenanceWorkspaceViewModel({
+    management,
+    section: "measures",
+    search: "",
+  });
+  const serviceRowsWithEnvironmentObjectPairs = list(services.rows).filter((row) => list(row.environmentObjectPairs).length > 0);
+  const moduleRowsWithObjects = list(modules.rows).filter((row) => list(row.informationObjects).length > 0);
+  const moduleRowsWithEnvironments = list(modules.rows).filter((row) => list(row.informationEnvironments).length > 0);
+  const moduleRowsWithEnvironmentObjectPairs = list(modules.rows).filter((row) => list(row.environmentObjectPairs).length > 0);
+  const measureRowsWithObjects = list(measures.rows).filter((row) => list(row.relatedEnvironmentObjects).length > 0);
+  const measureRowsWithEnvironments = list(measures.rows).filter((row) => list(row.relatedEnvironments).length > 0);
+  const measureRowsWithEnvironmentObjectPairs = list(measures.rows).filter((row) => list(row.environmentObjectPairs).length > 0);
+  const titleOf = (item) => text(item?.title || item?.name || item?.code || item?.id);
+  const isEnvironmentSegmentObjectValue = (item) => {
+    const environment = titleOf(item?.environment);
+    const segment = titleOf(item?.segment);
+    const object = titleOf(item?.object);
+    return Boolean(environment && segment && object && text(item?.title) === `${environment}-${segment}-${object}`);
+  };
+  const serviceRowsWithEnvironmentSegmentObjectValues = list(services.rows).filter((row) => list(row.environmentObjectPairs).some(isEnvironmentSegmentObjectValue));
+  const moduleRowsWithEnvironmentSegmentObjectValues = list(modules.rows).filter((row) => list(row.environmentObjectPairs).some(isEnvironmentSegmentObjectValue));
+  const measureRowsWithEnvironmentSegmentObjectValues = list(measures.rows).filter((row) => list(row.environmentObjectPairs).some(isEnvironmentSegmentObjectValue));
+  const serviceTableSource = readFrontendFile("components/TechnicalServiceMaintenanceTable.js");
+  const moduleTableSource = readFrontendFile("components/TechnologyModuleMaintenanceTable.js");
+  const measureTableSource = readFrontendFile("components/TechnicalMeasureMaintenanceTable.js");
+  const stylesSource = readFrontendFile("styles.css");
+  const appSource = readFrontendFile("app.js");
+  const servicesContract = appSource.match(/services:\s*\{[\s\S]*?\n  \},/)?.[0] || "";
+  assert(serviceRowsWithEnvironmentObjectPairs.length > 0, "technical service ViewModel must expose information environment combination values");
+  assert(moduleRowsWithObjects.length > 0, "technical module ViewModel must derive information object reverse mappings from environment-workbench");
+  assert(moduleRowsWithEnvironments.length > 0, "technical module ViewModel must derive information environment reverse mappings from environment-workbench");
+  assert(moduleRowsWithEnvironmentObjectPairs.length > 0, "technical module ViewModel must expose information environment combination values");
+  assert(measureRowsWithObjects.length > 0, "technical measure ViewModel must derive information object reverse mappings from environment-workbench");
+  assert(measureRowsWithEnvironments.length > 0, "technical measure ViewModel must derive information environment reverse mappings from environment-workbench");
+  assert(measureRowsWithEnvironmentObjectPairs.length > 0, "technical measure ViewModel must expose information environment combination values");
+  assert(serviceRowsWithEnvironmentSegmentObjectValues.length > 0, "technical service ViewModel must expose information environment-segment-object combination values");
+  assert(moduleRowsWithEnvironmentSegmentObjectValues.length > 0, "technical module ViewModel must expose information environment-segment-object combination values");
+  assert(measureRowsWithEnvironmentSegmentObjectValues.length > 0, "technical measure ViewModel must expose information environment-segment-object combination values");
+  assert(
+    serviceTableSource.includes("<th>${utils.escapeHtml(display.relationLabel?.(\"information_environment\") || \"关联信息化环境\")}</th>") &&
+      serviceTableSource.includes('class="environment-combo-chip-list"') &&
+      serviceTableSource.includes('chipList(row.environmentObjectPairs, "待补充关联信息化环境", "信息化环境")') &&
+      !serviceTableSource.includes('chipList(row.linkedEnvironments, "待补充信息化环境", "信息化环境")'),
+    "technical service table must render environment-segment-object combination values under 关联信息化环境",
+  );
+  assert(
+    moduleTableSource.includes("<th>关联信息化环境</th>") &&
+      moduleTableSource.includes('class="environment-combo-chip-list"') &&
+      moduleTableSource.includes('chipList(row.environmentObjectPairs, "待补充关联信息化环境", "信息化环境")') &&
+      !moduleTableSource.includes('relationBlock("对象", row.informationObjects') &&
+      !moduleTableSource.includes('relationBlock("环境", row.informationEnvironments') &&
+      !moduleTableSource.includes('statusLine("对象", row.informationObjectMappingStatus)') &&
+      !moduleTableSource.includes('statusLine("环境", row.informationEnvironmentStatus)'),
+    "technical module table must render environment-segment-object combination values under 关联信息化环境",
+  );
+  assert(
+    measureTableSource.includes("<th>关联信息化环境</th>") &&
+      measureTableSource.includes('class="environment-combo-chip-list"') &&
+      measureTableSource.includes('chipList(row.environmentObjectPairs, "待补充关联信息化环境", "信息化环境")') &&
+      !measureTableSource.includes('relationBlock("环境", row.environmentNames') &&
+      !measureTableSource.includes('relationBlock("对象", row.environmentObjectNames'),
+    "technical measure table must render environment-segment-object combination values under 关联信息化环境",
+  );
+  assert(
+    stylesSource.includes(".environment-combo-chip-list") &&
+      stylesSource.includes("flex-wrap: wrap") &&
+      stylesSource.includes("width: auto"),
+    "technical module/measure environment chips must use adaptive width and wrapping instead of one full-width chip per line",
+  );
+  assert(
+    appSource.includes('supplementalPackages: ["environmentWorkbench"]') &&
+      servicesContract.includes('supplementalPackages: ["capability", "environmentWorkbench"]') &&
+      appSource.includes("function environmentManagementForMaintenance") &&
+      appSource.includes("function maintenanceManagementForViewModel"),
+    "technical service/module/measure maintenance pages must load environmentWorkbench and merge environment_scope_tree into the ViewModel input",
+  );
+  return {
+    serviceRows: list(services.rows).length,
+    serviceRowsWithEnvironmentObjectPairs: serviceRowsWithEnvironmentObjectPairs.length,
+    serviceRowsWithEnvironmentSegmentObjectValues: serviceRowsWithEnvironmentSegmentObjectValues.length,
+    moduleRows: list(modules.rows).length,
+    moduleRowsWithObjects: moduleRowsWithObjects.length,
+    moduleRowsWithEnvironments: moduleRowsWithEnvironments.length,
+    moduleRowsWithEnvironmentObjectPairs: moduleRowsWithEnvironmentObjectPairs.length,
+    moduleRowsWithEnvironmentSegmentObjectValues: moduleRowsWithEnvironmentSegmentObjectValues.length,
+    measureRows: list(measures.rows).length,
+    measureRowsWithObjects: measureRowsWithObjects.length,
+    measureRowsWithEnvironments: measureRowsWithEnvironments.length,
+    measureRowsWithEnvironmentObjectPairs: measureRowsWithEnvironmentObjectPairs.length,
+    measureRowsWithEnvironmentSegmentObjectValues: measureRowsWithEnvironmentSegmentObjectValues.length,
+  };
 }
 
 function validateCapabilityDirectoryDefinitions({ capabilityTree, maintenance }) {
@@ -630,6 +870,7 @@ function validatePageSearchQueueSamples({ capabilityTree, capabilityWorkbench, l
   const viewModels = context.window.sapdViewModels || {};
   assert(typeof viewModels.buildLifecycleWorkbenchViewModel === "function", "buildLifecycleWorkbenchViewModel is unavailable");
   assert(typeof viewModels.buildApplicationSecurityLifecycleViewModel === "function", "buildApplicationSecurityLifecycleViewModel is unavailable");
+  assert(typeof viewModels.buildDataSecurityLifecycleViewModel === "function", "buildDataSecurityLifecycleViewModel is unavailable");
   assert(typeof viewModels.buildCapabilityWorkspaceViewModel === "function", "buildCapabilityWorkspaceViewModel is unavailable");
 
   const lifecycleWorkbenchViewModel = viewModels.buildLifecycleWorkbenchViewModel({ workbench: lifecycleWorkbench });
@@ -703,6 +944,20 @@ function validatePageSearchQueueSamples({ capabilityTree, capabilityWorkbench, l
     `LC-AP page search for 部署 should count field-level occurrences, got ${lcapDeployOccurrenceCount} occurrences across ${lcapDeployRows.length} stages`,
   );
 
+  const lcdtPr07 = viewModels.buildDataSecurityLifecycleViewModel({
+    lifecycleWorkbench,
+    lifecycleWorkbenchViewModel,
+    lifecycle,
+    selectedProcessId: "",
+    search: "PR.07",
+  });
+  const lcdtPr07Rows = list(lcdtPr07.stageTree);
+  assert(lcdtPr07Rows.length >= 1, `LC-DT page search for PR.07 should match policy rows, got ${lcdtPr07Rows.length}`);
+  assert(
+    lcdtPr07Rows.some((row) => /PR\.07/i.test(String(row.searchText || ""))),
+    "LC-DT PR.07 search result should carry PR.07 in stage searchText",
+  );
+
   const capabilityWorkbenchViewModel = viewModels.buildCapabilityWorkbenchViewModel({ workbench: capabilityWorkbench });
   const capabilityContinue = viewModels.buildCapabilityWorkspaceViewModel({
     capabilityWorkbench,
@@ -764,11 +1019,16 @@ function validateSecurityWorkViewModel({ capabilityTree, maintenance }) {
   };
   const rowFocusOrder = (row) => Math.min(...list(row.relatedFocuses).map(focusOrder), Number.MAX_SAFE_INTEGER);
   const expectedLogicalWorks = new Set(list(maintenance.security_works).map((row) => titleKey(row.title || row.name || row.code || row.id)).filter(Boolean));
+  const packageSecurityWorkRows = list(maintenance.security_works);
+  const packageSecurityWorkRelationRows = packageSecurityWorkRows.reduce((sum, row) => sum + list(row.focuses).length, 0);
   const uniqueWorks = new Set(rows.map((row) => titleKey(row.title || row.rawId)).filter(Boolean));
   const navigationSecurityWorks = list(viewModel.navigationItems).find((item) => item.id === "security-works");
   const tabSecurityWorks = list(viewModel.sectionTabs).find((item) => item.id === "security-works");
   assert(rows.length > 0, "security-works ViewModel rows are empty");
   assert(!viewModel.emptyState, `security-works ViewModel returned emptyState: ${viewModel.emptyState}`);
+  assert(packageSecurityWorkRows.length === 80, `maintenance.security_works should contain 80 logical master rows, got ${packageSecurityWorkRows.length}`);
+  assert(expectedLogicalWorks.size === 80, `maintenance.security_works unique logical work count should be 80, got ${expectedLogicalWorks.size}`);
+  assert(packageSecurityWorkRelationRows === 92, `maintenance.security_works focus relation rows should remain 92, got ${packageSecurityWorkRelationRows}`);
   assert(rows.length === expectedLogicalWorks.size, `security-works ViewModel rows ${rows.length} != logical work count ${expectedLogicalWorks.size}`);
   assert(uniqueWorks.size === expectedLogicalWorks.size, `security-works ViewModel unique works ${uniqueWorks.size} != logical work count ${expectedLogicalWorks.size}`);
   assert(Number(navigationSecurityWorks?.count || 0) === expectedLogicalWorks.size, `security-works navigation count ${navigationSecurityWorks?.count || 0} != logical work count ${expectedLogicalWorks.size}`);
@@ -798,6 +1058,7 @@ function validateSecurityWorkViewModel({ capabilityTree, maintenance }) {
     linkedCapabilities: Number(viewModel.summary?.linkedCapabilities || 0),
     linkedFocuses: Number(viewModel.summary?.linkedFocuses || 0),
     relationRows: Number(viewModel.summary?.relationRows || 0),
+    packageSecurityWorkRelationRows,
   };
 }
 

@@ -7,7 +7,7 @@ function read(relativePath) {
   return fs.readFileSync(path.join(ROOT, relativePath), "utf8");
 }
 
-const stylesCss = read("frontend/capability-browser/styles.css");
+const stylesCss = read("frontend/capability-browser/styles.css").replace(/\/\*[\s\S]*?\*\//g, "");
 const appJs = read("frontend/capability-browser/app.js");
 const indexHtml = read("frontend/capability-browser/index.html");
 
@@ -163,13 +163,60 @@ const checks = [
     "environment graph/canvas workspaces may keep intentional local pan/scroll containers.",
   ),
   check(
-    "lifecycle_horizontal_tab_scroll_is_preserved",
-    anyBlock(".dev-lifecycle-workspace .lifecycle-stage-tabs", (block) => blockHasDeclaration(block, "overflow-x", "auto")),
-    "LC-AP horizontal stage tabs must retain horizontal overflow behavior.",
+    "lifecycle_stage_tabs_fit_without_horizontal_scroll",
+    anyBlock(
+      ".dev-lifecycle-workspace .lifecycle-stage-tabs",
+      (block) =>
+        blockHasDeclaration(block, "overflow-x", "hidden(?:\\s*!important)?") &&
+        blockHasDeclaration(block, "overflow-y", "visible(?:\\s*!important)?") &&
+        blockHasDeclaration(block, "scrollbar-gutter", "auto(?:\\s*!important)?"),
+    ) &&
+      anyBlock(
+        ".dev-lifecycle-workspace .lifecycle-stage-tabs .lifecycle-nav-row",
+        (block) =>
+          blockHasDeclaration(block, "flex", "1\\s+1\\s+0(?:\\s*!important)?") &&
+          blockHasDeclaration(block, "min-width", "0(?:\\s*!important)?") &&
+          blockHasDeclaration(block, "max-width", "none(?:\\s*!important)?"),
+      ),
+    "LC-AP/LC-DT finite stage tabs must fit the toolbar without creating horizontal tab scroll.",
+  ),
+  check(
+    "lifecycle_lane_is_single_vertical_scroll_owner",
+    anyBlock(
+      ".dev-lifecycle-workspace .lifecycle-lane",
+      (block) => blockHasDeclaration(block, "overflow-x", "hidden") && blockHasDeclaration(block, "overflow-y", "auto"),
+    ),
+    "LC-AP/LC-DT stage content must keep lifecycle-lane as the single vertical scroll owner.",
+  ),
+  check(
+    "lifecycle_record_scroll_does_not_create_nested_vertical_scroll",
+    anyBlock(".dev-lifecycle-workspace .lifecycle-record-scroll", (block) => blockHasDeclaration(block, "overflow", "visible")),
+    "LC-AP/LC-DT record wrapper must not create a second vertical scrollbar.",
+  ),
+  check(
+    "lifecycle_table_scroll_is_horizontal_only",
+    anyBlock(
+      ".dev-lifecycle-workspace .lifecycle-table-scroll",
+      (block) => blockHasDeclaration(block, "overflow-x", "auto") && blockHasDeclaration(block, "overflow-y", "visible"),
+    ),
+    "LC-AP/LC-DT table wrappers may scroll horizontally but must not own vertical scrolling.",
+  ),
+  check(
+    "lifecycle_data_technical_summary_does_not_create_nested_vertical_scroll",
+    anyBlock(
+      ".dev-lifecycle-workspace .data-lifecycle-technical-scroll",
+      (block) =>
+        blockHasDeclaration(block, "max-height", "none") &&
+        blockHasDeclaration(block, "overflow-x", "auto") &&
+        blockHasDeclaration(block, "overflow-y", "visible"),
+    ),
+    "LC-DT technical summary table must not inherit semantic-scroll vertical limits.",
   ),
   check(
     "cache_versions_include_scroll_contract",
-    indexHtml.includes("scroll-contract-20260703-1"),
+    indexHtml.includes("scroll-contract-20260703-1") &&
+      indexHtml.includes("lifecycle-scroll-contract-20260705-1") &&
+      indexHtml.includes("lifecycle-stage-tabs-fit-20260705-1"),
     "index.html must cache-bust the scroll contract changes.",
   ),
 ];

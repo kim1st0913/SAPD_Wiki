@@ -28,10 +28,6 @@
       .join("");
   }
 
-  function statusLine(label, value) {
-    return `<span class="module-mapping-status"><em>${utils.escapeHtml(label)}</em>${utils.escapeHtml(valueText(value))}</span>`;
-  }
-
   function levelChip(label) {
     return `<span class="type-pill">${utils.escapeHtml(label)}</span>`;
   }
@@ -96,10 +92,8 @@
             </td>
             <td>${chipList(row.linkedServices, "暂无关联安全技术服务", "安全技术服务")}</td>
             <td>
-              <div class="module-mapping-cell">
-                ${statusLine("作用域", row.scopeMappingStatus)}
-                ${statusLine("对象", row.informationObjectMappingStatus)}
-                ${statusLine("环境", row.informationEnvironmentStatus)}
+              <div class="environment-combo-chip-list">
+                ${chipList(row.environmentObjectPairs, "待补充关联信息化环境", "信息化环境")}
               </div>
             </td>
           </tr>
@@ -163,7 +157,7 @@
             <tr>
               <th>${utils.escapeHtml(display.label?.("security_technology_module", "安全技术模块") || "安全技术模块")} / 定义</th>
               <th>${utils.escapeHtml(display.relationLabel?.("security_technical_service") || "关联安全技术服务")}</th>
-              <th>作用域 / 对象 / 环境</th>
+              <th>关联信息化环境</th>
             </tr>
           </thead>
           <tbody>

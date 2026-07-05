@@ -534,6 +534,7 @@
   }
 
   function renderDataProcessProfileTable(rows, selectedStageId) {
+    const selectedRow = list(rows).find((row) => row.stageId === selectedStageId) || null;
     return `
       <section class="lifecycle-logic-section lifecycle-table-panel">
         <div class="lifecycle-logic-head">
@@ -558,7 +559,7 @@
             </tbody>
           </table>
         </div>
-        ${renderDataTechnicalSummary(rows[0])}
+        ${renderDataTechnicalSummary(selectedRow)}
       </section>
     `;
   }
@@ -644,21 +645,21 @@
     return "";
   }
 
-  function renderRelationTable({ rows, profileRows, policyRows, overview, searchQuery = "" }) {
+  function renderRelationTable({ rows, profileRows, policyRows, overview, searchQuery = "", mode = "", selectedStageId = "", emptyMessage = "" }) {
     const previousHighlightQuery = activeHighlightQuery;
     activeHighlightQuery = searchQuery;
     const relationRows = list(rows);
     const allProfileRows = list(profileRows).length ? list(profileRows) : relationRows;
-    const selectedStageId = relationRows[0]?.stageId || "";
+    const isDataMode = mode === "data" || overview?.mode === "data";
     const html = `
       <section class="semantic-panel lifecycle-relation-section">
         <div class="lifecycle-record-scroll">
           ${
             relationRows.length
-              ? overview?.mode === "data"
+              ? isDataMode
                 ? renderDataRecordTables({ rows: relationRows, policyRows, selectedStageId })
                 : renderRecordTables({ rows: relationRows, profileRows: allProfileRows, selectedStageId })
-              : `<div class="reference-empty">${overview?.mode === "data" ? "暂无 LC-DT 数据安全关系" : "暂无 LC-AP 阶段关系"}</div>`
+              : `<div class="reference-empty">${utils.escapeHtml(emptyMessage || (isDataMode ? "暂无 LC-DT 数据安全关系" : "暂无 LC-AP 阶段关系"))}</div>`
           }
         </div>
       </section>

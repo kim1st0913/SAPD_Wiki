@@ -288,6 +288,32 @@ def _read_split_payload(data_path: Any) -> dict[str, Any] | None:
     return payload if isinstance(payload, dict) else None
 
 
+def _standards_detail_paths() -> list[tuple[str, Path]]:
+    index_path = _data_package_path("standards-index")
+    if not index_path.exists():
+        return []
+    try:
+        index = _read_json(index_path)
+    except Exception:
+        return []
+    paths: dict[str, Path] = {}
+    for framework in _list(index.get("frameworks") if isinstance(index, dict) else []):
+        if not isinstance(framework, dict):
+            continue
+        candidates = [framework.get("dataPath")]
+        candidates.extend(tab.get("dataPath") for tab in _list(framework.get("tabs")) if isinstance(tab, dict))
+        for data_path in candidates:
+            path = _frontend_data_path(data_path)
+            if not path:
+                continue
+            try:
+                key = path.relative_to(FRONTEND_PUBLIC_DATA_ROOT).as_posix()
+            except ValueError:
+                continue
+            paths[key] = path
+    return sorted(paths.items())
+
+
 def read_standards_compat_package() -> dict[str, Any]:
     path = _data_package_path("standards-index")
     if not path.exists():
@@ -335,6 +361,7 @@ def read_standards_compat_package() -> dict[str, Any]:
 
 SEARCH_INDEX_SOURCE_PACKAGES = (
     "capability",
+    "capability-workbench",
     "environment-workbench",
     "lifecycle-workbench",
     "maintenance-index",
@@ -368,6 +395,7 @@ _SEARCH_QUERY_ALIASES = {
     "lingxinren": "零信任",
     "ling xin ren": "零信任",
 }
+_SEARCH_BUSINESS_ALIASES_BY_CODE: dict[str, str] = {}
 
 
 def _search_source_signature() -> tuple[tuple[str, int, int], ...]:
@@ -379,6 +407,12 @@ def _search_source_signature() -> tuple[tuple[str, int, int], ...]:
             continue
         size, mtime_ns = _package_cache_key(path)
         signature.append((name, size, mtime_ns))
+    for key, path in _standards_detail_paths():
+        if not path.exists():
+            signature.append((f"standards-detail:{key}", -1, -1))
+            continue
+        size, mtime_ns = _package_cache_key(path)
+        signature.append((f"standards-detail:{key}", size, mtime_ns))
     return tuple(signature)
 
 
@@ -452,6 +486,61 @@ def _search_fuzzy_token_match(query: str, *values: Any) -> bool:
     return False
 
 
+def _search_contains(value: Any, normalized: str, compact: str) -> bool:
+    text_value = str(value or "").lower()
+    compact_value = _search_plain(text_value)
+    return bool((normalized and normalized in text_value) or (compact and compact in compact_value))
+
+
+def _search_startswith(value: Any, normalized: str, compact: str) -> bool:
+    text_value = str(value or "").lower()
+    compact_value = _search_plain(text_value)
+    return bool((normalized and text_value.startswith(normalized)) or (compact and compact_value.startswith(compact)))
+
+
+def _search_exact(value: Any, normalized: str, compact: str) -> bool:
+    text_value = str(value or "").lower()
+    compact_value = _search_plain(text_value)
+    return bool(text_value == normalized or (compact and compact_value == compact))
+
+
+def _search_match_details(item: dict[str, Any], query: str) -> tuple[int, str]:
+    variants = _search_query_variants(query)
+    if not variants:
+        return 1, "empty"
+    title = str(item.get("title") or "").lower()
+    code = str(item.get("code") or "").lower()
+    target_text = str(item.get("target_text") or "").lower()
+    identity = str(item.get("_identity_search") or "").lower()
+    content = str(item.get("_content_search") or "").lower()
+    context = str(item.get("_context_search") or "").lower()
+    for normalized in variants:
+        compact = _search_plain(normalized)
+        if _search_exact(code, normalized, compact):
+            return 130, "code_exact"
+        if _search_exact(title, normalized, compact) or _search_exact(target_text, normalized, compact):
+            return 120, "title_exact"
+        if _search_startswith(code, normalized, compact):
+            return 105, "code_prefix"
+        if _search_startswith(title, normalized, compact) or _search_startswith(target_text, normalized, compact):
+            return 100, "title_prefix"
+        if _search_contains(code, normalized, compact):
+            return 90, "code_contains"
+        if _search_contains(title, normalized, compact) or _search_contains(target_text, normalized, compact):
+            return 80, "title_contains"
+        if _search_contains(identity, normalized, compact):
+            return 72, "identity_contains"
+        if _search_contains(content, normalized, compact):
+            return 42, "content_contains"
+        if _search_contains(context, normalized, compact):
+            return 24, "context_contains"
+    if _search_fuzzy_token_match(variants[0], title, code, target_text, identity):
+        return 34, "identity_fuzzy"
+    if _search_fuzzy_token_match(variants[0], content):
+        return 24, "content_fuzzy"
+    return 0, "none"
+
+
 def _workforce_slug(value: Any, fallback: str = "item") -> str:
     normalized = re.sub(r"[^\w\u4e00-\u9fa5-]+", "-", str(value or "").strip())
     normalized = normalized.strip("-")[:72]
@@ -475,6 +564,11 @@ def _workforce_reference_row_id(field: str, item: dict[str, Any], index: int, ti
     return str(item.get("id") or item.get("code") or title or f"{field}:{index}").strip()
 
 
+def _search_business_aliases_for_item(item: dict[str, Any]) -> str:
+    code = str(item.get("code") or "").strip()
+    return _SEARCH_BUSINESS_ALIASES_BY_CODE.get(code, "")
+
+
 def _is_internal_search_code(value: Any) -> bool:
     normalized = str(value or "").strip()
     if not normalized:
@@ -493,37 +587,32 @@ def _clean_search_display_text(value: Any) -> str:
 
 
 def _search_score(item: dict[str, Any], query: str) -> int:
-    variants = _search_query_variants(query)
-    if not variants:
-        return 1
-    title = str(item.get("title") or "").lower()
-    code = str(item.get("code") or "").lower()
-    haystack = str(item.get("_search") or "").lower()
-    compact_title = _search_plain(title)
-    compact_code = _search_plain(code)
-    compact_haystack = _search_plain(haystack)
-    for normalized in variants:
-        compact = _search_plain(normalized)
-        if code == normalized or title == normalized or (compact and (compact_code == compact or compact_title == compact)):
-            return 120
-        if code.startswith(normalized) or title.startswith(normalized) or (compact and (compact_code.startswith(compact) or compact_title.startswith(compact))):
-            return 100
-        if (code and normalized in code) or (compact and compact in compact_code):
-            return 90
-        if (title and normalized in title) or (compact and compact in compact_title):
-            return 80
-        if (haystack and normalized in haystack) or (compact and compact in compact_haystack):
-            return 50
-    if _search_fuzzy_token_match(variants[0], title, code, haystack):
-        return 30
-    return 0
+    score, _match_kind = _search_match_details(item, query)
+    return score
+
+
+def _search_is_identity_match(item: dict[str, Any]) -> bool:
+    return str(item.get("match_kind") or "").startswith(("code_", "title_", "identity_")) and int(item.get("score") or 0) >= 72
+
+
+def _search_is_weak_match(item: dict[str, Any]) -> bool:
+    match_kind = str(item.get("match_kind") or "")
+    return match_kind.startswith(("content_", "context_")) or int(item.get("score") or 0) < 72
 
 
 def _search_match_context(item: dict[str, Any], query: str) -> str:
     variants = _search_query_variants(query)
     if not variants:
         return ""
-    source = _search_compact(item.get("subtitle"), item.get("target_text"), item.get("_search"))
+    _score, match_kind = _search_match_details(item, query)
+    if match_kind.startswith(("code_", "title_", "identity_")):
+        source = _search_compact(item.get("code"), item.get("title"), item.get("target_text"), item.get("_identity_search"))
+    elif match_kind.startswith("content_"):
+        source = _search_compact(item.get("_content_search"), item.get("title"), item.get("target_text"))
+    elif match_kind.startswith("context_"):
+        source = _search_compact(item.get("_context_search"), item.get("title"), item.get("target_text"))
+    else:
+        source = _search_compact(item.get("target_text"), item.get("_identity_search"), item.get("_content_search"), item.get("_context_search"))
     compact = _clean_search_display_text(re.sub(r"\s+", " ", source).strip())
     if not compact:
         return ""
@@ -564,6 +653,8 @@ def _add_search_item(
     object_id: str = "",
     search_text: Any = "",
     aliases: Any = "",
+    extra_fields: dict[str, Any] | None = None,
+    search_subtitle: bool = True,
 ) -> None:
     raw_title = str(title or code or item_id or "").strip()
     raw_code = str(code or "").strip()
@@ -579,22 +670,29 @@ def _add_search_item(
     seen.add(key)
     display_title = " ".join(part for part in (normalized_code, normalized_title) if part)
     display_target_text = _clean_search_display_text(target_text or normalized_title or normalized_code)
-    rows.append(
-        {
-            "id": normalized_id,
-            "type": item_type,
-            "typeLabel": type_label,
-            "title": display_title,
-            "code": normalized_code,
-            "subtitle": str(subtitle or "").strip(),
-            "route": normalized_route,
-            "target_ref": str(target_ref or f"{object_type or item_type}:{normalized_id}").strip(),
-            "target_text": display_target_text,
-            "object_type": str(object_type or item_type).strip(),
-            "object_id": str(object_id or normalized_id).strip(),
-            "_search": _search_compact(type_label, normalized_code, normalized_title, subtitle, search_text, aliases),
-        }
-    )
+    identity_search = _search_compact(normalized_code, normalized_title, display_target_text, aliases)
+    content_search = _search_compact(search_text)
+    context_search = _search_compact(subtitle if search_subtitle else "")
+    row = {
+        "id": normalized_id,
+        "type": item_type,
+        "typeLabel": type_label,
+        "title": display_title,
+        "code": normalized_code,
+        "subtitle": str(subtitle or "").strip(),
+        "route": normalized_route,
+        "target_ref": str(target_ref or f"{object_type or item_type}:{normalized_id}").strip(),
+        "target_text": display_target_text,
+        "object_type": str(object_type or item_type).strip(),
+        "object_id": str(object_id or normalized_id).strip(),
+        "_identity_search": identity_search,
+        "_content_search": content_search,
+        "_context_search": context_search,
+        "_search": _search_compact(type_label, identity_search, content_search, context_search),
+    }
+    if extra_fields:
+        row.update({key: value for key, value in extra_fields.items() if value not in (None, "")})
+    rows.append(row)
 
 
 def _add_navigation_search_items(rows: list[dict[str, Any]], seen: set[str]) -> None:
@@ -622,12 +720,19 @@ def _add_navigation_search_items(rows: list[dict[str, Any]], seen: set[str]) -> 
 
 def _add_capability_search_items(rows: list[dict[str, Any]], seen: set[str]) -> None:
     capability = read_data_package("capability")
+    capability_workbench = read_data_package("capability-workbench")
     type_labels = {
         "capability_category": "能力分类",
         "capability_domain": "能力域",
         "capability": "安全能力",
         "capability_focus": "安全关注点",
     }
+    trails_by_id: dict[str, list[str]] = {}
+
+    def capability_label(item: dict[str, Any]) -> str:
+        code = str(item.get("code") or "").strip()
+        title = _title_of(item, "")
+        return " ".join(part for part in (code, title) if part).strip() or title
 
     def visit(item: dict[str, Any], object_type: str, trail: list[str]) -> None:
         title = _title_of(item, "")
@@ -649,8 +754,11 @@ def _add_capability_search_items(rows: list[dict[str, Any]], seen: set[str]) -> 
             object_type=object_type,
             object_id=item_id,
             search_text=item.get("description") or item.get("summary"),
+            search_subtitle=False,
         )
-        next_trail = [*trail, " ".join(part for part in (code, title) if part)]
+        next_trail = [*trail, capability_label(item)]
+        if item_id:
+            trails_by_id[item_id] = next_trail
         for domain in _list(item.get("domains")):
             if isinstance(domain, dict):
                 visit(domain, "capability_domain", next_trail)
@@ -664,6 +772,105 @@ def _add_capability_search_items(rows: list[dict[str, Any]], seen: set[str]) -> 
     for category in _list(capability.get("categories")):
         if isinstance(category, dict):
             visit(category, "capability_category", [])
+    for focus in _list(capability.get("unlinked_focuses")):
+        if isinstance(focus, dict):
+            visit(focus, "capability_focus", ["未挂接关注点"])
+
+    objects = capability_workbench.get("objects") if isinstance(capability_workbench.get("objects"), dict) else {}
+    relations = [relation for relation in _list(capability_workbench.get("relations")) if isinstance(relation, dict)]
+
+    def object_by_type(object_type: str, object_id: str) -> dict[str, Any] | None:
+        rows_by_id = objects.get(object_type) if isinstance(objects.get(object_type), dict) else {}
+        value = rows_by_id.get(object_id)
+        return value if isinstance(value, dict) else None
+
+    def add_mapping(mapping: dict[str, set[str]], key: str, value: str) -> None:
+        if key and value:
+            mapping.setdefault(key, set()).add(value)
+
+    service_focus_ids: dict[str, set[str]] = {}
+    service_module_ids: dict[str, set[str]] = {}
+    service_measure_ids: dict[str, set[str]] = {}
+    for relation in relations:
+        relation_type = str(relation.get("type") or "").strip()
+        source_type = str(relation.get("sourceType") or relation.get("source_type") or "").strip()
+        target_type = str(relation.get("targetType") or relation.get("target_type") or "").strip()
+        source_id = str(relation.get("sourceId") or relation.get("source_id") or "").strip()
+        target_id = str(relation.get("targetId") or relation.get("target_id") or "").strip()
+        if relation_type == "supports_focus" and source_type == "security_technical_service" and target_type == "capability_focus":
+            add_mapping(service_focus_ids, source_id, target_id)
+        elif relation_type == "implemented_by_module" and source_type == "security_technical_service" and target_type == "security_technology_module":
+            add_mapping(service_module_ids, source_id, target_id)
+        elif relation_type == "has_measure" and source_type == "security_technical_service" and target_type == "security_technical_measure":
+            add_mapping(service_measure_ids, source_id, target_id)
+
+    def add_capability_relation_item(
+        *,
+        item: dict[str, Any],
+        focus_id: str,
+        relation_type: str,
+        type_label: str,
+        object_type: str,
+    ) -> None:
+        focus = object_by_type("capability_focus", focus_id) or {}
+        title = _title_of(item, "")
+        code = str(item.get("code") or "").strip()
+        item_id = str(item.get("id") or code or title).strip()
+        if not item_id or not (title or code):
+            return
+        trail = trails_by_id.get(focus_id) or ([capability_label(focus)] if focus else [])
+        _add_search_item(
+            rows,
+            seen,
+            item_id=f"{focus_id}:{relation_type}:{item_id}",
+            item_type="capability",
+            type_label=type_label,
+            title=title,
+            code=code,
+            subtitle=" / ".join(part for part in trail if part),
+            route="/capability-mapping",
+            target_ref=f"capability_relation:{relation_type}:{focus_id}:{item_id}",
+            target_text=title,
+            object_type=object_type,
+            object_id=item_id,
+            search_text=_search_compact(item.get("description"), item.get("summary")),
+            aliases=_search_business_aliases_for_item(item),
+            extra_fields={"selected_capability_id": focus_id},
+            search_subtitle=False,
+        )
+
+    for service_id, focus_ids in service_focus_ids.items():
+        service = object_by_type("security_technical_service", service_id)
+        if not service:
+            continue
+        for focus_id in sorted(focus_ids):
+            add_capability_relation_item(
+                item=service,
+                focus_id=focus_id,
+                relation_type="security_technical_service",
+                type_label="能力安全技术服务",
+                object_type="security_technical_service",
+            )
+            for module_id in sorted(service_module_ids.get(service_id, set())):
+                module = object_by_type("security_technology_module", module_id)
+                if module:
+                    add_capability_relation_item(
+                        item=module,
+                        focus_id=focus_id,
+                        relation_type="security_technology_module",
+                        type_label="能力安全技术模块",
+                        object_type="security_technology_module",
+                    )
+            for measure_id in sorted(service_measure_ids.get(service_id, set())):
+                measure = object_by_type("security_technical_measure", measure_id)
+                if measure:
+                    add_capability_relation_item(
+                        item=measure,
+                        focus_id=focus_id,
+                        relation_type="security_technical_measure",
+                        type_label="能力安全技术措施",
+                        object_type="security_technical_measure",
+                    )
 
 
 def _add_maintenance_search_items(rows: list[dict[str, Any]], seen: set[str]) -> None:
@@ -687,15 +894,17 @@ def _add_maintenance_search_items(rows: list[dict[str, Any]], seen: set[str]) ->
         for index, item in enumerate(items):
             if not isinstance(item, dict):
                 continue
-            title = _title_of(item, "")
-            code = str(item.get("code") or item.get("id") or "").strip()
-            item_id = _workforce_reference_row_id(field, item, index, title) if field in {"gbt_42446_references", "gartner_roles"} else str(item.get("id") or code or title or f"{field}:{index}").strip()
+            entity = item.get("service") if field == "security_technical_services" and isinstance(item.get("service"), dict) else item
+            title = _title_of(entity, "")
+            code = str(entity.get("code") or entity.get("id") or "").strip()
+            item_id = _workforce_reference_row_id(field, entity, index, title) if field in {"gbt_42446_references", "gartner_roles"} else str(entity.get("id") or code or title or f"{field}:{index}").strip()
             target_ref = item_id if item_id.startswith(f"{object_type}:") else f"{object_type}:{item_id}"
             aliases = ""
             if field == "gbt_42446_references":
                 aliases = "GB/T 42446 GB/T 42446-2023 网络安全从业人员能力基本要求 人力资源 Workforce 参考标准 工作任务 任务定义 工作类别分类"
             elif field == "gartner_roles":
                 aliases = "Gartner 工作岗位参考 Gartner Role 人力资源 Workforce 参考标准 岗位 角色 职位"
+            aliases = _search_compact(aliases, _search_business_aliases_for_item(entity))
             _add_search_item(
                 rows,
                 seen,
@@ -704,13 +913,13 @@ def _add_maintenance_search_items(rows: list[dict[str, Any]], seen: set[str]) ->
                 type_label=type_label,
                 title=title,
                 code=code,
-                subtitle=_search_compact(item.get("category"), item.get("group"), item.get("layer")),
+                subtitle=_search_compact(entity.get("category"), item.get("category"), item.get("group"), item.get("layer"), item.get("scopes")),
                 route=route,
                 target_ref=target_ref,
                 target_text=title,
                 object_type=object_type,
                 object_id=item_id,
-                search_text=_search_compact(item.get("description"), item.get("summary"), item.get("definition")),
+                search_text=_search_compact(entity.get("description"), entity.get("summary"), entity.get("definition")),
                 aliases=aliases,
             )
 
@@ -751,6 +960,107 @@ def _add_environment_search_items(rows: list[dict[str, Any]], seen: set[str]) ->
     for node in _list((workbench.get("navigator") or {}).get("tree")):
         if isinstance(node, dict):
             visit(node, [])
+
+    def relation_id(item: dict[str, Any], fallback: str) -> str:
+        return str(item.get("id") or item.get("code") or item.get("title") or item.get("name") or fallback).strip()
+
+    def add_relation_item(
+        item: dict[str, Any],
+        *,
+        relation_type: str,
+        type_label: str,
+        environment: dict[str, Any],
+        object_row: dict[str, Any],
+        scope: dict[str, Any],
+        service: dict[str, Any] | None = None,
+    ) -> None:
+        object_id = relation_id(object_row, "")
+        relation_item_id = relation_id(item, type_label)
+        if not object_id or not relation_item_id:
+            return
+        environment_title = _title_of(environment, "")
+        object_title = _title_of(object_row, "")
+        segment_title = _search_compact(object_row.get("segments"))
+        segment_id = ""
+        for segment in _list(object_row.get("segments")):
+            if isinstance(segment, dict):
+                segment_id = relation_id(segment, "")
+                if segment_id:
+                    break
+        scope_title = _title_of(scope, "")
+        service_title = _title_of(service, "") if service else ""
+        location_subtitle = " / ".join(part for part in (environment_title, segment_title, object_title, scope_title) if part)
+        subtitle = " / ".join(part for part in (location_subtitle, service_title) if part)
+        code = str(item.get("code") or "").strip()
+        title = _title_of(item, "")
+        _add_search_item(
+            rows,
+            seen,
+            item_id=f"{object_id}:{relation_type}:{relation_item_id}",
+            item_type="environment",
+            type_label=type_label,
+            title=title,
+            code=code,
+            subtitle=subtitle,
+            route="/environment-mapping",
+            target_ref=f"{relation_type}:{object_id}:{relation_item_id}",
+            target_text=title,
+            object_type="information_object",
+            object_id=object_id,
+            search_text=_search_compact(item.get("description"), item.get("category")),
+            aliases=_search_business_aliases_for_item(item),
+            search_subtitle=False,
+            extra_fields={
+                "selected_environment_id": relation_id(environment, ""),
+                "selected_environment_segment_id": segment_id,
+                "selected_environment_object_id": object_id,
+            },
+        )
+
+    def add_relation_systems(
+        systems: list[Any],
+        *,
+        environment: dict[str, Any],
+        object_row: dict[str, Any],
+        scope: dict[str, Any],
+        service: dict[str, Any] | None = None,
+    ) -> None:
+        for system in systems:
+            if isinstance(system, dict):
+                add_relation_item(system, relation_type="security_system", type_label="安全系统", environment=environment, object_row=object_row, scope=scope, service=service)
+
+    for environment in _list(workbench.get("environment_scope_tree")):
+        if not isinstance(environment, dict):
+            continue
+        for object_row in _list(environment.get("objects")):
+            if not isinstance(object_row, dict):
+                continue
+            for mapping in _list(object_row.get("scope_mappings")):
+                if not isinstance(mapping, dict):
+                    continue
+                scope = mapping.get("scope") if isinstance(mapping.get("scope"), dict) else {}
+                for service in _list(mapping.get("services")):
+                    if not isinstance(service, dict):
+                        continue
+                    add_relation_item(service, relation_type="security_technical_service", type_label="环境安全技术服务", environment=environment, object_row=object_row, scope=scope)
+                    for module in _list(service.get("modules")):
+                        if not isinstance(module, dict):
+                            continue
+                        add_relation_item(module, relation_type="security_technology_module", type_label="环境安全技术模块", environment=environment, object_row=object_row, scope=scope, service=service)
+                        add_relation_systems([*_list(module.get("securitySystems")), *_list(module.get("systems")), *_list(module.get("linkedSystems"))], environment=environment, object_row=object_row, scope=scope, service=service)
+                    for measure in _list(service.get("measures")):
+                        if not isinstance(measure, dict):
+                            continue
+                        add_relation_item(measure, relation_type="security_technical_measure", type_label="环境安全技术措施", environment=environment, object_row=object_row, scope=scope, service=service)
+                        add_relation_systems([*_list(measure.get("securitySystems")), *_list(measure.get("systems")), *_list(measure.get("linkedSystems"))], environment=environment, object_row=object_row, scope=scope, service=service)
+                    for node in _list(service.get("relationNodes")):
+                        if not isinstance(node, dict):
+                            continue
+                        label = "环境安全技术措施" if str(node.get("relationKind") or node.get("kind") or node.get("objectKind") or "").find("measure") >= 0 or "措施" in _title_of(node, "") else "环境安全技术模块"
+                        relation_type = "security_technical_measure" if label.endswith("措施") else "security_technology_module"
+                        add_relation_item(node, relation_type=relation_type, type_label=label, environment=environment, object_row=object_row, scope=scope, service=service)
+                        add_relation_systems([*_list(node.get("securitySystems")), *_list(node.get("systems")), *_list(node.get("linkedSystems"))], environment=environment, object_row=object_row, scope=scope, service=service)
+                    add_relation_systems([*_list(service.get("securitySystems")), *_list(service.get("systems")), *_list(service.get("linkedSystems"))], environment=environment, object_row=object_row, scope=scope, service=service)
 
 
 def _add_lifecycle_search_items(rows: list[dict[str, Any]], seen: set[str]) -> None:
@@ -845,6 +1155,91 @@ def _add_lifecycle_search_items(rows: list[dict[str, Any]], seen: set[str]) -> N
             add_process_detail_items(process, "/data-security", "LC-DT 过程")
 
 
+STANDARD_SEARCH_CODE_FIELDS = (
+    "Safeguard ID",
+    "SCF编号",
+    "控制项",
+    "控制编号",
+    "控制ID",
+    "控制项ID",
+    "保护措施编号",
+    "等保控制项",
+    "编号",
+    "ID",
+)
+STANDARD_SEARCH_TITLE_FIELDS = (
+    "SCF控制项",
+    "保障措施描述",
+    "控制项名称",
+    "安全控制项名称",
+    "控制名称",
+    "等保三级控制要求",
+    "名称",
+    "描述",
+    "保障措施域",
+    "SCF域",
+)
+STANDARD_SEARCH_CONTEXT_FIELDS = (
+    "保障措施分类",
+    "保障措施域",
+    "CRF成熟度等级",
+    "保障措施系统",
+    "SCF域",
+    "策略原则",
+    "策略意图",
+    "NIST CSF功能分组",
+    "等级保护",
+    "等保要求",
+    "等保控制项",
+    "关联安全能力/关注点",
+)
+
+
+def _standard_row_values(row: Any) -> dict[str, Any]:
+    if not isinstance(row, dict):
+        return {}
+    values = row.get("values")
+    return values if isinstance(values, dict) else row
+
+
+def _standard_pick(values: dict[str, Any], *fields: str) -> str:
+    for field in fields:
+        value = str(values.get(field) or "").strip()
+        if value:
+            return value
+    return ""
+
+
+def _standard_row_code(row: dict[str, Any], values: dict[str, Any]) -> str:
+    for field in ("controlId", "controlCode", "code"):
+        value = str(row.get(field) or "").strip()
+        if value:
+            return value
+    return _standard_pick(values, *STANDARD_SEARCH_CODE_FIELDS)
+
+
+def _standard_row_title(row: dict[str, Any], values: dict[str, Any], code: str, index: int) -> str:
+    for field in ("title", "name"):
+        value = str(row.get(field) or "").strip()
+        if value:
+            return value
+    return _standard_pick(values, *STANDARD_SEARCH_TITLE_FIELDS) or code or f"标准控制项 {index + 1}"
+
+
+def _standard_detail_payloads(framework: dict[str, Any]) -> list[dict[str, Any]]:
+    payloads: list[dict[str, Any]] = []
+    framework_payload = _read_split_payload(framework.get("dataPath"))
+    if framework_payload:
+        payloads.append(framework_payload)
+    for tab in _list(framework.get("tabs")):
+        if not isinstance(tab, dict):
+            continue
+        tab_payload = _read_split_payload(tab.get("dataPath"))
+        if tab_payload:
+            payloads.append({**tab, **tab_payload})
+    return payloads
+
+
 def _add_standard_search_items(rows: list[dict[str, Any]], seen: set[str]) -> None:
     standards = read_data_package("standards-index")
     for framework in _list(standards.get("frameworks")):
@@ -890,6 +1285,40 @@ def _add_standard_search_items(rows: list[dict[str, Any]], seen: set[str]) -> No
                 object_id=tab_id,
                 search_text=tab.get("columns"),
             )
+        for table in _standard_detail_payloads(framework):
+            table_id = str(table.get("id") or framework_id or "").strip()
+            table_title = _title_of(table, table_id)
+            table_route = str(table.get("route") or route).strip()
+            for index, row in enumerate(_list(table.get("rows"))):
+                if not isinstance(row, dict):
+                    continue
+                values = _standard_row_values(row)
+                code = _standard_row_code(row, values)
+                row_title = _standard_row_title(row, values, code, index)
+                row_id = str(row.get("id") or f"{framework_id}:{table_id}:{index}").strip()
+                if not row_id or not (row_title or code):
+                    continue
+                _add_search_item(
+                    rows,
+                    seen,
+                    item_id=row_id,
+                    item_type="standard",
+                    type_label="标准控制项",
+                    title=row_title,
+                    code=code,
+                    subtitle=_search_compact(title, table_title, _standard_pick(values, *STANDARD_SEARCH_CONTEXT_FIELDS)),
+                    route=table_route,
+                    target_ref=f"standard_control:{framework_id}:{table_id}:{row_id}",
+                    target_text=row_title,
+                    object_type="standard_control",
+                    object_id=row_id,
+                    search_text=_search_compact(list(values.values())),
+                    extra_fields={
+                        "standardFramework": framework_id,
+                        "standardTableId": table_id,
+                        "selectedMaintenanceId": row_id,
+                    },
+                )
 
 
 def _add_content_search_items(rows: list[dict[str, Any]], seen: set[str]) -> None:
@@ -951,35 +1380,156 @@ def build_search_index() -> dict[str, Any]:
     return payload
 
 
-def search_index_payload(query: str = "", limit: int = 80) -> dict[str, Any]:
+def _search_result_dedupe_key(item: dict[str, Any]) -> tuple[str, str, str] | None:
+    if str(item.get("object_type") or "") != "standard_control":
+        return None
+    route = str(item.get("route") or "").strip()
+    code = _search_plain(item.get("code") or "")
+    title = _search_plain(item.get("target_text") or item.get("title") or "")
+    identity = code or title
+    if not route or not identity:
+        return None
+    return ("standard_control", route, identity)
+
+
+def _dedupe_search_results(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    deduped: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, str]] = set()
+    for row in rows:
+        key = _search_result_dedupe_key(row)
+        if key and key in seen:
+            continue
+        if key:
+            seen.add(key)
+        deduped.append(row)
+    return deduped
+
+
+def _spread_standard_search_results(rows: list[dict[str, Any]], limit: int) -> list[dict[str, Any]]:
+    standard_routes = {
+        str(row.get("route") or "").strip()
+        for row in rows
+        if str(row.get("object_type") or "") == "standard_control" and str(row.get("route") or "").strip()
+    }
+    if len(standard_routes) < 2:
+        return rows
+    per_route_cap = max(10, min(24, int(limit or 40) // 2 + 4))
+    primary: list[dict[str, Any]] = []
+    overflow: list[dict[str, Any]] = []
+    route_counts: dict[str, int] = {}
+    for row in rows:
+        if str(row.get("object_type") or "") != "standard_control":
+            primary.append(row)
+            continue
+        route = str(row.get("route") or "").strip()
+        route_counts[route] = route_counts.get(route, 0) + 1
+        if route and route_counts[route] > per_route_cap:
+            overflow.append(row)
+            continue
+        primary.append(row)
+    return primary + overflow
+
+
+SEARCH_RESULT_CATEGORY_ORDER = ("全部", "安全能力", "信息化环境", "生命周期", "知识库", "标准 / 框架", "指南", "工作台", "其他")
+
+
+def _search_result_category(item: dict[str, Any]) -> str:
+    route = str(item.get("route") or "").strip()
+    if route == "/capability-mapping":
+        return "安全能力"
+    if route == "/environment-mapping":
+        return "信息化环境"
+    if route in {"/development-security", "/data-security"}:
+        return "生命周期"
+    if route.startswith("/knowledge/"):
+        return "知识库"
+    if route.startswith("/standards"):
+        return "标准 / 框架"
+    if route.startswith("/guides/"):
+        return "指南"
+    if route.startswith("/workbench"):
+        return "工作台"
+    return "其他"
+
+
+def _search_result_facets(rows: list[dict[str, Any]], limit: int, offset: int = 0) -> dict[str, Any]:
+    category_counts: dict[str, int] = {"全部": len(rows)}
+    for row in rows:
+        category = _search_result_category(row)
+        category_counts[category] = category_counts.get(category, 0) + 1
+    categories = [
+        {"label": label, "count": category_counts.get(label, 0)}
+        for label in SEARCH_RESULT_CATEGORY_ORDER
+        if label == "全部" or category_counts.get(label, 0) > 0
+    ]
+    returned = max(0, min(len(rows), offset + limit) - offset)
+    return {
+        "total": len(rows),
+        "returned": returned,
+        "limit": limit,
+        "offset": offset,
+        "truncated": offset + returned < len(rows),
+        "categories": categories,
+        "by_category": {label: count for label, count in category_counts.items() if count > 0},
+    }
+
+
+def search_index_payload(query: str = "", limit: int = 80, offset: int = 0, category: str = "") -> dict[str, Any]:
     index = build_search_index()
     normalized_query = str(query or "").strip()
     safe_limit = max(1, min(int(limit or 80), 120))
+    safe_offset = max(0, int(offset or 0))
+    normalized_category = str(category or "").strip()
     rows: list[dict[str, Any]] = []
     for item in _list(index.get("items")):
         if not isinstance(item, dict):
             continue
-        score = _search_score(item, normalized_query)
+        score, match_kind = _search_match_details(item, normalized_query)
         if normalized_query and score <= 0:
             continue
-        public_item = {key: value for key, value in item.items() if key != "_search"}
+        public_item = {key: value for key, value in item.items() if key not in {"_search", "_identity_search", "_content_search", "_context_search"}}
         public_item["score"] = score
+        public_item["match_kind"] = match_kind
         match_context = _search_match_context(item, normalized_query)
         if match_context:
             public_item["match_context"] = match_context
         rows.append(public_item)
+    if normalized_query and any(_search_is_identity_match(row) for row in rows):
+        rows = [row for row in rows if not _search_is_weak_match(row)]
     rows.sort(key=lambda item: (-int(item.get("score") or 0), str(item.get("typeLabel") or ""), str(item.get("title") or "")))
+    rows = _spread_standard_search_results(_dedupe_search_results(rows), safe_limit)
+    facets = _search_result_facets(rows, safe_limit, safe_offset)
+    if normalized_category and normalized_category != "全部":
+        window_rows = [row for row in rows if _search_result_category(row) == normalized_category]
+    else:
+        window_rows = rows
+    window_total = len(window_rows)
+    result_rows = window_rows[safe_offset:safe_offset + safe_limit]
     return {
         "generated_at": index.get("generated_at"),
         "data_state": index.get("data_state") or "ready",
         "package_type": index.get("package_type") or "runtime-search-index",
         "query": normalized_query,
-        "results": rows[:safe_limit],
+        "category": normalized_category,
+        "offset": safe_offset,
+        "results": result_rows,
+        "facets": facets,
+        "window": {
+            "category": normalized_category,
+            "offset": safe_offset,
+            "limit": safe_limit,
+            "returned": len(result_rows),
+            "total": window_total,
+            "truncated": safe_offset + len(result_rows) < window_total,
+        },
         "stats": {
             **(index.get("stats") or {}),
-            "returned": min(len(rows), safe_limit),
-            "matched": len(rows),
+            "returned": len(result_rows),
+            "matched": facets["total"],
             "limit": safe_limit,
+            "offset": safe_offset,
+            "truncated": safe_offset + len(result_rows) < window_total,
+            "by_category": facets["by_category"],
         },
     }
 
@@ -2831,11 +3381,16 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
                 return
             if path == "/api/v1/search-index":
                 raw_limit = (query.get("limit") or ["80"])[0]
+                raw_offset = (query.get("offset") or ["0"])[0]
                 try:
                     limit = int(raw_limit)
                 except (TypeError, ValueError):
                     limit = 80
-                self._send_json(create_envelope(search_index_payload(query=(query.get("q") or [""])[0], limit=limit)))
+                try:
+                    offset = int(raw_offset)
+                except (TypeError, ValueError):
+                    offset = 0
+                self._send_json(create_envelope(search_index_payload(query=(query.get("q") or [""])[0], limit=limit, offset=offset, category=(query.get("category") or [""])[0])))
                 return
             if len(parts) == 4 and parts[:3] == ["api", "v1", "data-packages"]:
                 self._send_json(create_envelope(read_data_package(parts[3])))

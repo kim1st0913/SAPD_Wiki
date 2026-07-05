@@ -2,8 +2,10 @@ import fs from "node:fs";
 import vm from "node:vm";
 
 const viewModelsSource = fs.readFileSync("frontend/capability-browser/viewModels.js", "utf8");
+const dataClientSource = fs.readFileSync("frontend/capability-browser/dataClient.js", "utf8");
 const environmentTreeSource = fs.readFileSync("frontend/capability-browser/components/EnvironmentTree.js", "utf8");
 const environmentLocalRelationMapSource = fs.readFileSync("frontend/capability-browser/components/EnvironmentLocalRelationMap.js", "utf8");
+const environmentScopeServiceMatrixSource = fs.readFileSync("frontend/capability-browser/components/EnvironmentScopeServiceMatrix.js", "utf8");
 const environmentBasemapViewerSource = fs.readFileSync("frontend/capability-browser/components/EnvironmentBasemapViewer.js", "utf8");
 const appSource = fs.readFileSync("frontend/capability-browser/app.js", "utf8");
 const stylesSource = fs.readFileSync("frontend/capability-browser/styles.css", "utf8");
@@ -15,8 +17,27 @@ function snippet(source, startNeedle, endNeedle) {
   return source.slice(start, end > start ? end : start + 1400);
 }
 
+function list(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 const environmentInputHandler = snippet(appSource, 'if (event.target?.id !== "environmentSearchInput") return;', '$("devLifecycleStageSearch")?.addEventListener');
 const drawioBasemapRenderer = snippet(environmentLocalRelationMapSource, "function renderDrawioBasemap", "function hierarchyNodeKind");
+const environmentProjectionFinder = snippet(dataClientSource, "function findEnvironmentProjectionRow", "function environmentProjectionFromSplit");
+const capabilityRelationshipsHandler = snippet(dataClientSource, "async getCapabilityRelationships", "async getCapabilityWorkspaceProjection");
+const environmentRelationshipsHandler = snippet(dataClientSource, "async getEnvironmentRelationships", "async getMaintenanceScopes");
+const projectedLocalRelationMapResolver = snippet(viewModelsSource, "function projectedLocalRelationMapFor", "function workbenchObjectsById");
+const capabilitySelectedFocusRowBlock = snippet(viewModelsSource, "const selectedFocusRow =", "const detailRaw =");
+const environmentSelectionFinder = snippet(viewModelsSource, "function findEnvironmentSelection", "function buildEnvironmentScopeServiceRows");
 
 const staticChecks = [
   {
@@ -82,6 +103,39 @@ const staticChecks = [
     message: "环境页搜索入口必须复用统一 page-search-control，并提供命中计数与上一个/下一个控件。",
   },
   {
+    id: "environment_search_uses_object_match_queue",
+    ok:
+      appSource.includes("function environmentSearchObjectMatches") &&
+      appSource.includes("function updateEnvironmentPageSearchNavigation") &&
+      appSource.includes("function moveEnvironmentPageSearchMatch") &&
+      appSource.includes('scope === "environment-mapping" && moveEnvironmentPageSearchMatch') &&
+      appSource.includes("updateEnvironmentPageSearchNavigation(viewModel)") &&
+      appSource.includes("object?.searchText") &&
+      appSource.includes("selectedEnvironmentObjectId = nextMatch.objectId"),
+    message: "环境页页面内搜索必须维护跨对象命中队列，不能只依赖当前可见 DOM 的第一条命中。",
+  },
+  {
+    id: "environment_matrix_nodes_expose_copy_text",
+    ok:
+      environmentScopeServiceMatrixSource.includes('data-copy-text="${utils.escapeHtml(utils.codeTitleOf(row.service))}"') &&
+      environmentScopeServiceMatrixSource.includes('data-copy-text="${utils.escapeHtml(utils.codeTitleOf(row.target))}"') &&
+      environmentScopeServiceMatrixSource.includes('data-copy-text="${utils.escapeHtml(utils.codeTitleOf(row.system))}"') &&
+      environmentScopeServiceMatrixSource.includes('data-copy-text="${utils.escapeHtml(utils.codeTitleOf(node.item))}"'),
+    message: "环境右侧矩阵的服务、模块/措施和安全系统节点必须暴露 data-copy-text，供页面内搜索和全局搜索定位。",
+  },
+  {
+    id: "environment_global_search_reveals_left_catalog",
+    ok:
+      appSource.includes("function revealEnvironmentCatalogSelection") &&
+      appSource.includes('const root = $("environmentTree")') &&
+      appSource.includes('"data-environment-object-id"') &&
+      appSource.includes('"data-environment-segment-id"') &&
+      appSource.includes('"data-environment-id"') &&
+      appSource.includes("state.environmentCatalogCollapsed = false") &&
+      appSource.includes("revealEnvironmentCatalogSelection(result)"),
+    message: "全局搜索定位环境关系节点时，必须同步滚动左侧环境对象树到选中对象。",
+  },
+  {
     id: "environment_search_position_uses_tab_toolbars",
     ok:
       !environmentLocalRelationMapSource.includes("environment-shared-search-rail") &&
@@ -114,14 +168,55 @@ const staticChecks = [
     message: "环境页搜索重渲染后必须恢复输入焦点和光标，避免无法连续输入。",
   },
   {
-    id: "environment_search_empty_keeps_workspace_shell",
+    id: "environment_unselected_keeps_workspace_shell",
     ok:
-      appSource.includes('if (!viewModel.selectedEnvironment && !text(state.search).trim())') &&
+      !appSource.includes('if (!viewModel.selectedEnvironment && !text(state.search).trim())') &&
       environmentLocalRelationMapSource.includes("isSearchEmpty") &&
       environmentLocalRelationMapSource.includes("environment-search-empty") &&
+      environmentLocalRelationMapSource.includes("environment-selection-empty") &&
+      environmentLocalRelationMapSource.includes("const hasSelection = Boolean(viewModel?.selectedMode)") &&
+      environmentLocalRelationMapSource.includes("renderDrawioBasemap()") &&
       environmentLocalRelationMapSource.includes("未找到匹配的信息化环境对象。请调整页面内搜索条件。") &&
       appSource.includes("oi154-search-p8-20260703-1"),
-    message: "环境页搜索无命中时必须保留搜索栏、对象树和工作区，只显示局部无结果空态。",
+    message: "环境页无默认当前对象时仍必须渲染底图和目录；选择提示只能出现在第二 tab 右侧详情区。",
+  },
+  {
+    id: "explicit_selection_miss_does_not_use_first_row_fallback",
+    ok:
+      dataClientSource.includes("function environmentProjectionRequestHasTarget") &&
+      environmentProjectionFinder.includes("const matched =") &&
+      environmentProjectionFinder.includes("return null;") &&
+      !environmentProjectionFinder.includes("|| rows[0]") &&
+      capabilityRelationshipsHandler.includes("const requestedId = text(id).trim()") &&
+      !capabilityRelationshipsHandler.includes("|| rows[0]") &&
+      environmentRelationshipsHandler.includes("const requestedId = text(id).trim()") &&
+      environmentRelationshipsHandler.includes("const relationshipRows = row ? rows : []") &&
+      !environmentRelationshipsHandler.includes("const row = rows[0]") &&
+      projectedLocalRelationMapResolver.includes("if (selectedFocusId)") &&
+      projectedLocalRelationMapResolver.includes("return null;") &&
+      capabilitySelectedFocusRowBlock.includes("const selectedFocusRow = selectedId ? rows.find") &&
+      !capabilitySelectedFocusRowBlock.includes("|| rows[0]") &&
+      environmentSelectionFinder.includes("if (!query) return null;") &&
+      environmentSelectionFinder.includes('selectionSource: "search"') &&
+      appSource.includes("const canSyncEnvironmentSelection = viewModel.selectionSource === \"explicit\" || viewModel.selectionSource === \"search\""),
+    message: "显式对象 / projection 请求未命中时不能用第一条 rows[0] / maps[0] 伪装当前对象。",
+  },
+  {
+    id: "environment_tab_state_has_single_source",
+    ok:
+      environmentLocalRelationMapSource.includes('data-environment-active-tab="${escape(normalizedActiveTab)}"') &&
+      environmentLocalRelationMapSource.includes("environment-tab-panel-mapping") &&
+      environmentLocalRelationMapSource.includes("is-active") &&
+      !environmentLocalRelationMapSource.includes('type="radio"') &&
+      !environmentLocalRelationMapSource.includes('name="environmentDetailTab"') &&
+      !environmentLocalRelationMapSource.includes("environment-tab-input") &&
+      appSource.includes('data-environment-tab="${escapeHtml(tab.id)}"') &&
+      appSource.includes("state.activeEnvironmentTab = nextEnvironmentTab === \"mapping\" ? \"mapping\" : \"topology\"") &&
+      !appSource.includes('event.target?.name !== "environmentDetailTab"') &&
+      !appSource.includes("environmentTabMapping") &&
+      stylesSource.includes(".environment-tab-panel.is-active") &&
+      appSource.includes("oi154-single-tab-state-20260704-1"),
+    message: "环境页 tab 只能由页头按钮写入 state.activeEnvironmentTab；组件内部不得再有 radio 状态入口。",
   },
 ];
 
@@ -178,7 +273,21 @@ const fakeEnvironmentScopeTree = [
         scope_mappings: [
           {
             scope: { id: "scope-ap", code: "I-AP", title: "软件应用" },
-            services: [{ id: "service-report", code: "I-AP&T-CG.CG-01", title: "报表访问控制", modules: [], measures: [] }],
+            services: [
+              {
+                id: "service-report",
+                code: "I-AP&T-CG.CG-01",
+                title: "报表访问控制",
+                modules: [
+                  {
+                    id: "module-report-zero-trust",
+                    title: "零信任访问控制台",
+                    systems: [{ id: "system-report-zero-trust", title: "零信任访问控制台" }],
+                  },
+                ],
+                measures: [],
+              },
+            ],
           },
         ],
       },
@@ -208,12 +317,56 @@ const zeroTrust = buildSearchViewModel("零信任访问控制台");
 const measure = buildSearchViewModel("应用页面水印");
 const service = buildSearchViewModel("I-AP&T-AS.AD-02");
 const missing = buildSearchViewModel("不存在的环境对象");
+const initial = buildSearchViewModel("");
+
+const componentSandbox = {
+  window: {
+    sapdComponents: {
+      utils: {
+        list,
+        escapeHtml,
+        codeTitleOf(item, fallback = "") {
+          const code = String(item?.code || "").trim();
+          const title = String(item?.title || item?.name || fallback || "").trim();
+          return [code, title].filter(Boolean).join(" ");
+        },
+      },
+      EnvironmentBasemapViewer: {
+        render() {
+          return '<div data-basemap-probe="true"></div>';
+        },
+      },
+      EnvironmentTree: {
+        render({ navigationTree } = {}) {
+          return `<nav data-environment-tree-probe="${list(navigationTree).length}"></nav>`;
+        },
+      },
+      EnvironmentScopeServiceMatrix: {
+        render() {
+          return '<div data-environment-matrix-probe="true"></div>';
+        },
+      },
+    },
+  },
+  console,
+};
+vm.createContext(componentSandbox);
+vm.runInContext(environmentLocalRelationMapSource, componentSandbox, { filename: "EnvironmentLocalRelationMap.js" });
+const initialTopologyMarkup = componentSandbox.window.sapdComponents.EnvironmentLocalRelationMap.render({
+  viewModel: initial,
+  activeTab: "topology",
+});
+const initialMappingMarkup = componentSandbox.window.sapdComponents.EnvironmentLocalRelationMap.render({
+  viewModel: initial,
+  activeTab: "mapping",
+  search: "",
+});
 
 const runtimeChecks = [
   {
     id: "environment_search_selects_object_by_security_system",
-    ok: zeroTrust.selectedObject?.id === "obj-api-gateway" && zeroTrust.navigationTree?.[0]?.objects?.length === 1,
-    message: "按安全系统搜索时，应切换到包含该系统的对象。",
+    ok: zeroTrust.selectedObject?.id === "obj-api-gateway" && zeroTrust.navigationTree?.[0]?.objects?.length === 2,
+    message: "按安全系统搜索时，应切换到包含该系统的首个对象，并保留所有匹配对象供上下切换。",
   },
   {
     id: "environment_search_selects_object_by_measure",
@@ -229,6 +382,28 @@ const runtimeChecks = [
     id: "environment_search_missing_keeps_local_empty_state",
     ok: !missing.selectedEnvironment && Array.isArray(missing.navigationTree) && missing.navigationTree.length === 0,
     message: "无匹配时应形成局部空态，不伪装成数据包缺失。",
+  },
+  {
+    id: "environment_unselected_initial_state_does_not_select_first_object",
+    ok:
+      !initial.selectedEnvironment &&
+      !initial.selectedObject &&
+      Array.isArray(initial.navigationTree) &&
+      initial.navigationTree?.[0]?.objects?.length === 2,
+    message: "未显式选择且无搜索词时，环境页不得默认选中第一个对象。",
+  },
+  {
+    id: "environment_unselected_initial_render_keeps_basemap_and_catalog",
+    ok:
+      initialTopologyMarkup.includes('data-basemap-probe="true"') &&
+      initialTopologyMarkup.includes('data-environment-active-tab="topology"') &&
+      !initialTopologyMarkup.includes("environment-tab-input") &&
+      initialMappingMarkup.includes('data-environment-tree-probe="1"') &&
+      initialMappingMarkup.includes('data-environment-active-tab="mapping"') &&
+      initialMappingMarkup.includes("environment-selection-empty") &&
+      !initialMappingMarkup.includes("environment-tab-input") &&
+      !initialMappingMarkup.includes("environment-statistics-view"),
+    message: "未显式选择且无搜索词时，第一 tab 必须渲染底图，第二 tab 必须保留目录且右侧只显示选择提示。",
   },
 ];
 

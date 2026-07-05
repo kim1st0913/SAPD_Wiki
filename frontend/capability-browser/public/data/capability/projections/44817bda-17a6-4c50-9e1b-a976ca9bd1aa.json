@@ -478,37 +478,19 @@
         "id": "4abd36d3-4ba1-495c-8fb9-3957167f4833",
         "type": "scope_type",
         "code": "I-OS",
-        "title": "操作系统（主机/终端）",
-        "name": "操作系统（主机/终端）",
+        "title": "操作系统",
+        "name": "操作系统",
         "category": "网络空间",
         "status": ""
       }
     },
     "security_technology_module": {
-      "0531d3a9-f890-428e-af33-98d85d3ca573": {
-        "id": "0531d3a9-f890-428e-af33-98d85d3ca573",
-        "type": "security_technology_module",
-        "code": "",
-        "title": "网络防病毒网关",
-        "name": "网络防病毒网关",
-        "category": "网络安全",
-        "status": ""
-      },
       "c2907a21-fc67-4d75-9db5-870e1edaf04e": {
         "id": "c2907a21-fc67-4d75-9db5-870e1edaf04e",
         "type": "security_technology_module",
         "code": "",
         "title": "安全软件定义广域网（安全SD-WAN）",
         "name": "安全软件定义广域网（安全SD-WAN）",
-        "category": "网络安全",
-        "status": ""
-      },
-      "2a9ef48f-3fcc-4148-acb8-dfc4c5d79233": {
-        "id": "2a9ef48f-3fcc-4148-acb8-dfc4c5d79233",
-        "type": "security_technology_module",
-        "code": "",
-        "title": "安全Web网关",
-        "name": "安全Web网关",
         "category": "网络安全",
         "status": ""
       },
@@ -521,13 +503,22 @@
         "category": "应用安全",
         "status": ""
       },
-      "8ec16418-3683-434b-aeb4-02d27803f9d6": {
-        "id": "8ec16418-3683-434b-aeb4-02d27803f9d6",
+      "2a9ef48f-3fcc-4148-acb8-dfc4c5d79233": {
+        "id": "2a9ef48f-3fcc-4148-acb8-dfc4c5d79233",
         "type": "security_technology_module",
         "code": "",
-        "title": "终端恶意代码防护(EPP)",
-        "name": "终端恶意代码防护(EPP)",
-        "category": "终端安全",
+        "title": "安全Web网关",
+        "name": "安全Web网关",
+        "category": "网络安全",
+        "status": ""
+      },
+      "0531d3a9-f890-428e-af33-98d85d3ca573": {
+        "id": "0531d3a9-f890-428e-af33-98d85d3ca573",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "网络防病毒网关",
+        "name": "网络防病毒网关",
+        "category": "网络安全",
         "status": ""
       },
       "864f9df6-5917-4103-bbb5-547a65065625": {
@@ -555,6 +546,15 @@
         "title": "移动安全管理（MTD）",
         "name": "移动安全管理（MTD）",
         "category": "移动安全",
+        "status": ""
+      },
+      "8ec16418-3683-434b-aeb4-02d27803f9d6": {
+        "id": "8ec16418-3683-434b-aeb4-02d27803f9d6",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "终端恶意代码防护(EPP)",
+        "name": "终端恶意代码防护(EPP)",
+        "category": "终端安全",
         "status": ""
       }
     },
@@ -709,7 +709,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 9
+      "evidenceRefCount": 10
     },
     {
       "id": "relation:96a5833ec061f602",
@@ -1203,7 +1203,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 10
+      "evidenceRefCount": 16
     },
     {
       "id": "relation:00ac9e85fed16a1c",
@@ -1216,20 +1216,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 12
-    },
-    {
-      "id": "relation:8ee05473ac7a0bf5",
-      "type": "implemented_by_module",
-      "sourceId": "45ec6166-e669-4b4e-9456-2b93c738e0e5",
-      "sourceType": "security_technical_service",
-      "targetId": "0531d3a9-f890-428e-af33-98d85d3ca573",
-      "targetType": "security_technology_module",
-      "label": "由模块实现",
-      "status": "active",
-      "confidence": "explicit",
-      "objectContextKey": "",
-      "evidenceRefCount": 10
+      "evidenceRefCount": 19
     },
     {
       "id": "relation:ff1e10d09609f416",
@@ -1245,19 +1232,6 @@
       "evidenceRefCount": 16
     },
     {
-      "id": "relation:c240344675f69bc0",
-      "type": "implemented_by_module",
-      "sourceId": "45ec6166-e669-4b4e-9456-2b93c738e0e5",
-      "sourceType": "security_technical_service",
-      "targetId": "2a9ef48f-3fcc-4148-acb8-dfc4c5d79233",
-      "targetType": "security_technology_module",
-      "label": "由模块实现",
-      "status": "active",
-      "confidence": "explicit",
-      "objectContextKey": "",
-      "evidenceRefCount": 18
-    },
-    {
       "id": "relation:39443cb0da8f031a",
       "type": "implemented_by_module",
       "sourceId": "45ec6166-e669-4b4e-9456-2b93c738e0e5",
@@ -1271,17 +1245,30 @@
       "evidenceRefCount": 14
     },
     {
-      "id": "relation:3cf247b4b9d43854",
+      "id": "relation:c240344675f69bc0",
       "type": "implemented_by_module",
-      "sourceId": "f1570eb9-681c-49df-bbf5-418815c9796e",
+      "sourceId": "45ec6166-e669-4b4e-9456-2b93c738e0e5",
       "sourceType": "security_technical_service",
-      "targetId": "8ec16418-3683-434b-aeb4-02d27803f9d6",
+      "targetId": "2a9ef48f-3fcc-4148-acb8-dfc4c5d79233",
       "targetType": "security_technology_module",
       "label": "由模块实现",
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
       "evidenceRefCount": 17
+    },
+    {
+      "id": "relation:8ee05473ac7a0bf5",
+      "type": "implemented_by_module",
+      "sourceId": "45ec6166-e669-4b4e-9456-2b93c738e0e5",
+      "sourceType": "security_technical_service",
+      "targetId": "0531d3a9-f890-428e-af33-98d85d3ca573",
+      "targetType": "security_technology_module",
+      "label": "由模块实现",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 9
     },
     {
       "id": "relation:598310c82caa567d",
@@ -1294,7 +1281,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 16
+      "evidenceRefCount": 20
     },
     {
       "id": "relation:4a5150c2a87ce637",
@@ -1307,7 +1294,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 22
+      "evidenceRefCount": 24
     },
     {
       "id": "relation:db9d9ae1b3e2e7c3",
@@ -1320,7 +1307,20 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 23
+      "evidenceRefCount": 25
+    },
+    {
+      "id": "relation:3cf247b4b9d43854",
+      "type": "implemented_by_module",
+      "sourceId": "f1570eb9-681c-49df-bbf5-418815c9796e",
+      "sourceType": "security_technical_service",
+      "targetId": "8ec16418-3683-434b-aeb4-02d27803f9d6",
+      "targetType": "security_technology_module",
+      "label": "由模块实现",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 20
     },
     {
       "id": "relation:a87958a8b55831eb",

@@ -4,6 +4,8 @@
 
 关联问题：`OI-155`、`OI-154`、`OI-149`、`OI-144`
 
+当前全局搜索完整契约入口：`docs/06-implementation/global-search-contract-2026-07-05.md`。本文继续作为 `OI-154 / OI-155` 同步设计背景，后续涉及全局搜索产品职责、命中通道、禁止推断、计数 / 展示窗口、标准明细索引和审计样例时，以完整契约文档为准。
+
 ## 设计结论
 
 `OI-155` 和 `OI-154` 必须同步设计，但不能合并实施。
@@ -62,6 +64,31 @@
 - 过滤当前标准表。
 - 过滤当前字典清单。
 - 作为页面内搜索失败后的兜底扫描器。
+
+### OI-155：全局搜索身份优先契约
+
+全局搜索是跨知识域“找对象并定位”，不是把所有长文本全文平铺成同级结果。搜索索引必须把命中拆成三类通道：
+
+- `identity`：对象自身身份字段，包括 `code`、`title`、`name`、`targetText` 和受控 alias。
+- `content`：对象正文说明字段，包括 `description`、`summary`、`definition` 等。
+- `context`：关系路径和展示上下文，包括父级能力、阶段、环境、作用域、关联服务路径等。
+
+主结果排序和展示必须身份优先：当同一查询已经存在 `identity` 命中时，`content` / `context` 弱命中不得进入主结果队列；当查询更具体且没有身份命中时，`content` 命中可以作为补充结果出现。`context` 只能解释“它挂在哪里”，不得单独驱动主命中。
+
+权威源与边界：
+
+- 权威源：当前原始 Excel、SQLite 当前事实、正式维护包 / workbench 投影和 `shared-lookups` 一致值。
+- 业务粒度：全局搜索结果的 `targetRef` / `targetText` / 标题对象就是可点击定位对象；点击目标是 `数据安全网关` 时，必须由 `数据安全网关` 自身身份字段命中，不能因为它挂在 `网络动态数据脱敏` 下被 `数据脱敏` 查询命中。
+- 禁止推断：不得用 `安全技术服务 -> 安全技术模块 / 措施 / 安全系统`、能力父级路径、LC 阶段路径、环境对象路径或反向关系把查询词扩展到不同粒度对象；只允许在展示上下文里说明关联路径。
+
+黄金样例与反例：
+
+- 搜索 `数据脱敏` 应命中 `数据脱敏(去标识化)`、`I-AP&T-PD.DP-02 应用动态数据脱敏`、`I-NT&T-PD.DP-02 网络动态数据脱敏`、`I-DI&T-PD.DP-02 静态数据脱敏`，以及自身字段直接包含 `数据脱敏` 的能力 / 生命周期条目。
+- 搜索 `数据脱敏` 不得仅因关联服务而命中 `数据安全网关`、`数据安全防护`、`云原生数据安全防护` 等不同标题对象。
+- 搜索 `密码` 应优先命中身份字段直接包含 `密码` 的对象，如 `T-AS.CG 密码服务能力`、`密码管理器`、`无密码和多因素认证`、GB/T `网络安全建设-密码技术应用`。
+- 搜索 `密码` 不得仅因父级能力 / 关注点路径、长描述或关联对象而命中 `API网关`、`I-AP&T-AS.CG-01 应用层数据加解密`、`I-AP&T-AS.CG-02 应用程序完整性校验（含操作签名验签）`、`I-AP&T-AS.IA-02 应用身份认证`、`T-AS.IA-02`、`T-AS.IA-04`、`特权账号管理` 等非身份命中对象。
+- 搜索 `密码托管`、`密码策略` 等更具体的内容短语时，可以命中 `特权账号管理`、`T-AS.IA-04` 等正文确实包含该短语的对象。
+- 审计门禁：`scripts/audit_global_search_index_contract.mjs` 的 `api_index_separates_identity_content_and_context_channels`、`frontend_fallback_separates_identity_content_and_context_channels`、`capability_tree_search_uses_own_fields_not_parent_trail`、`capability_relation_search_does_not_inherit_focus_terms`、`environment_non_service_relation_search_does_not_inherit_service_terms`、`runtime_password_query_stays_on_direct_password_targets`、`runtime_specific_content_query_still_finds_content_targets` 和 `runtime_desensitization_query_stays_on_desensitization_targets` 必须通过。
 
 ### OI-154：页面内搜索
 

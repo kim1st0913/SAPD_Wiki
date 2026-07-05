@@ -131,7 +131,11 @@
         <td>${ownershipList(row.ownershipFocuses, "待补充安全能力 / 关注点")}</td>
         <td>${chipList(row.linkedModuleMeasures, display.state?.("no_module_or_measure") || "/", "", true)}</td>
         <td>${chipList(row.linkedSystems, "待补充安全系统", "安全系统")}</td>
-        <td>${chipList(row.linkedEnvironments, "待补充信息化环境", "信息化环境")}</td>
+        <td>
+          <div class="environment-combo-chip-list">
+            ${chipList(row.environmentObjectPairs, "待补充关联信息化环境", "信息化环境")}
+          </div>
+        </td>
       </tr>
     `;
   }

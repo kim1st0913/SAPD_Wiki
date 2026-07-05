@@ -235,8 +235,8 @@
         "id": "4abd36d3-4ba1-495c-8fb9-3957167f4833",
         "type": "scope_type",
         "code": "I-OS",
-        "title": "操作系统（主机/终端）",
-        "name": "操作系统（主机/终端）",
+        "title": "操作系统",
+        "name": "操作系统",
         "category": "网络空间",
         "status": ""
       }
@@ -464,7 +464,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 2
+      "evidenceRefCount": 3
     },
     {
       "id": "relation:c6693686a6f2e5cb",
@@ -477,7 +477,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 2
+      "evidenceRefCount": 3
     },
     {
       "id": "relation:c14b54a6f8309bf3",
@@ -490,7 +490,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 2
+      "evidenceRefCount": 3
     },
     {
       "id": "relation:a63f218eac8c9cce",
@@ -594,7 +594,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 3
+      "evidenceRefCount": 12
     },
     {
       "id": "relation:b18ccf6d480760ac",
@@ -607,7 +607,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 3
+      "evidenceRefCount": 12
     },
     {
       "id": "relation:81b002d97c57bee2",
@@ -620,7 +620,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 3
+      "evidenceRefCount": 12
     },
     {
       "id": "relation:c281b9ee6ebeee71",

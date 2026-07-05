@@ -200,8 +200,8 @@
         "id": "f3dbd1ea-1f3e-4fb9-a0e9-2922e185fb1a",
         "type": "security_technical_service",
         "code": "I-AP&T-PD.DP-02",
-        "title": "静态数据脱敏",
-        "name": "静态数据脱敏",
+        "title": "应用动态数据脱敏",
+        "name": "应用动态数据脱敏",
         "category": "I-AP",
         "status": "active"
       },
@@ -225,8 +225,8 @@
       }
     },
     "security_work": {
-      "1ed2c663-cf68-464e-8e0b-be0af551daac": {
-        "id": "1ed2c663-cf68-464e-8e0b-be0af551daac",
+      "0f1aab51-5442-4fd3-ba97-ea40323cb376": {
+        "id": "0f1aab51-5442-4fd3-ba97-ea40323cb376",
         "type": "security_work",
         "code": "",
         "title": "数据安全防护策略持续管理",
@@ -578,7 +578,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 2
+      "evidenceRefCount": 8
     },
     {
       "id": "relation:051787e3a5fd53c8",
@@ -591,7 +591,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 9
+      "evidenceRefCount": 10
     },
     {
       "id": "relation:d447a24033f5559c",
@@ -604,14 +604,14 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 9
+      "evidenceRefCount": 10
     },
     {
-      "id": "relation:4cb6ddd6b0c3c81e",
+      "id": "relation:4ac6e5811a39a1d3",
       "type": "maps_to_work",
       "sourceId": "48f076b2-5a98-4c8d-abab-366aaea936d7",
       "sourceType": "capability_focus",
-      "targetId": "1ed2c663-cf68-464e-8e0b-be0af551daac",
+      "targetId": "0f1aab51-5442-4fd3-ba97-ea40323cb376",
       "targetType": "security_work",
       "label": "映射安全工作",
       "status": "active",
@@ -968,7 +968,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 3
+      "evidenceRefCount": 15
     },
     {
       "id": "relation:d2bd77b876a6b013",
@@ -981,7 +981,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 12
+      "evidenceRefCount": 18
     },
     {
       "id": "relation:7a6f16db8589d5b1",
@@ -994,7 +994,20 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 11
+      "evidenceRefCount": 17
+    },
+    {
+      "id": "relation:dbb731b0b30cc940",
+      "type": "implemented_by_module",
+      "sourceId": "f3dbd1ea-1f3e-4fb9-a0e9-2922e185fb1a",
+      "sourceType": "security_technical_service",
+      "targetId": "82bfd2db-ec92-45f3-b74b-df8ba741eb67",
+      "targetType": "security_technology_module",
+      "label": "由模块实现",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 26
     },
     {
       "id": "relation:582854074eef8f6e",
@@ -1007,7 +1020,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 23
+      "evidenceRefCount": 24
     },
     {
       "id": "relation:173a3a792f28f273",
@@ -1020,7 +1033,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 16
+      "evidenceRefCount": 17
     },
     {
       "id": "relation:6bd9c1743fdc9c10",
@@ -1033,8 +1046,21 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 21
+      "evidenceRefCount": 20
+    },
+    {
+      "id": "relation:6edc01e2fa26bf0d",
+      "type": "implemented_by_module",
+      "sourceId": "cf5b96e9-c2bb-4bed-907f-f3c509345387",
+      "sourceType": "security_technical_service",
+      "targetId": "82bfd2db-ec92-45f3-b74b-df8ba741eb67",
+      "targetType": "security_technology_module",
+      "label": "由模块实现",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 19
     }
   ],
-  "relationCount": 44
+  "relationCount": 46
 }

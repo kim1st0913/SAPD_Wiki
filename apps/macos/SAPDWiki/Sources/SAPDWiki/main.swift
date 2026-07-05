@@ -219,9 +219,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         window.center()
         window.title = appDisplayName
         window.contentView = webView
+        configureToolbar(for: window)
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         self.window = window
+    }
+
+    private func configureToolbar(for window: NSWindow) {
+        let toolbar = NSToolbar(identifier: ToolbarIdentifiers.main)
+        toolbar.delegate = self
+        toolbar.displayMode = .iconOnly
+        toolbar.allowsUserCustomization = false
+        toolbar.autosavesConfiguration = false
+        window.toolbar = toolbar
+    }
+
+    @objc private func reloadPage(_ sender: Any?) {
+        guard let webView else {
+            return
+        }
+        AppWrapperLogger.write("webview reload requested url=\(webView.url?.absoluteString ?? "unknown")")
+        webView.reload()
+    }
+
+    @objc private func reloadPageFromOrigin(_ sender: Any?) {
+        guard let webView else {
+            return
+        }
+        AppWrapperLogger.write("webview reload-from-origin requested url=\(webView.url?.absoluteString ?? "unknown")")
+        webView.reloadFromOrigin()
     }
 
     nonisolated private static func prepareAndLaunchBackend(_ completion: @escaping (Result<BackendLaunch, Error>) -> Void) {
@@ -448,6 +474,54 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
             .replacingOccurrences(of: ">", with: "&gt;")
             .replacingOccurrences(of: "\"", with: "&quot;")
     }
+}
+
+extension AppDelegate: NSToolbarDelegate {
+    func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
+        [.flexibleSpace, ToolbarIdentifiers.reloadPage, ToolbarIdentifiers.reloadFromOrigin]
+    }
+
+    func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
+        [.flexibleSpace, ToolbarIdentifiers.reloadPage, ToolbarIdentifiers.reloadFromOrigin]
+    }
+
+    func toolbar(_ toolbar: NSToolbar, itemForItemIdentifier itemIdentifier: NSToolbarItem.Identifier, willBeInsertedIntoToolbar flag: Bool) -> NSToolbarItem? {
+        switch itemIdentifier {
+        case ToolbarIdentifiers.reloadPage:
+            return toolbarButton(
+                identifier: itemIdentifier,
+                label: "刷新页面",
+                systemSymbolName: "arrow.clockwise",
+                action: #selector(reloadPage(_:))
+            )
+        case ToolbarIdentifiers.reloadFromOrigin:
+            return toolbarButton(
+                identifier: itemIdentifier,
+                label: "强制刷新",
+                systemSymbolName: "arrow.triangle.2.circlepath",
+                action: #selector(reloadPageFromOrigin(_:))
+            )
+        default:
+            return nil
+        }
+    }
+
+    private func toolbarButton(identifier: NSToolbarItem.Identifier, label: String, systemSymbolName: String, action: Selector) -> NSToolbarItem {
+        let item = NSToolbarItem(itemIdentifier: identifier)
+        item.label = label
+        item.paletteLabel = label
+        item.toolTip = label
+        item.image = NSImage(systemSymbolName: systemSymbolName, accessibilityDescription: label)
+        item.target = self
+        item.action = action
+        return item
+    }
+}
+
+private enum ToolbarIdentifiers {
+    static let main = NSToolbar.Identifier("SAPDWiki.MainToolbar")
+    static let reloadPage = NSToolbarItem.Identifier("SAPDWiki.ReloadPage")
+    static let reloadFromOrigin = NSToolbarItem.Identifier("SAPDWiki.ReloadFromOrigin")
 }
 
 private struct BackendLaunch {

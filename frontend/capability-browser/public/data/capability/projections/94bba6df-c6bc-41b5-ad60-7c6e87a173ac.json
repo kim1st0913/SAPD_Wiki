@@ -125,13 +125,13 @@
     "focusCount": 63,
     "technicalServiceCount": 154,
     "scopeTypeCount": 8,
-    "managementWorkCount": 64,
+    "managementWorkCount": 52,
     "processReferenceCount": 50,
     "standardControlCount": 1283,
     "moduleCount": 102,
     "measureCount": 32
   },
-  "relationCount": 2914,
+  "relationCount": 2918,
   "deferred": {
     "reason": "L0 / L1 能力层级只生成总览型 projection；标准控制项、技术映射明细和管理映射明细按 L2 / 关注点延迟加载。",
     "technicalMappingRows": true,

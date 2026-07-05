@@ -26,6 +26,7 @@ const FORBIDDEN_UI_KEYS = new Set([
   "intermediate",
   "generated_at",
   "sources",
+  "mapping_sources",
   "sourceRows",
   "sourceCells",
   "payload",
@@ -439,13 +440,24 @@ function buildCapabilityCandidate(records) {
 
 function environmentContextIndex(workbench) {
   const byContextKey = new Map();
-  for (const item of Object.values(asObject(workbench.objects?.information_object))) {
-    if (item.contextKey) byContextKey.set(item.contextKey, item);
-  }
   const scopeTreeByContextKey = new Map();
   for (const env of asArray(workbench.environment_scope_tree)) {
     for (const object of asArray(env.objects)) {
-      if (object.contextKey) scopeTreeByContextKey.set(object.contextKey, object);
+      for (const segment of asArray(object.segments)) {
+        const contextKey = [env.title, segment.title, object.title].map((item) => String(item || "").trim()).join("||");
+        if (!contextKey.replace(/\|/g, "")) continue;
+        const contextObject = {
+          ...object,
+          contextKey,
+          environmentId: env.id || "",
+          environmentTitle: env.title || "",
+          segmentId: segment.id || "",
+          segmentTitle: segment.title || "",
+          segments: [segment],
+        };
+        byContextKey.set(contextKey, contextObject);
+        scopeTreeByContextKey.set(contextKey, contextObject);
+      }
     }
   }
   return { byContextKey, scopeTreeByContextKey };
@@ -617,6 +629,10 @@ function buildEnvironmentCandidate(records) {
       .map((key) => contextIndex.scopeTreeByContextKey.get(key))
       .filter(Boolean)
       .map(sanitizeUiValue);
+    const projectionRelations =
+      row.node?.type === "information_environment"
+        ? relations.filter((relation) => ["contains_segment", "contains_object"].includes(relation.type))
+        : relations;
     const projection = {
       packageType: "oi-149-p4-environment-object-projection",
       dataState: "ready",
@@ -640,9 +656,15 @@ function buildEnvironmentCandidate(records) {
       contextKeys: [...contextKeys],
       objects: groupedObjectsForIds(objectsById, seedIds, row.node.id),
       objectScopeTree: scopeTreeObjects,
-      relations: relations.map(relationSummary),
-      relationCount: relations.length,
+      relations: projectionRelations.map(relationSummary),
+      relationCount: projectionRelations.length,
     };
+    if (projectionRelations.length !== relations.length) {
+      projection.deferred = {
+        reason: "顶层环境 projection 保留对象安全映射事实树和结构关系；服务级关系图明细按子类 / 对象 projection 延迟加载。",
+        deferredRelationCount: relations.length - projectionRelations.length,
+      };
+    }
     writeBudgeted(projectionIdentity.path, projection, records, {
       category: "environmentProjection",
       detailProjection: true,

@@ -129,6 +129,7 @@ LIFECYCLE_RELATION_TYPES = (
 STAKEHOLDER_LAYERS = ("决策层", "管理层", "执行层", "监督层")
 
 MODULE_CATALOG_SHEET = "安全技术模块清单"
+SECURITY_WORK_SHEET = "安全能力-安全工作"
 SCENE_TECHNICAL_MAPPING_SHEET = "作用域-安全技术服务-安全技术模块映射"
 DATA_LIFECYCLE_POLICY_MAPPING_SHEET = "LC-DT 安全技术服务、模块、策略映射表"
 TECHNICAL_MEASURE_SOURCE_COLUMN = "安全技术模块/措施"
@@ -481,8 +482,10 @@ def _maintenance_section_count(payload: dict[str, Any], fields: tuple[str, ...])
 def _write_maintenance_split_packages(output: Path, payload: dict[str, Any]) -> list[str]:
     base_dir = output.parent
     section_dir = base_dir / "maintenance"
+    legacy_section_dir = section_dir / "sections"
     source_dir = base_dir / "source-evidence" / "maintenance"
     section_dir.mkdir(parents=True, exist_ok=True)
+    legacy_section_dir.mkdir(parents=True, exist_ok=True)
     source_dir.mkdir(parents=True, exist_ok=True)
 
     written_files: list[str] = []
@@ -521,10 +524,12 @@ def _write_maintenance_split_packages(output: Path, payload: dict[str, Any]) -> 
         section_filename = f"{section_id}.json"
         evidence_filename = f"{section_id}.sources.json"
         section_path = section_dir / section_filename
+        legacy_section_path = legacy_section_dir / section_filename
         evidence_path = source_dir / evidence_filename
         _write_json(section_path, section_payload)
+        _write_json(legacy_section_path, section_payload)
         _write_json(evidence_path, evidence_payload)
-        written_files.extend([str(section_path), str(evidence_path)])
+        written_files.extend([str(section_path), str(legacy_section_path), str(evidence_path)])
 
         sections.append(
             {
@@ -1373,6 +1378,14 @@ def _build_service_module_index(conn: sqlite3.Connection) -> tuple[list[dict[str
     products = {item_id: item for item_id, item in items.items() if item["type"] == "product"}
     environments = {item_id: item for item_id, item in items.items() if item["type"] == "information_environment"}
     scopes = {item_id: item for item_id, item in items.items() if item["type"] == "scope_type"}
+    scope_catalog_by_code = {row["code"]: row for row in _scope_catalog_rows_from_xlsx(conn) if row.get("code")}
+    for scope in scopes.values():
+        catalog_row = scope_catalog_by_code.get(scope.get("code"))
+        if not catalog_row:
+            continue
+        scope["title"] = catalog_row.get("title") or scope.get("title")
+        scope["description"] = catalog_row.get("description") or scope.get("description")
+        scope["category"] = catalog_row.get("scenario") or scope.get("category")
 
     scopes_by_service: dict[str, list[str]] = {}
     modules_by_service: dict[str, list[str]] = {}
@@ -2200,13 +2213,32 @@ def _build_security_technical_measures(
         return "待复核来源", "pending_review"
 
     grouped: dict[tuple[str, str | None], dict[str, Any]] = {}
+    confirmed_measure_keys_by_name: dict[str, set[tuple[str, str | None]]] = {}
+    for measure in technical_measure_items.values():
+        name = _normalize_measure_name(measure.get("title"))
+        if not name or is_blank_or_placeholder(name):
+            continue
+        metadata = _metadata(measure)
+        category = measure.get("category") or metadata.get("category") or None
+        confirmed_measure_keys_by_name.setdefault(name, set()).add((name, category))
+    confirmed_measure_keys = {key for keys in confirmed_measure_keys_by_name.values() for key in keys}
+
     for candidate in _security_technical_measure_candidates(conn):
-        key = (candidate["name"], candidate["category"])
+        candidate_name = _normalize_measure_name(candidate["name"])
+        if not candidate_name or is_blank_or_placeholder(candidate_name):
+            continue
+        key = (candidate_name, candidate["category"])
+        if key not in confirmed_measure_keys:
+            matching_keys = confirmed_measure_keys_by_name.get(candidate_name, set())
+            if len(matching_keys) != 1:
+                continue
+            key = next(iter(matching_keys))
+        name, category = key
         entry = grouped.setdefault(
             key,
             {
-                "name": candidate["name"],
-                "category": candidate["category"],
+                "name": name,
+                "category": category,
                 "statuses": set(),
                 "service_ids": set(),
                 "service_names": set(),
@@ -2737,10 +2769,32 @@ def export_management_knowledge(
         domain_payload["groups"] = sorted(groups_for_domain, key=lambda item: _source_position_key(refs.get(item.get("id") or ""), (process_catalog_sheet,)))
         security_processes.append(domain_payload)
 
-    security_work_payloads = []
+    security_work_groups: dict[str, dict[str, Any]] = {}
     for item in _sort_item_rows(list(security_works.values())):
+        title = _canonical_title(item)
+        key = re.sub(r"\s+", "", title)
+        if not key:
+            key = item["id"]
+        group = security_work_groups.setdefault(key, {"items": [], "focus_ids": []})
+        group["items"].append(item)
+        group["focus_ids"].extend(focuses_by_security_work.get(item["id"], []))
+
+    def security_work_group_sort_key(group: dict[str, Any]) -> tuple[int, int, int, str, str]:
+        return _source_position_key(
+            _combine_sources(*(refs.get(item["id"]) for item in group["items"])),
+            (SECURITY_WORK_SHEET,),
+        )
+
+    security_work_payloads = []
+    for group in sorted(security_work_groups.values(), key=security_work_group_sort_key):
+        group_items = sorted(
+            group["items"],
+            key=lambda group_item: _source_position_key(refs.get(group_item["id"]), (SECURITY_WORK_SHEET,)),
+        )
+        item = group_items[0]
         payload_item = _brief_item(item, refs) or {}
-        focus_payloads = _brief_many(capability_focuses, focuses_by_security_work.get(item["id"], []), refs)
+        payload_item["sources"] = _combine_sources(*(refs.get(group_item["id"]) for group_item in group_items), limit=8)
+        focus_payloads = _brief_many(capability_focuses, group["focus_ids"], refs)
         payload_item["focuses"] = focus_payloads
         payload_item["focus_count"] = len(focus_payloads)
         security_work_payloads.append(payload_item)
@@ -2870,14 +2924,8 @@ def export_management_knowledge(
     module_payloads = []
     for item in _sort_item_rows(list(technology_modules.values())):
         payload_item = _brief_item(item, refs) or {}
-        payload_item["services"] = brief_many(
-            technical_services,
-            relation_target_ids_from_sheet(item["id"], "implements_service", services_by_module.get(item["id"], []), MODULE_CATALOG_SHEET),
-        )
-        payload_item["systems"] = brief_many(
-            security_systems,
-            relation_target_ids_from_sheet(item["id"], "part_of_system", systems_by_module.get(item["id"], []), MODULE_CATALOG_SHEET),
-        )
+        payload_item["services"] = brief_many(technical_services, services_by_module.get(item["id"], []))
+        payload_item["systems"] = brief_many(security_systems, systems_by_module.get(item["id"], []))
         payload_item["products"] = brief_many(
             products,
             relation_target_ids_from_sheet(item["id"], "maps_to_product", products_by_module.get(item["id"], []), MODULE_CATALOG_SHEET),
@@ -4227,8 +4275,10 @@ def export_environment_workbench(
         "title": "信息化环境安全能力映射",
         "description": "以信息化环境和信息化对象为主语，展示对象、作用域、服务、模块、措施、系统、产品和能力关联。",
     }
-    payload = _empty_workbench(page, generated_at, ["database", "capability-tree.json", "maintenance-knowledge.json"])
+    payload = _empty_workbench(page, generated_at, ["database", "capability-tree.json", "maintenance-knowledge.json", "shared-lookups.json"])
     payload["environment_scope_tree"] = _wb_list(management.get("environment_scope_tree"))
+    shared_lookups = _read_frontend_json("shared-lookups.json")
+    service_index = _service_index_by_key(_wb_list(shared_lookups.get("service_module_index")))
     objects: dict[str, dict[str, dict[str, Any]]] = {key: {} for key in (
         "information_environment",
         "environment_segment",
@@ -4292,6 +4342,18 @@ def export_environment_workbench(
                     for module in _wb_list(service.get("modules")):
                         module_obj = _wb_add_object(objects, evidence_refs, module, "security_technology_module", fallback_name="未命名模块")
                         module_evidence = _wb_collect_evidence(evidence_refs, service, module)
+                        _wb_add_relation(relations, seen_relations, "implements_service", module_obj, service_obj, label="实现服务", evidence_refs=module_evidence)
+                        _wb_add_relation(relations, seen_relations, "implemented_by_module", service_obj, module_obj, label="由模块实现", evidence_refs=module_evidence)
+                        for system in _wb_list(module.get("systems")):
+                            system_obj = _wb_add_object(objects, evidence_refs, system, "security_system", fallback_name="未命名系统")
+                            _wb_add_relation(relations, seen_relations, "part_of_system", module_obj, system_obj, label="属于系统", evidence_refs=_wb_collect_evidence(evidence_refs, module, system))
+                        for product in _wb_list(module.get("products")):
+                            product_obj = _wb_add_object(objects, evidence_refs, product, "product", fallback_name="未命名产品")
+                            _wb_add_relation(relations, seen_relations, "maps_to_product", module_obj, product_obj, label="映射产品")
+                    index_entry = _matched_service_index(service_index, service)
+                    for module in _wb_list(index_entry.get("modules")):
+                        module_obj = _wb_add_object(objects, evidence_refs, module, "security_technology_module", fallback_name="未命名模块")
+                        module_evidence = _wb_collect_evidence(evidence_refs, service, module, index_entry)
                         _wb_add_relation(relations, seen_relations, "implements_service", module_obj, service_obj, label="实现服务", evidence_refs=module_evidence)
                         _wb_add_relation(relations, seen_relations, "implemented_by_module", service_obj, module_obj, label="由模块实现", evidence_refs=module_evidence)
                         for system in _wb_list(module.get("systems")):

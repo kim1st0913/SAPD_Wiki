@@ -575,21 +575,21 @@
       }
     },
     "security_technology_module": {
-      "1cccc3ef-fda3-462d-b5cc-b775993e31e8": {
-        "id": "1cccc3ef-fda3-462d-b5cc-b775993e31e8",
-        "type": "security_technology_module",
-        "code": "",
-        "title": "应用程序交互式安全测试",
-        "name": "应用程序交互式安全测试",
-        "category": "应用安全",
-        "status": ""
-      },
       "5a3e442e-117d-43d4-9be7-7e0638c512d8": {
         "id": "5a3e442e-117d-43d4-9be7-7e0638c512d8",
         "type": "security_technology_module",
         "code": "",
         "title": "应用程序动态安全测试",
         "name": "应用程序动态安全测试",
+        "category": "应用安全",
+        "status": ""
+      },
+      "1cccc3ef-fda3-462d-b5cc-b775993e31e8": {
+        "id": "1cccc3ef-fda3-462d-b5cc-b775993e31e8",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "应用程序交互式安全测试",
+        "name": "应用程序交互式安全测试",
         "category": "应用安全",
         "status": ""
       }
@@ -866,7 +866,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 6
+      "evidenceRefCount": 4
     },
     {
       "id": "relation:3a0141c0bce8623f",
@@ -1438,20 +1438,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 7
-    },
-    {
-      "id": "relation:05f44ac1ca277a25",
-      "type": "implemented_by_module",
-      "sourceId": "96046fed-af12-4f04-94ba-7fdd2677dc55",
-      "sourceType": "security_technical_service",
-      "targetId": "1cccc3ef-fda3-462d-b5cc-b775993e31e8",
-      "targetType": "security_technology_module",
-      "label": "由模块实现",
-      "status": "active",
-      "confidence": "explicit",
-      "objectContextKey": "",
-      "evidenceRefCount": 7
+      "evidenceRefCount": 14
     },
     {
       "id": "relation:8569235eb04980ce",
@@ -1464,7 +1451,20 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 8
+      "evidenceRefCount": 4
+    },
+    {
+      "id": "relation:05f44ac1ca277a25",
+      "type": "implemented_by_module",
+      "sourceId": "96046fed-af12-4f04-94ba-7fdd2677dc55",
+      "sourceType": "security_technical_service",
+      "targetId": "1cccc3ef-fda3-462d-b5cc-b775993e31e8",
+      "targetType": "security_technology_module",
+      "label": "由模块实现",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 4
     },
     {
       "id": "relation:3295bc88ee6bcf4c",
@@ -1477,7 +1477,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 7
+      "evidenceRefCount": 4
     },
     {
       "id": "relation:b51d49946b0d4cc6",

@@ -577,8 +577,8 @@
         "id": "4abd36d3-4ba1-495c-8fb9-3957167f4833",
         "type": "scope_type",
         "code": "I-OS",
-        "title": "操作系统（主机/终端）",
-        "name": "操作系统（主机/终端）",
+        "title": "操作系统",
+        "name": "操作系统",
         "category": "网络空间",
         "status": ""
       },
@@ -825,7 +825,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 9
+      "evidenceRefCount": 10
     },
     {
       "id": "relation:a57e41aa4a16c7bb",
@@ -890,7 +890,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 2
+      "evidenceRefCount": 3
     },
     {
       "id": "relation:77fe4601e6164817",
@@ -1462,7 +1462,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 13
+      "evidenceRefCount": 20
     },
     {
       "id": "relation:9281380bfa2e059d",
@@ -1475,7 +1475,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 9
+      "evidenceRefCount": 15
     },
     {
       "id": "relation:43d0784151e44682",
@@ -1488,7 +1488,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 5
+      "evidenceRefCount": 12
     },
     {
       "id": "relation:0f3d3148bd33bfc8",
@@ -1501,7 +1501,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 9
+      "evidenceRefCount": 15
     },
     {
       "id": "relation:2ef44a7a0739df86",
@@ -1514,7 +1514,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 8
+      "evidenceRefCount": 14
     },
     {
       "id": "relation:fd983b4fbbdf794d",
@@ -1540,7 +1540,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 50
+      "evidenceRefCount": 49
     },
     {
       "id": "relation:5ee9c79cb91a55f4",
@@ -1566,7 +1566,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 18
+      "evidenceRefCount": 19
     },
     {
       "id": "relation:96b43c13db433d84",
@@ -1579,7 +1579,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 11
+      "evidenceRefCount": 10
     },
     {
       "id": "relation:f65aad7e49967873",
@@ -1592,7 +1592,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 15
+      "evidenceRefCount": 16
     },
     {
       "id": "relation:2bd4a51e9e8692ac",
@@ -1605,7 +1605,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 27
+      "evidenceRefCount": 23
     },
     {
       "id": "relation:82fcd5f9431473ad",
@@ -1618,7 +1618,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 10
+      "evidenceRefCount": 8
     },
     {
       "id": "relation:4092aab264d6b785",
@@ -1631,7 +1631,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 10
+      "evidenceRefCount": 8
     },
     {
       "id": "relation:a4f69fcac3cdebfb",
@@ -1644,7 +1644,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 18
+      "evidenceRefCount": 16
     },
     {
       "id": "relation:fb0fc5b9250dacd5",

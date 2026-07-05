@@ -596,11 +596,17 @@
     return list(row.objectContextIds).includes(request.id);
   }
 
+  function environmentProjectionRequestHasTarget(request) {
+    return Boolean(request?.projectionKey || request?.projectionPath || request?.id || request?.navOrdinal != null);
+  }
+
   function findEnvironmentProjectionRow(navigator, params = {}) {
     const rows = list(navigator?.projections);
     if (!rows.length) return null;
     const request = environmentProjectionRequest(params);
-    return rows.find((row) => environmentProjectionRowMatches(row, request)) || rows[0] || null;
+    const matched = rows.find((row) => environmentProjectionRowMatches(row, request)) || null;
+    if (matched || environmentProjectionRequestHasTarget(request)) return matched;
+    return null;
   }
 
   function environmentProjectionFromSplit(projection, row, manifest) {
@@ -1227,9 +1233,13 @@
     async getSearchIndex(params = {}) {
       const query = text(params.q || params.query || "").trim();
       const limit = Number.isFinite(Number(params.limit)) ? Math.max(1, Math.min(Number(params.limit), 120)) : 80;
+      const offset = Number.isFinite(Number(params.offset)) ? Math.max(0, Math.trunc(Number(params.offset))) : 0;
+      const category = text(params.category || "").trim();
       const queryParams = new URLSearchParams();
       if (query) queryParams.set("q", query);
       queryParams.set("limit", String(limit));
+      if (offset) queryParams.set("offset", String(offset));
+      if (category) queryParams.set("category", category);
       const payload = await fetchApiData(`${API_PATHS.searchIndex}?${queryParams.toString()}`);
       return createEnvelope(
         payload || {
@@ -1238,7 +1248,7 @@
           package_type: "runtime-search-index",
           query,
           results: [],
-          stats: { items: 0, matched: 0, returned: 0, limit },
+          stats: { items: 0, matched: 0, returned: 0, limit, offset },
         },
       );
     },
@@ -1416,9 +1426,10 @@
     },
 
     async getCapabilityRelationships(id) {
+      const requestedId = text(id).trim();
       const { capability, management } = await getCapabilityAndManagement();
-      const rows = capabilityMatrixRows(capability, management, { capability_id: id });
-      const focusRow = rows.find((row) => row.focus.id === id) || rows[0] || null;
+      const rows = requestedId ? capabilityMatrixRows(capability, management, { capability_id: requestedId }) : [];
+      const focusRow = requestedId ? rows.find((row) => row.focus.id === requestedId) || null : null;
       return createEnvelope({
         generated_at: capability.generated_at,
         object: focusRow?.focus || null,
@@ -1520,21 +1531,25 @@
     },
 
     async getEnvironmentRelationships(id) {
+      const requestedId = text(id).trim();
       const workbench = await fetchPackage("environmentWorkbench");
       const rows =
-        workbench?.__data_state === "missing_file"
-          ? environmentMatrixRows(createLegacyEnvironmentWorkbenchFallback(), { object_id: id })
-          : environmentMatrixRowsFromWorkbench(workbench, { object_id: id });
-      const row = rows[0] || null;
+        requestedId && workbench?.__data_state === "missing_file"
+          ? environmentMatrixRows(createLegacyEnvironmentWorkbenchFallback(), { object_id: requestedId })
+          : requestedId
+          ? environmentMatrixRowsFromWorkbench(workbench, { object_id: requestedId })
+          : [];
+      const row = requestedId ? rows.find((item) => item.information_object?.id === requestedId) || null : null;
+      const relationshipRows = row ? rows : [];
       return createEnvelope({
         generated_at: workbench?.meta?.generated_at || null,
         object: row?.information_object || null,
         environment: row?.environment || null,
         relationships: {
-          rows,
-          scopes: uniqueBy(rows.map((item) => item.scope), (scope) => scope?.id || scope?.code || scope?.title),
-          services: uniqueBy(rows.flatMap((item) => item.services), (service) => service?.id || service?.code || service?.title),
-          modules: uniqueBy(rows.flatMap((item) => item.modules), (module) => module?.id || module?.code || module?.title),
+          rows: relationshipRows,
+          scopes: uniqueBy(relationshipRows.map((item) => item.scope), (scope) => scope?.id || scope?.code || scope?.title),
+          services: uniqueBy(relationshipRows.flatMap((item) => item.services), (service) => service?.id || service?.code || service?.title),
+          modules: uniqueBy(relationshipRows.flatMap((item) => item.modules), (module) => module?.id || module?.code || module?.title),
         },
       });
     },

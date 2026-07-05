@@ -52,7 +52,7 @@
     "focusCount": 3,
     "technicalServiceCount": 5,
     "scopeTypeCount": 4,
-    "managementWorkCount": 3,
+    "managementWorkCount": 2,
     "processReferenceCount": 2,
     "standardControlCount": 16,
     "moduleCount": 1,
@@ -226,15 +226,6 @@
     "security_work": {
       "5938f3f0-658a-45b3-a685-38c405174c31": {
         "id": "5938f3f0-658a-45b3-a685-38c405174c31",
-        "type": "security_work",
-        "code": "",
-        "title": "防护策略有效性验证",
-        "name": "防护策略有效性验证",
-        "category": "",
-        "status": "active"
-      },
-      "d3b83d9a-5847-44d6-b851-fc55483da4e1": {
-        "id": "d3b83d9a-5847-44d6-b851-fc55483da4e1",
         "type": "security_work",
         "code": "",
         "title": "防护策略有效性验证",
@@ -441,8 +432,8 @@
         "id": "4abd36d3-4ba1-495c-8fb9-3957167f4833",
         "type": "scope_type",
         "code": "I-OS",
-        "title": "操作系统（主机/终端）",
-        "name": "操作系统（主机/终端）",
+        "title": "操作系统",
+        "name": "操作系统",
         "category": "网络空间",
         "status": ""
       },
@@ -690,7 +681,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 2
+      "evidenceRefCount": 3
     },
     {
       "id": "relation:c6693686a6f2e5cb",
@@ -703,7 +694,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 2
+      "evidenceRefCount": 3
     },
     {
       "id": "relation:c14b54a6f8309bf3",
@@ -716,7 +707,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 2
+      "evidenceRefCount": 3
     },
     {
       "id": "relation:a63f218eac8c9cce",
@@ -771,11 +762,11 @@
       "evidenceRefCount": 3
     },
     {
-      "id": "relation:e946dd3925e87cc7",
+      "id": "relation:16c8d2e2a6124b72",
       "type": "maps_to_work",
       "sourceId": "b13b84ac-4bc1-4264-a5b6-61d5ce163a6d",
       "sourceType": "capability_focus",
-      "targetId": "d3b83d9a-5847-44d6-b851-fc55483da4e1",
+      "targetId": "5938f3f0-658a-45b3-a685-38c405174c31",
       "targetType": "security_work",
       "label": "映射安全工作",
       "status": "active",
@@ -820,7 +811,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 2
+      "evidenceRefCount": 3
     },
     {
       "id": "relation:cfa9b67a98b55c51",
@@ -1093,7 +1084,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 3
+      "evidenceRefCount": 12
     },
     {
       "id": "relation:b18ccf6d480760ac",
@@ -1106,7 +1097,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 3
+      "evidenceRefCount": 12
     },
     {
       "id": "relation:81b002d97c57bee2",
@@ -1119,7 +1110,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 3
+      "evidenceRefCount": 12
     },
     {
       "id": "relation:c281b9ee6ebeee71",
@@ -1314,7 +1305,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 3
+      "evidenceRefCount": 4
     },
     {
       "id": "relation:e7f5085b59111f3d",

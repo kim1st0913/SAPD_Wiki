@@ -171,8 +171,8 @@
       }
     },
     "security_work": {
-      "01b598ef-2d93-4e3c-b435-66d101027f35": {
-        "id": "01b598ef-2d93-4e3c-b435-66d101027f35",
+      "064e7e71-7a1a-460b-9c44-ca2ce0a5c17b": {
+        "id": "064e7e71-7a1a-460b-9c44-ca2ce0a5c17b",
         "type": "security_work",
         "code": "",
         "title": "边界防护策略持续管理",
@@ -470,11 +470,11 @@
       "evidenceRefCount": 7
     },
     {
-      "id": "relation:7a3d99b85556d7bf",
+      "id": "relation:15c14954c357e3d9",
       "type": "maps_to_work",
       "sourceId": "4eecede4-4f58-4ba8-ad90-a52382168121",
       "sourceType": "capability_focus",
-      "targetId": "01b598ef-2d93-4e3c-b435-66d101027f35",
+      "targetId": "064e7e71-7a1a-460b-9c44-ca2ce0a5c17b",
       "targetType": "security_work",
       "label": "映射安全工作",
       "status": "active",
@@ -831,7 +831,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 8
+      "evidenceRefCount": 14
     },
     {
       "id": "relation:f0dee3a5e85f8282",
@@ -844,7 +844,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 8
+      "evidenceRefCount": 6
     },
     {
       "id": "relation:1c591880494b2629",
@@ -857,7 +857,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 15
+      "evidenceRefCount": 13
     }
   ],
   "relationCount": 36

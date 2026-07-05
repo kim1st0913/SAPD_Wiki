@@ -35,9 +35,9 @@
   function render({ focusOverview }) {
     const rows = utils.list(focusOverview?.rows);
     if (!rows.length) return emptyState("暂无关注点概览");
-    const current = focusOverview.current || rows[0]?.focus;
+    const current = focusOverview.current || null;
     const selected = focusOverview.selected || current;
-    const currentRow = rows.find((row) => row.focus.id === current?.id) || rows[0] || {};
+    const currentRow = current ? rows.find((row) => row.focus.id === current?.id) || {} : {};
     const technical = focusOverview.technicalSummary || {};
     const management = focusOverview.managementSummary || {};
     const title = focusOverview.isAggregate ? utils.titleOf(selected, "能力范围") : utils.titleOf(current, "未命名关注点");

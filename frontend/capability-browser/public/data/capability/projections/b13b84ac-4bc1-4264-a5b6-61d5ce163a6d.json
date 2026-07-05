@@ -162,8 +162,8 @@
       }
     },
     "security_work": {
-      "d3b83d9a-5847-44d6-b851-fc55483da4e1": {
-        "id": "d3b83d9a-5847-44d6-b851-fc55483da4e1",
+      "5938f3f0-658a-45b3-a685-38c405174c31": {
+        "id": "5938f3f0-658a-45b3-a685-38c405174c31",
         "type": "security_work",
         "code": "",
         "title": "防护策略有效性验证",
@@ -572,11 +572,11 @@
       "evidenceRefCount": 3
     },
     {
-      "id": "relation:e946dd3925e87cc7",
+      "id": "relation:16c8d2e2a6124b72",
       "type": "maps_to_work",
       "sourceId": "b13b84ac-4bc1-4264-a5b6-61d5ce163a6d",
       "sourceType": "capability_focus",
-      "targetId": "d3b83d9a-5847-44d6-b851-fc55483da4e1",
+      "targetId": "5938f3f0-658a-45b3-a685-38c405174c31",
       "targetType": "security_work",
       "label": "映射安全工作",
       "status": "active",
@@ -1011,7 +1011,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 3
+      "evidenceRefCount": 4
     }
   ],
   "relationCount": 43

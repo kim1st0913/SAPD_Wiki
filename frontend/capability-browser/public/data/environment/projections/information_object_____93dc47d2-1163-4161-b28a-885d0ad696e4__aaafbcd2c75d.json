@@ -51,1044 +51,3041 @@
     }
   ],
   "objectContextIds": [
-    "shadow:information_object_context:dfd9cd35189def7a"
+    "93dc47d2-1163-4161-b28a-885d0ad696e4"
   ],
   "contextKeys": [
     "传统数据中心||网络||数据中心内部网络"
   ],
   "objects": {
     "information_object": {
-      "shadow:information_object_context:dfd9cd35189def7a": {
-        "id": "shadow:information_object_context:dfd9cd35189def7a",
+      "93dc47d2-1163-4161-b28a-885d0ad696e4": {
+        "id": "93dc47d2-1163-4161-b28a-885d0ad696e4",
         "type": "information_object",
         "code": "",
         "title": "数据中心内部网络",
         "name": "数据中心内部网络",
         "category": "",
-        "status": "",
-        "contextKey": "传统数据中心||网络||数据中心内部网络"
+        "status": ""
+      },
+      "65c5a679-21cb-4290-800e-2674ca9bb424": {
+        "id": "65c5a679-21cb-4290-800e-2674ca9bb424",
+        "type": "information_object",
+        "code": "",
+        "title": "数据中心出口边界",
+        "name": "数据中心出口边界",
+        "category": "",
+        "status": ""
       }
     },
-    "scope_type": {
-      "shadow:scope_type:c7ebc38ae1f4adc8": {
-        "id": "shadow:scope_type:c7ebc38ae1f4adc8",
-        "type": "scope_type",
-        "code": "I-NT",
+    "information_environment": {
+      "b6e3912b-0633-4a61-acb5-ea46e7fd0985": {
+        "id": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+        "type": "information_environment",
+        "code": "",
+        "title": "传统数据中心",
+        "name": "传统数据中心",
+        "category": "",
+        "status": ""
+      }
+    },
+    "environment_segment": {
+      "c8c25ac9-7dd1-48d8-8022-47c01b4fd5ea": {
+        "id": "c8c25ac9-7dd1-48d8-8022-47c01b4fd5ea",
+        "type": "environment_segment",
+        "code": "",
         "title": "网络",
         "name": "网络",
         "category": "",
-        "status": "",
-        "text": "I-NT 网络"
+        "status": ""
       },
-      "shadow:scope_type:8c823ba8ecddbfea": {
-        "id": "shadow:scope_type:8c823ba8ecddbfea",
-        "type": "scope_type",
-        "code": "I-AP",
-        "title": "软件应用",
-        "name": "软件应用",
+      "a3cdfe84-7747-43fa-9074-cb3d043add5b": {
+        "id": "a3cdfe84-7747-43fa-9074-cb3d043add5b",
+        "type": "environment_segment",
+        "code": "",
+        "title": "应用及数据",
+        "name": "应用及数据",
         "category": "",
-        "status": "",
-        "text": "I-AP 软件应用"
+        "status": ""
       },
-      "shadow:scope_type:3c7c53a6f343e04f": {
-        "id": "shadow:scope_type:3c7c53a6f343e04f",
-        "type": "scope_type",
-        "code": "I-DI",
-        "title": "数据与信息",
-        "name": "数据与信息",
+      "aa6d2501-6ab6-4751-8041-a9aea22c4d19": {
+        "id": "aa6d2501-6ab6-4751-8041-a9aea22c4d19",
+        "type": "environment_segment",
+        "code": "",
+        "title": "工作负载",
+        "name": "工作负载",
         "category": "",
-        "status": "",
-        "text": "I-DI 数据与信息"
-      },
-      "shadow:scope_type:4569e1d810feca0d": {
-        "id": "shadow:scope_type:4569e1d810feca0d",
-        "type": "scope_type",
-        "code": "I-OS",
-        "title": "操作系统",
-        "name": "操作系统",
-        "category": "",
-        "status": "",
-        "text": "I-OS 操作系统"
-      },
-      "shadow:scope_type:998405d9eaef340e": {
-        "id": "shadow:scope_type:998405d9eaef340e",
-        "type": "scope_type",
-        "code": "I-US",
-        "title": "用户",
-        "name": "用户",
-        "category": "",
-        "status": "",
-        "text": "I-US 用户"
+        "status": ""
       }
     },
     "security_technical_service": {
-      "shadow:security_technical_service:a7415df0205e4113": {
-        "id": "shadow:security_technical_service:a7415df0205e4113",
+      "8284314c-6c4f-4594-bc80-564f19cc5031": {
+        "id": "8284314c-6c4f-4594-bc80-564f19cc5031",
         "type": "security_technical_service",
-        "code": "I-NT&T-AS.AD-01",
-        "title": "网络平面及区域划分",
-        "name": "网络平面及区域划分",
-        "category": "",
+        "code": "I-AP&T-AD.SA-01",
+        "title": "应用异常行为检测",
+        "name": "应用异常行为检测",
+        "category": "I-AP",
         "status": ""
       },
-      "shadow:security_technical_service:65ff5b466a69a47b": {
-        "id": "shadow:security_technical_service:65ff5b466a69a47b",
+      "f288d3f9-a1dd-4064-b2f6-2de1ef54b3ac": {
+        "id": "f288d3f9-a1dd-4064-b2f6-2de1ef54b3ac",
         "type": "security_technical_service",
-        "code": "I-NT&T-AS.AD-02",
-        "title": "网络冗余",
-        "name": "网络冗余",
-        "category": "",
+        "code": "I-AP&T-AS.AD-02",
+        "title": "应用冗余",
+        "name": "应用冗余",
+        "category": "I-AP",
         "status": ""
       },
-      "shadow:security_technical_service:8d9504d5dac695d0": {
-        "id": "shadow:security_technical_service:8d9504d5dac695d0",
+      "02ba15b8-9b98-4ad1-b331-537735564019": {
+        "id": "02ba15b8-9b98-4ad1-b331-537735564019",
         "type": "security_technical_service",
-        "code": "I-NT&T-PD.PP-03",
-        "title": "网络隔离",
-        "name": "网络隔离",
-        "category": "",
+        "code": "I-AP&T-AS.AD-03",
+        "title": "应用备份",
+        "name": "应用备份",
+        "category": "I-AP",
         "status": ""
       },
-      "shadow:security_technical_service:70fd99d9cfadbdd5": {
-        "id": "shadow:security_technical_service:70fd99d9cfadbdd5",
+      "66ba0f69-0de6-4efa-8483-95e4991ee72f": {
+        "id": "66ba0f69-0de6-4efa-8483-95e4991ee72f",
         "type": "security_technical_service",
-        "code": "I-NT&T-AS.LA-03",
-        "title": "网络流量（行为）日志审计",
-        "name": "网络流量（行为）日志审计",
-        "category": "",
+        "code": "I-AP&T-AS.AM-01",
+        "title": "软件资产清单",
+        "name": "软件资产清单",
+        "category": "I-AP",
         "status": ""
       },
-      "shadow:security_technical_service:629595022a04fddd": {
-        "id": "shadow:security_technical_service:629595022a04fddd",
+      "a30b2219-728f-4572-876d-ed87b7266997": {
+        "id": "a30b2219-728f-4572-876d-ed87b7266997",
         "type": "security_technical_service",
-        "code": "I-NT&T-PD.PP-02",
-        "title": "网络异常流量检测与迁移",
-        "name": "网络异常流量检测与迁移",
-        "category": "",
+        "code": "I-AP&T-AS.AM-02",
+        "title": "软件资产安全管控",
+        "name": "软件资产安全管控",
+        "category": "I-AP",
         "status": ""
       },
-      "shadow:security_technical_service:9abcf4377857c141": {
-        "id": "shadow:security_technical_service:9abcf4377857c141",
+      "acc34f4d-e70e-42ef-8a52-3b9e051c47f4": {
+        "id": "acc34f4d-e70e-42ef-8a52-3b9e051c47f4",
         "type": "security_technical_service",
-        "code": "I-NT&T-AD.IR-05",
-        "title": "网络调查取证",
-        "name": "网络调查取证",
-        "category": "",
+        "code": "I-AP&T-AS.CM-01",
+        "title": "应用安全基线配置管理",
+        "name": "应用安全基线配置管理",
+        "category": "I-AP",
         "status": ""
       },
-      "shadow:security_technical_service:a0ea59de0aa81411": {
-        "id": "shadow:security_technical_service:a0ea59de0aa81411",
+      "57962e30-4a60-4ecb-9155-5db46fadeb90": {
+        "id": "57962e30-4a60-4ecb-9155-5db46fadeb90",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.CM-02",
+        "title": "应用安全加固",
+        "name": "应用安全加固",
+        "category": "I-AP",
+        "status": ""
+      },
+      "ef7aa83d-469d-4a67-8271-fd0e8bb7e5a7": {
+        "id": "ef7aa83d-469d-4a67-8271-fd0e8bb7e5a7",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.IA-01",
+        "title": "应用身份管理",
+        "name": "应用身份管理",
+        "category": "I-AP",
+        "status": ""
+      },
+      "2b8ad26b-eea2-4d71-a39b-7fed06b7891f": {
+        "id": "2b8ad26b-eea2-4d71-a39b-7fed06b7891f",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.IA-02",
+        "title": "应用身份认证",
+        "name": "应用身份认证",
+        "category": "I-AP",
+        "status": ""
+      },
+      "751c01de-a072-4794-999f-2d4411741ed8": {
+        "id": "751c01de-a072-4794-999f-2d4411741ed8",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.IA-03",
+        "title": "应用资源授权",
+        "name": "应用资源授权",
+        "category": "I-AP",
+        "status": ""
+      },
+      "62529bab-fb20-459d-9f5f-07f452c30cf9": {
+        "id": "62529bab-fb20-459d-9f5f-07f452c30cf9",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.IA-04",
+        "title": "应用凭证管理",
+        "name": "应用凭证管理",
+        "category": "I-AP",
+        "status": ""
+      },
+      "fe853d0e-c370-456e-8f83-0d920da1d0cf": {
+        "id": "fe853d0e-c370-456e-8f83-0d920da1d0cf",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.LA-01",
+        "title": "应用日志记录",
+        "name": "应用日志记录",
+        "category": "I-AP",
+        "status": ""
+      },
+      "9b5f5eaa-4457-4124-a2e4-10ff49e88ec7": {
+        "id": "9b5f5eaa-4457-4124-a2e4-10ff49e88ec7",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.LA-03",
+        "title": "应用操作审计",
+        "name": "应用操作审计",
+        "category": "I-AP",
+        "status": ""
+      },
+      "76b23039-2fcc-4432-93e4-246a6f8473a4": {
+        "id": "76b23039-2fcc-4432-93e4-246a6f8473a4",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.VM-01",
+        "title": "应用漏洞管理",
+        "name": "应用漏洞管理",
+        "category": "I-AP",
+        "status": ""
+      },
+      "1e954f61-7805-488b-90fb-0e1a11372781": {
+        "id": "1e954f61-7805-488b-90fb-0e1a11372781",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.VM-02",
+        "title": "应用补丁管理",
+        "name": "应用补丁管理",
+        "category": "I-AP",
+        "status": ""
+      },
+      "7e6c2210-9831-4f7c-87aa-b1906cc40ceb": {
+        "id": "7e6c2210-9831-4f7c-87aa-b1906cc40ceb",
+        "type": "security_technical_service",
+        "code": "I-AP&T-PD.AC-01",
+        "title": "应用访问控制",
+        "name": "应用访问控制",
+        "category": "I-AP",
+        "status": ""
+      },
+      "65c68b71-4d85-4871-9fda-46489cdab485": {
+        "id": "65c68b71-4d85-4871-9fda-46489cdab485",
+        "type": "security_technical_service",
+        "code": "I-AP&T-PD.AC-02",
+        "title": "应用软件信誉评估",
+        "name": "应用软件信誉评估",
+        "category": "I-AP",
+        "status": ""
+      },
+      "371b6c87-b35a-486f-8cf8-1614e56ca26d": {
+        "id": "371b6c87-b35a-486f-8cf8-1614e56ca26d",
+        "type": "security_technical_service",
+        "code": "I-AP&T-PD.DP-01",
+        "title": "应用页面水印",
+        "name": "应用页面水印",
+        "category": "I-AP",
+        "status": ""
+      },
+      "f3dbd1ea-1f3e-4fb9-a0e9-2922e185fb1a": {
+        "id": "f3dbd1ea-1f3e-4fb9-a0e9-2922e185fb1a",
+        "type": "security_technical_service",
+        "code": "I-AP&T-PD.DP-02",
+        "title": "应用动态数据脱敏",
+        "name": "应用动态数据脱敏",
+        "category": "I-AP",
+        "status": ""
+      },
+      "3e469c1f-a5c2-4213-ab54-d61791d6e769": {
+        "id": "3e469c1f-a5c2-4213-ab54-d61791d6e769",
+        "type": "security_technical_service",
+        "code": "I-AP&T-PD.PP-01",
+        "title": "应用安全访问",
+        "name": "应用安全访问",
+        "category": "I-AP",
+        "status": ""
+      },
+      "959e8875-2178-4d24-864e-f9e52f9e7cf0": {
+        "id": "959e8875-2178-4d24-864e-f9e52f9e7cf0",
+        "type": "security_technical_service",
+        "code": "I-AP&T-PD.TP-03",
+        "title": "应用攻击入侵防御",
+        "name": "应用攻击入侵防御",
+        "category": "I-AP",
+        "status": ""
+      },
+      "7d395749-fcd0-472c-bf47-d53d2f778815": {
+        "id": "7d395749-fcd0-472c-bf47-d53d2f778815",
+        "type": "security_technical_service",
+        "code": "I-DI&T-PD.DP-01",
+        "title": "数据内容水印",
+        "name": "数据内容水印",
+        "category": "I-DI",
+        "status": ""
+      },
+      "9a09acc1-1186-4a5c-8341-7b0466ba8660": {
+        "id": "9a09acc1-1186-4a5c-8341-7b0466ba8660",
+        "type": "security_technical_service",
+        "code": "I-DI&T-PD.DP-02",
+        "title": "静态数据脱敏",
+        "name": "静态数据脱敏",
+        "category": "I-DI",
+        "status": ""
+      },
+      "ce137725-f853-4653-b5b7-fc4d019d5efd": {
+        "id": "ce137725-f853-4653-b5b7-fc4d019d5efd",
+        "type": "security_technical_service",
+        "code": "I-DI&T-PD.DP-07",
+        "title": "隐私数据检测",
+        "name": "隐私数据检测",
+        "category": "I-DI",
+        "status": ""
+      },
+      "26508044-538b-4245-8f12-985cc00b073d": {
+        "id": "26508044-538b-4245-8f12-985cc00b073d",
+        "type": "security_technical_service",
+        "code": "I-NT&T-AS.CG-01",
+        "title": "网络传输通道加解密",
+        "name": "网络传输通道加解密",
+        "category": "I-NT",
+        "status": ""
+      },
+      "b2ffb13f-f74f-49f1-b0a6-6d93820a20c0": {
+        "id": "b2ffb13f-f74f-49f1-b0a6-6d93820a20c0",
+        "type": "security_technical_service",
+        "code": "I-NT&T-AS.IA-03",
+        "title": "网络资源授权",
+        "name": "网络资源授权",
+        "category": "I-NT",
+        "status": ""
+      },
+      "828f2cd3-0a2c-4912-8a3f-1b8f50594e78": {
+        "id": "828f2cd3-0a2c-4912-8a3f-1b8f50594e78",
+        "type": "security_technical_service",
+        "code": "I-NT&T-PD.AC-01",
+        "title": "网络访问控制",
+        "name": "网络访问控制",
+        "category": "I-NT",
+        "status": ""
+      },
+      "37db0721-3a18-4ffb-869b-432ff58d8441": {
+        "id": "37db0721-3a18-4ffb-869b-432ff58d8441",
+        "type": "security_technical_service",
+        "code": "I-NT&T-PD.PP-01",
+        "title": "网络安全接入",
+        "name": "网络安全接入",
+        "category": "I-NT",
+        "status": ""
+      },
+      "88dfa1b7-087e-4ee2-9d27-ed6566558e04": {
+        "id": "88dfa1b7-087e-4ee2-9d27-ed6566558e04",
+        "type": "security_technical_service",
+        "code": "I-OS&T-PD.AC-02",
+        "title": "主机/终端信誉评估",
+        "name": "主机/终端信誉评估",
+        "category": "I-OS",
+        "status": ""
+      },
+      "2cf524a6-7f2c-4dcf-aa8d-39c3d70d5210": {
+        "id": "2cf524a6-7f2c-4dcf-aa8d-39c3d70d5210",
+        "type": "security_technical_service",
+        "code": "I-OS&T-PD.DP-01",
+        "title": "操作系统屏幕水印",
+        "name": "操作系统屏幕水印",
+        "category": "I-OS",
+        "status": ""
+      },
+      "28fde69d-5226-43bf-a548-aceb1ff2e5b7": {
+        "id": "28fde69d-5226-43bf-a548-aceb1ff2e5b7",
+        "type": "security_technical_service",
+        "code": "I-US&T-AS.IA-01",
+        "title": "用户身份管理",
+        "name": "用户身份管理",
+        "category": "I-US",
+        "status": ""
+      },
+      "07770e67-50a0-43c1-876a-edace17c52a1": {
+        "id": "07770e67-50a0-43c1-876a-edace17c52a1",
+        "type": "security_technical_service",
+        "code": "I-US&T-AS.IA-02",
+        "title": "用户认证",
+        "name": "用户认证",
+        "category": "I-US",
+        "status": ""
+      },
+      "2d6d692a-6711-483c-ba9b-e6228b7bf186": {
+        "id": "2d6d692a-6711-483c-ba9b-e6228b7bf186",
+        "type": "security_technical_service",
+        "code": "I-US&T-AS.IA-04",
+        "title": "用户凭证管理",
+        "name": "用户凭证管理",
+        "category": "I-US",
+        "status": ""
+      },
+      "9534eb55-462c-477e-b7b4-c9e5435d2bda": {
+        "id": "9534eb55-462c-477e-b7b4-c9e5435d2bda",
+        "type": "security_technical_service",
+        "code": "I-US&T-AS.LA-03",
+        "title": "用户行为审计",
+        "name": "用户行为审计",
+        "category": "I-US",
+        "status": ""
+      },
+      "5f7c51b1-74d0-46a4-9df4-685cc47ebcb9": {
+        "id": "5f7c51b1-74d0-46a4-9df4-685cc47ebcb9",
+        "type": "security_technical_service",
+        "code": "I-US&T-PD.AC-02",
+        "title": "用户信誉评估",
+        "name": "用户信誉评估",
+        "category": "I-US",
+        "status": ""
+      },
+      "c59abc44-a1b8-44d9-8c89-1bc3f5548e88": {
+        "id": "c59abc44-a1b8-44d9-8c89-1bc3f5548e88",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.CG-01",
+        "title": "应用层数据加解密",
+        "name": "应用层数据加解密",
+        "category": "I-AP",
+        "status": ""
+      },
+      "11027d5a-d7f7-42ee-9ad2-ba435e905326": {
+        "id": "11027d5a-d7f7-42ee-9ad2-ba435e905326",
         "type": "security_technical_service",
         "code": "I-AP&T-AD.IR-06",
         "title": "应用仿真",
         "name": "应用仿真",
-        "category": "",
+        "category": "I-AP",
         "status": ""
       },
-      "shadow:security_technical_service:532e756f7578ed67": {
-        "id": "shadow:security_technical_service:532e756f7578ed67",
-        "type": "security_technical_service",
-        "code": "I-OS&T-AD.IR-05",
-        "title": "操作系统调查取证",
-        "name": "操作系统调查取证",
-        "category": "",
-        "status": ""
-      },
-      "shadow:security_technical_service:df6fb8005fe718ec": {
-        "id": "shadow:security_technical_service:df6fb8005fe718ec",
+      "f2798612-b9ae-4629-89d5-5f211c906fc3": {
+        "id": "f2798612-b9ae-4629-89d5-5f211c906fc3",
         "type": "security_technical_service",
         "code": "I-DI&T-AD.IR-05",
         "title": "数据调查取证",
         "name": "数据调查取证",
-        "category": "",
+        "category": "I-DI",
         "status": ""
       },
-      "shadow:security_technical_service:9db5152674622117": {
-        "id": "shadow:security_technical_service:9db5152674622117",
+      "b0210b19-0255-44e1-9e35-afc5a8bdf029": {
+        "id": "b0210b19-0255-44e1-9e35-afc5a8bdf029",
+        "type": "security_technical_service",
+        "code": "I-NT&T-AD.IR-05",
+        "title": "网络调查取证",
+        "name": "网络调查取证",
+        "category": "I-NT",
+        "status": ""
+      },
+      "81c7805b-1192-45e2-abfe-f4a09661be64": {
+        "id": "81c7805b-1192-45e2-abfe-f4a09661be64",
+        "type": "security_technical_service",
+        "code": "I-NT&T-AS.AD-01",
+        "title": "网络平面及区域划分",
+        "name": "网络平面及区域划分",
+        "category": "I-NT",
+        "status": ""
+      },
+      "fe0ee080-7eaf-4e59-b3f7-0eefce8bde84": {
+        "id": "fe0ee080-7eaf-4e59-b3f7-0eefce8bde84",
+        "type": "security_technical_service",
+        "code": "I-NT&T-AS.AD-02",
+        "title": "网络冗余",
+        "name": "网络冗余",
+        "category": "I-NT",
+        "status": ""
+      },
+      "505e563b-6031-4980-8993-4c2684c04865": {
+        "id": "505e563b-6031-4980-8993-4c2684c04865",
+        "type": "security_technical_service",
+        "code": "I-NT&T-AS.LA-03",
+        "title": "网络流量（行为）日志审计",
+        "name": "网络流量（行为）日志审计",
+        "category": "I-NT",
+        "status": ""
+      },
+      "8fef9d48-4788-443c-b013-888ff0ba7f67": {
+        "id": "8fef9d48-4788-443c-b013-888ff0ba7f67",
+        "type": "security_technical_service",
+        "code": "I-NT&T-PD.PP-02",
+        "title": "网络异常流量检测与迁移",
+        "name": "网络异常流量检测与迁移",
+        "category": "I-NT",
+        "status": ""
+      },
+      "f275ae10-32a3-4bb9-98ec-6ae994794d04": {
+        "id": "f275ae10-32a3-4bb9-98ec-6ae994794d04",
+        "type": "security_technical_service",
+        "code": "I-NT&T-PD.PP-03",
+        "title": "网络隔离",
+        "name": "网络隔离",
+        "category": "I-NT",
+        "status": ""
+      },
+      "67ed55cf-4395-4de1-a97d-20525589b731": {
+        "id": "67ed55cf-4395-4de1-a97d-20525589b731",
+        "type": "security_technical_service",
+        "code": "I-OS&T-AD.IR-05",
+        "title": "操作系统调查取证",
+        "name": "操作系统调查取证",
+        "category": "I-OS",
+        "status": ""
+      },
+      "62839ad3-ca1d-4205-9759-ba6cc8c0f295": {
+        "id": "62839ad3-ca1d-4205-9759-ba6cc8c0f295",
         "type": "security_technical_service",
         "code": "I-US&T-AD.IR-06",
         "title": "诱饵账号",
         "name": "诱饵账号",
-        "category": "",
+        "category": "I-US",
+        "status": ""
+      },
+      "d23bc096-c9a7-425a-b4d1-3eee846b346c": {
+        "id": "d23bc096-c9a7-425a-b4d1-3eee846b346c",
+        "type": "security_technical_service",
+        "code": "I-AP&T-PD.TP-02",
+        "title": "应用异常特征检测（API、Web应用）",
+        "name": "应用异常特征检测（API、Web应用）",
+        "category": "I-AP",
+        "status": ""
+      },
+      "eb3b84c7-d3c7-4107-8199-e79848f2f6fe": {
+        "id": "eb3b84c7-d3c7-4107-8199-e79848f2f6fe",
+        "type": "security_technical_service",
+        "code": "I-DI&T-AS.AM-01",
+        "title": "数据资产清单",
+        "name": "数据资产清单",
+        "category": "I-DI",
+        "status": ""
+      },
+      "73b9ddac-c655-4dd6-9197-4f8724a89da1": {
+        "id": "73b9ddac-c655-4dd6-9197-4f8724a89da1",
+        "type": "security_technical_service",
+        "code": "I-DI&T-AS.LA-03",
+        "title": "数据访问和操作审计",
+        "name": "数据访问和操作审计",
+        "category": "I-DI",
+        "status": ""
+      },
+      "5433e14c-c482-45d6-93a9-3d0a5014d293": {
+        "id": "5433e14c-c482-45d6-93a9-3d0a5014d293",
+        "type": "security_technical_service",
+        "code": "I-DI&T-PD.DP-05",
+        "title": "数据流转监测",
+        "name": "数据流转监测",
+        "category": "I-DI",
+        "status": ""
+      },
+      "c141a249-a443-403e-bc66-24293f3392a1": {
+        "id": "c141a249-a443-403e-bc66-24293f3392a1",
+        "type": "security_technical_service",
+        "code": "I-NT&T-AD.SA-01",
+        "title": "网络高级威胁检测（启发式、行为式）",
+        "name": "网络高级威胁检测（启发式、行为式）",
+        "category": "I-NT",
+        "status": ""
+      },
+      "d611623c-984c-4597-90eb-a7104f6af41f": {
+        "id": "d611623c-984c-4597-90eb-a7104f6af41f",
+        "type": "security_technical_service",
+        "code": "I-NT&T-PD.TP-03",
+        "title": "网络攻击入侵防御",
+        "name": "网络攻击入侵防御",
+        "category": "I-NT",
+        "status": ""
+      },
+      "80bc9f9f-7b74-4541-99b4-f16e1ef981c2": {
+        "id": "80bc9f9f-7b74-4541-99b4-f16e1ef981c2",
+        "type": "security_technical_service",
+        "code": "I-DI&T-AS.AD-01",
+        "title": "数据分库分表",
+        "name": "数据分库分表",
+        "category": "I-DI",
+        "status": ""
+      },
+      "0e1c8161-258d-4287-9f89-c8518813ce42": {
+        "id": "0e1c8161-258d-4287-9f89-c8518813ce42",
+        "type": "security_technical_service",
+        "code": "I-DI&T-AS.AD-02",
+        "title": "冗余存储",
+        "name": "冗余存储",
+        "category": "I-DI",
+        "status": ""
+      },
+      "a5546810-502d-44be-a1af-0bb07f27d398": {
+        "id": "a5546810-502d-44be-a1af-0bb07f27d398",
+        "type": "security_technical_service",
+        "code": "I-DI&T-AS.CG-01",
+        "title": "数据内容加解密",
+        "name": "数据内容加解密",
+        "category": "I-DI",
+        "status": ""
+      },
+      "d9c6b872-f2a5-48de-b0a9-da463d7b24ab": {
+        "id": "d9c6b872-f2a5-48de-b0a9-da463d7b24ab",
+        "type": "security_technical_service",
+        "code": "I-DI&T-AS.DG-03",
+        "title": "数据备份",
+        "name": "数据备份",
+        "category": "I-DI",
+        "status": ""
+      },
+      "3e1fba79-cd62-4483-8ed6-80f572877256": {
+        "id": "3e1fba79-cd62-4483-8ed6-80f572877256",
+        "type": "security_technical_service",
+        "code": "I-DI&T-AS.IA-03",
+        "title": "数据资源授权",
+        "name": "数据资源授权",
+        "category": "I-DI",
+        "status": ""
+      },
+      "4d18d8b8-26a7-41aa-9c96-dc10bfce48e2": {
+        "id": "4d18d8b8-26a7-41aa-9c96-dc10bfce48e2",
+        "type": "security_technical_service",
+        "code": "I-DI&T-PD.DP-04",
+        "title": "数据访问鉴权",
+        "name": "数据访问鉴权",
+        "category": "I-DI",
+        "status": ""
+      },
+      "726fd118-6943-46cc-b6db-e7556343eee1": {
+        "id": "726fd118-6943-46cc-b6db-e7556343eee1",
+        "type": "security_technical_service",
+        "code": "I-DI&T-PD.PP-01",
+        "title": "数据安全访问",
+        "name": "数据安全访问",
+        "category": "I-DI",
+        "status": ""
+      },
+      "f95451f7-3d46-43fb-a307-fc29ab62ba0f": {
+        "id": "f95451f7-3d46-43fb-a307-fc29ab62ba0f",
+        "type": "security_technical_service",
+        "code": "I-DI&T-PD.PP-03",
+        "title": "数据隔离",
+        "name": "数据隔离",
+        "category": "I-DI",
+        "status": ""
+      },
+      "cf5b96e9-c2bb-4bed-907f-f3c509345387": {
+        "id": "cf5b96e9-c2bb-4bed-907f-f3c509345387",
+        "type": "security_technical_service",
+        "code": "I-NT&T-PD.DP-02",
+        "title": "网络动态数据脱敏",
+        "name": "网络动态数据脱敏",
+        "category": "I-NT",
+        "status": ""
+      },
+      "66a40dd5-3f9e-4f23-9df5-772eac968cbe": {
+        "id": "66a40dd5-3f9e-4f23-9df5-772eac968cbe",
+        "type": "security_technical_service",
+        "code": "I-AP&T-AS.CG-02",
+        "title": "应用程序完整性校验（含操作签名验签）",
+        "name": "应用程序完整性校验（含操作签名验签）",
+        "category": "I-AP",
+        "status": ""
+      },
+      "f2fdac04-2864-4757-85c6-80d70d30a26b": {
+        "id": "f2fdac04-2864-4757-85c6-80d70d30a26b",
+        "type": "security_technical_service",
+        "code": "I-OS&T-AD.SA-01",
+        "title": "操作系统异常行为检测",
+        "name": "操作系统异常行为检测",
+        "category": "I-OS",
+        "status": ""
+      },
+      "433e87ee-490b-4c42-802d-ffdf01f5eeb7": {
+        "id": "433e87ee-490b-4c42-802d-ffdf01f5eeb7",
+        "type": "security_technical_service",
+        "code": "I-OS&T-AS.AD-02",
+        "title": "主机/终端冗余",
+        "name": "主机/终端冗余",
+        "category": "I-OS",
+        "status": ""
+      },
+      "b64ca3cb-5c30-4a70-ae1f-95e83b1b209d": {
+        "id": "b64ca3cb-5c30-4a70-ae1f-95e83b1b209d",
+        "type": "security_technical_service",
+        "code": "I-OS&T-AS.AM-01",
+        "title": "主机/终端资产清单",
+        "name": "主机/终端资产清单",
+        "category": "I-OS",
+        "status": ""
+      },
+      "6a78d704-829d-44c0-8097-d184365d633d": {
+        "id": "6a78d704-829d-44c0-8097-d184365d633d",
+        "type": "security_technical_service",
+        "code": "I-OS&T-AS.AM-02",
+        "title": "主机/终端资产安全管控",
+        "name": "主机/终端资产安全管控",
+        "category": "I-OS",
+        "status": ""
+      },
+      "ad7ec317-2a56-479c-b972-72862da7a211": {
+        "id": "ad7ec317-2a56-479c-b972-72862da7a211",
+        "type": "security_technical_service",
+        "code": "I-OS&T-AS.CG-02",
+        "title": "操作系统文件完整性校验",
+        "name": "操作系统文件完整性校验",
+        "category": "I-OS",
+        "status": ""
+      },
+      "d0619c7e-6be7-4851-a12f-bcc0a440337a": {
+        "id": "d0619c7e-6be7-4851-a12f-bcc0a440337a",
+        "type": "security_technical_service",
+        "code": "I-OS&T-AS.CM-01",
+        "title": "主机/终端安全基线配置管理",
+        "name": "主机/终端安全基线配置管理",
+        "category": "I-OS",
+        "status": ""
+      },
+      "99c0ff67-0ee2-459e-bfdb-72317616eeb1": {
+        "id": "99c0ff67-0ee2-459e-bfdb-72317616eeb1",
+        "type": "security_technical_service",
+        "code": "I-OS&T-AS.CM-02",
+        "title": "主机/终端安全加固",
+        "name": "主机/终端安全加固",
+        "category": "I-OS",
+        "status": ""
+      },
+      "677933bd-e031-4bcb-b2ea-45dbea54c42c": {
+        "id": "677933bd-e031-4bcb-b2ea-45dbea54c42c",
+        "type": "security_technical_service",
+        "code": "I-OS&T-AS.IA-01",
+        "title": "主机/终端身份管理",
+        "name": "主机/终端身份管理",
+        "category": "I-OS",
+        "status": ""
+      },
+      "54de2a04-b9f4-4596-96e0-d13800073eeb": {
+        "id": "54de2a04-b9f4-4596-96e0-d13800073eeb",
+        "type": "security_technical_service",
+        "code": "I-OS&T-AS.IA-03",
+        "title": "操作系统资源授权",
+        "name": "操作系统资源授权",
+        "category": "I-OS",
+        "status": ""
+      },
+      "3c2f8f2d-979e-49e8-b9f0-776cfa73dcd5": {
+        "id": "3c2f8f2d-979e-49e8-b9f0-776cfa73dcd5",
+        "type": "security_technical_service",
+        "code": "I-OS&T-AS.IA-04",
+        "title": "操作系统凭证管理",
+        "name": "操作系统凭证管理",
+        "category": "I-OS",
+        "status": ""
+      },
+      "abb3f3ab-5819-4d0f-9de2-e67ff79e9671": {
+        "id": "abb3f3ab-5819-4d0f-9de2-e67ff79e9671",
+        "type": "security_technical_service",
+        "code": "I-OS&T-AS.LA-01",
+        "title": "操作系统日志记录",
+        "name": "操作系统日志记录",
+        "category": "I-OS",
+        "status": ""
+      },
+      "c103ea92-d164-4960-9184-ae1f4ec655c1": {
+        "id": "c103ea92-d164-4960-9184-ae1f4ec655c1",
+        "type": "security_technical_service",
+        "code": "I-OS&T-AS.LA-03",
+        "title": "操作系统操作审计",
+        "name": "操作系统操作审计",
+        "category": "I-OS",
+        "status": ""
+      },
+      "a995bffa-d6e8-4aa6-a238-72d23432aee8": {
+        "id": "a995bffa-d6e8-4aa6-a238-72d23432aee8",
+        "type": "security_technical_service",
+        "code": "I-OS&T-AS.VM-01",
+        "title": "主机/终端漏洞管理",
+        "name": "主机/终端漏洞管理",
+        "category": "I-OS",
+        "status": ""
+      },
+      "fc98a2df-388a-4786-b160-d4d856064d51": {
+        "id": "fc98a2df-388a-4786-b160-d4d856064d51",
+        "type": "security_technical_service",
+        "code": "I-OS&T-AS.VM-02",
+        "title": "主机/终端补丁管理",
+        "name": "主机/终端补丁管理",
+        "category": "I-OS",
+        "status": ""
+      },
+      "25d67424-cae9-4f20-9503-4b68626327c3": {
+        "id": "25d67424-cae9-4f20-9503-4b68626327c3",
+        "type": "security_technical_service",
+        "code": "I-OS&T-PD.PP-03",
+        "title": "操作系统隔离",
+        "name": "操作系统隔离",
+        "category": "I-OS",
+        "status": ""
+      },
+      "f1570eb9-681c-49df-bbf5-418815c9796e": {
+        "id": "f1570eb9-681c-49df-bbf5-418815c9796e",
+        "type": "security_technical_service",
+        "code": "I-OS&T-PD.TP-01",
+        "title": "操作系统恶意代码防护",
+        "name": "操作系统恶意代码防护",
+        "category": "I-OS",
+        "status": ""
+      },
+      "b65db61e-470b-4fe7-b4af-1b75dd46a81e": {
+        "id": "b65db61e-470b-4fe7-b4af-1b75dd46a81e",
+        "type": "security_technical_service",
+        "code": "I-OS&T-PD.TP-02",
+        "title": "操作系统异常特征检测",
+        "name": "操作系统异常特征检测",
+        "category": "I-OS",
+        "status": ""
+      },
+      "edc8a07d-f4cd-4f8b-b768-f05fb648316e": {
+        "id": "edc8a07d-f4cd-4f8b-b768-f05fb648316e",
+        "type": "security_technical_service",
+        "code": "I-OS&T-PD.TP-03",
+        "title": "操作系统攻击入侵防御",
+        "name": "操作系统攻击入侵防御",
+        "category": "I-OS",
+        "status": ""
+      },
+      "fd826b7d-384d-44ad-a385-d250ba33eb59": {
+        "id": "fd826b7d-384d-44ad-a385-d250ba33eb59",
+        "type": "security_technical_service",
+        "code": "I-HD&T-AS.AD-02",
+        "title": "设备冗余",
+        "name": "设备冗余",
+        "category": "I-HD",
+        "status": ""
+      },
+      "839afd55-7953-41be-9c10-a5d3c531bda8": {
+        "id": "839afd55-7953-41be-9c10-a5d3c531bda8",
+        "type": "security_technical_service",
+        "code": "I-HD&T-AS.AM-01",
+        "title": "硬件资产清单",
+        "name": "硬件资产清单",
+        "category": "I-HD",
+        "status": ""
+      },
+      "6e9c1a89-08cc-42fe-99a1-a76da945d094": {
+        "id": "6e9c1a89-08cc-42fe-99a1-a76da945d094",
+        "type": "security_technical_service",
+        "code": "I-HD&T-AS.CM-01",
+        "title": "固件安全基线配置管理",
+        "name": "固件安全基线配置管理",
+        "category": "I-HD",
+        "status": ""
+      },
+      "71b32e48-14ea-4c7f-9252-67e509d18011": {
+        "id": "71b32e48-14ea-4c7f-9252-67e509d18011",
+        "type": "security_technical_service",
+        "code": "I-HD&T-AS.CM-02",
+        "title": "硬件安全加固",
+        "name": "硬件安全加固",
+        "category": "I-HD",
+        "status": ""
+      },
+      "84348e9e-1b05-4f8c-ab23-b26f140f8682": {
+        "id": "84348e9e-1b05-4f8c-ab23-b26f140f8682",
+        "type": "security_technical_service",
+        "code": "I-HD&T-AS.VM-01",
+        "title": "固件漏洞管理",
+        "name": "固件漏洞管理",
+        "category": "I-HD",
+        "status": ""
+      },
+      "793450b0-2300-4600-a3ab-c7ffdfed9ad2": {
+        "id": "793450b0-2300-4600-a3ab-c7ffdfed9ad2",
+        "type": "security_technical_service",
+        "code": "I-HD&T-AS.VM-02",
+        "title": "固件补丁管理",
+        "name": "固件补丁管理",
+        "category": "I-HD",
         "status": ""
       }
     },
-    "security_technology_module": {
-      "shadow:security_technology_module:ff91979f76aa48e8": {
-        "id": "shadow:security_technology_module:ff91979f76aa48e8",
-        "type": "security_technology_module",
-        "code": "",
-        "title": "网络防火墙",
-        "name": "网络防火墙",
-        "category": "",
+    "scope_type": {
+      "7f4b920b-2eca-4ddd-a3ca-55ace40efeb9": {
+        "id": "7f4b920b-2eca-4ddd-a3ca-55ace40efeb9",
+        "type": "scope_type",
+        "code": "I-AP",
+        "title": "软件应用",
+        "name": "软件应用",
+        "category": "网络空间",
         "status": ""
       },
-      "shadow:security_technology_module:905eba2a8ff58050": {
-        "id": "shadow:security_technology_module:905eba2a8ff58050",
-        "type": "security_technology_module",
-        "code": "",
-        "title": "网络安全审计",
-        "name": "网络安全审计",
-        "category": "",
+      "784caa9f-74f0-4a43-94f5-727b3ff497fb": {
+        "id": "784caa9f-74f0-4a43-94f5-727b3ff497fb",
+        "type": "scope_type",
+        "code": "I-DI",
+        "title": "数据与信息",
+        "name": "数据与信息",
+        "category": "网络空间",
         "status": ""
       },
-      "shadow:security_technology_module:9bb1cb3340d28bec": {
-        "id": "shadow:security_technology_module:9bb1cb3340d28bec",
-        "type": "security_technology_module",
-        "code": "",
-        "title": "网络攻击诱捕",
-        "name": "网络攻击诱捕",
-        "category": "",
-        "status": ""
-      }
-    },
-    "security_technical_measure": {
-      "shadow:security_technical_measure:54198f8253888bad": {
-        "id": "shadow:security_technical_measure:54198f8253888bad",
-        "type": "security_technical_measure",
-        "code": "",
-        "title": "网络基础架构安全设计",
-        "name": "网络基础架构安全设计",
-        "category": "",
+      "6f1ef0de-3163-4d38-9626-5625a58948bb": {
+        "id": "6f1ef0de-3163-4d38-9626-5625a58948bb",
+        "type": "scope_type",
+        "code": "I-NT",
+        "title": "网络",
+        "name": "网络",
+        "category": "网络空间",
         "status": ""
       },
-      "shadow:security_technical_measure:3260cba7cc735403": {
-        "id": "shadow:security_technical_measure:3260cba7cc735403",
-        "type": "security_technical_measure",
-        "code": "",
-        "title": "网络高可用性设计",
-        "name": "网络高可用性设计",
-        "category": "",
-        "status": ""
-      }
-    },
-    "security_system": {
-      "shadow:security_system:8a34f55c60037368": {
-        "id": "shadow:security_system:8a34f55c60037368",
-        "type": "security_system",
-        "code": "",
-        "title": "网络边界安全防护",
-        "name": "网络边界安全防护",
-        "category": "",
+      "4abd36d3-4ba1-495c-8fb9-3957167f4833": {
+        "id": "4abd36d3-4ba1-495c-8fb9-3957167f4833",
+        "type": "scope_type",
+        "code": "I-OS",
+        "title": "操作系统",
+        "name": "操作系统",
+        "category": "网络空间",
         "status": ""
       },
-      "shadow:security_system:e3a9eb7b0ce4c975": {
-        "id": "shadow:security_system:e3a9eb7b0ce4c975",
-        "type": "security_system",
-        "code": "",
-        "title": "监测、研判和响应",
-        "name": "监测、研判和响应",
-        "category": "",
+      "6f2a40c5-4e87-4138-836c-83e136a5d69e": {
+        "id": "6f2a40c5-4e87-4138-836c-83e136a5d69e",
+        "type": "scope_type",
+        "code": "I-US",
+        "title": "用户",
+        "name": "用户",
+        "category": "网络空间",
         "status": ""
       }
     }
   },
   "objectScopeTree": [
     {
-      "id": "shadow:information_object_context:dfd9cd35189def7a",
+      "id": "93dc47d2-1163-4161-b28a-885d0ad696e4",
       "type": "information_object",
+      "code": null,
       "title": "数据中心内部网络",
-      "contextKey": "传统数据中心||网络||数据中心内部网络",
+      "description": null,
+      "category": null,
       "segments": [
         {
-          "id": "shadow:environment_segment:13a5ae81633ea5a3",
+          "id": "c8c25ac9-7dd1-48d8-8022-47c01b4fd5ea",
           "type": "environment_segment",
-          "title": "网络"
+          "code": null,
+          "title": "网络",
+          "description": null,
+          "category": null
         }
       ],
       "scope_mappings": [
         {
           "scope": {
-            "id": "shadow:scope_type:c7ebc38ae1f4adc8",
-            "type": "scope_type",
-            "code": "I-NT",
-            "title": "网络",
-            "text": "I-NT 网络"
-          },
-          "services": []
-        },
-        {
-          "scope": {
-            "id": "shadow:scope_type:8c823ba8ecddbfea",
+            "id": "7f4b920b-2eca-4ddd-a3ca-55ace40efeb9",
             "type": "scope_type",
             "code": "I-AP",
             "title": "软件应用",
-            "text": "I-AP 软件应用"
-          },
-          "services": []
-        },
-        {
-          "scope": {
-            "id": "shadow:scope_type:3c7c53a6f343e04f",
-            "type": "scope_type",
-            "code": "I-DI",
-            "title": "数据与信息",
-            "text": "I-DI 数据与信息"
-          },
-          "services": []
-        },
-        {
-          "scope": {
-            "id": "shadow:scope_type:4569e1d810feca0d",
-            "type": "scope_type",
-            "code": "I-OS",
-            "title": "操作系统",
-            "text": "I-OS 操作系统"
-          },
-          "services": []
-        },
-        {
-          "scope": {
-            "id": "shadow:scope_type:998405d9eaef340e",
-            "type": "scope_type",
-            "code": "I-US",
-            "title": "用户",
-            "text": "I-US 用户"
-          },
-          "services": []
-        },
-        {
-          "scope": {
-            "id": "shadow:scope_type:61d6b339e0a6406d",
-            "type": "scope_type",
-            "code": "",
-            "title": "I-NT 网络 I-AP 软件应用 I-DI 数据与信息 I-OS 操作系统 I-US 用户",
-            "text": "I-NT 网络 I-AP 软件应用 I-DI 数据与信息 I-OS 操作系统 I-US 用户"
+            "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
+            "category": "网络空间"
           },
           "services": [
             {
-              "id": "shadow:security_technical_service:a0ea59de0aa81411",
+              "id": "11027d5a-d7f7-42ee-9ad2-ba435e905326",
               "type": "security_technical_service",
               "code": "I-AP&T-AD.IR-06",
               "title": "应用仿真",
+              "description": null,
+              "category": "I-AP",
               "modules": [
                 {
-                  "id": "shadow:security_technology_module:9bb1cb3340d28bec",
+                  "id": "56550ac0-17e5-4a70-b5af-0f5566d4115a",
                   "type": "security_technology_module",
+                  "code": null,
                   "title": "网络攻击诱捕",
+                  "description": "通过模仿真实资产作为陷阱和诱饵来欺骗和捕获攻击者的模块",
+                  "category": "安全运营",
                   "systems": [
                     {
-                      "id": "reimport:security_system:2d853f4d205474dd",
+                      "id": "8519aa04-866a-42ff-ad10-ca66548c8d47",
                       "type": "security_system",
-                      "title": "监测、研判和响应"
+                      "code": null,
+                      "title": "监测、研判和响应",
+                      "description": null,
+                      "category": "安全运营"
+                    }
+                  ],
+                  "products": [
+                    {
+                      "id": "809c3739-9314-4115-8ce9-5e45bce0ee95",
+                      "type": "product",
+                      "code": null,
+                      "title": "攻击诱捕系统",
+                      "description": null,
+                      "category": null
                     }
                   ]
                 }
               ],
               "measures": [],
-              "securitySystems": [
-                {
-                  "id": "shadow:security_system:e3a9eb7b0ce4c975",
-                  "type": "security_system",
-                  "title": "监测、研判和响应"
-                }
-              ]
-            },
+              "module_count": 1,
+              "measure_count": 0
+            }
+          ],
+          "service_count": 1,
+          "module_count": 1
+        },
+        {
+          "scope": {
+            "id": "784caa9f-74f0-4a43-94f5-727b3ff497fb",
+            "type": "scope_type",
+            "code": "I-DI",
+            "title": "数据与信息",
+            "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
+            "category": "网络空间"
+          },
+          "services": [
             {
-              "id": "shadow:security_technical_service:df6fb8005fe718ec",
+              "id": "f2798612-b9ae-4629-89d5-5f211c906fc3",
               "type": "security_technical_service",
               "code": "I-DI&T-AD.IR-05",
               "title": "数据调查取证",
+              "description": null,
+              "category": "I-DI",
               "modules": [
                 {
-                  "id": "shadow:security_technology_module:9bb1cb3340d28bec",
+                  "id": "56550ac0-17e5-4a70-b5af-0f5566d4115a",
                   "type": "security_technology_module",
+                  "code": null,
                   "title": "网络攻击诱捕",
+                  "description": "通过模仿真实资产作为陷阱和诱饵来欺骗和捕获攻击者的模块",
+                  "category": "安全运营",
                   "systems": [
                     {
-                      "id": "reimport:security_system:2d853f4d205474dd",
+                      "id": "8519aa04-866a-42ff-ad10-ca66548c8d47",
                       "type": "security_system",
-                      "title": "监测、研判和响应"
+                      "code": null,
+                      "title": "监测、研判和响应",
+                      "description": null,
+                      "category": "安全运营"
+                    }
+                  ],
+                  "products": [
+                    {
+                      "id": "809c3739-9314-4115-8ce9-5e45bce0ee95",
+                      "type": "product",
+                      "code": null,
+                      "title": "攻击诱捕系统",
+                      "description": null,
+                      "category": null
                     }
                   ]
                 }
               ],
               "measures": [],
-              "securitySystems": [
-                {
-                  "id": "shadow:security_system:e3a9eb7b0ce4c975",
-                  "type": "security_system",
-                  "title": "监测、研判和响应"
-                }
-              ]
-            },
+              "module_count": 1,
+              "measure_count": 0
+            }
+          ],
+          "service_count": 1,
+          "module_count": 1
+        },
+        {
+          "scope": {
+            "id": "6f1ef0de-3163-4d38-9626-5625a58948bb",
+            "type": "scope_type",
+            "code": "I-NT",
+            "title": "网络",
+            "description": "安全能力作用于网络流、网络服务等对象。",
+            "category": "网络空间"
+          },
+          "services": [
             {
-              "id": "shadow:security_technical_service:9abcf4377857c141",
+              "id": "b0210b19-0255-44e1-9e35-afc5a8bdf029",
               "type": "security_technical_service",
               "code": "I-NT&T-AD.IR-05",
               "title": "网络调查取证",
+              "description": null,
+              "category": "I-NT",
               "modules": [
                 {
-                  "id": "shadow:security_technology_module:9bb1cb3340d28bec",
+                  "id": "56550ac0-17e5-4a70-b5af-0f5566d4115a",
                   "type": "security_technology_module",
+                  "code": null,
                   "title": "网络攻击诱捕",
+                  "description": "通过模仿真实资产作为陷阱和诱饵来欺骗和捕获攻击者的模块",
+                  "category": "安全运营",
                   "systems": [
                     {
-                      "id": "reimport:security_system:2d853f4d205474dd",
+                      "id": "8519aa04-866a-42ff-ad10-ca66548c8d47",
                       "type": "security_system",
-                      "title": "监测、研判和响应"
+                      "code": null,
+                      "title": "监测、研判和响应",
+                      "description": null,
+                      "category": "安全运营"
+                    }
+                  ],
+                  "products": [
+                    {
+                      "id": "809c3739-9314-4115-8ce9-5e45bce0ee95",
+                      "type": "product",
+                      "code": null,
+                      "title": "攻击诱捕系统",
+                      "description": null,
+                      "category": null
                     }
                   ]
                 }
               ],
               "measures": [],
-              "securitySystems": [
-                {
-                  "id": "shadow:security_system:e3a9eb7b0ce4c975",
-                  "type": "security_system",
-                  "title": "监测、研判和响应"
-                }
-              ]
+              "module_count": 1,
+              "measure_count": 0
             },
             {
-              "id": "shadow:security_technical_service:a7415df0205e4113",
+              "id": "81c7805b-1192-45e2-abfe-f4a09661be64",
               "type": "security_technical_service",
               "code": "I-NT&T-AS.AD-01",
               "title": "网络平面及区域划分",
+              "description": null,
+              "category": "I-NT",
               "modules": [],
               "measures": [
                 {
-                  "id": "shadow:security_technical_measure:54198f8253888bad",
+                  "id": "security_technical_measure:63c83e7adef9fa94",
+                  "name": "网络基础架构安全设计",
+                  "category": null,
+                  "source_kind": "pending_review / scope_service_module_mapping",
+                  "mapping_status_label": "正常",
+                  "related_service_ids": [
+                    "81c7805b-1192-45e2-abfe-f4a09661be64"
+                  ],
+                  "related_service_names": [
+                    "网络平面及区域划分"
+                  ],
+                  "related_services": [
+                    {
+                      "id": "81c7805b-1192-45e2-abfe-f4a09661be64",
+                      "type": "security_technical_service",
+                      "code": "I-NT&T-AS.AD-01",
+                      "title": "网络平面及区域划分",
+                      "description": null,
+                      "category": "I-NT"
+                    }
+                  ],
+                  "related_module_ids": [],
+                  "related_module_names": [],
+                  "related_modules": [],
+                  "related_scope_ids": [
+                    "7f4b920b-2eca-4ddd-a3ca-55ace40efeb9",
+                    "784caa9f-74f0-4a43-94f5-727b3ff497fb",
+                    "6f1ef0de-3163-4d38-9626-5625a58948bb",
+                    "4abd36d3-4ba1-495c-8fb9-3957167f4833",
+                    "6f2a40c5-4e87-4138-836c-83e136a5d69e"
+                  ],
+                  "related_scope_names": [
+                    "软件应用",
+                    "数据与信息",
+                    "网络",
+                    "操作系统",
+                    "用户"
+                  ],
+                  "applicable_scopes": [
+                    {
+                      "id": "7f4b920b-2eca-4ddd-a3ca-55ace40efeb9",
+                      "type": "scope_type",
+                      "code": "I-AP",
+                      "title": "软件应用",
+                      "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
+                      "category": "网络空间"
+                    },
+                    {
+                      "id": "784caa9f-74f0-4a43-94f5-727b3ff497fb",
+                      "type": "scope_type",
+                      "code": "I-DI",
+                      "title": "数据与信息",
+                      "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
+                      "category": "网络空间"
+                    },
+                    {
+                      "id": "6f1ef0de-3163-4d38-9626-5625a58948bb",
+                      "type": "scope_type",
+                      "code": "I-NT",
+                      "title": "网络",
+                      "description": "安全能力作用于网络流、网络服务等对象。",
+                      "category": "网络空间"
+                    },
+                    {
+                      "id": "4abd36d3-4ba1-495c-8fb9-3957167f4833",
+                      "type": "scope_type",
+                      "code": "I-OS",
+                      "title": "操作系统",
+                      "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
+                      "category": "网络空间"
+                    },
+                    {
+                      "id": "6f2a40c5-4e87-4138-836c-83e136a5d69e",
+                      "type": "scope_type",
+                      "code": "I-US",
+                      "title": "用户",
+                      "description": "安全能力作用于组织内人员或人使用的账号等对象。",
+                      "category": "网络空间"
+                    }
+                  ],
+                  "related_capability_focus_ids": [
+                    "72cd12e2-f784-4775-8b3f-6d3ed4e7d398"
+                  ],
+                  "related_capability_focus_names": [
+                    "遵循安全设计原则对网络安全架构进行设计和管控"
+                  ],
+                  "related_focuses": [
+                    {
+                      "id": "72cd12e2-f784-4775-8b3f-6d3ed4e7d398",
+                      "type": "capability_focus",
+                      "code": "T-AS.AD-01",
+                      "title": "遵循安全设计原则对网络安全架构进行设计和管控",
+                      "description": "在构建网络安全体系时，应遵循安全设计原则对网络安全架构进行管控（如通过分层分区分域的设计方法将网络和资源划分为不同的区域和层级建立符合安全需求的网络安全域，建立安全开发框架来帮助应用程序的开发、测试和部署上线），以增强整体安全架构的弹性和效能，并根据业务需求、威胁情报和安全事件的威胁结果进行持续优化。",
+                      "category": null
+                    }
+                  ],
+                  "related_focus_count": 1,
+                  "status": "normal",
                   "type": "security_technical_measure",
+                  "objectKind": "安全技术措施",
+                  "kind": "安全技术措施",
                   "title": "网络基础架构安全设计"
-                }
-              ],
-              "securitySystems": []
-            },
-            {
-              "id": "shadow:security_technical_service:65ff5b466a69a47b",
-              "type": "security_technical_service",
-              "code": "I-NT&T-AS.AD-02",
-              "title": "网络冗余",
-              "modules": [],
-              "measures": [
+                },
                 {
-                  "id": "shadow:security_technical_measure:3260cba7cc735403",
+                  "id": "security_technical_measure:6918469d08b28f1b",
+                  "name": "网络高可用性设计",
+                  "category": null,
+                  "source_kind": "pending_review / scope_service_module_mapping",
+                  "mapping_status_label": "正常",
+                  "related_service_ids": [
+                    "fe0ee080-7eaf-4e59-b3f7-0eefce8bde84"
+                  ],
+                  "related_service_names": [
+                    "网络冗余"
+                  ],
+                  "related_services": [
+                    {
+                      "id": "fe0ee080-7eaf-4e59-b3f7-0eefce8bde84",
+                      "type": "security_technical_service",
+                      "code": "I-NT&T-AS.AD-02",
+                      "title": "网络冗余",
+                      "description": null,
+                      "category": "I-NT"
+                    }
+                  ],
+                  "related_module_ids": [],
+                  "related_module_names": [],
+                  "related_modules": [],
+                  "related_scope_ids": [
+                    "7f4b920b-2eca-4ddd-a3ca-55ace40efeb9",
+                    "784caa9f-74f0-4a43-94f5-727b3ff497fb",
+                    "6f1ef0de-3163-4d38-9626-5625a58948bb",
+                    "4abd36d3-4ba1-495c-8fb9-3957167f4833",
+                    "6f2a40c5-4e87-4138-836c-83e136a5d69e"
+                  ],
+                  "related_scope_names": [
+                    "软件应用",
+                    "数据与信息",
+                    "网络",
+                    "操作系统",
+                    "用户"
+                  ],
+                  "applicable_scopes": [
+                    {
+                      "id": "7f4b920b-2eca-4ddd-a3ca-55ace40efeb9",
+                      "type": "scope_type",
+                      "code": "I-AP",
+                      "title": "软件应用",
+                      "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
+                      "category": "网络空间"
+                    },
+                    {
+                      "id": "784caa9f-74f0-4a43-94f5-727b3ff497fb",
+                      "type": "scope_type",
+                      "code": "I-DI",
+                      "title": "数据与信息",
+                      "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
+                      "category": "网络空间"
+                    },
+                    {
+                      "id": "6f1ef0de-3163-4d38-9626-5625a58948bb",
+                      "type": "scope_type",
+                      "code": "I-NT",
+                      "title": "网络",
+                      "description": "安全能力作用于网络流、网络服务等对象。",
+                      "category": "网络空间"
+                    },
+                    {
+                      "id": "4abd36d3-4ba1-495c-8fb9-3957167f4833",
+                      "type": "scope_type",
+                      "code": "I-OS",
+                      "title": "操作系统",
+                      "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
+                      "category": "网络空间"
+                    },
+                    {
+                      "id": "6f2a40c5-4e87-4138-836c-83e136a5d69e",
+                      "type": "scope_type",
+                      "code": "I-US",
+                      "title": "用户",
+                      "description": "安全能力作用于组织内人员或人使用的账号等对象。",
+                      "category": "网络空间"
+                    }
+                  ],
+                  "related_capability_focus_ids": [
+                    "6c872817-38b8-4b19-9307-112520735747"
+                  ],
+                  "related_capability_focus_names": [
+                    "实施网络安全架构的冗余设计"
+                  ],
+                  "related_focuses": [
+                    {
+                      "id": "6c872817-38b8-4b19-9307-112520735747",
+                      "type": "capability_focus",
+                      "code": "T-AS.AD-02",
+                      "title": "实施网络安全架构的冗余设计",
+                      "description": "在网络安全架构设计中，实施冗余机制以提高系统的可用性和容错能力。这包括使用多路径、备份系统和故障转移机制来确保关键服务和数据在硬件故障或网络攻击等情况下的连续运行。通过设计冗余，可以减少单点故障的风险，保障关键业务和服务的持续性。",
+                      "category": null
+                    }
+                  ],
+                  "related_focus_count": 1,
+                  "status": "normal",
                   "type": "security_technical_measure",
+                  "objectKind": "安全技术措施",
+                  "kind": "安全技术措施",
                   "title": "网络高可用性设计"
                 }
               ],
-              "securitySystems": []
+              "module_count": 0,
+              "measure_count": 2
             },
             {
-              "id": "shadow:security_technical_service:70fd99d9cfadbdd5",
+              "id": "fe0ee080-7eaf-4e59-b3f7-0eefce8bde84",
+              "type": "security_technical_service",
+              "code": "I-NT&T-AS.AD-02",
+              "title": "网络冗余",
+              "description": null,
+              "category": "I-NT",
+              "modules": [],
+              "measures": [
+                {
+                  "id": "security_technical_measure:6918469d08b28f1b",
+                  "name": "网络高可用性设计",
+                  "category": null,
+                  "source_kind": "pending_review / scope_service_module_mapping",
+                  "mapping_status_label": "正常",
+                  "related_service_ids": [
+                    "fe0ee080-7eaf-4e59-b3f7-0eefce8bde84"
+                  ],
+                  "related_service_names": [
+                    "网络冗余"
+                  ],
+                  "related_services": [
+                    {
+                      "id": "fe0ee080-7eaf-4e59-b3f7-0eefce8bde84",
+                      "type": "security_technical_service",
+                      "code": "I-NT&T-AS.AD-02",
+                      "title": "网络冗余",
+                      "description": null,
+                      "category": "I-NT"
+                    }
+                  ],
+                  "related_module_ids": [],
+                  "related_module_names": [],
+                  "related_modules": [],
+                  "related_scope_ids": [
+                    "7f4b920b-2eca-4ddd-a3ca-55ace40efeb9",
+                    "784caa9f-74f0-4a43-94f5-727b3ff497fb",
+                    "6f1ef0de-3163-4d38-9626-5625a58948bb",
+                    "4abd36d3-4ba1-495c-8fb9-3957167f4833",
+                    "6f2a40c5-4e87-4138-836c-83e136a5d69e"
+                  ],
+                  "related_scope_names": [
+                    "软件应用",
+                    "数据与信息",
+                    "网络",
+                    "操作系统",
+                    "用户"
+                  ],
+                  "applicable_scopes": [
+                    {
+                      "id": "7f4b920b-2eca-4ddd-a3ca-55ace40efeb9",
+                      "type": "scope_type",
+                      "code": "I-AP",
+                      "title": "软件应用",
+                      "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
+                      "category": "网络空间"
+                    },
+                    {
+                      "id": "784caa9f-74f0-4a43-94f5-727b3ff497fb",
+                      "type": "scope_type",
+                      "code": "I-DI",
+                      "title": "数据与信息",
+                      "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
+                      "category": "网络空间"
+                    },
+                    {
+                      "id": "6f1ef0de-3163-4d38-9626-5625a58948bb",
+                      "type": "scope_type",
+                      "code": "I-NT",
+                      "title": "网络",
+                      "description": "安全能力作用于网络流、网络服务等对象。",
+                      "category": "网络空间"
+                    },
+                    {
+                      "id": "4abd36d3-4ba1-495c-8fb9-3957167f4833",
+                      "type": "scope_type",
+                      "code": "I-OS",
+                      "title": "操作系统",
+                      "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
+                      "category": "网络空间"
+                    },
+                    {
+                      "id": "6f2a40c5-4e87-4138-836c-83e136a5d69e",
+                      "type": "scope_type",
+                      "code": "I-US",
+                      "title": "用户",
+                      "description": "安全能力作用于组织内人员或人使用的账号等对象。",
+                      "category": "网络空间"
+                    }
+                  ],
+                  "related_capability_focus_ids": [
+                    "6c872817-38b8-4b19-9307-112520735747"
+                  ],
+                  "related_capability_focus_names": [
+                    "实施网络安全架构的冗余设计"
+                  ],
+                  "related_focuses": [
+                    {
+                      "id": "6c872817-38b8-4b19-9307-112520735747",
+                      "type": "capability_focus",
+                      "code": "T-AS.AD-02",
+                      "title": "实施网络安全架构的冗余设计",
+                      "description": "在网络安全架构设计中，实施冗余机制以提高系统的可用性和容错能力。这包括使用多路径、备份系统和故障转移机制来确保关键服务和数据在硬件故障或网络攻击等情况下的连续运行。通过设计冗余，可以减少单点故障的风险，保障关键业务和服务的持续性。",
+                      "category": null
+                    }
+                  ],
+                  "related_focus_count": 1,
+                  "status": "normal",
+                  "type": "security_technical_measure",
+                  "objectKind": "安全技术措施",
+                  "kind": "安全技术措施",
+                  "title": "网络高可用性设计"
+                }
+              ],
+              "module_count": 0,
+              "measure_count": 1
+            },
+            {
+              "id": "505e563b-6031-4980-8993-4c2684c04865",
               "type": "security_technical_service",
               "code": "I-NT&T-AS.LA-03",
               "title": "网络流量（行为）日志审计",
+              "description": null,
+              "category": "I-NT",
               "modules": [
                 {
-                  "id": "shadow:security_technology_module:905eba2a8ff58050",
+                  "id": "3f04434e-9029-4c8a-8654-94b80fe57128",
                   "type": "security_technology_module",
+                  "code": null,
                   "title": "网络安全审计",
+                  "description": "基于网络流量，识别记录网络会话信息，支撑网络安全策略分析、异常行为分析、安全事件追踪溯源等活动，提高网络流量可见性的模块",
+                  "category": "网络安全",
                   "systems": [
                     {
-                      "id": "reimport:security_system:03ea78377cc99b30",
+                      "id": "227dfd6d-414b-4c20-aa04-dac34ff2f9dd",
                       "type": "security_system",
-                      "title": "网络边界安全防护"
+                      "code": null,
+                      "title": "网络边界安全防护",
+                      "description": null,
+                      "category": "网络安全"
+                    }
+                  ],
+                  "products": [
+                    {
+                      "id": "dadf595a-e109-467e-ac13-50ebd2f06a5f",
+                      "type": "product",
+                      "code": null,
+                      "title": "网络安全审计系统",
+                      "description": null,
+                      "category": null
                     }
                   ]
                 }
               ],
               "measures": [],
-              "securitySystems": [
-                {
-                  "id": "shadow:security_system:8a34f55c60037368",
-                  "type": "security_system",
-                  "title": "网络边界安全防护"
-                }
-              ]
+              "module_count": 1,
+              "measure_count": 0
             },
             {
-              "id": "shadow:security_technical_service:629595022a04fddd",
+              "id": "8fef9d48-4788-443c-b013-888ff0ba7f67",
               "type": "security_technical_service",
               "code": "I-NT&T-PD.PP-02",
               "title": "网络异常流量检测与迁移",
+              "description": null,
+              "category": "I-NT",
               "modules": [
                 {
-                  "id": "shadow:security_technology_module:9bb1cb3340d28bec",
+                  "id": "56550ac0-17e5-4a70-b5af-0f5566d4115a",
                   "type": "security_technology_module",
+                  "code": null,
                   "title": "网络攻击诱捕",
+                  "description": "通过模仿真实资产作为陷阱和诱饵来欺骗和捕获攻击者的模块",
+                  "category": "安全运营",
                   "systems": [
                     {
-                      "id": "reimport:security_system:2d853f4d205474dd",
+                      "id": "8519aa04-866a-42ff-ad10-ca66548c8d47",
                       "type": "security_system",
-                      "title": "监测、研判和响应"
+                      "code": null,
+                      "title": "监测、研判和响应",
+                      "description": null,
+                      "category": "安全运营"
+                    }
+                  ],
+                  "products": [
+                    {
+                      "id": "809c3739-9314-4115-8ce9-5e45bce0ee95",
+                      "type": "product",
+                      "code": null,
+                      "title": "攻击诱捕系统",
+                      "description": null,
+                      "category": null
                     }
                   ]
                 }
               ],
               "measures": [],
-              "securitySystems": [
-                {
-                  "id": "shadow:security_system:e3a9eb7b0ce4c975",
-                  "type": "security_system",
-                  "title": "监测、研判和响应"
-                }
-              ]
+              "module_count": 1,
+              "measure_count": 0
             },
             {
-              "id": "shadow:security_technical_service:8d9504d5dac695d0",
+              "id": "f275ae10-32a3-4bb9-98ec-6ae994794d04",
               "type": "security_technical_service",
               "code": "I-NT&T-PD.PP-03",
               "title": "网络隔离",
+              "description": null,
+              "category": "I-NT",
               "modules": [
                 {
-                  "id": "shadow:security_technology_module:ff91979f76aa48e8",
+                  "id": "da3f6e53-9e5c-4950-b790-ecec947493d7",
                   "type": "security_technology_module",
+                  "code": null,
                   "title": "网络防火墙",
+                  "description": "根据预设策略进行网络流量访问控制的模块",
+                  "category": "网络安全",
                   "systems": [
                     {
-                      "id": "reimport:security_system:03ea78377cc99b30",
+                      "id": "227dfd6d-414b-4c20-aa04-dac34ff2f9dd",
                       "type": "security_system",
-                      "title": "网络边界安全防护"
+                      "code": null,
+                      "title": "网络边界安全防护",
+                      "description": null,
+                      "category": "网络安全"
+                    }
+                  ],
+                  "products": [
+                    {
+                      "id": "1166ecb6-d2ad-4626-9d95-ec769dd6ab95",
+                      "type": "product",
+                      "code": null,
+                      "title": "新一代智慧防火墙",
+                      "description": null,
+                      "category": null
                     }
                   ]
                 }
               ],
               "measures": [],
-              "securitySystems": [
-                {
-                  "id": "shadow:security_system:8a34f55c60037368",
-                  "type": "security_system",
-                  "title": "网络边界安全防护"
-                }
-              ]
-            },
+              "module_count": 1,
+              "measure_count": 0
+            }
+          ],
+          "service_count": 6,
+          "module_count": 4
+        },
+        {
+          "scope": {
+            "id": "4abd36d3-4ba1-495c-8fb9-3957167f4833",
+            "type": "scope_type",
+            "code": "I-OS",
+            "title": "操作系统",
+            "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
+            "category": "网络空间"
+          },
+          "services": [
             {
-              "id": "shadow:security_technical_service:532e756f7578ed67",
+              "id": "67ed55cf-4395-4de1-a97d-20525589b731",
               "type": "security_technical_service",
               "code": "I-OS&T-AD.IR-05",
               "title": "操作系统调查取证",
+              "description": null,
+              "category": "I-OS",
               "modules": [
                 {
-                  "id": "shadow:security_technology_module:9bb1cb3340d28bec",
+                  "id": "56550ac0-17e5-4a70-b5af-0f5566d4115a",
                   "type": "security_technology_module",
+                  "code": null,
                   "title": "网络攻击诱捕",
+                  "description": "通过模仿真实资产作为陷阱和诱饵来欺骗和捕获攻击者的模块",
+                  "category": "安全运营",
                   "systems": [
                     {
-                      "id": "reimport:security_system:2d853f4d205474dd",
+                      "id": "8519aa04-866a-42ff-ad10-ca66548c8d47",
                       "type": "security_system",
-                      "title": "监测、研判和响应"
+                      "code": null,
+                      "title": "监测、研判和响应",
+                      "description": null,
+                      "category": "安全运营"
+                    }
+                  ],
+                  "products": [
+                    {
+                      "id": "809c3739-9314-4115-8ce9-5e45bce0ee95",
+                      "type": "product",
+                      "code": null,
+                      "title": "攻击诱捕系统",
+                      "description": null,
+                      "category": null
                     }
                   ]
                 }
               ],
               "measures": [],
-              "securitySystems": [
-                {
-                  "id": "shadow:security_system:e3a9eb7b0ce4c975",
-                  "type": "security_system",
-                  "title": "监测、研判和响应"
-                }
-              ]
-            },
+              "module_count": 1,
+              "measure_count": 0
+            }
+          ],
+          "service_count": 1,
+          "module_count": 1
+        },
+        {
+          "scope": {
+            "id": "6f2a40c5-4e87-4138-836c-83e136a5d69e",
+            "type": "scope_type",
+            "code": "I-US",
+            "title": "用户",
+            "description": "安全能力作用于组织内人员或人使用的账号等对象。",
+            "category": "网络空间"
+          },
+          "services": [
             {
-              "id": "shadow:security_technical_service:9db5152674622117",
+              "id": "62839ad3-ca1d-4205-9759-ba6cc8c0f295",
               "type": "security_technical_service",
               "code": "I-US&T-AD.IR-06",
               "title": "诱饵账号",
+              "description": null,
+              "category": "I-US",
               "modules": [
                 {
-                  "id": "shadow:security_technology_module:9bb1cb3340d28bec",
+                  "id": "56550ac0-17e5-4a70-b5af-0f5566d4115a",
                   "type": "security_technology_module",
+                  "code": null,
                   "title": "网络攻击诱捕",
+                  "description": "通过模仿真实资产作为陷阱和诱饵来欺骗和捕获攻击者的模块",
+                  "category": "安全运营",
                   "systems": [
                     {
-                      "id": "reimport:security_system:2d853f4d205474dd",
+                      "id": "8519aa04-866a-42ff-ad10-ca66548c8d47",
                       "type": "security_system",
-                      "title": "监测、研判和响应"
+                      "code": null,
+                      "title": "监测、研判和响应",
+                      "description": null,
+                      "category": "安全运营"
+                    }
+                  ],
+                  "products": [
+                    {
+                      "id": "809c3739-9314-4115-8ce9-5e45bce0ee95",
+                      "type": "product",
+                      "code": null,
+                      "title": "攻击诱捕系统",
+                      "description": null,
+                      "category": null
                     }
                   ]
                 }
               ],
               "measures": [],
-              "securitySystems": [
-                {
-                  "id": "shadow:security_system:e3a9eb7b0ce4c975",
-                  "type": "security_system",
-                  "title": "监测、研判和响应"
-                }
-              ]
+              "module_count": 1,
+              "measure_count": 0
             }
-          ]
+          ],
+          "service_count": 1,
+          "module_count": 1
         }
       ],
-      "scope_mapping_count": 6,
+      "scope_count": 5,
       "service_count": 10,
-      "module_count": 3,
-      "measure_count": 2,
-      "security_system_count": 4
+      "module_count": 8,
+      "contextKey": "传统数据中心||网络||数据中心内部网络",
+      "environmentId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "environmentTitle": "传统数据中心",
+      "segmentId": "c8c25ac9-7dd1-48d8-8022-47c01b4fd5ea",
+      "segmentTitle": "网络"
     }
   ],
   "relations": [
     {
-      "id": "reimport:relation:8297c6f693dadea3",
+      "id": "relation:ff0e2fd7ffe5cb5e",
+      "type": "contains_segment",
+      "sourceId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "sourceType": "information_environment",
+      "targetId": "a3cdfe84-7747-43fa-9074-cb3d043add5b",
+      "targetType": "environment_segment",
+      "label": "包含分段",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:9d0f25178bb9ef27",
+      "type": "deployed_in_environment",
+      "sourceId": "8284314c-6c4f-4594-bc80-564f19cc5031",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 30
+    },
+    {
+      "id": "relation:064a6c4b47935e1a",
+      "type": "deployed_in_environment",
+      "sourceId": "f288d3f9-a1dd-4064-b2f6-2de1ef54b3ac",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 35
+    },
+    {
+      "id": "relation:4f44502688ad1648",
+      "type": "deployed_in_environment",
+      "sourceId": "02ba15b8-9b98-4ad1-b331-537735564019",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 35
+    },
+    {
+      "id": "relation:0e15688ed477bb55",
+      "type": "deployed_in_environment",
+      "sourceId": "66ba0f69-0de6-4efa-8483-95e4991ee72f",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 36
+    },
+    {
+      "id": "relation:fb387aa73f72de3f",
+      "type": "deployed_in_environment",
+      "sourceId": "a30b2219-728f-4572-876d-ed87b7266997",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 36
+    },
+    {
+      "id": "relation:d84095f9895fb15e",
+      "type": "deployed_in_environment",
+      "sourceId": "acc34f4d-e70e-42ef-8a52-3b9e051c47f4",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 36
+    },
+    {
+      "id": "relation:b358a07fb44db246",
+      "type": "deployed_in_environment",
+      "sourceId": "57962e30-4a60-4ecb-9155-5db46fadeb90",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 36
+    },
+    {
+      "id": "relation:6ab4713d75ee7766",
+      "type": "deployed_in_environment",
+      "sourceId": "ef7aa83d-469d-4a67-8271-fd0e8bb7e5a7",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 36
+    },
+    {
+      "id": "relation:0f8c95482f762fc2",
+      "type": "deployed_in_environment",
+      "sourceId": "2b8ad26b-eea2-4d71-a39b-7fed06b7891f",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 36
+    },
+    {
+      "id": "relation:2ebb4631c67bc927",
+      "type": "deployed_in_environment",
+      "sourceId": "751c01de-a072-4794-999f-2d4411741ed8",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 36
+    },
+    {
+      "id": "relation:a78d85b023a9ba8f",
+      "type": "deployed_in_environment",
+      "sourceId": "62529bab-fb20-459d-9f5f-07f452c30cf9",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 36
+    },
+    {
+      "id": "relation:f3ef4c4242a9f439",
+      "type": "deployed_in_environment",
+      "sourceId": "fe853d0e-c370-456e-8f83-0d920da1d0cf",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 40
+    },
+    {
+      "id": "relation:24779c35ce2616c9",
+      "type": "deployed_in_environment",
+      "sourceId": "9b5f5eaa-4457-4124-a2e4-10ff49e88ec7",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 33
+    },
+    {
+      "id": "relation:91db760a2513f170",
+      "type": "deployed_in_environment",
+      "sourceId": "76b23039-2fcc-4432-93e4-246a6f8473a4",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 36
+    },
+    {
+      "id": "relation:6aa526167cffda50",
+      "type": "deployed_in_environment",
+      "sourceId": "1e954f61-7805-488b-90fb-0e1a11372781",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 36
+    },
+    {
+      "id": "relation:c2b0341f13283b47",
+      "type": "deployed_in_environment",
+      "sourceId": "7e6c2210-9831-4f7c-87aa-b1906cc40ceb",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 34
+    },
+    {
+      "id": "relation:7a711a1119da94b1",
+      "type": "deployed_in_environment",
+      "sourceId": "65c68b71-4d85-4871-9fda-46489cdab485",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 28
+    },
+    {
+      "id": "relation:d6f756c02288287a",
+      "type": "deployed_in_environment",
+      "sourceId": "371b6c87-b35a-486f-8cf8-1614e56ca26d",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 33
+    },
+    {
+      "id": "relation:9798f220bd4039fc",
+      "type": "deployed_in_environment",
+      "sourceId": "f3dbd1ea-1f3e-4fb9-a0e9-2922e185fb1a",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 33
+    },
+    {
+      "id": "relation:0c3d3481884b4d36",
+      "type": "deployed_in_environment",
+      "sourceId": "3e469c1f-a5c2-4213-ab54-d61791d6e769",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 36
+    },
+    {
+      "id": "relation:392423272e71a883",
+      "type": "deployed_in_environment",
+      "sourceId": "959e8875-2178-4d24-864e-f9e52f9e7cf0",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 33
+    },
+    {
+      "id": "relation:58208d930fdc4378",
+      "type": "deployed_in_environment",
+      "sourceId": "7d395749-fcd0-472c-bf47-d53d2f778815",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 40
+    },
+    {
+      "id": "relation:e1f061a6d605619a",
+      "type": "deployed_in_environment",
+      "sourceId": "9a09acc1-1186-4a5c-8341-7b0466ba8660",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 33
+    },
+    {
+      "id": "relation:cb3635fafbc2d0d6",
+      "type": "deployed_in_environment",
+      "sourceId": "ce137725-f853-4653-b5b7-fc4d019d5efd",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 37
+    },
+    {
+      "id": "relation:b8adbe50245eda30",
+      "type": "deployed_in_environment",
+      "sourceId": "26508044-538b-4245-8f12-985cc00b073d",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 32
+    },
+    {
+      "id": "relation:5b5a15c9a2a876a6",
+      "type": "deployed_in_environment",
+      "sourceId": "b2ffb13f-f74f-49f1-b0a6-6d93820a20c0",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 36
+    },
+    {
+      "id": "relation:3cf9f08ef0c42cd0",
+      "type": "deployed_in_environment",
+      "sourceId": "828f2cd3-0a2c-4912-8a3f-1b8f50594e78",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 38
+    },
+    {
+      "id": "relation:30efe61d14881667",
+      "type": "deployed_in_environment",
+      "sourceId": "37db0721-3a18-4ffb-869b-432ff58d8441",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 31
+    },
+    {
+      "id": "relation:833c40bdde333385",
+      "type": "deployed_in_environment",
+      "sourceId": "88dfa1b7-087e-4ee2-9d27-ed6566558e04",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 34
+    },
+    {
+      "id": "relation:4c5e30722c85a776",
+      "type": "deployed_in_environment",
+      "sourceId": "2cf524a6-7f2c-4dcf-aa8d-39c3d70d5210",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 33
+    },
+    {
+      "id": "relation:cf7e4a38c5aa3fae",
+      "type": "deployed_in_environment",
+      "sourceId": "28fde69d-5226-43bf-a548-aceb1ff2e5b7",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 36
+    },
+    {
+      "id": "relation:05c45985cff4289a",
+      "type": "deployed_in_environment",
+      "sourceId": "07770e67-50a0-43c1-876a-edace17c52a1",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 36
+    },
+    {
+      "id": "relation:97d32187eb17d515",
+      "type": "deployed_in_environment",
+      "sourceId": "2d6d692a-6711-483c-ba9b-e6228b7bf186",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 36
+    },
+    {
+      "id": "relation:3540df5227aec905",
+      "type": "deployed_in_environment",
+      "sourceId": "9534eb55-462c-477e-b7b4-c9e5435d2bda",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 34
+    },
+    {
+      "id": "relation:e2c9e31ba6813e66",
+      "type": "deployed_in_environment",
+      "sourceId": "5f7c51b1-74d0-46a4-9df4-685cc47ebcb9",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 32
+    },
+    {
+      "id": "relation:d364678a5c41a681",
+      "type": "deployed_in_environment",
+      "sourceId": "c59abc44-a1b8-44d9-8c89-1bc3f5548e88",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 28
+    },
+    {
+      "id": "relation:90e37c8e03df2260",
+      "type": "contains_segment",
+      "sourceId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "sourceType": "information_environment",
+      "targetId": "c8c25ac9-7dd1-48d8-8022-47c01b4fd5ea",
+      "targetType": "environment_segment",
+      "label": "包含分段",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:8525d506643af733",
+      "type": "contains_object",
+      "sourceId": "c8c25ac9-7dd1-48d8-8022-47c01b4fd5ea",
+      "sourceType": "environment_segment",
+      "targetId": "93dc47d2-1163-4161-b28a-885d0ad696e4",
+      "targetType": "information_object",
+      "label": "包含对象",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 0
+    },
+    {
+      "id": "relation:b3ccaa75c741aeed",
       "type": "applies_to_scope",
-      "sourceId": "shadow:information_object_context:dfd9cd35189def7a",
+      "sourceId": "93dc47d2-1163-4161-b28a-885d0ad696e4",
       "sourceType": "information_object",
-      "targetId": "shadow:scope_type:c7ebc38ae1f4adc8",
+      "targetId": "7f4b920b-2eca-4ddd-a3ca-55ace40efeb9",
       "targetType": "scope_type",
-      "label": "applies_to_scope",
-      "status": "candidate",
-      "confidence": 1,
-      "objectContextKey": "传统数据中心||网络||数据中心内部网络",
-      "evidenceRefCount": 0
+      "label": "适用作用域",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 12
     },
     {
-      "id": "reimport:relation:8e4db2ee58413f65",
+      "id": "relation:cb5f4dcaa95b2aab",
+      "type": "protects_object",
+      "sourceId": "11027d5a-d7f7-42ee-9ad2-ba435e905326",
+      "sourceType": "security_technical_service",
+      "targetId": "93dc47d2-1163-4161-b28a-885d0ad696e4",
+      "targetType": "information_object",
+      "label": "保护对象",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 24
+    },
+    {
+      "id": "relation:2512ef837b241d09",
+      "type": "deployed_in_environment",
+      "sourceId": "11027d5a-d7f7-42ee-9ad2-ba435e905326",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 24
+    },
+    {
+      "id": "relation:7c00073d8ec6fdbb",
       "type": "applies_to_scope",
-      "sourceId": "shadow:information_object_context:dfd9cd35189def7a",
+      "sourceId": "93dc47d2-1163-4161-b28a-885d0ad696e4",
       "sourceType": "information_object",
-      "targetId": "shadow:scope_type:8c823ba8ecddbfea",
+      "targetId": "784caa9f-74f0-4a43-94f5-727b3ff497fb",
       "targetType": "scope_type",
-      "label": "applies_to_scope",
-      "status": "candidate",
-      "confidence": 1,
-      "objectContextKey": "传统数据中心||网络||数据中心内部网络",
-      "evidenceRefCount": 0
+      "label": "适用作用域",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 12
     },
     {
-      "id": "reimport:relation:7100a696a566961f",
+      "id": "relation:899a99c4b5112beb",
+      "type": "protects_object",
+      "sourceId": "f2798612-b9ae-4629-89d5-5f211c906fc3",
+      "sourceType": "security_technical_service",
+      "targetId": "93dc47d2-1163-4161-b28a-885d0ad696e4",
+      "targetType": "information_object",
+      "label": "保护对象",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 24
+    },
+    {
+      "id": "relation:b6e7ddd70a90dca5",
+      "type": "deployed_in_environment",
+      "sourceId": "f2798612-b9ae-4629-89d5-5f211c906fc3",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 24
+    },
+    {
+      "id": "relation:f7be7f8b74232cf2",
       "type": "applies_to_scope",
-      "sourceId": "shadow:information_object_context:dfd9cd35189def7a",
+      "sourceId": "93dc47d2-1163-4161-b28a-885d0ad696e4",
       "sourceType": "information_object",
-      "targetId": "shadow:scope_type:3c7c53a6f343e04f",
+      "targetId": "6f1ef0de-3163-4d38-9626-5625a58948bb",
       "targetType": "scope_type",
-      "label": "applies_to_scope",
-      "status": "candidate",
-      "confidence": 1,
-      "objectContextKey": "传统数据中心||网络||数据中心内部网络",
-      "evidenceRefCount": 0
+      "label": "适用作用域",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 12
     },
     {
-      "id": "reimport:relation:aa9e632293803363",
+      "id": "relation:525e00807c14ae29",
+      "type": "protects_object",
+      "sourceId": "b0210b19-0255-44e1-9e35-afc5a8bdf029",
+      "sourceType": "security_technical_service",
+      "targetId": "93dc47d2-1163-4161-b28a-885d0ad696e4",
+      "targetType": "information_object",
+      "label": "保护对象",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 24
+    },
+    {
+      "id": "relation:c826dfbcb067f282",
+      "type": "deployed_in_environment",
+      "sourceId": "b0210b19-0255-44e1-9e35-afc5a8bdf029",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 24
+    },
+    {
+      "id": "relation:7361fa4c62ece68e",
+      "type": "protects_object",
+      "sourceId": "81c7805b-1192-45e2-abfe-f4a09661be64",
+      "sourceType": "security_technical_service",
+      "targetId": "93dc47d2-1163-4161-b28a-885d0ad696e4",
+      "targetType": "information_object",
+      "label": "保护对象",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 24
+    },
+    {
+      "id": "relation:8ea5f9a98515b538",
+      "type": "deployed_in_environment",
+      "sourceId": "81c7805b-1192-45e2-abfe-f4a09661be64",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 24
+    },
+    {
+      "id": "relation:f6dc63f356dff9e3",
+      "type": "protects_object",
+      "sourceId": "fe0ee080-7eaf-4e59-b3f7-0eefce8bde84",
+      "sourceType": "security_technical_service",
+      "targetId": "93dc47d2-1163-4161-b28a-885d0ad696e4",
+      "targetType": "information_object",
+      "label": "保护对象",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 27
+    },
+    {
+      "id": "relation:9d0df1cd8bacf4c6",
+      "type": "deployed_in_environment",
+      "sourceId": "fe0ee080-7eaf-4e59-b3f7-0eefce8bde84",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 27
+    },
+    {
+      "id": "relation:9bd5fe9c67f3f384",
+      "type": "protects_object",
+      "sourceId": "505e563b-6031-4980-8993-4c2684c04865",
+      "sourceType": "security_technical_service",
+      "targetId": "93dc47d2-1163-4161-b28a-885d0ad696e4",
+      "targetType": "information_object",
+      "label": "保护对象",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 34
+    },
+    {
+      "id": "relation:76d332b964a95ea0",
+      "type": "deployed_in_environment",
+      "sourceId": "505e563b-6031-4980-8993-4c2684c04865",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 34
+    },
+    {
+      "id": "relation:fd527c2df7b4212f",
+      "type": "protects_object",
+      "sourceId": "8fef9d48-4788-443c-b013-888ff0ba7f67",
+      "sourceType": "security_technical_service",
+      "targetId": "93dc47d2-1163-4161-b28a-885d0ad696e4",
+      "targetType": "information_object",
+      "label": "保护对象",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 25
+    },
+    {
+      "id": "relation:713ca5b5cf74d079",
+      "type": "deployed_in_environment",
+      "sourceId": "8fef9d48-4788-443c-b013-888ff0ba7f67",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 25
+    },
+    {
+      "id": "relation:e7373c667861dea8",
+      "type": "protects_object",
+      "sourceId": "f275ae10-32a3-4bb9-98ec-6ae994794d04",
+      "sourceType": "security_technical_service",
+      "targetId": "93dc47d2-1163-4161-b28a-885d0ad696e4",
+      "targetType": "information_object",
+      "label": "保护对象",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 34
+    },
+    {
+      "id": "relation:2d4e29bde52f9231",
+      "type": "deployed_in_environment",
+      "sourceId": "f275ae10-32a3-4bb9-98ec-6ae994794d04",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 34
+    },
+    {
+      "id": "relation:d5a8842c5d798199",
       "type": "applies_to_scope",
-      "sourceId": "shadow:information_object_context:dfd9cd35189def7a",
+      "sourceId": "93dc47d2-1163-4161-b28a-885d0ad696e4",
       "sourceType": "information_object",
-      "targetId": "shadow:scope_type:4569e1d810feca0d",
+      "targetId": "4abd36d3-4ba1-495c-8fb9-3957167f4833",
       "targetType": "scope_type",
-      "label": "applies_to_scope",
-      "status": "candidate",
-      "confidence": 1,
-      "objectContextKey": "传统数据中心||网络||数据中心内部网络",
-      "evidenceRefCount": 0
+      "label": "适用作用域",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 12
     },
     {
-      "id": "reimport:relation:607900b723ffa9ff",
+      "id": "relation:ca452d8a3af721b0",
+      "type": "protects_object",
+      "sourceId": "67ed55cf-4395-4de1-a97d-20525589b731",
+      "sourceType": "security_technical_service",
+      "targetId": "93dc47d2-1163-4161-b28a-885d0ad696e4",
+      "targetType": "information_object",
+      "label": "保护对象",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 24
+    },
+    {
+      "id": "relation:36b5e925220ab556",
+      "type": "deployed_in_environment",
+      "sourceId": "67ed55cf-4395-4de1-a97d-20525589b731",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 24
+    },
+    {
+      "id": "relation:864e66f1a5ead697",
       "type": "applies_to_scope",
-      "sourceId": "shadow:information_object_context:dfd9cd35189def7a",
+      "sourceId": "93dc47d2-1163-4161-b28a-885d0ad696e4",
       "sourceType": "information_object",
-      "targetId": "shadow:scope_type:998405d9eaef340e",
+      "targetId": "6f2a40c5-4e87-4138-836c-83e136a5d69e",
       "targetType": "scope_type",
-      "label": "applies_to_scope",
-      "status": "candidate",
-      "confidence": 1,
-      "objectContextKey": "传统数据中心||网络||数据中心内部网络",
-      "evidenceRefCount": 0
+      "label": "适用作用域",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 12
     },
     {
-      "id": "reimport:relation:5b4ad286778bb17b",
+      "id": "relation:4dcb4c170008dcf1",
       "type": "protects_object",
-      "sourceId": "shadow:security_technical_service:a7415df0205e4113",
+      "sourceId": "62839ad3-ca1d-4205-9759-ba6cc8c0f295",
       "sourceType": "security_technical_service",
-      "targetId": "shadow:information_object_context:dfd9cd35189def7a",
+      "targetId": "93dc47d2-1163-4161-b28a-885d0ad696e4",
       "targetType": "information_object",
-      "label": "protects_object",
-      "status": "candidate",
-      "confidence": 1,
-      "objectContextKey": "传统数据中心||网络||数据中心内部网络",
-      "evidenceRefCount": 0
+      "label": "保护对象",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 24
     },
     {
-      "id": "reimport:relation:1c3e7663c6339e11",
-      "type": "protects_object",
-      "sourceId": "shadow:security_technical_service:65ff5b466a69a47b",
+      "id": "relation:f99750f5f61f88c7",
+      "type": "deployed_in_environment",
+      "sourceId": "62839ad3-ca1d-4205-9759-ba6cc8c0f295",
       "sourceType": "security_technical_service",
-      "targetId": "shadow:information_object_context:dfd9cd35189def7a",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 24
+    },
+    {
+      "id": "relation:091bb0ddd0a44bc3",
+      "type": "contains_object",
+      "sourceId": "c8c25ac9-7dd1-48d8-8022-47c01b4fd5ea",
+      "sourceType": "environment_segment",
+      "targetId": "65c5a679-21cb-4290-800e-2674ca9bb424",
       "targetType": "information_object",
-      "label": "protects_object",
-      "status": "candidate",
-      "confidence": 1,
-      "objectContextKey": "传统数据中心||网络||数据中心内部网络",
+      "label": "包含对象",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
       "evidenceRefCount": 0
     },
     {
-      "id": "reimport:relation:3ea5cecab0bc78fb",
-      "type": "protects_object",
-      "sourceId": "shadow:security_technical_service:8d9504d5dac695d0",
+      "id": "relation:263ab5b8a45f8728",
+      "type": "deployed_in_environment",
+      "sourceId": "d23bc096-c9a7-425a-b4d1-3eee846b346c",
       "sourceType": "security_technical_service",
-      "targetId": "shadow:information_object_context:dfd9cd35189def7a",
-      "targetType": "information_object",
-      "label": "protects_object",
-      "status": "candidate",
-      "confidence": 1,
-      "objectContextKey": "传统数据中心||网络||数据中心内部网络",
-      "evidenceRefCount": 0
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 28
     },
     {
-      "id": "reimport:relation:dce142108572fa07",
-      "type": "protects_object",
-      "sourceId": "shadow:security_technical_service:70fd99d9cfadbdd5",
+      "id": "relation:64937dfaffa248e5",
+      "type": "deployed_in_environment",
+      "sourceId": "eb3b84c7-d3c7-4107-8199-e79848f2f6fe",
       "sourceType": "security_technical_service",
-      "targetId": "shadow:information_object_context:dfd9cd35189def7a",
-      "targetType": "information_object",
-      "label": "protects_object",
-      "status": "candidate",
-      "confidence": 1,
-      "objectContextKey": "传统数据中心||网络||数据中心内部网络",
-      "evidenceRefCount": 0
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 39
     },
     {
-      "id": "reimport:relation:6825c5160c4d8dd7",
-      "type": "protects_object",
-      "sourceId": "shadow:security_technical_service:629595022a04fddd",
+      "id": "relation:39f279bb58f66001",
+      "type": "deployed_in_environment",
+      "sourceId": "73b9ddac-c655-4dd6-9197-4f8724a89da1",
       "sourceType": "security_technical_service",
-      "targetId": "shadow:information_object_context:dfd9cd35189def7a",
-      "targetType": "information_object",
-      "label": "protects_object",
-      "status": "candidate",
-      "confidence": 1,
-      "objectContextKey": "传统数据中心||网络||数据中心内部网络",
-      "evidenceRefCount": 0
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 43
     },
     {
-      "id": "reimport:relation:12a7aed53e647070",
-      "type": "protects_object",
-      "sourceId": "shadow:security_technical_service:9abcf4377857c141",
+      "id": "relation:af323893aaf095ff",
+      "type": "deployed_in_environment",
+      "sourceId": "5433e14c-c482-45d6-93a9-3d0a5014d293",
       "sourceType": "security_technical_service",
-      "targetId": "shadow:information_object_context:dfd9cd35189def7a",
-      "targetType": "information_object",
-      "label": "protects_object",
-      "status": "candidate",
-      "confidence": 1,
-      "objectContextKey": "传统数据中心||网络||数据中心内部网络",
-      "evidenceRefCount": 0
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 39
     },
     {
-      "id": "reimport:relation:89979c24150112ae",
-      "type": "protects_object",
-      "sourceId": "shadow:security_technical_service:a0ea59de0aa81411",
+      "id": "relation:0ee4de05ec8f4dba",
+      "type": "deployed_in_environment",
+      "sourceId": "c141a249-a443-403e-bc66-24293f3392a1",
       "sourceType": "security_technical_service",
-      "targetId": "shadow:information_object_context:dfd9cd35189def7a",
-      "targetType": "information_object",
-      "label": "protects_object",
-      "status": "candidate",
-      "confidence": 1,
-      "objectContextKey": "传统数据中心||网络||数据中心内部网络",
-      "evidenceRefCount": 0
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 36
     },
     {
-      "id": "reimport:relation:23d198a77f0f10be",
-      "type": "protects_object",
-      "sourceId": "shadow:security_technical_service:532e756f7578ed67",
+      "id": "relation:b7596a3325dee20e",
+      "type": "deployed_in_environment",
+      "sourceId": "d611623c-984c-4597-90eb-a7104f6af41f",
       "sourceType": "security_technical_service",
-      "targetId": "shadow:information_object_context:dfd9cd35189def7a",
-      "targetType": "information_object",
-      "label": "protects_object",
-      "status": "candidate",
-      "confidence": 1,
-      "objectContextKey": "传统数据中心||网络||数据中心内部网络",
-      "evidenceRefCount": 0
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 35
     },
     {
-      "id": "reimport:relation:4bc5802054965d94",
-      "type": "protects_object",
-      "sourceId": "shadow:security_technical_service:df6fb8005fe718ec",
+      "id": "relation:f274635515a9067b",
+      "type": "deployed_in_environment",
+      "sourceId": "80bc9f9f-7b74-4541-99b4-f16e1ef981c2",
       "sourceType": "security_technical_service",
-      "targetId": "shadow:information_object_context:dfd9cd35189def7a",
-      "targetType": "information_object",
-      "label": "protects_object",
-      "status": "candidate",
-      "confidence": 1,
-      "objectContextKey": "传统数据中心||网络||数据中心内部网络",
-      "evidenceRefCount": 0
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 29
     },
     {
-      "id": "reimport:relation:08e3ffe8621e75a1",
-      "type": "protects_object",
-      "sourceId": "shadow:security_technical_service:9db5152674622117",
+      "id": "relation:8e97bb5925d445e7",
+      "type": "deployed_in_environment",
+      "sourceId": "0e1c8161-258d-4287-9f89-c8518813ce42",
       "sourceType": "security_technical_service",
-      "targetId": "shadow:information_object_context:dfd9cd35189def7a",
-      "targetType": "information_object",
-      "label": "protects_object",
-      "status": "candidate",
-      "confidence": 1,
-      "objectContextKey": "传统数据中心||网络||数据中心内部网络",
-      "evidenceRefCount": 0
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 29
     },
     {
-      "id": "reimport:relation:d2adf07ba1716cea",
-      "type": "implemented_by_module",
-      "sourceId": "shadow:security_technical_service:8d9504d5dac695d0",
+      "id": "relation:9a61a753e25f0ee4",
+      "type": "deployed_in_environment",
+      "sourceId": "a5546810-502d-44be-a1af-0bb07f27d398",
       "sourceType": "security_technical_service",
-      "targetId": "shadow:security_technology_module:ff91979f76aa48e8",
-      "targetType": "security_technology_module",
-      "label": "implemented_by_module",
-      "status": "candidate",
-      "confidence": 1,
-      "objectContextKey": "传统数据中心||网络||数据中心内部网络",
-      "evidenceRefCount": 0
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 37
     },
     {
-      "id": "reimport:relation:a352be48e090ab51",
-      "type": "implemented_by_module",
-      "sourceId": "shadow:security_technical_service:70fd99d9cfadbdd5",
+      "id": "relation:8842e135c6c15ee0",
+      "type": "deployed_in_environment",
+      "sourceId": "d9c6b872-f2a5-48de-b0a9-da463d7b24ab",
       "sourceType": "security_technical_service",
-      "targetId": "shadow:security_technology_module:905eba2a8ff58050",
-      "targetType": "security_technology_module",
-      "label": "implemented_by_module",
-      "status": "candidate",
-      "confidence": 1,
-      "objectContextKey": "传统数据中心||网络||数据中心内部网络",
-      "evidenceRefCount": 0
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 30
     },
     {
-      "id": "reimport:relation:17e5546239efd741",
-      "type": "implemented_by_module",
-      "sourceId": "shadow:security_technical_service:629595022a04fddd",
+      "id": "relation:5c005564a1cbd966",
+      "type": "deployed_in_environment",
+      "sourceId": "3e1fba79-cd62-4483-8ed6-80f572877256",
       "sourceType": "security_technical_service",
-      "targetId": "shadow:security_technology_module:9bb1cb3340d28bec",
-      "targetType": "security_technology_module",
-      "label": "implemented_by_module",
-      "status": "candidate",
-      "confidence": 1,
-      "objectContextKey": "传统数据中心||网络||数据中心内部网络",
-      "evidenceRefCount": 0
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 44
     },
     {
-      "id": "reimport:relation:11c4fe662be1f24d",
-      "type": "implemented_by_module",
-      "sourceId": "shadow:security_technical_service:9abcf4377857c141",
+      "id": "relation:2048e5b61eaa46a3",
+      "type": "deployed_in_environment",
+      "sourceId": "4d18d8b8-26a7-41aa-9c96-dc10bfce48e2",
       "sourceType": "security_technical_service",
-      "targetId": "shadow:security_technology_module:9bb1cb3340d28bec",
-      "targetType": "security_technology_module",
-      "label": "implemented_by_module",
-      "status": "candidate",
-      "confidence": 1,
-      "objectContextKey": "传统数据中心||网络||数据中心内部网络",
-      "evidenceRefCount": 0
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 40
     },
     {
-      "id": "reimport:relation:edbdb599f7f3b647",
-      "type": "implemented_by_module",
-      "sourceId": "shadow:security_technical_service:a0ea59de0aa81411",
+      "id": "relation:01e5bbdbb1f0f7b7",
+      "type": "deployed_in_environment",
+      "sourceId": "726fd118-6943-46cc-b6db-e7556343eee1",
       "sourceType": "security_technical_service",
-      "targetId": "shadow:security_technology_module:9bb1cb3340d28bec",
-      "targetType": "security_technology_module",
-      "label": "implemented_by_module",
-      "status": "candidate",
-      "confidence": 1,
-      "objectContextKey": "传统数据中心||网络||数据中心内部网络",
-      "evidenceRefCount": 0
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 28
     },
     {
-      "id": "reimport:relation:ad96d50f6e830330",
-      "type": "implemented_by_module",
-      "sourceId": "shadow:security_technical_service:532e756f7578ed67",
+      "id": "relation:b0b3d27599ef4df1",
+      "type": "deployed_in_environment",
+      "sourceId": "f95451f7-3d46-43fb-a307-fc29ab62ba0f",
       "sourceType": "security_technical_service",
-      "targetId": "shadow:security_technology_module:9bb1cb3340d28bec",
-      "targetType": "security_technology_module",
-      "label": "implemented_by_module",
-      "status": "candidate",
-      "confidence": 1,
-      "objectContextKey": "传统数据中心||网络||数据中心内部网络",
-      "evidenceRefCount": 0
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 30
     },
     {
-      "id": "reimport:relation:277504c4567476a5",
-      "type": "implemented_by_module",
-      "sourceId": "shadow:security_technical_service:df6fb8005fe718ec",
+      "id": "relation:e32b70348714919a",
+      "type": "deployed_in_environment",
+      "sourceId": "cf5b96e9-c2bb-4bed-907f-f3c509345387",
       "sourceType": "security_technical_service",
-      "targetId": "shadow:security_technology_module:9bb1cb3340d28bec",
-      "targetType": "security_technology_module",
-      "label": "implemented_by_module",
-      "status": "candidate",
-      "confidence": 1,
-      "objectContextKey": "传统数据中心||网络||数据中心内部网络",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 31
+    },
+    {
+      "id": "relation:00c0c377163849b2",
+      "type": "contains_segment",
+      "sourceId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "sourceType": "information_environment",
+      "targetId": "aa6d2501-6ab6-4751-8041-a9aea22c4d19",
+      "targetType": "environment_segment",
+      "label": "包含分段",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
       "evidenceRefCount": 0
     },
     {
-      "id": "reimport:relation:ca05524a29e9876a",
-      "type": "implemented_by_module",
-      "sourceId": "shadow:security_technical_service:9db5152674622117",
+      "id": "relation:45b42eae19c4e219",
+      "type": "deployed_in_environment",
+      "sourceId": "66a40dd5-3f9e-4f23-9df5-772eac968cbe",
       "sourceType": "security_technical_service",
-      "targetId": "shadow:security_technology_module:9bb1cb3340d28bec",
-      "targetType": "security_technology_module",
-      "label": "implemented_by_module",
-      "status": "candidate",
-      "confidence": 1,
-      "objectContextKey": "传统数据中心||网络||数据中心内部网络",
-      "evidenceRefCount": 0
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 29
     },
     {
-      "id": "reimport:relation:fd0bf428ae404d41",
-      "type": "has_measure",
-      "sourceId": "shadow:security_technical_service:a7415df0205e4113",
+      "id": "relation:68105295a35d0302",
+      "type": "deployed_in_environment",
+      "sourceId": "f2fdac04-2864-4757-85c6-80d70d30a26b",
       "sourceType": "security_technical_service",
-      "targetId": "shadow:security_technical_measure:54198f8253888bad",
-      "targetType": "security_technical_measure",
-      "label": "has_measure",
-      "status": "candidate",
-      "confidence": 1,
-      "objectContextKey": "传统数据中心||网络||数据中心内部网络",
-      "evidenceRefCount": 0
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 32
     },
     {
-      "id": "reimport:relation:e0ea43100f64c67b",
-      "type": "has_measure",
-      "sourceId": "shadow:security_technical_service:65ff5b466a69a47b",
+      "id": "relation:ef26f4a50bb273e2",
+      "type": "deployed_in_environment",
+      "sourceId": "433e87ee-490b-4c42-802d-ffdf01f5eeb7",
       "sourceType": "security_technical_service",
-      "targetId": "shadow:security_technical_measure:3260cba7cc735403",
-      "targetType": "security_technical_measure",
-      "label": "has_measure",
-      "status": "candidate",
-      "confidence": 1,
-      "objectContextKey": "传统数据中心||网络||数据中心内部网络",
-      "evidenceRefCount": 0
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 29
     },
     {
-      "id": "reimport:relation:abe090304ced70ac",
-      "type": "part_of_system",
-      "sourceId": "shadow:security_technology_module:ff91979f76aa48e8",
-      "sourceType": "security_technology_module",
-      "targetId": "shadow:security_system:8a34f55c60037368",
-      "targetType": "security_system",
-      "label": "part_of_system",
-      "status": "candidate",
-      "confidence": 1,
-      "objectContextKey": "传统数据中心||网络||数据中心内部网络",
-      "evidenceRefCount": 0
+      "id": "relation:e2da22e5346a0069",
+      "type": "deployed_in_environment",
+      "sourceId": "b64ca3cb-5c30-4a70-ae1f-95e83b1b209d",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 35
     },
     {
-      "id": "reimport:relation:4ca3822567ac1d5d",
-      "type": "part_of_system",
-      "sourceId": "shadow:security_technology_module:905eba2a8ff58050",
-      "sourceType": "security_technology_module",
-      "targetId": "shadow:security_system:8a34f55c60037368",
-      "targetType": "security_system",
-      "label": "part_of_system",
-      "status": "candidate",
-      "confidence": 1,
-      "objectContextKey": "传统数据中心||网络||数据中心内部网络",
-      "evidenceRefCount": 0
+      "id": "relation:875d252e9c8c7d7a",
+      "type": "deployed_in_environment",
+      "sourceId": "6a78d704-829d-44c0-8097-d184365d633d",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 35
     },
     {
-      "id": "reimport:relation:17371ef7650af1e5",
-      "type": "part_of_system",
-      "sourceId": "shadow:security_technology_module:9bb1cb3340d28bec",
-      "sourceType": "security_technology_module",
-      "targetId": "shadow:security_system:e3a9eb7b0ce4c975",
-      "targetType": "security_system",
-      "label": "part_of_system",
-      "status": "candidate",
-      "confidence": 1,
-      "objectContextKey": "传统数据中心||网络||数据中心内部网络",
-      "evidenceRefCount": 0
+      "id": "relation:ac38fefcf592ba0e",
+      "type": "deployed_in_environment",
+      "sourceId": "ad7ec317-2a56-479c-b972-72862da7a211",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 33
     },
     {
-      "id": "reimport:relation:604b8ab77c71d8ff",
-      "type": "target_system",
-      "sourceId": "",
-      "sourceType": "",
-      "targetId": "",
-      "targetType": "",
-      "label": "target_system",
-      "status": "candidate",
-      "confidence": 1,
-      "objectContextKey": "传统数据中心||网络||数据中心内部网络",
-      "evidenceRefCount": 0
+      "id": "relation:632c589ecf030de7",
+      "type": "deployed_in_environment",
+      "sourceId": "d0619c7e-6be7-4851-a12f-bcc0a440337a",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 35
     },
     {
-      "id": "reimport:relation:ad6e1142ed0af251",
-      "type": "target_system",
-      "sourceId": "",
-      "sourceType": "",
-      "targetId": "",
-      "targetType": "",
-      "label": "target_system",
-      "status": "candidate",
-      "confidence": 1,
-      "objectContextKey": "传统数据中心||网络||数据中心内部网络",
-      "evidenceRefCount": 0
+      "id": "relation:eb00bdfd5fc61dbd",
+      "type": "deployed_in_environment",
+      "sourceId": "99c0ff67-0ee2-459e-bfdb-72317616eeb1",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 35
     },
     {
-      "id": "reimport:relation:2857ebcb18d7b1db",
-      "type": "target_system",
-      "sourceId": "",
-      "sourceType": "",
-      "targetId": "",
-      "targetType": "",
-      "label": "target_system",
-      "status": "candidate",
-      "confidence": 1,
-      "objectContextKey": "传统数据中心||网络||数据中心内部网络",
-      "evidenceRefCount": 0
+      "id": "relation:8cf157daa17cfa89",
+      "type": "deployed_in_environment",
+      "sourceId": "677933bd-e031-4bcb-b2ea-45dbea54c42c",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 33
     },
     {
-      "id": "reimport:relation:2e6753ec48ad43fe",
-      "type": "target_system",
-      "sourceId": "",
-      "sourceType": "",
-      "targetId": "",
-      "targetType": "",
-      "label": "target_system",
-      "status": "candidate",
-      "confidence": 1,
-      "objectContextKey": "传统数据中心||网络||数据中心内部网络",
-      "evidenceRefCount": 0
+      "id": "relation:35813a80abc5a2f4",
+      "type": "deployed_in_environment",
+      "sourceId": "54de2a04-b9f4-4596-96e0-d13800073eeb",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 36
     },
     {
-      "id": "reimport:relation:e158b50539938d9e",
-      "type": "target_system",
-      "sourceId": "",
-      "sourceType": "",
-      "targetId": "",
-      "targetType": "",
-      "label": "target_system",
-      "status": "candidate",
-      "confidence": 1,
-      "objectContextKey": "传统数据中心||网络||数据中心内部网络",
-      "evidenceRefCount": 0
+      "id": "relation:c3ca848f4d7eb73d",
+      "type": "deployed_in_environment",
+      "sourceId": "3c2f8f2d-979e-49e8-b9f0-776cfa73dcd5",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 33
     },
     {
-      "id": "reimport:relation:cd867970d68ea384",
-      "type": "target_system",
-      "sourceId": "",
-      "sourceType": "",
-      "targetId": "",
-      "targetType": "",
-      "label": "target_system",
-      "status": "candidate",
-      "confidence": 1,
-      "objectContextKey": "传统数据中心||网络||数据中心内部网络",
-      "evidenceRefCount": 0
+      "id": "relation:09539d94501da85c",
+      "type": "deployed_in_environment",
+      "sourceId": "abb3f3ab-5819-4d0f-9de2-e67ff79e9671",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 33
     },
     {
-      "id": "reimport:relation:732fba9e23399c7c",
-      "type": "target_system",
-      "sourceId": "",
-      "sourceType": "",
-      "targetId": "",
-      "targetType": "",
-      "label": "target_system",
-      "status": "candidate",
-      "confidence": 1,
-      "objectContextKey": "传统数据中心||网络||数据中心内部网络",
-      "evidenceRefCount": 0
+      "id": "relation:a1924dcd0409bd23",
+      "type": "deployed_in_environment",
+      "sourceId": "c103ea92-d164-4960-9184-ae1f4ec655c1",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 35
     },
     {
-      "id": "reimport:relation:c2ef31cbe0722053",
-      "type": "target_system",
-      "sourceId": "",
-      "sourceType": "",
-      "targetId": "",
-      "targetType": "",
-      "label": "target_system",
-      "status": "candidate",
-      "confidence": 1,
-      "objectContextKey": "传统数据中心||网络||数据中心内部网络",
-      "evidenceRefCount": 0
+      "id": "relation:348f3053bf470e5f",
+      "type": "deployed_in_environment",
+      "sourceId": "a995bffa-d6e8-4aa6-a238-72d23432aee8",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 35
+    },
+    {
+      "id": "relation:053c7d1cd6d13d42",
+      "type": "deployed_in_environment",
+      "sourceId": "fc98a2df-388a-4786-b160-d4d856064d51",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 35
+    },
+    {
+      "id": "relation:863ef1caaabb1176",
+      "type": "deployed_in_environment",
+      "sourceId": "25d67424-cae9-4f20-9503-4b68626327c3",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 26
+    },
+    {
+      "id": "relation:bfabda10223e0603",
+      "type": "deployed_in_environment",
+      "sourceId": "f1570eb9-681c-49df-bbf5-418815c9796e",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 35
+    },
+    {
+      "id": "relation:c566de7e65b0392c",
+      "type": "deployed_in_environment",
+      "sourceId": "b65db61e-470b-4fe7-b4af-1b75dd46a81e",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 32
+    },
+    {
+      "id": "relation:04678a3118154c24",
+      "type": "deployed_in_environment",
+      "sourceId": "edc8a07d-f4cd-4f8b-b768-f05fb648316e",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 33
+    },
+    {
+      "id": "relation:3b52751364dfe2da",
+      "type": "deployed_in_environment",
+      "sourceId": "fd826b7d-384d-44ad-a385-d250ba33eb59",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 26
+    },
+    {
+      "id": "relation:8eaf823d9710af47",
+      "type": "deployed_in_environment",
+      "sourceId": "839afd55-7953-41be-9c10-a5d3c531bda8",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 30
+    },
+    {
+      "id": "relation:b697132f8151661a",
+      "type": "deployed_in_environment",
+      "sourceId": "6e9c1a89-08cc-42fe-99a1-a76da945d094",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 30
+    },
+    {
+      "id": "relation:812cee803200f74e",
+      "type": "deployed_in_environment",
+      "sourceId": "71b32e48-14ea-4c7f-9252-67e509d18011",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 30
+    },
+    {
+      "id": "relation:388d9bb7865481b6",
+      "type": "deployed_in_environment",
+      "sourceId": "84348e9e-1b05-4f8c-ab23-b26f140f8682",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 30
+    },
+    {
+      "id": "relation:f4ff46d98d0a7e2a",
+      "type": "deployed_in_environment",
+      "sourceId": "793450b0-2300-4600-a3ab-c7ffdfed9ad2",
+      "sourceType": "security_technical_service",
+      "targetId": "b6e3912b-0633-4a61-acb5-ea46e7fd0985",
+      "targetType": "information_environment",
+      "label": "部署于环境",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 30
     }
   ],
-  "relationCount": 36
+  "relationCount": 106
 }

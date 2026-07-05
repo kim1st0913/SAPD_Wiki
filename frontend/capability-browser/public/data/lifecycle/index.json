@@ -12,12 +12,12 @@
     "capability_focus": 27,
     "development_technical_service": 11,
     "development_technical_module": 14,
-    "security_technical_service": 32,
+    "security_technical_service": 34,
     "security_technology_module": 44,
     "security_technical_measure": 6,
-    "objects": 321,
-    "relations": 536,
-    "evidenceRefs": 1205
+    "objects": 323,
+    "relations": 545,
+    "evidenceRefs": 992
   },
   "tree": [
     {

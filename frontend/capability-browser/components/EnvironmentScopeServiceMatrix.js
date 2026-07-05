@@ -413,6 +413,7 @@
         class="${classNames}"
         style="--node-x:${node.x}px; --node-y:${node.y}px; --node-width:${node.width}px; --node-height:${node.height}px;"
         data-graph-node-key="${utils.escapeHtml(node.key)}"
+        data-copy-text="${utils.escapeHtml(utils.codeTitleOf(node.item))}"
         ${attrs}
       >
         <span class="environment-object-node-type">${utils.escapeHtml(isService ? "安全技术服务" : relationNodeKind(node.item))}</span>
@@ -592,6 +593,7 @@
         data-environment-funnel-node="${utils.escapeHtml(row.key)}"
         data-environment-funnel-targets="${utils.escapeHtml(commaKeys(row.targetKeys))}"
         data-scope="${utils.escapeHtml(scopeCode)}"
+        data-copy-text="${utils.escapeHtml(utils.codeTitleOf(row.service))}"
         data-annotation-prefer-target="true"
         ${annotationObjectAttrs(row.service, { objectType: "security_technical_service", objectLabel: "安全技术服务", title: utils.codeTitleOf(row.service) })}
       >
@@ -623,6 +625,7 @@
         type="button"
         data-environment-funnel-node="${utils.escapeHtml(row.key)}"
         data-environment-funnel-systems="${utils.escapeHtml(commaKeys(row.systemKeys))}"
+        data-copy-text="${utils.escapeHtml(utils.codeTitleOf(row.target))}"
         data-annotation-prefer-target="true"
         ${annotationObjectAttrs(row.target, {
           objectType: isMeasure ? "security_technical_measure" : "security_technology_module",
@@ -657,6 +660,7 @@
         class="environment-object-funnel-node environment-object-funnel-system"
         type="button"
         data-environment-funnel-node="${utils.escapeHtml(row.key)}"
+        data-copy-text="${utils.escapeHtml(utils.codeTitleOf(row.system))}"
         data-annotation-prefer-target="true"
         ${annotationObjectAttrs(row.system, { objectType: "security_system", objectLabel: "安全系统", title: utils.codeTitleOf(row.system) })}
       >

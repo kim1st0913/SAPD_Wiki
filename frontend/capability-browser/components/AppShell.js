@@ -316,7 +316,7 @@
     return `
       <div class="global-search" aria-label="全局搜索">
         <span class="search-icon" aria-hidden="true">⌕</span>
-        <input id="searchInput" type="search" placeholder="全局搜索知识、能力、标准、指南" autocomplete="off" />
+        <input id="searchInput" type="search" placeholder="全局搜索知识、能力、标准、指南" autocomplete="off" data-search-history-kind="global" />
         <button id="globalSearchActionButton" class="global-search-shortcut" type="button" title="聚焦全局搜索 / 打开搜索结果" aria-label="聚焦全局搜索或打开搜索结果">⌘K</button>
       </div>
     `;
@@ -691,7 +691,7 @@
             <div class="capability-workbench-tools page-search-control" aria-label="能力页局部搜索">
               <label class="page-search-input-shell" for="capabilitySearchInput">
                 <span class="capability-search-icon" aria-hidden="true">⌕</span>
-                <input id="capabilitySearchInput" type="search" placeholder="搜索能力、服务、流程或模块/措施" autocomplete="off" />
+                <input id="capabilitySearchInput" type="search" placeholder="搜索能力、服务、流程或模块/措施" autocomplete="off" data-search-history-kind="capability" />
               </label>
               <span class="page-search-match-status" data-page-search-status="capability-mapping" aria-live="polite"></span>
               <button class="page-search-step" type="button" data-page-search-step="-1" data-page-search-scope="capability-mapping" title="上一个匹配" aria-label="上一个匹配">‹</button>

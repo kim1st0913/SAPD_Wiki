@@ -584,15 +584,6 @@
       }
     },
     "security_technology_module": {
-      "5b494aed-53a2-41f7-b381-27195d4295d9": {
-        "id": "5b494aed-53a2-41f7-b381-27195d4295d9",
-        "type": "security_technology_module",
-        "code": "",
-        "title": "API安全防护",
-        "name": "API安全防护",
-        "category": "应用安全",
-        "status": ""
-      },
       "c27f5c46-da8e-4c89-aba4-5b8f3c529ba1": {
         "id": "c27f5c46-da8e-4c89-aba4-5b8f3c529ba1",
         "type": "security_technology_module",
@@ -600,6 +591,15 @@
         "title": "云原生数据安全防护",
         "name": "云原生数据安全防护",
         "category": "数据安全",
+        "status": ""
+      },
+      "5b494aed-53a2-41f7-b381-27195d4295d9": {
+        "id": "5b494aed-53a2-41f7-b381-27195d4295d9",
+        "type": "security_technology_module",
+        "code": "",
+        "title": "API安全防护",
+        "name": "API安全防护",
+        "category": "应用安全",
         "status": ""
       },
       "d80b02fc-b9a3-40de-944d-6041de49f7f2": {
@@ -824,7 +824,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 9
+      "evidenceRefCount": 10
     },
     {
       "id": "relation:032632cb6ea0d909",
@@ -1422,19 +1422,6 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 18
-    },
-    {
-      "id": "relation:a037fbb540c05554",
-      "type": "implemented_by_module",
-      "sourceId": "5433e14c-c482-45d6-93a9-3d0a5014d293",
-      "sourceType": "security_technical_service",
-      "targetId": "5b494aed-53a2-41f7-b381-27195d4295d9",
-      "targetType": "security_technology_module",
-      "label": "由模块实现",
-      "status": "active",
-      "confidence": "explicit",
-      "objectContextKey": "",
       "evidenceRefCount": 24
     },
     {
@@ -1451,6 +1438,19 @@
       "evidenceRefCount": 19
     },
     {
+      "id": "relation:a037fbb540c05554",
+      "type": "implemented_by_module",
+      "sourceId": "5433e14c-c482-45d6-93a9-3d0a5014d293",
+      "sourceType": "security_technical_service",
+      "targetId": "5b494aed-53a2-41f7-b381-27195d4295d9",
+      "targetType": "security_technology_module",
+      "label": "由模块实现",
+      "status": "active",
+      "confidence": "explicit",
+      "objectContextKey": "",
+      "evidenceRefCount": 22
+    },
+    {
       "id": "relation:6eab76f4fdf9e622",
       "type": "implemented_by_module",
       "sourceId": "5433e14c-c482-45d6-93a9-3d0a5014d293",
@@ -1461,7 +1461,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 25
+      "evidenceRefCount": 24
     },
     {
       "id": "relation:30ae58599e164e0c",

@@ -23,7 +23,68 @@
   };
   const codeTitle = (value, fallback = "未命名") => [value?.code, titleOf(value, fallback)].filter(Boolean).join(" ");
   const normalizeSearch = (value) => text(value).trim().toLowerCase();
-  const includesSearch = (query, ...values) => !query || values.map(text).join(" ").toLowerCase().includes(query);
+  const SEARCH_QUERY_ALIASES = {};
+  const searchQueryVariants = (query) => {
+    const normalized = normalizeSearch(query);
+    if (!normalized) return [];
+    return [normalized, ...list(SEARCH_QUERY_ALIASES[normalized]).map(normalizeSearch)].filter(Boolean);
+  };
+  const includesSearch = (query, ...values) => {
+    const variants = searchQueryVariants(query);
+    if (!variants.length) return true;
+    const haystack = values.map(text).join(" ").toLowerCase();
+    return variants.some((variant) => haystack.includes(variant));
+  };
+  const objectId = (item) => text(item?.id).trim();
+  function resolveCurrentObjectSelection({ rows, selectedId, grain, label, source }) {
+    const allRows = list(rows);
+    const requestedId = text(selectedId).trim();
+    const selectionSource = source || (requestedId ? "explicit" : "initial_landing");
+    if (requestedId) {
+      const row = allRows.find((item) => objectId(item) === requestedId) || null;
+      if (row) {
+        return {
+          id: objectId(row),
+          row,
+          status: selectionSource === "page_search" ? "search_preview" : "selected",
+          source: selectionSource,
+          grain,
+          requestedId,
+          message: "",
+        };
+      }
+      return {
+        id: null,
+        row: null,
+        status: "target_missing",
+        source: selectionSource,
+        grain,
+        requestedId,
+        message: `未定位到${label || "当前对象"}：${requestedId}`,
+      };
+    }
+    const defaultRow = allRows[0] || null;
+    if (defaultRow) {
+      return {
+        id: objectId(defaultRow),
+        row: defaultRow,
+        status: "default_landing",
+        source: "initial_landing",
+        grain,
+        requestedId: "",
+        message: "",
+      };
+    }
+    return {
+      id: null,
+      row: null,
+      status: "empty",
+      source: "none",
+      grain,
+      requestedId: "",
+      message: `暂无${label || "当前对象"}数据`,
+    };
+  }
   const identityOf = (value, fallback = "unknown") => text(value?.id || value?.name || value?.title || value?.code || fallback).trim();
   const serviceIdentity = (service) => text(service?.id || service?.code || service?.title || service?.name || titleOf(service, "未命名服务")).trim();
   const hasOwn = (object, key) => Boolean(object) && Object.prototype.hasOwnProperty.call(object, key);
@@ -695,6 +756,7 @@
   }
 
   function capabilityStructureCounts(item = {}) {
+    if (!item) return { l1Count: 0, l2Count: 0, focusCount: 0 };
     const domains = list(item.domains);
     const capabilities = item.type === "capability_domain" ? list(item.capabilities) : domains.flatMap((domain) => list(domain.capabilities));
     const directFocuses = item.type === "capability" ? list(item.focuses) : [];
@@ -1203,6 +1265,7 @@
     if (selectedFocusId) {
       const selectedMap = maps.find((item) => item?.focus?.id === selectedFocusId);
       if (selectedMap) return selectedMap;
+      return null;
     }
     return capabilityProjection.localRelationMap || capabilityProjection.local_relation_map || maps[0] || null;
   }
@@ -1559,13 +1622,27 @@
     });
     const navigationTree = buildNavigationTree(capabilityTree, search);
     const fallbackSelection = defaultCapabilitySelection(capabilityTree);
-    const selectedResult = selectedCapabilityId ? findCapabilityItemAndFocuses(capabilityTree, selectedCapabilityId) : { selected: null };
-    const selectedRaw = selectedResult.selected || fallbackSelection;
+    const requestedCapabilityId = text(selectedCapabilityId).trim();
+    const selectedResult = requestedCapabilityId ? findCapabilityItemAndFocuses(capabilityTree, requestedCapabilityId) : { selected: null, focuses: [] };
+    const selection = requestedCapabilityId
+      ? resolveCurrentObjectSelection({
+          rows: flattenCapabilities(capabilityTree).map((row) => row.item),
+          selectedId: requestedCapabilityId,
+          grain: "capability_object",
+          label: "安全能力对象",
+        })
+      : resolveCurrentObjectSelection({
+          rows: fallbackSelection ? [fallbackSelection] : [],
+          selectedId: "",
+          grain: "capability_object",
+          label: "安全能力对象",
+        });
+    const selectedRaw = requestedCapabilityId ? selectedResult.selected : fallbackSelection;
     const selectedCapability = compactEntity(selectedRaw);
     const selectedDetail = selectedCapability;
     const selectedId = selectedCapability?.id || null;
     const query = normalizeSearch(search);
-    const selectedFocuses = findCapabilityItemAndFocuses(capabilityTree, selectedId).focuses;
+    const selectedFocuses = selectedId ? findCapabilityItemAndFocuses(capabilityTree, selectedId).focuses : [];
     const rows = filterRelationshipRows(
       relationshipMatrixRows({ capabilityTree, management, selectedCapabilityId: selectedId }).filter((row) =>
         includesSearch(query, row.focus.code, row.focus.title, ...row.services.map(titleOf), ...row.scopes.map(titleOf), ...row.processGroups.map(titleOf), ...row.processReferences.map(titleOf), ...row.modules.map(titleOf)),
@@ -1621,7 +1698,7 @@
       standardMappingRows,
       coverageDenominators,
     });
-    const selectedFocusRow = rows.find((row) => row.focus.id === selectedId) || rows[0] || null;
+    const selectedFocusRow = selectedId ? rows.find((row) => row.focus.id === selectedId) || null : null;
     const chainFocus = selectedFocusRow || null;
     const detailRaw = selectedDetail?.id ? findCapabilityItemAndFocuses(capabilityTree, selectedDetail.id).selected : selectedRaw;
     const detailRawProcesses = list(detailRaw?.process_mappings);
@@ -1638,14 +1715,16 @@
     const projectedLocalRelationMap = projectedFocusId ? projectedLocalRelationMapFor(capabilityProjection, projectedFocusId) : null;
     const usingWorkbenchMappingRows = Boolean(workbenchTechnicalRows.length || workbenchManagementRows.length);
     const usingProjectedLocalRelationMap = Boolean(!usingWorkbenchMappingRows && projectedLocalRelationMap);
-    const fallbackLocalRelationMap = buildCapabilityLocalRelationMap({
-      selectedDetail,
-      detailRawProcesses,
-      detailTechnicalRows,
-      detailManagementRows,
-      detailStandardRows,
-      detailSourceEvidence,
-    });
+    const fallbackLocalRelationMap = selectedDetail
+      ? buildCapabilityLocalRelationMap({
+          selectedDetail,
+          detailRawProcesses,
+          detailTechnicalRows,
+          detailManagementRows,
+          detailStandardRows,
+          detailSourceEvidence,
+        })
+      : null;
     const rawLocalRelationMap = usingProjectedLocalRelationMap
       ? mergeFallbackStandardsIntoProjected(projectedLocalRelationMap, fallbackLocalRelationMap)
       : mergeProjectedStandards(fallbackLocalRelationMap, projectedLocalRelationMap);
@@ -1653,6 +1732,7 @@
 
     return {
       navigationTree,
+      selection,
       selectedCapability: selectedDetail,
       relationshipSummary: {
         rowCount: visibleFocuses.length,
@@ -1787,20 +1867,80 @@
     return [source?.file, source?.source_file, source?.sheet, source?.row, source?.cell, source?.path, source?.location].filter(Boolean).join(":") || JSON.stringify(source);
   }
 
-  function measureRelatedEnvironmentRows(management, services, scopes) {
+  function relationRowKey(row) {
+    return [row.environment?.id || row.environment?.title, row.object?.id || row.object?.title, row.scope?.id || row.scope?.code || row.scope?.title].map(text).join("::");
+  }
+
+  function environmentObjectPairs(rows) {
+    return uniqueBy(
+      list(rows)
+        .flatMap((row) => {
+          const environment = compactEntity(row.environment, "待补充");
+          const object = compactEntity(row.object, "待补充");
+          const environmentTitle = titleOf(environment, "").trim();
+          const objectTitle = titleOf(object, "").trim();
+          if (!environmentTitle || !objectTitle) return [];
+          const objectSegments = list(row.object?.segments);
+          const segmentRows = uniqueBy(
+            objectSegments.length ? objectSegments : row.segment ? [row.segment] : [],
+            (segment) => segment?.id || segment?.code || segment?.title || segment?.name,
+          );
+          const segments = segmentRows.length ? segmentRows : [{ id: "environment-segment-pending", title: "未定义环境子类" }];
+          return segments
+            .map((segmentLike) => {
+              const segment = compactEntity(segmentLike, "未定义环境子类");
+              const segmentTitle = titleOf(segment, "").trim();
+              if (!segmentTitle) return null;
+              return {
+                id: [environment.id || environmentTitle, segment.id || segmentTitle, object.id || objectTitle].map(text).join("::"),
+                type: "information_environment_object_path",
+                objectKind: "信息化环境",
+                title: `${environmentTitle}-${segmentTitle}-${objectTitle}`,
+                environment,
+                segment,
+                object,
+              };
+            })
+            .filter(Boolean);
+        })
+        .filter(Boolean),
+      (item) => item.id || item.title,
+    );
+  }
+
+  function scopeMatches(scopeRows, scope) {
+    if (!scopeRows.length) return true;
+    const scopeTitle = text(scope?.title || scope?.name).trim();
+    return scopeRows.some((candidate) => {
+      if (sameEntity(candidate, scope)) return true;
+      const code = text(candidate?.code).trim();
+      const title = text(candidate?.title || candidate?.name).trim();
+      return Boolean(scopeTitle && ((code && scopeTitle.includes(code)) || (title && scopeTitle.includes(title))));
+    });
+  }
+
+  function measureRelatedEnvironmentRows(management, measure, services, scopes) {
     const serviceRows = applicableMeasureEntities(services);
     const scopeRows = applicableMeasureEntities(scopes);
-    return list(management?.environment_scope_tree).flatMap((environment) =>
+    const rows = list(management?.environment_scope_tree).flatMap((environment) =>
       list(environment.objects).flatMap((object) =>
-        list(object.scope_mappings)
-          .filter((mapping) => {
-            const scopeMatched = !scopeRows.length || scopeRows.some((scope) => sameEntity(scope, mapping.scope));
-            const serviceMatched = !serviceRows.length || list(mapping.services).some((service) => serviceRows.some((measureService) => sameEntity(measureService, service)));
-            return scopeMatched && serviceMatched;
-          })
-          .map((mapping) => ({ environment, object, scope: mapping.scope })),
+        list(object.scope_mappings).flatMap((mapping) =>
+          list(mapping.services)
+            .filter((service) => {
+              const directMeasureMatched = [
+                ...list(service.measures),
+                ...list(service.modules).filter(isSecurityTechnicalMeasure),
+                ...list(service.relationNodes).filter(isSecurityTechnicalMeasure),
+              ].some((linkedMeasure) => sameEntity(linkedMeasure, measure));
+              const scopeMatched = scopeMatches(scopeRows, mapping.scope);
+              const serviceMatched = !serviceRows.length || serviceRows.some((measureService) => sameEntity(measureService, service));
+              return directMeasureMatched || (scopeMatched && serviceMatched);
+            })
+            .map(() => ({ environment, object, scope: mapping.scope })),
+        ),
       ),
     );
+    return uniqueBy(rows, relationRowKey);
   }
 
   function compactMeasureRow(management, measure, index) {
@@ -1814,7 +1954,8 @@
     if (!scopes.length) {
       scopes.push(...compactMeasureEntities(measure, ["related_scope_names"]));
     }
-    const environmentRows = measureRelatedEnvironmentRows(management, services, scopes);
+    const environmentRows = measureRelatedEnvironmentRows(management, measure, services, scopes);
+    const environmentObjectPairRows = environmentObjectPairs(environmentRows);
     const environments = uniqueBy(
       environmentRows.map((row) => compactEntity(row.environment, "待补充")).filter(Boolean),
       (item) => item.id || item.code || item.title,
@@ -1844,6 +1985,7 @@
       scopeNames: scopes.map((item) => titleOf(item, PENDING_TEXT)),
       environmentNames: environments.map((item) => titleOf(item, PENDING_TEXT)),
       environmentObjectNames: environmentObjects.map((item) => titleOf(item, PENDING_TEXT)),
+      environmentObjectPairs: environmentObjectPairRows,
       detail: {
         category,
         relatedModules: modules,
@@ -1868,6 +2010,21 @@
   function sameEntity(a, b) {
     const left = new Set(entityKeys(a));
     return entityKeys(b).some((key) => left.has(key));
+  }
+
+  function serviceRelatedEnvironmentRows(management, service) {
+    return uniqueBy(
+      list(management?.environment_scope_tree).flatMap((environment) =>
+        list(environment.objects).flatMap((object) =>
+          list(object.scope_mappings).flatMap((mapping) =>
+            list(mapping.services)
+              .filter((linkedService) => sameEntity(linkedService, service))
+              .map(() => ({ environment, object, scope: mapping.scope })),
+          ),
+        ),
+      ),
+      relationRowKey,
+    );
   }
 
   function moduleRelatedEnvironmentRows(management, module) {
@@ -1905,12 +2062,29 @@
     const services = uniqueBy(list(module?.services), (service) => service?.id || service?.code || service?.title);
     const systems = uniqueBy(list(module?.systems), (system) => system?.id || system?.code || system?.title);
     const products = uniqueBy(list(module?.products), (product) => product?.id || product?.code || product?.title);
-    const environments = uniqueBy(list(module?.environments), (environment) => environment?.id || environment?.code || environment?.title);
+    const environmentRows = moduleRelatedEnvironmentRows(management, module);
+    const environmentObjectPairRows = environmentObjectPairs(environmentRows);
+    const environments = uniqueBy(
+      [...list(module?.environments), ...environmentRows.map((row) => row.environment)],
+      (environment) => environment?.id || environment?.code || environment?.title,
+    );
     const catalogSourceRows = list(module?.sources)
       .filter((source) => source?.sheet === "安全技术模块清单" && Number(source?.row))
       .map((source) => Number(source.row));
-    const scopes = moduleLinkedScopes(management, module);
-    const informationObjects = moduleLinkedInformationObjects(management, module);
+    const scopes = uniqueBy(
+      [
+        ...moduleLinkedScopes(management, module),
+        ...environmentRows.map((row) => row.scope),
+      ],
+      (scope) => scope?.id || scope?.code || scope?.title,
+    );
+    const informationObjects = uniqueBy(
+      [
+        ...moduleLinkedInformationObjects(management, module),
+        ...environmentRows.map((row) => row.object),
+      ],
+      (object) => object?.id || object?.code || object?.title,
+    );
     const missing = [
       !text(module?.category).trim() ? "模块分类" : "",
       !text(module?.description).trim() ? "描述" : "",
@@ -1936,6 +2110,7 @@
       linkedScopes: scopes.map(compactEntity),
       informationObjects: informationObjects.map(compactEntity),
       informationEnvironments: environments.map(compactEntity),
+      environmentObjectPairs: environmentObjectPairRows,
     };
   }
 
@@ -2272,6 +2447,7 @@
           ...row.linkedScopes.map(titleOf),
           ...row.informationObjects.map(titleOf),
           ...row.informationEnvironments.map(titleOf),
+          ...row.environmentObjectPairs.map(titleOf),
         ),
       );
     return {
@@ -2725,9 +2901,20 @@
     return measuresByService;
   }
 
+  function canonicalScope(scope, orderIndex = {}) {
+    if (!scope) return scope;
+    const code = text(scope?.code).trim();
+    const key = scopeKey(scope);
+    const canonical = orderIndex.scopeByCode?.get(code) || orderIndex.scopeByCode?.get(key);
+    return canonical ? { ...scope, ...canonical, sources: list(scope?.sources).length ? scope.sources : canonical.sources } : scope;
+  }
+
   function compactTechnicalServiceRow(entry, index, orderIndex = {}) {
     const service = entry?.service || entry || {};
-    const scopes = uniqueBy(list(entry?.scopes || service?.scopes || service?.scope_types), (scope) => scope?.id || scope?.code || scope?.title);
+    const scopes = uniqueBy(
+      list(entry?.scopes || service?.scopes || service?.scope_types).map((scope) => canonicalScope(scope, orderIndex)),
+      (scope) => scope?.id || scope?.code || scope?.title,
+    );
     const declaredScopeCode = serviceScopeCode(service?.code);
     const fallbackScope = orderIndex.scopeByCode?.get(declaredScopeCode);
     const groupingScopes = scopes.length ? scopes : fallbackScope ? [fallbackScope] : [];
@@ -2738,10 +2925,16 @@
       (measure) => measure?.id || measure?.code || measure?.title,
     );
     const linkedModuleMeasures = uniqueBy([...linkedModules, ...linkedMeasures], (item) => `${item?.objectKind || ""}:${item?.id || item?.code || item?.title}`);
+    const environmentRows = serviceRelatedEnvironmentRows(orderIndex.environmentManagement || {}, service);
+    const environmentObjectPairRows = environmentObjectPairs(environmentRows);
     const systems = uniqueBy(modules.flatMap((module) => list(module?.systems)), (system) => system?.id || system?.code || system?.title);
     const products = uniqueBy(modules.flatMap((module) => list(module?.products)), (product) => product?.id || product?.code || product?.title);
     const environments = uniqueBy(
-      [...list(entry?.environments || service?.environments), ...modules.flatMap((module) => list(module?.environments))],
+      [
+        ...list(entry?.environments || service?.environments),
+        ...modules.flatMap((module) => list(module?.environments)),
+        ...environmentRows.map((row) => row.environment),
+      ],
       (environment) => environment?.id || environment?.code || environment?.title,
     );
     const definition = serviceDefinitionText(service);
@@ -2793,6 +2986,7 @@
       linkedSystems: systems.map(compactEntity),
       linkedProducts: products.map(compactEntity),
       linkedEnvironments: environments.map(compactEntity),
+      environmentObjectPairs: environmentObjectPairRows,
       sourceEvidence: uniqueBy([...list(service?.sources), ...list(entry?.sources)], sourceEvidenceKey),
     };
   }
@@ -2866,7 +3060,12 @@
 
   function buildTechnicalServiceMaintenanceViewModel({ capabilityTree, management, search }) {
     const query = normalizeSearch(search);
-    const orderIndex = { ...buildCapabilityFocusOrder(capabilityTree), scopeByCode: scopeLookup(management), measuresByService: measureByServiceLookup(management) };
+    const orderIndex = {
+      ...buildCapabilityFocusOrder(capabilityTree),
+      scopeByCode: scopeLookup(management),
+      measuresByService: measureByServiceLookup(management),
+      environmentManagement: management,
+    };
     const sourceEntries = list(management?.security_technical_services).length
       ? list(management?.security_technical_services)
       : list(management?.service_module_index);
@@ -2888,6 +3087,7 @@
           ...row.linkedSystems.map(titleOf),
           ...row.linkedProducts.map(titleOf),
           ...row.linkedEnvironments.map(titleOf),
+          ...row.environmentObjectPairs.map(titleOf),
         ),
       );
     const rows = searchRows.map((row, index) => ({ ...row, index: index + 1 }));
@@ -2923,6 +3123,7 @@
         ...row.scopeNames,
         ...row.environmentNames,
         ...row.environmentObjectNames,
+        ...row.environmentObjectPairs.map(titleOf),
         ...row.linkedModules.map(titleOf),
       ),
     );
@@ -3490,7 +3691,7 @@
           { title: relationLabel("security_module_or_measure", "关联安全技术模块/措施"), items: row.linkedModuleMeasures },
           { title: relationLabel("security_system", "关联安全系统"), items: row.linkedSystems },
           { title: "关联产品", items: row.linkedProducts },
-          { title: relationLabel("information_environment", "关联信息化环境"), items: row.linkedEnvironments },
+          { title: relationLabel("information_environment", "关联信息化环境"), items: row.environmentObjectPairs?.length ? row.environmentObjectPairs : row.linkedEnvironments },
         ],
         sourceEvidence,
       };
@@ -3652,7 +3853,13 @@
                   : { rows: [], summary: {}, emptyState: pageMeta.description };
     const selectableRows =
       normalizedSection === "references" ? (normalizedReferenceTab === "gartner" ? sectionViewModel.roleRows || [] : sectionViewModel.standardRows || []) : sectionViewModel.rows;
-    const selectedRow = selectableRows.find((row) => row.id === selectedId) || selectableRows[0] || null;
+    const selection = resolveCurrentObjectSelection({
+      rows: selectableRows,
+      selectedId,
+      grain: "maintenance_object",
+      label: "知识库对象",
+    });
+    const selectedRow = selection.row;
     const sidecarSourceEvidence = selectedRow ? list(maintenanceKnowledge?.source_evidence_by_id?.[selectedRow.id]) : [];
     const sourceEvidence = sidecarSourceEvidence.length
       ? sidecarSourceEvidence
@@ -3692,11 +3899,12 @@
       softwareRows: sectionViewModel.softwareRows || [],
       applicationRows: sectionViewModel.applicationRows || [],
       referenceTab: normalizedReferenceTab,
+      selection,
       selectedId: selectedRow?.id || null,
       detailPanel: buildMaintenanceDetailPanel(selectedRow, normalizedSection, sourceEvidence),
       sourceEvidence,
       dataState: sectionViewModel.dataState || "",
-      emptyState: sectionViewModel.emptyState || "",
+      emptyState: selection.status === "target_missing" ? selection.message : sectionViewModel.emptyState || "",
     };
   }
 
@@ -4096,7 +4304,7 @@
     const objectSelection = environments
       .flatMap(({ environment, objects }) => objects.map((object) => ({ selectionType: "object", environment, object, objects })))
       .find((row) => row.object.id === selectedObjectId);
-    if (objectSelection) return objectSelection;
+    if (objectSelection) return { ...objectSelection, selectionSource: "explicit" };
     const segmentSelection = environments
       .flatMap(({ environment, objects }) =>
         uniqueBy(list(objects).flatMap((object) => list(object.segments)), (segment) => segment?.id || segment?.title).map((segment) => ({
@@ -4108,15 +4316,16 @@
         })),
       )
       .find((row) => (row.segment?.id || row.segment?.title) === selectedSegmentId);
-    if (segmentSelection) return segmentSelection;
+    if (segmentSelection) return { ...segmentSelection, selectionSource: "explicit" };
     const environmentSelection = environments.find((row) => row.environment.id === selectedEnvironmentId);
-    if (environmentSelection) return { selectionType: "environment", environment: environmentSelection.environment, object: null, objects: environmentSelection.objects };
+    if (environmentSelection) return { selectionType: "environment", selectionSource: "explicit", environment: environmentSelection.environment, object: null, objects: environmentSelection.objects };
+    if (!query) return null;
     const fallback = environments[0];
     if (!fallback) return null;
     const object = fallback.objects[0] || null;
     return object
-      ? { selectionType: "object", environment: fallback.environment, object, objects: fallback.objects }
-      : { selectionType: "environment", environment: fallback.environment, object: null, objects: fallback.objects };
+      ? { selectionType: "object", selectionSource: "search", environment: fallback.environment, object, objects: fallback.objects }
+      : { selectionType: "environment", selectionSource: "search", environment: fallback.environment, object: null, objects: fallback.objects };
   }
 
   function buildEnvironmentScopeServiceRows(management, selectedObject, showObjectColumn, selectedEnvironment) {
@@ -4465,6 +4674,7 @@
     const selectedEnvironment = compactEntity(selected?.environment, "未命名环境");
     const selectedSegment = selected?.segment ? compactEntity(selected.segment, "未定义环境子类") : null;
     const selectedObject = selected?.object ? compactEntity(selected.object, "未命名对象") : null;
+    const selectionSource = selected?.selectionSource || "";
     const isEnvironmentSelection = selected?.selectionType === "environment";
     const isSegmentSelection = selected?.selectionType === "segment";
     const scopeServiceRows = isEnvironmentSelection
@@ -4489,6 +4699,7 @@
       segment: selectedSegment,
       object: selectedObject,
       selectionType: selected?.selectionType || "",
+      selectionSource,
       showObjectColumn: isEnvironmentSelection || isSegmentSelection,
       segments: isEnvironmentSelection || isSegmentSelection
         ? uniqueBy(list(selected?.objects).flatMap((object) => list(object.segments)), (segment) => segment?.id || segment?.code || segment?.title).map(compactEntity)
@@ -4507,6 +4718,7 @@
       selectedSegment,
       selectedObject,
       selectedMode: selected?.selectionType || "",
+      selectionSource,
       relationshipSummary: summary,
       scopeServiceRows,
       scopeServiceGroups,
@@ -4517,6 +4729,7 @@
       workbenchViewModel: environmentWorkbenchViewModel || null,
       environmentGraphContext: {
         selectionType: selected?.selectionType || "",
+        selectionSource,
         current: selectedObject || selectedSegment || selectedEnvironment,
         selectedEnvironment,
         selectedSegment,
@@ -4755,6 +4968,20 @@
     return compactDataLifecyclePolicyRows(sourceProcess?.data_policy_rows || sourceProcess?.dataPolicyRows);
   }
 
+  function dataLifecycleStageSearchText(lifecycleWorkbench, objectsById, lifecycle, stage) {
+    const policyRows = dataPolicyRowsForStage(lifecycle, stage);
+    return [
+      lifecycleWorkbenchStageSearchText(lifecycleWorkbench, objectsById, stage),
+      ...policyRows.flatMap((row) => [
+        row.category,
+        row.sequence,
+        ...list(row.policies).flatMap((policy) => [policy.level, policy.label, policy.code, policy.text, policy.reference, policy.status]),
+        ...list(row.technicalServices).flatMap((service) => [service.code, service.title, service.name, service.description]),
+        ...list(row.technologyModules).flatMap((item) => [item.code, item.title, item.name, item.description, item.objectKind]),
+      ]),
+    ].join(" ");
+  }
+
   function comparableItemKey(item) {
     return text(item?.code || item?.title || item?.name || item).trim();
   }
@@ -4789,6 +5016,13 @@
           ...list(process.development_technical_modules).map(titleOf),
           ...list(process.technology_modules).map(titleOf),
           ...list(process.technical_measures).map(titleOf),
+          ...list(process.data_policy_rows || process.dataPolicyRows).flatMap((row) => [
+            row?.category,
+            row?.sequence,
+            ...list(row?.policies).flatMap((policy) => [policy?.level, policy?.label, policy?.code, policy?.text, policy?.reference, policy?.status]),
+            ...list(row?.technical_services || row?.technicalServices).flatMap((service) => [service?.code, titleOf(service), service?.description]),
+            ...list(row?.module_or_measure_items || row?.moduleOrMeasureItems || row?.technology_modules || row?.technologyModules || row?.technical_measures || row?.technicalMeasures).flatMap((item) => [item?.code, titleOf(item), item?.description]),
+          ]),
         ].join(" ");
         return {
           id: process.id,
@@ -4953,21 +5187,27 @@
     };
   }
 
-  function buildApplicationSecurityLifecycleWorkbenchViewModel({ lifecycleWorkbench, lifecycleWorkbenchViewModel, lifecycle, selectedProcessId, search, dataSource }) {
+  function buildApplicationSecurityLifecycleWorkbenchViewModel({ lifecycleWorkbench, lifecycleWorkbenchViewModel, lifecycle, selectedProcessId, search, dataSource, selectionSource }) {
     const objectsById = workbenchObjectsById(lifecycleWorkbench);
     const stages = Object.values(lifecycleWorkbench?.objects?.lifecycle_stage || {})
       .map((stage) => workbenchEntity(stage, "未命名阶段"))
       .filter((stage) => !stage.lifecycleType || stage.lifecycleType === "application_security_development");
     const query = normalizeSearch(search);
-    const navigationTree = stages
-      .map((stage) => ({
+    const allNavigationTree = stages.map((stage) => ({
         ...stage,
         order: stage.code,
         searchText: lifecycleWorkbenchStageSearchText(lifecycleWorkbench, objectsById, stage),
-      }))
-      .filter((stage) => includesSearch(query, stage.searchText));
-    const selectedId = selectedProcessId && navigationTree.some((row) => row.id === selectedProcessId) ? selectedProcessId : navigationTree[0]?.id || null;
-    const selectedStage = navigationTree.find((stage) => stage.id === selectedId) || navigationTree[0] || null;
+      }));
+    const navigationTree = allNavigationTree.filter((stage) => includesSearch(query, stage.searchText));
+    const selection = resolveCurrentObjectSelection({
+      rows: allNavigationTree,
+      selectedId: selectedProcessId,
+      grain: "lifecycle_stage",
+      label: "LC-AP 阶段",
+      source: selectionSource,
+    });
+    const selectedId = selection.id;
+    const selectedStage = selection.row;
     const stageActivities = selectedStage ? workbenchTargets(lifecycleWorkbench, objectsById, selectedStage.id, "contains_activity", "lifecycle_activity").map(compactLifecycleItem) : [];
     const securityActivities = selectedStage ? workbenchTargets(lifecycleWorkbench, objectsById, selectedStage.id, "contains_control", "lifecycle_control").map(compactLifecycleActivity) : [];
     const policyRequirements = selectedStage ? workbenchSources(lifecycleWorkbench, objectsById, selectedStage.id, "belongs_to", "lifecycle_requirement").map(compactLifecycleItem) : [];
@@ -5035,6 +5275,7 @@
       dataState: dataSource.workbenchReady ? "ready" : "empty",
       title: "LC-AP安全开发生命周期",
       description: "按 LC-AP 原始业务字段展示阶段、活动、策略、开发技术服务、开发技术模块、安全技术服务、安全技术模块和安全技术措施。",
+      selection,
       navigationTree,
       stageTree: navigationTree,
       selectedProcess: selectedStageRow,
@@ -5085,25 +5326,31 @@
       sourceEvidence: [],
       dataSource,
       workbenchViewModel: lifecycleWorkbenchViewModel || null,
-      emptyState: navigationTree.length ? "" : "暂无 LC-AP workbench 数据，请确认 lifecycle-workbench.json 是否已生成。",
+      emptyState: selection.status === "target_missing" ? selection.message : navigationTree.length ? "" : "暂无 LC-AP workbench 数据，请确认 lifecycle-workbench.json 是否已生成。",
     };
   }
 
-  function buildDataSecurityLifecycleWorkbenchViewModel({ lifecycleWorkbench, lifecycleWorkbenchViewModel, lifecycle, selectedProcessId, search, dataSource }) {
+  function buildDataSecurityLifecycleWorkbenchViewModel({ lifecycleWorkbench, lifecycleWorkbenchViewModel, lifecycle, selectedProcessId, search, dataSource, selectionSource }) {
     const objectsById = workbenchObjectsById(lifecycleWorkbench);
     const stages = Object.values(lifecycleWorkbench?.objects?.lifecycle_stage || {})
       .map((stage) => workbenchEntity(stage, "未命名数据过程"))
       .filter((stage) => stage.lifecycleType === "data");
     const query = normalizeSearch(search);
-    const navigationTree = stages
-      .map((stage) => ({
+    const allNavigationTree = stages.map((stage) => ({
         ...stage,
         order: stage.code,
-        searchText: lifecycleWorkbenchStageSearchText(lifecycleWorkbench, objectsById, stage),
-      }))
-      .filter((stage) => includesSearch(query, stage.searchText));
-    const selectedId = selectedProcessId && navigationTree.some((row) => row.id === selectedProcessId) ? selectedProcessId : navigationTree[0]?.id || null;
-    const selectedStage = navigationTree.find((stage) => stage.id === selectedId) || navigationTree[0] || null;
+        searchText: dataLifecycleStageSearchText(lifecycleWorkbench, objectsById, lifecycle, stage),
+      }));
+    const navigationTree = allNavigationTree.filter((stage) => includesSearch(query, stage.searchText));
+    const selection = resolveCurrentObjectSelection({
+      rows: allNavigationTree,
+      selectedId: selectedProcessId,
+      grain: "lifecycle_stage",
+      label: "LC-DT 数据过程",
+      source: selectionSource,
+    });
+    const selectedId = selection.id;
+    const selectedStage = selection.row;
     const scenes = selectedStage ? workbenchTargets(lifecycleWorkbench, objectsById, selectedStage.id, "contains_scene", "lifecycle_activity").map((scene) => ({ ...compactLifecycleItem(scene), objectKind: "数据处理场景" })) : [];
     const technicalServices = selectedStage ? workbenchTargets(lifecycleWorkbench, objectsById, selectedStage.id, "maps_to_service", "security_technical_service").map(compactLifecycleItem) : [];
     const stageModules = selectedStage ? workbenchTargets(lifecycleWorkbench, objectsById, selectedStage.id, "implemented_by_module", "security_technology_module").map((module) => ({ ...compactLifecycleItem(module), objectKind: "安全技术模块" })) : [];
@@ -5156,6 +5403,7 @@
       dataState: dataSource.workbenchReady ? "ready" : "empty",
       title: "LC-DT数据生命周期安全",
       description: "按 LC-DT 两个原始 sheet 展示数据处理场景、数据重要程度安全策略，以及同一阶段一致的安全技术服务和安全技术模块/措施。",
+      selection,
       navigationTree,
       stageTree: navigationTree,
       selectedProcess: selectedStageRow,
@@ -5200,11 +5448,11 @@
       sourceEvidence: [],
       dataSource,
       workbenchViewModel: lifecycleWorkbenchViewModel || null,
-      emptyState: navigationTree.length ? "" : "暂无 LC-DT workbench 数据，请确认 lifecycle-workbench.json 是否已生成。",
+      emptyState: selection.status === "target_missing" ? selection.message : navigationTree.length ? "" : "暂无 LC-DT workbench 数据，请确认 lifecycle-workbench.json 是否已生成。",
     };
   }
 
-  function buildApplicationSecurityLifecycleViewModel({ lifecycleWorkbench, lifecycleWorkbenchViewModel, lifecycle, selectedProcessId, search }) {
+  function buildApplicationSecurityLifecycleViewModel({ lifecycleWorkbench, lifecycleWorkbenchViewModel, lifecycle, selectedProcessId, search, selectionSource }) {
     const sourceStatus = workbenchDataSource({
       workbench: lifecycleWorkbench,
       workbenchViewModel: lifecycleWorkbenchViewModel,
@@ -5218,16 +5466,26 @@
         lifecycle,
         selectedProcessId,
         search,
+        selectionSource,
         dataSource: sourceStatus,
       });
     }
     const appSecurity = lifecycle?.application_security_development || {};
     const dataState = lifecycle?.__data_state === "missing_file" ? "missing_file" : list(appSecurity.processes).length ? "ready" : "empty";
+    const allNavigationTree = buildLifecycleNavigation(appSecurity.processes, "");
     const navigationTree = buildLifecycleNavigation(appSecurity.processes, search);
-    const selectedId = selectedProcessId && navigationTree.some((row) => row.id === selectedProcessId) ? selectedProcessId : navigationTree[0]?.id || null;
-    const process = list(appSecurity.processes).find((item) => item.id === selectedId) || list(appSecurity.processes)[0] || null;
-    const stageRows = buildLifecycleStageRows(appSecurity.processes).filter((row) => !normalizeSearch(search) || navigationTree.some((nav) => nav.id === row.id));
-    const selectedStageRow = stageRows.find((row) => row.id === selectedId) || stageRows[0] || null;
+    const selection = resolveCurrentObjectSelection({
+      rows: allNavigationTree,
+      selectedId: selectedProcessId,
+      grain: "lifecycle_stage",
+      label: "LC-AP 阶段",
+      source: selectionSource,
+    });
+    const selectedId = selection.id;
+    const process = list(appSecurity.processes).find((item) => item.id === selectedId) || null;
+    const allStageRows = buildLifecycleStageRows(appSecurity.processes);
+    const stageRows = allStageRows.filter((row) => !normalizeSearch(search) || navigationTree.some((nav) => nav.id === row.id));
+    const selectedStageRow = allStageRows.find((row) => row.id === selectedId) || null;
     const serviceMappingRows = buildLifecycleServiceRows(process);
     const referenceSections = buildLifecycleReferenceSections(appSecurity);
     const { developmentServices, securityServices } = lifecycleProcessServices(process);
@@ -5281,6 +5539,7 @@
       dataState,
       title: "LC-AP安全开发生命周期",
       description: "按 LC-AP 原始业务字段展示阶段、活动、策略、开发技术服务、开发技术模块、安全技术服务、安全技术模块和安全技术措施。",
+      selection,
       navigationTree,
       stageTree: navigationTree,
       selectedProcess: selectedStageRow,
@@ -5309,7 +5568,9 @@
       sourceEvidence: [],
       dataSource: sourceStatus,
       workbenchViewModel: lifecycleWorkbenchViewModel || null,
-      emptyState: stageRows.length
+      emptyState: selection.status === "target_missing"
+        ? selection.message
+        : stageRows.length
         ? ""
         : dataState === "missing_file"
           ? "未找到 lifecycle-knowledge.json，请先执行 LC-AP 数据导出。"
@@ -5317,7 +5578,7 @@
     };
   }
 
-  function buildDataSecurityLifecycleViewModel({ lifecycleWorkbench, lifecycleWorkbenchViewModel, lifecycle, selectedProcessId, search }) {
+  function buildDataSecurityLifecycleViewModel({ lifecycleWorkbench, lifecycleWorkbenchViewModel, lifecycle, selectedProcessId, search, selectionSource }) {
     const sourceStatus = workbenchDataSource({
       workbench: lifecycleWorkbench,
       workbenchViewModel: lifecycleWorkbenchViewModel,
@@ -5331,15 +5592,24 @@
         lifecycle,
         selectedProcessId,
         search,
+        selectionSource,
         dataSource: sourceStatus,
       });
     }
     const dataLifecycle = lifecycle?.data_lifecycle || {};
     const dataState = lifecycle?.__data_state === "missing_file" ? "missing_file" : list(dataLifecycle.processes).length ? "ready" : "empty";
+    const allNavigationTree = buildLifecycleNavigation(dataLifecycle.processes, "");
     const navigationTree = buildLifecycleNavigation(dataLifecycle.processes, search);
-    const selectedId = selectedProcessId && navigationTree.some((row) => row.id === selectedProcessId) ? selectedProcessId : navigationTree[0]?.id || null;
+    const selection = resolveCurrentObjectSelection({
+      rows: allNavigationTree,
+      selectedId: selectedProcessId,
+      grain: "lifecycle_stage",
+      label: "LC-DT 数据过程",
+      source: selectionSource,
+    });
+    const selectedId = selection.id;
     const stageRows = buildLifecycleStageRows(dataLifecycle.processes);
-    const selectedStageRow = stageRows.find((row) => row.id === selectedId) || stageRows[0] || null;
+    const selectedStageRow = stageRows.find((row) => row.id === selectedId) || null;
     if (selectedStageRow) selectedStageRow.scenes = list(list(dataLifecycle.processes).find((item) => item.id === selectedStageRow.id)?.scenes).map(compactLifecycleItem);
     const relationRows = buildDataLifecycleOriginalFieldRows(selectedStageRow);
     const policyRows = dataPolicyRowsForStage(lifecycle, selectedStageRow);
@@ -5348,6 +5618,7 @@
       dataState,
       title: "LC-DT数据生命周期安全",
       description: "按 LC-DT 两个原始 sheet 展示数据处理场景、数据重要程度安全策略，以及同一阶段一致的安全技术服务和安全技术模块/措施。",
+      selection,
       navigationTree,
       stageTree: navigationTree,
       selectedProcess: selectedStageRow,
@@ -5381,7 +5652,9 @@
       policyRows,
       dataSource: sourceStatus,
       workbenchViewModel: lifecycleWorkbenchViewModel || null,
-      emptyState: navigationTree.length
+      emptyState: selection.status === "target_missing"
+        ? selection.message
+        : navigationTree.length
         ? ""
         : dataState === "missing_file"
           ? "未找到 lifecycle-knowledge.json，请先执行 LC-DT 数据导出。"
@@ -5446,6 +5719,7 @@
     buildCapabilityWorkbenchViewModel,
     buildCapabilityWorkspaceViewModel,
     buildEnvironmentWorkbenchViewModel,
+    buildEnvironmentManagementFromWorkbench,
     buildLifecycleWorkbenchViewModel,
     buildApplicationSecurityLifecycleViewModel,
     buildDataSecurityLifecycleViewModel,

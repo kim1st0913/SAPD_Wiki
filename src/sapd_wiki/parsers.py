@@ -497,6 +497,35 @@ def _validate_service_reference(
         )
 
 
+def _canonical_service_parts_by_authority(
+    parts: dict[str, str | None],
+    authoritative_service_titles: dict[str, str] | None = None,
+) -> dict[str, str | None]:
+    if authoritative_service_titles is None:
+        return parts
+    code = parts.get("code")
+    if code and code in authoritative_service_titles:
+        return parts
+
+    raw_title = normalize_service_title(parts.get("title") or "")
+    if not raw_title:
+        return parts
+    matches = [
+        (service_code, service_title)
+        for service_code, service_title in authoritative_service_titles.items()
+        if normalize_service_title(service_title) == raw_title
+    ]
+    if len(matches) != 1:
+        return parts
+
+    canonical_code, canonical_title = matches[0]
+    return service_parts(
+        f"{canonical_code} {canonical_title}",
+        fallback_scope_code=parts.get("scope_code"),
+        fallback_focus_code=parts.get("capability_focus_code"),
+    )
+
+
 def _is_authoritative_service_reference(
     authoritative_service_titles: dict[str, str] | None,
     parts: dict[str, str | None],
@@ -568,8 +597,9 @@ def parse_module_sheet(workbook, authoritative_service_titles: dict[str, str] | 
             result.objects.append(product)
             result.relations.append(_relation(module.key, "maps_to_product", product.key, "对应产品", source=product.sources[0]))
         if not is_blank_or_placeholder(service_raw):
-            parts = service_parts(service_raw)
-            _validate_service_reference(result, sheet_name, row_index, service_raw, parts, authoritative_service_titles)
+            raw_parts = service_parts(service_raw)
+            _validate_service_reference(result, sheet_name, row_index, service_raw, raw_parts, authoritative_service_titles)
+            parts = _canonical_service_parts_by_authority(raw_parts, authoritative_service_titles)
             if not _is_authoritative_service_reference(authoritative_service_titles, parts):
                 continue
             service = _object(
@@ -683,8 +713,9 @@ def parse_scene_sheet(
         service = None
         service_scope_objects: list[ObjectCandidate] = []
         if not is_blank_or_placeholder(service_raw):
-            parts = service_parts(service_raw)
-            _validate_service_reference(result, sheet_name, row_index, service_raw, parts, authoritative_service_titles)
+            raw_parts = service_parts(service_raw)
+            _validate_service_reference(result, sheet_name, row_index, service_raw, raw_parts, authoritative_service_titles)
+            parts = _canonical_service_parts_by_authority(raw_parts, authoritative_service_titles)
             service_scope_code = normalize_text(parts.get("scope_code"))
             if service_scope_code:
                 service_scope = next((scope for scope in scope_objects if scope.code == service_scope_code), None)
@@ -865,8 +896,9 @@ def _append_lcap_service(
     service_category: str | None = None,
     authoritative_service_titles: dict[str, str],
 ) -> ObjectCandidate | None:
-    parts = service_parts(service_title)
-    _validate_service_reference(result, sheet_name, row_index, service_title, parts, authoritative_service_titles)
+    raw_parts = service_parts(service_title)
+    _validate_service_reference(result, sheet_name, row_index, service_title, raw_parts, authoritative_service_titles)
+    parts = _canonical_service_parts_by_authority(raw_parts, authoritative_service_titles)
     if not _is_authoritative_service_reference(authoritative_service_titles, parts):
         return None
     metadata = {
@@ -1008,12 +1040,8 @@ def parse_security_work_sheet(workbook) -> ParseResult:
         work = _object(
             "security_work",
             work_title,
-            qualifier=last_focus_code,
             metadata={
-                "capability_focus_code": last_focus_code,
-                "capability_category": last_category[1] if last_category else None,
-                "capability_domain": last_domain[1] if last_domain else None,
-                "capability": last_capability[1] if last_capability else None,
+                "source_grain": "security_work_master",
             },
             source=_source(sheet_name, row_index, "安全工作", _coord(row[6]), work_raw),
         )
@@ -1400,9 +1428,10 @@ def parse_data_lifecycle_sheet(
                 result.relations.append(_relation(process.key, "has_scene", scene.key, "包含场景", source=scene.sources[0]))
 
         for service_raw in _split_lines(_cell_raw(row, 7)):
-            parts = service_parts(service_raw)
+            raw_parts = service_parts(service_raw)
+            _validate_service_reference(result, sheet_name, row_index, service_raw, raw_parts, authoritative_service_titles)
+            parts = _canonical_service_parts_by_authority(raw_parts, authoritative_service_titles)
             service_code = parts["code"]
-            _validate_service_reference(result, sheet_name, row_index, service_raw, parts, authoritative_service_titles)
             if not _is_authoritative_service_reference(authoritative_service_titles, parts):
                 continue
             service = _object(
@@ -1502,9 +1531,10 @@ def parse_data_lifecycle_mapping_sheet(
             "policy_sequence": normalize_text(_cell_raw(row, 3)) or None,
         }
         for service_raw in _split_lines(_cell_raw(row, 12)):
-            parts = service_parts(service_raw)
+            raw_parts = service_parts(service_raw)
+            _validate_service_reference(result, sheet_name, row_index, service_raw, raw_parts, authoritative_service_titles)
+            parts = _canonical_service_parts_by_authority(raw_parts, authoritative_service_titles)
             service_code = parts["code"]
-            _validate_service_reference(result, sheet_name, row_index, service_raw, parts, authoritative_service_titles)
             if not _is_authoritative_service_reference(authoritative_service_titles, parts):
                 continue
             service = _object(

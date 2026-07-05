@@ -153,8 +153,8 @@
       }
     },
     "security_work": {
-      "f3d99c68-9140-4754-927d-09f020fe352c": {
-        "id": "f3d99c68-9140-4754-927d-09f020fe352c",
+      "0a74d097-1fa4-4222-94ae-82e48be6036f": {
+        "id": "0a74d097-1fa4-4222-94ae-82e48be6036f",
         "type": "security_work",
         "code": "",
         "title": "威胁情报治理",
@@ -343,11 +343,11 @@
       "evidenceRefCount": 3
     },
     {
-      "id": "relation:03d57203590247ed",
+      "id": "relation:43ffe19ca1a25b33",
       "type": "maps_to_work",
       "sourceId": "8cec61ed-aedb-45af-a9a3-36a99a6f3c83",
       "sourceType": "capability_focus",
-      "targetId": "f3d99c68-9140-4754-927d-09f020fe352c",
+      "targetId": "0a74d097-1fa4-4222-94ae-82e48be6036f",
       "targetType": "security_work",
       "label": "映射安全工作",
       "status": "active",
@@ -483,7 +483,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 10
+      "evidenceRefCount": 11
     }
   ],
   "relationCount": 19

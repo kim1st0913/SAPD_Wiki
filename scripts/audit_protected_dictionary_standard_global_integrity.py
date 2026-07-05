@@ -631,8 +631,13 @@ def scan_strings(value: str, path: Path, json_path: str, indexes: dict[str, Any]
             issues.append(issue("oldServiceCode", "P2-candidate-fix", path, json_path, code, OLD_SERVICE_CODE_MAP[code], "旧服务编号残留"))
         elif code not in service_codes:
             issues.append(issue("unknownServiceCode", "P1-data-integrity", path, json_path, code, reason="服务编号未命中安全技术服务字典"))
-    for code, name_rule in OLD_SERVICE_NAME_BY_CODE.items():
-        if code in value and name_rule["old"] in value:
+    service_matches = list(SERVICE_CODE_RE.finditer(value))
+    for index, match in enumerate(service_matches):
+        code = match.group(0)
+        next_start = service_matches[index + 1].start() if index + 1 < len(service_matches) else len(value)
+        service_segment = value[match.start():next_start]
+        name_rule = OLD_SERVICE_NAME_BY_CODE.get(code)
+        if name_rule and name_rule["old"] in service_segment:
             issues.append(issue("oldServiceName", "P2-candidate-fix", path, json_path, name_rule["old"], name_rule["canonical"], "旧服务名称残留"))
     return issues
 

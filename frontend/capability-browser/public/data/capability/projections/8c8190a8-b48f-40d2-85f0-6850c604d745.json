@@ -198,8 +198,8 @@
       }
     },
     "security_work": {
-      "252cb7ba-1684-40e9-ac10-e529243ade98": {
-        "id": "252cb7ba-1684-40e9-ac10-e529243ade98",
+      "2f4697db-9214-40f4-ac16-d223286871cd": {
+        "id": "2f4697db-9214-40f4-ac16-d223286871cd",
         "type": "security_work",
         "code": "",
         "title": "入侵检测规则持续管理",
@@ -413,8 +413,8 @@
         "id": "4abd36d3-4ba1-495c-8fb9-3957167f4833",
         "type": "scope_type",
         "code": "I-OS",
-        "title": "操作系统（主机/终端）",
-        "name": "操作系统（主机/终端）",
+        "title": "操作系统",
+        "name": "操作系统",
         "category": "网络空间",
         "status": ""
       }
@@ -562,7 +562,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 2
+      "evidenceRefCount": 3
     },
     {
       "id": "relation:79148b6b19a4ae96",
@@ -575,14 +575,14 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 2
+      "evidenceRefCount": 3
     },
     {
-      "id": "relation:9cb4b848e06b746e",
+      "id": "relation:01f4b73afcc08783",
       "type": "maps_to_work",
       "sourceId": "8c8190a8-b48f-40d2-85f0-6850c604d745",
       "sourceType": "capability_focus",
-      "targetId": "252cb7ba-1684-40e9-ac10-e529243ade98",
+      "targetId": "2f4697db-9214-40f4-ac16-d223286871cd",
       "targetType": "security_work",
       "label": "映射安全工作",
       "status": "active",
@@ -926,7 +926,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 3
+      "evidenceRefCount": 12
     },
     {
       "id": "relation:95989853b16f96b6",
@@ -939,7 +939,7 @@
       "status": "active",
       "confidence": "explicit",
       "objectContextKey": "",
-      "evidenceRefCount": 3
+      "evidenceRefCount": 12
     }
   ],
   "relationCount": 40

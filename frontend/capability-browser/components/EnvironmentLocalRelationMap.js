@@ -775,7 +775,7 @@
       <div class="environment-search-control page-search-control ${escape(extraClass || "")}" role="search" aria-label="信息化环境页面内搜索">
         <label class="page-search-input-shell" for="environmentSearchInput">
           <span class="capability-search-icon" aria-hidden="true">⌕</span>
-          <input id="environmentSearchInput" type="search" value="${escape(search || "")}" placeholder="搜索环境、对象、作用域、服务、模块、措施或系统" />
+          <input id="environmentSearchInput" type="search" value="${escape(search || "")}" placeholder="搜索环境、对象、作用域、服务、模块、措施或系统" autocomplete="off" data-search-history-kind="environment" />
         </label>
         <span class="page-search-match-status" data-page-search-status="environment-mapping" aria-live="polite"></span>
         <button class="page-search-step" type="button" data-page-search-step="-1" data-page-search-scope="environment-mapping" title="上一个匹配" aria-label="上一个匹配">‹</button>
@@ -786,6 +786,7 @@
 
   function renderMappingTab({ viewModel, selectedRowId, selectedEnvironmentId, selectedSegmentId, selectedObjectId, search, expandedIds, catalogCollapsed, graphVariant = "funnel" }) {
     const showObjectRelations = viewModel?.selectedMode === "object";
+    const hasSelection = Boolean(viewModel?.selectedMode);
     const hasSearch = String(search || "").trim().length > 0;
     const isSearchEmpty = hasSearch && !utils.list(viewModel?.navigationTree).length;
     return `
@@ -837,6 +838,8 @@
           ${
             isSearchEmpty
               ? `<div class="reference-empty environment-search-empty">未找到匹配的信息化环境对象。请调整页面内搜索条件。</div>`
+              : !hasSelection
+              ? `<div class="reference-empty environment-selection-empty">请选择左侧信息化环境或对象。</div>`
               : showObjectRelations
               ? components.EnvironmentScopeServiceMatrix?.render({
                   rows: viewModel?.scopeServiceRows,
@@ -858,15 +861,14 @@
     const showMapping = normalizedActiveTab === "mapping";
     const graphVariant = "funnel";
     return `
-      <section class="semantic-panel environment-relation-map environment-tabbed-map">
-        <input class="environment-tab-input" id="environmentTabTopology" type="radio" name="environmentDetailTab" ${showMapping ? "" : "checked"}>
-        <input class="environment-tab-input" id="environmentTabMapping" type="radio" name="environmentDetailTab" ${showMapping ? "checked" : ""}>
+      <section class="semantic-panel environment-relation-map environment-tabbed-map" data-environment-active-tab="${escape(normalizedActiveTab)}">
         <div class="environment-tab-panels">
-          <div class="environment-tab-panel environment-tab-panel-topology">
-            ${showMapping ? "" : renderTopology({ viewModel, search })}
-          </div>
-          <div class="environment-tab-panel environment-tab-panel-mapping">
-            ${showMapping ? renderMappingTab({ viewModel, selectedRowId, selectedEnvironmentId, selectedSegmentId, selectedObjectId, search, expandedIds, catalogCollapsed, graphVariant }) : ""}
+          <div class="environment-tab-panel ${showMapping ? "environment-tab-panel-mapping" : "environment-tab-panel-topology"} is-active">
+            ${
+              showMapping
+                ? renderMappingTab({ viewModel, selectedRowId, selectedEnvironmentId, selectedSegmentId, selectedObjectId, search, expandedIds, catalogCollapsed, graphVariant })
+                : renderTopology({ viewModel, search })
+            }
           </div>
         </div>
       </section>

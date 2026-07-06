@@ -6,8 +6,8 @@
 
 - 生成日期：2026-06-01
 - 问题总数：191
-- 当前未关闭问题数：3
-- 已关闭归档问题数：188
+- 当前未关闭问题数：2
+- 已关闭归档问题数：189
 - 当前入口：`docs/06-implementation/open-issues.md`
 - 已关闭归档：`docs/05-archive/open-issues-history/2026-06.md`
 
@@ -19,9 +19,9 @@
 | 部分完成 | 1 |
 | 业务接受 | 5 |
 | 已关闭 | 54 |
+| 已关闭 / 自动验收通过 | 1 |
 | 已回退 | 1 |
 | 已修复 | 127 |
-| 已修复 / 待打包验收 | 1 |
 | 已修复，后续可继续优化 | 1 |
 | 长期保留 / 按需继续修复 | 1 |
 
@@ -227,6 +227,6 @@
 | OI-147 | 已关闭 | 信息化环境安全技术汇聚图措施误继承安全系统 | 数据 / 前端 / ViewModel / 信息化环境映射 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-146 | 已关闭 | 信息化环境安全技术汇聚图安全系统列未带出 | 前端 / ViewModel / 信息化环境映射 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-135 | 已关闭 | 用户库治理与兼容表迁移清理 | 数据 / 前端 / Delivery Bundle / 治理 | docs/05-archive/open-issues-history/2026-06.md |
-| OI-157 | 已修复 / 待打包验收 | 打包测试反馈需要单独导出用户批注 | Delivery Bundle / 用户数据 / 批注 / 诊断 | docs/06-implementation/open-issues.md |
+| OI-157 | 已关闭 / 自动验收通过 | 打包测试反馈需要单独导出用户批注 | Delivery Bundle / 用户数据 / 批注 / 诊断 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-138 | 长期保留 / 按需继续修复 | 关注点关系图谱标签与节点 / 连线碰撞 | 前端 / 图谱布局 / 设计 | docs/06-implementation/open-issues.md |
 | OI-128 | 部分完成 | USER-WRITE-UI-1：批注 / 工作台用户写入入口 | 前端 / 用户数据 / Delivery Bundle | docs/06-implementation/open-issues.md |

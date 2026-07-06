@@ -4,8 +4,8 @@
 
 ## 治理入口
 
-- 当前未关闭问题数：3
-- 已关闭归档问题数：188
+- 当前未关闭问题数：2
+- 已关闭归档问题数：189
 - 全量索引：`docs/06-implementation/open-issues-index.md`
 - 已关闭问题归档：`docs/05-archive/open-issues-history/2026-06.md`
 - 重复编号待治理：`OI-044`、`OI-092`，索引中使用 `OI-xxx#n` 区分历史条目。
@@ -24,7 +24,6 @@
 
 | 编号 | 状态 | 标题 |
 |---|---|---|
-| OI-157 | 已修复 / 待打包验收 | 打包测试反馈需要单独导出用户批注 |
 | OI-138 | 长期保留 / 按需继续修复 | 关注点关系图谱标签与节点 / 连线碰撞 |
 | OI-128 | 部分完成 | USER-WRITE-UI-1：批注 / 工作台用户写入入口 |
 
@@ -48,17 +47,6 @@
 
 ## 当前问题详情
 
-## OI-157：打包测试反馈需要单独导出用户批注
-
-- 状态：已修复 / 待打包验收
-- 类型：Delivery Bundle / 用户数据 / 批注 / 诊断
-- 对象或页面：打包后的 SAPD Wiki 本地后端、`user_notes` 批注表、`diagnostics/` 目录。
-- 现象：用户在打包后测试阶段发现多个 bug，希望把系统内部批注作为反馈材料导出；现有诊断包默认排除 SQLite 数据库内容和用户批注正文，避免无意泄露个人备注，但缺少显式的批注专项导出入口。
-- 影响：测试同事只能截图或手工复制批注，问题上下文、页面路由、锚点类型、对象标题和状态容易丢失；若直接要求发送用户库，又会扩大隐私和数据暴露范围。
-- 当前处理：新增显式批注导出能力：本地 API `GET /api/v1/user/notes/export?download=1` 下载 Markdown 文件，内容包含导出摘要、状态 / 页面 / 锚点 / 对象统计、页面路由、锚点信息、对象标题、标签、创建更新时间和批注正文，面向测试反馈直接阅读；不再把一键导出文件交付为 JSON。打包脚本同步生成 `diagnostics/export-user-notes.command` 和 `diagnostics/export-user-notes.bat`，即使页面打不开，也可通过本地后端命令把 `.md` 导出文件写入 `data/exports/`。
-- 需要确认：批注导出包含用户批注正文，只应在需要反馈问题时主动运行并分享；通用诊断包继续默认不包含批注正文和 SQLite 数据库内容。
-- 修复说明：修改 `scripts/run_local_server.py`、`src/sapd_wiki/api_server.py`、`frontend/capability-browser/dataClient.js`、`frontend/capability-browser/app.js`、`scripts/build_zip_bundle.py`，未修改业务数据包、SQLite 用户库、原始 Excel、标准包、字典包或 LC 数据包。
-- 验证结果：历史打包链路已通过 `python3 -m py_compile scripts/run_local_server.py scripts/build_zip_bundle.py scripts/package_backend_pyinstaller.py src/sapd_wiki/api_server.py`；临时 mac bundle `--export-user-notes` 原可生成 JSON，本轮已改为生成 `user-notes-export-*.md`；5173 预览服务 `/api/v1/user/notes/export?download=1` 应返回 Markdown 附件文件名。强制重建 macOS backend 后，App Runtime 后端 `--help` 已包含 `--export-user-notes`；最终 DMG 通过 `codesign --verify --deep --strict --verbose=2`、`hdiutil verify` 和 `python3 scripts/check_bundle_runtime.py`。本轮 Markdown 改动的最新验证见 `progress.md`。
 ## OI-138：关注点关系图谱标签与节点 / 连线碰撞
 
 - 状态：长期保留 / 按需继续修复

@@ -30,6 +30,9 @@ const appJs = read("frontend/capability-browser/app.js");
 const dataClientJs = read("frontend/capability-browser/dataClient.js");
 const indexHtml = read("frontend/capability-browser/index.html");
 const stylesCss = read("frontend/capability-browser/styles.css");
+const focusScopeServiceMatrixJs = read("frontend/capability-browser/components/FocusScopeServiceMatrix.js");
+const technicalServiceMaintenanceTableJs = read("frontend/capability-browser/components/TechnicalServiceMaintenanceTable.js");
+const applicationSecurityLifecycleJs = read("frontend/capability-browser/components/ApplicationSecurityLifecycle.js");
 const apiServerPy = read("src/sapd_wiki/api_server.py");
 const globalSearchContract = read("docs/06-implementation/global-search-contract-2026-07-05.md");
 const apiAddSearchItem = snippet(apiServerPy, "def _add_search_item(", "def _add_navigation_search_items");
@@ -74,6 +77,17 @@ const checks = [
     message: "search index must route security modules and measures to their concrete maintenance tabs for reliable reveal.",
   },
   {
+    id: "frontend_fallback_dictionary_results_have_stable_target_ref",
+    ok:
+      appJs.includes('objectType: "security_technology_module"') &&
+      appJs.includes('objectType: "security_technical_measure"') &&
+      appJs.includes("function maintenanceSearchTargetRef") &&
+      appMaintenance.includes("targetRef: maintenanceSearchTargetRef(objectType, id)") &&
+      appMaintenance.includes("objectType,") &&
+      appMaintenance.includes("objectId: id"),
+    message: "frontend fallback maintenance search results must carry objectType/objectId/targetRef so activation reveals the exact row instead of only opening a tab.",
+  },
+  {
     id: "api_index_routes_gbt_reference_tab",
     ok:
       apiServerPy.includes('"gbt_42446_references", "GB/T 42446 任务", "/standards/workforce-reference"') &&
@@ -97,6 +111,17 @@ const checks = [
       apiServerPy.includes('target_ref=f"{object_type}:{process_id}:{child_id}"') &&
       apiServerPy.includes("object_id=process_id"),
     message: "search index must include lifecycle process detail cells and route them to their owning LC stage/process.",
+  },
+  {
+    id: "api_index_covers_lcdt_policy_matrix_rows",
+    ok:
+      apiServerPy.includes('process.get("data_policy_rows")') &&
+      apiServerPy.includes('target_ref=f"lifecycle_policy_row:{process_id}:{row_id}"') &&
+      apiServerPy.includes('target_ref=f"lifecycle_policy_relation:{relation_type}:{process_id}:{row_id}:{child_id}"') &&
+      apiServerPy.includes('"selected_process_id": process_id') &&
+      apiServerPy.includes('type_label="数据重要程度安全策略矩阵"') &&
+      apiServerPy.includes('"LC-DT 矩阵安全技术模块"'),
+    message: "global search must index LC-DT data policy matrix rows and row-level service/module targets, not only lifecycle stages.",
   },
   {
     id: "api_index_has_business_coverage_aliases",
@@ -198,6 +223,53 @@ const checks = [
       appJs.includes("capability_relation:") &&
       appJs.includes("flattenCapabilitySearchItems(state.capability, state.capabilityWorkbench)"),
     message: "global search must index capability relation nodes and route them to their owning focus without using aliases.",
+  },
+  {
+    id: "management_service_exact_code_keeps_dictionary_and_capability_targets",
+    ok:
+      !apiServerPy.includes("def _prefer_capability_relation_search_results") &&
+      !appJs.includes("function preferCapabilityRelationSearchResults") &&
+      apiServerPy.includes('"/knowledge/technical-services", "security_technical_service"') &&
+      apiServerPy.includes('target_ref=f"capability_relation:{relation_type}:{focus_id}:{item_id}"') &&
+      appJs.includes("capability_relation:${relationType}") &&
+      appJs.includes('relationType: "security_technical_service"'),
+    message: "source-defined M-* -00 exact-code search must keep both the dictionary definition target and the capability relation target.",
+  },
+  {
+    id: "capability_relation_search_targets_technical_table_anchor",
+    ok:
+      appJs.includes("function capabilityRelationTabForSearchResult") &&
+      appJs.includes('return "technical"') &&
+      appJs.includes("state.activeCapabilityRelationTab = capabilityRelationTab") &&
+      appJs.includes("state.lastCapabilityRelationSelectionId = result.selectedCapabilityId") &&
+      appJs.includes("data-capability-relation-target-ref") &&
+      focusScopeServiceMatrixJs.includes("function capabilityRelationAnchorAttrs") &&
+      focusScopeServiceMatrixJs.includes("capability_relation:${relationType}:${focusId}:${objectId}") &&
+      focusScopeServiceMatrixJs.includes('relationType: "security_technical_service"') &&
+      indexHtml.includes("oi188-relation-target-anchor-20260706-1"),
+    message: "capability_relation search results must open the matching relation tab and reveal a table chip by target_ref, not a graph/text fallback.",
+  },
+  {
+    id: "lcdt_policy_matrix_search_targets_exact_anchor",
+    ok:
+      applicationSecurityLifecycleJs.includes("function dataPolicyRowTargetRef") &&
+      applicationSecurityLifecycleJs.includes("function dataPolicyRelationTargetRef") &&
+      applicationSecurityLifecycleJs.includes("data-lifecycle-target-ref") &&
+      appJs.includes("function findLifecycleSearchTargetByRef") &&
+      appJs.includes('"data-lifecycle-target-ref"') &&
+      appJs.includes("function lifecycleDataPolicyOccurrenceMatches") &&
+      appJs.includes("lifecycle_policy_relation:${relationType}") &&
+      indexHtml.includes("oi189-lcdt-policy-anchor-20260706-1"),
+    message: "LC-DT policy matrix search must reveal exact row/chip anchors by target_ref for local and global search.",
+  },
+  {
+    id: "technical_service_dictionary_search_reveals_selected_row",
+    ok:
+      technicalServiceMaintenanceTableJs.includes("groupHasSelectedService") &&
+      technicalServiceMaintenanceTableJs.includes("groupHasSelectedService || expandAll") &&
+      technicalServiceMaintenanceTableJs.includes("if (!selectedId) scheduleScrollRestore()") &&
+      indexHtml.includes("oi188-selected-row-expand-20260706-1"),
+    message: "technical service dictionary search activation must expand the selected service group and avoid restoring stale scroll over the selected row.",
   },
   {
     id: "capability_tree_search_uses_own_fields_not_parent_trail",
@@ -649,13 +721,14 @@ if (url) {
       .filter((result) => {
         const targetRef = String(result?.target_ref || result?.targetRef || "");
         if (targetRef.startsWith("capability_relation:")) return false;
-        return !/^security_technical_(?:measure|module):[^:]+:[^:]+/.test(targetRef);
+        const expectedPrefix = result.object_type === "security_technical_measure" ? "security_technical_measure:" : "security_technology_module:";
+        return !targetRef.startsWith(expectedPrefix);
       })
       .filter((result) => {
         if (result.object_type === "security_technical_measure") return result.route !== "/knowledge/technical-measures";
         return result.route !== "/knowledge/technical-modules";
       })
-      .map((result) => ({ title: result.title, object_type: result.object_type, route: result.route }));
+      .map((result) => ({ title: result.title, object_type: result.object_type, route: result.route, target_ref: result.target_ref || result.targetRef }));
     checks.push({
       id: "runtime_technical_dictionary_routes_are_specific",
       ok: technicalTabRouteIssues.length === 0,
@@ -891,6 +964,25 @@ if (url) {
         query: "数据销毁",
         match: (result) => /数据销毁/.test(`${result?.title || ""} ${result?.target_text || ""}`),
       },
+      {
+        id: "runtime_lcdt_policy_matrix_relation_target",
+        query: "数据流转监测和泄漏防护",
+        match: (result) =>
+          result?.route === "/data-security" &&
+          /^lifecycle_policy_(row|relation):/.test(result?.target_ref || "") &&
+          Boolean(result?.selected_process_id || result?.selectedProcessId || result?.object_id),
+      },
+      ...["M-PM.PR-00", "M-SA.RM-00", "M-SA.RE-00", "M-SA.CO-00", "M-SE.PE-00", "M-PS.CT-00"].map((query) => ({
+        id: `runtime_management_service_dual_target_${query.toLowerCase().replace(/[^a-z0-9]+/g, "_")}`,
+        query,
+        match: (result) =>
+          result?.route === "/capability-mapping" &&
+          result?.object_type === "security_technical_service" &&
+          result?.code === query &&
+          /^capability_relation:security_technical_service:/.test(result?.target_ref || "") &&
+          Boolean(result?.selected_capability_id || result?.selectedCapabilityId),
+        requiredMatch: (result) => result?.route === "/knowledge/technical-services" && result?.object_type === "security_technical_service" && result?.code === query,
+      })),
     ];
     for (const coverageCase of coverageCases) {
       const coverageEndpoint = `${url.replace(/\/$/, "")}/api/v1/search-index?q=${encodeURIComponent(coverageCase.query)}&limit=40`;
@@ -899,15 +991,20 @@ if (url) {
       const coverageData = coveragePayload?.data || coveragePayload;
       const coverageResults = Array.isArray(coverageData?.results) ? coverageData.results : [];
       const matched = coverageResults.filter(coverageCase.match);
+      const required = coverageCase.requiredMatch ? coverageResults.filter(coverageCase.requiredMatch) : [];
       const forbidden = coverageCase.forbiddenMatch ? coverageResults.filter(coverageCase.forbiddenMatch) : [];
+      const firstMatched = coverageCase.firstMatch ? coverageCase.firstMatch(coverageResults[0]) : true;
+      const requiredMatched = coverageCase.requiredMatch ? required.length > 0 : true;
       checks.push({
         id: coverageCase.id,
-        ok: coverageResponse.ok && matched.length > 0 && forbidden.length === 0,
+        ok: coverageResponse.ok && matched.length > 0 && requiredMatched && forbidden.length === 0 && firstMatched,
         message: `runtime search-index must cover business query "${coverageCase.query}".`,
         detail: {
           status: coverageResponse.status,
           resultCount: coverageResults.length,
+          first: coverageResults[0] ? { title: coverageResults[0].title, route: coverageResults[0].route, typeLabel: coverageResults[0].typeLabel || coverageResults[0].type_label, target_ref: coverageResults[0].target_ref } : null,
           matched: matched.slice(0, 5).map((result) => ({ title: result.title, route: result.route, typeLabel: result.typeLabel || result.type_label, target_ref: result.target_ref })),
+          required: required.slice(0, 5).map((result) => ({ title: result.title, route: result.route, typeLabel: result.typeLabel || result.type_label, target_ref: result.target_ref })),
           forbidden: forbidden.slice(0, 5).map((result) => ({ title: result.title, route: result.route, typeLabel: result.typeLabel || result.type_label, target_ref: result.target_ref })),
         },
       });

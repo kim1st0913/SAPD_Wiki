@@ -23,7 +23,7 @@
 | ZIP-UAT-0 内部试发边界 | macOS arm64 已具备 1-3 人内部小范围试发条件，alpha 试发材料已固定到 `/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/sapd wiki bundle/dist/releases/0.1.0-alpha/`；Windows x64 仍为构建脚本就绪 / 未实机验证，release manifest 中标记为 `pending / not_verified`。完整双平台 UAT 必须等 Windows x64 实包验证通过后再启动 | `docs/09-delivery/zip-uat-0-internal-trial-guide.md`, `docs/09-delivery/zip-uat-0-checklist.md`, `docs/09-delivery/zip-uat-feedback-template.md` |
 | C/S 客户端交付路线 | ZIP alpha 不被 Tauri / 安装包替代；后续 macOS / Windows C/S 客户端建议走 `Tauri Client + SAPD-Wiki-Backend sidecar + base/user 双库 + 127.0.0.1 本地 API`，先做 macOS arm64 P1 Spike，再进入签名、公证、Windows installer、自动更新和企业分发治理 | `docs/09-delivery/cs-client-delivery-presearch-macos-windows.md` |
 | Delivery Bundle 1.0 设计沟通边界 | 设计团队先聚焦首次启动准备态、初始化失败 / 修复、本地数据状态、升级提示和 zip 用户说明；不设计登录、导入、数据库选择器、ETL 配置器或开发者控制台 | `frontend/design-handoff/implementation-specs/delivery-bundle-1.0-design-brief-2026-05-28.md` |
-| 问题管理 | bug、数据问题、页面问题统一维护在 `open-issues.md` | `docs/06-implementation/open-issues.md` |
+| 问题与文档管理 | 小修、小 bug 和一次性排查默认直接修复，不新增文档、不新建 `OI`；只有全局契约、数据 / 审计 / 安全边界、中高严重性、无法本轮闭环或需要用户判断 / 验收的问题才进入 `open-issues.md`；新文档必须有读者、长期用途、索引和退役条件 | `AGENTS.md`, `docs/07-governance/governance-index.md`, `docs/06-implementation/open-issues.md` |
 | maturity 边界 | maturity 是主工程下独立模块；运行数据使用 `maturity_*`，不写入 `knowledge_items` | `docs/08-maturity/` |
 | SAPD 成熟度评估入口 | 已补入前端菜单和数据契约规划，路由建议为 `/sapd-maturity-assessment`，页面类型暂用 `domain-module`，代码实现另开会话 | `docs/00-overview/frontend-menu-and-page-type-definition-v1.md`, `docs/04-user-guide/frontend-data-contract-baseline-1.0.md` |
 | 后续项目推进方式 | 后续计划拆成“前端页面设计线”和“后端数据 / 逻辑线”；每页按后端投影契约 -> 前端页面实现 -> 验收回归推进 | `task_plan.md` |
@@ -46,6 +46,7 @@
 | 风险 | 当前处理 |
 |---|---|
 | 上下文过大导致主控卡死 | 默认读取 `AGENTS.md` + `CURRENT_STATE.md`，长历史放入 `docs/05-archive/` |
+| 文档和 Issue 继续膨胀 | 默认不为小修新增文档或 `OI`；修复后需要用户验收的问题必须在完成反馈给入口，用户确认后及时关闭 / 归档 |
 | 过早进入新功能 | Phase 7、maturity M1、新 Sheet 扩展均不默认启动 |
 | 前端硬编码业务关系 | 发现数据缺口时记录为数据契约或待确认问题，不在页面临时编造 |
 | 前后端边界漂移 | 新页面、新字段和新关系先更新后端契约，再进入前端实现；禁止组件直接读取原始数据或临时 JSON |

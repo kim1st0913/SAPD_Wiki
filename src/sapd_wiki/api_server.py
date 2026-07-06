@@ -57,7 +57,7 @@ MAINTENANCE_SECTIONS = (
 
 FRONTEND_PUBLIC_DATA_ROOT = (PROJECT_ROOT / "frontend" / "capability-browser" / "public" / "data").resolve()
 USER_DB_PATH = (PROJECT_ROOT / "data" / "user" / "sapd_wiki_user.sqlite3").resolve()
-USER_SCHEMA_VERSION = "user_schema_0.2"
+USER_SCHEMA_VERSION = "user_schema_0.3"
 LOCAL_API_AUTH_HEADER = "X-SAPD-Session-Token"
 USER_SCHEMA_SQL = """
 PRAGMA foreign_keys = ON;
@@ -160,6 +160,155 @@ CREATE TABLE IF NOT EXISTS user_change_logs (
 CREATE TABLE IF NOT EXISTS user_schema_migrations (
   version TEXT PRIMARY KEY,
   applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+"""
+
+USER_SCHEMA_V03_SQL = """
+CREATE TABLE IF NOT EXISTS user_workspaces (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_workspace_items (
+  id TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL,
+  target_ref TEXT NOT NULL,
+  item_status TEXT NOT NULL DEFAULT 'active',
+  sort_order INTEGER,
+  payload_json TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(workspace_id, target_ref),
+  FOREIGN KEY(workspace_id) REFERENCES user_workspaces(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS user_data_baskets (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_data_basket_items (
+  id TEXT PRIMARY KEY,
+  basket_id TEXT NOT NULL,
+  target_ref TEXT NOT NULL,
+  object_type TEXT,
+  object_title TEXT,
+  payload_json TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(basket_id, target_ref),
+  FOREIGN KEY(basket_id) REFERENCES user_data_baskets(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS user_export_profiles (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  export_type TEXT NOT NULL,
+  config_json TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_export_jobs (
+  id TEXT PRIMARY KEY,
+  profile_id TEXT,
+  export_type TEXT NOT NULL,
+  source_ref TEXT,
+  status TEXT NOT NULL DEFAULT 'draft',
+  preview_json TEXT,
+  output_path TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_capability_models (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  status TEXT NOT NULL DEFAULT 'draft',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_capability_model_nodes (
+  id TEXT PRIMARY KEY,
+  model_id TEXT NOT NULL,
+  parent_id TEXT,
+  source_ref TEXT,
+  node_type TEXT NOT NULL,
+  code TEXT,
+  title TEXT NOT NULL,
+  description TEXT,
+  payload_json TEXT,
+  sort_order INTEGER,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_capability_model_relations (
+  id TEXT PRIMARY KEY,
+  model_id TEXT NOT NULL,
+  source_node_id TEXT NOT NULL,
+  target_ref TEXT NOT NULL,
+  relation_type TEXT NOT NULL,
+  payload_json TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_import_staging_items (
+  id TEXT PRIMARY KEY,
+  import_job_id TEXT NOT NULL,
+  target_ref TEXT,
+  item_type TEXT NOT NULL,
+  action_type TEXT NOT NULL DEFAULT 'create',
+  payload_json TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'draft',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_import_staging_relations (
+  id TEXT PRIMARY KEY,
+  import_job_id TEXT NOT NULL,
+  source_ref TEXT NOT NULL,
+  target_ref TEXT NOT NULL,
+  relation_type TEXT NOT NULL,
+  action_type TEXT NOT NULL DEFAULT 'create',
+  payload_json TEXT,
+  status TEXT NOT NULL DEFAULT 'draft',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_review_decisions (
+  id TEXT PRIMARY KEY,
+  target_ref TEXT NOT NULL,
+  decision_type TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  note TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_target_ref_migrations (
+  id TEXT PRIMARY KEY,
+  old_target_ref TEXT NOT NULL,
+  new_target_ref TEXT,
+  redirect_type TEXT NOT NULL,
+  affected_table TEXT NOT NULL,
+  affected_id TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  applied_at TEXT
 );
 """
 
@@ -1144,6 +1293,94 @@ def _add_lifecycle_search_items(rows: list[dict[str, Any]], seen: set[str]) -> N
                     object_id=process_id,
                     search_text=_search_compact(item.get("description"), item.get("category"), process_title, process.get("description")),
                 )
+        for row_index, row in enumerate(_list(process.get("data_policy_rows"))):
+            if not isinstance(row, dict):
+                continue
+            row_id = str(row.get("id") or f"data-policy-row:{row_index + 1}").strip()
+            row_title = _search_compact(row.get("category"), row.get("sequence")) or "数据重要程度安全策略"
+            policy_text = _search_compact(
+                *[
+                    _search_compact(
+                        policy.get("level"),
+                        policy.get("label"),
+                        policy.get("code"),
+                        policy.get("text"),
+                        policy.get("reference"),
+                        policy.get("status"),
+                    )
+                    for policy in _list(row.get("policies"))
+                    if isinstance(policy, dict)
+                ]
+            )
+            services = [item for item in _list(row.get("technical_services")) if isinstance(item, dict)]
+            modules = [
+                item
+                for item in _list(row.get("module_or_measure_items") or row.get("technology_modules") or row.get("technical_measures"))
+                if isinstance(item, dict)
+            ]
+            row_search_text = _search_compact(
+                policy_text,
+                *[_search_compact(item.get("code"), _title_of(item, ""), item.get("description"), item.get("category")) for item in services],
+                *[
+                    _search_compact(item.get("code"), _title_of(item, ""), item.get("description"), item.get("category"), item.get("objectKind"))
+                    for item in modules
+                ],
+            )
+            row_subtitle = " / ".join(part for part in (process_label, process_title, row_title) if part)
+            _add_search_item(
+                rows,
+                seen,
+                item_id=f"{process_id}:data_policy_row:{row_id}",
+                item_type="lifecycle",
+                type_label="数据重要程度安全策略矩阵",
+                title=row_title,
+                route=route,
+                subtitle=row_subtitle,
+                target_ref=f"lifecycle_policy_row:{process_id}:{row_id}",
+                target_text=row_title,
+                object_type="lifecycle_policy_row",
+                object_id=process_id,
+                search_text=row_search_text,
+                extra_fields={
+                    "selected_process_id": process_id,
+                },
+            )
+
+            def add_policy_relation_item(item: dict[str, Any], relation_type: str, type_label: str) -> None:
+                child_id = str(item.get("id") or item.get("code") or item.get("title") or item.get("name") or type_label).strip()
+                title = _title_of(item, "")
+                code = str(item.get("code") or "").strip()
+                if not child_id or not (title or code):
+                    return
+                _add_search_item(
+                    rows,
+                    seen,
+                    item_id=f"{process_id}:data_policy_relation:{relation_type}:{row_id}:{child_id}",
+                    item_type="lifecycle",
+                    type_label=type_label,
+                    title=title,
+                    code=code,
+                    subtitle=row_subtitle,
+                    route=route,
+                    target_ref=f"lifecycle_policy_relation:{relation_type}:{process_id}:{row_id}:{child_id}",
+                    target_text=title,
+                    object_type=relation_type,
+                    object_id=process_id,
+                    search_text=_search_compact(item.get("description"), item.get("category"), item.get("objectKind")),
+                    aliases=_search_business_aliases_for_item(item),
+                    extra_fields={
+                        "selected_process_id": process_id,
+                    },
+                    search_subtitle=False,
+                )
+
+            for service in services:
+                add_policy_relation_item(service, "security_technical_service", "LC-DT 矩阵安全技术服务")
+            for module in modules:
+                object_kind = str(module.get("objectKind") or module.get("object_kind") or "").strip()
+                relation_type = "security_technical_measure" if "措施" in object_kind else "security_technology_module"
+                type_label = "LC-DT 矩阵安全技术措施" if relation_type == "security_technical_measure" else "LC-DT 矩阵安全技术模块"
+                add_policy_relation_item(module, relation_type, type_label)
 
     app_lifecycle = lifecycle.get("application_security_development") or {}
     for process in _list(app_lifecycle.get("processes")):
@@ -1591,6 +1828,7 @@ def ensure_user_db() -> None:
     USER_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(USER_DB_PATH) as connection:
         connection.executescript(USER_SCHEMA_SQL)
+        connection.executescript(USER_SCHEMA_V03_SQL)
         ensure_user_note_columns(connection)
         connection.execute(
             """
@@ -2954,9 +3192,12 @@ def capability_workspace_projection(
     if selected_focus_ids:
         technical_rows = [row for row in technical_rows if str((row.get("focus") or {}).get("id") or "").strip() in selected_focus_ids]
         management_rows = [row for row in management_rows if str((row.get("focus") or {}).get("id") or "").strip() in selected_focus_ids]
-    local_relation_maps: list[dict[str, Any]] = _capability_local_relation_maps(capability, technical_rows, management_rows)
-    if selected_focus_ids:
-        local_relation_maps = [row for row in local_relation_maps if str((row.get("focus") or {}).get("id") or "").strip() in selected_focus_ids]
+    is_focus_projection = normalized_object_type == "capability_focus"
+    local_relation_maps: list[dict[str, Any]] = []
+    if is_focus_projection:
+        local_relation_maps = _capability_local_relation_maps(capability, technical_rows, management_rows)
+        if selected_focus_ids:
+            local_relation_maps = [row for row in local_relation_maps if str((row.get("focus") or {}).get("id") or "").strip() in selected_focus_ids]
     local_relation_maps_by_focus_id: dict[str, dict[str, Any]] = {}
     for row in local_relation_maps:
         focus = row.get("focus", {})
@@ -2976,8 +3217,8 @@ def capability_workspace_projection(
     standard_rows = _capability_standard_mapping_rows_for_focus_ids(selected_focuses) if selected_item else []
     aggregate_local_relation_map = (
         _capability_aggregate_local_relation_map(selected_item, normalized_object_type, technical_rows, management_rows, standard_rows)
-        if selected_item and normalized_object_type
-        else (local_relation_maps[0] if local_relation_maps else None)
+        if selected_item and is_focus_projection
+        else None
     )
     return {
         "generated_at": capability.get("generated_at") or shared_lookups.get("generated_at") or maintenance.get("generated_at"),

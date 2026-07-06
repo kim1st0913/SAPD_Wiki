@@ -49,8 +49,59 @@ const SOURCE_PACKAGES = {
   "standards-index": "standards-index.json",
 };
 
+let scopeAuthorityCache = null;
+
 function readJson(relativePath) {
   return JSON.parse(fs.readFileSync(path.join(DATA_DIR, relativePath), "utf8"));
+}
+
+function buildScopeAuthority() {
+  if (scopeAuthorityCache) return scopeAuthorityCache;
+  const scopes = asArray(readJson("maintenance/scopes.json").scope_types);
+  const byId = new Map();
+  const byCode = new Map();
+  const byTitle = new Map();
+  for (const scope of scopes) {
+    const canonical = {
+      id: String(scope.id || "").trim(),
+      type: "scope_type",
+      code: String(scope.code || "").trim(),
+      title: String(scope.title || scope.name || "").trim(),
+      name: String(scope.name || scope.title || "").trim(),
+      description: scope.description || "",
+      category: scope.category || scope.scenario || "",
+      status: scope.status || "",
+    };
+    if (canonical.id) byId.set(canonical.id, canonical);
+    if (canonical.code) byCode.set(canonical.code, canonical);
+    if (canonical.title) byTitle.set(canonical.title, canonical);
+    if (canonical.name) byTitle.set(canonical.name, canonical);
+  }
+  scopeAuthorityCache = { byId, byCode, byTitle };
+  return scopeAuthorityCache;
+}
+
+function canonicalScopeReference(record) {
+  if (!record || typeof record !== "object" || Array.isArray(record)) return record;
+  const type = record.type || record.object_type || record.objectType;
+  if (type !== "scope_type") return record;
+  const authority = buildScopeAuthority();
+  const canonical =
+    authority.byId.get(String(record.id || "").trim()) ||
+    authority.byCode.get(String(record.code || "").trim()) ||
+    authority.byTitle.get(String(record.title || record.name || "").trim());
+  if (!canonical) return record;
+  return {
+    ...record,
+    id: canonical.id || record.id || "",
+    type: "scope_type",
+    code: canonical.code || record.code || "",
+    title: canonical.title || record.title || record.name || "",
+    name: canonical.name || canonical.title || record.name || record.title || "",
+    description: record.description || canonical.description || "",
+    category: canonical.category || record.category || "",
+    status: record.status || canonical.status || "",
+  };
 }
 
 function writeJson(relativePath, value) {
@@ -108,7 +159,7 @@ function sanitizeUiValue(value) {
     const sanitized = sanitizeUiValue(child);
     if (sanitized !== undefined) result[key] = sanitized;
   }
-  return result;
+  return canonicalScopeReference(result);
 }
 
 function objectSummary(item, options = {}) {
@@ -600,6 +651,48 @@ function collectEnvironmentObjectsUnder(node, ancestors = [], contextIndex) {
   return contexts;
 }
 
+function compactEnvironmentContextObject(context) {
+  return sanitizeUiValue({
+    id: context.id || "",
+    type: context.type || "information_object",
+    code: context.code || "",
+    title: context.title || context.name || "",
+    name: context.name || context.title || "",
+    contextKey: context.contextKey || "",
+    environmentId: context.environmentId || "",
+    environmentTitle: context.environmentTitle || "",
+    segmentId: context.segmentId || "",
+    segmentTitle: context.segmentTitle || "",
+    segments: asArray(context.segments).map((segment) => ({
+      id: segment.id || "",
+      type: segment.type || "environment_segment",
+      code: segment.code || "",
+      title: segment.title || segment.name || "",
+      name: segment.name || segment.title || "",
+    })),
+    scope_count: Number(context.scope_count ?? asArray(context.scope_mappings).length) || 0,
+    service_count: Number(context.service_count) || 0,
+    module_count: Number(context.module_count) || 0,
+  });
+}
+
+function compactTopEnvironmentScopeTree(row, objectContexts) {
+  return [
+    sanitizeUiValue({
+      id: row.node?.id || "",
+      type: row.node?.type || "information_environment",
+      code: row.node?.code || "",
+      title: row.node?.title || row.node?.name || "",
+      name: row.node?.name || row.node?.title || "",
+      objects: objectContexts.map(compactEnvironmentContextObject),
+      object_count: objectContexts.length,
+      scope_mapping_count: objectContexts.reduce((sum, item) => sum + (Number(item.scope_count) || asArray(item.scope_mappings).length), 0),
+      service_count: objectContexts.reduce((sum, item) => sum + (Number(item.service_count) || 0), 0),
+      module_count: objectContexts.reduce((sum, item) => sum + (Number(item.module_count) || 0), 0),
+    }),
+  ];
+}
+
 function buildEnvironmentCandidate(records) {
   const workbench = readJson("environment-workbench.json");
   const objectsById = objectIndexes(workbench.objects);
@@ -625,14 +718,25 @@ function buildEnvironmentCandidate(records) {
       if (relation.sourceId) seedIds.add(relation.sourceId);
       if (relation.targetId) seedIds.add(relation.targetId);
     }
-    const scopeTreeObjects = [...contextKeys]
-      .map((key) => contextIndex.scopeTreeByContextKey.get(key))
-      .filter(Boolean)
-      .map(sanitizeUiValue);
     const projectionRelations =
       row.node?.type === "information_environment"
         ? relations.filter((relation) => ["contains_segment", "contains_object"].includes(relation.type))
         : relations;
+    const projectionIds =
+      row.node?.type === "information_environment"
+        ? new Set([
+            row.node.id,
+            ...row.ancestors.map((item) => item.id),
+            ...projectionRelations.flatMap((relation) => [relation.sourceId, relation.targetId]).filter(Boolean),
+          ])
+        : seedIds;
+    const scopeTreeObjects =
+      row.node?.type === "information_environment"
+        ? compactTopEnvironmentScopeTree(row, objectContexts)
+        : [...contextKeys]
+            .map((key) => contextIndex.scopeTreeByContextKey.get(key))
+            .filter(Boolean)
+            .map(sanitizeUiValue);
     const projection = {
       packageType: "oi-149-p4-environment-object-projection",
       dataState: "ready",
@@ -654,7 +758,7 @@ function buildEnvironmentCandidate(records) {
       ),
       objectContextIds: objectContexts.map((item) => item.id),
       contextKeys: [...contextKeys],
-      objects: groupedObjectsForIds(objectsById, seedIds, row.node.id),
+      objects: groupedObjectsForIds(objectsById, projectionIds, row.node.id),
       objectScopeTree: scopeTreeObjects,
       relations: projectionRelations.map(relationSummary),
       relationCount: projectionRelations.length,

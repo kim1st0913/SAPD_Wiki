@@ -1060,17 +1060,18 @@ function flattenCapabilitySearchItems(capability, capabilityWorkbench) {
 
 function maintenanceSearchSections() {
   return [
-    { key: "scope_types", typeLabel: "作用域", route: "/knowledge/scopes" },
-    { key: "security_technical_services", typeLabel: "安全技术服务", route: "/knowledge/technical-services" },
-    { key: "security_technology_modules", typeLabel: "安全技术模块", route: "/knowledge/technical-modules" },
-    { key: "security_technical_measures", typeLabel: "安全技术措施", route: "/knowledge/technical-measures" },
-    { key: "security_works", typeLabel: "安全工作", route: "/knowledge/management-workflows" },
-    { key: "security_processes", typeLabel: "安全流程", route: "/knowledge/management-workflows" },
-    { key: "work_function_layers", typeLabel: "安全职能", route: "/knowledge/functions" },
+    { key: "scope_types", typeLabel: "作用域", route: "/knowledge/scopes", objectType: "scope_type" },
+    { key: "security_technical_services", typeLabel: "安全技术服务", route: "/knowledge/technical-services", objectType: "security_technical_service" },
+    { key: "security_technology_modules", typeLabel: "安全技术模块", route: "/knowledge/technical-modules", objectType: "security_technology_module" },
+    { key: "security_technical_measures", typeLabel: "安全技术措施", route: "/knowledge/technical-measures", objectType: "security_technical_measure" },
+    { key: "security_works", typeLabel: "安全工作", route: "/knowledge/management-workflows", objectType: "security_work" },
+    { key: "security_processes", typeLabel: "安全流程", route: "/knowledge/management-workflows", objectType: "security_process" },
+    { key: "work_function_layers", typeLabel: "安全职能", route: "/knowledge/functions", objectType: "work_function" },
     {
       key: "gbt_42446_references",
       typeLabel: "GB/T 42446 任务",
       route: "/standards/workforce-reference",
+      objectType: "gbt_42446_task_reference",
       standardFramework: "workforce-reference-standards",
       standardTableId: "gbt-42446-classification",
     },
@@ -1078,6 +1079,7 @@ function maintenanceSearchSections() {
       key: "gartner_roles",
       typeLabel: "Gartner 岗位参考",
       route: "/standards/workforce-reference",
+      objectType: "work_role_reference",
       standardFramework: "workforce-reference-standards",
       standardTableId: "gartner-work-roles",
     },
@@ -1113,6 +1115,13 @@ function workforceReferenceSearchId(section, item, index, title) {
   return text(item.id || item.code || item.title || item.name || `${section.key}:${index}`).trim();
 }
 
+function maintenanceSearchTargetRef(objectType = "", id = "") {
+  const type = text(objectType).trim();
+  const value = text(id).trim();
+  if (!type || !value) return "";
+  return value.startsWith(`${type}:`) ? value : `${type}:${value}`;
+}
+
 function flattenMaintenanceSearchItems(maintenance, lifecycle) {
   const rows = [];
   for (const section of maintenanceSearchSections()) {
@@ -1122,6 +1131,7 @@ function flattenMaintenanceSearchItems(maintenance, lifecycle) {
       const code = text(entity.code || entity.serviceCode || entity.processCode || entity.referenceCode).trim();
       const title = text(entity.title || entity.name || entity.serviceName || entity.processName || entity.description || code || rawId).trim();
       const id = workforceReferenceSearchId(section, entity, index, title);
+      const objectType = text(section.objectType).trim();
       if (!title && !code) return;
       rows.push({
         id,
@@ -1131,6 +1141,9 @@ function flattenMaintenanceSearchItems(maintenance, lifecycle) {
         typeLabel: section.typeLabel,
         route: section.route,
         selectedMaintenanceId: id,
+        objectType,
+        objectId: id,
+        targetRef: maintenanceSearchTargetRef(objectType, id),
         standardFramework: section.standardFramework || "",
         standardTableId: section.standardTableId || "",
         referenceTab: "",
@@ -1176,9 +1189,10 @@ function flattenLifecycleSearchItems(lifecycleWorkbench, lifecycle) {
       typeLabel,
       route,
       selectedProcessId: targetProcessId,
-      targetText: title,
-      subtitle: compactSearchText(item.description, item.stage, item.phase, targetProcessId ? "生命周期阶段明细" : ""),
-      searchText: compactSearchText(code, title, item.description, item.stage, item.phase, item.objectKind, item.category),
+      targetRef: text(options.targetRef).trim(),
+      targetText: text(options.targetText || title).trim(),
+      subtitle: compactSearchText(options.subtitle, item.description, item.stage, item.phase, targetProcessId ? "生命周期阶段明细" : ""),
+      searchText: compactSearchText(code, title, options.searchText, item.description, item.stage, item.phase, item.objectKind, item.category),
     });
   };
   const addProcess = (item, route, typeLabel, index) => {
@@ -1212,6 +1226,65 @@ function flattenLifecycleSearchItems(lifecycleWorkbench, lifecycle) {
     ].forEach(([key, label]) => {
       list(item[key]).forEach((child, childIndex) => addLifecycleObject(child, route, label, item.id, childIndex));
     });
+    if (route === "/data-security") {
+      list(item.data_policy_rows || item.dataPolicyRows).forEach((row, rowIndex) => {
+        const rowId = text(row?.id || `data-policy-row:${rowIndex + 1}`).trim();
+        const rowTitle = compactSearchText(row?.category, row?.sequence) || "数据重要程度安全策略";
+        const rowSubtitle = compactSearchText(typeLabel, item.title || item.name, rowTitle);
+        const policyText = compactSearchText(
+          ...list(row?.policies).flatMap((policy) => [policy?.level, policy?.label, policy?.code, policy?.text, policy?.reference, policy?.status]),
+        );
+        const services = list(row?.technical_services || row?.technicalServices);
+        const modules = list(row?.module_or_measure_items || row?.moduleOrMeasureItems || row?.technology_modules || row?.technologyModules || row?.technical_measures || row?.technicalMeasures);
+        addLifecycleObject(
+          {
+            id: `${item.id}:data_policy_row:${rowId}`,
+            title: rowTitle,
+            description: compactSearchText(
+              policyText,
+              ...services.flatMap((service) => [service?.code, service?.title || service?.name, service?.description, service?.category]),
+              ...modules.flatMap((module) => [module?.code, module?.title || module?.name, module?.description, module?.category, module?.objectKind]),
+            ),
+          },
+          route,
+          "数据重要程度安全策略矩阵",
+          item.id,
+          rowIndex,
+          {
+            targetRef: lifecycleDataPolicyRowTargetRef(item.id, row),
+            targetText: rowTitle,
+            subtitle: rowSubtitle,
+          },
+        );
+        services.forEach((service, serviceIndex) => {
+          addLifecycleObject(
+            service,
+            route,
+            "LC-DT 矩阵安全技术服务",
+            item.id,
+            serviceIndex,
+            {
+              targetRef: lifecycleDataPolicyRelationTargetRef(item.id, row, "security_technical_service", service),
+              subtitle: rowSubtitle,
+            },
+          );
+        });
+        modules.forEach((module, moduleIndex) => {
+          const relationType = lifecycleDataPolicyRelationType(module);
+          addLifecycleObject(
+            module,
+            route,
+            relationType === "security_technical_measure" ? "LC-DT 矩阵安全技术措施" : "LC-DT 矩阵安全技术模块",
+            item.id,
+            moduleIndex,
+            {
+              targetRef: lifecycleDataPolicyRelationTargetRef(item.id, row, relationType, module),
+              subtitle: rowSubtitle,
+            },
+          );
+        });
+      });
+    }
   };
   list(lifecycle?.application_security_development?.processes).forEach((item, index) => addProcess(item, "/development-security", "LC-AP 阶段", index));
   list(lifecycle?.data_lifecycle?.processes).forEach((item, index) => addProcess(item, "/data-security", "LC-DT 过程", index));
@@ -1977,6 +2050,15 @@ function markPageSearchTarget(target) {
   }
 }
 
+function expandSearchTargetLineage(target) {
+  let node = target?.parentElement || null;
+  while (node && node !== document.body) {
+    if (node.tagName === "DETAILS") node.open = true;
+    node = node.parentElement;
+  }
+  expandAnnotationHiddenLineage(target);
+}
+
 function scrollSearchTargetIntoView(target, attempt = 0) {
   if (!target?.scrollIntoView) return;
   const behavior = attempt ? "auto" : "smooth";
@@ -2058,7 +2140,7 @@ function revealPageSearchTarget(pending = state.pendingPageSearchReveal, attempt
   }
   target = target || targets[activeIndex] || null;
   if (target) {
-    expandAnnotationHiddenLineage(target);
+    expandSearchTargetLineage(target);
     target.hidden = false;
     clearPageSearchHighlights();
     scrollSearchTargetIntoView(target, attempt);
@@ -2141,7 +2223,6 @@ function lifecycleSearchOccurrenceSources(row = {}) {
     "technicalServices",
     "technologyModules",
     "technicalMeasures",
-    "dataPolicyRows",
     "scenes",
   ].forEach((key) => {
     list(row[key]).forEach((item) => {
@@ -2156,20 +2237,104 @@ function lifecycleSearchOccurrenceSources(row = {}) {
   return values.map(text).filter(Boolean);
 }
 
+function lifecycleItemSearchValues(item = {}) {
+  if (!item || typeof item !== "object") return [item];
+  return [
+    item.code,
+    item.title,
+    item.name,
+    item.description,
+    item.category,
+    item.objectKind,
+    item.object_kind,
+    item.value,
+    item.requirement,
+    item.level,
+    item.label,
+    item.text,
+    item.reference,
+    item.status,
+  ];
+}
+
+function lifecycleDataPolicyRowTargetRef(stageId = "", row = {}) {
+  const ownerId = text(stageId).trim();
+  const rowId = text(row.id).trim();
+  return ownerId && rowId ? `lifecycle_policy_row:${ownerId}:${rowId}` : "";
+}
+
+function lifecycleDataPolicyRelationType(item = {}, fallback = "security_technology_module") {
+  const type = text(item.type).trim();
+  if (type) return type;
+  const objectKind = text(item.objectKind || item.object_kind).trim();
+  return objectKind.includes("措施") ? "security_technical_measure" : fallback;
+}
+
+function lifecycleDataPolicyRelationTargetRef(stageId = "", row = {}, relationType = "", item = {}) {
+  const ownerId = text(stageId).trim();
+  const rowId = text(row.id).trim();
+  const objectId = text(item.id || item.code || item.title || item.name).trim();
+  return ownerId && rowId && relationType && objectId ? `lifecycle_policy_relation:${relationType}:${ownerId}:${rowId}:${objectId}` : "";
+}
+
+function lifecycleDataPolicyOccurrenceMatches(stage = {}, query = "") {
+  const stageId = text(stage.id).trim();
+  const stageTitle = [stage.code, stage.title].filter(Boolean).join(" ");
+  const matches = [];
+  const pushMatches = (count, targetRef, title) => {
+    const normalizedCount = Math.max(0, Number(count) || 0);
+    if (!normalizedCount || !targetRef) return;
+    for (let index = 0; index < normalizedCount; index += 1) {
+      matches.push({
+        id: `${stageId || "stage"}::${targetRef}::${matches.length}`,
+        stageId,
+        occurrenceIndex: 0,
+        targetRef,
+        title: title || stageTitle,
+      });
+    }
+  };
+  list(stage.dataPolicyRows).forEach((row) => {
+    const rowTargetRef = lifecycleDataPolicyRowTargetRef(stageId, row);
+    const rowLabel = [stageTitle, row.category, row.sequence].filter(Boolean).join(" / ");
+    const rowValueCount = [row.category, row.sequence].reduce((total, value) => total + searchQueryOccurrenceCount(value, query), 0);
+    pushMatches(rowValueCount, rowTargetRef, rowLabel);
+    list(row.policies).forEach((policy) => {
+      const count = lifecycleItemSearchValues(policy).reduce((total, value) => total + searchQueryOccurrenceCount(value, query), 0);
+      pushMatches(count, rowTargetRef, [rowLabel, policy.code || policy.label].filter(Boolean).join(" / "));
+    });
+    list(row.technicalServices).forEach((service) => {
+      const targetRef = lifecycleDataPolicyRelationTargetRef(stageId, row, "security_technical_service", service);
+      const count = lifecycleItemSearchValues(service).reduce((total, value) => total + searchQueryOccurrenceCount(value, query), 0);
+      pushMatches(count, targetRef, [rowLabel, service.code, service.title || service.name].filter(Boolean).join(" / "));
+    });
+    list(row.technologyModules).forEach((item) => {
+      const relationType = lifecycleDataPolicyRelationType(item);
+      const targetRef = lifecycleDataPolicyRelationTargetRef(stageId, row, relationType, item);
+      const count = lifecycleItemSearchValues(item).reduce((total, value) => total + searchQueryOccurrenceCount(value, query), 0);
+      pushMatches(count, targetRef, [rowLabel, item.code, item.title || item.name].filter(Boolean).join(" / "));
+    });
+  });
+  return matches;
+}
+
 function lifecycleOccurrenceMatches(matchedStages = [], query = "") {
   const normalizedQuery = text(query).trim();
   if (!normalizedQuery) return [];
   return list(matchedStages).flatMap((row) => {
+    const targetedMatches = lifecycleDataPolicyOccurrenceMatches(row, normalizedQuery);
     const sources = lifecycleSearchOccurrenceSources(row);
     let count = sources.reduce((total, value) => total + searchQueryOccurrenceCount(value, normalizedQuery), 0);
-    if (!count) count = searchQueryOccurrenceCount(row.searchText, normalizedQuery);
+    if (!count && !targetedMatches.length) count = searchQueryOccurrenceCount(row.searchText, normalizedQuery);
+    if (!count && targetedMatches.length) return targetedMatches;
     if (!count) count = 1;
-    return Array.from({ length: count }, (_, occurrenceIndex) => ({
+    const genericMatches = Array.from({ length: count }, (_, occurrenceIndex) => ({
       id: `${row.id || "stage"}::${occurrenceIndex}`,
       stageId: row.id,
       occurrenceIndex,
       title: [row.code, row.title].filter(Boolean).join(" "),
     }));
+    return [...genericMatches, ...targetedMatches];
   });
 }
 
@@ -2190,8 +2355,8 @@ function updateLifecyclePageSearchNavigation(kind = "dev", matchedStages = [], q
   const activeMatch = previousMatch?.stageId === selectedId ? previousMatch : rows.find((row) => row.stageId === selectedId) || rows[0] || null;
   setPageSearchMatchSet(scope, normalizedQuery, rows, activeMatch?.id || "");
   if (activeMatch && state.pendingPageSearchReveal?.scope === scope && state.pendingPageSearchReveal?.query === normalizedQuery) {
-    state.pendingPageSearchReveal.targetAttribute = "data-lifecycle-id";
-    state.pendingPageSearchReveal.targetId = activeMatch.stageId;
+    state.pendingPageSearchReveal.targetAttribute = activeMatch.targetRef ? "data-lifecycle-target-ref" : "data-lifecycle-id";
+    state.pendingPageSearchReveal.targetId = activeMatch.targetRef || activeMatch.stageId;
     state.pendingPageSearchReveal.lifecycleOccurrenceIndex = activeMatch.occurrenceIndex;
     state.pendingPageSearchReveal.displayIndex = rows.findIndex((row) => row.id === activeMatch.id);
     state.pendingPageSearchReveal.displayCount = rows.length;
@@ -2223,8 +2388,8 @@ function moveLifecyclePageSearchMatch(kind = "dev", delta = 1, query = "") {
     scope,
     query,
     index: 0,
-    targetAttribute: "data-lifecycle-id",
-    targetId: nextId,
+    targetAttribute: nextMatch.targetRef ? "data-lifecycle-target-ref" : "data-lifecycle-id",
+    targetId: nextMatch.targetRef || nextId,
     lifecycleOccurrenceIndex: Number(nextMatch.occurrenceIndex) || 0,
     displayIndex: nextIndex,
     displayCount: count,
@@ -2267,8 +2432,23 @@ function highlightSearchText(value = "", query = "") {
   return output || escapeHtml(source);
 }
 
+function searchSelectorStringValue(value = "") {
+  return text(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+function findLifecycleSearchTargetByRef(targetRef = "", root = document) {
+  const normalizedTargetRef = text(targetRef).trim();
+  if (!normalizedTargetRef || !root?.querySelector) return null;
+  return root.querySelector(`[data-lifecycle-target-ref="${searchSelectorStringValue(normalizedTargetRef)}"]`);
+}
+
 function lifecycleSearchValueTargetElement(result = {}, kind = "dev") {
   const processId = text(result.selectedProcessId).trim();
+  const targetRef = text(result.targetRef || result.target_ref).trim();
+  if (targetRef) {
+    const targetByRef = findLifecycleSearchTargetByRef(targetRef, kind === "data" ? $("dataLifecycleMatrix") || document : $("devLifecycleLane") || document);
+    if (targetByRef) return targetByRef;
+  }
   const targetText = text(result.targetText || result.title).trim();
   if (!processId || !targetText) return null;
   const safeProcessId = window.CSS?.escape ? window.CSS.escape(processId) : processId.replace(/["\\]/g, "\\$&");
@@ -2280,10 +2460,45 @@ function lifecycleSearchValueTargetElement(result = {}, kind = "dev") {
   return candidates.find((node) => text(node.getAttribute("data-copy-text")).toLowerCase().includes(normalized)) || null;
 }
 
+function selectorStringValue(value = "") {
+  return searchSelectorStringValue(value);
+}
+
+function capabilityRelationTargetRef(result = {}) {
+  return text(result.targetRef || result.target_ref).trim();
+}
+
+function parseCapabilityRelationTargetRef(result = {}) {
+  const targetRef = capabilityRelationTargetRef(result);
+  if (!targetRef.startsWith("capability_relation:")) return null;
+  const [, relationType = "", focusId = "", ...objectParts] = targetRef.split(":");
+  const objectId = objectParts.join(":");
+  if (!relationType || !focusId || !objectId) return null;
+  return { targetRef, relationType, focusId, objectId };
+}
+
+function capabilityRelationTabForSearchResult(result = {}) {
+  const parsed = parseCapabilityRelationTargetRef(result);
+  if (!parsed) return "";
+  if (["security_technical_service", "security_technology_module", "security_technical_measure"].includes(parsed.relationType)) return "technical";
+  return "";
+}
+
 function capabilitySearchValueTargetElement(result = {}) {
+  const root = $("capabilityWorkspace") || document;
+  const parsed = parseCapabilityRelationTargetRef(result);
+  if (parsed?.targetRef) {
+    const target = root.querySelector(`[data-capability-relation-target-ref="${selectorStringValue(parsed.targetRef)}"]`);
+    if (target) return target;
+  }
+  if (parsed?.objectId) {
+    const objectTarget = root.querySelector(
+      `[data-capability-relation-type="${selectorStringValue(parsed.relationType)}"][data-capability-relation-object-id="${selectorStringValue(parsed.objectId)}"]`,
+    );
+    if (objectTarget) return objectTarget;
+  }
   const targetText = text(result.targetText || result.title).trim();
   if (!targetText) return null;
-  const root = $("capabilityWorkspace") || document;
   const candidates = Array.from(root.querySelectorAll("[data-copy-text]"));
   const exact = candidates.find((node) => text(node.getAttribute("data-copy-text")).trim() === targetText);
   if (exact) return exact;
@@ -2346,7 +2561,7 @@ function globalSearchTargetElement(result = {}) {
 function revealGlobalSearchTarget(result, attempt = 0) {
   const target = globalSearchTargetElement(result);
   if (target) {
-    expandAnnotationHiddenLineage(target);
+    expandSearchTargetLineage(target);
     target.hidden = false;
     target.scrollIntoView({ block: "center", inline: "nearest", behavior: attempt ? "auto" : "smooth" });
     target.classList.add("global-search-target-highlight");
@@ -2417,6 +2632,11 @@ function activateGlobalSearchResult(result) {
     state.selectedCapabilityId = result.selectedCapabilityId;
     expandCapabilityAncestors(result.selectedCapabilityId);
     ensureCapabilityWorkspaceViewForSelection(result.selectedCapabilityId);
+    const capabilityRelationTab = capabilityRelationTabForSearchResult(result);
+    if (capabilityRelationTab) {
+      state.activeCapabilityRelationTab = capabilityRelationTab;
+      state.lastCapabilityRelationSelectionId = result.selectedCapabilityId;
+    }
     renderCapabilities();
   }
   if (result.selectedMaintenanceId) {
@@ -2892,8 +3112,17 @@ function capabilityItemById(id) {
 
 function capabilityProjectionHasFocus(focusId) {
   if (!focusId) return false;
-  const maps = state.capabilityProjection?.localRelationMapsByFocusId || state.capabilityProjection?.local_relation_maps_by_focus_id || {};
-  return Boolean(maps[focusId]);
+  return capabilityObjectViewHasFocus(state.capabilityProjection, focusId) || capabilityObjectViewHasFocus(state.capabilityWorkspaceView, focusId);
+}
+
+function capabilityObjectViewHasFocus(projection, focusId) {
+  if (!projection || !focusId) return false;
+  const maps = projection.localRelationMapsByFocusId || projection.local_relation_maps_by_focus_id || {};
+  if (maps[focusId]) return true;
+  const item = capabilityItemById(focusId);
+  if (!item || item.type !== "capability_focus") return false;
+  const localMap = projection.localRelationMap || projection.local_relation_map || null;
+  return capabilityProjectionMatchesSelection(projection, item) && Boolean(localMap || projection.graph);
 }
 
 function capabilityWorkbenchHasFullRelations() {
@@ -3891,6 +4120,18 @@ function environmentSelectionForObjectId(objectId = "") {
   return null;
 }
 
+function annotationNoteMatchesEnvironmentSearch(note = {}) {
+  const query = text(state.search).trim();
+  if (!query) return true;
+  const values = [
+    annotationTargetRefStableKey(note.target_ref),
+    note.object_code,
+    note.object_title,
+    note.body && text(note.body).length <= 80 ? note.body : "",
+  ];
+  return matchesTextQuery(query, ...values);
+}
+
 function environmentAnnotationSelectionForNote(note = {}) {
   const route = canonicalAnnotationRoute(note.page_route || "");
   if (route && route !== "/environment-mapping") return null;
@@ -3938,6 +4179,10 @@ function restoreEnvironmentContextFromNote(note = {}) {
     changed = true;
   }
   if (!selection) return changed;
+  if (state.search && !annotationNoteMatchesEnvironmentSearch(note)) {
+    state.search = "";
+    changed = true;
+  }
   if (selection.environmentId && selection.environmentId !== state.selectedEnvironmentId) {
     state.selectedEnvironmentId = selection.environmentId;
     state.expandedEnvironmentIds.add(selection.environmentId);
@@ -9196,7 +9441,7 @@ function capabilityInitialDataReady() {
 function createCapabilityLoadState(selectedType, selectedId) {
   const item = capabilityItemById(selectedId);
   const loadKey = item ? capabilityWorkspaceViewLoadKeyForItem(item) : "";
-  const hasObjectView = capabilityProjectionMatchesSelection(state.capabilityWorkspaceView, item);
+  const hasObjectView = capabilityProjectionMatchesSelection(state.capabilityWorkspaceView, item) || capabilityProjectionMatchesSelection(state.capabilityProjection, item);
   const loadState = {
     phase: "initial",
     selectedId,
@@ -9253,7 +9498,17 @@ function resolveCapabilityDetailLoadState(viewModel, loadState) {
   if (!selected) {
     return { ...loadState, phase: "no_selection", blocksDetail: true, title: "暂无能力关系数据" };
   }
+  const canRenderInBackground = capabilityLoadStateCanRenderInBackground(viewModel, loadState);
   if (loadState.objectViewPending && state.packageLoads.has(loadState.loadKey)) {
+    if (canRenderInBackground) {
+      return {
+        ...loadState,
+        phase: "object_view_pending_background",
+        blocksDetail: false,
+        title: "正在补全当前能力对象关系数据",
+        body: "已先显示当前对象的可用关系视图，后台投影完成后会自动刷新。",
+      };
+    }
     return {
       ...loadState,
       phase: "object_view_pending",
@@ -9263,6 +9518,15 @@ function resolveCapabilityDetailLoadState(viewModel, loadState) {
     };
   }
   if (loadState.objectViewFailed || loadState.focusProjectionFailed) {
+    if (canRenderInBackground) {
+      return {
+        ...loadState,
+        phase: `${loadState.phase}_background`,
+        blocksDetail: false,
+        title: loadState.loadFailure?.title || "加载失败：当前能力关系数据",
+        body: loadState.loadFailure?.message || "请求结束但没有返回可用数据。已继续显示已有视图数据，可重试加载。",
+      };
+    }
     return {
       ...loadState,
       blocksDetail: true,
@@ -9270,8 +9534,16 @@ function resolveCapabilityDetailLoadState(viewModel, loadState) {
       body: loadState.loadFailure?.message || "请求结束但没有返回可用数据。已停止加载态，已回退到已有视图数据，可重试加载。",
     };
   }
-  const hasObjectView = capabilityProjectionMatchesSelection(state.capabilityWorkspaceView, capabilityItemById(state.selectedCapabilityId));
   if (loadState.focusProjectionPending && state.packageLoads.has(capabilityProjectionLoadKey(state.selectedCapabilityId))) {
+    if (canRenderInBackground) {
+      return {
+        ...loadState,
+        phase: "focus_projection_pending_background",
+        blocksDetail: false,
+        title: "正在补全当前关注点关系数据",
+        body: "已先显示当前关注点的可用关系视图，后台投影完成后会自动刷新。",
+      };
+    }
     return {
       ...loadState,
       phase: "focus_projection_pending",
@@ -9281,6 +9553,28 @@ function resolveCapabilityDetailLoadState(viewModel, loadState) {
     };
   }
   return { ...loadState, phase: "ready", blocksDetail: false };
+}
+
+function capabilityViewModelHasRenderableDetail(viewModel) {
+  if (!viewModel?.selectedCapability?.id) return false;
+  if (viewModel.localRelationMap?.focus?.id || viewModel.localRelationMap?.focus?.code) return true;
+  if (viewModel.capabilityOverview?.selected?.id || list(viewModel.capabilityOverview?.children).length) return true;
+  if (viewModel.detailInspector) return true;
+  return Boolean(list(viewModel.technicalMappingRows).length || list(viewModel.managementMappingRows).length || list(viewModel.standardMappingRows).length);
+}
+
+function capabilityLoadStateCanRenderInBackground(viewModel, loadState) {
+  if (!capabilityViewModelHasRenderableDetail(viewModel)) return false;
+  const selected = viewModel?.selectedCapability || null;
+  if (selected?.type !== "capability_focus") return true;
+  const item = capabilityItemById(loadState.selectedId || selected.id);
+  const objectView = currentCapabilityObjectView();
+  return Boolean(
+    item?.id &&
+      viewModel.localRelationMapSource === "backend_projection" &&
+      capabilityProjectionMatchesSelection(objectView, item) &&
+      capabilityObjectViewHasFocus(objectView, item.id),
+  );
 }
 
 function capabilityManagementForViewModel() {

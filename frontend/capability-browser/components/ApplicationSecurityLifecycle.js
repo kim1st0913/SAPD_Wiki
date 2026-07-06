@@ -154,6 +154,7 @@
       .flatMap((item) => {
         if (item && typeof item === "object") {
           return {
+            ...item,
             label: titleOf(item, ""),
             kind: item.objectKind || item.object_kind || "",
           };
@@ -168,7 +169,7 @@
     if (!items.length) return `<span class="empty-inline">${EMPTY_VALUE}</span>`;
     return `
       <div class="lifecycle-inline-chips ${escapeHtml(tone)}">
-        ${items.map((item) => technicalRelationChip({ title: item.label, objectKind: item.kind }, fallbackTechnicalKind(tone))).join("")}
+        ${items.map((item) => technicalRelationChip({ ...item, title: item.label, objectKind: item.kind || item.objectKind }, fallbackTechnicalKind(tone))).join("")}
       </div>
     `;
   }
@@ -188,6 +189,7 @@
       .flatMap((item) => {
         if (item && typeof item === "object") {
           return {
+            ...item,
             code: item.code || "",
             label: titleOf(item, ""),
             kind: item.objectKind || item.object_kind || "",
@@ -203,7 +205,7 @@
     if (!items.length) return `<span class="empty-inline">${EMPTY_VALUE}</span>`;
     return `
       <div class="lifecycle-object-chip-list ${escapeHtml(tone)}">
-        ${items.map((item) => technicalRelationChip({ code: item.code, title: item.label, objectKind: item.kind }, fallbackTechnicalKind(tone))).join("")}
+        ${items.map((item) => technicalRelationChip({ ...item, code: item.code, title: item.label, objectKind: item.kind || item.objectKind }, fallbackTechnicalKind(tone))).join("")}
       </div>
     `;
   }
@@ -215,19 +217,72 @@
     return "";
   }
 
+  function lifecycleSearchTargetAttrs(targetRef = "", extra = {}) {
+    const normalizedTargetRef = String(targetRef || "").trim();
+    if (!normalizedTargetRef) return "";
+    const attrs = [`data-lifecycle-target-ref="${escapeHtml(normalizedTargetRef)}"`];
+    Object.entries(extra || {}).forEach(([key, value]) => {
+      const normalizedValue = String(value || "").trim();
+      if (!normalizedValue) return;
+      attrs.push(`${key}="${escapeHtml(normalizedValue)}"`);
+    });
+    return ` ${attrs.join(" ")}`;
+  }
+
   function technicalRelationChip(item, fallbackKind = "") {
     const objectKind = item.objectKind || fallbackKind;
     const code = isBusinessText(item.code) ? item.code : "";
     const title = isBusinessText(item.title) ? item.title : "";
     if (!code && !title) return "";
-    if (display.relationChip && !activeHighlightQuery) {
+    const searchTargetRef = String(item.searchTargetRef || item.targetRef || "").trim();
+    if (display.relationChip && !activeHighlightQuery && !searchTargetRef) {
       return display.relationChip(utils, { ...item, code, title, objectKind }, { kind: objectKind, showKind: true, preferCodeTitle: true });
     }
     const kindClass = objectKind.includes("措施") ? "measure-chip" : objectKind.includes("模块") ? "module-chip" : objectKind.includes("服务") ? "service-chip" : "";
     const visibleText = [code, title].filter(Boolean).join(" ");
     const isService = objectKind.includes("服务");
     const annotationText = [isService ? "" : objectKind, visibleText].filter(Boolean).join(" | ");
-    return `<span class="relation-chip technical-chip ${kindClass}"${annotationValueAttrs(annotationText)}>${objectKind && !isService ? `<em>${escapeHtml(objectKind)}</em>` : ""}<span class="relation-chip-text">${highlightText(visibleText)}</span></span>`;
+    return `<span class="relation-chip technical-chip ${kindClass}"${annotationValueAttrs(annotationText)}${lifecycleSearchTargetAttrs(searchTargetRef, {
+      "data-lifecycle-relation-type": item.relationType,
+      "data-lifecycle-policy-row-id": item.policyRowId,
+      "data-lifecycle-object-id": item.objectId || item.id || item.code || item.title,
+    })}>${objectKind && !isService ? `<em>${escapeHtml(objectKind)}</em>` : ""}<span class="relation-chip-text">${highlightText(visibleText)}</span></span>`;
+  }
+
+  function dataPolicyRowTargetRef(stageId, row) {
+    const rowId = String(row?.id || "").trim();
+    const ownerId = String(stageId || row?.stageId || "").trim();
+    if (!ownerId || !rowId) return "";
+    return `lifecycle_policy_row:${ownerId}:${rowId}`;
+  }
+
+  function dataPolicyTechnicalRelationType(item, fallback = "security_technology_module") {
+    const objectKind = String(item?.objectKind || item?.object_kind || "").trim();
+    const type = String(item?.type || "").trim();
+    if (type) return type;
+    return objectKind.includes("措施") ? "security_technical_measure" : fallback;
+  }
+
+  function dataPolicyRelationTargetRef(stageId, row, relationType, item) {
+    const rowId = String(row?.id || "").trim();
+    const ownerId = String(stageId || row?.stageId || "").trim();
+    const objectId = String(item?.id || item?.code || item?.title || item?.name || "").trim();
+    if (!ownerId || !rowId || !relationType || !objectId) return "";
+    return `lifecycle_policy_relation:${relationType}:${ownerId}:${rowId}:${objectId}`;
+  }
+
+  function withDataPolicySearchTargets(items, row, stageId, relationType, objectKind = "") {
+    return list(items).map((item) => {
+      const resolvedRelationType = relationType || dataPolicyTechnicalRelationType(item);
+      return {
+        ...item,
+        objectKind: item?.objectKind || item?.object_kind || objectKind,
+        relationType: resolvedRelationType,
+        policyRowId: row?.id || "",
+        objectId: item?.id || item?.code || item?.title || item?.name || "",
+        searchTargetRef: dataPolicyRelationTargetRef(stageId, row, resolvedRelationType, item),
+      };
+    });
   }
 
   function renderDataScenarioList(scenes) {
@@ -398,16 +453,21 @@
     return list(row.policies).find((policy) => policy.level === level) || null;
   }
 
-  function renderDataPolicyRow(row, { showCategory = true } = {}) {
+  function renderDataPolicyRow(row, { showCategory = true, selectedStageId = "" } = {}) {
+    const rowTargetRef = dataPolicyRowTargetRef(selectedStageId, row);
+    const serviceItems = withDataPolicySearchTargets(row.technicalServices, row, selectedStageId, "security_technical_service", "安全技术服务");
+    const moduleItems = withDataPolicySearchTargets(row.technologyModules, row, selectedStageId, "", "安全技术模块");
     return `
-      <tr data-lifecycle-kind="data" data-lifecycle-id="${escapeHtml(row.stageId || "")}">
+      <tr data-lifecycle-kind="data" data-lifecycle-id="${escapeHtml(selectedStageId || row.stageId || "")}"${lifecycleSearchTargetAttrs(rowTargetRef, {
+        "data-lifecycle-policy-row-id": row.id,
+      })}>
         ${showCategory ? `<td>${tableText([row.category, row.sequence || ""].filter(Boolean).join("\n"))}</td>` : `<td>${tableText(row.sequence || "")}</td>`}
         <td>${renderDataPolicyCell(policyByLevel(row, "I"))}</td>
         <td>${renderDataPolicyCell(policyByLevel(row, "S"))}</td>
         <td>${renderDataPolicyCell(policyByLevel(row, "N"))}</td>
         <td>${renderDataPolicyCell(policyByLevel(row, "P"))}</td>
-        <td class="${emptyValueCellClass(row.technicalServices)}">${inlineChips(row.technicalServices, "security")}</td>
-        <td class="${emptyValueCellClass(row.technologyModules)}">${inlineChips(row.technologyModules, "module")}</td>
+        <td class="${emptyValueCellClass(row.technicalServices)}">${inlineChips(serviceItems, "security")}</td>
+        <td class="${emptyValueCellClass(row.technologyModules)}">${inlineChips(moduleItems, "module")}</td>
       </tr>
     `;
   }
@@ -426,7 +486,7 @@
     return groups;
   }
 
-  function renderDataPolicyGroup(group) {
+  function renderDataPolicyGroup(group, selectedStageId = "") {
     const rows = list(group.rows);
     return `
       <details class="data-policy-category-group">
@@ -457,7 +517,7 @@
               </tr>
             </thead>
             <tbody>
-              ${rows.map((row) => renderDataPolicyRow(row, { showCategory: false })).join("")}
+              ${rows.map((row) => renderDataPolicyRow(row, { showCategory: false, selectedStageId })).join("")}
             </tbody>
           </table>
         </div>
@@ -564,7 +624,7 @@
     `;
   }
 
-  function renderDataPolicyMatrixTable(rows) {
+  function renderDataPolicyMatrixTable(rows, selectedStageId = "") {
     const groups = dataPolicyGroups(rows);
     return `
       <section class="lifecycle-logic-section lifecycle-table-panel">
@@ -573,7 +633,7 @@
         </div>
         ${
           groups.length
-            ? `<div class="data-policy-category-stack">${groups.map(renderDataPolicyGroup).join("")}</div>`
+            ? `<div class="data-policy-category-stack">${groups.map((group) => renderDataPolicyGroup(group, selectedStageId)).join("")}</div>`
             : `<div class="reference-empty">暂无数据重要程度安全策略映射</div>`
         }
       </section>
@@ -593,7 +653,7 @@
     return `
       <div class="lifecycle-logic-stack">
         ${renderDataProcessProfileTable(rows, selectedStageId)}
-        ${renderDataPolicyMatrixTable(list(policyRows))}
+        ${renderDataPolicyMatrixTable(list(policyRows), selectedStageId)}
       </div>
     `;
   }

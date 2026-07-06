@@ -404,7 +404,7 @@ def main() -> int:
     parser.add_argument("--app-version", default="0.1.0-alpha")
     parser.add_argument("--data-version", default="2026.05-alpha")
     parser.add_argument("--base-schema-version", default="base_schema_0.1")
-    parser.add_argument("--user-schema-version", default="user_schema_0.1")
+    parser.add_argument("--user-schema-version", default="user_schema_0.3")
     parser.add_argument("--frontend-dist", type=Path)
     parser.add_argument("--backend-binary", type=Path, help="Platform-native backend binary for this ZIP.")
     parser.add_argument("--backend-executable", type=Path, help="Deprecated alias for --backend-binary.")

@@ -32,6 +32,7 @@ DB is under data/user, data/database, or data/base, --apply also requires
 
 This script covers:
   - user_schema_0.3 table creation and schema metadata update
+  - user target_ref migration from legacy base UUID refs to stable refs
   - base stable_key / stable_ref / public_id promotion
   - base_id_redirects table and stable key indexes
 `.trim();
@@ -166,13 +167,16 @@ function prepareApplyTargets(targets, args, stamp) {
   });
 }
 
-function runPythonMigration(preparedTargets) {
+function runPythonMigration(preparedTargets, args) {
   const userTarget = preparedTargets.find((target) => target.kind === "user")?.target || "";
-  const baseTarget = preparedTargets.find((target) => target.kind === "base")?.target || "";
+  const preparedBaseTarget = preparedTargets.find((target) => target.kind === "base")?.target || "";
+  const baseLookupTarget = preparedBaseTarget || (args.baseDb ? resolvePath(args.baseDb) : firstExisting(DEFAULT_BASE_DB_CANDIDATES));
+  const shouldMigrateBase = preparedTargets.some((target) => target.kind === "base");
   const python = String.raw`
 import datetime
 import hashlib
 import json
+import os
 import re
 import sqlite3
 import sys
@@ -180,9 +184,10 @@ import uuid
 
 user_db = sys.argv[1]
 base_db = sys.argv[2]
+should_migrate_base = sys.argv[3] == "1"
 
 def now():
-    return datetime.datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+    return datetime.datetime.now(datetime.UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 def columns(connection, table):
     if not table_exists(connection, table):
@@ -224,6 +229,118 @@ def public_id(prefix, stable_ref):
     digest = hashlib.sha256(stable_ref.encode("utf-8")).hexdigest()[:16]
     return f"{prefix}_{digest}"
 
+def is_uuid_like(value):
+    return re.match(r"^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$", str(value or ""), re.I) is not None
+
+def is_page_target_ref(value):
+    ref = str(value or "")
+    return (
+        ":v2:" in ref
+        or re.match(r"^base:security_guide:/guides/", ref) is not None
+        or re.match(r"^base:security_guide_slide:guide:", ref) is not None
+        or ref.startswith("page:")
+    )
+
+def is_stable_base_ref(value):
+    ref = str(value or "")
+    if is_page_target_ref(ref):
+        return False
+    if not re.match(r"^base:[^:]+:.+", ref):
+        return False
+    if re.match(r"^base:[^:]+:[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$", ref, re.I):
+        return False
+    return True
+
+def is_stable_base_relation_ref(value):
+    ref = str(value or "")
+    return re.match(r"^base_relation:[^:]+:.+", ref) is not None and not is_uuid_like(ref.split(":")[-1])
+
+def legacy_ref_parts(value):
+    ref = str(value or "").strip()
+    if not ref or is_page_target_ref(ref) or ref.startswith("user:") or ref.startswith("user_relation:"):
+        return None
+    if is_stable_base_ref(ref) or is_stable_base_relation_ref(ref):
+        return None
+    match = re.match(r"^base:([0-9a-f-]{36})$", ref, re.I)
+    if match and is_uuid_like(match.group(1)):
+        return {"kind": "item", "object_type": "", "uuid": match.group(1)}
+    match = re.match(r"^base:([^:]+):([0-9a-f-]{36})$", ref, re.I)
+    if match and is_uuid_like(match.group(2)):
+        return {"kind": "item", "object_type": match.group(1), "uuid": match.group(2)}
+    match = re.match(r"^base_relation:([^:]+):([0-9a-f-]{36})$", ref, re.I)
+    if match and is_uuid_like(match.group(2)):
+        return {"kind": "relation", "relation_type": match.group(1), "uuid": match.group(2)}
+    return None
+
+def item_stable_ref_from_row(row):
+    stable_ref = row.get("stable_ref")
+    if stable_ref:
+        return stable_ref
+    metadata = parse_metadata(row.get("metadata_json"))
+    raw_key = metadata.get("stable_key") or metadata.get("object_key") or row.get("code") or row.get("title") or row.get("id")
+    item_type = row.get("type") or "knowledge_item"
+    return f"base:{item_type}:{stable_slug(raw_key, item_type)}"
+
+def relation_stable_ref_from_row(row):
+    stable_ref = row.get("stable_ref")
+    if stable_ref:
+        return stable_ref
+    metadata = parse_metadata(row.get("metadata_json"))
+    relation_type = row.get("relation_type") or "relation"
+    raw_key = metadata.get("stable_key") or metadata.get("relation_key") or f"{row.get('source_item_id')}:{relation_type}:{row.get('target_item_id')}"
+    return f"base_relation:{relation_type}:{stable_slug(raw_key, relation_type)}"
+
+def load_base_ref_maps(path):
+    maps = {"items": {}, "relations": {}}
+    if not path or not os.path.exists(path):
+        return maps
+    connection = sqlite3.connect(path)
+    connection.row_factory = sqlite3.Row
+    if table_exists(connection, "knowledge_items"):
+        item_columns = columns(connection, "knowledge_items")
+        selected = [column for column in ("id", "type", "code", "title", "metadata_json", "stable_ref") if column in item_columns]
+        if selected:
+            for row in connection.execute("SELECT " + ",".join(selected) + " FROM knowledge_items").fetchall():
+                item = dict(row)
+                item_id = item.get("id")
+                if item_id:
+                    maps["items"][item_id] = {
+                        "type": item.get("type") or "",
+                        "stable_ref": item_stable_ref_from_row(item),
+                    }
+    if table_exists(connection, "knowledge_relations"):
+        relation_columns = columns(connection, "knowledge_relations")
+        selected = [column for column in ("id", "source_item_id", "target_item_id", "relation_type", "metadata_json", "stable_ref") if column in relation_columns]
+        if selected:
+            for row in connection.execute("SELECT " + ",".join(selected) + " FROM knowledge_relations").fetchall():
+                relation = dict(row)
+                relation_id = relation.get("id")
+                if relation_id:
+                    maps["relations"][relation_id] = {
+                        "relation_type": relation.get("relation_type") or "",
+                        "stable_ref": relation_stable_ref_from_row(relation),
+                    }
+    connection.close()
+    return maps
+
+def resolve_legacy_target_ref(ref, base_maps):
+    parts = legacy_ref_parts(ref)
+    if not parts:
+        return None
+    if parts["kind"] == "item":
+        item = base_maps["items"].get(parts["uuid"])
+        if not item:
+            return {"status": "pending", "new_ref": None, "reason": "missing_base_item"}
+        if parts.get("object_type") and item.get("type") and parts["object_type"] != item["type"]:
+            return {"status": "pending", "new_ref": None, "reason": "object_type_mismatch"}
+        return {"status": "applied", "new_ref": item["stable_ref"], "reason": "base_item_uuid_to_stable_ref"}
+    relation = base_maps["relations"].get(parts["uuid"])
+    if not relation:
+        return {"status": "pending", "new_ref": None, "reason": "missing_base_relation"}
+    if parts.get("relation_type") and relation.get("relation_type") and parts["relation_type"] != relation["relation_type"]:
+        return {"status": "pending", "new_ref": None, "reason": "relation_type_mismatch"}
+    return {"status": "applied", "new_ref": relation["stable_ref"], "reason": "base_relation_uuid_to_stable_ref"}
+
 def safe_insert_change_log(connection, action, target_ref, payload):
     if not table_exists(connection, "user_change_logs"):
         return False
@@ -245,10 +362,113 @@ def safe_insert_change_log(connection, action, target_ref, payload):
     )
     return True
 
-def migrate_user_db(path):
+def insert_target_ref_migration(connection, old_ref, new_ref, redirect_type, affected_table, affected_id, status, applied_at):
+    if not table_exists(connection, "user_target_ref_migrations"):
+        return False
+    migration_id = public_id("utr", f"{affected_table}:{affected_id}:{old_ref}:{new_ref or ''}:{status}")
+    connection.execute(
+        """
+        INSERT OR IGNORE INTO user_target_ref_migrations(
+            id, old_target_ref, new_target_ref, redirect_type, affected_table, affected_id, status, created_at, applied_at
+        ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (migration_id, old_ref, new_ref, redirect_type, affected_table, str(affected_id), status, now(), applied_at),
+    )
+    return True
+
+def migrate_user_target_refs(connection, base_maps):
+    contracts = [
+        ("user_notes", "target_ref"),
+        ("user_favorites", "target_ref"),
+        ("user_item_tags", "target_ref"),
+        ("user_change_logs", "target_ref"),
+        ("user_custom_relations", "source_ref"),
+        ("user_custom_relations", "target_ref"),
+        ("user_workspace_items", "target_ref"),
+        ("user_data_basket_items", "target_ref"),
+        ("user_export_jobs", "source_ref"),
+        ("user_capability_model_nodes", "source_ref"),
+        ("user_capability_model_relations", "target_ref"),
+        ("user_import_staging_items", "target_ref"),
+        ("user_import_staging_relations", "source_ref"),
+        ("user_import_staging_relations", "target_ref"),
+        ("user_review_decisions", "target_ref"),
+    ]
+    summary = {
+        "scannedRefs": 0,
+        "legacyRefsFound": 0,
+        "updatedRefs": 0,
+        "pendingRefs": 0,
+        "conflictRefs": 0,
+        "migrationRowsInserted": 0,
+        "changeLogInserted": False,
+        "samples": [],
+    }
+    for table, column in contracts:
+        if not table_exists(connection, table) or column not in columns(connection, table):
+            continue
+        table_columns = columns(connection, table)
+        id_expr = "id" if "id" in table_columns else "rowid"
+        rows = connection.execute(f"SELECT rowid AS _rowid, {id_expr} AS _id, {column} AS _ref FROM {table} WHERE {column} IS NOT NULL").fetchall()
+        for row in rows:
+            summary["scannedRefs"] += 1
+            old_ref = str(row["_ref"] or "").strip()
+            resolution = resolve_legacy_target_ref(old_ref, base_maps)
+            if not resolution:
+                continue
+            summary["legacyRefsFound"] += 1
+            affected_table = f"{table}.{column}"
+            affected_id = row["_id"]
+            new_ref = resolution.get("new_ref")
+            status = resolution["status"]
+            applied_at = None
+            if new_ref:
+                try:
+                    connection.execute(f"UPDATE {table} SET {column}=? WHERE rowid=?", (new_ref, row["_rowid"]))
+                    summary["updatedRefs"] += 1
+                    applied_at = now()
+                except sqlite3.IntegrityError:
+                    status = "conflict"
+                    new_ref = None
+                    summary["conflictRefs"] += 1
+            else:
+                summary["pendingRefs"] += 1
+            insert_target_ref_migration(
+                connection,
+                old_ref,
+                new_ref,
+                "stable_ref" if status == "applied" else resolution.get("reason") or "unresolved",
+                affected_table,
+                affected_id,
+                status,
+                applied_at,
+            )
+            summary["migrationRowsInserted"] += 1
+            if len(summary["samples"]) < 10:
+                summary["samples"].append(
+                    {
+                        "table": affected_table,
+                        "id": str(affected_id),
+                        "oldRef": old_ref,
+                        "newRef": new_ref,
+                        "status": status,
+                        "reason": resolution.get("reason"),
+                    }
+                )
+    if summary["legacyRefsFound"]:
+        summary["changeLogInserted"] = safe_insert_change_log(
+            connection,
+            "user_target_ref_migration",
+            "user:migration:target_ref",
+            summary,
+        )
+    return summary
+
+def migrate_user_db(path, base_maps):
     if not path:
         return None
     connection = sqlite3.connect(path)
+    connection.row_factory = sqlite3.Row
     connection.execute("PRAGMA foreign_keys = ON")
     created = []
     ddl = {
@@ -437,6 +657,7 @@ def migrate_user_db(path):
         "user:schema:user_schema_0.3",
         {"createdTables": created},
     )
+    target_ref_migration = migrate_user_target_refs(connection, base_maps)
     connection.commit()
     table_count = connection.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table'").fetchone()[0]
     schema_version = None
@@ -444,7 +665,13 @@ def migrate_user_db(path):
         row = connection.execute("SELECT value FROM user_meta WHERE key='schema_version'").fetchone()
         schema_version = row[0] if row else None
     connection.close()
-    return {"createdTables": created, "tableCount": table_count, "schemaVersion": schema_version, "changeLogInserted": change_log_inserted}
+    return {
+        "createdTables": created,
+        "tableCount": table_count,
+        "schemaVersion": schema_version,
+        "changeLogInserted": change_log_inserted,
+        "targetRefMigration": target_ref_migration,
+    }
 
 def migrate_base_db(path):
     if not path:
@@ -519,13 +746,14 @@ def migrate_base_db(path):
     }
 
 summary = {
-    "user": migrate_user_db(user_db),
-    "base": migrate_base_db(base_db),
+    "base": migrate_base_db(base_db) if should_migrate_base else None,
 }
+base_ref_maps = load_base_ref_maps(base_db)
+summary["user"] = migrate_user_db(user_db, base_ref_maps)
 print(json.dumps(summary, ensure_ascii=False, indent=2))
 `;
 
-  const completed = spawnSync("python3", ["-c", python, userTarget, baseTarget], {
+  const completed = spawnSync("python3", ["-c", python, userTarget, baseLookupTarget, shouldMigrateBase ? "1" : "0"], {
     cwd: projectRoot,
     encoding: "utf8",
     maxBuffer: 1024 * 1024 * 30,
@@ -557,7 +785,7 @@ function main() {
   const workDir = resolvePath(args.workDir);
   const preparedTargets =
     args.mode === "apply" ? prepareApplyTargets(targets, args, stamp) : prepareDryRunTargets(targets, workDir, stamp);
-  const migration = runPythonMigration(preparedTargets);
+  const migration = runPythonMigration(preparedTargets, args);
 
   const output = {
     result: "pass",
@@ -589,6 +817,8 @@ function main() {
   if (migration.user) {
     console.log(`userSchemaVersion=${migration.user.schemaVersion}`);
     console.log(`userV03CreatedTables=${migration.user.createdTables.length}`);
+    console.log(`userTargetRefsUpdated=${migration.user.targetRefMigration?.updatedRefs || 0}`);
+    console.log(`userTargetRefsPending=${migration.user.targetRefMigration?.pendingRefs || 0}`);
   }
   if (migration.base) {
     console.log(`baseAddedColumns=${migration.base.addedColumns.length}`);

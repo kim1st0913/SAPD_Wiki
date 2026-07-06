@@ -1,7 +1,7 @@
 # 用户库长期治理与 stable_key 设计
 
 日期：2026-06-06
-状态：正式迁移脚本完成 / 真实库 apply 待显式确认
+状态：真实库 apply 已完成 / 自动验证通过 / 待用户确认关闭
 适用范围：`OI-135`、`DB-11`、`DB-2`，以及后续工作台、数据篮、导出、用户自定义能力、导入草稿、基础库升级兼容。
 
 ## 1. 设计结论
@@ -14,13 +14,13 @@
 - `user_notes` 已成为正式批注入口，`user_favorites` 只保留为历史兼容 / 关注清单，不再作为主业务动作。
 - 所有用户写入必须指向稳定 `target_ref`，优先使用 `base:<object_type>:<stable_key>`，不得长期依赖基础库重建后可能变化的 UUID。
 - `stable_key` 和 `base_id_redirects` 是 Delivery、批注、数据篮、导出、能力重组和基础库升级的共同底座。
-- 本轮已完成设计、dry-run、临时库 smoke 和正式迁移脚本三段式；真实基础库和真实用户库仍未写入，不直接改前端、不修改数据包。
+- 本轮已完成设计、dry-run、临时库 smoke、正式迁移脚本三段式、基础库 clean candidate、用户库 legacy target_ref 迁移 dry-run 和真实库 apply；正式基础库已替换为 clean base stable candidate，正式用户库已迁移 2 条旧 UUID 引用，不直接改前端、不修改正式 JSON 数据包。
 
 ## 2. 当前事实
 
 ### 2.1 已有用户库最小能力
 
-`scripts/create_user_db.py` 当前使用 `user_schema_0.2`，已具备：
+`scripts/create_user_db.py` 当前使用 `user_schema_0.3`，已具备：
 
 - `user_meta`
 - `user_favorites`
@@ -88,6 +88,7 @@
 - 基础库重建或对象改名后，用户批注、收藏、数据篮和用户关系可能失效。
 - 还没有统一的 base/user read model 合并策略。
 - 还没有用户库备份、恢复、迁移失败回滚和测试数据清理策略。
+- 2026-07-06 已正式迁移当前 2 条旧 `base:<type>:<uuid>` 引用：`数据分析层` 从 `base:information_object:418bd2f6-ff6e-431e-b2ef-059df3cdd2ae` 迁到 `base:information_object:information_object:hash:9055299c885b70a0`，覆盖 `user_notes.target_ref` 和 `user_change_logs.target_ref` 各 1 条，并写入 `user_target_ref_migrations.applied=2`。
 - `docs/09-delivery/user-database-minimum-schema.md` 与当前代码版本存在口径差异，后续应在 `user_schema_0.3` 迁移设计确认后同步。
 - `user-workspace-v1-to-v4-design.md` 与当前 backlog 中关于 V3 / V4 的表述存在轻微顺序差异，后续以本设计中的“先 schema / read model，后 UI”的顺序为准。
 
@@ -498,7 +499,7 @@ scripts/audit_stable_key_contract.mjs
 
 1. 创建新增表。
 2. 创建 `user_target_ref_migrations`。
-3. 扫描 `user_notes`、`user_favorites`、`user_item_tags`、`user_custom_relations` 中的 `target_ref`。
+3. 扫描 `user_notes`、`user_favorites`、`user_item_tags`、`user_change_logs`、`user_custom_relations`、工作台、数据篮、导出、导入 staging 和 review decisions 中的 `target_ref` / `source_ref`。
 4. 可自动迁移的 ref 写入新 stable ref。
 5. 无法自动迁移的 ref 标记为 `pending`，不删除原记录。
 6. 所有操作写入 `user_change_logs`。
@@ -537,7 +538,7 @@ scripts/audit_stable_key_contract.mjs
 
 - 不直接改前端按钮或页面。
 - 不删除 `user_favorites`。
-- 不迁移真实用户库。
+- 不无备份、无确认地迁移真实用户库。
 - 不修改基础数据包。
 - 不改 ETL 主流程。
 - 不启动 Windows ZIP UAT。
@@ -569,6 +570,7 @@ scripts/audit_stable_key_contract.mjs
 | 5 | 设计基础库 `stable_key` / `base_id_redirects` migration | 已完成 | `docs/06-implementation/base-stable-key-and-redirect-migration-design-2026-06-06.md` |
 | 6 | 临时库 migration smoke | 已完成 | `scripts/smoke_db_migration_contracts.mjs` 只对 `/private/tmp` 复制库执行，真实基础库 / 用户库不写 |
 | 7 | 正式迁移脚本三段式 | 已完成 | `scripts/migrate_db_contracts.mjs` 默认 dry-run；`--apply` 才写目标库；项目真实库还需 `--confirm-project-db-write` 并自动备份 |
-| 8 | 最小 API：数据篮或工作台二选一 | 后续 | 不同时开 |
+| 8 | OI-135 真实库 apply | 已完成 | `data/exports/worker-verify/oi-135-formal-apply/20260706T063552Z/oi135-formal-apply-report.md`，正式基础库替换、用户库 target_ref 迁移、备份与回退路径 |
+| 9 | 第一批业务导出器实现 | 后续 | 基于 `docs/06-implementation/user-export-format-contract.md`，不回到历史库逐条补丁 |
 
-下一步不应直接进入前端按钮。建议先在用户工作台 / 数据篮 / 导出中选择一个最小 API 入口，把已完成的用户库 schema 设计转成可用能力。
+下一步不应直接进入前端按钮或历史库补丁。建议先由用户确认是否关闭 `OI-135`，随后进入第一批业务导出器实现。

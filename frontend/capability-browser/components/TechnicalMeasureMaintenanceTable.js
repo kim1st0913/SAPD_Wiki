@@ -15,6 +15,16 @@
       .join("");
   }
 
+  function annotationAttrs(value) {
+    return display.annotationValueAttrs?.(utils, value) || "";
+  }
+
+  function environmentItemsForRow(row = {}) {
+    const pairs = utils.list(row.environmentObjectPairs);
+    if (pairs.length) return pairs;
+    return [...utils.list(row.environmentNames), ...utils.list(row.environmentObjectNames), ...utils.list(row.linkedEnvironments)];
+  }
+
   function displayValue(value, empty = "待补充") {
     if (value == null || value === "") return empty;
     if (typeof value === "number" && Number.isNaN(value)) return empty;
@@ -47,13 +57,13 @@
                   <tr class="${row.id === selectedId ? "active" : ""}" data-maintenance-id="${utils.escapeHtml(row.id)}">
                     <td>${utils.escapeHtml(displayValue(row.index))}</td>
                     <td>
-                      <strong>${utils.escapeHtml(displayValue(row.measureName))}</strong>
+                      <strong${annotationAttrs(displayValue(row.measureName))}>${utils.escapeHtml(displayValue(row.measureName))}</strong>
                     </td>
                     <td>${chipList(row.serviceNames, row.serviceEmptyText || "待补充关联安全技术服务", "安全技术服务")}</td>
                     <td>${chipList(row.scopeNames, row.scopeEmptyText || "待补充关联作用域")}</td>
                     <td>
                       <div class="environment-combo-chip-list">
-                        ${chipList(row.environmentObjectPairs, "待补充关联信息化环境", "信息化环境")}
+                        ${chipList(environmentItemsForRow(row), "待补充关联信息化环境", "信息化环境")}
                       </div>
                     </td>
                   </tr>

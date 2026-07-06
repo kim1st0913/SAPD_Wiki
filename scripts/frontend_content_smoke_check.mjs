@@ -335,10 +335,12 @@ function validateLocalPackages() {
   assert(
     appSource.includes("function lifecycleOccurrenceMatches") &&
       appSource.includes("function searchQueryOccurrenceCount") &&
+      appSource.includes("function lifecycleDataPolicyOccurrenceMatches") &&
       appSource.includes("lifecycleOccurrenceIndex") &&
       appSource.includes('const contentRoot = kind === "data" ? $("dataLifecycleMatrix") : $("devLifecycleLane")') &&
-      appSource.includes('targetAttribute: "data-lifecycle-id"'),
-    "LC-AP/LC-DT page search navigation must count field-level occurrences, not only stage rows",
+      appSource.includes('"data-lifecycle-id"') &&
+      appSource.includes('"data-lifecycle-target-ref"'),
+    "LC-AP/LC-DT page search navigation must count field-level occurrences and support matrix target_ref anchors, not only stage rows",
   );
   assert(
     viewModelsSource.includes("function dataLifecycleStageSearchText") &&
@@ -767,6 +769,12 @@ function validateMaintenanceEnvironmentReverseMapping({ capabilityTree, maintena
   const stylesSource = readFrontendFile("styles.css");
   const appSource = readFrontendFile("app.js");
   const servicesContract = appSource.match(/services:\s*\{[\s\S]*?\n  \},/)?.[0] || "";
+  const rendersEnvironmentObjectPairs = (source) =>
+    source.includes('chipList(row.environmentObjectPairs, "待补充关联信息化环境", "信息化环境")') ||
+    (source.includes("function environmentItemsForRow") &&
+      source.includes("utils.list(row.environmentObjectPairs)") &&
+      source.includes("if (pairs.length) return pairs") &&
+      source.includes('chipList(environmentItemsForRow(row), "待补充关联信息化环境", "信息化环境")'));
   assert(serviceRowsWithEnvironmentObjectPairs.length > 0, "technical service ViewModel must expose information environment combination values");
   assert(moduleRowsWithObjects.length > 0, "technical module ViewModel must derive information object reverse mappings from environment-workbench");
   assert(moduleRowsWithEnvironments.length > 0, "technical module ViewModel must derive information environment reverse mappings from environment-workbench");
@@ -780,7 +788,7 @@ function validateMaintenanceEnvironmentReverseMapping({ capabilityTree, maintena
   assert(
     serviceTableSource.includes("<th>${utils.escapeHtml(display.relationLabel?.(\"information_environment\") || \"关联信息化环境\")}</th>") &&
       serviceTableSource.includes('class="environment-combo-chip-list"') &&
-      serviceTableSource.includes('chipList(row.environmentObjectPairs, "待补充关联信息化环境", "信息化环境")') &&
+      rendersEnvironmentObjectPairs(serviceTableSource) &&
       !serviceTableSource.includes('chipList(row.linkedEnvironments, "待补充信息化环境", "信息化环境")'),
     "technical service table must render environment-segment-object combination values under 关联信息化环境",
   );
@@ -797,7 +805,7 @@ function validateMaintenanceEnvironmentReverseMapping({ capabilityTree, maintena
   assert(
     measureTableSource.includes("<th>关联信息化环境</th>") &&
       measureTableSource.includes('class="environment-combo-chip-list"') &&
-      measureTableSource.includes('chipList(row.environmentObjectPairs, "待补充关联信息化环境", "信息化环境")') &&
+      rendersEnvironmentObjectPairs(measureTableSource) &&
       !measureTableSource.includes('relationBlock("环境", row.environmentNames') &&
       !measureTableSource.includes('relationBlock("对象", row.environmentObjectNames'),
     "technical measure table must render environment-segment-object combination values under 关联信息化环境",

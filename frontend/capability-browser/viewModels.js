@@ -4540,6 +4540,28 @@
       if (!key || items.some((row) => keyFn(row) === key)) return;
       items.push(item);
     };
+    const mergeEntityList = (left, right, keyFn) => uniqueBy([...list(left), ...list(right)], keyFn);
+    const mergeRelationNode = (target, source) => {
+      if (!target || !source) return target;
+      target.systems = mergeEntityList(target.systems, source.systems, (item) => item?.id || item?.code || item?.title || item?.name);
+      target.securitySystems = mergeEntityList(target.securitySystems, source.securitySystems, (item) => item?.id || item?.code || item?.title || item?.name);
+      target.linkedSystems = mergeEntityList(target.linkedSystems, source.linkedSystems, (item) => item?.id || item?.code || item?.title || item?.name);
+      target.products = mergeEntityList(target.products, source.products, (item) => item?.id || item?.code || item?.title || item?.name);
+      target.measures = mergeEntityList(target.measures, source.measures, relationNodeKey);
+      target.systemSourceRows = [...new Set([...list(target.systemSourceRows), ...list(source.systemSourceRows)])].sort((a, b) => Number(a) - Number(b));
+      target.mapping_sources = mergeEntityList(target.mapping_sources, source.mapping_sources, (item) => [item?.sheet, item?.row, item?.cell, item?.raw_value].filter(Boolean).join(":"));
+      target.sources = mergeEntityList(target.sources, source.sources, (item) => [item?.sheet, item?.row, item?.cell, item?.raw_value].filter(Boolean).join(":"));
+      return target;
+    };
+    const addOrMergeRelationNode = (items, item) => {
+      if (!item) return null;
+      const key = relationNodeKey(item);
+      if (!key) return null;
+      const existing = items.find((row) => relationNodeKey(row) === key);
+      if (existing) return mergeRelationNode(existing, item);
+      items.push(item);
+      return item;
+    };
 
     for (const [index, row] of list(rows).entries()) {
       const group = ensureGroup(row, index);
@@ -4563,7 +4585,7 @@
         const relationNodes = list(row.relationNodes).length ? list(row.relationNodes) : [...list(row.modules), ...list(row.measures)];
         for (const module of relationNodes) {
           const currentModuleKey = relationNodeKey(module);
-          addUnique(group.modules, module, relationNodeKey);
+          addOrMergeRelationNode(group.modules, module);
           if (!currentServiceKey || !currentModuleKey) continue;
           const edgeKey = `${currentServiceKey}::${currentModuleKey}`;
           if (group.edges.some((edge) => edge.edgeKey === edgeKey)) continue;

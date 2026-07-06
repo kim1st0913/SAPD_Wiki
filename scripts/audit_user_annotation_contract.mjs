@@ -93,6 +93,21 @@ if (
   });
 }
 
+if (
+  !includesAll(appJs, [
+    "function annotationNoteMatchesEnvironmentSearch",
+    "if (state.search && !annotationNoteMatchesEnvironmentSearch(note))",
+    "state.search = \"\"",
+    "restoreEnvironmentContextFromNote",
+  ])
+) {
+  issues.push({
+    severity: "error",
+    type: "environment_annotation_jump_search_filter_not_cleared",
+    message: "环境页批注定位必须在找到目标对象后清空不匹配的页面内搜索词，避免当前筛选继续遮挡目标模块 / 措施 / 服务节点。",
+  });
+}
+
 if (!includesAll(capabilityLocalRelationMapJs, ["standardControlChip", "standard-control-code-chip", "annotationValueAttrs(code)"])) {
   issues.push({
     severity: "error",

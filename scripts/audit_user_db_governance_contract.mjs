@@ -113,7 +113,7 @@ const requiredDesignSnippets = [
   "user_favorites",
   "read model",
   "不直接改前端",
-  "不迁移真实用户库",
+  "不无备份、无确认地迁移真实用户库",
 ];
 
 function parseArgs(argv) {
@@ -257,9 +257,11 @@ function main() {
   const runLocalServer = readProjectFile(files.runLocalServer);
   const design = readProjectFile(files.design);
   const openIssues = readProjectFile(files.openIssues);
+  const openIssuesHistory = readProjectFile("docs/05-archive/open-issues-history/2026-06.md");
+  const issueLedger = `${openIssues}\n${openIssuesHistory}`;
   const taskPlan = readProjectFile(files.taskPlan);
 
-  addCheck(checks, "current_schema_version_is_0_2", createUserDb.includes('DEFAULT_SCHEMA_VERSION = "user_schema_0.2"'));
+  addCheck(checks, "current_schema_version_is_0_3", createUserDb.includes('DEFAULT_SCHEMA_VERSION = "user_schema_0.3"'));
   addCheck(checks, "current_tables_declared", includesAll(createUserDb, currentTables), {
     expected: currentTables,
     missing: currentTables.filter((table) => !createUserDb.includes(table)),
@@ -287,17 +289,18 @@ function main() {
   addCheck(
     checks,
     "oi_135_design_status_synced",
-    /OI-135\s*\|\s*(设计完成 \/ 待确认|临时库 smoke 通过 \/ 真实迁移待确认|正式迁移脚本完成 \/ 真实库 apply 待显式确认)/.test(openIssues),
+    /OI-135\s*\|\s*(设计完成 \/ 待确认|临时库 smoke 通过 \/ 真实迁移待确认|正式迁移脚本完成 \/ 真实库 apply 待显式确认|正式迁移脚本完成 \/ stable_ref 重复待治理 \/ 真实库 apply 待显式确认|基础库 clean candidate 完成 \/ 用户库 legacy target_ref 待治理 \/ 真实库 apply 待显式确认|基础库 clean candidate 完成 \/ 用户库 target_ref 迁移 dry-run 通过 \/ 真实库 apply 待显式确认|真实库 apply 已完成 \/ 自动验证通过 \/ 待用户确认关闭)/.test(openIssues) ||
+      /## OI-135：[\s\S]*?- 状态：已关闭/.test(issueLedger),
   );
   addCheck(
     checks,
     "db_11_plan_status_synced",
-    /DB-11[\s\S]*P0 (设计完成 \/ 待确认|审计脚本完成 \/ migration dry-run 待启动|migration dry-run 完成 \/ 临时库 smoke 待启动|临时库 smoke 通过 \/ 真实迁移待确认|正式迁移脚本完成 \/ 真实库 apply 待显式确认|正式迁移脚本完成 \/ 数据篮最小 API 已完成 \/ 真实库 apply 待显式确认|正式迁移脚本完成 \/ 工作台总览和数据篮最小 API 已完成 \/ 真实库 apply 待显式确认)/.test(taskPlan),
+    /DB-11[\s\S]*P0 (设计完成 \/ 待确认|审计脚本完成 \/ migration dry-run 待启动|migration dry-run 完成 \/ 临时库 smoke 待启动|临时库 smoke 通过 \/ 真实迁移待确认|正式迁移脚本完成 \/ 真实库 apply 待显式确认|正式迁移脚本完成 \/ 数据篮最小 API 已完成 \/ 真实库 apply 待显式确认|正式迁移脚本完成 \/ 工作台总览和数据篮最小 API 已完成 \/ 真实库 apply 待显式确认|正式迁移脚本完成 \/ 工作台总览、数据篮和导出最小闭环已完成 \/ stable_ref 重复待治理 \/ 真实库 apply 待显式确认|正式迁移脚本完成 \/ 工作台总览、数据篮和导出最小闭环已完成 \/ 基础库 clean candidate 完成 \/ 用户库 legacy target_ref 待治理 \/ 真实库 apply 待显式确认|正式迁移脚本完成 \/ 工作台总览、数据篮和导出最小闭环已完成 \/ 基础库 clean candidate 完成 \/ 用户库 target_ref 迁移 dry-run 通过 \/ 真实库 apply 待显式确认|真实库 apply 已完成 \/ 自动验证通过 \/ 待用户确认关闭|已关闭 \/ 自动验证通过)/.test(taskPlan),
   );
   addCheck(
     checks,
     "db_2_plan_status_synced",
-    /DB-2[\s\S]*P0 (设计完成 \/ 待确认|审计脚本完成 \/ migration 设计待启动|migration 设计完成 \/ 临时库 smoke 待启动|临时库 smoke 通过 \/ 真实迁移待确认|正式迁移脚本完成 \/ 真实库 apply 待显式确认)/.test(taskPlan),
+    /DB-2[\s\S]*P0 (设计完成 \/ 待确认|审计脚本完成 \/ migration 设计待启动|migration 设计完成 \/ 临时库 smoke 待启动|临时库 smoke 通过 \/ 真实迁移待确认|正式迁移脚本完成 \/ 真实库 apply 待显式确认|正式迁移脚本完成 \/ stable_ref 重复待治理 \/ 真实库 apply 待显式确认|正式迁移脚本完成 \/ 基础库 clean candidate 完成 \/ 用户库 legacy target_ref 待治理 \/ 真实库 apply 待显式确认|正式迁移脚本完成 \/ 基础库 clean candidate 完成 \/ 用户库 target_ref 迁移 dry-run 通过 \/ 真实库 apply 待显式确认|真实库 apply 已完成 \/ 自动验证通过)/.test(taskPlan),
   );
 
   if (args.db) {
@@ -318,6 +321,10 @@ function main() {
       addCheck(checks, "db_v03_tables_present", args.requireV03 ? missingV03Tables.length === 0 : true, {
         mode: args.requireV03 ? "required" : "warning_only",
         missing: missingV03Tables,
+      });
+      addCheck(checks, "db_schema_version_is_0_3", args.requireV03 ? db.schemaVersion === "user_schema_0.3" : true, {
+        schemaVersion: db.schemaVersion,
+        expected: "user_schema_0.3",
       });
       const invalidStatuses = Object.keys(db.noteStatusCounts || {}).filter((status) => !allowedStatuses.includes(status));
       addCheck(checks, "db_user_note_statuses_allowed", invalidStatuses.length === 0, {

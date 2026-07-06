@@ -206,6 +206,7 @@ XLSX_NS = {
 }
 CANONICAL_ITEM_TITLES: dict[tuple[str, str], str] = {
     ("capability", "T-AD.SA"): "态势感知能力",
+    ("scope_type", "I-OS"): "操作系统（主机/终端）",
 }
 
 
@@ -576,6 +577,20 @@ def _brief_item(item: dict[str, Any] | None, source_refs: dict[str, list[dict[st
         "category": category,
         "sources": _brief_item_sources(item, source_refs),
     }
+
+
+def _apply_scope_catalog_authority(scope_items: dict[str, dict[str, Any]], conn: sqlite3.Connection) -> None:
+    """Keep scope references aligned with the scope catalog, not stale DB titles."""
+    scope_catalog_by_code = {row["code"]: row for row in _scope_catalog_rows_from_xlsx(conn) if row.get("code")}
+    for scope in scope_items.values():
+        if scope.get("type") != "scope_type":
+            continue
+        catalog_row = scope_catalog_by_code.get(scope.get("code"))
+        if not catalog_row:
+            continue
+        scope["title"] = catalog_row.get("title") or _canonical_title(scope)
+        scope["description"] = catalog_row.get("description") or scope.get("description")
+        scope["category"] = catalog_row.get("scenario") or scope.get("category")
 
 
 GBT_42446_TASK_DESCRIPTIONS = {
@@ -969,6 +984,7 @@ def export_capability_tree(
         """
     ).fetchall()
     items = {row["id"]: dict(row) for row in item_rows}
+    _apply_scope_catalog_authority(items, conn)
     scope_id_by_code = {
         item["code"]: item_id
         for item_id, item in items.items()
@@ -1378,14 +1394,7 @@ def _build_service_module_index(conn: sqlite3.Connection) -> tuple[list[dict[str
     products = {item_id: item for item_id, item in items.items() if item["type"] == "product"}
     environments = {item_id: item for item_id, item in items.items() if item["type"] == "information_environment"}
     scopes = {item_id: item for item_id, item in items.items() if item["type"] == "scope_type"}
-    scope_catalog_by_code = {row["code"]: row for row in _scope_catalog_rows_from_xlsx(conn) if row.get("code")}
-    for scope in scopes.values():
-        catalog_row = scope_catalog_by_code.get(scope.get("code"))
-        if not catalog_row:
-            continue
-        scope["title"] = catalog_row.get("title") or scope.get("title")
-        scope["description"] = catalog_row.get("description") or scope.get("description")
-        scope["category"] = catalog_row.get("scenario") or scope.get("category")
+    _apply_scope_catalog_authority(scopes, conn)
 
     scopes_by_service: dict[str, list[str]] = {}
     modules_by_service: dict[str, list[str]] = {}
@@ -2418,6 +2427,7 @@ def export_management_knowledge(
     process_activities = {item_id: item for item_id, item in items.items() if item["type"] == "process_activity"}
     capability_focuses = {item_id: item for item_id, item in items.items() if item["type"] == "capability_focus"}
     scope_types = {item_id: item for item_id, item in items.items() if item["type"] == "scope_type"}
+    _apply_scope_catalog_authority(scope_types, conn)
     technical_services = {item_id: item for item_id, item in items.items() if item["type"] == "security_technical_service"}
     technology_modules = {item_id: item for item_id, item in items.items() if item["type"] == "security_technology_module"}
     security_systems = {item_id: item for item_id, item in items.items() if item["type"] == "security_system"}

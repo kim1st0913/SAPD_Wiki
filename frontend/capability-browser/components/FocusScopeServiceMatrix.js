@@ -15,8 +15,30 @@
     return display.annotationValueAttrs?.(utils, value) || "";
   }
 
-  function chipList(items, empty = "暂无", limit = Infinity, fallbackKind = "") {
-    if (display.relationChipList) return display.relationChipList(utils, items, { empty, limit, kind: fallbackKind, showKind: true });
+  function relationTypeForKind(kind = "") {
+    const normalized = utils.text(kind).trim();
+    if (normalized.includes("服务")) return "security_technical_service";
+    if (normalized.includes("模块")) return "security_technology_module";
+    if (normalized.includes("措施")) return "security_technical_measure";
+    return "";
+  }
+
+  function capabilityRelationAnchorAttrs(item, kind = "", context = {}) {
+    const focusId = utils.text(context.focusId).trim();
+    const relationType = utils.text(context.relationType || relationTypeForKind(kind)).trim();
+    const objectId = utils.text(item?.id || item?.code || item?.serviceCode || item?.title || item?.name).trim();
+    if (!focusId || !relationType || !objectId) return "";
+    const targetRef = `capability_relation:${relationType}:${focusId}:${objectId}`;
+    return [
+      `data-capability-relation-target-ref="${utils.escapeHtml(targetRef)}"`,
+      `data-capability-relation-type="${utils.escapeHtml(relationType)}"`,
+      `data-capability-relation-focus-id="${utils.escapeHtml(focusId)}"`,
+      `data-capability-relation-object-id="${utils.escapeHtml(objectId)}"`,
+    ].join(" ");
+  }
+
+  function chipList(items, empty = "暂无", limit = Infinity, fallbackKind = "", context = {}) {
+    if (display.relationChipList && !context.focusId) return display.relationChipList(utils, items, { empty, limit, kind: fallbackKind, showKind: true });
     const rows = utils.list(items).filter(Boolean);
     if (!rows.length) return `<span class="empty-inline">${utils.escapeHtml(empty)}</span>`;
     const visible = Number.isFinite(limit) ? rows.slice(0, limit) : rows;
@@ -27,7 +49,7 @@
         const label = utils.codeTitleOf(item);
         const isService = utils.text(kind).includes("服务");
         const annotationText = [isService ? "" : kind, label].filter(Boolean).join(" | ");
-        return `<span class="relation-chip ${technicalChipClass(kind)}"${annotationAttrs(annotationText)}>${kind && !isService ? `<em>${utils.escapeHtml(kind)}</em>` : ""}<span class="relation-chip-text">${utils.escapeHtml(label)}</span></span>`;
+        return `<span class="relation-chip ${technicalChipClass(kind)}"${annotationAttrs(annotationText)} ${capabilityRelationAnchorAttrs(item, kind, context)}>${kind && !isService ? `<em>${utils.escapeHtml(kind)}</em>` : ""}<span class="relation-chip-text">${utils.escapeHtml(label)}</span></span>`;
       })
       .join("")}${more > 0 ? `<span class="relation-chip muted">+${more}</span>` : ""}`;
   }
@@ -103,8 +125,8 @@
                   (row) => `
                     <tr>
                       <td><strong>${utils.escapeHtml(row.scope.code || "")}</strong><span>${utils.escapeHtml(row.scope.title)}</span></td>
-                      <td>${row.status === "ambiguous_service_mapping" ? `<span class="missing-pill">${utils.escapeHtml(display.state?.("mapping_exception") || "映射异常")}</span>${exceptionDetails(row)}` : chipList(row.services, display.state?.("no_applicable_service") || "无适用服务", Infinity, "安全技术服务")}</td>
-                      <td>${row.status === "ambiguous_service_mapping" ? `<span class="empty-inline">${utils.escapeHtml(display.state?.("pending_review") || "待确认")}</span>` : chipList(row.modules, row.status === "no_service" ? display.state?.("not_applicable") || "不适用" : display.state?.("no_module_or_measure") || "/", Infinity)}</td>
+                      <td>${row.status === "ambiguous_service_mapping" ? `<span class="missing-pill">${utils.escapeHtml(display.state?.("mapping_exception") || "映射异常")}</span>${exceptionDetails(row)}` : chipList(row.services, display.state?.("no_applicable_service") || "无适用服务", Infinity, "安全技术服务", { focusId: row.focus?.id, relationType: "security_technical_service" })}</td>
+                      <td>${row.status === "ambiguous_service_mapping" ? `<span class="empty-inline">${utils.escapeHtml(display.state?.("pending_review") || "待确认")}</span>` : chipList(row.modules, row.status === "no_service" ? display.state?.("not_applicable") || "不适用" : display.state?.("no_module_or_measure") || "/", Infinity, "", { focusId: row.focus?.id })}</td>
                     </tr>
                   `,
                 )

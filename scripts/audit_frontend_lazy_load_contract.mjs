@@ -158,6 +158,41 @@ if (!includesAll(appJs, ["capabilityProjectionLoadResults", "capabilityLoadFailu
 }
 
 if (
+  !includesAll(appJs, [
+    "function capabilityObjectViewHasFocus",
+    "capabilityObjectViewHasFocus(state.capabilityProjection, focusId) || capabilityObjectViewHasFocus(state.capabilityWorkspaceView, focusId)",
+    "capabilityViewModelHasRenderableDetail(viewModel)",
+    "function capabilityLoadStateCanRenderInBackground",
+    'selected?.type !== "capability_focus"',
+    'viewModel.localRelationMapSource === "backend_projection"',
+    "object_view_pending_background",
+    "focus_projection_pending_background",
+    "已先显示当前对象的可用关系视图",
+    "已先显示当前关注点的可用关系视图",
+  ])
+) {
+  issues.push({
+    severity: "error",
+    type: "capability_progressive_render_contract_missing",
+    message: "安全能力映射页只能对已验证同对象视图做后台补全；关注点粒度不得用普通 ViewModel fallback 替代 backend projection。",
+  });
+}
+
+if (
+  !includesAll(dataClientJs, [
+    "CAPABILITY_WORKSPACE_FETCH_TIMEOUT_MS",
+    "fetchWithTimeout",
+    "timeoutMs: CAPABILITY_WORKSPACE_FETCH_TIMEOUT_MS",
+  ])
+) {
+  issues.push({
+    severity: "error",
+    type: "capability_workspace_timeout_missing",
+    message: "能力对象 workspace-view / workspace-projection 请求必须有前端超时兜底，避免接口慢或中断时长期占用加载态。",
+  });
+}
+
+if (
   !includesAll(dataClientJs, [
     "oi149SplitManifest",
     "function getOi149SplitManifest",
@@ -251,6 +286,8 @@ const result = {
     standardTabs: frameworks.reduce((sum, framework) => sum + (Array.isArray(framework.tabs) ? framework.tabs.length : 0), 0),
     componentFetchForbidden: true,
     capabilityLoadingStateRerender: true,
+    capabilityProgressiveRenderContract: true,
+    capabilityWorkspaceTimeout: true,
     oi149SplitInitialLoader: true,
     oi149EnvironmentSplitNavigatorAndProjectionLoader: true,
     oi149FormalApplyConfirmationGate: true,

@@ -63,6 +63,13 @@ const FIELD_ARRAY_CHECKS = [
   },
 ];
 
+const MODULE_ONLY_MEASURE_TITLES = new Set([
+  "主机防火墙",
+  "主机恶意代码防护",
+  "主机入侵防御（HIPS）",
+  "终端安全工作区",
+]);
+
 function readJson(relativePath) {
   return JSON.parse(fs.readFileSync(path.join(DATA_ROOT, relativePath), "utf8"));
 }
@@ -220,6 +227,15 @@ function issue(issues, severity, type, kind, message, details) {
 function compareReference(record, authority, issues, file, jsonPath) {
   const type = record.type || record.object_type || record.objectType;
   if (!AUTHORITY_TYPES.has(type) || !hasBusinessIdentity(record)) return;
+  if (type === "security_technical_measure" && MODULE_ONLY_MEASURE_TITLES.has(objectTitle(record))) {
+    issue(issues, "error", type, "module_title_used_as_measure_reference", "Module-only title must not be typed as a technical measure.", {
+      file,
+      path: jsonPath,
+      id: normalizeText(record.id),
+      code: objectCode(record),
+      title: objectTitle(record),
+    });
+  }
   const bucket = authority.byType.get(type);
   if (!bucket) return;
 

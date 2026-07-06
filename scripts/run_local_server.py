@@ -85,6 +85,7 @@ projection_api = load_projection_api_module()
 
 API_PREFIX = "/api/v1/"
 AUTH_HEADER = "X-SAPD-Session-Token"
+USER_SCHEMA_VERSION = "user_schema_0.3"
 BASE_ITEM_TABLE_CANDIDATES = [
     "knowledge_items",
     "knowledge_item",
@@ -432,7 +433,47 @@ class BundleRuntime:
         self.ensure_user_workspace_tables()
         self.ensure_user_data_basket_tables()
         self.ensure_user_export_tables()
+        self.ensure_user_schema_version()
         self.export_dir.mkdir(parents=True, exist_ok=True)
+
+    def ensure_user_schema_version(self) -> None:
+        user_uri = self.user_db.resolve().as_uri() + "?mode=rwc"
+        with sqlite3.connect(user_uri, uri=True) as connection:
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS user_meta (
+                    key TEXT PRIMARY KEY,
+                    value TEXT NOT NULL,
+                    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS user_schema_migrations (
+                    version TEXT PRIMARY KEY,
+                    applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """
+            )
+            connection.execute(
+                """
+                INSERT INTO user_meta(key, value, updated_at)
+                VALUES ('schema_version', ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(key) DO UPDATE SET
+                    value = excluded.value,
+                    updated_at = CURRENT_TIMESTAMP
+                """,
+                (USER_SCHEMA_VERSION,),
+            )
+            connection.execute(
+                """
+                INSERT INTO user_schema_migrations(version)
+                VALUES (?)
+                ON CONFLICT(version) DO NOTHING
+                """,
+                (USER_SCHEMA_VERSION,),
+            )
 
     def ensure_user_note_columns(self) -> None:
         user_uri = self.user_db.resolve().as_uri() + "?mode=rwc"

@@ -14,7 +14,7 @@ import uuid
 from pathlib import Path
 
 
-DEFAULT_SCHEMA_VERSION = "user_schema_0.2"
+DEFAULT_SCHEMA_VERSION = "user_schema_0.3"
 
 
 SCHEMA_SQL = """
@@ -114,6 +114,155 @@ CREATE TABLE IF NOT EXISTS user_schema_migrations (
 );
 """
 
+SCHEMA_V03_SQL = """
+CREATE TABLE IF NOT EXISTS user_workspaces (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_workspace_items (
+  id TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL,
+  target_ref TEXT NOT NULL,
+  item_status TEXT NOT NULL DEFAULT 'active',
+  sort_order INTEGER,
+  payload_json TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(workspace_id, target_ref),
+  FOREIGN KEY(workspace_id) REFERENCES user_workspaces(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS user_data_baskets (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_data_basket_items (
+  id TEXT PRIMARY KEY,
+  basket_id TEXT NOT NULL,
+  target_ref TEXT NOT NULL,
+  object_type TEXT,
+  object_title TEXT,
+  payload_json TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(basket_id, target_ref),
+  FOREIGN KEY(basket_id) REFERENCES user_data_baskets(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS user_export_profiles (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  export_type TEXT NOT NULL,
+  config_json TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_export_jobs (
+  id TEXT PRIMARY KEY,
+  profile_id TEXT,
+  export_type TEXT NOT NULL,
+  source_ref TEXT,
+  status TEXT NOT NULL DEFAULT 'draft',
+  preview_json TEXT,
+  output_path TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_capability_models (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  status TEXT NOT NULL DEFAULT 'draft',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_capability_model_nodes (
+  id TEXT PRIMARY KEY,
+  model_id TEXT NOT NULL,
+  parent_id TEXT,
+  source_ref TEXT,
+  node_type TEXT NOT NULL,
+  code TEXT,
+  title TEXT NOT NULL,
+  description TEXT,
+  payload_json TEXT,
+  sort_order INTEGER,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_capability_model_relations (
+  id TEXT PRIMARY KEY,
+  model_id TEXT NOT NULL,
+  source_node_id TEXT NOT NULL,
+  target_ref TEXT NOT NULL,
+  relation_type TEXT NOT NULL,
+  payload_json TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_import_staging_items (
+  id TEXT PRIMARY KEY,
+  import_job_id TEXT NOT NULL,
+  target_ref TEXT,
+  item_type TEXT NOT NULL,
+  action_type TEXT NOT NULL DEFAULT 'create',
+  payload_json TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'draft',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_import_staging_relations (
+  id TEXT PRIMARY KEY,
+  import_job_id TEXT NOT NULL,
+  source_ref TEXT NOT NULL,
+  target_ref TEXT NOT NULL,
+  relation_type TEXT NOT NULL,
+  action_type TEXT NOT NULL DEFAULT 'create',
+  payload_json TEXT,
+  status TEXT NOT NULL DEFAULT 'draft',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_review_decisions (
+  id TEXT PRIMARY KEY,
+  target_ref TEXT NOT NULL,
+  decision_type TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  note TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_target_ref_migrations (
+  id TEXT PRIMARY KEY,
+  old_target_ref TEXT NOT NULL,
+  new_target_ref TEXT,
+  redirect_type TEXT NOT NULL,
+  affected_table TEXT NOT NULL,
+  affected_id TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  applied_at TEXT
+);
+"""
+
 
 USER_NOTE_COLUMNS = {
     "status": "TEXT NOT NULL DEFAULT 'todo'",
@@ -138,6 +287,7 @@ def initialize_user_db(db_path: Path, schema_version: str) -> None:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(db_path) as connection:
         connection.executescript(SCHEMA_SQL)
+        connection.executescript(SCHEMA_V03_SQL)
         ensure_user_note_columns(connection)
         connection.execute(
             """

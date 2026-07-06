@@ -164,7 +164,7 @@ async function main() {
       },
       user_database: {
         file: "sapd_wiki_user.sqlite3",
-        schema_version: "user_schema_0.2",
+        schema_version: "user_schema_0.3",
       },
       frontend: { dir: "app/frontend-dist" },
       backend: { entry: "SAPD-Wiki-Backend" },

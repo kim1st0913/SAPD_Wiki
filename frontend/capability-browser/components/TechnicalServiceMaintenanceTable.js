@@ -83,6 +83,12 @@
     </div>`;
   }
 
+  function environmentItemsForRow(row = {}) {
+    const pairs = utils.list(row.environmentObjectPairs);
+    if (pairs.length) return pairs;
+    return [...utils.list(row.linkedEnvironments), ...utils.list(row.environmentNames), ...utils.list(row.environmentObjectNames)];
+  }
+
   function readTableState() {
     try {
       return JSON.parse(window.localStorage?.getItem(TABLE_STATE_KEY) || "{}") || {};
@@ -126,14 +132,14 @@
       <tr class="maintenance-data-row standard-group-detail ${row.id === selectedId ? "active" : ""}" data-standard-parent="${utils.escapeHtml(parentId)}" data-standard-lineage="${utils.escapeHtml(parentId)}" data-maintenance-id="${utils.escapeHtml(row.id)}"${hiddenAttr}>
         <td>${utils.escapeHtml(displayValue(row.index))}</td>
         <td>
-          <strong>${utils.escapeHtml(displayValue(row.serviceLabel))}</strong>
+          <strong${annotationAttrs(displayValue(row.serviceLabel))}>${utils.escapeHtml(displayValue(row.serviceLabel))}</strong>
         </td>
         <td>${ownershipList(row.ownershipFocuses, "待补充安全能力 / 关注点")}</td>
         <td>${chipList(row.linkedModuleMeasures, display.state?.("no_module_or_measure") || "/", "", true)}</td>
         <td>${chipList(row.linkedSystems, "待补充安全系统", "安全系统")}</td>
         <td>
           <div class="environment-combo-chip-list">
-            ${chipList(row.environmentObjectPairs, "待补充关联信息化环境", "信息化环境")}
+            ${chipList(environmentItemsForRow(row), "待补充关联信息化环境", "信息化环境")}
           </div>
         </td>
       </tr>
@@ -147,8 +153,9 @@
     return groups
       .map((group, index) => {
         const id = groupId(`technical-service-scope-${index}-${group.id || group.label}`);
-        const expanded = expandAll || !hasSavedExpandedGroups || expandedGroups.has(id);
         const serviceRows = utils.list(group.rows);
+        const groupHasSelectedService = selectedId && serviceRows.some((row) => utils.text(row?.id).trim() === utils.text(selectedId).trim());
+        const expanded = groupHasSelectedService || expandAll || !hasSavedExpandedGroups || expandedGroups.has(id);
         return `
           <tr class="standard-group-row service-scope-table-group depth-0 ${expanded ? "expanded" : ""}" data-standard-group="${utils.escapeHtml(id)}">
             <td colspan="6">
@@ -227,7 +234,7 @@
         </table>
       </div>
     `;
-    scheduleScrollRestore();
+    if (!selectedId) scheduleScrollRestore();
     return html;
   }
 

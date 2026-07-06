@@ -5,9 +5,9 @@
 ## 摘要
 
 - 生成日期：2026-06-01
-- 问题总数：162
-- 当前未关闭问题数：21
-- 已关闭归档问题数：141
+- 问题总数：191
+- 当前未关闭问题数：3
+- 已关闭归档问题数：188
 - 当前入口：`docs/06-implementation/open-issues.md`
 - 已关闭归档：`docs/05-archive/open-issues-history/2026-06.md`
 
@@ -17,24 +17,13 @@
 |---|---:|
 | (空) | 1 |
 | 部分完成 | 1 |
-| 部分修复 / 待人工验收 | 1 |
-| 总览摘要有效信息设计已落地 / 待页面人工验收 | 1 |
-| 待设计落地 / 待修复 | 1 |
-| 设计完成 / 待用户确认 | 1 |
 | 业务接受 | 5 |
-| 已关闭 | 7 |
+| 已关闭 | 54 |
 | 已回退 | 1 |
 | 已修复 | 127 |
 | 已修复 / 待打包验收 | 1 |
-| 已修复 / 待人工验收 | 1 |
-| 已修复 / 待页面验收 | 8 |
-| 已修复 / 待真实浏览器验收 | 1 |
-| 已修复 / 批注治理 7 项已落地 / Apple 侧边把手与锚点契约已补 / 待人工视觉验收 | 1 |
-| 已修复 / 用户已验收 | 1 |
 | 已修复，后续可继续优化 | 1 |
-| 正式迁移脚本完成 / 真实库 apply 待显式确认 | 1 |
-| 正式投影已替换 / 待页面验收 | 1 |
-| P4 正式 split apply 已完成 / 待页面人工验收与观察 | 1 |
+| 长期保留 / 按需继续修复 | 1 |
 
 ## 重复编号
 
@@ -191,26 +180,53 @@
 | OI-139 | 已关闭 | 作用域-安全技术服务-安全技术模块映射导入关系与当前 JSON 投影不一致 | 数据 / ETL / 投影 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-038 | 已关闭 | Gartner 与安全职能候选映射需后续人工校对 | 数据 / 需求 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-160 | 已关闭 | 知识库字典维护页页签未冻结导致滚动后被遮挡 | 前端 / 交互 / 知识库字典 / sticky tab | docs/05-archive/open-issues-history/2026-06.md |
-| OI-162 | 已修复 / 待页面验收 | 安全能力管理视角安全工作合并单元格修正重导 | 数据 / ETL / 能力映射 / 安全管理工作 | docs/06-implementation/open-issues.md |
-| OI-161 | 已修复 / 待页面验收 | 工作台 Issue 清单入口与列表项点击失效 | 前端 / 工作台 / Issue / 交互 | docs/06-implementation/open-issues.md |
-| OI-159 | 暂时关闭 / 待观察 | 能力页 L0 / L1 双 tab 总览型阅读模式 | 前端 / 产品设计 / 性能 / 能力映射 / projection | docs/06-implementation/open-issues.md |
+| OI-188 | 已关闭 | `M-* -00` 管理类安全技术服务全局搜索双目标返回与定位契约 | 全局搜索 / 索引覆盖 / 安全技术服务 / 安全能力映射 / 防回归审计 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-185 | 已关闭 | 搜索索引覆盖矩阵、局部搜索历史域隔离和 Issue 筛选体验修复 | 前端搜索 / 搜索索引质量 / 工作台 Issue 体验 / 防回归审计 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-177 | 已关闭 | 作用域名称未按字典权威标题规范化 | 数据投影 / 字典规范化 / 能力映射 / 环境映射 / 生命周期 / 防回归审计 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-176 | 已关闭 | 能力 / 环境 split projection 残留模块误作安全技术措施引用 | 数据投影 / OI-149 split / 能力映射 / 信息化环境映射 / 安全技术模块与措施粒度 / 防回归审计 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-167 | 已关闭 | I-AP 数据水印 / 脱敏服务名疑似误套 I-DI canonical 名称 | 数据 / 原始 Excel / 安全技术服务字典 / ETL / 前端投影 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-166 | 已关闭 | 安全技术模块 / 措施 / 服务清单缺少信息化环境 / 对象反向映射 | 前端 / 产品设计 / 知识库字典 / 关系反向映射 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-165 | 已关闭 | 前端业务文本无法稳定选中复制 | 前端 / 基础交互 / 文本选择 / 复制体验 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-163 | 已关闭 | GB/T 42446 与 Gartner 参考页归属错误且 GB/T 表 2 缺少独立呈现 | 数据 / 前端 / 标准框架 / 知识库字典 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-142 | 已关闭 | 安全技术服务清单能力-关注点顺序下服务显示不全 | 前端 / 数据消费链路 / 页面可见性 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-182 | 已关闭 | 信息化对象与 LC-DT 服务集合按业务合理性纠偏与投影同步 | 数据 / ETL / 信息化环境 / LC-DT / 防回归审计 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-164 | 已关闭 | AppShell 页面滚动容器嵌套导致滚动卡顿 | 前端 / 滚动架构 / AppShell / 防回归审计 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-189 | 已关闭 | LC-DT 策略矩阵行级数据与搜索锚点不同步 | 数据 QA / 生命周期投影 / 全局搜索 / 局部搜索 / 防回归审计 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-186 | 已关闭 | 安全能力映射页关系投影加载阻塞主画布 | 前端 / 加载契约 / 安全能力映射 / 性能体验 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-172 | 已关闭 | LC-AP / LC-DT 阶段 tab 胶囊宽度导致横向滚动条 | 前端 / 产品体验 / 生命周期阶段导航 / 防回归审计 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-187 | 已关闭 | 安全能力映射三视角数据准确性与关系一致性审计 | 数据 QA / 安全能力映射 / 技术视角 / 管理视角 / 标准框架映射 / 防回归审计 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-184 | 已关闭 | 页面内搜索历史基线和搜索索引质量探针补齐 | 前端搜索 / 搜索索引质量 / 防回归审计 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-183 | 已关闭 | 全局搜索历史提交时机和分页按钮宽度回归 | 前端搜索 / 产品体验 / 防回归审计 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-181 | 已关闭 | 全局搜索结果页分页窗口、预览串线和搜索历史基线不统一 | 前端搜索 / API 搜索窗口 / 产品体验 / 防回归审计 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-180 | 已关闭 | 全局搜索结果页缺少分页和固定查询上下文 | 前端搜索 / 产品体验 / 搜索结果页信息架构 / 防回归审计 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-179 | 已关闭 | 全局搜索计数使用返回窗口导致短词 / 长词分类数不一致 | 前端搜索 / 后端 API / 产品契约 / 计数口径 / 防回归审计 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-178 | 已关闭 | 安全能力非关注点级投影返回关注点关系图 | 前端投影 / 安全能力映射 / 数据粒度契约 / 防回归审计 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-175 | 已关闭 | 全局搜索未覆盖标准 / 框架明细行 | 后端 API / 前端搜索 / 标准框架 / 结果队列 / 防回归审计 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-174 | 已关闭 | 安全技术措施清单被映射表候选项污染为 36 条 | ETL / 前端投影 / 知识库字典 / 数据粒度契约 / 防回归审计 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-173 | 已关闭 | 安全技术模块清单 module.systems 投影不完整 | ETL / 前端投影 / 知识库字典 / 防回归审计 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-171 | 已关闭 | LC-AP / LC-DT 正文区域出现嵌套纵向滚动条 | 前端 / 产品体验 / 滚动架构 / 防回归审计 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-169 | 已关闭 | 安全技术模块清单 module.services 投影不完整 | ETL / 前端投影 / 知识库字典 / 防回归审计 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-168 | 已关闭 | 信息化对象-安全技术服务源表补充与上下文投影同步 | 数据 / 原始 Excel / ETL / SQLite / 前端投影 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-162 | 已关闭 | 安全能力管理视角安全工作合并单元格修正重导 | 数据 / ETL / 能力映射 / 安全管理工作 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-159 | 已关闭 | 能力页 L0 / L1 双 tab 总览型阅读模式 | 前端 / 产品设计 / 性能 / 能力映射 / projection | docs/05-archive/open-issues-history/2026-06.md |
+| OI-155 | 已关闭 | 全局搜索产品形态与搜索结果页重设计 | 前端 / 产品设计 / 搜索 / 信息架构 / 性能边界 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-154 | 已关闭 | 页面内搜索功能回归与环境页搜索不可用 | 前端 / 搜索 / 页面内筛选 / 信息化环境映射 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-153 | 已关闭 | 批注抽屉底部卡片展开后当前批注显示不完整 | 前端 / 批注 / 交互 / 滚动可见性 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-152 | 已关闭 | LC-AP / LC-DT 旧批注阶段 ID 失效导致定位不到 | 前端 / 批注 / 生命周期页面 / 定位恢复 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-151 | 已关闭 | 信息化环境汇聚图节点缺少稳定业务锚点导致定位不到 | 前端 / 批注 / 信息化环境映射 / 锚点契约 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-149 | 已关闭 | 前端 JSON 加载体量与首屏性能需分层治理 | 前端 / 数据包 / 性能 / JSON 治理 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-148 | 已关闭 | 全局批注在新环境页面缺少值级锚点与路由切换遮挡治理 | 前端 / 批注 / 全局交互 / 信息化环境映射 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-144 | 已关闭 | 全局搜索与页面内搜索状态串线 | 前端 / 交互 / 状态管理 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-137 | 已关闭 | 信息化环境首页需导入 draw.io 第三页实例底图 | 前端 / 设计 / Draw.io 导入 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-170 | 已关闭 | LC-DT 加工/使用阶段双表模块/措施集合差异 | 数据 / 原始 Excel / LC-DT / 待业务确认 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-161 | 已关闭 | 工作台 Issue 清单入口与列表项点击失效 | 前端 / 工作台 / Issue / 交互 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-156 | 已关闭 | 全局批注定位 / 高亮性能退化导致页面假死 | 前端 / 批注 / 性能 / 定位 / 高亮 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-150 | 已关闭 | 全局批注值定位缺少运行时索引导致定位慢 | 前端 / 批注 / 性能 / 定位索引 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-145 | 已关闭 | 本地 API Host/token 边界未统一拦截 | 安全 / 本地 API / 用户数据 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-141 | 已关闭 | LC-DT 原始数据更新后的服务、模块与分类候选问题 | 数据 / ETL / 候选包 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-147 | 已关闭 | 信息化环境安全技术汇聚图措施误继承安全系统 | 数据 / 前端 / ViewModel / 信息化环境映射 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-146 | 已关闭 | 信息化环境安全技术汇聚图安全系统列未带出 | 前端 / ViewModel / 信息化环境映射 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-135 | 已关闭 | 用户库治理与兼容表迁移清理 | 数据 / 前端 / Delivery Bundle / 治理 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-157 | 已修复 / 待打包验收 | 打包测试反馈需要单独导出用户批注 | Delivery Bundle / 用户数据 / 批注 / 诊断 | docs/06-implementation/open-issues.md |
-| OI-156 | 已修复 / 批注治理 7 项已落地 / Apple 侧边把手与锚点契约已补 / 待人工视觉验收 | 全局批注定位 / 高亮性能退化导致页面假死 | 前端 / 批注 / 性能 / 定位 / 高亮 | docs/06-implementation/open-issues.md |
-| OI-155 | 同步设计完成 / 待实施确认 | 全局搜索产品形态与搜索结果页重设计 | 前端 / 产品设计 / 搜索 / 信息架构 / 性能边界 | docs/06-implementation/open-issues.md |
-| OI-154 | 同步设计完成 / 待实施确认 | 页面内搜索功能回归与环境页搜索不可用 | 前端 / 搜索 / 页面内筛选 / 信息化环境映射 | docs/06-implementation/open-issues.md |
-| OI-153 | 已修复 / 待页面验收 | 批注抽屉底部卡片展开后当前批注显示不完整 | 前端 / 批注 / 交互 / 滚动可见性 | docs/06-implementation/open-issues.md |
-| OI-152 | 已修复 / 待页面验收 | LC-AP / LC-DT 旧批注阶段 ID 失效导致定位不到 | 前端 / 批注 / 生命周期页面 / 定位恢复 | docs/06-implementation/open-issues.md |
-| OI-151 | 已修复 / 待页面验收 | 信息化环境汇聚图节点缺少稳定业务锚点导致定位不到 | 前端 / 批注 / 信息化环境映射 / 锚点契约 | docs/06-implementation/open-issues.md |
-| OI-150 | 已修复 / 待真实浏览器验收 | 全局批注值定位缺少运行时索引导致定位慢 | 前端 / 批注 / 性能 / 定位索引 | docs/06-implementation/open-issues.md |
-| OI-149 | P4 正式 split apply 已完成 / 待页面人工验收与观察 | 前端 JSON 加载体量与首屏性能需分层治理 | 前端 / 数据包 / 性能 / JSON 治理 | docs/06-implementation/open-issues.md |
-| OI-148 | 已修复 / 待页面验收 | 全局批注在新环境页面缺少值级锚点与路由切换遮挡治理 | 前端 / 批注 / 全局交互 / 信息化环境映射 | docs/06-implementation/open-issues.md |
-| OI-147 | 已修复 / 待页面验收 | 信息化环境安全技术汇聚图措施误继承安全系统 | 数据 / 前端 / ViewModel / 信息化环境映射 | docs/06-implementation/open-issues.md |
-| OI-146 | 已修复 / 待页面验收 | 信息化环境安全技术汇聚图安全系统列未带出 | 前端 / ViewModel / 信息化环境映射 | docs/06-implementation/open-issues.md |
-| OI-145 | 已修复 / 待页面验收 | 本地 API Host/token 边界未统一拦截 | 安全 / 本地 API / 用户数据 | docs/06-implementation/open-issues.md |
-| OI-144 | 已修复 / 待页面验收 | 全局搜索与页面内搜索状态串线 | 前端 / 交互 / 状态管理 | docs/06-implementation/open-issues.md |
-| OI-142 | 已修复 / 用户已验收 | 安全技术服务清单能力-关注点顺序下服务显示不全 | 前端 / 数据消费链路 / 页面可见性 | docs/06-implementation/open-issues.md |
-| OI-141 | 正式投影已替换 / 待页面验收 | LC-DT 原始数据更新后的服务、模块与分类候选问题 | 数据 / ETL / 候选包 | docs/06-implementation/open-issues.md |
-| OI-138 | 部分修复 / 待人工验收 | 关注点关系图谱标签与节点 / 连线碰撞 | 前端 / 图谱布局 / 设计 | docs/06-implementation/open-issues.md |
-| OI-137 | 已修复 / 待人工验收 | 信息化环境首页需导入 draw.io 第三页实例底图 | 前端 / 设计 / Draw.io 导入 | docs/06-implementation/open-issues.md |
+| OI-138 | 长期保留 / 按需继续修复 | 关注点关系图谱标签与节点 / 连线碰撞 | 前端 / 图谱布局 / 设计 | docs/06-implementation/open-issues.md |
 | OI-128 | 部分完成 | USER-WRITE-UI-1：批注 / 工作台用户写入入口 | 前端 / 用户数据 / Delivery Bundle | docs/06-implementation/open-issues.md |
-| OI-135 | 正式迁移脚本完成 / 真实库 apply 待显式确认 | 用户库治理与兼容表迁移清理 | 数据 / 前端 / Delivery Bundle / 治理 | docs/06-implementation/open-issues.md |

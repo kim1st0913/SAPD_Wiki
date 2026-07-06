@@ -6,16 +6,16 @@ import vm from "node:vm";
 const DEFAULT_BASE_URL = "http://127.0.0.1:5173";
 
 const cases = [
-  { code: "T", objectType: "capability_category", expectedLocalRelationMapSource: "backend_projection" },
-  { code: "T-AS", objectType: "capability_domain", expectedLocalRelationMapSource: "backend_projection" },
-  { code: "T-AS.AD", objectType: "capability", expectedLocalRelationMapSource: "backend_projection" },
+  { code: "T", objectType: "capability_category", expectedLocalRelationMapSource: "viewmodel_fallback" },
+  { code: "T-AS", objectType: "capability_domain", expectedLocalRelationMapSource: "viewmodel_fallback" },
+  { code: "T-AS.AD", objectType: "capability", expectedLocalRelationMapSource: "viewmodel_fallback" },
   { code: "T-AS.AD-01", objectType: "capability_focus", expectedLocalRelationMapSource: "backend_projection", minStandardControls: 1 },
-  { code: "T-PD.PP", objectType: "capability", expectedLocalRelationMapSource: "backend_projection", expectedSecurityWorkByFocus: { "T-PD.PP-01": "边界防护策略持续管理", "T-PD.PP-02": "边界防护策略持续管理", "T-PD.PP-03": "边界防护策略持续管理" } },
+  { code: "T-PD.PP", objectType: "capability", expectedLocalRelationMapSource: "viewmodel_fallback", expectedSecurityWorkByFocus: { "T-PD.PP-01": "边界防护策略持续管理", "T-PD.PP-02": "边界防护策略持续管理", "T-PD.PP-03": "边界防护策略持续管理" } },
   { code: "T-PD.PP-02", objectType: "capability_focus", expectedLocalRelationMapSource: "backend_projection", expectedSecurityWorkByFocus: { "T-PD.PP-02": "边界防护策略持续管理" } },
   { code: "T-PD.PP-03", objectType: "capability_focus", expectedLocalRelationMapSource: "backend_projection", expectedSecurityWorkByFocus: { "T-PD.PP-03": "边界防护策略持续管理" } },
   { code: "T-PD.AC-01", objectType: "capability_focus", expectedLocalRelationMapSource: "backend_projection", minStandardControls: 1 },
-  { code: "T-OF", objectType: "capability_domain", expectedLocalRelationMapSource: "backend_projection" },
-  { code: "T-OF.AT", objectType: "capability", expectedLocalRelationMapSource: "backend_projection" },
+  { code: "T-OF", objectType: "capability_domain", expectedLocalRelationMapSource: "viewmodel_fallback" },
+  { code: "T-OF.AT", objectType: "capability", expectedLocalRelationMapSource: "viewmodel_fallback" },
   { code: "T-OF.AT-02", objectType: "capability_focus", expectedLocalRelationMapSource: "backend_projection" },
   { code: "G-SP.SM-02", objectType: "capability_focus", expectedLocalRelationMapSource: "backend_projection" },
 ];
@@ -247,11 +247,11 @@ async function validateNetworkGraphOverlayContract() {
   assert(indexSource.includes('id="capabilityFocusHeader"'), "capability title identity slot should be explicit in index.html");
   assert(indexSource.includes('id="capabilityViewControls"'), "capability view controls should have a dedicated workspace control slot");
   assert(indexSource.includes('class="capability-workspace-surface"'), "capability detail area should be wrapped by the workspace surface");
-  assert(indexSource.includes('class="capability-workspace-control"'), "capability tab/search controls should live in the workspace control rail");
+  assert(/class="[^"]*\bcapability-workspace-control\b[^"]*"/.test(indexSource), "capability tab/search controls should live in the workspace control rail");
   assert(indexSource.includes("AppShell.js?v=") && indexSource.includes("oi159-attached-control-20260702-2"), "AppShell.js should be cache-busted for workspace control tabs");
   assert(appShellSource.includes('id="capabilityViewControls"'), "AppShell capability template should render the workspace control tab slot");
   assert(appShellSource.includes('class="capability-workspace-surface"'), "AppShell capability template should wrap detail in the workspace surface");
-  assert(appShellSource.includes('class="capability-workspace-control"'), "AppShell capability template should render the workspace control rail");
+  assert(/class="[^"]*\bcapability-workspace-control\b[^"]*"/.test(appShellSource), "AppShell capability template should render the workspace control rail");
   assert(/CapabilityLocalRelationMap\.js\?v=[^"]*oi159-attached-control/.test(appSource), "CapabilityLocalRelationMap dynamic script URL must be cache-busted for workspace control tabs");
   assert(!headBlock.includes('"tabs search";'), "capability header should no longer own tab/search grid areas");
   assert(headBlock.includes("grid-template-columns: minmax(0, 1fr);"), "capability header should only reserve the identity row");
@@ -299,6 +299,22 @@ async function validateCapabilityRuntimeStatsContract() {
   assert(source.includes("function capabilityManagementForViewModel()"), "capability runtime should merge maintenanceIndex stats for the ViewModel");
   assert(source.includes("management: capabilityManagementForViewModel()"), "capability ViewModel should receive maintenanceIndex-backed management stats");
   assert(source.includes('"maintenanceIndex"') && source.includes("scheduleCapabilityRenderAfterPackageLoad"), "capability page should rerender after maintenanceIndex loads");
+}
+
+async function validateProgressiveCapabilityLoadContract() {
+  const appSource = await readFile("frontend/capability-browser/app.js", "utf8");
+  const dataClientSource = await readFile("frontend/capability-browser/dataClient.js", "utf8");
+  assert(appSource.includes("function capabilityObjectViewHasFocus"), "capability load contract should treat matching workspace-view as a satisfied focus projection");
+  assert(appSource.includes("capabilityObjectViewHasFocus(state.capabilityProjection, focusId) || capabilityObjectViewHasFocus(state.capabilityWorkspaceView, focusId)"), "focus projection readiness should check both merged projection and current workspace-view");
+  assert(appSource.includes("capabilityViewModelHasRenderableDetail(viewModel)"), "capability detail load state should test whether the ViewModel can render before blocking");
+  assert(appSource.includes("function capabilityLoadStateCanRenderInBackground"), "capability load state should centralize background-render eligibility");
+  assert(appSource.includes('selected?.type !== "capability_focus"'), "focus-level loading should not render generic fallback before verified projection");
+  assert(appSource.includes('viewModel.localRelationMapSource === "backend_projection"'), "focus-level background render should require backend projection source");
+  assert(appSource.includes("object_view_pending_background"), "object workspace-view pending must be a background phase when detail is renderable");
+  assert(appSource.includes("focus_projection_pending_background"), "focus projection pending must be a background phase when detail is renderable");
+  assert(dataClientSource.includes("CAPABILITY_WORKSPACE_FETCH_TIMEOUT_MS"), "capability workspace API calls should have a scoped timeout");
+  assert(dataClientSource.includes("timeoutMs: CAPABILITY_WORKSPACE_FETCH_TIMEOUT_MS"), "workspace-view and workspace-projection should use the scoped timeout");
+  return "progressive_capability_load_contract";
 }
 
 function validateRowsStayInsideSelection(item, rows, selectedFocusIds, label) {
@@ -374,6 +390,34 @@ function validateViewModel(item, target, projection, viewModel, selectedFocusIds
     standardControls: viewModelStandardControls,
     localRelationMapSource: viewModel.localRelationMapSource,
     detailPolicy: viewModel.capabilityOverview?.detailPolicy,
+  };
+}
+
+function validateFallbackViewModel(item, target, viewModels, context) {
+  if (item.objectType !== "capability_focus") return null;
+  const viewModel = viewModels.buildCapabilityWorkspaceViewModel({
+    capabilityWorkbench: context.capabilityInitial,
+    capabilityWorkbenchViewModel: context.capabilityWorkbenchViewModel,
+    capabilityTree: context.capabilityTree,
+    capabilityProjection: null,
+    management: context.management,
+    standards: context.standards,
+    selectedCapabilityId: target.id,
+    search: "",
+    relationshipFilters: {},
+  });
+  assert(viewModel.selectedCapability?.id === target.id, `${item.code}: fallback selectedCapability should still match selected focus`);
+  assert(keysMatch(viewModel.localRelationMap?.focus, target), `${item.code}: fallback localRelationMap.focus should match selected focus`);
+  assert(viewModel.localRelationMapSource !== "backend_projection", `${item.code}: fallback contract should not require backend_projection`);
+  assert(viewModel.capabilityOverview?.detailPolicy === "full_detail", `${item.code}: fallback focus detailPolicy=${viewModel.capabilityOverview?.detailPolicy}`);
+  return {
+    code: item.code,
+    selectedId: target.id,
+    appRenderPolicy: "fallback_available_but_not_trusted_for_focus_loading",
+    localRelationMapSource: viewModel.localRelationMapSource,
+    technicalRows: viewModel.technicalMappingRows.length,
+    managementRows: viewModel.managementMappingRows.length,
+    standardRows: viewModel.standardMappingRows.length,
   };
 }
 
@@ -528,6 +572,7 @@ async function main() {
   const relationComponent = await loadCapabilityRelationComponent();
   await validateNetworkGraphOverlayContract();
   await validateCapabilityRuntimeStatsContract();
+  const progressiveLoadContract = await validateProgressiveCapabilityLoadContract();
   const [capabilityTree, maintenance, sharedLookups, capabilityInitial] = await Promise.all([
     fetchData(baseUrl, "/api/v1/data-packages/capability"),
     fetchData(baseUrl, "/api/v1/data-packages/maintenance"),
@@ -537,6 +582,7 @@ async function main() {
   const management = mergeSharedLookups(maintenance, sharedLookups);
   const capabilityWorkbenchViewModel = viewModels.buildCapabilityWorkbenchViewModel({ workbench: capabilityInitial });
   const checked = [];
+  const fallbackChecked = [];
 
   for (const item of cases) {
     const target = findCapabilityItem(capabilityTree, item);
@@ -564,6 +610,14 @@ async function main() {
     const result = validateViewModel(item, target, projection, viewModel, new Set(focusIdsForItem(capabilityTree, target)));
     result.renderPolicy = validateOverviewRender(item, relationComponent, viewModel, management) || "";
     checked.push(result);
+    const fallbackResult = validateFallbackViewModel(item, target, viewModels, {
+      capabilityInitial,
+      capabilityWorkbenchViewModel,
+      capabilityTree,
+      management,
+      standards: capabilityInitial?.standards || {},
+    });
+    if (fallbackResult) fallbackChecked.push(fallbackResult);
   }
 
   console.log(
@@ -571,7 +625,9 @@ async function main() {
       {
         result: "pass",
         baseUrl,
+        progressiveLoadContract,
         checked,
+        fallbackChecked,
       },
       null,
       2,

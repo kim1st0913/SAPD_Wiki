@@ -55,6 +55,14 @@ function serviceSystems(service) {
   return uniqueTitles([...(service?.securitySystems || []), ...(service?.systems || []), ...(service?.linkedSystems || [])]);
 }
 
+function contextKeysForObject(environment, object) {
+  const explicitContextKey = text(object?.contextKey);
+  if (explicitContextKey) return [explicitContextKey];
+  return list(object?.segments)
+    .map((segment) => keyOf(environment?.title, segment?.title, object?.title))
+    .filter((key) => key.replace(/\|/g, ""));
+}
+
 function addSystem(row, system) {
   const value = relationValue(system);
   if (value) row.expectedSystems.add(value);
@@ -100,9 +108,11 @@ function buildActualTargetRelations(workbench) {
 
   for (const environment of list(workbench.environment_scope_tree)) {
     for (const object of list(environment.objects)) {
-      const contextKey = text(object.contextKey);
-      if (contextKeys.has(contextKey)) duplicateContextKeys.push(contextKey);
-      if (contextKey) contextKeys.add(contextKey);
+      const objectContextKeys = contextKeysForObject(environment, object);
+      for (const contextKey of objectContextKeys) {
+        if (contextKeys.has(contextKey)) duplicateContextKeys.push(contextKey);
+        if (contextKey) contextKeys.add(contextKey);
+      }
       for (const mapping of list(object.scope_mappings)) {
         for (const service of list(mapping.services)) {
           serviceCount += 1;
@@ -112,40 +122,44 @@ function buildActualTargetRelations(workbench) {
             moduleTargetCount += 1;
             const targetTitle = text(module.title);
             const ownSystems = targetSystems(module);
-            const key = keyOf(contextKey, code, "module", targetTitle);
-            actual.set(key, {
-              key,
-              kind: "module",
-              objectContextKey: contextKey,
-              serviceCode: code,
-              targetTitle,
-              ownSystems,
-              serviceSystems: inheritedSystems,
-              pageSystems: ownSystems,
-              nestedMeasures: list(module.measures).length,
-            });
-            if (list(module.measures).length) jsonWarnings.push({ type: "module_has_nested_measures", key, nestedMeasures: list(module.measures).length });
+            for (const contextKey of objectContextKeys) {
+              const key = keyOf(contextKey, code, "module", targetTitle);
+              actual.set(key, {
+                key,
+                kind: "module",
+                objectContextKey: contextKey,
+                serviceCode: code,
+                targetTitle,
+                ownSystems,
+                serviceSystems: inheritedSystems,
+                pageSystems: ownSystems,
+                nestedMeasures: list(module.measures).length,
+              });
+              if (list(module.measures).length) jsonWarnings.push({ type: "module_has_nested_measures", key, nestedMeasures: list(module.measures).length });
+            }
           }
           for (const measure of list(service.measures)) {
             measureTargetCount += 1;
             const targetTitle = text(measure.title);
             const ownSystems = targetSystems(measure);
-            const key = keyOf(contextKey, code, "measure", targetTitle);
-            actual.set(key, {
-              key,
-              kind: "measure",
-              objectContextKey: contextKey,
-              serviceCode: code,
-              targetTitle,
-              ownSystems,
-              serviceSystems: inheritedSystems,
-              pageSystems: ownSystems,
-              nestedMeasures: 0,
-            });
             const systems = uniqueTitles(measure.systems);
             const securitySystems = uniqueTitles(measure.securitySystems);
             const crossFieldDuplicate = systems.filter((system) => securitySystems.includes(system));
-            if (crossFieldDuplicate.length) jsonWarnings.push({ type: "target_system_duplicated_across_fields", key, systems: crossFieldDuplicate });
+            for (const contextKey of objectContextKeys) {
+              const key = keyOf(contextKey, code, "measure", targetTitle);
+              actual.set(key, {
+                key,
+                kind: "measure",
+                objectContextKey: contextKey,
+                serviceCode: code,
+                targetTitle,
+                ownSystems,
+                serviceSystems: inheritedSystems,
+                pageSystems: ownSystems,
+                nestedMeasures: 0,
+              });
+              if (crossFieldDuplicate.length) jsonWarnings.push({ type: "target_system_duplicated_across_fields", key, systems: crossFieldDuplicate });
+            }
           }
         }
       }
@@ -168,6 +182,7 @@ function buildActualTargetRelations(workbench) {
 function compareExpectedActual(expected, actual) {
   const rows = [];
   let missingTargetCount = 0;
+  let unexpectedTargetCount = 0;
   let missingSystemCount = 0;
   let unexpectedSystemCount = 0;
   let ownTargetSystemMissingCount = 0;
@@ -223,11 +238,33 @@ function compareExpectedActual(expected, actual) {
     }
   }
 
+  for (const actualItem of [...actual.values()].sort((a, b) => a.key.localeCompare(b.key, "zh-Hans-CN"))) {
+    if (expected.has(actualItem.key)) continue;
+    unexpectedTargetCount += 1;
+    rows.push({
+      key: actualItem.key,
+      kind: actualItem.kind,
+      objectContextKey: actualItem.objectContextKey,
+      serviceCode: actualItem.serviceCode,
+      targetTitle: actualItem.targetTitle,
+      expectedSystems: [],
+      ownSystems: actualItem.ownSystems,
+      serviceSystems: actualItem.serviceSystems,
+      pageSystems: actualItem.pageSystems,
+      missingSystems: [],
+      unexpectedSystems: actualItem.pageSystems,
+      ownTargetMissingSystems: [],
+      nestedMeasures: actualItem.nestedMeasures,
+      status: "unexpected_target",
+    });
+  }
+
   return {
     summary: {
       expectedTargetKeys: expected.size,
       actualTargetKeys: actual.size,
       missingTargetCount,
+      unexpectedTargetCount,
       missingSystemCount,
       unexpectedSystemCount,
       ownTargetSystemMissingCount,
@@ -250,6 +287,7 @@ const report = {
   result:
     stats.duplicateContextKeyCount ||
     comparison.summary.missingTargetCount ||
+    comparison.summary.unexpectedTargetCount ||
     comparison.summary.missingSystemCount ||
     comparison.summary.unexpectedSystemCount ||
     comparison.summary.ownTargetSystemMissingCount ||

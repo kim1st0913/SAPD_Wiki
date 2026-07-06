@@ -45,6 +45,9 @@
     userNotesExport: "/api/v1/user/notes/export",
   };
 
+  const API_FETCH_TIMEOUT_MS = 12000;
+  const CAPABILITY_WORKSPACE_FETCH_TIMEOUT_MS = 5000;
+
   const FALLBACKS = {
     capability: { generated_at: null, stats: {}, categories: [], unlinked_focuses: [] },
     capabilityWorkbench: null,
@@ -346,19 +349,38 @@
     }
   }
 
-  async function fetchApiData(path) {
+  async function fetchWithTimeout(url, options = {}, timeoutMs = API_FETCH_TIMEOUT_MS) {
+    const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const requestOptions = { ...options };
+    const timeout = Number(timeoutMs);
+    let timer = null;
+    if (controller && !requestOptions.signal) {
+      requestOptions.signal = controller.signal;
+      if (Number.isFinite(timeout) && timeout > 0) {
+        timer = setTimeout(() => controller.abort(), timeout);
+      }
+    }
+    try {
+      return await fetch(url, requestOptions);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
+  async function fetchApiData(path, options = {}) {
     if (apiUnavailable) return null;
     const url = path ? apiUrl(path) : "";
     if (!url) return null;
     try {
-      const response = await fetch(url, { cache: "no-store" });
+      const response = await fetchWithTimeout(url, { cache: "no-store" }, options.timeoutMs);
       if (!response.ok) {
         if (response.status === 404) return null;
         apiUnavailable = true;
         return null;
       }
       return unwrapEnvelope(await response.json());
-    } catch {
+    } catch (error) {
+      if (error?.name === "AbortError") return null;
       apiUnavailable = true;
       return null;
     }
@@ -1458,7 +1480,7 @@
       if (objectId) queryParams.set("object_id", objectId);
       if (!objectType && !objectId && focusId) queryParams.set("focus_id", focusId);
       const query = queryParams.toString() ? `?${queryParams.toString()}` : "";
-      const projection = await fetchApiData(`${API_PATHS.capabilityWorkspaceProjection}${query}`);
+      const projection = await fetchApiData(`${API_PATHS.capabilityWorkspaceProjection}${query}`, { timeoutMs: CAPABILITY_WORKSPACE_FETCH_TIMEOUT_MS });
       return createEnvelope(
         projection || {
           generated_at: null,
@@ -1479,7 +1501,7 @@
       if (objectId) queryParams.set("object_id", objectId);
       if (!objectType && !objectId && focusId) queryParams.set("focus_id", focusId);
       const query = queryParams.toString() ? `?${queryParams.toString()}` : "";
-      const view = await fetchApiData(`${API_PATHS.capabilityWorkspaceView}${query}`);
+      const view = await fetchApiData(`${API_PATHS.capabilityWorkspaceView}${query}`, { timeoutMs: CAPABILITY_WORKSPACE_FETCH_TIMEOUT_MS });
       if (view) return createEnvelope(view);
       const projection = await this.getCapabilityWorkspaceProjection(params);
       return createEnvelope(projection.data, ["workspace-view API 不可用，已回退到 workspace-projection。"]);

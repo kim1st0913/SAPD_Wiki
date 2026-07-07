@@ -5,7 +5,7 @@
 ## 治理入口
 
 - 当前未关闭问题数：2
-- 已关闭归档问题数：189
+- 已关闭归档问题数：190
 - 全量索引：`docs/06-implementation/open-issues-index.md`
 - 已关闭问题归档：`docs/05-archive/open-issues-history/2026-06.md`
 - 重复编号待治理：`OI-044`、`OI-092`，索引中使用 `OI-xxx#n` 区分历史条目。

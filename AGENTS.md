@@ -68,6 +68,17 @@
 - `progress.md` 超过 120 行时应先归档瘦身，再继续大任务。
 - 工作区存在大量未提交改动时，应建议 checkpoint commit，降低重连后的恢复成本。
 
+## Git / GitHub 收口会话规则
+
+本项目默认把“实现 / 验证”和“提交 / 推送 / PR”分开处理，避免普通开发会话在脏工作区里顺手提交过大或混杂的 diff。
+
+- 专用 Git / GitHub 收口会话：`SAPD Wiki GitHub 提交收口专用 2026-07-07`，thread id `019f3bee-d713-7301-be67-6d555012a5c9`。
+- 普通业务开发、前端修复、ETL、审计、打包和文档会话默认不执行 `git commit`、`git push` 或创建 PR；只在用户明确要求“就在当前会话提交 / 推送”时例外。
+- 需要提交或推送时，优先让专用收口会话执行：先读取 `AGENTS.md`、`CURRENT_STATE.md`、`progress.md`，再用 `git status --short --branch` 和 `git diff --stat` 给出拟提交范围。
+- 专用收口会话必须按主题拆分 checkpoint，只 stage 明确相关文件，禁止 `git add .`。
+- 同步 GitHub 前必须执行 `python3 scripts/check_github_data_boundary.py`；涉及前端、数据、打包或治理变更时，按项目规则补跑相应轻量检查。
+- 禁止把源 Excel、SQLite、正式生成 JSON、导出包、用户 Issue / 批注数据库、macOS DMG 产物或其他禁止数据提交到 GitHub，除非用户明确授权且项目规则允许。
+
 ## SAPD Wiki 主控问题处理契约
 
 SAPD Wiki 的问题修复默认不是“看到现象就打补丁”。所有主控会话和后续继任会话处理数据、页面、搜索、滚动、打包、导入、导出、审计或产品体验问题时，必须先把问题抽象到系统契约层，再进入实现。

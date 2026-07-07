@@ -5,8 +5,8 @@ MODE="${1:-run}"
 APP_NAME="SAPD Wiki"
 EXECUTABLE_NAME="SAPDWiki"
 BUNDLE_ID="com.sapd.wiki.macos"
-BUNDLE_VERSION="${SAPD_WIKI_BUNDLE_VERSION:-0.1.5}"
-DISPLAY_VERSION="${SAPD_WIKI_DISPLAY_VERSION:-${SAPD_WIKI_APP_VERSION:-0.1.5}}"
+BUNDLE_VERSION="${SAPD_WIKI_BUNDLE_VERSION:-0.1.6}"
+DISPLAY_VERSION="${SAPD_WIKI_DISPLAY_VERSION:-${SAPD_WIKI_APP_VERSION:-0.1.6}}"
 LICENSE_MODE="${SAPD_WIKI_LICENSE_MODE:-license}"
 MIN_SYSTEM_VERSION="13.0"
 
@@ -124,7 +124,7 @@ find_external_backend_binary() {
     "$REPO_ROOT/dist/zip-alpha/dist/$PLATFORM/SAPD-Wiki-Backend"
     "/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/sapd wiki bundle/package-work/backend/$PLATFORM/SAPD-Wiki-Backend"
     "/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/sapd wiki bundle/package-work/dist/$PLATFORM/SAPD-Wiki-Backend"
-    "/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/sapd wiki bundle/SAPD-Wiki-v0.1.5-$PLATFORM/SAPD-Wiki-Backend"
+    "/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/sapd wiki bundle/SAPD-Wiki-v0.1.6-$PLATFORM/SAPD-Wiki-Backend"
   )
 
   local candidate

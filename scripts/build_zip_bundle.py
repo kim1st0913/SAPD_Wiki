@@ -228,6 +228,14 @@ def readme_content(platform_name: str, app_version: str, placeholder: bool = Fal
 {placeholder_note}
 它不是安装包，不包含 `.dmg`、`.msi`、安装向导、自动更新或代码签名。
 
+## Changelog
+
+### {app_version}
+
+- README-FIRST 增加 Changelog，方便测试和交付追踪版本变化。
+- macOS DMG 默认按同一版本号生成授权版和无授权版两个交付包。
+- macOS 保存位置选择的是父级目录，App 会自动创建 `SAPDWiki/Runtime` 和 `SAPDWiki/export`。
+
 ## macOS DMG 初始化注意事项
 
 1. 首次启动会要求设置“保存位置”，这里选择的是父级目录。
@@ -423,8 +431,8 @@ def main() -> int:
         help=f"Bundle output directory. Default: {DEFAULT_OUTPUT_DIR}",
     )
     parser.add_argument("--platform", required=True, choices=sorted(SUPPORTED_PLATFORMS))
-    parser.add_argument("--bundle-version", default="0.1.5")
-    parser.add_argument("--app-version", default="0.1.5")
+    parser.add_argument("--bundle-version", default="0.1.6")
+    parser.add_argument("--app-version", default="0.1.6")
     parser.add_argument("--data-version", default="2026.05-alpha")
     parser.add_argument("--base-schema-version", default="base_schema_0.1")
     parser.add_argument("--user-schema-version", default="user_schema_0.3")

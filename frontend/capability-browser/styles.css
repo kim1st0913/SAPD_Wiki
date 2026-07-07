@@ -30358,9 +30358,8 @@ body.app-shell-locked {
 .workbench-issues-route .workbench-prototype-annotation-layout {
   align-self: stretch;
   box-sizing: border-box;
-  height: 100%;
-  min-height: 0;
-  max-height: none;
+  grid-template-columns: 260px 6px minmax(720px, 1fr) 6px 380px;
+  height: 100%; min-height: 0; max-height: none;
   overflow: hidden;
 }
 
@@ -30595,7 +30594,7 @@ body.app-shell-locked {
   height: 100%;
   max-height: 100%;
   overflow: auto;
-  overflow-x: hidden;
+  overflow-x: auto;
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: auto;
@@ -30604,6 +30603,7 @@ body.app-shell-locked {
   padding: 12px;
   border-radius: 20px;
 }
+.workbench-review-scope, .workbench-review-inspector { overflow-x: hidden; }
 
 .workbench-review-inspector { grid-template-rows: auto auto auto minmax(0, 1fr); overflow: hidden; }
 
@@ -30622,7 +30622,7 @@ body.app-shell-locked {
 .workbench-review-scope::-webkit-scrollbar,
 .workbench-review-queue::-webkit-scrollbar,
 .workbench-review-inspector-content::-webkit-scrollbar {
-  width: 10px;
+  width: 10px; height: 10px;
 }
 
 .workbench-review-scope::-webkit-scrollbar-thumb,
@@ -30692,7 +30692,7 @@ body.app-shell-locked {
   display: grid;
   grid-template-columns: 28px minmax(220px, 1.2fr) minmax(140px, 0.8fr) 78px 74px 96px;
   gap: 10px;
-  align-items: center;
+  align-items: center; min-width: 760px;
 }
 
 .workbench-review-queue-head {

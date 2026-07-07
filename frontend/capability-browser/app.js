@@ -8511,13 +8511,10 @@ const WORKBENCH_ISSUE_STATUS_SORT_ORDER = {
   closed: 60,
 };
 
-const WORKBENCH_ISSUE_PRIORITY_SORT_ORDER = {
-  "高": 10,
-  "未标注": 20,
-  "低": 30,
-};
+const WORKBENCH_ISSUE_PRIORITY_SORT_ORDER = { "未标注": 10, "低": 20, "中": 30, "高": 40 };
 
-const WORKBENCH_ISSUE_PRIORITY_TAGS = ["高优先级", "低优先级"];
+const WORKBENCH_ISSUE_PRIORITY_VALUES = ["未标注", "低", "中", "高"];
+const WORKBENCH_ISSUE_PRIORITY_TAGS = ["高优先级", "中优先级", "低优先级"];
 
 const WORKBENCH_ISSUE_SORT_COLUMNS = [
   { key: "title", label: "Issue", type: "text", defaultDirection: "asc" },
@@ -8559,9 +8556,11 @@ function workbenchIssueTagList(note = {}) {
 function workbenchIssuePriority(note = {}) {
   const tags = workbenchIssueTagList(note);
   if (tags.includes("高优先级")) return "高";
+  if (tags.includes("中优先级")) return "中";
   if (tags.includes("低优先级")) return "低";
   const haystack = [note.priority, note.severity, note.body, note.object_title, ...tags].map(text).join(" ");
   if (/(高优先级|紧急|严重|阻塞|P0|P1|high|urgent|blocker)/i.test(haystack)) return "高";
+  if (/(中优先级|中等优先级|P2|medium|normal)/i.test(haystack)) return "中";
   if (/(低优先级|可后置|low|later)/i.test(haystack)) return "低";
   return "未标注";
 }
@@ -8572,6 +8571,7 @@ function workbenchIssueTagsWithPriority(tags = [], priority = "未标注") {
     .map((item) => text(item).trim())
     .filter((item) => item && !WORKBENCH_ISSUE_PRIORITY_TAGS.includes(item));
   if (normalizedPriority === "高") nextTags.push("高优先级");
+  if (normalizedPriority === "中") nextTags.push("中优先级");
   if (normalizedPriority === "低") nextTags.push("低优先级");
   return Array.from(new Set(nextTags));
 }
@@ -8870,7 +8870,7 @@ function renderWorkbenchIssueStatusOptions(activeStatusValue = "todo") {
 }
 
 function renderWorkbenchIssuePriorityOptions(activePriority = "未标注") {
-  return ["高", "未标注", "低"]
+  return WORKBENCH_ISSUE_PRIORITY_VALUES
     .map((value) => `<option value="${escapeHtml(value)}"${value === activePriority ? " selected" : ""}>${escapeHtml(value)}</option>`)
     .join("");
 }
@@ -8966,12 +8966,7 @@ function renderWorkbenchIssues() {
     ["已关闭", "已关闭"],
   ];
   const pageOptions = [["全部", "页面：全部页面"], ...pageGroups.map((group) => [group.pageRoute, group.page])];
-  const priorityOptions = [
-    ["全部", "优先级：全部"],
-    ["高", "高"],
-    ["未标注", "未标注"],
-    ["低", "低"],
-  ];
+  const priorityOptions = [["全部", "优先级：全部"], ...WORKBENCH_ISSUE_PRIORITY_VALUES.map((value) => [value, value])];
   const activeStatusFilter = state.workbenchIssueStatusFilter || "全部";
   const activePageFilter = state.workbenchIssuePageFilter || "全部";
   const activePriorityFilter = state.workbenchIssuePriorityFilter || "全部";
@@ -9030,11 +9025,13 @@ function renderWorkbenchIssues() {
             )
             .join("")}
         </aside>
+        <div class="workspace-resizer workbench-issue-pane-resizer" data-workspace-resize-index="0" role="separator" aria-orientation="vertical" aria-label="调整 Issue 范围和处理队列宽度" title="拖动调整宽度"></div>
         <section class="workbench-review-queue" aria-label="Issue 处理队列">
           <div class="workbench-review-panel-title">Issue 处理队列 <span class="workbench-prototype-pill is-muted" data-review-queue-context>${escapeHtml(queueContext)}</span></div>
           ${renderWorkbenchIssueQueueHead(issues)}
           ${isLoading ? `<div class="workbench-review-loading">正在读取本地 Issue...</div>` : issues.length ? issues.map(renderWorkbenchIssueItem).join("") : `<div class="workbench-review-empty">当前筛选下没有 Issue。</div>`}
         </section>
+        <div class="workspace-resizer workbench-issue-pane-resizer" data-workspace-resize-index="1" role="separator" aria-orientation="vertical" aria-label="调整处理队列和选中 Issue 宽度" title="拖动调整宽度"></div>
         <aside class="workbench-review-inspector" aria-label="Issue 编辑面板" data-review-inspector data-dirty="false" data-note-id="${escapeHtml(inspectorIssue?.id || "")}" data-selected-count="${escapeHtml(String(selectedIssueCount))}">
           <div class="workbench-review-panel-title">选中 Issue <span class="workbench-prototype-pill ${selectedIssueCount > 1 ? "is-muted" : "is-good"}" data-review-dirty>${selectedIssueCount > 1 ? `${escapeHtml(formatNumber(selectedIssueCount))} 条` : "已保存"}</span></div>
           <div class="workbench-review-warning" data-review-warning hidden>切换 Issue 前，如有未保存内容，需要提示确认。</div>
@@ -9315,6 +9312,8 @@ function updateWorkbenchReviewInspector(item) {
   setWorkbenchReviewWarning("", false);
   setWorkbenchReviewDirty(false);
 }
+
+function cancelWorkbenchReviewInspector() { const inspector = activeWorkbenchReviewPage()?.querySelector("[data-review-inspector]"); const wasDirty = inspector?.dataset?.dirty === "true"; state.workbenchPendingDeleteIssueId = ""; renderWorkbench(); setWorkbenchReviewWarning(wasDirty ? "已恢复为上次保存内容。" : "当前 Issue 没有未保存修改。", true); setWorkbenchReviewDirty(false); }
 
 function selectWorkbenchReviewItem(reviewItem) {
   if (!reviewItem) return false;
@@ -10840,8 +10839,9 @@ function beginWorkspaceResize(event, handle) {
   const onMove = (moveEvent) => {
     const delta = moveEvent.clientX - startX;
     const nextWidths = [...startWidths];
-    nextWidths[index] = Math.max(160, startWidths[index] + delta);
-    nextWidths[index + 1] = Math.max(160, startWidths[index + 1] - delta);
+    const minFor = (pane) => pane.classList.contains("workbench-review-queue") ? 520 : pane.classList.contains("workbench-review-inspector") ? 320 : 200;
+    nextWidths[index] = Math.max(minFor(panes[index]), startWidths[index] + delta);
+    nextWidths[index + 1] = Math.max(minFor(panes[index + 1]), startWidths[index + 1] - delta);
     applyWorkspaceGrid(workspace, nextWidths);
   };
   const onUp = () => {
@@ -11398,9 +11398,7 @@ function bindEvents() {
     }
 
     if (event.target.closest("[data-review-cancel]") && event.target.closest("#workbenchWorkspace")) {
-      state.workbenchPendingDeleteIssueId = "";
-      renderWorkbench();
-      setWorkbenchReviewWarning("已放弃未保存修改。", false);
+      cancelWorkbenchReviewInspector();
       return;
     }
 

@@ -151,17 +151,17 @@ const checks = [
       (block) =>
         blockHasDeclaration(block, "overflow", "auto") &&
         blockHasDeclaration(block, "height", "100%") &&
-        blockHasDeclaration(block, "overflow-x", "hidden") &&
         blockHasDeclaration(block, "overflow-y", "auto") &&
         blockHasDeclaration(block, "max-height", "100%") &&
         blockHasDeclaration(block, "scrollbar-gutter", "stable"),
     ) &&
+      anyBlock(".workbench-review-scope", (block) => blockHasDeclaration(block, "overflow-x", "hidden")) &&
       anyBlock(
         ".workbench-review-queue",
         (block) =>
           blockHasDeclaration(block, "overflow", "auto") &&
           blockHasDeclaration(block, "height", "100%") &&
-          blockHasDeclaration(block, "overflow-x", "hidden") &&
+          blockHasDeclaration(block, "overflow-x", "auto") &&
           blockHasDeclaration(block, "overflow-y", "auto") &&
           blockHasDeclaration(block, "max-height", "100%") &&
           blockHasDeclaration(block, "scrollbar-gutter", "stable"),
@@ -188,6 +188,22 @@ const checks = [
           blockHasDeclaration(block, "scrollbar-gutter", "stable"),
       ),
     "Issue list scope and queue own their pane scroll; the inspector keeps actions above a dedicated content scroll body.",
+  ),
+  check(
+    "workbench_issue_queue_horizontal_scroll_and_resizable_panes",
+    anyBlock(
+      ".workbench-issues-route .workbench-prototype-annotation-layout",
+      (block) => blockHasDeclaration(block, "grid-template-columns", "260px\\s+6px\\s+minmax\\(720px,\\s*1fr\\)\\s+6px\\s+380px"),
+    ) &&
+      anyBlock(".workbench-review-scope", (block) => blockHasDeclaration(block, "overflow-x", "hidden")) &&
+      anyBlock(".workbench-review-inspector", (block) => blockHasDeclaration(block, "overflow-x", "hidden")) &&
+      anyBlock(".workbench-review-queue-head", (block) => blockHasDeclaration(block, "min-width", "760px")) &&
+      anyBlock(".workbench-review-item", (block) => blockHasDeclaration(block, "min-width", "760px")) &&
+      appJs.includes('class="workspace-resizer workbench-issue-pane-resizer" data-workspace-resize-index="0"') &&
+      appJs.includes('class="workspace-resizer workbench-issue-pane-resizer" data-workspace-resize-index="1"') &&
+      appJs.includes('pane.classList.contains("workbench-review-queue") ? 520') &&
+      appJs.includes("beginWorkspaceResize(event, handle)"),
+    "Issue queue must keep its own horizontal scroll and expose drag handles between the three workbench panes.",
   ),
   check(
     "workbench_issue_actions_are_top_toolbar_outside_scroll_body",
@@ -306,6 +322,28 @@ const checks = [
     "Issue inspector must combine related page/object, hide anchor/type in the main display, and provide a priority control.",
   ),
   check(
+    "workbench_issue_priority_order_matches_review_workflow",
+    appJs.includes('const WORKBENCH_ISSUE_PRIORITY_VALUES = ["未标注", "低", "中", "高"];') &&
+      appJs.includes('"未标注": 10') &&
+      appJs.includes('"低": 20') &&
+      appJs.includes('"中": 30') &&
+      appJs.includes('"高": 40') &&
+      appJs.includes('if (tags.includes("中优先级")) return "中";') &&
+      appJs.includes('if (normalizedPriority === "中") nextTags.push("中优先级");') &&
+      appJs.includes("...WORKBENCH_ISSUE_PRIORITY_VALUES.map((value) => [value, value])"),
+    "Issue priority controls must use the business order 未标注 -> 低 -> 中 -> 高 and persist medium priority through tags.",
+  ),
+  check(
+    "workbench_issue_cancel_restores_saved_issue_state",
+    appJs.includes("function cancelWorkbenchReviewInspector()") &&
+      appJs.includes('const wasDirty = inspector?.dataset?.dirty === "true";') &&
+      appJs.includes("renderWorkbench();") &&
+      appJs.includes('setWorkbenchReviewWarning(wasDirty ? "已恢复为上次保存内容。" : "当前 Issue 没有未保存修改。", true);') &&
+      appJs.includes("setWorkbenchReviewDirty(false);") &&
+      appJs.includes("cancelWorkbenchReviewInspector();"),
+    "Issue cancel must explicitly discard local inspector edits, restore the saved state, and show visible feedback instead of acting as a no-op.",
+  ),
+  check(
     "workbench_issue_delete_uses_app_confirm_not_browser_confirm",
     !appJs.includes("window.confirm") &&
       appJs.includes("function renderWorkbenchIssueDeleteDialog") &&
@@ -397,7 +435,9 @@ const checks = [
       indexHtml.includes("lifecycle-scroll-contract-20260705-1") &&
       indexHtml.includes("lifecycle-stage-tabs-fit-20260705-1") &&
       indexHtml.includes("issue-pane-scroll-20260707-2") &&
-      indexHtml.includes("issue-inspector-actions-top-20260707-1"),
+      indexHtml.includes("issue-inspector-actions-top-20260707-1") &&
+      indexHtml.includes("issue-priority-cancel-20260707-1") &&
+      indexHtml.includes("issue-queue-resize-20260707-1"),
     "index.html must cache-bust the scroll contract changes.",
   ),
 ];

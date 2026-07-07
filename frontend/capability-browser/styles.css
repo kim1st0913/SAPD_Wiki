@@ -30356,9 +30356,8 @@ body.app-shell-locked {
 }
 
 .workbench-issues-route .workbench-prototype-annotation-layout {
-  align-self: stretch;
-  box-sizing: border-box;
-  grid-template-columns: 260px 6px minmax(720px, 1fr) 6px 380px;
+  align-self: stretch; box-sizing: border-box; gap: 0;
+  grid-template-columns: 260px 4px minmax(720px, 1fr) 4px 380px;
   height: 100%; min-height: 0; max-height: none;
   overflow: hidden;
 }
@@ -30604,6 +30603,8 @@ body.app-shell-locked {
   border-radius: 20px;
 }
 .workbench-review-scope, .workbench-review-inspector { overflow-x: hidden; }
+.workbench-issue-pane-resizer { width: 4px; min-width: 4px; opacity: 0.72; }
+.workbench-issue-pane-resizer::after { background: rgba(128, 149, 176, 0.42); }
 
 .workbench-review-inspector { grid-template-rows: auto auto auto minmax(0, 1fr); overflow: hidden; }
 

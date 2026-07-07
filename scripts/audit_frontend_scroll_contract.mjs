@@ -193,14 +193,18 @@ const checks = [
     "workbench_issue_queue_horizontal_scroll_and_resizable_panes",
     anyBlock(
       ".workbench-issues-route .workbench-prototype-annotation-layout",
-      (block) => blockHasDeclaration(block, "grid-template-columns", "260px\\s+6px\\s+minmax\\(720px,\\s*1fr\\)\\s+6px\\s+380px"),
+      (block) =>
+        blockHasDeclaration(block, "gap", "0") &&
+        blockHasDeclaration(block, "grid-template-columns", "260px\\s+4px\\s+minmax\\(720px,\\s*1fr\\)\\s+4px\\s+380px"),
     ) &&
+      anyBlock(".workbench-issue-pane-resizer", (block) => blockHasDeclaration(block, "width", "4px") && blockHasDeclaration(block, "min-width", "4px")) &&
       anyBlock(".workbench-review-scope", (block) => blockHasDeclaration(block, "overflow-x", "hidden")) &&
       anyBlock(".workbench-review-inspector", (block) => blockHasDeclaration(block, "overflow-x", "hidden")) &&
       anyBlock(".workbench-review-queue-head", (block) => blockHasDeclaration(block, "min-width", "760px")) &&
       anyBlock(".workbench-review-item", (block) => blockHasDeclaration(block, "min-width", "760px")) &&
       appJs.includes('class="workspace-resizer workbench-issue-pane-resizer" data-workspace-resize-index="0"') &&
       appJs.includes('class="workspace-resizer workbench-issue-pane-resizer" data-workspace-resize-index="1"') &&
+      appJs.includes('workspace.classList.contains("workbench-prototype-annotation-layout") ? 4 : 6') &&
       appJs.includes('pane.classList.contains("workbench-review-queue") ? 520') &&
       appJs.includes("beginWorkspaceResize(event, handle)"),
     "Issue queue must keep its own horizontal scroll and expose drag handles between the three workbench panes.",
@@ -437,7 +441,7 @@ const checks = [
       indexHtml.includes("issue-pane-scroll-20260707-2") &&
       indexHtml.includes("issue-inspector-actions-top-20260707-1") &&
       indexHtml.includes("issue-priority-cancel-20260707-1") &&
-      indexHtml.includes("issue-queue-resize-20260707-1"),
+      indexHtml.includes("issue-queue-resize-20260707-2"),
     "index.html must cache-bust the scroll contract changes.",
   ),
 ];

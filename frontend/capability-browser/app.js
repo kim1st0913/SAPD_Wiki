@@ -10767,10 +10767,11 @@ function workspacePanes(workspace) {
 }
 
 function applyWorkspaceGrid(workspace, widths) {
+  const handleWidth = workspace.classList.contains("workbench-prototype-annotation-layout") ? 4 : 6;
   const columns = widths
     .map((width, index) => {
       const minWidth = ["capabilityWorkspace", "devLifecycleWorkspace"].includes(workspace.id) && workspace.classList.contains("catalog-collapsed") && index === 0 ? 64 : 160;
-      return `${Math.max(minWidth, Math.round(width))}px${index < widths.length - 1 ? " 6px" : ""}`;
+      return `${Math.max(minWidth, Math.round(width))}px${index < widths.length - 1 ? ` ${handleWidth}px` : ""}`;
     })
     .join(" ");
   workspace.style.gridTemplateColumns = columns;

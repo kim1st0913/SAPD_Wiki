@@ -287,7 +287,9 @@ const checks = [
       appJs.includes("occurrenceIndex") &&
       appJs.includes("const matchSet = pageSearchMatchSet(scope, query)") &&
       appJs.includes("const rows = matchSet?.matches || []") &&
-      appJs.includes('targetAttribute: "data-lifecycle-id"') &&
+      appJs.includes('"data-lifecycle-target-ref"') &&
+      appJs.includes('"data-lifecycle-id"') &&
+      appJs.includes("targetId: nextMatch.targetRef || nextId") &&
       appJs.includes("lifecycleOccurrenceIndex") &&
       appJs.includes('const contentRoot = kind === "data" ? $("dataLifecycleMatrix") : $("devLifecycleLane")') &&
       lifecycleComponent.includes('data-lifecycle-kind="dev" data-lifecycle-id="${escapeHtml(row.stageId || "")}"') &&
@@ -442,7 +444,8 @@ const checks = [
       appJs.includes("clearGlobalSearchPanel({ keepQuery: true })") &&
       appJs.includes("clearDestinationSearchForGlobalActivation(result.route)") &&
       appJs.includes("routeHasPageSearch(result.route)") &&
-      appJs.includes("queuePageSearchReveal(activationQuery)") &&
+      (appJs.includes("queuePageSearchReveal(activationQuery)") ||
+        appJs.includes("queuePageSearchReveal(activationQuery, searchScopeForCurrentState(), globalSearchPageRevealOptions(result))")) &&
       appJs.includes("flushPageSearchReveal();") &&
       !appJs.includes("setScopedSearch(activationQuery)") &&
       !appJs.includes("state.devLifecycleStageSearch = activationQuery") &&

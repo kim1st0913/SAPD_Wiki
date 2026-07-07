@@ -15,6 +15,7 @@ import importlib.util
 import json
 import mimetypes
 import os
+import re
 import signal
 import secrets
 import sqlite3
@@ -422,9 +423,9 @@ class BundleRuntime:
         self.manifest_path = self.root / "data" / "base" / "base-manifest.json"
         self.config_path = self.root / "config" / "app-config.json"
         self.frontend_dir = self.root / "app" / "frontend-dist"
-        self.export_dir = self.root / "data" / "exports"
         self.manifest = load_json(self.manifest_path)
         self.config = load_json(self.config_path)
+        self.export_dir = self.resolve_export_dir(self.config.get("download_dir"))
         base_file = self.manifest["base_database"].get("file", "sapd_wiki_base.sqlite3")
         user_file = self.manifest["user_database"].get("file", "sapd_wiki_user.sqlite3")
         self.base_db = safe_bundle_child(self.root / "data" / "base", base_file, "sapd_wiki_base.sqlite3")
@@ -435,6 +436,26 @@ class BundleRuntime:
         self.ensure_user_export_tables()
         self.ensure_user_schema_version()
         self.export_dir.mkdir(parents=True, exist_ok=True)
+
+    def resolve_export_dir(self, configured_dir: Any) -> Path:
+        raw_value = str(configured_dir or "").strip()
+        if not raw_value:
+            return self.root / "data" / "exports"
+        candidate = Path(raw_value).expanduser()
+        if not candidate.is_absolute():
+            candidate = self.root / candidate
+        return candidate.resolve()
+
+    def license_status(self) -> dict[str, Any]:
+        license_config = self.config.get("license")
+        if isinstance(license_config, dict):
+            return license_config
+        return {
+            "state": "unknown",
+            "display_text": "授权状态未知",
+            "activated": False,
+            "can_skip": False,
+        }
 
     def ensure_user_schema_version(self) -> None:
         user_uri = self.user_db.resolve().as_uri() + "?mode=rwc"
@@ -736,6 +757,38 @@ class BundleRuntime:
         output_path.write_text(user_notes_export_markdown(payload), encoding="utf-8")
         self.logger.write("info", "user notes exported", output_path=str(output_path), note_count=payload["summary"]["note_count"])
         return output_path
+
+    def export_user_notes_file_result(self) -> dict[str, Any]:
+        output_path = self.export_user_notes_file()
+        payload = self.user_notes_export_payload()
+        return {
+            "ok": True,
+            "data_state": "ready",
+            "export_type": "user_notes",
+            "file_name": output_path.name,
+            "output_path": str(output_path),
+            "download_dir": str(self.export_dir),
+            "note_count": payload["summary"]["note_count"],
+        }
+
+    def save_markdown_export(self, payload: dict[str, Any]) -> dict[str, Any]:
+        content = str(payload.get("content") or "")
+        if not content.strip():
+            raise ValueError("content is required")
+        raw_prefix = str(payload.get("filename_prefix") or "sapd-export").strip()
+        safe_prefix = re.sub(r"[^A-Za-z0-9._-]+", "-", raw_prefix).strip(".-")[:64] or "sapd-export"
+        output_path = self.export_dir / f"{safe_prefix}-{time.strftime('%Y%m%d-%H%M%SZ', time.gmtime())}.md"
+        output_path.write_text(content, encoding="utf-8")
+        self.logger.write("info", "markdown export saved", output_path=str(output_path), byte_count=output_path.stat().st_size)
+        return {
+            "ok": True,
+            "data_state": "ready",
+            "export_type": "markdown",
+            "file_name": output_path.name,
+            "output_path": str(output_path),
+            "download_dir": str(self.export_dir),
+            "byte_count": output_path.stat().st_size,
+        }
 
     def add_note(self, payload: dict[str, Any]) -> dict[str, Any]:
         target_ref = str(payload.get("target_ref", "")).strip()
@@ -1792,6 +1845,7 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
                                 "header": AUTH_HEADER,
                                 "session_token": session_token,
                             },
+                            "license": runtime.license_status(),
                         },
                     )
                     return
@@ -1850,8 +1904,11 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
                     params = parse_qs(parsed.query)
                     payload = runtime.user_notes_export_payload()
                     should_download = str((params.get("download") or [""])[0]).strip().lower() in {"1", "true", "yes"}
+                    should_save = str((params.get("save") or [""])[0]).strip().lower() in {"1", "true", "yes"}
                     if should_download:
                         self.send_text_download(200, user_notes_export_markdown(payload), runtime.user_notes_export_file_name(), "text/markdown; charset=utf-8")
+                    elif should_save:
+                        self.send_json(200, runtime.export_user_notes_file_result())
                     else:
                         self.send_json(200, payload)
                     return
@@ -1938,7 +1995,8 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
                 export_parts = self.user_export_parts(parsed.path)
                 is_export_preview_create = export_parts == ["api", "v1", "user", "exports", "preview"]
                 is_export_execute = export_parts == ["api", "v1", "user", "exports"]
-                if parsed.path not in {"/api/v1/user/favorites", "/api/v1/user/notes"} and not is_workspace_create and not is_workspace_item_create and not is_data_basket_create and not is_data_basket_item_create and not is_export_profile_create and not is_export_preview_create and not is_export_execute:
+                is_markdown_export = export_parts == ["api", "v1", "user", "exports", "markdown"]
+                if parsed.path not in {"/api/v1/user/favorites", "/api/v1/user/notes"} and not is_workspace_create and not is_workspace_item_create and not is_data_basket_create and not is_data_basket_item_create and not is_export_profile_create and not is_export_preview_create and not is_export_execute and not is_markdown_export:
                     self.send_json(404, {"ok": False, "error": "not found"})
                     return
                 auth_error = self.validate_write_request()
@@ -1964,6 +2022,8 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
                     self.send_json(200, runtime.create_export_preview(payload))
                 elif is_export_execute:
                     self.send_json(200, runtime.execute_export_job(payload))
+                elif is_markdown_export:
+                    self.send_json(200, runtime.save_markdown_export(payload))
                 else:
                     self.send_json(200, runtime.add_favorite(payload))
             except ValueError as error:

@@ -289,7 +289,8 @@
         "title": "软件应用",
         "name": "软件应用",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象"
       },
       "784caa9f-74f0-4a43-94f5-727b3ff497fb": {
         "id": "784caa9f-74f0-4a43-94f5-727b3ff497fb",
@@ -298,7 +299,8 @@
         "title": "数据与信息",
         "name": "数据与信息",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。"
       },
       "6f1ef0de-3163-4d38-9626-5625a58948bb": {
         "id": "6f1ef0de-3163-4d38-9626-5625a58948bb",
@@ -307,7 +309,8 @@
         "title": "网络",
         "name": "网络",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于网络流、网络服务等对象。"
       }
     }
   },
@@ -337,7 +340,9 @@
             "code": "I-AP",
             "title": "软件应用",
             "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "软件应用",
+            "status": ""
           },
           "services": [
             {
@@ -374,6 +379,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    37
                   ]
                 }
               ],
@@ -392,7 +400,9 @@
             "code": "I-DI",
             "title": "数据与信息",
             "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "数据与信息",
+            "status": ""
           },
           "services": [
             {
@@ -429,6 +439,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    39
                   ]
                 }
               ],
@@ -470,6 +483,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    38
                   ]
                 }
               ],
@@ -511,6 +527,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    44
                   ]
                 }
               ],
@@ -552,6 +571,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    36
                   ]
                 }
               ],
@@ -570,7 +592,9 @@
             "code": "I-NT",
             "title": "网络",
             "description": "安全能力作用于网络流、网络服务等对象。",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "网络",
+            "status": ""
           },
           "services": [
             {
@@ -607,6 +631,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    43
                   ]
                 },
                 {
@@ -635,6 +662,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    42
                   ]
                 }
               ],
@@ -676,6 +706,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    40
                   ]
                 }
               ],
@@ -717,6 +750,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    45
                   ]
                 }
               ],
@@ -758,6 +794,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    34
                   ]
                 },
                 {
@@ -786,6 +825,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    35
                   ]
                 },
                 {
@@ -814,6 +856,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    41
                   ]
                 }
               ],

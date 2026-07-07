@@ -910,7 +910,8 @@
         "title": "软件应用",
         "name": "软件应用",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象"
       },
       "784caa9f-74f0-4a43-94f5-727b3ff497fb": {
         "id": "784caa9f-74f0-4a43-94f5-727b3ff497fb",
@@ -919,7 +920,8 @@
         "title": "数据与信息",
         "name": "数据与信息",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。"
       }
     }
   },
@@ -949,7 +951,9 @@
             "code": "I-AP",
             "title": "软件应用",
             "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "软件应用",
+            "status": ""
           },
           "services": [
             {
@@ -960,9 +964,68 @@
               "description": null,
               "category": "I-AP",
               "modules": [],
-              "measures": [],
+              "measures": [
+                {
+                  "id": "security_technical_measure:eccf0babe3606233",
+                  "type": "security_technical_measure",
+                  "code": "",
+                  "title": "应用系统高可用性设计",
+                  "name": "应用系统高可用性设计",
+                  "description": null,
+                  "category": "安全技术措施",
+                  "status": "normal",
+                  "evidenceRefs": [
+                    "evidence:0242101b098d2ea2",
+                    "evidence:035ee712431b85e4",
+                    "evidence:08ea5cb97db8e20b",
+                    "evidence:0ae12267d6d8a369",
+                    "evidence:21580ec41102b8e5",
+                    "evidence:2b1caafcc222c654",
+                    "evidence:2b9df9e05e8be1f5",
+                    "evidence:2ff4d20ad2916ea3",
+                    "evidence:338b1e37868d9ef4",
+                    "evidence:3ccff06c67727c5f",
+                    "evidence:40384605ce2e0b4e",
+                    "evidence:46d1e139aa02cb21",
+                    "evidence:48d4c161dbfabec3",
+                    "evidence:4a982afb666dec75",
+                    "evidence:4cf3ad0d51665464",
+                    "evidence:508baecbe6fe67fb",
+                    "evidence:53e00360c8896493",
+                    "evidence:66a464170d72358c",
+                    "evidence:671f23cc642cc518",
+                    "evidence:719faeffdb283bc3",
+                    "evidence:7a4aab32858e7105",
+                    "evidence:85c10ebd45794d8f",
+                    "evidence:89fb866edadb7fb6",
+                    "evidence:8e857fe647837830",
+                    "evidence:90df242110be18fa",
+                    "evidence:92d2e551657dec6b",
+                    "evidence:95f7ca1006f6ee74",
+                    "evidence:976945657e205d9a",
+                    "evidence:a5c8d904024b6c0f",
+                    "evidence:adece574a4c3c93f",
+                    "evidence:b5025fd972dd9327",
+                    "evidence:b5b17016e1395081",
+                    "evidence:be0fcde88f9495a7",
+                    "evidence:d70dad4e6cb5ec21",
+                    "evidence:df982e055d189ac0",
+                    "evidence:e70b80eeaa678ca0",
+                    "evidence:e9be66005a74e3a8",
+                    "evidence:f0a214f5befbbb00",
+                    "evidence:f27248a09846e11c",
+                    "evidence:f33f1ad41325461b",
+                    "evidence:f5ef2874e04088af",
+                    "evidence:f661810f2dc7cbb0"
+                  ],
+                  "systems": [],
+                  "systemSourceRows": [
+                    526
+                  ]
+                }
+              ],
               "module_count": 0,
-              "measure_count": 0
+              "measure_count": 1
             },
             {
               "id": "02ba15b8-9b98-4ad1-b331-537735564019",
@@ -972,9 +1035,68 @@
               "description": null,
               "category": "I-AP",
               "modules": [],
-              "measures": [],
+              "measures": [
+                {
+                  "id": "security_technical_measure:eccf0babe3606233",
+                  "type": "security_technical_measure",
+                  "code": "",
+                  "title": "应用系统高可用性设计",
+                  "name": "应用系统高可用性设计",
+                  "description": null,
+                  "category": "安全技术措施",
+                  "status": "normal",
+                  "evidenceRefs": [
+                    "evidence:0242101b098d2ea2",
+                    "evidence:035ee712431b85e4",
+                    "evidence:08ea5cb97db8e20b",
+                    "evidence:0ae12267d6d8a369",
+                    "evidence:21580ec41102b8e5",
+                    "evidence:2b1caafcc222c654",
+                    "evidence:2b9df9e05e8be1f5",
+                    "evidence:2ff4d20ad2916ea3",
+                    "evidence:338b1e37868d9ef4",
+                    "evidence:3ccff06c67727c5f",
+                    "evidence:40384605ce2e0b4e",
+                    "evidence:46d1e139aa02cb21",
+                    "evidence:48d4c161dbfabec3",
+                    "evidence:4a982afb666dec75",
+                    "evidence:4cf3ad0d51665464",
+                    "evidence:508baecbe6fe67fb",
+                    "evidence:53e00360c8896493",
+                    "evidence:66a464170d72358c",
+                    "evidence:671f23cc642cc518",
+                    "evidence:719faeffdb283bc3",
+                    "evidence:7a4aab32858e7105",
+                    "evidence:85c10ebd45794d8f",
+                    "evidence:89fb866edadb7fb6",
+                    "evidence:8e857fe647837830",
+                    "evidence:90df242110be18fa",
+                    "evidence:92d2e551657dec6b",
+                    "evidence:95f7ca1006f6ee74",
+                    "evidence:976945657e205d9a",
+                    "evidence:a5c8d904024b6c0f",
+                    "evidence:adece574a4c3c93f",
+                    "evidence:b5025fd972dd9327",
+                    "evidence:b5b17016e1395081",
+                    "evidence:be0fcde88f9495a7",
+                    "evidence:d70dad4e6cb5ec21",
+                    "evidence:df982e055d189ac0",
+                    "evidence:e70b80eeaa678ca0",
+                    "evidence:e9be66005a74e3a8",
+                    "evidence:f0a214f5befbbb00",
+                    "evidence:f27248a09846e11c",
+                    "evidence:f33f1ad41325461b",
+                    "evidence:f5ef2874e04088af",
+                    "evidence:f661810f2dc7cbb0"
+                  ],
+                  "systems": [],
+                  "systemSourceRows": [
+                    527
+                  ]
+                }
+              ],
               "module_count": 0,
-              "measure_count": 0
+              "measure_count": 1
             },
             {
               "id": "66ba0f69-0de6-4efa-8483-95e4991ee72f",
@@ -983,9 +1105,204 @@
               "title": "软件资产清单",
               "description": null,
               "category": "I-AP",
-              "modules": [],
+              "modules": [
+                {
+                  "id": "a43f63a1-1a64-4269-91b7-1b584b6f6202",
+                  "type": "security_technology_module",
+                  "code": "",
+                  "title": "主机安全管理",
+                  "name": "主机安全管理",
+                  "description": "针对物理主机/云主机提供资产管理、系统加固、配置、漏洞、补丁、应用程序管理的模块",
+                  "category": "云安全",
+                  "status": "normal",
+                  "evidenceRefs": [
+                    "evidence:01ab77bdbf6d88e6",
+                    "evidence:043f8f67aa33d686",
+                    "evidence:048564431f4c2b45",
+                    "evidence:04f07168ed19b564",
+                    "evidence:077bf17c9c13ab21",
+                    "evidence:1012ab389e84ee18",
+                    "evidence:10a42e0b4f7a0681",
+                    "evidence:11a08038627ac8ca",
+                    "evidence:16bad0728981343e",
+                    "evidence:16e1a64ff9a3d23e",
+                    "evidence:1963c40a96c57a2c",
+                    "evidence:1a13df1f71f441d7",
+                    "evidence:1c10ec93f8d28989",
+                    "evidence:27bab55f21a2f587",
+                    "evidence:2b9d8467e554d4a6",
+                    "evidence:306511e3e6469248",
+                    "evidence:30f8e2bf7e5661e0",
+                    "evidence:33803af2ee36964b",
+                    "evidence:360e3eb248198a11",
+                    "evidence:386d2628b48c2301",
+                    "evidence:3ad2434b95caa9ed",
+                    "evidence:3c95fc8edec584aa",
+                    "evidence:4259a88c0dd3d26a",
+                    "evidence:428d508f7611308d",
+                    "evidence:42f2fb1c9546001f",
+                    "evidence:489846c6bc59eb85",
+                    "evidence:48f8876097783afe",
+                    "evidence:4a5725ae6da3aaa6",
+                    "evidence:4fdc689cc6a5bdff",
+                    "evidence:52cf3b8f8d5c785a",
+                    "evidence:597442639d0fe85b",
+                    "evidence:59bd6606b14213e8",
+                    "evidence:5acca7e3434cb275",
+                    "evidence:5aefee000e74d9c9",
+                    "evidence:5d9fba7af84d8c01",
+                    "evidence:5db15fd10affb439",
+                    "evidence:6407e51a07a5fd8b",
+                    "evidence:678043825f9b1401",
+                    "evidence:67aad69bee467516",
+                    "evidence:6b9c60e72c6c629e",
+                    "evidence:7125119de280d4b9",
+                    "evidence:71c1c7a98617f9bb",
+                    "evidence:74f620f1b2720998",
+                    "evidence:75e6f1d2526c8c23",
+                    "evidence:7a3f61711180a934",
+                    "evidence:7d0677f60a82e90d",
+                    "evidence:7edccc23a9f4c6f8",
+                    "evidence:8489f9adf9425db5",
+                    "evidence:8696f4377ba103d4",
+                    "evidence:89820984f66d4cab",
+                    "evidence:8c0066e66ef0f43a",
+                    "evidence:8ce6f9cee2cc3c60",
+                    "evidence:9214e3ac562b785e",
+                    "evidence:92a93dc92895f5d3",
+                    "evidence:953b7354846dbab3",
+                    "evidence:954acadbb70f5e59",
+                    "evidence:957746f640bfa48f",
+                    "evidence:95e958c97bc51e81",
+                    "evidence:9c130bb3c8e5be0a",
+                    "evidence:a102dbf6799a952e",
+                    "evidence:a61ad395411c68ef",
+                    "evidence:a91c2299754069bc",
+                    "evidence:ab97cde77c68eb16",
+                    "evidence:ac92d715953eb8f8",
+                    "evidence:b5a0a9bdbb3065f7",
+                    "evidence:b5f2f0271950a871",
+                    "evidence:b60d91321950bb76",
+                    "evidence:b65438c03905460a",
+                    "evidence:b66588f1eed25c08",
+                    "evidence:bad0f751a5873634",
+                    "evidence:bb58250e426fa91b",
+                    "evidence:c577c4b2714340f2",
+                    "evidence:c5cf7164d10aed6b",
+                    "evidence:c86a06c05e0d2ea2",
+                    "evidence:c91aeb3f48923712",
+                    "evidence:cad355df3fcff475",
+                    "evidence:cd8f9fc6ab46ac90",
+                    "evidence:d23fbfed8164245f",
+                    "evidence:d63a4843282067a4",
+                    "evidence:d909a7176a18e9a4",
+                    "evidence:ddd1acdbcb0b3209",
+                    "evidence:ddea30d22f727b48",
+                    "evidence:decb2af3eb3c5c68",
+                    "evidence:e0e1a24f34ac4abb",
+                    "evidence:e11902c8812651f4",
+                    "evidence:e4c074291229e9a3",
+                    "evidence:e6345110dfedd183",
+                    "evidence:ea9872b005bbac3d",
+                    "evidence:ebc6acbd781abc0c",
+                    "evidence:ede4aa575eeadc22",
+                    "evidence:ee76b5973488e5d5",
+                    "evidence:eea9d4f084c638d4",
+                    "evidence:f200ebddaf6fa381",
+                    "evidence:fcb7ca7882694957",
+                    "evidence:fce226080dfe2eb4",
+                    "evidence:ff821e8dd760a4fe"
+                  ],
+                  "systems": [
+                    {
+                      "id": "e538768a-a91b-40be-ac98-1fb3702fc254",
+                      "type": "security_system",
+                      "code": "",
+                      "name": "主机安全防护",
+                      "title": "主机安全防护",
+                      "description": "",
+                      "category": "云安全",
+                      "status": "",
+                      "evidenceRefs": [
+                        "evidence:0269968e41202f98",
+                        "evidence:03af1cf96a0d43a0",
+                        "evidence:043f8f67aa33d686",
+                        "evidence:0512e8fb3f65e673",
+                        "evidence:0a189805d1140b8b",
+                        "evidence:162384b89cfbe3e6",
+                        "evidence:16b7655a99a213fd",
+                        "evidence:1993b593b52b3112",
+                        "evidence:19ec557d229cdde5",
+                        "evidence:1a13df1f71f441d7",
+                        "evidence:1a5241a7f7a734e6",
+                        "evidence:1f29f14208fb815b",
+                        "evidence:1f4374fbeb0c7c8c",
+                        "evidence:2ff9aa49e7e396f1",
+                        "evidence:306511e3e6469248",
+                        "evidence:30f8e2bf7e5661e0",
+                        "evidence:317cd856a52c52e7",
+                        "evidence:3385e690adb97cb2",
+                        "evidence:37066803fc878421",
+                        "evidence:3864842ef79b4089",
+                        "evidence:38ddb11b496fa81c",
+                        "evidence:4259a88c0dd3d26a",
+                        "evidence:5831f653f711fd26",
+                        "evidence:5acca7e3434cb275",
+                        "evidence:5e61a523c8756600",
+                        "evidence:6e96c8fe1fbe0da8",
+                        "evidence:6f632b985455dc19",
+                        "evidence:72cbf3ea0383318d",
+                        "evidence:76837485bb6c8477",
+                        "evidence:77b1e08cdaecec00",
+                        "evidence:86537fb948568b6b",
+                        "evidence:881a65580199825b",
+                        "evidence:8c0066e66ef0f43a",
+                        "evidence:921d9c894c35c66a",
+                        "evidence:92a93dc92895f5d3",
+                        "evidence:957746f640bfa48f",
+                        "evidence:9bd96cea8b2fc0c2",
+                        "evidence:9f430f4d2c8a7669",
+                        "evidence:a40bc718333fa245",
+                        "evidence:abc018fc031337fe",
+                        "evidence:ac92d715953eb8f8",
+                        "evidence:b5a0a9bdbb3065f7",
+                        "evidence:b60d91321950bb76",
+                        "evidence:b65438c03905460a",
+                        "evidence:bad0f751a5873634",
+                        "evidence:c86a06c05e0d2ea2",
+                        "evidence:cad355df3fcff475",
+                        "evidence:cb69b7c6df0ad4de",
+                        "evidence:d11ac7ef13bc1bf6",
+                        "evidence:d24279c42a273ca3",
+                        "evidence:d3b1ee3b254dc6e2",
+                        "evidence:d714bdec158fdac2",
+                        "evidence:dd5459f341c7dd85",
+                        "evidence:dee65b081fe612ef",
+                        "evidence:e0e1a24f34ac4abb",
+                        "evidence:e1ac51c0fcaeadd9",
+                        "evidence:e2677e1723167cac",
+                        "evidence:e2cf6e5ccd391bad",
+                        "evidence:e2d7badbbc55e622",
+                        "evidence:e4c074291229e9a3",
+                        "evidence:e52b008788bba19f",
+                        "evidence:e7d05252b48c10fc",
+                        "evidence:e7d952a8ecd9a477",
+                        "evidence:e95a62e3d22e3cfe",
+                        "evidence:e98631da04dd19b9",
+                        "evidence:ec4e08e2e4f6eff3",
+                        "evidence:ee76b5973488e5d5",
+                        "evidence:eea9d4f084c638d4",
+                        "evidence:f01713aebd7ff332"
+                      ]
+                    }
+                  ],
+                  "systemSourceRows": [
+                    515
+                  ]
+                }
+              ],
               "measures": [],
-              "module_count": 0,
+              "module_count": 1,
               "measure_count": 0
             },
             {
@@ -1003,7 +1320,89 @@
                   "title": "主机安全管理",
                   "description": "针对物理主机/云主机提供资产管理、系统加固、配置、漏洞、补丁、应用程序管理的模块",
                   "category": "云安全",
-                  "systems": [],
+                  "systems": [
+                    {
+                      "id": "e538768a-a91b-40be-ac98-1fb3702fc254",
+                      "type": "security_system",
+                      "code": "",
+                      "name": "主机安全防护",
+                      "title": "主机安全防护",
+                      "description": "",
+                      "category": "云安全",
+                      "status": "",
+                      "evidenceRefs": [
+                        "evidence:0269968e41202f98",
+                        "evidence:03af1cf96a0d43a0",
+                        "evidence:043f8f67aa33d686",
+                        "evidence:0512e8fb3f65e673",
+                        "evidence:0a189805d1140b8b",
+                        "evidence:162384b89cfbe3e6",
+                        "evidence:16b7655a99a213fd",
+                        "evidence:1993b593b52b3112",
+                        "evidence:19ec557d229cdde5",
+                        "evidence:1a13df1f71f441d7",
+                        "evidence:1a5241a7f7a734e6",
+                        "evidence:1f29f14208fb815b",
+                        "evidence:1f4374fbeb0c7c8c",
+                        "evidence:2ff9aa49e7e396f1",
+                        "evidence:306511e3e6469248",
+                        "evidence:30f8e2bf7e5661e0",
+                        "evidence:317cd856a52c52e7",
+                        "evidence:3385e690adb97cb2",
+                        "evidence:37066803fc878421",
+                        "evidence:3864842ef79b4089",
+                        "evidence:38ddb11b496fa81c",
+                        "evidence:4259a88c0dd3d26a",
+                        "evidence:5831f653f711fd26",
+                        "evidence:5acca7e3434cb275",
+                        "evidence:5e61a523c8756600",
+                        "evidence:6e96c8fe1fbe0da8",
+                        "evidence:6f632b985455dc19",
+                        "evidence:72cbf3ea0383318d",
+                        "evidence:76837485bb6c8477",
+                        "evidence:77b1e08cdaecec00",
+                        "evidence:86537fb948568b6b",
+                        "evidence:881a65580199825b",
+                        "evidence:8c0066e66ef0f43a",
+                        "evidence:921d9c894c35c66a",
+                        "evidence:92a93dc92895f5d3",
+                        "evidence:957746f640bfa48f",
+                        "evidence:9bd96cea8b2fc0c2",
+                        "evidence:9f430f4d2c8a7669",
+                        "evidence:a40bc718333fa245",
+                        "evidence:abc018fc031337fe",
+                        "evidence:ac92d715953eb8f8",
+                        "evidence:b5a0a9bdbb3065f7",
+                        "evidence:b60d91321950bb76",
+                        "evidence:b65438c03905460a",
+                        "evidence:bad0f751a5873634",
+                        "evidence:c86a06c05e0d2ea2",
+                        "evidence:cad355df3fcff475",
+                        "evidence:cb69b7c6df0ad4de",
+                        "evidence:d11ac7ef13bc1bf6",
+                        "evidence:d24279c42a273ca3",
+                        "evidence:d3b1ee3b254dc6e2",
+                        "evidence:d714bdec158fdac2",
+                        "evidence:dd5459f341c7dd85",
+                        "evidence:dee65b081fe612ef",
+                        "evidence:e0e1a24f34ac4abb",
+                        "evidence:e1ac51c0fcaeadd9",
+                        "evidence:e2677e1723167cac",
+                        "evidence:e2cf6e5ccd391bad",
+                        "evidence:e2d7badbbc55e622",
+                        "evidence:e4c074291229e9a3",
+                        "evidence:e52b008788bba19f",
+                        "evidence:e7d05252b48c10fc",
+                        "evidence:e7d952a8ecd9a477",
+                        "evidence:e95a62e3d22e3cfe",
+                        "evidence:e98631da04dd19b9",
+                        "evidence:ec4e08e2e4f6eff3",
+                        "evidence:ee76b5973488e5d5",
+                        "evidence:eea9d4f084c638d4",
+                        "evidence:f01713aebd7ff332"
+                      ]
+                    }
+                  ],
                   "products": [
                     {
                       "id": "eed49fe7-d0b0-4779-b1d8-0d1ba971287b",
@@ -1013,6 +1412,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    516
                   ]
                 }
               ],
@@ -1079,7 +1481,9 @@
                       "code": "I-AP",
                       "title": "软件应用",
                       "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "软件应用",
+                      "status": ""
                     },
                     {
                       "id": "784caa9f-74f0-4a43-94f5-727b3ff497fb",
@@ -1087,7 +1491,9 @@
                       "code": "I-DI",
                       "title": "数据与信息",
                       "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "数据与信息",
+                      "status": ""
                     }
                   ],
                   "related_capability_focus_ids": [
@@ -1111,7 +1517,95 @@
                   "type": "security_technical_measure",
                   "objectKind": "安全技术措施",
                   "kind": "安全技术措施",
-                  "title": "应用自身数据加解密模块"
+                  "title": "应用自身数据加解密模块",
+                  "systems": [
+                    {
+                      "id": "0538b5a9-57fd-4a14-998d-4f6ea1f23ed1",
+                      "type": "security_system",
+                      "code": "",
+                      "name": "数据安全防护",
+                      "title": "数据安全防护",
+                      "description": "",
+                      "category": "数据安全",
+                      "status": "",
+                      "evidenceRefs": [
+                        "evidence:0279e3a582989322",
+                        "evidence:05ac3c6e76777b01",
+                        "evidence:084e21e783fb081d",
+                        "evidence:09c19928d0758fb0",
+                        "evidence:0a56147f96631d01",
+                        "evidence:0b4ffcedab482b4c",
+                        "evidence:0d5e7e5a76259fa2",
+                        "evidence:0ebfaf0540e424f9",
+                        "evidence:153865a6cc552105",
+                        "evidence:1a8c683a598543e0",
+                        "evidence:1bc119999a97c6eb",
+                        "evidence:1c654f5a82388e2a",
+                        "evidence:1d65e85abb9f68e4",
+                        "evidence:1ed846bb4c31c345",
+                        "evidence:21016dda2b8fe604",
+                        "evidence:217b965128bf1bb9",
+                        "evidence:25ceaaf0ec952ca4",
+                        "evidence:2820a5dc157c02a1",
+                        "evidence:292a4c1f1216efa0",
+                        "evidence:2938e1e079e309ce",
+                        "evidence:2cfc50e0b13d32bc",
+                        "evidence:2e14b14fa4f698c3",
+                        "evidence:31e8524853233bc0",
+                        "evidence:31ea2e4ab2b0be82",
+                        "evidence:33b9d301fe8c1d69",
+                        "evidence:394c008c8e25a54c",
+                        "evidence:3b97b7e349c00251",
+                        "evidence:4348aa1cb213c7f4",
+                        "evidence:43fdf26fb33c3841",
+                        "evidence:479d68cecdaba1af",
+                        "evidence:48929b23c28993d1",
+                        "evidence:4e02be856da6019f",
+                        "evidence:50b21365199a1859",
+                        "evidence:534febcae8d60aa7",
+                        "evidence:536ac28869593294",
+                        "evidence:5eda26275e9b9a38",
+                        "evidence:614c045eb76234b0",
+                        "evidence:67fe4be559ba4fab",
+                        "evidence:681d6b9c05dc3a6c",
+                        "evidence:6b128bb9b4a6d48c",
+                        "evidence:730108733d49b06c",
+                        "evidence:753f73a60781a7f3",
+                        "evidence:793678f26e5c3431",
+                        "evidence:7c1c88c724b67ec9",
+                        "evidence:7fee970a04494e5b",
+                        "evidence:7ff847501f04e181",
+                        "evidence:85b74fe5bfc918fd",
+                        "evidence:85cf83880e42a1f0",
+                        "evidence:896fce5d27c39c4d",
+                        "evidence:8ad26188c685a3ae",
+                        "evidence:8b79821ab09536b8",
+                        "evidence:8d6a8a57191137a8",
+                        "evidence:91dbdba45b8112d9",
+                        "evidence:a0de84ef8628959c",
+                        "evidence:ab07fe6ffa1e6ba3",
+                        "evidence:bcb3c09fc6580b7c",
+                        "evidence:c40e7a7237b4dd1b",
+                        "evidence:ce3e767a2e4358de",
+                        "evidence:d3554c83dadae524",
+                        "evidence:d66395b58458b5e4",
+                        "evidence:dad674882192a11f",
+                        "evidence:dbfd770304d318a8",
+                        "evidence:dc62b1c3a5ea3fb4",
+                        "evidence:e1fa46482781c84e",
+                        "evidence:e4996f8856202eda",
+                        "evidence:e83361c9b8d97b6e",
+                        "evidence:f03b416d5678936f",
+                        "evidence:f3dc7091ec30ded8",
+                        "evidence:f79a6fecdbe500a1",
+                        "evidence:fba2e10df32035eb",
+                        "evidence:fd1981282c7e4227"
+                      ]
+                    }
+                  ],
+                  "systemSourceRows": [
+                    528
+                  ]
                 }
               ],
               "module_count": 0,
@@ -1132,7 +1626,89 @@
                   "title": "主机安全管理",
                   "description": "针对物理主机/云主机提供资产管理、系统加固、配置、漏洞、补丁、应用程序管理的模块",
                   "category": "云安全",
-                  "systems": [],
+                  "systems": [
+                    {
+                      "id": "e538768a-a91b-40be-ac98-1fb3702fc254",
+                      "type": "security_system",
+                      "code": "",
+                      "name": "主机安全防护",
+                      "title": "主机安全防护",
+                      "description": "",
+                      "category": "云安全",
+                      "status": "",
+                      "evidenceRefs": [
+                        "evidence:0269968e41202f98",
+                        "evidence:03af1cf96a0d43a0",
+                        "evidence:043f8f67aa33d686",
+                        "evidence:0512e8fb3f65e673",
+                        "evidence:0a189805d1140b8b",
+                        "evidence:162384b89cfbe3e6",
+                        "evidence:16b7655a99a213fd",
+                        "evidence:1993b593b52b3112",
+                        "evidence:19ec557d229cdde5",
+                        "evidence:1a13df1f71f441d7",
+                        "evidence:1a5241a7f7a734e6",
+                        "evidence:1f29f14208fb815b",
+                        "evidence:1f4374fbeb0c7c8c",
+                        "evidence:2ff9aa49e7e396f1",
+                        "evidence:306511e3e6469248",
+                        "evidence:30f8e2bf7e5661e0",
+                        "evidence:317cd856a52c52e7",
+                        "evidence:3385e690adb97cb2",
+                        "evidence:37066803fc878421",
+                        "evidence:3864842ef79b4089",
+                        "evidence:38ddb11b496fa81c",
+                        "evidence:4259a88c0dd3d26a",
+                        "evidence:5831f653f711fd26",
+                        "evidence:5acca7e3434cb275",
+                        "evidence:5e61a523c8756600",
+                        "evidence:6e96c8fe1fbe0da8",
+                        "evidence:6f632b985455dc19",
+                        "evidence:72cbf3ea0383318d",
+                        "evidence:76837485bb6c8477",
+                        "evidence:77b1e08cdaecec00",
+                        "evidence:86537fb948568b6b",
+                        "evidence:881a65580199825b",
+                        "evidence:8c0066e66ef0f43a",
+                        "evidence:921d9c894c35c66a",
+                        "evidence:92a93dc92895f5d3",
+                        "evidence:957746f640bfa48f",
+                        "evidence:9bd96cea8b2fc0c2",
+                        "evidence:9f430f4d2c8a7669",
+                        "evidence:a40bc718333fa245",
+                        "evidence:abc018fc031337fe",
+                        "evidence:ac92d715953eb8f8",
+                        "evidence:b5a0a9bdbb3065f7",
+                        "evidence:b60d91321950bb76",
+                        "evidence:b65438c03905460a",
+                        "evidence:bad0f751a5873634",
+                        "evidence:c86a06c05e0d2ea2",
+                        "evidence:cad355df3fcff475",
+                        "evidence:cb69b7c6df0ad4de",
+                        "evidence:d11ac7ef13bc1bf6",
+                        "evidence:d24279c42a273ca3",
+                        "evidence:d3b1ee3b254dc6e2",
+                        "evidence:d714bdec158fdac2",
+                        "evidence:dd5459f341c7dd85",
+                        "evidence:dee65b081fe612ef",
+                        "evidence:e0e1a24f34ac4abb",
+                        "evidence:e1ac51c0fcaeadd9",
+                        "evidence:e2677e1723167cac",
+                        "evidence:e2cf6e5ccd391bad",
+                        "evidence:e2d7badbbc55e622",
+                        "evidence:e4c074291229e9a3",
+                        "evidence:e52b008788bba19f",
+                        "evidence:e7d05252b48c10fc",
+                        "evidence:e7d952a8ecd9a477",
+                        "evidence:e95a62e3d22e3cfe",
+                        "evidence:e98631da04dd19b9",
+                        "evidence:ec4e08e2e4f6eff3",
+                        "evidence:ee76b5973488e5d5",
+                        "evidence:eea9d4f084c638d4",
+                        "evidence:f01713aebd7ff332"
+                      ]
+                    }
+                  ],
                   "products": [
                     {
                       "id": "eed49fe7-d0b0-4779-b1d8-0d1ba971287b",
@@ -1142,6 +1718,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    517
                   ]
                 }
               ],
@@ -1164,7 +1743,89 @@
                   "title": "主机安全管理",
                   "description": "针对物理主机/云主机提供资产管理、系统加固、配置、漏洞、补丁、应用程序管理的模块",
                   "category": "云安全",
-                  "systems": [],
+                  "systems": [
+                    {
+                      "id": "e538768a-a91b-40be-ac98-1fb3702fc254",
+                      "type": "security_system",
+                      "code": "",
+                      "name": "主机安全防护",
+                      "title": "主机安全防护",
+                      "description": "",
+                      "category": "云安全",
+                      "status": "",
+                      "evidenceRefs": [
+                        "evidence:0269968e41202f98",
+                        "evidence:03af1cf96a0d43a0",
+                        "evidence:043f8f67aa33d686",
+                        "evidence:0512e8fb3f65e673",
+                        "evidence:0a189805d1140b8b",
+                        "evidence:162384b89cfbe3e6",
+                        "evidence:16b7655a99a213fd",
+                        "evidence:1993b593b52b3112",
+                        "evidence:19ec557d229cdde5",
+                        "evidence:1a13df1f71f441d7",
+                        "evidence:1a5241a7f7a734e6",
+                        "evidence:1f29f14208fb815b",
+                        "evidence:1f4374fbeb0c7c8c",
+                        "evidence:2ff9aa49e7e396f1",
+                        "evidence:306511e3e6469248",
+                        "evidence:30f8e2bf7e5661e0",
+                        "evidence:317cd856a52c52e7",
+                        "evidence:3385e690adb97cb2",
+                        "evidence:37066803fc878421",
+                        "evidence:3864842ef79b4089",
+                        "evidence:38ddb11b496fa81c",
+                        "evidence:4259a88c0dd3d26a",
+                        "evidence:5831f653f711fd26",
+                        "evidence:5acca7e3434cb275",
+                        "evidence:5e61a523c8756600",
+                        "evidence:6e96c8fe1fbe0da8",
+                        "evidence:6f632b985455dc19",
+                        "evidence:72cbf3ea0383318d",
+                        "evidence:76837485bb6c8477",
+                        "evidence:77b1e08cdaecec00",
+                        "evidence:86537fb948568b6b",
+                        "evidence:881a65580199825b",
+                        "evidence:8c0066e66ef0f43a",
+                        "evidence:921d9c894c35c66a",
+                        "evidence:92a93dc92895f5d3",
+                        "evidence:957746f640bfa48f",
+                        "evidence:9bd96cea8b2fc0c2",
+                        "evidence:9f430f4d2c8a7669",
+                        "evidence:a40bc718333fa245",
+                        "evidence:abc018fc031337fe",
+                        "evidence:ac92d715953eb8f8",
+                        "evidence:b5a0a9bdbb3065f7",
+                        "evidence:b60d91321950bb76",
+                        "evidence:b65438c03905460a",
+                        "evidence:bad0f751a5873634",
+                        "evidence:c86a06c05e0d2ea2",
+                        "evidence:cad355df3fcff475",
+                        "evidence:cb69b7c6df0ad4de",
+                        "evidence:d11ac7ef13bc1bf6",
+                        "evidence:d24279c42a273ca3",
+                        "evidence:d3b1ee3b254dc6e2",
+                        "evidence:d714bdec158fdac2",
+                        "evidence:dd5459f341c7dd85",
+                        "evidence:dee65b081fe612ef",
+                        "evidence:e0e1a24f34ac4abb",
+                        "evidence:e1ac51c0fcaeadd9",
+                        "evidence:e2677e1723167cac",
+                        "evidence:e2cf6e5ccd391bad",
+                        "evidence:e2d7badbbc55e622",
+                        "evidence:e4c074291229e9a3",
+                        "evidence:e52b008788bba19f",
+                        "evidence:e7d05252b48c10fc",
+                        "evidence:e7d952a8ecd9a477",
+                        "evidence:e95a62e3d22e3cfe",
+                        "evidence:e98631da04dd19b9",
+                        "evidence:ec4e08e2e4f6eff3",
+                        "evidence:ee76b5973488e5d5",
+                        "evidence:eea9d4f084c638d4",
+                        "evidence:f01713aebd7ff332"
+                      ]
+                    }
+                  ],
                   "products": [
                     {
                       "id": "eed49fe7-d0b0-4779-b1d8-0d1ba971287b",
@@ -1174,6 +1835,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    518
                   ]
                 }
               ],
@@ -1236,7 +1900,7 @@
                     "软件应用",
                     "数据与信息",
                     "网络",
-                    "操作系统",
+                    "操作系统（主机/终端）",
                     "用户"
                   ],
                   "applicable_scopes": [
@@ -1246,7 +1910,9 @@
                       "code": "I-AP",
                       "title": "软件应用",
                       "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "软件应用",
+                      "status": ""
                     },
                     {
                       "id": "784caa9f-74f0-4a43-94f5-727b3ff497fb",
@@ -1254,7 +1920,9 @@
                       "code": "I-DI",
                       "title": "数据与信息",
                       "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "数据与信息",
+                      "status": ""
                     },
                     {
                       "id": "6f1ef0de-3163-4d38-9626-5625a58948bb",
@@ -1262,15 +1930,19 @@
                       "code": "I-NT",
                       "title": "网络",
                       "description": "安全能力作用于网络流、网络服务等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "网络",
+                      "status": ""
                     },
                     {
                       "id": "4abd36d3-4ba1-495c-8fb9-3957167f4833",
                       "type": "scope_type",
                       "code": "I-OS",
-                      "title": "操作系统",
+                      "title": "操作系统（主机/终端）",
                       "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "操作系统（主机/终端）",
+                      "status": ""
                     },
                     {
                       "id": "6f2a40c5-4e87-4138-836c-83e136a5d69e",
@@ -1278,7 +1950,9 @@
                       "code": "I-US",
                       "title": "用户",
                       "description": "安全能力作用于组织内人员或人使用的账号等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "用户",
+                      "status": ""
                     }
                   ],
                   "related_capability_focus_ids": [
@@ -1302,7 +1976,11 @@
                   "type": "security_technical_measure",
                   "objectKind": "安全技术措施",
                   "kind": "安全技术措施",
-                  "title": "应用系统自身身份管理模块"
+                  "title": "应用系统自身身份管理模块",
+                  "systems": [],
+                  "systemSourceRows": [
+                    522
+                  ]
                 }
               ],
               "module_count": 0,
@@ -1363,7 +2041,7 @@
                     "软件应用",
                     "数据与信息",
                     "网络",
-                    "操作系统",
+                    "操作系统（主机/终端）",
                     "用户"
                   ],
                   "applicable_scopes": [
@@ -1373,7 +2051,9 @@
                       "code": "I-AP",
                       "title": "软件应用",
                       "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "软件应用",
+                      "status": ""
                     },
                     {
                       "id": "784caa9f-74f0-4a43-94f5-727b3ff497fb",
@@ -1381,7 +2061,9 @@
                       "code": "I-DI",
                       "title": "数据与信息",
                       "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "数据与信息",
+                      "status": ""
                     },
                     {
                       "id": "6f1ef0de-3163-4d38-9626-5625a58948bb",
@@ -1389,15 +2071,19 @@
                       "code": "I-NT",
                       "title": "网络",
                       "description": "安全能力作用于网络流、网络服务等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "网络",
+                      "status": ""
                     },
                     {
                       "id": "4abd36d3-4ba1-495c-8fb9-3957167f4833",
                       "type": "scope_type",
                       "code": "I-OS",
-                      "title": "操作系统",
+                      "title": "操作系统（主机/终端）",
                       "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "操作系统（主机/终端）",
+                      "status": ""
                     },
                     {
                       "id": "6f2a40c5-4e87-4138-836c-83e136a5d69e",
@@ -1405,7 +2091,9 @@
                       "code": "I-US",
                       "title": "用户",
                       "description": "安全能力作用于组织内人员或人使用的账号等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "用户",
+                      "status": ""
                     }
                   ],
                   "related_capability_focus_ids": [
@@ -1429,7 +2117,11 @@
                   "type": "security_technical_measure",
                   "objectKind": "安全技术措施",
                   "kind": "安全技术措施",
-                  "title": "应用系统自身认证模块"
+                  "title": "应用系统自身认证模块",
+                  "systems": [],
+                  "systemSourceRows": [
+                    523
+                  ]
                 }
               ],
               "module_count": 0,
@@ -1443,9 +2135,70 @@
               "description": null,
               "category": "I-AP",
               "modules": [],
-              "measures": [],
+              "measures": [
+                {
+                  "id": "security_technical_measure:c17f3973f710f7db",
+                  "type": "security_technical_measure",
+                  "code": "",
+                  "title": "应用系统自身授权管理模块",
+                  "name": "应用系统自身授权管理模块",
+                  "description": null,
+                  "category": "安全技术措施",
+                  "status": "normal",
+                  "evidenceRefs": [
+                    "evidence:00953f8561d1045d",
+                    "evidence:1525e3af77fb612d",
+                    "evidence:1c2e3c664725d1f8",
+                    "evidence:243f158cac3f034a",
+                    "evidence:2c988024728a8c8e",
+                    "evidence:36bf1c0250a86cf9",
+                    "evidence:3ccff06c67727c5f",
+                    "evidence:46d1e139aa02cb21",
+                    "evidence:48d4c161dbfabec3",
+                    "evidence:4dda2d6ec959525b",
+                    "evidence:508baecbe6fe67fb",
+                    "evidence:555366449fbdb816",
+                    "evidence:5bf0ec155ed7d2f2",
+                    "evidence:6073cb3aa5aa9748",
+                    "evidence:6237ccbb65d038ac",
+                    "evidence:6fcd7049b6f62df0",
+                    "evidence:719faeffdb283bc3",
+                    "evidence:85c10ebd45794d8f",
+                    "evidence:89fb866edadb7fb6",
+                    "evidence:8e857fe647837830",
+                    "evidence:92d2e551657dec6b",
+                    "evidence:96959fbbde477e91",
+                    "evidence:976945657e205d9a",
+                    "evidence:9935fcc0c77893e3",
+                    "evidence:a4ca8d0852ebf60d",
+                    "evidence:b5025fd972dd9327",
+                    "evidence:b713fe0d131efada",
+                    "evidence:b871fcc484515441",
+                    "evidence:b9226c2a07dacbe8",
+                    "evidence:cdb40380beadd05b",
+                    "evidence:d4378cf46f4e8c19",
+                    "evidence:d4f76510c69e191b",
+                    "evidence:dabf3505254b3dea",
+                    "evidence:e0a861f189b168ea",
+                    "evidence:e70b80eeaa678ca0",
+                    "evidence:eaec4de0be350e14",
+                    "evidence:ee311f912e0acf69",
+                    "evidence:f33f1ad41325461b",
+                    "evidence:f661810f2dc7cbb0",
+                    "evidence:f6ad50142106a493",
+                    "evidence:f9d6b6efc24d7792",
+                    "evidence:f9f83f7bdc84e21b",
+                    "evidence:fa4f550def3cbd82",
+                    "evidence:fd79967ea4ba92c7"
+                  ],
+                  "systems": [],
+                  "systemSourceRows": [
+                    524
+                  ]
+                }
+              ],
               "module_count": 0,
-              "measure_count": 0
+              "measure_count": 1
             },
             {
               "id": "62529bab-fb20-459d-9f5f-07f452c30cf9",
@@ -1502,7 +2255,7 @@
                     "软件应用",
                     "数据与信息",
                     "网络",
-                    "操作系统",
+                    "操作系统（主机/终端）",
                     "用户"
                   ],
                   "applicable_scopes": [
@@ -1512,7 +2265,9 @@
                       "code": "I-AP",
                       "title": "软件应用",
                       "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "软件应用",
+                      "status": ""
                     },
                     {
                       "id": "784caa9f-74f0-4a43-94f5-727b3ff497fb",
@@ -1520,7 +2275,9 @@
                       "code": "I-DI",
                       "title": "数据与信息",
                       "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "数据与信息",
+                      "status": ""
                     },
                     {
                       "id": "6f1ef0de-3163-4d38-9626-5625a58948bb",
@@ -1528,15 +2285,19 @@
                       "code": "I-NT",
                       "title": "网络",
                       "description": "安全能力作用于网络流、网络服务等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "网络",
+                      "status": ""
                     },
                     {
                       "id": "4abd36d3-4ba1-495c-8fb9-3957167f4833",
                       "type": "scope_type",
                       "code": "I-OS",
-                      "title": "操作系统",
+                      "title": "操作系统（主机/终端）",
                       "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "操作系统（主机/终端）",
+                      "status": ""
                     },
                     {
                       "id": "6f2a40c5-4e87-4138-836c-83e136a5d69e",
@@ -1544,7 +2305,9 @@
                       "code": "I-US",
                       "title": "用户",
                       "description": "安全能力作用于组织内人员或人使用的账号等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "用户",
+                      "status": ""
                     }
                   ],
                   "related_capability_focus_ids": [
@@ -1568,7 +2331,11 @@
                   "type": "security_technical_measure",
                   "objectKind": "安全技术措施",
                   "kind": "安全技术措施",
-                  "title": "应用系统自身凭证管理模块"
+                  "title": "应用系统自身凭证管理模块",
+                  "systems": [],
+                  "systemSourceRows": [
+                    525
+                  ]
                 }
               ],
               "module_count": 0,
@@ -1619,7 +2386,7 @@
                     "软件应用",
                     "数据与信息",
                     "网络",
-                    "操作系统",
+                    "操作系统（主机/终端）",
                     "用户"
                   ],
                   "applicable_scopes": [
@@ -1629,7 +2396,9 @@
                       "code": "I-AP",
                       "title": "软件应用",
                       "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "软件应用",
+                      "status": ""
                     },
                     {
                       "id": "784caa9f-74f0-4a43-94f5-727b3ff497fb",
@@ -1637,7 +2406,9 @@
                       "code": "I-DI",
                       "title": "数据与信息",
                       "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "数据与信息",
+                      "status": ""
                     },
                     {
                       "id": "6f1ef0de-3163-4d38-9626-5625a58948bb",
@@ -1645,15 +2416,19 @@
                       "code": "I-NT",
                       "title": "网络",
                       "description": "安全能力作用于网络流、网络服务等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "网络",
+                      "status": ""
                     },
                     {
                       "id": "4abd36d3-4ba1-495c-8fb9-3957167f4833",
                       "type": "scope_type",
                       "code": "I-OS",
-                      "title": "操作系统",
+                      "title": "操作系统（主机/终端）",
                       "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "操作系统（主机/终端）",
+                      "status": ""
                     },
                     {
                       "id": "6f2a40c5-4e87-4138-836c-83e136a5d69e",
@@ -1661,7 +2436,9 @@
                       "code": "I-US",
                       "title": "用户",
                       "description": "安全能力作用于组织内人员或人使用的账号等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "用户",
+                      "status": ""
                     }
                   ],
                   "related_capability_focus_ids": [
@@ -1685,7 +2462,11 @@
                   "type": "security_technical_measure",
                   "objectKind": "安全技术措施",
                   "kind": "安全技术措施",
-                  "title": "应用系统自身日志记录模块"
+                  "title": "应用系统自身日志记录模块",
+                  "systems": [],
+                  "systemSourceRows": [
+                    521
+                  ]
                 }
               ],
               "module_count": 0,
@@ -1706,7 +2487,89 @@
                   "title": "主机安全管理",
                   "description": "针对物理主机/云主机提供资产管理、系统加固、配置、漏洞、补丁、应用程序管理的模块",
                   "category": "云安全",
-                  "systems": [],
+                  "systems": [
+                    {
+                      "id": "e538768a-a91b-40be-ac98-1fb3702fc254",
+                      "type": "security_system",
+                      "code": "",
+                      "name": "主机安全防护",
+                      "title": "主机安全防护",
+                      "description": "",
+                      "category": "云安全",
+                      "status": "",
+                      "evidenceRefs": [
+                        "evidence:0269968e41202f98",
+                        "evidence:03af1cf96a0d43a0",
+                        "evidence:043f8f67aa33d686",
+                        "evidence:0512e8fb3f65e673",
+                        "evidence:0a189805d1140b8b",
+                        "evidence:162384b89cfbe3e6",
+                        "evidence:16b7655a99a213fd",
+                        "evidence:1993b593b52b3112",
+                        "evidence:19ec557d229cdde5",
+                        "evidence:1a13df1f71f441d7",
+                        "evidence:1a5241a7f7a734e6",
+                        "evidence:1f29f14208fb815b",
+                        "evidence:1f4374fbeb0c7c8c",
+                        "evidence:2ff9aa49e7e396f1",
+                        "evidence:306511e3e6469248",
+                        "evidence:30f8e2bf7e5661e0",
+                        "evidence:317cd856a52c52e7",
+                        "evidence:3385e690adb97cb2",
+                        "evidence:37066803fc878421",
+                        "evidence:3864842ef79b4089",
+                        "evidence:38ddb11b496fa81c",
+                        "evidence:4259a88c0dd3d26a",
+                        "evidence:5831f653f711fd26",
+                        "evidence:5acca7e3434cb275",
+                        "evidence:5e61a523c8756600",
+                        "evidence:6e96c8fe1fbe0da8",
+                        "evidence:6f632b985455dc19",
+                        "evidence:72cbf3ea0383318d",
+                        "evidence:76837485bb6c8477",
+                        "evidence:77b1e08cdaecec00",
+                        "evidence:86537fb948568b6b",
+                        "evidence:881a65580199825b",
+                        "evidence:8c0066e66ef0f43a",
+                        "evidence:921d9c894c35c66a",
+                        "evidence:92a93dc92895f5d3",
+                        "evidence:957746f640bfa48f",
+                        "evidence:9bd96cea8b2fc0c2",
+                        "evidence:9f430f4d2c8a7669",
+                        "evidence:a40bc718333fa245",
+                        "evidence:abc018fc031337fe",
+                        "evidence:ac92d715953eb8f8",
+                        "evidence:b5a0a9bdbb3065f7",
+                        "evidence:b60d91321950bb76",
+                        "evidence:b65438c03905460a",
+                        "evidence:bad0f751a5873634",
+                        "evidence:c86a06c05e0d2ea2",
+                        "evidence:cad355df3fcff475",
+                        "evidence:cb69b7c6df0ad4de",
+                        "evidence:d11ac7ef13bc1bf6",
+                        "evidence:d24279c42a273ca3",
+                        "evidence:d3b1ee3b254dc6e2",
+                        "evidence:d714bdec158fdac2",
+                        "evidence:dd5459f341c7dd85",
+                        "evidence:dee65b081fe612ef",
+                        "evidence:e0e1a24f34ac4abb",
+                        "evidence:e1ac51c0fcaeadd9",
+                        "evidence:e2677e1723167cac",
+                        "evidence:e2cf6e5ccd391bad",
+                        "evidence:e2d7badbbc55e622",
+                        "evidence:e4c074291229e9a3",
+                        "evidence:e52b008788bba19f",
+                        "evidence:e7d05252b48c10fc",
+                        "evidence:e7d952a8ecd9a477",
+                        "evidence:e95a62e3d22e3cfe",
+                        "evidence:e98631da04dd19b9",
+                        "evidence:ec4e08e2e4f6eff3",
+                        "evidence:ee76b5973488e5d5",
+                        "evidence:eea9d4f084c638d4",
+                        "evidence:f01713aebd7ff332"
+                      ]
+                    }
+                  ],
                   "products": [
                     {
                       "id": "eed49fe7-d0b0-4779-b1d8-0d1ba971287b",
@@ -1716,6 +2579,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    519
                   ]
                 }
               ],
@@ -1738,7 +2604,89 @@
                   "title": "主机安全管理",
                   "description": "针对物理主机/云主机提供资产管理、系统加固、配置、漏洞、补丁、应用程序管理的模块",
                   "category": "云安全",
-                  "systems": [],
+                  "systems": [
+                    {
+                      "id": "e538768a-a91b-40be-ac98-1fb3702fc254",
+                      "type": "security_system",
+                      "code": "",
+                      "name": "主机安全防护",
+                      "title": "主机安全防护",
+                      "description": "",
+                      "category": "云安全",
+                      "status": "",
+                      "evidenceRefs": [
+                        "evidence:0269968e41202f98",
+                        "evidence:03af1cf96a0d43a0",
+                        "evidence:043f8f67aa33d686",
+                        "evidence:0512e8fb3f65e673",
+                        "evidence:0a189805d1140b8b",
+                        "evidence:162384b89cfbe3e6",
+                        "evidence:16b7655a99a213fd",
+                        "evidence:1993b593b52b3112",
+                        "evidence:19ec557d229cdde5",
+                        "evidence:1a13df1f71f441d7",
+                        "evidence:1a5241a7f7a734e6",
+                        "evidence:1f29f14208fb815b",
+                        "evidence:1f4374fbeb0c7c8c",
+                        "evidence:2ff9aa49e7e396f1",
+                        "evidence:306511e3e6469248",
+                        "evidence:30f8e2bf7e5661e0",
+                        "evidence:317cd856a52c52e7",
+                        "evidence:3385e690adb97cb2",
+                        "evidence:37066803fc878421",
+                        "evidence:3864842ef79b4089",
+                        "evidence:38ddb11b496fa81c",
+                        "evidence:4259a88c0dd3d26a",
+                        "evidence:5831f653f711fd26",
+                        "evidence:5acca7e3434cb275",
+                        "evidence:5e61a523c8756600",
+                        "evidence:6e96c8fe1fbe0da8",
+                        "evidence:6f632b985455dc19",
+                        "evidence:72cbf3ea0383318d",
+                        "evidence:76837485bb6c8477",
+                        "evidence:77b1e08cdaecec00",
+                        "evidence:86537fb948568b6b",
+                        "evidence:881a65580199825b",
+                        "evidence:8c0066e66ef0f43a",
+                        "evidence:921d9c894c35c66a",
+                        "evidence:92a93dc92895f5d3",
+                        "evidence:957746f640bfa48f",
+                        "evidence:9bd96cea8b2fc0c2",
+                        "evidence:9f430f4d2c8a7669",
+                        "evidence:a40bc718333fa245",
+                        "evidence:abc018fc031337fe",
+                        "evidence:ac92d715953eb8f8",
+                        "evidence:b5a0a9bdbb3065f7",
+                        "evidence:b60d91321950bb76",
+                        "evidence:b65438c03905460a",
+                        "evidence:bad0f751a5873634",
+                        "evidence:c86a06c05e0d2ea2",
+                        "evidence:cad355df3fcff475",
+                        "evidence:cb69b7c6df0ad4de",
+                        "evidence:d11ac7ef13bc1bf6",
+                        "evidence:d24279c42a273ca3",
+                        "evidence:d3b1ee3b254dc6e2",
+                        "evidence:d714bdec158fdac2",
+                        "evidence:dd5459f341c7dd85",
+                        "evidence:dee65b081fe612ef",
+                        "evidence:e0e1a24f34ac4abb",
+                        "evidence:e1ac51c0fcaeadd9",
+                        "evidence:e2677e1723167cac",
+                        "evidence:e2cf6e5ccd391bad",
+                        "evidence:e2d7badbbc55e622",
+                        "evidence:e4c074291229e9a3",
+                        "evidence:e52b008788bba19f",
+                        "evidence:e7d05252b48c10fc",
+                        "evidence:e7d952a8ecd9a477",
+                        "evidence:e95a62e3d22e3cfe",
+                        "evidence:e98631da04dd19b9",
+                        "evidence:ec4e08e2e4f6eff3",
+                        "evidence:ee76b5973488e5d5",
+                        "evidence:eea9d4f084c638d4",
+                        "evidence:f01713aebd7ff332"
+                      ]
+                    }
+                  ],
                   "products": [
                     {
                       "id": "eed49fe7-d0b0-4779-b1d8-0d1ba971287b",
@@ -1748,6 +2696,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    520
                   ]
                 }
               ],
@@ -1766,7 +2717,9 @@
             "code": "I-DI",
             "title": "数据与信息",
             "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "数据与信息",
+            "status": ""
           },
           "services": [],
           "service_count": 0,

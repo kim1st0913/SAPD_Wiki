@@ -33,6 +33,7 @@ const stylesCss = read("frontend/capability-browser/styles.css");
 const focusScopeServiceMatrixJs = read("frontend/capability-browser/components/FocusScopeServiceMatrix.js");
 const technicalServiceMaintenanceTableJs = read("frontend/capability-browser/components/TechnicalServiceMaintenanceTable.js");
 const applicationSecurityLifecycleJs = read("frontend/capability-browser/components/ApplicationSecurityLifecycle.js");
+const standardFrameworkTableJs = read("frontend/capability-browser/components/StandardFrameworkTable.js");
 const apiServerPy = read("src/sapd_wiki/api_server.py");
 const globalSearchContract = read("docs/06-implementation/global-search-contract-2026-07-05.md");
 const apiAddSearchItem = snippet(apiServerPy, "def _add_search_item(", "def _add_navigation_search_items");
@@ -397,8 +398,41 @@ const checks = [
       appJs.includes('values?.["Safeguard ID"]') &&
       appJs.includes('values?.["SCF编号"]') &&
       appJs.includes('objectType === "standard_control"') &&
-      appJs.includes('targetRef.startsWith("standard_control:")'),
+      appJs.includes('targetRef.startsWith("standard_control:")') &&
+      appJs.includes("function standardSearchTargetElement") &&
+      standardFrameworkTableJs.includes("selectedRowIncludedFromOverflow") &&
+      standardFrameworkTableJs.includes("data-standard-target-ref") &&
+      standardFrameworkTableJs.includes("data-standard-row-code") &&
+      standardFrameworkTableJs.includes("standard_control:${activeFrameworkId}:${tableId}:${rowId}"),
     message: "global search must index standards/framework detail rows and carry row-level reveal fields.",
+  },
+  {
+    id: "global_search_standard_results_reveal_exact_row",
+    ok:
+      appJs.includes("function globalSearchPageRevealOptions") &&
+      appJs.includes('targetAttribute: "data-standard-row-id"') &&
+      appJs.includes("queuePageSearchReveal(activationQuery, searchScopeForCurrentState(), globalSearchPageRevealOptions(result))") &&
+      snippet(appJs, "function renderMaintenance()", "function maintenanceHeaderSummary").includes("flushPageSearchReveal();") &&
+      standardFrameworkTableJs.includes('tableId: activeTableId || activeFrameworkId || "standard"'),
+    message: "standard/framework search activation must carry exact row reveal options and flush after lazy table rendering instead of falling back to text-only positioning.",
+  },
+  {
+    id: "global_search_frontend_standard_fallback_uses_api_identity",
+    ok:
+      appJs.includes("standardTableId: tableId || frameworkId") &&
+      appJs.includes("targetRef: `standard_control:${frameworkId}:${tableId || frameworkId}:${id}`") &&
+      appJs.includes('objectType: "standard_control", objectId: id') &&
+      appJs.includes("mergeGlobalSearchResults(indexedResults, buildGlobalSearchResults(query, resultLimit), query, resultLimit)"),
+    message: "frontend fallback standard-control results must use the same standard_control target_ref/object identity as the API index so fallback rows dedupe with API rows instead of creating a second SCF-home result.",
+  },
+  {
+    id: "global_search_panel_result_pointerdown_activation",
+    ok:
+      appJs.includes('document.addEventListener("pointerdown"') &&
+      appJs.includes('event.target.closest("[data-global-search-result]")') &&
+      appJs.includes("activateGlobalSearchResult(result)") &&
+      appJs.includes('const resultButton = event.target.closest("[data-global-search-result]")'),
+    message: "topbar global search results must activate on pointerdown before focus/overlay teardown can clear the result payload.",
   },
   {
     id: "global_search_counts_use_facets_not_result_window",
@@ -611,6 +645,16 @@ const checks = [
       stylesCss.includes("linear-gradient(180deg") &&
       stylesCss.includes("rgba(247, 250, 254, 0.92)"),
     message: "search result page should use the compact Apple shell single-action result queue layout.",
+  },
+  {
+    id: "global_search_low_hit_page_uses_compact_density",
+    ok:
+      appJs.includes("const compactPage = hasQuery && !isLoading && activeTotal > 0 && activeTotal <= 3") &&
+      appJs.includes('global-search-page ${compactPage ? "is-compact" : ""}') &&
+      stylesCss.includes(".global-search-page.is-compact") &&
+      stylesCss.includes(".global-search-page.is-compact .global-search-page-toolbar") &&
+      stylesCss.includes(".global-search-page.is-compact .global-search-page-results"),
+    message: "low-hit global search pages must collapse the oversized search/facet area and bring the result queue into view.",
   },
   {
     id: "global_search_page_workspace_scrolls_inside_shell",

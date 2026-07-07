@@ -201,8 +201,9 @@
         "code": "ALL",
         "title": "全部作用域",
         "name": "全部作用域",
-        "category": "",
-        "status": ""
+        "category": "虚拟作用域",
+        "status": "",
+        "description": "虚拟作用域，表示该安全技术服务适用于所有作用域；保留为字典权威值，但不在作用域清单页面显示。"
       }
     },
     "security_technology_module": {

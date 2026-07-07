@@ -888,7 +888,8 @@
         "title": "软件应用",
         "name": "软件应用",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象"
       },
       "784caa9f-74f0-4a43-94f5-727b3ff497fb": {
         "id": "784caa9f-74f0-4a43-94f5-727b3ff497fb",
@@ -897,7 +898,8 @@
         "title": "数据与信息",
         "name": "数据与信息",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。"
       },
       "6f1ef0de-3163-4d38-9626-5625a58948bb": {
         "id": "6f1ef0de-3163-4d38-9626-5625a58948bb",
@@ -906,7 +908,8 @@
         "title": "网络",
         "name": "网络",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于网络流、网络服务等对象。"
       }
     }
   },
@@ -936,7 +939,9 @@
             "code": "I-AP",
             "title": "软件应用",
             "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "软件应用",
+            "status": ""
           },
           "services": [
             {
@@ -973,6 +978,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    430
                   ]
                 }
               ],
@@ -1014,6 +1022,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    427
                   ]
                 }
               ],
@@ -1055,6 +1066,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    425
                   ]
                 }
               ],
@@ -1096,6 +1110,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    428
                   ]
                 }
               ],
@@ -1137,6 +1154,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    424
                   ]
                 }
               ],
@@ -1178,6 +1198,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    423
                   ]
                 }
               ],
@@ -1219,6 +1242,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    429
                   ]
                 }
               ],
@@ -1260,6 +1286,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    426
                   ]
                 }
               ],
@@ -1278,7 +1307,9 @@
             "code": "I-DI",
             "title": "数据与信息",
             "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "数据与信息",
+            "status": ""
           },
           "services": [
             {
@@ -1315,6 +1346,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    431
                   ]
                 }
               ],
@@ -1356,6 +1390,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    432
                   ]
                 }
               ],
@@ -1378,7 +1415,60 @@
                   "title": "API安全防护",
                   "description": "针对API提供资产梳理、安全漏洞检测、风险行为监控的系统",
                   "category": "应用安全",
-                  "systems": [],
+                  "systems": [
+                    {
+                      "id": "a940b858-4e7f-4674-afaa-66b9a36fe37c",
+                      "type": "security_system",
+                      "code": "",
+                      "name": "应用安全防护",
+                      "title": "应用安全防护",
+                      "description": "",
+                      "category": "应用安全",
+                      "status": "",
+                      "evidenceRefs": [
+                        "evidence:111996bc39101565",
+                        "evidence:11423a73d33fd339",
+                        "evidence:12ad420994344f55",
+                        "evidence:16a0de44cc4891f7",
+                        "evidence:221179d4c0f52ec6",
+                        "evidence:232ec6545eb96c84",
+                        "evidence:26badf3c4f96bb2a",
+                        "evidence:28c70d8dd370a1ce",
+                        "evidence:2dfe9b9d65723913",
+                        "evidence:318a7132880aa5e9",
+                        "evidence:3228cf244100e63a",
+                        "evidence:32c7fe6b2e649b3a",
+                        "evidence:336e55a54c2f11a2",
+                        "evidence:37be5caa1855775b",
+                        "evidence:37e2df6b19276aa8",
+                        "evidence:49b07d4ee4c049c2",
+                        "evidence:4fcc1e02d98ccf24",
+                        "evidence:5144adee594faaef",
+                        "evidence:5bdb1c166b86d424",
+                        "evidence:6ec9df7b3d62c946",
+                        "evidence:77cd49a0c03b1df2",
+                        "evidence:7e6a9eed77a8c695",
+                        "evidence:8ff711954851a7e2",
+                        "evidence:943d3fbc88a23441",
+                        "evidence:a12be44bf309f56f",
+                        "evidence:a753da13dd242444",
+                        "evidence:b1fb83af2ad3d860",
+                        "evidence:b25ee9727c54265a",
+                        "evidence:b4ef625bf6d675c8",
+                        "evidence:bd7aca0ceda09d03",
+                        "evidence:d2d0bc6e4bc6c4cf",
+                        "evidence:d8009f37a07bfd1e",
+                        "evidence:daf9ef8d2bf7e0fb",
+                        "evidence:dbdd8497a20d888b",
+                        "evidence:e82cd61eeb29bc4f",
+                        "evidence:e90ba323c324e046",
+                        "evidence:ec0ce6c9c421f5ff",
+                        "evidence:ec545f6d622a32f1",
+                        "evidence:fc45bcff54cee75b",
+                        "evidence:ff8c2af6709a509e"
+                      ]
+                    }
+                  ],
                   "products": [
                     {
                       "id": "4431dc31-7249-4e94-9a5d-d411d406874b",
@@ -1388,6 +1478,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    433
                   ]
                 }
               ],
@@ -1406,7 +1499,9 @@
             "code": "I-NT",
             "title": "网络",
             "description": "安全能力作用于网络流、网络服务等对象。",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "网络",
+            "status": ""
           },
           "services": [
             {
@@ -1443,6 +1538,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    421
                   ]
                 },
                 {
@@ -1471,6 +1569,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    420
                   ]
                 }
               ],
@@ -1512,6 +1613,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    422
                   ]
                 }
               ],
@@ -1553,6 +1657,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    418
                   ]
                 }
               ],
@@ -1594,6 +1701,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    419
                   ]
                 }
               ],

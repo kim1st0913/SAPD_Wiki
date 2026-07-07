@@ -307,6 +307,30 @@
     return utils.escapeHtml(cellValue(value));
   }
 
+  function standardRowCode(row = {}) {
+    const values = row.values || row || {};
+    return cellValue(
+      row.controlId ||
+        row.controlCode ||
+        values["Safeguard ID"] ||
+        values["SCF编号"] ||
+        values["控制项"] ||
+        values["控制编号"] ||
+        values["控制ID"] ||
+        values["控制项ID"] ||
+        values["保护措施编号"] ||
+        values["等保控制项"] ||
+        values["编号"] ||
+        row.code,
+    );
+  }
+
+  function standardRowTargetRef(activeFrameworkId, tableId, row = {}) {
+    const rowId = cellValue(row.id).trim();
+    if (!activeFrameworkId || !tableId || !rowId) return "";
+    return `standard_control:${activeFrameworkId}:${tableId}:${rowId}`;
+  }
+
   function groupConfig(activeFrameworkId, tableId) {
     if (activeFrameworkId === "mlps-level-3") {
       return {
@@ -423,14 +447,18 @@
     const lineageAttr = lineage.length ? ` data-standard-lineage="${utils.escapeHtml(lineage.join(" "))}"` : "";
     const parentAttr = parentId ? ` data-standard-parent="${utils.escapeHtml(parentId)}"` : "";
     const hiddenAttr = hidden ? " hidden" : "";
+    const selectedKey = cellValue(selectedId).trim();
     return utils
       .list(rows)
       .map((row) => {
         const tone = activeFrameworkId === "nist-csf-2" ? csfTone(row) : "";
-        const active = selectedId && row.id === selectedId;
-        const rowText = [row.id, ...tableColumns.map((column) => row.values?.[column])].map((value) => utils.text(value)).filter(Boolean).join(" ");
+        const rowId = cellValue(row.id).trim();
+        const rowCode = standardRowCode(row);
+        const rowTargetRef = standardRowTargetRef(activeFrameworkId, tableId, row);
+        const active = selectedKey && rowId === selectedKey;
+        const rowText = [rowId, rowCode, ...tableColumns.map((column) => row.values?.[column])].map((value) => utils.text(value)).filter(Boolean).join(" ");
         return `
-          <tr class="maintenance-data-row standard-group-detail ${tone ? `csf-row csf-${tone}` : ""} ${active ? "active" : ""}"${parentAttr}${lineageAttr}${hiddenAttr} data-maintenance-id="${utils.escapeHtml(row.id || "")}" data-standard-row-text="${utils.escapeHtml(rowText)}">
+          <tr class="maintenance-data-row standard-group-detail ${tone ? `csf-row csf-${tone}` : ""} ${active ? "active" : ""}"${parentAttr}${lineageAttr}${hiddenAttr} data-maintenance-id="${utils.escapeHtml(rowId)}" data-standard-row-id="${utils.escapeHtml(rowId)}" data-standard-row-code="${utils.escapeHtml(rowCode)}" data-standard-target-ref="${utils.escapeHtml(rowTargetRef)}" data-standard-row-text="${utils.escapeHtml(rowText)}">
             ${tableColumns
               .map(
                 (column) =>
@@ -531,16 +559,25 @@
     const searchActive = Boolean(utils.text(search).trim());
     const renderLimit = searchActive ? STANDARD_SEARCH_RENDER_LIMIT : STANDARD_INITIAL_RENDER_LIMIT;
     const capped = allRows.length > renderLimit;
-    const tableRows = capped ? allRows.slice(0, renderLimit) : allRows;
+    const selectedKey = cellValue(selectedId).trim();
+    let selectedRowIncludedFromOverflow = false;
+    let tableRows = capped ? allRows.slice(0, renderLimit) : allRows;
+    if (capped && selectedKey && !tableRows.some((row) => cellValue(row?.id).trim() === selectedKey)) {
+      const selectedRow = allRows.find((row) => cellValue(row?.id).trim() === selectedKey);
+      if (selectedRow) {
+        tableRows = [...tableRows.slice(0, Math.max(0, renderLimit - 1)), selectedRow];
+        selectedRowIncludedFromOverflow = true;
+      }
+    }
     const tableColumns = visibleColumns(activeFrameworkId, columns, tableId);
     if (!tableRows.length || !tableColumns.length) return "";
     const groups = groupedRows(tableRows, groupConfig(activeFrameworkId, tableId));
     const frameworkClass = frameworkTableClass(activeFrameworkId, tableId);
-    const expandAll = Boolean(utils.text(search).trim());
+    const expandAll = Boolean(utils.text(search).trim() || selectedKey);
     return `
       ${
         capped
-          ? `<div class="standard-framework-render-limit">当前表共 ${utils.escapeHtml(allRows.length)} 条，已先显示 ${utils.escapeHtml(tableRows.length)} 条；请用搜索词缩小范围后核对完整命中。</div>`
+          ? `<div class="standard-framework-render-limit">当前表共 ${utils.escapeHtml(allRows.length)} 条，已先显示 ${utils.escapeHtml(tableRows.length)} 条${selectedRowIncludedFromOverflow ? "，并补入当前定位目标" : ""}；请用搜索词缩小范围后核对完整命中。</div>`
           : ""
       }
       <div class="maintenance-table-scroll standard-framework-table-scroll">
@@ -593,7 +630,7 @@
       }
       return `
         <div class="reference-table-stack standard-framework-stack">
-          ${renderTable({ activeFrameworkId, rows, columns, selectedId, focusByCode, search })}
+          ${renderTable({ activeFrameworkId, tableId: activeTableId || activeFrameworkId || "standard", rows, columns, selectedId, focusByCode, search })}
         </div>
       `;
     }

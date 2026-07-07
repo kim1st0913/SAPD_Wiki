@@ -283,9 +283,18 @@ def ensure_user_note_columns(connection: sqlite3.Connection) -> None:
             connection.execute(f"ALTER TABLE user_notes ADD COLUMN {column} {definition}")
 
 
-def initialize_user_db(db_path: Path, schema_version: str) -> None:
+def read_existing_schema_version(connection: sqlite3.Connection) -> str | None:
+    try:
+        row = connection.execute("SELECT value FROM user_meta WHERE key = 'schema_version'").fetchone()
+    except sqlite3.Error:
+        return None
+    return str(row[0]) if row and row[0] else None
+
+
+def initialize_user_db(db_path: Path, schema_version: str, *, record_change_log: bool = True) -> None:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(db_path) as connection:
+        previous_schema_version = read_existing_schema_version(connection)
         connection.executescript(SCHEMA_SQL)
         connection.executescript(SCHEMA_V03_SQL)
         ensure_user_note_columns(connection)
@@ -314,13 +323,19 @@ def initialize_user_db(db_path: Path, schema_version: str) -> None:
             """,
             (schema_version,),
         )
-        connection.execute(
-            """
-            INSERT INTO user_change_logs(id, action, target_ref, payload_json)
-            VALUES (?, 'initialize_user_db', NULL, ?)
-            """,
-            (str(uuid.uuid4()), json.dumps({"schema_version": schema_version}, ensure_ascii=False)),
-        )
+        if record_change_log or previous_schema_version != schema_version:
+            action = "initialize_user_db" if previous_schema_version in {None, schema_version} else "migrate_user_schema"
+            payload = {
+                "schema_version": schema_version,
+                "previous_schema_version": previous_schema_version,
+            }
+            connection.execute(
+                """
+                INSERT INTO user_change_logs(id, action, target_ref, payload_json)
+                VALUES (?, ?, NULL, ?)
+                """,
+                (str(uuid.uuid4()), action, json.dumps(payload, ensure_ascii=False)),
+            )
 
 
 def main() -> int:

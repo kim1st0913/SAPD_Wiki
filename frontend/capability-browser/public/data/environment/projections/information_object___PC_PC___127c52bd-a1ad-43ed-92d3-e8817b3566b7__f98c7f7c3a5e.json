@@ -685,7 +685,8 @@
         "title": "软件应用",
         "name": "软件应用",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象"
       }
     }
   },
@@ -715,7 +716,9 @@
             "code": "I-AP",
             "title": "软件应用",
             "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "软件应用",
+            "status": ""
           },
           "services": [
             {
@@ -725,9 +728,156 @@
               "title": "软件资产清单",
               "description": null,
               "category": "I-AP",
-              "modules": [],
+              "modules": [
+                {
+                  "id": "9553dd60-cb6a-4efa-96f6-dcf88a568a73",
+                  "type": "security_technology_module",
+                  "code": "",
+                  "title": "桌面安全管理（UEM）",
+                  "name": "桌面安全管理（UEM）",
+                  "description": "提供终端资产管理、软件管理、补丁管理、运维管控、外设管控、违规外联、系统加固、行为审计等功能的模块",
+                  "category": "终端安全",
+                  "status": "normal",
+                  "evidenceRefs": [
+                    "evidence:0af80ef5616d747d",
+                    "evidence:0ed560728abda17d",
+                    "evidence:16ac3cb12f1d0649",
+                    "evidence:16ca7119a42b9b20",
+                    "evidence:1fa29af7dfa19b0b",
+                    "evidence:206d60c274a510e8",
+                    "evidence:25d3d9991c9e60ad",
+                    "evidence:292c62140d27f5ef",
+                    "evidence:419bdea3400dfe7a",
+                    "evidence:44979e4769d287d9",
+                    "evidence:4ae96400e4f07672",
+                    "evidence:5903de9a9f2256a5",
+                    "evidence:679b8212862aeca8",
+                    "evidence:73db40b00bdbe414",
+                    "evidence:7a6dbf086cd82560",
+                    "evidence:7be23dfc0f02bcab",
+                    "evidence:7ccf5f7593bcdf91",
+                    "evidence:899ced300055d2db",
+                    "evidence:8ee5ad89caa2b173",
+                    "evidence:8f6200702243c23e",
+                    "evidence:966624f6a7184602",
+                    "evidence:97c22f2202276c25",
+                    "evidence:9a280ff361f02dcc",
+                    "evidence:a2f0ce9ac1d63408",
+                    "evidence:a824aab06138cc6c",
+                    "evidence:abe9bf0dff999e9b",
+                    "evidence:ac4c25fec17e8b0e",
+                    "evidence:b29d59bee29bb67b",
+                    "evidence:b4d4e88d4457a4e0",
+                    "evidence:b644d0f833425a25",
+                    "evidence:b9f8ac26581aa504",
+                    "evidence:bc64f096e1bb69dc",
+                    "evidence:beb1875d98e6f597",
+                    "evidence:c4eab2488c9a0cc0",
+                    "evidence:c5815488d6a59b8b",
+                    "evidence:cb015336df1d33db",
+                    "evidence:d6089fbf3a427ed6",
+                    "evidence:dbdeed69debe345b",
+                    "evidence:e15c51133869f0ce",
+                    "evidence:e1f74d647609a0e0",
+                    "evidence:e5ca6bb5905adb9a",
+                    "evidence:e5cc4983d71f0590",
+                    "evidence:e85851aea486c5a9",
+                    "evidence:e91f6d8a1d68f444",
+                    "evidence:ee301fa96ab51109",
+                    "evidence:f0342872cb21be99",
+                    "evidence:f830caa4c7b57474",
+                    "evidence:f8aef2b2c851120c",
+                    "evidence:fb78f227275c3f20",
+                    "evidence:fec2e8f95ee9b612"
+                  ],
+                  "systems": [
+                    {
+                      "id": "54b77e65-164b-4184-991d-106c70b9a03c",
+                      "type": "security_system",
+                      "code": "",
+                      "name": "终端安全管控",
+                      "title": "终端安全管控",
+                      "description": "",
+                      "category": "终端安全",
+                      "status": "",
+                      "evidenceRefs": [
+                        "evidence:088e63f239782f31",
+                        "evidence:10c3fa7365738790",
+                        "evidence:13c7a2195c72f289",
+                        "evidence:1fb4a4f3e4e7c8e5",
+                        "evidence:23e9584abdbf4518",
+                        "evidence:292c62140d27f5ef",
+                        "evidence:2ad9a18e010be20e",
+                        "evidence:30675a97e4847501",
+                        "evidence:3204d654991d9ca7",
+                        "evidence:419bdea3400dfe7a",
+                        "evidence:45e67f84e5a52c8d",
+                        "evidence:4695cf147d19f510",
+                        "evidence:4d3a6ef06d50213a",
+                        "evidence:4f19c1c526bac34d",
+                        "evidence:52d6292be6683043",
+                        "evidence:560266fd62a7ead4",
+                        "evidence:57ced02b8945b45d",
+                        "evidence:5903de9a9f2256a5",
+                        "evidence:66f5f6bbafb71446",
+                        "evidence:726cdc1b75d58152",
+                        "evidence:75b8a9992f7f1492",
+                        "evidence:79023284dfda6c9b",
+                        "evidence:7be23dfc0f02bcab",
+                        "evidence:7ccf5f7593bcdf91",
+                        "evidence:7ee61a600a2bb3e5",
+                        "evidence:81a5872e84a055cf",
+                        "evidence:83c11c062a89bb39",
+                        "evidence:87ae8e199d117a90",
+                        "evidence:883fd92bfe58a2d9",
+                        "evidence:8b14a9bae30fbd86",
+                        "evidence:8c5c9e6900e6a9f3",
+                        "evidence:8f6200702243c23e",
+                        "evidence:917e3c353242dde7",
+                        "evidence:93f79ab2ffaed50e",
+                        "evidence:968fa91efb8c7903",
+                        "evidence:98cdcc56ca94813a",
+                        "evidence:9d6aa6518d353306",
+                        "evidence:9e346064f9bc3790",
+                        "evidence:9ed15130d196be94",
+                        "evidence:a8c55157926d7507",
+                        "evidence:abe9bf0dff999e9b",
+                        "evidence:b060a837d91c4c36",
+                        "evidence:b09f30fcea03da86",
+                        "evidence:b14b8bd9270bb83b",
+                        "evidence:b4d78d9c2dcc33de",
+                        "evidence:b6e34851ca7265f3",
+                        "evidence:ba57ce49f339fa3f",
+                        "evidence:bb241d38b9333e58",
+                        "evidence:bcb1d6dde42ab027",
+                        "evidence:bf4aa90ea97ebd51",
+                        "evidence:c4eab2488c9a0cc0",
+                        "evidence:ccfaf4deb55aabcb",
+                        "evidence:d2e277bb4fa67cd2",
+                        "evidence:d420e98afc21e563",
+                        "evidence:da611b654e2884e1",
+                        "evidence:da854414590135e4",
+                        "evidence:db6880d3d4638d6f",
+                        "evidence:e15c51133869f0ce",
+                        "evidence:e1f74d647609a0e0",
+                        "evidence:e2295a396dfb43cc",
+                        "evidence:e91f6d8a1d68f444",
+                        "evidence:ee412cfa27b0305b",
+                        "evidence:f0342872cb21be99",
+                        "evidence:f356972d9c8ff861",
+                        "evidence:f54edfc8b446789b",
+                        "evidence:f554bf3f88cf70d8",
+                        "evidence:fb78f227275c3f20"
+                      ]
+                    }
+                  ],
+                  "systemSourceRows": [
+                    644
+                  ]
+                }
+              ],
               "measures": [],
-              "module_count": 0,
+              "module_count": 1,
               "measure_count": 0
             },
             {
@@ -764,6 +914,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    645
                   ]
                 }
               ],
@@ -805,6 +958,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    646
                   ]
                 }
               ],
@@ -846,6 +1002,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    647
                   ]
                 }
               ],
@@ -860,9 +1019,115 @@
               "title": "应用资源授权",
               "description": null,
               "category": "I-AP",
-              "modules": [],
+              "modules": [
+                {
+                  "id": "45324820-6ab7-4f7a-b45c-7c0efb89278f",
+                  "type": "security_technology_module",
+                  "code": "",
+                  "title": "安全Web浏览器",
+                  "name": "安全Web浏览器",
+                  "description": "面向企业的以安全为中心的 Web 浏览器，提供操作行为管控、入侵防御等模块",
+                  "category": "终端安全",
+                  "status": "normal",
+                  "evidenceRefs": [
+                    "evidence:3204d654991d9ca7",
+                    "evidence:4f19c1c526bac34d",
+                    "evidence:66f5f6bbafb71446",
+                    "evidence:80133febb390539b",
+                    "evidence:ba57ce49f339fa3f",
+                    "evidence:bcb1d6dde42ab027",
+                    "evidence:c87752e75a778371",
+                    "evidence:ea7f4ad94be3ef5d",
+                    "evidence:f554bf3f88cf70d8"
+                  ],
+                  "systems": [
+                    {
+                      "id": "54b77e65-164b-4184-991d-106c70b9a03c",
+                      "type": "security_system",
+                      "code": "",
+                      "name": "终端安全管控",
+                      "title": "终端安全管控",
+                      "description": "",
+                      "category": "终端安全",
+                      "status": "",
+                      "evidenceRefs": [
+                        "evidence:088e63f239782f31",
+                        "evidence:10c3fa7365738790",
+                        "evidence:13c7a2195c72f289",
+                        "evidence:1fb4a4f3e4e7c8e5",
+                        "evidence:23e9584abdbf4518",
+                        "evidence:292c62140d27f5ef",
+                        "evidence:2ad9a18e010be20e",
+                        "evidence:30675a97e4847501",
+                        "evidence:3204d654991d9ca7",
+                        "evidence:419bdea3400dfe7a",
+                        "evidence:45e67f84e5a52c8d",
+                        "evidence:4695cf147d19f510",
+                        "evidence:4d3a6ef06d50213a",
+                        "evidence:4f19c1c526bac34d",
+                        "evidence:52d6292be6683043",
+                        "evidence:560266fd62a7ead4",
+                        "evidence:57ced02b8945b45d",
+                        "evidence:5903de9a9f2256a5",
+                        "evidence:66f5f6bbafb71446",
+                        "evidence:726cdc1b75d58152",
+                        "evidence:75b8a9992f7f1492",
+                        "evidence:79023284dfda6c9b",
+                        "evidence:7be23dfc0f02bcab",
+                        "evidence:7ccf5f7593bcdf91",
+                        "evidence:7ee61a600a2bb3e5",
+                        "evidence:81a5872e84a055cf",
+                        "evidence:83c11c062a89bb39",
+                        "evidence:87ae8e199d117a90",
+                        "evidence:883fd92bfe58a2d9",
+                        "evidence:8b14a9bae30fbd86",
+                        "evidence:8c5c9e6900e6a9f3",
+                        "evidence:8f6200702243c23e",
+                        "evidence:917e3c353242dde7",
+                        "evidence:93f79ab2ffaed50e",
+                        "evidence:968fa91efb8c7903",
+                        "evidence:98cdcc56ca94813a",
+                        "evidence:9d6aa6518d353306",
+                        "evidence:9e346064f9bc3790",
+                        "evidence:9ed15130d196be94",
+                        "evidence:a8c55157926d7507",
+                        "evidence:abe9bf0dff999e9b",
+                        "evidence:b060a837d91c4c36",
+                        "evidence:b09f30fcea03da86",
+                        "evidence:b14b8bd9270bb83b",
+                        "evidence:b4d78d9c2dcc33de",
+                        "evidence:b6e34851ca7265f3",
+                        "evidence:ba57ce49f339fa3f",
+                        "evidence:bb241d38b9333e58",
+                        "evidence:bcb1d6dde42ab027",
+                        "evidence:bf4aa90ea97ebd51",
+                        "evidence:c4eab2488c9a0cc0",
+                        "evidence:ccfaf4deb55aabcb",
+                        "evidence:d2e277bb4fa67cd2",
+                        "evidence:d420e98afc21e563",
+                        "evidence:da611b654e2884e1",
+                        "evidence:da854414590135e4",
+                        "evidence:db6880d3d4638d6f",
+                        "evidence:e15c51133869f0ce",
+                        "evidence:e1f74d647609a0e0",
+                        "evidence:e2295a396dfb43cc",
+                        "evidence:e91f6d8a1d68f444",
+                        "evidence:ee412cfa27b0305b",
+                        "evidence:f0342872cb21be99",
+                        "evidence:f356972d9c8ff861",
+                        "evidence:f54edfc8b446789b",
+                        "evidence:f554bf3f88cf70d8",
+                        "evidence:fb78f227275c3f20"
+                      ]
+                    }
+                  ],
+                  "systemSourceRows": [
+                    651
+                  ]
+                }
+              ],
               "measures": [],
-              "module_count": 0,
+              "module_count": 1,
               "measure_count": 0
             },
             {
@@ -899,6 +1164,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    648
                   ]
                 }
               ],
@@ -940,6 +1208,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    649
                   ]
                 }
               ],
@@ -981,6 +1252,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    650
                   ]
                 }
               ],
@@ -1022,6 +1296,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    652
                   ]
                 }
               ],

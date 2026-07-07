@@ -933,7 +933,8 @@
         "title": "数据与信息",
         "name": "数据与信息",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。"
       }
     }
   },
@@ -963,7 +964,9 @@
             "code": "I-DI",
             "title": "数据与信息",
             "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "数据与信息",
+            "status": ""
           },
           "services": [
             {
@@ -1000,6 +1003,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    305
                   ]
                 }
               ],
@@ -1041,6 +1047,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    304
                   ]
                 }
               ],

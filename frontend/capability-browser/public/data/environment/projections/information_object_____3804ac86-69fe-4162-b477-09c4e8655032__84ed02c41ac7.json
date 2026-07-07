@@ -928,7 +928,8 @@
         "title": "软件应用",
         "name": "软件应用",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象"
       },
       "6f1ef0de-3163-4d38-9626-5625a58948bb": {
         "id": "6f1ef0de-3163-4d38-9626-5625a58948bb",
@@ -937,16 +938,18 @@
         "title": "网络",
         "name": "网络",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于网络流、网络服务等对象。"
       },
       "4abd36d3-4ba1-495c-8fb9-3957167f4833": {
         "id": "4abd36d3-4ba1-495c-8fb9-3957167f4833",
         "type": "scope_type",
         "code": "I-OS",
-        "title": "操作系统",
-        "name": "操作系统",
+        "title": "操作系统（主机/终端）",
+        "name": "操作系统（主机/终端）",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。"
       }
     }
   },
@@ -976,7 +979,9 @@
             "code": "I-AP",
             "title": "软件应用",
             "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "软件应用",
+            "status": ""
           },
           "services": [
             {
@@ -1013,6 +1018,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    86
                   ]
                 }
               ],
@@ -1054,6 +1062,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    75
                   ]
                 }
               ],
@@ -1095,6 +1106,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    76
                   ]
                 }
               ],
@@ -1136,6 +1150,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    87
                   ]
                 }
               ],
@@ -1177,6 +1194,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    77
                   ]
                 }
               ],
@@ -1218,6 +1238,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    78
                   ]
                 }
               ],
@@ -1259,6 +1282,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    79
                   ]
                 }
               ],
@@ -1300,6 +1326,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    80
                   ]
                 }
               ],
@@ -1341,6 +1370,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    84
                   ]
                 }
               ],
@@ -1382,6 +1414,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    85
                   ]
                 }
               ],
@@ -1400,7 +1435,9 @@
             "code": "I-NT",
             "title": "网络",
             "description": "安全能力作用于网络流、网络服务等对象。",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "网络",
+            "status": ""
           },
           "services": [
             {
@@ -1437,6 +1474,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    82
                   ]
                 }
               ],
@@ -1478,6 +1518,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    81
                   ]
                 }
               ],
@@ -1519,6 +1562,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    83
                   ]
                 }
               ],
@@ -1535,9 +1581,11 @@
             "id": "4abd36d3-4ba1-495c-8fb9-3957167f4833",
             "type": "scope_type",
             "code": "I-OS",
-            "title": "操作系统",
+            "title": "操作系统（主机/终端）",
             "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "操作系统（主机/终端）",
+            "status": ""
           },
           "services": [],
           "service_count": 0,

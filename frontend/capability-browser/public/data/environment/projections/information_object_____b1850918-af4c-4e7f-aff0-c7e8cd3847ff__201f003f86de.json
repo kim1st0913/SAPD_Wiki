@@ -640,7 +640,8 @@
         "title": "硬件",
         "name": "硬件",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。"
       },
       "6f1ef0de-3163-4d38-9626-5625a58948bb": {
         "id": "6f1ef0de-3163-4d38-9626-5625a58948bb",
@@ -649,7 +650,8 @@
         "title": "网络",
         "name": "网络",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于网络流、网络服务等对象。"
       },
       "6f2a40c5-4e87-4138-836c-83e136a5d69e": {
         "id": "6f2a40c5-4e87-4138-836c-83e136a5d69e",
@@ -658,7 +660,8 @@
         "title": "用户",
         "name": "用户",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于组织内人员或人使用的账号等对象。"
       }
     }
   },
@@ -688,7 +691,9 @@
             "code": "I-HD",
             "title": "硬件",
             "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "硬件",
+            "status": ""
           },
           "services": [
             {
@@ -725,6 +730,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    817
                   ]
                 }
               ],
@@ -766,6 +774,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    816
                   ]
                 }
               ],
@@ -807,6 +818,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    818
                   ]
                 }
               ],
@@ -825,7 +839,9 @@
             "code": "I-NT",
             "title": "网络",
             "description": "安全能力作用于网络流、网络服务等对象。",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "网络",
+            "status": ""
           },
           "services": [
             {
@@ -843,7 +859,108 @@
                   "title": "网络准入控制（NAC）",
                   "description": "发现终端接入网络的行为，并能根据访问控制策略采取允许、断开等行动功能的模块，保障安全域边界安全。",
                   "category": "网络安全",
-                  "systems": [],
+                  "systems": [
+                    {
+                      "id": "227dfd6d-414b-4c20-aa04-dac34ff2f9dd",
+                      "type": "security_system",
+                      "code": "",
+                      "name": "网络边界安全防护",
+                      "title": "网络边界安全防护",
+                      "description": "",
+                      "category": "网络安全",
+                      "status": "",
+                      "evidenceRefs": [
+                        "evidence:05554cb2b593ccd5",
+                        "evidence:0a3410931275af7e",
+                        "evidence:0e2be193e872a497",
+                        "evidence:0eed82ca67b31b2e",
+                        "evidence:126bbbca7d948b47",
+                        "evidence:177774d9a55b2be3",
+                        "evidence:1ada725eb9ad08ae",
+                        "evidence:1b5fc7db327bd058",
+                        "evidence:1d8148f63c5f83db",
+                        "evidence:1da5aa0f2fcc33e2",
+                        "evidence:1e399dd86e1da6ed",
+                        "evidence:2021a3b15ab11dd7",
+                        "evidence:20c01897e2452c4b",
+                        "evidence:2399e0b1dcd52d54",
+                        "evidence:2aa49205acce577f",
+                        "evidence:2c39e3b4053c0d9e",
+                        "evidence:2e9079344fee4717",
+                        "evidence:32c34527d9c7d88b",
+                        "evidence:337ba5d6443fabab",
+                        "evidence:35cbe80544a30294",
+                        "evidence:36531cc9a04f1151",
+                        "evidence:366677ef40e76eaa",
+                        "evidence:3faedb2c69b221b1",
+                        "evidence:40c047d6eaf905b1",
+                        "evidence:41886bbc0ef887ba",
+                        "evidence:4205a772587b2083",
+                        "evidence:426ba38f2240da67",
+                        "evidence:43a02aa293a6f0e6",
+                        "evidence:4fa94022b39878b3",
+                        "evidence:59f73ba62b84ed5f",
+                        "evidence:5bf589f7b4a52fb0",
+                        "evidence:5cbc2cce2cd0f877",
+                        "evidence:5eeb290c4b7f3707",
+                        "evidence:5fcee3f7afd628ce",
+                        "evidence:62cf874d531ea964",
+                        "evidence:66668df8ab01294b",
+                        "evidence:6785fc8d44f474ee",
+                        "evidence:6954c122b184d132",
+                        "evidence:7133dc24b7e23d77",
+                        "evidence:713787f18b082666",
+                        "evidence:7206fdd7aeb9835f",
+                        "evidence:7229d427bd89de0c",
+                        "evidence:72643d9cb710d970",
+                        "evidence:7444bcb3ccba7ec6",
+                        "evidence:751eaf187ac29131",
+                        "evidence:7b2077229eabd8db",
+                        "evidence:7b452fa49a13fbad",
+                        "evidence:7b940adc26b174a8",
+                        "evidence:7f80c3117964ddaf",
+                        "evidence:800bc29b95816aaa",
+                        "evidence:81158a20ea16dae4",
+                        "evidence:82fe8ef8b2ec74c4",
+                        "evidence:83a8f02c0b84dd8f",
+                        "evidence:87881e0c32810f66",
+                        "evidence:8ab5ec2b51680f14",
+                        "evidence:8e90c88a10e99eca",
+                        "evidence:8f3a427c5ae94c7c",
+                        "evidence:920e1088c3d0f742",
+                        "evidence:93186e7cdaa76b7f",
+                        "evidence:94d6dac5b4a27285",
+                        "evidence:978f1d49c563fb84",
+                        "evidence:a7b8b1c8960a496a",
+                        "evidence:aaa407bbb1b2fe49",
+                        "evidence:ad8ae39db3e2a713",
+                        "evidence:b8d171d6af848dff",
+                        "evidence:bbf6bb8fce5af02e",
+                        "evidence:c0d705782792c62d",
+                        "evidence:c43be1de07f42cdb",
+                        "evidence:c82247d1a6abb06e",
+                        "evidence:c88418e5ed159c09",
+                        "evidence:cc37633bd87288f2",
+                        "evidence:d0acd1bee79c5c17",
+                        "evidence:e3346f1210902f69",
+                        "evidence:e412e4a0ecb543e7",
+                        "evidence:e597be0f28cea896",
+                        "evidence:e6ce61719682ba2c",
+                        "evidence:e736ac3feb72c9e1",
+                        "evidence:e76a93eac8d2534c",
+                        "evidence:e784159ac070af46",
+                        "evidence:e824e8429c396608",
+                        "evidence:e8d0c0eceb8d35df",
+                        "evidence:e982b0db913f7587",
+                        "evidence:ec503d015d0bc900",
+                        "evidence:ed000946a51c17d7",
+                        "evidence:f65fbfce52feeaf5",
+                        "evidence:fb6225e97dc9eeab",
+                        "evidence:fb934cd6bfaaa1f1",
+                        "evidence:fcdecda7d256e52e"
+                      ]
+                    }
+                  ],
                   "products": [
                     {
                       "id": "75525d4f-2d48-444e-9395-fdc033a1b792",
@@ -853,6 +970,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    819
                   ]
                 }
               ],
@@ -894,6 +1014,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    812
                   ]
                 }
               ],
@@ -908,9 +1031,148 @@
               "title": "网络隔离",
               "description": null,
               "category": "I-NT",
-              "modules": [],
+              "modules": [
+                {
+                  "id": "da3f6e53-9e5c-4950-b790-ecec947493d7",
+                  "type": "security_technology_module",
+                  "code": "",
+                  "title": "网络防火墙",
+                  "name": "网络防火墙",
+                  "description": "根据预设策略进行网络流量访问控制的模块",
+                  "category": "网络安全",
+                  "status": "normal",
+                  "evidenceRefs": [
+                    "evidence:177774d9a55b2be3",
+                    "evidence:1b5fc7db327bd058",
+                    "evidence:1da5aa0f2fcc33e2",
+                    "evidence:337ba5d6443fabab",
+                    "evidence:35cbe80544a30294",
+                    "evidence:59f73ba62b84ed5f",
+                    "evidence:5cbc2cce2cd0f877",
+                    "evidence:5fcee3f7afd628ce",
+                    "evidence:65e78cc58e13b86b",
+                    "evidence:6f5986de397d96ae",
+                    "evidence:7206fdd7aeb9835f",
+                    "evidence:7b2077229eabd8db",
+                    "evidence:7b452fa49a13fbad",
+                    "evidence:7b940adc26b174a8",
+                    "evidence:888f40b76bf8648a",
+                    "evidence:a7b8b1c8960a496a",
+                    "evidence:aaa407bbb1b2fe49",
+                    "evidence:c24ad774fe597ffc",
+                    "evidence:d0acd1bee79c5c17",
+                    "evidence:ec503d015d0bc900",
+                    "evidence:fcdecda7d256e52e"
+                  ],
+                  "systems": [
+                    {
+                      "id": "227dfd6d-414b-4c20-aa04-dac34ff2f9dd",
+                      "type": "security_system",
+                      "code": "",
+                      "name": "网络边界安全防护",
+                      "title": "网络边界安全防护",
+                      "description": "",
+                      "category": "网络安全",
+                      "status": "",
+                      "evidenceRefs": [
+                        "evidence:05554cb2b593ccd5",
+                        "evidence:0a3410931275af7e",
+                        "evidence:0e2be193e872a497",
+                        "evidence:0eed82ca67b31b2e",
+                        "evidence:126bbbca7d948b47",
+                        "evidence:177774d9a55b2be3",
+                        "evidence:1ada725eb9ad08ae",
+                        "evidence:1b5fc7db327bd058",
+                        "evidence:1d8148f63c5f83db",
+                        "evidence:1da5aa0f2fcc33e2",
+                        "evidence:1e399dd86e1da6ed",
+                        "evidence:2021a3b15ab11dd7",
+                        "evidence:20c01897e2452c4b",
+                        "evidence:2399e0b1dcd52d54",
+                        "evidence:2aa49205acce577f",
+                        "evidence:2c39e3b4053c0d9e",
+                        "evidence:2e9079344fee4717",
+                        "evidence:32c34527d9c7d88b",
+                        "evidence:337ba5d6443fabab",
+                        "evidence:35cbe80544a30294",
+                        "evidence:36531cc9a04f1151",
+                        "evidence:366677ef40e76eaa",
+                        "evidence:3faedb2c69b221b1",
+                        "evidence:40c047d6eaf905b1",
+                        "evidence:41886bbc0ef887ba",
+                        "evidence:4205a772587b2083",
+                        "evidence:426ba38f2240da67",
+                        "evidence:43a02aa293a6f0e6",
+                        "evidence:4fa94022b39878b3",
+                        "evidence:59f73ba62b84ed5f",
+                        "evidence:5bf589f7b4a52fb0",
+                        "evidence:5cbc2cce2cd0f877",
+                        "evidence:5eeb290c4b7f3707",
+                        "evidence:5fcee3f7afd628ce",
+                        "evidence:62cf874d531ea964",
+                        "evidence:66668df8ab01294b",
+                        "evidence:6785fc8d44f474ee",
+                        "evidence:6954c122b184d132",
+                        "evidence:7133dc24b7e23d77",
+                        "evidence:713787f18b082666",
+                        "evidence:7206fdd7aeb9835f",
+                        "evidence:7229d427bd89de0c",
+                        "evidence:72643d9cb710d970",
+                        "evidence:7444bcb3ccba7ec6",
+                        "evidence:751eaf187ac29131",
+                        "evidence:7b2077229eabd8db",
+                        "evidence:7b452fa49a13fbad",
+                        "evidence:7b940adc26b174a8",
+                        "evidence:7f80c3117964ddaf",
+                        "evidence:800bc29b95816aaa",
+                        "evidence:81158a20ea16dae4",
+                        "evidence:82fe8ef8b2ec74c4",
+                        "evidence:83a8f02c0b84dd8f",
+                        "evidence:87881e0c32810f66",
+                        "evidence:8ab5ec2b51680f14",
+                        "evidence:8e90c88a10e99eca",
+                        "evidence:8f3a427c5ae94c7c",
+                        "evidence:920e1088c3d0f742",
+                        "evidence:93186e7cdaa76b7f",
+                        "evidence:94d6dac5b4a27285",
+                        "evidence:978f1d49c563fb84",
+                        "evidence:a7b8b1c8960a496a",
+                        "evidence:aaa407bbb1b2fe49",
+                        "evidence:ad8ae39db3e2a713",
+                        "evidence:b8d171d6af848dff",
+                        "evidence:bbf6bb8fce5af02e",
+                        "evidence:c0d705782792c62d",
+                        "evidence:c43be1de07f42cdb",
+                        "evidence:c82247d1a6abb06e",
+                        "evidence:c88418e5ed159c09",
+                        "evidence:cc37633bd87288f2",
+                        "evidence:d0acd1bee79c5c17",
+                        "evidence:e3346f1210902f69",
+                        "evidence:e412e4a0ecb543e7",
+                        "evidence:e597be0f28cea896",
+                        "evidence:e6ce61719682ba2c",
+                        "evidence:e736ac3feb72c9e1",
+                        "evidence:e76a93eac8d2534c",
+                        "evidence:e784159ac070af46",
+                        "evidence:e824e8429c396608",
+                        "evidence:e8d0c0eceb8d35df",
+                        "evidence:e982b0db913f7587",
+                        "evidence:ec503d015d0bc900",
+                        "evidence:ed000946a51c17d7",
+                        "evidence:f65fbfce52feeaf5",
+                        "evidence:fb6225e97dc9eeab",
+                        "evidence:fb934cd6bfaaa1f1",
+                        "evidence:fcdecda7d256e52e"
+                      ]
+                    }
+                  ],
+                  "systemSourceRows": [
+                    811
+                  ]
+                }
+              ],
               "measures": [],
-              "module_count": 0,
+              "module_count": 1,
               "measure_count": 0
             }
           ],
@@ -924,7 +1186,9 @@
             "code": "I-US",
             "title": "用户",
             "description": "安全能力作用于组织内人员或人使用的账号等对象。",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "用户",
+            "status": ""
           },
           "services": [
             {
@@ -961,6 +1225,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    814
                   ]
                 }
               ],
@@ -975,9 +1242,148 @@
               "title": "用户认证",
               "description": null,
               "category": "I-US",
-              "modules": [],
+              "modules": [
+                {
+                  "id": "35ee454a-49af-4666-8fd3-c49e72679358",
+                  "type": "security_technology_module",
+                  "code": "",
+                  "title": "网络准入控制（NAC）",
+                  "name": "网络准入控制（NAC）",
+                  "description": "发现终端接入网络的行为，并能根据访问控制策略采取允许、断开等行动功能的模块，保障安全域边界安全。",
+                  "category": "网络安全",
+                  "status": "normal",
+                  "evidenceRefs": [
+                    "evidence:1d8148f63c5f83db",
+                    "evidence:20c01897e2452c4b",
+                    "evidence:2aa49205acce577f",
+                    "evidence:2e9079344fee4717",
+                    "evidence:366677ef40e76eaa",
+                    "evidence:3faedb2c69b221b1",
+                    "evidence:4205a772587b2083",
+                    "evidence:426ba38f2240da67",
+                    "evidence:5bf589f7b4a52fb0",
+                    "evidence:6954c122b184d132",
+                    "evidence:7444bcb3ccba7ec6",
+                    "evidence:751eaf187ac29131",
+                    "evidence:7f80c3117964ddaf",
+                    "evidence:8f3a427c5ae94c7c",
+                    "evidence:978f1d49c563fb84",
+                    "evidence:a39b59306e8489be",
+                    "evidence:bb123120fafd6f91",
+                    "evidence:c82247d1a6abb06e",
+                    "evidence:e597be0f28cea896",
+                    "evidence:e8d0c0eceb8d35df",
+                    "evidence:f65fbfce52feeaf5"
+                  ],
+                  "systems": [
+                    {
+                      "id": "227dfd6d-414b-4c20-aa04-dac34ff2f9dd",
+                      "type": "security_system",
+                      "code": "",
+                      "name": "网络边界安全防护",
+                      "title": "网络边界安全防护",
+                      "description": "",
+                      "category": "网络安全",
+                      "status": "",
+                      "evidenceRefs": [
+                        "evidence:05554cb2b593ccd5",
+                        "evidence:0a3410931275af7e",
+                        "evidence:0e2be193e872a497",
+                        "evidence:0eed82ca67b31b2e",
+                        "evidence:126bbbca7d948b47",
+                        "evidence:177774d9a55b2be3",
+                        "evidence:1ada725eb9ad08ae",
+                        "evidence:1b5fc7db327bd058",
+                        "evidence:1d8148f63c5f83db",
+                        "evidence:1da5aa0f2fcc33e2",
+                        "evidence:1e399dd86e1da6ed",
+                        "evidence:2021a3b15ab11dd7",
+                        "evidence:20c01897e2452c4b",
+                        "evidence:2399e0b1dcd52d54",
+                        "evidence:2aa49205acce577f",
+                        "evidence:2c39e3b4053c0d9e",
+                        "evidence:2e9079344fee4717",
+                        "evidence:32c34527d9c7d88b",
+                        "evidence:337ba5d6443fabab",
+                        "evidence:35cbe80544a30294",
+                        "evidence:36531cc9a04f1151",
+                        "evidence:366677ef40e76eaa",
+                        "evidence:3faedb2c69b221b1",
+                        "evidence:40c047d6eaf905b1",
+                        "evidence:41886bbc0ef887ba",
+                        "evidence:4205a772587b2083",
+                        "evidence:426ba38f2240da67",
+                        "evidence:43a02aa293a6f0e6",
+                        "evidence:4fa94022b39878b3",
+                        "evidence:59f73ba62b84ed5f",
+                        "evidence:5bf589f7b4a52fb0",
+                        "evidence:5cbc2cce2cd0f877",
+                        "evidence:5eeb290c4b7f3707",
+                        "evidence:5fcee3f7afd628ce",
+                        "evidence:62cf874d531ea964",
+                        "evidence:66668df8ab01294b",
+                        "evidence:6785fc8d44f474ee",
+                        "evidence:6954c122b184d132",
+                        "evidence:7133dc24b7e23d77",
+                        "evidence:713787f18b082666",
+                        "evidence:7206fdd7aeb9835f",
+                        "evidence:7229d427bd89de0c",
+                        "evidence:72643d9cb710d970",
+                        "evidence:7444bcb3ccba7ec6",
+                        "evidence:751eaf187ac29131",
+                        "evidence:7b2077229eabd8db",
+                        "evidence:7b452fa49a13fbad",
+                        "evidence:7b940adc26b174a8",
+                        "evidence:7f80c3117964ddaf",
+                        "evidence:800bc29b95816aaa",
+                        "evidence:81158a20ea16dae4",
+                        "evidence:82fe8ef8b2ec74c4",
+                        "evidence:83a8f02c0b84dd8f",
+                        "evidence:87881e0c32810f66",
+                        "evidence:8ab5ec2b51680f14",
+                        "evidence:8e90c88a10e99eca",
+                        "evidence:8f3a427c5ae94c7c",
+                        "evidence:920e1088c3d0f742",
+                        "evidence:93186e7cdaa76b7f",
+                        "evidence:94d6dac5b4a27285",
+                        "evidence:978f1d49c563fb84",
+                        "evidence:a7b8b1c8960a496a",
+                        "evidence:aaa407bbb1b2fe49",
+                        "evidence:ad8ae39db3e2a713",
+                        "evidence:b8d171d6af848dff",
+                        "evidence:bbf6bb8fce5af02e",
+                        "evidence:c0d705782792c62d",
+                        "evidence:c43be1de07f42cdb",
+                        "evidence:c82247d1a6abb06e",
+                        "evidence:c88418e5ed159c09",
+                        "evidence:cc37633bd87288f2",
+                        "evidence:d0acd1bee79c5c17",
+                        "evidence:e3346f1210902f69",
+                        "evidence:e412e4a0ecb543e7",
+                        "evidence:e597be0f28cea896",
+                        "evidence:e6ce61719682ba2c",
+                        "evidence:e736ac3feb72c9e1",
+                        "evidence:e76a93eac8d2534c",
+                        "evidence:e784159ac070af46",
+                        "evidence:e824e8429c396608",
+                        "evidence:e8d0c0eceb8d35df",
+                        "evidence:e982b0db913f7587",
+                        "evidence:ec503d015d0bc900",
+                        "evidence:ed000946a51c17d7",
+                        "evidence:f65fbfce52feeaf5",
+                        "evidence:fb6225e97dc9eeab",
+                        "evidence:fb934cd6bfaaa1f1",
+                        "evidence:fcdecda7d256e52e"
+                      ]
+                    }
+                  ],
+                  "systemSourceRows": [
+                    813
+                  ]
+                }
+              ],
               "measures": [],
-              "module_count": 0,
+              "module_count": 1,
               "measure_count": 0
             },
             {
@@ -1014,6 +1420,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    815
                   ]
                 }
               ],

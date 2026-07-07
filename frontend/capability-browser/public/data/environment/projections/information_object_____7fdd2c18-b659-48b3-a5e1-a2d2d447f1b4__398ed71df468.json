@@ -289,7 +289,8 @@
         "title": "数据与信息",
         "name": "数据与信息",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。"
       },
       "6f1ef0de-3163-4d38-9626-5625a58948bb": {
         "id": "6f1ef0de-3163-4d38-9626-5625a58948bb",
@@ -298,7 +299,8 @@
         "title": "网络",
         "name": "网络",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于网络流、网络服务等对象。"
       }
     }
   },
@@ -328,7 +330,9 @@
             "code": "I-DI",
             "title": "数据与信息",
             "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "数据与信息",
+            "status": ""
           },
           "services": [
             {
@@ -365,6 +369,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    32
                   ]
                 }
               ],
@@ -383,7 +390,9 @@
             "code": "I-NT",
             "title": "网络",
             "description": "安全能力作用于网络流、网络服务等对象。",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "网络",
+            "status": ""
           },
           "services": [
             {
@@ -420,6 +429,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    31
                   ]
                 },
                 {
@@ -448,6 +460,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    30
                   ]
                 }
               ],
@@ -489,6 +504,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    33
                   ]
                 }
               ],
@@ -530,6 +548,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    28
                   ]
                 }
               ],
@@ -571,6 +592,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    29
                   ]
                 }
               ],

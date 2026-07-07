@@ -9,7 +9,11 @@ function read(relativePath) {
 
 const stylesCss = read("frontend/capability-browser/styles.css").replace(/\/\*[\s\S]*?\*\//g, "");
 const appJs = read("frontend/capability-browser/app.js");
+const dataClientJs = read("frontend/capability-browser/dataClient.js");
 const indexHtml = read("frontend/capability-browser/index.html");
+const workbenchPageHeightPattern = "calc\\(100dvh\\s*-\\s*var\\(--topbar-height\\)\\s*-\\s*var\\(--page-header-height\\)\\)";
+const inspectorActionsRenderIndex = appJs.indexOf("${renderWorkbenchIssueInspectorActions()}");
+const inspectorContentRenderIndex = appJs.indexOf('class="workbench-review-inspector-content" data-review-inspector-scroll');
 
 function cssBlocksForSelector(source, selector) {
   const blocks = [];
@@ -86,7 +90,7 @@ const checks = [
       (block) => blockHasDeclaration(block, "height", "auto") && blockHasDeclaration(block, "min-height", "100%"),
     ) &&
       anyBlock(".global-search-page-layout", (block) => blockHasDeclaration(block, "height", "auto")) &&
-      anyBlock(".global-search-page-results", (block) => blockHasDeclaration(block, "grid-template-rows", "auto auto")) &&
+      anyBlock(".global-search-page-results", (block) => blockHasDeclaration(block, "grid-template-rows", "auto auto auto")) &&
       anyBlock(".global-search-page-list", (block) => blockHasDeclaration(block, "overflow", "visible")),
     "global search results must expand in the page scroll; the result list must not be a second vertical scroll container.",
   ),
@@ -96,10 +100,25 @@ const checks = [
     "Issue list route must expose a stable class so scroll ownership can be scoped to this route only.",
   ),
   check(
+    "workbench_workspace_has_definite_height_for_split_panes",
+    anyBlock(
+      ".app-shell-integrated .workbench-workspace",
+      (block) =>
+        blockHasDeclaration(block, "height", workbenchPageHeightPattern) &&
+        blockHasDeclaration(block, "max-height", workbenchPageHeightPattern) &&
+        blockHasDeclaration(block, "box-sizing", "border-box"),
+    ),
+    "Workbench workspace must provide a definite height reference before issue split panes can own local scrolling.",
+  ),
+  check(
     "workbench_issue_outer_workspace_only_scrolls_horizontally",
     anyBlock(
       ".app-shell-integrated .workbench-workspace:has(.workbench-issues-route)",
-      (block) => blockHasDeclaration(block, "overflow-x", "auto") && blockHasDeclaration(block, "overflow-y", "hidden"),
+      (block) =>
+        blockHasDeclaration(block, "height", workbenchPageHeightPattern) &&
+        blockHasDeclaration(block, "max-height", workbenchPageHeightPattern) &&
+        blockHasDeclaration(block, "overflow-x", "auto") &&
+        blockHasDeclaration(block, "overflow-y", "hidden"),
     ),
     "Issue list workspace must not compete vertically with the three review panes; it may keep horizontal overflow for narrow screens.",
   ),
@@ -109,7 +128,9 @@ const checks = [
       ".workbench-issues-route",
       (block) =>
         blockHasDeclaration(block, "height", "100%") &&
+        blockHasDeclaration(block, "max-height", "100%") &&
         blockHasDeclaration(block, "min-height", "0") &&
+        blockHasDeclaration(block, "box-sizing", "border-box") &&
         blockHasDeclaration(block, "grid-template-rows", "auto auto minmax\\(0, 1fr\\)"),
     ) &&
       anyBlock(
@@ -117,16 +138,21 @@ const checks = [
         (block) =>
           blockHasDeclaration(block, "height", "100%") &&
           blockHasDeclaration(block, "min-height", "0") &&
-          blockHasDeclaration(block, "max-height", "none"),
+          blockHasDeclaration(block, "max-height", "none") &&
+          blockHasDeclaration(block, "align-self", "stretch") &&
+          blockHasDeclaration(block, "box-sizing", "border-box"),
       ),
     "Issue list must size the three-column queue to the available AppShell height instead of using viewport magic numbers.",
   ),
   check(
-    "workbench_issue_three_panes_are_the_vertical_scroll_owners",
+    "workbench_issue_split_panes_have_stable_scroll_owners",
     anyBlock(
       ".workbench-review-scope",
       (block) =>
         blockHasDeclaration(block, "overflow", "auto") &&
+        blockHasDeclaration(block, "height", "100%") &&
+        blockHasDeclaration(block, "overflow-x", "hidden") &&
+        blockHasDeclaration(block, "overflow-y", "auto") &&
         blockHasDeclaration(block, "max-height", "100%") &&
         blockHasDeclaration(block, "scrollbar-gutter", "stable"),
     ) &&
@@ -134,17 +160,170 @@ const checks = [
         ".workbench-review-queue",
         (block) =>
           blockHasDeclaration(block, "overflow", "auto") &&
+          blockHasDeclaration(block, "height", "100%") &&
+          blockHasDeclaration(block, "overflow-x", "hidden") &&
+          blockHasDeclaration(block, "overflow-y", "auto") &&
           blockHasDeclaration(block, "max-height", "100%") &&
           blockHasDeclaration(block, "scrollbar-gutter", "stable"),
       ) &&
       anyBlock(
         ".workbench-review-inspector",
         (block) =>
+          blockHasDeclaration(block, "height", "100%") &&
+          blockHasDeclaration(block, "max-height", "100%"),
+      ) &&
+      anyBlock(
+        ".workbench-review-inspector",
+        (block) =>
+          blockHasDeclaration(block, "grid-template-rows", "auto\\s+auto\\s+auto\\s+minmax\\(0,\\s*1fr\\)") &&
+          blockHasDeclaration(block, "overflow", "hidden"),
+      ) &&
+      anyBlock(
+        ".workbench-review-inspector-content",
+        (block) =>
+          blockHasDeclaration(block, "min-height", "0") &&
           blockHasDeclaration(block, "overflow", "auto") &&
-          blockHasDeclaration(block, "max-height", "100%") &&
+          blockHasDeclaration(block, "overflow-x", "hidden") &&
+          blockHasDeclaration(block, "overflow-y", "auto") &&
           blockHasDeclaration(block, "scrollbar-gutter", "stable"),
       ),
-    "Issue list scope, queue, and inspector panes are the intended split-pane vertical scroll owners.",
+    "Issue list scope and queue own their pane scroll; the inspector keeps actions above a dedicated content scroll body.",
+  ),
+  check(
+    "workbench_issue_actions_are_top_toolbar_outside_scroll_body",
+    anyBlock(
+      ".workbench-review-inspector-actions",
+      (block) =>
+        blockHasDeclaration(block, "position", "relative") &&
+        blockHasDeclaration(block, "z-index", "1") &&
+        blockHasDeclaration(block, "border-bottom", "1px\\s+solid\\s+rgba\\(136,\\s*157,\\s*181,\\s*0\\.16\\)"),
+    ) &&
+      inspectorActionsRenderIndex >= 0 &&
+      inspectorContentRenderIndex >= 0 &&
+      inspectorActionsRenderIndex < inspectorContentRenderIndex &&
+      appJs.includes('class="workbench-review-inspector-content" data-review-inspector-scroll') &&
+      appJs.includes("function renderWorkbenchIssueDetailActions()") &&
+      appJs.includes("function renderWorkbenchIssueBatchActions()") &&
+      appJs.includes("function renderWorkbenchIssueInspectorActions()") &&
+      appJs.includes('event.target.closest("[data-review-delete]")') &&
+      appJs.includes("handleWorkbenchIssueDelete()") &&
+      appJs.includes('event.target.closest("[data-review-save]")') &&
+      appJs.includes("saveWorkbenchReviewInspector()") &&
+      appJs.includes("handleWorkbenchIssueBulkStatus"),
+    "Issue inspector action buttons must be rendered as a top toolbar before the scroll body and keep their delegated event handlers.",
+  ),
+  check(
+    "workbench_issue_panes_use_visible_scrollbars",
+    stylesCss.includes(".workbench-review-scope::-webkit-scrollbar") &&
+      stylesCss.includes(".workbench-review-queue::-webkit-scrollbar") &&
+      stylesCss.includes(".workbench-review-inspector-content::-webkit-scrollbar") &&
+      stylesCss.includes(".workbench-review-inspector-content::-webkit-scrollbar-thumb") &&
+      stylesCss.includes(".workbench-review-scope.has-scroll-overflow") &&
+      stylesCss.includes(".workbench-review-queue.has-scroll-overflow") &&
+      stylesCss.includes(".workbench-review-inspector.has-scroll-overflow") &&
+      stylesCss.includes("overscroll-behavior: contain") &&
+      appJs.includes("function updateWorkbenchPaneScrollAffordance()") &&
+      appJs.includes('pane.querySelector("[data-review-inspector-scroll]")') &&
+      appJs.includes("requestAnimationFrame(updateWorkbenchPaneScrollAffordance)"),
+    "Issue list split panes should expose visible local scrollbars in the macOS desktop wrapper.",
+  ),
+  check(
+    "workbench_issue_queue_has_sortable_columns_and_select_all",
+    appJs.includes("const WORKBENCH_ISSUE_SORT_COLUMNS") &&
+      appJs.includes("function setWorkbenchIssueSort") &&
+      appJs.includes("data-review-sort-key") &&
+      appJs.includes("data-review-select-all") &&
+      stylesCss.includes(".workbench-review-sort-button") &&
+      stylesCss.includes(".workbench-review-select-all"),
+    "Issue queue table must support visible column sorting and select-all selection from the header.",
+  ),
+  check(
+    "workbench_issue_rows_do_not_auto_select_first_item",
+    !appJs.includes('state.workbenchSelectedIssueId = filteredRows[0]?.id || ""') &&
+      !appJs.includes("selected: state.workbenchSelectedIssueId ? issue.id === state.workbenchSelectedIssueId : index === 0") &&
+      appJs.includes("selected: Boolean(state.workbenchSelectedIssueId)"),
+    "Issue queue must not use the first row as the implicit current issue; the current issue must come from explicit user selection.",
+  ),
+  check(
+    "workbench_issue_row_click_selects_queue_row",
+    appJs.includes("selectWorkbenchReviewItem(reviewItem)") &&
+      appJs.includes('!event.target.closest("input, select, textarea, button")') &&
+      appJs.includes("state.workbenchSelectedIssueIds.add(noteId)") &&
+      appJs.includes("state.workbenchSelectedIssueId = noteId"),
+    "Clicking an Issue queue row must select that row and open its current issue, not require the checkbox as the only selection target.",
+  ),
+  check(
+    "workbench_issue_bulk_actions_match_review_queue_contract",
+    appJs.includes('data-review-bulk-status="closed">全部关闭') &&
+      appJs.includes('data-review-bulk-status="reviewing">改为处理中') &&
+      appJs.includes('data-review-bulk-status="deferred">全部忽略') &&
+      appJs.includes('data-review-bulk-status="confirmed">标记已采纳') &&
+      appJs.includes("data-review-clear-selection>清除选择") &&
+      !appJs.includes('data-review-bulk-status="deferred">忽略</button>') &&
+      !appJs.includes('<button class="workbench-prototype-action" type="button" data-review-export-selected>导出所选</button>'),
+    "Bulk action bar must expose the review workflow actions only: close all, reviewing, ignore all, accepted, and clear selection.",
+  ),
+  check(
+    "workbench_issue_batch_actions_are_static_grid_not_overlay",
+    anyBlock(
+      ".workbench-review-inspector-actions.is-batch",
+      (block) =>
+        blockHasDeclaration(block, "position", "static") &&
+        blockHasDeclaration(block, "display", "grid") &&
+        blockHasDeclaration(block, "grid-template-columns", "repeat\\(2,\\s*minmax\\(0,\\s*1fr\\)\\)") &&
+        blockHasDeclaration(block, "align-self", "stretch"),
+    ) &&
+      anyBlock(
+        ".workbench-review-inspector-actions.is-batch .workbench-prototype-action",
+        (block) => blockHasDeclaration(block, "width", "100%"),
+      ) &&
+      anyBlock(
+        ".workbench-review-inspector-actions.is-batch [data-review-clear-selection]",
+        (block) => blockHasDeclaration(block, "grid-column", "1\\s*/\\s*-1"),
+      ),
+    "Batch inspector actions must be a stable in-panel grid so wrapped buttons do not sticky-overlay selected Issue summaries.",
+  ),
+  check(
+    "workbench_issue_inspector_has_empty_single_and_batch_states",
+    appJs.includes("function renderWorkbenchIssueEmptyInspector") &&
+      appJs.includes("function renderWorkbenchIssueDetailInspector") &&
+      appJs.includes("function renderWorkbenchIssueBatchInspector") &&
+      appJs.includes("selectedRows.length > 1") &&
+      stylesCss.includes(".workbench-review-batch-panel") &&
+      stylesCss.includes(".workbench-review-empty.is-blank"),
+    "Issue inspector must distinguish no current issue, one current issue, and multiple selected issues.",
+  ),
+  check(
+    "workbench_issue_inspector_field_boundary",
+    appJs.includes("<label>关联页面/对象</label>") &&
+      appJs.includes("workbenchIssuePageObjectLabel") &&
+      appJs.includes('{ label: "Issue 范围", value: activePageLabel }') &&
+      !appJs.includes('{ label: "页面", value: activePageLabel }') &&
+      !appJs.includes("<label>关联页面</label>") &&
+      !appJs.includes("<label>关联对象</label>") &&
+      !appJs.includes("<label>锚点 / 类型</label>") &&
+      appJs.includes('<select class="workbench-review-select" data-review-field="priority"'),
+    "Issue inspector must combine related page/object, hide anchor/type in the main display, and provide a priority control.",
+  ),
+  check(
+    "workbench_issue_delete_uses_app_confirm_not_browser_confirm",
+    !appJs.includes("window.confirm") &&
+      appJs.includes("function renderWorkbenchIssueDeleteDialog") &&
+      appJs.includes('role="dialog"') &&
+      appJs.includes("data-review-delete-backdrop") &&
+      appJs.includes("data-review-delete-confirm") &&
+      appJs.includes("confirmWorkbenchIssueDelete") &&
+      stylesCss.includes(".workbench-review-dialog-backdrop") &&
+      stylesCss.includes(".workbench-review-dialog"),
+    "Issue delete confirmation must use the app's own modal dialog instead of the browser/native confirm frame or an inline inspector block.",
+  ),
+  check(
+    "workbench_issue_priority_is_saved_via_tags_without_schema_change",
+    appJs.includes("function workbenchIssueTagsWithPriority") &&
+      dataClientJs.includes('body.status = text(payload.status).trim()') &&
+      dataClientJs.includes('body.tags = list(payload.tags)') &&
+      appJs.includes("dataClient.updateUserNote(noteId, { body, status: statusValue, tags })"),
+    "Priority changes must use the existing tags update contract rather than adding frontend-only state or changing the user DB schema.",
   ),
   check(
     "standard_table_scroll_is_preserved",
@@ -216,7 +395,9 @@ const checks = [
     "cache_versions_include_scroll_contract",
     indexHtml.includes("scroll-contract-20260703-1") &&
       indexHtml.includes("lifecycle-scroll-contract-20260705-1") &&
-      indexHtml.includes("lifecycle-stage-tabs-fit-20260705-1"),
+      indexHtml.includes("lifecycle-stage-tabs-fit-20260705-1") &&
+      indexHtml.includes("issue-pane-scroll-20260707-2") &&
+      indexHtml.includes("issue-inspector-actions-top-20260707-1"),
     "index.html must cache-bust the scroll contract changes.",
   ),
 ];

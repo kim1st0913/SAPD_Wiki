@@ -139,7 +139,8 @@
         "title": "软件应用",
         "name": "软件应用",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象"
       },
       "784caa9f-74f0-4a43-94f5-727b3ff497fb": {
         "id": "784caa9f-74f0-4a43-94f5-727b3ff497fb",
@@ -148,7 +149,8 @@
         "title": "数据与信息",
         "name": "数据与信息",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。"
       }
     },
     "security_technical_service": {
@@ -675,7 +677,9 @@
             "code": "I-AP",
             "title": "软件应用",
             "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "软件应用",
+            "status": ""
           },
           "services": [
             {
@@ -685,9 +689,45 @@
               "title": "应用安全加固",
               "description": null,
               "category": "I-AP",
-              "modules": [],
+              "modules": [
+                {
+                  "id": "03cebb3f-59ba-47eb-8383-cc4c0cdaae63",
+                  "type": "security_technology_module",
+                  "code": "",
+                  "title": "移动应用安全加固",
+                  "name": "移动应用安全加固",
+                  "description": "针对移动APP提供应用安全检测、防逆向、防篡改、防调试、文件保护、数据防护等功能的模块",
+                  "category": "移动安全",
+                  "status": "normal",
+                  "evidenceRefs": [
+                    "evidence:377211eade8eb371",
+                    "evidence:4b21ffd5c8365379",
+                    "evidence:6afa2ea38d6732eb"
+                  ],
+                  "systems": [
+                    {
+                      "id": "1a4dff70-affe-4d14-8532-3dec7543631f",
+                      "type": "security_system",
+                      "code": "",
+                      "name": "移动应用安全",
+                      "title": "移动应用安全",
+                      "description": "",
+                      "category": "移动安全",
+                      "status": "",
+                      "evidenceRefs": [
+                        "evidence:1b5ebdfcc7388bb5",
+                        "evidence:292bb687a24962f0",
+                        "evidence:d0767e80dc4f52ba"
+                      ]
+                    }
+                  ],
+                  "systemSourceRows": [
+                    613
+                  ]
+                }
+              ],
               "measures": [],
-              "module_count": 0,
+              "module_count": 1,
               "measure_count": 0
             }
           ],
@@ -701,7 +741,9 @@
             "code": "I-DI",
             "title": "数据与信息",
             "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "数据与信息",
+            "status": ""
           },
           "services": [
             {
@@ -729,7 +771,10 @@
                       "category": "数据安全"
                     }
                   ],
-                  "products": []
+                  "products": [],
+                  "systemSourceRows": [
+                    614
+                  ]
                 }
               ],
               "measures": [],

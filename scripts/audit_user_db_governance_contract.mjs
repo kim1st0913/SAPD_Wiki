@@ -12,6 +12,7 @@ const args = parseArgs(process.argv.slice(2));
 const files = {
   createUserDb: "scripts/create_user_db.py",
   runLocalServer: "scripts/run_local_server.py",
+  macosWrapper: "apps/macos/SAPDWiki/Sources/SAPDWiki/main.swift",
   design: "docs/06-implementation/user-database-governance-and-stable-key-design.md",
   openIssues: "docs/06-implementation/open-issues.md",
   taskPlan: "task_plan.md",
@@ -255,6 +256,7 @@ function main() {
 
   const createUserDb = readProjectFile(files.createUserDb);
   const runLocalServer = readProjectFile(files.runLocalServer);
+  const macosWrapper = readProjectFile(files.macosWrapper);
   const design = readProjectFile(files.design);
   const openIssues = readProjectFile(files.openIssues);
   const openIssuesHistory = readProjectFile("docs/05-archive/open-issues-history/2026-06.md");
@@ -272,6 +274,35 @@ function main() {
   });
   addCheck(checks, "user_note_column_backfill_present", createUserDb.includes("ensure_user_note_columns"));
   addCheck(checks, "user_change_log_initialized", createUserDb.includes("initialize_user_db") && createUserDb.includes("user_change_logs"));
+  addCheck(
+    checks,
+    "macos_wrapper_uses_user_selected_data_root",
+    macosWrapper.includes('private static let dataRootFolderName = "SAPDWiki"') &&
+      macosWrapper.includes('private static let dataRootKey = "SAPDWiki.DataRootPath"') &&
+      macosWrapper.includes('private static let downloadDirectoryKey = "SAPDWiki.DownloadDirectoryPath"') &&
+      macosWrapper.includes('settings.dataRoot.appendingPathComponent("Runtime", isDirectory: true)') &&
+      macosWrapper.includes('defaultDownloadDirectory(for dataRoot: URL)') &&
+      macosWrapper.includes('dataRoot.appendingPathComponent("export", isDirectory: true)'),
+  );
+  addCheck(
+    checks,
+    "macos_wrapper_seeds_user_db_only_when_missing",
+    macosWrapper.includes("private func seedUserDataIfNeeded") &&
+      macosWrapper.includes("let targetExists = fileManager.fileExists(atPath: targetDB.path)") &&
+      macosWrapper.includes("guard !targetExists else") &&
+      macosWrapper.includes("user-db-reuse") &&
+      macosWrapper.includes("copyItem(at: sourceDB, to: targetDB)") &&
+      macosWrapper.includes("user-db-created-from-template"),
+  );
+  addCheck(
+    checks,
+    "macos_wrapper_writes_runtime_preferences",
+    macosWrapper.includes('object["app_data_root"] = settings.dataRoot.path') &&
+      macosWrapper.includes('object["download_dir"] = settings.downloadDirectory.path') &&
+      macosWrapper.includes('object["runtime_root"] = runtimeRoot.path') &&
+      macosWrapper.includes('object["user_database_path"] = runtimeRoot') &&
+      macosWrapper.includes("prepare-runtime config-updated"),
+  );
   addCheck(checks, "user_write_api_security_present", requiredApiSnippets.every((snippet) => runLocalServer.includes(snippet)), {
     missing: requiredApiSnippets.filter((snippet) => !runLocalServer.includes(snippet)),
   });

@@ -327,7 +327,7 @@
       ${renderGlobalSearch()}
       <div id="localModeStatus" class="topbar-status" aria-label="本地运行状态"></div>
       <div class="topbar-actions" aria-label="全局操作">
-        <button type="button" title="通知" aria-label="通知">!</button>
+        <span id="licenseStatusBadge" class="topbar-license-status" aria-live="polite">${renderLocalModeStatus()}</span>
         <button type="button" title="设置" aria-label="设置">⚙</button>
         <button type="button" title="本地数据包" aria-label="本地数据包">▤</button>
       </div>
@@ -730,8 +730,34 @@
       .join("");
   }
 
-  function renderLocalModeStatus() {
-    return "";
+  function renderLocalModeStatus(license = window.sapdLicenseStatus) {
+    const state = text(license?.state || "").trim();
+    const displayText = text(license?.display_text || "").trim();
+    const tone = state === "activated" || state === "open" ? "success" : state === "expired" ? "warning" : "info";
+    const label = state === "open" ? "版本" : state === "activated" ? "授权" : state === "expired" ? "到期" : "试用";
+    const value = displayText || "授权状态读取中";
+    return `
+      <span class="status-badge license-status-badge license-status-${escapeHtml(tone)}">
+        <small>${escapeHtml(label)}</small>
+        <strong>${escapeHtml(value)}</strong>
+      </span>
+    `;
+  }
+
+  async function hydrateLicenseStatus() {
+    const target = document.getElementById("licenseStatusBadge");
+    if (!target) return;
+    target.innerHTML = renderLocalModeStatus();
+    const dataClient = window.sapdDataClient;
+    if (!dataClient?.getRuntimeHealth) return;
+    try {
+      const envelope = await dataClient.getRuntimeHealth();
+      const runtime = envelope?.data || envelope || {};
+      window.sapdLicenseStatus = runtime.license || null;
+      target.innerHTML = renderLocalModeStatus(window.sapdLicenseStatus);
+    } catch (error) {
+      target.innerHTML = renderLocalModeStatus({ state: "unknown", display_text: "授权状态未知" });
+    }
   }
 
   components.AppShell = {
@@ -762,5 +788,6 @@
     mountCapabilityWorkspace,
     renderCapabilitySummary,
     renderLocalModeStatus,
+    hydrateLicenseStatus,
   };
 })();

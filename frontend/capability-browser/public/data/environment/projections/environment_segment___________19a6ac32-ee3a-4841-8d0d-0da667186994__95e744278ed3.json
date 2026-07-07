@@ -897,7 +897,8 @@
         "title": "软件应用",
         "name": "软件应用",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象"
       },
       "784caa9f-74f0-4a43-94f5-727b3ff497fb": {
         "id": "784caa9f-74f0-4a43-94f5-727b3ff497fb",
@@ -906,7 +907,8 @@
         "title": "数据与信息",
         "name": "数据与信息",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。"
       },
       "6f1ef0de-3163-4d38-9626-5625a58948bb": {
         "id": "6f1ef0de-3163-4d38-9626-5625a58948bb",
@@ -915,16 +917,18 @@
         "title": "网络",
         "name": "网络",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于网络流、网络服务等对象。"
       },
       "4abd36d3-4ba1-495c-8fb9-3957167f4833": {
         "id": "4abd36d3-4ba1-495c-8fb9-3957167f4833",
         "type": "scope_type",
         "code": "I-OS",
-        "title": "操作系统",
-        "name": "操作系统",
+        "title": "操作系统（主机/终端）",
+        "name": "操作系统（主机/终端）",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。"
       },
       "6f2a40c5-4e87-4138-836c-83e136a5d69e": {
         "id": "6f2a40c5-4e87-4138-836c-83e136a5d69e",
@@ -933,7 +937,8 @@
         "title": "用户",
         "name": "用户",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于组织内人员或人使用的账号等对象。"
       }
     }
   },
@@ -963,7 +968,9 @@
             "code": "I-AP",
             "title": "软件应用",
             "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "软件应用",
+            "status": ""
           },
           "services": [
             {
@@ -1000,6 +1007,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    71
                   ]
                 }
               ],
@@ -1018,7 +1028,9 @@
             "code": "I-DI",
             "title": "数据与信息",
             "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "数据与信息",
+            "status": ""
           },
           "services": [
             {
@@ -1055,6 +1067,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    73
                   ]
                 }
               ],
@@ -1073,7 +1088,9 @@
             "code": "I-NT",
             "title": "网络",
             "description": "安全能力作用于网络流、网络服务等对象。",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "网络",
+            "status": ""
           },
           "services": [
             {
@@ -1110,6 +1127,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    70
                   ]
                 }
               ],
@@ -1162,7 +1182,7 @@
                     "软件应用",
                     "数据与信息",
                     "网络",
-                    "操作系统",
+                    "操作系统（主机/终端）",
                     "用户"
                   ],
                   "applicable_scopes": [
@@ -1172,7 +1192,9 @@
                       "code": "I-AP",
                       "title": "软件应用",
                       "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "软件应用",
+                      "status": ""
                     },
                     {
                       "id": "784caa9f-74f0-4a43-94f5-727b3ff497fb",
@@ -1180,7 +1202,9 @@
                       "code": "I-DI",
                       "title": "数据与信息",
                       "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "数据与信息",
+                      "status": ""
                     },
                     {
                       "id": "6f1ef0de-3163-4d38-9626-5625a58948bb",
@@ -1188,15 +1212,19 @@
                       "code": "I-NT",
                       "title": "网络",
                       "description": "安全能力作用于网络流、网络服务等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "网络",
+                      "status": ""
                     },
                     {
                       "id": "4abd36d3-4ba1-495c-8fb9-3957167f4833",
                       "type": "scope_type",
                       "code": "I-OS",
-                      "title": "操作系统",
+                      "title": "操作系统（主机/终端）",
                       "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "操作系统（主机/终端）",
+                      "status": ""
                     },
                     {
                       "id": "6f2a40c5-4e87-4138-836c-83e136a5d69e",
@@ -1204,7 +1232,9 @@
                       "code": "I-US",
                       "title": "用户",
                       "description": "安全能力作用于组织内人员或人使用的账号等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "用户",
+                      "status": ""
                     }
                   ],
                   "related_capability_focus_ids": [
@@ -1228,239 +1258,15 @@
                   "type": "security_technical_measure",
                   "objectKind": "安全技术措施",
                   "kind": "安全技术措施",
-                  "title": "网络基础架构安全设计"
-                },
-                {
-                  "id": "security_technical_measure:6918469d08b28f1b",
-                  "name": "网络高可用性设计",
-                  "category": null,
-                  "source_kind": "pending_review / scope_service_module_mapping",
-                  "mapping_status_label": "正常",
-                  "related_service_ids": [
-                    "fe0ee080-7eaf-4e59-b3f7-0eefce8bde84"
-                  ],
-                  "related_service_names": [
-                    "网络冗余"
-                  ],
-                  "related_services": [
-                    {
-                      "id": "fe0ee080-7eaf-4e59-b3f7-0eefce8bde84",
-                      "type": "security_technical_service",
-                      "code": "I-NT&T-AS.AD-02",
-                      "title": "网络冗余",
-                      "description": null,
-                      "category": "I-NT"
-                    }
-                  ],
-                  "related_module_ids": [],
-                  "related_module_names": [],
-                  "related_modules": [],
-                  "related_scope_ids": [
-                    "7f4b920b-2eca-4ddd-a3ca-55ace40efeb9",
-                    "784caa9f-74f0-4a43-94f5-727b3ff497fb",
-                    "6f1ef0de-3163-4d38-9626-5625a58948bb",
-                    "4abd36d3-4ba1-495c-8fb9-3957167f4833",
-                    "6f2a40c5-4e87-4138-836c-83e136a5d69e"
-                  ],
-                  "related_scope_names": [
-                    "软件应用",
-                    "数据与信息",
-                    "网络",
-                    "操作系统",
-                    "用户"
-                  ],
-                  "applicable_scopes": [
-                    {
-                      "id": "7f4b920b-2eca-4ddd-a3ca-55ace40efeb9",
-                      "type": "scope_type",
-                      "code": "I-AP",
-                      "title": "软件应用",
-                      "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-                      "category": "网络空间"
-                    },
-                    {
-                      "id": "784caa9f-74f0-4a43-94f5-727b3ff497fb",
-                      "type": "scope_type",
-                      "code": "I-DI",
-                      "title": "数据与信息",
-                      "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-                      "category": "网络空间"
-                    },
-                    {
-                      "id": "6f1ef0de-3163-4d38-9626-5625a58948bb",
-                      "type": "scope_type",
-                      "code": "I-NT",
-                      "title": "网络",
-                      "description": "安全能力作用于网络流、网络服务等对象。",
-                      "category": "网络空间"
-                    },
-                    {
-                      "id": "4abd36d3-4ba1-495c-8fb9-3957167f4833",
-                      "type": "scope_type",
-                      "code": "I-OS",
-                      "title": "操作系统",
-                      "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-                      "category": "网络空间"
-                    },
-                    {
-                      "id": "6f2a40c5-4e87-4138-836c-83e136a5d69e",
-                      "type": "scope_type",
-                      "code": "I-US",
-                      "title": "用户",
-                      "description": "安全能力作用于组织内人员或人使用的账号等对象。",
-                      "category": "网络空间"
-                    }
-                  ],
-                  "related_capability_focus_ids": [
-                    "6c872817-38b8-4b19-9307-112520735747"
-                  ],
-                  "related_capability_focus_names": [
-                    "实施网络安全架构的冗余设计"
-                  ],
-                  "related_focuses": [
-                    {
-                      "id": "6c872817-38b8-4b19-9307-112520735747",
-                      "type": "capability_focus",
-                      "code": "T-AS.AD-02",
-                      "title": "实施网络安全架构的冗余设计",
-                      "description": "在网络安全架构设计中，实施冗余机制以提高系统的可用性和容错能力。这包括使用多路径、备份系统和故障转移机制来确保关键服务和数据在硬件故障或网络攻击等情况下的连续运行。通过设计冗余，可以减少单点故障的风险，保障关键业务和服务的持续性。",
-                      "category": null
-                    }
-                  ],
-                  "related_focus_count": 1,
-                  "status": "normal",
-                  "type": "security_technical_measure",
-                  "objectKind": "安全技术措施",
-                  "kind": "安全技术措施",
-                  "title": "网络高可用性设计"
-                },
-                {
-                  "id": "security_technical_measure:242658382532b028",
-                  "name": "云自身网络ACL及安全组",
-                  "category": null,
-                  "source_kind": "pending_review / scope_service_module_mapping",
-                  "mapping_status_label": "正常",
-                  "related_service_ids": [
-                    "505e563b-6031-4980-8993-4c2684c04865",
-                    "f275ae10-32a3-4bb9-98ec-6ae994794d04"
-                  ],
-                  "related_service_names": [
-                    "网络流量（行为）日志审计",
-                    "网络隔离"
-                  ],
-                  "related_services": [
-                    {
-                      "id": "505e563b-6031-4980-8993-4c2684c04865",
-                      "type": "security_technical_service",
-                      "code": "I-NT&T-AS.LA-03",
-                      "title": "网络流量（行为）日志审计",
-                      "description": null,
-                      "category": "I-NT"
-                    },
-                    {
-                      "id": "f275ae10-32a3-4bb9-98ec-6ae994794d04",
-                      "type": "security_technical_service",
-                      "code": "I-NT&T-PD.PP-03",
-                      "title": "网络隔离",
-                      "description": null,
-                      "category": "I-NT"
-                    }
-                  ],
-                  "related_module_ids": [],
-                  "related_module_names": [],
-                  "related_modules": [],
-                  "related_scope_ids": [
-                    "7f4b920b-2eca-4ddd-a3ca-55ace40efeb9",
-                    "784caa9f-74f0-4a43-94f5-727b3ff497fb",
-                    "6f1ef0de-3163-4d38-9626-5625a58948bb",
-                    "4abd36d3-4ba1-495c-8fb9-3957167f4833",
-                    "6f2a40c5-4e87-4138-836c-83e136a5d69e"
-                  ],
-                  "related_scope_names": [
-                    "软件应用",
-                    "数据与信息",
-                    "网络",
-                    "操作系统",
-                    "用户"
-                  ],
-                  "applicable_scopes": [
-                    {
-                      "id": "7f4b920b-2eca-4ddd-a3ca-55ace40efeb9",
-                      "type": "scope_type",
-                      "code": "I-AP",
-                      "title": "软件应用",
-                      "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-                      "category": "网络空间"
-                    },
-                    {
-                      "id": "784caa9f-74f0-4a43-94f5-727b3ff497fb",
-                      "type": "scope_type",
-                      "code": "I-DI",
-                      "title": "数据与信息",
-                      "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-                      "category": "网络空间"
-                    },
-                    {
-                      "id": "6f1ef0de-3163-4d38-9626-5625a58948bb",
-                      "type": "scope_type",
-                      "code": "I-NT",
-                      "title": "网络",
-                      "description": "安全能力作用于网络流、网络服务等对象。",
-                      "category": "网络空间"
-                    },
-                    {
-                      "id": "4abd36d3-4ba1-495c-8fb9-3957167f4833",
-                      "type": "scope_type",
-                      "code": "I-OS",
-                      "title": "操作系统",
-                      "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-                      "category": "网络空间"
-                    },
-                    {
-                      "id": "6f2a40c5-4e87-4138-836c-83e136a5d69e",
-                      "type": "scope_type",
-                      "code": "I-US",
-                      "title": "用户",
-                      "description": "安全能力作用于组织内人员或人使用的账号等对象。",
-                      "category": "网络空间"
-                    }
-                  ],
-                  "related_capability_focus_ids": [
-                    "78bd3e69-0e74-4d52-bc1e-d88b8d7d6f7f",
-                    "8df9c875-0812-4ff3-b13f-0b79be561419"
-                  ],
-                  "related_capability_focus_names": [
-                    "对安全日志进行审计分析",
-                    "执行网络的隔离与边界保护措施"
-                  ],
-                  "related_focuses": [
-                    {
-                      "id": "78bd3e69-0e74-4d52-bc1e-d88b8d7d6f7f",
-                      "type": "capability_focus",
-                      "code": "T-AS.LA-03",
-                      "title": "对安全日志进行审计分析",
-                      "description": "定期对收集的日志进行审计分析，以识别可疑行为、安全事件和合规性问题。通过审计日志，可以发现系统漏洞、不当操作、未授权访问等安全威胁，并采取相应的响应措施。",
-                      "category": null
-                    },
-                    {
-                      "id": "8df9c875-0812-4ff3-b13f-0b79be561419",
-                      "type": "capability_focus",
-                      "code": "T-PD.PP-03",
-                      "title": "执行网络的隔离与边界保护措施",
-                      "description": "在网络的关键部分之间实施适当的隔离措施，以限制攻击者的横向移动并减少单个入侵点的影响。这包括划分网络区域、实施子网隔离，并确保边界控制的有效执行。",
-                      "category": null
-                    }
-                  ],
-                  "related_focus_count": 2,
-                  "status": "normal",
-                  "type": "security_technical_measure",
-                  "objectKind": "安全技术措施",
-                  "kind": "安全技术措施",
-                  "title": "云自身网络ACL及安全组"
+                  "title": "网络基础架构安全设计",
+                  "systems": [],
+                  "systemSourceRows": [
+                    62
+                  ]
                 }
               ],
               "module_count": 0,
-              "measure_count": 3
+              "measure_count": 1
             },
             {
               "id": "fe0ee080-7eaf-4e59-b3f7-0eefce8bde84",
@@ -1507,7 +1313,7 @@
                     "软件应用",
                     "数据与信息",
                     "网络",
-                    "操作系统",
+                    "操作系统（主机/终端）",
                     "用户"
                   ],
                   "applicable_scopes": [
@@ -1517,7 +1323,9 @@
                       "code": "I-AP",
                       "title": "软件应用",
                       "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "软件应用",
+                      "status": ""
                     },
                     {
                       "id": "784caa9f-74f0-4a43-94f5-727b3ff497fb",
@@ -1525,7 +1333,9 @@
                       "code": "I-DI",
                       "title": "数据与信息",
                       "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "数据与信息",
+                      "status": ""
                     },
                     {
                       "id": "6f1ef0de-3163-4d38-9626-5625a58948bb",
@@ -1533,15 +1343,19 @@
                       "code": "I-NT",
                       "title": "网络",
                       "description": "安全能力作用于网络流、网络服务等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "网络",
+                      "status": ""
                     },
                     {
                       "id": "4abd36d3-4ba1-495c-8fb9-3957167f4833",
                       "type": "scope_type",
                       "code": "I-OS",
-                      "title": "操作系统",
+                      "title": "操作系统（主机/终端）",
                       "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "操作系统（主机/终端）",
+                      "status": ""
                     },
                     {
                       "id": "6f2a40c5-4e87-4138-836c-83e136a5d69e",
@@ -1549,7 +1363,9 @@
                       "code": "I-US",
                       "title": "用户",
                       "description": "安全能力作用于组织内人员或人使用的账号等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "用户",
+                      "status": ""
                     }
                   ],
                   "related_capability_focus_ids": [
@@ -1573,7 +1389,11 @@
                   "type": "security_technical_measure",
                   "objectKind": "安全技术措施",
                   "kind": "安全技术措施",
-                  "title": "网络高可用性设计"
+                  "title": "网络高可用性设计",
+                  "systems": [],
+                  "systemSourceRows": [
+                    63
+                  ]
                 }
               ],
               "module_count": 0,
@@ -1613,6 +1433,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    65
                   ]
                 }
               ],
@@ -1663,7 +1486,7 @@
                     "软件应用",
                     "数据与信息",
                     "网络",
-                    "操作系统",
+                    "操作系统（主机/终端）",
                     "用户"
                   ],
                   "applicable_scopes": [
@@ -1673,7 +1496,9 @@
                       "code": "I-AP",
                       "title": "软件应用",
                       "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "软件应用",
+                      "status": ""
                     },
                     {
                       "id": "784caa9f-74f0-4a43-94f5-727b3ff497fb",
@@ -1681,7 +1506,9 @@
                       "code": "I-DI",
                       "title": "数据与信息",
                       "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "数据与信息",
+                      "status": ""
                     },
                     {
                       "id": "6f1ef0de-3163-4d38-9626-5625a58948bb",
@@ -1689,15 +1516,19 @@
                       "code": "I-NT",
                       "title": "网络",
                       "description": "安全能力作用于网络流、网络服务等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "网络",
+                      "status": ""
                     },
                     {
                       "id": "4abd36d3-4ba1-495c-8fb9-3957167f4833",
                       "type": "scope_type",
                       "code": "I-OS",
-                      "title": "操作系统",
+                      "title": "操作系统（主机/终端）",
                       "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "操作系统（主机/终端）",
+                      "status": ""
                     },
                     {
                       "id": "6f2a40c5-4e87-4138-836c-83e136a5d69e",
@@ -1705,7 +1536,9 @@
                       "code": "I-US",
                       "title": "用户",
                       "description": "安全能力作用于组织内人员或人使用的账号等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "用户",
+                      "status": ""
                     }
                   ],
                   "related_capability_focus_ids": [
@@ -1739,7 +1572,30 @@
                   "type": "security_technical_measure",
                   "objectKind": "安全技术措施",
                   "kind": "安全技术措施",
-                  "title": "云自身网络ACL及安全组"
+                  "title": "云自身网络ACL及安全组",
+                  "systems": [
+                    {
+                      "id": "a3f6140e-4c66-415a-b773-847772adac02",
+                      "type": "security_system",
+                      "code": "",
+                      "name": "云网络安全防护",
+                      "title": "云网络安全防护",
+                      "description": "",
+                      "category": "云安全",
+                      "status": "",
+                      "evidenceRefs": [
+                        "evidence:0df908d35ca972be",
+                        "evidence:101fae3f4f852396",
+                        "evidence:25d1f4cc662614a7",
+                        "evidence:54ee9c042a443aa6",
+                        "evidence:557cfffcbdff0d09",
+                        "evidence:a40bab5265f30971"
+                      ]
+                    }
+                  ],
+                  "systemSourceRows": [
+                    67
+                  ]
                 }
               ],
               "module_count": 1,
@@ -1779,6 +1635,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    69
                   ]
                 }
               ],
@@ -1820,6 +1679,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    66
                   ]
                 }
               ],
@@ -1870,7 +1732,7 @@
                     "软件应用",
                     "数据与信息",
                     "网络",
-                    "操作系统",
+                    "操作系统（主机/终端）",
                     "用户"
                   ],
                   "applicable_scopes": [
@@ -1880,7 +1742,9 @@
                       "code": "I-AP",
                       "title": "软件应用",
                       "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "软件应用",
+                      "status": ""
                     },
                     {
                       "id": "784caa9f-74f0-4a43-94f5-727b3ff497fb",
@@ -1888,7 +1752,9 @@
                       "code": "I-DI",
                       "title": "数据与信息",
                       "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "数据与信息",
+                      "status": ""
                     },
                     {
                       "id": "6f1ef0de-3163-4d38-9626-5625a58948bb",
@@ -1896,15 +1762,19 @@
                       "code": "I-NT",
                       "title": "网络",
                       "description": "安全能力作用于网络流、网络服务等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "网络",
+                      "status": ""
                     },
                     {
                       "id": "4abd36d3-4ba1-495c-8fb9-3957167f4833",
                       "type": "scope_type",
                       "code": "I-OS",
-                      "title": "操作系统",
+                      "title": "操作系统（主机/终端）",
                       "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "操作系统（主机/终端）",
+                      "status": ""
                     },
                     {
                       "id": "6f2a40c5-4e87-4138-836c-83e136a5d69e",
@@ -1912,7 +1782,9 @@
                       "code": "I-US",
                       "title": "用户",
                       "description": "安全能力作用于组织内人员或人使用的账号等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "用户",
+                      "status": ""
                     }
                   ],
                   "related_capability_focus_ids": [
@@ -1946,7 +1818,30 @@
                   "type": "security_technical_measure",
                   "objectKind": "安全技术措施",
                   "kind": "安全技术措施",
-                  "title": "云自身网络ACL及安全组"
+                  "title": "云自身网络ACL及安全组",
+                  "systems": [
+                    {
+                      "id": "a3f6140e-4c66-415a-b773-847772adac02",
+                      "type": "security_system",
+                      "code": "",
+                      "name": "云网络安全防护",
+                      "title": "云网络安全防护",
+                      "description": "",
+                      "category": "云安全",
+                      "status": "",
+                      "evidenceRefs": [
+                        "evidence:0df908d35ca972be",
+                        "evidence:101fae3f4f852396",
+                        "evidence:25d1f4cc662614a7",
+                        "evidence:54ee9c042a443aa6",
+                        "evidence:557cfffcbdff0d09",
+                        "evidence:a40bab5265f30971"
+                      ]
+                    }
+                  ],
+                  "systemSourceRows": [
+                    68
+                  ]
                 }
               ],
               "module_count": 1,
@@ -1986,6 +1881,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    64
                   ]
                 }
               ],
@@ -2002,9 +1900,11 @@
             "id": "4abd36d3-4ba1-495c-8fb9-3957167f4833",
             "type": "scope_type",
             "code": "I-OS",
-            "title": "操作系统",
+            "title": "操作系统（主机/终端）",
             "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "操作系统（主机/终端）",
+            "status": ""
           },
           "services": [
             {
@@ -2041,6 +1941,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    72
                   ]
                 }
               ],
@@ -2059,7 +1962,9 @@
             "code": "I-US",
             "title": "用户",
             "description": "安全能力作用于组织内人员或人使用的账号等对象。",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "用户",
+            "status": ""
           },
           "services": [
             {
@@ -2096,6 +2001,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    74
                   ]
                 }
               ],

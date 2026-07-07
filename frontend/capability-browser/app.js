@@ -76,11 +76,18 @@ const state = {
   userNotesLoaded: false,
   userNotesLoadPromise: null,
   userNotesExporting: false,
+  userNotesExportStatus: null,
+  workbenchIssueExporting: false,
+  workbenchIssueExportStatus: null,
   workbenchIssueStatusFilter: "全部",
   workbenchIssuePageFilter: "全部",
   workbenchIssuePriorityFilter: "全部",
   workbenchIssueSearch: "",
   workbenchSelectedIssueId: "",
+  workbenchSelectedIssueIds: new Set(),
+  workbenchIssueSortKey: "updated",
+  workbenchIssueSortDirection: "desc",
+  workbenchPendingDeleteIssueId: "",
   workbenchIssueSaving: false,
   activeUserTarget: null,
   activePageAnnotationTarget: null,
@@ -311,16 +318,14 @@ function restoreSearchInputFocus(inputId = "", cursor = null) {
   });
 }
 
-function queuePageSearchReveal(value, scope = searchScopeForCurrentState()) {
+function queuePageSearchReveal(value, scope = searchScopeForCurrentState(), options = {}) {
   const query = text(value).trim();
-  const current = state.pageSearchNavigation || {};
+  const current = state.pageSearchNavigation || {}, revealOptions = options && typeof options === "object" ? options : {};
   const activeIndex = current.scope === scope && current.query === query ? Number(current.index) || 0 : 0;
+  const index = Number.isFinite(Number(revealOptions.index)) ? Number(revealOptions.index) : activeIndex;
   state.pageSearchNavigation = query ? { scope, query, index: activeIndex, count: 0 } : { scope, query: "", index: 0, count: 0 };
-  state.pendingPageSearchReveal = query ? { scope, query, index: activeIndex } : null;
-  if (!query) {
-    clearPageSearchHighlights();
-    updatePageSearchControls();
-  }
+  state.pendingPageSearchReveal = query ? { ...revealOptions, scope, query, index } : null;
+  if (!query) { clearPageSearchHighlights(); updatePageSearchControls(); }
 }
 
 function pageSearchQueryForScope(scope = searchScopeForCurrentState()) {
@@ -1375,9 +1380,9 @@ function flattenStandardSearchItems(standards) {
           typeLabel: "标准控制项",
           route: framework.route || `/standards/${frameworkId}`,
           standardFramework: frameworkId,
-          standardTableId: tableId,
+          standardTableId: tableId || frameworkId,
           selectedMaintenanceId: id,
-          targetText: title,
+          targetText: title, targetRef: `standard_control:${frameworkId}:${tableId || frameworkId}:${id}`, objectType: "standard_control", objectId: id,
           subtitle: [frameworkTitle, tableTitle].filter(Boolean).join(" / "),
           searchText: compactSearchText(code, title, Object.values(values || {})),
         });
@@ -2517,7 +2522,34 @@ function environmentSearchValueTargetElement(result = {}) {
   return candidates.find((node) => text(node.getAttribute("data-copy-text")).toLowerCase().includes(normalized)) || null;
 }
 
+function standardSearchTargetElement(result = {}) {
+  const targetRef = text(result.targetRef || result.target_ref).trim();
+  const rowId = standardSearchRowId(result, targetRef);
+  const rowCode = text(result.code || result.targetText || result.target_text || "").trim();
+  const selectors = [targetRef && ["data-standard-target-ref", targetRef], rowId && ["data-standard-row-id", rowId], rowId && ["data-maintenance-id", rowId], rowCode && ["data-standard-row-code", rowCode]].filter(Boolean);
+  for (const [attributeName, value] of selectors) {
+    const target = findElementByDataAttr(attributeName, value);
+    if (target) return target;
+  }
+  return null;
+}
+
+function standardSearchRowId(result = {}, targetRef = text(result.targetRef || result.target_ref).trim()) {
+  return text(result.selectedMaintenanceId || result.objectId || result.object_id || (targetRef.startsWith("standard_control:") ? targetRef.split(":").slice(3).join(":") : "")).trim();
+}
+
+function globalSearchPageRevealOptions(result = {}) {
+  const targetRef = text(result.targetRef || result.target_ref).trim();
+  if (!targetRef.startsWith("standard_control:")) return {};
+  const rowId = standardSearchRowId(result, targetRef);
+  return rowId ? { targetAttribute: "data-standard-row-id", targetId: rowId } : { targetAttribute: "data-standard-target-ref", targetId: targetRef };
+}
+
 function globalSearchTargetElement(result = {}) {
+  if (text(result.targetRef || result.target_ref).trim().startsWith("standard_control:")) {
+    const target = standardSearchTargetElement(result);
+    if (target) return target;
+  }
   if (result.selectedCapabilityId) {
     if (/^capability_relation:/.test(text(result.targetRef || result.target_ref))) {
       const valueTarget = capabilitySearchValueTargetElement(result);
@@ -2626,7 +2658,7 @@ function activateGlobalSearchResult(result) {
   if (result.referenceTab) state.activeReferenceTab = result.referenceTab;
   clearDestinationSearchForGlobalActivation(result.route);
   if (activationQuery && routeHasPageSearch(result.route)) {
-    queuePageSearchReveal(activationQuery);
+    queuePageSearchReveal(activationQuery, searchScopeForCurrentState(), globalSearchPageRevealOptions(result));
   }
   if (result.selectedCapabilityId) {
     state.selectedCapabilityId = result.selectedCapabilityId;
@@ -5764,6 +5796,7 @@ function syncUserNotesExportButton() {
   document.querySelectorAll("[data-user-notes-export]").forEach((exportButton) => {
     exportButton.disabled = Boolean(state.userNotesExporting);
     exportButton.textContent = state.userNotesExporting ? "导出中..." : "导出全部";
+    exportButton.classList.toggle("is-exporting", Boolean(state.userNotesExporting));
   });
 }
 
@@ -5774,27 +5807,32 @@ async function handleUserNotesExport() {
     return;
   }
   state.userNotesExporting = true;
+  state.workbenchIssueExportStatus = null;
+  state.userNotesExportStatus = { state: "running", message: "正在导出全部批注..." };
   syncUserNotesExportButton();
+  syncWorkbenchIssueHeaderControls();
   try {
-    const result = await dataClient.exportUserNotes({ download: true });
+    const result = await dataClient.exportUserNotes({ save: true });
     if (result?.ok === false) throw new Error(result.error || "导出失败");
-    if (!result?.blob || !(result.blob instanceof Blob)) {
-      throw new Error("导出响应无文件内容");
-    }
-    downloadBlobFile(result.blob, result.filename || userNotesExportFileNameFallback());
+    const outputPath = text(result?.output_path).trim();
+    state.userNotesExportStatus = {
+      state: "success",
+      message: outputPath ? `已导出全部批注到：${outputPath}` : "已导出全部批注。",
+      outputPath,
+    };
   } catch (error) {
     console.warn("用户 Issue 导出失败", error);
+    state.userNotesExportStatus = { state: "error", message: `Issue 导出失败：${text(error?.message || error) || "请检查应用服务是否可用"}` };
     window.alert(`Issue 导出失败：${text(error?.message || error) || "请检查应用服务是否可用"}`);
   } finally {
     state.userNotesExporting = false;
     syncUserNotesExportButton();
+    syncWorkbenchIssueHeaderControls();
   }
 }
 
 function workbenchSelectedIssueRows() {
-  const selectedIds = Array.from(activeWorkbenchReviewPage()?.querySelectorAll(".workbench-review-checkbox:checked") || [])
-    .map((checkbox) => text(checkbox.dataset.noteId).trim())
-    .filter(Boolean);
+  const selectedIds = Array.from(state.workbenchSelectedIssueIds || []).map((noteId) => text(noteId).trim()).filter(Boolean);
   if (!selectedIds.length) return [];
   const selectedIdSet = new Set(selectedIds);
   return workbenchAllIssueRows().filter((issue) => selectedIdSet.has(issue.id));
@@ -5826,16 +5864,43 @@ function workbenchIssueExportFilename(prefix = "sapd-issues-selected") {
   return `${prefix}-${iso.slice(0, 4)}${iso.slice(5, 7)}${iso.slice(8, 10)}-${iso.slice(11, 13)}${iso.slice(14, 16)}${iso.slice(17, 19)}Z.md`;
 }
 
-function handleWorkbenchIssueSelectedExport() {
+async function handleWorkbenchIssueSelectedExport() {
   const rows = workbenchSelectedIssueRows();
   if (!rows.length) {
     setWorkbenchReviewWarning("请先勾选需要导出的 Issue。", true);
     syncWorkbenchIssueHeaderControls();
     return;
   }
+  const dataClient = window.sapdDataClient;
+  if (!dataClient?.saveMarkdownExport) {
+    window.alert("当前运行环境未提供 Issue 导出能力。");
+    return;
+  }
+  state.workbenchIssueExporting = true;
+  state.userNotesExportStatus = null;
+  state.workbenchIssueExportStatus = { state: "running", message: `正在导出已选 ${formatNumber(rows.length)} 条 Issue...` };
+  syncWorkbenchIssueHeaderControls();
   const markdown = workbenchIssueExportMarkdown(rows, "SAPD Wiki 所选 Issue");
-  const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
-  downloadBlobFile(blob, workbenchIssueExportFilename());
+  try {
+    const result = await dataClient.saveMarkdownExport({
+      filename_prefix: "sapd-issues-selected",
+      content: markdown,
+    });
+    if (result?.ok === false) throw new Error(result.error || "导出失败");
+    const outputPath = text(result?.output_path).trim();
+    state.workbenchIssueExportStatus = {
+      state: "success",
+      message: outputPath ? `已导出所选 Issue 到：${outputPath}` : "已导出所选 Issue。",
+      outputPath,
+    };
+  } catch (error) {
+    console.warn("所选 Issue 导出失败", error);
+    state.workbenchIssueExportStatus = { state: "error", message: `所选 Issue 导出失败：${text(error?.message || error) || "请检查应用服务是否可用"}` };
+    window.alert(`所选 Issue 导出失败：${text(error?.message || error) || "请检查应用服务是否可用"}`);
+  } finally {
+    state.workbenchIssueExporting = false;
+    syncWorkbenchIssueHeaderControls();
+  }
 }
 
 function favoriteForTarget(targetRef) {
@@ -8437,6 +8502,33 @@ const WORKBENCH_ISSUE_STATUS_BY_LABEL = Object.fromEntries(
   Object.entries(WORKBENCH_ISSUE_STATUS_LABELS).map(([value, label]) => [label, value]),
 );
 
+const WORKBENCH_ISSUE_STATUS_SORT_ORDER = {
+  todo: 10,
+  reviewing: 20,
+  waiting_confirm: 30,
+  confirmed: 40,
+  deferred: 50,
+  closed: 60,
+};
+
+const WORKBENCH_ISSUE_PRIORITY_SORT_ORDER = {
+  "高": 10,
+  "未标注": 20,
+  "低": 30,
+};
+
+const WORKBENCH_ISSUE_PRIORITY_TAGS = ["高优先级", "低优先级"];
+
+const WORKBENCH_ISSUE_SORT_COLUMNS = [
+  { key: "title", label: "Issue", type: "text", defaultDirection: "asc" },
+  { key: "pageObject", label: "所属页面 / 对象", type: "text", defaultDirection: "asc" },
+  { key: "status", label: "状态", type: "workflow", defaultDirection: "asc" },
+  { key: "priority", label: "优先级", type: "priority", defaultDirection: "asc" },
+  { key: "updated", label: "更新时间", type: "time", defaultDirection: "desc" },
+];
+
+const WORKBENCH_ISSUE_SORT_COLUMN_MAP = Object.fromEntries(WORKBENCH_ISSUE_SORT_COLUMNS.map((column) => [column.key, column]));
+
 function workbenchIssueStatusLabel(status = "") {
   const normalized = text(status || "todo").trim();
   return WORKBENCH_ISSUE_STATUS_LABELS[normalized] || WORKBENCH_ISSUE_STATUS_LABELS.todo;
@@ -8460,11 +8552,28 @@ function workbenchIssueUpdatedLabel(note = {}) {
   return normalized.slice(0, 16);
 }
 
+function workbenchIssueTagList(note = {}) {
+  return list(note.tags).map((item) => text(item).trim()).filter(Boolean);
+}
+
 function workbenchIssuePriority(note = {}) {
-  const haystack = [note.priority, note.severity, note.body, note.object_title, ...list(note.tags)].map(text).join(" ");
+  const tags = workbenchIssueTagList(note);
+  if (tags.includes("高优先级")) return "高";
+  if (tags.includes("低优先级")) return "低";
+  const haystack = [note.priority, note.severity, note.body, note.object_title, ...tags].map(text).join(" ");
   if (/(高优先级|紧急|严重|阻塞|P0|P1|high|urgent|blocker)/i.test(haystack)) return "高";
   if (/(低优先级|可后置|low|later)/i.test(haystack)) return "低";
   return "未标注";
+}
+
+function workbenchIssueTagsWithPriority(tags = [], priority = "未标注") {
+  const normalizedPriority = text(priority || "未标注").trim() || "未标注";
+  const nextTags = list(tags)
+    .map((item) => text(item).trim())
+    .filter((item) => item && !WORKBENCH_ISSUE_PRIORITY_TAGS.includes(item));
+  if (normalizedPriority === "高") nextTags.push("高优先级");
+  if (normalizedPriority === "低") nextTags.push("低优先级");
+  return Array.from(new Set(nextTags));
 }
 
 function workbenchIssueTitle(note = {}, index = 0) {
@@ -8481,7 +8590,7 @@ function workbenchIssuePageLabel(note = {}) {
 }
 
 function workbenchIssueTagsLabel(note = {}) {
-  const tags = list(note.tags).map((item) => text(item).trim()).filter(Boolean);
+  const tags = workbenchIssueTagList(note);
   return tags.length ? tags.join(" / ") : "无标签";
 }
 
@@ -8513,10 +8622,61 @@ function workbenchAllIssueRows() {
         anchorType: text(note.anchor_type || "object").trim() || "object",
         objectType: text(note.object_type || "").trim() || "unknown",
         tags: workbenchIssueTagsLabel(note),
+        tagsList: workbenchIssueTagList(note),
       };
     })
     .filter((row) => row.id);
-  return rows.sort((a, b) => text(b.note.updated_at || b.note.created_at).localeCompare(text(a.note.updated_at || a.note.created_at)));
+  return rows.sort(compareWorkbenchIssueRows);
+}
+
+function workbenchIssueDateValue(issue = {}) {
+  const raw = text(issue.note?.updated_at || issue.note?.created_at || issue.updated).trim();
+  const timestamp = raw ? Date.parse(raw) : NaN;
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function workbenchIssueSortText(issue = {}, key = "title") {
+  if (key === "pageObject") return `${text(issue.page)} ${text(issue.object)}`.trim();
+  return text(issue[key]).trim();
+}
+
+function workbenchIssueSortRank(issue = {}, key = "updated") {
+  if (key === "updated") return workbenchIssueDateValue(issue);
+  if (key === "status") return WORKBENCH_ISSUE_STATUS_SORT_ORDER[issue.statusValue] ?? 999;
+  if (key === "priority") return WORKBENCH_ISSUE_PRIORITY_SORT_ORDER[issue.priority] ?? 999;
+  return workbenchIssueSortText(issue, key);
+}
+
+function compareWorkbenchIssueRows(left, right) {
+  const key = WORKBENCH_ISSUE_SORT_COLUMN_MAP[state.workbenchIssueSortKey]?.key || "updated";
+  const direction = state.workbenchIssueSortDirection === "asc" ? 1 : -1;
+  const leftValue = workbenchIssueSortRank(left, key);
+  const rightValue = workbenchIssueSortRank(right, key);
+  let result = 0;
+  if (typeof leftValue === "number" && typeof rightValue === "number") result = leftValue - rightValue;
+  else result = text(leftValue).localeCompare(text(rightValue), "zh-Hans-CN", { numeric: true, sensitivity: "base" });
+  if (result !== 0) return result * direction;
+  return (
+    text(left.title).localeCompare(text(right.title), "zh-Hans-CN", { numeric: true, sensitivity: "base" }) ||
+    text(left.id).localeCompare(text(right.id), "zh-Hans-CN")
+  );
+}
+
+function setWorkbenchIssueSort(key = "updated") {
+  const column = WORKBENCH_ISSUE_SORT_COLUMN_MAP[key] || WORKBENCH_ISSUE_SORT_COLUMN_MAP.updated;
+  if (state.workbenchIssueSortKey === column.key) {
+    state.workbenchIssueSortDirection = state.workbenchIssueSortDirection === "asc" ? "desc" : "asc";
+  } else {
+    state.workbenchIssueSortKey = column.key;
+    state.workbenchIssueSortDirection = column.defaultDirection || "asc";
+  }
+  state.workbenchPendingDeleteIssueId = "";
+}
+
+function workbenchIssueById(noteId = "") {
+  const normalized = text(noteId).trim();
+  if (!normalized) return null;
+  return workbenchAllIssueRows().find((issue) => issue.id === normalized) || null;
 }
 
 function workbenchIssueMatchesFilters(issue) {
@@ -8540,10 +8700,15 @@ function workbenchIssueRows() {
   const rows = workbenchAllIssueRows();
   const filteredRows = rows.filter(workbenchIssueMatchesFilters);
   const selectedStillVisible = filteredRows.some((issue) => issue.id === state.workbenchSelectedIssueId);
-  if (!selectedStillVisible) state.workbenchSelectedIssueId = filteredRows[0]?.id || "";
-  return filteredRows.map((issue, index) => ({
+  if (!selectedStillVisible) state.workbenchSelectedIssueId = "";
+  const visibleIds = new Set(filteredRows.map((issue) => issue.id));
+  for (const noteId of Array.from(state.workbenchSelectedIssueIds || [])) {
+    if (!visibleIds.has(noteId)) state.workbenchSelectedIssueIds.delete(noteId);
+  }
+  return filteredRows.map((issue) => ({
     ...issue,
-    selected: state.workbenchSelectedIssueId ? issue.id === state.workbenchSelectedIssueId : index === 0,
+    selected: Boolean(state.workbenchSelectedIssueId) && issue.id === state.workbenchSelectedIssueId,
+    checked: state.workbenchSelectedIssueIds?.has(issue.id) || false,
   }));
 }
 
@@ -8581,6 +8746,13 @@ function renderWorkbenchIssueStatusCapsules(summary = workbenchIssueSummary()) {
     .join("");
 }
 
+function renderWorkbenchExportStatus() {
+  const status = state.workbenchIssueExportStatus || state.userNotesExportStatus;
+  if (!status?.message) return "";
+  const statusName = text(status.state || "idle").trim();
+  return `<div class="workbench-export-status ${statusName ? `is-${escapeHtml(statusName)}` : ""}" title="${escapeHtml(status.outputPath || status.message)}">${escapeHtml(status.message)}</div>`;
+}
+
 function syncWorkbenchIssueHeaderControls() {
   const statsHost = $("workbenchIssueHeaderStats");
   const actionsHost = $("workbenchIssueHeaderActions");
@@ -8592,10 +8764,13 @@ function syncWorkbenchIssueHeaderControls() {
   }
   if (statsHost) statsHost.innerHTML = renderWorkbenchIssueStatusCapsules(workbenchIssueSummary(workbenchAllIssueRows()));
   if (actionsHost) {
-    const selectedCount = activeWorkbenchReviewPage()?.querySelectorAll(".workbench-review-checkbox:checked").length || 0;
+    const selectedCount = state.workbenchSelectedIssueIds?.size || 0;
+    const exporting = Boolean(state.userNotesExporting || state.workbenchIssueExporting);
+    const selectedLabel = state.workbenchIssueExporting ? "导出中..." : `导出所选${selectedCount ? ` ${escapeHtml(formatNumber(selectedCount))}` : ""}`;
     actionsHost.innerHTML = `
       <button class="workbench-prototype-action" type="button" data-user-notes-export>导出全部</button>
-      <button class="workbench-prototype-action is-secondary" type="button" data-review-export-selected ${selectedCount ? "" : "disabled"} title="${selectedCount ? `导出已选 ${selectedCount} 条 Issue` : "请先勾选需要导出的 Issue"}">导出所选${selectedCount ? ` ${escapeHtml(formatNumber(selectedCount))}` : ""}</button>
+      <button class="workbench-prototype-action is-secondary ${state.workbenchIssueExporting ? "is-exporting" : ""}" type="button" data-review-export-selected ${selectedCount && !exporting ? "" : "disabled"} title="${selectedCount ? `导出已选 ${selectedCount} 条 Issue` : "请先勾选需要导出的 Issue"}">${selectedLabel}</button>
+      ${renderWorkbenchExportStatus()}
     `;
     syncUserNotesExportButton();
   }
@@ -8631,9 +8806,35 @@ function renderWorkbenchPill(value, kind = "status") {
   return `<span class="workbench-prototype-pill${tone ? ` ${tone}` : ""}">${escapeHtml(value)}</span>`;
 }
 
+function renderWorkbenchIssueSortableHead(column) {
+  const active = state.workbenchIssueSortKey === column.key;
+  const direction = active ? state.workbenchIssueSortDirection : column.defaultDirection;
+  const arrow = active ? (direction === "asc" ? "↑" : "↓") : "↕";
+  return `
+    <button class="workbench-review-sort-button ${active ? "is-active" : ""}" type="button"
+      data-review-sort-key="${escapeHtml(column.key)}"
+      aria-label="按${escapeHtml(column.label)}排序，当前排序类型：${escapeHtml(column.type)}">
+      <span>${escapeHtml(column.label)}</span><small>${escapeHtml(arrow)}</small>
+    </button>
+  `;
+}
+
+function renderWorkbenchIssueQueueHead(issues = []) {
+  const selectedVisibleCount = issues.filter((issue) => state.workbenchSelectedIssueIds?.has(issue.id)).length;
+  const allVisibleSelected = Boolean(issues.length) && selectedVisibleCount === issues.length;
+  return `
+    <div class="workbench-review-queue-head" role="row">
+      <label class="workbench-review-select-all-shell" title="全选或取消当前筛选下的 Issue">
+        <input class="workbench-review-select-all" type="checkbox" data-review-select-all aria-label="全选或取消当前筛选下的 Issue"${allVisibleSelected ? " checked" : ""} />
+      </label>
+      ${WORKBENCH_ISSUE_SORT_COLUMNS.map(renderWorkbenchIssueSortableHead).join("")}
+    </div>
+  `;
+}
+
 function renderWorkbenchIssueItem(issue, index) {
   return `
-    <article class="workbench-review-item ${issue.selected ? "is-active" : ""}" role="button" tabindex="0" data-review-item
+    <article class="workbench-review-item ${issue.selected ? "is-active" : ""} ${issue.checked ? "is-checked" : ""}" role="button" tabindex="0" data-review-item
       data-note-id="${escapeHtml(issue.id)}"
       data-title="${escapeHtml(issue.title)}"
       data-body="${escapeHtml(issue.body)}"
@@ -8648,7 +8849,7 @@ function renderWorkbenchIssueItem(issue, index) {
       data-tags="${escapeHtml(issue.tags)}"
       data-created="${escapeHtml(issue.created)}"
       data-updated="${escapeHtml(issue.updated)}">
-      <input class="workbench-review-checkbox" type="checkbox" aria-label="选择 ${escapeHtml(issue.title)}" data-note-id="${escapeHtml(issue.id)}" />
+      <input class="workbench-review-checkbox" type="checkbox" aria-label="选择 ${escapeHtml(issue.title)}" data-note-id="${escapeHtml(issue.id)}"${issue.checked ? " checked" : ""} />
       <span class="workbench-review-item-title"><strong>${escapeHtml(issue.title)}</strong><span>${escapeHtml(issue.summary)}</span></span>
       <span class="workbench-review-item-meta">${escapeHtml(issue.page)}<br />${escapeHtml(issue.object)}</span>
       ${renderWorkbenchPill(issue.status)}
@@ -8658,12 +8859,101 @@ function renderWorkbenchIssueItem(issue, index) {
   `;
 }
 
+function workbenchIssuePageObjectLabel(issue = {}) {
+  return [issue.page, issue.object].map((item) => text(item).trim()).filter(Boolean).join(" / ") || "-";
+}
+
+function renderWorkbenchIssueStatusOptions(activeStatusValue = "todo") {
+  return Object.entries(WORKBENCH_ISSUE_STATUS_LABELS)
+    .map(([value, label]) => `<option value="${escapeHtml(value)}"${value === activeStatusValue ? " selected" : ""}>${escapeHtml(label)}</option>`)
+    .join("");
+}
+
+function renderWorkbenchIssuePriorityOptions(activePriority = "未标注") {
+  return ["高", "未标注", "低"]
+    .map((value) => `<option value="${escapeHtml(value)}"${value === activePriority ? " selected" : ""}>${escapeHtml(value)}</option>`)
+    .join("");
+}
+
+function renderWorkbenchIssueDeleteDialog() {
+  const issue = workbenchIssueById(state.workbenchPendingDeleteIssueId);
+  if (!issue?.id) return "";
+  const title = escapeHtml(issue.title || "当前 Issue");
+  return `<div class="workbench-review-dialog-backdrop" data-review-delete-backdrop><section class="workbench-review-dialog" role="dialog" aria-modal="true" aria-labelledby="workbenchReviewDeleteTitle" aria-describedby="workbenchReviewDeleteDescription"><span class="workbench-review-dialog-kicker">删除确认</span><h3 id="workbenchReviewDeleteTitle">删除 Issue</h3><p id="workbenchReviewDeleteDescription">确认删除「${title}」？此操作会写入本地用户库，删除后不会再出现在 Issue 清单。</p><div class="workbench-review-dialog-actions"><button class="workbench-prototype-action is-secondary" type="button" data-review-delete-cancel>取消</button><button class="workbench-prototype-action is-danger" type="button" data-review-delete-confirm>确认删除</button></div></section></div>`;
+}
+
+function renderWorkbenchIssueDetailInspector(issue = {}) {
+  return `
+    <div class="workbench-review-form">
+      <div class="workbench-review-field"><label>Issue 标题</label><input class="workbench-review-input" value="${escapeHtml(issue.title)}" data-review-field="title" readonly /></div>
+      <div class="workbench-review-field"><label>Issue 内容</label><textarea class="workbench-review-textarea" data-review-field="body">${escapeHtml(issue.body)}</textarea></div>
+      <div class="workbench-review-form-row">
+        <div class="workbench-review-field"><label>状态</label><select class="workbench-review-select" data-review-field="status">${renderWorkbenchIssueStatusOptions(issue.statusValue)}</select></div>
+        <div class="workbench-review-field"><label>优先级</label><select class="workbench-review-select" data-review-field="priority">${renderWorkbenchIssuePriorityOptions(issue.priority)}</select></div>
+      </div>
+      <div class="workbench-review-field"><label>关联页面/对象</label><span class="workbench-review-field-value" data-review-field="pageObject">${escapeHtml(workbenchIssuePageObjectLabel(issue))}</span></div>
+      <div class="workbench-review-field"><label>标签</label><span class="workbench-review-field-value" data-review-field="tags">${escapeHtml(issue.tags)}</span></div>
+      <div class="workbench-review-field">
+        <label>状态流转记录</label>
+        <div class="workbench-review-timeline">
+          <span>创建：${escapeHtml(issue.created || "-")}</span>
+          <span>更新：${escapeHtml(issue.updated || "-")}</span>
+          <span>当前状态：${escapeHtml(issue.status)}</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderWorkbenchIssueDetailActions() {
+  return `<div class="workbench-review-inspector-actions"><button class="workbench-prototype-action" type="button" data-review-save>${escapeHtml(state.workbenchIssueSaving ? "保存中" : "保存")}</button><button class="workbench-prototype-action is-secondary" type="button" data-review-cancel>取消</button><button class="workbench-prototype-action is-secondary" type="button" data-review-status-action="confirmed">标记已采纳</button><button class="workbench-prototype-action is-secondary" type="button" data-review-status-action="deferred">忽略</button><button class="workbench-prototype-action is-secondary" type="button" data-review-delete>删除</button></div>`;
+}
+
+function renderWorkbenchIssueBatchInspector(selectedRows = []) {
+  const statusSummary = Object.values(WORKBENCH_ISSUE_STATUS_LABELS)
+    .map((label) => [label, selectedRows.filter((issue) => issue.status === label).length])
+    .filter(([, count]) => count > 0);
+  const previewRows = selectedRows.slice(0, 5);
+  return `
+    <div class="workbench-review-batch-panel">
+      <div class="workbench-review-batch-summary">
+        <strong>已选择 ${escapeHtml(formatNumber(selectedRows.length))} 条 Issue</strong>
+        <span>批量操作会写入本地用户库；如需编辑正文，请只打开单条 Issue。</span>
+      </div>
+      <div class="workbench-review-batch-stats">
+        ${statusSummary.map(([label, count]) => `<span>${escapeHtml(label)} <strong>${escapeHtml(formatNumber(count))}</strong></span>`).join("")}
+      </div>
+      <div class="workbench-review-batch-list" aria-label="已选择的 Issue 摘要">
+        ${previewRows.map((issue) => `<span>${escapeHtml(issue.title)}<small>${escapeHtml(workbenchIssuePageObjectLabel(issue))}</small></span>`).join("")}
+        ${selectedRows.length > previewRows.length ? `<span class="is-more">还有 ${escapeHtml(formatNumber(selectedRows.length - previewRows.length))} 条</span>` : ""}
+      </div>
+    </div>
+  `;
+}
+
+function renderWorkbenchIssueBatchActions() {
+  return `<div class="workbench-review-inspector-actions is-batch"><button class="workbench-prototype-action is-secondary" type="button" data-review-bulk-status="closed">全部关闭</button><button class="workbench-prototype-action is-secondary" type="button" data-review-bulk-status="reviewing">改为处理中</button><button class="workbench-prototype-action is-secondary" type="button" data-review-bulk-status="deferred">全部忽略</button><button class="workbench-prototype-action is-secondary" type="button" data-review-bulk-status="confirmed">标记已采纳</button><button class="workbench-prototype-action is-secondary" type="button" data-review-clear-selection>清除选择</button></div>`;
+}
+
+function renderWorkbenchIssueEmptyInspector() {
+  return `<div class="workbench-review-empty is-blank">未选择 Issue</div>`;
+}
+
+function renderWorkbenchIssueInspectorContent() {
+  const selectedRows = workbenchSelectedIssueRows();
+  if (selectedRows.length > 1) return renderWorkbenchIssueBatchInspector(selectedRows);
+  const active = workbenchIssueById(state.workbenchSelectedIssueId) || selectedRows[0] || null;
+  if (!active) return renderWorkbenchIssueEmptyInspector();
+  return renderWorkbenchIssueDetailInspector(active);
+}
+
+function renderWorkbenchIssueInspectorActions() { const selectedRows = workbenchSelectedIssueRows(); const active = workbenchIssueById(state.workbenchSelectedIssueId) || selectedRows[0] || null; return selectedRows.length > 1 ? renderWorkbenchIssueBatchActions() : active ? renderWorkbenchIssueDetailActions() : ""; }
+
 function renderWorkbenchIssues() {
   if (!state.userNotesLoaded && !state.userNotesLoadPromise) ensureUserNotesLoaded();
   const allIssues = workbenchAllIssueRows();
   const issues = workbenchIssueRows();
   const summary = workbenchIssueSummary(allIssues);
-  const active = issues.find((issue) => issue.selected) || issues[0];
   const pageGroups = workbenchIssuePageGroups(allIssues);
   const isLoading = state.userWriteStatus.state === "loading" && !state.userNotesLoaded;
   const statusOptions = [
@@ -8686,9 +8976,12 @@ function renderWorkbenchIssues() {
   const activePageFilter = state.workbenchIssuePageFilter || "全部";
   const activePriorityFilter = state.workbenchIssuePriorityFilter || "全部";
   const activePageLabel = activePageFilter !== "全部" ? pageGroups.find((group) => group.pageRoute === activePageFilter)?.page || activePageFilter : "";
+  const selectedIssueCount = state.workbenchSelectedIssueIds?.size || 0;
+  const selectedRowsForInspector = workbenchSelectedIssueRows();
+  const inspectorIssue = selectedRowsForInspector.length > 1 ? null : workbenchIssueById(state.workbenchSelectedIssueId) || selectedRowsForInspector[0] || null;
   const filterChips = [
     activeStatusFilter !== "全部" ? { label: "状态", value: activeStatusFilter } : null,
-    activePageLabel ? { label: "页面", value: activePageLabel } : null,
+    activePageLabel ? { label: "Issue 范围", value: activePageLabel } : null,
     activePriorityFilter !== "全部" ? { label: "优先级", value: activePriorityFilter } : null,
     state.workbenchIssueSearch ? { label: "关键词", value: state.workbenchIssueSearch } : null,
   ].filter(Boolean);
@@ -8716,10 +9009,10 @@ function renderWorkbenchIssues() {
       <div class="workbench-review-bulkbar" data-review-bulkbar>
         <strong data-review-selection-count>已选 0 条</strong>
         <div class="workbench-review-bulk-actions">
+          <button class="workbench-prototype-action is-secondary" type="button" data-review-bulk-status="closed">全部关闭</button>
           <button class="workbench-prototype-action is-secondary" type="button" data-review-bulk-status="reviewing">改为处理中</button>
+          <button class="workbench-prototype-action is-secondary" type="button" data-review-bulk-status="deferred">全部忽略</button>
           <button class="workbench-prototype-action is-secondary" type="button" data-review-bulk-status="confirmed">标记已采纳</button>
-          <button class="workbench-prototype-action is-secondary" type="button" data-review-bulk-status="deferred">忽略</button>
-          <button class="workbench-prototype-action" type="button" data-review-export-selected>导出所选</button>
           <button class="workbench-prototype-action is-secondary" type="button" data-review-clear-selection>清除选择</button>
         </div>
       </div>
@@ -8739,46 +9032,17 @@ function renderWorkbenchIssues() {
         </aside>
         <section class="workbench-review-queue" aria-label="Issue 处理队列">
           <div class="workbench-review-panel-title">Issue 处理队列 <span class="workbench-prototype-pill is-muted" data-review-queue-context>${escapeHtml(queueContext)}</span></div>
-          <div class="workbench-review-queue-head"><span></span><span>Issue</span><span>所属页面 / 对象</span><span>状态</span><span>优先级</span><span>更新时间</span></div>
+          ${renderWorkbenchIssueQueueHead(issues)}
           ${isLoading ? `<div class="workbench-review-loading">正在读取本地 Issue...</div>` : issues.length ? issues.map(renderWorkbenchIssueItem).join("") : `<div class="workbench-review-empty">当前筛选下没有 Issue。</div>`}
         </section>
-        <aside class="workbench-review-inspector" aria-label="Issue 编辑面板" data-review-inspector data-dirty="false" data-note-id="${escapeHtml(active?.id || "")}">
-          <div class="workbench-review-panel-title">选中 Issue <span class="workbench-prototype-pill is-good" data-review-dirty>已保存</span></div>
+        <aside class="workbench-review-inspector" aria-label="Issue 编辑面板" data-review-inspector data-dirty="false" data-note-id="${escapeHtml(inspectorIssue?.id || "")}" data-selected-count="${escapeHtml(String(selectedIssueCount))}">
+          <div class="workbench-review-panel-title">选中 Issue <span class="workbench-prototype-pill ${selectedIssueCount > 1 ? "is-muted" : "is-good"}" data-review-dirty>${selectedIssueCount > 1 ? `${escapeHtml(formatNumber(selectedIssueCount))} 条` : "已保存"}</span></div>
           <div class="workbench-review-warning" data-review-warning hidden>切换 Issue 前，如有未保存内容，需要提示确认。</div>
-          ${
-            active
-              ? `<div class="workbench-review-form">
-            <div class="workbench-review-field"><label>Issue 标题</label><input class="workbench-review-input" value="${escapeHtml(active.title)}" data-review-field="title" readonly /></div>
-            <div class="workbench-review-field"><label>Issue 内容</label><textarea class="workbench-review-textarea" data-review-field="body">${escapeHtml(active.body)}</textarea></div>
-            <div class="workbench-review-form-row">
-              <div class="workbench-review-field"><label>状态</label><select class="workbench-review-select" data-review-field="status">${Object.entries(WORKBENCH_ISSUE_STATUS_LABELS).map(([value, label]) => `<option value="${escapeHtml(value)}"${value === active.statusValue ? " selected" : ""}>${escapeHtml(label)}</option>`).join("")}</select></div>
-              <div class="workbench-review-field"><label>优先级</label><span class="workbench-review-field-value" data-review-field="priority">${escapeHtml(active.priority)}</span></div>
-            </div>
-            <div class="workbench-review-field"><label>关联页面</label><span class="workbench-review-field-value" data-review-field="page">${escapeHtml(active.page)}</span></div>
-            <div class="workbench-review-field"><label>关联对象</label><span class="workbench-review-field-value" data-review-field="object">${escapeHtml(active.object)}</span></div>
-            <div class="workbench-review-field"><label>锚点 / 类型</label><span class="workbench-review-field-value" data-review-field="anchor">${escapeHtml(`${active.anchorType} / ${active.objectType}`)}</span></div>
-            <div class="workbench-review-field"><label>标签</label><span class="workbench-review-field-value" data-review-field="tags">${escapeHtml(active.tags)}</span></div>
-            <div class="workbench-review-field">
-              <label>状态流转记录</label>
-              <div class="workbench-review-timeline">
-                <span>创建：${escapeHtml(active.created || "-")}</span>
-                <span>更新：${escapeHtml(active.updated || "-")}</span>
-                <span>当前状态：${escapeHtml(active.status)}</span>
-              </div>
-            </div>
-            <div class="workbench-review-inspector-actions">
-              <button class="workbench-prototype-action" type="button" data-review-save>${escapeHtml(state.workbenchIssueSaving ? "保存中" : "保存")}</button>
-              <button class="workbench-prototype-action is-secondary" type="button" data-review-cancel>取消</button>
-              <button class="workbench-prototype-action is-secondary" type="button" data-review-status-action="confirmed">标记已采纳</button>
-              <button class="workbench-prototype-action is-secondary" type="button" data-review-status-action="deferred">忽略</button>
-              <button class="workbench-prototype-action is-secondary" type="button" data-review-delete>删除</button>
-            </div>
-          </div>
-        `
-              : `<div class="workbench-review-empty">请选择一个 Issue 查看详情。</div>`
-          }
+          ${renderWorkbenchIssueInspectorActions()}
+          <div class="workbench-review-inspector-content" data-review-inspector-scroll>${renderWorkbenchIssueInspectorContent()}</div>
         </aside>
       </div>
+      ${renderWorkbenchIssueDeleteDialog()}
     </section>
   `;
 }
@@ -8916,6 +9180,7 @@ function renderWorkbench() {
   setHtml("workbenchWorkspace", (templates[routeType] || renderWorkbenchHome)());
   updateWorkbenchReviewSelection();
   syncWorkbenchIssueHeaderControls();
+  requestAnimationFrame(updateWorkbenchPaneScrollAffordance);
 }
 
 function sourceSearchPlaceholder(section = state.activeMaintenancePage) {
@@ -8961,6 +9226,16 @@ function activeWorkbenchReviewPage() {
   return $("workbenchWorkspace")?.querySelector(".workbench-route-page[aria-label='Issue 清单']") || null;
 }
 
+function updateWorkbenchPaneScrollAffordance() {
+  const page = activeWorkbenchReviewPage();
+  if (!page) return;
+  page.querySelectorAll(".workbench-review-scope, .workbench-review-queue, .workbench-review-inspector").forEach((pane) => {
+    const scrollTarget = pane.matches(".workbench-review-inspector") ? pane.querySelector("[data-review-inspector-scroll]") || pane : pane;
+    const hasOverflow = scrollTarget.scrollHeight > scrollTarget.clientHeight + 2;
+    pane.classList.toggle("has-scroll-overflow", hasOverflow);
+  });
+}
+
 function activeWorkbenchReviewItem() {
   return activeWorkbenchReviewPage()?.querySelector("[data-review-item].is-active") || null;
 }
@@ -8971,12 +9246,24 @@ function updateWorkbenchReviewSelection() {
     syncWorkbenchIssueHeaderControls();
     return;
   }
-  const checkedCount = page.querySelectorAll(".workbench-review-checkbox:checked").length;
+  const checkedIds = Array.from(page.querySelectorAll(".workbench-review-checkbox:checked"))
+    .map((checkbox) => text(checkbox.dataset.noteId).trim())
+    .filter(Boolean);
+  state.workbenchSelectedIssueIds = new Set(checkedIds);
+  const checkedCount = state.workbenchSelectedIssueIds.size;
+  const visibleCheckboxes = Array.from(page.querySelectorAll(".workbench-review-checkbox"));
+  const selectAll = page.querySelector("[data-review-select-all]");
+  if (selectAll) {
+    selectAll.checked = Boolean(visibleCheckboxes.length) && checkedCount === visibleCheckboxes.length;
+    selectAll.indeterminate = checkedCount > 0 && checkedCount < visibleCheckboxes.length;
+    selectAll.disabled = visibleCheckboxes.length === 0;
+  }
   const bulkbar = page.querySelector("[data-review-bulkbar]");
   const counter = page.querySelector("[data-review-selection-count]");
   if (counter) counter.textContent = `已选 ${checkedCount} 条`;
   if (bulkbar) bulkbar.hidden = checkedCount === 0;
   syncWorkbenchIssueHeaderControls();
+  updateWorkbenchPaneScrollAffordance();
 }
 
 function setWorkbenchReviewDirty(isDirty) {
@@ -9016,9 +9303,7 @@ function updateWorkbenchReviewInspector(item) {
     body: item.dataset.body,
     status: item.dataset.statusValue,
     priority: item.dataset.priority,
-    page: item.dataset.page,
-    object: item.dataset.object,
-    anchor: `${item.dataset.anchorType || "object"} / ${item.dataset.objectType || "unknown"}`,
+    pageObject: workbenchIssuePageObjectLabel({ page: item.dataset.page, object: item.dataset.object }),
     tags: item.dataset.tags,
   };
   Object.entries(fields).forEach(([key, value]) => {
@@ -9033,26 +9318,34 @@ function updateWorkbenchReviewInspector(item) {
 
 function selectWorkbenchReviewItem(reviewItem) {
   if (!reviewItem) return false;
-  const page = reviewItem.closest(".workbench-route-page");
-  const inspector = page?.querySelector("[data-review-inspector]");
+  const page = reviewItem.closest(".workbench-route-page"), inspector = page?.querySelector("[data-review-inspector]");
   if (!page || !inspector) return false;
   if (inspector.dataset.dirty === "true" && !reviewItem.classList.contains("is-active")) {
     setWorkbenchReviewWarning("当前 Issue 有未保存修改，请先保存或取消，再切换到其他 Issue。", true);
     return false;
   }
-  page.querySelectorAll("[data-review-item]").forEach((item) => item.classList.toggle("is-active", item === reviewItem));
-  state.workbenchSelectedIssueId = text(reviewItem.dataset.noteId).trim();
-  updateWorkbenchReviewInspector(reviewItem);
+  const noteId = text(reviewItem.dataset.noteId).trim();
+  if (!noteId) return false;
+  if (!(state.workbenchSelectedIssueIds instanceof Set)) state.workbenchSelectedIssueIds = new Set();
+  state.workbenchSelectedIssueId = noteId; state.workbenchPendingDeleteIssueId = "";
+  state.workbenchSelectedIssueIds.add(noteId);
+  renderWorkbench();
   return true;
 }
 
 async function saveWorkbenchReviewInspector() {
   const inspector = activeWorkbenchReviewPage()?.querySelector("[data-review-inspector]");
-  const activeItem = activeWorkbenchReviewItem();
-  if (!inspector || !activeItem) return;
-  const noteId = text(inspector.dataset.noteId || activeItem.dataset.noteId).trim();
-  const body = inspector.querySelector('[data-review-field="body"]')?.value || activeItem.dataset.body || "";
-  const statusValue = inspector.querySelector('[data-review-field="status"]')?.value || activeItem.dataset.statusValue || "todo";
+  if (!inspector) return;
+  const noteId = text(inspector.dataset.noteId || activeWorkbenchReviewItem()?.dataset.noteId).trim();
+  const activeItem =
+    activeWorkbenchReviewItem() ||
+    Array.from(activeWorkbenchReviewPage()?.querySelectorAll("[data-review-item]") || []).find((item) => text(item.dataset.noteId).trim() === noteId);
+  if (!noteId) return;
+  const body = inspector.querySelector('[data-review-field="body"]')?.value || activeItem?.dataset.body || "";
+  const statusValue = inspector.querySelector('[data-review-field="status"]')?.value || activeItem?.dataset.statusValue || "todo";
+  const priorityValue = inspector.querySelector('[data-review-field="priority"]')?.value || activeItem?.dataset.priority || "未标注";
+  const sourceIssue = workbenchIssueById(noteId);
+  const tags = workbenchIssueTagsWithPriority(sourceIssue?.tagsList || [], priorityValue);
   const dataClient = window.sapdDataClient;
   if (!noteId || !dataClient?.updateUserNote) {
     setWorkbenchReviewWarning("当前运行环境未提供 Issue 更新能力。", true);
@@ -9062,7 +9355,7 @@ async function saveWorkbenchReviewInspector() {
   setWorkbenchReviewWarning("正在保存到本地用户库...", false);
   renderWorkbench();
   try {
-    const envelope = await dataClient.updateUserNote(noteId, { body, status: statusValue });
+    const envelope = await dataClient.updateUserNote(noteId, { body, status: statusValue, tags });
     if (envelope?.data?.ok === false) throw new Error(envelope.data.error || "update note failed");
     upsertNoteInState(envelope?.data?.note);
     state.workbenchSelectedIssueId = noteId;
@@ -9079,11 +9372,8 @@ async function saveWorkbenchReviewInspector() {
 }
 
 async function handleWorkbenchIssueBulkStatus(statusValue = "") {
-  const page = activeWorkbenchReviewPage();
   const dataClient = window.sapdDataClient;
-  const noteIds = Array.from(page?.querySelectorAll(".workbench-review-checkbox:checked") || [])
-    .map((checkbox) => text(checkbox.dataset.noteId).trim())
-    .filter(Boolean);
+  const noteIds = Array.from(state.workbenchSelectedIssueIds || []).map((noteId) => text(noteId).trim()).filter(Boolean);
   if (!noteIds.length) return;
   if (!dataClient?.updateUserNote) {
     setWorkbenchReviewWarning("当前运行环境未提供 Issue 更新能力。", true);
@@ -9096,6 +9386,8 @@ async function handleWorkbenchIssueBulkStatus(statusValue = "") {
     results.forEach((envelope) => {
       if (envelope?.data?.note) upsertNoteInState(envelope.data.note);
     });
+    state.workbenchSelectedIssueIds = new Set();
+    state.workbenchSelectedIssueId = "";
     state.workbenchIssueSaving = false;
     renderWorkbench();
     setWorkbenchReviewWarning(`已批量更新 ${noteIds.length} 条 Issue。`, false);
@@ -9111,7 +9403,14 @@ async function handleWorkbenchIssueDelete() {
   const inspector = activeWorkbenchReviewPage()?.querySelector("[data-review-inspector]");
   const noteId = text(inspector?.dataset.noteId || state.workbenchSelectedIssueId).trim();
   if (!noteId) return;
-  if (!window.confirm?.("确认删除当前 Issue？此操作会写入本地用户库。")) return;
+  state.workbenchPendingDeleteIssueId = noteId;
+  renderWorkbench();
+}
+
+async function confirmWorkbenchIssueDelete() {
+  const inspector = activeWorkbenchReviewPage()?.querySelector("[data-review-inspector]");
+  const noteId = text(inspector?.dataset.noteId || state.workbenchPendingDeleteIssueId || state.workbenchSelectedIssueId).trim();
+  if (!noteId) return;
   const dataClient = window.sapdDataClient;
   if (!dataClient?.deleteUserNote) {
     setWorkbenchReviewWarning("当前运行环境未提供 Issue 删除能力。", true);
@@ -9123,11 +9422,14 @@ async function handleWorkbenchIssueDelete() {
     if (envelope?.data?.ok === false) throw new Error(envelope.data.error || "delete note failed");
     removeNoteFromState(noteId);
     state.workbenchSelectedIssueId = "";
+    state.workbenchSelectedIssueIds?.delete(noteId);
+    state.workbenchPendingDeleteIssueId = "";
     state.workbenchIssueSaving = false;
     renderWorkbench();
     setWorkbenchReviewWarning("Issue 已删除。", false);
   } catch (error) {
     console.warn("工作台 Issue 删除失败", error);
+    state.workbenchPendingDeleteIssueId = "";
     state.workbenchIssueSaving = false;
     renderWorkbench();
     setWorkbenchReviewWarning(`删除失败：${text(error?.message || error) || "请检查本地服务"}`, true);
@@ -9142,7 +9444,8 @@ function mountAppShellComponents() {
     activeEnvironmentTab: state.activeEnvironmentTab,
   });
   components.AppShell?.mountCapabilityWorkspace($("capabilityWorkspace"));
-  if ($("localModeStatus")) setHtml("localModeStatus", components.AppShell?.renderLocalModeStatus?.() || "");
+  if ($("localModeStatus")) setHtml("localModeStatus", "");
+  components.AppShell?.hydrateLicenseStatus?.();
   syncUserNotesExportButton();
 }
 
@@ -10400,6 +10703,7 @@ function renderMaintenance() {
       components.MaintenanceDetailPanel?.render({ detailPanel: viewModel.detailPanel }) || emptyState("请选择专项对象"),
     );
   }
+  flushPageSearchReveal();
 }
 
 function maintenanceHeaderSummary(viewModel) {
@@ -10836,6 +11140,7 @@ function renderSearchPage() {
   const pageStartIndex = (currentPage - 1) * GLOBAL_SEARCH_PAGE_SIZE;
   const pageStart = pageResults.length ? pageStartIndex + 1 : 0;
   const pageEnd = pageStartIndex + pageResults.length;
+  const compactPage = hasQuery && !isLoading && activeTotal > 0 && activeTotal <= 3;
   const paginationTop = !isLoading && pageResults.length
     ? renderGlobalSearchPagination({ currentPage, pageCount, pageStart, pageEnd, activeTotal, loadedCount, placement: "top" })
     : "";
@@ -10845,7 +11150,7 @@ function renderSearchPage() {
   setHtml(
     "searchWorkspace",
     `
-      <section class="global-search-page">
+      <section class="global-search-page ${compactPage ? "is-compact" : ""}">
         <div class="global-search-page-sticky">
           <div class="global-search-page-toolbar">
             <label class="global-search-page-query" for="searchPageQueryInput">
@@ -11031,6 +11336,9 @@ function bindEvents() {
         state.workbenchIssueStatusFilter = filter;
         state.workbenchIssuePriorityFilter = "全部";
       }
+      state.workbenchSelectedIssueId = "";
+      state.workbenchSelectedIssueIds = new Set();
+      state.workbenchPendingDeleteIssueId = "";
       renderWorkbench();
       return;
     }
@@ -11038,16 +11346,25 @@ function bindEvents() {
     const reviewScopeButton = event.target.closest(".workbench-review-scope-row");
     if (reviewScopeButton && reviewScopeButton.closest("#workbenchWorkspace")) {
       state.workbenchIssuePageFilter = text(reviewScopeButton.dataset.reviewPageRoute || "全部").trim() || "全部";
+      state.workbenchSelectedIssueId = "";
+      state.workbenchSelectedIssueIds = new Set();
+      state.workbenchPendingDeleteIssueId = "";
       renderWorkbench();
       return;
     }
 
     const clearSelectionButton = event.target.closest("[data-review-clear-selection]");
     if (clearSelectionButton && clearSelectionButton.closest("#workbenchWorkspace")) {
-      clearSelectionButton.closest(".workbench-route-page")?.querySelectorAll(".workbench-review-checkbox").forEach((checkbox) => {
-        checkbox.checked = false;
-      });
-      updateWorkbenchReviewSelection();
+      state.workbenchSelectedIssueIds = new Set();
+      state.workbenchPendingDeleteIssueId = "";
+      renderWorkbench();
+      return;
+    }
+
+    const sortButton = event.target.closest("[data-review-sort-key]");
+    if (sortButton && sortButton.closest("#workbenchWorkspace")) {
+      setWorkbenchIssueSort(sortButton.dataset.reviewSortKey);
+      renderWorkbench();
       return;
     }
 
@@ -11057,6 +11374,8 @@ function bindEvents() {
       state.workbenchIssuePageFilter = "全部";
       state.workbenchIssuePriorityFilter = "全部";
       state.workbenchIssueSearch = "";
+      state.workbenchSelectedIssueIds = new Set();
+      state.workbenchPendingDeleteIssueId = "";
       renderWorkbench();
       return;
     }
@@ -11079,8 +11398,8 @@ function bindEvents() {
     }
 
     if (event.target.closest("[data-review-cancel]") && event.target.closest("#workbenchWorkspace")) {
-      const activeItem = activeWorkbenchReviewItem();
-      if (activeItem) updateWorkbenchReviewInspector(activeItem);
+      state.workbenchPendingDeleteIssueId = "";
+      renderWorkbench();
       setWorkbenchReviewWarning("已放弃未保存修改。", false);
       return;
     }
@@ -11092,7 +11411,21 @@ function bindEvents() {
       if (statusField && status) {
         statusField.value = status;
         setWorkbenchReviewDirty(true);
+        saveWorkbenchReviewInspector();
       }
+      return;
+    }
+
+    if (event.target.closest("[data-review-delete-cancel]") && event.target.closest("#workbenchWorkspace")) {
+      state.workbenchPendingDeleteIssueId = ""; renderWorkbench(); return;
+    }
+
+    if (event.target.matches?.("[data-review-delete-backdrop]") && event.target.closest("#workbenchWorkspace")) {
+      state.workbenchPendingDeleteIssueId = ""; renderWorkbench(); return;
+    }
+
+    if (event.target.closest("[data-review-delete-confirm]") && event.target.closest("#workbenchWorkspace")) {
+      confirmWorkbenchIssueDelete();
       return;
     }
 
@@ -11102,7 +11435,7 @@ function bindEvents() {
     }
 
     const reviewItem = event.target.closest("[data-review-item]");
-    if (reviewItem && reviewItem.closest("#workbenchWorkspace") && !event.target.closest("select, textarea, button")) {
+    if (reviewItem && reviewItem.closest("#workbenchWorkspace") && !event.target.closest("input, select, textarea, button")) {
       selectWorkbenchReviewItem(reviewItem);
     }
   });
@@ -11214,6 +11547,7 @@ function bindEvents() {
       openGlobalSearchPage(state.globalSearch);
     }
   });
+  document.addEventListener("pointerdown", (event) => { const resultButton = event.target.closest("[data-global-search-result]"); const result = resultButton ? state.globalSearchResults[Number(resultButton.dataset.globalSearchResult)] : null; if (result) { event.preventDefault(); activateGlobalSearchResult(result); } });
   document.addEventListener("click", (event) => {
     const viewAllButton = event.target.closest("[data-global-search-view-all]");
     if (viewAllButton) {
@@ -11224,8 +11558,7 @@ function bindEvents() {
     }
     const resultButton = event.target.closest("[data-global-search-result]");
     if (resultButton) {
-      const index = Number(resultButton.dataset.globalSearchResult);
-      activateGlobalSearchResult(state.globalSearchResults[index]);
+      activateGlobalSearchResult(state.globalSearchResults[Number(resultButton.dataset.globalSearchResult)]);
       return;
     }
     if (!event.target.closest(".global-search") && !event.target.closest("#globalSearchPanel")) clearGlobalSearchPanel({ keepQuery: true });
@@ -11344,9 +11677,23 @@ function bindEvents() {
     handleUserNoteCreate();
   });
   document.addEventListener("change", (event) => {
-    if (event.target?.matches?.(".workbench-review-checkbox") && event.target.closest("#workbenchWorkspace")) {
-      updateWorkbenchReviewSelection();
+    if (event.target?.matches?.("[data-review-select-all]") && event.target.closest("#workbenchWorkspace")) {
+      const page = event.target.closest(".workbench-route-page");
+      const visibleIds = Array.from(page?.querySelectorAll(".workbench-review-checkbox") || [])
+        .map((checkbox) => text(checkbox.dataset.noteId).trim())
+        .filter(Boolean);
+      state.workbenchSelectedIssueIds = event.target.checked ? new Set(visibleIds) : new Set();
+      state.workbenchSelectedIssueId = "";
+      state.workbenchPendingDeleteIssueId = "";
+      renderWorkbench();
       return;
+    }
+    if (event.target?.matches?.(".workbench-review-checkbox") && event.target.closest("#workbenchWorkspace")) {
+      const noteId = text(event.target.dataset.noteId).trim(), isChecked = Boolean(event.target.checked);
+      updateWorkbenchReviewSelection();
+      if (isChecked && noteId) state.workbenchSelectedIssueId = noteId;
+      else if (state.workbenchSelectedIssueId === noteId) state.workbenchSelectedIssueId = "";
+      state.workbenchPendingDeleteIssueId = ""; renderWorkbench(); return;
     }
     const filterControl = event.target?.closest?.("[data-review-filter-control]");
     if (filterControl && filterControl.closest("#workbenchWorkspace")) {
@@ -11354,6 +11701,8 @@ function bindEvents() {
       if (control === "status") state.workbenchIssueStatusFilter = filterControl.value || "全部";
       if (control === "page") state.workbenchIssuePageFilter = filterControl.value || "全部";
       if (control === "priority") state.workbenchIssuePriorityFilter = filterControl.value || "全部";
+      state.workbenchSelectedIssueIds = new Set();
+      state.workbenchPendingDeleteIssueId = "";
       renderWorkbench();
       return;
     }
@@ -11645,6 +11994,7 @@ function bindEvents() {
     document.querySelectorAll("[data-environment-basemap-viewer][data-basemap-mode='fit']").forEach((viewer) => {
       window.requestAnimationFrame(() => fitEnvironmentBasemapViewer(viewer));
     });
+    window.requestAnimationFrame(updateWorkbenchPaneScrollAffordance);
   });
   document.addEventListener("keydown", (event) => {
     const legendSummary = event.target?.closest?.(".modeling-legend-section-summary");

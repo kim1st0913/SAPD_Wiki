@@ -292,7 +292,8 @@
         "title": "用户",
         "name": "用户",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于组织内人员或人使用的账号等对象。"
       }
     },
     "work_function": {

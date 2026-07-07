@@ -43,6 +43,7 @@
     userFavorites: "/api/v1/user/favorites",
     userNotes: "/api/v1/user/notes",
     userNotesExport: "/api/v1/user/notes/export",
+    userMarkdownExport: "/api/v1/user/exports/markdown",
   };
 
   const API_FETCH_TIMEOUT_MS = 12000;
@@ -1323,13 +1324,21 @@
 
     async exportUserNotes(options = {}) {
       const query = new URLSearchParams();
-      if (options?.download !== false) query.set("download", "1");
+      if (options?.download) {
+        query.set("download", "1");
+      } else {
+        query.set("save", "1");
+      }
       const path = `${API_PATHS.userNotesExport}${query.toString() ? `?${query.toString()}` : ""}`;
       const url = apiUrl(path);
       if (!url) return { ok: false, data_state: "api_unavailable", error: "当前运行模式未提供 Issue 导出服务" };
       try {
-        const response = await fetch(url, { cache: "no-store", headers: { Accept: "text/markdown" } });
+        const accept = options?.download ? "text/markdown" : "application/json";
+        const response = await fetch(url, { cache: "no-store", headers: { Accept: accept } });
         if (!response.ok) return { ok: false, data_state: "api_error", error: `HTTP ${response.status}` };
+        if (!options?.download) {
+          return createEnvelope(await response.json());
+        }
         const blob = await response.blob();
         const contentDisposition = response.headers.get("Content-Disposition") || "";
         const match = /filename\\*=UTF-8''([^;]+)|filename=\"([^\"]+)\"/i.exec(contentDisposition || "");
@@ -1346,6 +1355,20 @@
       } catch (error) {
         return { ok: false, data_state: "api_unavailable", error: error?.message || "用户 Issue 导出失败" };
       }
+    },
+
+    async saveMarkdownExport(payload = {}) {
+      const content = text(payload.content).trim();
+      if (!content) return { ok: false, data_state: "empty", error: "没有可导出的内容" };
+      const result = await fetchUserApi(API_PATHS.userMarkdownExport, {
+        method: "POST",
+        headers: await userWriteHeaders(),
+        body: JSON.stringify({
+          filename_prefix: text(payload.filename_prefix || "sapd-export").trim(),
+          content,
+        }),
+      });
+      return createEnvelope(result);
     },
 
     async createUserNote(payload) {

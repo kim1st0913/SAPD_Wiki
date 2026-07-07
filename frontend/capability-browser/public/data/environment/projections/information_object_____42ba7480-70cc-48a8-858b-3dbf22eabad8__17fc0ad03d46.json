@@ -946,7 +946,8 @@
         "title": "软件应用",
         "name": "软件应用",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象"
       },
       "6f1ef0de-3163-4d38-9626-5625a58948bb": {
         "id": "6f1ef0de-3163-4d38-9626-5625a58948bb",
@@ -955,16 +956,18 @@
         "title": "网络",
         "name": "网络",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于网络流、网络服务等对象。"
       },
       "4abd36d3-4ba1-495c-8fb9-3957167f4833": {
         "id": "4abd36d3-4ba1-495c-8fb9-3957167f4833",
         "type": "scope_type",
         "code": "I-OS",
-        "title": "操作系统",
-        "name": "操作系统",
+        "title": "操作系统（主机/终端）",
+        "name": "操作系统（主机/终端）",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。"
       },
       "6f2a40c5-4e87-4138-836c-83e136a5d69e": {
         "id": "6f2a40c5-4e87-4138-836c-83e136a5d69e",
@@ -973,7 +976,8 @@
         "title": "用户",
         "name": "用户",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于组织内人员或人使用的账号等对象。"
       }
     }
   },
@@ -1003,7 +1007,9 @@
             "code": "I-AP",
             "title": "软件应用",
             "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "软件应用",
+            "status": ""
           },
           "services": [
             {
@@ -1040,6 +1046,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    158
                   ]
                 }
               ],
@@ -1081,6 +1090,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    162
                   ]
                 }
               ],
@@ -1122,6 +1134,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    154
                   ]
                 },
                 {
@@ -1150,6 +1165,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    167
                   ]
                 }
               ],
@@ -1191,6 +1209,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    160
                   ]
                 }
               ],
@@ -1232,6 +1253,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    156
                   ]
                 }
               ],
@@ -1273,6 +1297,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    171
                   ]
                 }
               ],
@@ -1314,6 +1341,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    155
                   ]
                 },
                 {
@@ -1342,6 +1372,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    169
                   ]
                 }
               ],
@@ -1383,6 +1416,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    164
                   ]
                 }
               ],
@@ -1424,6 +1460,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    153
                   ]
                 }
               ],
@@ -1442,7 +1481,9 @@
             "code": "I-NT",
             "title": "网络",
             "description": "安全能力作用于网络流、网络服务等对象。",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "网络",
+            "status": ""
           },
           "services": [
             {
@@ -1479,6 +1520,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    150
                   ]
                 }
               ],
@@ -1520,6 +1564,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    151
                   ]
                 },
                 {
@@ -1548,6 +1595,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    166
                   ]
                 }
               ],
@@ -1589,6 +1639,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    152
                   ]
                 },
                 {
@@ -1617,6 +1670,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    168
                   ]
                 }
               ],
@@ -1658,6 +1714,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    149
                   ]
                 }
               ],
@@ -1674,9 +1733,11 @@
             "id": "4abd36d3-4ba1-495c-8fb9-3957167f4833",
             "type": "scope_type",
             "code": "I-OS",
-            "title": "操作系统",
+            "title": "操作系统（主机/终端）",
             "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "操作系统（主机/终端）",
+            "status": ""
           },
           "services": [
             {
@@ -1713,6 +1774,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    165
                   ]
                 }
               ],
@@ -1731,7 +1795,9 @@
             "code": "I-US",
             "title": "用户",
             "description": "安全能力作用于组织内人员或人使用的账号等对象。",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "用户",
+            "status": ""
           },
           "services": [
             {
@@ -1768,6 +1834,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    157
                   ]
                 }
               ],
@@ -1809,6 +1878,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    161
                   ]
                 }
               ],
@@ -1850,6 +1922,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    159
                   ]
                 }
               ],
@@ -1891,6 +1966,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    170
                   ]
                 }
               ],
@@ -1932,6 +2010,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    163
                   ]
                 }
               ],

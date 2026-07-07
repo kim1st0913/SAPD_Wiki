@@ -44,6 +44,8 @@ Frontend Baseline 1.0 当前关系工作台实现重点仍覆盖三页：
 
 2026-07-06 已新增文档与 Issue 控增量规则：当前默认不为小修、小 bug、一次性排查或临时方案新增文档；低严重性问题直接修复并在 `progress.md` 和任务完成反馈记录。只有全局契约、数据 / 审计 / 安全边界、中高严重性、无法本轮闭环或需要用户判断 / 验收的问题才进入 `open-issues.md`。后续继续功能线前，应先按该规则检查是否真的需要新文档或新 `OI`。
 
+2026-07-06 追加设计文档治理规则：设计材料分为信息架构 / brief、全局设计基线、页面实现规格、Stitch / Product Design 参考材料、专题设计契约和交付体验设计。后续页面实现只以 `frontend/design-handoff/implementation-specs/` 中 active / implementation-source 规格为直接依据；Stitch 输入 / 输出、截图、prompt 和旧 brief 必须先转成 implementation spec 或补进现有 spec，不能直接驱动代码。
+
 后续继续推进时，建议按“前端页面设计线”和“后端数据 / 逻辑线”分开管理，并按页面逐个闭环：
 
 1. 先确认对应页面的后端投影契约是否稳定。

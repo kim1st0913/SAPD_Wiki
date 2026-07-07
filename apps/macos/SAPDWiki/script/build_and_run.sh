@@ -5,7 +5,9 @@ MODE="${1:-run}"
 APP_NAME="SAPD Wiki"
 EXECUTABLE_NAME="SAPDWiki"
 BUNDLE_ID="com.sapd.wiki.macos"
-BUNDLE_VERSION="${SAPD_WIKI_APP_VERSION:-0.1.0-alpha}"
+BUNDLE_VERSION="${SAPD_WIKI_BUNDLE_VERSION:-0.1.5}"
+DISPLAY_VERSION="${SAPD_WIKI_DISPLAY_VERSION:-${SAPD_WIKI_APP_VERSION:-0.1.5}}"
+LICENSE_MODE="${SAPD_WIKI_LICENSE_MODE:-license}"
 MIN_SYSTEM_VERSION="13.0"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -33,6 +35,13 @@ else
   PLATFORM="mac-x64"
 fi
 
+runtime_bundle_name_version() {
+  case "$DISPLAY_VERSION" in
+    v*|V*) printf '%s\n' "$DISPLAY_VERSION" ;;
+    *) printf 'v%s\n' "$DISPLAY_VERSION" ;;
+  esac
+}
+
 FRONTEND_DIST="${SAPD_WIKI_FRONTEND_DIST:-$REPO_ROOT/frontend/capability-browser}"
 BASE_DB="${SAPD_WIKI_BASE_DB:-$REPO_ROOT/data/database/sapd_wiki.sqlite3}"
 DEFAULT_PYINSTALLER_PYTHON="$APP_ROOT/.build/pyinstaller-venv/bin/python"
@@ -49,7 +58,13 @@ import sys
 from pathlib import Path
 
 root = Path(sys.argv[1])
-paths = [root / "scripts" / "run_local_server.py"]
+paths = [
+    root / "scripts" / "run_local_server.py",
+    root / "scripts" / "check_bundle_runtime.py",
+    root / "scripts" / "create_user_db.py",
+    root / "scripts" / "export_diagnostics.py",
+    root / "scripts" / "package_backend_pyinstaller.py",
+]
 paths.extend(sorted((root / "src" / "sapd_wiki").rglob("*.py")))
 digest = hashlib.sha256()
 for path in paths:
@@ -109,7 +124,7 @@ find_external_backend_binary() {
     "$REPO_ROOT/dist/zip-alpha/dist/$PLATFORM/SAPD-Wiki-Backend"
     "/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/sapd wiki bundle/package-work/backend/$PLATFORM/SAPD-Wiki-Backend"
     "/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/sapd wiki bundle/package-work/dist/$PLATFORM/SAPD-Wiki-Backend"
-    "/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/sapd wiki bundle/SAPD-Wiki-v0.1.0-$PLATFORM/SAPD-Wiki-Backend"
+    "/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/sapd wiki bundle/SAPD-Wiki-v0.1.5-$PLATFORM/SAPD-Wiki-Backend"
   )
 
   local candidate
@@ -173,8 +188,8 @@ build_runtime() {
   "$PYTHON_BIN" "$REPO_ROOT/scripts/build_zip_bundle.py" \
     --output-dir "$RUNTIME_WORK" \
     --platform "$PLATFORM" \
-    --bundle-version "v0.1.0" \
-    --app-version "$BUNDLE_VERSION" \
+    --bundle-version "$DISPLAY_VERSION" \
+    --app-version "$DISPLAY_VERSION" \
     --frontend-dist "$FRONTEND_DIST" \
     --backend-binary "$BACKEND_BINARY" \
     --base-db "$BASE_DB"
@@ -237,6 +252,10 @@ write_info_plist() {
   <string>$BUNDLE_VERSION</string>
   <key>CFBundleVersion</key>
   <string>1</string>
+  <key>SAPDWikiDisplayVersion</key>
+  <string>$DISPLAY_VERSION</string>
+  <key>SAPDWikiLicenseMode</key>
+  <string>$LICENSE_MODE</string>
   <key>LSMinimumSystemVersion</key>
   <string>$MIN_SYSTEM_VERSION</string>
   <key>NSHighResolutionCapable</key>
@@ -293,7 +312,7 @@ stage_app_bundle() {
   fi
 
   build_runtime
-  local runtime_bundle="$RUNTIME_WORK/SAPD-Wiki-v0.1.0-$PLATFORM"
+  local runtime_bundle="$RUNTIME_WORK/SAPD-Wiki-$(runtime_bundle_name_version)-$PLATFORM"
   if [[ ! -d "$runtime_bundle" ]]; then
     echo "runtime bundle missing: $runtime_bundle" >&2
     exit 1

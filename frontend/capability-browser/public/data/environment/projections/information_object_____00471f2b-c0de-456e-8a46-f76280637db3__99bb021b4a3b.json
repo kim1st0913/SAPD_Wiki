@@ -640,7 +640,8 @@
         "title": "软件应用",
         "name": "软件应用",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象"
       },
       "40a35e2f-527f-4c2c-9436-883b75e59b4c": {
         "id": "40a35e2f-527f-4c2c-9436-883b75e59b4c",
@@ -649,7 +650,8 @@
         "title": "硬件",
         "name": "硬件",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。"
       },
       "6f1ef0de-3163-4d38-9626-5625a58948bb": {
         "id": "6f1ef0de-3163-4d38-9626-5625a58948bb",
@@ -658,16 +660,18 @@
         "title": "网络",
         "name": "网络",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于网络流、网络服务等对象。"
       },
       "4abd36d3-4ba1-495c-8fb9-3957167f4833": {
         "id": "4abd36d3-4ba1-495c-8fb9-3957167f4833",
         "type": "scope_type",
         "code": "I-OS",
-        "title": "操作系统",
-        "name": "操作系统",
+        "title": "操作系统（主机/终端）",
+        "name": "操作系统（主机/终端）",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。"
       },
       "6f2a40c5-4e87-4138-836c-83e136a5d69e": {
         "id": "6f2a40c5-4e87-4138-836c-83e136a5d69e",
@@ -676,7 +680,8 @@
         "title": "用户",
         "name": "用户",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于组织内人员或人使用的账号等对象。"
       }
     }
   },
@@ -706,7 +711,9 @@
             "code": "I-AP",
             "title": "软件应用",
             "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "软件应用",
+            "status": ""
           },
           "services": [
             {
@@ -716,9 +723,119 @@
               "title": "应用资源授权",
               "description": null,
               "category": "I-AP",
-              "modules": [],
+              "modules": [
+                {
+                  "id": "471d4e2c-eac7-4764-b801-4375ae2d2c09",
+                  "type": "security_technology_module",
+                  "code": "",
+                  "title": "特权账号管理",
+                  "name": "特权账号管理",
+                  "description": "针对网络设备、安全设备、操作系统、数据库、中间件等资源，实现特权账号全生命周期安全管理、密码托管的模块。",
+                  "category": "数字身份管理",
+                  "status": "normal",
+                  "evidenceRefs": [
+                    "evidence:29f6ef08f5bef66e",
+                    "evidence:60b27853dd58124a",
+                    "evidence:ab2d0264dfeb4b7a",
+                    "evidence:b70c585551464f26",
+                    "evidence:ec8ce572f33638e9"
+                  ],
+                  "systems": [
+                    {
+                      "id": "dddec6ae-2990-49c8-b5a4-ca13e706396e",
+                      "type": "security_system",
+                      "code": "",
+                      "name": "访问管理",
+                      "title": "访问管理",
+                      "description": "",
+                      "category": "数字身份管理",
+                      "status": "",
+                      "evidenceRefs": [
+                        "evidence:0fd10cb9e09b750f",
+                        "evidence:101ef063f5bfebeb",
+                        "evidence:29f6ef08f5bef66e",
+                        "evidence:45a12184348a0dfb",
+                        "evidence:47a0b75ab15c0920",
+                        "evidence:4c07f934ab48bad9",
+                        "evidence:595387d9483d4b78",
+                        "evidence:630c494da20062c4",
+                        "evidence:8626a0b5d64289aa",
+                        "evidence:951478cebf15741e",
+                        "evidence:a12b4ce4ab291898",
+                        "evidence:af64f66846ed9877",
+                        "evidence:b70c585551464f26",
+                        "evidence:b7f57320050ee4e4",
+                        "evidence:c58050869aedcaf5",
+                        "evidence:cf1a2ca26b1355f9",
+                        "evidence:d000b3d049dc594b",
+                        "evidence:e5275d1780fc1425"
+                      ]
+                    }
+                  ],
+                  "systemSourceRows": [
+                    835
+                  ]
+                },
+                {
+                  "id": "98adfd70-eb27-4592-8a08-15858d16d4e5",
+                  "type": "security_technology_module",
+                  "code": "",
+                  "title": "运维访问管理",
+                  "name": "运维访问管理",
+                  "description": "针对网络设备、安全设备、操作系统、数据库、中间件等资源，实现统一的运维账号、身份认证、授权和审计管理的模块",
+                  "category": "数字身份管理",
+                  "status": "normal",
+                  "evidenceRefs": [
+                    "evidence:103aee98cf58da16",
+                    "evidence:45a12184348a0dfb",
+                    "evidence:47a0b75ab15c0920",
+                    "evidence:4c07f934ab48bad9",
+                    "evidence:595387d9483d4b78",
+                    "evidence:630c494da20062c4",
+                    "evidence:a12b4ce4ab291898",
+                    "evidence:b9b9049c5ef3d5bc",
+                    "evidence:d000b3d049dc594b",
+                    "evidence:e5275d1780fc1425"
+                  ],
+                  "systems": [
+                    {
+                      "id": "dddec6ae-2990-49c8-b5a4-ca13e706396e",
+                      "type": "security_system",
+                      "code": "",
+                      "name": "访问管理",
+                      "title": "访问管理",
+                      "description": "",
+                      "category": "数字身份管理",
+                      "status": "",
+                      "evidenceRefs": [
+                        "evidence:0fd10cb9e09b750f",
+                        "evidence:101ef063f5bfebeb",
+                        "evidence:29f6ef08f5bef66e",
+                        "evidence:45a12184348a0dfb",
+                        "evidence:47a0b75ab15c0920",
+                        "evidence:4c07f934ab48bad9",
+                        "evidence:595387d9483d4b78",
+                        "evidence:630c494da20062c4",
+                        "evidence:8626a0b5d64289aa",
+                        "evidence:951478cebf15741e",
+                        "evidence:a12b4ce4ab291898",
+                        "evidence:af64f66846ed9877",
+                        "evidence:b70c585551464f26",
+                        "evidence:b7f57320050ee4e4",
+                        "evidence:c58050869aedcaf5",
+                        "evidence:cf1a2ca26b1355f9",
+                        "evidence:d000b3d049dc594b",
+                        "evidence:e5275d1780fc1425"
+                      ]
+                    }
+                  ],
+                  "systemSourceRows": [
+                    831
+                  ]
+                }
+              ],
               "measures": [],
-              "module_count": 0,
+              "module_count": 2,
               "measure_count": 0
             },
             {
@@ -755,6 +872,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    832
                   ]
                 }
               ],
@@ -773,7 +893,9 @@
             "code": "I-HD",
             "title": "硬件",
             "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "硬件",
+            "status": ""
           },
           "services": [
             {
@@ -810,6 +932,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    833
                   ]
                 }
               ],
@@ -851,6 +976,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    837
                   ]
                 }
               ],
@@ -892,6 +1020,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    834
                   ]
                 }
               ],
@@ -910,7 +1041,9 @@
             "code": "I-NT",
             "title": "网络",
             "description": "安全能力作用于网络流、网络服务等对象。",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "网络",
+            "status": ""
           },
           "services": [
             {
@@ -920,9 +1053,266 @@
               "title": "网络高级威胁检测（启发式、行为式）",
               "description": null,
               "category": "I-NT",
-              "modules": [],
+              "modules": [
+                {
+                  "id": "9cfe5349-c716-4943-b24a-21aaf3c4df45",
+                  "type": "security_technology_module",
+                  "code": "",
+                  "title": "高级威胁检测",
+                  "name": "高级威胁检测",
+                  "description": "基于网络流量，通过威胁手段行为分析、异常行为建模分析、攻击回溯分析等方式，实现对已知高级网络攻击和未知的新型网络攻击的检测",
+                  "category": "网络安全",
+                  "status": "normal",
+                  "evidenceRefs": [
+                    "evidence:0a3410931275af7e",
+                    "evidence:0eed82ca67b31b2e",
+                    "evidence:2021a3b15ab11dd7",
+                    "evidence:41886bbc0ef887ba",
+                    "evidence:62cf874d531ea964",
+                    "evidence:8ab5ec2b51680f14",
+                    "evidence:8cf55f740d8de3c0",
+                    "evidence:93186e7cdaa76b7f",
+                    "evidence:94d6dac5b4a27285",
+                    "evidence:c0d705782792c62d",
+                    "evidence:e784159ac070af46"
+                  ],
+                  "systems": [
+                    {
+                      "id": "227dfd6d-414b-4c20-aa04-dac34ff2f9dd",
+                      "type": "security_system",
+                      "code": "",
+                      "name": "网络边界安全防护",
+                      "title": "网络边界安全防护",
+                      "description": "",
+                      "category": "网络安全",
+                      "status": "",
+                      "evidenceRefs": [
+                        "evidence:05554cb2b593ccd5",
+                        "evidence:0a3410931275af7e",
+                        "evidence:0e2be193e872a497",
+                        "evidence:0eed82ca67b31b2e",
+                        "evidence:126bbbca7d948b47",
+                        "evidence:177774d9a55b2be3",
+                        "evidence:1ada725eb9ad08ae",
+                        "evidence:1b5fc7db327bd058",
+                        "evidence:1d8148f63c5f83db",
+                        "evidence:1da5aa0f2fcc33e2",
+                        "evidence:1e399dd86e1da6ed",
+                        "evidence:2021a3b15ab11dd7",
+                        "evidence:20c01897e2452c4b",
+                        "evidence:2399e0b1dcd52d54",
+                        "evidence:2aa49205acce577f",
+                        "evidence:2c39e3b4053c0d9e",
+                        "evidence:2e9079344fee4717",
+                        "evidence:32c34527d9c7d88b",
+                        "evidence:337ba5d6443fabab",
+                        "evidence:35cbe80544a30294",
+                        "evidence:36531cc9a04f1151",
+                        "evidence:366677ef40e76eaa",
+                        "evidence:3faedb2c69b221b1",
+                        "evidence:40c047d6eaf905b1",
+                        "evidence:41886bbc0ef887ba",
+                        "evidence:4205a772587b2083",
+                        "evidence:426ba38f2240da67",
+                        "evidence:43a02aa293a6f0e6",
+                        "evidence:4fa94022b39878b3",
+                        "evidence:59f73ba62b84ed5f",
+                        "evidence:5bf589f7b4a52fb0",
+                        "evidence:5cbc2cce2cd0f877",
+                        "evidence:5eeb290c4b7f3707",
+                        "evidence:5fcee3f7afd628ce",
+                        "evidence:62cf874d531ea964",
+                        "evidence:66668df8ab01294b",
+                        "evidence:6785fc8d44f474ee",
+                        "evidence:6954c122b184d132",
+                        "evidence:7133dc24b7e23d77",
+                        "evidence:713787f18b082666",
+                        "evidence:7206fdd7aeb9835f",
+                        "evidence:7229d427bd89de0c",
+                        "evidence:72643d9cb710d970",
+                        "evidence:7444bcb3ccba7ec6",
+                        "evidence:751eaf187ac29131",
+                        "evidence:7b2077229eabd8db",
+                        "evidence:7b452fa49a13fbad",
+                        "evidence:7b940adc26b174a8",
+                        "evidence:7f80c3117964ddaf",
+                        "evidence:800bc29b95816aaa",
+                        "evidence:81158a20ea16dae4",
+                        "evidence:82fe8ef8b2ec74c4",
+                        "evidence:83a8f02c0b84dd8f",
+                        "evidence:87881e0c32810f66",
+                        "evidence:8ab5ec2b51680f14",
+                        "evidence:8e90c88a10e99eca",
+                        "evidence:8f3a427c5ae94c7c",
+                        "evidence:920e1088c3d0f742",
+                        "evidence:93186e7cdaa76b7f",
+                        "evidence:94d6dac5b4a27285",
+                        "evidence:978f1d49c563fb84",
+                        "evidence:a7b8b1c8960a496a",
+                        "evidence:aaa407bbb1b2fe49",
+                        "evidence:ad8ae39db3e2a713",
+                        "evidence:b8d171d6af848dff",
+                        "evidence:bbf6bb8fce5af02e",
+                        "evidence:c0d705782792c62d",
+                        "evidence:c43be1de07f42cdb",
+                        "evidence:c82247d1a6abb06e",
+                        "evidence:c88418e5ed159c09",
+                        "evidence:cc37633bd87288f2",
+                        "evidence:d0acd1bee79c5c17",
+                        "evidence:e3346f1210902f69",
+                        "evidence:e412e4a0ecb543e7",
+                        "evidence:e597be0f28cea896",
+                        "evidence:e6ce61719682ba2c",
+                        "evidence:e736ac3feb72c9e1",
+                        "evidence:e76a93eac8d2534c",
+                        "evidence:e784159ac070af46",
+                        "evidence:e824e8429c396608",
+                        "evidence:e8d0c0eceb8d35df",
+                        "evidence:e982b0db913f7587",
+                        "evidence:ec503d015d0bc900",
+                        "evidence:ed000946a51c17d7",
+                        "evidence:f65fbfce52feeaf5",
+                        "evidence:fb6225e97dc9eeab",
+                        "evidence:fb934cd6bfaaa1f1",
+                        "evidence:fcdecda7d256e52e"
+                      ]
+                    }
+                  ],
+                  "systemSourceRows": [
+                    823
+                  ]
+                },
+                {
+                  "id": "db35bcae-bbc9-4a42-aa47-dc8aca6b975d",
+                  "type": "security_technology_module",
+                  "code": "",
+                  "title": "文件检测沙箱",
+                  "name": "文件检测沙箱",
+                  "description": "通过静态启发式技术和动态虚拟执行环境检测技术，实现可疑样本文件的深度检测。",
+                  "category": "网络安全",
+                  "status": "normal",
+                  "evidenceRefs": [
+                    "evidence:0e2be193e872a497",
+                    "evidence:17416b9fd91385f0",
+                    "evidence:1ada725eb9ad08ae",
+                    "evidence:1e399dd86e1da6ed",
+                    "evidence:2c39e3b4053c0d9e",
+                    "evidence:32c34527d9c7d88b",
+                    "evidence:40c047d6eaf905b1",
+                    "evidence:7229d427bd89de0c",
+                    "evidence:ae2861d2e9a274fa",
+                    "evidence:e824e8429c396608",
+                    "evidence:e982b0db913f7587"
+                  ],
+                  "systems": [
+                    {
+                      "id": "227dfd6d-414b-4c20-aa04-dac34ff2f9dd",
+                      "type": "security_system",
+                      "code": "",
+                      "name": "网络边界安全防护",
+                      "title": "网络边界安全防护",
+                      "description": "",
+                      "category": "网络安全",
+                      "status": "",
+                      "evidenceRefs": [
+                        "evidence:05554cb2b593ccd5",
+                        "evidence:0a3410931275af7e",
+                        "evidence:0e2be193e872a497",
+                        "evidence:0eed82ca67b31b2e",
+                        "evidence:126bbbca7d948b47",
+                        "evidence:177774d9a55b2be3",
+                        "evidence:1ada725eb9ad08ae",
+                        "evidence:1b5fc7db327bd058",
+                        "evidence:1d8148f63c5f83db",
+                        "evidence:1da5aa0f2fcc33e2",
+                        "evidence:1e399dd86e1da6ed",
+                        "evidence:2021a3b15ab11dd7",
+                        "evidence:20c01897e2452c4b",
+                        "evidence:2399e0b1dcd52d54",
+                        "evidence:2aa49205acce577f",
+                        "evidence:2c39e3b4053c0d9e",
+                        "evidence:2e9079344fee4717",
+                        "evidence:32c34527d9c7d88b",
+                        "evidence:337ba5d6443fabab",
+                        "evidence:35cbe80544a30294",
+                        "evidence:36531cc9a04f1151",
+                        "evidence:366677ef40e76eaa",
+                        "evidence:3faedb2c69b221b1",
+                        "evidence:40c047d6eaf905b1",
+                        "evidence:41886bbc0ef887ba",
+                        "evidence:4205a772587b2083",
+                        "evidence:426ba38f2240da67",
+                        "evidence:43a02aa293a6f0e6",
+                        "evidence:4fa94022b39878b3",
+                        "evidence:59f73ba62b84ed5f",
+                        "evidence:5bf589f7b4a52fb0",
+                        "evidence:5cbc2cce2cd0f877",
+                        "evidence:5eeb290c4b7f3707",
+                        "evidence:5fcee3f7afd628ce",
+                        "evidence:62cf874d531ea964",
+                        "evidence:66668df8ab01294b",
+                        "evidence:6785fc8d44f474ee",
+                        "evidence:6954c122b184d132",
+                        "evidence:7133dc24b7e23d77",
+                        "evidence:713787f18b082666",
+                        "evidence:7206fdd7aeb9835f",
+                        "evidence:7229d427bd89de0c",
+                        "evidence:72643d9cb710d970",
+                        "evidence:7444bcb3ccba7ec6",
+                        "evidence:751eaf187ac29131",
+                        "evidence:7b2077229eabd8db",
+                        "evidence:7b452fa49a13fbad",
+                        "evidence:7b940adc26b174a8",
+                        "evidence:7f80c3117964ddaf",
+                        "evidence:800bc29b95816aaa",
+                        "evidence:81158a20ea16dae4",
+                        "evidence:82fe8ef8b2ec74c4",
+                        "evidence:83a8f02c0b84dd8f",
+                        "evidence:87881e0c32810f66",
+                        "evidence:8ab5ec2b51680f14",
+                        "evidence:8e90c88a10e99eca",
+                        "evidence:8f3a427c5ae94c7c",
+                        "evidence:920e1088c3d0f742",
+                        "evidence:93186e7cdaa76b7f",
+                        "evidence:94d6dac5b4a27285",
+                        "evidence:978f1d49c563fb84",
+                        "evidence:a7b8b1c8960a496a",
+                        "evidence:aaa407bbb1b2fe49",
+                        "evidence:ad8ae39db3e2a713",
+                        "evidence:b8d171d6af848dff",
+                        "evidence:bbf6bb8fce5af02e",
+                        "evidence:c0d705782792c62d",
+                        "evidence:c43be1de07f42cdb",
+                        "evidence:c82247d1a6abb06e",
+                        "evidence:c88418e5ed159c09",
+                        "evidence:cc37633bd87288f2",
+                        "evidence:d0acd1bee79c5c17",
+                        "evidence:e3346f1210902f69",
+                        "evidence:e412e4a0ecb543e7",
+                        "evidence:e597be0f28cea896",
+                        "evidence:e6ce61719682ba2c",
+                        "evidence:e736ac3feb72c9e1",
+                        "evidence:e76a93eac8d2534c",
+                        "evidence:e784159ac070af46",
+                        "evidence:e824e8429c396608",
+                        "evidence:e8d0c0eceb8d35df",
+                        "evidence:e982b0db913f7587",
+                        "evidence:ec503d015d0bc900",
+                        "evidence:ed000946a51c17d7",
+                        "evidence:f65fbfce52feeaf5",
+                        "evidence:fb6225e97dc9eeab",
+                        "evidence:fb934cd6bfaaa1f1",
+                        "evidence:fcdecda7d256e52e"
+                      ]
+                    }
+                  ],
+                  "systemSourceRows": [
+                    824
+                  ]
+                }
+              ],
               "measures": [],
-              "module_count": 0,
+              "module_count": 2,
               "measure_count": 0
             },
             {
@@ -959,6 +1349,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    821
                   ]
                 }
               ],
@@ -1000,6 +1393,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    828
                   ]
                 }
               ],
@@ -1014,9 +1410,148 @@
               "title": "网络隔离",
               "description": null,
               "category": "I-NT",
-              "modules": [],
+              "modules": [
+                {
+                  "id": "da3f6e53-9e5c-4950-b790-ecec947493d7",
+                  "type": "security_technology_module",
+                  "code": "",
+                  "title": "网络防火墙",
+                  "name": "网络防火墙",
+                  "description": "根据预设策略进行网络流量访问控制的模块",
+                  "category": "网络安全",
+                  "status": "normal",
+                  "evidenceRefs": [
+                    "evidence:177774d9a55b2be3",
+                    "evidence:1b5fc7db327bd058",
+                    "evidence:1da5aa0f2fcc33e2",
+                    "evidence:337ba5d6443fabab",
+                    "evidence:35cbe80544a30294",
+                    "evidence:59f73ba62b84ed5f",
+                    "evidence:5cbc2cce2cd0f877",
+                    "evidence:5fcee3f7afd628ce",
+                    "evidence:65e78cc58e13b86b",
+                    "evidence:6f5986de397d96ae",
+                    "evidence:7206fdd7aeb9835f",
+                    "evidence:7b2077229eabd8db",
+                    "evidence:7b452fa49a13fbad",
+                    "evidence:7b940adc26b174a8",
+                    "evidence:888f40b76bf8648a",
+                    "evidence:a7b8b1c8960a496a",
+                    "evidence:aaa407bbb1b2fe49",
+                    "evidence:c24ad774fe597ffc",
+                    "evidence:d0acd1bee79c5c17",
+                    "evidence:ec503d015d0bc900",
+                    "evidence:fcdecda7d256e52e"
+                  ],
+                  "systems": [
+                    {
+                      "id": "227dfd6d-414b-4c20-aa04-dac34ff2f9dd",
+                      "type": "security_system",
+                      "code": "",
+                      "name": "网络边界安全防护",
+                      "title": "网络边界安全防护",
+                      "description": "",
+                      "category": "网络安全",
+                      "status": "",
+                      "evidenceRefs": [
+                        "evidence:05554cb2b593ccd5",
+                        "evidence:0a3410931275af7e",
+                        "evidence:0e2be193e872a497",
+                        "evidence:0eed82ca67b31b2e",
+                        "evidence:126bbbca7d948b47",
+                        "evidence:177774d9a55b2be3",
+                        "evidence:1ada725eb9ad08ae",
+                        "evidence:1b5fc7db327bd058",
+                        "evidence:1d8148f63c5f83db",
+                        "evidence:1da5aa0f2fcc33e2",
+                        "evidence:1e399dd86e1da6ed",
+                        "evidence:2021a3b15ab11dd7",
+                        "evidence:20c01897e2452c4b",
+                        "evidence:2399e0b1dcd52d54",
+                        "evidence:2aa49205acce577f",
+                        "evidence:2c39e3b4053c0d9e",
+                        "evidence:2e9079344fee4717",
+                        "evidence:32c34527d9c7d88b",
+                        "evidence:337ba5d6443fabab",
+                        "evidence:35cbe80544a30294",
+                        "evidence:36531cc9a04f1151",
+                        "evidence:366677ef40e76eaa",
+                        "evidence:3faedb2c69b221b1",
+                        "evidence:40c047d6eaf905b1",
+                        "evidence:41886bbc0ef887ba",
+                        "evidence:4205a772587b2083",
+                        "evidence:426ba38f2240da67",
+                        "evidence:43a02aa293a6f0e6",
+                        "evidence:4fa94022b39878b3",
+                        "evidence:59f73ba62b84ed5f",
+                        "evidence:5bf589f7b4a52fb0",
+                        "evidence:5cbc2cce2cd0f877",
+                        "evidence:5eeb290c4b7f3707",
+                        "evidence:5fcee3f7afd628ce",
+                        "evidence:62cf874d531ea964",
+                        "evidence:66668df8ab01294b",
+                        "evidence:6785fc8d44f474ee",
+                        "evidence:6954c122b184d132",
+                        "evidence:7133dc24b7e23d77",
+                        "evidence:713787f18b082666",
+                        "evidence:7206fdd7aeb9835f",
+                        "evidence:7229d427bd89de0c",
+                        "evidence:72643d9cb710d970",
+                        "evidence:7444bcb3ccba7ec6",
+                        "evidence:751eaf187ac29131",
+                        "evidence:7b2077229eabd8db",
+                        "evidence:7b452fa49a13fbad",
+                        "evidence:7b940adc26b174a8",
+                        "evidence:7f80c3117964ddaf",
+                        "evidence:800bc29b95816aaa",
+                        "evidence:81158a20ea16dae4",
+                        "evidence:82fe8ef8b2ec74c4",
+                        "evidence:83a8f02c0b84dd8f",
+                        "evidence:87881e0c32810f66",
+                        "evidence:8ab5ec2b51680f14",
+                        "evidence:8e90c88a10e99eca",
+                        "evidence:8f3a427c5ae94c7c",
+                        "evidence:920e1088c3d0f742",
+                        "evidence:93186e7cdaa76b7f",
+                        "evidence:94d6dac5b4a27285",
+                        "evidence:978f1d49c563fb84",
+                        "evidence:a7b8b1c8960a496a",
+                        "evidence:aaa407bbb1b2fe49",
+                        "evidence:ad8ae39db3e2a713",
+                        "evidence:b8d171d6af848dff",
+                        "evidence:bbf6bb8fce5af02e",
+                        "evidence:c0d705782792c62d",
+                        "evidence:c43be1de07f42cdb",
+                        "evidence:c82247d1a6abb06e",
+                        "evidence:c88418e5ed159c09",
+                        "evidence:cc37633bd87288f2",
+                        "evidence:d0acd1bee79c5c17",
+                        "evidence:e3346f1210902f69",
+                        "evidence:e412e4a0ecb543e7",
+                        "evidence:e597be0f28cea896",
+                        "evidence:e6ce61719682ba2c",
+                        "evidence:e736ac3feb72c9e1",
+                        "evidence:e76a93eac8d2534c",
+                        "evidence:e784159ac070af46",
+                        "evidence:e824e8429c396608",
+                        "evidence:e8d0c0eceb8d35df",
+                        "evidence:e982b0db913f7587",
+                        "evidence:ec503d015d0bc900",
+                        "evidence:ed000946a51c17d7",
+                        "evidence:f65fbfce52feeaf5",
+                        "evidence:fb6225e97dc9eeab",
+                        "evidence:fb934cd6bfaaa1f1",
+                        "evidence:fcdecda7d256e52e"
+                      ]
+                    }
+                  ],
+                  "systemSourceRows": [
+                    820
+                  ]
+                }
+              ],
               "measures": [],
-              "module_count": 0,
+              "module_count": 1,
               "measure_count": 0
             },
             {
@@ -1053,6 +1588,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    822
                   ]
                 }
               ],
@@ -1069,9 +1607,11 @@
             "id": "4abd36d3-4ba1-495c-8fb9-3957167f4833",
             "type": "scope_type",
             "code": "I-OS",
-            "title": "操作系统",
+            "title": "操作系统（主机/终端）",
             "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "操作系统（主机/终端）",
+            "status": ""
           },
           "services": [
             {
@@ -1108,6 +1648,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    836
                   ]
                 },
                 {
@@ -1136,6 +1679,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    829
                   ]
                 }
               ],
@@ -1177,6 +1723,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    830
                   ]
                 }
               ],
@@ -1195,7 +1744,9 @@
             "code": "I-US",
             "title": "用户",
             "description": "安全能力作用于组织内人员或人使用的账号等对象。",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "用户",
+            "status": ""
           },
           "services": [
             {
@@ -1232,6 +1783,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    825
                   ]
                 }
               ],
@@ -1246,9 +1800,67 @@
               "title": "用户认证",
               "description": null,
               "category": "I-US",
-              "modules": [],
+              "modules": [
+                {
+                  "id": "98adfd70-eb27-4592-8a08-15858d16d4e5",
+                  "type": "security_technology_module",
+                  "code": "",
+                  "title": "运维访问管理",
+                  "name": "运维访问管理",
+                  "description": "针对网络设备、安全设备、操作系统、数据库、中间件等资源，实现统一的运维账号、身份认证、授权和审计管理的模块",
+                  "category": "数字身份管理",
+                  "status": "normal",
+                  "evidenceRefs": [
+                    "evidence:103aee98cf58da16",
+                    "evidence:45a12184348a0dfb",
+                    "evidence:47a0b75ab15c0920",
+                    "evidence:4c07f934ab48bad9",
+                    "evidence:595387d9483d4b78",
+                    "evidence:630c494da20062c4",
+                    "evidence:a12b4ce4ab291898",
+                    "evidence:b9b9049c5ef3d5bc",
+                    "evidence:d000b3d049dc594b",
+                    "evidence:e5275d1780fc1425"
+                  ],
+                  "systems": [
+                    {
+                      "id": "dddec6ae-2990-49c8-b5a4-ca13e706396e",
+                      "type": "security_system",
+                      "code": "",
+                      "name": "访问管理",
+                      "title": "访问管理",
+                      "description": "",
+                      "category": "数字身份管理",
+                      "status": "",
+                      "evidenceRefs": [
+                        "evidence:0fd10cb9e09b750f",
+                        "evidence:101ef063f5bfebeb",
+                        "evidence:29f6ef08f5bef66e",
+                        "evidence:45a12184348a0dfb",
+                        "evidence:47a0b75ab15c0920",
+                        "evidence:4c07f934ab48bad9",
+                        "evidence:595387d9483d4b78",
+                        "evidence:630c494da20062c4",
+                        "evidence:8626a0b5d64289aa",
+                        "evidence:951478cebf15741e",
+                        "evidence:a12b4ce4ab291898",
+                        "evidence:af64f66846ed9877",
+                        "evidence:b70c585551464f26",
+                        "evidence:b7f57320050ee4e4",
+                        "evidence:c58050869aedcaf5",
+                        "evidence:cf1a2ca26b1355f9",
+                        "evidence:d000b3d049dc594b",
+                        "evidence:e5275d1780fc1425"
+                      ]
+                    }
+                  ],
+                  "systemSourceRows": [
+                    827
+                  ]
+                }
+              ],
               "measures": [],
-              "module_count": 0,
+              "module_count": 1,
               "measure_count": 0
             },
             {
@@ -1285,6 +1897,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    826
                   ]
                 }
               ],

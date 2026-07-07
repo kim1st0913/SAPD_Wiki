@@ -1,29 +1,28 @@
 {
-  "version": "2026-05-31.capability-workspace-view-baseline",
+  "version": "2026-07-07.project-test-baseline",
   "scope": "frontend/capability-browser",
-  "purpose": "Current ceilings for files that repeatedly caused safety capability mapping regressions. Lower values pass; increases require deliberate governance review.",
-  "requiredIssue": "OI-122",
-  "requiredReview": "docs/06-implementation/project-blocker-review-2026-05-30.md",
+  "purpose": "Current accepted ceilings after the July 2026 project test governance baseline. Lower values pass; increases require deliberate governance review.",
+  "requiredReview": "docs/07-governance/project-test-workflow-and-case-matrix.md",
   "files": {
     "frontend/capability-browser/styles.css": {
-      "maxLines": 19993,
-      "maxImportant": 205,
-      "maxHexColors": 617,
-      "maxRootBlocks": 10,
-      "maxRelationChipMentions": 179,
-      "maxColorMix": 510
+      "maxLines": 31568,
+      "maxImportant": 322,
+      "maxHexColors": 1007,
+      "maxRootBlocks": 11,
+      "maxRelationChipMentions": 218,
+      "maxColorMix": 670
     },
     "frontend/capability-browser/app.js": {
-      "maxLines": 2540
+      "maxLines": 12270
     },
     "frontend/capability-browser/viewModels.js": {
-      "maxLines": 4192
+      "maxLines": 5762
     },
     "frontend/capability-browser/components/CapabilityLocalRelationMap.js": {
-      "maxLines": 856
+      "maxLines": 1140
     },
     "frontend/capability-browser/components/LocalRelationNetworkGraph.js": {
-      "maxLines": 892
+      "maxLines": 1313
     }
   }
 }

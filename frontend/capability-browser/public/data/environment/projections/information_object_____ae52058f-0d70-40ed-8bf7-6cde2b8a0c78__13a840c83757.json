@@ -134,7 +134,8 @@
         "title": "硬件",
         "name": "硬件",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。"
       }
     },
     "security_technical_service": {
@@ -940,7 +941,9 @@
             "code": "I-HD",
             "title": "硬件",
             "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "硬件",
+            "status": ""
           },
           "services": [
             {
@@ -990,7 +993,9 @@
                       "code": "I-HD",
                       "title": "硬件",
                       "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "硬件",
+                      "status": ""
                     }
                   ],
                   "related_capability_focus_ids": [
@@ -1014,7 +1019,11 @@
                   "type": "security_technical_measure",
                   "objectKind": "安全技术措施",
                   "kind": "安全技术措施",
-                  "title": "硬件设备高可用性设计"
+                  "title": "硬件设备高可用性设计",
+                  "systems": [],
+                  "systemSourceRows": [
+                    470
+                  ]
                 }
               ],
               "module_count": 0,
@@ -1107,7 +1116,9 @@
                       "code": "I-HD",
                       "title": "硬件",
                       "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "硬件",
+                      "status": ""
                     }
                   ],
                   "related_capability_focus_ids": [
@@ -1171,75 +1182,15 @@
                   "type": "security_technical_measure",
                   "objectKind": "安全技术措施",
                   "kind": "安全技术措施",
-                  "title": "设备管理系统/人工服务"
-                },
-                {
-                  "id": "security_technical_measure:070e9c625dd0f451",
-                  "name": "硬件设备高可用性设计",
-                  "category": null,
-                  "source_kind": "pending_review / scope_service_module_mapping",
-                  "mapping_status_label": "正常",
-                  "related_service_ids": [
-                    "fd826b7d-384d-44ad-a385-d250ba33eb59"
-                  ],
-                  "related_service_names": [
-                    "设备冗余"
-                  ],
-                  "related_services": [
-                    {
-                      "id": "fd826b7d-384d-44ad-a385-d250ba33eb59",
-                      "type": "security_technical_service",
-                      "code": "I-HD&T-AS.AD-02",
-                      "title": "设备冗余",
-                      "description": null,
-                      "category": "I-HD"
-                    }
-                  ],
-                  "related_module_ids": [],
-                  "related_module_names": [],
-                  "related_modules": [],
-                  "related_scope_ids": [
-                    "40a35e2f-527f-4c2c-9436-883b75e59b4c"
-                  ],
-                  "related_scope_names": [
-                    "硬件"
-                  ],
-                  "applicable_scopes": [
-                    {
-                      "id": "40a35e2f-527f-4c2c-9436-883b75e59b4c",
-                      "type": "scope_type",
-                      "code": "I-HD",
-                      "title": "硬件",
-                      "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。",
-                      "category": "网络空间"
-                    }
-                  ],
-                  "related_capability_focus_ids": [
-                    "6c872817-38b8-4b19-9307-112520735747"
-                  ],
-                  "related_capability_focus_names": [
-                    "实施网络安全架构的冗余设计"
-                  ],
-                  "related_focuses": [
-                    {
-                      "id": "6c872817-38b8-4b19-9307-112520735747",
-                      "type": "capability_focus",
-                      "code": "T-AS.AD-02",
-                      "title": "实施网络安全架构的冗余设计",
-                      "description": "在网络安全架构设计中，实施冗余机制以提高系统的可用性和容错能力。这包括使用多路径、备份系统和故障转移机制来确保关键服务和数据在硬件故障或网络攻击等情况下的连续运行。通过设计冗余，可以减少单点故障的风险，保障关键业务和服务的持续性。",
-                      "category": null
-                    }
-                  ],
-                  "related_focus_count": 1,
-                  "status": "normal",
-                  "type": "security_technical_measure",
-                  "objectKind": "安全技术措施",
-                  "kind": "安全技术措施",
-                  "title": "硬件设备高可用性设计"
+                  "title": "设备管理系统/人工服务",
+                  "systems": [],
+                  "systemSourceRows": [
+                    465
+                  ]
                 }
               ],
               "module_count": 0,
-              "measure_count": 2
+              "measure_count": 1
             },
             {
               "id": "6e9c1a89-08cc-42fe-99a1-a76da945d094",
@@ -1328,7 +1279,9 @@
                       "code": "I-HD",
                       "title": "硬件",
                       "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "硬件",
+                      "status": ""
                     }
                   ],
                   "related_capability_focus_ids": [
@@ -1392,7 +1345,11 @@
                   "type": "security_technical_measure",
                   "objectKind": "安全技术措施",
                   "kind": "安全技术措施",
-                  "title": "设备管理系统/人工服务"
+                  "title": "设备管理系统/人工服务",
+                  "systems": [],
+                  "systemSourceRows": [
+                    466
+                  ]
                 }
               ],
               "module_count": 0,
@@ -1485,7 +1442,9 @@
                       "code": "I-HD",
                       "title": "硬件",
                       "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "硬件",
+                      "status": ""
                     }
                   ],
                   "related_capability_focus_ids": [
@@ -1549,7 +1508,11 @@
                   "type": "security_technical_measure",
                   "objectKind": "安全技术措施",
                   "kind": "安全技术措施",
-                  "title": "设备管理系统/人工服务"
+                  "title": "设备管理系统/人工服务",
+                  "systems": [],
+                  "systemSourceRows": [
+                    467
+                  ]
                 }
               ],
               "module_count": 0,
@@ -1642,7 +1605,9 @@
                       "code": "I-HD",
                       "title": "硬件",
                       "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "硬件",
+                      "status": ""
                     }
                   ],
                   "related_capability_focus_ids": [
@@ -1706,7 +1671,11 @@
                   "type": "security_technical_measure",
                   "objectKind": "安全技术措施",
                   "kind": "安全技术措施",
-                  "title": "设备管理系统/人工服务"
+                  "title": "设备管理系统/人工服务",
+                  "systems": [],
+                  "systemSourceRows": [
+                    468
+                  ]
                 }
               ],
               "module_count": 0,
@@ -1799,7 +1768,9 @@
                       "code": "I-HD",
                       "title": "硬件",
                       "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "硬件",
+                      "status": ""
                     }
                   ],
                   "related_capability_focus_ids": [
@@ -1863,7 +1834,11 @@
                   "type": "security_technical_measure",
                   "objectKind": "安全技术措施",
                   "kind": "安全技术措施",
-                  "title": "设备管理系统/人工服务"
+                  "title": "设备管理系统/人工服务",
+                  "systems": [],
+                  "systemSourceRows": [
+                    469
+                  ]
                 }
               ],
               "module_count": 0,

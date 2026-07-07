@@ -658,7 +658,8 @@
         "title": "用户",
         "name": "用户",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于组织内人员或人使用的账号等对象。"
       }
     }
   },
@@ -688,7 +689,9 @@
             "code": "I-US",
             "title": "用户",
             "description": "安全能力作用于组织内人员或人使用的账号等对象。",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "用户",
+            "status": ""
           },
           "services": [
             {
@@ -706,7 +709,74 @@
                   "title": "零信任访问控制台",
                   "description": "采用零信任架构，实现访问控制统一配置管理、被防护资源（网络、应用程序和API）的集中管理、认证与授权、风险响应、应用审计等的功能模块",
                   "category": "应用安全",
-                  "systems": [],
+                  "systems": [
+                    {
+                      "id": "af64af3d-6099-4bbe-b8ea-87831c20b0ae",
+                      "type": "security_system",
+                      "code": "",
+                      "name": "零信任网络访问控制",
+                      "title": "零信任网络访问控制",
+                      "description": "",
+                      "category": "应用安全",
+                      "status": "",
+                      "evidenceRefs": [
+                        "evidence:02646d77df229767",
+                        "evidence:04c355a044a21892",
+                        "evidence:06d12e1fb3a4d2ed",
+                        "evidence:0dff2dfe1e994204",
+                        "evidence:14611bc4884a92f6",
+                        "evidence:1a8a34666630e175",
+                        "evidence:23946c521fee36cc",
+                        "evidence:2d64f04adf7989c6",
+                        "evidence:30fb7a561bd9e354",
+                        "evidence:36729858c3415326",
+                        "evidence:3af2d19f69e3cded",
+                        "evidence:42b6b3460fcd9da6",
+                        "evidence:43b2cf1fb0903fa0",
+                        "evidence:4c66bdc24ca696b7",
+                        "evidence:4d2e5cb52f68e885",
+                        "evidence:4e81c049de3b8209",
+                        "evidence:50d002f192c4c457",
+                        "evidence:547df266acf8d3e3",
+                        "evidence:5a80a27f23efbbef",
+                        "evidence:5b3ee2069b6af4ae",
+                        "evidence:5de709306e93d77f",
+                        "evidence:5f12d0c116d5ea0f",
+                        "evidence:5fc67885f0d61dd2",
+                        "evidence:626a7279b7ec65bd",
+                        "evidence:62935f8e9285116f",
+                        "evidence:69cfa6eeb1685629",
+                        "evidence:6a1715a2ce798d94",
+                        "evidence:6b7adaad1ca0335f",
+                        "evidence:7c29924c209a76c4",
+                        "evidence:7c93753c57ce40dc",
+                        "evidence:7dd42700131877c1",
+                        "evidence:7e96b0ef35bc062f",
+                        "evidence:7fd862f86bd1a723",
+                        "evidence:8b648cbfe28ca895",
+                        "evidence:8d4fe2d9a89dc9ef",
+                        "evidence:a65c818ee6778e78",
+                        "evidence:aa51b840ee1360a7",
+                        "evidence:b007dee0a121cdda",
+                        "evidence:bd48b8a8d36abb1e",
+                        "evidence:bdee6ad0795bf8d4",
+                        "evidence:c4f3c7071e6f6e1c",
+                        "evidence:c6be2dd662b473ad",
+                        "evidence:ce932a08ce87e425",
+                        "evidence:d243275b44bc9415",
+                        "evidence:d4b4edae355b6d8f",
+                        "evidence:e42993dfc288abe8",
+                        "evidence:e486600a248889a6",
+                        "evidence:e64a36e523587ca2",
+                        "evidence:ea340fea34708eec",
+                        "evidence:f01310f4df1f5a6e",
+                        "evidence:f4ae9ac2c909e433",
+                        "evidence:f81fed578f78b04e",
+                        "evidence:fa27e84e9a0b2444",
+                        "evidence:fbd2edecb4385f27"
+                      ]
+                    }
+                  ],
                   "products": [
                     {
                       "id": "337a7cf4-8a4d-4e54-80cc-52843025d917",
@@ -716,6 +786,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    639
                   ]
                 }
               ],
@@ -738,7 +811,74 @@
                   "title": "零信任访问控制台",
                   "description": "采用零信任架构，实现访问控制统一配置管理、被防护资源（网络、应用程序和API）的集中管理、认证与授权、风险响应、应用审计等的功能模块",
                   "category": "应用安全",
-                  "systems": [],
+                  "systems": [
+                    {
+                      "id": "af64af3d-6099-4bbe-b8ea-87831c20b0ae",
+                      "type": "security_system",
+                      "code": "",
+                      "name": "零信任网络访问控制",
+                      "title": "零信任网络访问控制",
+                      "description": "",
+                      "category": "应用安全",
+                      "status": "",
+                      "evidenceRefs": [
+                        "evidence:02646d77df229767",
+                        "evidence:04c355a044a21892",
+                        "evidence:06d12e1fb3a4d2ed",
+                        "evidence:0dff2dfe1e994204",
+                        "evidence:14611bc4884a92f6",
+                        "evidence:1a8a34666630e175",
+                        "evidence:23946c521fee36cc",
+                        "evidence:2d64f04adf7989c6",
+                        "evidence:30fb7a561bd9e354",
+                        "evidence:36729858c3415326",
+                        "evidence:3af2d19f69e3cded",
+                        "evidence:42b6b3460fcd9da6",
+                        "evidence:43b2cf1fb0903fa0",
+                        "evidence:4c66bdc24ca696b7",
+                        "evidence:4d2e5cb52f68e885",
+                        "evidence:4e81c049de3b8209",
+                        "evidence:50d002f192c4c457",
+                        "evidence:547df266acf8d3e3",
+                        "evidence:5a80a27f23efbbef",
+                        "evidence:5b3ee2069b6af4ae",
+                        "evidence:5de709306e93d77f",
+                        "evidence:5f12d0c116d5ea0f",
+                        "evidence:5fc67885f0d61dd2",
+                        "evidence:626a7279b7ec65bd",
+                        "evidence:62935f8e9285116f",
+                        "evidence:69cfa6eeb1685629",
+                        "evidence:6a1715a2ce798d94",
+                        "evidence:6b7adaad1ca0335f",
+                        "evidence:7c29924c209a76c4",
+                        "evidence:7c93753c57ce40dc",
+                        "evidence:7dd42700131877c1",
+                        "evidence:7e96b0ef35bc062f",
+                        "evidence:7fd862f86bd1a723",
+                        "evidence:8b648cbfe28ca895",
+                        "evidence:8d4fe2d9a89dc9ef",
+                        "evidence:a65c818ee6778e78",
+                        "evidence:aa51b840ee1360a7",
+                        "evidence:b007dee0a121cdda",
+                        "evidence:bd48b8a8d36abb1e",
+                        "evidence:bdee6ad0795bf8d4",
+                        "evidence:c4f3c7071e6f6e1c",
+                        "evidence:c6be2dd662b473ad",
+                        "evidence:ce932a08ce87e425",
+                        "evidence:d243275b44bc9415",
+                        "evidence:d4b4edae355b6d8f",
+                        "evidence:e42993dfc288abe8",
+                        "evidence:e486600a248889a6",
+                        "evidence:e64a36e523587ca2",
+                        "evidence:ea340fea34708eec",
+                        "evidence:f01310f4df1f5a6e",
+                        "evidence:f4ae9ac2c909e433",
+                        "evidence:f81fed578f78b04e",
+                        "evidence:fa27e84e9a0b2444",
+                        "evidence:fbd2edecb4385f27"
+                      ]
+                    }
+                  ],
                   "products": [
                     {
                       "id": "337a7cf4-8a4d-4e54-80cc-52843025d917",
@@ -748,6 +888,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    641
                   ]
                 }
               ],
@@ -770,7 +913,74 @@
                   "title": "零信任访问控制台",
                   "description": "采用零信任架构，实现访问控制统一配置管理、被防护资源（网络、应用程序和API）的集中管理、认证与授权、风险响应、应用审计等的功能模块",
                   "category": "应用安全",
-                  "systems": [],
+                  "systems": [
+                    {
+                      "id": "af64af3d-6099-4bbe-b8ea-87831c20b0ae",
+                      "type": "security_system",
+                      "code": "",
+                      "name": "零信任网络访问控制",
+                      "title": "零信任网络访问控制",
+                      "description": "",
+                      "category": "应用安全",
+                      "status": "",
+                      "evidenceRefs": [
+                        "evidence:02646d77df229767",
+                        "evidence:04c355a044a21892",
+                        "evidence:06d12e1fb3a4d2ed",
+                        "evidence:0dff2dfe1e994204",
+                        "evidence:14611bc4884a92f6",
+                        "evidence:1a8a34666630e175",
+                        "evidence:23946c521fee36cc",
+                        "evidence:2d64f04adf7989c6",
+                        "evidence:30fb7a561bd9e354",
+                        "evidence:36729858c3415326",
+                        "evidence:3af2d19f69e3cded",
+                        "evidence:42b6b3460fcd9da6",
+                        "evidence:43b2cf1fb0903fa0",
+                        "evidence:4c66bdc24ca696b7",
+                        "evidence:4d2e5cb52f68e885",
+                        "evidence:4e81c049de3b8209",
+                        "evidence:50d002f192c4c457",
+                        "evidence:547df266acf8d3e3",
+                        "evidence:5a80a27f23efbbef",
+                        "evidence:5b3ee2069b6af4ae",
+                        "evidence:5de709306e93d77f",
+                        "evidence:5f12d0c116d5ea0f",
+                        "evidence:5fc67885f0d61dd2",
+                        "evidence:626a7279b7ec65bd",
+                        "evidence:62935f8e9285116f",
+                        "evidence:69cfa6eeb1685629",
+                        "evidence:6a1715a2ce798d94",
+                        "evidence:6b7adaad1ca0335f",
+                        "evidence:7c29924c209a76c4",
+                        "evidence:7c93753c57ce40dc",
+                        "evidence:7dd42700131877c1",
+                        "evidence:7e96b0ef35bc062f",
+                        "evidence:7fd862f86bd1a723",
+                        "evidence:8b648cbfe28ca895",
+                        "evidence:8d4fe2d9a89dc9ef",
+                        "evidence:a65c818ee6778e78",
+                        "evidence:aa51b840ee1360a7",
+                        "evidence:b007dee0a121cdda",
+                        "evidence:bd48b8a8d36abb1e",
+                        "evidence:bdee6ad0795bf8d4",
+                        "evidence:c4f3c7071e6f6e1c",
+                        "evidence:c6be2dd662b473ad",
+                        "evidence:ce932a08ce87e425",
+                        "evidence:d243275b44bc9415",
+                        "evidence:d4b4edae355b6d8f",
+                        "evidence:e42993dfc288abe8",
+                        "evidence:e486600a248889a6",
+                        "evidence:e64a36e523587ca2",
+                        "evidence:ea340fea34708eec",
+                        "evidence:f01310f4df1f5a6e",
+                        "evidence:f4ae9ac2c909e433",
+                        "evidence:f81fed578f78b04e",
+                        "evidence:fa27e84e9a0b2444",
+                        "evidence:fbd2edecb4385f27"
+                      ]
+                    }
+                  ],
                   "products": [
                     {
                       "id": "337a7cf4-8a4d-4e54-80cc-52843025d917",
@@ -780,6 +990,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    640
                   ]
                 }
               ],
@@ -802,7 +1015,74 @@
                   "title": "零信任访问控制台",
                   "description": "采用零信任架构，实现访问控制统一配置管理、被防护资源（网络、应用程序和API）的集中管理、认证与授权、风险响应、应用审计等的功能模块",
                   "category": "应用安全",
-                  "systems": [],
+                  "systems": [
+                    {
+                      "id": "af64af3d-6099-4bbe-b8ea-87831c20b0ae",
+                      "type": "security_system",
+                      "code": "",
+                      "name": "零信任网络访问控制",
+                      "title": "零信任网络访问控制",
+                      "description": "",
+                      "category": "应用安全",
+                      "status": "",
+                      "evidenceRefs": [
+                        "evidence:02646d77df229767",
+                        "evidence:04c355a044a21892",
+                        "evidence:06d12e1fb3a4d2ed",
+                        "evidence:0dff2dfe1e994204",
+                        "evidence:14611bc4884a92f6",
+                        "evidence:1a8a34666630e175",
+                        "evidence:23946c521fee36cc",
+                        "evidence:2d64f04adf7989c6",
+                        "evidence:30fb7a561bd9e354",
+                        "evidence:36729858c3415326",
+                        "evidence:3af2d19f69e3cded",
+                        "evidence:42b6b3460fcd9da6",
+                        "evidence:43b2cf1fb0903fa0",
+                        "evidence:4c66bdc24ca696b7",
+                        "evidence:4d2e5cb52f68e885",
+                        "evidence:4e81c049de3b8209",
+                        "evidence:50d002f192c4c457",
+                        "evidence:547df266acf8d3e3",
+                        "evidence:5a80a27f23efbbef",
+                        "evidence:5b3ee2069b6af4ae",
+                        "evidence:5de709306e93d77f",
+                        "evidence:5f12d0c116d5ea0f",
+                        "evidence:5fc67885f0d61dd2",
+                        "evidence:626a7279b7ec65bd",
+                        "evidence:62935f8e9285116f",
+                        "evidence:69cfa6eeb1685629",
+                        "evidence:6a1715a2ce798d94",
+                        "evidence:6b7adaad1ca0335f",
+                        "evidence:7c29924c209a76c4",
+                        "evidence:7c93753c57ce40dc",
+                        "evidence:7dd42700131877c1",
+                        "evidence:7e96b0ef35bc062f",
+                        "evidence:7fd862f86bd1a723",
+                        "evidence:8b648cbfe28ca895",
+                        "evidence:8d4fe2d9a89dc9ef",
+                        "evidence:a65c818ee6778e78",
+                        "evidence:aa51b840ee1360a7",
+                        "evidence:b007dee0a121cdda",
+                        "evidence:bd48b8a8d36abb1e",
+                        "evidence:bdee6ad0795bf8d4",
+                        "evidence:c4f3c7071e6f6e1c",
+                        "evidence:c6be2dd662b473ad",
+                        "evidence:ce932a08ce87e425",
+                        "evidence:d243275b44bc9415",
+                        "evidence:d4b4edae355b6d8f",
+                        "evidence:e42993dfc288abe8",
+                        "evidence:e486600a248889a6",
+                        "evidence:e64a36e523587ca2",
+                        "evidence:ea340fea34708eec",
+                        "evidence:f01310f4df1f5a6e",
+                        "evidence:f4ae9ac2c909e433",
+                        "evidence:f81fed578f78b04e",
+                        "evidence:fa27e84e9a0b2444",
+                        "evidence:fbd2edecb4385f27"
+                      ]
+                    }
+                  ],
                   "products": [
                     {
                       "id": "337a7cf4-8a4d-4e54-80cc-52843025d917",
@@ -812,6 +1092,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    642
                   ]
                 }
               ],
@@ -834,7 +1117,74 @@
                   "title": "零信任访问控制台",
                   "description": "采用零信任架构，实现访问控制统一配置管理、被防护资源（网络、应用程序和API）的集中管理、认证与授权、风险响应、应用审计等的功能模块",
                   "category": "应用安全",
-                  "systems": [],
+                  "systems": [
+                    {
+                      "id": "af64af3d-6099-4bbe-b8ea-87831c20b0ae",
+                      "type": "security_system",
+                      "code": "",
+                      "name": "零信任网络访问控制",
+                      "title": "零信任网络访问控制",
+                      "description": "",
+                      "category": "应用安全",
+                      "status": "",
+                      "evidenceRefs": [
+                        "evidence:02646d77df229767",
+                        "evidence:04c355a044a21892",
+                        "evidence:06d12e1fb3a4d2ed",
+                        "evidence:0dff2dfe1e994204",
+                        "evidence:14611bc4884a92f6",
+                        "evidence:1a8a34666630e175",
+                        "evidence:23946c521fee36cc",
+                        "evidence:2d64f04adf7989c6",
+                        "evidence:30fb7a561bd9e354",
+                        "evidence:36729858c3415326",
+                        "evidence:3af2d19f69e3cded",
+                        "evidence:42b6b3460fcd9da6",
+                        "evidence:43b2cf1fb0903fa0",
+                        "evidence:4c66bdc24ca696b7",
+                        "evidence:4d2e5cb52f68e885",
+                        "evidence:4e81c049de3b8209",
+                        "evidence:50d002f192c4c457",
+                        "evidence:547df266acf8d3e3",
+                        "evidence:5a80a27f23efbbef",
+                        "evidence:5b3ee2069b6af4ae",
+                        "evidence:5de709306e93d77f",
+                        "evidence:5f12d0c116d5ea0f",
+                        "evidence:5fc67885f0d61dd2",
+                        "evidence:626a7279b7ec65bd",
+                        "evidence:62935f8e9285116f",
+                        "evidence:69cfa6eeb1685629",
+                        "evidence:6a1715a2ce798d94",
+                        "evidence:6b7adaad1ca0335f",
+                        "evidence:7c29924c209a76c4",
+                        "evidence:7c93753c57ce40dc",
+                        "evidence:7dd42700131877c1",
+                        "evidence:7e96b0ef35bc062f",
+                        "evidence:7fd862f86bd1a723",
+                        "evidence:8b648cbfe28ca895",
+                        "evidence:8d4fe2d9a89dc9ef",
+                        "evidence:a65c818ee6778e78",
+                        "evidence:aa51b840ee1360a7",
+                        "evidence:b007dee0a121cdda",
+                        "evidence:bd48b8a8d36abb1e",
+                        "evidence:bdee6ad0795bf8d4",
+                        "evidence:c4f3c7071e6f6e1c",
+                        "evidence:c6be2dd662b473ad",
+                        "evidence:ce932a08ce87e425",
+                        "evidence:d243275b44bc9415",
+                        "evidence:d4b4edae355b6d8f",
+                        "evidence:e42993dfc288abe8",
+                        "evidence:e486600a248889a6",
+                        "evidence:e64a36e523587ca2",
+                        "evidence:ea340fea34708eec",
+                        "evidence:f01310f4df1f5a6e",
+                        "evidence:f4ae9ac2c909e433",
+                        "evidence:f81fed578f78b04e",
+                        "evidence:fa27e84e9a0b2444",
+                        "evidence:fbd2edecb4385f27"
+                      ]
+                    }
+                  ],
                   "products": [
                     {
                       "id": "337a7cf4-8a4d-4e54-80cc-52843025d917",
@@ -844,6 +1194,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    643
                   ]
                 }
               ],

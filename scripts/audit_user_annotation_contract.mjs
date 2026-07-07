@@ -273,7 +273,7 @@ if (
 if (
   !includesAll(stylesCss, [
     "right: 0;",
-    "--annotation-tab-peek: 18px",
+    "--annotation-tab-peek: var(--annotation-tab-gutter)",
     "--annotation-tab-width: 18px",
     ".annotation-drawer-tab::before",
     "transition: transform 320ms",
@@ -284,6 +284,21 @@ if (
     severity: "error",
     type: "annotation_drawer_edge_animation_contract_missing",
     message: "批注抽屉缺少贴右侧窗口、恒定侧耳或上下文行样式，收回动画可能继续出现尺寸跳变。",
+  });
+}
+
+const annotationDrawerTabBlock = stylesCss.match(/\.annotation-drawer-tab\s*\{[\s\S]*?\n\}/)?.[0] || "";
+if (
+  !stylesCss.includes("transform: translateX(calc(100% - var(--annotation-tab-peek)))") ||
+  !/left:\s*var\(--annotation-tab-gutter\)/.test(annotationDrawerTabBlock) ||
+  !/transform:\s*translateX\(-100%\)/.test(annotationDrawerTabBlock) ||
+  !stylesCss.includes(".annotation-drawer-panel") ||
+  !stylesCss.includes("margin-left: var(--annotation-tab-gutter)")
+) {
+  issues.push({
+    severity: "error",
+    type: "annotation_drawer_tab_panel_edge_contract_missing",
+    message: "批注抽屉 tab 必须按 panel gutter 贴合到面板左边缘，关闭时通过 drawer 位移露出 tab，不能和 panel 分离。",
   });
 }
 
@@ -995,6 +1010,22 @@ if (
   });
 }
 
+if (
+  userAnnotationDrawerJs.includes("currentTarget.code || currentTarget.id || currentTarget.targetRef") ||
+  !includesAll(userAnnotationDrawerJs, [
+    "function isInternalTargetMeta",
+    "function annotationTargetMeta",
+    "annotationTargetMeta(currentTarget)",
+    'targetMeta ? `<small',
+  ])
+) {
+  issues.push({
+    severity: "error",
+    type: "annotation_drawer_target_meta_boundary_missing",
+    message: "批注抽屉目标条不得把 UUID、target_ref 或内部对象 id 当作业务副标题展示，只允许显示显式业务 code。",
+  });
+}
+
 const annotationDrawerHeaderUsesSticky = /\.annotation-drawer-header\s*\{[^}]*position:\s*sticky/s.test(stylesCss);
 
 if (
@@ -1048,6 +1079,7 @@ const result = {
     visualScopeBaseline: true,
     requirementsMatrix: true,
     productContract: true,
+    drawerTabPanelEdgeContract: true,
     expandedNoteVisibilityContract: true,
   },
   issues,

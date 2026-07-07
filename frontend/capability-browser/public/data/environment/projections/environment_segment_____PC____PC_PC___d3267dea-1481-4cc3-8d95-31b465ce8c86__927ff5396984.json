@@ -139,7 +139,8 @@
         "title": "硬件",
         "name": "硬件",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。"
       }
     },
     "security_technical_service": {
@@ -567,7 +568,9 @@
             "code": "I-HD",
             "title": "硬件",
             "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "硬件",
+            "status": ""
           },
           "services": [
             {
@@ -657,7 +660,9 @@
                       "code": "I-HD",
                       "title": "硬件",
                       "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "硬件",
+                      "status": ""
                     }
                   ],
                   "related_capability_focus_ids": [
@@ -721,7 +726,11 @@
                   "type": "security_technical_measure",
                   "objectKind": "安全技术措施",
                   "kind": "安全技术措施",
-                  "title": "设备管理系统/人工服务"
+                  "title": "设备管理系统/人工服务",
+                  "systems": [],
+                  "systemSourceRows": [
+                    759
+                  ]
                 }
               ],
               "module_count": 0,
@@ -814,7 +823,9 @@
                       "code": "I-HD",
                       "title": "硬件",
                       "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "硬件",
+                      "status": ""
                     }
                   ],
                   "related_capability_focus_ids": [
@@ -878,7 +889,11 @@
                   "type": "security_technical_measure",
                   "objectKind": "安全技术措施",
                   "kind": "安全技术措施",
-                  "title": "设备管理系统/人工服务"
+                  "title": "设备管理系统/人工服务",
+                  "systems": [],
+                  "systemSourceRows": [
+                    760
+                  ]
                 }
               ],
               "module_count": 0,
@@ -971,7 +986,9 @@
                       "code": "I-HD",
                       "title": "硬件",
                       "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "硬件",
+                      "status": ""
                     }
                   ],
                   "related_capability_focus_ids": [
@@ -1035,7 +1052,11 @@
                   "type": "security_technical_measure",
                   "objectKind": "安全技术措施",
                   "kind": "安全技术措施",
-                  "title": "设备管理系统/人工服务"
+                  "title": "设备管理系统/人工服务",
+                  "systems": [],
+                  "systemSourceRows": [
+                    761
+                  ]
                 }
               ],
               "module_count": 0,
@@ -1049,9 +1070,76 @@
               "description": null,
               "category": "I-HD",
               "modules": [],
-              "measures": [],
+              "measures": [
+                {
+                  "id": "security_technical_measure:0cd8451a7b25d88a",
+                  "type": "security_technical_measure",
+                  "code": "",
+                  "title": "设备管理系统/人工服务",
+                  "name": "设备管理系统/人工服务",
+                  "description": null,
+                  "category": "安全技术措施",
+                  "status": "normal",
+                  "evidenceRefs": [
+                    "evidence:022b337bdeaae439",
+                    "evidence:0245c0348c1aa425",
+                    "evidence:0a0e31e013c0dbf0",
+                    "evidence:0b932eaf5799e667",
+                    "evidence:0cf9cc3d5419497c",
+                    "evidence:163586cbe2b91666",
+                    "evidence:1f159fa5c42bb9dc",
+                    "evidence:281eca7e2cca15a3",
+                    "evidence:342b07ca9480b3be",
+                    "evidence:35bb47352ffd1787",
+                    "evidence:3bf82a395f83610a",
+                    "evidence:42308c5dd3d48296",
+                    "evidence:441a24e677ca1bf8",
+                    "evidence:4457fba9e945bc27",
+                    "evidence:46879bfb366509d2",
+                    "evidence:4a30309f590d001a",
+                    "evidence:518db045b688d4eb",
+                    "evidence:546b224fcff859cf",
+                    "evidence:548f89f08144adc5",
+                    "evidence:58537644023ba9c8",
+                    "evidence:5d1244f4e65b06dc",
+                    "evidence:5fae289b44872bb5",
+                    "evidence:6002bab0dd10d31c",
+                    "evidence:6cb9aabc69d3936d",
+                    "evidence:713b673bfe21cd93",
+                    "evidence:73a2f6cb361ea8a2",
+                    "evidence:744a39d46c0a472b",
+                    "evidence:74a8a6c8a11f2dd2",
+                    "evidence:7afff344fd4ce096",
+                    "evidence:7c7c0e0890783b91",
+                    "evidence:8522a9ba566ae6cd",
+                    "evidence:86b24253144aafb5",
+                    "evidence:88aa803a11bb31b7",
+                    "evidence:8910d1a8205c30c0",
+                    "evidence:97f86531b40e1758",
+                    "evidence:aac03f661b7130cd",
+                    "evidence:ab1dae8dcf6882b1",
+                    "evidence:b49de61b7a664eca",
+                    "evidence:b74559e52c41dffb",
+                    "evidence:ba0d3a7c92295099",
+                    "evidence:bc5b000173de8c21",
+                    "evidence:be0f6e7f2884f29d",
+                    "evidence:c67daae9a71152b0",
+                    "evidence:d076a57982b279cc",
+                    "evidence:e19ffe29e7c2346b",
+                    "evidence:e689b756a6db6292",
+                    "evidence:f3774e18159b5aff",
+                    "evidence:f3858d69669f70f4",
+                    "evidence:f81de21289246130",
+                    "evidence:fea81330e80b37dc"
+                  ],
+                  "systems": [],
+                  "systemSourceRows": [
+                    762
+                  ]
+                }
+              ],
               "module_count": 0,
-              "measure_count": 0
+              "measure_count": 1
             },
             {
               "id": "793450b0-2300-4600-a3ab-c7ffdfed9ad2",
@@ -1061,9 +1149,76 @@
               "description": null,
               "category": "I-HD",
               "modules": [],
-              "measures": [],
+              "measures": [
+                {
+                  "id": "security_technical_measure:0cd8451a7b25d88a",
+                  "type": "security_technical_measure",
+                  "code": "",
+                  "title": "设备管理系统/人工服务",
+                  "name": "设备管理系统/人工服务",
+                  "description": null,
+                  "category": "安全技术措施",
+                  "status": "normal",
+                  "evidenceRefs": [
+                    "evidence:022b337bdeaae439",
+                    "evidence:0245c0348c1aa425",
+                    "evidence:0a0e31e013c0dbf0",
+                    "evidence:0b932eaf5799e667",
+                    "evidence:0cf9cc3d5419497c",
+                    "evidence:163586cbe2b91666",
+                    "evidence:1f159fa5c42bb9dc",
+                    "evidence:281eca7e2cca15a3",
+                    "evidence:342b07ca9480b3be",
+                    "evidence:35bb47352ffd1787",
+                    "evidence:3bf82a395f83610a",
+                    "evidence:42308c5dd3d48296",
+                    "evidence:441a24e677ca1bf8",
+                    "evidence:4457fba9e945bc27",
+                    "evidence:46879bfb366509d2",
+                    "evidence:4a30309f590d001a",
+                    "evidence:518db045b688d4eb",
+                    "evidence:546b224fcff859cf",
+                    "evidence:548f89f08144adc5",
+                    "evidence:58537644023ba9c8",
+                    "evidence:5d1244f4e65b06dc",
+                    "evidence:5fae289b44872bb5",
+                    "evidence:6002bab0dd10d31c",
+                    "evidence:6cb9aabc69d3936d",
+                    "evidence:713b673bfe21cd93",
+                    "evidence:73a2f6cb361ea8a2",
+                    "evidence:744a39d46c0a472b",
+                    "evidence:74a8a6c8a11f2dd2",
+                    "evidence:7afff344fd4ce096",
+                    "evidence:7c7c0e0890783b91",
+                    "evidence:8522a9ba566ae6cd",
+                    "evidence:86b24253144aafb5",
+                    "evidence:88aa803a11bb31b7",
+                    "evidence:8910d1a8205c30c0",
+                    "evidence:97f86531b40e1758",
+                    "evidence:aac03f661b7130cd",
+                    "evidence:ab1dae8dcf6882b1",
+                    "evidence:b49de61b7a664eca",
+                    "evidence:b74559e52c41dffb",
+                    "evidence:ba0d3a7c92295099",
+                    "evidence:bc5b000173de8c21",
+                    "evidence:be0f6e7f2884f29d",
+                    "evidence:c67daae9a71152b0",
+                    "evidence:d076a57982b279cc",
+                    "evidence:e19ffe29e7c2346b",
+                    "evidence:e689b756a6db6292",
+                    "evidence:f3774e18159b5aff",
+                    "evidence:f3858d69669f70f4",
+                    "evidence:f81de21289246130",
+                    "evidence:fea81330e80b37dc"
+                  ],
+                  "systems": [],
+                  "systemSourceRows": [
+                    763
+                  ]
+                }
+              ],
               "module_count": 0,
-              "measure_count": 0
+              "measure_count": 1
             }
           ],
           "service_count": 5,

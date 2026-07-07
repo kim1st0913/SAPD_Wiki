@@ -2,47 +2,47 @@
   "packageType": "oi-149-p4-runtime-split-manifest",
   "dataState": "ready",
   "contract": "oi149-p4-split-v1",
-  "generatedAt": "2026-07-05T13:37:46.612Z",
+  "generatedAt": "2026-07-06T05:29:26.968Z",
   "sourcePackages": {
     "capability-tree": {
       "path": "frontend/capability-browser/public/data/capability-tree.json",
-      "sizeKB": 7243.1,
-      "sha256": "94c089b1959a5f16967a3d5777456246ad8cd4776bde8cdcbd95eb6c771ad3d8"
+      "sizeKB": 7248.1,
+      "sha256": "e6cd5ca4ea7725d38300464e1826816bcd7cd30c030de0db2c0bc879b3cf0adc"
     },
     "capability-workbench": {
       "path": "frontend/capability-browser/public/data/capability-workbench.json",
-      "sizeKB": 5688.6,
-      "sha256": "3a7624e8b29b8487471d388bfef80099b78fdd89774c4721aabd19d37512eb2f"
+      "sizeKB": 5688.8,
+      "sha256": "2a3cc84192b926d5fceb35d9bf3ac1e7e170e2e400cb253c207ab475bd482b03"
     },
     "environment-workbench": {
       "path": "frontend/capability-browser/public/data/environment-workbench.json",
-      "sizeKB": 25881.6,
-      "sha256": "99ad323bd6860da74fea8f2b8ac24e29e083271826359b0607be09c81e805ee9"
+      "sizeKB": 23273.8,
+      "sha256": "60072c6e1a66ef093d4c1bffb60b0cd57a0d0bcf79d37939dd8fc98fb0c79ed5"
     },
     "maintenance-index": {
       "path": "frontend/capability-browser/public/data/maintenance-index.json",
       "sizeKB": 3.8,
-      "sha256": "d31cda11faeaa5151d7752cb20fcf8dfd55c429f618c28fbc4e1f0d305c508f6"
+      "sha256": "cb9104d52d57d1c4fbad595cb3da6d9e0bba4186a7326c5d4d3b5f97020866b2"
     },
     "maintenance-knowledge": {
       "path": "frontend/capability-browser/public/data/maintenance-knowledge.json",
-      "sizeKB": 10232.4,
-      "sha256": "42502a9178cce5ba23d58e06465a2107a7835571945f09f891e3df816ca4b1d3"
+      "sizeKB": 10234.8,
+      "sha256": "07740175d420017f29fc40a109f3b12b15f989185875817bd332b82bc3ad4b7f"
     },
     "shared-lookups": {
       "path": "frontend/capability-browser/public/data/shared-lookups.json",
-      "sizeKB": 5201.1,
-      "sha256": "6b3f00495bf25926b52fa4d4a1739e530ee761a055f72a399806b9a964b3b866"
+      "sizeKB": 5202.8,
+      "sha256": "8681eb59710a059b86f02f50d5b9744d664006ea903e366d074f593281451493"
     },
     "lifecycle-workbench": {
       "path": "frontend/capability-browser/public/data/lifecycle-workbench.json",
-      "sizeKB": 1843.3,
-      "sha256": "40698bec9c6f4f9408f9be3a1bb80ef3edabba2fe07cf7fe2013b3a093d88a81"
+      "sizeKB": 1833.6,
+      "sha256": "2391eda411700ee8d1939406aee2bce7e514f980998c4289432cee73b6b95013"
     },
     "standards-index": {
       "path": "frontend/capability-browser/public/data/standards-index.json",
       "sizeKB": 8.4,
-      "sha256": "ea5a5079004bdc7f21eca421a15ce2505ad24f81820a4178d93d46c8a4f36457"
+      "sha256": "747b2a3a03e70f1444930bd3d15f2ebf5738d6ee195d3102e2b63d4de00154fa"
     }
   },
   "domains": {
@@ -100,91 +100,91 @@
     },
     {
       "path": "capability/projections/99db293b-2029-49ab-b84c-a86b68ada3ce.json",
-      "sizeKB": 154.1,
+      "sizeKB": 154.9,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/72cd12e2-f784-4775-8b3f-6d3ed4e7d398.json",
-      "sizeKB": 66.9,
+      "sizeKB": 67.8,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/6c872817-38b8-4b19-9307-112520735747.json",
-      "sizeKB": 60.8,
+      "sizeKB": 61.6,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/1b72dcb4-a4df-49c9-90fc-895bed051abb.json",
-      "sizeKB": 69.2,
+      "sizeKB": 69.5,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/865efd41-fd51-42a1-9c0a-6f46162d1d68.json",
-      "sizeKB": 177.2,
+      "sizeKB": 177.9,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/b17f570a-0a41-4aaf-86ab-10f3a1b1c8d3.json",
-      "sizeKB": 101.4,
+      "sizeKB": 102.1,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/5f990233-75df-46ff-a04f-45f4ae456a0d.json",
-      "sizeKB": 93.9,
+      "sizeKB": 94.2,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/53bfcca7-3660-4630-b7a2-d4bd9610b166.json",
-      "sizeKB": 116.6,
+      "sizeKB": 117,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/f481d6ed-0cff-49cf-9a45-859a2e524fc4.json",
-      "sizeKB": 66,
+      "sizeKB": 66.5,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/3ba28f0a-e5c9-48af-9e9b-0614a264d7af.json",
-      "sizeKB": 70.5,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/ca3679e4-a177-4436-a7e9-a94b037eb830.json",
-      "sizeKB": 98.9,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/09275fd5-5034-4b6b-a9c8-eebf381d2442.json",
       "sizeKB": 70.9,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
+      "path": "capability/projections/ca3679e4-a177-4436-a7e9-a94b037eb830.json",
+      "sizeKB": 99.3,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "capability/projections/09275fd5-5034-4b6b-a9c8-eebf381d2442.json",
+      "sizeKB": 71.3,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
       "path": "capability/projections/5b992744-35eb-4bf0-b0e3-097df663e2e3.json",
-      "sizeKB": 48.3,
+      "sizeKB": 48.7,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -198,154 +198,154 @@
     },
     {
       "path": "capability/projections/c1d0dca3-d4a3-4a3f-bfb8-3230b0781cea.json",
-      "sizeKB": 85.3,
+      "sizeKB": 85.7,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/9bb22f45-3d49-4c1d-becc-ffce3b2c446a.json",
-      "sizeKB": 124.2,
+      "sizeKB": 124.7,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/2c4e3200-3551-4297-9188-53376e6b0693.json",
-      "sizeKB": 143.4,
+      "sizeKB": 144.3,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/fa079362-7b74-4f89-b239-8b8d5718e191.json",
-      "sizeKB": 54.5,
+      "sizeKB": 55,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/9f952bed-4aee-4e71-8038-4b4183b1aae5.json",
-      "sizeKB": 172.1,
+      "sizeKB": 172.2,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/0711626d-97e3-4a0a-b2ae-13a7af5ccfda.json",
-      "sizeKB": 44,
+      "sizeKB": 44.1,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/41225a46-2d90-48d6-ba61-ba6b093bf9e1.json",
-      "sizeKB": 46.7,
+      "sizeKB": 46.8,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/fe0df93f-a252-40c3-8390-e410a5548eed.json",
-      "sizeKB": 53.2,
+      "sizeKB": 53.3,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/77f3844f-350e-42d8-bde5-2a4727cbeb5b.json",
-      "sizeKB": 31.3,
+      "sizeKB": 31.5,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/c7aadf7d-a94b-430b-a2d8-bbb379682d35.json",
-      "sizeKB": 59.9,
+      "sizeKB": 60,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/18977352-86af-48a6-8f6a-f3df936b27d3.json",
-      "sizeKB": 46.1,
+      "sizeKB": 46.2,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/27fcd3f8-36ee-4be1-a449-be8e9f97e2b1.json",
-      "sizeKB": 160.3,
+      "sizeKB": 161,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/c39337c6-4b00-4192-a457-1366e2d13e15.json",
-      "sizeKB": 53.9,
+      "sizeKB": 54.3,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/e206c28d-f81a-4eba-9da4-a15f96a6719e.json",
-      "sizeKB": 50.6,
+      "sizeKB": 51.2,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/78bd3e69-0e74-4d52-bc1e-d88b8d7d6f7f.json",
-      "sizeKB": 96.5,
+      "sizeKB": 97.2,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/f0014de5-8bb2-457b-a2a4-b40011faef8f.json",
-      "sizeKB": 77.2,
+      "sizeKB": 77.9,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/dacf7142-6ac7-48e1-b463-5d42275bfc6f.json",
-      "sizeKB": 52.1,
+      "sizeKB": 52.8,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/580a4463-e07b-432c-bde4-ec33d24b4913.json",
-      "sizeKB": 47.3,
+      "sizeKB": 47.8,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/aa33c509-d01e-41b4-bd19-01d81535bba3.json",
-      "sizeKB": 92.5,
+      "sizeKB": 92.7,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/4ebac402-6b13-416d-96d7-ab8e3e15e52f.json",
-      "sizeKB": 41,
+      "sizeKB": 41.2,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/40c42943-962d-4154-8689-4910d29d6d93.json",
-      "sizeKB": 42.8,
+      "sizeKB": 43,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/641fd4ce-e317-45c2-bf34-21078be37041.json",
-      "sizeKB": 45.8,
+      "sizeKB": 46,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -359,14 +359,14 @@
     },
     {
       "path": "capability/projections/7b902b73-7f08-4235-95a8-577ef0d0ce5b.json",
-      "sizeKB": 125,
+      "sizeKB": 125.8,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/7e4922f0-05fa-4438-b33b-e498af49decb.json",
-      "sizeKB": 54.6,
+      "sizeKB": 55.2,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -380,126 +380,126 @@
     },
     {
       "path": "capability/projections/8df9c875-0812-4ff3-b13f-0b79be561419.json",
-      "sizeKB": 75.5,
+      "sizeKB": 76.1,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/53a980f0-6183-4feb-827b-c93e5c6b456d.json",
-      "sizeKB": 75.8,
+      "sizeKB": 76.3,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/dd0eaca8-aec0-4bf4-bd9e-ed1e72839dbe.json",
-      "sizeKB": 67.2,
+      "sizeKB": 67.7,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/037b603c-407d-4649-b1b8-830a83d1c6b3.json",
-      "sizeKB": 25.7,
+      "sizeKB": 26.1,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/c097b3c8-f951-409f-8422-59ff30e782e5.json",
-      "sizeKB": 160.1,
+      "sizeKB": 160.4,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/44817bda-17a6-4c50-9e1b-a976ca9bd1aa.json",
-      "sizeKB": 49.7,
+      "sizeKB": 50,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/da78919c-d048-42d4-b95e-e2869b07138d.json",
-      "sizeKB": 74.9,
+      "sizeKB": 75.3,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/85aefc20-d2ad-425b-92ff-41938d24c543.json",
-      "sizeKB": 50.1,
+      "sizeKB": 50.4,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/52587aa8-a348-4f68-9965-e88007d35567.json",
-      "sizeKB": 24.9,
+      "sizeKB": 25,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/8c8190a8-b48f-40d2-85f0-6850c604d745.json",
-      "sizeKB": 33.6,
+      "sizeKB": 33.8,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/184af5ec-6ca8-4b73-9ad6-ed6ce7ffb4e9.json",
-      "sizeKB": 169.2,
+      "sizeKB": 169.7,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/3bbc4d06-3468-4a8d-99c0-44a5257f57c0.json",
-      "sizeKB": 30.5,
+      "sizeKB": 31,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/48f076b2-5a98-4c8d-abab-366aaea936d7.json",
-      "sizeKB": 36.6,
+      "sizeKB": 37,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/683037c4-d18c-4f91-98a7-e90207be2df4.json",
-      "sizeKB": 43.5,
+      "sizeKB": 43.7,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/59a9c959-2a86-40d2-b63b-c15400c3d919.json",
-      "sizeKB": 50.1,
+      "sizeKB": 50.2,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/75cf3e63-ebe4-48de-99cc-06b255464ed8.json",
-      "sizeKB": 54.8,
+      "sizeKB": 55,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/ff015a81-5568-46b3-b0e8-3b63ae380722.json",
-      "sizeKB": 33.7,
+      "sizeKB": 33.9,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/ff418da8-05f3-4d27-adba-e4575670aeb7.json",
-      "sizeKB": 42.1,
+      "sizeKB": 42.3,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -513,105 +513,105 @@
     },
     {
       "path": "capability/projections/5ccd742f-bbd3-46f2-91b8-62266c5d894a.json",
-      "sizeKB": 80.4,
+      "sizeKB": 81.1,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/1160f208-678b-4031-9277-041a1b175f0b.json",
-      "sizeKB": 42.7,
+      "sizeKB": 43.2,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/92412408-7d0f-4763-8c02-25f535b7ed67.json",
-      "sizeKB": 37.7,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/b99c17a6-1ae8-4c75-8195-42f00991caca.json",
-      "sizeKB": 25.4,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/c5a2eb30-8797-406f-8df0-568719fba3e5.json",
-      "sizeKB": 214.5,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/8bccd956-50a6-4ad6-b5ef-746b499cb923.json",
-      "sizeKB": 61.1,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/5aab4ef0-77a7-41e3-9c98-59dada1e8062.json",
-      "sizeKB": 45,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/b6a88845-1e0c-49c0-9d57-949afe305a99.json",
-      "sizeKB": 85.7,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/0d795004-edd0-4c2f-bdd4-28107ae629b7.json",
-      "sizeKB": 37.7,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/2eeb3353-8e02-420b-9323-0c715d18d05e.json",
-      "sizeKB": 42.3,
-      "category": "capabilityProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "capability/projections/4d623910-66db-4eca-b09c-0f8dd5193bd5.json",
       "sizeKB": 37.9,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
+      "path": "capability/projections/b99c17a6-1ae8-4c75-8195-42f00991caca.json",
+      "sizeKB": 25.6,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "capability/projections/c5a2eb30-8797-406f-8df0-568719fba3e5.json",
+      "sizeKB": 215.4,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "capability/projections/8bccd956-50a6-4ad6-b5ef-746b499cb923.json",
+      "sizeKB": 61.3,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "capability/projections/5aab4ef0-77a7-41e3-9c98-59dada1e8062.json",
+      "sizeKB": 45.1,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "capability/projections/b6a88845-1e0c-49c0-9d57-949afe305a99.json",
+      "sizeKB": 85.9,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "capability/projections/0d795004-edd0-4c2f-bdd4-28107ae629b7.json",
+      "sizeKB": 37.9,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "capability/projections/2eeb3353-8e02-420b-9323-0c715d18d05e.json",
+      "sizeKB": 42.9,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "capability/projections/4d623910-66db-4eca-b09c-0f8dd5193bd5.json",
+      "sizeKB": 38.5,
+      "category": "capabilityProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
       "path": "capability/projections/9992c62d-29ee-4e13-933e-8374d71f0d14.json",
-      "sizeKB": 51.4,
+      "sizeKB": 51.9,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/b5a0d426-d43a-46f8-badb-f9437f5077d4.json",
-      "sizeKB": 26.3,
+      "sizeKB": 26.7,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/b13b84ac-4bc1-4264-a5b6-61d5ce163a6d.json",
-      "sizeKB": 36.4,
+      "sizeKB": 36.5,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/35896dca-f457-437e-ba2c-4cb288ad23e6.json",
-      "sizeKB": 23.5,
+      "sizeKB": 23.7,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -625,42 +625,42 @@
     },
     {
       "path": "capability/projections/63df9858-fcd2-479a-b5c0-f450e0185a2c.json",
-      "sizeKB": 28.1,
+      "sizeKB": 28.3,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/6ced00d1-70d1-4dff-9d8a-2c30191ed8f3.json",
-      "sizeKB": 18.7,
+      "sizeKB": 18.8,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/8cec61ed-aedb-45af-a9a3-36a99a6f3c83.json",
-      "sizeKB": 16.1,
+      "sizeKB": 16.3,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/1771201d-11cc-4a1f-b243-c73880d9f732.json",
-      "sizeKB": 15.3,
+      "sizeKB": 15.4,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/1cdc4eee-878a-46a3-b71e-1f8bd88d817e.json",
-      "sizeKB": 16.1,
+      "sizeKB": 16.2,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/fa1cbe0c-bfae-4384-9913-a1301eeaa9ba.json",
-      "sizeKB": 16,
+      "sizeKB": 16.2,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -772,14 +772,14 @@
     },
     {
       "path": "capability/projections/c79d749e-9f70-44ad-9c99-970bbd5d62e0.json",
-      "sizeKB": 120.9,
+      "sizeKB": 121,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/3aa503a1-3b05-4ed7-bde6-5503f54cc104.json",
-      "sizeKB": 75.7,
+      "sizeKB": 75.8,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -821,14 +821,14 @@
     },
     {
       "path": "capability/projections/3d8d883b-6b4d-4f4f-b153-220a9708e8f8.json",
-      "sizeKB": 53.1,
+      "sizeKB": 53.2,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/baa9f450-396e-43d3-9d94-5d4cdced56a0.json",
-      "sizeKB": 34.5,
+      "sizeKB": 34.6,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -842,14 +842,14 @@
     },
     {
       "path": "capability/projections/7748c478-9e64-43f0-8b50-6fd69c81fbac.json",
-      "sizeKB": 106,
+      "sizeKB": 106.1,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/8a092001-e555-48e8-89ed-11e8bb8213ee.json",
-      "sizeKB": 44.5,
+      "sizeKB": 44.6,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -912,14 +912,14 @@
     },
     {
       "path": "capability/projections/92d4fb18-815b-42eb-9948-0df683a4b830.json",
-      "sizeKB": 45.2,
+      "sizeKB": 45.3,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/0a4dbe3b-545d-4011-bfa9-3cffdba1445d.json",
-      "sizeKB": 24.5,
+      "sizeKB": 24.6,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -968,14 +968,14 @@
     },
     {
       "path": "capability/projections/ee1c0263-d4dd-48d4-b38d-ac64109cecaa.json",
-      "sizeKB": 17.6,
+      "sizeKB": 17.7,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "capability/projections/38296ed3-c9e1-43d3-9e8d-deaaee1cb8ec.json",
-      "sizeKB": 17.8,
+      "sizeKB": 17.9,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -1017,7 +1017,7 @@
     },
     {
       "path": "capability/projections/bc59df3a-3ce4-4da3-8f42-1819249c7355.json",
-      "sizeKB": 62.5,
+      "sizeKB": 62.6,
       "category": "capabilityProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -1052,1008 +1052,1008 @@
     },
     {
       "path": "environment/projections/information_environment_____bae3aa1e-f7e6-43fd-9b13-362edeb373a4__fec828c9e983.json",
-      "sizeKB": 1522.5,
+      "sizeKB": 39.1,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "environment/projections/environment_segment_________API___74004db1-d891-48f4-b655-6fa5e7db4de8__3d7aa6a17221.json",
-      "sizeKB": 152.3,
+      "sizeKB": 158.9,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "environment/projections/information_object___API___2bfeabc1-aae0-45aa-b284-599e2eca4f45__d52df0f76b33.json",
-      "sizeKB": 152.6,
+      "sizeKB": 159.2,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "environment/projections/environment_segment___________19a6ac32-ee3a-4841-8d0d-0da667186994__95e744278ed3.json",
-      "sizeKB": 132.9,
+      "sizeKB": 127.2,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "environment/projections/information_object_____ef966215-f755-4922-aba9-2e1e28f49c66__13c5b765e3a0.json",
-      "sizeKB": 133.2,
+      "sizeKB": 127.5,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "environment/projections/environment_segment___________19a6ac32-ee3a-4841-8d0d-0da667186994__0598d1bb9e44.json",
-      "sizeKB": 108.4,
+      "sizeKB": 110.3,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "environment/projections/information_object_____ccd0d190-6f18-428d-a645-8a4381229c8c__3ec5f66a0998.json",
-      "sizeKB": 108.7,
+      "sizeKB": 110.6,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "environment/projections/environment_segment___________7212680e-d007-4200-bb27-2d7201bb6223__31f4b6086766.json",
-      "sizeKB": 170.8,
+      "sizeKB": 139.1,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "environment/projections/information_object_____5b4f245c-550b-4ddb-910e-32bb0096f512__f9cae8444d1f.json",
-      "sizeKB": 171.2,
+      "sizeKB": 139.6,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "environment/projections/environment_segment___________263062ea-880a-4c8b-a469-bceab0eee118__40bf09ac2dca.json",
-      "sizeKB": 104.4,
+      "sizeKB": 106,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "environment/projections/information_object_____3804ac86-69fe-4162-b477-09c4e8655032__84ed02c41ac7.json",
-      "sizeKB": 104.7,
+      "sizeKB": 106.3,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "environment/projections/environment_segment___________74004db1-d891-48f4-b655-6fa5e7db4de8__3a675a010d68.json",
-      "sizeKB": 188.9,
+      "sizeKB": 182.8,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "environment/projections/information_object_____9d7ed31d-6cfb-4e81-beac-816672f034c0__3f3775c4d753.json",
-      "sizeKB": 189.2,
+      "sizeKB": 183.1,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "environment/projections/environment_segment___________74004db1-d891-48f4-b655-6fa5e7db4de8__86c02b5894a6.json",
-      "sizeKB": 125.5,
+      "sizeKB": 128.1,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "environment/projections/information_object_____42ba7480-70cc-48a8-858b-3dbf22eabad8__17fc0ad03d46.json",
-      "sizeKB": 125.8,
+      "sizeKB": 128.4,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "environment/projections/environment_segment___________2c38259d-483d-4e1d-a9f2-758b8f6d83f2__c77987fdcad2.json",
-      "sizeKB": 81.4,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object_____4d79420e-e496-41e4-b85a-33d839709f0b__4899c8cdae5f.json",
-      "sizeKB": 81.7,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment___________2c38259d-483d-4e1d-a9f2-758b8f6d83f2__061732d21fa2.json",
-      "sizeKB": 228.2,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object_____418bd2f6-ff6e-431e-b2ef-059df3cdd2ae__49387d14a6c7.json",
-      "sizeKB": 228.5,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment___________74004db1-d891-48f4-b655-6fa5e7db4de8__4045b28918c5.json",
-      "sizeKB": 178.7,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object_____c9078ce4-f9e0-4e89-8e8b-9a1c81e8c597__025cfec15bbf.json",
-      "sizeKB": 179,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment___________2c38259d-483d-4e1d-a9f2-758b8f6d83f2__97f0a1ee1ee4.json",
-      "sizeKB": 210.1,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object_____3a5b01da-2296-4eec-a240-138e183c392c__5371abf795ca.json",
-      "sizeKB": 210.4,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment___________2c38259d-483d-4e1d-a9f2-758b8f6d83f2__72508d8f0ba7.json",
-      "sizeKB": 178,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object_____2daab029-786a-44ee-9541-bd042ebb1922__4677b400aa89.json",
-      "sizeKB": 178.3,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment___________2c38259d-483d-4e1d-a9f2-758b8f6d83f2__03fbb0ee4dd4.json",
-      "sizeKB": 210.3,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object_____fcd586a4-4d8b-4807-a804-3fa7f3e3c84f__05a8b68bd3e3.json",
-      "sizeKB": 210.6,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment___________2c38259d-483d-4e1d-a9f2-758b8f6d83f2__f12e89ef8272.json",
-      "sizeKB": 193.9,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object_____26943f7b-3d94-4550-a9e1-091e964bfd10__462bcfe98fd4.json",
-      "sizeKB": 194.1,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment___________74004db1-d891-48f4-b655-6fa5e7db4de8__08c1c4650e99.json",
-      "sizeKB": 96,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object_____558219a7-1d39-403b-a99d-202fcaf578db__f00fbfabfd5c.json",
-      "sizeKB": 96.2,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment___________263062ea-880a-4c8b-a469-bceab0eee118__9c4e0364a8a7.json",
-      "sizeKB": 193.1,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object_____7d9d87cb-13f6-4809-8e12-33807d6a059d__bee6a939f2b0.json",
-      "sizeKB": 193.5,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment___________263062ea-880a-4c8b-a469-bceab0eee118__4bfbc70b5bbe.json",
-      "sizeKB": 128,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object_____ae52058f-0d70-40ed-8bf7-6cde2b8a0c78__1716de20ca4f.json",
-      "sizeKB": 128.3,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment___________74004db1-d891-48f4-b655-6fa5e7db4de8__c1dffeff378c.json",
-      "sizeKB": 196.7,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object_____a18b3858-6fa4-4595-b985-9ffd79c65502__8d2ae348f0ab.json",
-      "sizeKB": 197,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment___________263062ea-880a-4c8b-a469-bceab0eee118__eb291cf9536c.json",
-      "sizeKB": 175.7,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object_____5f0fea59-04a7-48b5-8004-353febac0912__cc6b1999e4d0.json",
-      "sizeKB": 176,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_environment_____b6e3912b-0633-4a61-acb5-ea46e7fd0985__3f2b41b9bf72.json",
-      "sizeKB": 468.7,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment___________a3cdfe84-7747-43fa-9074-cb3d043add5b__6c960ae17fe5.json",
-      "sizeKB": 204.5,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object_____584995f6-dc3f-4f87-97ad-b22a5381e7d7__85294610c65a.json",
-      "sizeKB": 204.8,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment___________a3cdfe84-7747-43fa-9074-cb3d043add5b__d63364e50a4b.json",
-      "sizeKB": 117.5,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object_____a7929ad7-165b-4e2f-a1f9-0d1bd5800afb__a4691868d782.json",
-      "sizeKB": 117.8,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment___________c8c25ac9-7dd1-48d8-8022-47c01b4fd5ea__63814d92788d.json",
-      "sizeKB": 111.4,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object_____93dc47d2-1163-4161-b28a-885d0ad696e4__aaafbcd2c75d.json",
-      "sizeKB": 111.7,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment___________c8c25ac9-7dd1-48d8-8022-47c01b4fd5ea__1227dcf7cb02.json",
-      "sizeKB": 107.4,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object_____65c5a679-21cb-4290-800e-2674ca9bb424__c3e590292660.json",
-      "sizeKB": 107.7,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment___________a3cdfe84-7747-43fa-9074-cb3d043add5b__17fcac7d07a0.json",
-      "sizeKB": 146.5,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object_____4425e2d0-7809-4e1e-9a2c-6125e3d40125__8dccf010f35f.json",
-      "sizeKB": 146.7,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment___________aa6d2501-6ab6-4751-8041-a9aea22c4d19__eb7a8923f5df.json",
-      "sizeKB": 191.1,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object_____7d9d87cb-13f6-4809-8e12-33807d6a059d__266cd1f9d29d.json",
-      "sizeKB": 191.4,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment___________aa6d2501-6ab6-4751-8041-a9aea22c4d19__d9f6abbd1a29.json",
-      "sizeKB": 126,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object_____ae52058f-0d70-40ed-8bf7-6cde2b8a0c78__13a840c83757.json",
-      "sizeKB": 126.3,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_environment_____638d6ac0-4cd9-4433-9612-c43697f70f97__2d87bd59ebda.json",
-      "sizeKB": 242.9,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment_____PC____PC_PC___6ca0d799-fb88-46de-89bd-cf5619e5a4c0__5fc7f3a75abd.json",
-      "sizeKB": 156.6,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object___PC_PC___2c2ed2c8-d124-42bc-8e7f-c7e9a329a866__769cfa4149bd.json",
-      "sizeKB": 156.9,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment_____PC____PC_PC___6ca0d799-fb88-46de-89bd-cf5619e5a4c0__4be0990994bd.json",
-      "sizeKB": 83.3,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object___PC_PC___9a60d5f1-2cab-4c47-8604-a13bfc0c81cb__e99d1008cf8c.json",
-      "sizeKB": 83.6,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment_____PC____PC_PC___6ca0d799-fb88-46de-89bd-cf5619e5a4c0__9b1f4b066959.json",
-      "sizeKB": 71,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object___PC_PC___127c52bd-a1ad-43ed-92d3-e8817b3566b7__f98c7f7c3a5e.json",
-      "sizeKB": 71.2,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment___________72f483ba-f2f6-4369-a51b-1b00908bc47c__53f5033f4f93.json",
-      "sizeKB": 71.5,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object_____d2d506ee-797f-4955-b359-5cab3be31dca__6c4881b705ae.json",
-      "sizeKB": 71.8,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment___________72f483ba-f2f6-4369-a51b-1b00908bc47c__572347b794b4.json",
-      "sizeKB": 74.7,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object_____83adb24d-76fb-4b0d-bfff-f4c731ebf7e1__b19a02ed8f82.json",
-      "sizeKB": 75,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment___________72f483ba-f2f6-4369-a51b-1b00908bc47c__98c0a09c5801.json",
-      "sizeKB": 62.2,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object_____02a19fcd-3702-464e-bc46-f4bcb8f2898f__a9d7ef9b54d0.json",
-      "sizeKB": 62.6,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment___________2d24669b-5c91-4f66-926d-b9d3c9a5e6ce__d13caafce57b.json",
-      "sizeKB": 61.4,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object_____1cb55765-62ea-4c5f-b1f9-28b433d3aa95__736ce7c32c75.json",
-      "sizeKB": 61.7,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment___________ade1dcb0-f677-46eb-8fe1-6012be2f5235__88ca80162599.json",
-      "sizeKB": 74.9,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object_____dac5e04a-c6e5-4ac7-b5f9-3b581dce08e5__871976f37c30.json",
-      "sizeKB": 75.2,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment___________ade1dcb0-f677-46eb-8fe1-6012be2f5235__8038e3e10dc3.json",
-      "sizeKB": 57.2,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object_____76c5b6ff-e237-4b2c-84b9-27d0b643c9ed__c577a3c40965.json",
-      "sizeKB": 57.6,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_environment_____4abdf7e2-a2c3-42df-8cf4-fa9c9a38981e__84b0bf733004.json",
-      "sizeKB": 225.6,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment_____PC____PC_PC___f0a326df-08da-4ce9-b76b-ebccad17fcbc__c99543674d89.json",
-      "sizeKB": 155.1,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object___PC_PC___2c2ed2c8-d124-42bc-8e7f-c7e9a329a866__9039ff400a6b.json",
-      "sizeKB": 155.4,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment_____PC____PC_PC___f0a326df-08da-4ce9-b76b-ebccad17fcbc__b3a7a39c0321.json",
       "sizeKB": 81.8,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "environment/projections/information_object___PC_PC___9a60d5f1-2cab-4c47-8604-a13bfc0c81cb__8f68d2fb097b.json",
+      "path": "environment/projections/information_object_____4d79420e-e496-41e4-b85a-33d839709f0b__4899c8cdae5f.json",
       "sizeKB": 82.1,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "environment/projections/environment_segment_____PC____PC_PC___f0a326df-08da-4ce9-b76b-ebccad17fcbc__835d31763f50.json",
-      "sizeKB": 69.4,
+      "path": "environment/projections/environment_segment___________2c38259d-483d-4e1d-a9f2-758b8f6d83f2__061732d21fa2.json",
+      "sizeKB": 266.8,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "environment/projections/information_object___PC_PC___127c52bd-a1ad-43ed-92d3-e8817b3566b7__15e65477da47.json",
-      "sizeKB": 69.7,
+      "path": "environment/projections/information_object_____418bd2f6-ff6e-431e-b2ef-059df3cdd2ae__49387d14a6c7.json",
+      "sizeKB": 267.1,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "environment/projections/environment_segment___________1b0ccff9-09bd-4e6c-9345-f1126f45b772__3493b70db4c1.json",
-      "sizeKB": 59.8,
+      "path": "environment/projections/environment_segment___________74004db1-d891-48f4-b655-6fa5e7db4de8__4045b28918c5.json",
+      "sizeKB": 182.3,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "environment/projections/information_object_____1cb55765-62ea-4c5f-b1f9-28b433d3aa95__1b3f619bfd1e.json",
-      "sizeKB": 60.1,
+      "path": "environment/projections/information_object_____c9078ce4-f9e0-4e89-8e8b-9a1c81e8c597__025cfec15bbf.json",
+      "sizeKB": 182.6,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "environment/projections/environment_segment___________a7ff1a61-186f-4da0-b084-e61e87c36257__f9ddc20f2f66.json",
-      "sizeKB": 71.2,
+      "path": "environment/projections/environment_segment___________2c38259d-483d-4e1d-a9f2-758b8f6d83f2__97f0a1ee1ee4.json",
+      "sizeKB": 205,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "environment/projections/information_object_____524271ed-6149-4221-a12c-cd52eb3a0b57__c03e7d3cb089.json",
-      "sizeKB": 71.5,
+      "path": "environment/projections/information_object_____3a5b01da-2296-4eec-a240-138e183c392c__5371abf795ca.json",
+      "sizeKB": 205.3,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "environment/projections/environment_segment___________a7ff1a61-186f-4da0-b084-e61e87c36257__7300e60c2177.json",
-      "sizeKB": 59.9,
+      "path": "environment/projections/environment_segment___________2c38259d-483d-4e1d-a9f2-758b8f6d83f2__72508d8f0ba7.json",
+      "sizeKB": 185.3,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "environment/projections/information_object_____86078509-7f39-49bd-b322-f590d7e9c0bb__0ebf80f72048.json",
-      "sizeKB": 60.2,
+      "path": "environment/projections/information_object_____2daab029-786a-44ee-9541-bd042ebb1922__4677b400aa89.json",
+      "sizeKB": 185.6,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "environment/projections/environment_segment___________47f8da57-612a-4d74-8ce4-b2c808e1eb77__936c62e3c997.json",
-      "sizeKB": 73.4,
+      "path": "environment/projections/environment_segment___________2c38259d-483d-4e1d-a9f2-758b8f6d83f2__03fbb0ee4dd4.json",
+      "sizeKB": 219.5,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "environment/projections/information_object_____dac5e04a-c6e5-4ac7-b5f9-3b581dce08e5__3473195ab18b.json",
-      "sizeKB": 73.7,
+      "path": "environment/projections/information_object_____fcd586a4-4d8b-4807-a804-3fa7f3e3c84f__05a8b68bd3e3.json",
+      "sizeKB": 219.8,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "environment/projections/environment_segment___________47f8da57-612a-4d74-8ce4-b2c808e1eb77__c47503da8b0f.json",
-      "sizeKB": 55.7,
+      "path": "environment/projections/environment_segment___________2c38259d-483d-4e1d-a9f2-758b8f6d83f2__f12e89ef8272.json",
+      "sizeKB": 271.4,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "environment/projections/information_object_____76c5b6ff-e237-4b2c-84b9-27d0b643c9ed__65aee365b5b1.json",
-      "sizeKB": 56,
+      "path": "environment/projections/information_object_____26943f7b-3d94-4550-a9e1-091e964bfd10__462bcfe98fd4.json",
+      "sizeKB": 271.7,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "environment/projections/information_environment_____3a2490b4-7c83-466d-bb6a-dcc77667c744__39a8d955cef2.json",
-      "sizeKB": 9.5,
+      "path": "environment/projections/environment_segment___________74004db1-d891-48f4-b655-6fa5e7db4de8__08c1c4650e99.json",
+      "sizeKB": 97.2,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "environment/projections/environment_segment___________3b652bf5-857a-4ef5-9c4a-2a40642eadc1__e8d43a240ea0.json",
-      "sizeKB": 12.2,
+      "path": "environment/projections/information_object_____558219a7-1d39-403b-a99d-202fcaf578db__f00fbfabfd5c.json",
+      "sizeKB": 97.5,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "environment/projections/information_object_____76c5b6ff-e237-4b2c-84b9-27d0b643c9ed__fa13dd2b64dc.json",
-      "sizeKB": 12.5,
+      "path": "environment/projections/environment_segment___________263062ea-880a-4c8b-a469-bceab0eee118__9c4e0364a8a7.json",
+      "sizeKB": 154.9,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "environment/projections/information_environment_____4897242a-007b-488b-a972-ffb26a67da3d__229e04df8b3e.json",
-      "sizeKB": 232,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment_____L1____L1_L2-L1___c397ed99-f358-4bd4-b320-72889f877d45__7984001e6dd4.json",
-      "sizeKB": 37.2,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object___L1_L2-L1___d42e5f62-f16c-4c8e-b14e-e08226dc2b79__de43e88e4adb.json",
-      "sizeKB": 37.5,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment_____L2____L2_L2___f0d9dae7-0a43-4e07-84b8-150456fc8460__1ee5f19ed7b4.json",
-      "sizeKB": 42.5,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object___L2_L2___627aeead-f75a-49c5-ae31-2cea576c8786__369db1170cd4.json",
-      "sizeKB": 42.8,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment_____L2____L2_L2___f0d9dae7-0a43-4e07-84b8-150456fc8460__c2ce37e52af7.json",
-      "sizeKB": 116.4,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object___L2_L2___b707089f-0d2f-4aea-a7a1-a8c9b6bae80b__51307bd40fdc.json",
-      "sizeKB": 116.7,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment_____L2____L2_L3-L2___f0d9dae7-0a43-4e07-84b8-150456fc8460__b41493ff50cd.json",
-      "sizeKB": 38.6,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object___L2_L3-L2___a81b60d7-84a5-43a8-bbe2-04ec5691f83a__bf6e98866577.json",
-      "sizeKB": 38.9,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment_____L3____L3_L3___85013447-ecc1-47dd-81fe-afe8fc920f9d__788712e454d0.json",
-      "sizeKB": 124.5,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object___L3_L3___5353b842-09cc-4c54-b75d-28bd032a1b8b__f55c46509776.json",
-      "sizeKB": 124.8,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment_____L3____L3_L3___85013447-ecc1-47dd-81fe-afe8fc920f9d__05645ba5aa9b.json",
-      "sizeKB": 44.5,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object___L3_L3___7f46f800-0143-46f7-a4c0-18870ba995d8__f2117f2b956b.json",
-      "sizeKB": 44.8,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment_____L3____L3_L4-L3___85013447-ecc1-47dd-81fe-afe8fc920f9d__a64da2aec217.json",
-      "sizeKB": 65.1,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object___L3_L4-L3___a72d5f39-54be-4b9c-920c-5eb7775a824c__4cd0dea2abb6.json",
-      "sizeKB": 65.4,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_environment_____e47b60c0-5c3e-401c-abb7-b6b44503bdb0__0f4df9c6f4c4.json",
-      "sizeKB": 27.6,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment___________2f77798d-a505-4a9b-94e6-4cf80c7d6971__1c4b4a4626d9.json",
-      "sizeKB": 33.9,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object_____2f8af6c1-0cdc-4784-a175-3d188cd82b72__24f7c38f3951.json",
-      "sizeKB": 34.2,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_environment_____e802a1c0-b681-41ef-9aaa-c7fa16d3f261__7783948dc1eb.json",
-      "sizeKB": 91.9,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment___________5d3c0f0b-e768-4305-9462-bae9976fb0d3__e9a4f968b94b.json",
-      "sizeKB": 54,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object_____5920f5ab-f417-409f-8f41-92d831ebf1f2__e587c7357b77.json",
-      "sizeKB": 54.3,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment___________5d3c0f0b-e768-4305-9462-bae9976fb0d3__12d9220a0a9c.json",
-      "sizeKB": 46.5,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object_____0c7c5c52-0277-442f-b62d-936079f608e1__ca3685edee6d.json",
-      "sizeKB": 46.8,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment___________2f77a44a-f136-4ee6-adc5-943c5913bfe9__484390ad915c.json",
-      "sizeKB": 34.1,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object_____7fdd2c18-b659-48b3-a5e1-a2d2d447f1b4__398ed71df468.json",
-      "sizeKB": 34.4,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment___________fa98dd03-d933-45cf-bca0-324bc8f2e650__938866b020f7.json",
-      "sizeKB": 46.5,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_object_____792edfc5-e3ee-4a86-857b-9bed31ad1984__5fe5f94d9936.json",
-      "sizeKB": 46.7,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/information_environment_____5aaa6996-5d3d-414f-92dc-59afb5d72e1f__9b3041fd24fc.json",
-      "sizeKB": 210.2,
-      "category": "environmentProjection",
-      "firstScreen": false,
-      "detailProjection": true
-    },
-    {
-      "path": "environment/projections/environment_segment_____PC____PC_PC___c9bd4afe-9d77-4507-bc0a-37551d8440cb__1de3cf266291.json",
+      "path": "environment/projections/information_object_____7d9d87cb-13f6-4809-8e12-33807d6a059d__bee6a939f2b0.json",
       "sizeKB": 155.2,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "environment/projections/information_object___PC_PC___2c2ed2c8-d124-42bc-8e7f-c7e9a329a866__6aec5274c52c.json",
-      "sizeKB": 155.5,
+      "path": "environment/projections/environment_segment___________263062ea-880a-4c8b-a469-bceab0eee118__4bfbc70b5bbe.json",
+      "sizeKB": 126.3,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "environment/projections/environment_segment_____PC____PC_PC___c9bd4afe-9d77-4507-bc0a-37551d8440cb__b97b6c229619.json",
-      "sizeKB": 81.9,
+      "path": "environment/projections/information_object_____ae52058f-0d70-40ed-8bf7-6cde2b8a0c78__1716de20ca4f.json",
+      "sizeKB": 126.5,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "environment/projections/information_object___PC_PC___9a60d5f1-2cab-4c47-8604-a13bfc0c81cb__4b051b60e285.json",
-      "sizeKB": 82.2,
+      "path": "environment/projections/environment_segment___________74004db1-d891-48f4-b655-6fa5e7db4de8__c1dffeff378c.json",
+      "sizeKB": 182.7,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "environment/projections/environment_segment_____PC____PC_PC___c9bd4afe-9d77-4507-bc0a-37551d8440cb__a945735799b3.json",
-      "sizeKB": 67.1,
+      "path": "environment/projections/information_object_____a18b3858-6fa4-4595-b985-9ffd79c65502__8d2ae348f0ab.json",
+      "sizeKB": 183,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "environment/projections/information_object___PC_PC___127c52bd-a1ad-43ed-92d3-e8817b3566b7__7a49b0cba835.json",
-      "sizeKB": 67.4,
+      "path": "environment/projections/environment_segment___________263062ea-880a-4c8b-a469-bceab0eee118__eb291cf9536c.json",
+      "sizeKB": 150.5,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "environment/projections/environment_segment___________a7fb5d12-c505-442e-a232-4da55c4abe45__9a19569845b6.json",
-      "sizeKB": 57.7,
+      "path": "environment/projections/information_object_____5f0fea59-04a7-48b5-8004-353febac0912__cc6b1999e4d0.json",
+      "sizeKB": 150.9,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "environment/projections/information_object_____c3dbf411-2189-4a7f-9ae3-753b7036b1f4__496ba4162849.json",
-      "sizeKB": 57.9,
+      "path": "environment/projections/information_environment_____b6e3912b-0633-4a61-acb5-ea46e7fd0985__3f2b41b9bf72.json",
+      "sizeKB": 17,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "environment/projections/environment_segment___________c4b468b3-44ef-46fa-ab24-19f0a978230b__fe1c86568d94.json",
-      "sizeKB": 69.3,
+      "path": "environment/projections/environment_segment___________a3cdfe84-7747-43fa-9074-cb3d043add5b__6c960ae17fe5.json",
+      "sizeKB": 287.1,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "environment/projections/information_object_____b1850918-af4c-4e7f-aff0-c7e8cd3847ff__201f003f86de.json",
-      "sizeKB": 69.6,
+      "path": "environment/projections/information_object_____584995f6-dc3f-4f87-97ad-b22a5381e7d7__85294610c65a.json",
+      "sizeKB": 287.4,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "environment/projections/environment_segment___________c4b468b3-44ef-46fa-ab24-19f0a978230b__b96584a6c0f7.json",
-      "sizeKB": 83.4,
+      "path": "environment/projections/environment_segment___________a3cdfe84-7747-43fa-9074-cb3d043add5b__d63364e50a4b.json",
+      "sizeKB": 162.7,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "environment/projections/information_object_____00471f2b-c0de-456e-8a46-f76280637db3__99bb021b4a3b.json",
-      "sizeKB": 83.7,
+      "path": "environment/projections/information_object_____a7929ad7-165b-4e2f-a1f9-0d1bd5800afb__a4691868d782.json",
+      "sizeKB": 163,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "environment/projections/environment_segment___________c4b468b3-44ef-46fa-ab24-19f0a978230b__2d90149b98db.json",
-      "sizeKB": 52.1,
+      "path": "environment/projections/environment_segment___________c8c25ac9-7dd1-48d8-8022-47c01b4fd5ea__63814d92788d.json",
+      "sizeKB": 109.1,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "environment/projections/information_object_____2ca2789f-35d0-44b3-870a-1b94abddf3f4__eb88ae09e1b6.json",
-      "sizeKB": 52.4,
+      "path": "environment/projections/information_object_____93dc47d2-1163-4161-b28a-885d0ad696e4__aaafbcd2c75d.json",
+      "sizeKB": 109.4,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "environment/projections/information_environment_____1fb4bf2d-7efd-4474-af53-e47dab39b178__17584acd09ae.json",
-      "sizeKB": 167.6,
+      "path": "environment/projections/environment_segment___________c8c25ac9-7dd1-48d8-8022-47c01b4fd5ea__1227dcf7cb02.json",
+      "sizeKB": 111.8,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "environment/projections/environment_segment_____PC____PC_PC___d3267dea-1481-4cc3-8d95-31b465ce8c86__94310afcdcd5.json",
-      "sizeKB": 145.3,
+      "path": "environment/projections/information_object_____65c5a679-21cb-4290-800e-2674ca9bb424__c3e590292660.json",
+      "sizeKB": 112.1,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "environment/projections/information_object___PC_PC___2c2ed2c8-d124-42bc-8e7f-c7e9a329a866__e50f2aba5e72.json",
-      "sizeKB": 145.6,
+      "path": "environment/projections/environment_segment___________a3cdfe84-7747-43fa-9074-cb3d043add5b__17fcac7d07a0.json",
+      "sizeKB": 210.9,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "environment/projections/environment_segment_____PC____PC_PC___d3267dea-1481-4cc3-8d95-31b465ce8c86__927ff5396984.json",
-      "sizeKB": 72,
+      "path": "environment/projections/information_object_____4425e2d0-7809-4e1e-9a2c-6125e3d40125__8dccf010f35f.json",
+      "sizeKB": 211.2,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "environment/projections/information_object___PC_PC___9a60d5f1-2cab-4c47-8604-a13bfc0c81cb__81c06d55c625.json",
-      "sizeKB": 72.3,
+      "path": "environment/projections/environment_segment___________aa6d2501-6ab6-4751-8041-a9aea22c4d19__eb7a8923f5df.json",
+      "sizeKB": 152.9,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
-      "path": "environment/projections/environment_segment_____PC____PC_PC___d3267dea-1481-4cc3-8d95-31b465ce8c86__25ca76095784.json",
+      "path": "environment/projections/information_object_____7d9d87cb-13f6-4809-8e12-33807d6a059d__266cd1f9d29d.json",
+      "sizeKB": 153.2,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment___________aa6d2501-6ab6-4751-8041-a9aea22c4d19__d9f6abbd1a29.json",
+      "sizeKB": 124.2,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object_____ae52058f-0d70-40ed-8bf7-6cde2b8a0c78__13a840c83757.json",
+      "sizeKB": 124.5,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_environment_____638d6ac0-4cd9-4433-9612-c43697f70f97__2d87bd59ebda.json",
+      "sizeKB": 27.6,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment_____PC____PC_PC___6ca0d799-fb88-46de-89bd-cf5619e5a4c0__5fc7f3a75abd.json",
+      "sizeKB": 136,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object___PC_PC___2c2ed2c8-d124-42bc-8e7f-c7e9a329a866__769cfa4149bd.json",
+      "sizeKB": 136.3,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment_____PC____PC_PC___6ca0d799-fb88-46de-89bd-cf5619e5a4c0__4be0990994bd.json",
+      "sizeKB": 90.1,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object___PC_PC___9a60d5f1-2cab-4c47-8604-a13bfc0c81cb__e99d1008cf8c.json",
+      "sizeKB": 90.4,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment_____PC____PC_PC___6ca0d799-fb88-46de-89bd-cf5619e5a4c0__9b1f4b066959.json",
+      "sizeKB": 83.9,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object___PC_PC___127c52bd-a1ad-43ed-92d3-e8817b3566b7__f98c7f7c3a5e.json",
+      "sizeKB": 84.2,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment___________72f483ba-f2f6-4369-a51b-1b00908bc47c__53f5033f4f93.json",
+      "sizeKB": 72.6,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object_____d2d506ee-797f-4955-b359-5cab3be31dca__6c4881b705ae.json",
+      "sizeKB": 72.9,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment___________72f483ba-f2f6-4369-a51b-1b00908bc47c__572347b794b4.json",
+      "sizeKB": 82.4,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object_____83adb24d-76fb-4b0d-bfff-f4c731ebf7e1__b19a02ed8f82.json",
+      "sizeKB": 82.7,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment___________72f483ba-f2f6-4369-a51b-1b00908bc47c__98c0a09c5801.json",
+      "sizeKB": 62.8,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object_____02a19fcd-3702-464e-bc46-f4bcb8f2898f__a9d7ef9b54d0.json",
+      "sizeKB": 63.1,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment___________2d24669b-5c91-4f66-926d-b9d3c9a5e6ce__d13caafce57b.json",
+      "sizeKB": 78.5,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object_____1cb55765-62ea-4c5f-b1f9-28b433d3aa95__736ce7c32c75.json",
+      "sizeKB": 78.8,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment___________ade1dcb0-f677-46eb-8fe1-6012be2f5235__88ca80162599.json",
+      "sizeKB": 76.3,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object_____dac5e04a-c6e5-4ac7-b5f9-3b581dce08e5__871976f37c30.json",
+      "sizeKB": 76.6,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment___________ade1dcb0-f677-46eb-8fe1-6012be2f5235__8038e3e10dc3.json",
+      "sizeKB": 59.2,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object_____76c5b6ff-e237-4b2c-84b9-27d0b643c9ed__c577a3c40965.json",
       "sizeKB": 59.6,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
+      "path": "environment/projections/information_environment_____4abdf7e2-a2c3-42df-8cf4-fa9c9a38981e__84b0bf733004.json",
+      "sizeKB": 25.7,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment_____PC____PC_PC___f0a326df-08da-4ce9-b76b-ebccad17fcbc__c99543674d89.json",
+      "sizeKB": 134.5,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object___PC_PC___2c2ed2c8-d124-42bc-8e7f-c7e9a329a866__9039ff400a6b.json",
+      "sizeKB": 134.8,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment_____PC____PC_PC___f0a326df-08da-4ce9-b76b-ebccad17fcbc__b3a7a39c0321.json",
+      "sizeKB": 88.5,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object___PC_PC___9a60d5f1-2cab-4c47-8604-a13bfc0c81cb__8f68d2fb097b.json",
+      "sizeKB": 88.8,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment_____PC____PC_PC___f0a326df-08da-4ce9-b76b-ebccad17fcbc__835d31763f50.json",
+      "sizeKB": 82.3,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object___PC_PC___127c52bd-a1ad-43ed-92d3-e8817b3566b7__15e65477da47.json",
+      "sizeKB": 82.6,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment___________1b0ccff9-09bd-4e6c-9345-f1126f45b772__3493b70db4c1.json",
+      "sizeKB": 76.9,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object_____1cb55765-62ea-4c5f-b1f9-28b433d3aa95__1b3f619bfd1e.json",
+      "sizeKB": 77.2,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment___________a7ff1a61-186f-4da0-b084-e61e87c36257__f9ddc20f2f66.json",
+      "sizeKB": 72.4,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object_____524271ed-6149-4221-a12c-cd52eb3a0b57__c03e7d3cb089.json",
+      "sizeKB": 72.7,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment___________a7ff1a61-186f-4da0-b084-e61e87c36257__7300e60c2177.json",
+      "sizeKB": 60.4,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object_____86078509-7f39-49bd-b322-f590d7e9c0bb__0ebf80f72048.json",
+      "sizeKB": 60.7,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment___________47f8da57-612a-4d74-8ce4-b2c808e1eb77__936c62e3c997.json",
+      "sizeKB": 74.7,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object_____dac5e04a-c6e5-4ac7-b5f9-3b581dce08e5__3473195ab18b.json",
+      "sizeKB": 75,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment___________47f8da57-612a-4d74-8ce4-b2c808e1eb77__c47503da8b0f.json",
+      "sizeKB": 57.7,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object_____76c5b6ff-e237-4b2c-84b9-27d0b643c9ed__65aee365b5b1.json",
+      "sizeKB": 58,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_environment_____3a2490b4-7c83-466d-bb6a-dcc77667c744__39a8d955cef2.json",
+      "sizeKB": 5.8,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment___________3b652bf5-857a-4ef5-9c4a-2a40642eadc1__e8d43a240ea0.json",
+      "sizeKB": 14.2,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object_____76c5b6ff-e237-4b2c-84b9-27d0b643c9ed__fa13dd2b64dc.json",
+      "sizeKB": 14.5,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_environment_____4897242a-007b-488b-a972-ffb26a67da3d__229e04df8b3e.json",
+      "sizeKB": 15.6,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment_____L1____L1_L2-L1___c397ed99-f358-4bd4-b320-72889f877d45__7984001e6dd4.json",
+      "sizeKB": 40.1,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object___L1_L2-L1___d42e5f62-f16c-4c8e-b14e-e08226dc2b79__de43e88e4adb.json",
+      "sizeKB": 40.4,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment_____L2____L2_L2___f0d9dae7-0a43-4e07-84b8-150456fc8460__1ee5f19ed7b4.json",
+      "sizeKB": 45.9,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object___L2_L2___627aeead-f75a-49c5-ae31-2cea576c8786__369db1170cd4.json",
+      "sizeKB": 46.1,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment_____L2____L2_L2___f0d9dae7-0a43-4e07-84b8-150456fc8460__c2ce37e52af7.json",
+      "sizeKB": 92,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object___L2_L2___b707089f-0d2f-4aea-a7a1-a8c9b6bae80b__51307bd40fdc.json",
+      "sizeKB": 92.3,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment_____L2____L2_L3-L2___f0d9dae7-0a43-4e07-84b8-150456fc8460__b41493ff50cd.json",
+      "sizeKB": 41.5,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object___L2_L3-L2___a81b60d7-84a5-43a8-bbe2-04ec5691f83a__bf6e98866577.json",
+      "sizeKB": 41.8,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment_____L3____L3_L3___85013447-ecc1-47dd-81fe-afe8fc920f9d__788712e454d0.json",
+      "sizeKB": 125.1,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object___L3_L3___5353b842-09cc-4c54-b75d-28bd032a1b8b__f55c46509776.json",
+      "sizeKB": 125.4,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment_____L3____L3_L3___85013447-ecc1-47dd-81fe-afe8fc920f9d__05645ba5aa9b.json",
+      "sizeKB": 47.9,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object___L3_L3___7f46f800-0143-46f7-a4c0-18870ba995d8__f2117f2b956b.json",
+      "sizeKB": 48.2,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment_____L3____L3_L4-L3___85013447-ecc1-47dd-81fe-afe8fc920f9d__a64da2aec217.json",
+      "sizeKB": 79.7,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object___L3_L4-L3___a72d5f39-54be-4b9c-920c-5eb7775a824c__4cd0dea2abb6.json",
+      "sizeKB": 80,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_environment_____e47b60c0-5c3e-401c-abb7-b6b44503bdb0__0f4df9c6f4c4.json",
+      "sizeKB": 4.4,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment___________2f77798d-a505-4a9b-94e6-4cf80c7d6971__1c4b4a4626d9.json",
+      "sizeKB": 30.2,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object_____2f8af6c1-0cdc-4784-a175-3d188cd82b72__24f7c38f3951.json",
+      "sizeKB": 30.5,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_environment_____e802a1c0-b681-41ef-9aaa-c7fa16d3f261__7783948dc1eb.json",
+      "sizeKB": 10.9,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment___________5d3c0f0b-e768-4305-9462-bae9976fb0d3__e9a4f968b94b.json",
+      "sizeKB": 55.8,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object_____5920f5ab-f417-409f-8f41-92d831ebf1f2__e587c7357b77.json",
+      "sizeKB": 56.1,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment___________5d3c0f0b-e768-4305-9462-bae9976fb0d3__12d9220a0a9c.json",
+      "sizeKB": 48.1,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object_____0c7c5c52-0277-442f-b62d-936079f608e1__ca3685edee6d.json",
+      "sizeKB": 48.4,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment___________2f77a44a-f136-4ee6-adc5-943c5913bfe9__484390ad915c.json",
+      "sizeKB": 34.9,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object_____7fdd2c18-b659-48b3-a5e1-a2d2d447f1b4__398ed71df468.json",
+      "sizeKB": 35.2,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment___________fa98dd03-d933-45cf-bca0-324bc8f2e650__938866b020f7.json",
+      "sizeKB": 48,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object_____792edfc5-e3ee-4a86-857b-9bed31ad1984__5fe5f94d9936.json",
+      "sizeKB": 48.3,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_environment_____5aaa6996-5d3d-414f-92dc-59afb5d72e1f__9b3041fd24fc.json",
+      "sizeKB": 20.5,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment_____PC____PC_PC___c9bd4afe-9d77-4507-bc0a-37551d8440cb__1de3cf266291.json",
+      "sizeKB": 134.6,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object___PC_PC___2c2ed2c8-d124-42bc-8e7f-c7e9a329a866__6aec5274c52c.json",
+      "sizeKB": 134.9,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment_____PC____PC_PC___c9bd4afe-9d77-4507-bc0a-37551d8440cb__b97b6c229619.json",
+      "sizeKB": 88.6,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object___PC_PC___9a60d5f1-2cab-4c47-8604-a13bfc0c81cb__4b051b60e285.json",
+      "sizeKB": 88.9,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment_____PC____PC_PC___c9bd4afe-9d77-4507-bc0a-37551d8440cb__a945735799b3.json",
+      "sizeKB": 90.1,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object___PC_PC___127c52bd-a1ad-43ed-92d3-e8817b3566b7__7a49b0cba835.json",
+      "sizeKB": 90.3,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment___________a7fb5d12-c505-442e-a232-4da55c4abe45__9a19569845b6.json",
+      "sizeKB": 79.3,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object_____c3dbf411-2189-4a7f-9ae3-753b7036b1f4__496ba4162849.json",
+      "sizeKB": 79.6,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment___________c4b468b3-44ef-46fa-ab24-19f0a978230b__fe1c86568d94.json",
+      "sizeKB": 88.9,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object_____b1850918-af4c-4e7f-aff0-c7e8cd3847ff__201f003f86de.json",
+      "sizeKB": 89.2,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment___________c4b468b3-44ef-46fa-ab24-19f0a978230b__b96584a6c0f7.json",
+      "sizeKB": 112.3,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object_____00471f2b-c0de-456e-8a46-f76280637db3__99bb021b4a3b.json",
+      "sizeKB": 112.6,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment___________c4b468b3-44ef-46fa-ab24-19f0a978230b__2d90149b98db.json",
+      "sizeKB": 58.9,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object_____2ca2789f-35d0-44b3-870a-1b94abddf3f4__eb88ae09e1b6.json",
+      "sizeKB": 59.2,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_environment_____1fb4bf2d-7efd-4474-af53-e47dab39b178__17584acd09ae.json",
+      "sizeKB": 16,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment_____PC____PC_PC___d3267dea-1481-4cc3-8d95-31b465ce8c86__94310afcdcd5.json",
+      "sizeKB": 124.7,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object___PC_PC___2c2ed2c8-d124-42bc-8e7f-c7e9a329a866__e50f2aba5e72.json",
+      "sizeKB": 125,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment_____PC____PC_PC___d3267dea-1481-4cc3-8d95-31b465ce8c86__927ff5396984.json",
+      "sizeKB": 78.8,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/information_object___PC_PC___9a60d5f1-2cab-4c47-8604-a13bfc0c81cb__81c06d55c625.json",
+      "sizeKB": 79,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
+      "path": "environment/projections/environment_segment_____PC____PC_PC___d3267dea-1481-4cc3-8d95-31b465ce8c86__25ca76095784.json",
+      "sizeKB": 72.6,
+      "category": "environmentProjection",
+      "firstScreen": false,
+      "detailProjection": true
+    },
+    {
       "path": "environment/projections/information_object___PC_PC___127c52bd-a1ad-43ed-92d3-e8817b3566b7__4e876d7fa090.json",
-      "sizeKB": 59.9,
+      "sizeKB": 72.8,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "environment/projections/environment_segment___________50fde557-c461-4ac6-9c9d-9e57dc653dd1__8eb22b46b054.json",
-      "sizeKB": 50.1,
+      "sizeKB": 67.2,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
     },
     {
       "path": "environment/projections/information_object_____1cb55765-62ea-4c5f-b1f9-28b433d3aa95__02a4ea0896fb.json",
-      "sizeKB": 50.3,
+      "sizeKB": 67.5,
       "category": "environmentProjection",
       "firstScreen": false,
       "detailProjection": true
@@ -2221,7 +2221,7 @@
     },
     {
       "path": "maintenance/sections/measures.json",
-      "sizeKB": 114.5,
+      "sizeKB": 121.6,
       "category": "maintenanceSection",
       "firstScreen": false,
       "detailProjection": true
@@ -2249,7 +2249,7 @@
     },
     {
       "path": "maintenance/sections/scopes.json",
-      "sizeKB": 78.1,
+      "sizeKB": 78.6,
       "category": "maintenanceSection",
       "firstScreen": false,
       "detailProjection": true
@@ -2263,7 +2263,7 @@
     },
     {
       "path": "maintenance/sections/services.json",
-      "sizeKB": 685.8,
+      "sizeKB": 697,
       "category": "maintenanceSection",
       "firstScreen": false,
       "detailProjection": true
@@ -2277,7 +2277,7 @@
     },
     {
       "path": "shared-lookups/service-module-index.json",
-      "sizeKB": 685.8,
+      "sizeKB": 696.9,
       "category": "sharedLookup",
       "firstScreen": true,
       "detailProjection": false

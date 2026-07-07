@@ -179,7 +179,8 @@
         "title": "软件应用",
         "name": "软件应用",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象"
       },
       "784caa9f-74f0-4a43-94f5-727b3ff497fb": {
         "id": "784caa9f-74f0-4a43-94f5-727b3ff497fb",
@@ -188,7 +189,8 @@
         "title": "数据与信息",
         "name": "数据与信息",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。"
       },
       "6f1ef0de-3163-4d38-9626-5625a58948bb": {
         "id": "6f1ef0de-3163-4d38-9626-5625a58948bb",
@@ -197,7 +199,8 @@
         "title": "网络",
         "name": "网络",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于网络流、网络服务等对象。"
       }
     },
     "security_technical_service": {
@@ -994,7 +997,9 @@
             "code": "I-AP",
             "title": "软件应用",
             "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "软件应用",
+            "status": ""
           },
           "services": [
             {
@@ -1031,6 +1036,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    201
                   ]
                 }
               ],
@@ -1072,177 +1080,15 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    198
                   ]
                 }
               ],
-              "measures": [
-                {
-                  "id": "security_technical_measure:d6ae5ee5044945f9",
-                  "name": "API网关",
-                  "category": null,
-                  "source_kind": "pending_review / scope_service_module_mapping",
-                  "mapping_status_label": "正常",
-                  "related_service_ids": [
-                    "ef7aa83d-469d-4a67-8271-fd0e8bb7e5a7",
-                    "2b8ad26b-eea2-4d71-a39b-7fed06b7891f",
-                    "751c01de-a072-4794-999f-2d4411741ed8",
-                    "3e469c1f-a5c2-4213-ab54-d61791d6e769",
-                    "26508044-538b-4245-8f12-985cc00b073d"
-                  ],
-                  "related_service_names": [
-                    "应用身份管理",
-                    "应用身份认证",
-                    "应用资源授权",
-                    "应用安全访问",
-                    "网络传输通道加解密"
-                  ],
-                  "related_services": [
-                    {
-                      "id": "ef7aa83d-469d-4a67-8271-fd0e8bb7e5a7",
-                      "type": "security_technical_service",
-                      "code": "I-AP&T-AS.IA-01",
-                      "title": "应用身份管理",
-                      "description": null,
-                      "category": "I-AP"
-                    },
-                    {
-                      "id": "2b8ad26b-eea2-4d71-a39b-7fed06b7891f",
-                      "type": "security_technical_service",
-                      "code": "I-AP&T-AS.IA-02",
-                      "title": "应用身份认证",
-                      "description": null,
-                      "category": "I-AP"
-                    },
-                    {
-                      "id": "751c01de-a072-4794-999f-2d4411741ed8",
-                      "type": "security_technical_service",
-                      "code": "I-AP&T-AS.IA-03",
-                      "title": "应用资源授权",
-                      "description": null,
-                      "category": "I-AP"
-                    },
-                    {
-                      "id": "3e469c1f-a5c2-4213-ab54-d61791d6e769",
-                      "type": "security_technical_service",
-                      "code": "I-AP&T-PD.PP-01",
-                      "title": "应用安全访问",
-                      "description": null,
-                      "category": "I-AP"
-                    },
-                    {
-                      "id": "26508044-538b-4245-8f12-985cc00b073d",
-                      "type": "security_technical_service",
-                      "code": "I-NT&T-AS.CG-01",
-                      "title": "网络传输通道加解密",
-                      "description": null,
-                      "category": "I-NT"
-                    }
-                  ],
-                  "related_module_ids": [],
-                  "related_module_names": [],
-                  "related_modules": [],
-                  "related_scope_ids": [
-                    "7f4b920b-2eca-4ddd-a3ca-55ace40efeb9",
-                    "784caa9f-74f0-4a43-94f5-727b3ff497fb",
-                    "6f1ef0de-3163-4d38-9626-5625a58948bb"
-                  ],
-                  "related_scope_names": [
-                    "软件应用",
-                    "数据与信息",
-                    "网络"
-                  ],
-                  "applicable_scopes": [
-                    {
-                      "id": "7f4b920b-2eca-4ddd-a3ca-55ace40efeb9",
-                      "type": "scope_type",
-                      "code": "I-AP",
-                      "title": "软件应用",
-                      "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-                      "category": "网络空间"
-                    },
-                    {
-                      "id": "784caa9f-74f0-4a43-94f5-727b3ff497fb",
-                      "type": "scope_type",
-                      "code": "I-DI",
-                      "title": "数据与信息",
-                      "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-                      "category": "网络空间"
-                    },
-                    {
-                      "id": "6f1ef0de-3163-4d38-9626-5625a58948bb",
-                      "type": "scope_type",
-                      "code": "I-NT",
-                      "title": "网络",
-                      "description": "安全能力作用于网络流、网络服务等对象。",
-                      "category": "网络空间"
-                    }
-                  ],
-                  "related_capability_focus_ids": [
-                    "c1d0dca3-d4a3-4a3f-bfb8-3230b0781cea",
-                    "9bb22f45-3d49-4c1d-becc-ffce3b2c446a",
-                    "2c4e3200-3551-4297-9188-53376e6b0693",
-                    "dacf7142-6ac7-48e1-b463-5d42275bfc6f",
-                    "7e4922f0-05fa-4438-b33b-e498af49decb"
-                  ],
-                  "related_capability_focus_names": [
-                    "实现组织数字化身份的身份生命周期管理",
-                    "针对不同访问主体执行满足安全需求的身份认证机制",
-                    "实施人员实体的访问控制管理",
-                    "确保信息传输或是存储状态下不被未授权的访问或泄露",
-                    "构建和维护安全可靠的网络访问路径"
-                  ],
-                  "related_focuses": [
-                    {
-                      "id": "c1d0dca3-d4a3-4a3f-bfb8-3230b0781cea",
-                      "type": "capability_focus",
-                      "code": "T-AS.IA-01",
-                      "title": "实现组织数字化身份的身份生命周期管理",
-                      "description": "在组织中实施一个全面的身份生命周期管理策略，对组织内各种数字化身份（包括内部员工和外部合作伙伴、特权用户、应用、API、系统）从创建、维护到最终删除的整个过程执行全生命周期身份管理策略，确保身份信息的安全和合规。通过对身份生命周期的有效管理，确保每个数字身份的访问权限始终符合其权限，从而减少内部和外部的安全风险。",
-                      "category": null
-                    },
-                    {
-                      "id": "9bb22f45-3d49-4c1d-becc-ffce3b2c446a",
-                      "type": "capability_focus",
-                      "code": "T-AS.IA-02",
-                      "title": "针对不同访问主体执行满足安全需求的身份认证机制",
-                      "description": "访问主体（如用户、系统、设备等）实施对身份鉴别，验证访问请求者的身份信息，确保他们是其所声称的个体或系统。身份认证过程应结合多种认证因子实现强认证，如密码、生物识别技术、智能卡等，身份认证过程中，应对身份断言进行严格保护",
-                      "category": null
-                    },
-                    {
-                      "id": "2c4e3200-3551-4297-9188-53376e6b0693",
-                      "type": "capability_focus",
-                      "code": "T-AS.IA-03",
-                      "title": "实施人员实体的访问控制管理",
-                      "description": "加强人员实体访问控制，遵循职责分离原则，通过精细化的访问控制策略和授权管理，确保只有正确权限的的人员才能够访问敏感或受限制的资源，防止未授权访问、特权访问和数据泄露。同时，还应实施有效的监控和记录措施，以追踪和审核访问活动，防止未授权访问和潜在的安全威胁。",
-                      "category": null
-                    },
-                    {
-                      "id": "dacf7142-6ac7-48e1-b463-5d42275bfc6f",
-                      "type": "capability_focus",
-                      "code": "T-AS.CG-01",
-                      "title": "确保信息传输或是存储状态下不被未授权的访问或泄露",
-                      "description": "选择安全强度足够、合规的密码算法（对称或非对称），并确保在其适用的场景中正确实现加密和解密过程，保证信息在传输和存储过程中的机密性。",
-                      "category": null
-                    },
-                    {
-                      "id": "7e4922f0-05fa-4438-b33b-e498af49decb",
-                      "type": "capability_focus",
-                      "code": "T-PD.PP-01",
-                      "title": "构建和维护安全可靠的网络访问路径",
-                      "description": "构建和维护一个安全可靠的网络访问路径，确保主体在访问客体的过程中访问路径的保密性，以及数据在传输过程中不被截获或篡改。",
-                      "category": null
-                    }
-                  ],
-                  "related_focus_count": 5,
-                  "status": "normal",
-                  "type": "security_technical_measure",
-                  "objectKind": "安全技术措施",
-                  "kind": "安全技术措施",
-                  "title": "API网关"
-                }
-              ],
+              "measures": [],
               "module_count": 1,
-              "measure_count": 1
+              "measure_count": 0
             },
             {
               "id": "ef7aa83d-469d-4a67-8271-fd0e8bb7e5a7",
@@ -1335,7 +1181,9 @@
                       "code": "I-AP",
                       "title": "软件应用",
                       "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "软件应用",
+                      "status": ""
                     },
                     {
                       "id": "784caa9f-74f0-4a43-94f5-727b3ff497fb",
@@ -1343,7 +1191,9 @@
                       "code": "I-DI",
                       "title": "数据与信息",
                       "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "数据与信息",
+                      "status": ""
                     },
                     {
                       "id": "6f1ef0de-3163-4d38-9626-5625a58948bb",
@@ -1351,7 +1201,9 @@
                       "code": "I-NT",
                       "title": "网络",
                       "description": "安全能力作用于网络流、网络服务等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "网络",
+                      "status": ""
                     }
                   ],
                   "related_capability_focus_ids": [
@@ -1415,7 +1267,64 @@
                   "type": "security_technical_measure",
                   "objectKind": "安全技术措施",
                   "kind": "安全技术措施",
-                  "title": "API网关"
+                  "title": "API网关",
+                  "systems": [
+                    {
+                      "id": "a940b858-4e7f-4674-afaa-66b9a36fe37c",
+                      "type": "security_system",
+                      "code": "",
+                      "name": "应用安全防护",
+                      "title": "应用安全防护",
+                      "description": "",
+                      "category": "应用安全",
+                      "status": "",
+                      "evidenceRefs": [
+                        "evidence:111996bc39101565",
+                        "evidence:11423a73d33fd339",
+                        "evidence:12ad420994344f55",
+                        "evidence:16a0de44cc4891f7",
+                        "evidence:221179d4c0f52ec6",
+                        "evidence:232ec6545eb96c84",
+                        "evidence:26badf3c4f96bb2a",
+                        "evidence:28c70d8dd370a1ce",
+                        "evidence:2dfe9b9d65723913",
+                        "evidence:318a7132880aa5e9",
+                        "evidence:3228cf244100e63a",
+                        "evidence:32c7fe6b2e649b3a",
+                        "evidence:336e55a54c2f11a2",
+                        "evidence:37be5caa1855775b",
+                        "evidence:37e2df6b19276aa8",
+                        "evidence:49b07d4ee4c049c2",
+                        "evidence:4fcc1e02d98ccf24",
+                        "evidence:5144adee594faaef",
+                        "evidence:5bdb1c166b86d424",
+                        "evidence:6ec9df7b3d62c946",
+                        "evidence:77cd49a0c03b1df2",
+                        "evidence:7e6a9eed77a8c695",
+                        "evidence:8ff711954851a7e2",
+                        "evidence:943d3fbc88a23441",
+                        "evidence:a12be44bf309f56f",
+                        "evidence:a753da13dd242444",
+                        "evidence:b1fb83af2ad3d860",
+                        "evidence:b25ee9727c54265a",
+                        "evidence:b4ef625bf6d675c8",
+                        "evidence:bd7aca0ceda09d03",
+                        "evidence:d2d0bc6e4bc6c4cf",
+                        "evidence:d8009f37a07bfd1e",
+                        "evidence:daf9ef8d2bf7e0fb",
+                        "evidence:dbdd8497a20d888b",
+                        "evidence:e82cd61eeb29bc4f",
+                        "evidence:e90ba323c324e046",
+                        "evidence:ec0ce6c9c421f5ff",
+                        "evidence:ec545f6d622a32f1",
+                        "evidence:fc45bcff54cee75b",
+                        "evidence:ff8c2af6709a509e"
+                      ]
+                    }
+                  ],
+                  "systemSourceRows": [
+                    205
+                  ]
                 }
               ],
               "module_count": 0,
@@ -1512,7 +1421,9 @@
                       "code": "I-AP",
                       "title": "软件应用",
                       "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "软件应用",
+                      "status": ""
                     },
                     {
                       "id": "784caa9f-74f0-4a43-94f5-727b3ff497fb",
@@ -1520,7 +1431,9 @@
                       "code": "I-DI",
                       "title": "数据与信息",
                       "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "数据与信息",
+                      "status": ""
                     },
                     {
                       "id": "6f1ef0de-3163-4d38-9626-5625a58948bb",
@@ -1528,7 +1441,9 @@
                       "code": "I-NT",
                       "title": "网络",
                       "description": "安全能力作用于网络流、网络服务等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "网络",
+                      "status": ""
                     }
                   ],
                   "related_capability_focus_ids": [
@@ -1592,7 +1507,64 @@
                   "type": "security_technical_measure",
                   "objectKind": "安全技术措施",
                   "kind": "安全技术措施",
-                  "title": "API网关"
+                  "title": "API网关",
+                  "systems": [
+                    {
+                      "id": "a940b858-4e7f-4674-afaa-66b9a36fe37c",
+                      "type": "security_system",
+                      "code": "",
+                      "name": "应用安全防护",
+                      "title": "应用安全防护",
+                      "description": "",
+                      "category": "应用安全",
+                      "status": "",
+                      "evidenceRefs": [
+                        "evidence:111996bc39101565",
+                        "evidence:11423a73d33fd339",
+                        "evidence:12ad420994344f55",
+                        "evidence:16a0de44cc4891f7",
+                        "evidence:221179d4c0f52ec6",
+                        "evidence:232ec6545eb96c84",
+                        "evidence:26badf3c4f96bb2a",
+                        "evidence:28c70d8dd370a1ce",
+                        "evidence:2dfe9b9d65723913",
+                        "evidence:318a7132880aa5e9",
+                        "evidence:3228cf244100e63a",
+                        "evidence:32c7fe6b2e649b3a",
+                        "evidence:336e55a54c2f11a2",
+                        "evidence:37be5caa1855775b",
+                        "evidence:37e2df6b19276aa8",
+                        "evidence:49b07d4ee4c049c2",
+                        "evidence:4fcc1e02d98ccf24",
+                        "evidence:5144adee594faaef",
+                        "evidence:5bdb1c166b86d424",
+                        "evidence:6ec9df7b3d62c946",
+                        "evidence:77cd49a0c03b1df2",
+                        "evidence:7e6a9eed77a8c695",
+                        "evidence:8ff711954851a7e2",
+                        "evidence:943d3fbc88a23441",
+                        "evidence:a12be44bf309f56f",
+                        "evidence:a753da13dd242444",
+                        "evidence:b1fb83af2ad3d860",
+                        "evidence:b25ee9727c54265a",
+                        "evidence:b4ef625bf6d675c8",
+                        "evidence:bd7aca0ceda09d03",
+                        "evidence:d2d0bc6e4bc6c4cf",
+                        "evidence:d8009f37a07bfd1e",
+                        "evidence:daf9ef8d2bf7e0fb",
+                        "evidence:dbdd8497a20d888b",
+                        "evidence:e82cd61eeb29bc4f",
+                        "evidence:e90ba323c324e046",
+                        "evidence:ec0ce6c9c421f5ff",
+                        "evidence:ec545f6d622a32f1",
+                        "evidence:fc45bcff54cee75b",
+                        "evidence:ff8c2af6709a509e"
+                      ]
+                    }
+                  ],
+                  "systemSourceRows": [
+                    207
+                  ]
                 }
               ],
               "module_count": 0,
@@ -1689,7 +1661,9 @@
                       "code": "I-AP",
                       "title": "软件应用",
                       "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "软件应用",
+                      "status": ""
                     },
                     {
                       "id": "784caa9f-74f0-4a43-94f5-727b3ff497fb",
@@ -1697,7 +1671,9 @@
                       "code": "I-DI",
                       "title": "数据与信息",
                       "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "数据与信息",
+                      "status": ""
                     },
                     {
                       "id": "6f1ef0de-3163-4d38-9626-5625a58948bb",
@@ -1705,7 +1681,9 @@
                       "code": "I-NT",
                       "title": "网络",
                       "description": "安全能力作用于网络流、网络服务等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "网络",
+                      "status": ""
                     }
                   ],
                   "related_capability_focus_ids": [
@@ -1769,7 +1747,64 @@
                   "type": "security_technical_measure",
                   "objectKind": "安全技术措施",
                   "kind": "安全技术措施",
-                  "title": "API网关"
+                  "title": "API网关",
+                  "systems": [
+                    {
+                      "id": "a940b858-4e7f-4674-afaa-66b9a36fe37c",
+                      "type": "security_system",
+                      "code": "",
+                      "name": "应用安全防护",
+                      "title": "应用安全防护",
+                      "description": "",
+                      "category": "应用安全",
+                      "status": "",
+                      "evidenceRefs": [
+                        "evidence:111996bc39101565",
+                        "evidence:11423a73d33fd339",
+                        "evidence:12ad420994344f55",
+                        "evidence:16a0de44cc4891f7",
+                        "evidence:221179d4c0f52ec6",
+                        "evidence:232ec6545eb96c84",
+                        "evidence:26badf3c4f96bb2a",
+                        "evidence:28c70d8dd370a1ce",
+                        "evidence:2dfe9b9d65723913",
+                        "evidence:318a7132880aa5e9",
+                        "evidence:3228cf244100e63a",
+                        "evidence:32c7fe6b2e649b3a",
+                        "evidence:336e55a54c2f11a2",
+                        "evidence:37be5caa1855775b",
+                        "evidence:37e2df6b19276aa8",
+                        "evidence:49b07d4ee4c049c2",
+                        "evidence:4fcc1e02d98ccf24",
+                        "evidence:5144adee594faaef",
+                        "evidence:5bdb1c166b86d424",
+                        "evidence:6ec9df7b3d62c946",
+                        "evidence:77cd49a0c03b1df2",
+                        "evidence:7e6a9eed77a8c695",
+                        "evidence:8ff711954851a7e2",
+                        "evidence:943d3fbc88a23441",
+                        "evidence:a12be44bf309f56f",
+                        "evidence:a753da13dd242444",
+                        "evidence:b1fb83af2ad3d860",
+                        "evidence:b25ee9727c54265a",
+                        "evidence:b4ef625bf6d675c8",
+                        "evidence:bd7aca0ceda09d03",
+                        "evidence:d2d0bc6e4bc6c4cf",
+                        "evidence:d8009f37a07bfd1e",
+                        "evidence:daf9ef8d2bf7e0fb",
+                        "evidence:dbdd8497a20d888b",
+                        "evidence:e82cd61eeb29bc4f",
+                        "evidence:e90ba323c324e046",
+                        "evidence:ec0ce6c9c421f5ff",
+                        "evidence:ec545f6d622a32f1",
+                        "evidence:fc45bcff54cee75b",
+                        "evidence:ff8c2af6709a509e"
+                      ]
+                    }
+                  ],
+                  "systemSourceRows": [
+                    206
+                  ]
                 }
               ],
               "module_count": 0,
@@ -1809,6 +1844,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    199
                   ]
                 }
               ],
@@ -1907,7 +1945,9 @@
                       "code": "I-AP",
                       "title": "软件应用",
                       "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "软件应用",
+                      "status": ""
                     },
                     {
                       "id": "784caa9f-74f0-4a43-94f5-727b3ff497fb",
@@ -1915,7 +1955,9 @@
                       "code": "I-DI",
                       "title": "数据与信息",
                       "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "数据与信息",
+                      "status": ""
                     },
                     {
                       "id": "6f1ef0de-3163-4d38-9626-5625a58948bb",
@@ -1923,7 +1965,9 @@
                       "code": "I-NT",
                       "title": "网络",
                       "description": "安全能力作用于网络流、网络服务等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "网络",
+                      "status": ""
                     }
                   ],
                   "related_capability_focus_ids": [
@@ -1987,7 +2031,64 @@
                   "type": "security_technical_measure",
                   "objectKind": "安全技术措施",
                   "kind": "安全技术措施",
-                  "title": "API网关"
+                  "title": "API网关",
+                  "systems": [
+                    {
+                      "id": "a940b858-4e7f-4674-afaa-66b9a36fe37c",
+                      "type": "security_system",
+                      "code": "",
+                      "name": "应用安全防护",
+                      "title": "应用安全防护",
+                      "description": "",
+                      "category": "应用安全",
+                      "status": "",
+                      "evidenceRefs": [
+                        "evidence:111996bc39101565",
+                        "evidence:11423a73d33fd339",
+                        "evidence:12ad420994344f55",
+                        "evidence:16a0de44cc4891f7",
+                        "evidence:221179d4c0f52ec6",
+                        "evidence:232ec6545eb96c84",
+                        "evidence:26badf3c4f96bb2a",
+                        "evidence:28c70d8dd370a1ce",
+                        "evidence:2dfe9b9d65723913",
+                        "evidence:318a7132880aa5e9",
+                        "evidence:3228cf244100e63a",
+                        "evidence:32c7fe6b2e649b3a",
+                        "evidence:336e55a54c2f11a2",
+                        "evidence:37be5caa1855775b",
+                        "evidence:37e2df6b19276aa8",
+                        "evidence:49b07d4ee4c049c2",
+                        "evidence:4fcc1e02d98ccf24",
+                        "evidence:5144adee594faaef",
+                        "evidence:5bdb1c166b86d424",
+                        "evidence:6ec9df7b3d62c946",
+                        "evidence:77cd49a0c03b1df2",
+                        "evidence:7e6a9eed77a8c695",
+                        "evidence:8ff711954851a7e2",
+                        "evidence:943d3fbc88a23441",
+                        "evidence:a12be44bf309f56f",
+                        "evidence:a753da13dd242444",
+                        "evidence:b1fb83af2ad3d860",
+                        "evidence:b25ee9727c54265a",
+                        "evidence:b4ef625bf6d675c8",
+                        "evidence:bd7aca0ceda09d03",
+                        "evidence:d2d0bc6e4bc6c4cf",
+                        "evidence:d8009f37a07bfd1e",
+                        "evidence:daf9ef8d2bf7e0fb",
+                        "evidence:dbdd8497a20d888b",
+                        "evidence:e82cd61eeb29bc4f",
+                        "evidence:e90ba323c324e046",
+                        "evidence:ec0ce6c9c421f5ff",
+                        "evidence:ec545f6d622a32f1",
+                        "evidence:fc45bcff54cee75b",
+                        "evidence:ff8c2af6709a509e"
+                      ]
+                    }
+                  ],
+                  "systemSourceRows": [
+                    208
+                  ]
                 }
               ],
               "module_count": 0,
@@ -2027,6 +2128,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    200
                   ]
                 }
               ],
@@ -2045,7 +2149,9 @@
             "code": "I-DI",
             "title": "数据与信息",
             "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "数据与信息",
+            "status": ""
           },
           "services": [
             {
@@ -2082,6 +2188,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    202
                   ]
                 }
               ],
@@ -2123,6 +2232,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    203
                   ]
                 }
               ],
@@ -2164,6 +2276,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    204
                   ]
                 }
               ],
@@ -2182,7 +2297,9 @@
             "code": "I-NT",
             "title": "网络",
             "description": "安全能力作用于网络流、网络服务等对象。",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "网络",
+            "status": ""
           },
           "services": [
             {
@@ -2276,7 +2393,9 @@
                       "code": "I-AP",
                       "title": "软件应用",
                       "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "软件应用",
+                      "status": ""
                     },
                     {
                       "id": "784caa9f-74f0-4a43-94f5-727b3ff497fb",
@@ -2284,7 +2403,9 @@
                       "code": "I-DI",
                       "title": "数据与信息",
                       "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "数据与信息",
+                      "status": ""
                     },
                     {
                       "id": "6f1ef0de-3163-4d38-9626-5625a58948bb",
@@ -2292,7 +2413,9 @@
                       "code": "I-NT",
                       "title": "网络",
                       "description": "安全能力作用于网络流、网络服务等对象。",
-                      "category": "网络空间"
+                      "category": "网络空间",
+                      "name": "网络",
+                      "status": ""
                     }
                   ],
                   "related_capability_focus_ids": [
@@ -2356,7 +2479,64 @@
                   "type": "security_technical_measure",
                   "objectKind": "安全技术措施",
                   "kind": "安全技术措施",
-                  "title": "API网关"
+                  "title": "API网关",
+                  "systems": [
+                    {
+                      "id": "a940b858-4e7f-4674-afaa-66b9a36fe37c",
+                      "type": "security_system",
+                      "code": "",
+                      "name": "应用安全防护",
+                      "title": "应用安全防护",
+                      "description": "",
+                      "category": "应用安全",
+                      "status": "",
+                      "evidenceRefs": [
+                        "evidence:111996bc39101565",
+                        "evidence:11423a73d33fd339",
+                        "evidence:12ad420994344f55",
+                        "evidence:16a0de44cc4891f7",
+                        "evidence:221179d4c0f52ec6",
+                        "evidence:232ec6545eb96c84",
+                        "evidence:26badf3c4f96bb2a",
+                        "evidence:28c70d8dd370a1ce",
+                        "evidence:2dfe9b9d65723913",
+                        "evidence:318a7132880aa5e9",
+                        "evidence:3228cf244100e63a",
+                        "evidence:32c7fe6b2e649b3a",
+                        "evidence:336e55a54c2f11a2",
+                        "evidence:37be5caa1855775b",
+                        "evidence:37e2df6b19276aa8",
+                        "evidence:49b07d4ee4c049c2",
+                        "evidence:4fcc1e02d98ccf24",
+                        "evidence:5144adee594faaef",
+                        "evidence:5bdb1c166b86d424",
+                        "evidence:6ec9df7b3d62c946",
+                        "evidence:77cd49a0c03b1df2",
+                        "evidence:7e6a9eed77a8c695",
+                        "evidence:8ff711954851a7e2",
+                        "evidence:943d3fbc88a23441",
+                        "evidence:a12be44bf309f56f",
+                        "evidence:a753da13dd242444",
+                        "evidence:b1fb83af2ad3d860",
+                        "evidence:b25ee9727c54265a",
+                        "evidence:b4ef625bf6d675c8",
+                        "evidence:bd7aca0ceda09d03",
+                        "evidence:d2d0bc6e4bc6c4cf",
+                        "evidence:d8009f37a07bfd1e",
+                        "evidence:daf9ef8d2bf7e0fb",
+                        "evidence:dbdd8497a20d888b",
+                        "evidence:e82cd61eeb29bc4f",
+                        "evidence:e90ba323c324e046",
+                        "evidence:ec0ce6c9c421f5ff",
+                        "evidence:ec545f6d622a32f1",
+                        "evidence:fc45bcff54cee75b",
+                        "evidence:ff8c2af6709a509e"
+                      ]
+                    }
+                  ],
+                  "systemSourceRows": [
+                    209
+                  ]
                 }
               ],
               "module_count": 0,

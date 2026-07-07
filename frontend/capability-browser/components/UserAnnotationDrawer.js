@@ -53,6 +53,17 @@
     return canonicalAnnotationRoute(a) === canonicalAnnotationRoute(b);
   }
 
+  function isInternalTargetMeta(value) {
+    const normalized = text(value).trim();
+    if (!normalized) return true;
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(normalized) || /^[a-z][a-z0-9_]*:/i.test(normalized);
+  }
+
+  function annotationTargetMeta(target) {
+    const code = text(target?.code).trim();
+    return isInternalTargetMeta(code) ? "" : code;
+  }
+
   const drawerScrollMemory = new Map();
   let restoreScheduled = false;
 
@@ -301,6 +312,7 @@
     const title = currentTarget.title || currentTarget.code || currentTarget.targetRef;
     const pageTitle = pageTarget?.title || pageTarget?.code || "当前页面";
     const anchorLabel = currentTarget.objectType === "page" ? "当前页面" : currentTarget.objectLabel || "当前对象";
+    const targetMeta = annotationTargetMeta(currentTarget);
     const draftGuard = Boolean(status.draftGuard);
     const tabAriaLabel = `${open ? "收起" : "展开"}批注面板，当前页 ${currentPageCount} 条批注`;
     return `
@@ -322,7 +334,7 @@
             <div class="annotation-anchor-strip">
               <span>${escape(anchorLabel)}</span>
               <strong title="${escape(title)}" data-annotation-tooltip="${escape(title)}">${escape(title)}</strong>
-              <small title="${escape(currentTarget.code || currentTarget.id || currentTarget.targetRef)}" data-annotation-tooltip="${escape(currentTarget.code || currentTarget.id || currentTarget.targetRef)}">${escape(currentTarget.code || currentTarget.id || currentTarget.targetRef)}</small>
+              ${targetMeta ? `<small title="${escape(targetMeta)}" data-annotation-tooltip="${escape(targetMeta)}">${escape(targetMeta)}</small>` : ""}
             </div>
             ${
               draftGuard

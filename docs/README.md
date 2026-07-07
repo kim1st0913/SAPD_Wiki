@@ -41,6 +41,15 @@
 1. `01-architecture/consultant-delivery-model.md`
 2. `06-implementation/local-data-layout.md`
 3. `03-import-etl/github-local-data-initialization.md`
+4. `09-delivery/mac-dmg-browser-parity-contract.md`
+
+## 要做测试、回归或发布前验收
+
+优先看：
+
+1. `07-governance/project-test-workflow-and-case-matrix.md`
+2. `../scripts/README.md`
+3. `09-delivery/mac-dmg-browser-parity-contract.md`
 
 ## 要从 GitHub 拉代码并初始化本地数据
 
@@ -67,6 +76,27 @@
 2. `01-architecture/api-field-contract.md`
 3. `01-architecture/frontend-json-data-package-inventory.md`
 4. `04-frontend/frontend-information-architecture.md`
+
+## 要查设计文档或继续前端设计
+
+优先看：
+
+1. `04-frontend/frontend-information-architecture.md`
+2. `04-frontend/frontend-redesign-brief.md`
+3. `06-implementation/frontend-global-design-baseline-2026-05-30.md`
+4. `06-implementation/frontend-display-design-principles-2026-05-30.md`
+5. `../frontend/design-handoff/README.md`
+6. `../frontend/design-handoff/implementation-specs/`
+
+设计文档按用途分层，不从文件名相似度随便选：
+
+- `frontend/design-handoff/implementation-specs/` 是页面实现规格入口，只有这里的 active spec 可以作为代码实现依据。
+- `frontend/design-handoff/stitch-*` 是 Stitch / Product Design 原始交接或参考材料，不能直接作为代码实现依据，必须先转成 implementation spec。
+- `docs/06-implementation/*design*`、`*baseline*`、`*contract*` 只承载跨页面稳定设计规则、全局交互契约或已经验收的专题设计结论。
+- `docs/04-frontend/` 只保留当前信息架构和前端设计 brief，不继续堆页面级细节。
+- `docs/09-delivery/` 只放交付、打包、首次启动、诊断和用户交付体验，不放普通前端页面设计。
+
+小 UI 调整、文案、单页局部样式和一次性截图反馈默认不新增设计文档；直接修改代码并在 `progress.md` 和任务完成反馈里说明验收入口。
 
 ## 要查历史
 

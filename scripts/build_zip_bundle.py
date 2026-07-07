@@ -46,7 +46,7 @@ def backend_name(platform_name: str) -> str:
 
 
 def version_for_bundle_name(bundle_version: str) -> str:
-    return bundle_version if bundle_version.startswith("v") else f"v{bundle_version}"
+    return bundle_version if bundle_version.lower().startswith("v") else f"v{bundle_version}"
 
 
 def windows_start_script() -> str:
@@ -198,7 +198,7 @@ fi
 """
 
 
-def readme_content(platform_name: str, placeholder: bool = False) -> str:
+def readme_content(platform_name: str, app_version: str, placeholder: bool = False) -> str:
     start_file = "start-windows.bat" if platform_name.startswith("win") else "start-macos.command"
     security_note = (
         "\n- Windows alpha 如遇安全软件拦截，请记录软件名称和提示截图。"
@@ -221,13 +221,31 @@ def readme_content(platform_name: str, placeholder: bool = False) -> str:
         if placeholder
         else ""
     )
-    return f"""# SAPD Wiki ZIP Alpha
+    return f"""# SAPD Wiki {app_version} 使用说明
 
-本包是 SAPD Wiki Delivery Bundle 1.0-alpha 的分平台 ZIP 解压即用版。
+本包是 SAPD Wiki 本地运行 Runtime。macOS DMG 会把它复制到用户选择的父级保存位置下的 `SAPDWiki/Runtime`。
+当前版本：{app_version}。
 {placeholder_note}
 它不是安装包，不包含 `.dmg`、`.msi`、安装向导、自动更新或代码签名。
 
-## 启动
+## macOS DMG 初始化注意事项
+
+1. 首次启动会要求设置“保存位置”，这里选择的是父级目录。
+2. App 会在所选父级目录下创建 `SAPDWiki` 文件夹。
+3. 用户数据库路径为：`<所选父级保存位置>/SAPDWiki/Runtime/data/user/sapd_wiki_user.sqlite3`。
+4. 默认下载路径为：`<所选父级保存位置>/SAPDWiki/export`，可在“SAPD Wiki > 系统设置...”中修改。
+5. 后续安装新版 App 时，默认复用 `SAPDWiki` 文件夹下已有用户数据库，不覆盖已有批注、Issue 和用户数据。
+6. 除非已经备份，不要手动删除或移动 `SAPDWiki/Runtime/data/user`。
+
+## macOS DMG 授权与试用
+
+1. 每次打开 App 时会先显示授权窗口。
+2. 如果暂时不知道授权码，可以点击“跳过输入”进入 30 天试用。
+3. 试用期内，窗口顶部会显示使用有效期和剩余天数。
+4. 试用到期后不能继续跳过，必须输入维护者提供的正确授权码。
+5. 授权成功后，窗口顶部会显示“已激活”，后续不再受试用期限制。
+
+## ZIP 运行方式
 
 1. 解压 ZIP 到本机目录。
 2. 双击 `{start_file}`。
@@ -248,6 +266,7 @@ def readme_content(platform_name: str, placeholder: bool = False) -> str:
 
 - 基础知识库：`data/base/sapd_wiki_base.sqlite3`，普通用户不应修改。
 - 用户数据：`data/user/sapd_wiki_user.sqlite3`，收藏、备注、个人标签和用户新增内容都写入这里。
+- macOS DMG 首次初始化后，真实用户数据位于用户选择的父级保存位置下的 `SAPDWiki/Runtime/data/user/sapd_wiki_user.sqlite3`。
 
 基础库升级不应覆盖用户库。
 
@@ -262,6 +281,7 @@ def readme_content(platform_name: str, placeholder: bool = False) -> str:
 ## 排查问题
 
 - 启动失败时，先查看 `logs/runtime.log`。
+- macOS DMG 运行时，日志位于 `<所选父级保存位置>/SAPDWiki/Runtime/logs`。
 - 需要发给维护人员时，运行 `diagnostics/` 目录下的诊断脚本导出诊断包。
 - 诊断包默认不包含用户备注全文或 SQLite 数据库内容。
 - 如果需要单独导出批注正文，请运行 `diagnostics/` 目录下的 `export-user-notes` 脚本；导出文件会写入 `data/exports/`。
@@ -358,7 +378,10 @@ def build_bundle(args: argparse.Namespace) -> Path:
     )
     write_text(bundle_root / "logs" / ".gitkeep", "")
     write_text(bundle_root / "diagnostics" / ".gitkeep", "")
-    write_text(bundle_root / "README-FIRST.md", readme_content(args.platform, placeholder=bool(args.allow_placeholder and not args.backend_binary)))
+    write_text(
+        bundle_root / "README-FIRST.md",
+        readme_content(args.platform, args.app_version, placeholder=bool(args.allow_placeholder and not args.backend_binary)),
+    )
     if args.platform.startswith("win"):
         write_text(bundle_root / "start-windows.bat", windows_start_script().replace("\n", "\r\n"))
         write_text(bundle_root / "stop-windows.bat", windows_stop_script().replace("\n", "\r\n"))
@@ -400,8 +423,8 @@ def main() -> int:
         help=f"Bundle output directory. Default: {DEFAULT_OUTPUT_DIR}",
     )
     parser.add_argument("--platform", required=True, choices=sorted(SUPPORTED_PLATFORMS))
-    parser.add_argument("--bundle-version", default="v0.1.0")
-    parser.add_argument("--app-version", default="0.1.0-alpha")
+    parser.add_argument("--bundle-version", default="0.1.5")
+    parser.add_argument("--app-version", default="0.1.5")
     parser.add_argument("--data-version", default="2026.05-alpha")
     parser.add_argument("--base-schema-version", default="base_schema_0.1")
     parser.add_argument("--user-schema-version", default="user_schema_0.3")

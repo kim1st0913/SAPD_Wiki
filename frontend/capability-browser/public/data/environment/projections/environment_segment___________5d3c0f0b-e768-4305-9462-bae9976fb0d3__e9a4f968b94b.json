@@ -112,7 +112,8 @@
         "title": "数据与信息",
         "name": "数据与信息",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。"
       },
       "40a35e2f-527f-4c2c-9436-883b75e59b4c": {
         "id": "40a35e2f-527f-4c2c-9436-883b75e59b4c",
@@ -121,7 +122,8 @@
         "title": "硬件",
         "name": "硬件",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。"
       },
       "6f1ef0de-3163-4d38-9626-5625a58948bb": {
         "id": "6f1ef0de-3163-4d38-9626-5625a58948bb",
@@ -130,7 +132,8 @@
         "title": "网络",
         "name": "网络",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于网络流、网络服务等对象。"
       },
       "6f2a40c5-4e87-4138-836c-83e136a5d69e": {
         "id": "6f2a40c5-4e87-4138-836c-83e136a5d69e",
@@ -139,7 +142,8 @@
         "title": "用户",
         "name": "用户",
         "category": "网络空间",
-        "status": ""
+        "status": "",
+        "description": "安全能力作用于组织内人员或人使用的账号等对象。"
       }
     },
     "security_technical_service": {
@@ -342,7 +346,9 @@
             "code": "I-DI",
             "title": "数据与信息",
             "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "数据与信息",
+            "status": ""
           },
           "services": [
             {
@@ -379,6 +385,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    15
                   ]
                 }
               ],
@@ -397,7 +406,9 @@
             "code": "I-HD",
             "title": "硬件",
             "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "硬件",
+            "status": ""
           },
           "services": [
             {
@@ -434,6 +445,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    7
                   ]
                 }
               ],
@@ -452,7 +466,9 @@
             "code": "I-NT",
             "title": "网络",
             "description": "安全能力作用于网络流、网络服务等对象。",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "网络",
+            "status": ""
           },
           "services": [
             {
@@ -489,6 +505,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    14
                   ]
                 },
                 {
@@ -517,6 +536,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    13
                   ]
                 }
               ],
@@ -558,6 +580,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    5
                   ]
                 }
               ],
@@ -599,6 +624,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    9
                   ]
                 }
               ],
@@ -640,6 +668,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    10
                   ]
                 }
               ],
@@ -681,6 +712,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    16
                   ]
                 }
               ],
@@ -722,6 +756,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    8
                   ]
                 }
               ],
@@ -763,6 +800,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    3
                   ]
                 }
               ],
@@ -804,6 +844,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    4
                   ]
                 }
               ],
@@ -845,6 +888,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    12
                   ]
                 }
               ],
@@ -886,6 +932,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    11
                   ]
                 }
               ],
@@ -904,7 +953,9 @@
             "code": "I-US",
             "title": "用户",
             "description": "安全能力作用于组织内人员或人使用的账号等对象。",
-            "category": "网络空间"
+            "category": "网络空间",
+            "name": "用户",
+            "status": ""
           },
           "services": [
             {
@@ -941,6 +992,9 @@
                       "description": null,
                       "category": null
                     }
+                  ],
+                  "systemSourceRows": [
+                    6
                   ]
                 }
               ],

@@ -18,10 +18,12 @@
 |---|---|
 | `docs/07-governance/data-governance.md` | GitHub 数据边界、数据标准化、去重、冲突、旧对象停用、验证等级、metadata 字段升级和前端数据包拆分规则 |
 | `docs/07-governance/capability-mapping-change-control.md` | 安全能力映射页变更分级、暂停条件、验证门槛和前端治理审计入口 |
+| `docs/07-governance/project-test-workflow-and-case-matrix.md` | 全工程分层测试流程、测试用例矩阵、独立套件、完整回归和 DMG 打包验收入口 |
 | `docs/03-import-etl/github-local-data-initialization.md` | 从 GitHub 拉取代码后的本地文件放置、一键数据初始化和生成数据不同步说明 |
 | `docs/07-governance/codex-performance-workflow.md` | Codex 轻量开发、验证摘要、重连减负和用户短指令默认执行规则 |
 | `docs/07-governance/execution-line-convergence-workflow.md` | 多会话 / 子 Agent 不稳定后的执行线收敛规则：单一主控、单一写入主线、dirty diff 优先验收和 checkpoint |
 | `docs/07-governance/current-execution-lines.md` | 当前已展开任务线和模块线程映射台账，用于暂停但不丢失任务，记录状态、证据、恢复条件、写入权限和下一步 |
+| `docs/README.md` + `frontend/design-handoff/README.md` | 设计文档入口和生命周期规则：区分实现规格、设计基线、Stitch 参考材料、专题契约和交付体验说明 |
 | `docs/06-implementation/global-search-contract-2026-07-05.md` | 全局搜索完整契约：产品职责、命中通道、禁止推断、计数 / 展示窗口、标准明细索引、定位和审计样例 |
 | `docs/06-implementation/open-issues.md` | 当前未关闭 bug、数据问题、页面问题和待确认事项的维护入口 |
 | `docs/06-implementation/open-issues-index.md` | Open Issues 全量索引，定位当前问题和历史归档问题 |
@@ -32,7 +34,7 @@
 
 ## 文档瘦身规则
 
-当前非归档 Markdown 文档约 `107` 个、`31540` 行，已经进入需要控增量的阶段。后续默认先复用现有入口，不为每次修复新增设计文档或说明文档。
+当前 `docs/` 非归档 Markdown 文档约 `107` 个、`31540` 行；若把 `frontend/design-handoff/` 设计交接材料一并纳入设计文档治理口径，非归档 Markdown 约 `125` 个。项目已经进入需要控增量的阶段。后续默认先复用现有入口，不为每次修复新增设计文档或说明文档。
 
 新增文档必须同时说明：
 
@@ -63,6 +65,44 @@
 - `findings.md` 只放长期有效决策和重要风险。
 - `task_plan.md` 只放当前阶段和未完成主线。
 - 过期过程、长记录和已关闭问题进入 `docs/05-archive/`。
+
+## 设计文档治理规则
+
+当前设计文档的问题不是缺材料，而是实现规格、设计基线、Stitch 原始交接和专题记录混在一起。后续按“用途分层 + 少增量 + 可退役”管理。
+
+设计文档分层：
+
+| 层级 | 权威入口 | 用途 | 使用规则 |
+|---|---|---|---|
+| 信息架构 / brief | `docs/04-frontend/` | 当前前端信息架构、页面类型和阶段设计 brief | 只保留方向和范围，不堆页面实现细节 |
+| 全局设计基线 | `docs/06-implementation/frontend-*baseline*`、`frontend-*principles*` | 跨页面稳定视觉、交互、字段边界和全局契约 | 只有已验收或长期有效规则进入 |
+| 页面实现规格 | `frontend/design-handoff/implementation-specs/` | Codex 可直接据此改代码的页面级规格 | 必须标注状态、读者、权威来源、验收点和退役条件 |
+| Stitch / Product Design 交接材料 | `frontend/design-handoff/stitch-*` | 设计输入、输出、prompt、截图和参考稿 | 只能作为 reference，不能直接接入代码 |
+| 专题设计 / 问题契约 | `docs/06-implementation/` | 全局问题、审计规则、跨页面专题设计结论 | 必须能关联 `open-issues.md`、审计脚本或长期契约 |
+| 交付体验设计 | `docs/09-delivery/` | DMG / ZIP / 诊断 / 首次启动 / 用户交付体验 | 不承载普通前端页面设计 |
+
+新增或修改设计文档前必须先判断：
+
+- 是否能写入现有 implementation spec、设计基线或 brief；
+- 是否会被代码实现直接使用；
+- 是否需要用户长期阅读或验收；
+- 是否有清晰退役条件。
+
+默认不新增设计文档的情形：
+
+- 单页小 UI 调整、文案、按钮、chip、表格密度或局部空态；
+- 截图反馈能在本轮直接修复并自动验证；
+- 只用于解释本轮实现过程的临时说明；
+- 已经能在 `progress.md` 和任务完成反馈说清楚的验收信息。
+
+必须形成设计文档或更新既有设计文档的情形：
+
+- 会改变全站导航、页面类型、布局基线、字段展示边界或交互范式；
+- 会作为后续实现依据的页面级规格；
+- 涉及前后端数据契约、搜索 / 批注 / 导出 / 打包等跨页面体验；
+- 用户需要单独验收或交给其他会话 / 设计工具继续执行。
+
+页面实现时只允许把 `implementation-specs/` 中状态为 active / implementation-source 的规格作为直接实现依据。Stitch 输出、设计截图、历史 brief 和专题记录必须先转成 implementation spec，或在现有 spec 中补充为明确验收项。
 
 ## Issue 建立门槛
 
@@ -105,6 +145,7 @@
 - 索引先行、分片按需加载、跨包补关系页面执行 `Frontend Lazy Data Contract Baseline 1.0`；知识库字典和安全标准 / 框架必须用显式加载契约区分 `required` / `supplemental`，并通过 `node scripts/audit_frontend_lazy_load_contract.mjs` 审计。
 - 知识库字典作为安全能力、作用域、技术服务、技术模块 / 措施、管理工作、流程和职能的权威值；相关引用用 `node scripts/audit_dictionary_reference_consistency.mjs` 做全量一致性检查。
 - 安全能力映射页按 `capability-mapping-change-control.md` 执行变更分级和前端治理审计。
+- 全工程测试按 `project-test-workflow-and-case-matrix.md` 执行分层验证；默认复用 `node scripts/run_project_test_suite.mjs`，DMG 构建和系统 Chrome 回归必须显式启用。
 - `findings.md` 索引化。
 - `progress.md` 职责收缩。
 - 当前未关闭中高严重性、全局、审计、安全、数据和待业务确认问题维护在 `open-issues.md`；小问题直接修复并在完成反馈提示验收；已关闭问题长记录归档到 `docs/05-archive/open-issues-history/`，全量定位通过 `open-issues-index.md`。

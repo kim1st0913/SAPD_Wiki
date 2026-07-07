@@ -180,8 +180,19 @@ def check_bundle(bundle_root: Path, create_user: bool = False) -> dict[str, Any]
     else:
         add("base_db_sha256_matches", False, "base database missing")
 
-    if user_db and not user_db.exists() and create_user:
-        initialize_user_db(user_db, expected_user_schema)
+    if user_db and create_user:
+        user_db_existed = user_db.exists()
+        previous_user_schema = user_schema_version(user_db) if user_db_existed else None
+        initialize_user_db(user_db, expected_user_schema, record_change_log=not user_db_existed)
+        actual_user_schema_after_init = user_schema_version(user_db)
+        if not user_db_existed:
+            add("user_db_initialized", actual_user_schema_after_init == expected_user_schema, f"created={user_db}")
+        elif previous_user_schema != actual_user_schema_after_init:
+            add(
+                "user_db_schema_upgraded",
+                actual_user_schema_after_init == expected_user_schema,
+                f"{previous_user_schema}->{actual_user_schema_after_init}",
+            )
     add("user_db_exists", bool(user_db and user_db.exists()), str(user_db) if user_db else "unsafe user database path")
     actual_user_schema = user_schema_version(user_db) if user_db else None
     add(

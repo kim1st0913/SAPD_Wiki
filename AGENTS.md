@@ -51,6 +51,7 @@
 - 默认不为每次小修新增文档、设计说明或 Issue；优先复用现有入口，在 `progress.md` 记录执行，在任务完成反馈里给出验收入口。
 - 新增长期文档必须满足至少一个条件：跨模块稳定契约、用户需要单独阅读的交付说明、数据 / 安全 / 审计治理边界、或现有入口继续追加会明显破坏可读性。
 - 当前文档治理规则以 `docs/07-governance/governance-index.md` 为准；新文档必须先能说明读者、用途、维护入口和退役条件。
+- 设计文档默认按 `docs/README.md` 和 `frontend/design-handoff/README.md` 的分层规则管理：`implementation-specs/` 才是页面代码实现依据；Stitch 输入 / 输出、截图、prompt 和旧 brief 只能作为参考，不能直接驱动实现；小 UI 修复、文案和局部样式不新增设计文档。
 
 ## Codex 轻量执行规则
 

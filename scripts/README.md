@@ -9,6 +9,7 @@
 | 脚本 | 用途 | 常用场景 |
 |---|---|---|
 | `sapd_wiki.py` | 项目主 CLI 入口，包含 `bootstrap-local-data` 一键初始化子命令 | README、`docs/03-import-etl/github-local-data-initialization.md` |
+| `run_project_test_suite.mjs` | 全工程测试套件编排入口，支持 `quick`、`pre-commit`、`pre-dmg`、`full`、`release-full` 等分层执行；默认不启动系统 Chrome、不构建 DMG | `docs/07-governance/project-test-workflow-and-case-matrix.md` |
 | `check_github_data_boundary.py` | GitHub 数据边界检查 | `docs/07-governance/data-governance.md` |
 | `data_package_summary.py` | 前端数据包摘要检查 | `CURRENT_STATE.md` |
 | `export_analytics_summary.mjs` | 从现有 workbench / standards / content 数据包生成 `analytics-summary.json` 离线契约；默认输出到已忽略的 `frontend/capability-browser/public/data/` | `docs/06-implementation/analytics-summary-json-contract-draft.md` |
@@ -20,6 +21,7 @@
 | `audit_user_annotation_contract.mjs` | 用户批注全局锚点契约审计，检查统一值选择器、普通表格单元格兜底、共享 relation chip、知识库字典 / 标准框架 / 能力映射 / 环境映射 / LC-AP / LC-DT 渲染样例、折叠目录定位恢复、批注视觉状态和逐页回归需求基线 | `docs/06-implementation/global-annotation-requirements-and-regression-matrix.md` |
 | `audit_annotation_drawer_tab.mjs` | 用户批注右侧标签真实浏览器交互审计，检查默认窄标签、数量徽标、hover 预展开、点击完全展开和再次点击平滑收起 | `docs/06-implementation/global-annotation-requirements-and-regression-matrix.md` |
 | `audit_user_db_governance_contract.mjs` | 用户库长期治理契约审计，默认检查设计 / 代码一致性，传 `--db` 时只读检查真实用户库 | `docs/06-implementation/user-database-governance-and-stable-key-design.md` |
+| `audit_mac_dmg_browser_parity_contract.mjs` | macOS DMG 与 5173 开发版一致性契约静态审计，检查前端 / base DB / backend hash 输入、双变体打包、用户库模板和契约文档 | `docs/09-delivery/mac-dmg-browser-parity-contract.md` |
 | `plan_user_schema_0_3_migration.mjs` | `user_schema_0.3` 只读 dry-run 计划，输出拟建表、legacy favorite note 候选和 target_ref 风险分类，不写真实用户库 | `docs/06-implementation/user-database-governance-and-stable-key-design.md` |
 | `audit_stable_key_contract.mjs` | 基础库 `stable_key` / deterministic ID / `base_id_redirects` 契约审计；当前用于暴露 DB-2 未落地缺口 | `docs/06-implementation/base-stable-key-and-redirect-migration-design-2026-06-06.md` |
 | `migrate_db_contracts.mjs` | `OI-135 / DB-11 / DB-2` 正式迁移工具；默认只复制到 `/private/tmp` dry-run，`--apply` 才写目标库，真实项目库还必须传 `--confirm-project-db-write` 并先自动备份 | `docs/06-implementation/user-database-governance-and-stable-key-design.md` |

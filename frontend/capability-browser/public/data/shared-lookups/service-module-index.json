@@ -20,8 +20,10 @@
           "type": "scope_type",
           "code": "ALL",
           "title": "全部作用域",
-          "description": null,
-          "category": null
+          "description": "虚拟作用域，表示该安全技术服务适用于所有作用域；保留为字典权威值，但不在作用域清单页面显示。",
+          "category": "虚拟作用域",
+          "name": "全部作用域",
+          "status": ""
         }
       ],
       "modules": [
@@ -278,8 +280,10 @@
           "type": "scope_type",
           "code": "ALL",
           "title": "全部作用域",
-          "description": null,
-          "category": null
+          "description": "虚拟作用域，表示该安全技术服务适用于所有作用域；保留为字典权威值，但不在作用域清单页面显示。",
+          "category": "虚拟作用域",
+          "name": "全部作用域",
+          "status": ""
         }
       ],
       "modules": [
@@ -333,8 +337,10 @@
           "type": "scope_type",
           "code": "ALL",
           "title": "全部作用域",
-          "description": null,
-          "category": null
+          "description": "虚拟作用域，表示该安全技术服务适用于所有作用域；保留为字典权威值，但不在作用域清单页面显示。",
+          "category": "虚拟作用域",
+          "name": "全部作用域",
+          "status": ""
         }
       ],
       "modules": [
@@ -620,8 +626,10 @@
           "type": "scope_type",
           "code": "ALL",
           "title": "全部作用域",
-          "description": null,
-          "category": null
+          "description": "虚拟作用域，表示该安全技术服务适用于所有作用域；保留为字典权威值，但不在作用域清单页面显示。",
+          "category": "虚拟作用域",
+          "name": "全部作用域",
+          "status": ""
         }
       ],
       "modules": [],
@@ -645,8 +653,10 @@
           "type": "scope_type",
           "code": "ALL",
           "title": "全部作用域",
-          "description": null,
-          "category": null
+          "description": "虚拟作用域，表示该安全技术服务适用于所有作用域；保留为字典权威值，但不在作用域清单页面显示。",
+          "category": "虚拟作用域",
+          "name": "全部作用域",
+          "status": ""
         }
       ],
       "modules": [
@@ -845,8 +855,10 @@
           "type": "scope_type",
           "code": "ALL",
           "title": "全部作用域",
-          "description": null,
-          "category": null
+          "description": "虚拟作用域，表示该安全技术服务适用于所有作用域；保留为字典权威值，但不在作用域清单页面显示。",
+          "category": "虚拟作用域",
+          "name": "全部作用域",
+          "status": ""
         }
       ],
       "modules": [
@@ -1045,8 +1057,10 @@
           "type": "scope_type",
           "code": "ALL",
           "title": "全部作用域",
-          "description": null,
-          "category": null
+          "description": "虚拟作用域，表示该安全技术服务适用于所有作用域；保留为字典权威值，但不在作用域清单页面显示。",
+          "category": "虚拟作用域",
+          "name": "全部作用域",
+          "status": ""
         }
       ],
       "modules": [
@@ -1100,8 +1114,10 @@
           "type": "scope_type",
           "code": "ALL",
           "title": "全部作用域",
-          "description": null,
-          "category": null
+          "description": "虚拟作用域，表示该安全技术服务适用于所有作用域；保留为字典权威值，但不在作用域清单页面显示。",
+          "category": "虚拟作用域",
+          "name": "全部作用域",
+          "status": ""
         }
       ],
       "modules": [],
@@ -1125,8 +1141,10 @@
           "type": "scope_type",
           "code": "ALL",
           "title": "全部作用域",
-          "description": null,
-          "category": null
+          "description": "虚拟作用域，表示该安全技术服务适用于所有作用域；保留为字典权威值，但不在作用域清单页面显示。",
+          "category": "虚拟作用域",
+          "name": "全部作用域",
+          "status": ""
         }
       ],
       "modules": [
@@ -1180,8 +1198,10 @@
           "type": "scope_type",
           "code": "ALL",
           "title": "全部作用域",
-          "description": null,
-          "category": null
+          "description": "虚拟作用域，表示该安全技术服务适用于所有作用域；保留为字典权威值，但不在作用域清单页面显示。",
+          "category": "虚拟作用域",
+          "name": "全部作用域",
+          "status": ""
         }
       ],
       "modules": [
@@ -1235,8 +1255,10 @@
           "type": "scope_type",
           "code": "ALL",
           "title": "全部作用域",
-          "description": null,
-          "category": null
+          "description": "虚拟作用域，表示该安全技术服务适用于所有作用域；保留为字典权威值，但不在作用域清单页面显示。",
+          "category": "虚拟作用域",
+          "name": "全部作用域",
+          "status": ""
         }
       ],
       "modules": [
@@ -1290,8 +1312,10 @@
           "type": "scope_type",
           "code": "ALL",
           "title": "全部作用域",
-          "description": null,
-          "category": null
+          "description": "虚拟作用域，表示该安全技术服务适用于所有作用域；保留为字典权威值，但不在作用域清单页面显示。",
+          "category": "虚拟作用域",
+          "name": "全部作用域",
+          "status": ""
         }
       ],
       "modules": [
@@ -1346,7 +1370,9 @@
           "code": "I-AP",
           "title": "软件应用",
           "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "软件应用",
+          "status": ""
         }
       ],
       "modules": [
@@ -1417,7 +1443,9 @@
           "code": "I-AP",
           "title": "软件应用",
           "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "软件应用",
+          "status": ""
         }
       ],
       "modules": [
@@ -1547,7 +1575,9 @@
           "code": "I-AP",
           "title": "软件应用",
           "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "软件应用",
+          "status": ""
         }
       ],
       "modules": [
@@ -1732,7 +1762,9 @@
           "code": "I-AP",
           "title": "软件应用",
           "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "软件应用",
+          "status": ""
         }
       ],
       "modules": [],
@@ -1757,7 +1789,9 @@
           "code": "I-AP",
           "title": "软件应用",
           "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "软件应用",
+          "status": ""
         }
       ],
       "modules": [],
@@ -1782,7 +1816,9 @@
           "code": "I-AP",
           "title": "软件应用",
           "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "软件应用",
+          "status": ""
         }
       ],
       "modules": [],
@@ -1807,7 +1843,9 @@
           "code": "I-AP",
           "title": "软件应用",
           "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "软件应用",
+          "status": ""
         }
       ],
       "modules": [],
@@ -1832,7 +1870,9 @@
           "code": "I-AP",
           "title": "软件应用",
           "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "软件应用",
+          "status": ""
         }
       ],
       "modules": [
@@ -2174,7 +2214,9 @@
           "code": "I-AP",
           "title": "软件应用",
           "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "软件应用",
+          "status": ""
         }
       ],
       "modules": [
@@ -2412,7 +2454,9 @@
           "code": "I-AP",
           "title": "软件应用",
           "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "软件应用",
+          "status": ""
         }
       ],
       "modules": [
@@ -2467,7 +2511,9 @@
           "code": "I-AP",
           "title": "软件应用",
           "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "软件应用",
+          "status": ""
         }
       ],
       "modules": [
@@ -2646,7 +2692,9 @@
           "code": "I-AP",
           "title": "软件应用",
           "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "软件应用",
+          "status": ""
         }
       ],
       "modules": [
@@ -2942,7 +2990,9 @@
           "code": "I-AP",
           "title": "软件应用",
           "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "软件应用",
+          "status": ""
         }
       ],
       "modules": [
@@ -3205,7 +3255,9 @@
           "code": "I-AP",
           "title": "软件应用",
           "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "软件应用",
+          "status": ""
         }
       ],
       "modules": [],
@@ -3230,7 +3282,9 @@
           "code": "I-AP",
           "title": "软件应用",
           "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "软件应用",
+          "status": ""
         }
       ],
       "modules": [
@@ -3285,7 +3339,9 @@
           "code": "I-AP",
           "title": "软件应用",
           "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "软件应用",
+          "status": ""
         }
       ],
       "modules": [
@@ -3340,7 +3396,9 @@
           "code": "I-AP",
           "title": "软件应用",
           "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "软件应用",
+          "status": ""
         }
       ],
       "modules": [],
@@ -3365,7 +3423,9 @@
           "code": "I-AP",
           "title": "软件应用",
           "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "软件应用",
+          "status": ""
         }
       ],
       "modules": [
@@ -3449,7 +3509,9 @@
           "code": "I-AP",
           "title": "软件应用",
           "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "软件应用",
+          "status": ""
         }
       ],
       "modules": [],
@@ -3474,7 +3536,9 @@
           "code": "I-AP",
           "title": "软件应用",
           "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "软件应用",
+          "status": ""
         }
       ],
       "modules": [
@@ -3636,7 +3700,9 @@
           "code": "I-AP",
           "title": "软件应用",
           "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "软件应用",
+          "status": ""
         }
       ],
       "modules": [
@@ -3853,7 +3919,9 @@
           "code": "I-AP",
           "title": "软件应用",
           "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "软件应用",
+          "status": ""
         }
       ],
       "modules": [
@@ -4217,7 +4285,9 @@
           "code": "I-AP",
           "title": "软件应用",
           "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "软件应用",
+          "status": ""
         }
       ],
       "modules": [
@@ -4321,7 +4391,9 @@
           "code": "I-AP",
           "title": "软件应用",
           "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "软件应用",
+          "status": ""
         }
       ],
       "modules": [
@@ -4447,7 +4519,9 @@
           "code": "I-AP",
           "title": "软件应用",
           "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "软件应用",
+          "status": ""
         }
       ],
       "modules": [
@@ -4560,7 +4634,9 @@
           "code": "I-AP",
           "title": "软件应用",
           "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "软件应用",
+          "status": ""
         }
       ],
       "modules": [
@@ -4873,7 +4949,9 @@
           "code": "I-AP",
           "title": "软件应用",
           "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "软件应用",
+          "status": ""
         }
       ],
       "modules": [
@@ -5198,7 +5276,9 @@
           "code": "I-AP",
           "title": "软件应用",
           "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "软件应用",
+          "status": ""
         }
       ],
       "modules": [
@@ -5465,7 +5545,9 @@
           "code": "I-AP",
           "title": "软件应用",
           "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "软件应用",
+          "status": ""
         }
       ],
       "modules": [
@@ -5661,7 +5743,9 @@
           "code": "I-AP",
           "title": "软件应用",
           "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "软件应用",
+          "status": ""
         }
       ],
       "modules": [
@@ -5765,7 +5849,9 @@
           "code": "I-AP",
           "title": "软件应用",
           "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "软件应用",
+          "status": ""
         }
       ],
       "modules": [
@@ -5837,7 +5923,9 @@
           "code": "I-AP",
           "title": "软件应用",
           "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "软件应用",
+          "status": ""
         }
       ],
       "modules": [
@@ -5917,7 +6005,9 @@
           "code": "I-AP",
           "title": "软件应用",
           "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "软件应用",
+          "status": ""
         }
       ],
       "modules": [
@@ -6193,7 +6283,9 @@
           "code": "I-AP",
           "title": "软件应用",
           "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "软件应用",
+          "status": ""
         }
       ],
       "modules": [],
@@ -6218,7 +6310,9 @@
           "code": "I-AP",
           "title": "软件应用",
           "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "软件应用",
+          "status": ""
         }
       ],
       "modules": [
@@ -6328,7 +6422,9 @@
           "code": "I-AP",
           "title": "软件应用",
           "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "软件应用",
+          "status": ""
         }
       ],
       "modules": [
@@ -6538,7 +6634,9 @@
           "code": "I-AP",
           "title": "软件应用",
           "description": "安全能力作用于客户端软件、应用软件、程序代码和服务接口等对象",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "软件应用",
+          "status": ""
         }
       ],
       "modules": [],
@@ -6563,7 +6661,9 @@
           "code": "I-DI",
           "title": "数据与信息",
           "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "数据与信息",
+          "status": ""
         }
       ],
       "modules": [
@@ -6738,7 +6838,9 @@
           "code": "I-DI",
           "title": "数据与信息",
           "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "数据与信息",
+          "status": ""
         }
       ],
       "modules": [],
@@ -6763,7 +6865,9 @@
           "code": "I-DI",
           "title": "数据与信息",
           "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "数据与信息",
+          "status": ""
         }
       ],
       "modules": [
@@ -6835,7 +6939,9 @@
           "code": "I-DI",
           "title": "数据与信息",
           "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "数据与信息",
+          "status": ""
         }
       ],
       "modules": [
@@ -6907,7 +7013,9 @@
           "code": "I-DI",
           "title": "数据与信息",
           "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "数据与信息",
+          "status": ""
         }
       ],
       "modules": [
@@ -7145,7 +7253,9 @@
           "code": "I-DI",
           "title": "数据与信息",
           "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "数据与信息",
+          "status": ""
         }
       ],
       "modules": [
@@ -7308,7 +7418,9 @@
           "code": "I-DI",
           "title": "数据与信息",
           "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "数据与信息",
+          "status": ""
         }
       ],
       "modules": [
@@ -7363,7 +7475,9 @@
           "code": "I-DI",
           "title": "数据与信息",
           "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "数据与信息",
+          "status": ""
         }
       ],
       "modules": [
@@ -7418,7 +7532,9 @@
           "code": "I-DI",
           "title": "数据与信息",
           "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "数据与信息",
+          "status": ""
         }
       ],
       "modules": [
@@ -7473,7 +7589,9 @@
           "code": "I-DI",
           "title": "数据与信息",
           "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "数据与信息",
+          "status": ""
         }
       ],
       "modules": [
@@ -7545,7 +7663,9 @@
           "code": "I-DI",
           "title": "数据与信息",
           "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "数据与信息",
+          "status": ""
         }
       ],
       "modules": [
@@ -7746,7 +7866,9 @@
           "code": "I-DI",
           "title": "数据与信息",
           "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "数据与信息",
+          "status": ""
         }
       ],
       "modules": [
@@ -8105,7 +8227,9 @@
           "code": "I-DI",
           "title": "数据与信息",
           "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "数据与信息",
+          "status": ""
         }
       ],
       "modules": [
@@ -8285,7 +8409,9 @@
           "code": "I-DI",
           "title": "数据与信息",
           "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "数据与信息",
+          "status": ""
         }
       ],
       "modules": [
@@ -8365,7 +8491,9 @@
           "code": "I-DI",
           "title": "数据与信息",
           "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "数据与信息",
+          "status": ""
         }
       ],
       "modules": [
@@ -8475,7 +8603,9 @@
           "code": "I-DI",
           "title": "数据与信息",
           "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "数据与信息",
+          "status": ""
         }
       ],
       "modules": [
@@ -8630,7 +8760,9 @@
           "code": "I-DI",
           "title": "数据与信息",
           "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "数据与信息",
+          "status": ""
         }
       ],
       "modules": [
@@ -8702,7 +8834,9 @@
           "code": "I-DI",
           "title": "数据与信息",
           "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "数据与信息",
+          "status": ""
         }
       ],
       "modules": [
@@ -8809,7 +8943,9 @@
           "code": "I-DI",
           "title": "数据与信息",
           "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "数据与信息",
+          "status": ""
         }
       ],
       "modules": [
@@ -8948,7 +9084,9 @@
           "code": "I-DI",
           "title": "数据与信息",
           "description": "安全能力作用于非结构化数据文件、结构化数据库、网络和系统中的数据流、视频、图片、音频中的信息等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "数据与信息",
+          "status": ""
         }
       ],
       "modules": [
@@ -9058,7 +9196,9 @@
           "code": "I-HD",
           "title": "硬件",
           "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "硬件",
+          "status": ""
         }
       ],
       "modules": [],
@@ -9083,7 +9223,9 @@
           "code": "I-HD",
           "title": "硬件",
           "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "硬件",
+          "status": ""
         }
       ],
       "modules": [],
@@ -9108,7 +9250,9 @@
           "code": "I-HD",
           "title": "硬件",
           "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "硬件",
+          "status": ""
         }
       ],
       "modules": [
@@ -9192,7 +9336,9 @@
           "code": "I-HD",
           "title": "硬件",
           "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "硬件",
+          "status": ""
         }
       ],
       "modules": [],
@@ -9217,7 +9363,9 @@
           "code": "I-HD",
           "title": "硬件",
           "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "硬件",
+          "status": ""
         }
       ],
       "modules": [],
@@ -9242,7 +9390,9 @@
           "code": "I-HD",
           "title": "硬件",
           "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "硬件",
+          "status": ""
         }
       ],
       "modules": [
@@ -9326,7 +9476,9 @@
           "code": "I-HD",
           "title": "硬件",
           "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "硬件",
+          "status": ""
         }
       ],
       "modules": [],
@@ -9351,7 +9503,9 @@
           "code": "I-HD",
           "title": "硬件",
           "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "硬件",
+          "status": ""
         }
       ],
       "modules": [
@@ -9489,7 +9643,9 @@
           "code": "I-HD",
           "title": "硬件",
           "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "硬件",
+          "status": ""
         }
       ],
       "modules": [
@@ -9712,7 +9868,9 @@
           "code": "I-HD",
           "title": "硬件",
           "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "硬件",
+          "status": ""
         }
       ],
       "modules": [
@@ -9776,7 +9934,9 @@
           "code": "I-HD",
           "title": "硬件",
           "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "硬件",
+          "status": ""
         }
       ],
       "modules": [
@@ -9856,7 +10016,9 @@
           "code": "I-HD",
           "title": "硬件",
           "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "硬件",
+          "status": ""
         }
       ],
       "modules": [],
@@ -9881,7 +10043,9 @@
           "code": "I-HD",
           "title": "硬件",
           "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "硬件",
+          "status": ""
         }
       ],
       "modules": [],
@@ -9906,7 +10070,9 @@
           "code": "I-HD",
           "title": "硬件",
           "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "硬件",
+          "status": ""
         }
       ],
       "modules": [
@@ -10008,7 +10174,9 @@
           "code": "I-HD",
           "title": "硬件",
           "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "硬件",
+          "status": ""
         }
       ],
       "modules": [
@@ -10121,7 +10289,9 @@
           "code": "I-HD",
           "title": "硬件",
           "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "硬件",
+          "status": ""
         }
       ],
       "modules": [
@@ -10176,7 +10346,9 @@
           "code": "I-HD",
           "title": "硬件",
           "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "硬件",
+          "status": ""
         }
       ],
       "modules": [],
@@ -10201,7 +10373,9 @@
           "code": "I-HD",
           "title": "硬件",
           "description": "安全能力作用于各类PC、服务器、IOT设备、移动设备等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "硬件",
+          "status": ""
         }
       ],
       "modules": [],
@@ -10226,7 +10400,9 @@
           "code": "I-NT",
           "title": "网络",
           "description": "安全能力作用于网络流、网络服务等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "网络",
+          "status": ""
         }
       ],
       "modules": [
@@ -10401,7 +10577,9 @@
           "code": "I-NT",
           "title": "网络",
           "description": "安全能力作用于网络流、网络服务等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "网络",
+          "status": ""
         }
       ],
       "modules": [],
@@ -10426,7 +10604,9 @@
           "code": "I-NT",
           "title": "网络",
           "description": "安全能力作用于网络流、网络服务等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "网络",
+          "status": ""
         }
       ],
       "modules": [
@@ -10691,7 +10871,9 @@
           "code": "I-NT",
           "title": "网络",
           "description": "安全能力作用于网络流、网络服务等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "网络",
+          "status": ""
         }
       ],
       "modules": [],
@@ -10716,7 +10898,9 @@
           "code": "I-NT",
           "title": "网络",
           "description": "安全能力作用于网络流、网络服务等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "网络",
+          "status": ""
         }
       ],
       "modules": [],
@@ -10741,7 +10925,9 @@
           "code": "I-NT",
           "title": "网络",
           "description": "安全能力作用于网络流、网络服务等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "网络",
+          "status": ""
         }
       ],
       "modules": [
@@ -10796,7 +10982,9 @@
           "code": "I-NT",
           "title": "网络",
           "description": "安全能力作用于网络流、网络服务等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "网络",
+          "status": ""
         }
       ],
       "modules": [
@@ -10880,7 +11068,9 @@
           "code": "I-NT",
           "title": "网络",
           "description": "安全能力作用于网络流、网络服务等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "网络",
+          "status": ""
         }
       ],
       "modules": [
@@ -10935,7 +11125,9 @@
           "code": "I-NT",
           "title": "网络",
           "description": "安全能力作用于网络流、网络服务等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "网络",
+          "status": ""
         }
       ],
       "modules": [
@@ -11103,7 +11295,9 @@
           "code": "I-NT",
           "title": "网络",
           "description": "安全能力作用于网络流、网络服务等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "网络",
+          "status": ""
         }
       ],
       "modules": [
@@ -11187,7 +11381,9 @@
           "code": "I-NT",
           "title": "网络",
           "description": "安全能力作用于网络流、网络服务等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "网络",
+          "status": ""
         }
       ],
       "modules": [
@@ -11533,7 +11729,9 @@
           "code": "I-NT",
           "title": "网络",
           "description": "安全能力作用于网络流、网络服务等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "网络",
+          "status": ""
         }
       ],
       "modules": [],
@@ -11558,7 +11756,9 @@
           "code": "I-NT",
           "title": "网络",
           "description": "安全能力作用于网络流、网络服务等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "网络",
+          "status": ""
         }
       ],
       "modules": [
@@ -11671,7 +11871,9 @@
           "code": "I-NT",
           "title": "网络",
           "description": "安全能力作用于网络流、网络服务等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "网络",
+          "status": ""
         }
       ],
       "modules": [
@@ -12005,7 +12207,9 @@
           "code": "I-NT",
           "title": "网络",
           "description": "安全能力作用于网络流、网络服务等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "网络",
+          "status": ""
         }
       ],
       "modules": [
@@ -12618,7 +12822,9 @@
           "code": "I-NT",
           "title": "网络",
           "description": "安全能力作用于网络流、网络服务等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "网络",
+          "status": ""
         }
       ],
       "modules": [
@@ -12773,7 +12979,9 @@
           "code": "I-NT",
           "title": "网络",
           "description": "安全能力作用于网络流、网络服务等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "网络",
+          "status": ""
         }
       ],
       "modules": [
@@ -12928,7 +13136,9 @@
           "code": "I-NT",
           "title": "网络",
           "description": "安全能力作用于网络流、网络服务等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "网络",
+          "status": ""
         }
       ],
       "modules": [
@@ -13143,7 +13353,9 @@
           "code": "I-NT",
           "title": "网络",
           "description": "安全能力作用于网络流、网络服务等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "网络",
+          "status": ""
         }
       ],
       "modules": [
@@ -13253,7 +13465,9 @@
           "code": "I-NT",
           "title": "网络",
           "description": "安全能力作用于网络流、网络服务等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "网络",
+          "status": ""
         }
       ],
       "modules": [
@@ -13646,7 +13860,9 @@
           "code": "I-NT",
           "title": "网络",
           "description": "安全能力作用于网络流、网络服务等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "网络",
+          "status": ""
         }
       ],
       "modules": [
@@ -13814,7 +14030,9 @@
           "code": "I-NT",
           "title": "网络",
           "description": "安全能力作用于网络流、网络服务等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "网络",
+          "status": ""
         }
       ],
       "modules": [
@@ -13945,7 +14163,9 @@
           "code": "I-NT",
           "title": "网络",
           "description": "安全能力作用于网络流、网络服务等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "网络",
+          "status": ""
         }
       ],
       "modules": [
@@ -14199,7 +14419,9 @@
           "code": "I-NT",
           "title": "网络",
           "description": "安全能力作用于网络流、网络服务等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "网络",
+          "status": ""
         }
       ],
       "modules": [],
@@ -14224,7 +14446,9 @@
           "code": "I-OS",
           "title": "操作系统（主机/终端）",
           "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "操作系统（主机/终端）",
+          "status": ""
         }
       ],
       "modules": [
@@ -14399,7 +14623,9 @@
           "code": "I-OS",
           "title": "操作系统（主机/终端）",
           "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "操作系统（主机/终端）",
+          "status": ""
         }
       ],
       "modules": [],
@@ -14424,7 +14650,9 @@
           "code": "I-OS",
           "title": "操作系统（主机/终端）",
           "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "操作系统（主机/终端）",
+          "status": ""
         }
       ],
       "modules": [
@@ -14595,7 +14823,9 @@
           "code": "I-OS",
           "title": "操作系统（主机/终端）",
           "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "操作系统（主机/终端）",
+          "status": ""
         }
       ],
       "modules": [],
@@ -14620,7 +14850,9 @@
           "code": "I-OS",
           "title": "操作系统（主机/终端）",
           "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "操作系统（主机/终端）",
+          "status": ""
         }
       ],
       "modules": [
@@ -14754,7 +14986,9 @@
           "code": "I-OS",
           "title": "操作系统（主机/终端）",
           "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "操作系统（主机/终端）",
+          "status": ""
         }
       ],
       "modules": [],
@@ -14779,7 +15013,9 @@
           "code": "I-OS",
           "title": "操作系统（主机/终端）",
           "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "操作系统（主机/终端）",
+          "status": ""
         }
       ],
       "modules": [],
@@ -14804,7 +15040,9 @@
           "code": "I-OS",
           "title": "操作系统（主机/终端）",
           "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "操作系统（主机/终端）",
+          "status": ""
         }
       ],
       "modules": [
@@ -15117,7 +15355,9 @@
           "code": "I-OS",
           "title": "操作系统（主机/终端）",
           "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "操作系统（主机/终端）",
+          "status": ""
         }
       ],
       "modules": [
@@ -15343,7 +15583,9 @@
           "code": "I-OS",
           "title": "操作系统（主机/终端）",
           "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "操作系统（主机/终端）",
+          "status": ""
         }
       ],
       "modules": [],
@@ -15368,7 +15610,9 @@
           "code": "I-OS",
           "title": "操作系统（主机/终端）",
           "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "操作系统（主机/终端）",
+          "status": ""
         }
       ],
       "modules": [
@@ -15518,7 +15762,9 @@
           "code": "I-OS",
           "title": "操作系统（主机/终端）",
           "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "操作系统（主机/终端）",
+          "status": ""
         }
       ],
       "modules": [
@@ -15831,7 +16077,9 @@
           "code": "I-OS",
           "title": "操作系统（主机/终端）",
           "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "操作系统（主机/终端）",
+          "status": ""
         }
       ],
       "modules": [
@@ -16057,7 +16305,9 @@
           "code": "I-OS",
           "title": "操作系统（主机/终端）",
           "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "操作系统（主机/终端）",
+          "status": ""
         }
       ],
       "modules": [
@@ -16141,7 +16391,9 @@
           "code": "I-OS",
           "title": "操作系统（主机/终端）",
           "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "操作系统（主机/终端）",
+          "status": ""
         }
       ],
       "modules": [
@@ -16310,7 +16562,9 @@
           "code": "I-OS",
           "title": "操作系统（主机/终端）",
           "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "操作系统（主机/终端）",
+          "status": ""
         }
       ],
       "modules": [],
@@ -16335,7 +16589,9 @@
           "code": "I-OS",
           "title": "操作系统（主机/终端）",
           "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "操作系统（主机/终端）",
+          "status": ""
         }
       ],
       "modules": [
@@ -16423,7 +16679,9 @@
           "code": "I-OS",
           "title": "操作系统（主机/终端）",
           "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "操作系统（主机/终端）",
+          "status": ""
         }
       ],
       "modules": [
@@ -16598,7 +16856,9 @@
           "code": "I-OS",
           "title": "操作系统（主机/终端）",
           "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "操作系统（主机/终端）",
+          "status": ""
         }
       ],
       "modules": [
@@ -17003,7 +17263,9 @@
           "code": "I-OS",
           "title": "操作系统（主机/终端）",
           "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "操作系统（主机/终端）",
+          "status": ""
         }
       ],
       "modules": [
@@ -17345,7 +17607,9 @@
           "code": "I-OS",
           "title": "操作系统（主机/终端）",
           "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "操作系统（主机/终端）",
+          "status": ""
         }
       ],
       "modules": [
@@ -17629,7 +17893,9 @@
           "code": "I-OS",
           "title": "操作系统（主机/终端）",
           "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "操作系统（主机/终端）",
+          "status": ""
         }
       ],
       "modules": [],
@@ -17654,7 +17920,9 @@
           "code": "I-OS",
           "title": "操作系统（主机/终端）",
           "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "操作系统（主机/终端）",
+          "status": ""
         }
       ],
       "modules": [
@@ -17866,7 +18134,9 @@
           "code": "I-OS",
           "title": "操作系统（主机/终端）",
           "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "操作系统（主机/终端）",
+          "status": ""
         }
       ],
       "modules": [
@@ -18000,7 +18270,9 @@
           "code": "I-OS",
           "title": "操作系统（主机/终端）",
           "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "操作系统（主机/终端）",
+          "status": ""
         }
       ],
       "modules": [
@@ -18142,7 +18414,9 @@
           "code": "I-OS",
           "title": "操作系统（主机/终端）",
           "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "操作系统（主机/终端）",
+          "status": ""
         }
       ],
       "modules": [
@@ -18226,7 +18500,9 @@
           "code": "I-OS",
           "title": "操作系统（主机/终端）",
           "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "操作系统（主机/终端）",
+          "status": ""
         }
       ],
       "modules": [
@@ -18452,7 +18728,9 @@
           "code": "I-OS",
           "title": "操作系统（主机/终端）",
           "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "操作系统（主机/终端）",
+          "status": ""
         }
       ],
       "modules": [
@@ -18594,7 +18872,9 @@
           "code": "I-OS",
           "title": "操作系统（主机/终端）",
           "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "操作系统（主机/终端）",
+          "status": ""
         }
       ],
       "modules": [
@@ -18744,7 +19024,9 @@
           "code": "I-OS",
           "title": "操作系统（主机/终端）",
           "description": "安全能力作用于各类终端操作系统、移动端操作系统、服务端操作系统、固件等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "操作系统（主机/终端）",
+          "status": ""
         }
       ],
       "modules": [],
@@ -18769,7 +19051,9 @@
           "code": "I-PE",
           "title": "物理环境",
           "description": "安全能力作用于机房、办公场所、生产区域、机柜、配电、空调、消防、门禁、安防监控等物理空间与基础设施对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "物理环境",
+          "status": ""
         }
       ],
       "modules": [],
@@ -18794,7 +19078,9 @@
           "code": "I-PE",
           "title": "物理环境",
           "description": "安全能力作用于机房、办公场所、生产区域、机柜、配电、空调、消防、门禁、安防监控等物理空间与基础设施对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "物理环境",
+          "status": ""
         }
       ],
       "modules": [],
@@ -18819,7 +19105,9 @@
           "code": "I-PE",
           "title": "物理环境",
           "description": "安全能力作用于机房、办公场所、生产区域、机柜、配电、空调、消防、门禁、安防监控等物理空间与基础设施对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "物理环境",
+          "status": ""
         }
       ],
       "modules": [],
@@ -18844,7 +19132,9 @@
           "code": "I-PE",
           "title": "物理环境",
           "description": "安全能力作用于机房、办公场所、生产区域、机柜、配电、空调、消防、门禁、安防监控等物理空间与基础设施对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "物理环境",
+          "status": ""
         }
       ],
       "modules": [],
@@ -18869,7 +19159,9 @@
           "code": "I-PE",
           "title": "物理环境",
           "description": "安全能力作用于机房、办公场所、生产区域、机柜、配电、空调、消防、门禁、安防监控等物理空间与基础设施对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "物理环境",
+          "status": ""
         }
       ],
       "modules": [],
@@ -18894,7 +19186,9 @@
           "code": "I-US",
           "title": "用户",
           "description": "安全能力作用于组织内人员或人使用的账号等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "用户",
+          "status": ""
         }
       ],
       "modules": [
@@ -19024,7 +19318,9 @@
           "code": "I-US",
           "title": "用户",
           "description": "安全能力作用于组织内人员或人使用的账号等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "用户",
+          "status": ""
         }
       ],
       "modules": [
@@ -19079,7 +19375,9 @@
           "code": "I-US",
           "title": "用户",
           "description": "安全能力作用于组织内人员或人使用的账号等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "用户",
+          "status": ""
         }
       ],
       "modules": [
@@ -19371,7 +19669,9 @@
           "code": "I-US",
           "title": "用户",
           "description": "安全能力作用于组织内人员或人使用的账号等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "用户",
+          "status": ""
         }
       ],
       "modules": [
@@ -19689,7 +19989,9 @@
           "code": "I-US",
           "title": "用户",
           "description": "安全能力作用于组织内人员或人使用的账号等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "用户",
+          "status": ""
         }
       ],
       "modules": [
@@ -20039,7 +20341,9 @@
           "code": "I-US",
           "title": "用户",
           "description": "安全能力作用于组织内人员或人使用的账号等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "用户",
+          "status": ""
         }
       ],
       "modules": [],
@@ -20064,7 +20368,9 @@
           "code": "I-US",
           "title": "用户",
           "description": "安全能力作用于组织内人员或人使用的账号等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "用户",
+          "status": ""
         }
       ],
       "modules": [
@@ -20272,7 +20578,9 @@
           "code": "I-US",
           "title": "用户",
           "description": "安全能力作用于组织内人员或人使用的账号等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "用户",
+          "status": ""
         }
       ],
       "modules": [
@@ -20376,7 +20684,9 @@
           "code": "I-US",
           "title": "用户",
           "description": "安全能力作用于组织内人员或人使用的账号等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "用户",
+          "status": ""
         }
       ],
       "modules": [],
@@ -20401,7 +20711,9 @@
           "code": "I-US",
           "title": "用户",
           "description": "安全能力作用于组织内人员或人使用的账号等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "用户",
+          "status": ""
         }
       ],
       "modules": [],
@@ -20426,7 +20738,9 @@
           "code": "I-US",
           "title": "用户",
           "description": "安全能力作用于组织内人员或人使用的账号等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "用户",
+          "status": ""
         }
       ],
       "modules": [],
@@ -20451,7 +20765,9 @@
           "code": "I-US",
           "title": "用户",
           "description": "安全能力作用于组织内人员或人使用的账号等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "用户",
+          "status": ""
         }
       ],
       "modules": [],
@@ -20476,7 +20792,9 @@
           "code": "I-US",
           "title": "用户",
           "description": "安全能力作用于组织内人员或人使用的账号等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "用户",
+          "status": ""
         }
       ],
       "modules": [],
@@ -20501,7 +20819,9 @@
           "code": "I-US",
           "title": "用户",
           "description": "安全能力作用于组织内人员或人使用的账号等对象。",
-          "category": "网络空间"
+          "category": "网络空间",
+          "name": "用户",
+          "status": ""
         }
       ],
       "modules": [],

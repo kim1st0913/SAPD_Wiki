@@ -798,6 +798,23 @@ if (
   });
 }
 
+if (
+  !includesAll(appJs, [
+    "function stripNativeAnnotationTitle(host)",
+    'host.removeAttribute("title")',
+    "const host = annotationTooltipHost(event.target);",
+    "stripNativeAnnotationTitle(host);",
+  ]) ||
+  appJs.includes('title="${escapeHtml(raw)}" data-annotation-tooltip') ||
+  displayLabelsJs.includes('title="${escaped(raw)}" data-annotation-tooltip')
+) {
+  issues.push({
+    severity: "error",
+    type: "annotation_tooltip_single_layer_contract_missing",
+    message: "批注 / 复制值悬停提示必须只有项目自定义 tooltip，不能同时触发浏览器原生 title 造成双层角标。",
+  });
+}
+
 const uncheckedRelationChipLines = [
   "frontend/capability-browser/app.js",
   ...listFiles("frontend/capability-browser/components"),

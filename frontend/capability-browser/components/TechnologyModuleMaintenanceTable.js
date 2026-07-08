@@ -78,6 +78,11 @@
     return categories;
   }
 
+  function hasSelected(rows, selectedId) {
+    const id = utils.text(selectedId).trim();
+    return Boolean(id) && utils.list(rows).some((row) => utils.text(row?.id).trim() === id);
+  }
+
   function renderDetailRows(rows, selectedId, parentId, lineage, hidden) {
     const hiddenAttr = hidden ? " hidden" : "";
     return rows
@@ -107,12 +112,12 @@
     return groupedRows(rows)
       .map((category, categoryIndex) => {
         const categoryId = groupId(["module-category", categoryIndex, category.label]);
-        const categoryExpanded = expandAll;
+        const categoryExpanded = expandAll || hasSelected(category.rows, selectedId);
         const categoryHiddenAttr = "";
         const systemRows = category.systems
           .map((system, systemIndex) => {
             const systemId = groupId([categoryId, "system", systemIndex, system.label]);
-            const systemExpanded = expandAll;
+            const systemExpanded = expandAll || hasSelected(system.rows, selectedId);
             const systemHidden = !categoryExpanded;
             const systemHiddenAttr = systemHidden ? " hidden" : "";
             return `

@@ -53,6 +53,23 @@
     return Math.min(520, Math.max(320, maxLength * 15 + 28));
   }
 
+  function hasSelectedFocus(rows, selectedId) {
+    const id = utils.text(selectedId).trim();
+    return Boolean(id) && utils.list(rows).some((row) => utils.text(row?.id).trim() === id);
+  }
+
+  function hasSelectedCapability(capability, selectedId) {
+    return hasSelectedFocus(capability?.focuses, selectedId);
+  }
+
+  function hasSelectedDomain(domain, selectedId) {
+    return utils.list(domain?.capabilities).some((capability) => hasSelectedCapability(capability, selectedId));
+  }
+
+  function hasSelectedCategory(category, selectedId) {
+    return utils.list(category?.domains).some((domain) => hasSelectedDomain(domain, selectedId));
+  }
+
   function renderFocusRows(rows, selectedId, parentId, lineage, hidden) {
     const hiddenAttr = hidden ? " hidden" : "";
     return utils
@@ -75,10 +92,11 @@
     const hiddenAttr = hidden ? " hidden" : "";
     const nextLineage = [...lineage, capabilityId];
     const definition = capability.capabilityDefinition || capability.description;
+    const nextExpanded = expanded || hasSelectedCapability(capability, selectedId);
     return `
-      <tr class="standard-group-row capability-directory-group depth-2 ${expanded ? "expanded" : ""}" data-standard-group="${utils.escapeHtml(capabilityId)}" data-standard-parent="${utils.escapeHtml(parentId)}" data-standard-lineage="${utils.escapeHtml(lineage.join(" "))}"${hiddenAttr}>
+      <tr class="standard-group-row capability-directory-group depth-2 ${nextExpanded ? "expanded" : ""}" data-standard-group="${utils.escapeHtml(capabilityId)}" data-standard-parent="${utils.escapeHtml(parentId)}" data-standard-lineage="${utils.escapeHtml(lineage.join(" "))}"${hiddenAttr}>
         <td colspan="3">
-          <button class="standard-group-toggle" type="button" aria-expanded="${expanded ? "true" : "false"}" style="padding-left: 32px;">
+          <button class="standard-group-toggle" type="button" aria-expanded="${nextExpanded ? "true" : "false"}" style="padding-left: 32px;">
             <span class="standard-group-caret">›</span>
             <span class="standard-group-main">
               <strong>${levelChip("能力")} ${cell(groupTitle(capability))}</strong>
@@ -88,7 +106,7 @@
           </button>
         </td>
       </tr>
-      ${renderFocusRows(capability.focuses, selectedId, capabilityId, nextLineage, !expanded)}
+      ${renderFocusRows(capability.focuses, selectedId, capabilityId, nextLineage, !nextExpanded)}
     `;
   }
 
@@ -97,10 +115,11 @@
     const hiddenAttr = hidden ? " hidden" : "";
     const nextLineage = [...lineage, domainId];
     const definition = domain.description;
+    const nextExpanded = expanded || hasSelectedDomain(domain, selectedId);
     return `
-      <tr class="standard-group-row capability-directory-group depth-1 ${expanded ? "expanded" : ""}" data-standard-group="${utils.escapeHtml(domainId)}" data-standard-parent="${utils.escapeHtml(parentId)}" data-standard-lineage="${utils.escapeHtml(lineage.join(" "))}"${hiddenAttr}>
+      <tr class="standard-group-row capability-directory-group depth-1 ${nextExpanded ? "expanded" : ""}" data-standard-group="${utils.escapeHtml(domainId)}" data-standard-parent="${utils.escapeHtml(parentId)}" data-standard-lineage="${utils.escapeHtml(lineage.join(" "))}"${hiddenAttr}>
         <td colspan="3">
-          <button class="standard-group-toggle" type="button" aria-expanded="${expanded ? "true" : "false"}" style="padding-left: 18px;">
+          <button class="standard-group-toggle" type="button" aria-expanded="${nextExpanded ? "true" : "false"}" style="padding-left: 18px;">
             <span class="standard-group-caret">›</span>
             <span class="standard-group-main">
               <strong>${levelChip("能力域")} ${cell(groupTitle(domain))}</strong>
@@ -112,14 +131,14 @@
       </tr>
       ${utils
         .list(domain.capabilities)
-        .map((capability, index) => renderCapabilityGroup(capability, selectedId, domainId, nextLineage, !expanded, expandAll || (expanded && expandFirstCapability && index === 0)))
+        .map((capability, index) => renderCapabilityGroup(capability, selectedId, domainId, nextLineage, !nextExpanded, expandAll || hasSelectedCapability(capability, selectedId) || (nextExpanded && expandFirstCapability && index === 0)))
         .join("")}
     `;
   }
 
   function renderCategoryGroup(category, selectedId, index, expandAll) {
     const categoryId = groupId(["capability-directory", index, category.code || category.title]);
-    const expanded = expandAll;
+    const expanded = expandAll || hasSelectedCategory(category, selectedId);
     const definition = category.description;
     return `
       <tr class="standard-group-row capability-directory-group depth-0 ${expanded ? "expanded" : ""}" data-standard-group="${utils.escapeHtml(categoryId)}">

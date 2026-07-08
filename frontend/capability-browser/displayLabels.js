@@ -89,7 +89,7 @@
     const raw = text(value).trim();
     if (!raw || raw === "/" || raw === state("missing")) return "";
     const escaped = utils.escapeHtml;
-    return ` data-annotation-value="true" data-copy-text="${escaped(raw)}" title="${escaped(raw)}" data-annotation-tooltip="${escaped(raw)}"`;
+    return ` data-annotation-value="true" data-copy-text="${escaped(raw)}" data-annotation-tooltip="${escaped(raw)}"`;
   }
 
   function relationChip(utils, item, { empty = state("missing"), kind = "", showKind = false, preferCodeTitle = true } = {}) {

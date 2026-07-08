@@ -40,12 +40,28 @@ const checks = [
       "input",
       "textarea",
       "select",
+      "[data-content-slide-index]",
+      "[data-content-slide-step]",
       "TEXT_SELECTION_DRAG_SURFACE_SELECTOR",
       ".workspace-resizer",
       ".network-graph-canvas",
       "[data-environment-basemap-viewport]",
     ]),
     "text selection guard must not break form controls, resizers, graph pan, basemap pan, or poster pan interactions.",
+  ),
+  check(
+    "guide_fullscreen_cleanup_preserves_slide_catalog_clicks",
+    hasAll(appJs, [
+      "function resetModelingPosterLightboxState()",
+      "function exitModelingPosterFullscreenIfActive()",
+      "function resetTransientContentOverlaysForRouteChange(nextRoute = \"\")",
+      "if (routeChanged) resetTransientContentOverlaysForRouteChange(target.route)",
+      "function activateContentSlideThumb(slideThumb, event = null)",
+      'const slideThumb = event.target?.closest?.("[data-content-slide-index]")',
+      "activateContentSlideThumb(slideThumb, event)",
+      "exitPromise.finally(() => renderContent())",
+    ]),
+    "closing ArchiMate fullscreen must clear modal/drag/fullscreen state, and slide thumbnails must handle clicks before residual global handlers can swallow them.",
   ),
   check(
     "business_text_is_selectable",
@@ -90,7 +106,8 @@ const checks = [
   ),
   check(
     "cache_busted",
-    indexHtml.includes("text-selection-copy-20260703-1"),
+    indexHtml.includes("text-selection-copy-20260703-1") &&
+      indexHtml.includes("guide-fullscreen-cleanup-20260708-1"),
     "index.html must cache-bust app.js and styles.css for the text selection fix.",
   ),
 ];

@@ -11,6 +11,12 @@ const stylesCss = read("frontend/capability-browser/styles.css").replace(/\/\*[\
 const appJs = read("frontend/capability-browser/app.js");
 const dataClientJs = read("frontend/capability-browser/dataClient.js");
 const indexHtml = read("frontend/capability-browser/index.html");
+const environmentBasemapViewerJs = read("frontend/capability-browser/components/EnvironmentBasemapViewer.js");
+const standardFrameworkTableJs = read("frontend/capability-browser/components/StandardFrameworkTable.js");
+const workFunctionTableJs = read("frontend/capability-browser/components/WorkFunctionMaintenanceTable.js");
+const technologyModuleTableJs = read("frontend/capability-browser/components/TechnologyModuleMaintenanceTable.js");
+const capabilityDirectoryTableJs = read("frontend/capability-browser/components/CapabilityDirectoryMaintenanceTable.js");
+const standardRoleReferenceTableJs = read("frontend/capability-browser/components/StandardRoleReferenceTable.js");
 const workbenchPageHeightPattern = "calc\\(100dvh\\s*-\\s*var\\(--topbar-height\\)\\s*-\\s*var\\(--page-header-height\\)\\)";
 const inspectorActionsRenderIndex = appJs.indexOf("${renderWorkbenchIssueInspectorActions()}");
 const inspectorContentRenderIndex = appJs.indexOf('class="workbench-review-inspector-content" data-review-inspector-scroll');
@@ -434,6 +440,47 @@ const checks = [
     "LC-DT technical summary table must not inherit semantic-scroll vertical limits.",
   ),
   check(
+    "environment_basemap_fullscreen_has_webview_fallback",
+    environmentBasemapViewerJs.includes("function setAppFullscreen(root, enabled)") &&
+      environmentBasemapViewerJs.includes("catch(() => setAppFullscreen(root, true))") &&
+      environmentBasemapViewerJs.includes('classList?.contains("is-app-fullscreen")') &&
+      anyBlock(".environment-basemap-lab-shell.is-app-fullscreen", (block) =>
+        blockHasDeclaration(block, "position", "fixed") &&
+        blockHasDeclaration(block, "inset", "0") &&
+        blockHasDeclaration(block, "z-index", "1200"),
+      ) &&
+      stylesCss.includes("body.environment-basemap-app-fullscreen-active"),
+    "Environment SVG fullscreen must fall back to an in-app fullscreen shell when WKWebView cannot use requestFullscreen.",
+  ),
+  check(
+    "standard_count_tooltip_is_interactive_scrollable_popover",
+    standardFrameworkTableJs.includes("tooltip.addEventListener(\"pointerenter\", cancelTooltipHide)") &&
+      standardFrameworkTableJs.includes("tooltip.addEventListener(\"pointerleave\", scheduleTooltipHide)") &&
+      standardFrameworkTableJs.includes("tooltip.addEventListener(\"wheel\", stopTooltipWheel") &&
+      standardFrameworkTableJs.includes("tooltipHideTimer") &&
+      standardFrameworkTableJs.includes("function hideTooltipOnPageScroll(event)") &&
+      standardFrameworkTableJs.includes("tooltip.contains(event.target)") &&
+      anyBlock(".floating-standard-tooltip", (block) =>
+        blockHasDeclaration(block, "pointer-events", "auto") &&
+        blockHasDeclaration(block, "overflow-y", "auto") &&
+        blockHasDeclaration(block, "overscroll-behavior", "contain") &&
+        blockHasDeclaration(block, "scrollbar-gutter", "stable") &&
+        blockHasDeclaration(block, "touch-action", "pan-y"),
+      ) &&
+      stylesCss.includes(".floating-standard-tooltip::-webkit-scrollbar"),
+    "Count detail popovers must own their internal wheel and scroll events instead of being closed by page-level scroll handlers.",
+  ),
+  check(
+    "maintenance_grouped_tables_keep_selected_row_path_open",
+    workFunctionTableJs.includes("const layerExpanded = expandAll || hasSelected(layer.rows, selectedId)") &&
+      workFunctionTableJs.includes("const groupExpanded = expandAll || hasSelected(group.rows, selectedId)") &&
+      technologyModuleTableJs.includes("const categoryExpanded = expandAll || hasSelected(category.rows, selectedId)") &&
+      technologyModuleTableJs.includes("const systemExpanded = expandAll || hasSelected(system.rows, selectedId)") &&
+      capabilityDirectoryTableJs.includes("hasSelectedCategory(category, selectedId)") &&
+      standardRoleReferenceTableJs.includes("const expanded = expandAll || hasSelected(group.rows, selectedId)"),
+    "Grouped dictionary tables must keep the selected row's parent path open after row selection re-renders the table.",
+  ),
+  check(
     "cache_versions_include_scroll_contract",
     indexHtml.includes("scroll-contract-20260703-1") &&
       indexHtml.includes("lifecycle-scroll-contract-20260705-1") &&
@@ -441,7 +488,13 @@ const checks = [
       indexHtml.includes("issue-pane-scroll-20260707-2") &&
       indexHtml.includes("issue-inspector-actions-top-20260707-1") &&
       indexHtml.includes("issue-priority-cancel-20260707-1") &&
-      indexHtml.includes("issue-queue-resize-20260707-2"),
+      indexHtml.includes("issue-queue-resize-20260707-2") &&
+      indexHtml.includes("dmg-fullscreen-popover-20260707-1") &&
+      indexHtml.includes("count-popover-scroll-20260708-1") &&
+      indexHtml.includes("dmg-fullscreen-fallback-20260707-1") &&
+      indexHtml.includes("selected-group-open-20260707-1") &&
+      indexHtml.includes("interactive-tooltip-20260707-1") &&
+      indexHtml.includes("interactive-tooltip-scroll-20260708-1"),
     "index.html must cache-bust the scroll contract changes.",
   ),
 ];

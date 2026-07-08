@@ -71,6 +71,11 @@
     return layers;
   }
 
+  function hasSelected(rows, selectedId) {
+    const id = utils.text(selectedId).trim();
+    return Boolean(id) && utils.list(rows).some((row) => utils.text(row?.id).trim() === id);
+  }
+
   function renderDetailRows(rows, selectedId, parentId, lineage, hidden) {
     const hiddenAttr = hidden ? " hidden" : "";
     return rows
@@ -94,11 +99,11 @@
     return groupedRows(rows)
       .map((layer, layerIndex) => {
         const layerId = groupId(["work-function-layer", layerIndex, layer.label]);
-        const layerExpanded = expandAll;
+        const layerExpanded = expandAll || hasSelected(layer.rows, selectedId);
         const groupRows = layer.groups
           .map((group, groupIndex) => {
             const functionGroupId = groupId([layerId, "group", groupIndex, group.label]);
-            const groupExpanded = expandAll;
+            const groupExpanded = expandAll || hasSelected(group.rows, selectedId);
             const groupHidden = !layerExpanded;
             const groupHiddenAttr = groupHidden ? " hidden" : "";
             return `

@@ -1182,6 +1182,32 @@
     }
   }
 
+  function isAppFullscreen(root) {
+    return root?.classList?.contains("is-app-fullscreen");
+  }
+
+  function setAppFullscreen(root, enabled) {
+    root?.classList?.toggle("is-app-fullscreen", Boolean(enabled));
+    document.body.classList.toggle("environment-basemap-app-fullscreen-active", Boolean(enabled));
+    root?.querySelector?.('[data-basemap-lab-action="fullscreen"]')?.setAttribute("aria-pressed", enabled ? "true" : "false");
+    refitAfterLayout(root);
+  }
+
+  function toggleFullscreen(root) {
+    const target = root.querySelector(".environment-basemap-lab-main") || root;
+    if (document.fullscreenElement) {
+      Promise.resolve(document.exitFullscreen?.()).finally(() => setAppFullscreen(root, false));
+      return;
+    }
+    if (isAppFullscreen(root)) {
+      setAppFullscreen(root, false);
+      return;
+    }
+    const request = target.requestFullscreen?.();
+    if (request && typeof request.then === "function") request.then(() => refitAfterLayout(root)).catch(() => setAppFullscreen(root, true));
+    else setAppFullscreen(root, true);
+  }
+
   function bindControls(root) {
     const viewport = root.querySelector("[data-basemap-lab-viewport]");
     if (!viewport) return;
@@ -1210,11 +1236,7 @@
         } else if (action === "zoom-out") {
           zoomAt(root, state.scale / 1.18);
         } else if (action === "fullscreen") {
-          const target = root.querySelector(".environment-basemap-lab-main") || root;
-          const fullscreenPromise = document.fullscreenElement
-            ? document.exitFullscreen?.()
-            : target.requestFullscreen?.();
-          Promise.resolve(fullscreenPromise).finally(() => refitAfterLayout(root));
+          toggleFullscreen(root);
         }
         return;
       }
@@ -1290,10 +1312,17 @@
     observer.observe(viewport);
 
     document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && root.isConnected && isAppFullscreen(root)) {
+        setAppFullscreen(root, false);
+        return;
+      }
       if (event.key === "Escape" && root.isConnected) clearSelection(root);
     });
     document.addEventListener("fullscreenchange", () => {
-      if (root.isConnected) refitAfterLayout(root);
+      if (!root.isConnected) return;
+      if (document.fullscreenElement) setAppFullscreen(root, false);
+      else root.querySelector('[data-basemap-lab-action="fullscreen"]')?.setAttribute("aria-pressed", "false");
+      refitAfterLayout(root);
     });
   }
 

@@ -169,7 +169,7 @@ const TEXT_SELECTION_CLICK_EXEMPT_SELECTOR = [
   "select",
   "option",
   "[contenteditable='true']",
-  "[data-allow-selection-click]",
+  "[data-allow-selection-click]", "[data-content-slide-index]", "[data-content-slide-step]",
 ].join(", ");
 
 const TEXT_SELECTION_DRAG_SURFACE_SELECTOR = [
@@ -2887,7 +2887,7 @@ const escapeHtml = (value) =>
 const annotationValueAttrsForHtml = (value) => {
   const raw = text(value).trim();
   if (!raw || raw === "/" || raw === "暂无" || raw === "待补充") return "";
-  return ` data-annotation-value="true" data-copy-text="${escapeHtml(raw)}" title="${escapeHtml(raw)}" data-annotation-tooltip="${escapeHtml(raw)}"`;
+  return ` data-annotation-value="true" data-copy-text="${escapeHtml(raw)}" data-annotation-tooltip="${escapeHtml(raw)}"`;
 };
 
 window.sapdDisplay = window.sapdDisplay || {};
@@ -3444,7 +3444,6 @@ function annotationTargetAttrsForHtml(target, { title = "" } = {}) {
     `data-annotation-object-code="${escapeHtml(target.code || "")}"`,
     `data-annotation-title="${escapeHtml(targetTitle)}"`,
     `data-annotation-tooltip="${escapeHtml(targetTitle)}"`,
-    `title="${escapeHtml(targetTitle)}"`,
   ].join(" ");
 }
 
@@ -5566,6 +5565,8 @@ function annotationTooltipHost(target) {
   );
 }
 
+function stripNativeAnnotationTitle(host) { if (host?.hasAttribute?.("title")) host.removeAttribute("title"); }
+
 function ensureAnnotationTooltip() {
   let tooltip = document.getElementById("annotationTooltip");
   if (tooltip) return tooltip;
@@ -5578,8 +5579,10 @@ function ensureAnnotationTooltip() {
 }
 
 function showAnnotationTooltip(event) {
+  const host = annotationTooltipHost(event.target);
   const body = annotationTooltipTextFromTarget(event.target);
   if (!body) return;
+  stripNativeAnnotationTitle(host);
   const tooltip = ensureAnnotationTooltip();
   tooltip.textContent = body;
   tooltip.hidden = false;
@@ -6944,6 +6947,8 @@ function activateContentSlideStep(slideStep, event = null) {
   return true;
 }
 
+function activateContentSlideThumb(slideThumb, event = null) { if (!slideThumb) return false; event?.preventDefault?.(); event?.stopPropagation?.(); const nextIndex = Number(slideThumb.dataset.contentSlideIndex || 0); if (!Number.isFinite(nextIndex)) return true; state.selectedContentSlideIndex = Math.max(0, nextIndex); state.contentSlideScrollMode = "preserve"; renderContent(); window.setTimeout(persistWorkspaceState, 0); return true; }
+
 function scaledDrawioSize(size = DRAWIO_LEGEND_DEFAULT_SIZE, maxWidth = 96, maxHeight = 58) {
   const width = Number(size[0]) || DRAWIO_LEGEND_DEFAULT_SIZE[0];
   const height = Number(size[1]) || DRAWIO_LEGEND_DEFAULT_SIZE[1];
@@ -7281,6 +7286,12 @@ function requestModelingPosterFullscreen() {
   lightbox.requestFullscreen().catch(() => {});
 }
 
+function resetModelingPosterLightboxState() { const viewport = document.querySelector(".modeling-poster-lightbox-scroll"); if (viewport && modelingPosterDragState.pointerId != null) { try { viewport.releasePointerCapture?.(modelingPosterDragState.pointerId); } catch (_) {} } viewport?.classList.remove("is-dragging"); state.modelingPosterLightboxTarget = null; state.modelingPosterLightboxZoom = 1; state.modelingPosterLightboxDragging = false; modelingPosterDragState.active = false; modelingPosterDragState.pointerId = null; }
+
+function exitModelingPosterFullscreenIfActive() { const fullscreenElement = document.fullscreenElement; if (!fullscreenElement?.matches?.(".modeling-poster-lightbox") || !document.exitFullscreen) return Promise.resolve(); return document.exitFullscreen().catch(() => {}); }
+
+function resetTransientContentOverlaysForRouteChange(nextRoute = "") { if (nextRoute === MODELING_LANGUAGE_GUIDE_ROUTE || (!state.modelingPosterLightboxTarget && !document.querySelector(".modeling-poster-lightbox"))) return; resetModelingPosterLightboxState(); exitModelingPosterFullscreenIfActive(); }
+
 function getModelingPosterFittedWidth(target, viewport) {
   const naturalWidth = Number(target.width || ARCHIMATE_POSTER_OVERVIEW_SIZE.width);
   const naturalHeight = Number(target.height || ARCHIMATE_POSTER_OVERVIEW_SIZE.height);
@@ -7298,15 +7309,9 @@ function openModelingPosterLightbox(targetId = "full") {
 }
 
 function closeModelingPosterLightbox() {
-  state.modelingPosterLightboxTarget = null;
-  state.modelingPosterLightboxZoom = 1;
-  state.modelingPosterLightboxDragging = false;
-  modelingPosterDragState.active = false;
-  modelingPosterDragState.pointerId = null;
-  if (document.fullscreenElement && document.exitFullscreen) {
-    document.exitFullscreen().catch(() => {});
-  }
-  renderContent();
+  const exitPromise = exitModelingPosterFullscreenIfActive();
+  resetModelingPosterLightboxState();
+  exitPromise.finally(() => renderContent());
 }
 
 function applyModelingPosterLightboxZoom(nextZoom, originEvent = null) {
@@ -9575,6 +9580,7 @@ function activateRoute(route, options = {}) {
     resetAnnotationInteraction({ collapse: true, clearDraft: true });
   }
   if (routeChanged) resetAnnotationInteraction({ collapse: true, clearDraft: !options.preserveAnnotationDraft });
+  if (routeChanged) resetTransientContentOverlaysForRouteChange(target.route);
   state.activeRoute = target.route || "/";
   if (target.route === "/search") {
     const nextSearchQuery = globalSearchQueryFromRoute(route) || globalSearchQueryFromLocationSearch();
@@ -11315,9 +11321,9 @@ function bindEvents() {
   });
   document.addEventListener("click", suppressClickIfTextSelection, true);
   document.addEventListener("click", (event) => {
-    const slideStep = event.target?.closest?.("[data-content-slide-step]");
-    if (!slideStep) return;
-    activateContentSlideStep(slideStep, event);
+    const slideStep = event.target?.closest?.("[data-content-slide-step]"); if (slideStep) { activateContentSlideStep(slideStep, event); return; }
+    const slideThumb = event.target?.closest?.("[data-content-slide-index]");
+    if (slideThumb) activateContentSlideThumb(slideThumb, event);
   }, true);
   document.addEventListener("click", (event) => {
     const routeButton = event.target?.closest?.("[data-app-route]");
@@ -11980,8 +11986,7 @@ function bindEvents() {
   });
   document.addEventListener("fullscreenchange", () => {
     if (!state.modelingPosterLightboxTarget || document.fullscreenElement) return;
-    state.modelingPosterLightboxTarget = null;
-    state.modelingPosterLightboxZoom = 1;
+    resetModelingPosterLightboxState();
     renderContent();
   });
   document.addEventListener("fullscreenchange", () => {
@@ -12204,9 +12209,7 @@ function bindEvents() {
     }
     const slideThumb = event.target.closest("[data-content-slide-index]");
     if (slideThumb) {
-      state.selectedContentSlideIndex = Number(slideThumb.dataset.contentSlideIndex || 0);
-      state.contentSlideScrollMode = "preserve";
-      renderContent();
+      activateContentSlideThumb(slideThumb, event);
       return;
     }
     const content = event.target.closest("[data-content-id]");

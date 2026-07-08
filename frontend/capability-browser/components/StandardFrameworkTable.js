@@ -720,6 +720,9 @@
       tooltip = document.createElement("div");
       tooltip.className = "floating-standard-tooltip";
       tooltip.hidden = true;
+      tooltip.addEventListener("pointerenter", cancelTooltipHide);
+      tooltip.addEventListener("pointerleave", scheduleTooltipHide);
+      tooltip.addEventListener("wheel", stopTooltipWheel, { passive: true });
       document.body.appendChild(tooltip);
     }
     return tooltip;
@@ -744,10 +747,18 @@
     tooltip.style.top = `${y}px`;
   }
 
+  let tooltipHideTimer = 0;
+
+  function cancelTooltipHide() {
+    window.clearTimeout(tooltipHideTimer);
+    tooltipHideTimer = 0;
+  }
+
   function showTooltip(event) {
     const target = event.target.closest?.(".standard-tooltip-chip, .standard-rich-preview");
     const text = tooltipTextFor(target);
     if (!target || !text) return;
+    cancelTooltipHide();
     const tooltip = ensureTooltip();
     tooltip.textContent = text;
     tooltip.hidden = false;
@@ -755,8 +766,26 @@
   }
 
   function hideTooltip() {
+    cancelTooltipHide();
     const tooltip = document.querySelector(".floating-standard-tooltip");
     if (tooltip) tooltip.hidden = true;
+  }
+
+  function stopTooltipWheel(event) {
+    event.stopPropagation();
+  }
+
+  function scheduleTooltipHide(event) {
+    const tooltip = document.querySelector(".floating-standard-tooltip");
+    if (tooltip && event?.relatedTarget && tooltip.contains(event.relatedTarget)) return;
+    cancelTooltipHide();
+    tooltipHideTimer = window.setTimeout(hideTooltip, 140);
+  }
+
+  function hideTooltipOnPageScroll(event) {
+    const tooltip = document.querySelector(".floating-standard-tooltip");
+    if (tooltip && event?.target && tooltip.contains(event.target)) return;
+    hideTooltip();
   }
 
   document.addEventListener("pointerover", showTooltip);
@@ -767,13 +796,13 @@
     if (tooltip && target) positionTooltip(tooltip, event, target);
   });
   document.addEventListener("pointerout", (event) => {
-    if (event.target.closest?.(".standard-tooltip-chip, .standard-rich-preview")) hideTooltip();
+    if (event.target.closest?.(".standard-tooltip-chip, .standard-rich-preview")) scheduleTooltipHide(event);
   });
   document.addEventListener("focusout", (event) => {
-    if (event.target.closest?.(".standard-tooltip-chip, .standard-rich-preview")) hideTooltip();
+    if (event.target.closest?.(".standard-tooltip-chip, .standard-rich-preview")) scheduleTooltipHide(event);
   });
   window.addEventListener("resize", hideTooltip);
-  window.addEventListener("scroll", hideTooltip, true);
+  window.addEventListener("scroll", hideTooltipOnPageScroll, true);
 
   document.addEventListener("click", (event) => {
     const toggle = event.target.closest?.(".standard-group-toggle");

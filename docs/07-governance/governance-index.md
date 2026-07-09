@@ -27,6 +27,8 @@
 | `docs/06-implementation/global-search-contract-2026-07-05.md` | 全局搜索完整契约：产品职责、命中通道、禁止推断、计数 / 展示窗口、标准明细索引、定位和审计样例 |
 | `docs/06-implementation/open-issues.md` | 当前未关闭 bug、数据问题、页面问题和待确认事项的维护入口 |
 | `docs/06-implementation/open-issues-index.md` | Open Issues 全量索引，定位当前问题和历史归档问题 |
+| `docs/09-delivery/mac-dmg-browser-parity-contract.md` | 5173 Web 与 macOS DMG `WKWebView` 的同源构建、允许差异、交互验收和 bug 影响面分类 |
+| `docs/09-delivery/release-acceptance-matrix-0.1.md` | macOS DMG 发布验收矩阵：自动 / 人工闸门、证据目录、阻断分级和 bug 修复进入发布验收的规则 |
 | `docs/05-archive/open-issues-history/2026-06.md` | 已关闭 Open Issues 历史长记录归档 |
 | `findings.md` | 当前关键决策、重要风险和历史记录索引 |
 | `progress.md` | 执行日志、文件变更、命令和验证结果 |
@@ -118,6 +120,7 @@
 满足以下至少一项才建 `OI`：
 
 - 影响多个页面、多个数据域或全局契约；
+- 影响面是 `app-only`、`release blocker`，或 Web / App 双运行面结论暂时无法自动验收；
 - 涉及源 Excel、SQLite、正式 JSON、字典、标准、LC、环境或导入 / 导出边界；
 - 涉及安全、数据边界、GitHub 同步边界或用户写入数据；
 - 需要新增或扩展审计脚本、防回归矩阵；
@@ -140,10 +143,12 @@
 
 - 执行线收敛：当前优先解决多会话并行、长会话变慢和子 Agent fan-in 不稳定导致的主线漂移；默认采用单一主控、单一写入主线和 dirty diff 优先验收。
 - 数据治理规则集中化。
+- Demo-first 数据变更治理：后续新数据默认不直接写稳定基准库；先在当前 `main` 以受控 demo 页 / demo 数据验证业务口径，确认后再按明确写入范围进入正式数据变更和审计。
 - GitHub 只同步代码 / 文档 / 配置模板 / 脱敏 fixture，原始数据和生成数据通过本地初始化脚本重建。
 - 前端离线数据包按页面契约拆分，禁止恢复大一统业务 JSON。
 - 索引先行、分片按需加载、跨包补关系页面执行 `Frontend Lazy Data Contract Baseline 1.0`；知识库字典和安全标准 / 框架必须用显式加载契约区分 `required` / `supplemental`，并通过 `node scripts/audit_frontend_lazy_load_contract.mjs` 审计。
 - 知识库字典作为安全能力、作用域、技术服务、技术模块 / 措施、管理工作、流程和职能的权威值；相关引用用 `node scripts/audit_dictionary_reference_consistency.mjs` 做全量一致性检查。
+- 新增 AI / 人工智能安全能力、L2 或关注点时，先在当前 `main` 形成 demo 页 / demo 数据和关系样例，再决定是否进入正式基础库或用户库变更。
 - 安全能力映射页按 `capability-mapping-change-control.md` 执行变更分级和前端治理审计。
 - 全工程测试按 `project-test-workflow-and-case-matrix.md` 执行分层验证；默认复用 `node scripts/run_project_test_suite.mjs`，DMG 构建和系统 Chrome 回归必须显式启用。
 - `findings.md` 索引化。

@@ -54,6 +54,20 @@ DMG 是当前工作区的一次发布快照，不是实时读取开发目录。�
 
 固定判断：DMG 不是“模拟浏览器路线”，也不是完全重写业务前端；它是“同源前端 / 后端 Runtime + 新的 macOS WebView 宿主 + 新的本地用户状态”。因此差异根因优先在宿主能力、Runtime 初始化、缓存 / 刷新、用户库复用、下载 / 弹窗 / 全屏桥接和窗口尺寸里查。
 
+## Bug 修复影响面分类
+
+后续所有 bug 根因修复都必须先判断运行面，而不是只问“5173 是否通过”。分类结论进入任务反馈；涉及发布候选时进入 `release-acceptance-matrix-0.1.md` 的证据目录。
+
+| 分类 | 判定标准 | 最小验收 |
+|---|---|---|
+| `shared runtime` | 共享前端、API 契约、路由、搜索、批注、Issue、导出状态 | 5173 自动 / 轻量验收；说明是否需要 DMG 回归 |
+| `data / ETL / JSON package` | 数据源、SQLite、投影、索引和字段边界 | 源到包到页面链路验证；说明包内 Runtime 是否需要重建 |
+| `web-only` | 只在系统浏览器开发态出现 | 记录不影响 App 的理由 |
+| `app-only` | `WKWebView`、`NSWindow`、用户库路径、下载路径、授权、打包 runtime、Gatekeeper | 必须 App 验收；Web 通过不能关闭 |
+| `release blocker` | P0 / P1 发布阻断项 | 进入发布矩阵证据目录，关闭前给出 blocker 解除证据 |
+
+完成反馈必须写清：`影响面：Web / App / 两者 / 暂未覆盖`、`根因层：data / shared frontend / API / user DB / macOS wrapper / packaging runtime`、`验证范围：5173 / DMG App / 自动审计 / 人工验收 / 未做原因`。
+
 ## 不可接受
 
 - 打包时使用未确认的外部 backend。

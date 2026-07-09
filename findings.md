@@ -27,6 +27,9 @@
 | 设计文档治理 | 设计文档按用途分层管理：`docs/04-frontend/` 放信息架构 / brief，`docs/06-implementation/frontend-*` 放全局设计基线和跨页契约，`frontend/design-handoff/implementation-specs/` 是唯一页面实现规格入口，`stitch-*` 只作 reference。小 UI 修复、文案和局部样式不新增设计文档 | `docs/README.md`, `docs/07-governance/governance-index.md`, `frontend/design-handoff/README.md` |
 | maturity 边界 | maturity 是主工程下独立模块；运行数据使用 `maturity_*`，不写入 `knowledge_items` | `docs/08-maturity/` |
 | SAPD 成熟度评估入口 | 已补入前端菜单和数据契约规划，路由建议为 `/sapd-maturity-assessment`，页面类型暂用 `domain-module`，代码实现另开会话 | `docs/00-overview/frontend-menu-and-page-type-definition-v1.md`, `docs/04-user-guide/frontend-data-contract-baseline-1.0.md` |
+| 2026-07-08 新增项目计划队列 | 已将工作台 `SAPD 成熟度评估`、`标准 / 框架 NICE`、工作台 `组织岗位设计` 三项纳入项目计划，并按主线边界拆分：`NICE` 先作为当前主线的数据源接入前置，是组织岗位设计的前置；`SAPD 成熟度评估` 和 `组织岗位设计` 只进入计划池，不进入当前主线，也不进入本轮打包 | `task_plan.md`, `CURRENT_STATE.md` |
+| Demo-first 数据与前端试验 | 后续新数据、实验数据和前端试验先在当前 `main` 通过受控 demo 页 / demo 数据验证业务口径；正式接入基础库、字典、标准、SQLite、正式 JSON 或 DMG 前，必须另行确认权威源、对象粒度、写入范围、回退方案和审计清单 | `AGENTS.md`, `CURRENT_STATE.md`, `task_plan.md` |
+| AI 安全能力体系扩展 | 新增 AI / 人工智能安全 L2 能力或关注点时，先做 demo 页 / demo 数据和关系样例，确认业务口径后再决定是否正式进入基础库或用户库；不能直接改正式能力清单、字典、SQLite、JSON 或 DMG | `task_plan.md`, `CURRENT_STATE.md` |
 | 后续项目推进方式 | 后续计划拆成“前端页面设计线”和“后端数据 / 逻辑线”；每页按后端投影契约 -> 前端页面实现 -> 验收回归推进 | `task_plan.md` |
 | 页面优先级 | 先收敛安全能力映射页作为关系画布基准，再推进信息化环境维度页，最后推进 LC-AP 页 | `task_plan.md` |
 | 信息化环境图谱策略 | 信息化环境页按层级回答不同问题：`E0` 信息化环境只展示环境子类和对象结构，`E1` 环境子类展示对象、作用域、服务和能力 / 关注点概览，`E2` 信息化对象完整展示作用域、服务、模块 / 措施、系统、产品和能力 / 关注点；标准 / 流程不从能力页反向拼接 | `frontend/design-handoff/implementation-specs/environment-security-capability-graph-strategy-2026-05-20.md` |

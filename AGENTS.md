@@ -65,6 +65,7 @@
 - 本地服务检查优先使用 `python3 scripts/dev_server_guard.py --status`；需要修复重复服务时使用 `--fix-duplicates --start`。
 - 前端展示默认且长期只使用 `http://127.0.0.1:5173/`；修改 `frontend/capability-browser/` 后必须让该端口展示最新文件，优先依赖本地服务的 `no-store` 热刷新 / 浏览器刷新，失效时执行 `python3 scripts/dev_server_guard.py --restart`，不得另起长期预览端口。
 - 多线程并行验证允许临时端口，但只用于验证；验证完成必须关闭，最终交付和用户查看地址仍回到 `5173`。
+- 新数据、实验数据和前端试验默认在当前 `main` 内通过受控 demo 页 / demo 数据完成；demo 数据不得静默覆盖稳定基准 SQLite、正式 JSON、源 Excel、用户库或 DMG 产物。正式接入前必须明确权威源、对象粒度、写入范围、回退方案和验收命令。
 - `progress.md` 超过 120 行时应先归档瘦身，再继续大任务。
 - 工作区存在大量未提交改动时，应建议 checkpoint commit，降低重连后的恢复成本。
 
@@ -94,6 +95,20 @@ SAPD Wiki 的问题修复默认不是“看到现象就打补丁”。所有主�
 5. 完成反馈必须说明本轮固化了哪条本质规则，不得只报告“改了什么”和“测试通过”。
 
 若任务很小，也可以简化表达，但不能跳过契约判断。若涉及源 Excel、SQLite、正式 JSON 数据包、标准 / 字典 / 生命周期基线、回退、提交、打包或系统浏览器回归，仍必须先确认边界和风险。
+
+### Web / App 双运行面影响分类
+
+每个 bug 修复都必须先声明运行面影响分类，不能默认把 `5173` 浏览器结论等同于 macOS DMG App 结论，也不能默认每个小修都要求重打 DMG。
+
+默认分类：
+
+- `shared runtime`：页面 JS / CSS、路由、搜索、批注、Issue、导出前端状态等共享前端逻辑。通常 Web 和 DMG App 都受影响，修复可在共享代码完成，但反馈必须说明 App 是否需要回归或等下次 DMG 验收。
+- `data / ETL / JSON package`：源数据、SQLite、导出投影、索引、字段边界和数据包。Web / App 共享数据口径，必须用源到包到页面链路验证，不能只看某个页面。
+- `web-only`：仅涉及 5173 开发服务、系统浏览器缓存、开发预览或浏览器专属能力。可只验 Web，但必须说明为什么不影响 App。
+- `app-only`：涉及 `WKWebView`、macOS 窗口、全屏、下载、文件保存路径、用户库、授权、打包 runtime、签名 / Gatekeeper。Web 通过不算验收，必须进入 App 或发布矩阵验证。
+- `release blocker`：影响启动、授权、用户状态、搜索定位、批注 / Issue 写入、导出、核心业务页面或用户数据安全的 P0 / P1 问题。必须进入 `docs/09-delivery/release-acceptance-matrix-0.1.md` 的证据目录和阻断分级。
+
+完成反馈必须给出：`影响面：Web / App / 两者 / 暂未覆盖`，`根因层：data / shared frontend / API / user DB / macOS wrapper / packaging runtime`，以及 `验证范围：5173 / DMG App / 自动审计 / 人工验收 / 未做原因`。
 
 ## 问题维护规则
 

@@ -31,7 +31,9 @@ const files = {
   macWrapper: "apps/macos/SAPDWiki/Sources/SAPDWiki/main.swift",
   macReadme: "apps/macos/SAPDWiki/README.md",
   buildZipBundle: "scripts/build_zip_bundle.py",
+  agents: "AGENTS.md",
   contract: "docs/09-delivery/mac-dmg-browser-parity-contract.md",
+  releaseMatrix: "docs/09-delivery/release-acceptance-matrix-0.1.md",
 };
 
 const buildAndRun = read(files.buildAndRun);
@@ -39,7 +41,9 @@ const packageDmg = read(files.packageDmg);
 const macWrapper = read(files.macWrapper);
 const macReadme = read(files.macReadme);
 const buildZipBundle = read(files.buildZipBundle);
+const agents = read(files.agents);
 const contract = read(files.contract);
+const releaseMatrix = read(files.releaseMatrix);
 
 const checks = [];
 const warnings = [];
@@ -175,6 +179,69 @@ const interactionContractSnippets = [
 add(checks, "contract_documents_runtime_interaction_audit_matrix", interactionContractSnippets.every((item) => contract.includes(item)), {
   file: files.contract,
   missing: interactionContractSnippets.filter((item) => !contract.includes(item)),
+});
+
+const bugRuntimeClassificationSnippets = [
+  "每个 bug 修复都必须先声明运行面影响分类",
+  "shared runtime",
+  "data / ETL / JSON package",
+  "web-only",
+  "app-only",
+  "release blocker",
+  "影响面：Web / App / 两者 / 暂未覆盖",
+  "根因层：data / shared frontend / API / user DB / macOS wrapper / packaging runtime",
+  "验证范围：5173 / DMG App / 自动审计 / 人工验收 / 未做原因",
+];
+add(checks, "agents_documents_bug_runtime_impact_classification", bugRuntimeClassificationSnippets.every((item) => agents.includes(item)), {
+  file: files.agents,
+  missing: bugRuntimeClassificationSnippets.filter((item) => !agents.includes(item)),
+});
+
+const parityBugClassificationSnippets = [
+  "Bug 修复影响面分类",
+  "后续所有 bug 根因修复都必须先判断运行面",
+  "Web 通过不能关闭",
+  "包内 Runtime 是否需要重建",
+  "release-acceptance-matrix-0.1.md",
+];
+add(checks, "contract_documents_bug_runtime_impact_classification", parityBugClassificationSnippets.every((item) => contract.includes(item)), {
+  file: files.contract,
+  missing: parityBugClassificationSnippets.filter((item) => !contract.includes(item)),
+});
+
+const requiredReleaseMatrixSnippets = [
+  "SAPD Wiki 发布验收对象不是“网页是否能打开”",
+  "dev-smoke",
+  "pre-dmg",
+  "internal-release",
+  "public-release",
+  "证据目录",
+  "退出标准",
+  "阻断分级",
+  "自动验收闸门",
+  "人工验收矩阵",
+  "M1-01",
+  "M2-01",
+  "M3-01",
+  "M5-01",
+  "M7-01",
+  "不做全量笛卡尔积",
+];
+add(checks, "release_acceptance_matrix_defines_execution_gates", requiredReleaseMatrixSnippets.every((item) => releaseMatrix.includes(item)), {
+  file: files.releaseMatrix,
+  missing: requiredReleaseMatrixSnippets.filter((item) => !releaseMatrix.includes(item)),
+});
+
+const releaseBugClassificationSnippets = [
+  "Bug 修复进入发布验收的规则",
+  "每个 bug 根因修复都必须先做 Web / App 运行面分类",
+  "manual-test-log.md",
+  "known-limitations.md",
+  "P0 / P1",
+];
+add(checks, "release_matrix_documents_bug_fix_acceptance_routing", releaseBugClassificationSnippets.every((item) => releaseMatrix.includes(item)), {
+  file: files.releaseMatrix,
+  missing: releaseBugClassificationSnippets.filter((item) => !releaseMatrix.includes(item)),
 });
 
 const frontendParityFiles = [

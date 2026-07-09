@@ -79,6 +79,71 @@ def http_status(url: str, timeout: float = 2.5) -> dict[str, object]:
         return {"ok": False, "status": 0, "time_seconds": round(time.perf_counter() - started, 3), "error": str(error)}
 
 
+def http_json_status(url: str, timeout: float = 2.5) -> dict[str, object]:
+    started = time.perf_counter()
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as response:
+            raw = response.read()
+            data = json.loads(raw.decode("utf-8"))
+            return {
+                "ok": 200 <= response.status < 400,
+                "status": response.status,
+                "time_seconds": round(time.perf_counter() - started, 3),
+                "json": data,
+            }
+    except urllib.error.HTTPError as error:
+        return {"ok": False, "status": error.code, "time_seconds": round(time.perf_counter() - started, 3)}
+    except Exception as error:  # noqa: BLE001 - concise diagnostic script
+        return {"ok": False, "status": 0, "time_seconds": round(time.perf_counter() - started, 3), "error": str(error)}
+
+
+def expected_runtime(args: argparse.Namespace) -> dict[str, str]:
+    values: dict[str, str] = {}
+    if args.base_db:
+        values["base_db"] = args.base_db
+    if args.user_db:
+        values["user_db"] = args.user_db
+    if args.data_root:
+        values["data_root"] = args.data_root
+    if args.runtime_label:
+        values["runtime_label"] = args.runtime_label
+    elif not values:
+        values["runtime_label"] = "stable"
+    return values
+
+
+def display_project_path(path_value: str) -> str:
+    path = Path(path_value).expanduser()
+    resolved = path if path.is_absolute() else ROOT / path
+    try:
+        return str(resolved.resolve().relative_to(ROOT))
+    except ValueError:
+        return str(resolved.resolve())
+
+
+def runtime_health_checks(health: dict[str, object], expected: dict[str, str]) -> list[dict[str, object]]:
+    payload = health.get("json")
+    data = payload.get("data") if isinstance(payload, dict) and isinstance(payload.get("data"), dict) else {}
+    runtime = data.get("runtime") if isinstance(data, dict) and isinstance(data.get("runtime"), dict) else {}
+    checks: list[dict[str, object]] = []
+    if "runtime_label" in expected:
+        actual = str(runtime.get("label") or "")
+        checks.append({"name": "runtime_label", "ok": actual == expected["runtime_label"], "expected": expected["runtime_label"], "actual": actual})
+    path_checks = [
+        ("base_db", "base_database"),
+        ("user_db", "user_database"),
+        ("data_root", "data_root"),
+    ]
+    for expected_key, runtime_key in path_checks:
+        if expected_key not in expected:
+            continue
+        runtime_value = runtime.get(runtime_key) if isinstance(runtime.get(runtime_key), dict) else {}
+        actual = str(runtime_value.get("path") or "")
+        expected_path = display_project_path(expected[expected_key])
+        checks.append({"name": runtime_key, "ok": actual == expected_path, "expected": expected_path, "actual": actual})
+    return checks
+
+
 def kill_plain_http_servers(processes: list[dict[str, str]]) -> list[str]:
     killed: list[str] = []
     for row in processes:
@@ -94,7 +159,7 @@ def kill_plain_http_servers(processes: list[dict[str, str]]) -> list[str]:
     return killed
 
 
-def start_project_server(port: int) -> int | None:
+def start_project_server(port: int, runtime: dict[str, str]) -> int | None:
     processes = run_lsof(port)
     if any(row["is_project_server"] for row in processes):
         return None
@@ -103,8 +168,17 @@ def start_project_server(port: int) -> int | None:
     env = os.environ.copy()
     src = str(ROOT / "src")
     env["PYTHONPATH"] = src if not env.get("PYTHONPATH") else f"{src}{os.pathsep}{env['PYTHONPATH']}"
+    command = [sys.executable, "-m", "sapd_wiki.cli", "serve", "--host", "127.0.0.1", "--port", str(port)]
+    if runtime.get("base_db"):
+        command.extend(["--base-db", runtime["base_db"]])
+    if runtime.get("user_db"):
+        command.extend(["--user-db", runtime["user_db"]])
+    if runtime.get("data_root"):
+        command.extend(["--data-root", runtime["data_root"]])
+    if runtime.get("runtime_label"):
+        command.extend(["--runtime-label", runtime["runtime_label"]])
     subprocess.Popen(
-        [sys.executable, "-m", "sapd_wiki.cli", "serve", "--host", "127.0.0.1", "--port", str(port)],
+        command,
         cwd=ROOT,
         env=env,
         stdout=subprocess.DEVNULL,
@@ -127,12 +201,17 @@ def stop_project_servers(processes: list[dict[str, str]]) -> list[str]:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Check and guard the SAPD Wiki local dev server.")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT)
+    parser.add_argument("--base-db", default="", help="Runtime base database path for this port.")
+    parser.add_argument("--user-db", default="", help="Runtime user database path for this port.")
+    parser.add_argument("--data-root", default="", help="Runtime frontend data package root for this port.")
+    parser.add_argument("--runtime-label", default="", help="Expected runtime label for /api/v1/health.")
     parser.add_argument("--status", action="store_true", help="Print current status.")
     parser.add_argument("--start", action="store_true", help="Start project server if it is not running.")
     parser.add_argument("--stop", action="store_true", help="Stop project server processes on the selected port.")
     parser.add_argument("--restart", action="store_true", help="Restart project server processes on the selected port.")
     parser.add_argument("--fix-duplicates", action="store_true", help="Stop stale plain http.server processes on the selected port.")
     args = parser.parse_args()
+    runtime = expected_runtime(args)
 
     stopped: list[str] = []
     killed: list[str] = []
@@ -148,19 +227,22 @@ def main() -> int:
 
     started = None
     if args.start or args.restart:
-        started = start_project_server(args.port)
+        started = start_project_server(args.port, runtime)
         time.sleep(0.6)
 
     processes = run_lsof(args.port)
 
     home = http_status(f"http://127.0.0.1:{args.port}/")
+    health = http_json_status(f"http://127.0.0.1:{args.port}/api/v1/health")
     projection = http_status(f"http://127.0.0.1:{args.port}/api/v1/capabilities/workspace-projection")
+    profile_checks = runtime_health_checks(health, runtime)
     has_healthy_project_response = bool(home.get("ok") and projection.get("ok") and processes)
     has_project_server = any(row["is_project_server"] for row in processes) or has_healthy_project_response
+    profile_ok = all(check["ok"] for check in profile_checks)
     if args.stop and not args.start:
         result = "pass" if not has_project_server else "warn"
     else:
-        result = "pass" if home.get("ok") and projection.get("ok") and has_project_server else "warn"
+        result = "pass" if home.get("ok") and projection.get("ok") and health.get("ok") and has_project_server and profile_ok else "warn"
     summary = {
         "port": args.port,
         "listeners": [
@@ -175,11 +257,14 @@ def main() -> int:
         "killed_duplicate_pids": killed,
         "started_project_server": bool(started),
         "home": {"status": home.get("status"), "ok": home.get("ok"), "time_seconds": home.get("time_seconds")},
+        "health": {"status": health.get("status"), "ok": health.get("ok"), "time_seconds": health.get("time_seconds")},
         "workspace_projection": {
             "status": projection.get("status"),
             "ok": projection.get("ok"),
             "time_seconds": projection.get("time_seconds"),
         },
+        "runtime_profile": runtime,
+        "runtime_profile_checks": profile_checks,
         "result": result,
     }
     print(json.dumps(summary, ensure_ascii=False, indent=2))

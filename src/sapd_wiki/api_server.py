@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, unquote, urlparse
 
-from .paths import PROJECT_ROOT, resolve_project_path
+from .paths import DEFAULT_DB_PATH, PROJECT_ROOT, resolve_project_path
 
 
 DATA_PACKAGES = {
@@ -55,8 +55,11 @@ MAINTENANCE_SECTIONS = (
     "standards",
 )
 
-FRONTEND_PUBLIC_DATA_ROOT = (PROJECT_ROOT / "frontend" / "capability-browser" / "public" / "data").resolve()
+DEFAULT_FRONTEND_PUBLIC_DATA_ROOT = (PROJECT_ROOT / "frontend" / "capability-browser" / "public" / "data").resolve()
+DATA_PACKAGE_ROOT = DEFAULT_FRONTEND_PUBLIC_DATA_ROOT
+BASE_DB_PATH = DEFAULT_DB_PATH.resolve()
 USER_DB_PATH = (PROJECT_ROOT / "data" / "user" / "sapd_wiki_user.sqlite3").resolve()
+RUNTIME_LABEL = "stable"
 USER_SCHEMA_VERSION = "user_schema_0.3"
 LOCAL_API_AUTH_HEADER = "X-SAPD-Session-Token"
 USER_SCHEMA_SQL = """
@@ -379,9 +382,29 @@ def _read_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _relative_data_package_path(configured_path: str) -> Path | None:
+    normalized = str(configured_path or "").strip()
+    if not normalized:
+        return None
+    prefixes = (
+        "frontend/capability-browser/public/data/",
+        "public/data/",
+    )
+    for prefix in prefixes:
+        if normalized.startswith(prefix):
+            relative = Path(normalized.removeprefix(prefix))
+            if relative.is_absolute() or any(part in {"", ".", ".."} for part in relative.parts):
+                return None
+            return relative
+    return None
+
+
 def _data_package_path(name: str) -> Path:
     if name not in DATA_PACKAGES:
         raise KeyError(name)
+    relative = _relative_data_package_path(DATA_PACKAGES[name])
+    if relative is not None:
+        return (DATA_PACKAGE_ROOT / relative).resolve()
     return resolve_project_path(DATA_PACKAGES[name])
 
 
@@ -421,12 +444,39 @@ def _frontend_data_path(data_path: Any) -> Path | None:
     relative = Path(normalized)
     if relative.is_absolute() or any(part in {"", ".", ".."} for part in relative.parts):
         return None
-    path = (FRONTEND_PUBLIC_DATA_ROOT / relative).resolve()
+    path = (DATA_PACKAGE_ROOT / relative).resolve()
     try:
-        path.relative_to(FRONTEND_PUBLIC_DATA_ROOT)
+        path.relative_to(DATA_PACKAGE_ROOT)
     except ValueError:
         return None
     return path
+
+
+def configure_runtime_paths(
+    *,
+    base_db: str | Path | None = None,
+    user_db: str | Path | None = None,
+    data_root: str | Path | None = None,
+    runtime_label: str | None = None,
+) -> None:
+    global BASE_DB_PATH, USER_DB_PATH, DATA_PACKAGE_ROOT, RUNTIME_LABEL
+    if base_db:
+        BASE_DB_PATH = resolve_project_path(base_db).resolve()
+    if user_db:
+        USER_DB_PATH = resolve_project_path(user_db).resolve()
+    if data_root:
+        DATA_PACKAGE_ROOT = resolve_project_path(data_root).resolve()
+    if runtime_label:
+        RUNTIME_LABEL = str(runtime_label).strip() or RUNTIME_LABEL
+    _DATA_PACKAGE_CACHE.clear()
+
+
+def _display_runtime_path(path: Path) -> str:
+    resolved = path.resolve()
+    try:
+        return str(resolved.relative_to(PROJECT_ROOT))
+    except ValueError:
+        return str(resolved)
 
 
 def _read_split_payload(data_path: Any) -> dict[str, Any] | None:
@@ -456,7 +506,7 @@ def _standards_detail_paths() -> list[tuple[str, Path]]:
             if not path:
                 continue
             try:
-                key = path.relative_to(FRONTEND_PUBLIC_DATA_ROOT).as_posix()
+                key = path.relative_to(DATA_PACKAGE_ROOT).as_posix()
             except ValueError:
                 continue
             paths[key] = path
@@ -1863,6 +1913,45 @@ def user_db_connection() -> sqlite3.Connection:
     connection.row_factory = sqlite3.Row
     connection.execute("PRAGMA foreign_keys = ON")
     return connection
+
+
+def runtime_health_payload() -> dict[str, Any]:
+    schema_version = None
+    user_ready = USER_DB_PATH.exists()
+    try:
+        if user_ready:
+            with sqlite3.connect(USER_DB_PATH) as connection:
+                row = connection.execute("SELECT value FROM user_meta WHERE key='schema_version'").fetchone()
+                schema_version = row[0] if row else None
+    except sqlite3.Error:
+        user_ready = False
+        schema_version = None
+    return {
+        "status": "ok",
+        "app": "SAPD Wiki",
+        "mode": "local-api",
+        "runtime": {
+            "label": RUNTIME_LABEL,
+            "base_database": {
+                "path": _display_runtime_path(BASE_DB_PATH),
+                "exists": BASE_DB_PATH.exists(),
+                "bytes": BASE_DB_PATH.stat().st_size if BASE_DB_PATH.exists() else 0,
+            },
+            "user_database": {
+                "path": _display_runtime_path(USER_DB_PATH),
+                "ready": user_ready,
+                "schema_version": schema_version,
+            },
+            "data_root": {
+                "path": _display_runtime_path(DATA_PACKAGE_ROOT),
+                "exists": DATA_PACKAGE_ROOT.exists(),
+            },
+        },
+        "auth": {
+            "writes_require_token": True,
+            "header": LOCAL_API_AUTH_HEADER,
+        },
+    }
 
 
 def list_user_favorites() -> dict[str, Any]:
@@ -3587,21 +3676,9 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
         parts = [part for part in path.split("/") if part]
         try:
             if path == "/api/v1/health":
-                self._send_json(
-                    create_envelope(
-                        {
-                            "status": "ok",
-                            "app": "SAPD Wiki",
-                            "mode": "local-api",
-                            "auth": {
-                                "writes_require_token": True,
-                                "header": LOCAL_API_AUTH_HEADER,
-                                "session_token": self._session_token(),
-                            },
-                            "user_database": {"ready": True, "schema_version": USER_SCHEMA_VERSION},
-                        }
-                    )
-                )
+                payload = runtime_health_payload()
+                payload["auth"]["session_token"] = self._session_token()
+                self._send_json(create_envelope(payload))
                 return
             if path == "/api/v1/user/favorites":
                 self._send_json(create_envelope(list_user_favorites()))
@@ -3671,6 +3748,12 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
 
 def serve(args: argparse.Namespace) -> None:
     static_dir = resolve_project_path(args.static_dir)
+    configure_runtime_paths(
+        base_db=getattr(args, "base_db", None) or getattr(args, "db", None),
+        user_db=getattr(args, "user_db", None),
+        data_root=getattr(args, "data_root", None),
+        runtime_label=getattr(args, "runtime_label", None),
+    )
     handler = lambda *handler_args, **kwargs: SapdWikiRequestHandler(*handler_args, directory=str(static_dir), **kwargs)
     server = ThreadingHTTPServer((args.host, args.port), handler)
     server.sapd_session_token = secrets.token_urlsafe(32)
@@ -3678,6 +3761,10 @@ def serve(args: argparse.Namespace) -> None:
     print(f"SAPD Wiki local API: {url}/api/v1/health")
     print(f"SAPD Wiki frontend:  {url}/")
     print(f"static_dir: {static_dir.relative_to(PROJECT_ROOT) if static_dir.is_relative_to(PROJECT_ROOT) else static_dir}")
+    print(f"runtime_label: {RUNTIME_LABEL}")
+    print(f"base_db: {_display_runtime_path(BASE_DB_PATH)}")
+    print(f"user_db: {_display_runtime_path(USER_DB_PATH)}")
+    print(f"data_root: {_display_runtime_path(DATA_PACKAGE_ROOT)}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

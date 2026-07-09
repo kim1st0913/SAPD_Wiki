@@ -5795,13 +5795,7 @@ function downloadBlobFile(blob, filename = "") {
   window.setTimeout(() => window.URL.revokeObjectURL(href), 700);
 }
 
-function syncUserNotesExportButton() {
-  document.querySelectorAll("[data-user-notes-export]").forEach((exportButton) => {
-    exportButton.disabled = Boolean(state.userNotesExporting);
-    exportButton.textContent = state.userNotesExporting ? "导出中..." : "导出全部";
-    exportButton.classList.toggle("is-exporting", Boolean(state.userNotesExporting));
-  });
-}
+function syncUserNotesExportButton() { document.querySelectorAll("[data-user-notes-export]").forEach((exportButton) => { const hasIssues = workbenchAllIssueRows().length > 0; exportButton.disabled = Boolean(state.userNotesExporting || !hasIssues); exportButton.textContent = state.userNotesExporting ? "导出中..." : "导出全部"; exportButton.title = hasIssues ? "导出全部 Issue" : "当前没有 Issue 可导出"; exportButton.classList.toggle("is-exporting", Boolean(state.userNotesExporting)); }); }
 
 async function handleUserNotesExport() {
   const dataClient = window.sapdDataClient;
@@ -5809,6 +5803,7 @@ async function handleUserNotesExport() {
     window.alert("当前运行环境未提供 Issue 导出能力。");
     return;
   }
+  if (!workbenchAllIssueRows().length) { state.userNotesExportStatus = { state: "idle", message: "当前没有 Issue 可导出。" }; syncUserNotesExportButton(); syncWorkbenchIssueHeaderControls(); return; }
   state.userNotesExporting = true;
   state.workbenchIssueExportStatus = null;
   state.userNotesExportStatus = { state: "running", message: "正在导出全部批注..." };
@@ -8940,17 +8935,11 @@ function renderWorkbenchIssueBatchActions() {
   return `<div class="workbench-review-inspector-actions is-batch"><button class="workbench-prototype-action is-secondary" type="button" data-review-bulk-status="closed">全部关闭</button><button class="workbench-prototype-action is-secondary" type="button" data-review-bulk-status="reviewing">改为处理中</button><button class="workbench-prototype-action is-secondary" type="button" data-review-bulk-status="deferred">全部忽略</button><button class="workbench-prototype-action is-secondary" type="button" data-review-bulk-status="confirmed">标记已采纳</button><button class="workbench-prototype-action is-secondary" type="button" data-review-clear-selection>清除选择</button></div>`;
 }
 
-function renderWorkbenchIssueEmptyInspector() {
-  return `<div class="workbench-review-empty is-blank">未选择 Issue</div>`;
-}
+function renderWorkbenchIssueEmptyInspector() { return `<div class="workbench-review-empty is-blank">未选择 Issue</div>`; }
 
-function renderWorkbenchIssueInspectorContent() {
-  const selectedRows = workbenchSelectedIssueRows();
-  if (selectedRows.length > 1) return renderWorkbenchIssueBatchInspector(selectedRows);
-  const active = workbenchIssueById(state.workbenchSelectedIssueId) || selectedRows[0] || null;
-  if (!active) return renderWorkbenchIssueEmptyInspector();
-  return renderWorkbenchIssueDetailInspector(active);
-}
+function renderWorkbenchIssueZeroState() { return `<div class="workbench-review-zero-state" role="status" aria-live="polite"><span class="workbench-prototype-pill is-muted">0 条</span><h3>暂无 Issue</h3><p>当前用户库没有需要处理的 Issue。</p></div>`; }
+
+function renderWorkbenchIssueInspectorContent() { const selectedRows = workbenchSelectedIssueRows(); if (selectedRows.length > 1) return renderWorkbenchIssueBatchInspector(selectedRows); const active = workbenchIssueById(state.workbenchSelectedIssueId) || selectedRows[0] || null; return active ? renderWorkbenchIssueDetailInspector(active) : renderWorkbenchIssueEmptyInspector(); }
 
 function renderWorkbenchIssueInspectorActions() { const selectedRows = workbenchSelectedIssueRows(); const active = workbenchIssueById(state.workbenchSelectedIssueId) || selectedRows[0] || null; return selectedRows.length > 1 ? renderWorkbenchIssueBatchActions() : active ? renderWorkbenchIssueDetailActions() : ""; }
 
@@ -8979,6 +8968,7 @@ function renderWorkbenchIssues() {
   const selectedIssueCount = state.workbenchSelectedIssueIds?.size || 0;
   const selectedRowsForInspector = workbenchSelectedIssueRows();
   const inspectorIssue = selectedRowsForInspector.length > 1 ? null : workbenchIssueById(state.workbenchSelectedIssueId) || selectedRowsForInspector[0] || null;
+  const hasNoIssueData = !isLoading && summary.total === 0;
   const filterChips = [
     activeStatusFilter !== "全部" ? { label: "状态", value: activeStatusFilter } : null,
     activePageLabel ? { label: "Issue 范围", value: activePageLabel } : null,
@@ -8986,6 +8976,10 @@ function renderWorkbenchIssues() {
     state.workbenchIssueSearch ? { label: "关键词", value: state.workbenchIssueSearch } : null,
   ].filter(Boolean);
   const queueContext = `${formatNumber(issues.length)} / ${formatNumber(summary.total)} 条`;
+  if (hasNoIssueData) return `<section class="workbench-route-page workbench-issues-route is-empty" aria-label="Issue 清单">${renderWorkbenchIssueZeroState()}${renderWorkbenchIssueDeleteDialog()}</section>`;
+  const inspectorPillLabel = selectedIssueCount > 1 ? `${formatNumber(selectedIssueCount)} 条` : inspectorIssue ? "已保存" : "未选择";
+  const inspectorPillTone = selectedIssueCount > 1 || !inspectorIssue ? "is-muted" : "is-good";
+  const queueRowsMarkup = isLoading ? `<div class="workbench-review-loading">正在读取本地 Issue...</div>` : issues.length ? `${renderWorkbenchIssueQueueHead(issues)}${issues.map(renderWorkbenchIssueItem).join("")}` : `<div class="workbench-review-empty">当前筛选下没有 Issue。</div>`;
   return `
     <section class="workbench-route-page workbench-issues-route" aria-label="Issue 清单">
       <div class="workbench-review-toolbar" aria-label="Issue 筛选工具条">
@@ -9033,12 +9027,11 @@ function renderWorkbenchIssues() {
         <div class="workspace-resizer workbench-issue-pane-resizer" data-workspace-resize-index="0" role="separator" aria-orientation="vertical" aria-label="调整 Issue 范围和处理队列宽度" title="拖动调整宽度"></div>
         <section class="workbench-review-queue" aria-label="Issue 处理队列">
           <div class="workbench-review-panel-title">Issue 处理队列 <span class="workbench-prototype-pill is-muted" data-review-queue-context>${escapeHtml(queueContext)}</span></div>
-          ${renderWorkbenchIssueQueueHead(issues)}
-          ${isLoading ? `<div class="workbench-review-loading">正在读取本地 Issue...</div>` : issues.length ? issues.map(renderWorkbenchIssueItem).join("") : `<div class="workbench-review-empty">当前筛选下没有 Issue。</div>`}
+          ${queueRowsMarkup}
         </section>
         <div class="workspace-resizer workbench-issue-pane-resizer" data-workspace-resize-index="1" role="separator" aria-orientation="vertical" aria-label="调整处理队列和选中 Issue 宽度" title="拖动调整宽度"></div>
         <aside class="workbench-review-inspector" aria-label="Issue 编辑面板" data-review-inspector data-dirty="false" data-note-id="${escapeHtml(inspectorIssue?.id || "")}" data-selected-count="${escapeHtml(String(selectedIssueCount))}">
-          <div class="workbench-review-panel-title">选中 Issue <span class="workbench-prototype-pill ${selectedIssueCount > 1 ? "is-muted" : "is-good"}" data-review-dirty>${selectedIssueCount > 1 ? `${escapeHtml(formatNumber(selectedIssueCount))} 条` : "已保存"}</span></div>
+          <div class="workbench-review-panel-title">选中 Issue <span class="workbench-prototype-pill ${inspectorPillTone}" data-review-dirty>${escapeHtml(inspectorPillLabel)}</span></div>
           <div class="workbench-review-warning" data-review-warning hidden>切换 Issue 前，如有未保存内容，需要提示确认。</div>
           ${renderWorkbenchIssueInspectorActions()}
           <div class="workbench-review-inspector-content" data-review-inspector-scroll>${renderWorkbenchIssueInspectorContent()}</div>
@@ -10641,7 +10634,14 @@ function renderMaintenance() {
         search: state.search,
       }) || tableHtml;
   } else if (viewModel.section === "scopes") {
-    tableHtml = components.ScopeMaintenanceTable?.render({ rows: viewModel.rows, selectedId: viewModel.selectedId, emptyState: viewModel.emptyState }) || tableHtml;
+    tableHtml =
+      components.ScopeMaintenanceTable?.render({
+        rows: viewModel.rows,
+        hierarchyRows: viewModel.hierarchyRows,
+        hasHierarchy: viewModel.hasHierarchy,
+        selectedId: viewModel.selectedId,
+        emptyState: viewModel.emptyState,
+      }) || tableHtml;
   } else if (viewModel.section === "processes") {
     tableHtml = components.ProcessMaintenanceTable?.render({ rows: viewModel.rows, selectedId: viewModel.selectedId, emptyState: viewModel.emptyState }) || tableHtml;
   } else if (viewModel.section === "work-functions") {

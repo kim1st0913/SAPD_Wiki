@@ -135,6 +135,7 @@ const checks = [
       (block) =>
         blockHasDeclaration(block, "height", "100%") &&
         blockHasDeclaration(block, "max-height", "100%") &&
+        blockHasDeclaration(block, "min-width", "0") &&
         blockHasDeclaration(block, "min-height", "0") &&
         blockHasDeclaration(block, "box-sizing", "border-box") &&
         blockHasDeclaration(block, "grid-template-rows", "auto auto minmax\\(0, 1fr\\)"),
@@ -201,7 +202,11 @@ const checks = [
       ".workbench-issues-route .workbench-prototype-annotation-layout",
       (block) =>
         blockHasDeclaration(block, "gap", "0") &&
-        blockHasDeclaration(block, "grid-template-columns", "260px\\s+4px\\s+minmax\\(720px,\\s*1fr\\)\\s+4px\\s+380px"),
+        blockHasDeclaration(
+          block,
+          "grid-template-columns",
+          "minmax\\(220px,\\s*260px\\)\\s+4px\\s+minmax\\(520px,\\s*1fr\\)\\s+4px\\s+minmax\\(320px,\\s*380px\\)",
+        ),
     ) &&
       anyBlock(".workbench-issue-pane-resizer", (block) => blockHasDeclaration(block, "width", "4px") && blockHasDeclaration(block, "min-width", "4px")) &&
       anyBlock(".workbench-review-scope", (block) => blockHasDeclaration(block, "overflow-x", "hidden")) &&
@@ -213,7 +218,7 @@ const checks = [
       appJs.includes('workspace.classList.contains("workbench-prototype-annotation-layout") ? 4 : 6') &&
       appJs.includes('pane.classList.contains("workbench-review-queue") ? 520') &&
       appJs.includes("beginWorkspaceResize(event, handle)"),
-    "Issue queue must keep its own horizontal scroll and expose drag handles between the three workbench panes.",
+    "Issue queue must keep its own horizontal scroll and expose drag handles without clipping the right inspector at normal desktop widths.",
   ),
   check(
     "workbench_issue_actions_are_top_toolbar_outside_scroll_body",
@@ -318,6 +323,21 @@ const checks = [
       stylesCss.includes(".workbench-review-batch-panel") &&
       stylesCss.includes(".workbench-review-empty.is-blank"),
     "Issue inspector must distinguish no current issue, one current issue, and multiple selected issues.",
+  ),
+  check(
+    "workbench_issue_zero_data_uses_single_empty_state",
+    appJs.includes("function renderWorkbenchIssueZeroState") &&
+      appJs.includes("const hasNoIssueData = !isLoading && summary.total === 0;") &&
+      appJs.includes('class="workbench-route-page workbench-issues-route is-empty" aria-label="Issue 清单"') &&
+      appJs.includes("${renderWorkbenchIssueZeroState()}") &&
+      appJs.includes('exportButton.title = hasIssues ? "导出全部 Issue" : "当前没有 Issue 可导出";') &&
+      appJs.includes('const inspectorPillLabel = selectedIssueCount > 1 ? `${formatNumber(selectedIssueCount)} 条` : inspectorIssue ? "已保存" : "未选择";') &&
+      appJs.includes('const inspectorPillTone = selectedIssueCount > 1 || !inspectorIssue ? "is-muted" : "is-good";') &&
+      appJs.includes("? `${renderWorkbenchIssueQueueHead(issues)}${issues.map(renderWorkbenchIssueItem).join(\"\")}`") &&
+      stylesCss.includes(".workbench-issues-route.is-empty") &&
+      stylesCss.includes(".workbench-review-zero-state") &&
+      !appJs.includes('selectedIssueCount > 1 ? `${escapeHtml(formatNumber(selectedIssueCount))} 条` : "已保存"'),
+    "When there are zero real Issue rows, the page must render one empty state instead of the three-column processing workbench or a misleading saved inspector.",
   ),
   check(
     "workbench_issue_inspector_field_boundary",

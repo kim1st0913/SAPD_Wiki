@@ -1182,6 +1182,26 @@ def build_parser() -> argparse.ArgumentParser:
         default="frontend/capability-browser",
         help="Static frontend directory. Defaults to frontend/capability-browser.",
     )
+    serve_cmd.add_argument(
+        "--base-db",
+        default=None,
+        help="Runtime base database path for health/profile binding. Defaults to the global --db path.",
+    )
+    serve_cmd.add_argument(
+        "--user-db",
+        default=None,
+        help="Runtime user database path. Defaults to data/user/sapd_wiki_user.sqlite3.",
+    )
+    serve_cmd.add_argument(
+        "--data-root",
+        default=None,
+        help="Runtime frontend data package root. Defaults to frontend/capability-browser/public/data.",
+    )
+    serve_cmd.add_argument(
+        "--runtime-label",
+        default="stable",
+        help="Runtime profile label shown by /api/v1/health. Defaults to stable.",
+    )
     serve_cmd.set_defaults(func=cmd_serve)
 
     return parser

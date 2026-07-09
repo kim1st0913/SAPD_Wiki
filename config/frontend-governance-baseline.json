@@ -1,22 +1,22 @@
 {
-  "version": "2026-07-07.project-test-baseline",
+  "version": "2026-07-09.scope-demo-issue-empty-baseline",
   "scope": "frontend/capability-browser",
   "purpose": "Current accepted ceilings after the July 2026 project test governance baseline. Lower values pass; increases require deliberate governance review.",
   "requiredReview": "docs/07-governance/project-test-workflow-and-case-matrix.md",
   "files": {
     "frontend/capability-browser/styles.css": {
-      "maxLines": 31568,
+      "maxLines": 31661,
       "maxImportant": 322,
       "maxHexColors": 1007,
       "maxRootBlocks": 11,
       "maxRelationChipMentions": 218,
-      "maxColorMix": 670
+      "maxColorMix": 677
     },
     "frontend/capability-browser/app.js": {
       "maxLines": 12270
     },
     "frontend/capability-browser/viewModels.js": {
-      "maxLines": 5762
+      "maxLines": 5812
     },
     "frontend/capability-browser/components/CapabilityLocalRelationMap.js": {
       "maxLines": 1140

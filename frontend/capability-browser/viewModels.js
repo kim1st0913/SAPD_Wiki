@@ -2714,6 +2714,13 @@
   function compactScopeMaintenanceRow(scope) {
     const services = uniqueBy(list(scope?.services), (service) => service?.id || service?.code || service?.title);
     const informationObjects = uniqueBy(list(scope?.information_objects), (object) => object?.id || object?.code || object?.title);
+    const childScopes = uniqueBy(list(scope?.child_scopes), (child) => child?.id || child?.code || child?.title);
+    const typicalObjectCandidates = uniqueBy(
+      list(scope?.typical_object_candidates).map((item) => text(item).trim()).filter(Boolean),
+      (item) => item,
+    );
+    const parentScopeCode = text(scope?.parent_scope_code).trim();
+    const aggregateServiceCount = Number(scope?.aggregate_service_count);
     const missing = [
       !text(scope?.code).trim() ? "作用域编码" : "",
       !text(scope?.title).trim() ? "作用域名称" : "",
@@ -2727,39 +2734,80 @@
       title: titleOf(scope, "待补充"),
       description: scope?.description || "待补充",
       serviceCount: services.length,
+      directServiceCount: services.length,
+      aggregateServiceCount: Number.isFinite(aggregateServiceCount) ? aggregateServiceCount : services.length,
       informationObjectCount: informationObjects.length,
       status: missing.length ? "待补充" : "正常",
       missingFields: missing,
       linkedServices: services.map(compactEntity),
       informationObjects: informationObjects.map(compactEntity),
+      childScopes: childScopes.map(compactEntity),
+      childScopeCodes: childScopes.map((child) => child?.code).filter(Boolean),
+      hasChildScopes: childScopes.length > 0,
+      parentScopeCode,
+      parentScopeTitle: scope?.parent_scope_title || "",
+      parentScopeId: scope?.parent_scope_id || "",
+      isChildScope: Boolean(parentScopeCode),
+      typicalObjectCandidates,
+      emptyServiceMessage: scope?.empty_service_message || "",
     };
   }
 
   function buildScopeMaintenanceViewModel({ management, search }) {
     const query = normalizeSearch(search);
-    const rows = list(management?.scope_types)
+    const allRows = list(management?.scope_types)
       .filter((scope) => scope?.display_in_scope_catalog !== false)
-      .map(compactScopeMaintenanceRow)
-      .filter((row) =>
-        includesSearch(
-          query,
-          row.scenario,
-          row.code,
-          row.title,
-          row.description,
-          ...row.linkedServices.map(titleOf),
-          ...row.informationObjects.map(titleOf),
-        ),
+      .map(compactScopeMaintenanceRow);
+    const rowMatches = (row) =>
+      includesSearch(
+        query,
+        row.scenario,
+        row.code,
+        row.title,
+        row.description,
+        row.parentScopeCode,
+        row.parentScopeTitle,
+        ...row.linkedServices.map(titleOf),
+        ...row.informationObjects.map(titleOf),
+        ...row.typicalObjectCandidates,
       );
+    const hasHierarchy = allRows.some((row) => row.isChildScope || row.hasChildScopes);
+    const rows = hasHierarchy
+      ? allRows.filter((row) => {
+          if (!query) return true;
+          if (rowMatches(row)) return true;
+          return allRows.some((child) => child.parentScopeCode === row.code && rowMatches(child));
+        })
+      : allRows.filter(rowMatches);
+    const rowsByCode = new Map(rows.map((row) => [row.code, row]));
+    const childrenByParentCode = new Map();
+    for (const row of rows) {
+      if (!row.parentScopeCode) continue;
+      if (!childrenByParentCode.has(row.parentScopeCode)) childrenByParentCode.set(row.parentScopeCode, []);
+      childrenByParentCode.get(row.parentScopeCode).push(row);
+    }
+    const hierarchyRows = hasHierarchy
+      ? rows
+          .filter((row) => !row.parentScopeCode || !rowsByCode.has(row.parentScopeCode))
+          .map((row) => ({
+            ...row,
+            children: childrenByParentCode.get(row.code) || [],
+          }))
+      : [];
+    const visibleRows = hasHierarchy
+      ? hierarchyRows.flatMap((row) => [row, ...row.children])
+      : rows;
     return {
-      rows,
+      rows: visibleRows,
+      hierarchyRows,
+      hasHierarchy,
       summary: {
-        totalScopes: rows.length,
-        scenarios: countLinked(rows.map((row) => ({ title: row.scenario }))),
-        linkedServices: rows.reduce((sum, row) => sum + row.serviceCount, 0),
-        linkedObjects: rows.reduce((sum, row) => sum + row.informationObjectCount, 0),
+        totalScopes: visibleRows.length,
+        scenarios: countLinked(visibleRows.map((row) => ({ title: row.scenario }))),
+        linkedServices: visibleRows.reduce((sum, row) => sum + (row.isChildScope ? row.serviceCount : 0), 0),
+        linkedObjects: visibleRows.reduce((sum, row) => sum + row.informationObjectCount, 0),
       },
-      emptyState: rows.length ? "" : "暂无作用域数据，请确认 ETL 是否已导出 scope_types。",
+      emptyState: visibleRows.length ? "" : "暂无作用域数据，请确认 ETL 是否已导出 scope_types。",
     };
   }
 
@@ -3886,6 +3934,8 @@
       page: pageMeta,
       summary: sectionViewModel.summary,
       rows: visibleRows,
+      hierarchyRows: sectionViewModel.hierarchyRows || [],
+      hasHierarchy: Boolean(sectionViewModel.hasHierarchy),
       standardRows: sectionViewModel.standardRows || [],
       roleRows: sectionViewModel.roleRows || [],
       frameworkTabs: sectionViewModel.frameworkTabs || [],

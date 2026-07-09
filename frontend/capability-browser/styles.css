@@ -1341,6 +1341,100 @@ body.is-resizing {
   word-break: keep-all;
 }
 
+.scope-subclass-table {
+  min-width: 1180px;
+}
+
+.scope-subclass-table th:nth-child(1),
+.scope-subclass-table td:nth-child(1) {
+  width: 190px;
+}
+
+.scope-subclass-table th:nth-child(2),
+.scope-subclass-table td:nth-child(2) {
+  width: 142px;
+  text-align: center;
+}
+
+.scope-subclass-table th:nth-child(4),
+.scope-subclass-table td:nth-child(4) {
+  width: 180px;
+  text-align: center;
+}
+
+.scope-subclass-table th:nth-child(5),
+.scope-subclass-table td:nth-child(5) {
+  width: 260px;
+}
+
+.scope-subclass-parent-row td {
+  background: color-mix(in oklch, var(--surface-quiet) 72%, var(--panel));
+}
+
+.scope-subclass-child-row td {
+  background: color-mix(in oklch, var(--panel) 90%, var(--surface-quiet));
+}
+
+.scope-subclass-identity {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.scope-subclass-identity strong {
+  font-size: 12px;
+  letter-spacing: 0;
+}
+
+.scope-subclass-identity span {
+  color: var(--ink);
+  font-weight: 760;
+}
+
+.scope-subclass-identity.is-child {
+  padding-left: 18px;
+  border-left: 1px solid color-mix(in oklch, var(--accent) 22%, var(--line));
+}
+
+.scope-subclass-muted {
+  color: var(--muted);
+  font-weight: 720;
+}
+
+.scope-subclass-empty {
+  display: inline-block;
+  max-width: 26ch;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.38;
+  text-align: left;
+}
+
+.scope-subclass-parent-count {
+  color: color-mix(in oklch, var(--ink) 72%, var(--muted));
+  font-weight: 760;
+}
+
+.scope-subclass-candidates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.scope-subclass-chip {
+  display: inline-flex;
+  min-height: 22px;
+  align-items: center;
+  border: 1px solid color-mix(in oklch, var(--morandi-slate) 16%, var(--line));
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--morandi-slate) 7%, var(--panel));
+  color: color-mix(in oklch, var(--ink) 82%, var(--morandi-slate));
+  padding: 2px 7px;
+  font-size: 11.5px;
+  font-weight: 720;
+  line-height: 1.2;
+}
+
 .technology-module-maintenance-table th:nth-child(1),
 .technology-module-maintenance-table td:nth-child(1) {
   width: 430px;
@@ -30153,11 +30247,14 @@ body.environment-basemap-app-fullscreen-active { overflow: hidden; }
 .workbench-issues-route {
   height: 100%;
   max-height: 100%;
+  min-width: 0;
   min-height: 0;
   box-sizing: border-box;
   grid-template-rows: auto auto minmax(0, 1fr);
   overflow: hidden;
 }
+
+.workbench-issues-route.is-empty { grid-template-rows: minmax(0, 1fr); }
 
 .workbench-issues-route > .workbench-review-toolbar,
 .workbench-issues-route > .workbench-review-bulkbar {
@@ -30357,7 +30454,7 @@ body.environment-basemap-app-fullscreen-active { overflow: hidden; }
 
 .workbench-issues-route .workbench-prototype-annotation-layout {
   align-self: stretch; box-sizing: border-box; gap: 0;
-  grid-template-columns: 260px 4px minmax(720px, 1fr) 4px 380px;
+  grid-template-columns: minmax(220px, 260px) 4px minmax(520px, 1fr) 4px minmax(320px, 380px);
   height: 100%; min-height: 0; max-height: none;
   overflow: hidden;
 }
@@ -30830,19 +30927,15 @@ body.environment-basemap-app-fullscreen-active { overflow: hidden; }
   font-weight: 820;
 }
 
-.workbench-review-empty.is-blank {
-  min-height: 180px;
-  border-color: transparent;
-  background: transparent;
-  color: #8b9aad;
-}
+.workbench-review-empty.is-blank { min-height: 180px; border-color: transparent; background: transparent; color: #8b9aad; }
+
+.workbench-review-zero-state { min-height: 100%; display: grid; align-content: center; justify-items: center; gap: 10px; padding: 28px; border: 1px dashed rgba(136, 157, 181, 0.28); border-radius: 22px; background: radial-gradient(circle at 50% 0%, rgba(10, 132, 255, 0.08), transparent 34%), rgba(255, 255, 255, 0.68); color: rgba(96, 113, 134, 1); text-align: center; }
+.workbench-review-zero-state h3 { margin: 0; color: rgba(23, 36, 55, 1); font-size: 18px; font-weight: 920; }
+.workbench-review-zero-state p { max-width: 42ch; margin: 0; color: rgba(100, 117, 138, 1); font-size: 13px; font-weight: 780; line-height: 1.5; }
 
 .workbench-review-form,
 .workbench-review-field,
-.workbench-review-timeline {
-  display: grid;
-  gap: 8px;
-}
+.workbench-review-timeline { display: grid; gap: 8px; }
 
 .workbench-review-field label {
   color: #64758a;

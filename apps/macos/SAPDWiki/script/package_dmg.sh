@@ -6,7 +6,7 @@ APP_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 DIST_DIR="$APP_ROOT/dist"
 APP_NAME="SAPD Wiki"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
-APP_VERSION="${SAPD_WIKI_APP_VERSION:-0.1.6}"
+APP_VERSION="${SAPD_WIKI_APP_VERSION:-0.1.7}"
 export SAPD_WIKI_DISPLAY_VERSION="${SAPD_WIKI_DISPLAY_VERSION:-$APP_VERSION}"
 BUILD_STAMP="${SAPD_WIKI_BUILD_STAMP:-$(date -u +%Y%m%d-%H%M%SZ)}"
 ARCH="$(uname -m)"
@@ -50,6 +50,13 @@ write_readme() {
 本 DMG 用于 SAPD Wiki macOS 内测交付。当前版本：${APP_VERSION}。当前包类型：${title}。
 
 ## Changelog
+
+### 0.1.7
+
+- 基于当前最新工作区重新打包，便于后续验证。
+- 授权版和无授权版继续同版本、同时间戳、分目录交付。
+- 保存位置继续使用父级目录规则，App 自动创建 \`SAPDWiki/Runtime\` 和 \`SAPDWiki/export\`。
+- 本版本仍按内测交付处理，不启用正式签名公证、安装器或自动更新机制。
 
 ### 0.1.6
 
@@ -134,6 +141,13 @@ write_runtime_readme() {
 当前版本：${APP_VERSION}。当前包类型：${title}。
 
 ## Changelog
+
+### 0.1.7
+
+- 基于当前最新工作区重新打包，便于后续验证。
+- 授权版和无授权版继续生成同版本 Runtime。
+- Runtime 默认安装到 \`SAPDWiki/Runtime\`，导出目录默认为 \`SAPDWiki/export\`。
+- 本版本仍按内测交付处理，不启用正式签名公证、安装器或自动更新机制。
 
 ### 0.1.6
 

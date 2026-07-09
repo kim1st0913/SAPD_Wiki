@@ -431,8 +431,8 @@ def main() -> int:
         help=f"Bundle output directory. Default: {DEFAULT_OUTPUT_DIR}",
     )
     parser.add_argument("--platform", required=True, choices=sorted(SUPPORTED_PLATFORMS))
-    parser.add_argument("--bundle-version", default="0.1.6")
-    parser.add_argument("--app-version", default="0.1.6")
+    parser.add_argument("--bundle-version", default="0.1.7")
+    parser.add_argument("--app-version", default="0.1.7")
     parser.add_argument("--data-version", default="2026.05-alpha")
     parser.add_argument("--base-schema-version", default="base_schema_0.1")
     parser.add_argument("--user-schema-version", default="user_schema_0.3")

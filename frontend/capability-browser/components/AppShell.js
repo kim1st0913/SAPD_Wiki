@@ -44,7 +44,7 @@
             route: "/workbench/maturity",
             type: "workbench-page",
             children: [
-              { id: "workbench-maturity-project-001", label: "华东政企云成熟度评估", route: "/workbench/maturity/project-001", type: "workbench-page", children: [] },
+              { id: "workbench-maturity-project", label: "网络安全成熟度评估", route: "/workbench/maturity/demo-project-001", type: "workbench-page", children: [] },
             ],
           },
           { id: "workbench-issues", label: "Issue 清单", route: "/workbench/annotations", type: "workbench-page", children: [] },
@@ -61,7 +61,7 @@
           { id: "data-security-design", label: "数据安全设计方法", route: "/guides/data-security-design", type: "document-page", children: [] },
           { id: "light-planning", label: "轻规划", route: "/guides/light-planning", type: "document-page", children: [] },
           { id: "security-governance-model", label: "安全管控模式设计方法", route: "/guides/security-governance-model", type: "placeholder-page", children: [] },
-          { id: "maturity-model-usage", label: "成熟度模型使用方法", route: "/guides/maturity-model-usage", type: "placeholder-page", children: [] },
+          { id: "maturity-model-usage", label: "成熟度模型使用方法", route: "/guides/maturity-model-usage", type: "document-page", children: [] },
           { id: "other-guides", label: "其他指南", route: "/guides/others", type: "placeholder-page", children: [] },
         ],
       },
@@ -113,6 +113,8 @@
   };
 
   const SIDEBAR_STATE_KEY = "sapd.appShell.sidebarCollapsed";
+  const SHELL_AUXILIARY_EVENT = "sapd:shell-auxiliary-dismiss";
+  const auxiliaryReturnFocus = new WeakMap();
 
   const ROUTE_TARGETS = {
     "/": { view: "overview" },
@@ -120,14 +122,14 @@
     "/workbench": { view: "workbench" },
     "/workbench/annotations": { view: "workbench" },
     "/workbench/maturity": { view: "workbench" },
-    "/workbench/maturity/project-001": { view: "workbench" },
+    "/workbench/maturity/demo-project-001": { view: "workbench" },
     "/guides": { view: "content", contentPage: "html" },
     "/guides/security-architecture-design": { view: "content", contentPage: "html" },
     "/guides/security-architecture-modeling-language": { view: "content", contentPage: "html" },
     "/guides/data-security-design": { view: "content", contentPage: "html" },
     "/guides/light-planning": { view: "content", contentPage: "html" },
     "/guides/security-governance-model": { view: "placeholder", placeholder: true },
-    "/guides/maturity-model-usage": { view: "placeholder", placeholder: true },
+    "/guides/maturity-model-usage": { view: "content", contentPage: "html" },
     "/guides/others": { view: "placeholder", placeholder: true },
     "/capability-mapping": { view: "capabilities" },
     "/environment-mapping": { view: "environment" },
@@ -206,14 +208,15 @@
   const PAGE_DESCRIPTIONS = {
     "/": "查看当前已导入安全能力、信息化环境、生命周期和知识维护数据的关系覆盖状态。",
     "/search": "跨安全能力、信息化环境、生命周期、知识库和标准 / 框架检索知识对象，并进入目标页面定位。",
-    "/workbench": "集中进入 Issue 处理和成熟度评估工作流，当前为静态 mock 页面，不接真实用户数据。",
+    "/workbench": "集中进入 Issue 处理和成熟度评估工作流。",
     "/workbench/annotations": "以 Review Queue 方式查看、筛选、编辑、批量处理和导出所有 Issue。",
-    "/workbench/maturity": "管理成熟度评估工作、历史项目、编辑和导出入口，当前使用 mock project 数据。",
-    "/workbench/maturity/project-001": "成熟度评估项目详情页，展示评分维度、评分表单、实时结果和导出占位。",
+    "/workbench/maturity": "管理成熟度评估项目、模板、评分、结果和报告快照。",
+    "/workbench/maturity/demo-project-001": "管理成熟度评估项目、模板、评分、结果和报告快照。",
     "/guides": "承载安全架构、数据安全、管控模式和成熟度模型等方法论说明。",
     "/guides/security-architecture-modeling-language": "安全架构设计元素图例，安全架构中的各种元素都需要映射到 ArchiMate 的元素。",
     "/guides/data-security-design": "以本地幻灯片形式浏览数据安全设计方法，后续可扩展为数据安全设计指南目录。",
     "/guides/light-planning": "以本地幻灯片形式浏览轻规划设计报告模版，后续可扩展为轻规划设计指南目录。",
+    "/guides/maturity-model-usage": "说明成熟度模型的方法论、等级含义、评估工具、四要素评分、证据采集和报告使用。",
     "/capability-mapping": "从安全能力和关注点出发，核对技术视角、管理视角和标准 / 框架映射。",
     "/environment-mapping": "从信息化环境和对象出发，核对对象、作用域、服务、模块、措施和能力关联。",
     "/development-security": "以 LC-AP安全开发生命周期阶段和活动为主语，承载受控专项关系投影。",
@@ -261,12 +264,20 @@
     return components.utils.list(items).flatMap((item) => [{ ...item, parent }, ...allNavItems(item.children, item)]);
   }
 
+  function manifestRouteFor(route) {
+    const normalized = normalizeRoute(route);
+    if (normalized.startsWith("/workbench/maturity/")) return "/workbench/maturity";
+    return normalized;
+  }
+
   function findNavItem(route) {
-    return allNavItems().find((item) => item.route === route) || NAV_MANIFEST.navigation[0];
+    const manifestRoute = manifestRouteFor(route);
+    return allNavItems().find((item) => item.route === manifestRoute) || NAV_MANIFEST.navigation[0];
   }
 
   function parentForRoute(route) {
-    return allNavItems().find((item) => components.utils.list(item.children).some((child) => child.route === route)) || null;
+    const manifestRoute = manifestRouteFor(route);
+    return allNavItems().find((item) => components.utils.list(item.children).some((child) => child.route === manifestRoute)) || null;
   }
 
   function getRouteTarget(route) {
@@ -325,6 +336,7 @@
   function renderTopBar() {
     return `
       ${renderGlobalSearch()}
+      <span id="appLiveStatus" class="sapd-visually-hidden" role="status" aria-live="polite" aria-atomic="true"></span>
       <div id="localModeStatus" class="topbar-status" aria-label="本地运行状态"></div>
       <div class="topbar-actions" aria-label="全局操作">
         <span id="licenseStatusBadge" class="topbar-license-status" aria-live="polite">${renderLocalModeStatus()}</span>
@@ -427,7 +439,7 @@
       <div class="brand shell-sidebar-brand">
         <div class="brand-mark">S</div>
         <div>
-          <h1>SAPD Wiki</h1>
+          <strong class="brand-title">SAPD Wiki</strong>
           <p>咨询规划工作台</p>
         </div>
         ${renderSidebarToggle(collapsed)}
@@ -445,8 +457,10 @@
   function bindSidebarControls() {
     const toggle = document.getElementById("globalSidebarToggle");
     toggle?.addEventListener("click", () => {
-      const collapsed = !document.getElementById("app")?.classList.contains("sidebar-collapsed");
+      const app = document.getElementById("app");
+      const collapsed = !app?.classList.contains("sidebar-collapsed");
       applySidebarState(collapsed);
+      if (!collapsed) revealCurrentNavigationAfterExpansion(app?.dataset.shellRoute || "/");
     });
     document.querySelectorAll(".navigation-group > .navigation-parent").forEach((summary) => {
       summary.addEventListener("click", (event) => {
@@ -457,8 +471,50 @@
         const group = summary.closest(".navigation-group");
         if (group) group.open = true;
         applySidebarState(false);
+        revealCurrentNavigationAfterExpansion(app?.dataset.shellRoute || "/");
       });
     });
+    document.querySelectorAll(".navigation-group").forEach((group) => {
+      group.addEventListener("toggle", () => {
+        if (!group.open) return;
+        document.querySelectorAll(".navigation-group").forEach((candidate) => {
+          if (candidate !== group) candidate.open = false;
+        });
+      });
+    });
+  }
+
+  function syncNavigationGroups(activeRoute = "/", { scroll = true } = {}) {
+    const manifestRoute = manifestRouteFor(activeRoute);
+    let activeTarget = null;
+    document.querySelectorAll(".navigation-group").forEach((group) => {
+      const parent = NAV_MANIFEST.navigation.find((item) => item.id === group.dataset.navId);
+      const active = parent ? parent.route === manifestRoute || childRouteActive(parent, manifestRoute) : false;
+      group.classList.toggle("active", active);
+      group.open = active;
+      const summary = group.querySelector(":scope > summary");
+      summary?.classList.toggle("active", active);
+      summary?.setAttribute("aria-current", active && parent?.route === manifestRoute ? "page" : "false");
+      if (active) activeTarget = group.querySelector(`[data-app-route="${CSS.escape(manifestRoute)}"]`) || summary;
+    });
+    activeTarget ||= document.querySelector(`[data-app-route="${CSS.escape(manifestRoute)}"]`);
+    if (!scroll || !activeTarget) return;
+    window.requestAnimationFrame(() => {
+      activeTarget?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "auto" });
+      const navigation = activeTarget?.closest(".manifest-navigation");
+      const targetRect = activeTarget?.getBoundingClientRect();
+      const navigationRect = navigation?.getBoundingClientRect();
+      const inset = 10;
+      if (!navigation || !targetRect || !navigationRect) return;
+      if (targetRect.top < navigationRect.top + inset) navigation.scrollTop -= navigationRect.top + inset - targetRect.top;
+      else if (targetRect.bottom > navigationRect.bottom - inset) navigation.scrollTop += targetRect.bottom - (navigationRect.bottom - inset);
+    });
+  }
+
+  function revealCurrentNavigationAfterExpansion(activeRoute = "/") {
+    const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+    window.requestAnimationFrame(() => syncNavigationGroups(activeRoute));
+    if (!reducedMotion) window.setTimeout(() => syncNavigationGroups(activeRoute), 440);
   }
 
   function breadcrumbItems(route) {
@@ -525,6 +581,7 @@
 
   function renderPageHeader({ activeRoute = "/", activeModelingLanguageTab = "overview", activeEnvironmentTab = "topology" } = {}) {
     const item = findNavItem(activeRoute);
+    const manifestRoute = manifestRouteFor(activeRoute);
     const pageTitle = activeRoute === "/development-security"
         ? "LC-AP安全开发生命周期"
         : activeRoute === "/data-security"
@@ -532,20 +589,21 @@
           : activeRoute === "/search"
             ? "全局搜索"
             : item.label;
-    const rootRoute = parentForRoute(activeRoute)?.route || activeRoute;
-    const description = PAGE_DESCRIPTIONS[activeRoute] || PAGE_DESCRIPTIONS[rootRoute] || "当前页面通过 Manifest 导航进入，业务内容由现有前端 ViewModel 渲染。";
+    const rootRoute = parentForRoute(activeRoute)?.route || manifestRoute;
+    const description = PAGE_DESCRIPTIONS[activeRoute] || PAGE_DESCRIPTIONS[manifestRoute] || PAGE_DESCRIPTIONS[rootRoute] || "当前页面通过 Manifest 导航进入，业务内容由现有前端 ViewModel 渲染。";
     const target = getRouteTarget(activeRoute);
     const isSourceTablePage = target.view === "maintenance";
     const isGuidePage = activeRoute.startsWith("/guides/");
     const isPlaceholderPage = target.placeholder || target.view === "placeholder";
     const isWorkbenchIssuePage = activeRoute === "/workbench/annotations";
+    const isMaturityPage = activeRoute === "/workbench/maturity" || activeRoute.startsWith("/workbench/maturity/");
     const typeLabel = activeRoute === "/search" ? TYPE_LABELS["search-page"] : TYPE_LABELS[item.type] || item.type;
     return `
-      <section class="app-page-header" id="appPageHeader">
+      <section class="app-page-header" id="appPageHeader" data-shell-title-owner="true" aria-labelledby="appPageTitle">
         <div class="page-header-copy">
           ${renderBreadcrumb(activeRoute)}
           <div class="page-title-row">
-            <h1>${escapeHtml(pageTitle)}</h1>
+            <h1 id="appPageTitle">${escapeHtml(pageTitle)}</h1>
             ${isWorkbenchIssuePage ? '<span id="workbenchIssueHeaderStats" class="workbench-review-stats is-compact page-title-issue-stats" aria-label="Issue 状态筛选"></span>' : ""}
             ${isSourceTablePage ? '<span id="pageHeaderCount" class="page-title-summary" hidden></span>' : ""}
             ${isSourceTablePage || isWorkbenchIssuePage ? "" : `<span class="shell-tag muted">${escapeHtml(typeLabel)}</span>`}
@@ -555,7 +613,9 @@
           ${description ? `<p>${escapeHtml(description)}</p>` : ""}
         </div>
         ${
-          isWorkbenchIssuePage
+          isMaturityPage
+            ? `<div id="maturityShellHeaderActions" class="maturity-v3-header-slot" aria-label="成熟度评估状态与操作"></div>`
+            : isWorkbenchIssuePage
               ? `<div id="workbenchIssueHeaderActions" class="workbench-issue-page-actions" aria-label="Issue 导出操作"></div>`
             : isGuidePage || isPlaceholderPage
               ? ""
@@ -602,11 +662,78 @@
     ].forEach((selector) => {
       document.querySelectorAll(selector).forEach((panel) => panel.classList.add("right-insight-panel"));
     });
+
+    const configureAuxiliary = (selector, { kind, mode, dismissLabel = "关闭详情" }) => {
+      const panel = document.querySelector(selector);
+      if (!panel) return;
+      panel.dataset.shellAuxiliary = kind;
+      panel.dataset.shellAuxiliaryMode = mode;
+      if (mode !== "overlay") return;
+      panel.classList.add("is-shell-closed");
+      panel.dataset.shellOpen = "false";
+      panel.setAttribute("aria-hidden", "true");
+      const head = panel.querySelector(":scope > .pane-head");
+      if (!head || head.querySelector("[data-shell-auxiliary-dismiss]")) return;
+      const button = document.createElement("button");
+      button.className = "shell-auxiliary-dismiss";
+      button.type = "button";
+      button.dataset.shellAuxiliaryDismiss = panel.id || kind;
+      button.setAttribute("aria-label", dismissLabel);
+      button.textContent = "关闭";
+      button.addEventListener("click", () => {
+        setAuxiliaryLayerState(panel.id || kind, false, { restoreFocus: true });
+        document.dispatchEvent(new CustomEvent(SHELL_AUXILIARY_EVENT, { detail: { id: panel.id || kind } }));
+      });
+      head.append(button);
+    };
+
+    const workspaceLayouts = [
+      ["overviewWorkspace", "main-resident-auxiliary"],
+      ["workbenchWorkspace", "main-only"],
+      ["capabilityWorkspace", "resident-directory-main"],
+      ["environmentWorkspace", "main-only"],
+      ["devLifecycleWorkspace", "main-resident-inspector"],
+      ["dataLifecycleWorkspace", "main-resident-inspector"],
+      ["maintenanceWorkspace", "directory-main-overlay"],
+      ["contentWorkspace", "directory-main-overlay"],
+    ];
+    workspaceLayouts.forEach(([id, layout]) => {
+      const workspace = document.getElementById(id);
+      if (workspace) workspace.dataset.shellLayout = layout;
+    });
+    configureAuxiliary(".overview-issue-pane", { kind: "inspector", mode: "resident" });
+    configureAuxiliary(".capability-tree-pane", { kind: "directory", mode: "resident" });
+    configureAuxiliary("#devLifecycleWorkspace .lifecycle-detail-pane", { kind: "inspector", mode: "resident" });
+    configureAuxiliary("#dataLifecycleWorkspace .lifecycle-detail-pane", { kind: "inspector", mode: "resident" });
+    configureAuxiliary("#sourceNavPane", { kind: "directory", mode: "resident" });
+    configureAuxiliary("#sourceDetailPane", { kind: "inspector", mode: "overlay", dismissLabel: "关闭实体关系详情" });
+    configureAuxiliary("#contentWorkspace .content-nav-pane", { kind: "directory", mode: "resident" });
+    configureAuxiliary("#contentWorkspace .content-detail-pane", { kind: "inspector", mode: "overlay", dismissLabel: "关闭内容详情" });
+  }
+
+  function setAuxiliaryLayerState(id, open, { restoreFocus = false } = {}) {
+    const panel = document.getElementById(id) || document.querySelector(`[data-shell-auxiliary="${CSS.escape(text(id))}"]`);
+    if (!panel || panel.dataset.shellAuxiliaryMode !== "overlay") return false;
+    const wasOpen = panel.dataset.shellOpen === "true";
+    if (open && !wasOpen && document.activeElement instanceof HTMLElement && !panel.contains(document.activeElement)) {
+      auxiliaryReturnFocus.set(panel, document.activeElement);
+    }
+    panel.dataset.shellOpen = open ? "true" : "false";
+    panel.classList.toggle("is-shell-closed", !open);
+    panel.setAttribute("aria-hidden", open ? "false" : "true");
+    if (open && !wasOpen) panel.querySelector("[data-shell-auxiliary-dismiss]")?.focus({ preventScroll: true });
+    if (!open && wasOpen && restoreFocus) {
+      const returnTarget = auxiliaryReturnFocus.get(panel);
+      if (returnTarget?.isConnected) returnTarget.focus({ preventScroll: true });
+    }
+    return true;
   }
 
   function mountApplicationShell({ activeRoute = "/", activeModelingLanguageTab = "overview", activeEnvironmentTab = "topology" } = {}) {
     document.body?.classList.add("app-shell-locked");
-    document.getElementById("app")?.classList.add("app-shell-integrated");
+    const app = document.getElementById("app");
+    app?.classList.add("app-shell-integrated");
+    if (app) app.dataset.shellRoute = normalizeRoute(activeRoute);
     const sidebar = document.querySelector(".app-sidebar");
     const topbar = document.querySelector(".topbar");
     if (sidebar) sidebar.innerHTML = renderSideNavigation(activeRoute);
@@ -619,19 +746,15 @@
   }
 
   function updateApplicationShell({ activeRoute = "/", activeModelingLanguageTab = "overview", activeEnvironmentTab = "topology" } = {}) {
+    const app = document.getElementById("app");
+    if (app) app.dataset.shellRoute = normalizeRoute(activeRoute);
+    const manifestRoute = manifestRouteFor(activeRoute);
     document.querySelectorAll("[data-app-route]").forEach((element) => {
-      const active = element.dataset.appRoute === activeRoute;
+      const active = element.dataset.appRoute === manifestRoute;
       element.classList.toggle("active", active);
       element.setAttribute("aria-current", active ? "page" : "false");
     });
-    document.querySelectorAll(".navigation-group").forEach((group) => {
-      const parent = NAV_MANIFEST.navigation.find((item) => item.id === group.dataset.navId);
-      const active = parent ? parent.route === activeRoute || childRouteActive(parent, activeRoute) : false;
-      group.classList.toggle("active", active);
-      const summary = group.querySelector("summary");
-      summary?.classList.toggle("active", active);
-      if (active) group.open = true;
-    });
+    syncNavigationGroups(activeRoute);
     ensurePageHeader({ activeRoute, activeModelingLanguageTab, activeEnvironmentTab });
   }
 
@@ -778,6 +901,7 @@
     routeForView,
     mountApplicationShell,
     updateApplicationShell,
+    setAuxiliaryLayerState,
     renderTopBar,
     renderGlobalSearch,
     renderSideNavigation,

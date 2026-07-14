@@ -30,6 +30,12 @@
     contract_pending: "待契约补充",
   };
 
+  const SEMANTIC_ROLES = Object.freeze({
+    status: Object.freeze({ selected: "--sapd-state-selected", complete: "--sapd-state-complete", warning: "--sapd-state-warning", review: "--sapd-state-review", error: "--sapd-state-error" }),
+    object: Object.freeze({ service: "technical-chip service-chip", module: "technical-chip module-chip", measure: "technical-chip measure-chip", focus: "ownership-chip", system: "system-chip", environment: "environment-chip", note: "note-chip" }),
+    drawio: Object.freeze({ stylePolicy: "immutable_external_overlay_only" }),
+  });
+
   function text(value) {
     return value == null ? "" : String(value);
   }
@@ -62,6 +68,43 @@
     return "";
   }
 
+  const SERVICE_SCOPE_CODES = new Set(["I-AP", "I-DI", "I-NT", "I-US", "I-OS", "I-HD", "I-PE"]);
+
+  function serviceScopeCode(item) {
+    const values = [];
+    if (item && typeof item === "object") {
+      values.push(
+        item.scopeCode,
+        item.serviceScopeCode,
+        item.category,
+        item.code,
+        item.serviceCode,
+        item.objectCode,
+        item.id,
+        item.serviceId,
+        item.title,
+        item.name,
+        item.objectName,
+      );
+    } else {
+      values.push(item);
+    }
+    for (const value of values) {
+      const raw = text(value).trim();
+      if (!raw) continue;
+      const direct = raw.match(/\bI-[A-Z]{2}\b/)?.[0] || "";
+      if (SERVICE_SCOPE_CODES.has(direct)) return direct;
+    }
+    return "";
+  }
+
+  function serviceScopeAttrs(utils, item) {
+    const code = serviceScopeCode(item);
+    if (!code) return "";
+    const escaped = utils?.escapeHtml ? utils.escapeHtml(code) : code.replaceAll("&", "&amp;").replaceAll('"', "&quot;");
+    return ` data-scope="${escaped}" data-service-scope="${escaped}"`;
+  }
+
   function chipClass(kind) {
     const key = kindKey(kind);
     if (key === "security_technical_service") return "technical-chip service-chip";
@@ -71,6 +114,26 @@
     if (key === "security_system") return "system-chip";
     if (key === "information_environment") return "environment-chip";
     if (key === "note") return "note-chip";
+    return "";
+  }
+
+  function inferredKindKey(item, fallbackKind = "") {
+    const explicitKind = kindKey(fallbackKind);
+    if (explicitKind) return explicitKind;
+    if (item && typeof item === "object") {
+      const type = text(item.objectType || item.type).trim();
+      if (type === "security_technical_service") return "security_technical_service";
+      if (type === "security_technology_module") return "security_technology_module";
+      if (type === "security_technical_measure") return "security_technical_measure";
+      if (type === "capability_focus") return "capability_focus";
+      if (type === "security_system") return "security_system";
+      if (type === "information_environment") return "information_environment";
+      const serviceCode = text(item.code || item.serviceCode || item.objectCode || item.id).trim();
+      if (/^(?:I-[A-Z]{2}|ALL)&T-[A-Z]{2}\./.test(serviceCode) || /^M-[A-Z]{2}\./.test(serviceCode)) return "security_technical_service";
+    } else {
+      const raw = text(item).trim();
+      if (/^(?:I-[A-Z]{2}|ALL)&T-[A-Z]{2}\./.test(raw) || /^M-[A-Z]{2}\./.test(raw)) return "security_technical_service";
+    }
     return "";
   }
 
@@ -95,12 +158,14 @@
   function relationChip(utils, item, { empty = state("missing"), kind = "", showKind = false, preferCodeTitle = true } = {}) {
     const escaped = utils.escapeHtml;
     const itemKind = text((item && typeof item === "object" && (item.objectKind || item.kind)) || kind).trim();
-    const itemKindKey = kindKey(itemKind);
+    const itemKindKey = inferredKindKey(item, itemKind);
     const visibleKind = showKind && itemKindKey !== "security_technical_service" ? itemKind : "";
     const kindPrefix = visibleKind ? `<em>${escaped(visibleKind)}</em>` : "";
     const visibleText = itemText(utils, item, empty, preferCodeTitle);
     const copyText = [visibleKind, visibleText].filter(Boolean).join(" | ");
-    return `<span class="relation-chip ${chipClass(itemKind)}"${annotationValueAttrs(utils, copyText && copyText !== empty ? copyText : "")}>${kindPrefix}<span class="relation-chip-text">${escaped(visibleText)}</span></span>`;
+    const resolvedKind = itemKindKey ? label(itemKindKey, itemKind) : itemKind;
+    const scopeAttrs = itemKindKey === "security_technical_service" ? serviceScopeAttrs(utils, item) : "";
+    return `<span class="relation-chip ${chipClass(resolvedKind)}"${annotationValueAttrs(utils, copyText && copyText !== empty ? copyText : "")}${scopeAttrs}>${kindPrefix}<span class="relation-chip-text">${escaped(visibleText)}</span></span>`;
   }
 
   function relationChipList(utils, items, options = {}) {
@@ -115,11 +180,15 @@
 
   display.labels = ENTITY_LABELS;
   display.states = DISPLAY_STATES;
+  display.semanticRoles = SEMANTIC_ROLES;
   display.label = label;
   display.relationLabel = relationLabel;
   display.state = state;
   display.emptyMark = emptyMark;
   display.chipClass = chipClass;
+  display.inferredKindKey = inferredKindKey;
+  display.serviceScopeCode = serviceScopeCode;
+  display.serviceScopeAttrs = serviceScopeAttrs;
   display.itemText = itemText;
   display.annotationValueAttrs = annotationValueAttrs;
   display.relationChip = relationChip;

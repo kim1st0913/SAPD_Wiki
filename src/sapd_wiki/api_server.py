@@ -13,6 +13,16 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, unquote, urlparse
 
+from .maturity import (
+    build_maturity_workspace,
+    calculate_maturity_assessment,
+    create_maturity_report_snapshot,
+    export_maturity_score_exchange,
+    export_maturity_template_exchange,
+    import_maturity_score_exchange,
+    import_maturity_template_exchange,
+    validate_maturity_template,
+)
 from .paths import DEFAULT_DB_PATH, PROJECT_ROOT, resolve_project_path
 
 
@@ -3544,7 +3554,18 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
 
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
-        if parsed.path not in {"/api/v1/user/favorites", "/api/v1/user/notes"}:
+        supported_paths = {
+            "/api/v1/user/favorites",
+            "/api/v1/user/notes",
+            "/api/v1/maturity/calculate",
+            "/api/v1/maturity/template/validate",
+            "/api/v1/maturity/report",
+            "/api/v1/maturity/score/export",
+            "/api/v1/maturity/score/import",
+            "/api/v1/maturity/template/export",
+            "/api/v1/maturity/template/import",
+        }
+        if parsed.path not in supported_paths:
             self._send_json(create_envelope({"error": "not_found", "path": parsed.path}), status=404)
             return
         if not self._require_user_write_boundary():
@@ -3553,8 +3574,22 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
             payload = self._read_json_body()
             if parsed.path == "/api/v1/user/notes":
                 self._send_json(create_envelope(create_user_note(payload)))
-            else:
+            elif parsed.path == "/api/v1/user/favorites":
                 self._send_json(create_envelope(upsert_user_favorite(payload)))
+            elif parsed.path == "/api/v1/maturity/calculate":
+                self._send_json(create_envelope(calculate_maturity_assessment(payload)))
+            elif parsed.path == "/api/v1/maturity/template/validate":
+                self._send_json(create_envelope(validate_maturity_template(payload.get("template") or payload)))
+            elif parsed.path == "/api/v1/maturity/score/export":
+                self._send_json(create_envelope(export_maturity_score_exchange(payload)))
+            elif parsed.path == "/api/v1/maturity/score/import":
+                self._send_json(create_envelope(import_maturity_score_exchange(payload)))
+            elif parsed.path == "/api/v1/maturity/template/export":
+                self._send_json(create_envelope(export_maturity_template_exchange(payload)))
+            elif parsed.path == "/api/v1/maturity/template/import":
+                self._send_json(create_envelope(import_maturity_template_exchange(payload)))
+            else:
+                self._send_json(create_envelope(create_maturity_report_snapshot(payload)))
         except ValueError as exc:
             self._send_json(create_envelope({"error": "bad_request", "message": str(exc)}), status=400)
         except Exception as exc:
@@ -3709,6 +3744,9 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
                 except (TypeError, ValueError):
                     offset = 0
                 self._send_json(create_envelope(search_index_payload(query=(query.get("q") or [""])[0], limit=limit, offset=offset, category=(query.get("category") or [""])[0])))
+                return
+            if path == "/api/v1/maturity/workspace":
+                self._send_json(create_envelope(build_maturity_workspace(read_data_package("capability-workbench"))))
                 return
             if len(parts) == 4 and parts[:3] == ["api", "v1", "data-packages"]:
                 self._send_json(create_envelope(read_data_package(parts[3])))

@@ -1216,9 +1216,9 @@
         frameworks: standardFrameworks,
         controls: standardControls,
       },
-      sourceEvidence: detailSourceEvidence,
     };
   }
+  function stripLocalRelationMapSourceEvidence(map) { if (!map) return map; const { sourceEvidence, source_evidence, ...displayMap } = map; return displayMap; }
 
   function hasLocalStandards(map) {
     return Boolean(list(map?.standards?.frameworks).length || list(map?.standards?.controls).length);
@@ -1728,7 +1728,7 @@
     const rawLocalRelationMap = usingProjectedLocalRelationMap
       ? mergeFallbackStandardsIntoProjected(projectedLocalRelationMap, fallbackLocalRelationMap)
       : mergeProjectedStandards(fallbackLocalRelationMap, projectedLocalRelationMap);
-    const localRelationMap = applySecurityWorkCodesToLocalRelationMap(rawLocalRelationMap, securityWorkCodeLookup);
+    const localRelationMap = stripLocalRelationMapSourceEvidence(applySecurityWorkCodesToLocalRelationMap(rawLocalRelationMap, securityWorkCodeLookup));
 
     return {
       navigationTree,

@@ -52,6 +52,7 @@
 - 新增长期文档必须满足至少一个条件：跨模块稳定契约、用户需要单独阅读的交付说明、数据 / 安全 / 审计治理边界、或现有入口继续追加会明显破坏可读性。
 - 当前文档治理规则以 `docs/07-governance/governance-index.md` 为准；新文档必须先能说明读者、用途、维护入口和退役条件。
 - 设计文档默认按 `docs/README.md` 和 `frontend/design-handoff/README.md` 的分层规则管理：`implementation-specs/` 才是页面代码实现依据；Stitch 输入 / 输出、截图、prompt 和旧 brief 只能作为参考，不能直接驱动实现；小 UI 修复、文案和局部样式不新增设计文档。
+- 成熟度模块实行三文档强制同步：凡修改成熟度业务规则、用户流程、评分与聚合口径、模板结构、页面信息架构、交互控件、视觉布局或验收规则，必须在同一任务中同步更新 `frontend/design-handoff/implementation-specs/maturity-assessment-v2-1-complete-frontend-design-2026-07-12.md`、`/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/SAPD maturity assesment/SAPD_成熟度评估业务设计_V2.1_20260712.md` 和 `frontend/design-handoff/implementation-specs/frontend-global-optimization-plan-2026-07-11.md`。不得只更新运行代码或其中一份文档；若某次变更不影响其中某层，也要在该文档的联动维护记录中明确“本轮无规则变化”及原因。
 
 ## Codex 轻量执行规则
 

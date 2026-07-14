@@ -44,6 +44,14 @@
     userNotes: "/api/v1/user/notes",
     userNotesExport: "/api/v1/user/notes/export",
     userMarkdownExport: "/api/v1/user/exports/markdown",
+    maturityWorkspace: "/api/v1/maturity/workspace",
+    maturityCalculate: "/api/v1/maturity/calculate",
+    maturityTemplateValidate: "/api/v1/maturity/template/validate",
+    maturityReport: "/api/v1/maturity/report",
+    maturityScoreExport: "/api/v1/maturity/score/export",
+    maturityScoreImport: "/api/v1/maturity/score/import",
+    maturityTemplateExport: "/api/v1/maturity/template/export",
+    maturityTemplateImport: "/api/v1/maturity/template/import",
   };
 
   const API_FETCH_TIMEOUT_MS = 12000;
@@ -1436,6 +1444,86 @@
     async getAnalyticsSummary() {
       const summary = await fetchPackage("analyticsSummary");
       return createEnvelope(summary);
+    },
+
+    async getMaturityWorkspace() {
+      const workspace = await fetchApiData(API_PATHS.maturityWorkspace);
+      return createEnvelope(
+        workspace || {
+          dataState: "api_unavailable",
+          mode: "controlled_demo",
+          persistence: "none",
+          notice: "成熟度评估 API 当前不可用。",
+          projects: [],
+          projectDetails: {},
+          template: null,
+          levels: [],
+          evidenceLevels: [],
+        },
+      );
+    },
+
+    async validateMaturityTemplate(template = {}) {
+      const result = await fetchUserApi(API_PATHS.maturityTemplateValidate, {
+        method: "POST",
+        headers: await userWriteHeaders(),
+        body: JSON.stringify({ template }),
+      });
+      return createEnvelope(result);
+    },
+
+    async calculateMaturityAssessment(payload = {}) {
+      const result = await fetchUserApi(API_PATHS.maturityCalculate, {
+        method: "POST",
+        headers: await userWriteHeaders(),
+        body: JSON.stringify(payload),
+      });
+      return createEnvelope(result);
+    },
+
+    async createMaturityReport(payload = {}) {
+      const result = await fetchUserApi(API_PATHS.maturityReport, {
+        method: "POST",
+        headers: await userWriteHeaders(),
+        body: JSON.stringify(payload),
+      });
+      return createEnvelope(result);
+    },
+
+    async exportMaturityScoreExchange(payload = {}) {
+      const result = await fetchUserApi(API_PATHS.maturityScoreExport, {
+        method: "POST",
+        headers: await userWriteHeaders(),
+        body: JSON.stringify(payload),
+      });
+      return createEnvelope(result);
+    },
+
+    async importMaturityScoreExchange(payload = {}) {
+      const result = await fetchUserApi(API_PATHS.maturityScoreImport, {
+        method: "POST",
+        headers: await userWriteHeaders(),
+        body: JSON.stringify(payload),
+      });
+      return createEnvelope(result);
+    },
+
+    async exportMaturityTemplateExchange(template = {}) {
+      const result = await fetchUserApi(API_PATHS.maturityTemplateExport, {
+        method: "POST",
+        headers: await userWriteHeaders(),
+        body: JSON.stringify({ template }),
+      });
+      return createEnvelope(result);
+    },
+
+    async importMaturityTemplateExchange(exchange = {}) {
+      const result = await fetchUserApi(API_PATHS.maturityTemplateImport, {
+        method: "POST",
+        headers: await userWriteHeaders(),
+        body: JSON.stringify({ exchange }),
+      });
+      return createEnvelope(result);
     },
 
     async getCapabilityTree() {

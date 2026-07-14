@@ -1,19 +1,19 @@
 {
-  "version": "2026-07-09.scope-demo-issue-empty-baseline",
+  "version": "2026-07-13.p0-2-old-dmg-header-rhythm-baseline",
   "scope": "frontend/capability-browser",
   "purpose": "Current accepted ceilings after the July 2026 project test governance baseline. Lower values pass; increases require deliberate governance review.",
   "requiredReview": "docs/07-governance/project-test-workflow-and-case-matrix.md",
   "files": {
     "frontend/capability-browser/styles.css": {
-      "maxLines": 31661,
-      "maxImportant": 322,
+      "maxLines": 32089,
+      "maxImportant": 324,
       "maxHexColors": 1007,
       "maxRootBlocks": 11,
-      "maxRelationChipMentions": 218,
-      "maxColorMix": 677
+      "maxRelationChipMentions": 219,
+      "maxColorMix": 681
     },
     "frontend/capability-browser/app.js": {
-      "maxLines": 12270
+      "maxLines": 12416
     },
     "frontend/capability-browser/viewModels.js": {
       "maxLines": 5812

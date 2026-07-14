@@ -71,11 +71,11 @@ Frontend Baseline 1.0 当前关系工作台实现重点仍覆盖三页：
 
 ## 新增规划队列（2026-07-08）
 
-本队列记录后续项目计划和当前可进入主线的前置数据源。当前只允许 `PLAN-STD-NICE` 以“数据源接入”方式进入主线；`PLAN-MAT-WS` 和 `PLAN-ORG-ROLE` 只进入计划池，不进入当前主线，也不进入本轮打包范围。启动任一工作包前，必须先确认数据源、页面目标、写入范围和验收标准。
+本队列记录后续项目计划和当前可进入主线的前置数据源。`PLAN-MAT-WS` 受控 demo 已升级到 V2.1 并完成 Web 回归，正式持久化和 DMG App 验收后置；未写正式 SQLite、正式 JSON、源 Excel、用户库或 DMG。`PLAN-ORG-ROLE` 仍只进入计划池；`PLAN-STD-NICE` 保留数据源接入前置状态。
 
 | 编号 | 工作包 | 当前状态 | 目标产出 | 关键边界 |
 |---|---|---|---|---|
-| PLAN-MAT-WS | 工作台 `SAPD 成熟度评估` 模块 | 已进入项目计划 / 非当前主线 / 暂不打包 | 在工作台内形成评估任务、评分填报、结果摘要、差距建议和报告导出闭环 | 使用 `maturity_*` 专用数据域；只读引用能力、关注点、服务、措施、标准等主知识对象；评分、汇总和结论由后端 / maturity 服务层生成，前端不自行计算成熟度结论；不写回主知识库关系；本轮不进入打包范围 |
+| PLAN-MAT-WS | 工作台 `SAPD 成熟度评估` 模块 | V2.1 第六轮评分工作台根因纠偏已实现 / 自动审计通过 / 待用户人工验收 / 正式持久化与 DMG 后置 | `100px` 项目上下文 + 项目步骤整区滚动锁定；服务 Tab 状态、完整文字和适用性共享单一卡片；关注点状态 / 完成 / 适用 / 不适用 / 下级锁定紧凑分组；未选评分格 `42px`，选中格扩展至至少 `300px` 并在格内显示数字、等级名和定义；重复服务头与展开收起删除；底部保存并转到下一项；结果页保留全部 L2 中文简写雷达和层级统计 | 只消费后端 `categoryResults / subCategoryResults / capabilityResults / gapItems`，前端不推断分类、rubric、父级评分或正式结论；未评分保留轴且不按 0 分计算；三份成熟度文档和 `109/109` 专项审计已同步；不写正式库、正式包或主知识库关系；DMG App 证据后置 |
 | PLAN-STD-NICE | `标准 / 框架` 接入 NICE | 当前主线 / 数据源接入前置 / 待确认权威源与版本 | 先把 NICE 作为可审计的数据源接入标准 / 框架或岗位能力参考体系，支持后续目录、明细、检索和映射；该项是 `PLAN-ORG-ROLE` 的前置 | 先确认 NICE 的权威来源、版本、对象粒度和字段；先用受控 demo 数据和审计验证，不直接改写已保护的标准包；若属于 workforce / role 框架，需明确它与岗位设计模块、GB/T 42446、Gartner 参考的关系 |
 | PLAN-ORG-ROLE | 工作台 `组织岗位设计` 模块 | 已进入项目计划 / 非当前主线 / 暂不打包 | 在工作台内支撑组织职责、岗位 / 角色、工作任务、能力 / 关注点关联和岗位设计输出 | 以现有安全职能、流程、GB/T 42446、Gartner 和 NICE 数据源作为参考；`PLAN-STD-NICE` 未完成前不启动本模块；参考源不等同于最终内部职责事实；客户组织和岗位方案属于用户运行数据，不进入公开基准包；本轮不进入打包范围 |
 | PLAN-AI-CAP-EXT | AI / 人工智能安全能力体系扩展 | 回到 demo-first / 数据接入未启动 / 暂不打包 | 先在当前 `main` 形成 AI 能力或关注点的 demo 页 / demo 数据和关系样例，验证业务口径、页面路径和检索需求 | 正式接入前必须另行确认权威源、对象粒度、字段、写入范围、回退方案、审计清单和用户批准；本轮不修改源 Excel、SQLite、正式 JSON 或 DMG |
@@ -133,7 +133,7 @@ Frontend Baseline 1.0 当前关系工作台实现重点仍覆盖三页：
 | FE-2 | 安全能力映射页前端验收清单 | 待启动 | 固化能力页验收项：左侧关注点、技术视角、管理视角、矩阵折叠、来源折叠、字段边界、无控制台错误 | FE-0 |
 | FE-3 | 信息化环境维度页设计 | 第一版实现已完成 | 已新增信息化环境安全能力映射图谱策略，并接入环境页本地关系图谱：`E0` 信息化环境只展示结构、`E1` 环境子类展示对象 / 作用域 / 服务 / 能力概览、`E2` 信息化对象完整展示作用域、服务、模块 / 措施、系统、产品和能力 / 关注点；保留原环境映射表作为核对入口 | `frontend/design-handoff/implementation-specs/environment-security-capability-graph-strategy-2026-05-20.md`, `environmentRelationGraphModel.js`, `EnvironmentLocalRelationMap.js`, BE-2 |
 | FE-4 | LC-AP 开发安全生命周期页设计 | 待启动 | 形成生命周期页局部关系画布：阶段 -> 活动 -> 策略 -> 服务 -> 模块 / 措施 / 组件 | BE-3 |
-| FE-M | 工作台 SAPD 成熟度评估页面设计 | 后置 / 非当前主线 / 暂不打包 | 形成评估任务、评分填报、结果摘要、差距建议和报告导出页面，不复用关系画布作为主界面 | maturity 专用数据契约；`PLAN-MAT-WS`；本轮不启动页面实现 |
+| FE-M | 工作台 SAPD 成熟度评估页面设计 | 第三轮目录 / 全能力雷达根因修正已进入真实工程 / Web 已验 / 待用户评审 / App 待验 | 项目操作队列、居中创建浮层、单一 App Shell 页头、六页签项目上下文、紧凑评分目录、右侧 L2 汇总 / 关注点 / 共享服务 Tab / 四维表单、全 L2 技术 / 治理 / 管理分组雷达、覆盖 / 排除统计、保存恢复、复核与报告快照；低频工具收纳到“更多” | `maturity-assessment-v2-1-complete-frontend-design-2026-07-12.md`；只消费 maturity API 结果并提交用户输入，不在前端生成能力分类、评估点、维度标准、评分来源或权威评分公式；设计图样例不得覆盖真实数据；DMG App 证据后置 |
 | FE-STD-NICE | 标准 / 框架 NICE 页面接入 | 后置 / 等 `BE-STD-NICE` 数据源接入后再启动 | 在标准 / 框架体系中承载 NICE 目录、明细、检索和后续映射视图 | 当前只做数据源接入前置；先确认 NICE 权威源、版本和对象粒度；不得把 workforce 参考误当成普通控制项 |
 | FE-ORG-ROLE | 工作台组织岗位设计页面 | 后置 / 非当前主线 / 暂不打包 | 形成组织职责、岗位 / 角色、工作任务、能力 / 关注点关联和方案输出工作台 | 以安全职能、流程、GB/T 42446、Gartner、NICE 等为参考；依赖 `BE-STD-NICE`；不把参考源直接当成客户组织事实；本轮不启动页面实现 |
 | FE-5 | 三页共同组件和交互一致性整理 | 后置 | 统一导航、对象头、关系画布、折叠明细、来源证据、空状态和标签风格 | FE-2 / FE-3 / FE-4 |
@@ -159,7 +159,7 @@ Frontend Baseline 1.0 当前关系工作台实现重点仍覆盖三页：
 | BE-4 | 数据质量与缺口清单 | 已完成（首轮静态审计，BE-4.2 已修复；`OI-040` 已修复） | 已新增三份 workbench 数据质量与缺口清单，确认三包顶层结构、关系端点和字段边界正常；`OI-040`、`OI-049`、`OI-050` 已修复，当前继续跟踪源数据一致性待确认问题 `OI-073` | `docs/06-implementation/be-4-workbench-data-quality-gap-list.md`, `docs/06-implementation/open-issues.md` |
 | BE-AN-SUM-1 | `analytics_summary` 离线数据包生成 | 已完成 / 已提交 | 新增 exporter 生成 `frontend/capability-browser/public/data/analytics-summary.json`，聚合 `capability-workbench`、`environment-workbench`、`lifecycle-workbench`、`standards-index`、`content-views`，以 `capability_focus` 为主 grain，输出覆盖率、模块入口、关系摘要、证据摘要和 reconciliation；生成包不提交到 Git | `docs/06-implementation/analytics-summary-json-contract-draft.md`, `docs/06-implementation/dashboard-and-module-data-display-optimization-design.md` |
 | BE-AN-SUM-2 | `analytics_summary` 数据包摘要与审计 | 已完成 / 已提交 | 扩展 `scripts/data_package_summary.py` 支持 `analytics-summary` 摘要；新增 `scripts/audit_analytics_summary_contract.mjs`，验证覆盖率、标准控制项三类 grain 和禁止字段泄露 | `BE-AN-SUM-1` |
-| BE-M | 工作台 SAPD 成熟度评估数据契约 | 后置 / 非当前主线 / 暂不打包 | 定义 maturity 评估模板、填报会话、结果投影、差距建议和报告导出契约 | `docs/08-maturity/`；`maturity_*` 专用数据域；本轮不启动实现 |
+| BE-M | 工作台 SAPD 成熟度评估数据契约 | 受控 demo V2.1 已完成 / 只读稳定字典 + 无正式持久化 / DMG 待验 | 已实现无项目作用域、`ASSESSMENT_POINT` / `PLATFORM_EVIDENCE_REFERENCE` 服务角色、四维评分、当前 / 目标同集合聚合、达成率、文件交换、L2 结果、差距建议和报告快照契约 | `docs/08-maturity/` 与 V2.1 业务设计；不新增或写入正式 `maturity_*` 表；正式持久化另行确认 |
 | BE-STD-NICE | NICE 标准 / 框架数据源接入 | 当前主线 / 数据源接入前置 | 确认 NICE 权威源、版本、对象粒度、字段、导入方式和与能力 / 岗位 / 标准映射的关系；先形成可审计 demo 数据源 | `PLAN-STD-NICE`；作为 `PLAN-ORG-ROLE` 前置；先 demo 数据和审计，不直接覆盖受保护标准包 |
 | BE-ORG-ROLE | 组织岗位设计数据契约 | 后置 / 非当前主线 / 暂不打包 | 定义组织单元、岗位 / 角色、职责、工作任务、能力 / 关注点关联、参考源和方案导出契约 | 客户组织方案属于用户运行数据；GB/T、Gartner、NICE 等只作为参考源或候选映射；依赖 `BE-STD-NICE`；本轮不启动实现 |
 | BE-AI-CAP-EXT | AI / 人工智能安全能力扩展数据接入 | 回到 demo-first / 待权威源和范围确认 | 先生成 demo 页 / demo 数据和关系样例，支撑后续 AI 能力是否正式接入的业务判断 | `PLAN-AI-CAP-EXT`；先 demo、审计和用户确认，不直接覆盖受保护字典、标准、workbench、SQLite 或原始 Excel |
@@ -187,6 +187,22 @@ Frontend Baseline 1.0 当前关系工作台实现重点仍覆盖三页：
 | DB-9 | ZIP-UAT-0 内部试发准备 | macOS arm64 已完成，Windows 前置已收口 | macOS alpha 试发材料已固定到本地 release 目录，包含 ZIP、checksum、release manifest、README、UAT checklist、问题反馈模板和 Windows pending 验证报告；Windows x64 实机构建前置条件已固化 |
 | DB-8 | Tauri / 安装包体验增强 | 后置 | ZIP alpha 成立后再评估 Tauri 壳、macOS `.dmg/.app`、Windows `.msi/.exe`、签名和自动更新 |
 
+## PLAN-FE-GLOBAL：全工程前端设计审计与优化方案
+
+| 项目 | 当前状态 | 目标产出 |
+|---|---|---|
+| 真实页面审计 | 已完成 / 用户认可主体结论 | 已覆盖全局壳、关系画布、生命周期、字典、标准、指南、Issue、成熟度和共享交互层 |
+| 成熟度 V2.1 完整设计与受控 demo | 已完成 / Web 回归通过 / 正式持久化与 App 后置 | 项目列表、项目创建、模板、四维评分、文件交换、复核、结果和报告的完整页面体系 |
+| 安全能力图谱碰撞治理 | 已补充 / 运行实现待启动 | 节点、标签、边穿节点、边交叉、分支负载和可读性降级契约 |
+| 信息化环境设计边界 | 已修订 / 运行实现待启动 | Draw.io 原图颜色、字体、位置和连线全部不可变，只优化外部壳、定位、控制和详情 |
+| P0-1 正确性与安全边界门禁 | 已完成 / 自动验收通过 / DMG App 后置 | 四级当前对象一致、Draw.io 原图哈希与 overlay-only、状态 / 对象语义色、键盘焦点与动态播报、14 个主区禁显字段统一门禁 |
+| P0-2 Apple Shell 与共享布局基座 | 已完成 / 旧 DMG 标题舒适度修正、自动与应用内浏览器验收通过 / 待用户验收、DMG App 后置 | `56 / 96px` 壳层高度、`24px / 1.13` 页面标题、`12px / 1.45` 说明、`12px 18px` 页头内边距、`5px` 文本组间距、唯一 `h1`、单域导航与当前项滚入、一个 resident auxiliary 上限、overlay 第二辅助层、共享字号 / 圆角 token；成熟度统一 `main-only`、六页签项目上下文、共享服务 Tab、紧凑目录和居中新建 workflow overlay |
+| P0-4 标准与 Issue 壳层派生修复 | 已完成 / 自动与应用内浏览器验收通过 / DMG App 后置 | 8 个标准深链恢复全局入口与当前框架双层定位；Issue 取消 `rows[0]` 和批量勾选隐式详情，首次 inspector 宽度为 0，显式打开、关闭还宽并返回焦点，路由重入不泄漏旧选择 |
+| 全工程逐风险方案矩阵 | 已完成 / P0-1、P0-2 与 P0-4 已实施 | 以 `FE-R01—FE-R70` 覆盖全局壳、总览、能力、环境、LC-AP、LC-DT、字典、标准、指南、Issue、成熟度、搜索和共享组件；新增标题舒适度、项目上下文、全 L2 结果粒度、共享 Tab 和目录空列五项根因风险，每项均含方案、边界、验收和优先级 |
+| 全局设计系统与实施路线 | 已完成 / P0-1、P0-2 与 P0-4 已实施 | Apple Shell token、页面模板、P0 / P1 / P2 顺序、验收矩阵和禁止事项；尚未实施的 P0 批次为 P0-3 安全能力关注点图谱碰撞治理 |
+
+全局方案入口为 `frontend/design-handoff/implementation-specs/frontend-global-optimization-plan-2026-07-11.md`，成熟度 V2.1 入口为 `frontend/design-handoff/implementation-specs/maturity-assessment-v2-1-complete-frontend-design-2026-07-12.md`。成熟度 MAT-P0 / MAT-P1 / MAT-P2 已在受控 demo 中完成首轮实现和 Web 回归；正式持久化、客户数据治理和 DMG App 证据仍需另行进入发布链路。
+
 ## 页面推进顺序建议
 
 | 顺序 | 页面 / 模块 | 推荐原因 | 工作方式 |
@@ -208,14 +224,14 @@ Frontend Baseline 1.0 当前关系工作台实现重点仍覆盖三页：
 ## 当前禁止事项
 
 - 不默认启动 Phase 7 PPT / Draw.io / DOCX 多格式增强。
-- 不在当前会话启动 maturity 评估代码实现；后续另开会话推进。
+- maturity 代码实现已由用户在 2026-07-10 明确启动；本轮只允许受控 demo API 和前端工作台，不写正式数据或打包产物。
 - 不默认新增 Sheet 扩展。
 - 不默认重构 SQLite schema。
 - 不默认大改 ETL。
 - 不默认引入 React / Vue 重构当前静态 MVP 前端。
 - 不在主展示区暴露非业务字段。
 - 不新增绕过 `dataClient` 或 `/api/v1/*` 契约的数据读取路径。
-- 不把 `PLAN-MAT-WS` 或 `PLAN-ORG-ROLE` 纳入当前主线或本轮打包；`PLAN-STD-NICE` 当前只作为数据源接入前置，不启动组织岗位设计页面。
+- `PLAN-MAT-WS` 受控 demo V2.1 已完成并待用户业务验收，尚未进入正式持久化或 DMG；`PLAN-ORG-ROLE` 仍不纳入当前主线，`PLAN-STD-NICE` 当前只作为数据源接入前置。
 - 不把新数据或 AI 能力扩展直接写入正式能力清单、字典、SQLite、正式 JSON 或 DMG；必须先在当前 `main` 用受控 demo 页 / demo 数据验证业务口径，再经用户确认正式写入范围和审计清单。
 
 ## 长期阶段索引
@@ -237,7 +253,7 @@ Frontend Baseline 1.0 当前关系工作台实现重点仍覆盖三页：
 
 ## 成熟度模块侧线
 
-成熟度模块已升级为后续工作台模块规划项，当前不在本轮启动代码实现，也不进入本轮打包范围。以下任务作为独立侧线维护，不影响当前主线；启动时按 `PLAN-MAT-WS` 先确认工作台入口、maturity 专用数据域、评分结论生成责任和报告导出边界。
+成熟度模块已按 `PLAN-MAT-WS` 完成受控 demo V2.1，当前等待用户在 5173 做业务验收，未重建 DMG。说明类归 `安全指南`，评估工作模块归 `工作台 > SAPD 成熟度评估`；能力、关注点、服务和作用域关系只读引用当前权威字典；真实服务评估点、治理 / 管理平台参考、四维当前与目标聚合、L2 结果、差距、文件交换和报告由后端 maturity 服务层生成，正式持久化继续后置。
 
 | 阶段 | 状态 | 当前结论 |
 |---|---|---|
@@ -245,8 +261,8 @@ Frontend Baseline 1.0 当前关系工作台实现重点仍覆盖三页：
 | M1.1 | 已完成 | 基于 `sample 评分表.xlsx` 完成关注点级基准和安全技术服务输入建模 |
 | M1.2 | 已完成 | 基于 `评估表v2.md` 完成 L2 能力级成熟度基准解析和主工程 L2 一致性核对 |
 | M1.3 | 待确认 | 确认 `M-PS.CT` 是否补入 V2 L2 基准；`T-AD.SV` 已确认与当前主工程一致 |
-| M2 | 待启动 / 对应 `BE-M` | 设计 maturity 专用 SQLite 迁移草案、评估模板、填报会话和导入 MVP，不修改主工程核心 schema |
-| M3 | 后置 / 对应 `FE-M` | 形成工作台页面和正式评估模板，前端只展示后端 / maturity 服务层生成的评分结果、差距摘要和报告投影 |
+| M2 | 受控 demo V2.1 已完成 / 对应 `BE-M` | 已实现不落正式库的模板快照、真实服务角色、四维当前 / 目标聚合、达成率、文件交换、L2 结果和报告 API；maturity 专用 SQLite 迁移与正式持久化另行确认 |
+| M3 | 受控 demo V2.1 已完成 / 对应 `FE-M` | 已形成企业组织项目、只读固定模板、自由组合自定义模板和纵向评分工作台；前端只提交评分输入并展示后端生成的 L2 结果、差距摘要和报告投影；5173 已验，DMG 待验 |
 
 ## 历史归档
 

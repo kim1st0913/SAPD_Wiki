@@ -25,9 +25,16 @@
 | Delivery Bundle 1.0 设计沟通边界 | 设计团队先聚焦首次启动准备态、初始化失败 / 修复、本地数据状态、升级提示和 zip 用户说明；不设计登录、导入、数据库选择器、ETL 配置器或开发者控制台 | `frontend/design-handoff/implementation-specs/delivery-bundle-1.0-design-brief-2026-05-28.md` |
 | 问题与文档管理 | 小修、小 bug 和一次性排查默认直接修复，不新增文档、不新建 `OI`；只有全局契约、数据 / 审计 / 安全边界、中高严重性、无法本轮闭环或需要用户判断 / 验收的问题才进入 `open-issues.md`；新文档必须有读者、长期用途、索引和退役条件 | `AGENTS.md`, `docs/07-governance/governance-index.md`, `docs/06-implementation/open-issues.md` |
 | 设计文档治理 | 设计文档按用途分层管理：`docs/04-frontend/` 放信息架构 / brief，`docs/06-implementation/frontend-*` 放全局设计基线和跨页契约，`frontend/design-handoff/implementation-specs/` 是唯一页面实现规格入口，`stitch-*` 只作 reference。小 UI 修复、文案和局部样式不新增设计文档 | `docs/README.md`, `docs/07-governance/governance-index.md`, `frontend/design-handoff/README.md` |
+| 全工程前端优化交付口径 | 审计风险、通用设计原则和页面优化方案必须分层记录；每条已识别风险都要有具体改法、不改边界、验收和优先级。用户单独补充的能力图谱碰撞、Draw.io 不可变和成熟度完整设计是对应页面约束，不能替代其他风险方案 | `frontend/design-handoff/implementation-specs/frontend-global-optimization-plan-2026-07-11.md` |
+| P0-1 正确性与安全边界 | 当前对象只能由显式选中 ID 驱动；Draw.io 原图用固定哈希保护且定位只走外部 overlay；状态色与对象角色色使用独立命名空间；`sourceEvidence` 等技术来源证据不得进入 `localRelationMap` 主展示模型；键盘焦点和动态状态必须持续通过统一门禁 | `config/frontend-p0-1-correctness-boundary.json`, `scripts/audit_frontend_p0_1_correctness_boundary_contract.mjs` |
+| P0-2 Apple Shell 与共享布局 | 共享壳只能有一个页面标题所有者；全局导航任一时刻只展开一个业务域并保证当前项可见；普通页面最多一个 resident auxiliary，第二辅助层必须按需 overlay。成熟度不是例外：全部成熟度路由使用 `main-only`，主动作进入共享页头，业务区不得再造主页头，新建项目只能使用居中 workflow overlay；评分目录属于业务主区，不算 Shell auxiliary layer。共享壳字号收敛为 `12 / 14 / 16 / 24px`、圆角收敛为 `6 / 10 / 14px`；标题区以旧 DMG `0.1.7` 为视觉真值，固定 `96px` 高、`24px / 1.13` 标题、`12px / 1.45` 说明、`12px 18px` 内边距和 `5px` 文本组间距，业务页不得局部覆写。不得借此全局覆盖业务表格或改变成熟度业务 / 评分规则 | `config/frontend-p0-2-apple-shell-layout.json`, `scripts/audit_frontend_p0_2_apple_shell_layout_contract.mjs` |
+| P0-4 标准与 Issue 壳层派生 | 标准深链的当前位置由全局 `AppShell` 标准域与标准页面当前框架共同表达，刷新不能只恢复其中一层；Issue 详情只由显式 `workbenchSelectedIssueId` 打开，批量勾选集合不得替代当前详情对象，禁止 `rows[0]`、旧路由选择或单项勾选隐式打开 inspector。未选择时 inspector 不渲染且占宽为 0；关闭详情后恢复队列宽度与行焦点；Issue 路由只展开工作台域 | `frontend-global-optimization-plan-2026-07-11.md`, `frontend/capability-browser/components/AppShell.js`, `frontend/capability-browser/app.js` |
 | maturity 边界 | maturity 是主工程下独立模块；运行数据使用 `maturity_*`，不写入 `knowledge_items` | `docs/08-maturity/` |
-| SAPD 成熟度评估入口 | 已补入前端菜单和数据契约规划，路由建议为 `/sapd-maturity-assessment`，页面类型暂用 `domain-module`，代码实现另开会话 | `docs/00-overview/frontend-menu-and-page-type-definition-v1.md`, `docs/04-user-guide/frontend-data-contract-baseline-1.0.md` |
-| 2026-07-08 新增项目计划队列 | 已将工作台 `SAPD 成熟度评估`、`标准 / 框架 NICE`、工作台 `组织岗位设计` 三项纳入项目计划，并按主线边界拆分：`NICE` 先作为当前主线的数据源接入前置，是组织岗位设计的前置；`SAPD 成熟度评估` 和 `组织岗位设计` 只进入计划池，不进入当前主线，也不进入本轮打包 | `task_plan.md`, `CURRENT_STATE.md` |
+| SAPD 成熟度评估入口 | `/workbench/maturity/demo-project-001` 第六轮评分工作台根因纠偏已完成 Web 实现并待用户验收。根因规则：服务 Tab 的状态、完整名称和适用性必须属于同一卡片；选中分数不是旁边定义区的触发器，而是自身从 `42px` 平滑扩展到至少 `300px` 并在格内承载数字、等级名和定义；滚动锁定对象是项目名称 / 模板 / 更新时间与六个项目步骤组成的完整 `100px` 项目区，不是其中一行。关注点统计、底部主动作、目标等级术语和不适用排除规则继续沿用第五轮有效契约。正式持久化与 DMG App 证据仍后置 | `maturity-assessment-v2-1-complete-frontend-design-2026-07-12.md`, `frontend-global-optimization-plan-2026-07-11.md`, `SAPD_成熟度评估业务设计_V2.1_20260712.md`, `design-qa.md`, `OI-192` |
+| 成熟度评分输入粒度 | 关注点只承担对象定义与下级未评分时的一次性批量初始化，不展示由下级服务分数回写的关注点评级；下级已有任一评分后，不再允许关注点统一初始化。安全技术服务评估点按四维逐项评分，结果计算仍由后端按既有聚合契约生成，前端不得把汇总结果改造成父级输入 | 用户 2026-07-13 第 9 项裁定、三份成熟度 V2.1 文档、`src/sapd_wiki/maturity.py` |
+| 成熟度操作后跳顶根因 | 实际纵向滚动容器是重渲染区域内部的 `.maturity-v1-project-page`；旧 `captureRenderPosition()` 只保存 `model.root` 及其祖先，并把评分面板保存成即将被 `innerHTML` 替换的旧 DOM 节点，因而评分按钮触发重渲染后真实滚动容器回到 `0`。修复必须按稳定选择器重新获取新滚动容器并恢复 `scrollTop`，不能继续保存旧节点引用 | 应用内浏览器 1486×1058 修复前 `431 → 0`；修复后评分与适用性真实坐标点击前后及试算完成均为 `512.5`；`MaturityAssessmentWorkbench.js` |
+| 成熟度设计图人工评审基线 | 图 1 是结构与密度基线，图 2—9 是本轮必须关闭的验收差距。评估点列表与安全技术服务评估区必须是两个清晰区域；当前项显示蓝色状态，已完成项显示真实勾选状态；适用性用方框勾选；当前下级对象不用下拉；选中等级后只就地显示当前等级定义 | 用户 2026-07-13 九张截图、`frontend/capability-browser/components/MaturityAssessmentWorkbench.js`, `frontend/capability-browser/maturity-assessment-workbench.css`, `design-qa.md` |
+| 2026-07-12 项目计划队列 | `PLAN-MAT-WS` 已完成 V2.1 受控 demo 实现及 Web 回归，正式持久化与 DMG App 验收后置；`PLAN-STD-NICE` 仍为组织岗位设计的数据源前置，`PLAN-ORG-ROLE` 仍在计划池 | `task_plan.md`, `CURRENT_STATE.md` |
 | Demo-first 数据与前端试验 | 后续新数据、实验数据和前端试验先在当前 `main` 通过受控 demo 页 / demo 数据验证业务口径；正式接入基础库、字典、标准、SQLite、正式 JSON 或 DMG 前，必须另行确认权威源、对象粒度、写入范围、回退方案和审计清单 | `AGENTS.md`, `CURRENT_STATE.md`, `task_plan.md` |
 | AI 安全能力体系扩展 | 新增 AI / 人工智能安全 L2 能力或关注点时，先做 demo 页 / demo 数据和关系样例，确认业务口径后再决定是否正式进入基础库或用户库；不能直接改正式能力清单、字典、SQLite、JSON 或 DMG | `task_plan.md`, `CURRENT_STATE.md` |
 | 后续项目推进方式 | 后续计划拆成“前端页面设计线”和“后端数据 / 逻辑线”；每页按后端投影契约 -> 前端页面实现 -> 验收回归推进 | `task_plan.md` |
@@ -45,6 +52,14 @@
 | `management-knowledge.json` 退役边界 | 已完成退役：`assets`、顶层 `service_module_index`、安全知识重复数据和环境旧树均不再作为顾问端发布包、API 数据包或前端 fallback；安全知识由 `maintenance-knowledge.json` 承接，环境关系由 `environment-workbench.json` 承接，共享索引由 `shared-lookups.json` 承接 | `frontend/capability-browser/public/data/shared-lookups.json`, `frontend/capability-browser/public/data/maintenance-knowledge.json`, `frontend/capability-browser/public/data/environment-workbench.json`, `src/sapd_wiki/exports.py`, `src/sapd_wiki/api_server.py` |
 | BE-4 数据质量首轮审计 | 三份 workbench 顶层结构、关系端点、孤立对象和主展示字段边界均通过静态检查；`CI/CD流水线` 拆词异常、能力页标准 / 框架映射和 LC-AP 阶段级措施投影均已修复；当前继续跟踪 `OI-073` 源数据一致性待确认项 | `docs/06-implementation/be-4-workbench-data-quality-gap-list.md`, `docs/06-implementation/open-issues.md` |
 
+## 2026-07-11 全工程前端设计外部参考
+
+- Apple HIG `Materials`：材质层应主要服务导航和控件，内容层保持清晰、稳定，避免把玻璃效果铺满业务表格和工作区。来源：<https://developer.apple.com/design/human-interface-guidelines/materials>
+- Apple HIG `Sidebars`：侧栏适合扁平业务域导航；层级更深或可用宽度不足时应切换为 split view / 更紧凑导航，而不是持续增加常驻层级。来源：<https://developer.apple.com/design/human-interface-guidelines/sidebars>
+- SAP Fiori `Flexible Column Layout`：列表—详情类流程可以使用可变列；不应以空详情列开场，也不应默认三列同时出现；工作台附加内容更适合按需 dynamic side content。来源：<https://experience.sap.com/fiori-design-web/flexible-column-layout/>
+- SAP Fiori `Toolbar` / `Table Overview`：表格级搜索、筛选和动作应靠近表格并进入单一 toolbar；宽度不足时动作进入 overflow；复杂表格优先减少列、使用多行单元格或渐进披露。来源：<https://experience.sap.com/fiori-design-web/toolbar-overview/>、<https://experience.sap.com/fiori-design-web/table-overview/>
+- 以上外部资料只作为设计模式参考，不覆盖 SAPD Wiki 的字段边界、对象粒度、语义色和前后端契约。
+
 ## 当前重要风险
 
 | 风险 | 当前处理 |
@@ -52,7 +67,7 @@
 | 上下文过大导致主控卡死 | 默认读取 `AGENTS.md` + `CURRENT_STATE.md`，长历史放入 `docs/05-archive/` |
 | 文档和 Issue 继续膨胀 | 默认不为小修新增文档或 `OI`；修复后需要用户验收的问题必须在完成反馈给入口，用户确认后及时关闭 / 归档 |
 | 设计文档散乱导致实现依据不清 | 只把 active / implementation-source 的 `frontend/design-handoff/implementation-specs/` 作为页面代码实现依据；Stitch 输出、截图和旧 brief 必须先转成 spec 或降级为 reference |
-| 过早进入新功能 | Phase 7、maturity M1、新 Sheet 扩展均不默认启动 |
+| 过早正式化成熟度模块 | 受控 demo V2 通过不等于正式库或 DMG 已交付；正式 `maturity_*` 持久化、客户数据、发布包和 App 验收必须另行确认 |
 | 前端硬编码业务关系 | 发现数据缺口时记录为数据契约或待确认问题，不在页面临时编造 |
 | 前后端边界漂移 | 新页面、新字段和新关系先更新后端契约，再进入前端实现；禁止组件直接读取原始数据或临时 JSON |
 | 非业务字段泄露 | 主展示区不得出现 `sheet`、`row`、`raw_value`、`metadata` 等非业务字段 |

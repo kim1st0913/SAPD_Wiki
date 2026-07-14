@@ -52,6 +52,10 @@ const suites = {
       command("static:frontend-smoke", "前端 smoke 脚本语法检查", "node", ["--check", "scripts/frontend_smoke_check.mjs"]),
       command("static:content-smoke", "内容 smoke 脚本语法检查", "node", ["--check", "scripts/frontend_content_smoke_check.mjs"]),
       command("static:dmg-parity-audit", "DMG / 5173 一致性审计脚本语法检查", "node", ["--check", "scripts/audit_mac_dmg_browser_parity_contract.mjs"]),
+      command("static:service-scope-chip-audit", "服务胶囊作用域颜色审计脚本语法检查", "node", ["--check", "scripts/audit_service_scope_chip_color_contract.mjs"]),
+      command("static:p0-1-boundary-audit", "P0-1 正确性与安全边界门禁脚本语法检查", "node", ["--check", "scripts/audit_frontend_p0_1_correctness_boundary_contract.mjs"]),
+      command("static:p0-2-shell-audit", "P0-2 Apple Shell 与共享布局基座门禁脚本语法检查", "node", ["--check", "scripts/audit_frontend_p0_2_apple_shell_layout_contract.mjs"]),
+      command("static:p0-4-standard-issue-audit", "P0-4 标准与 Issue 壳层派生门禁脚本语法检查", "node", ["--check", "scripts/audit_frontend_p0_4_standard_issue_shell_contract.mjs"]),
     ],
   },
   boundaries: {
@@ -77,6 +81,15 @@ const suites = {
   frontend: {
     description: "前端契约与搜索 / 滚动 / 加载规则检查",
     commands: [
+      command("frontend:p0-1-boundary", "P0-1 正确性与安全边界统一门禁", "node", (ctx) =>
+        withUrl(["scripts/audit_frontend_p0_1_correctness_boundary_contract.mjs"], ctx),
+      ),
+      command("frontend:p0-2-shell", "P0-2 Apple Shell 与共享布局基座门禁", "node", (ctx) =>
+        withUrl(["scripts/audit_frontend_p0_2_apple_shell_layout_contract.mjs"], ctx),
+      ),
+      command("frontend:p0-4-standard-issue", "P0-4 标准与 Issue 壳层派生门禁", "node", (ctx) =>
+        withUrl(["scripts/audit_frontend_p0_4_standard_issue_shell_contract.mjs"], ctx),
+      ),
       command("frontend:governance", "前端高风险文件治理审计", "node", ["scripts/audit_frontend_governance.mjs"]),
       command("frontend:lazy-load", "前端按需加载契约审计", "node", ["scripts/audit_frontend_lazy_load_contract.mjs"]),
       command("frontend:route-refresh", "前端深层路由刷新契约审计", "node", ["scripts/audit_frontend_route_refresh_contract.mjs"]),
@@ -84,7 +97,7 @@ const suites = {
       command("frontend:global-search", "全局搜索索引和定位契约审计", "node", ["scripts/audit_global_search_index_contract.mjs"]),
       command("frontend:search-state", "搜索历史和状态隔离审计", "node", ["scripts/audit_search_state_isolation.mjs"]),
       command("frontend:environment-search", "信息化环境搜索契约审计", "node", ["scripts/audit_environment_search_contract.mjs"]),
-      command("frontend:capability-viewmodel", "安全能力映射 ViewModel 当前对象一致性审计", "node", ["scripts/audit_capability_viewmodel_contract.mjs"]),
+      command("frontend:maturity-v2.1", "成熟度评估 V2.1 企业项目、固定模板、目标聚合与文件交换审计", "python3", ["scripts/audit_maturity_assessment_v2_1_contract.py"]),
     ],
   },
   runtime: {
@@ -106,6 +119,9 @@ const suites = {
       ),
       command("runtime:standards", "标准页 HTTP/API smoke", "node", (ctx) =>
         withOptionalChrome(withUrl(["scripts/frontend_smoke_check.mjs", "--page", "standards", "--route", "/standards/dsp-level-2"], ctx), ctx),
+      ),
+      command("runtime:maturity", "成熟度评估工作台 HTTP/API smoke", "node", (ctx) =>
+        withOptionalChrome(withUrl(["scripts/frontend_smoke_check.mjs", "--page", "maturity", "--route", "/workbench/maturity"], ctx), ctx),
       ),
     ],
   },

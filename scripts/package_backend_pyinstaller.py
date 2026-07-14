@@ -98,6 +98,8 @@ def package_backend(args: argparse.Namespace) -> Path:
         add_data_arg(REPO_ROOT / "src" / "sapd_wiki" / "paths.py", "runtime_src/sapd_wiki"),
         "--add-data",
         add_data_arg(REPO_ROOT / "src" / "sapd_wiki" / "api_server.py", "runtime_src/sapd_wiki"),
+        "--add-data",
+        add_data_arg(REPO_ROOT / "src" / "sapd_wiki" / "maturity.py", "runtime_src/sapd_wiki"),
         "--distpath",
         str(dist_dir),
         "--workpath",

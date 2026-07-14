@@ -73,6 +73,36 @@ async function fetchStatus(url) {
   }
 }
 
+async function postJsonStatus(url, token, body, validate = () => true) {
+  const started = Date.now();
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { "X-SAPD-Session-Token": token } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+    const payload = await response.json();
+    const data = payload?.data || payload;
+    return {
+      ok: response.ok && validate(data),
+      status: response.status,
+      timeMs: Date.now() - started,
+      dataState: data?.dataState || data?.data_state,
+      error: data?.error || data?.message,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      status: 0,
+      timeMs: Date.now() - started,
+      error: error.message,
+    };
+  }
+}
+
 async function fetchTextStatus(url) {
   const started = Date.now();
   try {
@@ -116,6 +146,61 @@ async function lightweightHttpSmoke({ pageName, baseUrl, route, reason }) {
   };
   if (pageName === "capability" || pageName === "capabilities" || route === "/capability-mapping") {
     checks.capabilityInitial = await fetchStatus(initialUrl);
+  }
+  if (pageName === "maturity" || route.startsWith("/workbench/maturity")) {
+    const maturityUrl = new URL("/api/v1/maturity/workspace", rootUrl).toString();
+    const healthPayload = await fetchJson(healthUrl);
+    const sessionToken = healthPayload?.data?.auth?.session_token || "";
+    const workspaceResponse = await fetch(maturityUrl, { cache: "no-store" });
+    const workspacePayload = await workspaceResponse.json();
+    const workspaceData = workspacePayload?.data || workspacePayload;
+    const template = workspaceData?.template || {};
+    const detail = workspaceData?.projectDetails?.["demo-project-002"] || {};
+    checks.maturityWorkspace = {
+      ok:
+        workspaceResponse.ok &&
+        workspaceData?.dataState === "ready" &&
+        template?.version === "V2.1" &&
+        template?.readOnly === true &&
+        template?.stats?.capabilities === 32 &&
+        template?.stats?.focuses === 91 &&
+        template?.stats?.services === 160 &&
+        template?.stats?.serviceMappings === 160 &&
+        template?.stats?.platformEvidenceReferences === 6 &&
+        template?.stats?.serviceItems === 154 &&
+        template?.stats?.focusItems === 31 &&
+        template?.stats?.scoreItems === 185 &&
+        Object.values(workspaceData?.projectDetails || {}).every((projectDetail) => !Object.hasOwn(projectDetail?.project || {}, "scopeCodes")),
+      status: workspaceResponse.status,
+      timeMs: 0,
+      stats: template?.stats,
+    };
+    checks.maturityComponent = await fetchStatus(new URL("/components/MaturityAssessmentWorkbench.js", rootUrl).toString());
+    checks.maturityStylesheet = await fetchStatus(new URL("/maturity-assessment-workbench.css", rootUrl).toString());
+    checks.maturityTemplateValidate = await postJsonStatus(
+      new URL("/api/v1/maturity/template/validate", rootUrl).toString(),
+      sessionToken,
+      { template },
+      (data) => data?.valid === true && Boolean(data?.snapshotId),
+    );
+    checks.maturityCalculate = await postJsonStatus(
+      new URL("/api/v1/maturity/calculate", rootUrl).toString(),
+      sessionToken,
+      { project: detail?.project, template: detail?.template || template, scoreEntries: detail?.scoreEntries || [] },
+      (data) => data?.ok === true && data?.summary?.completionRate === 100 && data?.summary?.targetAchievementRate != null && data?.calculationRun?.algorithmVersion === "sapd-maturity-v2.1.0",
+    );
+    checks.maturityReport = await postJsonStatus(
+      new URL("/api/v1/maturity/report", rootUrl).toString(),
+      sessionToken,
+      { project: detail?.project, template: detail?.template || template, scoreEntries: detail?.scoreEntries || [] },
+      (data) => data?.ok === true && data?.formal === true && data?.status === "snapshot" && data?.json?.schemaVersion === "maturity-demo-package-v2.1",
+    );
+    checks.maturityScoreExport = await postJsonStatus(
+      new URL("/api/v1/maturity/score/export", rootUrl).toString(),
+      sessionToken,
+      { project: detail?.project, template: detail?.template || template, scoreEntries: detail?.scoreEntries || [] },
+      (data) => data?.ok === true && data?.package?.schemaVersion === "maturity-score-exchange-v2.1" && Boolean(data?.package?.fileInfo?.structureHash),
+    );
   }
   if (isDeepBusinessRoute(route)) {
     checks.appBaseHref = {

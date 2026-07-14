@@ -1,0 +1,79 @@
+{
+  "version": "frontend-p0-2-apple-shell-layout-2026-07-13.4",
+  "risk_ids": ["FE-R02", "FE-R03", "FE-R44", "FE-R45", "FE-R47"],
+  "runtime_surface": "shared_frontend_web_and_macos_app",
+  "viewport_case": {
+    "width": 1440,
+    "height": 1024,
+    "topbar_height": 56,
+    "page_header_height": 96,
+    "minimum_main_height": 650
+  },
+  "title_contract": {
+    "owner_selector": "#appPageHeader[data-shell-title-owner=\"true\"]",
+    "title_selector": "#appPageTitle",
+    "maximum_page_h1": 1,
+    "brand_element": "strong.brand-title"
+  },
+  "navigation_contract": {
+    "single_open_business_domain": true,
+    "active_route_auto_scroll": true,
+    "collapse_state_key": "sapd.appShell.sidebarCollapsed",
+    "route_manifest_unchanged": true
+  },
+  "auxiliary_contract": {
+    "maximum_resident_layers_per_ordinary_page": 1,
+    "second_layer_mode": "overlay",
+    "overlay_dismiss_event": "sapd:shell-auxiliary-dismiss",
+    "ordinary_workspace_layouts": {
+      "overviewWorkspace": "main-resident-auxiliary",
+      "workbenchWorkspace": "main-only",
+      "capabilityWorkspace": "resident-directory-main",
+      "environmentWorkspace": "main-only",
+      "devLifecycleWorkspace": "main-resident-inspector",
+      "dataLifecycleWorkspace": "main-resident-inspector",
+      "maintenanceWorkspace": "directory-main-overlay",
+      "contentWorkspace": "directory-main-overlay"
+    }
+  },
+  "maturity_contract": {
+    "included_in_apple_shell": true,
+    "route_prefix": "/workbench/maturity",
+    "workspace_layout": "main-only",
+    "header_action_slot": "maturityShellHeaderActions",
+    "local_primary_header_forbidden": true,
+    "project_context_style": "consistent_secondary_context_all_project_tabs",
+    "create_project_surface": "centered_workflow_overlay",
+    "service_switch_component": "shared_apple_shell_tabs",
+    "result_radar_grain": "all_l2_capabilities_grouped_by_top_category"
+  },
+  "visual_tokens": {
+    "font_sizes": [12, 14, 16, 24],
+    "page_header_rhythm": {
+      "gap": 12,
+      "padding_block": 12,
+      "padding_inline": 18,
+      "copy_gap": 5,
+      "title_gap": 7,
+      "title_min_height": 28,
+      "breadcrumb_line_height": 1.375,
+      "title_line_height": 1.13,
+      "description_line_height": 1.45,
+      "description_font_role": "meta"
+    },
+    "radii": {
+      "control": 6,
+      "surface": 10,
+      "overlay": 14
+    },
+    "maximum_nested_large_radius_layers": 2,
+    "functional_pill_exception": true
+  },
+  "forbidden_scope": {
+    "business_table_global_override": true,
+    "maturity_business_or_scoring_rule_change": true,
+    "capability_graph_collision_change": true,
+    "drawio_original_change": true,
+    "data_or_etl_change": true
+  }
+}

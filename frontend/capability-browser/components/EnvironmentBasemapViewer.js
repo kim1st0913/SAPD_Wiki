@@ -1,5 +1,6 @@
 (function () {
   const components = (window.sapdComponents = window.sapdComponents || {});
+  const display = window.sapdDisplay || {};
 
   const SVG_PATH = "./generated/environmentBasemap.svg?v=environment-basemap-svg-20260612-data-sharing-1";
   const SEMANTIC_PATH = "./generated/environmentBasemap.semantic.json";
@@ -64,8 +65,10 @@
   function annotationValueAttrs(value) {
     const raw = text(value).trim();
     if (!raw) return "";
+    const sharedAttrs = display.annotationValueAttrs?.({ escapeHtml, text }, raw);
+    if (sharedAttrs) return sharedAttrs;
     const escaped = escapeHtml(raw);
-    return ` data-annotation-value="true" data-copy-text="${escaped}" title="${escaped}" data-annotation-tooltip="${escaped}"`;
+    return ` data-annotation-value="true" data-copy-text="${escaped}" data-annotation-tooltip="${escaped}"`;
   }
 
   async function fetchText(url) {
@@ -82,12 +85,25 @@
     return Math.max(min, Math.min(max, value));
   }
 
+  function objectBusinessKey(item) {
+    if (!item) return "";
+    const type = text(item.objectType || item.type).trim();
+    const contextKey = text(item.objectContextKey || item.contextKey).trim();
+    const code = text(item.objectCode || item.code).trim();
+    const name = text(item.objectName || item.title || item.name || item.text).trim();
+    const id = text(item.objectId || item.id).trim();
+    if (type === "information_object" && contextKey) return `${type}:${contextKey}`;
+    if (code) return `${type}:${code}`;
+    if (name) return `${type}:${name}`;
+    return `${type}:${id || JSON.stringify(item)}`;
+  }
+
   function uniqueById(items) {
     const result = [];
     const seen = new Set();
     for (const item of items || []) {
       if (!item) continue;
-      const key = item.objectId || item.objectName || JSON.stringify(item);
+      const key = objectBusinessKey(item);
       if (!key || seen.has(key)) continue;
       seen.add(key);
       result.push(item);
@@ -581,6 +597,16 @@
     }
   }
 
+  function announceBasemapStatus(root, message) {
+    const region = root.querySelector("[data-basemap-live-status]");
+    const value = text(message).trim();
+    if (!region || !value) return;
+    region.textContent = "";
+    window.setTimeout(() => {
+      if (region.isConnected) region.textContent = value;
+    }, 0);
+  }
+
   function selectNode(root, mxId) {
     const state = stateByRoot.get(root);
     if (!state) return;
@@ -596,16 +622,19 @@
     applyHighlight(root);
     updateStatus(root);
     updateDetail(root);
+    announceBasemapStatus(root, `已定位 ${node.label || mxId}，详情已打开`);
   }
 
   function clearSelection(root) {
     const state = stateByRoot.get(root);
     if (!state?.selectedMxId) return;
+    const selectedLabel = state.nodeByMxId.get(state.selectedMxId)?.label || state.selectedMxId;
     state.selectedMxId = "";
     state.highlightedMxIds = new Set();
     applyHighlight(root);
     updateStatus(root);
     updateDetail(root);
+    announceBasemapStatus(root, `已清除 ${selectedLabel} 的定位状态`);
   }
 
   function renderStatus(root) {
@@ -700,6 +729,15 @@
     return `<em>${escapeHtml(kindLabel)}</em><span class="${textClass}">${escapeHtml(label)}</span>`;
   }
 
+  function chipScopeAttrs(item, kind) {
+    if (kind === "service") return display.serviceScopeAttrs?.({ escapeHtml }, item) || "";
+    if (kind !== "scope") return "";
+    const scopeCode = display.serviceScopeCode?.(item);
+    if (!scopeCode) return "";
+    const escaped = escapeHtml(scopeCode);
+    return ` data-scope="${escaped}" data-scope-palette="${escaped}"`;
+  }
+
   function renderList(items, kind = "") {
     const unique = uniqueById(items);
     if (!unique.length) return `<span class="environment-basemap-lab-empty">暂无映射</span>`;
@@ -710,7 +748,7 @@
         ${unique
           .map((item) => {
             const label = [item.objectCode, item.objectName].map((value) => text(value).trim()).filter(Boolean).join(" ") || item.objectId;
-            return `<span class="${chipClass}"${annotationValueAttrs([kindLabel, label].filter(Boolean).join(" | "))}>${renderChipContent(item, kind)}</span>`;
+            return `<span class="${chipClass}"${annotationValueAttrs([kindLabel, label].filter(Boolean).join(" | "))}${chipScopeAttrs(item, kind)}>${renderChipContent(item, kind)}</span>`;
           })
           .join("")}
       </div>
@@ -1374,6 +1412,7 @@
         `;
     return `
       <section class="environment-basemap-lab-shell ${rootClass}" ${rootAttr}>
+        <span class="sapd-visually-hidden" data-basemap-live-status role="status" aria-live="polite" aria-atomic="true"></span>
         <section class="environment-basemap-lab-main is-lab-view">
           <div class="environment-basemap-lab-toolbar page-local-search-toolbar ${toolbarSearch ? "has-toolbar-search" : ""}">
             ${toolbarBody}

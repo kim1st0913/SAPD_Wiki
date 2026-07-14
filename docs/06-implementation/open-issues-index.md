@@ -5,8 +5,8 @@
 ## 摘要
 
 - 生成日期：2026-06-01
-- 问题总数：192
-- 当前未关闭问题数：2
+- 问题总数：193
+- 当前未关闭问题数：3
 - 已关闭归档问题数：190
 - 当前入口：`docs/06-implementation/open-issues.md`
 - 已关闭归档：`docs/05-archive/open-issues-history/2026-06.md`
@@ -22,6 +22,7 @@
 | 已关闭 / 自动验收通过 | 1 |
 | 已回退 | 1 |
 | 已修复 | 127 |
+| 已修复 / 待用户验收 | 1 |
 | 已修复，后续可继续优化 | 1 |
 | 长期保留 / 按需继续修复 | 1 |
 
@@ -229,5 +230,7 @@
 | OI-135 | 已关闭 | 用户库治理与兼容表迁移清理 | 数据 / 前端 / Delivery Bundle / 治理 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-157 | 已关闭 / 自动验收通过 | 打包测试反馈需要单独导出用户批注 | Delivery Bundle / 用户数据 / 批注 / 诊断 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-190 | 业务接受 | macOS DMG 外部分发签名公证、安装与更新机制待确认 | macOS 交付 / 签名公证 / 安装更新机制 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-192 | 已修复 / 待用户验收 | 成熟度评分工作台服务、评分定义与主动作契约未按截图落地 | 前端 / 成熟度评分 / 产品设计 / 防回归审计 | docs/06-implementation/open-issues.md |
+| OI-191 | 已修复 / 待用户验收 | 全局共享标题区视觉 token 偏离旧 DMG 基线 | 前端 / 共享 App Shell / 设计 / 审计 | docs/06-implementation/open-issues.md |
 | OI-138 | 长期保留 / 按需继续修复 | 关注点关系图谱标签与节点 / 连线碰撞 | 前端 / 图谱布局 / 设计 | docs/06-implementation/open-issues.md |
 | OI-128 | 部分完成 | USER-WRITE-UI-1：批注 / 工作台用户写入入口 | 前端 / 用户数据 / Delivery Bundle | docs/06-implementation/open-issues.md |

@@ -58,6 +58,11 @@
     return ` data-annotation-value="true" data-copy-text="${escaped}" title="${escaped}" data-annotation-tooltip="${escaped}"`;
   }
 
+  function serviceScopeAttrs(item, objectKind = "") {
+    if (!String(objectKind || "").includes("服务")) return "";
+    return display.serviceScopeAttrs?.(utils, item) || "";
+  }
+
   function lifecycleTargetAttrs(row, kind = "dev") {
     const id = String(row?.id || "").trim();
     const code = String(row?.code || row?.order || id).trim();
@@ -242,7 +247,7 @@
     const visibleText = [code, title].filter(Boolean).join(" ");
     const isService = objectKind.includes("服务");
     const annotationText = [isService ? "" : objectKind, visibleText].filter(Boolean).join(" | ");
-    return `<span class="relation-chip technical-chip ${kindClass}"${annotationValueAttrs(annotationText)}${lifecycleSearchTargetAttrs(searchTargetRef, {
+    return `<span class="relation-chip technical-chip ${kindClass}"${annotationValueAttrs(annotationText)}${serviceScopeAttrs({ ...item, code, title }, objectKind)}${lifecycleSearchTargetAttrs(searchTargetRef, {
       "data-lifecycle-relation-type": item.relationType,
       "data-lifecycle-policy-row-id": item.policyRowId,
       "data-lifecycle-object-id": item.objectId || item.id || item.code || item.title,

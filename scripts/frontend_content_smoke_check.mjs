@@ -465,9 +465,9 @@ function validateLocalPackages() {
     "global search previews and result rows must show context and highlight the query inside the matched snippet.",
   );
   assert(
-    appSource.includes("clearGlobalSearchPanel({ keepQuery: true })") &&
+      appSource.includes("clearGlobalSearchPanel({ keepQuery: true })") &&
       appSource.includes("clearDestinationSearchForGlobalActivation(result.route)") &&
-      appSource.includes("queuePageSearchReveal(activationQuery)") &&
+      appSource.includes("queuePageSearchReveal(activationQuery, searchScopeForCurrentState(), globalSearchPageRevealOptions(result))") &&
       !appSource.includes("setScopedSearch(activationQuery)") &&
       !appSource.includes("state.devLifecycleStageSearch = activationQuery") &&
       !appSource.includes("state.dataLifecycleStageSearch = activationQuery"),

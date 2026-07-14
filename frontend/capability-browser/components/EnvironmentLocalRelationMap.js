@@ -821,7 +821,7 @@
               </button>
             </div>
           </div>
-          <div id="environmentTree" class="environment-tree">
+          <div id="environmentTree" class="environment-tree" data-environment-tree-scroll>
             ${
               components.EnvironmentTree?.render({
                 navigationTree: viewModel?.navigationTree,

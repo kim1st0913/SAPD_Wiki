@@ -1,0 +1,40 @@
+{
+  "version": "frontend-p0-4-standard-issue-shell-2026-07-13.1",
+  "risk_ids": ["FE-R27", "FE-R33", "FE-R34"],
+  "runtime_surface": "shared_frontend_web_and_macos_app",
+  "standard_contract": {
+    "domain_id": "standards",
+    "active_navigation_inset": 10,
+    "deep_routes": [
+      "/standards/mlps-level-3",
+      "/standards/nist-csf-2",
+      "/standards/iso-27001-2022",
+      "/standards/dsp-level-2",
+      "/standards/cis-csc-v8",
+      "/standards/crf",
+      "/standards/nist-800-53-rev5",
+      "/standards/workforce-reference"
+    ],
+    "global_domain_and_current_framework_visible": true
+  },
+  "issue_contract": {
+    "route": "/workbench/annotations",
+    "domain_id": "workbench",
+    "current_object_key": "workbenchSelectedIssueId",
+    "batch_selection_key": "workbenchSelectedIssueIds",
+    "initial_inspector_width": 0,
+    "open_selector": "[data-review-inspector]",
+    "close_selector": "[data-review-inspector-close]",
+    "queue_selector": ".workbench-review-queue",
+    "keyboard_keys": ["ArrowUp", "ArrowDown", "Enter", "Space"],
+    "batch_selection_opens_detail": false,
+    "old_route_selection_restored": false
+  },
+  "forbidden_scope": {
+    "default_rows_zero_selection": true,
+    "standard_data_change": true,
+    "issue_data_or_user_db_change": true,
+    "route_manifest_change": true,
+    "business_filter_or_sort_change": true
+  }
+}

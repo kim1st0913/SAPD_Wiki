@@ -4,6 +4,7 @@
   const display = window.sapdDisplay || {};
 
   function chipList(items, empty = "待补充", fallbackKind = "") {
+    if (display.relationChipList) return display.relationChipList(utils, items, { empty, kind: fallbackKind });
     const rows = utils.list(items).filter(Boolean);
     if (!rows.length) return `<span class="empty-inline">${utils.escapeHtml(empty)}</span>`;
     return rows

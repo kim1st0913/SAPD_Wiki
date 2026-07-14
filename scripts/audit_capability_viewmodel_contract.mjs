@@ -329,7 +329,10 @@ function validateMainDisplayBoundary(item, viewModel) {
     relationshipSummary: viewModel.relationshipSummary,
     capabilityOverview: viewModel.capabilityOverview,
     focusOverviewSelected: viewModel.focusOverview?.selected,
-    localRelationMapFocus: viewModel.localRelationMap?.focus,
+    technicalMappingRows: viewModel.technicalMappingRows,
+    managementMappingRows: viewModel.managementMappingRows,
+    standardMappingRows: viewModel.standardMappingRows,
+    localRelationMap: viewModel.localRelationMap,
   };
   for (const [name, value] of Object.entries(boundaryObjects)) {
     const forbidden = findForbiddenKey(value);
@@ -440,9 +443,9 @@ function validateOverviewRender(item, component, viewModel, management) {
   const titleTabsHtml = renderTitleTabs("summary");
   const titleTabsSummaryHtml = renderTitleTabs("technical");
   const focusStripHtml = component.renderFocusStrip(viewModel.localRelationMap, viewModel.focusOverview, viewModel.capabilityOverview);
-  assert(/id="capability-relation-tab-summary"[^>]*value="summary" checked/.test(html), `${item.code}: relation graph tab should be default active`);
-  assert(/id="capability-relation-tab-technical"[^>]*value="technical" checked/.test(summaryActiveHtml), `${item.code}: overview summary tab cannot be activated`);
-  assert(/id="capability-relation-tab-summary"[^>]*value="summary" checked/.test(staleTabHtml), `${item.code}: stale L0/L1 tab state should fall back to relation graph`);
+  assert(/id="capability-relation-tab-summary"[^>]*value="summary"[^>]*checked/.test(html), `${item.code}: relation graph tab should be default active`);
+  assert(/id="capability-relation-tab-technical"[^>]*value="technical"[^>]*checked/.test(summaryActiveHtml), `${item.code}: overview summary tab cannot be activated`);
+  assert(/id="capability-relation-tab-summary"[^>]*value="summary"[^>]*checked/.test(staleTabHtml), `${item.code}: stale L0/L1 tab state should fall back to relation graph`);
   assert(!summaryActiveHtml.includes('id="capability-relation-tab-management"'), `${item.code}: switched L0/L1/L2 render should still only render two tabs`);
   assert(!summaryActiveHtml.includes('id="capability-relation-tab-standard"'), `${item.code}: switched L0/L1/L2 render should still only render two tabs`);
   assert(summaryActiveHtml.includes("capability-overview-row-list"), `${item.code}: activated overview summary content missing`);

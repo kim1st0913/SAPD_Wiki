@@ -44,7 +44,7 @@ function objectName(object) {
 }
 
 function objectSortKey(object) {
-  return [object.objectName || "", object.objectCode || "", object.objectId || ""].join("|");
+  return [object.objectName || "", object.objectCode || "", object.objectContextKey || "", object.objectId || ""].join("|");
 }
 
 function compactObject(object) {
@@ -54,6 +54,7 @@ function compactObject(object) {
     objectId: object.id || "",
     objectCode: object.code || "",
     objectName: objectName(object),
+    objectContextKey: object.contextKey || "",
   };
 }
 
@@ -122,6 +123,79 @@ function displayEnvironmentName(name) {
   return ENVIRONMENT_ALIAS.get(name) || name || "";
 }
 
+function canonicalEnvironmentName(name) {
+  const clean = cleanText(name);
+  for (const [sourceName, displayName] of ENVIRONMENT_ALIAS.entries()) {
+    if (clean === displayName) return sourceName;
+  }
+  return clean;
+}
+
+function canonicalSegmentName(name) {
+  const clean = cleanText(name);
+  const levelMatch = clean.match(/^L(\d)$/i);
+  return levelMatch ? `L${levelMatch[1]}层` : clean;
+}
+
+function segmentContextKey(environmentName, segmentName) {
+  const envName = canonicalEnvironmentName(environmentName);
+  const segName = canonicalSegmentName(segmentName);
+  return envName && segName ? `${envName}||${segName}` : "";
+}
+
+function informationObjectContextKey(environmentName, segmentName, objectTitle) {
+  const segKey = segmentContextKey(environmentName, segmentName);
+  const title = cleanText(objectTitle);
+  return segKey && title ? `${segKey}||${title}` : "";
+}
+
+function addToListMap(map, key, value) {
+  if (!key || !value) return;
+  if (!map.has(key)) map.set(key, []);
+  map.get(key).push(value);
+}
+
+function putAlias(map, key, value) {
+  const clean = cleanText(key);
+  if (clean && value && !map.has(clean)) map.set(clean, value);
+}
+
+function contextPartsFromNode(node = {}) {
+  const parts = [];
+  for (const candidate of asArray(node.candidates)) {
+    for (const rawContext of asArray(candidate.context)) {
+      const rawParts = cleanText(rawContext)
+        .split(/\s+\/\s+/)
+        .map(cleanText)
+        .filter(Boolean);
+      if (rawParts.length === 1) {
+        parts.push({
+          environmentName: canonicalEnvironmentName(rawParts[0]),
+          segmentName: "",
+          objectName: cleanText(candidate.objectName || node.objectName || node.label),
+        });
+      } else if (rawParts.length >= 2) {
+        parts.push({
+          environmentName: canonicalEnvironmentName(rawParts[0]),
+          segmentName: canonicalSegmentName(rawParts[1]),
+          objectName: cleanText(candidate.objectName || node.objectName || node.label),
+        });
+      }
+    }
+  }
+
+  const labels = contextLabelsForNode(node);
+  const objectTitle = cleanText(node.objectName || node.label);
+  for (const environmentLabel of labels.map(canonicalEnvironmentName)) {
+    for (const segmentLabel of labels.map(canonicalSegmentName)) {
+      if (environmentLabel && segmentLabel && environmentLabel !== segmentLabel) {
+        parts.push({ environmentName: environmentLabel, segmentName: segmentLabel, objectName: objectTitle });
+      }
+    }
+  }
+  return parts;
+}
+
 function objectSubtypeForNode(node = {}) {
   const drawioType = node.drawioType || "";
   const label = node.label || "";
@@ -145,7 +219,7 @@ function contextLabelsForNode(node = {}) {
 function dedupeObjects(objects) {
   const byKey = new Map();
   for (const object of objects.filter(Boolean)) {
-    const key = `${object.objectType}:${object.objectId}`;
+    const key = `${object.objectType}:${object.objectContextKey || object.objectId || object.objectCode || object.objectName}`;
     if (!byKey.has(key)) byKey.set(key, object);
   }
   return [...byKey.values()].sort((a, b) => objectSortKey(a).localeCompare(objectSortKey(b), "zh-Hans-CN"));
@@ -165,10 +239,79 @@ function buildIndexes(workbench) {
   const evidenceById = new Map();
   const relationsBySource = new Map();
   const relationsByTarget = new Map();
+  const environmentsByName = new Map();
+  const segmentContextsByKey = new Map();
+  const informationObjectContextsByKey = new Map();
+  const informationObjectContextsByTitle = new Map();
+  const informationObjectContextsByEnvironment = new Map();
+  const informationObjectContextsBySegment = new Map();
+  const scopesByCode = new Map();
+  const scopesByTitle = new Map();
 
   for (const objects of Object.values(workbench.objects || {})) {
     for (const object of Object.values(objects || {})) {
       if (object?.id) objectsById.set(object.id, object);
+      if (object?.type === "information_environment") {
+        putAlias(environmentsByName, objectName(object), object);
+        putAlias(environmentsByName, displayEnvironmentName(objectName(object)), object);
+      }
+      if (object?.type === "scope_type") {
+        putAlias(scopesByCode, object.code, object);
+        putAlias(scopesByTitle, objectName(object), object);
+      }
+    }
+  }
+
+  for (const environment of asArray(workbench.environment_scope_tree)) {
+    const environmentTitle = canonicalEnvironmentName(environment.title || objectName(environment));
+    const environmentObject = {
+      ...(objectsById.get(environment.id) || {}),
+      ...environment,
+      type: "information_environment",
+      title: environment.title || objectName(environment),
+      name: environment.name || environment.title || objectName(environment),
+    };
+    putAlias(environmentsByName, environmentTitle, environmentObject);
+    putAlias(environmentsByName, displayEnvironmentName(environmentTitle), environmentObject);
+
+    for (const informationObject of asArray(environment.objects)) {
+      const segments = asArray(informationObject.segments);
+      for (const segment of segments) {
+        const segmentTitle = canonicalSegmentName(segment.title || objectName(segment));
+        const segKey = segmentContextKey(environmentTitle, segmentTitle);
+        if (!segKey) continue;
+
+        const segmentObject = {
+          ...(objectsById.get(segment.id) || {}),
+          ...segment,
+          type: "environment_segment",
+          title: segment.title || objectName(segment),
+          name: segment.name || segment.title || objectName(segment),
+          contextKey: segKey,
+          environmentId: environment.id || "",
+          environmentTitle,
+        };
+        if (!segmentContextsByKey.has(segKey)) segmentContextsByKey.set(segKey, segmentObject);
+
+        const contextKey = informationObjectContextKey(environmentTitle, segmentTitle, informationObject.title || objectName(informationObject));
+        if (!contextKey) continue;
+        const contextObject = {
+          ...(objectsById.get(informationObject.id) || {}),
+          ...informationObject,
+          type: "information_object",
+          title: informationObject.title || objectName(informationObject),
+          name: informationObject.name || informationObject.title || objectName(informationObject),
+          contextKey,
+          environmentId: environment.id || "",
+          environmentTitle,
+          segmentId: segment.id || "",
+          segmentTitle,
+        };
+        informationObjectContextsByKey.set(contextKey, contextObject);
+        addToListMap(informationObjectContextsByTitle, objectName(contextObject), contextObject);
+        addToListMap(informationObjectContextsByEnvironment, environmentTitle, contextObject);
+        addToListMap(informationObjectContextsBySegment, segKey, contextObject);
+      }
     }
   }
 
@@ -187,7 +330,20 @@ function buildIndexes(workbench) {
     }
   }
 
-  return { objectsById, evidenceById, relationsBySource, relationsByTarget };
+  return {
+    objectsById,
+    evidenceById,
+    relationsBySource,
+    relationsByTarget,
+    environmentsByName,
+    segmentContextsByKey,
+    informationObjectContextsByKey,
+    informationObjectContextsByTitle,
+    informationObjectContextsByEnvironment,
+    informationObjectContextsBySegment,
+    scopesByCode,
+    scopesByTitle,
+  };
 }
 
 function fromSource(index, sourceId, relationType, targetType = "") {
@@ -331,10 +487,29 @@ function compactEmbeddedService(service) {
   };
 }
 
-function buildEmbeddedScopeMappings(informationObjectIds, index, evidenceCollector) {
+function informationObjectRefKey(object) {
+  return object?.contextKey || object?.id || "";
+}
+
+function resolveInformationObjectRef(ref, index) {
+  if (!ref) return null;
+  if (typeof ref === "object") return ref;
+  return index.informationObjectContextsByKey.get(ref) || index.objectsById.get(ref) || null;
+}
+
+function resolveInformationObjectRefs(informationObjectRefs, index) {
+  const byKey = new Map();
+  for (const ref of asArray(informationObjectRefs)) {
+    const object = resolveInformationObjectRef(ref, index);
+    const key = informationObjectRefKey(object);
+    if (object && key && !byKey.has(key)) byKey.set(key, object);
+  }
+  return [...byKey.values()];
+}
+
+function buildEmbeddedScopeMappings(informationObjectRefs, index, evidenceCollector) {
   const mappings = [];
-  for (const informationObjectId of uniqueStrings(informationObjectIds)) {
-    const informationObject = index.objectsById.get(informationObjectId);
+  for (const informationObject of resolveInformationObjectRefs(informationObjectRefs, index)) {
     if (!informationObject || !asArray(informationObject.scope_mappings).length) continue;
     evidenceCollector.addObject(informationObject);
     for (const mapping of asArray(informationObject.scope_mappings)) {
@@ -360,14 +535,14 @@ function buildEmbeddedScopeMappings(informationObjectIds, index, evidenceCollect
   });
 }
 
-function buildScopeMappings(informationObjectIds, index, evidenceCollector) {
-  const embeddedMappings = buildEmbeddedScopeMappings(informationObjectIds, index, evidenceCollector);
+function buildScopeMappings(informationObjectRefs, index, evidenceCollector) {
+  const informationObjects = resolveInformationObjectRefs(informationObjectRefs, index);
+  const embeddedMappings = buildEmbeddedScopeMappings(informationObjects, index, evidenceCollector);
   if (embeddedMappings.length) return embeddedMappings;
 
   const mappings = [];
 
-  for (const informationObjectId of uniqueStrings(informationObjectIds)) {
-    const informationObject = index.objectsById.get(informationObjectId);
+  for (const informationObject of informationObjects) {
     if (!informationObject) continue;
     evidenceCollector.addObject(informationObject);
 
@@ -547,9 +722,118 @@ function buildContextPath({ environmentName, segmentName, objectCategoryName, in
   return uniqueStrings(path);
 }
 
+function scoreContextObjectForNode(contextObject, node) {
+  const labels = contextLabelsForNode(node).map((label) => canonicalEnvironmentName(canonicalSegmentName(label)));
+  const candidateParts = contextPartsFromNode(node);
+  let score = 0;
+  if (cleanText(node.objectName || node.label) === objectName(contextObject)) score += 6;
+  if (labels.includes(canonicalEnvironmentName(contextObject.environmentTitle))) score += 4;
+  if (labels.includes(canonicalSegmentName(contextObject.segmentTitle))) score += 4;
+  for (const part of candidateParts) {
+    if (part.environmentName === contextObject.environmentTitle) score += 8;
+    if (part.segmentName === contextObject.segmentTitle) score += 8;
+    if (part.objectName === objectName(contextObject)) score += 4;
+  }
+  return score;
+}
+
+function resolveInformationObjectForNode(node, index) {
+  const title = cleanText(node.objectName || node.label);
+  for (const part of contextPartsFromNode(node)) {
+    const key = informationObjectContextKey(part.environmentName, part.segmentName, part.objectName || title);
+    const object = index.informationObjectContextsByKey.get(key);
+    if (object) return object;
+  }
+
+  const byTitle = asArray(index.informationObjectContextsByTitle.get(title));
+  if (byTitle.length === 1) return byTitle[0];
+  if (byTitle.length > 1) {
+    const scored = byTitle
+      .map((object) => ({ object, score: scoreContextObjectForNode(object, node) }))
+      .sort((a, b) => b.score - a.score || a.object.contextKey.localeCompare(b.object.contextKey, "zh-Hans-CN"));
+    if (scored[0]?.score > 0) return scored[0].object;
+  }
+
+  return index.objectsById.get(node.objectId) || null;
+}
+
+function resolveEnvironmentForNode(node, index) {
+  const names = [
+    ...contextPartsFromNode(node).map((part) => part.environmentName),
+    node.objectName,
+    node.label,
+    ...contextLabelsForNode(node),
+  ].map(canonicalEnvironmentName);
+  for (const name of names) {
+    const object = index.environmentsByName.get(name) || index.environmentsByName.get(displayEnvironmentName(name));
+    if (object) return object;
+  }
+  return index.objectsById.get(node.objectId) || null;
+}
+
+function resolveSegmentForNode(node, index) {
+  for (const part of contextPartsFromNode(node)) {
+    const key = segmentContextKey(part.environmentName, part.segmentName || node.objectName || node.label);
+    const object = index.segmentContextsByKey.get(key);
+    if (object) return object;
+  }
+
+  const title = canonicalSegmentName(node.objectName || node.label);
+  const matchingSegments = [...index.segmentContextsByKey.values()].filter((segment) => canonicalSegmentName(objectName(segment)) === title);
+  if (matchingSegments.length === 1) return matchingSegments[0];
+  if (matchingSegments.length > 1) {
+    const labels = contextLabelsForNode(node).map(canonicalEnvironmentName);
+    const scored = matchingSegments
+      .map((segment) => ({
+        object: segment,
+        score: labels.includes(segment.environmentTitle) || labels.includes(displayEnvironmentName(segment.environmentTitle)) ? 1 : 0,
+      }))
+      .sort((a, b) => b.score - a.score || a.object.contextKey.localeCompare(b.object.contextKey, "zh-Hans-CN"));
+    if (scored[0]?.score > 0) return scored[0].object;
+  }
+  return index.objectsById.get(node.objectId) || null;
+}
+
+function resolveScopeForNode(node, index) {
+  const code = cleanText(node.objectCode || node.code || "").match(/\bI-[A-Z]{2}\b/)?.[0] || "";
+  if (code && index.scopesByCode.has(code)) return index.scopesByCode.get(code);
+  const title = cleanText(node.objectName || node.label).replace(/\bI-[A-Z]{2}\b/g, "").trim();
+  return index.scopesByTitle.get(title) || index.objectsById.get(node.objectId) || null;
+}
+
+function resolveObjectForNode(node, index) {
+  const objectType = node.objectType || node.drawioObjectType || "";
+  if (objectType === "information_object") return resolveInformationObjectForNode(node, index);
+  if (objectType === "information_environment") return resolveEnvironmentForNode(node, index);
+  if (objectType === "environment_segment") return resolveSegmentForNode(node, index);
+  if (objectType === "scope_type") return resolveScopeForNode(node, index);
+  return index.objectsById.get(node.objectId) || null;
+}
+
 function hierarchyContext(node, object, index, evidenceCollector) {
   const labels = contextLabelsForNode(node);
   if (object.type === "information_environment") {
+    const environmentTitle = canonicalEnvironmentName(objectName(object));
+    const contextObjects = asArray(index.informationObjectContextsByEnvironment.get(environmentTitle));
+    if (contextObjects.length) {
+      const segmentMap = new Map();
+      for (const child of contextObjects) {
+        const key = segmentContextKey(child.environmentTitle, child.segmentTitle);
+        const segment = index.segmentContextsByKey.get(key);
+        if (segment && !segmentMap.has(key)) segmentMap.set(key, segment);
+      }
+      const environmentContext = contextForEnvironment(object, labels);
+      evidenceCollector.addObject(object);
+      return {
+        ...environmentContext,
+        environment: compactObject(object),
+        segments: dedupeObjects([...segmentMap.values()].map(compactObject)),
+        informationObject: null,
+        informationObjectIds: contextObjects.map((child) => child.contextKey),
+        childInformationObjects: dedupeObjects(contextObjects.map(compactObject)),
+      };
+    }
+
     const segmentRelations = fromSource(index, object.id, "contains_segment", "environment_segment");
     evidenceCollector.addObject(object);
     evidenceCollector.addRelations(segmentRelations);
@@ -579,6 +863,24 @@ function hierarchyContext(node, object, index, evidenceCollector) {
   }
 
   if (object.type === "environment_segment") {
+    if (object.contextKey) {
+      const [contextEnvironmentName, contextSegmentName] = cleanText(object.contextKey)
+        .split("||")
+        .map(cleanText);
+      const contextObjects = asArray(index.informationObjectContextsBySegment.get(object.contextKey));
+      evidenceCollector.addObject(object);
+      return {
+        environmentName: contextEnvironmentName,
+        segmentName: contextSegmentName,
+        objectCategoryName: node.label && node.label !== objectName(object) ? node.label : contextSegmentName,
+        environment: compactObject(index.environmentsByName.get(contextEnvironmentName)) || null,
+        segments: [compactObject(object)].filter(Boolean),
+        informationObject: null,
+        informationObjectIds: contextObjects.map((child) => child.contextKey),
+        childInformationObjects: dedupeObjects(contextObjects.map(compactObject)),
+      };
+    }
+
     const environmentRelations = toTarget(index, object.id, "contains_segment", "information_environment");
     const objectRelations = fromSource(index, object.id, "contains_object", "information_object");
     evidenceCollector.addObject(object);
@@ -613,10 +915,10 @@ function hierarchyContext(node, object, index, evidenceCollector) {
       return {
         environmentName: contextEnvironmentName,
         objectCategoryName: contextSegmentName,
-        environment: null,
+        environment: compactObject(index.environmentsByName.get(contextEnvironmentName)) || null,
         segments: asArray(object.segments).map(compactEmbeddedObject).filter(Boolean),
         informationObject: compactObject(object),
-        informationObjectIds: [object.id],
+        informationObjectIds: [object.contextKey || object.id],
         childInformationObjects: [],
       };
     }
@@ -653,7 +955,7 @@ function hierarchyContext(node, object, index, evidenceCollector) {
 }
 
 function buildDetail(node, index, issues) {
-  const object = index.objectsById.get(node.objectId);
+  const object = resolveObjectForNode(node, index);
   if (!object) {
     issues.push({
       type: "missingDetail",
@@ -671,11 +973,19 @@ function buildDetail(node, index, issues) {
   const detailType = detailTypeForNode(node, object);
   const allContextScopeGroups = buildScopeMappings(context.informationObjectIds, index, evidenceCollector);
   const directScopeGroups = shouldExposeDirectScopeGroups(detailType)
-    ? buildScopeMappings(object.type === "information_object" ? [object.id] : [], index, evidenceCollector)
+    ? buildScopeMappings(object.type === "information_object" ? [object.contextKey || object.id] : [], index, evidenceCollector)
     : [];
-  const directKeys = new Set(directScopeGroups.map((group) => `${group.informationObject?.objectId || ""}:${group.scope?.objectId || ""}`));
+  const directKeys = new Set(
+    directScopeGroups.map(
+      (group) =>
+        `${group.informationObject?.objectContextKey || group.informationObject?.objectId || ""}:${group.scope?.objectCode || group.scope?.objectName || group.scope?.objectId || ""}`,
+    ),
+  );
   const inheritedScopeGroups = allContextScopeGroups.filter(
-    (group) => !directKeys.has(`${group.informationObject?.objectId || ""}:${group.scope?.objectId || ""}`),
+    (group) =>
+      !directKeys.has(
+        `${group.informationObject?.objectContextKey || group.informationObject?.objectId || ""}:${group.scope?.objectCode || group.scope?.objectName || group.scope?.objectId || ""}`,
+      ),
   );
   const directSummary = summarizeScopeGroups(directScopeGroups);
   const inheritedSummary = summarizeScopeGroups(inheritedScopeGroups);

@@ -7,6 +7,7 @@
   }
 
   function chipList(items, empty = "暂无", limit = 8) {
+    if (display.relationChipList) return display.relationChipList(utils, items, { empty, limit });
     const rows = utils.list(items).filter(Boolean);
     if (!rows.length) return `<span class="empty-inline">${utils.escapeHtml(empty)}</span>`;
     const visible = rows.slice(0, limit);

@@ -1,0 +1,55 @@
+{
+  "version": "2026-07-13.p0-1-correctness-boundary-v1",
+  "scope": "shared runtime / non-maturity frontend",
+  "riskIds": ["FE-R08", "FE-R12", "FE-R46", "FE-R49", "FE-R50"],
+  "currentObjectCases": [
+    { "code": "T", "objectType": "capability_category", "graphScope": "category" },
+    { "code": "T-AS", "objectType": "capability_domain", "graphScope": "domain" },
+    { "code": "T-AS.AD", "objectType": "capability", "graphScope": "capability" },
+    { "code": "T-AS.AD-01", "objectType": "capability_focus", "graphScope": "focus" }
+  ],
+  "drawio": {
+    "asset": "frontend/capability-browser/generated/environmentBasemap.svg",
+    "sha256": "2424b22f4d6f1add2d4d0d02cc716735581f7b7714f03a1ba333dc7d394d02dd",
+    "viewer": "frontend/capability-browser/components/EnvironmentBasemapViewer.js",
+    "stylePolicy": "immutable_external_overlay_only"
+  },
+  "semanticColors": {
+    "drawioExcluded": true,
+    "statusTokens": {
+      "selected": "--sapd-state-selected",
+      "complete": "--sapd-state-complete",
+      "warning": "--sapd-state-warning",
+      "review": "--sapd-state-review",
+      "error": "--sapd-state-error"
+    },
+    "objectRoleClasses": {
+      "service": "technical-chip service-chip",
+      "module": "technical-chip module-chip",
+      "measure": "technical-chip measure-chip",
+      "focus": "ownership-chip",
+      "system": "system-chip",
+      "environment": "environment-chip",
+      "note": "note-chip"
+    }
+  },
+  "fieldBoundary": {
+    "forbiddenMainKeys": [
+      "sheet",
+      "row",
+      "column",
+      "raw_value",
+      "source_file",
+      "import_id",
+      "source_id",
+      "source_ref",
+      "source_label",
+      "debug",
+      "raw",
+      "metadata",
+      "intermediate",
+      "generated_at"
+    ],
+    "evidenceContainer": "sourceEvidence"
+  }
+}

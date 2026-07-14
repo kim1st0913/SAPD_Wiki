@@ -40,6 +40,7 @@ const userNotesIntegrityAuditJs = readText("scripts/audit_user_notes_integrity.m
 const userNotesSeedJs = readText("scripts/seed_user_annotation_test_notes.mjs");
 const capabilityLocalRelationMapJs = readText("frontend/capability-browser/components/CapabilityLocalRelationMap.js");
 const lifecycleJs = readText("frontend/capability-browser/components/ApplicationSecurityLifecycle.js");
+const environmentBasemapViewerJs = readText("frontend/capability-browser/components/EnvironmentBasemapViewer.js");
 const environmentTreeJs = readText("frontend/capability-browser/components/EnvironmentTree.js");
 const environmentLocalRelationMapJs = readText("frontend/capability-browser/components/EnvironmentLocalRelationMap.js");
 const environmentScopeMatrixJs = readText("frontend/capability-browser/components/EnvironmentScopeServiceMatrix.js");
@@ -48,8 +49,32 @@ const annotationDesign = readText("docs/06-implementation/workspace-annotation-a
 const annotationRequirements = readText("docs/06-implementation/global-annotation-requirements-and-regression-matrix.md");
 const apiServerPy = readText("src/sapd_wiki/api_server.py");
 const runLocalServerPy = readText("scripts/run_local_server.py");
+const maturityGuideHtml = readText("frontend/capability-browser/assets/guides/maturity-model-usage.html");
 
 const issues = [];
+
+const maturityGuideRenderMatch = appJs.match(
+  /function renderMaturityModelGuide\(routeInfo = \{\}\) \{[\s\S]*?\n\}\n\nfunction scrollMaturityModelGuideSection/,
+);
+const maturityGuideRenderBody = maturityGuideRenderMatch?.[0] || "";
+
+if (
+  !includesAll(maturityGuideRenderBody, [
+    'class="maturity-guide-frame-shell"',
+    'aria-label="${escapeHtml(guideRow.title)}"',
+    'aria-describedby="maturityGuideFrameLoading"',
+  ]) ||
+  maturityGuideRenderBody.includes('title="${escapeHtml(guideRow.title)}"') ||
+  maturityGuideRenderBody.includes("annotationTargetAttrsForHtml(annotationTarget)") ||
+  maturityGuideHtml.includes('<span class="pill">SAPD Wiki 指南</span>') ||
+  !includesAll(maturityGuideHtml, ["padding: clamp(24px, 3.5vw, 40px)", "line-height: 1.58"])
+) {
+  issues.push({
+    severity: "error",
+    type: "maturity_guide_embed_tooltip_or_density_contract_missing",
+    message: "成熟度指南 iframe 不得输出原生 title 或整页批注 tooltip；hero 必须移除重复眉标并保持紧凑嵌入尺寸。",
+  });
+}
 
 if (!includesAll(appJs, ["annotationAnchorIndex", "createAnnotationAnchorIndex", "buildAnnotationNoteIndex", "annotationIndexEntriesForTargetRef", "annotationCandidatesFromIndex"])) {
   issues.push("annotation_anchor_runtime_index_missing");
@@ -806,7 +831,8 @@ if (
     "stripNativeAnnotationTitle(host);",
   ]) ||
   appJs.includes('title="${escapeHtml(raw)}" data-annotation-tooltip') ||
-  displayLabelsJs.includes('title="${escaped(raw)}" data-annotation-tooltip')
+  displayLabelsJs.includes('title="${escaped(raw)}" data-annotation-tooltip') ||
+  environmentBasemapViewerJs.includes('title="${escaped}" data-annotation-tooltip')
 ) {
   issues.push({
     severity: "error",
@@ -1098,6 +1124,7 @@ const result = {
     productContract: true,
     drawerTabPanelEdgeContract: true,
     expandedNoteVisibilityContract: true,
+    maturityGuideEmbedContract: true,
   },
   issues,
 };

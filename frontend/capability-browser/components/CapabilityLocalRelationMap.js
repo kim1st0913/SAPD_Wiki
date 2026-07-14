@@ -605,7 +605,7 @@
     const showSlidingScale = shouldRenderSlidingScaleReference(overview, children);
     const rowListClass = `capability-overview-row-list${showSlidingScale ? " is-five-up" : ""}`;
     return `
-      <div class="preview-tab-panel ${escape(panelClass)}">
+      <div id="capability-relation-panel-technical" class="preview-tab-panel ${escape(panelClass)}" role="tabpanel" aria-labelledby="capability-relation-tab-label-technical">
         <section class="capability-overview-shell capability-overview-summary-shell">
           ${renderOverviewBrief(overview)}
           <div class="capability-overview-summary-grid">
@@ -640,7 +640,7 @@
     };
     const [title, helper] = labels[mode] || labels.technical;
     return `
-      <div class="preview-tab-panel ${escape(mode)}-panel">
+      <div id="capability-relation-panel-${escape(mode)}" class="preview-tab-panel ${escape(mode)}-panel" role="tabpanel" aria-labelledby="capability-relation-tab-label-${escape(mode)}">
         <section class="capability-overview-shell">
           <section class="capability-overview-pane capability-condensed-detail">
             <header>
@@ -958,13 +958,13 @@
       const technicalRows = visibleTechnicalMappingRows(matrices.technicalMappingRows);
       if (!technicalRows.length) {
         return `
-          <div class="preview-tab-panel technical-panel original-matrix-panel">
+          <div id="capability-relation-panel-technical" class="preview-tab-panel technical-panel original-matrix-panel" role="tabpanel" aria-labelledby="capability-relation-tab-label-technical">
             ${renderTechnicalEmpty(map)}
           </div>
         `;
       }
       return `
-        <div class="preview-tab-panel technical-panel original-matrix-panel">
+        <div id="capability-relation-panel-technical" class="preview-tab-panel technical-panel original-matrix-panel" role="tabpanel" aria-labelledby="capability-relation-tab-label-technical">
           ${renderOriginalTechnicalMatrix(technicalRows, countLabel(confirmedTechnicalServiceCount(technicalRows), "服务"))}
         </div>
       `;
@@ -972,7 +972,7 @@
 
     if (mode === "management") {
       return `
-        <div class="preview-tab-panel management-panel original-matrix-panel">
+        <div id="capability-relation-panel-management" class="preview-tab-panel management-panel original-matrix-panel" role="tabpanel" aria-labelledby="capability-relation-tab-label-management">
           ${renderOriginalManagementMatrix(matrices.managementMappingRows, countLabel(stats.functions, "职能"))}
         </div>
       `;
@@ -981,7 +981,7 @@
     if (mode === "standard") {
       const rows = standardTableRows(map);
       return `
-        <div class="preview-tab-panel standard-panel original-matrix-panel">
+        <div id="capability-relation-panel-standard" class="preview-tab-panel standard-panel original-matrix-panel" role="tabpanel" aria-labelledby="capability-relation-tab-label-standard">
           ${renderStandardMappingMatrix(rows, rows.length ? countLabel(stats.standardStatus, "控制项") : "0 控制项")}
         </div>
       `;
@@ -1026,7 +1026,7 @@
               description: "当前关注点 -> 作用域 -> 安全技术服务",
             };
     return `
-      <div class="preview-tab-panel ${mode}-panel">
+      <div id="capability-relation-panel-${escape(mode)}" class="preview-tab-panel ${mode}-panel" role="tabpanel" aria-labelledby="capability-relation-tab-label-${escape(mode)}">
         ${renderMappingTable(tableConfig)}
       </div>
     `;
@@ -1036,7 +1036,7 @@
     const buildGraphModel = window.sapdModels?.buildLocalRelationGraphModel;
     if (!buildGraphModel || !components.LocalRelationNetworkGraph?.render) {
       return `
-        <div class="preview-tab-panel ${escape(panelClass)}">
+        <div id="capability-relation-panel-summary" class="preview-tab-panel ${escape(panelClass)}" role="tabpanel" aria-labelledby="capability-relation-tab-label-summary">
           <section class="local-relation-network-graph">
             <div class="preview-table-empty"><strong>本地关联网络图未加载</strong><span>LocalRelationNetworkGraph 或 relationGraphModel 当前不可用。</span></div>
           </section>
@@ -1053,7 +1053,7 @@
       standardRows: map.focus?.type === "capability_focus" ? standardTableRows(map) : list(matrices.standardMappingRows),
     });
     return `
-      <div class="preview-tab-panel ${escape(panelClass)}">
+      <div id="capability-relation-panel-summary" class="preview-tab-panel ${escape(panelClass)}" role="tabpanel" aria-labelledby="capability-relation-tab-label-summary">
         ${components.LocalRelationNetworkGraph.render({ graphModel })}
       </div>
     `;
@@ -1061,7 +1061,7 @@
 
   function renderTabControls(map = {}, capabilityOverview = {}, activeTab = "summary") {
     const policy = capabilityOverview.detailPolicy || "full_detail";
-    const tabLabel = (id, label) => `<label for="capability-relation-tab-${escape(id)}" class="relation-view-tab ${activeTab === id ? "is-active" : ""}">${escape(label)}</label>`;
+    const tabLabel = (id, label) => `<label id="capability-relation-tab-label-${escape(id)}" for="capability-relation-tab-${escape(id)}" class="relation-view-tab ${activeTab === id ? "is-active" : ""}" role="tab" aria-selected="${activeTab === id ? "true" : "false"}" aria-controls="capability-relation-panel-${escape(id)}" tabindex="${activeTab === id ? "0" : "-1"}">${escape(label)}</label>`;
     if (policy === "overview") {
       return `
         <div class="relation-view-tabs preview-tabs capability-title-tabs" role="tablist" aria-label="安全能力映射视角">
@@ -1102,8 +1102,8 @@
     if (overviewOnly) {
       return `
         <section class="capability-local-relation-map capability-map-v3 capability-map-preview-r2">
-          <input class="relation-view-radio" type="radio" name="capability-relation-view" id="capability-relation-tab-summary" value="summary"${checked("summary")} />
-          <input class="relation-view-radio" type="radio" name="capability-relation-view" id="capability-relation-tab-technical" value="technical"${checked("technical")} />
+          <input class="relation-view-radio" type="radio" name="capability-relation-view" id="capability-relation-tab-summary" value="summary" tabindex="-1"${checked("summary")} />
+          <input class="relation-view-radio" type="radio" name="capability-relation-view" id="capability-relation-tab-technical" value="technical" tabindex="-1"${checked("technical")} />
           <div class="capability-map-v3-grid preview-workbench-grid">
             <main class="capability-relation-stage preview-relation-stage">
               <section class="preview-stage-scroll">
@@ -1117,10 +1117,10 @@
     }
     return `
       <section class="capability-local-relation-map capability-map-v3 capability-map-preview-r2">
-        <input class="relation-view-radio" type="radio" name="capability-relation-view" id="capability-relation-tab-summary" value="summary"${checked("summary")} />
-        <input class="relation-view-radio" type="radio" name="capability-relation-view" id="capability-relation-tab-technical" value="technical"${checked("technical")} />
-        <input class="relation-view-radio" type="radio" name="capability-relation-view" id="capability-relation-tab-management" value="management"${checked("management")} />
-        <input class="relation-view-radio" type="radio" name="capability-relation-view" id="capability-relation-tab-standard" value="standard"${checked("standard")} />
+        <input class="relation-view-radio" type="radio" name="capability-relation-view" id="capability-relation-tab-summary" value="summary" tabindex="-1"${checked("summary")} />
+        <input class="relation-view-radio" type="radio" name="capability-relation-view" id="capability-relation-tab-technical" value="technical" tabindex="-1"${checked("technical")} />
+        <input class="relation-view-radio" type="radio" name="capability-relation-view" id="capability-relation-tab-management" value="management" tabindex="-1"${checked("management")} />
+        <input class="relation-view-radio" type="radio" name="capability-relation-view" id="capability-relation-tab-standard" value="standard" tabindex="-1"${checked("standard")} />
         <div class="capability-map-v3-grid preview-workbench-grid">
           <main class="capability-relation-stage preview-relation-stage">
             <section class="preview-stage-scroll">

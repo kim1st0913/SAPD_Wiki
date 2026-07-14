@@ -15,6 +15,11 @@
     return display.annotationValueAttrs?.(utils, value) || "";
   }
 
+  function serviceScopeAttrs(item, kind = "") {
+    if (!utils.text(kind).includes("服务")) return "";
+    return display.serviceScopeAttrs?.(utils, item) || "";
+  }
+
   function relationTypeForKind(kind = "") {
     const normalized = utils.text(kind).trim();
     if (normalized.includes("服务")) return "security_technical_service";
@@ -49,7 +54,7 @@
         const label = utils.codeTitleOf(item);
         const isService = utils.text(kind).includes("服务");
         const annotationText = [isService ? "" : kind, label].filter(Boolean).join(" | ");
-        return `<span class="relation-chip ${technicalChipClass(kind)}"${annotationAttrs(annotationText)} ${capabilityRelationAnchorAttrs(item, kind, context)}>${kind && !isService ? `<em>${utils.escapeHtml(kind)}</em>` : ""}<span class="relation-chip-text">${utils.escapeHtml(label)}</span></span>`;
+        return `<span class="relation-chip ${technicalChipClass(kind)}"${annotationAttrs(annotationText)}${serviceScopeAttrs(item, kind)} ${capabilityRelationAnchorAttrs(item, kind, context)}>${kind && !isService ? `<em>${utils.escapeHtml(kind)}</em>` : ""}<span class="relation-chip-text">${utils.escapeHtml(label)}</span></span>`;
       })
       .join("")}${more > 0 ? `<span class="relation-chip muted">+${more}</span>` : ""}`;
   }

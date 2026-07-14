@@ -18,7 +18,7 @@ const technologyModuleTableJs = read("frontend/capability-browser/components/Tec
 const capabilityDirectoryTableJs = read("frontend/capability-browser/components/CapabilityDirectoryMaintenanceTable.js");
 const standardRoleReferenceTableJs = read("frontend/capability-browser/components/StandardRoleReferenceTable.js");
 const workbenchPageHeightPattern = "calc\\(100dvh\\s*-\\s*var\\(--topbar-height\\)\\s*-\\s*var\\(--page-header-height\\)\\)";
-const inspectorActionsRenderIndex = appJs.indexOf("${renderWorkbenchIssueInspectorActions()}");
+const inspectorActionsRenderIndex = appJs.indexOf("${renderWorkbenchIssueInspectorActions(inspectorIssue)}");
 const inspectorContentRenderIndex = appJs.indexOf('class="workbench-review-inspector-content" data-review-inspector-scroll');
 
 function cssBlocksForSelector(source, selector) {
@@ -205,9 +205,18 @@ const checks = [
         blockHasDeclaration(
           block,
           "grid-template-columns",
-          "minmax\\(220px,\\s*260px\\)\\s+4px\\s+minmax\\(520px,\\s*1fr\\)\\s+4px\\s+minmax\\(320px,\\s*380px\\)",
+          "minmax\\(220px,\\s*260px\\)\\s+4px\\s+minmax\\(520px,\\s*1fr\\)",
         ),
     ) &&
+      anyBlock(
+        ".workbench-issues-route .workbench-prototype-annotation-layout.has-inspector",
+        (block) =>
+          blockHasDeclaration(
+            block,
+            "grid-template-columns",
+            "minmax\\(220px,\\s*260px\\)\\s+4px\\s+minmax\\(520px,\\s*1fr\\)\\s+4px\\s+minmax\\(320px,\\s*380px\\)",
+          ),
+      ) &&
       anyBlock(".workbench-issue-pane-resizer", (block) => blockHasDeclaration(block, "width", "4px") && blockHasDeclaration(block, "min-width", "4px")) &&
       anyBlock(".workbench-review-scope", (block) => blockHasDeclaration(block, "overflow-x", "hidden")) &&
       anyBlock(".workbench-review-inspector", (block) => blockHasDeclaration(block, "overflow-x", "hidden")) &&
@@ -215,6 +224,7 @@ const checks = [
       anyBlock(".workbench-review-item", (block) => blockHasDeclaration(block, "min-width", "760px")) &&
       appJs.includes('class="workspace-resizer workbench-issue-pane-resizer" data-workspace-resize-index="0"') &&
       appJs.includes('class="workspace-resizer workbench-issue-pane-resizer" data-workspace-resize-index="1"') &&
+      appJs.includes('data-review-inspector-open="${inspectorIssue ? "true" : "false"}"') &&
       appJs.includes('workspace.classList.contains("workbench-prototype-annotation-layout") ? 4 : 6') &&
       appJs.includes('pane.classList.contains("workbench-review-queue") ? 520') &&
       appJs.includes("beginWorkspaceResize(event, handle)"),
@@ -235,7 +245,7 @@ const checks = [
       appJs.includes('class="workbench-review-inspector-content" data-review-inspector-scroll') &&
       appJs.includes("function renderWorkbenchIssueDetailActions()") &&
       appJs.includes("function renderWorkbenchIssueBatchActions()") &&
-      appJs.includes("function renderWorkbenchIssueInspectorActions()") &&
+      appJs.includes("function renderWorkbenchIssueInspectorActions(issue)") &&
       appJs.includes('event.target.closest("[data-review-delete]")') &&
       appJs.includes("handleWorkbenchIssueDelete()") &&
       appJs.includes('event.target.closest("[data-review-save]")') &&
@@ -279,9 +289,9 @@ const checks = [
     "workbench_issue_row_click_selects_queue_row",
     appJs.includes("selectWorkbenchReviewItem(reviewItem)") &&
       appJs.includes('!event.target.closest("input, select, textarea, button")') &&
-      appJs.includes("state.workbenchSelectedIssueIds.add(noteId)") &&
+      !appJs.includes("state.workbenchSelectedIssueIds.add(noteId)") &&
       appJs.includes("state.workbenchSelectedIssueId = noteId"),
-    "Clicking an Issue queue row must select that row and open its current issue, not require the checkbox as the only selection target.",
+    "Clicking an Issue queue row must open its explicit current issue without mutating the independent batch selection set.",
   ),
   check(
     "workbench_issue_bulk_actions_match_review_queue_contract",
@@ -315,14 +325,13 @@ const checks = [
     "Batch inspector actions must be a stable in-panel grid so wrapped buttons do not sticky-overlay selected Issue summaries.",
   ),
   check(
-    "workbench_issue_inspector_has_empty_single_and_batch_states",
-    appJs.includes("function renderWorkbenchIssueEmptyInspector") &&
-      appJs.includes("function renderWorkbenchIssueDetailInspector") &&
-      appJs.includes("function renderWorkbenchIssueBatchInspector") &&
-      appJs.includes("selectedRows.length > 1") &&
-      stylesCss.includes(".workbench-review-batch-panel") &&
-      stylesCss.includes(".workbench-review-empty.is-blank"),
-    "Issue inspector must distinguish no current issue, one current issue, and multiple selected issues.",
+    "workbench_issue_inspector_is_explicit_and_on_demand",
+    appJs.includes("const inspectorIssue = workbenchIssueById(state.workbenchSelectedIssueId);") &&
+      appJs.includes('data-review-inspector-open="${inspectorIssue ? "true" : "false"}"') &&
+      appJs.includes("function closeWorkbenchReviewInspector()") &&
+      appJs.includes("data-review-inspector-close") &&
+      !appJs.includes("function renderWorkbenchIssueEmptyInspector"),
+    "Issue inspector must render only for an explicit current Issue and return its width after the user closes it.",
   ),
   check(
     "workbench_issue_zero_data_uses_single_empty_state",
@@ -331,13 +340,12 @@ const checks = [
       appJs.includes('class="workbench-route-page workbench-issues-route is-empty" aria-label="Issue 清单"') &&
       appJs.includes("${renderWorkbenchIssueZeroState()}") &&
       appJs.includes('exportButton.title = hasIssues ? "导出全部 Issue" : "当前没有 Issue 可导出";') &&
-      appJs.includes('const inspectorPillLabel = selectedIssueCount > 1 ? `${formatNumber(selectedIssueCount)} 条` : inspectorIssue ? "已保存" : "未选择";') &&
-      appJs.includes('const inspectorPillTone = selectedIssueCount > 1 || !inspectorIssue ? "is-muted" : "is-good";') &&
+      appJs.includes("const inspectorIssue = workbenchIssueById(state.workbenchSelectedIssueId);") &&
+      !appJs.includes("renderWorkbenchIssueEmptyInspector") &&
       appJs.includes("? `${renderWorkbenchIssueQueueHead(issues)}${issues.map(renderWorkbenchIssueItem).join(\"\")}`") &&
       stylesCss.includes(".workbench-issues-route.is-empty") &&
-      stylesCss.includes(".workbench-review-zero-state") &&
-      !appJs.includes('selectedIssueCount > 1 ? `${escapeHtml(formatNumber(selectedIssueCount))} 条` : "已保存"'),
-    "When there are zero real Issue rows, the page must render one empty state instead of the three-column processing workbench or a misleading saved inspector.",
+      stylesCss.includes(".workbench-review-zero-state"),
+    "When there are zero real Issue rows, the page must render one empty state instead of the processing workbench or an empty inspector.",
   ),
   check(
     "workbench_issue_inspector_field_boundary",

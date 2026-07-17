@@ -21,8 +21,8 @@
 | `docs/07-governance/project-test-workflow-and-case-matrix.md` | 全工程分层测试流程、测试用例矩阵、独立套件、完整回归和 DMG 打包验收入口 |
 | `docs/03-import-etl/github-local-data-initialization.md` | 从 GitHub 拉取代码后的本地文件放置、一键数据初始化和生成数据不同步说明 |
 | `docs/07-governance/codex-performance-workflow.md` | Codex 轻量开发、验证摘要、重连减负和用户短指令默认执行规则 |
-| `docs/07-governance/execution-line-convergence-workflow.md` | 多会话 / 子 Agent 不稳定后的执行线收敛规则：单一主控、单一写入主线、dirty diff 优先验收和 checkpoint |
-| `docs/07-governance/current-execution-lines.md` | 当前已展开任务线和模块线程映射台账，用于暂停但不丢失任务，记录状态、证据、恢复条件、写入权限和下一步 |
+| `docs/07-governance/execution-line-convergence-workflow.md` | 多会话与固定执行线机制的历史背景，以及当前父 Agent / 内部子 Agent 模式的迁移结论 |
+| `docs/07-governance/current-execution-lines.md` | 已停用的旧线程台账说明；当前状态不再按 task ID、`EL-xxx` 或 fan-in 恢复 |
 | `docs/README.md` + `frontend/design-handoff/README.md` | 设计文档入口和生命周期规则：区分实现规格、设计基线、Stitch 参考材料、专题契约和交付体验说明 |
 | `docs/06-implementation/global-search-contract-2026-07-05.md` | 全局搜索完整契约：产品职责、命中通道、禁止推断、计数 / 展示窗口、标准明细索引、定位和审计样例 |
 | `docs/06-implementation/open-issues.md` | 当前未关闭 bug、数据问题、页面问题和待确认事项的维护入口 |
@@ -141,7 +141,7 @@
 
 当前立即执行：
 
-- 执行线收敛：当前优先解决多会话并行、长会话变慢和子 Agent fan-in 不稳定导致的主线漂移；默认采用单一主控、单一写入主线和 dirty diff 优先验收。
+- Agent 编排：复杂任务由父 Agent 管理内部子 Agent，使用隔离 workspace 和非重叠 write set；小修保持单 Agent，最终合并态验收只由父 Agent负责。
 - 数据治理规则集中化。
 - Demo-first 数据变更治理：后续新数据默认不直接写稳定基准库；先在当前 `main` 以受控 demo 页 / demo 数据验证业务口径，确认后再按明确写入范围进入正式数据变更和审计。
 - GitHub 只同步代码 / 文档 / 配置模板 / 脱敏 fixture，原始数据和生成数据通过本地初始化脚本重建。

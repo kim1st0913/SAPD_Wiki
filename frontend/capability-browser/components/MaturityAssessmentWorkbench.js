@@ -80,6 +80,7 @@
     archived: "已归档",
   };
   const LOCKED_ASSESSMENT_STATUSES = new Set(["completed", "reported", "archived"]);
+  const ROADMAP_STATUSES = ["待规划", "已确认", "进行中", "已完成", "暂缓"];
 
   const model = {
     root: null,
@@ -142,6 +143,7 @@
     hierarchyExpansionByProject: {},
     directoryInitializedByProject: {},
     resultsView: "customer",
+    reportEditingSection: "",
     validation: null,
     calculating: false,
     reportGenerating: false,
@@ -211,7 +213,10 @@
       report: detail.report || null,
       reportNarrative: detail.reportNarrative || defaultReportNarrative(),
       reportNarrativeDirty: Boolean(detail.reportNarrativeDirty),
+      improvementRoadmap: list(detail.improvementRoadmap),
       exchangeBatches: list(detail.exchangeBatches).slice(-20),
+      scoreImportIssues: list(detail.scoreImportIssues).slice(-200),
+      scoreImportNotice: detail.scoreImportNotice || null,
       scoringLocation: detail.scoringLocation || null,
     };
     return writeStore(store);
@@ -267,7 +272,10 @@
         report: clone(stored.report || existing.report || null),
         reportNarrative: clone(stored.reportNarrative || existing.reportNarrative || defaultReportNarrative()),
         reportNarrativeDirty: Boolean(stored.reportNarrativeDirty),
+        improvementRoadmap: clone(stored.improvementRoadmap || existing.improvementRoadmap || []),
         exchangeBatches: clone(stored.exchangeBatches || existing.exchangeBatches || []),
+        scoreImportIssues: clone(stored.scoreImportIssues || existing.scoreImportIssues || []),
+        scoreImportNotice: clone(stored.scoreImportNotice || existing.scoreImportNotice || null),
         scoringLocation: clone(stored.scoringLocation || existing.scoringLocation || null),
         locallyStored: true,
       };
@@ -490,6 +498,53 @@
     };
   }
 
+  function reportExportReady(report) {
+    return report?.reportModel?.schemaVersion === "sapd-maturity-report-model-v2"
+      && text(report.html).includes("data-report-model='sapd-maturity-report-model-v2'")
+      && text(report.html).includes("<svg class='radar-svg'");
+  }
+
+  function defaultImprovementAction(gap) {
+    return list(gap?.recommendations)
+      .slice(0, 2)
+      .map((item) => text(item?.text).trim())
+      .filter(Boolean)
+      .join(" ");
+  }
+
+  function improvementRoadmapRows(detail) {
+    const storedRows = new Map(list(detail?.improvementRoadmap).map((row) => [text(row?.capabilityId), row]));
+    return list(detail?.result?.gapItems).slice(0, 10).map((gap, index) => {
+      const capabilityId = text(gap?.capabilityId);
+      const hasStored = storedRows.has(capabilityId);
+      const stored = storedRows.get(capabilityId) || {};
+      return {
+        rank: index + 1,
+        capabilityId,
+        capabilityCode: text(gap?.capabilityCode),
+        capabilityName: text(gap?.capabilityName),
+        priority: text(gap?.priority),
+        priorityScore: gap?.priorityScore,
+        currentLevel: text(gap?.currentLevel),
+        targetLevel: text(gap?.targetLevel),
+        gapIndex: gap?.gapIndex,
+        action: hasStored ? text(stored.action) : defaultImprovementAction(gap),
+        owner: text(stored.owner),
+        resources: text(stored.resources),
+        dependencies: text(stored.dependencies),
+        status: ROADMAP_STATUSES.includes(stored.status) ? stored.status : "待规划",
+      };
+    });
+  }
+
+  function updateImprovementRoadmapField(detail, capabilityId, field, value) {
+    if (!detail || !["action", "owner", "resources", "dependencies", "status"].includes(field)) return;
+    detail.improvementRoadmap = improvementRoadmapRows(detail).map((row) => row.capabilityId === capabilityId ? { ...row, [field]: value } : row);
+    detail.reportNarrativeDirty = true;
+    detail.project.updatedAt = nowLabel();
+    persistDetail(detail);
+  }
+
   function templateLibraryRecords() {
     const baseTemplate = model.workspace?.template;
     const records = [];
@@ -550,13 +605,29 @@
     const pagination = paginatedRows(templateRows, model.templateManagerPage, model.templateManagerPageSize);
     model.templateManagerPage = pagination.page;
     return `<section class="maturity-v24-home-section maturity-v24-template-manager" aria-labelledby="maturityTemplateManagerTitle">
-      <header><div><span>模板资产</span><h2 id="maturityTemplateManagerTitle">模板管理</h2><p>默认模板保持只读；导入默认或自定义模板时始终生成可调整副本，不覆盖原模板。</p></div><div><button class="maturity-v1-button is-secondary" type="button" data-maturity-action="trigger-global-template-import">导入模板</button><input type="file" accept="application/json,.json" hidden data-maturity-template-library-file /></div></header>
+      <header><div><span>模板资产</span><h2 id="maturityTemplateManagerTitle">模板管理</h2><p>标准模板保持只读；自定义模板必须保留评分标题和评分列，但所有评分数据单元格必须为空。</p></div><div><button class="maturity-v1-button is-secondary maturity-v28-import-button" type="button" data-maturity-action="trigger-global-template-import">导入自定义模板</button><input type="file" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx" hidden data-maturity-template-library-file /></div></header>
       <nav class="maturity-v24-template-views" aria-label="模板管理视图">
-        ${[["all", "全部模板", records.length], ["custom", "自定义模板", records.filter((item) => item.template.type === "custom").length], ["history", "导入任务", history.length]].map(([value, label, count]) => `<button class="${model.templateManagerView === value ? "is-active" : ""}" type="button" data-maturity-action="set-template-view" data-template-view="${value}" aria-pressed="${model.templateManagerView === value}">${label}<span>${count}</span></button>`).join("")}
+        ${[["all", "全部模板", records.length], ["custom", "自定义模板", records.filter((item) => item.template.type === "custom").length], ["history", "导入任务", history.length]].map(([value, label, count]) => `<button class="${model.templateManagerView === value ? "is-active" : ""}" type="button" data-maturity-action="set-template-view" data-template-view="${value}" aria-label="${label}，${count} 项" aria-pressed="${model.templateManagerView === value}">${label}</button>`).join("")}
       </nav>
-      ${model.templateManagerView === "history" ? `<div class="maturity-v24-template-table"><table><thead><tr><th>任务</th><th>来源类型</th><th>状态</th><th>结果</th></tr></thead><tbody>${history.length ? pagination.rows.map((item) => `<tr><td><strong>${escapeHtml(item.id)}</strong><small>${escapeHtml(item.importedAt || item.createdAt || "本地受控任务")}</small></td><td>${escapeHtml(item.sourceTemplateType === "base" ? "默认模板" : "自定义模板")}</td><td><span class="maturity-v1-status ${item.status === "success" ? "is-good" : "is-warn"}">${escapeHtml(item.status === "success" ? "成功" : item.status || "待确认")}</span></td><td>${Number(item.successCount || (item.status === "success" ? 1 : 0))} 成功 / ${Number(item.failureCount || 0)} 失败</td></tr>`).join("") : `<tr><td colspan="4"><div class="maturity-v1-table-empty"><strong>暂无模板导入任务</strong><span>从右上角导入默认或自定义模板后，这里会保留本地受控记录。</span></div></td></tr>`}</tbody></table></div>` : `<div class="maturity-v24-template-table"><table><thead><tr><th>模板</th><th>类型 / 版本</th><th>结构</th><th>来源</th><th>操作</th></tr></thead><tbody>${filtered.length ? pagination.rows.map((item) => { const stats = templateStats(item.template); const project = item.sourceProjectId ? model.details[item.sourceProjectId]?.project : null; return `<tr><td><strong>${escapeHtml(item.template.name || "未命名模板")}</strong><small>${escapeHtml(item.template.description || "成熟度评估模板")}</small></td><td><span class="maturity-v2-template-kind">${item.template.type === "base" ? "默认" : "自定义"}</span><small>${escapeHtml(item.template.version || "V2.1")}</small></td><td>${stats.capabilities} L2 / ${stats.focuses} 关注点<small>${stats.scoreItems} 个评估点</small></td><td>${item.source === "default" ? "知识库稳定模板" : item.source === "project" ? `项目：${escapeHtml(project?.name || "本地项目")}` : "历史导入副本"}</td><td><div class="maturity-v24-template-actions"><button class="maturity-v1-link-button" type="button" data-maturity-action="export-global-template" data-template-id="${escapeHtml(item.template.id)}">导出</button>${project ? `<button class="maturity-v1-button is-secondary" type="button" data-maturity-action="manage-template-project" data-project-id="${escapeHtml(project.id)}">继续调整</button>` : `<button class="maturity-v1-button is-secondary" type="button" data-maturity-action="use-library-template" data-template-id="${escapeHtml(item.template.id)}">${item.template.type === "base" ? "使用模板新建" : "用于新项目调整"}</button>`}</div></td></tr>`; }).join("") : `<tr><td colspan="5"><div class="maturity-v1-table-empty"><strong>暂无自定义模板</strong><span>可以导入模板，或在新建项目时基于默认模板生成可调整副本。</span></div></td></tr>`}</tbody></table></div>`}
+      ${model.templateManagerView === "history" ? `<div class="maturity-v24-template-table"><table class="maturity-v28-template-table is-history"><thead><tr><th>任务</th><th>来源类型</th><th>状态</th><th>结果</th></tr></thead><tbody>${history.length ? pagination.rows.map((item) => `<tr><td><strong>${escapeHtml(item.id)}</strong><small>${escapeHtml(item.importedAt || item.createdAt || "本地受控任务")}</small></td><td>自定义模板</td><td><span class="maturity-v1-status ${item.status === "success" ? "is-good" : "is-warn"}">${escapeHtml(item.status === "success" ? "成功" : item.status || "待确认")}</span></td><td>${Number(item.successCount || (item.status === "success" ? 1 : 0))} 成功 / ${Number(item.failureCount || 0)} 失败</td></tr>`).join("") : `<tr><td colspan="4"><div class="maturity-v1-table-empty"><strong>暂无模板导入任务</strong><span>导入自定义业务模板后，这里会保留本地受控记录。</span></div></td></tr>`}</tbody></table></div>` : `<div class="maturity-v24-template-table"><table class="maturity-v28-template-table"><thead><tr><th>模板</th><th>类型 / 版本</th><th>结构</th><th>来源</th><th>操作</th></tr></thead><tbody>${filtered.length ? pagination.rows.map((item) => { const stats = templateStats(item.template); const project = item.sourceProjectId ? model.details[item.sourceProjectId]?.project : null; return `<tr><td><strong>${escapeHtml(item.template.name || "未命名模板")}</strong></td><td><span class="maturity-v2-template-kind">${item.template.type === "base" ? "标准" : "自定义"}</span><small>${escapeHtml(item.template.version || "V2.1")}</small></td><td><strong>${stats.capabilities} L2 · ${stats.focuses} 关注点</strong><small>${stats.scoreItems} 个评估点</small></td><td>${item.source === "default" ? "知识库稳定模板" : item.source === "project" ? `项目：${escapeHtml(project?.name || "本地项目")}` : "历史导入副本"}</td><td><div class="maturity-v24-template-actions"><button class="maturity-v1-button is-secondary maturity-v28-export-button" type="button" data-maturity-action="export-global-template" data-template-id="${escapeHtml(item.template.id)}">导出 XLSX</button></div></td></tr>`; }).join("") : `<tr><td colspan="5"><div class="maturity-v1-table-empty"><strong>暂无自定义模板</strong><span>可以导入自定义业务模板，或在新建项目时创建自定义模板。</span></div></td></tr>`}</tbody></table></div>`}
       ${renderWorkspacePagination("templates", pagination)}
     </section>`;
+  }
+
+  function renderTemplateManagerRegion({ restoreTabFocus = false } = {}) {
+    const current = model.root?.querySelector(".maturity-v24-template-manager");
+    if (!current) {
+      render();
+      return;
+    }
+    const fragment = document.createElement("template");
+    fragment.innerHTML = renderTemplateManager().trim();
+    const next = fragment.content.firstElementChild;
+    if (!next) return;
+    current.replaceWith(next);
+    if (restoreTabFocus) {
+      window.setTimeout(() => model.root?.querySelector(`[data-maturity-action="set-template-view"][data-template-view="${model.templateManagerView}"]`)?.focus(), 0);
+    }
   }
 
   function normalizedRoute(route = model.route) {
@@ -696,7 +767,7 @@
           <section class="maturity-v26-project-hub" aria-label="项目进展">
         <header class="maturity-v24-home-heading"><div><span>当前工作</span><h2>项目进展</h2><p>查看评估阶段、评分完成度和下一步动作。</p></div><dl><div><dt>进行中</dt><dd>${viewCounts.active}</dd></div><div><dt>待完成评估</dt><dd>${viewCounts.review}</dd></div><div><dt>已完成</dt><dd>${viewCounts.completed}</dd></div></dl></header>
         <div class="maturity-v2-list-views" role="tablist" aria-label="项目状态视图">
-          ${[["active", "进行中"], ["review", "待完成评估"], ["completed", "已完成"], ["all", "全部"]].map(([value, label]) => `<button class="${model.listStatus === value ? "is-active" : ""}" type="button" role="tab" aria-selected="${model.listStatus === value}" data-maturity-action="set-list-view" data-list-view="${value}">${label}<span>${viewCounts[value]}</span></button>`).join("")}
+          ${[["active", "进行中"], ["review", "待完成评估"], ["completed", "已完成"], ["all", "全部"]].map(([value, label]) => `<button class="${model.listStatus === value ? "is-active" : ""}" type="button" role="tab" aria-label="${label}，${viewCounts[value]} 项" aria-selected="${model.listStatus === value}" data-maturity-action="set-list-view" data-list-view="${value}">${label}</button>`).join("")}
         </div>
         <div class="maturity-v1-filterbar">
           <label class="is-search"><span>项目 / 客户</span><input type="search" value="${escapeHtml(model.listSearch)}" placeholder="搜索项目、客户、负责人" autocomplete="off" data-maturity-list-search /></label>
@@ -711,29 +782,23 @@
         </div>
         <div class="maturity-v1-project-layout">
           <section class="maturity-v1-table-wrap" aria-label="评估项目表">
-            <table class="maturity-v1-table maturity-v1-project-table">
-              <thead><tr><th>项目 / 客户</th><th>状态 / 下一步</th><th>模板</th><th>当前 → 目标</th><th>评分完成度</th><th>阻塞项</th><th>负责人</th><th>最近更新</th><th>操作</th></tr></thead>
+            <table class="maturity-v1-table maturity-v1-project-table maturity-v28-project-table">
+              <thead><tr><th>客户</th><th>状态</th><th>采用模板</th><th>完成度</th><th>操作</th></tr></thead>
               <tbody>
                 ${filtered.length ? pagination.rows.map((detail) => {
                   const project = detail.project;
                   const summary = summaryOf(detail);
-                  const route = `/workbench/maturity/${encodeURIComponent(project.id)}`;
-                  const [primaryLabel, primaryTab] = projectPrimaryAction(project);
                   const completedItems = Math.max(0, Number(summary.applicableItemCount || 0) - Number(summary.notScoredCount || 0));
                   const totalItems = Number(summary.applicableItemCount || activeTemplateData(detail.template).scoreItems.length || 0);
                   const expanded = model.expandedProjectId === project.id;
-                  return `<tr class="maturity-v2-project-row ${expanded ? "is-expanded" : ""}">
-                    <td><button class="maturity-v1-project-name" type="button" data-maturity-action="toggle-project-preview" data-project-id="${escapeHtml(project.id)}" aria-expanded="${expanded}"><strong class="notranslate" translate="no" data-maturity-literal="project-name">${escapeHtml(project.name)}</strong><span><span class="maturity-v2-literal notranslate" translate="no" data-maturity-literal="organization">${escapeHtml(project.organization)}</span> · ${escapeHtml(project.industry || "行业未填写")} / ${escapeHtml(project.companySize || "规模未填写")}</span></button></td>
-                    <td><span class="maturity-v1-status ${statusTone(project.status)}">${escapeHtml(PROJECT_STATUS_NAMES[project.status] || project.status)}</span><small>下一步：${escapeHtml(primaryLabel)}</small></td>
+                  return `<tr class="maturity-v2-project-row maturity-v28-project-row ${expanded ? "is-expanded" : ""}" data-maturity-action="toggle-project-preview" data-project-id="${escapeHtml(project.id)}" tabindex="0" aria-label="${escapeHtml(project.organization || project.name)}，展开项目摘要" aria-expanded="${expanded}">
+                    <td><strong class="notranslate" translate="no" data-maturity-literal="organization">${escapeHtml(project.organization || "客户未填写")}</strong></td>
+                    <td><span class="maturity-v1-status ${statusTone(project.status)}">${escapeHtml(PROJECT_STATUS_NAMES[project.status] || project.status)}</span></td>
                     <td><strong>${escapeHtml(displayTemplateName(detail))}</strong><span class="maturity-v2-template-kind">${project.templateType === "custom" ? "自定义" : project.templateType === "base" ? "固定" : "待选择"}</span></td>
-                    <td><span class="maturity-v1-level ${levelTone(summary.currentLevel)}">${escapeHtml(summary.currentLevel || "-")}</span><span>${summary.currentIndex == null ? "未计算" : `${summary.currentIndex} → ${summary.targetIndex ?? "-"} ${summary.targetLevel || ""}`}</span><small>${summary.targetAchievementRate == null ? "达成率未计算" : `达成率 ${Number(summary.targetAchievementRate).toFixed(0)}%`}</small></td>
-                    <td><span class="maturity-v1-progress"><i style="width:${percent(summary.completionRate)}%"></i></span><b>${completedItems} / ${totalItems || "-"}</b></td>
-                    <td>${Number(summary.reviewPendingCount || 0) ? `<strong>${Number(summary.reviewPendingCount)}</strong>` : `<span>0</span>`}</td>
-                    <td><span class="maturity-v2-literal notranslate" translate="no" data-maturity-literal="project-owner">${escapeHtml(project.owner || "未填写")}</span></td>
-                    <td title="${escapeHtml(project.updatedAt || "-")}">${escapeHtml(project.updatedAt || "-")}</td>
-                    <td><button class="maturity-v1-button is-secondary maturity-v2-row-primary" type="button" ${project.status === "draft" ? `data-maturity-action="resume-draft" data-project-id="${escapeHtml(project.id)}"` : `data-maturity-action="open-project-tab" data-project-id="${escapeHtml(project.id)}" data-project-tab="${primaryTab}"`}>${escapeHtml(primaryLabel)}</button></td>
-                  </tr>${expanded ? `<tr class="maturity-v2-project-preview"><td colspan="9"><div><dl><div><dt>项目负责人</dt><dd class="notranslate" translate="no" data-maturity-literal="project-owner">${escapeHtml(project.owner || "未填写")}</dd></div><div><dt>评估人员</dt><dd class="notranslate" translate="no" data-maturity-literal="assessors">${escapeHtml(list(project.assessors).join("、") || "未填写")}</dd></div><div><dt>计划时间</dt><dd>${escapeHtml(project.plannedStartDate || "未设置")} — ${escapeHtml(project.plannedEndDate || "未设置")}</dd></div><div><dt>知识快照</dt><dd class="notranslate" translate="no">${escapeHtml(project.knowledgeSnapshotId || "待绑定")}</dd></div><div><dt>算法版本</dt><dd class="notranslate" translate="no">${escapeHtml(project.algorithmVersion || "待计算")}</dd></div><div><dt>目标达成率</dt><dd>${summary.targetAchievementRate == null ? "未计算" : `${Number(summary.targetAchievementRate).toFixed(0)}%`}</dd></div><div><dt>不适用项</dt><dd>${Number(summary.notApplicableCount || 0)}</dd></div><div><dt>证据覆盖率</dt><dd>${Number(summary.evidenceCoverage || 0).toFixed(0)}%（辅助信息）</dd></div></dl><div class="maturity-v2-preview-actions"><button class="maturity-v1-button is-primary" type="button" ${project.status === "draft" ? `data-maturity-action="resume-draft" data-project-id="${escapeHtml(project.id)}"` : `data-maturity-action="open-project-tab" data-project-id="${escapeHtml(project.id)}" data-project-tab="${primaryTab}"`}>${escapeHtml(primaryLabel)}</button><button class="maturity-v1-button is-secondary" type="button" data-app-route="${escapeHtml(route)}">打开项目概览</button></div></div></td></tr>` : ""}`;
-                }).join("") : `<tr><td colspan="9"><div class="maturity-v1-table-empty"><strong>${projects.length ? "当前筛选下没有评估项目" : "从企业组织项目开始"}</strong><span>${projects.length ? "调整筛选条件，或清空筛选后继续。" : "创建项目后选择固定或自定义模板，进入四维评分。"}</span><button class="maturity-v1-button is-primary" type="button" data-maturity-action="${projects.length ? "clear-list-filters" : "new-project"}">${projects.length ? "清空筛选" : "新建评估项目"}</button></div></td></tr>`}
+                    <td><div class="maturity-v28-completion"><span class="maturity-v1-progress"><i style="width:${percent(summary.completionRate)}%"></i></span><strong>${percent(summary.completionRate).toFixed(0)}%</strong><small>${completedItems} / ${totalItems || "-"}</small></div></td>
+                    <td><button class="maturity-v1-button is-primary maturity-v2-row-primary" type="button" data-maturity-action="open-project-tab" data-project-id="${escapeHtml(project.id)}" data-project-tab="overview">进入项目</button></td>
+                  </tr>${expanded ? `<tr class="maturity-v2-project-preview maturity-v28-project-preview"><td colspan="5"><div><dl><div><dt>项目负责人</dt><dd class="maturity-v28-literal-value notranslate" translate="no" data-maturity-literal="project-owner" data-value="${escapeHtml(project.owner || "未填写")}" aria-label="${escapeHtml(project.owner || "未填写")}"></dd></div><div><dt>评估人员</dt><dd class="maturity-v28-literal-value notranslate" translate="no" data-maturity-literal="assessors" data-value="${escapeHtml(list(project.assessors).join("、") || "未填写")}" aria-label="${escapeHtml(list(project.assessors).join("、") || "未填写")}"></dd></div><div><dt>阻塞项</dt><dd>${Number(summary.reviewPendingCount || 0)}</dd></div><div><dt>不适用项</dt><dd>${Number(summary.notApplicableCount || 0)}</dd></div><div><dt>最近更新</dt><dd>${escapeHtml(project.updatedAt || "-")}</dd></div></dl></div></td></tr>` : ""}`;
+                }).join("") : `<tr><td colspan="5"><div class="maturity-v1-table-empty"><strong>${projects.length ? "当前筛选下没有评估项目" : "从企业组织项目开始"}</strong><span>${projects.length ? "调整筛选条件，或清空筛选后继续。" : "创建项目后选择固定或自定义模板，进入四维评分。"}</span><button class="maturity-v1-button is-primary" type="button" data-maturity-action="${projects.length ? "clear-list-filters" : "new-project"}">${projects.length ? "清空筛选" : "新建评估项目"}</button></div></td></tr>`}
               </tbody>
             </table>
           </section>
@@ -819,21 +884,21 @@
       ["scoring", "评分执行"],
       ["review", "评分检查"],
       ["results", "评估结果"],
-      ["report", "报告快照"],
+      ["report", "评估报告"],
     ];
     return `
       <section class="maturity-v1-page maturity-v1-project-page" aria-label="成熟度评估项目">
         <div class="maturity-v6-project-sticky-header" aria-label="当前项目与项目步骤">
-          <div class="maturity-v5-project-context" aria-label="当前成熟度评估项目">
+          ${model.activeTab === "report" ? "" : `<div class="maturity-v5-project-context" aria-label="当前成熟度评估项目">
             <button class="maturity-v1-back" type="button" data-app-route="/workbench/maturity" aria-label="返回评估项目列表">‹</button>
             <div><strong class="notranslate" translate="no" data-maturity-literal="project-name">${escapeHtml(project.name)}</strong><span><span class="maturity-v2-literal notranslate" translate="no" data-maturity-literal="organization">${escapeHtml(project.organization)}</span> · ${escapeHtml(displayTemplateName(detail))} · 最近更新 ${escapeHtml(project.updatedAt || "-")}</span></div>
             <span class="maturity-v1-status ${statusTone(project.status)}">${escapeHtml(PROJECT_STATUS_NAMES[project.status] || project.status)}</span>
-          </div>
+          </div>`}
           <div class="maturity-v21-project-tab-row">
             <nav class="maturity-v1-tabs" aria-label="成熟度评估项目步骤">
               ${tabs.map(([id, label]) => `<button class="${model.activeTab === id ? "is-active" : ""}" type="button" data-maturity-tab="${id}"><span>${escapeHtml(label)}</span>${id === "scoring" && summary.notScoredCount ? `<b>${summary.notScoredCount}</b>` : ""}</button>`).join("")}
             </nav>
-            ${renderProjectObjectSearch(detail)}
+            ${model.activeTab === "report" ? "" : renderProjectObjectSearch(detail)}
           </div>
         </div>
         ${renderFeedback()}
@@ -858,7 +923,7 @@
     return `<div class="maturity-v1-modal-backdrop maturity-v32-unlock-layer" data-maturity-unlock-layer>
       <aside class="maturity-v1-modal maturity-v32-unlock-modal" role="dialog" aria-modal="true" aria-labelledby="maturityUnlockTitle">
         <header><div><span>修改评估分数</span><h3 id="maturityUnlockTitle">确认解锁当前项目？</h3></div></header>
-        <div class="maturity-v32-unlock-body"><p>解锁后，现有评分会完整保留并恢复编辑；项目状态回到“待完成评估”，当前正式报告快照将失效。</p><ul><li>评分执行页恢复可编辑</li><li>评分检查页“完成评估”恢复可用</li><li>再次完成评估后重新锁定结果</li></ul></div>
+        <div class="maturity-v32-unlock-body"><p>解锁后，现有评分会完整保留并恢复编辑；项目状态回到“待完成评估”，当前正式评估报告将失效。</p><ul><li>评分执行页恢复可编辑</li><li>评分检查页“完成评估”恢复可用</li><li>再次完成评估后重新锁定结果</li></ul></div>
         <footer><button class="maturity-v1-button is-secondary" type="button" data-maturity-action="cancel-score-unlock">取消</button><button class="maturity-v1-button is-primary" type="button" data-maturity-action="confirm-score-unlock">确认解锁</button></footer>
       </aside>
     </div>`;
@@ -873,7 +938,7 @@
       ["scoring", "评分执行"],
       ["score_review", "评分检查"],
       ["completed", "评估完成"],
-      ["reported", "报告快照"],
+      ["reported", "评估报告"],
     ];
     const currentIndex = workflow.findIndex(([id]) => id === project.status);
     const currentStep = currentIndex < 0 ? 0 : currentIndex;
@@ -898,8 +963,8 @@
           <div class="maturity-v1-panel-heading"><div><span>项目基本信息</span><h3 class="notranslate" translate="no" data-maturity-literal="project-name">${escapeHtml(project.name || "未命名项目")}</h3></div><span class="maturity-v1-status ${statusTone(project.status)}">${escapeHtml(PROJECT_STATUS_NAMES[project.status] || project.status)}</span></div>
           <dl class="maturity-v1-project-facts maturity-v10-project-facts">
             <div><dt>行业 / 规模</dt><dd>${escapeHtml(project.industry || "未填写")} / ${escapeHtml(project.companySize || "未填写")}</dd></div>
-            <div><dt>项目负责人</dt><dd class="notranslate" translate="no" data-maturity-literal="project-owner">${escapeHtml(project.owner || "未填写")}</dd></div>
-            <div><dt>评估人员</dt><dd class="notranslate" translate="no" data-maturity-literal="assessors">${escapeHtml(list(project.assessors).join("、") || "未填写")}</dd></div>
+            <div><dt>项目负责人</dt><dd class="maturity-v28-literal-value notranslate" translate="no" data-maturity-literal="project-owner" data-value="${escapeHtml(project.owner || "未填写")}" aria-label="${escapeHtml(project.owner || "未填写")}"></dd></div>
+            <div><dt>评估人员</dt><dd class="maturity-v28-literal-value notranslate" translate="no" data-maturity-literal="assessors" data-value="${escapeHtml(list(project.assessors).join("、") || "未填写")}" aria-label="${escapeHtml(list(project.assessors).join("、") || "未填写")}"></dd></div>
             <div><dt>计划时间</dt><dd>${escapeHtml(project.plannedStartDate || "未设置")} — ${escapeHtml(project.plannedEndDate || "未设置")}</dd></div>
             <div><dt>评估模板</dt><dd>${escapeHtml(displayTemplateName(detail))}</dd></div>
             <div><dt>最近更新</dt><dd>${escapeHtml(project.updatedAt || "-")}</dd></div>
@@ -919,6 +984,12 @@
           <div class="maturity-v10-progress-rule"><strong>完成率口径</strong><p>总体完成率 = 已完成适用评估点 ÷ 适用评估点；能力、关注点、评估点分别按各自适用对象统计，不适用对象不进入分母。</p></div>
           ${!assessmentLocked && priorityRows ? `<div class="maturity-v9-progress-priorities"><header><strong>继续评分位置</strong><span>优先返回已经开始但尚未完成的能力</span></header><div>${priorityRows}</div></div>` : ""}
           ${assessmentLocked ? `<button class="maturity-v1-button is-primary is-full maturity-v9-overview-continue" type="button" data-maturity-action="request-score-unlock">修改评估分数</button>` : `<button class="maturity-v1-button is-primary is-full maturity-v9-overview-continue" type="button" data-maturity-tab="scoring">${progress.completionRate >= 100 ? "查看并调整评分" : "继续评分"}</button>`}
+          <div class="maturity-v29-score-file-actions" aria-label="评分文件交换">
+            <button class="maturity-v1-button is-secondary" type="button" data-maturity-action="export-score-exchange">下载评分表</button>
+            <button class="maturity-v1-button is-secondary" type="button" data-maturity-action="trigger-score-import" ${assessmentLocked ? "disabled" : ""}>上传评分文件</button>
+            <input type="file" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx" hidden data-maturity-score-file />
+            ${assessmentLocked ? `<small>解锁评分后可上传 XLSX</small>` : detail.scoreImportNotice?.message ? `<small class="is-${escapeHtml(detail.scoreImportNotice.tone || "success")}" role="status">${escapeHtml(detail.scoreImportNotice.message)}</small>` : `<small>读取适用性、四维评分和目标等级</small>`}
+          </div>
         </aside>
       </div>
       ${renderUnlockConfirmation(detail)}
@@ -935,10 +1006,7 @@
           <div><span>${isCustom ? "自定义能力模板" : "基础能力体系模板"}</span><h3>${escapeHtml(template?.name || "未选择模板")}</h3></div>
           <div class="maturity-v1-toolbar">
             ${!isCustom ? `<button class="maturity-v1-button is-secondary" type="button" data-maturity-action="clone-custom-template">复制为自定义模板</button>` : ""}
-            <button class="maturity-v1-button is-secondary" type="button" data-maturity-action="export-score-exchange">导出评分文件</button>
-            <button class="maturity-v1-button is-secondary" type="button" data-maturity-action="trigger-score-import">导入评分文件</button>
-            <input type="file" accept="application/json,.json" hidden data-maturity-score-file />
-            ${isCustom ? `<button class="maturity-v1-button is-secondary" type="button" data-maturity-action="export-template">导出模板结构</button><button class="maturity-v1-button is-secondary" type="button" data-maturity-action="trigger-template-import">导入模板结构</button><input type="file" accept="application/json,.json" hidden data-maturity-template-file /><button class="maturity-v1-button is-primary" type="button" data-maturity-action="validate-template">校验并发布</button>` : `<span class="maturity-v2-readonly-badge">结构与权重只读</span>`}
+            ${isCustom ? `<button class="maturity-v1-button is-secondary" type="button" data-maturity-action="export-template">导出自定义模板</button><button class="maturity-v1-button is-secondary" type="button" data-maturity-action="trigger-template-import">导入自定义模板</button><input type="file" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx" hidden data-maturity-template-file /><button class="maturity-v1-button is-primary" type="button" data-maturity-action="validate-template">校验并发布</button>` : `<span class="maturity-v2-readonly-badge">标准模板结构只读</span>`}
           </div>
         </div>
         <div class="maturity-v1-template-stats"><div><span>能力 L0</span><strong>${stats.topCategories || 0}</strong></div><div><span>能力 L1</span><strong>${stats.domains || 0}</strong></div><div><span>能力 L2</span><strong>${stats.capabilities || 0}</strong></div><div><span>关注点</span><strong>${stats.focuses || 0}</strong></div><div><span>安全技术服务</span><strong>${stats.services || 0}</strong></div><div><span>评估点</span><strong>${stats.scoreItems || 0}</strong></div></div>
@@ -1317,7 +1385,7 @@
           <label class="maturity-v2-score-search"><span>搜索评估点</span><input type="search" value="${escapeHtml(model.scoringSearch)}" placeholder="关注点、服务或作用域" autocomplete="off" data-maturity-score-search /></label>
           <label><span>状态</span><select data-maturity-score-filter="status"><option value="all">全部状态</option><option value="unscored"${model.scoringStatus === "unscored" ? " selected" : ""}>未完成</option><option value="complete"${model.scoringStatus === "complete" ? " selected" : ""}>已完成</option><option value="na"${model.scoringStatus === "na" ? " selected" : ""}>不适用</option></select></label>
           <label><span>证据（辅助）</span><select data-maturity-score-filter="evidence"><option value="all">全部</option><option value="missing"${model.scoringEvidence === "missing" ? " selected" : ""}>无证据</option></select></label>
-          <div class="maturity-v1-toolbar"><button class="maturity-v1-button is-secondary" type="button" data-maturity-action="export-score-exchange">导出评分表</button><button class="maturity-v1-button is-secondary" type="button" data-maturity-action="trigger-score-import">导入评分数据</button><input type="file" accept="application/json,.json" hidden data-maturity-score-file /></div>
+          <div class="maturity-v1-toolbar"><button class="maturity-v1-button is-secondary" type="button" data-maturity-action="export-score-exchange">下载评分表</button><button class="maturity-v1-button is-secondary" type="button" data-maturity-action="trigger-score-import">上传评分文件</button><input type="file" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx" hidden data-maturity-score-file /></div>
         </div>
         <div class="maturity-v1-table-wrap maturity-v1-score-table-scroll"><table class="maturity-v1-table maturity-v1-score-table maturity-v2-score-table"><thead><tr><th>安全技术服务 / 关注点评估项</th><th>类型 / 作用域</th><th>是否适用</th><th>组织</th><th>流程</th><th>工具</th><th>数据</th><th>系统当前</th><th>目标等级</th><th>状态</th></tr></thead><tbody>${groupedRows || `<tr><td colspan="10"><div class="maturity-v1-table-empty"><strong>没有符合条件的评估点</strong><span>清空搜索或筛选后继续评分。</span><button class="maturity-v1-button is-secondary" type="button" data-maturity-action="clear-score-filters">清空筛选</button></div></td></tr>`}</tbody></table></div>
       </section>
@@ -1732,7 +1800,7 @@
         <label class="maturity-v3-score-search"><span>搜索当前 L2</span><input type="search" value="${escapeHtml(model.scoringSearch)}" placeholder="关注点、服务或作用域" autocomplete="off" data-maturity-score-search /></label>
         <label><span>状态</span><select data-maturity-score-filter="status"><option value="all">全部状态</option><option value="unscored"${model.scoringStatus === "unscored" ? " selected" : ""}>未完成</option><option value="complete"${model.scoringStatus === "complete" ? " selected" : ""}>已完成</option><option value="na"${model.scoringStatus === "na" ? " selected" : ""}>不适用</option></select></label>
         <label><span>证据（辅助）</span><select data-maturity-score-filter="evidence"><option value="all">全部</option><option value="missing"${model.scoringEvidence === "missing" ? " selected" : ""}>无证据</option></select></label>
-        <div class="maturity-v1-toolbar"><button class="maturity-v1-button is-secondary" type="button" data-maturity-action="export-score-exchange">导出评分表</button><button class="maturity-v1-button is-secondary" type="button" data-maturity-action="trigger-score-import">导入评分数据</button><input type="file" accept="application/json,.json" hidden data-maturity-score-file /></div>
+        <div class="maturity-v1-toolbar"><button class="maturity-v1-button is-secondary" type="button" data-maturity-action="export-score-exchange">下载评分表</button><button class="maturity-v1-button is-secondary" type="button" data-maturity-action="trigger-score-import">上传评分文件</button><input type="file" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx" hidden data-maturity-score-file /></div>
         </div>
       </details>
       <div class="maturity-v4-scoring-shell">
@@ -1938,9 +2006,10 @@
     const targetConflicts = unscored.filter((row) => row.pointResult?.targetBelowCurrent === true);
     const incomplete = unscored.filter((row) => row.pointResult?.targetBelowCurrent !== true);
     const noEvidenceInformation = noEvidence;
+    const scoreImportIssues = list(detail.scoreImportIssues);
     const summary = summaryOf(detail);
     const targetConflictCount = Math.max(targetConflicts.length, Number(summary.targetBelowCurrentCount || 0));
-    const blockingCount = incomplete.length + targetConflictCount;
+    const blockingCount = incomplete.length + targetConflictCount + scoreImportIssues.length;
     const canComplete = blockingCount === 0 && !detail.project.readOnly;
     const reviewGroups = [
       { key: "target-conflict", title: "目标冲突", description: "目标等级低于当前评分计算等级，必须修改", rows: targetConflicts, statusLabel: "目标冲突", open: targetConflicts.length > 0 },
@@ -1954,13 +2023,14 @@
           <div class="maturity-v1-panel-heading"><div><span>提交条件</span><h3>评分完整性检查</h3></div><span>${Number(summary.completionRate || 0).toFixed(0)}% 完成</span></div>
           <div class="maturity-v1-review-summary maturity-v19-review-summary"><div class="is-good"><span>已完成</span><strong>${completed.length}</strong><small>不在下方问题清单显示</small></div><button class="${unscored.length ? "is-warn" : "is-good"}" type="button" data-maturity-action="adjust-first-blocker" ${unscored.length ? "" : "disabled"}><span>未完成</span><strong>${unscored.length}</strong><small>${unscored.length ? "返回首个待调整项" : "全部完成"}</small></button><div class="is-muted"><span>不适用</span><strong>${notApplicable.length}</strong><small>下方保留原因核对</small></div><div class="is-muted"><span>无证据（信息）</span><strong>${noEvidence.length}</strong><small>可选材料，不阻塞</small></div></div>
           <div class="maturity-v1-review-actions">
-            <span>完成评估会锁定当前完整结果，并开放正式报告快照。</span>
+            <span>完成评估会锁定当前完整结果，并开放正式评估报告。</span>
             <button class="maturity-v1-button is-primary" type="button" data-maturity-action="complete-assessment" ${canComplete ? "" : "disabled"}>完成评估</button>
           </div>
-          ${detail.project.readOnly ? `<div class="maturity-v1-validation is-valid"><strong>当前评估结果已锁定</strong><span>如需调整，请在项目概览选择“修改评估分数”并确认解锁。</span></div>` : blockingCount ? `<div class="maturity-v1-validation is-invalid"><strong>暂不能完成项目</strong><span>${targetConflictCount ? `还有 ${targetConflictCount} 个目标等级冲突；` : ""}${incomplete.length} 个适用评估点仍未形成完整有效评分。</span></div>` : `<div class="maturity-v1-validation is-valid"><strong>评分完整性通过</strong><span>不适用说明、评估说明和证据材料均为可选，不阻塞完成评估。</span></div>`}
+          ${detail.project.readOnly ? `<div class="maturity-v1-validation is-valid"><strong>当前评估结果已锁定</strong><span>如需调整，请在项目概览选择“修改评估分数”并确认解锁。</span></div>` : blockingCount ? `<div class="maturity-v1-validation is-invalid"><strong>暂不能完成项目</strong><span>${scoreImportIssues.length ? `上传评分文件还有 ${scoreImportIssues.length} 个问题；` : ""}${targetConflictCount ? `还有 ${targetConflictCount} 个目标等级冲突；` : ""}${incomplete.length} 个适用评估点仍未形成完整有效评分。</span></div>` : `<div class="maturity-v1-validation is-valid"><strong>评分完整性通过</strong><span>不适用说明、评估说明和证据材料均为可选，不阻塞完成评估。</span></div>`}
         </section>
         <section class="maturity-v1-section">
           <div class="maturity-v1-panel-heading"><div><span>评分检查</span><h3>按问题类型核对</h3></div><span>已完成项已隐藏</span></div>
+          ${scoreImportIssues.length ? `<section class="maturity-v29-import-issues" aria-label="评分文件校验问题"><header><div><span>文件校验</span><strong>上传评分文件有 ${scoreImportIssues.length} 个阻塞项</strong></div><button class="maturity-v1-button is-secondary" type="button" data-maturity-action="trigger-score-import">重新上传</button><input type="file" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx" hidden data-maturity-score-file /></header><ul>${scoreImportIssues.slice(0, 12).map((issue) => `<li><b>${issue.row ? `第 ${issue.row} 行` : "文件"}</b><span>${escapeHtml(issue.message || issue.code || "评分文件校验失败")}</span></li>`).join("")}</ul>${scoreImportIssues.length > 12 ? `<small>另有 ${scoreImportIssues.length - 12} 个问题，请修正后重新上传。</small>` : ""}</section>` : ""}
           <div class="maturity-v23-review-groups">${reviewGroups.map((group) => renderReviewQueueGroup(detail, group)).join("")}</div>
         </section>
       </div>
@@ -2031,17 +2101,65 @@
     return `<div class="maturity-v19-priority-counts" aria-label="后端差距候选优先级"><span>差距优先级</span>${["高", "中", "低"].map((priority) => `<b class="is-${priority === "高" ? "high" : priority === "中" ? "medium" : "low"}">${priority} ${Number(counts?.[priority] || 0)}</b>`).join("")}</div>`;
   }
 
+  function resultObjectLabel(row) {
+    return [text(row?.code), compactChineseName(row?.name) || text(row?.name)].filter(Boolean).join(" ") || "未命名能力域";
+  }
+
+  function renderResultEvaluation(detail, rows) {
+    const result = detail?.result || {};
+    const scoredCount = rows.filter((row) => row.currentIndex != null).length;
+    const belowTargetCount = rows.filter((row) => Number(row.gapIndex) > 0).length;
+    const reachedTargetCount = rows.filter((row) => row.gapIndex != null && Number(row.gapIndex) <= 0).length;
+    const l1Rows = list(result.subCategoryResults).filter((row) => row.currentIndex != null && Number.isFinite(Number(row.currentIndex)));
+    const leadingL1 = [...l1Rows]
+      .sort((left, right) => Number(right.currentIndex) - Number(left.currentIndex) || text(left.code).localeCompare(text(right.code), "zh-Hans-CN", { numeric: true }))
+      .slice(0, 3);
+    const improvementL1 = [...l1Rows]
+      .filter((row) => row.gapIndex != null && Number(row.gapIndex) > 0)
+      .sort((left, right) => Number(right.gapIndex) - Number(left.gapIndex) || text(left.code).localeCompare(text(right.code), "zh-Hans-CN", { numeric: true }))
+      .slice(0, 3);
+    const l1ById = new Map(l1Rows.map((row) => [row.id, row]));
+    const leadingGap = list(result.gapItems)[0] || null;
+    const leadingGapL1 = leadingGap ? l1ById.get(leadingGap.categoryId) : null;
+    const maturityLeaders = list(result.maturityDistribution)
+      .filter((item) => Number(item.count || 0) > 0)
+      .sort((left, right) => Number(right.count || 0) - Number(left.count || 0))
+      .slice(0, 2);
+    const profile = dimensionProfile(result.summary?.dimensionResults || {});
+    const { strongest, weakest, spread } = profileExtremes(profile);
+    const evidenceRows = list(result.evidenceDistribution);
+    const evidenceTotal = evidenceRows.reduce((sum, item) => sum + Number(item.count || 0), 0);
+    const evidenceMissing = Number(evidenceRows.find((item) => item.level === "E0")?.count || 0);
+    const evidenceFilled = Math.max(0, evidenceTotal - evidenceMissing);
+    const leadingL1Text = leadingL1.length
+      ? `${leadingL1.map((row) => `${escapeHtml(resultObjectLabel(row))}（${Number(row.currentIndex).toFixed(2)}）`).join("、")}相对表现突出。`
+      : "当前没有可用于比较的 L1 能力域结果。";
+    const improvementL1Text = improvementL1.length
+      ? `${improvementL1.map((row) => `${escapeHtml(resultObjectLabel(row))}（当前 ${Number(row.currentIndex).toFixed(2)} / 目标 ${Number(row.targetIndex).toFixed(2)}）`).join("、")}需要进一步加强。`
+      : "当前 L1 能力域均已达到目标。";
+    const focusText = leadingGap
+      ? `特别是${leadingGapL1 ? `“${escapeHtml(resultObjectLabel(leadingGapL1))}”能力域下的 ` : ""}${escapeHtml(leadingGap.capabilityCode)} ${escapeHtml(leadingGap.capabilityName)}，当前差距 ${Number(leadingGap.gapIndex).toFixed(2)}，位列改进优先首位。`
+      : "当前没有需要单独聚焦的 L2 改进项。";
+    const maturityText = maturityLeaders.length
+      ? `当前能力主要分布在 ${maturityLeaders.map((item) => `${escapeHtml(item.level)}（${Number(item.count || 0)} 项）`).join(" 和 ")}；${belowTargetCount} 项低于目标。`
+      : `${belowTargetCount} 项低于目标。`;
+    const dimensionText = strongest && weakest
+      ? `${escapeHtml(strongest.label)}得分最高（${strongest.value.toFixed(2)}），${escapeHtml(weakest.label)}得分最低（${weakest.value.toFixed(2)}）${spread == null ? "。" : `，四维极差 ${spread.toFixed(2)}。`}`
+      : "四维结果尚未完整，暂不形成均衡性判断。";
+    const evidenceText = evidenceTotal
+      ? `${evidenceFilled} / ${evidenceTotal} 项达到 E1 及以上，E0 无证据 ${evidenceMissing} 项。`
+      : "当前没有可汇总的证据等级数据。";
+    return `<section class="maturity-v4-radar-observation" aria-label="结果评价"><span>结果评价</span><strong>${scoredCount} / ${rows.length} 项 L2 已有评分，${reachedTargetCount} 项已达到或超过目标</strong><div class="maturity-v34-result-insights"><p><b>成熟度轮廓</b><span>${maturityText}</span></p><p><b>L1 优势能力域</b><span>${leadingL1Text}</span></p><p><b>L1 重点加强</b><span>${improvementL1Text}${focusText}</span></p><p><b>四维均衡</b><span>${dimensionText}</span></p><p><b>证据基础</b><span>${evidenceText}</span></p></div>${renderAssessmentDistributions(result)}</section>`;
+  }
+
   function renderRadarAnalysis(detail, groups) {
     const stats = maturityResultGroupStats(detail, groups);
     const rows = groups.flatMap((group) => group.rows);
-    const scoredCount = rows.filter((row) => row.currentIndex != null).length;
-    const belowTargetCount = rows.filter((row) => Number(row.gapIndex) > 0).length;
-    const leadingGap = list(detail?.result?.gapItems)[0];
     return `<aside class="maturity-v4-radar-analysis sapd-stat-vibrancy" aria-label="技术、治理、管理分层统计与结果评价">
       <header><span>分层统计</span><h4>T / G / M 总体与层级</h4><p>指数沿用后端聚合结果；数量按当前模板 L1、L2 结构统计。</p></header>
       <div class="maturity-v4-radar-tgm-stats">${stats.map((group) => `<section data-radar-group="${escapeHtml(group.code)}"><header><span><i></i><strong>${escapeHtml(group.code)} ${escapeHtml(group.name)}</strong></span><b>${group.result?.currentIndex == null ? "—" : escapeHtml(Number(group.result.currentIndex).toFixed(2))}<small> / 目标 ${group.result?.targetIndex == null ? "—" : escapeHtml(Number(group.result.targetIndex).toFixed(2))}</small></b></header><dl><div><dt>L1</dt><dd>${group.l1Rows.length}</dd></div><div><dt>L2</dt><dd>${group.rows.length}</dd></div><div><dt>低于目标</dt><dd>${group.belowTargetL2Count}</dd></div></dl>${renderBackendPriorityCounts(backendPriorityCounts(detail, new Set(group.rows.map((row) => row.id))))}</section>`).join("")}</div>
       <section class="maturity-v4-radar-l1-stats"><header><strong>L1 能力域</strong><span>当前 / 目标 · L2 数量 · 后端差距优先级</span></header><div>${stats.flatMap((group) => group.l1Rows.map((row) => { const capabilityRows = group.rows.filter((capability) => capability.categoryId === row.id); return `<div><span><i data-radar-group="${escapeHtml(group.code)}"></i><strong>${escapeHtml(row.code || compactChineseName(row.name))}</strong><small>${escapeHtml(compactChineseName(row.name))}</small></span><b>${row.currentIndex == null ? "—" : escapeHtml(Number(row.currentIndex).toFixed(2))} / ${row.targetIndex == null ? "—" : escapeHtml(Number(row.targetIndex).toFixed(2))}</b><em>${row.l2Count} L2</em>${renderBackendPriorityCounts(backendPriorityCounts(detail, new Set(capabilityRows.map((capability) => capability.id))))}</div>`; })).join("")}</div></section>
-      <section class="maturity-v4-radar-observation"><span>结果评价</span><strong>${scoredCount} / ${rows.length} 项 L2 已有评分</strong><p>${belowTargetCount} 项低于目标等级。${leadingGap ? `后端首要差距候选为 ${escapeHtml(leadingGap.capabilityCode)} ${escapeHtml(leadingGap.capabilityName)}，差距 ${escapeHtml(leadingGap.gapIndex)}，优先级 ${escapeHtml(leadingGap.priority)}。` : "当前没有后端差距候选。"}</p><small>差距与优先级均沿用后端结果，不在前端重算。</small>${renderAssessmentDistributions(detail?.result || {})}</section>
+      ${renderResultEvaluation(detail, rows)}
     </aside>`;
   }
 
@@ -2270,7 +2388,9 @@
   function drawResultDimensionRadar(detail) {
     const canvas = model.root?.querySelector("[data-maturity-result-radar]");
     if (!canvas) return;
-    drawCompactDimensionRadar(canvas, detail?.result?.summary, { height: 390, maxRadius: 150 });
+    const height = Math.max(220, Number(canvas.dataset.radarHeight || 390));
+    const maxRadius = Math.max(72, Number(canvas.dataset.radarRadius || 150));
+    drawCompactDimensionRadar(canvas, detail?.result?.summary, { height, maxRadius });
   }
 
   function drawChildRadar(detail) {
@@ -2367,8 +2487,9 @@
     const rows = groups.flatMap((group) => group.rows);
     const context = canvas.getContext?.("2d");
     if (!rows.length || !context) return;
-    const cssWidth = Math.max(560, Math.round(canvas.getBoundingClientRect().width || 880));
-    const cssHeight = 480;
+    const minimumWidth = Math.max(320, Number(canvas.dataset.radarMinWidth || 560));
+    const cssWidth = Math.max(minimumWidth, Math.round(canvas.getBoundingClientRect().width || 880));
+    const cssHeight = Math.max(280, Number(canvas.dataset.radarHeight || 480));
     const ratio = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
     canvas.width = Math.round(cssWidth * ratio);
     canvas.height = Math.round(cssHeight * ratio);
@@ -2484,9 +2605,10 @@
         ${viewSwitch}
         ${renderResultSummary(detail)}
         ${renderCapabilityRadar(detail)}
-        ${renderCollapsibleResultSection({ className: "maturity-v23-capability-heat", eyebrow: "成熟度热力表", title: "L2 能力表", meta: `${list(result.capabilityResults).length} 个能力，按 T / G / M 展开`, body: renderCapabilityHeatTable(detail) })}
-        ${renderCollapsibleResultSection({ className: "maturity-v23-overall-priority", eyebrow: "总体优先级", title: "后端差距候选 Top 10", meta: "优先级与分数沿用后端结果", body: renderGapTable(result.gapItems || [], 10) })}
+        ${renderCollapsibleResultSection({ className: "maturity-v23-capability-heat", eyebrow: "能力分数", title: "L2 能力分数清单", meta: `${list(result.capabilityResults).length} 个能力，按 T / G / M 展开`, body: renderCapabilityHeatTable(detail) })}
+        ${renderCollapsibleResultSection({ className: "maturity-v23-overall-priority maturity-v33-overall-rankings-section", eyebrow: "能力排行", title: "L2 能力 Top 10", meta: "", body: renderOverallCapabilityTop10(detail) })}
         ${renderDimensionPriorityTop10(detail)}
+        ${renderImprovementRoadmap(detail)}
       </div>
     `;
   }
@@ -2512,18 +2634,53 @@
     return `<details class="maturity-v1-section maturity-v23-result-section ${escapeHtml(className)}"${open ? " open" : ""}><summary class="maturity-v1-panel-heading"><div><span>${escapeHtml(eyebrow)}</span><h3>${escapeHtml(title)}</h3></div><span class="maturity-v23-result-section-meta">${escapeHtml(meta)}<b><i>展开</i><i>收起</i></b></span></summary><div class="maturity-v23-result-section-body">${body}</div></details>`;
   }
 
-  function renderDimensionPriorityTop10(detail) {
+  function renderOverallCapabilityTop10(detail) {
+    const result = detail?.result || {};
+    const leadingRows = list(result.capabilityResults)
+      .filter((row) => row.currentIndex != null && Number.isFinite(Number(row.currentIndex)))
+      .sort((left, right) => Number(right.currentIndex) - Number(left.currentIndex)
+        || Number(right.targetAchievementRate || 0) - Number(left.targetAchievementRate || 0)
+        || text(left.code).localeCompare(text(right.code), "zh-Hans-CN", { numeric: true }))
+      .slice(0, 10);
+    const improvementRows = list(result.gapItems).slice(0, 10);
+    const leadingTable = leadingRows.length
+      ? `<div class="maturity-v36-ranking-columns"><i></i><span>能力</span><span>当前成熟度</span><span>目标成熟度</span><span>目标达成率</span></div><ol class="maturity-v34-overall-list is-leading">${leadingRows.map((row, index) => `<li><b>${index + 1}</b><span><strong>${escapeHtml(row.code)}</strong><small title="${escapeHtml(row.name)}">${escapeHtml(row.name)}</small></span><em><strong>${Number(row.currentIndex).toFixed(2)}</strong><small>${escapeHtml(row.currentLevel)} 当前</small></em><em><strong>${row.targetIndex == null ? "—" : Number(row.targetIndex).toFixed(2)}</strong><small>${escapeHtml(row.targetLevel || "未设置")} 目标</small></em><em><strong>${row.targetAchievementRate == null ? "—" : `${Number(row.targetAchievementRate).toFixed(0)}%`}</strong><small>目标达成</small></em></li>`).join("")}</ol>`
+      : `<div class="maturity-v1-empty-inline">当前没有可计算的成熟度领先能力。</div>`;
+    const improvementTable = improvementRows.length
+      ? `<div class="maturity-v36-ranking-columns"><i></i><span>能力</span><span>当前成熟度</span><span>目标成熟度</span><span>优先级分数</span></div><ol class="maturity-v34-overall-list is-improvement">${improvementRows.map((row, index) => `<li><b>${index + 1}</b><span><strong>${escapeHtml(row.capabilityCode)}</strong><small title="${escapeHtml(row.capabilityName)}">${escapeHtml(row.capabilityName)}</small></span><em><strong>${row.currentIndex == null ? "—" : Number(row.currentIndex).toFixed(2)}</strong><small>${escapeHtml(row.currentLevel || "未评分")} 当前</small></em><em><strong>${row.targetIndex == null ? "—" : Number(row.targetIndex).toFixed(2)}</strong><small>${escapeHtml(row.targetLevel || "未设置")} 目标</small></em><em><strong>${Number(row.priorityScore).toFixed(1)}</strong><small>${escapeHtml(row.priority)}优先级</small></em></li>`).join("")}</ol>`
+      : `<div class="maturity-v1-empty-inline">当前没有需要优先改进的成熟度差距。</div>`;
+    return `<div class="maturity-v33-overall-rankings"><section><header><span>优势能力</span><h4>成熟度领先 Top 10</h4></header>${leadingTable}</section><section><header><span>差距能力</span><h4>改进优先 Top 10</h4></header>${improvementTable}</section></div>`;
+  }
+
+  function renderDimensionRankingRows(rows, key, priorityByCapability, { showPriority = false } = {}) {
+    if (!rows.length) return `<ol><li class="is-empty">当前没有可展示的 L2 能力</li></ol>`;
+    return `<ol>${rows.map((row, index) => { const priority = priorityByCapability.get(row.id); return `<li><b>${index + 1}</b><span><strong>${escapeHtml(row.code)}</strong><small title="${escapeHtml(row.name)}">${escapeHtml(row.name)}</small></span><em>${Number(row.dimensionResults[key]).toFixed(2)}</em>${showPriority ? renderPriorityBadge(priority?.priority) : "<i></i>"}</li>`; }).join("")}</ol>`;
+  }
+
+  function renderDimensionPriorityTop10(detail, { open = true } = {}) {
     const result = detail?.result || {};
     const priorityByCapability = new Map(list(result.gapItems).map((item) => [item.capabilityId, item]));
     const capabilityRows = list(result.capabilityResults);
     const panels = DIMENSIONS.map(([key, label]) => {
-      const rows = capabilityRows
+      const leadingRows = capabilityRows
+        .filter((row) => row.dimensionResults?.[key] != null && Number.isFinite(Number(row.dimensionResults[key])))
+        .sort((left, right) => Number(right.dimensionResults[key]) - Number(left.dimensionResults[key])
+          || text(left.code).localeCompare(text(right.code), "zh-Hans-CN", { numeric: true }))
+        .slice(0, 10);
+      const improvementRows = capabilityRows
         .filter((row) => priorityByCapability.has(row.id) && row.dimensionResults?.[key] != null && Number.isFinite(Number(row.dimensionResults[key])))
         .sort((left, right) => Number(left.dimensionResults[key]) - Number(right.dimensionResults[key]) || Number(priorityByCapability.get(right.id)?.priorityScore || 0) - Number(priorityByCapability.get(left.id)?.priorityScore || 0) || text(left.code).localeCompare(text(right.code), "zh-Hans-CN", { numeric: true }))
         .slice(0, 10);
-      return `<section data-priority-dimension="${escapeHtml(key)}"><header><div><span>${escapeHtml(label)}</span><strong>低位 Top 10</strong></div><small>当前维度得分</small></header><ol>${rows.map((row, index) => { const priority = priorityByCapability.get(row.id); return `<li><b>${index + 1}</b><span><strong>${escapeHtml(row.code)}</strong><small title="${escapeHtml(row.name)}">${escapeHtml(row.name)}</small></span><em>${Number(row.dimensionResults[key]).toFixed(2)}</em>${renderPriorityBadge(priority?.priority)}</li>`; }).join("") || `<li class="is-empty">当前没有后端差距候选</li>`}</ol></section>`;
+      return `<section data-priority-dimension="${escapeHtml(key)}"><header><div><span>评估维度</span><strong>${escapeHtml(label)}</strong></div><small>当前维度得分</small></header><div class="maturity-v33-dimension-rankings"><section><h4>领先能力 Top 10</h4>${renderDimensionRankingRows(leadingRows, key, priorityByCapability)}</section><section><h4>改进优先 Top 10</h4>${renderDimensionRankingRows(improvementRows, key, priorityByCapability, { showPriority: true })}</section></div></section>`;
     }).join("");
-    return renderCollapsibleResultSection({ className: "maturity-v20-dimension-priorities", eyebrow: "维度优先级", title: "四维优先改进 Top 10", meta: "后端维度聚合与总体优先级", body: `<div class="maturity-v20-priority-grid">${panels}</div>` });
+    return renderCollapsibleResultSection({ className: "maturity-v20-dimension-priorities maturity-v33-dimension-priorities", eyebrow: "维度评估", title: "维度评估 L2 能力 Top 10", meta: "", body: `<div class="maturity-v20-priority-grid maturity-v33-dimension-grid">${panels}</div>`, open });
+  }
+
+  function renderImprovementRoadmap(detail, { open = true } = {}) {
+    const rows = improvementRoadmapRows(detail);
+    if (!rows.length) return renderCollapsibleResultSection({ className: "maturity-v35-improvement-roadmap", eyebrow: "行动规划", title: "改进路线图", meta: "0 项", body: `<div class="maturity-v1-empty-inline">当前没有可转化为行动计划的成熟度差距。</div>`, open });
+    const body = `<div class="maturity-v1-table-wrap maturity-v35-roadmap-scroll"><table class="maturity-v1-table maturity-v35-roadmap-table"><thead><tr><th>优先级</th><th>L2 能力</th><th>当前 / 目标</th><th>改进行动</th><th>负责人</th><th>资源投入</th><th>依赖事项</th><th>状态</th></tr></thead><tbody>${rows.map((row) => `<tr data-maturity-roadmap-row="${escapeHtml(row.capabilityId)}"><td><b class="maturity-v35-roadmap-rank">${row.rank}</b>${renderPriorityBadge(row.priority)}<small>${row.priorityScore == null ? "—" : Number(row.priorityScore).toFixed(1)}</small></td><td><span class="maturity-v1-code">${escapeHtml(row.capabilityCode)}</span><strong>${escapeHtml(row.capabilityName)}</strong><small>差距 ${row.gapIndex == null ? "—" : Number(row.gapIndex).toFixed(2)}</small></td><td><strong>${escapeHtml(row.currentLevel || "—")} → ${escapeHtml(row.targetLevel || "—")}</strong></td><td><textarea rows="3" data-maturity-roadmap-field="action" data-capability-id="${escapeHtml(row.capabilityId)}" placeholder="填写可执行的改进行动">${escapeHtml(row.action)}</textarea></td><td><input type="text" value="${escapeHtml(row.owner)}" data-maturity-roadmap-field="owner" data-capability-id="${escapeHtml(row.capabilityId)}" placeholder="责任部门 / 人" /></td><td><input type="text" value="${escapeHtml(row.resources)}" data-maturity-roadmap-field="resources" data-capability-id="${escapeHtml(row.capabilityId)}" placeholder="预算、人力等" /></td><td><textarea rows="2" data-maturity-roadmap-field="dependencies" data-capability-id="${escapeHtml(row.capabilityId)}" placeholder="前置条件或协同事项">${escapeHtml(row.dependencies)}</textarea></td><td><select data-maturity-roadmap-field="status" data-capability-id="${escapeHtml(row.capabilityId)}">${ROADMAP_STATUSES.map((status) => `<option value="${status}"${row.status === status ? " selected" : ""}>${status}</option>`).join("")}</select></td></tr>`).join("")}</tbody></table></div>`;
+    return renderCollapsibleResultSection({ className: "maturity-v35-improvement-roadmap", eyebrow: "行动规划", title: "改进路线图", meta: `${rows.length} 项 · 自动保存并同步到报告`, body, open });
   }
 
   function renderCapabilityHeatTable(detail) {
@@ -2541,8 +2698,19 @@
   function renderInternalAssessmentDetails(detail, open = false) {
     const result = detail.result || {};
     const focusById = new Map(list(detail.template.focuses).map((item) => [item.id, item]));
+    const scoreEntryById = new Map(list(detail.scoreEntries).map((item) => [item.scoreItemId, item]));
     const rows = list(result.scoreItemResults);
-    return `<details class="maturity-v1-section maturity-v2-internal-details"${open ? " open" : ""}><summary><span>内部评估明细</span><strong>关注点、服务、四维评分与证据</strong><small>${rows.length} 个评估点，仅用于评估工作台和报告附录</small></summary><div class="maturity-v1-table-wrap"><table class="maturity-v1-table"><thead><tr><th>关注点 / 评估点</th><th>类型 / 作用域</th><th>四维最终值</th><th>当前</th><th>目标</th><th>达成率</th><th>证据</th><th>状态</th></tr></thead><tbody>${rows.map((row) => { const focus = focusById.get(row.focusId) || {}; return `<tr><td><strong>${escapeHtml(focus.code || "")} ${escapeHtml(focus.name || "关注点")}</strong><span>${escapeHtml(row.serviceCode || "")} ${escapeHtml(row.serviceName || "关注点评估点")}</span></td><td>${escapeHtml(row.itemType)}<small>${escapeHtml(row.scopeCode || "-")}</small></td><td>${DIMENSIONS.map(([key]) => row.dimensionResults?.[key] ?? "-").join(" / ")}</td><td>${escapeHtml(row.currentLevel)} ${row.currentIndex ?? ""}</td><td>${escapeHtml(row.targetLevel)} ${row.targetIndex ?? ""}</td><td>${row.targetAchievementRate == null ? "-" : `${Number(row.targetAchievementRate).toFixed(0)}%`}</td><td>${escapeHtml(row.evidenceLevel)}</td><td>${escapeHtml(row.status)}</td></tr>`; }).join("")}</tbody></table></div></details>`;
+    return `<details class="maturity-v1-section maturity-v2-internal-details"${open ? " open" : ""}><summary><span>内部评估明细</span><strong>关注点、评估点、四维评分与证据</strong><small>${rows.length} 个评估点，仅用于评估工作台和报告附录</small></summary><div class="maturity-v1-table-wrap"><table class="maturity-v1-table"><thead><tr><th>关注点 / 评估点</th><th>类型 / 作用域</th><th>四维最终值</th><th>当前</th><th>目标</th><th>达成率</th><th>评估证据</th><th>状态</th></tr></thead><tbody>${rows.map((row) => {
+      const focus = focusById.get(row.focusId) || {};
+      const entry = scoreEntryById.get(row.id) || {};
+      const isService = row.itemType === "SERVICE";
+      const typeLabel = isService ? "" : row.itemType === "FOCUS" ? "关注点" : "评估点";
+      const scopeCode = isService ? row.scopeCode || "ALL" : "关注点整体";
+      const evidenceFilled = (entry.evidenceLevel && entry.evidenceLevel !== "E0") || Boolean(text(entry.evidenceSummary).trim());
+      const statusLabel = row.status === "scored" ? "已完成" : row.status === "not_applicable" ? "不适用" : row.status === "incomplete" || row.status === "not_scored" ? "未完成" : row.isComplete ? "已完成" : "未完成";
+      const statusToneClass = statusLabel === "已完成" ? "is-good" : statusLabel === "不适用" ? "is-muted" : "is-warn";
+      return `<tr><td><strong>${escapeHtml(focus.code || "")} ${escapeHtml(focus.name || "关注点")}</strong><span>${escapeHtml(row.serviceCode || "")} ${escapeHtml(row.serviceName || "关注点评估点")}</span></td><td>${typeLabel ? `<span class="maturity-v1-row-status is-muted">${escapeHtml(typeLabel)}</span>` : ""}<small>${escapeHtml(scopeCode)}</small></td><td>${DIMENSIONS.map(([key]) => row.dimensionResults?.[key] ?? "-").join(" / ")}</td><td>${escapeHtml(row.currentLevel)} ${row.currentIndex ?? ""}</td><td>${escapeHtml(row.targetLevel)} ${row.targetIndex ?? ""}</td><td>${row.targetAchievementRate == null ? "-" : `${Number(row.targetAchievementRate).toFixed(0)}%`}</td><td><span class="maturity-v1-row-status ${evidenceFilled ? "is-good" : "is-muted"}">${evidenceFilled ? "已填报" : "未填报"}</span></td><td><span class="maturity-v1-row-status ${statusToneClass}">${statusLabel}</span></td></tr>`;
+    }).join("")}</tbody></table></div></details>`;
   }
 
   function renderGapTable(rows, limit) {
@@ -2551,25 +2719,120 @@
     return `<div class="maturity-v1-table-wrap"><table class="maturity-v1-table maturity-v1-gap-table"><thead><tr><th>优先级</th><th>能力</th><th>当前</th><th>目标</th><th>差距</th><th>优先级分数</th><th>建议方向</th></tr></thead><tbody>${visible.map((item) => `<tr><td><span class="maturity-v1-priority is-${item.priority === "高" ? "high" : item.priority === "中" ? "medium" : "low"}">${escapeHtml(item.priority)}</span></td><td><span class="maturity-v1-code">${escapeHtml(item.capabilityCode)}</span><strong>${escapeHtml(item.capabilityName)}</strong></td><td>${escapeHtml(item.currentLevel)}</td><td>${escapeHtml(item.targetLevel)}</td><td>${item.gapIndex}</td><td>${item.priorityScore}</td><td><span>${list(item.recommendations).slice(0, 2).map((row) => escapeHtml(row.type)).join(" / ")}</span><small>${list(item.relatedServices).slice(0, 2).map(escapeHtml).join("；") || "需人工确认建设措施"}</small></td></tr>`).join("")}</tbody></table></div>`;
   }
 
+  function reportNarrativeSections() {
+    return [
+      { key: "executiveSummary", index: "一", label: "评估概况", helper: "请概述本次评估背景、范围、方法与结论要点（建议 3—6 行）。", placeholder: "填写评估背景、范围、方法、总体成熟度及对业务的影响。" },
+      { key: "keyFindings", index: "二", label: "关键发现", helper: "请基于结果数据补充关键发现与差距洞察（建议 3—6 条要点）。", placeholder: "填写关键优势、主要短板、形成原因及重要约束。" },
+      { key: "managementRecommendations", index: "三", label: "提升建议", helper: "请提出针对性的改进方向与优先建议（建议 3—6 条要点）。", placeholder: "填写改进方向、建议优先级、责任主体和资源安排。" },
+      { key: "nextSteps", index: "四", label: "下一步计划", helper: "请明确后续行动计划、里程碑与责任人（建议 3—6 条要点）。", placeholder: "填写近期行动、里程碑、责任人与复评安排。" },
+    ];
+  }
+
+  function renderReportNavigation(detail) {
+    const report = detail?.report;
+    const exportReady = reportExportReady(report);
+    const automaticSections = [
+      ["report-overall", "总体结果"],
+      ["report-capability-radar", "全能力分组雷达"],
+      ["report-dimension-radar", "四维成熟度雷达"],
+      ["report-category-coverage", "能力类别评分"],
+      ["report-l2-results", "L2 能力表"],
+      ["report-overall-top10", "总体优先级 Top 10"],
+      ["report-dimension-top10", "四维优先改进 Top 10"],
+      ["report-result-analysis", "成熟度与证据分布"],
+      ["report-internal-detail", "评分明细附录"],
+      ["report-limitations", "口径与限制"],
+    ];
+    return `<aside class="maturity-v37-report-nav" aria-label="评估报告章节导航">
+      <header><span>报告结构</span><h2>报告章节导航</h2></header>
+      <nav aria-label="人工填写章节">${reportNarrativeSections().map((section) => `<button type="button" data-maturity-action="scroll-report-section" data-report-section-target="report-${escapeHtml(section.key)}"><b>${section.index}</b><span>${escapeHtml(section.label)}</span></button>`).join("")}</nav>
+      <section><header><strong>结果章节自动同步</strong><span title="评估结果更新后，重新生成报告即可同步全部统计。">说明</span></header><p>以下结果章节均直接使用评估结果数据；重新生成后导出文件会同步更新。</p><div>${automaticSections.map(([id, label]) => `<button type="button" data-maturity-action="scroll-report-section" data-report-section-target="${id}"><em>同步</em><span>${escapeHtml(label)}</span></button>`).join("")}</div></section>
+      <footer class="${detail.reportNarrativeDirty || (report && !exportReady) ? "is-dirty" : exportReady ? "is-synced" : ""}"><strong>${detail.reportNarrativeDirty ? "汇报内容待更新" : report && !exportReady ? "需要生成完整评估报告" : exportReady ? "结果与报告已同步" : "尚未生成导出文件"}</strong><span>${report ? `快照 ${escapeHtml(report.id)}` : "完成编辑后生成评估报告"}</span></footer>
+    </aside>`;
+  }
+
+  function renderReportOverall(detail) {
+    const summary = summaryOf(detail);
+    const applicable = Number(summary.applicableItemCount || 0);
+    const excluded = Number(summary.notApplicableCount || 0);
+    const completed = Number(summary.scoredItemCount || Math.max(0, applicable - Number(summary.notScoredCount || 0)));
+    const currentLevel = LEVELS.includes(summary.currentLevel) ? summary.currentLevel : "—";
+    const targetLevel = LEVELS.includes(summary.targetLevel) ? summary.targetLevel : "—";
+    const currentIndex = Number.isFinite(Number(summary.currentIndex)) ? Number(summary.currentIndex).toFixed(2) : "—";
+    const targetIndex = Number.isFinite(Number(summary.targetIndex)) ? Number(summary.targetIndex).toFixed(2) : "—";
+    const categoryRows = list(detail?.result?.categoryResults).slice(0, 3);
+    return `<section id="report-overall" class="maturity-v37-report-overall" data-report-section="report-overall" aria-labelledby="maturityReportOverallTitle">
+      <header><i aria-hidden="true"></i><h2 id="maturityReportOverallTitle">总体结果（关键结论）</h2></header>
+      <div class="maturity-v37-report-metrics">
+        <article><span>当前成熟度</span><strong>${escapeHtml(currentLevel)}${LEVEL_NAMES[currentLevel] ? ` <small>${escapeHtml(LEVEL_NAMES[currentLevel])}</small>` : ""}</strong><small>成熟度指数 ${escapeHtml(currentIndex)} / 5.00</small></article>
+        <article><span>目标成熟度</span><strong>${escapeHtml(targetLevel)}</strong><small>目标指数 ${escapeHtml(targetIndex)} / 5.00</small></article>
+        <article><span>适用性</span><strong>${applicable} / ${applicable + excluded || "—"}</strong><small>适用评估点 / 全部评估点</small></article>
+        <article><span>评估进度</span><strong>${completed} / ${applicable || "—"}</strong><small>已完成 / 适用评估点</small></article>
+      </div>
+      <div class="maturity-v37-report-categories"><span>能力类别评分</span>${categoryRows.map((row) => `<article data-radar-group="${escapeHtml(row.code)}"><i></i><div><strong>${escapeHtml(row.code || compactChineseName(row.name))} ${escapeHtml(compactChineseName(row.name))}</strong><span><b>${row.currentIndex == null ? "—" : Number(row.currentIndex).toFixed(2)}</b> / 目标 ${row.targetIndex == null ? "—" : Number(row.targetIndex).toFixed(2)}</span></div></article>`).join("")}</div>
+    </section>`;
+  }
+
+  function renderReportCategoryCoverage(detail) {
+    const groups = capabilityRadarGroups(detail);
+    const scoredCount = groups.flatMap((group) => group.rows).filter((row) => row.currentIndex != null).length;
+    const totalCount = groups.reduce((sum, group) => sum + group.rows.length, 0);
+    return `<section id="report-category-coverage" class="maturity-v37-report-panel maturity-v37-report-coverage" data-report-section="report-category-coverage">
+      <header><h3>L2 评估覆盖与差距</h3><span>按能力类别</span></header><p><strong>${scoredCount} / ${totalCount || "—"}</strong> 已评分的 L2 能力</p>
+      <div>${groups.map((group) => { const belowTarget = group.rows.filter((row) => Number(row.gapIndex) > 0).length; return `<article data-radar-group="${escapeHtml(group.code)}"><strong>${escapeHtml(group.code)} ${escapeHtml(group.name)}</strong><b>${group.rows.length}<small> 个 L2 能力</small></b><span>低于目标 ${belowTarget}</span></article>`; }).join("")}</div>
+    </section>`;
+  }
+
+  function renderReportPriorityTable(detail) {
+    const rows = list(detail?.result?.gapItems).slice(0, 5);
+    return `<section class="maturity-v37-report-panel maturity-v37-report-priority" aria-labelledby="maturityReportPriorityTitle"><header><h3 id="maturityReportPriorityTitle">总体优先级差距 Top 5</h3><span>后端优先级与分数</span></header><div class="maturity-v1-table-wrap"><table><thead><tr><th>排名</th><th>能力编号</th><th>能力名称</th><th>当前</th><th>目标</th><th>差距</th><th>优先级得分</th></tr></thead><tbody>${rows.length ? rows.map((row, index) => `<tr><td>${index + 1}</td><td><strong>${escapeHtml(row.capabilityCode)}</strong></td><td>${escapeHtml(row.capabilityName)}</td><td>${escapeHtml(row.currentLevel || "—")}</td><td>${escapeHtml(row.targetLevel || "—")}</td><td>${row.gapIndex == null ? "—" : Number(row.gapIndex).toFixed(2)}</td><td><span class="maturity-v37-priority-score"><i style="width:${percent(Number(row.priorityScore || 0))}%"></i></span><b>${row.priorityScore == null ? "—" : Number(row.priorityScore).toFixed(1)}</b></td></tr>`).join("") : `<tr><td colspan="7">当前没有已计算差距。</td></tr>`}</tbody></table></div></section>`;
+  }
+
+  function renderReportNarrative(detail, section, narrative) {
+    const editing = model.reportEditingSection === section.key;
+    const value = text(narrative[section.key]);
+    return `<section id="report-${escapeHtml(section.key)}" class="maturity-v37-report-narrative ${editing ? "is-editing" : ""}" data-report-section="report-${escapeHtml(section.key)}">
+      <header><h3>${section.index}、${escapeHtml(section.label)}</h3><button type="button" data-maturity-action="${editing ? "finish-report-section" : "edit-report-section"}" data-report-field="${escapeHtml(section.key)}">${editing ? "完成" : "编辑"}</button></header>
+      ${editing ? `<textarea rows="5" data-maturity-report-field="${escapeHtml(section.key)}" placeholder="${escapeHtml(section.placeholder)}">${escapeHtml(value)}</textarea><p>内容自动保存在当前项目；重新生成报告后同步到 HTML 与 Markdown。</p>` : `<p class="${value.trim() ? "has-content" : ""}">${value.trim() ? escapeHtml(value) : escapeHtml(section.helper)}</p>`}
+    </section>`;
+  }
+
+  function renderReportResultAppendix(detail) {
+    const groups = capabilityRadarGroups(detail);
+    const summary = summaryOf(detail);
+    return `<section class="maturity-v37-report-appendix" aria-labelledby="maturityReportAppendixTitle">
+      <header><span>完整自动同步结果</span><h2 id="maturityReportAppendixTitle">评估结果与数据附录</h2><p>以下章节与“评估结果”使用同一份结果对象，不在报告页面重新计算统计口径。</p></header>
+      <div id="report-result-analysis" data-report-section="report-result-analysis">${renderCollapsibleResultSection({ className: "maturity-v37-report-analysis", eyebrow: "分层统计", title: "T / G / M、L1 与结果评价", meta: "成熟度与证据分布", body: renderRadarAnalysis(detail, groups), open: false })}</div>
+      <div id="report-l2-results" data-report-section="report-l2-results">${renderCollapsibleResultSection({ className: "maturity-v37-report-l2", eyebrow: "完整数据", title: "L2 能力分数清单", meta: `${list(detail?.result?.capabilityResults).length} 项 L2`, body: renderCapabilityHeatTable(detail), open: false })}</div>
+      <div id="report-overall-top10" data-report-section="report-overall-top10">${renderCollapsibleResultSection({ className: "maturity-v37-report-top10", eyebrow: "能力排行", title: "总体领先与改进优先 Top 10", meta: "后端结果排序", body: renderOverallCapabilityTop10(detail), open: false })}</div>
+      <div id="report-dimension-top10" data-report-section="report-dimension-top10">${renderDimensionPriorityTop10(detail, { open: false })}</div>
+      <div id="report-improvement-roadmap" data-report-section="report-improvement-roadmap">${renderImprovementRoadmap(detail, { open: false })}</div>
+      <div id="report-internal-detail" data-report-section="report-internal-detail">${renderInternalAssessmentDetails(detail, false)}</div>
+      <section id="report-limitations" class="maturity-v37-report-limitations" data-report-section="report-limitations"><h3>口径与限制</h3><p>适用项完成度 ${summary.completionRate ?? "—"}%；不适用项 ${Number(summary.notApplicableCount || 0)}；无证据项 ${Number(list(detail?.result?.evidenceDistribution).find((item) => item.level === "E0")?.count || 0)}。不适用和无证据作为信息口径，不阻塞正式报告。</p><p>客户主结果最细到 L2；关注点、服务、四维原始评分与证据保留在评分明细附录。报告中的图、表和排行均来自当前评估结果。</p></section>
+    </section>`;
+  }
+
   function renderReportTab(detail) {
     const report = detail.report;
     const summary = summaryOf(detail);
     const narrative = { ...defaultReportNarrative(), ...(detail.reportNarrative || {}) };
     const formalReady = ["completed", "reported", "archived"].includes(detail.project.status) && statisticsReadyForDisplay(detail);
+    if (!detail?.result?.ok) return `<section class="maturity-v1-empty"><h3>评估报告尚不可用</h3><p>请先完成后端评分计算，再进入报告编制。</p><button class="maturity-v1-button is-primary" type="button" data-maturity-action="calculate">开始计算</button></section>`;
     return `
-      <div class="maturity-v24-report-layout">
-        <section class="maturity-v24-report-compose" aria-labelledby="maturityReportComposeTitle">
-          <header><div><span>${formalReady ? "正式报告快照" : "草稿报告预览"}</span><h3 id="maturityReportComposeTitle">汇报文字</h3><p>评分结果由后端写入；以下四个区域预留给汇报人员补充判断、建议和行动安排。</p></div>${report ? `<span class="maturity-v1-status ${detail.reportNarrativeDirty ? "is-warn" : report.formal ? "is-good" : "is-warn"}">${detail.reportNarrativeDirty ? "文字待更新" : report.formal ? "已固化" : "草稿"}</span>` : ""}</header>
-          <div class="maturity-v24-report-fields">
-            ${[["executiveSummary", "管理层摘要", "用 3—5 句话说明总体成熟度、主要差距和对业务的影响。"], ["keyFindings", "关键发现", "补充评分数据之外的关键背景、成因或约束。"], ["managementRecommendations", "管理建议", "填写建议优先级、责任主体和资源安排。"], ["nextSteps", "下一步计划", "填写近期行动、里程碑和复评时间。"]].map(([key, label, placeholder]) => `<label><span>${label}</span><textarea rows="4" data-maturity-report-field="${key}" placeholder="${placeholder}">${escapeHtml(narrative[key])}</textarea></label>`).join("")}
+      <div class="maturity-v37-report-shell" data-maturity-report-ready="${formalReady}">
+        ${renderReportNavigation(detail)}
+        <main class="maturity-v37-report-document">
+          ${renderReportOverall(detail)}
+          <div class="maturity-v37-report-dashboard">
+            <section id="report-capability-radar" class="maturity-v37-report-panel maturity-v37-report-capability-radar" data-report-section="report-capability-radar"><header><h3>全能力分组雷达（${list(detail?.result?.capabilityResults).length} 个 L2 能力）</h3><div><span class="is-current"><i></i>当前成熟度</span><span class="is-target"><i></i>目标成熟度</span></div></header><canvas width="760" height="350" data-maturity-capability-radar data-radar-height="350" data-radar-min-width="420" aria-label="全能力分组成熟度雷达图"></canvas></section>
+            <section id="report-dimension-radar" class="maturity-v37-report-panel maturity-v37-report-dimension-radar" data-report-section="report-dimension-radar"><header><h3>四维成熟度雷达</h3><span>目标参考：等轴 ${Number.isFinite(Number(summary.targetIndex)) ? Number(summary.targetIndex).toFixed(2) : "—"}</span></header><canvas width="460" height="300" data-maturity-result-radar data-radar-height="300" data-radar-radius="108" aria-label="组织、流程、工具、数据四维成熟度雷达图"></canvas><dl>${dimensionProfile(summary.dimensionResults || {}).map((item) => `<div><dt>${escapeHtml(item.label)}</dt><dd>${item.value == null ? "—" : item.value.toFixed(2)}</dd></div>`).join("")}</dl></section>
+            ${renderReportCategoryCoverage(detail)}
+            <div class="maturity-v37-report-narratives">${reportNarrativeSections().map((section) => renderReportNarrative(detail, section, narrative)).join("")}</div>
+            ${renderReportPriorityTable(detail)}
           </div>
-          <footer><button class="maturity-v1-button is-primary" type="button" data-maturity-action="generate-report" ${model.reportGenerating ? "disabled" : ""}>${model.reportGenerating ? "生成中..." : formalReady ? report ? "更新报告快照" : "生成报告快照" : "生成草稿预览"}</button><span>${formalReady ? "不适用和无证据不阻塞正式快照；它们会作为信息口径进入限制说明。" : "完成全部适用评估点并解决目标冲突后，才能生成正式快照。"}</span></footer>
-        </section>
-        <aside class="maturity-v24-report-export maturity-v27-report-export" aria-label="报告导出">
-          <header><span>两个独立文件</span><h3>报告导出</h3></header>
-          ${report ? `<dl><div><dt>状态</dt><dd>${report.formal ? "正式快照" : "草稿预览"}</dd></div><div><dt>快照编号</dt><dd>${escapeHtml(report.id)}</dd></div><div><dt>生成时间</dt><dd>${escapeHtml(report.generatedAt)}</dd></div></dl><p class="maturity-v27-report-coverage">两种格式均包含项目事实、成熟度结果、四维结果、能力类别评分、L2 能力清单、主要差距和人工填写内容。</p><div class="maturity-v27-report-formats"><section><div><strong>Markdown 文件</strong><small>适合继续编辑和版本管理</small></div><button class="maturity-v1-button is-secondary" type="button" data-maturity-action="download-report" data-format="markdown">导出 Markdown</button></section><section><div><strong>HTML 汇报文件</strong><small>保留完整排版，可直接展示</small></div><button class="maturity-v1-button is-secondary" type="button" data-maturity-action="download-report" data-format="html">导出 HTML</button></section></div>` : `<p>先生成报告预览或正式快照，再分别导出 Markdown 和 HTML 文件。</p>`}
-        </aside>
-        ${report ? `<section class="maturity-v24-report-preview" aria-label="HTML 报告预览"><header><div><span>完整评估结果预览</span><h3>${escapeHtml(detail.project.name)}</h3></div><span>${escapeHtml(summary.currentLevel)} · 指数 ${summary.currentIndex}</span></header><iframe title="${escapeHtml(detail.project.name)} HTML 报告预览" sandbox srcdoc="${escapeHtml(report.html || "")}"></iframe></section>` : `<section class="maturity-v24-report-empty"><strong>HTML 汇报版将在这里预览</strong><span>它包含项目事实、成熟度结果、四维结果、能力类别评分、L2 能力清单、主要差距，以及上方四个可填写文字区。</span></section>`}
+          ${renderReportResultAppendix(detail)}
+          <footer class="maturity-v37-report-note"><strong>说明</strong><span>本报告由 SAPD 成熟度评估结果自动生成；结果数据保留生成时点的有效版本，人工章节用于管理汇报与决策参考。</span>${report ? `<small>${report.formal ? "正式评估报告" : "草稿报告"} · ${escapeHtml(report.generatedAt || "")}</small>` : `<small>尚未生成导出文件</small>`}</footer>
+        </main>
       </div>
     `;
   }
@@ -2665,11 +2928,15 @@
   function syncMaturityShellHeader(detail) {
     const slot = document.getElementById("maturityShellHeaderActions");
     if (!slot) return;
+    const pageTitle = document.querySelector("#appPageTitle");
     const pageDescription = document.querySelector("#appPageHeader .page-header-copy > p");
+    if (pageTitle) pageTitle.textContent = detail && model.activeTab === "report" ? `${detail.project.name} 评估报告` : "SAPD 成熟度评估";
     if (pageDescription) {
-      pageDescription.textContent = detail
-        ? `${detail.project.name} · ${detail.project.organization} · ${displayTemplateName(detail)}`
-        : "管理成熟度评估项目、模板、评分、结果和报告快照。";
+      pageDescription.textContent = detail && model.activeTab === "report"
+        ? `${detail.project.organization} · ${displayTemplateName(detail)} · ${text(detail.project.updatedAt || "").slice(0, 10)}`
+        : detail
+          ? `${detail.project.name} · ${detail.project.organization} · ${displayTemplateName(detail)}`
+          : "管理成熟度评估项目、模板、评分、结果和评估报告。";
     }
     const scoringStatus = detail && model.activeTab === "scoring" ? model.root.querySelector(".maturity-v3-page-status") || slot.querySelector(".maturity-v3-page-status") : null;
     const scoringTools = detail && model.activeTab === "scoring" ? model.root.querySelector(".maturity-v3-scoring-tools") || slot.querySelector(".maturity-v3-scoring-tools") : null;
@@ -2679,6 +2946,12 @@
     } else if (model.activeTab === "scoring") {
       if (scoringStatus) slot.append(scoringStatus);
       if (scoringTools) slot.append(scoringTools);
+    } else if (model.activeTab === "report") {
+      const report = detail.report;
+      const exportReady = reportExportReady(report);
+      const reportState = detail.reportNarrativeDirty ? "汇报内容待更新" : report && !exportReady ? "需要生成完整报告" : exportReady ? "结果与报告已同步" : "尚未生成导出文件";
+      const generateLabel = model.reportGenerating ? "生成中..." : report && !exportReady ? "生成完整评估报告" : report ? "更新评估报告" : "生成评估报告";
+      slot.innerHTML = `<span class="maturity-v37-shell-report-state"><span class="maturity-v1-status ${detail.reportNarrativeDirty || (report && !exportReady) ? "is-warn" : exportReady ? "is-good" : "is-active"}">${escapeHtml(reportState)}</span></span><button class="maturity-v1-button is-primary" type="button" data-maturity-action="generate-report" ${model.reportGenerating ? "disabled" : ""}>${escapeHtml(generateLabel)}</button><button class="maturity-v1-button is-secondary" type="button" data-maturity-action="download-report" data-format="html" ${exportReady ? "" : "disabled"}>导出 HTML</button><button class="maturity-v1-button is-secondary" type="button" data-maturity-action="download-report" data-format="markdown" ${exportReady ? "" : "disabled"}>导出 Markdown</button>`;
     } else {
       const [primaryLabel, primaryTab] = projectPrimaryAction(detail.project);
       slot.innerHTML = `<span class="maturity-v5-shell-project-state"><span class="maturity-v1-status ${statusTone(detail.project.status)}">${escapeHtml(PROJECT_STATUS_NAMES[detail.project.status] || detail.project.status)}</span>${detail.project.status === "scoring" ? `<span class="maturity-v2-save-state" aria-live="polite">${model.calculating ? "正在保存并试算..." : detail.dirty ? "已保存草稿，等待试算" : "已自动保存"}</span>` : ""}</span><button class="maturity-v1-button is-primary" type="button" data-maturity-tab="${primaryTab}">${escapeHtml(primaryLabel)}</button>`;
@@ -2950,7 +3223,7 @@
       mode: "controlled_demo",
       readOnly: false,
     };
-    const detail = { ...existing, project, template: existing.template || clone(model.workspace?.template), scoreEntries: list(existing.scoreEntries), result: existing.result || null, report: existing.report || null, reportNarrative: existing.reportNarrative || defaultReportNarrative(), reportNarrativeDirty: Boolean(existing.reportNarrativeDirty), exchangeBatches: list(existing.exchangeBatches), locallyStored: true };
+    const detail = { ...existing, project, template: existing.template || clone(model.workspace?.template), scoreEntries: list(existing.scoreEntries), result: existing.result || null, report: existing.report || null, reportNarrative: existing.reportNarrative || defaultReportNarrative(), reportNarrativeDirty: Boolean(existing.reportNarrativeDirty), improvementRoadmap: list(existing.improvementRoadmap), exchangeBatches: list(existing.exchangeBatches), scoreImportIssues: list(existing.scoreImportIssues), scoreImportNotice: existing.scoreImportNotice || null, locallyStored: true };
     model.details[projectId] = detail;
     persistDetail(detail);
     model.createOpen = false;
@@ -3025,7 +3298,7 @@
       mode: "controlled_demo",
       readOnly: false,
     };
-    const detail = { project, template, scoreEntries: createBlankEntries(template), result: null, report: null, reportNarrative: defaultReportNarrative(), reportNarrativeDirty: false, exchangeBatches: [], locallyStored: true };
+    const detail = { project, template, scoreEntries: createBlankEntries(template), result: null, report: null, reportNarrative: defaultReportNarrative(), reportNarrativeDirty: false, improvementRoadmap: [], exchangeBatches: [], scoreImportIssues: [], scoreImportNotice: null, locallyStored: true };
     model.details[projectId] = detail;
     persistDetail(detail);
     model.createOpen = false;
@@ -3257,8 +3530,9 @@
         detail.exchangeBatches.push(exported.batch);
         persistDetail(detail);
       }
-      downloadBlob(JSON.stringify(exported.package, null, 2), exported.fileName || `${safeFileName(template.name)}-structure-v2.1.json`, "application/json;charset=utf-8");
-      showToast(`${template.type === "base" ? "默认" : "自定义"}模板结构文件已导出`, "success");
+      const fileName = exported.fileName || `${safeFileName(template.name || template.id)}-业务模板.xlsx`;
+      downloadBlob(workbookBlob(exported.package), fileName, exported.mimeType || XLSX_MIME);
+      showToast(`${template.type === "base" ? "标准" : "自定义"}模板 XLSX 已导出`, "success");
     } catch (error) {
       showToast(error?.message || "模板结构导出失败", "error");
     }
@@ -3270,7 +3544,7 @@
 
   async function importTemplateToLibrary(file) {
     try {
-      const exchange = JSON.parse(await file.text());
+      const exchange = await workbookExchange(file);
       const response = await window.sapdDataClient?.importMaturityTemplateExchange?.(exchange);
       const imported = unwrap(response);
       if (!imported?.ok) throw new Error(list(imported?.rowErrors)[0]?.message || "导入模板校验未通过");
@@ -3281,7 +3555,7 @@
       store.templateImportBatches.push({ ...imported.batch, importedAt: nowLabel(), sourceTemplateType: imported.sourceTemplateType || "custom" });
       writeStore(store);
       model.templateManagerView = "custom";
-      showToast(`已导入${imported.sourceTemplateType === "base" ? "默认模板" : "自定义模板"}并生成可调整副本，原模板未被覆盖。`, "success");
+      showToast("自定义业务模板已导入：评分标题与评分列已保留，评分数据单元格为空。", "success");
     } catch (error) {
       showToast(error?.message || "模板导入失败", "error");
     }
@@ -3289,7 +3563,7 @@
 
   async function importTemplate(detail, file) {
     try {
-      const exchange = JSON.parse(await file.text());
+      const exchange = await workbookExchange(file);
       const response = await window.sapdDataClient?.importMaturityTemplateExchange?.(exchange);
       const imported = unwrap(response);
       if (!imported?.ok) throw new Error(list(imported?.rowErrors)[0]?.message || "导入模板校验未通过");
@@ -3319,8 +3593,8 @@
       detail.exchangeBatches = list(detail.exchangeBatches);
       detail.exchangeBatches.push(exported.batch);
       persistDetail(detail);
-      downloadBlob(JSON.stringify(exported.package, null, 2), exported.fileName || `${safeFileName(detail.project.name)}-score-v2.1.json`, "application/json;charset=utf-8");
-      showToast("评分文件已导出，结构字段保持只读", "success");
+      downloadBlob(workbookBlob(exported.package), exported.fileName || `${safeFileName(detail.project.name)}-评分表.xlsx`, exported.mimeType || XLSX_MIME);
+      showToast("评分表已下载，可填写适用性、四维评分和目标等级", "success");
     } catch (error) {
       showToast(error?.message || "评分文件导出失败", "error");
     }
@@ -3328,20 +3602,60 @@
 
   async function importScoreExchange(detail, file) {
     try {
-      const exchange = JSON.parse(await file.text());
+      const exchange = await workbookExchange(file);
       const response = await window.sapdDataClient?.importMaturityScoreExchange?.({ project: detail.project, template: detail.template, scoreEntries: detail.scoreEntries, exchange });
       const imported = unwrap(response);
       detail.exchangeBatches = list(detail.exchangeBatches);
       if (imported?.batch) detail.exchangeBatches.push({ ...imported.batch, rowErrors: list(imported.rowErrors) });
-      if (!imported?.ok && !list(imported?.scoreEntries).length) throw new Error(list(imported?.rowErrors)[0]?.message || "评分文件导入失败");
+      detail.scoreImportIssues = list(imported?.rowErrors);
+      if (!imported?.ok && !list(imported?.scoreEntries).length) {
+        detail.scoreImportNotice = { tone: "error", message: list(imported?.rowErrors)[0]?.message || "评分文件导入失败" };
+        persistDetail(detail);
+        render();
+        showToast(list(imported?.rowErrors)[0]?.message || "评分文件导入失败", "error");
+        return;
+      }
       detail.scoreEntries = list(imported.scoreEntries);
+      const successes = Number(imported.batch?.successCount || 0);
+      const failures = Number(imported.batch?.failureCount || 0);
+      const templateLabel = detail.template?.type === "base" ? "标准模板" : "自定义模板";
+      const successMessage = failures ? `${templateLabel}评分文件已导入 ${successes} 个评估点，${failures} 行需要修正` : `${templateLabel}评分文件上传成功，已导入 ${successes} 个评估点`;
+      detail.scoreImportNotice = { tone: failures ? "info" : "success", message: successMessage };
+      appendProjectHistory(
+        detail,
+        "SCORE_FILE_IMPORTED",
+        failures ? "上传评分文件（部分成功）" : "上传评分文件",
+        `${file?.name || "评分文件"} · 成功导入 ${successes} 个评估点${failures ? `，${failures} 行需要修正` : ""}`,
+      );
       touchDetail(detail, { invalidateResult: true, invalidateReport: true });
       await calculateDetail(detail, { silent: true });
-      const failures = Number(imported.batch?.failureCount || 0);
-      showToast(failures ? `评分文件部分导入成功，${failures} 行需要修正` : "评分文件已全部导入", failures ? "info" : "success");
+      showToast(successMessage, failures ? "info" : "success");
     } catch (error) {
       showToast(error?.message || "评分文件导入失败", "error");
     }
+  }
+
+  const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+  async function workbookExchange(file) {
+    if (!file || !/\.xlsx$/i.test(file.name || "")) throw new Error("请选择 XLSX 文件");
+    const workbookBase64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error("XLSX 文件读取失败"));
+      reader.onload = () => resolve(text(reader.result).split(",", 2)[1] || "");
+      reader.readAsDataURL(file);
+    });
+    if (!workbookBase64) throw new Error("XLSX 文件内容为空");
+    return { fileName: file.name, workbookBase64, mimeType: file.type || XLSX_MIME };
+  }
+
+  function workbookBlob(exchangePackage) {
+    const encoded = text(exchangePackage?.workbookBase64);
+    if (!encoded) throw new Error("后端未返回可下载的 XLSX 文件");
+    const binary = window.atob(encoded);
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+    return new Blob([bytes], { type: exchangePackage?.mimeType || XLSX_MIME });
   }
 
   function safeFileName(value) {
@@ -3365,18 +3679,18 @@
     model.reportGenerating = true;
     render();
     try {
-      const response = await window.sapdDataClient?.createMaturityReport?.({ project: detail.project, template: detail.template, scoreEntries: detail.scoreEntries, narrative: { ...defaultReportNarrative(), ...(detail.reportNarrative || {}) } });
+      const response = await window.sapdDataClient?.createMaturityReport?.({ project: detail.project, template: detail.template, scoreEntries: detail.scoreEntries, narrative: { ...defaultReportNarrative(), ...(detail.reportNarrative || {}) }, improvementRoadmap: improvementRoadmapRows(detail) });
       const report = unwrap(response);
       if (!report?.ok) throw new Error(list(report?.validation?.errors)[0]?.message || report?.error || "报告生成失败");
       detail.report = report;
       detail.reportNarrativeDirty = false;
       if (report.formal) {
-        if (detail.project.status !== "reported") appendProjectHistory(detail, "REPORT_GENERATED", "生成正式报告", "评分保持锁定，并生成新的正式报告快照。");
+        if (detail.project.status !== "reported") appendProjectHistory(detail, "REPORT_GENERATED", "生成评估报告", "评分保持锁定，并生成新的正式评估报告。");
         detail.project.status = "reported";
         detail.project.readOnly = true;
       }
       touchDetail(detail);
-      model.toast = report.formal ? "正式报告快照已生成" : "草稿报告预览已生成";
+      model.toast = report.formal ? "正式评估报告已生成" : "评估报告草稿已生成";
       model.toastTone = "success";
       model.toastRoute = normalizedRoute();
     } catch (error) {
@@ -3392,6 +3706,10 @@
   function downloadReport(detail, format) {
     const report = detail?.report;
     if (!report) return;
+    if (!reportExportReady(report)) {
+      showToast("请先生成包含完整图表与统计的评估报告", "error");
+      return;
+    }
     if (format === "markdown") downloadBlob(report.markdown || "", report.fileNames?.markdown || "maturity-report.md", "text/markdown;charset=utf-8");
     if (format === "html") downloadBlob(report.html || "", report.fileNames?.html || "maturity-report.html", "text/html;charset=utf-8");
   }
@@ -3400,6 +3718,7 @@
     if (!detail || detail.project.readOnly) return;
     if (["score_review", "completed"].includes(detail.project.status)) detail.project.status = "scoring";
     const entry = scoreEntry(detail, itemId);
+    detail.scoreImportIssues = list(detail.scoreImportIssues).filter((issue) => text(issue?.itemInstanceId) !== text(itemId));
     Object.assign(entry, changes);
     const scored = entryIsComplete(entry);
     entry.status = entry.isApplicable === false ? "not_applicable" : scored ? "scored" : "incomplete";
@@ -3479,7 +3798,7 @@
 
   function unlockAssessmentForEditing(detail) {
     if (!detail?.project || !LOCKED_ASSESSMENT_STATUSES.has(detail.project.status) || !detail.project.readOnly) return;
-    appendProjectHistory(detail, "ASSESSMENT_UNLOCKED", "解锁评分修改", "保留现有评分，项目回到待完成评估；原正式报告快照失效。");
+    appendProjectHistory(detail, "ASSESSMENT_UNLOCKED", "解锁评分修改", "保留现有评分，项目回到待完成评估；原正式评估报告失效。");
     detail.project.status = "score_review";
     detail.project.readOnly = false;
     detail.resultStale = false;
@@ -3549,6 +3868,7 @@
     const tabTarget = event.target.closest("[data-maturity-tab]");
     if (tabTarget) {
       model.activeTab = tabTarget.dataset.maturityTab || "overview";
+      if (model.activeTab !== "report") model.reportEditingSection = "";
       model.projectObjectSearch = "";
       model.projectObjectSearchIndex = 0;
       render();
@@ -3584,12 +3904,21 @@
       model.navigate?.(`/workbench/maturity/${encodeURIComponent(actionTarget.dataset.projectId || "")}`);
     }
     if (action === "show-global-note") showToast(actionTarget.dataset.note || "该功能将在正式持久化阶段开放", "info");
-    if (action === "set-template-view") { model.templateManagerView = actionTarget.dataset.templateView || "all"; model.templateManagerPage = 1; render(); }
+    if (action === "set-template-view") {
+      model.templateManagerView = actionTarget.dataset.templateView || "all";
+      model.templateManagerPage = 1;
+      renderTemplateManagerRegion({ restoreTabFocus: true });
+    }
     if (action === "set-workspace-page") {
       const page = Math.max(1, Number(actionTarget.dataset.page) || 1);
-      if (actionTarget.dataset.pageTarget === "templates") model.templateManagerPage = page;
-      else { model.projectListPage = page; model.expandedProjectId = ""; }
-      render();
+      if (actionTarget.dataset.pageTarget === "templates") {
+        model.templateManagerPage = page;
+        renderTemplateManagerRegion();
+      } else {
+        model.projectListPage = page;
+        model.expandedProjectId = "";
+        render();
+      }
     }
     if (action === "trigger-global-template-import") model.root.querySelector("[data-maturity-template-library-file]")?.click();
     if (action === "export-global-template") {
@@ -3640,6 +3969,24 @@
       loadWorkspace({ force: true });
     }
     if (!detail) return;
+    if (action === "scroll-report-section") {
+      const target = model.root?.querySelector(`#${CSS.escape(actionTarget.dataset.reportSectionTarget || "")}`);
+      const details = target?.matches("details") ? target : target?.querySelector(":scope > details");
+      if (details) details.open = true;
+      target?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    if (action === "edit-report-section") {
+      model.reportEditingSection = actionTarget.dataset.reportField || "";
+      render();
+      window.setTimeout(() => model.root?.querySelector(`[data-maturity-report-field="${CSS.escape(model.reportEditingSection)}"]`)?.focus(), 0);
+      return;
+    }
+    if (action === "finish-report-section") {
+      model.reportEditingSection = "";
+      render();
+      return;
+    }
     if (action === "request-score-unlock") {
       if (!detail.project.readOnly || !LOCKED_ASSESSMENT_STATUSES.has(detail.project.status)) return;
       model.unlockConfirmProjectId = detail.project.id;
@@ -3890,6 +4237,10 @@
       return;
     }
     if (!detail) return;
+    if (event.target.matches("select[data-maturity-roadmap-field]")) {
+      updateImprovementRoadmapField(detail, text(event.target.dataset.capabilityId), text(event.target.dataset.maturityRoadmapField), event.target.value);
+      return;
+    }
     if (event.target.matches("[data-maturity-capability-jump]")) {
       const capabilityId = event.target.value;
       if (capabilityId && scoringNavigationBlocked(detail, "")) { render(); return; }
@@ -4054,6 +4405,12 @@
       persistDetail(detail);
       return;
     }
+    if (event.target.matches("[data-maturity-roadmap-field]:not(select)")) {
+      const detail = activeDetail();
+      if (!detail) return;
+      updateImprovementRoadmapField(detail, text(event.target.dataset.capabilityId), text(event.target.dataset.maturityRoadmapField), event.target.value);
+      return;
+    }
     if (event.target.matches("[data-maturity-list-search]")) {
       model.listSearch = event.target.value;
       model.projectListPage = 1;
@@ -4114,6 +4471,14 @@
   }
 
   function handleKeydown(event) {
+    const projectRow = event.target.closest?.(".maturity-v28-project-row[data-project-id]");
+    if (projectRow && event.target === projectRow && ["Enter", " "].includes(event.key)) {
+      event.preventDefault();
+      model.expandedProjectId = model.expandedProjectId === projectRow.dataset.projectId ? "" : projectRow.dataset.projectId;
+      render();
+      window.setTimeout(() => model.root?.querySelector(`.maturity-v28-project-row[data-project-id="${projectRow.dataset.projectId}"]`)?.focus(), 0);
+      return;
+    }
     if (event.target.matches?.("[data-maturity-project-search]") && ["ArrowUp", "ArrowDown", "Enter", "Escape"].includes(event.key)) {
       const detail = activeDetail();
       const rows = projectObjectSearchResults(detail);

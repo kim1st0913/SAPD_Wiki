@@ -4,7 +4,7 @@
 
 目的：把当前散落在 `task_plan.md`、`CURRENT_STATE.md`、`progress.md`、`open-issues.md`、执行线台账、Product Design review、Data Analytics review 和 Delivery 文档中的未开展任务收敛到一个可恢复、可排序、可执行的入口。
 
-本文件不是替代 `task_plan.md`，而是当前阶段的 backlog 排序视图。正式阶段计划仍以 `task_plan.md` 为准；问题状态仍以 `docs/06-implementation/open-issues.md` 为准；执行线恢复仍以 `docs/07-governance/current-execution-lines.md` 为准。
+本文件不是替代 `task_plan.md`，而是 2026-06-06 阶段的 backlog 排序快照。正式阶段计划仍以 `task_plan.md` 为准，问题状态仍以 `docs/06-implementation/open-issues.md` 为准；当前执行状态按根 `AGENTS.md` 和 `CURRENT_STATE.md` 恢复。
 
 ## 当前判断
 
@@ -209,7 +209,7 @@
 
 ## 状态维护要求
 
-- 新增任务必须进入本文件或 `current-execution-lines.md`，不能只写在对话里。
+- 需要长期追踪的新任务进入 `task_plan.md` 或 Open Issues；当前任务的临时拆分由父 Agent 管理，不写入旧执行线台账。
 - Open Issue 必须进入 `docs/06-implementation/open-issues.md`。
 - 阶段计划必须进入 `task_plan.md`。
 - 每轮完成后同步 `progress.md`。

@@ -1,4 +1,6 @@
-version: v1
+version: v2
+contract: sapd-maturity-report-model-v2
+renderer_version: sapd-maturity-report-renderer-v2
 outputs:
   markdown:
     enabled: true
@@ -11,23 +13,59 @@ outputs:
   pptx:
     enabled: false
 sections:
-  - id: executive_summary
-    title: 管理层摘要
   - id: overall
-    title: 当前与目标成熟度
-  - id: dimensions
-    title: 四维成熟度轮廓
-  - id: tgm
-    title: 能力类别评分
-  - id: top_gaps
-    title: 主要差距与优先级
-  - id: key_findings
-    title: 关键发现
-  - id: recommendations
-    title: 管理建议
-  - id: next_steps
-    title: 下一步计划与复评安排
+    title: 总体结果（关键结论）
+    renderer: executive_overview
+    required: true
+  - id: narratives
+    title: 管理层研判
+    renderer: editable_narratives
+    required: true
+    fields:
+      - key: executiveSummary
+        label: 评估概况
+      - key: keyFindings
+        label: 关键发现
+      - key: managementRecommendations
+        label: 提升建议
+      - key: nextSteps
+        label: 下一步计划
+  - id: radars
+    title: 成熟度雷达
+    renderer: radar_suite
+    required: true
+    charts:
+      - l2-capability-by-top-category
+      - overall-four-dimension
+  - id: hierarchy_statistics
+    title: T / G / M 与 L1 分层统计
+    renderer: hierarchy_statistics
+    required: true
+  - id: evaluation
+    title: 结果评价与分布
+    renderer: evaluation_distributions
+    required: true
   - id: capability_results
-    title: L2 安全能力结果
-  - id: appendix
+    title: 完整 L2 能力结果
+    renderer: l2_result_table
+    required: true
+  - id: overall_rankings
+    title: 总体 L2 能力 Top 10
+    renderer: overall_rankings
+    required: true
+  - id: dimension_rankings
+    title: 四维 L2 能力 Top 10
+    renderer: dimension_rankings
+    required: true
+  - id: improvement_roadmap
+    title: 改进路线图
+    renderer: improvement_roadmap
+    required: true
+  - id: score_appendix
+    title: 完整评分明细附录
+    renderer: score_appendix
+    required: true
+  - id: traceability
     title: 口径、限制与快照信息
+    renderer: traceability
+    required: true

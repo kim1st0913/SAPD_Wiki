@@ -1,65 +1,59 @@
 # 主控 Agent 轻量恢复入口
 
-本文档用于降低后续主控线程恢复时的上下文负担。除非任务明确要求考古历史过程，否则不要从完整 `docs/05-archive/` 开始读取。
+本文档只定义 SAPD Wiki 的上下文恢复方式，不记录静态“当前主线”。实时用户要求、当前工作树和最新验证证据优先于本文及旧交接内容。
 
-## 恢复读取顺序
+## 按任务类型恢复
 
-后续主控开始复杂任务时，优先按以下顺序读取：
+### 局部小修
 
-1. `AGENTS.md`
-2. `CURRENT_STATE.md`
-3. `progress.md` 的当前状态摘要和最近执行记录
-4. `findings.md` 的当前关键决策、当前重要风险、最近重要发现
-5. `task_plan.md` 的 `Current Status`、当前阶段和相关任务段落
-6. `docs/06-implementation/open-issues.md` 中与本轮任务相关的问题
-7. 与本轮任务直接相关的专题文档或代码文件
+当问题 owner 清楚，且不涉及数据、API、用户状态、对象粒度、App、打包或发布边界时：
 
-## 默认不要读取的内容
+1. 读取最近的 `AGENTS.md`。
+2. 读取目标 owner、相关测试和必要的设计基线。
+3. 不默认读取 `CURRENT_STATE.md`、`progress.md`、`findings.md` 或本文其他历史入口。
 
-除非需要核对历史细节、追踪某次回归或恢复旧子 Agent 记录，否则不要默认读取：
+### 新主控或交接恢复
 
-- `docs/05-archive/progress-history/2026-05.md`
-- `docs/05-archive/findings-history/`
-- `docs/05-archive/context-slimming-2026-05-15/`
-- 大段旧前端回归记录
-- 已关闭子 Agent 的历史等待日志
-- 与当前任务无关的 maturity、frontend、ETL 专题文档全集
+按以下顺序读取：
 
-## 判断当前工作线
+1. 最新用户要求或经过核对的交接包。
+2. `AGENTS.md`。
+3. 当前 dirty 工作树和相关运行状态。
+4. `CURRENT_STATE.md`。
+5. `progress.md` 最近且与本轮相关的部分。
+6. `findings.md` 当前有效且与本轮相关的决策或风险。
+7. 命名的 Open Issue、implementation spec、业务设计或验收矩阵。
+8. 目标代码、数据和测试 owner。
 
-当前项目主线仍是：
+若状态文档与当前工作树、最新用户要求或运行证据冲突，以后者为准，并在材料性任务或交接收口时修正状态文档。
 
-- 已导入 Sheet 的业务含义复核；
-- 前端关系展示校正；
-- Frontend Baseline 1.0 三页对齐；
-- maturity 模块保持旁路 M0 状态，M1 需等主线优先级和输入 / 输出边界确认后再启动。
+### 数据、App 或发布任务
 
-## 子 Agent 恢复规则
+除上述恢复集外，只按受影响边界读取对应数据 QA、工程测试、Delivery Bundle、签名或发布验收入口。不要因为任务复杂就读取全部治理文档和历史归档。
 
-如果历史记录里出现子 Agent：
+## 默认不要读取
 
-- 先看 `progress.md` 是否写明 `已 fan-in`、`已关闭`、`completed`；
-- 不要仅凭历史 `wait_agent` 超时判断卡住；
-- 不要恢复已经关闭或当前运行时不可管理的旧 agent id；
-- 新启动子 Agent 前，必须说明角色、写入范围、禁止范围和验收标准，并在 `progress.md` 记录 agent id；
-- 子 Agent 完成后必须及时 fan-in 并关闭。
+除非需要追踪具体历史回归或来源证据，否则不要默认读取：
 
-## 卡顿交接恢复规则
+- `docs/05-archive/`；
+- 完整历史 `progress` / `findings`；
+- 与当前任务无关的 maturity、frontend、ETL 或发布文档全集；
+- 全量 JSON、数据库备份、完整 DOM、完整进程列表或宽泛 diff。
 
-当用户明确说“当前会话卡顿，需要交接”或等价表达时，旧会话应停止代码修改和长任务执行，整理包含仓库状态、已完成事项、下一步、先读文件、禁止优先读取的大文件、未提交改动和验证要求的交接包，创建同名递增新线程并把交接包写入新线程初始提示。旧会话最终回复后归档，不再继续执行。
+## 卡顿与交接
 
-没有用户明确卡顿交接请求时，不得自动创建新线程。恢复上下文时只按 `CURRENT_STATE.md`、`progress.md` 和当前任务相关文件继续短闭环。
+用户要求交接时使用 `codex-session-handoff`，并先判断：交接到已有 task、创建新继任 task，还是只生成交接包。
 
-## 上下文减负规则
+- 用户提供 task ID 时必须读取并核对该 task，禁止按最近会话猜测“主控”。
+- 交接包必须携带最新意图和验收标准、dirty 文件、并发写入、已完成和失败验证、状态副作用、禁止范围及下一步。
+- 交接前验证其中的 task ID、文件、Skill、命令和预览地址仍然有效。
+- 没有用户明确要求时，不创建新 task，也不归档旧 task。
 
-- `CURRENT_STATE.md` 是默认开工入口，只记录当前主线、禁止事项、下一步和必读文件。
-- `progress.md` 只保留当前恢复入口、近期关键动作和本轮执行日志。
-- 完整执行历史按月归档到 `docs/05-archive/progress-history/`。
-- `findings.md` 只保留当前有效判断和历史入口，不承载长篇过程记录。
-- 新的 bug、数据问题、页面问题和待确认事项继续统一进入 `docs/06-implementation/open-issues.md`。
+## 项目记忆维护
 
-## 推荐启动语句
+- `CURRENT_STATE.md` 只在主线、禁止范围、材料性风险或下一步改变时更新。
+- `progress.md` 在材料性任务、checkpoint 或交接时更新；连续小修合并为一条紧凑记录。
+- `findings.md` 只保留长期有效决策、未解决风险和稳定证据入口。
+- Open Issues 只记录未闭环、跨模块、中高风险、数据/安全/用户状态/发布边界、需要业务判断或验收不完整的问题。
 
-后续可对主控说：
-
-> 请按 `CURRENT_STATE.md` 和 `docs/00-overview/master-context-restore.md` 恢复上下文，只读取当前任务相关文件，不读取完整历史归档。
+本文不再维护固定主线、固定 task ID、子 Agent 历史，也不要求自动创建同名会话或自动归档。

@@ -4,6 +4,7 @@
 
 ## 当前主线
 
+- 2026-07-17 Codex 工程指令完成第二轮优化：根 `AGENTS.md` 在既有权威顺序、任务型上下文、设计基线和单 checkout 单 writer 基础上，新增用户对 SAPD 内部子 Agent 的持续授权。父 Agent 负责关键路径、隔离编排、集成和合并态验收；编码子任务使用 forked workspace 与不重叠 write set，长生命周期独立 task 才使用 worktree。慢任务先区分模型、命令、审批、工具挂起、上下文压力和并发写入，再恢复或按需交接；`codex-session-handoff` 已同步为“先诊断恢复、后选择交接”。旧执行线/fan-in 文档已收敛为历史说明。业务代码、数据、用户库和 DMG 未改。
 - 2026-07-17 成熟度第三十一轮按用户“评估点情况收窄、每组居中、成熟度值与四维读数同字号同中线”完成 shared runtime 修订：根因是摘要共享网格仍把评估点列按 `0.85fr` 分配，同时后置通用规则把评估点内部改成 intrinsic flex、把成熟度值组保留为 `align-self:end`，因此各子格内容贴左且当前 / 目标值比“组织与角色 + 数值”组合块低约 `16.5px`。现中宽三组改为约 `0.90 : 1.60 : 0.65`，评估点恢复两个等宽子格；当前、目标、四维、适用性、进度都在各自子格水平居中，成熟度等级 / 连续分数与四维均值共用 `28px` token，并把垂直中心差收敛到 `2.5px`。应用内 Browser `1600×900` 实测评估点 / 四维宽度 `210 / 503.68px`、子格中心偏差不超过 `0.5px`、横向溢出和 console warning / error 为 `0`；`T-AS.AD / T-AS.AM / G-SP.SM` 三个 L2 与项目概览负向对照通过，`1280×720 / 540×900` 回流无溢出。专项审计 `222/222`、语法、maturity HTTP/API smoke、数据边界和 5173 stable 通过；三份强制文档同步为第三十一轮 / 业务 `0.1.44`。全局治理仍只被其他活动改动的 `app.js=12772 > 12758` 旧预算阻断，本轮未抬阈值。`OI-192` 保持“已修复 / 待用户验收”；正式数据、用户库与 DMG 未改。
 - 2026-07-17 成熟度第三十轮按用户“数字就要一排显示，各区域的宽度有优化空间”收口 L2 四维均值：根因是第二十九轮把 `1130px` 容器误作窄屏阈值，使仍有 `735px` 读数宽度的桌面工作台提前落入两列两行。现中宽三组改为 `0.85 : 1.40 : 0.85`，四维均值保持四个完整名称 / 数值同一行；仅小于 `480px` 容器才回流两列两行。应用内 Browser `1280×720` 实测四列各 `169.25px`、数值 Y 轴跨度 `0`、完整名称无截断、页面横向溢出 `0`；专项审计 `220/220`、语法、maturity HTTP/API smoke、数据边界和 5173 stable 通过。三份强制文档同步为第三十轮 / 业务 `0.1.43`，本轮无评分规则变化。`OI-192` 保持“已修复 / 待用户验收”；影响面为 Web / App shared runtime，DMG App 后置，正式数据和用户库未改。
 - 2026-07-17 成熟度第二十九轮按用户“最后一次”收口 L2 四维均值：根因是旧 `.maturity-v19-dimension-summary` 将四个业务标签与数值横向混排，并用 `ellipsis + hidden` 把完整名称压成“组织…”。现四项各自采用“完整标签在上、数值在下”的读数列；宽屏四标签与“适用性 / 评估进度”标题轨道误差不超过 `1.4px`，四个数值同一基线、`tabular-nums`，中窄宽度回流两列两行且不截断。应用内 Browser `2048×1152 / 1280×720` 复验无横向溢出，console warning / error 与禁显字段为 `0`；专项审计 `218/218`、语法、maturity HTTP/API smoke、数据边界和 5173 stable 通过。三份强制文档同步为第二十九轮 / 业务 `0.1.42`，本轮无评分规则变化。`OI-192` 保持“已修复 / 待用户验收”；影响面为 Web / App shared runtime，DMG App 后置，正式数据和用户库未改。
@@ -64,7 +65,7 @@
 - `bootstrap-local-data --profile core --reset` 已在 `src/sapd_wiki/cli.py` 增加保护基线拦截；如确需执行，必须先取得用户明确授权并使用 `--allow-protected-baseline-reset`。
 - 在用户确认前，暂停 Environment Mapping 后续治理、正式 UI 字段对齐、reimport 和 maturity / Phase 7。
 - 已导入 Sheet 的业务含义复核 + 前端关系展示校正。
-- 用户已明确优先解决“执行线太多 / 子 Agent 不稳定 / 长会话效率下降”问题；后续默认先按 `docs/07-governance/execution-line-convergence-workflow.md` 收敛到单一主控和单一写入主线，再继续新功能。
+- 用户已明确：此前多会话和频繁交接是父 Agent 不主动调用子 Agent、长任务又缺少卡顿恢复方案时的无奈替代。后续只有在存在可独立推进的实质工作流时，才由一个父 Agent 编排最小数量的内部子 Agent；小修和强耦合跨模块任务保持父 Agent 串行，能够冻结接口并划分非重叠 write set 的实现才并行。
 - Delivery Bundle 早期 ZIP alpha 仍作为历史试发材料保留；当前 macOS 交付验收以 DMG 为准，最新 DMG 已按 `OI-157` 完成批注 Markdown 导出与 Runtime 验收。
 - 当前重点不是新增数据源，也不是扩展新模块，而是把已导入数据的业务语义、页面归属和关系展示校正清楚。
 - Frontend Baseline 1.0 已确认作为当前前端对齐工作的基线说明。
@@ -114,15 +115,13 @@ Frontend Baseline 1.0 当前覆盖四页：
 
 ## 当前下一步
 
-2026-06-05 起主控接管到当前线程 `019e966d-81e1-7261-bd89-370c41a8c90e`；旧 `product design Review` 线程 `019e8b6d-8ae3-7d20-8436-3024c4683891` 降级为历史产物来源 / 待 fan-in，不再默认拥有写入权。后续复杂实现优先采用“轻主控 + 专项 subagent / 专项会话 + fan-in 验收”，主控只做调度、边界、验收、状态更新和 checkpoint。
+主控与专项 task 不再通过固定 thread ID 或 fan-in 规则维护。当前用户要求、当前工作树和经过核对的交接包共同定义活动状态；同一 checkout 的同一文件集只允许一个 writer。当前任务内并行优先使用父 Agent 管理的内部子 Agent 和隔离 workspace；独立 task 只用于用户明确要求的长期工作流。
 
 `OI-128C` 最新结论：用户 2026-06-05 后续抽查提出的定位高亮落到文字后方、L0-L2 批注无常态高亮、普通态高亮线需要加深加粗但不遮挡文字、指南 / 幻灯片页无法添加批注等问题已修复，并已基本验收通过。当前批注设计已作为全局基线固化到 `docs/06-implementation/global-annotation-requirements-and-regression-matrix.md` 和 `docs/06-implementation/frontend-global-design-baseline-2026-05-30.md`；后续新增页面必须按“新页面接入清单”声明页面对象、值锚点、行锚点、幻灯片 / 子页上下文和回归命令，不再逐页重新调试。2026-06-06 已完成 `OI-128C` checkpoint：`b93a9f1 Finalize OI-128C annotation baseline`。后续只按 bug fix 处理，不继续开发新的批注功能或混入工作台 V2 / V3。
 
-当前先进入执行线收敛 P0：验收 dirty worktree、同步治理入口、明确 checkpoint，再继续前端、数据或 Delivery Bundle 功能线。不要在 dirty diff 未验收前启动新的并行写入任务。
-
 2026-06-06 已完成总 backlog 收敛，入口为 `docs/07-governance/backlog-convergence-2026-06-06.md`。当前 dirty worktree checkpoint 已完成：`e23c6d7 Document backlog convergence and frontend planning` 固化 Product Design 审阅、dashboard 契约草案和 backlog 收敛；`f305d1a Checkpoint DB governance and route stability` 固化用户库 / stable key 治理、临时库 smoke 和 `OI-136 / FE-ROUTE` 深层路由修复。用户已明确：`analytics_summary` 是 P0，但不独占当前最高优先级；Delivery Bundle / 打包任务先往后排。当前已完成三个 P0 代码闭环：`analytics_summary` 已完成 exporter / audit / `data_package_summary` / `dataClient` / dashboard 消费；`OI-135 + DB-11 + DB-2` 已新增 `scripts/migrate_db_contracts.mjs`，提供默认 dry-run、临时库 apply、自动备份、项目真实库写入显式确认门和审计闭环；`OI-128 / OI-135` 已完成工作台总览、数据篮和导出最小闭环，`/api/v1/user/workspaces`、`/api/v1/user/data-baskets`、`/api/v1/user/export-profiles`、`/api/v1/user/exports/preview`、`POST /api/v1/user/exports` 和 `GET /api/v1/user/exports/:id/download` 均具备 token / 临时 runtime smoke；2026-07-06 `OI-135` 已完成真实库 apply：clean base stable candidate 已替换正式 `data/database/sapd_wiki.sqlite3`，真实用户库 2 条旧 UUID target_ref 已迁到 stable ref 并记录 `user_target_ref_migrations`。当前导出文件为受控 JSON 验证闭环，不是最终多格式契约。导出格式与字段边界契约入口为 `docs/06-implementation/user-export-format-contract.md`；用户已确认后续导出表格基本参考原始数据，优先 Excel / CSV / Markdown，幻灯片材料导出 PDF，第一批业务数据集为能力全量映射、信息化环境安全映射、字典与标准框架数据，且 CSV / Excel sheet 字段草案已固化。`scripts/audit_analytics_summary_contract.mjs` 可验证 `capability_focus=91`、覆盖率分母、标准控制项 `1745 / 4893` grain 分离、禁止字段泄露、`dataClient` 契约和 dashboard 消费契约；生成 JSON 仍属于前端离线数据包，不纳入 Git。下一步如继续后端主线，可确认关闭 `OI-135` 或进入第一批业务导出数据集的导出器实现，不再做泛化周边评估。
 
-当前多任务、模块线程和实际 Codex thread id 追踪入口为 `docs/07-governance/current-execution-lines.md`。暂停任务前必须先登记状态、证据、恢复条件和下一步；已有模块线程必须映射到 `EL-xxx` 执行线，避免多会话收敛后丢失任务线。当前已盘点 18 个 cwd 属于本工程的 Codex 线程；`archimate建模` 已进入 idle / 待验收状态，后续页面效果与加载优化走 `OI-133 / EL-025`；`数据安全页面1` 仍显示为运行中线程，主控只做 fan-in，不默认停止或抢写同一范围。长会话需要换新会话时，按 `docs/07-governance/execution-line-convergence-workflow.md` 的“长会话轮换协议”执行；只有用户明确说“当前会话卡顿，需要交接”或等价表达时，Codex 才能自动创建同名递增新线程、写入交接包并在当前会话最终回复后归档。没有明确卡顿交接请求时，不得自动创建新线程。
+历史执行线文档只作为考古入口，不再作为当前 Codex task 清单。用户要求交接时使用 `codex-session-handoff`：先区分交接到已有 task、创建新继任 task 或只生成交接包；用户提供 task ID 时必须核对该 task，禁止按最近会话猜测主控。没有明确要求时不创建新 task，也不归档旧 task。
 
 安全能力映射页数据加载反复回退已登记为 `OI-132 / EL-024`。后续继续修改安全能力页前，必须先做数据加载稳定性治理：区分真实空数据、workspace-view 未加载、projection fallback、完整 workbench fallback、对象 mismatch 和重渲染缺失；不得再用局部空态文案或组件补丁替代加载契约治理。
 
@@ -152,20 +151,12 @@ Delivery Bundle 当前 macOS 交付物按 DMG 验收：2026-07-08 已按正式�
 
 ## 必读文件
 
-每次开工建议先读：
+按 `AGENTS.md` 的任务分类读取，不再设置所有任务统一必读集：
 
-- `AGENTS.md`
-- `CURRENT_STATE.md`
-- `docs/00-overview/master-context-restore.md`
-
-按任务类型追加读取：
-
-- 复杂阶段判断：`task_plan.md`
-- 当前关键决策和风险：`findings.md`
-- 近期执行恢复：`progress.md`
-- Frontend Baseline 1.0 相关任务：`docs/04-user-guide/frontend-baseline-1.0-plan.md`
-- 前后端分离继续推进：`docs/01-architecture/frontend-backend-separation-closure.md`
-- 问题修复或 bug 核对：`docs/06-implementation/open-issues.md`；查历史已关闭问题时先看 `docs/06-implementation/open-issues-index.md`
+- 局部小修：最近的 `AGENTS.md`、目标 owner、相关测试和必要设计基线。
+- 新主控或交接恢复：经过核对的交接包、`AGENTS.md`、当前 dirty 工作树、本文、`progress.md` 最近相关部分和 `findings.md` 当前相关决策。
+- 数据、App、发布或跨模块任务：在上述基础上只追加对应契约、Open Issue、验收矩阵或专项 Skill。
+- `docs/00-overview/master-context-restore.md` 只解释恢复方式，不再承载静态项目状态。
 
 ## 不必默认读取的长文档
 
@@ -202,33 +193,27 @@ Delivery Bundle 当前 macOS 交付物按 DMG 验收：2026-07-08 已按正式�
 - 默认中文记录说明性内容；代码标识、文件名、命令、字段名、对象 `type`、API 路径保留英文原文。
 - 只读任务不得修改文件。
 - 如果用户明确禁止读取、运行或打开某类内容，严格遵守。
-- Git / GitHub 收口已设专用会话：`SAPD Wiki GitHub 提交收口专用 2026-07-07`，thread id `019f3bee-d713-7301-be67-6d555012a5c9`。普通开发会话默认不提交、不推送、不建 PR；需要 checkpoint / push 时优先交给该会话按主题分组、显式 stage、跑 GitHub 数据边界检查后收口。
-- 每次任务完成后输出任务完成反馈，说明结论、修改范围、功能结果、验证结果、前端页面提示、数据状态、字段边界和下一步建议。
-- 如使用子 Agent，必须明确角色、写入范围、禁止范围和验收标准；完成后主控必须 fan-in 并关闭。
+- 未经用户明确要求，不提交、不推送、不建 PR；提交时只 stage 明确相关文件并执行适用的数据边界检查，不依赖固定收口 task。
+- 完成反馈报告结果、修改范围、影响面、验证和剩余风险；页面入口、数据状态、用户状态写入和 DMG 证据只在对应边界适用时报告。
 
 ## 重连处理规则
 
 如果后续再次出现多次对话重连、主控长时间不继续、或上下文恢复明显变慢：
 
-- 先执行只读检查：`git status --short --branch`、`wc -l CURRENT_STATE.md task_plan.md findings.md progress.md AGENTS.md`。
-- 不要默认读取 `docs/05-archive/`、`data/exports/` 或大型前端 JSON。
-- 优先确认是否有未提交的大型上下文文件、未关闭子 Agent 记录或重复计划文件。
-- 先做上下文减负和 Git 收口，再继续业务开发。
+- 先核对当前 task 状态、dirty 工作树、最后有效输出和正在运行的必要工具。
+- 不要默认读取归档、完整历史、导出包、大型 JSON、宽泛 diff 或全量进程列表。
+- 用户要求交接时使用 `codex-session-handoff`，核对目标 task 后发送状态完整但历史精简的交接包。
+- 不因一次等待超时或暂时无文本输出自动创建、停止或归档 task。
 
 ## Codex 轻量执行入口
 
 当用户只说“继续执行”“执行”“排查一下”“修一下”时，默认按以下顺序处理：
 
-1. 读取 `CURRENT_STATE.md` 和 `progress.md`，必要时读取 `task_plan.md`、`findings.md`。
-2. 执行 `git status --short --branch`，确认当前工作区状态。
-3. 如果当前任务明确，继续执行；如果不明确，只问用户 1 个问题。
-4. 不默认读取 `docs/05-archive/`、`data/exports/`、`frontend/capability-browser/public/data/*.json`、数据库备份或完整历史日志。
-5. 不默认运行全量 `ps -ax`、全量 `git diff`、完整 DOM dump 或长 console log。
-6. 前端验证默认不启动系统 Google Chrome；优先使用 `python3 scripts/dev_server_guard.py --status`、数据包摘要、语法检查和 `node scripts/frontend_smoke_check.mjs --page <page>` 的轻量 HTTP/API 模式。只有用户明确同意时，才允许传 `--allow-system-chrome` 做系统 Chrome headless 验证。
-7. 数据包检查优先使用 `python3 scripts/data_package_summary.py --package <name>`。
-8. 本地服务检查优先使用 `python3 scripts/dev_server_guard.py --status`。
-9. 本项目常驻预览页固定为 `http://127.0.0.1:5173/`；前端展示和用户验收默认只看该端口。修改 `frontend/capability-browser/` 后必须确认 `5173` 已热刷新到最新文件；若刷新仍旧，执行 `python3 scripts/dev_server_guard.py --restart`，不要另起长期预览端口。
-10. 多个线程并行验证时可临时使用其它端口，但验证后必须用 `python3 scripts/dev_server_guard.py --port <temp-port> --stop` 关闭，最终交付地址仍回到 `5173`。
-10. 如 `progress.md` 超过 120 行，先归档瘦身；如工作区 diff 很大，建议 checkpoint commit。
+1. 读取最近的 `AGENTS.md`，检查目标 dirty 文件并确认 owner。
+2. 若是新主控、交接恢复或材料性跨边界任务，再读取本文及 `progress.md` / `findings.md` 的相关部分。
+3. owner 和任务明确后直接进入最小实现；不明确时只做最小补充读取或询问一个必要问题。
+4. 不默认读取归档、导出包、大型 JSON、数据库备份、完整历史、全量进程、全量 diff、完整 DOM 或长 console log。
+5. 前端修改使用固定预览 `http://127.0.0.1:5173/`、目标静态检查和一次批量浏览器/DOM 验收；不默认启动系统 Chrome或另起长期端口。
+6. 只有发现数据、API、用户状态、对象粒度、App、打包、发布或安全边界时才进入相应专项 Skill 和扩大验收。
 
 详细规则见 `docs/07-governance/codex-performance-workflow.md`。

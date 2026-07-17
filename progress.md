@@ -4,6 +4,7 @@
 
 ## 当前状态（2026-07-17）
 
+- Codex 工程指令完成两轮恢复优化：根 `AGENTS.md` 恢复权威顺序、任务型上下文、设计基线、项目记忆触发条件和条件式验收，并新增用户对 SAPD 内部子 Agent 的持续授权。父 Agent 保留关键路径、集成和合并态验收；编码子任务使用 forked workspace、最小上下文和不重叠 write set，小修不拆分，独立 task 只承载用户明确要求的长期 worktree。`codex-session-handoff` 已从“慢即交接”修正为先区分模型、命令、审批、工具挂起、上下文压力和并发写入，优先恢复内部子 Agent，再按用户要求交接。旧 300 行执行线/fan-in 工作流已收敛为历史说明；工程测试、数据 QA Skills 继续按边界触发。未修改业务代码、数据、用户库或 DMG。
 - 成熟度第三十一轮按用户最新截图只收口 L2 摘要的列宽与组内对齐：共享网格把评估点继续按 `0.85fr` 分配，后置通用样式又把评估点内部改成 intrinsic flex，并让 `.maturity-v24-level-score` 继承 `align-self:end`，造成评估点偏宽、各组内容贴左、当前 / 目标值组比四维“名称 + 数值”组合块低约 `16.5px`。现中宽三组约为 `0.90 : 1.60 : 0.65`，评估点恢复两个等宽子格；当前 / 目标、四维、适用性和进度均在自身子格水平居中，成熟度等级 / 连续分数与四维均值共享 `28px` token，垂直中心差为 `2.5px`。应用内 Browser `1600×900` 实测评估点 / 四维宽度 `210 / 503.68px`、标签中心偏差不超过 `0.5px`、横向溢出与 console warning / error 为 `0`；`T-AS.AD / T-AS.AM / G-SP.SM` 三个 L2 与项目概览负向对照通过，`1280×720` 四维仍为四列，`540×900` 的 `429px` 容器按两列回流，均无横向溢出。专项审计 `222/222`、JS / Python 语法、maturity HTTP/API smoke、GitHub 数据边界、定向 diff-check 与 5173 stable 通过；三份强制文档同步至第三十一轮 / 业务 `0.1.44`，本轮无评分规则变化。治理检查仅命中其他活动改动 `app.js=12772 > 12758`，本轮未抬预算或越权修改。未修改正式 JSON / SQLite、源 Excel、用户库、保护基线、Draw.io 或 DMG；影响面 Web / App shared runtime，App 回归后置。
 - 成熟度第三十轮只收口用户最新图中的 L2“评估维度均值”单行：根因是把 `1130px` 当作两列回流条件，导致可用宽度 `735px` 的实际 `1280×720` 工作台仍把四个数字拆成两行。现中宽摘要的成熟度 / 四维均值 / 评估点宽度改为 `0.85 : 1.40 : 0.85`，四维均值在桌面和中宽保持四个完整名称与四个 `28px` 数值同一行；仅容器小于 `480px` 才回流两列两行。应用内 Browser 实测每列 `169.25px`、数值基线跨度 `0`、完整名称无截断、横向溢出 `0`；同画布对照为 `/private/tmp/sapd-maturity-r30-reference-vs-after.png`。专项审计 `220/220`、JS / Python 语法、maturity HTTP/API smoke、GitHub 数据边界、定向 diff-check 与 5173 stable 通过；三份成熟度强制文档同步至第三十轮 / 业务 `0.1.43`，本轮无评分规则变化。未修改正式 JSON / SQLite、源 Excel、用户库、保护基线、Draw.io 或 DMG；影响面 Web / App shared runtime，App 回归后置。
 - 项目执行规则已按用户裁定增加“共性优先、定向收口”：用户样例只作为首个黄金样例，先批量定位共享 owner 和页面家族；共性问题只修共享层，并验收“原样例 + 2—3 个同类 + 1 个反例”。调用 Product Design / Root Cause QA 继续承担共性诊断，但不自动触发无关重设计、长文档同步、多视口证据或全工程门禁；只有共享基础设施、数据 / 包、长期契约、App / 发布或用户明确要求时才升级重型流程。本轮仅更新治理规则与性能工作流，未修改业务代码、数据、用户库或 DMG。
@@ -37,6 +38,7 @@
 
 ## 最近完成事项
 
+- 2026-07-17 `成熟度对象专用评分依据附录`：从 `data/raw-samples/assesment samples.xlsx` 提取能力 / 关注点实际四维 L1—L5 依据，按合并区域形成 32 个 rubric set（27 个共享、5 个单关注点），并区分业务不可评分、遗漏、未结构化和通用参考。完整逐组原文、缺失项、API / 模板状态契约已写入 `docs/08-maturity/assessment-rubric-source-appendix-2026-07-17.md`，三份成熟度强制文档同步；未修改运行代码、源 Excel、正式 JSON / SQLite、用户库或 DMG。
 - 2026-07-17 `P2-1 V8 工作事项与知识统计纠偏`：移除跨 ISSUE / 成熟度的“本地工作进展”，保留两个完整独立工作流；六项知识统计使用 6 列非对称 Mosaic 与两级响应式回流。P2 配置新增 `crossStreamSummary=forbidden`、`asymmetric-six-tile-mosaic` 和跨粒度禁止规则；专项审计、Design QA、三份成熟度强制文档与缓存版本同步。
 - 2026-07-16 `P2-1 V7 首页完整工作台纠偏`：用户否决 V6 的纯列表化方向；现恢复原图的 WORKBENCH、继续工作、本地用户库、两条业务入口与大状态读数，在其内部增加 4 项真实工作概览、5 条 ISSUE、3 个成熟度项目、快捷继续和两个更多菜单。P2 契约新增 `recent-lists-are-subsections-not-the-whole-dashboard` 防回归规则，专项审计、Design QA、成熟度三份强制文档与缓存版本已同步。
 - 2026-07-15 `OI-196 P1-5 V5 Issue 范围唯一入口`：删除顶部范围下拉和冗余范围状态，工具栏回收为状态、优先级、完整局部搜索和清除筛选；专项审计新增左侧目录唯一所有者、清除筛选不得重置范围、无空列和缓存版本断言。用户截图与修改后工具栏同画布证据为 `/private/tmp/sapd-issue-scope-reference-vs-after-20260715.png`。
@@ -53,6 +55,7 @@
 
 ## 验证摘要
 
+- 对象专用评分依据结构核对：源表 2 个 Sheet、174 个服务行、84 个关注点；32 组共 640 个状态槽，结构化 504 个、整级空白 108 个、单维缺失 8 个、未按四维拆分 20 个；投影当前 185 个评估点为完整组 112 个、不完整组 63 个、源表缺关注点 10 个。源文件 SHA-256 保持 `9fa80061f7281814e96d70215b16460f5b8b0f0221de330c27bfbb80a0167f62`。
 - 首页 P2-1 V8：组件与审计 JS 语法、P2 静态 / 5173 运行审计、成熟度专项 `213/213`、overview HTTP smoke、5173 stable 通过；应用内浏览器 `1280×720 / 720×900` 验证标题“工作事项”、混合概览 `0`、独立工作流 `2`、ISSUE / 成熟度行 `5 / 3`、更多菜单 `2`、快捷入口 `2`、知识统计 `6` 且实际尺寸 `3` 种、横向溢出 `0`、console warning / error `0`、禁显字段 `0`。ISSUE 更多菜单显示“查看全部 40 条 ISSUE”，Escape 关闭并恢复焦点；同画布证据为 `/private/tmp/sapd-dashboard-v8-reference-vs-final.png`。前端治理仍只被其他并行任务的 `app.js=12772 > 12758` 旧预算阻断；本轮 P2 CSS 由删除混合概览而净缩减，未抬阈值或越权修改 `app.js`。
 - 首页 P2-1 V7：相关 JS 语法、P2 静态 / 5173 运行审计、成熟度专项 `207/207`、overview HTTP/API smoke 与定向 `diff-check` 通过；应用内浏览器 `1280×720` 验证工作概览 `1`、统计项 `4`、并排工作流 `2`、ISSUE 行 `5`、成熟度行 `3`、更多菜单 `2`、快捷入口 `2`、纯列表退化 `false`、横向溢出 `0`、console warning / error `0`、禁显字段 `0`。`继续处理` 的入口 ID 与 Inspector ID 同为 `930bba9f-aebb-44c3-912c-a54e330df956`，`继续评估` 直达 `demo-project-002`；Escape 焦点恢复通过。同画布证据为 `/private/tmp/sapd-dashboard-v7-reference-vs-final.png`，`design-qa.md` 为 `final result: passed`。全局治理旧 `app.js` 预算与 maturity JSON 报告旧断言仍由对应任务收口，本轮不抬阈值或越权混改。
 - 成熟度指南下载：AppShell / 审计脚本语法、P1-6 V2 静态与 5173 运行审计、content HTTP smoke、完整 `static + frontend`、定向 `diff-check`、5173 stable 均通过；治理基线只登记本轮 `p1-guide-reading.css=103` 的标题栏按钮与可见性增量，其他阈值不变。应用内浏览器 `1280×720 / 390×844` 确认唯一按钮 `70×30px`、真实下载媒体命令通过、原路由与单一 iframe 保持、横向溢出及 console warning / error 为 `0`。对照证据为 `/private/tmp/sapd-maturity-guide-download-reference-vs-after-20260716.png`。
@@ -81,6 +84,7 @@
 
 ## 下一步
 
+- 成熟度下一轮先完成对象专用评分依据附录第 8 章的业务裁定：`T-AS.DG-02` 上下限、整级空白、8 个单维缺项、`M-SA.AM-01/02` KPI 边界和 7 个新增关注点绑定；裁定前不进入运行代码、正式数据或评分模板实现。
 - P2-4 继续承接全局 AppShell 的窄屏主内容可达性；本轮首页组件本身在 390px 下无横向溢出，不从 P2-1 越权修改全局侧栏。下次 DMG 发布矩阵补 macOS App 回归；不重打本轮 DMG，不扩大到正式数据、评分公式、聚合、ETL 或字典基线改造。
 
 ## 维护规则

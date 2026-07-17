@@ -1,0 +1,37 @@
+{
+  "version": "2026-07-14.p1-1-runtime-state-v1",
+  "states": [
+    { "id": "loading", "domState": "loading", "nextAction": "等待自动完成", "retry": false },
+    { "id": "empty", "domState": "empty", "nextAction": "调整筛选或补充数据", "retry": false },
+    { "id": "missing_file", "domState": "missing-file", "nextAction": "完成数据导出后重新检查", "retry": true },
+    { "id": "error", "domState": "error", "nextAction": "保留上下文并局部重试", "retry": true },
+    { "id": "no_selection", "domState": "no-selection", "nextAction": "从目录显式选择对象", "retry": false }
+  ],
+  "representativeRoutes": [
+    { "route": "/capability-mapping", "surface": "capabilityInitial", "states": ["loading", "empty", "missing_file", "error"] },
+    { "route": "/environment-mapping", "surface": "environmentWorkbench", "states": ["loading", "empty", "missing_file", "error", "no_selection"] },
+    { "route": "/standards/dsp-level-2", "surface": "standards", "states": ["loading", "empty", "missing_file", "error"] }
+  ],
+  "retryContextKeys": [
+    "selectedCapabilityId",
+    "selectedEnvironmentId",
+    "selectedEnvironmentSegmentId",
+    "selectedEnvironmentObjectId",
+    "selectedEnvironmentRowId",
+    "selectedDevProcessId",
+    "selectedDataProcessId",
+    "selectedMaintenanceId",
+    "selectedContentId"
+  ],
+  "forbiddenMerges": [
+    ["missing_file", "empty"],
+    ["error", "missing_file"],
+    ["no_selection", "empty"]
+  ],
+  "excludedScopes": [
+    "P0-3 capability graph layout and collision algorithms",
+    "maturity assessment business rules",
+    "Draw.io source appearance",
+    "ETL and formal data packages"
+  ]
+}

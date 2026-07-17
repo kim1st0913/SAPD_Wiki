@@ -4,25 +4,25 @@
 
 ## 摘要
 
-- 生成日期：2026-06-01
-- 问题总数：193
-- 当前未关闭问题数：3
-- 已关闭归档问题数：190
+- 生成日期：2026-07-16
+- 问题总数：198
+- 当前未关闭问题数：4
+- 已关闭归档问题数：194
 - 当前入口：`docs/06-implementation/open-issues.md`
-- 已关闭归档：`docs/05-archive/open-issues-history/2026-06.md`
+- 已关闭归档：`docs/05-archive/open-issues-history/2026-06.md`、`docs/05-archive/open-issues-history/2026-07.md`
 
 ## 状态分布
 
 | 状态 | 数量 |
 |---|---:|
-| (空) | 1 |
 | 部分完成 | 1 |
 | 业务接受 | 6 |
 | 已关闭 | 54 |
-| 已关闭 / 自动验收通过 | 1 |
+| 已关闭 / 自动验收通过 | 3 |
+| 已关闭 / 用户验收通过 | 2 |
 | 已回退 | 1 |
 | 已修复 | 127 |
-| 已修复 / 待用户验收 | 1 |
+| 已修复 / 待用户验收 | 2 |
 | 已修复，后续可继续优化 | 1 |
 | 长期保留 / 按需继续修复 | 1 |
 
@@ -220,7 +220,7 @@
 | OI-144 | 已关闭 | 全局搜索与页面内搜索状态串线 | 前端 / 交互 / 状态管理 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-137 | 已关闭 | 信息化环境首页需导入 draw.io 第三页实例底图 | 前端 / 设计 / Draw.io 导入 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-170 | 已关闭 | LC-DT 加工/使用阶段双表模块/措施集合差异 | 数据 / 原始 Excel / LC-DT / 待业务确认 | docs/05-archive/open-issues-history/2026-06.md |
-| OI-161 | 已关闭 | 工作台 Issue 清单入口与列表项点击失效 | 前端 / 工作台 / Issue / 交互 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-161 | 已关闭 | 工作台 ISSUE清单入口与列表项点击失效 | 前端 / 工作台 / Issue / 交互 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-156 | 已关闭 | 全局批注定位 / 高亮性能退化导致页面假死 | 前端 / 批注 / 性能 / 定位 / 高亮 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-150 | 已关闭 | 全局批注值定位缺少运行时索引导致定位慢 | 前端 / 批注 / 性能 / 定位索引 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-145 | 已关闭 | 本地 API Host/token 边界未统一拦截 | 安全 / 本地 API / 用户数据 | docs/05-archive/open-issues-history/2026-06.md |
@@ -230,6 +230,10 @@
 | OI-135 | 已关闭 | 用户库治理与兼容表迁移清理 | 数据 / 前端 / Delivery Bundle / 治理 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-157 | 已关闭 / 自动验收通过 | 打包测试反馈需要单独导出用户批注 | Delivery Bundle / 用户数据 / 批注 / 诊断 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-190 | 业务接受 | macOS DMG 外部分发签名公证、安装与更新机制待确认 | macOS 交付 / 签名公证 / 安装更新机制 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-193 | 已关闭 / 自动验收通过 | `viewModels.js` 行数超过前端治理基线但来源未说明 | 前端 / 治理门禁 / 变更边界 | docs/05-archive/open-issues-history/2026-07.md |
+| OI-194 | 已关闭 / 自动验收通过 | 生命周期宽表双轴滚动、上下文覆盖与模块字典引用回归 | 前端布局 / ViewModel / 字典引用 / 防回归审计 | docs/05-archive/open-issues-history/2026-07.md |
+| OI-195 | 已关闭 / 用户验收通过 | P1-3 生命周期纵向滚动卡顿、提示残留与空值不统一 | 前端 / 性能 / 生命周期工作台 / 防回归审计 | docs/05-archive/open-issues-history/2026-07.md |
+| OI-196 | 已关闭 / 用户验收通过 | P1-2 / P1-4 / P1-5 前端验收结论与真实交互契约不一致 | 前端 / shared runtime / 本地 API / 产品设计 / 防回归审计 | docs/05-archive/open-issues-history/2026-07.md |
 | OI-192 | 已修复 / 待用户验收 | 成熟度评分工作台服务、评分定义与主动作契约未按截图落地 | 前端 / 成熟度评分 / 产品设计 / 防回归审计 | docs/06-implementation/open-issues.md |
 | OI-191 | 已修复 / 待用户验收 | 全局共享标题区视觉 token 偏离旧 DMG 基线 | 前端 / 共享 App Shell / 设计 / 审计 | docs/06-implementation/open-issues.md |
 | OI-138 | 长期保留 / 按需继续修复 | 关注点关系图谱标签与节点 / 连线碰撞 | 前端 / 图谱布局 / 设计 | docs/06-implementation/open-issues.md |

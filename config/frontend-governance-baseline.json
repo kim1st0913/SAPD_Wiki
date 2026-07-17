@@ -1,11 +1,11 @@
 {
-  "version": "2026-07-13.p0-2-old-dmg-header-rhythm-baseline",
+  "version": "2026-07-16.p1-2-v11-p1-4-v2-p1-5-v5-p1-6-v2-regression-baseline",
   "scope": "frontend/capability-browser",
   "purpose": "Current accepted ceilings after the July 2026 project test governance baseline. Lower values pass; increases require deliberate governance review.",
   "requiredReview": "docs/07-governance/project-test-workflow-and-case-matrix.md",
   "files": {
     "frontend/capability-browser/styles.css": {
-      "maxLines": 32089,
+      "maxLines": 32090,
       "maxImportant": 324,
       "maxHexColors": 1007,
       "maxRootBlocks": 11,
@@ -13,16 +13,80 @@
       "maxColorMix": 681
     },
     "frontend/capability-browser/app.js": {
-      "maxLines": 12416
+      "maxLines": 12758
     },
     "frontend/capability-browser/viewModels.js": {
-      "maxLines": 5812
+      "maxLines": 5831
     },
     "frontend/capability-browser/components/CapabilityLocalRelationMap.js": {
       "maxLines": 1140
     },
     "frontend/capability-browser/components/LocalRelationNetworkGraph.js": {
       "maxLines": 1313
+    },
+    "frontend/capability-browser/components/RuntimeState.js": {
+      "maxLines": 118,
+      "maxImportant": 0,
+      "maxHexColors": 0,
+      "maxRootBlocks": 0,
+      "maxRelationChipMentions": 0,
+      "maxColorMix": 0
+    },
+    "frontend/capability-browser/runtime-state.css": {
+      "maxLines": 136,
+      "maxImportant": 0,
+      "maxHexColors": 0,
+      "maxRootBlocks": 0,
+      "maxRelationChipMentions": 0,
+      "maxColorMix": 11
+    },
+    "frontend/capability-browser/p1-lifecycle-workbench.css": {
+      "maxLines": 224,
+      "maxImportant": 0,
+      "maxHexColors": 18,
+      "maxRootBlocks": 0,
+      "maxRelationChipMentions": 0,
+      "maxColorMix": 2
+    },
+    "frontend/capability-browser/p1-reference-tables.css": {
+      "maxLines": 185,
+      "maxImportant": 0,
+      "maxHexColors": 37,
+      "maxRootBlocks": 0,
+      "maxRelationChipMentions": 1,
+      "maxColorMix": 10
+    },
+    "frontend/capability-browser/p1-review-search.css": {
+      "maxLines": 307,
+      "maxImportant": 0,
+      "maxHexColors": 33,
+      "maxRootBlocks": 0,
+      "maxRelationChipMentions": 0,
+      "maxColorMix": 8
+    },
+    "frontend/capability-browser/p1-canvas-workbench.css": {
+      "maxLines": 243,
+      "maxImportant": 0,
+      "maxHexColors": 11,
+      "maxRootBlocks": 0,
+      "maxRelationChipMentions": 0,
+      "maxColorMix": 0
+    },
+    "frontend/capability-browser/shared-directory-shell.css": {
+      "maxLines": 46,
+      "maxImportant": 0,
+      "maxHexColors": 0,
+      "maxRootBlocks": 0,
+      "maxRelationChipMentions": 0,
+      "maxColorMix": 2
+    },
+    "frontend/capability-browser/p1-guide-reading.css": {
+      "maxLines": 103,
+      "maxImportant": 0,
+      "maxHexColors": 5,
+      "maxRootBlocks": 0,
+      "maxRelationChipMentions": 0,
+      "maxColorMix": 0
     }
   }
 }

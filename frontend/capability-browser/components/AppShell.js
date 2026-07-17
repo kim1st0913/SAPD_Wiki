@@ -47,7 +47,7 @@
               { id: "workbench-maturity-project", label: "网络安全成熟度评估", route: "/workbench/maturity/demo-project-001", type: "workbench-page", children: [] },
             ],
           },
-          { id: "workbench-issues", label: "Issue 清单", route: "/workbench/annotations", type: "workbench-page", children: [] },
+          { id: "workbench-issues", label: "ISSUE清单", route: "/workbench/annotations", type: "workbench-page", children: [] },
         ],
       },
       {
@@ -61,7 +61,7 @@
           { id: "data-security-design", label: "数据安全设计方法", route: "/guides/data-security-design", type: "document-page", children: [] },
           { id: "light-planning", label: "轻规划", route: "/guides/light-planning", type: "document-page", children: [] },
           { id: "security-governance-model", label: "安全管控模式设计方法", route: "/guides/security-governance-model", type: "placeholder-page", children: [] },
-          { id: "maturity-model-usage", label: "成熟度模型使用方法", route: "/guides/maturity-model-usage", type: "document-page", children: [] },
+          { id: "maturity-model-usage", label: "成熟度模型使用指南", route: "/guides/maturity-model-usage", type: "document-page", children: [] },
           { id: "other-guides", label: "其他指南", route: "/guides/others", type: "placeholder-page", children: [] },
         ],
       },
@@ -232,6 +232,23 @@
     "/standards/workforce-reference": "集中查看 GB/T 42446-2023 工作任务定义、工作类别分类和 Gartner 工作岗位参考。",
   };
 
+  const PAGE_HEADER_OVERRIDES = {
+    "/": {
+      eyebrow: "SAPD WIKI",
+      title: "工作台与知识库概览",
+      description: "继续本地工作，并按业务粒度查看能力、环境、生命周期、技术服务、标准、字典与指南内容。",
+      hideTypeLabel: true,
+    },
+  };
+
+  const GUIDE_DOWNLOADS = {
+    "/guides/maturity-model-usage": {
+      href: "./assets/guides/maturity-model-usage.html",
+      filename: "SAPD-成熟度模型使用指南-v1.3.html",
+      label: "下载指南",
+    },
+  };
+
   const TYPE_LABELS = {
     "application-shell": "应用壳",
     "search-page": "检索页",
@@ -343,7 +360,6 @@
         <button type="button" title="设置" aria-label="设置">⚙</button>
         <button type="button" title="本地数据包" aria-label="本地数据包">▤</button>
       </div>
-      <div class="metrics" id="metrics"></div>
     `;
   }
 
@@ -579,18 +595,35 @@
     `;
   }
 
+  function renderGuideHeaderActions(activeRoute = "/") {
+    const download = GUIDE_DOWNLOADS[normalizeRoute(activeRoute)];
+    if (!download) return "";
+    return `
+      <div class="page-header-actions guide-header-actions" aria-label="指南操作">
+        <a
+          class="maturity-guide-download"
+          href="${escapeHtml(download.href)}"
+          download="${escapeHtml(download.filename)}"
+          data-guide-download="${escapeHtml(normalizeRoute(activeRoute))}"
+          aria-label="下载 ${escapeHtml(download.filename)}"
+        >${escapeHtml(download.label)}</a>
+      </div>
+    `;
+  }
+
   function renderPageHeader({ activeRoute = "/", activeModelingLanguageTab = "overview", activeEnvironmentTab = "topology" } = {}) {
     const item = findNavItem(activeRoute);
     const manifestRoute = manifestRouteFor(activeRoute);
-    const pageTitle = activeRoute === "/development-security"
+    const headerOverride = PAGE_HEADER_OVERRIDES[activeRoute] || PAGE_HEADER_OVERRIDES[manifestRoute] || null;
+    const pageTitle = headerOverride?.title || (activeRoute === "/development-security"
         ? "LC-AP安全开发生命周期"
         : activeRoute === "/data-security"
           ? "LC-DT数据生命周期安全"
           : activeRoute === "/search"
             ? "全局搜索"
-            : item.label;
+            : item.label);
     const rootRoute = parentForRoute(activeRoute)?.route || manifestRoute;
-    const description = PAGE_DESCRIPTIONS[activeRoute] || PAGE_DESCRIPTIONS[manifestRoute] || PAGE_DESCRIPTIONS[rootRoute] || "当前页面通过 Manifest 导航进入，业务内容由现有前端 ViewModel 渲染。";
+    const description = headerOverride?.description || PAGE_DESCRIPTIONS[activeRoute] || PAGE_DESCRIPTIONS[manifestRoute] || PAGE_DESCRIPTIONS[rootRoute] || "当前页面通过 Manifest 导航进入，业务内容由现有前端 ViewModel 渲染。";
     const target = getRouteTarget(activeRoute);
     const isSourceTablePage = target.view === "maintenance";
     const isGuidePage = activeRoute.startsWith("/guides/");
@@ -599,14 +632,14 @@
     const isMaturityPage = activeRoute === "/workbench/maturity" || activeRoute.startsWith("/workbench/maturity/");
     const typeLabel = activeRoute === "/search" ? TYPE_LABELS["search-page"] : TYPE_LABELS[item.type] || item.type;
     return `
-      <section class="app-page-header" id="appPageHeader" data-shell-title-owner="true" aria-labelledby="appPageTitle">
+      <section class="app-page-header" id="appPageHeader" data-shell-title-owner="true" data-shell-route="${escapeHtml(manifestRoute)}" aria-labelledby="appPageTitle">
         <div class="page-header-copy">
-          ${renderBreadcrumb(activeRoute)}
+          ${headerOverride?.eyebrow ? `<div class="page-header-eyebrow">${escapeHtml(headerOverride.eyebrow)}</div>` : renderBreadcrumb(activeRoute)}
           <div class="page-title-row">
             <h1 id="appPageTitle">${escapeHtml(pageTitle)}</h1>
             ${isWorkbenchIssuePage ? '<span id="workbenchIssueHeaderStats" class="workbench-review-stats is-compact page-title-issue-stats" aria-label="Issue 状态筛选"></span>' : ""}
             ${isSourceTablePage ? '<span id="pageHeaderCount" class="page-title-summary" hidden></span>' : ""}
-            ${isSourceTablePage || isWorkbenchIssuePage ? "" : `<span class="shell-tag muted">${escapeHtml(typeLabel)}</span>`}
+            ${isSourceTablePage || isWorkbenchIssuePage || headerOverride?.hideTypeLabel ? "" : `<span class="shell-tag muted">${escapeHtml(typeLabel)}</span>`}
             ${activeRoute === "/guides/security-architecture-modeling-language" ? renderModelingLanguageHeaderTabs(activeModelingLanguageTab) : ""}
             ${activeRoute === "/environment-mapping" ? renderEnvironmentHeaderTabs(activeEnvironmentTab) : ""}
           </div>
@@ -617,8 +650,10 @@
             ? `<div id="maturityShellHeaderActions" class="maturity-v3-header-slot" aria-label="成熟度评估状态与操作"></div>`
             : isWorkbenchIssuePage
               ? `<div id="workbenchIssueHeaderActions" class="workbench-issue-page-actions" aria-label="Issue 导出操作"></div>`
-            : isGuidePage || isPlaceholderPage
-              ? ""
+            : isGuidePage
+              ? renderGuideHeaderActions(activeRoute)
+              : isPlaceholderPage
+                ? ""
               : ""
         }
       </section>
@@ -668,6 +703,7 @@
       if (!panel) return;
       panel.dataset.shellAuxiliary = kind;
       panel.dataset.shellAuxiliaryMode = mode;
+      if (kind === "directory") panel.classList.add("shell-directory-pane");
       if (mode !== "overlay") return;
       panel.classList.add("is-shell-closed");
       panel.dataset.shellOpen = "false";
@@ -796,7 +832,7 @@
   // Legacy helper kept for the existing capability page. Global shell work lives in mountApplicationShell.
   function renderCapabilityWorkspace() {
     return `
-      <aside class="capability-tree-pane app-shell-secondary">
+      <aside class="capability-tree-pane shell-directory-pane app-shell-secondary">
         <div class="pane-head">
           <h2>安全能力映射</h2>
         </div>

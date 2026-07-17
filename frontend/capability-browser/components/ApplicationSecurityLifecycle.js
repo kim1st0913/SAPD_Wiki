@@ -5,20 +5,26 @@
 
   const list = (value) => utils.list(value);
   const escapeHtml = (value) => utils.escapeHtml(value);
-  const titleOf = (item, fallback = "/") => utils.titleOf(item, fallback);
-  const EMPTY_VALUE = "/";
+  const titleOf = (item, fallback = "—") => utils.titleOf(item, fallback);
+  const EMPTY_VALUE = "—";
+  const EMPTY_PLACEHOLDER_PATTERN = /^[\/／\-‐‑‒–—―－]+$/u;
   let activeHighlightQuery = "";
+
+  function isEmptyDisplayValue(value) {
+    const normalized = String(value ?? "").trim().replace(/\s+/g, "");
+    return !normalized || EMPTY_PLACEHOLDER_PATTERN.test(normalized);
+  }
 
   function splitLines(value) {
     if (Array.isArray(value)) return value.flatMap(splitLines);
     if (value && typeof value === "object") return splitLines(titleOf(value, ""));
-    return String(value || "")
+    return String(value ?? "")
       .replace(/\r\n/g, "\n")
       .replace(/\r/g, "\n")
       .split("\n")
       .map((line) => line.trim())
       .flatMap(splitInlineNumberedClauses)
-      .filter(Boolean);
+      .filter(isBusinessText);
   }
 
   function splitInlineNumberedClauses(line) {
@@ -33,7 +39,7 @@
 
   function fieldCell(value) {
     const lines = splitLines(value);
-    if (!lines.length || !lines.some(isBusinessText)) return `<span class="empty-inline">${EMPTY_VALUE}</span>`;
+    if (!lines.length) return `<span class="empty-inline">${EMPTY_VALUE}</span>`;
     return `
       <div class="lifecycle-field-lines">
         ${lines.map(renderFieldLine).join("")}
@@ -42,17 +48,19 @@
   }
 
   function hasBusinessValue(value) {
-    const lines = splitLines(value);
-    return lines.some(isBusinessText);
+    return splitLines(value).length > 0;
   }
 
   function isBusinessText(value) {
-    const text = String(value || "").trim();
-    return Boolean(text && text !== EMPTY_VALUE);
+    return !isEmptyDisplayValue(value);
+  }
+
+  function displayValue(value) {
+    return isBusinessText(value) ? String(value).trim() : EMPTY_VALUE;
   }
 
   function annotationValueAttrs(value) {
-    const normalized = String(value || "").trim();
+    const normalized = String(value ?? "").trim();
     if (!isBusinessText(normalized)) return "";
     const escaped = escapeHtml(normalized);
     return ` data-annotation-value="true" data-copy-text="${escaped}" title="${escaped}" data-annotation-tooltip="${escaped}"`;
@@ -291,7 +299,7 @@
   }
 
   function renderDataScenarioList(scenes) {
-    const items = list(scenes).filter((scene) => scene?.title || scene?.description || scene?.code);
+    const items = list(scenes).filter((scene) => [scene?.title, scene?.description, scene?.code].some(isBusinessText));
     if (!items.length) return `<span class="empty-inline">${EMPTY_VALUE}</span>`;
     return `
       <div class="data-scenario-stack">
@@ -299,11 +307,11 @@
           .map(
             (scene) => `
               <div class="data-scenario-item">
-                <div class="data-scenario-title"${annotationValueAttrs([scene.code, scene.title].filter(Boolean).join(" "))}>
-                  ${scene.code ? `<code>${escapeHtml(scene.code)}</code>` : ""}
-                  <strong>${escapeHtml(scene.title || EMPTY_VALUE)}</strong>
+                <div class="data-scenario-title"${annotationValueAttrs([scene.code, scene.title].filter(isBusinessText).join(" "))}>
+                  ${isBusinessText(scene.code) ? `<code>${escapeHtml(scene.code)}</code>` : ""}
+                  <strong>${escapeHtml(displayValue(scene.title))}</strong>
                 </div>
-                ${scene.description ? `<p${annotationValueAttrs(scene.description)}>${escapeHtml(scene.description)}</p>` : ""}
+                ${isBusinessText(scene.description) ? `<p${annotationValueAttrs(scene.description)}>${escapeHtml(scene.description)}</p>` : ""}
               </div>
             `,
           )
@@ -318,7 +326,7 @@
 
   function emptyValueCellClass(value) {
     const lines = splitLines(value);
-    return lines.length === 1 && lines[0] === EMPTY_VALUE ? " lifecycle-empty-value-cell" : "";
+    return lines.length ? "" : " lifecycle-empty-value-cell";
   }
 
   function sourceNote(value, label = "参考来源") {
@@ -338,7 +346,7 @@
   function mainActivityCell(row) {
     const lines = splitLines(row.mainActivity);
     const activityContent =
-      !lines.length || !lines.some(isBusinessText)
+      !lines.length
         ? `<span class="empty-inline">${EMPTY_VALUE}</span>`
         : `<div class="lifecycle-field-lines">${lines.map(renderMainActivityLine).join("")}</div>`;
     return `
@@ -384,18 +392,18 @@
   }
 
   function renderDataScenarioTitleCell(scene) {
-    if (!scene?.title && !scene?.code) return `<span class="empty-inline">${EMPTY_VALUE}</span>`;
-    const titleText = [scene.code, scene.title].filter(Boolean).join(" ");
+    if (![scene?.title, scene?.code].some(isBusinessText)) return `<span class="empty-inline">${EMPTY_VALUE}</span>`;
+    const titleText = [scene.code, scene.title].filter(isBusinessText).join(" ");
     return `
       <div class="data-scenario-title-cell"${annotationValueAttrs(titleText)}>
-        ${scene.code ? `<code>${escapeHtml(scene.code)}</code>` : ""}
-        <strong>${escapeHtml(scene.title || EMPTY_VALUE)}</strong>
+        ${isBusinessText(scene.code) ? `<code>${escapeHtml(scene.code)}</code>` : ""}
+        <strong>${escapeHtml(displayValue(scene.title))}</strong>
       </div>
     `;
   }
 
   function renderDataScenarioDefinitionCell(scene) {
-    if (!scene?.description) return `<span class="empty-inline">${EMPTY_VALUE}</span>`;
+    if (!isBusinessText(scene?.description)) return `<span class="empty-inline">${EMPTY_VALUE}</span>`;
     return `<div class="data-scenario-definition"${annotationValueAttrs(scene.description)}>${escapeHtml(scene.description)}</div>`;
   }
 
@@ -447,7 +455,7 @@
     const isNotApplicable = policy.status === "not_applicable" || policy.text === "不涉及";
     return `
       <div class="data-policy-cell ${isNotApplicable ? "is-not-applicable" : ""}">
-        ${policy.code ? `<strong${annotationValueAttrs(policy.code)}>${escapeHtml(policy.code)}</strong>` : ""}
+        ${isBusinessText(policy.code) ? `<strong${annotationValueAttrs(policy.code)}>${escapeHtml(policy.code)}</strong>` : ""}
         <span${annotationValueAttrs(policy.text)}>${escapeHtml(policy.text)}</span>
         ${sourceNote(policy.reference)}
       </div>
@@ -707,7 +715,26 @@
   }
 
   function renderStageOverview(viewModel) {
-    return "";
+    const overview = viewModel?.stageOverview;
+    if (!overview) return "";
+    const facts = list(overview.facts).filter((fact) => isBusinessText(fact?.label) && hasBusinessValue(fact?.value));
+    const visibleFacts = facts.filter((fact) => !["安全技术服务", "安全技术模块", "安全技术措施", "开发技术服务", "开发技术模块"].includes(String(fact.label || ""))).slice(0, 4);
+    return `
+      <section class="lifecycle-stage-context" aria-label="当前${overview.mode === "data" ? "数据过程" : "开发阶段"}上下文">
+        <div class="lifecycle-stage-context__identity">
+          <span>${escapeHtml(overview.status || (overview.mode === "data" ? "当前数据过程" : "当前阶段"))}</span>
+          <strong><code>${escapeHtml(overview.code || (overview.mode === "data" ? "LC-DT" : "LC-AP"))}</code>${escapeHtml(displayValue(overview.title))}</strong>
+        </div>
+        <p>${escapeHtml(displayValue(overview.description))}</p>
+        ${
+          visibleFacts.length
+            ? `<dl>${visibleFacts
+                .map((fact) => `<div><dt>${escapeHtml(fact.label)}</dt><dd>${escapeHtml(displayValue(fact.value))}</dd></div>`)
+                .join("")}</dl>`
+            : ""
+        }
+      </section>
+    `;
   }
 
   function renderRelationTable({ rows, profileRows, policyRows, overview, searchQuery = "", mode = "", selectedStageId = "", emptyMessage = "" }) {
@@ -764,7 +791,7 @@
                     .map(
                       (system) => `
                         <tr>
-                          <td><span${annotationValueAttrs(titleOf(system))}>${escapeHtml(titleOf(system))}</span></td>
+                          <td><span${annotationValueAttrs(titleOf(system, ""))}>${escapeHtml(displayValue(titleOf(system, "")))}</span></td>
                           <td>${fieldCell(system.components.map((item) => titleOf(item, ""))) || EMPTY_VALUE}</td>
                         </tr>
                       `,

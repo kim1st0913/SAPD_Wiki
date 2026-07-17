@@ -156,6 +156,7 @@ async function lightweightHttpSmoke({ pageName, baseUrl, route, reason }) {
     const workspaceData = workspacePayload?.data || workspacePayload;
     const template = workspaceData?.template || {};
     const detail = workspaceData?.projectDetails?.["demo-project-002"] || {};
+    const completedEntries = (detail?.scoreEntries || []).map((entry) => entry?.isApplicable === false ? entry : { ...entry, targetLevel: "L5" });
     checks.maturityWorkspace = {
       ok:
         workspaceResponse.ok &&
@@ -186,14 +187,30 @@ async function lightweightHttpSmoke({ pageName, baseUrl, route, reason }) {
     checks.maturityCalculate = await postJsonStatus(
       new URL("/api/v1/maturity/calculate", rootUrl).toString(),
       sessionToken,
-      { project: detail?.project, template: detail?.template || template, scoreEntries: detail?.scoreEntries || [] },
-      (data) => data?.ok === true && data?.summary?.completionRate === 100 && data?.summary?.targetAchievementRate != null && data?.calculationRun?.algorithmVersion === "sapd-maturity-v2.1.0",
+      { project: detail?.project, template: detail?.template || template, scoreEntries: completedEntries },
+      (data) => data?.ok === true && data?.summary?.statisticsReady === true && data?.summary?.completionRate === 100 && data?.summary?.targetAchievementRate != null && data?.calculationRun?.algorithmVersion === "sapd-maturity-v2.1.0",
+    );
+    checks.maturityIncompleteGate = await postJsonStatus(
+      new URL("/api/v1/maturity/calculate", rootUrl).toString(),
+      sessionToken,
+      { project: { ...(detail?.project || {}), status: "scoring", readOnly: false }, template: detail?.template || template, scoreEntries: detail?.scoreEntries || [] },
+      (data) => data?.ok === true && data?.summary?.statisticsReady === false && data?.summary?.targetBelowCurrentCount > 0 && data?.summary?.resultAvailability === "incomplete",
     );
     checks.maturityReport = await postJsonStatus(
       new URL("/api/v1/maturity/report", rootUrl).toString(),
       sessionToken,
-      { project: detail?.project, template: detail?.template || template, scoreEntries: detail?.scoreEntries || [] },
-      (data) => data?.ok === true && data?.formal === true && data?.status === "snapshot" && data?.json?.schemaVersion === "maturity-demo-package-v2.1",
+      { project: detail?.project, template: detail?.template || template, scoreEntries: completedEntries },
+      (data) =>
+        data?.ok === true &&
+        data?.formal === true &&
+        data?.status === "snapshot" &&
+        data?.dataState === "ready" &&
+        typeof data?.markdown === "string" &&
+        data.markdown.length > 0 &&
+        typeof data?.html === "string" &&
+        data.html.length > 0 &&
+        String(data?.fileNames?.markdown || "").endsWith(".md") &&
+        String(data?.fileNames?.html || "").endsWith(".html"),
     );
     checks.maturityScoreExport = await postJsonStatus(
       new URL("/api/v1/maturity/score/export", rootUrl).toString(),
@@ -771,6 +788,21 @@ async function main() {
             searchRect: rectOf(document.querySelector('.capability-workbench-tools')),
           };
         })(),
+        capabilityVisualContract: (() => {
+          const titleHead = document.querySelector('#capabilityWorkspace .capability-workbench-head');
+          const surface = document.querySelector('#capabilityWorkspace .capability-workspace-surface');
+          const control = document.querySelector('#capabilityWorkspace .capability-workspace-control');
+          const canvas = document.querySelector('#capabilityWorkspace .preview-relation-stage');
+          const titleRect = titleHead?.getBoundingClientRect?.();
+          const surfaceRect = surface?.getBoundingClientRect?.();
+          return {
+            titleOutsideSurface: Boolean(titleHead && surface && !surface.contains(titleHead)),
+            titleAboveSurface: Boolean(titleRect && surfaceRect && titleRect.bottom <= surfaceRect.top + 1),
+            controlInsideSurface: Boolean(control && surface?.contains(control)),
+            surfaceRadius: Number.parseFloat(surface ? getComputedStyle(surface).borderTopLeftRadius : '0') || 0,
+            canvasRadius: Number.parseFloat(canvas ? getComputedStyle(canvas).borderTopLeftRadius : '0') || 0
+          };
+        })(),
         capabilityManagementChipProbe: (() => {
           const chips = [...document.querySelectorAll('.original-matrix-panel .management-mapping-section .function-layer-bucket em span')]
             .filter((item) => item.offsetParent !== null);
@@ -805,9 +837,23 @@ async function main() {
         userAnnotationDrawerProbe: (() => {
           const drawer = document.querySelector('.user-annotation-drawer');
           const tab = drawer?.querySelector('[data-annotation-drawer-toggle]');
+          const shouldProbe = ${expectUserActions ? "true" : "false"};
           const oldHorizontalActions = [...document.querySelectorAll('.user-object-actions')]
             .filter((item) => item.offsetParent !== null);
           const beforeWidth = document.querySelector('.workspace-stage, #sourceList, #contentWorkspace, #detail')?.getBoundingClientRect?.().width || 0;
+          if (!shouldProbe) {
+            const tabRect = tab?.getBoundingClientRect?.();
+            return {
+              present: Boolean(drawer),
+              tabVisible: Boolean(tab && tabRect?.width > 0 && tabRect?.height > 0),
+              open: Boolean(drawer?.classList.contains('is-open')),
+              panelVisible: false,
+              title: drawer?.querySelector('.annotation-drawer-header h2')?.textContent?.replace(/\\s+/g, ' ').trim() || '',
+              context: '',
+              oldHorizontalCount: oldHorizontalActions.length,
+              workspaceWidthDelta: 0
+            };
+          }
           tab?.click?.();
           const nextDrawer = document.querySelector('.user-annotation-drawer');
           const nextTab = nextDrawer?.querySelector('[data-annotation-drawer-toggle]');
@@ -815,7 +861,7 @@ async function main() {
           const tabRect = nextTab?.getBoundingClientRect?.();
           const panelRect = panel?.getBoundingClientRect?.();
           const afterWidth = document.querySelector('.workspace-stage, #sourceList, #contentWorkspace, #detail')?.getBoundingClientRect?.().width || 0;
-          return {
+          const probe = {
             present: Boolean(nextDrawer),
             tabVisible: Boolean(nextTab && tabRect?.width > 0 && tabRect?.height > 0),
             open: Boolean(nextDrawer?.classList.contains('is-open')),
@@ -825,6 +871,8 @@ async function main() {
             oldHorizontalCount: oldHorizontalActions.length,
             workspaceWidthDelta: Math.round(afterWidth - beforeWidth)
           };
+          if (probe.open) nextTab?.click?.();
+          return probe;
         })(),
         standardTable: Boolean(document.querySelector('.standard-framework-table, .standard-framework-page')),
         standardGroupRows: document.querySelectorAll('.standard-framework-table .standard-group-row').length,
@@ -890,6 +938,32 @@ async function main() {
           };
         })(),
         environmentTree: Boolean(document.querySelector('.environment-tree')),
+        environmentBasemap: Boolean(document.querySelector('.environment-basemap-lab-shell')),
+        environmentBasemapVisualContract: (() => {
+          const pane = document.querySelector('.environment-detail-pane');
+          const relationRoot = document.querySelector('.environment-relation-map.environment-tabbed-map');
+          const mappingWorkbench = document.querySelector('.environment-mapping-workbench');
+          const main = document.querySelector('.environment-basemap-lab-main');
+          const toolbar = document.querySelector('.environment-basemap-lab-toolbar');
+          const paneStyle = pane ? getComputedStyle(pane) : null;
+          const relationStyle = relationRoot ? getComputedStyle(relationRoot) : null;
+          const mappingStyle = mappingWorkbench ? getComputedStyle(mappingWorkbench) : null;
+          const mainStyle = main ? getComputedStyle(main) : null;
+          return {
+            paneRadius: Number.parseFloat(paneStyle?.borderTopLeftRadius || '0') || 0,
+            paneBorderWidth: Number.parseFloat(paneStyle?.borderTopWidth || '0') || 0,
+            paneOverflowHidden: paneStyle?.overflow === 'hidden',
+            relationRadius: Number.parseFloat(relationStyle?.borderTopLeftRadius || '0') || 0,
+            relationBorderWidth: Number.parseFloat(relationStyle?.borderTopWidth || '0') || 0,
+            mappingPresent: Boolean(mappingWorkbench),
+            mappingRadius: Number.parseFloat(mappingStyle?.borderTopLeftRadius || '0') || 0,
+            mappingBorderWidth: Number.parseFloat(mappingStyle?.borderTopWidth || '0') || 0,
+            mainRadius: Number.parseFloat(mainStyle?.borderTopLeftRadius || '0') || 0,
+            mainBorderWidth: Number.parseFloat(mainStyle?.borderTopWidth || '0') || 0,
+            mainOverflowHidden: mainStyle?.overflow === 'hidden',
+            toolbarInsideMain: Boolean(main && toolbar && main.contains(toolbar))
+          };
+        })(),
         lifecycleLane: Boolean(document.querySelector('.lifecycle-lane')),
         guideSlidePlayer: Boolean(document.querySelector('.guide-slide-player')),
         guideToolbarPresent: Boolean(document.querySelector('.guide-slide-toolbar')),
@@ -946,6 +1020,12 @@ async function main() {
       (pageName === "standards" && !metrics.standardTable) ||
       (pageName === "standards" && !metrics.standardHeaderCenterAligned) ||
       (pageName === "capability-mapping" && (!metrics.capabilityControlProbe?.present || metrics.capabilityControlProbe.visibleCount < 2)) ||
+      (pageName === "capability-mapping" &&
+        (!metrics.capabilityVisualContract?.titleOutsideSurface ||
+          !metrics.capabilityVisualContract?.titleAboveSurface ||
+          !metrics.capabilityVisualContract?.controlInsideSurface ||
+          metrics.capabilityVisualContract?.surfaceRadius < 26 ||
+          metrics.capabilityVisualContract?.canvasRadius < 18)) ||
       (pageName === "standards" && metrics.standardHeaderEmphasis?.count > 0 && (metrics.standardHeaderEmphasis.minFontSize < 14 || metrics.standardHeaderEmphasis.minFontWeight < 800)) ||
       (pageName === "standards" &&
         metrics.standardDescriptionAligned?.count > 0 &&
@@ -979,7 +1059,21 @@ async function main() {
           !metrics.searchPageProbe?.listScrollOk ||
           metrics.searchPageProbe?.actionButtonCount !== 0 ||
           !metrics.searchPageProbe?.rowClickActivated)) ||
-      (pageName === "environment" && !metrics.environmentTree) ||
+      (pageName === "environment" && !metrics.environmentTree && !metrics.environmentBasemap) ||
+      (pageName === "environment" &&
+        (metrics.environmentBasemapVisualContract?.paneRadius < 8 ||
+          metrics.environmentBasemapVisualContract?.paneBorderWidth < 1 ||
+          !metrics.environmentBasemapVisualContract?.paneOverflowHidden ||
+          metrics.environmentBasemapVisualContract?.relationRadius !== 0 ||
+          metrics.environmentBasemapVisualContract?.relationBorderWidth !== 0 ||
+          (metrics.environmentBasemapVisualContract?.mappingPresent &&
+            (metrics.environmentBasemapVisualContract?.mappingRadius !== 0 ||
+              metrics.environmentBasemapVisualContract?.mappingBorderWidth !== 0)))) ||
+      (pageName === "environment" && metrics.environmentBasemap &&
+        (metrics.environmentBasemapVisualContract?.mainRadius !== 0 ||
+          metrics.environmentBasemapVisualContract?.mainBorderWidth !== 0 ||
+          !metrics.environmentBasemapVisualContract?.mainOverflowHidden ||
+          !metrics.environmentBasemapVisualContract?.toolbarInsideMain)) ||
       ((pageName === "lifecycle" || pageName === "dev-lifecycle") && !metrics.lifecycleLane) ||
       (pageName === "content" && guideExpectation && !metrics.guideSlidePlayer) ||
       (pageName === "content" && guideExpectation && metrics.guideToolbarPresent) ||

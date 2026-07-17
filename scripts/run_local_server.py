@@ -1860,6 +1860,9 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
                 if projection_api is not None:
                     params = parse_qs(parsed.query)
                     path_parts = [unquote(part) for part in parsed.path.strip("/").split("/") if part]
+                    if parsed.path == "/api/v1/dashboard/knowledge-summary":
+                        self.send_json(200, projection_api.create_envelope(projection_api.dashboard_knowledge_summary()))
+                        return
                     if parsed.path == "/api/v1/data-packages":
                         self.send_json(200, projection_api.create_envelope({"packages": [{"name": name, "path": path} for name, path in projection_api.DATA_PACKAGES.items()]}))
                         return

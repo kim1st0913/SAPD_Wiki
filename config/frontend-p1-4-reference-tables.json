@@ -1,0 +1,22 @@
+{
+  "version": "2026-07-14.p1-4-reference-tables-v2",
+  "routes": ["/knowledge/capability-directory", "/standards/*"],
+  "hierarchyContract": {
+    "structureTone": "neutral",
+    "selectionTone": "blue",
+    "countRole": "metadata",
+    "countFocusable": false
+  },
+  "tabKeys": ["ArrowLeft", "ArrowRight", "Home", "End"],
+  "rowContract": ["hairline_divider", "no_zebra_fill", "single_selection_tint"],
+  "defaultExpansion": "all-collapsed-unless-searching",
+  "singleSectionTab": "hidden",
+  "capabilityDirectoryScrollOwner": ".maintenance-table-scroll",
+  "chipBoundary": ["capability_mapping_object"],
+  "excludedScopes": [
+    "protected dictionary and standard contents",
+    "hierarchy and relationship inference",
+    "ETL and JSON packages",
+    "maturity assessment"
+  ]
+}

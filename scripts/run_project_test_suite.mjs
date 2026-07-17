@@ -56,6 +56,13 @@ const suites = {
       command("static:p0-1-boundary-audit", "P0-1 正确性与安全边界门禁脚本语法检查", "node", ["--check", "scripts/audit_frontend_p0_1_correctness_boundary_contract.mjs"]),
       command("static:p0-2-shell-audit", "P0-2 Apple Shell 与共享布局基座门禁脚本语法检查", "node", ["--check", "scripts/audit_frontend_p0_2_apple_shell_layout_contract.mjs"]),
       command("static:p0-4-standard-issue-audit", "P0-4 标准与 Issue 壳层派生门禁脚本语法检查", "node", ["--check", "scripts/audit_frontend_p0_4_standard_issue_shell_contract.mjs"]),
+      command("static:p1-1-runtime-state-audit", "P1-1 共享运行状态模板门禁脚本语法检查", "node", ["--check", "scripts/audit_frontend_p1_1_runtime_state_contract.mjs"]),
+      command("static:p1-2-canvas-workbench-audit", "P1-2 画布工作台门禁脚本语法检查", "node", ["--check", "scripts/audit_frontend_p1_2_canvas_workbench_contract.mjs"]),
+      command("static:p1-3-lifecycle-audit", "P1-3 生命周期宽表与上下文门禁脚本语法检查", "node", ["--check", "scripts/audit_frontend_p1_3_lifecycle_workbench_contract.mjs"]),
+      command("static:p1-4-reference-audit", "P1-4 字典与标准层级语义门禁脚本语法检查", "node", ["--check", "scripts/audit_frontend_p1_4_reference_tables_contract.mjs"]),
+      command("static:p1-5-review-search-audit", "P1-5 Issue 与全局搜索门禁脚本语法检查", "node", ["--check", "scripts/audit_frontend_p1_5_review_search_contract.mjs"]),
+      command("static:p1-6-guide-reading-audit", "P1-6 指南阅读门禁脚本语法检查", "node", ["--check", "scripts/audit_frontend_p1_6_guide_reading_contract.mjs"]),
+      command("static:p2-product-workspace-audit", "P2 工作台、目录和指南门禁脚本语法检查", "node", ["--check", "scripts/audit_frontend_p2_product_workspace_contract.mjs"]),
     ],
   },
   boundaries: {
@@ -89,6 +96,27 @@ const suites = {
       ),
       command("frontend:p0-4-standard-issue", "P0-4 标准与 Issue 壳层派生门禁", "node", (ctx) =>
         withUrl(["scripts/audit_frontend_p0_4_standard_issue_shell_contract.mjs"], ctx),
+      ),
+      command("frontend:p1-1-runtime-state", "P1-1 共享运行状态模板门禁", "node", (ctx) =>
+        withUrl(["scripts/audit_frontend_p1_1_runtime_state_contract.mjs"], ctx),
+      ),
+      command("frontend:p1-2-canvas-workbench", "P1-2 画布工作台门禁", "node", (ctx) =>
+        withUrl(["scripts/audit_frontend_p1_2_canvas_workbench_contract.mjs"], ctx),
+      ),
+      command("frontend:p1-3-lifecycle", "P1-3 生命周期宽表与上下文门禁", "node", (ctx) =>
+        withUrl(["scripts/audit_frontend_p1_3_lifecycle_workbench_contract.mjs"], ctx),
+      ),
+      command("frontend:p1-4-reference", "P1-4 字典与标准层级语义门禁", "node", (ctx) =>
+        withUrl(["scripts/audit_frontend_p1_4_reference_tables_contract.mjs"], ctx),
+      ),
+      command("frontend:p1-5-review-search", "P1-5 Issue 与全局搜索门禁", "node", (ctx) =>
+        withUrl(["scripts/audit_frontend_p1_5_review_search_contract.mjs"], ctx),
+      ),
+      command("frontend:p1-6-guide-reading", "P1-6 指南阅读门禁", "node", (ctx) =>
+        withUrl(["scripts/audit_frontend_p1_6_guide_reading_contract.mjs"], ctx),
+      ),
+      command("frontend:p2-product-workspace", "P2 工作台、目录和指南门禁", "node", (ctx) =>
+        withUrl(["scripts/audit_frontend_p2_product_workspace_contract.mjs"], ctx),
       ),
       command("frontend:governance", "前端高风险文件治理审计", "node", ["scripts/audit_frontend_governance.mjs"]),
       command("frontend:lazy-load", "前端按需加载契约审计", "node", ["scripts/audit_frontend_lazy_load_contract.mjs"]),

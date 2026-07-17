@@ -112,7 +112,7 @@
 - 安全技术架构设计方法。
 - 数据安全设计方法。
 - 安全管控模式设计方法。
-- 成熟度模型使用方法。
+- 成熟度模型使用指南。
 
 核心区域：
 
@@ -354,7 +354,7 @@
 | 安全技术架构设计方法 | `/guides/security-architecture-design` | `document-page` | 展示安全技术架构设计方法正文 | 章节目录、正文、引用、相关指南 | 卡片海报页、复杂知识图谱 | P2 |
 | 数据安全设计方法 | `/guides/data-security-design` | `document-page` | 展示数据安全设计方法正文 | 章节目录、正文、引用、相关指南 | 能力映射工作台、折叠过度 | P2 |
 | 安全管控模式设计方法 | `/guides/security-governance-model` | `document-page` | 展示安全管控模式设计方法正文 | 章节目录、正文、引用、相关指南 | 大屏关系图、营销风 | P2 |
-| 成熟度模型使用方法 | `/guides/maturity-model-usage` | `document-page` | 展示成熟度模型使用说明、等级解释、评估流程和模板填写说明 | 章节目录、评估说明、引用、相关指南 | 直接启动 maturity M1、承载客户评估任务、伪造评分结果 | P2 |
+| 成熟度模型使用指南 | `/guides/maturity-model-usage` | `document-page` | 展示成熟度模型使用说明、等级解释、评估流程和模板填写说明 | 章节目录、评估说明、引用、相关指南 | 直接启动 maturity M1、承载客户评估任务、伪造评分结果 | P2 |
 | 其他指南 | `/guides/others` | `placeholder-page` | 预留其他方法论指南入口 | 建设状态、后续规划、返回入口 | 伪造成完整文档库 | P3 |
 
 ### 7.2 安全知识
@@ -399,7 +399,7 @@
 /guides/security-architecture-design   安全技术架构设计方法
 /guides/data-security-design           数据安全设计方法
 /guides/security-governance-model      安全管控模式设计方法
-/guides/maturity-model-usage           成熟度模型使用方法
+/guides/maturity-model-usage           成熟度模型使用指南
 /guides/others                         其他指南
 
 /capability-mapping                    安全能力映射

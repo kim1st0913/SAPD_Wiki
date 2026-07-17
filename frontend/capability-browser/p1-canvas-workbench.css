@@ -1,0 +1,221 @@
+/* P1-2 V11: shared component and responsive canvas contract. OI-159 and the global Apple Shell remain the visual authorities. */
+
+.app-shell-integrated .capability-workspace {
+  grid-template-columns: 240px 6px minmax(760px, 1fr);
+}
+
+.app-shell-integrated .capability-relation-pane {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.app-shell-integrated .capability-map-preview-r2 .summary-panel .network-graph-canvas {
+  min-height: clamp(520px, calc(100dvh - 258px), 760px);
+}
+
+.app-shell-integrated .capability-sliding-scale-reference {
+  width: min(100%, 1600px);
+  margin: clamp(8px, 1.2vw, 18px) auto 0;
+}
+
+.app-shell-integrated .capability-map-preview-r2 .capability-overview-summary-shell,
+.app-shell-integrated .capability-map-preview-r2 .capability-overview-summary-grid {
+  min-height: 0;
+  height: 100%;
+}
+
+.app-shell-integrated .capability-map-preview-r2 .capability-overview-summary-grid > .capability-overview-pane {
+  min-height: 0;
+  height: 100%;
+}
+
+.app-shell-integrated .capability-map-preview-r2 .capability-overview-summary-shell:has(.capability-overview-children-pane.has-sliding-scale) {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.app-shell-integrated .capability-map-preview-r2 .capability-overview-summary-shell:has(.capability-overview-children-pane.has-sliding-scale) > .capability-overview-brief,
+.app-shell-integrated .capability-map-preview-r2 .capability-overview-summary-grid:has(.capability-overview-children-pane.has-sliding-scale) > .capability-overview-coverage-pane {
+  display: none;
+}
+
+.app-shell-integrated .capability-map-preview-r2 .capability-overview-summary-grid:has(.capability-overview-children-pane.has-sliding-scale) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.app-shell-integrated .capability-map-preview-r2 .preview-tab-panel:has(.capability-overview-summary-shell) {
+  overflow: hidden;
+}
+
+.app-shell-integrated .capability-map-preview-r2 .capability-overview-children-pane.has-sliding-scale {
+  min-height: 0;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  align-content: stretch;
+}
+
+.app-shell-integrated .capability-map-preview-r2 .capability-overview-children-pane.has-sliding-scale .capability-sliding-scale-reference {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  height: 100%;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.app-shell-integrated .capability-sliding-scale-reference img {
+  position: static;
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border: 1px solid rgba(53, 63, 76, 0.72);
+  box-sizing: border-box;
+}
+
+.app-shell-integrated .environment-basemap-lab-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 0;
+  column-gap: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  transition: grid-template-columns 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.app-shell-integrated .environment-basemap-lab-shell.has-detail {
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  column-gap: 10px;
+}
+
+/*
+ * The environment workspace has exactly one outer contour owner:
+ * `.environment-detail-pane`.  The tab root and the Draw.io canvas are
+ * full-bleed children; allowing either child to draw another rounded frame
+ * creates the four doubled corner arcs reported in both environment tabs.
+ */
+.app-shell-integrated .environment-workspace .environment-detail-pane {
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.app-shell-integrated .environment-workspace .environment-detail,
+.app-shell-integrated .environment-workspace .environment-relation-map.environment-tabbed-map,
+.app-shell-integrated .environment-workspace .environment-tab-panels,
+.app-shell-integrated .environment-workspace .environment-tab-panel {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.app-shell-integrated .environment-basemap-lab-main {
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.app-shell-integrated .environment-basemap-lab-toolbar {
+  min-height: 48px;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-quiet, #f5f7fa);
+}
+
+.app-shell-integrated .environment-basemap-lab-actions {
+  gap: 5px;
+  flex-wrap: nowrap;
+}
+
+.app-shell-integrated .environment-basemap-lab-actions button,
+.app-shell-integrated .environment-basemap-lab-actions output {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--sapd-radius-md, 10px);
+  background: var(--panel, #fbfcfe);
+  color: var(--muted, #64748b);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.app-shell-integrated .environment-basemap-lab-actions output {
+  min-width: 48px;
+  color: var(--ink, #172033);
+  font-variant-numeric: tabular-nums;
+}
+
+.app-shell-integrated .environment-basemap-lab-actions button:disabled {
+  opacity: 0.46;
+  cursor: default;
+}
+
+.app-shell-integrated .basemap-node-detail-drawer {
+  position: relative;
+  inset: auto;
+  z-index: 1;
+  width: auto;
+  max-height: none;
+  min-width: 0;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--panel, #fbfcfe);
+  box-shadow: 0 14px 34px rgba(34, 48, 74, 0.08);
+  backdrop-filter: none;
+  overscroll-behavior: contain;
+}
+
+.app-shell-integrated .basemap-node-detail-drawer::before {
+  content: none;
+}
+
+.app-shell-integrated .basemap-node-detail-drawer.is-hidden {
+  display: block;
+  width: 0;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+}
+
+@media (max-width: 1099px) {
+  .app-shell-integrated .capability-workspace {
+    grid-template-columns: 0 minmax(0, 1fr);
+  }
+
+  .app-shell-integrated .capability-workspace .workspace-resizer {
+    display: none;
+  }
+
+  .app-shell-integrated .environment-basemap-lab-shell.has-detail {
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 310px);
+  }
+}
+
+@media (max-width: 760px) {
+  .app-shell-integrated .environment-basemap-lab-shell.has-detail {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(420px, 1fr) minmax(220px, 42dvh);
+  }
+
+  .app-shell-integrated .basemap-node-detail-drawer {
+    border-top: 1px solid var(--line);
+    border-left: 1px solid var(--line);
+  }
+
+  .app-shell-integrated .environment-basemap-lab-toolbar {
+    overflow-x: auto;
+  }
+}

@@ -573,7 +573,7 @@
     if (!tableRows.length || !tableColumns.length) return "";
     const groups = groupedRows(tableRows, groupConfig(activeFrameworkId, tableId));
     const frameworkClass = frameworkTableClass(activeFrameworkId, tableId);
-    const expandAll = Boolean(utils.text(search).trim() || selectedKey);
+    const expandAll = Boolean(utils.text(search).trim());
     return `
       ${
         capped
@@ -659,7 +659,7 @@
                         const active = table.id === normalizedActiveTableId;
                         const label = hasTabGroups ? tabButtonLabel(table) : table.title;
                         return `
-                          <button class="standard-framework-tab ${active ? "active" : ""}" type="button" role="tab" aria-selected="${active ? "true" : "false"}" aria-label="${utils.escapeHtml(table.title || label)}" data-framework-id="${utils.escapeHtml(activeFrameworkId)}" data-tab-target="${utils.escapeHtml(table.id)}">
+                          <button class="standard-framework-tab ${active ? "active" : ""}" type="button" role="tab" aria-selected="${active ? "true" : "false"}" tabindex="${active ? "0" : "-1"}" aria-label="${utils.escapeHtml(table.title || label)}" data-framework-id="${utils.escapeHtml(activeFrameworkId)}" data-tab-target="${utils.escapeHtml(table.id)}">
                             <span>${utils.escapeHtml(label)}</span>
                           </button>
                         `;
@@ -693,12 +693,11 @@
     `;
   }
 
-  document.addEventListener("click", (event) => {
-    const tab = event.target.closest?.(".standard-framework-tab");
-    if (!tab) return;
+  function selectStandardTab(tab) {
+    if (!tab) return false;
     const stack = tab.closest(".standard-framework-tabbed");
     const target = tab.dataset.tabTarget;
-    if (!stack || !target) return;
+    if (!stack || !target) return false;
     document.dispatchEvent(
       new CustomEvent("sapd:standard-table-select", {
         detail: {
@@ -707,6 +706,26 @@
         },
       }),
     );
+    return true;
+  }
+
+  document.addEventListener("click", (event) => {
+    const tab = event.target.closest?.(".standard-framework-tab");
+    selectStandardTab(tab);
+  });
+
+  document.addEventListener("keydown", (event) => {
+    const tab = event.target.closest?.(".standard-framework-tab");
+    if (!tab || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    const stack = tab.closest(".standard-framework-tabbed");
+    const tabs = [...(stack?.querySelectorAll?.(".standard-framework-tab") || [])];
+    const currentIndex = tabs.indexOf(tab);
+    if (currentIndex < 0 || !tabs.length) return;
+    event.preventDefault();
+    const nextIndex = event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1 : (currentIndex + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+    const nextTab = tabs[nextIndex];
+    nextTab?.focus({ preventScroll: true });
+    selectStandardTab(nextTab);
   });
 
   function tooltipTextFor(target) {

@@ -1,0 +1,33 @@
+{
+  "version": "2026-07-16.p1-5-review-search-v6",
+  "routes": ["/workbench/annotations", "/search"],
+  "issueColumns": ["select", "title", "pageObject", "status", "priority", "updated"],
+  "issueWorkspace": {
+    "listLabel": "ISSUE清单",
+    "toolbar": "status-priority-filters-plus-canonical-page-search",
+    "scopeOwner": "left-directory-only",
+    "panes": "shared-hairline-surfaces",
+    "searchControl": "global-page-search-control-with-match-navigation",
+    "searchMatchGrain": "filtered-issue-objects-by-stable-id",
+    "exportDestination": {
+      "web": "browser-download-setting",
+      "app": "configured-download-directory",
+      "successRequires": "blob-download-or-output-path"
+    }
+  },
+  "searchContract": {
+    "mainInputCount": 1,
+    "pageSize": 20,
+    "highlightOccurrencesPerSnippet": 1,
+    "restoreKeys": ["query", "filter", "page", "scrollTop"],
+    "contextAlignment": "centered-consistent"
+  },
+  "resultIdentity": ["route", "targetRef", "targetText", "title"],
+  "excludedScopes": [
+    "user Issue database contents",
+    "search index ranking and semantic dedupe",
+    "result target routing and anchor resolution",
+    "maturity assessment",
+    "P0-3 capability graph"
+  ]
+}

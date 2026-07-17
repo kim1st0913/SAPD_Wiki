@@ -1,0 +1,29 @@
+:root {
+  --sapd-stat-vibrancy-fill: rgba(241, 247, 253, 0.58);
+  --sapd-stat-vibrancy-fill-solid: oklch(0.972 0.009 245);
+  --sapd-stat-vibrancy-border: rgba(255, 255, 255, 0.86);
+  --sapd-stat-vibrancy-line: rgba(111, 141, 170, 0.28);
+  --sapd-stat-vibrancy-shadow: 0 18px 42px rgba(48, 72, 98, 0.15), 0 2px 8px rgba(48, 72, 98, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.92), inset 0 0 0 1px rgba(150, 178, 203, 0.08);
+}
+
+.sapd-stat-vibrancy {
+  border-color: var(--sapd-stat-vibrancy-line);
+  background-color: var(--sapd-stat-vibrancy-fill);
+  -webkit-backdrop-filter: blur(28px) saturate(1.2) brightness(1.03);
+  backdrop-filter: blur(28px) saturate(1.2) brightness(1.03);
+  box-shadow: var(--sapd-stat-vibrancy-shadow);
+}
+
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .sapd-stat-vibrancy {
+    background-color: var(--sapd-stat-vibrancy-fill-solid);
+  }
+}
+
+@media (forced-colors: active) {
+  .sapd-stat-vibrancy {
+    border-color: CanvasText;
+    background: Canvas;
+    box-shadow: none;
+  }
+}

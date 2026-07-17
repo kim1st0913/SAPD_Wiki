@@ -47,6 +47,18 @@ function validateMetrics(contract, foundation) {
   return mainHeight;
 }
 
+function validateTopbarOperationContract(sources, foundation) {
+  const topbarStart = sources.appShell.indexOf("function renderTopBar()");
+  const topbarEnd = sources.appShell.indexOf("\n  function readSidebarCollapsed", topbarStart);
+  assert(topbarStart >= 0 && topbarEnd > topbarStart, "AppShell topbar renderer missing");
+  const topbar = sources.appShell.slice(topbarStart, topbarEnd);
+  assert(!topbar.includes('id="metrics"'), "topbar must not reintroduce global count metrics");
+  assert(topbar.includes('class="topbar-actions"'), "topbar must keep one global action group");
+  assert(topbar.includes('id="licenseStatusBadge"'), "topbar must keep the license status inside the global action group");
+  assert(!sources.app.includes("function renderMetrics()"), "removed topbar metrics must not keep a runtime render path");
+  assert(/\.app-shell-integrated \.topbar\s*\{[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\)\s+auto;/.test(foundation), "topbar must reserve the right slot for global actions");
+}
+
 function validateTitleContract(contract, sources) {
   assert(occurrenceCount(sources.appShell, /<h1\b/g) === contract.title_contract.maximum_page_h1, "AppShell must generate exactly one page h1");
   assert(occurrenceCount(sources.index, /<h1\b/g) === 0, "static shell must not provide a competing h1");
@@ -82,6 +94,47 @@ function validateAuxiliaryContract(contract, sources, foundation) {
   assert(sources.app.includes(`document.addEventListener("${contract.auxiliary_contract.overlay_dismiss_event}"`), "overlay dismiss handling missing");
   assert(foundation.includes('[data-shell-auxiliary-mode="overlay"]'), "overlay layout CSS missing");
   assert(foundation.includes('[data-shell-auxiliary-mode="overlay"].is-shell-closed'), "closed overlay CSS missing");
+}
+
+function validateDirectoryContract(contract, sources, directoryCss) {
+  const directory = contract.directory_contract;
+  assert(directory.shared_class === "shell-directory-pane", "shared directory class changed");
+  assert(directory.contour_owner === "outer-pane-only", "directory contour owner must remain the outer pane");
+  assert(directory.surface_radius === contract.visual_tokens.radii.surface, "directory surface radius must reuse the Apple Shell surface token");
+  assert(directory.body_border === 0 && directory.body_radius === 0, "directory scroll body must remain borderless and square");
+  assert(directory.collapsed_border === 0, "collapsed directory must not leave a contour sliver in the zero-width track");
+  assert(Object.keys(directory.registered_panes).length === 4, "all four resident directory pane families must be registered");
+  assert(sources.appShell.includes('if (kind === "directory") panel.classList.add("shell-directory-pane");'), "AppShell does not assign the shared directory class by auxiliary role");
+  assert(sources.appShell.includes('class="capability-tree-pane shell-directory-pane app-shell-secondary"'), "mounted capability directory does not keep the shared shell class");
+  assert(sources.environmentLocal.includes('class="environment-tab-tree-pane shell-directory-pane"'), "environment object directory does not use the shared shell class");
+  for (const selector of ["capability-tree-pane", "source-nav-pane", "content-nav-pane"]) {
+    assert(sources.index.includes(`${selector} shell-directory-pane`) || sources.index.includes(`shell-directory-pane ${selector}`), `static ${selector} fallback does not use the shared directory class`);
+  }
+  const shellStart = directoryCss.indexOf(".app-shell-integrated .shell-directory-pane {");
+  const shellEnd = directoryCss.indexOf("}", shellStart);
+  const shellBlock = shellStart >= 0 && shellEnd > shellStart ? directoryCss.slice(shellStart, shellEnd + 1) : "";
+  assert(shellBlock.includes("border: 1px solid var(--sapd-shell-divider);") && shellBlock.includes("border-radius: var(--sapd-shell-radius-surface);"), "directory outer pane is not the single Apple Shell contour owner");
+  assert(shellBlock.includes("overflow: hidden;") && shellBlock.includes("isolation: isolate;"), "directory outer pane does not clip child surfaces at all four corners");
+  const bodyStart = directoryCss.indexOf(".app-shell-integrated .shell-directory-pane > :is(.tree, .environment-tree, .source-nav) {");
+  const bodyEnd = directoryCss.indexOf("}", bodyStart);
+  const bodyBlock = bodyStart >= 0 && bodyEnd > bodyStart ? directoryCss.slice(bodyStart, bodyEnd + 1) : "";
+  assert(bodyBlock.includes("height: auto;") && bodyBlock.includes("overflow: auto;"), "directory body does not own its scroll area inside the shared grid");
+  assert(bodyBlock.includes("border: 0;") && bodyBlock.includes("border-radius: 0;") && bodyBlock.includes("box-shadow: none;"), "directory body can still draw a nested rounded contour");
+  assert(directoryCss.includes(".capability-workspace.catalog-collapsed .shell-directory-pane") && directoryCss.includes(".environment-mapping-workbench.catalog-collapsed .shell-directory-pane"), "collapsed capability or environment directory is not covered by the shared shell contract");
+}
+
+function validateSharedComponentContract(contract, sources) {
+  const segmented = contract.shared_component_contract.segmented_tabs;
+  const search = contract.shared_component_contract.page_local_search;
+  assert(segmented.container_min_height === 42 && segmented.container_radius === 16, "shared segmented container geometry changed");
+  assert(segmented.button_min_height === 34 && segmented.button_radius === 12 && segmented.placement_invariant === true, "shared segmented button or placement contract changed");
+  assert(/\.app-shell-integrated \.maintenance-section-tabs,[\s\S]*?min-height:\s*42px;[\s\S]*?padding:\s*4px;[\s\S]*?border-radius:\s*16px;/.test(sources.css), "shared segmented container CSS is incomplete");
+  assert(/\.app-shell-integrated \.maintenance-section-tabs button,[\s\S]*?min-height:\s*34px;[\s\S]*?padding:\s*0 13px;[\s\S]*?border-radius:\s*12px;/.test(sources.css), "shared segmented button CSS is incomplete");
+  assert(!sources.css.includes(".app-shell-integrated #appPageHeader .maintenance-section-tabs"), "page-header placement must not compress the shared segmented component");
+  assert(search.minimum_height === 40 && search.radius === "pill", "page-local search geometry contract changed");
+  assert(search.required_parts.join(",") === "input,match_status,previous,next", "page-local search required parts changed");
+  assert(/\.page-search-control\s*\{[\s\S]*?grid-template-columns:\s*minmax\(0, 1fr\) minmax\(42px, auto\) 28px 28px;/.test(sources.css), "page-local search input/status/previous/next grid is incomplete");
+  assert(sources.css.includes(".page-search-match-status") && sources.css.includes(".page-search-step"), "page-local search status or step styles are missing");
 }
 
 function validateMaturityShellContract(contract, sources) {
@@ -120,6 +173,20 @@ function validateVisualTokenContract(contract, foundation) {
   assert(foundation.includes("border-radius: var(--sapd-shell-radius-overlay);"), "overlay radius is not applied");
 }
 
+function validateStatisticVibrancyContract(contract, sources) {
+  const vibrancy = contract.visual_tokens.statistic_vibrancy;
+  assert(vibrancy.shared_class === "sapd-stat-vibrancy", "statistic Vibrancy shared class changed");
+  assert(vibrancy.stylesheet === "stat-vibrancy.css", "statistic Vibrancy stylesheet changed");
+  assert(vibrancy.blur_px === 28 && vibrancy.solid_fallback === true, "statistic Vibrancy strength or fallback contract changed");
+  assert(vibrancy.allowed_surfaces.includes("score_summary") && vibrancy.allowed_surfaces.includes("result_analysis"), "maturity statistical surfaces are not registered for Vibrancy");
+  assert(vibrancy.forbidden_surfaces.includes("form_field") && vibrancy.forbidden_surfaces.includes("business_table") && vibrancy.forbidden_surfaces.includes("drawio_canvas"), "Vibrancy forbidden scope is incomplete");
+  assert(sources.index.includes('stat-vibrancy.css?v=apple-shell-stat-vibrancy-20260715-1'), "shared statistic Vibrancy stylesheet is not loaded");
+  assert(sources.statVibrancy.includes(`.${vibrancy.shared_class}`), "shared statistic Vibrancy class is missing");
+  assert(sources.statVibrancy.includes(`blur(${vibrancy.blur_px}px)`) && sources.statVibrancy.includes("@supports not"), "statistic Vibrancy blur or solid fallback is missing");
+  assert(sources.statVibrancy.includes("@media (forced-colors: active)"), "statistic Vibrancy forced-colors fallback is missing");
+  assert(occurrenceCount(sources.maturity, /sapd-stat-vibrancy/g) >= 6, "maturity statistical surfaces do not reuse the shared Vibrancy class");
+}
+
 function validatePageHeaderRhythmContract(contract, foundation) {
   const rhythm = contract.visual_tokens.page_header_rhythm;
   assertToken(foundation, "--sapd-shell-page-header-gap", rhythm.gap);
@@ -140,7 +207,7 @@ function validatePageHeaderRhythmContract(contract, foundation) {
 
 async function main() {
   const baseUrl = argValue("--url", DEFAULT_BASE_URL).replace(/\/$/, "");
-  const [contractSource, appShell, app, index, css, maturity, maturityCss] = await Promise.all([
+  const [contractSource, appShell, app, index, css, maturity, maturityCss, environmentLocal, directoryCss, statVibrancy] = await Promise.all([
     read("config/frontend-p0-2-apple-shell-layout.json"),
     read("frontend/capability-browser/components/AppShell.js"),
     read("frontend/capability-browser/app.js"),
@@ -148,32 +215,48 @@ async function main() {
     read("frontend/capability-browser/styles.css"),
     read("frontend/capability-browser/components/MaturityAssessmentWorkbench.js"),
     read("frontend/capability-browser/maturity-assessment-workbench.css"),
+    read("frontend/capability-browser/components/EnvironmentLocalRelationMap.js"),
+    read("frontend/capability-browser/shared-directory-shell.css"),
+    read("frontend/capability-browser/stat-vibrancy.css"),
   ]);
   const contract = JSON.parse(contractSource);
   const markerIndex = css.lastIndexOf(FOUNDATION_MARKER);
   assert(markerIndex >= 0, "P0-2 foundation marker missing");
   const foundation = css.slice(markerIndex);
-  const sources = { appShell, app, index, css, maturity, maturityCss };
+  const sources = { appShell, app, index, css, maturity, maturityCss, environmentLocal, statVibrancy };
 
   const mainHeight = validateMetrics(contract, foundation);
+  validateTopbarOperationContract(sources, foundation);
   validateTitleContract(contract, sources);
   validateNavigationContract(contract, appShell);
   validateAuxiliaryContract(contract, sources, foundation);
+  validateDirectoryContract(contract, sources, directoryCss);
+  validateSharedComponentContract(contract, sources);
   validateMaturityShellContract(contract, sources);
   validateVisualTokenContract(contract, foundation);
+  validateStatisticVibrancyContract(contract, sources);
   validatePageHeaderRhythmContract(contract, foundation);
 
-  const [runtimeIndex, runtimeAppShell, runtimeCss, runtimeMaturity, runtimeMaturityCss] = await Promise.all([
+  const [runtimeIndex, runtimeAppShell, runtimeApp, runtimeCss, runtimeMaturity, runtimeMaturityCss, runtimeEnvironmentLocal, runtimeDirectoryCss, runtimeStatVibrancy] = await Promise.all([
     fetchText(baseUrl, "/"),
     fetchText(baseUrl, "/components/AppShell.js"),
+    fetchText(baseUrl, "/app.js"),
     fetchText(baseUrl, "/styles.css"),
     fetchText(baseUrl, "/components/MaturityAssessmentWorkbench.js"),
     fetchText(baseUrl, "/maturity-assessment-workbench.css"),
+    fetchText(baseUrl, "/components/EnvironmentLocalRelationMap.js"),
+    fetchText(baseUrl, "/shared-directory-shell.css"),
+    fetchText(baseUrl, "/stat-vibrancy.css"),
   ]);
   assert(runtimeIndex.includes('id="contentDetailPane"'), "runtime index is not serving the P0-2 auxiliary target");
   assert(runtimeAppShell.includes("syncNavigationGroups"), "runtime AppShell is not serving P0-2 navigation");
   assert(runtimeCss.includes(FOUNDATION_MARKER), "runtime CSS is not serving the P0-2 foundation");
+  assert(runtimeIndex.includes("shared-directory-shell.css?v=p0-2-directory-shell-20260714-1"), "runtime index is not loading the shared directory shell");
+  validateTopbarOperationContract({ appShell: runtimeAppShell, app: runtimeApp }, runtimeCss.slice(runtimeCss.lastIndexOf(FOUNDATION_MARKER)));
   validatePageHeaderRhythmContract(contract, runtimeCss.slice(runtimeCss.lastIndexOf(FOUNDATION_MARKER)));
+  validateDirectoryContract(contract, { appShell: runtimeAppShell, index: runtimeIndex, environmentLocal: runtimeEnvironmentLocal }, runtimeDirectoryCss);
+  validateSharedComponentContract(contract, { css: runtimeCss });
+  validateStatisticVibrancyContract(contract, { index: runtimeIndex, maturity: runtimeMaturity, statVibrancy: runtimeStatVibrancy });
   assert(runtimeMaturity.includes("syncMaturityShellHeader"), "runtime maturity workbench is not serving the Apple Shell integration");
   assert(runtimeMaturityCss.includes("#maturityShellHeaderActions"), "runtime maturity styles are not serving the Apple Shell integration");
 

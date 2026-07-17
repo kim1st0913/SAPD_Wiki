@@ -31527,7 +31527,8 @@ body.environment-basemap-app-fullscreen-active { overflow: hidden; }
 .app-shell-integrated .capability-workbench-tools.page-search-control,
 .app-shell-integrated .source-catalog-tools.page-search-control,
 .app-shell-integrated .environment-search-control.page-search-control,
-.app-shell-integrated .lifecycle-stage-search.page-search-control {
+.app-shell-integrated .lifecycle-stage-search.page-search-control,
+.app-shell-integrated .workbench-review-search-control.page-search-control {
   width: var(--page-local-search-width);
   max-width: 100%;
   min-height: 40px;
@@ -31864,6 +31865,7 @@ mark[data-page-search-current="true"] {
   height: var(--topbar-height);
   min-height: var(--topbar-height);
   max-height: var(--topbar-height);
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
   padding: 7px 16px;
   border-bottom: 1px solid var(--sapd-shell-divider);
@@ -31962,21 +31964,6 @@ mark[data-page-search-current="true"] {
   line-height: var(--sapd-shell-page-header-description-line-height);
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.app-shell-integrated #appPageHeader .maintenance-section-tabs {
-  min-height: 30px;
-  gap: 2px;
-  padding: 2px;
-  border-radius: var(--sapd-shell-radius-surface);
-}
-
-.app-shell-integrated #appPageHeader .maintenance-section-tab {
-  min-height: 26px;
-  padding: 3px 10px;
-  border-radius: var(--sapd-shell-radius-control);
-  font-size: var(--sapd-shell-type-body);
-  line-height: var(--sapd-shell-line-height-tight);
 }
 
 .app-shell-integrated .workspace-stage {

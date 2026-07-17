@@ -69,6 +69,7 @@ DEFAULT_FRONTEND_PUBLIC_DATA_ROOT = (PROJECT_ROOT / "frontend" / "capability-bro
 DATA_PACKAGE_ROOT = DEFAULT_FRONTEND_PUBLIC_DATA_ROOT
 BASE_DB_PATH = DEFAULT_DB_PATH.resolve()
 USER_DB_PATH = (PROJECT_ROOT / "data" / "user" / "sapd_wiki_user.sqlite3").resolve()
+USER_EXPORT_DIR = (PROJECT_ROOT / "data" / "exports").resolve()
 RUNTIME_LABEL = "stable"
 USER_SCHEMA_VERSION = "user_schema_0.3"
 LOCAL_API_AUTH_HEADER = "X-SAPD-Session-Token"
@@ -433,6 +434,43 @@ def read_data_package(name: str) -> dict[str, Any]:
     if isinstance(data, dict):
         return data
     return {"generated_at": None, "items": data}
+
+
+def dashboard_knowledge_summary() -> dict[str, Any]:
+    """Return small, source-backed counts for the overview without exposing raw workbench packages."""
+    environment_path = (DATA_PACKAGE_ROOT / "environment" / "navigator.json").resolve()
+    environment = _read_json(environment_path) if environment_path.exists() else {}
+    lifecycle = read_data_package("lifecycle-workbench")
+    content = read_data_package("content")
+    environment_stats = environment.get("stats", {}) if isinstance(environment, dict) else {}
+    content_stats = content.get("stats", {}) if isinstance(content, dict) else {}
+    lifecycle_domains = {
+        str(node.get("code") or node.get("id") or ""): len(_list(node.get("children")))
+        for node in _list(lifecycle.get("navigator", {}).get("tree"))
+        if isinstance(node, dict)
+    }
+    missing = not environment or lifecycle.get("__data_state") == "missing_file" or content.get("__data_state") == "missing_file"
+    return {
+        "generated_at": max(
+            [str(value) for value in (lifecycle.get("meta", {}).get("generated_at"), content.get("generated_at")) if value],
+            default=None,
+        ),
+        "data_state": "missing_file" if missing else "ready",
+        "environment": {
+            "information_environments": int(environment_stats.get("information_environment") or 0),
+            "information_objects": int(environment_stats.get("information_object") or 0),
+            "scope_types": int(environment_stats.get("scope_type") or 0),
+        },
+        "lifecycles": {
+            "lc_ap_stages": int(lifecycle_domains.get("LC-AP") or lifecycle_domains.get("lifecycle_domain:LC-AP") or 0),
+            "lc_dt_stages": int(lifecycle_domains.get("LC-DT") or lifecycle_domains.get("lifecycle_domain:LC-DT") or 0),
+        },
+        "content": {
+            "html_documents": int(content_stats.get("html_documents") or 0),
+            "diagram_views": int(content_stats.get("diagram_views") or 0),
+            "guide_pages": int(content_stats.get("guide_pages") or 0),
+        },
+    }
 
 
 def _frontend_data_path(data_path: Any) -> Path | None:
@@ -2227,6 +2265,41 @@ def user_notes_export_file_name() -> str:
     return f"user-notes-export-{time.strftime('%Y%m%d-%H%M%SZ', time.gmtime())}.md"
 
 
+def save_markdown_export(payload: dict[str, Any]) -> dict[str, Any]:
+    content = str(payload.get("content") or "")
+    if not content.strip():
+        raise ValueError("content is required")
+    raw_prefix = str(payload.get("filename_prefix") or "sapd-export").strip()
+    safe_prefix = re.sub(r"[^A-Za-z0-9._-]+", "-", raw_prefix).strip(".-")[:64] or "sapd-export"
+    USER_EXPORT_DIR.mkdir(parents=True, exist_ok=True)
+    output_path = USER_EXPORT_DIR / f"{safe_prefix}-{time.strftime('%Y%m%d-%H%M%SZ', time.gmtime())}.md"
+    output_path.write_text(content, encoding="utf-8")
+    return {
+        "ok": True,
+        "data_state": "ready",
+        "export_type": "markdown",
+        "file_name": output_path.name,
+        "output_path": str(output_path),
+        "download_dir": str(USER_EXPORT_DIR),
+        "byte_count": output_path.stat().st_size,
+    }
+
+
+def save_user_notes_export() -> dict[str, Any]:
+    payload = user_notes_export_payload()
+    result = save_markdown_export(
+        {
+            "filename_prefix": "user-notes-export",
+            "content": user_notes_export_markdown(payload),
+        }
+    )
+    return {
+        **result,
+        "export_type": "user_notes",
+        "note_count": payload["summary"]["note_count"],
+    }
+
+
 def create_user_note(payload: dict[str, Any]) -> dict[str, Any]:
     target_ref = str(payload.get("target_ref") or "").strip()
     body = str(payload.get("body") or "").strip()
@@ -3557,6 +3630,7 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
         supported_paths = {
             "/api/v1/user/favorites",
             "/api/v1/user/notes",
+            "/api/v1/user/exports/markdown",
             "/api/v1/maturity/calculate",
             "/api/v1/maturity/template/validate",
             "/api/v1/maturity/report",
@@ -3576,6 +3650,8 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
                 self._send_json(create_envelope(create_user_note(payload)))
             elif parsed.path == "/api/v1/user/favorites":
                 self._send_json(create_envelope(upsert_user_favorite(payload)))
+            elif parsed.path == "/api/v1/user/exports/markdown":
+                self._send_json(create_envelope(save_markdown_export(payload)))
             elif parsed.path == "/api/v1/maturity/calculate":
                 self._send_json(create_envelope(calculate_maturity_assessment(payload)))
             elif parsed.path == "/api/v1/maturity/template/validate":
@@ -3721,8 +3797,11 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
             if path == "/api/v1/user/notes/export":
                 payload = user_notes_export_payload()
                 should_download = str((query.get("download") or [""])[0]).strip().lower() in {"1", "true", "yes"}
+                should_save = str((query.get("save") or [""])[0]).strip().lower() in {"1", "true", "yes"}
                 if should_download:
                     self._send_text_download(user_notes_export_markdown(payload), user_notes_export_file_name(), "text/markdown; charset=utf-8")
+                elif should_save:
+                    self._send_json(create_envelope(save_user_notes_export()))
                 else:
                     self._send_json(payload)
                 return
@@ -3731,6 +3810,9 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
                 return
             if path == "/api/v1/data-packages":
                 self._send_json(create_envelope({"packages": [{"name": name, "path": path} for name, path in DATA_PACKAGES.items()]}))
+                return
+            if path == "/api/v1/dashboard/knowledge-summary":
+                self._send_json(create_envelope(dashboard_knowledge_summary()))
                 return
             if path == "/api/v1/search-index":
                 raw_limit = (query.get("limit") or ["80"])[0]

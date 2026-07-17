@@ -51,7 +51,7 @@ SEARCH_INDEX_COVERAGE_MATRIX = [
         "category": "信息化环境",
         "route_prefixes": ["/environment-mapping"],
         "object_types": ["information_environment", "information_object"],
-        "counter_query": "Issue 清单",
+        "counter_query": "ISSUE清单",
         "forbidden_route_prefixes": ["/environment-mapping"],
     },
     {
@@ -81,7 +81,7 @@ SEARCH_INDEX_COVERAGE_MATRIX = [
         "category": "知识库",
         "route_prefixes": ["/knowledge/"],
         "object_types": ["security_technology_module", "security_technical_service", "security_technical_measure", "route"],
-        "counter_query": "Issue 清单",
+        "counter_query": "ISSUE清单",
         "forbidden_route_prefixes": ["/knowledge/"],
     },
     {
@@ -97,7 +97,7 @@ SEARCH_INDEX_COVERAGE_MATRIX = [
     {
         "slug": "workbench",
         "domain": "工作台",
-        "golden_query": "Issue 清单",
+        "golden_query": "ISSUE清单",
         "category": "工作台",
         "route_prefixes": ["/workbench/"],
         "object_types": ["route"],

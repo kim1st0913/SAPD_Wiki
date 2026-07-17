@@ -1,0 +1,45 @@
+/* P0-2 shared directory shell: the pane owns the contour; its scroll body stays full-bleed. */
+
+.app-shell-integrated .shell-directory-pane {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  isolation: isolate;
+  border: 1px solid var(--sapd-shell-divider);
+  border-radius: var(--sapd-shell-radius-surface);
+  background: var(--sapd-shell-surface);
+  box-shadow: 0 6px 18px rgba(29, 35, 48, 0.06);
+}
+
+.app-shell-integrated .shell-directory-pane > .pane-head {
+  min-height: 40px;
+  height: auto;
+  border-radius: 0;
+  background: var(--sapd-shell-surface-quiet);
+  box-shadow: none;
+}
+
+.app-shell-integrated .shell-directory-pane > :is(.tree, .environment-tree, .source-nav) {
+  height: auto;
+  min-height: 0;
+  overflow: auto;
+  border: 0;
+  border-radius: 0;
+  background: color-mix(in oklch, var(--sapd-shell-surface-quiet) 72%, transparent);
+  box-shadow: none;
+  overscroll-behavior: contain;
+}
+
+.app-shell-integrated .shell-directory-pane > :is(.tree, .environment-tree, .source-nav):focus-visible {
+  outline: 2px solid color-mix(in oklch, var(--shell-primary) 52%, transparent);
+  outline-offset: -2px;
+}
+
+.app-shell-integrated .capability-workspace.catalog-collapsed .shell-directory-pane,
+.app-shell-integrated .environment-mapping-workbench.catalog-collapsed .shell-directory-pane {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}

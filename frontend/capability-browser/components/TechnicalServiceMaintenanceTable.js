@@ -2,7 +2,7 @@
   const components = (window.sapdComponents = window.sapdComponents || {});
   const utils = components.utils;
   const display = window.sapdDisplay || {};
-  const TABLE_STATE_KEY = "sapd:technical-service-maintenance-table:v4";
+  const TABLE_STATE_KEY = "sapd:technical-service-maintenance-table:v5";
   let pendingScrollRestore = true;
   let scrollSaveTimer = 0;
 
@@ -148,14 +148,13 @@
 
   function renderGroupedRows(rows, scopeGroups, selectedId, search) {
     const groups = utils.list(scopeGroups).length ? utils.list(scopeGroups) : [{ id: "ungrouped", label: "全部服务", count: utils.list(rows).length, rows }];
-    const { expandedGroups, hasSavedExpandedGroups } = expandedGroupState();
+    const { expandedGroups } = expandedGroupState();
     const expandAll = shouldExpandGroups(search);
     return groups
       .map((group, index) => {
         const id = groupId(`technical-service-scope-${index}-${group.id || group.label}`);
         const serviceRows = utils.list(group.rows);
-        const groupHasSelectedService = selectedId && serviceRows.some((row) => utils.text(row?.id).trim() === utils.text(selectedId).trim());
-        const expanded = groupHasSelectedService || expandAll || !hasSavedExpandedGroups || expandedGroups.has(id);
+        const expanded = expandAll || expandedGroups.has(id);
         return `
           <tr class="standard-group-row service-scope-table-group depth-0 ${expanded ? "expanded" : ""}" data-standard-group="${utils.escapeHtml(id)}">
             <td colspan="6">

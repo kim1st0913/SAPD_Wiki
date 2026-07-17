@@ -805,7 +805,7 @@
         >
           展开目录
         </button>
-        <aside class="environment-tab-tree-pane">
+        <aside class="environment-tab-tree-pane shell-directory-pane">
           <div class="pane-head">
             <h2>环境对象树</h2>
             <div class="pane-head-actions">
@@ -837,9 +837,19 @@
         <section class="environment-tab-table-pane">
           ${
             isSearchEmpty
-              ? `<div class="reference-empty environment-search-empty">未找到匹配的信息化环境对象。请调整页面内搜索条件。</div>`
+              ? components.RuntimeState?.render({
+                  state: "empty",
+                  compact: true,
+                  title: "未找到匹配的环境对象",
+                  message: "当前数据已加载，但没有对象符合页面内搜索条件。请调整搜索词后再查看。",
+                }) || `<div class="reference-empty environment-search-empty">未找到匹配的信息化环境对象。请调整页面内搜索条件。</div>`
               : !hasSelection
-              ? `<div class="reference-empty environment-selection-empty">请选择左侧信息化环境或对象。</div>`
+              ? components.RuntimeState?.render({
+                  state: "no_selection",
+                  compact: true,
+                  title: "尚未选择环境对象",
+                  message: "请从左侧目录选择信息化环境、环境子类或对象查看映射详情。",
+                }) || `<div class="reference-empty environment-selection-empty">请选择左侧信息化环境或对象。</div>`
               : showObjectRelations
               ? components.EnvironmentScopeServiceMatrix?.render({
                   rows: viewModel?.scopeServiceRows,

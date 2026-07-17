@@ -1,5 +1,5 @@
 {
-  "version": "frontend-p0-2-apple-shell-layout-2026-07-13.4",
+  "version": "frontend-p0-2-apple-shell-layout-2026-07-15.8",
   "risk_ids": ["FE-R02", "FE-R03", "FE-R44", "FE-R45", "FE-R47"],
   "runtime_surface": "shared_frontend_web_and_macos_app",
   "viewport_case": {
@@ -36,6 +36,36 @@
       "contentWorkspace": "directory-main-overlay"
     }
   },
+  "directory_contract": {
+    "shared_class": "shell-directory-pane",
+    "contour_owner": "outer-pane-only",
+    "surface_radius": 10,
+    "header_min_height": 40,
+    "body_border": 0,
+    "body_radius": 0,
+    "collapsed_border": 0,
+    "registered_panes": {
+      "capability": ".capability-tree-pane",
+      "environment": ".environment-tab-tree-pane",
+      "maintenance": ".source-nav-pane",
+      "content": ".content-nav-pane"
+    },
+    "specialized_exception": ".maturity-guide-workspace joins its directory rail to the document reader without changing the child surface contract"
+  },
+  "shared_component_contract": {
+    "segmented_tabs": {
+      "container_min_height": 42,
+      "container_radius": 16,
+      "button_min_height": 34,
+      "button_radius": 12,
+      "placement_invariant": true
+    },
+    "page_local_search": {
+      "minimum_height": 40,
+      "radius": "pill",
+      "required_parts": ["input", "match_status", "previous", "next"]
+    }
+  },
   "maturity_contract": {
     "included_in_apple_shell": true,
     "route_prefix": "/workbench/maturity",
@@ -65,6 +95,25 @@
       "control": 6,
       "surface": 10,
       "overlay": 14
+    },
+    "statistic_vibrancy": {
+      "shared_class": "sapd-stat-vibrancy",
+      "stylesheet": "stat-vibrancy.css",
+      "blur_px": 28,
+      "solid_fallback": true,
+      "allowed_surfaces": [
+        "statistic_summary",
+        "score_summary",
+        "result_analysis",
+        "report_snapshot"
+      ],
+      "forbidden_surfaces": [
+        "form_field",
+        "directory_row",
+        "business_table",
+        "primary_navigation",
+        "drawio_canvas"
+      ]
     },
     "maximum_nested_large_radius_layers": 2,
     "functional_pill_exception": true

@@ -1,0 +1,91 @@
+{
+  "version": "2026-07-17.p2-product-workspace-v8",
+  "impact": "shared runtime",
+  "routes": [
+    "/",
+    "/knowledge/capabilities",
+    "/knowledge/technical-services",
+    "/knowledge/technical",
+    "/knowledge/functions",
+    "/standards",
+    "/standards/workforce-reference",
+    "/guides/maturity-model-usage"
+  ],
+  "p2_1": {
+    "purpose": "workbench-and-knowledge-observatory",
+    "pageHeader": {
+      "owner": "AppShell",
+      "eyebrow": "SAPD WIKI",
+      "title": "工作台与知识库概览",
+      "duplicateBodyHeading": "forbidden"
+    },
+    "sources": ["analytics-summary", "maintenance-index", "/api/v1/dashboard/knowledge-summary", "AppShell manifest"],
+    "recentWork": {
+      "issueSource": "local user database",
+      "issueLimit": 5,
+      "issueOrder": "updated-desc-independent-of-workbench-sort",
+      "maturitySource": "/api/v1/maturity/workspace + controlled local project state",
+      "maturityLimit": 3,
+      "maturityResultRule": "show-current-index-only-when-formal-statistics-ready",
+      "overflowMenu": "one-contextual-more-menu-per-section",
+      "directOpen": "rows-open-explicit-business-object"
+    },
+    "dashboardComposition": {
+      "owner": "independent-work-items-dashboard",
+      "title": "工作事项",
+      "layers": ["issue-workstream-summary", "issue-recent-list", "maturity-workstream-summary", "maturity-recent-list", "local-update-footer"],
+      "rule": "recent-lists-are-subsections-not-the-whole-dashboard",
+      "crossStreamSummary": "forbidden",
+      "quickContinue": "latest-explicit-business-object",
+      "forbiddenRegression": "flat-list-only-workbench"
+    },
+    "knowledgeLayout": {
+      "pattern": "asymmetric-six-tile-mosaic",
+      "objectGrain": "one-statistic-per-business-object",
+      "crossGrainAggregation": "forbidden",
+      "responsiveFallback": "two-columns-then-one-column"
+    },
+    "statistics": [
+      "capabilities",
+      "focuses",
+      "security-technical-services",
+      "security-technical-modules",
+      "security-technical-measures",
+      "standard-controls",
+      "dictionary-sections",
+      "information-environments",
+      "information-objects",
+      "scope-types",
+      "lc-ap-stages",
+      "lc-dt-stages",
+      "guide-entries",
+      "slide-documents",
+      "architecture-modeling-language",
+      "diagram-views"
+    ],
+    "forbidden": ["achievement-rate", "coverage-rate", "progress-bar", "donut-chart", "cross-grain-total"]
+  },
+  "p2_2": {
+    "defaultExpansion": "all-collapsible-groups-collapsed",
+    "flatTables": "remain-visible-without-fake-collapse",
+    "searchExpansion": "matching-content-only",
+    "families": ["capability-directory", "technical-services", "technology-modules", "work-functions", "workforce-references", "standards-frameworks"],
+    "actions": ["expand-all", "collapse-to-l0"],
+    "toolbarChrome": "actions-only-without-label-description-or-container-frame"
+  },
+  "p2_3": {
+    "readingColumnWidth": 1120,
+    "bodyFontSize": 17,
+    "coverHeight": 194,
+    "directoryWidth": 244,
+    "directoryItemMinHeight": 44
+  },
+  "excludedScopes": [
+    "source Excel",
+    "SQLite",
+    "formal JSON packages",
+    "protected dictionary and standard contents",
+    "maturity rules, scoring, templates, API payloads, and project data writes",
+    "DMG packaging"
+  ]
+}

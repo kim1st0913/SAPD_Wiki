@@ -44,7 +44,7 @@
         },
         {
           "id": "maturity-model-usage",
-          "label": "成熟度模型使用方法",
+          "label": "成熟度模型使用指南",
           "route": "/guides/maturity-model-usage",
           "type": "document-page",
           "priority": "P2",

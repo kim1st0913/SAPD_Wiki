@@ -163,12 +163,12 @@
 | 域 | 黄金样例 | 反例 | 必须定位到 | 字段边界 |
 | --- | --- | --- | --- | --- |
 | 能力 | `RASP` | `数据中心` | `/capability-mapping`，能力安全技术模块，带 `target_ref` 或对象 ID | 不暴露原始来源、调试和生成字段 |
-| 环境 | `数据中心` | `Issue 清单` | `/environment-mapping`，信息化环境 / 信息化对象，带 `target_ref` 或对象 ID | 不暴露原始来源、调试和生成字段 |
+| 环境 | `数据中心` | `ISSUE清单` | `/environment-mapping`，信息化环境 / 信息化对象，带 `target_ref` 或对象 ID | 不暴露原始来源、调试和生成字段 |
 | LC-AP | `Ansible` | `人工智能` | `/development-security`，开发技术模块，带 `target_ref` 或对象 ID | 不暴露原始来源、调试和生成字段 |
 | LC-DT | `数据脱敏` | `Ansible` | `/data-security`，数据生命周期技术对象，带 `target_ref` 或对象 ID | 不暴露原始来源、调试和生成字段 |
-| 知识库 | `WAF` | `Issue 清单` | `/knowledge/` 字典对象，带 `target_ref` 或对象 ID | 不暴露原始来源、调试和生成字段 |
+| 知识库 | `WAF` | `ISSUE清单` | `/knowledge/` 字典对象，带 `target_ref` 或对象 ID | 不暴露原始来源、调试和生成字段 |
 | 标准 / 框架 | `人工智能` | `数据中心` | `/standards/` 标准控制项，带 `target_ref` 或对象 ID | 不暴露原始来源、调试和生成字段 |
-| 工作台 | `Issue 清单` | `人工智能` | `/workbench/` 导航入口，带 `target_ref` 或对象 ID | 不暴露原始来源、调试和生成字段 |
+| 工作台 | `ISSUE清单` | `人工智能` | `/workbench/` 导航入口，带 `target_ref` 或对象 ID | 不暴露原始来源、调试和生成字段 |
 
 黄金样例：
 

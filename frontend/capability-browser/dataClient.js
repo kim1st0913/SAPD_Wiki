@@ -35,6 +35,7 @@
   };
 
   const API_PATHS = {
+    dashboardKnowledgeSummary: "/api/v1/dashboard/knowledge-summary",
     capabilityWorkspaceProjection: "/api/v1/capabilities/workspace-projection",
     capabilityWorkspaceView: "/api/v1/capabilities/workspace-view",
     capabilityWorkspaceInitial: "/api/v1/capabilities/workspace-initial",
@@ -58,6 +59,7 @@
   const CAPABILITY_WORKSPACE_FETCH_TIMEOUT_MS = 5000;
 
   const FALLBACKS = {
+    dashboardKnowledgeSummary: { generated_at: null, data_state: "missing_file", environment: {}, lifecycles: {}, content: {} },
     capability: { generated_at: null, stats: {}, categories: [], unlinked_focuses: [] },
     capabilityWorkbench: null,
     environmentWorkbench: null,
@@ -413,6 +415,14 @@
     }
   }
 
+  async function shouldSaveExportToConfiguredDirectory(options = {}) {
+    const destination = text(options?.destination).trim().toLowerCase();
+    if (options?.download === true || destination === "download") return false;
+    if (options?.save === true || destination === "configured") return true;
+    const health = await fetchRuntimeHealth();
+    return Boolean(text(health?.state?.bundle_root).trim());
+  }
+
   async function userWriteHeaders() {
     const health = await fetchRuntimeHealth();
     const headers = { "Content-Type": "application/json" };
@@ -474,17 +484,22 @@
     try {
       const response = await fetch(path, { cache: "no-store" });
       if (!response.ok) {
-        const missingData = fallback && typeof fallback === "object" ? { ...fallback, __data_state: "missing_file" } : { __data_state: "missing_file" };
-        cache.set(name, missingData);
-        return missingData;
+        const dataState = response.status === 404 ? "missing_file" : "error";
+        const failedData = fallback && typeof fallback === "object"
+          ? { ...fallback, __data_state: dataState, __load_error: `HTTP ${response.status}` }
+          : { __data_state: dataState, __load_error: `HTTP ${response.status}` };
+        cache.set(name, failedData);
+        return failedData;
       }
       const data = await response.json();
       cache.set(name, data);
       return data;
-    } catch {
-      const missingData = fallback && typeof fallback === "object" ? { ...fallback, __data_state: "missing_file" } : { __data_state: "missing_file" };
-      cache.set(name, missingData);
-      return missingData;
+    } catch (error) {
+      const failedData = fallback && typeof fallback === "object"
+        ? { ...fallback, __data_state: "error", __load_error: error?.message || "数据请求失败" }
+        : { __data_state: "error", __load_error: error?.message || "数据请求失败" };
+      cache.set(name, failedData);
+      return failedData;
     }
   }
 
@@ -1261,6 +1276,14 @@
       return createEnvelope(await fetchRuntimeHealth());
     },
 
+    invalidatePackage(name) {
+      const packageName = text(name).trim();
+      if (!packageName || !Object.prototype.hasOwnProperty.call(DATA_PATHS, packageName)) return false;
+      cache.delete(packageName);
+      apiUnavailable = false;
+      return true;
+    },
+
     async getSearchIndex(params = {}) {
       const query = text(params.q || params.query || "").trim();
       const limit = Number.isFinite(Number(params.limit)) ? Math.max(1, Math.min(Number(params.limit), 120)) : 80;
@@ -1331,21 +1354,22 @@
     },
 
     async exportUserNotes(options = {}) {
+      const shouldSave = await shouldSaveExportToConfiguredDirectory(options);
       const query = new URLSearchParams();
-      if (options?.download) {
-        query.set("download", "1");
-      } else {
+      if (shouldSave) {
         query.set("save", "1");
+      } else {
+        query.set("download", "1");
       }
       const path = `${API_PATHS.userNotesExport}${query.toString() ? `?${query.toString()}` : ""}`;
       const url = apiUrl(path);
       if (!url) return { ok: false, data_state: "api_unavailable", error: "当前运行模式未提供 Issue 导出服务" };
       try {
-        const accept = options?.download ? "text/markdown" : "application/json";
+        const accept = shouldSave ? "application/json" : "text/markdown";
         const response = await fetch(url, { cache: "no-store", headers: { Accept: accept } });
         if (!response.ok) return { ok: false, data_state: "api_error", error: `HTTP ${response.status}` };
-        if (!options?.download) {
-          return createEnvelope(await response.json());
+        if (shouldSave) {
+          return normalizeUserPayload(await response.json());
         }
         const blob = await response.blob();
         const contentDisposition = response.headers.get("Content-Disposition") || "";
@@ -1368,6 +1392,14 @@
     async saveMarkdownExport(payload = {}) {
       const content = text(payload.content).trim();
       if (!content) return { ok: false, data_state: "empty", error: "没有可导出的内容" };
+      const shouldSave = await shouldSaveExportToConfiguredDirectory(payload);
+      if (!shouldSave) {
+        const prefix = text(payload.filename_prefix || "sapd-export").trim() || "sapd-export";
+        const timestamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+        const filename = text(payload.filename).trim() || `${prefix}-${timestamp}.md`;
+        const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
+        return { ok: true, data_state: "ready", blob, filename, size: blob.size };
+      }
       const result = await fetchUserApi(API_PATHS.userMarkdownExport, {
         method: "POST",
         headers: await userWriteHeaders(),
@@ -1376,7 +1408,7 @@
           content,
         }),
       });
-      return createEnvelope(result);
+      return result;
     },
 
     async createUserNote(payload) {
@@ -1444,6 +1476,11 @@
     async getAnalyticsSummary() {
       const summary = await fetchPackage("analyticsSummary");
       return createEnvelope(summary);
+    },
+
+    async getDashboardKnowledgeSummary() {
+      const summary = await fetchApiData(API_PATHS.dashboardKnowledgeSummary);
+      return createEnvelope(summary || FALLBACKS.dashboardKnowledgeSummary);
     },
 
     async getMaturityWorkspace() {
@@ -1647,7 +1684,10 @@
     async getEnvironmentWorkbench() {
       const workbench = await fetchPackage("environmentWorkbench");
       if (workbench.__data_state !== "missing_file") return createEnvelope(workbench);
-      return createEnvelope(createLegacyEnvironmentWorkbenchFallback(), ["environment-workbench.json 不存在，且 management-knowledge.json 已退役。"]);
+      return createEnvelope(
+        { ...createLegacyEnvironmentWorkbenchFallback(), __data_state: "missing_file" },
+        ["environment-workbench.json 不存在，且 management-knowledge.json 已退役。"],
+      );
     },
 
     async getEnvironmentMatrix(params = {}) {

@@ -453,7 +453,7 @@ def build_maturity_base_template(capability_workbench: dict[str, Any]) -> dict[s
     return {
         "id": "sapd-maturity-base-stable-v2.1",
         "snapshotId": snapshot_id,
-        "name": "SAPD 当前稳定能力体系模板",
+        "name": "SAPD标准能力成熟度模板",
         "version": "V2.1",
         "type": "base",
         "status": "validated",
@@ -799,6 +799,7 @@ def calculate_maturity_assessment(payload: dict[str, Any]) -> dict[str, Any]:
     evidence_counts = Counter({item["id"]: 0 for item in EVIDENCE_LEVELS})
     score_status_counts = Counter()
     four_element_rows: list[dict[str, Any]] = []
+    enforce_target_floor = _text(project.get("status")) not in {"completed", "reported", "archived"}
 
     for item in score_items:
         focus_id = _text(item.get("focusId"))
@@ -810,12 +811,21 @@ def calculate_maturity_assessment(payload: dict[str, Any]) -> dict[str, Any]:
         current_index = None if not is_applicable else _entry_index(item, entry, template)
         dimension_results = _entry_dimensions(entry) if is_applicable else {key: None for key in ELEMENT_KEYS}
         target_index = maturity_level_index(entry.get("targetLevel")) if is_applicable else None
+        current_level = maturity_level_from_index(current_index)
+        minimum_target_index = maturity_level_index(current_level) if current_index is not None else None
+        target_below_current = bool(
+            enforce_target_floor
+            and is_applicable
+            and target_index is not None
+            and minimum_target_index is not None
+            and target_index < minimum_target_index
+        )
         target_reason = _text(entry.get("targetReason"))
         na_reason = _text(entry.get("naReason"))
-        is_complete = bool(na_reason) if not is_applicable else current_index is not None and target_index is not None and bool(target_reason)
+        is_complete = True if not is_applicable else current_index is not None and target_index is not None and not target_below_current
         if is_applicable and current_index is not None:
             has_review = all(maturity_level_index(_dict(entry.get("reviewElements")).get(key)) is not None for key in ELEMENT_KEYS)
-            status = "confirmed" if has_review or entry.get("status") == "confirmed" else "scored" if is_complete else "incomplete"
+            status = "invalid_target" if target_below_current else "confirmed" if has_review or entry.get("status") == "confirmed" else "scored" if is_complete else "incomplete"
         elif is_applicable:
             status = "incomplete"
         evidence_level = _text(entry.get("evidenceLevel") or "E0").upper()
@@ -837,20 +847,22 @@ def calculate_maturity_assessment(payload: dict[str, Any]) -> dict[str, Any]:
             "scopeCode": _text(item.get("scopeCode")),
             "scopeName": _text(item.get("scopeName")),
             "currentIndex": current_index,
-            "currentLevel": maturity_level_from_index(current_index),
+            "currentLevel": current_level,
+            "minimumTargetLevel": current_level if current_index is not None else None,
             "currentPercent": _round(current_index * 20, 1) if current_index is not None else 0,
             "dimensionResults": {key: _round(dimension_results.get(key)) for key in ELEMENT_KEYS},
             "targetIndex": target_index,
             "targetLevel": maturity_level_from_index(target_index),
             "targetAchievementRate": _round(_target_achievement_rate(current_index, target_index), 1),
             "targetReason": target_reason,
-            "targetConfirmed": bool(target_index is not None and target_reason),
+            "targetConfirmed": bool(target_index is not None),
             "weight": max(_float(item.get("weight"), 1.0), 0.0001),
             "isApplicable": is_applicable,
             "evidenceLevel": evidence_level,
             "hasEvidence": evidence_level != "E0" or bool(_text(entry.get("evidenceSummary"))),
             "status": status,
             "isComplete": is_complete,
+            "targetBelowCurrent": target_below_current,
             "naReason": na_reason,
             "note": _text(entry.get("note")),
         }
@@ -1063,6 +1075,13 @@ def calculate_maturity_assessment(payload: dict[str, Any]) -> dict[str, Any]:
     evidence_item_count = sum(1 for row in item_results if row["currentIndex"] is not None and row["hasEvidence"])
     completion_rate = 100.0 * scored_item_count / applicable_item_count if applicable_item_count else 0.0
     evidence_coverage = 100.0 * evidence_item_count / scored_item_count if scored_item_count else 0.0
+    invalid_na_reason_count = sum(1 for row in item_results if not row["isApplicable"] and not row["naReason"])
+    target_below_current_count = score_status_counts["invalid_target"]
+    statistics_ready = bool(
+        applicable_item_count
+        and scored_item_count == applicable_item_count
+        and target_below_current_count == 0
+    )
     result_status = "reviewed" if project.get("status") in {"completed", "reported", "archived"} else "draft"
     summary = _result_record(
         object_id=_text(project.get("id")) or "assessment-project",
@@ -1074,14 +1093,23 @@ def calculate_maturity_assessment(payload: dict[str, Any]) -> dict[str, Any]:
         evidence_coverage=evidence_coverage,
         status=result_status,
         scoreItemCount=len(item_results),
+        capabilityCount=len(capability_results),
+        applicableCapabilityCount=sum(1 for row in capability_results if row["status"] != "not_applicable"),
+        completedCapabilityCount=sum(1 for row in capability_results if row["status"] == "ready"),
+        focusCount=len(focus_results),
+        applicableFocusCount=sum(1 for row in focus_results if row["status"] != "not_applicable"),
+        completedFocusCount=sum(1 for row in focus_results if row["status"] == "ready"),
         applicableItemCount=applicable_item_count,
         scoredItemCount=scored_item_count,
         evidenceItemCount=evidence_item_count,
         notApplicableCount=score_status_counts["not_applicable"],
-        notScoredCount=score_status_counts["not_scored"] + score_status_counts["incomplete"],
+        notScoredCount=score_status_counts["not_scored"] + score_status_counts["incomplete"] + target_below_current_count,
         missingTargetCount=sum(1 for row in item_results if row["isApplicable"] and row["targetIndex"] is None),
         missingTargetReasonCount=sum(1 for row in item_results if row["isApplicable"] and not row["targetReason"]),
-        invalidNaReasonCount=sum(1 for row in item_results if not row["isApplicable"] and not row["naReason"]),
+        invalidNaReasonCount=invalid_na_reason_count,
+        targetBelowCurrentCount=target_below_current_count,
+        statisticsReady=statistics_ready,
+        resultAvailability="ready" if statistics_ready else "incomplete",
         confirmedCount=score_status_counts["confirmed"],
         templateSnapshotId=_text(template.get("snapshotId")),
         knowledgeSnapshotId=_text(project.get("knowledgeSnapshotId") or template.get("knowledgeSnapshotId") or template.get("snapshotId")),
@@ -1220,8 +1248,16 @@ def calculate_maturity_assessment(payload: dict[str, Any]) -> dict[str, Any]:
     return response
 
 
-def _demo_score_entries(template: dict[str, Any], *, variant: int, complete: bool, reviewed: bool) -> list[dict[str, Any]]:
+def _demo_score_entries(
+    template: dict[str, Any],
+    *,
+    variant: int,
+    complete: bool,
+    reviewed: bool,
+    target_conflict_count: int | None = None,
+) -> list[dict[str, Any]]:
     entries: list[dict[str, Any]] = []
+    remaining_target_conflicts = max(0, int(target_conflict_count or 0))
     for index, item in enumerate(_list(template.get("scoreItems"))):
         item_id = _text(item.get("id"))
         digest = int(hashlib.sha1(f"{variant}:{item_id}".encode("utf-8")).hexdigest()[:8], 16)
@@ -1233,12 +1269,22 @@ def _demo_score_entries(template: dict[str, Any], *, variant: int, complete: boo
             key: None if is_unscored or not is_applicable else f"L{max(1, min(5, level_number + ((digest >> offset) % 3) - 1))}"
             for offset, key in enumerate(ELEMENT_KEYS)
         }
+        target_level = "L4" if digest % 7 else "L3"
+        if target_conflict_count is not None and is_applicable and not is_unscored:
+            current_index = _entry_index(item, {"elements": elements}, template)
+            current_level = maturity_level_from_index(current_index)
+            current_level_index = int(maturity_level_index(current_level) or 1)
+            if remaining_target_conflicts and current_level_index > 1:
+                target_level = f"L{current_level_index - 1}"
+                remaining_target_conflicts -= 1
+            elif (maturity_level_index(target_level) or 0) < current_level_index:
+                target_level = current_level
         entry = {
             "scoreItemId": item_id,
             "isApplicable": is_applicable,
             "elements": elements,
             "reviewElements": elements if reviewed and is_applicable and not is_unscored else {},
-            "targetLevel": "L4" if digest % 7 else "L3",
+            "targetLevel": target_level,
             "targetReason": "结合业务重要性、风险与实施可行性建议目标等级。" if is_applicable and not is_unscored else "",
             "targetConfirmed": bool(is_applicable and not is_unscored),
             "evidenceLevel": "E0" if is_unscored or not is_applicable else f"E{evidence_number}",
@@ -1248,6 +1294,8 @@ def _demo_score_entries(template: dict[str, Any], *, variant: int, complete: boo
             "status": "not_applicable" if not is_applicable else "incomplete" if is_unscored else "confirmed" if reviewed else "scored",
         }
         entries.append(entry)
+    if target_conflict_count is not None and remaining_target_conflicts:
+        raise ValueError(f"受控 demo 无法生成约定的 {target_conflict_count} 个目标等级冲突。")
     return entries
 
 
@@ -1263,6 +1311,7 @@ def _project_detail(
     reviewed: bool,
     industry: str,
     company_size: str,
+    target_conflict_count: int | None = None,
 ) -> dict[str, Any]:
     template = deepcopy(template)
     project = {
@@ -1295,9 +1344,17 @@ def _project_detail(
         },
         "updatedAt": f"2026-07-{10 - variant:02d} {9 + variant:02d}:20",
         "mode": "controlled_demo",
-        "readOnly": status in {"reported", "archived"},
+        "readOnly": status in {"completed", "reported", "archived"},
     }
-    entries = _demo_score_entries(template, variant=variant, complete=complete, reviewed=reviewed)
+    if target_conflict_count is not None:
+        project["controlledDemoRevision"] = f"target-conflicts-{target_conflict_count}-20260716"
+    entries = _demo_score_entries(
+        template,
+        variant=variant,
+        complete=complete,
+        reviewed=reviewed,
+        target_conflict_count=target_conflict_count,
+    )
     result = calculate_maturity_assessment({"project": project, "template": template, "scoreEntries": entries})
     return {"project": project, "template": template, "scoreEntries": entries, "result": result}
 
@@ -1316,6 +1373,7 @@ def build_maturity_workspace(capability_workbench: dict[str, Any]) -> dict[str, 
             reviewed=False,
             industry="综合集团",
             company_size="大型企业",
+            target_conflict_count=3,
         ),
         "demo-project-002": _project_detail(
             template,
@@ -1543,7 +1601,12 @@ def import_maturity_score_exchange(payload: dict[str, Any]) -> dict[str, Any]:
     if row_errors:
         return {"ok": False, "dataState": "invalid_structure", "batch": {"id": batch_id, "status": "failed", "successCount": 0, "failureCount": len(row_errors)}, "rowErrors": row_errors}
 
-    valid_item_ids = {_text(item.get("id")) for item in _list(template.get("scoreItems")) if isinstance(item, dict)}
+    valid_item_by_id = {
+        _text(item.get("id")): item
+        for item in _list(template.get("scoreItems"))
+        if isinstance(item, dict) and _text(item.get("id"))
+    }
+    valid_item_ids = set(valid_item_by_id)
     imported_entries: list[dict[str, Any]] = []
     seen: set[str] = set()
     for row_number, row in enumerate(_list(exchange.get("scoreInput")), start=2):
@@ -1568,11 +1631,15 @@ def import_maturity_score_exchange(payload: dict[str, Any]) -> dict[str, Any]:
         if is_applicable and any(maturity_level_index(value) is None for value in elements.values()):
             row_errors.append({"row": row_number, "itemInstanceId": item_id, "code": "dimension_level_invalid", "message": "适用项必须填写四个有效成熟度等级。"})
             continue
-        if is_applicable and (maturity_level_index(row.get("targetLevel")) is None or not _text(row.get("targetReason"))):
-            row_errors.append({"row": row_number, "itemInstanceId": item_id, "code": "target_incomplete", "message": "适用项必须填写目标等级和目标理由。"})
+        if is_applicable and maturity_level_index(row.get("targetLevel")) is None:
+            row_errors.append({"row": row_number, "itemInstanceId": item_id, "code": "target_incomplete", "message": "适用项必须填写目标等级；评估说明为可选。"})
             continue
-        if not is_applicable and not _text(row.get("naReason")):
-            row_errors.append({"row": row_number, "itemInstanceId": item_id, "code": "na_reason_missing", "message": "N/A 项必须填写原因。"})
+        current_index = _entry_index(valid_item_by_id[item_id], {"elements": elements}, template) if is_applicable else None
+        minimum_target_level = maturity_level_from_index(current_index) if current_index is not None else None
+        minimum_target_index = maturity_level_index(minimum_target_level)
+        target_index = maturity_level_index(row.get("targetLevel")) if is_applicable else None
+        if is_applicable and target_index is not None and minimum_target_index is not None and target_index < minimum_target_index:
+            row_errors.append({"row": row_number, "itemInstanceId": item_id, "code": "target_below_current", "message": f"目标等级不能低于当前评分计算等级 {minimum_target_level}。"})
             continue
         entry = existing_entries.get(item_id, {"scoreItemId": item_id, "reviewElements": {}})
         entry.update(
@@ -1615,32 +1682,53 @@ def import_maturity_score_exchange(payload: dict[str, Any]) -> dict[str, Any]:
 def export_maturity_template_exchange(payload: dict[str, Any]) -> dict[str, Any]:
     template = _dict(payload.get("template") or payload)
     validation = validate_maturity_template(template)
-    if template.get("type") != "custom" or not validation["valid"]:
-        return {"ok": False, "dataState": "invalid_template", "validation": validation, "message": "只有校验通过的自定义模板可以导出结构文件。"}
+    if template.get("type") not in {"base", "custom"} or not validation["valid"]:
+        return {"ok": False, "dataState": "invalid_template", "validation": validation, "message": "只有校验通过的默认或自定义模板可以导出结构文件。"}
     package = {
         "schemaVersion": TEMPLATE_EXCHANGE_SCHEMA,
-        "fileInfo": {"templateId": _text(template.get("id")), "templateSnapshotId": _text(template.get("snapshotId")), "structureHash": _template_structure_hash(template), "exportedAt": _now()},
+        "fileInfo": {"templateId": _text(template.get("id")), "templateSnapshotId": _text(template.get("snapshotId")), "templateType": _text(template.get("type")), "structureHash": _template_structure_hash(template), "exportedAt": _now()},
         "template": template,
     }
-    return {"ok": True, "dataState": "ready", "batch": {"id": f"maturity-template-export-{_stable_hash(package, 20)}", "status": "success", "direction": "EXPORT", "exchangeType": "TEMPLATE_STRUCTURE"}, "fileName": f"{_text(template.get('id')) or 'custom-template'}-structure-v2.1.json", "package": package}
+    return {"ok": True, "dataState": "ready", "batch": {"id": f"maturity-template-export-{_stable_hash(package, 20)}", "status": "success", "direction": "EXPORT", "exchangeType": "TEMPLATE_STRUCTURE", "sourceTemplateType": template.get("type")}, "fileName": f"{_text(template.get('id')) or 'maturity-template'}-structure-v2.1.json", "package": package}
 
 
 def import_maturity_template_exchange(payload: dict[str, Any]) -> dict[str, Any]:
     exchange = _dict(payload.get("exchange") or payload)
     batch_id = f"maturity-template-import-{_stable_hash(exchange, 20)}"
     if _text(exchange.get("schemaVersion")) != TEMPLATE_EXCHANGE_SCHEMA:
-        return {"ok": False, "dataState": "invalid_file", "batch": {"id": batch_id, "status": "failed"}, "rowErrors": [{"row": 0, "code": "schema_version_invalid", "message": "自定义模板结构文件版本不受支持。"}]}
+        return {"ok": False, "dataState": "invalid_file", "batch": {"id": batch_id, "status": "failed"}, "rowErrors": [{"row": 0, "code": "schema_version_invalid", "message": "模板结构文件版本不受支持。"}]}
     template = _dict(exchange.get("template"))
     file_info = _dict(exchange.get("fileInfo"))
-    if template.get("type") != "custom" or _text(file_info.get("structureHash")) != _template_structure_hash(template):
-        return {"ok": False, "dataState": "invalid_structure", "batch": {"id": batch_id, "status": "failed"}, "rowErrors": [{"row": 0, "code": "structure_hash_mismatch", "message": "自定义模板结构哈希不一致。"}]}
+    source_template_type = _text(template.get("type"))
+    if source_template_type not in {"base", "custom"} or _text(file_info.get("structureHash")) != _template_structure_hash(template):
+        return {"ok": False, "dataState": "invalid_structure", "batch": {"id": batch_id, "status": "failed"}, "rowErrors": [{"row": 0, "code": "structure_hash_mismatch", "message": "默认或自定义模板结构哈希不一致。"}]}
     validation = validate_maturity_template(template)
+    imported_template = deepcopy(template)
+    if validation["valid"]:
+        source_template_id = _text(template.get("id"))
+        source_snapshot_id = _text(template.get("snapshotId"))
+        imported_template.update(
+            {
+                "id": f"custom-template-import-{_stable_hash({'batch': batch_id, 'source': source_template_id}, 16)}",
+                "snapshotId": f"custom-template-snapshot-{_stable_hash({'batch': batch_id, 'structure': file_info.get('structureHash')}, 20)}",
+                "name": f"{_text(template.get('name')) or '成熟度模板'}（导入副本）",
+                "type": "custom",
+                "status": "validated",
+                "readOnly": False,
+                "structureMutable": True,
+                "weightMutable": True,
+                "sourceTemplateId": source_template_id,
+                "sourceTemplateSnapshotId": source_snapshot_id,
+                "importSourceTemplateType": source_template_type,
+            }
+        )
     return {
         "ok": validation["valid"],
         "dataState": "ready" if validation["valid"] else "invalid_template",
-        "batch": {"id": batch_id, "status": "success" if validation["valid"] else "failed", "direction": "IMPORT", "exchangeType": "TEMPLATE_STRUCTURE", "successCount": 1 if validation["valid"] else 0, "failureCount": len(validation["errors"])},
+        "batch": {"id": batch_id, "status": "success" if validation["valid"] else "failed", "direction": "IMPORT", "exchangeType": "TEMPLATE_STRUCTURE", "sourceTemplateType": source_template_type, "successCount": 1 if validation["valid"] else 0, "failureCount": len(validation["errors"])},
         "rowErrors": validation["errors"],
-        "template": template if validation["valid"] else None,
+        "template": imported_template if validation["valid"] else None,
+        "sourceTemplateType": source_template_type,
         "validation": validation,
     }
 
@@ -1649,6 +1737,7 @@ def create_maturity_report_snapshot(payload: dict[str, Any]) -> dict[str, Any]:
     project = _dict(payload.get("project"))
     template = _dict(payload.get("template"))
     score_entries = _list(payload.get("scoreEntries"))
+    narrative = _dict(payload.get("narrative"))
     result = calculate_maturity_assessment({"project": project, "template": template, "scoreEntries": score_entries})
     if not result.get("ok"):
         return {"ok": False, "dataState": result.get("dataState", "invalid"), "validation": result.get("validation", {})}
@@ -1659,22 +1748,33 @@ def create_maturity_report_snapshot(payload: dict[str, Any]) -> dict[str, Any]:
         "templateSnapshotId": template.get("snapshotId"),
         "summary": summary,
         "entries": score_entries,
+        "narrative": narrative,
     }
     snapshot_id = f"maturity-report-{_stable_hash(snapshot_basis, 20)}"
     generated_at = _now()
     is_formal = (
         project.get("status") in {"completed", "reported", "archived"}
+        and summary.get("statisticsReady") is True
         and summary.get("completionRate") == 100
-        and summary.get("invalidNaReasonCount") == 0
-        and summary.get("confirmedCount") == summary.get("applicableItemCount")
     )
     report_status = "snapshot" if is_formal else "draft_preview"
     conclusion_heading = "总体结论" if is_formal else "当前试算结论"
-    report_notice = "正式报告快照；当前结果来自已复核的项目评分。" if is_formal else f"草稿报告预览；仍有 {summary.get('notScoredCount')} 条待评分，当前等级仅基于已评分项，不是正式评估结论。"
+    report_notice = "正式报告快照；全部适用评估点已完成，不适用与无证据作为信息口径保留。" if is_formal else f"草稿报告预览；仍有 {summary.get('notScoredCount')} 条适用项待评分，当前等级仅基于已评分项，不是正式评估结论。"
     project_name = _text(project.get("name")) or "成熟度评估项目"
     organization = _text(project.get("organization")) or "未填写"
     top_gaps = _list(result.get("gapItems"))[:10]
     capability_results = _list(result.get("capabilityResults"))
+    dimension_labels = {"organization": "组织与角色", "process": "制度与流程", "tool": "平台与工具", "data": "数据与信息"}
+    dimension_results = _dict(summary.get("dimensionResults"))
+    no_evidence_count = next((int(_float(item.get("count"), 0.0)) for item in _list(result.get("evidenceDistribution")) if _text(item.get("level")) == "E0"), 0)
+
+    def narrative_value(key: str, placeholder: str) -> str:
+        return _text(narrative.get(key)) or f"[待填写：{placeholder}]"
+
+    executive_summary = narrative_value("executiveSummary", "管理层摘要")
+    key_findings = narrative_value("keyFindings", "关键发现")
+    management_recommendations = narrative_value("managementRecommendations", "管理建议")
+    next_steps = narrative_value("nextSteps", "下一步计划与复评安排")
 
     category_lines = [
         f"| {item.get('code') or '-'} | {item.get('name')} | {item.get('currentIndex') or '-'} | {item.get('currentLevel')} | {item.get('targetLevel')} | {item.get('gapIndex') if item.get('gapIndex') is not None else '-'} |"
@@ -1687,6 +1787,10 @@ def create_maturity_report_snapshot(payload: dict[str, Any]) -> dict[str, Any]:
     capability_lines = [
         f"| {item.get('code') or '-'} | {item.get('name')} | {item.get('currentIndex') if item.get('currentIndex') is not None else '-'} | {item.get('currentLevel')} | {item.get('targetIndex') if item.get('targetIndex') is not None else '-'} | {item.get('targetLevel')} | {item.get('gapIndex') if item.get('gapIndex') is not None else '-'} | {item.get('targetAchievementRate') if item.get('targetAchievementRate') is not None else '-'}% | {item.get('evidenceCoverage')}% |"
         for item in capability_results
+    ]
+    dimension_lines = [
+        f"| {label} | {dimension_results.get(key) if dimension_results.get(key) is not None else '-'} |"
+        for key, label in dimension_labels.items()
     ]
     markdown = "\n".join(
         [
@@ -1703,6 +1807,10 @@ def create_maturity_report_snapshot(payload: dict[str, Any]) -> dict[str, Any]:
             f"- 模板：{_text(template.get('name'))} { _text(template.get('version'))}",
             f"- 报告快照：{snapshot_id}",
             "",
+            "## 管理层摘要",
+            "",
+            executive_summary,
+            "",
             f"## {conclusion_heading}",
             "",
             f"- 成熟度指数：{summary.get('currentIndex')}",
@@ -1713,7 +1821,13 @@ def create_maturity_report_snapshot(payload: dict[str, Any]) -> dict[str, Any]:
             f"- 评分完成度：{summary.get('completionRate')}%",
             f"- 证据覆盖率：{summary.get('evidenceCoverage')}%",
             "",
-            "## 分类结果",
+            "## 四维成熟度",
+            "",
+            "| 维度 | 当前指数 |",
+            "|---|---:|",
+            *dimension_lines,
+            "",
+            "## 能力类别评分",
             "",
             "| 编码 | 分类 | 当前指数 | 当前等级 | 目标等级 | 差距 |",
             "|---|---|---:|:---:|:---:|---:|",
@@ -1731,20 +1845,29 @@ def create_maturity_report_snapshot(payload: dict[str, Any]) -> dict[str, Any]:
             "|:---:|---|---|:---:|:---:|---:|",
             *(gap_lines or ["| - | - | 当前没有已计算差距 | - | - | - |"]),
             "",
+            "## 关键发现",
+            "",
+            key_findings,
+            "",
+            "## 管理建议",
+            "",
+            management_recommendations,
+            "",
+            "## 下一步计划",
+            "",
+            next_steps,
+            "",
             "## 证据与限制",
             "",
             f"- 待评分项：{summary.get('notScoredCount')}。",
             f"- N/A 项：{summary.get('notApplicableCount')}。",
+            f"- 无证据项：{no_evidence_count}；证据材料为可选补充，不阻塞完成评估。",
             "- 客户主结果最细展示到 L2 安全能力；关注点、服务、四维原始评分和证据保留在内部明细及附录。",
             "- 改进建议为结构化候选，需要评估人员确认后再进入正式报告。",
             "- 当前本地草稿不写入正式数据库、正式数据包或用户库。",
         ]
     )
 
-    category_rows_html = "".join(
-        f"<tr><td>{html_lib.escape(_text(item.get('code')) or '-')}</td><td>{html_lib.escape(_text(item.get('name')))}</td><td>{item.get('currentIndex') or '-'}</td><td>{html_lib.escape(_text(item.get('currentLevel')))}</td><td>{html_lib.escape(_text(item.get('targetLevel')))}</td><td>{item.get('gapIndex') if item.get('gapIndex') is not None else '-'}</td></tr>"
-        for item in _list(result.get("categoryResults"))
-    )
     gap_rows_html = "".join(
         f"<tr><td>{html_lib.escape(_text(item.get('priority')))}</td><td>{html_lib.escape(_text(item.get('capabilityCode')))}</td><td>{html_lib.escape(_text(item.get('capabilityName')))}</td><td>{html_lib.escape(_text(item.get('currentLevel')))}</td><td>{html_lib.escape(_text(item.get('targetLevel')))}</td><td>{item.get('priorityScore')}</td></tr>"
         for item in top_gaps
@@ -1753,6 +1876,18 @@ def create_maturity_report_snapshot(payload: dict[str, Any]) -> dict[str, Any]:
         f"<tr><td>{html_lib.escape(_text(item.get('code')))}</td><td>{html_lib.escape(_text(item.get('name')))}</td><td>{item.get('currentIndex') if item.get('currentIndex') is not None else '-'}</td><td>{html_lib.escape(_text(item.get('currentLevel')))}</td><td>{item.get('targetIndex') if item.get('targetIndex') is not None else '-'}</td><td>{html_lib.escape(_text(item.get('targetLevel')))}</td><td>{item.get('gapIndex') if item.get('gapIndex') is not None else '-'}</td><td>{item.get('targetAchievementRate') if item.get('targetAchievementRate') is not None else '-'}%</td><td>{item.get('evidenceCoverage')}%</td></tr>"
         for item in capability_results
     )
+    dimension_bars_html = "".join(
+        f"<div class='bar-row'><span>{html_lib.escape(label)}</span><i><b style='width:{max(0.0, min(100.0, _float(dimension_results.get(key), 0.0) * 20.0)):.1f}%'></b></i><strong>{dimension_results.get(key) if dimension_results.get(key) is not None else '-'}</strong></div>"
+        for key, label in dimension_labels.items()
+    )
+    tgm_bars_html = "".join(
+        f"<div class='bar-row is-{html_lib.escape(_text(item.get('code')).lower())}'><span>{html_lib.escape(_text(item.get('code')))} {html_lib.escape(_text(item.get('name')))}</span><i><b style='width:{max(0.0, min(100.0, _float(item.get('currentIndex'), 0.0) * 20.0)):.1f}%'></b><em style='left:{max(0.0, min(100.0, _float(item.get('targetIndex'), 0.0) * 20.0)):.1f}%'></em></i><strong>{item.get('currentIndex') if item.get('currentIndex') is not None else '-'} / {item.get('targetIndex') if item.get('targetIndex') is not None else '-'}</strong></div>"
+        for item in _list(result.get("categoryResults"))[:3]
+    )
+
+    def editable_html(value: str) -> str:
+        return html_lib.escape(value).replace("\n", "<br />")
+
     html_report = f"""<!doctype html>
 <html lang="zh-CN">
 <head>
@@ -1760,45 +1895,35 @@ def create_maturity_report_snapshot(payload: dict[str, Any]) -> dict[str, Any]:
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{html_lib.escape(project_name)}</title>
   <style>
-    body{{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:0;color:#1f2937;background:#f6f8fb}}
-    main{{max-width:1080px;margin:0 auto;padding:40px}}
-    h1{{font-size:30px;margin:0 0 8px}} h2{{font-size:20px;margin-top:32px}}
-    .meta{{color:#667085}} .summary{{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:24px 0}}
-    .metric{{background:#fff;border:1px solid #dfe5ed;border-radius:8px;padding:16px}} .metric strong{{display:block;font-size:24px}}
-    table{{width:100%;border-collapse:collapse;background:#fff}} th,td{{padding:10px 12px;border:1px solid #dfe5ed;text-align:left}} th{{background:#eef2f7}}
-    .notice{{border:1px solid #bfd8f4;background:#eef6ff;padding:12px 14px;border-radius:6px}}
-    @media(max-width:720px){{main{{padding:20px}}.summary{{grid-template-columns:repeat(2,minmax(0,1fr));}}}}
+    :root{{--ink:#24384b;--muted:#667b8e;--line:#d8e2ea;--blue:#2479be;--gold:#a87934;--paper:#fff}}
+    *{{box-sizing:border-box}} body{{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:0;color:var(--ink);background:#eef3f7;line-height:1.55}}
+    main{{max-width:1120px;margin:0 auto;background:var(--paper);box-shadow:0 12px 36px rgba(31,52,72,.12)}}
+    .cover{{min-height:340px;display:grid;align-content:end;padding:56px;background:linear-gradient(145deg,#eaf4fb 0%,#fff 58%,#f7f0e5 100%);border-bottom:1px solid var(--line)}}
+    .eyebrow{{color:var(--blue);font-size:12px;font-weight:750;letter-spacing:.08em}} h1{{max-width:760px;font-size:36px;line-height:1.2;margin:12px 0}} h2{{font-size:21px;margin:0 0 16px}} h3{{font-size:15px;margin:0 0 10px}}
+    .meta{{color:var(--muted);font-size:13px}} .content{{padding:42px 56px 64px}} .notice{{border-left:3px solid var(--blue);background:#f1f7fb;padding:12px 14px;color:#4b6479}}
+    .summary{{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin:28px 0;border:1px solid var(--line)}} .metric{{padding:18px;border-right:1px solid var(--line)}} .metric:last-child{{border:0}} .metric span{{display:block;color:var(--muted);font-size:11px}} .metric strong{{display:block;margin-top:6px;font-size:26px;letter-spacing:-.02em}}
+    .section{{margin-top:38px;break-inside:avoid}} .section-head{{display:flex;align-items:end;justify-content:space-between;gap:16px;border-bottom:1px solid var(--line);margin-bottom:16px}} .section-head p{{margin:0 0 10px;color:var(--muted);font-size:11px}}
+    .editable{{min-height:104px;padding:16px;border:1px dashed #aebfcd;background:#fbfcfd;white-space:normal}} .editable:focus{{outline:2px solid rgba(36,121,190,.24)}}
+    .profile-grid{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px}} .bar-list{{display:grid;gap:11px}} .bar-row{{display:grid;grid-template-columns:120px minmax(120px,1fr) 70px;align-items:center;gap:10px;font-size:12px}} .bar-row i{{position:relative;height:8px;background:#e6edf2}} .bar-row i b{{display:block;height:100%;background:var(--blue)}} .bar-row i em{{position:absolute;top:-3px;width:2px;height:14px;background:var(--gold)}} .bar-row strong{{text-align:right;font-variant-numeric:tabular-nums}}
+    table{{width:100%;border-collapse:collapse;font-size:11px}} th,td{{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}} th{{background:#eef3f7;color:#516a7e}} tbody tr:nth-child(even){{background:#fafcfd}}
+    .limits{{color:var(--muted);font-size:11px}}
+    @media(max-width:760px){{.cover{{padding:32px;min-height:280px}}.content{{padding:28px 24px 44px}}.summary{{grid-template-columns:repeat(2,minmax(0,1fr))}}.metric:nth-child(2){{border-right:0}}.profile-grid{{grid-template-columns:1fr}}.bar-row{{grid-template-columns:100px minmax(100px,1fr) 62px}}}}
+    @media print{{body{{background:#fff}}main{{box-shadow:none}}.editable{{border-color:#cbd5de}}.section{{break-inside:avoid}}}}
   </style>
 </head>
-<body><main>
-  <h1>{html_lib.escape(project_name)}</h1>
-  <p class="meta">{html_lib.escape(organization)} · {html_lib.escape(_text(template.get('name')))} · {html_lib.escape(snapshot_id)}</p>
+<body><main><header class="cover"><span class="eyebrow">SAPD 成熟度评估报告</span><h1>{html_lib.escape(project_name)}</h1><p class="meta">{html_lib.escape(organization)} · {html_lib.escape(_text(template.get('name')))} · {html_lib.escape(generated_at[:10])}</p></header><div class="content">
   <p class="notice">{html_lib.escape(report_notice)}</p>
-  <section class="summary">
-    <div class="metric"><span>{'成熟度指数' if is_formal else '试算成熟度指数'}</span><strong>{summary.get('currentIndex')}</strong></div>
-    <div class="metric"><span>{'成熟度等级' if is_formal else '试算成熟度等级'}</span><strong>{html_lib.escape(_text(summary.get('currentLevel')))}</strong></div>
-    <div class="metric"><span>评分完成度</span><strong>{summary.get('completionRate')}%</strong></div>
-    <div class="metric"><span>目标达成率</span><strong>{summary.get('targetAchievementRate') if summary.get('targetAchievementRate') is not None else '-'}%</strong></div>
-  </section>
-  <h2>分类结果</h2><table><thead><tr><th>编码</th><th>分类</th><th>当前指数</th><th>当前等级</th><th>目标等级</th><th>差距</th></tr></thead><tbody>{category_rows_html}</tbody></table>
-  <h2>L2 安全能力结果</h2><table><thead><tr><th>编码</th><th>L2 安全能力</th><th>当前指数</th><th>当前等级</th><th>目标指数</th><th>目标等级</th><th>差距</th><th>目标达成率</th><th>证据覆盖</th></tr></thead><tbody>{capability_rows_html}</tbody></table>
-  <h2>高优先级差距</h2><table><thead><tr><th>优先级</th><th>能力编码</th><th>能力</th><th>当前</th><th>目标</th><th>优先级分数</th></tr></thead><tbody>{gap_rows_html or '<tr><td colspan="6">当前没有已计算差距。</td></tr>'}</tbody></table>
-</main></body></html>"""
+  <section class="section"><div class="section-head"><h2>管理层摘要</h2><p>可直接在导出的 HTML 中继续编辑</p></div><div class="editable" contenteditable="true">{editable_html(executive_summary)}</div></section>
+  <section class="summary"><div class="metric"><span>当前成熟度</span><strong>{html_lib.escape(_text(summary.get('currentLevel')))}</strong></div><div class="metric"><span>成熟度指数 / 5.00</span><strong>{summary.get('currentIndex')}</strong></div><div class="metric"><span>目标成熟度</span><strong>{html_lib.escape(_text(summary.get('targetLevel')))}</strong></div><div class="metric"><span>目标达成率</span><strong>{summary.get('targetAchievementRate') if summary.get('targetAchievementRate') is not None else '-'}%</strong></div></section>
+  <section class="section"><div class="section-head"><h2>成熟度轮廓</h2><p>实色为当前指数；金色标记为目标指数</p></div><div class="profile-grid"><div><h3>四维成熟度</h3><div class="bar-list">{dimension_bars_html}</div></div><div><h3>能力类别评分</h3><div class="bar-list">{tgm_bars_html}</div></div></div></section>
+  <section class="section"><div class="section-head"><h2>主要差距</h2><p>优先级与分数沿用后端结果</p></div><table><thead><tr><th>优先级</th><th>能力编码</th><th>能力</th><th>当前</th><th>目标</th><th>优先级分数</th></tr></thead><tbody>{gap_rows_html or '<tr><td colspan="6">当前没有已计算差距。</td></tr>'}</tbody></table></section>
+  <section class="section"><div class="section-head"><h2>关键发现</h2></div><div class="editable" contenteditable="true">{editable_html(key_findings)}</div></section>
+  <section class="section"><div class="section-head"><h2>管理建议</h2></div><div class="editable" contenteditable="true">{editable_html(management_recommendations)}</div></section>
+  <section class="section"><div class="section-head"><h2>下一步计划</h2></div><div class="editable" contenteditable="true">{editable_html(next_steps)}</div></section>
+  <section class="section"><div class="section-head"><h2>L2 安全能力结果</h2><p>{len(capability_results)} 项能力</p></div><table><thead><tr><th>编码</th><th>L2 安全能力</th><th>当前指数</th><th>当前等级</th><th>目标指数</th><th>目标等级</th><th>差距</th><th>达成率</th><th>证据覆盖</th></tr></thead><tbody>{capability_rows_html}</tbody></table></section>
+  <section class="section limits"><div class="section-head"><h2>口径与限制</h2></div><p>适用项完成度 {summary.get('completionRate')}%；不适用项 {summary.get('notApplicableCount')}；无证据项 {no_evidence_count}。不适用和无证据为信息口径，不阻塞完成评估。</p><p>客户主结果最细到 L2；关注点、服务、四维原始评分和证据保留在内部明细。快照编号：{html_lib.escape(snapshot_id)}</p></section>
+</div></main></body></html>"""
 
-    package = {
-        "schemaVersion": "maturity-demo-package-v2.1",
-        "mode": "controlled_demo",
-        "project": project,
-        "template": template,
-        "scoreEntries": score_entries,
-        "result": result,
-        "report": {
-            "id": snapshot_id,
-            "status": report_status,
-            "generatedAt": generated_at,
-            "calculationRun": result.get("calculationRun"),
-        },
-    }
     return {
         "ok": True,
         "dataState": "ready",
@@ -1809,11 +1934,8 @@ def create_maturity_report_snapshot(payload: dict[str, Any]) -> dict[str, Any]:
         "summary": summary,
         "markdown": markdown,
         "html": html_report,
-        "json": package,
         "fileNames": {
             "markdown": f"{snapshot_id}.md",
             "html": f"{snapshot_id}.html",
-            "json": f"{snapshot_id}.json",
-            "package": f"{snapshot_id}-project-package.json",
         },
     }

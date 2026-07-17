@@ -1,0 +1,306 @@
+/* P1-5 V5 review/search contract: left-directory scope owner, complete shared search control, run-surface-aware exports. */
+.workbench-issues-route,
+.workbench-issues-route .workbench-prototype-annotation-layout,
+.workbench-issues-route .workbench-review-queue {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.workbench-issues-route {
+  overflow-x: hidden;
+}
+
+.workbench-issues-route .workbench-prototype-annotation-layout {
+  grid-template-columns: minmax(190px, 230px) 3px minmax(0, 1fr);
+  gap: 0;
+}
+
+.workbench-issues-route .workbench-prototype-annotation-layout.has-inspector {
+  grid-template-columns: minmax(190px, 220px) 3px minmax(0, 1fr) 3px minmax(300px, 350px);
+}
+
+.workbench-issues-route .workbench-review-scope,
+.workbench-issues-route .workbench-review-queue,
+.workbench-issues-route .workbench-review-inspector {
+  border: 1px solid var(--line, #d7e0ea);
+  border-radius: 14px;
+  background: var(--surface, #ffffff);
+  box-shadow: 0 8px 22px rgba(29, 35, 48, 0.05);
+}
+
+.workbench-issues-route .workbench-review-queue {
+  overflow-x: hidden;
+  padding: 0;
+  gap: 0;
+}
+
+.workbench-issues-route .workbench-review-scope {
+  padding: 0;
+  gap: 0;
+}
+
+.workbench-issues-route .workbench-review-panel-title {
+  min-height: 46px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--line, #d7e0ea);
+}
+
+.workbench-issues-route .workbench-review-scope-row {
+  gap: 3px;
+  min-height: 46px;
+  padding: 9px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--line, #d7e0ea);
+  border-radius: 0;
+  background: transparent;
+}
+
+.workbench-issues-route .workbench-review-scope-row:hover {
+  background: color-mix(in srgb, var(--surface, #ffffff) 94%, var(--text, #1d2939) 6%);
+}
+
+.workbench-issues-route .workbench-review-scope-row.is-active {
+  color: var(--primary, #1473e6);
+  background: color-mix(in srgb, var(--surface, #ffffff) 90%, var(--primary, #1473e6) 10%);
+  box-shadow: inset 3px 0 0 var(--primary, #1473e6);
+}
+
+.workbench-issues-route .workbench-review-queue-head,
+.workbench-issues-route .workbench-review-item {
+  grid-template-columns: 28px minmax(0, 1.4fr) minmax(96px, 0.72fr) 76px 68px 96px;
+  gap: 8px;
+  min-width: 0;
+}
+
+.workbench-issues-route .workbench-review-queue-head {
+  top: 0;
+  padding-inline: 12px;
+}
+
+.workbench-issues-route .workbench-review-item {
+  min-height: 54px;
+  padding: 9px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--line, #d7e0ea);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.workbench-issues-route .workbench-review-item:hover {
+  border-bottom-color: var(--line, #d7e0ea);
+  background: color-mix(in srgb, var(--surface, #ffffff) 94%, var(--text, #1d2939) 6%);
+  box-shadow: none;
+}
+
+.workbench-issues-route .workbench-review-item.is-active,
+.workbench-issues-route .workbench-review-item.is-checked,
+.workbench-issues-route .workbench-review-item.is-checked:not(.is-active) {
+  border-bottom-color: color-mix(in srgb, var(--primary, #1473e6) 35%, var(--line, #d7e0ea));
+  border-style: solid;
+  background: color-mix(in srgb, var(--surface, #ffffff) 89%, var(--primary, #1473e6) 11%);
+  box-shadow: inset 3px 0 0 var(--primary, #1473e6);
+}
+
+.workbench-issues-route .workbench-review-item-title {
+  gap: 2px;
+}
+
+.workbench-issues-route .issue-column-status,
+.workbench-issues-route .issue-column-priority {
+  min-width: 0;
+}
+
+.workbench-issues-route .issue-column-status .workbench-prototype-pill,
+.workbench-issues-route .issue-column-priority .workbench-prototype-pill {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.global-search-page-workspace,
+.global-search-page,
+.global-search-page-layout {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.global-search-page-context {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  padding: 3px 2px;
+  justify-content: center;
+}
+
+.global-search-page-context > span,
+.global-search-page-context > small {
+  color: var(--muted, #667085);
+  font-size: 12px;
+}
+
+.global-search-page-context > strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text, #1d2939);
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.global-search-page-context > small {
+  margin-inline-start: 0;
+  white-space: nowrap;
+}
+
+.workbench-issues-route .workbench-review-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px 14px;
+  padding: 10px 12px;
+  border-radius: 14px;
+}
+
+.workbench-issues-route .workbench-review-filter-group {
+  display: grid;
+  grid-template-columns: 116px 116px minmax(var(--page-local-search-width), 1fr) auto;
+  align-items: end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.workbench-issues-route .workbench-review-filter-field {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  color: var(--muted, #667085);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.workbench-issues-route .workbench-review-filter-field .workbench-review-select {
+  width: 100%;
+  min-width: 0;
+  border-radius: 9px;
+  background: var(--surface, #ffffff);
+}
+
+.workbench-issues-route .workbench-review-search-control.page-search-control {
+  width: 100%;
+}
+
+.workbench-issues-route .workbench-review-search-control .page-search-input-shell {
+  width: 100%;
+}
+
+.workbench-issues-route .workbench-review-search-shell {
+  align-self: end;
+}
+
+.workbench-issues-route .workbench-review-active-filters {
+  align-self: end;
+  flex-wrap: nowrap;
+}
+
+.workbench-issues-route .workbench-review-active-filters:empty {
+  display: none;
+}
+
+.workbench-issues-route .workbench-review-filter-chip:not(.is-empty) {
+  border-color: color-mix(in srgb, var(--primary, #1473e6) 24%, var(--line, #d7e0ea));
+  background: color-mix(in srgb, var(--surface, #ffffff) 92%, var(--primary, #1473e6) 8%);
+}
+
+.global-search-page-results {
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.global-search-page-list {
+  border-top: 1px solid var(--line, #d7e0ea);
+}
+
+.global-search-page-row {
+  min-height: 58px;
+  padding: 10px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--line, #d7e0ea);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.global-search-page-row::after {
+  content: none;
+}
+
+.global-search-page-row:hover,
+.global-search-page-row:focus-visible,
+.global-search-page-row.is-active {
+  border-bottom-color: var(--line, #d7e0ea);
+  background: color-mix(in srgb, var(--surface, #ffffff) 93%, var(--primary, #1473e6) 7%);
+  box-shadow: none;
+}
+
+.global-search-filter-strip button[aria-pressed="true"] {
+  color: var(--primary, #1473e6);
+}
+
+@media (max-width: 1100px) {
+  .workbench-issues-route .workbench-review-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .workbench-issues-route .workbench-review-filter-group {
+    grid-template-columns: 112px 112px minmax(var(--page-local-search-width), 1fr) auto;
+  }
+
+  .workbench-issues-route .workbench-review-active-filters {
+    justify-content: flex-start;
+  }
+
+  .workbench-issues-route .workbench-review-queue-head,
+  .workbench-issues-route .workbench-review-item {
+    grid-template-columns: 28px minmax(0, 1fr) 76px 96px;
+  }
+
+  .workbench-issues-route .issue-column-pageObject,
+  .workbench-issues-route .issue-column-priority {
+    display: none;
+  }
+}
+
+@media (max-width: 820px) {
+  .workbench-issues-route .workbench-prototype-annotation-layout,
+  .workbench-issues-route .workbench-prototype-annotation-layout.has-inspector {
+    grid-template-columns: 1fr;
+  }
+
+  .workbench-issues-route .workbench-review-scope,
+  .workbench-issues-route .workbench-issue-pane-resizer {
+    display: none;
+  }
+
+  .workbench-issues-route .workbench-review-filter-group {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .workbench-issues-route .workbench-review-search-shell {
+    grid-column: 1 / -1;
+  }
+
+  .global-search-page-context > small {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .global-search-page-results {
+    scroll-behavior: auto;
+  }
+}

@@ -1,8 +1,5 @@
 version: v1
 outputs:
-  json:
-    enabled: true
-    file_name: maturity-result.json
   markdown:
     enabled: true
     file_name: maturity-report.md
@@ -14,36 +11,23 @@ outputs:
   pptx:
     enabled: false
 sections:
-  - id: summary
-    title: 评估摘要
-  - id: scope
-    title: 客户与评估范围
-  - id: method
-    title: 评估方法与三维模型说明
+  - id: executive_summary
+    title: 管理层摘要
   - id: overall
-    title: 整体成熟度结论
-  - id: radar
-    title: 能力分类 / L1 雷达图数据
-  - id: heatmap
-    title: L2 安全能力成熟度热力图数据
-  - id: focus_details
-    title: 能力关注点明细
+    title: 当前与目标成熟度
+  - id: dimensions
+    title: 四维成熟度轮廓
+  - id: tgm
+    title: 能力类别评分
   - id: top_gaps
-    title: 主要短板与优先级
-  - id: evidence_coverage
-    title: 证据覆盖情况
-  - id: review_items
-    title: 未匹配与低置信度内容
+    title: 主要差距与优先级
+  - id: key_findings
+    title: 关键发现
   - id: recommendations
-    title: 改进建议与路线图
+    title: 管理建议
+  - id: next_steps
+    title: 下一步计划与复评安排
+  - id: capability_results
+    title: L2 安全能力结果
   - id: appendix
-    title: 附录：规则、模板、知识库快照和来源追踪
-chart_data:
-  file_name: charts-data.json
-  include:
-    - overall
-    - radar
-    - heatmap
-    - top_gaps
-    - evidence_coverage
-    - match_confidence_distribution
+    title: 口径、限制与快照信息

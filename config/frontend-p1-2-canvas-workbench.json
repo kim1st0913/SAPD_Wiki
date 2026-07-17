@@ -1,0 +1,48 @@
+{
+  "version": "2026-07-15.p1-2-canvas-workbench-v11",
+  "routes": ["/capability-mapping", "/environment-mapping"],
+  "capability": {
+    "defaultDirectoryWidth": 240,
+    "directoryRange": [220, 300],
+    "autoCollapseBelow": 1100,
+    "singleCanvasHeader": true,
+    "objectHeaderPlacement": "above-canvas-surface:capability-workbench-head",
+    "visualAuthority": "OI-159 workspace-attached controls and user-approved Figure 2",
+    "surfaceRadius": 26,
+    "canvasRadius": 18,
+    "desktopControlLayout": "single-row-flex",
+    "referenceImageContract": {
+      "border": "explicit-image-element-hairline-four-edges",
+      "fit": "intrinsic-image-box-within-both-available-axes",
+      "width": "responsive-within-summary-pane",
+      "height": "responsive-within-summary-pane-no-scroll",
+      "objectFit": "contain",
+      "rootLayout": "reference-priority-full-width-single-pane"
+    }
+  },
+  "environment": {
+    "actions": ["fit", "actual-size", "zoom-out", "zoom-in", "return-focus", "fullscreen"],
+    "detailWidthWhenIdle": 0,
+    "selectionPresentation": "external-drawer",
+    "singleContourOwner": ".environment-detail-pane",
+    "singleContour": true,
+    "childSurfaceRadius": 0,
+    "sectionNavigation": "global-apple-shell-segmented-capsule-placement-invariant",
+    "neutralizedChildSurfaces": [
+      ".environment-relation-map.environment-tabbed-map",
+      ".environment-basemap-lab-main"
+    ]
+  },
+  "frozenArtifacts": {
+    "frontend/capability-browser/components/LocalRelationNetworkGraph.js": "4726413d5504c76174b1783d6898c76c09838faf2237ca83a550d0dcfe316fee",
+    "frontend/capability-browser/models/relationGraphModel.js": "ccfd97f5f352eae3bd1fb06e66d72ca99e7313bbb3a73b4e1e77512f6e02358f",
+    "frontend/capability-browser/generated/environmentBasemap.svg": "2424b22f4d6f1add2d4d0d02cc716735581f7b7714f03a1ba333dc7d394d02dd",
+    "frontend/capability-browser/generated/environmentBasemap.css": "7f974c7f4807bbca7046370c654f7758f07ae36964dcad3aeabd6277594b83b6"
+  },
+  "excludedScopes": [
+    "P0-3 graph layout and collision algorithms",
+    "Draw.io visual source and generated drawing styles",
+    "capability and environment data projections",
+    "maturity assessment"
+  ]
+}

@@ -1,0 +1,184 @@
+/* P1-4 reference-table contract: hierarchy is neutral, selection is blue, counts stay metadata. */
+.capability-directory-maintenance-table .capability-directory-group > td,
+.capability-directory-maintenance-table .capability-directory-group.expanded > td {
+  background: var(--surface, #ffffff);
+  color: var(--text, #1d2939);
+  border-bottom: 1px solid var(--line, #d7e0ea);
+}
+
+.capability-directory-maintenance-table .capability-directory-group.depth-0 > td {
+  background: var(--surface-muted, #f7f9fc);
+}
+
+.capability-directory-maintenance-table .capability-directory-group.depth-1 > td {
+  background: color-mix(in srgb, var(--surface, #ffffff) 96%, var(--text, #1d2939) 4%);
+}
+
+.capability-directory-maintenance-table .capability-directory-group.depth-2 > td {
+  background: var(--surface, #ffffff);
+}
+
+.capability-directory-maintenance-table .standard-group-toggle {
+  min-height: 44px;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.capability-directory-maintenance-table .standard-group-toggle:hover {
+  background: color-mix(in srgb, var(--surface, #ffffff) 94%, var(--text, #1d2939) 6%);
+}
+
+.capability-directory-maintenance-table .standard-group-toggle:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--primary, #1473e6) 70%, transparent);
+  outline-offset: -2px;
+}
+
+.capability-directory-maintenance-table .hierarchy-level-label {
+  display: inline-block;
+  min-width: 58px;
+  margin-inline-end: 8px;
+  color: var(--muted, #667085);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-align: left;
+  vertical-align: baseline;
+}
+
+.capability-directory-maintenance-table .hierarchy-meta {
+  flex: 0 0 auto;
+  color: var(--muted, #667085);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.capability-directory-maintenance-table .standard-group-detail > td {
+  background: var(--surface, #ffffff);
+  border-bottom: 1px solid var(--line, #d7e0ea);
+}
+
+.capability-directory-maintenance-table .standard-group-detail:hover > td {
+  background: color-mix(in srgb, var(--surface, #ffffff) 94%, var(--primary, #1473e6) 6%);
+}
+
+.capability-directory-maintenance-table .standard-group-detail.active > td {
+  background: color-mix(in srgb, var(--surface, #ffffff) 88%, var(--primary, #1473e6) 12%);
+  color: var(--text, #1d2939);
+}
+
+#maintenanceWorkspace.knowledge-directory-mode #sourceList:has(.capability-directory-maintenance-table) {
+  overflow: hidden;
+}
+
+#maintenanceWorkspace.knowledge-directory-mode .source-local-search-body:has(.capability-directory-maintenance-table) {
+  min-height: 0;
+  overflow: hidden;
+}
+
+#maintenanceWorkspace.knowledge-directory-mode .maintenance-table-scroll:has(.capability-directory-maintenance-table) {
+  min-height: 0;
+  overscroll-behavior: auto;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+}
+
+.standard-framework-tabbed .standard-framework-tabs {
+  display: flex;
+  align-items: flex-end;
+  gap: 18px;
+  min-height: 44px;
+  padding: 0 14px;
+  overflow-x: auto;
+  border: 0;
+  border-bottom: 1px solid var(--line, #d7e0ea);
+  border-radius: 0;
+  background: var(--surface, #ffffff);
+  box-shadow: none;
+  scrollbar-width: thin;
+}
+
+.standard-framework-tabbed .standard-framework-tab-group,
+.standard-framework-tabbed .standard-framework-tab-options {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.standard-framework-tabbed .standard-framework-tab-group-label {
+  padding-block: 0 11px;
+  color: var(--muted, #667085);
+  font-size: 11px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.standard-framework-tabbed .standard-framework-tab {
+  position: relative;
+  min-height: 43px;
+  padding: 9px 11px 10px;
+  color: var(--muted, #667085);
+  font-size: 13px;
+  font-weight: 620;
+  white-space: nowrap;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.standard-framework-tabbed .standard-framework-tab:hover {
+  color: var(--text, #1d2939);
+  background: color-mix(in srgb, var(--surface, #ffffff) 94%, var(--text, #1d2939) 6%);
+}
+
+.standard-framework-tabbed .standard-framework-tab.active,
+.standard-framework-tabbed .standard-framework-tab[aria-selected="true"] {
+  color: var(--primary, #1473e6);
+  border-bottom-color: var(--primary, #1473e6);
+  background: color-mix(in srgb, var(--surface, #ffffff) 94%, var(--primary, #1473e6) 6%);
+}
+
+.standard-framework-tabbed .standard-framework-tab:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--primary, #1473e6) 72%, transparent);
+  outline-offset: -3px;
+}
+
+.standard-framework-table tbody tr:not(.standard-group-row) > td,
+.standard-framework-table tbody tr:not(.standard-group-row):nth-child(odd) > td,
+.standard-framework-table tbody tr:not(.standard-group-row):nth-child(even) > td {
+  background: var(--surface, #ffffff);
+  border-bottom: 1px solid var(--line, #d7e0ea);
+}
+
+.standard-framework-table tbody tr:not(.standard-group-row):hover > td {
+  background: color-mix(in srgb, var(--surface, #ffffff) 95%, var(--primary, #1473e6) 5%);
+}
+
+.standard-framework-table tbody tr.active > td,
+.standard-framework-table tbody tr[aria-selected="true"] > td {
+  background: color-mix(in srgb, var(--surface, #ffffff) 88%, var(--primary, #1473e6) 12%);
+}
+
+.standard-framework-table .relation-chip,
+.standard-framework-table .standard-related-focus-chip {
+  border-radius: 999px;
+}
+
+@media (max-width: 900px) {
+  .standard-framework-tabbed .standard-framework-tabs {
+    gap: 10px;
+    padding-inline: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .standard-framework-tabbed .standard-framework-tabs {
+    scroll-behavior: auto;
+  }
+}

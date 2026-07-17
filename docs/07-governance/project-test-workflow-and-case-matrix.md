@@ -96,12 +96,12 @@ node scripts/run_project_test_suite.mjs --suite pre-dmg --dry-run
 | 用例 | 搜索范围 | 样例词 | 反例 | 验收点 | 自动命令 |
 |---|---|---|---|---|---|
 | SC-001 | 全局搜索 / 能力 | `RASP` | `数据中心` 不应漏入能力路由 | 命中 `安全能力`，路由为 `/capability-mapping`，结果携带 `route` + `target_ref` 或 `object_id` | `python3 scripts/audit_search_index_quality_probes.py` |
-| SC-002 | 全局搜索 / 环境 | `数据中心` | `Issue 清单` 不应漏入环境路由 | 命中 `信息化环境`，路由为 `/environment-mapping`，点击可定位环境对象或对象关系节点 | `python3 scripts/audit_search_index_quality_probes.py` |
+| SC-002 | 全局搜索 / 环境 | `数据中心` | `ISSUE清单` 不应漏入环境路由 | 命中 `信息化环境`，路由为 `/environment-mapping`，点击可定位环境对象或对象关系节点 | `python3 scripts/audit_search_index_quality_probes.py` |
 | SC-003 | 全局搜索 / LC-AP | `Ansible` | `人工智能` 不应漏入 LC-AP 路由 | 命中 `生命周期`，路由为 `/development-security`，结果定位所属开发安全阶段 | `python3 scripts/audit_search_index_quality_probes.py` |
 | SC-004 | 全局搜索 / LC-DT | `数据脱敏` | `Ansible` 不应漏入 LC-DT 路由 | 命中 `/data-security`，覆盖服务 / 模块 / 措施和策略矩阵行级目标 | `python3 scripts/audit_search_index_quality_probes.py` |
-| SC-005 | 全局搜索 / 知识库 | `WAF` | `Issue 清单` 不应漏入知识库路由 | 命中 `/knowledge/`，结果对象为服务、模块、措施或知识库路由，并可定位具体行 | `python3 scripts/audit_search_index_quality_probes.py` |
+| SC-005 | 全局搜索 / 知识库 | `WAF` | `ISSUE清单` 不应漏入知识库路由 | 命中 `/knowledge/`，结果对象为服务、模块、措施或知识库路由，并可定位具体行 | `python3 scripts/audit_search_index_quality_probes.py` |
 | SC-006 | 全局搜索 / 标准 | `人工智能` | `数据中心` 不应漏入标准路由 | 命中 `标准 / 框架`，路由为 `/standards/`，对象粒度为 `standard_control` | `python3 scripts/audit_search_index_quality_probes.py` |
-| SC-007 | 全局搜索 / 工作台 | `Issue 清单` | `人工智能` 不应漏入工作台路由 | 命中 `/workbench/`，对象类型为 `route` | `python3 scripts/audit_search_index_quality_probes.py` |
+| SC-007 | 全局搜索 / 工作台 | `ISSUE清单` | `人工智能` 不应漏入工作台路由 | 命中 `/workbench/`，对象类型为 `route` | `python3 scripts/audit_search_index_quality_probes.py` |
 | SC-008 | 全局搜索 / 大结果集 | `管理`、`组织` | 无 | `facets.total` 使用全量计数，结果窗口只返回当前页；`组织` 的 offset `100` 和 `460` 均可访问 | `python3 scripts/audit_search_index_quality_probes.py` |
 | SC-009 | 全局搜索 / 弱命中裁剪 | `密码`、`数据脱敏`、`应用页面水印` | `密码` 不提升弱上下文命中；`应用页面水印` 不串到 `数据内容水印` | 结果只保留目标对象标题或强相关命中，不靠关系上下文误召回 | `python3 scripts/audit_search_index_quality_probes.py` |
 | SC-010 | 全局搜索 / 空结果 | `zzzz` | 无 | 返回空结果窗口，`facets.total=0`，不出现假空态数据 | `python3 scripts/audit_search_index_quality_probes.py` |

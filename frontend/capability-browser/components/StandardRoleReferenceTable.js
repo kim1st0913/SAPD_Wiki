@@ -87,18 +87,13 @@
       .join("");
   }
 
-  function hasSelected(rows, selectedId) {
-    const id = utils.text(selectedId).trim();
-    return Boolean(id) && utils.list(rows).some((row) => utils.text(row?.id).trim() === id);
-  }
-
   function renderGroupedPanels(rows, selectedId, options) {
     const groups = groupedByCategory(rows, options.fallbackLabel);
     const expandAll = Boolean(utils.text(options.search).trim());
     return groups
       .map((group, groupIndex) => {
         const referenceGroupId = groupId([options.idPrefix, groupIndex, group.label]);
-        const expanded = expandAll || hasSelected(group.rows, selectedId);
+        const expanded = expandAll;
         return `
           <details class="reference-category-panel" data-reference-group="${utils.escapeHtml(referenceGroupId)}" ${expanded ? "open" : ""}>
             <summary>

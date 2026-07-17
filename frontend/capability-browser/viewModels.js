@@ -4900,23 +4900,42 @@
     return lifecycleFieldListText(fallbackItems);
   }
 
-  function typedLifecycleSecurityTechnologyItems(stage, modules, measures) {
+  function lifecycleTechnicalObjectMatch(sourceLine, items, objectKind) {
+    const line = text(sourceLine).trim();
+    if (!line) return null;
+    return list(items)
+      .map((item) => {
+        const title = titleOf(item, "").trim();
+        const code = text(item?.code).trim();
+        const labels = [title, [code, title].filter(Boolean).join(" ")].filter(Boolean);
+        const exact = labels.some((label) => line === label);
+        const qualified = labels.some((label) => line.startsWith(`${label}（`) || line.startsWith(`${label}(`));
+        const matchedLabelLength = Math.max(0, ...labels.filter((label) => line === label || line.startsWith(`${label}（`) || line.startsWith(`${label}(`)).map((label) => label.length));
+        return exact || qualified
+          ? {
+              item: { ...item, objectKind: item?.objectKind || objectKind },
+              score: (exact ? 10000 : 0) + matchedLabelLength,
+            }
+          : null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.score - a.score)[0]?.item || null;
+  }
+
+  function canonicalLifecycleSecurityTechnologyItems(stage, modules, measures) {
     const sourceLines = lifecycleFieldLines(lifecycleOriginalBusinessFields(stage)["安全技术模块"]);
-    const moduleItems = list(modules);
-    const measureItems = list(measures);
-    if (!sourceLines.length) return [...moduleItems, ...measureItems];
-    const moduleNames = moduleItems.map((item) => titleOf(item, "")).filter(Boolean);
-    const measureNames = measureItems.map((item) => titleOf(item, "")).filter(Boolean);
-    const matchesNamedObject = (line, names) => names.some((name) => line === name || line.startsWith(`${name}（`) || line.startsWith(`${name}(`));
-    return sourceLines.map((line) => {
-      const isMeasure = matchesNamedObject(line, measureNames);
-      const isModule = matchesNamedObject(line, moduleNames);
-      return {
-        title: line,
-        name: line,
-        objectKind: isMeasure && !isModule ? "安全技术措施" : "安全技术模块",
-      };
-    });
+    const moduleItems = list(modules).map((item) => ({ ...item, objectKind: item?.objectKind || "安全技术模块" }));
+    const measureItems = list(measures).map((item) => ({ ...item, objectKind: item?.objectKind || "安全技术措施" }));
+    const orderedMatches = sourceLines
+      .map((line) => {
+        const moduleMatch = lifecycleTechnicalObjectMatch(line, moduleItems, "安全技术模块");
+        const measureMatch = lifecycleTechnicalObjectMatch(line, measureItems, "安全技术措施");
+        if (!moduleMatch) return measureMatch;
+        if (!measureMatch) return moduleMatch;
+        return line === titleOf(measureMatch, "") ? measureMatch : moduleMatch;
+      })
+      .filter(Boolean);
+    return uniqueBy([...orderedMatches, ...moduleItems, ...measureItems], (item) => item.id || item.code || `${item.objectKind}:${titleOf(item, "")}`);
   }
 
   function softwareDevelopmentTypeDefinitionMap(lifecycle) {
@@ -4946,7 +4965,7 @@
     if (!selectedStageRow) return [];
     const technicalServices = list(selectedStageRow.technicalServices).map((service) => [service?.code, titleOf(service, "")].filter(Boolean).join(" "));
     const originalModuleFallback = [...list(selectedStageRow.technologyModules), ...list(selectedStageRow.technicalMeasures)];
-    const typedSecurityTechnologyItems = typedLifecycleSecurityTechnologyItems(selectedStageRow, selectedStageRow.technologyModules, selectedStageRow.technicalMeasures);
+    const typedSecurityTechnologyItems = canonicalLifecycleSecurityTechnologyItems(selectedStageRow, selectedStageRow.technologyModules, selectedStageRow.technicalMeasures);
     const developmentTypes = lifecycleOriginalField(selectedStageRow, "软件开发模式", selectedStageRow.developmentTypes);
     return [
       {

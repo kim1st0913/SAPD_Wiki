@@ -14,6 +14,7 @@ const indexHtml = read("frontend/capability-browser/index.html");
 const environmentBasemapViewerJs = read("frontend/capability-browser/components/EnvironmentBasemapViewer.js");
 const standardFrameworkTableJs = read("frontend/capability-browser/components/StandardFrameworkTable.js");
 const workFunctionTableJs = read("frontend/capability-browser/components/WorkFunctionMaintenanceTable.js");
+const technicalServiceTableJs = read("frontend/capability-browser/components/TechnicalServiceMaintenanceTable.js");
 const technologyModuleTableJs = read("frontend/capability-browser/components/TechnologyModuleMaintenanceTable.js");
 const capabilityDirectoryTableJs = read("frontend/capability-browser/components/CapabilityDirectoryMaintenanceTable.js");
 const standardRoleReferenceTableJs = read("frontend/capability-browser/components/StandardRoleReferenceTable.js");
@@ -102,7 +103,7 @@ const checks = [
   ),
   check(
     "workbench_issue_route_has_stable_class",
-    appJs.includes('class="workbench-route-page workbench-issues-route" aria-label="Issue 清单"'),
+    appJs.includes('class="workbench-route-page workbench-issues-route" aria-label="ISSUE清单"'),
     "Issue list route must expose a stable class so scroll ownership can be scoped to this route only.",
   ),
   check(
@@ -337,7 +338,7 @@ const checks = [
     "workbench_issue_zero_data_uses_single_empty_state",
     appJs.includes("function renderWorkbenchIssueZeroState") &&
       appJs.includes("const hasNoIssueData = !isLoading && summary.total === 0;") &&
-      appJs.includes('class="workbench-route-page workbench-issues-route is-empty" aria-label="Issue 清单"') &&
+      appJs.includes('class="workbench-route-page workbench-issues-route is-empty" aria-label="ISSUE清单"') &&
       appJs.includes("${renderWorkbenchIssueZeroState()}") &&
       appJs.includes('exportButton.title = hasIssues ? "导出全部 Issue" : "当前没有 Issue 可导出";') &&
       appJs.includes("const inspectorIssue = workbenchIssueById(state.workbenchSelectedIssueId);") &&
@@ -351,7 +352,10 @@ const checks = [
     "workbench_issue_inspector_field_boundary",
     appJs.includes("<label>关联页面/对象</label>") &&
       appJs.includes("workbenchIssuePageObjectLabel") &&
-      appJs.includes('{ label: "Issue 范围", value: activePageLabel }') &&
+      appJs.includes('class="workbench-review-scope" aria-label="Issue 范围导航"') &&
+      appJs.includes('data-review-page-route="全部"') &&
+      !appJs.includes('data-review-filter-control="page"') &&
+      !appJs.includes('{ label: "Issue 范围"') &&
       !appJs.includes('{ label: "页面", value: activePageLabel }') &&
       !appJs.includes("<label>关联页面</label>") &&
       !appJs.includes("<label>关联对象</label>") &&
@@ -499,14 +503,19 @@ const checks = [
     "Count detail popovers must own their internal wheel and scroll events instead of being closed by page-level scroll handlers.",
   ),
   check(
-    "maintenance_grouped_tables_keep_selected_row_path_open",
-    workFunctionTableJs.includes("const layerExpanded = expandAll || hasSelected(layer.rows, selectedId)") &&
-      workFunctionTableJs.includes("const groupExpanded = expandAll || hasSelected(group.rows, selectedId)") &&
-      technologyModuleTableJs.includes("const categoryExpanded = expandAll || hasSelected(category.rows, selectedId)") &&
-      technologyModuleTableJs.includes("const systemExpanded = expandAll || hasSelected(system.rows, selectedId)") &&
-      capabilityDirectoryTableJs.includes("hasSelectedCategory(category, selectedId)") &&
-      standardRoleReferenceTableJs.includes("const expanded = expandAll || hasSelected(group.rows, selectedId)"),
-    "Grouped dictionary tables must keep the selected row's parent path open after row selection re-renders the table.",
+    "maintenance_grouped_tables_default_collapsed_without_selection_reveal",
+    workFunctionTableJs.includes("const layerExpanded = expandAll") &&
+      workFunctionTableJs.includes("const groupExpanded = expandAll") &&
+      !workFunctionTableJs.includes("hasSelected(") &&
+      technologyModuleTableJs.includes("const categoryExpanded = expandAll") &&
+      technologyModuleTableJs.includes("const systemExpanded = expandAll") &&
+      !technologyModuleTableJs.includes("hasSelected(") &&
+      technicalServiceTableJs.includes("const expanded = expandAll || expandedGroups.has(id)") &&
+      !technicalServiceTableJs.includes("groupHasSelectedService") &&
+      capabilityDirectoryTableJs.includes("revealSelection = false") &&
+      standardRoleReferenceTableJs.includes("const expanded = expandAll") &&
+      !standardRoleReferenceTableJs.includes("hasSelected("),
+    "Grouped dictionary tables must default to collapsed; selection alone must not auto-expand parent paths.",
   ),
   check(
     "cache_versions_include_scroll_contract",

@@ -201,7 +201,7 @@ function validateDashboardConsumer(issues) {
     ["dashboard_state", /analyticsSummary:\s*null/],
     ["dashboard_getter", /analyticsSummary:\s*"getAnalyticsSummary"/],
     ["dashboard_assign", /name === "analyticsSummary"\)\s*state\.analyticsSummary = data/],
-    ["dashboard_route_package", /state\.activeView === "overview"\)\s*return \["analyticsSummary"\]/],
+    ["dashboard_route_package", /state\.activeView === "overview"\)\s*return \["analyticsSummary", "maintenanceIndex", "dashboardKnowledgeSummary"\]/],
     ["dashboard_render_source", /const summary = state\.analyticsSummary \|\| \{\}/],
   ];
   for (const [code, pattern] of checks) {

@@ -246,6 +246,7 @@
       fitScale: 1,
       error: "",
       selectedMxId: "",
+      lastFocusedMxId: "",
       highlightedMxIds: new Set(),
       drag: null,
       suppressNextClick: false,
@@ -613,6 +614,7 @@
     const node = state.nodeByMxId.get(mxId);
     if (!node) return;
     state.selectedMxId = mxId;
+    state.lastFocusedMxId = mxId;
     if (node.bindStatus === "ignored") {
       state.highlightedMxIds = new Set([mxId]);
     } else {
@@ -620,8 +622,10 @@
       state.highlightedMxIds = summary.highlighted;
     }
     applyHighlight(root);
+    focusNodeInViewport(root, mxId);
     updateStatus(root);
     updateDetail(root);
+    window.requestAnimationFrame(() => focusNodeInViewport(root, mxId));
     announceBasemapStatus(root, `已定位 ${node.label || mxId}，详情已打开`);
   }
 
@@ -688,8 +692,12 @@
     state.visibility = measureVisibility(root);
     const status = root.querySelector("[data-basemap-lab-status]");
     const debug = root.querySelector("[data-basemap-lab-debug]");
+    const zoomLabel = root.querySelector("[data-basemap-zoom-label]");
+    const returnFocus = root.querySelector('[data-basemap-lab-action="return-focus"]');
     if (status) status.innerHTML = renderStatus(root);
     if (debug) debug.innerHTML = renderDebug(root);
+    if (zoomLabel) zoomLabel.textContent = `${Math.round((state.scale || 1) * 100)}%`;
+    if (returnFocus) returnFocus.disabled = !state.lastFocusedMxId;
   }
 
   function chipClassForKind(kind) {
@@ -1080,6 +1088,7 @@
     const state = stateByRoot.get(root);
     const detailRoot = root.querySelector("[data-basemap-lab-popover]");
     if (!state || !detailRoot) return;
+    root.classList.toggle("has-detail", Boolean(state.selectedMxId));
     if (!state.selectedMxId) {
       detailRoot.innerHTML = "";
       detailRoot.classList.add("is-hidden");
@@ -1114,12 +1123,36 @@
     return [...root.querySelectorAll(".basemap-hit-node")].find((hit) => hit.dataset.mxId === mxId) || null;
   }
 
+  function focusNodeInViewport(root, mxId) {
+    const state = stateByRoot.get(root);
+    const viewport = root.querySelector("[data-basemap-lab-viewport]");
+    const hit = hitNodeForMxId(root, mxId);
+    if (!state || !viewport || !hit) return false;
+    const x = Number.parseFloat(hit.style.left) || 0;
+    const y = Number.parseFloat(hit.style.top) || 0;
+    const width = Number.parseFloat(hit.style.width) || 1;
+    const height = Number.parseFloat(hit.style.height) || 1;
+    const scale = clamp(Math.max(state.fitScale * 2.25, 0.72), MIN_SCALE, Math.min(MAX_SCALE, 1.6));
+    state.scale = scale;
+    state.x = viewport.clientWidth / 2 - (x + width / 2) * scale;
+    state.y = viewport.clientHeight / 2 - (y + height / 2) * scale;
+    applyTransform(root);
+    return true;
+  }
+
   function positionPopover(root) {
     const state = stateByRoot.get(root);
     const popover = root.querySelector("[data-basemap-lab-popover]");
     const viewport = root.querySelector("[data-basemap-lab-viewport]");
     const hit = hitNodeForMxId(root, state?.selectedMxId || "");
     if (!state?.selectedMxId || !popover || !viewport || !hit || popover.classList.contains("is-hidden")) return;
+    if (popover.matches("[data-basemap-detail-drawer]")) {
+      popover.classList.remove("is-left", "is-right", "is-above", "is-below");
+      popover.style.removeProperty("left");
+      popover.style.removeProperty("top");
+      popover.style.removeProperty("visibility");
+      return;
+    }
 
     const viewportRect = viewport.getBoundingClientRect();
     const hitRect = hit.getBoundingClientRect();
@@ -1261,18 +1294,24 @@
         if (!hitNode && !popover && !popoverClose && !action) return;
       }
       if (popoverClose) {
+        const returnTarget = hitNodeForMxId(root, state?.selectedMxId || "");
         clearSelection(root);
+        returnTarget?.focus?.({ preventScroll: true });
         return;
       }
       if (popover) return;
       if (action) {
         if (!state) return;
-        if (action === "fit" || action === "reset") {
+        if (action === "fit") {
           fitToScreen(root);
+        } else if (action === "actual-size") {
+          zoomAt(root, 1);
         } else if (action === "zoom-in") {
           zoomAt(root, state.scale * 1.18);
         } else if (action === "zoom-out") {
           zoomAt(root, state.scale / 1.18);
+        } else if (action === "return-focus" && state.lastFocusedMxId) {
+          selectNode(root, state.lastFocusedMxId);
         } else if (action === "fullscreen") {
           toggleFullscreen(root);
         }
@@ -1354,7 +1393,12 @@
         setAppFullscreen(root, false);
         return;
       }
-      if (event.key === "Escape" && root.isConnected) clearSelection(root);
+      if (event.key === "Escape" && root.isConnected) {
+        const state = stateByRoot.get(root);
+        const returnTarget = hitNodeForMxId(root, state?.selectedMxId || "");
+        clearSelection(root);
+        returnTarget?.focus?.({ preventScroll: true });
+      }
     });
     document.addEventListener("fullscreenchange", () => {
       if (!root.isConnected) return;
@@ -1378,10 +1422,12 @@
     const toolbarSearch = options.toolbarSearch || null;
     const actions = `
       <div class="environment-basemap-lab-actions" aria-label="${escapeHtml(actionsLabel)}">
-        <button type="button" data-basemap-lab-action="fit">适应屏幕</button>
+        <button type="button" data-basemap-lab-action="fit">返回全图</button>
+        <button type="button" data-basemap-lab-action="actual-size">100%</button>
         <button type="button" data-basemap-lab-action="zoom-out" aria-label="缩小">−</button>
+        <output data-basemap-zoom-label aria-live="polite">100%</output>
         <button type="button" data-basemap-lab-action="zoom-in" aria-label="放大">+</button>
-        <button type="button" data-basemap-lab-action="reset">还原</button>
+        <button type="button" data-basemap-lab-action="return-focus" disabled>返回焦点</button>
         <button type="button" data-basemap-lab-action="fullscreen">全屏</button>
       </div>
     `;
@@ -1419,9 +1465,9 @@
           </div>
           <div class="basemap-lab-viewport" data-basemap-lab-viewport>
             <div class="basemap-svg-host" data-basemap-svg-host></div>
-            <div class="basemap-node-popover is-hidden" data-basemap-lab-popover></div>
           </div>
         </section>
+        <aside class="basemap-node-popover basemap-node-detail-drawer is-hidden" data-basemap-lab-popover data-basemap-detail-drawer aria-label="信息化对象关联详情"></aside>
       </section>
     `;
   }

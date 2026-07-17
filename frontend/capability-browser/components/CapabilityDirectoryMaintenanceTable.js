@@ -8,7 +8,7 @@
   }
 
   function levelChip(label) {
-    return `<span class="type-pill">${cell(label)}</span>`;
+    return `<span class="hierarchy-level-label">${cell(label)}</span>`;
   }
 
   function fullText(value, className = "") {
@@ -70,6 +70,39 @@
     return utils.list(category?.domains).some((domain) => hasSelectedDomain(domain, selectedId));
   }
 
+  function searchText(item) {
+    return [item?.id, item?.code, item?.title, item?.description, item?.capabilityDefinition, item?.focusDescription]
+      .map((value) => utils.text(value).trim().toLowerCase())
+      .filter(Boolean)
+      .join(" ");
+  }
+
+  function directlyMatchesSearch(item, search) {
+    const query = utils.text(search).trim().toLowerCase();
+    return Boolean(query) && searchText(item).includes(query);
+  }
+
+  function hasSearchMatchBelowCapability(capability, search) {
+    return utils.list(capability?.focuses).some((focus) => directlyMatchesSearch(focus, search));
+  }
+
+  function hasSearchMatchBelowDomain(domain, search) {
+    return utils.list(domain?.capabilities).some(
+      (capability) => directlyMatchesSearch(capability, search) || hasSearchMatchBelowCapability(capability, search),
+    );
+  }
+
+  function hasSearchMatchBelowCategory(category, search) {
+    return utils.list(category?.domains).some(
+      (domain) => directlyMatchesSearch(domain, search) || hasSearchMatchBelowDomain(domain, search),
+    );
+  }
+
+  function targetIdAttr(item) {
+    const id = utils.text(item?.id).trim();
+    return id ? ` data-capability-directory-target-id="${utils.escapeHtml(id)}"` : "";
+  }
+
   function renderFocusRows(rows, selectedId, parentId, lineage, hidden) {
     const hiddenAttr = hidden ? " hidden" : "";
     return utils
@@ -77,7 +110,7 @@
       .map((row) => {
         const description = row.focusDescription || row.description;
         return `
-          <tr class="maintenance-data-row standard-group-detail ${row.id === selectedId ? "active" : ""}" data-standard-parent="${utils.escapeHtml(parentId)}" data-standard-lineage="${utils.escapeHtml(lineage.join(" "))}" data-maintenance-id="${utils.escapeHtml(row.id)}"${hiddenAttr}>
+          <tr class="maintenance-data-row standard-group-detail ${row.id === selectedId ? "active" : ""}" data-standard-parent="${utils.escapeHtml(parentId)}" data-standard-lineage="${utils.escapeHtml(lineage.join(" "))}" data-maintenance-id="${utils.escapeHtml(row.id)}"${targetIdAttr(row)}${hiddenAttr}>
             <td style="padding-left: 38px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${levelChip("关注点")} <strong>${cell(row.code)}</strong></td>
             <td>${cell(row.title)}</td>
             <td class="maintenance-description-cell">${fullText(description)}</td>
@@ -87,14 +120,17 @@
       .join("");
   }
 
-  function renderCapabilityGroup(capability, selectedId, parentId, lineage, hidden, expanded) {
+  function renderCapabilityGroup(capability, selectedId, parentId, lineage, hidden, options) {
     const capabilityId = groupId([...lineage, "capability", capability.code || capability.title]);
     const hiddenAttr = hidden ? " hidden" : "";
     const nextLineage = [...lineage, capabilityId];
     const definition = capability.capabilityDefinition || capability.description;
-    const nextExpanded = expanded || hasSelectedCapability(capability, selectedId);
+    const nextExpanded =
+      options.expandAll ||
+      (options.revealSelection && hasSelectedCapability(capability, selectedId)) ||
+      hasSearchMatchBelowCapability(capability, options.search);
     return `
-      <tr class="standard-group-row capability-directory-group depth-2 ${nextExpanded ? "expanded" : ""}" data-standard-group="${utils.escapeHtml(capabilityId)}" data-standard-parent="${utils.escapeHtml(parentId)}" data-standard-lineage="${utils.escapeHtml(lineage.join(" "))}"${hiddenAttr}>
+      <tr class="standard-group-row capability-directory-group depth-2 ${nextExpanded ? "expanded" : ""}" data-standard-group="${utils.escapeHtml(capabilityId)}" data-standard-parent="${utils.escapeHtml(parentId)}" data-standard-lineage="${utils.escapeHtml(lineage.join(" "))}"${targetIdAttr(capability)}${hiddenAttr}>
         <td colspan="3">
           <button class="standard-group-toggle" type="button" aria-expanded="${nextExpanded ? "true" : "false"}" style="padding-left: 32px;">
             <span class="standard-group-caret">›</span>
@@ -102,7 +138,7 @@
               <strong>${levelChip("能力")} ${cell(groupTitle(capability))}</strong>
               ${fullText(definition, "standard-group-description")}
             </span>
-            <em>${cell(`${utils.list(capability.focuses).length} 个关注点`)}</em>
+            <span class="hierarchy-meta">${cell(`${utils.list(capability.focuses).length} 个关注点`)}</span>
           </button>
         </td>
       </tr>
@@ -110,14 +146,17 @@
     `;
   }
 
-  function renderDomainGroup(domain, selectedId, parentId, lineage, hidden, expanded, expandFirstCapability, expandAll) {
+  function renderDomainGroup(domain, selectedId, parentId, lineage, hidden, options) {
     const domainId = groupId([...lineage, "domain", domain.code || domain.title]);
     const hiddenAttr = hidden ? " hidden" : "";
     const nextLineage = [...lineage, domainId];
     const definition = domain.description;
-    const nextExpanded = expanded || hasSelectedDomain(domain, selectedId);
+    const nextExpanded =
+      options.expandAll ||
+      (options.revealSelection && hasSelectedDomain(domain, selectedId)) ||
+      hasSearchMatchBelowDomain(domain, options.search);
     return `
-      <tr class="standard-group-row capability-directory-group depth-1 ${nextExpanded ? "expanded" : ""}" data-standard-group="${utils.escapeHtml(domainId)}" data-standard-parent="${utils.escapeHtml(parentId)}" data-standard-lineage="${utils.escapeHtml(lineage.join(" "))}"${hiddenAttr}>
+      <tr class="standard-group-row capability-directory-group depth-1 ${nextExpanded ? "expanded" : ""}" data-standard-group="${utils.escapeHtml(domainId)}" data-standard-parent="${utils.escapeHtml(parentId)}" data-standard-lineage="${utils.escapeHtml(lineage.join(" "))}"${targetIdAttr(domain)}${hiddenAttr}>
         <td colspan="3">
           <button class="standard-group-toggle" type="button" aria-expanded="${nextExpanded ? "true" : "false"}" style="padding-left: 18px;">
             <span class="standard-group-caret">›</span>
@@ -125,23 +164,26 @@
               <strong>${levelChip("能力域")} ${cell(groupTitle(domain))}</strong>
               ${optionalFullText(definition, "standard-group-description")}
             </span>
-            <em>${cell(`${utils.list(domain.capabilities).length} 个安全能力`)}</em>
+            <span class="hierarchy-meta">${cell(`${utils.list(domain.capabilities).length} 个安全能力`)}</span>
           </button>
         </td>
       </tr>
       ${utils
         .list(domain.capabilities)
-        .map((capability, index) => renderCapabilityGroup(capability, selectedId, domainId, nextLineage, !nextExpanded, expandAll || hasSelectedCapability(capability, selectedId) || (nextExpanded && expandFirstCapability && index === 0)))
+        .map((capability) => renderCapabilityGroup(capability, selectedId, domainId, nextLineage, !nextExpanded, options))
         .join("")}
     `;
   }
 
-  function renderCategoryGroup(category, selectedId, index, expandAll) {
+  function renderCategoryGroup(category, selectedId, index, options) {
     const categoryId = groupId(["capability-directory", index, category.code || category.title]);
-    const expanded = expandAll || hasSelectedCategory(category, selectedId);
+    const expanded =
+      options.expandAll ||
+      (options.revealSelection && hasSelectedCategory(category, selectedId)) ||
+      hasSearchMatchBelowCategory(category, options.search);
     const definition = category.description;
     return `
-      <tr class="standard-group-row capability-directory-group depth-0 ${expanded ? "expanded" : ""}" data-standard-group="${utils.escapeHtml(categoryId)}">
+      <tr class="standard-group-row capability-directory-group depth-0 ${expanded ? "expanded" : ""}" data-standard-group="${utils.escapeHtml(categoryId)}"${targetIdAttr(category)}>
         <td colspan="3">
           <button class="standard-group-toggle" type="button" aria-expanded="${expanded ? "true" : "false"}" style="padding-left: 4px;">
             <span class="standard-group-caret">›</span>
@@ -149,24 +191,29 @@
               <strong>${levelChip("能力分类")} ${cell(groupTitle(category))}</strong>
               ${optionalFullText(definition, "standard-group-description")}
             </span>
-            <em>${cell(`${utils.list(category.domains).length} 个能力域`)}</em>
+            <span class="hierarchy-meta">${cell(`${utils.list(category.domains).length} 个能力域`)}</span>
           </button>
         </td>
       </tr>
       ${utils
         .list(category.domains)
-        .map((domain, domainIndex) => renderDomainGroup(domain, selectedId, categoryId, [categoryId], !expanded, expandAll || (expanded && domainIndex === 0), domainIndex === 0, expandAll))
+        .map((domain) => renderDomainGroup(domain, selectedId, categoryId, [categoryId], !expanded, options))
         .join("")}
     `;
   }
 
-  function render({ rows, capabilityGroups, selectedId, emptyState, search }) {
+  function render({ rows, capabilityGroups, selectedId, emptyState, search, revealSelection = false }) {
     const groups = utils.list(capabilityGroups);
     const nameColumnWidth = focusNameColumnWidth(groups);
+    const options = { search: utils.text(search).trim(), revealSelection: Boolean(revealSelection), expandAll: false };
     if (!groups.length) {
       return `<div class="maintenance-empty-state">${utils.escapeHtml(emptyState || "暂无安全能力清单数据。")}</div>`;
     }
     return `
+      <div class="capability-directory-toolbar" aria-label="能力字典目录操作">
+        <button type="button" data-capability-directory-action="expand-all">全部展开</button>
+        <button type="button" data-capability-directory-action="collapse-l0">收起到 L0</button>
+      </div>
       <div class="maintenance-table-scroll">
         <table class="maintenance-data-table capability-directory-maintenance-table" style="width: 100%; min-width: 0; table-layout: fixed;">
           <colgroup>
@@ -182,7 +229,7 @@
             </tr>
           </thead>
           <tbody>
-            ${groups.map((category, index) => renderCategoryGroup(category, selectedId, index, Boolean(utils.text(search).trim()))).join("")}
+            ${groups.map((category, index) => renderCategoryGroup(category, selectedId, index, options)).join("")}
           </tbody>
         </table>
       </div>

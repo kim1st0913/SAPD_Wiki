@@ -1,0 +1,208 @@
+/* P1-3 lifecycle workbench contract: local table scrolling, persistent context, semantic empty values. */
+.dev-lifecycle-workspace,
+.dev-lifecycle-workspace .lifecycle-relation-pane,
+.dev-lifecycle-workspace .lifecycle-relation-section,
+.dev-lifecycle-workspace .lifecycle-record-scroll,
+#devLifecycleLane,
+#dataLifecycleMatrix {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.dev-lifecycle-workspace,
+#devLifecycleLane,
+#dataLifecycleMatrix {
+  overflow-x: hidden;
+}
+
+#devLifecycleLane,
+#dataLifecycleMatrix {
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: auto;
+  contain: layout paint style;
+}
+
+.lifecycle-stage-context {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(220px, 0.72fr) minmax(280px, 1.45fr) auto;
+  gap: 14px 24px;
+  align-items: center;
+  min-height: 72px;
+  padding: 12px 18px;
+  border-block: 1px solid var(--line, #d7e0ea);
+  background: color-mix(in srgb, var(--surface, #ffffff) 94%, var(--primary, #1473e6) 6%);
+  color: var(--text, #1d2939);
+}
+
+.lifecycle-stage-context__identity {
+  display: grid;
+  gap: 4px;
+}
+
+.lifecycle-stage-context__identity > span {
+  color: var(--muted, #667085);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+}
+
+.lifecycle-stage-context__identity > strong {
+  display: flex;
+  gap: 9px;
+  align-items: baseline;
+  min-width: 0;
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.lifecycle-stage-context__identity code {
+  flex: 0 0 auto;
+  color: var(--primary, #1473e6);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 760;
+}
+
+.lifecycle-stage-context > p {
+  margin: 0;
+  color: var(--muted, #667085);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.lifecycle-stage-context dl {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px 16px;
+  margin: 0;
+}
+
+.lifecycle-stage-context dl > div {
+  display: inline-flex;
+  gap: 5px;
+  align-items: baseline;
+  white-space: nowrap;
+}
+
+.lifecycle-stage-context dt,
+.lifecycle-stage-context dd {
+  margin: 0;
+  font-size: 12px;
+}
+
+.lifecycle-stage-context dt {
+  color: var(--muted, #667085);
+}
+
+.lifecycle-stage-context dd {
+  color: var(--text, #1d2939);
+  font-weight: 720;
+}
+
+.dev-lifecycle-workspace .lifecycle-table-panel {
+  min-width: 0;
+  border: 0;
+  border-bottom: 1px solid var(--line, #d7e0ea);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.dev-lifecycle-workspace .lifecycle-table-scroll,
+.dev-lifecycle-workspace .relationship-matrix-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+  scrollbar-gutter: auto;
+}
+
+.dev-lifecycle-workspace .lifecycle-profile-table {
+  width: 100%;
+  min-width: 1280px;
+}
+
+.dev-lifecycle-workspace .lifecycle-security-table {
+  width: 100%;
+  min-width: 1480px;
+}
+
+.dev-lifecycle-workspace .data-lifecycle-profile-table {
+  width: 100%;
+  min-width: 1040px;
+}
+
+.dev-lifecycle-workspace .data-lifecycle-policy-table {
+  width: 100%;
+  min-width: 1560px;
+}
+
+.dev-lifecycle-workspace .lifecycle-workbench-table th,
+.dev-lifecycle-workspace .lifecycle-workbench-table td {
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.dev-lifecycle-workspace .lifecycle-workbench-table thead th {
+  position: static;
+  background: var(--surface-muted, #f7f9fc);
+}
+
+.dev-lifecycle-workspace .data-lifecycle-technical-table thead th {
+  position: static;
+}
+
+.dev-lifecycle-workspace .lifecycle-workbench-table th:first-child,
+.dev-lifecycle-workspace .lifecycle-workbench-table td:first-child {
+  position: static;
+  box-shadow: none;
+}
+
+.dev-lifecycle-workspace .data-lifecycle-profile-table tr.data-process-group-continuation td:first-child {
+  position: static;
+  box-shadow: none;
+}
+
+.dev-lifecycle-workspace .lifecycle-workbench-table tbody tr:hover td,
+.dev-lifecycle-workspace .lifecycle-workbench-table tbody tr.selected td {
+  background: color-mix(in srgb, var(--surface, #ffffff) 92%, var(--primary, #1473e6) 8%);
+}
+
+.dev-lifecycle-workspace .empty-inline {
+  color: var(--muted, #667085);
+  font-style: normal;
+  letter-spacing: 0;
+}
+
+@media (max-width: 1180px) {
+  .lifecycle-stage-context {
+    grid-template-columns: minmax(220px, 0.8fr) minmax(260px, 1.2fr);
+  }
+
+  .lifecycle-stage-context dl {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 760px) {
+  .lifecycle-stage-context {
+    position: relative;
+    grid-template-columns: 1fr;
+    padding: 12px 14px;
+  }
+
+  .lifecycle-stage-context dl {
+    grid-column: auto;
+  }
+
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dev-lifecycle-workspace .lifecycle-table-scroll {
+    scroll-behavior: auto;
+  }
+}

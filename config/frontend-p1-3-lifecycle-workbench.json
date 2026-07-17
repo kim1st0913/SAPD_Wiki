@@ -1,0 +1,27 @@
+{
+  "version": "2026-07-14.p1-3-lifecycle-workbench-v3",
+  "routes": ["/development-security", "/data-security"],
+  "emptyDisplay": "—",
+  "emptyInputs": ["nullish", "", "/", "／", "-", "－", "–", "—"],
+  "preserveBusinessPunctuation": true,
+  "minimumBodyFontPx": 13,
+  "requiredContext": ["code", "title", "description", "facts"],
+  "requiredSections": {
+    "LC-AP": ["开发阶段画像", "阶段安全控制与威胁补充策略表"],
+    "LC-DT": ["数据处理场景与技术映射", "数据重要程度安全策略矩阵"]
+  },
+  "localScrollContract": ["single_horizontal_scroll_owner", "lane_vertical_scroll_owner", "compositor_isolated_vertical_owner", "non_sticky_table_cells", "no_horizontal_hint", "no_page_horizontal_scroll", "non_sticky_context"],
+  "dictionaryReferenceContract": {
+    "authority": "maintenance/modules.json",
+    "objectType": "security_technology_module",
+    "identity": "canonical_id",
+    "qualifiedSourceLabelCreatesObject": false
+  },
+  "excludedScopes": [
+    "lifecycle relationship inference",
+    "protected lifecycle data packages",
+    "P0-3 capability graph layout",
+    "maturity assessment",
+    "Draw.io appearance"
+  ]
+}

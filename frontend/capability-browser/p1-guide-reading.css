@@ -1,0 +1,102 @@
+/* P1-6: the App owns only the directory and isolated document surface. */
+
+.app-shell-integrated .app-page-header:has(.guide-header-actions) {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.app-shell-integrated .page-header-actions.guide-header-actions {
+  display: inline-flex;
+}
+
+.app-shell-integrated .maturity-guide-download {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--shell-line);
+  border-radius: var(--radius);
+  background: var(--shell-surface);
+  color: var(--shell-text);
+  font-size: 12px;
+  font-weight: 720;
+  line-height: 1;
+  text-decoration: none;
+  box-shadow: none;
+}
+
+.app-shell-integrated .maturity-guide-download:hover {
+  border-color: var(--shell-primary);
+  color: var(--shell-primary-dark);
+}
+
+.app-shell-integrated .maturity-guide-download:focus-visible {
+  outline: 2px solid var(--shell-primary);
+  outline-offset: 2px;
+}
+
+.app-shell-integrated .content-workspace.maturity-guide-workspace {
+  grid-template-columns: 210px minmax(0, 1fr);
+  gap: 0;
+  padding: 8px;
+  background: var(--surface-quiet, #f5f7fa);
+}
+
+.app-shell-integrated .content-workspace.maturity-guide-workspace .content-nav-pane {
+  border: 1px solid var(--line);
+  border-right: 0;
+  border-radius: var(--sapd-radius-lg, 14px) 0 0 var(--sapd-radius-lg, 14px);
+  background: var(--panel, #fbfcfe);
+  box-shadow: none;
+}
+
+.app-shell-integrated .content-workspace.maturity-guide-workspace .content-list-pane {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 0 var(--sapd-radius-lg, 14px) var(--sapd-radius-lg, 14px) 0;
+  background: var(--panel, #fbfcfe);
+  box-shadow: none;
+}
+
+.app-shell-integrated .content-workspace.maturity-guide-workspace .content-list {
+  padding: 0;
+  background: var(--panel, #fbfcfe);
+}
+
+.app-shell-integrated .maturity-guide-nav-button {
+  min-height: 40px;
+  padding: 8px 10px;
+  border-radius: var(--sapd-radius-sm, 6px);
+}
+
+.app-shell-integrated .maturity-guide-frame-shell,
+.app-shell-integrated .maturity-guide-frame,
+.app-shell-integrated .maturity-guide-frame-loading {
+  background: var(--panel, #fbfcfe);
+}
+
+.app-shell-integrated .maturity-guide-frame-shell {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+@media (max-width: 900px) {
+  .app-shell-integrated .content-workspace.maturity-guide-workspace {
+    grid-template-columns: 184px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .app-shell-integrated .content-workspace.maturity-guide-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .app-shell-integrated .content-workspace.maturity-guide-workspace .content-nav-pane {
+    display: none;
+  }
+
+  .app-shell-integrated .content-workspace.maturity-guide-workspace .content-list-pane {
+    border-radius: var(--sapd-radius-lg, 14px);
+  }
+}

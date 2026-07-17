@@ -40,7 +40,7 @@ Product UI for a local security architecture relationship workspace.
 - Source evidence: folded panel only.
 - Business `参考来源`: use the shared low-noise label + rounded reference box pattern. It may appear inside business tables only when the value is a user-readable business reference, not a raw provenance field.
 - Filters: search and simple controls, not heavy dashboard filter bars.
-- User-facing naming: use `Issue` for review/comment/problem records. Do not label this workflow as `批注` in new UI copy; keep `批注` only when quoting older historical records or legacy code identifiers.
+- User-facing naming: use `Issue` for individual review/comment/problem records and related actions; the list surface is named `ISSUE清单` per the product owner's terminology. Do not label this workflow as `批注` in new UI copy; keep `批注` only when quoting older historical records or legacy code identifiers.
 
 ## Frontend Display Governance
 

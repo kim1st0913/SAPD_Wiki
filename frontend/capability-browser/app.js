@@ -12,6 +12,7 @@ const state = {
   lifecycleWorkbench: null,
   lifecycleWorkbenchViewModel: null,
   analyticsSummary: null,
+  dashboardKnowledgeSummary: null,
   content: null,
   guidePackages: {},
   maturityModelGuideActiveSection: "method",
@@ -22,6 +23,7 @@ const state = {
   activeView: "overview",
   activeRoute: "/",
   capabilityCatalogCollapsed: false,
+  capabilityCatalogNarrowExpanded: false,
   devLifecycleCatalogCollapsed: false,
   expandedCapabilityIds: new Set(),
   expandedEnvironmentIds: new Set(),
@@ -46,6 +48,7 @@ const state = {
   devLifecycleStageSearch: "",
   dataLifecycleStageSearch: "",
   selectedMaintenanceId: null,
+  capabilityDirectoryRevealSelection: false,
   selectedContentId: null,
   selectedContentSlideIndex: 0,
   activeModelingLanguageTab: "overview",
@@ -60,6 +63,7 @@ const state = {
   maintenanceSectionStaleReloads: new Set(),
   loadedPackages: new Set(),
   packageLoads: new Map(),
+  packageLoadErrors: new Map(),
   capabilityProjectionRequestSeq: 0,
   activeCapabilityProjectionRequest: null,
   capabilityProjectionRequests: new Map(),
@@ -91,6 +95,7 @@ const state = {
   workbenchIssueSortDirection: "desc",
   workbenchPendingDeleteIssueId: "",
   workbenchIssueSaving: false,
+  overviewMaturityLoadPromise: null,
   activeUserTarget: null,
   activePageAnnotationTarget: null,
   userAnnotationDrawerOpen: false,
@@ -132,6 +137,7 @@ const state = {
   globalSearchPageFilter: "全部",
   globalSearchPageSelectedKey: "",
   globalSearchPageIndex: 1,
+  globalSearchPageScrollPositions: {},
   searchHistoryExpandedKind: "",
   search: "",
   pageSearches: {},
@@ -277,7 +283,6 @@ function setScopedSearch(value) {
 
 const SEARCH_COMPOSITION_INPUT_SELECTOR = [
   "#searchInput",
-  "#searchPageQueryInput",
   "#capabilitySearchInput",
   "#sourceSearchInput",
   "#environmentSearchInput",
@@ -289,7 +294,6 @@ const SEARCH_COMPOSITION_INPUT_SELECTOR = [
 
 const SEARCH_HISTORY_INPUT_SELECTOR = [
   "#searchInput",
-  "#searchPageQueryInput",
   "#capabilitySearchInput",
   "#sourceSearchInput",
   "#environmentSearchInput",
@@ -333,6 +337,7 @@ function queuePageSearchReveal(value, scope = searchScopeForCurrentState(), opti
 function pageSearchQueryForScope(scope = searchScopeForCurrentState()) {
   if (scope === "development-security") return text(state.devLifecycleStageSearch).trim();
   if (scope === "data-security") return text(state.dataLifecycleStageSearch).trim();
+  if (scope === "workbench:/workbench/annotations") return text(state.workbenchIssueSearch).trim();
   if (scope === searchScopeForCurrentState()) return text(state.search || currentScopedSearch()).trim();
   return text(state.pageSearches?.[scope] || "").trim();
 }
@@ -413,8 +418,6 @@ function searchTextForActivatedResult(result = {}) {
 function syncSearchInputs() {
   const globalInput = $("searchInput");
   if (globalInput && globalInput.value !== state.globalSearch) globalInput.value = state.globalSearch;
-  const searchPageInput = $("searchPageQueryInput");
-  if (searchPageInput && searchPageInput.value !== state.globalSearch) searchPageInput.value = state.globalSearch;
   const capabilityInput = $("capabilitySearchInput");
   if (capabilityInput && capabilityInput.value !== state.search) capabilityInput.value = state.search;
   const sourceInput = $("sourceSearchInput");
@@ -432,6 +435,7 @@ const SEARCH_HISTORY_MAX_ITEMS = 10;
 const SEARCH_HISTORY_COLLAPSED_ITEMS = 5;
 const globalSearchIndexQueryCache = new Map();
 const searchHistoryCommitTimers = new Map();
+let globalSearchPageScrollPersistTimer = 0;
 let searchHistoryMemoryStore = null;
 
 function safeSearchHistoryStore() {
@@ -459,7 +463,7 @@ function searchHistoryKindForInput(input) {
   const id = text(input?.id).trim();
   const declaredKind = text(input?.dataset?.searchHistoryKind).trim();
   if (declaredKind && input?.matches?.(SEARCH_HISTORY_INPUT_SELECTOR)) return declaredKind;
-  if (id === "searchInput" || id === "searchPageQueryInput") return "global";
+  if (id === "searchInput") return "global";
   if (id === "capabilitySearchInput") return "capability";
   if (id === "environmentSearchInput") return "environment";
   if (id === "devLifecycleStageSearch") return "lc-ap";
@@ -647,10 +651,6 @@ function applySearchHistoryQuery(input, query = "") {
     state.globalSearch = value;
     syncSearchInputs();
     runGlobalSearch();
-    return;
-  }
-  if (input.id === "searchPageQueryInput") {
-    openGlobalSearchPage(value, { replace: true });
     return;
   }
   input.dispatchEvent(new Event("input", { bubbles: true }));
@@ -2177,6 +2177,7 @@ function flushPageSearchReveal() {
 function movePageSearchMatch(delta = 1, scope = searchScopeForCurrentState()) {
   const query = pageSearchQueryForScope(scope);
   if (!query) return;
+  if (scope === "workbench:/workbench/annotations" && moveWorkbenchIssueSearchMatch(delta, query)) return;
   if (scope === "development-security" || scope === "data-security") {
     moveLifecyclePageSearchMatch(scope === "data-security" ? "data" : "dev", delta, query);
     return;
@@ -2439,6 +2440,49 @@ function highlightSearchText(value = "", query = "") {
   return output || escapeHtml(source);
 }
 
+function highlightFirstSearchText(value = "", query = "") {
+  const source = text(value);
+  const needle = text(query).trim();
+  if (!source || !needle) return escapeHtml(source);
+  const index = source.toLowerCase().indexOf(needle.toLowerCase());
+  if (index < 0) return escapeHtml(source);
+  return `${escapeHtml(source.slice(0, index))}<mark class="global-search-snippet-mark">${escapeHtml(source.slice(index, index + needle.length))}</mark>${escapeHtml(source.slice(index + needle.length))}`;
+}
+
+function globalSearchPageStateKey(query = state.globalSearch, filter = state.globalSearchPageFilter, page = state.globalSearchPageIndex) {
+  return [text(query).trim().toLowerCase(), text(filter).trim() || "全部", Math.max(1, Number(page) || 1)].join("::");
+}
+
+function globalSearchPageScrollHost() {
+  return $("searchWorkspace")?.querySelector?.(".global-search-page-results") || null;
+}
+
+function rememberGlobalSearchPageScroll({ persist = false } = {}) {
+  const host = globalSearchPageScrollHost();
+  if (!host) return;
+  state.globalSearchPageScrollPositions = {
+    ...(state.globalSearchPageScrollPositions || {}),
+    [globalSearchPageStateKey()]: Math.max(0, Math.round(host.scrollTop || 0)),
+  };
+  if (persist) persistWorkspaceState();
+}
+
+function resetGlobalSearchPageScroll() {
+  state.globalSearchPageScrollPositions = {
+    ...(state.globalSearchPageScrollPositions || {}),
+    [globalSearchPageStateKey()]: 0,
+  };
+}
+
+function restoreGlobalSearchPageScroll() {
+  const key = globalSearchPageStateKey();
+  const top = Math.max(0, Number(state.globalSearchPageScrollPositions?.[key]) || 0);
+  requestAnimationFrame(() => {
+    const host = globalSearchPageScrollHost();
+    if (host && globalSearchPageStateKey() === key) host.scrollTop = top;
+  });
+}
+
 function searchSelectorStringValue(value = "") {
   return text(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
@@ -2652,6 +2696,7 @@ function expandCapabilityAncestors(targetId) {
 
 function activateGlobalSearchResult(result) {
   if (!result?.route) return;
+  rememberGlobalSearchPageScroll();
   const activationQuery = searchTextForActivatedResult(result);
   clearGlobalSearchPanel({ keepQuery: true });
   activateRoute(result.route);
@@ -2675,6 +2720,9 @@ function activateGlobalSearchResult(result) {
   }
   if (result.selectedMaintenanceId) {
     state.selectedMaintenanceId = result.selectedMaintenanceId;
+    if (state.activeMaintenancePage === "capability-directory") {
+      state.capabilityDirectoryRevealSelection = true;
+    }
     renderMaintenance();
   }
   if (result.selectedProcessId && result.route === "/development-security") {
@@ -2753,7 +2801,7 @@ function announceAppStatus(message) {
 const WORKSPACE_STATE_STORAGE_KEY = "sapd:workspace-state:v1";
 const MODELING_LANGUAGE_GUIDE_ROUTE = "/guides/security-architecture-modeling-language";
 const MATURITY_MODEL_GUIDE_ROUTE = "/guides/maturity-model-usage";
-const MATURITY_MODEL_GUIDE_DOCUMENT_PATH = "/assets/guides/maturity-model-usage.html?v=compact-hero-20260710-2";
+const MATURITY_MODEL_GUIDE_DOCUMENT_PATH = "/assets/guides/maturity-model-usage.html?embed=1&v=p1-6-guide-content-20260716-1&density=p2-3-guide-density-20260716-2";
 const MATURITY_MODEL_GUIDE_NAV_ITEMS = [
   { id: "method", label: "1. 成熟度方法论说明" },
   { id: "levels", label: "2. 成熟度等级描述" },
@@ -2971,6 +3019,10 @@ function persistWorkspaceState() {
         selectedContentId: state.selectedContentId,
         selectedContentSlideIndex: state.selectedContentSlideIndex,
         activeModelingLanguageTab: state.activeModelingLanguageTab,
+        globalSearch: state.globalSearch,
+        globalSearchPageFilter: state.globalSearchPageFilter,
+        globalSearchPageIndex: state.globalSearchPageIndex,
+        globalSearchPageScrollPositions: state.globalSearchPageScrollPositions,
         savedAt: new Date().toISOString(),
       }),
     );
@@ -3006,6 +3058,13 @@ function applyWorkspaceState(snapshot) {
   state.selectedContentId = snapshot.selectedContentId || state.selectedContentId;
   state.selectedContentSlideIndex = Number.isFinite(Number(snapshot.selectedContentSlideIndex)) ? Number(snapshot.selectedContentSlideIndex) : state.selectedContentSlideIndex;
   state.activeModelingLanguageTab = snapshot.activeModelingLanguageTab || state.activeModelingLanguageTab;
+  const canRestoreSearchPageState = state.activeRoute !== "/search" || !snapshot.globalSearch || snapshot.globalSearch === state.globalSearch;
+  if (canRestoreSearchPageState) {
+    state.globalSearch = snapshot.globalSearch || state.globalSearch;
+    state.globalSearchPageFilter = snapshot.globalSearchPageFilter || state.globalSearchPageFilter;
+    state.globalSearchPageIndex = Number.isFinite(Number(snapshot.globalSearchPageIndex)) ? Math.max(1, Number(snapshot.globalSearchPageIndex)) : state.globalSearchPageIndex;
+    state.globalSearchPageScrollPositions = snapshot.globalSearchPageScrollPositions && typeof snapshot.globalSearchPageScrollPositions === "object" ? snapshot.globalSearchPageScrollPositions : state.globalSearchPageScrollPositions;
+  }
 }
 
 const PACKAGE_GETTERS = {
@@ -3016,6 +3075,7 @@ const PACKAGE_GETTERS = {
   environmentWorkbench: "getEnvironmentWorkbench",
   lifecycleWorkbench: "getLifecycleWorkbench",
   analyticsSummary: "getAnalyticsSummary",
+  dashboardKnowledgeSummary: "getDashboardKnowledgeSummary",
   maintenanceIndex: "getMaintenanceIndex",
   maintenanceKnowledge: "getMaintenanceKnowledge",
   sharedLookups: "getSharedLookups",
@@ -3050,6 +3110,7 @@ function assignPackageData(name, data) {
   if (name === "environmentWorkbench") state.environmentWorkbench = data;
   if (name === "lifecycleWorkbench") state.lifecycleWorkbench = data;
   if (name === "analyticsSummary") state.analyticsSummary = data;
+  if (name === "dashboardKnowledgeSummary") state.dashboardKnowledgeSummary = data;
   if (name === "maintenanceIndex") state.maintenanceIndex = data;
   if (name === "maintenanceKnowledge") state.maintenanceKnowledge = data;
   if (name === "content") state.content = data;
@@ -3067,14 +3128,17 @@ function loadDataPackage(name) {
   const getterName = PACKAGE_GETTERS[name];
   const getter = getterName ? dataClient?.[getterName] : null;
   if (!getter) return Promise.resolve();
+  state.packageLoadErrors.delete(name);
   const load = getter
     .call(dataClient)
     .then((envelope) => {
       assignPackageData(name, envelope?.data ?? null);
       state.loadedPackages.add(name);
+      state.packageLoadErrors.delete(name);
     })
     .catch((error) => {
       console.warn(`数据包加载失败：${name}`, error);
+      state.packageLoadErrors.set(name, error?.message || "数据请求失败");
     })
     .finally(() => {
       state.packageLoads.delete(name);
@@ -3082,6 +3146,57 @@ function loadDataPackage(name) {
     });
   state.packageLoads.set(name, load);
   return load;
+}
+
+const RUNTIME_CONTEXT_KEYS = [
+  "selectedCapabilityId",
+  "selectedEnvironmentId",
+  "selectedEnvironmentSegmentId",
+  "selectedEnvironmentObjectId",
+  "selectedEnvironmentRowId",
+  "selectedDevProcessId",
+  "selectedDataProcessId",
+  "selectedMaintenanceId",
+  "selectedContentId",
+];
+
+function captureRuntimeContext() {
+  return {
+    activeRoute: state.activeRoute,
+    values: Object.fromEntries(RUNTIME_CONTEXT_KEYS.map((key) => [key, state[key]])),
+  };
+}
+
+function restoreRuntimeContext(snapshot) {
+  if (!snapshot || state.activeRoute !== snapshot.activeRoute) return false;
+  const selectionWasSuperseded = RUNTIME_CONTEXT_KEYS.some((key) => state[key] !== snapshot.values[key]);
+  if (selectionWasSuperseded) return false;
+  RUNTIME_CONTEXT_KEYS.forEach((key) => {
+    state[key] = snapshot.values[key];
+  });
+  return true;
+}
+
+function retryDataPackage(name) {
+  if (!PACKAGE_GETTERS[name]) return Promise.resolve(false);
+  const snapshot = captureRuntimeContext();
+  state.loadedPackages.delete(name);
+  state.packageLoadErrors.delete(name);
+  window.sapdDataClient?.invalidatePackage?.(name);
+  renderActiveView();
+  return loadDataPackage(name).finally(() => {
+    if (state.activeRoute !== snapshot.activeRoute) return;
+    restoreRuntimeContext(snapshot);
+    renderActiveView();
+  });
+}
+
+function retryStandardLoad(loadKey) {
+  const key = text(loadKey).trim();
+  if (!key) return false;
+  clearStandardFrameworkLoadError(key);
+  if (state.activeView === "maintenance" && state.activeMaintenancePage === "standards") renderMaintenance();
+  return true;
 }
 
 function scheduleCapabilityRenderAfterPackageLoad(name) {
@@ -3107,7 +3222,7 @@ function routePackagesForCurrentState() {
   if (state.activeView === "placeholder") return [];
   if (state.activeView === "workbench") return [];
   if (state.activeView === "search") return [];
-  if (state.activeView === "overview") return ["analyticsSummary"];
+  if (state.activeView === "overview") return ["analyticsSummary", "maintenanceIndex", "dashboardKnowledgeSummary"];
   if (state.activeView === "capabilities") return ["capabilityInitial", "maintenanceIndex"];
   if (state.activeView === "environment") {
     return ["environmentWorkbench"];
@@ -5811,7 +5926,7 @@ function downloadBlobFile(blob, filename = "") {
   const safeName = text(filename).trim() || userNotesExportFileNameFallback();
   if (typeof window === "undefined" || !window.URL || !window.URL.createObjectURL) {
     window.alert("当前环境不支持文件下载。");
-    return;
+    return false;
   }
   const href = window.URL.createObjectURL(data);
   const anchor = document.createElement("a");
@@ -5822,6 +5937,25 @@ function downloadBlobFile(blob, filename = "") {
   anchor.click();
   anchor.remove();
   window.setTimeout(() => window.URL.revokeObjectURL(href), 700);
+  return true;
+}
+
+function issueExportSuccessState(result, labels = {}) {
+  if (result?.blob) {
+    if (!downloadBlobFile(result.blob, result.filename)) throw new Error("当前环境不支持文件下载");
+    return {
+      state: "success",
+      message: `${text(labels.downloaded || "Issue 下载已开始")}；保存位置由浏览器下载设置决定。`,
+      outputPath: "",
+    };
+  }
+  const outputPath = text(result?.output_path || result?.data?.output_path).trim();
+  if (!outputPath) throw new Error("导出服务未返回文件下载路径");
+  return {
+    state: "success",
+    message: `${text(labels.saved || "Issue 已导出到文件下载路径")}：${outputPath}`,
+    outputPath,
+  };
 }
 
 function syncUserNotesExportButton() { document.querySelectorAll("[data-user-notes-export]").forEach((exportButton) => { const hasIssues = workbenchAllIssueRows().length > 0; exportButton.disabled = Boolean(state.userNotesExporting || !hasIssues); exportButton.textContent = state.userNotesExporting ? "导出中..." : "导出全部"; exportButton.title = hasIssues ? "导出全部 Issue" : "当前没有 Issue 可导出"; exportButton.classList.toggle("is-exporting", Boolean(state.userNotesExporting)); }); }
@@ -5839,14 +5973,12 @@ async function handleUserNotesExport() {
   syncUserNotesExportButton();
   syncWorkbenchIssueHeaderControls();
   try {
-    const result = await dataClient.exportUserNotes({ save: true });
+    const result = await dataClient.exportUserNotes();
     if (result?.ok === false) throw new Error(result.error || "导出失败");
-    const outputPath = text(result?.output_path).trim();
-    state.userNotesExportStatus = {
-      state: "success",
-      message: outputPath ? `已导出全部批注到：${outputPath}` : "已导出全部批注。",
-      outputPath,
-    };
+    state.userNotesExportStatus = issueExportSuccessState(result, {
+      downloaded: "全部 Issue 下载已开始",
+      saved: "已导出全部 Issue 到文件下载路径",
+    });
   } catch (error) {
     console.warn("用户 Issue 导出失败", error);
     state.userNotesExportStatus = { state: "error", message: `Issue 导出失败：${text(error?.message || error) || "请检查应用服务是否可用"}` };
@@ -5911,15 +6043,14 @@ async function handleWorkbenchIssueSelectedExport() {
   try {
     const result = await dataClient.saveMarkdownExport({
       filename_prefix: "sapd-issues-selected",
+      filename: workbenchIssueExportFilename(),
       content: markdown,
     });
     if (result?.ok === false) throw new Error(result.error || "导出失败");
-    const outputPath = text(result?.output_path).trim();
-    state.workbenchIssueExportStatus = {
-      state: "success",
-      message: outputPath ? `已导出所选 Issue 到：${outputPath}` : "已导出所选 Issue。",
-      outputPath,
-    };
+    state.workbenchIssueExportStatus = issueExportSuccessState(result, {
+      downloaded: "所选 Issue 下载已开始",
+      saved: "已导出所选 Issue 到文件下载路径",
+    });
   } catch (error) {
     console.warn("所选 Issue 导出失败", error);
     state.workbenchIssueExportStatus = { state: "error", message: `所选 Issue 导出失败：${text(error?.message || error) || "请检查应用服务是否可用"}` };
@@ -6708,7 +6839,6 @@ function ensureRoutePackages({ rerender = true } = {}) {
   const packages = routePackagesForCurrentState().filter((name) => !state.loadedPackages.has(name));
   if (!packages.length) return Promise.resolve();
   return Promise.all(packages.map(loadDataPackage)).then(() => {
-    renderMetrics();
     if (rerender && state.activeRoute === routeAtStart) {
       renderActiveView();
       setupResizableWorkspaces();
@@ -6721,7 +6851,6 @@ function scheduleOverviewWarmup() {
   const warmup = () => {
     if (state.activeView !== "overview") return;
     Promise.all(["analyticsSummary"].map(loadDataPackage)).then(() => {
-      renderMetrics();
       if (state.activeView === "overview") renderOverview();
     });
   };
@@ -6850,6 +6979,48 @@ function installStandardTooltip() {
 
 function emptyState(title, body = "等待数据导出或选择左侧对象") {
   return `<div class="detail-empty"><strong>${escapeHtml(title)}</strong><span>${escapeHtml(body)}</span></div>`;
+}
+
+function runtimeStateHtml(runtimeState, options = {}) {
+  const component = window.sapdComponents?.RuntimeState;
+  if (component?.render) return component.render({ state: runtimeState, ...options });
+  return emptyState(options.title || "当前内容暂不可用", options.message || "请稍后重试。");
+}
+
+function packageDataForRuntimeState(name) {
+  if (name === "capability") return state.capability;
+  if (name === "capabilityInitial") return state.capabilityInitial;
+  if (name === "environmentWorkbench") return state.environmentWorkbench;
+  if (name === "maintenanceIndex") return state.maintenanceIndex;
+  if (name === "maintenanceKnowledge") return state.maintenanceKnowledge;
+  if (name === "sharedLookups") return state.sharedLookups;
+  if (name === "standards") return state.standards;
+  if (name === "lifecycle") return state.lifecycle;
+  if (name === "lifecycleWorkbench") return state.lifecycleWorkbench;
+  if (name === "content") return state.content;
+  return null;
+}
+
+function runtimeStateForPackage(name, { hasData = null } = {}) {
+  const data = packageDataForRuntimeState(name);
+  const dataState = data?.__data_state || data?.data_state || data?.dataState || data?.meta?.dataState || "";
+  const loading = state.packageLoads.has(name) || (!state.loadedPackages.has(name) && !state.packageLoadErrors.has(name));
+  return (
+    window.sapdComponents?.RuntimeState?.resolveState({
+      loading,
+      error: state.packageLoadErrors.get(name) || null,
+      dataState,
+      hasData,
+    }) || (loading ? "loading" : "ready")
+  );
+}
+
+function runtimePackageStateHtml(name, options = {}) {
+  const runtimeState = runtimeStateForPackage(name, options);
+  const action = ["error", "missing_file"].includes(runtimeState)
+    ? { scope: "package", key: name, label: runtimeState === "missing_file" ? "重新检查" : "重新加载" }
+    : null;
+  return runtimeStateHtml(runtimeState, { ...options, action });
 }
 
 function pillList(items, empty = "暂无") {
@@ -8045,18 +8216,6 @@ function prepareMaturityModelGuideFrame() {
   const finishLoading = () => {
     const frameDocument = frame.contentDocument;
     if (!frameDocument?.querySelector(".hero") || !frameDocument.getElementById("method")) return;
-    if (!frameDocument.getElementById("sapd-wiki-maturity-embed-style")) {
-      const embedStyle = frameDocument.createElement("style");
-      embedStyle.id = "sapd-wiki-maturity-embed-style";
-      embedStyle.textContent = `
-        html { scroll-behavior: auto; }
-        .layout { display: block; }
-        .sidebar { display: none !important; }
-        .main { margin-inline: auto; }
-        .hero, .section { scroll-margin-top: 20px; }
-      `;
-      frameDocument.head.append(embedStyle);
-    }
     frame.closest(".maturity-guide-frame-shell")?.classList.add("is-ready");
     if (scrollMaturityModelGuideFrameToSection(state.maturityModelGuidePendingSection)) {
       state.maturityModelGuidePendingSection = "";
@@ -8086,7 +8245,7 @@ function renderMaturityModelGuide(routeInfo = {}) {
   const guideRow = {
     id: "guide:maturity-model-usage",
     route: MATURITY_MODEL_GUIDE_ROUTE,
-    title: routeItem.label || "成熟度模型使用方法",
+    title: routeItem.label || "成熟度模型使用指南",
     category: "安全指南",
     view_type: "html",
   };
@@ -8300,20 +8459,6 @@ function contentRows() {
   return rows;
 }
 
-function renderMetrics() {
-  const capabilityStats = state.capabilityWorkbench?.meta?.stats || state.capability?.stats || {};
-  const environmentStats = state.environmentWorkbench?.meta?.stats || {};
-  const lifecycleStats = state.lifecycleWorkbench?.meta?.stats || state.lifecycle?.stats || {};
-  const metrics = [
-    ["能力", capabilityStats.capability || capabilityStats.capabilities || 0],
-    ["关注点", capabilityStats.capability_focus || capabilityStats.focuses || 0],
-    ["服务", capabilityStats.security_technical_service || capabilityStats.services || 0],
-    ["环境", environmentStats.information_environment || environmentStats.information_environments || 0],
-    ["生命周期", lifecycleStats.lifecycle_stage || (lifecycleStats.application_processes || 0) + (lifecycleStats.data_processes || 0)],
-  ];
-  setHtml("metrics", metrics.map(([label, value]) => `<div class="metric"><strong>${value}</strong><span>${label}</span></div>`).join(""));
-}
-
 function formatNumber(value) {
   const number = Number(value) || 0;
   return number.toLocaleString("zh-CN");
@@ -8355,6 +8500,9 @@ function workbenchSummary({ id, label, shortLabel, route, workbench, tone, dimen
 
 function dashboardSummaries() {
   const summary = state.analyticsSummary || {};
+  const maintenanceIndex = state.maintenanceIndex || {};
+  const dictionaryCounts = maintenanceIndex.section_counts || {};
+  const dictionarySections = list(maintenanceIndex.sections);
   const coverageDimensions = list(summary.coverageSummary?.dimensions);
   const entryViews = list(summary.moduleSummary?.entryViews);
   const heroMetrics = list(summary.businessSummary?.heroMetrics);
@@ -8375,6 +8523,10 @@ function dashboardSummaries() {
     metricById,
     capabilityMap,
     standardControls,
+    dictionaryCounts,
+    dictionarySections,
+    knowledgeSummary: state.dashboardKnowledgeSummary || {},
+    dictionaryDataState: maintenanceIndex.data_state || maintenanceIndex.dataState || "loading",
     primaryEntries,
     secondaryEntries,
     totalFocuses: Number(summary.coverageSummary?.totalFocuses || summary.meta?.stats?.focusCount || 0),
@@ -8481,97 +8633,31 @@ function renderDashboardSatellite(entries) {
   `;
 }
 
-function renderDashboardWorkbenchEntry() {
-  if (!state.userNotesLoaded && !state.userNotesLoadPromise) ensureUserNotesLoaded();
-  const issueSummary = workbenchIssueSummary();
-  const latestIssue = issueSummary.latestIssue;
-  return `
-    <section class="dashboard-workbench-entry" aria-label="工作台入口">
-      <div class="dashboard-workbench-copy">
-        <span class="dashboard-chip">工作台</span>
-        <h3>Issue 与成熟度评估工作入口</h3>
-        <p>集中处理页面 Issue、继续客户成熟度评估项目。Issue 数据来自本地用户库。</p>
-        <div class="dashboard-workbench-meta">
-          <span><strong>${escapeHtml(formatNumber(issueSummary.todoCount))}</strong> 待处理 Issue</span>
-          <span><strong>1</strong> 暂存评估</span>
-          <span><strong>${escapeHtml(latestIssue?.updated || "-")}</strong> 最近更新</span>
-        </div>
-      </div>
-      <div class="dashboard-workbench-actions">
-        <button type="button" class="dashboard-workbench-card" data-app-route="/workbench/annotations">
-          <span>Issue 清单</span>
-          <strong>${escapeHtml(formatNumber(issueSummary.total))} 条真实 Issue</strong>
-          <small>${escapeHtml(latestIssue?.title || "筛选、编辑、流转和导出")}</small>
-        </button>
-        <button type="button" class="dashboard-workbench-card" data-app-route="/workbench/maturity">
-          <span>成熟度评估</span>
-          <strong>项目、模板、评分与报告</strong>
-          <small>当前稳定字典驱动的项目、模板、评分与报告工作流</small>
-        </button>
-      </div>
-    </section>
-  `;
-}
-
 function renderOverview() {
   const summary = dashboardSummaries();
-  const technicalCoverage = summary.metricById.technical_service_coverage || {};
-  const standardCoverage = summary.metricById.standard_mapping_coverage || {};
-  const environmentReach = summary.coverageDimensions.find((item) => item.id === "environment_reach") || {};
-  const lifecycleReach = summary.coverageDimensions.find((item) => item.id === "lifecycle_reach") || {};
+  if (!state.userNotesLoaded && !state.userNotesLoadPromise) ensureUserNotesLoaded();
+  const issueRows = workbenchAllIssueRows();
+  const issueSummary = workbenchIssueSummary(issueRows);
+  const recentIssues = workbenchRecentIssueRows(issueRows, 5);
+  const maturityComponent = window.sapdComponents?.MaturityAssessmentWorkbench;
+  const maturitySummary = maturityComponent?.dashboardSnapshot?.(3) || { dataState: "loading", total: 0, projects: [] };
+  if (maturitySummary.dataState === "loading" && !state.overviewMaturityLoadPromise && maturityComponent?.ensureDashboardData) {
+    state.overviewMaturityLoadPromise = Promise.resolve(maturityComponent.ensureDashboardData())
+      .catch((error) => console.warn("首页成熟度项目摘要加载失败", error))
+      .finally(() => {
+        state.overviewMaturityLoadPromise = null;
+        if (state.activeView === "overview") renderOverview();
+      });
+  }
   setHtml(
     "overviewWorkspace",
-    `
-      <section class="dashboard-hero">
-        <div>
-          <span class="dashboard-kicker">SAPD Wiki / Capability Map</span>
-          <h2>${escapeHtml(summary.page.title || "安全能力知识地图")}</h2>
-          <p>${escapeHtml(summary.page.subtitle || summary.supportingText || "以能力关注点为核心查看技术、环境、生命周期、标准和工作方法的支撑关系。")}</p>
-        </div>
-        <div class="dashboard-hero-side">
-          <div class="dashboard-state">
-            <span>${escapeHtml(summary.dataState)}</span>
-            <strong>${escapeHtml(formatNumber(summary.totalFocuses))}</strong>
-            <small>能力关注点</small>
-          </div>
-        </div>
-      </section>
-      <section class="dashboard-metric-grid">
-        ${renderDashboardMetric({ label: summary.titleMetric.label || "能力关注点", value: summary.titleMetric.value || summary.totalFocuses, unit: summary.titleMetric.unit || "个", hint: "主统计粒度 capability_focus", tone: "blue" })}
-        ${renderDashboardMetric({ label: technicalCoverage.label || "技术服务支撑", value: technicalCoverage.value ?? technicalCoverage.percent ?? 0, unit: "%", hint: `${formatNumber(technicalCoverage.numerator || technicalCoverage.covered || 0)}/${formatNumber(technicalCoverage.denominator || technicalCoverage.total || summary.totalFocuses)} 关注点`, tone: "green" })}
-        ${renderDashboardMetric({ label: standardCoverage.label || "标准映射覆盖", value: standardCoverage.value ?? standardCoverage.percent ?? 0, unit: "%", hint: `${formatNumber(standardCoverage.numerator || standardCoverage.covered || 0)}/${formatNumber(standardCoverage.denominator || standardCoverage.total || summary.totalFocuses)} 关注点`, tone: "amber" })}
-        ${renderDashboardMetric({ label: "环境可达", value: environmentReach.percent || 0, unit: "%", hint: `${formatNumber(environmentReach.covered || 0)}/${formatNumber(environmentReach.total || summary.totalFocuses)} 关注点`, tone: "purple" })}
-        ${renderDashboardMetric({ label: "生命周期可达", value: lifecycleReach.percent || 0, unit: "%", hint: `${formatNumber(lifecycleReach.covered || 0)}/${formatNumber(lifecycleReach.total || summary.totalFocuses)} 关注点`, tone: "slate" })}
-        ${renderDashboardMetric({ label: "分析入口", value: list(summary.entryViews).length || summary.metricById.module_entry_count?.value || 0, unit: "个", hint: "可进入的业务页面", tone: "neutral" })}
-      </section>
-      ${renderDashboardWorkbenchEntry()}
-      <section class="dashboard-grid dashboard-grid-primary">
-        <article class="dashboard-panel dashboard-panel-bars">
-          <header>
-            <div>
-              <h3>能力关注点覆盖</h3>
-              <p>所有覆盖率统一以 ${escapeHtml(formatNumber(summary.totalFocuses))} 个能力关注点为分母。</p>
-            </div>
-            <span class="dashboard-chip">capability_focus</span>
-          </header>
-          <div class="dashboard-bars">
-            <section><h4>主要支撑</h4>${renderDashboardCoverageRows(summary.coverageDimensions.filter((item) => item.displayRole === "primary"))}</section>
-            <section><h4>扩展可达</h4>${renderDashboardCoverageRows(summary.coverageDimensions.filter((item) => item.displayRole !== "primary"))}</section>
-            <section><h4>标准 grain</h4>${renderDashboardCoverageRows([{ label: "能力映射可达", covered: summary.standardControls.capabilityMapped || 0, total: summary.standardControls.standardsIndex || 1, percent: percentOf(summary.standardControls.capabilityMapped || 0, summary.standardControls.standardsIndex || 1) }, { label: "标准索引", covered: summary.standardControls.standardsIndex || 0, total: summary.standardControls.standardsIndex || 0, percent: 100 }])}</section>
-          </div>
-        </article>
-        <article class="dashboard-panel">
-          <header>
-            <div>
-              <h3>能力地图层级</h3>
-              <p>${escapeHtml(summary.supportingText || "能力体系按类、域、能力和关注点组织。")}</p>
-            </div>
-            <span class="dashboard-chip">层级</span>
-          </header>
-          ${renderDashboardCapabilityMap(summary.capabilityMap)}
-        </article>
-      </section>
-    `,
+    window.sapdComponents?.P2ProductWorkspace?.render({
+      summary,
+      issueSummary,
+      recentIssues,
+      issueDataState: state.userNotesLoaded ? "ready" : "loading",
+      maturitySummary,
+    }) || "",
   );
 }
 
@@ -8608,7 +8694,7 @@ function renderWorkbenchHome() {
           </div>
         </button>
         <button class="workbench-prototype-card is-entry" type="button" data-app-route="/workbench/annotations">
-          <span class="workbench-prototype-pill">Issue 清单</span>
+          <span class="workbench-prototype-pill">ISSUE清单</span>
           <h3>处理全局 Issue</h3>
           <p>汇总本地用户库中的真实 Issue，支持状态筛选、页面分组、详情查看和导出占位。</p>
           <div class="workbench-prototype-chip-row">
@@ -8668,6 +8754,7 @@ const WORKBENCH_ISSUE_PRIORITY_SORT_ORDER = { "未标注": 10, "低": 20, "中":
 
 const WORKBENCH_ISSUE_PRIORITY_VALUES = ["未标注", "低", "中", "高"];
 const WORKBENCH_ISSUE_PRIORITY_TAGS = ["高优先级", "中优先级", "低优先级"];
+const WORKBENCH_ISSUE_SEARCH_SCOPE = "workbench:/workbench/annotations";
 
 const WORKBENCH_ISSUE_SORT_COLUMNS = [
   { key: "title", label: "Issue", type: "text", defaultDirection: "asc" },
@@ -8788,6 +8875,17 @@ function workbenchIssueDateValue(issue = {}) {
   return Number.isFinite(timestamp) ? timestamp : 0;
 }
 
+function workbenchRecentIssueRows(rows = workbenchAllIssueRows(), limit = 5) {
+  const normalizedLimit = Math.max(0, Number(limit) || 0);
+  return [...list(rows)]
+    .sort((left, right) => (
+      workbenchIssueDateValue(right) - workbenchIssueDateValue(left)
+      || text(left.title).localeCompare(text(right.title), "zh-Hans-CN", { numeric: true, sensitivity: "base" })
+      || text(left.id).localeCompare(text(right.id), "zh-Hans-CN")
+    ))
+    .slice(0, normalizedLimit);
+}
+
 function workbenchIssueSortText(issue = {}, key = "title") {
   if (key === "pageObject") return `${text(issue.page)} ${text(issue.object)}`.trim();
   return text(issue[key]).trim();
@@ -8863,6 +8961,47 @@ function workbenchIssueRows() {
     selected: Boolean(state.workbenchSelectedIssueId) && issue.id === state.workbenchSelectedIssueId,
     checked: state.workbenchSelectedIssueIds?.has(issue.id) || false,
   }));
+}
+
+function syncWorkbenchIssueSearchNavigation(rows = workbenchIssueRows()) {
+  const query = text(state.workbenchIssueSearch).trim();
+  if (!query) {
+    setPageSearchMatchSet(WORKBENCH_ISSUE_SEARCH_SCOPE, "", []);
+    updatePageSearchControls();
+    return;
+  }
+  setPageSearchMatchSet(
+    WORKBENCH_ISSUE_SEARCH_SCOPE,
+    query,
+    rows.map((issue) => ({ id: issue.id, title: issue.title })),
+    state.workbenchSelectedIssueId,
+  );
+  updatePageSearchControls();
+}
+
+function moveWorkbenchIssueSearchMatch(delta = 1, query = state.workbenchIssueSearch) {
+  const normalizedQuery = text(query).trim();
+  if (!normalizedQuery) return false;
+  const rows = workbenchIssueRows();
+  if (!rows.length) {
+    syncWorkbenchIssueSearchNavigation(rows);
+    return false;
+  }
+  const currentIndex = Math.max(0, rows.findIndex((issue) => issue.id === state.workbenchSelectedIssueId));
+  const nextIndex = ((currentIndex + Number(delta || 1)) % rows.length + rows.length) % rows.length;
+  state.workbenchSelectedIssueId = rows[nextIndex].id;
+  state.workbenchPendingDeleteIssueId = "";
+  renderWorkbench();
+  requestAnimationFrame(() => {
+    const safeId = window.CSS?.escape ? window.CSS.escape(state.workbenchSelectedIssueId) : text(state.workbenchSelectedIssueId).replace(/["\\]/g, "\\$&");
+    const target = activeWorkbenchReviewPage()?.querySelector(`[data-review-item][data-note-id="${safeId}"]`);
+    if (!target) return;
+    scrollSearchTargetIntoView(target);
+    markPageSearchTarget(target);
+    target.classList.add("page-search-target-highlight");
+    window.setTimeout(() => target.classList.remove("page-search-target-highlight"), 1800);
+  });
+  return true;
 }
 
 function workbenchIssueSummary(rows = workbenchAllIssueRows()) {
@@ -8964,7 +9103,7 @@ function renderWorkbenchIssueSortableHead(column) {
   const direction = active ? state.workbenchIssueSortDirection : column.defaultDirection;
   const arrow = active ? (direction === "asc" ? "↑" : "↓") : "↕";
   return `
-    <button class="workbench-review-sort-button ${active ? "is-active" : ""}" type="button"
+    <button class="workbench-review-sort-button issue-column-${escapeHtml(column.key)} ${active ? "is-active" : ""}" type="button"
       data-review-sort-key="${escapeHtml(column.key)}"
       aria-label="按${escapeHtml(column.label)}排序，当前排序类型：${escapeHtml(column.type)}">
       <span>${escapeHtml(column.label)}</span><small>${escapeHtml(arrow)}</small>
@@ -8987,7 +9126,7 @@ function renderWorkbenchIssueQueueHead(issues = []) {
 
 function renderWorkbenchIssueItem(issue, index) {
   return `
-    <article class="workbench-review-item ${issue.selected ? "is-active" : ""} ${issue.checked ? "is-checked" : ""}" role="button" tabindex="0" data-review-item
+    <div class="workbench-review-item ${issue.selected ? "is-active" : ""} ${issue.checked ? "is-checked" : ""}" role="button" tabindex="0" data-review-item
       data-note-id="${escapeHtml(issue.id)}"
       data-title="${escapeHtml(issue.title)}"
       data-body="${escapeHtml(issue.body)}"
@@ -9003,12 +9142,12 @@ function renderWorkbenchIssueItem(issue, index) {
       data-created="${escapeHtml(issue.created)}"
       data-updated="${escapeHtml(issue.updated)}">
       <input class="workbench-review-checkbox" type="checkbox" aria-label="选择 ${escapeHtml(issue.title)}" data-note-id="${escapeHtml(issue.id)}"${issue.checked ? " checked" : ""} />
-      <span class="workbench-review-item-title"><strong>${escapeHtml(issue.title)}</strong><span>${escapeHtml(issue.summary)}</span></span>
-      <span class="workbench-review-item-meta">${escapeHtml(issue.page)}<br />${escapeHtml(issue.object)}</span>
-      ${renderWorkbenchPill(issue.status)}
-      ${renderWorkbenchPill(issue.priority, "priority")}
-      <span class="workbench-review-item-meta">${escapeHtml(issue.updated || `#${index + 1}`)}</span>
-    </article>
+      <span class="workbench-review-item-title issue-column-title"><strong>${escapeHtml(issue.title)}</strong><span>${escapeHtml(issue.summary)}</span></span>
+      <span class="workbench-review-item-meta issue-column-pageObject">${escapeHtml(issue.page)}<br />${escapeHtml(issue.object)}</span>
+      <span class="issue-column-status">${renderWorkbenchPill(issue.status)}</span>
+      <span class="issue-column-priority">${renderWorkbenchPill(issue.priority, "priority")}</span>
+      <span class="workbench-review-item-meta issue-column-updated">${escapeHtml(issue.updated || `#${index + 1}`)}</span>
+    </div>
   `;
 }
 
@@ -9032,7 +9171,7 @@ function renderWorkbenchIssueDeleteDialog() {
   const issue = workbenchIssueById(state.workbenchPendingDeleteIssueId);
   if (!issue?.id) return "";
   const title = escapeHtml(issue.title || "当前 Issue");
-  return `<div class="workbench-review-dialog-backdrop" data-review-delete-backdrop><section class="workbench-review-dialog" role="dialog" aria-modal="true" aria-labelledby="workbenchReviewDeleteTitle" aria-describedby="workbenchReviewDeleteDescription"><span class="workbench-review-dialog-kicker">删除确认</span><h3 id="workbenchReviewDeleteTitle">删除 Issue</h3><p id="workbenchReviewDeleteDescription">确认删除「${title}」？此操作会写入本地用户库，删除后不会再出现在 Issue 清单。</p><div class="workbench-review-dialog-actions"><button class="workbench-prototype-action is-secondary" type="button" data-review-delete-cancel>取消</button><button class="workbench-prototype-action is-danger" type="button" data-review-delete-confirm>确认删除</button></div></section></div>`;
+  return `<div class="workbench-review-dialog-backdrop" data-review-delete-backdrop><section class="workbench-review-dialog" role="dialog" aria-modal="true" aria-labelledby="workbenchReviewDeleteTitle" aria-describedby="workbenchReviewDeleteDescription"><span class="workbench-review-dialog-kicker">删除确认</span><h3 id="workbenchReviewDeleteTitle">删除 Issue</h3><p id="workbenchReviewDeleteDescription">确认删除「${title}」？此操作会写入本地用户库，删除后不会再出现在 ISSUE清单。</p><div class="workbench-review-dialog-actions"><button class="workbench-prototype-action is-secondary" type="button" data-review-delete-cancel>取消</button><button class="workbench-prototype-action is-danger" type="button" data-review-delete-confirm>确认删除</button></div></section></div>`;
 }
 
 function renderWorkbenchIssueDetailInspector(issue = {}) {
@@ -9102,7 +9241,7 @@ function renderWorkbenchIssues() {
   const pageGroups = workbenchIssuePageGroups(allIssues);
   const isLoading = state.userWriteStatus.state === "loading" && !state.userNotesLoaded;
   const statusOptions = [
-    ["全部", "状态：全部"],
+    ["全部", "全部状态"],
     ["待处理", "待处理"],
     ["处理中", "处理中"],
     ["待确认", "待确认"],
@@ -9110,40 +9249,44 @@ function renderWorkbenchIssues() {
     ["已忽略", "已忽略"],
     ["已关闭", "已关闭"],
   ];
-  const pageOptions = [["全部", "页面：全部页面"], ...pageGroups.map((group) => [group.pageRoute, group.page])];
-  const priorityOptions = [["全部", "优先级：全部"], ...WORKBENCH_ISSUE_PRIORITY_VALUES.map((value) => [value, value])];
+  const priorityOptions = [["全部", "全部优先级"], ...WORKBENCH_ISSUE_PRIORITY_VALUES.map((value) => [value, value])];
   const activeStatusFilter = state.workbenchIssueStatusFilter || "全部";
   const activePageFilter = state.workbenchIssuePageFilter || "全部";
   const activePriorityFilter = state.workbenchIssuePriorityFilter || "全部";
-  const activePageLabel = activePageFilter !== "全部" ? pageGroups.find((group) => group.pageRoute === activePageFilter)?.page || activePageFilter : "";
   const inspectorIssue = workbenchIssueById(state.workbenchSelectedIssueId);
   const hasNoIssueData = !isLoading && summary.total === 0;
   const filterChips = [
     activeStatusFilter !== "全部" ? { label: "状态", value: activeStatusFilter } : null,
-    activePageLabel ? { label: "Issue 范围", value: activePageLabel } : null,
     activePriorityFilter !== "全部" ? { label: "优先级", value: activePriorityFilter } : null,
     state.workbenchIssueSearch ? { label: "关键词", value: state.workbenchIssueSearch } : null,
   ].filter(Boolean);
   const queueContext = `${formatNumber(issues.length)} / ${formatNumber(summary.total)} 条`;
-  if (hasNoIssueData) return `<section class="workbench-route-page workbench-issues-route is-empty" aria-label="Issue 清单">${renderWorkbenchIssueZeroState()}${renderWorkbenchIssueDeleteDialog()}</section>`;
+  if (hasNoIssueData) return `<section class="workbench-route-page workbench-issues-route is-empty" aria-label="ISSUE清单">${renderWorkbenchIssueZeroState()}${renderWorkbenchIssueDeleteDialog()}</section>`;
   const queueRowsMarkup = isLoading ? `<div class="workbench-review-loading">正在读取本地 Issue...</div>` : issues.length ? `${renderWorkbenchIssueQueueHead(issues)}${issues.map(renderWorkbenchIssueItem).join("")}` : `<div class="workbench-review-empty">当前筛选下没有 Issue。</div>`;
   return `
-    <section class="workbench-route-page workbench-issues-route" aria-label="Issue 清单">
+    <section class="workbench-route-page workbench-issues-route" aria-label="ISSUE清单">
       <div class="workbench-review-toolbar" aria-label="Issue 筛选工具条">
         <div class="workbench-review-filter-group">
-          <select class="workbench-review-select" aria-label="状态筛选" data-review-filter-control="status">${statusOptions.map(([value, label]) => `<option value="${escapeHtml(value)}"${value === activeStatusFilter ? " selected" : ""}>${escapeHtml(label)}</option>`).join("")}</select>
-          <select class="workbench-review-select" aria-label="页面筛选" data-review-filter-control="page">${pageOptions.map(([value, label]) => `<option value="${escapeHtml(value)}"${value === activePageFilter ? " selected" : ""}>${escapeHtml(label)}</option>`).join("")}</select>
-          <select class="workbench-review-select" aria-label="优先级筛选" data-review-filter-control="priority">${priorityOptions.map(([value, label]) => `<option value="${escapeHtml(value)}"${value === activePriorityFilter ? " selected" : ""}>${escapeHtml(label)}</option>`).join("")}</select>
-          <label class="workbench-review-search-shell" for="workbenchIssueSearchInput">
-            <input id="workbenchIssueSearchInput" class="workbench-review-search" type="search" value="${escapeHtml(state.workbenchIssueSearch || "")}" placeholder="搜索 Issue 标题、内容、页面或对象" aria-label="搜索 Issue 标题、内容、页面或对象" autocomplete="off" data-search-history-kind="workbench-issues" data-review-filter-control="search" />
-          </label>
+          <label class="workbench-review-filter-field"><span>状态</span><select class="workbench-review-select" aria-label="状态筛选" data-review-filter-control="status">${statusOptions.map(([value, label]) => `<option value="${escapeHtml(value)}"${value === activeStatusFilter ? " selected" : ""}>${escapeHtml(label)}</option>`).join("")}</select></label>
+          <label class="workbench-review-filter-field"><span>优先级</span><select class="workbench-review-select" aria-label="优先级筛选" data-review-filter-control="priority">${priorityOptions.map(([value, label]) => `<option value="${escapeHtml(value)}"${value === activePriorityFilter ? " selected" : ""}>${escapeHtml(label)}</option>`).join("")}</select></label>
+          <div class="workbench-review-search-shell">
+            <div class="workbench-review-search-control page-search-control" role="search" aria-label="Issue 页面内搜索">
+              <label class="page-search-input-shell" for="workbenchIssueSearchInput">
+                <span class="capability-search-icon" aria-hidden="true">⌕</span>
+                <input id="workbenchIssueSearchInput" class="workbench-review-search" type="search" value="${escapeHtml(state.workbenchIssueSearch || "")}" placeholder="搜索 Issue 标题、内容、页面或对象" aria-label="搜索 Issue 标题、内容、页面或对象" autocomplete="off" data-search-history-kind="workbench-issues" data-review-filter-control="search" />
+              </label>
+              <span class="page-search-match-status" data-page-search-status="${WORKBENCH_ISSUE_SEARCH_SCOPE}" aria-live="polite"></span>
+              <button class="page-search-step" type="button" data-page-search-step="-1" data-page-search-scope="${WORKBENCH_ISSUE_SEARCH_SCOPE}" title="上一个匹配" aria-label="上一个匹配">‹</button>
+              <button class="page-search-step" type="button" data-page-search-step="1" data-page-search-scope="${WORKBENCH_ISSUE_SEARCH_SCOPE}" title="下一个匹配" aria-label="下一个匹配">›</button>
+            </div>
+          </div>
           <button class="workbench-prototype-action is-secondary" type="button" data-review-clear-filters>清除筛选</button>
         </div>
         <div class="workbench-review-active-filters" data-review-filter-state>
           ${
             filterChips.length
               ? filterChips.map((chip) => `<span class="workbench-review-filter-chip"><span>${escapeHtml(chip.label)}</span><strong>${escapeHtml(chip.value)}</strong></span>`).join("")
-              : `<span class="workbench-review-filter-chip is-empty">全部 Issue</span>`
+              : ""
           }
         </div>
       </div>
@@ -9217,6 +9360,7 @@ function renderWorkbench() {
       navigate: activateRoute,
     });
   }
+  if (routeType === "issues") syncWorkbenchIssueSearchNavigation();
   updateWorkbenchReviewSelection();
   syncWorkbenchIssueHeaderControls();
   requestAnimationFrame(updateWorkbenchPaneScrollAffordance);
@@ -9262,7 +9406,7 @@ function renderSourceLocalSearchToolbar(viewModel = {}, { standardsMode = false 
 }
 
 function activeWorkbenchReviewPage() {
-  return $("workbenchWorkspace")?.querySelector(".workbench-route-page[aria-label='Issue 清单']") || null;
+  return $("workbenchWorkspace")?.querySelector(".workbench-route-page[aria-label='ISSUE清单']") || null;
 }
 
 function updateWorkbenchPaneScrollAffordance() {
@@ -9633,6 +9777,9 @@ function activateRoute(route, options = {}) {
   if (routeChanged && isWorkbenchIssueRoute) {
     state.workbenchSelectedIssueId = ""; state.workbenchSelectedIssueIds = new Set(); state.workbenchPendingDeleteIssueId = "";
   }
+  if (isWorkbenchIssueRoute && options.workbenchIssueId) {
+    state.workbenchSelectedIssueId = text(options.workbenchIssueId).trim();
+  }
   state.activeRoute = target.route || "/";
   if (target.route === "/search") {
     const nextSearchQuery = globalSearchQueryFromRoute(route) || globalSearchQueryFromLocationSearch();
@@ -9714,28 +9861,31 @@ function updateApplicationShellChrome() {
 
 function applyCapabilityCatalogState() {
   const workspace = $("capabilityWorkspace");
-  workspace?.classList.toggle("catalog-collapsed", state.capabilityCatalogCollapsed);
+  const narrow = Boolean(window.matchMedia?.("(max-width: 1099px)")?.matches);
+  const collapsed = narrow ? !state.capabilityCatalogNarrowExpanded : state.capabilityCatalogCollapsed;
+  workspace?.classList.toggle("catalog-collapsed", collapsed);
+  workspace?.classList.toggle("catalog-narrow", narrow);
   if (workspace) {
     const hasResizer = Boolean(workspace.querySelector(".workspace-resizer"));
     if (hasResizer) {
-      workspace.style.gridTemplateColumns = state.capabilityCatalogCollapsed ? "0 minmax(0, 1fr)" : "300px 6px minmax(760px, 1fr)";
-      workspace._paneWidths = state.capabilityCatalogCollapsed ? [0, Math.max(0, workspace.clientWidth)] : [300, Math.max(760, workspace.clientWidth - 306)];
+      workspace.style.gridTemplateColumns = collapsed ? "0 minmax(0, 1fr)" : "240px 6px minmax(760px, 1fr)";
+      workspace._paneWidths = collapsed ? [0, Math.max(0, workspace.clientWidth)] : [240, Math.max(760, workspace.clientWidth - 246)];
     } else {
-      workspace.style.gridTemplateColumns = state.capabilityCatalogCollapsed ? "0 minmax(0, 1fr)" : "300px minmax(760px, 1fr)";
+      workspace.style.gridTemplateColumns = collapsed ? "0 minmax(0, 1fr)" : "240px minmax(760px, 1fr)";
       workspace._paneWidths = null;
     }
   }
   const button = $("toggleCapabilityCatalog");
   if (button) {
-    button.textContent = state.capabilityCatalogCollapsed ? "展开" : "收起目录";
-    button.title = state.capabilityCatalogCollapsed ? "展开安全能力目录" : "收起安全能力目录";
+    button.textContent = collapsed ? "展开" : "收起目录";
+    button.title = collapsed ? "展开安全能力目录" : "收起安全能力目录";
     button.setAttribute("aria-label", button.title);
-    button.setAttribute("aria-expanded", state.capabilityCatalogCollapsed ? "false" : "true");
+    button.setAttribute("aria-expanded", collapsed ? "false" : "true");
   }
   const tab = $("expandCapabilityCatalogTab");
   if (tab) {
-    tab.hidden = !state.capabilityCatalogCollapsed;
-    tab.setAttribute("aria-expanded", state.capabilityCatalogCollapsed ? "false" : "true");
+    tab.hidden = !collapsed;
+    tab.setAttribute("aria-expanded", collapsed ? "false" : "true");
   }
 }
 
@@ -9856,7 +10006,13 @@ function createCapabilityLoadState(selectedType, selectedId) {
 function resolveCapabilityDetailLoadState(viewModel, loadState) {
   const selected = viewModel.selectedCapability;
   if (!selected) {
-    return { ...loadState, phase: "no_selection", blocksDetail: true, title: "暂无能力关系数据" };
+    return {
+      ...loadState,
+      phase: "no_selection",
+      blocksDetail: true,
+      title: "尚未选择能力对象",
+      body: "请从左侧能力目录选择分类、L1、L2 或关注点查看详情。",
+    };
   }
   const canRenderInBackground = capabilityLoadStateCanRenderInBackground(viewModel, loadState);
   if (loadState.objectViewPending && state.packageLoads.has(loadState.loadKey)) {
@@ -10182,20 +10338,18 @@ function renderCapabilityPendingDetail(loadState) {
   if (!loadState.blocksDetail) return false;
   setHtml("capabilityFocusHeader", "");
   setHtml("capabilityViewControls", "");
-  if (loadState.loadFailure) {
-    setHtml(
-      "detail",
-      `
-        <div class="detail-empty capability-load-failure" data-capability-load-failure="${escapeHtml(loadState.phase)}">
-          <strong>${escapeHtml(loadState.title)}</strong>
-          <span>${escapeHtml(loadState.body)}</span>
-          <button type="button" class="relation-mode-button" data-capability-load-retry="${escapeHtml(loadState.retryLoadKey || loadState.loadKey || "")}">重试加载</button>
-        </div>
-      `,
-    );
-  } else {
-    setHtml("detail", emptyState(loadState.title, loadState.body));
-  }
+  const runtimeState = loadState.phase === "no_selection" ? "no_selection" : loadState.loadFailure ? "error" : "loading";
+  const action = loadState.loadFailure
+    ? { scope: "capability", key: loadState.retryLoadKey || loadState.loadKey || "", label: "重试加载" }
+    : null;
+  setHtml(
+    "detail",
+    runtimeStateHtml(runtimeState, {
+      title: loadState.title,
+      message: loadState.body,
+      action,
+    }),
+  );
   applyCapabilityCatalogState();
   return true;
 }
@@ -10246,11 +10400,26 @@ function renderCapabilities() {
   const components = window.sapdComponents || {};
   ensureCapabilityCatalogToggle();
   ensureUserFavoritesLoaded();
-  if (!capabilityInitialDataReady()) {
-    setHtml("tree", emptyState("正在加载安全能力数据"));
+  const capabilityHasData = Boolean(list(state.capability?.categories).length || list(state.capabilityInitial?.navigator?.tree).length);
+  const capabilityRuntimeState = runtimeStateForPackage("capabilityInitial", { hasData: capabilityHasData });
+  if (capabilityRuntimeState !== "ready" || !capabilityInitialDataReady()) {
+    setHtml(
+      "tree",
+      runtimePackageStateHtml("capabilityInitial", {
+        hasData: capabilityHasData,
+        compact: true,
+        title: capabilityRuntimeState === "loading" ? "正在加载安全能力目录" : "安全能力目录暂不可用",
+      }),
+    );
     setHtml("capabilityFocusHeader", "");
     setHtml("capabilityViewControls", "");
-    setHtml("detail", emptyState("正在加载安全能力映射数据", "当前页面优先加载，完成后会自动显示。"));
+    setHtml(
+      "detail",
+      runtimePackageStateHtml("capabilityInitial", {
+        hasData: capabilityHasData,
+        title: capabilityRuntimeState === "loading" ? "正在加载安全能力映射数据" : "安全能力映射数据暂不可用",
+      }),
+    );
     return;
   }
   if (!viewModels?.buildCapabilityWorkspaceViewModel) {
@@ -10319,8 +10488,16 @@ function renderEnvironment(options = {}) {
   renderEnvironmentHeaderTabs();
   const viewModels = window.sapdViewModels;
   const components = window.sapdComponents || {};
-  if (!state.loadedPackages.has("environmentWorkbench")) {
-    setHtml("environmentDetail", emptyState("正在加载信息化环境映射数据", "当前页面优先加载，完成后会自动显示。"));
+  const environmentHasData = Boolean(list(state.environmentWorkbench?.navigator?.tree).length || Object.keys(state.environmentWorkbench?.objects || {}).length);
+  const environmentRuntimeState = runtimeStateForPackage("environmentWorkbench", { hasData: environmentHasData });
+  if (environmentRuntimeState !== "ready") {
+    setHtml(
+      "environmentDetail",
+      runtimePackageStateHtml("environmentWorkbench", {
+        hasData: environmentHasData,
+        title: environmentRuntimeState === "loading" ? "正在加载信息化环境映射数据" : "信息化环境映射数据暂不可用",
+      }),
+    );
     return;
   }
   if (!viewModels?.buildEnvironmentWorkspaceViewModel) {
@@ -10528,32 +10705,103 @@ function renderLifecycle(kind) {
   }
 }
 
-function renderMaintenance() {
+function renderMaintenancePackageState(packageName, { title, loadingTitle = "", hasData = null } = {}) {
+  const runtimeState = runtimeStateForPackage(packageName, { hasData });
+  if (runtimeState === "ready") return false;
+  setText("sourcePageTitle", title);
+  setText("sourcePageCount", 0);
+  setHtml("maintenanceNavigation", "");
+  setHtml(
+    "sourceList",
+    runtimePackageStateHtml(packageName, {
+      hasData,
+      compact: true,
+      title: runtimeState === "loading" ? loadingTitle || `正在加载${title}` : `${title}暂不可用`,
+    }),
+  );
+  setText("sourceDetailType", "");
+  setHtml("sourceDetail", "");
+  return true;
+}
+
+function captureMaintenanceScrollPosition(enabled = false) {
+  if (!enabled) return null;
+  const sourceList = $("sourceList");
+  const table = sourceList?.querySelector(".maintenance-table-scroll");
+  return {
+    sourceTop: sourceList?.scrollTop || 0,
+    tableTop: table?.scrollTop || 0,
+    tableLeft: table?.scrollLeft || 0,
+    expandedGroupIds: Array.from(table?.querySelectorAll(".standard-group-row.expanded[data-standard-group]") || [])
+      .map((row) => text(row.dataset.standardGroup).trim())
+      .filter(Boolean),
+  };
+}
+
+function restoreMaintenanceScrollPosition(snapshot) {
+  if (!snapshot) return;
+  const sourceList = $("sourceList");
+  const table = sourceList?.querySelector(".maintenance-table-scroll");
+  if (table && list(snapshot.expandedGroupIds).length) {
+    const groupRows = Array.from(table.querySelectorAll(".standard-group-row[data-standard-group]"));
+    const descendants = Array.from(table.querySelectorAll("[data-standard-parent]"));
+    for (const groupId of snapshot.expandedGroupIds) {
+      const groupRow = groupRows.find((row) => text(row.dataset.standardGroup).trim() === groupId);
+      if (!groupRow) continue;
+      groupRow.hidden = false;
+      groupRow.classList.add("expanded");
+      groupRow.querySelector(".standard-group-toggle")?.setAttribute("aria-expanded", "true");
+      descendants
+        .filter((row) => text(row.dataset.standardParent).trim() === groupId)
+        .forEach((row) => {
+          row.hidden = false;
+        });
+    }
+  }
+  window.requestAnimationFrame(() => {
+    const sourceList = $("sourceList");
+    const table = sourceList?.querySelector(".maintenance-table-scroll");
+    if (sourceList) sourceList.scrollTop = Math.min(snapshot.sourceTop, Math.max(0, sourceList.scrollHeight - sourceList.clientHeight));
+    if (table) {
+      table.scrollTop = Math.min(snapshot.tableTop, Math.max(0, table.scrollHeight - table.clientHeight));
+      table.scrollLeft = Math.min(snapshot.tableLeft, Math.max(0, table.scrollWidth - table.clientWidth));
+    }
+  });
+}
+
+function renderMaintenance(options = {}) {
+  const scrollSnapshot = captureMaintenanceScrollPosition(Boolean(options.preserveTableScroll));
   const viewModels = window.sapdViewModels;
   const components = window.sapdComponents || {};
   const dataClient = window.sapdDataClient;
   components.AppShell?.setAuxiliaryLayerState?.("sourceDetailPane", false);
   ensureUserFavoritesLoaded();
-  if (state.activeMaintenancePage === "standards" && !state.loadedPackages.has("standards")) {
-    setText("sourcePageTitle", "标准 / 框架");
-    setText("sourcePageCount", 0);
-    setHtml("maintenanceNavigation", "");
-    setHtml("sourceList", `<div class="maintenance-empty-state">正在加载标准 / 框架索引...</div>`);
-    setText("sourceDetailType", "");
-    setHtml("sourceDetail", "");
+  const standardsHasData = list(state.standards?.frameworks).length > 0;
+  if (
+    state.activeMaintenancePage === "standards" &&
+    renderMaintenancePackageState("standards", {
+      title: "标准 / 框架",
+      loadingTitle: "正在加载标准 / 框架索引",
+      hasData: standardsHasData,
+    })
+  ) {
     return;
   }
-  if (state.activeMaintenancePage !== "standards" && !state.loadedPackages.has("maintenanceIndex")) {
-    loadDataPackage("maintenanceIndex").then(() => {
-      if (state.activeView === "maintenance" && state.activeMaintenancePage !== "standards") renderMaintenance();
-    });
-    setText("sourcePageTitle", "知识库字典");
-    setText("sourcePageCount", 0);
-    setHtml("maintenanceNavigation", "");
-    setHtml("sourceList", `<div class="maintenance-empty-state">正在加载知识库字典目录...</div>`);
-    setText("sourceDetailType", "");
-    setHtml("sourceDetail", "");
-    return;
+  if (state.activeMaintenancePage !== "standards") {
+    if (!state.loadedPackages.has("maintenanceIndex")) {
+      loadDataPackage("maintenanceIndex").then(() => {
+        if (state.activeView === "maintenance" && state.activeMaintenancePage !== "standards") renderMaintenance();
+      });
+    }
+    if (
+      renderMaintenancePackageState("maintenanceIndex", {
+        title: "知识库字典",
+        loadingTitle: "正在加载知识库字典目录",
+        hasData: list(state.maintenanceIndex?.sections).length > 0,
+      })
+    ) {
+      return;
+    }
   }
   const maintenanceSectionIds = maintenanceSectionsForPage(state.activeMaintenancePage);
   const missingMaintenanceSectionId = maintenanceSectionIds.find((sectionId) => !isMaintenanceSectionReady(sectionId));
@@ -10577,30 +10825,30 @@ function renderMaintenance() {
         : state.activeMaintenancePage === "application-systems"
           ? "应用系统目录"
           : "知识库字典";
-    setText("sourcePageTitle", loadingTitle);
-    setText("sourcePageCount", 0);
-    setHtml("maintenanceNavigation", "");
-    setHtml("sourceList", `<div class="maintenance-empty-state">正在加载${escapeHtml(loadingTitle)}数据...</div>`);
-    setText("sourceDetailType", "");
-    setHtml("sourceDetail", "");
+    renderMaintenancePackageState(missingMaintenancePackageName, {
+      title: loadingTitle,
+      loadingTitle: `正在加载${loadingTitle}数据`,
+    });
     return;
   }
-  if (state.activeMaintenancePage === "capability-directory" && !state.loadedPackages.has("capability")) {
-    setText("sourcePageTitle", "安全能力清单");
-    setText("sourcePageCount", 0);
-    setHtml("maintenanceNavigation", "");
-    setHtml("sourceList", `<div class="maintenance-empty-state">正在加载安全能力与关注点目录...</div>`);
-    setText("sourceDetailType", "");
-    setHtml("sourceDetail", "");
+  if (
+    state.activeMaintenancePage === "capability-directory" &&
+    renderMaintenancePackageState("capability", {
+      title: "安全能力清单",
+      loadingTitle: "正在加载安全能力与关注点目录",
+      hasData: list(state.capability?.categories).length > 0,
+    })
+  ) {
     return;
   }
-  if (state.activeMaintenancePage === "application-systems" && !state.loadedPackages.has("lifecycle")) {
-    setText("sourcePageTitle", "应用系统目录");
-    setText("sourcePageCount", 0);
-    setHtml("maintenanceNavigation", "");
-    setHtml("sourceList", `<div class="maintenance-empty-state">正在加载 LC-AP 应用系统目录...</div>`);
-    setText("sourceDetailType", "");
-    setHtml("sourceDetail", "");
+  if (
+    state.activeMaintenancePage === "application-systems" &&
+    renderMaintenancePackageState("lifecycle", {
+      title: "应用系统目录",
+      loadingTitle: "正在加载 LC-AP 应用系统目录",
+      hasData: list(state.lifecycle?.application_security_development?.processes).length > 0,
+    })
+  ) {
     return;
   }
   ensureSupplementalMaintenanceSectionsLoaded(state.activeMaintenancePage);
@@ -10615,14 +10863,25 @@ function renderMaintenance() {
     if (!loadedFramework && frameworkLoadError) {
       setHtml(
         "sourceList",
-        `<div class="maintenance-empty-state">标准 / 框架数据加载失败：${escapeHtml(frameworkLoadError)}</div>`,
+        runtimeStateHtml("error", {
+          compact: true,
+          title: "标准 / 框架数据加载失败",
+          message: "未能读取当前框架数据。当前页面与框架选择会保留，可重新加载。",
+          action: { scope: "standard", key: frameworkId, label: "重新加载" },
+        }),
       );
       setText("sourceDetailType", "");
       setHtml("sourceDetail", "");
       return;
     }
     if (!loadedFramework) {
-      setHtml("sourceList", `<div class="maintenance-empty-state">正在加载 ${escapeHtml(frameworkId)} 标准 / 框架数据...</div>`);
+      setHtml(
+        "sourceList",
+        runtimeStateHtml("loading", {
+          compact: true,
+          title: `正在加载 ${frameworkId} 标准 / 框架数据`,
+        }),
+      );
       const existingLoad = state.standardFrameworkLoads.get(frameworkId);
       const loadPromise =
         existingLoad ||
@@ -10656,14 +10915,25 @@ function renderMaintenance() {
     if (activeTableLoadError) {
       setHtml(
         "sourceList",
-        `<div class="maintenance-empty-state">标准 / 框架表格加载失败：${escapeHtml(activeTableLoadError)}</div>`,
+        runtimeStateHtml("error", {
+          compact: true,
+          title: "标准 / 框架表格加载失败",
+          message: "未能读取当前表格数据。当前页面与表格选择会保留，可重新加载。",
+          action: { scope: "standard", key: `${frameworkId}:${state.activeStandardTableId}`, label: "重新加载" },
+        }),
       );
       setText("sourceDetailType", "");
       setHtml("sourceDetail", "");
       return;
     }
     if (activeTableLoading && activeTable && !standardTableHasRows(activeTable)) {
-      setHtml("sourceList", `<div class="maintenance-empty-state">正在加载 ${escapeHtml(activeTable.title || frameworkId)} 数据...</div>`);
+      setHtml(
+        "sourceList",
+        runtimeStateHtml("loading", {
+          compact: true,
+          title: `正在加载 ${activeTable.title || frameworkId} 数据`,
+        }),
+      );
       setText("sourceDetailType", "");
       setHtml("sourceDetail", "");
       return;
@@ -10708,6 +10978,7 @@ function renderMaintenance() {
         selectedId: viewModel.selectedId,
         emptyState: viewModel.emptyState,
         search: state.search,
+        revealSelection: state.capabilityDirectoryRevealSelection,
       }) || tableHtml;
   } else if (viewModel.section === "scopes") {
     tableHtml =
@@ -10761,6 +11032,13 @@ function renderMaintenance() {
         search: state.search,
       }) || tableHtml;
   }
+  if (viewModel.section === "standards" && !list(viewModel.rows).length) {
+    tableHtml = runtimeStateHtml("empty", {
+      compact: true,
+      title: "当前标准表暂无记录",
+      message: viewModel.emptyState || "标准索引已读取，但当前框架或表格没有可展示的业务记录。可切换框架或补充数据后再查看。",
+    });
+  }
   setCurrentAnnotationTarget(maintenanceUserTarget(viewModel));
   setHtml(
     "sourceList",
@@ -10788,7 +11066,29 @@ function renderMaintenance() {
     "sourceDetailPane",
     Boolean(state.selectedMaintenanceId) && !standardsMode && !knowledgeDirectoryMode,
   );
+  restoreMaintenanceScrollPosition(scrollSnapshot);
   flushPageSearchReveal();
+}
+
+function setCapabilityDirectoryExpansion(expanded) {
+  const table = $("sourceList")?.querySelector(".capability-directory-maintenance-table");
+  if (!table) return;
+  table.querySelectorAll(".standard-group-row[data-standard-group]").forEach((row) => {
+    row.classList.toggle("expanded", expanded);
+    row.querySelector(".standard-group-toggle")?.setAttribute("aria-expanded", expanded ? "true" : "false");
+  });
+  table.querySelectorAll("[data-standard-parent]").forEach((row) => {
+    row.hidden = !expanded;
+  });
+  if (!expanded) table.closest(".maintenance-table-scroll")?.scrollTo?.({ top: 0, left: 0 });
+}
+
+function runCapabilityDirectoryAction(action) {
+  if (action === "expand-all") setCapabilityDirectoryExpansion(true);
+  if (action === "collapse-l0") {
+    state.capabilityDirectoryRevealSelection = false;
+    setCapabilityDirectoryExpansion(false);
+  }
 }
 
 function maintenanceHeaderSummary(viewModel) {
@@ -10862,7 +11162,10 @@ function applyWorkspaceGrid(workspace, widths) {
   const columns = widths
     .map((width, index) => {
       const minWidth = ["capabilityWorkspace", "devLifecycleWorkspace"].includes(workspace.id) && workspace.classList.contains("catalog-collapsed") && index === 0 ? 64 : 160;
-      return `${Math.max(minWidth, Math.round(width))}px${index < widths.length - 1 ? ` ${handleWidth}px` : ""}`;
+      const constrainedWidth = workspace.id === "capabilityWorkspace" && index === 0 && !workspace.classList.contains("catalog-collapsed")
+        ? Math.min(300, Math.max(220, Math.round(width)))
+        : Math.max(minWidth, Math.round(width));
+      return `${constrainedWidth}px${index < widths.length - 1 ? ` ${handleWidth}px` : ""}`;
     })
     .join(" ");
   workspace.style.gridTemplateColumns = columns;
@@ -10873,7 +11176,7 @@ function defaultWorkspaceWidths(workspace, panes) {
   const handlesWidth = 6 * (panes.length - 1);
   const total = Math.max(480, workspace.clientWidth - handlesWidth);
   const rest = (...fixed) => Math.max(220, total - fixed.reduce((sum, value) => sum + value, 0));
-  if (workspace.id === "capabilityWorkspace") return [300, rest(300)];
+  if (workspace.id === "capabilityWorkspace") return [240, rest(240)];
   if (workspace.id === "environmentWorkspace") return [300, rest(300)];
   if (workspace.id === "devLifecycleWorkspace" && panes.length === 2) return [200, rest(200)];
   if (workspace.id === "devLifecycleWorkspace" || workspace.id === "dataLifecycleWorkspace") return [270, rest(270, 220), 220];
@@ -10934,8 +11237,14 @@ function beginWorkspaceResize(event, handle) {
     const delta = moveEvent.clientX - startX;
     const nextWidths = [...startWidths];
     const minFor = (pane) => pane.classList.contains("workbench-review-queue") ? 520 : pane.classList.contains("workbench-review-inspector") ? 320 : 200;
-    nextWidths[index] = Math.max(minFor(panes[index]), startWidths[index] + delta);
-    nextWidths[index + 1] = Math.max(minFor(panes[index + 1]), startWidths[index + 1] - delta);
+    if (workspace.id === "capabilityWorkspace" && index === 0 && !workspace.classList.contains("catalog-collapsed")) {
+      const pairWidth = startWidths[index] + startWidths[index + 1];
+      nextWidths[index] = Math.min(300, Math.max(220, startWidths[index] + delta));
+      nextWidths[index + 1] = Math.max(760, pairWidth - nextWidths[index]);
+    } else {
+      nextWidths[index] = Math.max(minFor(panes[index]), startWidths[index] + delta);
+      nextWidths[index + 1] = Math.max(minFor(panes[index + 1]), startWidths[index + 1] - delta);
+    }
     applyWorkspaceGrid(workspace, nextWidths);
   };
   const onUp = () => {
@@ -11256,17 +11565,17 @@ function renderSearchPage() {
       <section class="global-search-page ${compactPage ? "is-compact" : ""}">
         <div class="global-search-page-sticky">
           <div class="global-search-page-toolbar">
-            <label class="global-search-page-query" for="searchPageQueryInput">
-              <span aria-hidden="true">⌕</span>
-              <input id="searchPageQueryInput" type="search" value="${escapeHtml(query)}" placeholder="搜索能力、环境对象、流程、标准或关键字" autocomplete="off" data-search-history-kind="global" />
-              <button type="button" data-search-page-submit>搜索</button>
-            </label>
+            <div class="global-search-page-context">
+              <span>当前查询</span>
+              <strong>${query ? `“${escapeHtml(query)}”` : "等待输入"}</strong>
+              <small>使用顶部全局搜索框修改关键词</small>
+            </div>
           </div>
           <div class="global-search-filter-strip" aria-label="搜索结果范围">
             ${filters
               .map(
                 (row) => `
-                  <button class="${row.label === state.globalSearchPageFilter ? "active" : ""}" type="button" data-search-page-filter="${escapeHtml(row.label)}">
+                  <button class="${row.label === state.globalSearchPageFilter ? "active" : ""}" type="button" data-search-page-filter="${escapeHtml(row.label)}" aria-pressed="${row.label === state.globalSearchPageFilter ? "true" : "false"}">
                     <span>${escapeHtml(row.label)}</span>
                     <strong>${escapeHtml(String(row.count))}</strong>
                   </button>
@@ -11294,14 +11603,14 @@ function renderSearchPage() {
                             const key = globalSearchResultKey(result, index);
                             const metaLine = globalSearchResultMetaLine(result);
                             return `
-                              <article class="global-search-page-row" role="button" tabindex="0" data-search-page-result="${escapeHtml(key)}">
+                              <div class="global-search-page-row" role="button" tabindex="0" data-search-page-result="${escapeHtml(key)}">
                                 <span class="global-search-page-row-type">${escapeHtml(globalSearchResultCategory(result))}</span>
                                 <span class="global-search-page-row-main">
                                   <strong>${escapeHtml(result.title || "未命名结果")}</strong>
                                   <small>${escapeHtml(metaLine)}</small>
-                                  <em>${highlightSearchText(globalSearchResultSnippetLabel(result, query), query)}</em>
+                                  <em>${highlightFirstSearchText(globalSearchResultSnippetLabel(result, query), query)}</em>
                                 </span>
-                              </article>
+                              </div>
                             `;
                           })
                           .join("")}
@@ -11313,6 +11622,7 @@ function renderSearchPage() {
       </section>
     `,
   );
+  restoreGlobalSearchPageScroll();
   if (needsLoad) runGlobalSearchPage();
 }
 
@@ -11345,7 +11655,6 @@ function renderPlaceholder() {
 
 function renderActiveView() {
   setCurrentAnnotationTarget(null);
-  renderMetrics();
   if (state.activeView === "overview") renderOverview();
   if (state.activeView === "search") renderSearchPage();
   if (state.activeView === "workbench") renderWorkbench();
@@ -11428,6 +11737,19 @@ function bindEvents() {
   });
   document.addEventListener("click", suppressClickIfTextSelection, true);
   document.addEventListener("click", (event) => {
+    const packageRetry = event.target?.closest?.("[data-runtime-state-retry]");
+    if (packageRetry) {
+      event.preventDefault();
+      retryDataPackage(packageRetry.dataset.runtimeStateRetry || "");
+      return;
+    }
+    const standardRetry = event.target?.closest?.("[data-standard-load-retry]");
+    if (standardRetry) {
+      event.preventDefault();
+      retryStandardLoad(standardRetry.dataset.standardLoadRetry || "");
+    }
+  });
+  document.addEventListener("click", (event) => {
     const slideStep = event.target?.closest?.("[data-content-slide-step]"); if (slideStep) { activateContentSlideStep(slideStep, event); return; }
     const slideThumb = event.target?.closest?.("[data-content-slide-index]");
     if (slideThumb) activateContentSlideThumb(slideThumb, event);
@@ -11437,8 +11759,32 @@ function bindEvents() {
     if (!routeButton) return;
     event.preventDefault();
     event.stopPropagation();
-    activateRoute(routeButton.dataset.appRoute);
+    const dashboardIssueId = text(routeButton.dataset.dashboardIssueId).trim();
+    if (dashboardIssueId) {
+      state.workbenchIssueStatusFilter = "全部";
+      state.workbenchIssuePageFilter = "全部";
+      state.workbenchIssuePriorityFilter = "全部";
+      state.workbenchIssueSearch = "";
+      state.workbenchIssueSortKey = "updated";
+      state.workbenchIssueSortDirection = "desc";
+      state.workbenchSelectedIssueIds = new Set();
+      state.workbenchPendingDeleteIssueId = "";
+    }
+    activateRoute(routeButton.dataset.appRoute, dashboardIssueId ? { workbenchIssueId: dashboardIssueId } : {});
   }, true);
+  document.addEventListener("click", (event) => {
+    document.querySelectorAll(".dashboard-overflow-menu[open]").forEach((menu) => {
+      if (!menu.contains(event.target)) menu.removeAttribute("open");
+    });
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    const menu = event.target?.closest?.(".dashboard-overflow-menu[open]") || document.querySelector(".dashboard-overflow-menu[open]");
+    if (!menu) return;
+    event.preventDefault();
+    menu.removeAttribute("open");
+    menu.querySelector("summary")?.focus();
+  });
   document.addEventListener("click", (event) => {
     const reviewFilterButton = event.target.closest("[data-review-filter]");
     if (reviewFilterButton && (reviewFilterButton.closest("#workbenchWorkspace") || reviewFilterButton.closest("#appPageHeader"))) {
@@ -11485,7 +11831,6 @@ function bindEvents() {
     const clearFiltersButton = event.target.closest("[data-review-clear-filters]");
     if (clearFiltersButton && clearFiltersButton.closest("#workbenchWorkspace")) {
       state.workbenchIssueStatusFilter = "全部";
-      state.workbenchIssuePageFilter = "全部";
       state.workbenchIssuePriorityFilter = "全部";
       state.workbenchIssueSearch = "";
       state.workbenchSelectedIssueIds = new Set();
@@ -11681,15 +12026,6 @@ function bindEvents() {
     if (!event.target.closest(".global-search") && !event.target.closest("#globalSearchPanel")) clearGlobalSearchPanel({ keepQuery: true });
   });
   document.addEventListener("click", (event) => {
-    const submit = event.target.closest("[data-search-page-submit]");
-    if (submit) {
-      event.preventDefault();
-      event.stopPropagation();
-      const query = $("searchPageQueryInput")?.value || state.globalSearch;
-      rememberCommittedSearchQuery("global", query);
-      openGlobalSearchPage(query, { replace: true });
-      return;
-    }
     const filter = event.target.closest("[data-search-page-filter]");
     if (filter) {
       event.preventDefault();
@@ -11698,6 +12034,8 @@ function bindEvents() {
       state.globalSearchPageSelectedKey = "";
       state.globalSearchPageIndex = 1;
       state.globalSearchPageLoadedFilter = "";
+      resetGlobalSearchPageScroll();
+      persistWorkspaceState();
       renderSearchPage();
       return;
     }
@@ -11709,6 +12047,8 @@ function bindEvents() {
       const pageCount = Math.max(1, Math.ceil(activeTotal / GLOBAL_SEARCH_PAGE_SIZE));
       state.globalSearchPageIndex = clampGlobalSearchPageIndex(pageButton.dataset.searchPagePage, pageCount);
       state.globalSearchPageSelectedKey = "";
+      resetGlobalSearchPageScroll();
+      persistWorkspaceState();
       renderSearchPage();
       return;
     }
@@ -11722,6 +12062,8 @@ function bindEvents() {
       const pageCount = Math.max(1, Math.ceil(activeTotal / GLOBAL_SEARCH_PAGE_SIZE));
       state.globalSearchPageIndex = clampGlobalSearchPageIndex(input?.value, pageCount);
       state.globalSearchPageSelectedKey = "";
+      resetGlobalSearchPageScroll();
+      persistWorkspaceState();
       renderSearchPage();
       return;
     }
@@ -11734,13 +12076,12 @@ function bindEvents() {
       return;
     }
   }, true);
-  document.addEventListener("keydown", (event) => {
-    if (event.target?.id !== "searchPageQueryInput") return;
-    if (event.key !== "Enter") return;
-    event.preventDefault();
-    rememberCommittedSearchQuery("global", event.target.value);
-    openGlobalSearchPage(event.target.value, { replace: true });
-  });
+  document.addEventListener("scroll", (event) => {
+    if (!event.target?.matches?.(".global-search-page-results")) return;
+    rememberGlobalSearchPageScroll();
+    window.clearTimeout(globalSearchPageScrollPersistTimer);
+    globalSearchPageScrollPersistTimer = window.setTimeout(persistWorkspaceState, 180);
+  }, true);
   document.addEventListener("keydown", (event) => {
     if (!event.target?.matches?.("[data-search-page-jump-input]")) return;
     if (event.key !== "Enter") return;
@@ -11813,7 +12154,6 @@ function bindEvents() {
     if (filterControl && filterControl.closest("#workbenchWorkspace")) {
       const control = filterControl.dataset.reviewFilterControl;
       if (control === "status") state.workbenchIssueStatusFilter = filterControl.value || "全部";
-      if (control === "page") state.workbenchIssuePageFilter = filterControl.value || "全部";
       if (control === "priority") state.workbenchIssuePriorityFilter = filterControl.value || "全部";
       state.workbenchSelectedIssueIds = new Set();
       state.workbenchPendingDeleteIssueId = "";
@@ -12045,6 +12385,7 @@ function bindEvents() {
     const cursor = event.target.selectionStart;
     scheduleSearchHistoryCommit(event.target, event.target.value);
     setScopedSearch(event.target.value);
+    if (state.activeMaintenancePage === "capability-directory") state.capabilityDirectoryRevealSelection = false;
     queuePageSearchReveal(event.target.value);
     renderMaintenance();
     flushPageSearchReveal();
@@ -12062,6 +12403,7 @@ function bindEvents() {
       if (state.activeMaintenancePage === "standards") state.activeRoute = `/standards/${state.activeStandardFramework}`;
       restoreScopedSearch();
       state.selectedMaintenanceId = null;
+      state.capabilityDirectoryRevealSelection = false;
       renderMaintenance();
       syncBrowserRoute(state.activeRoute);
       ensureRoutePackages();
@@ -12070,6 +12412,11 @@ function bindEvents() {
     requestAnnotationContextSwitch(switchMaintenancePage, button.textContent.trim() || "知识库页面");
   });
   $("sourceList")?.addEventListener("click", (event) => {
+    const directoryAction = event.target.closest("[data-capability-directory-action]");
+    if (directoryAction) {
+      if (event.detail === 0) runCapabilityDirectoryAction(directoryAction.dataset.capabilityDirectoryAction);
+      return;
+    }
     const tab = event.target.closest("[data-reference-tab]");
     if (tab && !tab.dataset.sourcePage) {
       state.activeReferenceTab = tab.dataset.referenceTab;
@@ -12082,7 +12429,11 @@ function bindEvents() {
     const row = event.target.closest("[data-maintenance-id]");
     if (!row) return;
     state.selectedMaintenanceId = row.dataset.maintenanceId;
-    renderMaintenance();
+    renderMaintenance({ preserveTableScroll: true });
+  });
+  $("sourceList")?.addEventListener("mouseup", (event) => {
+    const directoryAction = event.target.closest("[data-capability-directory-action]");
+    if (directoryAction) runCapabilityDirectoryAction(directoryAction.dataset.capabilityDirectoryAction);
   });
   document.addEventListener("sapd:standard-table-select", (event) => {
     const tableId = event.detail?.tableId || "";
@@ -12136,6 +12487,7 @@ function bindEvents() {
     window.requestAnimationFrame(() => fitEnvironmentBasemapViewer(viewer));
   });
   window.addEventListener("resize", () => {
+    if (state.activeView === "capabilities") applyCapabilityCatalogState();
     document.querySelectorAll("[data-environment-basemap-viewer][data-basemap-mode='fit']").forEach((viewer) => {
       window.requestAnimationFrame(() => fitEnvironmentBasemapViewer(viewer));
     });
@@ -12241,7 +12593,11 @@ function bindEvents() {
       return;
     }
     if (event.target.closest("#toggleCapabilityCatalog, #expandCapabilityCatalogTab")) {
-      state.capabilityCatalogCollapsed = !state.capabilityCatalogCollapsed;
+      if (window.matchMedia?.("(max-width: 1099px)")?.matches) {
+        state.capabilityCatalogNarrowExpanded = !state.capabilityCatalogNarrowExpanded;
+      } else {
+        state.capabilityCatalogCollapsed = !state.capabilityCatalogCollapsed;
+      }
       applyCapabilityCatalogState();
       return;
     }
@@ -12392,7 +12748,7 @@ async function init() {
   await loadScriptOnce("./components/LocalRelationNetworkGraph.js?v=capability-graph-controls-20260701-1", () => Boolean(window.sapdComponents?.LocalRelationNetworkGraph));
   await loadScriptOnce("./components/CapabilityLocalRelationMap.js?v=annotation-framework-anchor-20260605-1-oi156-anchor-20260630-1-oi159-overview-mode-20260701-1-capability-tabs-20260701-2-oi159-summary-20260701-1-oi159-title-tabs-20260701-1-oi159-title-baseline-20260701-1-oi159-summary-compact-20260702-1-oi159-attached-control-20260702-2-oi159-l2-summary-tabs-20260702-1-oi159-reader-summary-cards-20260702-1-oi159-definition-source-20260702-1-oi159-coverage-ratio-20260702-1-oi159-coverage-denominator-scale-20260702-1-oi159-service-coverage-scale-crop-20260702-1", () => Boolean(window.sapdComponents?.CapabilityLocalRelationMap));
   await loadScriptOnce("./models/environmentRelationGraphModel.js?v=environment-graph-20260521-1", () => Boolean(window.sapdModels?.buildEnvironmentRelationGraphModel));
-  await loadScriptOnce("./components/EnvironmentLocalRelationMap.js?v=environment-backup-tab-removal-20260629-1-oi156-anchor-20260630-1-oi154-page-search-nav-20260703-1-oi154-search-p6-20260703-1-oi154-search-p7-20260703-1-oi154-search-p8-20260703-1-oi154-local-search-baseline-20260703-1-oi154-all-local-search-baseline-20260703-1-oi154-search-toolbar-align-20260703-1-oi154-env-search-tab-preserve-20260703-1-oi154-basemap-search-remove-20260703-1-oi154-default-shell-20260704-1-oi154-single-tab-state-20260704-1-oi185-domain-search-history-20260705-1-service-scope-chip-color-20260709-3", () => Boolean(window.sapdComponents?.EnvironmentLocalRelationMap));
+  await loadScriptOnce("./components/EnvironmentLocalRelationMap.js?v=environment-backup-tab-removal-20260629-1-oi156-anchor-20260630-1-oi154-page-search-nav-20260703-1-oi154-search-p6-20260703-1-oi154-search-p7-20260703-1-oi154-search-p8-20260703-1-oi154-local-search-baseline-20260703-1-oi154-all-local-search-baseline-20260703-1-oi154-search-toolbar-align-20260703-1-oi154-env-search-tab-preserve-20260703-1-oi154-basemap-search-remove-20260703-1-oi154-default-shell-20260704-1-oi154-single-tab-state-20260704-1-oi185-domain-search-history-20260705-1-service-scope-chip-color-20260709-3-p1-1-runtime-state-20260714-1-directory-shell-20260714-1", () => Boolean(window.sapdComponents?.EnvironmentLocalRelationMap));
   mountAppShellComponents();
   setupAnnotationSurfaceObserver();
   bindEvents();

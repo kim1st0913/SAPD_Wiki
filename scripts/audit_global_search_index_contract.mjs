@@ -45,7 +45,7 @@ const appMaintenance = snippet(appJs, "function flattenMaintenanceSearchItems(",
 const ensurePackages = snippet(appJs, "async function ensureGlobalSearchPackages()", "async function ensureGlobalSearchStandardDetails()");
 const ensureStandards = snippet(appJs, "async function ensureGlobalSearchStandardDetails()", "function buildGlobalSearchResults(query)");
 const runGlobalSearch = snippet(appJs, "async function runGlobalSearch()", "function clearGlobalSearchPanel");
-const searchPageClick = snippet(appJs, 'const submit = event.target.closest("[data-search-page-submit]")', '$("capabilitySearchInput")');
+const searchPageClick = snippet(appJs, 'const filter = event.target.closest("[data-search-page-filter]")', '$("capabilitySearchInput")');
 
 const checks = [
   {
@@ -264,13 +264,15 @@ const checks = [
     message: "LC-DT policy matrix search must reveal exact row/chip anchors by target_ref for local and global search.",
   },
   {
-    id: "technical_service_dictionary_search_reveals_selected_row",
+    id: "technical_service_dictionary_search_uses_destination_query_without_default_selection_expand",
     ok:
-      technicalServiceMaintenanceTableJs.includes("groupHasSelectedService") &&
-      technicalServiceMaintenanceTableJs.includes("groupHasSelectedService || expandAll") &&
+      technicalServiceMaintenanceTableJs.includes("const expandAll = shouldExpandGroups(search)") &&
+      technicalServiceMaintenanceTableJs.includes("const expanded = expandAll || expandedGroups.has(id)") &&
+      !technicalServiceMaintenanceTableJs.includes("groupHasSelectedService") &&
       technicalServiceMaintenanceTableJs.includes("if (!selectedId) scheduleScrollRestore()") &&
+      appJs.includes("queuePageSearchReveal(activationQuery, searchScopeForCurrentState(), globalSearchPageRevealOptions(result))") &&
       indexHtml.includes("oi188-selected-row-expand-20260706-1"),
-    message: "technical service dictionary search activation must expand the selected service group and avoid restoring stale scroll over the selected row.",
+    message: "technical service search activation must reveal through the destination query while normal selection keeps dictionary groups collapsed.",
   },
   {
     id: "capability_tree_search_uses_own_fields_not_parent_trail",
@@ -362,7 +364,7 @@ const checks = [
       appJs.includes("命中：") &&
       appJs.includes("globalSearchResultMetaLine(result)") &&
       appJs.includes("globalSearchResultSnippetLabel(result, query)") &&
-      appJs.includes("highlightSearchText(globalSearchResultSnippetLabel(result, query), query)") &&
+      appJs.includes("highlightFirstSearchText(globalSearchResultSnippetLabel(result, query), query)") &&
       stylesCss.includes(".global-search-snippet-mark"),
     message: "global search result rows must show route/type context, the matched snippet, and a visible query highlight.",
   },
@@ -412,7 +414,7 @@ const checks = [
       appJs.includes("function globalSearchPageRevealOptions") &&
       appJs.includes('targetAttribute: "data-standard-row-id"') &&
       appJs.includes("queuePageSearchReveal(activationQuery, searchScopeForCurrentState(), globalSearchPageRevealOptions(result))") &&
-      snippet(appJs, "function renderMaintenance()", "function maintenanceHeaderSummary").includes("flushPageSearchReveal();") &&
+      snippet(appJs, "function renderMaintenance(options = {})", "function maintenanceHeaderSummary").includes("flushPageSearchReveal();") &&
       standardFrameworkTableJs.includes('tableId: activeTableId || activeFrameworkId || "standard"'),
     message: "standard/framework search activation must carry exact row reveal options and flush after lazy table rendering instead of falling back to text-only positioning.",
   },
@@ -490,7 +492,8 @@ const checks = [
       appJs.includes("data-search-history-clear") &&
       appJs.includes("data-search-history-remove") &&
       appJs.includes("data-search-history-expand") &&
-      appJs.includes("id=\"searchPageQueryInput\"") &&
+      !appJs.includes("id=\"searchPageQueryInput\"") &&
+      appJs.includes("global-search-page-context") &&
       indexHtml.includes("data-search-history-kind=\"global\"") &&
       globalSearchContract.includes("预览面板和结果页搜索请求必须使用独立加载状态"),
     message: "global search preview, search page loading, and custom search-history memory must be isolated and explicitly controlled.",

@@ -1,0 +1,135 @@
+.runtime-state {
+  --runtime-state-tone: var(--shell-muted, var(--muted));
+  --runtime-state-surface: color-mix(in oklch, var(--shell-surface-muted, var(--surface-quiet)) 70%, transparent);
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+  padding: 28px 24px;
+  color: var(--shell-text, var(--ink));
+  text-align: center;
+}
+
+.runtime-state.is-compact {
+  min-height: 148px;
+  padding: 20px 18px;
+}
+
+.runtime-state[data-runtime-state="missing-file"] {
+  --runtime-state-tone: var(--sapd-state-warning, var(--warning));
+  --runtime-state-surface: color-mix(in oklch, var(--sapd-state-warning, var(--warning)) 8%, transparent);
+}
+
+.runtime-state[data-runtime-state="error"] {
+  --runtime-state-tone: var(--sapd-state-error, var(--danger));
+  --runtime-state-surface: color-mix(in oklch, var(--sapd-state-error, var(--danger)) 7%, transparent);
+}
+
+.runtime-state[data-runtime-state="loading"] {
+  --runtime-state-tone: var(--shell-primary, var(--accent));
+}
+
+.runtime-state__content {
+  width: min(100%, 520px);
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 18px 22px;
+  border-radius: var(--shell-radius-md, 14px);
+  background: var(--runtime-state-surface);
+}
+
+.runtime-state.is-compact .runtime-state__content {
+  padding: 14px 18px;
+}
+
+.runtime-state__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--runtime-state-tone);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+
+.runtime-state__eyebrow i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.runtime-state__title {
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.runtime-state__message {
+  max-width: 46ch;
+  margin: 0;
+  color: var(--shell-muted, var(--muted));
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.runtime-state__skeleton {
+  width: min(100%, 360px);
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.runtime-state__skeleton span {
+  width: calc(100% - var(--runtime-skeleton-index, 0) * 12%);
+  height: 8px;
+  justify-self: center;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--runtime-state-tone) 18%, var(--shell-surface, var(--panel)));
+  animation: runtime-state-pulse 1.35s ease-in-out infinite alternate;
+  animation-delay: calc(var(--runtime-skeleton-index, 0) * 90ms);
+}
+
+.runtime-state__action {
+  min-height: 34px;
+  margin-top: 6px;
+  padding: 7px 14px;
+  border: 1px solid color-mix(in oklch, var(--runtime-state-tone) 42%, var(--shell-line, var(--line)));
+  border-radius: var(--shell-radius-sm, 10px);
+  background: var(--shell-surface, var(--panel));
+  color: color-mix(in oklch, var(--runtime-state-tone) 78%, var(--shell-text, var(--ink)));
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.runtime-state__action:hover {
+  border-color: var(--runtime-state-tone);
+}
+
+.runtime-state__action:focus-visible {
+  outline: none;
+  box-shadow: var(--shell-focus-ring, var(--sapd-focus-ring));
+}
+
+@keyframes runtime-state-pulse {
+  from { opacity: 0.48; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .runtime-state__skeleton span {
+    animation: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .runtime-state {
+    min-height: 180px;
+    padding: 20px 14px;
+  }
+
+  .runtime-state__content {
+    padding-inline: 14px;
+  }
+}

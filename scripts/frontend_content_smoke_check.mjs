@@ -459,8 +459,9 @@ function validateLocalPackages() {
   );
   assert(
     appSource.includes("function highlightSearchText") &&
+      appSource.includes("function highlightFirstSearchText") &&
       appSource.includes("globalSearchResultMetaLine(result)") &&
-      appSource.includes("highlightSearchText(globalSearchResultSnippetLabel(result, query), query)") &&
+      appSource.includes("highlightFirstSearchText(globalSearchResultSnippetLabel(result, query), query)") &&
       stylesSource.includes(".global-search-snippet-mark"),
     "global search previews and result rows must show context and highlight the query inside the matched snippet.",
   );

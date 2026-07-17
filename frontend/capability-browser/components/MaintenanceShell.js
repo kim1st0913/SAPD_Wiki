@@ -86,7 +86,7 @@
 
   function renderSectionTabs(tabs = []) {
     const rows = utils.list(tabs);
-    if (!rows.length) return "";
+    if (rows.length < 2) return "";
     return `
       <div class="maintenance-section-tabs" role="tablist" aria-label="知识库字典页签">
         ${rows

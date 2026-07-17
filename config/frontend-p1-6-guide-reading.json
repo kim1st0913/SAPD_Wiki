@@ -1,0 +1,22 @@
+{
+  "version": "2026-07-16.p1-6-guide-reading-v5",
+  "route": "/guides/maturity-model-usage",
+  "navigationLabel": "成熟度模型使用指南",
+  "documentPath": "/assets/guides/maturity-model-usage.html?embed=1",
+  "coverHeightRange": [160, 220],
+  "appLayers": ["directory", "isolated-document"],
+  "chapterAnchors": ["method", "levels", "tool", "scoring", "evidence", "report"],
+  "featuredAnchors": ["method", "tool", "report"],
+  "download": {
+    "owner": "AppShell page header",
+    "label": "下载指南",
+    "asset": "/assets/guides/maturity-model-usage.html",
+    "filename": "SAPD-成熟度模型使用指南-v1.3.html",
+    "format": "self-contained HTML"
+  },
+  "excludedScopes": [
+    "maturity scoring and aggregation",
+    "iframe body rewriting from the App shell",
+    "protected data and ETL"
+  ]
+}

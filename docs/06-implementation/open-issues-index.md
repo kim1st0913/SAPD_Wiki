@@ -238,3 +238,4 @@
 | OI-191 | 已修复 / 待用户验收 | 全局共享标题区视觉 token 偏离旧 DMG 基线 | 前端 / 共享 App Shell / 设计 / 审计 | docs/06-implementation/open-issues.md |
 | OI-138 | 长期保留 / 按需继续修复 | 关注点关系图谱标签与节点 / 连线碰撞 | 前端 / 图谱布局 / 设计 | docs/06-implementation/open-issues.md |
 | OI-128 | 部分完成 | USER-WRITE-UI-1：批注 / 工作台用户写入入口 | 前端 / 用户数据 / Delivery Bundle | docs/06-implementation/open-issues.md |
+| OI-197 | 待业务确认 / 映射门禁阻断 | 成熟度评分依据与当前能力字典尚未全量映射 | 数据 / 成熟度 / 当前字典 / 源 Excel / 业务确认 | docs/06-implementation/open-issues.md |

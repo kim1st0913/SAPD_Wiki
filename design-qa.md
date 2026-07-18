@@ -1,3 +1,103 @@
+# 成熟度评估报告指定 HTML 模板 Design QA（2026-07-17）
+
+- source visual truth：用户指定的 `/Users/kim1st/.codex/.chatgpt-projects/g-p-6a0141ade554819195eb79578e83c85f/maturity-report-01a3bc396ad2a47ddee7-executive.html`。
+- implementation：`demo-project-002` 通过当前共享报告导出运行时生成的自包含 HTML；目标页面 `http://127.0.0.1:5173/workbench/maturity/demo-project-002`。
+- browser-rendered evidence：`/private/tmp/sapd-report-executive-template-top.png`、`/private/tmp/sapd-report-executive-template-page2.png`、`/private/tmp/sapd-report-executive-template-appendix.png`、`/private/tmp/sapd-report-executive-template-narrow.png`。
+- viewport：Codex 内置浏览器 `1280×720` 与 `520×900`，未启动系统 Chrome。
+
+## Findings
+
+无剩余 Web P0 / P1 / P2 设计阻塞。
+
+- 模板继承：从 `Executive report refinement` 开始的完整响应式与打印 CSS 与指定 HTML 逐字一致；管理层摘要、成熟度跃迁路径、目标达成度、Top 3、关键事实、双雷达、人工填写页和附录结构均已接入。
+- 数据边界：指定 HTML 中的示例企业、静态分数、固定轨迹位置和静态完成率没有进入模板；项目名称、当前 / 目标成熟度、轨迹位置、目标达成度、低于目标数量、范围、完成度、证据覆盖和 Top 3 均由当前报告模型动态生成。
+- Typography / colors：保留指定模板的宋体标题、无衬线正文、深海军蓝主色、铜色目标与关注色、鼠尾草绿完成度语义。
+- Layout / spacing：桌面首屏形成“管理层结论—成熟度轨迹—重点研究—关键事实—双雷达”的顺序；窄屏按单列回流，页面横向溢出 `0px`。
+- Interaction / accessibility：四个人工填写区均保留 `contenteditable`，运行时补充 `role=textbox`、`aria-multiline=true` 与 `tabindex=0`；占位字段在导出 HTML 中按模板规则着色。
+- Appendix：第三页附录视觉与上一版保持不变，仍包含 `hierarchy_statistics`、`evaluation`、`dimension_rankings`、`capability_results`、`overall_rankings`、`score_appendix`、`traceability` 七个完整分区。
+- Content：两个雷达图均由真实评估结果内联绘制；结果哈希、报告快照和算法版本等非业务字段继续不展示。
+
+## Validation
+
+- 指定模板与动态实现的关键模板块 `7 / 7` 一致，报告页数均为 `3`。
+- 浏览器验证：雷达 `2`、人工填写区 `4`、附录分区 `7`、console 可执行脚本与无横向溢出均通过。
+- 动态样本验证：将项目名及目标统一改为 `L5` 后，标题与目标轨迹标记随数据更新到 `100.0%`，证明没有固化指定 HTML 的示例数字。
+- `py_compile`、专项报告断言与 `git diff --check` 通过；完整成熟度审计仍停在既有评分页滚动 owner 断言，本轮报告断言位于其前并已通过。
+
+final result: passed
+
+---
+
+# 成熟度评估报告 V2 编制工作台 Design QA（2026-07-18）
+
+- source visual truth：当前评估报告运行截图 `/private/tmp/sapd-maturity-report-design-audit-20260718/01-current-report-page.png`、人工结论内容设计 `/Users/kim1st/.codex/.chatgpt-projects/g-p-6a0141ade554819195eb79578e83c85f/SAPD_成熟度评估人工结论内容设计_V1.1.md`，以及 Figma 实施评审板 `https://www.figma.com/design/QTozvhOuhoqMrj1VPkApdG`。
+- implementation：新增独立“评估报告 V2”页签；目标页面 `http://127.0.0.1:5173/workbench/maturity/demo-project-001`，原“评估报告”页面未改。
+- browser-rendered evidence：`/private/tmp/sapd-maturity-report-v2-implementation-20260718.png`；应用内浏览器 `1280×720`，未启动系统 Chrome。
+- same-canvas comparison：`/private/tmp/sapd-maturity-report-v2-current-vs-implementation-20260718.png`；左侧为原评估报告，右侧为 V2 编制工作台，同一项目、同一视口。
+
+## Findings
+
+无剩余 Web P0 / P1 / P2 设计阻塞。
+
+- 信息架构：原报告将四项人工内容直接放入结果页；V2 改为“编制工作台 → 正式报告预览”两层结构，五阶段为解释数据、形成研判、提出行动、压缩摘要、形成决议。
+- 字段契约：15 项结论默认空白；每项均以“系统依据 / 填写参考 / 人工填写”三列呈现，并与正式报告预览按字段 ID 实时同步。
+- 数据真实性：当前成熟度、目标成熟度、L2 差距、证据覆盖、行动登记、双雷达、Top 5 与附录继续读取当前项目评估结果，不在 V2 页面重新计算评分口径。
+- 视觉：沿用 SAPD Apple Shell、系统中文字体、低彩度蓝灰层级、紧凑项目 Tab 和既有报告图表组件；没有引入营销式 hero、渐变或独立视觉语言。
+- 页面几何：`1280×720` 页面横向溢出 `0px`，全页仅一个 `h1`；五阶段字段分布为 `2 / 2 / 3 / 4 / 4`，两类雷达均可见且有实际数据。
+- 隔离边界：原评估报告仍显示“更新评估报告 / 导出 HTML / 导出 Markdown”，V2 不接管原报告导出，也不修改评分逻辑、ETL、数据口径或用户数据库。
+- Figma：实施评审板包含现状证据、审计结论、V2 架构与首版边界；第二张项目截图因外部传输审批未通过，保留了明确占位说明，没有绕过审批上传。
+
+## Primary interactions tested
+
+- 进入“评估报告 V2”后，刷新仍停留在 V2；测试输入已清空，项目恢复 `0 / 15`。
+- 第一阶段输入后，工作台、正式报告字段、完成度与缺项提示同步更新；清空后再次刷新仍为空。
+- 五个阶段逐项切换，DOM 字段 ID 合计 15 项且无重复。
+- 在原“评估报告”和 V2 之间往返，两个页面互斥渲染，原报告动作保持可用。
+
+## Remaining risk
+
+- 本轮按用户要求只新增 Web/共享前端页面，未重建或回归 macOS DMG App；共享前端变更需在下一次发布矩阵补 App 运行证据。
+
+final result: passed
+
+---
+
+# 成熟度评估报告方案 2 与完整附录 Design QA（2026-07-17）
+
+- source visual truth：Product Design 方案 2 参考图 `/Users/kim1st/.codex/generated_images/019f6f8d-7a79-7f90-9a12-28a984deacef/exec-2a42ed13-36dc-47a7-b093-59a0e609ea96.png`。
+- implementation：`demo-project-002` 基于真实评估结果生成的自包含 HTML；应用内浏览器 `1440×1024`，未启动系统 Chrome。
+- browser-rendered evidence：`/private/tmp/sapd-report-option2-top.png`、`/private/tmp/sapd-report-option2-lower.png`。
+- same-canvas comparison：`/private/tmp/sapd-report-option2-comparison.png`；首屏重点区域比较为 `/private/tmp/sapd-report-option2-focused-comparison.png`。
+- validated state：正式报告已生成；第一页管理层决策记分卡、第二页人工结论、第三页完整数据附录。
+
+## Findings 与比较历史
+
+无剩余 Web P0 / P1 / P2 设计阻塞。
+
+- 用户否决前一版方案 3 后，前两页改为方案 2 的管理层决策记分卡：白底编辑式版面、深海军蓝与克制橙色强调、`L3 → L4` 直接表达当前与目标，不再使用会产生层级歧义的边缘箭头。
+- 附录沿用用户确认的正式表格风格，没有随方案切换改版；第三页继续完整承载层级统计、评分统计、维度排名、能力结果、总体排名、评分明细和评估口径说明。
+- Fonts / typography：使用系统中文字体、紧凑数字字面与清晰标题层级；管理层结论、数值和附录表格均能在浏览器中完整阅读。
+- Spacing / layout：首屏形成“成熟度跃迁—决议议题—核心指标—双雷达—关键差距”的稳定阅读顺序；三页容器均无横向溢出。参考图为纵向概念稿，实现为适配真实全量数据的宽版自包含 HTML，这是有意差异。
+- Colors / tokens：深海军蓝承载结论和数据，橙色仅用于目标与行动优先级；没有引入营销式渐变、玻璃拟态或高饱和装饰。
+- Image quality / asset fidelity：雷达图由报告内联 SVG 根据当前评估数据动态绘制，不依赖外部图片资产；全 L2 雷达在单轴缺失时保留缺口并继续绘制其余有效边，四维雷达完整呈现当前值和目标值。
+- Copy / content：决议议题、关键差距、四维和 T/G/M 数据均来自当前评估结果；不展示结果摘要哈希、快照 ID、算法版本等非业务字段。四个人工区继续使用“评估概况、关键发现、提升建议、下一步计划”。
+
+## Primary interactions tested
+
+- 四个人工文字区均保留 `contenteditable` 编辑能力。
+- DOM 验证：报告页 `3`、人工区 `4`、雷达图 `2`、附录分区 `7`；决议议题与四维雷达均存在。
+- 单个 L2 缺失的专项验证：当前 / 目标雷达各绘制 `30` 条有效相邻边，不再出现整张雷达无数据。
+- 应用内浏览器 console error `0`，页面横向溢出 `0px`。
+
+## Intentional deviations
+
+- 方案 2 概念图只定义管理层主视图；生产报告必须容纳真实的 32 项 L2 数据和后续可扩展统计，因此第二页保留人工结论，第三页保留可扩展完整附录。
+- 动态内联 SVG 是自包含 HTML 导出与真实数据驱动的产品约束，不是装饰性手工图形。
+
+final result: passed
+
+---
+
 # 成熟度 L2 四维均值同一数值行第三十轮 Design QA（2026-07-17）
 
 - source visual truth：用户截图 `/var/folders/81/8nwy3h2n00s1dw1g5bnvj7j40000gn/T/codex-clipboard-668a3a59-2650-4f45-9d6a-d6f377e70e60.png`。

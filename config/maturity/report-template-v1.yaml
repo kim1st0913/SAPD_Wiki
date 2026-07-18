@@ -66,6 +66,6 @@ sections:
     renderer: score_appendix
     required: true
   - id: traceability
-    title: 口径、限制与快照信息
+    title: 评估口径说明
     renderer: traceability
     required: true

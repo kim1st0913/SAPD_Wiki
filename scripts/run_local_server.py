@@ -1733,11 +1733,20 @@ def configure_projection_api(runtime: BundleRuntime) -> None:
 
     projection_api.PROJECT_ROOT = runtime.root.resolve()
     projection_api.resolve_project_path = resolve_runtime_project_path
-    projection_api.FRONTEND_PUBLIC_DATA_ROOT = (runtime.frontend_dir / "public" / "data").resolve()
-    projection_api.USER_DB_PATH = runtime.user_db.resolve()
-    if hasattr(projection_api, "_DATA_PACKAGE_CACHE"):
-        projection_api._DATA_PACKAGE_CACHE.clear()
-    runtime.logger.write("info", "projection api configured", frontend_data_root=str(projection_api.FRONTEND_PUBLIC_DATA_ROOT))
+    frontend_data_root = (runtime.frontend_dir / "public" / "data").resolve()
+    if hasattr(projection_api, "configure_runtime_paths"):
+        projection_api.configure_runtime_paths(
+            base_db=runtime.base_db.resolve(),
+            user_db=runtime.user_db.resolve(),
+            data_root=frontend_data_root,
+            runtime_label="bundle",
+        )
+    else:
+        projection_api.USER_DB_PATH = runtime.user_db.resolve()
+        projection_api.DATA_PACKAGE_ROOT = frontend_data_root
+        if hasattr(projection_api, "_DATA_PACKAGE_CACHE"):
+            projection_api._DATA_PACKAGE_CACHE.clear()
+    runtime.logger.write("info", "projection api configured", frontend_data_root=str(frontend_data_root))
 
 
 def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: str) -> type[BaseHTTPRequestHandler]:
@@ -1862,6 +1871,21 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
                     path_parts = [unquote(part) for part in parsed.path.strip("/").split("/") if part]
                     if parsed.path == "/api/v1/dashboard/knowledge-summary":
                         self.send_json(200, projection_api.create_envelope(projection_api.dashboard_knowledge_summary()))
+                        return
+                    if parsed.path == "/api/v1/maturity/workspace":
+                        self.send_json(200, projection_api.create_envelope(projection_api.build_maturity_workspace(projection_api.read_data_package("capability-workbench"))))
+                        return
+                    if parsed.path == "/api/v1/maturity/reports/artifact":
+                        self.send_json(
+                            200,
+                            projection_api.create_envelope(
+                                projection_api.load_maturity_report_artifact(
+                                    project_id=(params.get("project_id") or params.get("projectId") or [""])[0],
+                                    artifact_id=(params.get("artifact_id") or params.get("artifactId") or [""])[0],
+                                    report_id=(params.get("report_id") or params.get("reportId") or [""])[0],
+                                )
+                            ),
+                        )
                         return
                     if parsed.path == "/api/v1/data-packages":
                         self.send_json(200, projection_api.create_envelope({"packages": [{"name": name, "path": path} for name, path in projection_api.DATA_PACKAGES.items()]}))
@@ -1999,7 +2023,17 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
                 is_export_preview_create = export_parts == ["api", "v1", "user", "exports", "preview"]
                 is_export_execute = export_parts == ["api", "v1", "user", "exports"]
                 is_markdown_export = export_parts == ["api", "v1", "user", "exports", "markdown"]
-                if parsed.path not in {"/api/v1/user/favorites", "/api/v1/user/notes"} and not is_workspace_create and not is_workspace_item_create and not is_data_basket_create and not is_data_basket_item_create and not is_export_profile_create and not is_export_preview_create and not is_export_execute and not is_markdown_export:
+                maturity_write_paths = {
+                    "/api/v1/maturity/calculate",
+                    "/api/v1/maturity/template/validate",
+                    "/api/v1/maturity/report",
+                    "/api/v1/maturity/score/export",
+                    "/api/v1/maturity/score/import",
+                    "/api/v1/maturity/template/export",
+                    "/api/v1/maturity/template/import",
+                }
+                is_maturity_write = parsed.path in maturity_write_paths
+                if parsed.path not in {"/api/v1/user/favorites", "/api/v1/user/notes"} and not is_workspace_create and not is_workspace_item_create and not is_data_basket_create and not is_data_basket_item_create and not is_export_profile_create and not is_export_preview_create and not is_export_execute and not is_markdown_export and not is_maturity_write:
                     self.send_json(404, {"ok": False, "error": "not found"})
                     return
                 auth_error = self.validate_write_request()
@@ -2009,7 +2043,24 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
                     return
                 length = int(self.headers.get("Content-Length", "0"))
                 payload = json.loads(self.rfile.read(length).decode("utf-8") or "{}")
-                if parsed.path == "/api/v1/user/notes":
+                if is_maturity_write:
+                    if projection_api is None:
+                        self.send_json(503, {"ok": False, "error": "maturity api unavailable"})
+                    elif parsed.path == "/api/v1/maturity/calculate":
+                        self.send_json(200, projection_api.create_envelope(projection_api.calculate_maturity_assessment(payload)))
+                    elif parsed.path == "/api/v1/maturity/template/validate":
+                        self.send_json(200, projection_api.create_envelope(projection_api.validate_maturity_template(payload.get("template") or payload)))
+                    elif parsed.path == "/api/v1/maturity/report":
+                        self.send_json(200, projection_api.create_envelope(projection_api.create_and_persist_maturity_report(payload)))
+                    elif parsed.path == "/api/v1/maturity/score/export":
+                        self.send_json(200, projection_api.create_envelope(projection_api.export_maturity_score_exchange(payload)))
+                    elif parsed.path == "/api/v1/maturity/score/import":
+                        self.send_json(200, projection_api.create_envelope(projection_api.import_maturity_score_exchange(payload)))
+                    elif parsed.path == "/api/v1/maturity/template/export":
+                        self.send_json(200, projection_api.create_envelope(projection_api.export_maturity_template_exchange(payload)))
+                    else:
+                        self.send_json(200, projection_api.create_envelope(projection_api.import_maturity_template_exchange(payload)))
+                elif parsed.path == "/api/v1/user/notes":
                     self.send_json(200, runtime.add_note(payload))
                 elif is_workspace_create:
                     self.send_json(200, runtime.create_workspace(payload))

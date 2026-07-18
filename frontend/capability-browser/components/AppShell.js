@@ -630,12 +630,14 @@
     const isPlaceholderPage = target.placeholder || target.view === "placeholder";
     const isWorkbenchIssuePage = activeRoute === "/workbench/annotations";
     const isMaturityPage = activeRoute === "/workbench/maturity" || activeRoute.startsWith("/workbench/maturity/");
+    const isMaturityDetailPage = activeRoute.startsWith("/workbench/maturity/");
     const typeLabel = activeRoute === "/search" ? TYPE_LABELS["search-page"] : TYPE_LABELS[item.type] || item.type;
     return `
       <section class="app-page-header" id="appPageHeader" data-shell-title-owner="true" data-shell-route="${escapeHtml(manifestRoute)}" aria-labelledby="appPageTitle">
         <div class="page-header-copy">
           ${headerOverride?.eyebrow ? `<div class="page-header-eyebrow">${escapeHtml(headerOverride.eyebrow)}</div>` : renderBreadcrumb(activeRoute)}
           <div class="page-title-row">
+            ${isMaturityDetailPage ? '<button class="maturity-v1-back maturity-v39-shell-back" type="button" data-app-route="/workbench/maturity" aria-label="返回成熟度评估工作台" title="返回成熟度评估工作台">‹</button>' : ""}
             <h1 id="appPageTitle">${escapeHtml(pageTitle)}</h1>
             ${isWorkbenchIssuePage ? '<span id="workbenchIssueHeaderStats" class="workbench-review-stats is-compact page-title-issue-stats" aria-label="Issue 状态筛选"></span>' : ""}
             ${isSourceTablePage ? '<span id="pageHeaderCount" class="page-title-summary" hidden></span>' : ""}

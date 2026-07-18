@@ -70,6 +70,7 @@ DATA_PACKAGE_ROOT = DEFAULT_FRONTEND_PUBLIC_DATA_ROOT
 BASE_DB_PATH = DEFAULT_DB_PATH.resolve()
 USER_DB_PATH = (PROJECT_ROOT / "data" / "user" / "sapd_wiki_user.sqlite3").resolve()
 USER_EXPORT_DIR = (PROJECT_ROOT / "data" / "exports").resolve()
+MATURITY_REPORT_ARTIFACT_SCHEMA = "sapd-maturity-report-artifact-v1"
 RUNTIME_LABEL = "stable"
 USER_SCHEMA_VERSION = "user_schema_0.3"
 LOCAL_API_AUTH_HEADER = "X-SAPD-Session-Token"
@@ -517,6 +518,130 @@ def configure_runtime_paths(
     if runtime_label:
         RUNTIME_LABEL = str(runtime_label).strip() or RUNTIME_LABEL
     _DATA_PACKAGE_CACHE.clear()
+
+
+def maturity_report_storage_root() -> Path:
+    """Keep report history beside the configured user database.
+
+    The macOS wrapper relocates USER_DB_PATH into the user-selected Runtime,
+    so this directory follows the same initialization boundary without
+    changing the user database schema.
+    """
+
+    return (USER_DB_PATH.parent / "maturity-reports").resolve()
+
+
+def _maturity_artifact_segment(value: Any, fallback: str) -> str:
+    normalized = re.sub(r"[^A-Za-z0-9._-]+", "-", str(value or "").strip()).strip(".-")
+    return normalized[:96] or fallback
+
+
+def _read_maturity_report_manifest(project_id: str) -> dict[str, Any]:
+    project_segment = _maturity_artifact_segment(project_id, "assessment-project")
+    manifest_path = maturity_report_storage_root() / project_segment / "manifest.json"
+    if not manifest_path.is_file():
+        return {"schemaVersion": MATURITY_REPORT_ARTIFACT_SCHEMA, "projectId": project_id, "artifacts": []}
+    try:
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        payload = {}
+    if not isinstance(payload, dict):
+        payload = {}
+    artifacts = payload.get("artifacts") if isinstance(payload.get("artifacts"), list) else []
+    return {
+        "schemaVersion": MATURITY_REPORT_ARTIFACT_SCHEMA,
+        "projectId": project_id,
+        "artifacts": [item for item in artifacts if isinstance(item, dict)],
+    }
+
+
+def persist_maturity_report_artifact(report: dict[str, Any], payload: dict[str, Any]) -> dict[str, Any]:
+    project = payload.get("project") if isinstance(payload.get("project"), dict) else {}
+    project_id = str(project.get("id") or "").strip()
+    if not project_id:
+        raise ValueError("project.id is required for report persistence")
+    if not str(report.get("html") or "").strip() or not str(report.get("markdown") or "").strip():
+        raise ValueError("generated report is missing HTML or Markdown content")
+
+    project_segment = _maturity_artifact_segment(project_id, "assessment-project")
+    report_id = str(report.get("id") or "maturity-report").strip()
+    created_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    artifact_id = f"{_maturity_artifact_segment(report_id, 'maturity-report')}-{time.strftime('%Y%m%d-%H%M%SZ', time.gmtime())}-{uuid.uuid4().hex[:8]}"
+    project_root = maturity_report_storage_root() / project_segment
+    artifact_root = project_root / "artifacts" / artifact_id
+    artifact_root.mkdir(parents=True, exist_ok=False)
+    relative_path = artifact_root.relative_to(USER_DB_PATH.parent).as_posix()
+    persistence = {
+        "schemaVersion": MATURITY_REPORT_ARTIFACT_SCHEMA,
+        "mode": "local_user_artifact",
+        "projectId": project_id,
+        "reportId": report_id,
+        "artifactId": artifact_id,
+        "createdAt": created_at,
+        "relativePath": relative_path,
+    }
+    persisted_report = {**report, "persistence": persistence}
+    (artifact_root / "report.html").write_text(str(report.get("html") or ""), encoding="utf-8")
+    (artifact_root / "report.md").write_text(str(report.get("markdown") or ""), encoding="utf-8")
+    (artifact_root / "report.json").write_text(json.dumps(persisted_report, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    manifest = _read_maturity_report_manifest(project_id)
+    manifest["artifacts"].append(
+        {
+            **persistence,
+            "operation": str(payload.get("operation") or "create"),
+            "generatedAt": str(report.get("generatedAt") or ""),
+            "formal": bool(report.get("formal")),
+            "fileNames": report.get("fileNames") if isinstance(report.get("fileNames"), dict) else {},
+            "htmlBytes": (artifact_root / "report.html").stat().st_size,
+            "markdownBytes": (artifact_root / "report.md").stat().st_size,
+        }
+    )
+    project_root.mkdir(parents=True, exist_ok=True)
+    manifest_path = project_root / "manifest.json"
+    temporary_manifest = project_root / f"manifest-{uuid.uuid4().hex}.tmp"
+    temporary_manifest.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    temporary_manifest.replace(manifest_path)
+    return persisted_report
+
+
+def create_and_persist_maturity_report(payload: dict[str, Any]) -> dict[str, Any]:
+    return persist_maturity_report_artifact(create_maturity_report_snapshot(payload), payload)
+
+
+def load_maturity_report_artifact(*, project_id: str, artifact_id: str = "", report_id: str = "") -> dict[str, Any]:
+    normalized_project_id = str(project_id or "").strip()
+    if not normalized_project_id:
+        raise ValueError("project_id is required")
+    manifest = _read_maturity_report_manifest(normalized_project_id)
+    artifacts = manifest["artifacts"]
+    selected = None
+    if artifact_id:
+        selected = next((item for item in reversed(artifacts) if str(item.get("artifactId") or "") == artifact_id), None)
+    elif report_id:
+        selected = next((item for item in reversed(artifacts) if str(item.get("reportId") or "") == report_id), None)
+    elif artifacts:
+        selected = artifacts[-1]
+    if not selected:
+        return {"ok": False, "dataState": "missing", "error": "report_artifact_not_found"}
+
+    project_segment = _maturity_artifact_segment(normalized_project_id, "assessment-project")
+    artifact_segment = _maturity_artifact_segment(selected.get("artifactId"), "")
+    if not artifact_segment or artifact_segment != str(selected.get("artifactId") or ""):
+        return {"ok": False, "dataState": "invalid", "error": "invalid_report_artifact"}
+    project_root = (maturity_report_storage_root() / project_segment).resolve()
+    report_path = (project_root / "artifacts" / artifact_segment / "report.json").resolve()
+    try:
+        report_path.relative_to(project_root)
+    except ValueError:
+        return {"ok": False, "dataState": "invalid", "error": "invalid_report_artifact_path"}
+    if not report_path.is_file():
+        return {"ok": False, "dataState": "missing", "error": "report_artifact_file_missing"}
+    try:
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {"ok": False, "dataState": "invalid", "error": "report_artifact_unreadable"}
+    return report if isinstance(report, dict) else {"ok": False, "dataState": "invalid", "error": "report_artifact_invalid"}
 
 
 def _display_runtime_path(path: Path) -> str:
@@ -3665,7 +3790,7 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
             elif parsed.path == "/api/v1/maturity/template/import":
                 self._send_json(create_envelope(import_maturity_template_exchange(payload)))
             else:
-                self._send_json(create_envelope(create_maturity_report_snapshot(payload)))
+                self._send_json(create_envelope(create_and_persist_maturity_report(payload)))
         except ValueError as exc:
             self._send_json(create_envelope({"error": "bad_request", "message": str(exc)}), status=400)
         except Exception as exc:
@@ -3829,6 +3954,17 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
                 return
             if path == "/api/v1/maturity/workspace":
                 self._send_json(create_envelope(build_maturity_workspace(read_data_package("capability-workbench"))))
+                return
+            if path == "/api/v1/maturity/reports/artifact":
+                self._send_json(
+                    create_envelope(
+                        load_maturity_report_artifact(
+                            project_id=(query.get("project_id") or query.get("projectId") or [""])[0],
+                            artifact_id=(query.get("artifact_id") or query.get("artifactId") or [""])[0],
+                            report_id=(query.get("report_id") or query.get("reportId") or [""])[0],
+                        )
+                    )
+                )
                 return
             if len(parts) == 4 and parts[:3] == ["api", "v1", "data-packages"]:
                 self._send_json(create_envelope(read_data_package(parts[3])))

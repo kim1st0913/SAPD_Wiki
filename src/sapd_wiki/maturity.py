@@ -72,6 +72,16 @@ ELEMENT_LABELS = {
     "tool": "平台与工具",
     "data": "数据与信息",
 }
+CAPABILITY_RADAR_SHORT_LABELS = {
+    "T-AS.AD": "体系架构", "T-AS.AM": "资产管理", "T-AS.CM": "配置加固", "T-AS.VM": "漏洞补丁",
+    "T-AS.IA": "身份访问", "T-AS.DS": "开发安全", "T-AS.LA": "日志审计", "T-AS.CG": "密码服务",
+    "T-AS.DG": "数据治理", "T-PD.PP": "边界防护", "T-PD.AC": "访问控制", "T-PD.TP": "威胁防护",
+    "T-PD.DP": "数据防护", "T-AD.SA": "态势感知", "T-AD.IR": "事件响应", "T-AD.SV": "架构评估",
+    "T-IN.IO": "情报运营", "T-IN.IP": "情报生产", "T-OF.AT": "进攻反制", "G-SP.SM": "战略管理",
+    "M-PM.PL": "安全规划", "M-PM.PR": "安全建设", "M-SA.AM": "安全保障", "M-SA.RM": "风险管理",
+    "M-SA.RE": "合规管理", "M-SA.TP": "第三方", "M-SA.OP": "安全运行", "M-SA.CO": "安全协同",
+    "M-SE.SE": "监督检查", "M-SE.PE": "绩效考核", "M-PS.HS": "人员管理", "M-PS.CT": "意识培养",
+}
 RUBRIC_VERSION = "sapd-maturity-generic-rubric-v2.1-2026-07-13"
 GENERIC_DIMENSION_RUBRIC = (
     {
@@ -2748,6 +2758,24 @@ def create_maturity_report_snapshot(payload: dict[str, Any]) -> dict[str, Any]:
     capability_results = [deepcopy(item) for item in _list(result.get("capabilityResults")) if isinstance(item, dict)]
     category_results = [deepcopy(item) for item in _list(result.get("categoryResults")) if isinstance(item, dict)]
     subcategory_results = [deepcopy(item) for item in _list(result.get("subCategoryResults")) if isinstance(item, dict)]
+    template_category_order = {
+        _text(item.get("id")): index
+        for index, item in enumerate(
+            sorted(
+                [item for item in _list(template.get("categories")) if isinstance(item, dict)],
+                key=lambda item: (
+                    _float(item.get("sortOrder"), float("inf")) if item.get("sortOrder") not in (None, "") else float("inf"),
+                    _text(item.get("code") or item.get("name")),
+                ),
+            )
+        )
+    }
+    category_results.sort(
+        key=lambda item: (
+            template_category_order.get(_text(item.get("id")), len(template_category_order)),
+            _text(item.get("code") or item.get("name")),
+        )
+    )
     gap_items = [deepcopy(item) for item in _list(result.get("gapItems")) if isinstance(item, dict)]
     score_item_results = [deepcopy(item) for item in _list(result.get("scoreItemResults")) if isinstance(item, dict)]
     calculation_run = deepcopy(_dict(result.get("calculationRun")))
@@ -3008,6 +3036,7 @@ def create_maturity_report_snapshot(payload: dict[str, Any]) -> dict[str, Any]:
                 "id": _text(row.get("id")),
                 "code": _text(row.get("code")),
                 "label": _text(row.get("name")),
+                "displayLabel": CAPABILITY_RADAR_SHORT_LABELS.get(_text(row.get("code")), _text(row.get("code")) or _text(row.get("name"))),
                 "groupCode": group["code"],
                 "current": row.get("currentIndex"),
                 "target": row.get("targetIndex"),
@@ -3074,7 +3103,7 @@ def create_maturity_report_snapshot(payload: dict[str, Any]) -> dict[str, Any]:
             {"id": "dimension_rankings", "title": "四维 L2 能力 Top 10", "renderer": "dimension_rankings", "data": dimension_rankings},
             {"id": "improvement_roadmap", "title": "改进路线图", "renderer": "improvement_roadmap", "data": improvement_roadmap},
             {"id": "score_appendix", "title": "完整评分明细附录", "renderer": "score_appendix", "data": score_details},
-            {"id": "traceability", "title": "口径、限制与快照信息", "renderer": "traceability", "data": {"summary": summary, "calculationRun": calculation_run}},
+            {"id": "traceability", "title": "评估口径说明", "renderer": "traceability", "data": {"summary": summary}},
         ],
         # Keep the complete calculation output so future backend statistics can be
         # registered as another section without changing or reconstructing inputs.
@@ -3192,17 +3221,22 @@ def create_maturity_report_snapshot(payload: dict[str, Any]) -> dict[str, Any]:
         elif section_id == "traceability":
             trace = _dict(data)
             trace_summary = _dict(trace.get("summary"))
-            run = _dict(trace.get("calculationRun"))
-            lines.extend([f"- 算法版本：{run.get('algorithmVersion')}", f"- 结果哈希：{run.get('resultHash')}", f"- 模板快照：{trace_summary.get('templateSnapshotId')}", f"- 知识快照：{trace_summary.get('knowledgeSnapshotId')}", f"- 不适用项：{trace_summary.get('notApplicableCount')}；无证据项不阻塞评估完成。", f"- 报告快照：{snapshot_id}"])
+            lines.extend(
+                [
+                    f"- 评估对象：{_text(project.get('assessmentObjectType')) or '企业组织'}",
+                    f"- 评估模板：{_text(template.get('name'))} {_text(template.get('version'))}",
+                    f"- 不适用项：{trace_summary.get('notApplicableCount')}；无证据项作为信息口径保留，不阻塞评估完成。",
+                    "- 报告中的图表、排名与明细均来自本次评估结果。",
+                ]
+            )
         return "\n".join(lines).rstrip()
 
-    report_notice = "正式评估报告；全部适用评估点已完成，结果与当前计算快照一致。" if is_formal else f"草稿报告预览；仍有 {summary.get('notScoredCount')} 条适用项待完成，当前结果不是正式结论。"
+    report_notice = "正式评估报告；全部适用评估点已完成，评估结果已锁定。" if is_formal else f"草稿报告预览；仍有 {summary.get('notScoredCount')} 条适用项待完成，当前结果不是正式结论。"
     markdown = "\n\n".join(
         [
             f"# {project_name}｜评估报告",
             f"> {report_notice}",
             f"客户或组织：{organization}  ",
-            f"报告快照：{snapshot_id}",
             *(render_markdown_section(section) for section in report_model["sections"]),
         ]
     )
@@ -3256,96 +3290,290 @@ def create_maturity_report_snapshot(payload: dict[str, Any]) -> dict[str, Any]:
             edge = point(angles[index], 5)
             label_point = point(angles[index], 5, 31 if compact else 37 + (index % 2) * 11)
             anchor = "start" if math.cos(angles[index]) > 0.22 else "end" if math.cos(angles[index]) < -0.22 else "middle"
-            label = _text(axis.get("code")) or _text(axis.get("label"))
+            label = _text(axis.get("displayLabel")) or _text(axis.get("code")) or _text(axis.get("label"))
             if not compact and len(label) > 12:
                 label = label[:12]
             spokes.append(f"<line x1='{center_x:.1f}' y1='{center_y:.1f}' x2='{edge[0]:.1f}' y2='{edge[1]:.1f}' stroke='#d7e0e8'/>")
             labels.append(f"<text x='{label_point[0]:.1f}' y='{label_point[1]:.1f}' text-anchor='{anchor}' dominant-baseline='middle'>{h(label)}</text>")
 
         def series(key: str, color: str, fill: str, dashed: bool = False) -> str:
-            values = [axis.get(key) for axis in axes]
-            if not all(value is not None for value in values):
-                return ""
-            points = " ".join(f"{point(angles[index], _float(value))[0]:.1f},{point(angles[index], _float(value))[1]:.1f}" for index, value in enumerate(values))
-            circles = "" if dashed else "".join(f"<circle cx='{point(angles[index], _float(value))[0]:.1f}' cy='{point(angles[index], _float(value))[1]:.1f}' r='3' fill='white' stroke='{color}' stroke-width='2'/>" for index, value in enumerate(values))
+            values = [None if axis.get(key) is None else _float(axis.get(key)) for axis in axes]
             dash = " stroke-dasharray='7 6'" if dashed else ""
-            return f"<polygon points='{points}' fill='{fill}' stroke='{color}' stroke-width='2.4'{dash}/>{circles}"
+            if all(value is not None for value in values):
+                points = " ".join(f"{point(angles[index], value)[0]:.1f},{point(angles[index], value)[1]:.1f}" for index, value in enumerate(values))
+                shape = f"<polygon points='{points}' fill='{fill}' stroke='{color}' stroke-width='2.4'{dash}/>"
+            else:
+                edges = []
+                for index, value in enumerate(values):
+                    next_index = (index + 1) % len(values)
+                    next_value = values[next_index]
+                    if value is None or next_value is None:
+                        continue
+                    start = point(angles[index], value)
+                    end = point(angles[next_index], next_value)
+                    edges.append(f"<line x1='{start[0]:.1f}' y1='{start[1]:.1f}' x2='{end[0]:.1f}' y2='{end[1]:.1f}' stroke='{color}' stroke-width='2.4'{dash}/>")
+                shape = "".join(edges)
+            circles = "" if dashed else "".join(f"<circle cx='{point(angles[index], value)[0]:.1f}' cy='{point(angles[index], value)[1]:.1f}' r='3' fill='white' stroke='{color}' stroke-width='2'/>" for index, value in enumerate(values) if value is not None)
+            return f"<g class='radar-series radar-series-{h(key)}'>{shape}{circles}</g>"
 
         incomplete = any(axis.get("current") is None or axis.get("target") is None for axis in axes)
-        incomplete_note = "<text class='chart-note' x='20' y='28'>存在未评分或未设置目标的轴；缺失值未按 0 绘制。</text>" if incomplete else ""
+        incomplete_note = "<text class='chart-note' x='20' y='28'>缺失轴保留为空，其余已评估数据正常绘制。</text>" if incomplete else ""
         return f"<svg class='radar-svg' viewBox='0 0 {width} {height}' role='img' aria-label='{h(chart.get('title'))}'>{''.join(sectors)}{''.join(grid)}{''.join(spokes)}{series('target', '#9a6d2f', 'none', True)}{series('current', '#1676c5', 'rgba(22,118,197,.12)')}{''.join(labels)}{incomplete_note}</svg>"
 
     def html_section(section: dict[str, Any]) -> str:
         section_id = _text(section.get("id"))
-        title = h(section.get("title"))
         data = section.get("data")
         body = ""
+
+        def section_heading(number: str, title: Any, eyebrow: str = "") -> str:
+            eyebrow_html = f"<p>{h(eyebrow)}</p>" if eyebrow else ""
+            return f"<header class='section-heading'><span>{h(number)}</span><div><h2>{h(title)}</h2>{eyebrow_html}</div></header>"
+
         if section_id == "overall":
             section_summary = _dict(_dict(data).get("summary"))
             total = int(_float(section_summary.get("applicableItemCount"))) + int(_float(section_summary.get("notApplicableCount")))
-            metrics = [
-                ("当前成熟度", f"{section_summary.get('currentLevel')} {value_or_dash(section_summary.get('currentIndex'))}"),
-                ("目标成熟度", f"{section_summary.get('targetLevel')} {value_or_dash(section_summary.get('targetIndex'))}"),
-                ("适用性", f"{section_summary.get('applicableItemCount')} / {total}"),
-                ("评估进度", f"{section_summary.get('scoredItemCount')} / {section_summary.get('applicableItemCount')}"),
-            ]
-            body = "<div class='metrics'>" + "".join(f"<article><span>{h(label)}</span><strong>{h(value)}</strong></article>" for label, value in metrics) + "</div>"
-            body += html_table(["类别", "名称", "当前", "目标", "差距"], [[item.get("code"), item.get("name"), item.get("currentIndex"), item.get("targetIndex"), item.get("gapIndex")] for item in _list(_dict(data).get("categories"))])
+            current_index = section_summary.get("currentIndex")
+            target_index = section_summary.get("targetIndex")
+            maturity_gap = _round(_float(target_index) - _float(current_index)) if current_index is not None and target_index is not None else None
+            evidence_total = int(_float(evaluation.get("evidenceTotalCount")))
+            evidence_filled = int(_float(evaluation.get("evidenceFilledCount")))
+            evidence_missing = int(_float(evaluation.get("evidenceMissingCount")))
+            current_level = _text(section_summary.get("currentLevel"))
+            target_level = _text(section_summary.get("targetLevel"))
+            current_level_name = _text(section_summary.get("currentLevelName")) or LEVEL_NAME.get(current_level, "未评分")
+            target_level_name = LEVEL_NAME.get(target_level, "待确认")
+            completed_count = int(_float(section_summary.get("scoredItemCount")))
+            applicable_count = int(_float(section_summary.get("applicableItemCount")))
+            completion_rate = _round(_float(section_summary.get("completionRate")), 1) or 0
+            l2_total = int(_float(evaluation.get("l2TotalCount")))
+            l2_below_target = int(_float(evaluation.get("l2BelowTargetCount")))
+            current_position = max(0.0, min(100.0, (_float(current_index) - 1.0) / 4.0 * 100.0)) if current_index is not None else 0.0
+            target_position = max(0.0, min(100.0, (_float(target_index) - 1.0) / 4.0 * 100.0)) if target_index is not None else 0.0
+            progress_split = max(0.0, min(100.0, current_position / target_position * 100.0)) if target_position > 0 else 0.0
+            target_readiness = _round(_float(current_index) / _float(target_index) * 100.0, 1) if current_index is not None and _float(target_index) > 0 else None
+            target_readiness_width = max(0.0, min(100.0, _float(target_readiness)))
+            if current_index is not None and target_index is not None and _float(current_index) >= _float(target_index):
+                executive_headline = f"核心判断：整体达到 {current_level}，当前结果已达到既定目标"
+                executive_statement = f"本次评估已完成 {completed_count} 个适用评估点，整体成熟度处于 {current_level} {current_level_name} 阶段，已达到 {target_level} {target_level_name} 目标。"
+            elif current_index is not None and target_index is not None:
+                executive_headline = f"核心判断：整体达到 {current_level}，{target_level_name}仍是下一阶段主线"
+                executive_statement = f"本次评估已完成 {completed_count} 个适用评估点，整体成熟度处于 {current_level} {current_level_name} 阶段，向 {target_level} {target_level_name} 目标仍存在 {value_or_dash(maturity_gap)} 的指数差距。"
+            else:
+                executive_headline = "核心判断：当前成熟度尚未形成完整结论"
+                executive_statement = f"本次评估已完成 {completed_count} / {applicable_count} 个适用评估点，待完整评分与目标确认后形成正式管理层结论。"
+            decision_items = sorted(
+                (item for item in improvement_roadmap if item.get("gapIndex") is not None),
+                key=lambda item: _float(item.get("gapIndex")),
+                reverse=True,
+            )[:3]
+            decision_rows = "".join(
+                f"<li><span class='decision-rank'>{index:02d}</span><div><strong>{h(item.get('capabilityCode'))} {h(item.get('capabilityName'))}</strong><p><span>当前 {h(item.get('currentLevel'))}</span><i>→</i><span>目标 {h(item.get('targetLevel'))}</span><b>差距 {h(value_or_dash(item.get('gapIndex')))}</b></p></div></li>"
+                for index, item in enumerate(decision_items, 1)
+            ) or "<li><div><strong>暂无需重点研究的成熟度差距</strong></div></li>"
+            body = f"""
+<div class='executive-brief'>
+  <header class='executive-brief__lead'>
+    <div class='executive-brief__title'>
+      <p class='executive-eyebrow'><span>EXECUTIVE BRIEF</span> 管理层摘要</p>
+      <h2>{h(executive_headline)}</h2>
+      <p>{h(executive_statement)}</p>
+    </div>
+    <div class='executive-completion' aria-label='评估完成度 {h(value_or_dash(completion_rate))}%'>
+      <span>评估完成度</span><strong>{h(value_or_dash(completion_rate))}%</strong><small>{completed_count} / {applicable_count}</small>
+    </div>
+  </header>
+  <div class='executive-brief__grid'>
+    <section class='maturity-path' aria-labelledby='maturity-path-title'>
+      <header class='maturity-path__header'><div><span>MATURITY TRAJECTORY</span><h3 id='maturity-path-title'>成熟度跃迁路径</h3></div><p>当前结果与人工确认目标</p></header>
+      <div class='maturity-scoreline'>
+        <div class='maturity-score is-current'><span>当前成熟度</span><strong>{h(value_or_dash(current_index))}</strong><small><b>{h(current_level)}</b>{h(current_level_name)}</small></div>
+        <div class='maturity-gap-card'><span>成熟度差距</span><strong>{h(value_or_dash(maturity_gap))}</strong><small>{'已达到目标' if maturity_gap is not None and maturity_gap <= 0 else '仍需提升'}</small></div>
+        <div class='maturity-score is-target'><span>目标成熟度</span><strong>{h(value_or_dash(target_index))}</strong><small><b>{h(target_level)}</b>{h(target_level_name)}</small></div>
+      </div>
+      <div class='maturity-track' role='img' aria-label='五级成熟度路径，当前 {h(value_or_dash(current_index))}，目标 {h(value_or_dash(target_index))}'>
+        <div class='maturity-track__labels' aria-hidden='true'><span>L1</span><span>L2</span><span>L3</span><span>L4</span><span>L5</span></div>
+        <div class='maturity-track__rail' aria-hidden='true'>
+          <i class='maturity-track__progress' style='width:{target_position:.1f}%;background:linear-gradient(90deg,var(--blue) 0 {progress_split:.1f}%,var(--copper) {progress_split:.1f}% 100%)'></i>
+          <i class='maturity-track__marker is-current' style='left:{current_position:.1f}%'><b>当前</b></i>
+          <i class='maturity-track__marker is-target' style='left:{target_position:.1f}%'><b>目标</b></i>
+        </div>
+      </div>
+      <div class='target-readiness'><div><span>目标达成度</span><small>当前成熟度 ÷ 目标成熟度</small></div><div class='target-readiness__bar' aria-hidden='true'><i style='width:{target_readiness_width:.1f}%'></i></div><strong>{h(value_or_dash(target_readiness))}%</strong></div>
+    </section>
+    <aside class='decision-focus'><header><div><span>TOP 3</span><h3>本次需重点研究</h3></div><p>按成熟度差距排序</p></header><ol>{decision_rows}</ol></aside>
+  </div>
+  <div class='executive-facts' aria-label='评估关键事实'>
+    <article class='is-attention'><span>低于目标</span><strong>{l2_below_target}<small>/ {l2_total}</small></strong><p>L2 能力需提升</p></article>
+    <article><span>纳入范围</span><strong>{applicable_count}<small>/ {total}</small></strong><p>适用评估点</p></article>
+    <article><span>完成进度</span><strong>{completed_count}<small>/ {applicable_count}</small></strong><p>完成率 {h(value_or_dash(completion_rate))}%</p></article>
+    <article><span>证据覆盖</span><strong>{evidence_filled}<small>/ {evidence_total}</small></strong><p>E0 无证据 {evidence_missing} 项</p></article>
+  </div>
+</div>"""
         elif section_id == "narratives":
-            body = "<div class='narrative-grid'>" + "".join(f"<article><h3>{h(field.get('label'))}</h3><div class='editable' contenteditable='true' data-report-field='{h(field.get('key'))}'>{h(field.get('value')).replace(chr(10), '<br />')}</div></article>" for field in _list(data)) + "</div>"
+            body = "<div class='narrative-grid'>" + "".join(f"<article><header><span>{index + 3:02d}</span><h2>{h(field.get('label'))}</h2></header><div class='editable' contenteditable='true' data-report-field='{h(field.get('key'))}'>{h(field.get('value')).replace(chr(10), '<br />')}</div></article>" for index, field in enumerate(_list(data))) + "</div>"
         elif section_id == "radars":
             capability_chart = _dict(_dict(data).get("capabilityRadar"))
             dimension_chart = _dict(_dict(data).get("dimensionRadar"))
             legend = "<div class='legend'><span class='current'><i></i>当前成熟度</span><span class='target'><i></i>目标成熟度</span>" + "".join(f"<span class='group is-{h(group.get('code')).lower()}'><i></i>{h(group.get('code'))} {h(group.get('name'))} · {group.get('count')} L2</span>" for group in _list(capability_chart.get("groups"))) + "</div>"
-            body = f"<div class='radar-grid'><article><h3>{h(capability_chart.get('title'))}</h3>{legend}{radar_svg(capability_chart)}</article><article><h3>{h(dimension_chart.get('title'))}</h3><div class='legend'><span class='current'><i></i>当前结果</span><span class='target'><i></i>目标参考（等轴）</span></div>{radar_svg(dimension_chart, compact=True)}<p class='note'>{h(dimension_chart.get('targetNote'))}</p></article></div>"
+            dimension_rows = [[axis.get("label"), axis.get("current"), axis.get("target"), _round(_float(axis.get("target")) - _float(axis.get("current"))) if axis.get("current") is not None and axis.get("target") is not None else None] for axis in _list(dimension_chart.get("axes"))]
+            priority_rows = [[item.get("rank"), f"{item.get('capabilityCode')} {item.get('capabilityName')}", item.get("currentIndex"), item.get("targetIndex"), item.get("gapIndex")] for item in improvement_roadmap[:5]]
+            l2_summary_rows = [["L2 评估点总数", evaluation.get("l2TotalCount")], ["L2 已评分", f"{evaluation.get('l2ScoredCount')} / {evaluation.get('l2TotalCount')}"], ["达标（当前 ≥ 目标）", evaluation.get("l2ReachedTargetCount")], ["低于目标", evaluation.get("l2BelowTargetCount")], ["未评估", int(_float(evaluation.get("l2TotalCount"))) - int(_float(evaluation.get("l2ScoredCount")))]]
+            category_rows = [[f"{item.get('code')} {item.get('name')}", item.get("currentIndex"), item.get("targetIndex"), item.get("gapIndex")] for item in category_results]
+            body = f"""<header class='scorecard-heading'><h2>L2 能力成熟度雷达 <small>32 维</small></h2><p>关键比较与缺口按本次正式评估结果呈现</p></header><div class='scorecard-main'><figure class='capability-radar'><figcaption>{legend}</figcaption>{radar_svg(capability_chart)}<p class='figure-note'>未评分能力保留为空，不按 0 计入；其余已评估轴继续绘制。</p></figure><aside class='priority-panel'><h3>优先级缺口 <small>按差距降序</small></h3>{html_table(['排名', '能力编号与名称', '当前', '目标', '差距'], priority_rows, 'priority-table')}<h3>L2 评分概况</h3>{html_table(['项目', '数值'], l2_summary_rows, 'l2-summary-table')}</aside></div><div class='scorecard-lower'><section><h3>维度表现与证据覆盖</h3>{html_table(['能力类别', '当前', '目标', '差距'], category_rows, 'category-profile-table')}</section><figure class='dimension-radar-card'><figcaption><h3>{h(dimension_chart.get('title'))}</h3><div class='legend'><span class='current'><i></i>当前</span><span class='target'><i></i>目标</span></div></figcaption>{radar_svg(dimension_chart, compact=True)}</figure><section class='evidence-profile'><h3>证据覆盖与完成度</h3><dl><div><dt>适用评估点</dt><dd>{summary.get('applicableItemCount')} / {int(_float(summary.get('applicableItemCount'))) + int(_float(summary.get('notApplicableCount')))}</dd></div><div><dt>完成度</dt><dd>{summary.get('scoredItemCount')} / {summary.get('applicableItemCount')}</dd></div><div><dt>证据 E1+</dt><dd>{evaluation.get('evidenceFilledCount')} / {evaluation.get('evidenceTotalCount')}</dd></div><div><dt>证据 E0</dt><dd>{evaluation.get('evidenceMissingCount')}</dd></div></dl></section></div>"""
         elif section_id == "hierarchy_statistics":
             body = html_table(["类别", "当前 / 目标", "L1", "L2", "低于目标", "高 / 中 / 低"], [[group.get("code"), f"{value_or_dash(group.get('currentIndex'))} / {value_or_dash(group.get('targetIndex'))}", sum(1 for item in _list(_dict(data).get("l1")) if _text(item.get("groupCode")) == _text(group.get("code"))), group.get("l2Count"), group.get("belowTargetCount"), f"{_dict(group.get('priorityCounts')).get('高', 0)} / {_dict(group.get('priorityCounts')).get('中', 0)} / {_dict(group.get('priorityCounts')).get('低', 0)}"] for group in _list(_dict(data).get("groups"))])
+            body = section_heading("A1", "分类与 L1 分层统计", "T / G / M 分类、能力域与优先级分布") + body
             body += html_table(["类别", "L1 能力域", "当前 / 目标", "L2 数量", "高 / 中 / 低"], [[item.get("groupCode"), f"{item.get('code')} {item.get('name')}", f"{value_or_dash(item.get('currentIndex'))} / {value_or_dash(item.get('targetIndex'))}", item.get("l2Count"), f"{_dict(item.get('priorityCounts')).get('高', 0)} / {_dict(item.get('priorityCounts')).get('中', 0)} / {_dict(item.get('priorityCounts')).get('低', 0)}"] for item in _list(_dict(data).get("l1"))])
         elif section_id == "evaluation":
             evaluation_data = _dict(_dict(data).get("evaluation"))
             strongest_row = _dict(evaluation_data.get("strongestDimension"))
             weakest_row = _dict(evaluation_data.get("weakestDimension"))
-            body = f"<div class='evaluation'><p><strong>{evaluation_data.get('l2ScoredCount')} / {evaluation_data.get('l2TotalCount')}</strong> 项 L2 已评分，<strong>{evaluation_data.get('l2ReachedTargetCount')}</strong> 项达到目标，<strong>{evaluation_data.get('l2BelowTargetCount')}</strong> 项低于目标。</p><p>四维最高为 <strong>{h(strongest_row.get('label'))} {h(strongest_row.get('value'))}</strong>，最低为 <strong>{h(weakest_row.get('label'))} {h(weakest_row.get('value'))}</strong>，极差 {h(value_or_dash(evaluation_data.get('dimensionSpread')))}。</p><p>证据 E1 及以上 <strong>{evaluation_data.get('evidenceFilledCount')} / {evaluation_data.get('evidenceTotalCount')}</strong>，E0 无证据 {evaluation_data.get('evidenceMissingCount')} 项。</p></div>"
+            body = section_heading("A2", "结果评价与分布", "成熟度、证据与服务评估点统计")
+            body += f"<div class='evaluation'><p><strong>{evaluation_data.get('l2ScoredCount')} / {evaluation_data.get('l2TotalCount')}</strong> 项 L2 已评分，<strong>{evaluation_data.get('l2ReachedTargetCount')}</strong> 项达到目标，<strong>{evaluation_data.get('l2BelowTargetCount')}</strong> 项低于目标。</p><p>四维最高为 <strong>{h(strongest_row.get('label'))} {h(strongest_row.get('value'))}</strong>，最低为 <strong>{h(weakest_row.get('label'))} {h(weakest_row.get('value'))}</strong>，极差 {h(value_or_dash(evaluation_data.get('dimensionSpread')))}。</p><p>证据 E1 及以上 <strong>{evaluation_data.get('evidenceFilledCount')} / {evaluation_data.get('evidenceTotalCount')}</strong>，E0 无证据 {evaluation_data.get('evidenceMissingCount')} 项。</p></div>"
             body += html_table(["评价类型", "L1 能力域", "当前", "目标", "差距"], [[label, f"{item.get('code')} {item.get('name')}", item.get("currentIndex"), item.get("targetIndex"), item.get("gapIndex")] for key, label in (("leadingL1", "优势能力域"), ("improvementL1", "重点加强")) for item in _list(evaluation_data.get(key))])
             body += "<div class='distribution-grid'>" + "".join(f"<article><h3>{label}</h3>{html_table(['等级', '名称', '数量'], [[item.get('level'), item.get('name'), item.get('count')] for item in _list(_dict(data).get(key))])}</article>" for key, label in (("maturityDistribution", "成熟度分布"), ("evidenceDistribution", "证据分布"), ("serviceDistribution", "服务评估点分布"))) + "</div>"
         elif section_id == "capability_results":
-            body = html_table(["类别", "L2 能力", "当前", "目标", "差距", "优先级", "达成率", "组织", "流程", "工具", "数据", "证据"], [[item.get("groupCode"), f"{item.get('code')} {item.get('name')}", f"{item.get('currentLevel')} / {value_or_dash(item.get('currentIndex'))}", f"{item.get('targetLevel')} / {value_or_dash(item.get('targetIndex'))}", item.get("gapIndex"), item.get("priority"), f"{value_or_dash(item.get('targetAchievementRate'))}%", _dict(item.get("dimensionResults")).get("organization"), _dict(item.get("dimensionResults")).get("process"), _dict(item.get("dimensionResults")).get("tool"), _dict(item.get("dimensionResults")).get("data"), f"{item.get('evidenceCoverage')}%"] for item in _list(data)], "dense")
+            body = section_heading("A4", "完整 L2 能力结果", "包含能力成熟度、四维评分、目标差距与证据覆盖")
+            body += html_table(["类别", "L2 能力", "当前", "目标", "差距", "优先级", "达成率", "组织", "流程", "工具", "数据", "证据"], [[item.get("groupCode"), f"{item.get('code')} {item.get('name')}", f"{item.get('currentLevel')} / {value_or_dash(item.get('currentIndex'))}", f"{item.get('targetLevel')} / {value_or_dash(item.get('targetIndex'))}", item.get("gapIndex"), item.get("priority"), f"{value_or_dash(item.get('targetAchievementRate'))}%", _dict(item.get("dimensionResults")).get("organization"), _dict(item.get("dimensionResults")).get("process"), _dict(item.get("dimensionResults")).get("tool"), _dict(item.get("dimensionResults")).get("data"), f"{item.get('evidenceCoverage')}%"] for item in _list(data)], "dense")
         elif section_id == "overall_rankings":
-            body = "<div class='ranking-grid'>"
+            body = section_heading("A5", "总体 L2 能力排名", "成熟度领先与改进优先 Top 10") + "<div class='ranking-grid'>"
             for key, label in (("leading", "成熟度领先 Top 10"), ("improvement", "改进优先 Top 10")):
                 body += f"<article><h3>{label}</h3>" + html_table(["排名", "能力", "当前", "目标", "达成率 / 优先级"], [[index, f"{item.get('code') or item.get('capabilityCode')} {item.get('name') or item.get('capabilityName')}", f"{item.get('currentLevel')} / {value_or_dash(item.get('currentIndex'))}", f"{item.get('targetLevel')} / {value_or_dash(item.get('targetIndex'))}", f"{value_or_dash(item.get('targetAchievementRate'))}%" if key == "leading" else f"{item.get('priority')} / {item.get('priorityScore')}"] for index, item in enumerate(_list(_dict(data).get(key)), 1)]) + "</article>"
             body += "</div>"
         elif section_id == "dimension_rankings":
-            body = "<div class='dimension-rankings'>"
+            body = section_heading("A3", "四维能力统计", "组织与角色、制度与流程、平台与工具、数据与信息四维排名") + "<div class='dimension-rankings'>"
             for ranking in _list(data):
                 rows = [[label, index, f"{item.get('code')} {item.get('name')}", _dict(item.get("dimensionResults")).get(ranking.get("dimension")), _dict(priority_by_capability.get(_text(item.get("id")))).get("priority")] for key, label in (("leading", "领先"), ("improvement", "改进")) for index, item in enumerate(_list(ranking.get(key)), 1)]
                 body += f"<article><h3>{h(ranking.get('label'))}</h3>{html_table(['类型', '排名', '能力', '当前维度得分', '优先级'], rows)}</article>"
             body += "</div>"
         elif section_id == "improvement_roadmap":
-            body = html_table(["排名", "优先级", "L2 能力", "当前 / 目标", "差距", "改进行动", "负责人", "资源", "依赖", "状态"], [[item.get("rank"), f"{item.get('priority')} / {item.get('priorityScore')}", f"{item.get('capabilityCode')} {item.get('capabilityName')}", f"{item.get('currentLevel')} → {item.get('targetLevel')}", item.get("gapIndex"), item.get("action") or "待明确", item.get("owner") or "待指定", item.get("resources") or "待评估", item.get("dependencies") or "无", item.get("status")] for item in _list(data)], "dense")
+            body = section_heading("07", "风险与改进登记册", "优先能力差距、建议行动、责任安排与推进状态")
+            body += html_table(["排名", "优先级", "L2 能力", "当前 / 目标", "差距", "改进行动", "负责人", "资源", "依赖", "状态"], [[item.get("rank"), f"{item.get('priority')} / {item.get('priorityScore')}", f"{item.get('capabilityCode')} {item.get('capabilityName')}", f"{item.get('currentLevel')} / {item.get('targetLevel')}", item.get("gapIndex"), item.get("action") or "待明确", item.get("owner") or "待指定", item.get("resources") or "待评估", item.get("dependencies") or "无", item.get("status")] for item in _list(data)], "dense")
         elif section_id == "score_appendix":
-            body = html_table(["关注点 / 评估点", "类型 / 作用域", "组织", "流程", "工具", "数据", "当前", "目标", "达成率", "评估说明", "不适用说明", "证据等级", "证据摘要", "状态"], [[f"{item.get('focusCode')} {item.get('focusName')} / {item.get('serviceCode')} {item.get('serviceName')}", f"{item.get('itemType')} / {item.get('scopeCode')}", _dict(item.get("dimensionResults")).get("organization"), _dict(item.get("dimensionResults")).get("process"), _dict(item.get("dimensionResults")).get("tool"), _dict(item.get("dimensionResults")).get("data"), f"{item.get('currentLevel')} / {value_or_dash(item.get('currentIndex'))}", f"{item.get('targetLevel')} / {value_or_dash(item.get('targetIndex'))}", f"{value_or_dash(item.get('targetAchievementRate'))}%", item.get("targetReason") or item.get("note"), item.get("naReason"), item.get("evidenceLevel"), item.get("evidenceSummary"), item.get("status")] for item in _list(data)], "dense appendix")
+            body = section_heading("A6", "完整评分明细附录", "关注点、评估点、四维评分、证据与状态")
+            body += html_table(["关注点 / 评估点", "类型 / 作用域", "组织", "流程", "工具", "数据", "当前", "目标", "达成率", "评估说明", "不适用说明", "证据等级", "证据摘要", "状态"], [[f"{item.get('focusCode')} {item.get('focusName')} / {item.get('serviceCode')} {item.get('serviceName')}", f"{item.get('itemType')} / {item.get('scopeCode')}", _dict(item.get("dimensionResults")).get("organization"), _dict(item.get("dimensionResults")).get("process"), _dict(item.get("dimensionResults")).get("tool"), _dict(item.get("dimensionResults")).get("data"), f"{item.get('currentLevel')} / {value_or_dash(item.get('currentIndex'))}", f"{item.get('targetLevel')} / {value_or_dash(item.get('targetIndex'))}", f"{value_or_dash(item.get('targetAchievementRate'))}%", item.get("targetReason") or item.get("note"), item.get("naReason"), item.get("evidenceLevel"), item.get("evidenceSummary"), item.get("status")] for item in _list(data)], "dense appendix")
         elif section_id == "traceability":
-            run = _dict(_dict(data).get("calculationRun"))
             trace_summary = _dict(_dict(data).get("summary"))
-            body = f"<p>算法版本：<code>{h(run.get('algorithmVersion'))}</code> · 结果哈希：<code>{h(run.get('resultHash'))}</code></p><p>模板快照：<code>{h(trace_summary.get('templateSnapshotId'))}</code> · 知识快照：<code>{h(trace_summary.get('knowledgeSnapshotId'))}</code></p><p>不适用项 {trace_summary.get('notApplicableCount')}；无证据项作为信息口径保留，不阻塞评估完成。报告快照：<code>{h(snapshot_id)}</code></p>"
-        return f"<section class='section section-{h(section_id)}' data-report-section='{h(section_id)}'><header><span>{h(section.get('renderer'))}</span><h2>{title}</h2></header>{body}</section>"
+            body = section_heading("A7", "评估口径说明", "仅保留对管理决策有意义的范围与口径")
+            body += f"<div class='method-note'><p><strong>评估对象：</strong>{h(project.get('assessmentObjectType') or '企业组织')}</p><p><strong>评估模板：</strong>{h(template.get('name'))} {h(template.get('version'))}</p><p><strong>适用性：</strong>不适用项 {trace_summary.get('notApplicableCount')}；无证据项作为信息口径保留，不阻塞评估完成。</p><p><strong>数据说明：</strong>报告中的图表、排名与明细均来自本次评估结果。</p></div>"
+        return f"<section class='report-section section-{h(section_id)}' data-report-section='{h(section_id)}'>{body}</section>"
 
-    html_sections = "".join(html_section(section) for section in report_model["sections"])
+    sections_by_id = {_text(section.get("id")): section for section in report_model["sections"]}
+
+    def render_sections(*section_ids: str) -> str:
+        return "".join(html_section(sections_by_id[section_id]) for section_id in section_ids if section_id in sections_by_id)
+
+    report_meta = f"{h(organization)} · {h(template.get('name'))} · 评估日期 {h(generated_at[:10])}"
+    report_footer = f"SAPD 标准能力成熟度模板 · {h(organization)} · {h(generated_at[:10])}"
+    executive_report_css = r"""
+/* Executive report refinement: presentation hierarchy, edit states, responsive and print fidelity. */
+html{scroll-behavior:smooth}body{background:#e6ebf0;color:#183148;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}::selection{background:#cfe2f2;color:#082c4f}
+.report-page{border-top:4px solid var(--navy);border-radius:2px;box-shadow:0 18px 48px rgba(8,44,79,.11)}
+.brief-masthead{position:relative;isolation:isolate;padding:29px 38px 25px;background:var(--navy);border-bottom:4px solid var(--copper);color:#fff;overflow:hidden}
+.brief-masthead::after{content:"";position:absolute;z-index:-1;right:-64px;bottom:-132px;width:360px;height:250px;border:54px solid rgba(255,255,255,.035);border-radius:50%;pointer-events:none}
+.brief-masthead .kicker{color:#9fc6e3;letter-spacing:.17em}.brief-masthead h1{color:#fff;font-size:31px;letter-spacing:.035em}.brief-masthead .meta{color:#d4e2ec}.report-badge{border-color:rgba(255,255,255,.45);background:rgba(255,255,255,.07);color:#fff;letter-spacing:.06em}
+.page-one .page-content{padding-top:20px}.transition-panel{min-height:142px;border-top:1px solid var(--line);background:#fff}.transition-level strong{font-size:62px}.transition-level b{letter-spacing:.01em}.transition-gap{background:var(--warm)}
+.decision-agenda{padding:0 16px 2px;border-top:0;border-left:4px solid var(--navy);background:#f5f8fa}.decision-agenda h2{padding-top:11px}.decision-agenda li>span{color:var(--copper)}.decision-agenda li:last-child{border-bottom:0}
+.executive-conclusion{margin:14px 0;padding:12px 15px;border:0;border-left:4px solid var(--copper);background:var(--warm);font-weight:650;color:#243e53}
+.metric-strip{background:#fbfcfd}.metric-strip article{position:relative;padding-top:12px;padding-bottom:12px}.metric-strip strong{font-size:23px}.metric-strip article:nth-child(2) strong,.metric-strip article:nth-child(4) strong{color:var(--sage)}
+.scorecard-heading{margin-top:26px}.scorecard-heading h2{letter-spacing:.015em}.scorecard-main{gap:26px}.scorecard-main .capability-radar{padding:8px 26px 0 4px}.priority-panel{padding:13px 15px;background:#f7f9fa;border-top:3px solid var(--navy)}.priority-panel .table-wrap{margin-bottom:16px}.priority-table tbody tr:first-child{background:#fff3df;font-weight:750}.priority-table tbody tr:first-child td:first-child{color:var(--danger)}
+.scorecard-lower{background:#fbfcfd;padding:15px 14px 0}.scorecard-lower h3{letter-spacing:.02em}.evidence-profile dd{font-size:13px}
+.page-intro{position:relative;padding:4px 0 13px}.page-intro::before{content:"";position:absolute;left:0;bottom:-2px;width:74px;height:4px;background:var(--copper)}.page-intro h2{letter-spacing:.025em}.page-intro>p{max-width:420px;text-align:right}
+.narrative-grid article{position:relative;padding:12px 14px 0;border:1px solid var(--line);border-top:3px solid var(--navy);background:#fff}.narrative-grid article header{margin-bottom:3px}.editable{min-height:100px;margin:0 -3px 10px;padding:10px 11px;border:1px solid transparent;border-radius:2px;transition:border-color .16s ease,background .16s ease,box-shadow .16s ease}.editable:hover{border-color:#cad8e3;background:#f8fafb}.editable:focus{outline:0;border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(23,107,181,.12)}
+.section-improvement_roadmap .table-wrap{border-top:3px solid var(--navy)}.section-improvement_roadmap tbody tr:nth-child(-n+3){background:#fff7e9}.section-improvement_roadmap tbody tr:nth-child(-n+3) td:first-child{box-shadow:inset 3px 0 var(--copper);font-weight:800;color:var(--navy)}
+.page-three .page-intro{margin-bottom:19px}.page-three .section-heading{margin-top:23px}.page-three .section-heading>span{color:var(--copper)}
+.table-wrap{scrollbar-color:#aebdca #edf2f5;scrollbar-width:thin}thead th{position:sticky;top:0;z-index:1;border-top:1px solid var(--line);background:#eaf0f4;color:#28475f}tbody tr{transition:background-color .12s ease}tbody tr:hover{background:#f1f6f9}td.is-placeholder{color:#8f551d;background:#fff7e8;font-weight:750}td.is-empty-placeholder{color:#8a99a5;font-style:italic}
+[contenteditable="true"]{caret-color:var(--blue)}[contenteditable="true"]:focus-visible{outline:0}
+
+/* Management-first executive brief. */
+.executive-brief{padding:0 0 17px;border-bottom:1px solid var(--line)}
+.executive-brief__lead{display:grid;grid-template-columns:minmax(0,1fr) 172px;gap:28px;align-items:end;padding:0 0 16px;border-bottom:1px solid var(--line)}
+.executive-eyebrow{display:flex;align-items:center;gap:9px;margin:0 0 7px;color:var(--muted);font-size:10px;font-weight:720;letter-spacing:.07em}.executive-eyebrow span{color:var(--copper);font-weight:820;letter-spacing:.16em}
+.executive-brief__title h2{font-size:25px;letter-spacing:.015em}.executive-brief__title>p:last-child{max-width:790px;margin:7px 0 0;color:#425a6d;font-family:"Songti SC","STSong","Noto Serif SC",serif;font-size:14px;font-weight:600;line-height:1.65}
+.executive-completion{display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-items:center;padding:13px 14px;background:var(--navy);border-bottom:3px solid var(--sage);color:#fff}.executive-completion span{white-space:nowrap;font-size:10px;color:#bcd0df}.executive-completion strong{grid-row:1 / 3;grid-column:2;font-size:28px;line-height:1}.executive-completion small{white-space:nowrap;font-size:9px;color:#8fb4ce}
+.executive-brief__grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(330px,.72fr);gap:18px;margin-top:18px}
+.maturity-path{padding:17px 19px 15px;border:1px solid var(--line);border-top:4px solid var(--blue);background:#f8fafb}
+.maturity-path__header,.decision-focus>header{display:flex;align-items:flex-end;justify-content:space-between;gap:14px}.maturity-path__header span,.decision-focus>header span{color:var(--blue);font-size:8.5px;font-weight:820;letter-spacing:.15em}.maturity-path__header h3,.decision-focus>header h3{margin:1px 0 0;font-family:"Songti SC","STSong","Noto Serif SC",serif;font-size:16px}.maturity-path__header p,.decision-focus>header p{margin:0;color:var(--muted);font-size:9px}
+.maturity-scoreline{display:grid;grid-template-columns:minmax(0,1fr) 112px minmax(0,1fr);gap:10px;margin-top:14px}.maturity-score{position:relative;display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:end;padding:11px 13px;background:#fff;border:1px solid var(--line)}.maturity-score::before{content:"";position:absolute;inset:-1px auto -1px -1px;width:4px;background:var(--blue)}.maturity-score.is-target::before{background:var(--copper)}.maturity-score>span{font-size:9.5px;color:var(--muted)}.maturity-score>strong{grid-row:1 / 3;grid-column:2;font-size:34px;line-height:.95;color:var(--blue)}.maturity-score.is-target>strong{color:var(--copper)}.maturity-score small{font-size:10px;color:#52697b}.maturity-score small b{margin-right:4px;padding:2px 5px;background:#e8f2fa;color:var(--blue)}.maturity-score.is-target small b{background:#f7eadc;color:var(--copper)}
+.maturity-gap-card{display:grid;place-content:center;text-align:center;background:#f3eee7;border:1px solid #e4d6c5}.maturity-gap-card span,.maturity-gap-card small{font-size:8.5px;color:#7a6b5d}.maturity-gap-card strong{font-size:25px;line-height:1.15;color:var(--navy)}
+.maturity-track{margin:20px 2px 0}.maturity-track__labels{display:grid;grid-template-columns:repeat(5,1fr);color:#7e909e;font-size:8px}.maturity-track__labels span{text-align:center}.maturity-track__labels span:first-child{text-align:left}.maturity-track__labels span:last-child{text-align:right}.maturity-track__rail{position:relative;height:5px;margin-top:7px;background:#dce5eb}.maturity-track__rail::before{content:"";position:absolute;inset:-4px 0;background:repeating-linear-gradient(to right,transparent 0,transparent calc(25% - 1px),#a9bac7 calc(25% - 1px),#a9bac7 25%);opacity:.6}.maturity-track__progress{position:absolute;z-index:1;inset:0 auto 0 0;width:67%;background:linear-gradient(90deg,var(--blue) 0 68%,var(--copper) 68% 100%)}.maturity-track__marker{position:absolute;z-index:2;top:50%;width:13px;height:13px;background:#fff;border:3px solid var(--blue);border-radius:50%;transform:translate(-50%,-50%)}.maturity-track__marker b{position:absolute;top:13px;left:50%;transform:translateX(-50%);color:var(--blue);font-size:8px;white-space:nowrap}.maturity-track__marker.is-current{left:45.5%}.maturity-track__marker.is-target{left:67%;border-color:var(--copper)}.maturity-track__marker.is-target b{color:var(--copper)}
+.target-readiness{display:grid;grid-template-columns:auto minmax(80px,1fr) auto;gap:12px;align-items:center;margin-top:27px;padding-top:10px;border-top:1px solid var(--line)}.target-readiness span,.target-readiness small{display:block}.target-readiness span{font-size:9.5px;font-weight:750;color:var(--navy)}.target-readiness small{font-size:8px;color:var(--muted)}.target-readiness__bar{height:7px;background:#e2e9ee}.target-readiness__bar i{display:block;width:76.6%;height:100%;background:var(--sage)}.target-readiness>strong{font-size:18px;color:var(--sage)}
+.decision-focus{padding:17px 18px 13px;background:var(--navy);border-top:4px solid var(--copper);color:#fff}.decision-focus>header{padding-bottom:11px;border-bottom:1px solid rgba(255,255,255,.18)}.decision-focus>header span{color:#dda267}.decision-focus>header h3{color:#fff}.decision-focus>header p{color:#9db7ca}.decision-focus ol{list-style:none;margin:0;padding:0}.decision-focus li{display:grid;grid-template-columns:38px 1fr;gap:10px;padding:13px 0;border-bottom:1px solid rgba(255,255,255,.14)}.decision-focus li:last-child{border-bottom:0}.decision-rank{font-family:"Songti SC","STSong","Noto Serif SC",serif;font-size:25px;line-height:1;color:#dda267}.decision-focus li strong{display:block;color:#fff;font-size:11px}.decision-focus li p{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:5px 0 0;color:#a9c0d1;font-size:8.5px}.decision-focus li p i{font-style:normal;color:#6f91aa}.decision-focus li p b{margin-left:auto;padding:3px 6px;background:rgba(218,150,82,.18);color:#f0bd88;font-weight:750}
+.executive-facts{display:grid;grid-template-columns:repeat(4,1fr);margin-top:14px;border:1px solid var(--line);background:#fff}.executive-facts article{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center;padding:10px 14px;border-right:1px solid var(--line)}.executive-facts article:last-child{border-right:0}.executive-facts article.is-attention{background:#fbf3e8;box-shadow:inset 4px 0 var(--copper)}.executive-facts span{color:var(--muted);font-size:9px}.executive-facts strong{grid-row:1 / 3;grid-column:2;color:var(--navy);font-size:24px;line-height:1}.executive-facts strong small{margin-left:3px;color:#7d8f9e;font-size:12px;font-weight:650}.executive-facts p{margin:0;color:#6c8090;font-size:8.5px}.executive-facts .is-attention strong{color:var(--copper)}
+
+@media(max-width:1100px) and (min-width:821px){.executive-brief__grid{grid-template-columns:minmax(0,1.25fr) minmax(300px,.75fr)}.maturity-scoreline{grid-template-columns:minmax(0,1fr) 92px minmax(0,1fr)}.maturity-score>strong{font-size:30px}}
+@media(max-width:820px){.executive-brief__lead{grid-template-columns:1fr auto;gap:16px;align-items:start}.executive-brief__title h2{font-size:22px}.executive-brief__title>p:last-child{font-size:13px}.executive-completion{min-width:116px}.executive-brief__grid{grid-template-columns:1fr}.executive-facts{grid-template-columns:repeat(2,1fr)}.executive-facts article:nth-child(2){border-right:0}.executive-facts article:nth-child(-n+2){border-bottom:1px solid var(--line)}}
+@media(max-width:520px){.executive-brief__lead{grid-template-columns:1fr}.executive-completion{grid-template-columns:1fr auto;width:100%}.maturity-path{padding:15px 14px}.maturity-scoreline{grid-template-columns:1fr 74px 1fr;gap:7px}.maturity-score{grid-template-columns:1fr;padding:10px}.maturity-score>strong{grid-row:auto;grid-column:auto;font-size:29px}.maturity-score small{font-size:8.5px}.maturity-gap-card strong{font-size:21px}.target-readiness{grid-template-columns:1fr auto}.target-readiness__bar{grid-column:1 / 3;grid-row:2}.decision-focus{padding:15px}.executive-facts{grid-template-columns:1fr}.executive-facts article{border-right:0;border-bottom:1px solid var(--line)}.executive-facts article:last-child{border-bottom:0}}
+
+@media(max-width:1100px) and (min-width:821px){.report-page{width:calc(100vw - 24px)}.page-content{padding-left:30px;padding-right:30px}.brief-masthead{padding-left:30px;padding-right:30px}.executive-grid{grid-template-columns:minmax(0,1fr) 292px;gap:24px}.transition-panel{grid-template-columns:126px 34px 154px minmax(108px,1fr)}.scorecard-main{grid-template-columns:minmax(0,1.45fr) minmax(315px,.8fr)}}
+@media(max-width:820px){body{background:#fff}.report-page{box-shadow:none;border-top-width:3px}.brief-masthead::after{display:none}.brief-masthead h1{font-size:27px}.report-badge{align-self:flex-start}.decision-agenda{margin-top:10px}.executive-conclusion{font-size:13px}.metric-strip article{border-right:0;border-bottom:1px solid var(--line)}.metric-strip article:last-child{border-bottom:0}.scorecard-main .capability-radar{max-width:100%;overflow-x:auto;padding-right:0}.scorecard-main .capability-radar .radar-svg{min-width:720px;height:auto}.priority-panel{margin-top:12px}.scorecard-lower{padding:15px}.page-intro{align-items:flex-start;gap:12px}.page-intro>p{text-align:left}.narrative-grid article{min-height:0}.table-wrap{width:100%;max-width:100%;overflow-x:auto}table.appendix{min-width:1120px}}
+@media(max-width:520px){body{font-size:12.5px}.brief-masthead,.page-content{padding-left:18px;padding-right:18px}.brief-masthead{padding-top:24px}.brief-masthead h1{font-size:23px}.transition-level strong{font-size:52px}.transition-level b{font-size:17px}.decision-agenda{padding-left:12px;padding-right:12px}.report-footer{margin-left:18px;margin-right:18px}.page-intro{display:block}.page-intro>p{margin-top:7px}}
+
+@media print{*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}html,body{background:#fff}.report-page{border-top:0;border-radius:0;box-shadow:none}.brief-masthead{background:#082c4f!important;border-bottom-color:#a06125!important}.brief-masthead::after{display:block}.page-one .page-content{padding-top:6mm}.priority-panel,.scorecard-lower,.decision-agenda{background-color:#f7f9fa!important}thead th{position:static}.editable,.editable:hover,.editable:focus{border-color:transparent;background:transparent;box-shadow:none}.section-improvement_roadmap tbody tr:nth-child(-n+3){background:#fff7e9!important}tbody tr:hover{background:inherit}td.is-placeholder{background:#fff7e8!important}}
+
+/* Print compaction keeps the two leadership pages intact on A4 landscape. */
+@media print{
+  .brief-masthead{padding:5mm 10mm 4mm}.brief-masthead h1{font-size:20pt}.brief-masthead .kicker{margin-bottom:1mm;font-size:6.5pt}.brief-masthead .meta{margin-top:1mm;font-size:7.5pt}.report-badge{padding:1.5mm 2.5mm;font-size:6.5pt}
+  .page-one,.page-two{height:210mm;min-height:210mm;overflow:hidden}.page-one .page-content{padding:4mm 10mm 10mm}.executive-grid{grid-template-columns:minmax(0,1fr) 82mm;gap:5mm}.transition-panel{min-height:24mm;grid-template-columns:30mm 8mm 36mm minmax(25mm,1fr)}.transition-level{column-gap:1.5mm}.transition-level strong{font-size:32pt}.transition-level span{font-size:6.5pt}.transition-level b{font-size:10.5pt}.transition-arrow{font-size:18pt}.transition-gap span{font-size:6pt}.transition-gap strong{font-size:16pt}
+  .decision-agenda{padding:0 3mm 1mm}.decision-agenda h2{padding:1.2mm 0;font-size:9.5pt}.decision-agenda h2 small{font-size:5.5pt}.decision-agenda li{grid-template-columns:7mm 1fr;gap:1.5mm;padding:1mm 0}.decision-agenda li>span{font-size:13pt}.decision-agenda strong{font-size:6.3pt}.decision-agenda p{margin-top:.4mm;font-size:5.6pt}.executive-conclusion{margin:2mm 0;padding:2mm 3mm;font-size:7.6pt}.metric-strip article{padding:1.5mm 4mm}.metric-strip span,.metric-strip small{font-size:5.8pt}.metric-strip strong{margin:.4mm 0;font-size:12pt}
+  .scorecard-heading{margin-top:2.5mm;padding-bottom:1mm}.scorecard-heading h2{font-size:10.5pt}.scorecard-heading h2 small,.scorecard-heading p{font-size:5.6pt}.scorecard-main{grid-template-columns:minmax(0,1.55fr) minmax(76mm,.75fr);gap:3mm;padding-top:1mm}.scorecard-main .capability-radar{padding:0 3mm 0 0}.scorecard-main .capability-radar .radar-svg{height:48mm}.legend{gap:1.4mm;font-size:4.7pt}.legend i{width:3mm}.figure-note{font-size:4.8pt}.priority-panel{padding:1mm 1.5mm}.priority-panel h3{margin:0;padding-bottom:.5mm;font-size:6.3pt}.priority-panel .table-wrap{margin:.4mm 0 .8mm}.priority-table,.l2-summary-table{font-size:4.6pt}.priority-table th,.priority-table td,.l2-summary-table th,.l2-summary-table td{padding:.35mm .65mm;line-height:1.18}
+  .scorecard-lower{gap:2mm;margin-top:1mm;padding:1mm 1.5mm 0}.scorecard-lower h3{margin-bottom:.5mm;font-size:6.1pt}.scorecard-lower>section+figure,.scorecard-lower>figure+section{padding-left:2mm}.category-profile-table{font-size:4.8pt}.category-profile-table th,.category-profile-table td{padding:.45mm .7mm;line-height:1.2}.dimension-radar-card .radar-svg{height:22mm}.evidence-profile dl>div{padding:.65mm 0}.evidence-profile dt,.evidence-profile dd{font-size:5.3pt}.report-footer{bottom:2mm;font-size:5.5pt}
+  .page-two .page-content{padding:6mm 10mm 11mm}.page-two .page-intro{margin-bottom:4mm;padding-bottom:2.5mm}.page-two .page-intro span{font-size:6.5pt}.page-two .page-intro h2{font-size:16pt}.page-two .page-intro p{font-size:7pt}.page-two .section-narratives{margin-top:0}.page-two .narrative-grid{gap:4mm 5mm}.page-two .narrative-grid article{padding:2.5mm 3mm 0}.page-two .narrative-grid header{margin-bottom:1mm}.page-two .narrative-grid header span{font-size:13pt}.page-two .narrative-grid h2{font-size:11pt}.page-two .editable{min-height:25mm;margin:0;padding:2mm 1mm;font-size:8pt;line-height:1.45}.page-two .section-improvement_roadmap{margin-top:4mm}.page-two .section-heading{grid-template-columns:9mm 1fr;gap:2mm;margin-bottom:2mm;padding-bottom:1.5mm}.page-two .section-heading>span{font-size:14pt}.page-two .section-heading h2{font-size:12pt}.page-two .section-heading p{font-size:6.3pt}.page-two .section-improvement_roadmap .table-wrap{margin:0}.page-two .section-improvement_roadmap table{font-size:6.1pt}.page-two .section-improvement_roadmap th,.page-two .section-improvement_roadmap td{padding:.85mm 1mm;line-height:1.3}
+}
+
+@media print{
+  .executive-brief{padding-bottom:1mm}.executive-brief__lead{grid-template-columns:minmax(0,1fr) 34mm;gap:4mm;padding-bottom:1.5mm}.executive-eyebrow{gap:1.5mm;margin-bottom:1mm;font-size:4.6pt}.executive-brief__title h2{font-size:10.5pt}.executive-brief__title>p:last-child{max-width:none;margin-top:1mm;font-size:6.2pt;line-height:1.4}.executive-completion{gap:.5mm 1.5mm;padding:1.5mm 2mm;border-bottom-width:1mm}.executive-completion span{font-size:4.7pt}.executive-completion strong{font-size:13pt}.executive-completion small{font-size:4.5pt}
+  .executive-brief__grid{grid-template-columns:minmax(0,1.45fr) 78mm;gap:3mm;margin-top:2mm}.maturity-path{padding:1.7mm 2mm 1.5mm;border-top-width:1mm}.maturity-path__header,.decision-focus>header{gap:2mm}.maturity-path__header span,.decision-focus>header span{font-size:4.2pt}.maturity-path__header h3,.decision-focus>header h3{font-size:7pt}.maturity-path__header p,.decision-focus>header p{font-size:4.3pt}.maturity-scoreline{grid-template-columns:minmax(0,1fr) 22mm minmax(0,1fr);gap:1mm;margin-top:1.5mm}.maturity-score{gap:.5mm 1mm;padding:1.2mm 1.5mm}.maturity-score::before{width:1mm}.maturity-score>span{font-size:4.5pt}.maturity-score>strong{font-size:15pt}.maturity-score small{font-size:4.8pt}.maturity-score small b{margin-right:.7mm;padding:.3mm .8mm}.maturity-gap-card span,.maturity-gap-card small{font-size:4.1pt}.maturity-gap-card strong{font-size:12pt}
+  .maturity-track{margin:2.3mm .5mm 0}.maturity-track__labels{font-size:3.8pt}.maturity-track__rail{height:1mm;margin-top:1mm}.maturity-track__marker{width:2.8mm;height:2.8mm;border-width:.6mm}.maturity-track__marker b{top:2.8mm;font-size:3.6pt}.target-readiness{grid-template-columns:auto minmax(20mm,1fr) auto;gap:2mm;margin-top:4.2mm;padding-top:1.5mm}.target-readiness span{font-size:4.5pt}.target-readiness small{font-size:3.7pt}.target-readiness__bar{height:1.3mm}.target-readiness>strong{font-size:8pt}
+  .decision-focus{padding:1.7mm 2mm 1.2mm;border-top-width:1mm}.decision-focus>header{padding-bottom:1.2mm}.decision-focus li{grid-template-columns:7mm 1fr;gap:1mm;padding:1.55mm 0}.decision-rank{font-size:12pt}.decision-focus li strong{font-size:5.4pt}.decision-focus li p{gap:1mm;margin-top:.6mm;font-size:4.1pt}.decision-focus li p b{padding:.4mm .8mm}
+  .executive-facts{margin-top:1.5mm}.executive-facts article{gap:.5mm 1mm;padding:1mm 1.5mm}.executive-facts span{font-size:4.2pt}.executive-facts strong{font-size:10pt}.executive-facts strong small{font-size:5.5pt}.executive-facts p{font-size:4pt}.scorecard-main .capability-radar .radar-svg{height:43mm}
+}
+"""
+    executive_report_script = r"""<script>
+(() => {
+  const placeholders = new Set(["待指定", "待评估", "待规划", "待模拟", "待确认", "待补充", "待完善"]);
+  const emptyPlaceholders = new Set(["-", "—"]);
+  document.querySelectorAll("td").forEach((cell) => {
+    const value = cell.textContent.trim();
+    if (placeholders.has(value)) {
+      cell.classList.add("is-placeholder");
+      cell.dataset.placeholder = "true";
+    } else if (emptyPlaceholders.has(value)) {
+      cell.classList.add("is-empty-placeholder");
+      cell.dataset.placeholder = "empty";
+    }
+  });
+  document.querySelectorAll('[contenteditable="true"]').forEach((field) => {
+    field.setAttribute("role", "textbox");
+    field.setAttribute("aria-multiline", "true");
+    if (!field.hasAttribute("tabindex")) field.setAttribute("tabindex", "0");
+  });
+})();
+</script>"""
     html_report = f"""<!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>{h(project_name)}｜评估报告</title>
+<html lang="zh-CN"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="color-scheme" content="light"/><meta name="description" content="SAPD 企业网络安全能力成熟度正式评估报告"/><title>{h(project_name)}｜评估报告</title>
 <style>
-:root{{--ink:#172b3d;--muted:#66798a;--line:#d6e0e8;--blue:#1676c5;--gold:#9a6d2f;--paper:#fff;--wash:#f4f7fa}}
-*{{box-sizing:border-box}}html{{background:#e9eff4}}body{{margin:0;color:var(--ink);font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif}}main{{max-width:1240px;margin:0 auto;background:var(--paper);box-shadow:0 18px 54px #23384b22}}
-.cover{{min-height:380px;padding:64px;display:grid;align-content:end;background:linear-gradient(142deg,#e7f2fb 0%,#fff 55%,#f7f1e8 100%);border-bottom:1px solid var(--line)}}.cover span{{color:var(--blue);font-size:12px;font-weight:800;letter-spacing:.12em}}h1{{font-size:42px;line-height:1.15;margin:12px 0}}.cover p{{color:var(--muted)}}.content{{padding:24px 56px 72px}}.notice{{padding:14px 16px;border-left:4px solid var(--blue);background:#eef6fc}}
-.section{{margin-top:42px;break-inside:auto}}.section>header{{border-bottom:1px solid var(--line);margin-bottom:18px}}.section>header span{{color:var(--blue);font-size:10px;text-transform:uppercase;letter-spacing:.08em}}h2{{font-size:22px;margin:3px 0 12px}}h3{{font-size:15px;margin:0 0 12px}}.metrics{{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);margin-bottom:20px}}.metrics article{{padding:20px;border-right:1px solid var(--line)}}.metrics article:last-child{{border:0}}.metrics span{{display:block;color:var(--muted);font-size:11px}}.metrics strong{{display:block;font-size:24px;margin-top:6px}}
-.narrative-grid{{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}}.narrative-grid article{{border:1px solid var(--line);padding:18px;background:#fbfcfd}}.editable{{min-height:110px;padding:12px;border:1px dashed #aab9c6;background:#fff;white-space:normal}}.editable:focus{{outline:2px solid #1676c533}}
-.table-wrap{{overflow:auto;margin:12px 0 22px}}table{{width:100%;border-collapse:collapse;font-size:11px}}th,td{{text-align:left;vertical-align:top;padding:9px 10px;border-bottom:1px solid var(--line)}}th{{color:#506678;background:#eef3f7;white-space:nowrap}}tbody tr:nth-child(even){{background:#fafcfd}}table.dense{{font-size:9.5px}}table.dense th,table.dense td{{padding:7px 6px;overflow-wrap:anywhere}}table.appendix{{min-width:1180px}}
-.radar-grid{{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(360px,1fr);gap:18px}}.radar-grid>article{{border:1px solid var(--line);padding:16px;overflow:hidden}}.radar-svg{{display:block;width:100%;height:auto}}.radar-svg text{{font-size:9px;fill:#465d70;font-weight:650}}.radar-svg .chart-note{{font-size:11px;fill:#9a6d2f}}.legend{{display:flex;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:10px}}.legend span{{display:flex;align-items:center;gap:5px}}.legend i{{width:18px;height:3px;background:var(--blue)}}.legend .target i{{background:var(--gold)}}.legend .group i{{width:8px;height:8px;border-radius:50%;background:#738394}}.legend .is-t i{{background:#2f78c4}}.legend .is-g i{{background:#7467b8}}.legend .is-m i{{background:#3d8969}}
-.distribution-grid,.ranking-grid,.dimension-rankings{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}}.distribution-grid{{grid-template-columns:repeat(3,minmax(0,1fr))}}.evaluation{{padding:18px;background:var(--wash);border-left:4px solid var(--blue)}}.note,.section-traceability{{color:var(--muted);font-size:11px}}code{{overflow-wrap:anywhere}}
-@media(max-width:800px){{.cover{{padding:36px;min-height:290px}}.content{{padding:20px 22px 48px}}.metrics,.narrative-grid,.radar-grid,.distribution-grid,.ranking-grid,.dimension-rankings{{grid-template-columns:1fr}}}}
-@media print{{html{{background:#fff}}main{{box-shadow:none}}.cover{{min-height:260px}}.content{{padding:20px 28px}}.section{{break-before:auto}}.table-wrap{{overflow:visible}}.editable{{border-color:#c7d2dc}}}}
-</style></head><body><main data-report-model='sapd-maturity-report-model-v2'><header class="cover"><span>SAPD WIKI · ASSESSMENT REPORT</span><h1>{h(project_name)}｜评估报告</h1><p>{h(organization)} · {h(template.get('name'))} · {h(generated_at[:10])}</p></header><div class="content"><p class="notice">{h(report_notice)}</p>{html_sections}</div></main></body></html>"""
+:root{{--navy:#082c4f;--navy-2:#123d66;--ink:#152b3f;--muted:#64788b;--line:#cbd6df;--line-strong:#93a8ba;--blue:#176bb5;--copper:#a06125;--sage:#3f7f68;--violet:#6e63ac;--paper:#fff;--wash:#f4f6f7;--warm:#f8f4ed;--danger:#9d3e34}}
+*{{box-sizing:border-box}}html{{background:#e8edf1}}body{{margin:0;color:var(--ink);font:13px/1.56 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;font-variant-numeric:tabular-nums}}main{{padding:22px 0 48px}}.report-page{{width:min(1180px,calc(100vw - 32px));min-height:820px;margin:0 auto 22px;background:var(--paper);border:1px solid #d7dfe6;position:relative;overflow:hidden}}.report-page.is-appendix{{overflow:visible}}.page-content{{padding:24px 38px 48px}}
+.report-masthead{{display:grid;grid-template-columns:1fr auto;gap:28px;padding:24px 38px;background:var(--navy);color:#fff}}.report-masthead .kicker{{margin:0 0 6px;color:#b8cee0;font-size:10px;font-weight:760;letter-spacing:.16em}}h1{{margin:0;font-family:"Songti SC","STSong","Noto Serif SC",serif;font-size:28px;line-height:1.22;letter-spacing:.02em}}.report-masthead .meta{{margin:6px 0 0;color:#d8e5ee}}.report-meta{{display:grid;grid-template-columns:auto auto;gap:5px 14px;align-content:center;font-size:11px;color:#d8e5ee}}.report-meta dt{{color:#94b5ce}}.report-meta dd{{margin:0;text-align:right}}.report-status{{display:flex;justify-content:space-between;gap:18px;padding:7px 38px;border-bottom:1px solid var(--line);color:var(--muted);font-size:11px}}.report-status strong{{color:var(--sage)}}
+.report-section{{margin-top:22px}}.report-section:first-child{{margin-top:0}}.section-heading{{display:grid;grid-template-columns:42px 1fr;gap:10px;align-items:start;margin-bottom:13px;border-bottom:2px solid var(--navy);padding-bottom:7px}}.section-heading>span{{font-family:"Songti SC","STSong","Noto Serif SC",serif;font-size:22px;font-weight:800;color:var(--navy)}}h2{{margin:0;font-family:"Songti SC","STSong","Noto Serif SC",serif;font-size:20px;line-height:1.3;color:var(--navy)}}.section-heading p{{margin:3px 0 0;color:var(--muted);font-size:11px}}h3{{margin:0 0 10px;font-size:13px;color:var(--navy)}}
+.maturity-comparison{{display:grid;grid-template-columns:minmax(0,1fr) 150px minmax(0,1fr);align-items:stretch;border-bottom:1px solid var(--line);margin-bottom:12px}}.maturity-state{{padding:13px 22px;color:#fff}}.maturity-state.is-current{{background:var(--navy-2)}}.maturity-state.is-target{{background:var(--copper)}}.maturity-state span,.maturity-state b,.maturity-state p{{display:block}}.maturity-state span{{font-size:11px;letter-spacing:.08em}}.maturity-state strong{{display:inline-block;margin:3px 10px 0 0;font-family:"Songti SC","STSong","Noto Serif SC",serif;font-size:43px;line-height:1}}.maturity-state b{{display:inline-block;font-size:14px}}.maturity-state p{{margin:6px 0 0;color:#e3edf4;font-size:10px}}.maturity-gap{{display:grid;place-content:center;text-align:center;background:var(--warm);border-left:1px solid var(--line);border-right:1px solid var(--line)}}.maturity-gap span,.maturity-gap small{{color:var(--muted);font-size:10px}}.maturity-gap strong{{font-family:"Songti SC","STSong","Noto Serif SC",serif;font-size:28px;color:var(--ink)}}
+.metric-strip{{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}}.metric-strip article{{padding:10px 16px;border-right:1px solid var(--line)}}.metric-strip article:last-child{{border-right:0}}.metric-strip span,.metric-strip small{{display:block;color:var(--muted);font-size:10px}}.metric-strip strong{{display:block;margin:2px 0;font-family:"Songti SC","STSong","Noto Serif SC",serif;font-size:21px;color:var(--navy)}}
+.radar-grid{{display:grid;grid-template-columns:minmax(0,1.62fr) minmax(310px,.88fr);gap:22px}}figure{{margin:0}}.capability-radar{{padding-right:22px;border-right:1px solid var(--line)}}figcaption{{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}}.dimension-analysis figure{{border-bottom:1px solid var(--line);padding-bottom:5px;margin-bottom:7px}}.radar-svg{{display:block;width:100%;height:auto}}.capability-radar .radar-svg{{height:285px}}.dimension-analysis .radar-svg{{height:195px}}.radar-svg text{{font-size:9px;fill:#405a70;font-weight:650}}.radar-svg .chart-note{{font-size:10px;fill:var(--copper)}}.legend{{display:flex;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:9px}}.legend span{{display:flex;align-items:center;gap:4px}}.legend i{{width:20px;height:2px;background:var(--blue)}}.legend .target i{{height:0;background:none;border-top:2px dashed var(--copper)}}.legend .group i{{width:7px;height:7px;border-radius:50%;background:#738394}}.legend .is-t i{{background:#2f78c4}}.legend .is-g i{{background:var(--violet)}}.legend .is-m i{{background:var(--sage)}}.figure-note{{margin:2px 0 0;color:var(--muted);font-size:9.5px}}
+.narrative-grid{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 30px}}.narrative-grid article{{border-top:2px solid var(--navy);padding-top:10px}}.narrative-grid header{{display:flex;gap:10px;align-items:baseline;margin-bottom:8px}}.narrative-grid header span{{font-family:"Songti SC","STSong","Noto Serif SC",serif;font-size:20px;font-weight:800;color:var(--navy)}}.editable{{min-height:112px;padding:8px 0;color:#334b5f;white-space:normal}}.editable:hover{{background:#f7f9fa}}.editable:focus{{outline:2px solid #176bb533;outline-offset:4px;background:#fff}}
+.table-wrap{{overflow:auto;margin:10px 0 18px}}table{{width:100%;border-collapse:collapse;font-size:10.5px}}th,td{{text-align:left;vertical-align:top;padding:7px 8px;border-bottom:1px solid var(--line)}}th{{color:#405a70;background:#eef2f4;white-space:nowrap;font-weight:760}}tbody tr:nth-child(even){{background:#fafbfb}}table.dense{{font-size:9px}}table.dense th,table.dense td{{padding:5px;overflow-wrap:anywhere}}table.appendix{{min-width:1120px}}.category-table td:first-child{{font-weight:700}}.dimension-table{{font-size:9.5px}}
+.distribution-grid,.ranking-grid,.dimension-rankings{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}}.distribution-grid{{grid-template-columns:repeat(3,minmax(0,1fr))}}.evaluation{{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:14px 16px;background:var(--wash);border-left:3px solid var(--blue)}}.evaluation p{{margin:0}}.method-note{{display:grid;grid-template-columns:repeat(2,1fr);gap:8px 24px;color:var(--muted)}}.method-note p{{margin:0;padding:8px 0;border-bottom:1px solid var(--line)}}.page-intro{{display:flex;justify-content:space-between;align-items:end;border-bottom:2px solid var(--navy);padding-bottom:12px;margin-bottom:24px}}.page-intro span{{color:var(--copper);font-size:10px;font-weight:800;letter-spacing:.12em}}.page-intro h2{{font-size:24px}}.page-intro p{{margin:0;color:var(--muted);font-size:11px}}
+.brief-masthead{{display:flex;justify-content:space-between;gap:28px;padding:26px 38px 18px;border-bottom:1px solid var(--line)}}.brief-masthead .kicker{{margin:0 0 4px;color:var(--blue);font-size:10px;font-weight:800;letter-spacing:.14em}}.brief-masthead h1{{color:var(--navy);font-size:30px}}.brief-masthead .meta{{margin:5px 0 0;color:var(--muted)}}.report-badge{{align-self:flex-start;padding:6px 10px;border:1px solid var(--line-strong);color:var(--navy);font-size:10px;font-weight:750}}.executive-grid{{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:34px}}.transition-panel{{display:grid;grid-template-columns:138px 42px 168px minmax(118px,1fr);align-items:center;min-height:138px;border-bottom:1px solid var(--line)}}.transition-level{{display:grid;grid-template-columns:auto 1fr;align-items:end;column-gap:9px}}.transition-level strong{{grid-row:1 / 3;font-family:"Songti SC","STSong","Noto Serif SC",serif;font-size:66px;line-height:.9}}.transition-level span{{font-size:11px;color:var(--muted)}}.transition-level b{{font-size:20px}}.transition-level.is-current strong,.transition-level.is-current b{{color:var(--blue)}}.transition-level.is-target strong,.transition-level.is-target b{{color:var(--copper)}}.transition-arrow{{font-family:"Songti SC","STSong","Noto Serif SC",serif;font-size:32px;color:#9aa7b2;text-align:center}}.transition-gap{{align-self:stretch;display:grid;place-content:center;border-left:1px solid var(--line);text-align:center}}.transition-gap span{{font-size:10px;color:var(--muted)}}.transition-gap strong{{font-family:"Songti SC","STSong","Noto Serif SC",serif;font-size:26px;color:var(--navy)}}.decision-agenda{{border-top:2px solid var(--navy)}}.decision-agenda h2{{padding:8px 0;border-bottom:1px solid var(--line);font-size:16px}}.decision-agenda h2 small{{margin-left:6px;color:var(--muted);font:10px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif}}.decision-agenda ol{{list-style:none;margin:0;padding:0}}.decision-agenda li{{display:grid;grid-template-columns:34px 1fr;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}}.decision-agenda li>span{{font-family:"Songti SC","STSong","Noto Serif SC",serif;font-size:22px;color:var(--navy)}}.decision-agenda strong{{font-size:10.5px}}.decision-agenda p{{margin:2px 0 0;color:var(--muted);font-size:9.5px}}.executive-conclusion{{margin:14px 0;padding:11px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-family:"Songti SC","STSong","Noto Serif SC",serif;font-size:14px;color:#2b4255}}
+.scorecard-heading{{display:flex;align-items:end;justify-content:space-between;margin-top:24px;padding-bottom:8px;border-bottom:2px solid var(--navy)}}.scorecard-heading h2{{font-size:20px}}.scorecard-heading h2 small{{font:11px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif;color:var(--muted)}}.scorecard-heading p{{margin:0;color:var(--muted);font-size:10px}}.scorecard-main{{display:grid;grid-template-columns:minmax(0,1.52fr) minmax(340px,.82fr);gap:24px;padding-top:12px}}.scorecard-main .capability-radar{{padding-right:24px;border-right:1px solid var(--line)}}.scorecard-main .capability-radar .radar-svg{{height:430px}}.priority-panel h3{{display:flex;justify-content:space-between;padding-bottom:7px;border-bottom:1px solid var(--line)}}.priority-panel h3 small{{color:var(--muted);font-size:9px;font-weight:500}}.priority-table{{font-size:9px}}.priority-table td:nth-child(2){{max-width:150px}}.l2-summary-table{{font-size:9.5px}}.scorecard-lower{{display:grid;grid-template-columns:1.15fr .85fr .85fr;gap:20px;margin-top:10px;padding-top:14px;border-top:2px solid var(--navy)}}.scorecard-lower>section+figure,.scorecard-lower>figure+section{{padding-left:20px;border-left:1px solid var(--line)}}.dimension-radar-card .radar-svg{{height:170px}}.dimension-radar-card figcaption{{align-items:center}}.evidence-profile dl{{margin:0}}.evidence-profile dl>div{{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)}}.evidence-profile dt{{color:var(--muted)}}.evidence-profile dd{{margin:0;font-weight:760;color:var(--navy)}}
+.report-footer{{position:absolute;left:38px;right:38px;bottom:16px;display:flex;justify-content:space-between;padding-top:8px;border-top:1px solid var(--line);color:var(--muted);font-size:9px}}.is-appendix .report-footer{{position:static;margin:28px 38px 16px}}code{{overflow-wrap:anywhere}}
+@media(max-width:820px){{main{{padding-top:0}}.report-page{{width:100%;min-height:0;margin:0;border:0;border-bottom:10px solid #e8edf1}}.report-masthead{{grid-template-columns:1fr;padding:24px}}.report-meta{{display:none}}.report-status,.page-content{{padding-left:22px;padding-right:22px}}.brief-masthead{{padding:22px;flex-direction:column}}.executive-grid,.scorecard-main,.scorecard-lower,.transition-panel,.metric-strip,.narrative-grid,.distribution-grid,.ranking-grid,.dimension-rankings,.evaluation,.method-note{{grid-template-columns:1fr}}.transition-panel{{gap:8px}}.transition-arrow{{transform:rotate(90deg)}}.transition-gap{{padding:10px;border-left:0;border-top:1px solid var(--line)}}.scorecard-main .capability-radar,.scorecard-lower>section+figure,.scorecard-lower>figure+section{{border-left:0;border-right:0;padding-left:0;padding-right:0}}.capability-radar{{border-left:0;border-right:0;padding-left:0;padding-right:0}}.report-footer{{position:static;margin:24px 22px 16px}}}}
+@page{{size:A4 landscape;margin:0}}@media print{{html{{background:#fff}}body{{font-size:10pt}}main{{padding:0}}.report-page{{width:297mm;min-height:210mm;margin:0;border:0;break-after:page;page-break-after:always;overflow:visible}}.report-page:last-child{{break-after:auto;page-break-after:auto}}.page-content{{padding:8mm 10mm 14mm}}.report-masthead{{padding:8mm 10mm}}.report-status{{padding:2.5mm 10mm}}.report-section{{break-inside:auto}}.section-heading,.maturity-comparison,.metric-strip,.radar-grid,.narrative-grid article,figure,table{{break-inside:avoid}}.table-wrap{{overflow:visible}}table.appendix{{min-width:0;font-size:6.6pt}}table.dense{{font-size:6.8pt}}.editable:hover{{background:transparent}}.report-footer{{left:10mm;right:10mm;bottom:4mm}}}}
+{executive_report_css}
+</style></head><body><main data-report-model='sapd-maturity-report-model-v2'>
+<article class="report-page page-one"><header class="brief-masthead"><div><p class="kicker">SAPD WIKI · MATURITY ASSESSMENT REPORT</p><h1>{h(project_name)}｜评估报告</h1><p class="meta">{report_meta}</p></div><span class="report-badge">{'正式评估报告' if is_formal else '草稿预览'}</span></header><div class="page-content">{render_sections('overall', 'radars')}</div><footer class="report-footer"><span>{report_footer}</span><span>第 1 页</span></footer></article>
+<article class="report-page page-two"><div class="page-content"><header class="page-intro"><div><span>MANAGEMENT JUDGEMENT</span><h2>管理层研判与改进安排</h2></div><p>人工填写内容与正式评估结果共同构成报告正文</p></header>{render_sections('narratives', 'improvement_roadmap')}</div><footer class="report-footer"><span>{report_footer}</span><span>第 2 页</span></footer></article>
+<article class="report-page page-three is-appendix"><div class="page-content"><header class="page-intro"><div><span>APPENDIX · PAGE THREE</span><h2>维度数据与完整评估附录</h2></div><p>各维度统计、能力结果、排名与评分明细</p></header>{render_sections('hierarchy_statistics', 'evaluation', 'dimension_rankings', 'capability_results', 'overall_rankings', 'score_appendix', 'traceability')}</div><footer class="report-footer"><span>{report_footer}</span><span>第 3 页 · 附录</span></footer></article>
+</main>{executive_report_script}</body></html>"""
 
     return {
         "ok": True,

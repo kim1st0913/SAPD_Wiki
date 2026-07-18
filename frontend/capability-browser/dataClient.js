@@ -49,6 +49,7 @@
     maturityCalculate: "/api/v1/maturity/calculate",
     maturityTemplateValidate: "/api/v1/maturity/template/validate",
     maturityReport: "/api/v1/maturity/report",
+    maturityReportArtifact: "/api/v1/maturity/reports/artifact",
     maturityScoreExport: "/api/v1/maturity/score/export",
     maturityScoreImport: "/api/v1/maturity/score/import",
     maturityTemplateExport: "/api/v1/maturity/template/export",
@@ -1524,6 +1525,15 @@
         headers: await userWriteHeaders(),
         body: JSON.stringify(payload),
       });
+      return createEnvelope(result);
+    },
+
+    async getMaturityReportArtifact({ projectId = "", artifactId = "", reportId = "" } = {}) {
+      const params = new URLSearchParams();
+      if (projectId) params.set("project_id", projectId);
+      if (artifactId) params.set("artifact_id", artifactId);
+      if (reportId) params.set("report_id", reportId);
+      const result = await fetchUserApi(`${API_PATHS.maturityReportArtifact}?${params.toString()}`);
       return createEnvelope(result);
     },
 

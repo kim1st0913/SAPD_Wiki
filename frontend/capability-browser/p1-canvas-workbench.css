@@ -1,7 +1,7 @@
 /* P1-2 V11: shared component and responsive canvas contract. OI-159 and the global Apple Shell remain the visual authorities. */
 
 .app-shell-integrated .capability-workspace {
-  grid-template-columns: 240px 6px minmax(760px, 1fr);
+  grid-template-columns: 304px 6px minmax(760px, 1fr);
 }
 
 .app-shell-integrated .capability-relation-pane {

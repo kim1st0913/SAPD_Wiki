@@ -16,6 +16,13 @@
   const TAB_STORAGE_KEY = "sapd-wiki-maturity-project-tabs-v1";
   const LEGACY_PROJECT_ROUTE_ID = "project-001";
   const PROJECT_TAB_IDS = new Set(["overview", "template", "scoring", "review", "results", "report", "report-v2"]);
+  const FORMAL_RESULT_TAB_IDS = new Set(["results", "report", "report-v2"]);
+  const DIRECTORY_PANE_METRICS = components.AppShell?.directoryPaneMetrics || {
+    defaultWidth: 304,
+    minWidth: 240,
+    maxWidth: 520,
+    handleWidth: 6,
+  };
   const LEVELS = ["L1", "L2", "L3", "L4", "L5"];
   const DIMENSIONS = [
     ["organization", "组织与角色"],
@@ -76,7 +83,7 @@
     draft: "草稿",
     template_configuring: "模板配置中",
     scoring: "评分中",
-    score_review: "待完成评估",
+    score_review: "评分检查中",
     completed: "评估完成",
     reported: "已生成报告",
     archived: "已归档",
@@ -128,6 +135,9 @@
     projectObjectSearch: "",
     projectObjectSearchIndex: 0,
     projectHistoryPage: 0,
+    projectInfoEditId: "",
+    projectInfoDraft: {},
+    projectInfoErrors: {},
     unlockConfirmProjectId: "",
     listSearch: "",
     listStatus: "active",
@@ -165,9 +175,12 @@
     focusBatchOpen: false,
     focusBatchLevel: "L3",
     focusBatchClearConfirmId: "",
+    focusTargetBatchLevel: "L3",
+    focusTargetClearConfirmId: "",
     scoreContextResizeBound: false,
     hierarchyExpansionByProject: {},
     directoryInitializedByProject: {},
+    scoreDirectoryUiByProject: {},
     resultsView: "customer",
     reportEditingSection: "",
     reportV2Stage: "1",
@@ -178,6 +191,7 @@
     reportGenerating: false,
     calculationSequence: 0,
     calculationTimer: 0,
+    calculationPromise: null,
     toast: "",
     toastTone: "info",
     toastRoute: "",
@@ -185,9 +199,43 @@
     lastRenderContext: "",
   };
 
+  const SCORE_DIRECTORY_MIN_WIDTH = DIRECTORY_PANE_METRICS.minWidth;
+  const SCORE_DIRECTORY_MAX_WIDTH = DIRECTORY_PANE_METRICS.maxWidth;
+  const SCORE_WORKBENCH_MIN_WIDTH = 640;
+
   function clone(value) {
     if (typeof structuredClone === "function") return structuredClone(value);
     return JSON.parse(JSON.stringify(value));
+  }
+
+  function normalizeTargetFields(entry) {
+    if (!entry || typeof entry !== "object") return entry;
+    if (!Object.prototype.hasOwnProperty.call(entry, "targetElements")) {
+      entry.targetElements = LEVELS.includes(entry.targetLevel)
+        ? DIMENSIONS.reduce((values, [key]) => ({ ...values, [key]: entry.targetLevel }), {})
+        : {};
+    }
+    if (!Object.prototype.hasOwnProperty.call(entry, "targetDimensionNotes")) {
+      entry.targetDimensionNotes = text(entry.targetReason)
+        ? DIMENSIONS.reduce((values, [key]) => ({ ...values, [key]: text(entry.targetReason) }), {})
+        : {};
+    }
+    entry.dimensionNotes = entry.dimensionNotes && typeof entry.dimensionNotes === "object" ? entry.dimensionNotes : {};
+    return entry;
+  }
+
+  function syncLegacyTargetProjection(entry) {
+    normalizeTargetFields(entry);
+    const targetLevels = DIMENSIONS.map(([key]) => entry.targetElements?.[key]);
+    entry.targetLevel = targetLevels.every((level) => LEVELS.includes(level)) && new Set(targetLevels).size === 1 ? targetLevels[0] : "";
+    const notes = DIMENSIONS.map(([key]) => text(entry.targetDimensionNotes?.[key]).trim()).filter(Boolean);
+    entry.targetReason = notes[0] || "";
+    entry.targetConfirmed = hasCompleteElements(entry.targetElements);
+    return entry;
+  }
+
+  function normalizeScoreEntries(entries) {
+    return list(entries).map((entry) => normalizeTargetFields(entry));
   }
 
   function unwrap(response) {
@@ -332,9 +380,11 @@
     Object.entries(workspace?.projectDetails || {}).forEach(([id, detail]) => {
       details[id] = {
         ...clone(detail),
+        scoreEntries: normalizeScoreEntries(clone(detail.scoreEntries || [])),
         template: clone(detail.template || workspace.template),
         reportV2Conclusions: clone(detail.reportV2Conclusions || defaultReportV2Conclusions()),
         reportV2Dirty: Boolean(detail.reportV2Dirty),
+        calculationRevision: 0,
       };
     });
     const storedProjects = safeStore().projects || {};
@@ -342,6 +392,7 @@
       if (!stored?.project) return;
       const existing = details[id] || {};
       const storedProject = clone(stored.project);
+      if (!existing.project && /^demo-project-\d{3}$/.test(id)) return;
       const controlledDemoRevision = text(existing.project?.controlledDemoRevision);
       if (controlledDemoRevision && controlledDemoRevision !== text(storedProject.controlledDemoRevision)) {
         details[id] = {
@@ -351,17 +402,12 @@
         };
         return;
       }
-      if (existing.project) {
-        ["name", "organization", "owner", "assessors", "customerCharacteristics", "constraints"].forEach((field) => {
-          storedProject[field] = clone(existing.project[field]);
-        });
-      }
       if (LOCKED_ASSESSMENT_STATUSES.has(storedProject.status)) storedProject.readOnly = true;
       details[id] = {
         ...existing,
         project: storedProject,
         template: clone(stored.template || existing.template || workspace.template),
-        scoreEntries: clone(stored.scoreEntries || existing.scoreEntries || []),
+        scoreEntries: normalizeScoreEntries(clone(stored.scoreEntries || existing.scoreEntries || [])),
         result: clone(stored.result || existing.result || null),
         resultStale: Boolean(stored.resultStale),
         localSaveState: stored.localSaveState || "saved",
@@ -379,33 +425,60 @@
         scoreImportNotice: clone(stored.scoreImportNotice || existing.scoreImportNotice || null),
         scoringLocation: clone(stored.scoringLocation || existing.scoringLocation || null),
         locallyStored: true,
+        calculationRevision: 0,
       };
     });
     model.details = details;
   }
 
+  function formalAssessmentReady(detail) {
+    const summary = summaryOf(detail);
+    const status = text(detail?.project?.status);
+    if (!detail?.result?.ok || !LOCKED_ASSESSMENT_STATUSES.has(status) || detail?.resultStale) return false;
+    const completionReady = Number(summary.completionRate || 0) >= 100
+      && Number(summary.notScoredCount || 0) === 0
+      && Number(summary.targetBelowCurrentCount || 0) === 0;
+    return summary.statisticsReady === true ? completionReady : summary.statisticsReady == null && completionReady;
+  }
+
+  function reportMatchesCurrentAssessment(detail, report) {
+    if (!formalAssessmentReady(detail) || report?.formal !== true) return false;
+    const reportModel = report?.reportModel || {};
+    const reportProjectId = text(reportModel.project?.id || report?.persistence?.projectId);
+    const liveRun = detail?.result?.calculationRun || {};
+    const reportRun = reportModel.resultSnapshot?.calculationRun || {};
+    const reportVersion = reportModel.resultVersion || {};
+    return reportProjectId === text(detail?.project?.id)
+      && Boolean(text(liveRun.inputHash))
+      && text(reportRun.inputHash) === text(liveRun.inputHash)
+      && text(reportRun.resultHash) === text(liveRun.resultHash)
+      && text(reportVersion.resultHash) === text(liveRun.resultHash)
+      && text(reportVersion.templateSnapshotId) === text(detail?.template?.snapshotId);
+  }
+
   async function restorePersistedReports() {
-    const candidates = Object.values(model.details).filter((detail) => detail?.project?.id);
+    const candidates = Object.values(model.details).filter((detail) => detail?.project?.id && formalAssessmentReady(detail));
     await Promise.all(candidates.map(async (detail) => {
-      if (reportExportReady(detail.report) && detail.report.reportModel?.resultSnapshot?.ok) {
-        detail.result = clone(detail.report.reportModel.resultSnapshot);
-        detail.resultStale = false;
+      if (reportExportReady(detail.report) && reportMatchesCurrentAssessment(detail, detail.report)) {
         persistDetail(detail);
         return;
       }
       const persistence = detail.report?.persistence && typeof detail.report.persistence === "object" ? detail.report.persistence : {};
+      const calculationRun = detail.result?.calculationRun || {};
       const response = await window.sapdDataClient?.getMaturityReportArtifact?.({
         projectId: detail.project.id,
         artifactId: persistence.artifactId || "",
         reportId: detail.report?.id || "",
+        inputHash: calculationRun.inputHash || "",
+        resultHash: calculationRun.resultHash || "",
       });
       const report = unwrap(response);
-      if (!reportExportReady(report)) return;
-      detail.report = report;
-      if (report.reportModel?.resultSnapshot?.ok) {
-        detail.result = clone(report.reportModel.resultSnapshot);
-        detail.resultStale = false;
+      if (!reportExportReady(report) || !reportMatchesCurrentAssessment(detail, report)) {
+        detail.report = detail.report?.id ? reportPersistenceReceipt(detail.report) : null;
+        persistDetail(detail);
+        return;
       }
+      detail.report = report;
       persistDetail(detail);
     }));
   }
@@ -469,14 +542,7 @@
   }
 
   function statisticsReadyForDisplay(detail) {
-    const summary = summaryOf(detail);
-    if (summary.statisticsReady === true) return true;
-    const status = text(detail?.project?.status);
-    const isLockedFormalSnapshot = LOCKED_ASSESSMENT_STATUSES.has(status);
-    return isLockedFormalSnapshot
-      && Number(summary.completionRate || 0) >= 100
-      && Number(summary.notScoredCount || 0) === 0
-      && !detail?.resultStale;
+    return formalAssessmentReady(detail);
   }
 
   function assessmentProgress(detail) {
@@ -794,10 +860,8 @@
   }
 
   function projectStatusGroup(status) {
-    if (["draft", "template_configuring", "scoring"].includes(status)) return "active";
-    if (status === "score_review") return "review";
-    if (["completed", "reported"].includes(status)) return "completed";
-    return "all";
+    if (["completed", "reported", "archived"].includes(status)) return "completed";
+    return "active";
   }
 
   function projectPrimaryAction(project) {
@@ -877,6 +941,7 @@
 
   function renderProjectList() {
     const projects = projectList();
+    if (model.listStatus === "review") model.listStatus = "active";
     const search = text(model.listSearch).toLowerCase();
     const filtered = projects.filter((detail) => {
       const project = detail.project;
@@ -889,7 +954,7 @@
     });
     const owners = [...new Set(projects.map((detail) => text(detail.project.owner).trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, "zh-Hans-CN"));
     const industries = [...new Set(projects.map((detail) => text(detail.project.industry).trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, "zh-Hans-CN"));
-    const viewCounts = { active: 0, review: 0, completed: 0, all: projects.length };
+    const viewCounts = { active: 0, completed: 0, all: projects.length };
     projects.forEach((detail) => { const group = projectStatusGroup(detail.project.status); if (Object.prototype.hasOwnProperty.call(viewCounts, group)) viewCounts[group] += 1; });
     const pagination = paginatedRows(filtered, model.projectListPage, model.projectListPageSize);
     model.projectListPage = pagination.page;
@@ -898,9 +963,9 @@
         ${renderFeedback()}
         <div class="maturity-v26-home-grid">
           <section class="maturity-v26-project-hub" aria-label="项目进展">
-        <header class="maturity-v24-home-heading"><div><span>当前工作</span><h2>项目进展</h2><p>查看评估阶段、评分完成度和下一步动作。</p></div><dl><div><dt>进行中</dt><dd>${viewCounts.active}</dd></div><div><dt>待完成评估</dt><dd>${viewCounts.review}</dd></div><div><dt>已完成</dt><dd>${viewCounts.completed}</dd></div></dl></header>
+        <header class="maturity-v24-home-heading"><div><span>当前工作</span><h2>项目进展</h2><p>查看评估阶段、评分完成度和下一步动作。</p></div><dl><div><dt>进行中</dt><dd>${viewCounts.active}</dd></div><div><dt>已完成</dt><dd>${viewCounts.completed}</dd></div></dl></header>
         <div class="maturity-v2-list-views" role="tablist" aria-label="项目状态视图">
-          ${[["active", "进行中"], ["review", "待完成评估"], ["completed", "已完成"], ["all", "全部"]].map(([value, label]) => `<button class="${model.listStatus === value ? "is-active" : ""}" type="button" role="tab" aria-label="${label}，${viewCounts[value]} 项" aria-selected="${model.listStatus === value}" data-maturity-action="set-list-view" data-list-view="${value}">${label}</button>`).join("")}
+          ${[["active", "进行中"], ["completed", "已完成"], ["all", "全部"]].map(([value, label]) => `<button class="${model.listStatus === value ? "is-active" : ""}" type="button" role="tab" aria-label="${label}，${viewCounts[value]} 项" aria-selected="${model.listStatus === value}" data-maturity-action="set-list-view" data-list-view="${value}">${label}<span aria-hidden="true">${viewCounts[value]}</span></button>`).join("")}
         </div>
         <div class="maturity-v1-filterbar">
           <label class="is-search"><span>项目 / 客户</span><input type="search" value="${escapeHtml(model.listSearch)}" placeholder="搜索项目、客户、负责人" autocomplete="off" data-maturity-list-search /></label>
@@ -1020,12 +1085,13 @@
       ["report", "评估报告"],
       ["report-v2", "评估报告 V2"],
     ];
+    const formalReady = formalAssessmentReady(detail);
     return `
       <section class="maturity-v1-page maturity-v1-project-page" aria-label="成熟度评估项目">
         <div class="maturity-v6-project-sticky-header" aria-label="当前项目与项目步骤">
           <div class="maturity-v21-project-tab-row">
             <nav class="maturity-v1-tabs" aria-label="成熟度评估项目步骤">
-              ${tabs.map(([id, label]) => `<button class="${model.activeTab === id ? "is-active" : ""}" type="button" data-maturity-tab="${id}"><span>${escapeHtml(label)}</span>${id === "scoring" && summary.notScoredCount ? `<b>${summary.notScoredCount}</b>` : ""}</button>`).join("")}
+              ${tabs.map(([id, label]) => { const blocked = FORMAL_RESULT_TAB_IDS.has(id) && !formalReady; return `<button class="${model.activeTab === id ? "is-active" : ""}" type="button" data-maturity-tab="${id}" ${blocked ? 'disabled aria-disabled="true" title="完成全部适用评估点并正式完成评估后开放"' : ""}><span>${escapeHtml(label)}</span>${id === "scoring" && summary.notScoredCount ? `<b>${summary.notScoredCount}</b>` : ""}</button>`; }).join("")}
             </nav>
             ${["report", "report-v2"].includes(model.activeTab) ? "" : renderProjectObjectSearch(detail)}
           </div>
@@ -1048,12 +1114,16 @@
     return renderOverviewTab(detail);
   }
 
+  function renderFormalAssessmentBlocked(title) {
+    return `<section class="maturity-v21-results-blocked sapd-stat-vibrancy" aria-label="正式评估内容尚不可用"><span>正式内容尚未开放</span><h2>${escapeHtml(title)}</h2><p>请先完成全部适用评估点，并在评分检查中正式完成评估。未完成项目不会输出成熟度结果或评估报告。</p><div><button class="maturity-v1-button is-primary" type="button" data-maturity-action="open-review-tab">前往评分检查</button></div></section>`;
+  }
+
   function renderUnlockConfirmation(detail) {
     if (model.unlockConfirmProjectId !== detail?.project?.id) return "";
     return `<div class="maturity-v1-modal-backdrop maturity-v32-unlock-layer" data-maturity-unlock-layer>
       <aside class="maturity-v1-modal maturity-v32-unlock-modal" role="dialog" aria-modal="true" aria-labelledby="maturityUnlockTitle">
         <header><div><span>修改评估分数</span><h3 id="maturityUnlockTitle">确认解锁当前项目？</h3></div></header>
-        <div class="maturity-v32-unlock-body"><p>解锁后，现有评分会完整保留并恢复编辑；项目状态回到“待完成评估”，当前正式评估报告将失效。</p><ul><li>评分执行页恢复可编辑</li><li>评分检查页“完成评估”恢复可用</li><li>再次完成评估后重新锁定结果</li></ul></div>
+        <div class="maturity-v32-unlock-body"><p>解锁后，现有评分会完整保留并恢复编辑；项目回到“评分检查中”阶段，当前正式评估报告将失效。</p><ul><li>评分执行页恢复可编辑</li><li>评分检查页“完成评估”恢复可用</li><li>再次完成评估后重新锁定结果</li></ul></div>
         <footer><button class="maturity-v1-button is-secondary" type="button" data-maturity-action="cancel-score-unlock">取消</button><button class="maturity-v1-button is-primary" type="button" data-maturity-action="confirm-score-unlock">确认解锁</button></footer>
       </aside>
     </div>`;
@@ -1073,6 +1143,34 @@
           </div>
         </div>
         <footer><button class="maturity-v1-button is-secondary" type="button" data-maturity-action="cancel-overview-report-download">取消</button><button class="maturity-v1-button is-primary" type="button" data-maturity-action="confirm-overview-report-download">确认并下载</button></footer>
+      </aside>
+    </div>`;
+  }
+
+  function renderProjectInfoEditor(detail) {
+    if (model.projectInfoEditId !== detail?.project?.id) return "";
+    const draft = model.projectInfoDraft || {};
+    const error = (field) => model.projectInfoErrors?.[field] ? `<small id="maturityProjectInfoError-${field}" class="maturity-v2-field-error">${escapeHtml(model.projectInfoErrors[field])}</small>` : "";
+    const fieldAttrs = (field) => `data-project-info-field="${field}"${model.projectInfoErrors?.[field] ? ` aria-invalid="true" aria-describedby="maturityProjectInfoError-${field}"` : ""}`;
+    return `<div class="maturity-v1-modal-backdrop maturity-v2-create-layer maturity-v37-project-edit-layer" data-maturity-project-info-layer data-shell-workflow-overlay="maturity-project-info-edit">
+      <button class="maturity-v2-create-scrim" type="button" data-maturity-action="cancel-project-info-edit" aria-label="关闭项目信息编辑浮层"></button>
+      <aside class="maturity-v1-modal maturity-v2-create-workspace maturity-v37-project-edit-workspace" data-shell-overlay-surface="maturity-project-info-edit" role="dialog" aria-modal="true" aria-labelledby="maturityProjectInfoEditTitle">
+        <header><div><span>项目基本信息</span><h3 id="maturityProjectInfoEditTitle">编辑项目信息</h3></div><button class="maturity-v1-icon-button" type="button" data-maturity-action="cancel-project-info-edit" aria-label="关闭浮层">×</button></header>
+        <div class="maturity-v1-modal-body">
+          <div class="maturity-v1-form-grid">
+            <label><span>项目名称 *</span><input id="maturityProjectInfoName" class="maturity-v2-literal notranslate" translate="no" autocomplete="off" ${fieldAttrs("name")} value="${escapeHtml(draft.name)}" />${error("name")}</label>
+            <label><span>客户企业组织 *</span><input id="maturityProjectInfoOrganization" class="maturity-v2-literal notranslate" translate="no" autocomplete="off" ${fieldAttrs("organization")} value="${escapeHtml(draft.organization)}" />${error("organization")}</label>
+            <label><span>客户所属行业 *</span><input id="maturityProjectInfoIndustry" ${fieldAttrs("industry")} value="${escapeHtml(draft.industry)}" />${error("industry")}</label>
+            <label><span>企业规模 *</span><select id="maturityProjectInfoCompanySize" ${fieldAttrs("companySize")}><option value="">请选择</option>${["大型企业", "中型企业", "小型企业"].map((value) => `<option value="${value}"${draft.companySize === value ? " selected" : ""}>${value}</option>`).join("")}</select>${error("companySize")}</label>
+            <label class="is-wide"><span>客户特点</span><textarea id="maturityProjectInfoCharacteristics" rows="3" ${fieldAttrs("customerCharacteristics")}>${escapeHtml(draft.customerCharacteristics)}</textarea></label>
+            <label class="is-wide"><span>客户偏好与约束</span><textarea id="maturityProjectInfoConstraints" rows="3" ${fieldAttrs("constraints")}>${escapeHtml(draft.constraints)}</textarea></label>
+            <label><span>项目负责人 *</span><input id="maturityProjectInfoOwner" class="maturity-v2-literal notranslate" translate="no" autocomplete="off" ${fieldAttrs("owner")} value="${escapeHtml(draft.owner)}" />${error("owner")}</label>
+            <div class="maturity-v2-date-pair"><label><span>计划开始时间</span><input id="maturityProjectInfoStartDate" type="date" ${fieldAttrs("plannedStartDate")} value="${escapeHtml(draft.plannedStartDate)}" /></label><label><span>计划结束时间</span><input id="maturityProjectInfoEndDate" type="date" ${fieldAttrs("plannedEndDate")} value="${escapeHtml(draft.plannedEndDate)}" />${error("plannedEndDate")}</label></div>
+            <label><span>评估人员</span><input id="maturityProjectInfoAssessors" class="maturity-v2-literal notranslate" translate="no" autocomplete="off" ${fieldAttrs("assessors")} value="${escapeHtml(draft.assessors)}" placeholder="多人用顿号分隔" /></label>
+            <label class="is-wide"><span>备注</span><textarea id="maturityProjectInfoNote" rows="2" ${fieldAttrs("note")}>${escapeHtml(draft.note)}</textarea></label>
+          </div>
+        </div>
+        <footer><button class="maturity-v1-button is-secondary" type="button" data-maturity-action="cancel-project-info-edit">取消</button><button class="maturity-v1-button is-primary" type="button" data-maturity-action="save-project-info">保存修改</button></footer>
       </aside>
     </div>`;
   }
@@ -1110,7 +1208,7 @@
     return `
       <div class="maturity-v1-overview-grid">
         <section class="maturity-v1-section maturity-v10-project-overview">
-          <div class="maturity-v1-panel-heading"><div><span>项目基本信息</span><h3 class="notranslate" translate="no" data-maturity-literal="project-name">${escapeHtml(project.name || "未命名项目")}</h3></div><span class="maturity-v1-status ${statusTone(project.status)}">${escapeHtml(PROJECT_STATUS_NAMES[project.status] || project.status)}</span></div>
+          <div class="maturity-v1-panel-heading"><div><span>项目基本信息</span><h3 class="notranslate" translate="no" data-maturity-literal="project-name">${escapeHtml(project.name || "未命名项目")}</h3></div><div class="maturity-v37-project-heading-actions"><button class="maturity-v1-button is-secondary" type="button" data-maturity-action="edit-project-info">编辑项目信息</button><span class="maturity-v1-status ${statusTone(project.status)}">${escapeHtml(PROJECT_STATUS_NAMES[project.status] || project.status)}</span></div></div>
           <dl class="maturity-v1-project-facts maturity-v10-project-facts">
             <div><dt>行业 / 规模</dt><dd>${escapeHtml(project.industry || "未填写")} / ${escapeHtml(project.companySize || "未填写")}</dd></div>
             <div><dt>项目负责人</dt><dd class="maturity-v28-literal-value notranslate" translate="no" data-maturity-literal="project-owner" data-value="${escapeHtml(project.owner || "未填写")}" aria-label="${escapeHtml(project.owner || "未填写")}"></dd></div>
@@ -1144,6 +1242,7 @@
       </div>
       ${renderUnlockConfirmation(detail)}
       ${renderReportDownloadConfirmation(detail)}
+      ${renderProjectInfoEditor(detail)}
     `;
   }
 
@@ -1278,10 +1377,10 @@
   function scoreEntry(detail, itemId) {
     let entry = list(detail.scoreEntries).find((item) => item.scoreItemId === itemId);
     if (!entry) {
-      entry = { scoreItemId: itemId, isApplicable: true, elements: {}, reviewElements: {}, targetLevel: "", targetReason: "", targetConfirmed: false, evidenceLevel: "E0", evidenceSummary: "", note: "", naReason: "", status: "not_scored" };
+      entry = { scoreItemId: itemId, isApplicable: true, elements: {}, dimensionNotes: {}, reviewElements: {}, targetElements: {}, targetDimensionNotes: {}, targetLevel: "", targetReason: "", targetConfirmed: false, evidenceLevel: "E0", evidenceSummary: "", note: "", naReason: "", status: "not_scored" };
       detail.scoreEntries.push(entry);
     }
-    return entry;
+    return normalizeTargetFields(entry);
   }
 
   function capabilityProgress(detail, capabilityId) {
@@ -1300,15 +1399,15 @@
 
   function entryIsComplete(entry) {
     if (entry?.isApplicable === false) return true;
-    return hasCompleteElements(entry?.elements) && LEVELS.includes(entry?.targetLevel);
+    normalizeTargetFields(entry);
+    return hasCompleteElements(entry?.elements) && hasCompleteElements(entry?.targetElements);
   }
 
   function entryIsStarted(entry) {
     if (!entry) return false;
     if (entry.isApplicable === false) return true;
-    return DIMENSIONS.some(([key]) => LEVELS.includes(entry.elements?.[key]) || LEVELS.includes(entry.reviewElements?.[key]) || Boolean(text(entry.dimensionNotes?.[key]).trim()))
-      || LEVELS.includes(entry.targetLevel)
-      || Boolean(text(entry.targetReason).trim())
+    normalizeTargetFields(entry);
+    return DIMENSIONS.some(([key]) => LEVELS.includes(entry.elements?.[key]) || LEVELS.includes(entry.reviewElements?.[key]) || Boolean(text(entry.dimensionNotes?.[key]).trim()) || LEVELS.includes(entry.targetElements?.[key]) || Boolean(text(entry.targetDimensionNotes?.[key]).trim()))
       || Boolean(text(entry.evidenceSummary).trim())
       || Boolean(text(entry.note).trim())
       || (entry.evidenceLevel && entry.evidenceLevel !== "E0");
@@ -1336,10 +1435,12 @@
 
   function scoreEntryStatusLabel(entry) {
     if (entry?.isApplicable === false) return "不适用";
+    normalizeTargetFields(entry);
     const dimensionCount = DIMENSIONS.filter(([key]) => LEVELS.includes(entry?.elements?.[key])).length;
-    if (!dimensionCount && !LEVELS.includes(entry?.targetLevel)) return "未评分";
+    const targetCount = DIMENSIONS.filter(([key]) => LEVELS.includes(entry?.targetElements?.[key])).length;
+    if (!dimensionCount && !targetCount) return "未评分";
     if (dimensionCount < DIMENSIONS.length) return `填写中 ${dimensionCount}/4`;
-    if (!LEVELS.includes(entry?.targetLevel)) return "待设置目标";
+    if (targetCount < DIMENSIONS.length) return `待设置目标 ${targetCount}/4`;
     return "已完成";
   }
 
@@ -1350,6 +1451,67 @@
   function scoreTargetConflict(detail, itemId) {
     const pointResult = scoreItemResult(detail, itemId);
     return pointResult?.targetBelowCurrent === true ? pointResult : null;
+  }
+
+  function currentDimensionLevel(entry, dimension) {
+    return entry?.reviewElements?.[dimension] || entry?.elements?.[dimension] || "";
+  }
+
+  function targetLevelIsBelowCurrent(entry, dimension, targetLevel) {
+    const currentLevel = currentDimensionLevel(entry, dimension);
+    return LEVELS.includes(currentLevel)
+      && LEVELS.includes(targetLevel)
+      && LEVELS.indexOf(targetLevel) < LEVELS.indexOf(currentLevel);
+  }
+
+  function currentLevelIsAboveTarget(entry, dimension, currentLevel) {
+    const targetLevel = entry?.targetElements?.[dimension] || "";
+    return LEVELS.includes(currentLevel)
+      && LEVELS.includes(targetLevel)
+      && LEVELS.indexOf(currentLevel) > LEVELS.indexOf(targetLevel);
+  }
+
+  function focusCurrentMaximumLevel(detail, items) {
+    const maximumIndex = list(items)
+      .filter((item) => item.itemType === "SERVICE")
+      .reduce((highest, item) => {
+        const entry = scoreEntry(detail, item.id);
+        if (entry.isApplicable === false) return highest;
+        return DIMENSIONS.reduce((dimensionHighest, [key]) => {
+          const level = currentDimensionLevel(entry, key);
+          return LEVELS.includes(level) ? Math.max(dimensionHighest, LEVELS.indexOf(level)) : dimensionHighest;
+        }, highest);
+      }, 0);
+    return LEVELS[maximumIndex] || "L1";
+  }
+
+  function focusTargetMinimumLevel(detail, items) {
+    return focusCurrentMaximumLevel(detail, items);
+  }
+
+  function focusExistingTargetMinimumLevel(detail, items) {
+    const targetIndexes = list(items)
+      .filter((item) => item.itemType === "SERVICE")
+      .flatMap((item) => {
+        const entry = scoreEntry(detail, item.id);
+        if (entry.isApplicable === false) return [];
+        return DIMENSIONS.map(([key]) => LEVELS.indexOf(entry.targetElements?.[key])).filter((index) => index >= 0);
+      });
+    return targetIndexes.length ? LEVELS[Math.min(...targetIndexes)] : "";
+  }
+
+  function focusCurrentMaximumAllowedLevel(detail, items) {
+    return focusExistingTargetMinimumLevel(detail, items) || "L5";
+  }
+
+  function targetConflictMessage(conflict) {
+    const dimensionConflicts = list(conflict?.targetDimensionConflicts);
+    if (dimensionConflicts.length) {
+      const first = dimensionConflicts[0];
+      const suffix = dimensionConflicts.length > 1 ? `等 ${dimensionConflicts.length} 个维度` : "";
+      return `${first.dimensionLabel || "目标状态"}${suffix}不能低于当前状态 ${first.currentLevel || first.minimumTargetLevel || ""}，请提高目标状态等级`;
+    }
+    return `目标等级不能低于当前评分计算等级 ${conflict?.minimumTargetLevel || conflict?.currentLevel || ""}，请先修改目标等级`;
   }
 
   function scorePointIsComplete(detail, itemId, entry = scoreEntry(detail, itemId)) {
@@ -1367,7 +1529,7 @@
     }
     const conflict = scoreTargetConflict(detail, currentItemId);
     if (!conflict) return false;
-    showToast(`目标等级不能低于当前评分计算等级 ${conflict.minimumTargetLevel || conflict.currentLevel}，请先修改目标等级`, "error");
+    showToast(targetConflictMessage(conflict), "error");
     render();
     scheduleScoringLanding(detail, currentItemId, { targetConflict: true });
     return true;
@@ -1377,6 +1539,59 @@
     const projectId = detail?.project?.id || "default";
     if (!(model.hierarchyExpansionByProject[projectId] instanceof Set)) model.hierarchyExpansionByProject[projectId] = new Set();
     return model.hierarchyExpansionByProject[projectId];
+  }
+
+  function scoreDirectoryUi(detail) {
+    const projectId = detail?.project?.id || "default";
+    const current = model.scoreDirectoryUiByProject[projectId];
+    if (!current || typeof current !== "object") {
+      model.scoreDirectoryUiByProject[projectId] = { collapsed: false, width: DIRECTORY_PANE_METRICS.defaultWidth };
+    }
+    return model.scoreDirectoryUiByProject[projectId];
+  }
+
+  function clampScoreDirectoryWidth(value, shell = null) {
+    const adaptiveScale = Math.max(1, Number(document.documentElement.dataset.sapdUiScale) || 1);
+    const shellWidth = shell ? shell.getBoundingClientRect().width / adaptiveScale : 0;
+    const availableMaximum = shellWidth
+      ? Math.max(SCORE_DIRECTORY_MIN_WIDTH, shellWidth - SCORE_WORKBENCH_MIN_WIDTH - 6)
+      : SCORE_DIRECTORY_MAX_WIDTH;
+    return Math.round(Math.min(SCORE_DIRECTORY_MAX_WIDTH, availableMaximum, Math.max(SCORE_DIRECTORY_MIN_WIDTH, Number(value) || DIRECTORY_PANE_METRICS.defaultWidth)));
+  }
+
+  function applyScoreDirectoryWidth(shell, ui) {
+    if (!shell || !ui) return;
+    ui.width = clampScoreDirectoryWidth(ui.width, shell);
+    shell.style.setProperty("--maturity-score-directory-width", `${ui.width}px`);
+    const handle = shell.querySelector("[data-maturity-score-directory-resizer]");
+    if (handle) handle.setAttribute("aria-valuenow", String(ui.width));
+  }
+
+  function beginScoreDirectoryResize(event) {
+    const handle = event.target.closest?.("[data-maturity-score-directory-resizer]");
+    if (!handle || event.button !== 0) return;
+    const detail = activeDetail();
+    const shell = handle.closest(".maturity-v4-scoring-shell");
+    if (!detail || !shell || shell.classList.contains("is-directory-collapsed")) return;
+    event.preventDefault();
+    const ui = scoreDirectoryUi(detail);
+    const adaptiveScale = Math.max(1, Number(document.documentElement.dataset.sapdUiScale) || 1);
+    const startX = event.clientX;
+    const startWidth = clampScoreDirectoryWidth(ui.width, shell);
+    document.body.classList.add("is-resizing");
+    const finish = () => {
+      document.body.classList.remove("is-resizing");
+      document.removeEventListener("pointermove", move);
+      document.removeEventListener("pointerup", finish);
+      document.removeEventListener("pointercancel", finish);
+    };
+    const move = (moveEvent) => {
+      ui.width = startWidth + (moveEvent.clientX - startX) / adaptiveScale;
+      applyScoreDirectoryWidth(shell, ui);
+    };
+    document.addEventListener("pointermove", move);
+    document.addEventListener("pointerup", finish, { once: true });
+    document.addEventListener("pointercancel", finish, { once: true });
   }
 
   function hierarchyKey(level, id) {
@@ -1727,13 +1942,14 @@
     const pointResult = scoreItemResult(detail, item.id);
     const currentLevel = LEVELS.includes(pointResult?.currentLevel) ? pointResult.currentLevel : "";
     const currentIndex = pointResult?.currentIndex == null ? "—" : Number(pointResult.currentIndex).toFixed(2);
-    const targetLevel = LEVELS.includes(entry.targetLevel) ? entry.targetLevel : "";
+    const targetLevel = LEVELS.includes(pointResult?.targetLevel) ? pointResult.targetLevel : "";
+    const targetIndex = pointResult?.targetIndex == null ? "" : Number(pointResult.targetIndex).toFixed(2);
     return `<section class="maturity-v12-score-summary maturity-v15-score-overview sapd-stat-vibrancy" data-maturity-current-summary>
       <header class="maturity-v17-score-overview-heading"><span>评估概览</span></header>
       <div class="maturity-v15-score-overview-body">
         <div class="maturity-v12-score-readout"><div><strong data-maturity-current-index>${escapeHtml(currentIndex)}</strong><span>综合得分</span></div><div><strong data-maturity-current-level>${escapeHtml(currentLevel || "—")}</strong><span>${escapeHtml(LEVEL_NAMES[currentLevel] || "成熟度待计算")}</span></div></div>
-        <div class="maturity-v12-score-facts maturity-v16-score-target"><div><span>目标等级</span><strong>${escapeHtml(targetLevel ? `${targetLevel} ${LEVEL_NAMES[targetLevel]}` : "未设置")}</strong></div></div>
-        <section class="maturity-v15-point-radar" aria-label="当前评估点四维雷达"><header><h3>四维雷达图</h3></header><canvas width="320" height="236" data-maturity-point-radar data-score-item-id="${escapeHtml(item.id)}" aria-label="组织、流程、工具、数据四维得分雷达图"></canvas><div class="maturity-v15-radar-legend"><span><i></i>当前评分</span><span class="is-target"><i></i>总体目标（等轴）</span><small>非逐维目标</small></div></section>
+        <div class="maturity-v12-score-facts maturity-v16-score-target"><div><span>目标等级</span><strong>${escapeHtml(targetLevel ? `${targetIndex} ${targetLevel} ${LEVEL_NAMES[targetLevel]}` : "未设置")}</strong></div></div>
+        <section class="maturity-v15-point-radar" aria-label="当前评估点四维雷达"><header><h3>四维雷达图</h3></header><canvas width="320" height="236" data-maturity-point-radar data-score-item-id="${escapeHtml(item.id)}" aria-label="组织、流程、工具、数据当前与目标四维得分雷达图"></canvas><div class="maturity-v15-radar-legend"><span><i></i>当前状态</span><span class="is-target"><i></i>目标状态</span></div></section>
       </div>
     </section>`;
   }
@@ -1804,7 +2020,7 @@
       <header class="maturity-v13-hierarchy-heading"><div><span>${escapeHtml(viewLevel)} 评估结果</span><h2>${escapeHtml(object?.code || viewLevel)} ${escapeHtml(object?.name || "未命名")}</h2></div></header>
       <section class="maturity-v14-hierarchy-analysis maturity-v16-hierarchy-strip sapd-stat-vibrancy ${stale ? "is-stale" : ""}" aria-label="当前汇总与双雷达">
         <aside class="maturity-v14-hierarchy-insight"><header><h3>当前汇总</h3></header><div class="maturity-v14-hierarchy-readout"><div><strong>${result?.currentIndex == null ? "—" : escapeHtml(Number(result.currentIndex).toFixed(2))}</strong><span>综合得分</span></div><div><strong>${escapeHtml(currentLevel)}</strong><span>${escapeHtml(LEVEL_NAMES[currentLevel] || "成熟度待计算")}</span></div></div><dl><div class="maturity-v22-hierarchy-target"><dt>目标等级</dt><dd>${escapeHtml(targetLevel)}${LEVEL_NAMES[targetLevel] ? ` ${escapeHtml(LEVEL_NAMES[targetLevel])}` : ""}</dd></div><div><dt>完成 / 适用</dt><dd>${completed} / ${applicable || "—"}</dd></div></dl><div class="maturity-v13-achievement"><div><span>目标达成率</span><strong>${progress.rate == null ? "—" : `${Number(progress.rate).toFixed(1)}%`}</strong></div><i role="progressbar" aria-label="目标达成率" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${rate.toFixed(1)}"><b style="width:${rate}%"></b></i><small class="${progress.tone}">${escapeHtml(progress.label)}；评分完成度 ${Number(result?.completionRate || 0).toFixed(0)}%</small></div><div class="maturity-v12-score-dimension-stats" aria-label="四维聚合精确值">${renderStatisticDimensionRows(result?.dimensionResults || {})}</div></aside>
-        <div class="maturity-v14-hierarchy-visual"><header><h3>四维成熟度雷达图</h3><div class="maturity-v14-hierarchy-legend"><span><i></i>当前结果</span><span class="is-target"><i></i>总体目标（等轴）</span><small>非逐维目标</small></div></header><div class="maturity-v14-hierarchy-radar"><canvas width="440" height="286" data-maturity-hierarchy-radar data-hierarchy-level="${escapeHtml(viewLevel)}" data-hierarchy-id="${escapeHtml(viewId)}" aria-label="${escapeHtml(viewLevel)} 四维成熟度雷达图"></canvas></div></div>
+        <div class="maturity-v14-hierarchy-visual"><header><h3>四维成熟度雷达图</h3><div class="maturity-v14-hierarchy-legend"><span><i></i>当前状态</span><span class="is-target"><i></i>目标状态</span></div></header><div class="maturity-v14-hierarchy-radar"><canvas width="440" height="286" data-maturity-hierarchy-radar data-hierarchy-level="${escapeHtml(viewLevel)}" data-hierarchy-id="${escapeHtml(viewId)}" aria-label="${escapeHtml(viewLevel)} 当前与目标四维成熟度雷达图"></canvas></div></div>
         <section class="maturity-v15-child-radar-panel" aria-label="${escapeHtml(childRadarTitle)}">
         <header><h3>${escapeHtml(childRadarTitle)}</h3><div class="maturity-v15-radar-legend"><span><i></i>当前结果</span><span class="is-target"><i></i>目标等级</span><small>${scoredChildren.length} / ${children.length} 已评分，未评分留空</small></div></header>
         ${children.length >= 3 ? `<canvas width="820" height="360" data-maturity-child-radar data-hierarchy-level="${escapeHtml(viewLevel)}" data-hierarchy-id="${escapeHtml(viewId)}" aria-label="${escapeHtml(childLabel)}直接下级成熟度雷达图"></canvas>` : `<div class="maturity-v1-empty-inline">直接下级少于 3 个，保留精确比较列表，不生成可能误导的雷达形状。</div>`}
@@ -1843,7 +2059,7 @@
     </div>`;
   }
 
-  function renderScoreDirectory(detail, selection, serviceById) {
+  function renderScoreDirectory(detail, selection, serviceById, directoryUi) {
     const { active, categories, capabilities, viewLevel, viewId } = selection;
     const categoryById = new Map(categories.map((item) => [item.id, item]));
     const focusById = new Map(active.focuses.map((item) => [item.id, item]));
@@ -1890,10 +2106,10 @@
         const open = rowOpen("L1", item.id);
         return `${renderScoreDirectoryRow({ level: "L1", item, state: scoreProgressState(detail, itemsForL1(item.id)), expanded: open, hasChildren: true, active: viewLevel === "L1" && item.id === viewId, action: "select-score-l1", dataName: "data-category-id" })}${open ? `<div class="maturity-v4-directory-children">${renderCapabilityRows(item)}</div>` : ""}`;
       }).join("");
-    return `<aside class="maturity-v4-score-directory" aria-label="成熟度评分能力目录">
-      <header><div><strong>评分目录</strong><span>安全能力映射结构</span></div><small>${capabilities.length} 个 L2 能力</small></header>
+    return `<aside class="maturity-v4-score-directory shell-directory-pane shell-directory-pane-has-meta" aria-label="成熟度评分能力目录" aria-hidden="${directoryUi.collapsed}">
+      <header class="pane-head shell-directory-head"><div class="shell-directory-copy"><strong class="shell-directory-title">评分目录</strong><span class="shell-directory-meta">安全能力映射结构</span></div><div class="maturity-v4-score-directory-actions shell-directory-actions"><small class="shell-directory-meta">${capabilities.length} 个 L2 能力</small><button class="maturity-v1-button is-secondary maturity-v4-directory-collapse-button shell-directory-action" type="button" data-maturity-action="toggle-score-directory" aria-expanded="true" title="收起评分目录">收起目录</button></div></header>
       <div class="maturity-v4-score-legend" aria-label="评分状态图例">${renderScoreProgressState({ key: "complete", label: "已完成", count: "" }, { compact: true })}${renderScoreProgressState({ key: "in-progress", label: "进行中", count: "" }, { compact: true })}${renderScoreProgressState({ key: "not-started", label: "未开始", count: "" }, { compact: true })}</div>
-      <div class="maturity-v4-directory-tree">${l0Rows}${orphanL1Rows}${l0Rows || orphanL1Rows ? "" : `<div class="maturity-v1-table-empty"><strong>没有符合条件的目录节点</strong><button class="maturity-v1-button is-secondary" type="button" data-maturity-action="clear-score-filters">清空筛选</button></div>`}</div>
+      <div class="maturity-v4-directory-tree shell-directory-tree">${l0Rows}${orphanL1Rows}${l0Rows || orphanL1Rows ? "" : `<div class="maturity-v1-table-empty"><strong>没有符合条件的目录节点</strong><button class="maturity-v1-button is-secondary" type="button" data-maturity-action="clear-score-filters">清空筛选</button></div>`}</div>
     </aside>`;
   }
 
@@ -1912,6 +2128,7 @@
     const selection = scoringSelection(detail);
     const { active, capability, focus, scoreItems, scoreItem, viewLevel } = selection;
     if (!capability) return `<div class="maturity-v1-empty">当前模板没有可评分能力。</div>`;
+    const directoryUi = scoreDirectoryUi(detail);
     const serviceById = new Map(list(detail.template.services).map((item) => [item.id, item]));
     const capabilityResult = list(detail.result?.capabilityResults).find((item) => item.id === capability.id);
     const summary = summaryOf(detail);
@@ -1924,9 +2141,10 @@
     const focusEntries = currentFocusItems.map((item) => scoreEntry(detail, item.id));
     const focusTotalCount = focusEntries.length;
     const focusApplicableCount = focusEntries.filter((entry) => entry.isApplicable !== false).length;
-    const focusNotApplicableCount = focusTotalCount - focusApplicableCount;
-    const focusCompletedApplicableCount = currentFocusItems.filter((item) => scoreProgressState(detail, [item]).key === "complete").length;
-    const focusResolvedCount = Math.min(focusTotalCount, focusCompletedApplicableCount + focusNotApplicableCount);
+    const focusCompletedApplicableCount = currentFocusItems.filter((item) => {
+      const entry = scoreEntry(detail, item.id);
+      return entry.isApplicable !== false && scorePointIsComplete(detail, item.id, entry);
+    }).length;
     const focusAllNotApplicable = Boolean(focusEntries.length && focusEntries.every((entry) => entry.isApplicable === false));
     const focusPartiallyApplicable = Boolean(!focusAllNotApplicable && focusEntries.some((entry) => entry.isApplicable === false));
     const focusNaReason = focusAllNotApplicable ? text(focusEntries.find((entry) => text(entry.naReason).trim())?.naReason).trim() : "";
@@ -1942,8 +2160,10 @@
     }).join("");
     return `<section class="maturity-v3-scoring-workspace" data-maturity-v3-scoring>
       <div class="maturity-v3-page-status" aria-label="评分进度与保存状态"><strong>${summary.scoredItemCount || 0} / ${summary.applicableItemCount || active.scoreItems.length}</strong><span>个适用评估点 · ${Number(summary.completionRate || 0).toFixed(0)}% 已完成</span><i>·</i><span class="${detail.localSaveState === "error" ? "is-error" : "is-saved"}">${detail.localSaveState === "error" ? "保存失败" : model.calculating ? "已保存，正在试算" : stale ? "已保存，等待汇总" : "已自动保存"}</span></div>
-      <div class="maturity-v4-scoring-shell">
-        ${renderScoreDirectory(detail, selection, serviceById)}
+      <div class="maturity-v4-scoring-shell ${directoryUi.collapsed ? "is-directory-collapsed" : ""}" style="--maturity-score-directory-width:${clampScoreDirectoryWidth(directoryUi.width)}px">
+        <button class="maturity-v1-button is-secondary maturity-v4-directory-expand-tab" type="button" data-maturity-action="toggle-score-directory" aria-expanded="false" title="展开评分目录" ${directoryUi.collapsed ? "" : "hidden"}>目录</button>
+        ${renderScoreDirectory(detail, selection, serviceById, directoryUi)}
+        <div class="maturity-v4-directory-resizer shell-directory-resizer" data-maturity-score-directory-resizer role="separator" aria-orientation="vertical" aria-label="调整评分目录宽度" aria-valuemin="${SCORE_DIRECTORY_MIN_WIDTH}" aria-valuemax="${SCORE_DIRECTORY_MAX_WIDTH}" aria-valuenow="${clampScoreDirectoryWidth(directoryUi.width)}" tabindex="0" title="拖动调整目录宽度"></div>
         ${viewLevel !== "FOCUS" ? renderHierarchyStatistics(detail, selection, stale) : `<main class="maturity-v4-score-workbench" aria-label="当前评分工作台">
           <div class="maturity-v23-score-context" data-maturity-fixed-score-context>
           ${renderL2Summary(capability, capabilityResult, stale)}
@@ -1951,8 +2171,8 @@
             <div class="maturity-v18-focus-copy"><header class="maturity-v18-focus-heading"><h3>${escapeHtml(focus?.code || "-")} ${escapeHtml(focus?.name || "请选择关注点")}</h3><label class="maturity-v4-focus-applicability"><input type="checkbox" data-focus-applicability-toggle data-focus-id="${escapeHtml(focus?.id || "")}" ${focusAllNotApplicable ? "" : "checked"} ${detail.project.readOnly ? "disabled" : ""} /><span>适用性</span><strong>${focusAllNotApplicable ? "不适用" : focusPartiallyApplicable ? "部分适用" : "适用"}</strong></label></header><p>${escapeHtml(focus?.description || "暂无关注点定义")}</p></div>
             <div class="maturity-v5-focus-status-panel">
               <div class="maturity-v5-focus-status-head">${renderScoreProgressState(focusState, { compact: true })}</div>
-              <dl class="maturity-v5-focus-stats maturity-v17-focus-stats"><div><dt>完成</dt><dd>${focusResolvedCount}/${focusTotalCount}</dd></div><div><dt>适用性</dt><dd>${focusApplicableCount}/${focusTotalCount}</dd></div></dl>
-              <div class="maturity-v5-focus-batch-state">${sourceMode === "CHILD_ROLLUP" ? `<button class="maturity-v1-link-button" type="button" data-maturity-action="toggle-focus-batch" title="${escapeHtml(focusBatch.reason)}">下级评估设置</button><span title="${escapeHtml(focusBatch.reason)}"><i aria-hidden="true"></i>${focusBatch.hasAnyScore ? "已有下级评分" : "下级尚未评分"}</span>` : `<span>关注点直接评估</span>`}</div>
+              <dl class="maturity-v5-focus-stats maturity-v17-focus-stats"><div><dt>完成</dt><dd>${focusCompletedApplicableCount}/${focusApplicableCount}</dd></div><div><dt>适用性</dt><dd>${focusApplicableCount}/${focusTotalCount}</dd></div></dl>
+              <div class="maturity-v5-focus-batch-state">${sourceMode === "CHILD_ROLLUP" ? `<button class="maturity-v1-link-button" type="button" data-maturity-action="toggle-focus-batch" title="${escapeHtml(focusBatch.reason)}">下级评估设置</button><span title="${escapeHtml(focusBatch.reason)}"><i aria-hidden="true"></i>${focusBatch.hasAnyScore || focusBatch.hasAnyTarget ? `已有${focusBatch.hasAnyScore ? "评分" : ""}${focusBatch.hasAnyScore && focusBatch.hasAnyTarget ? "与" : ""}${focusBatch.hasAnyTarget ? "目标" : ""}` : "下级尚未设置"}</span>` : `<span>关注点直接评估</span>`}</div>
             </div>
           </section>
           ${focusAllNotApplicable ? `<label class="maturity-v4-focus-na-reason"><span>不适用说明（可选）</span><textarea rows="2" data-focus-na-reason data-focus-id="${escapeHtml(focus?.id || "")}" ${detail.project.readOnly ? "disabled" : ""} placeholder="可记录该关注点不适用于本次评估的原因">${escapeHtml(focusNaReason)}</textarea><small>不适用项退出评分与聚合；说明用于复核参考，不阻塞完成评估。</small></label>` : ""}
@@ -1980,25 +2200,71 @@
       <td><label class="maturity-v3-applicability-check"><input type="checkbox" data-score-applicability data-score-item-id="${escapeHtml(item.id)}" ${applicable ? "checked" : ""} ${detail.project.readOnly ? "disabled" : ""} aria-label="${escapeHtml(rowLabel)}是否适用" /><span>适用</span></label></td>
       ${DIMENSIONS.map(([key, label]) => `<td><select class="maturity-v2-dimension-select" data-score-dimension="${key}" data-score-item-id="${escapeHtml(item.id)}" ${!applicable || detail.project.readOnly ? "disabled" : ""} aria-label="${escapeHtml(rowLabel)}${escapeHtml(label)}评分">${levelOptions(elementValues[key], { includeEmpty: true, compact: true })}</select></td>`).join("")}
       <td><span class="maturity-v1-level ${levelTone(currentLevel)}">${escapeHtml(applicable ? currentLevel || "未计算" : "不计分")}</span><small>${!applicable ? "已退出计算" : pointResult?.currentIndex == null ? "四维完成后计算" : `${pointResult.currentIndex} / ${pointResult.currentPercent}`}</small></td>
-      <td><select data-score-field="targetLevel" data-score-item-id="${escapeHtml(item.id)}" ${!applicable || detail.project.readOnly ? "disabled" : ""} aria-label="${escapeHtml(rowLabel)}目标等级">${levelOptions(entry.targetLevel, { includeEmpty: true, compact: true })}</select><small>${!applicable ? "无需设置" : pointResult?.targetAchievementRate == null ? "待计算达成率" : `达成 ${Number(pointResult.targetAchievementRate).toFixed(0)}%`}</small></td>
+      <td><span>${DIMENSIONS.map(([key]) => escapeHtml(entry.targetElements?.[key] || "-")).join(" / ")}</span><small>${!applicable ? "无需设置" : pointResult?.targetAchievementRate == null ? "待计算达成率" : `综合 ${escapeHtml(pointResult.targetLevel || "-")} · 达成 ${Number(pointResult.targetAchievementRate).toFixed(0)}%`}</small></td>
       <td><span class="maturity-v1-row-status ${status.includes("待") || status.includes("填写中") ? "is-warn" : status === "未评分" || !applicable ? "is-muted" : "is-good"}">${status}</span><small>${entry.lastUpdateScope === "FOCUS_BATCH" ? "关注点带入" : entry.lastUpdateScope === "FOCUS_CLEAR" ? "已清空下级评分" : entry.lastUpdateScope === "ITEM" ? "单项调整" : detail.lastSavedAt ? "已保存" : ""}</small></td>
     </tr>${selected ? `<tr class="maturity-v2-inline-score-row"><td colspan="10"><div class="maturity-v1-score-inspector">${renderScoreInspector(detail, item, focus)}</div></td></tr>` : ""}`;
   }
 
   function renderFocusBatchControls(detail, focus, items, batch = focusBatchState(detail, items)) {
     if (!focus) return "";
-    const level = LEVELS.includes(model.focusBatchLevel) ? model.focusBatchLevel : "L3";
-    const index = LEVELS.indexOf(level);
     const ticks = LEVELS.map(() => `<span><i></i></span>`).join("");
-    const clearConfirmOpen = model.focusBatchClearConfirmId === focus.id;
-    return `<section class="maturity-v3-focus-batch" aria-label="当前关注点下级评估设置"><div><strong>下级评估设置</strong><span>${batch.hasAnyScore ? "下级已有评分。请先清空全部下级四维评分，才能再次统一设置。" : "下级尚未评分，可以选择一个等级统一初始化全部安全技术服务的四个维度。"}</span></div><div class="maturity-v9-score-slider maturity-v10-batch-slider has-value ${batch.canApply ? "" : "is-locked"}" style="--maturity-score-progress:${index * 25}%;--maturity-score-ratio:${index / 4}"><div class="maturity-v9-score-slider-copy"><strong data-focus-batch-slider-label>${escapeHtml(level)} ${escapeHtml(LEVEL_NAMES[level])}</strong><span>${batch.canApply ? "拖动滑块选择统一初始等级" : "清空下级当前评分后可重新设置"}</span></div><div class="maturity-v9-score-slider-track"><span class="maturity-v9-score-slider-base"></span><span class="maturity-v9-score-slider-start-fill"></span><span class="maturity-v9-score-slider-fill"></span><span class="maturity-v9-score-slider-ticks" aria-hidden="true">${ticks}</span><input type="range" min="1" max="5" step="1" value="${index + 1}" data-maturity-focus-batch-slider aria-label="下级统一初始等级" aria-valuetext="${escapeHtml(`${level} ${LEVEL_NAMES[level]}`)}" ${batch.canApply ? "" : "disabled"} /></div></div><div class="maturity-v10-focus-batch-actions"><small>${batch.hasServiceItems ? `当前关注点包含 ${items.length} 个下级评估点。清空评分不会删除适用性、目标、理由、依据、证据或备注。` : batch.reason}</small><div><button class="maturity-v1-button is-secondary is-danger" type="button" data-maturity-action="request-clear-focus-scores" data-focus-id="${escapeHtml(focus.id)}" ${batch.canClear ? "" : "disabled"}>清空下级当前所有评分</button><button class="maturity-v1-button is-primary" type="button" data-maturity-action="apply-focus-batch-level" data-focus-id="${escapeHtml(focus.id)}" ${batch.canApply ? "" : "disabled"}>统一设置应用到下级</button></div>${clearConfirmOpen ? `<div class="maturity-v11-focus-clear-confirm" role="alert"><strong>确认清空当前关注点全部下级四维评分？</strong><span>此操作不会清除目标、适用性和证据等其他内容。</span><div><button class="maturity-v1-button is-secondary" type="button" data-maturity-action="cancel-clear-focus-scores">取消</button><button class="maturity-v1-button is-primary is-danger" type="button" data-maturity-action="confirm-clear-focus-scores" data-focus-id="${escapeHtml(focus.id)}">确认清空</button></div></div>` : ""}</div></section>`;
+    const renderBatchRow = ({ state, level, minimumLevel = "L1", maximumLevel = "L5", currentMaximumLevel = "", targetMinimumLevel = "", kind, title, clearAction, applyAction, clearLabel, applyLabel, confirmId, confirmAction, cancelAction }) => {
+      const index = LEVELS.indexOf(level);
+      const isTarget = kind === "target";
+      const rangeUnavailable = !minimumLevel || !maximumLevel;
+      const minimumIndex = minimumLevel ? Math.max(0, LEVELS.indexOf(minimumLevel)) : isTarget ? LEVELS.length - 1 : 0;
+      const maximumIndex = maximumLevel ? Math.max(0, LEVELS.indexOf(maximumLevel)) : isTarget ? LEVELS.length - 1 : 0;
+      const sliderHint = rangeUnavailable
+        ? "当前没有有效的统一设置等级"
+        : isTarget
+          ? `${state.canApply ? "" : "清空后可重设；"}目标状态不能低于下级当前最高等级 ${currentMaximumLevel}`
+          : targetMinimumLevel
+            ? `${state.canApply ? "" : "清空后可重设；"}当前状态不能高于下级已有最低目标等级 ${targetMinimumLevel}`
+          : state.canApply
+            ? "拖动滑块选择统一等级"
+            : "清空下级当前评分后可重新设置";
+      const canApply = state.canApply && !rangeUnavailable;
+      return `<div class="maturity-v33-focus-batch-row is-${kind}"><div class="maturity-v33-focus-batch-label"><strong>${title}</strong><span>${state.hasAny ? `下级已有${isTarget ? "目标" : "当前评分"}，清空后可重新统一设置。` : `下级尚未设置${isTarget ? "目标" : "当前评分"}。`}</span></div><div class="maturity-v9-score-slider maturity-v10-batch-slider has-value ${canApply ? "" : "is-locked"}" style="--maturity-score-progress:${index * 25}%;--maturity-score-ratio:${index / 4}"><div class="maturity-v9-score-slider-copy"><strong data-focus-batch-slider-label="${kind}">${escapeHtml(level)} ${escapeHtml(LEVEL_NAMES[level])}</strong><span>${escapeHtml(sliderHint)}</span></div><div class="maturity-v9-score-slider-track"><span class="maturity-v9-score-slider-base"></span><span class="maturity-v9-score-slider-start-fill"></span><span class="maturity-v9-score-slider-fill"></span><span class="maturity-v9-score-slider-ticks" aria-hidden="true">${ticks}</span><input type="range" min="1" max="5" step="1" value="${index + 1}" data-maturity-focus-batch-slider="${kind}" data-maturity-min-level="${minimumIndex + 1}" data-maturity-max-level="${maximumIndex + 1}" aria-label="${title}统一等级" aria-valuemin="${minimumIndex + 1}" aria-valuemax="${maximumIndex + 1}" aria-valuetext="${escapeHtml(`${level} ${LEVEL_NAMES[level]}`)}" ${canApply ? "" : "disabled"} /></div></div><div class="maturity-v10-focus-batch-actions"><small>${batch.hasServiceItems ? `作用于当前关注点 ${batch.serviceItemCount} 个下级评估点。` : batch.reason}</small><div><button class="maturity-v1-button is-secondary is-danger" type="button" data-maturity-action="${clearAction}" data-focus-id="${escapeHtml(focus.id)}" ${state.canClear ? "" : "disabled"}>${clearLabel}</button><button class="maturity-v1-button is-primary ${isTarget ? "is-target-action" : ""}" type="button" data-maturity-action="${applyAction}" data-focus-id="${escapeHtml(focus.id)}" ${canApply ? "" : "disabled"}>${applyLabel}</button></div>${confirmId === focus.id ? `<div class="maturity-v11-focus-clear-confirm" role="alert"><strong>确认${clearLabel}？</strong><span>${isTarget ? "此操作只清除目标等级与目标说明，保留当前评分、适用性和证据。" : "此操作只清除当前四维评分，保留目标、适用性和证据。"}</span><div><button class="maturity-v1-button is-secondary" type="button" data-maturity-action="${cancelAction}">取消</button><button class="maturity-v1-button is-primary is-danger" type="button" data-maturity-action="${confirmAction}" data-focus-id="${escapeHtml(focus.id)}">确认清空</button></div></div>` : ""}</div></div>`;
+    };
+    const existingTargetMinimumLevel = focusExistingTargetMinimumLevel(detail, items);
+    const currentMaximumAllowedLevel = focusCurrentMaximumAllowedLevel(detail, items);
+    const currentMaximumLevel = focusCurrentMaximumLevel(detail, items);
+    const requestedCurrentLevel = LEVELS.includes(model.focusBatchLevel) ? model.focusBatchLevel : "L3";
+    const currentLevel = batch.current.hasAny
+      ? currentMaximumLevel
+      : currentMaximumAllowedLevel
+        ? LEVELS[Math.min(LEVELS.indexOf(requestedCurrentLevel), LEVELS.indexOf(currentMaximumAllowedLevel))]
+        : "L1";
+    model.focusBatchLevel = currentLevel;
+    const targetMinimumLevel = focusTargetMinimumLevel(detail, items);
+    const requestedTargetLevel = LEVELS.includes(model.focusTargetBatchLevel) ? model.focusTargetBatchLevel : "L3";
+    const targetLevel = batch.target.hasAny && existingTargetMinimumLevel
+      ? existingTargetMinimumLevel
+      : targetMinimumLevel
+        ? LEVELS[Math.max(LEVELS.indexOf(requestedTargetLevel), LEVELS.indexOf(targetMinimumLevel))]
+        : "L5";
+    model.focusTargetBatchLevel = targetLevel;
+    return `<section class="maturity-v3-focus-batch maturity-v33-focus-batch" aria-label="当前关注点下级评估设置"><header><strong>下级评估设置</strong><span>分别统一设置下级当前状态与目标状态；两类数据独立清空、互不影响。</span></header>${renderBatchRow({ state: batch.current, level: currentLevel, maximumLevel: currentMaximumAllowedLevel, targetMinimumLevel: existingTargetMinimumLevel, kind: "current", title: "下级当前状态设置", clearAction: "request-clear-focus-scores", applyAction: "apply-focus-batch-level", clearLabel: "清空下级所有评分", applyLabel: "统一设置下级当前状态", confirmId: model.focusBatchClearConfirmId, confirmAction: "confirm-clear-focus-scores", cancelAction: "cancel-clear-focus-scores" })}${renderBatchRow({ state: batch.target, level: targetLevel, minimumLevel: targetMinimumLevel, currentMaximumLevel, kind: "target", title: "下级目标状态设置", clearAction: "request-clear-focus-targets", applyAction: "apply-focus-target-batch-level", clearLabel: "清空下级所有目标", applyLabel: "统一设置下级目标状态", confirmId: model.focusTargetClearConfirmId, confirmAction: "confirm-clear-focus-targets", cancelAction: "cancel-clear-focus-targets" })}</section>`;
   }
 
   function focusBatchState(detail, items) {
     const serviceItems = list(items).filter((item) => item.itemType === "SERVICE");
+    const applicableServiceItems = serviceItems.filter((item) => scoreEntry(detail, item.id).isApplicable !== false);
     const hasAnyScore = serviceItems.some((item) => {
       const entry = scoreEntry(detail, item.id);
       return DIMENSIONS.some(([key]) => LEVELS.includes(entry.elements?.[key]) || LEVELS.includes(entry.reviewElements?.[key]));
+    });
+    const hasAnyTarget = serviceItems.some((item) => {
+      const entry = scoreEntry(detail, item.id);
+      return DIMENSIONS.some(([key]) => LEVELS.includes(entry.targetElements?.[key]));
+    });
+    const hasAllScores = applicableServiceItems.length > 0 && applicableServiceItems.every((item) => {
+      const entry = scoreEntry(detail, item.id);
+      return DIMENSIONS.every(([key]) => LEVELS.includes(currentDimensionLevel(entry, key)));
+    });
+    const hasAllTargets = applicableServiceItems.length > 0 && applicableServiceItems.every((item) => {
+      const entry = scoreEntry(detail, item.id);
+      return DIMENSIONS.every(([key]) => LEVELS.includes(entry.targetElements?.[key]));
     });
     const hasServiceItems = serviceItems.length > 0;
     const mutable = Boolean(hasServiceItems && !detail.project.readOnly);
@@ -2007,7 +2273,11 @@
       canApply: Boolean(mutable && !hasAnyScore),
       canClear: Boolean(mutable && hasAnyScore),
       hasAnyScore,
+      hasAnyTarget,
       hasServiceItems,
+      serviceItemCount: serviceItems.length,
+      current: { hasAny: hasAnyScore, hasAll: hasAllScores, canApply: Boolean(mutable && !hasAnyScore), canClear: Boolean(mutable && hasAnyScore) },
+      target: { hasAny: hasAnyTarget, hasAll: hasAllTargets, canApply: Boolean(mutable && !hasAnyTarget), canClear: Boolean(mutable && hasAnyTarget), reason: !hasServiceItems ? "当前关注点没有下级安全技术服务。" : detail.project.readOnly ? "当前项目已锁定，只能查看下级目标状态设置。" : hasAnyTarget ? "下级已有目标，清空后才能再次统一设置。" : "下级尚未设置目标，可以统一设置。" },
       reason: !hasServiceItems
         ? "当前关注点没有下级安全技术服务。"
         : detail.project.readOnly
@@ -2033,11 +2303,8 @@
       ${applicable ? "" : `<label class="maturity-v3-na-reason"><span>不适用说明（可选）</span><textarea rows="3" data-score-text="naReason" data-score-item-id="${escapeHtml(item.id)}" ${detail.project.readOnly ? "disabled" : ""} placeholder="可记录该服务或关注点不适用于本次企业组织评估的原因">${escapeHtml(entry.naReason || "")}</textarea></label>`}
       <div class="maturity-v12-score-layout">
         <div class="maturity-v12-score-dimensions">
-          ${renderElementControls(detail, item, entry, "self")}
-          <section class="maturity-v15-assessment-details" aria-label="目标与证据">
-            <div class="maturity-v12-target-settings maturity-v16-target-settings"><label class="maturity-v16-target-level"><span>目标等级 *</span><select data-score-field="targetLevel" data-score-item-id="${escapeHtml(item.id)}" ${detail.project.readOnly || !applicable ? "disabled" : ""}>${levelOptions(entry.targetLevel, { includeEmpty: true })}</select></label><label class="maturity-v16-assessment-note"><span>评估说明（可选）</span><textarea rows="3" data-score-text="targetReason" data-score-item-id="${escapeHtml(item.id)}" ${detail.project.readOnly || !applicable ? "disabled" : ""} placeholder="可记录目标考虑、事实依据或补充说明">${escapeHtml(entry.targetReason || entry.evidenceSummary || "")}</textarea></label></div>
-            ${targetConflict ? `<div class="maturity-v21-target-conflict" role="alert"><strong>目标等级设置冲突</strong><span>当前四维评分由后端计算为 ${escapeHtml(targetConflict.currentLevel)} ${targetConflict.currentIndex == null ? "" : escapeHtml(Number(targetConflict.currentIndex).toFixed(2))}，目标等级不能低于 ${escapeHtml(targetConflict.minimumTargetLevel || targetConflict.currentLevel)}。请先修改目标等级，才能切换到其他评估点。</span></div>` : ""}
-          </section>
+          ${renderElementControls(detail, item, entry)}
+          ${targetConflict ? `<section class="maturity-v15-assessment-details maturity-v33-target-validation" aria-label="目标校验"><div class="maturity-v21-target-conflict" role="alert"><strong>目标等级设置冲突</strong><span>当前四维评分由后端计算为 ${escapeHtml(targetConflict.currentLevel)} ${targetConflict.currentIndex == null ? "" : escapeHtml(Number(targetConflict.currentIndex).toFixed(2))}，目标等级不能低于 ${escapeHtml(targetConflict.minimumTargetLevel || targetConflict.currentLevel)}。请先修改目标等级，才能切换到其他评估点。</span></div></section>` : ""}
           <details class="maturity-v3-secondary-fields maturity-v15-secondary-fields"><summary>证据等级与评分备注</summary><div><label><span>证据等级（可选）</span><select data-score-field="evidenceLevel" data-score-item-id="${escapeHtml(item.id)}" ${detail.project.readOnly || !applicable ? "disabled" : ""}>${evidenceOptions(entry.evidenceLevel || "E0")}</select></label><label><span>评分备注</span><textarea rows="2" data-score-text="note" data-score-item-id="${escapeHtml(item.id)}" ${detail.project.readOnly ? "disabled" : ""}>${escapeHtml(entry.note || "")}</textarea></label></div></details>
         </div>
         <aside class="maturity-v12-score-side" aria-label="当前评分概览">${renderScoreOverview(detail, item, entry)}</aside>
@@ -2066,26 +2333,51 @@
     return `<div class="maturity-v3-rubric-missing" role="alert"><strong>评分标准缺失</strong><span>当前评估点缺少该维度完整 L1—L5 标准，已阻止评分。</span></div>`;
   }
 
-  function renderElementControls(detail, item, entry, mode = "self") {
-    const elements = mode === "review"
-      ? DIMENSIONS.reduce((values, [key]) => ({ ...values, [key]: entry.reviewElements?.[key] || entry.elements?.[key] || "" }), {})
-      : entry.elements || {};
+  function renderElementControls(detail, item, entry) {
+    normalizeTargetFields(entry);
     const completeRubric = rubricIsComplete(item);
-    return `<div class="maturity-v3-dimension-grid maturity-v15-dimension-grid ${mode === "review" ? "is-review" : ""}"><header><strong>打分维度</strong><span>选择 L1—L5</span></header>${DIMENSIONS.map(([key, label]) => {
+    const renderLane = (key, label, state) => {
+      const isTarget = state === "target";
+      const elements = isTarget ? entry.targetElements || {} : entry.elements || {};
+      const notes = isTarget ? entry.targetDimensionNotes || {} : entry.dimensionNotes || {};
       const activeIndex = LEVELS.indexOf(elements[key]);
       const selectedLevel = activeIndex >= 0 ? LEVELS[activeIndex] : "";
+      const currentLevel = currentDimensionLevel(entry, key);
+      const currentIndex = LEVELS.indexOf(currentLevel);
+      const targetLevel = LEVELS.includes(entry.targetElements?.[key]) ? entry.targetElements[key] : "";
+      const targetIndex = LEVELS.indexOf(targetLevel);
+      const targetFloorConflict = isTarget && targetLevelIsBelowCurrent(entry, key, selectedLevel);
+      const currentCeilingConflict = !isTarget && currentLevelIsAboveTarget(entry, key, selectedLevel);
       const selectedRubric = selectedLevel ? rubricRows(item, key).find((candidate) => candidate.level === selectedLevel) : null;
-      const accessibleLabel = `${label}${mode === "review" ? "复核" : "自评"}等级，当前${selectedLevel ? `${selectedLevel} ${selectedRubric?.levelName || LEVEL_NAMES[selectedLevel]}` : "未评分"}`;
+      const stateLabel = isTarget ? "目标状态" : "当前状态";
+      const accessibleLabel = `${label}${stateLabel}等级，当前${selectedLevel ? `${selectedLevel} ${selectedRubric?.levelName || LEVEL_NAMES[selectedLevel]}` : "未评分"}`;
       const matrix = `<div class="maturity-v15-score-matrix ${selectedLevel ? "has-value" : ""}" role="radiogroup" aria-label="${escapeHtml(accessibleLabel)}" data-maturity-score-group="${escapeHtml(key)}">${LEVELS.map((level, index) => {
         const rubric = rubricRows(item, key).find((candidate) => candidate.level === level);
         const active = level === selectedLevel;
-        return `<button class="${active ? "is-active" : activeIndex >= 0 && index < activeIndex ? "is-before" : ""}" type="button" role="radio" aria-checked="${active}" tabindex="${active || (!selectedLevel && index === 0) ? "0" : "-1"}" data-maturity-score-level data-score-mode="${mode}" data-score-item-id="${escapeHtml(item.id)}" data-element="${escapeHtml(key)}" data-score-level="${escapeHtml(level)}" ${detail.project.readOnly || entry.isApplicable === false || !completeRubric ? "disabled" : ""}><strong>${escapeHtml(level)}</strong></button>`;
+        const belowCurrent = isTarget && currentIndex >= 0 && index < currentIndex;
+        const aboveTarget = !isTarget && targetIndex >= 0 && index > targetIndex;
+        const disabled = detail.project.readOnly || entry.isApplicable === false || !completeRubric || belowCurrent || aboveTarget;
+        const boundaryHint = belowCurrent
+          ? `目标状态不能低于当前状态 ${currentLevel}`
+          : aboveTarget
+            ? `当前状态不能高于目标状态 ${targetLevel}`
+            : "";
+        return `<button class="${active ? "is-active" : activeIndex >= 0 && index < activeIndex ? "is-before" : ""}" type="button" role="radio" aria-checked="${active}" tabindex="${active || (!selectedLevel && index === Math.max(currentIndex, 0)) ? "0" : "-1"}" data-maturity-score-level data-score-mode="${state}" data-score-item-id="${escapeHtml(item.id)}" data-element="${escapeHtml(key)}" data-score-level="${escapeHtml(level)}" ${boundaryHint ? `title="${escapeHtml(boundaryHint)}" aria-label="${escapeHtml(`${level}，${boundaryHint}`)}"` : ""} ${disabled ? "disabled" : ""}><strong>${escapeHtml(level)}</strong></button>`;
       }).join("")}</div>`;
-      const feedbackId = `maturity-score-feedback-${mode}-${text(item.id).replace(/[^a-zA-Z0-9_-]/g, "-")}-${key}`;
-      const feedback = `<output class="maturity-v15-score-feedback ${selectedLevel ? "has-value" : "is-empty"}" id="${escapeHtml(feedbackId)}" aria-live="polite"><strong>${selectedLevel ? `${escapeHtml(selectedLevel)} ${escapeHtml(selectedRubric?.levelName || LEVEL_NAMES[selectedLevel])}` : "请选择等级"}</strong><span>${selectedRubric?.criteria ? escapeHtml(selectedRubric.criteria) : "选择 L1—L5 后，在本行显示当前对象定义。"}</span></output>`;
-      const evidence = mode === "self" ? `<input type="text" value="${escapeHtml(entry.dimensionNotes?.[key] || "")}" placeholder="请输入${escapeHtml(label)}评分依据（可选）" data-score-dimension-note="${key}" data-score-item-id="${escapeHtml(item.id)}" ${detail.project.readOnly || entry.isApplicable === false || !completeRubric ? "disabled" : ""} />` : `<span class="maturity-v3-review-value">自评 ${escapeHtml(entry.elements?.[key] || "未设置")} → 复核 ${escapeHtml(elements[key] || "沿用自评")}</span>`;
-      return `<section data-maturity-dimension-row="${escapeHtml(key)}"><strong>${escapeHtml(label)}</strong>${matrix}${feedback}${evidence}${renderRubricMissing(item, key)}</section>`;
-    }).join("")}</div>`;
+      const feedbackId = `maturity-score-feedback-${state}-${text(item.id).replace(/[^a-zA-Z0-9_-]/g, "-")}-${key}`;
+      const feedback = `<output class="maturity-v15-score-feedback ${selectedLevel ? "has-value" : "is-empty"}" id="${escapeHtml(feedbackId)}" aria-live="polite"><strong>${selectedLevel ? `${escapeHtml(selectedLevel)} ${escapeHtml(selectedRubric?.levelName || LEVEL_NAMES[selectedLevel])}` : "请选择等级"}</strong><span>${selectedRubric?.criteria ? escapeHtml(selectedRubric.criteria) : `选择 L1—L5 后，在本行显示${stateLabel}等级定义。`}</span></output>`;
+      const noteAttribute = isTarget ? `data-score-target-dimension-note="${key}"` : `data-score-dimension-note="${key}"`;
+      const note = `<input type="text" value="${escapeHtml(notes[key] || "")}" placeholder="请输入${escapeHtml(label)}${stateLabel}评分说明（可选）" ${noteAttribute} data-score-item-id="${escapeHtml(item.id)}" ${detail.project.readOnly || entry.isApplicable === false || !completeRubric ? "disabled" : ""} />`;
+      const allowedTargetRange = currentLevel === "L5" ? "L5" : `${currentLevel}—L5`;
+      const allowedCurrentRange = targetLevel === "L1" ? "L1" : `L1—${targetLevel}`;
+      const boundaryMessage = targetFloorConflict
+        ? `<small class="maturity-v33-target-floor-message" role="alert">${escapeHtml(label)}目标状态不能低于当前状态 ${escapeHtml(currentLevel)}，请选择 ${escapeHtml(allowedTargetRange)}。</small>`
+        : currentCeilingConflict
+          ? `<small class="maturity-v33-target-floor-message" role="alert">${escapeHtml(label)}当前状态不能高于目标状态 ${escapeHtml(targetLevel)}，请选择 ${escapeHtml(allowedCurrentRange)}。</small>`
+          : "";
+      return `<article class="maturity-v33-score-lane is-${state} ${targetFloorConflict || currentCeilingConflict ? "has-target-floor-conflict" : ""}" data-score-state="${state}"><span>${stateLabel}</span>${matrix}${feedback}${note}${boundaryMessage}</article>`;
+    };
+    return `<div class="maturity-v3-dimension-grid maturity-v15-dimension-grid maturity-v33-dimension-grid"><header><strong>打分维度</strong><span>当前状态</span><span>目标状态</span></header>${DIMENSIONS.map(([key, label]) => `<section data-maturity-dimension-row="${escapeHtml(key)}"><strong>${escapeHtml(label)}</strong><div class="maturity-v33-score-state-grid">${renderLane(key, label, "current")}${renderLane(key, label, "target")}</div>${renderRubricMissing(item, key)}</section>`).join("")}</div>`;
   }
 
   function renderReviewInspector(detail, item, focus) {
@@ -2100,11 +2392,13 @@
       const reviewLevel = LEVELS.includes(entry.reviewElements?.[key]) ? entry.reviewElements[key] : "";
       const effectiveLevel = reviewLevel || selfLevel;
       const rubric = effectiveLevel ? rubricRows(item, key).find((candidate) => candidate.level === effectiveLevel) : null;
-      return `<section data-maturity-review-dimension="${escapeHtml(key)}"><header><strong>${escapeHtml(label)}</strong><span>${effectiveLevel ? `${escapeHtml(effectiveLevel)} ${escapeHtml(rubric?.levelName || LEVEL_NAMES[effectiveLevel])}` : "未评分"}</span></header><p>${escapeHtml(rubric?.criteria || "当前维度尚未形成可复核结果。")}</p>${reviewLevel && reviewLevel !== selfLevel ? `<small>自评 ${escapeHtml(selfLevel || "未评分")} · 复核调整为 ${escapeHtml(reviewLevel)}</small>` : `<small>沿用自评结果</small>`}</section>`;
+      const targetLevel = LEVELS.includes(entry.targetElements?.[key]) ? entry.targetElements[key] : "";
+      const targetRubric = targetLevel ? rubricRows(item, key).find((candidate) => candidate.level === targetLevel) : null;
+      return `<section data-maturity-review-dimension="${escapeHtml(key)}"><header><strong>${escapeHtml(label)}</strong><span>当前 ${escapeHtml(effectiveLevel || "未评分")} → 目标 ${escapeHtml(targetLevel || "未设置")}</span></header><div class="maturity-v33-review-state-pair"><div><strong>当前状态</strong><p>${escapeHtml(rubric?.criteria || "当前维度尚未形成可复核结果。")}</p><small>${escapeHtml(entry.dimensionNotes?.[key] || (reviewLevel && reviewLevel !== selfLevel ? `自评 ${selfLevel || "未评分"}，复核调整为 ${reviewLevel}` : "未填写说明"))}</small></div><div><strong>目标状态</strong><p>${escapeHtml(targetRubric?.criteria || "目标维度尚未设置。")}</p><small>${escapeHtml(entry.targetDimensionNotes?.[key] || "未填写说明")}</small></div></div></section>`;
     }).join("");
     return `<section class="maturity-v17-review-inspector" aria-label="当前评估点复核摘要">
       <header><div><span>检查对象</span><h3>${escapeHtml(focus.code || "-")} ${escapeHtml(focus.name || "评估点")}</h3><p>${escapeHtml(service ? `${service.code || ""} ${service.name || "安全技术服务"}`.trim() : "关注点整体评估")}${item.scopeName ? ` · ${escapeHtml(item.scopeName)}` : ""}</p></div><span class="maturity-v1-row-status ${entry.isApplicable === false ? "is-muted" : scored ? "is-good" : "is-warn"}">${entry.isApplicable === false ? "不适用" : targetConflict ? "目标冲突" : scored ? "已完成" : "未完成"}</span></header>
-      <div class="maturity-v17-review-facts"><div><span>系统当前</span><strong>${escapeHtml(pointResult?.currentLevel || "—")} ${pointResult?.currentIndex == null ? "" : escapeHtml(Number(pointResult.currentIndex).toFixed(2))}</strong></div><div><span>目标等级</span><strong>${escapeHtml(entry.targetLevel ? `${entry.targetLevel} ${LEVEL_NAMES[entry.targetLevel] || ""}`.trim() : "未设置")}</strong></div><div class="is-wide"><span>评估说明</span><p>${escapeHtml(entry.targetReason || entry.evidenceSummary || "未填写")}</p></div></div>
+      <div class="maturity-v17-review-facts"><div><span>系统当前</span><strong>${escapeHtml(pointResult?.currentLevel || "—")} ${pointResult?.currentIndex == null ? "" : escapeHtml(Number(pointResult.currentIndex).toFixed(2))}</strong></div><div><span>综合目标</span><strong>${escapeHtml(pointResult?.targetLevel ? `${pointResult.targetLevel} ${LEVEL_NAMES[pointResult.targetLevel] || ""}`.trim() : "未设置")} ${pointResult?.targetIndex == null ? "" : escapeHtml(Number(pointResult.targetIndex).toFixed(2))}</strong></div><div class="is-wide"><span>说明状态</span><p>当前与目标说明按四个维度分别记录，均为可选。</p></div></div>
       ${entry.isApplicable === false ? `<div class="maturity-v1-validation is-valid"><strong>该评估点不适用</strong><span>${escapeHtml(entry.naReason || "未填写不适用说明")}</span></div>` : `<div class="maturity-v17-review-dimensions">${dimensionRows}</div>`}
       <footer><span>检查页只读展示当前记录；不适用项用于核对原因，不增加额外确认步骤。</span><div class="maturity-v19-review-inspector-actions"><button class="maturity-v1-button is-secondary" type="button" data-maturity-action="adjust-review-item" data-score-item-id="${escapeHtml(item.id)}">返回评分</button></div></footer>
     </section>`;
@@ -2116,7 +2410,7 @@
       const targetConflict = pointResult?.targetBelowCurrent === true;
       const visibleStatus = statusLabel || (entry.isApplicable === false ? "不适用" : targetConflict ? "目标冲突" : "未完成");
       const tone = ["不适用", "无证据"].includes(visibleStatus) ? "is-muted" : "is-warn";
-      return `<tr class="${selected ? "is-selected" : ""}" data-maturity-action="select-review-item" data-score-item-id="${escapeHtml(item.id)}"><td><strong>${escapeHtml(focus.code || "")} ${escapeHtml(focus.name || "评估点")}</strong><span>${escapeHtml(service.code || "")} ${escapeHtml(service.name || "关注点评估点")}</span></td><td>${DIMENSIONS.map(([key]) => escapeHtml(entry.elements?.[key] || "-")).join(" / ")}</td><td>${escapeHtml(pointResult?.currentLevel || "-")} ${pointResult?.currentIndex ?? ""}</td><td>${escapeHtml(entry.targetLevel || "-")}<small>${targetConflict ? `目标不得低于 ${escapeHtml(pointResult.minimumTargetLevel || pointResult.currentLevel)}` : escapeHtml(entry.targetReason || entry.evidenceSummary || "未填写评估说明")}</small></td><td>${escapeHtml(entry.evidenceLevel || "E0")}</td><td><div class="maturity-v19-review-row-actions"><span class="maturity-v1-row-status ${tone}">${escapeHtml(visibleStatus)}</span><button type="button" data-maturity-action="adjust-review-item" data-score-item-id="${escapeHtml(item.id)}">返回评分</button></div></td></tr>${selected ? `<tr class="maturity-v2-inline-score-row"><td colspan="6">${renderReviewInspector(detail, item, focus)}</td></tr>` : ""}`;
+      return `<tr class="${selected ? "is-selected" : ""}" data-maturity-action="select-review-item" data-score-item-id="${escapeHtml(item.id)}"><td><strong>${escapeHtml(focus.code || "")} ${escapeHtml(focus.name || "评估点")}</strong><span>${escapeHtml(service.code || "")} ${escapeHtml(service.name || "关注点评估点")}</span></td><td>${DIMENSIONS.map(([key]) => escapeHtml(entry.elements?.[key] || "-")).join(" / ")}</td><td>${escapeHtml(pointResult?.currentLevel || "-")} ${pointResult?.currentIndex ?? ""}</td><td>${DIMENSIONS.map(([key]) => escapeHtml(entry.targetElements?.[key] || "-")).join(" / ")}<small>${targetConflict ? `综合目标不得低于 ${escapeHtml(pointResult.minimumTargetLevel || pointResult.currentLevel)}` : `综合 ${escapeHtml(pointResult?.targetLevel || "-")} ${pointResult?.targetIndex ?? ""}`}</small></td><td>${escapeHtml(entry.evidenceLevel || "E0")}</td><td><div class="maturity-v19-review-row-actions"><span class="maturity-v1-row-status ${tone}">${escapeHtml(visibleStatus)}</span><button type="button" data-maturity-action="adjust-review-item" data-score-item-id="${escapeHtml(item.id)}">返回评分</button></div></td></tr>${selected ? `<tr class="maturity-v2-inline-score-row"><td colspan="6">${renderReviewInspector(detail, item, focus)}</td></tr>` : ""}`;
     }).join("") || `<tr><td colspan="6"><div class="maturity-v1-table-empty">当前分组没有需要核对的评估点。</div></td></tr>`;
   }
 
@@ -2390,9 +2684,9 @@
     const profile = dimensionProfile(summary.dimensionResults || {});
     const { strongest, weakest, spread } = profileExtremes(profile);
     return `<section class="maturity-v15-result-dimension-radar" aria-label="评估结果四维雷达">
-      <header><div><h3>四维成熟度雷达</h3><p>总体四维聚合结果</p></div><div class="maturity-v15-radar-legend"><span><i></i>当前结果</span><span class="is-target"><i></i>目标参考（等轴）</span></div></header>
+      <header><div><h3>四维成熟度雷达</h3><p>总体四维聚合结果</p></div><div class="maturity-v15-radar-legend"><span><i></i>当前状态</span><span class="is-target"><i></i>目标状态</span></div></header>
       <div class="maturity-v15-result-dimension-layout"><canvas width="520" height="300" data-maturity-result-radar aria-label="评估结果组织、流程、工具、数据四维雷达图"></canvas><aside><strong>${strongest && weakest ? `${escapeHtml(strongest.label)}最高，${escapeHtml(weakest.label)}最低` : "四维结果尚未完整"}</strong><p>${spread == null ? "完成四维评分后展示离散度。" : `四维极差 ${spread.toFixed(2)} 级；雷达形状用于暴露不均衡，不替代精确结果表。`}</p><dl>${profile.map((item) => `<div><dt>${escapeHtml(item.label)}</dt><dd>${item.value == null ? "—" : item.value.toFixed(2)}</dd></div>`).join("")}</dl></aside></div>
-      <p>目标虚线将总体目标指数等距投射到四轴，仅作参照，不代表逐维目标。</p>
+      <p>目标虚线来自四个维度分别设置并聚合后的目标状态。</p>
     </section>`;
   }
 
@@ -2474,8 +2768,11 @@
         context.stroke();
       });
     };
+    const targetProfile = dimensionProfile(result?.targetDimensionResults || {});
+    const hasTargetProfile = targetProfile.every((item) => item.value != null);
     const targetIndex = result?.targetIndex == null ? null : Number(result.targetIndex);
-    if (Number.isFinite(targetIndex)) drawSeries(profile.map(() => targetIndex), { stroke: "#9a6d2f", dashed: true });
+    const targetValues = hasTargetProfile ? targetProfile.map((item) => item.value) : Number.isFinite(targetIndex) ? profile.map(() => targetIndex) : [];
+    if (targetValues.length) drawSeries(targetValues, { stroke: "#9a6d2f", dashed: true });
     drawSeries(profile.map((item) => item.value), { stroke: "#1676c5", fill: "rgba(22, 118, 197, 0.12)", points: true });
     context.fillStyle = "#6e7f90";
     context.font = "700 9px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
@@ -2556,8 +2853,11 @@
         context.stroke();
       });
     };
+    const targetProfile = dimensionProfile(result?.targetDimensionResults || {});
+    const hasTargetProfile = targetProfile.every((item) => item.value != null);
     const targetIndex = result?.targetIndex == null ? null : Number(result.targetIndex);
-    if (Number.isFinite(targetIndex)) drawSeries(profile.map(() => targetIndex), { stroke: "#9a6d2f", dashed: true });
+    const targetValues = hasTargetProfile ? targetProfile.map((item) => item.value) : Number.isFinite(targetIndex) ? profile.map(() => targetIndex) : [];
+    if (targetValues.length) drawSeries(targetValues, { stroke: "#9a6d2f", dashed: true });
     drawSeries(profile.map((item) => item.value), { stroke: "#1676c5", fill: "rgba(22, 118, 197, 0.12)", points: true });
   }
 
@@ -3129,7 +3429,7 @@
       ${renderReportOverall(detail)}
       <div class="maturity-v38-preview-dashboard">
         <section class="maturity-v37-report-panel maturity-v37-report-capability-radar" data-report-section="report-v2-capability-radar"><header><h3>L2 能力成熟度雷达（${capabilityAxes.length} 维）</h3><div><span class="is-current"><i></i>当前成熟度</span><span class="is-target"><i></i>目标成熟度</span></div></header><canvas width="760" height="350" data-maturity-capability-radar data-radar-height="350" data-radar-min-width="420" aria-label="评估报告 V2 全能力成熟度雷达图"></canvas></section>
-        <section class="maturity-v37-report-panel maturity-v37-report-dimension-radar" data-report-section="report-v2-dimension-radar"><header><h3>四维成熟度雷达</h3><span>目标参考：等轴 ${Number.isFinite(Number(summary.targetIndex)) ? Number(summary.targetIndex).toFixed(2) : "—"}</span></header><canvas width="460" height="300" data-maturity-result-radar data-radar-height="300" data-radar-radius="108" aria-label="评估报告 V2 四维成熟度雷达图"></canvas><dl>${dimensionProfile(summary.dimensionResults || {}).map((item) => `<div><dt>${escapeHtml(item.label)}</dt><dd>${item.value == null ? "—" : item.value.toFixed(2)}</dd></div>`).join("")}</dl></section>
+        <section class="maturity-v37-report-panel maturity-v37-report-dimension-radar" data-report-section="report-v2-dimension-radar"><header><h3>四维成熟度雷达</h3><span>当前状态 / 目标状态</span></header><canvas width="460" height="300" data-maturity-result-radar data-radar-height="300" data-radar-radius="108" aria-label="评估报告 V2 当前与目标四维成熟度雷达图"></canvas><dl>${dimensionProfile(summary.dimensionResults || {}).map((item) => { const target = Number(summary.targetDimensionResults?.[item.key]); return `<div><dt>${escapeHtml(item.label)}</dt><dd>${item.value == null ? "—" : item.value.toFixed(2)} / ${Number.isFinite(target) ? target.toFixed(2) : "—"}</dd></div>`; }).join("")}</dl></section>
         ${renderReportCategoryCoverage(detail)}
       </div>
       ${renderReportV2PreviewSection("差距诊断", "P2", ["diagnosticInterpretation", "diagnosticManagementImplication"], progress.conclusions)}
@@ -3142,6 +3442,7 @@
 
   function renderReportV2Tab(detail) {
     if (!detail?.result?.ok) return `<section class="maturity-v1-empty"><h3>评估报告 V2 尚不可用</h3><p>请先完成评分计算，再进入报告编制工作台。</p><button class="maturity-v1-button is-primary" type="button" data-maturity-action="calculate">开始计算</button></section>`;
+    if (!formalAssessmentReady(detail)) return renderFormalAssessmentBlocked("评估报告 V2 尚不可用");
     detail.reportV2Conclusions = reportV2Conclusions(detail);
     const progress = reportV2Progress(detail);
     const facts = reportV2Facts(detail);
@@ -3158,16 +3459,16 @@
     const summary = summaryOf(reportDetail);
     const reportCapabilityAxes = list(reportRadarData(reportDetail)?.capabilityRadar?.axes);
     const narrative = { ...defaultReportNarrative(), ...(detail.reportNarrative || {}) };
-    const formalReady = ["completed", "reported", "archived"].includes(detail.project.status) && statisticsReadyForDisplay(detail);
     if (!detail?.result?.ok) return `<section class="maturity-v1-empty"><h3>评估报告尚不可用</h3><p>请先完成后端评分计算，再进入报告编制。</p><button class="maturity-v1-button is-primary" type="button" data-maturity-action="calculate">开始计算</button></section>`;
+    if (!formalAssessmentReady(detail)) return renderFormalAssessmentBlocked("评估报告尚不可用");
     return `
-      <div class="maturity-v37-report-shell" data-maturity-report-ready="${formalReady}">
+      <div class="maturity-v37-report-shell" data-maturity-report-ready="true">
         ${renderReportNavigation(detail)}
         <main class="maturity-v37-report-document">
           ${renderReportOverall(reportDetail)}
           <div class="maturity-v37-report-dashboard">
             <section id="report-capability-radar" class="maturity-v37-report-panel maturity-v37-report-capability-radar" data-report-section="report-capability-radar"><header><h3>全能力分组雷达（${reportCapabilityAxes.length || list(detail?.result?.capabilityResults).length} 个 L2 能力）</h3><div><span class="is-current"><i></i>当前成熟度</span><span class="is-target"><i></i>目标成熟度</span></div></header><canvas width="760" height="350" data-maturity-capability-radar data-radar-height="350" data-radar-min-width="420" aria-label="全能力分组成熟度雷达图"></canvas></section>
-            <section id="report-dimension-radar" class="maturity-v37-report-panel maturity-v37-report-dimension-radar" data-report-section="report-dimension-radar"><header><h3>四维成熟度雷达</h3><span>目标参考：等轴 ${Number.isFinite(Number(summary.targetIndex)) ? Number(summary.targetIndex).toFixed(2) : "—"}</span></header><canvas width="460" height="300" data-maturity-result-radar data-radar-height="300" data-radar-radius="108" aria-label="组织、流程、工具、数据四维成熟度雷达图"></canvas><dl>${dimensionProfile(summary.dimensionResults || {}).map((item) => `<div><dt>${escapeHtml(item.label)}</dt><dd>${item.value == null ? "—" : item.value.toFixed(2)}</dd></div>`).join("")}</dl></section>
+            <section id="report-dimension-radar" class="maturity-v37-report-panel maturity-v37-report-dimension-radar" data-report-section="report-dimension-radar"><header><h3>四维成熟度雷达</h3><span>当前状态 / 目标状态</span></header><canvas width="460" height="300" data-maturity-result-radar data-radar-height="300" data-radar-radius="108" aria-label="组织、流程、工具、数据当前与目标四维成熟度雷达图"></canvas><dl>${dimensionProfile(summary.dimensionResults || {}).map((item) => { const target = Number(summary.targetDimensionResults?.[item.key]); return `<div><dt>${escapeHtml(item.label)}</dt><dd>${item.value == null ? "—" : item.value.toFixed(2)} / ${Number.isFinite(target) ? target.toFixed(2) : "—"}</dd></div>`; }).join("")}</dl></section>
             ${renderReportCategoryCoverage(reportDetail)}
             <div class="maturity-v37-report-narratives">${reportNarrativeSections().map((section) => renderReportNarrative(detail, section, narrative)).join("")}</div>
             ${renderReportPriorityTable(reportDetail)}
@@ -3284,6 +3585,8 @@
       slot.innerHTML = `<div class="maturity-v2-page-actions"><button id="maturityNewProjectButton" class="maturity-v1-button is-primary" type="button" data-maturity-action="new-project">新建评估项目</button></div>`;
     } else if (model.activeTab === "scoring") {
       if (scoringStatus) slot.append(scoringStatus);
+    } else if (FORMAL_RESULT_TAB_IDS.has(model.activeTab) && !formalAssessmentReady(detail)) {
+      slot.innerHTML = `<span class="maturity-v37-shell-report-state"><span class="maturity-v1-status is-warn">评估尚未正式完成</span></span><button class="maturity-v1-button is-primary" type="button" data-maturity-action="open-review-tab">前往评分检查</button>`;
     } else if (model.activeTab === "report-v2") {
       const progress = reportV2Progress(detail);
       slot.innerHTML = `<span class="maturity-v38-shell-state"><span class="maturity-v1-status ${progress.filled === progress.total ? "is-good" : "is-active"}">${progress.filled} / ${progress.total} 已填写</span></span><button class="maturity-v1-button is-secondary" type="button" data-maturity-action="scroll-report-v2-preview">查看正式报告预览</button>`;
@@ -3363,12 +3666,13 @@
         if (!workspace || workspace.dataState !== "ready") throw new Error(workspace?.notice || "成熟度评估 API 当前不可用。请确认 5173 服务已重启到最新代码。");
         model.workspace = workspace;
         hydrateWorkspace(workspace);
+        await refreshHydratedAssessments();
         await restorePersistedReports();
         model.loaded = true;
         model.loading = false;
-        render();
         const detail = activeDetail();
-        if (detail?.locallyStored && !reportExportReady(detail.report)) calculateDetail(detail, { silent: true });
+        if (detail && FORMAL_RESULT_TAB_IDS.has(model.activeTab) && !formalAssessmentReady(detail)) model.activeTab = "review";
+        render();
         return workspace;
       } catch (error) {
         model.loading = false;
@@ -3383,14 +3687,59 @@
     return model.loadPromise;
   }
 
+  async function requestMaturityCalculation({ project, template, scoreEntries }) {
+    const response = await window.sapdDataClient?.calculateMaturityAssessment?.({ project, template, scoreEntries });
+    const result = unwrap(response);
+    if (!result?.ok) throw new Error(list(result?.validation?.errors)[0]?.message || result?.error || "评分计算失败。请先校验模板。");
+    return result;
+  }
+
+  function applyCalculatedResult(detail, result) {
+    detail.result = result;
+    detail.resultStale = false;
+    detail.dirty = false;
+    detail.lastCalculatedAt = nowLabel();
+    detail.lastSavedAt = detail.lastCalculatedAt;
+    detail.localSaveState = "saved";
+  }
+
+  async function refreshHydratedAssessments() {
+    const candidates = Object.values(model.details).filter((detail) => detail?.project?.id && detail.locallyStored);
+    await Promise.all(candidates.map(async (detail) => {
+      try {
+        const result = await requestMaturityCalculation(detail);
+        applyCalculatedResult(detail, result);
+        if (LOCKED_ASSESSMENT_STATUSES.has(detail.project.status) && !formalAssessmentReady(detail)) {
+          detail.project.status = "score_review";
+          detail.project.readOnly = false;
+          detail.report = null;
+          detail.reportNarrativeDirty = true;
+        }
+        persistDetail(detail);
+      } catch {
+        detail.resultStale = true;
+        detail.localSaveState = "error";
+      }
+    }));
+  }
+
   function touchDetail(detail, { invalidateResult = false, invalidateReport = false } = {}) {
-    if (invalidateResult) detail.result = null;
+    if (invalidateResult) {
+      detail.result = null;
+      detail.resultStale = true;
+      detail.calculationRevision = Number(detail.calculationRevision || 0) + 1;
+    }
     if (invalidateReport) detail.report = null;
     detail.project.updatedAt = nowLabel();
     detail.dirty = true;
     detail.lastSavedAt = nowLabel();
     detail.localSaveState = "saved";
     if (!persistDetail(detail)) detail.localSaveState = "error";
+  }
+
+  function markCalculationDirty(detail) {
+    detail.resultStale = true;
+    detail.calculationRevision = Number(detail.calculationRevision || 0) + 1;
   }
 
   function markTemplateDirty(detail) {
@@ -3423,45 +3772,46 @@
   }
 
   async function calculateDetail(detail = activeDetail(), { silent = false } = {}) {
-    if (!detail || model.calculating) return;
+    if (!detail) return null;
+    if (model.calculating) return model.calculationPromise;
     model.calculating = true;
     const sequence = ++model.calculationSequence;
+    const calculationRevision = Number(detail.calculationRevision || 0);
     if (!silent) render();
-    try {
-      const response = await window.sapdDataClient?.calculateMaturityAssessment?.({
-        project: detail.project,
-        template: detail.template,
-        scoreEntries: detail.scoreEntries,
-      });
-      const result = unwrap(response);
-      if (sequence !== model.calculationSequence) return;
-      if (!result?.ok) {
-        detail.validation = result?.validation || null;
-        throw new Error(list(result?.validation?.errors)[0]?.message || result?.error || "评分计算失败。请先校验模板。")
+    model.calculationPromise = (async () => {
+      try {
+        const result = await requestMaturityCalculation(detail);
+        if (sequence !== model.calculationSequence || calculationRevision !== Number(detail.calculationRevision || 0)) {
+          detail.resultStale = true;
+          scheduleCalculation(detail);
+          return null;
+        }
+        applyCalculatedResult(detail, result);
+        persistDetail(detail);
+        if (!silent) {
+          model.toast = "评分试算已更新；完成评估前仍以评分检查中的阻断项为准。";
+          model.toastTone = "success";
+          model.toastRoute = normalizedRoute();
+        }
+        return result;
+      } catch (error) {
+        detail.localSaveState = "error";
+        if (!silent) {
+          model.toast = error?.message || "评分计算失败";
+          model.toastTone = "error";
+          model.toastRoute = normalizedRoute();
+        }
+        return null;
+      } finally {
+        if (sequence === model.calculationSequence) {
+          model.calculating = false;
+          model.calculationPromise = null;
+        }
+        if (silent) refreshScoringCalculatedState(detail);
+        else render();
       }
-      detail.result = result;
-      detail.resultStale = false;
-      detail.dirty = false;
-      detail.lastCalculatedAt = nowLabel();
-      detail.lastSavedAt = detail.lastCalculatedAt;
-      detail.localSaveState = "saved";
-      persistDetail(detail);
-      if (!silent) {
-        model.toast = "评分试算已更新；完成评估前仍以评分检查中的阻断项为准。";
-        model.toastTone = "success";
-        model.toastRoute = normalizedRoute();
-      }
-    } catch (error) {
-      if (!silent) {
-        model.toast = error?.message || "评分计算失败";
-        model.toastTone = "error";
-        model.toastRoute = normalizedRoute();
-      }
-    } finally {
-      if (sequence === model.calculationSequence) model.calculating = false;
-      if (silent) refreshScoringCalculatedState(detail);
-      else render();
-    }
+    })();
+    return model.calculationPromise;
   }
 
   function scheduleCalculation(detail = activeDetail()) {
@@ -3539,6 +3889,115 @@
     window.setTimeout(() => document.getElementById("maturityNewProjectButton")?.focus(), 0);
   }
 
+  function projectInfoDraft(project = {}) {
+    return {
+      name: project.name || "",
+      organization: project.organization || "",
+      industry: project.industry || "",
+      companySize: project.companySize || "",
+      customerCharacteristics: project.customerCharacteristics || "",
+      constraints: project.constraints || "",
+      owner: project.owner || "",
+      plannedStartDate: project.plannedStartDate || "",
+      plannedEndDate: project.plannedEndDate || "",
+      assessors: list(project.assessors).join("、"),
+      note: project.note || "",
+    };
+  }
+
+  function openProjectInfoEditor(detail) {
+    if (!detail?.project?.id) return;
+    model.projectInfoEditId = detail.project.id;
+    model.projectInfoDraft = projectInfoDraft(detail.project);
+    model.projectInfoErrors = {};
+    render();
+    window.setTimeout(() => model.root?.querySelector("#maturityProjectInfoName")?.focus(), 0);
+  }
+
+  function closeProjectInfoEditor() {
+    model.projectInfoEditId = "";
+    model.projectInfoDraft = {};
+    model.projectInfoErrors = {};
+    render();
+    window.setTimeout(() => model.root?.querySelector('[data-maturity-action="edit-project-info"]')?.focus(), 0);
+  }
+
+  function readProjectInfoEditor() {
+    model.projectInfoDraft = {
+      name: text(document.getElementById("maturityProjectInfoName")?.value).trim(),
+      organization: text(document.getElementById("maturityProjectInfoOrganization")?.value).trim(),
+      industry: text(document.getElementById("maturityProjectInfoIndustry")?.value).trim(),
+      companySize: text(document.getElementById("maturityProjectInfoCompanySize")?.value).trim(),
+      customerCharacteristics: text(document.getElementById("maturityProjectInfoCharacteristics")?.value).trim(),
+      constraints: text(document.getElementById("maturityProjectInfoConstraints")?.value).trim(),
+      owner: text(document.getElementById("maturityProjectInfoOwner")?.value).trim(),
+      plannedStartDate: text(document.getElementById("maturityProjectInfoStartDate")?.value).trim(),
+      plannedEndDate: text(document.getElementById("maturityProjectInfoEndDate")?.value).trim(),
+      assessors: text(document.getElementById("maturityProjectInfoAssessors")?.value).trim(),
+      note: text(document.getElementById("maturityProjectInfoNote")?.value).trim(),
+    };
+    const required = { name: "请填写项目名称", organization: "请填写客户企业组织", industry: "请填写客户所属行业", companySize: "请选择企业规模", owner: "请填写项目负责人" };
+    model.projectInfoErrors = Object.entries(required).reduce((errors, [field, message]) => {
+      if (!text(model.projectInfoDraft[field]).trim()) errors[field] = message;
+      return errors;
+    }, {});
+    if (model.projectInfoDraft.plannedStartDate && model.projectInfoDraft.plannedEndDate && model.projectInfoDraft.plannedEndDate < model.projectInfoDraft.plannedStartDate) {
+      model.projectInfoErrors.plannedEndDate = "计划结束时间不能早于开始时间";
+    }
+    return Object.keys(model.projectInfoErrors).length === 0;
+  }
+
+  function saveProjectInfo(detail) {
+    if (!detail?.project || model.projectInfoEditId !== detail.project.id) return;
+    if (!readProjectInfoEditor()) {
+      render();
+      window.setTimeout(() => model.root?.querySelector('[aria-invalid="true"]')?.focus(), 0);
+      return;
+    }
+    const draft = model.projectInfoDraft;
+    const assessors = draft.assessors.split(/[、,，]/).map((value) => value.trim()).filter(Boolean);
+    const nextValues = { ...draft, assessors };
+    const fieldLabels = {
+      name: "项目名称",
+      organization: "客户企业组织",
+      industry: "客户所属行业",
+      companySize: "企业规模",
+      customerCharacteristics: "客户特点",
+      constraints: "客户偏好与约束",
+      owner: "项目负责人",
+      plannedStartDate: "计划开始时间",
+      plannedEndDate: "计划结束时间",
+      assessors: "评估人员",
+      note: "备注",
+    };
+    const changedFields = Object.keys(fieldLabels).filter((field) => JSON.stringify(detail.project[field] ?? (field === "assessors" ? [] : "")) !== JSON.stringify(nextValues[field]));
+    if (!changedFields.length) {
+      model.projectInfoEditId = "";
+      model.projectInfoDraft = {};
+      model.projectInfoErrors = {};
+      showToast("项目信息没有变化", "info");
+      return;
+    }
+    Object.keys(fieldLabels).forEach((field) => { detail.project[field] = clone(nextValues[field]); });
+    detail.project.customerContextSnapshot = {
+      ...(detail.project.customerContextSnapshot || {}),
+      organization: draft.organization,
+      industry: draft.industry,
+      companySize: draft.companySize,
+      customerCharacteristics: draft.customerCharacteristics,
+      constraints: draft.constraints,
+    };
+    appendProjectHistory(detail, "PROJECT_INFO_UPDATED", "更新项目信息", `已修改：${changedFields.map((field) => fieldLabels[field]).join("、")}`);
+    model.projectHistoryPage = 0;
+    touchDetail(detail, { invalidateResult: true, invalidateReport: true });
+    model.projectInfoEditId = "";
+    model.projectInfoDraft = {};
+    model.projectInfoErrors = {};
+    render();
+    showToast("项目信息已保存，评估结果正在同步更新", "success");
+    scheduleCalculation(detail);
+  }
+
   function saveCreateDraft() {
     const draft = model.createDraft;
     const projectId = model.createDraftProjectId || uid("demo-project");
@@ -3578,7 +4037,7 @@
   }
 
   function createBlankEntries(template) {
-    return list(template.scoreItems).map((item) => ({ scoreItemId: item.id, isApplicable: true, elements: {}, dimensionNotes: {}, reviewElements: {}, targetLevel: "", targetReason: "", targetConfirmed: false, evidenceLevel: "E0", evidenceSummary: "", note: "", naReason: "", status: "not_scored" }));
+    return list(template.scoreItems).map((item) => ({ scoreItemId: item.id, isApplicable: true, elements: {}, dimensionNotes: {}, reviewElements: {}, targetElements: {}, targetDimensionNotes: {}, targetLevel: "", targetReason: "", targetConfirmed: false, evidenceLevel: "E0", evidenceSummary: "", note: "", naReason: "", status: "not_scored" }));
   }
 
   function createProject() {
@@ -3875,9 +4334,12 @@
         detail.exchangeBatches.push(exported.batch);
         persistDetail(detail);
       }
-      const fileName = exported.fileName || `${safeFileName(template.name || template.id)}-业务模板.xlsx`;
-      downloadBlob(workbookBlob(exported.package), fileName, exported.mimeType || XLSX_MIME);
-      showToast(`${template.type === "base" ? "标准" : "自定义"}模板 XLSX 已导出`, "success");
+      const outputPath = configuredExportPath(exported);
+      if (!outputPath) {
+        const fileName = exported.fileName || `${safeFileName(template.name || template.id)}-业务模板.xlsx`;
+        downloadBlob(workbookBlob(exported.package), fileName, exported.mimeType || XLSX_MIME);
+      }
+      showToast(outputPath ? `${template.type === "base" ? "标准" : "自定义"}模板已保存到：${outputPath}` : `${template.type === "base" ? "标准" : "自定义"}模板 XLSX 已下载`, "success");
     } catch (error) {
       showToast(error?.message || "模板结构导出失败", "error");
     }
@@ -3938,8 +4400,9 @@
       detail.exchangeBatches = list(detail.exchangeBatches);
       detail.exchangeBatches.push(exported.batch);
       persistDetail(detail);
-      downloadBlob(workbookBlob(exported.package), exported.fileName || `${safeFileName(detail.project.name)}-评分表.xlsx`, exported.mimeType || XLSX_MIME);
-      showToast("评分表已下载，可填写适用性、四维评分和目标等级", "success");
+      const outputPath = configuredExportPath(exported);
+      if (!outputPath) downloadBlob(workbookBlob(exported.package), exported.fileName || `${safeFileName(detail.project.name)}-评分表.xlsx`, exported.mimeType || XLSX_MIME);
+      showToast(outputPath ? `评分表已保存到：${outputPath}` : "评分表已下载，可填写适用性、四维评分和目标等级", "success");
     } catch (error) {
       showToast(error?.message || "评分文件导出失败", "error");
     }
@@ -3960,7 +4423,7 @@
         showToast(list(imported?.rowErrors)[0]?.message || "评分文件导入失败", "error");
         return;
       }
-      detail.scoreEntries = list(imported.scoreEntries);
+      detail.scoreEntries = normalizeScoreEntries(list(imported.scoreEntries));
       const successes = Number(imported.batch?.successCount || 0);
       const failures = Number(imported.batch?.failureCount || 0);
       const templateLabel = detail.template?.type === "base" ? "标准模板" : "自定义模板";
@@ -4019,8 +4482,16 @@
     window.setTimeout(() => URL.revokeObjectURL(url), 0);
   }
 
+  function configuredExportPath(exported) {
+    return text(exported?.outputPath || exported?.output_path || exported?.export?.outputPath || exported?.export?.output_path).trim();
+  }
+
   async function generateReport(detail) {
     if (!detail || model.reportGenerating) return;
+    if (!formalAssessmentReady(detail)) {
+      showToast("请先完成全部适用评估点并正式完成评估，再生成评估报告", "error");
+      return;
+    }
     const updateMode = reportPreviouslyGenerated(detail);
     model.reportGenerating = true;
     render();
@@ -4032,8 +4503,6 @@
       const reportSnapshotHash = text(report.reportModel?.resultSnapshot?.calculationRun?.resultHash);
       if (!reportResultHash || reportResultHash !== reportSnapshotHash) throw new Error("报告结果版本校验失败，请重新生成");
       detail.report = report;
-      detail.result = clone(report.reportModel.resultSnapshot);
-      detail.resultStale = false;
       detail.reportNarrativeDirty = false;
       const htmlFileName = report.fileNames?.html || "maturity-report.html";
       appendProjectHistory(
@@ -4070,26 +4539,51 @@
     }
   }
 
-  function downloadReport(detail, format) {
+  async function downloadReport(detail, format) {
     const report = detail?.report;
     if (!report) return;
     if (!reportExportReady(report)) {
       showToast("请先生成包含完整图表与统计的评估报告", "error");
       return;
     }
-    if (format === "markdown") downloadBlob(report.markdown || "", report.fileNames?.markdown || "maturity-report.md", "text/markdown;charset=utf-8");
-    if (format === "html") downloadBlob(report.html || "", report.fileNames?.html || "maturity-report.html", "text/html;charset=utf-8");
+    try {
+      const run = detail.result?.calculationRun || {};
+      const persistence = report.persistence || {};
+      const response = await window.sapdDataClient?.exportMaturityReport?.({
+        project: { id: detail.project?.id || "", name: detail.project?.name || "" },
+        artifactId: persistence.artifactId || "",
+        reportId: report.id || "",
+        inputHash: run.inputHash || "",
+        resultHash: run.resultHash || "",
+        format,
+      });
+      const exported = unwrap(response);
+      if (exported?.ok === false) throw new Error(exported?.message || exported?.error || "评估报告导出失败");
+      const outputPath = configuredExportPath(exported);
+      if (outputPath) {
+        showToast(`评估报告已保存到：${outputPath}`, "success");
+        return;
+      }
+      if (format === "markdown") downloadBlob(report.markdown || "", report.fileNames?.markdown || "maturity-report.md", "text/markdown;charset=utf-8");
+      if (format === "html") downloadBlob(report.html || "", report.fileNames?.html || "maturity-report.html", "text/html;charset=utf-8");
+      showToast(`评估报告已按 ${format === "html" ? "HTML" : "Markdown"} 格式下载`, "success");
+    } catch (error) {
+      showToast(error?.message || "评估报告导出失败", "error");
+    }
   }
 
   async function confirmOverviewReportDownload(detail) {
     if (!detail || model.reportGenerating) return;
+    if (!formalAssessmentReady(detail)) {
+      showToast("评估尚未正式完成，不能生成或下载评估报告", "error");
+      return;
+    }
     const format = model.reportDownloadFormat === "markdown" ? "markdown" : "html";
     model.reportDownloadProjectId = "";
     render();
     if (!reportExportReady(detail.report)) await generateReport(detail);
     if (!reportExportReady(detail.report)) return;
-    downloadReport(detail, format);
-    showToast(`评估报告已按 ${format === "html" ? "HTML" : "Markdown"} 格式下载`, "success");
+    await downloadReport(detail, format);
   }
 
   function updateScoreEntry(detail, itemId, changes, { rerender = true } = {}) {
@@ -4102,10 +4596,75 @@
     entry.status = entry.isApplicable === false ? "not_applicable" : scored ? "scored" : "incomplete";
     entry.lastUpdateScope = "ITEM";
     entry.lastUpdatedAt = nowLabel();
-    detail.resultStale = true;
+    markCalculationDirty(detail);
     touchDetail(detail, { invalidateReport: true });
     if (rerender) render();
     scheduleCalculation(detail);
+  }
+
+  function flushScoreInspector(detail, itemId) {
+    if (!detail || detail.project.readOnly || !itemId) return false;
+    const entry = scoreEntry(detail, itemId);
+    const controls = [...(model.root?.querySelectorAll(".maturity-v3-score-form [data-score-item-id]") || [])]
+      .filter((control) => control.dataset.scoreItemId === itemId);
+    let changed = false;
+    controls.forEach((control) => {
+      const scoreField = control.dataset.scoreField;
+      const scoreText = control.dataset.scoreText;
+      const dimension = control.dataset.scoreDimension;
+      const dimensionNote = control.dataset.scoreDimensionNote;
+      const targetDimensionNote = control.dataset.scoreTargetDimensionNote;
+      if (scoreField && entry[scoreField] !== control.value) {
+        entry[scoreField] = control.value;
+        changed = true;
+      }
+      if (scoreText && entry[scoreText] !== control.value) {
+        entry[scoreText] = control.value;
+        changed = true;
+      }
+      if (dimension && entry.elements?.[dimension] !== control.value) {
+        if (currentLevelIsAboveTarget(entry, dimension, control.value)) return;
+        entry.elements = { ...(entry.elements || {}), [dimension]: control.value };
+        entry.reviewElements = {};
+        changed = true;
+      }
+      if (dimensionNote && entry.dimensionNotes?.[dimensionNote] !== control.value) {
+        entry.dimensionNotes = { ...(entry.dimensionNotes || {}), [dimensionNote]: control.value };
+        changed = true;
+      }
+      if (targetDimensionNote && entry.targetDimensionNotes?.[targetDimensionNote] !== control.value) {
+        entry.targetDimensionNotes = { ...(entry.targetDimensionNotes || {}), [targetDimensionNote]: control.value };
+        syncLegacyTargetProjection(entry);
+        changed = true;
+      }
+    });
+    if (!changed) return false;
+    entry.status = entry.isApplicable === false ? "not_applicable" : entryIsComplete(entry) ? "scored" : "incomplete";
+    entry.lastUpdateScope = "ITEM";
+    entry.lastUpdatedAt = nowLabel();
+    markCalculationDirty(detail);
+    touchDetail(detail, { invalidateReport: true });
+    return true;
+  }
+
+  async function saveAndAdvanceScoreItem(detail, itemId) {
+    window.clearTimeout(model.calculationTimer);
+    flushScoreInspector(detail, itemId);
+    if (model.calculating && model.calculationPromise) await model.calculationPromise;
+    window.clearTimeout(model.calculationTimer);
+    const result = await calculateDetail(detail, { silent: true });
+    if (!result || detail.resultStale) {
+      showToast("当前评分尚未完成后端校验，请检查保存状态后重试", "error");
+      return;
+    }
+    const selection = scoringSelection(detail);
+    const scoreItems = selection.focuses.flatMap((candidate) => byTemplateOrder(selection.active.scoreItems.filter((item) => item.focusId === candidate.id)));
+    const currentIndex = scoreItems.findIndex((item) => item.id === itemId);
+    const nextItem = scoreItems[currentIndex + 1] || scoreItems[0];
+    if (nextItem && scoringNavigationBlocked(detail, nextItem.id)) return;
+    if (nextItem) setScoringItem(detail, nextItem.id);
+    render();
+    if (nextItem) scheduleScoringLanding(detail, nextItem.id);
   }
 
   function commitScoreLevel(detail, button) {
@@ -4113,15 +4672,35 @@
     const itemId = button.dataset.scoreItemId;
     const dimension = button.dataset.element;
     const level = button.dataset.scoreLevel;
-    const mode = button.dataset.scoreMode === "review" ? "review" : "self";
+    const mode = ["review", "target"].includes(button.dataset.scoreMode) ? button.dataset.scoreMode : "current";
     if (!LEVELS.includes(level) || !DIMENSIONS.some(([key]) => key === dimension)) return;
     const item = list(detail?.template?.scoreItems).find((candidate) => candidate.id === itemId);
     if (!item || !rubricRows(item, dimension).some((candidate) => candidate.level === level)) return;
     const entry = scoreEntry(detail, itemId);
+    const dimensionLabel = DIMENSIONS.find(([key]) => key === dimension)?.[1] || "当前状态";
     if (mode === "review") {
+      if (currentLevelIsAboveTarget(entry, dimension, level)) {
+        showToast(`${dimensionLabel}复核状态不能高于目标状态 ${entry.targetElements?.[dimension]}`, "error");
+        return;
+      }
       if (entry.reviewElements?.[dimension] === level) return;
       updateScoreEntry(detail, itemId, { reviewElements: { ...(entry.reviewElements || {}), [dimension]: level } });
+    } else if (mode === "target") {
+      if (targetLevelIsBelowCurrent(entry, dimension, level)) {
+        const currentLevel = currentDimensionLevel(entry, dimension);
+        showToast(`${dimensionLabel}目标状态不能低于当前状态 ${currentLevel}`, "error");
+        return;
+      }
+      if (entry.targetElements?.[dimension] === level) return;
+      const targetElements = { ...(entry.targetElements || {}), [dimension]: level };
+      entry.targetElements = targetElements;
+      syncLegacyTargetProjection(entry);
+      updateScoreEntry(detail, itemId, { targetElements, targetLevel: entry.targetLevel, targetReason: entry.targetReason, targetConfirmed: entry.targetConfirmed });
     } else {
+      if (currentLevelIsAboveTarget(entry, dimension, level)) {
+        showToast(`${dimensionLabel}当前状态不能高于目标状态 ${entry.targetElements?.[dimension]}`, "error");
+        return;
+      }
       if (entry.elements?.[dimension] === level) return;
       updateScoreEntry(detail, itemId, { elements: { ...(entry.elements || {}), [dimension]: level }, reviewElements: {} });
     }
@@ -4140,7 +4719,7 @@
       if (scope === "FOCUS_CLEAR") delete entry.focusBatchSourceId;
       else entry.focusBatchSourceId = focusId;
     });
-    detail.resultStale = true;
+    markCalculationDirty(detail);
     touchDetail(detail, { invalidateReport: true });
     render();
     scheduleCalculation(detail);
@@ -4151,32 +4730,58 @@
       showToast("后端正在校验评分，请稍候再完成评估", "info");
       return;
     }
-    if (detail.resultStale) await calculateDetail(detail, { silent: true });
-    const summary = summaryOf(detail);
-    if (summary.statisticsReady !== true) {
+    model.calculating = true;
+    render();
+    try {
+      const liveResult = await requestMaturityCalculation(detail);
+      applyCalculatedResult(detail, liveResult);
+      persistDetail(detail);
+      const liveSummary = liveResult.summary || {};
+      if (liveSummary.statisticsReady !== true) {
+        model.activeTab = "review";
+        model.toast = Number(liveSummary.targetBelowCurrentCount || 0) ? "存在目标等级低于当前评分计算等级的冲突，请先修改" : "仍有适用评分项未完成，不能完成评估";
+        model.toastTone = "error";
+        model.toastRoute = normalizedRoute();
+        return;
+      }
+
+      const completedProject = { ...clone(detail.project), status: "completed", readOnly: true };
+      const completedEntries = clone(detail.scoreEntries);
+      completedEntries.forEach((entry) => {
+        if (entry.isApplicable === false) return;
+        entry.reviewElements = DIMENSIONS.reduce((values, [key]) => ({ ...values, [key]: entry.reviewElements?.[key] || entry.elements?.[key] }), {});
+        entry.targetConfirmed = true;
+        entry.status = "confirmed";
+      });
+      const finalResult = await requestMaturityCalculation({ project: completedProject, template: detail.template, scoreEntries: completedEntries });
+      const finalSummary = finalResult.summary || {};
+      if (finalSummary.statisticsReady !== true || Number(finalSummary.completionRate || 0) < 100 || Number(finalSummary.notScoredCount || 0) !== 0) {
+        throw new Error("完成状态复核未通过，项目状态未改变");
+      }
+
+      detail.project = completedProject;
+      detail.scoreEntries = completedEntries;
+      applyCalculatedResult(detail, finalResult);
+      appendProjectHistory(detail, "ASSESSMENT_COMPLETED", "完成评估并锁定评分", "评分检查通过，当前评估结果已重新锁定。");
+      touchDetail(detail, { invalidateReport: true });
+      model.activeTab = "results";
+      model.toast = "评估已完成，全部适用评估点已锁定；不适用与无证据项未作为阻断项。";
+      model.toastTone = "success";
+      model.toastRoute = normalizedRoute();
+    } catch (error) {
       model.activeTab = "review";
+      model.toast = error?.message || "完成评估失败，项目状态未改变";
+      model.toastTone = "error";
+      model.toastRoute = normalizedRoute();
+    } finally {
+      model.calculating = false;
       render();
-      showToast(Number(summary.targetBelowCurrentCount || 0) ? "存在目标等级低于当前评分计算等级的冲突，请先修改" : "仍有适用评分项未完成，不能完成评估", "error");
-      return;
     }
-    detail.scoreEntries.forEach((entry) => {
-      if (entry.isApplicable === false) return;
-      entry.reviewElements = DIMENSIONS.reduce((values, [key]) => ({ ...values, [key]: entry.reviewElements?.[key] || entry.elements?.[key] }), {});
-      entry.targetConfirmed = true;
-      entry.status = "confirmed";
-    });
-    appendProjectHistory(detail, "ASSESSMENT_COMPLETED", "完成评估并锁定评分", "评分检查通过，当前评估结果已重新锁定。");
-    detail.project.status = "completed";
-    detail.project.readOnly = true;
-    touchDetail(detail, { invalidateResult: true, invalidateReport: true });
-    await calculateDetail(detail, { silent: true });
-    model.activeTab = "results";
-    showToast("评估已完成，全部适用评估点已锁定；不适用与无证据项未作为阻断项。", "success");
   }
 
   function unlockAssessmentForEditing(detail) {
     if (!detail?.project || !LOCKED_ASSESSMENT_STATUSES.has(detail.project.status) || !detail.project.readOnly) return;
-    appendProjectHistory(detail, "ASSESSMENT_UNLOCKED", "解锁评分修改", "保留现有评分，项目回到待完成评估；原正式评估报告失效。");
+    appendProjectHistory(detail, "ASSESSMENT_UNLOCKED", "解锁评分修改", "保留现有评分，项目回到评分检查阶段；原正式评估报告失效。");
     detail.project.status = "score_review";
     detail.project.readOnly = false;
     detail.resultStale = false;
@@ -4191,11 +4796,13 @@
     window.setTimeout(() => {
       window.requestAnimationFrame(() => {
         const entry = scoreEntry(detail, itemId);
-        const missingDimension = firstMissing ? DIMENSIONS.find(([key]) => !LEVELS.includes(entry.elements?.[key]))?.[0] : "organization";
+        const missingCurrentDimension = firstMissing ? DIMENSIONS.find(([key]) => !LEVELS.includes(entry.elements?.[key]))?.[0] : "";
+        const missingTargetDimension = firstMissing && !missingCurrentDimension ? DIMENSIONS.find(([key]) => !LEVELS.includes(entry.targetElements?.[key]))?.[0] : "";
+        const missingDimension = missingCurrentDimension || missingTargetDimension || "organization";
         const organizationRow = model.root?.querySelector('[data-maturity-dimension-row="organization"]');
         const dimensionRow = model.root?.querySelector(`[data-maturity-dimension-row="${missingDimension || "organization"}"]`) || organizationRow;
-        const targetControl = targetConflict || (firstMissing && !missingDimension && !LEVELS.includes(entry.targetLevel))
-          ? model.root?.querySelector(`.maturity-v16-target-level [data-score-item-id="${itemId}"]`)
+        const targetControl = targetConflict || missingTargetDimension
+          ? dimensionRow?.querySelector('[data-score-state="target"] [role="radio"][tabindex="0"]') || model.root?.querySelector('[data-score-state="target"] [role="radio"][tabindex="0"]')
           : null;
         const target = targetControl || dimensionRow;
         const dimensionScrollOwner = target?.closest(".maturity-v12-score-dimensions");
@@ -4245,7 +4852,14 @@
     const actionTarget = event.target.closest("[data-maturity-action]");
     const tabTarget = event.target.closest("[data-maturity-tab]");
     if (tabTarget) {
-      model.activeTab = tabTarget.dataset.maturityTab || "overview";
+      const nextTab = tabTarget.dataset.maturityTab || "overview";
+      const detail = activeDetail();
+      if (FORMAL_RESULT_TAB_IDS.has(nextTab) && !formalAssessmentReady(detail)) {
+        model.activeTab = "review";
+        showToast("完成全部适用评估点并正式完成评估后，才能查看评估结果和报告", "info");
+        return;
+      }
+      model.activeTab = nextTab;
       if (model.activeTab !== "report") model.reportEditingSection = "";
       model.projectObjectSearch = "";
       model.projectObjectSearchIndex = 0;
@@ -4261,6 +4875,18 @@
     if (!actionTarget) return;
     const action = actionTarget.dataset.maturityAction;
     const detail = activeDetail();
+    if (action === "edit-project-info" && detail) { openProjectInfoEditor(detail); return; }
+    if (action === "cancel-project-info-edit") { closeProjectInfoEditor(); return; }
+    if (action === "save-project-info" && detail) { saveProjectInfo(detail); return; }
+    if (action === "toggle-score-directory" && detail) {
+      const ui = scoreDirectoryUi(detail);
+      ui.collapsed = !ui.collapsed;
+      render();
+      window.setTimeout(() => {
+        model.root?.querySelector(ui.collapsed ? ".maturity-v4-directory-expand-tab" : ".maturity-v4-score-directory-actions button")?.focus();
+      }, 0);
+      return;
+    }
     if (action === "step-project-history" && detail) {
       const pageCount = Math.max(1, Math.ceil(projectChangeHistory(detail).length / 3));
       model.projectHistoryPage = Math.max(0, Math.min(pageCount - 1, Number(model.projectHistoryPage || 0) + Number(actionTarget.dataset.historyStep || 0)));
@@ -4489,11 +5115,12 @@
       const selection = scoringSelection(detail);
       const batch = focusBatchState(detail, selection.scoreItems);
       if (!batch.hasServiceItems) {
-        showToast(batch.reason, "info");
+        showToast(batch.target.reason, "info");
         return;
       }
       model.focusBatchOpen = !model.focusBatchOpen;
       model.focusBatchClearConfirmId = "";
+      model.focusTargetClearConfirmId = "";
       render();
     }
     if (action === "request-clear-focus-scores") {
@@ -4519,7 +5146,8 @@
         return;
       }
       model.focusBatchClearConfirmId = "";
-      updateFocusEntries(detail, focusId, (entry) => {
+      updateFocusEntries(detail, focusId, (entry, item) => {
+        if (item.itemType !== "SERVICE") return;
         entry.elements = {};
         entry.reviewElements = {};
       }, { scope: "FOCUS_CLEAR" });
@@ -4529,18 +5157,80 @@
       const selection = scoringSelection(detail);
       const batch = focusBatchState(detail, selection.scoreItems);
       const level = model.focusBatchLevel;
+      const existingTargetMinimumLevel = focusExistingTargetMinimumLevel(detail, selection.scoreItems);
+      const maximumAllowedLevel = focusCurrentMaximumAllowedLevel(detail, selection.scoreItems);
       if (!batch.canApply || !LEVELS.includes(level)) {
         showToast(batch.reason || "请选择有效等级", "info");
         return;
       }
-      model.focusBatchOpen = false;
+      if (LEVELS.indexOf(level) > LEVELS.indexOf(maximumAllowedLevel)) {
+        showToast(`下级当前状态不能高于下级已有最低目标等级 ${existingTargetMinimumLevel}`, "error");
+        return;
+      }
+      model.focusBatchOpen = !batch.target.hasAll;
       model.focusBatchClearConfirmId = "";
-      updateFocusEntries(detail, actionTarget.dataset.focusId, (entry) => {
-        if (entry.isApplicable === false) return;
+      updateFocusEntries(detail, actionTarget.dataset.focusId, (entry, item) => {
+        if (item.itemType !== "SERVICE" || entry.isApplicable === false) return;
         entry.elements = DIMENSIONS.reduce((values, [key]) => ({ ...values, [key]: level }), {});
         entry.reviewElements = {};
       });
       showToast(`已将 ${level} 作为下级评估点的四维初始等级`, "success");
+    }
+    if (action === "request-clear-focus-targets") {
+      const selection = scoringSelection(detail);
+      const batch = focusBatchState(detail, selection.scoreItems);
+      if (!batch.target.canClear) {
+        showToast(batch.target.reason, "info");
+        return;
+      }
+      model.focusTargetClearConfirmId = actionTarget.dataset.focusId || "";
+      render();
+    }
+    if (action === "cancel-clear-focus-targets") {
+      model.focusTargetClearConfirmId = "";
+      render();
+    }
+    if (action === "confirm-clear-focus-targets") {
+      const selection = scoringSelection(detail);
+      const batch = focusBatchState(detail, selection.scoreItems);
+      const focusId = actionTarget.dataset.focusId || "";
+      if (!batch.target.canClear || focusId !== selection.focus?.id) {
+        showToast(batch.target.reason || "当前关注点已变化，请重新操作", "info");
+        return;
+      }
+      model.focusTargetClearConfirmId = "";
+      updateFocusEntries(detail, focusId, (entry, item) => {
+        if (item.itemType !== "SERVICE") return;
+        entry.targetElements = {};
+        entry.targetDimensionNotes = {};
+        entry.targetLevel = "";
+        entry.targetReason = "";
+        entry.targetConfirmed = false;
+      }, { scope: "FOCUS_TARGET_CLEAR" });
+      showToast("已清空当前关注点全部下级目标，当前评分保持不变", "success");
+    }
+    if (action === "apply-focus-target-batch-level") {
+      const selection = scoringSelection(detail);
+      const batch = focusBatchState(detail, selection.scoreItems);
+      const level = model.focusTargetBatchLevel;
+      const currentMaximumLevel = focusCurrentMaximumLevel(detail, selection.scoreItems);
+      const minimumLevel = focusTargetMinimumLevel(detail, selection.scoreItems);
+      if (!batch.target.canApply || !LEVELS.includes(level)) {
+        showToast(batch.target.reason || "请选择有效目标等级", "info");
+        return;
+      }
+      if (LEVELS.indexOf(level) < LEVELS.indexOf(minimumLevel)) {
+        showToast(`下级目标状态不能低于下级当前最高等级 ${currentMaximumLevel}`, "error");
+        return;
+      }
+      model.focusBatchOpen = !batch.current.hasAll;
+      model.focusTargetClearConfirmId = "";
+      updateFocusEntries(detail, actionTarget.dataset.focusId, (entry, item) => {
+        if (item.itemType !== "SERVICE" || entry.isApplicable === false) return;
+        entry.targetElements = DIMENSIONS.reduce((values, [key]) => ({ ...values, [key]: level }), {});
+        syncLegacyTargetProjection(entry);
+      }, { scope: "FOCUS_TARGET_BATCH" });
+      showToast(`已将 ${level} 作为下级评估点的四维目标等级`, "success");
     }
     if (action === "select-review-item") {
       model.selectedScoreItemId = model.selectedScoreItemId === actionTarget.dataset.scoreItemId ? "" : actionTarget.dataset.scoreItemId || "";
@@ -4556,14 +5246,8 @@
       render();
     }
     if (action === "next-score-item") {
-      const selection = scoringSelection(detail);
-      const scoreItems = selection.focuses.flatMap((candidate) => byTemplateOrder(selection.active.scoreItems.filter((item) => item.focusId === candidate.id)));
-      const currentIndex = scoreItems.findIndex((item) => item.id === actionTarget.dataset.scoreItemId);
-      const nextItem = scoreItems[currentIndex + 1] || scoreItems[0];
-      if (nextItem && scoringNavigationBlocked(detail, nextItem.id)) return;
-      if (nextItem) setScoringItem(detail, nextItem.id);
-      render();
-      if (nextItem) scheduleScoringLanding(detail, nextItem.id);
+      saveAndAdvanceScoreItem(detail, actionTarget.dataset.scoreItemId);
+      return;
     }
     if (action === "clear-score-filters") {
       model.scoringSearch = "";
@@ -4698,6 +5382,17 @@
     if (event.target.matches("[data-focus-score-dimension]")) {
       const key = event.target.dataset.focusScoreDimension;
       const value = event.target.value;
+      const conflictingEntry = list(detail.template?.scoreItems)
+        .filter((item) => item.focusId === event.target.dataset.focusId && item.itemType === "SERVICE")
+        .map((item) => scoreEntry(detail, item.id))
+        .find((entry) => entry.isApplicable !== false
+          && LEVELS.includes(entry.targetElements?.[key])
+          && LEVELS.indexOf(value) > LEVELS.indexOf(entry.targetElements[key]));
+      if (conflictingEntry) {
+        showToast(`下级当前状态不能高于已有目标状态 ${conflictingEntry.targetElements?.[key]}`, "error");
+        render();
+        return;
+      }
       updateFocusEntries(detail, event.target.dataset.focusId, (entry) => {
         if (entry.isApplicable === false) return;
         entry.elements = { ...(entry.elements || {}), [key]: value };
@@ -4707,9 +5402,19 @@
     }
     if (event.target.matches("[data-focus-score-field='targetLevel']")) {
       const value = event.target.value;
+      const focusItems = list(detail.template?.scoreItems).filter((item) => item.focusId === event.target.dataset.focusId);
+      const currentMaximumLevel = focusCurrentMaximumLevel(detail, focusItems);
+      const minimumLevel = focusTargetMinimumLevel(detail, focusItems);
+      if (!minimumLevel || LEVELS.indexOf(value) < LEVELS.indexOf(minimumLevel)) {
+        showToast(`下级目标状态不能低于下级当前最高等级 ${currentMaximumLevel}`, "error");
+        render();
+        return;
+      }
       updateFocusEntries(detail, event.target.dataset.focusId, (entry) => {
-        if (entry.isApplicable !== false) entry.targetLevel = value;
-      });
+        if (entry.isApplicable === false) return;
+        entry.targetElements = DIMENSIONS.reduce((values, [key]) => ({ ...values, [key]: value }), {});
+        syncLegacyTargetProjection(entry);
+      }, { scope: "FOCUS_TARGET_BATCH" });
       return;
     }
     if (event.target.matches("[data-score-applicability]")) {
@@ -4719,11 +5424,21 @@
     }
     if (event.target.matches("[data-score-dimension]")) {
       const entry = scoreEntry(detail, event.target.dataset.scoreItemId);
+      if (currentLevelIsAboveTarget(entry, event.target.dataset.scoreDimension, event.target.value)) {
+        showToast(`当前状态不能高于目标状态 ${entry.targetElements?.[event.target.dataset.scoreDimension]}`, "error");
+        render();
+        return;
+      }
       updateScoreEntry(detail, event.target.dataset.scoreItemId, { elements: { ...(entry.elements || {}), [event.target.dataset.scoreDimension]: event.target.value }, reviewElements: {} });
       return;
     }
     if (event.target.matches("[data-score-review-dimension]")) {
       const entry = scoreEntry(detail, event.target.dataset.scoreItemId);
+      if (currentLevelIsAboveTarget(entry, event.target.dataset.scoreReviewDimension, event.target.value)) {
+        showToast(`复核状态不能高于目标状态 ${entry.targetElements?.[event.target.dataset.scoreReviewDimension]}`, "error");
+        render();
+        return;
+      }
       updateScoreEntry(detail, event.target.dataset.scoreItemId, { reviewElements: { ...(entry.reviewElements || {}), [event.target.dataset.scoreReviewDimension]: event.target.value } });
       return;
     }
@@ -4738,6 +5453,13 @@
     if (event.target.matches("[data-score-dimension-note]")) {
       const entry = scoreEntry(detail, event.target.dataset.scoreItemId);
       updateScoreEntry(detail, event.target.dataset.scoreItemId, { dimensionNotes: { ...(entry.dimensionNotes || {}), [event.target.dataset.scoreDimensionNote]: event.target.value } });
+      return;
+    }
+    if (event.target.matches("[data-score-target-dimension-note]")) {
+      const entry = scoreEntry(detail, event.target.dataset.scoreItemId);
+      entry.targetDimensionNotes = { ...(entry.targetDimensionNotes || {}), [event.target.dataset.scoreTargetDimensionNote]: event.target.value };
+      syncLegacyTargetProjection(entry);
+      updateScoreEntry(detail, event.target.dataset.scoreItemId, { targetDimensionNotes: entry.targetDimensionNotes, targetReason: entry.targetReason });
       return;
     }
     if (event.target.matches("[data-template-capability-field]")) {
@@ -4843,13 +5565,20 @@
 
   function handleInput(event) {
     if (event.target.matches("[data-maturity-focus-batch-slider]")) {
-      const index = Math.max(0, Math.min(4, Math.round(Number(event.target.value || 1)) - 1));
+      const minimumValue = Math.max(1, Math.min(5, Number(event.target.dataset.maturityMinLevel || 1)));
+      const maximumValue = Math.max(minimumValue, Math.min(5, Number(event.target.dataset.maturityMaxLevel || 5)));
+      const requestedValue = Math.max(1, Math.min(5, Math.round(Number(event.target.value || 1))));
+      const value = Math.max(minimumValue, Math.min(maximumValue, requestedValue));
+      event.target.value = String(value);
+      const index = value - 1;
       const level = LEVELS[index];
-      model.focusBatchLevel = level;
+      const kind = event.target.dataset.maturityFocusBatchSlider === "target" ? "target" : "current";
+      if (kind === "target") model.focusTargetBatchLevel = level;
+      else model.focusBatchLevel = level;
       const control = event.target.closest(".maturity-v9-score-slider");
       control?.style.setProperty("--maturity-score-progress", `${index * 25}%`);
       control?.style.setProperty("--maturity-score-ratio", `${index / 4}`);
-      const label = control?.querySelector("[data-focus-batch-slider-label]");
+      const label = control?.querySelector(`[data-focus-batch-slider-label="${kind}"]`);
       if (label) label.textContent = `${level} ${LEVEL_NAMES[level]}`;
       event.target.setAttribute("aria-valuetext", `${level} ${LEVEL_NAMES[level]}`);
       return;
@@ -4911,7 +5640,7 @@
       entry.status = entry.isApplicable === false ? "not_applicable" : entryIsComplete(entry) ? "scored" : "incomplete";
       entry.lastUpdateScope = "ITEM";
       entry.lastUpdatedAt = nowLabel();
-      detail.resultStale = true;
+      markCalculationDirty(detail);
       touchDetail(detail, { invalidateReport: true });
       scheduleCalculation(detail);
     }
@@ -4920,6 +5649,16 @@
       if (!detail || detail.project.readOnly) return;
       const entry = scoreEntry(detail, event.target.dataset.scoreItemId);
       entry.dimensionNotes = { ...(entry.dimensionNotes || {}), [event.target.dataset.scoreDimensionNote]: event.target.value };
+      entry.lastUpdateScope = "ITEM";
+      entry.lastUpdatedAt = nowLabel();
+      touchDetail(detail, { invalidateReport: true });
+    }
+    if (event.target.matches("[data-score-target-dimension-note]")) {
+      const detail = activeDetail();
+      if (!detail || detail.project.readOnly) return;
+      const entry = scoreEntry(detail, event.target.dataset.scoreItemId);
+      entry.targetDimensionNotes = { ...(entry.targetDimensionNotes || {}), [event.target.dataset.scoreTargetDimensionNote]: event.target.value };
+      syncLegacyTargetProjection(entry);
       entry.lastUpdateScope = "ITEM";
       entry.lastUpdatedAt = nowLabel();
       touchDetail(detail, { invalidateReport: true });
@@ -4935,13 +5674,28 @@
         entry.lastUpdateScope = "FOCUS_BATCH";
         entry.lastUpdatedAt = nowLabel();
       });
-      detail.resultStale = true;
+      markCalculationDirty(detail);
       touchDetail(detail, { invalidateReport: true });
       scheduleCalculation(detail);
     }
   }
 
   function handleKeydown(event) {
+    const directoryResizer = event.target.closest?.("[data-maturity-score-directory-resizer]");
+    if (directoryResizer && ["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) {
+      const detail = activeDetail();
+      const shell = directoryResizer.closest(".maturity-v4-scoring-shell");
+      if (!detail || !shell) return;
+      event.preventDefault();
+      const ui = scoreDirectoryUi(detail);
+      ui.width = event.key === "Home"
+        ? SCORE_DIRECTORY_MIN_WIDTH
+        : event.key === "End"
+          ? SCORE_DIRECTORY_MAX_WIDTH
+          : ui.width + (event.key === "ArrowRight" ? 16 : -16);
+      applyScoreDirectoryWidth(shell, ui);
+      return;
+    }
     const projectRow = event.target.closest?.(".maturity-v28-project-row[data-project-id]");
     if (projectRow && event.target === projectRow && ["Enter", " "].includes(event.key)) {
       event.preventDefault();
@@ -4990,6 +5744,22 @@
         const candidates = model.root?.querySelectorAll("[data-maturity-score-level]") || [];
         [...candidates].find((candidate) => candidate.dataset.scoreItemId === focusKey.itemId && candidate.dataset.element === focusKey.dimension && candidate.dataset.scoreLevel === focusKey.level && candidate.dataset.scoreMode === focusKey.mode)?.focus();
       }, 0);
+      return;
+    }
+    const projectInfoModal = model.root?.querySelector(".maturity-v37-project-edit-workspace");
+    if (projectInfoModal) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeProjectInfoEditor();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const focusable = [...projectInfoModal.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])')].filter((element) => !element.hidden && element.offsetParent !== null);
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
       return;
     }
     const reportDownloadModal = model.root?.querySelector(".maturity-v33-report-download-modal");
@@ -5050,6 +5820,7 @@
     root.addEventListener("change", handleChange);
     root.addEventListener("input", handleInput);
     root.addEventListener("keydown", handleKeydown);
+    root.addEventListener("pointerdown", beginScoreDirectoryResize);
     if (!model.scoreContextResizeBound) {
       window.addEventListener("resize", syncFixedScoreContextPosition, { passive: true });
       model.scoreContextResizeBound = true;
@@ -5073,6 +5844,10 @@
       model.root = root;
       model.route = nextRoute;
       model.activeTab = rememberedProjectTab(nextRoute);
+      const routedDetail = model.details[projectIdFromRoute(nextRoute)];
+      if (routedDetail && FORMAL_RESULT_TAB_IDS.has(model.activeTab) && !formalAssessmentReady(routedDetail)) {
+        model.activeTab = "review";
+      }
       model.navigate = typeof navigate === "function" ? navigate : model.navigate;
       bindRoot(root);
       if (!model.loaded && !model.loading) loadWorkspace();

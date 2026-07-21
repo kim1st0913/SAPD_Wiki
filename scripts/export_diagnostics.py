@@ -87,14 +87,19 @@ def redacted_runtime_log(path: Path, root: Path) -> str:
 
 def export_diagnostics(bundle_root: Path) -> Path:
     root = bundle_root.resolve()
-    diagnostics_dir = root / "diagnostics"
+    config_path = root / "config" / "app-config.json"
+    config = load_json_for_diagnostics(config_path) if config_path.exists() else {}
+    configured_export = str(config.get("download_dir") or "").strip()
+    export_root = Path(configured_export).expanduser() if configured_export else root / "data" / "exports"
+    if not export_root.is_absolute():
+        export_root = root / export_root
+    diagnostics_dir = export_root.resolve() / "diagnostics"
     diagnostics_dir.mkdir(parents=True, exist_ok=True)
     stamp = time.strftime("%Y%m%d-%H%M%S")
     output = diagnostics_dir / f"sapd-wiki-diagnostics-{stamp}.zip"
 
     runtime_log = root / "logs" / "runtime.log"
     manifest_path = root / "data" / "base" / "base-manifest.json"
-    config_path = root / "config" / "app-config.json"
     runtime_state_path = root / "logs" / "runtime-state.json"
     manifest = load_json_for_diagnostics(manifest_path) if manifest_path.exists() else {}
     base_info = manifest.get("base_database", {}) if isinstance(manifest.get("base_database"), dict) else {}

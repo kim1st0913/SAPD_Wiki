@@ -44,6 +44,9 @@ async function main() {
   const issueItemSource = functionSlice(appSource, "renderWorkbenchIssueItem", "workbenchIssuePageObjectLabel");
   const issueWorkspaceSource = functionSlice(appSource, "renderWorkbenchIssues", "renderWorkbenchMaturity");
   const searchPageSource = functionSlice(appSource, "renderSearchPage", "renderPlaceholder");
+  const clearFiltersStart = appSource.indexOf('const clearFiltersButton = event.target.closest("[data-review-clear-filters]")');
+  const clearFiltersEnd = appSource.indexOf('const bulkStatusButton = event.target.closest("[data-review-bulk-status]")', clearFiltersStart);
+  const clearFiltersSource = clearFiltersStart >= 0 ? appSource.slice(clearFiltersStart, clearFiltersEnd >= 0 ? clearFiltersEnd : undefined) : "";
 
   assert(config.issueWorkspace?.listLabel === "ISSUE清单" && includesAll(appSource, ['aria-label="ISSUE清单"', "不会再出现在 ISSUE清单"]) && !appSource.includes("Issue 清单"), "Issue 列表名称未统一为 ISSUE清单", issues);
   assert(includesAll(appSource, config.issueColumns.filter((key) => key !== "select").map((key) => key === "title" ? "issue-column-title" : `issue-column-${key}`)), "Issue 默认列类未完整覆盖清单、页面/对象、状态、优先级和更新时间", issues);
@@ -51,7 +54,7 @@ async function main() {
   assert(includesAll(cssSource, ["overflow-x: hidden", "workbench-review-item", "border-bottom: 1px solid", "workbench-review-queue", "border-radius: 14px"]), "Issue 队列无横向滚动、共享表面或分隔行契约不完整", issues);
   assert(config.issueWorkspace?.toolbar === "status-priority-filters-plus-canonical-page-search" && includesAll(issueWorkspaceSource, ["workbench-review-filter-field", "优先级", "workbench-review-search-shell"]), "Issue 筛选未形成状态、优先级加标准局部搜索的单行层级", issues);
   assert(config.issueWorkspace?.scopeOwner === "left-directory-only" && includesAll(issueWorkspaceSource, ["workbench-review-scope", 'data-review-page-route="全部"']) && !issueWorkspaceSource.includes('data-review-filter-control="page"') && !issueWorkspaceSource.includes('<span>Issue 范围</span><select'), "Issue 页面范围未收敛为左侧目录唯一入口", issues);
-  assert(!issueWorkspaceSource.includes('{ label: "Issue 范围"') && !appSource.includes('if (control === "page") state.workbenchIssuePageFilter') && !appSource.includes('state.workbenchIssuePageFilter = "全部";\n      state.workbenchIssuePriorityFilter'), "顶部筛选或清除筛选仍可绕过左侧目录修改 Issue 范围", issues);
+  assert(clearFiltersSource && !issueWorkspaceSource.includes('{ label: "Issue 范围"') && !appSource.includes('if (control === "page") state.workbenchIssuePageFilter') && !clearFiltersSource.includes("state.workbenchIssuePageFilter"), "顶部筛选或清除筛选仍可绕过左侧目录修改 Issue 范围", issues);
   assert(config.issueWorkspace?.searchControl === "global-page-search-control-with-match-navigation" && config.issueWorkspace?.searchMatchGrain === "filtered-issue-objects-by-stable-id" && includesAll(issueWorkspaceSource, ["workbench-review-search-control page-search-control", "page-search-input-shell", 'id="workbenchIssueSearchInput"', "page-search-match-status", 'data-page-search-step="-1"', 'data-page-search-step="1"']) && includesAll(stylesSource, [".app-shell-integrated .workbench-review-search-control.page-search-control", "border-radius: 999px"]), "Issue 搜索未复用包含计数与前后箭头的全局页面搜索组件", issues);
   assert(!issueWorkspaceSource.includes("workbench-review-filter-label"), "Issue 搜索仍保留全局组件之外的私有“关键词”标题", issues);
   assert(includesAll(appSource, ["WORKBENCH_ISSUE_SEARCH_SCOPE", "syncWorkbenchIssueSearchNavigation", "moveWorkbenchIssueSearchMatch", "rows.map((issue) => ({ id: issue.id, title: issue.title }))", "state.workbenchSelectedIssueId = rows[nextIndex].id"]), "Issue 搜索箭头未按筛选后 Issue 稳定 ID 导航", issues);
@@ -61,7 +64,7 @@ async function main() {
   assert(includesAll(dataClientSource, ["shouldSaveExportToConfiguredDirectory", "health?.state?.bundle_root", 'query.set("download", "1")', 'query.set("save", "1")', "new Blob([content]", "return normalizeUserPayload(await response.json())"]), "Issue 导出未按运行面自动选择浏览器下载或 App 配置目录", issues);
   assert(includesAll(appSource, ["issueExportSuccessState", "downloadBlobFile(result.blob, result.filename)", "保存位置由浏览器下载设置决定", "导出服务未返回文件下载路径", "result?.output_path || result?.data?.output_path"]), "Issue 导出成功态未校验浏览器 Blob 下载或 App 实际路径", issues);
   assert(includesAll(apiSource, ["/api/v1/user/exports/markdown", "def save_markdown_export", "def save_user_notes_export", "should_save"]), "App 配置目录保存接口不完整", issues);
-  assert(includesAll(packagedServerSource, ["self.export_dir = self.resolve_export_dir(self.config.get(\"download_dir\"))", '"output_path": str(output_path)', '"download_dir": str(self.export_dir)']) && includesAll(macosWrapperSource, ['title: "文件下载路径"', "changeDownloadPath", 'object["download_dir"] = settings.downloadDirectory.path']), "macOS App 未把用户选择的文件下载路径写入运行时导出配置", issues);
+  assert(includesAll(packagedServerSource, ["self.export_dir = self.resolve_export_dir(self.config.get(\"download_dir\"))", 'self.export_category_dir("issues")', '"output_path": str(output_path)', '"download_dir": str(self.export_dir)']) && includesAll(macosWrapperSource, ['title: "导出文件夹"', "changeDownloadPath", 'object["download_dir"] = settings.downloadDirectory.path']), "macOS App 未把用户选择的导出文件夹及 Issue 分类目录写入运行时配置", issues);
   assert(indexSource.split('id="searchInput"').length - 1 === 1, "顶部全局搜索输入框数量不是 1", issues);
   assert(!appSource.includes('id="searchPageQueryInput"') && !appSource.includes("data-search-page-submit"), "搜索结果页仍存在第二主搜索框", issues);
   assert(searchPageSource.includes("global-search-page-context") && searchPageSource.includes("aria-pressed"), "搜索结果页缺少当前查询上下文或分面状态", issues);

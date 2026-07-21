@@ -4,6 +4,8 @@
 
 ## 当前关键决策
 
+- 2026-07-20 成熟度目标状态的正式输入粒度由单一目标等级升级为与当前评分对称的四个维度：`targetElements` 与 `targetDimensionNotes` 是新契约，`targetLevel / targetReason` 只保留为旧数据兼容投影。当前与目标使用相同维度权重分别计算综合指数；所有入口统一执行 `目标状态 >= 当前状态`，相等是合法值，只有目标低于同维度当前状态才形成 `targetDimensionConflicts` 并阻塞切换、统计和完成。批量目标下限等于适用下级四维当前最高等级，批量当前上限等于已有目标最低等级，L5 当前允许 L5 目标。新版 XLSX 逐维校验，旧版单一目标按当前四维最高等级校验。旧数据只在新字段缺失时展开，显式但未完成或低于当前的四维目标继续原值展示并给出冲突，不静默抬高或回退旧值。
+- 2026-07-20 成熟度测试项目数量按运行场景分层：开发工作台保留 `5` 条受控项目，便于状态、筛选、分页和编辑回归；Mac App / ZIP bundle 交付运行时只包含 `2` 条测试项目。该差异必须由后端 workspace profile 和显式 runtime label 决定，前端不得自行截断。项目基本信息属于可维护项目事实，修改后必须同步 `customerContextSnapshot`、历史记录并使旧结果 / 报告失效重算，但不得改变模板、评分、状态或完成门禁。
 - 2026-07-17 成熟度第三十一轮根因结论：L2 摘要不是单纯的列宽问题，而是两个后置共享规则共同破坏了业务子格归属——评估点内部从等宽 grid 被覆盖为 intrinsic flex，成熟度 level / score 又继承旧 `align-self:end`。正确契约是收窄评估点、恢复两个等宽状态子格，让当前 / 目标、四维、适用性、进度分别在自身子格水平居中，并让成熟度等级 / 连续分数与四维均值共享 `28px` token、围绕“维度名称 + 数值”组合块中线对齐。该结论适用于所有 L2 评分上下文，不适用于 L2 聚合统计或项目概览；不改变评分、聚合、门禁、对象粒度或正式数据。
 - 2026-07-17 成熟度第二十七轮根因结论：滚动 owner 必须继续上移到能覆盖“目录上下文 → 摘要 → 当前评估点 → 完整评分”的项目页外层，评分表单不能再作为第二个滚动窗口；窄屏的摘要问题不是缩小字体，而是按业务组换行。结果 T / G / M 不是“分层评价”抽象统计，而是三个能力类别评分，代码必须与其当前分数紧邻、目标留在同类别辅助行。报告的 Markdown / HTML 是两个独立交付物，但都必须复刻同一后端完整评估结果并合并人工文字，不能把“人工填写区”误当作报告主体。本轮只改变 shared frontend scroll / visual layout 和 report presentation，不改变评分、聚合、完成门禁、数据粒度或正式数据。
 - 2026-07-16 成熟度第二十六轮根因结论：滚动 owner 必须对应完整用户任务，而不是对应某个可滚动 DOM 子列。评分执行的正确契约是完整评分表单单滚动、四维打分列自然展开、评估概览在该 owner 内 sticky；第二十五轮“四维列唯一滚动”历史结论由本轮用户复验覆盖。页面比例也必须对应信息权重：项目概览为项目情况 / 进度 `2:1`，宽屏首页为项目 / 模板约 `1.85:1`，四维雷达必须同时放大画布和真实半径，不能只拉高容器。默认模板 canonical 显示名为“SAPD标准能力成熟度模板”；这些均为 shared frontend / display contract，不改变评分、聚合、门禁、模板结构或正式数据。
@@ -24,6 +26,7 @@
 | MVP 前端技术路线 | 当前继续使用静态页面 + 原生 JS + `dataClient` + ViewModel | `task_plan.md` |
 | 数据优先 | 字段定义、映射规则、schema、ETL 先于页面扩展 | `docs/02-data-model/`, `docs/03-import-etl/` |
 | 导入方式 | 坚持 `source -> staging -> review -> approval -> formal tables` | `docs/03-import-etl/excel-import-mvp-design.md` |
+| 导入审批与中间数据生命周期 | approve 只能从 `reviewing` 原子进入且同一 job 只允许一次；来源引用按完整证据键幂等复用；业务验收后使用默认 dry-run 的按 job finalize 命令清理 staging / review；未显式传 job ID 的正式导出只选择最新 approved 任务。契约已确认但代码尚未实现，跟踪为 `OI-198` | `docs/03-import-etl/import-approval-idempotency-and-retention-contract.md`, `docs/06-implementation/open-issues.md` |
 | 来源追踪 | 知识对象和关系必须保留来源文件、位置、hash 和导入任务 | `docs/06-implementation/local-data-layout.md` |
 | 顾问端交付模型 | V1 面向咨询顾问交付压缩包；首次打开后由应用一键初始化预置 SQLite 数据库、页面数据包和预览资源；顾问端不安装开发依赖、不自行导入资料、不执行 ETL / migration；V1 不做登录、注册、账号和权限体系 | `docs/01-architecture/consultant-delivery-model.md`, `docs/06-implementation/local-data-layout.md` |
 | Delivery Bundle 1.0 交付版 | 正式边界收紧为“预构建知识库运行版”，不是“一键导入版”：制作者 / 管理员端负责原始资料、ETL、清洗、审查、审批和构建只读 `sapd_wiki_base.sqlite3`；普通用户端安装 App 后读取 base，并把备注、收藏、个人标签、overlay、修正建议和用户新增数据写入 `sapd_wiki_user.sqlite3` | `docs/09-delivery/delivery-bundle-1.0-prebuilt-database.md`, `docs/01-architecture/delivery-bundle-1.0-prebuilt-database.md` |

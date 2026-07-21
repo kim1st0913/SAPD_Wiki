@@ -26,8 +26,6 @@
 
 final result: passed
 
----
-
 # 成熟度评估报告 V2 编制工作台 Design QA（2026-07-18）
 
 - source visual truth：当前评估报告运行截图 `/private/tmp/sapd-maturity-report-design-audit-20260718/01-current-report-page.png`、人工结论内容设计 `/Users/kim1st/.codex/.chatgpt-projects/g-p-6a0141ade554819195eb79578e83c85f/SAPD_成熟度评估人工结论内容设计_V1.1.md`，以及 Figma 实施评审板 `https://www.figma.com/design/QTozvhOuhoqMrj1VPkApdG`。
@@ -1775,5 +1773,58 @@ final result: passed
 - 单个服务组织维度覆盖为 L1 后，关注点统一值显示“混合”，关注点指数由 `3` 更新为 `2.9`，能力 L2 指数由 `3.35` 更新为 `3.31`。
 - 连续下拉重渲染前后，当前控件屏幕位置均为 `812.0859375px`；路由、展开路径和滚动位置未变化。
 - 刷新后评分草稿恢复，同时层级回到默认 L0 折叠；恢复演示数据后无控制台错误。
+
+final result: passed
+
+---
+
+# 成熟度方案 2 逐维当前 / 目标评分 Design QA（2026-07-20）
+
+- source visual truth：用户原页面截图 `/var/folders/81/8nwy3h2n00s1dw1g5bnvj7j40000gn/T/codex-clipboard-e9ca2571-588b-412a-8dc5-ccda6e36e24d.png`、对齐 / 文案 / 颜色截图 `/var/folders/81/8nwy3h2n00s1dw1g5bnvj7j40000gn/T/codex-clipboard-0bc65f32-8fc7-483f-9cea-ca466d2869ad.png` 与批量目标严格递增截图 `/var/folders/81/8nwy3h2n00s1dw1g5bnvj7j40000gn/T/codex-clipboard-bcb085be-68ac-4172-93cb-513a4400bece.png`。
+- implementation：`http://127.0.0.1:5173/workbench/maturity/demo-project-002` 与可编辑契约样本 `demo-project-001`；应用内浏览器 `2040×1000`，未启动系统 Chrome。
+- browser-rendered evidence：`/private/tmp/sapd-target-batch-aligned-gold-20260720.png`、`/private/tmp/sapd-strict-batch-target-20260720.png`。
+
+## Findings
+
+无剩余 Web P0 / P1 / P2 设计阻塞。
+
+- Visual fidelity：保留 SAPD Wiki 现有 Apple Shell、目录、页签、蓝灰色 token、五档矩阵、Rubric 定义盒和评估概览；没有重做页面视觉系统。四个维度均在原评分行内形成“当前状态 / 目标状态”对称双栏。
+- Data migration：`demo-project-002` 的旧目标 `L3` 和既有说明自动带入四个目标维度；DOM 实测目标选中值为 `L3 / L3 / L3 / L3`，四个目标说明均保留，旧单一目标控件数量为 `0`。
+- Batch setting：原“下级评估设置”卡片内使用“下级当前状态设置 / 下级目标状态设置”；文案固定为“清空下级所有评分 / 清空下级所有目标 / 统一设置下级目标状态”。当前与目标继续独立锁定、统一设置和清空。
+- Layout / color：两行共用 `180px 0.7fr / 300px 1.35fr / 310px 1fr` 三列轨道，实测两行 label、slider、actions 的左右边界分别完全一致；目标矩阵、滑块与主按钮为既有金棕 `rgb(163, 104, 31)`，当前状态继续使用 Apple 蓝。目标视口页面横向溢出 `0px`。
+- Business guard：逐项编辑继续禁选低于同维度当前状态的目标；批量“统一设置下级目标状态”改为严格递增。`demo-project-002 / T-AS.AM-02` 的下级四维当前最高为 `L4`，目标滑块实测 `min=5 / value=5` 并显示“必须高于…L4”；`demo-project-001 / T-AS.AD-01` 当前最高为 `L5`，目标滑块和统一按钮均禁用并提示“无法统一设置更高目标”。既有目标保留原值，没有静默修改历史数据。
+- Runtime：浏览器 console warning / error 为 `0`；验收仅导航、展开和读取 DOM，没有点击评分、清空或保存动作，没有修改演示评分或真实用户数据。
+
+## Validation
+
+- `python3 scripts/audit_maturity_assessment_v2_1_contract.py`：`230 / 230`。
+- `python3 scripts/audit_maturity_xlsx_exchange_contract.py`：`21 / 21`，包含“加权目标不低但单维倒退”反例。
+- `python3 scripts/audit_maturity_report_surface_parity.py`、P1-5 专项与 `node scripts/run_project_test_suite.mjs --suite static`：通过。
+- 参考图与实现截图已在同一比较输入中人工检查；下级原页面与实现截图也已在同一比较输入中核对。
+
+final result: passed
+
+---
+
+# 成熟度目标等级大于等于当前等级规则更正 Design QA（2026-07-20）
+
+- supersedes：上一节“批量目标严格递增”的业务判断已被本次用户更正取代；当前有效规则为“目标等级大于等于当前等级”。
+- implementation：`http://127.0.0.1:5173/workbench/maturity/demo-project-002` 与 `demo-project-001`；应用内浏览器 `1280×720`，未启动系统 Chrome。
+- browser-rendered evidence：`/private/tmp/sapd-target-gte-current-20260720.jpg`。
+
+## Findings
+
+- 单项评分、复核编辑、关注点统一当前、关注点统一目标和旧版兼容入口均按同一规则执行：目标可等于当前，目标不得低于当前；反向设置当前时，当前可等于已有目标，当前不得高于已有目标。
+- `demo-project-002` 当前关注点的下级四维当前最高为 `L4`：目标滑块保持物理 `L1—L5`，业务范围实测为 `L4—L5`，显示“目标状态不能低于下级当前最高等级 L4”；当前滑块上界实测等于已有目标最低等级 `L4`。
+- `demo-project-001` 当前关注点的下级四维当前最高为 `L5`：目标滑块业务范围实测为 `L5—L5`、值为 `L5`，显示“目标状态不能低于下级当前最高等级 L5”，证明 `L5→L5` 是合法状态。
+- 综合兼容校验改用真实四维指数比较；当前与目标四维完全相同时，`targetBelowCurrent=false`、统计和完成门禁均可通过。
+- 页面横向溢出为 `0px`，浏览器 console warning / error 为 `0`。浏览器验收只导航、展开和读取 DOM，没有点击统一设置、清空或保存，没有写入演示评分或真实用户数据。
+
+## Validation
+
+- `python3 scripts/audit_maturity_assessment_v2_1_contract.py`：`231 / 231`，包含前端所有入口与后端相等向量动态用例。
+- `python3 scripts/audit_maturity_xlsx_exchange_contract.py`：`22 / 22`，包含逐维当前与目标完全相等的导入用例。
+- `node scripts/frontend_smoke_check.mjs --page maturity --route /workbench/maturity/demo-project-002 --url http://127.0.0.1:5173/`：通过。
+- 既有报告历史未改写；报告表面巡检发现 `demo-project-002` 一份旧模型历史报告，不属于当前实时评分规则失败。
 
 final result: passed

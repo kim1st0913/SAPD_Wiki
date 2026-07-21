@@ -56,6 +56,22 @@ def ensure_pyinstaller() -> None:
         )
 
 
+def ensure_runtime_dependencies() -> None:
+    result = subprocess.run(
+        [sys.executable, "-c", "import openpyxl"],
+        check=False,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(
+            "openpyxl is required for maturity XLSX import/export. "
+            "Install project runtime dependencies first, for example: "
+            "python -m pip install 'openpyxl>=3.1.0'"
+        )
+
+
 def add_data_arg(source: Path, destination: str) -> str:
     return f"{source}{os.pathsep}{destination}"
 
@@ -69,6 +85,7 @@ def package_backend(args: argparse.Namespace) -> Path:
             f"target={target_platform}; current={actual_platform}"
         )
     ensure_pyinstaller()
+    ensure_runtime_dependencies()
 
     output_dir = args.output_dir.resolve()
     dist_dir = output_dir / "dist" / target_platform
@@ -88,6 +105,8 @@ def package_backend(args: argparse.Namespace) -> Path:
         "--onedir",
         "--name",
         "SAPD-Wiki-Backend",
+        "--collect-all",
+        "openpyxl",
         "--paths",
         str(REPO_ROOT / "src"),
         "--paths",

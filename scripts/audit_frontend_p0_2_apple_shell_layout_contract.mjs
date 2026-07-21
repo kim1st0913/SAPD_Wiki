@@ -115,7 +115,7 @@ function validateDirectoryContract(contract, sources, directoryCss) {
   const shellBlock = shellStart >= 0 && shellEnd > shellStart ? directoryCss.slice(shellStart, shellEnd + 1) : "";
   assert(shellBlock.includes("border: 1px solid var(--sapd-shell-divider);") && shellBlock.includes("border-radius: var(--sapd-shell-radius-surface);"), "directory outer pane is not the single Apple Shell contour owner");
   assert(shellBlock.includes("overflow: hidden;") && shellBlock.includes("isolation: isolate;"), "directory outer pane does not clip child surfaces at all four corners");
-  const bodyStart = directoryCss.indexOf(".app-shell-integrated .shell-directory-pane > :is(.tree, .environment-tree, .source-nav) {");
+  const bodyStart = directoryCss.indexOf(".app-shell-integrated .shell-directory-pane > :is(.tree, .environment-tree, .source-nav, .shell-directory-tree) {");
   const bodyEnd = directoryCss.indexOf("}", bodyStart);
   const bodyBlock = bodyStart >= 0 && bodyEnd > bodyStart ? directoryCss.slice(bodyStart, bodyEnd + 1) : "";
   assert(bodyBlock.includes("height: auto;") && bodyBlock.includes("overflow: auto;"), "directory body does not own its scroll area inside the shared grid");
@@ -251,7 +251,7 @@ async function main() {
   assert(runtimeIndex.includes('id="contentDetailPane"'), "runtime index is not serving the P0-2 auxiliary target");
   assert(runtimeAppShell.includes("syncNavigationGroups"), "runtime AppShell is not serving P0-2 navigation");
   assert(runtimeCss.includes(FOUNDATION_MARKER), "runtime CSS is not serving the P0-2 foundation");
-  assert(runtimeIndex.includes("shared-directory-shell.css?v=p0-2-directory-shell-20260714-1"), "runtime index is not loading the shared directory shell");
+  assert(runtimeIndex.includes("shared-directory-shell.css?v=shared-directory-frame-20260720-1"), "runtime index is not loading the shared directory shell");
   validateTopbarOperationContract({ appShell: runtimeAppShell, app: runtimeApp }, runtimeCss.slice(runtimeCss.lastIndexOf(FOUNDATION_MARKER)));
   validatePageHeaderRhythmContract(contract, runtimeCss.slice(runtimeCss.lastIndexOf(FOUNDATION_MARKER)));
   validateDirectoryContract(contract, { appShell: runtimeAppShell, index: runtimeIndex, environmentLocal: runtimeEnvironmentLocal }, runtimeDirectoryCss);

@@ -49,6 +49,7 @@
     maturityCalculate: "/api/v1/maturity/calculate",
     maturityTemplateValidate: "/api/v1/maturity/template/validate",
     maturityReport: "/api/v1/maturity/report",
+    maturityReportExport: "/api/v1/maturity/report/export",
     maturityReportArtifact: "/api/v1/maturity/reports/artifact",
     maturityScoreExport: "/api/v1/maturity/score/export",
     maturityScoreImport: "/api/v1/maturity/score/import",
@@ -1406,6 +1407,8 @@
         headers: await userWriteHeaders(),
         body: JSON.stringify({
           filename_prefix: text(payload.filename_prefix || "sapd-export").trim(),
+          filename: text(payload.filename).trim(),
+          category: text(payload.category || "issues").trim(),
           content,
         }),
       });
@@ -1528,20 +1531,34 @@
       return createEnvelope(result);
     },
 
-    async getMaturityReportArtifact({ projectId = "", artifactId = "", reportId = "" } = {}) {
+    async getMaturityReportArtifact({ projectId = "", artifactId = "", reportId = "", inputHash = "", resultHash = "" } = {}) {
       const params = new URLSearchParams();
       if (projectId) params.set("project_id", projectId);
       if (artifactId) params.set("artifact_id", artifactId);
       if (reportId) params.set("report_id", reportId);
+      if (inputHash) params.set("input_hash", inputHash);
+      if (resultHash) params.set("result_hash", resultHash);
       const result = await fetchUserApi(`${API_PATHS.maturityReportArtifact}?${params.toString()}`);
       return createEnvelope(result);
     },
 
-    async exportMaturityScoreExchange(payload = {}) {
-      const result = await fetchUserApi(API_PATHS.maturityScoreExport, {
+    async exportMaturityReport(payload = {}) {
+      const shouldSave = await shouldSaveExportToConfiguredDirectory(payload);
+      if (!shouldSave) return createEnvelope({ ok: true, dataState: "ready", destination: "download" });
+      const result = await fetchUserApi(API_PATHS.maturityReportExport, {
         method: "POST",
         headers: await userWriteHeaders(),
         body: JSON.stringify(payload),
+      });
+      return createEnvelope(result);
+    },
+
+    async exportMaturityScoreExchange(payload = {}) {
+      const shouldSave = await shouldSaveExportToConfiguredDirectory(payload);
+      const result = await fetchUserApi(API_PATHS.maturityScoreExport, {
+        method: "POST",
+        headers: await userWriteHeaders(),
+        body: JSON.stringify({ ...payload, saveToConfiguredDirectory: shouldSave }),
       });
       return createEnvelope(result);
     },
@@ -1556,10 +1573,11 @@
     },
 
     async exportMaturityTemplateExchange(template = {}) {
+      const shouldSave = await shouldSaveExportToConfiguredDirectory({});
       const result = await fetchUserApi(API_PATHS.maturityTemplateExport, {
         method: "POST",
         headers: await userWriteHeaders(),
-        body: JSON.stringify({ template }),
+        body: JSON.stringify({ template, saveToConfiguredDirectory: shouldSave }),
       });
       return createEnvelope(result);
     },

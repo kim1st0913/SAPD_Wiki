@@ -4,7 +4,7 @@
 
 ## 治理入口
 
-- 当前未关闭问题数：5
+- 当前未关闭问题数：6
 - 已关闭归档问题数：194
 - 全量索引：`docs/06-implementation/open-issues-index.md`
 - 已关闭问题归档：`docs/05-archive/open-issues-history/2026-06.md`、`docs/05-archive/open-issues-history/2026-07.md`
@@ -24,6 +24,7 @@
 
 | 编号 | 状态 | 标题 |
 |---|---|---|
+| OI-198 | 待实现 / 契约已确认 | 导入审批缺少幂等门禁、中间数据终结和 approved 默认导出契约 |
 | OI-197 | 待业务确认 / 映射门禁阻断 | 成熟度评分依据与当前能力字典尚未全量映射 |
 | OI-192 | 已修复 / 待用户验收 | 成熟度评分工作台服务、评分定义与主动作契约未按截图落地 |
 | OI-191 | 已修复 / 待用户验收 | 全局共享标题区视觉 token 偏离旧 DMG 基线 |
@@ -49,6 +50,22 @@
 - 验证结果：
 
 ## 当前问题详情
+
+## OI-198：导入审批缺少幂等门禁、中间数据终结和 approved 默认导出契约
+
+- 状态：待实现 / 契约已确认
+- 严重性：高
+- 类型：ETL / SQLite / 来源追踪 / 导入导出 / 数据治理
+- 对象或页面：`approve_import`、`source_references`、`import_jobs`、`staging_items`、`staging_relations`、`review_decisions`、导入摘要导出命令。
+- 现象：清理后主库副本 smoke 证明新导入链路可以正常 staging 和 approve，但同一 job 第二次 approve 仍会再次追加来源引用和变更日志；approved job 的 staging / review 不会在业务验收后按 job 终结；默认 `export-second-batch-summary` 会按所有状态的结束时间选择 rejected job。
+- 影响：重复操作会持续放大来源追踪和变更日志，长期导入会重新累积 staging / review；默认导出可能把失败或拒绝任务当成正式导入结果，降低来源审计可信度并重复制造数据库清理任务。
+- 建单理由：涉及正式 SQLite 写入、来源证据唯一性、导入状态机、导出选择器和长期审计边界，不能作为一次性文档说明关闭。
+- 当前处理：用户已确认四项契约方向，权威文档为 `docs/03-import-etl/import-approval-idempotency-and-retention-contract.md`。契约要求 approve 只能从 reviewing 原子进入；来源引用按完整证据键幂等复用；新增默认 dry-run、显式 apply 的按 job finalize 命令；未指定 job ID 的正式导出只选择最新 approved 任务。当前只完成文档，代码、schema / migration 和测试均未修改。
+- 需要确认：无需额外业务判断；实施时不得顺带清理现存 65,824 条重复来源引用，不得改变对象匹配、旧对象停用、Sheet 解析或用户库边界。
+- 验收入口：`docs/03-import-etl/import-approval-idempotency-and-retention-contract.md` 第 4 至第 10 节。
+- 关闭条件：重复 approve 与并发 approve 无二次写入；同证据来源引用只复用不新增；`finalize-import` dry-run / apply / 重复执行 / 错误状态矩阵通过；默认导出忽略 rejected / failed / reviewing / parsed / pending；临时库全链路、数据边界和受保护基线检查通过。
+- 修复说明：本轮仅补齐契约、索引、治理发现和问题追踪，不修改 ETL / CLI / schema、正式 SQLite、源 Excel、正式 JSON、用户库或 DMG。
+- 验证结果：2026-07-19 临时库 smoke 中，第一次 approve 新增来源引用 `651`、变更日志 `162`；第二次 approve 再次新增相同数量，确认当前状态门禁和来源幂等缺口。默认 second-batch 导出选择了 rejected job `3e828d78-98dc-48c3-95e0-56383b55714a`。这些证据只用于确定契约，不计为实现通过。
 
 ## OI-197：成熟度评分依据与当前能力字典尚未全量映射
 

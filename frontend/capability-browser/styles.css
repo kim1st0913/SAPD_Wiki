@@ -14612,7 +14612,7 @@ summary:focus-visible {
 
 @media (min-width: 1800px) {
   .app-shell-integrated .capability-workspace {
-    grid-template-columns: 320px 6px minmax(0, 1fr) !important;
+    grid-template-columns: 320px 6px minmax(0, 1fr);
   }
 }
 
@@ -16107,7 +16107,7 @@ summary:focus-visible {
 
 @media (min-width: 1800px) {
   .app-shell-integrated .capability-workspace {
-    grid-template-columns: 320px 6px minmax(0, 1fr) !important;
+    grid-template-columns: 320px 6px minmax(0, 1fr);
   }
 
   .capability-map-v3-grid {

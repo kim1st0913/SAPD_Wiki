@@ -150,13 +150,28 @@ async function lightweightHttpSmoke({ pageName, baseUrl, route, reason }) {
   if (pageName === "maturity" || route.startsWith("/workbench/maturity")) {
     const maturityUrl = new URL("/api/v1/maturity/workspace", rootUrl).toString();
     const healthPayload = await fetchJson(healthUrl);
-    const sessionToken = healthPayload?.data?.auth?.session_token || "";
+    const healthData = healthPayload?.data || healthPayload;
+    const sessionToken = healthData?.auth?.session_token || "";
     const workspaceResponse = await fetch(maturityUrl, { cache: "no-store" });
     const workspacePayload = await workspaceResponse.json();
     const workspaceData = workspacePayload?.data || workspacePayload;
     const template = workspaceData?.template || {};
     const detail = workspaceData?.projectDetails?.["demo-project-002"] || {};
-    const completedEntries = (detail?.scoreEntries || []).map((entry) => entry?.isApplicable === false ? entry : { ...entry, targetLevel: "L5" });
+    const completedEntries = (detail?.scoreEntries || []).map((entry) => entry?.isApplicable === false ? entry : {
+      ...entry,
+      targetLevel: "L5",
+      targetElements: { organization: "L5", process: "L5", tool: "L5", data: "L5" },
+    });
+    let targetConflictInjected = false;
+    const conflictingEntries = (detail?.scoreEntries || []).map((entry) => {
+      if (entry?.isApplicable === false || targetConflictInjected) return entry;
+      targetConflictInjected = true;
+      return {
+        ...entry,
+        targetLevel: "L1",
+        targetElements: { organization: "L1", process: "L1", tool: "L1", data: "L1" },
+      };
+    });
     checks.maturityWorkspace = {
       ok:
         workspaceResponse.ok &&
@@ -188,12 +203,12 @@ async function lightweightHttpSmoke({ pageName, baseUrl, route, reason }) {
       new URL("/api/v1/maturity/calculate", rootUrl).toString(),
       sessionToken,
       { project: detail?.project, template: detail?.template || template, scoreEntries: completedEntries },
-      (data) => data?.ok === true && data?.summary?.statisticsReady === true && data?.summary?.completionRate === 100 && data?.summary?.targetAchievementRate != null && data?.calculationRun?.algorithmVersion === "sapd-maturity-v2.1.0",
+      (data) => data?.ok === true && data?.summary?.statisticsReady === true && data?.summary?.completionRate === 100 && data?.summary?.targetAchievementRate != null && data?.calculationRun?.algorithmVersion === "sapd-maturity-v2.2.0",
     );
     checks.maturityIncompleteGate = await postJsonStatus(
       new URL("/api/v1/maturity/calculate", rootUrl).toString(),
       sessionToken,
-      { project: { ...(detail?.project || {}), status: "scoring", readOnly: false }, template: detail?.template || template, scoreEntries: detail?.scoreEntries || [] },
+      { project: { ...(detail?.project || {}), status: "scoring", readOnly: false }, template: detail?.template || template, scoreEntries: conflictingEntries },
       (data) => data?.ok === true && data?.summary?.statisticsReady === false && data?.summary?.targetBelowCurrentCount > 0 && data?.summary?.resultAvailability === "incomplete",
     );
     checks.maturityReport = await postJsonStatus(
@@ -216,7 +231,7 @@ async function lightweightHttpSmoke({ pageName, baseUrl, route, reason }) {
       new URL("/api/v1/maturity/score/export", rootUrl).toString(),
       sessionToken,
       { project: detail?.project, template: detail?.template || template, scoreEntries: detail?.scoreEntries || [] },
-      (data) => data?.ok === true && data?.package?.schemaVersion === "maturity-score-exchange-v2.1" && Boolean(data?.package?.fileInfo?.structureHash),
+      (data) => data?.ok === true && data?.package?.schemaVersion === "maturity-score-exchange-v2.2" && Boolean(data?.package?.fileInfo?.structureHash),
     );
   }
   if (isDeepBusinessRoute(route)) {

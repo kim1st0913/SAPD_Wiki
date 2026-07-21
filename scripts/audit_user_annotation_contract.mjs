@@ -67,7 +67,7 @@ if (
   maturityGuideRenderBody.includes('title="${escapeHtml(guideRow.title)}"') ||
   maturityGuideRenderBody.includes("annotationTargetAttrsForHtml(annotationTarget)") ||
   maturityGuideHtml.includes('<span class="pill">SAPD Wiki 指南</span>') ||
-  !includesAll(maturityGuideHtml, ["padding: clamp(24px, 3.5vw, 40px)", "line-height: 1.58"])
+  !includesAll(maturityGuideHtml, ["P2-3 V2: larger reading canvas", ".main { max-width: 1120px", ".hero { height: 194px; gap: 8px; padding: 20px 26px; }"])
 ) {
   issues.push({
     severity: "error",
@@ -792,11 +792,11 @@ if (
     'class="lifecycle-chip-item"${annotationValueAttrs(item.label)}',
     'class="data-scenario-title-cell"${annotationValueAttrs(titleText)}',
     'class="data-scenario-definition"${annotationValueAttrs(scene.description)}',
-    'class="data-scenario-title"${annotationValueAttrs([scene.code, scene.title].filter(Boolean).join(" "))}',
+    'class="data-scenario-title"${annotationValueAttrs([scene.code, scene.title].filter(isBusinessText).join(" "))}',
     "<p${annotationValueAttrs(scene.description)}",
     "<strong${annotationValueAttrs(policy.code)}",
     "<span${annotationValueAttrs(policy.text)}",
-    "<span${annotationValueAttrs(titleOf(system))}",
+    '<span${annotationValueAttrs(titleOf(system, ""))}',
   ])
 ) {
   issues.push({

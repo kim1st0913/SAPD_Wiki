@@ -4,6 +4,8 @@
 
 当前实现状态：5 个核心 Sheet 的命令行导入链路已经跑通，包括来源登记、暂存、校验提示、审批入正式表和基础查询。后续仍需要补导出命令、前端页面和剩余 21 个 Sheet 的规则。
 
+2026-07-19 后续治理：审批状态门禁、来源引用幂等、按 job 的验收后中间数据清理和默认导出只选择 approved 任务，以 `import-approval-idempotency-and-retention-contract.md` 为权威契约。四项能力当前状态为 `specified / not implemented`，不得把现有 MVP 链路表述为已具备重复审批防护或自动清理。
+
 ## 1. MVP 目标
 
 第一版 Excel 导入要做到：
@@ -79,6 +81,8 @@
 → 用户审查
 → 写入 knowledge_items / knowledge_relations / source_references
 → 写入 change_logs
+→ 导出与数据验收
+→ 按 import_job 清理 staging / review 中间数据
 ```
 
 ## 6. 模块设计
@@ -186,6 +190,8 @@ validation_messages[]
 - 写入 `source_references`；
 - 写入 `change_logs`；
 - 更新 import_job 状态。
+
+审批只能从 `reviewing` 状态进入，同一 job 不得重复写入；来源引用必须按完整证据键幂等复用。详细状态、错误语义和验收矩阵见 `import-approval-idempotency-and-retention-contract.md`。
 
 ## 7. 解析规则摘要
 

@@ -30,7 +30,12 @@ const files = {
   packageDmg: "apps/macos/SAPDWiki/script/package_dmg.sh",
   macWrapper: "apps/macos/SAPDWiki/Sources/SAPDWiki/main.swift",
   macReadme: "apps/macos/SAPDWiki/README.md",
+  dataClient: "frontend/capability-browser/dataClient.js",
   buildZipBundle: "scripts/build_zip_bundle.py",
+  bundleServer: "scripts/run_local_server.py",
+  apiServer: "src/sapd_wiki/api_server.py",
+  maturity: "src/sapd_wiki/maturity.py",
+  packageBackend: "scripts/package_backend_pyinstaller.py",
   agents: "AGENTS.md",
   contract: "docs/09-delivery/mac-dmg-browser-parity-contract.md",
   releaseMatrix: "docs/09-delivery/release-acceptance-matrix-0.1.md",
@@ -40,7 +45,12 @@ const buildAndRun = read(files.buildAndRun);
 const packageDmg = read(files.packageDmg);
 const macWrapper = read(files.macWrapper);
 const macReadme = read(files.macReadme);
+const dataClient = read(files.dataClient);
 const buildZipBundle = read(files.buildZipBundle);
+const bundleServer = read(files.bundleServer);
+const apiServer = read(files.apiServer);
+const maturity = read(files.maturity);
+const packageBackend = read(files.packageBackend);
 const agents = read(files.agents);
 const contract = read(files.contract);
 const releaseMatrix = read(files.releaseMatrix);
@@ -94,12 +104,30 @@ if (!macWrapper.includes("WKUIDelegate")) {
     impact: "JavaScript alert/confirm, target=_blank, file panels, and some browser UI behaviors are not equivalent to Safari/Chrome unless bridged explicitly.",
   });
 }
-if (!macWrapper.includes("WKDownload") && !macWrapper.includes("decidePolicyFor navigationResponse")) {
+if (!macWrapper.includes("WKDownload") && !macWrapper.includes("decidePolicyFor navigationResponse") && !dataClient.includes("saveToConfiguredDirectory")) {
   warn(warnings, "wkwebview_has_no_explicit_download_delegate", {
     file: files.macWrapper,
     impact: "Browser-native downloads are not guaranteed to behave like a system browser; backend-saved exports are safer than anchor downloads.",
   });
 }
+add(checks, "app_separates_import_export_and_internal_runtime", [
+  'defaultImportDirectory(for: dataRoot)',
+  '"maturity-reports"',
+  '"maturity-scores"',
+  '"maturity-templates"',
+  '"issues"',
+  '"diagnostics"',
+  'title: "默认导入文件夹"',
+  'title: "导出文件夹"',
+  'title: "系统数据"',
+  'object["import_dir"]',
+  'object["download_dir"]',
+].every((item) => macWrapper.includes(item)) && [
+  "saveToConfiguredDirectory",
+  "/api/v1/maturity/report/export",
+].every((item) => dataClient.includes(item)), {
+  files: [files.macWrapper, files.dataClient],
+});
 if (!macWrapper.includes("toggleFullScreen") && !macWrapper.includes("enterFullScreenMode")) {
   warn(warnings, "wrapper_has_no_explicit_fullscreen_bridge", {
     file: files.macWrapper,
@@ -131,10 +159,52 @@ add(checks, "bundle_copies_frontend_base_and_creates_empty_user_db", [
 add(checks, "bundle_manifest_records_user_schema", buildZipBundle.includes('"user_database"') && buildZipBundle.includes('"schema_version": args.user_schema_version'), {
   file: files.buildZipBundle,
 });
+add(checks, "bundle_includes_controlled_maturity_report_seed", [
+  "SAPD_WIKI_MATURITY_REPORT_SEED",
+  "SAPD_WIKI_MATURITY_REPORT_SEED_ARTIFACT",
+  "demo-project-002=maturity-report-216c744b314ff70e8cfd-20260718-102008Z-9af11352",
+  "data/user/maturity-reports",
+].every((item) => buildAndRun.includes(item)) && [
+  "maturity_report_seed",
+  "maturity_report_seed_artifact",
+  "copy_maturity_report_seed",
+  'bundle_root / "data" / "user" / "maturity-reports"',
+].every((item) => buildZipBundle.includes(item)) && macWrapper.includes("seedMaturityReportsIfNeeded"), {
+  files: [files.buildAndRun, files.buildZipBundle, files.macWrapper],
+});
+add(checks, "maturity_test_package_declares_two_cases_and_one_matching_report", [
+  "2 个受控测试案例",
+  "1 个已完成、1 个正在进行",
+  "1 份与当前评分哈希一致的正式报告",
+].every((item) => packageDmg.includes(item)), {
+  file: files.packageDmg,
+});
+add(checks, "bundle_runtime_selects_two_case_delivery_profile", [
+  'RUNTIME_LABEL == "bundle"',
+  'return "delivery"',
+  "project_profile=maturity_workspace_project_profile()",
+].every((item) => apiServer.includes(item)) && bundleServer.includes("project_profile=projection_api.maturity_workspace_project_profile()") && [
+  'project_profile: str = "development"',
+  'normalized_profile == "delivery"',
+  '("demo-project-001", "demo-project-002")',
+  '"demo-project-005"',
+].every((item) => maturity.includes(item)), {
+  files: [files.apiServer, files.bundleServer, files.maturity],
+});
+add(checks, "backend_collects_maturity_xlsx_dependency", [
+  "ensure_runtime_dependencies",
+  '"--collect-all"',
+  '"openpyxl"',
+].every((item) => packageBackend.includes(item)), {
+  file: files.packageBackend,
+});
 
 const readmeRequiredSnippets = [
   "用户选择父级保存位置",
-  "SAPDWiki/Runtime",
+  "SAPDWiki/",
+  "import/",
+  "export/",
+  "Runtime/",
   "已有用户库默认复用",
   "user_schema_0.3",
 ];
@@ -182,15 +252,13 @@ add(checks, "contract_documents_runtime_interaction_audit_matrix", interactionCo
 });
 
 const bugRuntimeClassificationSnippets = [
-  "每个 bug 修复都必须先声明运行面影响分类",
+  "Classify Impact Before Changing",
   "shared runtime",
-  "data / ETL / JSON package",
+  "data / ETL / package",
   "web-only",
   "app-only",
   "release blocker",
-  "影响面：Web / App / 两者 / 暂未覆盖",
-  "根因层：data / shared frontend / API / user DB / macOS wrapper / packaging runtime",
-  "验证范围：5173 / DMG App / 自动审计 / 人工验收 / 未做原因",
+  "Passing at `5173` does not prove the DMG App",
 ];
 add(checks, "agents_documents_bug_runtime_impact_classification", bugRuntimeClassificationSnippets.every((item) => agents.includes(item)), {
   file: files.agents,

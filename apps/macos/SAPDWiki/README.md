@@ -7,7 +7,7 @@
 - 用 SwiftPM 构建一个原生 macOS `.app` 壳。
 - App 启动现有 `SAPD-Wiki-Backend` 本地服务。
 - App 用 `WKWebView` 打开 `127.0.0.1` 本地页面。
-- 首次启动要求用户选择父级保存位置，运行时数据写入 `<所选父级保存位置>/SAPDWiki/Runtime`。
+- 首次启动要求用户选择父级保存位置，并在 `<所选父级保存位置>/SAPDWiki` 下分开创建用户导入区 `import`、用户导出区 `export` 和系统运行区 `Runtime`。
 - `.app` 包内携带干净的 `sapd_wiki_user.sqlite3` 空库模板；仅当所选保存位置下缺少用户库时，wrapper 才从包内模板创建新用户库。已有用户库默认复用，不因 Runtime 指纹变化被覆盖。
 
 ## 构建
@@ -28,7 +28,7 @@ apps/macos/SAPDWiki/.build/backend-work/backend/mac-arm64/SAPD-Wiki-Backend
 
 ```bash
 python3 -m venv apps/macos/SAPDWiki/.build/pyinstaller-venv
-apps/macos/SAPDWiki/.build/pyinstaller-venv/bin/python -m pip install pyinstaller
+apps/macos/SAPDWiki/.build/pyinstaller-venv/bin/python -m pip install pyinstaller 'openpyxl>=3.1.0'
 ```
 
 产物：
@@ -68,11 +68,29 @@ apps/macos/SAPDWiki/dist/no-license/SAPD-Wiki-<version>-no-license-<timestamp>-m
 
 当前默认是 ad-hoc 签名、未 notarize 的内测包。通过微信、浏览器或网盘分发到其他 Mac 后，首次打开外层 `SAPD Wiki.app` 仍可能出现“Apple 无法验证”的系统提示，需要在 `系统设置 -> 隐私与安全性` 中允许打开。
 
-App 首次启动会要求设置父级保存位置，并在该位置下创建 `SAPDWiki` 文件夹。Runtime 位于：
+App 首次启动会要求设置父级保存位置，并在该位置下创建统一的 `SAPDWiki` 工作目录：
 
 ```text
-<所选父级保存位置>/SAPDWiki/Runtime
+SAPDWiki/
+├── import/
+│   ├── maturity-templates/
+│   └── maturity-scores/
+├── export/
+│   ├── maturity-reports/
+│   ├── maturity-scores/
+│   ├── maturity-templates/
+│   ├── issues/
+│   └── diagnostics/
+└── Runtime/
+    └── data/user/
+        ├── sapd_wiki_user.sqlite3
+        └── maturity-reports/<projectId>/artifacts/<artifactId>/
 ```
+
+- `import` 是默认文件选择入口，模板和评分文件仍可从任意本地目录选择，App 不移动或覆盖源文件。
+- `export` 是用户交付文件目录；报告、评分表、模板、Issue 和诊断包按类别保存。
+- `Runtime` 是系统内部目录，用于数据库、报告历史和日志；正常操作不要求用户进入该目录。
+- “系统设置”可分别查看或更改本地工作目录、默认导入文件夹和导出文件夹，并可在 Finder 中打开对应位置。
 
 为避免内置后端 `SAPD-Wiki-Backend` 在该目录下被 Gatekeeper 再次单独拦截，wrapper 会在启动后端前递归清理复制后 Runtime 的 `com.apple.quarantine` 属性。打包脚本也会显式签名 Runtime 内的 Mach-O 文件，再签外层 `.app`。
 

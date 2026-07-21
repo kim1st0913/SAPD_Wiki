@@ -5,8 +5,8 @@ MODE="${1:-run}"
 APP_NAME="SAPD Wiki"
 EXECUTABLE_NAME="SAPDWiki"
 BUNDLE_ID="com.sapd.wiki.macos"
-BUNDLE_VERSION="${SAPD_WIKI_BUNDLE_VERSION:-0.1.7}"
-DISPLAY_VERSION="${SAPD_WIKI_DISPLAY_VERSION:-${SAPD_WIKI_APP_VERSION:-0.1.7}}"
+BUNDLE_VERSION="${SAPD_WIKI_BUNDLE_VERSION:-0.2.0}"
+DISPLAY_VERSION="${SAPD_WIKI_DISPLAY_VERSION:-${SAPD_WIKI_APP_VERSION:-0.2.0}}"
 LICENSE_MODE="${SAPD_WIKI_LICENSE_MODE:-license}"
 MIN_SYSTEM_VERSION="13.0"
 
@@ -44,6 +44,8 @@ runtime_bundle_name_version() {
 
 FRONTEND_DIST="${SAPD_WIKI_FRONTEND_DIST:-$REPO_ROOT/frontend/capability-browser}"
 BASE_DB="${SAPD_WIKI_BASE_DB:-$REPO_ROOT/data/database/sapd_wiki.sqlite3}"
+MATURITY_REPORT_SEED="${SAPD_WIKI_MATURITY_REPORT_SEED:-$REPO_ROOT/data/user/maturity-reports}"
+MATURITY_REPORT_SEED_ARTIFACT="${SAPD_WIKI_MATURITY_REPORT_SEED_ARTIFACT:-demo-project-002=maturity-report-216c744b314ff70e8cfd-20260718-102008Z-9af11352}"
 DEFAULT_PYINSTALLER_PYTHON="$APP_ROOT/.build/pyinstaller-venv/bin/python"
 if [[ -z "${PYTHON_BIN:-}" && -x "$DEFAULT_PYINSTALLER_PYTHON" ]]; then
   PYTHON_BIN="$DEFAULT_PYINSTALLER_PYTHON"
@@ -124,7 +126,7 @@ find_external_backend_binary() {
     "$REPO_ROOT/dist/zip-alpha/dist/$PLATFORM/SAPD-Wiki-Backend"
     "/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/sapd wiki bundle/package-work/backend/$PLATFORM/SAPD-Wiki-Backend"
     "/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/sapd wiki bundle/package-work/dist/$PLATFORM/SAPD-Wiki-Backend"
-    "/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/sapd wiki bundle/SAPD-Wiki-v0.1.7-$PLATFORM/SAPD-Wiki-Backend"
+    "/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/sapd wiki bundle/SAPD-Wiki-v0.2.0-$PLATFORM/SAPD-Wiki-Backend"
   )
 
   local candidate
@@ -185,7 +187,7 @@ build_runtime() {
   resolve_backend_binary
   rm -rf "$RUNTIME_WORK"
   mkdir -p "$RUNTIME_WORK"
-  "$PYTHON_BIN" "$REPO_ROOT/scripts/build_zip_bundle.py" \
+  local bundle_args=(
     --output-dir "$RUNTIME_WORK" \
     --platform "$PLATFORM" \
     --bundle-version "$DISPLAY_VERSION" \
@@ -193,6 +195,14 @@ build_runtime() {
     --frontend-dist "$FRONTEND_DIST" \
     --backend-binary "$BACKEND_BINARY" \
     --base-db "$BASE_DB"
+  )
+  if [[ -d "$MATURITY_REPORT_SEED" ]]; then
+    bundle_args+=(
+      --maturity-report-seed "$MATURITY_REPORT_SEED"
+      --maturity-report-seed-artifact "$MATURITY_REPORT_SEED_ARTIFACT"
+    )
+  fi
+  "$PYTHON_BIN" "$REPO_ROOT/scripts/build_zip_bundle.py" "${bundle_args[@]}"
 }
 
 write_runtime_fingerprint() {
@@ -212,6 +222,7 @@ include_roots = [
     root / "app" / "frontend-dist",
     root / "config",
     root / "data" / "base",
+    root / "data" / "user" / "maturity-reports",
     root / "diagnostics",
 ]
 paths = []

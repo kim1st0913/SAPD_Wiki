@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import ipaddress
 import json
 import re
@@ -506,18 +507,91 @@ def configure_runtime_paths(
     base_db: str | Path | None = None,
     user_db: str | Path | None = None,
     data_root: str | Path | None = None,
+    export_dir: str | Path | None = None,
     runtime_label: str | None = None,
 ) -> None:
-    global BASE_DB_PATH, USER_DB_PATH, DATA_PACKAGE_ROOT, RUNTIME_LABEL
+    global BASE_DB_PATH, USER_DB_PATH, DATA_PACKAGE_ROOT, USER_EXPORT_DIR, RUNTIME_LABEL
     if base_db:
         BASE_DB_PATH = resolve_project_path(base_db).resolve()
     if user_db:
         USER_DB_PATH = resolve_project_path(user_db).resolve()
     if data_root:
         DATA_PACKAGE_ROOT = resolve_project_path(data_root).resolve()
+    if export_dir:
+        USER_EXPORT_DIR = resolve_project_path(export_dir).resolve()
     if runtime_label:
         RUNTIME_LABEL = str(runtime_label).strip() or RUNTIME_LABEL
     _DATA_PACKAGE_CACHE.clear()
+
+
+def maturity_workspace_project_profile() -> str:
+    return "delivery" if RUNTIME_LABEL == "bundle" else "development"
+
+
+USER_EXPORT_CATEGORY_DIRS = {
+    "maturity-reports": "maturity-reports",
+    "maturity-scores": "maturity-scores",
+    "maturity-templates": "maturity-templates",
+    "issues": "issues",
+    "diagnostics": "diagnostics",
+}
+
+
+def _user_export_segment(value: Any, fallback: str) -> str:
+    normalized = re.sub(r'[\\/:*?"<>|\x00-\x1f]+', "-", str(value or "").strip())
+    normalized = re.sub(r"\s+", "-", normalized).strip(". -")
+    return normalized[:96] or fallback
+
+
+def _user_export_timestamp() -> str:
+    return time.strftime("%Y-%m-%d_%H%M%S", time.localtime())
+
+
+def _user_export_project_directory(category: str, project: dict[str, Any] | None = None) -> Path:
+    category_name = USER_EXPORT_CATEGORY_DIRS.get(str(category or "").strip())
+    if not category_name:
+        raise ValueError("unsupported export category")
+    directory = (USER_EXPORT_DIR / category_name).resolve()
+    if project:
+        project_id = _user_export_segment(project.get("id"), "project")
+        project_name = _user_export_segment(project.get("name"), "成熟度评估项目")
+        directory = (directory / f"{project_name}__{project_id[:32]}").resolve()
+    directory.mkdir(parents=True, exist_ok=True)
+    return directory
+
+
+def _available_user_export_path(directory: Path, file_name: str) -> Path:
+    safe_name = _user_export_segment(Path(str(file_name or "")).name, "sapd-export")
+    suffix = Path(str(file_name or "")).suffix
+    if suffix and not safe_name.lower().endswith(suffix.lower()):
+        safe_name = f"{safe_name}{suffix}"
+    candidate = directory / safe_name
+    counter = 2
+    while candidate.exists():
+        stem = Path(safe_name).stem
+        suffix = Path(safe_name).suffix
+        candidate = directory / f"{stem}-{counter}{suffix}"
+        counter += 1
+    return candidate
+
+
+def _user_export_result(output_path: Path, *, category: str, extra: dict[str, Any] | None = None) -> dict[str, Any]:
+    return {
+        "ok": True,
+        "dataState": "ready",
+        "data_state": "ready",
+        "category": category,
+        "fileName": output_path.name,
+        "file_name": output_path.name,
+        "outputPath": str(output_path),
+        "output_path": str(output_path),
+        "downloadDir": str(USER_EXPORT_DIR),
+        "download_dir": str(USER_EXPORT_DIR),
+        "relativePath": output_path.relative_to(USER_EXPORT_DIR).as_posix(),
+        "byteCount": output_path.stat().st_size,
+        "byte_count": output_path.stat().st_size,
+        **(extra or {}),
+    }
 
 
 def maturity_report_storage_root() -> Path:
@@ -606,42 +680,180 @@ def persist_maturity_report_artifact(report: dict[str, Any], payload: dict[str, 
 
 
 def create_and_persist_maturity_report(payload: dict[str, Any]) -> dict[str, Any]:
-    return persist_maturity_report_artifact(create_maturity_report_snapshot(payload), payload)
+    report = create_maturity_report_snapshot(payload)
+    if report.get("ok") is not True:
+        return report
+    return persist_maturity_report_artifact(report, payload)
 
 
-def load_maturity_report_artifact(*, project_id: str, artifact_id: str = "", report_id: str = "") -> dict[str, Any]:
+def load_maturity_report_artifact(
+    *,
+    project_id: str,
+    artifact_id: str = "",
+    report_id: str = "",
+    input_hash: str = "",
+    result_hash: str = "",
+) -> dict[str, Any]:
     normalized_project_id = str(project_id or "").strip()
     if not normalized_project_id:
         raise ValueError("project_id is required")
     manifest = _read_maturity_report_manifest(normalized_project_id)
     artifacts = manifest["artifacts"]
+    project_segment = _maturity_artifact_segment(normalized_project_id, "assessment-project")
+    project_root = (maturity_report_storage_root() / project_segment).resolve()
+
+    def read_selected(selected: dict[str, Any]) -> dict[str, Any]:
+        artifact_segment = _maturity_artifact_segment(selected.get("artifactId"), "")
+        if not artifact_segment or artifact_segment != str(selected.get("artifactId") or ""):
+            return {"ok": False, "dataState": "invalid", "error": "invalid_report_artifact"}
+        report_path = (project_root / "artifacts" / artifact_segment / "report.json").resolve()
+        try:
+            report_path.relative_to(project_root)
+        except ValueError:
+            return {"ok": False, "dataState": "invalid", "error": "invalid_report_artifact_path"}
+        if not report_path.is_file():
+            return {"ok": False, "dataState": "missing", "error": "report_artifact_file_missing"}
+        try:
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return {"ok": False, "dataState": "invalid", "error": "report_artifact_unreadable"}
+        return report if isinstance(report, dict) else {"ok": False, "dataState": "invalid", "error": "report_artifact_invalid"}
+
+    def matches_result_version(report: dict[str, Any]) -> bool:
+        report_model = report.get("reportModel") if isinstance(report.get("reportModel"), dict) else {}
+        result_snapshot = report_model.get("resultSnapshot") if isinstance(report_model.get("resultSnapshot"), dict) else {}
+        calculation_run = result_snapshot.get("calculationRun") if isinstance(result_snapshot.get("calculationRun"), dict) else {}
+        report_version = report_model.get("resultVersion") if isinstance(report_model.get("resultVersion"), dict) else {}
+        input_matches = not input_hash or str(calculation_run.get("inputHash") or "") == input_hash
+        result_matches = not result_hash or (
+            str(calculation_run.get("resultHash") or "") == result_hash
+            and str(report_version.get("resultHash") or "") == result_hash
+        )
+        return report.get("ok") is True and report.get("formal") is True and input_matches and result_matches
+
     selected = None
     if artifact_id:
         selected = next((item for item in reversed(artifacts) if str(item.get("artifactId") or "") == artifact_id), None)
     elif report_id:
         selected = next((item for item in reversed(artifacts) if str(item.get("reportId") or "") == report_id), None)
-    elif artifacts:
+    if selected and (input_hash or result_hash):
+        selected_report = read_selected(selected)
+        if matches_result_version(selected_report):
+            return selected_report
+        selected = None
+    if not selected and (input_hash or result_hash):
+        for candidate in reversed(artifacts):
+            report = read_selected(candidate)
+            if matches_result_version(report):
+                return report
+    elif not selected and artifacts:
         selected = artifacts[-1]
     if not selected:
         return {"ok": False, "dataState": "missing", "error": "report_artifact_not_found"}
+    return read_selected(selected)
 
-    project_segment = _maturity_artifact_segment(normalized_project_id, "assessment-project")
-    artifact_segment = _maturity_artifact_segment(selected.get("artifactId"), "")
-    if not artifact_segment or artifact_segment != str(selected.get("artifactId") or ""):
-        return {"ok": False, "dataState": "invalid", "error": "invalid_report_artifact"}
-    project_root = (maturity_report_storage_root() / project_segment).resolve()
-    report_path = (project_root / "artifacts" / artifact_segment / "report.json").resolve()
+
+def _persist_maturity_workbook_export(
+    result: dict[str, Any],
+    *,
+    category: str,
+    project: dict[str, Any] | None,
+    business_name: str,
+    suffix_label: str,
+) -> dict[str, Any]:
+    if result.get("ok") is not True:
+        return result
+    package = result.get("package") if isinstance(result.get("package"), dict) else {}
+    encoded = str(package.get("workbookBase64") or "")
+    if not encoded:
+        raise ValueError("generated workbook is missing binary content")
     try:
-        report_path.relative_to(project_root)
-    except ValueError:
-        return {"ok": False, "dataState": "invalid", "error": "invalid_report_artifact_path"}
-    if not report_path.is_file():
-        return {"ok": False, "dataState": "missing", "error": "report_artifact_file_missing"}
-    try:
-        report = json.loads(report_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return {"ok": False, "dataState": "invalid", "error": "report_artifact_unreadable"}
-    return report if isinstance(report, dict) else {"ok": False, "dataState": "invalid", "error": "report_artifact_invalid"}
+        workbook_bytes = base64.b64decode(encoded, validate=True)
+    except (ValueError, TypeError) as exc:
+        raise ValueError("generated workbook content is invalid") from exc
+    directory = _user_export_project_directory(category, project)
+    safe_name = _user_export_segment(business_name, "成熟度评估")
+    output_path = _available_user_export_path(
+        directory,
+        f"{_user_export_timestamp()}_{safe_name}_{suffix_label}.xlsx",
+    )
+    output_path.write_bytes(workbook_bytes)
+    export_result = _user_export_result(output_path, category=category)
+    return {**result, **export_result, "export": export_result}
+
+
+def export_maturity_score_exchange_for_runtime(payload: dict[str, Any]) -> dict[str, Any]:
+    result = export_maturity_score_exchange(payload)
+    if payload.get("saveToConfiguredDirectory") is not True:
+        return result
+    project = payload.get("project") if isinstance(payload.get("project"), dict) else {}
+    return _persist_maturity_workbook_export(
+        result,
+        category="maturity-scores",
+        project=project,
+        business_name=str(project.get("name") or "成熟度评估"),
+        suffix_label="评分表",
+    )
+
+
+def export_maturity_template_exchange_for_runtime(payload: dict[str, Any]) -> dict[str, Any]:
+    result = export_maturity_template_exchange(payload)
+    if payload.get("saveToConfiguredDirectory") is not True:
+        return result
+    template = payload.get("template") if isinstance(payload.get("template"), dict) else payload
+    return _persist_maturity_workbook_export(
+        result,
+        category="maturity-templates",
+        project=None,
+        business_name=str(template.get("name") or "成熟度模板"),
+        suffix_label="业务模板",
+    )
+
+
+def export_maturity_report_file(payload: dict[str, Any]) -> dict[str, Any]:
+    project = payload.get("project") if isinstance(payload.get("project"), dict) else {}
+    project_id = str(project.get("id") or payload.get("projectId") or "").strip()
+    report = load_maturity_report_artifact(
+        project_id=project_id,
+        artifact_id=str(payload.get("artifactId") or "").strip(),
+        report_id=str(payload.get("reportId") or "").strip(),
+        input_hash=str(payload.get("inputHash") or "").strip(),
+        result_hash=str(payload.get("resultHash") or "").strip(),
+    )
+    if report.get("ok") is not True:
+        return report
+    report_format = str(payload.get("format") or "html").strip().lower()
+    if report_format not in {"html", "markdown"}:
+        raise ValueError("report format must be html or markdown")
+    report_model = report.get("reportModel") if isinstance(report.get("reportModel"), dict) else {}
+    report_project = report_model.get("project") if isinstance(report_model.get("project"), dict) else {}
+    normalized_project = {
+        "id": project_id or report_project.get("id"),
+        "name": project.get("name") or report_project.get("name") or "成熟度评估项目",
+    }
+    content_key = "html" if report_format == "html" else "markdown"
+    extension = "html" if report_format == "html" else "md"
+    content = str(report.get(content_key) or "")
+    if not content.strip():
+        raise ValueError(f"generated report is missing {report_format} content")
+    directory = _user_export_project_directory("maturity-reports", normalized_project)
+    project_name = _user_export_segment(normalized_project.get("name"), "成熟度评估项目")
+    output_path = _available_user_export_path(
+        directory,
+        f"{_user_export_timestamp()}_{project_name}_评估报告.{extension}",
+    )
+    output_path.write_text(content, encoding="utf-8")
+    persistence = report.get("persistence") if isinstance(report.get("persistence"), dict) else {}
+    return _user_export_result(
+        output_path,
+        category="maturity-reports",
+        extra={
+            "format": report_format,
+            "projectId": normalized_project.get("id"),
+            "reportId": report.get("id"),
+            "artifactId": persistence.get("artifactId"),
+        },
+    )
 
 
 def _display_runtime_path(path: Path) -> str:
@@ -2119,6 +2331,10 @@ def runtime_health_payload() -> dict[str, Any]:
                 "path": _display_runtime_path(DATA_PACKAGE_ROOT),
                 "exists": DATA_PACKAGE_ROOT.exists(),
             },
+            "export_directory": {
+                "path": _display_runtime_path(USER_EXPORT_DIR),
+                "exists": USER_EXPORT_DIR.exists(),
+            },
         },
         "auth": {
             "writes_require_token": True,
@@ -2396,18 +2612,15 @@ def save_markdown_export(payload: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("content is required")
     raw_prefix = str(payload.get("filename_prefix") or "sapd-export").strip()
     safe_prefix = re.sub(r"[^A-Za-z0-9._-]+", "-", raw_prefix).strip(".-")[:64] or "sapd-export"
-    USER_EXPORT_DIR.mkdir(parents=True, exist_ok=True)
-    output_path = USER_EXPORT_DIR / f"{safe_prefix}-{time.strftime('%Y%m%d-%H%M%SZ', time.gmtime())}.md"
+    category = str(payload.get("category") or "issues").strip()
+    directory = _user_export_project_directory(category)
+    requested_name = str(payload.get("filename") or "").strip()
+    output_path = _available_user_export_path(
+        directory,
+        requested_name or f"{safe_prefix}-{time.strftime('%Y%m%d-%H%M%SZ', time.gmtime())}.md",
+    )
     output_path.write_text(content, encoding="utf-8")
-    return {
-        "ok": True,
-        "data_state": "ready",
-        "export_type": "markdown",
-        "file_name": output_path.name,
-        "output_path": str(output_path),
-        "download_dir": str(USER_EXPORT_DIR),
-        "byte_count": output_path.stat().st_size,
-    }
+    return _user_export_result(output_path, category=category, extra={"export_type": "markdown"})
 
 
 def save_user_notes_export() -> dict[str, Any]:
@@ -2415,6 +2628,7 @@ def save_user_notes_export() -> dict[str, Any]:
     result = save_markdown_export(
         {
             "filename_prefix": "user-notes-export",
+            "category": "issues",
             "content": user_notes_export_markdown(payload),
         }
     )
@@ -3759,6 +3973,7 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
             "/api/v1/maturity/calculate",
             "/api/v1/maturity/template/validate",
             "/api/v1/maturity/report",
+            "/api/v1/maturity/report/export",
             "/api/v1/maturity/score/export",
             "/api/v1/maturity/score/import",
             "/api/v1/maturity/template/export",
@@ -3782,13 +3997,15 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
             elif parsed.path == "/api/v1/maturity/template/validate":
                 self._send_json(create_envelope(validate_maturity_template(payload.get("template") or payload)))
             elif parsed.path == "/api/v1/maturity/score/export":
-                self._send_json(create_envelope(export_maturity_score_exchange(payload)))
+                self._send_json(create_envelope(export_maturity_score_exchange_for_runtime(payload)))
             elif parsed.path == "/api/v1/maturity/score/import":
                 self._send_json(create_envelope(import_maturity_score_exchange(payload)))
             elif parsed.path == "/api/v1/maturity/template/export":
-                self._send_json(create_envelope(export_maturity_template_exchange(payload)))
+                self._send_json(create_envelope(export_maturity_template_exchange_for_runtime(payload)))
             elif parsed.path == "/api/v1/maturity/template/import":
                 self._send_json(create_envelope(import_maturity_template_exchange(payload)))
+            elif parsed.path == "/api/v1/maturity/report/export":
+                self._send_json(create_envelope(export_maturity_report_file(payload)))
             else:
                 self._send_json(create_envelope(create_and_persist_maturity_report(payload)))
         except ValueError as exc:
@@ -3953,7 +4170,14 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
                 self._send_json(create_envelope(search_index_payload(query=(query.get("q") or [""])[0], limit=limit, offset=offset, category=(query.get("category") or [""])[0])))
                 return
             if path == "/api/v1/maturity/workspace":
-                self._send_json(create_envelope(build_maturity_workspace(read_data_package("capability-workbench"))))
+                self._send_json(
+                    create_envelope(
+                        build_maturity_workspace(
+                            read_data_package("capability-workbench"),
+                            project_profile=maturity_workspace_project_profile(),
+                        )
+                    )
+                )
                 return
             if path == "/api/v1/maturity/reports/artifact":
                 self._send_json(
@@ -3962,6 +4186,8 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
                             project_id=(query.get("project_id") or query.get("projectId") or [""])[0],
                             artifact_id=(query.get("artifact_id") or query.get("artifactId") or [""])[0],
                             report_id=(query.get("report_id") or query.get("reportId") or [""])[0],
+                            input_hash=(query.get("input_hash") or query.get("inputHash") or [""])[0],
+                            result_hash=(query.get("result_hash") or query.get("resultHash") or [""])[0],
                         )
                     )
                 )
@@ -4008,6 +4234,7 @@ def serve(args: argparse.Namespace) -> None:
         base_db=getattr(args, "base_db", None) or getattr(args, "db", None),
         user_db=getattr(args, "user_db", None),
         data_root=getattr(args, "data_root", None),
+        export_dir=getattr(args, "export_dir", None),
         runtime_label=getattr(args, "runtime_label", None),
     )
     handler = lambda *handler_args, **kwargs: SapdWikiRequestHandler(*handler_args, directory=str(static_dir), **kwargs)
@@ -4021,6 +4248,7 @@ def serve(args: argparse.Namespace) -> None:
     print(f"base_db: {_display_runtime_path(BASE_DB_PATH)}")
     print(f"user_db: {_display_runtime_path(USER_DB_PATH)}")
     print(f"data_root: {_display_runtime_path(DATA_PACKAGE_ROOT)}")
+    print(f"export_dir: {_display_runtime_path(USER_EXPORT_DIR)}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

@@ -1198,6 +1198,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Runtime frontend data package root. Defaults to frontend/capability-browser/public/data.",
     )
     serve_cmd.add_argument(
+        "--export-dir",
+        default=None,
+        help="User-visible export directory. Defaults to data/exports.",
+    )
+    serve_cmd.add_argument(
         "--runtime-label",
         default="stable",
         help="Runtime profile label shown by /api/v1/health. Defaults to stable.",

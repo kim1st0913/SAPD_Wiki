@@ -48,9 +48,10 @@ def scored_entries(template: dict) -> list[dict]:
             "scoreItemId": item["id"],
             "isApplicable": True,
             "elements": {"organization": "L2", "process": "L2", "tool": "L2", "data": "L2"},
+            "dimensionNotes": {"organization": "当前组织说明", "process": "当前流程说明", "tool": "当前工具说明", "data": "当前数据说明"},
             "reviewElements": {},
-            "targetLevel": "L3",
-            "targetReason": "业务评分",
+            "targetElements": {"organization": "L3", "process": "L4", "tool": "L3", "data": "L4"},
+            "targetDimensionNotes": {"organization": "目标组织说明", "process": "目标流程说明", "tool": "目标工具说明", "data": "目标数据说明"},
             "status": "scored",
         }
         for item in template["scoreItems"]
@@ -89,7 +90,7 @@ def main() -> int:
     custom_template.update({"type": "custom", "readOnly": False, "structureMutable": True, "weightMutable": True, "name": "业务自定义模板", "description": "由业务人员维护的成熟度评估模板。"})
     custom_export = export_maturity_template_exchange({"template": custom_template})
     custom_book = workbook(custom_export["package"])
-    require(all(custom_book["评估模板"].cell(3, column).value in {None, ""} for column in range(8, 15)), "custom template export must keep all score fields empty")
+    require(all(custom_book["评估模板"].cell(3, column).value in {None, ""} for column in range(8, 26)), "custom template export must keep all current/target score fields empty")
     custom_import = import_maturity_template_exchange({"exchange": custom_export["package"]})
     require(custom_import["ok"], "valid custom business workbook must import")
     require(custom_import["template"]["stats"]["scoreItems"] == template["stats"]["scoreItems"], "custom template round-trip must preserve assessment-point grain")
@@ -100,6 +101,29 @@ def main() -> int:
     score_export = export_maturity_score_exchange({"project": project, "template": template, "scoreEntries": scored_entries(template)})
     score_import = import_maturity_score_exchange({"project": project, "template": template, "scoreEntries": [], "exchange": score_export["package"]})
     require(score_import["ok"] and score_import["batch"]["status"] == "success" and score_import["batch"]["successCount"] == template["stats"]["scoreItems"], "complete score XLSX must import every assessment point")
+    first_round_trip = next(item for item in score_import["scoreEntries"] if item["scoreItemId"] == template["scoreItems"][0]["id"])
+    require(first_round_trip["targetElements"] == {"organization": "L3", "process": "L4", "tool": "L3", "data": "L4"} and first_round_trip["targetDimensionNotes"]["data"] == "目标数据说明" and first_round_trip["dimensionNotes"]["organization"] == "当前组织说明", "score XLSX must round-trip four current/target dimensions and their explanations")
+    def make_first_target_equal_current(value):
+        sheet = value["评估模板"]
+        for current_column, target_column in zip(("I", "J", "K", "L"), ("Q", "R", "S", "T"), strict=True):
+            sheet[f"{target_column}3"] = sheet[f"{current_column}3"].value
+    equal_target_import = import_maturity_score_exchange({"project": project, "template": template, "scoreEntries": [], "exchange": mutate(score_export["package"], make_first_target_equal_current)})
+    equal_target_entry = next(item for item in equal_target_import["scoreEntries"] if item["scoreItemId"] == template["scoreItems"][0]["id"])
+    require(equal_target_import["ok"] and equal_target_entry["targetElements"] == equal_target_entry["elements"], "score XLSX must accept target dimensions equal to current dimensions")
+    def convert_to_legacy_v21(value):
+        sheet = value["评估模板"]
+        for merged in list(sheet.merged_cells.ranges):
+            if merged.max_row <= 2:
+                sheet.unmerge_cells(str(merged))
+        for column, label in enumerate(("组织与角色", "制度与流程", "平台与工具", "数据与信息", "目标等级", "评估说明"), start=9):
+            sheet.cell(1, column, label)
+            sheet.cell(2, column, "")
+        for row in range(3, sheet.max_row + 1):
+            sheet.cell(row, 13, "L4")
+            sheet.cell(row, 14, "旧目标说明")
+    legacy_import = import_maturity_score_exchange({"project": project, "template": template, "scoreEntries": [], "exchange": mutate(score_export["package"], convert_to_legacy_v21)})
+    legacy_entry = next(item for item in legacy_import["scoreEntries"] if item["scoreItemId"] == template["scoreItems"][0]["id"])
+    require(legacy_import["ok"] and legacy_entry["targetElements"] == {key: "L4" for key in ("organization", "process", "tool", "data")} and set(legacy_entry["targetDimensionNotes"].values()) == {"旧目标说明"}, "legacy V2.1 XLSX targets and notes must expand into four target dimensions")
     not_applicable_with_scores = mutate(score_export["package"], lambda value: setattr(value["评估模板"]["H3"], "value", "不适用"))
     not_applicable_result = import_maturity_score_exchange({"project": project, "template": template, "scoreEntries": [], "exchange": not_applicable_with_scores})
     first_entry = next(item for item in not_applicable_result["scoreEntries"] if item["scoreItemId"] == template["scoreItems"][0]["id"])
@@ -108,11 +132,25 @@ def main() -> int:
     changed_structure = mutate(score_export["package"], lambda value: setattr(value["评估模板"]["E3"], "value", "非法结构修改"))
     changed_result = import_maturity_score_exchange({"project": project, "template": template, "scoreEntries": [], "exchange": changed_structure})
     require(not changed_result["ok"] and changed_result["dataState"] == "invalid_structure", "score import must reject changed business structure")
-    invalid_target = mutate(score_export["package"], lambda value: setattr(value["评估模板"]["M3"], "value", "L1"))
+    def lower_target(value):
+        for column in ("Q", "R", "S", "T"):
+            value["评估模板"][f"{column}3"] = "L1"
+    invalid_target = mutate(score_export["package"], lower_target)
     target_result = import_maturity_score_exchange({"project": project, "template": template, "scoreEntries": [], "exchange": invalid_target})
     require(any(error.get("code") == "target_below_current" for error in target_result["rowErrors"]), "score import must create a blocker when target is below current maturity")
 
-    print(json.dumps({"result": "pass", "checks": 18, "rows": template["stats"]["scoreItems"]}, ensure_ascii=False))
+    def lower_one_target_dimension(value):
+        sheet = value["评估模板"]
+        for column, level in zip(("I", "J", "K", "L"), ("L4", "L1", "L1", "L1"), strict=True):
+            sheet[f"{column}3"] = level
+        for column, level in zip(("Q", "R", "S", "T"), ("L3", "L3", "L1", "L1"), strict=True):
+            sheet[f"{column}3"] = level
+
+    dimension_target_result = import_maturity_score_exchange({"project": project, "template": template, "scoreEntries": [], "exchange": mutate(score_export["package"], lower_one_target_dimension)})
+    dimension_error = next((error for error in dimension_target_result["rowErrors"] if error.get("code") == "target_below_current"), {})
+    require("组织与角色（当前 L4，目标 L3）" in dimension_error.get("message", ""), "score import must reject a same-dimension target regression even when the weighted target is not lower")
+
+    print(json.dumps({"result": "pass", "checks": 22, "rows": template["stats"]["scoreItems"]}, ensure_ascii=False))
     return 0
 
 

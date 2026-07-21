@@ -248,8 +248,11 @@ def source_contract_checks() -> list[dict[str, Any]]:
     contracts = {
         "下载入口位于第 6 步": "index === 5 && reportDownloadAvailable" in component,
         "已有报告刷新后可恢复": all(token in component for token in (
-            "Object.values(model.details).filter((detail) => detail?.project?.id)",
-            "reportId: detail.report?.id || \"\"",
+            "async function restorePersistedReports()",
+            "formalAssessmentReady(detail)",
+            "reportMatchesCurrentAssessment(detail, report)",
+            "inputHash: calculationRun.inputHash",
+            "resultHash: calculationRun.resultHash",
             "getMaturityReportArtifact",
         )),
         "项目 Tab 刷新保留": all(token in component for token in (

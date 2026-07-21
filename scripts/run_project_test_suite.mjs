@@ -52,6 +52,7 @@ const suites = {
       command("static:frontend-smoke", "前端 smoke 脚本语法检查", "node", ["--check", "scripts/frontend_smoke_check.mjs"]),
       command("static:content-smoke", "内容 smoke 脚本语法检查", "node", ["--check", "scripts/frontend_content_smoke_check.mjs"]),
       command("static:dmg-parity-audit", "DMG / 5173 一致性审计脚本语法检查", "node", ["--check", "scripts/audit_mac_dmg_browser_parity_contract.mjs"]),
+      command("static:local-directory-audit", "本地 import / export / Runtime 目录契约脚本语法检查", "python3", ["-m", "py_compile", "scripts/audit_local_file_directory_contract.py"]),
       command("static:service-scope-chip-audit", "服务胶囊作用域颜色审计脚本语法检查", "node", ["--check", "scripts/audit_service_scope_chip_color_contract.mjs"]),
       command("static:p0-1-boundary-audit", "P0-1 正确性与安全边界门禁脚本语法检查", "node", ["--check", "scripts/audit_frontend_p0_1_correctness_boundary_contract.mjs"]),
       command("static:p0-2-shell-audit", "P0-2 Apple Shell 与共享布局基座门禁脚本语法检查", "node", ["--check", "scripts/audit_frontend_p0_2_apple_shell_layout_contract.mjs"]),
@@ -161,12 +162,14 @@ const suites = {
       command("user:notes-integrity", "用户批注完整性审计", "node", ["scripts/audit_user_notes_integrity.mjs"]),
       command("user:db-migration-smoke", "用户库 / stable key 迁移临时库 smoke", "node", ["scripts/smoke_db_migration_contracts.mjs"]),
       command("user:data-basket-smoke", "用户数据篮和导出 API 临时 Runtime smoke", "node", ["scripts/smoke_user_data_basket_api.mjs"]),
+      command("user:local-directory-contract", "用户本地目录与分类导出契约审计", "python3", ["scripts/audit_local_file_directory_contract.py"]),
     ],
   },
   delivery: {
     description: "打包前交付契约检查，不构建 DMG",
     commands: [
       command("delivery:dmg-browser-parity", "DMG 与 5173 一致性契约审计", "node", ["scripts/audit_mac_dmg_browser_parity_contract.mjs"]),
+      command("delivery:local-directory-contract", "App 本地 import / export / Runtime 目录契约审计", "python3", ["scripts/audit_local_file_directory_contract.py"]),
       command("delivery:runtime-py", "打包 Runtime helper Python 语法检查", "python3", [
         "-m",
         "py_compile",

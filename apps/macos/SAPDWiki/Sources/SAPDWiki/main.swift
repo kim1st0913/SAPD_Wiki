@@ -1,11 +1,12 @@
 import Cocoa
 import Darwin
 import Foundation
+import UniformTypeIdentifiers
 import WebKit
 
 private let bundleIdentifier = "com.sapd.wiki.macos"
 private let appDisplayName = "SAPD Wiki"
-private let fallbackDisplayVersion = "0.1.7"
+private let fallbackDisplayVersion = "0.2.0"
 private let wrapperLogName = "app-wrapper.log"
 private let runtimeFingerprintName = ".sapd-runtime-fingerprint"
 
@@ -286,6 +287,7 @@ private final class ActionSleeve: NSObject {
 
 fileprivate struct AppSettings: Sendable {
     let dataRoot: URL
+    let importDirectory: URL
     let downloadDirectory: URL
 }
 
@@ -293,6 +295,7 @@ fileprivate struct AppSettings: Sendable {
 fileprivate enum AppSettingsStore {
     private static let dataRootFolderName = "SAPDWiki"
     private static let dataRootKey = "SAPDWiki.DataRootPath"
+    private static let importDirectoryKey = "SAPDWiki.ImportDirectoryPath"
     private static let downloadDirectoryKey = "SAPDWiki.DownloadDirectoryPath"
 
     static func load() -> AppSettings? {
@@ -303,6 +306,13 @@ fileprivate enum AppSettingsStore {
             return nil
         }
         let dataRoot = URL(fileURLWithPath: dataRootPath, isDirectory: true).standardizedFileURL
+        let importPath = (defaults.string(forKey: importDirectoryKey) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let importDirectory = importPath.isEmpty
+            ? defaultImportDirectory(for: dataRoot)
+            : URL(fileURLWithPath: importPath, isDirectory: true).standardizedFileURL
+        if importPath.isEmpty {
+            defaults.set(importDirectory.path, forKey: importDirectoryKey)
+        }
         var downloadDirectory = URL(fileURLWithPath: downloadPath, isDirectory: true).standardizedFileURL
         if downloadDirectory.path == legacyDefaultDownloadDirectory().path {
             downloadDirectory = defaultDownloadDirectory(for: dataRoot)
@@ -310,6 +320,7 @@ fileprivate enum AppSettingsStore {
         }
         return AppSettings(
             dataRoot: dataRoot,
+            importDirectory: importDirectory,
             downloadDirectory: downloadDirectory
         )
     }
@@ -322,7 +333,7 @@ fileprivate enum AppSettingsStore {
 
         let alert = NSAlert()
         alert.messageText = "首次启动需要设置本地保存位置"
-        alert.informativeText = "请选择一个父级保存位置。SAPD Wiki 会在该位置下创建 SAPDWiki 文件夹，并把 Runtime、用户数据库和默认 export 下载目录都放在这个文件夹下。"
+        alert.informativeText = "请选择一个父级保存位置。SAPD Wiki 会在该位置下创建 SAPDWiki 文件夹，并分别管理 import、export 和 Runtime。"
         alert.addButton(withTitle: "开始设置")
         alert.addButton(withTitle: "取消")
         guard alert.runModal() == .alertFirstButtonReturn else {
@@ -335,13 +346,15 @@ fileprivate enum AppSettingsStore {
     static func promptForSettings(existing: AppSettings?) throws -> AppSettings {
         let selectedParent = try chooseDirectory(
             title: "选择 SAPD Wiki 保存位置",
-            message: "系统会在所选位置下创建 SAPDWiki 文件夹，Runtime 和 export 都会放在 SAPDWiki 下面。",
+            message: "系统会在所选位置下创建 SAPDWiki 文件夹，并分别管理 import、export 和 Runtime。",
             defaultURL: existing.map { parentDirectoryForDataRoot($0.dataRoot) } ?? defaultDataRootParent()
         )
         let dataRoot = dataRoot(forSelectedDirectory: selectedParent)
+        let shouldMoveImport = existing.map { isDefaultImportDirectory($0.importDirectory, for: $0.dataRoot) } ?? true
         let shouldMoveDownload = existing.map { isDefaultDownloadDirectory($0.downloadDirectory, for: $0.dataRoot) } ?? true
+        let importDirectory = shouldMoveImport ? defaultImportDirectory(for: dataRoot) : existing?.importDirectory ?? defaultImportDirectory(for: dataRoot)
         let downloadDirectory = shouldMoveDownload ? defaultDownloadDirectory(for: dataRoot) : existing?.downloadDirectory ?? defaultDownloadDirectory(for: dataRoot)
-        let settings = AppSettings(dataRoot: dataRoot, downloadDirectory: downloadDirectory)
+        let settings = AppSettings(dataRoot: dataRoot, importDirectory: importDirectory, downloadDirectory: downloadDirectory)
         save(settings)
         try ensureDirectories(for: settings)
         return settings
@@ -350,12 +363,19 @@ fileprivate enum AppSettingsStore {
     static func save(_ settings: AppSettings) {
         let defaults = UserDefaults.standard
         defaults.set(settings.dataRoot.path, forKey: dataRootKey)
+        defaults.set(settings.importDirectory.path, forKey: importDirectoryKey)
         defaults.set(settings.downloadDirectory.path, forKey: downloadDirectoryKey)
     }
 
     static func ensureDirectories(for settings: AppSettings) throws {
         try FileManager.default.createDirectory(at: settings.dataRoot, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: settings.importDirectory, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: settings.importDirectory.appendingPathComponent("maturity-templates", isDirectory: true), withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: settings.importDirectory.appendingPathComponent("maturity-scores", isDirectory: true), withIntermediateDirectories: true)
         try FileManager.default.createDirectory(at: settings.downloadDirectory, withIntermediateDirectories: true)
+        for category in ["maturity-reports", "maturity-scores", "maturity-templates", "issues", "diagnostics"] {
+            try FileManager.default.createDirectory(at: settings.downloadDirectory.appendingPathComponent(category, isDirectory: true), withIntermediateDirectories: true)
+        }
     }
 
     static func chooseDirectory(title: String, message: String, defaultURL: URL) throws -> URL {
@@ -377,7 +397,15 @@ fileprivate enum AppSettingsStore {
 
     static func defaultSettings() -> AppSettings {
         let dataRoot = defaultDataRoot()
-        return AppSettings(dataRoot: dataRoot, downloadDirectory: defaultDownloadDirectory(for: dataRoot))
+        return AppSettings(
+            dataRoot: dataRoot,
+            importDirectory: defaultImportDirectory(for: dataRoot),
+            downloadDirectory: defaultDownloadDirectory(for: dataRoot)
+        )
+    }
+
+    static func defaultImportDirectory(for dataRoot: URL) -> URL {
+        dataRoot.appendingPathComponent("import", isDirectory: true).standardizedFileURL
     }
 
     static func defaultDownloadDirectory(for dataRoot: URL) -> URL {
@@ -403,6 +431,10 @@ fileprivate enum AppSettingsStore {
     static func isDefaultDownloadDirectory(_ downloadDirectory: URL, for dataRoot: URL) -> Bool {
         downloadDirectory.standardizedFileURL.path == defaultDownloadDirectory(for: dataRoot).path
             || downloadDirectory.standardizedFileURL.path == legacyDefaultDownloadDirectory().path
+    }
+
+    static func isDefaultImportDirectory(_ importDirectory: URL, for dataRoot: URL) -> Bool {
+        importDirectory.standardizedFileURL.path == defaultImportDirectory(for: dataRoot).path
     }
 
     private static func defaultDataRoot() -> URL {
@@ -460,6 +492,7 @@ final class RuntimeInstaller {
         }
 
         try seedUserDataIfNeeded(from: sourceRuntime, to: runtimeRoot)
+        try seedMaturityReportsIfNeeded(from: sourceRuntime, to: runtimeRoot)
         try writeRuntimePreferences(to: runtimeRoot)
         try fileManager.createDirectory(at: runtimeRoot.appendingPathComponent("logs", isDirectory: true), withIntermediateDirectories: true)
         clearQuarantineRecursively(at: runtimeRoot)
@@ -575,6 +608,7 @@ final class RuntimeInstaller {
         var object = (try JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
         object["app_data_root"] = settings.dataRoot.path
         object["download_dir"] = settings.downloadDirectory.path
+        object["import_dir"] = settings.importDirectory.path
         object["runtime_root"] = runtimeRoot.path
         object["user_database_path"] = runtimeRoot
             .appendingPathComponent("data/user/sapd_wiki_user.sqlite3")
@@ -583,7 +617,7 @@ final class RuntimeInstaller {
 
         let output = try JSONSerialization.data(withJSONObject: object, options: [.prettyPrinted, .sortedKeys])
         try output.write(to: configURL, options: .atomic)
-        AppWrapperLogger.write("prepare-runtime config-updated dataRoot=\(settings.dataRoot.path) downloadDir=\(settings.downloadDirectory.path) licenseState=\(LicenseStore.currentState().state)")
+        AppWrapperLogger.write("prepare-runtime config-updated dataRoot=\(settings.dataRoot.path) importDir=\(settings.importDirectory.path) downloadDir=\(settings.downloadDirectory.path) licenseState=\(LicenseStore.currentState().state)")
     }
 
     private func seedUserDataIfNeeded(from sourceRoot: URL, to targetRoot: URL) throws {
@@ -614,9 +648,27 @@ final class RuntimeInstaller {
         }
         AppWrapperLogger.write("prepare-runtime user-db-created-from-template path=\(targetDB.path) fingerprint=\(sourceFingerprint)")
     }
+
+    private func seedMaturityReportsIfNeeded(from sourceRoot: URL, to targetRoot: URL) throws {
+        let sourceReports = sourceRoot.appendingPathComponent("data/user/maturity-reports", isDirectory: true)
+        guard fileManager.fileExists(atPath: sourceReports.path) else {
+            AppWrapperLogger.write("prepare-runtime maturity-report-seed-skipped missing-source=\(sourceReports.path)")
+            return
+        }
+
+        let targetReports = targetRoot.appendingPathComponent("data/user/maturity-reports", isDirectory: true)
+        guard !fileManager.fileExists(atPath: targetReports.path) else {
+            AppWrapperLogger.write("prepare-runtime maturity-report-seed-preserved path=\(targetReports.path)")
+            return
+        }
+
+        try fileManager.createDirectory(at: targetReports.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try fileManager.copyItem(at: sourceReports, to: targetReports)
+        AppWrapperLogger.write("prepare-runtime maturity-report-seed-created path=\(targetReports.path)")
+    }
 }
 
-final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKUIDelegate {
     private var window: NSWindow?
     private var webView: WKWebView?
     private var backendProcess: Process?
@@ -624,7 +676,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     private var settings: AppSettings?
     private var settingsWindow: NSWindow?
     private var settingsDataRootField: NSTextField?
+    private var settingsImportField: NSTextField?
     private var settingsDownloadField: NSTextField?
+    private var settingsRuntimeField: NSTextField?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
@@ -680,6 +734,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = self
+        webView.uiDelegate = self
         self.webView = webView
 
         let window = NSWindow(
@@ -753,7 +808,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         }
 
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 720, height: 300),
+            contentRect: NSRect(x: 0, y: 0, width: 860, height: 420),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -768,25 +823,47 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         let titleLabel = NSTextField(labelWithString: "SAPD Wiki 系统设置")
         titleLabel.font = .systemFont(ofSize: 18, weight: .semibold)
 
-        let descriptionLabel = NSTextField(labelWithString: "路径变更会在重启 SAPD Wiki 后完整生效。")
+        let descriptionLabel = NSTextField(labelWithString: "导入和导出文件与系统运行数据分开管理；路径变更会在重启 SAPD Wiki 后完整生效。")
         descriptionLabel.font = .systemFont(ofSize: 12)
         descriptionLabel.textColor = .secondaryLabelColor
 
         let versionRow = settingsInfoRow(title: "当前版本", value: currentDisplayVersion())
         let dataRootRow = settingsPathRow(
-            title: "App 保存位置",
+            title: "本地工作目录",
             path: current.dataRoot.path,
-            action: #selector(changeDataRootPath(_:))
+            changeAction: #selector(changeDataRootPath(_:)),
+            revealAction: #selector(revealDataRoot(_:))
         ) { field in
             self.settingsDataRootField = field
         }
+        let importRow = settingsPathRow(
+            title: "默认导入文件夹",
+            path: current.importDirectory.path,
+            changeAction: #selector(changeImportPath(_:)),
+            revealAction: #selector(revealImportDirectory(_:))
+        ) { field in
+            self.settingsImportField = field
+        }
         let downloadRow = settingsPathRow(
-            title: "文件下载路径",
+            title: "导出文件夹",
             path: current.downloadDirectory.path,
-            action: #selector(changeDownloadPath(_:))
+            changeAction: #selector(changeDownloadPath(_:)),
+            revealAction: #selector(revealDownloadDirectory(_:))
         ) { field in
             self.settingsDownloadField = field
         }
+        let runtimeRow = settingsPathRow(
+            title: "系统数据",
+            path: current.dataRoot.appendingPathComponent("Runtime", isDirectory: true).path,
+            changeAction: nil,
+            revealAction: #selector(revealRuntimeDirectory(_:))
+        ) { field in
+            self.settingsRuntimeField = field
+        }
+
+        let runtimeNote = NSTextField(labelWithString: "Runtime 保存用户数据库、报告历史和日志，请勿手动移动、改名或删除。")
+        runtimeNote.font = .systemFont(ofSize: 12)
+        runtimeNote.textColor = .secondaryLabelColor
 
         let doneButton = NSButton(title: "完成", target: self, action: #selector(closeSettingsWindow(_:)))
         doneButton.bezelStyle = .rounded
@@ -798,7 +875,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         buttonRow.distribution = .fill
         buttonRow.translatesAutoresizingMaskIntoConstraints = false
 
-        let stack = NSStackView(views: [titleLabel, descriptionLabel, versionRow, dataRootRow, downloadRow, buttonRow])
+        let stack = NSStackView(views: [titleLabel, descriptionLabel, versionRow, dataRootRow, importRow, downloadRow, runtimeRow, runtimeNote, buttonRow])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 14
@@ -813,7 +890,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
             stack.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor, constant: -20),
             versionRow.widthAnchor.constraint(equalTo: stack.widthAnchor),
             dataRootRow.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            importRow.widthAnchor.constraint(equalTo: stack.widthAnchor),
             downloadRow.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            runtimeRow.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            runtimeNote.widthAnchor.constraint(equalTo: stack.widthAnchor),
             buttonRow.widthAnchor.constraint(equalTo: stack.widthAnchor),
         ])
 
@@ -843,7 +923,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         return row
     }
 
-    private func settingsPathRow(title: String, path: String, action: Selector, fieldHandler: (NSTextField) -> Void) -> NSStackView {
+    private func settingsPathRow(title: String, path: String, changeAction: Selector?, revealAction: Selector, fieldHandler: (NSTextField) -> Void) -> NSStackView {
         let titleLabel = NSTextField(labelWithString: title)
         titleLabel.font = .systemFont(ofSize: 13, weight: .semibold)
         titleLabel.widthAnchor.constraint(equalToConstant: 104).isActive = true
@@ -856,11 +936,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         pathField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         fieldHandler(pathField)
 
-        let button = NSButton(title: "更改路径", target: self, action: action)
-        button.bezelStyle = .rounded
-        button.setContentHuggingPriority(.required, for: .horizontal)
+        let revealButton = NSButton(title: "在 Finder 中显示", target: self, action: revealAction)
+        revealButton.bezelStyle = .rounded
+        revealButton.setContentHuggingPriority(.required, for: .horizontal)
 
-        let row = NSStackView(views: [titleLabel, pathField, button])
+        var views: [NSView] = [titleLabel, pathField, revealButton]
+        if let changeAction {
+            let changeButton = NSButton(title: "更改", target: self, action: changeAction)
+            changeButton.bezelStyle = .rounded
+            changeButton.setContentHuggingPriority(.required, for: .horizontal)
+            views.append(changeButton)
+        }
+
+        let row = NSStackView(views: views)
         row.orientation = .horizontal
         row.alignment = .centerY
         row.spacing = 12
@@ -874,15 +962,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         do {
             let selectedParent = try AppSettingsStore.chooseDirectory(
                 title: "选择 SAPD Wiki 保存位置",
-                message: "系统会在所选位置下创建 SAPDWiki 文件夹，Runtime 和 export 都会放在 SAPDWiki 下面。",
+                message: "系统会在所选位置下创建 SAPDWiki 文件夹，并分别管理 import、export 和 Runtime。",
                 defaultURL: AppSettingsStore.parentDirectoryForDataRoot(current.dataRoot)
             )
             let nextDataRoot = AppSettingsStore.dataRoot(forSelectedDirectory: selectedParent)
+            let shouldMoveImport = AppSettingsStore.isDefaultImportDirectory(current.importDirectory, for: current.dataRoot)
             let shouldMoveDownload = AppSettingsStore.isDefaultDownloadDirectory(current.downloadDirectory, for: current.dataRoot)
+            let nextImport = shouldMoveImport ? AppSettingsStore.defaultImportDirectory(for: nextDataRoot) : current.importDirectory
             let nextDownload = shouldMoveDownload ? AppSettingsStore.defaultDownloadDirectory(for: nextDataRoot) : current.downloadDirectory
-            saveSettings(AppSettings(dataRoot: nextDataRoot, downloadDirectory: nextDownload))
+            saveSettings(AppSettings(dataRoot: nextDataRoot, importDirectory: nextImport, downloadDirectory: nextDownload))
         } catch {
             AppWrapperLogger.write("settings data-root change cancelled-or-failed error=\(error.localizedDescription)")
+        }
+    }
+
+    @objc private func changeImportPath(_ sender: Any?) {
+        let current = settings ?? AppSettingsStore.load() ?? AppSettingsStore.defaultSettings()
+        do {
+            let nextImport = try AppSettingsStore.chooseDirectory(
+                title: "选择 SAPD Wiki 默认导入文件夹",
+                message: "模板和评分文件的选择器会默认从这里打开，也可以临时选择其他位置。",
+                defaultURL: current.importDirectory
+            )
+            saveSettings(AppSettings(dataRoot: current.dataRoot, importDirectory: nextImport, downloadDirectory: current.downloadDirectory))
+        } catch {
+            AppWrapperLogger.write("settings import change cancelled-or-failed error=\(error.localizedDescription)")
         }
     }
 
@@ -894,7 +998,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
                 message: "批注导出和后续文件导出会保存到这里。",
                 defaultURL: current.downloadDirectory
             )
-            saveSettings(AppSettings(dataRoot: current.dataRoot, downloadDirectory: nextDownload))
+            saveSettings(AppSettings(dataRoot: current.dataRoot, importDirectory: current.importDirectory, downloadDirectory: nextDownload))
         } catch {
             AppWrapperLogger.write("settings download change cancelled-or-failed error=\(error.localizedDescription)")
         }
@@ -912,11 +1016,60 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
             return
         }
         settingsDataRootField?.stringValue = current.dataRoot.path
+        settingsImportField?.stringValue = current.importDirectory.path
         settingsDownloadField?.stringValue = current.downloadDirectory.path
+        settingsRuntimeField?.stringValue = current.dataRoot.appendingPathComponent("Runtime", isDirectory: true).path
+    }
+
+    private func revealDirectory(_ url: URL) {
+        try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        NSWorkspace.shared.open(url)
+    }
+
+    @objc private func revealDataRoot(_ sender: Any?) {
+        let current = settings ?? AppSettingsStore.load() ?? AppSettingsStore.defaultSettings()
+        revealDirectory(current.dataRoot)
+    }
+
+    @objc private func revealImportDirectory(_ sender: Any?) {
+        let current = settings ?? AppSettingsStore.load() ?? AppSettingsStore.defaultSettings()
+        revealDirectory(current.importDirectory)
+    }
+
+    @objc private func revealDownloadDirectory(_ sender: Any?) {
+        let current = settings ?? AppSettingsStore.load() ?? AppSettingsStore.defaultSettings()
+        revealDirectory(current.downloadDirectory)
+    }
+
+    @objc private func revealRuntimeDirectory(_ sender: Any?) {
+        let current = settings ?? AppSettingsStore.load() ?? AppSettingsStore.defaultSettings()
+        revealDirectory(current.dataRoot.appendingPathComponent("Runtime", isDirectory: true))
     }
 
     @objc private func closeSettingsWindow(_ sender: Any?) {
         settingsWindow?.orderOut(nil)
+    }
+
+    func webView(_ webView: WKWebView, runOpenPanelWith parameters: WKOpenPanelParameters, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping ([URL]?) -> Void) {
+        let current = settings ?? AppSettingsStore.load() ?? AppSettingsStore.defaultSettings()
+        let panel = NSOpenPanel()
+        panel.title = "选择要导入的文件"
+        panel.message = "默认打开 SAPDWiki/import；也可以选择其他位置的 XLSX 文件。"
+        panel.prompt = "导入"
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = parameters.allowsDirectories
+        panel.allowsMultipleSelection = parameters.allowsMultipleSelection
+        panel.directoryURL = current.importDirectory
+        if let xlsxType = UTType(filenameExtension: "xlsx") {
+            panel.allowedContentTypes = [xlsxType]
+        }
+        guard let window else {
+            completionHandler(nil)
+            return
+        }
+        panel.beginSheetModal(for: window) { response in
+            completionHandler(response == .OK ? panel.urls : nil)
+        }
     }
 
     @objc private func showMainWindow(_ sender: Any?) {

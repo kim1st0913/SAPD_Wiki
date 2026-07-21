@@ -34,6 +34,8 @@ async function main() {
   const environmentSource = read("frontend/capability-browser/components/EnvironmentBasemapViewer.js");
   const cssSource = read("frontend/capability-browser/p1-canvas-workbench.css");
   const stylesSource = read("frontend/capability-browser/styles.css");
+  const directoryShellSource = read("frontend/capability-browser/shared-directory-shell.css");
+  const maturitySource = read("frontend/capability-browser/components/MaturityAssessmentWorkbench.js");
   const indexSource = read("frontend/capability-browser/index.html");
   const oi159Start = stylesSource.indexOf("/* OI-159 revision: Apple shell workspace-attached capability controls. */");
   const oi159Source = oi159Start >= 0 ? stylesSource.slice(oi159Start, oi159Start + 7000) : "";
@@ -44,10 +46,14 @@ async function main() {
   assert(shellSource.includes('<div class="capability-workbench-head">\n          <div id="capabilityFocusHeader" class="capability-focus-head-slot"></div>'), "能力对象标题未恢复到图 2 的独立工作台头", issues);
   assert(includesAll(controlHeadSource, ['id="capabilityViewControls"', 'id="capabilitySearchInput"']) && !controlHeadSource.includes('id="capabilityFocusHeader"'), "能力页 Tab 与搜索未形成独立控制头，或对象标题仍被塞入控制头", issues);
   assert(shellSource.split('class="capability-workbench-head"').length - 1 === 1, "能力页仍存在重复对象标题头", issues);
-  assert(includesAll(appSource, ["capabilityCatalogNarrowExpanded", "(max-width: 1099px)", '"240px 6px minmax(760px, 1fr)"', "return [240, rest(240)]"]), "能力目录 240px 与窄屏自动折叠契约不完整", issues);
-  assert(config.capability.directoryRange[0] === 220 && config.capability.directoryRange[1] === 300, "能力目录配置未锁定 220—300px", issues);
-  assert(includesAll(appSource, ["Math.min(300, Math.max(220", "Math.max(760, pairWidth - nextWidths[index])"]), "能力目录拖拽未执行 220—300px 边界或未保护主画布宽度", issues);
-  assert(includesAll(cssSource, ["grid-template-columns: 240px 6px minmax(760px, 1fr)", "calc(100dvh - 258px)"]), "能力目录 / resizer / 主画布轨道或可用高度不完整", issues);
+  assert(includesAll(appSource, ["capabilityCatalogNarrowExpanded", "capabilityCatalogWidth", "(max-width: 1099px)", "DIRECTORY_PANE_METRICS.defaultWidth", "clampCapabilityCatalogWidth"]), "能力目录统一默认宽度、宽度记忆与窄屏自动折叠契约不完整", issues);
+  assert(config.capability.defaultDirectoryWidth === 304 && config.capability.directoryRange[0] === 240 && config.capability.directoryRange[1] === 520, "能力目录配置未锁定统一的 304px 默认宽度和 240—520px 范围", issues);
+  assert(includesAll(shellSource, ["DIRECTORY_PANE_METRICS", "defaultWidth: 304", "minWidth: 240", "maxWidth: 520", "directoryPaneMetrics"]), "App Shell 未提供共享目录宽度契约", issues);
+  assert(includesAll(appSource, ["CAPABILITY_WORKBENCH_MIN_WIDTH", "availableMaximum", "adaptiveScale", "adjustWorkspaceResizeFromKeyboard", "shell-directory-resizer"]), "能力目录拖拽未执行共享边界、宽屏坐标换算、键盘调整或主画布宽度保护", issues);
+  assert(includesAll(maturitySource, ["components.AppShell?.directoryPaneMetrics", "shell-directory-pane shell-directory-pane-has-meta", "shell-directory-resizer"]), "评分目录未复用 App Shell 目录宽度和结构框架", issues);
+  assert(includesAll(directoryShellSource, ["shell-directory-head", "shell-directory-title", "shell-directory-action", "shell-directory-tree", "shell-directory-resizer"]), "共享目录框架缺少统一外框、头部、操作、滚动体或拖动条 owner", issues);
+  assert(!stylesSource.includes("grid-template-columns: 320px 6px minmax(0, 1fr) !important"), "宽屏能力目录仍以 !important 固定 320px，阻塞分隔条调整", issues);
+  assert(includesAll(cssSource, ["grid-template-columns: 304px 6px minmax(760px, 1fr)", "calc(100dvh - 258px)"]), "能力目录 / resizer / 主画布轨道或可用高度不完整", issues);
   assert(config.capability.visualAuthority.includes("Figure 2") && config.capability.objectHeaderPlacement.startsWith("above-canvas-surface") && config.capability.surfaceRadius === 26 && config.capability.canvasRadius === 18, "P1-2 未记录图 2 的对象标题层级与 OI-159 视觉真值", issues);
   assert(includesAll(oi159Source, ["border-radius: 26px", "display: flex", "border-radius: 25px 25px 0 0", "border-radius: 18px", "padding: 14px"]), "能力页成熟 OI-159 单行控制头或两级圆角基线缺失", issues);
   assert(!cssSource.includes(".capability-workspace-surface {") && !cssSource.includes(".capability-workbench-head.capability-workspace-control") && !cssSource.includes(".preview-relation-stage"), "P1-2 再次越界覆盖能力页成熟视觉基线", issues);
@@ -76,7 +82,7 @@ async function main() {
     issues,
   );
   assert(!environmentSource.includes('data-basemap-lab-action="reset"'), "环境工具仍把适应误标为还原", issues);
-  assert(indexSource.includes("p1-canvas-workbench.css?v=p1-2-canvas-workbench-20260715-3"), "P1-2 样式入口或缓存版本未更新", issues);
+  assert(indexSource.includes("p1-canvas-workbench.css?v=p1-2-canvas-workbench-20260720-4"), "P1-2 样式入口或缓存版本未更新", issues);
 
   for (const [relativePath, expected] of Object.entries(config.frozenArtifacts)) {
     assert(existsSync(path.join(projectRoot, relativePath)), `冻结对象不存在：${relativePath}`, issues);
@@ -97,12 +103,12 @@ async function main() {
     try {
       const [liveIndex, liveCss, liveStyles, liveEnvironment] = await Promise.all([
         fetchText(baseUrl, "index.html"),
-        fetchText(baseUrl, "p1-canvas-workbench.css?v=p1-2-canvas-workbench-20260715-3"),
+        fetchText(baseUrl, "p1-canvas-workbench.css?v=p1-2-canvas-workbench-20260720-4"),
         fetchText(baseUrl, "styles.css"),
         fetchText(baseUrl, "components/EnvironmentBasemapViewer.js?v=p1-2-canvas-workbench-20260714-2"),
       ]);
-      assert(liveIndex.includes("p1-canvas-workbench.css?v=p1-2-canvas-workbench-20260715-3"), "5173 未加载 P1-2 V11 样式", issues);
-      assert(liveCss.includes("P1-2 V11") && liveCss.includes("grid-template-columns: 240px 6px minmax(760px, 1fr)"), "5173 双画布基础样式不是 P1-2 V11 版本", issues);
+      assert(liveIndex.includes("p1-canvas-workbench.css?v=p1-2-canvas-workbench-20260720-4"), "5173 未加载 P1-2 V12 样式", issues);
+      assert(liveCss.includes("P1-2 V11") && liveCss.includes("grid-template-columns: 304px 6px minmax(760px, 1fr)"), "5173 双画布基础样式未加载统一目录默认宽度", issues);
       assert(liveCss.includes("position: static") && liveCss.includes("border: 1px solid rgba(53, 63, 76, 0.72)") && liveCss.includes(".capability-overview-summary-grid:has(.capability-overview-children-pane.has-sliding-scale)"), "5173 未加载参考图实际图片盒四边框与根能力全宽适应修复", issues);
       assert(!liveStyles.includes(".app-shell-integrated #appPageHeader .maintenance-section-tabs"), "5173 仍以标题区局部规则压缩全局胶囊导航", issues);
       assert(!liveCss.includes(".environment-title-tabs .environment-page-tabs"), "5173 仍加载环境线型局部覆盖", issues);

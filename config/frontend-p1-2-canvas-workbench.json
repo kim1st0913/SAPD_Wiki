@@ -1,9 +1,9 @@
 {
-  "version": "2026-07-15.p1-2-canvas-workbench-v11",
+  "version": "2026-07-20.p1-2-canvas-workbench-v12",
   "routes": ["/capability-mapping", "/environment-mapping"],
   "capability": {
-    "defaultDirectoryWidth": 240,
-    "directoryRange": [220, 300],
+    "defaultDirectoryWidth": 304,
+    "directoryRange": [240, 520],
     "autoCollapseBelow": 1100,
     "singleCanvasHeader": true,
     "objectHeaderPlacement": "above-canvas-surface:capability-workbench-head",

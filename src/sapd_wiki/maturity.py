@@ -42,8 +42,8 @@ PROJECT_STATUS_LABELS = {
 
 ASSESSMENT_ITEM_TYPES = {"SERVICE", "FOCUS"}
 SERVICE_ROLES = {"ASSESSMENT_POINT", "PLATFORM_EVIDENCE_REFERENCE"}
-ALGORITHM_VERSION = "sapd-maturity-v2.1.0"
-SCORE_EXCHANGE_SCHEMA = "maturity-score-exchange-v2.1"
+ALGORITHM_VERSION = "sapd-maturity-v2.2.0"
+SCORE_EXCHANGE_SCHEMA = "maturity-score-exchange-v2.2"
 TEMPLATE_EXCHANGE_SCHEMA = "maturity-template-exchange-v2.1"
 MATURITY_WORKBOOK_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 IMPROVEMENT_ROADMAP_STATUSES = {"待规划", "已确认", "进行中", "已完成", "暂缓"}
@@ -62,8 +62,19 @@ MATURITY_WORKBOOK_HEADERS = (
     "制度与流程",
     "平台与工具",
     "数据与信息",
-    "目标等级",
-    "评估说明",
+    "组织与角色说明",
+    "制度与流程说明",
+    "平台与工具说明",
+    "数据与信息说明",
+    "目标组织与角色",
+    "目标制度与流程",
+    "目标平台与工具",
+    "目标数据与信息",
+    "目标组织与角色说明",
+    "目标制度与流程说明",
+    "目标平台与工具说明",
+    "目标数据与信息说明",
+    "其他说明",
 )
 ELEMENT_KEYS = ("organization", "process", "tool", "data")
 ELEMENT_LABELS = {
@@ -744,8 +755,19 @@ def _entry_dimensions(entry: dict[str, Any]) -> dict[str, float | None]:
     }
 
 
-def _entry_index(item: dict[str, Any], entry: dict[str, Any], template: dict[str, Any]) -> float | None:
-    element_values = _entry_dimensions(entry)
+def _entry_target_levels(entry: dict[str, Any]) -> dict[str, Any]:
+    if "targetElements" in entry:
+        return _dict(entry.get("targetElements"))
+    legacy_target = _normalized_level(entry.get("targetLevel"))
+    return {key: legacy_target for key in ELEMENT_KEYS} if legacy_target else {}
+
+
+def _entry_target_dimensions(entry: dict[str, Any]) -> dict[str, float | None]:
+    target_values = _entry_target_levels(entry)
+    return {key: maturity_level_index(target_values.get(key)) for key in ELEMENT_KEYS}
+
+
+def _dimension_index(item: dict[str, Any], element_values: dict[str, float | None], template: dict[str, Any]) -> float | None:
     if any(element_values.get(key) is None for key in ELEMENT_KEYS):
         return None
     configured_weights = {
@@ -758,6 +780,14 @@ def _entry_index(item: dict[str, Any], entry: dict[str, Any], template: dict[str
         for key in ELEMENT_KEYS
     ]
     return _weighted_average(rows)
+
+
+def _entry_index(item: dict[str, Any], entry: dict[str, Any], template: dict[str, Any]) -> float | None:
+    return _dimension_index(item, _entry_dimensions(entry), template)
+
+
+def _entry_target_index(item: dict[str, Any], entry: dict[str, Any], template: dict[str, Any]) -> float | None:
+    return _dimension_index(item, _entry_target_dimensions(entry), template)
 
 
 def _result_record(
@@ -844,17 +874,40 @@ def calculate_maturity_assessment(payload: dict[str, Any]) -> dict[str, Any]:
         status = "not_applicable" if not is_applicable else "not_scored"
         current_index = None if not is_applicable else _entry_index(item, entry, template)
         dimension_results = _entry_dimensions(entry) if is_applicable else {key: None for key in ELEMENT_KEYS}
-        target_index = maturity_level_index(entry.get("targetLevel")) if is_applicable else None
+        target_dimensions = _entry_target_dimensions(entry) if is_applicable else {key: None for key in ELEMENT_KEYS}
+        target_index = _entry_target_index(item, entry, template) if is_applicable else None
         current_level = maturity_level_from_index(current_index)
-        minimum_target_index = maturity_level_index(current_level) if current_index is not None else None
-        target_below_current = bool(
-            enforce_target_floor
-            and is_applicable
-            and target_index is not None
+        minimum_target_index = current_index if current_index is not None else None
+        target_dimension_conflicts = [
+            {
+                "dimension": key,
+                "dimensionLabel": ELEMENT_LABELS[key],
+                "currentLevel": maturity_level_from_index(dimension_results.get(key)),
+                "targetLevel": maturity_level_from_index(target_dimensions.get(key)),
+                "minimumTargetLevel": maturity_level_from_index(dimension_results.get(key)),
+            }
+            for key in ELEMENT_KEYS
+            if dimension_results.get(key) is not None
+            and target_dimensions.get(key) is not None
+            and float(target_dimensions[key]) < float(dimension_results[key])
+        ]
+        overall_target_below_current = bool(
+            target_index is not None
             and minimum_target_index is not None
             and target_index < minimum_target_index
         )
-        target_reason = _text(entry.get("targetReason"))
+        target_below_current = bool(
+            enforce_target_floor
+            and is_applicable
+            and (target_dimension_conflicts or overall_target_below_current)
+        )
+        target_dimension_notes = _dict(entry.get("targetDimensionNotes")) if "targetDimensionNotes" in entry else {
+            key: _text(entry.get("targetReason")) for key in ELEMENT_KEYS
+        }
+        target_reason = _text(entry.get("targetReason")) or next(
+            (_text(target_dimension_notes.get(key)) for key in ELEMENT_KEYS if _text(target_dimension_notes.get(key))),
+            "",
+        )
         na_reason = _text(entry.get("naReason"))
         is_complete = True if not is_applicable else current_index is not None and target_index is not None and not target_below_current
         if is_applicable and current_index is not None:
@@ -883,12 +936,18 @@ def calculate_maturity_assessment(payload: dict[str, Any]) -> dict[str, Any]:
             "currentIndex": current_index,
             "currentLevel": current_level,
             "minimumTargetLevel": current_level if current_index is not None else None,
+            "minimumTargetDimensions": {
+                key: maturity_level_from_index(dimension_results.get(key))
+                for key in ELEMENT_KEYS
+            },
             "currentPercent": _round(current_index * 20, 1) if current_index is not None else 0,
             "dimensionResults": {key: _round(dimension_results.get(key)) for key in ELEMENT_KEYS},
+            "targetDimensionResults": {key: _round(target_dimensions.get(key)) for key in ELEMENT_KEYS},
             "targetIndex": target_index,
             "targetLevel": maturity_level_from_index(target_index),
             "targetAchievementRate": _round(_target_achievement_rate(current_index, target_index), 1),
             "targetReason": target_reason,
+            "targetDimensionNotes": {key: _text(target_dimension_notes.get(key)) for key in ELEMENT_KEYS},
             "targetConfirmed": bool(target_index is not None),
             "weight": max(_float(item.get("weight"), 1.0), 0.0001),
             "isApplicable": is_applicable,
@@ -897,6 +956,7 @@ def calculate_maturity_assessment(payload: dict[str, Any]) -> dict[str, Any]:
             "status": status,
             "isComplete": is_complete,
             "targetBelowCurrent": target_below_current,
+            "targetDimensionConflicts": target_dimension_conflicts if enforce_target_floor else [],
             "naReason": na_reason,
             "note": _text(entry.get("note")),
         }
@@ -906,6 +966,7 @@ def calculate_maturity_assessment(payload: dict[str, Any]) -> dict[str, Any]:
                 {
                     "focusId": focus_id,
                     **dimension_results,
+                    **{f"target_{key}": target_dimensions.get(key) for key in ELEMENT_KEYS},
                 }
             )
 
@@ -927,6 +988,10 @@ def calculate_maturity_assessment(payload: dict[str, Any]) -> dict[str, Any]:
             key: _weighted_average([(row["dimensionResults"].get(key), row["weight"]) for row in scored])
             for key in ELEMENT_KEYS
         }
+        target_dimension_results = {
+            key: _weighted_average([(row["targetDimensionResults"].get(key), row["weight"]) for row in applicable if row["targetDimensionResults"].get(key) is not None])
+            for key in ELEMENT_KEYS
+        }
         completed = [row for row in applicable if row["isComplete"]]
         completion_rate = 100.0 * len(completed) / len(applicable) if applicable else 0.0
         evidence_coverage = 100.0 * sum(1 for row in scored if row["hasEvidence"]) / len(scored) if scored else 0.0
@@ -945,6 +1010,7 @@ def calculate_maturity_assessment(payload: dict[str, Any]) -> dict[str, Any]:
                 capabilityId=_text(focus.get("capabilityId")),
                 itemType=_text(focus.get("itemType")),
                 dimensionResults={key: _round(value) for key, value in dimension_results.items()},
+                targetDimensionResults={key: _round(value) for key, value in target_dimension_results.items()},
                 scoreItemCount=len(rows),
                 applicableItemCount=len(applicable),
                 scoredItemCount=len(scored),
@@ -975,6 +1041,10 @@ def calculate_maturity_assessment(payload: dict[str, Any]) -> dict[str, Any]:
         evidence_coverage = sum(row["evidenceCoverage"] for row in scored) / len(scored) if scored else 0.0
         dimension_results = {
             key: _weighted_average([(row.get("dimensionResults", {}).get(key), row["weight"]) for row in scored])
+            for key in ELEMENT_KEYS
+        }
+        target_dimension_results = {
+            key: _weighted_average([(row.get("targetDimensionResults", {}).get(key), row["weight"]) for row in target_rows])
             for key in ELEMENT_KEYS
         }
         applied_rules: list[dict[str, Any]] = []
@@ -1016,6 +1086,7 @@ def calculate_maturity_assessment(payload: dict[str, Any]) -> dict[str, Any]:
                 completedItemCount=completed_item_count,
                 notApplicableItemCount=not_applicable_item_count,
                 dimensionResults={key: _round(value) for key, value in dimension_results.items()},
+                targetDimensionResults={key: _round(value) for key, value in target_dimension_results.items()},
                 appliedCriticalRules=applied_rules,
                 businessImportance=max(0.0, min(5.0, _float(capability.get("businessImportance"), 3.0))),
                 riskUrgency=max(0.0, min(5.0, _float(capability.get("riskUrgency"), 3.0))),
@@ -1041,6 +1112,10 @@ def calculate_maturity_assessment(payload: dict[str, Any]) -> dict[str, Any]:
             key: _weighted_average([(row.get("dimensionResults", {}).get(key), row["weight"]) for row in scored])
             for key in ELEMENT_KEYS
         }
+        target_dimension_results = {
+            key: _weighted_average([(row.get("targetDimensionResults", {}).get(key), row["weight"]) for row in targeted])
+            for key in ELEMENT_KEYS
+        }
         return _result_record(
             object_id=_text(category.get("id")),
             code=_text(category.get("code")),
@@ -1059,6 +1134,7 @@ def calculate_maturity_assessment(payload: dict[str, Any]) -> dict[str, Any]:
             completedItemCount=completed_item_count,
             notApplicableItemCount=not_applicable_item_count,
             dimensionResults={key: _round(value) for key, value in dimension_results.items()},
+            targetDimensionResults={key: _round(value) for key, value in target_dimension_results.items()},
         )
 
     def category_capability_level(category: dict[str, Any]) -> str:
@@ -1102,6 +1178,10 @@ def calculate_maturity_assessment(payload: dict[str, Any]) -> dict[str, Any]:
     overall_target = _weighted_average([(row["targetIndex"], row["weight"]) for row in target_top])
     overall_dimensions = {
         key: _weighted_average([(row.get("dimensionResults", {}).get(key), row["weight"]) for row in scored_top])
+        for key in ELEMENT_KEYS
+    }
+    overall_target_dimensions = {
+        key: _weighted_average([(row.get("targetDimensionResults", {}).get(key), row["weight"]) for row in target_top])
         for key in ELEMENT_KEYS
     }
     applicable_item_count = sum(1 for row in item_results if row["isApplicable"])
@@ -1157,6 +1237,7 @@ def calculate_maturity_assessment(payload: dict[str, Any]) -> dict[str, Any]:
             "constraints": _text(project.get("constraints")),
         },
         dimensionResults={key: _round(value) for key, value in overall_dimensions.items()},
+        targetDimensionResults={key: _round(value) for key, value in overall_target_dimensions.items()},
     )
 
     gap_items: list[dict[str, Any]] = []
@@ -1226,6 +1307,7 @@ def calculate_maturity_assessment(payload: dict[str, Any]) -> dict[str, Any]:
     four_element_summary = []
     for key in ELEMENT_KEYS:
         average = _weighted_average([(row.get(key), 1.0) for row in four_element_rows])
+        target_average = _weighted_average([(row.get(f"target_{key}"), 1.0) for row in four_element_rows])
         four_element_summary.append(
             {
                 "id": key,
@@ -1233,6 +1315,10 @@ def calculate_maturity_assessment(payload: dict[str, Any]) -> dict[str, Any]:
                 "currentIndex": _round(average),
                 "currentLevel": maturity_level_from_index(average),
                 "currentPercent": _round(average * 20, 1) if average is not None else 0,
+                "targetIndex": _round(target_average),
+                "targetLevel": maturity_level_from_index(target_average),
+                "targetPercent": _round(target_average * 20, 1) if target_average is not None else 0,
+                "gapIndex": _round(max(0.0, target_average - average)) if average is not None and target_average is not None else None,
             }
         )
 
@@ -1304,15 +1390,17 @@ def _demo_score_entries(
             for offset, key in enumerate(ELEMENT_KEYS)
         }
         target_level = "L4" if digest % 7 else "L3"
-        if target_conflict_count is not None and is_applicable and not is_unscored:
-            current_index = _entry_index(item, {"elements": elements}, template)
-            current_level = maturity_level_from_index(current_index)
-            current_level_index = int(maturity_level_index(current_level) or 1)
-            if remaining_target_conflicts and current_level_index > 1:
-                target_level = f"L{current_level_index - 1}"
+        if is_applicable and not is_unscored:
+            current_level_indices = [
+                int(maturity_level_index(value) or 1)
+                for value in elements.values()
+            ]
+            current_max_index = max(current_level_indices, default=1)
+            target_level_index = max(int(maturity_level_index(target_level) or 1), current_max_index)
+            target_level = f"L{target_level_index}"
+            if target_conflict_count is not None and remaining_target_conflicts and current_max_index > 1:
+                target_level = f"L{current_max_index - 1}"
                 remaining_target_conflicts -= 1
-            elif (maturity_level_index(target_level) or 0) < current_level_index:
-                target_level = current_level
         entry = {
             "scoreItemId": item_id,
             "isApplicable": is_applicable,
@@ -1346,6 +1434,7 @@ def _project_detail(
     industry: str,
     company_size: str,
     target_conflict_count: int | None = None,
+    controlled_demo_revision: str | None = None,
 ) -> dict[str, Any]:
     template = deepcopy(template)
     project = {
@@ -1380,7 +1469,9 @@ def _project_detail(
         "mode": "controlled_demo",
         "readOnly": status in {"completed", "reported", "archived"},
     }
-    if target_conflict_count is not None:
+    if controlled_demo_revision:
+        project["controlledDemoRevision"] = controlled_demo_revision
+    elif target_conflict_count is not None:
         project["controlledDemoRevision"] = f"target-conflicts-{target_conflict_count}-20260716"
     entries = _demo_score_entries(
         template,
@@ -1393,7 +1484,11 @@ def _project_detail(
     return {"project": project, "template": template, "scoreEntries": entries, "result": result}
 
 
-def build_maturity_workspace(capability_workbench: dict[str, Any]) -> dict[str, Any]:
+def build_maturity_workspace(
+    capability_workbench: dict[str, Any],
+    *,
+    project_profile: str = "development",
+) -> dict[str, Any]:
     template = build_maturity_base_template(capability_workbench)
     project_details = {
         "demo-project-001": _project_detail(
@@ -1408,6 +1503,7 @@ def build_maturity_workspace(capability_workbench: dict[str, Any]) -> dict[str, 
             industry="综合集团",
             company_size="大型企业",
             target_conflict_count=3,
+            controlled_demo_revision="two-test-cases-in-progress-20260720",
         ),
         "demo-project-002": _project_detail(
             template,
@@ -1420,6 +1516,7 @@ def build_maturity_workspace(capability_workbench: dict[str, Any]) -> dict[str, 
             reviewed=True,
             industry="金融",
             company_size="大型企业",
+            controlled_demo_revision="two-test-cases-completed-20260720",
         ),
         "demo-project-003": _project_detail(
             template,
@@ -1433,7 +1530,34 @@ def build_maturity_workspace(capability_workbench: dict[str, Any]) -> dict[str, 
             industry="科技",
             company_size="中型企业",
         ),
+        "demo-project-004": _project_detail(
+            template,
+            project_id="demo-project-004",
+            name="某制造企业成熟度评估",
+            organization="某制造企业",
+            status="score_review",
+            variant=4,
+            complete=True,
+            reviewed=False,
+            industry="制造业",
+            company_size="大型企业",
+        ),
+        "demo-project-005": _project_detail(
+            template,
+            project_id="demo-project-005",
+            name="某零售企业成熟度评估",
+            organization="某零售企业",
+            status="template_configuring",
+            variant=5,
+            complete=False,
+            reviewed=False,
+            industry="零售",
+            company_size="中型企业",
+        ),
     }
+    normalized_profile = "delivery" if str(project_profile).strip().lower() == "delivery" else "development"
+    if normalized_profile == "delivery":
+        project_details = {project_id: project_details[project_id] for project_id in ("demo-project-001", "demo-project-002")}
     projects = []
     for detail in project_details.values():
         project = detail["project"]
@@ -1452,6 +1576,7 @@ def build_maturity_workspace(capability_workbench: dict[str, Any]) -> dict[str, 
     return {
         "dataState": "ready",
         "mode": "controlled_demo",
+        "projectProfile": normalized_profile,
         "persistence": "browser_local_only",
         "notice": "项目草稿保存在当前浏览器，不写正式 SQLite、正式 JSON 或用户库。",
         "levels": list(MATURITY_LEVELS),
@@ -1565,7 +1690,12 @@ def _template_business_rows(template: dict[str, Any], score_entries: list[dict[s
         entry = entries.get(_text(item.get("id")), {})
         applicable = entry.get("isApplicable") is not False
         elements = _dict(entry.get("elements"))
-        note = _text(entry.get("naReason")) if not applicable else _text(entry.get("targetReason") or entry.get("note") or entry.get("evidenceSummary"))
+        dimension_notes = _dict(entry.get("dimensionNotes"))
+        target_elements = _entry_target_levels(entry)
+        target_dimension_notes = _dict(entry.get("targetDimensionNotes")) if "targetDimensionNotes" in entry else {
+            key: _text(entry.get("targetReason")) for key in ELEMENT_KEYS
+        }
+        note = _text(entry.get("naReason")) if not applicable else _text(entry.get("note") or entry.get("evidenceSummary"))
         rows.append(
             {
                 "itemId": _text(item.get("id")),
@@ -1581,7 +1711,9 @@ def _template_business_rows(template: dict[str, Any], score_entries: list[dict[s
                 "process": _normalized_level(elements.get("process")) or "" if score_entries is not None else "",
                 "tool": _normalized_level(elements.get("tool")) or "" if score_entries is not None else "",
                 "data": _normalized_level(elements.get("data")) or "" if score_entries is not None else "",
-                "target": _normalized_level(entry.get("targetLevel")) or "" if score_entries is not None else "",
+                "currentNotes": {key: _text(dimension_notes.get(key)) if score_entries is not None else "" for key in ELEMENT_KEYS},
+                "targets": {key: _normalized_level(target_elements.get(key)) or "" if score_entries is not None else "" for key in ELEMENT_KEYS},
+                "targetNotes": {key: _text(target_dimension_notes.get(key)) if score_entries is not None else "" for key in ELEMENT_KEYS},
                 "note": note if score_entries is not None else "",
                 "sort": (
                     _float(l0.get("sortOrder")),
@@ -1599,7 +1731,11 @@ def _template_business_rows(template: dict[str, Any], score_entries: list[dict[s
 def _workbook_row_values(row: dict[str, Any]) -> list[str]:
     return [
         row["l0"], row["l1"], row["l2"], row["focusNo"], row["focus"], row["services"], row["granularity"],
-        row["applicability"], row["organization"], row["process"], row["tool"], row["data"], row["target"], row["note"],
+        row["applicability"], row["organization"], row["process"], row["tool"], row["data"],
+        *[row["currentNotes"].get(key, "") for key in ELEMENT_KEYS],
+        *[row["targets"].get(key, "") for key in ELEMENT_KEYS],
+        *[row["targetNotes"].get(key, "") for key in ELEMENT_KEYS],
+        row["note"],
     ]
 
 
@@ -1668,10 +1804,10 @@ def _build_maturity_workbook(template: dict[str, Any], *, purpose: str, score_en
     info["A1"].border = border
     is_template_workbook = purpose == "模板配置"
     filling_note = (
-        "评分标题和评分列必须保留，但适用性、四维评分、目标等级和评估说明的单元格必须全部为空；"
+        "评分标题和评分列必须保留，但适用性、当前与目标四维评分及说明的单元格必须全部为空；"
         "将模板类型切换为“自定义模板”后，请填写新的模板名称和模板说明。"
         if is_template_workbook
-        else "评分标题和评分列不得删除；请填写适用性、四维评分、目标等级和评估说明。不适用项中已有的评分会在导入时忽略。"
+        else "评分标题和评分列不得删除；请分别填写当前与目标四维评分，说明为可选。不适用项中已有的评分会在导入时忽略。"
     )
     info_rows = (
         ("模板名称", _text(template.get("name")) or "未命名成熟度模板"),
@@ -1719,10 +1855,13 @@ def _build_maturity_workbook(template: dict[str, Any], *, purpose: str, score_en
     assessment.merge_cells("B1:B2")
     assessment.merge_cells("C1:C2")
     assessment.merge_cells("D1:E1")
-    for column in range(6, 15):
+    for column in range(6, 9):
         assessment.merge_cells(start_row=1, start_column=column, end_row=2, end_column=column)
-    first_row = ("安全能力分类", "L1 高阶战略能力", "L2 安全能力", "安全关注点", "", "安全技术服务", "评分粒度", "适用性", "组织与角色", "制度与流程", "平台与工具", "数据与信息", "目标等级", "评估说明")
-    second_row = ("", "", "", "序号", "关注点", "", "", "", "", "", "", "", "", "")
+    assessment.merge_cells(start_row=1, start_column=9, end_row=1, end_column=16)
+    assessment.merge_cells(start_row=1, start_column=17, end_row=1, end_column=24)
+    assessment.merge_cells(start_row=1, start_column=25, end_row=2, end_column=25)
+    first_row = ("安全能力分类", "L1 高阶战略能力", "L2 安全能力", "安全关注点", "", "安全技术服务", "评分粒度", "适用性", "当前状态", "", "", "", "", "", "", "", "目标状态", "", "", "", "", "", "", "", "其他说明")
+    second_row = ("", "", "", "序号", "关注点", "", "", "", "组织与角色", "制度与流程", "平台与工具", "数据与信息", "组织说明", "流程说明", "工具说明", "数据说明", "组织与角色", "制度与流程", "平台与工具", "数据与信息", "组织说明", "流程说明", "工具说明", "数据说明", "")
     for column, value in enumerate(first_row, start=1):
         if value:
             assessment.cell(1, column, value)
@@ -1730,7 +1869,7 @@ def _build_maturity_workbook(template: dict[str, Any], *, purpose: str, score_en
         if value:
             assessment.cell(2, column, value)
     for row_index in (1, 2):
-        for column in range(1, 15):
+        for column in range(1, 26):
             cell = assessment.cell(row_index, column)
             cell.fill = header_fill
             cell.font = header_font
@@ -1745,7 +1884,7 @@ def _build_maturity_workbook(template: dict[str, Any], *, purpose: str, score_en
             cell = assessment.cell(row_index, column, value)
             cell.font = body_font
             cell.border = border
-            cell.alignment = center if column in {4, 7, 8, 9, 10, 11, 12, 13} else left
+            cell.alignment = center if column in {4, 7, 8, 9, 10, 11, 12, 17, 18, 19, 20} else left
             if column >= 8:
                 cell.fill = input_fill if score_entries is None else PatternFill("solid", fgColor="FFFDF5")
         assessment.row_dimensions[row_index].height = 38
@@ -1756,7 +1895,7 @@ def _build_maturity_workbook(template: dict[str, Any], *, purpose: str, score_en
                 cell.border = border
                 cell.alignment = center
 
-    widths = (22, 24, 26, 12, 30, 34, 16, 12, 15, 15, 15, 15, 14, 32)
+    widths = (22, 24, 26, 12, 30, 34, 16, 12, 15, 15, 15, 15, 26, 26, 26, 26, 15, 15, 15, 15, 26, 26, 26, 26, 28)
     for index, width in enumerate(widths, start=1):
         assessment.column_dimensions[get_column_letter(index)].width = width
     last_row = max(3, len(business_rows) + 2)
@@ -1765,10 +1904,11 @@ def _build_maturity_workbook(template: dict[str, Any], *, purpose: str, score_en
     assessment.add_data_validation(applicability_validation)
     applicability_validation.add(f"H3:H{last_row}")
     assessment.add_data_validation(level_validation)
-    level_validation.add(f"I3:M{last_row}")
+    level_validation.add(f"I3:L{last_row}")
+    level_validation.add(f"Q3:T{last_row}")
     assessment.freeze_panes = "H3"
     assessment.sheet_view.showGridLines = False
-    assessment.auto_filter.ref = f"A2:N{last_row}"
+    assessment.auto_filter.ref = f"A2:Y{last_row}"
     assessment.print_title_rows = "1:2"
     assessment.print_options.horizontalCentered = True
     assessment.page_setup.orientation = "landscape"
@@ -1823,6 +1963,7 @@ def _merged_value_map(sheet: Any) -> dict[tuple[int, int], Any]:
 
 def _read_assessment_rows(workbook: Any) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     sheet = workbook[MATURITY_ASSESSMENT_SHEET]
+    modern_targets = _business_cell(sheet.cell(1, 9).value) == "当前状态"
     header_checks = {
         (1, 1): "安全能力分类",
         (1, 2): "L1 高阶战略能力",
@@ -1833,12 +1974,29 @@ def _read_assessment_rows(workbook: Any) -> tuple[list[dict[str, Any]], list[dic
         (1, 6): "安全技术服务",
         (1, 7): "评分粒度",
         (1, 8): "适用性",
-        (1, 9): "组织与角色",
-        (1, 10): "制度与流程",
-        (1, 11): "平台与工具",
-        (1, 12): "数据与信息",
-        (1, 13): "目标等级",
     }
+    header_checks.update(
+        {
+            (1, 9): "当前状态",
+            (1, 17): "目标状态",
+            (2, 9): "组织与角色",
+            (2, 10): "制度与流程",
+            (2, 11): "平台与工具",
+            (2, 12): "数据与信息",
+            (2, 17): "组织与角色",
+            (2, 18): "制度与流程",
+            (2, 19): "平台与工具",
+            (2, 20): "数据与信息",
+        }
+        if modern_targets
+        else {
+            (1, 9): "组织与角色",
+            (1, 10): "制度与流程",
+            (1, 11): "平台与工具",
+            (1, 12): "数据与信息",
+            (1, 13): "目标等级",
+        }
+    )
     for (row, column), expected in header_checks.items():
         if _business_cell(sheet.cell(row, column).value) != expected:
             return [], [{"row": row, "code": "header_invalid", "message": f"评估模板第 {column} 列表头应为“{expected}”。"}]
@@ -1846,7 +2004,8 @@ def _read_assessment_rows(workbook: Any) -> tuple[list[dict[str, Any]], list[dic
     rows: list[dict[str, Any]] = []
     errors: list[dict[str, Any]] = []
     for row_number in range(3, sheet.max_row + 1):
-        values = [merged_values.get((row_number, column), sheet.cell(row_number, column).value) for column in range(1, 15)]
+        column_count = 25 if modern_targets else 14
+        values = [merged_values.get((row_number, column), sheet.cell(row_number, column).value) for column in range(1, column_count + 1)]
         if not any(_text(value) for value in values):
             continue
         row = {
@@ -1863,8 +2022,20 @@ def _read_assessment_rows(workbook: Any) -> tuple[list[dict[str, Any]], list[dic
             "process": values[9],
             "tool": values[10],
             "data": values[11],
-            "target": values[12],
-            "note": _text(values[13]).strip(),
+            "currentNotes": {
+                key: _text(values[12 + index]).strip() if modern_targets else ""
+                for index, key in enumerate(ELEMENT_KEYS)
+            },
+            "targets": {
+                key: values[16 + index] if modern_targets else values[12]
+                for index, key in enumerate(ELEMENT_KEYS)
+            },
+            "targetNotes": {
+                key: _text(values[20 + index]).strip() if modern_targets else _text(values[13]).strip()
+                for index, key in enumerate(ELEMENT_KEYS)
+            },
+            "note": _text(values[24]).strip() if modern_targets else _text(values[13]).strip(),
+            "workbookSchema": "v2.2" if modern_targets else "v2.1",
         }
         missing = [label for label, value in (("安全能力分类", row["l0"]), ("L1 高阶战略能力", row["l1"]), ("L2 安全能力", row["l2"]), ("安全关注点", row["focus"])) if not value]
         if missing:
@@ -2154,12 +2325,18 @@ def _legacy_import_maturity_score_exchange(payload: dict[str, Any]) -> dict[str,
         if is_applicable and maturity_level_index(row.get("targetLevel")) is None:
             row_errors.append({"row": row_number, "itemInstanceId": item_id, "code": "target_incomplete", "message": "适用项必须填写目标等级；评估说明为可选。"})
             continue
-        current_index = _entry_index(valid_item_by_id[item_id], {"elements": elements}, template) if is_applicable else None
-        minimum_target_level = maturity_level_from_index(current_index) if current_index is not None else None
-        minimum_target_index = maturity_level_index(minimum_target_level)
         target_index = maturity_level_index(row.get("targetLevel")) if is_applicable else None
+        current_dimension_indices = {
+            key: maturity_level_index(value)
+            for key, value in elements.items()
+        }
+        minimum_target_index = max(
+            (value for value in current_dimension_indices.values() if value is not None),
+            default=None,
+        ) if is_applicable else None
         if is_applicable and target_index is not None and minimum_target_index is not None and target_index < minimum_target_index:
-            row_errors.append({"row": row_number, "itemInstanceId": item_id, "code": "target_below_current", "message": f"目标等级不能低于当前评分计算等级 {minimum_target_level}。"})
+            minimum_target_level = maturity_level_from_index(minimum_target_index)
+            row_errors.append({"row": row_number, "itemInstanceId": item_id, "code": "target_below_current", "message": f"目标等级不能低于四维当前状态中的最高等级 {minimum_target_level}。"})
             continue
         entry = existing_entries.get(item_id, {"scoreItemId": item_id, "reviewElements": {}})
         entry.update(
@@ -2339,33 +2516,47 @@ def import_maturity_score_exchange(payload: dict[str, Any]) -> dict[str, Any]:
             "tool": _normalized_level(row.get("tool")),
             "data": _normalized_level(row.get("data")),
         }
-        target_level = _normalized_level(row.get("target"))
+        target_elements = {
+            key_name: _normalized_level(_dict(row.get("targets")).get(key_name))
+            for key_name in ELEMENT_KEYS
+        }
         if not is_applicable:
             normalized_elements = {}
-            target_level = None
+            target_elements = {}
         else:
             invalid_dimensions = [ELEMENT_LABELS[key_name] for key_name, value in normalized_elements.items() if value is None]
             if invalid_dimensions:
                 row_errors.append({"row": row["row"], "itemInstanceId": expected["itemId"], "code": "dimension_level_invalid", "message": f"适用项必须填写有效的 L1—L5 四维评分：{'、'.join(invalid_dimensions)}。"})
                 continue
-            if target_level is None:
-                row_errors.append({"row": row["row"], "itemInstanceId": expected["itemId"], "code": "target_incomplete", "message": "适用项必须填写 L1—L5 目标等级。"})
+            invalid_targets = [ELEMENT_LABELS[key_name] for key_name, value in target_elements.items() if value is None]
+            if invalid_targets:
+                row_errors.append({"row": row["row"], "itemInstanceId": expected["itemId"], "code": "target_incomplete", "message": f"适用项必须填写有效的 L1—L5 四维目标：{'、'.join(invalid_targets)}。"})
                 continue
-            item = valid_items.get(expected["itemId"], {})
-            current_index = _entry_index(item, {"elements": normalized_elements}, template)
-            minimum_target = maturity_level_from_index(current_index) if current_index is not None else None
-            if maturity_level_index(target_level) is not None and maturity_level_index(minimum_target) is not None and maturity_level_index(target_level) < maturity_level_index(minimum_target):
-                row_errors.append({"row": row["row"], "itemInstanceId": expected["itemId"], "code": "target_below_current", "message": f"目标等级不能低于当前评分计算等级 {minimum_target}。"})
+            target_conflict_dimensions = [
+                f"{ELEMENT_LABELS[key_name]}（当前 {normalized_elements[key_name]}，目标 {target_elements[key_name]}）"
+                for key_name in ELEMENT_KEYS
+                if maturity_level_index(target_elements[key_name]) < maturity_level_index(normalized_elements[key_name])
+            ]
+            if target_conflict_dimensions:
+                row_errors.append({"row": row["row"], "itemInstanceId": expected["itemId"], "code": "target_below_current", "message": f"目标状态不能低于同维度当前状态：{'、'.join(target_conflict_dimensions)}。"})
                 continue
-        entry = existing_entries.get(expected["itemId"], {"scoreItemId": expected["itemId"], "reviewElements": {}, "dimensionNotes": {}})
+        target_notes = {key_name: _text(_dict(row.get("targetNotes")).get(key_name)) for key_name in ELEMENT_KEYS}
+        current_notes = {key_name: _text(_dict(row.get("currentNotes")).get(key_name)) for key_name in ELEMENT_KEYS}
+        target_index = _entry_target_index(valid_items.get(expected["itemId"], {}), {"targetElements": target_elements}, template) if is_applicable else None
+        derived_target_level = maturity_level_from_index(target_index)
+        legacy_target_reason = next((_text(target_notes.get(key_name)) for key_name in ELEMENT_KEYS if _text(target_notes.get(key_name))), "")
+        entry = existing_entries.get(expected["itemId"], {"scoreItemId": expected["itemId"], "reviewElements": {}, "dimensionNotes": {}, "targetElements": {}, "targetDimensionNotes": {}})
         entry.update(
             {
                 "scoreItemId": expected["itemId"],
                 "isApplicable": is_applicable,
                 "elements": normalized_elements if is_applicable else {},
-                "targetLevel": target_level if is_applicable else None,
-                "targetReason": _text(row.get("note")) if is_applicable else "",
-                "targetConfirmed": bool(is_applicable and target_level),
+                "dimensionNotes": current_notes if is_applicable else {},
+                "targetElements": target_elements if is_applicable else {},
+                "targetDimensionNotes": target_notes if is_applicable else {},
+                "targetLevel": derived_target_level if is_applicable else None,
+                "targetReason": legacy_target_reason if is_applicable else "",
+                "targetConfirmed": bool(is_applicable and target_index is not None),
                 "naReason": _text(row.get("note")) if not is_applicable else "",
                 "status": "scored" if is_applicable else "not_applicable",
                 "lastUpdateScope": "XLSX_IMPORT",
@@ -2416,11 +2607,10 @@ def import_maturity_template_exchange(payload: dict[str, Any]) -> dict[str, Any]
     elif metadata.get("模板名称") == "SAPD标准能力成熟度模板" or metadata.get("模板说明") == "基于当前稳定能力、关注点、安全技术服务和作用域关系生成的只读评估模板。":
         row_errors.insert(0, {"row": 0, "code": "custom_template_metadata_unchanged", "message": "切换为自定义模板后，必须重新填写模板名称和模板说明，不能沿用标准模板信息。"})
     for row in rows:
-        populated_fields = [
-            label
-            for label, key in (("适用性", "applicability"), ("组织与角色", "organization"), ("制度与流程", "process"), ("平台与工具", "tool"), ("数据与信息", "data"), ("目标等级", "target"), ("评估说明", "note"))
-            if _text(row.get(key))
-        ]
+        populated_fields = [label for label, key in (("适用性", "applicability"), ("组织与角色", "organization"), ("制度与流程", "process"), ("平台与工具", "tool"), ("数据与信息", "data"), ("其他说明", "note")) if _text(row.get(key))]
+        populated_fields.extend(f"当前{ELEMENT_LABELS[key]}说明" for key in ELEMENT_KEYS if _text(_dict(row.get("currentNotes")).get(key)))
+        populated_fields.extend(f"目标{ELEMENT_LABELS[key]}" for key in ELEMENT_KEYS if _text(_dict(row.get("targets")).get(key)))
+        populated_fields.extend(f"目标{ELEMENT_LABELS[key]}说明" for key in ELEMENT_KEYS if _text(_dict(row.get("targetNotes")).get(key)))
         if populated_fields:
             row_errors.append({"row": row["row"], "code": "template_contains_scores", "message": f"评分标题和评分列必须保留，但自定义模板中的评分数据单元格必须为空；检测到：{'、'.join(populated_fields)}。"})
     if row_errors:
@@ -2787,6 +2977,22 @@ def create_maturity_report_snapshot(payload: dict[str, Any]) -> dict[str, Any]:
         and summary.get("statisticsReady") is True
         and summary.get("completionRate") == 100
     )
+    if not is_formal:
+        return {
+            "ok": False,
+            "dataState": "assessment_incomplete",
+            "error": "assessment_must_be_completed_before_report_generation",
+            "message": "请先完成全部适用评估点并正式完成评估，再生成评估报告。",
+            "validation": {
+                "errors": [
+                    {
+                        "code": "assessment_incomplete",
+                        "message": "评估尚未正式完成，不能生成或持久化评估报告。",
+                    }
+                ]
+            },
+            "summary": summary,
+        }
 
     def narrative_value(key: str, label: str) -> str:
         return _text(narrative.get(key)) or f"[待填写：{label}]"
@@ -3005,6 +3211,11 @@ def create_maturity_report_snapshot(payload: dict[str, Any]) -> dict[str, Any]:
                 "focusName": _text(focus.get("name")),
                 "evidenceSummary": _text(entry.get("evidenceSummary")),
                 "reviewElements": deepcopy(_dict(entry.get("reviewElements"))),
+                "dimensionNotes": deepcopy(_dict(entry.get("dimensionNotes"))),
+                "targetElements": deepcopy(_entry_target_levels(entry)),
+                "targetDimensionNotes": deepcopy(
+                    _dict(entry.get("targetDimensionNotes")) if "targetDimensionNotes" in entry else {key: _text(entry.get("targetReason")) for key in ELEMENT_KEYS}
+                ),
             }
         )
 
@@ -3057,16 +3268,16 @@ def create_maturity_report_snapshot(payload: dict[str, Any]) -> dict[str, Any]:
                 "code": item["label"],
                 "label": item["label"],
                 "current": item["value"],
-                "target": summary.get("targetIndex"),
+                "target": _dict(summary.get("targetDimensionResults")).get(item["id"]),
             }
             for item in dimension_values
         ],
-        "targetNote": "目标参考为总体目标指数等距投射到四轴，不代表逐维目标。",
+        "targetNote": "目标状态来自各评估点四个目标维度的聚合结果。",
     }
 
     report_model: dict[str, Any] = {
-        "schemaVersion": "sapd-maturity-report-model-v2",
-        "rendererVersion": "sapd-maturity-report-renderer-v2",
+        "schemaVersion": "sapd-maturity-report-model-v3",
+        "rendererVersion": "sapd-maturity-report-renderer-v3",
         "resultVersion": {
             "algorithmVersion": _text(calculation_run.get("algorithmVersion") or summary.get("algorithmVersion")),
             "calculationRunId": _text(calculation_run.get("id")),

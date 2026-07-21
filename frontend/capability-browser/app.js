@@ -1,3 +1,11 @@
+const DIRECTORY_PANE_METRICS = window.sapdComponents?.AppShell?.directoryPaneMetrics || {
+  defaultWidth: 304,
+  minWidth: 240,
+  maxWidth: 520,
+  handleWidth: 6,
+};
+const CAPABILITY_WORKBENCH_MIN_WIDTH = 760;
+
 const state = {
   capability: null,
   capabilityWorkbench: null,
@@ -23,6 +31,7 @@ const state = {
   activeView: "overview",
   activeRoute: "/",
   capabilityCatalogCollapsed: false,
+  capabilityCatalogWidth: DIRECTORY_PANE_METRICS.defaultWidth,
   capabilityCatalogNarrowExpanded: false,
   devLifecycleCatalogCollapsed: false,
   expandedCapabilityIds: new Set(),
@@ -2998,6 +3007,7 @@ function persistWorkspaceState() {
         activeCapabilityRelationTab: state.activeCapabilityRelationTab,
         expandedCapabilityIds: [...state.expandedCapabilityIds],
         capabilityCatalogCollapsed: state.capabilityCatalogCollapsed,
+        capabilityCatalogWidth: state.capabilityCatalogWidth,
         selectedEnvironmentId: state.selectedEnvironmentId,
         selectedEnvironmentSegmentId: state.selectedEnvironmentSegmentId,
         selectedEnvironmentObjectId: state.selectedEnvironmentObjectId,
@@ -3037,6 +3047,7 @@ function applyWorkspaceState(snapshot) {
   state.activeCapabilityRelationTab = snapshot.activeCapabilityRelationTab || state.activeCapabilityRelationTab;
   state.expandedCapabilityIds = new Set(list(snapshot.expandedCapabilityIds));
   state.capabilityCatalogCollapsed = Boolean(snapshot.capabilityCatalogCollapsed);
+  state.capabilityCatalogWidth = clampCapabilityCatalogWidth(snapshot.capabilityCatalogWidth);
   state.selectedEnvironmentId = snapshot.selectedEnvironmentId || state.selectedEnvironmentId;
   state.selectedEnvironmentSegmentId = snapshot.selectedEnvironmentSegmentId || state.selectedEnvironmentSegmentId;
   state.selectedEnvironmentObjectId = snapshot.selectedEnvironmentObjectId || state.selectedEnvironmentObjectId;
@@ -9859,6 +9870,20 @@ function updateApplicationShellChrome() {
   syncSearchInputs();
 }
 
+function clampCapabilityCatalogWidth(value, workspace = null) {
+  const requested = Math.max(
+    DIRECTORY_PANE_METRICS.minWidth,
+    Number(value) || DIRECTORY_PANE_METRICS.defaultWidth,
+  );
+  const availableMaximum = workspace?.clientWidth
+    ? Math.max(
+        DIRECTORY_PANE_METRICS.minWidth,
+        workspace.clientWidth - CAPABILITY_WORKBENCH_MIN_WIDTH - DIRECTORY_PANE_METRICS.handleWidth,
+      )
+    : DIRECTORY_PANE_METRICS.maxWidth;
+  return Math.round(Math.min(DIRECTORY_PANE_METRICS.maxWidth, availableMaximum, requested));
+}
+
 function applyCapabilityCatalogState() {
   const workspace = $("capabilityWorkspace");
   const narrow = Boolean(window.matchMedia?.("(max-width: 1099px)")?.matches);
@@ -9868,10 +9893,17 @@ function applyCapabilityCatalogState() {
   if (workspace) {
     const hasResizer = Boolean(workspace.querySelector(".workspace-resizer"));
     if (hasResizer) {
-      workspace.style.gridTemplateColumns = collapsed ? "0 minmax(0, 1fr)" : "240px 6px minmax(760px, 1fr)";
-      workspace._paneWidths = collapsed ? [0, Math.max(0, workspace.clientWidth)] : [240, Math.max(760, workspace.clientWidth - 246)];
+      const currentCatalogWidth = clampCapabilityCatalogWidth(state.capabilityCatalogWidth, workspace);
+      workspace.style.gridTemplateColumns = collapsed
+        ? "0 minmax(0, 1fr)"
+        : workspace._paneWidths
+          ? `${currentCatalogWidth}px 6px minmax(760px, 1fr)`
+          : `${DIRECTORY_PANE_METRICS.defaultWidth}px 6px minmax(760px, 1fr)`;
+      workspace._paneWidths = collapsed
+        ? [0, Math.max(0, workspace.clientWidth)]
+        : [currentCatalogWidth, Math.max(760, workspace.clientWidth - currentCatalogWidth - 6)];
     } else {
-      workspace.style.gridTemplateColumns = collapsed ? "0 minmax(0, 1fr)" : "240px minmax(760px, 1fr)";
+      workspace.style.gridTemplateColumns = collapsed ? "0 minmax(0, 1fr)" : `${DIRECTORY_PANE_METRICS.defaultWidth}px minmax(760px, 1fr)`;
       workspace._paneWidths = null;
     }
   }
@@ -9932,9 +9964,10 @@ function ensureCapabilityCatalogToggle() {
   const paneHead = document.querySelector(".capability-tree-pane .pane-head");
   if (!paneHead || $("toggleCapabilityCatalog")) return;
   const actionGroup = document.createElement("div");
-  actionGroup.className = "pane-head-actions";
+  actionGroup.className = "pane-head-actions shell-directory-actions";
   const toggleButton = document.createElement("button");
   toggleButton.id = "toggleCapabilityCatalog";
+  toggleButton.className = "shell-directory-action";
   toggleButton.type = "button";
   toggleButton.title = "收起安全能力目录";
   toggleButton.setAttribute("aria-label", "收起安全能力目录");
@@ -11163,7 +11196,7 @@ function applyWorkspaceGrid(workspace, widths) {
     .map((width, index) => {
       const minWidth = ["capabilityWorkspace", "devLifecycleWorkspace"].includes(workspace.id) && workspace.classList.contains("catalog-collapsed") && index === 0 ? 64 : 160;
       const constrainedWidth = workspace.id === "capabilityWorkspace" && index === 0 && !workspace.classList.contains("catalog-collapsed")
-        ? Math.min(300, Math.max(220, Math.round(width)))
+        ? clampCapabilityCatalogWidth(width, workspace)
         : Math.max(minWidth, Math.round(width));
       return `${constrainedWidth}px${index < widths.length - 1 ? ` ${handleWidth}px` : ""}`;
     })
@@ -11176,7 +11209,10 @@ function defaultWorkspaceWidths(workspace, panes) {
   const handlesWidth = 6 * (panes.length - 1);
   const total = Math.max(480, workspace.clientWidth - handlesWidth);
   const rest = (...fixed) => Math.max(220, total - fixed.reduce((sum, value) => sum + value, 0));
-  if (workspace.id === "capabilityWorkspace") return [240, rest(240)];
+  if (workspace.id === "capabilityWorkspace") {
+    const width = clampCapabilityCatalogWidth(state.capabilityCatalogWidth, workspace);
+    return [width, rest(width)];
+  }
   if (workspace.id === "environmentWorkspace") return [300, rest(300)];
   if (workspace.id === "devLifecycleWorkspace" && panes.length === 2) return [200, rest(200)];
   if (workspace.id === "devLifecycleWorkspace" || workspace.id === "dataLifecycleWorkspace") return [270, rest(270, 220), 220];
@@ -11211,6 +11247,15 @@ function ensureWorkspaceResizable(workspace) {
       handle.dataset.workspaceResizeIndex = index;
       handle.setAttribute("role", "separator");
       handle.setAttribute("aria-orientation", "vertical");
+      handle.setAttribute("aria-label", workspace.id === "capabilityWorkspace" ? "调整安全能力目录宽度" : "调整工作区宽度");
+      handle.tabIndex = 0;
+      if (workspace.id === "capabilityWorkspace") {
+        handle.classList.add("shell-directory-resizer");
+        handle.setAttribute("aria-valuemin", String(DIRECTORY_PANE_METRICS.minWidth));
+        handle.setAttribute("aria-valuemax", String(DIRECTORY_PANE_METRICS.maxWidth));
+        handle.setAttribute("aria-valuenow", String(Math.round(workspace._paneWidths?.[0] || DIRECTORY_PANE_METRICS.defaultWidth)));
+      }
+      handle.title = "拖动调整宽度";
       pane.after(handle);
     });
     workspace.dataset.resizableReady = "true";
@@ -11232,15 +11277,19 @@ function beginWorkspaceResize(event, handle) {
   event.preventDefault();
   const startX = event.clientX;
   const startWidths = workspace._paneWidths || panes.map((pane) => pane.getBoundingClientRect().width);
+  const adaptiveScale = Math.max(1, Number(document.documentElement.dataset.sapdUiScale) || 1);
   document.body.classList.add("is-resizing");
   const onMove = (moveEvent) => {
-    const delta = moveEvent.clientX - startX;
+    const delta = (moveEvent.clientX - startX) / adaptiveScale;
     const nextWidths = [...startWidths];
     const minFor = (pane) => pane.classList.contains("workbench-review-queue") ? 520 : pane.classList.contains("workbench-review-inspector") ? 320 : 200;
     if (workspace.id === "capabilityWorkspace" && index === 0 && !workspace.classList.contains("catalog-collapsed")) {
       const pairWidth = startWidths[index] + startWidths[index + 1];
-      nextWidths[index] = Math.min(300, Math.max(220, startWidths[index] + delta));
-      nextWidths[index + 1] = Math.max(760, pairWidth - nextWidths[index]);
+      const availableMaximum = Math.max(DIRECTORY_PANE_METRICS.minWidth, pairWidth - CAPABILITY_WORKBENCH_MIN_WIDTH);
+      nextWidths[index] = Math.min(availableMaximum, clampCapabilityCatalogWidth(startWidths[index] + delta));
+      nextWidths[index + 1] = Math.max(CAPABILITY_WORKBENCH_MIN_WIDTH, pairWidth - nextWidths[index]);
+      state.capabilityCatalogWidth = nextWidths[index];
+      handle.setAttribute("aria-valuenow", String(Math.round(nextWidths[index])));
     } else {
       nextWidths[index] = Math.max(minFor(panes[index]), startWidths[index] + delta);
       nextWidths[index + 1] = Math.max(minFor(panes[index + 1]), startWidths[index + 1] - delta);
@@ -11251,9 +11300,31 @@ function beginWorkspaceResize(event, handle) {
     document.body.classList.remove("is-resizing");
     document.removeEventListener("pointermove", onMove);
     document.removeEventListener("pointerup", onUp);
+    if (workspace.id === "capabilityWorkspace") persistWorkspaceState();
   };
   document.addEventListener("pointermove", onMove);
   document.addEventListener("pointerup", onUp, { once: true });
+}
+
+function adjustWorkspaceResizeFromKeyboard(event, handle) {
+  const workspace = handle.parentElement;
+  const index = Number(handle.dataset.workspaceResizeIndex);
+  if (workspace?.id !== "capabilityWorkspace" || index !== 0 || workspace.classList.contains("catalog-collapsed")) return;
+  if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+  event.preventDefault();
+  const panes = workspacePanes(workspace);
+  const widths = workspace._paneWidths || defaultWorkspaceWidths(workspace, panes);
+  const pairWidth = widths[0] + widths[1];
+  const availableMaximum = Math.max(DIRECTORY_PANE_METRICS.minWidth, Math.min(DIRECTORY_PANE_METRICS.maxWidth, pairWidth - CAPABILITY_WORKBENCH_MIN_WIDTH));
+  const nextCatalogWidth = event.key === "Home"
+    ? DIRECTORY_PANE_METRICS.minWidth
+    : event.key === "End"
+      ? availableMaximum
+      : Math.min(availableMaximum, clampCapabilityCatalogWidth(widths[0] + (event.key === "ArrowRight" ? 16 : -16)));
+  applyWorkspaceGrid(workspace, [nextCatalogWidth, Math.max(CAPABILITY_WORKBENCH_MIN_WIDTH, pairWidth - nextCatalogWidth)]);
+  state.capabilityCatalogWidth = nextCatalogWidth;
+  handle.setAttribute("aria-valuenow", String(nextCatalogWidth));
+  persistWorkspaceState();
 }
 
 function applyRelationshipColumnWidths() {
@@ -12448,6 +12519,10 @@ function bindEvents() {
   document.addEventListener("pointerdown", (event) => {
     const handle = event.target.closest(".workspace-resizer");
     if (handle) beginWorkspaceResize(event, handle);
+  });
+  document.addEventListener("keydown", (event) => {
+    const handle = event.target.closest(".workspace-resizer");
+    if (handle) adjustWorkspaceResizeFromKeyboard(event, handle);
   });
   document.addEventListener("pointerdown", (event) => {
     beginEnvironmentBasemapDrag(event);

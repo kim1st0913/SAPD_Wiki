@@ -85,9 +85,9 @@ node scripts/run_project_test_suite.mjs --suite pre-dmg --dry-run
 | TC-025 | 授权变体 | DMG 生成后 | `license` 包启用授权；`no-license` 包不弹授权 | `plutil` 查 `SAPDWikiLicenseMode` + 人工打开验证 |
 | TC-026 | 包内用户库 | DMG 生成后 | 包内 `sapd_wiki_user.sqlite3` 为空且 schema 为 `user_schema_0.3` | `sqlite3 <user-db> "select value from user_meta where key='schema_version';"` |
 | TC-027 | Runtime 健康 | DMG Runtime 复制到临时目录后 | `--check-only` 通过；API smoke 能访问核心路径 | 从 staging App 复制 `Runtime` 到 `/private/tmp` 后执行 backend check |
-| TC-028 | 首次启动体验 | 人工 UAT | 用户选择父级保存位置后创建 `SAPDWiki/Runtime` 和 `SAPDWiki/export` | 打开 DMG 内 App，按首次启动流程验证 |
+| TC-028 | 首次启动体验 | 人工 UAT | 用户选择父级保存位置后创建 `SAPDWiki/import`、分类 `SAPDWiki/export` 和内部 `SAPDWiki/Runtime`；设置页可查看并在 Finder 中打开 | 打开 DMG 内 App，按首次启动流程验证 |
 | TC-029 | 授权体验 | 人工 UAT | 授权版可跳过试用 / 输入 `Passc0de` 激活；无授权版不显示授权窗口 | 人工打开两个变体 |
-| TC-030 | 导出体验 | 人工 UAT | 批注 / Issue 导出写入设置的下载路径，前端显示完成路径 | 在 DMG App 中执行导出 |
+| TC-030 | 导出体验 | 人工 UAT | 评估报告、评分表、模板、Issue 和诊断包写入设置的导出根目录及对应分类子目录，前端显示真实完成路径 | 在 DMG App 中逐类执行导出 |
 
 ## 搜索专项用例
 

@@ -10,6 +10,9 @@ Product UI for a local security architecture relationship workspace.
 - Prefer dense tables, tree tables, split panes, matrix rows, and compact chips.
 - Avoid nested cards. Use sections, panes, tables, and restrained borders.
 - Every major area should support scanning and comparison before decoration.
+- Web and App share one adaptive desktop density layer owned by `components/AdaptiveUiScale.js` and `adaptive-ui-scale.css`. It scales the complete application shell from the CSS viewport, never from display pixel density, so navigation, reading, graph, table, and report pages keep the same internal proportions.
+- `1920×1080` is the 1:1 desktop baseline. Wider viewports scale fluidly in direct proportion to CSS viewport width rather than using resolution tiers: `2048px ≈ 1.07`, `2560px ≈ 1.33`, `3008px ≈ 1.57`, with a `1.60` extreme-width cap and a minimum `700px` logical-height fit. Viewports at or below `1180px` enter the shared compact layout without shrinking below `1.00`: collapse navigation, reflow panes, and use local table scrolling before reducing readable text. Page-level CSS must not add a second global scale or bypass the shared shell owner.
+- Adaptive shell scaling does not authorize unconstrained reading lines or distorted data graphics. Existing article max-width, graph aspect ratio, pane scrolling, and business layout contracts remain in force.
 
 ## Visual Language
 

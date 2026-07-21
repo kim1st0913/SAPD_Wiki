@@ -425,6 +425,7 @@ class BundleRuntime:
         self.frontend_dir = self.root / "app" / "frontend-dist"
         self.manifest = load_json(self.manifest_path)
         self.config = load_json(self.config_path)
+        self.import_dir = self.resolve_import_dir(self.config.get("import_dir"))
         self.export_dir = self.resolve_export_dir(self.config.get("download_dir"))
         base_file = self.manifest["base_database"].get("file", "sapd_wiki_base.sqlite3")
         user_file = self.manifest["user_database"].get("file", "sapd_wiki_user.sqlite3")
@@ -435,7 +436,21 @@ class BundleRuntime:
         self.ensure_user_data_basket_tables()
         self.ensure_user_export_tables()
         self.ensure_user_schema_version()
+        self.import_dir.mkdir(parents=True, exist_ok=True)
+        for category in ("maturity-templates", "maturity-scores"):
+            (self.import_dir / category).mkdir(parents=True, exist_ok=True)
         self.export_dir.mkdir(parents=True, exist_ok=True)
+        for category in ("maturity-reports", "maturity-scores", "maturity-templates", "issues", "diagnostics"):
+            (self.export_dir / category).mkdir(parents=True, exist_ok=True)
+
+    def resolve_import_dir(self, configured_dir: Any) -> Path:
+        raw_value = str(configured_dir or "").strip()
+        if not raw_value:
+            return self.root.parent / "import"
+        candidate = Path(raw_value).expanduser()
+        if not candidate.is_absolute():
+            candidate = self.root / candidate
+        return candidate.resolve()
 
     def resolve_export_dir(self, configured_dir: Any) -> Path:
         raw_value = str(configured_dir or "").strip()
@@ -445,6 +460,15 @@ class BundleRuntime:
         if not candidate.is_absolute():
             candidate = self.root / candidate
         return candidate.resolve()
+
+    def export_category_dir(self, category: str) -> Path:
+        normalized = str(category or "").strip()
+        allowed = {"maturity-reports", "maturity-scores", "maturity-templates", "issues", "diagnostics"}
+        if normalized not in allowed:
+            raise ValueError("unsupported export category")
+        directory = self.export_dir / normalized
+        directory.mkdir(parents=True, exist_ok=True)
+        return directory
 
     def license_status(self) -> dict[str, Any]:
         license_config = self.config.get("license")
@@ -753,7 +777,7 @@ class BundleRuntime:
 
     def export_user_notes_file(self) -> Path:
         payload = self.user_notes_export_payload()
-        output_path = self.export_dir / self.user_notes_export_file_name()
+        output_path = self.export_category_dir("issues") / self.user_notes_export_file_name()
         output_path.write_text(user_notes_export_markdown(payload), encoding="utf-8")
         self.logger.write("info", "user notes exported", output_path=str(output_path), note_count=payload["summary"]["note_count"])
         return output_path
@@ -768,6 +792,8 @@ class BundleRuntime:
             "file_name": output_path.name,
             "output_path": str(output_path),
             "download_dir": str(self.export_dir),
+            "category": "issues",
+            "relative_path": output_path.relative_to(self.export_dir).as_posix(),
             "note_count": payload["summary"]["note_count"],
         }
 
@@ -777,7 +803,12 @@ class BundleRuntime:
             raise ValueError("content is required")
         raw_prefix = str(payload.get("filename_prefix") or "sapd-export").strip()
         safe_prefix = re.sub(r"[^A-Za-z0-9._-]+", "-", raw_prefix).strip(".-")[:64] or "sapd-export"
-        output_path = self.export_dir / f"{safe_prefix}-{time.strftime('%Y%m%d-%H%M%SZ', time.gmtime())}.md"
+        category = str(payload.get("category") or "issues").strip()
+        requested_name = Path(str(payload.get("filename") or "").strip()).name
+        file_name = requested_name or f"{safe_prefix}-{time.strftime('%Y%m%d-%H%M%SZ', time.gmtime())}.md"
+        output_path = self.export_category_dir(category) / file_name
+        if output_path.exists():
+            output_path = output_path.with_name(f"{output_path.stem}-{uuid.uuid4().hex[:6]}{output_path.suffix}")
         output_path.write_text(content, encoding="utf-8")
         self.logger.write("info", "markdown export saved", output_path=str(output_path), byte_count=output_path.stat().st_size)
         return {
@@ -787,6 +818,8 @@ class BundleRuntime:
             "file_name": output_path.name,
             "output_path": str(output_path),
             "download_dir": str(self.export_dir),
+            "category": category,
+            "relative_path": output_path.relative_to(self.export_dir).as_posix(),
             "byte_count": output_path.stat().st_size,
         }
 
@@ -1739,6 +1772,7 @@ def configure_projection_api(runtime: BundleRuntime) -> None:
             base_db=runtime.base_db.resolve(),
             user_db=runtime.user_db.resolve(),
             data_root=frontend_data_root,
+            export_dir=runtime.export_dir.resolve(),
             runtime_label="bundle",
         )
     else:
@@ -1873,7 +1907,15 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
                         self.send_json(200, projection_api.create_envelope(projection_api.dashboard_knowledge_summary()))
                         return
                     if parsed.path == "/api/v1/maturity/workspace":
-                        self.send_json(200, projection_api.create_envelope(projection_api.build_maturity_workspace(projection_api.read_data_package("capability-workbench"))))
+                        self.send_json(
+                            200,
+                            projection_api.create_envelope(
+                                projection_api.build_maturity_workspace(
+                                    projection_api.read_data_package("capability-workbench"),
+                                    project_profile=projection_api.maturity_workspace_project_profile(),
+                                )
+                            ),
+                        )
                         return
                     if parsed.path == "/api/v1/maturity/reports/artifact":
                         self.send_json(
@@ -2027,6 +2069,7 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
                     "/api/v1/maturity/calculate",
                     "/api/v1/maturity/template/validate",
                     "/api/v1/maturity/report",
+                    "/api/v1/maturity/report/export",
                     "/api/v1/maturity/score/export",
                     "/api/v1/maturity/score/import",
                     "/api/v1/maturity/template/export",
@@ -2052,12 +2095,14 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
                         self.send_json(200, projection_api.create_envelope(projection_api.validate_maturity_template(payload.get("template") or payload)))
                     elif parsed.path == "/api/v1/maturity/report":
                         self.send_json(200, projection_api.create_envelope(projection_api.create_and_persist_maturity_report(payload)))
+                    elif parsed.path == "/api/v1/maturity/report/export":
+                        self.send_json(200, projection_api.create_envelope(projection_api.export_maturity_report_file(payload)))
                     elif parsed.path == "/api/v1/maturity/score/export":
-                        self.send_json(200, projection_api.create_envelope(projection_api.export_maturity_score_exchange(payload)))
+                        self.send_json(200, projection_api.create_envelope(projection_api.export_maturity_score_exchange_for_runtime(payload)))
                     elif parsed.path == "/api/v1/maturity/score/import":
                         self.send_json(200, projection_api.create_envelope(projection_api.import_maturity_score_exchange(payload)))
                     elif parsed.path == "/api/v1/maturity/template/export":
-                        self.send_json(200, projection_api.create_envelope(projection_api.export_maturity_template_exchange(payload)))
+                        self.send_json(200, projection_api.create_envelope(projection_api.export_maturity_template_exchange_for_runtime(payload)))
                     else:
                         self.send_json(200, projection_api.create_envelope(projection_api.import_maturity_template_exchange(payload)))
                 elif parsed.path == "/api/v1/user/notes":
@@ -2198,6 +2243,8 @@ def run_server(bundle_root: Path, no_browser: bool = False) -> int:
         "bundle_root": str(root),
         "base_database": str(runtime.base_db.relative_to(root)),
         "user_database": str(runtime.user_db.relative_to(root)),
+        "import_directory": str(runtime.import_dir),
+        "export_directory": str(runtime.export_dir),
     }
     write_state(root, state)
     handler = build_handler(runtime, state, session_token)

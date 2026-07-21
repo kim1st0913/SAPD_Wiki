@@ -1,5 +1,5 @@
 {
-  "version": "2026-07-16.p1-2-v11-p1-4-v2-p1-5-v5-p1-6-v2-regression-baseline",
+  "version": "2026-07-18.maturity-report-authoring-regression-baseline",
   "scope": "frontend/capability-browser",
   "purpose": "Current accepted ceilings after the July 2026 project test governance baseline. Lower values pass; increases require deliberate governance review.",
   "requiredReview": "docs/07-governance/project-test-workflow-and-case-matrix.md",
@@ -13,7 +13,7 @@
       "maxColorMix": 681
     },
     "frontend/capability-browser/app.js": {
-      "maxLines": 12758
+      "maxLines": 12772
     },
     "frontend/capability-browser/viewModels.js": {
       "maxLines": 5831

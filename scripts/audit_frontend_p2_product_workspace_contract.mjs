@@ -107,7 +107,7 @@ async function main() {
   assert(includesAll(guideSource, ["P2-3 V2: larger reading canvas", ".main { max-width: 1120px", "body { font-size: 17px", ".hero { height: 194px", ".section h2 { margin-bottom: 14px; font-size: 30px"]), "P2-3 阅读列、字号或封面密度未落地", issues);
   assert(appSource.includes("density=p2-3-guide-density-20260716-2"), "P2-3 指南 iframe 缓存版本未更新", issues);
   assert(includesAll(cssSource, ["grid-template-columns: 244px minmax(0, 1fr)", "min-height: 44px", "font-size: 14px"]), "P2-3 指南目录宽度或可读性未放大", issues);
-  assert(includesAll(indexSource, ["p2-product-workspace.css?v=p2-product-workspace-20260717-8", "P2ProductWorkspace.js?v=p2-product-workspace-20260717-6-work-items-mosaic", "maturity-assessment-v2.1-workspace-proportion-20260716-30", "p2-workbench-dashboard-20260716-1", "p2-dashboard-header-20260716-1", "p2-default-collapse-20260716-1", "p2-dashboard-summary-20260716-1", "p2-2-directory-navigation-20260716-3"]), "P2 V8 入口或缓存版本不完整", issues);
+  assert(includesAll(indexSource, ["p2-product-workspace.css?v=p2-product-workspace-20260717-8", "P2ProductWorkspace.js?v=p2-product-workspace-20260717-6-work-items-mosaic", "maturity-report-v2-authoring-20260718-1", "p2-workbench-dashboard-20260716-1", "p2-dashboard-header-20260716-1", "p2-default-collapse-20260716-1", "p2-dashboard-summary-20260716-1", "p2-2-directory-navigation-20260716-3"]), "P2 V8 入口或缓存版本不完整", issues);
 
   const forbiddenFields = ["raw_value", "source_file", "import_id", "source_id", "source_ref", "source_label", "generated_at", "metadata", "intermediate"];
   assert(excludesAll(`${workspaceSource}\n${directoryRenderSource}`, forbiddenFields), "P2 主展示区泄露非业务字段", issues);
@@ -121,7 +121,7 @@ async function main() {
         fetchText(baseUrl, "components/AppShell.js?v=p2-dashboard-header-20260716-1"),
         fetchText(baseUrl, "components/CapabilityDirectoryMaintenanceTable.js?v=p2-2-directory-navigation-20260716-3"),
         fetchText(baseUrl, "components/P2ProductWorkspace.js?v=p2-product-workspace-20260717-6-work-items-mosaic"),
-        fetchText(baseUrl, "components/MaturityAssessmentWorkbench.js?v=maturity-assessment-v2.1-workspace-proportion-20260716-30"),
+        fetchText(baseUrl, "components/MaturityAssessmentWorkbench.js?v=maturity-report-v2-authoring-20260718-1"),
         fetchText(baseUrl, "p2-product-workspace.css?v=p2-product-workspace-20260717-8"),
         fetchText(baseUrl, "assets/guides/maturity-model-usage.html?embed=1&density=p2-3-guide-density-20260716-2"),
         fetchJson(baseUrl, "api/v1/dashboard/knowledge-summary"),

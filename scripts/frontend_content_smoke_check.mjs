@@ -1095,7 +1095,9 @@ function validateTechnicalServiceCatalogViewModel({ capabilityTree, maintenance 
   const defaultHtml = renderTechnicalServiceTable(viewModel, "");
   const defaultText = htmlToText(defaultHtml);
   const visibleDefaultRows = rows.filter((row) => rowVisibleInHtml(defaultHtml, row)).length;
-  assert(visibleDefaultRows === serviceCount, `technical service rendered visible rows ${visibleDefaultRows} != package services ${serviceCount}`);
+  const groupedServiceCount = groups.reduce((total, group) => total + list(group.rows).length, 0);
+  assert(groupedServiceCount === serviceCount, `technical service grouped rows ${groupedServiceCount} != package services ${serviceCount}`);
+  assert(visibleDefaultRows === 0, `technical service default-collapsed table rendered ${visibleDefaultRows} visible rows`);
   const checks = [];
   for (const target of technicalServiceVisibilityCases) {
     const row = rows.find((item) => item.code === target.code && item.title === target.title);

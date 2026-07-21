@@ -2,6 +2,13 @@
   const components = (window.sapdComponents = window.sapdComponents || {});
   const display = window.sapdDisplay || {};
 
+  const DIRECTORY_PANE_METRICS = Object.freeze({
+    defaultWidth: 304,
+    minWidth: 240,
+    maxWidth: 520,
+    handleWidth: 6,
+  });
+
   const text = (value) => (value == null ? "" : String(value));
   const escapeHtml = (value) =>
     text(value)
@@ -835,10 +842,10 @@
   function renderCapabilityWorkspace() {
     return `
       <aside class="capability-tree-pane shell-directory-pane app-shell-secondary">
-        <div class="pane-head">
-          <h2>安全能力映射</h2>
+        <div class="pane-head shell-directory-head">
+          <div class="shell-directory-copy"><h2 class="shell-directory-title">安全能力映射</h2></div>
         </div>
-        <div id="tree" class="tree"></div>
+        <div id="tree" class="tree shell-directory-tree"></div>
       </aside>
 
       <section class="capability-relation-pane app-shell-workspace">
@@ -923,6 +930,7 @@
 
   components.AppShell = {
     manifest: NAV_MANIFEST,
+    directoryPaneMetrics: DIRECTORY_PANE_METRICS,
     routeTargets: ROUTE_TARGETS,
     getRouteTarget,
     getRouteInfo(route) {

@@ -3,14 +3,22 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPO_ROOT="$(cd "$APP_ROOT/../../.." && pwd)"
 DIST_DIR="$APP_ROOT/dist"
 APP_NAME="SAPD Wiki"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
-APP_VERSION="${SAPD_WIKI_APP_VERSION:-0.1.7}"
+APP_VERSION="${SAPD_WIKI_APP_VERSION:-0.2.0}"
 export SAPD_WIKI_DISPLAY_VERSION="${SAPD_WIKI_DISPLAY_VERSION:-$APP_VERSION}"
 BUILD_STAMP="${SAPD_WIKI_BUILD_STAMP:-$(date -u +%Y%m%d-%H%M%SZ)}"
 ARCH="$(uname -m)"
 DMG_VARIANT="${SAPD_WIKI_DMG_VARIANT:-all}"
+MATURITY_REPORT_SEED="${SAPD_WIKI_MATURITY_REPORT_SEED:-$REPO_ROOT/data/user/maturity-reports}"
+export SAPD_WIKI_MATURITY_REPORT_SEED="$MATURITY_REPORT_SEED"
+
+if [[ ! -d "$MATURITY_REPORT_SEED" ]]; then
+  echo "maturity report seed does not exist: $MATURITY_REPORT_SEED" >&2
+  exit 1
+fi
 
 normalize_variant() {
   case "$1" in
@@ -51,6 +59,15 @@ write_readme() {
 
 ## Changelog
 
+### 0.2.0
+
+- 升级为 0.2.0 双版本测试包，授权版与无授权版使用同一构建时间戳。
+- 包含当前成熟度评估完整运行模块，以及 2 个受控测试案例：1 个已完成、1 个正在进行。
+- 仅已完成案例携带 1 份与当前评分哈希一致的正式报告；进行中案例不携带报告。
+- 成熟度报告作为首次安装测试种子写入 \`Runtime/data/user/maturity-reports\`；已有报告目录不会被覆盖。
+- 用户 SQLite 继续使用干净模板，不携带开发机批注、Issue、收藏或其他个人数据。
+- 用户目录统一为 \`SAPDWiki/import\`、\`SAPDWiki/export\` 和 \`SAPDWiki/Runtime\`；导出按报告、评分表、模板、Issue 和诊断包分类保存。
+
 ### 0.1.7
 
 - 基于当前最新工作区重新打包，便于后续验证。
@@ -76,9 +93,18 @@ write_readme() {
 1. 首次启动会要求设置“保存位置”，这里选择的是父级目录。
 2. App 会在所选父级目录下创建 \`SAPDWiki\` 文件夹。
 3. 用户数据库路径为：\`<所选父级保存位置>/SAPDWiki/Runtime/data/user/sapd_wiki_user.sqlite3\`。
-4. 默认下载路径为：\`<所选父级保存位置>/SAPDWiki/export\`，可以在“SAPD Wiki > 系统设置...”中修改。
-5. 后续安装新版 App 时，默认继续加载当前 \`SAPDWiki\` 文件夹下已有的用户数据库，不会覆盖已有批注和用户数据。
-6. 除非已经备份，不要手动删除或移动 \`SAPDWiki/Runtime/data/user\`。
+4. 默认导入路径为：\`<所选父级保存位置>/SAPDWiki/import\`；文件选择器也允许临时选择其他位置。
+5. 默认导出路径为：\`<所选父级保存位置>/SAPDWiki/export\`，可以在“SAPD Wiki > 系统设置...”中修改。
+6. 后续安装新版 App 时，默认继续加载当前 \`SAPDWiki\` 文件夹下已有的用户数据库，不会覆盖已有 Issue 和用户数据。
+7. 除非已经备份，不要手动删除或移动 \`SAPDWiki/Runtime/data/user\`。
+
+## 成熟度评估测试数据
+
+1. 当前包内置 2 个受控测试案例：1 个正在进行、1 个已完成。
+2. 已完成案例内置 1 份对应的正式报告，用于验证报告预览、历史读取和 Markdown / HTML 下载；进行中案例用于验证完成度、状态和结果门禁。
+3. 首次初始化时，测试报告会写入 \`SAPDWiki/Runtime/data/user/maturity-reports\`。
+4. 如果该目录已经存在，App 会保留用户已有报告，不用包内测试报告覆盖。
+5. 成熟度项目的本机编辑仍保存在 App 的浏览器本地存储中，不写入用户 SQLite。
 
 README
 
@@ -107,8 +133,8 @@ README
   cat >>"$staging_dir/README-FIRST.md" <<README
 ## 导出与文件位置
 
-- 批注一键导出和后续文件导出默认写入“文件下载路径”。
-- 当前“App 保存位置”和“文件下载路径”可在系统菜单“SAPD Wiki > 系统设置...”中查看和修改。
+- 评估报告、评分表、模板、Issue 和诊断包分别写入 \`export/maturity-reports\`、\`export/maturity-scores\`、\`export/maturity-templates\`、\`export/issues\` 和 \`export/diagnostics\`。
+- 当前“本地工作目录”“默认导入文件夹”“导出文件夹”和“系统数据”可在系统菜单“SAPD Wiki > 系统设置...”中查看；前三项可修改。
 - Runtime 日志位于：\`<所选父级保存位置>/SAPDWiki/Runtime/logs\`。
 
 ## 关闭与退出
@@ -142,6 +168,15 @@ write_runtime_readme() {
 
 ## Changelog
 
+### 0.2.0
+
+- 升级为 0.2.0 双版本测试 Runtime。
+- Runtime 包含当前成熟度评估前端、后端、基础能力数据，以及 2 个受控测试案例（1 个已完成、1 个正在进行）。
+- 仅已完成案例携带 1 份与当前评分哈希一致的正式报告。
+- 成熟度报告测试种子仅在目标目录不存在时复制，已有用户报告保持不变。
+- 用户 SQLite 继续使用干净模板，不携带开发机批注、Issue、收藏或其他个人数据。
+- 用户可见文件按 \`import\` 和分类 \`export\` 管理，Runtime 只保留系统数据库、报告历史和日志。
+
 ### 0.1.7
 
 - 基于当前最新工作区重新打包，便于后续验证。
@@ -160,9 +195,17 @@ write_runtime_readme() {
 1. 首次启动会要求设置“保存位置”，这里选择的是父级目录。
 2. App 会在所选父级目录下创建 \`SAPDWiki\` 文件夹。
 3. 用户数据库路径为：\`<所选父级保存位置>/SAPDWiki/Runtime/data/user/sapd_wiki_user.sqlite3\`。
-4. 默认下载路径为：\`<所选父级保存位置>/SAPDWiki/export\`，可在“SAPD Wiki > 系统设置...”中修改。
-5. 后续安装新版 App 时，默认复用 \`SAPDWiki\` 文件夹下已有用户数据库，不覆盖已有批注、Issue 和用户数据。
-6. 除非已经备份，不要手动删除或移动 \`SAPDWiki/Runtime/data/user\`。
+4. 默认导入路径为：\`<所选父级保存位置>/SAPDWiki/import\`。
+5. 默认导出路径为：\`<所选父级保存位置>/SAPDWiki/export\`，可在“SAPD Wiki > 系统设置...”中修改。
+6. 后续安装新版 App 时，默认复用 \`SAPDWiki\` 文件夹下已有用户数据库，不覆盖已有 Issue 和用户数据。
+7. 除非已经备份，不要手动删除或移动 \`SAPDWiki/Runtime/data/user\`。
+
+## 成熟度评估测试数据
+
+1. 受控测试案例由当前 \`capability-workbench\` 和成熟度 V2.1 后端生成，共 2 个案例：1 个正在进行、1 个已完成。
+2. 当前报告种子位于 \`data/user/maturity-reports\`，打包时只选择已完成案例的 1 份哈希匹配报告工件。
+3. 首次初始化会复制这些报告；目标报告目录已存在时不覆盖。
+4. 用户 SQLite 仍为空库模板，成熟度测试报告与批注、Issue 等用户数据保持分离。
 
 README
 

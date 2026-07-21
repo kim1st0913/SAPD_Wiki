@@ -301,13 +301,17 @@ assessment_project
 | `process_system_score` | real | 制度流程得分 |
 | `platform_tool_score` | real | 平台工具得分 |
 | `data_information_score` | real | 数据信息得分 |
+| `target_organization_role_score` | real | 组织角色目标得分 |
+| `target_process_system_score` | real | 制度流程目标得分 |
+| `target_platform_tool_score` | real | 平台工具目标得分 |
+| `target_data_information_score` | real | 数据信息目标得分 |
 | `maturity_score` | real | 综合成熟度分数 |
 | `maturity_level` | text | L1-L5，系统内部可支持 L0 |
-| `target_level` | text | 目标等级 |
+| `target_level` | text | 四维目标加权后的派生目标等级；不再作为点级唯一目标输入 |
 | `gap_score` | real | 分数差距 |
 | `confidence` | real | 评分置信度 |
 | `score_method` | text | manual_input / average / weighted_average / minimum / override |
-| `scoring_detail_json` | text | 评分明细 |
+| `scoring_detail_json` | text | 评分明细；包含当前/目标四维等级、各维度可选说明及“目标维度不得低于同维度当前状态”的校验结果 |
 | `created_at` | text | 创建时间 |
 | `updated_at` | text | 更新时间 |
 

@@ -12,6 +12,7 @@
 | `completed-sheet-business-confirmation.md` | 已完成业务确认的 Sheet 清单 |
 | `mapping-rules-draft.md` | 第一批核心 Sheet 映射规则草案 |
 | `excel-import-mvp-design.md` | Excel 导入 MVP 设计 |
+| `import-approval-idempotency-and-retention-contract.md` | 审批状态门禁、来源引用幂等、按 job 清理和默认 approved 导出契约 |
 | `remaining-21-sheets-modeling.md` | 剩余 Sheet 建模草案 |
 
 ## 数据契约与批次说明

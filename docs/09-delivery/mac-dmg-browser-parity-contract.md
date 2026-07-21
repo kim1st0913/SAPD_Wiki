@@ -24,7 +24,7 @@ DMG 是当前工作区的一次发布快照，不是实时读取开发目录。�
 | 外壳 | 5173 用系统浏览器；DMG 用 macOS Swift wrapper + WebView | 窗口、菜单、关闭 / 最小化行为不同 | 可接受，属于桌面交付体验 |
 | 授权 | 5173 无授权门禁；DMG 分 `license` / `no-license` 两包 | 授权版启动前有授权 / 试用窗口，无授权版无窗口 | 可接受，属于交付变体，不应影响业务页面数据 |
 | 用户库 | 5173 使用开发本地用户库；DMG 首次初始化使用用户选择保存位置下的新用户库 | 批注、收藏、Issue、导出历史不一致 | 可接受，必须不同；DMG 不能携带开发机用户数据 |
-| 保存 / 下载路径 | 5173 依赖开发目录；DMG 使用用户选择的 `SAPDWiki/Runtime` 和 `SAPDWiki/export` | 导出文件位置不同 | 可接受，属于普通用户交付边界 |
+| 本地目录 | 5173 依赖开发目录；DMG 使用用户选择的 `SAPDWiki/import`、分类 `SAPDWiki/export` 和内部 `SAPDWiki/Runtime` | 导入起始位置、导出文件位置不同 | 可接受，属于普通用户交付边界 |
 | 签名与 Gatekeeper | 5173 不涉及；当前 DMG ad-hoc signed、未公证 | 外部分发可能需要手动允许打开 | 可接受于内测；正式外部分发前需签名和 notarization |
 | 已生成 DMG 与工作区后续变化 | DMG 固化打包时刻的快照 | 打包后再改代码 / 数据不会进入旧 DMG | 可接受，但发布前必须重打包 |
 
@@ -48,7 +48,7 @@ DMG 是当前工作区的一次发布快照，不是实时读取开发目录。�
 | 后端启动 | 开发态 Python 服务常驻 5173 | wrapper 复制 Runtime 后启动 `SAPD-Wiki-Backend --bundle-root <Runtime> --no-browser` | Runtime 路径、端口、日志、后端可执行文件必须单独记录 |
 | 前端资源 | 直接读取工作区 `frontend/capability-browser` | 打包时复制到 `.app/Contents/Resources/Runtime/app/frontend-dist`，首次运行后再复制到用户选择的 Runtime | 当前工作区 hash 与已生成 DMG hash 不一致只能说明发布新鲜度，不能单独解释打包当时的 Web / DMG 差异 |
 | 缓存与刷新 | 系统浏览器缓存 / DevTools / 普通刷新 | `WKWebsiteDataStore.default()`；wrapper 只提供 `reload()` 和 `reloadFromOrigin()` 工具栏 | 需要记录 WebView 缓存、强制刷新路径和 Runtime 指纹 |
-| 弹窗与新窗口 | 浏览器内置 `alert` / `confirm` / 下载栏 / 新标签页 | 当前 wrapper 没有显式 `WKUIDelegate` / `WKDownload` 桥接 | 删除确认、错误提示、导出下载必须优先使用应用内 UI 或后端保存路径 |
+| 弹窗、文件选择与下载 | 浏览器内置 `alert` / `confirm` / 文件选择 / 下载栏 / 新标签页 | wrapper 使用 `WKUIDelegate` 把导入默认定位到配置目录；用户导出由后端写入分类目录，不依赖 `WKDownload` | 删除确认和错误提示使用应用内 UI；导出返回真实保存路径 |
 | 全屏 | 系统浏览器 Fullscreen API 与浏览器窗口全屏 | DOM Fullscreen API 与原生 `NSWindow` 全屏不是同一个契约；当前 wrapper 没有显式 fullscreen bridge | 全屏控件必须同时验 DOM fallback 和原生窗口行为 |
 | 用户状态 | 开发机本地用户库与浏览器状态 | 目标 Mac 用户选择位置下的 `SAPDWiki/Runtime` 和复用用户库 | 同包多机差异必须记录 Runtime 指纹、用户库 schema / 数据量和授权态 |
 
@@ -107,7 +107,7 @@ DMG 与 5173 的一致性不能只靠包体来源和文件 hash 证明。凡是�
 | ISSUE清单 | 行点击、复选框、批量按钮、单条操作、删除确认、滚动区域均可用 | 同样按钮可点性和自定义删除对话框可用，不使用浏览器默认弹窗 | 记录用户库 schema、Issue 数量、窗口尺寸、授权模式 |
 | 批注抽屉 | 展开 / 收起、当前页计数、锚点定位和侧边吸附正确 | WKWebView 中抽屉边缘、滚动条和定位不脱离页面 | 记录当前 route、抽屉状态、截图 |
 | 环境底图全屏控件 | Fullscreen API 或应用内 fullscreen fallback 可用，popover 不被裁切 | WKWebView 中全屏控件、缩放、拖动画布和 popover 均可用 | 记录 WebView / macOS 版本、窗口尺寸、是否触发 fallback |
-| 导出 / 下载 | 批注和 Issue 导出返回成功状态，路径提示正确 | 文件写入 DMG 配置的 export 目录，错误提示使用应用内 UI | 记录 `download_dir`、Runtime 日志和导出文件名 |
+| 导出 / 下载 | 评估报告、评分表、模板和 Issue 导出返回成功状态，路径提示正确 | 文件分别写入 DMG 配置的 `export/maturity-reports`、`export/maturity-scores`、`export/maturity-templates`、`export/issues`；诊断包写入 `export/diagnostics` | 记录 `download_dir`、分类相对路径、Runtime 日志和导出文件名 |
 
 ## 同包多机差异取证
 
@@ -116,7 +116,7 @@ DMG 与 5173 的一致性不能只靠包体来源和文件 hash 证明。凡是�
 - DMG 文件名、SHA-256、授权变体和 `Info.plist` 中的 `SAPDWikiDisplayVersion` / `SAPDWikiLicenseMode`。
 - 复制后 Runtime 的 `.sapd-runtime-fingerprint`、`app/frontend-dist/index.html` / `app.js` / `styles.css` 前端文件哈希。
 - 用户库路径、`user_meta.schema_version`、`user_notes` / Issue 数量和是否复用旧用户库。
-- `config/app-config.json` 中的 `runtime_root`、`download_dir`、`license` 状态。
+- `config/app-config.json` 中的 `runtime_root`、`import_dir`、`download_dir`、`license` 状态。
 - macOS 版本、芯片架构、屏幕缩放、窗口尺寸、是否外接显示器。
 - 复现路径的截图或短录屏，以及 `Runtime/logs/runtime.log`。
 

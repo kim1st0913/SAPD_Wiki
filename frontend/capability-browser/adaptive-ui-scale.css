@@ -1,0 +1,115 @@
+:root {
+  --sapd-ui-scale: 1;
+  --sapd-ui-scale-inverse: 1;
+  --sapd-ui-logical-viewport-width: 100vw;
+  --sapd-ui-logical-viewport-height: 100dvh;
+}
+
+/*
+ * Shared desktop density owner.
+ * CSS zoom changes the shell's logical viewport before layout, so every page
+ * family keeps its existing grid, sticky positioning, and data geometry.
+ * Compact viewports never shrink below 1:1; existing shell and page breakpoints
+ * reflow navigation, panes, and scroll regions without reducing text size.
+ */
+.app-shell.app-shell-integrated {
+  width: var(--sapd-ui-logical-viewport-width);
+  max-width: none;
+  height: var(--sapd-ui-logical-viewport-height);
+  grid-template-columns:
+    var(--app-sidebar-width)
+    minmax(0, calc(var(--sapd-ui-logical-viewport-width) - var(--app-sidebar-width)));
+  zoom: var(--sapd-ui-scale);
+}
+
+.app-shell-integrated .app-sidebar,
+.app-shell-integrated .app-main {
+  height: var(--sapd-ui-logical-viewport-height);
+}
+
+.app-shell-integrated .workspace-stage {
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+}
+
+.app-shell-integrated .overview-workspace,
+.app-shell-integrated .capability-workspace,
+.app-shell-integrated .environment-workspace,
+.app-shell-integrated .lifecycle-workspace,
+.app-shell-integrated .content-workspace,
+.app-shell-integrated .global-search-page-workspace,
+.app-shell-integrated .source-workspace,
+.app-shell-integrated .workbench-workspace,
+.app-shell-integrated .workspace {
+  height: 100%;
+  min-width: 0;
+  max-height: 100%;
+}
+
+html[data-sapd-ui-layout="compact"] .app-shell.app-shell-integrated {
+  --app-sidebar-expanded-width: 76px;
+  --app-sidebar-collapsed-width: 76px;
+  --app-sidebar-width: 76px;
+}
+
+html[data-sapd-ui-layout="compact"] .app-shell-integrated .app-sidebar {
+  padding-inline: 0;
+}
+
+html[data-sapd-ui-layout="compact"] .app-shell-integrated :where(
+  .shell-sidebar-brand > div:not(.brand-mark),
+  .module-tabs.manifest-navigation .module-tab span:not(.nav-symbol),
+  .module-tabs.manifest-navigation .navigation-parent span:not(.nav-symbol),
+  .app-sidebar .module-tab small,
+  .app-sidebar .navigation-parent small,
+  .secondary-navigation,
+  .sidebar-status
+) {
+  display: none !important;
+}
+
+html[data-sapd-ui-layout="compact"] .app-shell-integrated .shell-sidebar-brand {
+  grid-template-columns: 38px 30px;
+  justify-content: center;
+  gap: 8px;
+  padding-inline: 0;
+}
+
+html[data-sapd-ui-layout="compact"] .app-shell-integrated .module-tabs.manifest-navigation {
+  justify-items: center;
+  padding-inline: 0;
+}
+
+html[data-sapd-ui-layout="compact"] .app-shell-integrated :where(
+  .module-tabs.manifest-navigation .module-tab,
+  .module-tabs.manifest-navigation .navigation-parent
+) {
+  width: 44px;
+  min-width: 44px;
+  max-width: 44px;
+  min-height: 44px;
+  height: 44px;
+  grid-template-columns: 1fr;
+  justify-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 0;
+  margin-inline: auto;
+}
+
+html[data-sapd-ui-layout="compact"] .app-shell-integrated :where(
+  .app-main,
+  .workspace-stage,
+  .overview-workspace,
+  .capability-workspace,
+  .environment-workspace,
+  .lifecycle-workspace,
+  .content-workspace,
+  .global-search-page-workspace,
+  .source-workspace,
+  .workbench-workspace,
+  .workspace
+) {
+  min-width: 0;
+}

@@ -36,6 +36,46 @@ def copy_tree(source: Path, target: Path) -> None:
     shutil.copytree(source, target)
 
 
+def copy_maturity_report_seed(source: Path, target: Path, selections: list[str]) -> None:
+    """Copy either the whole seed or an explicit project/artifact allow-list."""
+
+    if not selections:
+        copy_tree(source, target)
+        return
+    if target.exists():
+        shutil.rmtree(target)
+    target.mkdir(parents=True)
+    for selection in selections:
+        project_id, separator, artifact_id = str(selection or "").partition("=")
+        project_id = project_id.strip()
+        artifact_id = artifact_id.strip()
+        if not separator or not project_id or not artifact_id:
+            raise ValueError(
+                "--maturity-report-seed-artifact must use PROJECT_ID=ARTIFACT_ID"
+            )
+        project_source = source / project_id
+        manifest_path = project_source / "manifest.json"
+        artifact_source = project_source / "artifacts" / artifact_id
+        if not manifest_path.is_file() or not artifact_source.is_dir():
+            raise ValueError(f"maturity report seed artifact does not exist: {selection}")
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        artifacts = [
+            item
+            for item in manifest.get("artifacts", [])
+            if isinstance(item, dict) and str(item.get("artifactId") or "") == artifact_id
+        ]
+        if len(artifacts) != 1:
+            raise ValueError(f"maturity report seed manifest does not identify exactly one artifact: {selection}")
+        project_target = target / project_id
+        copy_tree(artifact_source, project_target / "artifacts" / artifact_id)
+        filtered_manifest = {
+            "schemaVersion": manifest.get("schemaVersion") or "sapd-maturity-report-artifact-v1",
+            "projectId": project_id,
+            "artifacts": artifacts,
+        }
+        write_text(project_target / "manifest.json", json.dumps(filtered_manifest, ensure_ascii=False, indent=2) + "\n")
+
+
 def write_text(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
@@ -335,6 +375,15 @@ def build_bundle(args: argparse.Namespace) -> Path:
         shutil.copy2(args.base_db.resolve(), bundle_root / "data" / "base" / "sapd_wiki_base.sqlite3")
     if not args.skip_user_db:
         initialize_user_db(bundle_root / "data" / "user" / "sapd_wiki_user.sqlite3", args.user_schema_version)
+    if args.maturity_report_seed:
+        seed_root = args.maturity_report_seed.resolve()
+        if not seed_root.is_dir():
+            raise ValueError(f"--maturity-report-seed is not a directory: {seed_root}")
+        copy_maturity_report_seed(
+            seed_root,
+            bundle_root / "data" / "user" / "maturity-reports",
+            args.maturity_report_seed_artifact,
+        )
 
     base_db = bundle_root / "data" / "base" / "sapd_wiki_base.sqlite3"
     manifest = {
@@ -431,8 +480,8 @@ def main() -> int:
         help=f"Bundle output directory. Default: {DEFAULT_OUTPUT_DIR}",
     )
     parser.add_argument("--platform", required=True, choices=sorted(SUPPORTED_PLATFORMS))
-    parser.add_argument("--bundle-version", default="0.1.7")
-    parser.add_argument("--app-version", default="0.1.7")
+    parser.add_argument("--bundle-version", default="0.2.0")
+    parser.add_argument("--app-version", default="0.2.0")
     parser.add_argument("--data-version", default="2026.05-alpha")
     parser.add_argument("--base-schema-version", default="base_schema_0.1")
     parser.add_argument("--user-schema-version", default="user_schema_0.3")
@@ -440,6 +489,18 @@ def main() -> int:
     parser.add_argument("--backend-binary", type=Path, help="Platform-native backend binary for this ZIP.")
     parser.add_argument("--backend-executable", type=Path, help="Deprecated alias for --backend-binary.")
     parser.add_argument("--base-db", type=Path)
+    parser.add_argument(
+        "--maturity-report-seed",
+        type=Path,
+        help="Copy controlled maturity report test artifacts into data/user/maturity-reports.",
+    )
+    parser.add_argument(
+        "--maturity-report-seed-artifact",
+        action="append",
+        default=[],
+        metavar="PROJECT_ID=ARTIFACT_ID",
+        help="Copy only an explicitly selected report artifact; may be repeated.",
+    )
     parser.add_argument("--skip-user-db", action="store_true", help="Do not pre-create sapd_wiki_user.sqlite3 in the ZIP.")
     parser.add_argument("--allow-placeholder", action="store_true", help="Allow a non-runnable structure-check bundle.")
     parser.add_argument("--make-zip", action="store_true")

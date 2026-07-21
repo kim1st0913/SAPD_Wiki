@@ -672,6 +672,17 @@ node scripts/audit_capability_projection_contract.mjs --url http://127.0.0.1:517
 - ETL 规则错误由代码修复，并在 `data-governance.md` 或映射规则文档中沉淀稳定规则。
 - 业务接受的差异标记为 `business_accept`，后续不再作为 bug 反复处理。
 
+### 11.1 导入审批幂等与中间数据终结
+
+后续正式导入必须同时遵守以下治理边界：
+
+- approve 只能从 `reviewing` 状态原子进入，同一 job 的重复或并发批准不得产生二次正式写入。
+- 来源引用按 target、来源文件、Sheet / 单元格、原始值和 hash 的完整证据键幂等复用。
+- staging / review 必须保留到该 job 的导出、数据审计和业务验收完成，再使用默认 dry-run、显式 apply 的按 job finalize 命令清理。
+- 未显式传 job ID 的正式导出只能选择最新 approved 任务，不得选择 rejected、failed、reviewing、parsed 或 pending。
+
+完整错误语义、命令契约和验收矩阵见 `docs/03-import-etl/import-approval-idempotency-and-retention-contract.md`。当前状态为 `specified / not implemented`，由 `OI-198` 跟踪；本轮一次性历史清理脚本不能替代后续按 job 的生命周期命令。
+
 ## 12. 成熟度评估数据治理规则
 
 成熟度分析模块使用现有安全能力知识库，但客户评估输入、证据、匹配候选、评分结果和报告属于评估运行数据，默认不进入主知识库对象。

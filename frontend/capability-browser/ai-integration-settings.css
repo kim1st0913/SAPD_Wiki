@@ -158,6 +158,48 @@
   line-height: var(--sapd-shell-line-height-body, 1.5);
 }
 
+.app-shell-integrated .ai-settings-runtime-paths {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
+
+.app-shell-integrated .ai-settings-runtime-path {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(92px, auto) minmax(0, 1fr);
+  gap: 12px;
+  padding: 13px 16px;
+  border-right: 1px solid var(--sapd-shell-divider, var(--line));
+  border-bottom: 1px solid var(--sapd-shell-divider, var(--line));
+}
+
+.app-shell-integrated .ai-settings-runtime-path:nth-child(2n) {
+  border-right: 0;
+}
+
+.app-shell-integrated .ai-settings-runtime-path dt {
+  color: var(--shell-muted, var(--muted));
+  font-size: var(--sapd-shell-type-meta, 12px);
+  font-weight: 650;
+}
+
+.app-shell-integrated .ai-settings-runtime-path dd {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  line-height: var(--sapd-shell-line-height-body, 1.5);
+}
+
+.app-shell-integrated .ai-settings-runtime-path dd strong {
+  font-size: var(--sapd-shell-type-body, 14px);
+}
+
+.app-shell-integrated .ai-settings-section-note.is-error {
+  color: var(--sapd-state-error, var(--danger));
+}
+
 .app-shell-integrated .ai-settings-code,
 .app-shell-integrated .ai-settings-resource code,
 .app-shell-integrated .ai-settings-scope-list code {
@@ -560,8 +602,15 @@
   }
 
   .app-shell-integrated .ai-settings-definition-grid,
+  .app-shell-integrated .ai-settings-runtime-paths,
   .app-shell-integrated .ai-settings-policy-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .app-shell-integrated .ai-settings-runtime-path,
+  .app-shell-integrated .ai-settings-runtime-path:nth-child(2n) {
+    grid-template-columns: minmax(0, 1fr);
+    border-right: 0;
   }
 
   .app-shell-integrated .ai-settings-definition-grid > div,

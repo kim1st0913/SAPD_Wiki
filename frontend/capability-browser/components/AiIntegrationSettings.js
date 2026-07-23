@@ -152,10 +152,32 @@
     `;
   }
 
-  function renderBasic(snapshot) {
+  function renderRuntimePath(label, record = {}, { stateLabel = "" } = {}) {
+    const available = record.exists ?? record.ready;
+    const status = stateLabel || (available === true ? "可用" : available === false ? "不可用" : "未检查");
+    return `
+      <div class="ai-settings-runtime-path">
+        <dt>${escapeHtml(label)}</dt>
+        <dd>
+          <strong>${escapeHtml(status)}</strong>
+          <span class="ai-settings-code">${escapeHtml(record.path || "/")}</span>
+        </dd>
+      </div>
+    `;
+  }
+
+  function renderBasic(snapshot, runtimeHealth, { runtimeHealthLoading = false, runtimeHealthError = "" } = {}) {
     const settings = snapshot?.settings || {};
     const status = snapshot?.status || {};
     const display = DISPLAY_STATES[status.display_state] || DISPLAY_STATES.disabled;
+    const runtime = runtimeHealth?.runtime || {};
+    const packageState = runtimeHealthLoading
+      ? "正在检查"
+      : runtimeHealthError
+        ? "检查失败"
+        : runtime.data_root?.exists && runtime.base_database?.exists
+          ? "数据就绪"
+          : "需要处理";
     return `
       <div class="ai-settings-basic" data-settings-page="basic">
         <section class="ai-settings-section" aria-labelledby="basicRuntimeTitle">
@@ -189,6 +211,26 @@
             <li><strong>桌面应用</strong><span>负责系统信任、客户端配置和最终重置确认。</span></li>
             <li><strong>数据访问</strong><span>仅提供政策允许的公开知识摘要，不包含本地用户内容。</span></li>
           </ul>
+        </section>
+        <section class="ai-settings-section" aria-labelledby="basicPackageTitle" data-settings-section="local-data-package">
+          <div class="ai-settings-section-head">
+            <div>
+              <span class="ai-settings-kicker">LOCAL DATA PACKAGE</span>
+              <h2 id="basicPackageTitle">本地数据包与目录</h2>
+            </div>
+            ${badge("数据包", packageState, runtimeHealthError ? "danger" : packageState === "数据就绪" ? "ok" : "neutral")}
+          </div>
+          ${runtimeHealthError
+            ? `<p class="ai-settings-section-note is-error" role="alert">${escapeHtml(runtimeHealthError)}</p>`
+            : `
+              <dl class="ai-settings-runtime-paths">
+                ${renderRuntimePath("基础知识库", runtime.base_database)}
+                ${renderRuntimePath("数据包目录", runtime.data_root)}
+                ${renderRuntimePath("用户数据库", runtime.user_database)}
+                ${renderRuntimePath("导出目录", runtime.export_directory)}
+              </dl>
+              <p class="ai-settings-section-note">这里只读取运行状态和目录位置，不读取或修改用户数据库内容。目录更改仍由桌面应用的系统设置负责。</p>
+            `}
         </section>
       </div>
     `;
@@ -463,6 +505,9 @@
     notice = null,
     confirmation = null,
     resetPreview = null,
+    runtimeHealth = null,
+    runtimeHealthLoading = false,
+    runtimeHealthError = "",
   } = {}) {
     const activeRoute = route === "/settings/basic" ? "/settings/basic" : "/settings/ai-integration";
     const loadingState = runtimeState({ loading, error });
@@ -470,7 +515,7 @@
     const content = loadingState || (!hasSnapshot
       ? runtimeState({ error: "本地控制快照不可用，请重新加载。" })
       : activeRoute === "/settings/basic"
-        ? renderBasic(snapshot)
+        ? renderBasic(snapshot, runtimeHealth, { runtimeHealthLoading, runtimeHealthError })
         : `
           <div class="ai-settings-sections" data-settings-page="ai-integration">
             ${renderService(snapshot, pendingAction)}

@@ -128,7 +128,16 @@ const aiHtml = settingsComponent.render({
   snapshot,
   notice: { tone: "success", message: "状态已刷新" },
 });
-const basicHtml = settingsComponent.render({ route: "/settings/basic", snapshot });
+const runtimeHealth = {
+  status: "ok",
+  runtime: {
+    base_database: { path: "/synthetic/Runtime/data/base/sapd_wiki_base.sqlite3", exists: true, bytes: 1024 },
+    user_database: { path: "/synthetic/Runtime/data/user/sapd_wiki_user.sqlite3", ready: true, schema_version: "1" },
+    data_root: { path: "/synthetic/Runtime/app/data", exists: true },
+    export_directory: { path: "/synthetic/export", exists: true },
+  },
+};
+const basicHtml = settingsComponent.render({ route: "/settings/basic", snapshot, runtimeHealth });
 const sectionIds = [
   "service-status",
   "client-connection",
@@ -151,6 +160,10 @@ assert(!aiHtml.includes("MUST_NOT_RENDER_INTERNAL_SENTINEL"), "component rendere
 assert(!aiHtml.includes("<h1"), "settings component must not compete with the AppShell page title");
 assert(basicHtml.includes('data-settings-page="basic"') && basicHtml.includes("本地运行配置"), "basic settings route did not render");
 assert(basicHtml.includes('data-app-route="/settings/ai-integration"'), "basic settings must link to AI integration");
+assert(basicHtml.includes('data-settings-section="local-data-package"'), "basic settings must retain the local data package entry");
+assert(basicHtml.includes("基础知识库") && basicHtml.includes("用户数据库") && basicHtml.includes("导出目录"), "local runtime diagnostics are incomplete");
+assert(basicHtml.includes("/synthetic/Runtime/app/data"), "basic settings must render the declared runtime health path");
+assert(basicHtml.includes("不读取或修改用户数据库内容"), "local data package diagnostics must state the user-data boundary");
 const displayCases = [
   ["disabled", "MCP 未启用"],
   ["ready_waiting_authorization", "服务已就绪，等待授权"],
@@ -189,6 +202,7 @@ assert(!resetHtml.includes('data-mcp-confirm-action="confirm-reset"'), "Web must
 assert(!/\bfetch\s*\(/.test(componentSource), "render component must not fetch");
 assert(!componentSource.includes("sapdDataClient"), "render component must not call dataClient");
 assert(appSource.includes("async function loadMcpControlPanel"), "app.js must own control snapshot loading");
+assert(appSource.includes("async function loadSettingsRuntimeHealth"), "app.js must own local data package diagnostics loading");
 assert(appSource.includes("async function performMcpControlAction"), "app.js must own control mutations");
 assert(appSource.includes("await loadMcpControlPanel({ force: true })"), "app.js must refresh the D3 snapshot after mutations");
 assert(appSource.includes('if (state.activeView === "settings") return [];'), "settings route must not trigger unrelated data package loading");

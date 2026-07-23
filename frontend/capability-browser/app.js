@@ -47,6 +47,10 @@ const state = {
   mcpControlNotice: null,
   mcpConfirmation: null,
   mcpResetPreview: null,
+  settingsRuntimeHealth: null,
+  settingsRuntimeHealthLoading: false,
+  settingsRuntimeHealthLoaded: false,
+  settingsRuntimeHealthError: "",
   activeReferenceTab: "gbt",
   activeStandardFramework: "mlps-level-3",
   activeStandardTableId: "",
@@ -11765,9 +11769,43 @@ function renderSettings() {
       notice: state.mcpControlNotice,
       confirmation: state.mcpConfirmation,
       resetPreview: state.mcpResetPreview,
+      runtimeHealth: state.settingsRuntimeHealth,
+      runtimeHealthLoading: state.settingsRuntimeHealthLoading,
+      runtimeHealthError: state.settingsRuntimeHealthError,
     }),
   );
   if (state.mcpConfirmation || state.mcpResetPreview) focusMcpDialog();
+}
+
+async function loadSettingsRuntimeHealth({ force = false } = {}) {
+  if (state.settingsRuntimeHealthLoading) return null;
+  if (state.settingsRuntimeHealthLoaded && !force) return state.settingsRuntimeHealth;
+  const dataClient = window.sapdDataClient;
+  if (!dataClient?.getRuntimeHealth) {
+    state.settingsRuntimeHealthLoaded = true;
+    state.settingsRuntimeHealthError = "当前运行环境未提供本地数据包诊断接口。";
+    state.settingsRuntimeHealth = null;
+    if (state.activeView === "settings") renderSettings();
+    return null;
+  }
+  state.settingsRuntimeHealthLoading = true;
+  if (!state.settingsRuntimeHealth) state.settingsRuntimeHealthError = "";
+  if (state.activeView === "settings") renderSettings();
+  try {
+    const envelope = await dataClient.getRuntimeHealth();
+    state.settingsRuntimeHealth = envelope?.data || null;
+    state.settingsRuntimeHealthError = "";
+    state.settingsRuntimeHealthLoaded = true;
+    return state.settingsRuntimeHealth;
+  } catch (error) {
+    state.settingsRuntimeHealthLoaded = true;
+    state.settingsRuntimeHealthError = text(error?.message).trim() || "无法读取本地数据包诊断信息。";
+    if (!state.settingsRuntimeHealth) state.settingsRuntimeHealth = null;
+    return null;
+  } finally {
+    state.settingsRuntimeHealthLoading = false;
+    if (state.activeView === "settings") renderSettings();
+  }
 }
 
 async function loadMcpControlPanel({ force = false } = {}) {
@@ -11999,7 +12037,10 @@ function setActiveView(view, options = {}) {
   syncSearchInputs();
   setupResizableWorkspaces();
   if (view === "capabilities") applyCapabilityCatalogState();
-  if (view === "settings") loadMcpControlPanel();
+  if (view === "settings") {
+    loadMcpControlPanel();
+    loadSettingsRuntimeHealth();
+  }
   if (options.syncRoute !== false) {
     state.activeRoute = routeForCurrentState(view);
     syncBrowserRoute(state.activeRoute, { replace: Boolean(options.replaceRoute) });
@@ -12070,6 +12111,7 @@ function bindEvents() {
     if (action === "reload") {
       state.mcpControlNotice = null;
       loadMcpControlPanel({ force: true });
+      loadSettingsRuntimeHealth({ force: true });
       return;
     }
     if (action === "cancel-confirmation" || action === "close-reset-preview") {

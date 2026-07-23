@@ -4,7 +4,7 @@
 
 ## 治理入口
 
-- 当前未关闭问题数：6
+- 当前未关闭问题数：7
 - 已关闭归档问题数：194
 - 全量索引：`docs/06-implementation/open-issues-index.md`
 - 已关闭问题归档：`docs/05-archive/open-issues-history/2026-06.md`、`docs/05-archive/open-issues-history/2026-07.md`
@@ -24,6 +24,7 @@
 
 | 编号 | 状态 | 标题 |
 |---|---|---|
+| OI-199 | 执行中 / G0 | 本地 MCP M0-T T0–T2 隔离技术验证 |
 | OI-198 | 待实现 / 契约已确认 | 导入审批缺少幂等门禁、中间数据终结和 approved 默认导出契约 |
 | OI-197 | 待业务确认 / 映射门禁阻断 | 成熟度评分依据与当前能力字典尚未全量映射 |
 | OI-192 | 已修复 / 待用户验收 | 成熟度评分工作台服务、评分定义与主动作契约未按截图落地 |
@@ -50,6 +51,22 @@
 - 验证结果：
 
 ## 当前问题详情
+
+## OI-199：本地 MCP M0-T T0–T2 隔离技术验证
+
+- 状态：执行中 / G0
+- 严重性：高
+- 类型：架构 / 安全 / MCP / 隔离验证 / 治理
+- 对象或页面：四份 MCP 机器合同、synthetic fixture、只读 Runtime probe、loopback HTTPS / OAuth / Tool harness。
+- 现象：v0.5 已通过 M0 评审，但正式实现前必须先冻结合同，并证明 synthetic base 只读、用户库零访问、业务目录零副作用以及协议 / 策略负向路径可执行。
+- 影响：若跳过合同与隔离验证，后续正式 Runtime 可能把实验性网络、密钥或数据访问路径接入生产启动链路。
+- 建单理由：涉及跨模块架构、安全、认证、数据边界和后续 App / packaging 门禁，必须保留阶段证据与授权边界。
+- 当前处理：用户已授权独立 worktree、本地阶段提交、隔离依赖和临时 loopback HTTPS；G0 正在创建 v0.5、执行计划和审批记录的纯文档基线，之后串行执行 T0、T1、T2。
+- 需要确认：T0–T2 完成后仍需单独确认是否进入 T3；本轮不得生成 D0 数据或创建 M1 正式实现计划。
+- 验收入口：`docs/06-implementation/local-mcp-m0t-t0-t2-execution-plan.md`。
+- 关闭条件：G0、T0、T1、T2 各自合同、测试和阶段提交通过，并清楚保留 T3 / D0 / M1 未授权状态；完成 T0–T2 不等于 M0-T 总体 PASS。
+- 修复说明：本轮写入仅限 G0 治理文档以及 `docs/01-architecture/contracts/mcp/**`、`tests/fixtures/mcp/**`、`spikes/local-mcp/**`。
+- 验证结果：待阶段执行补充。
 
 ## OI-198：导入审批缺少幂等门禁、中间数据终结和 approved 默认导出契约
 

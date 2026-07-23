@@ -1,6 +1,7 @@
 import Cocoa
 import Darwin
 import Foundation
+import SAPDWikiMCPControl
 import UniformTypeIdentifiers
 import WebKit
 
@@ -679,9 +680,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     private var settingsImportField: NSTextField?
     private var settingsDownloadField: NSTextField?
     private var settingsRuntimeField: NSTextField?
+    private var mcpSupervisor: MCPSupervisor?
+    private var mcpBridge: MacMCPBridge?
+    private var mcpMenuBarController: MCPMenuBarController?
+    private var mcpAuthorizationPromptController: MCPAuthorizationPromptController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
+        configureMCPControl()
         configureMainMenu()
         createWindow()
         do {
@@ -725,12 +731,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        _ = mcpSupervisor?.stop()
         stopBackend()
     }
 
     private func createWindow() {
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = .default()
+        mcpBridge?.install(in: configuration)
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = self
@@ -784,6 +792,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         NSApp.windowsMenu = windowMenu
 
         NSApp.mainMenu = mainMenu
+    }
+
+    private func configureMCPControl() {
+        let supervisor = MCPSupervisor(
+            profile: .stable,
+            processRuntime: MacMCPProcessRuntime()
+        )
+        let bridge = MacMCPBridge(supervisor: supervisor)
+        let authorizationPrompt = MCPAuthorizationPromptController()
+        let menuBar = MCPMenuBarController(supervisor: supervisor) { [weak self] in
+            self?.showPrimaryWindow()
+        }
+        supervisor.onSnapshotChange = { snapshot in
+            menuBar.update(snapshot: snapshot)
+        }
+        supervisor.onAuthorizationRequest = { [weak self] request in
+            self?.showPrimaryWindow()
+            authorizationPrompt.present(request: request, parentWindow: self?.window)
+        }
+        mcpSupervisor = supervisor
+        mcpBridge = bridge
+        mcpMenuBarController = menuBar
+        mcpAuthorizationPromptController = authorizationPrompt
     }
 
     @discardableResult
@@ -1050,6 +1081,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         settingsWindow?.orderOut(nil)
     }
 
+    func webView(
+        _ webView: WKWebView,
+        decidePolicyFor navigationAction: WKNavigationAction,
+        decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
+    ) {
+        guard let url = navigationAction.request.url else {
+            decisionHandler(.cancel)
+            return
+        }
+        if url.scheme == "data" || url.scheme == "about" {
+            decisionHandler(.allow)
+            return
+        }
+        if mcpBridge?.allowsNavigation(to: url) == true {
+            decisionHandler(.allow)
+            return
+        }
+        if navigationAction.navigationType == .linkActivated,
+           let scheme = url.scheme?.lowercased(),
+           scheme == "http" || scheme == "https"
+        {
+            NSWorkspace.shared.open(url)
+        }
+        decisionHandler(.cancel)
+    }
+
     func webView(_ webView: WKWebView, runOpenPanelWith parameters: WKOpenPanelParameters, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping ([URL]?) -> Void) {
         let current = settings ?? AppSettingsStore.load() ?? AppSettingsStore.defaultSettings()
         let panel = NSOpenPanel()
@@ -1241,6 +1298,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     }
 
     private func load(url: URL) {
+        mcpBridge?.updateTrustedOrigin(from: url)
         webView?.load(URLRequest(url: url))
         window?.title = windowDisplayTitle()
     }

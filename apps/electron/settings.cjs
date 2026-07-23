@@ -54,6 +54,15 @@ function isValidSettings(settings) {
   );
 }
 
+function sanitizeSettings(settings) {
+  if (!isValidSettings(settings)) return null;
+  return {
+    dataRoot: path.normalize(settings.dataRoot),
+    importDirectory: path.normalize(settings.importDirectory),
+    downloadDirectory: path.normalize(settings.downloadDirectory),
+  };
+}
+
 module.exports = {
   DATA_ROOT_FOLDER_NAME,
   dataRootForSelectedDirectory,
@@ -61,5 +70,6 @@ module.exports = {
   isDefaultDownloadDirectory,
   isDefaultImportDirectory,
   isValidSettings,
+  sanitizeSettings,
   settingsForNewDataParent,
 };

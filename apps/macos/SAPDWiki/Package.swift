@@ -11,9 +11,19 @@ let package = Package(
         .executable(name: "SAPDWiki", targets: ["SAPDWiki"])
     ],
     targets: [
+        .target(
+            name: "SAPDWikiMCPControl",
+            path: "Sources/SAPDWikiMCPControl"
+        ),
         .executableTarget(
             name: "SAPDWiki",
+            dependencies: ["SAPDWikiMCPControl"],
             path: "Sources/SAPDWiki"
+        ),
+        .testTarget(
+            name: "SAPDWikiMCPControlTests",
+            dependencies: ["SAPDWikiMCPControl"],
+            path: "Tests/SAPDWikiMCPControlTests"
         )
     ]
 )

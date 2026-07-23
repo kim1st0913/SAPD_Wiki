@@ -24,6 +24,7 @@
       "main.cjs",
       "preload.cjs",
       "settings.cjs",
+      "mcp/*.cjs",
       "package.json"
     ],
     "extraResources": [

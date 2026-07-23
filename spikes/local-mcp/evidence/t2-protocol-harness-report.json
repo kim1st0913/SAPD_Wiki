@@ -1,0 +1,75 @@
+{
+  "automated_test_count": 34,
+  "cleanup": {
+    "certificate_files_committed": false,
+    "loopback_port_released": true,
+    "temporary_directory_removed": true
+  },
+  "gate": "T2",
+  "https": {
+    "encrypted_pkcs8_private_key": true,
+    "explicit_test_ca": true,
+    "fixed_port_conflict_rejected": true,
+    "host": "127.0.0.1",
+    "passphrase_zeroized_after_context_load": true,
+    "plaintext_private_key_written": false,
+    "port": 28775,
+    "private_key_mode": "0o600",
+    "system_trust_modified": false
+  },
+  "m0_t_total_status": "NOT_COMPLETE_T3_AND_WINDOWS_PENDING",
+  "not_authorized": [
+    "push",
+    "T3",
+    "D0-Pilot data generation",
+    "M1",
+    "real data",
+    "user data",
+    "App integration",
+    "packaging"
+  ],
+  "oauth": {
+    "audit_secret_material_logged": false,
+    "opaque_access_token": true,
+    "pkce_method": "S256",
+    "real_client_state_modified": false,
+    "refresh_rotation_reuse_and_revocation": "covered_by_tests",
+    "registration_priority": [
+      "pre_registered",
+      "CIMD",
+      "DCR"
+    ]
+  },
+  "platform_result": "macOS local isolated PASS / T3 real client pending",
+  "policy_and_runtime": {
+    "business_directories_created": 0,
+    "five_tools_readonly": true,
+    "production_runtime_imports": 0,
+    "synthetic_fixture_only": true,
+    "unsafe_ipc_all_blocked": true,
+    "unsafe_ipc_fixture_count": 3,
+    "user_store_access_attempts": 0
+  },
+  "status": "PASS",
+  "transport": {
+    "bad_origin_status": 403,
+    "bad_protocol_version_status": 400,
+    "delete_status": 405,
+    "get_status": 405,
+    "initialize_status": 200,
+    "mcp_session_id_emitted": false,
+    "missing_auth_status": 401,
+    "notification_status": 202,
+    "protocol_version": "2025-11-25",
+    "resource_discovery_status": 200,
+    "sse_enabled": false,
+    "tool_call_statuses": {
+      "get_knowledge_object": 200,
+      "get_knowledge_version": 200,
+      "get_related_knowledge": 200,
+      "get_source_evidence": 200,
+      "search_knowledge": 200
+    },
+    "tool_count": 5
+  }
+}

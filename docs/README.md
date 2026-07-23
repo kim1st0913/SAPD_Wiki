@@ -43,6 +43,17 @@
 3. `03-import-etl/github-local-data-initialization.md`
 4. `09-delivery/mac-dmg-browser-parity-contract.md`
 
+## 要做本地 MCP
+
+优先看：
+
+1. `01-architecture/sapd-wiki-local-mcp-requirements-and-prd-v0.5.md`
+2. `06-implementation/local-mcp-m0t-t0-t2-execution-plan.md`
+3. `07-governance/approvals/local-mcp-m0t-t0-t2-approval-2026-07-23.md`
+4. `01-architecture/contracts/mcp/`（T0 开始后生成）
+
+当前仅授权隔离的 G0 与 T0–T2。不得据此进入 T3、D0、M1、真实数据、用户数据、App integration 或 packaging。
+
 ## 要做测试、回归或发布前验收
 
 优先看：

@@ -52,10 +52,12 @@ async function main() {
   assert(config.navigationLabel === "成熟度模型使用指南", "指南目录名称不是成熟度模型使用指南", issues);
   assert(appShellSource.includes('label: "成熟度模型使用指南"') && !appShellSource.includes('label: "SAPD成熟度模型使用指南"') && !appShellSource.includes('label: "成熟度模型使用方法"'), "AppShell 指南目录名称未统一", issues);
   assert(appSource.includes('routeItem.label || "成熟度模型使用指南"') && !appSource.includes('routeItem.label || "SAPD成熟度模型使用指南"') && !appSource.includes('routeItem.label || "成熟度模型使用方法"'), "指南页面标题回退名称未统一", issues);
-  assert(appSource.includes("maturity-model-usage.html?embed=1&v=p1-6-guide-content-20260716-1"), "指南 iframe 未使用最新源文档内容版本", issues);
+  assert(appSource.includes("maturity-model-usage.html?embed=1&v=p1-6-guide-navigation-20260721-1"), "指南 iframe 未使用最新导航版本", issues);
+  assert(includesAll(appSource, ["sapd:maturity-guide:navigate", "sapd:maturity-guide:navigated", "handleMaturityModelGuideMessage", "postMessage"]), "App 指南目录缺少 iframe 双向导航协议", issues);
   assert(!prepareFrameSource.includes("createElement(\"style\")") && !prepareFrameSource.includes("sapd-wiki-maturity-embed-style"), "App 仍在外层强行改写 iframe 正文样式", issues);
   assert(includesAll(guideSource, ["document-cover", "document-meta", "document-entry-links", 'data-embed="true"', "URLSearchParams"]), "文档式封面或源文档嵌入模式不完整", issues);
   assert(includesAll(guideSource, config.chapterAnchors.map((anchor) => `id=\"${anchor}\"`)), "指南章节锚点不完整", issues);
+  assert(includesAll(guideSource, ["sapd:maturity-guide:navigate", "sapd:maturity-guide:navigated", "scrollIntoView", "window.addEventListener('message'"]), "指南文档缺少桌面壳目录导航监听", issues);
   assert(includesAll(guideSource, config.featuredAnchors.map((anchor) => `href=\"#${anchor}\"`)), "封面重点章节入口不完整", issues);
   assert(includesAll(guideSource, ["SAPD 成熟度模型使用指南 v1.3", "版本 v1.3", "更新：2026-07-16"]), "指南版本或更新时间未升级到 v1.3", issues);
   assert(includesAll(toolSection, [
@@ -105,10 +107,11 @@ async function main() {
       ]);
       assert(liveIndex.includes("p1-guide-reading.css?v=p1-6-guide-reading-20260716-3"), "5173 未加载 P1-6 下载按钮样式", issues);
       assert(includesAll(liveCss, ["maturity-guide-frame-shell", "page-header-actions.guide-header-actions", "maturity-guide-download"]), "5173 指南壳层或下载按钮样式不是 P1-6 V2", issues);
-      assert(liveApp.includes("p1-6-guide-content-20260716-1") && liveApp.includes('routeItem.label || "成熟度模型使用指南"') && !liveApp.includes('routeItem.label || "SAPD成熟度模型使用指南"'), "5173 app 未加载指南内容或命名版本", issues);
+      assert(liveApp.includes("p1-6-guide-navigation-20260721-1") && liveApp.includes("sapd:maturity-guide:navigate") && liveApp.includes('routeItem.label || "成熟度模型使用指南"') && !liveApp.includes('routeItem.label || "SAPD成熟度模型使用指南"'), "5173 app 未加载指南导航或命名版本", issues);
       assert(includesAll(liveAppShell, ["GUIDE_DOWNLOADS", "maturity-guide-download", "SAPD-成熟度模型使用指南-v1.3.html", 'label: "成熟度模型使用指南"']) && !liveAppShell.includes('label: "SAPD成熟度模型使用指南"') && !liveAppShell.includes('label: "成熟度模型使用方法"'), "5173 AppShell 未加载指南下载或目录命名契约", issues);
       const liveCoverCss = liveGuide.match(/\.hero\s*\{([\s\S]*?)\n\s*\}/)?.[1] || "";
       assert(liveGuide.includes("document-cover") && liveCoverCss.includes("height: 208px") && !liveCoverCss.includes("gradient"), "5173 指南源文档不是 P1-6 文档封面", issues);
+      assert(includesAll(liveGuide, ["sapd:maturity-guide:navigate", "sapd:maturity-guide:navigated", "scrollIntoView"]), "5173 指南源文档缺少目录导航协议", issues);
       assert(includesAll(sectionSlice(liveGuide, "tool", "scoring"), ["三步新建浮层", "保存并转到下一项", "文件交换、匹配与人工审查"]), "5173 指南第 3 章不是当前评估工具流程", issues);
       assert(liveDownloadGuide.includes("SAPD 成熟度模型使用指南 v1.3") && liveDownloadGuide.includes("data:image/png;base64,"), "5173 下载资产不是完整 v1.3 自包含指南", issues);
     } catch (error) {

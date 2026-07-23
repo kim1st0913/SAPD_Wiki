@@ -7,6 +7,7 @@ const environmentTreeSource = fs.readFileSync("frontend/capability-browser/compo
 const environmentLocalRelationMapSource = fs.readFileSync("frontend/capability-browser/components/EnvironmentLocalRelationMap.js", "utf8");
 const environmentScopeServiceMatrixSource = fs.readFileSync("frontend/capability-browser/components/EnvironmentScopeServiceMatrix.js", "utf8");
 const environmentBasemapViewerSource = fs.readFileSync("frontend/capability-browser/components/EnvironmentBasemapViewer.js", "utf8");
+const environmentBasemapSvgSource = fs.readFileSync("frontend/capability-browser/generated/environmentBasemap.svg", "utf8");
 const appSource = fs.readFileSync("frontend/capability-browser/app.js", "utf8");
 const stylesSource = fs.readFileSync("frontend/capability-browser/styles.css", "utf8");
 
@@ -89,6 +90,30 @@ const staticChecks = [
       environmentBasemapViewerSource.includes("${toolbarLeading || titleBlock}") &&
       environmentBasemapViewerSource.includes("environment-basemap-lab-head-tools"),
     message: "信息化环境视图底图 tab 不得渲染局部搜索；底图工具栏只保留画布操作并居右。",
+  },
+  {
+    id: "environment_basemap_exposes_editable_drawio_download",
+    ok:
+      environmentBasemapViewerSource.includes('class="environment-basemap-download"') &&
+      environmentBasemapViewerSource.includes('href="${SVG_PATH}"') &&
+      environmentBasemapViewerSource.includes('download="SAPD-信息化环境及对象底图.drawio.svg"') &&
+      environmentBasemapSvgSource.includes('content="&lt;mxfile'),
+    message: "信息化环境 SVG 工具栏必须下载包含原始 mxfile 模型的真实 Draw.io SVG。",
+  },
+  {
+    id: "environment_statistics_plus_n_is_expandable_everywhere",
+    ok:
+      environmentLocalRelationMapSource.includes('<details class="environment-statistics-chip-overflow">') &&
+      environmentLocalRelationMapSource.includes('data-overflow-state="collapsed"') &&
+      environmentLocalRelationMapSource.includes('data-overflow-state="expanded"') &&
+      environmentLocalRelationMapSource.includes("hidden.map((row) => renderStatisticChiplet(row, shortKind))") &&
+      environmentLocalRelationMapSource.includes("点击 +N 可展开全部") &&
+      stylesSource.includes(".environment-statistics-chip-overflow[open]") &&
+      stylesSource.includes(".environment-statistics-chip-overflow[open] {\n  display: contents;") &&
+      stylesSource.includes(".environment-statistics-chip-overflow[open] > summary {\n  order: 1;\n  flex: 1 1 100%;") &&
+      stylesSource.includes(".environment-statistics-chip-overflow-list {\n  display: none;") &&
+      stylesSource.includes(".environment-statistics-chip-overflow[open] > .environment-statistics-chip-overflow-list {\n  display: contents;"),
+    message: "环境统计模块所有 +N 模块/措施必须原位连续展开，并将收起操作放在全部项目之后。",
   },
   {
     id: "environment_search_has_visible_match_navigation",

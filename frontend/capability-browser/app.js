@@ -2810,7 +2810,7 @@ function announceAppStatus(message) {
 const WORKSPACE_STATE_STORAGE_KEY = "sapd:workspace-state:v1";
 const MODELING_LANGUAGE_GUIDE_ROUTE = "/guides/security-architecture-modeling-language";
 const MATURITY_MODEL_GUIDE_ROUTE = "/guides/maturity-model-usage";
-const MATURITY_MODEL_GUIDE_DOCUMENT_PATH = "/assets/guides/maturity-model-usage.html?embed=1&v=p1-6-guide-content-20260716-1&density=p2-3-guide-density-20260716-2";
+const MATURITY_MODEL_GUIDE_DOCUMENT_PATH = "/assets/guides/maturity-model-usage.html?embed=1&v=p1-6-guide-navigation-20260721-1&density=p2-3-guide-density-20260716-2";
 const MATURITY_MODEL_GUIDE_NAV_ITEMS = [
   { id: "method", label: "1. 成熟度方法论说明" },
   { id: "levels", label: "2. 成熟度等级描述" },
@@ -8213,10 +8213,32 @@ function scrollMaturityModelGuideFrameToSection(sectionId) {
   const frameDocument = frame?.contentDocument;
   const section = normalized ? frameDocument?.getElementById(normalized) : null;
   const scrollOwner = frameDocument?.scrollingElement || frameDocument?.documentElement;
-  if (!section || !scrollOwner) return false;
-  const targetTop = section.getBoundingClientRect().top + scrollOwner.scrollTop - 20;
-  scrollOwner.scrollTop = Math.max(0, targetTop);
-  return true;
+  let didScroll = false;
+  if (section && scrollOwner) {
+    const targetTop = section.getBoundingClientRect().top + scrollOwner.scrollTop - 20;
+    scrollOwner.scrollTop = Math.max(0, targetTop);
+    didScroll = true;
+  }
+  if (normalized && frame?.contentWindow) {
+    frame.contentWindow.postMessage({ type: "sapd:maturity-guide:navigate", sectionId: normalized }, window.location.origin);
+  }
+  return didScroll;
+}
+
+function handleMaturityModelGuideMessage(event) {
+  const frame = $("maturityModelGuideFrame");
+  const sectionId = text(event.data?.sectionId).trim();
+  if (
+    event.origin !== window.location.origin
+    || event.source !== frame?.contentWindow
+    || event.data?.type !== "sapd:maturity-guide:navigated"
+    || !MATURITY_MODEL_GUIDE_NAV_ITEMS.some((item) => item.id === sectionId)
+  ) return;
+  state.maturityModelGuideActiveSection = sectionId;
+  state.maturityModelGuidePendingSection = "";
+  document.querySelectorAll("[data-maturity-guide-anchor]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.maturityGuideAnchor === sectionId);
+  });
 }
 
 function prepareMaturityModelGuideFrame() {
@@ -8225,10 +8247,9 @@ function prepareMaturityModelGuideFrame() {
   frame.dataset.guideWired = "true";
 
   const finishLoading = () => {
-    const frameDocument = frame.contentDocument;
-    if (!frameDocument?.querySelector(".hero") || !frameDocument.getElementById("method")) return;
     frame.closest(".maturity-guide-frame-shell")?.classList.add("is-ready");
-    if (scrollMaturityModelGuideFrameToSection(state.maturityModelGuidePendingSection)) {
+    const targetSection = state.maturityModelGuidePendingSection || state.maturityModelGuideActiveSection;
+    if (scrollMaturityModelGuideFrameToSection(targetSection)) {
       state.maturityModelGuidePendingSection = "";
     }
   };
@@ -11791,6 +11812,7 @@ function setActiveView(view, options = {}) {
 }
 
 function bindEvents() {
+  window.addEventListener("message", handleMaturityModelGuideMessage);
   document.querySelectorAll(".module-tab").forEach((button) => {
     const label = button.querySelector("span:not(.nav-symbol)")?.textContent || button.textContent.trim();
     button.title = label;
@@ -12823,7 +12845,7 @@ async function init() {
   await loadScriptOnce("./components/LocalRelationNetworkGraph.js?v=capability-graph-controls-20260701-1", () => Boolean(window.sapdComponents?.LocalRelationNetworkGraph));
   await loadScriptOnce("./components/CapabilityLocalRelationMap.js?v=annotation-framework-anchor-20260605-1-oi156-anchor-20260630-1-oi159-overview-mode-20260701-1-capability-tabs-20260701-2-oi159-summary-20260701-1-oi159-title-tabs-20260701-1-oi159-title-baseline-20260701-1-oi159-summary-compact-20260702-1-oi159-attached-control-20260702-2-oi159-l2-summary-tabs-20260702-1-oi159-reader-summary-cards-20260702-1-oi159-definition-source-20260702-1-oi159-coverage-ratio-20260702-1-oi159-coverage-denominator-scale-20260702-1-oi159-service-coverage-scale-crop-20260702-1", () => Boolean(window.sapdComponents?.CapabilityLocalRelationMap));
   await loadScriptOnce("./models/environmentRelationGraphModel.js?v=environment-graph-20260521-1", () => Boolean(window.sapdModels?.buildEnvironmentRelationGraphModel));
-  await loadScriptOnce("./components/EnvironmentLocalRelationMap.js?v=environment-backup-tab-removal-20260629-1-oi156-anchor-20260630-1-oi154-page-search-nav-20260703-1-oi154-search-p6-20260703-1-oi154-search-p7-20260703-1-oi154-search-p8-20260703-1-oi154-local-search-baseline-20260703-1-oi154-all-local-search-baseline-20260703-1-oi154-search-toolbar-align-20260703-1-oi154-env-search-tab-preserve-20260703-1-oi154-basemap-search-remove-20260703-1-oi154-default-shell-20260704-1-oi154-single-tab-state-20260704-1-oi185-domain-search-history-20260705-1-service-scope-chip-color-20260709-3-p1-1-runtime-state-20260714-1-directory-shell-20260714-1", () => Boolean(window.sapdComponents?.EnvironmentLocalRelationMap));
+  await loadScriptOnce("./components/EnvironmentLocalRelationMap.js?v=environment-backup-tab-removal-20260629-1-oi156-anchor-20260630-1-oi154-page-search-nav-20260703-1-oi154-search-p6-20260703-1-oi154-search-p7-20260703-1-oi154-search-p8-20260703-1-oi154-local-search-baseline-20260703-1-oi154-all-local-search-baseline-20260703-1-oi154-search-toolbar-align-20260703-1-oi154-env-search-tab-preserve-20260703-1-oi154-basemap-search-remove-20260703-1-oi154-default-shell-20260704-1-oi154-single-tab-state-20260704-1-oi185-domain-search-history-20260705-1-service-scope-chip-color-20260709-3-p1-1-runtime-state-20260714-1-directory-shell-20260714-1-environment-drawio-expand-20260721-2", () => Boolean(window.sapdComponents?.EnvironmentLocalRelationMap));
   mountAppShellComponents();
   setupAnnotationSurfaceObserver();
   bindEvents();

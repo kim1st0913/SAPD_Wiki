@@ -48,6 +48,7 @@ target/
 # macOS app side-line artifacts
 apps/macos/SAPDWiki/.build/
 apps/macos/SAPDWiki/apps/**/.build/
+apps/electron/.build/
 *.dmg
 
 # Python artifacts

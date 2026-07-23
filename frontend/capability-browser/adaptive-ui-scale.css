@@ -16,6 +16,7 @@
   width: var(--sapd-ui-logical-viewport-width);
   max-width: none;
   height: var(--sapd-ui-logical-viewport-height);
+  display: grid;
   grid-template-columns:
     var(--app-sidebar-width)
     minmax(0, calc(var(--sapd-ui-logical-viewport-width) - var(--app-sidebar-width)));

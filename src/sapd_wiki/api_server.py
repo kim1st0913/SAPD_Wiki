@@ -4288,6 +4288,7 @@ def serve(args: argparse.Namespace) -> None:
         session_token=server.sapd_session_token,
         release_channel="dev",
         configured_port=28775,
+        allow_synthetic_service_control=True,
     )
     url = f"http://{args.host}:{args.port}"
     print(f"SAPD Wiki local API: {url}/api/v1/health")

@@ -59,6 +59,61 @@ class BrowserControlTests(unittest.TestCase):
             "DESKTOP_CAPABILITY_REQUIRED",
         )
 
+    def test_dev_projection_can_start_and_stop_only_the_synthetic_service(self) -> None:
+        api = build_browser_control_api(
+            expected_host="127.0.0.1:5173",
+            expected_origin="http://127.0.0.1:5173",
+            session_token="fixture-session-token",
+            allow_synthetic_service_control=True,
+        )
+        mutation_headers = {
+            **self.headers,
+            "Content-Type": "application/json",
+        }
+        start = api.dispatch(
+            "POST",
+            "/api/v1/mcp/actions/start",
+            mutation_headers,
+            {
+                "request_id": "request-start-dev-0001",
+                "expected_state_version": 0,
+            },
+        )
+        self.assertEqual(start.status, 200)
+        started = api.dispatch(
+            "GET",
+            "/api/v1/mcp/control-panel",
+            self.headers,
+        )
+        self.assertEqual(started.body["status"]["service_state"], "ready")
+        self.assertTrue(started.body["settings"]["enabled"])
+        self.assertTrue(
+            started.body["settings"]["control_capabilities"]["service_control"]
+        )
+        self.assertFalse(
+            started.body["settings"]["control_capabilities"][
+                "native_reset_confirmation"
+            ]
+        )
+
+        stop = api.dispatch(
+            "POST",
+            "/api/v1/mcp/actions/stop",
+            mutation_headers,
+            {
+                "request_id": "request-stop-dev-0001",
+                "expected_state_version": 1,
+            },
+        )
+        self.assertEqual(stop.status, 200)
+        stopped = api.dispatch(
+            "GET",
+            "/api/v1/mcp/control-panel",
+            self.headers,
+        )
+        self.assertEqual(stopped.body["status"]["service_state"], "stopped")
+        self.assertFalse(stopped.body["settings"]["enabled"])
+
 
 if __name__ == "__main__":
     unittest.main()

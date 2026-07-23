@@ -4,6 +4,7 @@
 
 ## 当前关键决策
 
+- 2026-07-23 本地 MCP 批次 A 已达到 D6：synthetic-only 产品代码、Web 配置页面、Web 开发态 synthetic 启停、正式协议栈和双平台 Supervisor/Bridge 可以进入 L1 准备，但这不代表真实 Codex 客户端已连接。纯 Web 开发环境只允许控制内存中的 synthetic 服务状态；交付运行时和系统敏感动作继续 fail closed，客户端配置、系统信任、真实 OAuth、Keychain/DPAPI 实接必须由 L1 单独授权。D0-Release 仍阻塞真实摘要接入和发布，C1 必须包含真实 Windows 结果，不能用 macOS 模拟代替。
 - 2026-07-23 本地 MCP 开发门禁顺序已按用户确认调整：T0–T2 的合同与隔离验证作为 synthetic-only 正式功能开发准入，先完成只读知识服务、Sidecar、控制 API、Web AI 集成页面和双平台桥接，再做用户本机当前客户端验证，最后做多版本/双平台矩阵。D0-Pilot 不再阻塞 synthetic-only 开发，但 D0-Release 继续阻塞任何真实摘要接入和发布；真实客户端配置、系统信任、真实 OAuth、D0、真实/用户数据和 packaging 不在批次 A。
 - 2026-07-23 本地 MCP 执行采用双门禁且不越级：本轮只执行 M0-T 的 G0 与 `T0 → T1 → T2`，以 synthetic fixture、隔离 Runtime probe 和临时 loopback HTTPS harness 形成技术基线；T3 的真实客户端 / 系统信任、D0 内容、M1 正式实现、真实 / 用户数据、App 和 packaging 均需另行授权。T0 必须冻结 fixture JCS/SHA-256 规则、D0-Pilot 非空门禁和 unsafe key-passphrase IPC 的 `BLOCKED` 负向合同。
 - 2026-07-20 成熟度目标状态的正式输入粒度由单一目标等级升级为与当前评分对称的四个维度：`targetElements` 与 `targetDimensionNotes` 是新契约，`targetLevel / targetReason` 只保留为旧数据兼容投影。当前与目标使用相同维度权重分别计算综合指数；所有入口统一执行 `目标状态 >= 当前状态`，相等是合法值，只有目标低于同维度当前状态才形成 `targetDimensionConflicts` 并阻塞切换、统计和完成。批量目标下限等于适用下级四维当前最高等级，批量当前上限等于已有目标最低等级，L5 当前允许 L5 目标。新版 XLSX 逐维校验，旧版单一目标按当前四维最高等级校验。旧数据只在新字段缺失时展开，显式但未完成或低于当前的四维目标继续原值展示并给出冲突，不静默抬高或回退旧值。

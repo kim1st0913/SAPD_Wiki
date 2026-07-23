@@ -24,7 +24,7 @@
 
 | 编号 | 状态 | 标题 |
 |---|---|---|
-| OI-199 | 批次 A 开发中 / P0 | 本地 MCP 产品开发与客户端验证 |
+| OI-199 | 批次 A PASS / 等待 L1 授权 | 本地 MCP 产品开发与客户端验证 |
 | OI-198 | 待实现 / 契约已确认 | 导入审批缺少幂等门禁、中间数据终结和 approved 默认导出契约 |
 | OI-197 | 待业务确认 / 映射门禁阻断 | 成熟度评分依据与当前能力字典尚未全量映射 |
 | OI-192 | 已修复 / 待用户验收 | 成熟度评分工作台服务、评分定义与主动作契约未按截图落地 |
@@ -54,19 +54,19 @@
 
 ## OI-199：本地 MCP 产品开发与客户端验证
 
-- 状态：批次 A 开发中 / P0
+- 状态：批次 A PASS / 等待 L1 授权
 - 严重性：高
 - 类型：架构 / 安全 / MCP / 隔离验证 / 治理
 - 对象或页面：四份 MCP 机器合同、正式只读知识服务、Sidecar、控制 API、Web AI 集成页面、macOS/Windows 桥接和客户端兼容矩阵。
 - 现象：v0.5 已通过 M0 评审，但正式实现前必须先冻结合同，并证明 synthetic base 只读、用户库零访问、业务目录零副作用以及协议 / 策略负向路径可执行。
 - 影响：若跳过合同与隔离验证，后续正式 Runtime 可能把实验性网络、密钥或数据访问路径接入生产启动链路。
 - 建单理由：涉及跨模块架构、安全、认证、数据边界和后续 App / packaging 门禁，必须保留阶段证据与授权边界。
-- 当前处理：G0、T0、T1、T2 已完成。用户已确认 v0.1 计划批次 A，当前在 `codex/local-mcp-product-development` 执行 P0 门禁和干净基线，后续依次进入 D1–D6。
-- 需要确认：批次 A 不再需要额外业务确认；D6 通过后必须停止，用户本机真实客户端验证、系统信任、D0 和 packaging 仍需分别确认。
+- 当前处理：G0、T0–T2 与批次 A 的 P0、D1–D6 已完成；当前停止在本地 `codex/local-mcp-product-development` 分支，未 push。
+- 需要确认：是否单独授权 L1 用户本机当前客户端验证及其具体客户端、配置、信任、前置快照与恢复范围；C1、D0 和 packaging 后续分别确认。
 - 验收入口：`docs/06-implementation/local-mcp-product-development-and-client-validation-plan-v0.1.md`。
 - 关闭条件：批次 A D1–D6 开发门禁通过，随后 L1 用户本机验证、C1 多版本/双平台矩阵和 D0/发布门禁按各自授权完成。
 - 修复说明：批次 A 只使用 synthetic fixture/SQLite；生产代码、Web/App 功能和本地阶段提交已获授权，不允许 push、真实客户端/信任/OAuth、D0、真实/用户数据或 packaging。
-- 验证结果：T0 `6/6`、T1 `13/13`、T2 `34/34`，合并回归 `53/53`；branch allowlist、提交制品 / secret、生产 import、端口与临时证书清理审计通过。macOS 本机隔离结果为 PASS；Windows 和 T3 真实 Codex 客户端 pending。真实 / 用户数据访问、系统信任、真实客户端配置、App / packaging 与远程 push 均为 0。
+- 验证结果：T0–T2 `53/53`、D1 `24/24`、D2 `19/19`、D3/Web `24/24`、Core↔Sidecar `3/3`、策略签名 `7/7`、Windows Electron `27/27`、macOS Swift `17/17`，macOS 完整 build 通过；Web 六区、宽/窄屏、synthetic 启停、桌面能力门禁和零 console error 验收通过。真实 / 用户数据访问、系统信任、真实客户端配置、真实 OAuth、packaging 与远程 push 均为 0；L1/C1/D0/R1 pending。
 
 ## OI-198：导入审批缺少幂等门禁、中间数据终结和 approved 默认导出契约
 

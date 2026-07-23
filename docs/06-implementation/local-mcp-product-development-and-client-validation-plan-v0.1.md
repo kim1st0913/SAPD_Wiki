@@ -2,9 +2,9 @@
 
 | 项目 | 内容 |
 |---|---|
-| 状态 | `APPROVED / BATCH A IN PROGRESS` |
+| 状态 | `BATCH A PASS / D6 PASS / L1 NOT AUTHORIZED` |
 | 日期 | 2026-07-23 |
-| 当前技术基线 | T0–T2 已完成，合并回归 `53/53 PASS` |
+| 当前技术基线 | D1–D6 synthetic-only 产品开发完成；T0–T2 `53/53 PASS` |
 | 现行设计基线 | `docs/01-architecture/sapd-wiki-local-mcp-requirements-and-prd-v0.5.md` |
 | 本计划拟议顺序 | `完整开发 → 本机开发环境验证 → 多版本/双平台客户端验证 → 内容与发布` |
 | 数据边界 | 开发和技术验证只使用 synthetic fixture；真实内容另走 D0 门禁 |
@@ -62,6 +62,36 @@
 | L1 本机开发环境验证 | 在用户本机、当前客户端上完整验收 | 当前环境可用 |
 | C1 客户端兼容验证 | 验证不同客户端版本、入口和双平台 | 形成支持矩阵 |
 | R1 内容与发布 | D0、真实摘要、安装包和发布验证 | 满足正式交付条件 |
+
+### 3.1 当前执行状态
+
+- P0 治理与开发授权基线：`PASS`，提交 `62825dc`；
+- 当前 Web 与 Windows App 源码保真基线：`PASS`，提交 `9c96e25`；
+- 原 dirty checkout：保持只读，未提交、stash、reset 或覆盖；
+- D1 正式只读知识服务：`PASS`，五项能力、只读 Runtime、策略、稳定身份和游标已完成；
+- D2 MCP Sidecar：`PASS`，Transport、OAuth、TLS 接口、Tool、审计和生命周期已完成；
+- D3 控制接口：`PASS`，Web/App 共用合同、状态、动作、错误和安全边界已完成；
+- D4 Web 配置功能：`PASS`，`#/settings/ai-integration` 六个区域、synthetic 启停和桌面能力门禁已完成；
+- D5 双平台控制桥接：`PASS`，Windows Electron 与 macOS Swift 桥接、Supervisor 和平台 fail-closed 适配已完成；
+- D6 开发完成门禁：`PASS`；
+- 当前阶段：批次 A 已停止在授权边界，等待用户决定是否单独授权 L1；
+- L1/C1/R1：未授权、未执行。
+
+### 3.2 批次 A 验收结果
+
+- T0–T2 既有基线：`53/53 PASS`；
+- 正式只读知识服务：`24/24 PASS`；
+- 正式 Sidecar：`19/19 PASS`；
+- 控制接口与 Web 投影：`24/24 PASS`；
+- Core ↔ Sidecar 集成：`3/3 PASS`；
+- 策略签名：`7/7 PASS`，并补充非规范 Base64URL 签名拒绝；
+- Windows Electron：`27/27 PASS`；
+- macOS Swift：完整 `swift build` 通过，`17/17 PASS`；
+- Web 静态合同：AI 集成、路由恢复、自适应缩放、运行状态和展示合同全部通过；
+- Web 浏览器验收：1440×1000 与 980×900 无横向溢出，六个区域完整；synthetic 启动后显示“服务已就绪，等待授权”，停止后恢复“MCP 未启用”；平台敏感动作仍提示需要桌面应用，console warning/error 为 `0`；
+- 数据与系统边界：仅使用 synthetic fixture 和 `/private/tmp` 隔离测试库；真实/用户数据、真实客户端配置、系统信任、真实 OAuth、打包、push 均为 `0`。
+
+批次 A 通过表示“产品开发完成，可以准备用户本机验证”，不表示真实客户端已经可用，也不表示可以接入真实内容或发布。
 
 ---
 

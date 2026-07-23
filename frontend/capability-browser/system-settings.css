@@ -1,0 +1,454 @@
+.app-shell-integrated .settings-workspace,
+.app-shell-integrated .system-settings-workspace {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+}
+
+.app-shell-integrated .system-settings-workspace {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  background: var(--shell-bg, var(--bg));
+}
+
+.app-shell-integrated .system-settings-toolbar {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 18px 8px;
+}
+
+.app-shell-integrated .system-settings-tabs {
+  width: fit-content;
+}
+
+.app-shell-integrated .system-settings-toolbar > button,
+.app-shell-integrated .system-settings-path-row button,
+.app-shell-integrated .system-settings-actions button,
+.app-shell-integrated .system-settings-port-form button,
+.app-shell-integrated .system-settings-client-list button,
+.app-shell-integrated .system-settings-table button {
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--sapd-shell-divider, var(--line));
+  border-radius: var(--sapd-shell-radius-control, 7px);
+  background: var(--shell-surface, var(--panel));
+  color: var(--shell-text, var(--ink));
+  cursor: pointer;
+  font-size: var(--sapd-shell-type-meta, 12px);
+  font-weight: 720;
+}
+
+.app-shell-integrated .system-settings-actions button.is-primary {
+  border-color: color-mix(in oklch, var(--shell-primary, var(--accent)) 46%, var(--sapd-shell-divider, var(--line)));
+  color: var(--shell-primary, var(--accent));
+}
+
+.app-shell-integrated .system-settings-toolbar button:disabled,
+.app-shell-integrated .system-settings-actions button:disabled,
+.app-shell-integrated .system-settings-port-form button:disabled,
+.app-shell-integrated .system-settings-table button:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+}
+
+.app-shell-integrated .system-settings-notice {
+  min-height: 24px;
+  padding: 0 18px 6px;
+  color: var(--shell-primary, var(--accent));
+  font-size: var(--sapd-shell-type-meta, 12px);
+}
+
+.app-shell-integrated .system-settings-scroll {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-gutter: stable;
+  padding: 0 18px 24px;
+}
+
+.app-shell-integrated .system-settings-panel,
+.app-shell-integrated .system-settings-ai {
+  width: min(100%, 1120px);
+  min-width: 0;
+  margin-inline: auto;
+}
+
+.app-shell-integrated .system-settings-ai {
+  display: grid;
+  gap: 14px;
+}
+
+.app-shell-integrated .system-settings-panel {
+  overflow: hidden;
+  border: 1px solid var(--sapd-shell-divider, var(--line));
+  border-radius: var(--sapd-shell-radius-surface, 10px);
+  background: var(--sapd-shell-surface, var(--panel));
+}
+
+.app-shell-integrated .system-settings-panel > header {
+  padding: 22px 24px 18px;
+  border-bottom: 1px solid var(--sapd-shell-divider, var(--line));
+  background: var(--sapd-shell-surface-quiet, var(--surface-quiet));
+}
+
+.app-shell-integrated .system-settings-panel header > span,
+.app-shell-integrated .system-settings-panel-heading span {
+  color: var(--shell-muted, var(--muted));
+  font-size: var(--sapd-shell-type-meta, 12px);
+  font-weight: 720;
+}
+
+.app-shell-integrated .system-settings-panel h2 {
+  margin: 4px 0 0;
+  font-size: 22px;
+  line-height: 1.25;
+}
+
+.app-shell-integrated .system-settings-panel header p {
+  margin: 12px 0 0;
+  color: var(--shell-muted, var(--muted));
+  font-size: var(--sapd-shell-type-body, 14px);
+}
+
+.app-shell-integrated .system-settings-panel-heading,
+.app-shell-integrated .system-settings-authorization-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.app-shell-integrated .system-settings-path-list,
+.app-shell-integrated .system-settings-runtime-grid,
+.app-shell-integrated .system-settings-authorization-grid {
+  margin: 0;
+}
+
+.app-shell-integrated .system-settings-path-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) 108px;
+  gap: 16px;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--sapd-shell-divider, var(--line));
+}
+
+.app-shell-integrated .system-settings-path-row:last-child {
+  border-bottom: 0;
+}
+
+.app-shell-integrated .system-settings-path-row dt,
+.app-shell-integrated .system-settings-runtime-grid dt,
+.app-shell-integrated .system-settings-authorization-grid dt {
+  color: var(--shell-muted, var(--muted));
+  font-size: var(--sapd-shell-type-body, 14px);
+  font-weight: 720;
+}
+
+.app-shell-integrated .system-settings-path-row dd,
+.app-shell-integrated .system-settings-runtime-grid dd,
+.app-shell-integrated .system-settings-authorization-grid dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-weight: 680;
+}
+
+.app-shell-integrated .system-settings-code {
+  display: block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: var(--sapd-shell-type-meta, 12px);
+}
+
+.app-shell-integrated .system-settings-runtime-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.app-shell-integrated .system-settings-runtime-grid > div {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+  padding: 16px 24px;
+  border-right: 1px solid var(--sapd-shell-divider, var(--line));
+}
+
+.app-shell-integrated .system-settings-runtime-grid > div:last-child {
+  border-right: 0;
+}
+
+.app-shell-integrated .system-settings-port-form {
+  display: grid;
+  grid-template-columns: minmax(90px, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.app-shell-integrated .system-settings-port-form input {
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--sapd-shell-divider, var(--line));
+  border-radius: var(--sapd-shell-radius-control, 7px);
+  background: var(--shell-surface, var(--panel));
+  color: var(--shell-text, var(--ink));
+  font-variant-numeric: tabular-nums;
+}
+
+.app-shell-integrated .system-settings-port-form input:focus {
+  border-color: var(--shell-primary, var(--accent));
+  outline: 3px solid color-mix(in oklch, var(--shell-primary, var(--accent)) 18%, transparent);
+}
+
+.app-shell-integrated .system-settings-port-form + small {
+  display: block;
+  margin-top: 6px;
+  color: var(--shell-muted, var(--muted));
+  font-size: var(--sapd-shell-type-meta, 12px);
+  font-weight: 520;
+}
+
+.app-shell-integrated .system-settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 14px 24px;
+}
+
+.app-shell-integrated .system-settings-state {
+  padding: 7px 10px;
+  border: 1px solid var(--sapd-shell-divider, var(--line));
+  border-radius: var(--sapd-shell-radius-control, 7px);
+  font-size: var(--sapd-shell-type-meta, 12px);
+}
+
+.app-shell-integrated .system-settings-state.is-ready {
+  color: var(--sapd-state-success, var(--success));
+}
+
+.app-shell-integrated .system-settings-state.is-error,
+.app-shell-integrated .system-settings-state.is-warning {
+  color: var(--sapd-state-warning, var(--warning));
+}
+
+.app-shell-integrated .system-settings-callout {
+  margin: 14px 24px 0;
+  padding: 10px 12px;
+  border-radius: var(--sapd-shell-radius-control, 7px);
+  background: color-mix(in oklch, var(--sapd-state-warning, var(--warning)) 10%, transparent);
+  color: var(--shell-text, var(--ink));
+}
+
+.app-shell-integrated .system-settings-authorization-list > article {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--sapd-shell-divider, var(--line));
+}
+
+.app-shell-integrated .system-settings-authorization-list > article:last-child {
+  border-bottom: 0;
+}
+
+.app-shell-integrated .system-settings-authorization-heading > span {
+  color: var(--shell-muted, var(--muted));
+  font-size: var(--sapd-shell-type-meta, 12px);
+}
+
+.app-shell-integrated .system-settings-authorization-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 18px;
+  margin-top: 14px;
+}
+
+.app-shell-integrated .system-settings-authorization-grid > div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.app-shell-integrated .system-settings-authorization-list .system-settings-actions {
+  padding: 14px 0 0;
+}
+
+.app-shell-integrated .system-settings-table-scroll {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.app-shell-integrated .system-settings-table {
+  width: 100%;
+  min-width: 860px;
+  border-collapse: collapse;
+}
+
+.app-shell-integrated .system-settings-table th,
+.app-shell-integrated .system-settings-table td {
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--sapd-shell-divider, var(--line));
+  text-align: left;
+  vertical-align: top;
+}
+
+.app-shell-integrated .system-settings-table th {
+  color: var(--shell-muted, var(--muted));
+  font-size: var(--sapd-shell-type-meta, 12px);
+}
+
+.app-shell-integrated .system-settings-table td {
+  font-size: var(--sapd-shell-type-body, 14px);
+}
+
+.app-shell-integrated .system-settings-table code,
+.app-shell-integrated .system-settings-authorization-grid code {
+  display: inline-block;
+  margin: 2px 3px 2px 0;
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: var(--sapd-shell-surface-quiet, var(--surface-quiet));
+  font-size: 11px;
+}
+
+.app-shell-integrated .system-settings-diagnostics > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--sapd-shell-divider, var(--line));
+}
+
+.app-shell-integrated .system-settings-diagnostics > div:last-child {
+  border-bottom: 0;
+}
+
+.app-shell-integrated .system-settings-diagnostics span,
+.app-shell-integrated .system-settings-empty {
+  display: grid;
+  gap: 4px;
+}
+
+.app-shell-integrated .system-settings-diagnostics small,
+.app-shell-integrated .system-settings-empty span {
+  color: var(--shell-muted, var(--muted));
+  font-size: var(--sapd-shell-type-meta, 12px);
+}
+
+.app-shell-integrated .system-settings-empty,
+.app-shell-integrated .system-settings-unavailable {
+  padding: 24px;
+}
+
+.app-shell-integrated .system-settings-unavailable {
+  display: grid;
+  gap: 6px;
+}
+
+.app-shell-integrated .mcp-status-monitor {
+  position: relative;
+}
+
+.app-shell-integrated .topbar {
+  overflow: visible;
+}
+
+.app-shell-integrated .mcp-status-monitor-button,
+.app-shell-integrated .topbar-settings-button {
+  width: 34px;
+  height: 34px;
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--sapd-shell-divider, var(--line));
+  border-radius: 50%;
+  background: var(--shell-surface, var(--panel));
+  cursor: pointer;
+}
+
+.app-shell-integrated .mcp-status-monitor-button i {
+  width: 7px;
+  height: 7px;
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+  border: 2px solid var(--shell-surface, var(--panel));
+  border-radius: 50%;
+  background: var(--shell-muted, var(--muted));
+}
+
+.app-shell-integrated .mcp-status-monitor[data-status-tone="ok"] .mcp-status-monitor-button i {
+  background: var(--sapd-state-success, var(--success));
+}
+
+.app-shell-integrated .mcp-status-monitor[data-status-tone="warning"] .mcp-status-monitor-button i,
+.app-shell-integrated .mcp-status-monitor[data-status-tone="danger"] .mcp-status-monitor-button i {
+  background: var(--sapd-state-warning, var(--warning));
+}
+
+.app-shell-integrated .mcp-status-popover {
+  width: 260px;
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 80;
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--sapd-shell-divider, var(--line));
+  border-radius: var(--sapd-shell-radius-surface, 10px);
+  background: var(--shell-surface, var(--panel));
+  box-shadow: var(--shell-shadow-overlay, 0 16px 36px color-mix(in oklch, var(--ink) 16%, transparent));
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px);
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.app-shell-integrated .mcp-status-monitor:hover .mcp-status-popover,
+.app-shell-integrated .mcp-status-monitor:focus-within .mcp-status-popover {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.app-shell-integrated .mcp-status-popover > span {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.app-shell-integrated .mcp-status-popover small {
+  color: var(--shell-muted, var(--muted));
+}
+
+@media (max-width: 720px) {
+  .app-shell-integrated .system-settings-path-row,
+  .app-shell-integrated .system-settings-runtime-grid,
+  .app-shell-integrated .system-settings-authorization-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .app-shell-integrated .system-settings-path-row {
+    gap: 8px;
+  }
+
+  .app-shell-integrated .system-settings-path-row button {
+    width: fit-content;
+  }
+
+  .app-shell-integrated .system-settings-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell-integrated .mcp-status-popover {
+    transition: none;
+  }
+}

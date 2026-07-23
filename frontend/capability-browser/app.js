@@ -39,6 +39,8 @@ const state = {
   expandedSelectionId: null,
   expandedEnvironmentSelectionId: null,
   activeMaintenancePage: "scopes",
+  settingsSystem: null,
+  settingsPathPending: "",
   mcpControlSnapshot: null,
   mcpControlLoading: false,
   mcpControlLoaded: false,
@@ -11739,7 +11741,7 @@ function renderSearchPage() {
 
 function syncMcpTopbarStatus() {
   const components = window.sapdComponents || {};
-  components.AppShell?.updateAiIntegrationStatus?.(state.mcpControlSnapshot, {
+  components.AppShell?.updateMcpStatusMonitor?.(state.mcpControlSnapshot, {
     error: Boolean(state.mcpControlError),
   });
 }
@@ -11753,28 +11755,109 @@ function focusMcpDialog() {
 
 function renderSettings() {
   const components = window.sapdComponents || {};
-  const component = components.AiIntegrationSettings;
+  const component = components.SystemSettings;
   if (!component?.render) {
-    setHtml("settingsWorkspace", '<section class="runtime-state" role="alert">AI 集成设置组件未加载。</section>');
+    setHtml("settingsWorkspace", '<section class="runtime-state" role="alert">系统设置组件未加载。</section>');
     return;
   }
   setHtml(
     "settingsWorkspace",
     component.render({
       route: state.activeRoute,
+      system: state.settingsSystem || systemSettingsModel(state.settingsRuntimeHealth || {}),
+      mcp: state.mcpControlSnapshot,
       loading: state.mcpControlLoading && !state.mcpControlSnapshot,
-      error: state.mcpControlError,
-      snapshot: state.mcpControlSnapshot,
-      pendingAction: state.mcpPendingAction,
+      pendingAction: state.settingsPathPending || state.mcpPendingAction,
       notice: state.mcpControlNotice,
-      confirmation: state.mcpConfirmation,
-      resetPreview: state.mcpResetPreview,
-      runtimeHealth: state.settingsRuntimeHealth,
-      runtimeHealthLoading: state.settingsRuntimeHealthLoading,
-      runtimeHealthError: state.settingsRuntimeHealthError,
     }),
   );
-  if (state.mcpConfirmation || state.mcpResetPreview) focusMcpDialog();
+}
+
+function settingsPath(value) {
+  if (value && typeof value === "object") return text(value.path).trim();
+  return text(value).trim();
+}
+
+function systemSettingsModel(health = {}, desktop = {}) {
+  const runtime = health.runtime || health.state || {};
+  const settingsPaths = runtime.settings_paths || {};
+  const dataRoot =
+    text(desktop.dataRoot).trim()
+    || text(settingsPaths.data_root).trim()
+    || settingsPath(runtime.app_data_root)
+    || settingsPath(runtime.data_root)
+    || settingsPath(runtime.bundle_root);
+  return {
+    currentVersion:
+      text(desktop.currentVersion).trim()
+      || text(health.app_version || health.version).trim()
+      || "开发环境",
+    dataRoot,
+    importDirectory:
+      text(desktop.importDirectory).trim()
+      || text(settingsPaths.import_directory).trim()
+      || settingsPath(runtime.import_directory)
+      || settingsPath(runtime.import_dir),
+    downloadDirectory:
+      text(desktop.downloadDirectory).trim()
+      || text(settingsPaths.download_directory).trim()
+      || settingsPath(runtime.export_directory)
+      || settingsPath(runtime.export_dir),
+  };
+}
+
+async function chooseSettingsPath(action) {
+  const bridgeMethod = {
+    dataRoot: "chooseDataRoot",
+    importDirectory: "chooseImportDirectory",
+    downloadDirectory: "chooseDownloadDirectory",
+  }[text(action).trim()];
+  const bridge = window.sapdDesktop;
+  if (!bridgeMethod || typeof bridge?.[bridgeMethod] !== "function") {
+    state.mcpControlNotice = { tone: "info", message: "路径更改请在 SAPD Wiki 桌面客户端中完成。" };
+    renderSettings();
+    return;
+  }
+  state.settingsPathPending = bridgeMethod;
+  state.mcpControlNotice = null;
+  renderSettings();
+  try {
+    const result = await bridge[bridgeMethod]();
+    if (result?.cancelled) {
+      state.mcpControlNotice = { tone: "info", message: "已取消路径更改。" };
+    } else {
+      state.settingsSystem = systemSettingsModel({}, result || {});
+      state.mcpControlNotice = {
+        tone: "success",
+        message: result?.restartRequired ? "路径已保存，重启 SAPD Wiki 后完整生效。" : "路径已保存。",
+      };
+    }
+  } catch (error) {
+    state.mcpControlNotice = {
+      tone: "error",
+      message: `路径设置失败：${text(error?.message || error) || "请重试"}`,
+    };
+  } finally {
+    state.settingsPathPending = "";
+    renderSettings();
+  }
+}
+
+async function copySettingsText(value, successMessage) {
+  const normalized = text(value).trim();
+  if (!normalized) {
+    state.mcpControlNotice = { tone: "error", message: "当前没有可复制的内容。" };
+    renderSettings();
+    return;
+  }
+  try {
+    if (typeof navigator.clipboard?.writeText !== "function") throw new Error("clipboard unavailable");
+    await navigator.clipboard.writeText(normalized);
+    state.mcpControlNotice = { tone: "success", message: successMessage };
+  } catch (error) {
+    state.mcpControlNotice = { tone: "error", message: "复制失败，请手动选择页面中的内容。" };
+  }
+  renderSettings();
 }
 
 async function loadSettingsRuntimeHealth({ force = false } = {}) {
@@ -11792,8 +11875,12 @@ async function loadSettingsRuntimeHealth({ force = false } = {}) {
   if (!state.settingsRuntimeHealth) state.settingsRuntimeHealthError = "";
   if (state.activeView === "settings") renderSettings();
   try {
-    const envelope = await dataClient.getRuntimeHealth();
+    const [envelope, desktopSettings] = await Promise.all([
+      dataClient.getRuntimeHealth(),
+      window.sapdDesktop?.getSettings?.() || Promise.resolve({}),
+    ]);
     state.settingsRuntimeHealth = envelope?.data || null;
+    state.settingsSystem = systemSettingsModel(state.settingsRuntimeHealth || {}, desktopSettings || {});
     state.settingsRuntimeHealthError = "";
     state.settingsRuntimeHealthLoaded = true;
     return state.settingsRuntimeHealth;
@@ -11865,6 +11952,7 @@ function mcpActionSuccessMessage(action) {
     start: "已按最新控制快照更新服务状态。",
     stop: "服务状态已刷新；客户端授权和审计设置保持独立。",
     retry: "重试请求已完成，页面已读取最新服务状态。",
+    check: "服务检查已完成，页面已读取最新诊断状态。",
     revoke: "指定客户端的授权状态已刷新，服务状态未被重置。",
     "clear-audit": "审计状态已刷新，服务和客户端授权未被更改。",
     "prepare-reset": "重置影响清单已生成；最终确认需要桌面应用。",
@@ -11885,6 +11973,7 @@ async function performMcpControlAction(action, { clientId = "" } = {}) {
     start: "startMcpService",
     stop: "stopMcpService",
     retry: "retryMcpService",
+    check: "checkMcpService",
     revoke: "revokeMcpClient",
     "clear-audit": "clearMcpAudit",
     "prepare-reset": "prepareMcpReset",
@@ -11922,6 +12011,48 @@ async function performMcpControlAction(action, { clientId = "" } = {}) {
   } finally {
     state.mcpPendingAction = "";
     if (state.activeView === "settings") renderSettings();
+  }
+}
+
+async function performMcpPortUpdate(configuredPort) {
+  if (!Number.isInteger(configuredPort) || configuredPort < 1024 || configuredPort > 65535) {
+    state.mcpControlNotice = { tone: "error", message: "请输入 1024–65535 之间的整数端口。" };
+    renderSettings();
+    window.requestAnimationFrame(() => document.getElementById("mcpConfiguredPort")?.focus());
+    return;
+  }
+  if (state.mcpControlSnapshot?.status?.service_state !== "stopped") {
+    state.mcpControlNotice = { tone: "error", message: "请先停止 MCP，再修改本地端口。" };
+    renderSettings();
+    return;
+  }
+  const dataClient = window.sapdDataClient;
+  const payload = mcpMutationPayload("update-port");
+  if (!payload || typeof dataClient?.updateMcpPort !== "function") {
+    state.mcpControlNotice = { tone: "error", message: "当前运行环境未提供端口配置能力。" };
+    renderSettings();
+    return;
+  }
+  state.mcpPendingAction = "update-port";
+  state.mcpControlNotice = { tone: "info", message: "正在保存本地端口…" };
+  renderSettings();
+  try {
+    await dataClient.updateMcpPort({ ...payload, configuredPort });
+    const refreshed = await loadMcpControlPanel({ force: true });
+    if (!refreshed) throw new Error("无法读取更新后的端口状态。");
+    state.mcpControlNotice = {
+      tone: "success",
+      message: "本地端口已保存；旧地址的授权已撤销，请使用新地址重新连接。",
+    };
+  } catch (error) {
+    await loadMcpControlPanel({ force: true });
+    state.mcpControlNotice = {
+      tone: "error",
+      message: text(error?.message).trim() || "端口保存失败，请检查端口占用后重试。",
+    };
+  } finally {
+    state.mcpPendingAction = "";
+    renderSettings();
   }
 }
 
@@ -12087,6 +12218,50 @@ function bindEvents() {
     if (slideThumb) activateContentSlideThumb(slideThumb, event);
   }, true);
   document.addEventListener("click", (event) => {
+    const pathButton = event.target?.closest?.("[data-settings-path-action]");
+    if (pathButton) {
+      event.preventDefault();
+      chooseSettingsPath(pathButton.dataset.settingsPathAction);
+      return;
+    }
+    const refreshButton = event.target?.closest?.("[data-settings-refresh]");
+    if (refreshButton) {
+      event.preventDefault();
+      state.mcpControlNotice = null;
+      loadMcpControlPanel({ force: true });
+      loadSettingsRuntimeHealth({ force: true });
+      return;
+    }
+    const settingsAction = event.target?.closest?.("[data-mcp-settings-action]");
+    if (settingsAction) {
+      event.preventDefault();
+      const action = text(settingsAction.dataset.mcpSettingsAction).trim();
+      if (action === "check") {
+        performMcpControlAction("check");
+      } else {
+        performMcpControlAction(action);
+      }
+      return;
+    }
+    const copyUrl = event.target?.closest?.("[data-mcp-copy-url]");
+    if (copyUrl) {
+      event.preventDefault();
+      copySettingsText(copyUrl.dataset.mcpCopyUrl, "MCP 地址已复制。");
+      return;
+    }
+    const copyConfig = event.target?.closest?.("[data-mcp-copy-config]");
+    if (copyConfig) {
+      event.preventDefault();
+      const resource = text(copyConfig.dataset.mcpCopyConfig).trim();
+      copySettingsText(`名称：SAPD Wiki\n类型：流式 HTTP\nURL：${resource}\nBearer Token：留空\nHeaders：留空`, "Codex 配置已复制。");
+      return;
+    }
+    const revokeClient = event.target?.closest?.("[data-mcp-client-revoke]");
+    if (revokeClient) {
+      event.preventDefault();
+      performMcpControlAction("revoke", { clientId: text(revokeClient.dataset.mcpClientRevoke).trim() });
+      return;
+    }
     const confirmationRequest = event.target?.closest?.("[data-mcp-request-confirmation]");
     if (confirmationRequest) {
       event.preventDefault();
@@ -12119,6 +12294,13 @@ function bindEvents() {
       return;
     }
     performMcpControlAction(action);
+  });
+  document.addEventListener("submit", (event) => {
+    const portForm = event.target?.closest?.("[data-mcp-port-form]");
+    if (!portForm) return;
+    event.preventDefault();
+    const configuredPort = Number(new FormData(portForm).get("configured_port"));
+    performMcpPortUpdate(configuredPort);
   });
   document.addEventListener("click", (event) => {
     const routeButton = event.target?.closest?.("[data-app-route]");

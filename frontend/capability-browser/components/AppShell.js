@@ -125,20 +125,23 @@
     route: "/settings",
     type: "system-settings",
     children: [
-      { id: "system-settings-basic", label: "基础设置", route: "/settings/basic", type: "system-settings", children: [] },
-      { id: "system-settings-ai-integration", label: "AI 集成", route: "/settings/ai-integration", type: "system-settings", children: [] },
+      { id: "system-settings-main", label: "系统设置", route: "/settings/system", type: "system-settings", children: [] },
+      { id: "system-settings-ai-integration", label: "AI 功能集成", route: "/settings/ai-integration", type: "system-settings", children: [] },
     ],
   };
 
   const SIDEBAR_STATE_KEY = "sapd.appShell.sidebarCollapsed";
   const SHELL_AUXILIARY_EVENT = "sapd:shell-auxiliary-dismiss";
   const auxiliaryReturnFocus = new WeakMap();
+  let lastMcpStatusSnapshot = null;
+  let lastMcpStatusOptions = {};
 
   const ROUTE_TARGETS = {
     "/": { view: "overview" },
     "/search": { view: "search" },
-    "/settings": { view: "settings", settingsPage: "basic", canonicalRoute: "/settings/basic" },
-    "/settings/basic": { view: "settings", settingsPage: "basic" },
+    "/settings": { view: "settings", settingsPage: "system", canonicalRoute: "/settings/system" },
+    "/settings/system": { view: "settings", settingsPage: "system" },
+    "/settings/basic": { view: "settings", settingsPage: "system", canonicalRoute: "/settings/system" },
     "/settings/ai-integration": { view: "settings", settingsPage: "ai-integration" },
     "/workbench": { view: "workbench" },
     "/workbench/annotations": { view: "workbench" },
@@ -188,7 +191,7 @@
   const VIEW_ROUTES = {
     overview: "/",
     search: "/search",
-    settings: "/settings/basic",
+    settings: "/settings/system",
     capabilities: "/capability-mapping",
     environment: "/environment-mapping",
     "dev-lifecycle": "/development-security",
@@ -230,8 +233,8 @@
   const PAGE_DESCRIPTIONS = {
     "/": "查看当前已导入安全能力、信息化环境、生命周期和知识维护数据的关系覆盖状态。",
     "/search": "跨安全能力、信息化环境、生命周期、知识库和标准 / 框架检索知识对象，并进入目标页面定位。",
-    "/settings/basic": "查看本地运行配置和 Web / 桌面应用的控制边界。",
-    "/settings/ai-integration": "管理本地 MCP 服务、客户端授权、公开知识摘要访问、审计与受控重置。",
+    "/settings/system": "管理当前版本、App 保存位置、文件上传路径和文件下载路径。",
+    "/settings/ai-integration": "管理本地 MCP 服务、连接地址和客户端授权。",
     "/workbench": "集中进入 Issue 处理和成熟度评估工作流。",
     "/workbench/annotations": "以 Review Queue 方式查看、筛选、编辑、批量处理和导出所有 Issue。",
     "/workbench/maturity": "管理成熟度评估项目、模板、评分、结果和报告快照。",
@@ -263,13 +266,15 @@
       description: "继续本地工作，并按业务粒度查看能力、环境、生命周期、技术服务、标准、字典与指南内容。",
       hideTypeLabel: true,
     },
-    "/settings/basic": {
+    "/settings/system": {
       title: "系统设置",
-      description: PAGE_DESCRIPTIONS["/settings/basic"],
+      description: PAGE_DESCRIPTIONS["/settings/system"],
+      hideTypeLabel: true,
     },
     "/settings/ai-integration": {
       title: "系统设置",
       description: PAGE_DESCRIPTIONS["/settings/ai-integration"],
+      hideTypeLabel: true,
     },
   };
 
@@ -337,6 +342,11 @@
     return allNavItems().find((item) => components.utils.list(item.children).some((child) => child.route === manifestRoute)) || null;
   }
 
+  function backRouteFor(route) {
+    const normalized = normalizeRoute(route);
+    return normalized === "/" ? "" : "/";
+  }
+
   function getRouteTarget(route) {
     const normalized = normalizeRoute(route);
     if (ROUTE_TARGETS[normalized]) {
@@ -345,6 +355,10 @@
     }
 
     if (normalized.startsWith("/search")) return { view: "search", route: "/search", canonicalRoute: "/search" };
+    if (normalized.startsWith("/settings")) {
+      const route = normalized === "/settings" || normalized === "/settings/basic" ? "/settings/system" : normalized;
+      return { view: "settings", route, canonicalRoute: route };
+    }
 
     if (normalized === "/workbench") return { view: "workbench", route: "/workbench", canonicalRoute: "/workbench" };
 
@@ -396,9 +410,8 @@
       <span id="appLiveStatus" class="sapd-visually-hidden" role="status" aria-live="polite" aria-atomic="true"></span>
       <div id="localModeStatus" class="topbar-status" aria-label="本地运行状态"></div>
       <div class="topbar-actions" aria-label="全局操作">
-        <span id="licenseStatusBadge" class="topbar-license-status" aria-live="polite">${renderLocalModeStatus()}</span>
-        ${renderAiIntegrationStatus()}
-        <button type="button" title="系统设置" aria-label="系统设置" data-app-route="/settings/basic">⚙</button>
+        <button class="topbar-settings-button" type="button" title="系统设置" aria-label="系统设置" data-app-route="/settings/system">⚙</button>
+        ${renderMcpStatusMonitor()}
       </div>
     `;
   }
@@ -670,14 +683,14 @@
     const isPlaceholderPage = target.placeholder || target.view === "placeholder";
     const isWorkbenchIssuePage = activeRoute === "/workbench/annotations";
     const isMaturityPage = activeRoute === "/workbench/maturity" || activeRoute.startsWith("/workbench/maturity/");
-    const isMaturityDetailPage = activeRoute.startsWith("/workbench/maturity/");
+    const backRoute = backRouteFor(activeRoute);
     const typeLabel = activeRoute === "/search" ? TYPE_LABELS["search-page"] : TYPE_LABELS[item.type] || item.type;
     return `
       <section class="app-page-header" id="appPageHeader" data-shell-title-owner="true" data-shell-route="${escapeHtml(manifestRoute)}" aria-labelledby="appPageTitle">
         <div class="page-header-copy">
           ${headerOverride?.eyebrow ? `<div class="page-header-eyebrow">${escapeHtml(headerOverride.eyebrow)}</div>` : renderBreadcrumb(activeRoute)}
           <div class="page-title-row">
-            ${isMaturityDetailPage ? '<button class="maturity-v1-back maturity-v39-shell-back" type="button" data-app-route="/workbench/maturity" aria-label="返回成熟度评估工作台" title="返回成熟度评估工作台">‹</button>' : ""}
+            ${backRoute ? `<button class="shell-back-button maturity-v1-back maturity-v39-shell-back" type="button" data-app-route="${escapeHtml(backRoute)}" aria-label="返回上一层，默认返回全局导航" title="返回上一层">‹</button>` : ""}
             <h1 id="appPageTitle">${escapeHtml(pageTitle)}</h1>
             ${isWorkbenchIssuePage ? '<span id="workbenchIssueHeaderStats" class="workbench-review-stats is-compact page-title-issue-stats" aria-label="Issue 状态筛选"></span>' : ""}
             ${isSourceTablePage ? '<span id="pageHeaderCount" class="page-title-summary" hidden></span>' : ""}
@@ -933,41 +946,60 @@
       .join("");
   }
 
-  const AI_INTEGRATION_STATUS = {
-    disabled: { label: "AI 集成", tone: "neutral" },
-    starting: { label: "AI 正在启动", tone: "info" },
-    stopping: { label: "AI 正在停止", tone: "info" },
-    ready_waiting_authorization: { label: "AI 等待授权", tone: "info" },
-    authorized_waiting_use: { label: "AI 已授权", tone: "ok" },
-    recently_used: { label: "AI 近期已使用", tone: "ok" },
-    knowledge_degraded: { label: "AI 知识受限", tone: "warning" },
-    knowledge_blocked: { label: "AI 知识不可用", tone: "danger" },
-    audit_degraded: { label: "AI 审计异常", tone: "warning" },
-    recoverable_error: { label: "AI 需要处理", tone: "danger" },
-  };
+  function mcpStatusPresentation(snapshot = null, { error = false } = {}) {
+    const serviceState = text(snapshot?.service_state || snapshot?.status?.service_state).trim();
+    const authorizedCount = Number(
+      snapshot?.authorized_client_count
+      ?? snapshot?.status?.authorized_client_count
+      ?? (Array.isArray(snapshot?.clients) ? snapshot.clients.filter((client) => client?.status !== "revoked").length : 0),
+    );
+    const pendingCount = Number(
+      snapshot?.pending_authorization_count
+      ?? snapshot?.status?.pending_authorization_count
+      ?? (Array.isArray(snapshot?.authorization_requests) ? snapshot.authorization_requests.length : 0),
+    );
+    const licenseState = text(window.sapdLicenseStatus?.state).trim();
+    const productLicense = text(window.sapdLicenseStatus?.display_text).trim()
+      || (licenseState === "activated" ? "已授权" : licenseState === "expired" ? "已到期" : licenseState === "open" ? "无限制版" : "读取中");
+    return {
+      tone: error ? "warning" : serviceState === "ready" ? "ok" : serviceState === "error" ? "danger" : "neutral",
+      serviceLabel: error ? "状态不可用" : serviceState === "ready" ? "已启动" : serviceState === "starting" ? "启动中" : serviceState === "stopping" ? "停止中" : serviceState === "error" ? "异常" : "未启动",
+      authorizationLabel: pendingCount > 0
+        ? `待确认 ${pendingCount} 个`
+        : authorizedCount > 0
+          ? `已授权 ${authorizedCount} 个客户端`
+          : "未授权客户端",
+      productLicense,
+    };
+  }
 
-  function renderAiIntegrationStatus(snapshot = null, { error = false } = {}) {
-    const displayState = text(snapshot?.status?.display_state).trim();
-    const presentation = error
-      ? { label: "AI 状态不可用", tone: "warning" }
-      : AI_INTEGRATION_STATUS[displayState] || AI_INTEGRATION_STATUS.disabled;
+  function renderMcpStatusMonitor(snapshot = null, options = {}) {
+    const status = mcpStatusPresentation(snapshot, options);
     return `
-      <button
-        id="aiIntegrationStatus"
-        class="ai-integration-status-button"
-        type="button"
-        data-app-route="/settings/ai-integration"
-        data-ai-tone="${escapeHtml(presentation.tone)}"
-        title="${escapeHtml(`${presentation.label}，打开 AI 集成设置`)}"
-        aria-label="${escapeHtml(`${presentation.label}，打开 AI 集成设置`)}"
-      ><span>${escapeHtml(presentation.label)}</span></button>
+      <div id="mcpStatusMonitor" class="mcp-status-monitor" data-status-tone="${escapeHtml(status.tone)}">
+        <button
+          class="mcp-status-monitor-button"
+          type="button"
+          data-app-route="/settings/ai-integration"
+          title="MCP 与授权状态"
+          aria-label="${escapeHtml(`MCP ${status.serviceLabel}，${status.authorizationLabel}，打开 AI 功能集成`)}"
+        ><span aria-hidden="true">▤</span><i aria-hidden="true"></i></button>
+        <div class="mcp-status-popover" role="status" aria-live="polite">
+          <strong>MCP 状态监测</strong>
+          <span><small>MCP 链接状态</small><b>${escapeHtml(status.serviceLabel)}</b></span>
+          <span><small>客户端授权</small><b>${escapeHtml(status.authorizationLabel)}</b></span>
+          <span><small>License 授权状态</small><b>${escapeHtml(status.productLicense)}</b></span>
+        </div>
+      </div>
     `;
   }
 
-  function updateAiIntegrationStatus(snapshot = null, options = {}) {
-    const target = document.getElementById("aiIntegrationStatus");
+  function updateMcpStatusMonitor(snapshot = null, options = {}) {
+    const target = document.getElementById("mcpStatusMonitor");
     if (!target) return;
-    target.outerHTML = renderAiIntegrationStatus(snapshot, options);
+    if (snapshot && typeof snapshot === "object") lastMcpStatusSnapshot = snapshot;
+    lastMcpStatusOptions = { ...lastMcpStatusOptions, ...options };
+    target.outerHTML = renderMcpStatusMonitor(lastMcpStatusSnapshot, lastMcpStatusOptions);
   }
 
   function renderLocalModeStatus(license = window.sapdLicenseStatus) {
@@ -986,17 +1018,26 @@
 
   async function hydrateLicenseStatus() {
     const target = document.getElementById("licenseStatusBadge");
-    if (!target) return;
-    target.innerHTML = renderLocalModeStatus();
+    if (target) target.innerHTML = renderLocalModeStatus();
     const dataClient = window.sapdDataClient;
-    if (!dataClient?.getRuntimeHealth) return;
+    if (!dataClient?.getRuntimeHealth) {
+      updateMcpStatusMonitor();
+      return;
+    }
     try {
-      const envelope = await dataClient.getRuntimeHealth();
-      const runtime = envelope?.data || envelope || {};
+      const [runtimeEnvelope, mcpEnvelope] = await Promise.all([
+        dataClient.getRuntimeHealth(),
+        dataClient.getMcpControlPanel?.() || dataClient.getMcpUiState?.() || Promise.resolve(null),
+      ]);
+      const runtime = runtimeEnvelope?.data || runtimeEnvelope || {};
+      const mcpSnapshot = mcpEnvelope?.data || mcpEnvelope || null;
       window.sapdLicenseStatus = runtime.license || null;
-      target.innerHTML = renderLocalModeStatus(window.sapdLicenseStatus);
+      if (target) target.innerHTML = renderLocalModeStatus(window.sapdLicenseStatus);
+      updateMcpStatusMonitor(mcpSnapshot);
     } catch (error) {
-      target.innerHTML = renderLocalModeStatus({ state: "unknown", display_text: "授权状态未知" });
+      window.sapdLicenseStatus = { state: "unknown", display_text: "授权状态未知" };
+      if (target) target.innerHTML = renderLocalModeStatus(window.sapdLicenseStatus);
+      updateMcpStatusMonitor(null, { error: true });
     }
   }
 
@@ -1029,8 +1070,8 @@
     renderRightInsightPanel,
     mountCapabilityWorkspace,
     renderCapabilitySummary,
-    renderAiIntegrationStatus,
-    updateAiIntegrationStatus,
+    renderMcpStatusMonitor,
+    updateMcpStatusMonitor,
     renderLocalModeStatus,
     hydrateLicenseStatus,
   };

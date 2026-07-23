@@ -6,14 +6,19 @@ const {
   app,
   BrowserWindow,
   dialog,
+  ipcMain,
   Menu,
   shell,
 } = require("electron");
 const {
   defaultSettingsForParent,
   isValidSettings,
+  sanitizeSettings,
   settingsForNewDataParent,
 } = require("./settings.cjs");
+const { registerMCPIPC, localOriginFromURL } = require("./mcp/ipc-bridge.cjs");
+const { MCPSupervisor } = require("./mcp/supervisor.cjs");
+const { WindowsMCPProcessRuntime } = require("./mcp/windows-platform.cjs");
 
 const APP_NAME = "SAPD Wiki";
 const RUNTIME_FINGERPRINT = ".sapd-runtime-fingerprint";
@@ -24,6 +29,24 @@ let backendProcess = null;
 let runtimeRoot = null;
 let currentSettings = null;
 let isQuitting = false;
+let trustedRuntimeOrigin = null;
+const mcpSupervisor = new MCPSupervisor({
+  profile: "stable",
+  processRuntime: new WindowsMCPProcessRuntime(),
+});
+mcpSupervisor.on("authorization-request", ({ clientDisplayName }) => {
+  if (!mainWindow) return;
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+  dialog.showMessageBox(mainWindow, {
+    type: "info",
+    title: "MCP 授权请求",
+    message: `${clientDisplayName} 正在请求授权`,
+    detail: "请返回 SAPD Wiki 的 AI 集成页面继续确认。",
+    buttons: ["返回 SAPD Wiki"],
+  });
+});
 
 function appDataRoot() {
   const localAppData = process.env.LOCALAPPDATA || app.getPath("appData");
@@ -39,15 +62,19 @@ function settingsFilePath() {
 function loadSettings() {
   try {
     const settings = JSON.parse(fs.readFileSync(settingsFilePath(), "utf8"));
-    return isValidSettings(settings) ? settings : null;
+    return isValidSettings(settings) ? sanitizeSettings(settings) : null;
   } catch {
     return null;
   }
 }
 
 function saveSettings(settings) {
+  const safeSettings = sanitizeSettings(settings);
+  if (!safeSettings) {
+    throw new Error("Invalid application settings");
+  }
   fs.mkdirSync(app.getPath("userData"), { recursive: true });
-  fs.writeFileSync(settingsFilePath(), `${JSON.stringify(settings, null, 2)}\n`, "utf8");
+  fs.writeFileSync(settingsFilePath(), `${JSON.stringify(safeSettings, null, 2)}\n`, "utf8");
 }
 
 function ensureSettingsDirectories(settings) {
@@ -425,11 +452,28 @@ function createWindow() {
       preload: path.join(__dirname, "preload.cjs"),
     },
   });
-  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (/^https?:\/\//i.test(url) && !/^http:\/\/127\.0\.0\.1:/i.test(url)) {
-      shell.openExternal(url);
+  registerMCPIPC({
+    ipcMain,
+    getMainWindow: () => mainWindow,
+    getTrustedOrigin: () => trustedRuntimeOrigin,
+    supervisor: mcpSupervisor,
+  });
+  const webSession = mainWindow.webContents.session;
+  webSession.setPermissionRequestHandler((_webContents, _permission, callback) => {
+    callback(false);
+  });
+  webSession.setPermissionCheckHandler(() => false);
+  mainWindow.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+  mainWindow.webContents.on("will-navigate", (event, url) => {
+    const isSyntheticLoadingPage = !trustedRuntimeOrigin && url.startsWith("data:text/html");
+    if (!isSyntheticLoadingPage && localOriginFromURL(url) !== trustedRuntimeOrigin) {
+      event.preventDefault();
     }
-    return { action: "deny" };
+  });
+  mainWindow.webContents.on("will-redirect", (event, url) => {
+    if (localOriginFromURL(url) !== trustedRuntimeOrigin) {
+      event.preventDefault();
+    }
   });
   mainWindow.on("closed", () => {
     mainWindow = null;
@@ -448,6 +492,11 @@ async function launch() {
     prepareRuntime(currentSettings);
     const processHandle = startBackend();
     const url = await waitForBackend(processHandle);
+    const origin = localOriginFromURL(url);
+    if (!origin) {
+      throw new Error("本地服务返回了不受信任的地址");
+    }
+    trustedRuntimeOrigin = origin;
     writeLog("backend ready", `url=${url}`);
     await mainWindow.loadURL(url);
   } catch (error) {
@@ -479,7 +528,11 @@ if (!gotLock) {
   app.whenReady().then(launch);
   app.on("before-quit", () => {
     isQuitting = true;
+    mcpSupervisor.stop();
     stopBackend();
   });
-  process.on("exit", stopBackend);
+  process.on("exit", () => {
+    mcpSupervisor.stop();
+    stopBackend();
+  });
 }

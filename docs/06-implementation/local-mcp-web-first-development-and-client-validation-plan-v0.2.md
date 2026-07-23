@@ -2,12 +2,12 @@
 
 | 项目 | 内容 |
 |---|---|
-| 状态 | `BATCH B AUTHORIZED / B0 IN PROGRESS` |
+| 状态 | `BATCH B PASS / AWAITING C1 AUTHORIZATION` |
 | 日期 | 2026-07-23 |
 | 取代计划 | `local-mcp-product-development-and-client-validation-plan-v0.1.md` 的后续执行顺序 |
 | 设计基线 | `sapd-wiki-local-mcp-requirements-and-prd-v0.5.md` |
 | 门禁补充 | `sapd-wiki-local-mcp-development-gate-addendum-v0.7.md` |
-| 当前基线 | 批次 A synthetic-only 代码与自动化门禁通过；真实 Web 闭环尚未完成 |
+| 当前基线 | 批次 B Web 真实闭环通过；当前 Codex 真实连接尚未验证 |
 | 新执行顺序 | `Web 真实闭环 → 当前 Codex 本机验证 → 桌面运行时开发 → 双平台打包 → 客户端兼容 → 内容与发布` |
 | 稳定 Web 入口 | `http://127.0.0.1:5173/` |
 | MCP 目标地址 | `https://127.0.0.1:{configured_port}/mcp` |
@@ -79,7 +79,7 @@ v0.1 保留为批次 A 历史记录，不再作为后续执行顺序。
 | 批次 | 阶段 | 目标 | 执行状态 |
 |---|---|---|---|
 | A | 既有 synthetic 基线 | 核心、协议、合同、Web 骨架和平台边界 | `PASS，历史基线` |
-| B | `B0 → B1 → B2 → B3 → B4 → B5` | 完成 Web 真实开发闭环 | `AUTHORIZED / B0 IN PROGRESS` |
+| B | `B0 → B1 → B2 → B3 → B4 → B5` | 完成 Web 真实开发闭环 | `PASS` |
 | C | `C1` | 当前电脑、当前 Codex 真实连接验证 | `待 B5 PASS 后授权` |
 | D | `D1 → D2` | macOS/Windows 生产运行时开发 | `待 C1 PASS 后规划` |
 | E | `E1 → E2` | macOS/Windows 打包与实包验证 | `待 D 阶段 PASS 后规划` |

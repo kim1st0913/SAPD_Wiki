@@ -243,4 +243,4 @@
 | OI-128 | 部分完成 | USER-WRITE-UI-1：批注 / 工作台用户写入入口 | 前端 / 用户数据 / Delivery Bundle | docs/06-implementation/open-issues.md |
 | OI-197 | 待业务确认 / 映射门禁阻断 | 成熟度评分依据与当前能力字典尚未全量映射 | 数据 / 成熟度 / 当前字典 / 源 Excel / 业务确认 | docs/06-implementation/open-issues.md |
 | OI-198 | 待实现 / 契约已确认 | 导入审批缺少幂等门禁、中间数据终结和 approved 默认导出契约 | ETL / SQLite / 来源追踪 / 导入导出 / 数据治理 | docs/06-implementation/open-issues.md |
-| OI-199 | 批次 B 已授权 / B0 进行中 | 本地 MCP 产品开发与客户端验证 | 架构 / 安全 / MCP / Web / App / 兼容性 / 治理 | docs/06-implementation/open-issues.md |
+| OI-199 | 批次 B PASS / 等待 C1 授权 | 本地 MCP 产品开发与客户端验证 | 架构 / 安全 / MCP / Web / App / 兼容性 / 治理 | docs/06-implementation/open-issues.md |

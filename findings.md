@@ -4,7 +4,7 @@
 
 ## 当前关键决策
 
-- 2026-07-23 本地 MCP 的现行后续顺序由 Web 优先 v0.2/v0.7 覆盖 v0.1 的 L1 直进路径：批次 A 只证明 synthetic 核心、协议、合同、Web 骨架和平台 fail-closed 边界，不能称为真实产品开发完成。用户已授权批次 B，必须先在 5173 完成真实 Sidecar、loopback HTTPS、本地 OAuth、授权确认、五项 Tool、真实页面状态和自有客户端 E2E；之后才允许申请当前 Codex 真实验证，再后置 macOS/Windows 生产适配与打包。完整 OIDC 如启用只能是同源本地身份层，ID Token 不能代替 MCP Access Token，也不应阻塞 OAuth Web 闭环。批次 B 不授权真实客户端配置、系统信任、桌面生产接线、packaging、数据、用户库或 push。
+- 2026-07-23 本地 MCP 的现行顺序继续由 Web 优先 v0.2/v0.7 覆盖 v0.1 的 L1 直进路径，且批次 B 已实际完成：5173 真实 Sidecar、loopback HTTPS、本地 OAuth、授权确认、五项 Tool、真实状态页和自有客户端 E2E 通过 `89/89`，实现提交为 `aa51f78`。Web 开发使用 `memory://isolated-web-dev`，不打开或创建用户库文件。B2 决定不启用完整 OIDC，因为当前 MCP 只需要 OAuth Access Token；未来如有本地身份业务场景，只允许同源 loopback OIDC，ID Token 不得代替 `/mcp` Access Token。下一步只能申请 C1 当前 Codex 真实验证；macOS/Windows 生产适配、打包、D0、数据、用户库、系统信任和 push 仍未授权。
 - 2026-07-23 本地 MCP 批次 A 的可复用历史证据为：T0–T2 合同与隔离验证、正式只读 Core、Sidecar 协议栈、控制 API、Web synthetic 页面、双平台 Supervisor/Bridge 接口和自动化测试均已落在独立分支；真实客户端、系统信任、Keychain/DPAPI 生产接线、真实数据和 packaging 均为 0。该证据是 v0.2 Web 开发的输入，不是跳过 Web 闭环的授权。
 - 2026-07-23 本地 MCP 执行采用双门禁且不越级：本轮只执行 M0-T 的 G0 与 `T0 → T1 → T2`，以 synthetic fixture、隔离 Runtime probe 和临时 loopback HTTPS harness 形成技术基线；T3 的真实客户端 / 系统信任、D0 内容、M1 正式实现、真实 / 用户数据、App 和 packaging 均需另行授权。T0 必须冻结 fixture JCS/SHA-256 规则、D0-Pilot 非空门禁和 unsafe key-passphrase IPC 的 `BLOCKED` 负向合同。
 - 2026-07-20 成熟度目标状态的正式输入粒度由单一目标等级升级为与当前评分对称的四个维度：`targetElements` 与 `targetDimensionNotes` 是新契约，`targetLevel / targetReason` 只保留为旧数据兼容投影。当前与目标使用相同维度权重分别计算综合指数；所有入口统一执行 `目标状态 >= 当前状态`，相等是合法值，只有目标低于同维度当前状态才形成 `targetDimensionConflicts` 并阻塞切换、统计和完成。批量目标下限等于适用下级四维当前最高等级，批量当前上限等于已有目标最低等级，L5 当前允许 L5 目标。新版 XLSX 逐维校验，旧版单一目标按当前四维最高等级校验。旧数据只在新字段缺失时展开，显式但未完成或低于当前的四维目标继续原值展示并给出冲突，不静默抬高或回退旧值。

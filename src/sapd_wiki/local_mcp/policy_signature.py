@@ -84,13 +84,25 @@ def _decode_signature(value: str) -> bytes:
             "POLICY_SIGNATURE_INVALID",
             "signature padding is forbidden",
         )
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", value) or len(value) % 4 == 1:
+        raise PolicySignatureError(
+            "POLICY_SIGNATURE_INVALID",
+            "signature encoding is invalid",
+        )
     try:
-        return base64.urlsafe_b64decode(value + ("=" * (-len(value) % 4)))
+        decoded = base64.urlsafe_b64decode(value + ("=" * (-len(value) % 4)))
     except Exception as exc:  # noqa: BLE001 - decoder errors are normalized.
         raise PolicySignatureError(
             "POLICY_SIGNATURE_INVALID",
             "signature encoding is invalid",
         ) from exc
+    canonical = base64.urlsafe_b64encode(decoded).rstrip(b"=").decode("ascii")
+    if canonical != value:
+        raise PolicySignatureError(
+            "POLICY_SIGNATURE_INVALID",
+            "signature encoding is not canonical",
+        )
+    return decoded
 
 
 def _validate_nfc(value: Any) -> None:

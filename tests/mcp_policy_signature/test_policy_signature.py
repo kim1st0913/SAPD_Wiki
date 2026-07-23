@@ -158,8 +158,18 @@ class PolicySignatureTests(unittest.TestCase):
 
     def test_signature_tampering_and_extra_fields_are_blocked(self) -> None:
         tampered = copy.deepcopy(self.envelope)
-        tampered["signature"] = tampered["signature"][:-1] + "A"
+        replacement = "A" if tampered["signature"][0] != "A" else "B"
+        tampered["signature"] = replacement + tampered["signature"][1:]
         self.assert_code("POLICY_SIGNATURE_INVALID", envelope=tampered)
+
+        alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+        noncanonical = copy.deepcopy(self.envelope)
+        trailing_index = alphabet.index(noncanonical["signature"][-1])
+        noncanonical["signature"] = (
+            noncanonical["signature"][:-1] + alphabet[trailing_index + 1]
+        )
+        self.assert_code("POLICY_SIGNATURE_INVALID", envelope=noncanonical)
+
         extra = copy.deepcopy(self.envelope)
         extra["debug"] = True
         self.assert_code("POLICY_SIGNATURE_INVALID", envelope=extra)

@@ -100,6 +100,31 @@ class FakeApiGateway:
     def retry_service(self, *, request_id: str, expected_state_version: int) -> dict:
         return self._action("retry", expected_state_version)
 
+    def update_port(
+        self,
+        *,
+        configured_port: int,
+        request_id: str,
+        expected_state_version: int,
+    ) -> dict:
+        del configured_port, request_id
+        return self._action("update_port", expected_state_version)
+
+    def decide_authorization(
+        self,
+        *,
+        authorization_request_id: str,
+        allow: bool,
+        request_id: str,
+        expected_state_version: int,
+    ) -> dict:
+        del authorization_request_id, allow, request_id
+        return self._action("decide_authorization", expected_state_version)
+
+    def check_service(self, *, request_id: str, expected_state_version: int) -> dict:
+        del request_id
+        return self._action("check_service", expected_state_version)
+
     def revoke_client(
         self,
         *,
@@ -152,6 +177,16 @@ class FakeApiGateway:
         self.reset_ids.remove(reset_id)
         self.native_capabilities.remove(native_confirmation_capability)
         return result
+
+    def confirm_web_reset(
+        self,
+        *,
+        reset_id: str,
+        request_id: str,
+        expected_state_version: int,
+    ) -> dict:
+        del reset_id
+        return self._action("confirm_web_reset", expected_state_version)
 
 
 class ControlApiTests(unittest.TestCase):
@@ -212,10 +247,15 @@ class ControlApiTests(unittest.TestCase):
                 ("POST", "/api/v1/mcp/actions/start"),
                 ("POST", "/api/v1/mcp/actions/stop"),
                 ("POST", "/api/v1/mcp/actions/retry"),
+                ("POST", "/api/v1/mcp/settings/port"),
+                ("POST", "/api/v1/mcp/diagnostics/actions/check"),
+                ("POST", "/api/v1/mcp/authorization/actions/allow"),
+                ("POST", "/api/v1/mcp/authorization/actions/deny"),
                 ("POST", "/api/v1/mcp/clients/actions/revoke"),
                 ("POST", "/api/v1/mcp/audit/actions/clear"),
                 ("POST", "/api/v1/mcp/reset/actions/prepare"),
                 ("POST", "/api/v1/mcp/reset/actions/confirm"),
+                ("POST", "/api/v1/mcp/reset/actions/confirm-web"),
             },
         )
 

@@ -10,6 +10,7 @@ from typing import Any, Mapping
 from .control_api import ControlApi
 from .control_models import GatewayActionError
 from .control_service import ControlService
+from .dev_supervisor import DevSidecarSupervisor
 
 
 class BrowserOnlySupervisorGateway:
@@ -161,6 +162,10 @@ class BrowserOnlySupervisorGateway:
     clear_audit = _desktop_required
     prepare_reset = _desktop_required
     confirm_reset = _desktop_required
+    confirm_web_reset = _desktop_required
+    update_port = _desktop_required
+    decide_authorization = _desktop_required
+    check_service = _desktop_required
 
 
 def build_browser_control_api(
@@ -190,4 +195,27 @@ def build_browser_control_api(
             supplied,
             session_token,
         ),
+    )
+
+
+def build_dev_control_api(
+    *,
+    expected_host: str,
+    expected_origin: str,
+    session_token: str,
+    supervisor: DevSidecarSupervisor,
+) -> ControlApi:
+    """Create the real Web-dev control surface over an owned Sidecar process."""
+
+    if not session_token:
+        raise ValueError("session_token is required")
+    return ControlApi(
+        ControlService(supervisor),
+        expected_host=expected_host,
+        expected_origin=expected_origin,
+        session_verifier=lambda supplied: secrets.compare_digest(
+            supplied,
+            session_token,
+        ),
+        allow_web_reset=True,
     )

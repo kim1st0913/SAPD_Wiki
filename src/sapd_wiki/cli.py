@@ -1193,6 +1193,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Runtime user database path. Defaults to data/user/sapd_wiki_user.sqlite3.",
     )
     serve_cmd.add_argument(
+        "--ephemeral-user-state",
+        action="store_true",
+        help="Keep Web-development user state in isolated memory; never opens or creates a user database file.",
+    )
+    serve_cmd.add_argument(
         "--data-root",
         default=None,
         help="Runtime frontend data package root. Defaults to frontend/capability-browser/public/data.",
@@ -1206,6 +1211,17 @@ def build_parser() -> argparse.ArgumentParser:
         "--runtime-label",
         default="stable",
         help="Runtime profile label shown by /api/v1/health. Defaults to stable.",
+    )
+    serve_cmd.add_argument(
+        "--mcp-port",
+        type=int,
+        default=28775,
+        help="Initial Web-dev MCP loopback port. Defaults to 28775.",
+    )
+    serve_cmd.add_argument(
+        "--mcp-runtime-root",
+        default=None,
+        help="Optional explicit isolated MCP dev runtime directory. Defaults to a temporary directory.",
     )
     serve_cmd.set_defaults(func=cmd_serve)
 

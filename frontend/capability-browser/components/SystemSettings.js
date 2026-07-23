@@ -10,10 +10,11 @@
       .replaceAll('"', "&quot;");
 
   function pathRow(label, value, action = "") {
+    const displayValue = text(value).trim() || "未配置";
     return `
       <div class="system-settings-path-row">
         <dt>${escapeHtml(label)}</dt>
-        <dd class="system-settings-code">${escapeHtml(value || "/")}</dd>
+        <dd class="system-settings-code">${escapeHtml(displayValue)}</dd>
         ${action ? `<button type="button" data-settings-path-action="${escapeHtml(action)}">更改路径</button>` : ""}
       </div>
     `;
@@ -64,6 +65,14 @@
     return Number.isNaN(parsed.getTime()) ? normalized : parsed.toLocaleString("zh-CN", { hour12: false });
   }
 
+  function trustState(value) {
+    const verified = text(value).trim() === "verified";
+    return {
+      label: verified ? "已验证" : "未验证",
+      tone: verified ? "verified" : "unverified",
+    };
+  }
+
   function renderAuthorizationRequests(mcp, pendingAction) {
     const requests = list(mcp.authorization_requests);
     if (!requests.length) return "";
@@ -77,26 +86,32 @@
           <b class="system-settings-state is-warning">待处理 ${requests.length} 个</b>
         </header>
         <div class="system-settings-authorization-list">
-          ${requests.map((request, index) => `
-            <article data-mcp-authorization-request="${escapeHtml(request.request_id)}">
-              <div class="system-settings-authorization-heading">
-                <strong>${escapeHtml(request.client_name || request.client_id)}</strong>
-                <span>队列 ${index + 1} / ${requests.length}</span>
-              </div>
-              <dl class="system-settings-authorization-grid">
-                <div><dt>Client ID</dt><dd class="system-settings-code">${escapeHtml(request.client_id)}</dd></div>
-                <div><dt>Redirect URI</dt><dd class="system-settings-code">${escapeHtml(request.redirect_uri)}</dd></div>
-                <div><dt>Scope</dt><dd>${list(request.scopes).map((scope) => `<code>${escapeHtml(scope)}</code>`).join(" ") || "/"}</dd></div>
-                <div><dt>Resource</dt><dd class="system-settings-code">${escapeHtml(request.resource)}</dd></div>
-                <div><dt>数据策略</dt><dd>${escapeHtml(request.policy_version || "/")}</dd></div>
-                <div><dt>到期时间</dt><dd>${escapeHtml(formatDateTime(request.expires_at))}</dd></div>
-              </dl>
-              <div class="system-settings-actions">
-                <button class="is-primary" type="button" data-mcp-authorization-action="allow" data-mcp-authorization-request-id="${escapeHtml(request.request_id)}" ${pendingAction ? "disabled" : ""}>允许</button>
-                <button type="button" data-mcp-authorization-action="deny" data-mcp-authorization-request-id="${escapeHtml(request.request_id)}" ${pendingAction ? "disabled" : ""}>拒绝</button>
-              </div>
-            </article>
-          `).join("")}
+          ${requests.map((request, index) => {
+            const trust = trustState(request.trust_state);
+            return `
+              <article data-mcp-authorization-request="${escapeHtml(request.request_id)}">
+                <div class="system-settings-authorization-heading">
+                  <strong>${escapeHtml(request.client_name || request.client_id)}</strong>
+                  <span class="system-settings-authorization-summary">
+                    <b class="system-settings-trust is-${escapeHtml(trust.tone)}">${escapeHtml(trust.label)}</b>
+                    <span>队列 ${index + 1} / ${requests.length}</span>
+                  </span>
+                </div>
+                <dl class="system-settings-authorization-grid">
+                  <div><dt>Client ID</dt><dd class="system-settings-code">${escapeHtml(request.client_id)}</dd></div>
+                  <div><dt>Redirect URI</dt><dd class="system-settings-code">${escapeHtml(request.redirect_uri)}</dd></div>
+                  <div><dt>Scope</dt><dd>${list(request.scopes).map((scope) => `<code>${escapeHtml(scope)}</code>`).join(" ") || "/"}</dd></div>
+                  <div><dt>Resource</dt><dd class="system-settings-code">${escapeHtml(request.resource)}</dd></div>
+                  <div><dt>数据策略</dt><dd>${escapeHtml(request.policy_version || "/")}</dd></div>
+                  <div><dt>到期时间</dt><dd>${escapeHtml(formatDateTime(request.expires_at))}</dd></div>
+                </dl>
+                <div class="system-settings-actions">
+                  <button class="is-primary" type="button" data-mcp-authorization-action="allow" data-mcp-authorization-request-id="${escapeHtml(request.request_id)}" ${pendingAction ? "disabled" : ""}>允许</button>
+                  <button type="button" data-mcp-authorization-action="deny" data-mcp-authorization-request-id="${escapeHtml(request.request_id)}" ${pendingAction ? "disabled" : ""}>拒绝</button>
+                </div>
+              </article>
+            `;
+          }).join("")}
         </div>
       </section>
     `;
@@ -120,11 +135,11 @@
                 <tbody>${clients.map((client) => `
                   <tr>
                     <td><strong>${escapeHtml(client.display_name || client.client_id)}</strong><small class="system-settings-code">${escapeHtml(client.client_id)}</small></td>
-                    <td>${escapeHtml(client.trust_state === "verified" ? "已验证" : "未验证")}</td>
+                    <td><span class="system-settings-trust is-${escapeHtml(trustState(client.trust_state).tone)}">${escapeHtml(trustState(client.trust_state).label)}</span></td>
                     <td>${list(client.scopes).map((scope) => `<code>${escapeHtml(scope)}</code>`).join(" ") || "/"}</td>
                     <td>${escapeHtml(formatDateTime(client.authorized_at))}</td>
                     <td>${escapeHtml(formatDateTime(client.last_used_at))}</td>
-                    <td><button type="button" data-mcp-client-revoke="${escapeHtml(client.client_id)}" ${pendingAction ? "disabled" : ""}>撤销授权</button></td>
+                    <td><button type="button" data-mcp-request-confirmation="revoke" data-mcp-client-id="${escapeHtml(client.client_id)}" data-mcp-client-label="${escapeHtml(client.display_name || client.client_id)}" ${pendingAction ? "disabled" : ""}>撤销授权</button></td>
                   </tr>
                 `).join("")}</tbody>
               </table>
@@ -134,7 +149,34 @@
     `;
   }
 
-  function renderDiagnostics(mcp) {
+  function renderAudit(mcp, pendingAction) {
+    const audit = mcp.audit || {};
+    const eventCount = Number.isInteger(Number(audit.event_count)) ? Number(audit.event_count) : 0;
+    const capabilities = mcp.settings?.control_capabilities || {};
+    const clearDisabled = Boolean(pendingAction) || capabilities.audit_clear === false || eventCount === 0;
+    return `
+      <section class="system-settings-panel" aria-labelledby="aiAuditTitle">
+        <header class="system-settings-panel-heading">
+          <div>
+            <span>PRIVACY &amp; AUDIT</span>
+            <h2 id="aiAuditTitle">隐私与审计</h2>
+          </div>
+          <b class="system-settings-state">${escapeHtml(audit.state === "ready" ? "记录正常" : audit.enabled === false ? "未启用" : "状态待检查")}</b>
+        </header>
+        <dl class="system-settings-audit-grid">
+          <div><dt>已记录事件</dt><dd><strong>${escapeHtml(eventCount)}</strong> 条</dd></div>
+          <div><dt>最近事件</dt><dd>${escapeHtml(formatDateTime(audit.last_event_at))}</dd></div>
+          <div><dt>保留时间</dt><dd>${escapeHtml(Number(audit.retention_days) || 0)} 天</dd></div>
+        </dl>
+        <p class="system-settings-panel-note">仅保留脱敏的本地操作元数据，不记录查询正文或知识正文。</p>
+        <div class="system-settings-actions">
+          <button type="button" data-mcp-request-confirmation="clear-audit" ${clearDisabled ? "disabled" : ""}>清除审计记录</button>
+        </div>
+      </section>
+    `;
+  }
+
+  function renderDiagnostics(mcp, pendingAction) {
     const diagnostics = mcp.diagnostics || {};
     const checks = list(diagnostics.checks);
     return `
@@ -151,7 +193,69 @@
             <div><span><strong>${escapeHtml(check.label || check.check_id)}</strong><small>${escapeHtml(check.recovery_action || "无需操作")}</small></span><b>${escapeHtml(check.status || "unknown")}</b></div>
           `).join("") : '<div class="system-settings-empty"><strong>尚无诊断结果</strong><span>点击“检查服务”后显示本地连接结果。</span></div>'}
         </div>
+        <div class="system-settings-actions system-settings-reset-actions">
+          <button type="button" data-mcp-action="prepare-reset" ${pendingAction ? "disabled" : ""}>重置本地 MCP</button>
+          <small>先生成影响清单，确认前不会执行重置。</small>
+        </div>
       </section>
+    `;
+  }
+
+  function resetEffectLabel(effect) {
+    return {
+      stop_service: "停止本地 MCP 服务",
+      revoke_all_clients: "撤销全部客户端授权",
+      delete_managed_trust: "删除本应用管理的本地信任材料",
+      delete_managed_secrets: "删除本应用管理的本地凭据",
+      clear_audit: "清除本地审计记录",
+      retain_audit: "保留本地审计记录",
+      reset_port: "恢复默认本地端口",
+    }[text(effect).trim()] || "重置一项本地 MCP 配置";
+  }
+
+  function renderConfirmation(confirmation) {
+    const action = text(confirmation?.action).trim();
+    if (!["revoke", "clear-audit"].includes(action)) return "";
+    const revoke = action === "revoke";
+    const title = revoke ? "确认撤销客户端授权？" : "确认清除审计记录？";
+    const description = revoke
+      ? `只会撤销“${text(confirmation.label || confirmation.clientId || "该客户端")}”的访问授权，不会停止服务，也不会清除审计记录。`
+      : "只会清除本地 MCP 的脱敏审计记录，不会停止服务或撤销客户端授权。此操作不可撤销。";
+    return `
+      <div class="system-settings-dialog-backdrop" data-mcp-dialog>
+        <section class="system-settings-dialog" role="dialog" aria-modal="true" aria-labelledby="mcpConfirmationTitle" aria-describedby="mcpConfirmationDescription">
+          <span>${revoke ? "CLIENT AUTHORIZATION" : "PRIVACY & AUDIT"}</span>
+          <h2 id="mcpConfirmationTitle">${escapeHtml(title)}</h2>
+          <p id="mcpConfirmationDescription">${escapeHtml(description)}</p>
+          <div class="system-settings-actions">
+            <button type="button" data-mcp-action="cancel-confirmation" autofocus>取消</button>
+            <button class="is-danger" type="button" data-mcp-confirm-action="${escapeHtml(action)}" ${revoke ? `data-mcp-client-id="${escapeHtml(confirmation.clientId)}"` : ""}>${revoke ? "确认撤销" : "确认清除"}</button>
+          </div>
+        </section>
+      </div>
+    `;
+  }
+
+  function renderResetPreview(resetPreview) {
+    if (!resetPreview) return "";
+    const effects = list(resetPreview.effects);
+    return `
+      <div class="system-settings-dialog-backdrop" data-mcp-dialog>
+        <section class="system-settings-dialog" role="dialog" aria-modal="true" aria-labelledby="mcpResetTitle" aria-describedby="mcpResetDescription">
+          <span>RESET PREVIEW</span>
+          <h2 id="mcpResetTitle">重置影响清单</h2>
+          <p id="mcpResetDescription">请先核对以下影响。确认后只重置本地 MCP 集成，不会修改知识库内容或用户数据。</p>
+          <ul class="system-settings-reset-effects">
+            ${effects.length
+              ? effects.map((effect) => `<li>${escapeHtml(resetEffectLabel(effect))}</li>`).join("")
+              : "<li>当前没有可执行的重置项。</li>"}
+          </ul>
+          <div class="system-settings-actions">
+            <button type="button" data-mcp-action="close-reset-preview" autofocus>取消</button>
+            <button class="is-danger" type="button" data-mcp-action="confirm-web-reset" ${effects.length ? "" : "disabled"}>确认重置</button>
+          </div>
+        </section>
+      </div>
     `;
   }
 
@@ -201,7 +305,8 @@
         </section>
         ${renderAuthorizationRequests(mcp, model.pendingAction)}
         ${renderClients(mcp, model.pendingAction)}
-        ${renderDiagnostics(mcp)}
+        ${renderAudit(mcp, model.pendingAction)}
+        ${renderDiagnostics(mcp, model.pendingAction)}
       </div>
     `;
   }
@@ -224,6 +329,7 @@
               ? '<section class="system-settings-panel system-settings-unavailable" role="alert"><strong>本地 MCP 状态不可用</strong><span>请确认 Web 开发服务正常，主知识库页面仍可继续使用。</span></section>'
               : renderAi(model)}
         </div>
+        ${model.resetPreview ? renderResetPreview(model.resetPreview) : renderConfirmation(model.confirmation)}
       </section>
     `;
   }

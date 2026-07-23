@@ -53,6 +53,7 @@ apps/electron/.build/
 
 # Python artifacts
 __pycache__/
+src/*.egg-info/
 *.py[cod]
 .venv/
 venv/

@@ -11,10 +11,12 @@ import time
 import uuid
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from threading import Lock
 from typing import Any
 from urllib.parse import parse_qs, unquote, urlparse
 
-from .local_mcp.web_control import build_browser_control_api
+from .local_mcp.dev_supervisor import DevSidecarSupervisor
+from .local_mcp.web_control import build_dev_control_api
 
 from .maturity import (
     build_maturity_workspace,
@@ -73,6 +75,10 @@ DATA_PACKAGE_ROOT = DEFAULT_FRONTEND_PUBLIC_DATA_ROOT
 BASE_DB_PATH = DEFAULT_DB_PATH.resolve()
 USER_DB_PATH = (PROJECT_ROOT / "data" / "user" / "sapd_wiki_user.sqlite3").resolve()
 USER_EXPORT_DIR = (PROJECT_ROOT / "data" / "exports").resolve()
+USER_STATE_EPHEMERAL = False
+_EPHEMERAL_USER_DB_URI = ""
+_EPHEMERAL_USER_DB_KEEPER: sqlite3.Connection | None = None
+_EPHEMERAL_USER_DB_LOCK = Lock()
 MATURITY_REPORT_ARTIFACT_SCHEMA = "sapd-maturity-report-artifact-v1"
 RUNTIME_LABEL = "stable"
 USER_SCHEMA_VERSION = "user_schema_0.3"
@@ -511,11 +517,20 @@ def configure_runtime_paths(
     data_root: str | Path | None = None,
     export_dir: str | Path | None = None,
     runtime_label: str | None = None,
+    ephemeral_user_state: bool = False,
 ) -> None:
     global BASE_DB_PATH, USER_DB_PATH, DATA_PACKAGE_ROOT, USER_EXPORT_DIR, RUNTIME_LABEL
+    global USER_STATE_EPHEMERAL, _EPHEMERAL_USER_DB_URI
+    close_ephemeral_user_state()
+    USER_STATE_EPHEMERAL = bool(ephemeral_user_state)
+    _EPHEMERAL_USER_DB_URI = (
+        f"file:sapd-wiki-web-dev-{secrets.token_hex(12)}?mode=memory&cache=shared"
+        if USER_STATE_EPHEMERAL
+        else ""
+    )
     if base_db:
         BASE_DB_PATH = resolve_project_path(base_db).resolve()
-    if user_db:
+    if user_db and not USER_STATE_EPHEMERAL:
         USER_DB_PATH = resolve_project_path(user_db).resolve()
     if data_root:
         DATA_PACKAGE_ROOT = resolve_project_path(data_root).resolve()
@@ -2261,42 +2276,71 @@ def is_allowed_loopback_origin(value: str, port: int) -> bool:
     return parsed.scheme == "http" and parsed_port == port and is_loopback_host(parsed.hostname or "")
 
 
+def _initialize_user_schema(connection: sqlite3.Connection) -> None:
+    connection.executescript(USER_SCHEMA_SQL)
+    connection.executescript(USER_SCHEMA_V03_SQL)
+    ensure_user_note_columns(connection)
+    connection.execute(
+        """
+        INSERT INTO user_meta(key, value, updated_at)
+        VALUES ('schema_version', ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(key) DO UPDATE SET
+          value = excluded.value,
+          updated_at = CURRENT_TIMESTAMP
+        """,
+        (USER_SCHEMA_VERSION,),
+    )
+    connection.execute(
+        """
+        INSERT INTO user_meta(key, value, updated_at)
+        VALUES ('created_by', 'sapd-wiki-local-api', CURRENT_TIMESTAMP)
+        ON CONFLICT(key) DO NOTHING
+        """
+    )
+    connection.execute(
+        """
+        INSERT INTO user_schema_migrations(version)
+        VALUES (?)
+        ON CONFLICT(version) DO NOTHING
+        """,
+        (USER_SCHEMA_VERSION,),
+    )
+
+
 def ensure_user_db() -> None:
+    global _EPHEMERAL_USER_DB_KEEPER
+    if USER_STATE_EPHEMERAL:
+        with _EPHEMERAL_USER_DB_LOCK:
+            if _EPHEMERAL_USER_DB_KEEPER is None:
+                connection = sqlite3.connect(
+                    _EPHEMERAL_USER_DB_URI,
+                    uri=True,
+                    check_same_thread=False,
+                )
+                _initialize_user_schema(connection)
+                connection.commit()
+                _EPHEMERAL_USER_DB_KEEPER = connection
+        return
     USER_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(USER_DB_PATH) as connection:
-        connection.executescript(USER_SCHEMA_SQL)
-        connection.executescript(USER_SCHEMA_V03_SQL)
-        ensure_user_note_columns(connection)
-        connection.execute(
-            """
-            INSERT INTO user_meta(key, value, updated_at)
-            VALUES ('schema_version', ?, CURRENT_TIMESTAMP)
-            ON CONFLICT(key) DO UPDATE SET
-              value = excluded.value,
-              updated_at = CURRENT_TIMESTAMP
-            """,
-            (USER_SCHEMA_VERSION,),
-        )
-        connection.execute(
-            """
-            INSERT INTO user_meta(key, value, updated_at)
-            VALUES ('created_by', 'sapd-wiki-local-api', CURRENT_TIMESTAMP)
-            ON CONFLICT(key) DO NOTHING
-            """
-        )
-        connection.execute(
-            """
-            INSERT INTO user_schema_migrations(version)
-            VALUES (?)
-            ON CONFLICT(version) DO NOTHING
-            """,
-            (USER_SCHEMA_VERSION,),
-        )
+        _initialize_user_schema(connection)
+
+
+def close_ephemeral_user_state() -> None:
+    global _EPHEMERAL_USER_DB_KEEPER
+    with _EPHEMERAL_USER_DB_LOCK:
+        if _EPHEMERAL_USER_DB_KEEPER is not None:
+            _EPHEMERAL_USER_DB_KEEPER.close()
+            _EPHEMERAL_USER_DB_KEEPER = None
 
 
 def user_db_connection() -> sqlite3.Connection:
     ensure_user_db()
-    connection = sqlite3.connect(USER_DB_PATH)
+    connection = (
+        sqlite3.connect(_EPHEMERAL_USER_DB_URI, uri=True)
+        if USER_STATE_EPHEMERAL
+        else sqlite3.connect(USER_DB_PATH)
+    )
     connection.row_factory = sqlite3.Row
     connection.execute("PRAGMA foreign_keys = ON")
     return connection
@@ -2304,15 +2348,18 @@ def user_db_connection() -> sqlite3.Connection:
 
 def runtime_health_payload() -> dict[str, Any]:
     schema_version = None
-    user_ready = USER_DB_PATH.exists()
-    try:
-        if user_ready:
-            with sqlite3.connect(USER_DB_PATH) as connection:
-                row = connection.execute("SELECT value FROM user_meta WHERE key='schema_version'").fetchone()
-                schema_version = row[0] if row else None
-    except sqlite3.Error:
-        user_ready = False
-        schema_version = None
+    user_ready = _EPHEMERAL_USER_DB_KEEPER is not None if USER_STATE_EPHEMERAL else USER_DB_PATH.exists()
+    if USER_STATE_EPHEMERAL:
+        schema_version = USER_SCHEMA_VERSION if user_ready else None
+    else:
+        try:
+            if user_ready:
+                with sqlite3.connect(USER_DB_PATH) as connection:
+                    row = connection.execute("SELECT value FROM user_meta WHERE key='schema_version'").fetchone()
+                    schema_version = row[0] if row else None
+        except sqlite3.Error:
+            user_ready = False
+            schema_version = None
     return {
         "status": "ok",
         "app": "SAPD Wiki",
@@ -2325,9 +2372,10 @@ def runtime_health_payload() -> dict[str, Any]:
                 "bytes": BASE_DB_PATH.stat().st_size if BASE_DB_PATH.exists() else 0,
             },
             "user_database": {
-                "path": _display_runtime_path(USER_DB_PATH),
+                "path": "memory://isolated-web-dev" if USER_STATE_EPHEMERAL else _display_runtime_path(USER_DB_PATH),
                 "ready": user_ready,
                 "schema_version": schema_version,
+                "persistent": not USER_STATE_EPHEMERAL,
             },
             "data_root": {
                 "path": _display_runtime_path(DATA_PACKAGE_ROOT),
@@ -4276,19 +4324,24 @@ def serve(args: argparse.Namespace) -> None:
         data_root=getattr(args, "data_root", None),
         export_dir=getattr(args, "export_dir", None),
         runtime_label=getattr(args, "runtime_label", None),
+        ephemeral_user_state=bool(getattr(args, "ephemeral_user_state", False)),
     )
     handler = lambda *handler_args, **kwargs: SapdWikiRequestHandler(*handler_args, directory=str(static_dir), **kwargs)
     server = ThreadingHTTPServer((args.host, args.port), handler)
     server.sapd_session_token = secrets.token_urlsafe(32)
     actual_port = int(server.server_address[1])
     expected_host = f"{args.host}:{actual_port}"
-    server.sapd_mcp_control_api = build_browser_control_api(
+    mcp_runtime_root = getattr(args, "mcp_runtime_root", None)
+    server.sapd_mcp_supervisor = DevSidecarSupervisor(
+        configured_port=int(getattr(args, "mcp_port", 28775)),
+        runtime_root=Path(mcp_runtime_root) if mcp_runtime_root else None,
+        cleanup_on_close=not bool(mcp_runtime_root),
+    )
+    server.sapd_mcp_control_api = build_dev_control_api(
         expected_host=expected_host,
         expected_origin=f"http://{expected_host}",
         session_token=server.sapd_session_token,
-        release_channel="dev",
-        configured_port=28775,
-        allow_synthetic_service_control=True,
+        supervisor=server.sapd_mcp_supervisor,
     )
     url = f"http://{args.host}:{args.port}"
     print(f"SAPD Wiki local API: {url}/api/v1/health")
@@ -4296,7 +4349,11 @@ def serve(args: argparse.Namespace) -> None:
     print(f"static_dir: {static_dir.relative_to(PROJECT_ROOT) if static_dir.is_relative_to(PROJECT_ROOT) else static_dir}")
     print(f"runtime_label: {RUNTIME_LABEL}")
     print(f"base_db: {_display_runtime_path(BASE_DB_PATH)}")
-    print(f"user_db: {_display_runtime_path(USER_DB_PATH)}")
+    print(
+        "user_db: memory://isolated-web-dev"
+        if USER_STATE_EPHEMERAL
+        else f"user_db: {_display_runtime_path(USER_DB_PATH)}"
+    )
     print(f"data_root: {_display_runtime_path(DATA_PACKAGE_ROOT)}")
     print(f"export_dir: {_display_runtime_path(USER_EXPORT_DIR)}")
     try:
@@ -4304,4 +4361,6 @@ def serve(args: argparse.Namespace) -> None:
     except KeyboardInterrupt:
         print("\nserver stopped")
     finally:
+        server.sapd_mcp_supervisor.close()
+        close_ephemeral_user_state()
         server.server_close()

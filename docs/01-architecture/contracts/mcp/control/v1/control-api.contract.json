@@ -1,7 +1,7 @@
 {
   "schema_version": "mcp-control-contract-schema-v1",
   "contract_id": "MCP-CONTROL-API-v1",
-  "contract_version": "1.0.0",
+  "contract_version": "1.1.0",
   "projection_version": "sapd-mcp-control-v1",
   "scope": "local_web_and_desktop_control_projection",
   "ownership": {
@@ -26,6 +26,7 @@
     "mutation_content_type": "application/json",
     "native_confirmation_header": "X-SAPD-Native-Confirmation",
     "native_confirmation": "desktop_issued_single_use_gateway_consumed",
+    "web_reset_confirmation": "dev_only_two_step_reset_bound_to_local_session",
     "response_cache_control": "no-store"
   },
   "mutation_contract": {
@@ -130,6 +131,38 @@
     },
     {
       "additionalProperties": false,
+      "id": "update_port",
+      "method": "POST",
+      "path": "/api/v1/mcp/settings/port",
+      "request_schema": "#/$defs/port_update_request",
+      "response_schema": "#/$defs/action_response"
+    },
+    {
+      "additionalProperties": false,
+      "id": "check_service",
+      "method": "POST",
+      "path": "/api/v1/mcp/diagnostics/actions/check",
+      "request_schema": "#/$defs/common_mutation_request",
+      "response_schema": "#/$defs/action_response"
+    },
+    {
+      "additionalProperties": false,
+      "id": "allow_authorization",
+      "method": "POST",
+      "path": "/api/v1/mcp/authorization/actions/allow",
+      "request_schema": "#/$defs/authorization_decision_request",
+      "response_schema": "#/$defs/action_response"
+    },
+    {
+      "additionalProperties": false,
+      "id": "deny_authorization",
+      "method": "POST",
+      "path": "/api/v1/mcp/authorization/actions/deny",
+      "request_schema": "#/$defs/authorization_decision_request",
+      "response_schema": "#/$defs/action_response"
+    },
+    {
+      "additionalProperties": false,
       "id": "revoke_client",
       "method": "POST",
       "path": "/api/v1/mcp/clients/actions/revoke",
@@ -158,6 +191,14 @@
       "method": "POST",
       "path": "/api/v1/mcp/reset/actions/confirm",
       "request_schema": "#/$defs/reset_confirm_request",
+      "response_schema": "#/$defs/action_response"
+    },
+    {
+      "additionalProperties": false,
+      "id": "confirm_web_reset",
+      "method": "POST",
+      "path": "/api/v1/mcp/reset/actions/confirm-web",
+      "request_schema": "#/$defs/web_reset_confirm_request",
       "response_schema": "#/$defs/action_response"
     }
   ],
@@ -198,6 +239,53 @@
           "minimum": 0
         },
         "client_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"
+        }
+      }
+    },
+    "port_update_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_id",
+        "expected_state_version",
+        "configured_port"
+      ],
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"
+        },
+        "expected_state_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "configured_port": {
+          "type": "integer",
+          "minimum": 1024,
+          "maximum": 65535
+        }
+      }
+    },
+    "authorization_decision_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_id",
+        "expected_state_version",
+        "authorization_request_id"
+      ],
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"
+        },
+        "expected_state_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "authorization_request_id": {
           "type": "string",
           "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"
         }
@@ -247,6 +335,33 @@
         "reset_id": {
           "type": "string",
           "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"
+        }
+      }
+    },
+    "web_reset_confirm_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_id",
+        "expected_state_version",
+        "reset_id",
+        "confirmation"
+      ],
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"
+        },
+        "expected_state_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reset_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"
+        },
+        "confirmation": {
+          "const": "RESET"
         }
       }
     },
@@ -364,7 +479,11 @@
         "service_control",
         "client_revocation",
         "audit_clear",
-        "native_reset_confirmation"
+        "native_reset_confirmation",
+        "port_configuration",
+        "authorization_decision",
+        "diagnostic_check",
+        "web_reset_confirmation"
       ],
       "properties": {
         "service_control": {
@@ -377,6 +496,18 @@
           "type": "boolean"
         },
         "native_reset_confirmation": {
+          "type": "boolean"
+        },
+        "port_configuration": {
+          "type": "boolean"
+        },
+        "authorization_decision": {
+          "type": "boolean"
+        },
+        "diagnostic_check": {
+          "type": "boolean"
+        },
+        "web_reset_confirmation": {
           "type": "boolean"
         }
       }
@@ -413,6 +544,82 @@
         },
         "control_capabilities": {
           "$ref": "#/$defs/control_capabilities"
+        }
+      }
+    },
+    "authorization_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_id",
+        "client_id",
+        "client_name",
+        "redirect_uri",
+        "scopes",
+        "resource",
+        "policy_version",
+        "registration_mode",
+        "trust_state",
+        "created_at",
+        "expires_at"
+      ],
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"
+        },
+        "client_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"
+        },
+        "client_name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 128
+        },
+        "redirect_uri": {
+          "type": "string",
+          "pattern": "^http://127\\.0\\.0\\.1:[0-9]+/"
+        },
+        "scopes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "resource": {
+          "type": "string",
+          "pattern": "^https://127\\.0\\.0\\.1:[0-9]+/mcp$"
+        },
+        "policy_version": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "registration_mode": {
+          "enum": [
+            "pre_registered",
+            "CIMD",
+            "DCR"
+          ]
+        },
+        "trust_state": {
+          "enum": [
+            "verified",
+            "unverified"
+          ]
+        },
+        "created_at": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "expires_at": {
+          "type": "string",
+          "maxLength": 64
         }
       }
     },
@@ -597,6 +804,7 @@
         "state_version",
         "status",
         "settings",
+        "authorization_requests",
         "clients",
         "audit",
         "diagnostics"
@@ -614,6 +822,13 @@
         },
         "settings": {
           "$ref": "#/$defs/settings"
+        },
+        "authorization_requests": {
+          "type": "array",
+          "maxItems": 128,
+          "items": {
+            "$ref": "#/$defs/authorization_request"
+          }
         },
         "clients": {
           "type": "array",
@@ -759,9 +974,13 @@
             "start",
             "stop",
             "retry",
+            "update_port",
+            "check_service",
+            "decide_authorization",
             "revoke_client",
             "clear_audit",
-            "confirm_reset"
+            "confirm_reset",
+            "confirm_web_reset"
           ]
         },
         "request_id": {
@@ -824,7 +1043,8 @@
             "reset_id",
             "expires_at",
             "effects",
-            "native_confirmation_required"
+            "native_confirmation_required",
+            "web_confirmation_required"
           ],
           "properties": {
             "reset_id": {
@@ -850,7 +1070,10 @@
               }
             },
             "native_confirmation_required": {
-              "const": true
+              "type": "boolean"
+            },
+            "web_confirmation_required": {
+              "type": "boolean"
             }
           }
         }

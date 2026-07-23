@@ -119,6 +119,32 @@ class FakeSupervisorGateway:
     def retry_service(self, *, request_id: str, expected_state_version: int) -> dict:
         return self._mutate("retry", request_id, expected_state_version)
 
+    def update_port(
+        self,
+        *,
+        configured_port: int,
+        request_id: str,
+        expected_state_version: int,
+    ) -> dict:
+        result = self._mutate("update_port", request_id, expected_state_version)
+        self.snapshot["settings"]["configured_port"] = configured_port
+        self.snapshot["settings"]["canonical_resource"] = f"https://127.0.0.1:{configured_port}/mcp"
+        return result
+
+    def decide_authorization(
+        self,
+        *,
+        authorization_request_id: str,
+        allow: bool,
+        request_id: str,
+        expected_state_version: int,
+    ) -> dict:
+        del authorization_request_id, allow
+        return self._mutate("decide_authorization", request_id, expected_state_version)
+
+    def check_service(self, *, request_id: str, expected_state_version: int) -> dict:
+        return self._mutate("check_service", request_id, expected_state_version)
+
     def revoke_client(
         self,
         *,
@@ -180,6 +206,20 @@ class FakeSupervisorGateway:
         self.prepared_resets.remove(reset_id)
         return result
 
+    def confirm_web_reset(
+        self,
+        *,
+        reset_id: str,
+        request_id: str,
+        expected_state_version: int,
+    ) -> dict:
+        del reset_id
+        return self._mutate(
+            "confirm_web_reset",
+            request_id,
+            expected_state_version,
+        )
+
 
 class ControlServiceTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -201,6 +241,7 @@ class ControlServiceTests(unittest.TestCase):
                 "state_version",
                 "status",
                 "settings",
+                "authorization_requests",
                 "clients",
                 "audit",
                 "diagnostics",

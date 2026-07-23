@@ -11769,6 +11769,8 @@ function renderSettings() {
       loading: state.mcpControlLoading && !state.mcpControlSnapshot,
       pendingAction: state.settingsPathPending || state.mcpPendingAction,
       notice: state.mcpControlNotice,
+      confirmation: state.mcpConfirmation,
+      resetPreview: state.mcpResetPreview,
     }),
   );
 }
@@ -11895,9 +11897,11 @@ async function loadSettingsRuntimeHealth({ force = false } = {}) {
   }
 }
 
-async function loadMcpControlPanel({ force = false } = {}) {
+async function loadMcpControlPanel({ force = false, silent = false } = {}) {
   if (state.mcpControlLoading) return null;
   if (state.mcpControlLoaded && !force) return state.mcpControlSnapshot;
+  const previousStateVersion = state.mcpControlSnapshot?.state_version;
+  const previousError = state.mcpControlError;
   const dataClient = window.sapdDataClient;
   if (!dataClient?.getMcpControlPanel) {
     state.mcpControlLoaded = true;
@@ -11909,7 +11913,7 @@ async function loadMcpControlPanel({ force = false } = {}) {
   }
   state.mcpControlLoading = true;
   if (!state.mcpControlSnapshot) state.mcpControlError = "";
-  if (state.activeView === "settings") renderSettings();
+  if (state.activeView === "settings" && !silent) renderSettings();
   try {
     const envelope = await dataClient.getMcpControlPanel();
     const snapshot = envelope?.data;
@@ -11928,7 +11932,14 @@ async function loadMcpControlPanel({ force = false } = {}) {
   } finally {
     state.mcpControlLoading = false;
     syncMcpTopbarStatus();
-    if (state.activeView === "settings") renderSettings();
+    const stateChanged = previousStateVersion !== state.mcpControlSnapshot?.state_version;
+    const errorChanged = previousError !== state.mcpControlError;
+    if (
+      state.activeView === "settings"
+      && (!silent || stateChanged || errorChanged)
+    ) {
+      renderSettings();
+    }
   }
 }
 
@@ -11955,7 +11966,8 @@ function mcpActionSuccessMessage(action) {
     check: "服务检查已完成，页面已读取最新诊断状态。",
     revoke: "指定客户端的授权状态已刷新，服务状态未被重置。",
     "clear-audit": "审计状态已刷新，服务和客户端授权未被更改。",
-    "prepare-reset": "重置影响清单已生成；最终确认需要桌面应用。",
+    "prepare-reset": "重置影响清单已生成，请核对后确认。",
+    "confirm-web-reset": "本地 MCP 已重置，知识库内容和用户数据未被修改。",
   };
   return messages[action] || "AI 集成状态已刷新。";
 }
@@ -11977,6 +11989,7 @@ async function performMcpControlAction(action, { clientId = "" } = {}) {
     revoke: "revokeMcpClient",
     "clear-audit": "clearMcpAudit",
     "prepare-reset": "prepareMcpReset",
+    "confirm-web-reset": "confirmMcpWebReset",
   };
   const method = methodByAction[action];
   if (!method || !dataClient?.[method]) {
@@ -11994,11 +12007,14 @@ async function performMcpControlAction(action, { clientId = "" } = {}) {
       ...payload,
       ...(action === "revoke" ? { clientId } : {}),
       ...(action === "prepare-reset" ? { clearAudit: false } : {}),
+      ...(action === "confirm-web-reset"
+        ? { resetId: state.mcpResetPreview?.reset_id }
+        : {}),
     });
     const resetPreview = action === "prepare-reset" ? actionEnvelope?.data?.reset || null : null;
     const refreshed = await loadMcpControlPanel({ force: true });
     if (!refreshed) throw new Error("控制动作已返回，但无法读取最新状态。");
-    state.mcpResetPreview = resetPreview;
+    state.mcpResetPreview = action === "confirm-web-reset" ? null : resetPreview;
     state.mcpControlNotice = { tone: "success", message: mcpActionSuccessMessage(action) };
     announceAppStatus(state.mcpControlNotice.message);
   } catch (error) {
@@ -12011,6 +12027,7 @@ async function performMcpControlAction(action, { clientId = "" } = {}) {
   } finally {
     state.mcpPendingAction = "";
     if (state.activeView === "settings") renderSettings();
+    if (state.mcpResetPreview) focusMcpDialog();
   }
 }
 
@@ -12056,10 +12073,51 @@ async function performMcpPortUpdate(configuredPort) {
   }
 }
 
+async function performMcpAuthorizationDecision(authorizationRequestId, decision) {
+  const normalizedRequestId = text(authorizationRequestId).trim();
+  if (!normalizedRequestId || !["allow", "deny"].includes(decision)) return;
+  const dataClient = window.sapdDataClient;
+  const payload = mcpMutationPayload(`authorization-${decision}`);
+  if (!payload || typeof dataClient?.decideMcpAuthorization !== "function") {
+    state.mcpControlNotice = { tone: "error", message: "当前运行环境未提供授权确认能力。" };
+    renderSettings();
+    return;
+  }
+  state.mcpPendingAction = `authorization:${decision}:${normalizedRequestId}`;
+  state.mcpControlNotice = {
+    tone: "info",
+    message: decision === "allow" ? "正在允许客户端连接…" : "正在拒绝客户端连接…",
+  };
+  renderSettings();
+  try {
+    await dataClient.decideMcpAuthorization({
+      ...payload,
+      authorizationRequestId: normalizedRequestId,
+      decision,
+    });
+    const refreshed = await loadMcpControlPanel({ force: true });
+    if (!refreshed) throw new Error("无法读取授权后的最新状态。");
+    state.mcpControlNotice = {
+      tone: "success",
+      message: decision === "allow" ? "已允许本次客户端授权。" : "已拒绝本次客户端授权。",
+    };
+  } catch (error) {
+    await loadMcpControlPanel({ force: true });
+    state.mcpControlNotice = {
+      tone: "error",
+      message: text(error?.message).trim() || "授权处理失败，请刷新后重试。",
+    };
+  } finally {
+    state.mcpPendingAction = "";
+    renderSettings();
+  }
+}
+
 function openMcpConfirmation(action, { clientId = "", label = "" } = {}) {
   if (!["revoke", "clear-audit"].includes(action)) return;
   state.mcpConfirmation = { action, clientId, label };
   renderSettings();
+  focusMcpDialog();
 }
 
 function closeMcpOverlay() {
@@ -12260,6 +12318,15 @@ function bindEvents() {
     if (revokeClient) {
       event.preventDefault();
       performMcpControlAction("revoke", { clientId: text(revokeClient.dataset.mcpClientRevoke).trim() });
+      return;
+    }
+    const authorizationAction = event.target?.closest?.("[data-mcp-authorization-action]");
+    if (authorizationAction) {
+      event.preventDefault();
+      performMcpAuthorizationDecision(
+        authorizationAction.dataset.mcpAuthorizationRequestId,
+        authorizationAction.dataset.mcpAuthorizationAction,
+      );
       return;
     }
     const confirmationRequest = event.target?.closest?.("[data-mcp-request-confirmation]");
@@ -13338,6 +13405,17 @@ async function init() {
   if (restoredRoute === state.activeRoute) applyWorkspaceState(restoredState);
   persistWorkspaceState();
   renderActiveView();
+  loadMcpControlPanel();
+  window.setInterval(() => {
+    if (
+      document.hidden
+      || state.mcpControlLoading
+      || state.mcpPendingAction
+    ) {
+      return;
+    }
+    loadMcpControlPanel({ force: true, silent: true });
+  }, 2000);
   scheduleOverviewWarmup();
 }
 

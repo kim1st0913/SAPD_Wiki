@@ -59,9 +59,14 @@
     mcpStart: "/api/v1/mcp/actions/start",
     mcpStop: "/api/v1/mcp/actions/stop",
     mcpRetry: "/api/v1/mcp/actions/retry",
+    mcpUpdatePort: "/api/v1/mcp/settings/port",
+    mcpCheck: "/api/v1/mcp/diagnostics/actions/check",
+    mcpAuthorizationAllow: "/api/v1/mcp/authorization/actions/allow",
+    mcpAuthorizationDeny: "/api/v1/mcp/authorization/actions/deny",
     mcpRevokeClient: "/api/v1/mcp/clients/actions/revoke",
     mcpClearAudit: "/api/v1/mcp/audit/actions/clear",
     mcpPrepareReset: "/api/v1/mcp/reset/actions/prepare",
+    mcpConfirmWebReset: "/api/v1/mcp/reset/actions/confirm-web",
   };
 
   const API_FETCH_TIMEOUT_MS = 12000;
@@ -605,6 +610,18 @@
     }
     if (extra.client_id && !/^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/.test(text(extra.client_id).trim())) {
       throw createMcpControlError("INVALID_CLIENT_ID", 400);
+    }
+    if (
+      extra.authorization_request_id
+      && !/^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/.test(text(extra.authorization_request_id).trim())
+    ) {
+      throw createMcpControlError("INVALID_AUTHORIZATION_REQUEST_ID", 400);
+    }
+    if (
+      Object.prototype.hasOwnProperty.call(extra, "configured_port")
+      && (!Number.isInteger(Number(extra.configured_port)) || Number(extra.configured_port) < 1024 || Number(extra.configured_port) > 65535)
+    ) {
+      throw createMcpControlError("INVALID_PORT", 400);
     }
     return JSON.stringify({
       request_id: normalizedRequestId,
@@ -1441,6 +1458,30 @@
       return createEnvelope(await runMcpMutation(API_PATHS.mcpRetry, payload));
     },
 
+    async updateMcpPort(payload) {
+      return createEnvelope(await runMcpMutation(API_PATHS.mcpUpdatePort, {
+        requestId: payload?.requestId,
+        expectedStateVersion: payload?.expectedStateVersion,
+        configured_port: Number(payload?.configuredPort),
+      }));
+    },
+
+    async checkMcpService(payload) {
+      return createEnvelope(await runMcpMutation(API_PATHS.mcpCheck, payload));
+    },
+
+    async decideMcpAuthorization(payload) {
+      const allow = payload?.decision === "allow";
+      return createEnvelope(await runMcpMutation(
+        allow ? API_PATHS.mcpAuthorizationAllow : API_PATHS.mcpAuthorizationDeny,
+        {
+          requestId: payload?.requestId,
+          expectedStateVersion: payload?.expectedStateVersion,
+          authorization_request_id: text(payload?.authorizationRequestId).trim(),
+        },
+      ));
+    },
+
     async revokeMcpClient(payload) {
       return createEnvelope(await runMcpMutation(API_PATHS.mcpRevokeClient, {
         requestId: payload?.requestId,
@@ -1461,8 +1502,20 @@
       }));
     },
 
+    async confirmMcpWebReset(payload) {
+      return createEnvelope(await runMcpMutation(
+        API_PATHS.mcpConfirmWebReset,
+        {
+          requestId: payload?.requestId,
+          expectedStateVersion: payload?.expectedStateVersion,
+          reset_id: text(payload?.resetId).trim(),
+          confirmation: "RESET",
+        },
+      ));
+    },
+
     async confirmMcpReset() {
-      throw createMcpControlError("DESKTOP_CAPABILITY_REQUIRED", 403);
+      throw createMcpControlError("DESKTOP_CAPABILITY_REQUIRED", 428);
     },
 
     invalidatePackage(name) {

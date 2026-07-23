@@ -1,0 +1,52 @@
+{
+  "automated_test_count": 13,
+  "boundaries": {
+    "app_or_packaging_changed": false,
+    "business_directories_created": false,
+    "production_runtime_imported": false,
+    "real_data_opened": false,
+    "user_data_opened": false
+  },
+  "gate": "T1",
+  "negative_checks": {
+    "attach_rejected": true,
+    "caller_uri_injection": "covered_by_test",
+    "missing_and_permission_failure": "covered_by_test",
+    "outside_root_rejected_before_connect": true,
+    "symlink_escape": "covered_by_test",
+    "write_and_pragma": "covered_by_test"
+  },
+  "not_authorized": [
+    "T3",
+    "D0-Pilot data generation",
+    "M1",
+    "real data",
+    "user data",
+    "App integration",
+    "packaging"
+  ],
+  "platform": "Darwin",
+  "platform_result": "macOS local PASS / Windows pending",
+  "probe": {
+    "base_hash_after": "sha256:0ba7159bb0c2ba94e343080e28874a8c1555fbc208525e2c1b87cec1a756de33",
+    "base_hash_before": "sha256:0ba7159bb0c2ba94e343080e28874a8c1555fbc208525e2c1b87cec1a756de33",
+    "business_directories_created": 0,
+    "connect_events": [
+      {
+        "immutable": true,
+        "mode": "ro",
+        "target_kind": "synthetic_base",
+        "uri": true
+      }
+    ],
+    "database_count": 1,
+    "object_count": 3,
+    "production_runtime_imports": 0,
+    "public_or_metadata_count": 2,
+    "residual_sqlite_artifacts": 0,
+    "user_store_access_attempts": 0
+  },
+  "python_version": "3.14.4",
+  "sqlite_version": "3.53.0",
+  "status": "PASS"
+}

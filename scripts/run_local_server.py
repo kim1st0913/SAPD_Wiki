@@ -1784,6 +1784,19 @@ def configure_projection_api(runtime: BundleRuntime) -> None:
 
 
 def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: str) -> type[BaseHTTPRequestHandler]:
+    mcp_control_api = None
+    if projection_api is not None and hasattr(projection_api, "build_browser_control_api"):
+        host = str(state["host"])
+        port = int(state["port"])
+        expected_host = f"{host}:{port}"
+        mcp_control_api = projection_api.build_browser_control_api(
+            expected_host=expected_host,
+            expected_origin=f"http://{expected_host}",
+            session_token=session_token,
+            release_channel="stable",
+            configured_port=18775,
+        )
+
     class LocalHandler(BaseHTTPRequestHandler):
         server_version = "SAPDWikiZIPAlpha/0.1"
 
@@ -1798,6 +1811,37 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
             self.send_header("Cache-Control", "no-store")
             self.end_headers()
             self.wfile.write(body)
+
+        def handle_mcp_control(self, method: str, path: str) -> None:
+            if mcp_control_api is None:
+                self.send_json(
+                    503,
+                    {
+                        "contract_version": "sapd-mcp-control-v1",
+                        "error": {
+                            "code": "SUPERVISOR_UNAVAILABLE",
+                            "message": "The MCP supervisor is unavailable.",
+                            "retryable": True,
+                            "current_state_version": None,
+                        },
+                    },
+                )
+                return
+            length = int(self.headers.get("Content-Length", "0") or "0")
+            body = self.rfile.read(length) if length else None
+            response = mcp_control_api.dispatch(
+                method,
+                path,
+                {name: value for name, value in self.headers.items()},
+                body,
+            )
+            encoded = response.json_bytes()
+            self.send_response(response.status)
+            for name, value in response.headers.items():
+                self.send_header(name, value)
+            self.send_header("Content-Length", str(len(encoded)))
+            self.end_headers()
+            self.wfile.write(encoded)
 
         def send_json_download(self, status: int, data: Any, file_name: str) -> None:
             body = json_dumps(data)
@@ -1873,6 +1917,9 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
         def do_GET(self) -> None:
             parsed = urlparse(self.path)
             try:
+                if parsed.path.startswith("/api/v1/mcp/"):
+                    self.handle_mcp_control("GET", parsed.path)
+                    return
                 if parsed.path == "/api/v1/health":
                     port = int(state["port"])
                     if not is_allowed_host_header(self.headers.get("Host", ""), port):
@@ -2053,6 +2100,9 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
         def do_POST(self) -> None:
             parsed = urlparse(self.path)
             try:
+                if parsed.path.startswith("/api/v1/mcp/"):
+                    self.handle_mcp_control("POST", parsed.path)
+                    return
                 workspace_parts = self.user_workspace_parts(parsed.path)
                 is_workspace_create = workspace_parts == ["api", "v1", "user", "workspaces"]
                 is_workspace_item_create = len(workspace_parts) == 6 and workspace_parts[:4] == ["api", "v1", "user", "workspaces"] and workspace_parts[5] == "items"

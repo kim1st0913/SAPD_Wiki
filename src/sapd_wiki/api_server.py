@@ -14,6 +14,8 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, unquote, urlparse
 
+from .local_mcp.web_control import build_browser_control_api
+
 from .maturity import (
     build_maturity_workspace,
     calculate_maturity_assessment,
@@ -3954,6 +3956,9 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
         if parsed.path.startswith("/api/v1/"):
             if not self._require_api_host():
                 return
+            if parsed.path.startswith("/api/v1/mcp/"):
+                self._handle_mcp_control("GET", parsed.path)
+                return
             self._handle_api(parsed.path, parse_qs(parsed.query))
             return
         if parsed.path not in {"", "/"} and "." not in Path(parsed.path).name:
@@ -3966,6 +3971,9 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
 
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
+        if parsed.path.startswith("/api/v1/mcp/"):
+            self._handle_mcp_control("POST", parsed.path)
+            return
         supported_paths = {
             "/api/v1/user/favorites",
             "/api/v1/user/notes",
@@ -4125,6 +4133,38 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
             raise ValueError("JSON body must be an object")
         return payload
 
+    def _handle_mcp_control(self, method: str, path: str) -> None:
+        control_api = getattr(self.server, "sapd_mcp_control_api", None)
+        if control_api is None:
+            self._send_json(
+                {
+                    "contract_version": "sapd-mcp-control-v1",
+                    "error": {
+                        "code": "SUPERVISOR_UNAVAILABLE",
+                        "message": "The MCP supervisor is unavailable.",
+                        "retryable": True,
+                        "current_state_version": None,
+                    },
+                },
+                status=503,
+            )
+            return
+        length = int(self.headers.get("Content-Length", "0") or "0")
+        body = self.rfile.read(length) if length else None
+        response = control_api.dispatch(
+            method,
+            path,
+            {name: value for name, value in self.headers.items()},
+            body,
+        )
+        encoded = response.json_bytes()
+        self.send_response(response.status)
+        for name, value in response.headers.items():
+            self.send_header(name, value)
+        self.send_header("Content-Length", str(len(encoded)))
+        self.end_headers()
+        self.wfile.write(encoded)
+
     def _handle_api(self, path: str, query: dict[str, list[str]]) -> None:
         parts = [part for part in path.split("/") if part]
         try:
@@ -4240,6 +4280,15 @@ def serve(args: argparse.Namespace) -> None:
     handler = lambda *handler_args, **kwargs: SapdWikiRequestHandler(*handler_args, directory=str(static_dir), **kwargs)
     server = ThreadingHTTPServer((args.host, args.port), handler)
     server.sapd_session_token = secrets.token_urlsafe(32)
+    actual_port = int(server.server_address[1])
+    expected_host = f"{args.host}:{actual_port}"
+    server.sapd_mcp_control_api = build_browser_control_api(
+        expected_host=expected_host,
+        expected_origin=f"http://{expected_host}",
+        session_token=server.sapd_session_token,
+        release_channel="dev",
+        configured_port=28775,
+    )
     url = f"http://{args.host}:{args.port}"
     print(f"SAPD Wiki local API: {url}/api/v1/health")
     print(f"SAPD Wiki frontend:  {url}/")

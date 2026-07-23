@@ -1,6 +1,7 @@
 import Cocoa
 import SAPDWikiMCPControl
 
+@MainActor
 final class MCPMenuBarController: NSObject {
     private let supervisor: MCPSupervisor
     private let showMainWindow: () -> Void

@@ -1,6 +1,7 @@
 import Cocoa
 import SAPDWikiMCPControl
 
+@MainActor
 final class MCPAuthorizationPromptController {
     func present(request: MCPAuthorizationRequest, parentWindow: NSWindow?) {
         let alert = NSAlert()

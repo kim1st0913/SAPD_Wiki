@@ -24,7 +24,7 @@
 
 | 编号 | 状态 | 标题 |
 |---|---|---|
-| OI-199 | 批次 A PASS / 等待 L1 授权 | 本地 MCP 产品开发与客户端验证 |
+| OI-199 | 批次 B 已授权 / B0 进行中 | 本地 MCP 产品开发与客户端验证 |
 | OI-198 | 待实现 / 契约已确认 | 导入审批缺少幂等门禁、中间数据终结和 approved 默认导出契约 |
 | OI-197 | 待业务确认 / 映射门禁阻断 | 成熟度评分依据与当前能力字典尚未全量映射 |
 | OI-192 | 已修复 / 待用户验收 | 成熟度评分工作台服务、评分定义与主动作契约未按截图落地 |
@@ -54,19 +54,19 @@
 
 ## OI-199：本地 MCP 产品开发与客户端验证
 
-- 状态：批次 A PASS / 等待 L1 授权
+- 状态：批次 B 已授权 / B0 进行中
 - 严重性：高
 - 类型：架构 / 安全 / MCP / 隔离验证 / 治理
-- 对象或页面：四份 MCP 机器合同、正式只读知识服务、Sidecar、控制 API、Web AI 集成页面、macOS/Windows 桥接和客户端兼容矩阵。
-- 现象：v0.5 已通过 M0 评审，但正式实现前必须先冻结合同，并证明 synthetic base 只读、用户库零访问、业务目录零副作用以及协议 / 策略负向路径可执行。
-- 影响：若跳过合同与隔离验证，后续正式 Runtime 可能把实验性网络、密钥或数据访问路径接入生产启动链路。
+- 对象或页面：四份 MCP 机器合同、正式只读知识服务、Sidecar、控制 API、5173 AI 功能集成页面、当前 Codex 联调、macOS/Windows 运行时、打包和客户端兼容矩阵。
+- 现象：批次 A 已完成 synthetic 核心、协议、控制合同、Web 骨架和平台 fail-closed 边界，但 5173 尚未控制真实 Sidecar，真实授权闭环和当前 Codex 连接尚未完成；原 v0.1 把平台占位适配记为产品开发完成，阶段描述过宽。
+- 影响：若直接进入桌面或打包，会在 Web 协议、授权和页面状态尚未闭环时放大平台差异，且可能把平台模拟测试误当成真实可用证据。
 - 建单理由：涉及跨模块架构、安全、认证、数据边界和后续 App / packaging 门禁，必须保留阶段证据与授权边界。
-- 当前处理：G0、T0–T2 与批次 A 的 P0、D1–D6 已完成；当前停止在本地 `codex/local-mcp-product-development` 分支，未 push。
-- 需要确认：是否单独授权 L1 用户本机当前客户端验证及其具体客户端、配置、信任、前置快照与恢复范围；C1、D0 和 packaging 后续分别确认。
-- 验收入口：`docs/06-implementation/local-mcp-product-development-and-client-validation-plan-v0.1.md`。
-- 关闭条件：批次 A D1–D6 开发门禁通过，随后 L1 用户本机验证、C1 多版本/双平台矩阵和 D0/发布门禁按各自授权完成。
-- 修复说明：批次 A 只使用 synthetic fixture/SQLite；生产代码、Web/App 功能和本地阶段提交已获授权，不允许 push、真实客户端/信任/OAuth、D0、真实/用户数据或 packaging。
-- 验证结果：T0–T2 `53/53`、D1 `24/24`、D2 `19/19`、D3/Web `24/24`、Core↔Sidecar `3/3`、策略签名 `7/7`、Windows Electron `27/27`、macOS Swift `17/17`，macOS 完整 build 通过；Web 六区、宽/窄屏、synthetic 启停、桌面能力门禁和零 console error 验收通过。真实 / 用户数据访问、系统信任、真实客户端配置、真实 OAuth、packaging 与远程 push 均为 0；L1/C1/D0/R1 pending。
+- 当前处理：v0.2/v0.7 已冻结“Web 真实闭环 → 当前 Codex → 桌面运行时 → 打包 → 兼容矩阵 → 内容发布”顺序；用户已授权批次 B `B0–B5`，当前从 B0 干净集成开始，未 push。
+- 需要确认：批次 B 无新增确认项；若 B5 PASS，C1 真实 Codex 配置、系统信任、快照与恢复范围仍需单独确认。
+- 验收入口：`docs/06-implementation/local-mcp-web-first-development-and-client-validation-plan-v0.2.md`。
+- 关闭条件：B5 Web 真实闭环、C1 当前 Codex、D/E 桌面与实包、F 兼容矩阵及 D0/发布门禁按各自授权完成。
+- 修复说明：v0.1 和批次 A 保留为 synthetic 历史基线；v0.2 只调整后续执行顺序和阶段语义，不降低既有协议、TLS/OAuth、数据或用户库边界。
+- 验证结果：批次 B 审批记录已形成；B0–B5 实施与验收进行中。真实客户端、系统信任、桌面生产接线、packaging、D0、数据和远程写入仍为 0。
 
 ## OI-198：导入审批缺少幂等门禁、中间数据终结和 approved 默认导出契约
 

@@ -1,8 +1,10 @@
 # SAPD Wiki 本地 MCP：产品开发、本机验证与客户端兼容计划 v0.1
 
+> 历史状态：批次 A synthetic-only 验收记录保留；后续执行顺序已由 `local-mcp-web-first-development-and-client-validation-plan-v0.2.md` 覆盖，不得再从本文件直接进入 L1。
+
 | 项目 | 内容 |
 |---|---|
-| 状态 | `BATCH A PASS / D6 PASS / L1 NOT AUTHORIZED` |
+| 状态 | `HISTORICAL BATCH A SYNTHETIC PASS / SUPERSEDED BY v0.2` |
 | 日期 | 2026-07-23 |
 | 当前技术基线 | D1–D6 synthetic-only 产品开发完成；T0–T2 `53/53 PASS` |
 | 现行设计基线 | `docs/01-architecture/sapd-wiki-local-mcp-requirements-and-prd-v0.5.md` |
@@ -57,7 +59,7 @@
 | D2 MCP Sidecar | 实现正式 Transport、OAuth、TLS、Tool 和控制面 | MCP 服务功能完整 |
 | D3 控制接口 | 建立 Web/App 共用的安全状态与控制 API | 前端不直接操作进程、密钥或 OAuth Token |
 | D4 Web 配置功能 | 完成“系统设置 → AI 集成”页面和完整 Web 交互 | Web 开发环境功能完成 |
-| D5 双平台控制桥接 | 完成 macOS/Windows Supervisor 与系统能力适配 | 产品开发整体完成 |
+| D5 双平台控制桥接 | 完成 macOS/Windows Supervisor 与系统能力适配 | 历史口径；v0.2 校准为平台边界与模拟适配完成 |
 | D6 开发完成门禁 | 自动化、浏览器、边界和恢复测试 | 进入本机真实验证 |
 | L1 本机开发环境验证 | 在用户本机、当前客户端上完整验收 | 当前环境可用 |
 | C1 客户端兼容验证 | 验证不同客户端版本、入口和双平台 | 形成支持矩阵 |

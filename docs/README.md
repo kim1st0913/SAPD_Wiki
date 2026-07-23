@@ -47,14 +47,16 @@
 
 优先看：
 
-1. `01-architecture/sapd-wiki-local-mcp-development-gate-addendum-v0.6.md`
-2. `06-implementation/local-mcp-product-development-and-client-validation-plan-v0.1.md`
-3. `07-governance/approvals/local-mcp-batch-a-development-approval-2026-07-23.md`
-4. `01-architecture/sapd-wiki-local-mcp-requirements-and-prd-v0.5.md`
-5. `01-architecture/contracts/mcp/`
-6. `06-implementation/local-mcp-m0t-t0-t2-execution-plan.md`
+1. `01-architecture/sapd-wiki-local-mcp-development-gate-addendum-v0.7.md`
+2. `06-implementation/local-mcp-web-first-development-and-client-validation-plan-v0.2.md`
+3. `01-architecture/sapd-wiki-local-mcp-development-gate-addendum-v0.6.md`
+4. `06-implementation/local-mcp-product-development-and-client-validation-plan-v0.1.md`
+5. `07-governance/approvals/local-mcp-batch-a-development-approval-2026-07-23.md`
+6. `01-architecture/sapd-wiki-local-mcp-requirements-and-prd-v0.5.md`
+7. `01-architecture/contracts/mcp/`
+8. `06-implementation/local-mcp-m0t-t0-t2-execution-plan.md`
 
-当前授权批次 A：`P0 → D1 → D2 → D3 → D4 → D5 → D6`，只使用 synthetic 数据。不得据此进入用户本机真实客户端验证、系统信任写入、D0、真实/用户数据或 packaging；不授权 push。
+当前批次 A 只作为 synthetic-only 历史基线。Web 真实闭环批次 B `B0 → B1 → B2 → B3 → B4 → B5` 已获授权并从 B0 开始；当前 Codex 真实配置/信任、macOS/Windows 生产适配与打包、D0、真实/用户数据和 push 均继续后置。
 
 ## 要做测试、回归或发布前验收
 

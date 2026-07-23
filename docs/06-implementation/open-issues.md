@@ -24,7 +24,7 @@
 
 | 编号 | 状态 | 标题 |
 |---|---|---|
-| OI-199 | T0-T2 完成 / 等待新授权 | 本地 MCP M0-T T0–T2 隔离技术验证 |
+| OI-199 | 批次 A 开发中 / P0 | 本地 MCP 产品开发与客户端验证 |
 | OI-198 | 待实现 / 契约已确认 | 导入审批缺少幂等门禁、中间数据终结和 approved 默认导出契约 |
 | OI-197 | 待业务确认 / 映射门禁阻断 | 成熟度评分依据与当前能力字典尚未全量映射 |
 | OI-192 | 已修复 / 待用户验收 | 成熟度评分工作台服务、评分定义与主动作契约未按截图落地 |
@@ -52,20 +52,20 @@
 
 ## 当前问题详情
 
-## OI-199：本地 MCP M0-T T0–T2 隔离技术验证
+## OI-199：本地 MCP 产品开发与客户端验证
 
-- 状态：T0-T2 完成 / 等待新授权
+- 状态：批次 A 开发中 / P0
 - 严重性：高
 - 类型：架构 / 安全 / MCP / 隔离验证 / 治理
-- 对象或页面：四份 MCP 机器合同、synthetic fixture、只读 Runtime probe、loopback HTTPS / OAuth / Tool harness。
+- 对象或页面：四份 MCP 机器合同、正式只读知识服务、Sidecar、控制 API、Web AI 集成页面、macOS/Windows 桥接和客户端兼容矩阵。
 - 现象：v0.5 已通过 M0 评审，但正式实现前必须先冻结合同，并证明 synthetic base 只读、用户库零访问、业务目录零副作用以及协议 / 策略负向路径可执行。
 - 影响：若跳过合同与隔离验证，后续正式 Runtime 可能把实验性网络、密钥或数据访问路径接入生产启动链路。
 - 建单理由：涉及跨模块架构、安全、认证、数据边界和后续 App / packaging 门禁，必须保留阶段证据与授权边界。
-- 当前处理：G0、T0、T1、T2 已在独立 `codex/local-mcp-m0t` 完成并形成本地阶段提交。当前已按授权停止，不进入 T3、D0 或 M1。
-- 需要确认：T0–T2 完成后仍需单独确认是否进入 T3；本轮不得生成 D0 数据或创建 M1 正式实现计划。
-- 验收入口：`docs/06-implementation/local-mcp-m0t-t0-t2-execution-plan.md`。
-- 关闭条件：G0、T0、T1、T2 各自合同、测试和阶段提交通过，并清楚保留 T3 / D0 / M1 未授权状态；完成 T0–T2 不等于 M0-T 总体 PASS。
-- 修复说明：本轮写入仅限 G0 治理文档以及 `docs/01-architecture/contracts/mcp/**`、`tests/fixtures/mcp/**`、`spikes/local-mcp/**`。
+- 当前处理：G0、T0、T1、T2 已完成。用户已确认 v0.1 计划批次 A，当前在 `codex/local-mcp-product-development` 执行 P0 门禁和干净基线，后续依次进入 D1–D6。
+- 需要确认：批次 A 不再需要额外业务确认；D6 通过后必须停止，用户本机真实客户端验证、系统信任、D0 和 packaging 仍需分别确认。
+- 验收入口：`docs/06-implementation/local-mcp-product-development-and-client-validation-plan-v0.1.md`。
+- 关闭条件：批次 A D1–D6 开发门禁通过，随后 L1 用户本机验证、C1 多版本/双平台矩阵和 D0/发布门禁按各自授权完成。
+- 修复说明：批次 A 只使用 synthetic fixture/SQLite；生产代码、Web/App 功能和本地阶段提交已获授权，不允许 push、真实客户端/信任/OAuth、D0、真实/用户数据或 packaging。
 - 验证结果：T0 `6/6`、T1 `13/13`、T2 `34/34`，合并回归 `53/53`；branch allowlist、提交制品 / secret、生产 import、端口与临时证书清理审计通过。macOS 本机隔离结果为 PASS；Windows 和 T3 真实 Codex 客户端 pending。真实 / 用户数据访问、系统信任、真实客户端配置、App / packaging 与远程 push 均为 0。
 
 ## OI-198：导入审批缺少幂等门禁、中间数据终结和 approved 默认导出契约

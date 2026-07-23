@@ -47,12 +47,14 @@
 
 优先看：
 
-1. `01-architecture/sapd-wiki-local-mcp-requirements-and-prd-v0.5.md`
-2. `06-implementation/local-mcp-m0t-t0-t2-execution-plan.md`
-3. `07-governance/approvals/local-mcp-m0t-t0-t2-approval-2026-07-23.md`
-4. `01-architecture/contracts/mcp/`（T0 开始后生成）
+1. `01-architecture/sapd-wiki-local-mcp-development-gate-addendum-v0.6.md`
+2. `06-implementation/local-mcp-product-development-and-client-validation-plan-v0.1.md`
+3. `07-governance/approvals/local-mcp-batch-a-development-approval-2026-07-23.md`
+4. `01-architecture/sapd-wiki-local-mcp-requirements-and-prd-v0.5.md`
+5. `01-architecture/contracts/mcp/`
+6. `06-implementation/local-mcp-m0t-t0-t2-execution-plan.md`
 
-当前仅授权隔离的 G0 与 T0–T2。不得据此进入 T3、D0、M1、真实数据、用户数据、App integration 或 packaging。
+当前授权批次 A：`P0 → D1 → D2 → D3 → D4 → D5 → D6`，只使用 synthetic 数据。不得据此进入用户本机真实客户端验证、系统信任写入、D0、真实/用户数据或 packaging；不授权 push。
 
 ## 要做测试、回归或发布前验收
 

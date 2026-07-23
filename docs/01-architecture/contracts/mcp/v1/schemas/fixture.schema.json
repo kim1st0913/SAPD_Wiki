@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "fixture://schemas/mcp-fixture-v1",
+  "title": "SAPD MCP shared synthetic fixture",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "fixture_schema_version",
+    "fixture_id",
+    "fixture_revision",
+    "fixture_hash",
+    "contains_real_data",
+    "case_class",
+    "coverage",
+    "canonical_ref",
+    "provenance",
+    "contract_versions",
+    "knowledge_version",
+    "identity_version",
+    "policy_version",
+    "input",
+    "expected_policy_decision",
+    "expected_tool_visibility",
+    "expected_error",
+    "expected_runtime_state",
+    "expected_side_effects",
+    "expected_observability"
+  ],
+  "properties": {
+    "fixture_schema_version": { "const": "1.0.0" },
+    "fixture_id": { "type": "string", "pattern": "^m0t\\.v1\\.[a-z0-9-]+\\.[a-z0-9-]+$" },
+    "fixture_revision": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+    "fixture_hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "contains_real_data": { "const": false },
+    "case_class": {
+      "enum": [
+        "data-policy",
+        "relation",
+        "redirect",
+        "identity",
+        "input-validation",
+        "integrity",
+        "prompt-injection",
+        "user-store-trap",
+        "runtime-secret-transport",
+        "protocol"
+      ]
+    },
+    "coverage": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "canonical_ref": { "type": "string", "pattern": "^fixture://[a-z0-9./_-]+$" },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "source_ref"],
+      "properties": {
+        "kind": { "const": "hand_authored_synthetic" },
+        "source_ref": { "type": "string", "pattern": "^fixture://provenance/[a-z0-9-]+$" }
+      }
+    },
+    "contract_versions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["auth", "data_policy", "runtime_state", "protocol_tools"],
+      "properties": {
+        "auth": { "const": "MCP-AUTH-v1" },
+        "data_policy": { "const": "MCP-DATA-POLICY-v1" },
+        "runtime_state": { "const": "MCP-RUNTIME-STATE-v1" },
+        "protocol_tools": { "const": "MCP-PROTOCOL-TOOLS-v1" }
+      }
+    },
+    "knowledge_version": { "const": "fixture-knowledge-v1" },
+    "identity_version": { "const": "fixture-identity-v1" },
+    "policy_version": { "const": "fixture-policy-v1" },
+    "input": { "type": "object" },
+    "expected_policy_decision": { "enum": ["allow", "metadata_only", "deny", "blocked", "not_ready", "stale"] },
+    "expected_tool_visibility": { "enum": ["visible", "metadata_only", "hidden", "blocked"] },
+    "expected_error": { "type": ["string", "null"], "pattern": "^[A-Z0-9_]+$" },
+    "expected_runtime_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["service_state", "knowledge_state", "secret_transport_state"],
+      "properties": {
+        "service_state": { "enum": ["stopped", "ready", "error"] },
+        "knowledge_state": { "enum": ["ready", "degraded", "blocked"] },
+        "secret_transport_state": { "enum": ["not_applicable", "ready", "blocked"] }
+      }
+    },
+    "expected_side_effects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["user_store_access_attempts", "business_directories_created", "production_runtime_imports"],
+      "properties": {
+        "user_store_access_attempts": { "const": 0 },
+        "business_directories_created": { "const": 0 },
+        "production_runtime_imports": { "const": 0 }
+      }
+    },
+    "expected_observability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["audit_event", "secret_material_logged", "hidden_counts_disclosed"],
+      "properties": {
+        "audit_event": { "type": "string", "pattern": "^[A-Z0-9_]+$" },
+        "secret_material_logged": { "const": false },
+        "hidden_counts_disclosed": { "const": false }
+      }
+    }
+  }
+}

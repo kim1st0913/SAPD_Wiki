@@ -1,0 +1,114 @@
+{
+  "schema_version": "mcp-contract-schema-v1",
+  "contract_id": "MCP-PROTOCOL-TOOLS-v1",
+  "contract_version": "1.0.0",
+  "protocol_version": "2025-11-25",
+  "transport": {
+    "endpoint": "/mcp",
+    "request_method": "POST",
+    "response_media_type": "application/json",
+    "notification_status": 202,
+    "get_status": 405,
+    "delete_status": 405,
+    "session_id": false,
+    "sse": false,
+    "server_notifications": false
+  },
+  "request_security": {
+    "canonical_host_only": true,
+    "origin_exact_if_present": true,
+    "tls_required": true,
+    "bearer_required": true,
+    "resource_audience_required": true,
+    "cancellation_owner_only": true
+  },
+  "limits": {
+    "header_bytes": 8192,
+    "request_bytes": 32768,
+    "response_bytes": 65536,
+    "concurrent_requests": 4,
+    "timeout_seconds": 30
+  },
+  "tools": [
+    {
+      "name": "search_knowledge",
+      "readonly": true,
+      "additional_properties": false,
+      "default_items": 8,
+      "max_items": 15,
+      "text_character_target": 6000
+    },
+    {
+      "name": "get_knowledge_object",
+      "readonly": true,
+      "additional_properties": false,
+      "default_items": 1,
+      "max_items": 1,
+      "text_character_target": 8000
+    },
+    {
+      "name": "get_related_knowledge",
+      "readonly": true,
+      "additional_properties": false,
+      "default_items": 15,
+      "max_items": 30,
+      "text_character_target": 8000
+    },
+    {
+      "name": "get_source_evidence",
+      "readonly": true,
+      "additional_properties": false,
+      "default_items": 8,
+      "max_items": 15,
+      "text_character_target": 4000
+    },
+    {
+      "name": "get_knowledge_version",
+      "readonly": true,
+      "additional_properties": false,
+      "default_items": 1,
+      "max_items": 1,
+      "text_character_target": 2000
+    }
+  ],
+  "cursor": {
+    "opaque": true,
+    "integrity": "HMAC",
+    "bindings": [
+      "tool",
+      "normalized_parameters",
+      "client",
+      "grant",
+      "scope",
+      "policy_version",
+      "knowledge_version",
+      "identity_version",
+      "sort_version",
+      "last_sort_key",
+      "issued_at"
+    ],
+    "version_change_error": "CURSOR_STALE"
+  },
+  "output_contract": {
+    "contract_version": "sapd-mcp-tools-v1",
+    "source_channel": "sapd_wiki",
+    "content_trust": "untrusted_reference",
+    "dynamic_server_instructions": false,
+    "response_truncation": false
+  },
+  "errors": [
+    "INVALID_INPUT",
+    "OBJECT_NOT_AVAILABLE",
+    "RESPONSE_TOO_LARGE",
+    "CURSOR_STALE",
+    "RATE_LIMITED",
+    "REQUEST_TIMEOUT",
+    "POLICY_BLOCKED",
+    "PROTOCOL_VERSION_UNSUPPORTED"
+  ],
+  "references": {
+    "auth": "MCP-AUTH-v1",
+    "data_policy": "MCP-DATA-POLICY-v1",
+    "runtime_state": "MCP-RUNTIME-STATE-v1"
+  }
+}

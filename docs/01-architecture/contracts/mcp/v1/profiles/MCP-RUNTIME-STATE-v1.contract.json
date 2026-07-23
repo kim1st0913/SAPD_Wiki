@@ -1,0 +1,106 @@
+{
+  "schema_version": "mcp-contract-schema-v1",
+  "contract_id": "MCP-RUNTIME-STATE-v1",
+  "contract_version": "1.0.0",
+  "ports": {
+    "stable": 18775,
+    "beta": 18776,
+    "dev": 28775,
+    "random_fallback": false
+  },
+  "state_dimensions": {
+    "desired_state": [
+      "disabled",
+      "enabled"
+    ],
+    "service_state": [
+      "stopped",
+      "starting",
+      "ready",
+      "stopping",
+      "error"
+    ],
+    "authorization_state": [
+      "no_clients",
+      "pending",
+      "authorized",
+      "revoked",
+      "error"
+    ],
+    "activity_state": [
+      "never",
+      "idle",
+      "recent"
+    ],
+    "knowledge_state": [
+      "ready",
+      "degraded",
+      "blocked"
+    ],
+    "audit_state": [
+      "disabled",
+      "ready",
+      "degraded"
+    ]
+  },
+  "instance_identity": [
+    "os_user",
+    "installation_id",
+    "runtime_id",
+    "release_channel",
+    "app_version",
+    "instance_id",
+    "pid",
+    "process_start_time",
+    "executable_content_hash",
+    "configured_port",
+    "lease_epoch",
+    "heartbeat_time"
+  ],
+  "ownership_rules": {
+    "pid_alone_sufficient": false,
+    "kill_on_ambiguous_owner": false,
+    "stale_lease_requires_full_identity": true
+  },
+  "tls_key_custody": {
+    "candidates": [
+      "encrypted_pkcs8_pem",
+      "app_tls_termination",
+      "signed_helper",
+      "native_key_provider"
+    ],
+    "preferred_comparison": "encrypted_pkcs8_pem",
+    "plaintext_private_key_allowed": false,
+    "passphrase_forbidden_channels": [
+      "cli",
+      "environment",
+      "ordinary_file",
+      "clipboard",
+      "log",
+      "diagnostics"
+    ]
+  },
+  "unsafe_secret_transport": {
+    "error_code": "KEY_PASSPHRASE_IPC_UNSAFE",
+    "service_state": "error",
+    "knowledge_state": "blocked",
+    "secret_transport_state": "blocked",
+    "required_checks": [
+      "authenticated",
+      "instance_bound",
+      "peer_user_verified",
+      "peer_process_verified",
+      "minimum_acl"
+    ]
+  },
+  "t3_authorization": {
+    "real_client_config": false,
+    "system_trust_write": false,
+    "real_oauth_state": false
+  },
+  "references": {
+    "auth": "MCP-AUTH-v1",
+    "data_policy": "MCP-DATA-POLICY-v1",
+    "protocol_tools": "MCP-PROTOCOL-TOOLS-v1"
+  }
+}

@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "fixture://schemas/mcp-runtime-state-v1",
+  "title": "MCP-RUNTIME-STATE-v1 profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "contract_id",
+    "contract_version",
+    "ports",
+    "state_dimensions",
+    "instance_identity",
+    "ownership_rules",
+    "tls_key_custody",
+    "unsafe_secret_transport",
+    "t3_authorization",
+    "references"
+  ],
+  "properties": {
+    "schema_version": { "const": "mcp-contract-schema-v1" },
+    "contract_id": { "const": "MCP-RUNTIME-STATE-v1" },
+    "contract_version": { "type": "string", "pattern": "^1\\.[0-9]+\\.[0-9]+$" },
+    "ports": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stable", "beta", "dev", "random_fallback"],
+      "properties": {
+        "stable": { "const": 18775 },
+        "beta": { "const": 18776 },
+        "dev": { "const": 28775 },
+        "random_fallback": { "const": false }
+      }
+    },
+    "state_dimensions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["desired_state", "service_state", "authorization_state", "activity_state", "knowledge_state", "audit_state"],
+      "properties": {
+        "desired_state": { "type": "array", "items": { "enum": ["disabled", "enabled"] }, "minItems": 2, "uniqueItems": true },
+        "service_state": { "type": "array", "items": { "enum": ["stopped", "starting", "ready", "stopping", "error"] }, "minItems": 5, "uniqueItems": true },
+        "authorization_state": { "type": "array", "items": { "enum": ["no_clients", "pending", "authorized", "revoked", "error"] }, "minItems": 5, "uniqueItems": true },
+        "activity_state": { "type": "array", "items": { "enum": ["never", "idle", "recent"] }, "minItems": 3, "uniqueItems": true },
+        "knowledge_state": { "type": "array", "items": { "enum": ["ready", "degraded", "blocked"] }, "minItems": 3, "uniqueItems": true },
+        "audit_state": { "type": "array", "items": { "enum": ["disabled", "ready", "degraded"] }, "minItems": 3, "uniqueItems": true }
+      }
+    },
+    "instance_identity": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "os_user",
+          "installation_id",
+          "runtime_id",
+          "release_channel",
+          "app_version",
+          "instance_id",
+          "pid",
+          "process_start_time",
+          "executable_content_hash",
+          "configured_port",
+          "lease_epoch",
+          "heartbeat_time"
+        ]
+      },
+      "minItems": 12,
+      "uniqueItems": true
+    },
+    "ownership_rules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pid_alone_sufficient", "kill_on_ambiguous_owner", "stale_lease_requires_full_identity"],
+      "properties": {
+        "pid_alone_sufficient": { "const": false },
+        "kill_on_ambiguous_owner": { "const": false },
+        "stale_lease_requires_full_identity": { "const": true }
+      }
+    },
+    "tls_key_custody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["candidates", "preferred_comparison", "plaintext_private_key_allowed", "passphrase_forbidden_channels"],
+      "properties": {
+        "candidates": {
+          "type": "array",
+          "items": { "enum": ["encrypted_pkcs8_pem", "app_tls_termination", "signed_helper", "native_key_provider"] },
+          "minItems": 4,
+          "uniqueItems": true
+        },
+        "preferred_comparison": { "const": "encrypted_pkcs8_pem" },
+        "plaintext_private_key_allowed": { "const": false },
+        "passphrase_forbidden_channels": {
+          "type": "array",
+          "items": { "enum": ["cli", "environment", "ordinary_file", "clipboard", "log", "diagnostics"] },
+          "minItems": 6,
+          "uniqueItems": true
+        }
+      }
+    },
+    "unsafe_secret_transport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["error_code", "service_state", "knowledge_state", "secret_transport_state", "required_checks"],
+      "properties": {
+        "error_code": { "const": "KEY_PASSPHRASE_IPC_UNSAFE" },
+        "service_state": { "const": "error" },
+        "knowledge_state": { "const": "blocked" },
+        "secret_transport_state": { "const": "blocked" },
+        "required_checks": {
+          "type": "array",
+          "items": { "enum": ["authenticated", "instance_bound", "peer_user_verified", "peer_process_verified", "minimum_acl"] },
+          "minItems": 5,
+          "uniqueItems": true
+        }
+      }
+    },
+    "t3_authorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["real_client_config", "system_trust_write", "real_oauth_state"],
+      "properties": {
+        "real_client_config": { "const": false },
+        "system_trust_write": { "const": false },
+        "real_oauth_state": { "const": false }
+      }
+    },
+    "references": { "$ref": "#/$defs/references" }
+  },
+  "$defs": {
+    "references": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["auth", "data_policy", "protocol_tools"],
+      "properties": {
+        "auth": { "const": "MCP-AUTH-v1" },
+        "data_policy": { "const": "MCP-DATA-POLICY-v1" },
+        "protocol_tools": { "const": "MCP-PROTOCOL-TOOLS-v1" }
+      }
+    }
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "contract_set_version": "sapd-local-mcp-m0t-v1",
+  "schema_draft": "https://json-schema.org/draft/2020-12/schema",
+  "profiles": [
+    {
+      "contract_id": "MCP-AUTH-v1",
+      "contract_version": "1.0.0",
+      "profile": "profiles/MCP-AUTH-v1.contract.json",
+      "schema": "schemas/auth.schema.json",
+      "digest": "sha256:7c07855e095680bc0fcc0c6224336c817b85eed55a94d343e1918a37299ac799"
+    },
+    {
+      "contract_id": "MCP-DATA-POLICY-v1",
+      "contract_version": "1.0.0",
+      "profile": "profiles/MCP-DATA-POLICY-v1.contract.json",
+      "schema": "schemas/data-policy.schema.json",
+      "digest": "sha256:430557b813f0bb53a7b9740eea42719c3322a116c0aa8491afcd60baad7e5932"
+    },
+    {
+      "contract_id": "MCP-RUNTIME-STATE-v1",
+      "contract_version": "1.0.0",
+      "profile": "profiles/MCP-RUNTIME-STATE-v1.contract.json",
+      "schema": "schemas/runtime-state.schema.json",
+      "digest": "sha256:24fcd488e753312a66d5680351ce509d3e6f7de1b267b94a3cf19d8bcaad56cc"
+    },
+    {
+      "contract_id": "MCP-PROTOCOL-TOOLS-v1",
+      "contract_version": "1.0.0",
+      "profile": "profiles/MCP-PROTOCOL-TOOLS-v1.contract.json",
+      "schema": "schemas/protocol-tools.schema.json",
+      "digest": "sha256:bd1f8ec06fa2a4db468b04c1855d48e0ea3ee2af9297d28a168809d4116ae766"
+    }
+  ],
+  "shared_schemas": {
+    "fixture": "schemas/fixture.schema.json",
+    "public_summary": "schemas/public-summary.schema.json"
+  },
+  "dependency_lock": "../../../../../spikes/local-mcp/requirements-m0t.lock",
+  "required_dependency_versions": {
+    "jsonschema": "4.26.0",
+    "rfc8785": "0.1.4",
+    "mcp": "1.28.1"
+  },
+  "cross_contract_rules": [
+    "all_profiles_reference_the_other_three_contracts",
+    "unknown_object_relation_client_or_version_fails_closed",
+    "only_scope_sapd_base_public_summary_read_is_allowed",
+    "fixture_manifest_binds_all_four_profile_digests",
+    "t0_t2_do_not_authorize_t3_d0_m1_app_or_packaging"
+  ]
+}

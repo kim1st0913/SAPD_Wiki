@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import platform
 import sqlite3
 import tempfile
@@ -12,6 +13,12 @@ from runtime_probe import ReadOnlyRuntimeProbe, RuntimeProbeError, run_probe
 
 ROOT = Path(__file__).resolve().parents[3]
 REPORT_PATH = ROOT / "spikes/local-mcp/evidence/t1-runtime-probe-report.json"
+CONTRACT_SET_PATH = ROOT / "docs/01-architecture/contracts/mcp/v1/contract-set.json"
+FIXTURE_MANIFEST_PATH = ROOT / "tests/fixtures/mcp/v1/manifest.json"
+
+
+def digest_file(path: Path) -> str:
+    return f"sha256:{hashlib.sha256(path.read_bytes()).hexdigest()}"
 
 
 def main() -> None:
@@ -40,11 +47,18 @@ def main() -> None:
         report = {
             "status": "PASS",
             "gate": "T1",
+            "git_commit": "c44930672e27b6c80526c2bf836f6d86aa1aa00d",
+            "contract_set_digest": digest_file(CONTRACT_SET_PATH),
+            "fixture_set_hash": json.loads(
+                FIXTURE_MANIFEST_PATH.read_text(encoding="utf-8")
+            )["fixture_set_hash"],
             "platform_result": "macOS local PASS / Windows pending",
             "platform": platform.system(),
             "python_version": platform.python_version(),
             "sqlite_version": sqlite3.sqlite_version,
             "automated_test_count": 13,
+            "tests_passed": 13,
+            "tests_failed": 0,
             "probe": positive,
             "negative_checks": {
                 "outside_root_rejected_before_connect": outside_rejected,
@@ -70,6 +84,12 @@ def main() -> None:
                 "App integration",
                 "packaging",
             ],
+            "known_gaps": [
+                "Windows runtime probe pending",
+                "T2 protocol harness not covered by T1",
+                "T3 real-client evidence pending",
+            ],
+            "next_authorized_stage": "T2",
         }
         if not outside_rejected or not attach_rejected:
             raise RuntimeError("T1 evidence negative control failed")

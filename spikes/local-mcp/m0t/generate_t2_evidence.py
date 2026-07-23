@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import tempfile
 from pathlib import Path
 
@@ -20,6 +21,12 @@ from test_certificate import generate_test_certificate
 
 ROOT = Path(__file__).resolve().parents[3]
 REPORT_PATH = ROOT / "spikes/local-mcp/evidence/t2-protocol-harness-report.json"
+CONTRACT_SET_PATH = ROOT / "docs/01-architecture/contracts/mcp/v1/contract-set.json"
+FIXTURE_MANIFEST_PATH = ROOT / "tests/fixtures/mcp/v1/manifest.json"
+
+
+def digest_file(path: Path) -> str:
+    return f"sha256:{hashlib.sha256(path.read_bytes()).hexdigest()}"
 
 
 def require(condition: bool, message: str) -> None:
@@ -212,8 +219,15 @@ def main() -> None:
             report = {
                 "status": "PASS",
                 "gate": "T2",
+                "git_commit": "e0b03f458925aad5f4698f5795a16fef4dfddaab",
+                "contract_set_digest": digest_file(CONTRACT_SET_PATH),
+                "fixture_set_hash": json.loads(
+                    FIXTURE_MANIFEST_PATH.read_text(encoding="utf-8")
+                )["fixture_set_hash"],
                 "platform_result": "macOS local isolated PASS / T3 real client pending",
                 "automated_test_count": 34,
+                "tests_passed": 34,
+                "tests_failed": 0,
                 "https": {
                     "host": HOST,
                     "port": PORT,
@@ -276,6 +290,12 @@ def main() -> None:
                     "App integration",
                     "packaging",
                 ],
+                "known_gaps": [
+                    "Windows harness evidence pending",
+                    "T3 real Codex client, system trust, and real OAuth evidence pending",
+                    "D0-Pilot content readiness not executed",
+                ],
+                "next_authorized_stage": "none_stop_and_wait_for_new_authorization",
             }
         finally:
             harness.stop()

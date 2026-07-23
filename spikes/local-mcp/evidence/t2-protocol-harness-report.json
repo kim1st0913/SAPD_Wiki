@@ -5,7 +5,10 @@
     "loopback_port_released": true,
     "temporary_directory_removed": true
   },
+  "contract_set_digest": "sha256:ac07a4137b4ddc409f06f997d2a023915a249c2b8afe4fe78bbc44ec0a6218fa",
+  "fixture_set_hash": "sha256:6252a69a50341bfb2f63eb032fc353d22ab5661acf3258e0d3f8e885b97da831",
   "gate": "T2",
+  "git_commit": "e0b03f458925aad5f4698f5795a16fef4dfddaab",
   "https": {
     "encrypted_pkcs8_private_key": true,
     "explicit_test_ca": true,
@@ -17,7 +20,13 @@
     "private_key_mode": "0o600",
     "system_trust_modified": false
   },
+  "known_gaps": [
+    "Windows harness evidence pending",
+    "T3 real Codex client, system trust, and real OAuth evidence pending",
+    "D0-Pilot content readiness not executed"
+  ],
   "m0_t_total_status": "NOT_COMPLETE_T3_AND_WINDOWS_PENDING",
+  "next_authorized_stage": "none_stop_and_wait_for_new_authorization",
   "not_authorized": [
     "push",
     "T3",
@@ -51,6 +60,8 @@
     "user_store_access_attempts": 0
   },
   "status": "PASS",
+  "tests_failed": 0,
+  "tests_passed": 34,
   "transport": {
     "bad_origin_status": 403,
     "bad_protocol_version_status": 400,

@@ -7,7 +7,15 @@
     "real_data_opened": false,
     "user_data_opened": false
   },
+  "contract_set_digest": "sha256:ac07a4137b4ddc409f06f997d2a023915a249c2b8afe4fe78bbc44ec0a6218fa",
+  "fixture_set_hash": "sha256:6252a69a50341bfb2f63eb032fc353d22ab5661acf3258e0d3f8e885b97da831",
   "gate": "T1",
+  "git_commit": "c44930672e27b6c80526c2bf836f6d86aa1aa00d",
+  "known_gaps": [
+    "Windows runtime probe pending",
+    "T2 protocol harness not covered by T1",
+    "T3 real-client evidence pending"
+  ],
   "negative_checks": {
     "attach_rejected": true,
     "caller_uri_injection": "covered_by_test",
@@ -16,6 +24,7 @@
     "symlink_escape": "covered_by_test",
     "write_and_pragma": "covered_by_test"
   },
+  "next_authorized_stage": "T2",
   "not_authorized": [
     "T3",
     "D0-Pilot data generation",
@@ -48,5 +57,7 @@
   },
   "python_version": "3.14.4",
   "sqlite_version": "3.53.0",
-  "status": "PASS"
+  "status": "PASS",
+  "tests_failed": 0,
+  "tests_passed": 13
 }

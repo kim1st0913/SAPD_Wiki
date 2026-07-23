@@ -51,6 +51,7 @@
     "MCP-PROTOCOL-TOOLS-v1": "sha256:bd1f8ec06fa2a4db468b04c1855d48e0ea3ee2af9297d28a168809d4116ae766",
     "MCP-RUNTIME-STATE-v1": "sha256:24fcd488e753312a66d5680351ce509d3e6f7de1b267b94a3cf19d8bcaad56cc"
   },
+  "contract_set_digest": "sha256:ac07a4137b4ddc409f06f997d2a023915a249c2b8afe4fe78bbc44ec0a6218fa",
   "dependencies": {
     "jsonschema": {
       "version": "4.26.0",
@@ -68,6 +69,13 @@
   "fixture_count": 30,
   "fixture_set_hash": "sha256:6252a69a50341bfb2f63eb032fc353d22ab5661acf3258e0d3f8e885b97da831",
   "gate": "T0",
+  "git_commit": "80df546feac1a34f8184cdd720dd57033fc87216",
+  "known_gaps": [
+    "T1 runtime probe not covered by T0",
+    "T2 protocol harness not covered by T0",
+    "Windows and T3 real-client evidence pending"
+  ],
+  "next_authorized_stage": "T1",
   "not_authorized": [
     "push",
     "T3",
@@ -80,5 +88,7 @@
   ],
   "schema_count": 6,
   "scope": "isolated_contracts_and_synthetic_fixtures_only",
-  "status": "PASS"
+  "status": "PASS",
+  "tests_failed": 0,
+  "tests_passed": 6
 }

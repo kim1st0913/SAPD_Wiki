@@ -2,7 +2,7 @@
 
 | 项目 | 内容 |
 |---|---|
-| 状态 | `APPROVED / EXECUTING G0` |
+| 状态 | `T0–T2 COMPLETE / STOPPED BEFORE T3` |
 | 日期 | 2026-07-23 |
 | 权威设计 | `docs/01-architecture/sapd-wiki-local-mcp-requirements-and-prd-v0.5.md` |
 | 跟踪问题 | `OI-199` |

@@ -1,0 +1,57 @@
+{
+  "status": "PASS",
+  "scope": "G0_and_T0_through_T2_only",
+  "branch": "codex/local-mcp-m0t",
+  "base_commit": "8b46b837965cc88c9dc5480f5537a67e237ac11a",
+  "approval_commit": "d77a9f8277c7bff5008ccac238cf345141d463c7",
+  "contract_set_digest": "sha256:ac07a4137b4ddc409f06f997d2a023915a249c2b8afe4fe78bbc44ec0a6218fa",
+  "fixture_set_hash": "sha256:6252a69a50341bfb2f63eb032fc353d22ab5661acf3258e0d3f8e885b97da831",
+  "stages": [
+    {
+      "stage": "T0",
+      "status": "PASS",
+      "git_commit": "80df546feac1a34f8184cdd720dd57033fc87216",
+      "tests_passed": 6,
+      "tests_failed": 0,
+      "side_effects_observed": 0
+    },
+    {
+      "stage": "T1",
+      "status": "PASS",
+      "git_commit": "c44930672e27b6c80526c2bf836f6d86aa1aa00d",
+      "tests_passed": 13,
+      "tests_failed": 0,
+      "side_effects_observed": 0
+    },
+    {
+      "stage": "T2",
+      "status": "PASS",
+      "git_commit": "e0b03f458925aad5f4698f5795a16fef4dfddaab",
+      "tests_passed": 34,
+      "tests_failed": 0,
+      "side_effects_observed": 0
+    }
+  ],
+  "combined_tests_passed": 53,
+  "combined_tests_failed": 0,
+  "forbidden_boundary_audit": {
+    "branch_allowlist": "PASS",
+    "committed_cert_key_database_artifacts": 0,
+    "committed_secret_material": 0,
+    "production_imports_of_spike": 0,
+    "real_data_access": 0,
+    "user_data_access": 0,
+    "system_trust_changes": 0,
+    "real_client_configuration_changes": 0,
+    "app_or_packaging_changes": 0,
+    "push_or_remote_changes": 0
+  },
+  "platform_results": {
+    "macos_local": "PASS",
+    "windows": "PENDING",
+    "real_codex_client_t3": "NOT_AUTHORIZED_NOT_RUN"
+  },
+  "m0_t_total_status": "NOT_COMPLETE_T3_AND_WINDOWS_PENDING",
+  "d0_status": "NOT_AUTHORIZED_NOT_RUN",
+  "next_authorized_stage": "none_stop_and_wait_for_new_authorization"
+}

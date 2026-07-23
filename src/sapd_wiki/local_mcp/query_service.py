@@ -348,6 +348,8 @@ class KnowledgeQueryService:
         *,
         include_excerpt: bool,
         request: RequestContext,
+        limit: int | None = None,
+        cursor: str | None = None,
     ) -> ServiceResponse:
         checked_request = self._request(request)
         resolved_ref = self.identity.resolve(canonical_ref)
@@ -357,6 +359,18 @@ class KnowledgeQueryService:
         )
         if record is None:
             raise ObjectNotAvailableError()
+        checked_limit = self._limit("get_source_evidence", limit)
+        if cursor is not None:
+            cursor_context = self._cursor_context(
+                tool="get_source_evidence",
+                parameters={
+                    "canonical_ref": resolved_ref,
+                    "include_excerpt": include_excerpt,
+                    "limit": checked_limit,
+                },
+                request=checked_request,
+            )
+            self.cursor.decode(cursor, cursor_context)
         evidence = self.evidence.resolve(
             resolved_ref,
             include_excerpt=include_excerpt,

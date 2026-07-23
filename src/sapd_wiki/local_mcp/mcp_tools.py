@@ -28,6 +28,7 @@ SERVER_INSTRUCTIONS = (
 
 ServiceResult = Mapping[str, Any]
 MaybeAwaitableResult = ServiceResult | Awaitable[ServiceResult]
+Operation = Callable[[], MaybeAwaitableResult]
 
 
 class KnowledgeService(Protocol):
@@ -164,7 +165,7 @@ class ToolRegistrar:
     async def _invoke(
         self,
         tool_name: str,
-        operation: MaybeAwaitableResult,
+        operation: Operation,
         *,
         normalized_query: str | None = None,
     ) -> dict[str, Any]:
@@ -172,7 +173,7 @@ class ToolRegistrar:
         correlation_id = secrets.token_urlsafe(18)
         client_id, token_versions = self._identity()
         try:
-            payload = _validate_output(await _resolve(operation))
+            payload = _validate_output(await _resolve(operation()))
         except Exception as exc:
             if self.audit is not None:
                 self.audit.record(
@@ -250,7 +251,7 @@ class ToolRegistrar:
             )
             return await self._invoke(
                 "search_knowledge",
-                self.service.search_knowledge(
+                lambda: self.service.search_knowledge(
                     query=normalized,
                     limit=limit,
                     cursor=safe_cursor,
@@ -273,7 +274,7 @@ class ToolRegistrar:
             normalized = _normalize_text(canonical_ref, field="canonical_ref")
             return await self._invoke(
                 "get_knowledge_object",
-                self.service.get_knowledge_object(canonical_ref=normalized),
+                lambda: self.service.get_knowledge_object(canonical_ref=normalized),
             )
 
         @self.server.tool(
@@ -297,7 +298,7 @@ class ToolRegistrar:
             )
             return await self._invoke(
                 "get_related_knowledge",
-                self.service.get_related_knowledge(
+                lambda: self.service.get_related_knowledge(
                     canonical_ref=normalized,
                     direction=direction,
                     limit=limit,
@@ -326,7 +327,7 @@ class ToolRegistrar:
             )
             return await self._invoke(
                 "get_source_evidence",
-                self.service.get_source_evidence(
+                lambda: self.service.get_source_evidence(
                     canonical_ref=normalized,
                     include_excerpt=include_excerpt,
                     limit=limit,
@@ -346,7 +347,7 @@ class ToolRegistrar:
         async def get_knowledge_version() -> dict[str, Any]:
             return await self._invoke(
                 "get_knowledge_version",
-                self.service.get_knowledge_version(),
+                self.service.get_knowledge_version,
             )
 
         # mcp 1.28.1 builds permissive Pydantic argument models by default.

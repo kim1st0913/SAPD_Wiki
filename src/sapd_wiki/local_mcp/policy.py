@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Iterable
+from typing import Any, Iterable, Mapping
 
 from .errors import PolicyBlockedError
 from .models import KnowledgeObject, KnowledgeRecord
@@ -37,6 +37,60 @@ class AiExposurePolicy:
             allowed_object_types=frozenset(allowed_object_types),
             allowed_relation_types=frozenset(allowed_relation_types),
             signature_valid=signature_valid,
+        )
+
+    @classmethod
+    def from_signed_content(
+        cls,
+        *,
+        verifier: Any,
+        envelope: Mapping[str, Any],
+        content: Mapping[str, Any],
+        expected_manifest_digest: str,
+    ) -> "AiExposurePolicy":
+        """Build a policy only after the signed closed content is verified."""
+
+        verified = verifier.verify(
+            envelope,
+            content,
+            expected_base_manifest_digest=expected_manifest_digest,
+        )
+        required = {
+            "allowed_object_types",
+            "allowed_relation_types",
+            "default_decision",
+        }
+        if set(content) != required or content.get("default_decision") != "deny":
+            raise PolicyBlockedError(
+                "signed policy content is not a closed deny-by-default profile",
+                code="POLICY_SIGNATURE_INVALID",
+            )
+        object_types = content.get("allowed_object_types")
+        relation_types = content.get("allowed_relation_types")
+        if not (
+            isinstance(object_types, list)
+            and object_types
+            and all(isinstance(value, str) and value for value in object_types)
+            and isinstance(relation_types, list)
+            and relation_types
+            and all(isinstance(value, str) and value for value in relation_types)
+        ):
+            raise PolicyBlockedError(
+                "signed policy allowlists are invalid",
+                code="POLICY_SIGNATURE_INVALID",
+            )
+        policy_version = verified.get("policy_version")
+        if policy_version != envelope.get("policy_version"):
+            raise PolicyBlockedError(
+                "verified policy version is inconsistent",
+                code="POLICY_SIGNATURE_INVALID",
+            )
+        return cls(
+            policy_version=str(policy_version),
+            expected_manifest_digest=expected_manifest_digest,
+            allowed_object_types=frozenset(object_types),
+            allowed_relation_types=frozenset(relation_types),
+            signature_valid=True,
         )
 
     def validate_integrity(

@@ -119,6 +119,17 @@
     ],
   };
 
+  const SETTINGS_UTILITY_ITEM = {
+    id: "system-settings",
+    label: "系统设置",
+    route: "/settings",
+    type: "system-settings",
+    children: [
+      { id: "system-settings-basic", label: "基础设置", route: "/settings/basic", type: "system-settings", children: [] },
+      { id: "system-settings-ai-integration", label: "AI 集成", route: "/settings/ai-integration", type: "system-settings", children: [] },
+    ],
+  };
+
   const SIDEBAR_STATE_KEY = "sapd.appShell.sidebarCollapsed";
   const SHELL_AUXILIARY_EVENT = "sapd:shell-auxiliary-dismiss";
   const auxiliaryReturnFocus = new WeakMap();
@@ -126,6 +137,9 @@
   const ROUTE_TARGETS = {
     "/": { view: "overview" },
     "/search": { view: "search" },
+    "/settings": { view: "settings", settingsPage: "basic", canonicalRoute: "/settings/basic" },
+    "/settings/basic": { view: "settings", settingsPage: "basic" },
+    "/settings/ai-integration": { view: "settings", settingsPage: "ai-integration" },
     "/workbench": { view: "workbench" },
     "/workbench/annotations": { view: "workbench" },
     "/workbench/maturity": { view: "workbench" },
@@ -174,6 +188,7 @@
   const VIEW_ROUTES = {
     overview: "/",
     search: "/search",
+    settings: "/settings/basic",
     capabilities: "/capability-mapping",
     environment: "/environment-mapping",
     "dev-lifecycle": "/development-security",
@@ -215,6 +230,8 @@
   const PAGE_DESCRIPTIONS = {
     "/": "查看当前已导入安全能力、信息化环境、生命周期和知识维护数据的关系覆盖状态。",
     "/search": "跨安全能力、信息化环境、生命周期、知识库和标准 / 框架检索知识对象，并进入目标页面定位。",
+    "/settings/basic": "查看本地运行配置和 Web / 桌面应用的控制边界。",
+    "/settings/ai-integration": "管理本地 MCP 服务、客户端授权、公开知识摘要访问、审计与受控重置。",
     "/workbench": "集中进入 Issue 处理和成熟度评估工作流。",
     "/workbench/annotations": "以 Review Queue 方式查看、筛选、编辑、批量处理和导出所有 Issue。",
     "/workbench/maturity": "管理成熟度评估项目、模板、评分、结果和报告快照。",
@@ -246,6 +263,14 @@
       description: "继续本地工作，并按业务粒度查看能力、环境、生命周期、技术服务、标准、字典与指南内容。",
       hideTypeLabel: true,
     },
+    "/settings/basic": {
+      title: "系统设置",
+      description: PAGE_DESCRIPTIONS["/settings/basic"],
+    },
+    "/settings/ai-integration": {
+      title: "系统设置",
+      description: PAGE_DESCRIPTIONS["/settings/ai-integration"],
+    },
   };
 
   const GUIDE_DOWNLOADS = {
@@ -259,6 +284,7 @@
   const TYPE_LABELS = {
     "application-shell": "应用壳",
     "search-page": "检索页",
+    "system-settings": "系统设置",
     "workbench-module": "工作台",
     "workbench-page": "工作台页面",
     "document-hub": "文档集合",
@@ -288,6 +314,10 @@
     return components.utils.list(items).flatMap((item) => [{ ...item, parent }, ...allNavItems(item.children, item)]);
   }
 
+  function utilityItems() {
+    return [{ ...SETTINGS_UTILITY_ITEM, parent: null }, ...allNavItems(SETTINGS_UTILITY_ITEM.children, SETTINGS_UTILITY_ITEM)];
+  }
+
   function manifestRouteFor(route) {
     const normalized = normalizeRoute(route);
     if (normalized.startsWith("/workbench/maturity/")) return "/workbench/maturity";
@@ -296,11 +326,14 @@
 
   function findNavItem(route) {
     const manifestRoute = manifestRouteFor(route);
-    return allNavItems().find((item) => item.route === manifestRoute) || NAV_MANIFEST.navigation[0];
+    return utilityItems().find((item) => item.route === manifestRoute)
+      || allNavItems().find((item) => item.route === manifestRoute)
+      || NAV_MANIFEST.navigation[0];
   }
 
   function parentForRoute(route) {
     const manifestRoute = manifestRouteFor(route);
+    if (components.utils.list(SETTINGS_UTILITY_ITEM.children).some((child) => child.route === manifestRoute)) return SETTINGS_UTILITY_ITEM;
     return allNavItems().find((item) => components.utils.list(item.children).some((child) => child.route === manifestRoute)) || null;
   }
 
@@ -364,8 +397,8 @@
       <div id="localModeStatus" class="topbar-status" aria-label="本地运行状态"></div>
       <div class="topbar-actions" aria-label="全局操作">
         <span id="licenseStatusBadge" class="topbar-license-status" aria-live="polite">${renderLocalModeStatus()}</span>
-        <button type="button" title="设置" aria-label="设置">⚙</button>
-        <button type="button" title="本地数据包" aria-label="本地数据包">▤</button>
+        ${renderAiIntegrationStatus()}
+        <button type="button" title="系统设置" aria-label="系统设置" data-app-route="/settings/basic">⚙</button>
       </div>
     `;
   }
@@ -685,6 +718,7 @@
     [
       ["overviewWorkspace", "three"],
       ["searchWorkspace", "one"],
+      ["settingsWorkspace", "one"],
       ["workbenchWorkspace", "one"],
       ["capabilityWorkspace", "two"],
       ["environmentWorkspace", "two"],
@@ -734,6 +768,7 @@
 
     const workspaceLayouts = [
       ["overviewWorkspace", "main-resident-auxiliary"],
+      ["settingsWorkspace", "main-only"],
       ["workbenchWorkspace", "main-only"],
       ["capabilityWorkspace", "resident-directory-main"],
       ["environmentWorkspace", "main-only"],
@@ -898,6 +933,43 @@
       .join("");
   }
 
+  const AI_INTEGRATION_STATUS = {
+    disabled: { label: "AI 集成", tone: "neutral" },
+    starting: { label: "AI 正在启动", tone: "info" },
+    stopping: { label: "AI 正在停止", tone: "info" },
+    ready_waiting_authorization: { label: "AI 等待授权", tone: "info" },
+    authorized_waiting_use: { label: "AI 已授权", tone: "ok" },
+    recently_used: { label: "AI 近期已使用", tone: "ok" },
+    knowledge_degraded: { label: "AI 知识受限", tone: "warning" },
+    knowledge_blocked: { label: "AI 知识不可用", tone: "danger" },
+    audit_degraded: { label: "AI 审计异常", tone: "warning" },
+    recoverable_error: { label: "AI 需要处理", tone: "danger" },
+  };
+
+  function renderAiIntegrationStatus(snapshot = null, { error = false } = {}) {
+    const displayState = text(snapshot?.status?.display_state).trim();
+    const presentation = error
+      ? { label: "AI 状态不可用", tone: "warning" }
+      : AI_INTEGRATION_STATUS[displayState] || AI_INTEGRATION_STATUS.disabled;
+    return `
+      <button
+        id="aiIntegrationStatus"
+        class="ai-integration-status-button"
+        type="button"
+        data-app-route="/settings/ai-integration"
+        data-ai-tone="${escapeHtml(presentation.tone)}"
+        title="${escapeHtml(`${presentation.label}，打开 AI 集成设置`)}"
+        aria-label="${escapeHtml(`${presentation.label}，打开 AI 集成设置`)}"
+      ><span>${escapeHtml(presentation.label)}</span></button>
+    `;
+  }
+
+  function updateAiIntegrationStatus(snapshot = null, options = {}) {
+    const target = document.getElementById("aiIntegrationStatus");
+    if (!target) return;
+    target.outerHTML = renderAiIntegrationStatus(snapshot, options);
+  }
+
   function renderLocalModeStatus(license = window.sapdLicenseStatus) {
     const state = text(license?.state || "").trim();
     const displayText = text(license?.display_text || "").trim();
@@ -957,6 +1029,8 @@
     renderRightInsightPanel,
     mountCapabilityWorkspace,
     renderCapabilitySummary,
+    renderAiIntegrationStatus,
+    updateAiIntegrationStatus,
     renderLocalModeStatus,
     hydrateLicenseStatus,
   };

@@ -39,6 +39,14 @@ const state = {
   expandedSelectionId: null,
   expandedEnvironmentSelectionId: null,
   activeMaintenancePage: "scopes",
+  mcpControlSnapshot: null,
+  mcpControlLoading: false,
+  mcpControlLoaded: false,
+  mcpControlError: "",
+  mcpPendingAction: "",
+  mcpControlNotice: null,
+  mcpConfirmation: null,
+  mcpResetPreview: null,
   activeReferenceTab: "gbt",
   activeStandardFramework: "mlps-level-3",
   activeStandardTableId: "",
@@ -1878,6 +1886,7 @@ function activeSearchRootElement() {
   const workspaceMap = {
     overview: "overviewWorkspace",
     search: "searchWorkspace",
+    settings: "settingsWorkspace",
     capabilities: "capabilityWorkspace",
     environment: "environmentWorkspace",
     "dev-lifecycle": "devLifecycleWorkspace",
@@ -3233,6 +3242,7 @@ function routePackagesForCurrentState() {
   if (state.activeView === "placeholder") return [];
   if (state.activeView === "workbench") return [];
   if (state.activeView === "search") return [];
+  if (state.activeView === "settings") return [];
   if (state.activeView === "overview") return ["analyticsSummary", "maintenanceIndex", "dashboardKnowledgeSummary"];
   if (state.activeView === "capabilities") return ["capabilityInitial", "maintenanceIndex"];
   if (state.activeView === "environment") {
@@ -9673,6 +9683,7 @@ function mountAppShellComponents() {
     activeEnvironmentTab: state.activeEnvironmentTab,
   });
   components.AppShell?.mountCapabilityWorkspace($("capabilityWorkspace"));
+  syncMcpTopbarStatus();
   if ($("localModeStatus")) setHtml("localModeStatus", "");
   components.AppShell?.hydrateLicenseStatus?.();
   syncUserNotesExportButton();
@@ -9849,6 +9860,9 @@ function openGlobalSearchPage(query = state.globalSearch, options = {}) {
 function routeForCurrentState(view = state.activeView) {
   const components = window.sapdComponents || {};
   if (view === "search") return globalSearchRoute();
+  if (view === "settings" && normalizeAppRoute(state.activeRoute).startsWith("/settings")) {
+    return normalizeAppRoute(state.activeRoute);
+  }
   if (view === "workbench" && normalizeAppRoute(state.activeRoute).startsWith("/workbench")) {
     return normalizeAppRoute(state.activeRoute);
   }
@@ -9880,6 +9894,7 @@ function updatePageHeaderSummary() {
 
 function updateApplicationShellChrome() {
   const components = window.sapdComponents || {};
+  syncMcpTopbarStatus();
   components.AppShell?.updateApplicationShell?.({
     activeRoute: state.activeRoute,
     activeView: state.activeView,
@@ -11718,6 +11733,186 @@ function renderSearchPage() {
   if (needsLoad) runGlobalSearchPage();
 }
 
+function syncMcpTopbarStatus() {
+  const components = window.sapdComponents || {};
+  components.AppShell?.updateAiIntegrationStatus?.(state.mcpControlSnapshot, {
+    error: Boolean(state.mcpControlError),
+  });
+}
+
+function focusMcpDialog() {
+  window.requestAnimationFrame(() => {
+    const dialog = document.querySelector("#settingsWorkspace [data-mcp-dialog]");
+    dialog?.querySelector("[autofocus], button:not(:disabled)")?.focus({ preventScroll: true });
+  });
+}
+
+function renderSettings() {
+  const components = window.sapdComponents || {};
+  const component = components.AiIntegrationSettings;
+  if (!component?.render) {
+    setHtml("settingsWorkspace", '<section class="runtime-state" role="alert">AI 集成设置组件未加载。</section>');
+    return;
+  }
+  setHtml(
+    "settingsWorkspace",
+    component.render({
+      route: state.activeRoute,
+      loading: state.mcpControlLoading && !state.mcpControlSnapshot,
+      error: state.mcpControlError,
+      snapshot: state.mcpControlSnapshot,
+      pendingAction: state.mcpPendingAction,
+      notice: state.mcpControlNotice,
+      confirmation: state.mcpConfirmation,
+      resetPreview: state.mcpResetPreview,
+    }),
+  );
+  if (state.mcpConfirmation || state.mcpResetPreview) focusMcpDialog();
+}
+
+async function loadMcpControlPanel({ force = false } = {}) {
+  if (state.mcpControlLoading) return null;
+  if (state.mcpControlLoaded && !force) return state.mcpControlSnapshot;
+  const dataClient = window.sapdDataClient;
+  if (!dataClient?.getMcpControlPanel) {
+    state.mcpControlLoaded = true;
+    state.mcpControlError = "当前运行环境未提供 AI 集成控制接口。";
+    state.mcpControlSnapshot = null;
+    syncMcpTopbarStatus();
+    if (state.activeView === "settings") renderSettings();
+    return null;
+  }
+  state.mcpControlLoading = true;
+  if (!state.mcpControlSnapshot) state.mcpControlError = "";
+  if (state.activeView === "settings") renderSettings();
+  try {
+    const envelope = await dataClient.getMcpControlPanel();
+    const snapshot = envelope?.data;
+    if (snapshot?.contract_version !== "sapd-mcp-control-v1") {
+      throw new Error("AI 集成控制快照版本不受支持。");
+    }
+    state.mcpControlSnapshot = snapshot;
+    state.mcpControlError = "";
+    state.mcpControlLoaded = true;
+    return snapshot;
+  } catch (error) {
+    state.mcpControlLoaded = true;
+    state.mcpControlError = text(error?.message).trim() || "无法读取 AI 集成状态。请确认本地服务可用。";
+    if (!state.mcpControlSnapshot) state.mcpControlSnapshot = null;
+    return null;
+  } finally {
+    state.mcpControlLoading = false;
+    syncMcpTopbarStatus();
+    if (state.activeView === "settings") renderSettings();
+  }
+}
+
+function mcpRequestId(action = "action") {
+  const suffix = window.crypto?.randomUUID?.()
+    || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+  return `mcp:${text(action).replace(/[^a-z0-9_-]+/gi, "-")}:${suffix}`;
+}
+
+function mcpMutationPayload(action) {
+  const stateVersion = Number(state.mcpControlSnapshot?.state_version);
+  if (!Number.isInteger(stateVersion) || stateVersion < 0) return null;
+  return {
+    requestId: mcpRequestId(action),
+    expectedStateVersion: stateVersion,
+  };
+}
+
+function mcpActionSuccessMessage(action) {
+  const messages = {
+    start: "已按最新控制快照更新服务状态。",
+    stop: "服务状态已刷新；客户端授权和审计设置保持独立。",
+    retry: "重试请求已完成，页面已读取最新服务状态。",
+    revoke: "指定客户端的授权状态已刷新，服务状态未被重置。",
+    "clear-audit": "审计状态已刷新，服务和客户端授权未被更改。",
+    "prepare-reset": "重置影响清单已生成；最终确认需要桌面应用。",
+  };
+  return messages[action] || "AI 集成状态已刷新。";
+}
+
+async function performMcpControlAction(action, { clientId = "" } = {}) {
+  if (state.mcpPendingAction) return;
+  const dataClient = window.sapdDataClient;
+  const payload = mcpMutationPayload(action);
+  if (!payload) {
+    state.mcpControlNotice = { tone: "error", message: "当前状态版本不可用，请先刷新页面。" };
+    renderSettings();
+    return;
+  }
+  const methodByAction = {
+    start: "startMcpService",
+    stop: "stopMcpService",
+    retry: "retryMcpService",
+    revoke: "revokeMcpClient",
+    "clear-audit": "clearMcpAudit",
+    "prepare-reset": "prepareMcpReset",
+  };
+  const method = methodByAction[action];
+  if (!method || !dataClient?.[method]) {
+    state.mcpControlNotice = { tone: "error", message: "当前运行环境未提供该控制动作。" };
+    renderSettings();
+    return;
+  }
+  state.mcpPendingAction = action === "revoke" ? `revoke:${clientId}` : action;
+  state.mcpControlNotice = { tone: "info", message: "正在请求本地控制服务…" };
+  state.mcpConfirmation = null;
+  renderSettings();
+  announceAppStatus("正在请求本地 AI 集成控制服务。");
+  try {
+    const actionEnvelope = await dataClient[method]({
+      ...payload,
+      ...(action === "revoke" ? { clientId } : {}),
+      ...(action === "prepare-reset" ? { clearAudit: false } : {}),
+    });
+    const resetPreview = action === "prepare-reset" ? actionEnvelope?.data?.reset || null : null;
+    const refreshed = await loadMcpControlPanel({ force: true });
+    if (!refreshed) throw new Error("控制动作已返回，但无法读取最新状态。");
+    state.mcpResetPreview = resetPreview;
+    state.mcpControlNotice = { tone: "success", message: mcpActionSuccessMessage(action) };
+    announceAppStatus(state.mcpControlNotice.message);
+  } catch (error) {
+    await loadMcpControlPanel({ force: true });
+    state.mcpControlNotice = {
+      tone: "error",
+      message: text(error?.message).trim() || "控制动作未完成，请按最新状态重试。",
+    };
+    announceAppStatus(state.mcpControlNotice.message);
+  } finally {
+    state.mcpPendingAction = "";
+    if (state.activeView === "settings") renderSettings();
+  }
+}
+
+function openMcpConfirmation(action, { clientId = "", label = "" } = {}) {
+  if (!["revoke", "clear-audit"].includes(action)) return;
+  state.mcpConfirmation = { action, clientId, label };
+  renderSettings();
+}
+
+function closeMcpOverlay() {
+  const confirmation = state.mcpConfirmation;
+  const hadResetPreview = Boolean(state.mcpResetPreview);
+  state.mcpConfirmation = null;
+  state.mcpResetPreview = null;
+  renderSettings();
+  window.requestAnimationFrame(() => {
+    let target = null;
+    if (confirmation?.action === "revoke" && confirmation.clientId) {
+      target = Array.from(document.querySelectorAll("[data-mcp-client-id]"))
+        .find((element) => element.dataset.mcpClientId === confirmation.clientId);
+    } else if (confirmation?.action === "clear-audit") {
+      target = document.querySelector('[data-mcp-request-confirmation="clear-audit"]');
+    } else if (hadResetPreview) {
+      target = document.querySelector('[data-mcp-action="prepare-reset"]');
+    }
+    target?.focus({ preventScroll: true });
+  });
+}
+
 function renderPlaceholder() {
   const components = window.sapdComponents || {};
   const routeInfo = components.AppShell?.getRouteInfo?.(state.activeRoute) || {};
@@ -11749,6 +11944,7 @@ function renderActiveView() {
   setCurrentAnnotationTarget(null);
   if (state.activeView === "overview") renderOverview();
   if (state.activeView === "search") renderSearchPage();
+  if (state.activeView === "settings") renderSettings();
   if (state.activeView === "workbench") renderWorkbench();
   if (state.activeView === "capabilities") renderCapabilities();
   if (state.activeView === "environment") renderEnvironment();
@@ -11788,6 +11984,7 @@ function setActiveView(view, options = {}) {
   const workspaceMap = {
     overview: "overviewWorkspace",
     search: "searchWorkspace",
+    settings: "settingsWorkspace",
     workbench: "workbenchWorkspace",
     capabilities: "capabilityWorkspace",
     environment: "environmentWorkspace",
@@ -11802,6 +11999,7 @@ function setActiveView(view, options = {}) {
   syncSearchInputs();
   setupResizableWorkspaces();
   if (view === "capabilities") applyCapabilityCatalogState();
+  if (view === "settings") loadMcpControlPanel();
   if (options.syncRoute !== false) {
     state.activeRoute = routeForCurrentState(view);
     syncBrowserRoute(state.activeRoute, { replace: Boolean(options.replaceRoute) });
@@ -11848,6 +12046,39 @@ function bindEvents() {
     if (slideThumb) activateContentSlideThumb(slideThumb, event);
   }, true);
   document.addEventListener("click", (event) => {
+    const confirmationRequest = event.target?.closest?.("[data-mcp-request-confirmation]");
+    if (confirmationRequest) {
+      event.preventDefault();
+      openMcpConfirmation(confirmationRequest.dataset.mcpRequestConfirmation, {
+        clientId: text(confirmationRequest.dataset.mcpClientId).trim(),
+        label: text(confirmationRequest.dataset.mcpClientLabel).trim(),
+      });
+      return;
+    }
+    const confirmation = event.target?.closest?.("[data-mcp-confirm-action]");
+    if (confirmation) {
+      event.preventDefault();
+      performMcpControlAction(confirmation.dataset.mcpConfirmAction, {
+        clientId: text(confirmation.dataset.mcpClientId).trim(),
+      });
+      return;
+    }
+    const actionButton = event.target?.closest?.("[data-mcp-action]");
+    if (!actionButton) return;
+    event.preventDefault();
+    const action = text(actionButton.dataset.mcpAction).trim();
+    if (action === "reload") {
+      state.mcpControlNotice = null;
+      loadMcpControlPanel({ force: true });
+      return;
+    }
+    if (action === "cancel-confirmation" || action === "close-reset-preview") {
+      closeMcpOverlay();
+      return;
+    }
+    performMcpControlAction(action);
+  });
+  document.addEventListener("click", (event) => {
     const routeButton = event.target?.closest?.("[data-app-route]");
     if (!routeButton) return;
     event.preventDefault();
@@ -11871,7 +12102,28 @@ function bindEvents() {
     });
   });
   document.addEventListener("keydown", (event) => {
+    const mcpDialog = document.querySelector("#settingsWorkspace [data-mcp-dialog] [role='dialog']");
+    if (event.key === "Tab" && mcpDialog) {
+      const focusable = Array.from(mcpDialog.querySelectorAll("button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled)"));
+      if (focusable.length) {
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && (document.activeElement === first || !mcpDialog.contains(document.activeElement))) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
+      return;
+    }
     if (event.key !== "Escape") return;
+    if (state.mcpConfirmation || state.mcpResetPreview) {
+      event.preventDefault();
+      closeMcpOverlay();
+      return;
+    }
     const menu = event.target?.closest?.(".dashboard-overflow-menu[open]") || document.querySelector(".dashboard-overflow-menu[open]");
     if (!menu) return;
     event.preventDefault();

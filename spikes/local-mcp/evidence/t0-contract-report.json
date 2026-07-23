@@ -1,0 +1,84 @@
+{
+  "case_coverage": [
+    "confidential",
+    "control-character",
+    "d0-empty-candidates",
+    "d0-empty-types",
+    "d0-stale-digest",
+    "deny",
+    "duplicate-name",
+    "empty-query",
+    "internal",
+    "key-passphrase-ipc-cross-user-readable",
+    "key-passphrase-ipc-peer-user-mismatch",
+    "key-passphrase-ipc-unauthenticated",
+    "manifest-digest-failure",
+    "metadata-only",
+    "object-too-large",
+    "path-uri-sql-injection",
+    "policy-signature-failure",
+    "prompt-injection",
+    "public-summary",
+    "redirect-cross-version",
+    "redirect-cycle",
+    "redirect-target-denied",
+    "redirect-valid",
+    "relation-allowed",
+    "relation-both-hidden",
+    "relation-single-hidden",
+    "request-over-limit",
+    "stale-cursor",
+    "unknown",
+    "unknown-object-type",
+    "unknown-relation-type",
+    "user-store-trap"
+  ],
+  "checks": [
+    "draft_2020_12_schema_self_validation",
+    "four_profile_schema_validation",
+    "cross_contract_reference_validation",
+    "profile_digest_binding",
+    "fixture_id_revision_hash_validation",
+    "rfc_8785_manifest_binding",
+    "synthetic_provenance_scan",
+    "d0_pilot_nonempty_gate",
+    "unsafe_key_passphrase_ipc_blocked"
+  ],
+  "contract_count": 4,
+  "contract_digests": {
+    "MCP-AUTH-v1": "sha256:7c07855e095680bc0fcc0c6224336c817b85eed55a94d343e1918a37299ac799",
+    "MCP-DATA-POLICY-v1": "sha256:430557b813f0bb53a7b9740eea42719c3322a116c0aa8491afcd60baad7e5932",
+    "MCP-PROTOCOL-TOOLS-v1": "sha256:bd1f8ec06fa2a4db468b04c1855d48e0ea3ee2af9297d28a168809d4116ae766",
+    "MCP-RUNTIME-STATE-v1": "sha256:24fcd488e753312a66d5680351ce509d3e6f7de1b267b94a3cf19d8bcaad56cc"
+  },
+  "dependencies": {
+    "jsonschema": {
+      "version": "4.26.0",
+      "wheel_sha256": "d489f15263b8d200f8387e64b4c3a75f06629559fb73deb8fdfb525f2dab50ce"
+    },
+    "mcp": {
+      "version": "1.28.1",
+      "wheel_sha256": "2726bca5e7193f61c5dde8b12500a6de2d9acf6d1a1c0be9e8c2e706437991df"
+    },
+    "rfc8785": {
+      "version": "0.1.4",
+      "wheel_sha256": "520d690b448ecf0703691c76e1a34a24ddcd4fc5bc41d589cb7c58ec651bcd48"
+    }
+  },
+  "fixture_count": 30,
+  "fixture_set_hash": "sha256:6252a69a50341bfb2f63eb032fc353d22ab5661acf3258e0d3f8e885b97da831",
+  "gate": "T0",
+  "not_authorized": [
+    "push",
+    "T3",
+    "D0-Pilot data generation",
+    "M1",
+    "real data",
+    "user data",
+    "App integration",
+    "packaging"
+  ],
+  "schema_count": 6,
+  "scope": "isolated_contracts_and_synthetic_fixtures_only",
+  "status": "PASS"
+}

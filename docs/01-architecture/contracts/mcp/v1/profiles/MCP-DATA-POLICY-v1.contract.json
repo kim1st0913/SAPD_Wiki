@@ -1,0 +1,90 @@
+{
+  "schema_version": "mcp-contract-schema-v1",
+  "contract_id": "MCP-DATA-POLICY-v1",
+  "contract_version": "1.0.0",
+  "scope": "sapd.base.public.summary.read",
+  "default_decision": "deny",
+  "store": "base_read_only",
+  "classification_rules": {
+    "public_summary": "allow_summary_fields_only",
+    "metadata_only": "allow_metadata_fields_only",
+    "deny": "deny",
+    "internal": "deny",
+    "confidential": "deny",
+    "unknown": "deny"
+  },
+  "field_rules": {
+    "allow": [
+      "canonical_ref",
+      "object_type",
+      "display_name",
+      "locale",
+      "ai_summary",
+      "summary_version",
+      "summary_hash",
+      "source_and_license_basis",
+      "knowledge_version"
+    ],
+    "always_deny": [
+      "description",
+      "metadata_json",
+      "raw_text",
+      "raw_value",
+      "local_path",
+      "debug",
+      "reviewed_by_principal",
+      "user_content"
+    ]
+  },
+  "relation_rules": {
+    "both_endpoints_must_be_visible": true,
+    "unknown_type": "deny",
+    "single_hidden_endpoint": "hide_without_count",
+    "both_hidden_endpoints": "hide_without_count"
+  },
+  "search_leakage_controls": {
+    "filter_before_rank_count_page": true,
+    "hidden_count_disclosure": false,
+    "unavailable_error": "OBJECT_NOT_AVAILABLE"
+  },
+  "public_summary_contract": {
+    "unique_key": [
+      "canonical_ref",
+      "locale",
+      "summary_version"
+    ],
+    "summary_hash_algorithm": "sha256-utf8-nfc-lf",
+    "manifest_bindings": [
+      "base_manifest_digest",
+      "policy_version",
+      "summary_schema_version"
+    ],
+    "principal_exposed_to_mcp": false
+  },
+  "d0_gate": {
+    "states": [
+      "NOT_READY",
+      "STALE",
+      "PASS",
+      "BLOCKED"
+    ],
+    "pilot_min_candidates": 1,
+    "every_type_represented": true,
+    "policy_digest_binding": true,
+    "digest_change_state": "STALE",
+    "empty_type_set_state": "NOT_READY"
+  },
+  "integrity_failures": [
+    "UNKNOWN_OBJECT_TYPE",
+    "UNKNOWN_RELATION_TYPE",
+    "POLICY_SIGNATURE_INVALID",
+    "POLICY_EXPIRED",
+    "MANIFEST_DIGEST_MISMATCH",
+    "UNKNOWN_KEY_ID"
+  ],
+  "references": {
+    "auth": "MCP-AUTH-v1",
+    "runtime_state": "MCP-RUNTIME-STATE-v1",
+    "protocol_tools": "MCP-PROTOCOL-TOOLS-v1"
+  }
+}

@@ -33,6 +33,10 @@ class TLSTests(unittest.TestCase):
             peer_user_verified=True,
             peer_process_verified=False,
             minimum_acl=True,
+            nonce_verified=True,
+            generation_verified=True,
+            replay_protected=True,
+            evidence_source="one_shot_local_channel",
         )
         with self.assertRaises(TLSIdentityError) as context:
             require_safe_secret_transport(unsafe)
@@ -52,14 +56,11 @@ class TLSTests(unittest.TestCase):
                 "-----END ENCRYPTED PRIVATE KEY-----\n"
             )
             provider = InMemorySecretProvider()
-            provider.put_secret("tls-passphrase", b"fixture-passphrase")
-            safe = SecretTransportAttestation(
-                authenticated=True,
-                instance_bound=True,
-                peer_user_verified=True,
-                peer_process_verified=True,
-                minimum_acl=True,
+            provider.put_secret(
+                "tls-passphrase",
+                b"fixture-passphrase-value-at-least-32-bytes",
             )
+            safe = SecretTransportAttestation.isolated_test_fixture()
             with patch(
                 "ssl.SSLContext.load_cert_chain", autospec=True
             ) as load_cert_chain:
@@ -74,7 +75,7 @@ class TLSTests(unittest.TestCase):
             load_cert_chain.assert_called_once()
             self.assertEqual(
                 load_cert_chain.call_args.kwargs["password"],
-                "fixture-passphrase",
+                b"fixture-passphrase-value-at-least-32-bytes",
             )
 
     def test_system_trust_writes_are_not_authorized(self) -> None:

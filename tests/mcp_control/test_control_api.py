@@ -25,6 +25,37 @@ SESSION = "synthetic-session-value"
 NATIVE_CAPABILITY = "C" * 48
 
 
+def api_certificate() -> dict:
+    return {
+        "schema_version": 1,
+        "state": "not_configured",
+        "reason_code": None,
+        "managed_by_app": True,
+        "profile": "dev",
+        "install_id_suffix": None,
+        "generation_id": None,
+        "subject": "127.0.0.1",
+        "san": ["127.0.0.1"],
+        "ca_display_name": None,
+        "ca_fingerprint_sha256": None,
+        "server_fingerprint_sha256": None,
+        "valid_from": None,
+        "valid_until": None,
+        "remaining_days": None,
+        "trust_scope": "current_user",
+        "trust_backend": "fake_current_user_trust",
+        "secret_backend": "in_memory_test_only",
+        "trust_policy": "ssl_loopback_only",
+        "trust_verified_at": None,
+        "last_rotated_at": None,
+        "operation": None,
+        "cleanup_pending": False,
+        "client_restart_required": False,
+        "old_generation_retained_until": None,
+        "next_action": "certificate_provision",
+    }
+
+
 def api_snapshot() -> dict:
     return {
         "state_version": 0,
@@ -50,6 +81,7 @@ def api_snapshot() -> dict:
                 "native_reset_confirmation": True,
             },
         },
+        "certificate": api_certificate(),
         "clients": [],
         "audit": {
             "enabled": True,
@@ -137,6 +169,43 @@ class FakeApiGateway:
     def clear_audit(self, *, request_id: str, expected_state_version: int) -> dict:
         return self._action("clear_audit", expected_state_version)
 
+    def prepare_certificate_action(
+        self,
+        *,
+        action: str,
+        request_id: str,
+        expected_state_version: int,
+    ) -> dict:
+        del request_id
+        result = self._action("prepare_certificate_action", expected_state_version)
+        result.update(
+            {
+                "confirmation_id": "certificate-confirmation-api-0001",
+                "expires_at": "2026-07-23T02:00:00Z",
+                "effects": [
+                    "create_managed_identity",
+                    "install_current_user_trust",
+                ],
+                "action": action,
+                "profile": "dev",
+                "expected_ca_fingerprint_sha256": None,
+                "confirmation_mode": "web",
+            }
+        )
+        return result
+
+    def confirm_certificate_action(
+        self,
+        *,
+        confirmation_id: str,
+        request_id: str,
+        expected_state_version: int,
+    ) -> dict:
+        del confirmation_id, request_id
+        result = self._action("confirm_certificate_action", expected_state_version)
+        result["operation_id"] = "certificate-operation-api-0001"
+        return result
+
     def prepare_reset(
         self,
         *,
@@ -220,6 +289,7 @@ class ControlApiTests(unittest.TestCase):
             "/api/v1/mcp/clients": "data",
             "/api/v1/mcp/audit": "data",
             "/api/v1/mcp/diagnostics": "data",
+            "/api/v1/mcp/certificate": "data",
         }
         for path, expected_key in paths.items():
             with self.subTest(path=path):
@@ -244,6 +314,7 @@ class ControlApiTests(unittest.TestCase):
                 ("GET", "/api/v1/mcp/clients"),
                 ("GET", "/api/v1/mcp/audit"),
                 ("GET", "/api/v1/mcp/diagnostics"),
+                ("GET", "/api/v1/mcp/certificate"),
                 ("POST", "/api/v1/mcp/actions/start"),
                 ("POST", "/api/v1/mcp/actions/stop"),
                 ("POST", "/api/v1/mcp/actions/retry"),
@@ -253,12 +324,13 @@ class ControlApiTests(unittest.TestCase):
                 ("POST", "/api/v1/mcp/authorization/actions/deny"),
                 ("POST", "/api/v1/mcp/clients/actions/revoke"),
                 ("POST", "/api/v1/mcp/audit/actions/clear"),
+                ("POST", "/api/v1/mcp/certificate/actions/prepare"),
+                ("POST", "/api/v1/mcp/certificate/actions/confirm"),
                 ("POST", "/api/v1/mcp/reset/actions/prepare"),
                 ("POST", "/api/v1/mcp/reset/actions/confirm"),
                 ("POST", "/api/v1/mcp/reset/actions/confirm-web"),
             },
         )
-
         def assert_closed_object_schemas(value: object) -> None:
             if isinstance(value, dict):
                 if value.get("type") == "object":
@@ -270,6 +342,34 @@ class ControlApiTests(unittest.TestCase):
                     assert_closed_object_schemas(child)
 
         assert_closed_object_schemas(contract["$defs"])
+
+    def test_certificate_prepare_and_confirm_are_closed_mutations(self) -> None:
+        prepared = self.api.dispatch(
+            "POST",
+            "/api/v1/mcp/certificate/actions/prepare",
+            self.headers(mutation=True),
+            {
+                "request_id": "certificate-api-prepare-0001",
+                "expected_state_version": 0,
+                "action": "certificate_provision",
+            },
+        )
+        self.assertEqual(prepared.status, 200)
+        preview = prepared.body["certificate_confirmation"]
+        confirmed = self.api.dispatch(
+            "POST",
+            "/api/v1/mcp/certificate/actions/confirm",
+            self.headers(mutation=True),
+            {
+                "request_id": "certificate-api-confirm-0001",
+                "expected_state_version": prepared.body["state_version"],
+                "confirmation_id": preview["confirmation_id"],
+            },
+        )
+        self.assertEqual(confirmed.status, 200)
+        self.assertEqual(
+            confirmed.body["operation_id"], "certificate-operation-api-0001"
+        )
 
     def test_host_origin_and_session_are_exactly_checked(self) -> None:
         cases = [

@@ -1,3 +1,62 @@
+# AI 功能集成信息架构与 MCP 状态浮层第三轮 Design QA（2026-07-24）
+
+- source visual truth：用户问题截图 `/var/folders/81/8nwy3h2n00s1dw1g5bnvj7j40000gn/T/codex-clipboard-1edc417f-a4b2-4266-a3e7-b897f74a08d1.png`（`700×544`）与 `/var/folders/81/8nwy3h2n00s1dw1g5bnvj7j40000gn/T/codex-clipboard-95fff6ae-960b-4cf5-8d22-4de7765e56b1.png`（`2612×1442`）。
+- implementation：`http://127.0.0.1:5173/#/settings/ai-integration`；应用内浏览器，未启动系统 Chrome。
+- browser-rendered evidence：`/private/tmp/sapd-ai-settings-final-2612x1442-20260724.png`、`/private/tmp/sapd-mcp-popover-final-2612x1442-20260724.png`、`/private/tmp/sapd-ai-settings-mobile-final-390x844-20260724.png`。
+- normalization：页面源图与最终桌面实现均使用 `2612×1442` 像素 / 同 CSS 视口；浮层源图是用户提供的局部裁切，最终实现同时以完整页面和可读局部状态检查。
+- same-input comparison：两张源图与对应最终实现已放入同一视觉比较输入，分别检查浮层对齐 / 遮挡和页面密度 / 内容层级。
+
+## Findings 与比较历史
+
+无剩余 Web P0 / P1 / P2 设计阻塞。
+
+- P1 浮层错位：顶部通用按钮的固定尺寸与 `place-items:center` 覆盖了证书行网格，导致该行标签和值偏移；五个最终状态行现在共用 `112px + minmax(0, 1fr)` 网格，标签左边界均为 `1563px`，值右边界均为 `1885px`。
+- P1 浮层遮挡：原浮层继承半透明 Shell surface，页面“刷新状态”“已停止”等控件透出并干扰读数；最终改为现有不透明 `--panel`，保持 Apple Shell 边框和阴影，但不再透出底层内容。
+- P1 页面信息不足：原首屏重复显示运行状态，却没有回答“能否连接、是否授权、能读什么、是否留痕、最近是否用过”；新增“AI 集成概况”，直接展示本机服务、客户端授权、知识访问、隐私审计和最近使用。
+- P1 空间利用率：原运行配置四个等高宽列在宽屏形成大量空白；最终改为“服务与 Codex 连接 + 数据访问范围”双栏 pane，端口、服务地址、复制配置和访问边界集中在一个视区。
+- P1 数据边界缺失：按正式 MCP 产品合同新增“当前开放、访问方式、网络边界、明确排除”四项，只显示已批准事实：策略允许的公开摘要、5 个只读工具、仅本机回环 HTTPS，并明确排除用户数据、原始文件、本地路径、完整标准正文和非受控 SQL。
+- P2 窄屏状态折行：`390px` 下概况状态徽标曾被压成竖排；最终改为标题下方单行状态，宽 `106px`、高 `33px`，页面横向溢出 `0`。
+- 缓存可见性：相关 CSS / JS 统一升级到 `apple-shell-settings-20260724-6`，最终页面实际加载四个该版本资源。
+
+## Content decision
+
+默认首屏应该让用户看到：
+
+1. 当前是否可以连接：服务、证书和知识策略状态。
+2. 当前谁可以连接：已授权客户端数与待确认请求。
+3. Codex 如何连接：端口、服务地址、复制 Codex 配置和检查服务。
+4. Codex 能读取什么：仅公开摘要、只读工具和明确排除项。
+5. 使用是否可追踪：审计状态、记录数、保留期与最近成功时间。
+
+证书指纹、授权 scope、单个客户端、审计明细和诊断检查继续留在下方对应 pane 或折叠详情，不塞入首屏摘要。
+
+## Fidelity review
+
+- Typography：沿用系统中文字体和 `20 / 14 / 12px` 工作台层级；浮层五行标签和值分别固定左右轨道，长说明使用次级小字。
+- Spacing / layout：桌面主区保持 `1280px` 逻辑宽度；概况为五列连续摘要，服务与数据访问采用 `1.55 : 0.85` 双栏，未引入卡片墙。
+- Colors / tokens：仅使用既有 Apple blue、panel、quiet surface、divider 和状态 token；没有新颜色、渐变或装饰效果。
+- Images / assets：该页面没有业务图片资产，本轮未新增伪图标、CSS 插画、SVG 或占位图。
+- Copy / content：新增内容均来自 `sapd-mcp-control-v1` 状态合同和正式 MCP 数据边界；没有展示调试字段、私钥材料、真实路径、Token 或原始查询内容。
+
+## Interaction 与响应式
+
+- 系统设置 / AI 功能集成页签、刷新状态和浮层底部入口通过真实点击；最终路由稳定为 `#/settings/ai-integration`。
+- `1024×768`：概况五列仍可扫描，服务与数据访问回流为上下两个 pane，运行配置保持三列，横向溢出 `0`。
+- `390×844`：概况、运行配置与数据访问回流为单列，状态徽标不再竖排，横向溢出 `0`。
+- 验收没有点击启动 / 停止 MCP、保存端口、修改证书、确认授权、清除审计或写入用户数据。
+
+## Validation
+
+- `node --check frontend/capability-browser/app.js`、`SystemSettings.js`、`AppShell.js`：通过。
+- `node scripts/audit_frontend_system_settings_contract.mjs`：通过。
+- `git diff --check`：通过。
+- 应用内浏览器 console error：`0`。
+- 全工程 `static` 套件此前进入 MCP 保留端口检查时，被当前 Python 环境缺少已声明依赖 `cryptography` 阻断；不是本轮前端实现失败。
+
+final result: passed
+
+---
+
 # 成熟度评估报告指定 HTML 模板 Design QA（2026-07-17）
 
 - source visual truth：用户指定的 `/Users/kim1st/.codex/.chatgpt-projects/g-p-6a0141ade554819195eb79578e83c85f/maturity-report-01a3bc396ad2a47ddee7-executive.html`。
@@ -25,6 +84,8 @@
 - `py_compile`、专项报告断言与 `git diff --check` 通过；完整成熟度审计仍停在既有评分页滚动 owner 断言，本轮报告断言位于其前并已通过。
 
 final result: passed
+
+---
 
 # 成熟度评估报告 V2 编制工作台 Design QA（2026-07-18）
 

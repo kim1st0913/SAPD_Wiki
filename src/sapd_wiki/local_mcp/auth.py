@@ -34,7 +34,7 @@ from .audit import AuditEvent, AuditLogger
 from .control_store import ControlStore
 
 
-SCOPE = "sapd.base.public.summary.read"
+SCOPE = "sapd.base.knowledge.read"
 ACCESS_TOKEN_TTL_SECONDS = 600
 AUTHORIZATION_CODE_TTL_SECONDS = 120
 REFRESH_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60

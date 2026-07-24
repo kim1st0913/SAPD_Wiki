@@ -20,6 +20,37 @@ from sapd_wiki.local_mcp.control_service import ControlService, SupervisorGatewa
 NATIVE_CAPABILITY = "N" * 48
 
 
+def sample_certificate() -> dict:
+    return {
+        "schema_version": 1,
+        "state": "not_configured",
+        "reason_code": None,
+        "managed_by_app": True,
+        "profile": "dev",
+        "install_id_suffix": None,
+        "generation_id": None,
+        "subject": "127.0.0.1",
+        "san": ["127.0.0.1"],
+        "ca_display_name": None,
+        "ca_fingerprint_sha256": None,
+        "server_fingerprint_sha256": None,
+        "valid_from": None,
+        "valid_until": None,
+        "remaining_days": None,
+        "trust_scope": "current_user",
+        "trust_backend": "fake_current_user_trust",
+        "secret_backend": "in_memory_test_only",
+        "trust_policy": "ssl_loopback_only",
+        "trust_verified_at": None,
+        "last_rotated_at": None,
+        "operation": None,
+        "cleanup_pending": False,
+        "client_restart_required": False,
+        "old_generation_retained_until": None,
+        "next_action": "certificate_provision",
+    }
+
+
 def sample_snapshot() -> dict:
     return {
         "state_version": 0,
@@ -45,6 +76,7 @@ def sample_snapshot() -> dict:
                 "native_reset_confirmation": True,
             },
         },
+        "certificate": sample_certificate(),
         "clients": [
             {
                 "client_id": "client-0001",
@@ -165,6 +197,50 @@ class FakeSupervisorGateway:
         self.snapshot["audit"]["last_event_at"] = None
         return result
 
+    def prepare_certificate_action(
+        self,
+        *,
+        action: str,
+        request_id: str,
+        expected_state_version: int,
+    ) -> dict:
+        result = self._mutate(
+            "prepare_certificate_action",
+            request_id,
+            expected_state_version,
+        )
+        result.update(
+            {
+                "confirmation_id": "certificate-confirmation-0001",
+                "expires_at": "2026-07-23T01:05:00Z",
+                "effects": [
+                    "create_managed_identity",
+                    "install_current_user_trust",
+                ],
+                "action": action,
+                "profile": "dev",
+                "expected_ca_fingerprint_sha256": None,
+                "confirmation_mode": "web",
+            }
+        )
+        return result
+
+    def confirm_certificate_action(
+        self,
+        *,
+        confirmation_id: str,
+        request_id: str,
+        expected_state_version: int,
+    ) -> dict:
+        del confirmation_id
+        result = self._mutate(
+            "confirm_certificate_action",
+            request_id,
+            expected_state_version,
+        )
+        result["operation_id"] = "certificate-operation-0001"
+        return result
+
     def prepare_reset(
         self,
         *,
@@ -241,6 +317,7 @@ class ControlServiceTests(unittest.TestCase):
                 "state_version",
                 "status",
                 "settings",
+                "certificate",
                 "authorization_requests",
                 "clients",
                 "audit",
@@ -251,12 +328,51 @@ class ControlServiceTests(unittest.TestCase):
     def test_individual_read_interfaces_share_the_versioned_projection(self) -> None:
         self.assertEqual(self.service.get_status()["data"]["service_state"], "stopped")
         self.assertEqual(self.service.get_settings()["data"]["configured_port"], 18775)
+        self.assertEqual(
+            self.service.get_certificate()["data"]["state"], "not_configured"
+        )
         self.assertEqual(self.service.get_clients()["data"][0]["client_id"], "client-0001")
         self.assertEqual(self.service.get_audit()["data"]["event_count"], 4)
         self.assertEqual(
             self.service.get_diagnostics()["data"]["checks"][0]["check_id"],
             "runtime",
         )
+
+    def test_certificate_operation_projects_transaction_phase(self) -> None:
+        self.gateway.snapshot["certificate"].update(
+            {
+                "state": "valid",
+                "operation": {
+                    "operation_id": "operation-certificate-0001",
+                    "state": "running",
+                    "phase": "retiring",
+                },
+                "cleanup_pending": True,
+                "client_restart_required": True,
+                "old_generation_retained_until": "2026-07-24T10:00:00Z",
+                "next_action": None,
+            }
+        )
+        certificate = self.service.get_certificate()["data"]
+        self.assertEqual(certificate["operation"]["phase"], "retiring")
+        self.assertTrue(certificate["cleanup_pending"])
+        self.assertTrue(certificate["client_restart_required"])
+
+    def test_certificate_prepare_and_confirm_use_shared_idempotency_and_version(self) -> None:
+        prepared = self.service.prepare_certificate_action(
+            action="certificate_provision",
+            request_id="request-certificate-prepare-0001",
+            expected_state_version=0,
+        )
+        self.assertTrue(
+            prepared["certificate_confirmation"]["web_confirmation_required"]
+        )
+        confirmed = self.service.confirm_certificate_action(
+            confirmation_id=prepared["certificate_confirmation"]["confirmation_id"],
+            request_id="request-certificate-confirm-0001",
+            expected_state_version=1,
+        )
+        self.assertEqual(confirmed["operation_id"], "certificate-operation-0001")
 
     def test_sensitive_gateway_field_is_rejected_recursively(self) -> None:
         self.gateway.snapshot["diagnostics"]["checks"][0]["access_token"] = "not-returned"

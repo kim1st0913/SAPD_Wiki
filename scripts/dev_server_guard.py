@@ -29,6 +29,33 @@ DEFAULT_RUNTIME_PATHS = {
 }
 
 
+def server_python_executable(root: Path = ROOT) -> Path:
+    """Use the isolated MCP runtime for the Web server when it is available."""
+
+    configured = os.environ.get("SAPD_WIKI_SERVER_PYTHON", "").strip()
+    candidates = []
+    if configured:
+        candidate = Path(configured).expanduser()
+        candidates.append(candidate if candidate.is_absolute() else root / candidate)
+    candidates.extend(
+        (
+            root / ".venv-local-mcp-web" / "bin" / "python",
+            root / ".venv-local-mcp-web" / "Scripts" / "python.exe",
+            Path(sys.executable),
+        )
+    )
+    for candidate in candidates:
+        if candidate.is_file() and os.access(candidate, os.X_OK):
+            # Keep the virtual-environment launcher path intact. Resolving its
+            # symlink would execute the base interpreter without the venv site
+            # packages that provide the MCP certificate dependencies.
+            return candidate.absolute()
+    raise RuntimeError(
+        "no usable SAPD Wiki server Python was found; "
+        "create .venv-local-mcp-web with the local-mcp dependencies"
+    )
+
+
 def primary_git_worktree_root(root: Path = ROOT) -> Path:
     try:
         common_dir_value = subprocess.check_output(
@@ -135,6 +162,8 @@ def expected_runtime(args: argparse.Namespace) -> dict[str, str]:
         values["mcp_port"] = str(args.mcp_port)
     if args.mcp_runtime_root:
         values["mcp_runtime_root"] = args.mcp_runtime_root
+    if args.mcp_platform_integration:
+        values["mcp_platform_integration"] = "1"
     values["runtime_label"] = args.runtime_label or "stable"
     values["project_root"] = str(ROOT.resolve())
     if args.port == DEFAULT_PORT:
@@ -257,7 +286,16 @@ def start_project_server(port: int, runtime: dict[str, str]) -> int | None:
     env = os.environ.copy()
     src = str(ROOT / "src")
     env["PYTHONPATH"] = src if not env.get("PYTHONPATH") else f"{src}{os.pathsep}{env['PYTHONPATH']}"
-    command = [sys.executable, "-m", "sapd_wiki.cli", "serve", "--host", "127.0.0.1", "--port", str(port)]
+    command = [
+        str(server_python_executable()),
+        "-m",
+        "sapd_wiki.cli",
+        "serve",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        str(port),
+    ]
     if runtime.get("base_db"):
         command.extend(["--base-db", runtime["base_db"]])
     if runtime.get("user_db"):
@@ -274,6 +312,8 @@ def start_project_server(port: int, runtime: dict[str, str]) -> int | None:
         command.extend(["--mcp-port", runtime["mcp_port"]])
     if runtime.get("mcp_runtime_root"):
         command.extend(["--mcp-runtime-root", runtime["mcp_runtime_root"]])
+    if runtime.get("mcp_platform_integration") == "1":
+        command.append("--mcp-platform-integration")
     subprocess.Popen(
         command,
         cwd=ROOT,
@@ -310,6 +350,11 @@ def main() -> int:
     parser.add_argument("--runtime-label", default="", help="Expected runtime label for /api/v1/health.")
     parser.add_argument("--mcp-port", type=int, default=0, help="Initial isolated Web-dev MCP port.")
     parser.add_argument("--mcp-runtime-root", default="", help="Explicit isolated Web-dev MCP runtime root.")
+    parser.add_argument(
+        "--mcp-platform-integration",
+        action="store_true",
+        help="Enable separately authorized persistent CurrentUser MCP integration.",
+    )
     parser.add_argument("--status", action="store_true", help="Print current status.")
     parser.add_argument("--start", action="store_true", help="Start project server if it is not running.")
     parser.add_argument("--stop", action="store_true", help="Stop project server processes on the selected port.")

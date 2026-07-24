@@ -7,6 +7,7 @@ from copy import deepcopy
 from threading import RLock
 from typing import Any, Mapping
 
+from .certificate_identity import empty_certificate_state
 from .control_api import ControlApi
 from .control_models import GatewayActionError
 from .control_service import ControlService
@@ -47,8 +48,19 @@ class BrowserOnlySupervisorGateway:
                     "client_revocation": False,
                     "audit_clear": False,
                     "native_reset_confirmation": False,
+                    "certificate_provision": False,
+                    "certificate_rotate": False,
+                    "certificate_repair_trust": False,
+                    "certificate_view_details": False,
+                    "certificate_reset": False,
                 },
             },
+            "certificate": empty_certificate_state(
+                profile="dev",
+                state="not_configured",
+                reason_code="DESKTOP_CAPABILITY_REQUIRED",
+                next_action="certificate_view_details",
+            ),
             "clients": [],
             "audit": {
                 "enabled": False,
@@ -166,6 +178,8 @@ class BrowserOnlySupervisorGateway:
     update_port = _desktop_required
     decide_authorization = _desktop_required
     check_service = _desktop_required
+    prepare_certificate_action = _desktop_required
+    confirm_certificate_action = _desktop_required
 
 
 def build_browser_control_api(

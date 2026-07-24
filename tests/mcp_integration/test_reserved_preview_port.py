@@ -41,6 +41,14 @@ def load_dev_server_guard():
 
 
 class ReservedPreviewPortTests(unittest.TestCase):
+    def test_guard_prefers_isolated_mcp_python_for_integrated_web_runtime(self) -> None:
+        guard = load_dev_server_guard()
+        with self.subTest("local MCP runtime"):
+            self.assertEqual(
+                guard.server_python_executable(),
+                ROOT / ".venv-local-mcp-web" / "bin" / "python",
+            )
+
     def test_stable_default_runtime_is_allowed_on_5173(self) -> None:
         self.assertEqual(api_server.reserved_preview_port_blockers(serve_args()), [])
 
@@ -116,6 +124,7 @@ class ReservedPreviewPortTests(unittest.TestCase):
                     runtime_label="",
                     mcp_port=0,
                     mcp_runtime_root="",
+                    mcp_platform_integration=False,
                 )),
             )
         self.assertTrue(any("primary worktree" in blocker for blocker in blockers))

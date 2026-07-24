@@ -24,7 +24,7 @@
 
 | 编号 | 状态 | 标题 |
 |---|---|---|
-| OI-199 | 评审通过 / 待用户确认计划 | 本地 MCP 的安全连接、公开摘要和四份合同尚未通过技术门禁 |
+| OI-199 | 部分完成 / 待真实客户端与平台验证 | 本地 MCP 正式知识访问已接入，真实客户端与系统信任仍待验证 |
 | OI-198 | 待实现 / 契约已确认 | 导入审批缺少幂等门禁、中间数据终结和 approved 默认导出契约 |
 | OI-197 | 待业务确认 / 映射门禁阻断 | 成熟度评分依据与当前能力字典尚未全量映射 |
 | OI-192 | 已修复 / 待用户验收 | 成熟度评分工作台服务、评分定义与主动作契约未按截图落地 |
@@ -52,21 +52,21 @@
 
 ## 当前问题详情
 
-## OI-199：本地 MCP 的安全连接、公开摘要和四份合同尚未通过技术门禁
+## OI-199：本地 MCP 正式知识访问已接入，真实客户端与系统信任仍待验证
 
-- 状态：评审通过 / 待用户确认计划
+- 状态：部分完成 / 待真实客户端与平台验证
 - 严重性：高
 - 类型：架构 / 本地 API / OAuth / TLS / 数据授权 / 审计 / macOS / Windows
-- 对象或页面：本地 MCP spike / Sidecar、`ReadOnlyRuntimeProbe`、目标 `ReadOnlyRuntimeContext`、Codex MCP 配置、系统设置 AI 集成页、基础知识库公开摘要、独立 MCP 控制面。
-- 现象：外部 v0.3 已补齐主要安全与协议边界，但当前仍没有真实目标 Codex 的注册 / callback / 无状态 Profile 证据，也没有能证明私钥不落明文文件的本机 TLS 终止方案。当前基础库虽然 stable identity 为对象 `4678/4678`、关系 `7757/7757`，但没有 `ai_summary` 字段，15 个来源文件中 public 为 0，因此正式 P0 当前无可授权公开摘要。
-- 影响：若跳过 `M0-T / D0` 直接实现，会出现 OAuth 注册方式与真实客户端不兼容、TLS 私钥保管承诺无法落地、把 description 或敏感来源误当公开摘要、MCP 触碰用户库、无状态活动被误报为持续连接、或多实例 / 卸载遗留凭据等风险。
+- 对象或页面：本地 MCP Sidecar、正式基础库只读 Runtime、Codex MCP 配置、系统设置 AI 集成页、独立 MCP 控制面、macOS / Windows CurrentUser 信任。
+- 现象：正式知识访问、OAuth/Streamable HTTP、固定 5 个 Tool、Web 控制面、稳定测试证书和隔离 Sidecar 已实现并自动验收；但尚未完成目标 Codex 版本矩阵、真实 CurrentUser 系统信任、macOS Keychain / Windows DPAPI、App Runtime 和打包验证。
+- 影响：知识查询功能可以进入本机 Web 开发验证，但在真实客户端与平台验证完成前，不能宣称跨版本 Codex、macOS/Windows 安装包或系统信任交付完成。
 - 建单理由：涉及跨平台 App、OAuth/TLS、本地 API、正式基础数据、来源许可、审计和用户隐私，且本轮只完成设计合同，无法自动关闭。
-- 当前处理：Work 已对 `docs/01-architecture/sapd-wiki-local-mcp-requirements-and-prd-v0.5.md` 给出 `PASS`，无新增技术 P0。开发计划为 `docs/06-implementation/local-mcp-m0t-t0-t2-execution-plan.md`，拟先在独立 worktree 固化 v0.5 与审批记录，再串行执行 T0 合同/fixture、T1 Runtime probe、T2 协议 harness；当前等待用户确认计划，尚未开始执行。
-- 需要确认：用户是否批准计划中的独立 `codex/local-mcp-m0t` worktree、纯文档审批提交和 T0→T1→T2 串行执行。本授权不包含 T3 真实客户端/系统信任、D0-Pilot、M1、正式/用户数据、App 或打包。
-- 验收入口：上述 v0.5 文档第 5、6、8、9、16 和 18 节。
-- 关闭条件：`M0-T=PASS`、`D0-Pilot=PASS`、四份合同冻结并取得 M1 单独批准；真实数据接入还必须 `D0-Release=PASS`。技术证据包括 macOS/Windows 目标 Codex 完成 HTTPS、发现、注册、PKCE、resource/audience、刷新和撤销，TLS 私钥不落未加密文件，MCP 不创建或打开用户库，以及 Transport、Tool、多实例、升级/回滚/卸载和负向安全矩阵通过。
-- 修复说明：PRD 评审已 PASS，并已形成待确认的 T0–T2 开发计划；未创建分支、提交、审批记录、fixture、probe、监听端口、依赖环境或测试证书，未修改运行代码、Schema、SQLite、正式 JSON、用户库、系统信任、客户端配置、App 设置或 DMG。
-- 验证结果：2026-07-22 `scripts/audit_stable_key_contract.mjs` 只读通过；SQLite 只读计数为对象 `4678`、类型 `37`、关系 `7757`、关系类型 `28`、来源 `15`，`ai_summary` 字段 `0`，public 来源 `0`、confidential `10`、unknown `5`。这些是设计门禁证据，不代表 MCP 已实现或可发布。
+- 当前处理：用户已明确裁定正式基础知识库全部业务内容可由 AI 调用，不再以 `public_summary / ai_summary` 作为二次门禁。正式 `MCP-BASE-KNOWLEDGE-ACCESS-v1`、只读 Runtime、固定参数化查询、系统设置说明和 Web Sidecar 已统一落地；下一阶段只推进真实客户端与平台验证，不再继续扩写摘要数据轨。
+- 需要确认：进入真实客户端验证前，仍需用户单独授权目标 Codex 版本矩阵、真实客户端配置、CurrentUser 系统信任、Keychain/DPAPI 与 App/打包范围。
+- 验收入口：`/settings/ai-integration`、`docs/01-architecture/contracts/mcp/base-knowledge/v1/`、`tests/mcp/test_base_query_service.py`、`tests/mcp_e2e/test_web_dev_mcp_e2e.py`。
+- 关闭条件：目标 Codex 版本在 macOS/Windows 完成 HTTPS、发现、注册、PKCE、resource/audience、刷新、撤销、升级/回滚/卸载和负向安全矩阵；真实 CurrentUser 信任与密钥保管验证通过；MCP 始终不创建、打开或修改用户库。
+- 修复说明：新增正式基础知识库访问合同与 scope `sapd.base.knowledge.read`；Sidecar 改为只读打开正式基础库并通过 5 个固定工具返回全部业务对象内容、关系和脱敏来源证据。旧 synthetic 公开摘要合同保留为历史测试基线。系统设置明确显示“基础知识库全部业务内容，包括完整标准正文”，并继续排除用户数据、源文件本体、本地路径、系统配置与凭据、日志和非受控 SQL。
+- 验证结果：2026-07-24 MCP Python `155` 项和系统设置前端合同通过；正式 GB/T 22239 完整条款与 deprecated 对象均可只读返回；MCP 查询前后正式基础库和用户库 SHA-256 未变化；页面重载发现的既有用户 schema 元数据无条件刷新已修复，修复后用户库哈希、40 条批注及业务更新时间保持不变；应用内页面无横向溢出，console warning / error 为 `0`；稳定 5173 的 home / health / workspace projection 和五项 runtime profile 通过。真实客户端、系统信任、App/DMG 仍未验证。
 
 ## OI-198：导入审批缺少幂等门禁、中间数据终结和 approved 默认导出契约
 

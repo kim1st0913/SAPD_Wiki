@@ -1243,6 +1243,14 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Isolated Python executable for the MCP Sidecar. Defaults to .venv-local-mcp-web.",
     )
+    serve_cmd.add_argument(
+        "--mcp-platform-integration",
+        action="store_true",
+        help=(
+            "Enable the separately authorized persistent Web-dev Keychain and "
+            "CurrentUser trust adapters. Disabled by default."
+        ),
+    )
     serve_cmd.set_defaults(func=cmd_serve)
 
     return parser

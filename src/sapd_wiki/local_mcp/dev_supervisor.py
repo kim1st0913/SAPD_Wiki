@@ -15,11 +15,34 @@ import tempfile
 import threading
 import time
 from datetime import UTC, datetime
+from hashlib import sha256
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 
+from .certificate_identity import CertificateIdentityError, CertificateIdentityStore
+from .certificate_lifecycle import (
+    CertificateLifecycle,
+    CertificateLifecycleError,
+)
+from .certificate_trust import (
+    CertificateTrustError,
+    CurrentUserTrustAdapter,
+    FakeCurrentUserTrustAdapter,
+)
 from .control_models import GatewayActionError
 from .control_store import ControlStore
+from .platform_secrets import (
+    FakeMacOSDataProtectionKeychainProvider,
+    FakeWindowsDpapiCurrentUserProvider,
+    MacOSWebDevKeychainSecretProvider,
+)
+from .macos_current_user_trust import MacOSCurrentUserTrustAdapter
+from .secret_transport import ParentSecretChannel
+from .tls import (
+    KEY_PASSPHRASE_IPC_UNSAFE,
+    SecretProvider,
+    TLSIdentityError,
+)
 
 
 RESERVED_STABLE_PREVIEW_PORT = 5173
@@ -43,6 +66,12 @@ class DevSidecarSupervisor:
         authorization_timeout_seconds: int = 120,
         cleanup_on_close: bool = True,
         python_executable: str | Path | None = None,
+        base_database: str | Path | None = None,
+        certificate_identity_root: Path | None = None,
+        certificate_secret_provider: SecretProvider | None = None,
+        certificate_trust_adapter: CurrentUserTrustAdapter | None = None,
+        platform_integration_enabled: bool = False,
+        secret_channel_factory: Callable[[], ParentSecretChannel] = ParentSecretChannel,
     ) -> None:
         if not 1024 <= configured_port <= 65535:
             raise ValueError("configured_port must be between 1024 and 65535")
@@ -68,6 +97,18 @@ class DevSidecarSupervisor:
         if not executable.is_absolute() or not executable.is_file() or not os.access(executable, os.X_OK):
             raise ValueError("python_executable must be an existing executable absolute path")
         self._python_executable = str(executable)
+        self._base_database: Path | None = None
+        if base_database is not None:
+            base_candidate = Path(base_database)
+            if (
+                not base_candidate.is_absolute()
+                or base_candidate.is_symlink()
+                or not base_candidate.is_file()
+            ):
+                raise ValueError(
+                    "base_database must be an existing absolute non-symlink file"
+                )
+            self._base_database = base_candidate.resolve(strict=True)
         self._lock = threading.RLock()
         self._process: subprocess.Popen[bytes] | None = None
         self._log_handle: Any = None
@@ -76,6 +117,7 @@ class DevSidecarSupervisor:
         self._state_version = 0
         self._recoverable_error: dict[str, str] | None = None
         self._prepared_resets: dict[str, tuple[float, str]] = {}
+        self._prepared_certificate_actions: dict[str, dict[str, Any]] = {}
         self._last_checked_at: float | None = None
         self._last_success_at: float | None = None
         self._closed = False
@@ -87,7 +129,67 @@ class DevSidecarSupervisor:
             self.runtime_root / "control" / "control.sqlite3",
             verifier_key=verifier_key,
         )
+        identity_candidate = (
+            Path(certificate_identity_root)
+            if certificate_identity_root is not None
+            else self.runtime_root / "managed-certificate-dev"
+        )
+        fake_device_binding = sha256(
+            str(identity_candidate.absolute()).encode("utf-8")
+        ).hexdigest()
+        self._certificate_secret_provider = (
+            certificate_secret_provider
+            or (
+                MacOSWebDevKeychainSecretProvider(
+                    mutation_enabled=True,
+                )
+                if platform_integration_enabled and os.name != "nt"
+                else
+                FakeWindowsDpapiCurrentUserProvider(
+                    device_binding=fake_device_binding
+                )
+                if os.name == "nt"
+                else FakeMacOSDataProtectionKeychainProvider(
+                    device_binding=fake_device_binding
+                )
+            )
+        )
+        self._secret_channel_factory = secret_channel_factory
+        self._certificate_identity = CertificateIdentityStore(
+            identity_candidate,
+            secret_provider=self._certificate_secret_provider,
+            profile="dev",
+        )
+        if certificate_trust_adapter is not None:
+            self._certificate_trust = certificate_trust_adapter
+        elif platform_integration_enabled and os.name != "nt":
+            self._certificate_trust = MacOSCurrentUserTrustAdapter(
+                runtime_root=self.runtime_root / "trust-staging",
+                mutation_enabled=True,
+                managed_fingerprints=lambda: {
+                    item.ca_fingerprint_sha256
+                    for item in self._certificate_identity.list_generation_manifests()
+                },
+            )
+        elif platform_integration_enabled:
+            raise ValueError(
+                "Windows platform integration is delivered and validated in D2"
+            )
+        else:
+            self._certificate_trust = FakeCurrentUserTrustAdapter()
+        self._certificate_lifecycle = CertificateLifecycle(
+            identity=self._certificate_identity,
+            trust=self._certificate_trust,
+        )
+        self._certificate_lifecycle.recover()
         self._external_signature = self._store_signature()
+        self._monitor_stop = threading.Event()
+        self._monitor_thread = threading.Thread(
+            target=self._monitor_loop,
+            name="sapd-mcp-certificate-monitor",
+            daemon=True,
+        )
+        self._monitor_thread.start()
 
     @property
     def configured_port(self) -> int:
@@ -95,7 +197,10 @@ class DevSidecarSupervisor:
 
     @property
     def ca_path(self) -> Path:
-        return self.runtime_root / "tls" / "dev-ca.pem"
+        try:
+            return self._certificate_identity.active_identity_files().ca_path
+        except CertificateIdentityError:
+            return self.runtime_root / "managed-certificate-unavailable-ca.pem"
 
     @property
     def process(self) -> subprocess.Popen[bytes] | None:
@@ -227,12 +332,25 @@ class DevSidecarSupervisor:
         pending = self._store.list_authorization_requests()
         clients = self._store.list_client_summaries()
         audit = self._store.read_audit(limit=1000)
+        certificate = self._certificate_projection()
         return json.dumps(
             {
                 "pending": pending,
                 "clients": clients,
                 "audit_count": len(audit),
                 "last_event": audit[0]["occurred_at"] if audit else None,
+                "certificate": {
+                    key: certificate.get(key)
+                    for key in (
+                        "state",
+                        "reason_code",
+                        "generation_id",
+                        "ca_fingerprint_sha256",
+                        "trust_verified_at",
+                        "operation",
+                        "cleanup_pending",
+                    )
+                },
             },
             ensure_ascii=True,
             sort_keys=True,
@@ -266,6 +384,104 @@ class DevSidecarSupervisor:
             }
             for request in self._store.list_authorization_requests()
         ]
+
+    def _certificate_projection(self) -> dict[str, Any]:
+        lifecycle = self._certificate_lifecycle.projection()
+        try:
+            manifest = self._certificate_identity.load_manifest()
+        except CertificateIdentityError as exc:
+            failure_lifecycle = {
+                **lifecycle,
+                "forced_state": "recovery_required",
+                "forced_reason_code": exc.code,
+                "forced_next_action": "certificate_reset",
+            }
+            return self._certificate_identity.public_state(
+                trust_installed=False,
+                trust_backend=self._certificate_trust.backend,
+                secret_backend=getattr(
+                    self._certificate_secret_provider,
+                    "backend",
+                    "in_memory_test_only",
+                ),
+                trust_policy=self._certificate_trust.policy,
+                **failure_lifecycle,
+            )
+        if manifest is None:
+            return self._certificate_identity.public_state(
+                trust_installed=False,
+                trust_backend=self._certificate_trust.backend,
+                secret_backend=getattr(
+                    self._certificate_secret_provider,
+                    "backend",
+                    "in_memory_test_only",
+                ),
+                trust_policy=self._certificate_trust.policy,
+                **lifecycle,
+            )
+        try:
+            inspection = self._certificate_trust.inspect_target(
+                self._certificate_identity.trust_target(manifest)
+            )
+        except (CertificateTrustError, CertificateIdentityError) as exc:
+            failure_lifecycle = {
+                **lifecycle,
+                "forced_state": "recovery_required",
+                "forced_reason_code": getattr(
+                    exc,
+                    "code",
+                    "CERTIFICATE_TRUST_STORE_UNAVAILABLE",
+                ),
+                "forced_next_action": "certificate_reset",
+            }
+            return self._certificate_identity.public_state(
+                trust_installed=False,
+                trust_backend=self._certificate_trust.backend,
+                secret_backend=getattr(
+                    self._certificate_secret_provider,
+                    "backend",
+                    "in_memory_test_only",
+                ),
+                trust_policy=self._certificate_trust.policy,
+                **failure_lifecycle,
+            )
+        return self._certificate_identity.public_state(
+            trust_installed=inspection.installed,
+            trust_conflict=inspection.conflict,
+            trust_backend=inspection.backend,
+            secret_backend=getattr(
+                self._certificate_secret_provider,
+                "backend",
+                "in_memory_test_only",
+            ),
+            trust_policy=inspection.policy,
+            trust_verified_at=inspection.verified_at,
+            **lifecycle,
+        )
+
+    def _enforce_runtime_certificate_state(self) -> None:
+        if self._process is None or self._process.poll() is not None:
+            return
+        certificate = self._certificate_projection()
+        if certificate["state"] in {"valid", "expiring", "renewal_required"}:
+            return
+        self._terminate_owned_process()
+        self._cleanup_tls()
+        self._desired_state = "enabled"
+        self._service_state = "error"
+        self._recoverable_error = {
+            "code": "CERTIFICATE_RUNTIME_INVALID",
+            "recovery_action": "configure_certificate",
+        }
+        self._state_version += 1
+
+    def _monitor_loop(self) -> None:
+        while not self._monitor_stop.wait(1.0):
+            with self._lock:
+                if self._closed:
+                    return
+                self._refresh_process_state()
+                self._enforce_runtime_certificate_state()
 
     def _diagnostics(self) -> dict[str, Any]:
         if self._service_state == "ready":
@@ -311,6 +527,7 @@ class DevSidecarSupervisor:
     def read_snapshot(self) -> Mapping[str, Any]:
         with self._lock:
             self._refresh_process_state()
+            self._enforce_runtime_certificate_state()
             self._sync_external_version()
             pending = self._authorization_requests()
             clients = self._clients()
@@ -346,8 +563,14 @@ class DevSidecarSupervisor:
                         "authorization_decision": True,
                         "diagnostic_check": True,
                         "web_reset_confirmation": True,
+                        "certificate_provision": True,
+                        "certificate_rotate": True,
+                        "certificate_repair_trust": True,
+                        "certificate_view_details": True,
+                        "certificate_reset": True,
                     },
                 },
+                "certificate": self._certificate_projection(),
                 "authorization_requests": pending,
                 "clients": clients,
                 "audit": {
@@ -377,6 +600,31 @@ class DevSidecarSupervisor:
             self._require_version(expected_state_version, self._state_version)
             if self._process is not None and self._process.poll() is None:
                 return self._action_result(self._state_version, changed=False)
+            certificate = self._certificate_projection()
+            if certificate["state"] not in {
+                "valid",
+                "expiring",
+                "renewal_required",
+            }:
+                self._desired_state = "enabled"
+                self._service_state = "error"
+                self._recoverable_error = {
+                    "code": (
+                        "KEY_PASSPHRASE_UNAVAILABLE"
+                        if certificate["state"] == "key_unavailable"
+                        else "CERTIFICATE_NOT_READY"
+                    ),
+                    "recovery_action": (
+                        "reset_certificate"
+                        if certificate["state"] == "key_unavailable"
+                        else "configure_certificate"
+                    ),
+                }
+                self._state_version += 1
+                raise GatewayActionError(
+                    "ACTION_REJECTED",
+                    current_state_version=self._state_version,
+                )
             if not self._port_available(self._configured_port):
                 self._desired_state = "enabled"
                 self._service_state = "error"
@@ -397,9 +645,16 @@ class DevSidecarSupervisor:
             log_path = self.runtime_root / "sidecar.log"
             self._log_handle = open(log_path, "ab", buffering=0)
             os.chmod(log_path, 0o600)
+            secret_channel: ParentSecretChannel | None = None
             try:
-                self._process = subprocess.Popen(
-                    [
+                manifest = self._certificate_identity.load_manifest()
+                if manifest is None:
+                    raise CertificateIdentityError("IDENTITY_NOT_CONFIGURED")
+                identity_files = self._certificate_identity.active_identity_files(
+                    manifest
+                )
+                secret_channel = self._secret_channel_factory()
+                command = [
                         self._python_executable,
                         "-m",
                         "sapd_wiki.local_mcp.dev_sidecar",
@@ -409,20 +664,53 @@ class DevSidecarSupervisor:
                         str(self._configured_port),
                         "--authorization-timeout-seconds",
                         str(self._authorization_timeout_seconds),
-                    ],
+                        "--secret-channel-fd",
+                        str(secret_channel.child_fd),
+                    ]
+                if self._base_database is not None:
+                    command.extend(["--base-db", str(self._base_database)])
+                self._process = subprocess.Popen(
+                    command,
                     stdin=subprocess.DEVNULL,
                     stdout=self._log_handle,
                     stderr=self._log_handle,
                     close_fds=True,
+                    pass_fds=(secret_channel.child_fd,),
+                )
+                secret_channel.close_child_copy()
+                secret_channel.deliver(
+                    child_pid=self._process.pid,
+                    generation_id=manifest.generation_id,
+                    certificate_path=identity_files.server_chain_path,
+                    encrypted_private_key_path=identity_files.encrypted_private_key_path,
+                    secret_loader=lambda: self._certificate_secret_provider.get_secret(
+                        manifest.passphrase_reference
+                    ),
                 )
                 self._write_lease()
             except Exception as exc:
+                if secret_channel is not None:
+                    secret_channel.close()
                 self._terminate_owned_process()
                 self._cleanup_tls()
                 self._service_state = "error"
                 self._recoverable_error = {
-                    "code": "SIDECAR_START_FAILED",
-                    "recovery_action": "check_runtime",
+                    "code": (
+                        exc.code
+                        if isinstance(exc, TLSIdentityError)
+                        and exc.code
+                        in {
+                            KEY_PASSPHRASE_IPC_UNSAFE,
+                            "KEY_PASSPHRASE_UNAVAILABLE",
+                        }
+                        else "SIDECAR_START_FAILED"
+                    ),
+                    "recovery_action": (
+                        "reset_certificate"
+                        if isinstance(exc, TLSIdentityError)
+                        and exc.code == "KEY_PASSPHRASE_UNAVAILABLE"
+                        else "check_runtime"
+                    ),
                 }
                 self._state_version += 1
                 raise GatewayActionError(
@@ -571,6 +859,156 @@ class DevSidecarSupervisor:
                 self._external_signature = self._store_signature()
             return self._action_result(self._state_version, changed=changed)
 
+    def prepare_certificate_action(
+        self,
+        *,
+        action: str,
+        request_id: str,
+        expected_state_version: int,
+    ) -> Mapping[str, Any]:
+        del request_id
+        allowed_actions = {
+            "certificate_provision",
+            "certificate_rotate",
+            "certificate_repair_trust",
+        }
+        if action not in allowed_actions:
+            raise GatewayActionError("ACTION_REJECTED")
+        with self._lock:
+            self._refresh_process_state()
+            self._sync_external_version()
+            self._require_version(expected_state_version, self._state_version)
+            now = time.time()
+            self._prepared_certificate_actions = {
+                confirmation_id: prepared
+                for confirmation_id, prepared in self._prepared_certificate_actions.items()
+                if prepared["expires_at"] > now
+            }
+            if self._prepared_certificate_actions:
+                raise GatewayActionError("ACTION_REJECTED")
+            certificate = self._certificate_projection()
+            allowed_states = {
+                "certificate_provision": {"not_configured"},
+                "certificate_rotate": {
+                    "valid",
+                    "expiring",
+                    "renewal_required",
+                    "expired",
+                },
+                "certificate_repair_trust": {"trust_missing"},
+            }
+            if certificate["state"] not in allowed_states[action]:
+                raise GatewayActionError("ACTION_REJECTED")
+            confirmation_id = f"certificate:{secrets.token_urlsafe(24)}"
+            expires_at = now + 120
+            self._prepared_certificate_actions[confirmation_id] = {
+                "expires_at": expires_at,
+                "action": action,
+                "generation_id": certificate.get("generation_id"),
+                "trust_snapshot_digest": (
+                    self._certificate_lifecycle.snapshot_digest()
+                ),
+            }
+            self._state_version += 1
+            effects = {
+                "certificate_provision": [
+                    "create_managed_identity",
+                    "install_current_user_trust",
+                ],
+                "certificate_rotate": [
+                    "create_managed_identity",
+                    "replace_current_user_trust",
+                ],
+                "certificate_repair_trust": [
+                    "install_current_user_trust",
+                ],
+            }
+            return {
+                **self._action_result(self._state_version),
+                "confirmation_id": confirmation_id,
+                "expires_at": _iso(expires_at),
+                "effects": effects[action],
+                "action": action,
+                "profile": "dev",
+                "expected_ca_fingerprint_sha256": certificate.get(
+                    "ca_fingerprint_sha256"
+                ),
+                "confirmation_mode": "web",
+            }
+
+    def confirm_certificate_action(
+        self,
+        *,
+        confirmation_id: str,
+        request_id: str,
+        expected_state_version: int,
+    ) -> Mapping[str, Any]:
+        del request_id
+        with self._lock:
+            self._refresh_process_state()
+            self._sync_external_version()
+            self._require_version(expected_state_version, self._state_version)
+            prepared = self._prepared_certificate_actions.get(confirmation_id)
+            if prepared is None or prepared["expires_at"] <= time.time():
+                self._prepared_certificate_actions.pop(confirmation_id, None)
+                raise GatewayActionError("ACTION_REJECTED")
+            action = prepared["action"]
+            current = self._certificate_identity.load_manifest()
+            if (
+                prepared["generation_id"]
+                != (current.generation_id if current is not None else None)
+                or prepared["trust_snapshot_digest"]
+                != self._certificate_lifecycle.snapshot_digest()
+            ):
+                self._prepared_certificate_actions.pop(confirmation_id, None)
+                raise GatewayActionError("ACTION_REJECTED")
+            try:
+                if action == "certificate_provision":
+                    journal = self._certificate_lifecycle.provision()
+                elif action == "certificate_rotate":
+                    if current is None:
+                        raise GatewayActionError("ACTION_REJECTED")
+                    if self._process is not None:
+                        self._terminate_owned_process()
+                        self._cleanup_tls()
+                        self._desired_state = "disabled"
+                        self._service_state = "stopped"
+                    journal = self._certificate_lifecycle.rotate()
+                elif action == "certificate_repair_trust":
+                    if current is None:
+                        raise GatewayActionError("ACTION_REJECTED")
+                    journal = self._certificate_lifecycle.repair_trust()
+                    if journal.outcome != "completed":
+                        raise CertificateLifecycleError(
+                            journal.last_error_code
+                            or "CERTIFICATE_TRUST_REPAIR_FAILED"
+                        )
+                else:
+                    raise GatewayActionError("ACTION_REJECTED")
+            except (
+                CertificateTrustError,
+                CertificateIdentityError,
+                CertificateLifecycleError,
+                TLSIdentityError,
+            ) as exc:
+                self._prepared_certificate_actions.pop(confirmation_id, None)
+                self._recoverable_error = {
+                    "code": getattr(
+                        exc,
+                        "code",
+                        "CERTIFICATE_OPERATION_FAILED",
+                    ),
+                    "recovery_action": "configure_certificate",
+                }
+                self._state_version += 1
+                raise GatewayActionError("ACTION_REJECTED") from exc
+            self._prepared_certificate_actions.pop(confirmation_id, None)
+            self._state_version += 1
+            return {
+                **self._action_result(self._state_version),
+                "operation_id": journal.operation_id,
+            }
+
     def prepare_reset(
         self,
         *,
@@ -605,6 +1043,7 @@ class DevSidecarSupervisor:
                 "effects": [
                     "stop_service",
                     "revoke_all_clients",
+                    "delete_managed_trust",
                     "delete_managed_secrets",
                     (
                         "clear_audit"
@@ -652,11 +1091,24 @@ class DevSidecarSupervisor:
                 raise GatewayActionError("ACTION_REJECTED")
             self._terminate_owned_process()
             self._cleanup_tls()
+            reset_operation = self._certificate_lifecycle.reset()
+            if reset_operation.outcome != "completed":
+                self._service_state = "error"
+                self._recoverable_error = {
+                    "code": (
+                        reset_operation.last_error_code
+                        or "CERTIFICATE_RESET_INCOMPLETE"
+                    ),
+                    "recovery_action": "reset_certificate",
+                }
+                self._state_version += 1
+                raise GatewayActionError("ACTION_REJECTED")
             self._store.reset_authorization_state(
                 clear_audit=prepared[1] == "clear"
             )
             self._rotate_runtime_secrets()
             self._prepared_resets.pop(reset_id, None)
+            self._prepared_certificate_actions.clear()
             self._desired_state = "disabled"
             self._service_state = "stopped"
             self._recoverable_error = None
@@ -673,6 +1125,7 @@ class DevSidecarSupervisor:
     confirm_reset = _not_available
 
     def close(self) -> None:
+        self._monitor_stop.set()
         with self._lock:
             if self._closed:
                 return
@@ -689,6 +1142,11 @@ class DevSidecarSupervisor:
             self._closed = True
             if self._cleanup_on_close and self.runtime_root.exists():
                 shutil.rmtree(self.runtime_root)
+        if (
+            self._monitor_thread.is_alive()
+            and threading.current_thread() is not self._monitor_thread
+        ):
+            self._monitor_thread.join(timeout=2)
 
     def __enter__(self) -> "DevSidecarSupervisor":
         return self

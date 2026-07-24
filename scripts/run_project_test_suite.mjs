@@ -170,6 +170,9 @@ const suites = {
       command("mcp:policy", "MCP 策略签名", ".venv-local-mcp-web/bin/python", [
         "-m", "unittest", "discover", "-s", "tests/mcp_policy_signature", "-p", "test_*.py",
       ], { env: { PYTHONPATH: "src" } }),
+      command("mcp:certificate", "MCP 稳定证书与模拟 CurrentUser 信任", ".venv-local-mcp-web/bin/python", [
+        "-m", "unittest", "discover", "-s", "tests/mcp_certificate", "-p", "test_*.py",
+      ], { env: { PYTHONPATH: "src" } }),
       command("mcp:control", "MCP Web 控制 API", ".venv-local-mcp-web/bin/python", [
         "-m", "unittest", "discover", "-s", "tests/mcp_control", "-p", "test_*.py",
       ], { env: { PYTHONPATH: "src" } }),

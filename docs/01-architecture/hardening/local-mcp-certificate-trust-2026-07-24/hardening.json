@@ -1,0 +1,458 @@
+{
+  "documentType": "codex-security.hardening-analysis",
+  "schemaVersion": "1.0",
+  "analysisId": "sapd_local_mcp_certificate_trust_20260724",
+  "sourceEvidence": {
+    "kind": "document_and_source_collection",
+    "label": "SAPD Wiki local MCP certificate, TLS and settings evidence",
+    "collectionSha256": "d22502ed34da6aac7e2c8b0180bffaca71ef397abb9b8a6b24ce0bc732ba5cc6",
+    "artifactCount": 5,
+    "targetRevision": "e2443ac8c08e85bca3378dba51387a519a740ba1",
+    "sourceDrift": "present"
+  },
+  "assessment": {
+    "outcome": "opportunities_identified",
+    "summary": "Keep the selected per-user App-managed CA, but centralize files, secrets, trust, Sidecar delivery and recovery under one transactional lifecycle owner."
+  },
+  "constraints": {
+    "profile": "balanced",
+    "changeHorizons": [
+      "incremental",
+      "medium_term"
+    ],
+    "nonNegotiables": [
+      "Bind only to 127.0.0.1.",
+      "Do not write LocalMachine or system-wide trust.",
+      "Do not place private keys, passphrases or shared CA material in packages or Git.",
+      "Require separate authorization before real CurrentUser trust or Codex configuration changes."
+    ],
+    "assumptions": [
+      "No measured latency or memory budget was supplied.",
+      "The product does not resist an attacker who fully controls the same OS user session.",
+      "Web development validation precedes macOS and Windows packaging."
+    ]
+  },
+  "opportunities": [
+    {
+      "opportunityId": "certificate-trust-owner",
+      "title": "Make the App the sole certificate and trust owner",
+      "summary": "Centralize identity generations, secret custody, restricted CurrentUser trust, Sidecar delivery and crash recovery behind one App controller.",
+      "diagnosis": "The current temporary TLS implementation and design contracts do not yet provide one durable owner for files, secrets, trust, active-generation selection and recovery.",
+      "evidence": [
+        {
+          "claimType": "observed",
+          "sourceKind": "document",
+          "evidenceId": "E001",
+          "path": "docs/01-architecture/sapd-wiki-local-mcp-certificate-and-trust-management-design-v1.md",
+          "claim": "The selected design uses a per-user, per-install CA, CurrentUser trust and an encrypted leaf key."
+        },
+        {
+          "claimType": "observed",
+          "sourceKind": "document",
+          "evidenceId": "E002",
+          "path": "docs/06-implementation/local-mcp-certificate-productization-and-client-validation-plan-v0.3.md",
+          "claim": "The original C0 plan did not make secret transport and transaction recovery independent gates."
+        },
+        {
+          "claimType": "observed",
+          "sourceKind": "source",
+          "evidenceId": "E003",
+          "path": "src/sapd_wiki/local_mcp/dev_tls.py",
+          "claim": "The current Web Dev identity is short-lived, stored in a temporary root and backed by an in-memory passphrase."
+        },
+        {
+          "claimType": "observed",
+          "sourceKind": "source",
+          "evidenceId": "E004",
+          "path": "src/sapd_wiki/local_mcp/tls.py",
+          "claim": "Encrypted PKCS#8 loading and unsafe secret-transport rejection exist, while production trust writes are fail-closed."
+        },
+        {
+          "claimType": "observed",
+          "sourceKind": "source",
+          "evidenceId": "E005",
+          "path": "frontend/capability-browser/components/SystemSettings.js",
+          "claim": "The AI integration page does not yet include certificate status, renewal or repair."
+        },
+        {
+          "claimType": "inferred",
+          "sourceKind": "source",
+          "evidenceId": "E001",
+          "path": "docs/01-architecture/sapd-wiki-local-mcp-certificate-and-trust-management-design-v1.md",
+          "claim": "Without a sole transactional owner, concurrent operations and crashes can leave identity files, secrets and CurrentUser trust inconsistent."
+        }
+      ],
+      "desiredInvariants": [
+        "Exactly one App controller can mutate one install/profile identity.",
+        "Every trusted or deleted certificate is bound to an ownership manifest, generation and complete SHA-256 fingerprint.",
+        "No passphrase crosses argv, environment variables, ordinary files, logs or unauthenticated IPC.",
+        "CurrentUser trust is explicit and constrained where the platform supports it.",
+        "Every operation phase can resume, roll back or fail closed without guessing the active identity."
+      ],
+      "proposalPath": "proposals/certificate-trust-owner.md",
+      "options": [
+        {
+          "optionId": "app-owned-ephemeral-ca",
+          "title": "App-owned identity with an ephemeral CA signing key",
+          "kind": "structural",
+          "summary": "Keep the selected CA model, delete the CA key after signing and add manifests, platform secret custody, restricted trust and a recovery journal.",
+          "diagramPaths": {
+            "before": "diagrams/certificate-trust-owner-before.mmd",
+            "after": "diagrams/certificate-trust-owner-app-owned-ephemeral-ca-after.mmd"
+          },
+          "evidenceCoverage": [
+            {
+              "evidenceId": "E001",
+              "effect": "addresses",
+              "tacticalFixRequired": true,
+              "rationale": "It completes the selected lifecycle with explicit ownership and recovery."
+            },
+            {
+              "evidenceId": "E002",
+              "effect": "addresses",
+              "tacticalFixRequired": true,
+              "rationale": "It promotes secret delivery and recovery into independent gates."
+            },
+            {
+              "evidenceId": "E003",
+              "effect": "addresses",
+              "tacticalFixRequired": true,
+              "rationale": "It replaces temporary manual-use identity while retaining temporary CA tests."
+            },
+            {
+              "evidenceId": "E004",
+              "effect": "addresses",
+              "tacticalFixRequired": true,
+              "rationale": "It implements the platform mechanism behind existing unsafe-IPC checks."
+            },
+            {
+              "evidenceId": "E005",
+              "effect": "addresses",
+              "tacticalFixRequired": true,
+              "rationale": "It adds the missing user-visible certificate lifecycle."
+            }
+          ],
+          "tradeoffs": [
+            {
+              "dimension": "security",
+              "direction": "improves",
+              "confidence": "high",
+              "basis": "source-derived",
+              "assessment": "The CA signing key is deleted and trust mutations are centralized and fingerprint-bound, although CurrentUser Root still affects same-user processes.",
+              "validationPlan": "Verify CA-key deletion, restricted trust settings, exact-fingerprint cleanup and all unsafe secret-transport negatives."
+            },
+            {
+              "dimension": "performance",
+              "direction": "neutral",
+              "confidence": "medium",
+              "basis": "source-derived",
+              "assessment": "Generation and rotation occur off the query path; normal TLS startup adds only bounded manifest and trust checks.",
+              "validationPlan": "Measure certificate generation, Sidecar startup and first MCP connection against the current temporary identity."
+            },
+            {
+              "dimension": "memory",
+              "direction": "neutral",
+              "confidence": "medium",
+              "basis": "source-derived",
+              "assessment": "The manifest, journal and one inactive rollback generation are bounded.",
+              "validationPlan": "Compare peak controller and Sidecar RSS during startup and rotation."
+            },
+            {
+              "dimension": "reliability",
+              "direction": "improves",
+              "confidence": "high",
+              "basis": "source-derived",
+              "assessment": "A durable operation journal and one active-generation pointer make interruption recovery deterministic; full root rotation still requires user confirmation.",
+              "validationPlan": "Kill the controller after every journal phase and verify resume, rollback and cleanup."
+            },
+            {
+              "dimension": "operability",
+              "direction": "improves",
+              "confidence": "medium",
+              "basis": "source-derived",
+              "assessment": "Visible state, fingerprints and cleanup improve supportability, with added platform adapter and audit responsibilities.",
+              "validationPlan": "Run first-enable, repair, rotate, reset, uninstall and orphan-detection UAT on both platforms."
+            },
+            {
+              "dimension": "migration",
+              "direction": "improves",
+              "confidence": "high",
+              "basis": "source-derived",
+              "assessment": "The option extends the already approved design and can coexist with temporary automated-test identities.",
+              "validationPlan": "Verify Web-first rollout, App upgrade preservation and downgrade fail-closed behavior."
+            }
+          ],
+          "residualRisks": [
+            "CurrentUser Root remains broader than application-private pinning.",
+            "macOS direct App deletion can leave a public trust record.",
+            "Annual full identity rotation requires explicit user trust confirmation."
+          ],
+          "implementationReadiness": {
+            "implementationPlanPath": "implementation/app-owned-ephemeral-ca.md",
+            "affectedComponents": [
+              "src/sapd_wiki/local_mcp",
+              "frontend/capability-browser/components/SystemSettings.js",
+              "apps/macos",
+              "apps/electron"
+            ],
+            "workPackages": [
+              "Freeze schemas and ownership manifest.",
+              "Implement certificate and secure-directory core.",
+              "Implement platform secret custody and one-shot Sidecar transport.",
+              "Implement restricted CurrentUser trust adapters.",
+              "Implement transaction recovery, UI and lifecycle validation."
+            ],
+            "acceptanceCriteria": [
+              "No real trust write occurs without separate authorization and exact snapshots.",
+              "All operation phases recover deterministically.",
+              "Current Codex connects across restart and full identity rotation."
+            ],
+            "migrationNotes": [
+              "Keep temporary CA identities for isolated automated tests only."
+            ],
+            "rollback": "Restore the prior App implementation without deleting or regenerating a compatible durable identity."
+          }
+        },
+        {
+          "optionId": "persistent-ca-signing-key",
+          "title": "Persistent encrypted CA signing key",
+          "kind": "foundational",
+          "summary": "Retain the CA key under platform secret custody so leaf renewal does not replace the CurrentUser root.",
+          "diagramPaths": {
+            "before": "diagrams/certificate-trust-owner-before.mmd",
+            "after": "diagrams/certificate-trust-owner-persistent-ca-key-after.mmd"
+          },
+          "evidenceCoverage": [
+            {
+              "evidenceId": "E001",
+              "effect": "mitigates",
+              "tacticalFixRequired": true,
+              "rationale": "It improves renewal reliability but changes the approved CA-key deletion invariant."
+            },
+            {
+              "evidenceId": "E002",
+              "effect": "mitigates",
+              "tacticalFixRequired": true,
+              "rationale": "It still needs independent custody and recovery gates."
+            },
+            {
+              "evidenceId": "E003",
+              "effect": "addresses",
+              "tacticalFixRequired": true,
+              "rationale": "It provides durable identity but not the selected least-authority model."
+            },
+            {
+              "evidenceId": "E004",
+              "effect": "addresses",
+              "tacticalFixRequired": true,
+              "rationale": "It can use the same safe transport boundary."
+            },
+            {
+              "evidenceId": "E005",
+              "effect": "addresses",
+              "tacticalFixRequired": true,
+              "rationale": "It still requires the same certificate UI."
+            }
+          ],
+          "tradeoffs": [
+            {
+              "dimension": "security",
+              "direction": "regresses",
+              "confidence": "high",
+              "basis": "source-derived",
+              "assessment": "A long-lived trusted signer increases the consequence of secret disclosure or signing-policy defects.",
+              "validationPlan": "Threat-model CA-key extraction, signing API misuse, recovery and incident rotation."
+            },
+            {
+              "dimension": "performance",
+              "direction": "neutral",
+              "confidence": "medium",
+              "basis": "hypothetical",
+              "assessment": "Leaf signing remains infrequent and outside the query path.",
+              "validationPlan": "Measure leaf renewal and Sidecar restart duration."
+            },
+            {
+              "dimension": "memory",
+              "direction": "neutral",
+              "confidence": "medium",
+              "basis": "source-derived",
+              "assessment": "One additional encrypted key and secret record are bounded.",
+              "validationPlan": "Compare protected-state size and peak RSS during renewal."
+            },
+            {
+              "dimension": "reliability",
+              "direction": "improves",
+              "confidence": "high",
+              "basis": "source-derived",
+              "assessment": "Leaf renewal preserves the trusted root and reduces user confirmation and reconnect churn.",
+              "validationPlan": "Renew a leaf across App and Codex restarts without changing root fingerprint."
+            },
+            {
+              "dimension": "operability",
+              "direction": "regresses",
+              "confidence": "high",
+              "basis": "source-derived",
+              "assessment": "The product permanently owns CA-key backup, corruption, recovery and incident-response responsibilities.",
+              "validationPlan": "Exercise CA-key loss, corruption and compromise rotation runbooks."
+            },
+            {
+              "dimension": "migration",
+              "direction": "regresses",
+              "confidence": "high",
+              "basis": "source-derived",
+              "assessment": "It changes an approved invariant and creates a new high-value secret family.",
+              "validationPlan": "Review the threat model and obtain an explicit design decision before implementation."
+            }
+          ],
+          "residualRisks": [
+            "CA-key compromise can mint additional same-user trusted certificates.",
+            "Name constraints may not be consistently enforced by every target validator."
+          ],
+          "implementationReadiness": {
+            "affectedComponents": [
+              "certificate controller",
+              "platform secret adapters",
+              "incident recovery"
+            ],
+            "workPackages": [
+              "Reopen the CA-key custody decision.",
+              "Add signer policy and compromise rotation."
+            ],
+            "acceptanceCriteria": [
+              "Unattended leaf renewal is a confirmed product requirement.",
+              "Permanent signer custody passes security review."
+            ],
+            "migrationNotes": [
+              "Requires explicit replacement of the selected CA-key deletion rule."
+            ],
+            "rollback": "Before provisioning, discard the candidate; after provisioning, perform a visible full identity rotation."
+          }
+        },
+        {
+          "optionId": "trusted-self-signed-leaf",
+          "title": "Directly trusted self-signed leaf",
+          "kind": "structural",
+          "summary": "Remove the CA and install the self-signed loopback leaf as the platform trust anchor.",
+          "diagramPaths": {
+            "before": "diagrams/certificate-trust-owner-before.mmd",
+            "after": "diagrams/certificate-trust-owner-self-signed-leaf-after.mmd"
+          },
+          "evidenceCoverage": [
+            {
+              "evidenceId": "E001",
+              "effect": "mitigates",
+              "tacticalFixRequired": true,
+              "rationale": "It narrows signing authority but replaces the approved chain model."
+            },
+            {
+              "evidenceId": "E002",
+              "effect": "mitigates",
+              "tacticalFixRequired": true,
+              "rationale": "It keeps the same lifecycle gates but changes platform trust adapters."
+            },
+            {
+              "evidenceId": "E003",
+              "effect": "addresses",
+              "tacticalFixRequired": true,
+              "rationale": "It provides durable identity without a CA."
+            },
+            {
+              "evidenceId": "E004",
+              "effect": "addresses",
+              "tacticalFixRequired": true,
+              "rationale": "It uses the same encrypted leaf key and secret transport."
+            },
+            {
+              "evidenceId": "E005",
+              "effect": "addresses",
+              "tacticalFixRequired": true,
+              "rationale": "It requires the same visible lifecycle UI."
+            }
+          ],
+          "tradeoffs": [
+            {
+              "dimension": "security",
+              "direction": "improves",
+              "confidence": "medium",
+              "basis": "hypothetical",
+              "assessment": "It removes CA signing authority, but trust-store semantics and scope differ by platform.",
+              "validationPlan": "Validate exact leaf trust, EKU and hostname behavior in Codex, macOS and Windows."
+            },
+            {
+              "dimension": "performance",
+              "direction": "neutral",
+              "confidence": "medium",
+              "basis": "hypothetical",
+              "assessment": "A one-certificate chain is not expected to affect the local query path materially.",
+              "validationPlan": "Compare TLS handshake and Sidecar startup with Option 1."
+            },
+            {
+              "dimension": "memory",
+              "direction": "neutral",
+              "confidence": "medium",
+              "basis": "source-derived",
+              "assessment": "The design removes one public certificate and retains one bounded leaf key.",
+              "validationPlan": "Compare identity storage size and peak RSS."
+            },
+            {
+              "dimension": "reliability",
+              "direction": "unknown",
+              "confidence": "low",
+              "basis": "hypothetical",
+              "assessment": "Reliability depends on consistent non-CA trust-anchor behavior across target TLS stacks.",
+              "validationPlan": "Run the complete Codex/macOS/Windows connection and rotation matrix."
+            },
+            {
+              "dimension": "operability",
+              "direction": "unknown",
+              "confidence": "low",
+              "basis": "hypothetical",
+              "assessment": "The chain is simpler, but platform-specific support and cleanup may be harder to explain.",
+              "validationPlan": "Prototype user trust, inspection and exact removal on both platforms."
+            },
+            {
+              "dimension": "migration",
+              "direction": "regresses",
+              "confidence": "high",
+              "basis": "source-derived",
+              "assessment": "It replaces the approved chain model and requires new trust-store migration.",
+              "validationPlan": "Keep the probe isolated until all compatibility evidence passes."
+            }
+          ],
+          "residualRisks": [
+            "Codex or a platform TLS stack may reject or differently evaluate the self-signed leaf.",
+            "Store-specific leaf trust can diverge between macOS and Windows."
+          ],
+          "implementationReadiness": {
+            "affectedComponents": [
+              "certificate generator",
+              "macOS trust adapter",
+              "Windows trust adapter",
+              "Codex compatibility tests"
+            ],
+            "workPackages": [
+              "Build an isolated leaf-trust compatibility probe.",
+              "Compare trust, hostname, renewal and cleanup behavior."
+            ],
+            "acceptanceCriteria": [
+              "Every supported target client accepts the exact self-signed leaf design.",
+              "Platform cleanup remains exact and user-scoped."
+            ],
+            "migrationNotes": [
+              "Do not write real trust until the compatibility probe passes."
+            ],
+            "rollback": "Discard the isolated probe and retain Option 1."
+          }
+        }
+      ],
+      "recommendedOptionId": "app-owned-ephemeral-ca",
+      "recommendation": "Use the selected App-owned CA with an ephemeral signing key and add transactional lifecycle ownership; keep direct leaf trust only as a compatibility probe."
+    }
+  ],
+  "openQuestions": [
+    "Do all target validators accept critical IP name constraints for 127.0.0.1/32?",
+    "Can a directly trusted self-signed leaf behave consistently across Codex, macOS and Windows?",
+    "Which macOS Keychain accessibility class matches the final background-runtime contract?",
+    "Is a maximum 24-hour inactive rollback window acceptable?"
+  ]
+}

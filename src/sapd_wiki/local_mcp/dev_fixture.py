@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import sqlite3
 from pathlib import Path
@@ -40,6 +41,67 @@ CREATE TABLE knowledge_versions (
 CREATE TABLE synthetic_user_store_trap (
     trap_id TEXT PRIMARY KEY,
     expected_access_attempts INTEGER NOT NULL CHECK (expected_access_attempts = 0)
+);
+"""
+
+_FORMAL_BASE_SCHEMA = """
+PRAGMA foreign_keys = ON;
+CREATE TABLE source_files (
+    id TEXT PRIMARY KEY,
+    file_name TEXT NOT NULL,
+    file_type TEXT NOT NULL,
+    file_path TEXT NOT NULL,
+    file_hash TEXT NOT NULL,
+    usage_policy TEXT NOT NULL,
+    sensitive_level TEXT NOT NULL,
+    status TEXT NOT NULL
+);
+CREATE TABLE knowledge_items (
+    id TEXT PRIMARY KEY,
+    type TEXT NOT NULL,
+    code TEXT,
+    title TEXT NOT NULL,
+    description TEXT,
+    category TEXT,
+    status TEXT NOT NULL,
+    parent_id TEXT,
+    source_file_id TEXT,
+    source_hash TEXT,
+    metadata_json TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    stable_key TEXT,
+    stable_ref TEXT NOT NULL UNIQUE,
+    public_id TEXT
+);
+CREATE TABLE knowledge_relations (
+    id TEXT PRIMARY KEY,
+    source_item_id TEXT NOT NULL REFERENCES knowledge_items(id),
+    target_item_id TEXT NOT NULL REFERENCES knowledge_items(id),
+    relation_type TEXT NOT NULL,
+    relation_label TEXT,
+    confidence TEXT NOT NULL,
+    source_file_id TEXT,
+    import_job_id TEXT,
+    metadata_json TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    stable_key TEXT,
+    stable_ref TEXT NOT NULL UNIQUE,
+    public_id TEXT
+);
+CREATE TABLE source_references (
+    id TEXT PRIMARY KEY,
+    target_type TEXT NOT NULL,
+    target_id TEXT NOT NULL,
+    source_file_id TEXT NOT NULL REFERENCES source_files(id),
+    source_sheet TEXT,
+    source_row INTEGER,
+    source_column TEXT,
+    source_cell TEXT,
+    raw_value TEXT,
+    source_hash TEXT NOT NULL,
+    created_at TEXT NOT NULL
 );
 """
 
@@ -156,6 +218,185 @@ def create_dev_synthetic_base(root: Path) -> Path:
             INSERT INTO synthetic_user_store_trap(trap_id, expected_access_attempts)
             VALUES('fixture-user-store-trap', 0)
             """
+        )
+        connection.commit()
+    finally:
+        connection.close()
+    os.chmod(database, 0o600)
+    return database
+
+
+def create_dev_formal_base(root: Path) -> Path:
+    """Create a formal-shaped base fixture without any user-store tables or paths in DTOs."""
+
+    resolved = _validated_empty_root(Path(root))
+    database = resolved / "base-knowledge.sqlite3"
+    if database.exists() or database.is_symlink():
+        raise ValueError("formal base fixture slot already exists")
+    connection = sqlite3.connect(database)
+    try:
+        connection.executescript(_FORMAL_BASE_SCHEMA)
+        connection.execute(
+            """
+            INSERT INTO source_files(
+                id, file_name, file_type, file_path, file_hash,
+                usage_policy, sensitive_level, status
+            ) VALUES(?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "source-a",
+                "Synthetic Standard.xlsx",
+                "xlsx",
+                "/private/synthetic/source.xlsx",
+                "sha256:" + ("f" * 64),
+                "import_source",
+                "confidential",
+                "active",
+            ),
+        )
+        connection.executemany(
+            """
+            INSERT INTO knowledge_items(
+                id, type, code, title, description, category, status,
+                parent_id, source_file_id, source_hash, metadata_json,
+                created_at, updated_at, stable_key, stable_ref, public_id
+            ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            [
+                (
+                    "object-a",
+                    "fixture_standard_control",
+                    "STD-A",
+                    "Synthetic common Alpha",
+                    "Synthetic complete standard content Alpha.",
+                    "standard",
+                    "active",
+                    None,
+                    "source-a",
+                    "sha256:" + ("a" * 64),
+                    json.dumps(
+                        {
+                            "control_objective": "Protect synthetic identities.",
+                            "source_edition": "2026",
+                            "file_path": "/private/synthetic/hidden.xlsx",
+                            "debug": "never expose",
+                        },
+                        ensure_ascii=False,
+                    ),
+                    "2026-07-24T00:00:00Z",
+                    "2026-07-24T00:00:00Z",
+                    "fixture-standard-a",
+                    "fixture://objects/public-a",
+                    "fixture-public-a",
+                ),
+                (
+                    "object-b",
+                    "fixture_standard_control",
+                    "STD-B",
+                    "Synthetic common Beta",
+                    "Synthetic complete standard content Beta.",
+                    "standard",
+                    "deprecated",
+                    None,
+                    "source-a",
+                    "sha256:" + ("b" * 64),
+                    json.dumps(
+                        {"control_objective": "Keep deprecated knowledge callable."},
+                        ensure_ascii=False,
+                    ),
+                    "2026-07-24T00:00:00Z",
+                    "2026-07-24T00:00:00Z",
+                    "fixture-standard-b",
+                    "fixture://objects/public-b",
+                    "fixture-public-b",
+                ),
+                (
+                    "object-c",
+                    "fixture_internal_knowledge",
+                    "INT-C",
+                    "Synthetic common Gamma",
+                    "Synthetic internal base content Gamma.",
+                    "internal",
+                    "active",
+                    None,
+                    "source-a",
+                    "sha256:" + ("c" * 64),
+                    json.dumps(
+                        {"business_rule": "Base inclusion authorizes AI read."},
+                        ensure_ascii=False,
+                    ),
+                    "2026-07-24T00:00:00Z",
+                    "2026-07-24T00:00:00Z",
+                    "fixture-internal-c",
+                    "fixture://objects/public-c",
+                    "fixture-public-c",
+                ),
+            ],
+        )
+        connection.executemany(
+            """
+            INSERT INTO knowledge_relations(
+                id, source_item_id, target_item_id, relation_type,
+                relation_label, confidence, source_file_id, import_job_id,
+                metadata_json, created_at, updated_at, stable_key, stable_ref, public_id
+            ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            [
+                (
+                    "relation-a-b",
+                    "object-a",
+                    "object-b",
+                    "fixture_related",
+                    "A relates to B",
+                    "exact",
+                    "source-a",
+                    None,
+                    '{"relationship_basis":"synthetic"}',
+                    "2026-07-24T00:00:00Z",
+                    "2026-07-24T00:00:00Z",
+                    "fixture-relation-a-b",
+                    "fixture://relations/a-to-b",
+                    "fixture-public-relation-a-b",
+                ),
+                (
+                    "relation-a-c",
+                    "object-a",
+                    "object-c",
+                    "fixture_related",
+                    "A relates to C",
+                    "manual",
+                    "source-a",
+                    None,
+                    '{"relationship_basis":"synthetic"}',
+                    "2026-07-24T00:00:00Z",
+                    "2026-07-24T00:00:00Z",
+                    "fixture-relation-a-c",
+                    "fixture://relations/a-to-c",
+                    "fixture-public-relation-a-c",
+                ),
+            ],
+        )
+        connection.execute(
+            """
+            INSERT INTO source_references(
+                id, target_type, target_id, source_file_id,
+                source_sheet, source_row, source_column, source_cell,
+                raw_value, source_hash, created_at
+            ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "evidence-a",
+                "item",
+                "object-a",
+                "source-a",
+                "Controls",
+                2,
+                "Description",
+                "C2",
+                "Synthetic raw value that must not be returned.",
+                "sha256:" + ("e" * 64),
+                "2026-07-24T00:00:00Z",
+            ),
         )
         connection.commit()
     finally:

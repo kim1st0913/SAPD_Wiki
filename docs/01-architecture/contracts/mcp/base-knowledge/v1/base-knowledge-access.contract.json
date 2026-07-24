@@ -1,0 +1,96 @@
+{
+  "schema_version": "mcp-base-knowledge-contract-schema-v1",
+  "contract_id": "MCP-BASE-KNOWLEDGE-ACCESS-v1",
+  "contract_version": "1.0.0",
+  "scope": "sapd.base.knowledge.read",
+  "store": "base_read_only",
+  "business_rule": "all_base_knowledge_business_content_is_ai_readable",
+  "object_contract": {
+    "table": "knowledge_items",
+    "row_eligibility": "all_rows_with_stable_ref",
+    "search_fields": [
+      "title",
+      "code",
+      "description",
+      "category",
+      "metadata_json"
+    ],
+    "return_fields": [
+      "stable_ref",
+      "type",
+      "code",
+      "title",
+      "description",
+      "category",
+      "status",
+      "business_metadata"
+    ]
+  },
+  "relation_contract": {
+    "table": "knowledge_relations",
+    "row_eligibility": "all_rows_with_stable_ref_and_resolvable_endpoints",
+    "return_fields": [
+      "stable_ref",
+      "relation_type",
+      "relation_label",
+      "confidence",
+      "source_stable_ref",
+      "target_stable_ref",
+      "business_metadata"
+    ]
+  },
+  "source_evidence_contract": {
+    "database_provenance_only": true,
+    "source_file_open": false,
+    "excerpt_included": false,
+    "return_fields": [
+      "file_name",
+      "file_type",
+      "source_sheet",
+      "source_row",
+      "source_column",
+      "source_cell",
+      "source_hash"
+    ]
+  },
+  "hard_exclusions": {
+    "stores": [
+      "user_database"
+    ],
+    "capabilities": [
+      "source_file_open",
+      "filesystem_search",
+      "arbitrary_sql",
+      "database_attach",
+      "database_write"
+    ],
+    "fields": [
+      "id",
+      "parent_id",
+      "source_file_id",
+      "import_job_id",
+      "file_path",
+      "local_path",
+      "created_at",
+      "updated_at",
+      "debug",
+      "credential",
+      "secret",
+      "token",
+      "password",
+      "user_content"
+    ]
+  },
+  "tool_contract": {
+    "fixed_readonly_tools": [
+      "search_knowledge",
+      "get_knowledge_object",
+      "get_related_knowledge",
+      "get_source_evidence",
+      "get_knowledge_version"
+    ],
+    "direct_sql": false,
+    "response_bytes": 65536,
+    "content_trust": "untrusted_reference"
+  }
+}

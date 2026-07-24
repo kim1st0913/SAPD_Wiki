@@ -59,6 +59,7 @@ class KnowledgeQueryService:
         cursor: CursorCodec,
     ) -> None:
         self.contracts = contracts
+        self.scope = contracts.scope
         self.runtime = runtime
         self.repository = repository
         self.policy = policy

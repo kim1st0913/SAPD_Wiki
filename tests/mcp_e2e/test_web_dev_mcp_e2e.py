@@ -45,11 +45,26 @@ class WebDevMcpE2ETests(unittest.IsolatedAsyncioTestCase):
             supervisor=self.supervisor,
         )
         initial = self.panel()
+        prepared = self.mutate(
+            "/api/v1/mcp/certificate/actions/prepare",
+            initial["state_version"],
+            action="certificate_provision",
+        )
+        confirmed = self.mutate(
+            "/api/v1/mcp/certificate/actions/confirm",
+            prepared["state_version"],
+            confirmation_id=prepared["certificate_confirmation"][
+                "confirmation_id"
+            ],
+        )
         started = self.mutate(
             "/api/v1/mcp/actions/start",
-            initial["state_version"],
+            self.panel()["state_version"],
         )
         self.assertTrue(started["changed"])
+        self.ca_fingerprint = self.panel()["certificate"][
+            "ca_fingerprint_sha256"
+        ]
         context = ssl.create_default_context(
             ssl.Purpose.SERVER_AUTH,
             cafile=self.supervisor.ca_path,
@@ -237,9 +252,9 @@ class WebDevMcpE2ETests(unittest.IsolatedAsyncioTestCase):
         payload = result["structuredContent"]
         self.assertEqual(payload["contract_version"], "sapd-mcp-tools-v1")
         self.assertEqual(payload["source_channel"], "sapd_wiki")
-        self.assertEqual(payload["knowledge_version"], "fixture-knowledge-v1")
-        self.assertEqual(payload["policy_version"], "fixture-policy-v1")
-        self.assertEqual(payload["identity_version"], "fixture-identity-v1")
+        self.assertTrue(payload["knowledge_version"].startswith("base-"))
+        self.assertEqual(payload["policy_version"], "base-all-business-content-v1")
+        self.assertEqual(payload["identity_version"], "base-stable-ref-v1")
         self.assertEqual(payload["grant_version"], "grant-v1")
         self.assertEqual(payload["content_trust"], "untrusted_reference")
         return payload
@@ -329,8 +344,10 @@ class WebDevMcpE2ETests(unittest.IsolatedAsyncioTestCase):
                 "fixture://objects/public-c",
             ],
         )
-        self.assertNotIn("fixture://objects/hidden-a", refs)
-        self.assertNotIn("ai_summary", search["data"]["items"][1])
+        self.assertIn("fixture_internal_knowledge", {
+            item["object_type"] for item in search["data"]["items"]
+        })
+        self.assertNotIn("metadata_json", search["data"]["items"][1])
 
         knowledge = await self.call_tool(
             issued["access_token"],
@@ -339,9 +356,14 @@ class WebDevMcpE2ETests(unittest.IsolatedAsyncioTestCase):
             {"canonical_ref": "fixture://objects/public-a"},
         )
         self.assertEqual(
-            knowledge["data"]["ai_summary"],
-            "Synthetic common summary Alpha.",
+            knowledge["data"]["description"],
+            "Synthetic complete standard content Alpha.",
         )
+        self.assertEqual(
+            knowledge["data"]["business_metadata"]["control_objective"],
+            "Protect synthetic identities.",
+        )
+        self.assertNotIn("file_path", str(knowledge))
 
         related = await self.call_tool(
             issued["access_token"],
@@ -371,17 +393,14 @@ class WebDevMcpE2ETests(unittest.IsolatedAsyncioTestCase):
                 "limit": 8,
             },
         )
+        self.assertEqual(len(evidence["data"]["items"]), 1)
         self.assertEqual(
-            evidence["data"]["items"],
-            [
-                {
-                    "canonical_ref": "fixture://objects/public-a",
-                    "evidence_kind": "hand_authored_synthetic",
-                    "source_basis": "fixture-only",
-                    "excerpt_included": False,
-                }
-            ],
+            evidence["data"]["items"][0]["file_name"],
+            "Synthetic Standard.xlsx",
         )
+        self.assertFalse(evidence["data"]["items"][0]["excerpt_included"])
+        self.assertNotIn("raw_value", str(evidence))
+        self.assertNotIn("/private/", str(evidence))
 
         version = await self.call_tool(
             issued["access_token"],
@@ -389,10 +408,7 @@ class WebDevMcpE2ETests(unittest.IsolatedAsyncioTestCase):
             "get_knowledge_version",
             {},
         )
-        self.assertEqual(
-            version["data"]["manifest_digest"],
-            "sha256:" + ("b" * 64),
-        )
+        self.assertRegex(version["data"]["manifest_digest"], r"^sha256:[0-9a-f]{64}$")
 
         panel = self.panel()
         client = next(item for item in panel["clients"] if item["client_id"] == client_id)
@@ -489,8 +505,13 @@ class WebDevMcpE2ETests(unittest.IsolatedAsyncioTestCase):
             panel["state_version"],
         )
         self.assertTrue(stopped["changed"])
-        self.assertEqual(self.panel()["status"]["service_state"], "stopped")
-        self.assertFalse(self.supervisor.ca_path.exists())
+        stopped_panel = self.panel()
+        self.assertEqual(stopped_panel["status"]["service_state"], "stopped")
+        self.assertTrue(self.supervisor.ca_path.exists())
+        self.assertEqual(
+            stopped_panel["certificate"]["ca_fingerprint_sha256"],
+            self.ca_fingerprint,
+        )
 
 
 if __name__ == "__main__":

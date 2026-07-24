@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import OrderedDict
 from copy import deepcopy
 from hashlib import sha256
+import re
 from threading import RLock
 from typing import Any, Callable, Mapping, Protocol, runtime_checkable
 
@@ -74,6 +75,22 @@ class SupervisorGateway(Protocol):
 
     def clear_audit(self, *, request_id: str, expected_state_version: int) -> Mapping[str, Any]: ...
 
+    def prepare_certificate_action(
+        self,
+        *,
+        action: str,
+        request_id: str,
+        expected_state_version: int,
+    ) -> Mapping[str, Any]: ...
+
+    def confirm_certificate_action(
+        self,
+        *,
+        confirmation_id: str,
+        request_id: str,
+        expected_state_version: int,
+    ) -> Mapping[str, Any]: ...
+
     def prepare_reset(
         self,
         *,
@@ -123,6 +140,55 @@ _RESET_EFFECTS = frozenset(
     }
 )
 _AUDIT_DISPOSITIONS = frozenset({"retain", "clear"})
+_CERTIFICATE_STATES = frozenset(
+    {
+        "not_configured",
+        "valid",
+        "expiring",
+        "renewal_required",
+        "expired",
+        "trust_missing",
+        "trust_conflict",
+        "key_unavailable",
+        "clock_invalid",
+        "rotating",
+        "recovery_required",
+        "error",
+    }
+)
+_CERTIFICATE_ACTIONS = frozenset(
+    {
+        "certificate_provision",
+        "certificate_rotate",
+        "certificate_repair_trust",
+        "certificate_view_details",
+        "certificate_reset",
+    }
+)
+_CERTIFICATE_MUTATION_ACTIONS = frozenset(
+    {
+        "certificate_provision",
+        "certificate_rotate",
+        "certificate_repair_trust",
+    }
+)
+_CERTIFICATE_EFFECTS = frozenset(
+    {
+        "create_managed_identity",
+        "install_current_user_trust",
+        "replace_current_user_trust",
+    }
+)
+_FINGERPRINT_RE = re.compile(r"^(?:[0-9A-F]{2}:){31}[0-9A-F]{2}$")
+
+
+def _require_nullable_fingerprint(value: Any) -> str | None:
+    if value is None:
+        return None
+    result = require_string(value, minimum=95, maximum=95)
+    if not _FINGERPRINT_RE.fullmatch(result):
+        raise ControlError("SNAPSHOT_INVALID", status=502)
+    return result
 
 class ControlService:
     """Projects supervisor state and serializes safe, idempotent actions."""
@@ -157,6 +223,10 @@ class ControlService:
     def get_diagnostics(self) -> dict[str, Any]:
         snapshot = self._read_projected_snapshot()
         return self._read_envelope(snapshot["state_version"], snapshot["diagnostics"])
+
+    def get_certificate(self) -> dict[str, Any]:
+        snapshot = self._read_projected_snapshot()
+        return self._read_envelope(snapshot["state_version"], snapshot["certificate"])
 
     def start(self, *, request_id: str, expected_state_version: int) -> dict[str, Any]:
         return self._simple_mutation(
@@ -288,6 +358,49 @@ class ControlService:
                 request_id=request_id,
                 expected_state_version=expected_state_version,
             ),
+        )
+
+    def prepare_certificate_action(
+        self,
+        *,
+        action: str,
+        request_id: str,
+        expected_state_version: int,
+    ) -> dict[str, Any]:
+        if not isinstance(action, str) or action not in _CERTIFICATE_MUTATION_ACTIONS:
+            raise ControlError("INVALID_REQUEST", status=400)
+        return self._execute_mutation(
+            "prepare_certificate_action",
+            request_id,
+            expected_state_version,
+            {"action": action},
+            lambda: self._gateway.prepare_certificate_action(
+                action=action,
+                request_id=request_id,
+                expected_state_version=expected_state_version,
+            ),
+            self._project_certificate_prepare_result,
+        )
+
+    def confirm_certificate_action(
+        self,
+        *,
+        confirmation_id: str,
+        request_id: str,
+        expected_state_version: int,
+    ) -> dict[str, Any]:
+        confirmation_id = validate_opaque_id(confirmation_id)
+        return self._execute_mutation(
+            "confirm_certificate_action",
+            request_id,
+            expected_state_version,
+            {"confirmation_id": confirmation_id},
+            lambda: self._gateway.confirm_certificate_action(
+                confirmation_id=confirmation_id,
+                request_id=request_id,
+                expected_state_version=expected_state_version,
+            ),
+            self._project_action_result,
         )
 
     def prepare_reset(
@@ -447,13 +560,24 @@ class ControlService:
     def _project_snapshot(raw: Mapping[str, Any]) -> dict[str, Any]:
         source = require_closed_object(
             raw,
-            required=frozenset({"state_version", "status", "settings", "clients", "audit", "diagnostics"}),
+            required=frozenset(
+                {
+                    "state_version",
+                    "status",
+                    "settings",
+                    "certificate",
+                    "clients",
+                    "audit",
+                    "diagnostics",
+                }
+            ),
             optional=frozenset({"authorization_requests"}),
             error_code="SNAPSHOT_INVALID",
         )
         state_version = require_int(source["state_version"])
         status = ControlService._project_status(source["status"])
         settings = ControlService._project_settings(source["settings"])
+        certificate = ControlService._project_certificate(source["certificate"])
         clients = ControlService._project_clients(source["clients"])
         authorization_requests = ControlService._project_authorization_requests(
             source.get("authorization_requests", [])
@@ -465,6 +589,7 @@ class ControlService:
             "state_version": state_version,
             "status": status,
             "settings": settings,
+            "certificate": certificate,
             "authorization_requests": authorization_requests,
             "clients": clients,
             "audit": audit,
@@ -595,6 +720,11 @@ class ControlService:
                     "authorization_decision",
                     "diagnostic_check",
                     "web_reset_confirmation",
+                    "certificate_provision",
+                    "certificate_rotate",
+                    "certificate_repair_trust",
+                    "certificate_view_details",
+                    "certificate_reset",
                 }
             ),
             error_code="SNAPSHOT_INVALID",
@@ -618,8 +748,166 @@ class ControlService:
                 "web_reset_confirmation": require_bool(
                     capabilities.get("web_reset_confirmation", False)
                 ),
+                "certificate_provision": require_bool(
+                    capabilities.get("certificate_provision", False)
+                ),
+                "certificate_rotate": require_bool(
+                    capabilities.get("certificate_rotate", False)
+                ),
+                "certificate_repair_trust": require_bool(
+                    capabilities.get("certificate_repair_trust", False)
+                ),
+                "certificate_view_details": require_bool(
+                    capabilities.get("certificate_view_details", False)
+                ),
+                "certificate_reset": require_bool(
+                    capabilities.get("certificate_reset", False)
+                ),
             },
         }
+
+    @staticmethod
+    def _project_certificate(raw: Any) -> dict[str, Any]:
+        source = require_closed_object(
+            raw,
+            required=frozenset(
+                {
+                    "schema_version",
+                    "state",
+                    "reason_code",
+                    "managed_by_app",
+                    "profile",
+                    "install_id_suffix",
+                    "generation_id",
+                    "subject",
+                    "san",
+                    "ca_display_name",
+                    "ca_fingerprint_sha256",
+                    "server_fingerprint_sha256",
+                    "valid_from",
+                    "valid_until",
+                    "remaining_days",
+                    "trust_scope",
+                    "trust_backend",
+                    "secret_backend",
+                    "trust_policy",
+                    "trust_verified_at",
+                    "last_rotated_at",
+                    "operation",
+                    "cleanup_pending",
+                    "client_restart_required",
+                    "old_generation_retained_until",
+                    "next_action",
+                }
+            ),
+            error_code="SNAPSHOT_INVALID",
+        )
+        san = source["san"]
+        if san != ["127.0.0.1"]:
+            raise ControlError("SNAPSHOT_INVALID", status=502)
+        result = {
+            "schema_version": require_int(source["schema_version"], minimum=1, maximum=16),
+            "state": require_enum(source["state"], _CERTIFICATE_STATES),
+            "reason_code": require_nullable_string(source["reason_code"], maximum=96),
+            "managed_by_app": require_bool(source["managed_by_app"]),
+            "profile": require_enum(source["profile"], frozenset({"dev", "app"})),
+            "install_id_suffix": require_nullable_string(source["install_id_suffix"], maximum=16),
+            "generation_id": require_nullable_string(source["generation_id"], maximum=128),
+            "subject": require_string(source["subject"], minimum=1, maximum=64),
+            "san": ["127.0.0.1"],
+            "ca_display_name": require_nullable_string(source["ca_display_name"], maximum=160),
+            "ca_fingerprint_sha256": _require_nullable_fingerprint(
+                source["ca_fingerprint_sha256"]
+            ),
+            "server_fingerprint_sha256": _require_nullable_fingerprint(
+                source["server_fingerprint_sha256"]
+            ),
+            "valid_from": require_nullable_string(source["valid_from"], maximum=64),
+            "valid_until": require_nullable_string(source["valid_until"], maximum=64),
+            "remaining_days": (
+                None
+                if source["remaining_days"] is None
+                else require_int(source["remaining_days"], maximum=4096)
+            ),
+            "trust_scope": require_enum(
+                source["trust_scope"],
+                frozenset({"current_user"}),
+            ),
+            "trust_backend": require_enum(
+                source["trust_backend"],
+                frozenset(
+                    {
+                        "fake_current_user_trust",
+                        "macos_user_trust",
+                        "windows_current_user_root",
+                    }
+                ),
+            ),
+            "secret_backend": require_enum(
+                source["secret_backend"],
+                frozenset(
+                    {
+                        "in_memory_test_only",
+                        "macos_web_dev_keychain",
+                        "macos_data_protection_keychain",
+                        "windows_dpapi_current_user",
+                    }
+                ),
+            ),
+            "trust_policy": require_enum(
+                source["trust_policy"],
+                frozenset({"ssl_loopback_only"}),
+            ),
+            "trust_verified_at": require_nullable_string(
+                source["trust_verified_at"], maximum=64
+            ),
+            "last_rotated_at": require_nullable_string(
+                source["last_rotated_at"], maximum=64
+            ),
+            "operation": None,
+            "cleanup_pending": require_bool(source["cleanup_pending"]),
+            "client_restart_required": require_bool(
+                source["client_restart_required"]
+            ),
+            "old_generation_retained_until": require_nullable_string(
+                source["old_generation_retained_until"], maximum=64
+            ),
+            "next_action": (
+                None
+                if source["next_action"] is None
+                else require_enum(source["next_action"], _CERTIFICATE_ACTIONS)
+            ),
+        }
+        if source["operation"] is not None:
+            operation = require_closed_object(
+                source["operation"],
+                required=frozenset({"operation_id", "state", "phase"}),
+                error_code="SNAPSHOT_INVALID",
+            )
+            result["operation"] = {
+                "operation_id": validate_opaque_id(
+                    operation["operation_id"], error_code="SNAPSHOT_INVALID"
+                ),
+                "state": require_enum(
+                    operation["state"],
+                    frozenset({"planned", "running", "completed", "failed"}),
+                ),
+                "phase": require_enum(
+                    operation["phase"],
+                    frozenset(
+                        {
+                            "planned",
+                            "staged",
+                            "new_trust_installed",
+                            "switched",
+                            "validated",
+                            "retiring",
+                            "completed",
+                        }
+                    ),
+                ),
+            }
+        return result
 
     @staticmethod
     def _project_authorization_requests(raw: Any) -> list[dict[str, Any]]:
@@ -779,8 +1067,51 @@ class ControlService:
         source = require_closed_object(
             raw,
             required=frozenset({"state_version", "result", "changed"}),
+            optional=frozenset({"operation_id"}),
             error_code="SNAPSHOT_INVALID",
         )
+        result = {
+            "contract_version": CONTROL_CONTRACT_VERSION,
+            "action": action,
+            "request_id": request_id,
+            "state_version": require_int(source["state_version"]),
+            "result": require_enum(source["result"], _ACTION_RESULT_STATES),
+            "changed": require_bool(source["changed"]),
+        }
+        if "operation_id" in source:
+            result["operation_id"] = validate_opaque_id(
+                source["operation_id"], error_code="SNAPSHOT_INVALID"
+            )
+        return result
+
+    @staticmethod
+    def _project_certificate_prepare_result(
+        action: str,
+        request_id: str,
+        raw: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        source = require_closed_object(
+            raw,
+            required=frozenset(
+                {
+                    "state_version",
+                    "result",
+                    "changed",
+                    "confirmation_id",
+                    "expires_at",
+                    "effects",
+                    "action",
+                    "profile",
+                    "expected_ca_fingerprint_sha256",
+                    "confirmation_mode",
+                }
+            ),
+            error_code="SNAPSHOT_INVALID",
+        )
+        effects = source["effects"]
+        if not isinstance(effects, (list, tuple)) or not 1 <= len(effects) <= 3:
+            raise ControlError("SNAPSHOT_INVALID", status=502)
+        prepared_action = require_enum(source["action"], _CERTIFICATE_MUTATION_ACTIONS)
         return {
             "contract_version": CONTROL_CONTRACT_VERSION,
             "action": action,
@@ -788,6 +1119,27 @@ class ControlService:
             "state_version": require_int(source["state_version"]),
             "result": require_enum(source["result"], _ACTION_RESULT_STATES),
             "changed": require_bool(source["changed"]),
+            "certificate_confirmation": {
+                "confirmation_id": validate_opaque_id(
+                    source["confirmation_id"], error_code="SNAPSHOT_INVALID"
+                ),
+                "expires_at": require_string(
+                    source["expires_at"], minimum=1, maximum=64
+                ),
+                "effects": [
+                    require_enum(effect, _CERTIFICATE_EFFECTS) for effect in effects
+                ],
+                "action": prepared_action,
+                "profile": require_enum(source["profile"], frozenset({"dev", "app"})),
+                "expected_ca_fingerprint_sha256": _require_nullable_fingerprint(
+                    source["expected_ca_fingerprint_sha256"]
+                ),
+                "web_confirmation_required": require_enum(
+                    source["confirmation_mode"],
+                    frozenset({"web"}),
+                )
+                == "web",
+            },
         }
 
     @staticmethod

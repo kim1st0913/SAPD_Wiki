@@ -32,7 +32,8 @@ class CoreKnowledgeServiceAdapter:
             raise CoreAdapterError("AUTH_REQUIRED", "authenticated MCP context is required")
         if not isinstance(token.client_id, str) or not token.client_id:
             raise CoreAdapterError("AUTH_REQUIRED", "authenticated client identity is missing")
-        if token.scopes != [SCOPE]:
+        core_scope = str(getattr(self._core, "scope", SCOPE))
+        if token.scopes != [core_scope]:
             raise CoreAdapterError("AUTH_REQUIRED", "authenticated scope is not approved")
         claims = token.claims or {}
         grant_version = claims.get("grant_version")
@@ -44,7 +45,7 @@ class CoreKnowledgeServiceAdapter:
         return RequestContext(
             client_id=token.client_id,
             grant_version=grant_version,
-            scope=SCOPE,
+            scope=core_scope,
             correlation_id=secrets.token_urlsafe(18),
         )
 

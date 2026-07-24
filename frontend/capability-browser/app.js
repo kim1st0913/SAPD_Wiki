@@ -49,6 +49,7 @@ const state = {
   mcpControlNotice: null,
   mcpConfirmation: null,
   mcpResetPreview: null,
+  mcpCertificatePreview: null,
   settingsRuntimeHealth: null,
   settingsRuntimeHealthLoading: false,
   settingsRuntimeHealthLoaded: false,
@@ -11771,6 +11772,7 @@ function renderSettings() {
       notice: state.mcpControlNotice,
       confirmation: state.mcpConfirmation,
       resetPreview: state.mcpResetPreview,
+      certificatePreview: state.mcpCertificatePreview,
     }),
   );
 }
@@ -11967,9 +11969,113 @@ function mcpActionSuccessMessage(action) {
     revoke: "指定客户端的授权状态已刷新，服务状态未被重置。",
     "clear-audit": "审计状态已刷新，服务和客户端授权未被更改。",
     "prepare-reset": "重置影响清单已生成，请核对后确认。",
-    "confirm-web-reset": "本地 MCP 已重置，知识库内容和用户数据未被修改。",
+    "confirm-web-reset": "AI 集成已重置；License、知识库内容和用户数据未被修改。",
   };
   return messages[action] || "AI 集成状态已刷新。";
+}
+
+async function prepareMcpCertificateAction(action) {
+  if (state.mcpPendingAction) return;
+  const allowed = ["certificate_provision", "certificate_rotate", "certificate_repair_trust"];
+  if (!allowed.includes(action)) return;
+  const dataClient = window.sapdDataClient;
+  const payload = mcpMutationPayload(`certificate-prepare-${action}`);
+  if (!payload || typeof dataClient?.prepareMcpCertificateAction !== "function") {
+    state.mcpControlNotice = { tone: "error", message: "当前运行环境未提供证书管理能力。" };
+    renderSettings();
+    return;
+  }
+  state.mcpPendingAction = `certificate:${action}`;
+  state.mcpControlNotice = { tone: "info", message: "正在生成本机安全连接影响清单…" };
+  renderSettings();
+  try {
+    const envelope = await dataClient.prepareMcpCertificateAction({ ...payload, action });
+    const preview = envelope?.data?.certificate_confirmation || null;
+    if (!preview?.confirmation_id) throw new Error("无法读取证书操作确认信息。");
+    const refreshed = await loadMcpControlPanel({ force: true });
+    if (!refreshed) throw new Error("无法读取最新证书状态。");
+    state.mcpCertificatePreview = preview;
+    state.mcpControlNotice = { tone: "info", message: "请核对本机安全连接影响后确认。" };
+  } catch (error) {
+    await loadMcpControlPanel({ force: true });
+    state.mcpControlNotice = {
+      tone: "error",
+      message: text(error?.message).trim() || "证书操作准备失败，请刷新后重试。",
+    };
+  } finally {
+    state.mcpPendingAction = "";
+    renderSettings();
+    if (state.mcpCertificatePreview) focusMcpDialog();
+  }
+}
+
+async function waitForMcpCertificateOperation(operationId) {
+  let snapshot = state.mcpControlSnapshot;
+  for (let attempt = 0; attempt < 16; attempt += 1) {
+    snapshot = await loadMcpControlPanel({ force: true, silent: true });
+    const operation = snapshot?.certificate?.operation;
+    if (
+      !operation
+      || operation.operation_id !== operationId
+      || operation.state === "failed"
+      || operation.phase === "retiring"
+      || operation.phase === "completed"
+    ) {
+      return snapshot;
+    }
+    await new Promise((resolve) => window.setTimeout(resolve, 250));
+  }
+  return snapshot;
+}
+
+async function confirmMcpCertificateAction() {
+  if (state.mcpPendingAction || !state.mcpCertificatePreview?.confirmation_id) return;
+  const dataClient = window.sapdDataClient;
+  const payload = mcpMutationPayload("certificate-confirm");
+  if (!payload || typeof dataClient?.confirmMcpCertificateAction !== "function") {
+    state.mcpControlNotice = { tone: "error", message: "当前运行环境未提供证书确认能力。" };
+    renderSettings();
+    return;
+  }
+  const preview = state.mcpCertificatePreview;
+  state.mcpPendingAction = "certificate-confirm";
+  state.mcpControlNotice = { tone: "info", message: "正在建立本机安全连接…" };
+  renderSettings();
+  try {
+    const envelope = await dataClient.confirmMcpCertificateAction({
+      ...payload,
+      confirmationId: preview.confirmation_id,
+    });
+    state.mcpCertificatePreview = null;
+    const operationId = text(envelope?.data?.operation_id).trim();
+    const refreshed = operationId
+      ? await waitForMcpCertificateOperation(operationId)
+      : await loadMcpControlPanel({ force: true });
+    if (!refreshed) throw new Error("证书操作已返回，但无法读取最新状态。");
+    if (["recovery_required", "error"].includes(text(refreshed.certificate?.state).trim())) {
+      throw new Error("安全连接未能完整更新，请按页面提示恢复或重置 AI 集成。");
+    }
+    state.mcpControlNotice = {
+      tone: "success",
+      message: preview.action === "certificate_repair_trust"
+        ? "本机安全连接已修复。"
+        : preview.action === "certificate_rotate"
+          ? refreshed.certificate?.cleanup_pending
+            ? "本机安全证书已更新；旧证书将按页面所示时间自动清理。"
+            : "本机安全证书已更新。"
+          : "本机安全连接已建立，现在可以启动 MCP。",
+    };
+    announceAppStatus(state.mcpControlNotice.message);
+  } catch (error) {
+    await loadMcpControlPanel({ force: true });
+    state.mcpControlNotice = {
+      tone: "error",
+      message: text(error?.message).trim() || "本机安全连接操作未完成，请按最新状态重试。",
+    };
+  } finally {
+    state.mcpPendingAction = "";
+    renderSettings();
+  }
 }
 
 async function performMcpControlAction(action, { clientId = "" } = {}) {
@@ -12123,8 +12229,10 @@ function openMcpConfirmation(action, { clientId = "", label = "" } = {}) {
 function closeMcpOverlay() {
   const confirmation = state.mcpConfirmation;
   const hadResetPreview = Boolean(state.mcpResetPreview);
+  const hadCertificatePreview = Boolean(state.mcpCertificatePreview);
   state.mcpConfirmation = null;
   state.mcpResetPreview = null;
+  state.mcpCertificatePreview = null;
   renderSettings();
   window.requestAnimationFrame(() => {
     let target = null;
@@ -12135,6 +12243,8 @@ function closeMcpOverlay() {
       target = document.querySelector('[data-mcp-request-confirmation="clear-audit"]');
     } else if (hadResetPreview) {
       target = document.querySelector('[data-mcp-action="prepare-reset"]');
+    } else if (hadCertificatePreview) {
+      target = document.querySelector("[data-mcp-certificate-action]");
     }
     target?.focus({ preventScroll: true });
   });
@@ -12296,9 +12406,28 @@ function bindEvents() {
       const action = text(settingsAction.dataset.mcpSettingsAction).trim();
       if (action === "check") {
         performMcpControlAction("check");
+      } else if (
+        action === "start"
+        && ["not_configured", "expired", "trust_missing", "trust_conflict", "key_unavailable", "clock_invalid", "recovery_required", "error"].includes(
+          text(state.mcpControlSnapshot?.certificate?.state).trim(),
+        )
+      ) {
+        const nextAction = text(state.mcpControlSnapshot?.certificate?.next_action).trim();
+        if (["certificate_provision", "certificate_rotate", "certificate_repair_trust"].includes(nextAction)) {
+          prepareMcpCertificateAction(nextAction);
+        } else {
+          state.mcpControlNotice = { tone: "error", message: "请先处理安全连接证书状态，再启动 MCP。" };
+          renderSettings();
+        }
       } else {
         performMcpControlAction(action);
       }
+      return;
+    }
+    const certificateAction = event.target?.closest?.("[data-mcp-certificate-action]");
+    if (certificateAction) {
+      event.preventDefault();
+      prepareMcpCertificateAction(text(certificateAction.dataset.mcpCertificateAction).trim());
       return;
     }
     const copyUrl = event.target?.closest?.("[data-mcp-copy-url]");
@@ -12356,8 +12485,12 @@ function bindEvents() {
       loadSettingsRuntimeHealth({ force: true });
       return;
     }
-    if (action === "cancel-confirmation" || action === "close-reset-preview") {
+    if (action === "cancel-confirmation" || action === "close-reset-preview" || action === "close-certificate-preview") {
       closeMcpOverlay();
+      return;
+    }
+    if (action === "confirm-certificate") {
+      confirmMcpCertificateAction();
       return;
     }
     performMcpControlAction(action);
@@ -12375,6 +12508,7 @@ function bindEvents() {
     event.preventDefault();
     event.stopPropagation();
     const dashboardIssueId = text(routeButton.dataset.dashboardIssueId).trim();
+    const settingsAnchor = text(routeButton.dataset.settingsAnchor).trim();
     if (dashboardIssueId) {
       state.workbenchIssueStatusFilter = "全部";
       state.workbenchIssuePageFilter = "全部";
@@ -12386,6 +12520,20 @@ function bindEvents() {
       state.workbenchPendingDeleteIssueId = "";
     }
     activateRoute(routeButton.dataset.appRoute, dashboardIssueId ? { workbenchIssueId: dashboardIssueId } : {});
+    if (settingsAnchor) {
+      window.requestAnimationFrame(() => {
+        const target = document.getElementById(settingsAnchor);
+        if (!target) return;
+        const scroller = target.closest(".system-settings-scroll");
+        if (scroller) {
+          const targetTop = scroller.scrollTop + target.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
+          scroller.scrollTo({ top: Math.max(0, targetTop - 12), behavior: "smooth" });
+        } else {
+          target.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+        target.focus({ preventScroll: true });
+      });
+    }
   }, true);
   document.addEventListener("click", (event) => {
     document.querySelectorAll(".dashboard-overflow-menu[open]").forEach((menu) => {
@@ -12410,7 +12558,7 @@ function bindEvents() {
       return;
     }
     if (event.key !== "Escape") return;
-    if (state.mcpConfirmation || state.mcpResetPreview) {
+    if (state.mcpConfirmation || state.mcpResetPreview || state.mcpCertificatePreview) {
       event.preventDefault();
       closeMcpOverlay();
       return;

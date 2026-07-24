@@ -83,6 +83,40 @@ class GracefulWebShutdownTests(unittest.TestCase):
                 control_url,
                 headers={"X-SAPD-Session-Token": token},
             )
+            prepared = request_json(
+                f"http://127.0.0.1:{web_port}/api/v1/mcp/certificate/actions/prepare",
+                method="POST",
+                headers={
+                    "Content-Type": "application/json",
+                    "Origin": f"http://127.0.0.1:{web_port}",
+                    "X-SAPD-Session-Token": token,
+                },
+                payload={
+                    "request_id": "request-graceful-certificate-prepare-0001",
+                    "expected_state_version": snapshot["state_version"],
+                    "action": "certificate_provision",
+                },
+            )
+            confirmed = request_json(
+                f"http://127.0.0.1:{web_port}/api/v1/mcp/certificate/actions/confirm",
+                method="POST",
+                headers={
+                    "Content-Type": "application/json",
+                    "Origin": f"http://127.0.0.1:{web_port}",
+                    "X-SAPD-Session-Token": token,
+                },
+                payload={
+                    "request_id": "request-graceful-certificate-confirm-0001",
+                    "expected_state_version": prepared["state_version"],
+                    "confirmation_id": prepared["certificate_confirmation"][
+                        "confirmation_id"
+                    ],
+                },
+            )
+            current = request_json(
+                control_url,
+                headers={"X-SAPD-Session-Token": token},
+            )
             request_json(
                 f"http://127.0.0.1:{web_port}/api/v1/mcp/actions/start",
                 method="POST",
@@ -93,7 +127,7 @@ class GracefulWebShutdownTests(unittest.TestCase):
                 },
                 payload={
                     "request_id": "request-graceful-shutdown-0001",
-                    "expected_state_version": snapshot["state_version"],
+                    "expected_state_version": current["state_version"],
                 },
             )
             with socket.create_connection(("127.0.0.1", mcp_port), timeout=2):

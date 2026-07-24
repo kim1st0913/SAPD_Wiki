@@ -1,0 +1,1 @@
+"""Stable certificate contract tests."""

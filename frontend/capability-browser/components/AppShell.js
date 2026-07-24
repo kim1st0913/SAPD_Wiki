@@ -948,7 +948,8 @@
   }
 
   function mcpStatusPresentation(snapshot = null, { error = false } = {}) {
-    const serviceState = text(snapshot?.service_state || snapshot?.status?.service_state).trim();
+    const statusSnapshot = snapshot?.status || {};
+    const serviceState = text(snapshot?.service_state || statusSnapshot.service_state).trim();
     const authorizedCount = Number(
       snapshot?.authorized_client_count
       ?? snapshot?.status?.authorized_client_count
@@ -962,14 +963,69 @@
     const licenseState = text(window.sapdLicenseStatus?.state).trim();
     const productLicense = text(window.sapdLicenseStatus?.display_text).trim()
       || (licenseState === "activated" ? "已授权" : licenseState === "expired" ? "已到期" : licenseState === "open" ? "无限制版" : "读取中");
+    const licenseDanger = ["expired", "invalid", "error", "blocked", "unlicensed"].includes(licenseState);
+    const certificate = snapshot?.certificate || {};
+    const certificateState = text(certificate.state).trim() || "not_configured";
+    const remainingDays = certificate.remaining_days == null
+      ? Number.NaN
+      : Number(certificate.remaining_days);
+    const certificateLabels = {
+      not_configured: "尚未建立",
+      valid: certificate.valid_until ? `有效至 ${new Date(certificate.valid_until).toLocaleDateString("zh-CN")}` : "有效",
+      expiring: Number.isInteger(remainingDays) ? `剩余 ${remainingDays} 天` : "即将到期",
+      renewal_required: Number.isInteger(remainingDays) ? `剩余 ${remainingDays} 天，需更新` : "需要更新",
+      expired: "已到期",
+      trust_missing: "当前用户信任缺失",
+      trust_conflict: "信任冲突",
+      key_unavailable: "密钥不可用",
+      clock_invalid: "系统时间异常",
+      rotating: "更新中",
+      recovery_required: "需要恢复",
+      error: "状态异常",
+    };
+    const certificateDanger = ["expired", "trust_missing", "trust_conflict", "key_unavailable", "clock_invalid", "recovery_required", "error"].includes(certificateState);
+    const certificateWarning = ["expiring", "renewal_required", "rotating"].includes(certificateState);
+    const serviceDanger = error || serviceState === "error";
+    const serviceTone = serviceState === "ready" ? "ok" : "neutral";
+    const lastSuccessAt = text(snapshot?.last_success_at || statusSnapshot.last_success_at).trim();
+    const activityState = text(snapshot?.activity_state || statusSnapshot.activity_state).trim();
+    const parsedLastSuccess = lastSuccessAt ? new Date(lastSuccessAt) : null;
+    const activityLabel = activityState === "recent" && parsedLastSuccess && !Number.isNaN(parsedLastSuccess.getTime())
+      ? parsedLastSuccess.toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false })
+      : activityState === "recent"
+        ? "近期已使用"
+        : activityState === "idle"
+          ? "等待使用"
+          : "尚未使用";
     return {
-      tone: error ? "warning" : serviceState === "ready" ? "ok" : serviceState === "error" ? "danger" : "neutral",
+      tone: certificateDanger
+        ? "danger"
+        : serviceDanger
+          ? "danger"
+          : licenseDanger
+            ? "danger"
+            : certificateWarning
+              ? "warning"
+              : pendingCount > 0
+                ? "warning"
+                : serviceTone,
       serviceLabel: error ? "状态不可用" : serviceState === "ready" ? "已启动" : serviceState === "starting" ? "启动中" : serviceState === "stopping" ? "停止中" : serviceState === "error" ? "异常" : "未启动",
+      serviceMeta: serviceState === "ready" ? "仅监听本机回环地址" : "启动后才接受连接",
       authorizationLabel: pendingCount > 0
         ? `待确认 ${pendingCount} 个`
         : authorizedCount > 0
           ? `已授权 ${authorizedCount} 个客户端`
           : "未授权客户端",
+      authorizationMeta: pendingCount > 0 ? "请在 AI 功能集成中确认" : authorizedCount > 0 ? "可查看与撤销授权" : "等待客户端发起连接",
+      certificateLabel: certificate.cleanup_pending
+        ? "已更新，旧证书待清理"
+        : certificateLabels[certificateState] || "状态不可用",
+      certificateMeta: certificate.cleanup_pending && certificate.old_generation_retained_until
+        ? `清理时间 ${new Date(certificate.old_generation_retained_until).toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false })}`
+        : Number.isInteger(remainingDays)
+          ? `剩余 ${remainingDays} 天`
+          : "仅保护 127.0.0.1",
+      activityLabel,
       productLicense,
     };
   }
@@ -983,13 +1039,34 @@
           type="button"
           data-app-route="/settings/ai-integration"
           title="MCP 与授权状态"
-          aria-label="${escapeHtml(`MCP ${status.serviceLabel}，${status.authorizationLabel}，打开 AI 功能集成`)}"
+          aria-label="${escapeHtml(`MCP ${status.serviceLabel}，${status.authorizationLabel}，安全证书${status.certificateLabel}，打开 AI 功能集成`)}"
         ><span aria-hidden="true">▤</span><i aria-hidden="true"></i></button>
-        <div class="mcp-status-popover" role="status" aria-live="polite">
-          <strong>MCP 状态监测</strong>
-          <span><small>MCP 链接状态</small><b>${escapeHtml(status.serviceLabel)}</b></span>
-          <span><small>客户端授权</small><b>${escapeHtml(status.authorizationLabel)}</b></span>
-          <span><small>License 授权状态</small><b>${escapeHtml(status.productLicense)}</b></span>
+        <div class="mcp-status-popover" role="group" aria-label="MCP 状态监测">
+          <header class="mcp-status-popover-title">
+            <strong>MCP 状态监测</strong>
+            <small>本机 AI 连接与授权</small>
+          </header>
+          <span class="mcp-status-popover-row">
+            <small class="mcp-status-popover-label">MCP 服务</small>
+            <span class="mcp-status-popover-value"><strong>${escapeHtml(status.serviceLabel)}</strong><small>${escapeHtml(status.serviceMeta)}</small></span>
+          </span>
+          <span class="mcp-status-popover-row">
+            <small class="mcp-status-popover-label">客户端授权</small>
+            <span class="mcp-status-popover-value"><strong>${escapeHtml(status.authorizationLabel)}</strong><small>${escapeHtml(status.authorizationMeta)}</small></span>
+          </span>
+          <button class="mcp-status-popover-row mcp-status-certificate-link" type="button" data-app-route="/settings/ai-integration" data-settings-anchor="aiCertificatePanel">
+            <small class="mcp-status-popover-label">安全连接证书</small>
+            <span class="mcp-status-popover-value"><strong>${escapeHtml(status.certificateLabel)}</strong><small>${escapeHtml(status.certificateMeta)}</small></span>
+          </button>
+          <span class="mcp-status-popover-row">
+            <small class="mcp-status-popover-label">最近使用</small>
+            <span class="mcp-status-popover-value"><strong>${escapeHtml(status.activityLabel)}</strong></span>
+          </span>
+          <span class="mcp-status-popover-row">
+            <small class="mcp-status-popover-label">License 授权</small>
+            <span class="mcp-status-popover-value"><strong>${escapeHtml(status.productLicense)}</strong></span>
+          </span>
+          <button class="mcp-status-popover-footer" type="button" data-app-route="/settings/ai-integration">打开 AI 功能集成</button>
         </div>
       </div>
     `;

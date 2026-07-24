@@ -65,6 +65,8 @@
     mcpAuthorizationDeny: "/api/v1/mcp/authorization/actions/deny",
     mcpRevokeClient: "/api/v1/mcp/clients/actions/revoke",
     mcpClearAudit: "/api/v1/mcp/audit/actions/clear",
+    mcpPrepareCertificate: "/api/v1/mcp/certificate/actions/prepare",
+    mcpConfirmCertificate: "/api/v1/mcp/certificate/actions/confirm",
     mcpPrepareReset: "/api/v1/mcp/reset/actions/prepare",
     mcpConfirmWebReset: "/api/v1/mcp/reset/actions/confirm-web",
   };
@@ -548,6 +550,7 @@
         Number.isInteger(payload.state_version)
         && payload.status && typeof payload.status === "object"
         && payload.settings && typeof payload.settings === "object"
+        && payload.certificate && typeof payload.certificate === "object"
         && Array.isArray(payload.clients)
         && payload.audit && typeof payload.audit === "object"
         && payload.diagnostics && typeof payload.diagnostics === "object";
@@ -627,6 +630,18 @@
       )
     ) {
       throw createMcpControlError("INVALID_PORT", 400);
+    }
+    if (
+      extra.action
+      && !["certificate_provision", "certificate_rotate", "certificate_repair_trust"].includes(text(extra.action).trim())
+    ) {
+      throw createMcpControlError("INVALID_CERTIFICATE_ACTION", 400);
+    }
+    if (
+      extra.confirmation_id
+      && !/^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/.test(text(extra.confirmation_id).trim())
+    ) {
+      throw createMcpControlError("INVALID_CONFIRMATION_ID", 400);
     }
     return JSON.stringify({
       request_id: normalizedRequestId,
@@ -1497,6 +1512,22 @@
 
     async clearMcpAudit(payload) {
       return createEnvelope(await runMcpMutation(API_PATHS.mcpClearAudit, payload));
+    },
+
+    async prepareMcpCertificateAction(payload) {
+      return createEnvelope(await runMcpMutation(API_PATHS.mcpPrepareCertificate, {
+        requestId: payload?.requestId,
+        expectedStateVersion: payload?.expectedStateVersion,
+        action: text(payload?.action).trim(),
+      }));
+    },
+
+    async confirmMcpCertificateAction(payload) {
+      return createEnvelope(await runMcpMutation(API_PATHS.mcpConfirmCertificate, {
+        requestId: payload?.requestId,
+        expectedStateVersion: payload?.expectedStateVersion,
+        confirmation_id: text(payload?.confirmationId).trim(),
+      }));
     },
 
     async prepareMcpReset(payload) {

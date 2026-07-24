@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sapd.local/contracts/mcp/base-knowledge/v1/base-knowledge-access.schema.json",
+  "title": "MCP-BASE-KNOWLEDGE-ACCESS-v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "contract_id",
+    "contract_version",
+    "scope",
+    "store",
+    "business_rule",
+    "object_contract",
+    "relation_contract",
+    "source_evidence_contract",
+    "hard_exclusions",
+    "tool_contract"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "mcp-base-knowledge-contract-schema-v1"
+    },
+    "contract_id": {
+      "const": "MCP-BASE-KNOWLEDGE-ACCESS-v1"
+    },
+    "contract_version": {
+      "const": "1.0.0"
+    },
+    "scope": {
+      "const": "sapd.base.knowledge.read"
+    },
+    "store": {
+      "const": "base_read_only"
+    },
+    "business_rule": {
+      "const": "all_base_knowledge_business_content_is_ai_readable"
+    },
+    "object_contract": {
+      "type": "object",
+      "required": ["table", "row_eligibility", "search_fields", "return_fields"]
+    },
+    "relation_contract": {
+      "type": "object",
+      "required": ["table", "row_eligibility", "return_fields"]
+    },
+    "source_evidence_contract": {
+      "type": "object",
+      "required": ["database_provenance_only", "source_file_open", "excerpt_included", "return_fields"]
+    },
+    "hard_exclusions": {
+      "type": "object",
+      "required": ["stores", "capabilities", "fields"]
+    },
+    "tool_contract": {
+      "type": "object",
+      "required": ["fixed_readonly_tools", "direct_sql", "response_bytes", "content_trust"]
+    }
+  }
+}

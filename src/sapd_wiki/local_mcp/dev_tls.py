@@ -37,13 +37,7 @@ class DevTlsIdentity:
             encrypted_private_key_path=self.encrypted_private_key_path,
             secret_provider=self.secret_provider,
             passphrase_reference=self.passphrase_reference,
-            ipc_attestation=SecretTransportAttestation(
-                authenticated=True,
-                instance_bound=True,
-                peer_user_verified=True,
-                peer_process_verified=True,
-                minimum_acl=True,
-            ),
+            ipc_attestation=SecretTransportAttestation.isolated_test_fixture(),
         )
 
     def client_context(self) -> ssl.SSLContext:

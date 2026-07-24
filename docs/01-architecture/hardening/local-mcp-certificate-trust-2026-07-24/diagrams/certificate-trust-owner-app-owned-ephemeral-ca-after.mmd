@@ -1,0 +1,23 @@
+flowchart LR
+    U["User confirmation"]
+    UI["AI integration page<br/>status only"]
+    CTRL["App certificate controller<br/>sole writer"]
+    JOURNAL["Manifest + operation journal"]
+    STORE["Fixed security directory"]
+    SECRET["Keychain / DPAPI CurrentUser"]
+    TRUST["CurrentUser trust<br/>restricted policy"]
+    PIPE["One-shot instance-bound channel"]
+    SIDE["MCP Sidecar<br/>read-only consumer"]
+    TLS["127.0.0.1 HTTPS"]
+
+    U --> UI
+    UI --> CTRL
+    CTRL --> JOURNAL
+    CTRL --> STORE
+    CTRL --> SECRET
+    CTRL --> TRUST
+    SECRET --> PIPE
+    PIPE --> SIDE
+    STORE --> SIDE
+    SIDE --> TLS
+

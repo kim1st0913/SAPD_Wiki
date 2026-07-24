@@ -8,11 +8,15 @@ import secrets
 from pathlib import Path
 
 from .authorization_broker import AuthorizationDecisionBroker
+from .base_query_service import (
+    POLICY_VERSION,
+    BaseKnowledgeQueryService,
+)
 from .core_adapter import CoreKnowledgeServiceAdapter
-from .dev_fixture import POLICY_VERSION, create_dev_synthetic_base
-from .dev_tls import DevTlsIdentity, generate_dev_tls_identity
-from .query_service import KnowledgeQueryService
+from .dev_fixture import create_dev_formal_base
+from .secret_transport import receive_one_shot_secret
 from .sidecar import Sidecar, SidecarConfig
+from .tls import create_server_ssl_context_from_passphrase
 
 
 def _isolated_root(value: str) -> Path:
@@ -39,33 +43,42 @@ def _read_secret(path: Path) -> bytes:
 def run_dev_sidecar(
     *,
     runtime_root: Path,
+    base_database: Path | None,
     configured_port: int,
+    secret_channel_fd: int,
     authorization_timeout_seconds: int = 120,
 ) -> None:
     root = _isolated_root(str(runtime_root))
-    synthetic_root = root / "synthetic"
-    synthetic_root.mkdir(mode=0o700, exist_ok=True)
-    os.chmod(synthetic_root, 0o700)
-    synthetic_base = synthetic_root / "synthetic-base.sqlite3"
-    if not synthetic_base.exists():
-        synthetic_base = create_dev_synthetic_base(synthetic_root)
-
-    tls_root = root / "tls"
-    tls_identity: DevTlsIdentity | None = None
-    if tls_root.exists():
-        raise ValueError("stale TLS identity must be cleaned before start")
-    tls_identity = generate_dev_tls_identity(tls_root)
+    if base_database is None:
+        fixture_root = root / "base-fixture"
+        fixture_root.mkdir(mode=0o700, exist_ok=True)
+        os.chmod(fixture_root, 0o700)
+        resolved_base = fixture_root / "base-knowledge.sqlite3"
+        if not resolved_base.exists():
+            resolved_base = create_dev_formal_base(fixture_root)
+    else:
+        candidate = Path(base_database)
+        if not candidate.is_absolute() or candidate.is_symlink():
+            raise ValueError("base database must be an explicit absolute non-symlink path")
+        resolved_base = candidate.resolve(strict=True)
 
     verifier_key = _read_secret(root / "verifier-key.bin")
     audit_period_key = _read_secret(root / "audit-period-key.bin")
     cursor_key = _read_secret(root / "cursor-key.bin")
-    core = KnowledgeQueryService.create(
-        synthetic_root=synthetic_root,
-        synthetic_base=synthetic_base,
+    core = BaseKnowledgeQueryService.create(
+        base_database=resolved_base,
         cursor_key=cursor_key,
     )
     sidecar: Sidecar | None = None
+    delivered_secret = None
     try:
+        delivered_secret = receive_one_shot_secret(secret_channel_fd)
+        ssl_context = create_server_ssl_context_from_passphrase(
+            certificate_path=delivered_secret.certificate_path,
+            encrypted_private_key_path=delivered_secret.encrypted_private_key_path,
+            passphrase=delivered_secret.consume_passphrase(),
+            ipc_attestation=delivered_secret.attestation,
+        )
         config = SidecarConfig.for_web_dev(
             configured_port=configured_port,
             instance_id=f"web-dev-{secrets.token_urlsafe(12)}",
@@ -86,19 +99,21 @@ def run_dev_sidecar(
             ).decide,
             enable_dcr=True,
         )
-        sidecar.run(ssl_context=tls_identity.server_context())
+        sidecar.run(ssl_context=ssl_context)
     finally:
         if sidecar is not None:
             sidecar.close()
         core.close()
-        if tls_identity is not None:
-            tls_identity.close()
+        if delivered_secret is not None:
+            delivered_secret.close()
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run the isolated SAPD Wiki Web-dev MCP Sidecar")
     parser.add_argument("--runtime-root", required=True)
+    parser.add_argument("--base-db")
     parser.add_argument("--port", required=True, type=int)
+    parser.add_argument("--secret-channel-fd", required=True, type=int)
     parser.add_argument(
         "--authorization-timeout-seconds",
         type=int,
@@ -108,7 +123,9 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     run_dev_sidecar(
         runtime_root=Path(args.runtime_root),
+        base_database=Path(args.base_db) if args.base_db else None,
         configured_port=args.port,
+        secret_channel_fd=args.secret_channel_fd,
         authorization_timeout_seconds=args.authorization_timeout_seconds,
     )
     return 0

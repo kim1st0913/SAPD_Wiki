@@ -8,6 +8,47 @@ from sapd_wiki import api_server
 
 
 class EphemeralWebUserStateTests(unittest.TestCase):
+    def test_schema_check_does_not_rewrite_unchanged_user_metadata(self) -> None:
+        original_user_db = api_server.USER_DB_PATH
+        original_runtime_label = api_server.RUNTIME_LABEL
+        with tempfile.TemporaryDirectory(prefix="sapd-user-schema-metadata-") as temporary:
+            isolated_user_db = Path(temporary) / "isolated-user.sqlite3"
+            try:
+                api_server.configure_runtime_paths(
+                    user_db=isolated_user_db,
+                    runtime_label="dev",
+                    ephemeral_user_state=False,
+                )
+                api_server.ensure_user_db()
+                with api_server.user_db_connection() as connection:
+                    connection.execute(
+                        """
+                        UPDATE user_meta
+                        SET updated_at = '2000-01-01 00:00:00'
+                        WHERE key = 'schema_version'
+                        """
+                    )
+                    connection.commit()
+
+                api_server.ensure_user_db()
+
+                with api_server.user_db_connection() as connection:
+                    row = connection.execute(
+                        """
+                        SELECT value, updated_at
+                        FROM user_meta
+                        WHERE key = 'schema_version'
+                        """
+                    ).fetchone()
+                self.assertEqual(row[0], api_server.USER_SCHEMA_VERSION)
+                self.assertEqual(row[1], "2000-01-01 00:00:00")
+            finally:
+                api_server.configure_runtime_paths(
+                    user_db=original_user_db,
+                    runtime_label=original_runtime_label,
+                    ephemeral_user_state=False,
+                )
+
     def test_web_dev_state_never_opens_or_creates_user_database_file(self) -> None:
         original_user_db = api_server.USER_DB_PATH
         original_runtime_label = api_server.RUNTIME_LABEL

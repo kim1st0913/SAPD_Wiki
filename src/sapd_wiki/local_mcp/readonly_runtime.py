@@ -160,3 +160,162 @@ class ReadOnlyRuntimeContext:
 
     def __exit__(self, _exc_type: Any, _exc: Any, _traceback: Any) -> None:
         self.close()
+
+
+class FormalBaseRuntimeContext:
+    """Own one immutable connection to the configured SAPD base knowledge database."""
+
+    _REQUIRED_TABLES = frozenset(
+        {
+            "knowledge_items",
+            "knowledge_relations",
+            "source_files",
+            "source_references",
+        }
+    )
+    _FORBIDDEN_USER_TABLES = frozenset(
+        {
+            "user_notes",
+            "user_favorites",
+            "user_tags",
+            "maturity_projects",
+            "maturity_scores",
+            "maturity_reports",
+        }
+    )
+    _ALLOWED_READ_TABLES = frozenset(
+        {
+            "knowledge_items",
+            "knowledge_relations",
+            "source_files",
+            "source_references",
+        }
+    )
+
+    def __init__(
+        self,
+        *,
+        base_database: Path,
+        connect_factory: ConnectFactory = sqlite3.connect,
+        connect_observer: ConnectObserver | None = None,
+    ) -> None:
+        self._base_input = Path(base_database)
+        self._connect_factory = connect_factory
+        self._connect_observer = connect_observer
+        self._connection: sqlite3.Connection | None = None
+        self._base_path: Path | None = None
+
+    def _validated_path(self) -> Path:
+        raw_base = str(self._base_input)
+        if (
+            not self._base_input.is_absolute()
+            or raw_base.startswith("file:")
+            or self._base_input.is_symlink()
+        ):
+            raise RuntimeBoundaryError(
+                "base database must be an explicit absolute non-symlink path"
+            )
+        try:
+            base = self._base_input.resolve(strict=True)
+        except OSError as exc:
+            raise RuntimeBoundaryError("base database is unavailable") from exc
+        if not base.is_file() or "user" in base.name.casefold():
+            raise RuntimeBoundaryError("configured database is not a base knowledge database")
+        return base
+
+    @staticmethod
+    def _authorizer(
+        action: int,
+        arg1: str | None,
+        _arg2: str | None,
+        _database: str | None,
+        _trigger: str | None,
+    ) -> int:
+        if action in _DENIED_ACTIONS:
+            return sqlite3.SQLITE_DENY
+        if action == _sqlite_action("SQLITE_READ") and arg1 not in {
+            *FormalBaseRuntimeContext._ALLOWED_READ_TABLES,
+            "sqlite_master",
+            "sqlite_schema",
+        }:
+            return sqlite3.SQLITE_DENY
+        return sqlite3.SQLITE_OK
+
+    def open(self) -> "FormalBaseRuntimeContext":
+        if self._connection is not None:
+            raise RuntimeBoundaryError("formal base runtime is already open")
+        base = self._validated_path()
+        uri = f"file:{quote(str(base), safe='/')}?mode=ro&immutable=1"
+        if self._connect_observer is not None:
+            self._connect_observer(
+                {
+                    "target_kind": "formal_base",
+                    "mode": "ro",
+                    "immutable": True,
+                    "uri": True,
+                }
+            )
+        try:
+            connection = self._connect_factory(uri, uri=True, timeout=1.0)
+        except (OSError, sqlite3.Error) as exc:
+            raise RuntimeBoundaryError("formal base open failed") from exc
+        try:
+            connection.row_factory = sqlite3.Row
+            connection.execute("PRAGMA query_only=ON")
+            query_only = connection.execute("PRAGMA query_only").fetchone()
+            databases = connection.execute("PRAGMA database_list").fetchall()
+            if query_only is None or query_only[0] != 1:
+                raise RuntimeBoundaryError("query_only is not enabled")
+            if len(databases) != 1 or databases[0][1] != "main":
+                raise RuntimeBoundaryError("only the main database is allowed")
+            try:
+                opened_path = Path(str(databases[0][2])).resolve(strict=True)
+            except OSError as exc:
+                raise RuntimeBoundaryError(
+                    "opened base database path is unavailable"
+                ) from exc
+            if opened_path != base:
+                raise RuntimeBoundaryError(
+                    "opened database does not match the configured base"
+                )
+            tables = frozenset(
+                str(row[0])
+                for row in connection.execute(
+                    "SELECT name FROM sqlite_schema WHERE type = 'table'"
+                ).fetchall()
+            )
+            if not self._REQUIRED_TABLES <= tables:
+                raise RuntimeBoundaryError("base knowledge schema is incomplete")
+            if self._FORBIDDEN_USER_TABLES & tables:
+                raise RuntimeBoundaryError("user-store tables are forbidden in MCP runtime")
+            connection.set_authorizer(self._authorizer)
+        except Exception:
+            connection.close()
+            raise
+        self._connection = connection
+        self._base_path = base
+        return self
+
+    @property
+    def connection(self) -> sqlite3.Connection:
+        if self._connection is None:
+            raise RuntimeBoundaryError("formal base runtime is not open")
+        return self._connection
+
+    @property
+    def base_path(self) -> Path:
+        if self._base_path is None:
+            raise RuntimeBoundaryError("formal base runtime is not open")
+        return self._base_path
+
+    def close(self) -> None:
+        if self._connection is not None:
+            self._connection.close()
+            self._connection = None
+            self._base_path = None
+
+    def __enter__(self) -> "FormalBaseRuntimeContext":
+        return self.open()
+
+    def __exit__(self, _exc_type: Any, _exc: Any, _traceback: Any) -> None:
+        self.close()

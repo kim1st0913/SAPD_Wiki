@@ -1,0 +1,19 @@
+flowchart LR
+    U["User"]
+    UI["AI integration page"]
+    CTRL["Web/App control layer"]
+    TMP["Temporary TLS generator"]
+    MEM["In-memory passphrase"]
+    SIDE["MCP Sidecar"]
+    TLS["127.0.0.1 HTTPS"]
+    TRUST["System CurrentUser trust"]
+
+    U --> UI
+    UI --> CTRL
+    CTRL --> TMP
+    TMP --> MEM
+    TMP --> SIDE
+    MEM --> SIDE
+    SIDE --> TLS
+    CTRL -. "production adapter absent" .-> TRUST
+

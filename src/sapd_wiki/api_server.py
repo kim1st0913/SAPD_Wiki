@@ -2309,6 +2309,7 @@ def _initialize_user_schema(connection: sqlite3.Connection) -> None:
         ON CONFLICT(key) DO UPDATE SET
           value = excluded.value,
           updated_at = CURRENT_TIMESTAMP
+        WHERE user_meta.value <> excluded.value
         """,
         (USER_SCHEMA_VERSION,),
     )
@@ -4434,6 +4435,31 @@ def resolve_mcp_python_executable(value: str | Path | None = None) -> Path:
     )
 
 
+def default_mcp_certificate_identity_root() -> Path:
+    """Fixed, non-user-configurable identity root for platform integration."""
+
+    if os.name == "nt":
+        local_app_data = os.environ.get("LOCALAPPDATA")
+        if not local_app_data:
+            raise ValueError("LOCALAPPDATA is required for Windows MCP identity")
+        return (
+            Path(local_app_data)
+            / "SAPD Wiki"
+            / "LocalMCP"
+            / "Certificates"
+            / "dev"
+        )
+    return (
+        Path.home()
+        / "Library"
+        / "Application Support"
+        / "SAPD Wiki"
+        / "LocalMCP"
+        / "Certificates"
+        / "dev"
+    )
+
+
 def serve(args: argparse.Namespace) -> None:
     validate_reserved_preview_runtime(args)
     if not is_loopback_host(str(args.host)):
@@ -4456,11 +4482,21 @@ def serve(args: argparse.Namespace) -> None:
     actual_port = int(server.server_address[1])
     expected_host = f"{args.host}:{actual_port}"
     mcp_runtime_root = getattr(args, "mcp_runtime_root", None)
+    platform_integration_enabled = bool(
+        getattr(args, "mcp_platform_integration", False)
+    )
     server.sapd_mcp_supervisor = DevSidecarSupervisor(
         configured_port=int(getattr(args, "mcp_port", 28775)),
         runtime_root=Path(mcp_runtime_root) if mcp_runtime_root else None,
         cleanup_on_close=not bool(mcp_runtime_root),
         python_executable=resolve_mcp_python_executable(getattr(args, "mcp_python", None)),
+        base_database=BASE_DB_PATH,
+        certificate_identity_root=(
+            default_mcp_certificate_identity_root()
+            if platform_integration_enabled
+            else None
+        ),
+        platform_integration_enabled=platform_integration_enabled,
     )
     server.sapd_mcp_control_api = build_dev_control_api(
         expected_host=expected_host,

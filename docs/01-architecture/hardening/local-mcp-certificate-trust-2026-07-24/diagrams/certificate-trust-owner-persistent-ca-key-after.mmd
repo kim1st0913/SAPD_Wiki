@@ -1,0 +1,20 @@
+flowchart LR
+    U["User confirmation"]
+    UI["AI integration page"]
+    CTRL["App certificate controller"]
+    CAKEY["Persistent encrypted CA key"]
+    SECRET["Keychain / DPAPI CurrentUser"]
+    TRUST["CurrentUser trust"]
+    LEAF["Rotating leaf identities"]
+    SIDE["MCP Sidecar"]
+    TLS["127.0.0.1 HTTPS"]
+
+    U --> UI
+    UI --> CTRL
+    CTRL --> CAKEY
+    SECRET --> CAKEY
+    CAKEY --> LEAF
+    CTRL --> TRUST
+    LEAF --> SIDE
+    SIDE --> TLS
+

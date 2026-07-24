@@ -1,0 +1,18 @@
+flowchart LR
+    U["User confirmation"]
+    UI["AI integration page"]
+    CTRL["App certificate controller"]
+    STORE["Encrypted self-signed leaf key"]
+    SECRET["Keychain / DPAPI CurrentUser"]
+    TRUST["Platform leaf trust anchor"]
+    SIDE["MCP Sidecar"]
+    TLS["127.0.0.1 HTTPS"]
+
+    U --> UI
+    UI --> CTRL
+    CTRL --> STORE
+    CTRL --> SECRET
+    CTRL --> TRUST
+    STORE --> SIDE
+    SECRET --> SIDE
+    SIDE --> TLS

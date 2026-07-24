@@ -25,6 +25,7 @@ _READ_ROUTES = {
     "/api/v1/mcp/clients": "get_clients",
     "/api/v1/mcp/audit": "get_audit",
     "/api/v1/mcp/diagnostics": "get_diagnostics",
+    "/api/v1/mcp/certificate": "get_certificate",
 }
 
 _MUTATION_ROUTES = {
@@ -37,6 +38,8 @@ _MUTATION_ROUTES = {
     "/api/v1/mcp/authorization/actions/deny": "deny_authorization",
     "/api/v1/mcp/clients/actions/revoke": "revoke_client",
     "/api/v1/mcp/audit/actions/clear": "clear_audit",
+    "/api/v1/mcp/certificate/actions/prepare": "prepare_certificate_action",
+    "/api/v1/mcp/certificate/actions/confirm": "confirm_certificate_action",
     "/api/v1/mcp/reset/actions/prepare": "prepare_reset",
     "/api/v1/mcp/reset/actions/confirm": "confirm_reset",
     "/api/v1/mcp/reset/actions/confirm-web": "confirm_web_reset",
@@ -185,6 +188,28 @@ class ControlApi:
             )
             return self._service.revoke_client(
                 client_id=source["client_id"],
+                request_id=source["request_id"],
+                expected_state_version=source["expected_state_version"],
+            )
+
+        if action == "prepare_certificate_action":
+            source = require_closed_object(
+                payload,
+                required=_COMMON_MUTATION_FIELDS | frozenset({"action"}),
+            )
+            return self._service.prepare_certificate_action(
+                action=source["action"],
+                request_id=source["request_id"],
+                expected_state_version=source["expected_state_version"],
+            )
+
+        if action == "confirm_certificate_action":
+            source = require_closed_object(
+                payload,
+                required=_COMMON_MUTATION_FIELDS | frozenset({"confirmation_id"}),
+            )
+            return self._service.confirm_certificate_action(
+                confirmation_id=source["confirmation_id"],
                 request_id=source["request_id"],
                 expected_state_version=source["expected_state_version"],
             )

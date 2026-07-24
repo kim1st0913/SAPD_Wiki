@@ -8,6 +8,7 @@ from urllib.parse import parse_qs, urlsplit
 
 import httpx
 from mcp.server.auth.provider import TokenError
+from mcp.server.auth.provider import RegistrationError
 from mcp.shared.auth import OAuthClientInformationFull
 
 from sapd_wiki.local_mcp.auth import (
@@ -435,6 +436,49 @@ class AuthHTTPTests(unittest.TestCase):
 
     def test_token_requires_resource_exact_redirect_and_pkce_s256(self) -> None:
         asyncio.run(self.exercise_token_bindings())
+
+    def test_registration_priority_is_pre_registered_then_cimd_then_dcr(self) -> None:
+        self.assertEqual(
+            self.provider.select_registration(
+                {"pre_registered": True, "CIMD": True, "DCR": True}
+            ),
+            "pre_registered",
+        )
+        self.assertEqual(
+            self.provider.select_registration(
+                {"pre_registered": False, "CIMD": True, "DCR": True}
+            ),
+            "CIMD",
+        )
+        self.assertEqual(
+            self.provider.select_registration(
+                {"pre_registered": False, "CIMD": False, "DCR": True}
+            ),
+            "DCR",
+        )
+
+    def test_registration_mode_marks_dcr_unverified_and_rate_limits_abuse(self) -> None:
+        cimd = client_registration("client-cimd")
+        self.provider.register_cimd(cimd)
+        self.assertEqual(
+            self.store.client_registration_mode("client-cimd"),
+            "CIMD",
+        )
+
+        provider = LocalOAuthProvider(
+            self.store,
+            self.provider.config,
+            authorization_decider=lambda _request: True,
+            dcr_limit_per_minute=1,
+        )
+        dcr = client_registration("client-dcr-0001")
+        asyncio.run(provider.register_client(dcr))
+        self.assertEqual(
+            self.store.client_registration_mode("client-dcr-0001"),
+            "DCR",
+        )
+        with self.assertRaises(RegistrationError):
+            asyncio.run(provider.register_client(client_registration("client-dcr-0002")))
 
 
 if __name__ == "__main__":

@@ -55,6 +55,18 @@
     maturityScoreImport: "/api/v1/maturity/score/import",
     maturityTemplateExport: "/api/v1/maturity/template/export",
     maturityTemplateImport: "/api/v1/maturity/template/import",
+    mcpControlPanel: "/api/v1/mcp/control-panel",
+    mcpStart: "/api/v1/mcp/actions/start",
+    mcpStop: "/api/v1/mcp/actions/stop",
+    mcpRetry: "/api/v1/mcp/actions/retry",
+    mcpUpdatePort: "/api/v1/mcp/settings/port",
+    mcpCheck: "/api/v1/mcp/diagnostics/actions/check",
+    mcpAuthorizationAllow: "/api/v1/mcp/authorization/actions/allow",
+    mcpAuthorizationDeny: "/api/v1/mcp/authorization/actions/deny",
+    mcpRevokeClient: "/api/v1/mcp/clients/actions/revoke",
+    mcpClearAudit: "/api/v1/mcp/audit/actions/clear",
+    mcpPrepareReset: "/api/v1/mcp/reset/actions/prepare",
+    mcpConfirmWebReset: "/api/v1/mcp/reset/actions/confirm-web",
   };
 
   const API_FETCH_TIMEOUT_MS = 12000;
@@ -472,6 +484,163 @@
     } catch (error) {
       return { ok: false, data_state: "api_unavailable", error: error?.message || "user api unavailable" };
     }
+  }
+
+  const MCP_CONTROL_CONTRACT_VERSION = "sapd-mcp-control-v1";
+  const MCP_FORBIDDEN_RESPONSE_KEYS = [
+    "token",
+    "private_key",
+    "passphrase",
+    "redirect_query",
+    "absolute_path",
+    "pid",
+    "raw_logs",
+    "query",
+    "knowledge_content",
+    "user_content",
+  ];
+
+  function mcpSafeErrorMessage(code = "", status = 0) {
+    const messages = {
+      STATE_VERSION_CONFLICT: "AI 集成状态已更新，页面将重新读取最新状态。",
+      REQUEST_ID_REUSED: "本次操作标识已被使用，请重新发起操作。",
+      AUTH_REQUIRED: "当前操作需要本地会话授权。",
+      AUTH_DENIED: "当前环境未允许执行该操作。",
+      DESKTOP_CAPABILITY_REQUIRED: "该操作需要桌面应用。",
+      DESKTOP_APP_REQUIRED: "该操作需要桌面应用。",
+    };
+    return messages[text(code).trim()] || (status === 403
+      ? "当前操作需要本地会话授权或桌面应用能力。"
+      : "AI 集成请求失败，请稍后重试或在桌面应用中检查服务。");
+  }
+
+  function createMcpControlError(code, status, currentStateVersion = null) {
+    const error = new Error(mcpSafeErrorMessage(code, status));
+    error.name = "McpControlError";
+    error.code = text(code).trim() || "MCP_CONTROL_ERROR";
+    error.status = Number(status) || 0;
+    error.currentStateVersion = Number.isInteger(currentStateVersion) ? currentStateVersion : null;
+    return error;
+  }
+
+  function assertMcpResponseFieldPolicy(value, seen = new Set()) {
+    if (!value || typeof value !== "object" || seen.has(value)) return;
+    seen.add(value);
+    Object.entries(value).forEach(([key, child]) => {
+      const normalizedKey = text(key).trim().toLowerCase();
+      const forbidden = MCP_FORBIDDEN_RESPONSE_KEYS.some((family) =>
+        normalizedKey === family
+        || normalizedKey.includes(`${family}_`)
+        || normalizedKey.includes(`_${family}`),
+      );
+      if (forbidden) throw createMcpControlError("RESPONSE_FIELD_POLICY_VIOLATION", 502);
+      assertMcpResponseFieldPolicy(child, seen);
+    });
+  }
+
+  function assertMcpControlPayload(payload, kind = "response") {
+    if (!payload || typeof payload !== "object" || payload.contract_version !== MCP_CONTROL_CONTRACT_VERSION) {
+      throw createMcpControlError("CONTRACT_VERSION_MISMATCH", 502);
+    }
+    assertMcpResponseFieldPolicy(payload);
+    if (kind === "control-panel") {
+      const valid =
+        Number.isInteger(payload.state_version)
+        && payload.status && typeof payload.status === "object"
+        && payload.settings && typeof payload.settings === "object"
+        && Array.isArray(payload.clients)
+        && payload.audit && typeof payload.audit === "object"
+        && payload.diagnostics && typeof payload.diagnostics === "object";
+      if (!valid) throw createMcpControlError("CONTROL_PANEL_SCHEMA_MISMATCH", 502);
+    }
+    return payload;
+  }
+
+  async function mcpControlRequestHeaders({ mutation = false } = {}) {
+    const health = await fetchRuntimeHealth();
+    const headers = mutation ? { "Content-Type": "application/json" } : {};
+    const sessionToken = text(health?.auth?.session_token).trim();
+    if (!sessionToken) throw createMcpControlError("AUTH_REQUIRED", 403);
+    headers["X-SAPD-Session-Token"] = sessionToken;
+    return headers;
+  }
+
+  async function fetchMcpControlApi(path, options = {}) {
+    const url = path ? apiUrl(path) : "";
+    if (!url) throw createMcpControlError("API_UNAVAILABLE", 0);
+    const method = text(options.method || "GET").toUpperCase();
+    const isMutation = isUserWriteMethod(method);
+    const { sapdAuthRetry, kind = "response", ...requestOptions } = options;
+    const headers = {
+      ...headersToObject(requestOptions.headers),
+      ...(await mcpControlRequestHeaders({ mutation: isMutation })),
+    };
+    try {
+      const response = await fetchWithTimeout(url, {
+        cache: "no-store",
+        ...requestOptions,
+        method,
+        headers,
+      });
+      const payload = response.headers.get("Content-Type")?.includes("application/json") ? await response.json() : null;
+      assertMcpResponseFieldPolicy(payload);
+      if (!response.ok && (response.status === 401 || response.status === 403) && !sapdAuthRetry) {
+        runtimeHealthCache = null;
+        return fetchMcpControlApi(path, { ...requestOptions, method, kind, sapdAuthRetry: true });
+      }
+      if (!response.ok) {
+        const code = payload?.error?.code || "MCP_CONTROL_ERROR";
+        throw createMcpControlError(code, response.status, payload?.error?.current_state_version);
+      }
+      return assertMcpControlPayload(payload, kind);
+    } catch (error) {
+      if (error?.name === "McpControlError") throw error;
+      throw createMcpControlError(error?.name === "AbortError" ? "REQUEST_TIMEOUT" : "API_UNAVAILABLE", 0);
+    }
+  }
+
+  function mcpMutationBody({ requestId, expectedStateVersion, ...extra } = {}) {
+    const normalizedRequestId = text(requestId).trim();
+    const normalizedStateVersion = Number(expectedStateVersion);
+    if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/.test(normalizedRequestId)) {
+      throw createMcpControlError("INVALID_REQUEST_ID", 400);
+    }
+    if (!Number.isInteger(normalizedStateVersion) || normalizedStateVersion < 0) {
+      throw createMcpControlError("INVALID_STATE_VERSION", 400);
+    }
+    if (extra.client_id && !/^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/.test(text(extra.client_id).trim())) {
+      throw createMcpControlError("INVALID_CLIENT_ID", 400);
+    }
+    if (
+      extra.authorization_request_id
+      && !/^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/.test(text(extra.authorization_request_id).trim())
+    ) {
+      throw createMcpControlError("INVALID_AUTHORIZATION_REQUEST_ID", 400);
+    }
+    if (
+      Object.prototype.hasOwnProperty.call(extra, "configured_port")
+      && (
+        !Number.isInteger(Number(extra.configured_port))
+        || Number(extra.configured_port) < 1024
+        || Number(extra.configured_port) > 65535
+        || Number(extra.configured_port) === 5173
+      )
+    ) {
+      throw createMcpControlError("INVALID_PORT", 400);
+    }
+    return JSON.stringify({
+      request_id: normalizedRequestId,
+      expected_state_version: normalizedStateVersion,
+      ...extra,
+    });
+  }
+
+  async function runMcpMutation(path, payload = {}) {
+    return fetchMcpControlApi(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: mcpMutationBody(payload),
+    });
   }
 
   async function fetchPackage(name) {
@@ -1276,6 +1445,82 @@
 
     async getRuntimeHealth() {
       return createEnvelope(await fetchRuntimeHealth());
+    },
+
+    async getMcpControlPanel() {
+      return createEnvelope(await fetchMcpControlApi(API_PATHS.mcpControlPanel, { kind: "control-panel" }));
+    },
+
+    async startMcpService(payload) {
+      return createEnvelope(await runMcpMutation(API_PATHS.mcpStart, payload));
+    },
+
+    async stopMcpService(payload) {
+      return createEnvelope(await runMcpMutation(API_PATHS.mcpStop, payload));
+    },
+
+    async retryMcpService(payload) {
+      return createEnvelope(await runMcpMutation(API_PATHS.mcpRetry, payload));
+    },
+
+    async updateMcpPort(payload) {
+      return createEnvelope(await runMcpMutation(API_PATHS.mcpUpdatePort, {
+        requestId: payload?.requestId,
+        expectedStateVersion: payload?.expectedStateVersion,
+        configured_port: Number(payload?.configuredPort),
+      }));
+    },
+
+    async checkMcpService(payload) {
+      return createEnvelope(await runMcpMutation(API_PATHS.mcpCheck, payload));
+    },
+
+    async decideMcpAuthorization(payload) {
+      const allow = payload?.decision === "allow";
+      return createEnvelope(await runMcpMutation(
+        allow ? API_PATHS.mcpAuthorizationAllow : API_PATHS.mcpAuthorizationDeny,
+        {
+          requestId: payload?.requestId,
+          expectedStateVersion: payload?.expectedStateVersion,
+          authorization_request_id: text(payload?.authorizationRequestId).trim(),
+        },
+      ));
+    },
+
+    async revokeMcpClient(payload) {
+      return createEnvelope(await runMcpMutation(API_PATHS.mcpRevokeClient, {
+        requestId: payload?.requestId,
+        expectedStateVersion: payload?.expectedStateVersion,
+        client_id: text(payload?.clientId).trim(),
+      }));
+    },
+
+    async clearMcpAudit(payload) {
+      return createEnvelope(await runMcpMutation(API_PATHS.mcpClearAudit, payload));
+    },
+
+    async prepareMcpReset(payload) {
+      return createEnvelope(await runMcpMutation(API_PATHS.mcpPrepareReset, {
+        requestId: payload?.requestId,
+        expectedStateVersion: payload?.expectedStateVersion,
+        audit_disposition: payload?.clearAudit ? "clear" : "retain",
+      }));
+    },
+
+    async confirmMcpWebReset(payload) {
+      return createEnvelope(await runMcpMutation(
+        API_PATHS.mcpConfirmWebReset,
+        {
+          requestId: payload?.requestId,
+          expectedStateVersion: payload?.expectedStateVersion,
+          reset_id: text(payload?.resetId).trim(),
+          confirmation: "RESET",
+        },
+      ));
+    },
+
+    async confirmMcpReset() {
+      throw createMcpControlError("DESKTOP_CAPABILITY_REQUIRED", 428);
     },
 
     invalidatePackage(name) {

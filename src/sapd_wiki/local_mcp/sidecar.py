@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ssl
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -22,9 +23,14 @@ class SidecarConfig:
     instance_id: str
     runtime_id: str
     policy_version: str
+    allow_configurable_dev_port: bool = False
 
     def __post_init__(self) -> None:
-        require_fixed_profile_port(self.profile, self.configured_port)
+        if self.allow_configurable_dev_port:
+            if self.profile != "dev" or not 1024 <= self.configured_port <= 65535:
+                raise ValueError("configurable ports are restricted to Web dev")
+        else:
+            require_fixed_profile_port(self.profile, self.configured_port)
 
     @classmethod
     def for_profile(
@@ -41,6 +47,24 @@ class SidecarConfig:
             instance_id=instance_id,
             runtime_id=runtime_id,
             policy_version=policy_version,
+        )
+
+    @classmethod
+    def for_web_dev(
+        cls,
+        *,
+        configured_port: int,
+        instance_id: str,
+        runtime_id: str,
+        policy_version: str,
+    ) -> "SidecarConfig":
+        return cls(
+            profile="dev",
+            configured_port=configured_port,
+            instance_id=instance_id,
+            runtime_id=runtime_id,
+            policy_version=policy_version,
+            allow_configurable_dev_port=True,
         )
 
     @property
@@ -73,11 +97,16 @@ class Sidecar:
         verifier_key: bytes,
         audit_period_key: bytes,
         authorization_decider: AuthorizationDecider | None = None,
+        authorization_decider_factory: Callable[[ControlStore], AuthorizationDecider] | None = None,
         pre_registered_clients: tuple[OAuthClientInformationFull, ...] = (),
         enable_dcr: bool = False,
     ) -> "Sidecar":
+        if authorization_decider is not None and authorization_decider_factory is not None:
+            raise ValueError("provide one authorization decider source")
         store = ControlStore(control_store_path, verifier_key=verifier_key)
         audit = AuditLogger(store, period_key=audit_period_key)
+        if authorization_decider_factory is not None:
+            authorization_decider = authorization_decider_factory(store)
         oauth = LocalOAuthProvider(
             store,
             OAuthProviderConfig(

@@ -31,10 +31,15 @@ _MUTATION_ROUTES = {
     "/api/v1/mcp/actions/start": "start",
     "/api/v1/mcp/actions/stop": "stop",
     "/api/v1/mcp/actions/retry": "retry",
+    "/api/v1/mcp/settings/port": "update_port",
+    "/api/v1/mcp/diagnostics/actions/check": "check_service",
+    "/api/v1/mcp/authorization/actions/allow": "allow_authorization",
+    "/api/v1/mcp/authorization/actions/deny": "deny_authorization",
     "/api/v1/mcp/clients/actions/revoke": "revoke_client",
     "/api/v1/mcp/audit/actions/clear": "clear_audit",
     "/api/v1/mcp/reset/actions/prepare": "prepare_reset",
     "/api/v1/mcp/reset/actions/confirm": "confirm_reset",
+    "/api/v1/mcp/reset/actions/confirm-web": "confirm_web_reset",
 }
 
 _COMMON_MUTATION_FIELDS = frozenset({"request_id", "expected_state_version"})
@@ -57,6 +62,7 @@ class ControlApi:
         expected_host: str,
         expected_origin: str,
         session_verifier: SessionVerifier,
+        allow_web_reset: bool = False,
     ) -> None:
         if not expected_host or not expected_origin or not callable(session_verifier):
             raise ValueError("expected_host, expected_origin and session_verifier are required")
@@ -64,6 +70,7 @@ class ControlApi:
         self._expected_host = expected_host
         self._expected_origin = expected_origin
         self._session_verifier = session_verifier
+        self._allow_web_reset = bool(allow_web_reset)
 
     def dispatch(
         self,
@@ -76,9 +83,12 @@ class ControlApi:
 
     def handle(self, request: ControlApiRequest) -> ControlApiResponse:
         try:
-            headers = self._validate_request_boundary(request.headers)
             method = request.method.upper() if isinstance(request.method, str) else ""
             path = request.path if isinstance(request.path, str) else ""
+            headers = self._validate_request_boundary(
+                request.headers,
+                require_origin=method == "POST" and path in _MUTATION_ROUTES,
+            )
 
             if path in _READ_ROUTES:
                 if method != "GET":
@@ -102,7 +112,12 @@ class ControlApi:
         except Exception:
             return self._error(ControlError("INTERNAL_ERROR", status=500))
 
-    def _validate_request_boundary(self, raw_headers: Mapping[str, str]) -> dict[str, str]:
+    def _validate_request_boundary(
+        self,
+        raw_headers: Mapping[str, str],
+        *,
+        require_origin: bool = False,
+    ) -> dict[str, str]:
         if not isinstance(raw_headers, Mapping):
             raise ControlError("INVALID_REQUEST", status=400)
         headers: dict[str, str] = {}
@@ -117,6 +132,8 @@ class ControlApi:
         if headers.get("host") != self._expected_host:
             raise ControlError("INVALID_HOST", status=403)
         origin = headers.get("origin")
+        if require_origin and origin is None:
+            raise ControlError("INVALID_ORIGIN", status=403)
         if origin is not None and origin != self._expected_origin:
             raise ControlError("INVALID_ORIGIN", status=403)
         supplied_session = headers.get(SESSION_HEADER.casefold(), "")
@@ -130,10 +147,33 @@ class ControlApi:
         payload: Mapping[str, Any],
         headers: Mapping[str, str],
     ) -> dict[str, Any]:
-        if action in {"start", "stop", "retry", "clear_audit"}:
+        if action in {"start", "stop", "retry", "check_service", "clear_audit"}:
             source = require_closed_object(payload, required=_COMMON_MUTATION_FIELDS)
             handler: Callable[..., dict[str, Any]] = getattr(self._service, action)
             return handler(
+                request_id=source["request_id"],
+                expected_state_version=source["expected_state_version"],
+            )
+
+        if action == "update_port":
+            source = require_closed_object(
+                payload,
+                required=_COMMON_MUTATION_FIELDS | frozenset({"configured_port"}),
+            )
+            return self._service.update_port(
+                configured_port=source["configured_port"],
+                request_id=source["request_id"],
+                expected_state_version=source["expected_state_version"],
+            )
+
+        if action in {"allow_authorization", "deny_authorization"}:
+            source = require_closed_object(
+                payload,
+                required=_COMMON_MUTATION_FIELDS | frozenset({"authorization_request_id"}),
+            )
+            return self._service.decide_authorization(
+                authorization_request_id=source["authorization_request_id"],
+                allow=action == "allow_authorization",
                 request_id=source["request_id"],
                 expected_state_version=source["expected_state_version"],
             )
@@ -170,6 +210,21 @@ class ControlApi:
             return self._service.confirm_reset(
                 reset_id=source["reset_id"],
                 native_confirmation_capability=native_capability,
+                request_id=source["request_id"],
+                expected_state_version=source["expected_state_version"],
+            )
+
+        if action == "confirm_web_reset":
+            if not self._allow_web_reset:
+                raise ControlError("DESKTOP_CAPABILITY_REQUIRED", status=428)
+            source = require_closed_object(
+                payload,
+                required=_COMMON_MUTATION_FIELDS
+                | frozenset({"reset_id", "confirmation"}),
+            )
+            return self._service.confirm_web_reset(
+                reset_id=source["reset_id"],
+                confirmation=source["confirmation"],
                 request_id=source["request_id"],
                 expected_state_version=source["expected_state_version"],
             )

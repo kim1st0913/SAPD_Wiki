@@ -49,6 +49,13 @@ const suites = {
         "scripts/package_backend_pyinstaller.py",
       ]),
       command("static:test-runner", "项目测试套件编排脚本语法检查", "node", ["--check", "scripts/run_project_test_suite.mjs"]),
+      command("static:reserved-preview-port", "5173 stable 保留端口与 synthetic 负向门禁", "python3", [
+        "-m",
+        "unittest",
+        "tests.mcp_integration.test_reserved_preview_port",
+      ], {
+        env: { PYTHONPATH: "src" },
+      }),
       command("static:frontend-smoke", "前端 smoke 脚本语法检查", "node", ["--check", "scripts/frontend_smoke_check.mjs"]),
       command("static:content-smoke", "内容 smoke 脚本语法检查", "node", ["--check", "scripts/frontend_content_smoke_check.mjs"]),
       command("static:dmg-parity-audit", "DMG / 5173 一致性审计脚本语法检查", "node", ["--check", "scripts/audit_mac_dmg_browser_parity_contract.mjs"]),
@@ -152,6 +159,32 @@ const suites = {
       command("runtime:maturity", "成熟度评估工作台 HTTP/API smoke", "node", (ctx) =>
         withOptionalChrome(withUrl(["scripts/frontend_smoke_check.mjs", "--page", "maturity", "--route", "/workbench/maturity"], ctx), ctx),
       ),
+    ],
+  },
+  mcp: {
+    description: "本地 MCP 合同、控制面、Sidecar 与优雅退出验证",
+    commands: [
+      command("mcp:core", "MCP Core 与只读数据边界", ".venv-local-mcp-web/bin/python", [
+        "-m", "unittest", "discover", "-s", "tests/mcp", "-p", "test_*.py",
+      ], { env: { PYTHONPATH: "src" } }),
+      command("mcp:policy", "MCP 策略签名", ".venv-local-mcp-web/bin/python", [
+        "-m", "unittest", "discover", "-s", "tests/mcp_policy_signature", "-p", "test_*.py",
+      ], { env: { PYTHONPATH: "src" } }),
+      command("mcp:control", "MCP Web 控制 API", ".venv-local-mcp-web/bin/python", [
+        "-m", "unittest", "discover", "-s", "tests/mcp_control", "-p", "test_*.py",
+      ], { env: { PYTHONPATH: "src" } }),
+      command("mcp:integration", "MCP Web 隔离与 5173 门禁", ".venv-local-mcp-web/bin/python", [
+        "-m", "unittest", "discover", "-s", "tests/mcp_integration", "-p", "test_*.py",
+      ], { env: { PYTHONPATH: "src" } }),
+      command("mcp:sidecar", "MCP HTTPS / OAuth / TLS Sidecar", ".venv-local-mcp-web/bin/python", [
+        "-m", "unittest", "discover", "-s", "tests/mcp_sidecar", "-p", "test_*.py",
+      ], { env: { PYTHONPATH: "src" } }),
+      command("mcp:e2e", "MCP 真实 loopback HTTPS/OAuth/五项 Tool 闭环", ".venv-local-mcp-web/bin/python", [
+        "-m", "unittest", "discover", "-s", "tests/mcp_e2e", "-p", "test_*.py",
+      ], { env: { PYTHONPATH: "src" } }),
+      command("mcp:frontend-system-settings", "系统设置与 AI 集成前端契约", "node", [
+        "scripts/audit_frontend_system_settings_contract.mjs",
+      ]),
     ],
   },
   user: {

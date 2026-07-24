@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import inspect
 import re
 import secrets
 import time
-from collections.abc import Callable
+from collections import deque
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from threading import Lock
 from typing import Any, Literal
 from urllib.parse import urlsplit
 
@@ -44,6 +47,10 @@ class OAuthContractError(ValueError):
     def __init__(self, code: str, message: str) -> None:
         super().__init__(message)
         self.code = code
+
+
+class AuthorizationDecisionTimeout(RuntimeError):
+    """Raised when the local user did not decide before the closed deadline."""
 
 
 def pkce_challenge(verifier: str) -> str:
@@ -146,7 +153,7 @@ class AuthorizationRequest:
     instance_id: str
 
 
-AuthorizationDecider = Callable[[AuthorizationRequest], bool]
+AuthorizationDecider = Callable[[AuthorizationRequest], bool | Awaitable[bool]]
 
 
 @dataclass(frozen=True)
@@ -184,12 +191,18 @@ class LocalOAuthProvider:
         authorization_decider: AuthorizationDecider | None = None,
         audit: AuditLogger | None = None,
         clock: Callable[[], float] = time.time,
+        dcr_limit_per_minute: int = 16,
     ) -> None:
+        if not 1 <= dcr_limit_per_minute <= 120:
+            raise ValueError("dcr_limit_per_minute is outside the allowed range")
         self.store = store
         self.config = config
         self._authorization_decider = authorization_decider
         self._audit = audit
         self._clock = clock
+        self._dcr_limit_per_minute = dcr_limit_per_minute
+        self._dcr_registrations: deque[float] = deque()
+        self._dcr_lock = Lock()
 
     @staticmethod
     def select_registration(capabilities: dict[str, bool]) -> str:
@@ -263,11 +276,30 @@ class LocalOAuthProvider:
     def register_pre_registered(
         self, client: OAuthClientInformationFull
     ) -> SAPDOAuthClientInformation:
+        return self._register_client(client, registration_mode="pre_registered")
+
+    def register_cimd(
+        self, client: OAuthClientInformationFull
+    ) -> SAPDOAuthClientInformation:
+        """Register metadata after a separate trusted CIMD resolver validated it."""
+
+        return self._register_client(client, registration_mode="CIMD")
+
+    def _register_client(
+        self,
+        client: OAuthClientInformationFull,
+        *,
+        registration_mode: str,
+    ) -> SAPDOAuthClientInformation:
         client_id = self._validate_client(client)
         normalized = SAPDOAuthClientInformation.model_validate(
             client.model_dump(mode="json")
         )
-        self.store.save_client(client_id, normalized.model_dump(mode="json"))
+        self.store.save_client(
+            client_id,
+            normalized.model_dump(mode="json"),
+            registration_mode=registration_mode,
+        )
         return normalized
 
     async def get_client(
@@ -281,7 +313,23 @@ class LocalOAuthProvider:
     async def register_client(
         self, client_info: OAuthClientInformationFull
     ) -> None:
-        self.register_pre_registered(client_info)
+        now = self._clock()
+        with self._dcr_lock:
+            cutoff = now - 60
+            while self._dcr_registrations and self._dcr_registrations[0] <= cutoff:
+                self._dcr_registrations.popleft()
+            if len(self._dcr_registrations) >= self._dcr_limit_per_minute:
+                raise RegistrationError(
+                    "invalid_client_metadata",
+                    "dynamic client registration rate limit exceeded",
+                )
+            self._dcr_registrations.append(now)
+        self._register_client(client_info, registration_mode="DCR")
+        self._record(
+            "CLIENT_REGISTERED",
+            client_info.client_id or "",
+            "DCR_UNVERIFIED",
+        )
 
     async def authorize(
         self,
@@ -307,9 +355,26 @@ class LocalOAuthProvider:
             resource=params.resource,
             instance_id=self.config.instance_id,
         )
-        if self._authorization_decider is None or not self._authorization_decider(
-            request
-        ):
+        decision = False
+        if self._authorization_decider is not None:
+            try:
+                decision_result = self._authorization_decider(request)
+                decision = bool(
+                    await decision_result
+                    if inspect.isawaitable(decision_result)
+                    else decision_result
+                )
+            except AuthorizationDecisionTimeout:
+                self._record(
+                    "AUTHORIZATION_TIMEOUT",
+                    client_id,
+                    "AUTH_TIMEOUT",
+                )
+                raise AuthorizeError(
+                    "access_denied",
+                    "authorization request timed out",
+                ) from None
+        if not decision:
             self._record("AUTHORIZATION_DENIED", client_id, "AUTH_DENIED")
             raise AuthorizeError("access_denied", "authorization was not approved")
         code = secrets.token_urlsafe(32)

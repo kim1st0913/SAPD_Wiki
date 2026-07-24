@@ -21,6 +21,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_PORT = 5173
+DEFAULT_RUNTIME_PATHS = {
+    "base_db": (ROOT / "data" / "database" / "sapd_wiki.sqlite3").resolve(),
+    "user_db": (ROOT / "data" / "user" / "sapd_wiki_user.sqlite3").resolve(),
+    "data_root": (ROOT / "frontend" / "capability-browser" / "public" / "data").resolve(),
+    "export_dir": (ROOT / "data" / "exports").resolve(),
+}
 
 
 def run_lsof(port: int) -> list[dict[str, str]]:
@@ -103,13 +109,38 @@ def expected_runtime(args: argparse.Namespace) -> dict[str, str]:
         values["base_db"] = args.base_db
     if args.user_db:
         values["user_db"] = args.user_db
+    if args.ephemeral_user_state:
+        values["ephemeral_user_state"] = "1"
     if args.data_root:
         values["data_root"] = args.data_root
-    if args.runtime_label:
-        values["runtime_label"] = args.runtime_label
-    elif not values:
-        values["runtime_label"] = "stable"
+    if args.export_dir:
+        values["export_dir"] = args.export_dir
+    if args.mcp_port:
+        values["mcp_port"] = str(args.mcp_port)
+    if args.mcp_runtime_root:
+        values["mcp_runtime_root"] = args.mcp_runtime_root
+    values["runtime_label"] = args.runtime_label or "stable"
     return values
+
+
+def reserved_preview_port_blockers(port: int, runtime: dict[str, str]) -> list[str]:
+    if port != DEFAULT_PORT:
+        return []
+    blockers: list[str] = []
+    if runtime.get("runtime_label", "stable") != "stable":
+        blockers.append("runtime_label must be stable")
+    if runtime.get("ephemeral_user_state") == "1":
+        blockers.append("ephemeral user state is test-only")
+    for key, default_path in DEFAULT_RUNTIME_PATHS.items():
+        value = runtime.get(key)
+        if value:
+            candidate = Path(value).expanduser()
+            resolved = candidate if candidate.is_absolute() else ROOT / candidate
+            if resolved.resolve() != default_path:
+                blockers.append(f"{key} must use the stable default path")
+    if runtime.get("mcp_runtime_root"):
+        blockers.append("explicit MCP runtime roots are test-only")
+    return blockers
 
 
 def display_project_path(path_value: str) -> str:
@@ -137,10 +168,22 @@ def runtime_health_checks(health: dict[str, object], expected: dict[str, str]) -
     for expected_key, runtime_key in path_checks:
         if expected_key not in expected:
             continue
+        if expected_key == "user_db" and expected.get("ephemeral_user_state") == "1":
+            continue
         runtime_value = runtime.get(runtime_key) if isinstance(runtime.get(runtime_key), dict) else {}
         actual = str(runtime_value.get("path") or "")
         expected_path = display_project_path(expected[expected_key])
         checks.append({"name": runtime_key, "ok": actual == expected_path, "expected": expected_path, "actual": actual})
+    if expected.get("ephemeral_user_state") == "1":
+        user_runtime = runtime.get("user_database") if isinstance(runtime.get("user_database"), dict) else {}
+        actual_path = str(user_runtime.get("path") or "")
+        actual_persistent = user_runtime.get("persistent")
+        checks.append({
+            "name": "ephemeral_user_state",
+            "ok": actual_path == "memory://isolated-web-dev" and actual_persistent is False,
+            "expected": "memory://isolated-web-dev; persistent=false",
+            "actual": f"{actual_path}; persistent={actual_persistent}",
+        })
     return checks
 
 
@@ -173,10 +216,18 @@ def start_project_server(port: int, runtime: dict[str, str]) -> int | None:
         command.extend(["--base-db", runtime["base_db"]])
     if runtime.get("user_db"):
         command.extend(["--user-db", runtime["user_db"]])
+    if runtime.get("ephemeral_user_state") == "1":
+        command.append("--ephemeral-user-state")
     if runtime.get("data_root"):
         command.extend(["--data-root", runtime["data_root"]])
     if runtime.get("runtime_label"):
         command.extend(["--runtime-label", runtime["runtime_label"]])
+    if runtime.get("export_dir"):
+        command.extend(["--export-dir", runtime["export_dir"]])
+    if runtime.get("mcp_port"):
+        command.extend(["--mcp-port", runtime["mcp_port"]])
+    if runtime.get("mcp_runtime_root"):
+        command.extend(["--mcp-runtime-root", runtime["mcp_runtime_root"]])
     subprocess.Popen(
         command,
         cwd=ROOT,
@@ -203,8 +254,16 @@ def main() -> int:
     parser.add_argument("--port", type=int, default=DEFAULT_PORT)
     parser.add_argument("--base-db", default="", help="Runtime base database path for this port.")
     parser.add_argument("--user-db", default="", help="Runtime user database path for this port.")
+    parser.add_argument(
+        "--ephemeral-user-state",
+        action="store_true",
+        help="Use isolated in-memory Web user state and do not open or create a user database file.",
+    )
     parser.add_argument("--data-root", default="", help="Runtime frontend data package root for this port.")
+    parser.add_argument("--export-dir", default="", help="Runtime export directory for this port.")
     parser.add_argument("--runtime-label", default="", help="Expected runtime label for /api/v1/health.")
+    parser.add_argument("--mcp-port", type=int, default=0, help="Initial isolated Web-dev MCP port.")
+    parser.add_argument("--mcp-runtime-root", default="", help="Explicit isolated Web-dev MCP runtime root.")
     parser.add_argument("--status", action="store_true", help="Print current status.")
     parser.add_argument("--start", action="store_true", help="Start project server if it is not running.")
     parser.add_argument("--stop", action="store_true", help="Stop project server processes on the selected port.")
@@ -212,6 +271,16 @@ def main() -> int:
     parser.add_argument("--fix-duplicates", action="store_true", help="Stop stale plain http.server processes on the selected port.")
     args = parser.parse_args()
     runtime = expected_runtime(args)
+    reserved_port_blockers = reserved_preview_port_blockers(args.port, runtime)
+    if (args.start or args.restart) and reserved_port_blockers:
+        print(json.dumps({
+            "port": args.port,
+            "result": "blocked",
+            "error": "port 5173 is reserved for the stable SAPD Wiki preview",
+            "blockers": reserved_port_blockers,
+            "required_action": "use a non-5173 port for fixture, dev, or ephemeral runtimes",
+        }, ensure_ascii=False, indent=2))
+        return 2
 
     stopped: list[str] = []
     killed: list[str] = []

@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import json
 import os
+import secrets
 import sqlite3
 import threading
 import time
@@ -67,6 +68,7 @@ class ControlStore:
                 CREATE TABLE IF NOT EXISTS oauth_clients (
                     client_id TEXT PRIMARY KEY,
                     metadata_json TEXT NOT NULL,
+                    registration_mode TEXT NOT NULL DEFAULT 'pre_registered',
                     created_at REAL NOT NULL,
                     revoked_at REAL
                 );
@@ -82,6 +84,21 @@ class ControlStore:
                     subject TEXT,
                     consumed_at REAL
                 );
+                CREATE TABLE IF NOT EXISTS authorization_requests (
+                    request_id TEXT PRIMARY KEY,
+                    client_id TEXT NOT NULL,
+                    client_name TEXT,
+                    redirect_uri TEXT NOT NULL,
+                    scopes_json TEXT NOT NULL,
+                    resource TEXT NOT NULL,
+                    policy_version TEXT NOT NULL,
+                    created_at REAL NOT NULL,
+                    expires_at REAL NOT NULL,
+                    status TEXT NOT NULL CHECK(status IN ('pending', 'allowed', 'denied', 'timed_out')),
+                    decided_at REAL
+                );
+                CREATE INDEX IF NOT EXISTS authorization_request_queue_idx
+                    ON authorization_requests(status, created_at);
                 CREATE TABLE IF NOT EXISTS token_families (
                     family_id TEXT PRIMARY KEY,
                     client_id TEXT NOT NULL,
@@ -125,6 +142,19 @@ class ControlStore:
                 );
                 """
             )
+            client_columns = {
+                str(row["name"])
+                for row in self._connection.execute(
+                    "PRAGMA table_info(oauth_clients)"
+                ).fetchall()
+            }
+            if "registration_mode" not in client_columns:
+                self._connection.execute(
+                    """
+                    ALTER TABLE oauth_clients
+                    ADD COLUMN registration_mode TEXT NOT NULL DEFAULT 'pre_registered'
+                    """
+                )
             row = self._connection.execute(
                 "SELECT value FROM control_meta WHERE key='schema_version'"
             ).fetchone()
@@ -153,18 +183,29 @@ class ControlStore:
     def _json(value: Any) -> str:
         return json.dumps(value, ensure_ascii=True, separators=(",", ":"), sort_keys=True)
 
-    def save_client(self, client_id: str, metadata: Mapping[str, Any]) -> None:
+    def save_client(
+        self,
+        client_id: str,
+        metadata: Mapping[str, Any],
+        *,
+        registration_mode: str = "pre_registered",
+    ) -> None:
+        if registration_mode not in {"pre_registered", "CIMD", "DCR"}:
+            raise ValueError("registration_mode is not supported")
         payload = self._json(dict(metadata))
         with self._lock:
             self._connection.execute(
                 """
-                INSERT INTO oauth_clients(client_id, metadata_json, created_at, revoked_at)
-                VALUES(?, ?, ?, NULL)
+                INSERT INTO oauth_clients(
+                    client_id, metadata_json, registration_mode, created_at, revoked_at
+                )
+                VALUES(?, ?, ?, ?, NULL)
                 ON CONFLICT(client_id) DO UPDATE SET
                     metadata_json=excluded.metadata_json,
+                    registration_mode=excluded.registration_mode,
                     revoked_at=NULL
                 """,
-                (client_id, payload, self._clock()),
+                (client_id, payload, registration_mode, self._clock()),
             )
 
     def load_client(self, client_id: str) -> dict[str, Any] | None:
@@ -177,6 +218,17 @@ class ControlStore:
                 (client_id,),
             ).fetchone()
         return json.loads(row["metadata_json"]) if row is not None else None
+
+    def client_registration_mode(self, client_id: str) -> str | None:
+        with self._lock:
+            row = self._connection.execute(
+                """
+                SELECT registration_mode FROM oauth_clients
+                WHERE client_id=? AND revoked_at IS NULL
+                """,
+                (client_id,),
+            ).fetchone()
+        return str(row["registration_mode"]) if row is not None else None
 
     def save_authorization_code(
         self,
@@ -238,6 +290,135 @@ class ControlStore:
                 (self._clock(), self.verifier(code)),
             )
             return cursor.rowcount == 1
+
+    def create_authorization_request(
+        self,
+        *,
+        client_id: str,
+        client_name: str | None,
+        redirect_uri: str,
+        scopes: list[str],
+        resource: str,
+        policy_version: str,
+        timeout_seconds: int = 120,
+    ) -> str:
+        if not 1 <= int(timeout_seconds) <= 600:
+            raise ValueError("timeout_seconds is outside the allowed range")
+        request_id = f"authorization:{secrets.token_urlsafe(24)}"
+        now = self._clock()
+        with self._lock:
+            self._connection.execute(
+                """
+                INSERT INTO authorization_requests(
+                    request_id, client_id, client_name, redirect_uri, scopes_json,
+                    resource, policy_version, created_at, expires_at, status, decided_at
+                ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NULL)
+                """,
+                (
+                    request_id,
+                    client_id,
+                    client_name,
+                    redirect_uri,
+                    self._json(scopes),
+                    resource,
+                    policy_version,
+                    now,
+                    now + int(timeout_seconds),
+                ),
+            )
+        return request_id
+
+    def authorization_decision(self, request_id: str) -> str | None:
+        now = self._clock()
+        with self._lock:
+            self._connection.execute(
+                """
+                UPDATE authorization_requests
+                SET status='timed_out', decided_at=?
+                WHERE request_id=? AND status='pending' AND expires_at<=?
+                """,
+                (now, request_id, now),
+            )
+            row = self._connection.execute(
+                """
+                SELECT status FROM authorization_requests WHERE request_id=?
+                """,
+                (request_id,),
+            ).fetchone()
+        return str(row["status"]) if row is not None else None
+
+    def list_authorization_requests(self) -> list[dict[str, Any]]:
+        now = self._clock()
+        with self._lock:
+            self._connection.execute(
+                """
+                UPDATE authorization_requests
+                SET status='timed_out', decided_at=?
+                WHERE status='pending' AND expires_at<=?
+                """,
+                (now, now),
+            )
+            rows = self._connection.execute(
+                """
+                SELECT request_id, client_id, client_name, redirect_uri,
+                       scopes_json, resource, policy_version, created_at, expires_at,
+                       (
+                           SELECT registration_mode
+                           FROM oauth_clients AS clients
+                           WHERE clients.client_id=authorization_requests.client_id
+                       ) AS registration_mode
+                FROM authorization_requests
+                WHERE status='pending'
+                ORDER BY created_at ASC, request_id ASC
+                LIMIT 128
+                """
+            ).fetchall()
+        result: list[dict[str, Any]] = []
+        for row in rows:
+            item = dict(row)
+            item["scopes"] = json.loads(item.pop("scopes_json"))
+            item["registration_mode"] = item["registration_mode"] or "DCR"
+            item["trust_state"] = (
+                "unverified"
+                if item["registration_mode"] == "DCR"
+                else "verified"
+            )
+            result.append(item)
+        return result
+
+    def decide_authorization_request(self, request_id: str, *, allow: bool) -> bool:
+        now = self._clock()
+        with self._lock:
+            self._connection.execute(
+                """
+                UPDATE authorization_requests
+                SET status='timed_out', decided_at=?
+                WHERE request_id=? AND status='pending' AND expires_at<=?
+                """,
+                (now, request_id, now),
+            )
+            cursor = self._connection.execute(
+                """
+                UPDATE authorization_requests
+                SET status=?, decided_at=?
+                WHERE request_id=? AND status='pending' AND expires_at>?
+                """,
+                ("allowed" if allow else "denied", now, request_id, now),
+            )
+            return cursor.rowcount == 1
+
+    def cancel_authorization_request(self, request_id: str) -> bool:
+        now = self._clock()
+        with self._lock:
+            cursor = self._connection.execute(
+                """
+                UPDATE authorization_requests
+                SET status='denied', decided_at=?
+                WHERE request_id=? AND status='pending'
+                """,
+                (now, request_id),
+            )
+        return cursor.rowcount == 1
 
     def create_token_family(
         self,
@@ -492,6 +673,57 @@ class ControlStore:
                 self._revoke_family_locked(row["family_id"])
             return len(rows)
 
+    def list_client_summaries(self) -> list[dict[str, Any]]:
+        with self._lock:
+            clients = self._connection.execute(
+                """
+                SELECT client_id, metadata_json, registration_mode,
+                       created_at, revoked_at
+                FROM oauth_clients
+                ORDER BY created_at ASC, client_id ASC
+                """
+            ).fetchall()
+            result: list[dict[str, Any]] = []
+            for client in clients:
+                family = self._connection.execute(
+                    """
+                    SELECT scopes_json, policy_version, created_at, revoked_at
+                    FROM token_families
+                    WHERE client_id=?
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                    """,
+                    (client["client_id"],),
+                ).fetchone()
+                if family is None:
+                    continue
+                last_used = self._connection.execute(
+                    """
+                    SELECT MAX(occurred_at) AS occurred_at
+                    FROM audit_events
+                    WHERE client_id=? AND event_type='TOOL_CALL'
+                    """,
+                    (client["client_id"],),
+                ).fetchone()
+                metadata = json.loads(client["metadata_json"])
+                result.append(
+                    {
+                        "client_id": client["client_id"],
+                        "display_name": metadata.get("client_name") or client["client_id"],
+                        "trust_state": (
+                            "unverified"
+                            if client["registration_mode"] == "DCR"
+                            else "verified"
+                        ),
+                        "scopes": json.loads(family["scopes_json"]),
+                        "authorized_at": family["created_at"],
+                        "last_used_at": last_used["occurred_at"] if last_used is not None else None,
+                        "policy_version": family["policy_version"],
+                        "status": "revoked" if family["revoked_at"] is not None else "authorized",
+                    }
+                )
+        return result
+
     def deactivate_token(self, token: str) -> None:
         with self._lock:
             self._connection.execute(
@@ -539,3 +771,45 @@ class ControlStore:
             item["versions"] = json.loads(item.pop("versions_json"))
             result.append(item)
         return result
+
+    def clear_audit(self) -> int:
+        with self._lock:
+            cursor = self._connection.execute("DELETE FROM audit_events")
+            return cursor.rowcount
+
+    def reset_authorization_state(self, *, clear_audit: bool) -> bool:
+        """Remove dev OAuth grants and clients without touching synthetic knowledge."""
+
+        with self._lock:
+            self._connection.execute("BEGIN IMMEDIATE")
+            try:
+                counts = [
+                    self._connection.execute(
+                        f"SELECT COUNT(*) AS total FROM {table}"
+                    ).fetchone()["total"]
+                    for table in (
+                        "authorization_requests",
+                        "authorization_codes",
+                        "token_verifiers",
+                        "token_families",
+                        "oauth_clients",
+                    )
+                ]
+                self._connection.execute("DELETE FROM authorization_requests")
+                self._connection.execute("DELETE FROM authorization_codes")
+                self._connection.execute("DELETE FROM token_verifiers")
+                self._connection.execute("DELETE FROM token_families")
+                self._connection.execute("DELETE FROM oauth_clients")
+                audit_count = 0
+                if clear_audit:
+                    audit_count = int(
+                        self._connection.execute(
+                            "SELECT COUNT(*) AS total FROM audit_events"
+                        ).fetchone()["total"]
+                    )
+                    self._connection.execute("DELETE FROM audit_events")
+                self._connection.execute("COMMIT")
+            except Exception:
+                self._connection.execute("ROLLBACK")
+                raise
+        return any(int(value) > 0 for value in counts) or audit_count > 0

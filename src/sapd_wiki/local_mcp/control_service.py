@@ -45,6 +45,25 @@ class SupervisorGateway(Protocol):
 
     def retry_service(self, *, request_id: str, expected_state_version: int) -> Mapping[str, Any]: ...
 
+    def update_port(
+        self,
+        *,
+        configured_port: int,
+        request_id: str,
+        expected_state_version: int,
+    ) -> Mapping[str, Any]: ...
+
+    def decide_authorization(
+        self,
+        *,
+        authorization_request_id: str,
+        allow: bool,
+        request_id: str,
+        expected_state_version: int,
+    ) -> Mapping[str, Any]: ...
+
+    def check_service(self, *, request_id: str, expected_state_version: int) -> Mapping[str, Any]: ...
+
     def revoke_client(
         self,
         *,
@@ -68,6 +87,14 @@ class SupervisorGateway(Protocol):
         *,
         reset_id: str,
         native_confirmation_capability: str,
+        request_id: str,
+        expected_state_version: int,
+    ) -> Mapping[str, Any]: ...
+
+    def confirm_web_reset(
+        self,
+        *,
+        reset_id: str,
         request_id: str,
         expected_state_version: int,
     ) -> Mapping[str, Any]: ...
@@ -164,6 +191,73 @@ class ControlService:
             ),
         )
 
+    def update_port(
+        self,
+        *,
+        configured_port: int,
+        request_id: str,
+        expected_state_version: int,
+    ) -> dict[str, Any]:
+        configured_port = validate_port(configured_port)
+        if configured_port < 1024 or configured_port == 5173:
+            raise ControlError("INVALID_REQUEST", status=400)
+        return self._execute_mutation(
+            "update_port",
+            request_id,
+            expected_state_version,
+            {"configured_port": configured_port},
+            lambda: self._gateway.update_port(
+                configured_port=configured_port,
+                request_id=request_id,
+                expected_state_version=expected_state_version,
+            ),
+            self._project_action_result,
+        )
+
+    def decide_authorization(
+        self,
+        *,
+        authorization_request_id: str,
+        allow: bool,
+        request_id: str,
+        expected_state_version: int,
+    ) -> dict[str, Any]:
+        authorization_request_id = validate_opaque_id(authorization_request_id)
+        if not isinstance(allow, bool):
+            raise ControlError("INVALID_REQUEST", status=400)
+        return self._execute_mutation(
+            "decide_authorization",
+            request_id,
+            expected_state_version,
+            {
+                "authorization_request_id": authorization_request_id,
+                "allow": allow,
+            },
+            lambda: self._gateway.decide_authorization(
+                authorization_request_id=authorization_request_id,
+                allow=allow,
+                request_id=request_id,
+                expected_state_version=expected_state_version,
+            ),
+            self._project_action_result,
+        )
+
+    def check_service(
+        self,
+        *,
+        request_id: str,
+        expected_state_version: int,
+    ) -> dict[str, Any]:
+        return self._simple_mutation(
+            "check_service",
+            request_id,
+            expected_state_version,
+            lambda: self._gateway.check_service(
+                request_id=request_id,
+                expected_state_version=expected_state_version,
+            ),
+        )
+
     def revoke_client(
         self,
         *,
@@ -240,6 +334,30 @@ class ControlService:
             lambda: self._gateway.confirm_reset(
                 reset_id=reset_id,
                 native_confirmation_capability=capability,
+                request_id=request_id,
+                expected_state_version=expected_state_version,
+            ),
+            self._project_action_result,
+        )
+
+    def confirm_web_reset(
+        self,
+        *,
+        reset_id: str,
+        confirmation: str,
+        request_id: str,
+        expected_state_version: int,
+    ) -> dict[str, Any]:
+        reset_id = validate_opaque_id(reset_id)
+        if confirmation != "RESET":
+            raise ControlError("INVALID_REQUEST", status=400)
+        return self._execute_mutation(
+            "confirm_web_reset",
+            request_id,
+            expected_state_version,
+            {"reset_id": reset_id, "confirmation": confirmation},
+            lambda: self._gateway.confirm_web_reset(
+                reset_id=reset_id,
                 request_id=request_id,
                 expected_state_version=expected_state_version,
             ),
@@ -330,12 +448,16 @@ class ControlService:
         source = require_closed_object(
             raw,
             required=frozenset({"state_version", "status", "settings", "clients", "audit", "diagnostics"}),
+            optional=frozenset({"authorization_requests"}),
             error_code="SNAPSHOT_INVALID",
         )
         state_version = require_int(source["state_version"])
         status = ControlService._project_status(source["status"])
         settings = ControlService._project_settings(source["settings"])
         clients = ControlService._project_clients(source["clients"])
+        authorization_requests = ControlService._project_authorization_requests(
+            source.get("authorization_requests", [])
+        )
         audit = ControlService._project_audit(source["audit"])
         diagnostics = ControlService._project_diagnostics(source["diagnostics"])
         result = {
@@ -343,6 +465,7 @@ class ControlService:
             "state_version": state_version,
             "status": status,
             "settings": settings,
+            "authorization_requests": authorization_requests,
             "clients": clients,
             "audit": audit,
             "diagnostics": diagnostics,
@@ -466,6 +589,14 @@ class ControlService:
                     "native_reset_confirmation",
                 }
             ),
+            optional=frozenset(
+                {
+                    "port_configuration",
+                    "authorization_decision",
+                    "diagnostic_check",
+                    "web_reset_confirmation",
+                }
+            ),
             error_code="SNAPSHOT_INVALID",
         )
         canonical_resource = require_string(source["canonical_resource"], minimum=1, maximum=256)
@@ -481,8 +612,71 @@ class ControlService:
                 "client_revocation": require_bool(capabilities["client_revocation"]),
                 "audit_clear": require_bool(capabilities["audit_clear"]),
                 "native_reset_confirmation": require_bool(capabilities["native_reset_confirmation"]),
+                "port_configuration": require_bool(capabilities.get("port_configuration", False)),
+                "authorization_decision": require_bool(capabilities.get("authorization_decision", False)),
+                "diagnostic_check": require_bool(capabilities.get("diagnostic_check", False)),
+                "web_reset_confirmation": require_bool(
+                    capabilities.get("web_reset_confirmation", False)
+                ),
             },
         }
+
+    @staticmethod
+    def _project_authorization_requests(raw: Any) -> list[dict[str, Any]]:
+        if not isinstance(raw, (list, tuple)) or len(raw) > 128:
+            raise ControlError("SNAPSHOT_INVALID", status=502)
+        result: list[dict[str, Any]] = []
+        for item in raw:
+            source = require_closed_object(
+                item,
+                required=frozenset(
+                    {
+                        "request_id",
+                        "client_id",
+                        "client_name",
+                        "redirect_uri",
+                        "scopes",
+                        "resource",
+                        "policy_version",
+                        "created_at",
+                        "expires_at",
+                        "registration_mode",
+                        "trust_state",
+                    }
+                ),
+                error_code="SNAPSHOT_INVALID",
+            )
+            scopes = source["scopes"]
+            if not isinstance(scopes, (list, tuple)) or not 1 <= len(scopes) <= 16:
+                raise ControlError("SNAPSHOT_INVALID", status=502)
+            redirect_uri = require_string(source["redirect_uri"], minimum=1, maximum=512)
+            resource = require_string(source["resource"], minimum=1, maximum=256)
+            if not redirect_uri.startswith("http://127.0.0.1:"):
+                raise ControlError("SNAPSHOT_INVALID", status=502)
+            if not resource.startswith("https://127.0.0.1:") or not resource.endswith("/mcp"):
+                raise ControlError("SNAPSHOT_INVALID", status=502)
+            result.append(
+                {
+                    "request_id": validate_opaque_id(source["request_id"], error_code="SNAPSHOT_INVALID"),
+                    "client_id": validate_opaque_id(source["client_id"], error_code="SNAPSHOT_INVALID"),
+                    "client_name": require_nullable_string(source["client_name"], maximum=128),
+                    "redirect_uri": redirect_uri,
+                    "scopes": [require_string(scope, minimum=1, maximum=128) for scope in scopes],
+                    "resource": resource,
+                    "policy_version": require_string(source["policy_version"], minimum=1, maximum=64),
+                    "registration_mode": require_enum(
+                        source["registration_mode"],
+                        frozenset({"pre_registered", "CIMD", "DCR"}),
+                    ),
+                    "trust_state": require_enum(
+                        source["trust_state"],
+                        _CLIENT_TRUST_STATES,
+                    ),
+                    "created_at": require_string(source["created_at"], minimum=1, maximum=64),
+                    "expires_at": require_string(source["expires_at"], minimum=1, maximum=64),
+                }
+            )
+        return result
 
     @staticmethod
     def _project_clients(raw: Any) -> list[dict[str, Any]]:
@@ -610,12 +804,17 @@ class ControlService:
                     "effects",
                 }
             ),
+            optional=frozenset({"confirmation_mode"}),
             error_code="SNAPSHOT_INVALID",
         )
         raw_effects = source["effects"]
         if not isinstance(raw_effects, (list, tuple)) or not 1 <= len(raw_effects) <= len(_RESET_EFFECTS):
             raise ControlError("SNAPSHOT_INVALID", status=502)
         effects = [require_enum(effect, _RESET_EFFECTS) for effect in raw_effects]
+        confirmation_mode = require_enum(
+            source.get("confirmation_mode", "native"),
+            frozenset({"native", "web"}),
+        )
         return {
             "contract_version": CONTROL_CONTRACT_VERSION,
             "action": action,
@@ -627,6 +826,7 @@ class ControlService:
                 "reset_id": validate_opaque_id(source["reset_id"], error_code="SNAPSHOT_INVALID"),
                 "expires_at": require_string(source["expires_at"], minimum=1, maximum=64),
                 "effects": effects,
-                "native_confirmation_required": True,
+                "native_confirmation_required": confirmation_mode == "native",
+                "web_confirmation_required": confirmation_mode == "web",
             },
         }

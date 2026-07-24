@@ -52,8 +52,10 @@ apps/macos/SAPDWiki/apps/**/.build/
 
 # Python artifacts
 __pycache__/
+src/*.egg-info/
 *.py[cod]
 .venv/
+.venv-local-mcp-web/
 venv/
 
 # OS and editor files

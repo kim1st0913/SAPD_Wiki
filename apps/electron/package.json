@@ -1,0 +1,61 @@
+{
+  "name": "sapd-wiki-windows-client",
+  "version": "0.2.0",
+  "description": "SAPD Wiki Windows desktop client shell",
+  "author": "SAPD Wiki",
+  "main": "main.cjs",
+  "private": true,
+  "scripts": {
+    "test": "node --test test/*.test.cjs",
+    "start": "electron .",
+    "prepare:win": "python3 ../../scripts/prepare_windows_electron_runtime.py --backend-artifact \"$SAPD_WIKI_WINDOWS_BACKEND_ARTIFACT\"",
+    "package:win": "npm run prepare:win && electron-builder --win nsis --x64",
+    "package:win:dir": "npm run prepare:win && electron-builder --dir --win --x64"
+  },
+  "devDependencies": {
+    "electron": "^37.2.6",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.sapd.wiki.windows",
+    "productName": "SAPD Wiki",
+    "asar": true,
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "settings.cjs",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": ".build/runtime-template",
+        "to": "runtime-template"
+      }
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "SAPD-Wiki-Setup-${version}-win-x64.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "SAPD Wiki",
+      "uninstallDisplayName": "SAPD Wiki"
+    }
+  }
+}

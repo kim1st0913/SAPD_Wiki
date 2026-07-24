@@ -5,6 +5,8 @@
 > 适用项目：SAPD Wiki
 > 目标：评估在现有 ZIP 解压即用版之后，如何向 macOS / Windows 桌面 C/S 客户端交付演进。
 
+> 2026-07-21 实施决策：本文原有 Tauri 推荐仅保留为历史预研。当前 macOS 已采用原生 App + DMG，Windows 已采用 Electron + Python sidecar + NSIS；Windows 后端由 GitHub CI 生成，安装器可在 Mac 组装。现行流程以 `delivery-bundle-1.0-prebuilt-database.md` 和 `windows-electron-build-guide.md` 为准。
+
 ## 1. 预研结论
 
 当前不建议跳过 ZIP alpha 直接做正式安装包。更稳的路线是：

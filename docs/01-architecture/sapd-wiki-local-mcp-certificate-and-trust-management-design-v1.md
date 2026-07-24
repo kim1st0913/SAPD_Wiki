@@ -1,15 +1,15 @@
-# SAPD Wiki 本地 MCP：证书与系统信任管理设计 v1
+# SAPD Wiki 本地 MCP：证书与系统信任管理设计 v1.1
 
 | 项目 | 内容 |
 |---|---|
 | 文档状态 | `方案一已确认 / 产品与工程设计基线 / 实施仍需单独授权` |
-| 日期 | 2026-07-23 |
+| 日期 | 2026-07-24 |
 | 适用范围 | Web 人工开发验证、macOS App、Windows App |
 | 上游基线 | `sapd-wiki-local-mcp-requirements-and-prd-v0.5.md`、`local-mcp-web-first-development-and-client-validation-plan-v0.2.md` |
-| 已确认方案 | 每用户、每安装实例独立的 App 管理本地 CA；CurrentUser 信任；加密 PKCS#8 服务器私钥 |
+| 已确认方案 | 每用户、每安装实例独立的 App 管理本地 CA；CurrentUser 信任；加密 PKCS#8 服务器私钥；App 独占生命周期 |
 | 非授权事项 | 本文不授权写入 Keychain、Windows 证书存储、Codex 配置，不授权 App、打包或真实数据接入 |
 
-> 本文冻结本地 MCP 的证书产品体验、生命周期、状态合同和双平台所有权。它取代 PRD v0.5 第 9.2 节“仍需选择正式 TLS 方案”的未决状态，但不扩大当前代码和系统写入授权。
+> 本文冻结本地 MCP 的证书产品体验、生命周期、状态合同和双平台所有权。它取代 PRD v0.5 第 9.2 节“仍需选择正式 TLS 方案”的未决状态，但不扩大当前代码和系统写入授权。v1.1 补齐安装身份、受限信任、秘密传递、并发互斥、事务恢复、升级/迁移/卸载和应用签名边界。
 
 ---
 
@@ -29,6 +29,9 @@
 5. CA 私钥只在首次签发服务器证书时短暂存在，签发完成后删除，不作为长期 CA 服务保存。
 6. 服务器私钥以加密 PKCS#8 保存；随机解密口令由 macOS Keychain 或 Windows DPAPI CurrentUser 保管。
 7. 不安装长期运行的 CA 服务，不把 `openssl ca` 包装成生产证书管理器。
+8. App 控制面是证书、信任和秘密生命周期的唯一写入者；Sidecar 只能消费一次性下发的运行身份，浏览器前端不得读取证书文件或秘密。
+9. MCP 本机 TLS 证书与 macOS Developer ID、Windows Authenticode 等应用签名证书完全独立；AI 功能集成页面不得管理或替换安装包签名身份。
+10. 证书生成、信任、轮换、修复和重置都是有日志、可恢复、可幂等重试的事务，不允许用散落的文件操作和证书库命令拼接生命周期。
 
 ### 1.2 用户问题的正式答复
 
@@ -39,6 +42,8 @@
 | 重置是否重新生成证书 | 重置先删除旧身份，再自动进入首次启用流程；仍需用户明确确认生成和信任新证书 |
 | 首页状态是否显示有效期 | 顶部状态浮层必须显示证书状态、到期日和剩余天数 |
 | 首次生成是否填写国家、组织等字段 | 不需要；字段由产品自动生成，避免把本机私有 CA 表述成公共或组织身份认证 |
+| Windows 是否写系统级证书库 | 不写；仅使用 `CurrentUser\Root` 和 DPAPI CurrentUser |
+| 应用升级是否重新生成证书 | 不重新生成；普通升级必须保留 `install_id`、当前 generation、信任和秘密 |
 
 ---
 
@@ -90,6 +95,35 @@ macOS Web Dev:
 
 目录及文件使用当前用户最小权限，不进入项目 Git、业务数据目录、上传/下载目录和普通诊断包。
 
+### 2.3 三类身份必须分开
+
+| 身份 | 用途 | 所有者 | 是否出现在 AI 功能集成 |
+|---|---|---|---|
+| App 代码签名/公证身份 | 证明安装包发布者 | 发布与打包流程 | 否 |
+| MCP 本机 CA 与服务器证书 | 保护 `127.0.0.1` HTTPS | 当前用户下的 App 控制面 | 是 |
+| OAuth 客户端与 grant | 证明客户端授权关系 | MCP 控制面 | 只显示授权状态 |
+
+更新或重置 MCP 证书不得接触 Developer ID、Notarization Ticket、Authenticode、License 或知识库数据。证书轮换通常也不撤销 OAuth grant；只有“重置 AI 集成”或资源身份发生变化时才撤销全部授权。
+
+### 2.4 唯一写入者和信任边界
+
+生命周期所有权固定为：
+
+```text
+用户确认
+  → App 控制面（唯一写入者）
+      → 固定安全目录 / Keychain / DPAPI / CurrentUser 信任
+      → 一次性、实例绑定的秘密传递
+          → Sidecar（只读消费者）
+              → 127.0.0.1 HTTPS
+```
+
+- 浏览器/WebView 只接收脱敏状态，不接收文件路径、私钥、口令或 secret reference；
+- Sidecar 不安装、删除或修复系统信任，也不生成长期身份；
+- 平台适配器不接受前端提供的任意路径、证书文件或指纹作为删除目标；
+- 所有删除目标必须来自 App 自己持久化的所有权清单，并再次与证书库中的完整 SHA-256 指纹核对；
+- Web 人工开发由 Dev 控制面承担同一所有权，不允许页面脚本直接执行 `security`、PowerShell、`certutil` 或 OpenSSL 命令。
+
 ---
 
 ## 3. 证书身份与字段
@@ -113,11 +147,14 @@ CN = SAPD Wiki Local Dev CA {short_install_id}
 CA 必须满足：
 
 - `basicConstraints = CA:TRUE, pathLen:0`；
-- `keyUsage = keyCertSign, cRLSign`；
+- `keyUsage = keyCertSign`，首版不声明未实现的 CRL 能力；
 - 随机序列号；
-- SHA-256 或更强签名；
+- SHA-256 或更强签名，密钥算法由兼容矩阵冻结，不允许运行时静默降级；
+- 优先增加 critical `nameConstraints`，只允许 `127.0.0.1/32`；若目标 Codex/macOS/Windows 验证证明不兼容，必须形成显式兼容性决策，不能自动扩大到任意 DNS/IP；
 - 公共证书进入 CurrentUser 信任；
 - CA 私钥在签发服务器证书后删除。
+
+因为 CA 私钥不持久化，“更新证书”是生成新 CA 和新服务器身份的完整轮换，不是用旧 CA 静默续签。CA 的 5 年有效期只用于保证现有服务器证书链在有效期内可验证，不代表 CA 可以继续签发。
 
 ### 3.2 服务器证书
 
@@ -129,6 +166,14 @@ SAN IP = 127.0.0.1
 Extended Key Usage = serverAuth
 basicConstraints = CA:FALSE
 ```
+
+服务器证书还必须包含：
+
+- `keyUsage = digitalSignature`；仅当最终选择 RSA 且目标 TLS 栈需要时增加 `keyEncipherment`；
+- `extendedKeyUsage = serverAuth`；
+- `notBefore = 生成时间 - 5 分钟`，容忍小幅本机时钟偏差；
+- 叶证书与 CA 的 `SubjectKeyIdentifier / AuthorityKeyIdentifier`；
+- 服务器返回完整的 leaf + CA chain，不依赖客户端猜测证书链。
 
 端口不属于证书身份，用户修改端口不触发证书更新。除非目标客户端验证证明必须支持 `::1` 或 `localhost`，否则不扩大 SAN。
 
@@ -150,6 +195,62 @@ basicConstraints = CA:FALSE
 - 随机口令由 Keychain/DPAPI CurrentUser 保管；
 - 口令不得进入设置、环境变量、命令行、剪贴板、日志或诊断包；
 - Sidecar 只在进程内取得口令，使用 `SSLContext.load_cert_chain(..., password=...)` 加载。
+
+### 3.4 安装身份、profile 与 generation
+
+证书身份不由文件夹是否存在来判断。App 必须持有版本化所有权清单：
+
+```json
+{
+  "schema_version": 1,
+  "install_id": "随机稳定 UUID",
+  "profile": "stable",
+  "generation_id": "随机轮换 UUID",
+  "ca_fingerprint_sha256": "完整指纹",
+  "server_fingerprint_sha256": "完整指纹",
+  "valid_from": "RFC3339",
+  "valid_until": "RFC3339",
+  "secret_key": "平台秘密别名",
+  "operation_state": "active"
+}
+```
+
+规则：
+
+- `install_id` 在首次启用时生成，普通 App 升级保留；全新安装、显式重置或无法安全证明所有权时生成新的 ID；
+- `profile` 至少区分 `stable / beta / dev`，不同 profile 使用不同目录、秘密别名、CA 名称和进程锁；
+- `generation_id` 每次完整轮换变化；正常启动、端口修改和客户端重新授权不变化；
+- 清单可以包含平台秘密别名，但该字段不得进入 API、前端、日志或诊断包；
+- 降级版 App 无法理解更高 `schema_version` 时必须 fail closed，不得覆盖或删除现有身份。
+
+### 3.5 文件系统与路径完整性
+
+固定安全目录不只是默认路径，而是安全边界：
+
+- macOS 目录 `0700`，证书、清单和加密私钥 `0600`；
+- Windows DACL 只允许当前用户和必要的 `SYSTEM` 管理权限，不继承宽泛父目录 ACL；
+- 创建目录、staging、文件和锁时拒绝 symlink、hardlink、junction 和 reparse-point 替换；
+- 文件使用独占创建、同卷 staging、落盘同步和原子 rename；不得跨卷复制后直接覆盖 active generation；
+- 私钥、清单和秘密 blob 不进入普通业务备份承诺；从备份恢复后必须重新校验设备、秘密、信任与 generation 一致性；
+- 公共 CA 可以按需导出用于诊断，但不得通过“在 Finder/资源管理器中显示”暴露包含加密私钥的安全目录。
+
+### 3.6 秘密保管与 Sidecar 传递
+
+macOS：
+
+- 使用 Data Protection Keychain；
+- 口令项设置为非同步、`ThisDeviceOnly`；
+- 默认选择满足运行方式的最严格 accessibility：若 MCP 只在用户解锁后的 App 会话中运行，优先 `WhenUnlockedThisDeviceOnly`；确需解锁后后台恢复才评审 `AfterFirstUnlockThisDeviceOnly`；
+- Keychain service/account 由 bundle ID、profile、install ID 和 generation ID 派生。
+
+Windows：
+
+- 使用 `CryptProtectData` 的当前用户范围，不设置 `CRYPTPROTECT_LOCAL_MACHINE`；
+- DPAPI blob 保存在固定安全目录并受最小 DACL 保护；
+- 使用 install/profile/generation 派生的 optional entropy，entropy 本身不是秘密；
+- 域漫游用户可能在其他设备解密 DPAPI 数据，因此仍需设备绑定检查；设备不匹配时进入重新建立安全连接，不直接复用身份。
+
+App 与 Sidecar 分进程时，口令不得通过 argv、环境变量、普通文件、剪贴板、标准日志或未认证 socket 传递。正式实现必须使用父进程创建的单次读取匿名管道/继承句柄或等价的实例绑定通道，并验证同一用户、预期子进程、最小 ACL、nonce 和 generation；读取后立即关闭，重复读取失败。任何一项不能证明时返回 `KEY_PASSPHRASE_IPC_UNSAFE` 并 fail closed。
 
 ---
 

@@ -71,7 +71,7 @@ node scripts/run_project_test_suite.mjs --suite pre-dmg --dry-run
 | TC-011 | 全局搜索 | 搜索索引、页面定位、路由变化 | `route + object_type + target_ref` 决定目标页面和锚点；按搜索专项用例矩阵验证 golden query、反例和字段边界 | `node scripts/audit_global_search_index_contract.mjs` + `python3 scripts/audit_search_index_quality_probes.py` |
 | TC-012 | 搜索历史 | 搜索框、局部搜索或工作台搜索变化 | 不同业务域搜索历史隔离，删除 / 清空只影响当前域 | `node scripts/audit_search_state_isolation.mjs` |
 | TC-013 | 滚动与按钮 | 工作台、表格、三栏布局、底部操作区变化 | 页面外层高度明确，面板是本地滚动 owner，按钮可触达 | `node scripts/audit_frontend_scroll_contract.mjs` |
-| TC-014 | 5173 服务 | 前端 / 后端 / 数据改动后 | 5173 是项目服务，首页和工作区投影正常 | `python3 scripts/dev_server_guard.py --status` |
+| TC-014 | 5173 服务 | 前端 / 后端 / 数据改动后 | 5173 只允许默认 `stable` Runtime，首页和工作区投影正常；fixture、dev、ephemeral、自定义数据路径和显式测试 MCP Runtime 必须使用非 5173 端口，且被拒绝的 restart 不得停止现有 stable 服务 | `python3 scripts/dev_server_guard.py --status` + `PYTHONPATH=src python3 -m unittest tests.mcp_integration.test_reserved_preview_port` |
 | TC-015 | 5173 内容 smoke | 打包前、数据改动后 | 核心数据包和 API `dataState` 为 `ready` | `node scripts/frontend_content_smoke_check.mjs --url http://127.0.0.1:5173` |
 | TC-016 | 页面 smoke | 页面代码或路由变化 | 搜索、能力、环境、LC、标准页 HTTP/API 正常 | `node scripts/run_project_test_suite.mjs --suite runtime --url http://127.0.0.1:5173` |
 | TC-017 | 批注锚点 | 批注、选区、高亮、页面锚点变化 | 批注能绑定稳定锚点，不泄露调试字段 | `node scripts/audit_user_annotation_contract.mjs` |

@@ -1,0 +1,66 @@
+{
+  "schema_version": "mcp-contract-schema-v1",
+  "contract_id": "MCP-AUTH-v1",
+  "contract_version": "1.0.0",
+  "scope": "sapd.base.public.summary.read",
+  "discovery": {
+    "protected_resource_metadata": "/.well-known/oauth-protected-resource/mcp",
+    "authorization_server_metadata": "/.well-known/oauth-authorization-server",
+    "authorize": "/oauth/authorize",
+    "token": "/oauth/token",
+    "revoke": "/oauth/revoke"
+  },
+  "registration_priority": [
+    "pre_registered",
+    "CIMD",
+    "DCR"
+  ],
+  "authorization": {
+    "grant_type": "authorization_code",
+    "pkce_method": "S256",
+    "public_client": true,
+    "resource_required": true,
+    "audience_required": true
+  },
+  "redirect_policy": {
+    "loopback_ip_literals": [
+      "127.0.0.1",
+      "::1"
+    ],
+    "ephemeral_port_allowed": true,
+    "localhost_default": false,
+    "authorization_token_exact_match": true,
+    "non_loopback_exact_match": true
+  },
+  "token_policy": {
+    "access_token_format": "opaque",
+    "minimum_entropy_bits": 256,
+    "access_token_ttl_seconds": 600,
+    "refresh_rotation": true,
+    "reuse_revokes_family": true,
+    "transport": "authorization_bearer_header_only",
+    "revocation_immediate": true
+  },
+  "transaction_policy": {
+    "timeout_seconds": 120,
+    "silent_approval": false,
+    "close_means_deny": true,
+    "instance_binding": true,
+    "concurrency": "queue"
+  },
+  "errors": [
+    "AUTH_REQUIRED",
+    "AUTH_DENIED",
+    "AUTH_TIMEOUT",
+    "REDIRECT_URI_MISMATCH",
+    "PKCE_REQUIRED",
+    "TOKEN_AUDIENCE_MISMATCH",
+    "TOKEN_REUSED",
+    "TOKEN_REVOKED"
+  ],
+  "references": {
+    "data_policy": "MCP-DATA-POLICY-v1",
+    "runtime_state": "MCP-RUNTIME-STATE-v1",
+    "protocol_tools": "MCP-PROTOCOL-TOOLS-v1"
+  }
+}

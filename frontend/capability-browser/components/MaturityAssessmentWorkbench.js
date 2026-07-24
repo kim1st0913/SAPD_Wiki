@@ -1949,7 +1949,7 @@
       <div class="maturity-v15-score-overview-body">
         <div class="maturity-v12-score-readout"><div><strong data-maturity-current-index>${escapeHtml(currentIndex)}</strong><span>综合得分</span></div><div><strong data-maturity-current-level>${escapeHtml(currentLevel || "—")}</strong><span>${escapeHtml(LEVEL_NAMES[currentLevel] || "成熟度待计算")}</span></div></div>
         <div class="maturity-v12-score-facts maturity-v16-score-target"><div><span>目标等级</span><strong>${escapeHtml(targetLevel ? `${targetIndex} ${targetLevel} ${LEVEL_NAMES[targetLevel]}` : "未设置")}</strong></div></div>
-        <section class="maturity-v15-point-radar" aria-label="当前评估点四维雷达"><header><h3>四维雷达图</h3></header><canvas width="320" height="236" data-maturity-point-radar data-score-item-id="${escapeHtml(item.id)}" aria-label="组织、流程、工具、数据当前与目标四维得分雷达图"></canvas><div class="maturity-v15-radar-legend"><span><i></i>当前状态</span><span class="is-target"><i></i>目标状态</span></div></section>
+        <section class="maturity-v15-point-radar" aria-label="当前评估点四维雷达"><header><h3>四维雷达图</h3></header><canvas width="320" height="178" data-maturity-point-radar data-score-item-id="${escapeHtml(item.id)}" aria-label="组织、流程、工具、数据当前与目标四维得分雷达图"></canvas><div class="maturity-v15-radar-legend"><span><i></i>当前状态</span><span class="is-target"><i></i>目标状态</span></div></section>
       </div>
     </section>`;
   }
@@ -2794,8 +2794,9 @@
     canvas.style.height = `${cssHeight}px`;
     context.setTransform(ratio, 0, 0, ratio, 0, 0);
     context.clearRect(0, 0, cssWidth, cssHeight);
-    const center = { x: cssWidth / 2, y: cssHeight / 2 + 3 };
-    const radius = Math.min(cssWidth * 0.36, cssHeight * 0.39, maxRadius);
+    const labelOffset = 18;
+    const center = { x: cssWidth / 2, y: cssHeight / 2 };
+    const radius = Math.min(cssWidth * 0.34, Math.max(40, cssHeight / 2 - labelOffset - 8), maxRadius);
     const angles = profile.map((_, index) => -Math.PI / 2 + (Math.PI * 2 * index) / profile.length);
     const point = (angle, value) => ({ x: center.x + Math.cos(angle) * radius * (value / 5), y: center.y + Math.sin(angle) * radius * (value / 5) });
     for (let level = 1; level <= 5; level += 1) {
@@ -2817,7 +2818,7 @@
       context.lineTo(edge.x, edge.y);
       context.strokeStyle = "#d5dee7";
       context.stroke();
-      const labelPoint = { x: center.x + Math.cos(angle) * (radius + 23), y: center.y + Math.sin(angle) * (radius + 19) };
+      const labelPoint = { x: center.x + Math.cos(angle) * (radius + labelOffset), y: center.y + Math.sin(angle) * (radius + labelOffset) };
       context.fillStyle = "#405a71";
       context.font = "700 10px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
       context.textAlign = Math.cos(angle) > 0.22 ? "left" : Math.cos(angle) < -0.22 ? "right" : "center";

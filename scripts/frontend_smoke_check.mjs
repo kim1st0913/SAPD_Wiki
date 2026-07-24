@@ -15,6 +15,7 @@ const PAGE_TO_VIEW = {
   "environment-mapping": "environment",
   lifecycle: "dev-lifecycle",
   "dev-lifecycle": "dev-lifecycle",
+  settings: "settings",
   standards: "maintenance",
   maintenance: "maintenance",
 };
@@ -285,6 +286,7 @@ async function waitForTarget(port, timeoutMs = 5000) {
 
 function expectedViewFor(pageName, route) {
   if (PLACEHOLDER_ROUTES.has(route)) return "placeholder";
+  if (route.startsWith("/settings")) return "settings";
   if (route.startsWith("/standards/")) return "maintenance";
   if (route.startsWith("/guides/")) return "content";
   if (pageName === "standards" || pageName === "maintenance") return "maintenance";

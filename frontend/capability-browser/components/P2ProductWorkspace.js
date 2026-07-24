@@ -31,7 +31,7 @@
       { id: "services", label: "安全技术服务", value: counts.services || 0, unit: "项", hint: "服务字典", route: "/knowledge/technical-services", tone: "teal" },
       { id: "technical", label: "安全技术模块 / 措施", value: `${formatNumber(counts.modules)} / ${formatNumber(counts.measures)}`, unit: "", hint: "模块 / 措施", route: "/knowledge/technical", tone: "cyan" },
       { id: "standards", label: "标准控制项", value: summary.standardControls?.standardsIndex || 0, unit: "条", hint: "标准索引", route: "/standards", tone: "amber" },
-      { id: "dictionaries", label: "字典目录", value: summary.dictionarySections?.length || 0, unit: "类", hint: "业务目录", route: "/knowledge/capabilities", tone: "violet" },
+      { id: "dictionaries", label: "字典目录", value: summary.dictionarySections?.length || 0, unit: "类", hint: "业务目录", tone: "violet" },
     ];
   }
 
@@ -40,10 +40,10 @@
     return [
       { label: "作用域", value: counts.scopes, route: "/knowledge/scopes" },
       { label: "服务", value: counts.services, route: "/knowledge/technical-services" },
-      { label: "模块", value: counts.modules, route: "/knowledge/technical" },
-      { label: "措施", value: counts.measures, route: "/knowledge/technical" },
-      { label: "安全工作", value: counts["security-works"], route: "/knowledge/management-workflows" },
-      { label: "流程", value: counts.processes, route: "/knowledge/management-workflows" },
+      { label: "模块", value: counts.modules, route: "/knowledge/technical-modules" },
+      { label: "措施", value: counts.measures, route: "/knowledge/technical-measures" },
+      { label: "安全工作", value: counts["security-works"], route: "/knowledge/work-items" },
+      { label: "流程", value: counts.processes, route: "/knowledge/processes" },
       { label: "职能层", value: counts["work-functions"], route: "/knowledge/functions" },
       { label: "岗位 / 职能参考", value: counts.references, route: "/standards/workforce-reference" },
     ];
@@ -60,35 +60,32 @@
         id: "environment",
         label: "信息化环境",
         note: "环境投影口径，与字典作用域分开",
-        route: "/environment-mapping",
         tone: "ocean",
         items: [
-          { label: "环境", value: environment.information_environments },
+          { label: "环境", value: environment.information_environments, route: "/environment-mapping" },
           { label: "对象", value: environment.information_objects },
-          { label: "作用域类型", value: environment.scope_types },
+          { label: "作用域类型", value: environment.scope_types, route: "/knowledge/scopes" },
         ],
       },
       {
         id: "lifecycle",
         label: "安全生命周期",
         note: "两个生命周期独立呈现",
-        route: "/development-security",
         tone: "sunset",
         items: [
-          { label: "LC-AP 阶段", value: lifecycles.lc_ap_stages },
-          { label: "LC-DT 阶段", value: lifecycles.lc_dt_stages },
+          { label: "LC-AP 阶段", value: lifecycles.lc_ap_stages, route: "/development-security" },
+          { label: "LC-DT 阶段", value: lifecycles.lc_dt_stages, route: "/data-security" },
         ],
       },
       {
         id: "content",
         label: "指南与知识表达",
         note: "只统计当前可用内容入口",
-        route: "/guides",
         tone: "orchid",
         items: [
-          { label: "指南", value: manifest.guideEntries },
+          { label: "指南", value: manifest.guideEntries, route: "/guides" },
           { label: "幻灯片类", value: content.html_documents },
-          { label: "建模语言", value: manifest.modelingGuides },
+          { label: "建模语言", value: manifest.modelingGuides, route: "/guides/security-architecture-modeling-language" },
           { label: "图示视图", value: content.diagram_views },
         ],
       },
@@ -96,15 +93,23 @@
   }
 
   function renderKnowledgeStat(item) {
-    return `<button class="dashboard-knowledge-stat tone-${utils.escapeHtml(item.tone)}" type="button" data-app-route="${utils.escapeHtml(item.route)}" data-dashboard-stat="${utils.escapeHtml(item.id)}"><span>${utils.escapeHtml(item.label)}</span><strong>${utils.escapeHtml(formatValue(item.value, item.unit))}</strong><small>${utils.escapeHtml(item.hint)}</small></button>`;
+    const content = `<span>${utils.escapeHtml(item.label)}</span><strong>${utils.escapeHtml(formatValue(item.value, item.unit))}</strong><small>${utils.escapeHtml(item.hint)}</small>`;
+    if (!item.route) return `<div class="dashboard-knowledge-stat is-static tone-${utils.escapeHtml(item.tone)}" data-dashboard-stat="${utils.escapeHtml(item.id)}">${content}</div>`;
+    return `<button class="dashboard-knowledge-stat is-link tone-${utils.escapeHtml(item.tone)}" type="button" data-app-route="${utils.escapeHtml(item.route)}" data-dashboard-stat="${utils.escapeHtml(item.id)}" aria-label="打开${utils.escapeHtml(item.label)}页面">${content}</button>`;
+  }
+
+  function renderInsightValue(item) {
+    const content = `<strong>${utils.escapeHtml(formatNumber(item.value))}</strong><small>${utils.escapeHtml(item.label)}</small>`;
+    if (!item.route) return `<span class="dashboard-insight-value is-static">${content}</span>`;
+    return `<button class="dashboard-insight-value is-link" type="button" data-app-route="${utils.escapeHtml(item.route)}" aria-label="打开${utils.escapeHtml(item.label)}页面">${content}</button>`;
   }
 
   function renderInsightBand(band) {
     return `
-      <button class="dashboard-insight-band tone-${utils.escapeHtml(band.tone)}" type="button" data-app-route="${utils.escapeHtml(band.route)}" data-dashboard-band="${utils.escapeHtml(band.id)}">
+      <section class="dashboard-insight-band tone-${utils.escapeHtml(band.tone)}" data-dashboard-band="${utils.escapeHtml(band.id)}" aria-label="${utils.escapeHtml(band.label)}统计">
         <span class="dashboard-insight-band-head"><strong>${utils.escapeHtml(band.label)}</strong><small>${utils.escapeHtml(band.note)}</small></span>
-        <span class="dashboard-insight-values">${band.items.map((item) => `<span><strong>${utils.escapeHtml(formatNumber(item.value))}</strong><small>${utils.escapeHtml(item.label)}</small></span>`).join("")}</span>
-      </button>`;
+        <span class="dashboard-insight-values">${band.items.map(renderInsightValue).join("")}</span>
+      </section>`;
   }
 
   function issueStatusTone(status = "") {

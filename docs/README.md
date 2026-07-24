@@ -68,6 +68,18 @@
 3. `03-import-etl/completed-sheet-business-confirmation.md`
 4. `02-data-model/data-model.md`
 
+## 要做本地 MCP、AI 集成或授权设计
+
+优先看：
+
+1. `01-architecture/sapd-wiki-local-mcp-requirements-and-prd-v0.5.md`
+2. `06-implementation/local-mcp-m0t-t0-t2-execution-plan.md`
+3. `06-implementation/user-database-governance-and-stable-key-design.md`
+4. `09-delivery/base-manifest-contract.md`
+5. `09-delivery/mac-dmg-browser-parity-contract.md`
+
+当前只允许 MCP 的 `M0-T` 隔离技术验证与四份合同冻结；`D0` 内容工作须另行取得数据变更授权。只有 `M0-T=PASS + D0-Pilot=PASS` 才可评审 M1 计划，真实数据仍须等待 `D0-Release=PASS`。该设计文档不能直接授权 M1 代码、正式数据开放、用户数据访问或打包发布。
+
 ## 要做前端页面或数据契约
 
 优先看：

@@ -19,6 +19,7 @@ assert.match(scaleCss, /--sapd-ui-logical-viewport-width/, "scaled shell must co
 assert.match(scaleCss, /--sapd-ui-logical-viewport-height/, "scaled shell must compensate logical height");
 assert.match(scaleCss, /width:\s*var\(--sapd-ui-logical-viewport-width\)/, "scaled shell must preserve full viewport width");
 assert.match(scaleCss, /max-width:\s*none/, "legacy shell max-width must not clip compact scaling");
+assert.match(scaleCss, /\.app-shell\.app-shell-integrated\s*\{[\s\S]*?display:\s*grid/, "integrated shell must override the legacy sub-860px block layout");
 assert.match(scaleCss, /calc\(var\(--sapd-ui-logical-viewport-width\) - var\(--app-sidebar-width\)\)/, "main pane must use the compensated logical viewport");
 assert.doesNotMatch(scaleCss, /transform:\s*scale/, "fixed and sticky shell geometry must not use transform scaling");
 assert.match(scaleJs, /BASE_VIEWPORT_WIDTH\s*=\s*1920/, "1920px desktop baseline must remain 1:1");

@@ -4,7 +4,7 @@
 
 ## 治理入口
 
-- 当前未关闭问题数：6
+- 当前未关闭问题数：7
 - 已关闭归档问题数：194
 - 全量索引：`docs/06-implementation/open-issues-index.md`
 - 已关闭问题归档：`docs/05-archive/open-issues-history/2026-06.md`、`docs/05-archive/open-issues-history/2026-07.md`
@@ -24,6 +24,7 @@
 
 | 编号 | 状态 | 标题 |
 |---|---|---|
+| OI-199 | 评审通过 / 待用户确认计划 | 本地 MCP 的安全连接、公开摘要和四份合同尚未通过技术门禁 |
 | OI-198 | 待实现 / 契约已确认 | 导入审批缺少幂等门禁、中间数据终结和 approved 默认导出契约 |
 | OI-197 | 待业务确认 / 映射门禁阻断 | 成熟度评分依据与当前能力字典尚未全量映射 |
 | OI-192 | 已修复 / 待用户验收 | 成熟度评分工作台服务、评分定义与主动作契约未按截图落地 |
@@ -50,6 +51,22 @@
 - 验证结果：
 
 ## 当前问题详情
+
+## OI-199：本地 MCP 的安全连接、公开摘要和四份合同尚未通过技术门禁
+
+- 状态：评审通过 / 待用户确认计划
+- 严重性：高
+- 类型：架构 / 本地 API / OAuth / TLS / 数据授权 / 审计 / macOS / Windows
+- 对象或页面：本地 MCP spike / Sidecar、`ReadOnlyRuntimeProbe`、目标 `ReadOnlyRuntimeContext`、Codex MCP 配置、系统设置 AI 集成页、基础知识库公开摘要、独立 MCP 控制面。
+- 现象：外部 v0.3 已补齐主要安全与协议边界，但当前仍没有真实目标 Codex 的注册 / callback / 无状态 Profile 证据，也没有能证明私钥不落明文文件的本机 TLS 终止方案。当前基础库虽然 stable identity 为对象 `4678/4678`、关系 `7757/7757`，但没有 `ai_summary` 字段，15 个来源文件中 public 为 0，因此正式 P0 当前无可授权公开摘要。
+- 影响：若跳过 `M0-T / D0` 直接实现，会出现 OAuth 注册方式与真实客户端不兼容、TLS 私钥保管承诺无法落地、把 description 或敏感来源误当公开摘要、MCP 触碰用户库、无状态活动被误报为持续连接、或多实例 / 卸载遗留凭据等风险。
+- 建单理由：涉及跨平台 App、OAuth/TLS、本地 API、正式基础数据、来源许可、审计和用户隐私，且本轮只完成设计合同，无法自动关闭。
+- 当前处理：Work 已对 `docs/01-architecture/sapd-wiki-local-mcp-requirements-and-prd-v0.5.md` 给出 `PASS`，无新增技术 P0。开发计划为 `docs/06-implementation/local-mcp-m0t-t0-t2-execution-plan.md`，拟先在独立 worktree 固化 v0.5 与审批记录，再串行执行 T0 合同/fixture、T1 Runtime probe、T2 协议 harness；当前等待用户确认计划，尚未开始执行。
+- 需要确认：用户是否批准计划中的独立 `codex/local-mcp-m0t` worktree、纯文档审批提交和 T0→T1→T2 串行执行。本授权不包含 T3 真实客户端/系统信任、D0-Pilot、M1、正式/用户数据、App 或打包。
+- 验收入口：上述 v0.5 文档第 5、6、8、9、16 和 18 节。
+- 关闭条件：`M0-T=PASS`、`D0-Pilot=PASS`、四份合同冻结并取得 M1 单独批准；真实数据接入还必须 `D0-Release=PASS`。技术证据包括 macOS/Windows 目标 Codex 完成 HTTPS、发现、注册、PKCE、resource/audience、刷新和撤销，TLS 私钥不落未加密文件，MCP 不创建或打开用户库，以及 Transport、Tool、多实例、升级/回滚/卸载和负向安全矩阵通过。
+- 修复说明：PRD 评审已 PASS，并已形成待确认的 T0–T2 开发计划；未创建分支、提交、审批记录、fixture、probe、监听端口、依赖环境或测试证书，未修改运行代码、Schema、SQLite、正式 JSON、用户库、系统信任、客户端配置、App 设置或 DMG。
+- 验证结果：2026-07-22 `scripts/audit_stable_key_contract.mjs` 只读通过；SQLite 只读计数为对象 `4678`、类型 `37`、关系 `7757`、关系类型 `28`、来源 `15`，`ai_summary` 字段 `0`，public 来源 `0`、confidential `10`、unknown `5`。这些是设计门禁证据，不代表 MCP 已实现或可发布。
 
 ## OI-198：导入审批缺少幂等门禁、中间数据终结和 approved 默认导出契约
 

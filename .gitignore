@@ -48,12 +48,15 @@ target/
 # macOS app side-line artifacts
 apps/macos/SAPDWiki/.build/
 apps/macos/SAPDWiki/apps/**/.build/
+apps/electron/.build/
 *.dmg
 
 # Python artifacts
 __pycache__/
+src/*.egg-info/
 *.py[cod]
 .venv/
+.venv-local-mcp-web/
 venv/
 
 # OS and editor files

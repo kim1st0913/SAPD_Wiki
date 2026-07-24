@@ -1422,6 +1422,7 @@
     const toolbarSearch = options.toolbarSearch || null;
     const actions = `
       <div class="environment-basemap-lab-actions" aria-label="${escapeHtml(actionsLabel)}">
+        <a class="environment-basemap-download" href="${SVG_PATH}" download="SAPD-信息化环境及对象底图.drawio.svg" title="下载可在 Draw.io 中继续编辑的源图">下载 Draw.io 图</a>
         <button type="button" data-basemap-lab-action="fit">返回全图</button>
         <button type="button" data-basemap-lab-action="actual-size">100%</button>
         <button type="button" data-basemap-lab-action="zoom-out" aria-label="缩小">−</button>

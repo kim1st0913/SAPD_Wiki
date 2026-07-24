@@ -4,15 +4,21 @@ import argparse
 import base64
 import ipaddress
 import json
+import os
 import re
 import secrets
+import signal
 import sqlite3
 import time
 import uuid
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from threading import Lock
 from typing import Any
 from urllib.parse import parse_qs, unquote, urlparse
+
+from .local_mcp.dev_supervisor import DevSidecarSupervisor
+from .local_mcp.web_control import build_dev_control_api
 
 from .maturity import (
     build_maturity_workspace,
@@ -67,10 +73,24 @@ MAINTENANCE_SECTIONS = (
 )
 
 DEFAULT_FRONTEND_PUBLIC_DATA_ROOT = (PROJECT_ROOT / "frontend" / "capability-browser" / "public" / "data").resolve()
+DEFAULT_FRONTEND_STATIC_DIR = (PROJECT_ROOT / "frontend" / "capability-browser").resolve()
+DEFAULT_USER_DB_PATH = (PROJECT_ROOT / "data" / "user" / "sapd_wiki_user.sqlite3").resolve()
+DEFAULT_USER_EXPORT_DIR = (PROJECT_ROOT / "data" / "exports").resolve()
+DEFAULT_USER_IMPORT_DIR = (PROJECT_ROOT / "data" / "import").resolve()
+DEFAULT_APP_DATA_ROOT = PROJECT_ROOT.resolve()
+RESERVED_STABLE_PREVIEW_PORT = 5173
+MCP_CONTROL_BODY_LIMIT = 8192
 DATA_PACKAGE_ROOT = DEFAULT_FRONTEND_PUBLIC_DATA_ROOT
 BASE_DB_PATH = DEFAULT_DB_PATH.resolve()
-USER_DB_PATH = (PROJECT_ROOT / "data" / "user" / "sapd_wiki_user.sqlite3").resolve()
-USER_EXPORT_DIR = (PROJECT_ROOT / "data" / "exports").resolve()
+USER_DB_PATH = DEFAULT_USER_DB_PATH
+USER_EXPORT_DIR = DEFAULT_USER_EXPORT_DIR
+USER_IMPORT_DIR = DEFAULT_USER_IMPORT_DIR
+APP_DATA_ROOT = DEFAULT_APP_DATA_ROOT
+APP_DISPLAY_VERSION = "0.2.0"
+USER_STATE_EPHEMERAL = False
+_EPHEMERAL_USER_DB_URI = ""
+_EPHEMERAL_USER_DB_KEEPER: sqlite3.Connection | None = None
+_EPHEMERAL_USER_DB_LOCK = Lock()
 MATURITY_REPORT_ARTIFACT_SCHEMA = "sapd-maturity-report-artifact-v1"
 RUNTIME_LABEL = "stable"
 USER_SCHEMA_VERSION = "user_schema_0.3"
@@ -508,17 +528,36 @@ def configure_runtime_paths(
     user_db: str | Path | None = None,
     data_root: str | Path | None = None,
     export_dir: str | Path | None = None,
+    import_dir: str | Path | None = None,
+    app_data_root: str | Path | None = None,
+    app_version: str | None = None,
     runtime_label: str | None = None,
+    ephemeral_user_state: bool = False,
 ) -> None:
     global BASE_DB_PATH, USER_DB_PATH, DATA_PACKAGE_ROOT, USER_EXPORT_DIR, RUNTIME_LABEL
+    global USER_IMPORT_DIR, APP_DATA_ROOT, APP_DISPLAY_VERSION
+    global USER_STATE_EPHEMERAL, _EPHEMERAL_USER_DB_URI
+    close_ephemeral_user_state()
+    USER_STATE_EPHEMERAL = bool(ephemeral_user_state)
+    _EPHEMERAL_USER_DB_URI = (
+        f"file:sapd-wiki-web-dev-{secrets.token_hex(12)}?mode=memory&cache=shared"
+        if USER_STATE_EPHEMERAL
+        else ""
+    )
     if base_db:
         BASE_DB_PATH = resolve_project_path(base_db).resolve()
-    if user_db:
+    if user_db and not USER_STATE_EPHEMERAL:
         USER_DB_PATH = resolve_project_path(user_db).resolve()
     if data_root:
         DATA_PACKAGE_ROOT = resolve_project_path(data_root).resolve()
     if export_dir:
         USER_EXPORT_DIR = resolve_project_path(export_dir).resolve()
+    if import_dir:
+        USER_IMPORT_DIR = resolve_project_path(import_dir).resolve()
+    if app_data_root:
+        APP_DATA_ROOT = resolve_project_path(app_data_root).resolve()
+    if app_version:
+        APP_DISPLAY_VERSION = str(app_version).strip() or APP_DISPLAY_VERSION
     if runtime_label:
         RUNTIME_LABEL = str(runtime_label).strip() or RUNTIME_LABEL
     _DATA_PACKAGE_CACHE.clear()
@@ -2259,42 +2298,71 @@ def is_allowed_loopback_origin(value: str, port: int) -> bool:
     return parsed.scheme == "http" and parsed_port == port and is_loopback_host(parsed.hostname or "")
 
 
+def _initialize_user_schema(connection: sqlite3.Connection) -> None:
+    connection.executescript(USER_SCHEMA_SQL)
+    connection.executescript(USER_SCHEMA_V03_SQL)
+    ensure_user_note_columns(connection)
+    connection.execute(
+        """
+        INSERT INTO user_meta(key, value, updated_at)
+        VALUES ('schema_version', ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(key) DO UPDATE SET
+          value = excluded.value,
+          updated_at = CURRENT_TIMESTAMP
+        """,
+        (USER_SCHEMA_VERSION,),
+    )
+    connection.execute(
+        """
+        INSERT INTO user_meta(key, value, updated_at)
+        VALUES ('created_by', 'sapd-wiki-local-api', CURRENT_TIMESTAMP)
+        ON CONFLICT(key) DO NOTHING
+        """
+    )
+    connection.execute(
+        """
+        INSERT INTO user_schema_migrations(version)
+        VALUES (?)
+        ON CONFLICT(version) DO NOTHING
+        """,
+        (USER_SCHEMA_VERSION,),
+    )
+
+
 def ensure_user_db() -> None:
+    global _EPHEMERAL_USER_DB_KEEPER
+    if USER_STATE_EPHEMERAL:
+        with _EPHEMERAL_USER_DB_LOCK:
+            if _EPHEMERAL_USER_DB_KEEPER is None:
+                connection = sqlite3.connect(
+                    _EPHEMERAL_USER_DB_URI,
+                    uri=True,
+                    check_same_thread=False,
+                )
+                _initialize_user_schema(connection)
+                connection.commit()
+                _EPHEMERAL_USER_DB_KEEPER = connection
+        return
     USER_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(USER_DB_PATH) as connection:
-        connection.executescript(USER_SCHEMA_SQL)
-        connection.executescript(USER_SCHEMA_V03_SQL)
-        ensure_user_note_columns(connection)
-        connection.execute(
-            """
-            INSERT INTO user_meta(key, value, updated_at)
-            VALUES ('schema_version', ?, CURRENT_TIMESTAMP)
-            ON CONFLICT(key) DO UPDATE SET
-              value = excluded.value,
-              updated_at = CURRENT_TIMESTAMP
-            """,
-            (USER_SCHEMA_VERSION,),
-        )
-        connection.execute(
-            """
-            INSERT INTO user_meta(key, value, updated_at)
-            VALUES ('created_by', 'sapd-wiki-local-api', CURRENT_TIMESTAMP)
-            ON CONFLICT(key) DO NOTHING
-            """
-        )
-        connection.execute(
-            """
-            INSERT INTO user_schema_migrations(version)
-            VALUES (?)
-            ON CONFLICT(version) DO NOTHING
-            """,
-            (USER_SCHEMA_VERSION,),
-        )
+        _initialize_user_schema(connection)
+
+
+def close_ephemeral_user_state() -> None:
+    global _EPHEMERAL_USER_DB_KEEPER
+    with _EPHEMERAL_USER_DB_LOCK:
+        if _EPHEMERAL_USER_DB_KEEPER is not None:
+            _EPHEMERAL_USER_DB_KEEPER.close()
+            _EPHEMERAL_USER_DB_KEEPER = None
 
 
 def user_db_connection() -> sqlite3.Connection:
     ensure_user_db()
-    connection = sqlite3.connect(USER_DB_PATH)
+    connection = (
+        sqlite3.connect(_EPHEMERAL_USER_DB_URI, uri=True)
+        if USER_STATE_EPHEMERAL
+        else sqlite3.connect(USER_DB_PATH)
+    )
     connection.row_factory = sqlite3.Row
     connection.execute("PRAGMA foreign_keys = ON")
     return connection
@@ -2302,18 +2370,22 @@ def user_db_connection() -> sqlite3.Connection:
 
 def runtime_health_payload() -> dict[str, Any]:
     schema_version = None
-    user_ready = USER_DB_PATH.exists()
-    try:
-        if user_ready:
-            with sqlite3.connect(USER_DB_PATH) as connection:
-                row = connection.execute("SELECT value FROM user_meta WHERE key='schema_version'").fetchone()
-                schema_version = row[0] if row else None
-    except sqlite3.Error:
-        user_ready = False
-        schema_version = None
+    user_ready = _EPHEMERAL_USER_DB_KEEPER is not None if USER_STATE_EPHEMERAL else USER_DB_PATH.exists()
+    if USER_STATE_EPHEMERAL:
+        schema_version = USER_SCHEMA_VERSION if user_ready else None
+    else:
+        try:
+            if user_ready:
+                with sqlite3.connect(USER_DB_PATH) as connection:
+                    row = connection.execute("SELECT value FROM user_meta WHERE key='schema_version'").fetchone()
+                    schema_version = row[0] if row else None
+        except sqlite3.Error:
+            user_ready = False
+            schema_version = None
     return {
         "status": "ok",
         "app": "SAPD Wiki",
+        "app_version": APP_DISPLAY_VERSION,
         "mode": "local-api",
         "runtime": {
             "label": RUNTIME_LABEL,
@@ -2323,9 +2395,10 @@ def runtime_health_payload() -> dict[str, Any]:
                 "bytes": BASE_DB_PATH.stat().st_size if BASE_DB_PATH.exists() else 0,
             },
             "user_database": {
-                "path": _display_runtime_path(USER_DB_PATH),
+                "path": "memory://isolated-web-dev" if USER_STATE_EPHEMERAL else _display_runtime_path(USER_DB_PATH),
                 "ready": user_ready,
                 "schema_version": schema_version,
+                "persistent": not USER_STATE_EPHEMERAL,
             },
             "data_root": {
                 "path": _display_runtime_path(DATA_PACKAGE_ROOT),
@@ -2335,10 +2408,34 @@ def runtime_health_payload() -> dict[str, Any]:
                 "path": _display_runtime_path(USER_EXPORT_DIR),
                 "exists": USER_EXPORT_DIR.exists(),
             },
+            "import_directory": {
+                "path": _display_runtime_path(USER_IMPORT_DIR),
+                "exists": USER_IMPORT_DIR.exists(),
+            },
+            "app_data_root": {
+                "path": _display_runtime_path(APP_DATA_ROOT),
+                "exists": APP_DATA_ROOT.exists(),
+            },
+            "runtime_root": {
+                "path": _display_runtime_path(APP_DATA_ROOT / "Runtime"),
+                "exists": (APP_DATA_ROOT / "Runtime").exists(),
+            },
+            "settings_paths": {
+                "data_root": str(APP_DATA_ROOT),
+                "import_directory": str(USER_IMPORT_DIR),
+                "download_directory": str(USER_EXPORT_DIR),
+                "runtime_root": str(APP_DATA_ROOT / "Runtime"),
+            },
         },
         "auth": {
             "writes_require_token": True,
             "header": LOCAL_API_AUTH_HEADER,
+        },
+        "license": {
+            "state": "open",
+            "display_text": "开发环境",
+            "activated": True,
+            "can_skip": True,
         },
     }
 
@@ -3954,6 +4051,9 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
         if parsed.path.startswith("/api/v1/"):
             if not self._require_api_host():
                 return
+            if parsed.path.startswith("/api/v1/mcp/"):
+                self._handle_mcp_control("GET", parsed.path)
+                return
             self._handle_api(parsed.path, parse_qs(parsed.query))
             return
         if parsed.path not in {"", "/"} and "." not in Path(parsed.path).name:
@@ -3966,6 +4066,9 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
 
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
+        if parsed.path.startswith("/api/v1/mcp/"):
+            self._handle_mcp_control("POST", parsed.path)
+            return
         supported_paths = {
             "/api/v1/user/favorites",
             "/api/v1/user/notes",
@@ -4125,6 +4228,55 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
             raise ValueError("JSON body must be an object")
         return payload
 
+    def _handle_mcp_control(self, method: str, path: str) -> None:
+        control_api = getattr(self.server, "sapd_mcp_control_api", None)
+        if control_api is None:
+            self._send_json(
+                {
+                    "contract_version": "sapd-mcp-control-v1",
+                    "error": {
+                        "code": "SUPERVISOR_UNAVAILABLE",
+                        "message": "The MCP supervisor is unavailable.",
+                        "retryable": True,
+                        "current_state_version": None,
+                    },
+                },
+                status=503,
+            )
+            return
+        try:
+            length = int(self.headers.get("Content-Length", "0") or "0")
+        except ValueError:
+            length = -1
+        if length < 0 or length > MCP_CONTROL_BODY_LIMIT:
+            self._send_json(
+                {
+                    "contract_version": "sapd-mcp-control-v1",
+                    "error": {
+                        "code": "INVALID_REQUEST",
+                        "message": "The MCP control request body is invalid or too large.",
+                        "retryable": False,
+                        "current_state_version": None,
+                    },
+                },
+                status=413 if length > MCP_CONTROL_BODY_LIMIT else 400,
+            )
+            return
+        body = self.rfile.read(length) if length else None
+        response = control_api.dispatch(
+            method,
+            path,
+            {name: value for name, value in self.headers.items()},
+            body,
+        )
+        encoded = response.json_bytes()
+        self.send_response(response.status)
+        for name, value in response.headers.items():
+            self.send_header(name, value)
+        self.send_header("Content-Length", str(len(encoded)))
+        self.end_headers()
+        self.wfile.write(encoded)
+
     def _handle_api(self, path: str, query: dict[str, list[str]]) -> None:
         parts = [part for part in path.split("/") if part]
         try:
@@ -4228,30 +4380,128 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
             self._send_json(create_envelope({"error": "server_error", "message": str(exc), "path": path}), status=500)
 
 
+def reserved_preview_port_blockers(args: argparse.Namespace) -> list[str]:
+    if int(getattr(args, "port", 0)) != RESERVED_STABLE_PREVIEW_PORT:
+        return []
+    blockers: list[str] = []
+    runtime_label = str(getattr(args, "runtime_label", "stable") or "stable").strip()
+    if runtime_label != "stable":
+        blockers.append("runtime_label must be stable")
+    if bool(getattr(args, "ephemeral_user_state", False)):
+        blockers.append("ephemeral user state is test-only")
+    path_contracts = (
+        ("static_dir", getattr(args, "static_dir", None), DEFAULT_FRONTEND_STATIC_DIR),
+        ("base_db", getattr(args, "base_db", None) or getattr(args, "db", None), DEFAULT_DB_PATH.resolve()),
+        ("user_db", getattr(args, "user_db", None), DEFAULT_USER_DB_PATH),
+        ("data_root", getattr(args, "data_root", None), DEFAULT_FRONTEND_PUBLIC_DATA_ROOT),
+        ("export_dir", getattr(args, "export_dir", None), DEFAULT_USER_EXPORT_DIR),
+    )
+    for name, value, expected in path_contracts:
+        if value and resolve_project_path(value).resolve() != expected:
+            blockers.append(f"{name} must use the stable default path")
+    if getattr(args, "mcp_runtime_root", None):
+        blockers.append("explicit MCP runtime roots are test-only")
+    return blockers
+
+
+def validate_reserved_preview_runtime(args: argparse.Namespace) -> None:
+    blockers = reserved_preview_port_blockers(args)
+    if blockers:
+        raise ValueError(
+            "port 5173 is reserved for the stable SAPD Wiki preview; "
+            "use a non-5173 port for fixture, dev, or ephemeral runtimes: "
+            + "; ".join(blockers)
+        )
+
+
+def resolve_mcp_python_executable(value: str | Path | None = None) -> Path:
+    configured = str(value or os.environ.get("SAPD_WIKI_MCP_PYTHON") or "").strip()
+    candidates = []
+    if configured:
+        candidates.append(resolve_project_path(configured))
+    candidates.extend(
+        (
+            PROJECT_ROOT / ".venv-local-mcp-web" / "bin" / "python",
+            PROJECT_ROOT / ".venv-local-mcp-web" / "Scripts" / "python.exe",
+        )
+    )
+    for candidate in candidates:
+        if candidate.is_absolute() and candidate.is_file() and os.access(candidate, os.X_OK):
+            return candidate
+    raise ValueError(
+        "isolated MCP Python runtime is unavailable; "
+        "create .venv-local-mcp-web with the local-mcp optional dependencies"
+    )
+
+
 def serve(args: argparse.Namespace) -> None:
+    validate_reserved_preview_runtime(args)
+    if not is_loopback_host(str(args.host)):
+        raise ValueError("SAPD Wiki Web and MCP control services must bind to a loopback host")
     static_dir = resolve_project_path(args.static_dir)
     configure_runtime_paths(
         base_db=getattr(args, "base_db", None) or getattr(args, "db", None),
         user_db=getattr(args, "user_db", None),
         data_root=getattr(args, "data_root", None),
         export_dir=getattr(args, "export_dir", None),
+        import_dir=getattr(args, "import_dir", None),
+        app_data_root=getattr(args, "app_data_root", None),
+        app_version=getattr(args, "app_version", None),
         runtime_label=getattr(args, "runtime_label", None),
+        ephemeral_user_state=bool(getattr(args, "ephemeral_user_state", False)),
     )
     handler = lambda *handler_args, **kwargs: SapdWikiRequestHandler(*handler_args, directory=str(static_dir), **kwargs)
     server = ThreadingHTTPServer((args.host, args.port), handler)
     server.sapd_session_token = secrets.token_urlsafe(32)
+    actual_port = int(server.server_address[1])
+    expected_host = f"{args.host}:{actual_port}"
+    mcp_runtime_root = getattr(args, "mcp_runtime_root", None)
+    server.sapd_mcp_supervisor = DevSidecarSupervisor(
+        configured_port=int(getattr(args, "mcp_port", 28775)),
+        runtime_root=Path(mcp_runtime_root) if mcp_runtime_root else None,
+        cleanup_on_close=not bool(mcp_runtime_root),
+        python_executable=resolve_mcp_python_executable(getattr(args, "mcp_python", None)),
+    )
+    server.sapd_mcp_control_api = build_dev_control_api(
+        expected_host=expected_host,
+        expected_origin=f"http://{expected_host}",
+        session_token=server.sapd_session_token,
+        supervisor=server.sapd_mcp_supervisor,
+    )
     url = f"http://{args.host}:{args.port}"
     print(f"SAPD Wiki local API: {url}/api/v1/health")
     print(f"SAPD Wiki frontend:  {url}/")
     print(f"static_dir: {static_dir.relative_to(PROJECT_ROOT) if static_dir.is_relative_to(PROJECT_ROOT) else static_dir}")
     print(f"runtime_label: {RUNTIME_LABEL}")
     print(f"base_db: {_display_runtime_path(BASE_DB_PATH)}")
-    print(f"user_db: {_display_runtime_path(USER_DB_PATH)}")
+    print(
+        "user_db: memory://isolated-web-dev"
+        if USER_STATE_EPHEMERAL
+        else f"user_db: {_display_runtime_path(USER_DB_PATH)}"
+    )
     print(f"data_root: {_display_runtime_path(DATA_PACKAGE_ROOT)}")
+    print(f"app_data_root: {_display_runtime_path(APP_DATA_ROOT)}")
+    print(f"import_dir: {_display_runtime_path(USER_IMPORT_DIR)}")
     print(f"export_dir: {_display_runtime_path(USER_EXPORT_DIR)}")
+
+    def request_graceful_shutdown(_signum: int, _frame: Any) -> None:
+        raise KeyboardInterrupt
+
+    previous_signal_handlers: dict[int, Any] = {}
+    for signal_number in (signal.SIGINT, signal.SIGTERM):
+        try:
+            previous_signal_handlers[signal_number] = signal.getsignal(signal_number)
+            signal.signal(signal_number, request_graceful_shutdown)
+        except ValueError:
+            previous_signal_handlers.clear()
+            break
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         print("\nserver stopped")
     finally:
+        server.sapd_mcp_supervisor.close()
+        close_ephemeral_user_state()
         server.server_close()
+        for signal_number, previous_handler in previous_signal_handlers.items():
+            signal.signal(signal_number, previous_handler)

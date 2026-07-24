@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "fixture://schemas/mcp-protocol-tools-v1",
+  "title": "MCP-PROTOCOL-TOOLS-v1 profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "contract_id",
+    "contract_version",
+    "protocol_version",
+    "transport",
+    "request_security",
+    "limits",
+    "tools",
+    "cursor",
+    "output_contract",
+    "errors",
+    "references"
+  ],
+  "properties": {
+    "schema_version": { "const": "mcp-contract-schema-v1" },
+    "contract_id": { "const": "MCP-PROTOCOL-TOOLS-v1" },
+    "contract_version": { "type": "string", "pattern": "^1\\.[0-9]+\\.[0-9]+$" },
+    "protocol_version": { "const": "2025-11-25" },
+    "transport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["endpoint", "request_method", "response_media_type", "notification_status", "get_status", "delete_status", "session_id", "sse", "server_notifications"],
+      "properties": {
+        "endpoint": { "const": "/mcp" },
+        "request_method": { "const": "POST" },
+        "response_media_type": { "const": "application/json" },
+        "notification_status": { "const": 202 },
+        "get_status": { "const": 405 },
+        "delete_status": { "const": 405 },
+        "session_id": { "const": false },
+        "sse": { "const": false },
+        "server_notifications": { "const": false }
+      }
+    },
+    "request_security": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["canonical_host_only", "origin_exact_if_present", "tls_required", "bearer_required", "resource_audience_required", "cancellation_owner_only"],
+      "properties": {
+        "canonical_host_only": { "const": true },
+        "origin_exact_if_present": { "const": true },
+        "tls_required": { "const": true },
+        "bearer_required": { "const": true },
+        "resource_audience_required": { "const": true },
+        "cancellation_owner_only": { "const": true }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["header_bytes", "request_bytes", "response_bytes", "concurrent_requests", "timeout_seconds"],
+      "properties": {
+        "header_bytes": { "type": "integer", "minimum": 1024, "maximum": 16384 },
+        "request_bytes": { "type": "integer", "minimum": 1024, "maximum": 65536 },
+        "response_bytes": { "const": 65536 },
+        "concurrent_requests": { "type": "integer", "minimum": 1, "maximum": 16 },
+        "timeout_seconds": { "type": "integer", "minimum": 1, "maximum": 60 }
+      }
+    },
+    "tools": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/tool" },
+      "minItems": 5,
+      "maxItems": 5
+    },
+    "cursor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["opaque", "integrity", "bindings", "version_change_error"],
+      "properties": {
+        "opaque": { "const": true },
+        "integrity": { "const": "HMAC" },
+        "bindings": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "tool",
+              "normalized_parameters",
+              "client",
+              "grant",
+              "scope",
+              "policy_version",
+              "knowledge_version",
+              "identity_version",
+              "sort_version",
+              "last_sort_key",
+              "issued_at"
+            ]
+          },
+          "minItems": 11,
+          "uniqueItems": true
+        },
+        "version_change_error": { "const": "CURSOR_STALE" }
+      }
+    },
+    "output_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_version", "source_channel", "content_trust", "dynamic_server_instructions", "response_truncation"],
+      "properties": {
+        "contract_version": { "const": "sapd-mcp-tools-v1" },
+        "source_channel": { "const": "sapd_wiki" },
+        "content_trust": { "const": "untrusted_reference" },
+        "dynamic_server_instructions": { "const": false },
+        "response_truncation": { "const": false }
+      }
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "INVALID_INPUT",
+          "OBJECT_NOT_AVAILABLE",
+          "RESPONSE_TOO_LARGE",
+          "CURSOR_STALE",
+          "RATE_LIMITED",
+          "REQUEST_TIMEOUT",
+          "POLICY_BLOCKED",
+          "PROTOCOL_VERSION_UNSUPPORTED"
+        ]
+      },
+      "minItems": 8,
+      "uniqueItems": true
+    },
+    "references": { "$ref": "#/$defs/references" }
+  },
+  "$defs": {
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "readonly", "additional_properties", "default_items", "max_items", "text_character_target"],
+      "properties": {
+        "name": {
+          "enum": [
+            "search_knowledge",
+            "get_knowledge_object",
+            "get_related_knowledge",
+            "get_source_evidence",
+            "get_knowledge_version"
+          ]
+        },
+        "readonly": { "const": true },
+        "additional_properties": { "const": false },
+        "default_items": { "type": "integer", "minimum": 1, "maximum": 15 },
+        "max_items": { "type": "integer", "minimum": 1, "maximum": 30 },
+        "text_character_target": { "type": "integer", "minimum": 1000, "maximum": 8000 }
+      }
+    },
+    "references": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["auth", "data_policy", "runtime_state"],
+      "properties": {
+        "auth": { "const": "MCP-AUTH-v1" },
+        "data_policy": { "const": "MCP-DATA-POLICY-v1" },
+        "runtime_state": { "const": "MCP-RUNTIME-STATE-v1" }
+      }
+    }
+  }
+}

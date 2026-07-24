@@ -1,0 +1,162 @@
+{
+  "contract_digests": {
+    "MCP-AUTH-v1": "sha256:7c07855e095680bc0fcc0c6224336c817b85eed55a94d343e1918a37299ac799",
+    "MCP-DATA-POLICY-v1": "sha256:430557b813f0bb53a7b9740eea42719c3322a116c0aa8491afcd60baad7e5932",
+    "MCP-PROTOCOL-TOOLS-v1": "sha256:bd1f8ec06fa2a4db468b04c1855d48e0ea3ee2af9297d28a168809d4116ae766",
+    "MCP-RUNTIME-STATE-v1": "sha256:24fcd488e753312a66d5680351ce509d3e6f7de1b267b94a3cf19d8bcaad56cc"
+  },
+  "fixture_schema_version": "1.0.0",
+  "fixture_set_hash": "sha256:6252a69a50341bfb2f63eb032fc353d22ab5661acf3258e0d3f8e885b97da831",
+  "fixtures": [
+    {
+      "fixture_hash": "sha256:2b0b1150efa8bc86267fecb085001233e93c8ad1c9ce147b7e4656c86400f2b7",
+      "fixture_id": "m0t.v1.data-policy.confidential",
+      "fixture_revision": 1
+    },
+    {
+      "fixture_hash": "sha256:ac8a7f0327d25e4c33f01a88e103055519e9e6c1a036827f436e1c7e14bf88fa",
+      "fixture_id": "m0t.v1.data-policy.d0-empty-candidates",
+      "fixture_revision": 1
+    },
+    {
+      "fixture_hash": "sha256:84f09b237369f04739e94c9c83081feb601a037c2520c1aa8b3a9a04cf4d2707",
+      "fixture_id": "m0t.v1.data-policy.d0-empty-types",
+      "fixture_revision": 1
+    },
+    {
+      "fixture_hash": "sha256:54858e8e99d75970d200c3a7d65e6a3d248ddd7caceb1638900177bc55c79aa0",
+      "fixture_id": "m0t.v1.data-policy.d0-stale-digest",
+      "fixture_revision": 1
+    },
+    {
+      "fixture_hash": "sha256:df5d12b4694d382241a6c4b7f6963df1b2d852465473fc3f15ac4e2eee7fb5b7",
+      "fixture_id": "m0t.v1.data-policy.explicit-deny",
+      "fixture_revision": 1
+    },
+    {
+      "fixture_hash": "sha256:2129afd7beeff23d9813b55d0f6fb4afd0c150e4c2d0588f5b1451e64b5292e4",
+      "fixture_id": "m0t.v1.data-policy.internal",
+      "fixture_revision": 1
+    },
+    {
+      "fixture_hash": "sha256:c418f149b2d6830f42af85d4cb2dd2425f6d0eb46d80d40a678d2de5cd5dc68c",
+      "fixture_id": "m0t.v1.data-policy.metadata-only",
+      "fixture_revision": 1
+    },
+    {
+      "fixture_hash": "sha256:67991570e6bc4497942d713efe2af9314988726666acd0f6d4033a62c5dbff83",
+      "fixture_id": "m0t.v1.data-policy.public-summary",
+      "fixture_revision": 1
+    },
+    {
+      "fixture_hash": "sha256:f97e41206254f725031bbebf43855f4a5762d158e41afe0b10494ffba35e1410",
+      "fixture_id": "m0t.v1.data-policy.unknown",
+      "fixture_revision": 1
+    },
+    {
+      "fixture_hash": "sha256:8c5084e52946e372504551f645d82f28cd2d39c43f476a8240ebf324da9755b1",
+      "fixture_id": "m0t.v1.identity.duplicate-name",
+      "fixture_revision": 1
+    },
+    {
+      "fixture_hash": "sha256:1f4acb4073dd767c9a1f38da2ce6f8daf16571a8e8552eb7ac8ab89a25e74498",
+      "fixture_id": "m0t.v1.identity.unknown-object-type",
+      "fixture_revision": 1
+    },
+    {
+      "fixture_hash": "sha256:21c3fb9884cf235d0d84b42259c16c41969cb0c345948808b67721fd5bf3524e",
+      "fixture_id": "m0t.v1.input-validation.empty-query",
+      "fixture_revision": 1
+    },
+    {
+      "fixture_hash": "sha256:291354ab42f98dd62f23379607cdf4e4c528ff942d396ef5c7728c1c3f01abb2",
+      "fixture_id": "m0t.v1.input-validation.object-too-large",
+      "fixture_revision": 1
+    },
+    {
+      "fixture_hash": "sha256:3554d393f13aae7ea7b911d300bc03204e7450af93cd00b566c7627ed7527dd0",
+      "fixture_id": "m0t.v1.input-validation.request-over-limit",
+      "fixture_revision": 1
+    },
+    {
+      "fixture_hash": "sha256:754ab41f7ea4877fc0029fe6c08abda45b67779bd325572acf58a77e225d507d",
+      "fixture_id": "m0t.v1.input-validation.stale-cursor",
+      "fixture_revision": 1
+    },
+    {
+      "fixture_hash": "sha256:388bfe7d114b7866a90c41daa5238b50d7f9d294a6ed9da466fb6d3c18d29506",
+      "fixture_id": "m0t.v1.integrity.manifest-digest-failure",
+      "fixture_revision": 1
+    },
+    {
+      "fixture_hash": "sha256:7c4b3c4f1332792c4254befe9d4ba41ab029454c50e5caaac5b9ece3932f7699",
+      "fixture_id": "m0t.v1.integrity.policy-signature-failure",
+      "fixture_revision": 1
+    },
+    {
+      "fixture_hash": "sha256:49fdb5c21fd59e28e28103ca172d91878505e360a688d408c05b4e12c5b573a1",
+      "fixture_id": "m0t.v1.prompt-injection.mixed-inputs",
+      "fixture_revision": 1
+    },
+    {
+      "fixture_hash": "sha256:cc4ff5e085f276d603ae13af9b1999020f5e5c4c51a73114c4f51ca34c5943e3",
+      "fixture_id": "m0t.v1.redirect.cross-version",
+      "fixture_revision": 1
+    },
+    {
+      "fixture_hash": "sha256:67d1b768ed28ebeb8a53ea8cfd4a12919465a087f7cb964891b8565195f00268",
+      "fixture_id": "m0t.v1.redirect.cycle",
+      "fixture_revision": 1
+    },
+    {
+      "fixture_hash": "sha256:437fd2b098bc556b46756bdfc97f2845c3628ca382f92aae8fb0d8fd050c9c64",
+      "fixture_id": "m0t.v1.redirect.target-denied",
+      "fixture_revision": 1
+    },
+    {
+      "fixture_hash": "sha256:c287db24e86bc10cb8103587b7ba167d289c50900eb1a8f04c48ca1a0e54b298",
+      "fixture_id": "m0t.v1.redirect.valid-loopback",
+      "fixture_revision": 1
+    },
+    {
+      "fixture_hash": "sha256:a092baf033b6aacdf2023a99ee31111d4a4268dedf98b052f3edac29fa2d30fb",
+      "fixture_id": "m0t.v1.relation.allowed",
+      "fixture_revision": 1
+    },
+    {
+      "fixture_hash": "sha256:1549a1dd2e84e5d35fe2eedf97b8efcea529e1804210f6068222ecaddc43db6b",
+      "fixture_id": "m0t.v1.relation.both-hidden",
+      "fixture_revision": 1
+    },
+    {
+      "fixture_hash": "sha256:974b8a5a13394f873ee3876f982164155f86bd96070839b677df1f8c37fa1787",
+      "fixture_id": "m0t.v1.relation.single-hidden",
+      "fixture_revision": 1
+    },
+    {
+      "fixture_hash": "sha256:48318e45d02f8b1e644b79d8aa6ed03e93496cd3c197c676c93362af42edf0ab",
+      "fixture_id": "m0t.v1.relation.unknown-type",
+      "fixture_revision": 1
+    },
+    {
+      "fixture_hash": "sha256:edc209c4542d0f4ea656de3847f7be8a456ae9f5e68539a023df25a8f2410fb7",
+      "fixture_id": "m0t.v1.runtime-secret-transport.key-passphrase-ipc-cross-user-readable",
+      "fixture_revision": 1
+    },
+    {
+      "fixture_hash": "sha256:5de9b3c5ca72c90e7992bd7d2a0223c8b9a4eaa79b196a8ebd42f3daf420f0b3",
+      "fixture_id": "m0t.v1.runtime-secret-transport.key-passphrase-ipc-peer-user-mismatch",
+      "fixture_revision": 1
+    },
+    {
+      "fixture_hash": "sha256:939759156891f396c906e6920e16b74c0e82e453dd810e1a1fccb33205222c6e",
+      "fixture_id": "m0t.v1.runtime-secret-transport.key-passphrase-ipc-unauthenticated",
+      "fixture_revision": 1
+    },
+    {
+      "fixture_hash": "sha256:8b2f0815d70fae96b79bbc95e2d98b4de89568f9e1c59089bb92e0e698c98a9e",
+      "fixture_id": "m0t.v1.user-store-trap.zero-access",
+      "fixture_revision": 1
+    }
+  ]
+}

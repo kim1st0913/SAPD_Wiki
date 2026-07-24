@@ -1,0 +1,1133 @@
+{
+  "schema_version": "mcp-control-contract-schema-v1",
+  "contract_id": "MCP-CONTROL-API-v1",
+  "contract_version": "1.1.0",
+  "projection_version": "sapd-mcp-control-v1",
+  "scope": "local_web_and_desktop_control_projection",
+  "ownership": {
+    "additionalProperties": false,
+    "supervisor_owner": "desktop_app",
+    "api_role": "projection_and_command_orchestration_only",
+    "forbidden_direct_access": [
+      "process_lifecycle",
+      "base_database",
+      "user_database",
+      "platform_secret_store",
+      "system_trust_store",
+      "client_configuration"
+    ]
+  },
+  "request_security": {
+    "additionalProperties": false,
+    "host": "exact_configured_value",
+    "origin": "exact_if_present",
+    "session_header": "X-SAPD-Session-Token",
+    "session_verifier": "caller_owned_constant_time_exact",
+    "mutation_content_type": "application/json",
+    "native_confirmation_header": "X-SAPD-Native-Confirmation",
+    "native_confirmation": "desktop_issued_single_use_gateway_consumed",
+    "web_reset_confirmation": "dev_only_two_step_reset_bound_to_local_session",
+    "response_cache_control": "no-store"
+  },
+  "mutation_contract": {
+    "additionalProperties": false,
+    "request_id_required": true,
+    "expected_state_version_required": true,
+    "request_id_scope": "all_control_mutations",
+    "same_request_same_result": true,
+    "same_request_different_fingerprint_error": "REQUEST_ID_REUSED",
+    "version_conflict_error": "STATE_VERSION_CONFLICT",
+    "gateway_compare_and_mutate_atomic": true
+  },
+  "response_field_policy": {
+    "additionalProperties": false,
+    "recursive": true,
+    "decision": "reject_response",
+    "forbidden_keys_or_key_families": [
+      "token",
+      "private_key",
+      "passphrase",
+      "redirect_query",
+      "absolute_path",
+      "pid",
+      "raw_logs",
+      "query",
+      "knowledge_content",
+      "user_content"
+    ]
+  },
+  "endpoints": [
+    {
+      "additionalProperties": false,
+      "id": "control_panel",
+      "method": "GET",
+      "path": "/api/v1/mcp/control-panel",
+      "request_schema": null,
+      "response_schema": "#/$defs/control_panel_response"
+    },
+    {
+      "additionalProperties": false,
+      "id": "status",
+      "method": "GET",
+      "path": "/api/v1/mcp/status",
+      "request_schema": null,
+      "response_schema": "#/$defs/status_read_response"
+    },
+    {
+      "additionalProperties": false,
+      "id": "settings",
+      "method": "GET",
+      "path": "/api/v1/mcp/settings",
+      "request_schema": null,
+      "response_schema": "#/$defs/settings_read_response"
+    },
+    {
+      "additionalProperties": false,
+      "id": "clients",
+      "method": "GET",
+      "path": "/api/v1/mcp/clients",
+      "request_schema": null,
+      "response_schema": "#/$defs/clients_read_response"
+    },
+    {
+      "additionalProperties": false,
+      "id": "audit",
+      "method": "GET",
+      "path": "/api/v1/mcp/audit",
+      "request_schema": null,
+      "response_schema": "#/$defs/audit_read_response"
+    },
+    {
+      "additionalProperties": false,
+      "id": "diagnostics",
+      "method": "GET",
+      "path": "/api/v1/mcp/diagnostics",
+      "request_schema": null,
+      "response_schema": "#/$defs/diagnostics_read_response"
+    },
+    {
+      "additionalProperties": false,
+      "id": "start",
+      "method": "POST",
+      "path": "/api/v1/mcp/actions/start",
+      "request_schema": "#/$defs/common_mutation_request",
+      "response_schema": "#/$defs/action_response"
+    },
+    {
+      "additionalProperties": false,
+      "id": "stop",
+      "method": "POST",
+      "path": "/api/v1/mcp/actions/stop",
+      "request_schema": "#/$defs/common_mutation_request",
+      "response_schema": "#/$defs/action_response"
+    },
+    {
+      "additionalProperties": false,
+      "id": "retry",
+      "method": "POST",
+      "path": "/api/v1/mcp/actions/retry",
+      "request_schema": "#/$defs/common_mutation_request",
+      "response_schema": "#/$defs/action_response"
+    },
+    {
+      "additionalProperties": false,
+      "id": "update_port",
+      "method": "POST",
+      "path": "/api/v1/mcp/settings/port",
+      "request_schema": "#/$defs/port_update_request",
+      "response_schema": "#/$defs/action_response"
+    },
+    {
+      "additionalProperties": false,
+      "id": "check_service",
+      "method": "POST",
+      "path": "/api/v1/mcp/diagnostics/actions/check",
+      "request_schema": "#/$defs/common_mutation_request",
+      "response_schema": "#/$defs/action_response"
+    },
+    {
+      "additionalProperties": false,
+      "id": "allow_authorization",
+      "method": "POST",
+      "path": "/api/v1/mcp/authorization/actions/allow",
+      "request_schema": "#/$defs/authorization_decision_request",
+      "response_schema": "#/$defs/action_response"
+    },
+    {
+      "additionalProperties": false,
+      "id": "deny_authorization",
+      "method": "POST",
+      "path": "/api/v1/mcp/authorization/actions/deny",
+      "request_schema": "#/$defs/authorization_decision_request",
+      "response_schema": "#/$defs/action_response"
+    },
+    {
+      "additionalProperties": false,
+      "id": "revoke_client",
+      "method": "POST",
+      "path": "/api/v1/mcp/clients/actions/revoke",
+      "request_schema": "#/$defs/revoke_request",
+      "response_schema": "#/$defs/action_response"
+    },
+    {
+      "additionalProperties": false,
+      "id": "clear_audit",
+      "method": "POST",
+      "path": "/api/v1/mcp/audit/actions/clear",
+      "request_schema": "#/$defs/common_mutation_request",
+      "response_schema": "#/$defs/action_response"
+    },
+    {
+      "additionalProperties": false,
+      "id": "prepare_reset",
+      "method": "POST",
+      "path": "/api/v1/mcp/reset/actions/prepare",
+      "request_schema": "#/$defs/reset_prepare_request",
+      "response_schema": "#/$defs/reset_prepare_response"
+    },
+    {
+      "additionalProperties": false,
+      "id": "confirm_reset",
+      "method": "POST",
+      "path": "/api/v1/mcp/reset/actions/confirm",
+      "request_schema": "#/$defs/reset_confirm_request",
+      "response_schema": "#/$defs/action_response"
+    },
+    {
+      "additionalProperties": false,
+      "id": "confirm_web_reset",
+      "method": "POST",
+      "path": "/api/v1/mcp/reset/actions/confirm-web",
+      "request_schema": "#/$defs/web_reset_confirm_request",
+      "response_schema": "#/$defs/action_response"
+    }
+  ],
+  "$defs": {
+    "common_mutation_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_id",
+        "expected_state_version"
+      ],
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"
+        },
+        "expected_state_version": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "revoke_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_id",
+        "expected_state_version",
+        "client_id"
+      ],
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"
+        },
+        "expected_state_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "client_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"
+        }
+      }
+    },
+    "port_update_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_id",
+        "expected_state_version",
+        "configured_port"
+      ],
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"
+        },
+        "expected_state_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "configured_port": {
+          "type": "integer",
+          "minimum": 1024,
+          "maximum": 65535
+        }
+      }
+    },
+    "authorization_decision_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_id",
+        "expected_state_version",
+        "authorization_request_id"
+      ],
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"
+        },
+        "expected_state_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "authorization_request_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"
+        }
+      }
+    },
+    "reset_prepare_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_id",
+        "expected_state_version"
+      ],
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"
+        },
+        "expected_state_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "audit_disposition": {
+          "enum": [
+            "retain",
+            "clear"
+          ]
+        }
+      }
+    },
+    "reset_confirm_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_id",
+        "expected_state_version",
+        "reset_id"
+      ],
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"
+        },
+        "expected_state_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reset_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"
+        }
+      }
+    },
+    "web_reset_confirm_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_id",
+        "expected_state_version",
+        "reset_id",
+        "confirmation"
+      ],
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"
+        },
+        "expected_state_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reset_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"
+        },
+        "confirmation": {
+          "const": "RESET"
+        }
+      }
+    },
+    "recoverable_error": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "recovery_action"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "recovery_action": {
+          "type": "string",
+          "maxLength": 64
+        }
+      }
+    },
+    "status": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "desired_state",
+        "service_state",
+        "authorization_state",
+        "activity_state",
+        "knowledge_state",
+        "audit_state",
+        "display_state",
+        "last_success_at",
+        "recoverable_error"
+      ],
+      "properties": {
+        "desired_state": {
+          "enum": [
+            "disabled",
+            "enabled"
+          ]
+        },
+        "service_state": {
+          "enum": [
+            "stopped",
+            "starting",
+            "ready",
+            "stopping",
+            "error"
+          ]
+        },
+        "authorization_state": {
+          "enum": [
+            "no_clients",
+            "pending",
+            "authorized",
+            "revoked",
+            "error"
+          ]
+        },
+        "activity_state": {
+          "enum": [
+            "never",
+            "idle",
+            "recent"
+          ]
+        },
+        "knowledge_state": {
+          "enum": [
+            "ready",
+            "degraded",
+            "blocked"
+          ]
+        },
+        "audit_state": {
+          "enum": [
+            "disabled",
+            "ready",
+            "degraded"
+          ]
+        },
+        "display_state": {
+          "enum": [
+            "disabled",
+            "starting",
+            "stopping",
+            "ready_waiting_authorization",
+            "authorized_waiting_use",
+            "recently_used",
+            "knowledge_degraded",
+            "knowledge_blocked",
+            "audit_degraded",
+            "recoverable_error"
+          ]
+        },
+        "last_success_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 64
+        },
+        "recoverable_error": {
+          "$ref": "#/$defs/recoverable_error"
+        }
+      }
+    },
+    "control_capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "service_control",
+        "client_revocation",
+        "audit_clear",
+        "native_reset_confirmation",
+        "port_configuration",
+        "authorization_decision",
+        "diagnostic_check",
+        "web_reset_confirmation"
+      ],
+      "properties": {
+        "service_control": {
+          "type": "boolean"
+        },
+        "client_revocation": {
+          "type": "boolean"
+        },
+        "audit_clear": {
+          "type": "boolean"
+        },
+        "native_reset_confirmation": {
+          "type": "boolean"
+        },
+        "port_configuration": {
+          "type": "boolean"
+        },
+        "authorization_decision": {
+          "type": "boolean"
+        },
+        "diagnostic_check": {
+          "type": "boolean"
+        },
+        "web_reset_confirmation": {
+          "type": "boolean"
+        }
+      }
+    },
+    "settings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "configured_port",
+        "release_channel",
+        "canonical_resource",
+        "control_capabilities"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "configured_port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "release_channel": {
+          "enum": [
+            "stable",
+            "beta",
+            "dev"
+          ]
+        },
+        "canonical_resource": {
+          "type": "string",
+          "pattern": "^https://127\\.0\\.0\\.1:[0-9]+/mcp$"
+        },
+        "control_capabilities": {
+          "$ref": "#/$defs/control_capabilities"
+        }
+      }
+    },
+    "authorization_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_id",
+        "client_id",
+        "client_name",
+        "redirect_uri",
+        "scopes",
+        "resource",
+        "policy_version",
+        "registration_mode",
+        "trust_state",
+        "created_at",
+        "expires_at"
+      ],
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"
+        },
+        "client_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"
+        },
+        "client_name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 128
+        },
+        "redirect_uri": {
+          "type": "string",
+          "pattern": "^http://127\\.0\\.0\\.1:[0-9]+/"
+        },
+        "scopes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "resource": {
+          "type": "string",
+          "pattern": "^https://127\\.0\\.0\\.1:[0-9]+/mcp$"
+        },
+        "policy_version": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "registration_mode": {
+          "enum": [
+            "pre_registered",
+            "CIMD",
+            "DCR"
+          ]
+        },
+        "trust_state": {
+          "enum": [
+            "verified",
+            "unverified"
+          ]
+        },
+        "created_at": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "expires_at": {
+          "type": "string",
+          "maxLength": 64
+        }
+      }
+    },
+    "client": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "client_id",
+        "display_name",
+        "trust_state",
+        "scopes",
+        "authorized_at",
+        "last_used_at",
+        "policy_version",
+        "status"
+      ],
+      "properties": {
+        "client_id": {
+          "type": "string"
+        },
+        "display_name": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "trust_state": {
+          "enum": [
+            "verified",
+            "unverified"
+          ]
+        },
+        "scopes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "authorized_at": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "last_used_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 64
+        },
+        "policy_version": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "status": {
+          "enum": [
+            "authorized",
+            "revoked"
+          ]
+        }
+      }
+    },
+    "audit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "state",
+        "retention_days",
+        "retention_bytes",
+        "event_count",
+        "last_event_at"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "state": {
+          "enum": [
+            "disabled",
+            "ready",
+            "degraded"
+          ]
+        },
+        "retention_days": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "retention_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "event_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "last_event_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 64
+        }
+      }
+    },
+    "diagnostic_check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "check_id",
+        "status",
+        "error_code",
+        "recovery_action"
+      ],
+      "properties": {
+        "check_id": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "warning",
+            "fail",
+            "unknown"
+          ]
+        },
+        "error_code": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 64
+        },
+        "recovery_action": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 64
+        }
+      }
+    },
+    "diagnostics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "overall_state",
+        "last_checked_at",
+        "checks"
+      ],
+      "properties": {
+        "overall_state": {
+          "enum": [
+            "ready",
+            "degraded",
+            "blocked",
+            "unknown"
+          ]
+        },
+        "last_checked_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 64
+        },
+        "checks": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/diagnostic_check"
+          }
+        }
+      }
+    },
+    "control_panel_response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "state_version",
+        "status",
+        "settings",
+        "authorization_requests",
+        "clients",
+        "audit",
+        "diagnostics"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "sapd-mcp-control-v1"
+        },
+        "state_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "status": {
+          "$ref": "#/$defs/status"
+        },
+        "settings": {
+          "$ref": "#/$defs/settings"
+        },
+        "authorization_requests": {
+          "type": "array",
+          "maxItems": 128,
+          "items": {
+            "$ref": "#/$defs/authorization_request"
+          }
+        },
+        "clients": {
+          "type": "array",
+          "maxItems": 128,
+          "items": {
+            "$ref": "#/$defs/client"
+          }
+        },
+        "audit": {
+          "$ref": "#/$defs/audit"
+        },
+        "diagnostics": {
+          "$ref": "#/$defs/diagnostics"
+        }
+      }
+    },
+    "status_read_response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "state_version",
+        "data"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "sapd-mcp-control-v1"
+        },
+        "state_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "data": {
+          "$ref": "#/$defs/status"
+        }
+      }
+    },
+    "settings_read_response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "state_version",
+        "data"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "sapd-mcp-control-v1"
+        },
+        "state_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "data": {
+          "$ref": "#/$defs/settings"
+        }
+      }
+    },
+    "clients_read_response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "state_version",
+        "data"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "sapd-mcp-control-v1"
+        },
+        "state_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "data": {
+          "type": "array",
+          "maxItems": 128,
+          "items": {
+            "$ref": "#/$defs/client"
+          }
+        }
+      }
+    },
+    "audit_read_response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "state_version",
+        "data"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "sapd-mcp-control-v1"
+        },
+        "state_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "data": {
+          "$ref": "#/$defs/audit"
+        }
+      }
+    },
+    "diagnostics_read_response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "state_version",
+        "data"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "sapd-mcp-control-v1"
+        },
+        "state_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "data": {
+          "$ref": "#/$defs/diagnostics"
+        }
+      }
+    },
+    "action_response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "action",
+        "request_id",
+        "state_version",
+        "result",
+        "changed"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "sapd-mcp-control-v1"
+        },
+        "action": {
+          "enum": [
+            "start",
+            "stop",
+            "retry",
+            "update_port",
+            "check_service",
+            "decide_authorization",
+            "revoke_client",
+            "clear_audit",
+            "confirm_reset",
+            "confirm_web_reset"
+          ]
+        },
+        "request_id": {
+          "type": "string"
+        },
+        "state_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "result": {
+          "enum": [
+            "completed",
+            "accepted"
+          ]
+        },
+        "changed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "reset_prepare_response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "action",
+        "request_id",
+        "state_version",
+        "result",
+        "changed",
+        "reset"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "sapd-mcp-control-v1"
+        },
+        "action": {
+          "const": "prepare_reset"
+        },
+        "request_id": {
+          "type": "string"
+        },
+        "state_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "result": {
+          "enum": [
+            "completed",
+            "accepted"
+          ]
+        },
+        "changed": {
+          "type": "boolean"
+        },
+        "reset": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "reset_id",
+            "expires_at",
+            "effects",
+            "native_confirmation_required",
+            "web_confirmation_required"
+          ],
+          "properties": {
+            "reset_id": {
+              "type": "string"
+            },
+            "expires_at": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "effects": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 6,
+              "items": {
+                "enum": [
+                  "stop_service",
+                  "revoke_all_clients",
+                  "delete_managed_trust",
+                  "delete_managed_secrets",
+                  "retain_audit",
+                  "clear_audit"
+                ]
+              }
+            },
+            "native_confirmation_required": {
+              "type": "boolean"
+            },
+            "web_confirmation_required": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "error_response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "error"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "sapd-mcp-control-v1"
+        },
+        "error": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "message",
+            "retryable",
+            "current_state_version"
+          ],
+          "properties": {
+            "code": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "message": {
+              "type": "string",
+              "maxLength": 160
+            },
+            "retryable": {
+              "type": "boolean"
+            },
+            "current_state_version": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            }
+          }
+        }
+      }
+    }
+  },
+  "references": {
+    "additionalProperties": false,
+    "auth": "MCP-AUTH-v1",
+    "data_policy": "MCP-DATA-POLICY-v1",
+    "runtime_state": "MCP-RUNTIME-STATE-v1",
+    "protocol_tools": "MCP-PROTOCOL-TOOLS-v1"
+  }
+}

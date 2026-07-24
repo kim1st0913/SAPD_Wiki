@@ -1,0 +1,61 @@
+{
+  "schema_version": "mcp-policy-signature-contract-v1",
+  "contract_id": "MCP-POLICY-SIGNATURE-v1",
+  "contract_version": "1.0.0",
+  "purpose": "Verify signed AI exposure policy assets before any knowledge query is served.",
+  "signature": {
+    "algorithm": "Ed25519",
+    "encoding": "base64url-no-padding",
+    "canonicalization": "RFC8785-JCS",
+    "unicode_normalization": "NFC",
+    "signed_payload_excludes": [
+      "signature"
+    ]
+  },
+  "envelope": {
+    "additional_properties": false,
+    "required": [
+      "profile_version",
+      "key_id",
+      "issued_at",
+      "expires_at",
+      "base_manifest_digest",
+      "policy_version",
+      "summary_schema_version",
+      "content_digest",
+      "signature"
+    ],
+    "digest_algorithm": "sha256",
+    "time_format": "RFC3339-UTC",
+    "integer_range": "javascript-safe-integer"
+  },
+  "trust": {
+    "root_source": "app-bundled-keyring",
+    "unknown_key": "BLOCKED",
+    "revoked_key": "BLOCKED",
+    "expired_envelope": "BLOCKED",
+    "future_issued_envelope": "BLOCKED",
+    "manifest_mismatch": "BLOCKED",
+    "content_digest_mismatch": "BLOCKED",
+    "signature_mismatch": "BLOCKED"
+  },
+  "errors": {
+    "unknown_key": "UNKNOWN_KEY_ID",
+    "revoked_key": "POLICY_SIGNATURE_INVALID",
+    "expired": "POLICY_EXPIRED",
+    "future_issued": "POLICY_SIGNATURE_INVALID",
+    "manifest_mismatch": "MANIFEST_DIGEST_MISMATCH",
+    "content_digest_mismatch": "POLICY_SIGNATURE_INVALID",
+    "signature_mismatch": "POLICY_SIGNATURE_INVALID"
+  },
+  "batch_a": {
+    "synthetic_only": true,
+    "test_keys_only": true,
+    "real_policy_assets_authorized": false,
+    "d0_assets_authorized": false
+  },
+  "references": {
+    "data_policy": "MCP-DATA-POLICY-v1",
+    "protocol_tools": "MCP-PROTOCOL-TOOLS-v1"
+  }
+}

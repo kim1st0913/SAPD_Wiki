@@ -13,6 +13,7 @@
  * reflow navigation, panes, and scroll regions without reducing text size.
  */
 .app-shell.app-shell-integrated {
+  display: grid;
   width: var(--sapd-ui-logical-viewport-width);
   max-width: none;
   height: var(--sapd-ui-logical-viewport-height);
@@ -41,6 +42,7 @@
 .app-shell-integrated .global-search-page-workspace,
 .app-shell-integrated .source-workspace,
 .app-shell-integrated .workbench-workspace,
+.app-shell-integrated .settings-workspace,
 .app-shell-integrated .workspace {
   height: 100%;
   min-width: 0;

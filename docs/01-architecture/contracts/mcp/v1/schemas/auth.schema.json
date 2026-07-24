@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "fixture://schemas/mcp-auth-v1",
+  "title": "MCP-AUTH-v1 profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "contract_id",
+    "contract_version",
+    "scope",
+    "discovery",
+    "registration_priority",
+    "authorization",
+    "redirect_policy",
+    "token_policy",
+    "transaction_policy",
+    "errors",
+    "references"
+  ],
+  "properties": {
+    "schema_version": { "const": "mcp-contract-schema-v1" },
+    "contract_id": { "const": "MCP-AUTH-v1" },
+    "contract_version": { "type": "string", "pattern": "^1\\.[0-9]+\\.[0-9]+$" },
+    "scope": { "const": "sapd.base.public.summary.read" },
+    "discovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protected_resource_metadata", "authorization_server_metadata", "authorize", "token", "revoke"],
+      "properties": {
+        "protected_resource_metadata": { "const": "/.well-known/oauth-protected-resource/mcp" },
+        "authorization_server_metadata": { "const": "/.well-known/oauth-authorization-server" },
+        "authorize": { "const": "/oauth/authorize" },
+        "token": { "const": "/oauth/token" },
+        "revoke": { "const": "/oauth/revoke" }
+      }
+    },
+    "registration_priority": {
+      "type": "array",
+      "prefixItems": [
+        { "const": "pre_registered" },
+        { "const": "CIMD" },
+        { "const": "DCR" }
+      ],
+      "items": false,
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "authorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["grant_type", "pkce_method", "public_client", "resource_required", "audience_required"],
+      "properties": {
+        "grant_type": { "const": "authorization_code" },
+        "pkce_method": { "const": "S256" },
+        "public_client": { "const": true },
+        "resource_required": { "const": true },
+        "audience_required": { "const": true }
+      }
+    },
+    "redirect_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["loopback_ip_literals", "ephemeral_port_allowed", "localhost_default", "authorization_token_exact_match", "non_loopback_exact_match"],
+      "properties": {
+        "loopback_ip_literals": {
+          "type": "array",
+          "items": { "enum": ["127.0.0.1", "::1"] },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "ephemeral_port_allowed": { "const": true },
+        "localhost_default": { "const": false },
+        "authorization_token_exact_match": { "const": true },
+        "non_loopback_exact_match": { "const": true }
+      }
+    },
+    "token_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["access_token_format", "minimum_entropy_bits", "access_token_ttl_seconds", "refresh_rotation", "reuse_revokes_family", "transport", "revocation_immediate"],
+      "properties": {
+        "access_token_format": { "const": "opaque" },
+        "minimum_entropy_bits": { "type": "integer", "minimum": 256 },
+        "access_token_ttl_seconds": { "type": "integer", "minimum": 60, "maximum": 600 },
+        "refresh_rotation": { "const": true },
+        "reuse_revokes_family": { "const": true },
+        "transport": { "const": "authorization_bearer_header_only" },
+        "revocation_immediate": { "const": true }
+      }
+    },
+    "transaction_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["timeout_seconds", "silent_approval", "close_means_deny", "instance_binding", "concurrency"],
+      "properties": {
+        "timeout_seconds": { "const": 120 },
+        "silent_approval": { "const": false },
+        "close_means_deny": { "const": true },
+        "instance_binding": { "const": true },
+        "concurrency": { "enum": ["queue", "serial_display"] }
+      }
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "AUTH_REQUIRED",
+          "AUTH_DENIED",
+          "AUTH_TIMEOUT",
+          "REDIRECT_URI_MISMATCH",
+          "PKCE_REQUIRED",
+          "TOKEN_AUDIENCE_MISMATCH",
+          "TOKEN_REUSED",
+          "TOKEN_REVOKED"
+        ]
+      },
+      "uniqueItems": true,
+      "minItems": 8
+    },
+    "references": { "$ref": "#/$defs/references" }
+  },
+  "$defs": {
+    "references": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["data_policy", "runtime_state", "protocol_tools"],
+      "properties": {
+        "data_policy": { "const": "MCP-DATA-POLICY-v1" },
+        "runtime_state": { "const": "MCP-RUNTIME-STATE-v1" },
+        "protocol_tools": { "const": "MCP-PROTOCOL-TOOLS-v1" }
+      }
+    }
+  }
+}

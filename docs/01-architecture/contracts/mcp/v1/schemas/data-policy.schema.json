@@ -1,0 +1,177 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "fixture://schemas/mcp-data-policy-v1",
+  "title": "MCP-DATA-POLICY-v1 profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "contract_id",
+    "contract_version",
+    "scope",
+    "default_decision",
+    "store",
+    "classification_rules",
+    "field_rules",
+    "relation_rules",
+    "search_leakage_controls",
+    "public_summary_contract",
+    "d0_gate",
+    "integrity_failures",
+    "references"
+  ],
+  "properties": {
+    "schema_version": { "const": "mcp-contract-schema-v1" },
+    "contract_id": { "const": "MCP-DATA-POLICY-v1" },
+    "contract_version": { "type": "string", "pattern": "^1\\.[0-9]+\\.[0-9]+$" },
+    "scope": { "const": "sapd.base.public.summary.read" },
+    "default_decision": { "const": "deny" },
+    "store": { "const": "base_read_only" },
+    "classification_rules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["public_summary", "metadata_only", "deny", "internal", "confidential", "unknown"],
+      "properties": {
+        "public_summary": { "const": "allow_summary_fields_only" },
+        "metadata_only": { "const": "allow_metadata_fields_only" },
+        "deny": { "const": "deny" },
+        "internal": { "const": "deny" },
+        "confidential": { "const": "deny" },
+        "unknown": { "const": "deny" }
+      }
+    },
+    "field_rules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allow", "always_deny"],
+      "properties": {
+        "allow": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "canonical_ref",
+              "object_type",
+              "display_name",
+              "locale",
+              "ai_summary",
+              "summary_version",
+              "summary_hash",
+              "source_and_license_basis",
+              "knowledge_version"
+            ]
+          },
+          "uniqueItems": true,
+          "minItems": 1
+        },
+        "always_deny": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "description",
+              "metadata_json",
+              "raw_text",
+              "raw_value",
+              "local_path",
+              "debug",
+              "reviewed_by_principal",
+              "user_content"
+            ]
+          },
+          "uniqueItems": true,
+          "minItems": 8
+        }
+      }
+    },
+    "relation_rules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["both_endpoints_must_be_visible", "unknown_type", "single_hidden_endpoint", "both_hidden_endpoints"],
+      "properties": {
+        "both_endpoints_must_be_visible": { "const": true },
+        "unknown_type": { "const": "deny" },
+        "single_hidden_endpoint": { "const": "hide_without_count" },
+        "both_hidden_endpoints": { "const": "hide_without_count" }
+      }
+    },
+    "search_leakage_controls": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["filter_before_rank_count_page", "hidden_count_disclosure", "unavailable_error"],
+      "properties": {
+        "filter_before_rank_count_page": { "const": true },
+        "hidden_count_disclosure": { "const": false },
+        "unavailable_error": { "const": "OBJECT_NOT_AVAILABLE" }
+      }
+    },
+    "public_summary_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["unique_key", "summary_hash_algorithm", "manifest_bindings", "principal_exposed_to_mcp"],
+      "properties": {
+        "unique_key": {
+          "type": "array",
+          "prefixItems": [
+            { "const": "canonical_ref" },
+            { "const": "locale" },
+            { "const": "summary_version" }
+          ],
+          "items": false
+        },
+        "summary_hash_algorithm": { "const": "sha256-utf8-nfc-lf" },
+        "manifest_bindings": {
+          "type": "array",
+          "items": { "enum": ["base_manifest_digest", "policy_version", "summary_schema_version"] },
+          "minItems": 3,
+          "uniqueItems": true
+        },
+        "principal_exposed_to_mcp": { "const": false }
+      }
+    },
+    "d0_gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["states", "pilot_min_candidates", "every_type_represented", "policy_digest_binding", "digest_change_state", "empty_type_set_state"],
+      "properties": {
+        "states": {
+          "type": "array",
+          "items": { "enum": ["NOT_READY", "STALE", "PASS", "BLOCKED"] },
+          "minItems": 4,
+          "uniqueItems": true
+        },
+        "pilot_min_candidates": { "const": 1 },
+        "every_type_represented": { "const": true },
+        "policy_digest_binding": { "const": true },
+        "digest_change_state": { "const": "STALE" },
+        "empty_type_set_state": { "const": "NOT_READY" }
+      }
+    },
+    "integrity_failures": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "UNKNOWN_OBJECT_TYPE",
+          "UNKNOWN_RELATION_TYPE",
+          "POLICY_SIGNATURE_INVALID",
+          "POLICY_EXPIRED",
+          "MANIFEST_DIGEST_MISMATCH",
+          "UNKNOWN_KEY_ID"
+        ]
+      },
+      "minItems": 6,
+      "uniqueItems": true
+    },
+    "references": { "$ref": "#/$defs/references" }
+  },
+  "$defs": {
+    "references": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["auth", "runtime_state", "protocol_tools"],
+      "properties": {
+        "auth": { "const": "MCP-AUTH-v1" },
+        "runtime_state": { "const": "MCP-RUNTIME-STATE-v1" },
+        "protocol_tools": { "const": "MCP-PROTOCOL-TOOLS-v1" }
+      }
+    }
+  }
+}

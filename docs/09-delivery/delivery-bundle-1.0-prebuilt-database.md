@@ -1,8 +1,8 @@
 # Delivery Bundle 1.0：预构建数据库交付版设计
 
-> 状态：draft  
-> 日期：2026-05-28  
-> 适用项目：SAPD Wiki  
+> 状态：implemented / internal testing
+> 日期：2026-07-21
+> 适用项目：SAPD Wiki
 > 目标形态：面向普通用户的本地桌面客户端，随包携带预构建知识库数据库，用户安装后无需 Python、Node、Docker、ETL 或数据库初始化即可使用。
 
 ## 1. 结论
@@ -17,7 +17,7 @@ P3：Docker / Server 版 / 多人协作版
 内部构建物：后端可执行文件 + frontend assets + base database + user database + manifest + logs + diagnostics
 ```
 
-当前 1.0-alpha 的主交付目标是 ZIP 解压即用版。macOS / Windows 安装包、Tauri 桌面壳、签名和自动更新均后置，不阻塞 alpha。
+当前交付已从 ZIP alpha 演进为两条安装包支线：macOS 使用原生 App + DMG；Windows 使用 Electron 壳 + Python sidecar + NSIS `Setup.exe`。Windows 平台后端由 GitHub Actions `windows-2022` 一次生成，Mac 可完成后续 Runtime 与安装器组装。签名、自动更新和企业集中管理仍后置。
 
 核心产品形态是：
 
@@ -682,17 +682,29 @@ App 设置页提供：
 交付物：
 
 ```text
-.msi 或 .exe installer
+SAPD-Wiki-Setup-<version>-win-x64.exe
+└── Electron shell + SAPD-Wiki-Backend.exe sidecar + NSIS uninstaller
 ```
+
+当前实现：
+
+- 使用 assisted NSIS 安装向导，允许用户选择程序安装目录。
+- 首次启动选择业务数据父目录，并创建 `SAPDWiki/import`、`export`、`Runtime`。
+- App 菜单可分别调整工作目录、导入目录和导出目录，修改后重启生效。
+- Windows “已安装的应用”和开始菜单均提供卸载入口。
+- 卸载和覆盖安装默认保留用户数据，不自动迁移或覆盖旧目录。
+- 路径偏好单独保存在 `%LOCALAPPDATA%\SAPD Wiki\settings.json`。
 
 需要关注：
 
 - 代码签名证书。
 - Windows Defender / 杀毒误报。
-- `%LOCALAPPDATA%` 写入权限。
-- 安装目录不可写。
+- 用户选择的数据目录写入权限。
+- 程序安装目录保持只读，不承载用户库。
 - sidecar 进程生命周期。
 - 卸载时默认保留用户数据。
+
+具体命令、目录和验收流程见 `windows-electron-build-guide.md`。
 
 ### 17.3 zip
 
@@ -744,7 +756,10 @@ Docker 保留为高级选项：
 → 生成 ZIP portable bundle
 → 分平台输出 win-x64 / mac-arm64 / mac-x64 ZIP
 → ZIP 解压后 smoke test
-→ 后置阶段再评估 Tauri、.dmg、.msi / 安装器
+→ macOS 原生 App 组装并生成 DMG
+→ GitHub Windows CI 生成 PyInstaller win-x64 后端 Artifact
+→ Mac 使用 electron-builder 组装 Electron Runtime 和 NSIS Setup.exe
+→ 真实 Windows 10/11 完成安装、启动、写入、退出和卸载 UAT
 ```
 
 ## 20. MVP 实施步骤
@@ -824,8 +839,11 @@ Docker 保留为高级选项：
 - Windows `.zip` portable bundle
 - macOS arm64 `.zip` portable bundle
 - macOS x64 `.zip` portable bundle
-- 后置验证 macOS `.dmg` 和 Windows `.msi` / 安装器
+- macOS `.dmg` 校验、签名状态与 App Runtime 验收
+- Windows Electron NSIS `Setup.exe`、安装路径选择和内置卸载程序
+- Windows 首次启动数据目录、导入目录、导出目录与覆盖安装保留数据
 - 干净机器 ZIP 解压启动测试清单
+- 真实 Windows 10/11 安装 / 启动 / 写入 / 退出 / 卸载保留数据测试清单
 
 ## 21. 验收清单
 
@@ -839,6 +857,8 @@ Docker 保留为高级选项：
 - 用户备注、收藏、个人标签写入用户库。
 - 用户导入模板数据进入审查流程，不直接污染基础库。
 - App 升级后用户数据仍在。
+- Windows 安装向导可选择程序安装目录，首次启动可选择独立数据目录。
+- Windows 卸载入口可见，卸载程序默认保留用户数据。
 
 ### 数据安全验收
 

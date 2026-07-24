@@ -442,10 +442,10 @@
   white-space: nowrap;
 }
 
-.dashboard-knowledge-stat:hover,
-.dashboard-knowledge-stat:focus-visible,
-.dashboard-insight-band:hover,
-.dashboard-insight-band:focus-visible,
+.dashboard-knowledge-stat.is-link:hover,
+.dashboard-knowledge-stat.is-link:focus-visible,
+.dashboard-insight-value.is-link:hover,
+.dashboard-insight-value.is-link:focus-visible,
 .dashboard-dictionary-list button:hover,
 .dashboard-dictionary-list button:focus-visible {
   outline: none;
@@ -477,9 +477,11 @@
   background: var(--stat-bg);
   color: inherit;
   text-align: left;
-  cursor: pointer;
+  cursor: default;
   transition: filter 160ms ease, transform 160ms ease;
 }
+
+.dashboard-knowledge-stat.is-link { cursor: pointer; }
 
 .dashboard-knowledge-stat[data-dashboard-stat="capabilities"],
 .dashboard-knowledge-stat[data-dashboard-stat="services"] {
@@ -502,8 +504,8 @@
   font-size: clamp(32px, 2.75vw, 42px);
 }
 
-.dashboard-knowledge-stat:hover,
-.dashboard-knowledge-stat:focus-visible {
+.dashboard-knowledge-stat.is-link:hover,
+.dashboard-knowledge-stat.is-link:focus-visible {
   filter: saturate(1.12) brightness(0.985);
 }
 
@@ -553,14 +555,8 @@
   background: var(--band-bg);
   color: inherit;
   text-align: left;
-  cursor: pointer;
+  cursor: default;
   box-shadow: 0 8px 24px color-mix(in oklch, var(--band-color) 8%, transparent);
-  transition: filter 160ms ease, transform 160ms ease;
-}
-
-.dashboard-insight-band:hover,
-.dashboard-insight-band:focus-visible {
-  filter: saturate(1.08) brightness(0.99);
 }
 
 .dashboard-insight-band.tone-ocean { --band-color: oklch(0.47 0.13 210); --band-bg: oklch(0.958 0.035 210); }
@@ -592,10 +588,27 @@
   gap: 12px;
 }
 
-.dashboard-insight-values > span {
+.dashboard-insight-value {
   display: grid;
   gap: 3px;
   min-width: 0;
+  margin: -5px -6px;
+  padding: 5px 6px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.dashboard-insight-value.is-link {
+  cursor: pointer;
+  transition: background 150ms ease, transform 150ms ease;
+}
+
+.dashboard-insight-value.is-link:hover,
+.dashboard-insight-value.is-link:focus-visible {
+  background: color-mix(in oklch, var(--band-color) 9%, transparent);
 }
 
 .dashboard-insight-values strong {

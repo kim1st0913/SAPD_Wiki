@@ -117,9 +117,9 @@ add(checks, "app_separates_import_export_and_internal_runtime", [
   '"maturity-templates"',
   '"issues"',
   '"diagnostics"',
-  'title: "默认导入文件夹"',
-  'title: "导出文件夹"',
-  'title: "系统数据"',
+  'title: "文件上传路径"',
+  'title: "文件下载路径"',
+  'title: "Runtime"',
   'object["import_dir"]',
   'object["download_dir"]',
 ].every((item) => macWrapper.includes(item)) && [

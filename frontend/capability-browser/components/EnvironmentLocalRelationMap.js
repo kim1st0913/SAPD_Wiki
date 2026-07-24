@@ -143,13 +143,14 @@
     const items = utils.list(rows);
     if (!items.length) return `<div class="environment-statistics-empty">${escape(emptyText)}</div>`;
     const visible = items.slice(0, limit);
-    const hiddenCount = Math.max(0, items.length - visible.length);
+    const hidden = items.slice(visible.length);
+    const hiddenCount = hidden.length;
     return `
       <div class="environment-statistics-chip-grid">
         ${visible.map((row) => renderStatisticChiplet(row, shortKind)).join("")}
         ${
           hiddenCount
-            ? `<span class="environment-statistics-chiplet is-more"><small>未展开</small><strong>${escape(`+${hiddenCount} ${moreLabel}`)}</strong></span>`
+            ? `<details class="environment-statistics-chip-overflow"><summary class="environment-statistics-chiplet is-more"><small data-overflow-state="collapsed">未展开</small><strong data-overflow-state="collapsed">${escape(`+${hiddenCount} ${moreLabel}`)}</strong><small data-overflow-state="expanded">已展开</small><strong data-overflow-state="expanded">收起${escape(moreLabel)}</strong></summary><div class="environment-statistics-chip-overflow-list">${hidden.map((row) => renderStatisticChiplet(row, shortKind)).join("")}</div></details>`
             : ""
         }
       </div>
@@ -757,7 +758,7 @@
               { label: "安全技术措施", value: measures.length },
             ],
           })}
-          <div class="environment-statistics-more-row">对象行全量滚动展示；单个对象内模块 / 措施默认展示前 6 个，超出以 +N 收束</div>
+          <div class="environment-statistics-more-row">对象行全量滚动展示；单个对象内模块 / 措施默认展示前 6 个，点击 +N 可展开全部</div>
           <div class="environment-statistics-section">
             ${objects.length ? objects.map((object) => renderSubcategoryStatisticsObject(environment, object)).join("") : '<div class="reference-empty">暂无信息化对象。</div>'}
           </div>

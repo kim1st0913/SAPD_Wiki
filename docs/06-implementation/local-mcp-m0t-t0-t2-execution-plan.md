@@ -2,16 +2,16 @@
 
 | 项目 | 内容 |
 |---|---|
-| 状态 | `APPROVED / EXECUTING G0` |
+| 状态 | `PROPOSED / AWAITING USER CONFIRMATION` |
 | 日期 | 2026-07-23 |
 | 权威设计 | `docs/01-architecture/sapd-wiki-local-mcp-requirements-and-prd-v0.5.md` |
 | 跟踪问题 | `OI-199` |
 | 已获评审结论 | PRD `PASS`；无新增技术 P0 |
-| 已授权范围 | 治理前置 G0，以及串行执行 `T0 → T1 → T2` |
+| 本计划拟授权范围 | 治理前置 G0，以及串行执行 `T0 → T1 → T2` |
 | 明确未授权 | T3、D0-Pilot、M1、真实数据、用户数据、App integration、packaging |
 | 影响面 | 隔离技术验证；不接入 shared runtime、Web、App 或发布包 |
 
-> 用户已于 2026-07-23 确认按本计划执行 T0–T2，并授权独立 worktree、本地阶段提交、隔离测试依赖和临时 loopback HTTPS。授权不包含 push、T3、D0-Pilot、M1、真实数据、用户数据、App integration 或 packaging。
+> 本文件是待用户确认的开发计划，不是执行授权。用户确认前不得创建合同、fixture、probe、监听端口、测试证书、分支提交或依赖环境。
 
 ---
 

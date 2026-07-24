@@ -10,6 +10,22 @@ Windows 构建脚本就绪 / 未实机验证
 
 只有在 Windows x64 机器、Windows VM 或 Windows CI runner 上完成本指南的构建与验收后，Windows ZIP 才能标记为真实运行验证通过。
 
+## GitHub Windows CI 路径
+
+`codex/windows-electron` 支线新增 `.github/workflows/build-windows-backend.yml`。它运行在 GitHub 临时 `windows-2022` runner，只构建 PyInstaller 的完整 `win-x64` 后端目录，并上传以下下载产物：
+
+```text
+SAPD-Wiki-Backend-win-x64/
+  SAPD-Wiki-Backend.exe
+  _internal/...
+  build-info.json
+  SHA256SUMS.txt
+```
+
+CI 不读取、不上传也不生成 `data/`、基础 SQLite、用户库、报告、日志或导出文件。它不是完整 ZIP 或 Electron 安装器；后续 Mac 本地 Electron 打包会下载该后端目录，再与本机已批准的前端和基础数据组装。
+
+在工作流未进入 `main` 前，GitHub 不会提供网页上的手动运行按钮。使用方式是把 `codex/windows-electron` 分支推送到 GitHub，随后在仓库 `Actions` 查看 `Build Windows Backend`，绿色成功后从 `Artifacts` 下载 `SAPD-Wiki-Backend-win-x64-<commit>`。仅修改 Python 后端时需要重新触发；纯前端、Electron 壳或基础数据更新可以复用已验证的后端产物。
+
 ## 1. 前提
 
 - Windows x64 机器、Windows VM 或 Windows CI runner。

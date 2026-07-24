@@ -6458,7 +6458,7 @@
   .maturity-v16-score-target strong { font-size: 15px; }
   .maturity-v15-point-radar { gap: 4px; padding-top: 7px; }
   .maturity-v15-point-radar > header h3 { font-size: 12px; }
-  .maturity-v15-point-radar canvas { max-height: 150px; }
+  .maturity-v15-point-radar canvas { max-height: none; }
   .maturity-v15-radar-legend { gap: 4px 8px; }
   .maturity-v15-radar-legend span,
   .maturity-v15-radar-legend small { font-size: 8px; }

@@ -26765,6 +26765,7 @@ body.environment-basemap-app-fullscreen-active { overflow: hidden; }
 }
 
 .environment-basemap-lab-actions span,
+.environment-basemap-lab-actions a,
 .environment-basemap-lab-actions button {
   min-height: 30px;
   padding: 0 10px;
@@ -26776,6 +26777,14 @@ body.environment-basemap-app-fullscreen-active { overflow: hidden; }
   font-weight: 700;
 }
 
+.environment-basemap-lab-actions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
 .environment-basemap-lab-actions span {
   display: inline-flex;
   align-items: center;
@@ -26785,11 +26794,13 @@ body.environment-basemap-app-fullscreen-active { overflow: hidden; }
   cursor: pointer;
 }
 
+.environment-basemap-lab-actions a:hover,
 .environment-basemap-lab-actions button:hover {
   background: rgba(231, 242, 253, 0.9);
   border-color: rgba(70, 131, 190, 0.72);
 }
 
+.environment-basemap-lab-actions a:focus-visible,
 .environment-basemap-lab-actions button:focus-visible {
   outline: 2px solid rgba(10, 132, 255, 0.45);
   outline-offset: 2px;
@@ -30081,6 +30092,60 @@ body.environment-basemap-app-fullscreen-active { overflow: hidden; }
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.86),
     0 12px 28px rgba(10, 132, 255, 0.08);
+}
+
+.environment-statistics-chip-overflow {
+  flex: 1 1 100%;
+  min-width: 0;
+}
+
+.environment-statistics-chip-overflow > summary {
+  width: 100%;
+  cursor: pointer;
+  list-style: none;
+}
+
+.environment-statistics-chip-overflow > summary::-webkit-details-marker {
+  display: none;
+}
+
+.environment-statistics-chip-overflow > summary:hover,
+.environment-statistics-chip-overflow > summary:focus-visible {
+  border-color: rgba(10, 132, 255, 0.62);
+  outline: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 0 0 3px rgba(10, 132, 255, 0.08),
+    0 14px 30px rgba(10, 132, 255, 0.1);
+}
+
+.environment-statistics-chip-overflow [data-overflow-state="expanded"] {
+  display: none;
+}
+
+.environment-statistics-chip-overflow[open] [data-overflow-state="collapsed"] {
+  display: none;
+}
+
+.environment-statistics-chip-overflow[open] [data-overflow-state="expanded"] {
+  display: block;
+}
+
+.environment-statistics-chip-overflow[open] {
+  display: contents;
+}
+
+.environment-statistics-chip-overflow[open] > summary {
+  order: 1;
+  flex: 1 1 100%;
+}
+
+.environment-statistics-chip-overflow-list {
+  display: none;
+}
+
+.environment-statistics-chip-overflow[open] > .environment-statistics-chip-overflow-list {
+  display: contents;
 }
 
 .environment-statistics-chiplet small {

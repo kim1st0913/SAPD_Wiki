@@ -29,6 +29,22 @@ DEFAULT_RUNTIME_PATHS = {
 }
 
 
+def primary_git_worktree_root(root: Path = ROOT) -> Path:
+    try:
+        common_dir_value = subprocess.check_output(
+            ["git", "-C", str(root), "rev-parse", "--path-format=absolute", "--git-common-dir"],
+            text=True,
+            stderr=subprocess.DEVNULL,
+        ).strip()
+    except (OSError, subprocess.CalledProcessError):
+        return root.resolve()
+    common_dir = Path(common_dir_value).expanduser()
+    if not common_dir.is_absolute():
+        common_dir = root / common_dir
+    common_dir = common_dir.resolve()
+    return common_dir.parent if common_dir.name == ".git" else root.resolve()
+
+
 def run_lsof(port: int) -> list[dict[str, str]]:
     try:
         output = subprocess.check_output(
@@ -120,6 +136,10 @@ def expected_runtime(args: argparse.Namespace) -> dict[str, str]:
     if args.mcp_runtime_root:
         values["mcp_runtime_root"] = args.mcp_runtime_root
     values["runtime_label"] = args.runtime_label or "stable"
+    values["project_root"] = str(ROOT.resolve())
+    if args.port == DEFAULT_PORT:
+        for key, default_path in DEFAULT_RUNTIME_PATHS.items():
+            values.setdefault(key, str(default_path))
     return values
 
 
@@ -129,6 +149,9 @@ def reserved_preview_port_blockers(port: int, runtime: dict[str, str]) -> list[s
     blockers: list[str] = []
     if runtime.get("runtime_label", "stable") != "stable":
         blockers.append("runtime_label must be stable")
+    primary_root = primary_git_worktree_root()
+    if ROOT.resolve() != primary_root:
+        blockers.append(f"must be launched from the primary worktree: {primary_root}")
     if runtime.get("ephemeral_user_state") == "1":
         blockers.append("ephemeral user state is test-only")
     for key, default_path in DEFAULT_RUNTIME_PATHS.items():
@@ -160,6 +183,17 @@ def runtime_health_checks(health: dict[str, object], expected: dict[str, str]) -
     if "runtime_label" in expected:
         actual = str(runtime.get("label") or "")
         checks.append({"name": "runtime_label", "ok": actual == expected["runtime_label"], "expected": expected["runtime_label"], "actual": actual})
+    if "project_root" in expected:
+        settings_paths = runtime.get("settings_paths") if isinstance(runtime.get("settings_paths"), dict) else {}
+        actual_value = str(settings_paths.get("data_root") or "")
+        actual_root = Path(actual_value).expanduser().resolve() if actual_value else None
+        expected_root = Path(expected["project_root"]).expanduser().resolve()
+        checks.append({
+            "name": "project_root",
+            "ok": actual_root == expected_root,
+            "expected": str(expected_root),
+            "actual": str(actual_root) if actual_root else "",
+        })
     path_checks = [
         ("base_db", "base_database"),
         ("user_db", "user_database"),
@@ -185,6 +219,18 @@ def runtime_health_checks(health: dict[str, object], expected: dict[str, str]) -
             "actual": f"{actual_path}; persistent={actual_persistent}",
         })
     return checks
+
+
+def existing_server_requires_restart(
+    processes: list[dict[str, str]],
+    health: dict[str, object],
+    expected: dict[str, str],
+) -> bool:
+    if not any(row.get("is_project_server") for row in processes):
+        return False
+    if not health.get("ok"):
+        return True
+    return not all(check["ok"] for check in runtime_health_checks(health, expected))
 
 
 def kill_plain_http_servers(processes: list[dict[str, str]]) -> list[str]:
@@ -284,6 +330,13 @@ def main() -> int:
 
     stopped: list[str] = []
     killed: list[str] = []
+    if args.start and not args.restart:
+        existing_processes = run_lsof(args.port)
+        existing_health = http_json_status(f"http://127.0.0.1:{args.port}/api/v1/health")
+        if existing_server_requires_restart(existing_processes, existing_health, runtime):
+            stopped = stop_project_servers(existing_processes)
+            if stopped:
+                time.sleep(0.3)
     if args.stop or args.restart:
         stopped = stop_project_servers(run_lsof(args.port))
         if stopped:

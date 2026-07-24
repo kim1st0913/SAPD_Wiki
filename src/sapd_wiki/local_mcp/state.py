@@ -65,6 +65,7 @@ class RuntimeState:
             service_state="starting",
             error_code=None,
         )
+
     def mark_ready(self) -> "RuntimeState":
         if self.desired_state != "enabled" or self.knowledge_state == "blocked":
             return self.transition(

@@ -10,6 +10,34 @@ private let fallbackDisplayVersion = "0.2.0"
 private let wrapperLogName = "app-wrapper.log"
 private let runtimeFingerprintName = ".sapd-runtime-fingerprint"
 
+private enum DesktopSettingsBridge {
+    static let get = "sapdSettingsGet"
+    static let chooseDataRoot = "sapdSettingsChooseDataRoot"
+    static let chooseImportDirectory = "sapdSettingsChooseImportDirectory"
+    static let chooseDownloadDirectory = "sapdSettingsChooseDownloadDirectory"
+    static let messageNames = [get, chooseDataRoot, chooseImportDirectory, chooseDownloadDirectory]
+
+    static let userScript = """
+    (() => {
+      const handlers = window.webkit.messageHandlers;
+      const desktop = Object.freeze({
+        platform: "darwin",
+        isDesktop: true,
+        getSettings: () => handlers.\(get).postMessage(null),
+        chooseDataRoot: () => handlers.\(chooseDataRoot).postMessage(null),
+        chooseImportDirectory: () => handlers.\(chooseImportDirectory).postMessage(null),
+        chooseDownloadDirectory: () => handlers.\(chooseDownloadDirectory).postMessage(null)
+      });
+      Object.defineProperty(window, "sapdDesktop", {
+        configurable: false,
+        enumerable: true,
+        writable: false,
+        value: desktop
+      });
+    })();
+    """
+}
+
 private func currentDisplayVersion() -> String {
     let value = (Bundle.main.object(forInfoDictionaryKey: "SAPDWikiDisplayVersion") as? String ?? fallbackDisplayVersion)
         .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -332,8 +360,8 @@ fileprivate enum AppSettingsStore {
         }
 
         let alert = NSAlert()
-        alert.messageText = "首次启动需要设置本地保存位置"
-        alert.informativeText = "请选择一个父级保存位置。SAPD Wiki 会在该位置下创建 SAPDWiki 文件夹，并分别管理 import、export 和 Runtime。"
+        alert.messageText = "首次启动需要设置 App 保存位置"
+        alert.informativeText = "请选择 App 保存位置。SAPD Wiki 会在该位置下创建 SAPDWiki 文件夹，并分别管理文件上传路径、文件下载路径和 Runtime。"
         alert.addButton(withTitle: "开始设置")
         alert.addButton(withTitle: "取消")
         guard alert.runModal() == .alertFirstButtonReturn else {
@@ -345,8 +373,8 @@ fileprivate enum AppSettingsStore {
 
     static func promptForSettings(existing: AppSettings?) throws -> AppSettings {
         let selectedParent = try chooseDirectory(
-            title: "选择 SAPD Wiki 保存位置",
-            message: "系统会在所选位置下创建 SAPDWiki 文件夹，并分别管理 import、export 和 Runtime。",
+            title: "选择 App 保存位置",
+            message: "系统会在所选位置下创建 SAPDWiki 文件夹，并分别管理文件上传路径、文件下载路径和 Runtime。",
             defaultURL: existing.map { parentDirectoryForDataRoot($0.dataRoot) } ?? defaultDataRootParent()
         )
         let dataRoot = dataRoot(forSelectedDirectory: selectedParent)
@@ -668,7 +696,7 @@ final class RuntimeInstaller {
     }
 }
 
-final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKUIDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandlerWithReply {
     private var window: NSWindow?
     private var webView: WKWebView?
     private var backendProcess: Process?
@@ -731,6 +759,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     private func createWindow() {
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = .default()
+        for messageName in DesktopSettingsBridge.messageNames {
+            configuration.userContentController.addScriptMessageHandler(self, contentWorld: .page, name: messageName)
+        }
+        configuration.userContentController.addUserScript(WKUserScript(
+            source: DesktopSettingsBridge.userScript,
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: true
+        ))
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = self
@@ -823,13 +859,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         let titleLabel = NSTextField(labelWithString: "SAPD Wiki 系统设置")
         titleLabel.font = .systemFont(ofSize: 18, weight: .semibold)
 
-        let descriptionLabel = NSTextField(labelWithString: "导入和导出文件与系统运行数据分开管理；路径变更会在重启 SAPD Wiki 后完整生效。")
+        let descriptionLabel = NSTextField(labelWithString: "上传和下载文件与 Runtime 分开管理；路径变更会在重启 SAPD Wiki 后完整生效。")
         descriptionLabel.font = .systemFont(ofSize: 12)
         descriptionLabel.textColor = .secondaryLabelColor
 
         let versionRow = settingsInfoRow(title: "当前版本", value: currentDisplayVersion())
         let dataRootRow = settingsPathRow(
-            title: "本地工作目录",
+            title: "App 保存位置",
             path: current.dataRoot.path,
             changeAction: #selector(changeDataRootPath(_:)),
             revealAction: #selector(revealDataRoot(_:))
@@ -837,7 +873,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
             self.settingsDataRootField = field
         }
         let importRow = settingsPathRow(
-            title: "默认导入文件夹",
+            title: "文件上传路径",
             path: current.importDirectory.path,
             changeAction: #selector(changeImportPath(_:)),
             revealAction: #selector(revealImportDirectory(_:))
@@ -845,7 +881,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
             self.settingsImportField = field
         }
         let downloadRow = settingsPathRow(
-            title: "导出文件夹",
+            title: "文件下载路径",
             path: current.downloadDirectory.path,
             changeAction: #selector(changeDownloadPath(_:)),
             revealAction: #selector(revealDownloadDirectory(_:))
@@ -853,7 +889,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
             self.settingsDownloadField = field
         }
         let runtimeRow = settingsPathRow(
-            title: "系统数据",
+            title: "Runtime",
             path: current.dataRoot.appendingPathComponent("Runtime", isDirectory: true).path,
             changeAction: nil,
             revealAction: #selector(revealRuntimeDirectory(_:))
@@ -961,8 +997,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         let current = settings ?? AppSettingsStore.load() ?? AppSettingsStore.defaultSettings()
         do {
             let selectedParent = try AppSettingsStore.chooseDirectory(
-                title: "选择 SAPD Wiki 保存位置",
-                message: "系统会在所选位置下创建 SAPDWiki 文件夹，并分别管理 import、export 和 Runtime。",
+                title: "选择 App 保存位置",
+                message: "系统会在所选位置下创建 SAPDWiki 文件夹，并分别管理文件上传路径、文件下载路径和 Runtime。",
                 defaultURL: AppSettingsStore.parentDirectoryForDataRoot(current.dataRoot)
             )
             let nextDataRoot = AppSettingsStore.dataRoot(forSelectedDirectory: selectedParent)
@@ -980,8 +1016,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         let current = settings ?? AppSettingsStore.load() ?? AppSettingsStore.defaultSettings()
         do {
             let nextImport = try AppSettingsStore.chooseDirectory(
-                title: "选择 SAPD Wiki 默认导入文件夹",
-                message: "模板和评分文件的选择器会默认从这里打开，也可以临时选择其他位置。",
+                title: "选择文件上传路径",
+                message: "模板和评分文件的选择器会默认从这里打开。",
                 defaultURL: current.importDirectory
             )
             saveSettings(AppSettings(dataRoot: current.dataRoot, importDirectory: nextImport, downloadDirectory: current.downloadDirectory))
@@ -994,7 +1030,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         let current = settings ?? AppSettingsStore.load() ?? AppSettingsStore.defaultSettings()
         do {
             let nextDownload = try AppSettingsStore.chooseDirectory(
-                title: "选择 SAPD Wiki 文件下载路径",
+                title: "选择文件下载路径",
                 message: "批注导出和后续文件导出会保存到这里。",
                 defaultURL: current.downloadDirectory
             )
@@ -1050,11 +1086,114 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         settingsWindow?.orderOut(nil)
     }
 
+    private func settingsPayload(extra: [String: Any] = [:]) -> [String: Any] {
+        let current = settings ?? AppSettingsStore.load() ?? AppSettingsStore.defaultSettings()
+        var payload: [String: Any] = [
+            "currentVersion": currentDisplayVersion(),
+            "dataRoot": current.dataRoot.path,
+            "importDirectory": current.importDirectory.path,
+            "downloadDirectory": current.downloadDirectory.path,
+            "runtimeRoot": current.dataRoot.appendingPathComponent("Runtime", isDirectory: true).path,
+            "licenseDisplay": LicenseStore.currentState().displayText,
+            "available": true,
+            "changed": false,
+            "restartRequired": false,
+        ]
+        extra.forEach { payload[$0.key] = $0.value }
+        return payload
+    }
+
+    private func isTrustedSettingsMessage(_ message: WKScriptMessage) -> Bool {
+        guard message.frameInfo.isMainFrame, let url = message.frameInfo.request.url else {
+            return false
+        }
+        return url.scheme == "http" && url.host == "127.0.0.1" && url.port != nil
+    }
+
+    func userContentController(
+        _ userContentController: WKUserContentController,
+        didReceive message: WKScriptMessage,
+        replyHandler: @escaping (Any?, String?) -> Void
+    ) {
+        guard isTrustedSettingsMessage(message) else {
+            replyHandler(nil, "Settings bridge rejected an untrusted renderer.")
+            return
+        }
+
+        switch message.name {
+        case DesktopSettingsBridge.get:
+            replyHandler(settingsPayload(), nil)
+        case DesktopSettingsBridge.chooseDataRoot:
+            replyHandler(chooseSettingsDirectoryForBridge(.dataRoot), nil)
+        case DesktopSettingsBridge.chooseImportDirectory:
+            replyHandler(chooseSettingsDirectoryForBridge(.importDirectory), nil)
+        case DesktopSettingsBridge.chooseDownloadDirectory:
+            replyHandler(chooseSettingsDirectoryForBridge(.downloadDirectory), nil)
+        default:
+            replyHandler(nil, "Unsupported settings bridge request.")
+        }
+    }
+
+    private enum BridgeDirectoryKind {
+        case dataRoot
+        case importDirectory
+        case downloadDirectory
+    }
+
+    private func chooseSettingsDirectoryForBridge(_ kind: BridgeDirectoryKind) -> [String: Any] {
+        let current = settings ?? AppSettingsStore.load() ?? AppSettingsStore.defaultSettings()
+        do {
+            let next: AppSettings
+            switch kind {
+            case .dataRoot:
+                let selectedParent = try AppSettingsStore.chooseDirectory(
+                    title: "选择 App 保存位置",
+                    message: "系统会在所选位置下创建 SAPDWiki 文件夹，并分别管理文件上传路径、文件下载路径和 Runtime。",
+                    defaultURL: AppSettingsStore.parentDirectoryForDataRoot(current.dataRoot)
+                )
+                let nextDataRoot = AppSettingsStore.dataRoot(forSelectedDirectory: selectedParent)
+                let nextImport = AppSettingsStore.isDefaultImportDirectory(current.importDirectory, for: current.dataRoot)
+                    ? AppSettingsStore.defaultImportDirectory(for: nextDataRoot)
+                    : current.importDirectory
+                let nextDownload = AppSettingsStore.isDefaultDownloadDirectory(current.downloadDirectory, for: current.dataRoot)
+                    ? AppSettingsStore.defaultDownloadDirectory(for: nextDataRoot)
+                    : current.downloadDirectory
+                next = AppSettings(dataRoot: nextDataRoot, importDirectory: nextImport, downloadDirectory: nextDownload)
+            case .importDirectory:
+                let selected = try AppSettingsStore.chooseDirectory(
+                    title: "选择文件上传路径",
+                    message: "模板和评分文件的选择器会默认从这里打开。",
+                    defaultURL: current.importDirectory
+                )
+                next = AppSettings(dataRoot: current.dataRoot, importDirectory: selected, downloadDirectory: current.downloadDirectory)
+            case .downloadDirectory:
+                let selected = try AppSettingsStore.chooseDirectory(
+                    title: "选择文件下载路径",
+                    message: "批注导出和后续文件导出会保存到这里。",
+                    defaultURL: current.downloadDirectory
+                )
+                next = AppSettings(dataRoot: current.dataRoot, importDirectory: current.importDirectory, downloadDirectory: selected)
+            }
+
+            let changed = next.dataRoot != current.dataRoot
+                || next.importDirectory != current.importDirectory
+                || next.downloadDirectory != current.downloadDirectory
+            guard changed else {
+                return settingsPayload()
+            }
+            saveSettings(next)
+            return settingsPayload(extra: ["changed": true, "restartRequired": true])
+        } catch {
+            AppWrapperLogger.write("settings bridge directory change cancelled-or-failed error=\(error.localizedDescription)")
+            return settingsPayload(extra: ["cancelled": true])
+        }
+    }
+
     func webView(_ webView: WKWebView, runOpenPanelWith parameters: WKOpenPanelParameters, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping ([URL]?) -> Void) {
         let current = settings ?? AppSettingsStore.load() ?? AppSettingsStore.defaultSettings()
         let panel = NSOpenPanel()
         panel.title = "选择要导入的文件"
-        panel.message = "默认打开 SAPDWiki/import；也可以选择其他位置的 XLSX 文件。"
+        panel.message = "默认打开文件上传路径；也可以选择其他位置的 XLSX 文件。"
         panel.prompt = "导入"
         panel.canChooseFiles = true
         panel.canChooseDirectories = parameters.allowsDirectories

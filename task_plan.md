@@ -4,11 +4,182 @@
 
 ## 当前状态
 
-- Status: `security_capability_workbench_radial_star_network_refined`
+- Status: `git_workspace_convergence_planned_not_started`
 - Started: 2026-05-09
-- 当前主线：已导入 Sheet 的业务含义复核 + 前端关系展示校正
+- 当前主线：把所有有效开发成果收敛到本地主工作区 `main`，最终取消功能分支和临时 worktree
 - 快速状态入口：`CURRENT_STATE.md`
 - 完整历史计划归档：`docs/05-archive/context-slimming-2026-05-15/task_plan-full-before-slimming.md`
+
+## 当前收敛任务：Git 工作区归一化（2026-07-24）
+
+### 目标与最终状态
+
+本任务不采用“把每个分支都执行一次 `git merge`”的机械做法。当前 MCP 分支由同一批内容的多轮重建、cherry-pick 和集成分支组成，直接逐支 merge 会把重复实现和冲突历史重新带回主线。
+
+最终验收标准是：
+
+1. 所有仍有价值的已提交成果和未提交成果均进入本地 `main`，或被证明已由 `main` 中更新实现取代。
+2. 每个旧分支都必须取得 `absorbed`、`superseded` 或用户明确确认的 `abandoned` 结论；没有结论不得删除。
+3. 项目唯一日常工作目录恢复为 `/Users/kim1st/Documents/kim note/06_dev_projects/SAPD_Wiki`，且该目录检出 `main`。
+4. 本地最终只保留 `main`；附加 worktree 全部移除。远端 `origin/codex/windows-electron` 是否删除作为最后一个独立外部写操作确认。
+5. `data/`、用户数据库、成熟度报告历史、生成数据包、虚拟环境、构建产物、DMG 和临时挂载不进入 Git，也不因收敛被清理或覆盖。
+6. 完整验收必须在主工作目录的真实本地数据路径上执行；不得通过放宽 `_frontend_data_path()` 的目录边界来迁就 `/private/tmp` symlink。
+
+### 已核对现场
+
+| 范围 | 当前事实 | 处理原则 |
+|---|---|---|
+| 本地 `main` | `/private/tmp/SAPD_Wiki-main-merged`，HEAD `75a5c49`，比 `origin/main` 领先 4 个 MCP 集成提交 | 作为临时集成台；不是最终项目目录 |
+| 主工作目录 | `codex/windows-electron`，HEAD `8b46b83`，包含大量 tracked / untracked 用户工作 | 冻结为主要恢复源，最后才切换到 `main` |
+| 第二处 dirty worktree | `codex/local-mcp-web-integration`，含证书 / 信任设计、端口测试和治理记录等未提交内容 | 单独建清单并评审，不得随 worktree 删除 |
+| 其他 MCP worktree | 多数 clean，但分支历史与重建后的 `main` 不同 | 按交付物等价性审计，不逐支 merge |
+| `main` 临时挂载 | `.venv-local-mcp-web`、`data/` 和 frontend data symlink 为 untracked | 仅作临时运行环境；绝不 stage |
+| 搜索质量检查 | 主工作目录原生数据路径为 `38/38`；临时 `main` 外部 symlink 被安全边界拒绝后出现 5 项失败 | 属于错误验证挂载，不是产品搜索回归；最终必须在原生数据路径复验 |
+
+当前本地分支共 11 个：
+
+- 保留：`main`
+- MCP 历史 / 组件分支：`codex/local-mcp-app`、`codex/local-mcp-control`、`codex/local-mcp-core`、`codex/local-mcp-m0t`、`codex/local-mcp-main-integration`、`codex/local-mcp-product-development`、`codex/local-mcp-sidecar`、`codex/local-mcp-web`、`codex/local-mcp-web-integration`
+- 当前主目录分支：`codex/windows-electron`
+
+### 收敛策略
+
+- 不创建新的长期功能分支。
+- 继续使用现有临时 `main` worktree 直接形成逻辑清晰的 `main` 提交；主工作目录在此期间只读冻结。
+- 稳定 `5173` 只能由正式主工作目录启动；临时 `main` worktree 只做代码整合和无需数据的静态检查，不得占用 `5173` 或创建替代用户库。
+- 不执行整分支 merge、整分支 cherry-pick、`git add .`、`reset --hard`、`checkout --`、`clean` 或目录级覆盖。
+- 每个提交只使用显式文件清单，先比较 `main`、主工作目录和相关 worktree 三方内容，再做语义整合。
+- 历史分支是否可删不以 `git cherry` 为唯一依据。由于 MCP 已在 `main` 重建为新提交，旧分支会显示大量非祖先提交；必须以文件、合同、测试和运行结果等价性为准。
+
+### 阶段与门禁
+
+| 阶段 | 工作 | 完成门禁 | 状态 |
+|---|---|---|---|
+| C0 冻结现场 | 停止其他 writer；记录全部 branch tip、worktree、dirty 状态和运行进程 | 两处 dirty worktree 都进入清单；无并发写入 | `pending` |
+| C1 建立恢复点 | 创建全 refs Git bundle；分别导出两处 dirty worktree 的 binary patch；按显式 allowlist 备份 untracked 代码并生成 SHA-256 清单 | `git bundle verify` 通过；patch 可解析；备份不含 `data/`、用户库、构建产物 | `pending` |
+| C2 建立差异台账 | 对 10 个旧分支逐一登记提交、独有文件、在 `main` 的替代实现、未提交内容和处置结论 | 每个分支都有 `absorbed / superseded / abandoned` 证据；`abandoned` 必须用户确认 | `pending` |
+| C3 重建到 `main` | 按下列提交批次把有效成果直接集成到临时 `main` worktree | 每批定向测试通过；显式 stage；无数据边界越界 | `pending` |
+| C4 迁回主目录 | 清理临时 worktree 中明确的测试挂载；解除临时 `main` worktree 占用；把主项目目录安全切换到 `main` | 主目录 branch=`main`；原生 `data/` 与用户状态未移动、未覆盖；产品文件与集成态一致 | `pending` |
+| C5 主目录完整验收 | 在真实本地数据路径运行 quick、pre-commit、MCP 和 5173 验收 | 搜索质量 `38/38`；MCP `99/99` 或当前更新后的全量通过；5173 home / health / workspace / stop 清理通过 | `pending` |
+| C6 删除旧结构 | 移除 clean 附加 worktree；删除已完成处置的本地旧分支；执行 worktree prune | `git worktree list` 只剩主目录；`git branch` 只剩 `main` | `pending` |
+| C7 远端同步 | 用户确认后 push `main`，再单独确认是否删除 `origin/codex/windows-electron` | 远端 `main` 指向已验收提交；远端分支删除有单独授权 | `pending` |
+
+### C1 恢复点内容
+
+恢复点必须放在仓库外的持久目录，并包含：
+
+1. `SAPD_Wiki-all-refs-20260724.bundle`：保存当前全部已提交 refs。
+2. 主工作目录 `codex/windows-electron` 的 tracked binary patch。
+3. `codex/local-mcp-web-integration` dirty worktree 的 tracked binary patch。
+4. 两处 worktree 的 untracked 代码 allowlist 压缩包和逐文件 SHA-256。
+5. `git branch -vv`、`git worktree list --porcelain`、两处 `git status --porcelain=v1`、所有 branch tip 和远端 refs 清单。
+
+明确排除：
+
+- `data/**`，特别是 `data/user/**`、SQLite、报告历史和备份；
+- `.venv*`、`node_modules`、Electron / macOS 构建目录、installer、ZIP、DMG；
+- `frontend/capability-browser/public/data/**` 生成包和临时 symlink；
+- logs、diagnostics、Runtime 临时文件和测试证书私钥。
+
+### C2 分支处置矩阵
+
+| 分支 | 当前判断 | 计划处置 |
+|---|---|---|
+| `main` | 已含 4 个本地 MCP 重建 / 集成提交 | 唯一保留分支 |
+| `codex/local-mcp-main-integration` | tip `4087b5e` 已是 `main` 祖先 | 验收后直接删除 |
+| `codex/local-mcp-core` / `control` / `sidecar` / `app` / `web` | MCP 组件历史分支；提交 ID 与 `main` 不同，但主要交付物已在 `f18b5b7` / `4087b5e` 重建 | 对合同、源码、测试逐项等价审计；不直接 merge |
+| `codex/local-mcp-m0t` | MCP T0–T2 早期检查点 | 由最终 MCP 套件、合同和 fixture 台账证明吸收后删除 |
+| `codex/local-mcp-product-development` | 旧 Batch A/B 集成链 | 与最终 `main` 的 MCP 和系统设置实现对照，避免把旧 synthetic 状态机带回 |
+| `codex/local-mcp-web-integration` | 旧 Web 集成 tip + 一处 dirty 证书 / 信任后续工作 | 已提交历史按等价性处理；dirty 内容独立评审、测试、集成或经用户明确放弃 |
+| `codex/windows-electron` | 有唯一 Windows workflow 提交，也是当前大量未提交工作的容器 | Windows / Electron 和共享产品改动全部进入 `main` 后，最后删除 |
+
+### C3 建议的 `main` 提交批次
+
+每批允许根据实际耦合小幅拆分，但禁止合成一个无法审查的大提交。
+
+1. `fix(governance): correct main integration and validation facts`
+   - 修正“完整 pre-commit 有 5 个原有搜索失败”的错误结论；
+   - 明确临时 symlink 越过 `DATA_PACKAGE_ROOT` 被拒绝是正确安全行为；
+   - 记录当前分支 / worktree 真实状态和收敛门禁。
+2. `feat(windows): integrate Electron delivery runtime`
+   - Windows GitHub workflow、`apps/electron/`、Runtime 准备脚本、Windows 指南；
+   - 不提交构建产物、Artifact ZIP、installer、`node_modules` 或真实数据。
+3. `feat(frontend): converge shared product workspace changes`
+   - Dashboard 统计跳转 / 纯展示规则、Draw.io 下载、`+N` 展开、雷达图、环境关系和共享 Shell / 设置页改动；
+   - 以现有 Apple Shell、`DESIGN.md` 和 frontend `AGENTS.md` 为准，不回退已验收页面。
+4. `feat(maturity): converge current and target assessment workflow`
+   - 当前 / 目标四维评分、说明、统一下级设置、`目标 >= 当前` 全入口规则、旧目标数据兼容和对应审计；
+   - 不修改正式用户库、评分基准数据或 ETL。
+5. `feat(runtime): converge local directory and export contracts`
+   - macOS wrapper、API / CLI、本地 import / export / Runtime 目录契约及相关审计；
+   - Web 下载 fallback 与 App 真实路径返回保持分层。
+6. `feat(mcp): reconcile certificate and trust continuation`
+   - 只纳入 dirty Web integration worktree 中经过评审并达到完成态的证书 / 信任、端口和测试内容；
+   - 不把测试私钥、系统信任修改、真实客户端配置或不完整实验带入 `main`。
+7. `docs: close workspace convergence records`
+   - 同步 `CURRENT_STATE.md`、`progress.md`、`findings.md`、测试矩阵和相关文档；
+   - 更新 `.gitignore`，覆盖 `.venv-local-mcp-web`、Electron build 和 `data/user/` 本地用户状态，同时保持数据边界脚本继续拒绝误提交。
+
+### 冲突处理规则
+
+1. `main` 当前 MCP 安全修订优先于旧 MCP 分支，不恢复旧 `synthetic_web`、弱 loopback / Origin 校验或父进程不清理 Sidecar 的实现。
+2. 主工作目录中更新的成熟度、Dashboard、环境、App / 导出实现优先于旧分支对应文件，但必须保留 `main` 已完成的 MCP API / 设置入口。
+3. `api_server.py`、`cli.py`、`app.js`、`AppShell.js`、`dataClient.js`、`dev_server_guard.py` 和测试编排属于高冲突共享 owner，必须逐段语义合并，不使用整文件 ours / theirs。
+4. 数据、用户状态、生成包和打包产物从不参与冲突解决。
+5. 发现未完成或无法证明安全的 WIP 时停止删除对应分支；先完成、拆成文档化 backlog，或取得用户明确放弃确认。
+
+### C4 主目录切换方法
+
+1. 在临时 `main` 集成完成后，对照主工作目录生成产品文件差异清单；所有差异必须有处置结论。
+2. 停止 5173 / MCP 进程，并确认 `28775` 等测试端口释放。
+3. 将主工作目录中会与 `main` tracked 文件冲突的 untracked 代码移动到 C1 恢复目录的 quarantine；不删除 `data/`。
+4. 验证并移走临时 `main` worktree 中的已知测试 symlink / 虚拟环境后，正常执行 `git worktree remove`，禁止用 broad `rm -rf`。
+5. 主工作目录切换到 `main`；如 Git 报覆盖风险，停止并回到差异台账，不使用 force。
+6. 逐项核对 quarantine 内容与 `main`；只恢复尚未吸收且明确应保留的文件。
+
+### C5 验收矩阵
+
+最低门禁：
+
+- `node scripts/run_project_test_suite.mjs --suite quick`
+- `node scripts/run_project_test_suite.mjs --suite pre-commit`
+- `node scripts/run_project_test_suite.mjs --suite mcp`
+- `python3 scripts/audit_search_index_quality_probes.py`：必须 `38/38`
+- `python3 scripts/dev_server_guard.py --port 5173 --start`
+- `python3 scripts/dev_server_guard.py --port 5173 --status`
+- 5173 home / health / workspace projection / MCP stopped → ready → stopped / 端口释放
+- `python3 scripts/check_github_data_boundary.py`
+- `python3 scripts/audit_json_package_boundary.py`
+- `git diff --check` 和最终 staged file allowlist 复核
+
+边界说明：
+
+- 不启动系统 Chrome；前端需要视觉验收时使用应用内浏览器。
+- 不构建或验证 DMG，除非收敛差异触及 App release blocker 且用户另行授权。
+- 不写真实用户数据库；测试使用临时副本或 synthetic fixture。
+- `/private/tmp` main worktree 的外部 data symlink 不作为搜索质量验收环境，也不放宽后端路径安全。
+- `dev_server_guard --start` 必须同时校验项目根目录、base DB、user DB 和 data root；发现 5173 来自错误 worktree 时应重启到正式目录。
+
+### C6 删除与回滚
+
+- 先移除 clean worktree，再删除其分支。
+- `codex/local-mcp-main-integration` 可在确认祖先关系后用普通安全删除。
+- 其余 MCP 分支因重建历史通常不是 `main` 祖先，普通 `git branch -d` 会拒绝。只有在 C1 bundle 已验证、C2 台账全绿、C5 完整验收通过且用户确认执行删除后，才允许对精确分支名使用强制删除。
+- `codex/windows-electron` 最后删除；删除前主目录必须已在 `main`，Windows / Electron 文件必须通过定向验收。
+- 本地回滚依赖 bundle + 两处 patch + untracked allowlist archive；远端 push 前可完全回到收敛前现场。
+- 远端分支删除不是本地收敛的自动步骤，必须单独确认。
+
+### 停止条件
+
+出现以下任一情况立即停止，不继续删除或 push：
+
+- 任一 dirty worktree 没有可验证恢复点；
+- `data/`、SQLite、用户库、报告历史或生成包进入 staged 列表；
+- 高冲突共享文件仍存在未解释差异；
+- 搜索质量未在原生数据路径通过 `38/38`；
+- MCP / quick / pre-commit 出现无法归因的新失败；
+- 主工作目录无法无 force 切换到 `main`；
+- 任一分支仍有无法判定的独有 WIP。
 
 ## 当前阶段
 

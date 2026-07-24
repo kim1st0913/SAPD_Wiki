@@ -4,6 +4,7 @@ import argparse
 import importlib.util
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from sapd_wiki import api_server
 
@@ -98,6 +99,67 @@ class ReservedPreviewPortTests(unittest.TestCase):
                 },
             ),
             [],
+        )
+
+    def test_guard_blocks_5173_from_linked_worktree(self) -> None:
+        guard = load_dev_server_guard()
+        with patch.object(guard, "primary_git_worktree_root", return_value=ROOT.parent / "primary"):
+            blockers = guard.reserved_preview_port_blockers(
+                5173,
+                guard.expected_runtime(argparse.Namespace(
+                    port=5173,
+                    base_db="",
+                    user_db="",
+                    ephemeral_user_state=False,
+                    data_root="",
+                    export_dir="",
+                    runtime_label="",
+                    mcp_port=0,
+                    mcp_runtime_root="",
+                )),
+            )
+        self.assertTrue(any("primary worktree" in blocker for blocker in blockers))
+
+    def test_guard_restarts_project_server_with_wrong_project_root(self) -> None:
+        guard = load_dev_server_guard()
+        health = {
+            "ok": True,
+            "json": {
+                "data": {
+                    "runtime": {
+                        "label": "stable",
+                        "settings_paths": {"data_root": "/private/tmp/SAPD_Wiki-main-merged"},
+                    }
+                }
+            },
+        }
+        self.assertTrue(
+            guard.existing_server_requires_restart(
+                [{"is_project_server": True}],
+                health,
+                {"runtime_label": "stable", "project_root": str(ROOT)},
+            )
+        )
+
+    def test_guard_keeps_project_server_with_matching_project_root(self) -> None:
+        guard = load_dev_server_guard()
+        health = {
+            "ok": True,
+            "json": {
+                "data": {
+                    "runtime": {
+                        "label": "stable",
+                        "settings_paths": {"data_root": str(ROOT)},
+                    }
+                }
+            },
+        }
+        self.assertFalse(
+            guard.existing_server_requires_restart(
+                [{"is_project_server": True}],
+                health,
+                {"runtime_label": "stable", "project_root": str(ROOT)},
+            )
         )
 
 

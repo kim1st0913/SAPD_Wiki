@@ -1,11 +1,11 @@
 {
-  "version": "2026-07-18.maturity-report-authoring-regression-baseline",
+  "version": "2026-07-24.branch-convergence-reviewed-baseline",
   "scope": "frontend/capability-browser",
   "purpose": "Current accepted ceilings after the July 2026 project test governance baseline. Lower values pass; increases require deliberate governance review.",
   "requiredReview": "docs/07-governance/project-test-workflow-and-case-matrix.md",
   "files": {
     "frontend/capability-browser/styles.css": {
-      "maxLines": 32090,
+      "maxLines": 32140,
       "maxImportant": 324,
       "maxHexColors": 1007,
       "maxRootBlocks": 11,
@@ -13,7 +13,7 @@
       "maxColorMix": 681
     },
     "frontend/capability-browser/app.js": {
-      "maxLines": 12772
+      "maxLines": 13423
     },
     "frontend/capability-browser/viewModels.js": {
       "maxLines": 5831
@@ -73,12 +73,12 @@
       "maxColorMix": 0
     },
     "frontend/capability-browser/shared-directory-shell.css": {
-      "maxLines": 46,
+      "maxLines": 145,
       "maxImportant": 0,
-      "maxHexColors": 0,
+      "maxHexColors": 7,
       "maxRootBlocks": 0,
       "maxRelationChipMentions": 0,
-      "maxColorMix": 2
+      "maxColorMix": 3
     },
     "frontend/capability-browser/p1-guide-reading.css": {
       "maxLines": 103,

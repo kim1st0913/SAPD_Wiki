@@ -410,6 +410,7 @@
       <span id="appLiveStatus" class="sapd-visually-hidden" role="status" aria-live="polite" aria-atomic="true"></span>
       <div id="localModeStatus" class="topbar-status" aria-label="本地运行状态"></div>
       <div class="topbar-actions" aria-label="全局操作">
+        <span id="licenseStatusBadge" class="topbar-license-status" aria-live="polite">${renderLocalModeStatus()}</span>
         <button class="topbar-settings-button" type="button" title="系统设置" aria-label="系统设置" data-app-route="/settings/system">⚙</button>
         ${renderMcpStatusMonitor()}
       </div>

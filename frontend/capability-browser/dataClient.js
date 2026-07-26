@@ -58,6 +58,7 @@
     maturityTemplateExport: "/api/v1/maturity/template/export",
     maturityTemplateImport: "/api/v1/maturity/template/import",
     mcpControlPanel: "/api/v1/mcp/control-panel",
+    mcpAudit: "/api/v1/mcp/audit",
     mcpStart: "/api/v1/mcp/actions/start",
     mcpStop: "/api/v1/mcp/actions/stop",
     mcpRetry: "/api/v1/mcp/actions/retry",
@@ -1502,6 +1503,11 @@
 
     async getMcpControlPanel() {
       return createEnvelope(await fetchMcpControlApi(API_PATHS.mcpControlPanel, { kind: "control-panel" }));
+    },
+
+    async getMcpAuditPage(page = 1) {
+      const normalizedPage = Math.max(1, Number.parseInt(page, 10) || 1);
+      return createEnvelope(await fetchMcpControlApi(`${API_PATHS.mcpAudit}?page=${normalizedPage}`));
     },
 
     async startMcpService(payload) {

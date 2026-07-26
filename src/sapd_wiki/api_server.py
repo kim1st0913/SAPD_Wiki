@@ -4054,7 +4054,11 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
             if not self._require_api_host():
                 return
             if parsed.path.startswith("/api/v1/mcp/"):
-                self._handle_mcp_control("GET", parsed.path)
+                self._handle_mcp_control(
+                    "GET",
+                    parsed.path,
+                    parse_qs(parsed.query, keep_blank_values=True),
+                )
                 return
             self._handle_api(parsed.path, parse_qs(parsed.query))
             return
@@ -4230,7 +4234,12 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
             raise ValueError("JSON body must be an object")
         return payload
 
-    def _handle_mcp_control(self, method: str, path: str) -> None:
+    def _handle_mcp_control(
+        self,
+        method: str,
+        path: str,
+        query: dict[str, list[str]] | None = None,
+    ) -> None:
         control_api = getattr(self.server, "sapd_mcp_control_api", None)
         if control_api is None:
             self._send_json(
@@ -4270,6 +4279,7 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
             path,
             {name: value for name, value in self.headers.items()},
             body,
+            query,
         )
         encoded = response.json_bytes()
         self.send_response(response.status)

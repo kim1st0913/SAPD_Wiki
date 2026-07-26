@@ -96,6 +96,9 @@ def sample_snapshot() -> dict:
             "retention_bytes": 20 * 1024 * 1024,
             "event_count": 4,
             "last_event_at": "2026-07-23T01:02:00Z",
+            "page": 1,
+            "page_size": 3,
+            "page_count": 2,
             "recent_events": [
                 {
                     "occurred_at": "2026-07-23T01:02:00Z",
@@ -132,6 +135,12 @@ class FakeSupervisorGateway:
 
     def read_snapshot(self) -> dict:
         return deepcopy(self.snapshot)
+
+    def read_audit_page(self, *, page: int, page_size: int) -> dict:
+        result = deepcopy(self.snapshot["audit"])
+        result["page"] = min(max(page, 1), result["page_count"])
+        result["page_size"] = page_size
+        return result
 
     def _mutate(self, action: str, request_id: str, expected_state_version: int) -> dict:
         if expected_state_version != self.snapshot["state_version"]:
@@ -206,6 +215,8 @@ class FakeSupervisorGateway:
         result = self._mutate("clear_audit", request_id, expected_state_version)
         self.snapshot["audit"]["event_count"] = 0
         self.snapshot["audit"]["last_event_at"] = None
+        self.snapshot["audit"]["page"] = 1
+        self.snapshot["audit"]["page_count"] = 1
         self.snapshot["audit"]["recent_events"] = []
         return result
 
@@ -349,6 +360,10 @@ class ControlServiceTests(unittest.TestCase):
             self.service.get_audit()["data"]["recent_events"][0]["tool_name"],
             "search_knowledge",
         )
+        second_page = self.service.get_audit(page=2, page_size=3)["data"]
+        self.assertEqual(second_page["page"], 2)
+        self.assertEqual(second_page["page_size"], 3)
+        self.assertEqual(second_page["page_count"], 2)
         self.assertEqual(
             self.service.get_diagnostics()["data"]["checks"][0]["check_id"],
             "runtime",

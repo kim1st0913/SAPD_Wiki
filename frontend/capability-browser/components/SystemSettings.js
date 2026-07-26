@@ -399,7 +399,7 @@
   function trustState(value) {
     const verified = text(value).trim() === "verified";
     return {
-      label: verified ? "发布方已验证" : "发布方未验证",
+      label: verified ? "预注册客户端" : "动态注册",
       tone: verified ? "verified" : "unverified",
     };
   }
@@ -423,7 +423,7 @@
           <strong id="aiAuthorizationAttentionTitle">${escapeHtml(clientName)} 正在请求只读访问基础知识库</strong>
           <small>${requests.length > 1 ? `共 ${requests.length} 个请求等待处理；` : ""}请在 ${escapeHtml(formatDateTime(nextRequest.expires_at))} 前允许或拒绝。授权成功后，浏览器会显示 “Authentication complete”。</small>
         </div>
-        <a href="#aiAuthorizationPanel">查看授权请求</a>
+        <button type="button" data-app-route="/settings/ai-integration" data-settings-anchor="aiAuthorizationPanel">查看授权请求</button>
       </aside>
     `;
   }
@@ -529,7 +529,7 @@
                 `;
               }).join("")}
               </div>
-              <p class="system-settings-client-trust-note">“发布方未验证”表示该客户端通过动态注册发起连接，不代表 HTTPS 连接不安全。授权前请核对客户端名称和只读范围。</p>
+              <p class="system-settings-client-trust-note">“动态注册”表示客户端临时向 SAPD Wiki 注册了名称和回调地址，SAPD Wiki 未验证其软件发布方身份。这不代表 HTTPS 连接不安全，也不代表客户端已经获得授权；请核对客户端名称、回调地址和只读范围。</p>
             </div>`
           : `<div class="system-settings-client-empty">
               <div>
@@ -550,6 +550,11 @@
     const audit = mcp.audit || {};
     const eventCount = Number.isInteger(Number(audit.event_count)) ? Number(audit.event_count) : 0;
     const recentEvents = list(audit.recent_events).slice(0, 3);
+    const page = Math.max(1, Number.parseInt(audit.page, 10) || 1);
+    const pageCount = Math.max(1, Number.parseInt(audit.page_count, 10) || 1);
+    const pageSize = 3;
+    const pageStart = eventCount ? ((page - 1) * pageSize) + 1 : 0;
+    const pageEnd = eventCount ? Math.min(eventCount, page * pageSize) : 0;
     const clients = list(mcp.clients);
     const capabilities = mcp.settings?.control_capabilities || {};
     const clearDisabled = Boolean(pendingAction) || capabilities.audit_clear === false || eventCount === 0;
@@ -570,7 +575,7 @@
         <div class="system-settings-audit-events" aria-label="最近审计事件">
           <div class="system-settings-audit-events-heading">
             <strong>最近记录</strong>
-            <span>默认显示最近 ${Math.min(recentEvents.length, 3)} 条</span>
+            <span>每页显示最近 3 条</span>
           </div>
           ${recentEvents.length
             ? `<ol>${recentEvents.map((event) => {
@@ -585,6 +590,14 @@
                 </li>`;
               }).join("")}</ol>`
             : '<div class="system-settings-audit-empty">暂无审计记录。客户端完成授权或调用知识工具后，将在这里显示操作时间、对象和结果。</div>'}
+          <nav class="system-settings-audit-pagination" aria-label="审计记录分页">
+            <span>显示 ${escapeHtml(pageStart)}–${escapeHtml(pageEnd)}，共 ${escapeHtml(eventCount)} 条</span>
+            <div>
+              <button type="button" data-mcp-audit-page="${escapeHtml(page - 1)}" ${page <= 1 ? "disabled" : ""}>上一页</button>
+              <b>第 ${escapeHtml(page)} / ${escapeHtml(pageCount)} 页</b>
+              <button type="button" data-mcp-audit-page="${escapeHtml(page + 1)}" ${page >= pageCount ? "disabled" : ""}>下一页</button>
+            </div>
+          </nav>
         </div>
         <p class="system-settings-panel-note">仅保留脱敏的本地操作元数据，不记录查询正文或知识正文。</p>
         <div class="system-settings-actions">

@@ -2825,6 +2825,27 @@
 
   function buildEnvironmentMasterDictionaryViewModel({ dictionary, search }) {
     const query = normalizeSearch(search);
+    const environmentTitlesByRef = new Map(
+      list(dictionary?.information_environments)
+        .map((record) => [
+          text(record?.stable_ref).trim(),
+          titleOf(record, "未命名信息化环境"),
+        ])
+        .filter(([stableRef]) => stableRef),
+    );
+    const segmentTitlesByRef = new Map();
+    list(dictionary?.usage_relations).forEach((relation) => {
+      const segmentRef = text(relation?.segment_ref).trim();
+      const contextTitle = text(relation?.context_title).trim();
+      if (
+        segmentRef
+        && contextTitle
+        && text(relation?.context_type).trim() === "environment_segment"
+        && !segmentTitlesByRef.has(segmentRef)
+      ) {
+        segmentTitlesByRef.set(segmentRef, contextTitle);
+      }
+    });
     const categoryDefinitions = [
       {
         type: "information_environment",
@@ -2852,15 +2873,25 @@
     list(dictionary?.usage_relations).forEach((relation) => {
       const masterRef = text(relation?.master_ref).trim();
       if (!masterRef) return;
+      const contextType = text(relation.context_type).trim();
+      const environmentRef = text(relation.environment_ref).trim();
+      const segmentRef = text(relation.segment_ref).trim();
+      const contextTitle = text(relation.context_title).trim();
+      const contextPath = [
+        environmentTitlesByRef.get(environmentRef),
+        segmentTitlesByRef.get(segmentRef),
+        contextType === "environment_object_context" ? contextTitle : "",
+      ].filter(Boolean).filter((part, index, parts) => part !== parts[index - 1]);
       if (!relationsByMasterRef.has(masterRef)) relationsByMasterRef.set(masterRef, []);
       relationsByMasterRef.get(masterRef).push({
         id: text(relation.relation_ref).trim(),
         relationType: text(relation.relation_type).trim(),
-        contextType: text(relation.context_type).trim(),
+        contextType,
         contextRef: text(relation.context_ref).trim(),
-        contextTitle: text(relation.context_title).trim(),
-        environmentRef: text(relation.environment_ref).trim(),
-        segmentRef: text(relation.segment_ref).trim(),
+        contextTitle,
+        contextPath,
+        environmentRef,
+        segmentRef,
         objectRef: text(relation.object_ref).trim(),
         route: text(relation.route).trim(),
         routeParams: { ...(relation.route_params || {}) },
@@ -2885,6 +2916,7 @@
             ? contexts.filter((context) => includesSearch(
                 query,
                 context.contextTitle,
+                ...list(context.contextPath),
                 context.contextRef,
                 context.environmentRef,
                 context.segmentRef,

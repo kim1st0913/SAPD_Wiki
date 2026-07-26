@@ -24,9 +24,12 @@
 | `audit_environment_master_data_p3_contract.mjs` | 独立验收P3写入/回退数量、逻辑快照、保护输入哈希、候选包清理、rollback manifest和产物manifest | `data/exports/worker-verify/plan-env-md/p3-*/` |
 | `export_environment_dictionary_p4_shadow.py` | 从临时迁移副本导出加法型 `environment-dictionary-v1` 影子包，保留旧环境树、拆分投影、底图和Dashboard包 | `data/exports/worker-verify/plan-env-md/p4-*/` |
 | `audit_environment_master_data_p4_contract.mjs` | 独立验收P4字典schema、10/16/51主数据、29/67上下文、106条用法关系、API注册和保护文件哈希；兼容P6后的正式库状态 | `data/exports/worker-verify/plan-env-md/p4-*/` |
-| `audit_environment_master_data_p5_contract.mjs` | 验收主数据字典前端的默认关闭开关、主数据/关系展示、搜索展开状态及缺包/API/schema fallback | `data/exports/worker-verify/plan-env-md/p5-*/` |
+| `audit_environment_master_data_p5_contract.mjs` | 验收主数据字典前端的P5默认关闭基线、主数据/关系展示、搜索展开状态及缺包/API/schema fallback；P7启用后通过P7证据保持历史兼容 | `data/exports/worker-verify/plan-env-md/p5-*/` |
 | `apply_environment_master_data_p6.py` | 默认dry-run；经精确确认后先生成完整恢复包并取得单写者锁，再对正式基础库执行幂等P6迁移，失败时自动从热备份回退 | `data/exports/worker-verify/plan-env-md/p6-*/` |
-| `audit_environment_master_data_p6_contract.mjs` | 独立验收P6报告、恢复文件哈希、正式库完整性/外键/计数、用户与保护输入未变及P7开关仍关闭 | `data/exports/worker-verify/plan-env-md/p6-*/` |
+| `audit_environment_master_data_p6_contract.mjs` | 独立验收P6报告、恢复文件哈希、正式库完整性/外键/计数、用户与保护输入未变；P7启用后通过P7证据约束开关状态 | `data/exports/worker-verify/plan-env-md/p6-*/` |
+| `audit_environment_master_data_p7_contract.mjs` | 验收P7正式开关、P6恢复基线和历史106条关系；存在P7.1证据时自动转入当前125条关联使用合同 | `data/exports/worker-verify/plan-env-md/p7-*/`、`p7-1-*/` |
+| `apply_environment_master_data_p7_1_definitions.py` | 默认在SQLite临时副本演练61条环境/对象定义、125条关联使用投影和独立恢复；精确确认后才备份并写正式基础库与字典包 | `data/exports/worker-verify/plan-env-md/p7-1-*/` |
+| `audit_environment_master_data_p7_1_contract.mjs` | 验收77条主数据定义、29/29/67关联使用、环境摘要与展开计数一致、精确路由、保护边界和恢复证据 | `data/exports/worker-verify/plan-env-md/p7-1-*/` |
 | `audit_maturity_assessment_v2_1_contract.py` | 审计成熟度 V2.1 的企业组织项目、固定模板只读、服务角色、四维评分、目标达成率、可选证据、文件交换、L2 结果和报告契约 | `PLAN-MAT-WS`、`docs/08-maturity/` |
 | `dev_server_guard.py` | 本地预览服务守护；默认守护当前工作区固定预览入口，不承担数据接入策略切换 | `CURRENT_STATE.md` |
 | `frontend_smoke_check.mjs` | 前端页面轻量 HTTP/API smoke 检查；默认不启动系统 Google Chrome | `CURRENT_STATE.md` |

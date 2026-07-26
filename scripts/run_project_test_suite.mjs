@@ -133,7 +133,7 @@ const suites = {
       command("frontend:global-search", "全局搜索索引和定位契约审计", "node", ["scripts/audit_global_search_index_contract.mjs"]),
       command("frontend:search-state", "搜索历史和状态隔离审计", "node", ["scripts/audit_search_state_isolation.mjs"]),
       command("frontend:environment-search", "信息化环境搜索契约审计", "node", ["scripts/audit_environment_search_contract.mjs"]),
-      command("frontend:maturity-v2.1", "成熟度评估 V2.1 企业项目、固定模板、目标聚合与文件交换审计", "python3", ["scripts/audit_maturity_assessment_v2_1_contract.py"]),
+      command("frontend:maturity-v2.1", "成熟度评估 V2.1 企业项目、固定模板、目标聚合与文件交换审计", ".venv-local-mcp-web/bin/python", ["scripts/audit_maturity_assessment_v2_1_contract.py"]),
     ],
   },
   runtime: {

@@ -69,6 +69,9 @@ class BrowserOnlySupervisorGateway:
                 "retention_bytes": 20 * 1024 * 1024,
                 "event_count": 0,
                 "last_event_at": None,
+                "page": 1,
+                "page_size": 3,
+                "page_count": 1,
                 "recent_events": [],
             },
             "diagnostics": {
@@ -88,6 +91,16 @@ class BrowserOnlySupervisorGateway:
     def read_snapshot(self) -> Mapping[str, Any]:
         with self._lock:
             return deepcopy(self._snapshot)
+
+    def read_audit_page(
+        self,
+        *,
+        page: int,
+        page_size: int,
+    ) -> Mapping[str, Any]:
+        del page, page_size
+        with self._lock:
+            return deepcopy(self._snapshot["audit"])
 
     def _mutate_service(
         self,

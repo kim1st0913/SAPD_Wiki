@@ -639,6 +639,7 @@ class DevSidecarSupervisor:
             clients = self._clients()
             active_clients = [item for item in clients if item["status"] == "authorized"]
             audit_events = self._store.read_audit(limit=1000)
+            audit_event_count = self._store.count_audit()
             last_event = audit_events[0]["occurred_at"] if audit_events else None
             tool_events = [item["occurred_at"] for item in audit_events if item["event_type"] == "TOOL_CALL"]
             last_success = max(tool_events) if tool_events else self._last_success_at
@@ -694,8 +695,11 @@ class DevSidecarSupervisor:
                     "state": "ready",
                     "retention_days": 30,
                     "retention_bytes": 20 * 1024 * 1024,
-                    "event_count": len(audit_events),
+                    "event_count": audit_event_count,
                     "last_event_at": _iso(last_event),
+                    "page": 1,
+                    "page_size": 3,
+                    "page_count": max(1, (audit_event_count + 2) // 3),
                     "recent_events": [
                         {
                             "occurred_at": _iso(item["occurred_at"]),
@@ -710,6 +714,41 @@ class DevSidecarSupervisor:
                     ],
                 },
                 "diagnostics": self._diagnostics(),
+            }
+
+    def read_audit_page(
+        self,
+        *,
+        page: int,
+        page_size: int,
+    ) -> Mapping[str, Any]:
+        with self._lock:
+            snapshot = self.read_snapshot()
+            event_count = int(snapshot["audit"]["event_count"])
+            safe_page_size = 3 if int(page_size) != 3 else int(page_size)
+            page_count = max(1, (event_count + safe_page_size - 1) // safe_page_size)
+            safe_page = min(max(int(page), 1), page_count)
+            events = self._store.read_audit(
+                limit=safe_page_size,
+                offset=(safe_page - 1) * safe_page_size,
+            )
+            return {
+                **snapshot["audit"],
+                "page": safe_page,
+                "page_size": safe_page_size,
+                "page_count": page_count,
+                "recent_events": [
+                    {
+                        "occurred_at": _iso(item["occurred_at"]),
+                        "event_type": item["event_type"],
+                        "client_id": item["client_id"],
+                        "tool_name": item["tool_name"],
+                        "result_code": item["result_code"],
+                        "returned_count": item["returned_count"],
+                        "duration_ms": item["duration_ms"],
+                    }
+                    for item in events
+                ],
             }
 
     @staticmethod

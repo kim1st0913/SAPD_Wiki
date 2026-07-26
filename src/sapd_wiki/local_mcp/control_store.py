@@ -373,9 +373,43 @@ class ControlStore:
     ) -> str:
         if not 1 <= int(timeout_seconds) <= 600:
             raise ValueError("timeout_seconds is outside the allowed range")
-        request_id = f"authorization:{secrets.token_urlsafe(24)}"
         now = self._clock()
+        scopes_json = self._json(scopes)
         with self._lock:
+            self._connection.execute(
+                """
+                UPDATE authorization_requests
+                SET status='timed_out', decided_at=?
+                WHERE status='pending' AND expires_at<=?
+                """,
+                (now, now),
+            )
+            existing = self._connection.execute(
+                """
+                SELECT request_id
+                FROM authorization_requests
+                WHERE status='pending'
+                  AND expires_at>?
+                  AND client_id=?
+                  AND redirect_uri=?
+                  AND scopes_json=?
+                  AND resource=?
+                  AND policy_version=?
+                ORDER BY created_at ASC, request_id ASC
+                LIMIT 1
+                """,
+                (
+                    now,
+                    client_id,
+                    redirect_uri,
+                    scopes_json,
+                    resource,
+                    policy_version,
+                ),
+            ).fetchone()
+            if existing is not None:
+                return str(existing["request_id"])
+            request_id = f"authorization:{secrets.token_urlsafe(24)}"
             self._connection.execute(
                 """
                 INSERT INTO authorization_requests(
@@ -388,7 +422,7 @@ class ControlStore:
                     client_id,
                     client_name,
                     redirect_uri,
-                    self._json(scopes),
+                    scopes_json,
                     resource,
                     policy_version,
                     now,
@@ -443,8 +477,19 @@ class ControlStore:
                 """
             ).fetchall()
         result: list[dict[str, Any]] = []
+        represented: set[tuple[str, str, str, str, str]] = set()
         for row in rows:
             item = dict(row)
+            identity = (
+                str(item["client_id"]),
+                str(item["redirect_uri"]),
+                str(item["scopes_json"]),
+                str(item["resource"]),
+                str(item["policy_version"]),
+            )
+            if identity in represented:
+                continue
+            represented.add(identity)
             item["scopes"] = json.loads(item.pop("scopes_json"))
             item["registration_mode"] = item["registration_mode"] or "DCR"
             item["trust_state"] = (
@@ -466,15 +511,40 @@ class ControlStore:
                 """,
                 (now, request_id, now),
             )
+            selected = self._connection.execute(
+                """
+                SELECT client_id, redirect_uri, scopes_json, resource, policy_version
+                FROM authorization_requests
+                WHERE request_id=? AND status='pending' AND expires_at>?
+                """,
+                (request_id, now),
+            ).fetchone()
+            if selected is None:
+                return False
             cursor = self._connection.execute(
                 """
                 UPDATE authorization_requests
                 SET status=?, decided_at=?
-                WHERE request_id=? AND status='pending' AND expires_at>?
+                WHERE status='pending'
+                  AND expires_at>?
+                  AND client_id=?
+                  AND redirect_uri=?
+                  AND scopes_json=?
+                  AND resource=?
+                  AND policy_version=?
                 """,
-                ("allowed" if allow else "denied", now, request_id, now),
+                (
+                    "allowed" if allow else "denied",
+                    now,
+                    now,
+                    selected["client_id"],
+                    selected["redirect_uri"],
+                    selected["scopes_json"],
+                    selected["resource"],
+                    selected["policy_version"],
+                ),
             )
-            return cursor.rowcount == 1
+            return cursor.rowcount >= 1
 
     def cancel_authorization_request(self, request_id: str) -> bool:
         now = self._clock()
@@ -825,14 +895,27 @@ class ControlStore:
                 ),
             )
 
-    def read_audit(self, *, limit: int = 100) -> list[dict[str, Any]]:
+    def count_audit(self) -> int:
+        with self._lock:
+            row = self._connection.execute(
+                "SELECT COUNT(*) AS total FROM audit_events"
+            ).fetchone()
+        return int(row["total"]) if row is not None else 0
+
+    def read_audit(
+        self,
+        *,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[dict[str, Any]]:
         safe_limit = min(max(int(limit), 1), 1000)
+        safe_offset = max(int(offset), 0)
         with self._lock:
             rows = self._connection.execute(
                 """
-                SELECT * FROM audit_events ORDER BY event_id DESC LIMIT ?
+                SELECT * FROM audit_events ORDER BY event_id DESC LIMIT ? OFFSET ?
                 """,
-                (safe_limit,),
+                (safe_limit, safe_offset),
             ).fetchall()
         result: list[dict[str, Any]] = []
         for row in rows:

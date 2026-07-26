@@ -137,24 +137,16 @@
     return searchActive;
   }
 
-  function statusLabel(status) {
-    const labels = {
-      active: "有效",
-      deprecated: "已弃用",
-      merged: "已合并",
-    };
-    return labels[utils.text(status).trim()] || utils.text(status).trim() || "未标注";
-  }
-
   function usageSummaryText(record) {
     const summary = record?.usageSummary || {};
+    const contextCount = utils.list(record?.contexts).length;
     if (record?.type === "information_environment") {
-      return `${Number(summary.environment_segments) || 0} 个子类上下文`;
+      return `${contextCount} 个子类上下文`;
     }
     if (record?.type === "environment_segment_type") {
-      return `${Number(summary.information_environments) || 0} 个环境 · ${Number(summary.environment_segments) || 0} 个子类上下文`;
+      return `${Number(summary.information_environments) || 0} 个环境 · ${contextCount} 个子类上下文`;
     }
-    return `${Number(summary.information_environments) || 0} 个环境 · ${Number(summary.environment_object_contexts) || 0} 个对象上下文`;
+    return `${Number(summary.information_environments) || 0} 个环境 · ${contextCount} 个对象上下文`;
   }
 
   function contextTypeLabel(contextType) {
@@ -167,28 +159,40 @@
     return labels[utils.text(contextType).trim()] || "关联上下文";
   }
 
-  function renderContextRow(context, categoryId, recordId, hidden) {
+  function renderContextRow(context, categoryId, recordId, hidden, index, total) {
     const params = context?.routeParams || {};
+    const contextPath = utils.list(context.contextPath)
+      .map((part) => utils.text(part).trim())
+      .filter(Boolean);
+    const contextLabel = contextPath.join(" / ")
+      || utils.text(context.contextTitle).trim()
+      || "未命名上下文";
+    const description = context.contextType === "environment_segment"
+      ? "保留所属信息化环境与环境子类的精确上下文，不改变现有映射关系。"
+      : "保留所属信息化环境、环境子类与信息化对象的精确上下文，不改变现有映射关系。";
     return `
       <tr class="environment-master-context-row"
           data-standard-lineage="${utils.escapeHtml(categoryId)}"
           data-master-context-parent="${utils.escapeHtml(recordId)}"${hidden ? " hidden" : ""}>
-        <td>${typePill("关联使用")}</td>
-        <td>
-          <span class="environment-master-context-title">${fullText(context.contextTitle, "未命名上下文")}</span>
-        </td>
-        <td class="maintenance-description-cell">
-          <span>${fullText(contextTypeLabel(context.contextType), "上下文")}</span>
-        </td>
-        <td>
-          <button class="environment-master-route-button" type="button"
+        <td colspan="4">
+          <div class="environment-master-context-band">
+            <span class="environment-master-context-sequence">关联 ${index + 1}/${total}</span>
+            <span class="environment-master-context-identity">
+              <strong class="environment-master-context-title">${utils.escapeHtml(contextLabel)}</strong>
+              <span class="environment-master-context-kind">${utils.escapeHtml(contextTypeLabel(context.contextType))}</span>
+            </span>
+            <span class="environment-master-context-description">${utils.escapeHtml(description)}</span>
+            <button class="environment-master-route-button" type="button"
               data-app-route="${utils.escapeHtml(context.route || "/environment-mapping")}"
+              data-environment-target-tab="mapping"
               data-environment-id="${utils.escapeHtml(params.environment_id || "")}"
               data-environment-segment-id="${utils.escapeHtml(params.segment_id || "")}"
               data-environment-object-id="${utils.escapeHtml(params.object_id || "")}"
-              data-context-ref="${utils.escapeHtml(context.contextRef || "")}">
-            查看环境映射
-          </button>
+              data-context-ref="${utils.escapeHtml(context.contextRef || "")}"
+              aria-label="${utils.escapeHtml(`在信息化环境-安全技术中定位：${contextLabel}`)}">
+              定位关联映射
+            </button>
+          </div>
         </td>
       </tr>
     `;
@@ -209,7 +213,6 @@
           data-maintenance-id="${utils.escapeHtml(recordId)}"${categoryExpanded ? "" : " hidden"}>
         <td>
           <strong class="environment-master-code">${fullText(record.code, "未编号")}</strong>
-          <span class="environment-master-status">${utils.escapeHtml(statusLabel(record.status))}</span>
         </td>
         <td>
           <strong>${fullText(record.title, "未命名主数据")}</strong>
@@ -221,11 +224,18 @@
           <button class="environment-master-context-toggle" type="button"
               data-environment-master-record-toggle="${utils.escapeHtml(recordId)}"
               aria-expanded="${expanded ? "true" : "false"}"${contexts.length ? "" : " disabled"}>
-            ${expanded ? "收起关联" : `展开关联（${record.totalContexts ?? contexts.length}）`}
+            ${expanded ? "收起关联" : `展开关联（${contexts.length}）`}
           </button>
         </td>
       </tr>
-      ${contexts.map((context) => renderContextRow(context, categoryId, recordId, !categoryExpanded || !expanded)).join("")}
+      ${contexts.map((context, index) => renderContextRow(
+        context,
+        categoryId,
+        recordId,
+        !categoryExpanded || !expanded,
+        index,
+        contexts.length,
+      )).join("")}
     `;
   }
 
@@ -240,7 +250,7 @@
           <button class="standard-group-toggle" type="button" aria-expanded="${expanded ? "true" : "false"}">
             <span class="standard-group-caret">›</span>
             <span class="standard-group-main">
-              <strong><span class="hierarchy-level-label">主数据分类</span>${fullText(category.label)}</strong>
+              <strong>${fullText(category.label)}</strong>
               <span class="standard-group-description">${fullText(category.description)}</span>
             </span>
             <span class="hierarchy-meta">${utils.escapeHtml(`${category.declaredCount} 条主数据 · ${category.contextCount} 条关联使用`)}</span>
@@ -358,14 +368,14 @@
       <div class="maintenance-table-scroll">
         <table class="maintenance-data-table environment-object-directory-table is-master hierarchical-directory-maintenance-table" style="width: 100%; min-width: 0; table-layout: fixed;">
           <colgroup>
-            <col style="width: 168px;">
-            <col style="width: 270px;">
-            <col>
+            <col style="width: 142px;">
             <col style="width: 250px;">
+            <col>
+            <col style="width: 230px;">
           </colgroup>
           <thead>
             <tr>
-              <th>编号 / 状态</th>
+              <th>编号</th>
               <th>名称</th>
               <th>定义 / 描述</th>
               <th>关联使用</th>

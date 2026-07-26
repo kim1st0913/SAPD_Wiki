@@ -676,11 +676,13 @@
 .dashboard-dictionary-list button strong { color: oklch(0.37 0.11 258); font-variant-numeric: tabular-nums; }
 
 /* The directory body owns three explicit rows: controls, scrolling table, and endcap. */
+#maintenanceWorkspace.knowledge-directory-mode .source-local-search-body:has(.capability-directory-maintenance-table),
 #maintenanceWorkspace.knowledge-directory-mode .source-local-search-body:has(.hierarchical-directory-maintenance-table) {
   grid-template-rows: auto minmax(0, 1fr) auto;
   align-items: start;
 }
 
+#maintenanceWorkspace.knowledge-directory-mode .source-local-search-body:has(.capability-directory-maintenance-table) > .maintenance-table-scroll,
 #maintenanceWorkspace.knowledge-directory-mode .source-local-search-body:has(.hierarchical-directory-maintenance-table) > .maintenance-table-scroll {
   align-self: stretch;
   height: 100%;

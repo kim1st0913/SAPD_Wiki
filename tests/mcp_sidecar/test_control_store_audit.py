@@ -107,6 +107,26 @@ class ControlStoreAuditTests(unittest.TestCase):
         self.assertNotIn(query.encode(), serialized)
         self.assertNotIn(b"/Users/example/private", serialized)
 
+    def test_audit_count_and_offset_support_fixed_page_reads(self) -> None:
+        audit = AuditLogger(self.store, period_key=b"p" * 32)
+        for index in range(7):
+            audit.record(
+                AuditEvent(
+                    event_type="TOOL_CALL",
+                    result_code="OK",
+                    client_id="client-a",
+                    tool_name="get_knowledge_version",
+                    correlation_id=f"correlation-{index}",
+                )
+            )
+        self.assertEqual(self.store.count_audit(), 7)
+        second_page = self.store.read_audit(limit=3, offset=3)
+        self.assertEqual(len(second_page), 3)
+        self.assertEqual(
+            [item["correlation_id"] for item in second_page],
+            ["correlation-3", "correlation-2", "correlation-1"],
+        )
+
     def test_runtime_preferences_round_trip(self) -> None:
         self.assertIsNone(self.store.load_runtime_preferences())
         self.store.save_runtime_preferences(

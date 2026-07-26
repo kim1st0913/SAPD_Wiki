@@ -761,7 +761,7 @@
   font-size: var(--sapd-shell-type-body, 14px);
 }
 
-.app-shell-integrated .system-settings-authorization-attention a {
+.app-shell-integrated .system-settings-authorization-attention button {
   min-height: 34px;
   display: inline-flex;
   flex: 0 0 auto;
@@ -775,10 +775,11 @@
   font-size: var(--sapd-shell-type-meta, 12px);
   font-weight: 760;
   text-decoration: none;
+  cursor: pointer;
 }
 
-.app-shell-integrated .system-settings-authorization-attention a:hover,
-.app-shell-integrated .system-settings-authorization-attention a:focus-visible {
+.app-shell-integrated .system-settings-authorization-attention button:hover,
+.app-shell-integrated .system-settings-authorization-attention button:focus-visible {
   border-color: var(--shell-primary-dark, var(--accent));
   background: var(--shell-primary-dark, var(--accent));
 }
@@ -1252,6 +1253,51 @@
   font-size: var(--sapd-shell-type-meta, 12px);
 }
 
+.app-shell-integrated .system-settings-audit-pagination {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--shell-muted, var(--muted));
+  font-size: var(--sapd-shell-type-meta, 12px);
+}
+
+.app-shell-integrated .system-settings-audit-pagination > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-shell-integrated .system-settings-audit-pagination b {
+  min-width: 72px;
+  color: var(--shell-text, var(--ink));
+  text-align: center;
+  font-weight: 720;
+}
+
+.app-shell-integrated .system-settings-audit-pagination button {
+  min-height: 30px;
+  padding: 5px 10px;
+  border: 1px solid var(--sapd-shell-divider, var(--line));
+  border-radius: 9px;
+  background: var(--sapd-shell-surface, var(--paper));
+  color: var(--shell-text, var(--ink));
+  font: inherit;
+  font-weight: 720;
+}
+
+.app-shell-integrated .system-settings-audit-pagination button:hover,
+.app-shell-integrated .system-settings-audit-pagination button:focus-visible {
+  border-color: var(--sapd-state-selected, var(--accent));
+  color: var(--sapd-state-selected, var(--accent));
+}
+
+.app-shell-integrated .system-settings-audit-pagination button:disabled {
+  cursor: default;
+  opacity: 0.42;
+}
+
 .app-shell-integrated .system-settings-panel-note {
   margin: 0;
   padding: 11px 16px 0;
@@ -1707,7 +1753,7 @@
     flex-direction: column;
   }
 
-  .app-shell-integrated .system-settings-authorization-attention a,
+  .app-shell-integrated .system-settings-authorization-attention button,
   .app-shell-integrated .system-settings-authorization-decision .system-settings-actions,
   .app-shell-integrated .system-settings-authorization-decision .system-settings-actions button {
     width: 100%;

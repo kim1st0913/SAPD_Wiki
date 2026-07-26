@@ -90,6 +90,9 @@ def api_snapshot() -> dict:
             "retention_bytes": 20 * 1024 * 1024,
             "event_count": 0,
             "last_event_at": None,
+            "page": 1,
+            "page_size": 3,
+            "page_count": 1,
             "recent_events": [],
         },
         "diagnostics": {
@@ -109,6 +112,12 @@ class FakeApiGateway:
 
     def read_snapshot(self) -> dict:
         return deepcopy(self.snapshot)
+
+    def read_audit_page(self, *, page: int, page_size: int) -> dict:
+        result = deepcopy(self.snapshot["audit"])
+        result["page"] = min(max(page, 1), result["page_count"])
+        result["page_size"] = page_size
+        return result
 
     def _action(self, name: str, expected_state_version: int) -> dict:
         if expected_state_version != self.snapshot["state_version"]:
@@ -298,6 +307,33 @@ class ControlApiTests(unittest.TestCase):
                 self.assertEqual(response.status, 200)
                 self.assertEqual(response.headers["Cache-Control"], "no-store")
                 self.assertIn(expected_key, response.body)
+
+    def test_audit_read_accepts_one_bounded_page_and_rejects_other_queries(self) -> None:
+        second_page = self.api.dispatch(
+            "GET",
+            "/api/v1/mcp/audit",
+            self.headers(),
+            query={"page": ["2"]},
+        )
+        self.assertEqual(second_page.status, 200)
+        self.assertEqual(second_page.body["data"]["page"], 1)
+        self.assertEqual(second_page.body["data"]["page_size"], 3)
+
+        for query in (
+            {"page": ["0"]},
+            {"page": ["1", "2"]},
+            {"page": ["abc"]},
+            {"page_size": ["3"]},
+        ):
+            with self.subTest(query=query):
+                rejected = self.api.dispatch(
+                    "GET",
+                    "/api/v1/mcp/audit",
+                    self.headers(),
+                    query=query,
+                )
+                self.assertEqual(rejected.status, 400)
+                self.assertEqual(rejected.body["error"]["code"], "INVALID_REQUEST")
 
     def test_machine_contract_lists_every_route_and_closes_object_schemas(self) -> None:
         contract_path = (

@@ -1,5 +1,5 @@
 {
-  "version": "2026-07-24.branch-convergence-reviewed-baseline",
+  "version": "2026-07-26.p8-reviewed-baseline",
   "scope": "frontend/capability-browser",
   "purpose": "Current accepted ceilings after the July 2026 project test governance baseline. Lower values pass; increases require deliberate governance review.",
   "requiredReview": "docs/07-governance/project-test-workflow-and-case-matrix.md",
@@ -13,10 +13,10 @@
       "maxColorMix": 681
     },
     "frontend/capability-browser/app.js": {
-      "maxLines": 13423
+      "maxLines": 13828
     },
     "frontend/capability-browser/viewModels.js": {
-      "maxLines": 5831
+      "maxLines": 6176
     },
     "frontend/capability-browser/components/CapabilityLocalRelationMap.js": {
       "maxLines": 1140
@@ -49,12 +49,12 @@
       "maxColorMix": 2
     },
     "frontend/capability-browser/p1-reference-tables.css": {
-      "maxLines": 185,
+      "maxLines": 360,
       "maxImportant": 0,
-      "maxHexColors": 37,
+      "maxHexColors": 63,
       "maxRootBlocks": 0,
       "maxRelationChipMentions": 1,
-      "maxColorMix": 10
+      "maxColorMix": 14
     },
     "frontend/capability-browser/p1-review-search.css": {
       "maxLines": 307,

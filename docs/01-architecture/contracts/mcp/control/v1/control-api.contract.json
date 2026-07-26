@@ -1,7 +1,7 @@
 {
   "schema_version": "mcp-control-contract-schema-v1",
   "contract_id": "MCP-CONTROL-API-v1",
-  "contract_version": "1.2.0",
+  "contract_version": "1.4.0",
   "projection_version": "sapd-mcp-control-v1",
   "scope": "local_web_and_desktop_control_projection",
   "ownership": {
@@ -94,7 +94,7 @@
       "id": "audit",
       "method": "GET",
       "path": "/api/v1/mcp/audit",
-      "request_schema": null,
+      "request_schema": "#/$defs/audit_page_request",
       "response_schema": "#/$defs/audit_read_response"
     },
     {
@@ -848,6 +848,18 @@
         }
       }
     },
+    "audit_page_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "page": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000,
+          "default": 1
+        }
+      }
+    },
     "audit": {
       "type": "object",
       "additionalProperties": false,
@@ -858,6 +870,9 @@
         "retention_bytes",
         "event_count",
         "last_event_at",
+        "page",
+        "page_size",
+        "page_count",
         "recent_events"
       ],
       "properties": {
@@ -889,6 +904,17 @@
             "null"
           ],
           "maxLength": 64
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "page_size": {
+          "const": 3
+        },
+        "page_count": {
+          "type": "integer",
+          "minimum": 1
         },
         "recent_events": {
           "type": "array",
@@ -1238,6 +1264,7 @@
         "authorization_requests": {
           "type": "array",
           "maxItems": 128,
+          "description": "Equivalent pending OAuth retries with the same client_id, redirect_uri, scopes, resource, and policy_version are represented once and resolved by one user decision. Requests with any different identity or access boundary remain independent.",
           "items": {
             "$ref": "#/$defs/authorization_request"
           }

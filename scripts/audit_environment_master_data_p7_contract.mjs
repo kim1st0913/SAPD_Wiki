@@ -16,6 +16,24 @@ import vm from "node:vm";
 
 const root = resolve(import.meta.dirname, "..");
 const outputRoot = resolve(root, "data/exports/worker-verify/plan-env-md");
+const p71Dir = readdirSync(outputRoot)
+  .filter((name) => /^p7-1-\d{8}T\d{6}Z$/.test(name))
+  .map((name) => resolve(outputRoot, name))
+  .filter(
+    (path) =>
+      statSync(path).isDirectory()
+      && existsSync(resolve(path, "p7-1-definition-apply.json")),
+  )
+  .sort()
+  .at(-1);
+if (p71Dir) {
+  execFileSync(
+    "node",
+    [resolve(root, "scripts/audit_environment_master_data_p7_1_contract.mjs")],
+    { stdio: "inherit" },
+  );
+  process.exit(0);
+}
 const args = process.argv.slice(2);
 const hasFlag = (name) => args.includes(name);
 const argValue = (name, fallback = "") => {

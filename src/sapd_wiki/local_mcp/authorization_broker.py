@@ -29,6 +29,19 @@ class AuthorizationDecisionBroker:
         self._timeout_seconds = timeout_seconds
         self._poll_interval_seconds = poll_interval_seconds
         self._monotonic = monotonic
+        self._request_waiters: dict[str, int] = {}
+
+    def _retain_request(self, request_id: str) -> None:
+        self._request_waiters[request_id] = self._request_waiters.get(request_id, 0) + 1
+
+    def _release_request(self, request_id: str, *, cancel_if_last: bool) -> None:
+        remaining = self._request_waiters.get(request_id, 1) - 1
+        if remaining > 0:
+            self._request_waiters[request_id] = remaining
+            return
+        self._request_waiters.pop(request_id, None)
+        if cancel_if_last:
+            self._store.cancel_authorization_request(request_id)
 
     async def decide(self, request: AuthorizationRequest) -> bool:
         request_id = self._store.create_authorization_request(
@@ -40,7 +53,9 @@ class AuthorizationDecisionBroker:
             policy_version=self._policy_version,
             timeout_seconds=self._timeout_seconds,
         )
+        self._retain_request(request_id)
         deadline = self._monotonic() + self._timeout_seconds
+        released = False
         try:
             while self._monotonic() < deadline:
                 decision = self._store.authorization_decision(request_id)
@@ -54,5 +69,9 @@ class AuthorizationDecisionBroker:
             self._store.authorization_decision(request_id)
             raise AuthorizationDecisionTimeout
         except asyncio.CancelledError:
-            self._store.cancel_authorization_request(request_id)
+            self._release_request(request_id, cancel_if_last=True)
+            released = True
             raise
+        finally:
+            if not released:
+                self._release_request(request_id, cancel_if_last=False)

@@ -40,6 +40,13 @@ class SupervisorGateway(Protocol):
 
     def read_snapshot(self) -> Mapping[str, Any]: ...
 
+    def read_audit_page(
+        self,
+        *,
+        page: int,
+        page_size: int,
+    ) -> Mapping[str, Any]: ...
+
     def start_service(self, *, request_id: str, expected_state_version: int) -> Mapping[str, Any]: ...
 
     def stop_service(self, *, request_id: str, expected_state_version: int) -> Mapping[str, Any]: ...
@@ -217,9 +224,17 @@ class ControlService:
         snapshot = self._read_projected_snapshot()
         return self._read_envelope(snapshot["state_version"], snapshot["clients"])
 
-    def get_audit(self) -> dict[str, Any]:
+    def get_audit(self, *, page: int = 1, page_size: int = 3) -> dict[str, Any]:
         snapshot = self._read_projected_snapshot()
-        return self._read_envelope(snapshot["state_version"], snapshot["audit"])
+        if not isinstance(page, int) or isinstance(page, bool) or page < 1:
+            raise ControlError("INVALID_REQUEST", status=400)
+        if page_size != 3:
+            raise ControlError("INVALID_REQUEST", status=400)
+        raw_audit = self._gateway.read_audit_page(page=page, page_size=page_size)
+        return self._read_envelope(
+            snapshot["state_version"],
+            self._project_audit(raw_audit),
+        )
 
     def get_diagnostics(self) -> dict[str, Any]:
         snapshot = self._read_projected_snapshot()
@@ -1031,6 +1046,9 @@ class ControlService:
                     "retention_bytes",
                     "event_count",
                     "last_event_at",
+                    "page",
+                    "page_size",
+                    "page_count",
                     "recent_events",
                 }
             ),
@@ -1080,6 +1098,9 @@ class ControlService:
             "retention_bytes": require_int(source["retention_bytes"], maximum=2**40),
             "event_count": require_int(source["event_count"]),
             "last_event_at": require_nullable_string(source["last_event_at"], maximum=64),
+            "page": require_int(source["page"], minimum=1),
+            "page_size": require_int(source["page_size"], minimum=3, maximum=3),
+            "page_count": require_int(source["page_count"], minimum=1),
             "recent_events": recent_events,
         }
 

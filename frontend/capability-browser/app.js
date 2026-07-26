@@ -46,6 +46,7 @@ const state = {
   mcpControlLoading: false,
   mcpControlLoaded: false,
   mcpControlError: "",
+  mcpAuditPage: 1,
   mcpPendingAction: "",
   mcpControlNotice: null,
   mcpConfirmation: null,
@@ -9868,7 +9869,11 @@ function activateRoute(route, options = {}) {
   }
   applyRouteTarget(target);
   restoreScopedSearch();
-  setActiveView(target.view || "overview", { syncRoute: false, skipAnnotationGuard: true });
+  setActiveView(target.view || "overview", {
+    syncRoute: false,
+    skipAnnotationGuard: true,
+    environmentTab: options.environmentTab,
+  });
   const browserRoute = target.route === "/search" ? route : state.activeRoute;
   if (!options.fromBrowser) syncBrowserRoute(browserRoute, { replace: Boolean(options.replace) });
 }
@@ -11858,6 +11863,14 @@ function preserveSettingsDetailsState(currentSection, nextSection) {
   });
 }
 
+function settingsActiveEditor(section, activeElement) {
+  return Boolean(
+    activeElement
+    && section.contains(activeElement)
+    && activeElement.matches?.('input, textarea, select, [contenteditable="true"]'),
+  );
+}
+
 function syncSettingsSilently(html) {
   const currentWorkspace = document.querySelector("#settingsWorkspace > .system-settings-workspace");
   const currentPage = currentWorkspace?.querySelector('[data-settings-page="ai-integration"]');
@@ -11875,7 +11888,7 @@ function syncSettingsSilently(html) {
 
   Array.from(currentPage.children).forEach((section) => {
     const key = section.dataset.settingsSection;
-    if (!key || nextKeys.has(key) || section.contains(activeElement)) return;
+    if (!key || nextKeys.has(key) || settingsActiveEditor(section, activeElement)) return;
     section.remove();
   });
 
@@ -11883,9 +11896,17 @@ function syncSettingsSilently(html) {
     const key = nextSection.dataset.settingsSection;
     let currentSection = currentPage.querySelector(`:scope > [data-settings-section="${key}"]`);
     if (currentSection) {
-      if (currentSection.isEqualNode(nextSection) || currentSection.contains(activeElement)) return;
+      if (currentSection.isEqualNode(nextSection) || settingsActiveEditor(currentSection, activeElement)) return;
+      const activeButtonLabel = currentSection.contains(activeElement) && activeElement.matches?.("button")
+        ? activeElement.textContent.trim()
+        : "";
       preserveSettingsDetailsState(currentSection, nextSection);
       currentSection.replaceWith(nextSection);
+      if (activeButtonLabel) {
+        const matchingButtons = Array.from(nextSection.querySelectorAll("button"))
+          .filter((button) => button.textContent.trim() === activeButtonLabel);
+        if (matchingButtons.length === 1) matchingButtons[0].focus({ preventScroll: true });
+      }
       return;
     }
     const followingKey = nextSections
@@ -12052,7 +12073,20 @@ async function loadSettingsRuntimeHealth({ force = false } = {}) {
 async function loadMcpControlPanel({ force = false, silent = false } = {}) {
   if (state.mcpControlLoading) return null;
   if (state.mcpControlLoaded && !force) return state.mcpControlSnapshot;
+  const requestedAuditPage = state.mcpAuditPage;
   const previousStateVersion = state.mcpControlSnapshot?.state_version;
+  const previousVisibleRevision = JSON.stringify({
+    service: state.mcpControlSnapshot?.status?.service_state,
+    authorization: state.mcpControlSnapshot?.status?.authorization_state,
+    clients: (state.mcpControlSnapshot?.clients || []).map((client) => [
+      client.client_id,
+      client.status,
+      client.last_used_at,
+    ]),
+    auditPage: state.mcpControlSnapshot?.audit?.page,
+    auditCount: state.mcpControlSnapshot?.audit?.event_count,
+    auditLastEvent: state.mcpControlSnapshot?.audit?.last_event_at,
+  });
   const previousError = state.mcpControlError;
   const dataClient = window.sapdDataClient;
   if (!dataClient?.getMcpControlPanel) {
@@ -12067,10 +12101,26 @@ async function loadMcpControlPanel({ force = false, silent = false } = {}) {
   if (!state.mcpControlSnapshot) state.mcpControlError = "";
   if (state.activeView === "settings" && !silent) renderSettings();
   try {
-    const envelope = await dataClient.getMcpControlPanel();
+    const [envelope, auditEnvelope] = await Promise.all([
+      dataClient.getMcpControlPanel(),
+      typeof dataClient.getMcpAuditPage === "function"
+        ? dataClient.getMcpAuditPage(requestedAuditPage)
+        : Promise.resolve(null),
+    ]);
     const snapshot = envelope?.data;
     if (snapshot?.contract_version !== "sapd-mcp-control-v1") {
       throw new Error("AI 集成控制快照版本不受支持。");
+    }
+    const auditPayload = auditEnvelope?.data;
+    if (auditPayload?.contract_version !== "sapd-mcp-control-v1") {
+      throw new Error("审计分页快照版本不受支持。");
+    }
+    const auditPage = auditPayload?.data;
+    if (auditPage && typeof auditPage === "object") {
+      snapshot.audit = auditPage;
+      if (state.mcpAuditPage === requestedAuditPage) {
+        state.mcpAuditPage = Number(auditPage.page) || 1;
+      }
     }
     state.mcpControlSnapshot = snapshot;
     state.mcpControlError = "";
@@ -12085,12 +12135,31 @@ async function loadMcpControlPanel({ force = false, silent = false } = {}) {
     state.mcpControlLoading = false;
     syncMcpTopbarStatus();
     const stateChanged = previousStateVersion !== state.mcpControlSnapshot?.state_version;
+    const nextVisibleRevision = JSON.stringify({
+      service: state.mcpControlSnapshot?.status?.service_state,
+      authorization: state.mcpControlSnapshot?.status?.authorization_state,
+      clients: (state.mcpControlSnapshot?.clients || []).map((client) => [
+        client.client_id,
+        client.status,
+        client.last_used_at,
+      ]),
+      auditPage: state.mcpControlSnapshot?.audit?.page,
+      auditCount: state.mcpControlSnapshot?.audit?.event_count,
+      auditLastEvent: state.mcpControlSnapshot?.audit?.last_event_at,
+    });
+    const visibleStateChanged = previousVisibleRevision !== nextVisibleRevision;
     const errorChanged = previousError !== state.mcpControlError;
     if (
       state.activeView === "settings"
-      && (!silent || stateChanged || errorChanged)
+      && (!silent || stateChanged || visibleStateChanged || errorChanged)
     ) {
       renderSettings({ silent });
+    }
+    if (
+      Number(state.mcpAuditPage) !== Number(state.mcpControlSnapshot?.audit?.page)
+      && state.activeView === "settings"
+    ) {
+      loadMcpControlPanel({ force: true, silent: true });
     }
   }
 }
@@ -12471,8 +12540,8 @@ function setActiveView(view, options = {}) {
     state.expandedCapabilityIds = new Set();
     state.expandedSelectionId = null;
   }
-  if (view === "environment" && previousView !== "environment") {
-    state.activeEnvironmentTab = "topology";
+  if (view === "environment" && (previousView !== "environment" || options.environmentTab)) {
+    state.activeEnvironmentTab = options.environmentTab === "mapping" ? "mapping" : "topology";
   }
   state.activeView = view;
   restoreScopedSearch();
@@ -12607,6 +12676,15 @@ function bindEvents() {
       copySettingsText(`名称：SAPD Wiki\n类型：流式 HTTP\nURL：${resource}\nBearer Token：留空\nHeaders：留空`, "MCP 连接配置已复制。");
       return;
     }
+    const auditPage = event.target?.closest?.("[data-mcp-audit-page]");
+    if (auditPage) {
+      event.preventDefault();
+      const nextPage = Number.parseInt(auditPage.dataset.mcpAuditPage, 10);
+      if (!Number.isInteger(nextPage) || nextPage < 1) return;
+      state.mcpAuditPage = nextPage;
+      loadMcpControlPanel({ force: true, silent: true });
+      return;
+    }
     const revokeClient = event.target?.closest?.("[data-mcp-client-revoke]");
     if (revokeClient) {
       event.preventDefault();
@@ -12676,6 +12754,7 @@ function bindEvents() {
     const environmentId = text(routeButton.dataset.environmentId).trim();
     const environmentSegmentId = text(routeButton.dataset.environmentSegmentId).trim();
     const environmentObjectId = text(routeButton.dataset.environmentObjectId).trim();
+    const environmentTargetTab = text(routeButton.dataset.environmentTargetTab).trim();
     if (environmentId || environmentSegmentId || environmentObjectId) {
       state.selectedEnvironmentId = environmentId || null;
       state.selectedEnvironmentSegmentId = environmentSegmentId || null;
@@ -12693,7 +12772,10 @@ function bindEvents() {
       state.workbenchSelectedIssueIds = new Set();
       state.workbenchPendingDeleteIssueId = "";
     }
-    activateRoute(routeButton.dataset.appRoute, dashboardIssueId ? { workbenchIssueId: dashboardIssueId } : {});
+    activateRoute(routeButton.dataset.appRoute, {
+      ...(dashboardIssueId ? { workbenchIssueId: dashboardIssueId } : {}),
+      ...(environmentTargetTab ? { environmentTab: environmentTargetTab } : {}),
+    });
     if (settingsAnchor) {
       window.requestAnimationFrame(() => {
         const target = document.getElementById(settingsAnchor);
@@ -13383,6 +13465,7 @@ function bindEvents() {
       renderMaintenance();
       return;
     }
+    if (event.target.closest("button, a, input, select, textarea, summary")) return;
     if (event.target.closest(".maintenance-count-bubble")) return;
     const row = event.target.closest("[data-maintenance-id]");
     if (!row) return;

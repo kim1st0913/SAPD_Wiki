@@ -136,6 +136,7 @@ class ControlApiRequest:
     path: str
     headers: Mapping[str, str]
     body: bytes | str | Mapping[str, Any] | None = None
+    query: Mapping[str, list[str]] | None = None
 
 
 @dataclass(frozen=True, slots=True)

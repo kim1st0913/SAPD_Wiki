@@ -81,8 +81,17 @@ class ControlApi:
         path: str,
         headers: Mapping[str, str],
         body: bytes | str | Mapping[str, Any] | None = None,
+        query: Mapping[str, list[str]] | None = None,
     ) -> ControlApiResponse:
-        return self.handle(ControlApiRequest(method=method, path=path, headers=headers, body=body))
+        return self.handle(
+            ControlApiRequest(
+                method=method,
+                path=path,
+                headers=headers,
+                body=body,
+                query=query,
+            )
+        )
 
     def handle(self, request: ControlApiRequest) -> ControlApiResponse:
         try:
@@ -98,6 +107,11 @@ class ControlApi:
                     raise ControlError("METHOD_NOT_ALLOWED", status=405)
                 self._require_empty_body(request.body)
                 handler = getattr(self._service, _READ_ROUTES[path])
+                if path == "/api/v1/mcp/audit":
+                    return self._success(
+                        handler(page=self._audit_page(request.query), page_size=3)
+                    )
+                self._require_empty_query(request.query)
                 return self._success(handler())
 
             if path in _MUTATION_ROUTES:
@@ -297,6 +311,31 @@ class ControlApi:
         if body is None or body == b"" or body == "":
             return
         raise ControlError("INVALID_REQUEST", status=400)
+
+    @staticmethod
+    def _require_empty_query(query: Mapping[str, list[str]] | None) -> None:
+        if query is None or not query:
+            return
+        raise ControlError("INVALID_REQUEST", status=400)
+
+    @staticmethod
+    def _audit_page(query: Mapping[str, list[str]] | None) -> int:
+        if query is None or not query:
+            return 1
+        if set(query) != {"page"}:
+            raise ControlError("INVALID_REQUEST", status=400)
+        values = query.get("page")
+        if (
+            not isinstance(values, list)
+            or len(values) != 1
+            or not isinstance(values[0], str)
+            or not values[0].isdigit()
+        ):
+            raise ControlError("INVALID_REQUEST", status=400)
+        page = int(values[0])
+        if page < 1 or page > 1_000_000:
+            raise ControlError("INVALID_REQUEST", status=400)
+        return page
 
     @staticmethod
     def _is_json_content_type(value: str) -> bool:

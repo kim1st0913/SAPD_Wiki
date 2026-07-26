@@ -1,0 +1,505 @@
+{
+  "schema_version": "environment-and-object-definition-adjudication-p7-1-v1",
+  "plan_id": "PLAN-ENV-MD",
+  "phase": "P7.1",
+  "status": "frozen",
+  "authority": "user_requested_semantic_adjudication",
+  "source_statement": "原始工作簿只提供信息化环境、环境子类上下文和信息化对象名称及关系，不提供定义原文。",
+  "definition_method": {
+    "method": "根据原始名称、既有环境—子类—对象上下文和已冻结的环境子类定义，形成受控业务语义定义。",
+    "source_text_claim": false,
+    "runtime_inference": false,
+    "identity_change": false,
+    "relationship_change": false
+  },
+  "entries": [
+    {
+      "type": "information_environment",
+      "code": "IE-001",
+      "stable_ref": "base:information_environment:information_environment:hash:3f8b4039a10d89ca",
+      "canonical_title": "网络周界",
+      "definition": "企业信息化网络与互联网、外联网或内部其他网络区域连接时形成的边界运行环境，承载出入口及跨网通信。",
+      "decision_note": "定义由互联网边界、外联网边界和企业内跨网边界三个既有子类上下文限定。"
+    },
+    {
+      "type": "information_environment",
+      "code": "IE-002",
+      "stable_ref": "base:information_environment:information_environment:hash:25965d467c3d62e1",
+      "canonical_title": "云数据中心",
+      "definition": "基于云化和虚拟化基础设施，集中承载网络、工作负载、管理平台、业务应用及数据平台的运行环境。",
+      "decision_note": "定义由网络、工作负载、管理平台、业务应用和大数据平台/数据中台五个既有子类上下文限定。"
+    },
+    {
+      "type": "information_environment",
+      "code": "IE-003",
+      "stable_ref": "base:information_environment:information_environment:hash:8d0db2b00a744db1",
+      "canonical_title": "传统数据中心",
+      "definition": "基于物理或传统虚拟化基础设施，集中承载网络、工作负载以及应用和数据系统的运行环境。",
+      "decision_note": "定义由网络、工作负载和应用及数据三个既有子类上下文限定。"
+    },
+    {
+      "type": "information_environment",
+      "code": "IE-004",
+      "stable_ref": "base:information_environment:information_environment:hash:fe9ac74a3cd00447",
+      "canonical_title": "广域网",
+      "definition": "连接总部、园区、数据中心和分支等地理分散节点，承载跨地域通信的骨干网络环境。",
+      "decision_note": "定义由广域网骨干节点既有子类上下文限定。"
+    },
+    {
+      "type": "information_environment",
+      "code": "IE-005",
+      "stable_ref": "base:information_environment:information_environment:hash:af9202642bd021e1",
+      "canonical_title": "园区网",
+      "definition": "企业园区范围内连接办公人员、终端和内部业务资源，提供局域通信与对外接入的网络环境。",
+      "decision_note": "定义由网络、人员、PC终端和移动终端四个既有子类上下文限定。"
+    },
+    {
+      "type": "information_environment",
+      "code": "IE-006",
+      "stable_ref": "base:information_environment:information_environment:hash:390c4924d2e7a645",
+      "canonical_title": "分支机构",
+      "definition": "企业分支办公场所内由接入网络、办公人员及其终端组成，并与总部或外部网络通信的局部信息化环境。",
+      "decision_note": "定义由网络、人员、PC终端和移动终端四个既有子类上下文限定。"
+    },
+    {
+      "type": "information_environment",
+      "code": "IE-007",
+      "stable_ref": "base:information_environment:information_environment:hash:98480975a6a281c6",
+      "canonical_title": "远程办公接入",
+      "definition": "办公人员从企业网络之外，通过个人终端远程访问企业信息系统和资源的接入环境。",
+      "decision_note": "定义由人员和PC终端两个既有子类上下文限定。"
+    },
+    {
+      "type": "information_environment",
+      "code": "IE-008",
+      "stable_ref": "base:information_environment:information_environment:hash:b76f652b3333fd29",
+      "canonical_title": "客户访问接入",
+      "definition": "外部客户通过移动终端或访问终端连接企业对外业务系统和服务的接入环境。",
+      "decision_note": "定义由移动终端既有子类上下文限定。"
+    },
+    {
+      "type": "information_environment",
+      "code": "IE-009",
+      "stable_ref": "base:information_environment:information_environment:hash:360deb63ce86b704",
+      "canonical_title": "运维管理网络",
+      "definition": "供运维人员和管理终端访问、配置及维护生产基础设施和信息系统的专用管理网络环境。",
+      "decision_note": "定义由网络、人员和PC终端三个既有子类上下文限定。"
+    },
+    {
+      "type": "information_environment",
+      "code": "IE-010",
+      "stable_ref": "base:information_environment:information_environment:hash:a4158d7b4e80427c",
+      "canonical_title": "工业控制网络",
+      "definition": "按工业控制层级组织、承载生产控制通信与计算活动的网络环境，覆盖控制层、运行管理层及相邻边界。",
+      "decision_note": "定义由L3层、L2层和L1层三个既有子类上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-001",
+      "stable_ref": "base:information_object:information_object:hash:d7b0b5f93cae10bd",
+      "canonical_title": "互联网入口边界",
+      "definition": "互联网入向流量进入企业网络时经过的逻辑或物理连接边界。",
+      "decision_note": "定义由网络周界—互联网边界上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-002",
+      "stable_ref": "base:information_object:information_object:hash:d7eaf0c7271b7c38",
+      "canonical_title": "互联网出口边界",
+      "definition": "企业网络访问互联网时出向流量经过的逻辑或物理连接边界。",
+      "decision_note": "定义由网络周界—互联网边界上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-003",
+      "stable_ref": "base:information_object:information_object:hash:1ffa9a8537b44fbb",
+      "canonical_title": "外联网出口边界",
+      "definition": "企业网络连接合作方、专网或其他外联网络时出向通信经过的连接边界。",
+      "decision_note": "定义由网络周界—外联网边界上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-004",
+      "stable_ref": "base:information_object:information_object:hash:21fbf506cbad349c",
+      "canonical_title": "跨网边界",
+      "definition": "企业内部不同网络区域之间进行跨域通信时经过的连接和隔离边界。",
+      "decision_note": "定义由网络周界—企业内跨网边界上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-005",
+      "stable_ref": "base:information_object:information_object:hash:e77d3dbbe06461d1",
+      "canonical_title": "云数据中心出口边界",
+      "definition": "云数据中心网络与外部网络连接时出入口通信经过的边界。",
+      "decision_note": "定义由云数据中心—网络上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-006",
+      "stable_ref": "base:information_object:information_object:hash:3b2d39999f856175",
+      "canonical_title": "云数据中心内部 虚拟网络",
+      "definition": "云数据中心内由虚拟交换、路由和网络分段能力构成，连接云工作负载的内部网络。",
+      "decision_note": "定义由云数据中心—网络上下文限定，保留既有规范名称空格。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-007",
+      "stable_ref": "base:information_object:information_object:hash:2a7695328c94b08d",
+      "canonical_title": "容器",
+      "definition": "以操作系统级隔离方式封装并运行应用及其依赖的轻量化工作负载载体。",
+      "decision_note": "定义由云数据中心—工作负载上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-008",
+      "stable_ref": "base:information_object:information_object:hash:4f63635fe881e4a1",
+      "canonical_title": "虚拟主机操作系统",
+      "definition": "运行在虚拟机中的主机操作系统，为应用和服务提供计算运行环境。",
+      "decision_note": "定义由数据中心—工作负载上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-009",
+      "stable_ref": "base:information_object:information_object:hash:1407e37fe9ccc10b",
+      "canonical_title": "物理主机操作系统",
+      "definition": "直接运行在物理服务器上的主机操作系统，为应用、平台或虚拟化软件提供运行基础。",
+      "decision_note": "定义由云数据中心和传统数据中心的工作负载上下文共同限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-010",
+      "stable_ref": "base:information_object:information_object:hash:9a7b74c52ad80c87",
+      "canonical_title": "物理主机硬件",
+      "definition": "承载操作系统、虚拟化平台和业务工作负载的物理服务器及其计算硬件。",
+      "decision_note": "定义由云数据中心和传统数据中心的工作负载上下文共同限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-011",
+      "stable_ref": "base:information_object:information_object:hash:440d2bb974a99a91",
+      "canonical_title": "基础设施管理平台 （虚拟化管理平台/云管理平台/容器编排平台）",
+      "definition": "对虚拟化、云资源和容器集群进行统一配置、编排、监控及运维管理的平台。",
+      "decision_note": "定义由云数据中心—管理平台上下文限定，保留既有规范名称。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-012",
+      "stable_ref": "base:information_object:information_object:hash:a7ac9f1889f964eb",
+      "canonical_title": "应用网关层",
+      "definition": "位于业务应用入口，承担请求接入、转发、协议处理和入口控制的网关组件层。",
+      "decision_note": "定义由云数据中心—业务应用上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-013",
+      "stable_ref": "base:information_object:information_object:hash:c5c558d84aa060b4",
+      "canonical_title": "用户接口层",
+      "definition": "直接面向用户提供界面展示和交互入口的应用组件层。",
+      "decision_note": "定义由云数据中心—业务应用上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-014",
+      "stable_ref": "base:information_object:information_object:hash:e241fdbee42df6e7",
+      "canonical_title": "API网关层",
+      "definition": "统一接入、路由和管理应用程序接口调用的网关组件层。",
+      "decision_note": "定义由云数据中心—业务应用上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-015",
+      "stable_ref": "base:information_object:information_object:hash:ea68004de916e440",
+      "canonical_title": "应用服务层",
+      "definition": "实现业务规则、业务处理和服务编排的应用后端组件层。",
+      "decision_note": "定义由云数据中心—业务应用上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-016",
+      "stable_ref": "base:information_object:information_object:hash:3bda1482eb381783",
+      "canonical_title": "数据访问层",
+      "definition": "封装应用对数据库、缓存或其他数据存储访问逻辑的组件层。",
+      "decision_note": "定义由云数据中心—业务应用上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-017",
+      "stable_ref": "base:information_object:information_object:hash:bce2b35ced6752e5",
+      "canonical_title": "数据存储层",
+      "definition": "为业务应用持久化保存和管理结构化或非结构化数据的存储组件层。",
+      "decision_note": "定义由云数据中心—业务应用上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-018",
+      "stable_ref": "base:information_object:information_object:hash:9055299c885b70a0",
+      "canonical_title": "数据分析层",
+      "definition": "对数据进行统计、计算、建模和分析处理并产出分析结果的功能层。",
+      "decision_note": "定义由云数据中心—大数据平台/数据中台上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-019",
+      "stable_ref": "base:information_object:information_object:hash:3464f968152efd4b",
+      "canonical_title": "数据共享层",
+      "definition": "按受控方式向组织内部或外部共享数据集和数据成果的功能层。",
+      "decision_note": "定义由云数据中心—大数据平台/数据中台上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-020",
+      "stable_ref": "base:information_object:information_object:hash:b8b8f1375f5219a5",
+      "canonical_title": "数据服务层",
+      "definition": "将数据能力封装为查询、接口或服务并向业务系统提供的功能层。",
+      "decision_note": "定义由云数据中心—大数据平台/数据中台上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-021",
+      "stable_ref": "base:information_object:information_object:hash:97d307f444672670",
+      "canonical_title": "数据存储计算层",
+      "definition": "集中提供海量数据存储、批处理、流处理及分布式计算能力的基础层。",
+      "decision_note": "定义由云数据中心—大数据平台/数据中台上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-022",
+      "stable_ref": "base:information_object:information_object:hash:3d1e548803af27c8",
+      "canonical_title": "数据接入层",
+      "definition": "从业务系统、设备或外部数据源采集、传输和接收数据的功能层。",
+      "decision_note": "定义由云数据中心—大数据平台/数据中台上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-023",
+      "stable_ref": "base:information_object:information_object:hash:4a44293c29ed92a3",
+      "canonical_title": "数据管理层",
+      "definition": "对数据资产、元数据、质量、标准和生命周期进行统一治理与管理的功能层。",
+      "decision_note": "定义由云数据中心—大数据平台/数据中台上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-024",
+      "stable_ref": "base:information_object:information_object:hash:e52af0b4a4d47b7e",
+      "canonical_title": "数据中心出口边界",
+      "definition": "传统数据中心网络与外部网络连接时通信流量经过的出入口边界。",
+      "decision_note": "定义由传统数据中心—网络上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-025",
+      "stable_ref": "base:information_object:information_object:hash:7f91f5916e328587",
+      "canonical_title": "数据中心内部网络",
+      "definition": "传统数据中心内部连接服务器、应用和数据资源的网络基础设施。",
+      "decision_note": "定义由传统数据中心—网络上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-026",
+      "stable_ref": "base:information_object:information_object:hash:1cedc27ff50fef07",
+      "canonical_title": "应用前端",
+      "definition": "面向用户提供界面、交互和客户端业务逻辑的应用组件。",
+      "decision_note": "定义由传统数据中心—应用及数据上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-027",
+      "stable_ref": "base:information_object:information_object:hash:bce801d7c8850cc9",
+      "canonical_title": "应用后端",
+      "definition": "在服务端实现业务处理、服务接口和系统集成的应用组件。",
+      "decision_note": "定义由传统数据中心—应用及数据上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-028",
+      "stable_ref": "base:information_object:information_object:hash:5fc98e1918f7ee88",
+      "canonical_title": "数据库",
+      "definition": "按照数据模型持久化保存、查询和管理业务数据的数据库系统。",
+      "decision_note": "定义由传统数据中心—应用及数据上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-029",
+      "stable_ref": "base:information_object:information_object:hash:27e4551bd13daf0d",
+      "canonical_title": "广域网骨干节点",
+      "definition": "广域网中承担核心路由、交换、转发或链路汇聚功能的网络节点。",
+      "decision_note": "定义由广域网—广域网骨干节点上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-030",
+      "stable_ref": "base:information_object:information_object:hash:e4c030a5a9785e46",
+      "canonical_title": "办公人员",
+      "definition": "使用办公终端和企业信息系统开展日常业务活动的人员主体。",
+      "decision_note": "定义由园区网、分支机构和远程办公接入中的人员上下文共同限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-031",
+      "stable_ref": "base:information_object:information_object:hash:a0fc9fe731190d62",
+      "canonical_title": "PC终端软件应用",
+      "definition": "安装或运行在个人计算终端上，供用户办公、访问或运维使用的软件应用。",
+      "decision_note": "定义由多个PC终端上下文共同限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-032",
+      "stable_ref": "base:information_object:information_object:hash:8af7ba798513f7f5",
+      "canonical_title": "PC终端操作系统",
+      "definition": "运行在个人计算终端上，管理终端硬件并承载终端软件的操作系统。",
+      "decision_note": "定义由多个PC终端上下文共同限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-033",
+      "stable_ref": "base:information_object:information_object:hash:d332b3d7aa333505",
+      "canonical_title": "PC终端设备",
+      "definition": "供用户办公、访问或运维使用的个人计算机及相关终端硬件。",
+      "decision_note": "定义由多个PC终端上下文共同限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-034",
+      "stable_ref": "base:information_object:information_object:hash:75cba54ce9ab6197",
+      "canonical_title": "移动终端软件应用",
+      "definition": "安装或运行在移动终端上，供用户访问企业或客户业务服务的软件应用。",
+      "decision_note": "定义由多个移动终端上下文共同限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-035",
+      "stable_ref": "base:information_object:information_object:hash:cb7bc28298de0463",
+      "canonical_title": "移动终端操作系统",
+      "definition": "运行在移动终端上，管理终端资源并承载移动应用的操作系统。",
+      "decision_note": "定义由多个移动终端上下文共同限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-036",
+      "stable_ref": "base:information_object:information_object:hash:0cc9f827c77697d9",
+      "canonical_title": "园区网出口边界",
+      "definition": "园区内部网络与外部网络连接时通信流量经过的出入口边界。",
+      "decision_note": "定义由园区网—网络上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-037",
+      "stable_ref": "base:information_object:information_object:hash:0291e33447601009",
+      "canonical_title": "园区网内部网络",
+      "definition": "园区范围内连接办公终端、用户和内部业务资源的局域网络。",
+      "decision_note": "定义由园区网—网络上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-038",
+      "stable_ref": "base:information_object:information_object:hash:6b4c9bc14a9e9cdf",
+      "canonical_title": "分支机构接入广域网边界",
+      "definition": "分支机构内部网络连接企业广域网时通信流量经过的接入边界。",
+      "decision_note": "定义由分支机构—网络上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-039",
+      "stable_ref": "base:information_object:information_object:hash:b3d0a2ac2118bd42",
+      "canonical_title": "分支机构接入互联网边界",
+      "definition": "分支机构内部网络连接互联网时通信流量经过的接入边界。",
+      "decision_note": "定义由分支机构—网络上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-040",
+      "stable_ref": "base:information_object:information_object:hash:091c05c70f24c27a",
+      "canonical_title": "分支机构内部网络",
+      "definition": "分支办公场所内连接人员、终端和本地信息资源的内部网络。",
+      "decision_note": "定义由分支机构—网络上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-041",
+      "stable_ref": "base:information_object:information_object:hash:026084d163014dad",
+      "canonical_title": "运维管理人员",
+      "definition": "负责配置、监控、维护和故障处置信息系统及基础设施的人员主体。",
+      "decision_note": "定义由运维管理网络—人员上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-042",
+      "stable_ref": "base:information_object:information_object:hash:9ee25d439e5c0402",
+      "canonical_title": "运维管理终端接入边界",
+      "definition": "运维管理终端接入专用运维管理网络时经过的连接和控制边界。",
+      "decision_note": "定义由运维管理网络—网络上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-043",
+      "stable_ref": "base:information_object:information_object:hash:726252791193c359",
+      "canonical_title": "运维管理网络入口边界",
+      "definition": "外部或其他网络访问运维管理网络时通信流量经过的入口边界。",
+      "decision_note": "定义由运维管理网络—网络上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-044",
+      "stable_ref": "base:information_object:information_object:hash:fe9e6293c4b9fef8",
+      "canonical_title": "运维管理网络内部边界",
+      "definition": "运维管理网络内部不同管理区域或资源域之间的连接和隔离边界。",
+      "decision_note": "定义由运维管理网络—网络上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-045",
+      "stable_ref": "base:information_object:information_object:hash:aa8fb2496b443b3a",
+      "canonical_title": "L4-L3间网络边界",
+      "definition": "工业控制网络中L4层与L3层之间承载跨层通信的连接和隔离边界。",
+      "decision_note": "定义由工业控制网络—L3层上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-046",
+      "stable_ref": "base:information_object:information_object:hash:74ac1c78f940b965",
+      "canonical_title": "L3内部网络",
+      "definition": "工业控制网络L3层内部连接运行管理系统和相关主机的网络。",
+      "decision_note": "定义由工业控制网络—L3层上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-047",
+      "stable_ref": "base:information_object:information_object:hash:dc6db7867c201a5f",
+      "canonical_title": "L3主机操作系统",
+      "definition": "运行在工业控制网络L3层主机上并承载运行管理应用的操作系统。",
+      "decision_note": "定义由工业控制网络—L3层上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-048",
+      "stable_ref": "base:information_object:information_object:hash:505ec4df55ca2e57",
+      "canonical_title": "L3-L2间网络边界",
+      "definition": "工业控制网络中L3层与L2层之间承载跨层通信的连接和隔离边界。",
+      "decision_note": "定义由工业控制网络—L2层上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-049",
+      "stable_ref": "base:information_object:information_object:hash:253fd762986b77fd",
+      "canonical_title": "L2内部网络",
+      "definition": "工业控制网络L2层内部连接控制系统和相关主机的网络。",
+      "decision_note": "定义由工业控制网络—L2层上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-050",
+      "stable_ref": "base:information_object:information_object:hash:ceaab58bbe788784",
+      "canonical_title": "L2层主机操作系统",
+      "definition": "运行在工业控制网络L2层主机上并承载控制类应用的操作系统。",
+      "decision_note": "定义由工业控制网络—L2层上下文限定。"
+    },
+    {
+      "type": "information_object",
+      "code": "IO-051",
+      "stable_ref": "base:information_object:information_object:hash:06ac2d6eaa4d2d17",
+      "canonical_title": "L2-L1间网络边界",
+      "definition": "工业控制网络中L2层与L1层之间承载跨层通信的连接和隔离边界。",
+      "decision_note": "定义由工业控制网络—L1层上下文限定。"
+    }
+  ]
+}

@@ -226,9 +226,9 @@ def validate_candidate(
         "knowledge_items": 4694,
         "knowledge_relations": 7786,
         "content_documents": 9,
-        "content_fragments": 610,
-        "content_relations": 685,
-        "content_source_evidence": 1304,
+        "content_fragments": 609,
+        "content_relations": 684,
+        "content_source_evidence": 1302,
     }
     expected_asset_counts = {
         "content_assets": 182,

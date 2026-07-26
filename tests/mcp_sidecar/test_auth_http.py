@@ -174,7 +174,6 @@ class AuthHTTPTests(unittest.TestCase):
                         "client_id": "client-a",
                         "refresh_token": issued["refresh_token"],
                         "scope": SCOPE,
-                        "resource": "https://127.0.0.1:28775/mcp",
                     },
                 )
                 self.assertEqual(refreshed.status_code, 200, refreshed.text)
@@ -182,6 +181,72 @@ class AuthHTTPTests(unittest.TestCase):
                 self.assertNotEqual(
                     replacement["refresh_token"], issued["refresh_token"]
                 )
+                wrong_resource = await client.post(
+                    "/oauth/token",
+                    data={
+                        "grant_type": "refresh_token",
+                        "client_id": "client-a",
+                        "refresh_token": replacement["refresh_token"],
+                        "scope": SCOPE,
+                        "resource": "https://127.0.0.1:28776/mcp",
+                    },
+                )
+                self.assertEqual(wrong_resource.status_code, 400)
+                self.assertEqual(
+                    wrong_resource.json(),
+                    {
+                        "error": "invalid_grant",
+                        "error_description": "resource does not match",
+                    },
+                )
+                refreshed_with_resource = await client.post(
+                    "/oauth/token",
+                    data={
+                        "grant_type": "refresh_token",
+                        "client_id": "client-a",
+                        "refresh_token": replacement["refresh_token"],
+                        "scope": SCOPE,
+                        "resource": "https://127.0.0.1:28775/mcp",
+                    },
+                )
+                self.assertEqual(
+                    refreshed_with_resource.status_code,
+                    200,
+                    refreshed_with_resource.text,
+                )
+                replacement = refreshed_with_resource.json()
+                refreshed_with_empty_resource = await client.post(
+                    "/oauth/token",
+                    data={
+                        "grant_type": "refresh_token",
+                        "client_id": "client-a",
+                        "refresh_token": replacement["refresh_token"],
+                        "scope": SCOPE,
+                        "resource": "",
+                    },
+                )
+                self.assertEqual(
+                    refreshed_with_empty_resource.status_code,
+                    200,
+                    refreshed_with_empty_resource.text,
+                )
+                replacement = refreshed_with_empty_resource.json()
+                refreshed_with_trailing_slash = await client.post(
+                    "/oauth/token",
+                    data={
+                        "grant_type": "refresh_token",
+                        "client_id": "client-a",
+                        "refresh_token": replacement["refresh_token"],
+                        "scope": SCOPE,
+                        "resource": "https://127.0.0.1:28775/mcp/",
+                    },
+                )
+                self.assertEqual(
+                    refreshed_with_trailing_slash.status_code,
+                    200,
+                    refreshed_with_trailing_slash.text,
+                )
+                replacement = refreshed_with_trailing_slash.json()
                 reused = await client.post(
                     "/oauth/token",
                     data={

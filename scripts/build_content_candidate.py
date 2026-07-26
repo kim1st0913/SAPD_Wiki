@@ -212,11 +212,13 @@ def parse_drawio(path: Path, document: dict[str, Any]) -> tuple[list[Fragment], 
 
     for page_index, diagram in enumerate(root.findall("diagram"), start=1):
         page_title = normalize_text(diagram.attrib.get("name", "")) or f"Page {page_index}"
-        page_ref = f"{document_ref}:page:{page_index:03d}"
         graph = decode_drawio_diagram(diagram)
         cells = list(graph.iter("mxCell"))
         vertices = [cell for cell in cells if cell.attrib.get("vertex") == "1"]
         edges = [cell for cell in cells if cell.attrib.get("edge") == "1"]
+        if not vertices and not edges:
+            continue
+        page_ref = f"{document_ref}:page:{page_index:03d}"
         fragments.append(
             Fragment(
                 stable_ref=page_ref,
@@ -960,6 +962,17 @@ def insert_document(
 ) -> None:
     document_ref = document["stable_ref"]
     document_id = stable_id(document_ref)
+    if document["parser"] == "manual-catalog-only":
+        fragments, relations = parse_manual_catalog(document, manifest)
+    else:
+        parser = PARSERS[document["format"]]
+        fragments, relations = parser(ROOT / document["source_path"], document)
+    apply_ocr_fallbacks(
+        document,
+        fragments,
+        manifest,
+        review_manifest,
+    )
     metadata = {
         key: value
         for key, value in document.items()
@@ -976,6 +989,12 @@ def insert_document(
             "sha256",
         }
     }
+    if document["format"] == "drawio":
+        metadata.pop("expected_pages", None)
+        metadata["contentUnitCount"] = sum(
+            fragment.fragment_type == "drawio_page" for fragment in fragments
+        )
+        metadata["contentUnitMode"] = "independent"
     connection.execute(
         """
         INSERT INTO content_documents(
@@ -1019,18 +1038,6 @@ def insert_document(
             json_text({"logicalFileName": document["logical_file_name"]}),
             timestamp,
         ),
-    )
-
-    if document["parser"] == "manual-catalog-only":
-        fragments, relations = parse_manual_catalog(document, manifest)
-    else:
-        parser = PARSERS[document["format"]]
-        fragments, relations = parser(ROOT / document["source_path"], document)
-    apply_ocr_fallbacks(
-        document,
-        fragments,
-        manifest,
-        review_manifest,
     )
 
     for fragment in fragments:
@@ -1535,7 +1542,7 @@ def quality_gates(
         """
     ).fetchone()[0]
     expected = {
-        "drawio_page": 3,
+        "drawio_page": 2,
         "pdf_page": 164,
         "pptx_slide": 80,
         "manual_catalog": 7,

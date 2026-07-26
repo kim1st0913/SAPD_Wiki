@@ -4,6 +4,7 @@ import importlib.util
 import json
 import sqlite3
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -73,6 +74,61 @@ class ContentCandidateT1Tests(unittest.TestCase):
             self.assertNotIn("sample", folded)
             self.assertNotIn("samle", folded)
             self.assertFalse(name.startswith("~$"))
+
+    def test_drawio_empty_page_is_not_imported_as_content(self) -> None:
+        source = """<?xml version="1.0" encoding="UTF-8"?>
+<mxfile>
+  <diagram id="legend" name="图例">
+    <mxGraphModel><root>
+      <mxCell id="0"/>
+      <mxCell id="1" parent="0"/>
+      <mxCell id="legend-node" value="图例内容" vertex="1" parent="1"/>
+    </root></mxGraphModel>
+  </diagram>
+  <diagram id="empty" name="元模型">
+    <mxGraphModel><root>
+      <mxCell id="0"/>
+      <mxCell id="1" parent="0"/>
+    </root></mxGraphModel>
+  </diagram>
+  <diagram id="basemap" name="信息化环境及对象底图">
+    <mxGraphModel><root>
+      <mxCell id="0"/>
+      <mxCell id="1" parent="0"/>
+      <mxCell id="basemap-node" value="业务底图" vertex="1" parent="1"/>
+    </root></mxGraphModel>
+  </diagram>
+</mxfile>
+"""
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "architecture.drawio"
+            path.write_text(source, encoding="utf-8")
+            fragments, relations = MODULE.parse_drawio(
+                path,
+                {"stable_ref": "base:content_document:test-architecture"},
+            )
+
+        pages = [
+            fragment
+            for fragment in fragments
+            if fragment.fragment_type == "drawio_page"
+        ]
+        self.assertEqual(
+            [page.stable_ref for page in pages],
+            [
+                "base:content_document:test-architecture:page:001",
+                "base:content_document:test-architecture:page:003",
+            ],
+        )
+        self.assertEqual([page.title for page in pages], ["图例", "信息化环境及对象底图"])
+        self.assertFalse(any(":page:002" in item.stable_ref for item in fragments))
+        self.assertFalse(
+            any(
+                ":page:002" in relation.source_ref
+                or ":page:002" in relation.target_ref
+                for relation in relations
+            )
+        )
 
     def test_markdown_raw_html_does_not_expose_script_or_navigation(self) -> None:
         source = (

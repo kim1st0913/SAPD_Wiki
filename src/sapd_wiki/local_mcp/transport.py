@@ -332,11 +332,11 @@ def _remap_oauth_routes(
                 "public client authentication failed",
                 status_code=401,
             )
-        resource = form.get("resource")
-        if resource != provider.config.resource_url:
-            return token_error("invalid_grant", "resource does not match")
         grant_type = form.get("grant_type")
         if grant_type == "authorization_code":
+            resource = form.get("resource")
+            if resource != provider.config.resource_url:
+                return token_error("invalid_grant", "resource does not match")
             code = form.get("code")
             redirect_uri = form.get("redirect_uri")
             verifier = form.get("code_verifier")
@@ -385,13 +385,33 @@ def _remap_oauth_routes(
             if not isinstance(refresh_value, str):
                 return token_error("invalid_request", "refresh_token is required")
             refresh_token = await provider.load_refresh_token(client, refresh_value)
+            requested_resource = form.get("resource")
+            configured_resource = provider.config.resource_url
+            resource = (
+                refresh_token.resource
+                if (
+                    requested_resource in (None, "")
+                    and refresh_token is not None
+                )
+                else requested_resource
+            )
+            resource_matches = (
+                resource == configured_resource
+                or (
+                    isinstance(resource, str)
+                    and resource.endswith("/")
+                    and resource[:-1] == configured_resource
+                )
+            )
+            if not resource_matches:
+                return token_error("invalid_grant", "resource does not match")
             if (
                 refresh_token is None
                 or (
                     refresh_token.expires_at is not None
                     and refresh_token.expires_at < time.time()
                 )
-                or refresh_token.resource != resource
+                or refresh_token.resource != configured_resource
             ):
                 return token_error("invalid_grant", "refresh token is invalid")
             requested_scope = form.get("scope")

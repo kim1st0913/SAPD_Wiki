@@ -17,7 +17,18 @@ from threading import Lock
 from typing import Any
 from urllib.parse import parse_qs, unquote, urlparse
 
+from .content_asset_service import (
+    ASSET_HASH_PATTERN,
+    ContentAssetError,
+    ContentAssetNotFound,
+    ContentAssetRangeError,
+    ContentAssetService,
+    parse_http_byte_range,
+)
+from .local_mcp.base_query_service import SCOPE, BaseKnowledgeQueryService
 from .local_mcp.dev_supervisor import DevSidecarSupervisor
+from .local_mcp.errors import McpCoreError
+from .local_mcp.models import RequestContext
 from .local_mcp.web_control import build_dev_control_api
 
 from .maturity import (
@@ -76,6 +87,9 @@ MAINTENANCE_SECTIONS = (
 DEFAULT_FRONTEND_PUBLIC_DATA_ROOT = (PROJECT_ROOT / "frontend" / "capability-browser" / "public" / "data").resolve()
 DEFAULT_FRONTEND_STATIC_DIR = (PROJECT_ROOT / "frontend" / "capability-browser").resolve()
 DEFAULT_USER_DB_PATH = (PROJECT_ROOT / "data" / "user" / "sapd_wiki_user.sqlite3").resolve()
+DEFAULT_CONTENT_ASSET_DB_PATH = (
+    PROJECT_ROOT / "data" / "database" / "sapd_content_assets.sqlite3"
+).resolve()
 DEFAULT_USER_EXPORT_DIR = (PROJECT_ROOT / "data" / "exports").resolve()
 DEFAULT_USER_IMPORT_DIR = (PROJECT_ROOT / "data" / "import").resolve()
 DEFAULT_APP_DATA_ROOT = PROJECT_ROOT.resolve()
@@ -83,6 +97,8 @@ RESERVED_STABLE_PREVIEW_PORT = 5173
 MCP_CONTROL_BODY_LIMIT = 8192
 DATA_PACKAGE_ROOT = DEFAULT_FRONTEND_PUBLIC_DATA_ROOT
 BASE_DB_PATH = DEFAULT_DB_PATH.resolve()
+CONTENT_QUERY_DB_PATH = BASE_DB_PATH
+CONTENT_ASSET_DB_PATH: Path | None = None
 USER_DB_PATH = DEFAULT_USER_DB_PATH
 USER_EXPORT_DIR = DEFAULT_USER_EXPORT_DIR
 USER_IMPORT_DIR = DEFAULT_USER_IMPORT_DIR
@@ -92,6 +108,7 @@ USER_STATE_EPHEMERAL = False
 _EPHEMERAL_USER_DB_URI = ""
 _EPHEMERAL_USER_DB_KEEPER: sqlite3.Connection | None = None
 _EPHEMERAL_USER_DB_LOCK = Lock()
+_CONTENT_CURSOR_KEY = secrets.token_bytes(32)
 MATURITY_REPORT_ARTIFACT_SCHEMA = "sapd-maturity-report-artifact-v1"
 RUNTIME_LABEL = "stable"
 USER_SCHEMA_VERSION = "user_schema_0.3"
@@ -563,6 +580,8 @@ def _frontend_data_path(data_path: Any) -> Path | None:
 def configure_runtime_paths(
     *,
     base_db: str | Path | None = None,
+    content_query_db: str | Path | None = None,
+    content_asset_db: str | Path | None = None,
     user_db: str | Path | None = None,
     data_root: str | Path | None = None,
     export_dir: str | Path | None = None,
@@ -572,7 +591,8 @@ def configure_runtime_paths(
     runtime_label: str | None = None,
     ephemeral_user_state: bool = False,
 ) -> None:
-    global BASE_DB_PATH, USER_DB_PATH, DATA_PACKAGE_ROOT, USER_EXPORT_DIR, RUNTIME_LABEL
+    global BASE_DB_PATH, CONTENT_QUERY_DB_PATH, CONTENT_ASSET_DB_PATH
+    global USER_DB_PATH, DATA_PACKAGE_ROOT, USER_EXPORT_DIR, RUNTIME_LABEL
     global USER_IMPORT_DIR, APP_DATA_ROOT, APP_DISPLAY_VERSION
     global USER_STATE_EPHEMERAL, _EPHEMERAL_USER_DB_URI
     close_ephemeral_user_state()
@@ -584,6 +604,16 @@ def configure_runtime_paths(
     )
     if base_db:
         BASE_DB_PATH = resolve_project_path(base_db).resolve()
+    CONTENT_QUERY_DB_PATH = (
+        resolve_project_path(content_query_db).resolve()
+        if content_query_db
+        else BASE_DB_PATH
+    )
+    CONTENT_ASSET_DB_PATH = (
+        resolve_project_path(content_asset_db).resolve()
+        if content_asset_db
+        else None
+    )
     if user_db and not USER_STATE_EPHEMERAL:
         USER_DB_PATH = resolve_project_path(user_db).resolve()
     if data_root:
@@ -2433,6 +2463,32 @@ def runtime_health_payload() -> dict[str, Any]:
                 "exists": BASE_DB_PATH.exists(),
                 "bytes": BASE_DB_PATH.stat().st_size if BASE_DB_PATH.exists() else 0,
             },
+            "content_query_database": {
+                "path": _display_runtime_path(CONTENT_QUERY_DB_PATH),
+                "exists": CONTENT_QUERY_DB_PATH.exists(),
+                "bytes": (
+                    CONTENT_QUERY_DB_PATH.stat().st_size
+                    if CONTENT_QUERY_DB_PATH.exists()
+                    else 0
+                ),
+            },
+            "content_asset_database": {
+                "path": (
+                    _display_runtime_path(CONTENT_ASSET_DB_PATH)
+                    if CONTENT_ASSET_DB_PATH is not None
+                    else None
+                ),
+                "exists": bool(
+                    CONTENT_ASSET_DB_PATH is not None
+                    and CONTENT_ASSET_DB_PATH.exists()
+                ),
+                "bytes": (
+                    CONTENT_ASSET_DB_PATH.stat().st_size
+                    if CONTENT_ASSET_DB_PATH is not None
+                    and CONTENT_ASSET_DB_PATH.exists()
+                    else 0
+                ),
+            },
             "user_database": {
                 "path": "memory://isolated-web-dev" if USER_STATE_EPHEMERAL else _display_runtime_path(USER_DB_PATH),
                 "ready": user_ready,
@@ -4064,6 +4120,84 @@ def maintenance_payload(section: str) -> dict[str, Any]:
     raise KeyError(section)
 
 
+def _content_request_context() -> RequestContext:
+    return RequestContext(
+        client_id="sapd-web-app",
+        grant_version="same-origin-read-v1",
+        scope=SCOPE,
+        correlation_id=f"web-{uuid.uuid4()}",
+    )
+
+
+def _content_limit(query: dict[str, list[str]], default: int) -> int:
+    raw_value = (query.get("limit") or [str(default)])[0]
+    try:
+        return int(raw_value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("limit must be an integer") from exc
+
+
+def content_knowledge_response(
+    path: str,
+    query: dict[str, list[str]],
+) -> dict[str, Any]:
+    """Dispatch the same five read-only operations used by the formal MCP."""
+
+    request = _content_request_context()
+    with BaseKnowledgeQueryService.create(
+        base_database=CONTENT_QUERY_DB_PATH,
+        cursor_key=_CONTENT_CURSOR_KEY,
+    ) as service:
+        if path == "/api/v1/knowledge/search":
+            return service.search_knowledge(
+                (query.get("q") or [""])[0],
+                request=request,
+                limit=_content_limit(query, 8),
+                cursor=(query.get("cursor") or [None])[0],
+            ).to_dict()
+        if path == "/api/v1/knowledge/object":
+            return service.get_knowledge_object(
+                unquote((query.get("canonical_ref") or [""])[0]),
+                request=request,
+            ).to_dict()
+        if path == "/api/v1/knowledge/related":
+            return service.get_related_knowledge(
+                unquote((query.get("canonical_ref") or [""])[0]),
+                (query.get("direction") or ["both"])[0],
+                request=request,
+                limit=_content_limit(query, 15),
+                cursor=(query.get("cursor") or [None])[0],
+            ).to_dict()
+        if path == "/api/v1/knowledge/evidence":
+            return service.get_source_evidence(
+                unquote((query.get("canonical_ref") or [""])[0]),
+                include_excerpt=False,
+                request=request,
+                limit=_content_limit(query, 8),
+                cursor=(query.get("cursor") or [None])[0],
+            ).to_dict()
+        if path == "/api/v1/knowledge/version":
+            return service.get_knowledge_version(request=request).to_dict()
+    raise KeyError(path)
+
+
+def content_asset_list_response(query: dict[str, list[str]]) -> dict[str, Any]:
+    if CONTENT_ASSET_DB_PATH is None:
+        raise ContentAssetError("content asset database is not configured")
+    service = ContentAssetService(CONTENT_ASSET_DB_PATH)
+    role_value = (query.get("asset_role") or query.get("role") or [None])[0]
+    items = service.list_assets(
+        owner_ref=unquote((query.get("owner_ref") or [""])[0]),
+        asset_role=str(role_value) if role_value else None,
+        limit=_content_limit(query, 50),
+    )
+    return {
+        "contract_version": "sapd-content-asset-api-v1",
+        "content_trust": "untrusted_reference",
+        "data": {"items": items},
+    }
+
+
 class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
     server_version = "SAPDWikiHTTP/0.1"
 
@@ -4096,6 +4230,16 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
                     parsed.path,
                     parse_qs(parsed.query, keep_blank_values=True),
                 )
+                return
+            if parsed.path == "/api/v1/content/assets/by-owner":
+                self._serve_content_asset_by_owner(parse_qs(parsed.query))
+                return
+            asset_match = re.fullmatch(
+                r"/api/v1/content/assets/([0-9a-fA-F]{64})",
+                parsed.path,
+            )
+            if asset_match:
+                self._serve_content_asset(asset_match.group(1).lower())
                 return
             self._handle_api(parsed.path, parse_qs(parsed.query))
             return
@@ -4221,6 +4365,97 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(encoded)
 
+    def _serve_content_asset(self, asset_hash: str) -> None:
+        if CONTENT_ASSET_DB_PATH is None:
+            self._send_json(
+                create_envelope(
+                    {
+                        "error": "service_unavailable",
+                        "message": "content asset database is not configured",
+                    }
+                ),
+                status=503,
+            )
+            return
+        try:
+            service = ContentAssetService(CONTENT_ASSET_DB_PATH)
+            metadata = service.asset_metadata(asset_hash)
+            byte_range = parse_http_byte_range(
+                self.headers.get("Range"),
+                int(metadata["byte_count"]),
+            )
+            partial = self.headers.get("Range") is not None
+            self.send_response(206 if partial else 200)
+            self.send_header("Content-Type", str(metadata["mime_type"]))
+            self.send_header("Content-Length", str(byte_range.length))
+            self.send_header("Accept-Ranges", "bytes")
+            self.send_header("ETag", f'"sha256-{asset_hash}"')
+            file_name = re.sub(
+                r"[^A-Za-z0-9._-]+",
+                "-",
+                str(metadata["logical_file_name"]),
+            ).strip(".-") or f"{asset_hash}.bin"
+            self.send_header("Content-Disposition", f'inline; filename="{file_name}"')
+            if partial:
+                self.send_header(
+                    "Content-Range",
+                    f"bytes {byte_range.start}-{byte_range.end}/{byte_range.total}",
+                )
+            self.end_headers()
+            service.stream_asset(asset_hash, self.wfile, byte_range)
+        except ContentAssetNotFound:
+            self._send_json(
+                create_envelope({"error": "not_found", "message": "asset is unavailable"}),
+                status=404,
+            )
+        except ContentAssetRangeError:
+            self.send_response(416)
+            self.send_header("Content-Range", "bytes */*")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+        except ContentAssetError as exc:
+            self._send_json(
+                create_envelope({"error": "server_error", "message": str(exc)}),
+                status=500,
+            )
+
+    def _serve_content_asset_by_owner(
+        self,
+        query: dict[str, list[str]],
+    ) -> None:
+        if CONTENT_ASSET_DB_PATH is None:
+            self._send_json(
+                create_envelope(
+                    {
+                        "error": "service_unavailable",
+                        "message": "content asset database is not configured",
+                    }
+                ),
+                status=503,
+            )
+            return
+        try:
+            service = ContentAssetService(CONTENT_ASSET_DB_PATH)
+            metadata = service.asset_for_owner(
+                owner_ref=unquote((query.get("owner_ref") or [""])[0]),
+                asset_role=str(
+                    (query.get("asset_role") or ["original"])[0]
+                ).strip(),
+            )
+            self._serve_content_asset(str(metadata["asset_hash"]))
+        except ContentAssetNotFound:
+            self._send_json(
+                create_envelope(
+                    {"error": "not_found", "message": "asset is unavailable"}
+                ),
+                status=404,
+            )
+        except ContentAssetError as exc:
+            self._send_json(
+                create_envelope({"error": "bad_request", "message": str(exc)}),
+                status=400,
+            )
+
     def _api_port(self) -> int:
         return int(getattr(self.server, "server_port", self.server.server_address[1]))
 
@@ -4329,6 +4564,18 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
     def _handle_api(self, path: str, query: dict[str, list[str]]) -> None:
         parts = [part for part in path.split("/") if part]
         try:
+            if path in {
+                "/api/v1/knowledge/search",
+                "/api/v1/knowledge/object",
+                "/api/v1/knowledge/related",
+                "/api/v1/knowledge/evidence",
+                "/api/v1/knowledge/version",
+            }:
+                self._send_json(content_knowledge_response(path, query))
+                return
+            if path == "/api/v1/content/assets":
+                self._send_json(content_asset_list_response(query))
+                return
             if path == "/api/v1/health":
                 payload = runtime_health_payload()
                 payload["auth"]["session_token"] = self._session_token()
@@ -4428,6 +4675,28 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
                 self._send_json(create_envelope(maintenance_payload(section)))
                 return
             self._send_json(create_envelope({"error": "not_found", "path": path}), status=404)
+        except McpCoreError as exc:
+            status = 404 if exc.code == "OBJECT_NOT_AVAILABLE" else 400
+            self._send_json(
+                create_envelope(
+                    {"error": exc.code.lower(), "message": str(exc), "path": path}
+                ),
+                status=status,
+            )
+        except ContentAssetError as exc:
+            self._send_json(
+                create_envelope(
+                    {"error": "invalid_asset_request", "message": str(exc), "path": path}
+                ),
+                status=400,
+            )
+        except ValueError as exc:
+            self._send_json(
+                create_envelope(
+                    {"error": "bad_request", "message": str(exc), "path": path}
+                ),
+                status=400,
+            )
         except KeyError as exc:
             self._send_json(create_envelope({"error": "not_found", "key": str(exc), "path": path}), status=404)
         except Exception as exc:
@@ -4446,6 +4715,11 @@ def reserved_preview_port_blockers(args: argparse.Namespace) -> list[str]:
     path_contracts = (
         ("static_dir", getattr(args, "static_dir", None), DEFAULT_FRONTEND_STATIC_DIR),
         ("base_db", getattr(args, "base_db", None) or getattr(args, "db", None), DEFAULT_DB_PATH.resolve()),
+        (
+            "content_asset_db",
+            getattr(args, "content_asset_db", None),
+            DEFAULT_CONTENT_ASSET_DB_PATH,
+        ),
         ("user_db", getattr(args, "user_db", None), DEFAULT_USER_DB_PATH),
         ("data_root", getattr(args, "data_root", None), DEFAULT_FRONTEND_PUBLIC_DATA_ROOT),
         ("export_dir", getattr(args, "export_dir", None), DEFAULT_USER_EXPORT_DIR),
@@ -4539,6 +4813,8 @@ def serve(args: argparse.Namespace) -> None:
     static_dir = resolve_project_path(args.static_dir)
     configure_runtime_paths(
         base_db=getattr(args, "base_db", None) or getattr(args, "db", None),
+        content_query_db=getattr(args, "content_query_db", None),
+        content_asset_db=getattr(args, "content_asset_db", None),
         user_db=getattr(args, "user_db", None),
         data_root=getattr(args, "data_root", None),
         export_dir=getattr(args, "export_dir", None),
@@ -4569,7 +4845,7 @@ def serve(args: argparse.Namespace) -> None:
         runtime_root=resolved_mcp_runtime_root,
         cleanup_on_close=resolved_mcp_runtime_root is None,
         python_executable=resolve_mcp_python_executable(getattr(args, "mcp_python", None)),
-        base_database=BASE_DB_PATH,
+        base_database=CONTENT_QUERY_DB_PATH,
         certificate_identity_root=(
             default_mcp_certificate_identity_root()
             if platform_integration_enabled
@@ -4590,6 +4866,12 @@ def serve(args: argparse.Namespace) -> None:
     print(f"static_dir: {static_dir.relative_to(PROJECT_ROOT) if static_dir.is_relative_to(PROJECT_ROOT) else static_dir}")
     print(f"runtime_label: {RUNTIME_LABEL}")
     print(f"base_db: {_display_runtime_path(BASE_DB_PATH)}")
+    print(f"content_query_db: {_display_runtime_path(CONTENT_QUERY_DB_PATH)}")
+    print(
+        "content_asset_db: disabled"
+        if CONTENT_ASSET_DB_PATH is None
+        else f"content_asset_db: {_display_runtime_path(CONTENT_ASSET_DB_PATH)}"
+    )
     print(
         "user_db: memory://isolated-web-dev"
         if USER_STATE_EPHEMERAL

@@ -154,17 +154,37 @@ def check_bundle(bundle_root: Path, create_user: bool = False) -> dict[str, Any]
         add("backend_component_exists", backend_path.exists(), str(backend_path))
 
     base_info = manifest.get("base_database", {}) if isinstance(manifest.get("base_database"), dict) else {}
+    asset_info = (
+        manifest.get("content_asset_database", {})
+        if isinstance(manifest.get("content_asset_database"), dict)
+        else {}
+    )
     user_info = manifest.get("user_database", {}) if isinstance(manifest.get("user_database"), dict) else {}
     base_file = base_info.get("file", "sapd_wiki_base.sqlite3")
     user_file = user_info.get("file", "sapd_wiki_user.sqlite3")
     expected_user_schema = user_info.get("schema_version", DEFAULT_SCHEMA_VERSION)
     base_db: Path | None = None
+    content_asset_db: Path | None = None
     user_db: Path | None = None
     try:
         base_db = safe_bundle_child(root / "data" / "base", base_file, "sapd_wiki_base.sqlite3")
         add("base_db_path_safe", True, str(base_db.relative_to(root)))
     except ValueError as error:
         add("base_db_path_safe", False, str(error))
+    if asset_info:
+        try:
+            content_asset_db = safe_bundle_child(
+                root / "data" / "base",
+                asset_info.get("file"),
+                "sapd_content_assets.sqlite3",
+            )
+            add(
+                "content_asset_db_path_safe",
+                True,
+                str(content_asset_db.relative_to(root)),
+            )
+        except ValueError as error:
+            add("content_asset_db_path_safe", False, str(error))
     try:
         user_db = safe_bundle_child(root / "data" / "user", user_file, "sapd_wiki_user.sqlite3")
         add("user_db_path_safe", True, str(user_db.relative_to(root)))
@@ -179,6 +199,33 @@ def check_bundle(bundle_root: Path, create_user: bool = False) -> dict[str, Any]
         add("base_db_sha256_matches", False, "manifest missing base_database.sha256")
     else:
         add("base_db_sha256_matches", False, "base database missing")
+    if asset_info:
+        add(
+            "content_asset_db_exists",
+            bool(content_asset_db and content_asset_db.exists()),
+            str(content_asset_db)
+            if content_asset_db
+            else "unsafe content asset database path",
+        )
+        if content_asset_db and content_asset_db.exists() and asset_info.get("sha256"):
+            actual_asset_hash = sha256_file(content_asset_db)
+            add(
+                "content_asset_db_sha256_matches",
+                actual_asset_hash == asset_info["sha256"],
+                actual_asset_hash,
+            )
+        elif content_asset_db and content_asset_db.exists():
+            add(
+                "content_asset_db_sha256_matches",
+                False,
+                "manifest missing content_asset_database.sha256",
+            )
+        else:
+            add(
+                "content_asset_db_sha256_matches",
+                False,
+                "content asset database missing",
+            )
 
     if user_db and create_user:
         user_db_existed = user_db.exists()
@@ -226,6 +273,12 @@ def check_bundle(bundle_root: Path, create_user: bool = False) -> dict[str, Any]
         add("config_json_valid", False, "config missing")
     add("config_frontend_path_set", bool(config.get("frontend_dist")), str(config.get("frontend_dist", "")))
     add("config_base_db_path_set", bool(config.get("base_database")), str(config.get("base_database", "")))
+    if asset_info:
+        add(
+            "config_content_asset_db_path_set",
+            bool(config.get("content_asset_database")),
+            str(config.get("content_asset_database", "")),
+        )
     add("config_user_db_path_set", bool(config.get("user_database")), str(config.get("user_database", "")))
     host = str(config.get("host", "127.0.0.1")).strip() or "127.0.0.1"
     host_is_loopback = is_loopback_host(host)

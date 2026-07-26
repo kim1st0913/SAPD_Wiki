@@ -1,0 +1,266 @@
+{
+  "manifest_id": "sapd-formal-content-sources-v1",
+  "manifest_version": "1.0.0",
+  "status": "t0_frozen",
+  "frozen_at": "2026-07-26T21:00:00+08:00",
+  "naming_policy": {
+    "logical_file_name_style": "lowercase-kebab-case-ascii-business-name",
+    "forbidden_tokens": [
+      "sample",
+      "samle",
+      "~$"
+    ],
+    "rename_original_source_files": false,
+    "logical_names_apply_to": [
+      "asset_database",
+      "api_download",
+      "delivery_export"
+    ]
+  },
+  "database_targets": {
+    "formal_query_database": "data/database/sapd_wiki.sqlite3",
+    "formal_query_database_sha256_before": "1c9d7c70574585df43656dec2c869faec6a6d1d2bb807352e534d567015b1400",
+    "candidate_query_database": "data/exports/worker-verify/base-content-unified-query/candidate/sapd_wiki.content-candidate.sqlite3",
+    "candidate_asset_database": "data/exports/worker-verify/base-content-unified-query/candidate/sapd_content_assets.candidate.sqlite3",
+    "backup_directory": "data/exports/worker-verify/base-content-unified-query/backups",
+    "report_directory": "data/exports/worker-verify/base-content-unified-query/reports",
+    "user_database_access": "forbidden"
+  },
+  "documents": [
+    {
+      "document_id": "sapd-security-architecture-model",
+      "stable_ref": "base:content_document:sapd-security-architecture-model",
+      "business_title": "SAPD 安全架构模型",
+      "format": "drawio",
+      "source_path": "data/raw-samples/drawio sample.drawio",
+      "logical_file_name": "sapd-security-architecture-model.drawio",
+      "sha256": "c317f45ae493694a7f1365d30196179cacffb928fccbd024b7585b596fd35879",
+      "bytes": 129461,
+      "inclusion_status": "approved",
+      "semantic_source": true,
+      "parser": "drawio-mxgraph",
+      "ocr_policy": "never",
+      "expected_pages": 3
+    },
+    {
+      "document_id": "security-architecture-design-method-v2.0",
+      "stable_ref": "base:content_document:security-architecture-design-method-v2.0",
+      "business_title": "安全技术架构设计方法 V2.0",
+      "format": "pdf",
+      "source_path": "data/raw-samples/ds design/安全技术架构设计方法 V2.0.pdf",
+      "logical_file_name": "security-architecture-design-method-v2.0.pdf",
+      "sha256": "5aa89c270178712df9d993ab4681e9c63a85b03880c74fa54086a4e655089946",
+      "bytes": 29917263,
+      "inclusion_status": "approved",
+      "semantic_source": true,
+      "parser": "pdf-text-layer",
+      "ocr_policy": "empty-page-fallback",
+      "expected_pages": 75,
+      "preview_collection_id": "security-architecture-design-method-v2.0-slides"
+    },
+    {
+      "document_id": "business-oriented-data-security-design-method-v2.1",
+      "stable_ref": "base:content_document:business-oriented-data-security-design-method-v2.1",
+      "business_title": "面向业务的数据安全专项设计方法 V2.1",
+      "format": "pdf",
+      "source_path": "data/raw-samples/ds design/T00-面向业务的数据安全专项设计方法（V2.1）.pdf",
+      "logical_file_name": "business-oriented-data-security-design-method-v2.1.pdf",
+      "sha256": "36f8105f45f42bb2f6fb630f138985c254480edf7c6ae9e99f10e753fae60cf7",
+      "bytes": 11768800,
+      "inclusion_status": "approved",
+      "semantic_source": true,
+      "parser": "pdf-text-layer",
+      "ocr_policy": "empty-page-fallback",
+      "expected_pages": 43,
+      "preview_collection_id": "business-oriented-data-security-design-method-v2.1-slides"
+    },
+    {
+      "document_id": "lightweight-planning-design-report-template-v0.3",
+      "stable_ref": "base:content_document:lightweight-planning-design-report-template-v0.3",
+      "business_title": "轻规划设计报告模版 V0.3",
+      "format": "pdf",
+      "source_path": "data/raw-samples/ds design/03 轻规划设计报告模版-v0.3-20250814.pdf",
+      "logical_file_name": "lightweight-planning-design-report-template-v0.3.pdf",
+      "sha256": "b20b49dc126e856b8ad5114bb8afdc7516089df085aceed91ccb76d113a0b4c1",
+      "bytes": 15330474,
+      "inclusion_status": "approved",
+      "semantic_source": true,
+      "parser": "pdf-text-layer",
+      "ocr_policy": "empty-page-fallback",
+      "expected_pages": 46,
+      "preview_collection_id": "lightweight-planning-design-report-template-v0.3-slides"
+    },
+    {
+      "document_id": "strategic-consulting-planning-department-knowledge-base-v2.2",
+      "stable_ref": "base:content_document:strategic-consulting-planning-department-knowledge-base-v2.2",
+      "business_title": "战略咨询规划部知识库 V2.2",
+      "format": "pptx",
+      "source_path": "data/raw-samples/wiki sample ppt.pptx",
+      "logical_file_name": "strategic-consulting-planning-department-knowledge-base-v2.2.pptx",
+      "sha256": "acbb975b3dd4b4c15185965249e863217cef3749f4d26d0e95affb53614dae76",
+      "bytes": 34390689,
+      "inclusion_status": "approved",
+      "semantic_source": true,
+      "parser": "presentationml",
+      "ocr_policy": "image-only-slide-fallback",
+      "expected_pages": 49
+    },
+    {
+      "document_id": "network-security-capability-maturity-model-introduction-2025-01",
+      "stable_ref": "base:content_document:network-security-capability-maturity-model-introduction-2025-01",
+      "business_title": "网络安全能力成熟度模型介绍 2025-01",
+      "format": "pptx",
+      "source_path": "data/raw-samples/maturity/samle 使用教程.pptx",
+      "logical_file_name": "network-security-capability-maturity-model-introduction-2025-01.pptx",
+      "sha256": "4dc4244d7c14aa8629e4deabe5e5b32dbf680ee4b9aac90283fe0c0014d05e2a",
+      "bytes": 9562006,
+      "inclusion_status": "approved",
+      "semantic_source": true,
+      "parser": "presentationml",
+      "ocr_policy": "image-only-slide-fallback",
+      "expected_pages": 31
+    },
+    {
+      "document_id": "network-security-maturity-assessment-form-v2",
+      "stable_ref": "base:content_document:network-security-maturity-assessment-form-v2",
+      "business_title": "网络安全成熟度评估表 V2",
+      "format": "md",
+      "source_path": "data/raw-samples/maturity/评估表v2.md",
+      "logical_file_name": "network-security-maturity-assessment-form-v2.md",
+      "sha256": "ab3f536d066a1c6c90a27f11272426c7eb07ecc7fcff0afa4749d5ec35f33562",
+      "bytes": 111208,
+      "inclusion_status": "approved",
+      "semantic_source": true,
+      "parser": "commonmark",
+      "ocr_policy": "never"
+    },
+    {
+      "document_id": "sapd-maturity-model-usage-guide",
+      "stable_ref": "base:content_document:sapd-maturity-model-usage-guide",
+      "business_title": "SAPD 成熟度模型使用指南",
+      "format": "html",
+      "source_path": "frontend/capability-browser/assets/guides/maturity-model-usage.html",
+      "logical_file_name": "sapd-maturity-model-usage-guide.html",
+      "sha256": "42075c34788ac1d6d481c3b94587a86f18938519fc20f43ec91a70cdde17bf5c",
+      "bytes": 1778770,
+      "inclusion_status": "approved",
+      "semantic_source": true,
+      "parser": "semantic-html",
+      "ocr_policy": "never",
+      "query_exclusions": [
+        "script",
+        "style",
+        "nav",
+        "hidden",
+        "toolbar",
+        "download-control"
+      ]
+    },
+    {
+      "document_id": "archimate-3.2-reference-poster-zh",
+      "stable_ref": "base:content_document:archimate-3.2-reference-poster-zh",
+      "business_title": "ArchiMate 3.2 中文参考海报",
+      "format": "pdf",
+      "source_path": "frontend/capability-browser/public/data/guides/archimate-poster/archimate-poster-v3.2-zh.pdf",
+      "logical_file_name": "archimate-3.2-reference-poster-zh.pdf",
+      "sha256": "9e2a59b06d79c494a015fe57d3b151e82d7db84f321224f9f5bee03f1aa1f81b",
+      "bytes": 2014780,
+      "inclusion_status": "approved",
+      "semantic_source": false,
+      "parser": "manual-catalog-only",
+      "ocr_policy": "never",
+      "preview_collection_id": "archimate-3.2-reference-poster-zh-images"
+    }
+  ],
+  "derived_assets": [
+    {
+      "asset_id": "sapd-information-environment-basemap-svg",
+      "document_id": "sapd-security-architecture-model",
+      "asset_role": "derived-preview",
+      "format": "svg",
+      "source_paths": [
+        "data/raw-samples/drawio sample-信息化环境及对象底图.drawio.svg",
+        "frontend/capability-browser/generated/environmentBasemap.svg"
+      ],
+      "logical_file_name": "sapd-information-environment-basemap.svg",
+      "sha256": "2424b22f4d6f1add2d4d0d02cc716735581f7b7714f03a1ba333dc7d394d02dd",
+      "bytes": 2436428
+    },
+    {
+      "asset_id": "sapd-information-environment-basemap-semantics",
+      "document_id": "sapd-security-architecture-model",
+      "asset_role": "derived-semantic-projection",
+      "format": "json",
+      "source_paths": [
+        "frontend/capability-browser/generated/environmentBasemap.semantic.json"
+      ],
+      "logical_file_name": "sapd-information-environment-basemap-semantics.json",
+      "sha256": "81cfe79defb674bbfa2a0f13109dbbffa274b5783cf9343411d534dc881ae681",
+      "bytes": 382761
+    }
+  ],
+  "derived_collections": [
+    {
+      "collection_id": "security-architecture-design-method-v2.0-slides",
+      "document_id": "security-architecture-design-method-v2.0",
+      "source_directory": "frontend/capability-browser/public/data/guides/security-architecture-design/slides",
+      "file_filter": "\\.png$",
+      "logical_file_name_pattern": "security-architecture-design-method-v2.0-slide-{page:03d}.png",
+      "expected_count": 75,
+      "expected_bytes": 31540633,
+      "manifest_sha256": "87095a3c0ac54eefc2b351c28df52fa174faea1e9f5409d0af4e594d1560c001"
+    },
+    {
+      "collection_id": "business-oriented-data-security-design-method-v2.1-slides",
+      "document_id": "business-oriented-data-security-design-method-v2.1",
+      "source_directory": "frontend/capability-browser/public/data/guides/data-security-design/slides",
+      "file_filter": "\\.png$",
+      "logical_file_name_pattern": "business-oriented-data-security-design-method-v2.1-slide-{page:03d}.png",
+      "expected_count": 43,
+      "expected_bytes": 26144756,
+      "manifest_sha256": "591e5a1fa2ec8dc769867a8b6730f88b141c4ac17b777b9471760ab5a8f6d97b"
+    },
+    {
+      "collection_id": "lightweight-planning-design-report-template-v0.3-slides",
+      "document_id": "lightweight-planning-design-report-template-v0.3",
+      "source_directory": "frontend/capability-browser/public/data/guides/light-planning/slides",
+      "file_filter": "\\.png$",
+      "logical_file_name_pattern": "lightweight-planning-design-report-template-v0.3-slide-{page:03d}.png",
+      "expected_count": 46,
+      "expected_bytes": 24973243,
+      "manifest_sha256": "8349cdef570e7b1c6887bc007444a4bee8c614559deba9bd7522ca399b6146de"
+    },
+    {
+      "collection_id": "archimate-3.2-reference-poster-zh-images",
+      "document_id": "archimate-3.2-reference-poster-zh",
+      "source_directory": "frontend/capability-browser/public/data/guides/archimate-poster",
+      "file_filter": "\\.jpg$",
+      "logical_file_name_pattern": "archimate-3.2-reference-poster-zh-{region}.jpg",
+      "expected_count": 7,
+      "expected_bytes": 5165302,
+      "manifest_sha256": "3e73830e6ef657f01e27dcad064e8f48e1e2c7044af55d76ce42238534fc726e"
+    }
+  ],
+  "excluded_sources": [
+    {
+      "source_path": "data/raw-samples/~$wiki sample ppt.pptx",
+      "reason": "office-temporary-lock-file"
+    },
+    {
+      "source_path": "frontend/capability-browser/public/data/content-views.json",
+      "reason": "generated-index-rebuilt-from-database"
+    },
+    {
+      "source_path": "frontend/capability-browser/public/data/guides/security-architecture-design.json",
+      "reason": "generated-guide-manifest-rebuilt-from-database"
+    },
+    {
+      "source_path": "frontend/capability-browser/public/data/guides/data-security-design.json",
+      "reason": "generated-guide-manifest-rebuilt-from-database"
+    },
+    {
+      "source_path": "frontend/capability-browser/public/data/guides/light-planning.json",
+      "reason": "generated-guide-manifest-rebuilt-from-database"
+    }
+  ]
+}

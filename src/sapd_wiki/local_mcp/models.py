@@ -20,14 +20,24 @@ class KnowledgeVersions:
     policy_version: str
     identity_version: str
     manifest_digest: str
+    base_manifest_digest: str | None = None
+    content_manifest_digest: str | None = None
+    asset_manifest_digest: str | None = None
 
     def to_dict(self) -> dict[str, str]:
-        return {
+        payload = {
             "knowledge_version": self.knowledge_version,
             "policy_version": self.policy_version,
             "identity_version": self.identity_version,
             "manifest_digest": self.manifest_digest,
         }
+        if self.base_manifest_digest is not None:
+            payload["base_manifest_digest"] = self.base_manifest_digest
+        if self.content_manifest_digest is not None:
+            payload["content_manifest_digest"] = self.content_manifest_digest
+        if self.asset_manifest_digest is not None:
+            payload["asset_manifest_digest"] = self.asset_manifest_digest
+        return payload
 
 
 @dataclass(frozen=True)

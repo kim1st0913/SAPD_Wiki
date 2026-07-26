@@ -64,6 +64,20 @@ add(checks, "frontend_source_is_capability_browser", buildAndRun.includes("front
 add(checks, "base_db_source_is_project_sqlite", buildAndRun.includes("data/database/sapd_wiki.sqlite3"), {
   file: files.buildAndRun,
 });
+add(checks, "content_asset_db_is_packaged_when_present", [
+  "SAPD_WIKI_CONTENT_ASSET_DB",
+  "data/database/sapd_content_assets.sqlite3",
+  "--content-asset-db",
+].every((item) => buildAndRun.includes(item)) && [
+  "sapd_content_assets.sqlite3",
+  '"content_asset_database"',
+  "args.content_asset_db",
+].every((item) => buildZipBundle.includes(item)) && [
+  "content_asset_database",
+  "ContentAssetService",
+].every((item) => bundleServer.includes(item)), {
+  files: [files.buildAndRun, files.buildZipBundle, files.bundleServer],
+});
 
 const backendHashInputs = [
   "run_local_server.py",
@@ -158,6 +172,15 @@ add(checks, "bundle_copies_frontend_base_and_creates_empty_user_db", [
 });
 add(checks, "bundle_manifest_records_user_schema", buildZipBundle.includes('"user_database"') && buildZipBundle.includes('"schema_version": args.user_schema_version'), {
   file: files.buildZipBundle,
+});
+add(checks, "backend_collects_unified_query_runtime_and_contract", [
+  'rglob("*.py")',
+  "runtime_src",
+  "base-knowledge",
+  '"mcp"',
+  '"cryptography"',
+].every((item) => packageBackend.includes(item)), {
+  file: files.packageBackend,
 });
 add(checks, "bundle_includes_controlled_maturity_report_seed", [
   "SAPD_WIKI_MATURITY_REPORT_SEED",

@@ -26,9 +26,42 @@
       "business_metadata"
     ]
   },
+  "content_object_contract": {
+    "tables": [
+      "content_documents",
+      "content_fragments",
+      "content_fragments_fts"
+    ],
+    "optional_when_schema_absent": true,
+    "row_eligibility": "all_manifest_approved_documents_and_complete_fragments_with_stable_ref",
+    "search_fields": [
+      "title",
+      "logical_file_name",
+      "body",
+      "notes"
+    ],
+    "return_fields": [
+      "stable_ref",
+      "object_type",
+      "title",
+      "description",
+      "parent_ref",
+      "ordinal",
+      "format",
+      "logical_file_name",
+      "extraction_status",
+      "business_metadata"
+    ]
+  },
   "relation_contract": {
     "table": "knowledge_relations",
+    "content_table": "content_relations",
+    "canonical_ref_namespaces": [
+      "base_relation:",
+      "base:content_document:"
+    ],
     "row_eligibility": "all_rows_with_stable_ref_and_resolvable_endpoints",
+    "direct_relation_ref": true,
     "return_fields": [
       "stable_ref",
       "relation_type",
@@ -40,9 +73,11 @@
     ]
   },
   "source_evidence_contract": {
+    "content_table": "content_source_evidence",
     "database_provenance_only": true,
     "source_file_open": false,
     "excerpt_included": false,
+    "supports_relation_ref": true,
     "return_fields": [
       "file_name",
       "file_type",
@@ -71,6 +106,9 @@
       "import_job_id",
       "file_path",
       "local_path",
+      "content_bytes",
+      "raw_xml",
+      "raw_svg",
       "created_at",
       "updated_at",
       "debug",
@@ -92,5 +130,11 @@
     "direct_sql": false,
     "response_bytes": 65536,
     "content_trust": "untrusted_reference"
+  },
+  "version_contract": {
+    "base_manifest_digest": "always",
+    "content_manifest_digest": "when_content_schema_present",
+    "asset_manifest_digest": "metadata_from_query_store_only",
+    "asset_blob_read": false
   }
 }

@@ -12,10 +12,23 @@
 
 ## 今晚执行主线：基础知识与内容统一查询（2026-07-26）
 
-- 状态：`ready_for_execution_revised`
+- 状态：`t6_complete`
 - 截止：2026-07-26 23:59（Asia/Singapore）
-- 目标：只对正式基础数据库中现有的 4,694 个基础对象、7,786 条基础关系和 194,132 条 provenance 提供完整只读查询；不处理未入库的 Draw.io、指南、幻灯片或 ArchiMate Poster OCR。
-- 正式数据边界：本轮不需要数据库 migration 或正式 apply；基础库、用户数据库和原始源文件均禁止修改，MCP 控制/授权/审计库可产生 E2E 必要记录。
+- 目标：使基础对象、基础关系、关系 provenance、Draw.io 和正式指南内容在不依赖仓库原始文件的交付程序中通过数据库统一查询；Draw.io/指南原文件进入受控资产数据库，抽取文本和结构进入正式查询库。
+- 正式数据边界：ArchiMate Poster 不做 OCR；语义源优先级为 Markdown、语义 HTML、PPTX、带文本层 PDF、普通指南 OCR PDF；原文件进入资产库，规范化内容进入查询库，用户数据库禁止修改。
+- T0 结果：已冻结 9 个正式文档、2 个派生资产、4 个派生集合、9 个 stable ref 和 11 个正式英文逻辑文件名；禁止 `sample` / `samle` / `~$` 命名，源文件保持只读且不重命名；只读清单审计通过，正式基础库 hash 未变化。
+- T1 准入：从冻结清单构建 additive query schema、独立资产库 schema 和格式导入器；所有写入先落候选库，不直接修改正式基础库。
+- T1 结果：查询/资产 schema 与五类导入器已完成；候选库两次完整导入幂等，当前为9个文档、610个片段、685条关系、619条内容证据和182个内容寻址资产（`195,646,574` bytes）。Draw.io 3页/199节点/82边，3套PDF 164页，两份PPTX 80页，Markdown 51节，HTML 24节，Poster 7个人工目录区域；正式库和源文件hash未变，用户库未访问。
+- T2 准入：基于现有候选库检查内容质量，并仅对数据安全PDF第43页、知识库PPTX第32页执行已批准的普通内容fallback；Poster继续禁止OCR。
+- T2 结果：两个普通内容fallback均已完成视觉核对、OCR和人工复核，状态为`ocr_reviewed`，原始OCR文本不入库但保留其hash；`ocr_pending=0`，Poster OCR=0。Draw.io/PDF/PPTX/Markdown/HTML/Poster计数、FTS命中、171个页面/区域预览绑定、关系端点、HTML清洗、命名、两次幂等导入和资产round-trip全部通过；正式库/源资产未变，用户库未访问。
+- T3 准入：复用候选库现有FTS、内容关系和内容证据，扩展统一查询投影，使基础对象/基础关系与内容文档/片段/Draw.io连线可按同一stable-ref合同读取。
+- T3 结果：共享`BaseKnowledgeQueryService`已兼容基础库-only与完整内容schema两种状态；候选库可联合查询5,313个对象和8,471条关系，基础关系7,786/7,786、内容关系685/685均有provenance。基础对象、内容文档/片段、Draw.io页面/节点/边、基础/内容关系ref及其证据代表性读取通过；中文FTS+substring fallback、真实`base_relation:`命名空间、响应字段边界和只读authorizer已固化。核心查询35项、MCP集成19项、统一内容专项4项和基础查询专项7项通过。
+- T4 准入：把已验收共享core接入正式MCP五工具与Web/App API；二进制资产只经独立asset API读取，MCP继续禁止BLOB。
+- T4 结果：正式MCP Sidecar已通过显式联合查询库路径复用五工具core；Web与打包App后端新增同源`/api/v1/knowledge/*`五类只读接口，独立`/api/v1/content/assets`只返回资产元数据，`/api/v1/content/assets/{sha256}`使用SQLite BLOB增量读取并支持单段HTTP Range。版本工具同时返回基础、内容和资产manifest digest，MCP不打开资产库。真实OAuth MCP候选五工具E2E、Web/App handler、SVG/PNG/PDF Range、核心35项和候选边界审计通过；正式基础库未变，用户库未访问。
+- T5 准入：执行离线打包模拟、移除原始目录依赖后的代表性查询/展示、候选diff和完整只读边界验收；本阶段仍不正式apply。
+- T5 结果：离线模拟包携带候选查询库、资产库和空用户库；包内成熟度HTML与Poster PDF原件均改由稳定owner/role资产接口读取，所有与资产库`original`同hash的外部副本已删除。阻断仓库原始/生成目录后，MCP五类代表性读取和App的SVG/PNG/PDF/HTML Range读取全部通过；候选diff、数据库只读边界、8项定向测试、打包合同和完整pre-DMG通过。
+- T6 准入：在正式写入前建立查询库与资产库双备份、恢复命令和验收快照；取得明确正式apply授权后再替换正式库并重跑版本一致性与回退演练。
+- T6 结果：正式写入前停止5173与MCP Sidecar，验证候选完整性、固定计数、182个BLOB hash和T5证据；旧基础库备份及资产库“应用前不存在”状态进入恢复包。正式查询库/资产库已原子应用并与候选hash一致；独立恢复演练、稳定5173双库profile、MCP/Web/App正式读取、MCP 186项和完整pre-DMG均通过，真实用户库未修改。T0—T6执行主线已完成。
 - 详细计划：`docs/06-implementation/base-content-unified-query-tonight-plan-2026-07-26.md`
 
 ## 当前收敛任务：Git 工作区归一化（2026-07-24）

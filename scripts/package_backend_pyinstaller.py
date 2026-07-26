@@ -96,6 +96,37 @@ def package_backend(args: argparse.Namespace) -> Path:
     config_dir = output_dir / "pyinstaller-config"
     config_dir.mkdir(parents=True, exist_ok=True)
 
+    runtime_data_arguments: list[str] = []
+    sapd_source_root = REPO_ROOT / "src" / "sapd_wiki"
+    for source in sorted(sapd_source_root.rglob("*.py")):
+        destination = (
+            Path("runtime_src")
+            / "sapd_wiki"
+            / source.parent.relative_to(sapd_source_root)
+        )
+        runtime_data_arguments.extend(
+            ["--add-data", add_data_arg(source, destination.as_posix())]
+        )
+    contract_root = (
+        REPO_ROOT
+        / "docs"
+        / "01-architecture"
+        / "contracts"
+        / "mcp"
+        / "base-knowledge"
+        / "v1"
+    )
+    for source in sorted(contract_root.glob("*.json")):
+        runtime_data_arguments.extend(
+            [
+                "--add-data",
+                add_data_arg(
+                    source,
+                    "docs/01-architecture/contracts/mcp/base-knowledge/v1",
+                ),
+            ]
+        )
+
     command = [
         sys.executable,
         "-m",
@@ -107,18 +138,15 @@ def package_backend(args: argparse.Namespace) -> Path:
         "SAPD-Wiki-Backend",
         "--collect-all",
         "openpyxl",
+        "--collect-all",
+        "mcp",
+        "--collect-all",
+        "cryptography",
         "--paths",
         str(REPO_ROOT / "src"),
         "--paths",
         str(SCRIPT_DIR),
-        "--add-data",
-        add_data_arg(REPO_ROOT / "src" / "sapd_wiki" / "__init__.py", "runtime_src/sapd_wiki"),
-        "--add-data",
-        add_data_arg(REPO_ROOT / "src" / "sapd_wiki" / "paths.py", "runtime_src/sapd_wiki"),
-        "--add-data",
-        add_data_arg(REPO_ROOT / "src" / "sapd_wiki" / "api_server.py", "runtime_src/sapd_wiki"),
-        "--add-data",
-        add_data_arg(REPO_ROOT / "src" / "sapd_wiki" / "maturity.py", "runtime_src/sapd_wiki"),
+        *runtime_data_arguments,
         "--distpath",
         str(dist_dir),
         "--workpath",

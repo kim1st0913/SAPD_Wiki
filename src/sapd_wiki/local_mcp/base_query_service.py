@@ -70,6 +70,12 @@ _HARD_DENIED_METADATA_KEYS = frozenset(
         "metadata_category_repair_time",
         "metadata_category_repaired_from",
         "metadata_category_repaired_to",
+        "drawiocellid",
+        "parentcellid",
+        "sourcecellid",
+        "targetcellid",
+        "style",
+        "medianames",
         "debug",
         "credential",
         "secret",
@@ -103,6 +109,10 @@ def _load_contract() -> dict[str, Any]:
         raise PolicyBlockedError("base knowledge access contract is invalid")
     tool_contract = payload.get("tool_contract")
     exclusions = payload.get("hard_exclusions")
+    content_contract = payload.get("content_object_contract")
+    relation_contract = payload.get("relation_contract")
+    evidence_contract = payload.get("source_evidence_contract")
+    version_contract = payload.get("version_contract")
     if (
         not isinstance(tool_contract, dict)
         or tool_contract.get("fixed_readonly_tools") != list(_TOOL_LIMITS)
@@ -111,6 +121,29 @@ def _load_contract() -> dict[str, Any]:
         or not isinstance(exclusions, dict)
         or "user_database" not in exclusions.get("stores", [])
         or "arbitrary_sql" not in exclusions.get("capabilities", [])
+        or not isinstance(content_contract, dict)
+        or content_contract.get("tables")
+        != [
+            "content_documents",
+            "content_fragments",
+            "content_fragments_fts",
+        ]
+        or content_contract.get("optional_when_schema_absent") is not True
+        or not isinstance(relation_contract, dict)
+        or relation_contract.get("content_table") != "content_relations"
+        or relation_contract.get("direct_relation_ref") is not True
+        or relation_contract.get("canonical_ref_namespaces")
+        != ["base_relation:", "base:content_document:"]
+        or not isinstance(evidence_contract, dict)
+        or evidence_contract.get("content_table") != "content_source_evidence"
+        or evidence_contract.get("supports_relation_ref") is not True
+        or not isinstance(version_contract, dict)
+        or version_contract.get("base_manifest_digest") != "always"
+        or version_contract.get("content_manifest_digest")
+        != "when_content_schema_present"
+        or version_contract.get("asset_manifest_digest")
+        != "metadata_from_query_store_only"
+        or version_contract.get("asset_blob_read") is not False
     ):
         raise PolicyBlockedError("base knowledge safety contract is incomplete")
     return payload
@@ -138,6 +171,7 @@ def _canonical_ref(value: Any) -> str:
     normalized = _normalized_text(value, maximum=1024)
     if not (
         normalized.startswith("base:")
+        or normalized.startswith("base_relation:")
         or normalized.startswith("fixture://")
     ):
         raise InvalidInputError("canonical_ref is outside the base knowledge namespace")
@@ -146,6 +180,17 @@ def _canonical_ref(value: Any) -> str:
 
 def _like_literal(value: str) -> str:
     return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+def _fts_query(value: str) -> str:
+    tokens = [
+        token.replace('"', '""')
+        for token in re.split(r"\s+", value)
+        if token
+    ]
+    if not tokens:
+        raise InvalidInputError("empty search query is forbidden")
+    return " AND ".join(f'"{token}"*' for token in tokens)
 
 
 def _looks_like_absolute_path(value: str) -> bool:
@@ -207,8 +252,31 @@ def _sha256_file(path: Path) -> str:
 class BaseKnowledgeRepository:
     """Fixed parameterized SELECT queries over formal base tables only."""
 
+    _CONTENT_TABLES = frozenset(
+        {
+            "content_documents",
+            "content_fragments",
+            "content_relations",
+            "content_source_evidence",
+            "content_fragments_fts",
+        }
+    )
+
     def __init__(self, runtime: FormalBaseRuntimeContext) -> None:
         self._runtime = runtime
+        try:
+            tables = frozenset(
+                str(row[0])
+                for row in self._connection.execute(
+                    "SELECT name FROM sqlite_schema WHERE type='table'"
+                ).fetchall()
+            )
+        except Exception as exc:
+            raise RuntimeBoundaryError("base knowledge schema discovery failed") from exc
+        content_tables = tables & self._CONTENT_TABLES
+        if content_tables and content_tables != self._CONTENT_TABLES:
+            raise PolicyBlockedError("content query schema is incomplete")
+        self.content_enabled = content_tables == self._CONTENT_TABLES
 
     @property
     def _connection(self):
@@ -251,6 +319,42 @@ class BaseKnowledgeRepository:
             or int(relations["invalid"] or 0) != 0
         ):
             raise PolicyBlockedError("base knowledge stable identity is incomplete")
+        if not self.content_enabled:
+            return
+        try:
+            content = self._connection.execute(
+                """
+                WITH refs AS (
+                  SELECT stable_ref FROM content_documents
+                  UNION
+                  SELECT stable_ref FROM content_fragments
+                )
+                SELECT
+                  (SELECT COUNT(*) FROM content_documents) AS documents,
+                  (SELECT COUNT(*) FROM content_fragments) AS fragments,
+                  (
+                    SELECT COUNT(*)
+                    FROM content_relations
+                    WHERE source_ref NOT IN (SELECT stable_ref FROM refs)
+                       OR target_ref NOT IN (SELECT stable_ref FROM refs)
+                  ) AS dangling_relations,
+                  (
+                    SELECT COUNT(*)
+                    FROM content_fragments
+                    WHERE extraction_status='ocr_pending'
+                  ) AS pending_ocr
+                """
+            ).fetchone()
+        except Exception as exc:
+            raise RuntimeBoundaryError("content knowledge integrity query failed") from exc
+        if (
+            content is None
+            or int(content["documents"] or 0) < 1
+            or int(content["fragments"] or 0) < 1
+            or int(content["dangling_relations"] or 0) != 0
+            or int(content["pending_ocr"] or 0) != 0
+        ):
+            raise PolicyBlockedError("content knowledge projection is incomplete")
 
     @staticmethod
     def _object(row: Any, *, include_content: bool) -> dict[str, Any]:
@@ -268,6 +372,85 @@ class BaseKnowledgeRepository:
             result["business_metadata"] = _parse_business_metadata(row["metadata_json"])
         return result
 
+    @staticmethod
+    def _content_document(row: Any, *, include_content: bool) -> dict[str, Any]:
+        metadata = _parse_business_metadata(row["metadata_json"])
+        result: dict[str, Any] = {
+            "canonical_ref": str(row["stable_ref"]),
+            "object_type": "content_document",
+            "display_name": str(row["title"]),
+            "status": str(metadata.pop("inclusion_status", "approved")),
+            "format": str(row["format"]),
+            "semantic_source": bool(row["semantic_source"]),
+            "logical_file_name": str(row["logical_file_name"]),
+        }
+        if include_content:
+            result.update(
+                {
+                    "description": "",
+                    "parser": str(row["parser"]),
+                    "ocr_policy": str(row["ocr_policy"]),
+                    "asset_hash": str(row["source_asset_hash"]),
+                    "business_metadata": metadata,
+                }
+            )
+        return result
+
+    @staticmethod
+    def _content_fragment(row: Any, *, include_content: bool) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "canonical_ref": str(row["stable_ref"]),
+            "object_type": str(row["fragment_type"]),
+            "display_name": str(row["title"] or row["stable_ref"]),
+            "status": "available",
+            "parent_ref": str(row["document_stable_ref"]),
+            "ordinal": int(row["ordinal"]),
+            "extraction_status": str(row["extraction_status"]),
+        }
+        if include_content:
+            result.update(
+                {
+                    "description": str(row["body"] or ""),
+                    "notes": str(row["notes"] or ""),
+                    "content_location": str(row["source_locator"]),
+                    "content_hash": str(row["content_hash"]),
+                    "business_metadata": _parse_business_metadata(
+                        row["metadata_json"]
+                    ),
+                }
+            )
+        return result
+
+    @staticmethod
+    def _base_relation(row: Any) -> dict[str, Any]:
+        item: dict[str, Any] = {
+            "relation_ref": str(row["stable_ref"]),
+            "relation_type": str(row["relation_type"]),
+            "source_ref": str(row["source_stable_ref"]),
+            "target_ref": str(row["target_stable_ref"]),
+            "confidence": str(row["confidence"]),
+            "business_metadata": _parse_business_metadata(row["metadata_json"]),
+        }
+        if row["relation_label"] is not None and str(row["relation_label"]).strip():
+            item["relation_label"] = str(row["relation_label"])
+        return item
+
+    @staticmethod
+    def _content_relation(row: Any) -> dict[str, Any]:
+        item: dict[str, Any] = {
+            "relation_ref": str(row["stable_ref"]),
+            "relation_type": str(row["relation_type"]),
+            "source_ref": str(row["source_ref"]),
+            "target_ref": str(row["target_ref"]),
+            "confidence": "exact",
+            "business_metadata": _parse_business_metadata(row["metadata_json"]),
+        }
+        if row["relation_label"] is not None and str(row["relation_label"]).strip():
+            item["relation_label"] = str(row["relation_label"])
+        if row["ordinal"] is not None:
+            item["ordinal"] = int(row["ordinal"])
+        return item
+
     def search(
         self,
         *,
@@ -277,7 +460,7 @@ class BaseKnowledgeRepository:
     ) -> list[dict[str, Any]]:
         literal = f"%{_like_literal(query)}%"
         try:
-            rows = self._connection.execute(
+            base_rows = self._connection.execute(
                 """
                 SELECT stable_ref, type, code, title, description, category, status, metadata_json
                 FROM knowledge_items
@@ -296,7 +479,86 @@ class BaseKnowledgeRepository:
             ).fetchall()
         except Exception as exc:
             raise RuntimeBoundaryError("base knowledge search failed") from exc
-        return [self._object(row, include_content=False) for row in rows]
+        results = [
+            self._object(row, include_content=False)
+            for row in base_rows
+        ]
+        if self.content_enabled:
+            try:
+                document_rows = self._connection.execute(
+                    """
+                    SELECT
+                      stable_ref, title, format, semantic_source, parser,
+                      ocr_policy, logical_file_name, source_asset_hash, metadata_json
+                    FROM content_documents
+                    WHERE stable_ref > ?
+                      AND (
+                            lower(title) LIKE lower(?) ESCAPE '\\'
+                         OR lower(logical_file_name) LIKE lower(?) ESCAPE '\\'
+                         OR lower(format) LIKE lower(?) ESCAPE '\\'
+                      )
+                    ORDER BY stable_ref
+                    LIMIT ?
+                    """,
+                    (after_ref, literal, literal, literal, limit),
+                ).fetchall()
+                fragment_rows = self._connection.execute(
+                    """
+                    SELECT
+                      fragment.stable_ref,
+                      fragment.fragment_type,
+                      fragment.title,
+                      fragment.body,
+                      fragment.notes,
+                      fragment.ordinal,
+                      fragment.source_locator,
+                      fragment.extraction_status,
+                      fragment.content_hash,
+                      fragment.metadata_json,
+                      document.stable_ref AS document_stable_ref
+                    FROM content_fragments AS fragment
+                    JOIN content_documents AS document
+                      ON document.id=fragment.document_id
+                    WHERE fragment.stable_ref > ?
+                      AND (
+                        fragment.rowid IN (
+                          SELECT rowid
+                          FROM content_fragments_fts
+                          WHERE content_fragments_fts MATCH ?
+                        )
+                        OR lower(COALESCE(fragment.title, ''))
+                           LIKE lower(?) ESCAPE '\\'
+                        OR lower(COALESCE(fragment.body, ''))
+                           LIKE lower(?) ESCAPE '\\'
+                        OR lower(COALESCE(fragment.notes, ''))
+                           LIKE lower(?) ESCAPE '\\'
+                      )
+                    ORDER BY fragment.stable_ref
+                    LIMIT ?
+                    """,
+                    (
+                        after_ref,
+                        _fts_query(query),
+                        literal,
+                        literal,
+                        literal,
+                        limit,
+                    ),
+                ).fetchall()
+            except Exception as exc:
+                raise RuntimeBoundaryError("content knowledge search failed") from exc
+            results.extend(
+                self._content_document(row, include_content=False)
+                for row in document_rows
+            )
+            results.extend(
+                self._content_fragment(row, include_content=False)
+                for row in fragment_rows
+            )
+        return sorted(
+            results,
+            key=lambda item: item["canonical_ref"],
+        )[:limit]
 
     def get_object(self, canonical_ref: str) -> dict[str, Any] | None:
         try:
@@ -310,7 +572,93 @@ class BaseKnowledgeRepository:
             ).fetchone()
         except Exception as exc:
             raise RuntimeBoundaryError("base knowledge object query failed") from exc
-        return self._object(row, include_content=True) if row is not None else None
+        if row is not None:
+            return self._object(row, include_content=True)
+        if not self.content_enabled:
+            return None
+        try:
+            document = self._connection.execute(
+                """
+                SELECT
+                  stable_ref, title, format, semantic_source, parser,
+                  ocr_policy, logical_file_name, source_asset_hash, metadata_json
+                FROM content_documents
+                WHERE stable_ref=?
+                """,
+                (canonical_ref,),
+            ).fetchone()
+            if document is not None:
+                return self._content_document(document, include_content=True)
+            fragment = self._connection.execute(
+                """
+                SELECT
+                  fragment.stable_ref,
+                  fragment.fragment_type,
+                  fragment.title,
+                  fragment.body,
+                  fragment.notes,
+                  fragment.ordinal,
+                  fragment.source_locator,
+                  fragment.extraction_status,
+                  fragment.content_hash,
+                  fragment.metadata_json,
+                  document.stable_ref AS document_stable_ref
+                FROM content_fragments AS fragment
+                JOIN content_documents AS document
+                  ON document.id=fragment.document_id
+                WHERE fragment.stable_ref=?
+                """,
+                (canonical_ref,),
+            ).fetchone()
+        except Exception as exc:
+            raise RuntimeBoundaryError("content knowledge object query failed") from exc
+        return (
+            self._content_fragment(fragment, include_content=True)
+            if fragment is not None
+            else None
+        )
+
+    def get_relation(self, relation_ref: str) -> dict[str, Any] | None:
+        try:
+            base = self._connection.execute(
+                """
+                SELECT
+                  relation.stable_ref,
+                  relation.relation_type,
+                  relation.relation_label,
+                  relation.confidence,
+                  relation.metadata_json,
+                  source.stable_ref AS source_stable_ref,
+                  target.stable_ref AS target_stable_ref
+                FROM knowledge_relations AS relation
+                JOIN knowledge_items AS source
+                  ON source.id=relation.source_item_id
+                JOIN knowledge_items AS target
+                  ON target.id=relation.target_item_id
+                WHERE relation.stable_ref=?
+                """,
+                (relation_ref,),
+            ).fetchone()
+        except Exception as exc:
+            raise RuntimeBoundaryError("base knowledge relation query failed") from exc
+        if base is not None:
+            return self._base_relation(base)
+        if not self.content_enabled:
+            return None
+        try:
+            content = self._connection.execute(
+                """
+                SELECT
+                  stable_ref, relation_type, relation_label,
+                  source_ref, target_ref, ordinal, metadata_json
+                FROM content_relations
+                WHERE stable_ref=?
+                """,
+                (relation_ref,),
+            ).fetchone()
+        except Exception as exc:
+            raise RuntimeBoundaryError("content knowledge relation query failed") from exc
+        return self._content_relation(content) if content is not None else None
 
     def related(
         self,
@@ -320,6 +668,13 @@ class BaseKnowledgeRepository:
         after_ref: str,
         limit: int,
     ) -> list[dict[str, Any]]:
+        direct_relation = self.get_relation(canonical_ref)
+        if direct_relation is not None:
+            return (
+                [direct_relation]
+                if direct_relation["relation_ref"] > after_ref and limit > 0
+                else []
+            )
         direction_sql = {
             "outgoing": "source.stable_ref = ?",
             "incoming": "target.stable_ref = ?",
@@ -331,7 +686,7 @@ class BaseKnowledgeRepository:
             else (canonical_ref,)
         )
         try:
-            rows = self._connection.execute(
+            base_rows = self._connection.execute(
                 f"""
                 SELECT
                     r.stable_ref,
@@ -353,20 +708,33 @@ class BaseKnowledgeRepository:
             ).fetchall()
         except Exception as exc:
             raise RuntimeBoundaryError("base knowledge relation query failed") from exc
-        result: list[dict[str, Any]] = []
-        for row in rows:
-            item: dict[str, Any] = {
-                "relation_ref": str(row["stable_ref"]),
-                "relation_type": str(row["relation_type"]),
-                "source_ref": str(row["source_stable_ref"]),
-                "target_ref": str(row["target_stable_ref"]),
-                "confidence": str(row["confidence"]),
-                "business_metadata": _parse_business_metadata(row["metadata_json"]),
-            }
-            if row["relation_label"] is not None and str(row["relation_label"]).strip():
-                item["relation_label"] = str(row["relation_label"])
-            result.append(item)
-        return result
+        result = [self._base_relation(row) for row in base_rows]
+        if self.content_enabled:
+            content_direction_sql = {
+                "outgoing": "source_ref = ?",
+                "incoming": "target_ref = ?",
+                "both": "(source_ref = ? OR target_ref = ?)",
+            }[direction]
+            try:
+                content_rows = self._connection.execute(
+                    f"""
+                    SELECT
+                      stable_ref, relation_type, relation_label,
+                      source_ref, target_ref, ordinal, metadata_json
+                    FROM content_relations
+                    WHERE {content_direction_sql}
+                      AND stable_ref > ?
+                    ORDER BY stable_ref
+                    LIMIT ?
+                    """,
+                    (*direction_params, after_ref, limit),
+                ).fetchall()
+            except Exception as exc:
+                raise RuntimeBoundaryError(
+                    "content knowledge relation query failed"
+                ) from exc
+            result.extend(self._content_relation(row) for row in content_rows)
+        return sorted(result, key=lambda item: item["relation_ref"])[:limit]
 
     def source_evidence(
         self,
@@ -376,7 +744,7 @@ class BaseKnowledgeRepository:
         limit: int,
     ) -> list[dict[str, Any]]:
         try:
-            rows = self._connection.execute(
+            base_rows = self._connection.execute(
                 """
                 SELECT
                     reference.id,
@@ -387,21 +755,33 @@ class BaseKnowledgeRepository:
                     reference.source_column,
                     reference.source_cell,
                     reference.source_hash
-                FROM knowledge_items AS item
-                JOIN source_references AS reference
-                  ON reference.target_type = 'item' AND reference.target_id = item.id
+                FROM source_references AS reference
                 JOIN source_files AS file ON file.id = reference.source_file_id
-                WHERE item.stable_ref = ?
-                  AND reference.id > ?
+                WHERE reference.id > ?
+                  AND (
+                    (
+                      reference.target_type='item'
+                      AND reference.target_id=(
+                        SELECT id FROM knowledge_items WHERE stable_ref=?
+                      )
+                    )
+                    OR
+                    (
+                      reference.target_type='relation'
+                      AND reference.target_id=(
+                        SELECT id FROM knowledge_relations WHERE stable_ref=?
+                      )
+                    )
+                  )
                 ORDER BY reference.id
                 LIMIT ?
                 """,
-                (canonical_ref, after_id, limit),
+                (after_id, canonical_ref, canonical_ref, limit),
             ).fetchall()
         except Exception as exc:
             raise RuntimeBoundaryError("base knowledge evidence query failed") from exc
         result: list[dict[str, Any]] = []
-        for row in rows:
+        for row in base_rows:
             item: dict[str, Any] = {
                 "evidence_ref": f"base:evidence:{row['id']}",
                 "canonical_ref": canonical_ref,
@@ -419,7 +799,46 @@ class BaseKnowledgeRepository:
                 if row[field] is not None and str(row[field]).strip():
                     item[field] = row[field]
             result.append(item)
-        return result
+        if self.content_enabled:
+            try:
+                content_rows = self._connection.execute(
+                    """
+                    SELECT
+                      evidence.id,
+                      evidence.source_asset_hash,
+                      evidence.source_locator,
+                      evidence.extraction_method,
+                      evidence.evidence_hash,
+                      document.logical_file_name,
+                      document.format
+                    FROM content_source_evidence AS evidence
+                    LEFT JOIN content_documents AS document
+                      ON document.source_asset_hash=evidence.source_asset_hash
+                    WHERE evidence.target_ref=?
+                      AND evidence.id > ?
+                    ORDER BY evidence.id
+                    LIMIT ?
+                    """,
+                    (canonical_ref, after_id, limit),
+                ).fetchall()
+            except Exception as exc:
+                raise RuntimeBoundaryError(
+                    "content knowledge evidence query failed"
+                ) from exc
+            for row in content_rows:
+                item = {
+                    "evidence_ref": f"base:evidence:{row['id']}",
+                    "canonical_ref": canonical_ref,
+                    "file_name": str(row["logical_file_name"] or "content-asset"),
+                    "file_type": str(row["format"] or "unknown"),
+                    "source_hash": str(row["source_asset_hash"]),
+                    "content_location": str(row["source_locator"]),
+                    "extraction_method": str(row["extraction_method"]),
+                    "evidence_hash": str(row["evidence_hash"]),
+                    "excerpt_included": False,
+                }
+                result.append(item)
+        return sorted(result, key=lambda item: item["evidence_ref"])[:limit]
 
 
 class BaseKnowledgeQueryService:
@@ -462,6 +881,37 @@ class BaseKnowledgeQueryService:
         runtime = FormalBaseRuntimeContext(**runtime_arguments).open()
         try:
             manifest_digest = _sha256_file(runtime.base_path)
+            content_meta: dict[str, str] = {}
+            if "content_schema_meta" in {
+                str(row[0])
+                for row in runtime.connection.execute(
+                    """
+                    SELECT name
+                    FROM sqlite_master
+                    WHERE type='table' AND name='content_schema_meta'
+                    """
+                )
+            }:
+                content_meta = {
+                    str(row["key"]): str(row["value"])
+                    for row in runtime.connection.execute(
+                        """
+                        SELECT key, value
+                        FROM content_schema_meta
+                        WHERE key IN (
+                          'base_database_sha256',
+                          'content_manifest_digest',
+                          'asset_manifest_digest'
+                        )
+                        """
+                    )
+                }
+            base_digest_value = content_meta.get("base_database_sha256")
+            base_manifest_digest = (
+                f"sha256:{base_digest_value.removeprefix('sha256:')}"
+                if base_digest_value
+                else manifest_digest
+            )
             cursor_arguments: dict[str, Any] = {"ttl_seconds": cursor_ttl_seconds}
             if cursor_clock is not None:
                 cursor_arguments["clock"] = cursor_clock
@@ -474,6 +924,13 @@ class BaseKnowledgeQueryService:
                     policy_version=POLICY_VERSION,
                     identity_version=IDENTITY_VERSION,
                     manifest_digest=manifest_digest,
+                    base_manifest_digest=base_manifest_digest,
+                    content_manifest_digest=content_meta.get(
+                        "content_manifest_digest"
+                    ),
+                    asset_manifest_digest=content_meta.get(
+                        "asset_manifest_digest"
+                    ),
                 ),
             )
         except Exception:
@@ -642,7 +1099,10 @@ class BaseKnowledgeQueryService:
         resolved_ref = _canonical_ref(canonical_ref)
         if direction not in {"outgoing", "incoming", "both"}:
             raise InvalidInputError("relation direction is invalid")
-        if self.repository.get_object(resolved_ref) is None:
+        if (
+            self.repository.get_object(resolved_ref) is None
+            and self.repository.get_relation(resolved_ref) is None
+        ):
             raise ObjectNotAvailableError()
         checked_limit = self._limit("get_related_knowledge", limit)
         parameters = {
@@ -689,7 +1149,10 @@ class BaseKnowledgeQueryService:
         resolved_ref = _canonical_ref(canonical_ref)
         if include_excerpt is not False:
             raise InvalidInputError("source file excerpts are outside the MCP contract")
-        if self.repository.get_object(resolved_ref) is None:
+        if (
+            self.repository.get_object(resolved_ref) is None
+            and self.repository.get_relation(resolved_ref) is None
+        ):
             raise ObjectNotAvailableError()
         checked_limit = self._limit("get_source_evidence", limit)
         parameters = {

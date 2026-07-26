@@ -80,6 +80,18 @@ class BaseKnowledgeQueryServiceTests(unittest.TestCase):
             contract["business_rule"],
             "all_base_knowledge_business_content_is_ai_readable",
         )
+        self.assertEqual(
+            contract["content_object_contract"]["tables"],
+            [
+                "content_documents",
+                "content_fragments",
+                "content_fragments_fts",
+            ],
+        )
+        self.assertTrue(contract["relation_contract"]["direct_relation_ref"])
+        self.assertTrue(
+            contract["source_evidence_contract"]["supports_relation_ref"]
+        )
 
     def test_search_includes_active_deprecated_and_internal_base_knowledge(self) -> None:
         response = self.service.search_knowledge(
@@ -156,6 +168,33 @@ class BaseKnowledgeQueryServiceTests(unittest.TestCase):
                 include_excerpt=True,
                 request=self.request,
             )
+
+    def test_formal_relation_namespace_is_accepted_for_direct_reads(self) -> None:
+        self.service.close()
+        connection = sqlite3.connect(self.database)
+        connection.execute(
+            """
+            UPDATE knowledge_relations
+            SET stable_ref='base_relation:fixture:a-to-b'
+            WHERE id='relation-a-b'
+            """
+        )
+        connection.commit()
+        connection.close()
+        self.before_hash = sha256_file(self.database)
+        self.service = BaseKnowledgeQueryService.create(
+            base_database=self.database,
+            cursor_key=b"base-cursor-key-" + (b"x" * 32),
+        )
+        direct = self.service.get_related_knowledge(
+            "base_relation:fixture:a-to-b",
+            "both",
+            request=self.request,
+        ).to_dict()["data"]["items"]
+        self.assertEqual(
+            [item["relation_ref"] for item in direct],
+            ["base_relation:fixture:a-to-b"],
+        )
 
     def test_runtime_is_immutable_and_rejects_non_business_table_reads(self) -> None:
         runtime_root = self.root / "runtime-boundary"

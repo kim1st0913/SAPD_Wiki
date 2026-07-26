@@ -189,6 +189,18 @@ class FormalBaseRuntimeContext:
             "knowledge_relations",
             "source_files",
             "source_references",
+            "content_schema_meta",
+            "content_documents",
+            "content_fragments",
+            "content_relations",
+            "content_bindings",
+            "content_source_evidence",
+            "content_fragments_fts",
+            "content_fragments_fts_config",
+            "content_fragments_fts_content",
+            "content_fragments_fts_data",
+            "content_fragments_fts_docsize",
+            "content_fragments_fts_idx",
         }
     )
 
@@ -227,10 +239,16 @@ class FormalBaseRuntimeContext:
     def _authorizer(
         action: int,
         arg1: str | None,
-        _arg2: str | None,
+        arg2: str | None,
         _database: str | None,
         _trigger: str | None,
     ) -> int:
+        if action == _sqlite_action("SQLITE_PRAGMA"):
+            return (
+                sqlite3.SQLITE_OK
+                if arg1 == "data_version" and arg2 is None
+                else sqlite3.SQLITE_DENY
+            )
         if action in _DENIED_ACTIONS:
             return sqlite3.SQLITE_DENY
         if action == _sqlite_action("SQLITE_READ") and arg1 not in {

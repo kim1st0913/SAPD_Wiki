@@ -1,0 +1,34 @@
+{
+  "review_id": "sapd-content-ocr-review-v1",
+  "review_version": "1.0.0",
+  "status": "approved",
+  "reviewed_at": "2026-07-26T21:30:00+08:00",
+  "policy": {
+    "scope": "ordinary-content-empty-text-fallback-only",
+    "engine": "tesseract",
+    "language": "chi_sim+eng",
+    "poster_ocr_forbidden": true,
+    "store_raw_ocr_text": false,
+    "store_raw_ocr_hash": true
+  },
+  "entries": [
+    {
+      "stable_ref": "base:content_document:business-oriented-data-security-design-method-v2.1:page:043",
+      "visual_asset_role": "page-preview",
+      "visual_asset_sha256": "783e99ea458c0a1013aa11966c2f4e00f56cd0cc709459fc686b89da206570b1",
+      "ocr_psm": 11,
+      "review_status": "approved",
+      "reviewed_title": "奇安信",
+      "reviewed_text": "奇安信\n新一代网络安全领军者"
+    },
+    {
+      "stable_ref": "base:content_document:strategic-consulting-planning-department-knowledge-base-v2.2:slide:032",
+      "visual_asset_role": "embedded-slide-image",
+      "visual_asset_sha256": "516ff49a495322710257a7a9d6c5d70dcb8526b1cfe31d16dc9bfb5d54e29752",
+      "ocr_psm": 6,
+      "review_status": "approved",
+      "reviewed_title": "二、从价值链角度看安全的角色",
+      "reviewed_text": "二、从价值链角度看安全的角色\nPorter 价值链模型中：\n主活动（Primary Activities）：物流、运营、营销、服务等\n支持活动（Support Activities）：技术、采购、人资、IT、安全等\n在大多数组织中，信息安全、安全运维、安全治理都被归类为支持活动。\n但是，在“支持活动”中，安全可能对主活动产生直接影响，比如：\n主活动｜安全如何介入（例）\n营销｜用户数据保护、反欺诈系统\n服务｜客户访问系统的身份验证、安全运维\n运营｜工控安全、供应链漏洞管理\n产品交付｜SaaS平台的安全设计、安全认证能力作为卖点\n因此，在数字化时代，安全越来越成为价值交付的质量保障要素，而非“IT小组的附属职责”。"
+    }
+  ]
+}

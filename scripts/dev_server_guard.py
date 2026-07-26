@@ -23,6 +23,9 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_PORT = 5173
 DEFAULT_RUNTIME_PATHS = {
     "base_db": (ROOT / "data" / "database" / "sapd_wiki.sqlite3").resolve(),
+    "content_asset_db": (
+        ROOT / "data" / "database" / "sapd_content_assets.sqlite3"
+    ).resolve(),
     "user_db": (ROOT / "data" / "user" / "sapd_wiki_user.sqlite3").resolve(),
     "data_root": (ROOT / "frontend" / "capability-browser" / "public" / "data").resolve(),
     "export_dir": (ROOT / "data" / "exports").resolve(),
@@ -183,6 +186,8 @@ def expected_runtime(args: argparse.Namespace) -> dict[str, str]:
     values: dict[str, str] = {}
     if args.base_db:
         values["base_db"] = args.base_db
+    if getattr(args, "content_asset_db", ""):
+        values["content_asset_db"] = args.content_asset_db
     if args.user_db:
         values["user_db"] = args.user_db
     if args.ephemeral_user_state:
@@ -260,6 +265,7 @@ def runtime_health_checks(health: dict[str, object], expected: dict[str, str]) -
         })
     path_checks = [
         ("base_db", "base_database"),
+        ("content_asset_db", "content_asset_database"),
         ("user_db", "user_database"),
         ("data_root", "data_root"),
     ]
@@ -360,6 +366,8 @@ def start_project_server(port: int, runtime: dict[str, str]) -> int | None:
     ]
     if runtime.get("base_db"):
         command.extend(["--base-db", runtime["base_db"]])
+    if runtime.get("content_asset_db"):
+        command.extend(["--content-asset-db", runtime["content_asset_db"]])
     if runtime.get("user_db"):
         command.extend(["--user-db", runtime["user_db"]])
     if runtime.get("ephemeral_user_state") == "1":
@@ -401,6 +409,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Check and guard the SAPD Wiki local dev server.")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT)
     parser.add_argument("--base-db", default="", help="Runtime base database path for this port.")
+    parser.add_argument(
+        "--content-asset-db",
+        default="",
+        help="Runtime content asset database path for this port.",
+    )
     parser.add_argument("--user-db", default="", help="Runtime user database path for this port.")
     parser.add_argument(
         "--ephemeral-user-state",

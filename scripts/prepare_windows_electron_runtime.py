@@ -18,6 +18,9 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 BUILD_ZIP_BUNDLE = REPO_ROOT / "scripts" / "build_zip_bundle.py"
 DEFAULT_FRONTEND = REPO_ROOT / "frontend" / "capability-browser"
 DEFAULT_BASE_DB = REPO_ROOT / "data" / "database" / "sapd_wiki.sqlite3"
+DEFAULT_CONTENT_ASSET_DB = (
+    REPO_ROOT / "data" / "database" / "sapd_content_assets.sqlite3"
+)
 DEFAULT_OUTPUT = REPO_ROOT / "apps" / "electron" / ".build" / "runtime-template"
 BACKEND_NAME = "SAPD-Wiki-Backend.exe"
 
@@ -124,6 +127,10 @@ def build_runtime(args: argparse.Namespace, backend: Path, output_dir: Path) -> 
         "--base-db",
         str(args.base_db.resolve()),
     ]
+    if args.content_asset_db is not None:
+        command.extend(
+            ["--content-asset-db", str(args.content_asset_db.resolve())]
+        )
     subprocess.run(command, check=True, cwd=REPO_ROOT)
     bundles = sorted(work_dir.glob(f"SAPD-Wiki-*-win-x64"))
     if len(bundles) != 1:
@@ -150,6 +157,7 @@ def main() -> int:
     parser.add_argument("--backend-artifact", type=Path, required=True, help="Downloaded GitHub Actions ZIP or extracted artifact directory.")
     parser.add_argument("--frontend-dist", type=Path, default=DEFAULT_FRONTEND)
     parser.add_argument("--base-db", type=Path, default=DEFAULT_BASE_DB)
+    parser.add_argument("--content-asset-db", type=Path)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--app-version", default="0.2.0")
     args = parser.parse_args()
@@ -157,6 +165,10 @@ def main() -> int:
         raise FileNotFoundError(f"frontend directory does not exist: {args.frontend_dist}")
     if not args.base_db.is_file():
         raise FileNotFoundError(f"base database does not exist: {args.base_db}")
+    if args.content_asset_db is not None and not args.content_asset_db.is_file():
+        raise FileNotFoundError(
+            f"content asset database does not exist: {args.content_asset_db}"
+        )
 
     with tempfile.TemporaryDirectory(prefix="sapd-windows-backend-") as temp_dir:
         backend, metadata = backend_source(args.backend_artifact, Path(temp_dir))

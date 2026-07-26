@@ -430,6 +430,14 @@ class BundleRuntime:
         base_file = self.manifest["base_database"].get("file", "sapd_wiki_base.sqlite3")
         user_file = self.manifest["user_database"].get("file", "sapd_wiki_user.sqlite3")
         self.base_db = safe_bundle_child(self.root / "data" / "base", base_file, "sapd_wiki_base.sqlite3")
+        asset_info = self.manifest.get("content_asset_database")
+        self.content_asset_db: Path | None = None
+        if isinstance(asset_info, dict) and asset_info.get("file"):
+            self.content_asset_db = safe_bundle_child(
+                self.root / "data" / "base",
+                str(asset_info["file"]),
+                "sapd_content_assets.sqlite3",
+            )
         self.user_db = safe_bundle_child(self.root / "data" / "user", user_file, "sapd_wiki_user.sqlite3")
         self.ensure_user_note_columns()
         self.ensure_user_workspace_tables()
@@ -1770,6 +1778,12 @@ def configure_projection_api(runtime: BundleRuntime) -> None:
     if hasattr(projection_api, "configure_runtime_paths"):
         projection_api.configure_runtime_paths(
             base_db=runtime.base_db.resolve(),
+            content_query_db=runtime.base_db.resolve(),
+            content_asset_db=(
+                runtime.content_asset_db.resolve()
+                if runtime.content_asset_db is not None
+                else None
+            ),
             user_db=runtime.user_db.resolve(),
             data_root=frontend_data_root,
             export_dir=runtime.export_dir.resolve(),
@@ -1840,6 +1854,66 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
             self.end_headers()
             self.wfile.write(body)
 
+        def serve_content_asset(self, asset_hash: str) -> None:
+            try:
+                service = projection_api.ContentAssetService(
+                    projection_api.CONTENT_ASSET_DB_PATH
+                )
+                metadata = service.asset_metadata(asset_hash)
+                byte_range = projection_api.parse_http_byte_range(
+                    self.headers.get("Range"),
+                    int(metadata["byte_count"]),
+                )
+                partial = self.headers.get("Range") is not None
+                self.send_response(206 if partial else 200)
+                self.send_header("Content-Type", str(metadata["mime_type"]))
+                self.send_header("Content-Length", str(byte_range.length))
+                self.send_header("Accept-Ranges", "bytes")
+                self.send_header("ETag", f'"sha256-{asset_hash}"')
+                file_name = re.sub(
+                    r"[^A-Za-z0-9._-]+",
+                    "-",
+                    str(metadata["logical_file_name"]),
+                ).strip(".-") or f"{asset_hash}.bin"
+                self.send_header("Content-Disposition", f'inline; filename="{file_name}"')
+                if partial:
+                    self.send_header(
+                        "Content-Range",
+                        f"bytes {byte_range.start}-{byte_range.end}/{byte_range.total}",
+                    )
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+                service.stream_asset(asset_hash, self.wfile, byte_range)
+            except projection_api.ContentAssetNotFound:
+                self.send_json(404, {"ok": False, "error": "asset is unavailable"})
+            except projection_api.ContentAssetRangeError:
+                self.send_response(416)
+                self.send_header("Content-Range", "bytes */*")
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+            except projection_api.ContentAssetError as error:
+                self.send_json(500, {"ok": False, "error": str(error)})
+
+        def serve_content_asset_by_owner(
+            self,
+            query: dict[str, list[str]],
+        ) -> None:
+            try:
+                service = projection_api.ContentAssetService(
+                    projection_api.CONTENT_ASSET_DB_PATH
+                )
+                metadata = service.asset_for_owner(
+                    owner_ref=unquote((query.get("owner_ref") or [""])[0]),
+                    asset_role=str(
+                        (query.get("asset_role") or ["original"])[0]
+                    ).strip(),
+                )
+                self.serve_content_asset(str(metadata["asset_hash"]))
+            except projection_api.ContentAssetNotFound:
+                self.send_json(404, {"ok": False, "error": "asset is unavailable"})
+            except projection_api.ContentAssetError as error:
+                self.send_json(400, {"ok": False, "error": str(error)})
+
         def resolve_static_path(self, request_path: str) -> Path:
             relative = request_path.lstrip("/") or "index.html"
             candidate = (runtime.frontend_dir / relative).resolve()
@@ -1873,6 +1947,19 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
         def do_GET(self) -> None:
             parsed = urlparse(self.path)
             try:
+                if (
+                    parsed.path == "/api/v1/content/assets/by-owner"
+                    and projection_api is not None
+                ):
+                    self.serve_content_asset_by_owner(parse_qs(parsed.query))
+                    return
+                asset_match = re.fullmatch(
+                    r"/api/v1/content/assets/([0-9a-fA-F]{64})",
+                    parsed.path,
+                )
+                if asset_match and projection_api is not None:
+                    self.serve_content_asset(asset_match.group(1).lower())
+                    return
                 if parsed.path == "/api/v1/health":
                     port = int(state["port"])
                     if not is_allowed_host_header(self.headers.get("Host", ""), port):
@@ -1903,6 +1990,27 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
                 if projection_api is not None:
                     params = parse_qs(parsed.query)
                     path_parts = [unquote(part) for part in parsed.path.strip("/").split("/") if part]
+                    if parsed.path in {
+                        "/api/v1/knowledge/search",
+                        "/api/v1/knowledge/object",
+                        "/api/v1/knowledge/related",
+                        "/api/v1/knowledge/evidence",
+                        "/api/v1/knowledge/version",
+                    }:
+                        self.send_json(
+                            200,
+                            projection_api.content_knowledge_response(
+                                parsed.path,
+                                params,
+                            ),
+                        )
+                        return
+                    if parsed.path == "/api/v1/content/assets":
+                        self.send_json(
+                            200,
+                            projection_api.content_asset_list_response(params),
+                        )
+                        return
                     if parsed.path == "/api/v1/dashboard/knowledge-summary":
                         self.send_json(200, projection_api.create_envelope(projection_api.dashboard_knowledge_summary()))
                         return

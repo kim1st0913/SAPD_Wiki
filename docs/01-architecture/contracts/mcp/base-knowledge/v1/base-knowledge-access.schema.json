@@ -12,10 +12,12 @@
     "store",
     "business_rule",
     "object_contract",
+    "content_object_contract",
     "relation_contract",
     "source_evidence_contract",
     "hard_exclusions",
-    "tool_contract"
+    "tool_contract",
+    "version_contract"
   ],
   "properties": {
     "schema_version": {
@@ -40,6 +42,16 @@
       "type": "object",
       "required": ["table", "row_eligibility", "search_fields", "return_fields"]
     },
+    "content_object_contract": {
+      "type": "object",
+      "required": [
+        "tables",
+        "optional_when_schema_absent",
+        "row_eligibility",
+        "search_fields",
+        "return_fields"
+      ]
+    },
     "relation_contract": {
       "type": "object",
       "required": ["table", "row_eligibility", "return_fields"]
@@ -55,6 +67,30 @@
     "tool_contract": {
       "type": "object",
       "required": ["fixed_readonly_tools", "direct_sql", "response_bytes", "content_trust"]
+    },
+    "version_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "base_manifest_digest",
+        "content_manifest_digest",
+        "asset_manifest_digest",
+        "asset_blob_read"
+      ],
+      "properties": {
+        "base_manifest_digest": {
+          "const": "always"
+        },
+        "content_manifest_digest": {
+          "const": "when_content_schema_present"
+        },
+        "asset_manifest_digest": {
+          "const": "metadata_from_query_store_only"
+        },
+        "asset_blob_read": {
+          "const": false
+        }
+      }
     }
   }
 }

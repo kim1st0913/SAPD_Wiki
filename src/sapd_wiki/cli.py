@@ -1188,6 +1188,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="Runtime base database path for health/profile binding. Defaults to the global --db path.",
     )
     serve_cmd.add_argument(
+        "--content-query-db",
+        default=None,
+        help="Optional unified content query database. Defaults to --base-db.",
+    )
+    serve_cmd.add_argument(
+        "--content-asset-db",
+        default=None,
+        help="Optional separate read-only content asset database.",
+    )
+    serve_cmd.add_argument(
         "--user-db",
         default=None,
         help="Runtime user database path. Defaults to data/user/sapd_wiki_user.sqlite3.",

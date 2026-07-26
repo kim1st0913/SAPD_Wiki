@@ -44,6 +44,7 @@ runtime_bundle_name_version() {
 
 FRONTEND_DIST="${SAPD_WIKI_FRONTEND_DIST:-$REPO_ROOT/frontend/capability-browser}"
 BASE_DB="${SAPD_WIKI_BASE_DB:-$REPO_ROOT/data/database/sapd_wiki.sqlite3}"
+CONTENT_ASSET_DB="${SAPD_WIKI_CONTENT_ASSET_DB:-$REPO_ROOT/data/database/sapd_content_assets.sqlite3}"
 MATURITY_REPORT_SEED="${SAPD_WIKI_MATURITY_REPORT_SEED:-$REPO_ROOT/data/user/maturity-reports}"
 MATURITY_REPORT_SEED_ARTIFACT="${SAPD_WIKI_MATURITY_REPORT_SEED_ARTIFACT:-demo-project-002=maturity-report-216c744b314ff70e8cfd-20260718-102008Z-9af11352}"
 DEFAULT_PYINSTALLER_PYTHON="$APP_ROOT/.build/pyinstaller-venv/bin/python"
@@ -196,6 +197,9 @@ build_runtime() {
     --backend-binary "$BACKEND_BINARY" \
     --base-db "$BASE_DB"
   )
+  if [[ -f "$CONTENT_ASSET_DB" ]]; then
+    bundle_args+=(--content-asset-db "$CONTENT_ASSET_DB")
+  fi
   if [[ -d "$MATURITY_REPORT_SEED" ]]; then
     bundle_args+=(
       --maturity-report-seed "$MATURITY_REPORT_SEED"
@@ -352,6 +356,7 @@ stage_app_bundle() {
   echo "app_bundle=$APP_BUNDLE"
   echo "backend_binary=$BACKEND_BINARY"
   echo "base_db=$BASE_DB"
+  echo "content_asset_db=$CONTENT_ASSET_DB"
 }
 
 open_app() {

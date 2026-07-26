@@ -37,6 +37,7 @@ class WebDevMcpE2ETests(unittest.IsolatedAsyncioTestCase):
             runtime_root=self.root,
             authorization_timeout_seconds=1,
             cleanup_on_close=False,
+            base_database=getattr(self, "base_database", None),
         )
         self.control = build_dev_control_api(
             expected_host=WEB_HOST,
@@ -511,6 +512,101 @@ class WebDevMcpE2ETests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             stopped_panel["certificate"]["ca_fingerprint_sha256"],
             self.ca_fingerprint,
+        )
+
+
+class ContentCandidateMcpE2ETests(WebDevMcpE2ETests):
+    base_database = (
+        Path(__file__).resolve().parents[2]
+        / "data/exports/worker-verify/base-content-unified-query/candidate"
+        / "sapd_wiki.content-candidate.sqlite3"
+    ).resolve()
+
+    async def test_real_web_control_oauth_five_tools_revoke_timeout_and_stop(self) -> None:
+        if not self.base_database.is_file():
+            self.skipTest("T4 content candidate database is unavailable")
+        client_id = await self.register()
+        response, verifier, redirect_uri = await self.authorize(
+            client_id,
+            decision="allow",
+            suffix="content-candidate",
+        )
+        issued = await self.exchange(client_id, response, verifier, redirect_uri)
+        initialized = await self.mcp_request(
+            issued["access_token"],
+            1,
+            "initialize",
+            {
+                "protocolVersion": PROTOCOL_VERSION,
+                "capabilities": {},
+                "clientInfo": {"name": "SAPD content candidate E2E", "version": "1.0"},
+            },
+        )
+        self.assertEqual(initialized.status_code, 200, initialized.text)
+        notification = await self.client.post(
+            "/mcp",
+            headers=self.mcp_headers(issued["access_token"]),
+            json={"jsonrpc": "2.0", "method": "notifications/initialized"},
+        )
+        self.assertEqual(notification.status_code, 202)
+
+        search = await self.call_tool(
+            issued["access_token"],
+            2,
+            "search_knowledge",
+            {"query": "价值链", "limit": 8},
+        )
+        refs = [item["canonical_ref"] for item in search["data"]["items"]]
+        document_ref = "base:content_document:security-architecture-design-method-v2.0"
+        self.assertTrue(any(ref.startswith("base:content_document:") for ref in refs))
+
+        knowledge = await self.call_tool(
+            issued["access_token"],
+            3,
+            "get_knowledge_object",
+            {"canonical_ref": document_ref},
+        )
+        self.assertEqual(knowledge["data"]["format"], "pdf")
+
+        related = await self.call_tool(
+            issued["access_token"],
+            4,
+            "get_related_knowledge",
+            {
+                "canonical_ref": document_ref,
+                "direction": "outgoing",
+                "limit": 15,
+            },
+        )
+        self.assertGreater(len(related["data"]["items"]), 0)
+        fragment_ref = related["data"]["items"][0]["target_ref"]
+
+        evidence = await self.call_tool(
+            issued["access_token"],
+            5,
+            "get_source_evidence",
+            {
+                "canonical_ref": fragment_ref,
+                "include_excerpt": False,
+                "limit": 8,
+            },
+        )
+        self.assertGreater(len(evidence["data"]["items"]), 0)
+        self.assertNotIn("content_bytes", str(evidence))
+
+        version = await self.call_tool(
+            issued["access_token"],
+            6,
+            "get_knowledge_version",
+            {},
+        )
+        self.assertRegex(
+            version["data"]["content_manifest_digest"],
+            r"^sha256:[0-9a-f]{64}$",
+        )
+        self.assertRegex(
+            version["data"]["asset_manifest_digest"],
+            r"^sha256:[0-9a-f]{64}$",
         )
 
 

@@ -13,6 +13,7 @@ DMG 是当前工作区的一次发布快照，不是实时读取开发目录。�
 | 前端页面代码 | `frontend/capability-browser` | `build_and_run.sh` 将该目录复制到 Runtime 的 `app/frontend-dist` | DMG Runtime 前端文件来自同一目录；同一 smoke 用例在 5173 和 DMG Runtime 均通过 |
 | 后端运行代码 | `scripts/run_local_server.py`、`scripts/check_bundle_runtime.py`、`scripts/create_user_db.py`、`scripts/export_diagnostics.py`、`src/sapd_wiki/**/*.py` | PyInstaller 从当前源码生成 `SAPD-Wiki-Backend` | backend source hash 变化必须触发重建；不允许默认复用外部 backend |
 | 基础库 | `data/database/sapd_wiki.sqlite3` | `build_zip_bundle.py` 复制为 Runtime `data/base/sapd_wiki_base.sqlite3` | manifest hash 与包内 base DB hash 一致 |
+| 内容资产库 | `data/database/sapd_content_assets.sqlite3` | 文件存在时由 `build_zip_bundle.py` 复制为 Runtime `data/base/sapd_content_assets.sqlite3` | manifest hash 与包内资产库 hash 一致；App 只经受控 asset API 读取，MCP 不读 BLOB |
 | 前端离线数据包 | `frontend/capability-browser/public/data/**` | 随前端目录一起复制进 Runtime | JSON 边界审计通过；关键数据页面 smoke 通过 |
 | 用户库 schema 模板 | `scripts/create_user_db.py` | Runtime 内生成干净 `sapd_wiki_user.sqlite3` | 包内用户库为空，`schema_version=user_schema_0.3` |
 | 核心业务工作流 | 5173 + Runtime API | 先验 5173，再验 DMG Runtime | 搜索、能力映射、标准页、批注导出、Issue 工作台等关键路径使用同一组样例 |

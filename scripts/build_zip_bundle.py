@@ -11,9 +11,11 @@ import argparse
 import json
 import os
 import shutil
+import sqlite3
 import time
 import zipfile
 from pathlib import Path
+from urllib.parse import quote
 
 from check_bundle_runtime import sha256_file
 from create_user_db import initialize_user_db
@@ -34,6 +36,94 @@ def copy_tree(source: Path, target: Path) -> None:
     if target.exists():
         shutil.rmtree(target)
     shutil.copytree(source, target)
+
+
+def content_asset_owner_url(owner_ref: str) -> str:
+    return (
+        "/api/v1/content/assets/by-owner?"
+        f"owner_ref={quote(owner_ref, safe='')}&asset_role=original"
+    )
+
+
+def prepare_frontend_asset_runtime(
+    frontend_root: Path,
+    content_asset_db: Path,
+) -> list[str]:
+    """Route packaged originals through the asset DB and remove byte-identical copies."""
+
+    maturity_url = content_asset_owner_url(
+        "base:content_document:sapd-maturity-model-usage-guide"
+    )
+    poster_url = content_asset_owner_url(
+        "base:content_document:archimate-3.2-reference-poster-zh"
+    )
+    rewrites = {
+        frontend_root / "app.js": (
+            (
+                '"/assets/guides/maturity-model-usage.html?embed=1&',
+                f'"{maturity_url}&embed=1&',
+            ),
+            (
+                "const ARCHIMATE_POSTER_PDF_PATH = "
+                "`${ARCHIMATE_POSTER_ASSET_BASE}/archimate-poster-v3.2-zh.pdf`;",
+                f'const ARCHIMATE_POSTER_PDF_PATH = "{poster_url}";',
+            ),
+        ),
+        frontend_root / "components" / "AppShell.js": (
+            (
+                'href: "./assets/guides/maturity-model-usage.html"',
+                f'href: "{maturity_url}"',
+            ),
+        ),
+    }
+    for path, replacements in rewrites.items():
+        if not path.is_file():
+            continue
+        content = path.read_text(encoding="utf-8")
+        for old, new in replacements:
+            content = content.replace(old, new)
+        path.write_text(content, encoding="utf-8")
+
+    with sqlite3.connect(
+        f"file:{content_asset_db.resolve()}?mode=ro",
+        uri=True,
+    ) as connection:
+        original_hashes = {
+            str(row[0]).lower()
+            for row in connection.execute(
+                """
+                SELECT DISTINCT asset_hash
+                FROM document_assets
+                WHERE asset_role='original'
+                """
+            )
+        }
+    removed: list[str] = []
+    for path in sorted(frontend_root.rglob("*")):
+        if not path.is_file():
+            continue
+        if sha256_file(path).lower() in original_hashes:
+            removed.append(path.relative_to(frontend_root).as_posix())
+            path.unlink()
+    combined_runtime_source = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (
+            frontend_root / "app.js",
+            frontend_root / "components" / "AppShell.js",
+        )
+        if path.is_file()
+    )
+    if any(path.endswith("maturity-model-usage.html") for path in removed):
+        if maturity_url not in combined_runtime_source:
+            raise ValueError(
+                "packaged maturity guide original was removed without an asset API route"
+            )
+    if any(path.endswith("archimate-poster-v3.2-zh.pdf") for path in removed):
+        if poster_url not in combined_runtime_source:
+            raise ValueError(
+                "packaged ArchiMate poster original was removed without an asset API route"
+            )
+    return removed
 
 
 def copy_maturity_report_seed(source: Path, target: Path, selections: list[str]) -> None:
@@ -313,6 +403,7 @@ def readme_content(platform_name: str, app_version: str, placeholder: bool = Fal
 ## 数据位置
 
 - 基础知识库：`data/base/sapd_wiki_base.sqlite3`，普通用户不应修改。
+- 内容资产库：`data/base/sapd_content_assets.sqlite3`（如本版本携带），由 App 的只读 asset API 提供文档与预览。
 - 用户数据：`data/user/sapd_wiki_user.sqlite3`，收藏、备注、个人标签和用户新增内容都写入这里。
 - macOS DMG 首次初始化后，真实用户数据位于用户选择的父级保存位置下的 `SAPDWiki/Runtime/data/user/sapd_wiki_user.sqlite3`。
 
@@ -355,8 +446,14 @@ def build_bundle(args: argparse.Namespace) -> Path:
     (bundle_root / "logs").mkdir(parents=True)
     (bundle_root / "diagnostics").mkdir(parents=True)
 
+    removed_frontend_originals: list[str] = []
     if args.frontend_dist:
         copy_tree(args.frontend_dist.resolve(), bundle_root / "app" / "frontend-dist")
+        if args.content_asset_db:
+            removed_frontend_originals = prepare_frontend_asset_runtime(
+                bundle_root / "app" / "frontend-dist",
+                args.content_asset_db.resolve(),
+            )
     if args.backend_binary:
         backend_target = bundle_root / backend_name(args.platform)
         shutil.copy2(args.backend_binary.resolve(), backend_target)
@@ -373,6 +470,11 @@ def build_bundle(args: argparse.Namespace) -> Path:
         )
     if args.base_db:
         shutil.copy2(args.base_db.resolve(), bundle_root / "data" / "base" / "sapd_wiki_base.sqlite3")
+    if args.content_asset_db:
+        shutil.copy2(
+            args.content_asset_db.resolve(),
+            bundle_root / "data" / "base" / "sapd_content_assets.sqlite3",
+        )
     if not args.skip_user_db:
         initialize_user_db(bundle_root / "data" / "user" / "sapd_wiki_user.sqlite3", args.user_schema_version)
     if args.maturity_report_seed:
@@ -386,6 +488,7 @@ def build_bundle(args: argparse.Namespace) -> Path:
         )
 
     base_db = bundle_root / "data" / "base" / "sapd_wiki_base.sqlite3"
+    content_asset_db = bundle_root / "data" / "base" / "sapd_content_assets.sqlite3"
     manifest = {
         "app_name": "SAPD Wiki",
         "app_version": args.app_version,
@@ -398,6 +501,17 @@ def build_bundle(args: argparse.Namespace) -> Path:
             "schema_version": args.base_schema_version,
             "sha256": sha256_file(base_db) if base_db.exists() else "",
         },
+        **(
+            {
+                "content_asset_database": {
+                    "file": "sapd_content_assets.sqlite3",
+                    "schema_version": args.content_asset_schema_version,
+                    "sha256": sha256_file(content_asset_db),
+                }
+            }
+            if content_asset_db.exists()
+            else {}
+        ),
         "user_database": {
             "file": "sapd_wiki_user.sqlite3",
             "schema_version": args.user_schema_version,
@@ -406,6 +520,7 @@ def build_bundle(args: argparse.Namespace) -> Path:
         "backend": {"version": args.app_version},
         "package": {
             "placeholder_backend": bool(args.allow_placeholder and not args.backend_binary),
+            "frontend_original_assets_removed": removed_frontend_originals,
         },
     }
     write_text(bundle_root / "data" / "base" / "base-manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
@@ -422,6 +537,15 @@ def build_bundle(args: argparse.Namespace) -> Path:
                 "startup_check_file": "logs/startup-check-result.json",
                 "frontend_dist": "app/frontend-dist",
                 "base_database": "data/base/sapd_wiki_base.sqlite3",
+                **(
+                    {
+                        "content_asset_database": (
+                            "data/base/sapd_content_assets.sqlite3"
+                        )
+                    }
+                    if content_asset_db.exists()
+                    else {}
+                ),
                 "user_database": "data/user/sapd_wiki_user.sqlite3",
                 "diagnostics_dir": "diagnostics",
                 "backend_binary": backend_name(args.platform),
@@ -484,11 +608,20 @@ def main() -> int:
     parser.add_argument("--app-version", default="0.2.0")
     parser.add_argument("--data-version", default="2026.05-alpha")
     parser.add_argument("--base-schema-version", default="base_schema_0.1")
+    parser.add_argument(
+        "--content-asset-schema-version",
+        default="content-asset-schema-v1",
+    )
     parser.add_argument("--user-schema-version", default="user_schema_0.3")
     parser.add_argument("--frontend-dist", type=Path)
     parser.add_argument("--backend-binary", type=Path, help="Platform-native backend binary for this ZIP.")
     parser.add_argument("--backend-executable", type=Path, help="Deprecated alias for --backend-binary.")
     parser.add_argument("--base-db", type=Path)
+    parser.add_argument(
+        "--content-asset-db",
+        type=Path,
+        help="Optional separate read-only content asset SQLite database.",
+    )
     parser.add_argument(
         "--maturity-report-seed",
         type=Path,

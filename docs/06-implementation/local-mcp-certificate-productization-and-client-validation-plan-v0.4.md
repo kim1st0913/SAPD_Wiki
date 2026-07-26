@@ -2,15 +2,15 @@
 
 | 项目 | 内容 |
 |---|---|
-| 状态 | `DESIGN FROZEN / IMPLEMENTATION NOT AUTHORIZED` |
-| 日期 | 2026-07-24 |
+| 状态 | `C0/C1 WEB COMPLETE / D1–F PENDING / G PLANNED` |
+| 日期 | 2026-07-26 |
 | 上游计划 | `local-mcp-web-first-development-and-client-validation-plan-v0.2.md` |
 | 设计基线 | `sapd-wiki-local-mcp-certificate-and-trust-management-design-v1.md`（内容版本 v1.1） |
-| 当前事实 | B0–B5 Web 协议闭环已 PASS；当前实现仍使用每次启动临时 CA |
+| 当前事实 | B0–B5、稳定证书 C0 与当前 Codex C1 Web 闭环已 PASS；Windows、App Runtime、DMG 与目标客户端矩阵待验收 |
 | 顺序调整 | 在真实 Codex C1 前新增稳定证书产品化 C0 |
-| 数据边界 | C0/C1 仍只允许 synthetic fixture，不接入正式数据或用户数据 |
+| 数据边界 | 正式基础知识库只读访问已获批；用户库、源文件、本机路径、写工具和非受控 SQL 继续排除 |
 
-> 本计划只修正 B5 之后的执行顺序。它不重新执行 B0–B5，不授权系统信任写入、Codex 配置、App 打包、真实数据、push 或发布。v0.4 将所有权清单、秘密传递、事务恢复、升级/卸载和平台受限信任提升为独立门禁。
+> 本计划最初用于修正 B5 之后的执行顺序；截至 2026-07-26，C0 与当前 Codex C1 Web 闭环已经完成。后续 D1–F 仍需按平台范围单独授权。本次新增的 G 只登记未来协议升级门禁，不授权依赖升级、App 修改、系统信任写入、打包、push 或发布。
 
 ---
 
@@ -28,6 +28,7 @@ B5 Web 协议闭环 PASS
 → D2 Windows 生产适配
 → E1/E2 双平台打包
 → F 客户端兼容矩阵
+→ G MCP 2026-07-28 双时代协议升级（触发式）
 ```
 
 当前每次启动临时生成、停止即删除的 `SAPD Wiki Web Dev CA` 继续作为自动化测试证据，不再作为人工 C1 或最终产品体验。
@@ -178,6 +179,8 @@ B5 Web 协议闭环 PASS
 
 ## 3. C1 调整后的真实连接门禁
 
+状态：`PASS（Web/macOS 当前开发环境）`。Windows、App Runtime、DMG 和目标客户端版本矩阵仍属于 D1–F。
+
 C1 不再临时信任一次性 CA。它必须使用 C0 生成的稳定 Dev 身份，并验证：
 
 - Codex 重启后仍可连接；
@@ -217,7 +220,59 @@ C1 仍需单独授权当前 Codex 配置、OAuth 凭据和 CurrentUser 信任写
 
 ---
 
-## 5. 实施授权边界
+## 5. G：MCP 2026-07-28 双时代协议升级（触发式）
+
+### 5.1 当前决策
+
+- 当前生产 canonical 版本继续使用官方最新稳定版 `2025-11-25`；
+- 服务端继续接受当前 MCP SDK 声明支持的正式协议版本，未知版本仍 fail closed；
+- `2026-07-28` 当前只作为 Modern 协议候选进入计划，不因 Draft 文档存在而提前切换生产 canonical 版本；
+- 升级目标不是删除旧版本，而是在过渡期同时支持 Legacy `2025-11-25` 与 Modern `2026-07-28`，保证现有已验证客户端可继续使用。
+
+### 5.2 启动条件
+
+只有以下条件全部满足，才允许创建 G 阶段执行计划：
+
+1. MCP 官方将 `2026-07-28` 发布为稳定规范，而非 Draft；
+2. 项目采用的 Python MCP SDK 正式声明支持该版本，并完成依赖、安全公告和破坏性变更评估；
+3. 当前 Codex / ChatGPT Desktop 目标版本及至少一个第三方 MCP 客户端具备可验证的 Modern 协议支持；
+4. C1、目标客户端版本矩阵及 macOS / Windows App Runtime 基础验收已经形成可回归基线；
+5. 用户单独确认升级实施范围；本计划登记不自动授权依赖升级、App 修改、系统信任写入、打包或发布。
+
+任一条件不满足时，G 阶段状态保持 `PLANNED / NOT STARTED`，不得用 Draft 字段改写当前正式协议合同。
+
+### 5.3 开发范围
+
+- 建立 Legacy / Modern 双时代版本协商与确定性回退；
+- 按正式规范实现 Modern 时代的发现、请求级元数据、必需请求头和无状态交互合同；
+- 保留现有 OAuth、PKCE、resource/audience、TLS、只读 scope、五工具和审计边界；
+- 对协议版本、发现结果、请求元数据和授权资源进行组合校验，未知或不一致请求继续 fail closed；
+- 将协议能力作为 Runtime 状态展示，不要求普通用户人工选择协议版本；
+- 不扩大到用户数据库、源文件、本机路径、客户端 SQL、写工具或第三方云身份服务。
+
+### 5.4 验收矩阵
+
+1. 现有 Legacy Codex 五工具、刷新、撤销和自动恢复回归继续通过；
+2. Modern 客户端完成发现、授权、五工具、刷新、撤销和重连；
+3. Legacy 客户端不能因 Modern 支持而被迫升级；
+4. Draft、未知版本、缺失必需头、错误请求元数据、错误 resource/audience 和跨时代混用全部被明确拒绝；
+5. macOS、Windows、Web 开发环境与 App Runtime 使用同一协议能力合同；
+6. 升级前后基础库、用户库和五工具数据边界不变；
+7. 记录兼容客户端版本、SDK 版本、规范版本和回退结果，形成可重复自动化回归。
+
+### 5.5 退出条件
+
+只有 Legacy 与 Modern 两套正向矩阵、负向协议矩阵、OAuth/TLS、安全边界和双平台回归全部通过，才可把 Modern 版本列为默认 canonical 候选。是否正式切换 canonical 版本必须另行评审；在旧目标客户端仍受支持期间，不得仅因新规范发布删除 Legacy 路径。
+
+参考：
+
+- [MCP 2025-11-25 稳定规范](https://modelcontextprotocol.io/specification/2025-11-25)
+- [MCP 协议版本生命周期](https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle)
+- [MCP Draft 版本与 Dual-era 说明](https://modelcontextprotocol.io/specification/draft/basic/versioning)
+
+---
+
+## 6. 实施授权边界
 
 若后续用户批准 C0，允许范围应逐项写明：
 
@@ -240,12 +295,15 @@ C1 仍需单独授权当前 Codex 配置、OAuth 凭据和 CurrentUser 信任写
 
 ---
 
-## 6. 下一确认点
+## 7. 下一确认点
 
-建议下一授权只覆盖：
+当前下一执行顺序为：
 
 ```text
-C0-1 → C0-2 → C0-6
+D1 macOS App Runtime
+→ D2 Windows Runtime
+→ E1/E2 双平台打包
+→ F 目标客户端版本矩阵
 ```
 
-这三项可先完成合同、稳定证书核心和 UI，不写真实 Keychain/DPAPI 或系统信任。`C0-3` 先以 fake adapter 验证秘密传递合同；`C0-4` CurrentUser 信任实验必须在前置快照、受限策略和清理方案明确后单独批准；`C0-5` 事务恢复依赖 C0-3/C0-4 的稳定接口；C1 继续后置。
+建议下一授权先覆盖 D1 的 App Runtime 接线与 macOS 安装态验证；D2、打包和跨客户端矩阵继续逐批确认。G 阶段不属于当前下一批，只有第 5.2 节全部触发条件满足后才进入单独计划与授权。

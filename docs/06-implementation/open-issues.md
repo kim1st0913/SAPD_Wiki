@@ -24,7 +24,7 @@
 
 | 编号 | 状态 | 标题 |
 |---|---|---|
-| OI-199 | 部分完成 / Codex 重新授权待人工执行 | 本地 MCP 正式知识访问已接入，真实客户端与跨平台验证仍待完成 |
+| OI-199 | 部分完成 / Codex Web 验证通过，跨平台待完成 | 本地 MCP 正式知识访问已接入，真实客户端与跨平台验证仍待完成 |
 | OI-198 | 待实现 / 契约已确认 | 导入审批缺少幂等门禁、中间数据终结和 approved 默认导出契约 |
 | OI-197 | 待业务确认 / 映射门禁阻断 | 成熟度评分依据与当前能力字典尚未全量映射 |
 | OI-192 | 已修复 / 待用户验收 | 成熟度评分工作台服务、评分定义与主动作契约未按截图落地 |
@@ -54,19 +54,19 @@
 
 ## OI-199：本地 MCP 正式知识访问已接入，真实客户端与跨平台验证仍待完成
 
-- 状态：部分完成 / Codex 重新授权待人工执行
+- 状态：部分完成 / Codex Web 验证通过，跨平台待完成
 - 严重性：高
 - 类型：架构 / 本地 API / OAuth / TLS / 数据授权 / 审计 / macOS / Windows
 - 对象或页面：本地 MCP Sidecar、正式基础库只读 Runtime、Codex MCP 配置、系统设置 AI 集成页、独立 MCP 控制面、macOS / Windows CurrentUser 信任。
-- 现象：正式知识访问、OAuth/Streamable HTTP、固定 5 个 Tool、Web 控制面和隔离 Sidecar 已实现；macOS Web 开发入口已完成真实 CurrentUser 证书、Keychain 密钥、系统信任与 MCP 启停验证，但尚未完成目标 Codex 版本矩阵、Windows DPAPI / CurrentUser 信任、App Runtime 和打包验证。
+- 现象：正式知识访问、OAuth/Streamable HTTP、固定 5 个 Tool、Web 控制面和隔离 Sidecar 已实现；macOS Web 开发入口已完成真实 CurrentUser 证书、Keychain 密钥、系统信任、MCP 启停和一个当前 Codex CLI 版本的五工具真实闭环，但尚未完成目标 Codex 版本矩阵、Windows DPAPI / CurrentUser 信任、App Runtime 和打包验证。
 - 影响：知识查询功能可以进入本机 Web 开发验证，但在真实客户端与平台验证完成前，不能宣称跨版本 Codex、macOS/Windows 安装包或系统信任交付完成。
 - 建单理由：涉及跨平台 App、OAuth/TLS、本地 API、正式基础数据、来源许可、审计和用户隐私，且本轮只完成设计合同，无法自动关闭。
 - 当前处理：用户已明确裁定正式基础知识库全部业务内容可由 AI 调用，不再以 `public_summary / ai_summary` 作为二次门禁。正式 `MCP-BASE-KNOWLEDGE-ACCESS-v1`、只读 Runtime、固定参数化查询、系统设置说明和 Web Sidecar 已统一落地；macOS 服务只发送服务器 leaf。真实 Chrome 验证证明 hostname-scoped CurrentUser trust settings 不被 Chrome 证书验证器接受，现已改为 Chrome 可识别的 CurrentUser 根信任，同时强制 CA critical `nameConstraints=127.0.0.1/32`、leaf SAN 和 loopback 监听，并同时检查 SSL 链与基础根信任；旧条目会显示“信任缺失”并通过“修复安全连接”迁移。该变更不写入系统级或 LocalMachine 信任，也不允许 CA 用于其他地址。
-- 需要确认：进入真实客户端验证前，仍需用户单独授权目标 Codex 版本矩阵、真实客户端配置、CurrentUser 系统信任、Keychain/DPAPI 与 App/打包范围。
+- 需要确认：后续仍需用户单独授权 Windows 实机、App/DMG、目标客户端版本矩阵及对应 CurrentUser 信任、Keychain/DPAPI 和打包范围；当前 Web/macOS 开发验证不自动扩大这些授权。MCP `2026-07-28` 已列为触发式 G 阶段：只有其成为官方稳定规范、Python MCP SDK 正式支持、目标客户端具备验证条件且现有矩阵形成回归基线后，才另行授权 Legacy `2025-11-25` / Modern `2026-07-28` 双时代实现；当前不切换 canonical 版本。
 - 验收入口：`/settings/ai-integration`、`docs/01-architecture/contracts/mcp/base-knowledge/v1/`、`tests/mcp/test_base_query_service.py`、`tests/mcp_e2e/test_web_dev_mcp_e2e.py`。
-- 关闭条件：目标 Codex 版本在 macOS/Windows 完成 HTTPS、发现、注册、PKCE、resource/audience、刷新、撤销、升级/回滚/卸载和负向安全矩阵；真实 CurrentUser 信任与密钥保管验证通过；MCP 始终不创建、打开或修改用户库。
+- 关闭条件：目标 Codex 版本在 macOS/Windows 完成 HTTPS、发现、注册、PKCE、resource/audience、刷新、撤销、升级/回滚/卸载和负向安全矩阵；真实 CurrentUser 信任与密钥保管验证通过；MCP 始终不创建、打开或修改用户库。G 阶段不阻塞当前交付关闭，但触发条件满足后必须新建升级执行门禁并完成双时代回归，不能直接替换现有稳定协议。
 - 修复说明：新增正式基础知识库访问合同与 scope `sapd.base.knowledge.read`；Sidecar 改为只读打开正式基础库并通过 5 个固定工具返回全部业务对象内容、关系和脱敏来源证据。旧 synthetic 公开摘要合同保留为历史测试基线。系统设置明确显示“基础知识库全部业务内容，包括完整标准正文”，并继续排除用户数据、源文件本体、本地路径、系统配置与凭据、日志和非受控 SQL。
-- 验证结果：2026-07-26 隔离 MCP 完整套件 `170/170` 通过，覆盖 5 个只读工具、OAuth 注册/授权/刷新/复用/撤销、等价授权重试合并、超时与停服；同一 `client_id + redirect_uri + scopes + resource + policy_version` 的并发授权重试现在只展示一个请求，一次允许或拒绝同步完成该组等待流程，不同客户端或访问边界仍独立处理。系统设置的审计区域分页、无闪烁刷新、内部定位与“动态注册”说明通过前端合同和 5173 DOM 验收。指定真实 Codex 会话 `019f94f6-98aa-78e3-b2a5-f7a67ede0c29` 严格发起 5 个工具调用时返回 `OAuth token refresh failed: invalid_grant: resource does not match`，实际完成 `0/5`，控制库也未出现 `TOOL_CALL`，证明当前“最近使用”为空是客户端授权失效而非审计漏记。下一步必须在可解锁 Keychain/Touch ID 的 SAPD Wiki 桌面运行时恢复本机服务并重新完成 Codex OAuth 授权，再执行真实 5 工具矩阵。测试只使用临时用户库；正式基础库和真实用户库未修改。Windows 和 App/DMG 仍未验证。
+- 验证结果：2026-07-26 隔离 MCP 完整套件 `170/170` 通过，覆盖 5 个只读工具、OAuth 注册/授权/刷新/复用/撤销、等价授权重试合并、超时与停服；同一 `client_id + redirect_uri + scopes + resource + policy_version` 的并发授权重试只展示一个请求，一次允许或拒绝同步完成该组等待流程，不同客户端或访问边界仍独立处理。重新授权后，指定真实 Codex 会话 `019f94f6-98aa-78e3-b2a5-f7a67ede0c29` 已完成五工具有效数据矩阵：搜索1条、对象1个、关系5条、脱敏来源证据8条、版本 `base-1c9d7c70574585df`，控制库记录连续5条 `TOOL_CALL / OK`，5173 客户端最近使用和最近3条工具审计自动刷新。真实连接同时发现 Sidecar 门禁把 canonical `2025-11-25` 误作唯一允许版本；修复后保持 canonical 版本不变，接受 MCP SDK 正式支持版本并继续拒绝未知版本。系统设置前端合同通过；正式基础库只读，真实用户库未修改。Windows、App/DMG 和目标客户端版本矩阵仍未验证。
 
 ## OI-198：导入审批缺少幂等门禁、中间数据终结和 approved 默认导出契约
 

@@ -303,6 +303,15 @@ class TransportTests(unittest.TestCase):
                     json=payload,
                 )
                 self.assertEqual(wrong_protocol.status_code, 400)
+                compatible_protocol = await client.post(
+                    "/mcp",
+                    headers={
+                        "Accept": "application/json",
+                        "MCP-Protocol-Version": "2025-06-18",
+                    },
+                    json=payload,
+                )
+                self.assertEqual(compatible_protocol.status_code, 401)
                 too_large = await client.post(
                     "/mcp",
                     headers={"Accept": "application/json"},

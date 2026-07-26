@@ -463,10 +463,26 @@ def dashboard_knowledge_summary() -> dict[str, Any]:
     """Return small, source-backed counts for the overview without exposing raw workbench packages."""
     environment_path = (DATA_PACKAGE_ROOT / "environment" / "navigator.json").resolve()
     environment = _read_json(environment_path) if environment_path.exists() else {}
+    capability = read_data_package("capability-workbench")
+    environment_dictionary = read_data_package("environment-dictionary")
     lifecycle = read_data_package("lifecycle-workbench")
+    lifecycle_knowledge = read_data_package("lifecycle")
+    maintenance = read_data_package("maintenance")
+    maintenance_index = read_data_package("maintenance-index")
+    standards = read_data_package("standards-index")
     content = read_data_package("content")
     environment_stats = environment.get("stats", {}) if isinstance(environment, dict) else {}
+    capability_stats = capability.get("meta", {}).get("stats", {}) if isinstance(capability, dict) else {}
+    lifecycle_knowledge_stats = lifecycle_knowledge.get("stats", {}) if isinstance(lifecycle_knowledge, dict) else {}
+    maintenance_stats = maintenance.get("stats", {}) if isinstance(maintenance, dict) else {}
+    maintenance_counts = maintenance_index.get("section_counts", {}) if isinstance(maintenance_index, dict) else {}
+    standards_stats = standards.get("stats", {}) if isinstance(standards, dict) else {}
     content_stats = content.get("stats", {}) if isinstance(content, dict) else {}
+    environment_master_counts = environment_dictionary.get("master_counts", {}) if isinstance(environment_dictionary, dict) else {}
+    environment_master_total = sum(
+        int(environment_master_counts.get(key) or 0)
+        for key in ("information_environments", "environment_segment_types", "information_objects")
+    )
     lifecycle_domains = {
         str(node.get("code") or node.get("id") or ""): len(_list(node.get("children")))
         for node in _list(lifecycle.get("navigator", {}).get("tree"))
@@ -481,8 +497,24 @@ def dashboard_knowledge_summary() -> dict[str, Any]:
         "data_state": "missing_file" if missing else "ready",
         "environment": {
             "information_environments": int(environment_stats.get("information_environment") or 0),
+            "environment_segment_types": int(environment_master_counts.get("environment_segment_types") or 0),
             "information_objects": int(environment_stats.get("information_object") or 0),
             "scope_types": int(environment_stats.get("scope_type") or 0),
+        },
+        "catalog": {
+            "capabilities": int(capability_stats.get("capability") or 0),
+            "scope_types": int(maintenance_counts.get("scopes") or maintenance_stats.get("scope_types") or 0),
+            "environment_master_records": environment_master_total,
+            "technical_services": int(maintenance_counts.get("services") or maintenance_stats.get("security_technical_services") or 0),
+            "technical_modules": int(maintenance_counts.get("modules") or maintenance_stats.get("security_technology_modules") or 0),
+            "technical_measures": int(maintenance_counts.get("measures") or maintenance_stats.get("security_technical_measures") or 0),
+            "security_works": int(maintenance_counts.get("security-works") or maintenance_stats.get("security_works") or 0),
+            "security_processes": int(maintenance_counts.get("processes") or maintenance_stats.get("security_processes") or 0),
+            "application_system_types": int(lifecycle_knowledge_stats.get("application_system_types") or 0),
+            "application_components": int(lifecycle_knowledge_stats.get("application_components") or 0),
+            "work_functions": int(maintenance_stats.get("work_functions") or 0),
+            "workforce_references": int(maintenance_counts.get("references") or 0),
+            "standard_frameworks": int(standards_stats.get("frameworks") or 0),
         },
         "lifecycles": {
             "lc_ap_stages": int(lifecycle_domains.get("LC-AP") or lifecycle_domains.get("lifecycle_domain:LC-AP") or 0),
@@ -490,6 +522,11 @@ def dashboard_knowledge_summary() -> dict[str, Any]:
         },
         "content": {
             "html_documents": int(content_stats.get("html_documents") or 0),
+            "slide_decks": sum(
+                1
+                for row in _list(content.get("html_documents"))
+                if isinstance(row, dict) and str(row.get("view_type") or "") == "slide_deck"
+            ),
             "diagram_views": int(content_stats.get("diagram_views") or 0),
             "guide_pages": int(content_stats.get("guide_pages") or 0),
         },

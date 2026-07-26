@@ -134,6 +134,59 @@
   gap: 12px;
 }
 
+.app-shell-integrated .system-settings-audit-policy-grid {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.app-shell-integrated .system-settings-audit-policy {
+  width: 100%;
+  margin: 0;
+  padding: 18px;
+}
+
+.app-shell-integrated .system-settings-audit-policy > span {
+  color: var(--shell-muted, var(--muted));
+  font-size: var(--sapd-shell-type-meta, 12px);
+  font-weight: 760;
+  letter-spacing: 0.04em;
+}
+
+.app-shell-integrated .system-settings-audit-policy h2 {
+  margin: 4px 0 14px;
+  font-size: var(--sapd-shell-type-section, 20px);
+}
+
+.app-shell-integrated .system-settings-audit-policy dl {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+.app-shell-integrated .system-settings-audit-policy dl > div {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 14px;
+  padding: 10px 0;
+  border-top: 1px solid var(--sapd-shell-divider, var(--line));
+}
+
+.app-shell-integrated .system-settings-audit-policy dt {
+  color: var(--shell-muted, var(--muted));
+  font-size: var(--sapd-shell-type-meta, 12px);
+  font-weight: 720;
+}
+
+.app-shell-integrated .system-settings-audit-policy dd {
+  margin: 0;
+  color: var(--shell-text, var(--ink));
+  font-size: var(--sapd-shell-type-body, 14px);
+  line-height: 1.5;
+}
+
 .app-shell-integrated .system-settings-ai-connection-grid {
   min-width: 0;
   display: grid;
@@ -1133,7 +1186,7 @@
 
 .app-shell-integrated .system-settings-audit-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   margin: 0;
   border-bottom: 1px solid var(--sapd-shell-divider, var(--line));
 }
@@ -1188,16 +1241,28 @@
 .app-shell-integrated .system-settings-audit-events ol {
   margin: 0;
   padding: 0;
-  border-top: 1px solid var(--sapd-shell-divider, var(--line));
   list-style: none;
 }
 
+.app-shell-integrated .system-settings-audit-columns,
 .app-shell-integrated .system-settings-audit-events li {
   min-width: 0;
   display: grid;
-  grid-template-columns: 168px minmax(0, 1fr) auto;
+  grid-template-columns: 150px minmax(170px, 0.8fr) minmax(300px, 1.7fr) auto;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
+}
+
+.app-shell-integrated .system-settings-audit-columns {
+  padding: 7px 0;
+  border-top: 1px solid var(--sapd-shell-divider, var(--line));
+  border-bottom: 1px solid var(--sapd-shell-divider, var(--line));
+  color: var(--shell-muted, var(--muted));
+  font-size: var(--sapd-shell-type-meta, 12px);
+  font-weight: 720;
+}
+
+.app-shell-integrated .system-settings-audit-events li {
   padding: 10px 0;
   border-bottom: 1px solid var(--sapd-shell-divider, var(--line));
 }
@@ -1226,6 +1291,13 @@
   white-space: nowrap;
 }
 
+.app-shell-integrated .system-settings-audit-event-detail {
+  min-width: 0;
+  color: var(--shell-text, var(--ink));
+  font-size: var(--sapd-shell-type-body, 14px);
+  line-height: 1.45;
+}
+
 .app-shell-integrated .system-settings-audit-result {
   padding: 3px 8px;
   border: 1px solid var(--sapd-shell-divider, var(--line));
@@ -1243,6 +1315,11 @@
 .app-shell-integrated .system-settings-audit-result.is-warning {
   border-color: color-mix(in oklch, var(--sapd-state-warning, var(--warning)) 34%, var(--sapd-shell-divider, var(--line)));
   color: var(--sapd-state-warning, var(--warning));
+}
+
+.app-shell-integrated .system-settings-audit-result.is-error {
+  border-color: color-mix(in oklch, var(--sapd-state-danger, #bf4040) 34%, var(--sapd-shell-divider, var(--line)));
+  color: var(--sapd-state-danger, #a93333);
 }
 
 .app-shell-integrated .system-settings-audit-empty {
@@ -1300,9 +1377,40 @@
 
 .app-shell-integrated .system-settings-panel-note {
   margin: 0;
-  padding: 11px 16px 0;
   color: var(--shell-muted, var(--muted));
   font-size: var(--sapd-shell-type-meta, 12px);
+  line-height: 1.55;
+}
+
+.app-shell-integrated .system-settings-audit-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 10px 16px 12px;
+}
+
+.app-shell-integrated .system-settings-audit-footer button {
+  min-height: 34px;
+  flex: 0 0 auto;
+  padding: 6px 12px;
+  border: 1px solid var(--sapd-shell-divider, var(--line));
+  border-radius: 9px;
+  background: var(--sapd-shell-surface, var(--paper));
+  color: var(--shell-text, var(--ink));
+  font: inherit;
+  font-weight: 720;
+}
+
+.app-shell-integrated .system-settings-audit-footer button:hover,
+.app-shell-integrated .system-settings-audit-footer button:focus-visible {
+  border-color: var(--sapd-state-danger, #bf4040);
+  color: var(--sapd-state-danger, #a93333);
+}
+
+.app-shell-integrated .system-settings-audit-footer button:disabled {
+  cursor: default;
+  opacity: 0.42;
 }
 
 .app-shell-integrated .system-settings-maintenance {
@@ -1848,6 +1956,10 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .app-shell-integrated .system-settings-audit-policy-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .app-shell-integrated .system-settings-certificate-details > dl,
   .app-shell-integrated .system-settings-certificate-confirmation {
     grid-template-columns: minmax(0, 1fr);
@@ -1867,8 +1979,25 @@
     gap: 6px 12px;
   }
 
+  .app-shell-integrated .system-settings-audit-columns {
+    display: none;
+  }
+
   .app-shell-integrated .system-settings-audit-events time {
     grid-column: 1 / -1;
+  }
+
+  .app-shell-integrated .system-settings-audit-event-detail {
+    grid-column: 1 / -1;
+  }
+
+  .app-shell-integrated .system-settings-audit-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .app-shell-integrated .system-settings-audit-footer button {
+    align-self: flex-start;
   }
 
   .app-shell-integrated .system-settings-dialog-backdrop {

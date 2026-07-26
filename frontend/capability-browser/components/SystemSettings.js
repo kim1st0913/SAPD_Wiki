@@ -25,6 +25,7 @@
       <nav class="system-settings-tabs maintenance-section-tabs" aria-label="系统设置">
         <button class="maintenance-section-tab ${route === "/settings/system" ? "active" : ""}" type="button" data-app-route="/settings/system" aria-current="${route === "/settings/system" ? "page" : "false"}">系统设置</button>
         <button class="maintenance-section-tab ${route === "/settings/ai-integration" ? "active" : ""}" type="button" data-app-route="/settings/ai-integration" aria-current="${route === "/settings/ai-integration" ? "page" : "false"}">AI 功能集成</button>
+        <button class="maintenance-section-tab ${route === "/settings/privacy-audit" ? "active" : ""}" type="button" data-app-route="/settings/privacy-audit" aria-current="${route === "/settings/privacy-audit" ? "page" : "false"}">隐私与审计</button>
       </nav>
     `;
   }
@@ -94,23 +95,75 @@
     const eventType = text(event.event_type).trim();
     const toolName = text(event.tool_name).trim();
     const client = clients.find((item) => item?.client_id === event.client_id);
+    const toolLabels = {
+      search_knowledge: "搜索知识库",
+      get_knowledge_object: "读取知识对象",
+      get_related_knowledge: "查看关联知识",
+      get_source_evidence: "查看来源证据",
+      get_knowledge_version: "读取知识库版本",
+    };
     const labels = {
+      CLIENT_REGISTERED: "客户端发起注册",
       AUTHORIZATION_APPROVED: "客户端授权通过",
       AUTHORIZATION_DENIED: "客户端授权拒绝",
+      AUTHORIZATION_TIMEOUT: "授权请求超时",
       TOKEN_ISSUED: "访问凭据签发",
       TOKEN_REFRESHED: "访问凭据续期",
       TOKEN_REVOKED: "访问凭据撤销",
       CLIENT_REVOKED: "客户端授权撤销",
-      REFRESH_REUSE: "异常凭据复用",
-      TOOL_CALL: toolName ? "知识工具调用" : "知识访问",
+      REFRESH_REUSE: "检测到旧凭据重复使用",
+      TOOL_CALL: toolLabels[toolName] || "访问基础知识库",
     };
     const resultCode = text(event.result_code).trim();
+    const resultLabels = {
+      OK: ["成功", "success"],
+      DCR_UNVERIFIED: ["发布方未验证", "warning"],
+      AUTH_DENIED: ["已拒绝", "warning"],
+      AUTH_TIMEOUT: ["已超时", "warning"],
+      TOKEN_REUSED: ["已阻止并撤销", "error"],
+      INVALID_INPUT: ["输入不符合要求", "error"],
+      OBJECT_NOT_AVAILABLE: ["未找到可访问内容", "warning"],
+      RESPONSE_TOO_LARGE: ["返回内容超过限制", "warning"],
+      POLICY_BLOCKED: ["已按安全策略阻止", "error"],
+      POLICY_EXPIRED: ["知识访问策略已过期", "error"],
+      POLICY_SIGNATURE_INVALID: ["策略校验失败", "error"],
+      CURSOR_STALE: ["查询结果已更新，请重试", "warning"],
+      RATE_LIMITED: ["请求过于频繁", "warning"],
+      AUTH_REQUIRED: ["需要重新授权", "warning"],
+      REQUEST_TIMEOUT: ["请求超时", "warning"],
+      RUNTIME_NOT_READY: ["本机知识服务尚未就绪", "warning"],
+      INTERNAL_ERROR: ["本机服务处理失败", "error"],
+      RESPONSE_POLICY_VIOLATION: ["返回内容未通过安全检查", "error"],
+      UNKNOWN_OBJECT_TYPE: ["不支持的知识对象类型", "error"],
+      UNKNOWN_RELATION_TYPE: ["不支持的关系类型", "error"],
+    };
+    const result = resultLabels[resultCode] || ["需要检查", "error"];
+    const toolDetails = [
+      event.returned_count === null || event.returned_count === undefined
+        ? ""
+        : `返回 ${Number(event.returned_count) || 0} 条`,
+      event.duration_ms === null || event.duration_ms === undefined
+        ? ""
+        : `用时 ${Number(event.duration_ms) || 0} 毫秒`,
+    ].filter(Boolean);
+    const details = {
+      CLIENT_REGISTERED: "客户端已完成动态注册，等待用户确认",
+      AUTHORIZATION_APPROVED: "已授予基础知识库只读访问权限",
+      AUTHORIZATION_DENIED: "用户拒绝了本次只读访问请求",
+      AUTHORIZATION_TIMEOUT: "授权请求在有效期内未完成确认",
+      TOKEN_ISSUED: "已为授权客户端签发短期访问凭据",
+      TOKEN_REFRESHED: "访问凭据已安全续期",
+      TOKEN_REVOKED: "该访问凭据已失效",
+      CLIENT_REVOKED: "该客户端已停止访问基础知识库",
+      REFRESH_REUSE: "检测到重复使用旧凭据，相关凭据已撤销",
+      TOOL_CALL: toolDetails.length ? toolDetails.join(" · ") : "已完成一次只读知识访问",
+    };
     return {
-      label: labels[eventType] || "本地安全事件",
+      label: labels[eventType] || "本机安全状态变更",
       client: client?.display_name || text(event.client_id).trim() || "本机服务",
-      detail: toolName || (eventType === "CLIENT_REVOKED" ? "该客户端已停止访问" : "未记录查询正文"),
-      result: resultCode === "OK" ? "成功" : resultCode || "已记录",
-      tone: resultCode === "OK" ? "success" : "warning",
+      detail: details[eventType] || "已记录一项本机安全状态变化",
+      result: result[0],
+      tone: result[1],
     };
   }
 
@@ -549,34 +602,49 @@
   function renderAudit(mcp, pendingAction) {
     const audit = mcp.audit || {};
     const eventCount = Number.isInteger(Number(audit.event_count)) ? Number(audit.event_count) : 0;
-    const recentEvents = list(audit.recent_events).slice(0, 3);
+    const displayLimit = Number(audit.display_limit) || 30;
+    const displayedEventCount = Math.min(eventCount, displayLimit);
+    const recentEvents = list(audit.recent_events).slice(0, 10);
     const page = Math.max(1, Number.parseInt(audit.page, 10) || 1);
     const pageCount = Math.max(1, Number.parseInt(audit.page_count, 10) || 1);
-    const pageSize = 3;
-    const pageStart = eventCount ? ((page - 1) * pageSize) + 1 : 0;
-    const pageEnd = eventCount ? Math.min(eventCount, page * pageSize) : 0;
+    const pageSize = 10;
+    const pageStart = displayedEventCount ? ((page - 1) * pageSize) + 1 : 0;
+    const pageEnd = displayedEventCount ? Math.min(displayedEventCount, page * pageSize) : 0;
     const clients = list(mcp.clients);
     const capabilities = mcp.settings?.control_capabilities || {};
     const clearDisabled = Boolean(pendingAction) || capabilities.audit_clear === false || eventCount === 0;
+    const retentionDays = Number(audit.retention_days) || 30;
+    const maxEvents = Number(audit.max_events) || 100;
+    const maxMegabytes = Math.max(1, Math.round((Number(audit.retention_bytes) || (20 * 1024 * 1024)) / 1024 / 1024));
     return `
-      <section class="system-settings-panel" data-settings-section="audit" aria-labelledby="aiAuditTitle">
+      <section class="system-settings-panel" data-settings-section="audit" aria-labelledby="privacyAuditTitle">
         <header class="system-settings-panel-heading">
           <div>
             <span>PRIVACY &amp; AUDIT</span>
-            <h2 id="aiAuditTitle">隐私与审计</h2>
+            <h2 id="privacyAuditTitle">审计记录</h2>
+            <p>按时间查看本机 AI 客户端的授权、知识访问与安全事件。</p>
           </div>
           <b class="system-settings-state">${escapeHtml(audit.state === "ready" ? "记录正常" : audit.enabled === false ? "未启用" : "状态待检查")}</b>
         </header>
         <dl class="system-settings-audit-grid">
           <div><dt>已记录事件</dt><dd><strong>${escapeHtml(eventCount)}</strong> 条</dd></div>
           <div><dt>最近事件</dt><dd>${escapeHtml(formatDateTime(audit.last_event_at))}</dd></div>
-          <div><dt>保留时间</dt><dd>${escapeHtml(Number(audit.retention_days) || 0)} 天</dd></div>
+          <div><dt>自动清理</dt><dd>${escapeHtml(retentionDays)} 天或 ${escapeHtml(maxEvents.toLocaleString("zh-CN"))} 条</dd></div>
+          <div><dt>容量上限</dt><dd>${escapeHtml(maxMegabytes)}MB · 独立控制库</dd></div>
         </dl>
         <div class="system-settings-audit-events" aria-label="最近审计事件">
           <div class="system-settings-audit-events-heading">
             <strong>最近记录</strong>
-            <span>每页显示最近 3 条</span>
+            <span>每页 10 条 · 最多查看最近 ${escapeHtml(displayLimit)} 条</span>
           </div>
+          ${recentEvents.length
+            ? `<div class="system-settings-audit-columns" aria-hidden="true">
+                <span>时间</span>
+                <span>事件</span>
+                <span>记录内容</span>
+                <span>结果</span>
+              </div>`
+            : ""}
           ${recentEvents.length
             ? `<ol>${recentEvents.map((event) => {
                 const view = auditEventPresentation(event, clients);
@@ -584,14 +652,15 @@
                   <time datetime="${escapeHtml(event.occurred_at)}">${escapeHtml(formatDateTime(event.occurred_at))}</time>
                   <span class="system-settings-audit-event-copy">
                     <strong>${escapeHtml(view.label)}</strong>
-                    <small>${escapeHtml(view.client)} · ${escapeHtml(view.detail)}</small>
+                    <small>${escapeHtml(view.client)}</small>
                   </span>
+                  <span class="system-settings-audit-event-detail">${escapeHtml(view.detail)}</span>
                   <b class="system-settings-audit-result is-${escapeHtml(view.tone)}">${escapeHtml(view.result)}</b>
                 </li>`;
               }).join("")}</ol>`
             : '<div class="system-settings-audit-empty">暂无审计记录。客户端完成授权或调用知识工具后，将在这里显示操作时间、对象和结果。</div>'}
           <nav class="system-settings-audit-pagination" aria-label="审计记录分页">
-            <span>显示 ${escapeHtml(pageStart)}–${escapeHtml(pageEnd)}，共 ${escapeHtml(eventCount)} 条</span>
+            <span>显示 ${escapeHtml(pageStart)}–${escapeHtml(pageEnd)}，最近 ${escapeHtml(displayedEventCount)} 条${eventCount > displayedEventCount ? `（共存储 ${escapeHtml(eventCount)} 条）` : ""}</span>
             <div>
               <button type="button" data-mcp-audit-page="${escapeHtml(page - 1)}" ${page <= 1 ? "disabled" : ""}>上一页</button>
               <b>第 ${escapeHtml(page)} / ${escapeHtml(pageCount)} 页</b>
@@ -599,11 +668,44 @@
             </div>
           </nav>
         </div>
-        <p class="system-settings-panel-note">仅保留脱敏的本地操作元数据，不记录查询正文或知识正文。</p>
-        <div class="system-settings-actions">
+        <div class="system-settings-audit-footer">
+          <p class="system-settings-panel-note">记录客户端、操作类型、返回数量、耗时和处理结果；不保存用户问题、搜索词或知识正文。记录保存在独立 MCP 控制库，不进入收藏、批注等用户业务数据库；达到 ${escapeHtml(retentionDays)} 天、${escapeHtml(maxEvents.toLocaleString("zh-CN"))} 条或 ${escapeHtml(maxMegabytes)}MB 任一上限时，自动删除最旧记录。页面只查询最近 ${escapeHtml(displayLimit)} 条。</p>
           <button type="button" data-mcp-request-confirmation="clear-audit" ${clearDisabled ? "disabled" : ""}>清除审计记录</button>
         </div>
       </section>
+    `;
+  }
+
+  function renderPrivacyAudit(model) {
+    const audit = model.mcp?.audit || {};
+    const retentionDays = Number(audit.retention_days) || 30;
+    const maxEvents = Number(audit.max_events) || 100;
+    const maxMegabytes = Math.max(1, Math.round((Number(audit.retention_bytes) || (20 * 1024 * 1024)) / 1024 / 1024));
+    const displayLimit = Number(audit.display_limit) || 30;
+    return `
+      <div class="system-settings-ai system-settings-privacy-audit" data-settings-page="privacy-audit">
+        <section class="system-settings-audit-policy-grid" data-settings-section="audit-policy" aria-label="隐私与审计策略">
+          <article class="system-settings-panel system-settings-audit-policy">
+            <span>PRIVACY BOUNDARY</span>
+            <h2>隐私边界</h2>
+            <dl>
+              <div><dt>会记录</dt><dd>客户端、操作类型、返回数量、耗时和处理结果</dd></div>
+              <div><dt>不会记录</dt><dd>用户问题、搜索词、查询正文和知识正文</dd></div>
+              <div><dt>使用目的</dt><dd>仅用于本机访问审计、安全检查和故障定位</dd></div>
+            </dl>
+          </article>
+          <article class="system-settings-panel system-settings-audit-policy">
+            <span>STORAGE GOVERNANCE</span>
+            <h2>存储与自动清理</h2>
+            <dl>
+              <div><dt>存储位置</dt><dd>独立 MCP 控制库，不进入用户业务数据库</dd></div>
+              <div><dt>三重上限</dt><dd>${escapeHtml(retentionDays)} 天、${escapeHtml(maxEvents)} 条或 ${escapeHtml(maxMegabytes)}MB</dd></div>
+              <div><dt>页面范围</dt><dd>只查询最近 ${escapeHtml(displayLimit)} 条，每页 10 条</dd></div>
+            </dl>
+          </article>
+        </section>
+        ${renderAudit(model.mcp || {}, model.pendingAction)}
+      </div>
     `;
   }
 
@@ -799,19 +901,20 @@
           ${renderCertificate(mcp, model.pendingAction)}
         </div>
         ${renderClients(mcp, model.pendingAction)}
-        ${renderAudit(mcp, model.pendingAction)}
         ${renderMaintenance(mcp, model.pendingAction)}
       </div>
     `;
   }
 
   function render(model = {}) {
-    const route = model.route === "/settings/ai-integration" ? "/settings/ai-integration" : "/settings/system";
+    const route = ["/settings/ai-integration", "/settings/privacy-audit"].includes(model.route)
+      ? model.route
+      : "/settings/system";
     const notice = typeof model.notice === "string" ? model.notice : model.notice?.message || "";
     const noticeTone = ["success", "error", "warning", "info"].includes(text(model.notice?.tone))
       ? text(model.notice.tone)
       : "info";
-    const unavailable = route === "/settings/ai-integration" && !model.loading && !model.mcp?.contract_version;
+    const unavailable = route !== "/settings/system" && !model.loading && !model.mcp?.contract_version;
     return `
       <section class="system-settings-workspace" aria-busy="${model.loading ? "true" : "false"}">
         <div class="system-settings-toolbar">
@@ -824,7 +927,9 @@
             ? renderSystem(model)
             : unavailable
               ? '<section class="system-settings-panel system-settings-unavailable" role="alert"><strong>本地 MCP 状态不可用</strong><span>请确认 Web 开发服务正常，主知识库页面仍可继续使用。</span></section>'
-              : renderAi(model)}
+              : route === "/settings/privacy-audit"
+                ? renderPrivacyAudit(model)
+                : renderAi(model)}
         </div>
         ${model.certificatePreview
           ? renderCertificatePreview(model.certificatePreview, model.mcp?.certificate)

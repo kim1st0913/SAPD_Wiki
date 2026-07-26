@@ -19,13 +19,16 @@ const settingsCss = read("frontend/capability-browser/system-settings.css");
 assert.match(index, /id="settingsWorkspace"/);
 assert.match(index, /system-settings\.css\?v=/);
 assert.match(index, /components\/SystemSettings\.js\?v=/);
-assert.match(index, /components\/SystemSettings\.js\?v=apple-shell-settings-20260726-17-authorization-flow/);
+assert.match(index, /system-settings\.css\?v=apple-shell-settings-20260726-21-privacy-audit-tab/);
+assert.match(index, /components\/SystemSettings\.js\?v=apple-shell-settings-20260726-21-privacy-audit-tab/);
 assert.match(index, /app\.js\?v=[^"]*apple-shell-settings-20260725-8-scroll-retention/);
 assert.doesNotMatch(index, /AiIntegrationSettings|ai-integration-settings\.css/);
 assert.ok(index.indexOf("components/SystemSettings.js") < index.indexOf("./app.js"), "settings component must load before app.js");
 
 assert.match(shell, /data-app-route="\/settings\/system"/);
 assert.match(shell, /data-app-route="\/settings\/ai-integration"/);
+assert.match(shell, /route: "\/settings\/privacy-audit"/);
+assert.match(shell, /"\/settings\/privacy-audit": \{ view: "settings", settingsPage: "privacy-audit" \}/);
 assert.match(shell, /MCP 状态监测/);
 assert.match(shell, /MCP 服务/);
 assert.match(shell, /客户端授权/);
@@ -149,16 +152,45 @@ const aiHtml = component.render({
       event_count: 3,
       last_event_at: "2026-07-25T00:25:22Z",
       retention_days: 30,
+      max_events: 100,
+      retention_bytes: 20 * 1024 * 1024,
+      display_limit: 30,
       page: 1,
-      page_size: 3,
+      page_size: 10,
       page_count: 1,
       recent_events: [
         { occurred_at: "2026-07-25T00:25:22Z", event_type: "TOOL_CALL", client_id: "client-12345678", tool_name: "search_knowledge", result_code: "OK", returned_count: 3, duration_ms: 12 },
         { occurred_at: "2026-07-25T00:24:22Z", event_type: "TOKEN_ISSUED", client_id: "client-12345678", tool_name: null, result_code: "OK", returned_count: null, duration_ms: null },
-        { occurred_at: "2026-07-25T00:23:22Z", event_type: "AUTHORIZATION_APPROVED", client_id: "client-12345678", tool_name: null, result_code: "OK", returned_count: null, duration_ms: null },
+        { occurred_at: "2026-07-25T00:23:22Z", event_type: "CLIENT_REGISTERED", client_id: "client-12345678", tool_name: null, result_code: "DCR_UNVERIFIED", returned_count: null, duration_ms: null },
       ],
     },
     diagnostics: { overall_state: "unknown", last_checked_at: null, checks: [] },
+  },
+});
+const privacyAuditHtml = component.render({
+  route: "/settings/privacy-audit",
+  mcp: {
+    contract_version: "sapd-mcp-control-v1",
+    settings: { control_capabilities: { audit_clear: true } },
+    clients: [],
+    audit: {
+      enabled: true,
+      state: "ready",
+      event_count: 3,
+      last_event_at: "2026-07-25T00:25:22Z",
+      retention_days: 30,
+      max_events: 100,
+      retention_bytes: 20 * 1024 * 1024,
+      display_limit: 30,
+      page: 1,
+      page_size: 10,
+      page_count: 1,
+      recent_events: [
+        { occurred_at: "2026-07-25T00:25:22Z", event_type: "TOOL_CALL", client_id: "client-12345678", tool_name: "search_knowledge", result_code: "OK", returned_count: 3, duration_ms: 12 },
+        { occurred_at: "2026-07-25T00:24:22Z", event_type: "TOKEN_ISSUED", client_id: "client-12345678", tool_name: null, result_code: "OK", returned_count: null, duration_ms: null },
+        { occurred_at: "2026-07-25T00:23:22Z", event_type: "CLIENT_REGISTERED", client_id: "client-12345678", tool_name: null, result_code: "DCR_UNVERIFIED", returned_count: null, duration_ms: null },
+      ],
+    },
   },
 });
 for (const label of ["AI 集成概况", "本机服务", "知识访问", "连接检查", "尚未检查", "立即检查", "需要您的确认", "查看授权请求", "Authentication complete", "待确认授权", "动态注册", "只读访问基础知识库", "允许只读访问", "查看技术信息", "MCP 连接配置", "本地端口", "服务地址", "基础知识库全部业务内容，包括完整标准正文", "5 个只读知识工具", "用户数据、源文件本体、本地路径、系统配置与凭据、日志和非受控 SQL", "AI 可以检索和使用基础知识库中的全部知识内容。知识内容仅用于查询、分析和引用，不能改变系统权限或指挥系统执行操作。", "安全连接证书", "应用私有安全目录（不可修改）", "建立本机安全连接", "客户端授权", "拒绝", "复制连接配置", "隐私与审计", "维护操作", "重置 AI 集成"]) {
@@ -172,16 +204,23 @@ assert.doesNotMatch(aiHtml, /<dt>知识访问<\/dt>|数据访问范围|aiDataAcc
 assert.doesNotMatch(aiHtml, /class="system-settings-panel system-settings-data-access"/);
 assert.doesNotMatch(aiHtml, /<dt>隐私审计<\/dt>|<dt>最近使用<\/dt>/);
 assert.match(aiHtml, /class="system-settings-ai-connection-grid"[\s\S]*id="aiRuntimeTitle"[\s\S]*id="aiCertificateTitle"/);
-for (const section of ["overview", "authorization-attention", "authorization-requests", "connection", "clients", "audit", "maintenance"]) {
+for (const section of ["overview", "authorization-attention", "authorization-requests", "connection", "clients", "maintenance"]) {
   assert.match(aiHtml, new RegExp(`data-settings-section="${section}"`));
 }
+assert.doesNotMatch(aiHtml, /data-settings-section="audit"/);
+assert.match(privacyAuditHtml, /data-settings-page="privacy-audit"/);
+assert.match(privacyAuditHtml, /data-settings-section="audit-policy"/);
+assert.match(privacyAuditHtml, /data-settings-section="audit"/);
 assert.doesNotMatch(aiHtml, /system-settings-ai-primary|system-settings-ai-secondary/);
 assert.match(aiHtml, /class="system-settings-client-empty"[\s\S]*启动 MCP 服务[\s\S]*复制连接配置并添加到客户端[\s\S]*返回本页确认授权请求/);
-assert.equal((aiHtml.match(/<time datetime=/g) || []).length, 3, "audit must show the latest three events");
-assert.match(aiHtml, /最近记录/);
-assert.match(aiHtml, /知识工具调用/);
-assert.match(aiHtml, /class="system-settings-audit-pagination"/);
-assert.equal((aiHtml.match(/data-mcp-audit-page=/g) || []).length, 2, "audit pagination must have previous and next controls");
+assert.equal((privacyAuditHtml.match(/<time datetime=/g) || []).length, 3, "audit page must render the available events");
+assert.match(privacyAuditHtml, /最近记录/);
+for (const auditLabel of ["隐私边界", "存储与自动清理", "独立 MCP 控制库", "30 天、100 条或 20MB", "只查询最近 30 条，每页 10 条", "搜索知识库", "返回 3 条", "用时 12 毫秒", "已为授权客户端签发短期访问凭据", "客户端已完成动态注册，等待用户确认", "发布方未验证", "不保存用户问题、搜索词或知识正文"]) {
+  assert.match(privacyAuditHtml, new RegExp(auditLabel));
+}
+assert.doesNotMatch(privacyAuditHtml, /未记录查询正文|DCR_UNVERIFIED|search_knowledge/);
+assert.match(privacyAuditHtml, /class="system-settings-audit-pagination"/);
+assert.equal((privacyAuditHtml.match(/data-mcp-audit-page=/g) || []).length, 2, "audit pagination must have previous and next controls");
 assert.doesNotMatch(aiHtml, /system-settings-ai-secondary-side/);
 assert.equal((aiHtml.match(/data-mcp-settings-action="check"/g) || []).length, 1, "connection check must have one entry point");
 assert.doesNotMatch(aiHtml, /aria-label="客户端授权摘要"|data-settings-anchor="aiAuthorizationPanel">处理授权|data-settings-anchor="aiClientsPanel">查看授权/);
@@ -190,7 +229,7 @@ assert.doesNotMatch(aiHtml, /href="#aiAuthorizationPanel"/);
 assert.match(aiHtml, /id="aiAuthorizationPanel"[^>]*tabindex="-1"/);
 assert.match(aiHtml, /id="aiClientsPanel"[^>]*tabindex="-1"/);
 assert.ok(aiHtml.indexOf("连接检查") < aiHtml.indexOf("MCP 连接配置"), "connection check must stay in the overview");
-assert.ok(aiHtml.indexOf("维护操作") > aiHtml.indexOf("隐私与审计"), "reset must stay in the final maintenance area");
+assert.match(aiHtml, /维护操作/);
 assert.doesNotMatch(aiHtml, /不可信参考数据/);
 assert.doesNotMatch(aiHtml, /策略允许的公开摘要|仅策略允许的公开摘要|明确排除[^<]*完整标准正文/);
 assert.ok(aiHtml.indexOf("AI 集成概况") < aiHtml.indexOf("MCP 连接配置"), "overview must precede runtime controls");

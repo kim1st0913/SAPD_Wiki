@@ -173,6 +173,27 @@ function validateSummary(summary) {
   }
   validateCoverage(summary, issues);
   validateStandardGrain(summary, issues);
+  const navigationRows = [
+    ...(summary.moduleSummary?.entryViews || []),
+    ...(summary.navigationSummary?.primaryEntries || []),
+    ...(summary.navigationSummary?.secondaryEntries || []),
+  ];
+  const staleRoutes = navigationRows
+    .map((item) => item?.route)
+    .filter((route) => ["/environment-scope", "/lifecycle/ap", "/lifecycle/dt", "/lifecycle"].includes(route));
+  if (staleRoutes.length) {
+    addIssue(issues, "stale_navigation_route", "analytics summary contains retired global navigation routes", {
+      routes: [...new Set(staleRoutes)],
+    });
+  }
+  const requiredRoutes = new Set(["/capability-mapping", "/environment-mapping", "/development-security", "/data-security", "/standards", "/guides/security-architecture-design"]);
+  const actualRoutes = new Set(navigationRows.map((item) => item?.route).filter(Boolean));
+  const missingRoutes = [...requiredRoutes].filter((route) => !actualRoutes.has(route));
+  if (missingRoutes.length) {
+    addIssue(issues, "missing_navigation_route", "analytics summary is missing current global navigation routes", {
+      routes: missingRoutes,
+    });
+  }
   const forbiddenHits = findForbiddenKeyHits(summary);
   if (forbiddenHits.length) {
     addIssue(issues, "forbidden_field_leak", "Forbidden field keys leaked into analytics summary", { hits: forbiddenHits });

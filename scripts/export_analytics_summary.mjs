@@ -207,7 +207,7 @@ function buildSummary(packages) {
       covered: coveredFocuses(environment, ["supports_focus"]) || Number(environmentStats.capability_focus || 0),
       total: totalFocuses,
       relationTypes: ["supports_focus"],
-      route: "/environment-scope",
+      route: "/environment-mapping",
       displayRole: "secondary",
     }),
     dimension({
@@ -217,7 +217,7 @@ function buildSummary(packages) {
       covered: coveredFocuses(lifecycle, ["maps_to_focus"]) || Number(lifecycleStats.capability_focus || 0),
       total: totalFocuses,
       relationTypes: ["maps_to_focus"],
-      route: "/lifecycle",
+      route: null,
       displayRole: "secondary",
     }),
   ];
@@ -323,9 +323,9 @@ function buildSummary(packages) {
       },
       entryViews: [
         { id: "capability_mapping", label: "安全能力映射", route: "/capability-mapping", sourcePackage: capability.name, primaryGrain: "capability_focus", objectCount: Number(capabilityStats.objects || 0) },
-        { id: "environment_scope", label: "信息化环境维度", route: "/environment-scope", sourcePackage: environment.name, primaryGrain: "information_object", objectCount: Number(environmentStats.objects || 0) },
-        { id: "lifecycle_ap", label: "LC-AP 安全开发生命周期", route: "/lifecycle/ap", sourcePackage: lifecycle.name, primaryGrain: "lifecycle_stage", objectCount: Number(lifecycleStats.objects || 0) },
-        { id: "lifecycle_dt", label: "LC-DT 数据生命周期安全", route: "/lifecycle/dt", sourcePackage: lifecycle.name, primaryGrain: "lifecycle_stage", objectCount: Number(lifecycleStats.objects || 0) },
+        { id: "environment_mapping", label: "信息化环境安全能力映射", route: "/environment-mapping", sourcePackage: environment.name, primaryGrain: "information_object", objectCount: Number(environmentStats.objects || 0) },
+        { id: "lifecycle_ap", label: "LC-AP 安全开发生命周期", route: "/development-security", sourcePackage: lifecycle.name, primaryGrain: "lifecycle_stage", objectCount: Number(lifecycleStats.objects || 0) },
+        { id: "lifecycle_dt", label: "LC-DT 数据生命周期安全", route: "/data-security", sourcePackage: lifecycle.name, primaryGrain: "lifecycle_stage", objectCount: Number(lifecycleStats.objects || 0) },
         { id: "standards", label: "安全标准 / 框架", route: "/standards", sourcePackage: standards.name, primaryGrain: "standard_control", objectCount: standardsIndexControls },
         { id: "guides", label: "指南 / 幻灯片", route: "/guides/security-architecture-design", sourcePackage: content.name, primaryGrain: "content_page", objectCount: Number(contentStats.html_documents || 0) + Number(contentStats.diagram_views || 0) + Number(contentStats.guide_pages || 0) },
       ],
@@ -333,9 +333,9 @@ function buildSummary(packages) {
     navigationSummary: {
       primaryEntries: [
         { id: "capability_mapping", label: "安全能力映射", route: "/capability-mapping" },
-        { id: "environment_scope", label: "信息化环境维度", route: "/environment-scope" },
-        { id: "lifecycle_ap", label: "LC-AP 安全开发生命周期", route: "/lifecycle/ap" },
-        { id: "lifecycle_dt", label: "LC-DT 数据生命周期安全", route: "/lifecycle/dt" },
+        { id: "environment_mapping", label: "信息化环境安全能力映射", route: "/environment-mapping" },
+        { id: "lifecycle_ap", label: "LC-AP 安全开发生命周期", route: "/development-security" },
+        { id: "lifecycle_dt", label: "LC-DT 数据生命周期安全", route: "/data-security" },
       ],
       secondaryEntries: [
         { id: "standards", label: "安全标准 / 框架", route: "/standards" },

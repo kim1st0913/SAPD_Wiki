@@ -78,7 +78,33 @@
   const CAPABILITY_WORKSPACE_FETCH_TIMEOUT_MS = 5000;
 
   const FALLBACKS = {
-    dashboardKnowledgeSummary: { generated_at: null, data_state: "missing_file", environment: {}, lifecycles: {}, content: {} },
+    dashboardKnowledgeSummary: {
+      generated_at: null,
+      data_state: "missing_file",
+      environment: {
+        information_environments: 0,
+        environment_segment_types: 0,
+        information_objects: 0,
+        scope_types: 0,
+      },
+      catalog: {
+        capabilities: 0,
+        scope_types: 0,
+        environment_master_records: 0,
+        technical_services: 0,
+        technical_modules: 0,
+        technical_measures: 0,
+        security_works: 0,
+        security_processes: 0,
+        application_system_types: 0,
+        application_components: 0,
+        work_functions: 0,
+        workforce_references: 0,
+        standard_frameworks: 0,
+      },
+      lifecycles: { lc_ap_stages: 0, lc_dt_stages: 0 },
+      content: { html_documents: 0, slide_decks: 0, diagram_views: 0, guide_pages: 0 },
+    },
     capability: { generated_at: null, stats: {}, categories: [], unlinked_focuses: [] },
     capabilityWorkbench: null,
     environmentDictionary: {

@@ -128,6 +128,7 @@
     children: [
       { id: "system-settings-main", label: "系统设置", route: "/settings/system", type: "system-settings", children: [] },
       { id: "system-settings-ai-integration", label: "AI 功能集成", route: "/settings/ai-integration", type: "system-settings", children: [] },
+      { id: "system-settings-privacy-audit", label: "隐私与审计", route: "/settings/privacy-audit", type: "system-settings", children: [] },
     ],
   };
 
@@ -144,6 +145,7 @@
     "/settings/system": { view: "settings", settingsPage: "system" },
     "/settings/basic": { view: "settings", settingsPage: "system", canonicalRoute: "/settings/system" },
     "/settings/ai-integration": { view: "settings", settingsPage: "ai-integration" },
+    "/settings/privacy-audit": { view: "settings", settingsPage: "privacy-audit" },
     "/workbench": { view: "workbench" },
     "/workbench/annotations": { view: "workbench" },
     "/workbench/maturity": { view: "workbench" },
@@ -238,6 +240,7 @@
     "/search": "跨安全能力、信息化环境、生命周期、知识库和标准 / 框架检索知识对象，并进入目标页面定位。",
     "/settings/system": "管理当前版本、App 保存位置、文件上传路径和文件下载路径。",
     "/settings/ai-integration": "管理本地 MCP 服务、连接地址和客户端授权。",
+    "/settings/privacy-audit": "查看本机 AI 客户端的授权与知识访问记录，并管理审计保留边界。",
     "/workbench": "集中进入 Issue 处理和成熟度评估工作流。",
     "/workbench/annotations": "以 Review Queue 方式查看、筛选、编辑、批量处理和导出所有 Issue。",
     "/workbench/maturity": "管理成熟度评估项目、模板、评分、结果和报告快照。",
@@ -278,6 +281,11 @@
     "/settings/ai-integration": {
       title: "系统设置",
       description: PAGE_DESCRIPTIONS["/settings/ai-integration"],
+      hideTypeLabel: true,
+    },
+    "/settings/privacy-audit": {
+      title: "系统设置",
+      description: PAGE_DESCRIPTIONS["/settings/privacy-audit"],
       hideTypeLabel: true,
     },
   };

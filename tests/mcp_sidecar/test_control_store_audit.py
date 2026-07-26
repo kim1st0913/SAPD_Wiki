@@ -127,6 +127,134 @@ class ControlStoreAuditTests(unittest.TestCase):
             ["correlation-3", "correlation-2", "correlation-1"],
         )
 
+    def test_audit_prunes_oldest_rows_at_hard_event_limit(self) -> None:
+        limited = ControlStore(
+            self.root / "limited.sqlite3",
+            verifier_key=b"l" * 32,
+            audit_max_events=100,
+        )
+        try:
+            audit = AuditLogger(limited, period_key=b"p" * 32)
+            for index in range(105):
+                audit.record(
+                    AuditEvent(
+                        event_type="TOOL_CALL",
+                        result_code="OK",
+                        client_id="client-a",
+                        tool_name="get_knowledge_version",
+                        correlation_id=f"correlation-{index}",
+                    )
+                )
+            rows = limited.read_audit(limit=1000)
+            self.assertEqual(limited.count_audit(), 100)
+            self.assertEqual(rows[0]["correlation_id"], "correlation-104")
+            self.assertEqual(rows[-1]["correlation_id"], "correlation-5")
+        finally:
+            limited.close()
+
+    def test_existing_audit_is_pruned_when_store_reopens(self) -> None:
+        legacy_path = self.root / "legacy.sqlite3"
+        legacy = ControlStore(
+            legacy_path,
+            verifier_key=b"g" * 32,
+            audit_max_events=200,
+        )
+        try:
+            audit = AuditLogger(legacy, period_key=b"p" * 32)
+            for index in range(105):
+                audit.record(
+                    AuditEvent(
+                        event_type="TOOL_CALL",
+                        result_code="OK",
+                        correlation_id=f"legacy-{index}",
+                    )
+                )
+        finally:
+            legacy.close()
+
+        reopened = ControlStore(
+            legacy_path,
+            verifier_key=b"g" * 32,
+            audit_max_events=100,
+        )
+        try:
+            rows = reopened.read_audit(limit=1000)
+            self.assertEqual(reopened.count_audit(), 100)
+            self.assertEqual(rows[0]["correlation_id"], "legacy-104")
+            self.assertEqual(rows[-1]["correlation_id"], "legacy-5")
+        finally:
+            reopened.close()
+
+    def test_audit_prunes_rows_older_than_retention_window(self) -> None:
+        now = [1_800_000_000.0]
+        retained = ControlStore(
+            self.root / "retained.sqlite3",
+            verifier_key=b"r" * 32,
+            clock=lambda: now[0],
+            audit_retention_days=30,
+        )
+        try:
+            audit = AuditLogger(
+                retained,
+                period_key=b"p" * 32,
+                clock=lambda: now[0],
+            )
+            audit.record(
+                AuditEvent(
+                    event_type="TOOL_CALL",
+                    result_code="OK",
+                    correlation_id="expired-event",
+                )
+            )
+            now[0] += 31 * 24 * 60 * 60
+            audit.record(
+                AuditEvent(
+                    event_type="TOOL_CALL",
+                    result_code="OK",
+                    correlation_id="current-event",
+                )
+            )
+            rows = retained.read_audit()
+            self.assertEqual(
+                [row["correlation_id"] for row in rows],
+                ["current-event"],
+            )
+        finally:
+            retained.close()
+
+    def test_audit_prunes_oldest_rows_at_payload_capacity(self) -> None:
+        capacity_limited = ControlStore(
+            self.root / "capacity-limited.sqlite3",
+            verifier_key=b"c" * 32,
+            audit_max_bytes=1024,
+        )
+        try:
+            audit = AuditLogger(capacity_limited, period_key=b"p" * 32)
+            for index in range(40):
+                audit.record(
+                    AuditEvent(
+                        event_type="TOOL_CALL",
+                        result_code="POLICY_BLOCKED",
+                        client_id="client-capacity",
+                        tool_name="search_knowledge",
+                        scope="sapd.base.knowledge.read",
+                        correlation_id=f"capacity-{index}",
+                        versions={
+                            "knowledge_version": "base-version",
+                            "policy_version": "policy-version",
+                        },
+                    )
+                )
+            rows = capacity_limited.read_audit(limit=1000)
+            self.assertLess(len(rows), 40)
+            self.assertEqual(rows[0]["correlation_id"], "capacity-39")
+            self.assertLessEqual(
+                capacity_limited._audit_payload_bytes_locked(),
+                1024,
+            )
+        finally:
+            capacity_limited.close()
+
     def test_runtime_preferences_round_trip(self) -> None:
         self.assertIsNone(self.store.load_runtime_preferences())
         self.store.save_runtime_preferences(

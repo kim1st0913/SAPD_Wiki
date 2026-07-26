@@ -867,7 +867,9 @@
         "enabled",
         "state",
         "retention_days",
+        "max_events",
         "retention_bytes",
+        "display_limit",
         "event_count",
         "last_event_at",
         "page",
@@ -890,9 +892,19 @@
           "type": "integer",
           "minimum": 0
         },
+        "max_events": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 1000000
+        },
         "retention_bytes": {
           "type": "integer",
           "minimum": 0
+        },
+        "display_limit": {
+          "type": "integer",
+          "minimum": 3,
+          "maximum": 1000
         },
         "event_count": {
           "type": "integer",
@@ -910,7 +922,7 @@
           "minimum": 1
         },
         "page_size": {
-          "const": 3
+          "const": 10
         },
         "page_count": {
           "type": "integer",
@@ -918,7 +930,7 @@
         },
         "recent_events": {
           "type": "array",
-          "maxItems": 3,
+          "maxItems": 10,
           "items": {
             "$ref": "#/$defs/audit_event"
           }

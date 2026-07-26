@@ -109,7 +109,7 @@ class ControlApi:
                 handler = getattr(self._service, _READ_ROUTES[path])
                 if path == "/api/v1/mcp/audit":
                     return self._success(
-                        handler(page=self._audit_page(request.query), page_size=3)
+                        handler(page=self._audit_page(request.query), page_size=10)
                     )
                 self._require_empty_query(request.query)
                 return self._success(handler())

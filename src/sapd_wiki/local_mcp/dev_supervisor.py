@@ -47,6 +47,7 @@ from .tls import (
 
 RESERVED_STABLE_PREVIEW_PORT = 5173
 AUTOMATIC_RESTART_BACKOFF_SECONDS = (1.0, 2.0, 5.0, 10.0, 30.0)
+AUDIT_DISPLAY_LIMIT = 30
 
 
 def _iso(value: float | None) -> str | None:
@@ -638,8 +639,11 @@ class DevSidecarSupervisor:
             pending = self._authorization_requests()
             clients = self._clients()
             active_clients = [item for item in clients if item["status"] == "authorized"]
-            audit_events = self._store.read_audit(limit=1000)
+            audit_events = self._store.read_audit(
+                limit=self._store.audit_max_events
+            )
             audit_event_count = self._store.count_audit()
+            displayed_audit_count = min(audit_event_count, AUDIT_DISPLAY_LIMIT)
             last_event = audit_events[0]["occurred_at"] if audit_events else None
             tool_events = [item["occurred_at"] for item in audit_events if item["event_type"] == "TOOL_CALL"]
             last_success = max(tool_events) if tool_events else self._last_success_at
@@ -693,13 +697,15 @@ class DevSidecarSupervisor:
                 "audit": {
                     "enabled": True,
                     "state": "ready",
-                    "retention_days": 30,
-                    "retention_bytes": 20 * 1024 * 1024,
+                    "retention_days": self._store.audit_retention_days,
+                    "max_events": self._store.audit_max_events,
+                    "retention_bytes": self._store.audit_max_bytes,
+                    "display_limit": AUDIT_DISPLAY_LIMIT,
                     "event_count": audit_event_count,
                     "last_event_at": _iso(last_event),
                     "page": 1,
-                    "page_size": 3,
-                    "page_count": max(1, (audit_event_count + 2) // 3),
+                    "page_size": 10,
+                    "page_count": max(1, (displayed_audit_count + 9) // 10),
                     "recent_events": [
                         {
                             "occurred_at": _iso(item["occurred_at"]),
@@ -710,7 +716,7 @@ class DevSidecarSupervisor:
                             "returned_count": item["returned_count"],
                             "duration_ms": item["duration_ms"],
                         }
-                        for item in audit_events[:3]
+                        for item in audit_events[:10]
                     ],
                 },
                 "diagnostics": self._diagnostics(),
@@ -725,8 +731,12 @@ class DevSidecarSupervisor:
         with self._lock:
             snapshot = self.read_snapshot()
             event_count = int(snapshot["audit"]["event_count"])
-            safe_page_size = 3 if int(page_size) != 3 else int(page_size)
-            page_count = max(1, (event_count + safe_page_size - 1) // safe_page_size)
+            displayed_event_count = min(event_count, AUDIT_DISPLAY_LIMIT)
+            safe_page_size = 10 if int(page_size) != 10 else int(page_size)
+            page_count = max(
+                1,
+                (displayed_event_count + safe_page_size - 1) // safe_page_size,
+            )
             safe_page = min(max(int(page), 1), page_count)
             events = self._store.read_audit(
                 limit=safe_page_size,

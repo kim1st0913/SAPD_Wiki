@@ -16,6 +16,9 @@ from typing import Any
 SCHEMA_VERSION = 1
 RUNTIME_PREFERENCES_SCHEMA_VERSION = 1
 RUNTIME_PREFERENCES_KEY = "runtime_preferences"
+DEFAULT_AUDIT_RETENTION_DAYS = 30
+DEFAULT_AUDIT_MAX_EVENTS = 100
+DEFAULT_AUDIT_MAX_BYTES = 20 * 1024 * 1024
 
 
 class ControlStoreError(RuntimeError):
@@ -36,12 +39,24 @@ class ControlStore:
         *,
         verifier_key: bytes,
         clock: Callable[[], float] = time.time,
+        audit_retention_days: int = DEFAULT_AUDIT_RETENTION_DAYS,
+        audit_max_events: int = DEFAULT_AUDIT_MAX_EVENTS,
+        audit_max_bytes: int = DEFAULT_AUDIT_MAX_BYTES,
     ) -> None:
         if len(verifier_key) < 32:
             raise ValueError("verifier_key must contain at least 256 bits")
+        if not 1 <= int(audit_retention_days) <= 3650:
+            raise ValueError("audit_retention_days must be between 1 and 3650")
+        if not 100 <= int(audit_max_events) <= 1_000_000:
+            raise ValueError("audit_max_events must be between 100 and 1000000")
+        if not 1024 <= int(audit_max_bytes) <= 1024 * 1024 * 1024:
+            raise ValueError("audit_max_bytes must be between 1024 and 1073741824")
         self.path = Path(path)
         self._key = bytes(verifier_key)
         self._clock = clock
+        self.audit_retention_days = int(audit_retention_days)
+        self.audit_max_events = int(audit_max_events)
+        self.audit_max_bytes = int(audit_max_bytes)
         self._lock = threading.RLock()
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._connection = sqlite3.connect(
@@ -56,6 +71,7 @@ class ControlStore:
             self._connection.close()
             raise ControlStoreError("CONTROL_STORE_PERMISSIONS_UNSAFE") from exc
         self._initialize()
+        self.prune_audit()
 
     def _initialize(self) -> None:
         with self._lock:
@@ -872,28 +888,102 @@ class ControlStore:
 
     def append_audit(self, event: Mapping[str, Any]) -> None:
         with self._lock:
+            self._connection.execute("BEGIN IMMEDIATE")
+            try:
+                self._connection.execute(
+                    """
+                    INSERT INTO audit_events(
+                        occurred_at, event_type, client_id, tool_name, scope,
+                        query_fingerprint, returned_count, duration_ms, result_code,
+                        correlation_id, versions_json
+                    ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        event["occurred_at"],
+                        event["event_type"],
+                        event.get("client_id"),
+                        event.get("tool_name"),
+                        event.get("scope"),
+                        event.get("query_fingerprint"),
+                        event.get("returned_count"),
+                        event.get("duration_ms"),
+                        event["result_code"],
+                        event.get("correlation_id"),
+                        self._json(event.get("versions", {})),
+                    ),
+                )
+                self._prune_audit_locked()
+                self._connection.execute("COMMIT")
+            except Exception:
+                self._connection.execute("ROLLBACK")
+                raise
+
+    def prune_audit(self) -> None:
+        """Apply all retention limits to existing audit data."""
+
+        with self._lock:
+            self._connection.execute("BEGIN IMMEDIATE")
+            try:
+                self._prune_audit_locked()
+                self._connection.execute("COMMIT")
+            except Exception:
+                self._connection.execute("ROLLBACK")
+                raise
+
+    def _prune_audit_locked(self) -> None:
+        cutoff = float(self._clock()) - (
+            self.audit_retention_days * 24 * 60 * 60
+        )
+        self._connection.execute(
+            "DELETE FROM audit_events WHERE occurred_at < ?",
+            (cutoff,),
+        )
+        self._connection.execute(
+            """
+            DELETE FROM audit_events
+            WHERE event_id <= COALESCE(
+                (
+                    SELECT event_id
+                    FROM audit_events
+                    ORDER BY event_id DESC
+                    LIMIT 1 OFFSET ?
+                ),
+                -1
+            )
+            """,
+            (self.audit_max_events,),
+        )
+        while self._audit_payload_bytes_locked() > self.audit_max_bytes:
             self._connection.execute(
                 """
-                INSERT INTO audit_events(
-                    occurred_at, event_type, client_id, tool_name, scope,
-                    query_fingerprint, returned_count, duration_ms, result_code,
-                    correlation_id, versions_json
-                ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    event["occurred_at"],
-                    event["event_type"],
-                    event.get("client_id"),
-                    event.get("tool_name"),
-                    event.get("scope"),
-                    event.get("query_fingerprint"),
-                    event.get("returned_count"),
-                    event.get("duration_ms"),
-                    event["result_code"],
-                    event.get("correlation_id"),
-                    self._json(event.get("versions", {})),
-                ),
+                DELETE FROM audit_events
+                WHERE event_id = (
+                    SELECT event_id
+                    FROM audit_events
+                    ORDER BY event_id ASC
+                    LIMIT 1
+                )
+                """
             )
+
+    def _audit_payload_bytes_locked(self) -> int:
+        row = self._connection.execute(
+            """
+            SELECT COALESCE(SUM(
+                LENGTH(CAST(event_type AS BLOB))
+                + LENGTH(CAST(COALESCE(client_id, '') AS BLOB))
+                + LENGTH(CAST(COALESCE(tool_name, '') AS BLOB))
+                + LENGTH(CAST(COALESCE(scope, '') AS BLOB))
+                + LENGTH(CAST(COALESCE(query_fingerprint, '') AS BLOB))
+                + LENGTH(CAST(COALESCE(result_code, '') AS BLOB))
+                + LENGTH(CAST(COALESCE(correlation_id, '') AS BLOB))
+                + LENGTH(CAST(versions_json AS BLOB))
+                + 32
+            ), 0) AS total
+            FROM audit_events
+            """
+        ).fetchone()
+        return int(row["total"]) if row is not None else 0
 
     def count_audit(self) -> int:
         with self._lock:

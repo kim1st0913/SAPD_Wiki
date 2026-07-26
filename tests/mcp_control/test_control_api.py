@@ -87,11 +87,13 @@ def api_snapshot() -> dict:
             "enabled": True,
             "state": "ready",
             "retention_days": 30,
+            "max_events": 100,
             "retention_bytes": 20 * 1024 * 1024,
+            "display_limit": 30,
             "event_count": 0,
             "last_event_at": None,
             "page": 1,
-            "page_size": 3,
+            "page_size": 10,
             "page_count": 1,
             "recent_events": [],
         },
@@ -317,13 +319,13 @@ class ControlApiTests(unittest.TestCase):
         )
         self.assertEqual(second_page.status, 200)
         self.assertEqual(second_page.body["data"]["page"], 1)
-        self.assertEqual(second_page.body["data"]["page_size"], 3)
+        self.assertEqual(second_page.body["data"]["page_size"], 10)
 
         for query in (
             {"page": ["0"]},
             {"page": ["1", "2"]},
             {"page": ["abc"]},
-            {"page_size": ["3"]},
+            {"page_size": ["10"]},
         ):
             with self.subTest(query=query):
                 rejected = self.api.dispatch(

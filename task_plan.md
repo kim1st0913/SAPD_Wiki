@@ -10,6 +10,14 @@
 - 快速状态入口：`CURRENT_STATE.md`
 - 完整历史计划归档：`docs/05-archive/context-slimming-2026-05-15/task_plan-full-before-slimming.md`
 
+## 今晚执行主线：基础知识与内容统一查询（2026-07-26）
+
+- 状态：`ready_for_execution_revised`
+- 截止：2026-07-26 23:59（Asia/Singapore）
+- 目标：只对正式基础数据库中现有的 4,694 个基础对象、7,786 条基础关系和 194,132 条 provenance 提供完整只读查询；不处理未入库的 Draw.io、指南、幻灯片或 ArchiMate Poster OCR。
+- 正式数据边界：本轮不需要数据库 migration 或正式 apply；基础库、用户数据库和原始源文件均禁止修改，MCP 控制/授权/审计库可产生 E2E 必要记录。
+- 详细计划：`docs/06-implementation/base-content-unified-query-tonight-plan-2026-07-26.md`
+
 ## 当前收敛任务：Git 工作区归一化（2026-07-24）
 
 ### 目标与最终状态

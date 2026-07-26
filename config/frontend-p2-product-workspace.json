@@ -1,11 +1,15 @@
 {
-  "version": "2026-07-17.p2-product-workspace-v8",
+  "version": "2026-07-26.p2-readable-dashboard-guides-v3",
   "impact": "shared runtime",
   "routes": [
     "/",
     "/knowledge/capabilities",
+    "/knowledge/scopes",
+    "/knowledge/environment-objects",
     "/knowledge/technical-services",
     "/knowledge/technical",
+    "/knowledge/management-workflows",
+    "/knowledge/application-systems",
     "/knowledge/functions",
     "/standards",
     "/standards/workforce-reference",
@@ -39,6 +43,21 @@
       "quickContinue": "latest-explicit-business-object",
       "forbiddenRegression": "flat-list-only-workbench"
     },
+    "usageGuide": {
+      "owner": "dashboard-usage-guide",
+      "placement": {
+        "left": "above-work-items",
+        "right": "above-all-knowledge-statistics"
+      },
+      "pattern": "single-document-directory",
+      "groups": {
+        "operational": ["mcp", "issues", "maturity"],
+        "knowledge": ["knowledge", "guides"]
+      },
+      "routes": ["/settings/ai-integration", "/workbench/annotations", "/workbench/maturity"],
+      "rule": "operational-topics-have-business-flow-and-specific-action;knowledge-topics-are-static-explanations-above-statistical-navigation",
+      "columnBalance": "equal-height-column-wrappers-with-last-panel-fill"
+    },
     "knowledgeLayout": {
       "pattern": "asymmetric-six-tile-mosaic",
       "objectGrain": "one-statistic-per-business-object",
@@ -52,16 +71,21 @@
       "security-technical-modules",
       "security-technical-measures",
       "standard-controls",
-      "dictionary-sections",
       "information-environments",
+      "environment-segment-types",
       "information-objects",
       "scope-types",
+      "application-system-types",
+      "application-components",
+      "work-functions",
+      "workforce-references",
+      "standard-frameworks",
       "lc-ap-stages",
       "lc-dt-stages",
       "guide-entries",
-      "slide-documents",
+      "slide-decks",
       "architecture-modeling-language",
-      "diagram-views"
+      "maturity-guide"
     ],
     "forbidden": ["achievement-rate", "coverage-rate", "progress-bar", "donut-chart", "cross-grain-total"]
   },
@@ -83,8 +107,7 @@
   "excludedScopes": [
     "source Excel",
     "SQLite",
-    "formal JSON packages",
-    "protected dictionary and standard contents",
+    "protected source packages, dictionaries, and standard contents",
     "maturity rules, scoring, templates, API payloads, and project data writes",
     "DMG packaging"
   ]

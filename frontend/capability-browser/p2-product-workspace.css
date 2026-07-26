@@ -43,8 +43,19 @@
 .dashboard-p2-layout {
   display: grid;
   grid-template-columns: minmax(540px, 1.25fr) minmax(380px, 1fr);
-  align-items: start;
+  align-items: stretch;
   gap: 18px;
+}
+
+.dashboard-p2-column {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+.dashboard-p2-column > .dashboard-p2-panel:last-child {
+  flex: 1 1 auto;
 }
 
 .dashboard-p2-panel {
@@ -57,7 +68,8 @@
 }
 
 .dashboard-workbench-entry.dashboard-p2-panel {
-  display: block;
+  display: flex;
+  flex-direction: column;
   margin: 0;
   padding: 0;
   background: oklch(0.994 0.006 255);
@@ -81,6 +93,7 @@
 
 .dashboard-workbench-streams {
   display: grid;
+  flex: 1 1 auto;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   min-width: 0;
 }
@@ -442,6 +455,148 @@
   white-space: nowrap;
 }
 
+.dashboard-usage-guide {
+  display: flex;
+  flex-direction: column;
+  background: oklch(0.995 0.004 255);
+}
+
+.dashboard-usage-guide .dashboard-p2-panel-head {
+  min-height: 64px;
+  padding-block: 13px 12px;
+}
+
+.dashboard-usage-guide-intro {
+  margin: 0;
+  padding: 13px 17px;
+  border-bottom: 1px solid oklch(0.89 0.02 255);
+  background: oklch(0.976 0.014 255);
+  color: oklch(0.47 0.032 260);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.dashboard-usage-guide-list {
+  display: grid;
+  flex: 1 1 auto;
+  grid-auto-rows: minmax(88px, 1fr);
+  min-width: 0;
+}
+
+.dashboard-usage-guide-list button,
+.dashboard-usage-guide-item {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) max-content;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  min-height: 88px;
+  padding: 12px 15px;
+  border: 0;
+  border-bottom: 1px solid oklch(0.89 0.02 255);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.dashboard-usage-guide-list button {
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.dashboard-usage-guide-list button:last-child,
+.dashboard-usage-guide-item:last-child {
+  border-bottom: 0;
+}
+
+.dashboard-usage-guide-list button:hover,
+.dashboard-usage-guide-list button:focus-visible {
+  outline: none;
+  background: oklch(0.954 0.025 255);
+}
+
+.dashboard-usage-guide-list button:focus-visible {
+  box-shadow: inset 3px 0 0 oklch(0.56 0.17 256);
+}
+
+.dashboard-usage-guide-index {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid oklch(0.84 0.035 255);
+  border-radius: 8px;
+  background: oklch(0.975 0.018 255);
+  color: oklch(0.48 0.09 256);
+  font-size: 10px;
+  font-weight: 780;
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-usage-guide-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.dashboard-usage-guide-copy strong,
+.dashboard-usage-guide-copy small,
+.dashboard-usage-guide-copy em {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-usage-guide-copy strong {
+  color: oklch(0.31 0.04 260);
+  font-size: 13px;
+  font-weight: 720;
+}
+
+.dashboard-usage-guide-copy small {
+  overflow: visible;
+  color: oklch(0.52 0.027 260);
+  font-size: 11px;
+  line-height: 1.5;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.dashboard-usage-guide-copy em {
+  overflow: visible;
+  color: oklch(0.43 0.075 256);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 680;
+  line-height: 1.5;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.dashboard-usage-guide.is-knowledge .dashboard-usage-guide-list {
+  grid-auto-rows: minmax(92px, 1fr);
+}
+
+.dashboard-usage-guide.is-knowledge .dashboard-usage-guide-item {
+  grid-template-columns: 30px minmax(0, 1fr);
+}
+
+.dashboard-usage-guide-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: oklch(0.47 0.15 256);
+  font-size: 11px;
+  font-weight: 720;
+  white-space: nowrap;
+}
+
+.dashboard-usage-guide-action span {
+  font-size: 16px;
+  font-weight: 520;
+  line-height: 1;
+}
+
 .dashboard-knowledge-stat.is-link:hover,
 .dashboard-knowledge-stat.is-link:focus-visible,
 .dashboard-insight-value.is-link:hover,
@@ -495,7 +650,7 @@
 }
 
 .dashboard-knowledge-stat[data-dashboard-stat="standards"],
-.dashboard-knowledge-stat[data-dashboard-stat="dictionaries"] {
+.dashboard-knowledge-stat[data-dashboard-stat="environment-master"] {
   grid-column: span 3;
 }
 
@@ -743,6 +898,7 @@
   .dashboard-knowledge-stat[data-dashboard-stat] { grid-column: auto; grid-row: auto; }
   .dashboard-knowledge-stat[data-dashboard-stat="capabilities"],
   .dashboard-knowledge-stat[data-dashboard-stat="services"] { grid-column: 1 / -1; }
+  .dashboard-p2-column { height: auto; }
 }
 
 @media (max-width: 480px) {
@@ -756,4 +912,9 @@
   .dashboard-knowledge-stats { grid-template-columns: minmax(0, 1fr); }
   .dashboard-knowledge-stat[data-dashboard-stat] { grid-column: auto; grid-row: auto; }
   .dashboard-insight-values { flex-wrap: wrap; }
+  .dashboard-usage-guide-list button,
+  .dashboard-usage-guide-item { grid-template-columns: 30px minmax(0, 1fr); }
+  .dashboard-usage-guide-copy small,
+  .dashboard-usage-guide-copy em { white-space: normal; }
+  .dashboard-usage-guide-action { display: none; }
 }

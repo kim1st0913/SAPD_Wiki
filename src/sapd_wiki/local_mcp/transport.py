@@ -16,6 +16,7 @@ from mcp.server.auth.settings import (
 )
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
+from mcp.shared.version import SUPPORTED_PROTOCOL_VERSIONS
 from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
@@ -28,6 +29,7 @@ from .mcp_tools import KnowledgeService, SERVER_INSTRUCTIONS, register_tools
 
 
 PROTOCOL_VERSION = "2025-11-25"
+ACCEPTED_PROTOCOL_VERSIONS = frozenset(SUPPORTED_PROTOCOL_VERSIONS)
 MAX_HEADER_BYTES = 8_192
 MAX_REQUEST_BYTES = 32_768
 MAX_RESPONSE_BYTES = 65_536
@@ -144,7 +146,7 @@ class TransportContractMiddleware:
                 )
                 return
             version = headers.get("mcp-protocol-version")
-            if version is not None and version != PROTOCOL_VERSION:
+            if version is not None and version not in ACCEPTED_PROTOCOL_VERSIONS:
                 await _json_response(
                     scope,
                     receive,

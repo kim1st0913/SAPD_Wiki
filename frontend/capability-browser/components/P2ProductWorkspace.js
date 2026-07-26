@@ -19,33 +19,45 @@
     return {
       guideEntries: guideEntries.length,
       modelingGuides: guideEntries.filter((item) => item.id === "security-architecture-modeling-language").length,
+      maturityGuides: guideEntries.filter((item) => item.id === "maturity-model-usage").length,
     };
   }
 
   function knowledgeStats(summary) {
     const counts = summary.dictionaryCounts || {};
     const capabilityMap = summary.capabilityMap || {};
+    const catalog = summary.knowledgeSummary?.catalog || {};
     return [
       { id: "capabilities", label: "安全能力", value: capabilityMap.capabilities || 0, unit: "项", hint: "L2 能力", route: "/knowledge/capabilities", tone: "blue" },
       { id: "focuses", label: "能力关注点", value: capabilityMap.focuses || summary.totalFocuses || 0, unit: "个", hint: "关注点", route: "/capability-mapping", tone: "indigo" },
       { id: "services", label: "安全技术服务", value: counts.services || 0, unit: "项", hint: "服务字典", route: "/knowledge/technical-services", tone: "teal" },
       { id: "technical", label: "安全技术模块 / 措施", value: `${formatNumber(counts.modules)} / ${formatNumber(counts.measures)}`, unit: "", hint: "模块 / 措施", route: "/knowledge/technical", tone: "cyan" },
       { id: "standards", label: "标准控制项", value: summary.standardControls?.standardsIndex || 0, unit: "条", hint: "标准索引", route: "/standards", tone: "amber" },
-      { id: "dictionaries", label: "字典目录", value: summary.dictionarySections?.length || 0, unit: "类", hint: "业务目录", tone: "violet" },
+      { id: "environment-master", label: "环境主数据", value: catalog.environment_master_records || 0, unit: "项", hint: "环境 / 子类 / 对象", route: "/knowledge/environment-objects", tone: "indigo" },
     ];
   }
 
   function dictionaryRows(summary) {
     const counts = summary.dictionaryCounts || {};
+    const capabilityMap = summary.capabilityMap || {};
+    const catalog = summary.knowledgeSummary?.catalog || {};
     return [
-      { label: "作用域", value: counts.scopes, route: "/knowledge/scopes" },
-      { label: "服务", value: counts.services, route: "/knowledge/technical-services" },
-      { label: "模块", value: counts.modules, route: "/knowledge/technical-modules" },
-      { label: "措施", value: counts.measures, route: "/knowledge/technical-measures" },
-      { label: "安全工作", value: counts["security-works"], route: "/knowledge/work-items" },
-      { label: "流程", value: counts.processes, route: "/knowledge/processes" },
-      { label: "职能层", value: counts["work-functions"], route: "/knowledge/functions" },
-      { label: "岗位 / 职能参考", value: counts.references, route: "/standards/workforce-reference" },
+      { label: "安全能力", value: capabilityMap.capabilities, route: "/knowledge/capabilities" },
+      { label: "能力作用域", value: catalog.scope_types || counts.scopes, route: "/knowledge/scopes" },
+      { label: "环境主数据", value: catalog.environment_master_records, route: "/knowledge/environment-objects" },
+      { label: "技术服务", value: catalog.technical_services || counts.services, route: "/knowledge/technical-services" },
+      { label: "技术模块", value: catalog.technical_modules || counts.modules, route: "/knowledge/technical-modules" },
+      { label: "技术措施", value: catalog.technical_measures || counts.measures, route: "/knowledge/technical-measures" },
+      { label: "安全工作", value: catalog.security_works || counts["security-works"], route: "/knowledge/work-items" },
+      { label: "安全流程", value: catalog.security_processes || counts.processes, route: "/knowledge/processes" },
+      {
+        label: "应用系统 / 组件",
+        displayValue: `${formatNumber(catalog.application_system_types)} / ${formatNumber(catalog.application_components)}`,
+        route: "/knowledge/application-systems",
+      },
+      { label: "安全职能", value: catalog.work_functions, route: "/knowledge/functions" },
+      { label: "岗位 / 职能参考", value: catalog.workforce_references || counts.references, route: "/standards/workforce-reference" },
+      { label: "标准 / 框架", value: catalog.standard_frameworks, route: "/standards" },
     ];
   }
 
@@ -59,12 +71,12 @@
       {
         id: "environment",
         label: "信息化环境",
-        note: "环境投影口径，与字典作用域分开",
+        note: "唯一主数据口径，关联上下文不重复计数",
         tone: "ocean",
         items: [
-          { label: "环境", value: environment.information_environments, route: "/environment-mapping" },
-          { label: "对象", value: environment.information_objects },
-          { label: "作用域类型", value: environment.scope_types, route: "/knowledge/scopes" },
+          { label: "环境", value: environment.information_environments, route: "/knowledge/environment-objects" },
+          { label: "环境子类", value: environment.environment_segment_types, route: "/knowledge/environment-objects" },
+          { label: "对象", value: environment.information_objects, route: "/knowledge/environment-objects" },
         ],
       },
       {
@@ -84,9 +96,9 @@
         tone: "orchid",
         items: [
           { label: "指南", value: manifest.guideEntries, route: "/guides" },
-          { label: "幻灯片类", value: content.html_documents },
+          { label: "幻灯片指南", value: content.slide_decks },
           { label: "建模语言", value: manifest.modelingGuides, route: "/guides/security-architecture-modeling-language" },
-          { label: "图示视图", value: content.diagram_views },
+          { label: "成熟度指南", value: manifest.maturityGuides, route: "/guides/maturity-model-usage" },
         ],
       },
     ];
@@ -231,15 +243,113 @@
         <div class="dashboard-knowledge-stats" role="list" aria-label="知识库基础数量">${knowledgeStats(summary).map(renderKnowledgeStat).join("")}</div>
         <div class="dashboard-insight-deck" aria-label="环境、生命周期和指南统计">${insightBands(summary).map(renderInsightBand).join("")}</div>
         <div class="dashboard-dictionary-summary">
-          <div><strong>字典明细</strong><span>按业务目录统计，不合并为跨粒度唯一对象数</span></div>
-          <div class="dashboard-dictionary-list">${dictionaryRows(summary).map((item) => `<button type="button" data-app-route="${utils.escapeHtml(item.route)}"><span>${utils.escapeHtml(item.label)}</span><strong>${utils.escapeHtml(formatNumber(item.value))}</strong></button>`).join("")}</div>
+          <div><strong>全局导航数据</strong><span>按现有业务页面统计，每项进入对应目录</span></div>
+          <div class="dashboard-dictionary-list">${dictionaryRows(summary).map((item) => `<button type="button" data-app-route="${utils.escapeHtml(item.route)}"><span>${utils.escapeHtml(item.label)}</span><strong>${utils.escapeHtml(item.displayValue || formatNumber(item.value))}</strong></button>`).join("")}</div>
+        </div>
+      </section>`;
+  }
+
+  function usageGuideGroups() {
+    return {
+      operational: {
+        kicker: "WORKFLOW GUIDE",
+        title: "业务流程使用说明",
+        status: "3 条业务流",
+        intro: "按箭头顺序完成连接、问题处理和成熟度评估；每条说明都可直接进入对应工作区。",
+        rows: [
+          {
+            id: "mcp",
+            title: "MCP 集成",
+            description: "将外部 AI 客户端安全连接到本机 SAPD Wiki，只读使用受控知识内容。",
+            flow: "系统设置 → 生成本机安全连接证书 → 启动 MCP → 复制连接地址 → 客户端连接 → 本机批准授权 → 查看访问审计",
+            actionLabel: "进入设置",
+            route: "/settings/ai-integration",
+          },
+          {
+            id: "issues",
+            title: "ISSUE 生成与管理",
+            description: "把业务页面中的疑问、缺口和复核结论转入统一清单持续处理。",
+            flow: "业务页面创建 Issue → 补充上下文 → 设置状态与优先级 → 处理与复核 → 批量管理或导出",
+            actionLabel: "进入清单",
+            route: "/workbench/annotations",
+          },
+          {
+            id: "maturity",
+            title: "成熟度评估",
+            description: "按统一模板完成现状与目标评估，并形成可复核、可导出的结果和报告。",
+            flow: "创建项目 → 选择模板 → 设置适用性 → 现状/目标评分与说明 → 复核 → 结果 → 报告",
+            actionLabel: "开始评估",
+            route: "/workbench/maturity",
+          },
+        ],
+      },
+      knowledge: {
+        kicker: "KNOWLEDGE GUIDE",
+        title: "知识库与指南说明",
+        status: "2 个入口",
+        intro: "先了解内容组织和阅读方式，再结合下方统计进入对应目录。",
+        rows: [
+          {
+            id: "knowledge",
+            title: "知识库概况",
+            description: "从全局导航进入安全能力、信息化环境、安全生命周期、安全标准与知识库字典，按业务对象浏览定义、上下文和关联关系。",
+          },
+          {
+            id: "guides",
+            title: "指南内容与阅读",
+            description: "集中提供安全架构、数据安全、建模语言、轻规划和成熟度模型的方法说明，支持阅读 HTML、幻灯片和图示，并下载可用的指南或 Draw.io 文件。",
+          },
+        ],
+      },
+    };
+  }
+
+  function renderUsageGuideRow(item, index, interactive) {
+    const content = `
+      <span class="dashboard-usage-guide-index">${String(index + 1).padStart(2, "0")}</span>
+      <span class="dashboard-usage-guide-copy">
+        <strong>${utils.escapeHtml(item.title)}</strong>
+        <small>${utils.escapeHtml(item.description)}</small>
+        ${item.flow ? `<em>${utils.escapeHtml(item.flow)}</em>` : ""}
+      </span>`;
+    if (!interactive) {
+      return `<div class="dashboard-usage-guide-item" role="listitem" data-dashboard-guide="${utils.escapeHtml(item.id)}">${content}</div>`;
+    }
+    return `
+      <button type="button" role="listitem" data-app-route="${utils.escapeHtml(item.route)}" data-dashboard-guide="${utils.escapeHtml(item.id)}" aria-label="${utils.escapeHtml(item.actionLabel)}：${utils.escapeHtml(item.title)}">
+        ${content}
+        <span class="dashboard-usage-guide-action">${utils.escapeHtml(item.actionLabel)} <span aria-hidden="true">›</span></span>
+      </button>`;
+  }
+
+  function renderUsageGuide(group, type) {
+    const interactive = type === "operational";
+    return `
+      <section class="dashboard-p2-panel dashboard-usage-guide is-${utils.escapeHtml(type)}" aria-label="${utils.escapeHtml(group.title)}">
+        <header class="dashboard-p2-panel-head">
+          <div><span class="dashboard-kicker">${utils.escapeHtml(group.kicker)}</span><h3>${utils.escapeHtml(group.title)}</h3></div>
+          <span class="dashboard-status">${utils.escapeHtml(group.status)}</span>
+        </header>
+        <p class="dashboard-usage-guide-intro">${utils.escapeHtml(group.intro)}</p>
+        <div class="dashboard-usage-guide-list" role="list">
+          ${group.rows.map((item, index) => renderUsageGuideRow(item, index, interactive)).join("")}
         </div>
       </section>`;
   }
 
   function render({ summary, issueSummary, recentIssues = [], issueDataState = "loading", maturitySummary = {} }) {
+    const guides = usageGuideGroups();
     return `
-      <section class="dashboard-p2-layout">${renderWorkbench({ issueSummary, recentIssues, issueDataState, maturitySummary })}${renderKnowledge(summary)}</section>`;
+      <section class="dashboard-p2-layout">
+        <div class="dashboard-p2-column dashboard-p2-column-operational">
+          ${renderUsageGuide(guides.operational, "operational")}
+          ${renderWorkbench({ issueSummary, recentIssues, issueDataState, maturitySummary })}
+        </div>
+        <div class="dashboard-p2-column dashboard-p2-column-knowledge">
+          ${renderUsageGuide(guides.knowledge, "knowledge")}
+          ${renderKnowledge(summary)}
+        </div>
+      </section>`;
   }
 
   components.P2ProductWorkspace = { render };

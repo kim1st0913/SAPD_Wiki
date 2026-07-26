@@ -93,11 +93,13 @@ def sample_snapshot() -> dict:
             "enabled": True,
             "state": "ready",
             "retention_days": 30,
+            "max_events": 100,
             "retention_bytes": 20 * 1024 * 1024,
-            "event_count": 4,
+            "display_limit": 30,
+            "event_count": 14,
             "last_event_at": "2026-07-23T01:02:00Z",
             "page": 1,
-            "page_size": 3,
+            "page_size": 10,
             "page_count": 2,
             "recent_events": [
                 {
@@ -355,14 +357,14 @@ class ControlServiceTests(unittest.TestCase):
             self.service.get_certificate()["data"]["state"], "not_configured"
         )
         self.assertEqual(self.service.get_clients()["data"][0]["client_id"], "client-0001")
-        self.assertEqual(self.service.get_audit()["data"]["event_count"], 4)
+        self.assertEqual(self.service.get_audit()["data"]["event_count"], 14)
         self.assertEqual(
             self.service.get_audit()["data"]["recent_events"][0]["tool_name"],
             "search_knowledge",
         )
-        second_page = self.service.get_audit(page=2, page_size=3)["data"]
+        second_page = self.service.get_audit(page=2, page_size=10)["data"]
         self.assertEqual(second_page["page"], 2)
-        self.assertEqual(second_page["page_size"], 3)
+        self.assertEqual(second_page["page_size"], 10)
         self.assertEqual(second_page["page_count"], 2)
         self.assertEqual(
             self.service.get_diagnostics()["data"]["checks"][0]["check_id"],

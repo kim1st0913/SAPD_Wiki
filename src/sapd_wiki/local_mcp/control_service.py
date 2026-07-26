@@ -224,11 +224,11 @@ class ControlService:
         snapshot = self._read_projected_snapshot()
         return self._read_envelope(snapshot["state_version"], snapshot["clients"])
 
-    def get_audit(self, *, page: int = 1, page_size: int = 3) -> dict[str, Any]:
+    def get_audit(self, *, page: int = 1, page_size: int = 10) -> dict[str, Any]:
         snapshot = self._read_projected_snapshot()
         if not isinstance(page, int) or isinstance(page, bool) or page < 1:
             raise ControlError("INVALID_REQUEST", status=400)
-        if page_size != 3:
+        if page_size != 10:
             raise ControlError("INVALID_REQUEST", status=400)
         raw_audit = self._gateway.read_audit_page(page=page, page_size=page_size)
         return self._read_envelope(
@@ -1043,7 +1043,9 @@ class ControlService:
                     "enabled",
                     "state",
                     "retention_days",
+                    "max_events",
                     "retention_bytes",
+                    "display_limit",
                     "event_count",
                     "last_event_at",
                     "page",
@@ -1055,7 +1057,7 @@ class ControlService:
             error_code="SNAPSHOT_INVALID",
         )
         raw_events = source["recent_events"]
-        if not isinstance(raw_events, (list, tuple)) or len(raw_events) > 3:
+        if not isinstance(raw_events, (list, tuple)) or len(raw_events) > 10:
             raise ControlError("SNAPSHOT_INVALID", status=502)
         recent_events: list[dict[str, Any]] = []
         for item in raw_events:
@@ -1095,11 +1097,13 @@ class ControlService:
             "enabled": require_bool(source["enabled"]),
             "state": require_enum(source["state"], _AUDIT_STATES),
             "retention_days": require_int(source["retention_days"], maximum=3650),
+            "max_events": require_int(source["max_events"], minimum=100, maximum=1_000_000),
             "retention_bytes": require_int(source["retention_bytes"], maximum=2**40),
+            "display_limit": require_int(source["display_limit"], minimum=3, maximum=1000),
             "event_count": require_int(source["event_count"]),
             "last_event_at": require_nullable_string(source["last_event_at"], maximum=64),
             "page": require_int(source["page"], minimum=1),
-            "page_size": require_int(source["page_size"], minimum=3, maximum=3),
+            "page_size": require_int(source["page_size"], minimum=10, maximum=10),
             "page_count": require_int(source["page_count"], minimum=1),
             "recent_events": recent_events,
         }

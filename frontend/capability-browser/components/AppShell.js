@@ -269,8 +269,8 @@
   const PAGE_HEADER_OVERRIDES = {
     "/": {
       eyebrow: "SAPD WIKI",
-      title: "工作台与知识库概览",
-      description: "继续本地工作，并按业务粒度查看能力、环境、生命周期、技术服务、标准、字典与指南内容。",
+      title: "全局导航",
+      description: "查看系统数据、处理待办工作，并按主要业务流程进入对应页面。",
       hideTypeLabel: true,
     },
     "/settings/system": {

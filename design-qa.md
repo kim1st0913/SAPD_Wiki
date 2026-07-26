@@ -42,6 +42,60 @@ final result: passed
 
 ---
 
+# 全局导航系统首页 Design QA（2026-07-26）
+
+- source visual truth：整体首页结构采用 Product Design 选定稿
+  `/Users/kim1st/.codex/generated_images/019f7da3-a5f4-7310-ad66-d57054d779f9/call_K0rpPYLSuA43AweNeYUG3Hi2.png`；
+  统计区不规则低饱和色块采用用户明确指定的既有页面参考
+  `/var/folders/81/8nwy3h2n00s1dw1g5bnvj7j40000gn/T/codex-clipboard-ba033901-ec1c-453f-851a-0a522067648b.png`。
+- implementation：`http://127.0.0.1:5173/`，应用内浏览器，未启动系统 Chrome。
+- viewport：`1440 × 1024`、`1920 × 1080` 和响应式检查 `1180 × 900`，DPR 1。
+- browser-rendered evidence：
+  `/private/tmp/sapd-dashboard-implementation-1440x1024.png`、
+  `/private/tmp/sapd-dashboard-implementation-1920x1080.png`。
+- same-input comparison：
+  `/private/tmp/sapd-dashboard-comparison-1440x1024.png`；
+  统计区 focused comparison：
+  `/private/tmp/sapd-dashboard-stats-comparison-1440x1024.png`。
+
+## Findings
+
+无剩余 Web P0 / P1 / P2 设计问题。
+
+- 首页标题为“全局导航”；首屏顺序固定为“系统数据总览 → 待办工作 / 快速开始”，统计与待办不再混在同一区域。
+- 统计区沿用项目原有蓝、紫、青绿、暖黄低饱和 token，通过跨列、跨行和不同宽度形成不规则色块；原独立“全局导航数据”已合并为同一统计拼图。
+- 待办工作保持 ISSUE 与成熟度双工作流，最近列表限制为各 3 条；快速开始保留 MCP、ISSUE、成熟度三条业务流，并明确本机安全连接证书步骤。
+- 1920 × 1080 下统计、待办与快速开始完整进入首屏，左右工作区等高；页面级横向溢出为 `0px`。
+- 1180 × 900 下主操作区转为单列，次级统计区转为双列，页面级横向溢出为 `0px`。
+- 文案、字体、圆角、边框、阴影、侧栏和 Apple Shell 色彩均复用现有项目设计系统；没有新增假图标、占位素材或独立视觉语言。
+
+## Interaction Verification
+
+| 入口 | 实际应用路由 | 结果 |
+|---|---|---|
+| MCP 集成 | `/settings/ai-integration` | 通过 |
+| ISSUE 生成与管理 | `/workbench/annotations` | 通过 |
+| 成熟度评估 | `/workbench/maturity` | 通过 |
+| 安全能力统计 | `/knowledge/capabilities` | 通过 |
+
+## Comparison History
+
+1. 初始 Product Design 方案使用等宽统计卡片，用户要求恢复原系统的不规则色块与随意感。
+2. 第一轮运行截图中统计行高度偏紧；已调整主统计行高、字号和内边距。
+3. 最终对照保留参考稿的首页信息架构，并按用户最终指令改为项目原生不规则统计拼图；在 1440、1920 和 1180 三个视口复核通过。
+
+## Validation
+
+- `node scripts/audit_frontend_p2_product_workspace_contract.mjs`：通过。
+- `node scripts/audit_frontend_p2_product_workspace_contract.mjs --url http://127.0.0.1:5173/`：通过，检查 12 个路由、21 项统计、6 个收起分类。
+- `node --check`：`P2ProductWorkspace.js`、`AppShell.js` 通过。
+- 目标文件 `git diff --check`：通过。
+- 浏览器验收只导航、读取 DOM 和截图；没有创建、修改或删除 ISSUE、成熟度项目及真实用户数据。
+
+final result: passed
+
+---
+
 # AI 功能集成信息架构与 MCP 状态浮层第三轮 Design QA（2026-07-24）
 
 - source visual truth：用户问题截图 `/var/folders/81/8nwy3h2n00s1dw1g5bnvj7j40000gn/T/codex-clipboard-1edc417f-a4b2-4266-a3e7-b897f74a08d1.png`（`700×544`）与 `/var/folders/81/8nwy3h2n00s1dw1g5bnvj7j40000gn/T/codex-clipboard-95fff6ae-960b-4cf5-8d22-4de7765e56b1.png`（`2612×1442`）。

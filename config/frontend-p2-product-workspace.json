@@ -1,5 +1,5 @@
 {
-  "version": "2026-07-26.p2-readable-dashboard-guides-v3",
+  "version": "2026-07-26.p2-system-home-dashboard-v5",
   "impact": "shared runtime",
   "routes": [
     "/",
@@ -16,17 +16,17 @@
     "/guides/maturity-model-usage"
   ],
   "p2_1": {
-    "purpose": "workbench-and-knowledge-observatory",
+    "purpose": "system-home-dashboard",
     "pageHeader": {
       "owner": "AppShell",
       "eyebrow": "SAPD WIKI",
-      "title": "工作台与知识库概览",
+      "title": "全局导航",
       "duplicateBodyHeading": "forbidden"
     },
     "sources": ["analytics-summary", "maintenance-index", "/api/v1/dashboard/knowledge-summary", "AppShell manifest"],
     "recentWork": {
       "issueSource": "local user database",
-      "issueLimit": 5,
+      "issueLimit": 3,
       "issueOrder": "updated-desc-independent-of-workbench-sort",
       "maturitySource": "/api/v1/maturity/workspace + controlled local project state",
       "maturityLimit": 3,
@@ -36,9 +36,9 @@
     },
     "dashboardComposition": {
       "owner": "independent-work-items-dashboard",
-      "title": "工作事项",
-      "layers": ["issue-workstream-summary", "issue-recent-list", "maturity-workstream-summary", "maturity-recent-list", "local-update-footer"],
-      "rule": "recent-lists-are-subsections-not-the-whole-dashboard",
+      "title": "待办工作",
+      "layers": ["issue-workstream-summary", "issue-action-list", "maturity-workstream-summary", "maturity-action-list", "local-update-footer"],
+      "rule": "action-lists-are-bounded-subsections-not-recent-content-walls",
       "crossStreamSummary": "forbidden",
       "quickContinue": "latest-explicit-business-object",
       "forbiddenRegression": "flat-list-only-workbench"
@@ -46,22 +46,22 @@
     "usageGuide": {
       "owner": "dashboard-usage-guide",
       "placement": {
-        "left": "above-work-items",
-        "right": "above-all-knowledge-statistics"
+        "primary": "beside-work-items",
+        "statistics": "separate-above-actions"
       },
       "pattern": "single-document-directory",
       "groups": {
-        "operational": ["mcp", "issues", "maturity"],
-        "knowledge": ["knowledge", "guides"]
+        "operational": ["mcp", "issues", "maturity"]
       },
       "routes": ["/settings/ai-integration", "/workbench/annotations", "/workbench/maturity"],
-      "rule": "operational-topics-have-business-flow-and-specific-action;knowledge-topics-are-static-explanations-above-statistical-navigation",
-      "columnBalance": "equal-height-column-wrappers-with-last-panel-fill"
+      "rule": "three-operational-topics-have-business-flow-and-specific-action",
+      "columnBalance": "work-items-65-quick-start-35"
     },
     "knowledgeLayout": {
-      "pattern": "asymmetric-six-tile-mosaic",
+      "pattern": "asymmetric-integrated-color-mosaic",
       "objectGrain": "one-statistic-per-business-object",
       "crossGrainAggregation": "forbidden",
+      "globalNavigationData": "merged-into-statistics-mosaic",
       "responsiveFallback": "two-columns-then-one-column"
     },
     "statistics": [

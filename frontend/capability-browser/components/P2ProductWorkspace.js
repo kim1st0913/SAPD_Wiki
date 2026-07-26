@@ -124,6 +124,27 @@
       </section>`;
   }
 
+  function secondaryNavigationStats(summary) {
+    const includedLabels = new Set([
+      "能力作用域",
+      "安全工作",
+      "安全流程",
+      "应用系统 / 组件",
+      "安全职能",
+      "岗位 / 职能参考",
+      "标准 / 框架",
+    ]);
+    return dictionaryRows(summary).filter((item) => includedLabels.has(item.label));
+  }
+
+  function renderNavigationStat(item) {
+    return `
+      <button class="dashboard-navigation-stat" type="button" data-app-route="${utils.escapeHtml(item.route)}">
+        <span>${utils.escapeHtml(item.label)}</span>
+        <strong>${utils.escapeHtml(item.displayValue || formatNumber(item.value))}</strong>
+      </button>`;
+  }
+
   function issueStatusTone(status = "") {
     if (status === "待处理" || status === "待确认") return "is-attention";
     if (status === "处理中") return "is-active";
@@ -164,7 +185,7 @@
   function renderRecentIssues(recentIssues, dataState) {
     if (dataState === "loading") return `<div class="dashboard-recent-empty"><strong>正在读取 ISSUE清单</strong><span>从本地用户库加载最近更新。</span></div>`;
     if (!recentIssues.length) return `<div class="dashboard-recent-empty"><strong>暂无 ISSUE</strong><span>在业务页面创建 Issue 后，最近记录会显示在这里。</span></div>`;
-    return recentIssues.slice(0, 5).map((issue) => `
+    return recentIssues.slice(0, 3).map((issue) => `
       <button class="dashboard-recent-row dashboard-issue-row" type="button" data-app-route="/workbench/annotations" data-dashboard-issue-id="${utils.escapeHtml(issue.id)}" aria-label="打开 ISSUE：${utils.escapeHtml(issue.title)}">
         <span class="dashboard-recent-copy"><strong>${utils.escapeHtml(issue.title)}</strong><small>${utils.escapeHtml(issue.page)} · ${utils.escapeHtml(issue.updated || "暂无更新时间")}</small></span>
         <span class="dashboard-recent-state ${utils.escapeHtml(issueStatusTone(issue.status))}">${utils.escapeHtml(issue.status)}</span>
@@ -195,31 +216,31 @@
     const firstProject = visibleProjects[0] || {};
     return `
       <section class="dashboard-workbench-entry dashboard-p2-panel" aria-label="工作台入口">
-        <header class="dashboard-p2-panel-head"><div><span class="dashboard-kicker">WORKBENCH</span><h3>工作事项</h3></div><span class="dashboard-status">本地用户库</span></header>
+        <header class="dashboard-p2-panel-head"><div><span class="dashboard-kicker">ACTION CENTER</span><h3>待办工作</h3></div><span class="dashboard-status">本地用户库</span></header>
         <div class="dashboard-workbench-streams">
           <section class="dashboard-workstream" aria-label="ISSUE清单工作区">
             ${renderWorkstreamLead({
               tone: "issue",
               label: "ISSUE清单",
               title: "处理架构评审问题",
-              description: "状态、优先级、页面范围和导出集中在完整清单。",
+              description: "状态、优先级、页面定位、处理结果和导出统一管理。",
               primaryLabel: firstIssue.id ? "继续处理" : "打开清单",
               primaryRoute: "/workbench/annotations",
               primaryIssueId: firstIssue.id,
               metric: issueSummary.todoCount,
               metricLabel: "待处理",
-              supporting: `${formatNumber(issueSummary.total)} 条全部 · ${Math.min(5, visibleIssues.length)} 条最近更新`,
+              supporting: `${formatNumber(issueSummary.total)} 条全部`,
               menu: { label: "ISSUE清单更多", route: "/workbench/annotations", actionLabel: `查看全部 ${formatNumber(issueSummary.total)} 条 ISSUE` },
             })}
-            <div class="dashboard-workstream-list-head"><strong>最近更新</strong><span>${Math.min(5, visibleIssues.length)} 条</span></div>
-            <div class="dashboard-recent-list" role="group" aria-label="最近 5 条 ISSUE">${renderRecentIssues(visibleIssues, issueDataState)}</div>
+            <div class="dashboard-workstream-list-head"><strong>最近待办</strong><span>${Math.min(3, visibleIssues.length)} 条</span></div>
+            <div class="dashboard-recent-list" role="group" aria-label="最近 3 条 ISSUE">${renderRecentIssues(visibleIssues, issueDataState)}</div>
           </section>
           <section class="dashboard-workstream" aria-label="成熟度评估工作区">
             ${renderWorkstreamLead({
               tone: "maturity",
               label: "成熟度评估",
               title: "继续客户评估项目",
-              description: "项目、模板、评分、复核、结果和报告形成完整工作流。",
+              description: "项目、模板、评分、复核、结果与报告统一管理。",
               primaryLabel: firstProject.route ? "继续评估" : "进入工作台",
               primaryRoute: firstProject.route || "/workbench/maturity",
               metric: maturitySummary.total,
@@ -227,7 +248,7 @@
               supporting: `${formatNumber(maturitySummary.resultReadyCount)} 个已有结果`,
               menu: { label: "成熟度评估更多", route: "/workbench/maturity", actionLabel: `查看全部 ${formatNumber(maturitySummary.total)} 个项目` },
             })}
-            <div class="dashboard-workstream-list-head"><strong>最近项目结果</strong><span>${Math.min(3, visibleProjects.length)} 个</span></div>
+            <div class="dashboard-workstream-list-head"><strong>继续评估</strong><span>${Math.min(3, visibleProjects.length)} 个项目</span></div>
             <div class="dashboard-recent-list" role="group" aria-label="最近 3 个成熟度项目结果">${renderMaturityProjects(maturitySummary)}</div>
           </section>
         </div>
@@ -238,13 +259,12 @@
   function renderKnowledge(summary) {
     const knowledgeReady = summary.knowledgeSummary?.data_state === "ready";
     return `
-      <section class="dashboard-p2-panel dashboard-knowledge-panel" aria-label="知识库基础统计">
-        <header class="dashboard-p2-panel-head"><div><span class="dashboard-kicker">KNOWLEDGE OBSERVATORY</span><h3>知识库统计</h3></div><span class="dashboard-status">${utils.escapeHtml(summary.dataState === "ready" && summary.dictionaryDataState === "ready" && knowledgeReady ? "数据就绪" : "数据加载中")}</span></header>
+      <section class="dashboard-p2-panel dashboard-knowledge-panel" aria-label="系统数据总览">
+        <header class="dashboard-p2-panel-head"><div><span class="dashboard-kicker">SYSTEM OVERVIEW</span><h3>系统数据总览</h3></div><span class="dashboard-status">${utils.escapeHtml(summary.dataState === "ready" && summary.dictionaryDataState === "ready" && knowledgeReady ? "数据就绪" : "数据加载中")}</span></header>
         <div class="dashboard-knowledge-stats" role="list" aria-label="知识库基础数量">${knowledgeStats(summary).map(renderKnowledgeStat).join("")}</div>
-        <div class="dashboard-insight-deck" aria-label="环境、生命周期和指南统计">${insightBands(summary).map(renderInsightBand).join("")}</div>
-        <div class="dashboard-dictionary-summary">
-          <div><strong>全局导航数据</strong><span>按现有业务页面统计，每项进入对应目录</span></div>
-          <div class="dashboard-dictionary-list">${dictionaryRows(summary).map((item) => `<button type="button" data-app-route="${utils.escapeHtml(item.route)}"><span>${utils.escapeHtml(item.label)}</span><strong>${utils.escapeHtml(item.displayValue || formatNumber(item.value))}</strong></button>`).join("")}</div>
+        <div class="dashboard-stat-mosaic-secondary" aria-label="全局导航数据">
+          <div class="dashboard-navigation-stats">${secondaryNavigationStats(summary).map(renderNavigationStat).join("")}</div>
+          ${insightBands(summary).map(renderInsightBand).join("")}
         </div>
       </section>`;
   }
@@ -252,10 +272,9 @@
   function usageGuideGroups() {
     return {
       operational: {
-        kicker: "WORKFLOW GUIDE",
-        title: "业务流程使用说明",
+        kicker: "QUICK START",
+        title: "快速开始",
         status: "3 条业务流",
-        intro: "按箭头顺序完成连接、问题处理和成熟度评估；每条说明都可直接进入对应工作区。",
         rows: [
           {
             id: "mcp",
@@ -280,24 +299,6 @@
             flow: "创建项目 → 选择模板 → 设置适用性 → 现状/目标评分与说明 → 复核 → 结果 → 报告",
             actionLabel: "开始评估",
             route: "/workbench/maturity",
-          },
-        ],
-      },
-      knowledge: {
-        kicker: "KNOWLEDGE GUIDE",
-        title: "知识库与指南说明",
-        status: "2 个入口",
-        intro: "先了解内容组织和阅读方式，再结合下方统计进入对应目录。",
-        rows: [
-          {
-            id: "knowledge",
-            title: "知识库概况",
-            description: "从全局导航进入安全能力、信息化环境、安全生命周期、安全标准与知识库字典，按业务对象浏览定义、上下文和关联关系。",
-          },
-          {
-            id: "guides",
-            title: "指南内容与阅读",
-            description: "集中提供安全架构、数据安全、建模语言、轻规划和成熟度模型的方法说明，支持阅读 HTML、幻灯片和图示，并下载可用的指南或 Draw.io 文件。",
           },
         ],
       },
@@ -330,7 +331,7 @@
           <div><span class="dashboard-kicker">${utils.escapeHtml(group.kicker)}</span><h3>${utils.escapeHtml(group.title)}</h3></div>
           <span class="dashboard-status">${utils.escapeHtml(group.status)}</span>
         </header>
-        <p class="dashboard-usage-guide-intro">${utils.escapeHtml(group.intro)}</p>
+        ${group.intro ? `<p class="dashboard-usage-guide-intro">${utils.escapeHtml(group.intro)}</p>` : ""}
         <div class="dashboard-usage-guide-list" role="list">
           ${group.rows.map((item, index) => renderUsageGuideRow(item, index, interactive)).join("")}
         </div>
@@ -341,13 +342,10 @@
     const guides = usageGuideGroups();
     return `
       <section class="dashboard-p2-layout">
-        <div class="dashboard-p2-column dashboard-p2-column-operational">
-          ${renderUsageGuide(guides.operational, "operational")}
+        ${renderKnowledge(summary)}
+        <div class="dashboard-p2-action-grid">
           ${renderWorkbench({ issueSummary, recentIssues, issueDataState, maturitySummary })}
-        </div>
-        <div class="dashboard-p2-column dashboard-p2-column-knowledge">
-          ${renderUsageGuide(guides.knowledge, "knowledge")}
-          ${renderKnowledge(summary)}
+          ${renderUsageGuide(guides.operational, "operational")}
         </div>
       </section>`;
   }

@@ -1,6 +1,6 @@
 # 基础知识、Draw.io 与指南内容统一入库查询：今晚执行计划
 
-- 状态：`t4_complete_t5_ready`
+- 状态：`t6_complete_post_apply_drawio_repair_complete`
 - 修订日期：2026-07-26
 - 开工前检查：2026-07-26 20:55（Asia/Singapore）
 - 截止：2026-07-26 23:59（Asia/Singapore）
@@ -161,7 +161,7 @@ Web/App API 与 MCP 复用同一个查询服务；二进制资源通过独立 as
 |---|---|---|
 | T0 20 分钟 | 冻结正式内容清单、源 hash、稳定引用、候选库和回退路径 | 样例 PPTX不误归类；Poster OCR 明确禁用 |
 | T1 45 分钟 | additive schema、资产库 schema、Draw.io/PDF/PPTX/Markdown/HTML 导入器 | 临时库重复导入幂等；原文件 hash 一致 |
-| T2 40 分钟 | 导入 Draw.io、3 个 PDF 指南、PNG 预览、成熟度 HTML、批准的 Markdown、Poster 资产 | Draw.io 3 页、PDF 164 页、HTML 章节、Markdown清单、Poster 资产计数吻合 |
+| T2 40 分钟 | 导入 Draw.io、3 个 PDF 指南、PNG 预览、成熟度 HTML、批准的 Markdown、Poster 资产 | Draw.io 物理页签完成解析；经后续业务裁定，仅2个有效页签入库，空页不生成内容；其余资产计数吻合 |
 | T3 40 分钟 | 统一查询投影、FTS、内容关系、关系 provenance | 基础对象/关系与内容对象均可精确读取 |
 | T4 40 分钟 | MCP 五工具、Web/App API、asset API | MCP 不读 BLOB；App 能从资产库显示代表性 SVG/PNG/PDF |
 | T5 35 分钟 | E2E、只读边界、离线打包模拟、候选 diff | 移除原始目录后代表性查询和展示仍成功 |
@@ -171,7 +171,7 @@ Web/App API 与 MCP 复用同一个查询服务；二进制资源通过独立 as
 
 1. 4,694 个基础对象和 7,786 条基础关系均可查询。
 2. 122,816 条关系 provenance 可按关系稳定引用读取。
-3. Draw.io 3/3 页面、节点和有端点连线进入查询库。
+3. Draw.io 3个物理页签中2个有效页签、节点和有端点连线进入查询库；空 `page:002` 不生成对象、关系或证据，`page:001` / `page:003` 保留物理来源定位。
 4. `.drawio` 和 SVG 可从资产库恢复，hash 与入库前一致。
 5. 三套 PDF 指南 164/164 页均有文本抽取状态；普通文本层无需 OCR。
 6. 搜索指南词条返回具体页，不只返回 Deck 标题。
@@ -323,7 +323,7 @@ Web/App API 与 MCP 复用同一个查询服务；二进制资源通过独立 as
 - 正式查询库由`1c9d7c70574585df43656dec2c869faec6a6d1d2bb807352e534d567015b1400`更新为`78a721231a483072a9b22d47ff1e113073fd2be77d8612814840cf14ef99ce6a`。
 - 正式资产库新增，hash为`3e04c0f57fc31846828232490caa9173b76d28a835eb32b18ad75c59cc3f1840`。
 - 独立恢复演练在副本上恢复旧基础库hash并删除新增资产库，结果`pass`；正式恢复命令已写入T6报告，实际正式环境未触发回退。
-- 正式库现包含4,694个基础对象、7,786条基础关系、9个内容文档、610个内容片段、685条内容关系和1,304条内容证据；资产库包含182个内容寻址资产、182条关联和9个原件。
+- 正式应用当时包含4,694个基础对象、7,786条基础关系、9个内容文档、610个内容片段、685条内容关系和1,304条内容证据；后续 Draw.io 空页受控纠正后，正式状态为9个内容文档、609个内容片段、684条内容关系和1,302条内容证据。资产库仍包含182个内容寻址资产、182条关联和9个原件。
 - 稳定5173 health明确返回正式基础/内容查询库和正式资产库路径；知识搜索返回6条代表结果，PDF对象精确读取通过，版本返回基础/内容/资产三类digest。
 - 正式SVG、PNG、PDF和HTML均通过owner/role资产接口返回`206`、正确MIME、`Content-Range`和文件签名；响应禁止字段/本机路径命中为0。
 - MCP控制面状态为`ready / authorized / knowledge ready`，保留3个已注册客户端；完整MCP套件186项通过。
@@ -331,6 +331,13 @@ Web/App API 与 MCP 复用同一个查询服务；二进制资源通过独立 as
 - 真实用户库在应用、正式读取、MCP与pre-DMG前后hash均为`0e3db1224b4c2044bcd0dfe4a7fbe9e3e5a28cf081a8ab1ff0b2622030c0af81`，未修改真实用户数据。
 - 138条既有候选work-function reference warning、无显式fullscreen bridge及旧DMG staging差异继续记录为非阻断提示，不属于本主线新增问题。
 - T0—T6全部完成，当前无剩余执行阶段；真实App/DMG构建及人工视觉UAT属于后续独立发布任务。
+
+### 17.1 T6 后 Draw.io 空页内容纠正
+
+- `SAPD 安全架构模型` 的物理页签2“元模型”为0节点/0连线空页，不再作为知识内容；有效页签仍使用物理来源 ref `page:001` 和 `page:003`，不得重编号。
+- 文档业务元数据改为 `contentUnitCount=2 / contentUnitMode=independent`；导入器自动跳过0节点且0连线的 Draw.io 页签。
+- 受控修复工具为 `scripts/repair_empty_drawio_content.py`，具备显式 apply/restore 确认、双库备份、原子替换和用户库不变门禁。
+- 恢复包位于 `data/exports/worker-verify/base-content-unified-query/empty-drawio-content-repair/repair-20260726T155139Z/`；18项定向回归、SQLite完整性/外键、FTS、稳定5173和MCP运行态通过。
 
 ## 18. 恢复入口
 

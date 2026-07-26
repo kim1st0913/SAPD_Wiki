@@ -4,9 +4,9 @@
 
 ## 当前状态
 
-- Status: `git_workspace_convergence_complete_local_remote_pending`
+- Status: `data_update_engineering_and_cross_platform_delivery_active`
 - Started: 2026-05-09
-- 当前主线：把所有有效开发成果收敛到本地主工作区 `main`，最终取消功能分支和临时 worktree
+- 当前主线：完成数据更新工程化、知识内容增量发布、导入治理和跨平台交付验收
 - 快速状态入口：`CURRENT_STATE.md`
 - 完整历史计划归档：`docs/05-archive/context-slimming-2026-05-15/task_plan-full-before-slimming.md`
 
@@ -57,7 +57,7 @@
 | `main` 临时挂载 | `.venv-local-mcp-web`、`data/` 和 frontend data symlink 为 untracked | 仅作临时运行环境；绝不 stage |
 | 搜索质量检查 | 主工作目录原生数据路径为 `38/38`；临时 `main` 外部 symlink 被安全边界拒绝后出现 5 项失败 | 属于错误验证挂载，不是产品搜索回归；最终必须在原生数据路径复验 |
 
-本地收敛结果：正式主目录已检出 `main`，10 个旧本地功能分支和 8 个 linked worktree 已移除；`git branch` 与 `git worktree list` 均只剩正式主目录 `main`。远端 `origin/main` 和 `origin/codex/windows-electron` 未修改。
+本地收敛结果：正式主目录已检出 `main`，10 个旧本地功能分支和 8 个 linked worktree 已移除；`git branch` 与 `git worktree list` 均只剩正式主目录 `main`。`origin/main` 已同步到 `e87027a`；本地 `main` 已在 `62e682d` 形成 MCP refresh 与 Draw.io 空页修复的显式源码 checkpoint。保留的 `origin/codex/windows-electron` 已按用户授权 fast-forward 到当前主线，不删除；本任务不隐式追加推送 `origin/main`。
 
 ### 收敛策略
 
@@ -79,7 +79,7 @@
 | C4 迁回主目录 | 清理临时 worktree 中明确的测试挂载；解除临时 `main` worktree 占用；把主项目目录安全切换到 `main` | 主目录 branch=`main`；原生 `data/` 与用户状态未移动、未覆盖；产品文件与集成态一致 | `complete` |
 | C5 主目录完整验收 | 在真实本地数据路径运行 quick、pre-commit、MCP 和 5173 验收 | 搜索质量 `38/38`；MCP `102/102`；5173 home / health / workspace 与 runtime smoke 通过 | `complete` |
 | C6 删除旧结构 | 移除 clean 附加 worktree；删除已完成处置的本地旧分支；执行 worktree prune | `git worktree list` 只剩主目录；`git branch` 只剩 `main` | `complete` |
-| C7 远端同步 | 用户确认后 push `main`，再单独确认是否删除 `origin/codex/windows-electron` | 远端 `main` 指向已验收提交；远端分支删除有单独授权 | `waiting_user_authorization` |
+| C7 远端同步 | `origin/main` 已完成既定同步；保留的 `origin/codex/windows-electron` 已 fast-forward 到当前主线 | Windows 长期分支保留且不删除；`origin/main` 不因本任务隐式追加 push | `complete` |
 
 ### C1 恢复点内容
 
@@ -204,7 +204,7 @@
 
 ### PLAN-ENV-MD：信息化环境主数据与对象字典（2026-07-25）
 
-- 状态：`p3_completed_p4_not_started`
+- 状态：`p8_web_completed_app_dmg_uat_pending`
 - 目标：建立信息化环境、环境子类、信息化对象三类唯一主数据；保留现有29个环境—子类上下文和67个环境—子类—对象上下文，由关系引用主数据身份。
 - 核心决定：10个环境和51个信息化对象复用现有稳定身份；16个环境子类标题组已逐条裁定为16条独立 `environment_segment_type`，跨环境同名类型复用同一身份。原29个 `environment_segment` 保持上下文实例身份，并规划各增加且仅增加一条 `instance_of`。
 - 导入门禁：必须同步修复 `environment_segment` 的 qualifier/stable-key 匹配；同源二次导入新增0、重复关系0、上下文错配0。
@@ -215,7 +215,7 @@
 - P1结果：只读盘点确认10/29/候选16/51/67与环境包完全一致，29+67条上下文关系均有来源证据，孤儿/错配/未解析用户引用均为0；14次用户域引用可解析，输入哈希前后不变。77条P2裁定输入仍全部为 `hold`，未分配编号、未写正式库/用户库/正式包。
 - P2结果：冻结10条 `IE-*`、16条 `ES-*`、51条 `IO-*` 共77条编号及29条精确 `instance_of` 计划；修复 segment qualifier 匹配、父环境切换和 `instance_of` 来源唯一性。临时副本第二次同源导入新增/停用对象0、新增/删除关系0、错配0，保护输入哈希不变；重复审批的来源引用/审计日志增长继续由 `OI-198` 跟踪。
 - P3结果：临时库首次应用回填61个编号、新增16个环境子类类型、29条 `instance_of`、58条来源引用和106条审计，重复应用全部为0；候选包开关回退、精确逆向回退与事务故障注入回退均恢复演练前逻辑快照，保护输入哈希不变。报告为 `data/exports/worker-verify/plan-env-md/p3-20260725T162703Z/`。
-- 下一步：P4生成影子 `environment-dictionary.json` 并实现只读API/schema与旧树兼容验证；不得直接进入正式apply。
+- P4—P8 Web 结果：影子字典、只读 API/schema、前端开关、正式加法迁移、受控切换和 Web 发布回归均已完成；当前主数据为10环境、16子类类型、51对象，定义77条，关联使用125条。当前源码 App/DMG 仍待新包发布矩阵与人工 UAT，5173 Web 结论不替代 App 证据。
 - 详细计划：`docs/06-implementation/environment-master-data-dictionary-plan-2026-07-25.md`
 
 本阶段不是新增 Sheet，也不是进入 Phase 7 多格式增强，而是把已导入数据的业务语义、页面范围、关系链路和前端展示方式校正清楚。

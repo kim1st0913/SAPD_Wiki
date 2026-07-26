@@ -171,6 +171,70 @@ class ReservedPreviewPortTests(unittest.TestCase):
             )
         )
 
+    def test_guard_reuses_established_persistent_mcp_runtime_on_5173(self) -> None:
+        guard = load_dev_server_guard()
+        args = argparse.Namespace(
+            port=5173,
+            base_db="",
+            user_db="",
+            ephemeral_user_state=False,
+            data_root="",
+            export_dir="",
+            runtime_label="",
+            mcp_port=0,
+            mcp_runtime_root="",
+            mcp_platform_integration=False,
+        )
+        with patch.object(
+            guard,
+            "persistent_mcp_runtime_is_configured",
+            return_value=True,
+        ):
+            runtime = guard.expected_runtime(args)
+        self.assertEqual(runtime["mcp_platform_integration"], "1")
+
+    def test_guard_restarts_5173_when_persistent_mcp_runtime_is_not_attached(
+        self,
+    ) -> None:
+        guard = load_dev_server_guard()
+        health = {
+            "ok": True,
+            "json": {
+                "data": {
+                    "runtime": {
+                        "label": "stable",
+                        "settings_paths": {"data_root": str(ROOT)},
+                    }
+                }
+            },
+        }
+        expected = {
+            "runtime_label": "stable",
+            "project_root": str(ROOT),
+            "mcp_platform_integration": "1",
+        }
+        self.assertTrue(
+            guard.existing_server_requires_restart(
+                [{"is_project_server": True, "command_line": "sapd_wiki.cli serve"}],
+                health,
+                expected,
+            )
+        )
+        self.assertFalse(
+            guard.existing_server_requires_restart(
+                [
+                    {
+                        "is_project_server": True,
+                        "command_line": (
+                            "sapd_wiki.cli serve --mcp-platform-integration"
+                        ),
+                    }
+                ],
+                health,
+                expected,
+            )
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

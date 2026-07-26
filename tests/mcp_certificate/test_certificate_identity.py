@@ -60,6 +60,11 @@ class CertificateIdentityTests(unittest.TestCase):
 
         ca = x509.load_pem_x509_certificate((generation / "ca.pem").read_bytes())
         chain_payload = (generation / "server-chain.pem").read_bytes()
+        self.assertEqual(
+            chain_payload.count(b"-----BEGIN CERTIFICATE-----"),
+            1,
+            "The TLS server must not send its self-signed trust anchor.",
+        )
         leaf = x509.load_pem_x509_certificate(chain_payload)
         self.assertEqual(
             leaf.extensions.get_extension_for_class(

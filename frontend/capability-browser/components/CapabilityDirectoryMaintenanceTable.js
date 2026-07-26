@@ -215,7 +215,7 @@
         <button type="button" data-capability-directory-action="collapse-l0">收起到 L0</button>
       </div>
       <div class="maintenance-table-scroll">
-        <table class="maintenance-data-table capability-directory-maintenance-table" style="width: 100%; min-width: 0; table-layout: fixed;">
+        <table class="maintenance-data-table capability-directory-maintenance-table hierarchical-directory-maintenance-table" style="width: 100%; min-width: 0; table-layout: fixed;">
           <colgroup>
             <col style="width: 220px;">
             <col style="width: ${nameColumnWidth}px;">

@@ -582,6 +582,37 @@
 | `systems` | array<KnowledgeObjectRef> | 是 | 安全系统 |
 | `products` | array<KnowledgeObjectRef> | 是 | 产品 |
 
+### 8.3 `GET /api/v1/environments/dictionary`
+
+状态：`PLAN-ENV-MD P0 contract frozen / implementation not started`
+
+当前拟新增静态包：`environment-dictionary.json`
+
+用途：以唯一主数据粒度提供信息化环境、环境子类和信息化对象字典；环境映射树继续由8.1承载，不从树按标题临时去重。
+
+机器合同：
+
+- `docs/01-architecture/contracts/environment-master-data/v1/environment-master-data.contract.json`
+- `docs/01-architecture/contracts/environment-master-data/v1/environment-dictionary.schema.json`
+
+固定顶层字段：
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `schema_version` | string | 是 | 固定为 `environment-dictionary-v1` |
+| `data_state` | string | 是 | `ready` 或 `empty` |
+| `generated_at` | string | 是 | 包生成时间，不作为可见业务字段 |
+| `source_package_versions` | object | 是 | 基础库/环境包版本清单 |
+| `master_counts` | object | 是 | 环境、唯一环境子类、信息化对象主数据数量 |
+| `context_counts` | object | 是 | 环境子类上下文、环境对象上下文数量 |
+| `information_environments` | array<EnvironmentMasterRecord> | 是 | 唯一信息化环境 |
+| `environment_segment_types` | array<EnvironmentMasterRecord> | 是 | P2裁定后的唯一环境子类 |
+| `information_objects` | array<EnvironmentMasterRecord> | 是 | 唯一信息化对象 |
+| `usage_relations` | array<EnvironmentMasterUsage> | 是 | 主数据到现有环境上下文的关系投影 |
+| `evidence_ref_count` | integer | 是 | 来源证据引用数量 |
+
+主数据记录必须包含 `id`、`stable_ref`、`public_id`、`type`、`code`、`title`、`description`、`aliases`、`status`、`usage_summary`。页面首期只读；新包缺失或版本不兼容时回退现有环境目录树，但前端不得在fallback中自行推导唯一主数据。
+
 ## 9. 专项知识维护接口
 
 ### 9.0 安全知识拆包与按需加载契约

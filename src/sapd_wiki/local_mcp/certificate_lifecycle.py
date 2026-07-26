@@ -310,6 +310,7 @@ class CertificateLifecycle:
     def provision(self) -> CertificateOperationJournal:
         try:
             with self._writer_lock:
+                self.identity.remove_empty_generation_directories()
                 if self.identity.load_manifest() is not None:
                     raise CertificateLifecycleError("CERTIFICATE_ALREADY_CONFIGURED")
                 journal = self._begin(
@@ -351,6 +352,7 @@ class CertificateLifecycle:
     def rotate(self) -> CertificateOperationJournal:
         try:
             with self._writer_lock:
+                self.identity.remove_empty_generation_directories()
                 current = self.identity.load_manifest()
                 if current is None:
                     raise CertificateLifecycleError("CERTIFICATE_NOT_CONFIGURED")
@@ -578,6 +580,7 @@ class CertificateLifecycle:
     def reset(self) -> CertificateOperationJournal:
         try:
             with self._writer_lock:
+                self.identity.remove_empty_generation_directories()
                 current = self.identity.load_manifest()
                 journal = self._begin(
                     action="certificate_reset",

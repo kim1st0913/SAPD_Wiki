@@ -7,6 +7,7 @@ must implement the same exact-fingerprint and current-user-only contract.
 
 from __future__ import annotations
 
+import ipaddress
 import re
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -14,7 +15,10 @@ from hashlib import sha256
 from typing import Protocol
 
 from cryptography import x509
+from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from cryptography.x509.oid import ExtendedKeyUsageOID
 
 
 _SHA256_FINGERPRINT_RE = re.compile(r"^(?:[0-9A-F]{2}:){31}[0-9A-F]{2}$")
@@ -56,6 +60,7 @@ class ManagedTrustTarget:
     display_name: str
     fingerprint_sha256: str
     certificate_der: bytes
+    verification_certificate_der: bytes
     host: str = "127.0.0.1"
     policy: str = "ssl_loopback_only"
 
@@ -83,6 +88,50 @@ class ManagedTrustTarget:
             raise CertificateTrustError("CERTIFICATE_PUBLIC_DATA_INVALID") from exc
         if not constraints.ca or constraints.path_length != 0:
             raise CertificateTrustError("CERTIFICATE_PUBLIC_DATA_INVALID")
+        try:
+            verification_certificate = x509.load_der_x509_certificate(
+                self.verification_certificate_der
+            )
+            verification_constraints = (
+                verification_certificate.extensions.get_extension_for_class(
+                    x509.BasicConstraints
+                ).value
+            )
+            subject_alt_name = (
+                verification_certificate.extensions.get_extension_for_class(
+                    x509.SubjectAlternativeName
+                ).value
+            )
+            extended_key_usage = (
+                verification_certificate.extensions.get_extension_for_class(
+                    x509.ExtendedKeyUsage
+                ).value
+            )
+        except (TypeError, ValueError, x509.ExtensionNotFound) as exc:
+            raise CertificateTrustError("CERTIFICATE_PUBLIC_DATA_INVALID") from exc
+        if verification_constraints.ca:
+            raise CertificateTrustError("CERTIFICATE_PUBLIC_DATA_INVALID")
+        if verification_certificate.issuer != certificate.subject:
+            raise CertificateTrustError("CERTIFICATE_PUBLIC_DATA_INVALID")
+        if (
+            ipaddress.ip_address(self.host)
+            not in subject_alt_name.get_values_for_type(x509.IPAddress)
+        ):
+            raise CertificateTrustError("CERTIFICATE_TRUST_POLICY_INVALID")
+        if ExtendedKeyUsageOID.SERVER_AUTH not in extended_key_usage:
+            raise CertificateTrustError("CERTIFICATE_TRUST_POLICY_INVALID")
+        public_key = certificate.public_key()
+        if not isinstance(public_key, rsa.RSAPublicKey):
+            raise CertificateTrustError("CERTIFICATE_PUBLIC_DATA_INVALID")
+        try:
+            public_key.verify(
+                verification_certificate.signature,
+                verification_certificate.tbs_certificate_bytes,
+                padding.PKCS1v15(),
+                verification_certificate.signature_hash_algorithm,
+            )
+        except (InvalidSignature, TypeError, ValueError) as exc:
+            raise CertificateTrustError("CERTIFICATE_PUBLIC_DATA_INVALID") from exc
 
     @property
     def ownership_key(self) -> tuple[str, str, str]:
@@ -97,6 +146,7 @@ class ManagedTrustTarget:
                 self.generation_id,
                 self.display_name,
                 self.fingerprint_sha256,
+                certificate_fingerprint(self.verification_certificate_der),
                 self.host,
                 self.policy,
             )
@@ -413,9 +463,13 @@ def target_from_pem(
     display_name: str,
     fingerprint_sha256: str,
     certificate_pem: bytes,
+    verification_certificate_pem: bytes,
 ) -> ManagedTrustTarget:
     try:
         certificate = x509.load_pem_x509_certificate(certificate_pem)
+        verification_certificate = x509.load_pem_x509_certificate(
+            verification_certificate_pem
+        )
     except (TypeError, ValueError) as exc:
         raise CertificateTrustError("CERTIFICATE_PUBLIC_DATA_INVALID") from exc
     return ManagedTrustTarget(
@@ -425,4 +479,7 @@ def target_from_pem(
         display_name=display_name,
         fingerprint_sha256=normalize_fingerprint(fingerprint_sha256),
         certificate_der=certificate.public_bytes(serialization.Encoding.DER),
+        verification_certificate_der=verification_certificate.public_bytes(
+            serialization.Encoding.DER
+        ),
     )

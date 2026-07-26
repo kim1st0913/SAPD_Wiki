@@ -119,6 +119,7 @@ class SupervisorGateway(Protocol):
 
 _DESIRED_STATES = frozenset({"disabled", "enabled"})
 _SERVICE_STATES = frozenset({"stopped", "starting", "ready", "stopping", "error"})
+_RECONNECT_STATES = frozenset({"idle", "scheduled", "recovering"})
 _AUTHORIZATION_STATES = frozenset({"no_clients", "pending", "authorized", "revoked", "error"})
 _ACTIVITY_STATES = frozenset({"never", "idle", "recent"})
 _KNOWLEDGE_STATES = frozenset({"ready", "degraded", "blocked"})
@@ -614,6 +615,7 @@ class ControlService:
                     "recoverable_error",
                 }
             ),
+            optional=frozenset({"reconnect_state", "reconnect_attempt"}),
             error_code="SNAPSHOT_INVALID",
         )
         desired_state = require_enum(source["desired_state"], _DESIRED_STATES)
@@ -626,6 +628,15 @@ class ControlService:
         return {
             "desired_state": desired_state,
             "service_state": service_state,
+            "reconnect_state": require_enum(
+                source.get("reconnect_state", "idle"),
+                _RECONNECT_STATES,
+            ),
+            "reconnect_attempt": require_int(
+                source.get("reconnect_attempt", 0),
+                minimum=0,
+                maximum=1000,
+            ),
             "authorization_state": authorization_state,
             "activity_state": activity_state,
             "knowledge_state": knowledge_state,
@@ -702,6 +713,7 @@ class ControlService:
                     "control_capabilities",
                 }
             ),
+            optional=frozenset({"auto_restore"}),
             error_code="SNAPSHOT_INVALID",
         )
         capabilities = require_closed_object(
@@ -734,6 +746,7 @@ class ControlService:
             raise ControlError("SNAPSHOT_INVALID", status=502)
         return {
             "enabled": require_bool(source["enabled"]),
+            "auto_restore": require_bool(source.get("auto_restore", False)),
             "configured_port": validate_port(source["configured_port"]),
             "release_channel": require_enum(source["release_channel"], _RELEASE_CHANNELS),
             "canonical_resource": canonical_resource,
@@ -1018,10 +1031,48 @@ class ControlService:
                     "retention_bytes",
                     "event_count",
                     "last_event_at",
+                    "recent_events",
                 }
             ),
             error_code="SNAPSHOT_INVALID",
         )
+        raw_events = source["recent_events"]
+        if not isinstance(raw_events, (list, tuple)) or len(raw_events) > 3:
+            raise ControlError("SNAPSHOT_INVALID", status=502)
+        recent_events: list[dict[str, Any]] = []
+        for item in raw_events:
+            event = require_closed_object(
+                item,
+                required=frozenset(
+                    {
+                        "occurred_at",
+                        "event_type",
+                        "client_id",
+                        "tool_name",
+                        "result_code",
+                        "returned_count",
+                        "duration_ms",
+                    }
+                ),
+                error_code="SNAPSHOT_INVALID",
+            )
+            returned_count = event["returned_count"]
+            duration_ms = event["duration_ms"]
+            recent_events.append(
+                {
+                    "occurred_at": require_string(event["occurred_at"], minimum=1, maximum=64),
+                    "event_type": require_string(event["event_type"], minimum=1, maximum=128),
+                    "client_id": require_nullable_string(event["client_id"], maximum=128),
+                    "tool_name": require_nullable_string(event["tool_name"], maximum=128),
+                    "result_code": require_string(event["result_code"], minimum=1, maximum=128),
+                    "returned_count": (
+                        None if returned_count is None else require_int(returned_count)
+                    ),
+                    "duration_ms": (
+                        None if duration_ms is None else require_int(duration_ms)
+                    ),
+                }
+            )
         return {
             "enabled": require_bool(source["enabled"]),
             "state": require_enum(source["state"], _AUDIT_STATES),
@@ -1029,6 +1080,7 @@ class ControlService:
             "retention_bytes": require_int(source["retention_bytes"], maximum=2**40),
             "event_count": require_int(source["event_count"]),
             "last_event_at": require_nullable_string(source["last_event_at"], maximum=64),
+            "recent_events": recent_events,
         }
 
     @staticmethod

@@ -57,6 +57,7 @@
 | `/api/v1/capabilities/{id}/relationships` | 前端 `dataClient.getCapabilityRelationships()` 整理 | 可由能力页投影补强覆盖 |
 | `/api/v1/environments/tree` | `environment-workbench.json.navigator` | BE-2 应优先实现 |
 | `/api/v1/environments/matrix` | 前端 `dataClient.getEnvironmentMatrix()` 整理 | BE-2 应优先实现 |
+| `/api/v1/environments/dictionary` | P4已实现 `environment-dictionary-v1` 只读包/路由，P6正式库迁移完成 | P7能力开关仍关闭；禁止前端按标题去重或跳过旧树fallback |
 | `/api/v1/environments/objects/{id}/relationships` | 前端 `dataClient.getEnvironmentRelationships()` 整理 | BE-2 应输出页面级关系投影 |
 | `/api/v1/lifecycle/application` | `lifecycle-knowledge.json.application_security_development` | BE-3 应优先实现 |
 | `/api/v1/lifecycle/data` | `lifecycle-knowledge.json.data_lifecycle` | 数据生命周期页后续处理 |
@@ -150,6 +151,7 @@ localRelationMap
 | 信息化环境 | `environment-workbench.json.objects.information_environment` | 已有 |
 | 环境子类 / segment | `environment-workbench.json.objects.environment_segment` | 已有 |
 | 信息化对象 | `environment-workbench.json.objects.information_object` | 已有 |
+| 唯一环境主数据字典 | `environment-dictionary.json` / `/api/v1/environments/dictionary` | P4影子包与只读API已实现；P6正式库已迁移；P7能力开关仍关闭 |
 | 对象-作用域关系 | `environment-workbench.json.relations` | 已有 |
 | 作用域-服务关系 | `environment-workbench.json.relations` | 已有 |
 | 服务-模块关系 | `environment-workbench.json.relations` | 已有 |

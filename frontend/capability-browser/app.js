@@ -16,6 +16,7 @@ const state = {
   sharedLookups: null,
   environmentWorkbench: null,
   environmentWorkbenchViewModel: null,
+  environmentDictionary: null,
   lifecycle: null,
   lifecycleWorkbench: null,
   lifecycleWorkbenchViewModel: null,
@@ -3099,6 +3100,7 @@ const PACKAGE_GETTERS = {
   capabilityWorkbench: "getCapabilityWorkbench",
   capabilityInitial: "getCapabilityWorkspaceInitial",
   capabilityProjection: "getCapabilityWorkspaceProjection",
+  environmentDictionary: "getEnvironmentDictionary",
   environmentWorkbench: "getEnvironmentWorkbench",
   lifecycleWorkbench: "getLifecycleWorkbench",
   analyticsSummary: "getAnalyticsSummary",
@@ -3134,6 +3136,7 @@ function assignPackageData(name, data) {
   }
   if (name === "capabilityProjection") state.capabilityProjection = data;
   if (name === "sharedLookups") state.sharedLookups = data;
+  if (name === "environmentDictionary") state.environmentDictionary = data;
   if (name === "environmentWorkbench") state.environmentWorkbench = data;
   if (name === "lifecycleWorkbench") state.lifecycleWorkbench = data;
   if (name === "analyticsSummary") state.analyticsSummary = data;
@@ -4503,6 +4506,7 @@ function maintenanceUserObjectLabel(section, row) {
   const labels = {
     "capability-directory": row?.level === "L2" ? "安全能力" : "能力关注点",
     scopes: "安全能力作用域",
+    "environment-objects": "信息化对象",
     services: "安全技术服务",
     modules: "安全技术模块",
     measures: "安全技术措施",
@@ -4521,6 +4525,7 @@ function maintenanceUserObjectType(section, row) {
   if (section === "capability-directory") return row?.level === "L2" ? "capability" : "capability_focus";
   const types = {
     scopes: "scope_type",
+    "environment-objects": "information_object",
     services: "security_technical_service",
     modules: "security_technology_module",
     measures: "security_technical_measure",
@@ -6178,6 +6183,7 @@ const ANNOTATION_CAPABILITY_TAB_LABELS = {
 const ANNOTATION_MAINTENANCE_PAGE_LABELS = {
   "capability-directory": "安全能力清单",
   scopes: "安全能力作用域目录",
+  "environment-objects": "信息化环境-对象目录",
   services: "安全技术服务清单",
   modules: "安全技术模块/措施清单",
   measures: "安全技术模块/措施清单",
@@ -6517,6 +6523,12 @@ const MAINTENANCE_PAGE_LOAD_CONTRACT = {
     supplementalPackages: [],
     supplementalSections: ["services"],
   },
+  "environment-objects": {
+    requiredPackages: ["environmentWorkbench"],
+    requiredSections: [],
+    supplementalPackages: [],
+    supplementalSections: [],
+  },
   services: {
     requiredPackages: [],
     requiredSections: ["services"],
@@ -6574,14 +6586,23 @@ const MAINTENANCE_PAGE_LOAD_CONTRACT = {
 };
 
 function maintenanceLoadContractForPage(page) {
-  return (
+  const contract =
     MAINTENANCE_PAGE_LOAD_CONTRACT[page] || {
       requiredPackages: [],
       requiredSections: [],
       supplementalPackages: [],
       supplementalSections: [],
-    }
-  );
+    };
+  if (
+    page === "environment-objects"
+    && window.sapdDataClient?.isEnvironmentMasterDictionaryEnabled?.()
+  ) {
+    return {
+      ...contract,
+      requiredPackages: ["environmentDictionary", "environmentWorkbench"],
+    };
+  }
+  return contract;
 }
 
 function maintenanceSectionForPage(page) {
@@ -7018,6 +7039,7 @@ function runtimeStateHtml(runtimeState, options = {}) {
 function packageDataForRuntimeState(name) {
   if (name === "capability") return state.capability;
   if (name === "capabilityInitial") return state.capabilityInitial;
+  if (name === "environmentDictionary") return state.environmentDictionary;
   if (name === "environmentWorkbench") return state.environmentWorkbench;
   if (name === "maintenanceIndex") return state.maintenanceIndex;
   if (name === "maintenanceKnowledge") return state.maintenanceKnowledge;
@@ -9418,6 +9440,7 @@ function renderWorkbench() {
 function sourceSearchPlaceholder(section = state.activeMaintenancePage) {
   if (section === "standards") return "搜索标准、框架、控制项或条款";
   if (section === "capability-directory") return "搜索能力、关注点、编码或层级";
+  if (section === "environment-objects") return "搜索信息化环境、环境子类或信息化对象";
   if (section === "application-systems") return "搜索应用系统、类型或组件";
   if (section === "services") return "搜索服务、编码、作用域或模块/措施";
   if (section === "modules") return "搜索模块、编码、服务或作用域";
@@ -10898,6 +10921,8 @@ function renderMaintenance(options = {}) {
     const loadingTitle =
       state.activeMaintenancePage === "capability-directory"
         ? "安全能力清单"
+        : state.activeMaintenancePage === "environment-objects"
+          ? "信息化环境-对象目录"
         : state.activeMaintenancePage === "application-systems"
           ? "应用系统目录"
           : "知识库字典";
@@ -10924,6 +10949,20 @@ function renderMaintenance(options = {}) {
       loadingTitle: "正在加载 LC-AP 应用系统目录",
       hasData: list(state.lifecycle?.application_security_development?.processes).length > 0,
     })
+  ) {
+    return;
+  }
+  if (
+    state.activeMaintenancePage === "environment-objects" &&
+    !(
+      dataClient?.isEnvironmentMasterDictionaryEnabled?.()
+      && viewModels?.environmentDictionaryCompatibility?.(state.environmentDictionary)?.usable
+    )
+    && renderMaintenancePackageState("environmentWorkbench", {
+        title: "信息化环境-对象目录",
+        loadingTitle: "正在加载信息化环境对象树",
+        hasData: list(state.environmentWorkbench?.environment_scope_tree || state.environmentWorkbench?.environmentScopeTree).length > 0,
+      })
   ) {
     return;
   }
@@ -11018,6 +11057,10 @@ function renderMaintenance(options = {}) {
   }
   const viewModel = viewModels.buildMaintenanceWorkspaceViewModel({
     capabilityTree: state.capability,
+    environmentDictionary: state.environmentDictionary,
+    environmentDictionaryEnabled: Boolean(
+      dataClient?.isEnvironmentMasterDictionaryEnabled?.(),
+    ),
     management: maintenanceManagementForViewModel(viewModels),
     lifecycle: state.lifecycle,
     standards: state.standards,
@@ -11064,6 +11107,17 @@ function renderMaintenance(options = {}) {
         hasHierarchy: viewModel.hasHierarchy,
         selectedId: viewModel.selectedId,
         emptyState: viewModel.emptyState,
+      }) || tableHtml;
+  } else if (viewModel.section === "environment-objects") {
+    tableHtml =
+      components.EnvironmentObjectDirectoryTable?.render({
+        environmentGroups: viewModel.environmentGroups,
+        masterCategories: viewModel.masterCategories,
+        directoryMode: viewModel.directoryMode,
+        compatibilityNotice: viewModel.compatibilityNotice,
+        emptyState: viewModel.emptyState,
+        search: state.search,
+        selectedId: viewModel.selectedId,
       }) || tableHtml;
   } else if (viewModel.section === "processes") {
     tableHtml = components.ProcessMaintenanceTable?.render({ rows: viewModel.rows, selectedId: viewModel.selectedId, emptyState: viewModel.emptyState }) || tableHtml;
@@ -11168,6 +11222,23 @@ function runCapabilityDirectoryAction(action) {
 }
 
 function maintenanceHeaderSummary(viewModel) {
+  if (viewModel.section === "environment-objects") {
+    if (viewModel.directoryMode === "master_dictionary") {
+      return [
+        { value: viewModel.summary?.totalEnvironments ?? 0, label: "信息化环境主数据", unit: "条" },
+        { value: viewModel.summary?.totalSegmentTypes ?? 0, label: "环境子类主数据", unit: "条" },
+        { value: viewModel.summary?.totalObjects ?? 0, label: "信息化对象主数据", unit: "条" },
+        { value: viewModel.summary?.totalSegmentContexts ?? 0, label: "子类上下文", unit: "条" },
+        { value: viewModel.summary?.totalObjectContexts ?? 0, label: "对象上下文", unit: "条" },
+      ];
+    }
+    return [
+      { value: viewModel.summary?.totalEnvironments ?? 0, label: "信息化环境", unit: "类" },
+      { value: viewModel.summary?.totalSegments ?? 0, label: "环境子类", unit: "类" },
+      { value: viewModel.summary?.totalObjects ?? 0, label: "信息化对象", unit: "个" },
+      { value: viewModel.summary?.totalContextRows ?? list(viewModel.rows).length, label: "目录记录", unit: "条" },
+    ];
+  }
   if (viewModel.section === "application-systems") {
     return [
       { value: viewModel.summary?.totalApplicationSystems ?? list(viewModel.rows).length, label: "应用系统", unit: "类" },
@@ -11188,6 +11259,7 @@ function maintenanceHeaderSummary(viewModel) {
   const labels = {
     "capability-directory": ["能力/关注点", "项"],
     scopes: ["作用域", "个"],
+    "environment-objects": ["环境对象目录", "条"],
     services: ["技术服务", "项"],
     modules: ["技术模块", "个"],
     measures: ["技术措施", "项"],
@@ -11754,27 +11826,105 @@ function focusMcpDialog() {
   });
 }
 
-function renderSettings() {
+function settingsScrollSnapshot() {
+  const scroller = document.querySelector("#settingsWorkspace .system-settings-scroll");
+  const page = scroller?.querySelector("[data-settings-page]")?.dataset.settingsPage || "";
+  if (!scroller || !page) return null;
+  return {
+    page,
+    top: scroller.scrollTop,
+    left: scroller.scrollLeft,
+  };
+}
+
+function restoreSettingsScroll(snapshot) {
+  if (!snapshot) return;
+  const scroller = document.querySelector("#settingsWorkspace .system-settings-scroll");
+  const page = scroller?.querySelector("[data-settings-page]")?.dataset.settingsPage || "";
+  if (!scroller || page !== snapshot.page) return;
+  scroller.scrollTop = Math.min(snapshot.top, Math.max(0, scroller.scrollHeight - scroller.clientHeight));
+  scroller.scrollLeft = Math.min(snapshot.left, Math.max(0, scroller.scrollWidth - scroller.clientWidth));
+}
+
+function preserveSettingsDetailsState(currentSection, nextSection) {
+  const openDetails = new Map();
+  currentSection.querySelectorAll("details").forEach((details, index) => {
+    const summary = details.querySelector("summary")?.textContent?.trim() || "";
+    openDetails.set(`${summary}:${index}`, details.open);
+  });
+  nextSection.querySelectorAll("details").forEach((details, index) => {
+    const summary = details.querySelector("summary")?.textContent?.trim() || "";
+    if (openDetails.get(`${summary}:${index}`)) details.open = true;
+  });
+}
+
+function syncSettingsSilently(html) {
+  const currentWorkspace = document.querySelector("#settingsWorkspace > .system-settings-workspace");
+  const currentPage = currentWorkspace?.querySelector('[data-settings-page="ai-integration"]');
+  if (!currentWorkspace || !currentPage) return false;
+  const template = document.createElement("template");
+  template.innerHTML = text(html).trim();
+  const nextWorkspace = template.content.firstElementChild;
+  const nextPage = nextWorkspace?.querySelector('[data-settings-page="ai-integration"]');
+  if (!nextWorkspace || !nextPage) return false;
+
+  const scrollSnapshot = settingsScrollSnapshot();
+  const activeElement = document.activeElement;
+  const nextSections = Array.from(nextPage.children).filter((section) => section.dataset.settingsSection);
+  const nextKeys = new Set(nextSections.map((section) => section.dataset.settingsSection));
+
+  Array.from(currentPage.children).forEach((section) => {
+    const key = section.dataset.settingsSection;
+    if (!key || nextKeys.has(key) || section.contains(activeElement)) return;
+    section.remove();
+  });
+
+  nextSections.forEach((nextSection, index) => {
+    const key = nextSection.dataset.settingsSection;
+    let currentSection = currentPage.querySelector(`:scope > [data-settings-section="${key}"]`);
+    if (currentSection) {
+      if (currentSection.isEqualNode(nextSection) || currentSection.contains(activeElement)) return;
+      preserveSettingsDetailsState(currentSection, nextSection);
+      currentSection.replaceWith(nextSection);
+      return;
+    }
+    const followingKey = nextSections
+      .slice(index + 1)
+      .map((section) => section.dataset.settingsSection)
+      .find((candidate) => currentPage.querySelector(`:scope > [data-settings-section="${candidate}"]`));
+    const followingSection = followingKey
+      ? currentPage.querySelector(`:scope > [data-settings-section="${followingKey}"]`)
+      : null;
+    currentPage.insertBefore(nextSection, followingSection);
+  });
+
+  currentWorkspace.setAttribute("aria-busy", nextWorkspace.getAttribute("aria-busy") || "false");
+  restoreSettingsScroll(scrollSnapshot);
+  return true;
+}
+
+function renderSettings({ silent = false } = {}) {
   const components = window.sapdComponents || {};
   const component = components.SystemSettings;
   if (!component?.render) {
     setHtml("settingsWorkspace", '<section class="runtime-state" role="alert">系统设置组件未加载。</section>');
     return;
   }
-  setHtml(
-    "settingsWorkspace",
-    component.render({
-      route: state.activeRoute,
-      system: state.settingsSystem || systemSettingsModel(state.settingsRuntimeHealth || {}),
-      mcp: state.mcpControlSnapshot,
-      loading: state.mcpControlLoading && !state.mcpControlSnapshot,
-      pendingAction: state.settingsPathPending || state.mcpPendingAction,
-      notice: state.mcpControlNotice,
-      confirmation: state.mcpConfirmation,
-      resetPreview: state.mcpResetPreview,
-      certificatePreview: state.mcpCertificatePreview,
-    }),
-  );
+  const html = component.render({
+    route: state.activeRoute,
+    system: state.settingsSystem || systemSettingsModel(state.settingsRuntimeHealth || {}),
+    mcp: state.mcpControlSnapshot,
+    loading: state.mcpControlLoading && !state.mcpControlSnapshot,
+    pendingAction: state.settingsPathPending || state.mcpPendingAction,
+    notice: state.mcpControlNotice,
+    confirmation: state.mcpConfirmation,
+    resetPreview: state.mcpResetPreview,
+    certificatePreview: state.mcpCertificatePreview,
+  });
+  if (silent && syncSettingsSilently(html)) return;
+  const scrollSnapshot = settingsScrollSnapshot();
+  setHtml("settingsWorkspace", html);
+  restoreSettingsScroll(scrollSnapshot);
 }
 
 function settingsPath(value) {
@@ -11940,7 +12090,7 @@ async function loadMcpControlPanel({ force = false, silent = false } = {}) {
       state.activeView === "settings"
       && (!silent || stateChanged || errorChanged)
     ) {
-      renderSettings();
+      renderSettings({ silent });
     }
   }
 }
@@ -12028,6 +12178,15 @@ async function waitForMcpCertificateOperation(operationId) {
   return snapshot;
 }
 
+function mcpCertificateFailureMessage(code) {
+  return {
+    CERTIFICATE_TRUST_CONFIRMATION_TIMEOUT: "等待 macOS 系统确认超时。请重新操作，并在 2 分钟内于系统提示中选择允许。",
+    CERTIFICATE_TRUST_USER_DENIED: "macOS 未允许写入当前用户信任。请重新操作，并在系统提示中选择允许。",
+    CERTIFICATE_TRUST_VERIFY_FAILED: "127.0.0.1 安全连接校验未通过，系统已自动回滚。",
+    SECRET_WRITE_FAILED: "证书密钥未能保存到当前用户钥匙串，系统已自动回滚。",
+  }[text(code).trim()] || "";
+}
+
 async function confirmMcpCertificateAction() {
   if (state.mcpPendingAction || !state.mcpCertificatePreview?.confirmation_id) return;
   const dataClient = window.sapdDataClient;
@@ -12067,10 +12226,15 @@ async function confirmMcpCertificateAction() {
     };
     announceAppStatus(state.mcpControlNotice.message);
   } catch (error) {
-    await loadMcpControlPanel({ force: true });
+    const refreshed = await loadMcpControlPanel({ force: true });
+    const failureMessage = mcpCertificateFailureMessage(
+      refreshed?.status?.recoverable_error?.code,
+    );
     state.mcpControlNotice = {
       tone: "error",
-      message: text(error?.message).trim() || "本机安全连接操作未完成，请按最新状态重试。",
+      message: failureMessage
+        || text(error?.message).trim()
+        || "本机安全连接操作未完成，请按最新状态重试。",
     };
   } finally {
     state.mcpPendingAction = "";
@@ -12440,7 +12604,7 @@ function bindEvents() {
     if (copyConfig) {
       event.preventDefault();
       const resource = text(copyConfig.dataset.mcpCopyConfig).trim();
-      copySettingsText(`名称：SAPD Wiki\n类型：流式 HTTP\nURL：${resource}\nBearer Token：留空\nHeaders：留空`, "Codex 配置已复制。");
+      copySettingsText(`名称：SAPD Wiki\n类型：流式 HTTP\nURL：${resource}\nBearer Token：留空\nHeaders：留空`, "MCP 连接配置已复制。");
       return;
     }
     const revokeClient = event.target?.closest?.("[data-mcp-client-revoke]");
@@ -12509,6 +12673,16 @@ function bindEvents() {
     event.stopPropagation();
     const dashboardIssueId = text(routeButton.dataset.dashboardIssueId).trim();
     const settingsAnchor = text(routeButton.dataset.settingsAnchor).trim();
+    const environmentId = text(routeButton.dataset.environmentId).trim();
+    const environmentSegmentId = text(routeButton.dataset.environmentSegmentId).trim();
+    const environmentObjectId = text(routeButton.dataset.environmentObjectId).trim();
+    if (environmentId || environmentSegmentId || environmentObjectId) {
+      state.selectedEnvironmentId = environmentId || null;
+      state.selectedEnvironmentSegmentId = environmentSegmentId || null;
+      state.selectedEnvironmentObjectId = environmentObjectId || null;
+      if (environmentId) state.expandedEnvironmentIds.add(environmentId);
+      if (environmentSegmentId) state.expandedEnvironmentIds.add(environmentSegmentId);
+    }
     if (dashboardIssueId) {
       state.workbenchIssueStatusFilter = "全部";
       state.workbenchIssuePageFilter = "全部";

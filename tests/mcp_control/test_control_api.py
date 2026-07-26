@@ -90,6 +90,7 @@ def api_snapshot() -> dict:
             "retention_bytes": 20 * 1024 * 1024,
             "event_count": 0,
             "last_event_at": None,
+            "recent_events": [],
         },
         "diagnostics": {
             "overall_state": "ready",

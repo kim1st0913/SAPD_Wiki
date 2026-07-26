@@ -90,12 +90,39 @@
       : parsed.toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit" });
   }
 
+  function auditEventPresentation(event = {}, clients = []) {
+    const eventType = text(event.event_type).trim();
+    const toolName = text(event.tool_name).trim();
+    const client = clients.find((item) => item?.client_id === event.client_id);
+    const labels = {
+      AUTHORIZATION_APPROVED: "客户端授权通过",
+      AUTHORIZATION_DENIED: "客户端授权拒绝",
+      TOKEN_ISSUED: "访问凭据签发",
+      TOKEN_REFRESHED: "访问凭据续期",
+      TOKEN_REVOKED: "访问凭据撤销",
+      CLIENT_REVOKED: "客户端授权撤销",
+      REFRESH_REUSE: "异常凭据复用",
+      TOOL_CALL: toolName ? "知识工具调用" : "知识访问",
+    };
+    const resultCode = text(event.result_code).trim();
+    return {
+      label: labels[eventType] || "本地安全事件",
+      client: client?.display_name || text(event.client_id).trim() || "本机服务",
+      detail: toolName || (eventType === "CLIENT_REVOKED" ? "该客户端已停止访问" : "未记录查询正文"),
+      result: resultCode === "OK" ? "成功" : resultCode || "已记录",
+      tone: resultCode === "OK" ? "success" : "warning",
+    };
+  }
+
   function mcpOverviewPresentation(mcp = {}) {
     const status = mcp.status || {};
     const clients = list(mcp.clients).filter((client) => client?.status !== "revoked");
     const requests = list(mcp.authorization_requests);
     const audit = mcp.audit || {};
-    const displayState = text(status.display_state).trim()
+    const reconnectState = text(status.reconnect_state).trim();
+    const displayState = ["scheduled", "recovering"].includes(reconnectState)
+      ? "recovering"
+      : text(status.display_state).trim()
       || (status.desired_state === "disabled"
         ? "disabled"
         : status.service_state === "starting"
@@ -116,15 +143,16 @@
                         ? "authorized_waiting_use"
                         : "ready_waiting_authorization");
     const displayStates = {
-      disabled: { label: "MCP 未启用", tone: "idle", message: "启动本机服务后，Codex 才能发起安全连接与客户端授权。" },
+      disabled: { label: "MCP 未启用", tone: "idle", message: "启动本机服务后，兼容的 MCP 客户端才能发起安全连接与客户端授权。" },
       starting: { label: "MCP 正在启动", tone: "warning", message: "正在建立本机 HTTPS 服务，请稍候查看连接状态。" },
       stopping: { label: "MCP 正在停止", tone: "warning", message: "服务停止后，已授权客户端将暂时无法访问。" },
+      recovering: { label: "MCP 正在自动恢复", tone: "warning", message: "检测到本机服务中断，SAPD Wiki 正在自动重新建立连接服务。" },
       recoverable_error: { label: "连接需要处理", tone: "error", message: "本机服务未正常就绪，请按页面提示检查端口、证书或 Runtime。" },
       knowledge_blocked: { label: "知识访问不可用", tone: "error", message: "连接服务可运行，但当前知识策略阻止返回内容。" },
       knowledge_degraded: { label: "知识访问受限", tone: "warning", message: "MCP 可连接，但部分基础知识库内容暂时不可用。" },
       audit_degraded: { label: "审计记录异常", tone: "warning", message: "MCP 可连接，但本地审计状态需要检查。" },
-      ready_waiting_authorization: { label: "等待客户端授权", tone: "warning", message: "服务已就绪；从 Codex 发起连接后，在此确认客户端授权。" },
-      authorized_waiting_use: { label: "已授权，等待使用", tone: "ready", message: "客户端授权已完成，可以从 Codex 开始使用 SAPD Wiki。" },
+      ready_waiting_authorization: { label: "等待客户端授权", tone: "warning", message: "服务已就绪；从 MCP 客户端发起连接后，在此确认客户端授权。" },
+      authorized_waiting_use: { label: "已授权，等待使用", tone: "ready", message: "客户端授权已完成，可以从已授权的 MCP 客户端使用 SAPD Wiki。" },
       recently_used: { label: "连接可用", tone: "ready", message: "近期已有授权客户端成功使用 SAPD Wiki。" },
     };
     const authorizationLabels = {
@@ -152,7 +180,7 @@
     return {
       display: displayStates[displayState] || displayStates.recoverable_error,
       authorization: authorizationLabels[status.authorization_state] || (clients.length ? `已授权 ${clients.length} 个` : "尚未授权"),
-      authorizationMeta: requests.length ? `${requests.length} 个请求等待处理` : clients.length ? "可逐个查看和撤销" : "等待 Codex 发起连接",
+      authorizationMeta: requests.length ? `${requests.length} 个请求等待处理` : clients.length ? "可逐个查看和撤销" : "等待 MCP 客户端发起连接",
       knowledge: knowledgeLabels[status.knowledge_state] || "状态待检查",
       knowledgeTone: status.knowledge_state === "blocked" ? "error" : status.knowledge_state === "degraded" ? "warning" : "ready",
       audit: auditLabels[status.audit_state] || "状态待检查",
@@ -162,11 +190,46 @@
     };
   }
 
-  function renderAiOverview(mcp) {
+  function diagnosticCheckLabel(checkId) {
+    return {
+      runtime: "本机运行环境",
+      sidecar_process: "MCP 本机服务",
+      loopback_tls: "本机安全连接",
+    }[text(checkId).trim()] || text(checkId).trim() || "连接检查";
+  }
+
+  function diagnosticStatusLabel(status) {
+    return {
+      pass: "通过",
+      fail: "未通过",
+      warning: "需注意",
+      unknown: "待检查",
+    }[text(status).trim()] || "待检查";
+  }
+
+  function diagnosticRecoveryLabel(action) {
+    return {
+      start_service: "请先启动 MCP 服务",
+      retry_service: "请重新启动 MCP 服务",
+      change_port: "请修改本地端口后重试",
+    }[text(action).trim()] || (action ? "请按页面提示处理后重试" : "无需操作");
+  }
+
+  function renderAiOverview(mcp, pendingAction) {
     const overview = mcpOverviewPresentation(mcp);
     const serviceState = text(mcp.status?.service_state || mcp.service_state);
+    const diagnostics = mcp.diagnostics || {};
+    const checks = list(diagnostics.checks);
+    const diagnosticState = text(diagnostics.overall_state).trim() || "unknown";
+    const diagnosticTone = diagnosticState === "ready" ? "ready" : diagnosticState === "blocked" ? "error" : "idle";
+    const diagnosticLabel = diagnosticState === "ready" ? "连接正常" : diagnosticState === "blocked" ? "连接受阻" : "尚未检查";
+    const passedChecks = checks.filter((check) => check.status === "pass").length;
+    const diagnosticMeta = diagnostics.last_checked_at
+      ? `最近检查：${formatDateTime(diagnostics.last_checked_at)} · ${passedChecks}/${checks.length} 项通过`
+      : "验证服务、安全连接和客户端访问";
+    const diagnosticDisabled = Boolean(pendingAction) || mcp.settings?.control_capabilities?.diagnostic_check === false;
     return `
-      <section class="system-settings-panel system-settings-ai-overview" aria-labelledby="aiOverviewTitle">
+      <section class="system-settings-panel system-settings-ai-overview" data-settings-section="overview" aria-labelledby="aiOverviewTitle">
         <header class="system-settings-panel-heading">
           <div>
             <span>AI CONNECTION OVERVIEW</span>
@@ -176,35 +239,42 @@
           <b class="system-settings-state is-${escapeHtml(overview.display.tone)}">${escapeHtml(overview.display.label)}</b>
         </header>
         <dl class="system-settings-overview-grid">
-          <div><dt>本机服务</dt><dd>${escapeHtml(statusLabel(serviceState))}</dd><small>仅监听 127.0.0.1</small></div>
-          <div><dt>客户端授权</dt><dd>${escapeHtml(overview.authorization)}</dd><small>${escapeHtml(overview.authorizationMeta)}</small></div>
-          <div><dt>知识访问</dt><dd class="is-${escapeHtml(overview.knowledgeTone)}">${escapeHtml(overview.knowledge)}</dd><small>基础知识库全部业务内容（只读）</small></div>
-          <div><dt>隐私审计</dt><dd>${escapeHtml(overview.audit)}</dd><small>${escapeHtml(overview.auditMeta)}</small></div>
-          <div><dt>最近使用</dt><dd>${escapeHtml(overview.activity)}</dd><small>${escapeHtml(overview.activityMeta)}</small></div>
-        </dl>
-      </section>
-    `;
-  }
-
-  function renderDataAccess(mcp) {
-    const overview = mcpOverviewPresentation(mcp);
-    return `
-      <section class="system-settings-panel system-settings-data-access" aria-labelledby="aiDataAccessTitle">
-        <header class="system-settings-panel-heading">
-          <div>
-            <span>DATA ACCESS</span>
-            <h2 id="aiDataAccessTitle">数据访问范围</h2>
-            <p>明确 Codex 可以读取什么，以及始终不会暴露什么。</p>
+          <div class="system-settings-overview-service"><dt>本机服务</dt><dd>${escapeHtml(statusLabel(serviceState))}</dd><small>仅监听 127.0.0.1</small></div>
+          <div class="system-settings-overview-authorization"><dt>客户端授权</dt><dd>${escapeHtml(overview.authorization)}</dd><small>${escapeHtml(overview.authorizationMeta)}</small></div>
+          <div class="system-settings-overview-diagnostic">
+            <dt>连接检查</dt>
+            <dd class="is-${escapeHtml(diagnosticTone)}">${escapeHtml(diagnosticLabel)}</dd>
+            <small>${escapeHtml(diagnosticMeta)}</small>
+            <button type="button" data-mcp-settings-action="check" ${diagnosticDisabled ? "disabled" : ""}>${diagnostics.last_checked_at ? "重新检查" : "立即检查"}</button>
+            ${checks.length ? `
+              <div class="system-settings-overview-diagnostics" role="list" aria-label="连接检查结果">
+                ${checks.map((check) => `
+                  <div role="listitem">
+                    <span>
+                      <strong>${escapeHtml(check.label || diagnosticCheckLabel(check.check_id))}</strong>
+                      <small>${escapeHtml(diagnosticRecoveryLabel(check.recovery_action))}</small>
+                    </span>
+                    <b class="is-${escapeHtml(check.status === "pass" ? "ready" : check.status === "fail" ? "error" : "idle")}">${escapeHtml(diagnosticStatusLabel(check.status))}</b>
+                  </div>
+                `).join("")}
+              </div>
+            ` : ""}
           </div>
-          <b class="system-settings-state is-${escapeHtml(overview.knowledgeTone)}">${escapeHtml(overview.knowledge)}</b>
-        </header>
-        <dl class="system-settings-data-access-list">
-          <div><dt>当前开放</dt><dd>基础知识库全部业务内容，包括完整标准正文</dd></div>
-          <div><dt>访问方式</dt><dd>5 个只读知识工具</dd></div>
-          <div><dt>网络边界</dt><dd>仅本机回环 HTTPS</dd></div>
-          <div><dt>明确排除</dt><dd>用户数据、源文件本体、本地路径、系统配置与凭据、日志和非受控 SQL</dd></div>
+          <div class="system-settings-overview-knowledge">
+            <dt id="aiKnowledgeAccessTitle">知识访问</dt>
+            <dd class="system-settings-overview-knowledge-content">
+              <strong class="system-settings-overview-knowledge-state is-${escapeHtml(overview.knowledgeTone)}">${escapeHtml(overview.knowledge)}</strong>
+              <small>基础知识库全部业务内容（只读）</small>
+              <dl class="system-settings-overview-knowledge-list">
+                <div><dt>当前开放</dt><dd>基础知识库全部业务内容，包括完整标准正文</dd></div>
+                <div><dt>访问方式</dt><dd>5 个只读知识工具</dd></div>
+                <div><dt>网络边界</dt><dd>仅本机回环 HTTPS</dd></div>
+                <div><dt>明确排除</dt><dd>用户数据、源文件本体、本地路径、系统配置与凭据、日志和非受控 SQL</dd></div>
+              </dl>
+              <p>AI 可以检索和使用基础知识库中的全部知识内容。知识内容仅用于查询、分析和引用，不能改变系统权限或指挥系统执行操作。</p>
+            </dd>
+          </div>
         </dl>
-        <p class="system-settings-data-trust">AI 可以检索和使用基础知识库中的全部知识内容。知识内容仅用于查询、分析和引用，不能改变系统权限或指挥系统执行操作。</p>
       </section>
     `;
   }
@@ -292,7 +362,6 @@
           <div><dt>连接对象</dt><dd>${escapeHtml(certificate.subject || "127.0.0.1")}</dd></div>
           <div><dt>信任范围</dt><dd>当前用户</dd></div>
           <div><dt>有效期至</dt><dd>${escapeHtml(formatDate(certificate.valid_until))}</dd></div>
-          <div><dt>剩余时间</dt><dd>${certificate.remaining_days != null && Number.isInteger(Number(certificate.remaining_days)) ? `${escapeHtml(Number(certificate.remaining_days))} 天` : "尚未生成"}</dd></div>
           <div><dt>证书存储</dt><dd>应用私有安全目录（不可修改）</dd></div>
         </dl>
         ${isFakeTrust ? '<p class="system-settings-callout is-warning">当前为 Web 隔离验证，不会修改 macOS 或 Windows 系统信任库。进入真实客户端验证前，需另行启用当前用户平台集成。</p>' : ""}
@@ -330,9 +399,33 @@
   function trustState(value) {
     const verified = text(value).trim() === "verified";
     return {
-      label: verified ? "已验证" : "未验证",
+      label: verified ? "发布方已验证" : "发布方未验证",
       tone: verified ? "verified" : "unverified",
     };
+  }
+
+  function compactIdentifier(value) {
+    const normalized = text(value).trim();
+    return normalized.length > 20
+      ? `${normalized.slice(0, 8)}…${normalized.slice(-4)}`
+      : normalized || "/";
+  }
+
+  function renderAuthorizationAttention(mcp) {
+    const requests = list(mcp.authorization_requests);
+    if (!requests.length) return "";
+    const nextRequest = requests[0] || {};
+    const clientName = text(nextRequest.client_name || nextRequest.client_id).trim() || "AI 客户端";
+    return `
+      <aside class="system-settings-authorization-attention" data-settings-section="authorization-attention" role="alert" aria-labelledby="aiAuthorizationAttentionTitle">
+        <div>
+          <span>需要您的确认</span>
+          <strong id="aiAuthorizationAttentionTitle">${escapeHtml(clientName)} 正在请求只读访问基础知识库</strong>
+          <small>${requests.length > 1 ? `共 ${requests.length} 个请求等待处理；` : ""}请在 ${escapeHtml(formatDateTime(nextRequest.expires_at))} 前允许或拒绝。授权成功后，浏览器会显示 “Authentication complete”。</small>
+        </div>
+        <a href="#aiAuthorizationPanel">查看授权请求</a>
+      </aside>
+    `;
   }
 
   function renderAuthorizationRequests(mcp, pendingAction) {
@@ -341,7 +434,7 @@
     const capabilities = mcp.settings?.control_capabilities || {};
     const decisionDisabled = Boolean(pendingAction) || capabilities.authorization_decision === false;
     return `
-      <section class="system-settings-panel" aria-labelledby="aiAuthorizationTitle">
+      <section id="aiAuthorizationPanel" class="system-settings-panel" data-settings-section="authorization-requests" aria-labelledby="aiAuthorizationTitle" tabindex="-1">
         <header class="system-settings-panel-heading">
           <div>
             <span>AUTHORIZATION REQUESTS</span>
@@ -355,24 +448,33 @@
             return `
               <article data-mcp-authorization-request="${escapeHtml(request.request_id)}">
                 <div class="system-settings-authorization-heading">
-                  <strong>${escapeHtml(request.client_name || request.client_id)}</strong>
-                  <span class="system-settings-authorization-summary">
-                    <b class="system-settings-trust is-${escapeHtml(trust.tone)}">${escapeHtml(trust.label)}</b>
-                    <span>队列 ${index + 1} / ${requests.length}</span>
-                  </span>
+                  <div>
+                    <span>请求 ${index + 1} / ${requests.length}</span>
+                    <strong>${escapeHtml(request.client_name || request.client_id)}</strong>
+                    <p>申请使用 5 个只读知识工具查询基础知识库；不会获得用户数据、文件路径、系统配置或数据库直连权限。</p>
+                  </div>
+                  <b class="system-settings-trust is-${escapeHtml(trust.tone)}">${escapeHtml(trust.label)}</b>
                 </div>
-                <dl class="system-settings-authorization-grid">
-                  <div><dt>Client ID</dt><dd class="system-settings-code">${escapeHtml(request.client_id)}</dd></div>
-                  <div><dt>Redirect URI</dt><dd class="system-settings-code">${escapeHtml(request.redirect_uri)}</dd></div>
-                  <div><dt>Scope</dt><dd>${list(request.scopes).map((scope) => `<code>${escapeHtml(scope)}</code>`).join(" ") || "/"}</dd></div>
-                  <div><dt>Resource</dt><dd class="system-settings-code">${escapeHtml(request.resource)}</dd></div>
-                  <div><dt>数据策略</dt><dd>${escapeHtml(request.policy_version || "/")}</dd></div>
-                  <div><dt>到期时间</dt><dd>${escapeHtml(formatDateTime(request.expires_at))}</dd></div>
-                </dl>
-                <div class="system-settings-actions">
-                  <button class="is-primary" type="button" data-mcp-authorization-action="allow" data-mcp-authorization-request-id="${escapeHtml(request.request_id)}" ${decisionDisabled ? "disabled" : ""}>允许</button>
-                  <button type="button" data-mcp-authorization-action="deny" data-mcp-authorization-request-id="${escapeHtml(request.request_id)}" ${decisionDisabled ? "disabled" : ""}>拒绝</button>
+                <div class="system-settings-authorization-decision">
+                  <dl>
+                    <div><dt>请求权限</dt><dd>只读访问基础知识库</dd></div>
+                    <div><dt>有效时间</dt><dd>${escapeHtml(formatDateTime(request.expires_at))} 前</dd></div>
+                  </dl>
+                  <div class="system-settings-actions">
+                    <button class="is-primary" type="button" data-mcp-authorization-action="allow" data-mcp-authorization-request-id="${escapeHtml(request.request_id)}" ${decisionDisabled ? "disabled" : ""}>允许只读访问</button>
+                    <button type="button" data-mcp-authorization-action="deny" data-mcp-authorization-request-id="${escapeHtml(request.request_id)}" ${decisionDisabled ? "disabled" : ""}>拒绝</button>
+                  </div>
                 </div>
+                <details class="system-settings-authorization-details">
+                  <summary>查看技术信息</summary>
+                  <dl class="system-settings-authorization-grid">
+                    <div><dt>Client ID</dt><dd class="system-settings-code">${escapeHtml(request.client_id)}</dd></div>
+                    <div><dt>Redirect URI</dt><dd class="system-settings-code">${escapeHtml(request.redirect_uri)}</dd></div>
+                    <div><dt>Scope</dt><dd>${list(request.scopes).map((scope) => `<code>${escapeHtml(scope)}</code>`).join(" ") || "/"}</dd></div>
+                    <div><dt>Resource</dt><dd class="system-settings-code">${escapeHtml(request.resource)}</dd></div>
+                    <div><dt>数据策略</dt><dd>${escapeHtml(request.policy_version || "/")}</dd></div>
+                  </dl>
+                </details>
               </article>
             `;
           }).join("")}
@@ -382,35 +484,64 @@
   }
 
   function renderClients(mcp, pendingAction) {
-    const clients = list(mcp.clients);
+    const clients = list(mcp.clients).filter((client) => client?.status !== "revoked");
     const capabilities = mcp.settings?.control_capabilities || {};
     const revokeDisabled = Boolean(pendingAction) || capabilities.client_revocation === false;
     return `
-      <section class="system-settings-panel" aria-labelledby="aiClientsTitle">
+      <section id="aiClientsPanel" class="system-settings-panel" data-settings-section="clients" aria-labelledby="aiClientsTitle" tabindex="-1">
         <header class="system-settings-panel-heading">
           <div>
             <span>AUTHORIZED CLIENTS</span>
             <h2 id="aiClientsTitle">客户端授权</h2>
+            <p>查看已获准访问的 MCP 客户端、只读范围和最近使用情况。</p>
           </div>
           <b class="system-settings-state">${clients.length ? `已授权 ${clients.length} 个` : "未授权"}</b>
         </header>
         ${clients.length
-          ? `<div class="system-settings-table-scroll" tabindex="0" aria-label="已授权客户端表格，可横向滚动">
-              <table class="system-settings-table">
-                <thead><tr><th>客户端</th><th>信任</th><th>授权范围</th><th>授权时间</th><th>最近使用</th><th>操作</th></tr></thead>
-                <tbody>${clients.map((client) => `
-                  <tr>
-                    <td><strong>${escapeHtml(client.display_name || client.client_id)}</strong><small class="system-settings-code">${escapeHtml(client.client_id)}</small></td>
-                    <td><span class="system-settings-trust is-${escapeHtml(trustState(client.trust_state).tone)}">${escapeHtml(trustState(client.trust_state).label)}</span></td>
-                    <td>${list(client.scopes).map((scope) => `<code>${escapeHtml(scope)}</code>`).join(" ") || "/"}</td>
-                    <td>${escapeHtml(formatDateTime(client.authorized_at))}</td>
-                    <td>${escapeHtml(formatDateTime(client.last_used_at))}</td>
-                    <td><button type="button" data-mcp-request-confirmation="revoke" data-mcp-client-id="${escapeHtml(client.client_id)}" data-mcp-client-label="${escapeHtml(client.display_name || client.client_id)}" ${revokeDisabled ? "disabled" : ""}>撤销授权</button></td>
-                  </tr>
-                `).join("")}</tbody>
-              </table>
+          ? `<div class="system-settings-client-table" role="table" aria-label="已授权客户端">
+              <div class="system-settings-client-table-head" role="row">
+                <span role="columnheader">客户端</span>
+                <span role="columnheader">访问范围</span>
+                <span role="columnheader">使用记录</span>
+                <span role="columnheader">操作</span>
+              </div>
+              <div class="system-settings-client-list" role="rowgroup">
+              ${clients.map((client) => {
+                const trust = trustState(client.trust_state);
+                const clientLabel = client.display_name || client.client_id;
+                return `
+                  <article role="row">
+                    <div class="system-settings-client-identity" role="cell">
+                      <strong>${escapeHtml(clientLabel)}</strong>
+                      <span class="system-settings-trust is-${escapeHtml(trust.tone)}">${escapeHtml(trust.label)}</span>
+                      <small class="system-settings-code" title="${escapeHtml(client.client_id)}">Client ID ${escapeHtml(compactIdentifier(client.client_id))}</small>
+                    </div>
+                    <div class="system-settings-client-access" role="cell">
+                      <strong>基础知识库（只读）</strong>
+                      <small>${list(client.scopes).map((scope) => `<code>${escapeHtml(scope)}</code>`).join(" ") || "/"}</small>
+                    </div>
+                    <dl class="system-settings-client-activity" role="cell">
+                      <div><dt>最近使用</dt><dd>${escapeHtml(formatDateTime(client.last_used_at))}</dd></div>
+                      <div><dt>授权时间</dt><dd>${escapeHtml(formatDateTime(client.authorized_at))}</dd></div>
+                    </dl>
+                    <button class="system-settings-revoke-button" type="button" data-mcp-request-confirmation="revoke" data-mcp-client-id="${escapeHtml(client.client_id)}" data-mcp-client-label="${escapeHtml(clientLabel)}" aria-label="撤销 ${escapeHtml(clientLabel)} 的授权" title="撤销客户端授权" ${revokeDisabled ? "disabled" : ""}>撤销授权</button>
+                  </article>
+                `;
+              }).join("")}
+              </div>
+              <p class="system-settings-client-trust-note">“发布方未验证”表示该客户端通过动态注册发起连接，不代表 HTTPS 连接不安全。授权前请核对客户端名称和只读范围。</p>
             </div>`
-          : '<div class="system-settings-empty"><strong>暂无已授权客户端</strong><span>完成客户端连接和授权后会在这里显示。</span></div>'}
+          : `<div class="system-settings-client-empty">
+              <div>
+                <strong>尚未连接 MCP 客户端</strong>
+                <span>客户端完成首次连接并经您确认后，会在这里显示。</span>
+              </div>
+              <ol aria-label="客户端授权步骤">
+                <li><b>1</b><span>启动 MCP 服务</span></li>
+                <li><b>2</b><span>复制连接配置并添加到客户端</span></li>
+                <li><b>3</b><span>返回本页确认授权请求</span></li>
+              </ol>
+            </div>`}
       </section>
     `;
   }
@@ -418,10 +549,12 @@
   function renderAudit(mcp, pendingAction) {
     const audit = mcp.audit || {};
     const eventCount = Number.isInteger(Number(audit.event_count)) ? Number(audit.event_count) : 0;
+    const recentEvents = list(audit.recent_events).slice(0, 3);
+    const clients = list(mcp.clients);
     const capabilities = mcp.settings?.control_capabilities || {};
     const clearDisabled = Boolean(pendingAction) || capabilities.audit_clear === false || eventCount === 0;
     return `
-      <section class="system-settings-panel" aria-labelledby="aiAuditTitle">
+      <section class="system-settings-panel" data-settings-section="audit" aria-labelledby="aiAuditTitle">
         <header class="system-settings-panel-heading">
           <div>
             <span>PRIVACY &amp; AUDIT</span>
@@ -434,6 +567,25 @@
           <div><dt>最近事件</dt><dd>${escapeHtml(formatDateTime(audit.last_event_at))}</dd></div>
           <div><dt>保留时间</dt><dd>${escapeHtml(Number(audit.retention_days) || 0)} 天</dd></div>
         </dl>
+        <div class="system-settings-audit-events" aria-label="最近审计事件">
+          <div class="system-settings-audit-events-heading">
+            <strong>最近记录</strong>
+            <span>默认显示最近 ${Math.min(recentEvents.length, 3)} 条</span>
+          </div>
+          ${recentEvents.length
+            ? `<ol>${recentEvents.map((event) => {
+                const view = auditEventPresentation(event, clients);
+                return `<li>
+                  <time datetime="${escapeHtml(event.occurred_at)}">${escapeHtml(formatDateTime(event.occurred_at))}</time>
+                  <span class="system-settings-audit-event-copy">
+                    <strong>${escapeHtml(view.label)}</strong>
+                    <small>${escapeHtml(view.client)} · ${escapeHtml(view.detail)}</small>
+                  </span>
+                  <b class="system-settings-audit-result is-${escapeHtml(view.tone)}">${escapeHtml(view.result)}</b>
+                </li>`;
+              }).join("")}</ol>`
+            : '<div class="system-settings-audit-empty">暂无审计记录。客户端完成授权或调用知识工具后，将在这里显示操作时间、对象和结果。</div>'}
+        </div>
         <p class="system-settings-panel-note">仅保留脱敏的本地操作元数据，不记录查询正文或知识正文。</p>
         <div class="system-settings-actions">
           <button type="button" data-mcp-request-confirmation="clear-audit" ${clearDisabled ? "disabled" : ""}>清除审计记录</button>
@@ -442,28 +594,18 @@
     `;
   }
 
-  function renderDiagnostics(mcp, pendingAction) {
-    const diagnostics = mcp.diagnostics || {};
-    const checks = list(diagnostics.checks);
+  function renderMaintenance(mcp, pendingAction) {
     const capabilities = mcp.settings?.control_capabilities || {};
     const resetDisabled = Boolean(pendingAction) || capabilities.web_reset_confirmation === false;
     return `
-      <section class="system-settings-panel" aria-labelledby="aiDiagnosticsTitle">
-        <header class="system-settings-panel-heading">
-          <div>
-            <span>DIAGNOSTICS</span>
-            <h2 id="aiDiagnosticsTitle">连接检查</h2>
-          </div>
-          <b class="system-settings-state">${escapeHtml(diagnostics.overall_state === "ready" ? "正常" : diagnostics.overall_state === "blocked" ? "阻断" : "待检查")}</b>
-        </header>
-        <div class="system-settings-diagnostics">
-          ${checks.length ? checks.map((check) => `
-            <div><span><strong>${escapeHtml(check.label || check.check_id)}</strong><small>${escapeHtml(check.recovery_action || "无需操作")}</small></span><b>${escapeHtml(check.status || "unknown")}</b></div>
-          `).join("") : '<div class="system-settings-empty"><strong>尚无诊断结果</strong><span>点击“检查服务”后显示本地连接结果。</span></div>'}
+      <section class="system-settings-maintenance" data-settings-section="maintenance" aria-labelledby="aiMaintenanceTitle">
+        <div>
+          <span>MAINTENANCE</span>
+          <h2 id="aiMaintenanceTitle">维护操作</h2>
+          <p>仅在需要重新建立本机证书、客户端授权和本地凭据时使用；License、知识库与用户数据不受影响。</p>
         </div>
-        <div class="system-settings-actions system-settings-reset-actions">
-          <button type="button" data-mcp-action="prepare-reset" ${resetDisabled ? "disabled" : ""}>重置 AI 集成</button>
-          <small>只重置 MCP 证书、客户端授权和本地凭据；License、知识库与用户数据不受影响。</small>
+        <div class="system-settings-actions">
+          <button class="is-danger" type="button" data-mcp-action="prepare-reset" ${resetDisabled ? "disabled" : ""}>重置 AI 集成</button>
         </div>
       </section>
     `;
@@ -535,6 +677,15 @@
     }[text(effect).trim()] || "更新一项本机安全连接配置";
   }
 
+  function certificateFailureMessage(code) {
+    return {
+      CERTIFICATE_TRUST_CONFIRMATION_TIMEOUT: "等待 macOS 系统确认超时。请重新操作，并在 2 分钟内于系统提示中选择允许。",
+      CERTIFICATE_TRUST_USER_DENIED: "macOS 未允许写入当前用户信任。请重新操作，并在系统提示中选择允许。",
+      CERTIFICATE_TRUST_VERIFY_FAILED: "证书已写入，但 127.0.0.1 安全连接校验未通过；系统已自动回滚。",
+      SECRET_WRITE_FAILED: "证书密钥未能保存到当前用户钥匙串；系统已自动回滚。",
+    }[text(code).trim()] || "";
+  }
+
   function renderCertificatePreview(preview, certificate = {}) {
     if (!preview) return "";
     const action = text(preview.action).trim();
@@ -559,7 +710,7 @@
           </ul>
           <p>${certificate.trust_backend === "fake_current_user_trust"
             ? "当前为 Web 隔离验证，不会修改真实系统证书库。"
-            : "确认后将修改当前用户的本机信任设置；系统可能要求你再次确认。不会写入系统级或其他用户证书库。"}</p>
+            : "确认后将修改当前用户的本机信任设置；macOS 可能弹出系统确认，请在 2 分钟内选择允许。不会写入系统级或其他用户证书库。"}</p>
           <div class="system-settings-actions">
             <button type="button" data-mcp-action="close-certificate-preview" autofocus>取消</button>
             <button class="is-primary" type="button" data-mcp-action="confirm-certificate">${escapeHtml(button)}</button>
@@ -582,20 +733,21 @@
     const portLocked = !["stopped", "error"].includes(serviceState)
       || Boolean(model.pendingAction)
       || capabilities.port_configuration === false;
-    const diagnosticDisabled = Boolean(model.pendingAction) || capabilities.diagnostic_check === false;
     const canonicalResource = text(settings.canonical_resource || mcp.canonical_resource);
     const configuredPort = Number(settings.configured_port || mcp.configured_port) || "";
     const serviceAction = running ? "stop" : errorState ? "retry" : "start";
     return `
       <div class="system-settings-ai" data-settings-page="ai-integration">
-        ${renderAiOverview(mcp)}
-        <div class="system-settings-ai-primary">
+        ${renderAiOverview(mcp, model.pendingAction)}
+        ${renderAuthorizationAttention(mcp)}
+        ${renderAuthorizationRequests(mcp, model.pendingAction)}
+        <div class="system-settings-ai-connection-grid" data-settings-section="connection">
           <section class="system-settings-panel system-settings-runtime-panel" aria-labelledby="aiRuntimeTitle">
             <header class="system-settings-panel-heading">
               <div>
                 <span>LOCAL RUNTIME</span>
-                <h2 id="aiRuntimeTitle">服务与 Codex 连接</h2>
-                <p>配置本机端口，并复制 Codex 所需的连接信息。</p>
+                <h2 id="aiRuntimeTitle">MCP 连接配置</h2>
+                <p>配置本机端口，并复制 MCP 客户端所需的连接信息。</p>
               </div>
               <b class="system-settings-state is-${escapeHtml(running ? "ready" : errorState ? "error" : "idle")}">${escapeHtml(statusLabel(serviceState))}</b>
             </header>
@@ -611,23 +763,31 @@
                   <small id="mcpConfiguredPortHint">${running || transitioning ? "请先停止 MCP，再修改端口。" : errorState ? "可修改端口后重新启动；5173 为稳定页面保留端口。" : "可设置 1024–65535，5173 不可用。"}</small>
                 </dd>
               </div>
-              <div><dt>服务地址</dt><dd class="system-settings-code">${escapeHtml(canonicalResource || "/")}</dd><small>供 Codex 本机连接使用</small></div>
+              <div><dt>服务地址</dt><dd class="system-settings-code">${escapeHtml(canonicalResource || "/")}</dd><small>供本机 MCP 客户端连接使用</small></div>
             </dl>
-            ${status.recoverable_error ? `<p class="system-settings-callout is-warning">${escapeHtml(status.recoverable_error.recovery_action === "change_port" ? "当前端口被占用，请修改端口后重新启动；主 Web 页面不受影响。" : "本地 MCP 启动失败，可检查 Runtime 后重试；主 Web 页面不受影响。")}</p>` : ""}
-            <div class="system-settings-actions system-settings-runtime-actions">
-              <button class="is-primary" type="button" data-mcp-settings-action="${escapeHtml(serviceAction)}" ${serviceDisabled ? "disabled" : ""}>${escapeHtml(model.pendingAction || transitioning ? "处理中…" : serviceAction === "stop" ? "停止 MCP" : serviceAction === "retry" ? "重试启动" : "启动 MCP")}</button>
-              <button type="button" data-mcp-copy-config="${escapeHtml(canonicalResource)}" ${canonicalResource ? "" : "disabled"}>复制 Codex 配置</button>
-              <button type="button" data-mcp-copy-url="${escapeHtml(canonicalResource)}" ${canonicalResource ? "" : "disabled"}>复制 MCP 地址</button>
-              <button type="button" data-mcp-settings-action="check" ${diagnosticDisabled ? "disabled" : ""}>检查服务</button>
+            ${settings.auto_restore ? `<p class="system-settings-callout">${status.desired_state === "enabled"
+              ? "已开启自动恢复：重启 SAPD Wiki 后会自动启动 MCP；服务异常中断时会自动重试，已授权客户端无需重新批准。"
+              : "当前已手动停止 MCP；下次启动 SAPD Wiki 时不会自动启动。再次点击“启动 MCP”后会恢复自动启动与断线恢复。"
+            }</p>` : ""}
+            ${status.recoverable_error ? `<p class="system-settings-callout is-warning">${escapeHtml(
+              status.recoverable_error.recovery_action === "change_port"
+                ? "当前端口被占用，请修改端口后重新启动；主 Web 页面不受影响。"
+                : certificateFailureMessage(status.recoverable_error.code)
+                  || "本地 MCP 启动失败，可检查 Runtime 后重试；主 Web 页面不受影响。",
+            )}</p>` : ""}
+            <div class="system-settings-runtime-footer">
+              <div class="system-settings-actions system-settings-runtime-actions">
+                <button class="is-primary" type="button" data-mcp-settings-action="${escapeHtml(serviceAction)}" ${serviceDisabled ? "disabled" : ""}>${escapeHtml(model.pendingAction || transitioning ? "处理中…" : serviceAction === "stop" ? "停止 MCP" : serviceAction === "retry" ? "重试启动" : "启动 MCP")}</button>
+                <button type="button" data-mcp-copy-config="${escapeHtml(canonicalResource)}" ${canonicalResource ? "" : "disabled"}>复制连接配置</button>
+                <button type="button" data-mcp-copy-url="${escapeHtml(canonicalResource)}" ${canonicalResource ? "" : "disabled"}>复制 MCP 地址</button>
+              </div>
             </div>
           </section>
-          ${renderDataAccess(mcp)}
+          ${renderCertificate(mcp, model.pendingAction)}
         </div>
-        ${renderCertificate(mcp, model.pendingAction)}
-        ${renderAuthorizationRequests(mcp, model.pendingAction)}
         ${renderClients(mcp, model.pendingAction)}
         ${renderAudit(mcp, model.pendingAction)}
-        ${renderDiagnostics(mcp, model.pendingAction)}
+        ${renderMaintenance(mcp, model.pendingAction)}
       </div>
     `;
   }

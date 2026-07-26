@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shlex
 import tempfile
 import unittest
 from pathlib import Path
@@ -24,6 +25,12 @@ class FakeKeychainRunner:
     ) -> KeychainCommandResult:
         self.calls.append((argv, input_bytes))
         action = argv[1]
+        if action == "-i":
+            command = shlex.split((input_bytes or b"").decode("utf-8"))
+            if command[0] != "add-generic-password":
+                raise AssertionError(command[0])
+            self.value = command[command.index("-w") + 1].encode("ascii")
+            return KeychainCommandResult(0, b"", b"")
         if action == "add-generic-password":
             self.value = (input_bytes or b"").rstrip(b"\r\n")
             return KeychainCommandResult(0, b"", b"")
@@ -60,8 +67,13 @@ class WebDevKeychainTests(unittest.TestCase):
         self.provider.put_secret(self.reference, secret)
         argv, input_bytes = self.runner.calls[-1]
         self.assertNotIn(secret.decode("ascii"), argv)
-        self.assertEqual(argv[-1], "-w")
-        self.assertEqual(input_bytes, secret + b"\n")
+        self.assertEqual(argv, ("/usr/bin/security", "-i"))
+        command = shlex.split((input_bytes or b"").decode("utf-8"))
+        self.assertEqual(command[0], "add-generic-password")
+        self.assertEqual(command[command.index("-a") + 1], self.reference)
+        self.assertEqual(command[command.index("-s") + 1], self.provider.service)
+        self.assertEqual(command[command.index("-w") + 1], secret.decode("ascii"))
+        self.assertEqual(command[-1], str(self.provider.login_keychain))
         self.assertEqual(self.provider.get_secret(self.reference), secret)
         self.provider.delete_secret(self.reference)
         self.assertIsNone(self.provider.get_secret(self.reference))

@@ -1,0 +1,272 @@
+{
+  "schema_version": "environment-segment-type-adjudication-p2-v1",
+  "plan_id": "PLAN-ENV-MD",
+  "phase": "P2",
+  "status": "frozen",
+  "source_p1_run_id": "p1-20260725T154921Z",
+  "formal_apply_authorized": false,
+  "decision_policy": {
+    "same_title_across_environments": "reuse_one_environment_segment_type_when_definition_is_shared",
+    "different_title_merge": "forbidden_without_explicit_semantic_evidence",
+    "unresolved_decision": "stop_and_review",
+    "runtime_title_inference": false
+  },
+  "entries": [
+    {
+      "code": "ES-001",
+      "planned_id": "8001f076-4b9f-462f-9a3a-07bc47c807ce",
+      "stable_key": "environment_segment_type:ES-001",
+      "stable_ref": "base:environment_segment_type:environment_segment_type:ES-001",
+      "public_id": "ki_8abc85dcde9bcda5",
+      "canonical_title": "互联网边界",
+      "aliases": [],
+      "definition": "信息化环境与互联网连接处形成的网络边界，承载互联网入口与出口流量的安全控制。",
+      "decision": "create",
+      "decision_note": "现有唯一标题组，定义与互联网连接边界场景一致。",
+      "context_segment_refs": [
+        "base:environment_segment:environment_segment:hash:dcf71cf9687266fd"
+      ]
+    },
+    {
+      "code": "ES-002",
+      "planned_id": "51924632-0af9-417e-9f46-d60615777ca9",
+      "stable_key": "environment_segment_type:ES-002",
+      "stable_ref": "base:environment_segment_type:environment_segment_type:ES-002",
+      "public_id": "ki_7ed5b9c4820430db",
+      "canonical_title": "外联网边界",
+      "aliases": [],
+      "definition": "信息化环境与外联网络连接处形成的网络边界，承载外联网出口等访问路径的安全控制。",
+      "decision": "create",
+      "decision_note": "现有唯一标题组，区别于互联网边界和企业内部跨网边界。",
+      "context_segment_refs": [
+        "base:environment_segment:environment_segment:hash:aa4270647280f931"
+      ]
+    },
+    {
+      "code": "ES-003",
+      "planned_id": "76ffb530-08df-4d7c-a938-cb3aa0bfef26",
+      "stable_key": "environment_segment_type:ES-003",
+      "stable_ref": "base:environment_segment_type:environment_segment_type:ES-003",
+      "public_id": "ki_10378daa8da8c449",
+      "canonical_title": "企业内跨网边界",
+      "aliases": [],
+      "definition": "企业内部不同网络区域之间的连接边界，用于表达跨网通信和隔离控制场景。",
+      "decision": "create",
+      "decision_note": "现有唯一标题组，业务范围为企业内部跨网通信。",
+      "context_segment_refs": [
+        "base:environment_segment:environment_segment:hash:bdc6f614fd095ef4"
+      ]
+    },
+    {
+      "code": "ES-004",
+      "planned_id": "84b14f1f-fc56-4281-ab39-123b2bb649e0",
+      "stable_key": "environment_segment_type:ES-004",
+      "stable_ref": "base:environment_segment_type:environment_segment_type:ES-004",
+      "public_id": "ki_9a6c3bac8fc84c42",
+      "canonical_title": "网络",
+      "aliases": [],
+      "definition": "在特定信息化环境内承载节点连接、内部通信以及出入口连接的网络基础设施集合。",
+      "decision": "create",
+      "decision_note": "5个环境上下文共享同一网络基础设施语义，保留各自上下文身份并复用一个类型。",
+      "context_segment_refs": [
+        "base:environment_segment:environment_segment:hash:a05110fefbc9fc4b",
+        "base:environment_segment:environment_segment:hash:ac02e5af2d65046c",
+        "base:environment_segment:environment_segment:hash:c536aa2fd4a01a9b",
+        "base:environment_segment:environment_segment:hash:e65ce69aa2b8b9ee",
+        "base:environment_segment:environment_segment:hash:f7bfe1e66e719a67"
+      ]
+    },
+    {
+      "code": "ES-005",
+      "planned_id": "98cf8388-76fc-4d63-a650-2c86b7a63c8c",
+      "stable_key": "environment_segment_type:ES-005",
+      "stable_ref": "base:environment_segment_type:environment_segment_type:ES-005",
+      "public_id": "ki_98a751f0c5f5495a",
+      "canonical_title": "工作负载",
+      "aliases": [],
+      "definition": "运行在数据中心环境中的计算执行载体，包括物理主机、虚拟主机、容器及其操作系统。",
+      "decision": "create",
+      "decision_note": "云数据中心与传统数据中心中的2个上下文共享计算执行载体语义。",
+      "context_segment_refs": [
+        "base:environment_segment:environment_segment:hash:a66767d45621c6ee",
+        "base:environment_segment:environment_segment:hash:b70cfc2f94a3f979"
+      ]
+    },
+    {
+      "code": "ES-006",
+      "planned_id": "c5ec0c59-a79f-47fe-9581-6c241d93352c",
+      "stable_key": "environment_segment_type:ES-006",
+      "stable_ref": "base:environment_segment_type:environment_segment_type:ES-006",
+      "public_id": "ki_c675f4aa512678d8",
+      "canonical_title": "管理平台",
+      "aliases": [],
+      "definition": "用于统一管理数据中心基础设施、虚拟化、云资源或容器编排的管理平台环境。",
+      "decision": "create",
+      "decision_note": "现有唯一标题组，定义由其管理类信息化对象上下文限定。",
+      "context_segment_refs": [
+        "base:environment_segment:environment_segment:hash:546b0c64a29699f4"
+      ]
+    },
+    {
+      "code": "ES-007",
+      "planned_id": "bc78665f-9c10-4e2e-bfa5-61f6579173cd",
+      "stable_key": "environment_segment_type:ES-007",
+      "stable_ref": "base:environment_segment_type:environment_segment_type:ES-007",
+      "public_id": "ki_46e75d09a5574ccc",
+      "canonical_title": "业务应用",
+      "aliases": [],
+      "definition": "云数据中心中承载业务应用交互、服务、数据访问与存储等分层组件的应用运行区域。",
+      "decision": "create",
+      "decision_note": "保留为云数据中心应用分层语义，不与传统数据中心的“应用及数据”合并。",
+      "context_segment_refs": [
+        "base:environment_segment:environment_segment:hash:11ae06d15ddf6f14"
+      ]
+    },
+    {
+      "code": "ES-008",
+      "planned_id": "f9498f3f-efc5-4615-9108-9a1bd453cc4a",
+      "stable_key": "environment_segment_type:ES-008",
+      "stable_ref": "base:environment_segment_type:environment_segment_type:ES-008",
+      "public_id": "ki_9e878277c7fab32b",
+      "canonical_title": "大数据平台/数据中台",
+      "aliases": [
+        "大数据平台",
+        "数据中台"
+      ],
+      "definition": "承载数据接入、存储计算、分析、服务、共享与管理能力的数据平台环境。",
+      "decision": "create",
+      "decision_note": "斜杠标题保留为规范名称，并将两个组成名称登记为受控别名。",
+      "context_segment_refs": [
+        "base:environment_segment:environment_segment:hash:2e3b709ea941c1b1"
+      ]
+    },
+    {
+      "code": "ES-009",
+      "planned_id": "fa138490-ea84-4f2e-bcba-b29affbae066",
+      "stable_key": "environment_segment_type:ES-009",
+      "stable_ref": "base:environment_segment_type:environment_segment_type:ES-009",
+      "public_id": "ki_e58a407a874e5a42",
+      "canonical_title": "应用及数据",
+      "aliases": [],
+      "definition": "传统数据中心中由应用前端、应用后端和数据库构成的业务应用与数据运行区域。",
+      "decision": "create",
+      "decision_note": "保留传统数据中心应用与数据库组合语义，不与云数据中心的“业务应用”合并。",
+      "context_segment_refs": [
+        "base:environment_segment:environment_segment:hash:3a34f258ab3f2c81"
+      ]
+    },
+    {
+      "code": "ES-010",
+      "planned_id": "0b3cc72f-bec3-4394-a5df-4f953273deac",
+      "stable_key": "environment_segment_type:ES-010",
+      "stable_ref": "base:environment_segment_type:environment_segment_type:ES-010",
+      "public_id": "ki_b10115a2f810103a",
+      "canonical_title": "广域网骨干节点",
+      "aliases": [],
+      "definition": "广域网中承担骨干连接、路由或转发功能的核心网络节点区域。",
+      "decision": "create",
+      "decision_note": "现有唯一标题组，语义由广域网骨干节点上下文限定。",
+      "context_segment_refs": [
+        "base:environment_segment:environment_segment:hash:80ecc951a9dc03cd"
+      ]
+    },
+    {
+      "code": "ES-011",
+      "planned_id": "d45cb9da-a9fc-4f25-a9ac-f79bac8b7a09",
+      "stable_key": "environment_segment_type:ES-011",
+      "stable_ref": "base:environment_segment_type:environment_segment_type:ES-011",
+      "public_id": "ki_19c497e8c047fac6",
+      "canonical_title": "人员",
+      "aliases": [],
+      "definition": "在信息化环境中使用、访问或运维信息系统的人员群体，包括办公人员和运维管理人员。",
+      "decision": "create",
+      "decision_note": "4个环境上下文共享人员主体语义，具体角色由上下文对象保留。",
+      "context_segment_refs": [
+        "base:environment_segment:environment_segment:hash:0b309ed3a239a613",
+        "base:environment_segment:environment_segment:hash:30bf769403de977a",
+        "base:environment_segment:environment_segment:hash:5b073d7bf0f6342b",
+        "base:environment_segment:environment_segment:hash:dcfeaef249578cc1"
+      ]
+    },
+    {
+      "code": "ES-012",
+      "planned_id": "eb11e812-1af6-4c02-bb96-8fb79789320b",
+      "stable_key": "environment_segment_type:ES-012",
+      "stable_ref": "base:environment_segment_type:environment_segment_type:ES-012",
+      "public_id": "ki_b072266199acd95f",
+      "canonical_title": "PC终端",
+      "aliases": [],
+      "definition": "人员用于办公、访问或运维的个人计算终端环境，包括终端设备、操作系统和软件应用。",
+      "decision": "create",
+      "decision_note": "4个环境上下文共享PC终端语义，具体用途由上下文关系保留。",
+      "context_segment_refs": [
+        "base:environment_segment:environment_segment:hash:224bf15bb00d3382",
+        "base:environment_segment:environment_segment:hash:5e41cdb5e71fd078",
+        "base:environment_segment:environment_segment:hash:b1095528f116308b",
+        "base:environment_segment:environment_segment:hash:b22d9a8b616b4c6d"
+      ]
+    },
+    {
+      "code": "ES-013",
+      "planned_id": "2dd998a7-dfea-42a8-bf31-e3216aafca12",
+      "stable_key": "environment_segment_type:ES-013",
+      "stable_ref": "base:environment_segment_type:environment_segment_type:ES-013",
+      "public_id": "ki_b04a9d2d10547e7e",
+      "canonical_title": "移动终端",
+      "aliases": [],
+      "definition": "人员用于移动访问的终端环境，包括移动操作系统及软件应用。",
+      "decision": "create",
+      "decision_note": "3个环境上下文共享移动终端语义，接入差异继续由环境上下文表达。",
+      "context_segment_refs": [
+        "base:environment_segment:environment_segment:hash:12446fb0d5314960",
+        "base:environment_segment:environment_segment:hash:c99dfdc0646bd409",
+        "base:environment_segment:environment_segment:hash:ee7d9130a54fdf5b"
+      ]
+    },
+    {
+      "code": "ES-014",
+      "planned_id": "08b87063-10fb-4805-9a67-b4f6af86157f",
+      "stable_key": "environment_segment_type:ES-014",
+      "stable_ref": "base:environment_segment_type:environment_segment_type:ES-014",
+      "public_id": "ki_418c8abe722cc8a9",
+      "canonical_title": "L3层",
+      "aliases": [],
+      "definition": "工业控制网络中承载L3内部网络、主机操作系统及与L4/L2相邻边界的运行管理层。",
+      "decision": "create",
+      "decision_note": "保留工业控制网络的L3层级语义。",
+      "context_segment_refs": [
+        "base:environment_segment:environment_segment:hash:ee8ad9c246414889"
+      ]
+    },
+    {
+      "code": "ES-015",
+      "planned_id": "a4aecd40-6399-4012-91d0-7f57ed929e6c",
+      "stable_key": "environment_segment_type:ES-015",
+      "stable_ref": "base:environment_segment_type:environment_segment_type:ES-015",
+      "public_id": "ki_9fcbb9d4275cd302",
+      "canonical_title": "L2层",
+      "aliases": [],
+      "definition": "工业控制网络中承载L2内部网络、主机操作系统及与L3/L1相邻边界的控制层。",
+      "decision": "create",
+      "decision_note": "保留工业控制网络的L2层级语义。",
+      "context_segment_refs": [
+        "base:environment_segment:environment_segment:hash:d352c2c87ce1fa25"
+      ]
+    },
+    {
+      "code": "ES-016",
+      "planned_id": "d8c75dda-8351-4554-8809-092c899a3beb",
+      "stable_key": "environment_segment_type:ES-016",
+      "stable_ref": "base:environment_segment_type:environment_segment_type:ES-016",
+      "public_id": "ki_5893c496b3da12f5",
+      "canonical_title": "L1层",
+      "aliases": [],
+      "definition": "工业控制网络中通过L2-L1边界连接现场控制与感知执行对象的基础控制层。",
+      "decision": "create",
+      "decision_note": "保留工业控制网络的L1层级语义。",
+      "context_segment_refs": [
+        "base:environment_segment:environment_segment:hash:4b915e467efede73"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,330 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sapd.local/contracts/environment-master-data/v1/environment-dictionary.schema.json",
+  "title": "SAPD Environment Dictionary v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "data_state",
+    "generated_at",
+    "source_package_versions",
+    "master_counts",
+    "context_counts",
+    "information_environments",
+    "environment_segment_types",
+    "information_objects",
+    "usage_relations",
+    "evidence_ref_count"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "environment-dictionary-v1"
+    },
+    "data_state": {
+      "enum": [
+        "ready",
+        "empty"
+      ]
+    },
+    "generated_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_package_versions": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "master_counts": {
+      "$ref": "#/$defs/masterCounts"
+    },
+    "context_counts": {
+      "$ref": "#/$defs/contextCounts"
+    },
+    "information_environments": {
+      "type": "array",
+      "items": {
+        "allOf": [
+          {
+            "$ref": "#/$defs/masterRecord"
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "information_environment"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "environment_segment_types": {
+      "type": "array",
+      "items": {
+        "allOf": [
+          {
+            "$ref": "#/$defs/masterRecord"
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "environment_segment_type"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "information_objects": {
+      "type": "array",
+      "items": {
+        "allOf": [
+          {
+            "$ref": "#/$defs/masterRecord"
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "information_object"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "usage_relations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/usageRelation"
+      }
+    },
+    "evidence_ref_count": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "$defs": {
+    "masterCounts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "information_environments",
+        "environment_segment_types",
+        "information_objects"
+      ],
+      "properties": {
+        "information_environments": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "environment_segment_types": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "information_objects": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "contextCounts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "environment_segments",
+        "environment_object_contexts"
+      ],
+      "properties": {
+        "environment_segments": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "environment_object_contexts": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "usageSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "information_environments",
+        "environment_segments",
+        "information_objects",
+        "environment_object_contexts"
+      ],
+      "properties": {
+        "information_environments": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "environment_segments": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "information_objects": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "environment_object_contexts": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "masterRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "stable_ref",
+        "public_id",
+        "type",
+        "code",
+        "title",
+        "description",
+        "aliases",
+        "status",
+        "usage_summary"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stable_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "public_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "enum": [
+            "information_environment",
+            "environment_segment_type",
+            "information_object"
+          ]
+        },
+        "code": {
+          "type": "string",
+          "pattern": "^(IE|ES|IO)-[0-9]{3}$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "aliases": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "status": {
+          "enum": [
+            "active",
+            "deprecated",
+            "merged"
+          ]
+        },
+        "usage_summary": {
+          "$ref": "#/$defs/usageSummary"
+        }
+      }
+    },
+    "usageRelation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relation_ref",
+        "relation_type",
+        "master_ref",
+        "master_type",
+        "context_type",
+        "context_ref",
+        "context_title",
+        "environment_ref",
+        "segment_ref",
+        "object_ref",
+        "route",
+        "route_params"
+      ],
+      "properties": {
+        "relation_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "relation_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "master_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "master_type": {
+          "enum": [
+            "information_environment",
+            "environment_segment_type",
+            "information_object"
+          ]
+        },
+        "context_type": {
+          "enum": [
+            "information_environment",
+            "environment_segment",
+            "information_object",
+            "environment_object_context"
+          ]
+        },
+        "context_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "context_title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "environment_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "segment_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "object_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "route": {
+          "const": "/environment-mapping"
+        },
+        "route_params": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 from sapd_wiki.local_mcp.audit import AuditEvent, AuditLogger
-from sapd_wiki.local_mcp.control_store import ControlStore
+from sapd_wiki.local_mcp.control_store import ControlStore, ControlStoreError
 
 
 class ControlStoreAuditTests(unittest.TestCase):
@@ -106,6 +106,37 @@ class ControlStoreAuditTests(unittest.TestCase):
         serialized = self.path.read_bytes()
         self.assertNotIn(query.encode(), serialized)
         self.assertNotIn(b"/Users/example/private", serialized)
+
+    def test_runtime_preferences_round_trip(self) -> None:
+        self.assertIsNone(self.store.load_runtime_preferences())
+        self.store.save_runtime_preferences(
+            desired_state="enabled",
+            configured_port=28775,
+        )
+        self.assertEqual(
+            self.store.load_runtime_preferences(),
+            {
+                "schema_version": 1,
+                "desired_state": "enabled",
+                "configured_port": 28775,
+            },
+        )
+
+    def test_invalid_runtime_preferences_fail_closed(self) -> None:
+        connection = sqlite3.connect(self.path)
+        connection.execute(
+            """
+            INSERT INTO control_meta(key, value) VALUES('runtime_preferences', ?)
+            """,
+            ('{"schema_version":1,"desired_state":"enabled","configured_port":80}',),
+        )
+        connection.commit()
+        connection.close()
+        with self.assertRaisesRegex(
+            ControlStoreError,
+            "RUNTIME_PREFERENCES_INVALID",
+        ):
+            self.store.load_runtime_preferences()
 
 
 if __name__ == "__main__":

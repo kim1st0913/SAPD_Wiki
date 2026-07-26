@@ -8,6 +8,7 @@ bridge while keeping the same business contract.
 
 from __future__ import annotations
 
+import ipaddress
 import os
 import re
 import subprocess
@@ -56,16 +57,21 @@ class SubprocessCommandRunner:
         *,
         input_bytes: bytes | None = None,
     ) -> CommandResult:
-        completed = subprocess.run(
-            argv,
-            input=input_bytes,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=False,
-            shell=False,
-            timeout=30,
-            env={"PATH": "/usr/bin:/bin"},
-        )
+        try:
+            completed = subprocess.run(
+                argv,
+                input=input_bytes,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+                shell=False,
+                timeout=120,
+                env={"PATH": "/usr/bin:/bin"},
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise CertificateTrustError(
+                "CERTIFICATE_TRUST_CONFIRMATION_TIMEOUT"
+            ) from exc
         return CommandResult(
             returncode=completed.returncode,
             stdout=completed.stdout[:1024 * 1024],
@@ -117,9 +123,15 @@ class MacOSCurrentUserTrustAdapter:
         if os.name == "nt" or not _SECURITY.is_file():
             raise CertificateTrustError("CERTIFICATE_TRUST_BACKEND_UNAVAILABLE")
 
-    def _certificate_path(self, target: ManagedTrustTarget) -> Path:
-        path = self.runtime_root / f"{target.generation_id}.ca.pem"
-        certificate = x509.load_der_x509_certificate(target.certificate_der)
+    def _public_certificate_path(
+        self,
+        target: ManagedTrustTarget,
+        *,
+        kind: str,
+        certificate_der: bytes,
+    ) -> Path:
+        path = self.runtime_root / f"{target.generation_id}.{kind}.pem"
+        certificate = x509.load_der_x509_certificate(certificate_der)
         payload = certificate.public_bytes(serialization.Encoding.PEM)
         temporary = path.with_suffix(".tmp")
         descriptor = os.open(
@@ -135,6 +147,20 @@ class MacOSCurrentUserTrustAdapter:
         os.replace(temporary, path)
         os.chmod(path, 0o600)
         return path
+
+    def _certificate_path(self, target: ManagedTrustTarget) -> Path:
+        return self._public_certificate_path(
+            target,
+            kind="ca",
+            certificate_der=target.certificate_der,
+        )
+
+    def _verification_certificate_path(self, target: ManagedTrustTarget) -> Path:
+        return self._public_certificate_path(
+            target,
+            kind="server",
+            certificate_der=target.verification_certificate_der,
+        )
 
     def _hashes(self, target: ManagedTrustTarget) -> list[str]:
         self._require_platform()
@@ -156,6 +182,25 @@ class MacOSCurrentUserTrustAdapter:
             for match in _HASH_RE.findall(result.stdout.decode("utf-8", "replace"))
         ]
 
+    @staticmethod
+    def _loopback_name_constraints_valid(target: ManagedTrustTarget) -> bool:
+        try:
+            certificate = x509.load_der_x509_certificate(target.certificate_der)
+            extension = certificate.extensions.get_extension_for_class(
+                x509.NameConstraints
+            )
+        except (TypeError, ValueError, x509.ExtensionNotFound):
+            return False
+        constraints = extension.value
+        permitted = constraints.permitted_subtrees or []
+        return (
+            extension.critical
+            and constraints.excluded_subtrees is None
+            and len(permitted) == 1
+            and isinstance(permitted[0], x509.IPAddress)
+            and permitted[0].value == ipaddress.ip_network("127.0.0.1/32")
+        )
+
     def inspect_target(self, target: ManagedTrustTarget) -> TrustInspection:
         expected = normalize_fingerprint(target.fingerprint_sha256)
         hashes = self._hashes(target)
@@ -166,23 +211,46 @@ class MacOSCurrentUserTrustAdapter:
         exact = expected in hashes
         policy_valid = False
         if exact:
-            path = self._certificate_path(target)
+            server_path = self._verification_certificate_path(target)
+            ca_path = self._certificate_path(target)
             try:
-                verified = self.runner.run(
+                ssl_verified = self.runner.run(
                     (
                         str(_SECURITY),
                         "verify-cert",
                         "-c",
-                        str(path),
+                        str(server_path),
                         "-p",
                         "ssl",
-                        "-s",
-                        "127.0.0.1",
+                        "-n",
+                        target.host,
+                        "-k",
+                        str(self.login_keychain),
+                        "-L",
                     )
                 )
-                policy_valid = verified.returncode == 0
+                root_verified = self.runner.run(
+                    (
+                        str(_SECURITY),
+                        "verify-cert",
+                        "-c",
+                        str(ca_path),
+                        "-p",
+                        "basic",
+                        "-l",
+                        "-k",
+                        str(self.login_keychain),
+                        "-L",
+                    )
+                )
+                policy_valid = (
+                    self._loopback_name_constraints_valid(target)
+                    and ssl_verified.returncode == 0
+                    and root_verified.returncode == 0
+                )
             finally:
-                path.unlink(missing_ok=True)
+                server_path.unlink(missing_ok=True)
+                ca_path.unlink(missing_ok=True)
         installed = exact and policy_valid and not conflicts
         return TrustInspection(
             installed=installed,
@@ -230,6 +298,8 @@ class MacOSCurrentUserTrustAdapter:
             raise CertificateTrustError("CERTIFICATE_TRUST_CONFLICT")
         if inspection.installed:
             return False
+        if not self._loopback_name_constraints_valid(target):
+            raise CertificateTrustError("CERTIFICATE_TRUST_POLICY_INVALID")
         path = self._certificate_path(target)
         try:
             result = self.runner.run(
@@ -238,10 +308,6 @@ class MacOSCurrentUserTrustAdapter:
                     "add-trusted-cert",
                     "-r",
                     "trustRoot",
-                    "-p",
-                    "ssl",
-                    "-s",
-                    "127.0.0.1",
                     "-k",
                     str(self.login_keychain),
                     str(path),

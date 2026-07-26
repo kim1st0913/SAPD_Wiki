@@ -1,0 +1,94 @@
+{
+  "schema_version": "environment-dictionary-v1",
+  "data_state": "ready",
+  "generated_at": "2026-07-25T00:00:00Z",
+  "source_package_versions": {
+    "base_database": "fixture-v1",
+    "environment_workbench": "fixture-v1"
+  },
+  "master_counts": {
+    "information_environments": 1,
+    "environment_segment_types": 1,
+    "information_objects": 1
+  },
+  "context_counts": {
+    "environment_segments": 1,
+    "environment_object_contexts": 1
+  },
+  "information_environments": [
+    {
+      "id": "fixture-environment-1",
+      "stable_ref": "base:information_environment:fixture-environment-1",
+      "public_id": "ki_fixture_environment_1",
+      "type": "information_environment",
+      "code": "IE-001",
+      "title": "数据中心",
+      "description": "信息化环境夹具。",
+      "aliases": [],
+      "status": "active",
+      "usage_summary": {
+        "information_environments": 1,
+        "environment_segments": 1,
+        "information_objects": 1,
+        "environment_object_contexts": 1
+      }
+    }
+  ],
+  "environment_segment_types": [
+    {
+      "id": "fixture-segment-type-1",
+      "stable_ref": "base:environment_segment_type:fixture-segment-type-1",
+      "public_id": "ki_fixture_segment_type_1",
+      "type": "environment_segment_type",
+      "code": "ES-001",
+      "title": "网络",
+      "description": "环境子类主数据夹具。",
+      "aliases": [],
+      "status": "active",
+      "usage_summary": {
+        "information_environments": 1,
+        "environment_segments": 1,
+        "information_objects": 1,
+        "environment_object_contexts": 1
+      }
+    }
+  ],
+  "information_objects": [
+    {
+      "id": "fixture-object-1",
+      "stable_ref": "base:information_object:fixture-object-1",
+      "public_id": "ki_fixture_object_1",
+      "type": "information_object",
+      "code": "IO-001",
+      "title": "网络边界",
+      "description": "信息化对象夹具。",
+      "aliases": [],
+      "status": "active",
+      "usage_summary": {
+        "information_environments": 1,
+        "environment_segments": 1,
+        "information_objects": 1,
+        "environment_object_contexts": 1
+      }
+    }
+  ],
+  "usage_relations": [
+    {
+      "relation_ref": "base_relation:instance_of:fixture-relation-1",
+      "relation_type": "instance_of",
+      "master_ref": "base:environment_segment_type:fixture-segment-type-1",
+      "master_type": "environment_segment_type",
+      "context_type": "environment_segment",
+      "context_ref": "base:environment_segment:fixture-segment-1",
+      "context_title": "网络",
+      "environment_ref": "base:information_environment:fixture-environment-1",
+      "segment_ref": "base:environment_segment:fixture-segment-1",
+      "object_ref": null,
+      "route": "/environment-mapping",
+      "route_params": {
+        "selected_environment_segment_ref": "base:environment_segment:fixture-segment-1"
+      }
+    }
+  ],
+  "evidence_ref_count": 1
+}

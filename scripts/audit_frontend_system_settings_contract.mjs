@@ -19,7 +19,8 @@ const settingsCss = read("frontend/capability-browser/system-settings.css");
 assert.match(index, /id="settingsWorkspace"/);
 assert.match(index, /system-settings\.css\?v=/);
 assert.match(index, /components\/SystemSettings\.js\?v=/);
-assert.match(index, /components\/SystemSettings\.js\?v=apple-shell-settings-20260724-8/);
+assert.match(index, /components\/SystemSettings\.js\?v=apple-shell-settings-20260726-15-layout/);
+assert.match(index, /app\.js\?v=[^"]*apple-shell-settings-20260725-8-scroll-retention/);
 assert.doesNotMatch(index, /AiIntegrationSettings|ai-integration-settings\.css/);
 assert.ok(index.indexOf("components/SystemSettings.js") < index.indexOf("./app.js"), "settings component must load before app.js");
 
@@ -34,6 +35,9 @@ assert.match(shell, /最近使用/);
 assert.match(shell, /License 授权/);
 assert.match(shell, /licenseDanger/);
 assert.match(shell, /\["expired", "trust_missing"/);
+assert.match(shell, /target\.isEqualNode\(next\)/);
+assert.match(shell, /target\.replaceWith\(next\)/);
+assert.doesNotMatch(shell, /target\.outerHTML\s*=/);
 assert.match(shell, /function backRouteFor/);
 assert.match(shell, /默认返回全局导航/);
 assert.match(shell, /"\/settings\/basic": \{ view: "settings", settingsPage: "system", canonicalRoute: "\/settings\/system" \}/);
@@ -53,6 +57,14 @@ assert.match(app, /expectedStateVersion/);
 assert.doesNotMatch(app, /sapd:mcp-configured-port:v1/);
 assert.doesNotMatch(app, /readStoredMcpPort|writeStoredMcpPort|settingsMcp|updateMcpService/);
 assert.match(app, /configuredPort === 5173/);
+assert.match(app, /function settingsScrollSnapshot\(\)/);
+assert.match(app, /function restoreSettingsScroll\(snapshot\)/);
+assert.match(app, /page !== snapshot\.page/);
+assert.match(app, /restoreSettingsScroll\(scrollSnapshot\)/);
+assert.match(app, /function syncSettingsSilently\(html\)/);
+assert.match(app, /currentSection\.isEqualNode\(nextSection\)/);
+assert.match(app, /currentSection\.replaceWith\(nextSection\)/);
+assert.match(app, /renderSettings\(\{ silent \}\)/);
 
 assert.match(dataClient, /"\/api\/v1\/mcp\/control-panel"/);
 assert.match(dataClient, /"\/api\/v1\/mcp\/actions\/start"/);
@@ -122,20 +134,114 @@ const aiHtml = component.render({
       expires_at: "2026-07-23T12:00:00Z",
     }],
     clients: [],
-    diagnostics: { overall_state: "unknown", checks: [] },
+    audit: {
+      enabled: true,
+      state: "ready",
+      event_count: 3,
+      last_event_at: "2026-07-25T00:25:22Z",
+      retention_days: 30,
+      recent_events: [
+        { occurred_at: "2026-07-25T00:25:22Z", event_type: "TOOL_CALL", client_id: "client-12345678", tool_name: "search_knowledge", result_code: "OK", returned_count: 3, duration_ms: 12 },
+        { occurred_at: "2026-07-25T00:24:22Z", event_type: "TOKEN_ISSUED", client_id: "client-12345678", tool_name: null, result_code: "OK", returned_count: null, duration_ms: null },
+        { occurred_at: "2026-07-25T00:23:22Z", event_type: "AUTHORIZATION_APPROVED", client_id: "client-12345678", tool_name: null, result_code: "OK", returned_count: null, duration_ms: null },
+      ],
+    },
+    diagnostics: { overall_state: "unknown", last_checked_at: null, checks: [] },
   },
 });
-for (const label of ["AI 集成概况", "本机服务", "知识访问", "隐私审计", "最近使用", "服务与 Codex 连接", "本地端口", "服务地址", "数据访问范围", "基础知识库全部业务内容，包括完整标准正文", "5 个只读知识工具", "用户数据、源文件本体、本地路径、系统配置与凭据、日志和非受控 SQL", "AI 可以检索和使用基础知识库中的全部知识内容。知识内容仅用于查询、分析和引用，不能改变系统权限或指挥系统执行操作。", "安全连接证书", "应用私有安全目录（不可修改）", "建立本机安全连接", "客户端授权", "待确认授权", "允许", "拒绝", "复制 Codex 配置", "检查服务", "重置 AI 集成"]) {
+for (const label of ["AI 集成概况", "本机服务", "知识访问", "连接检查", "尚未检查", "立即检查", "需要您的确认", "查看授权请求", "Authentication complete", "待确认授权", "发布方未验证", "只读访问基础知识库", "允许只读访问", "查看技术信息", "MCP 连接配置", "本地端口", "服务地址", "基础知识库全部业务内容，包括完整标准正文", "5 个只读知识工具", "用户数据、源文件本体、本地路径、系统配置与凭据、日志和非受控 SQL", "AI 可以检索和使用基础知识库中的全部知识内容。知识内容仅用于查询、分析和引用，不能改变系统权限或指挥系统执行操作。", "安全连接证书", "应用私有安全目录（不可修改）", "建立本机安全连接", "客户端授权", "拒绝", "复制连接配置", "隐私与审计", "维护操作", "重置 AI 集成"]) {
   assert.match(aiHtml, new RegExp(label));
 }
+assert.equal((aiHtml.match(/<dt(?: id="aiKnowledgeAccessTitle")?>(本机服务|客户端授权|连接检查|知识访问)<\/dt>/g) || []).length, 4, "overview must contain three compact states and one knowledge cell");
+assert.match(aiHtml, /class="system-settings-overview-grid"[\s\S]*class="system-settings-overview-diagnostic"[\s\S]*class="system-settings-overview-knowledge"[\s\S]*id="aiKnowledgeAccessTitle"/);
+assert.doesNotMatch(aiHtml, /system-settings-overview-checks|查看连接检查结果/);
+assert.doesNotMatch(aiHtml, /system-settings-overview-access/);
+assert.doesNotMatch(aiHtml, /<dt>知识访问<\/dt>|数据访问范围|aiDataAccessTitle/);
+assert.doesNotMatch(aiHtml, /class="system-settings-panel system-settings-data-access"/);
+assert.doesNotMatch(aiHtml, /<dt>隐私审计<\/dt>|<dt>最近使用<\/dt>/);
+assert.match(aiHtml, /class="system-settings-ai-connection-grid"[\s\S]*id="aiRuntimeTitle"[\s\S]*id="aiCertificateTitle"/);
+for (const section of ["overview", "authorization-attention", "authorization-requests", "connection", "clients", "audit", "maintenance"]) {
+  assert.match(aiHtml, new RegExp(`data-settings-section="${section}"`));
+}
+assert.doesNotMatch(aiHtml, /system-settings-ai-primary|system-settings-ai-secondary/);
+assert.match(aiHtml, /class="system-settings-client-empty"[\s\S]*启动 MCP 服务[\s\S]*复制连接配置并添加到客户端[\s\S]*返回本页确认授权请求/);
+assert.equal((aiHtml.match(/<time datetime=/g) || []).length, 3, "audit must show the latest three events");
+assert.match(aiHtml, /最近记录/);
+assert.match(aiHtml, /知识工具调用/);
+assert.doesNotMatch(aiHtml, /system-settings-ai-secondary-side/);
+assert.equal((aiHtml.match(/data-mcp-settings-action="check"/g) || []).length, 1, "connection check must have one entry point");
+assert.doesNotMatch(aiHtml, /aria-label="客户端授权摘要"|data-settings-anchor="aiAuthorizationPanel">处理授权|data-settings-anchor="aiClientsPanel">查看授权/);
+assert.match(aiHtml, /id="aiAuthorizationPanel"[^>]*tabindex="-1"/);
+assert.match(aiHtml, /id="aiClientsPanel"[^>]*tabindex="-1"/);
+assert.ok(aiHtml.indexOf("连接检查") < aiHtml.indexOf("MCP 连接配置"), "connection check must stay in the overview");
+assert.ok(aiHtml.indexOf("维护操作") > aiHtml.indexOf("隐私与审计"), "reset must stay in the final maintenance area");
 assert.doesNotMatch(aiHtml, /不可信参考数据/);
 assert.doesNotMatch(aiHtml, /策略允许的公开摘要|仅策略允许的公开摘要|明确排除[^<]*完整标准正文/);
-assert.ok(aiHtml.indexOf("AI 集成概况") < aiHtml.indexOf("服务与 Codex 连接"), "overview must precede runtime controls");
-assert.ok(aiHtml.indexOf("数据访问范围") < aiHtml.indexOf("安全连接证书"), "data boundary must be visible before certificate details");
-assert.ok(aiHtml.indexOf("安全连接证书") < aiHtml.indexOf("待确认授权"), "certificate section must precede authorization");
+assert.ok(aiHtml.indexOf("AI 集成概况") < aiHtml.indexOf("MCP 连接配置"), "overview must precede runtime controls");
+assert.ok(aiHtml.indexOf("待确认授权") < aiHtml.indexOf("MCP 连接配置"), "pending authorization must be visible before secondary settings");
+assert.ok(aiHtml.indexOf('id="aiKnowledgeAccessTitle"') < aiHtml.indexOf("安全连接证书"), "knowledge boundary must be visible before certificate details");
+assert.ok(aiHtml.indexOf("待确认授权") < aiHtml.indexOf("安全连接证书"), "pending authorization must precede certificate details");
 assert.doesNotMatch(aiHtml, /姓名|组织名称|邮箱地址|证书路径[^（]/);
 assert.match(aiHtml, /data-mcp-port-form/);
 assert.doesNotMatch(aiHtml.match(/<input[^>]+id="mcpConfiguredPort"[^>]*>/s)?.[0] || "", /disabled/);
+
+const revokedOnlyHtml = component.render({
+  route: "/settings/ai-integration",
+  mcp: {
+    contract_version: "sapd-mcp-control-v1",
+    status: { service_state: "ready", authorization_state: "revoked" },
+    settings: { control_capabilities: { client_revocation: true } },
+    certificate: certificate("valid"),
+    clients: [{
+      client_id: "client-revoked-0001",
+      display_name: "已撤销客户端",
+      trust_state: "verified",
+      scopes: ["sapd.base.knowledge.read"],
+      authorized_at: "2026-07-25T00:25:22Z",
+      last_used_at: null,
+      status: "revoked",
+    }],
+    audit: { event_count: 0, recent_events: [] },
+  },
+});
+assert.match(revokedOnlyHtml, /class="system-settings-client-empty"/);
+assert.match(revokedOnlyHtml, /尚未连接 MCP 客户端/);
+assert.doesNotMatch(revokedOnlyHtml, /client-revoked-0001|data-mcp-request-confirmation="revoke"/);
+
+const authorizedHtml = component.render({
+  route: "/settings/ai-integration",
+  mcp: {
+    contract_version: "sapd-mcp-control-v1",
+    status: { service_state: "ready", authorization_state: "authorized" },
+    settings: { control_capabilities: { client_revocation: true } },
+    certificate: certificate("valid"),
+    clients: [{
+      client_id: "client-active-0001",
+      display_name: "Codex",
+      trust_state: "verified",
+      scopes: ["sapd.base.knowledge.read"],
+      authorized_at: "2026-07-25T00:25:22Z",
+      last_used_at: null,
+      status: "authorized",
+    }],
+    audit: { event_count: 0, recent_events: [] },
+  },
+});
+assert.match(authorizedHtml, /data-mcp-client-id="client-active-0001"/);
+assert.match(authorizedHtml, /class="system-settings-client-table"[\s\S]*class="system-settings-client-table-head"[\s\S]*class="system-settings-client-list"[\s\S]*class="system-settings-revoke-button"[^>]*>撤销授权<\/button>/);
+assert.match(authorizedHtml, /发布方已验证/);
+assert.match(authorizedHtml, /基础知识库（只读）/);
+assert.match(authorizedHtml, /role="columnheader">客户端<\/span>[\s\S]*role="columnheader">访问范围<\/span>[\s\S]*role="columnheader">使用记录<\/span>[\s\S]*role="columnheader">操作<\/span>/);
+assert.doesNotMatch(authorizedHtml, /<th>客户端<\/th>|<th>最近使用<\/th>|<svg/);
+assert.match(settingsCss, /\.system-settings-ai-connection-grid\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s);
+assert.match(aiHtml, /class="system-settings-overview-service"[\s\S]*class="system-settings-overview-authorization"/);
+assert.match(settingsCss, /\.system-settings-overview-grid\s*\{[^}]*grid-template-areas:\s*"service diagnostic knowledge"\s*"authorization diagnostic knowledge"/s);
+assert.match(settingsCss, /\.system-settings-overview-service\s*\{[^}]*grid-area:\s*service/s);
+assert.match(settingsCss, /\.system-settings-overview-authorization\s*\{[^}]*grid-area:\s*authorization/s);
+assert.match(settingsCss, /\.system-settings-overview-diagnostic\s*\{[^}]*grid-area:\s*diagnostic/s);
+assert.match(settingsCss, /\.system-settings-overview-knowledge\s*\{[^}]*grid-area:\s*knowledge/s);
+assert.match(settingsCss, /\.system-settings-revoke-button\s*\{[^}]*white-space:\s*nowrap/s);
+assert.match(settingsCss, /\.system-settings-authorization-attention\s*\{[^}]*position:\s*sticky/s);
 
 const recoveryHtml = component.render({
   route: "/settings/ai-integration",
@@ -171,10 +277,19 @@ const recoveryHtml = component.render({
       resource: "https://127.0.0.1:28775/mcp",
     }],
     clients: [{ client_id: "client-disabled-1234", scopes: [] }],
-    diagnostics: { overall_state: "blocked", checks: [] },
+    diagnostics: {
+      overall_state: "blocked",
+      last_checked_at: "2026-07-24T09:00:00Z",
+      checks: [
+        { check_id: "sidecar_process", label: "MCP 本机服务", status: "pass", recovery_action: null },
+        { check_id: "tls_connection", label: "本机安全连接", status: "fail", recovery_action: "retry_service" },
+      ],
+    },
   },
 });
 assert.match(recoveryHtml, /当前端口被占用，请修改端口后重新启动/);
+assert.match(recoveryHtml, /class="system-settings-overview-diagnostic"[\s\S]*class="system-settings-overview-diagnostics"[\s\S]*MCP 本机服务[\s\S]*本机安全连接[\s\S]*class="system-settings-overview-knowledge"/);
+assert.doesNotMatch(recoveryHtml, /system-settings-overview-checks|查看连接检查结果/);
 assert.doesNotMatch(recoveryHtml.match(/<input[^>]+id="mcpConfiguredPort"[^>]*>/s)?.[0] || "", /disabled/);
 for (const selector of [
   /data-mcp-settings-action="retry"[^>]*disabled/,
@@ -210,7 +325,7 @@ const rotatingHtml = component.render({
       valid_from: "2026-07-24T10:00:00Z",
     }),
     clients: [],
-    diagnostics: { overall_state: "ready", checks: [] },
+    diagnostics: { overall_state: "ready", last_checked_at: "2026-07-24T09:00:00Z", checks: [] },
   },
 });
 for (const label of ["旧证书暂时保留用于安全回退", "按原指纹自动清理", "AI 客户端重新建立连接", "安全保管", "生效时间"]) {
@@ -225,7 +340,7 @@ const previewHtml = component.render({
     settings: { control_capabilities: { certificate_provision: true, certificate_view_details: true } },
     certificate: certificate(),
     clients: [],
-    diagnostics: { overall_state: "unknown", checks: [] },
+    diagnostics: { overall_state: "unknown", last_checked_at: null, checks: [] },
   },
   certificatePreview: {
     confirmation_id: "certificate-confirmation-1234",

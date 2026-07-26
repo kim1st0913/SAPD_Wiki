@@ -150,7 +150,7 @@ CA 必须满足：
 - `keyUsage = keyCertSign`，首版不声明未实现的 CRL 能力；
 - 随机序列号；
 - SHA-256 或更强签名，密钥算法由兼容矩阵冻结，不允许运行时静默降级；
-- 优先增加 critical `nameConstraints`，只允许 `127.0.0.1/32`；若目标 Codex/macOS/Windows 验证证明不兼容，必须形成显式兼容性决策，不能自动扩大到任意 DNS/IP；
+- 必须增加 critical `nameConstraints`，只允许 `127.0.0.1/32`；macOS 与 Windows 的 CurrentUser 根信任均以该证书约束、服务器 SAN 和 loopback 监听共同限定有效边界，不允许扩大到任意 DNS/IP；
 - 公共证书进入 CurrentUser 信任；
 - CA 私钥在签发服务器证书后删除。
 
@@ -307,7 +307,7 @@ App 与 Sidecar 分进程时，口令不得通过 argv、环境变量、普通�
 
 平台差异必须提前说明：
 
-- macOS 修改当前用户 trust settings 仍会显示系统身份验证面板，且只能在已登录的 GUI 会话完成；不得把“当前用户范围”描述为“无确认安装”；
+- macOS 修改当前用户 trust settings 仍会显示系统身份验证面板，且只能在已登录的 GUI 会话完成；不得把“当前用户范围”描述为“无确认安装”。Chrome 不接受仅带 `sslServer + 127.0.0.1` 策略字符串的用户信任条目，因此 macOS 使用 Chrome 可识别的 CurrentUser `trustRoot`；有效地址仍由 CA 的 critical `nameConstraints=127.0.0.1/32`、leaf SAN 和 loopback 监听三重限制；
 - Windows 写入 `CurrentUser\Root` 不等于写入 `LocalMachine`，但仍必须先经过 SAPD Wiki 的明确确认页；不得因为没有 UAC 就静默安装；
 - 用户取消、系统认证失败或系统证书库不可用时，删除本轮 staging 和秘密，不保留半配置身份。
 
@@ -317,7 +317,7 @@ App 与 Sidecar 分进程时，口令不得通过 argv、环境变量、普通�
 
 1. 获取当前 profile 的独占生命周期锁，确认没有其他实例正在生成、轮换、修复或重置；
 2. 读取并校验所有权清单、active generation 指针、路径完整性和文件最小权限；
-3. 按完整指纹验证 CA、服务器证书、SAN、用途、有效期、算法和 CurrentUser 信任策略；
+3. 按完整指纹验证 CA、服务器证书、SAN、用途、有效期、算法和 CurrentUser 信任策略；macOS 同时执行服务器 SSL 验证与 CA `basic` 根信任验证，只有前者通过但后者失败时必须显示“信任缺失”并提供兼容修复，不能误报“连接安全”；
 4. 检查本机时间是否足以可靠判断 `notBefore/notAfter`；明显回拨、超出允许偏差或无法建立时间可信度时进入 `clock_invalid`；
 5. 从平台安全存储取得服务器私钥口令，并通过一次性实例绑定通道交给预期 Sidecar；
 6. Sidecar 加载证书后，App 使用记录的 CA 对 `https://127.0.0.1:{port}/mcp` 执行本机健康验证；

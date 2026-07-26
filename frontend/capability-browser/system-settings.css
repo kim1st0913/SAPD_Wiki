@@ -131,18 +131,18 @@
 
 .app-shell-integrated .system-settings-ai {
   display: grid;
-  gap: 14px;
+  gap: 12px;
 }
 
-.app-shell-integrated .system-settings-ai-primary {
+.app-shell-integrated .system-settings-ai-connection-grid {
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(340px, 0.85fr);
-  align-items: stretch;
-  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 12px;
 }
 
-.app-shell-integrated .system-settings-ai-primary > .system-settings-panel {
+.app-shell-integrated .system-settings-ai-connection-grid > .system-settings-panel {
   width: 100%;
   margin: 0;
 }
@@ -181,15 +181,15 @@
 }
 
 .app-shell-integrated .system-settings-ai .system-settings-panel > header {
-  padding: 17px 20px 15px;
+  padding: 14px 18px 13px;
 }
 
 .app-shell-integrated .system-settings-ai .system-settings-panel h2 {
-  font-size: 20px;
+  font-size: 18px;
 }
 
 .app-shell-integrated .system-settings-ai .system-settings-panel header p {
-  margin-top: 7px;
+  margin-top: 5px;
   font-size: var(--sapd-shell-type-meta, 12px);
   line-height: 1.5;
 }
@@ -306,7 +306,13 @@
 
 .app-shell-integrated .system-settings-overview-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns:
+    minmax(180px, 0.72fr)
+    minmax(240px, 1fr)
+    minmax(480px, 2fr);
+  grid-template-areas:
+    "service diagnostic knowledge"
+    "authorization diagnostic knowledge";
   gap: 1px;
   margin: 0;
   background: var(--sapd-shell-divider, var(--line));
@@ -317,7 +323,7 @@
   display: grid;
   align-content: start;
   gap: 4px;
-  padding: 14px 18px;
+  padding: 12px 16px;
   background: var(--sapd-shell-surface, var(--panel));
 }
 
@@ -325,15 +331,13 @@
   border-right: 0;
 }
 
-.app-shell-integrated .system-settings-overview-grid dt,
-.app-shell-integrated .system-settings-data-access-list dt {
+.app-shell-integrated .system-settings-overview-grid dt {
   color: var(--shell-muted, var(--muted));
   font-size: var(--sapd-shell-type-meta, 12px);
   font-weight: 720;
 }
 
-.app-shell-integrated .system-settings-overview-grid dd,
-.app-shell-integrated .system-settings-data-access-list dd {
+.app-shell-integrated .system-settings-overview-grid dd {
   min-width: 0;
   margin: 0;
   color: var(--shell-text, var(--ink));
@@ -355,11 +359,86 @@
 }
 
 .app-shell-integrated .system-settings-overview-grid small,
-.app-shell-integrated .system-settings-runtime-grid > div > small,
-.app-shell-integrated .system-settings-data-access-list small {
+.app-shell-integrated .system-settings-runtime-grid > div > small {
   color: var(--shell-muted, var(--muted));
   font-size: var(--sapd-shell-type-meta, 12px);
   line-height: 1.45;
+}
+
+.app-shell-integrated .system-settings-overview-diagnostic button {
+  width: fit-content;
+  min-height: 28px;
+  margin-top: 4px;
+  padding: 0 10px;
+  border: 1px solid color-mix(in oklch, var(--shell-primary, var(--accent)) 24%, var(--sapd-shell-divider, var(--line)));
+  border-radius: var(--sapd-shell-radius-control, 7px);
+  background: color-mix(in oklch, var(--shell-primary, var(--accent)) 5%, var(--sapd-shell-surface, var(--panel)));
+  color: var(--shell-primary, var(--accent));
+  cursor: pointer;
+  font-size: var(--sapd-shell-type-meta, 12px);
+  font-weight: 720;
+}
+
+.app-shell-integrated .system-settings-overview-diagnostic button:hover {
+  background: color-mix(in oklch, var(--shell-primary, var(--accent)) 9%, var(--sapd-shell-surface, var(--panel)));
+}
+
+.app-shell-integrated .system-settings-overview-diagnostic button:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+}
+
+.app-shell-integrated .system-settings-overview-service {
+  grid-area: service;
+}
+
+.app-shell-integrated .system-settings-overview-authorization {
+  grid-area: authorization;
+}
+
+.app-shell-integrated .system-settings-overview-diagnostic {
+  grid-area: diagnostic;
+}
+
+.app-shell-integrated .system-settings-overview-diagnostics {
+  display: grid;
+  gap: 0;
+  margin-top: 6px;
+  border-top: 1px solid var(--sapd-shell-divider, var(--line));
+}
+
+.app-shell-integrated .system-settings-overview-diagnostics > div {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--sapd-shell-divider, var(--line));
+}
+
+.app-shell-integrated .system-settings-overview-diagnostics > div:last-child {
+  border-bottom: 0;
+}
+
+.app-shell-integrated .system-settings-overview-diagnostics span {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.app-shell-integrated .system-settings-overview-diagnostics strong,
+.app-shell-integrated .system-settings-overview-diagnostics b {
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.app-shell-integrated .system-settings-overview-diagnostics b.is-ready {
+  color: var(--sapd-state-success, var(--success));
+}
+
+.app-shell-integrated .system-settings-overview-diagnostics b.is-error {
+  color: var(--danger);
 }
 
 .app-shell-integrated .system-settings-runtime-grid {
@@ -369,12 +448,25 @@
   background: color-mix(in oklch, var(--sapd-shell-surface, var(--panel)) 96%, var(--sapd-shell-surface-quiet, var(--surface-quiet)));
 }
 
+.app-shell-integrated .system-settings-ai-connection-grid .system-settings-runtime-grid {
+  grid-template-columns: minmax(120px, 0.68fr) minmax(230px, 1.32fr);
+}
+
+.app-shell-integrated .system-settings-ai-connection-grid .system-settings-runtime-grid > div:nth-child(2) {
+  border-right: 0;
+}
+
+.app-shell-integrated .system-settings-ai-connection-grid .system-settings-runtime-grid > div:last-child {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--sapd-shell-divider, var(--line));
+}
+
 .app-shell-integrated .system-settings-runtime-grid > div {
   min-width: 0;
   display: grid;
   align-content: start;
   gap: 6px;
-  padding: 14px 18px;
+  padding: 12px 16px;
   border-right: 1px solid var(--sapd-shell-divider, var(--line));
 }
 
@@ -421,49 +513,86 @@
   padding: 14px 24px;
 }
 
-.app-shell-integrated .system-settings-runtime-actions {
-  padding: 13px 18px;
+.app-shell-integrated .system-settings-runtime-footer {
+  min-height: 64px;
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
   background: color-mix(in oklch, var(--sapd-shell-surface, var(--panel)) 94%, var(--sapd-shell-surface-quiet, var(--surface-quiet)));
 }
 
-.app-shell-integrated .system-settings-data-access {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+.app-shell-integrated .system-settings-runtime-panel {
+  display: flex;
+  flex-direction: column;
 }
 
-.app-shell-integrated .system-settings-data-access-list {
-  display: grid;
-  margin: 0;
+.app-shell-integrated .system-settings-runtime-actions {
+  align-items: center;
+  justify-content: flex-start;
+  padding: 13px 18px;
 }
 
-.app-shell-integrated .system-settings-data-access-list > div {
+.app-shell-integrated .system-settings-overview-knowledge-content {
+  display: grid;
+  gap: 5px;
+}
+
+.app-shell-integrated .system-settings-overview-knowledge {
+  grid-area: knowledge;
+}
+
+.app-shell-integrated .system-settings-overview-knowledge-state {
+  font-size: var(--sapd-shell-type-body, 14px);
+  line-height: 1.35;
+}
+
+.app-shell-integrated .system-settings-overview-knowledge-state.is-ready {
+  color: var(--sapd-state-success, var(--success));
+}
+
+.app-shell-integrated .system-settings-overview-knowledge-state.is-warning {
+  color: var(--sapd-state-warning, var(--warning));
+}
+
+.app-shell-integrated .system-settings-overview-knowledge-state.is-error {
+  color: var(--danger);
+}
+
+.app-shell-integrated .system-settings-overview-knowledge-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px 14px;
+  margin: 5px 0 0;
+}
+
+.app-shell-integrated .system-settings-overview-knowledge-list > div {
   min-width: 0;
   display: grid;
-  grid-template-columns: 86px minmax(0, 1fr);
-  gap: 12px;
-  align-items: start;
-  padding: 11px 18px;
-  border-bottom: 1px solid var(--sapd-shell-divider, var(--line));
+  align-content: start;
+  gap: 2px;
 }
 
-.app-shell-integrated .system-settings-data-access-list > div:last-child {
-  border-bottom: 0;
+.app-shell-integrated .system-settings-overview-knowledge-list > div:last-child {
+  grid-column: 1 / -1;
 }
 
-.app-shell-integrated .system-settings-data-access-list dd {
+.app-shell-integrated .system-settings-overview-knowledge-list dt {
+  font-size: 11px;
+}
+
+.app-shell-integrated .system-settings-overview-knowledge-list dd {
   font-size: var(--sapd-shell-type-meta, 12px);
   font-weight: 680;
-  line-height: 1.5;
+  line-height: 1.42;
 }
 
-.app-shell-integrated .system-settings-data-trust {
+.app-shell-integrated .system-settings-overview-knowledge-content > p {
   margin: 0;
-  padding: 11px 18px;
+  padding-top: 6px;
   border-top: 1px solid var(--sapd-shell-divider, var(--line));
-  background: var(--sapd-shell-surface-quiet, var(--surface-quiet));
   color: var(--shell-muted, var(--muted));
-  font-size: var(--sapd-shell-type-meta, 12px);
-  line-height: 1.5;
+  font-size: 11px;
+  line-height: 1.45;
 }
 
 .app-shell-integrated .system-settings-state {
@@ -509,7 +638,7 @@
 
 .app-shell-integrated .system-settings-certificate-summary {
   margin: 0;
-  padding: 16px 24px 0;
+  padding: 12px 18px 0;
   color: var(--shell-text, var(--ink));
   font-size: var(--sapd-shell-type-body, 14px);
   line-height: 1.6;
@@ -518,9 +647,23 @@
 .app-shell-integrated .system-settings-certificate-grid {
   display: grid;
   grid-template-columns: 0.8fr 0.8fr 0.9fr 0.8fr 1.35fr;
-  margin: 14px 24px 0;
+  margin: 12px 18px 0;
   border-block: 1px solid var(--sapd-shell-divider, var(--line));
   background: color-mix(in oklch, var(--sapd-shell-surface, var(--panel)) 96%, var(--sapd-shell-surface-quiet, var(--surface-quiet)));
+}
+
+.app-shell-integrated .system-settings-ai-connection-grid .system-settings-certificate-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  border-right: 0;
+  border-left: 0;
+  background: var(--sapd-shell-divider, var(--line));
+}
+
+.app-shell-integrated .system-settings-ai-connection-grid .system-settings-certificate-grid > div {
+  padding: 12px 14px;
+  border: 0;
+  background: var(--sapd-shell-surface, var(--panel));
 }
 
 .app-shell-integrated .system-settings-certificate-grid > div {
@@ -554,7 +697,7 @@
 }
 
 .app-shell-integrated .system-settings-certificate-details {
-  margin: 0 24px 18px;
+  margin: 0 18px 14px;
   padding-top: 4px;
 }
 
@@ -585,8 +728,63 @@
   gap: 4px;
 }
 
+.app-shell-integrated .system-settings-authorization-attention {
+  position: sticky;
+  z-index: 4;
+  top: 10px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 13px 16px;
+  border: 1px solid color-mix(in oklch, var(--sapd-state-warning, var(--warning)) 36%, var(--sapd-shell-divider, var(--line)));
+  border-radius: var(--sapd-shell-radius-surface, 10px);
+  background: color-mix(in oklch, var(--sapd-state-warning, var(--warning)) 9%, var(--sapd-shell-surface, var(--panel)));
+  box-shadow: var(--sapd-shadow-soft, var(--shell-shadow));
+}
+
+.app-shell-integrated .system-settings-authorization-attention > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.app-shell-integrated .system-settings-authorization-attention span,
+.app-shell-integrated .system-settings-authorization-attention small {
+  color: var(--shell-muted, var(--muted));
+  font-size: var(--sapd-shell-type-meta, 12px);
+}
+
+.app-shell-integrated .system-settings-authorization-attention strong {
+  color: var(--shell-text, var(--ink));
+  font-size: var(--sapd-shell-type-body, 14px);
+}
+
+.app-shell-integrated .system-settings-authorization-attention a {
+  min-height: 34px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  padding: 0 13px;
+  border: 1px solid var(--shell-primary, var(--accent));
+  border-radius: var(--sapd-shell-radius-control, 7px);
+  background: var(--shell-primary, var(--accent));
+  color: var(--sapd-shell-surface, var(--panel));
+  font-size: var(--sapd-shell-type-meta, 12px);
+  font-weight: 760;
+  text-decoration: none;
+}
+
+.app-shell-integrated .system-settings-authorization-attention a:hover,
+.app-shell-integrated .system-settings-authorization-attention a:focus-visible {
+  border-color: var(--shell-primary-dark, var(--accent));
+  background: var(--shell-primary-dark, var(--accent));
+}
+
 .app-shell-integrated .system-settings-authorization-list > article {
-  padding: 18px 24px;
+  padding: 14px 18px;
   border-bottom: 1px solid var(--sapd-shell-divider, var(--line));
 }
 
@@ -594,17 +792,28 @@
   border-bottom: 0;
 }
 
-.app-shell-integrated .system-settings-authorization-heading > span {
+.app-shell-integrated .system-settings-authorization-heading > div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.app-shell-integrated .system-settings-authorization-heading > div > span {
   color: var(--shell-muted, var(--muted));
   font-size: var(--sapd-shell-type-meta, 12px);
 }
 
-.app-shell-integrated .system-settings-authorization-summary {
-  min-width: 0;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
+.app-shell-integrated .system-settings-authorization-heading > div > strong {
+  color: var(--shell-text, var(--ink));
+  font-size: 17px;
+}
+
+.app-shell-integrated .system-settings-authorization-heading p {
+  max-width: 78ch;
+  margin: 0;
+  color: var(--shell-muted, var(--muted));
+  font-size: var(--sapd-shell-type-meta, 12px);
+  line-height: 1.5;
 }
 
 .app-shell-integrated .system-settings-trust {
@@ -631,11 +840,74 @@
   color: var(--sapd-state-warning, var(--warning));
 }
 
+.app-shell-integrated .system-settings-authorization-decision {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--sapd-shell-divider, var(--line));
+  border-radius: var(--sapd-shell-radius-control, 7px);
+  background: var(--sapd-shell-surface-quiet, var(--surface-quiet));
+}
+
+.app-shell-integrated .system-settings-authorization-decision > dl {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px 28px;
+  margin: 0;
+}
+
+.app-shell-integrated .system-settings-authorization-decision > dl > div {
+  min-width: 180px;
+  display: grid;
+  gap: 3px;
+}
+
+.app-shell-integrated .system-settings-authorization-decision dt,
+.app-shell-integrated .system-settings-client-access > span,
+.app-shell-integrated .system-settings-client-activity dt {
+  color: var(--shell-muted, var(--muted));
+  font-size: var(--sapd-shell-type-meta, 12px);
+  font-weight: 720;
+}
+
+.app-shell-integrated .system-settings-authorization-decision dd,
+.app-shell-integrated .system-settings-client-activity dd {
+  margin: 0;
+  color: var(--shell-text, var(--ink));
+  font-size: var(--sapd-shell-type-meta, 12px);
+  font-weight: 680;
+}
+
+.app-shell-integrated .system-settings-authorization-decision .system-settings-actions {
+  flex: 0 0 auto;
+  padding: 0;
+}
+
+.app-shell-integrated .system-settings-authorization-details {
+  margin-top: 10px;
+}
+
+.app-shell-integrated .system-settings-authorization-details summary {
+  width: fit-content;
+  padding: 6px 0;
+  color: var(--shell-primary, var(--accent));
+  cursor: pointer;
+  font-size: var(--sapd-shell-type-meta, 12px);
+  font-weight: 720;
+}
+
 .app-shell-integrated .system-settings-authorization-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px 18px;
-  margin-top: 14px;
+  margin: 4px 0 0;
+  padding: 12px 14px;
+  border-radius: var(--sapd-shell-radius-control, 7px);
+  background: var(--sapd-shell-surface-quiet, var(--surface-quiet));
 }
 
 .app-shell-integrated .system-settings-authorization-grid > div {
@@ -646,6 +918,162 @@
 
 .app-shell-integrated .system-settings-authorization-list .system-settings-actions {
   padding: 14px 0 0;
+}
+
+.app-shell-integrated .system-settings-authorization-list .system-settings-authorization-decision .system-settings-actions {
+  padding: 0;
+}
+
+.app-shell-integrated .system-settings-client-list {
+  min-width: 0;
+}
+
+.app-shell-integrated .system-settings-client-table-head,
+.app-shell-integrated .system-settings-client-list > article {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(220px, 1.15fr) minmax(200px, 1fr) minmax(230px, 1fr) 110px;
+  align-items: center;
+  gap: 16px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--sapd-shell-divider, var(--line));
+}
+
+.app-shell-integrated .system-settings-client-table-head {
+  min-height: 38px;
+  padding-block: 9px;
+  background: var(--sapd-shell-surface-quiet, var(--surface-quiet));
+  color: var(--shell-muted, var(--muted));
+  font-size: var(--sapd-shell-type-meta, 12px);
+  font-weight: 720;
+}
+
+.app-shell-integrated .system-settings-client-identity,
+.app-shell-integrated .system-settings-client-access {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.app-shell-integrated .system-settings-client-identity {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.app-shell-integrated .system-settings-client-identity > strong {
+  min-width: 0;
+  color: var(--shell-text, var(--ink));
+  font-size: var(--sapd-shell-type-body, 14px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell-integrated .system-settings-client-identity > small {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  color: var(--shell-muted, var(--muted));
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell-integrated .system-settings-client-access > strong {
+  color: var(--shell-text, var(--ink));
+  font-size: var(--sapd-shell-type-body, 14px);
+}
+
+.app-shell-integrated .system-settings-client-access > small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell-integrated .system-settings-client-access code {
+  font-size: 11px;
+}
+
+.app-shell-integrated .system-settings-client-activity {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+  margin: 0;
+}
+
+.app-shell-integrated .system-settings-client-activity > div {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.app-shell-integrated .system-settings-client-activity dd {
+  white-space: nowrap;
+}
+
+.app-shell-integrated .system-settings-revoke-button {
+  justify-self: end;
+}
+
+.app-shell-integrated .system-settings-client-empty {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
+  align-items: center;
+  gap: 24px;
+  padding: 20px 18px;
+}
+
+.app-shell-integrated .system-settings-client-empty > div {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.app-shell-integrated .system-settings-client-empty > div > span {
+  color: var(--shell-muted, var(--muted));
+  font-size: var(--sapd-shell-type-meta, 12px);
+  line-height: 1.45;
+}
+
+.app-shell-integrated .system-settings-client-empty ol {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.app-shell-integrated .system-settings-client-empty li {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  color: var(--shell-muted, var(--muted));
+  font-size: var(--sapd-shell-type-meta, 12px);
+}
+
+.app-shell-integrated .system-settings-client-empty li b {
+  width: 22px;
+  height: 22px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid color-mix(in oklch, var(--shell-primary, var(--accent)) 24%, var(--sapd-shell-divider, var(--line)));
+  border-radius: 50%;
+  background: color-mix(in oklch, var(--shell-primary, var(--accent)) 6%, var(--sapd-shell-surface, var(--panel)));
+  color: var(--shell-primary, var(--accent));
+}
+
+.app-shell-integrated .system-settings-client-trust-note {
+  margin: 0;
+  padding: 10px 16px;
+  background: var(--sapd-shell-surface-quiet, var(--surface-quiet));
+  color: var(--shell-muted, var(--muted));
+  font-size: var(--sapd-shell-type-meta, 12px);
+  line-height: 1.5;
 }
 
 .app-shell-integrated .system-settings-table-scroll {
@@ -688,6 +1116,11 @@
   font-size: 11px;
 }
 
+.app-shell-integrated .system-settings-revoke-button {
+  justify-self: end;
+  white-space: nowrap;
+}
+
 .app-shell-integrated .system-settings-diagnostics > div {
   display: flex;
   align-items: center;
@@ -708,7 +1141,7 @@
   min-width: 0;
   display: grid;
   gap: 5px;
-  padding: 16px 24px;
+  padding: 13px 16px;
   border-right: 1px solid var(--sapd-shell-divider, var(--line));
 }
 
@@ -729,21 +1162,140 @@
   font-size: var(--sapd-shell-type-body, 14px);
 }
 
+.app-shell-integrated .system-settings-audit-events {
+  min-width: 0;
+  padding: 12px 16px 0;
+}
+
+.app-shell-integrated .system-settings-audit-events-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 8px;
+}
+
+.app-shell-integrated .system-settings-audit-events-heading strong {
+  font-size: var(--sapd-shell-type-body, 14px);
+}
+
+.app-shell-integrated .system-settings-audit-events-heading span {
+  color: var(--shell-muted, var(--muted));
+  font-size: var(--sapd-shell-type-meta, 12px);
+}
+
+.app-shell-integrated .system-settings-audit-events ol {
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--sapd-shell-divider, var(--line));
+  list-style: none;
+}
+
+.app-shell-integrated .system-settings-audit-events li {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 168px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--sapd-shell-divider, var(--line));
+}
+
+.app-shell-integrated .system-settings-audit-events time {
+  color: var(--shell-muted, var(--muted));
+  font-size: var(--sapd-shell-type-meta, 12px);
+  font-variant-numeric: tabular-nums;
+}
+
+.app-shell-integrated .system-settings-audit-event-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.app-shell-integrated .system-settings-audit-event-copy strong {
+  font-size: var(--sapd-shell-type-body, 14px);
+}
+
+.app-shell-integrated .system-settings-audit-event-copy small {
+  overflow: hidden;
+  color: var(--shell-muted, var(--muted));
+  font-size: var(--sapd-shell-type-meta, 12px);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell-integrated .system-settings-audit-result {
+  padding: 3px 8px;
+  border: 1px solid var(--sapd-shell-divider, var(--line));
+  border-radius: 999px;
+  color: var(--shell-muted, var(--muted));
+  font-size: var(--sapd-shell-type-meta, 12px);
+  white-space: nowrap;
+}
+
+.app-shell-integrated .system-settings-audit-result.is-success {
+  border-color: color-mix(in oklch, var(--sapd-state-success, var(--success)) 34%, var(--sapd-shell-divider, var(--line)));
+  color: var(--sapd-state-success, var(--success));
+}
+
+.app-shell-integrated .system-settings-audit-result.is-warning {
+  border-color: color-mix(in oklch, var(--sapd-state-warning, var(--warning)) 34%, var(--sapd-shell-divider, var(--line)));
+  color: var(--sapd-state-warning, var(--warning));
+}
+
+.app-shell-integrated .system-settings-audit-empty {
+  padding: 14px 0;
+  border-top: 1px solid var(--sapd-shell-divider, var(--line));
+  border-bottom: 1px solid var(--sapd-shell-divider, var(--line));
+  color: var(--shell-muted, var(--muted));
+  font-size: var(--sapd-shell-type-meta, 12px);
+}
+
 .app-shell-integrated .system-settings-panel-note {
   margin: 0;
-  padding: 14px 24px 0;
+  padding: 11px 16px 0;
   color: var(--shell-muted, var(--muted));
   font-size: var(--sapd-shell-type-meta, 12px);
 }
 
-.app-shell-integrated .system-settings-reset-actions {
+.app-shell-integrated .system-settings-maintenance {
+  display: flex;
   align-items: center;
-  border-top: 1px solid var(--sapd-shell-divider, var(--line));
+  justify-content: space-between;
+  gap: 24px;
+  padding: 16px 18px;
+  border: 1px solid var(--sapd-shell-divider, var(--line));
+  border-radius: var(--sapd-shell-radius-surface, 10px);
+  background: color-mix(in oklch, var(--sapd-shell-surface, var(--panel)) 78%, transparent);
 }
 
-.app-shell-integrated .system-settings-reset-actions small {
+.app-shell-integrated .system-settings-maintenance > div:first-child {
+  min-width: 0;
+}
+
+.app-shell-integrated .system-settings-maintenance span {
+  color: var(--shell-muted, var(--muted));
+  font-size: 11px;
+  font-weight: 720;
+}
+
+.app-shell-integrated .system-settings-maintenance h2 {
+  margin: 3px 0 0;
+  color: var(--shell-text, var(--ink));
+  font-size: var(--sapd-shell-type-body, 14px);
+}
+
+.app-shell-integrated .system-settings-maintenance p {
+  margin: 4px 0 0;
   color: var(--shell-muted, var(--muted));
   font-size: var(--sapd-shell-type-meta, 12px);
+  line-height: 1.45;
+}
+
+.app-shell-integrated .system-settings-maintenance .system-settings-actions {
+  flex: 0 0 auto;
+  padding: 0;
 }
 
 .app-shell-integrated .system-settings-dialog-backdrop {
@@ -1029,12 +1581,33 @@
 }
 
 @media (max-width: 1180px) {
-  .app-shell-integrated .system-settings-ai-primary {
+  .app-shell-integrated .system-settings-overview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      "service diagnostic"
+      "authorization diagnostic"
+      "knowledge knowledge";
+  }
+
+  .app-shell-integrated .system-settings-ai-connection-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 
   .app-shell-integrated .system-settings-runtime-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .app-shell-integrated .system-settings-ai-connection-grid .system-settings-runtime-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .app-shell-integrated .system-settings-ai-connection-grid .system-settings-runtime-grid > div:nth-child(2) {
+    border-right: 1px solid var(--sapd-shell-divider, var(--line));
+  }
+
+  .app-shell-integrated .system-settings-ai-connection-grid .system-settings-runtime-grid > div:last-child {
+    grid-column: auto;
+    border-top: 0;
   }
 
   .app-shell-integrated .system-settings-certificate-grid {
@@ -1057,12 +1630,7 @@
   .app-shell-integrated .system-settings-certificate-grid > div:last-child {
     border-right: 0;
   }
-}
 
-@media (max-width: 900px) {
-  .app-shell-integrated .system-settings-overview-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 720px) {
@@ -1071,6 +1639,39 @@
   .app-shell-integrated .system-settings-overview-grid,
   .app-shell-integrated .system-settings-authorization-grid,
   .app-shell-integrated .system-settings-certificate-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .app-shell-integrated .system-settings-overview-grid {
+    grid-template-areas:
+      "service"
+      "authorization"
+      "diagnostic"
+      "knowledge";
+  }
+
+  .app-shell-integrated .system-settings-ai-connection-grid .system-settings-runtime-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .app-shell-integrated .system-settings-ai-connection-grid .system-settings-runtime-grid > div:nth-child(2) {
+    border-right: 0;
+  }
+
+  .app-shell-integrated .system-settings-ai-connection-grid .system-settings-runtime-grid > div:last-child {
+    grid-column: auto;
+    border-top: 0;
+  }
+
+  .app-shell-integrated .system-settings-overview-knowledge-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .app-shell-integrated .system-settings-overview-knowledge-list > div:last-child {
+    grid-column: auto;
+  }
+
+  .app-shell-integrated .system-settings-ai-connection-grid .system-settings-certificate-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -1087,6 +1688,29 @@
     align-items: stretch;
     flex-direction: column;
     margin-block: 12px 8px;
+  }
+
+  .app-shell-integrated .system-settings-maintenance {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .app-shell-integrated .system-settings-maintenance .system-settings-actions,
+  .app-shell-integrated .system-settings-maintenance .system-settings-actions button {
+    width: 100%;
+  }
+
+  .app-shell-integrated .system-settings-authorization-attention,
+  .app-shell-integrated .system-settings-authorization-decision {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .app-shell-integrated .system-settings-authorization-attention a,
+  .app-shell-integrated .system-settings-authorization-decision .system-settings-actions,
+  .app-shell-integrated .system-settings-authorization-decision .system-settings-actions button {
+    width: 100%;
   }
 
   .app-shell-integrated .system-settings-notice {
@@ -1146,6 +1770,34 @@
     justify-content: flex-start;
   }
 
+  .app-shell-integrated .system-settings-client-list > article {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .app-shell-integrated .system-settings-client-table-head {
+    display: none;
+  }
+
+  .app-shell-integrated .system-settings-client-activity,
+  .app-shell-integrated .system-settings-revoke-button {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .app-shell-integrated .system-settings-revoke-button {
+    width: 100%;
+    justify-self: stretch;
+  }
+
+  .app-shell-integrated .system-settings-client-empty {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .app-shell-integrated .system-settings-client-empty ol {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .app-shell-integrated .system-settings-audit-grid {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -1162,6 +1814,15 @@
 
   .app-shell-integrated .system-settings-audit-grid > div:last-child {
     border-bottom: 0;
+  }
+
+  .app-shell-integrated .system-settings-audit-events li {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 12px;
+  }
+
+  .app-shell-integrated .system-settings-audit-events time {
+    grid-column: 1 / -1;
   }
 
   .app-shell-integrated .system-settings-dialog-backdrop {

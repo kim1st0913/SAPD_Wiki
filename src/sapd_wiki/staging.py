@@ -73,6 +73,24 @@ def _merge_relations(relations: list[RelationCandidate]) -> dict[str, RelationCa
 
 
 def _match_item(conn: sqlite3.Connection, obj: ObjectCandidate) -> str | None:
+    if obj.type == "environment_segment":
+        if not obj.qualifier:
+            raise ValueError("environment_segment 匹配必须提供信息化环境 qualifier")
+        matches = []
+        for row in conn.execute(
+            """
+            SELECT id, metadata_json
+            FROM knowledge_items
+            WHERE type = ? AND title = ?
+            """,
+            (obj.type, obj.title),
+        ).fetchall():
+            metadata = json.loads(row["metadata_json"] or "{}")
+            if metadata.get("object_key") == obj.key:
+                matches.append(row["id"])
+        if len(matches) > 1:
+            raise ValueError(f"environment_segment 上下文身份重复：{obj.key}")
+        return matches[0] if matches else None
     if obj.code:
         row = conn.execute(
             "SELECT id FROM knowledge_items WHERE type = ? AND code = ? LIMIT 1",

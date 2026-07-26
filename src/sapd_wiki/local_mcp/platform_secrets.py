@@ -150,6 +150,14 @@ class SubprocessKeychainCommandRunner:
         )
 
 
+def _security_interactive_argument(value: str) -> str:
+    """Quote a controlled value for ``security -i`` without using argv."""
+
+    if not isinstance(value, str) or any(character in value for character in "\x00\r\n"):
+        raise SecretCustodyError("SECRET_VALUE_INVALID")
+    return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
 class MacOSWebDevKeychainSecretProvider:
     """Persistent Web-dev custody using the current user's login Keychain.
 
@@ -220,21 +228,25 @@ class MacOSWebDevKeychainSecretProvider:
         if not isinstance(secret, bytes) or len(secret) < 32:
             raise SecretCustodyError("SECRET_VALUE_INVALID")
         try:
-            prompt_value = secret.decode("ascii").encode("ascii") + b"\n"
+            secret_text = secret.decode("ascii")
         except UnicodeError as exc:
             raise SecretCustodyError("SECRET_VALUE_INVALID") from exc
+        # ``security add-generic-password ... <keychain> -w`` is rejected by
+        # the macOS CLI because ``-w`` consumes the next positional value.
+        # Supplying the password as a normal ``-w <value>`` argument would
+        # expose it in the process list.  The interactive mode accepts the
+        # complete command over a private stdin pipe, so neither the secret nor
+        # its Keychain reference enters argv, the environment, or a file.
+        prompt_value = (
+            "add-generic-password "
+            f"-a {_security_interactive_argument(self._account(reference))} "
+            f"-s {_security_interactive_argument(self.service)} "
+            "-U "
+            f"-w {_security_interactive_argument(secret_text)} "
+            f"{_security_interactive_argument(str(self.login_keychain))}\n"
+        ).encode("utf-8")
         result = self.runner.run(
-            (
-                "/usr/bin/security",
-                "add-generic-password",
-                "-a",
-                self._account(reference),
-                "-s",
-                self.service,
-                "-U",
-                str(self.login_keychain),
-                "-w",
-            ),
+            ("/usr/bin/security", "-i"),
             input_bytes=prompt_value,
         )
         if result.returncode != 0:

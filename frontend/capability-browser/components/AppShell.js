@@ -84,6 +84,7 @@
         children: [
           { id: "security-capabilities", label: "安全能力清单", route: "/knowledge/capabilities", type: "knowledge-directory", children: [] },
           { id: "security-scopes", label: "安全能力作用域目录", route: "/knowledge/scopes", type: "knowledge-directory", children: [] },
+          { id: "environment-objects", label: "信息化环境-对象目录", route: "/knowledge/environment-objects", type: "knowledge-directory", children: [] },
           { id: "technical-services", label: "安全技术服务清单", route: "/knowledge/technical-services", type: "knowledge-directory", children: [] },
           { id: "technical-knowledge", label: "安全技术模块/措施清单", route: "/knowledge/technical", type: "knowledge-directory", children: [] },
           { id: "management-workflows", label: "安全管理工作/流程清单", route: "/knowledge/management-workflows", type: "knowledge-directory", children: [] },
@@ -163,6 +164,7 @@
     "/knowledge": { view: "maintenance", maintenancePage: "scopes" },
     "/knowledge/capabilities": { view: "maintenance", maintenancePage: "capability-directory" },
     "/knowledge/scopes": { view: "maintenance", maintenancePage: "scopes" },
+    "/knowledge/environment-objects": { view: "maintenance", maintenancePage: "environment-objects" },
     "/knowledge/technical-services": { view: "maintenance", maintenancePage: "services" },
     "/knowledge/technical": { view: "maintenance", maintenancePage: "modules" },
     "/knowledge/technical-modules": { view: "maintenance", maintenancePage: "modules", canonicalRoute: "/knowledge/technical" },
@@ -204,6 +206,7 @@
   const MAINTENANCE_ROUTES = {
     "capability-directory": "/knowledge/capabilities",
     scopes: "/knowledge/scopes",
+    "environment-objects": "/knowledge/environment-objects",
     services: "/knowledge/technical-services",
     modules: "/knowledge/technical",
     measures: "/knowledge/technical",
@@ -250,6 +253,7 @@
     "/data-security": "以 LC-DT 数据生命周期过程和场景为主语，承载数据安全服务、模块和措施的受控专项关系投影。",
     "/knowledge": "集中维护作用域、技术服务、技术模块、技术措施、安全工作、流程和安全职能等知识对象。",
     "/knowledge/capabilities": "安全能力清单按 L0 能力分类、L1 能力域、L2 安全能力逐层归纳展开，并展示安全关注点表格。",
+    "/knowledge/environment-objects": "按信息化环境、环境子类和信息化对象三级结构维护环境对象字典，并与信息化环境安全能力映射共用权威数据。",
     "/knowledge/technical-services": "安全技术服务清单用于核对服务编号、定义补充状态、归属安全能力/关注点和模块关联关系。",
     "/knowledge/technical": "安全系统（为解决某一场景 / 领域的安全问题，由多个安全模块组成、协同运行的实体）；安全技术模块（实现一个或多个安全能力的安全技术逻辑实体，可以独立部署运行，通常代表一类安全产品）。",
     "/knowledge/management-workflows": "用页签集中维护安全工作清单和安全职能流程清单。",
@@ -950,6 +954,8 @@
   function mcpStatusPresentation(snapshot = null, { error = false } = {}) {
     const statusSnapshot = snapshot?.status || {};
     const serviceState = text(snapshot?.service_state || statusSnapshot.service_state).trim();
+    const reconnectState = text(snapshot?.reconnect_state || statusSnapshot.reconnect_state).trim();
+    const autoRestore = Boolean(snapshot?.settings?.auto_restore);
     const authorizedCount = Number(
       snapshot?.authorized_client_count
       ?? snapshot?.status?.authorized_client_count
@@ -1009,8 +1015,12 @@
               : pendingCount > 0
                 ? "warning"
                 : serviceTone,
-      serviceLabel: error ? "状态不可用" : serviceState === "ready" ? "已启动" : serviceState === "starting" ? "启动中" : serviceState === "stopping" ? "停止中" : serviceState === "error" ? "异常" : "未启动",
-      serviceMeta: serviceState === "ready" ? "仅监听本机回环地址" : "启动后才接受连接",
+      serviceLabel: error ? "状态不可用" : reconnectState === "scheduled" || reconnectState === "recovering" ? "自动恢复中" : serviceState === "ready" ? "已启动" : serviceState === "starting" ? "启动中" : serviceState === "stopping" ? "停止中" : serviceState === "error" ? "异常" : "未启动",
+      serviceMeta: serviceState === "ready"
+        ? autoRestore
+          ? "随应用启动，异常中断自动恢复"
+          : "仅监听本机回环地址"
+        : "启动后才接受连接",
       authorizationLabel: pendingCount > 0
         ? `待确认 ${pendingCount} 个`
         : authorizedCount > 0
@@ -1077,7 +1087,11 @@
     if (!target) return;
     if (snapshot && typeof snapshot === "object") lastMcpStatusSnapshot = snapshot;
     lastMcpStatusOptions = { ...lastMcpStatusOptions, ...options };
-    target.outerHTML = renderMcpStatusMonitor(lastMcpStatusSnapshot, lastMcpStatusOptions);
+    const template = document.createElement("template");
+    template.innerHTML = renderMcpStatusMonitor(lastMcpStatusSnapshot, lastMcpStatusOptions).trim();
+    const next = template.content.firstElementChild;
+    if (!next || target.isEqualNode(next)) return;
+    target.replaceWith(next);
   }
 
   function renderLocalModeStatus(license = window.sapdLicenseStatus) {

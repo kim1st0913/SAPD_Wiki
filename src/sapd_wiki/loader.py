@@ -104,6 +104,46 @@ def _validated_matched_item_id(conn: sqlite3.Connection, matched_item_id: str | 
     return None
 
 
+def _existing_relation_for_upsert(
+    conn: sqlite3.Connection,
+    *,
+    source_item_id: str,
+    target_item_id: str,
+    relation_type: str,
+) -> str | None:
+    if relation_type == "instance_of":
+        rows = conn.execute(
+            """
+            SELECT id, target_item_id
+            FROM knowledge_relations
+            WHERE source_item_id = ? AND relation_type = ?
+            """,
+            (source_item_id, relation_type),
+        ).fetchall()
+        if len(rows) > 1:
+            raise ValueError(
+                f"instance_of 来源端存在多重关系：source_item_id={source_item_id}"
+            )
+        if rows and rows[0]["target_item_id"] != target_item_id:
+            raise ValueError(
+                "instance_of 目标变更必须停止并人工裁定："
+                f"source_item_id={source_item_id}, "
+                f"existing_target_item_id={rows[0]['target_item_id']}, "
+                f"requested_target_item_id={target_item_id}"
+            )
+        return rows[0]["id"] if rows else None
+
+    row = conn.execute(
+        """
+        SELECT id FROM knowledge_relations
+        WHERE source_item_id = ? AND target_item_id = ? AND relation_type = ?
+        LIMIT 1
+        """,
+        (source_item_id, target_item_id, relation_type),
+    ).fetchone()
+    return row["id"] if row else None
+
+
 def _write_source_refs(
     conn: sqlite3.Connection,
     *,
@@ -480,16 +520,14 @@ def approve_import(conn: sqlite3.Connection, import_job_id: str) -> ApproveSumma
             )
             continue
         current_relation_keys.add((source_item_id, row["relation_type"], target_item_id))
-        existing = conn.execute(
-            """
-            SELECT id FROM knowledge_relations
-            WHERE source_item_id = ? AND target_item_id = ? AND relation_type = ?
-            LIMIT 1
-            """,
-            (source_item_id, target_item_id, row["relation_type"]),
-        ).fetchone()
-        if existing:
-            relation_id = existing["id"]
+        existing_relation_id = _existing_relation_for_upsert(
+            conn,
+            source_item_id=source_item_id,
+            target_item_id=target_item_id,
+            relation_type=row["relation_type"],
+        )
+        if existing_relation_id:
+            relation_id = existing_relation_id
             metadata = _loads(row["metadata_json"], {})
             conn.execute(
                 """

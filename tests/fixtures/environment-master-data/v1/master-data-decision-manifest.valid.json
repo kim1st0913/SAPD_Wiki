@@ -1,0 +1,56 @@
+{
+  "schema_version": "environment-master-data-decision-manifest-v1",
+  "run_id": "fixture-p0-contract",
+  "generated_at": "2026-07-25T00:00:00Z",
+  "source_baseline": {
+    "database_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "environment_workbench_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "entries": [
+    {
+      "master_type": "information_environment",
+      "stable_ref": "base:information_environment:fixture-environment-1",
+      "public_id": "ki_fixture_environment_1",
+      "code": "IE-001",
+      "canonical_title": "数据中心",
+      "aliases": [],
+      "definition": "信息化环境夹具。",
+      "status": "active",
+      "decision": "reuse",
+      "decision_note": "复用既有稳定身份。",
+      "context_evidence_refs": [
+        "evidence:fixture:environment:1"
+      ]
+    },
+    {
+      "master_type": "environment_segment_type",
+      "stable_ref": null,
+      "public_id": null,
+      "code": "ES-001",
+      "canonical_title": "网络",
+      "aliases": [],
+      "definition": "环境子类候选夹具。",
+      "status": "active",
+      "decision": "create",
+      "decision_note": "仅用于验证清单结构，不代表真实业务裁定。",
+      "context_evidence_refs": [
+        "evidence:fixture:segment:1"
+      ]
+    },
+    {
+      "master_type": "information_object",
+      "stable_ref": "base:information_object:fixture-object-1",
+      "public_id": "ki_fixture_object_1",
+      "code": null,
+      "canonical_title": "网络边界",
+      "aliases": [],
+      "definition": null,
+      "status": "active",
+      "decision": "hold",
+      "decision_note": "展示阻塞决策值；P2正式清单不得保留hold。",
+      "context_evidence_refs": [
+        "evidence:fixture:object:1"
+      ]
+    }
+  ]
+}

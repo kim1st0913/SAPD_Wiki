@@ -69,6 +69,7 @@ class BrowserOnlySupervisorGateway:
                 "retention_bytes": 20 * 1024 * 1024,
                 "event_count": 0,
                 "last_event_at": None,
+                "recent_events": [],
             },
             "diagnostics": {
                 "overall_state": "unknown",

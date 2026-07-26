@@ -24,7 +24,7 @@
 
 | 编号 | 状态 | 标题 |
 |---|---|---|
-| OI-199 | 部分完成 / 待真实客户端与平台验证 | 本地 MCP 正式知识访问已接入，真实客户端与系统信任仍待验证 |
+| OI-199 | 部分完成 / macOS Chrome 兼容修复待人工复验 | 本地 MCP 正式知识访问已接入，真实客户端与跨平台验证仍待完成 |
 | OI-198 | 待实现 / 契约已确认 | 导入审批缺少幂等门禁、中间数据终结和 approved 默认导出契约 |
 | OI-197 | 待业务确认 / 映射门禁阻断 | 成熟度评分依据与当前能力字典尚未全量映射 |
 | OI-192 | 已修复 / 待用户验收 | 成熟度评分工作台服务、评分定义与主动作契约未按截图落地 |
@@ -52,21 +52,21 @@
 
 ## 当前问题详情
 
-## OI-199：本地 MCP 正式知识访问已接入，真实客户端与系统信任仍待验证
+## OI-199：本地 MCP 正式知识访问已接入，真实客户端与跨平台验证仍待完成
 
-- 状态：部分完成 / 待真实客户端与平台验证
+- 状态：部分完成 / macOS Chrome 兼容修复待人工复验
 - 严重性：高
 - 类型：架构 / 本地 API / OAuth / TLS / 数据授权 / 审计 / macOS / Windows
 - 对象或页面：本地 MCP Sidecar、正式基础库只读 Runtime、Codex MCP 配置、系统设置 AI 集成页、独立 MCP 控制面、macOS / Windows CurrentUser 信任。
-- 现象：正式知识访问、OAuth/Streamable HTTP、固定 5 个 Tool、Web 控制面、稳定测试证书和隔离 Sidecar 已实现并自动验收；但尚未完成目标 Codex 版本矩阵、真实 CurrentUser 系统信任、macOS Keychain / Windows DPAPI、App Runtime 和打包验证。
+- 现象：正式知识访问、OAuth/Streamable HTTP、固定 5 个 Tool、Web 控制面和隔离 Sidecar 已实现；macOS Web 开发入口已完成真实 CurrentUser 证书、Keychain 密钥、系统信任与 MCP 启停验证，但尚未完成目标 Codex 版本矩阵、Windows DPAPI / CurrentUser 信任、App Runtime 和打包验证。
 - 影响：知识查询功能可以进入本机 Web 开发验证，但在真实客户端与平台验证完成前，不能宣称跨版本 Codex、macOS/Windows 安装包或系统信任交付完成。
 - 建单理由：涉及跨平台 App、OAuth/TLS、本地 API、正式基础数据、来源许可、审计和用户隐私，且本轮只完成设计合同，无法自动关闭。
-- 当前处理：用户已明确裁定正式基础知识库全部业务内容可由 AI 调用，不再以 `public_summary / ai_summary` 作为二次门禁。正式 `MCP-BASE-KNOWLEDGE-ACCESS-v1`、只读 Runtime、固定参数化查询、系统设置说明和 Web Sidecar 已统一落地；下一阶段只推进真实客户端与平台验证，不再继续扩写摘要数据轨。
+- 当前处理：用户已明确裁定正式基础知识库全部业务内容可由 AI 调用，不再以 `public_summary / ai_summary` 作为二次门禁。正式 `MCP-BASE-KNOWLEDGE-ACCESS-v1`、只读 Runtime、固定参数化查询、系统设置说明和 Web Sidecar 已统一落地；macOS 服务只发送服务器 leaf。真实 Chrome 验证证明 hostname-scoped CurrentUser trust settings 不被 Chrome 证书验证器接受，现已改为 Chrome 可识别的 CurrentUser 根信任，同时强制 CA critical `nameConstraints=127.0.0.1/32`、leaf SAN 和 loopback 监听，并同时检查 SSL 链与基础根信任；旧条目会显示“信任缺失”并通过“修复安全连接”迁移。该变更不写入系统级或 LocalMachine 信任，也不允许 CA 用于其他地址。
 - 需要确认：进入真实客户端验证前，仍需用户单独授权目标 Codex 版本矩阵、真实客户端配置、CurrentUser 系统信任、Keychain/DPAPI 与 App/打包范围。
 - 验收入口：`/settings/ai-integration`、`docs/01-architecture/contracts/mcp/base-knowledge/v1/`、`tests/mcp/test_base_query_service.py`、`tests/mcp_e2e/test_web_dev_mcp_e2e.py`。
 - 关闭条件：目标 Codex 版本在 macOS/Windows 完成 HTTPS、发现、注册、PKCE、resource/audience、刷新、撤销、升级/回滚/卸载和负向安全矩阵；真实 CurrentUser 信任与密钥保管验证通过；MCP 始终不创建、打开或修改用户库。
 - 修复说明：新增正式基础知识库访问合同与 scope `sapd.base.knowledge.read`；Sidecar 改为只读打开正式基础库并通过 5 个固定工具返回全部业务对象内容、关系和脱敏来源证据。旧 synthetic 公开摘要合同保留为历史测试基线。系统设置明确显示“基础知识库全部业务内容，包括完整标准正文”，并继续排除用户数据、源文件本体、本地路径、系统配置与凭据、日志和非受控 SQL。
-- 验证结果：2026-07-24 MCP Python `155` 项和系统设置前端合同通过；正式 GB/T 22239 完整条款与 deprecated 对象均可只读返回；MCP 查询前后正式基础库和用户库 SHA-256 未变化；页面重载发现的既有用户 schema 元数据无条件刷新已修复，修复后用户库哈希、40 条批注及业务更新时间保持不变；应用内页面无横向溢出，console warning / error 为 `0`；稳定 5173 的 home / health / workspace projection 和五项 runtime profile 通过。真实客户端、系统信任、App/DMG 仍未验证。
+- 验证结果：2026-07-25 Chrome 完整重启后仍对 hostname-scoped 条目返回 `ERR_CERT_AUTHORITY_INVALID`，而 Codex 已成功发现 OAuth 并生成 `/oauth/authorize`，证明阻断位于 Chrome TLS 信任层。修复后 MCP suite `163/163` 通过，5173 已把旧条目从错误的“连接安全”改判为“信任缺失”并提供迁移按钮；CurrentUser 信任迁移后的真实 Chrome OAuth、授权、工具调用和撤销仍待本机人工复验。正式基础库和用户库未修改；Windows 和 App/DMG 仍未验证。
 
 ## OI-198：导入审批缺少幂等门禁、中间数据终结和 approved 默认导出契约
 

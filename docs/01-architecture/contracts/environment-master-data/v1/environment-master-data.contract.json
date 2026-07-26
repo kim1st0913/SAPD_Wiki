@@ -1,0 +1,275 @@
+{
+  "schema_version": "environment-master-data-contract-schema-v1",
+  "contract_id": "SAPD-ENVIRONMENT-MASTER-DATA-v1",
+  "contract_version": "1.0.0",
+  "status": "p0_frozen",
+  "scope": {
+    "plan_id": "PLAN-ENV-MD",
+    "runtime_impact": "shared_runtime_data_contract",
+    "initial_release_mode": "read_only_dictionary",
+    "formal_apply_authorized": false
+  },
+  "authority": {
+    "identity_and_relation_baselines": [
+      "data/database/sapd_wiki.sqlite3",
+      "frontend/capability-browser/public/data/environment-workbench.json"
+    ],
+    "baseline_parity_required_before_candidate_generation": true,
+    "source_excel_role": "protected_provenance_not_frontend_runtime",
+    "conflict_rule": "stop_and_review",
+    "frontend_canonicalization_allowed": false,
+    "protected_outputs_must_not_be_rebuilt_from_an_unverified_database": true
+  },
+  "object_types": [
+    {
+      "type": "information_environment",
+      "ui_label": "信息化环境",
+      "semantic_role": "master_data",
+      "identity_policy": "reuse_existing_identity",
+      "code_prefix": "IE",
+      "code_pattern": "^IE-[0-9]{3}$",
+      "observed_baseline_count": 10,
+      "target_count_policy": "exact_observed_baseline"
+    },
+    {
+      "type": "environment_segment_type",
+      "ui_label": "环境子类",
+      "semantic_role": "master_data",
+      "identity_policy": "create_after_business_adjudication",
+      "code_prefix": "ES",
+      "code_pattern": "^ES-[0-9]{3}$",
+      "observed_title_candidate_count": 16,
+      "observed_context_instance_count": 29,
+      "target_count_policy": "p2_adjudicated_from_title_clusters_may_merge_or_split",
+      "target_count_upper_bound": 29
+    },
+    {
+      "type": "information_object",
+      "ui_label": "信息化对象",
+      "semantic_role": "master_data",
+      "identity_policy": "reuse_existing_identity_subject_to_p1_audit",
+      "code_prefix": "IO",
+      "code_pattern": "^IO-[0-9]{3}$",
+      "observed_baseline_count": 51,
+      "target_count_policy": "exact_observed_baseline_unless_p1_finds_semantic_conflict"
+    }
+  ],
+  "context_grains": {
+    "environment_segment": {
+      "ui_label": "环境子类上下文",
+      "semantic_role": "context_instance",
+      "observed_baseline_count": 29,
+      "identity_match": "type_plus_environment_identity_or_qualifier_plus_normalized_title",
+      "preserve_existing_ids": true
+    },
+    "environment_object_context": {
+      "ui_label": "环境对象上下文",
+      "semantic_role": "relationship_context",
+      "observed_baseline_count": 67,
+      "preserve_existing_relationships": true
+    }
+  },
+  "identity_contract": {
+    "identity_fields": [
+      "id",
+      "stable_key",
+      "stable_ref",
+      "public_id",
+      "code"
+    ],
+    "code_allocation": {
+      "format": "PREFIX-NNN",
+      "sequence_width": 3,
+      "persisted_manifest_required": true,
+      "runtime_derivation_forbidden": true,
+      "recycling_forbidden": true,
+      "renumbering_forbidden": true,
+      "fill_empty_code_only": true,
+      "existing_non_empty_conflict_action": "stop_and_review"
+    },
+    "code_backfill_must_not_change": [
+      "id",
+      "stable_key",
+      "stable_ref",
+      "public_id",
+      "metadata.object_key"
+    ],
+    "statuses": [
+      "active",
+      "deprecated",
+      "merged"
+    ],
+    "normalization_allowed": [
+      "unicode_normalization",
+      "fullwidth_halfwidth_normalization",
+      "trim_outer_whitespace",
+      "collapse_repeated_whitespace"
+    ],
+    "normalization_forbidden": [
+      "remove_business_punctuation",
+      "remove_abbreviation",
+      "remove_level_word",
+      "remove_parenthetical_content",
+      "semantic_merge_without_review"
+    ]
+  },
+  "decision_manifest_contract": {
+    "schema": "master-data-decision-manifest.schema.json",
+    "required_fields": [
+      "master_type",
+      "stable_ref",
+      "public_id",
+      "code",
+      "canonical_title",
+      "aliases",
+      "definition",
+      "status",
+      "decision",
+      "decision_note",
+      "context_evidence_refs"
+    ],
+    "decision_values": [
+      "reuse",
+      "create",
+      "merge_review",
+      "split_review",
+      "hold"
+    ],
+    "formal_apply_blocking_values": [
+      "merge_review",
+      "split_review",
+      "hold"
+    ]
+  },
+  "relation_contract": {
+    "preserved_relations": [
+      {
+        "relation_type": "belongs_to",
+        "source_type": "environment_segment",
+        "target_type": "information_environment",
+        "mutation": "preserve"
+      },
+      {
+        "relation_type": "belongs_to",
+        "source_type": "information_object",
+        "target_type": "environment_segment_or_information_environment",
+        "mutation": "preserve"
+      }
+    ],
+    "new_relation": {
+      "relation_type": "instance_of",
+      "relation_label": "实例归属",
+      "source_type": "environment_segment",
+      "target_type": "environment_segment_type",
+      "source_cardinality": "exactly_one",
+      "unique_key": [
+        "source_item_id",
+        "relation_type"
+      ],
+      "expected_relation_count_at_current_baseline": 29,
+      "idempotent_apply_required": true,
+      "target_change_action": "stop_and_review"
+    },
+    "direct_object_to_environment_allowed": true,
+    "synthetic_segment_creation_forbidden": true,
+    "orphan_endpoint_allowed": false
+  },
+  "dictionary_projection_contract": {
+    "schema": "environment-dictionary.schema.json",
+    "schema_version": "environment-dictionary-v1",
+    "static_package": "frontend/capability-browser/public/data/environment-dictionary.json",
+    "api_endpoint": "GET /api/v1/environments/dictionary",
+    "top_level_collections": [
+      "information_environments",
+      "environment_segment_types",
+      "information_objects",
+      "usage_relations"
+    ],
+    "source_evidence_mode": "sidecar_or_existing_folded_evidence_surface",
+    "main_surface_forbidden_fields": [
+      "sheet",
+      "row",
+      "column",
+      "raw_value",
+      "source_file",
+      "source_file_id",
+      "import_id",
+      "import_job_id",
+      "metadata",
+      "generated_at_as_visible_business_field"
+    ]
+  },
+  "statistics_contract": {
+    "master_counts": [
+      "information_environments",
+      "environment_segment_types",
+      "information_objects"
+    ],
+    "context_counts": [
+      "environment_segments",
+      "environment_object_contexts"
+    ],
+    "master_and_context_counts_must_not_be_combined": true,
+    "dashboard_must_consume_declared_fields_only": true
+  },
+  "frontend_contract": {
+    "route": "/knowledge/environment-objects",
+    "navigation_label": "信息化环境-对象目录",
+    "category_order": [
+      "information_environment",
+      "environment_segment_type",
+      "information_object"
+    ],
+    "category_labels": [
+      "信息化环境",
+      "环境子类",
+      "信息化对象"
+    ],
+    "default_category_state": "collapsed",
+    "write_actions_enabled": false,
+    "search_expands_matching_category": true,
+    "clear_search_restores_previous_expansion": true,
+    "keyboard_expand_keys": [
+      "Enter",
+      "Space"
+    ],
+    "client_states": [
+      "loading",
+      "ready",
+      "empty",
+      "missing_package",
+      "api_error",
+      "schema_incompatible"
+    ],
+    "relationship_navigation_requires_explicit_stable_target": true,
+    "legacy_fallback": {
+      "enabled": true,
+      "source": "environment-workbench tree directory",
+      "frontend_deduplication_forbidden": true,
+      "compatibility_notice_required": true
+    }
+  },
+  "compatibility_contract": {
+    "must_remain_compatible": [
+      "frontend/capability-browser/public/data/environment-workbench.json",
+      "GET /api/v1/environments/tree",
+      "frontend/capability-browser/public/data/environment/navigator.json",
+      "frontend/capability-browser/public/data/environment/projections/",
+      "frontend/capability-browser/generated/environmentBasemap.node-details.json",
+      "frontend/capability-browser/public/data/analytics-summary.json",
+      "runtime_search_index",
+      "local_mcp_base_knowledge_read"
+    ],
+    "feature_switch_required": true,
+    "shadow_projection_before_switch_required": true,
+    "app_offline_compatibility_required": true
+  },
+  "p0_stop_conditions": [
+    "runtime_code_or_formal_data_write_requested_without_new_scope",
+    "baseline_database_and_environment_package_disagree",
+    "object_or_relation_vocabulary_is_undefined",
+    "code_pattern_or_identity_preservation_is_ambiguous",
+    "api_schema_or_statistics_grain_is_ambiguous",
+    "p1_candidate_generation_attempts_to_auto_merge_by_title"
+  ]
+}

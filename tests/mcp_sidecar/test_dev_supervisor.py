@@ -7,6 +7,7 @@ import ssl
 import tempfile
 import time
 import unittest
+from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
 
@@ -41,6 +42,22 @@ def provision_certificate(supervisor: DevSidecarSupervisor) -> dict:
     return dict(supervisor.read_snapshot()["certificate"])
 
 
+def wait_for_service_state(
+    supervisor: DevSidecarSupervisor,
+    expected: str,
+    *,
+    timeout: float = 8.0,
+) -> dict:
+    deadline = time.time() + timeout
+    snapshot = dict(supervisor.read_snapshot())
+    while time.time() < deadline:
+        snapshot = dict(supervisor.read_snapshot())
+        if snapshot["status"]["service_state"] == expected:
+            return snapshot
+        time.sleep(0.05)
+    return snapshot
+
+
 class UnsafeSecretChannel(ParentSecretChannel):
     def deliver(self, **_kwargs: object):
         self.close()
@@ -57,6 +74,20 @@ class RecordingSecretProvider(InMemorySecretProvider):
         self.last_reference = reference
         self.last_secret = bytes(secret)
         super().put_secret(reference, secret)
+
+
+class VolatileVerifiedAtTrust(FakeCurrentUserTrustAdapter):
+    def __init__(self) -> None:
+        super().__init__()
+        self.inspection_count = 0
+
+    def inspect_target(self, target):
+        inspection = super().inspect_target(target)
+        self.inspection_count += 1
+        return replace(
+            inspection,
+            verified_at=f"2026-07-24T09:00:{self.inspection_count:02d}Z",
+        )
 
 
 class DevSupervisorTests(unittest.TestCase):
@@ -254,6 +285,31 @@ class DevSupervisorTests(unittest.TestCase):
             finally:
                 restarted.close()
 
+    def test_trust_observation_timestamp_does_not_churn_state_version(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            supervisor = DevSidecarSupervisor(
+                configured_port=28779,
+                runtime_root=Path(temporary) / "runtime",
+                certificate_identity_root=Path(temporary) / "identity",
+                certificate_secret_provider=InMemorySecretProvider(),
+                certificate_trust_adapter=VolatileVerifiedAtTrust(),
+                cleanup_on_close=False,
+            )
+            try:
+                provision_certificate(supervisor)
+                first = supervisor.read_snapshot()
+                second = supervisor.read_snapshot()
+                self.assertNotEqual(
+                    first["certificate"]["trust_verified_at"],
+                    second["certificate"]["trust_verified_at"],
+                )
+                self.assertEqual(
+                    first["state_version"],
+                    second["state_version"],
+                )
+            finally:
+                supervisor.close()
+
     def test_rotation_projects_retiring_operation_and_reset_cleans_all_generations(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             provider = InMemorySecretProvider()
@@ -395,6 +451,134 @@ class DevSupervisorTests(unittest.TestCase):
                     request_id="request-confirm-web-reset-replay",
                     expected_state_version=confirmed["state_version"],
                 )
+        finally:
+            supervisor.close()
+
+    def test_enabled_service_and_authorization_restore_after_supervisor_restart(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory(prefix="sapd-mcp-restore-") as temporary:
+            root = Path(temporary)
+            runtime_root = root / "runtime"
+            identity_root = root / "identity"
+            provider = InMemorySecretProvider()
+            trust = FakeCurrentUserTrustAdapter()
+            port = free_port()
+            access_token = "persisted-access-" + ("a" * 48)
+            refresh_token = "persisted-refresh-" + ("r" * 48)
+            supervisor = DevSidecarSupervisor(
+                configured_port=port,
+                runtime_root=runtime_root,
+                certificate_identity_root=identity_root,
+                certificate_secret_provider=provider,
+                certificate_trust_adapter=trust,
+                cleanup_on_close=False,
+                auto_restore_enabled=True,
+            )
+            try:
+                provision_certificate(supervisor)
+                supervisor.start_service(
+                    request_id="request-persistent-start",
+                    expected_state_version=supervisor.read_snapshot()[
+                        "state_version"
+                    ],
+                )
+                supervisor._store.save_client(
+                    "codex-persisted",
+                    {"client_name": "Codex"},
+                    registration_mode="DCR",
+                )
+                supervisor._store.create_token_family(
+                    family_id="family-persisted",
+                    client_id="codex-persisted",
+                    scopes=["sapd.base.public.summary.read"],
+                    resource=f"https://127.0.0.1:{port}/mcp",
+                    instance_id=supervisor._instance_id,
+                    runtime_id=supervisor._runtime_id,
+                    grant_version="grant-v1",
+                    policy_version="policy-v1",
+                    access_token=access_token,
+                    access_expires_at=time.time() + 3600,
+                    refresh_token=refresh_token,
+                    refresh_expires_at=time.time() + 86400,
+                )
+                first_instance_id = supervisor._instance_id
+                first_runtime_id = supervisor._runtime_id
+            finally:
+                supervisor.close()
+
+            restarted = DevSidecarSupervisor(
+                configured_port=free_port(),
+                runtime_root=runtime_root,
+                certificate_identity_root=identity_root,
+                certificate_secret_provider=provider,
+                certificate_trust_adapter=trust,
+                cleanup_on_close=False,
+                auto_restore_enabled=True,
+            )
+            try:
+                snapshot = wait_for_service_state(restarted, "ready")
+                self.assertEqual(snapshot["status"]["service_state"], "ready")
+                self.assertEqual(snapshot["settings"]["configured_port"], port)
+                self.assertTrue(snapshot["settings"]["auto_restore"])
+                self.assertEqual(restarted._instance_id, first_instance_id)
+                self.assertEqual(restarted._runtime_id, first_runtime_id)
+                self.assertIsNotNone(
+                    restarted._store.lookup_token(access_token, kind="access")
+                )
+                self.assertEqual(
+                    snapshot["status"]["authorization_state"],
+                    "authorized",
+                )
+                restarted.stop_service(
+                    request_id="request-persistent-stop",
+                    expected_state_version=restarted.read_snapshot()[
+                        "state_version"
+                    ],
+                )
+            finally:
+                restarted.close()
+
+            stopped = DevSidecarSupervisor(
+                configured_port=free_port(),
+                runtime_root=runtime_root,
+                certificate_identity_root=identity_root,
+                certificate_secret_provider=provider,
+                certificate_trust_adapter=trust,
+                cleanup_on_close=False,
+                auto_restore_enabled=True,
+            )
+            try:
+                time.sleep(1.2)
+                snapshot = stopped.read_snapshot()
+                self.assertEqual(snapshot["status"]["desired_state"], "disabled")
+                self.assertEqual(snapshot["status"]["service_state"], "stopped")
+                self.assertIsNone(stopped.process)
+            finally:
+                stopped.close()
+
+    def test_unexpected_sidecar_exit_is_restarted_automatically(self) -> None:
+        port = free_port()
+        supervisor = DevSidecarSupervisor(
+            configured_port=port,
+            auto_restore_enabled=True,
+        )
+        try:
+            provision_certificate(supervisor)
+            supervisor.start_service(
+                request_id="request-auto-recovery-start",
+                expected_state_version=supervisor.read_snapshot()["state_version"],
+            )
+            process = supervisor.process
+            self.assertIsNotNone(process)
+            first_pid = process.pid
+            process.kill()
+            process.wait(timeout=5)
+            snapshot = wait_for_service_state(supervisor, "ready")
+            self.assertEqual(snapshot["status"]["service_state"], "ready")
+            self.assertIsNotNone(supervisor.process)
+            self.assertNotEqual(supervisor.process.pid, first_pid)
+            self.assertEqual(snapshot["status"]["reconnect_state"], "idle")
         finally:
             supervisor.close()
 

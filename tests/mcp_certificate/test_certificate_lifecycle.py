@@ -6,7 +6,10 @@ import unittest
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from sapd_wiki.local_mcp.certificate_identity import CertificateIdentityStore
+from sapd_wiki.local_mcp.certificate_identity import (
+    CertificateIdentityError,
+    CertificateIdentityStore,
+)
 from sapd_wiki.local_mcp.certificate_lifecycle import (
     CertificateLifecycle,
     CertificateOperationJournal,
@@ -71,6 +74,37 @@ class CertificateLifecycleTests(unittest.TestCase):
         journal = self.lifecycle.operations.load()
         self.assertEqual(journal.phase, "completed")
         self.assertEqual(journal.outcome, "rolled_back")
+        self.assertEqual(
+            journal.last_error_code,
+            "CERTIFICATE_TRUST_USER_DENIED",
+        )
+
+    def test_provision_removes_only_empty_interrupted_generation(self) -> None:
+        orphan_id = "empty-interrupted-generation-001"
+        orphan = self.identity.generations_root / orphan_id
+        orphan.mkdir(mode=0o700)
+
+        journal = self.lifecycle.provision()
+
+        self.assertEqual(journal.outcome, "completed")
+        self.assertFalse(orphan.exists())
+        self.assertEqual(
+            len(self.identity.list_generation_manifests()),
+            1,
+        )
+
+    def test_nonempty_generation_without_manifest_still_fails_closed(self) -> None:
+        orphan_id = "nonempty-interrupted-generation-01"
+        orphan = self.identity.generations_root / orphan_id
+        orphan.mkdir(mode=0o700)
+        (orphan / "unclassified.pem").write_bytes(b"not-a-certificate")
+        (orphan / "unclassified.pem").chmod(0o600)
+
+        with self.assertRaises(CertificateIdentityError) as raised:
+            self.lifecycle.provision()
+
+        self.assertEqual(raised.exception.code, "IDENTITY_GENERATION_MISSING")
+        self.assertTrue(orphan.exists())
 
     def test_rotation_keeps_old_generation_and_trust_until_cleanup(self) -> None:
         self.lifecycle.provision()

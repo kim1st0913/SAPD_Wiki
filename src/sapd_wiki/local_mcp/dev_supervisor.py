@@ -30,7 +30,7 @@ from .certificate_trust import (
     FakeCurrentUserTrustAdapter,
 )
 from .control_models import GatewayActionError
-from .control_store import ControlStore
+from .control_store import ControlStore, ControlStoreError
 from .platform_secrets import (
     FakeMacOSDataProtectionKeychainProvider,
     FakeWindowsDpapiCurrentUserProvider,
@@ -46,6 +46,7 @@ from .tls import (
 
 
 RESERVED_STABLE_PREVIEW_PORT = 5173
+AUTOMATIC_RESTART_BACKOFF_SECONDS = (1.0, 2.0, 5.0, 10.0, 30.0)
 
 
 def _iso(value: float | None) -> str | None:
@@ -71,6 +72,7 @@ class DevSidecarSupervisor:
         certificate_secret_provider: SecretProvider | None = None,
         certificate_trust_adapter: CurrentUserTrustAdapter | None = None,
         platform_integration_enabled: bool = False,
+        auto_restore_enabled: bool = False,
         secret_channel_factory: Callable[[], ParentSecretChannel] = ParentSecretChannel,
     ) -> None:
         if not 1024 <= configured_port <= 65535:
@@ -90,6 +92,7 @@ class DevSidecarSupervisor:
         self.runtime_root = candidate.resolve(strict=True)
         os.chmod(self.runtime_root, 0o700)
         self._cleanup_on_close = cleanup_on_close
+        self._auto_restore_enabled = bool(auto_restore_enabled)
         self._startup_timeout_seconds = startup_timeout_seconds
         self._authorization_timeout_seconds = authorization_timeout_seconds
         self._configured_port = configured_port
@@ -116,6 +119,8 @@ class DevSidecarSupervisor:
         self._service_state = "stopped"
         self._state_version = 0
         self._recoverable_error: dict[str, str] | None = None
+        self._reconnect_attempt = 0
+        self._next_reconnect_at: float | None = None
         self._prepared_resets: dict[str, tuple[float, str]] = {}
         self._prepared_certificate_actions: dict[str, dict[str, Any]] = {}
         self._last_checked_at: float | None = None
@@ -128,6 +133,30 @@ class DevSidecarSupervisor:
         self._store = ControlStore(
             self.runtime_root / "control" / "control.sqlite3",
             verifier_key=verifier_key,
+        )
+        preferences = (
+            self._store.load_runtime_preferences()
+            if self._auto_restore_enabled
+            else None
+        )
+        if preferences is not None:
+            persisted_port = int(preferences["configured_port"])
+            if persisted_port == RESERVED_STABLE_PREVIEW_PORT:
+                raise ControlStoreError("RUNTIME_PREFERENCES_INVALID")
+            self._configured_port = persisted_port
+            self._desired_state = str(preferences["desired_state"])
+        else:
+            self._store.save_runtime_preferences(
+                desired_state=self._desired_state,
+                configured_port=self._configured_port,
+            )
+        self._instance_id = self._runtime_identifier(
+            "instance-id.txt",
+            prefix="sapd-wiki-",
+        )
+        self._runtime_id = self._runtime_identifier(
+            "runtime-id.txt",
+            prefix="runtime-",
         )
         identity_candidate = (
             Path(certificate_identity_root)
@@ -189,6 +218,8 @@ class DevSidecarSupervisor:
             name="sapd-mcp-certificate-monitor",
             daemon=True,
         )
+        if self._auto_restore_enabled and self._desired_state == "enabled":
+            self._next_reconnect_at = time.monotonic()
         self._monitor_thread.start()
 
     @property
@@ -217,6 +248,48 @@ class DevSidecarSupervisor:
             os.write(descriptor, secrets.token_bytes(48))
         finally:
             os.close(descriptor)
+
+    def _runtime_identifier(self, name: str, *, prefix: str) -> str:
+        path = self.runtime_root / name
+        if path.exists():
+            if path.is_symlink() or path.stat().st_mode & 0o077:
+                raise ValueError("runtime identifier permissions are unsafe")
+            value = path.read_text(encoding="ascii").strip()
+            if not value.startswith(prefix) or not 8 <= len(value) <= 160:
+                raise ValueError("runtime identifier is invalid")
+            return value
+        value = f"{prefix}{secrets.token_urlsafe(24)}"
+        descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        try:
+            os.write(descriptor, value.encode("ascii"))
+        finally:
+            os.close(descriptor)
+        return value
+
+    def _persist_runtime_preferences(self) -> None:
+        self._store.save_runtime_preferences(
+            desired_state=self._desired_state,
+            configured_port=self._configured_port,
+        )
+
+    def _cancel_automatic_restart(self) -> None:
+        self._reconnect_attempt = 0
+        self._next_reconnect_at = None
+
+    def _schedule_automatic_restart(self, *, immediate: bool = False) -> None:
+        if not self._auto_restore_enabled or self._desired_state != "enabled":
+            self._next_reconnect_at = None
+            return
+        if immediate:
+            delay = 0.0
+        else:
+            index = min(
+                self._reconnect_attempt,
+                len(AUTOMATIC_RESTART_BACKOFF_SECONDS) - 1,
+            )
+            delay = AUTOMATIC_RESTART_BACKOFF_SECONDS[index]
+            self._reconnect_attempt += 1
+        self._next_reconnect_at = time.monotonic() + delay
 
     @staticmethod
     def _require_version(expected: int, current: int) -> None:
@@ -326,6 +399,7 @@ class DevSidecarSupervisor:
                 "code": "SIDECAR_EXITED",
                 "recovery_action": "retry_service",
             }
+            self._schedule_automatic_restart()
             self._state_version += 1
 
     def _store_signature(self) -> str:
@@ -346,7 +420,6 @@ class DevSidecarSupervisor:
                         "reason_code",
                         "generation_id",
                         "ca_fingerprint_sha256",
-                        "trust_verified_at",
                         "operation",
                         "cleanup_pending",
                     )
@@ -482,6 +555,39 @@ class DevSidecarSupervisor:
                     return
                 self._refresh_process_state()
                 self._enforce_runtime_certificate_state()
+                self._attempt_automatic_restore()
+
+    def _attempt_automatic_restore(self) -> None:
+        if (
+            not self._auto_restore_enabled
+            or self._desired_state != "enabled"
+            or self._process is not None
+            or self._next_reconnect_at is None
+            or time.monotonic() < self._next_reconnect_at
+        ):
+            return
+        error_code = (
+            self._recoverable_error.get("code")
+            if self._recoverable_error is not None
+            else None
+        )
+        if error_code not in {None, "SIDECAR_EXITED", "SIDECAR_START_FAILED"}:
+            self._next_reconnect_at = None
+            return
+        self._next_reconnect_at = None
+        try:
+            self.start_service(
+                request_id="automatic-runtime-restore",
+                expected_state_version=self._state_version,
+            )
+        except GatewayActionError:
+            current_code = (
+                self._recoverable_error.get("code")
+                if self._recoverable_error is not None
+                else None
+            )
+            if current_code in {"SIDECAR_EXITED", "SIDECAR_START_FAILED"}:
+                self._schedule_automatic_restart()
 
     def _diagnostics(self) -> dict[str, Any]:
         if self._service_state == "ready":
@@ -542,6 +648,15 @@ class DevSidecarSupervisor:
                 "status": {
                     "desired_state": self._desired_state,
                     "service_state": self._service_state,
+                    "reconnect_state": (
+                        "recovering"
+                        if self._service_state == "starting"
+                        and self._reconnect_attempt > 0
+                        else "scheduled"
+                        if self._next_reconnect_at is not None
+                        else "idle"
+                    ),
+                    "reconnect_attempt": self._reconnect_attempt,
                     "authorization_state": authorization_state,
                     "activity_state": "recent" if tool_events else "idle" if active_clients else "never",
                     "knowledge_state": "ready",
@@ -551,6 +666,7 @@ class DevSidecarSupervisor:
                 },
                 "settings": {
                     "enabled": self._desired_state == "enabled",
+                    "auto_restore": self._auto_restore_enabled,
                     "configured_port": self._configured_port,
                     "release_channel": "dev",
                     "canonical_resource": f"https://127.0.0.1:{self._configured_port}/mcp",
@@ -580,6 +696,18 @@ class DevSidecarSupervisor:
                     "retention_bytes": 20 * 1024 * 1024,
                     "event_count": len(audit_events),
                     "last_event_at": _iso(last_event),
+                    "recent_events": [
+                        {
+                            "occurred_at": _iso(item["occurred_at"]),
+                            "event_type": item["event_type"],
+                            "client_id": item["client_id"],
+                            "tool_name": item["tool_name"],
+                            "result_code": item["result_code"],
+                            "returned_count": item["returned_count"],
+                            "duration_ms": item["duration_ms"],
+                        }
+                        for item in audit_events[:3]
+                    ],
                 },
                 "diagnostics": self._diagnostics(),
             }
@@ -600,6 +728,8 @@ class DevSidecarSupervisor:
             self._require_version(expected_state_version, self._state_version)
             if self._process is not None and self._process.poll() is None:
                 return self._action_result(self._state_version, changed=False)
+            self._desired_state = "enabled"
+            self._persist_runtime_preferences()
             certificate = self._certificate_projection()
             if certificate["state"] not in {
                 "valid",
@@ -666,6 +796,10 @@ class DevSidecarSupervisor:
                         str(self._authorization_timeout_seconds),
                         "--secret-channel-fd",
                         str(secret_channel.child_fd),
+                        "--instance-id",
+                        self._instance_id,
+                        "--runtime-id",
+                        self._runtime_id,
                     ]
                 if self._base_database is not None:
                     command.extend(["--base-db", str(self._base_database)])
@@ -712,6 +846,8 @@ class DevSidecarSupervisor:
                         else "check_runtime"
                     ),
                 }
+                if self._recoverable_error["code"] == "SIDECAR_START_FAILED":
+                    self._schedule_automatic_restart()
                 self._state_version += 1
                 raise GatewayActionError(
                     "ACTION_REJECTED",
@@ -724,6 +860,7 @@ class DevSidecarSupervisor:
                 if self._tls_ready():
                     self._service_state = "ready"
                     self._last_success_at = time.time()
+                    self._cancel_automatic_restart()
                     self._state_version += 1
                     return self._action_result(self._state_version)
                 time.sleep(0.05)
@@ -733,6 +870,7 @@ class DevSidecarSupervisor:
                 "code": "SIDECAR_START_FAILED",
                 "recovery_action": "retry_service",
             }
+            self._schedule_automatic_restart()
             self._state_version += 1
             raise GatewayActionError(
                 "ACTION_REJECTED",
@@ -752,6 +890,8 @@ class DevSidecarSupervisor:
             self._terminate_owned_process()
             self._cleanup_tls()
             self._desired_state = "disabled"
+            self._persist_runtime_preferences()
+            self._cancel_automatic_restart()
             self._service_state = "stopped"
             self._recoverable_error = None
             if changed:
@@ -766,7 +906,9 @@ class DevSidecarSupervisor:
             if self._process is not None:
                 self._terminate_owned_process()
             self._service_state = "stopped"
-            self._desired_state = "disabled"
+            self._desired_state = "enabled"
+            self._persist_runtime_preferences()
+            self._cancel_automatic_restart()
             self._recoverable_error = None
             return self.start_service(
                 request_id=request_id,
@@ -794,6 +936,8 @@ class DevSidecarSupervisor:
                 self._store.revoke_all()
                 self._configured_port = configured_port
                 self._desired_state = "disabled"
+                self._persist_runtime_preferences()
+                self._cancel_automatic_restart()
                 self._service_state = "stopped"
                 self._recoverable_error = None
                 self._state_version += 1
@@ -1110,6 +1254,8 @@ class DevSidecarSupervisor:
             self._prepared_resets.pop(reset_id, None)
             self._prepared_certificate_actions.clear()
             self._desired_state = "disabled"
+            self._persist_runtime_preferences()
+            self._cancel_automatic_restart()
             self._service_state = "stopped"
             self._recoverable_error = None
             self._last_checked_at = None
@@ -1133,12 +1279,6 @@ class DevSidecarSupervisor:
                 self._terminate_owned_process()
             self._cleanup_tls()
             self._store.close()
-            for name in ("verifier-key.bin", "audit-period-key.bin", "cursor-key.bin"):
-                path = self.runtime_root / name
-                try:
-                    path.unlink()
-                except FileNotFoundError:
-                    pass
             self._closed = True
             if self._cleanup_on_close and self.runtime_root.exists():
                 shutil.rmtree(self.runtime_root)

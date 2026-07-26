@@ -14,6 +14,8 @@ from typing import Any
 
 
 SCHEMA_VERSION = 1
+RUNTIME_PREFERENCES_SCHEMA_VERSION = 1
+RUNTIME_PREFERENCES_KEY = "runtime_preferences"
 
 
 class ControlStoreError(RuntimeError):
@@ -169,6 +171,73 @@ class ControlStore:
     def close(self) -> None:
         with self._lock:
             self._connection.close()
+
+    def load_runtime_preferences(self) -> dict[str, Any] | None:
+        """Load the non-secret lifecycle intent stored beside the control plane."""
+
+        with self._lock:
+            row = self._connection.execute(
+                "SELECT value FROM control_meta WHERE key=?",
+                (RUNTIME_PREFERENCES_KEY,),
+            ).fetchone()
+        if row is None:
+            return None
+        try:
+            payload = json.loads(str(row["value"]))
+        except (TypeError, ValueError) as exc:
+            raise ControlStoreError("RUNTIME_PREFERENCES_INVALID") from exc
+        if not isinstance(payload, dict) or set(payload) != {
+            "schema_version",
+            "desired_state",
+            "configured_port",
+        }:
+            raise ControlStoreError("RUNTIME_PREFERENCES_INVALID")
+        if payload["schema_version"] != RUNTIME_PREFERENCES_SCHEMA_VERSION:
+            raise ControlStoreError("RUNTIME_PREFERENCES_SCHEMA_UNSUPPORTED")
+        if payload["desired_state"] not in {"enabled", "disabled"}:
+            raise ControlStoreError("RUNTIME_PREFERENCES_INVALID")
+        configured_port = payload["configured_port"]
+        if (
+            isinstance(configured_port, bool)
+            or not isinstance(configured_port, int)
+            or not 1024 <= configured_port <= 65535
+        ):
+            raise ControlStoreError("RUNTIME_PREFERENCES_INVALID")
+        return {
+            "schema_version": RUNTIME_PREFERENCES_SCHEMA_VERSION,
+            "desired_state": str(payload["desired_state"]),
+            "configured_port": configured_port,
+        }
+
+    def save_runtime_preferences(
+        self,
+        *,
+        desired_state: str,
+        configured_port: int,
+    ) -> None:
+        if desired_state not in {"enabled", "disabled"}:
+            raise ValueError("desired_state is not supported")
+        if (
+            isinstance(configured_port, bool)
+            or not isinstance(configured_port, int)
+            or not 1024 <= configured_port <= 65535
+        ):
+            raise ValueError("configured_port must be between 1024 and 65535")
+        payload = self._json(
+            {
+                "schema_version": RUNTIME_PREFERENCES_SCHEMA_VERSION,
+                "desired_state": desired_state,
+                "configured_port": configured_port,
+            }
+        )
+        with self._lock:
+            self._connection.execute(
+                """
+                INSERT INTO control_meta(key, value) VALUES(?, ?)
+                ON CONFLICT(key) DO UPDATE SET value=excluded.value
+                """,
+                (RUNTIME_PREFERENCES_KEY, payload),
+            )
 
     def __enter__(self) -> "ControlStore":
         return self

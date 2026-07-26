@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import ipaddress
 import tempfile
 import unittest
 from pathlib import Path
+
+from cryptography import x509
 
 from sapd_wiki.local_mcp.certificate_identity import CertificateIdentityStore
 from sapd_wiki.local_mcp.certificate_trust import CertificateTrustError
@@ -21,7 +24,9 @@ class FakeSecurityRunner:
     def __init__(self, fingerprint: str) -> None:
         self.fingerprint = fingerprint
         self.installed = False
+        self.browser_compatible = False
         self.calls: list[tuple[str, ...]] = []
+        self.verification_certificate: x509.Certificate | None = None
 
     def run(
         self,
@@ -40,9 +45,19 @@ class FakeSecurityRunner:
             )
             return CommandResult(0 if self.installed else 44, payload, b"")
         if action == "verify-cert":
-            return CommandResult(0 if self.installed else 1, b"", b"")
+            certificate_path = Path(argv[argv.index("-c") + 1])
+            certificate = x509.load_pem_x509_certificate(
+                certificate_path.read_bytes()
+            )
+            if argv[argv.index("-p") + 1] == "ssl":
+                self.verification_certificate = certificate
+                verified = self.installed
+            else:
+                verified = self.installed and self.browser_compatible
+            return CommandResult(0 if verified else 1, b"", b"")
         if action == "add-trusted-cert":
             self.installed = True
+            self.browser_compatible = "-p" not in argv and "-s" not in argv
             return CommandResult(0, b"", b"")
         if action == "delete-certificate":
             self.installed = False
@@ -87,13 +102,16 @@ class PlatformTrustContractTests(unittest.TestCase):
             self.root / "identity",
             secret_provider=InMemorySecretProvider(),
         )
-        manifest = identity.provision(install_id="platform-contract-install-001")
+        manifest = identity.provision(
+            install_id="platform-contract-install-001",
+            include_loopback_name_constraints=True,
+        )
         self.target = identity.trust_target(manifest)
 
     def tearDown(self) -> None:
         self.temporary.cleanup()
 
-    def test_macos_uses_user_ssl_host_policy_and_exact_sha256(self) -> None:
+    def test_macos_uses_browser_compatible_user_root_and_exact_sha256(self) -> None:
         runner = FakeSecurityRunner(self.target.fingerprint_sha256)
         adapter = MacOSCurrentUserTrustAdapter(
             runtime_root=self.root / "trust-runtime",
@@ -104,15 +122,75 @@ class PlatformTrustContractTests(unittest.TestCase):
         self.assertTrue(adapter.install_target(self.target))
         install = next(call for call in runner.calls if call[1] == "add-trusted-cert")
         self.assertNotIn("-d", install)
-        self.assertIn("-p", install)
-        self.assertEqual(install[install.index("-p") + 1], "ssl")
-        self.assertEqual(install[install.index("-s") + 1], "127.0.0.1")
+        self.assertNotIn("-p", install)
+        self.assertNotIn("-s", install)
+        verify_calls = [
+            call for call in runner.calls if call[1] == "verify-cert"
+        ]
+        ssl_verify = next(
+            call for call in verify_calls if call[call.index("-p") + 1] == "ssl"
+        )
+        root_verify = next(
+            call for call in verify_calls if call[call.index("-p") + 1] == "basic"
+        )
+        self.assertEqual(ssl_verify[ssl_verify.index("-n") + 1], "127.0.0.1")
+        self.assertEqual(
+            ssl_verify[ssl_verify.index("-k") + 1],
+            str(self.root / "login.keychain-db"),
+        )
+        self.assertIn("-L", ssl_verify)
+        self.assertNotIn("-r", ssl_verify)
+        self.assertIn("-l", root_verify)
+        self.assertEqual(
+            root_verify[root_verify.index("-k") + 1],
+            str(self.root / "login.keychain-db"),
+        )
+        self.assertIsNotNone(runner.verification_certificate)
+        name_constraints = (
+            x509.load_der_x509_certificate(self.target.certificate_der)
+            .extensions.get_extension_for_class(x509.NameConstraints)
+        )
+        self.assertTrue(name_constraints.critical)
+        self.assertEqual(
+            name_constraints.value.permitted_subtrees,
+            [x509.IPAddress(ipaddress.ip_network("127.0.0.1/32"))],
+        )
+        constraints = (
+            runner.verification_certificate.extensions.get_extension_for_class(
+                x509.BasicConstraints
+            ).value
+        )
+        self.assertFalse(constraints.ca)
         self.assertTrue(adapter.remove_target(self.target))
         delete = next(call for call in runner.calls if call[1] == "delete-certificate")
         self.assertEqual(
             delete[delete.index("-Z") + 1],
             self.target.fingerprint_sha256.replace(":", ""),
         )
+
+    def test_macos_reinstalls_legacy_policy_trust_for_browser_compatibility(
+        self,
+    ) -> None:
+        runner = FakeSecurityRunner(self.target.fingerprint_sha256)
+        runner.installed = True
+        runner.browser_compatible = False
+        adapter = MacOSCurrentUserTrustAdapter(
+            runtime_root=self.root / "trust-runtime-legacy",
+            runner=runner,
+            mutation_enabled=True,
+            login_keychain=self.root / "login.keychain-db",
+        )
+        inspection = adapter.inspect_target(self.target)
+        self.assertFalse(inspection.installed)
+        self.assertEqual(
+            inspection.reason_code,
+            "CERTIFICATE_TRUST_POLICY_INVALID",
+        )
+        self.assertTrue(adapter.install_target(self.target))
+        install = next(call for call in runner.calls if call[1] == "add-trusted-cert")
+        self.assertNotIn("-p", install)
+        self.assertNotIn("-s", install)
+        self.assertTrue(adapter.inspect_target(self.target).installed)
 
     def test_macos_mutation_is_disabled_without_explicit_capability(self) -> None:
         adapter = MacOSCurrentUserTrustAdapter(

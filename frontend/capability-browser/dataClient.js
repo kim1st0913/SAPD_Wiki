@@ -2,6 +2,7 @@
   const DATA_PATHS = {
     capability: "./public/data/capability-tree.json",
     capabilityWorkbench: "./public/data/capability-workbench.json",
+    environmentDictionary: "./public/data/environment-dictionary.json",
     environmentWorkbench: "./public/data/environment-workbench.json",
     lifecycleWorkbench: "./public/data/lifecycle-workbench.json",
     analyticsSummary: "./public/data/analytics-summary.json",
@@ -20,6 +21,7 @@
   const API_PACKAGE_PATHS = {
     capability: "/api/v1/data-packages/capability",
     capabilityWorkbench: "/api/v1/data-packages/capability-workbench",
+    environmentDictionary: "/api/v1/environments/dictionary",
     environmentWorkbench: "/api/v1/data-packages/environment-workbench",
     lifecycleWorkbench: "/api/v1/data-packages/lifecycle-workbench",
     analyticsSummary: "/api/v1/data-packages/analytics-summary",
@@ -78,6 +80,26 @@
     dashboardKnowledgeSummary: { generated_at: null, data_state: "missing_file", environment: {}, lifecycles: {}, content: {} },
     capability: { generated_at: null, stats: {}, categories: [], unlinked_focuses: [] },
     capabilityWorkbench: null,
+    environmentDictionary: {
+      schema_version: "environment-dictionary-v1",
+      data_state: "missing_file",
+      generated_at: null,
+      source_package_versions: {},
+      master_counts: {
+        information_environments: 0,
+        environment_segment_types: 0,
+        information_objects: 0,
+      },
+      context_counts: {
+        environment_segments: 0,
+        environment_object_contexts: 0,
+      },
+      information_environments: [],
+      environment_segment_types: [],
+      information_objects: [],
+      usage_relations: [],
+      evidence_ref_count: 0,
+    },
     environmentWorkbench: null,
     lifecycleWorkbench: null,
     analyticsSummary: {
@@ -157,6 +179,9 @@
   const GBT_TASK_CLASSIFICATION_TABLE_ID = "gbt-42446-classification";
   const GARTNER_WORK_ROLE_TABLE_ID = "gartner-work-roles";
   const hasOwn = (object, key) => Boolean(object) && Object.prototype.hasOwnProperty.call(object, key);
+  function isEnvironmentMasterDictionaryEnabled() {
+    return window.sapdFeatureFlags?.environmentMasterDictionary === true;
+  }
   const titleOf = (value, fallback = "未命名") => {
     if (!value) return fallback;
     if (typeof value === "object") return text(value.title || value.name || value.code || value.id || fallback);
@@ -510,6 +535,7 @@
       AUTH_DENIED: "当前环境未允许执行该操作。",
       DESKTOP_CAPABILITY_REQUIRED: "该操作需要桌面应用。",
       DESKTOP_APP_REQUIRED: "该操作需要桌面应用。",
+      REQUEST_TIMEOUT: "等待系统确认超时，请重新操作并在 macOS 提示中选择允许。",
     };
     return messages[text(code).trim()] || (status === 403
       ? "当前操作需要本地会话授权或桌面应用能力。"
@@ -573,7 +599,12 @@
     if (!url) throw createMcpControlError("API_UNAVAILABLE", 0);
     const method = text(options.method || "GET").toUpperCase();
     const isMutation = isUserWriteMethod(method);
-    const { sapdAuthRetry, kind = "response", ...requestOptions } = options;
+    const {
+      sapdAuthRetry,
+      kind = "response",
+      timeoutMs = API_FETCH_TIMEOUT_MS,
+      ...requestOptions
+    } = options;
     const headers = {
       ...headersToObject(requestOptions.headers),
       ...(await mcpControlRequestHeaders({ mutation: isMutation })),
@@ -584,12 +615,18 @@
         ...requestOptions,
         method,
         headers,
-      });
+      }, timeoutMs);
       const payload = response.headers.get("Content-Type")?.includes("application/json") ? await response.json() : null;
       assertMcpResponseFieldPolicy(payload);
       if (!response.ok && (response.status === 401 || response.status === 403) && !sapdAuthRetry) {
         runtimeHealthCache = null;
-        return fetchMcpControlApi(path, { ...requestOptions, method, kind, sapdAuthRetry: true });
+        return fetchMcpControlApi(path, {
+          ...requestOptions,
+          method,
+          kind,
+          timeoutMs,
+          sapdAuthRetry: true,
+        });
       }
       if (!response.ok) {
         const code = payload?.error?.code || "MCP_CONTROL_ERROR";
@@ -650,11 +687,12 @@
     });
   }
 
-  async function runMcpMutation(path, payload = {}) {
+  async function runMcpMutation(path, payload = {}, { timeoutMs } = {}) {
     return fetchMcpControlApi(path, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: mcpMutationBody(payload),
+      timeoutMs,
     });
   }
 
@@ -1527,7 +1565,7 @@
         requestId: payload?.requestId,
         expectedStateVersion: payload?.expectedStateVersion,
         confirmation_id: text(payload?.confirmationId).trim(),
-      }));
+      }, { timeoutMs: 150000 }));
     },
 
     async prepareMcpReset(payload) {
@@ -1993,6 +2031,12 @@
         ["environment-workbench.json 不存在，且 management-knowledge.json 已退役。"],
       );
     },
+
+    async getEnvironmentDictionary() {
+      return createEnvelope(await fetchPackage("environmentDictionary"));
+    },
+
+    isEnvironmentMasterDictionaryEnabled,
 
     async getEnvironmentMatrix(params = {}) {
       const workbench = await fetchPackage("environmentWorkbench");

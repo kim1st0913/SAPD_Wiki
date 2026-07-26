@@ -2706,6 +2706,279 @@
     };
   }
 
+  function buildEnvironmentObjectDirectoryViewModel({ management, search }) {
+    const query = normalizeSearch(search);
+    const sourceEnvironments = list(management?.environment_scope_tree);
+    const allRows = [];
+    const segmentKeys = new Set();
+    const objectKeys = new Set();
+
+    const environmentGroups = sourceEnvironments
+      .map((environment, environmentIndex) => {
+        const environmentId = text(environment?.id || `environment-${environmentIndex}`).trim();
+        const environmentTitle = titleOf(environment, "未命名信息化环境");
+        const environmentMatches = includesSearch(query, environmentTitle, environment?.description, environment?.code);
+        const segmentMap = new Map();
+
+        list(environment?.objects).forEach((object, objectIndex) => {
+          const objectId = text(object?.id || `object-${objectIndex}`).trim();
+          const objectTitle = titleOf(object, "未命名信息化对象");
+          const objectKey = objectId || objectTitle;
+          if (objectKey) objectKeys.add(objectKey);
+          list(object?.segments).forEach((segment, segmentIndex) => {
+            const segmentId = text(segment?.id || `segment-${segmentIndex}`).trim();
+            const segmentTitle = titleOf(segment, "未命名环境子类");
+            const segmentKey = segmentId || `${environmentId}:${segmentTitle}`;
+            if (segmentKey) segmentKeys.add(segmentKey);
+            if (!segmentMap.has(segmentKey)) {
+              segmentMap.set(segmentKey, {
+                id: segmentId,
+                directoryId: `environment-segment:${environmentId}:${segmentId || segmentIndex}`,
+                title: segmentTitle,
+                description: text(segment?.description).trim(),
+                objects: [],
+              });
+            }
+            const row = {
+              id: `environment-object:${environmentId}:${segmentId || segmentIndex}:${objectId || objectIndex}`,
+              type: "information_object",
+              code: text(object?.code).trim(),
+              title: objectTitle,
+              description: text(object?.description).trim(),
+              environmentId,
+              environmentTitle,
+              segmentId,
+              segmentTitle,
+              objectId,
+              sourceEvidence: uniqueBy(list(object?.sources), sourceEvidenceKey),
+            };
+            allRows.push(row);
+            if (
+              !query ||
+              environmentMatches ||
+              includesSearch(query, segmentTitle, segment?.description, segment?.code) ||
+              includesSearch(query, objectTitle, object?.description, object?.code)
+            ) {
+              segmentMap.get(segmentKey).objects.push(row);
+            }
+          });
+        });
+
+        const segments = [...segmentMap.values()].filter((segment) => segment.objects.length);
+        if (query && !environmentMatches && !segments.length) return null;
+        return {
+          id: environmentId,
+          directoryId: `information-environment:${environmentId || environmentIndex}`,
+          title: environmentTitle,
+          description: text(environment?.description).trim(),
+          segments,
+        };
+      })
+      .filter(Boolean);
+
+    const rows = environmentGroups.flatMap((environment) => environment.segments.flatMap((segment) => segment.objects));
+    return {
+      rows,
+      environmentGroups,
+      masterCategories: [],
+      directoryMode: "legacy_fallback",
+      summary: {
+        totalEnvironments: sourceEnvironments.length,
+        totalSegments: segmentKeys.size,
+        totalObjects: objectKeys.size,
+        totalContextRows: allRows.length,
+      },
+      sourceEvidenceById: Object.fromEntries(rows.map((row) => [row.id, row.sourceEvidence])),
+      emptyState: rows.length ? "" : "暂无匹配的信息化环境、环境子类或信息化对象。",
+    };
+  }
+
+  function environmentDictionaryCompatibility(dictionary) {
+    const state = text(dictionary?.__data_state || dictionary?.data_state).trim();
+    if (["missing_file", "error", "api_error"].includes(state)) {
+      return { usable: false, reason: state };
+    }
+    if (!dictionary || typeof dictionary !== "object") {
+      return { usable: false, reason: "missing_package" };
+    }
+    if (dictionary.schema_version !== "environment-dictionary-v1") {
+      return { usable: false, reason: "schema_incompatible" };
+    }
+    if (!["ready", "empty"].includes(text(dictionary.data_state).trim())) {
+      return { usable: false, reason: "schema_incompatible" };
+    }
+    const requiredCollections = [
+      "information_environments",
+      "environment_segment_types",
+      "information_objects",
+      "usage_relations",
+    ];
+    if (
+      requiredCollections.some((field) => !Array.isArray(dictionary[field]))
+      || !dictionary.master_counts
+      || !dictionary.context_counts
+    ) {
+      return { usable: false, reason: "schema_incompatible" };
+    }
+    return { usable: true, reason: state || "ready" };
+  }
+
+  function buildEnvironmentMasterDictionaryViewModel({ dictionary, search }) {
+    const query = normalizeSearch(search);
+    const categoryDefinitions = [
+      {
+        type: "information_environment",
+        collection: "information_environments",
+        countField: "information_environments",
+        label: "信息化环境",
+        description: "企业信息化运行与访问边界的唯一主数据。",
+      },
+      {
+        type: "environment_segment_type",
+        collection: "environment_segment_types",
+        countField: "environment_segment_types",
+        label: "环境子类",
+        description: "跨环境复用的环境子类类型，不重复展示上下文实例。",
+      },
+      {
+        type: "information_object",
+        collection: "information_objects",
+        countField: "information_objects",
+        label: "信息化对象",
+        description: "在环境映射中被引用的信息化对象唯一主数据。",
+      },
+    ];
+    const relationsByMasterRef = new Map();
+    list(dictionary?.usage_relations).forEach((relation) => {
+      const masterRef = text(relation?.master_ref).trim();
+      if (!masterRef) return;
+      if (!relationsByMasterRef.has(masterRef)) relationsByMasterRef.set(masterRef, []);
+      relationsByMasterRef.get(masterRef).push({
+        id: text(relation.relation_ref).trim(),
+        relationType: text(relation.relation_type).trim(),
+        contextType: text(relation.context_type).trim(),
+        contextRef: text(relation.context_ref).trim(),
+        contextTitle: text(relation.context_title).trim(),
+        environmentRef: text(relation.environment_ref).trim(),
+        segmentRef: text(relation.segment_ref).trim(),
+        objectRef: text(relation.object_ref).trim(),
+        route: text(relation.route).trim(),
+        routeParams: { ...(relation.route_params || {}) },
+      });
+    });
+
+    const allRows = [];
+    const masterCategories = categoryDefinitions.map((definition) => {
+      const sourceRows = list(dictionary?.[definition.collection]);
+      const records = sourceRows
+        .map((record) => {
+          const contexts = list(relationsByMasterRef.get(text(record?.stable_ref).trim()));
+          const recordMatches = !query || includesSearch(
+            query,
+            record?.code,
+            record?.title,
+            record?.description,
+            record?.stable_ref,
+            ...list(record?.aliases),
+          );
+          const matchingContexts = query
+            ? contexts.filter((context) => includesSearch(
+                query,
+                context.contextTitle,
+                context.contextRef,
+                context.environmentRef,
+                context.segmentRef,
+                context.objectRef,
+              ))
+            : contexts;
+          if (query && !recordMatches && !matchingContexts.length) return null;
+          const row = {
+            id: text(record?.stable_ref || record?.id).trim(),
+            databaseId: text(record?.id).trim(),
+            publicId: text(record?.public_id).trim(),
+            stableRef: text(record?.stable_ref).trim(),
+            type: text(record?.type).trim(),
+            code: text(record?.code).trim(),
+            title: titleOf(record, "未命名主数据"),
+            description: text(record?.description).trim(),
+            aliases: list(record?.aliases).map((alias) => text(alias).trim()).filter(Boolean),
+            status: text(record?.status).trim(),
+            usageSummary: { ...(record?.usage_summary || {}) },
+            contexts: recordMatches ? contexts : matchingContexts,
+            totalContexts: contexts.length,
+            searchContextMatch: Boolean(query && matchingContexts.length),
+          };
+          allRows.push(row);
+          return row;
+        })
+        .filter(Boolean);
+      return {
+        id: `environment-master-category:${definition.type}`,
+        type: definition.type,
+        label: definition.label,
+        description: definition.description,
+        records,
+        declaredCount: Number(dictionary?.master_counts?.[definition.countField]) || 0,
+        contextCount: sourceRows.reduce(
+          (sum, record) => sum + list(relationsByMasterRef.get(text(record?.stable_ref).trim())).length,
+          0,
+        ),
+      };
+    });
+    const visibleCategories = query
+      ? masterCategories.filter((category) => category.records.length)
+      : masterCategories;
+    return {
+      rows: allRows,
+      environmentGroups: [],
+      masterCategories: visibleCategories,
+      directoryMode: "master_dictionary",
+      compatibilityNotice: "",
+      fallbackReason: "",
+      summary: {
+        totalEnvironments: Number(dictionary?.master_counts?.information_environments) || 0,
+        totalSegmentTypes: Number(dictionary?.master_counts?.environment_segment_types) || 0,
+        totalObjects: Number(dictionary?.master_counts?.information_objects) || 0,
+        totalSegmentContexts: Number(dictionary?.context_counts?.environment_segments) || 0,
+        totalObjectContexts: Number(dictionary?.context_counts?.environment_object_contexts) || 0,
+      },
+      sourceEvidenceById: {},
+      dataState: text(dictionary?.data_state).trim(),
+      emptyState: allRows.length
+        ? ""
+        : query
+          ? "暂无匹配的信息化环境、环境子类或信息化对象主数据。"
+          : "主数据字典当前为空；现有环境映射树仍保持不变。",
+    };
+  }
+
+  function buildEnvironmentDirectoryWithFallback({
+    dictionary,
+    management,
+    search,
+    enabled,
+  }) {
+    const compatibility = environmentDictionaryCompatibility(dictionary);
+    if (enabled && compatibility.usable) {
+      return buildEnvironmentMasterDictionaryViewModel({ dictionary, search });
+    }
+    const fallback = buildEnvironmentObjectDirectoryViewModel({ management, search });
+    const reason = enabled ? compatibility.reason : "feature_disabled";
+    const notices = {
+      feature_disabled: "当前使用兼容目录视图；环境主数据字典能力尚未启用。",
+      missing_file: "环境主数据字典包暂不可用，已回退到现有环境对象树；当前记录不是主数据去重统计。",
+      missing_package: "环境主数据字典包暂不可用，已回退到现有环境对象树；当前记录不是主数据去重统计。",
+      error: "环境主数据字典加载失败，已回退到现有环境对象树；可重新加载后再试。",
+      api_error: "环境主数据字典 API 加载失败，已回退到现有环境对象树；可重新加载后再试。",
+      schema_incompatible: "环境主数据字典 schema 不兼容，已回退到现有环境对象树，未显示假 0 条。",
+    };
+    return {
+      ...fallback,
+      compatibilityNotice: notices[reason] || notices.missing_package,
+      fallbackReason: reason,
+    };
+  }
+
   function scopeScenario(scope) {
     const scenario = text(scope?.scenario || scope?.category).trim();
     return scenario && scenario !== "未分类" ? scenario : "网络空间";
@@ -3401,9 +3674,14 @@
     ).length;
     const securityWorkCount = securityWorkLogicalCount(management, securityWorkReferenceCount);
     const applicationSystemCount = list(lifecycle?.application_security_development?.application_system_types).length;
+    const environmentObjectContextCount = list(management?.environment_scope_tree).reduce(
+      (sum, environment) => sum + list(environment?.objects).reduce((objectSum, object) => objectSum + list(object?.segments).length, 0),
+      0,
+    );
     return [
       { id: "capability-directory", label: "安全能力清单", count: capabilityDirectoryCount, implemented: true },
       { id: "scopes", label: "作用域清单", count: configuredCount("scopes", list(management?.scope_types).length), implemented: true },
+      { id: "environment-objects", label: "信息化环境-对象目录", count: environmentObjectContextCount, implemented: true },
       {
         id: "services",
         label: "安全技术服务清单",
@@ -3509,6 +3787,14 @@
         description: "来自 LC-AP 应用安全开发生命周期元素目录，按原始字段“应用系统、定义、应用组件”归纳展开。",
         implemented: true,
         notice: "当前页面只展示原始表应用系统目录区域的业务字段；软件开发类型仍保留在 LC-AP 生命周期参考数据中。",
+      };
+    }
+    if (section === "environment-objects") {
+      return {
+        title: "信息化环境-对象目录",
+        description: "按信息化环境、环境子类、信息化对象分类查看唯一主数据与明确的环境映射上下文。",
+        implemented: true,
+        notice: "主数据字典与现有环境映射树分层呈现；字典不可用时会明确回退到兼容目录，不在前端推导或合并主数据。",
       };
     }
     if (section === "scopes") {
@@ -3867,8 +4153,8 @@
     return [];
   }
 
-  function buildMaintenanceWorkspaceViewModel({ capabilityTree, management, maintenance, lifecycle, standards, section = "scopes", selectedId, search, referenceTab = "gbt", standardFrameworkId = "mlps-level-3", standardTableId = "" }) {
-    const normalizedSection = ["capability-directory", "scopes", "processes", "work-functions", "security-works", "services", "modules", "measures", "application-systems", "lcap-references", "references", "standards"].includes(section) ? section : "scopes";
+  function buildMaintenanceWorkspaceViewModel({ capabilityTree, environmentDictionary, environmentDictionaryEnabled = false, management, maintenance, lifecycle, standards, section = "scopes", selectedId, search, referenceTab = "gbt", standardFrameworkId = "mlps-level-3", standardTableId = "" }) {
+    const normalizedSection = ["capability-directory", "scopes", "environment-objects", "processes", "work-functions", "security-works", "services", "modules", "measures", "application-systems", "lcap-references", "references", "standards"].includes(section) ? section : "scopes";
     const normalizedReferenceTab = referenceTab === "gartner" ? "gartner" : "gbt";
     const maintenanceKnowledge = maintenance || management;
     const navigationItems = maintenanceNavigationItems(maintenanceKnowledge, normalizedSection, capabilityTree, lifecycle, standards);
@@ -3878,6 +4164,13 @@
         ? buildCapabilityDirectoryViewModel({ capabilityTree, search })
       : normalizedSection === "scopes"
         ? buildScopeMaintenanceViewModel({ management: maintenanceKnowledge, search })
+      : normalizedSection === "environment-objects"
+          ? buildEnvironmentDirectoryWithFallback({
+              dictionary: environmentDictionary,
+              management: maintenanceKnowledge,
+              search,
+              enabled: environmentDictionaryEnabled,
+            })
         : normalizedSection === "processes"
           ? buildProcessMaintenanceViewModel({ management: maintenanceKnowledge, search })
           : normalizedSection === "work-functions"
@@ -3901,12 +4194,23 @@
                   : { rows: [], summary: {}, emptyState: pageMeta.description };
     const selectableRows =
       normalizedSection === "references" ? (normalizedReferenceTab === "gartner" ? sectionViewModel.roleRows || [] : sectionViewModel.standardRows || []) : sectionViewModel.rows;
-    const selection = resolveCurrentObjectSelection({
-      rows: selectableRows,
-      selectedId,
-      grain: "maintenance_object",
-      label: "知识库对象",
-    });
+    const selection =
+      normalizedSection === "environment-objects" && !text(selectedId).trim()
+        ? {
+            id: null,
+            row: null,
+            status: selectableRows.length ? "initial_landing" : "empty",
+            source: "none",
+            grain: "environment_object_context",
+            requestedId: "",
+            message: selectableRows.length ? "" : "暂无信息化环境对象目录数据",
+          }
+        : resolveCurrentObjectSelection({
+            rows: selectableRows,
+            selectedId,
+            grain: "maintenance_object",
+            label: "知识库对象",
+          });
     const selectedRow = selection.row;
     const sidecarSourceEvidence = selectedRow ? list(maintenanceKnowledge?.source_evidence_by_id?.[selectedRow.id]) : [];
     const sourceEvidence = sidecarSourceEvidence.length
@@ -3930,6 +4234,11 @@
       navigationItems,
       sectionTabs: maintenanceSectionTabs(normalizedSection, tabCounts, normalizedReferenceTab),
       capabilityGroups: sectionViewModel.capabilityGroups || [],
+      environmentGroups: sectionViewModel.environmentGroups || [],
+      masterCategories: sectionViewModel.masterCategories || [],
+      directoryMode: sectionViewModel.directoryMode || "",
+      compatibilityNotice: sectionViewModel.compatibilityNotice || "",
+      fallbackReason: sectionViewModel.fallbackReason || "",
       serviceScopeGroups: sectionViewModel.serviceScopeGroups || [],
       page: pageMeta,
       summary: sectionViewModel.summary,
@@ -5815,6 +6124,10 @@
     buildApplicationSecurityLifecycleViewModel,
     buildDataSecurityLifecycleViewModel,
     buildMaintenanceWorkspaceViewModel,
+    buildEnvironmentObjectDirectoryViewModel,
+    buildEnvironmentMasterDictionaryViewModel,
+    buildEnvironmentDirectoryWithFallback,
+    environmentDictionaryCompatibility,
     buildProcessMaintenanceViewModel,
     buildScopeMaintenanceViewModel,
     buildSecurityWorkMaintenanceViewModel,

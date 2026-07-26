@@ -96,6 +96,17 @@ def sample_snapshot() -> dict:
             "retention_bytes": 20 * 1024 * 1024,
             "event_count": 4,
             "last_event_at": "2026-07-23T01:02:00Z",
+            "recent_events": [
+                {
+                    "occurred_at": "2026-07-23T01:02:00Z",
+                    "event_type": "TOOL_CALL",
+                    "client_id": "client-0001",
+                    "tool_name": "search_knowledge",
+                    "result_code": "OK",
+                    "returned_count": 3,
+                    "duration_ms": 18,
+                }
+            ],
         },
         "diagnostics": {
             "overall_state": "ready",
@@ -195,6 +206,7 @@ class FakeSupervisorGateway:
         result = self._mutate("clear_audit", request_id, expected_state_version)
         self.snapshot["audit"]["event_count"] = 0
         self.snapshot["audit"]["last_event_at"] = None
+        self.snapshot["audit"]["recent_events"] = []
         return result
 
     def prepare_certificate_action(
@@ -333,6 +345,10 @@ class ControlServiceTests(unittest.TestCase):
         )
         self.assertEqual(self.service.get_clients()["data"][0]["client_id"], "client-0001")
         self.assertEqual(self.service.get_audit()["data"]["event_count"], 4)
+        self.assertEqual(
+            self.service.get_audit()["data"]["recent_events"][0]["tool_name"],
+            "search_knowledge",
+        )
         self.assertEqual(
             self.service.get_diagnostics()["data"]["checks"][0]["check_id"],
             "runtime",

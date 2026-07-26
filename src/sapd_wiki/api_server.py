@@ -37,6 +37,7 @@ DATA_PACKAGES = {
     "analytics-summary": "frontend/capability-browser/public/data/analytics-summary.json",
     "capability": "frontend/capability-browser/public/data/capability-tree.json",
     "capability-workbench": "frontend/capability-browser/public/data/capability-workbench.json",
+    "environment-dictionary": "frontend/capability-browser/public/data/environment-dictionary.json",
     "environment-workbench": "frontend/capability-browser/public/data/environment-workbench.json",
     "lifecycle-workbench": "frontend/capability-browser/public/data/lifecycle-workbench.json",
     "maintenance-index": "frontend/capability-browser/public/data/maintenance-index.json",
@@ -4345,6 +4346,11 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
                     )
                 )
                 return
+            if path == "/api/v1/environments/dictionary":
+                self._send_json(
+                    create_envelope(read_data_package("environment-dictionary"))
+                )
+                return
             if len(parts) == 4 and parts[:3] == ["api", "v1", "data-packages"]:
                 self._send_json(create_envelope(read_data_package(parts[3])))
                 return
@@ -4460,6 +4466,25 @@ def default_mcp_certificate_identity_root() -> Path:
     )
 
 
+def default_mcp_runtime_root() -> Path:
+    """Persistent current-user Runtime root for MCP lifecycle and authorization."""
+
+    if os.name == "nt":
+        local_app_data = os.environ.get("LOCALAPPDATA")
+        if not local_app_data:
+            raise ValueError("LOCALAPPDATA is required for Windows MCP Runtime")
+        return Path(local_app_data) / "SAPD Wiki" / "LocalMCP" / "Runtime" / "dev"
+    return (
+        Path.home()
+        / "Library"
+        / "Application Support"
+        / "SAPD Wiki"
+        / "LocalMCP"
+        / "Runtime"
+        / "dev"
+    )
+
+
 def serve(args: argparse.Namespace) -> None:
     validate_reserved_preview_runtime(args)
     if not is_loopback_host(str(args.host)):
@@ -4485,10 +4510,17 @@ def serve(args: argparse.Namespace) -> None:
     platform_integration_enabled = bool(
         getattr(args, "mcp_platform_integration", False)
     )
+    resolved_mcp_runtime_root = (
+        Path(mcp_runtime_root)
+        if mcp_runtime_root
+        else default_mcp_runtime_root()
+        if platform_integration_enabled
+        else None
+    )
     server.sapd_mcp_supervisor = DevSidecarSupervisor(
         configured_port=int(getattr(args, "mcp_port", 28775)),
-        runtime_root=Path(mcp_runtime_root) if mcp_runtime_root else None,
-        cleanup_on_close=not bool(mcp_runtime_root),
+        runtime_root=resolved_mcp_runtime_root,
+        cleanup_on_close=resolved_mcp_runtime_root is None,
         python_executable=resolve_mcp_python_executable(getattr(args, "mcp_python", None)),
         base_database=BASE_DB_PATH,
         certificate_identity_root=(
@@ -4497,6 +4529,7 @@ def serve(args: argparse.Namespace) -> None:
             else None
         ),
         platform_integration_enabled=platform_integration_enabled,
+        auto_restore_enabled=platform_integration_enabled,
     )
     server.sapd_mcp_control_api = build_dev_control_api(
         expected_host=expected_host,

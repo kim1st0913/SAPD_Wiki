@@ -49,7 +49,7 @@ const suites = {
         "scripts/package_backend_pyinstaller.py",
       ]),
       command("static:test-runner", "项目测试套件编排脚本语法检查", "node", ["--check", "scripts/run_project_test_suite.mjs"]),
-      command("static:reserved-preview-port", "5173 stable 保留端口与 synthetic 负向门禁", "python3", [
+      command("static:reserved-preview-port", "5173 stable 保留端口与 synthetic 负向门禁", ".venv-local-mcp-web/bin/python", [
         "-m",
         "unittest",
         "tests.mcp_integration.test_reserved_preview_port",
@@ -86,7 +86,7 @@ const suites = {
     description: "核心业务数据契约检查",
     commands: [
       command("data:dictionary-reference", "字典权威引用一致性审计", "node", ["scripts/audit_dictionary_reference_consistency.mjs"]),
-      command("data:search-quality", "搜索索引语义质量探针", "python3", ["scripts/audit_search_index_quality_probes.py"]),
+      command("data:search-quality", "搜索索引语义质量探针", ".venv-local-mcp-web/bin/python", ["scripts/audit_search_index_quality_probes.py"]),
       command("data:capability-integrity", "安全能力映射完整性审计", "python3", ["scripts/audit_capability_mapping_integrity.py"]),
       command("data:lcdt-policy", "LC-DT 策略矩阵行级投影审计", "python3", ["scripts/audit_lcdt_policy_projection_contract.py"]),
       command("data:module-services", "安全技术模块-服务关系审计", "python3", ["scripts/audit_maintenance_module_services_integrity.py"]),
@@ -198,14 +198,18 @@ const suites = {
       command("user:notes-integrity", "用户批注完整性审计", "node", ["scripts/audit_user_notes_integrity.mjs"]),
       command("user:db-migration-smoke", "用户库 / stable key 迁移临时库 smoke", "node", ["scripts/smoke_db_migration_contracts.mjs"]),
       command("user:data-basket-smoke", "用户数据篮和导出 API 临时 Runtime smoke", "node", ["scripts/smoke_user_data_basket_api.mjs"]),
-      command("user:local-directory-contract", "用户本地目录与分类导出契约审计", "python3", ["scripts/audit_local_file_directory_contract.py"]),
+      command("user:local-directory-contract", "用户本地目录与分类导出契约审计", ".venv-local-mcp-web/bin/python", ["-m", "scripts.audit_local_file_directory_contract"], {
+        env: { PYTHONPATH: "src" },
+      }),
     ],
   },
   delivery: {
     description: "打包前交付契约检查，不构建 DMG",
     commands: [
       command("delivery:dmg-browser-parity", "DMG 与 5173 一致性契约审计", "node", ["scripts/audit_mac_dmg_browser_parity_contract.mjs"]),
-      command("delivery:local-directory-contract", "App 本地 import / export / Runtime 目录契约审计", "python3", ["scripts/audit_local_file_directory_contract.py"]),
+      command("delivery:local-directory-contract", "App 本地 import / export / Runtime 目录契约审计", ".venv-local-mcp-web/bin/python", ["-m", "scripts.audit_local_file_directory_contract"], {
+        env: { PYTHONPATH: "src" },
+      }),
       command("delivery:runtime-py", "打包 Runtime helper Python 语法检查", "python3", [
         "-m",
         "py_compile",

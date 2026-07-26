@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 import os
-import secrets
+import re
 from pathlib import Path
 
 from .authorization_broker import AuthorizationDecisionBroker
@@ -17,6 +17,9 @@ from .dev_fixture import create_dev_formal_base
 from .secret_transport import receive_one_shot_secret
 from .sidecar import Sidecar, SidecarConfig
 from .tls import create_server_ssl_context_from_passphrase
+
+
+RUNTIME_IDENTIFIER_PATTERN = re.compile(r"^[A-Za-z0-9._:-]{8,160}$")
 
 
 def _isolated_root(value: str) -> Path:
@@ -40,12 +43,21 @@ def _read_secret(path: Path) -> bytes:
     return value
 
 
+def _runtime_identifier(value: str) -> str:
+    normalized = str(value).strip()
+    if not RUNTIME_IDENTIFIER_PATTERN.fullmatch(normalized):
+        raise ValueError("runtime identifier is invalid")
+    return normalized
+
+
 def run_dev_sidecar(
     *,
     runtime_root: Path,
     base_database: Path | None,
     configured_port: int,
     secret_channel_fd: int,
+    instance_id: str,
+    runtime_id: str,
     authorization_timeout_seconds: int = 120,
 ) -> None:
     root = _isolated_root(str(runtime_root))
@@ -81,8 +93,8 @@ def run_dev_sidecar(
         )
         config = SidecarConfig.for_web_dev(
             configured_port=configured_port,
-            instance_id=f"web-dev-{secrets.token_urlsafe(12)}",
-            runtime_id=f"runtime-{secrets.token_urlsafe(12)}",
+            instance_id=_runtime_identifier(instance_id),
+            runtime_id=_runtime_identifier(runtime_id),
             policy_version=POLICY_VERSION,
         )
         control_store_path = root / "control" / "control.sqlite3"
@@ -114,6 +126,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--base-db")
     parser.add_argument("--port", required=True, type=int)
     parser.add_argument("--secret-channel-fd", required=True, type=int)
+    parser.add_argument("--instance-id", required=True)
+    parser.add_argument("--runtime-id", required=True)
     parser.add_argument(
         "--authorization-timeout-seconds",
         type=int,
@@ -126,6 +140,8 @@ def main(argv: list[str] | None = None) -> int:
         base_database=Path(args.base_db) if args.base_db else None,
         configured_port=args.port,
         secret_channel_fd=args.secret_channel_fd,
+        instance_id=args.instance_id,
+        runtime_id=args.runtime_id,
         authorization_timeout_seconds=args.authorization_timeout_seconds,
     )
     return 0

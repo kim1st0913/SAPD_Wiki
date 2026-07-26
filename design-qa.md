@@ -1,3 +1,47 @@
+# AI 功能集成授权流程与客户端状态 Design QA（2026-07-26）
+
+- source visual truth：用户提供的待确认授权截图 `/var/folders/81/8nwy3h2n00s1dw1g5bnvj7j40000gn/T/codex-clipboard-bb0ab489-dea1-4eca-aead-ec5e37827d68.png`（`2660×804`）和客户端授权截图 `/var/folders/81/8nwy3h2n00s1dw1g5bnvj7j40000gn/T/codex-clipboard-b4564628-31c3-4c1e-b3df-c311131bd02c.png`（`1474×554`）。
+- implementation：`http://127.0.0.1:5173/#/settings/ai-integration`；真实已授权状态与生产组件的 synthetic 待确认状态，均使用应用内浏览器，未启动系统 Chrome。
+- browser-rendered evidence：`/private/tmp/sapd-ai-integration-client-qa-20260726.png`、`/private/tmp/sapd-ai-integration-pending-qa-20260726.png`。
+- viewport / normalization：实现使用 `1440×1000` CSS 视口、设备密度 `1`；源图为用户浏览器局部裁切，因此比较聚焦信息层级、换行、操作位置和内容密度，不比较浏览器外框或绝对像素缩放。
+- same-input comparison：待确认源图与当前生产组件待确认渲染、客户端授权源图与真实 5173 已授权渲染，分别放入同一视觉比较输入。
+
+## Findings 与比较历史
+
+无剩余 AI 集成页面 P0 / P1 / P2 设计阻塞。
+
+- P1 待确认请求不醒目：原请求位于页面下方，用户需要自行寻找。修复后概况下方立即显示 sticky `role=alert` 提示，直接说明请求方、只读权限、截止时间和成功后的浏览器文案，并提供“查看授权请求”入口。
+- P1 授权判断被技术字段淹没：原卡片首先展示 Client ID、Redirect URI、Scope、Resource 与数据策略。修复后默认只展示“谁在请求、能读取什么、什么时候失效、允许或拒绝”；五项技术字段收进“查看技术信息”。
+- P1 客户端表格窄列竖排：原六列表格使 Client ID、日期与“最近使用”断裂。修复后改为响应式管理列表，客户端身份、业务权限、授权时间、最近使用和撤销动作形成两行三轨；`618px` 卡片 `scrollWidth=clientWidth=618`。
+- P2 状态含义不清：“未验证”改为“发布方未验证”，并明确说明动态注册不等于 HTTPS 不安全；原断链图标移除，撤销动作改为可读文字按钮。
+- P2 窄屏布局：`390×844` 下客户端信息自然回流为单列，撤销动作占整行，客户端容器 `scrollWidth=clientWidth=275`，页面滚动区 `313/313`，无横向溢出。
+
+## Required fidelity surfaces
+
+- Fonts / typography：沿用 SAPD Apple Shell 系统字体和既有 `14 / 12px` 工作台层级；Client ID 使用紧凑等宽短标识，不再多行暴露完整 UUID。
+- Spacing / layout rhythm：待确认提示、请求决策区和客户端管理列表均复用现有 panel、divider、control radius 与紧凑间距；证书和客户端继续并排，审计区独占下一行。
+- Colors / tokens：仅使用既有 blue、warning、ready、panel、quiet surface 与 divider token；没有新增渐变、装饰色或营销式卡片。
+- Image quality / assets：本页没有业务图片；本轮没有新增手绘 SVG、CSS 图形、emoji 或占位资源。
+- Copy / content：主层只使用业务语言；OAuth scope、Resource、Redirect URI 和 policy version 只在技术详情中提供。
+
+## Primary interactions and runtime evidence
+
+- 真实 5173 已授权状态可见“发布方未验证”“只读访问基础知识库”“授权时间 / 最近使用”和“撤销授权”，旧六列表格已移除。
+- synthetic 待确认状态使用当前生产 `SystemSettings.render` 与同一 CSS 渲染；顶部提示与“允许只读访问 / 拒绝”主决策均可见，根滚动区与请求卡片均无横向溢出。
+- 应用内浏览器真实页面与待确认组件预览 console error 均为 `0`。
+- `node --check frontend/capability-browser/components/SystemSettings.js`、`node scripts/audit_frontend_system_settings_contract.mjs`、定向 `git diff --check` 通过。
+- 未点击真实允许、拒绝、撤销或重置，未修改真实授权、系统信任、正式数据或用户数据。
+
+## Scope boundary
+
+- `/oauth/authorize` 在等待 SAPD Wiki 决策期间仍是服务端挂起请求，浏览器没有等待正文；这属于 OAuth 路由与安全轮询协议的独立实现，不在本轮 AI 集成页面视觉改动中伪造解决。
+- 回调页 “Authentication complete. You may close this window.” 由 Codex 临时 callback 服务生成，不属于 SAPD Wiki 可定制页面。
+- 当前 macOS / Windows 安装包尚未接入 MCP Sidecar、证书平台桥和 OAuth 提醒；继续由 `OI-199` 跟踪，不能用本轮 Web 页面验收替代 App / 打包验收。
+
+final result: passed
+
+---
+
 # AI 功能集成信息架构与 MCP 状态浮层第三轮 Design QA（2026-07-24）
 
 - source visual truth：用户问题截图 `/var/folders/81/8nwy3h2n00s1dw1g5bnvj7j40000gn/T/codex-clipboard-1edc417f-a4b2-4266-a3e7-b897f74a08d1.png`（`700×544`）与 `/var/folders/81/8nwy3h2n00s1dw1g5bnvj7j40000gn/T/codex-clipboard-95fff6ae-960b-4cf5-8d22-4de7765e56b1.png`（`2612×1442`）。

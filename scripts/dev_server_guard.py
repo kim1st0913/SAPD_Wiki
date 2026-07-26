@@ -29,6 +29,39 @@ DEFAULT_RUNTIME_PATHS = {
 }
 
 
+def default_persistent_mcp_runtime_root() -> Path | None:
+    """Return the CurrentUser MCP Runtime root without creating it."""
+
+    if os.name == "nt":
+        local_app_data = os.environ.get("LOCALAPPDATA", "").strip()
+        if not local_app_data:
+            return None
+        return Path(local_app_data) / "SAPD Wiki" / "LocalMCP" / "Runtime" / "dev"
+    return (
+        Path.home()
+        / "Library"
+        / "Application Support"
+        / "SAPD Wiki"
+        / "LocalMCP"
+        / "Runtime"
+        / "dev"
+    )
+
+
+def persistent_mcp_runtime_is_configured() -> bool:
+    """Reuse platform integration only after the user has established it."""
+
+    runtime_root = default_persistent_mcp_runtime_root()
+    if runtime_root is None:
+        return False
+    return (
+        runtime_root.is_dir()
+        and (runtime_root / "control" / "control.sqlite3").is_file()
+        and (runtime_root / "instance-id.txt").is_file()
+        and (runtime_root / "runtime-id.txt").is_file()
+    )
+
+
 def server_python_executable(root: Path = ROOT) -> Path:
     """Use the isolated MCP runtime for the Web server when it is available."""
 
@@ -162,7 +195,9 @@ def expected_runtime(args: argparse.Namespace) -> dict[str, str]:
         values["mcp_port"] = str(args.mcp_port)
     if args.mcp_runtime_root:
         values["mcp_runtime_root"] = args.mcp_runtime_root
-    if args.mcp_platform_integration:
+    if args.mcp_platform_integration or (
+        args.port == DEFAULT_PORT and persistent_mcp_runtime_is_configured()
+    ):
         values["mcp_platform_integration"] = "1"
     values["runtime_label"] = args.runtime_label or "stable"
     values["project_root"] = str(ROOT.resolve())
@@ -259,7 +294,34 @@ def existing_server_requires_restart(
         return False
     if not health.get("ok"):
         return True
-    return not all(check["ok"] for check in runtime_health_checks(health, expected))
+    if not all(check["ok"] for check in runtime_health_checks(health, expected)):
+        return True
+    if expected.get("mcp_platform_integration") == "1":
+        return not any(
+            row.get("is_project_server")
+            and "--mcp-platform-integration" in row.get("command_line", "")
+            for row in processes
+        )
+    return False
+
+
+def mcp_integration_process_check(
+    processes: list[dict[str, str]],
+    expected: dict[str, str],
+) -> dict[str, object] | None:
+    if expected.get("mcp_platform_integration") != "1":
+        return None
+    enabled = any(
+        row.get("is_project_server")
+        and "--mcp-platform-integration" in row.get("command_line", "")
+        for row in processes
+    )
+    return {
+        "name": "mcp_platform_integration",
+        "ok": enabled,
+        "expected": "persistent CurrentUser Runtime",
+        "actual": "persistent CurrentUser Runtime" if enabled else "temporary Web Runtime",
+    }
 
 
 def kill_plain_http_servers(processes: list[dict[str, str]]) -> list[str]:
@@ -403,6 +465,9 @@ def main() -> int:
     health = http_json_status(f"http://127.0.0.1:{args.port}/api/v1/health")
     projection = http_status(f"http://127.0.0.1:{args.port}/api/v1/capabilities/workspace-projection")
     profile_checks = runtime_health_checks(health, runtime)
+    mcp_integration_check = mcp_integration_process_check(processes, runtime)
+    if mcp_integration_check is not None:
+        profile_checks.append(mcp_integration_check)
     has_healthy_project_response = bool(home.get("ok") and projection.get("ok") and processes)
     has_project_server = any(row["is_project_server"] for row in processes) or has_healthy_project_response
     profile_ok = all(check["ok"] for check in profile_checks)

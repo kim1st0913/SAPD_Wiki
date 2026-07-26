@@ -14,6 +14,19 @@
 | `data_package_summary.py` | 前端数据包摘要检查 | `CURRENT_STATE.md` |
 | `export_analytics_summary.mjs` | 从现有 workbench / standards / content 数据包生成 `analytics-summary.json` 离线契约；默认输出到已忽略的 `frontend/capability-browser/public/data/` | `docs/06-implementation/analytics-summary-json-contract-draft.md` |
 | `audit_analytics_summary_contract.mjs` | 审计 `analytics-summary.json` 的主 grain、覆盖率分母、标准控制项三类 grain 和禁止字段泄露 | `docs/06-implementation/analytics-summary-json-contract-draft.md` |
+| `audit_environment_master_data_p0_contract.mjs` | 审计信息化环境主数据P0合同、字典响应schema、裁定清单、29/67上下文保护、编号/身份规则、`instance_of` 唯一性和首期只读fallback边界 | `docs/01-architecture/contracts/environment-master-data/v1/` |
+| `audit_environment_master_data_p1_inventory.py` | 以只读SQLite连接盘点信息化环境主数据、上下文、来源证据、环境包一致性及用户引用，输出P2裁定输入；不分配编号或修改正式数据 | `data/exports/worker-verify/plan-env-md/p1-*/` |
+| `audit_environment_master_data_p1_inventory.mjs` | 独立验收P1报告、清单行数、用户引用解析、输入哈希和正式apply禁用状态 | `data/exports/worker-verify/plan-env-md/p1-*/` |
+| `build_environment_master_data_p2_plan.py` | 只读P1基线与正式库，生成77条主数据编号、16条环境子类裁定及29条 `instance_of` 计划；不写正式库 | `data/exports/worker-verify/plan-env-md/p2-*/` |
+| `verify_environment_master_data_p2_reimport.py` | 通过SQLite临时副本验证同源双重导入的对象/业务关系幂等、segment上下文匹配和保护输入哈希 | `data/exports/worker-verify/plan-env-md/p2-*/` |
+| `audit_environment_master_data_p2_contract.mjs` | 独立验收P2裁定、编号、关系计划、临时重导报告、文件manifest和导入修复标记 | `data/exports/worker-verify/plan-env-md/p2-*/` |
+| `rehearse_environment_master_data_p3_migration.py` | 在SQLite临时备份副本执行主数据首次/重复应用、候选字典开关、精确回退和事务故障注入；拒绝写正式库且不保留候选包 | `data/exports/worker-verify/plan-env-md/p3-*/` |
+| `audit_environment_master_data_p3_contract.mjs` | 独立验收P3写入/回退数量、逻辑快照、保护输入哈希、候选包清理、rollback manifest和产物manifest | `data/exports/worker-verify/plan-env-md/p3-*/` |
+| `export_environment_dictionary_p4_shadow.py` | 从临时迁移副本导出加法型 `environment-dictionary-v1` 影子包，保留旧环境树、拆分投影、底图和Dashboard包 | `data/exports/worker-verify/plan-env-md/p4-*/` |
+| `audit_environment_master_data_p4_contract.mjs` | 独立验收P4字典schema、10/16/51主数据、29/67上下文、106条用法关系、API注册和保护文件哈希；兼容P6后的正式库状态 | `data/exports/worker-verify/plan-env-md/p4-*/` |
+| `audit_environment_master_data_p5_contract.mjs` | 验收主数据字典前端的默认关闭开关、主数据/关系展示、搜索展开状态及缺包/API/schema fallback | `data/exports/worker-verify/plan-env-md/p5-*/` |
+| `apply_environment_master_data_p6.py` | 默认dry-run；经精确确认后先生成完整恢复包并取得单写者锁，再对正式基础库执行幂等P6迁移，失败时自动从热备份回退 | `data/exports/worker-verify/plan-env-md/p6-*/` |
+| `audit_environment_master_data_p6_contract.mjs` | 独立验收P6报告、恢复文件哈希、正式库完整性/外键/计数、用户与保护输入未变及P7开关仍关闭 | `data/exports/worker-verify/plan-env-md/p6-*/` |
 | `audit_maturity_assessment_v2_1_contract.py` | 审计成熟度 V2.1 的企业组织项目、固定模板只读、服务角色、四维评分、目标达成率、可选证据、文件交换、L2 结果和报告契约 | `PLAN-MAT-WS`、`docs/08-maturity/` |
 | `dev_server_guard.py` | 本地预览服务守护；默认守护当前工作区固定预览入口，不承担数据接入策略切换 | `CURRENT_STATE.md` |
 | `frontend_smoke_check.mjs` | 前端页面轻量 HTTP/API smoke 检查；默认不启动系统 Google Chrome | `CURRENT_STATE.md` |

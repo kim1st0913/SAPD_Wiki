@@ -465,6 +465,8 @@
       "required": [
         "desired_state",
         "service_state",
+        "reconnect_state",
+        "reconnect_attempt",
         "authorization_state",
         "activity_state",
         "knowledge_state",
@@ -488,6 +490,18 @@
             "stopping",
             "error"
           ]
+        },
+        "reconnect_state": {
+          "enum": [
+            "idle",
+            "scheduled",
+            "recovering"
+          ]
+        },
+        "reconnect_attempt": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
         },
         "authorization_state": {
           "enum": [
@@ -610,6 +624,7 @@
       "additionalProperties": false,
       "required": [
         "enabled",
+        "auto_restore",
         "configured_port",
         "release_channel",
         "canonical_resource",
@@ -617,6 +632,9 @@
       ],
       "properties": {
         "enabled": {
+          "type": "boolean"
+        },
+        "auto_restore": {
           "type": "boolean"
         },
         "configured_port": {
@@ -775,6 +793,61 @@
         }
       }
     },
+    "audit_event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "occurred_at",
+        "event_type",
+        "client_id",
+        "tool_name",
+        "result_code",
+        "returned_count",
+        "duration_ms"
+      ],
+      "properties": {
+        "occurred_at": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "event_type": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "client_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 128
+        },
+        "tool_name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 128
+        },
+        "result_code": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "returned_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "duration_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
     "audit": {
       "type": "object",
       "additionalProperties": false,
@@ -784,7 +857,8 @@
         "retention_days",
         "retention_bytes",
         "event_count",
-        "last_event_at"
+        "last_event_at",
+        "recent_events"
       ],
       "properties": {
         "enabled": {
@@ -815,6 +889,13 @@
             "null"
           ],
           "maxLength": 64
+        },
+        "recent_events": {
+          "type": "array",
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/$defs/audit_event"
+          }
         }
       }
     },

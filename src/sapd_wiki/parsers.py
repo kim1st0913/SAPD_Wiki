@@ -644,6 +644,17 @@ def parse_scene_sheet(
         object_raw = normalize_text(_cell_raw_with_merged(row, 3, merged_values))
         scope_raw = normalize_text(_cell_raw_with_merged(row, 4, merged_values))
         system_raw = normalize_text(_cell_raw_with_merged(row, 7, merged_values))
+        if environment_raw and last_environment and environment_raw != last_environment:
+            last_segment = ""
+            last_object = ""
+            last_scopes = ""
+            last_system = ""
+            last_system_cell = None
+            last_service_raw = ""
+            last_service_cell = None
+            last_module_raw = ""
+            last_module_cell = None
+            last_module_is_scene_module = False
         if environment_raw:
             last_environment = environment_raw
         if segment_raw:

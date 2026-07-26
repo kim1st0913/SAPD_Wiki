@@ -263,6 +263,39 @@ class CertificateIdentityStore:
             manifests.append(self.load_generation_manifest(path.name))
         return manifests
 
+    def remove_empty_generation_directories(self) -> list[str]:
+        """Remove interrupted pre-manifest generations while the writer lock is held.
+
+        A non-empty generation without a valid manifest remains a hard error.  It
+        may contain material needed for recovery and must never be silently
+        discarded.  Empty directories cannot contain a certificate, key,
+        manifest, or secret reference and are safe to remove before a new
+        transaction starts.
+        """
+
+        active = self.load_manifest()
+        active_generation_id = active.generation_id if active is not None else None
+        removed: list[str] = []
+        for path in sorted(self.generations_root.iterdir(), key=lambda item: item.name):
+            if (
+                path.is_symlink()
+                or not path.is_dir()
+                or not _GENERATION_RE.fullmatch(path.name)
+            ):
+                raise CertificateIdentityError("IDENTITY_GENERATION_INVALID")
+            if path.name == active_generation_id:
+                continue
+            try:
+                next(path.iterdir())
+            except StopIteration:
+                path.rmdir()
+                removed.append(path.name)
+            except OSError as exc:
+                raise CertificateIdentityError("IDENTITY_GENERATION_INVALID") from exc
+            else:
+                self.load_generation_manifest(path.name)
+        return removed
+
     def active_identity_files(
         self,
         manifest: CertificateIdentityManifest | None = None,
@@ -313,6 +346,7 @@ class CertificateIdentityStore:
     ) -> ManagedTrustTarget:
         files = self.generation_identity_files(manifest)
         _assert_secure_regular_file(files.ca_path)
+        _assert_secure_regular_file(files.server_chain_path)
         return target_from_pem(
             install_id=manifest.install_id,
             profile=manifest.profile,
@@ -320,6 +354,7 @@ class CertificateIdentityStore:
             display_name=manifest.ca_display_name,
             fingerprint_sha256=manifest.ca_fingerprint_sha256,
             certificate_pem=files.ca_path.read_bytes(),
+            verification_certificate_pem=files.server_chain_path.read_bytes(),
         )
 
     def stage_generation(
@@ -460,8 +495,7 @@ class CertificateIdentityStore:
             )
             _atomic_write(
                 self._resolve_relative(chain_relative),
-                server_certificate.public_bytes(serialization.Encoding.PEM)
-                + ca_certificate.public_bytes(serialization.Encoding.PEM),
+                server_certificate.public_bytes(serialization.Encoding.PEM),
             )
             _atomic_write(
                 self._resolve_relative(key_relative),

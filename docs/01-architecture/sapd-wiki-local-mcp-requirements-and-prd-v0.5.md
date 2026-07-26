@@ -572,7 +572,7 @@ P0 只为实际 canonical host 签发 SAN。除非 `M0-T` 证明目标客户端�
 正式方向已冻结为：
 
 1. 每个 OS 用户、安装实例和 release profile 独立生成本地 CA；
-2. CA 公共证书只加入 CurrentUser 信任；
+2. CA 公共证书只加入 CurrentUser 信任；macOS 使用 Chrome 可识别的 CurrentUser 根信任条目，实际地址范围由 critical `nameConstraints=127.0.0.1/32`、leaf SAN 和 loopback 监听共同限制，不使用 Chrome 无法识别的 hostname-scoped trust settings；
 3. CA 私钥只用于首次签发服务器证书，签发后删除，不安装长期运行的 CA 服务；
 4. 服务器私钥以加密 PKCS#8 保存，随机口令由 Keychain/DPAPI CurrentUser 保管；
 5. Sidecar 使用 `SSLContext.load_cert_chain(..., password=...)` 终止 TLS；

@@ -8,6 +8,15 @@ from sapd_wiki import api_server
 
 
 class EphemeralWebUserStateTests(unittest.TestCase):
+    def test_health_projects_release_safe_mcp_runtime_identity(self) -> None:
+        payload = api_server.runtime_health_payload(
+            mcp_runtime_id="runtime-release-test",
+        )
+        self.assertEqual(
+            payload["runtime"]["runtime_id"],
+            "runtime-release-test",
+        )
+
     def test_schema_check_does_not_rewrite_unchanged_user_metadata(self) -> None:
         original_user_db = api_server.USER_DB_PATH
         original_runtime_label = api_server.RUNTIME_LABEL

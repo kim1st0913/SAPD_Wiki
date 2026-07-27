@@ -696,7 +696,9 @@ def latest_approved_import_job_id(conn: sqlite3.Connection) -> str:
         """
     ).fetchone()
     if not row:
-        raise ValueError("No approved import job found.")
+        raise ValueError(
+            "NO_APPROVED_IMPORT_JOB: No approved import job found."
+        )
     return row["id"]
 
 
@@ -5300,18 +5302,6 @@ def export_standard_frameworks_data(
     return {"count": payload["stats"]["controls"], "files": files, "stats": payload["stats"]}
 
 
-def _latest_import_job_id_or_none(conn: sqlite3.Connection) -> str | None:
-    row = conn.execute(
-        """
-        SELECT id
-        FROM import_jobs
-        ORDER BY finished_at DESC, started_at DESC
-        LIMIT 1
-        """
-    ).fetchone()
-    return row["id"] if row else None
-
-
 def _second_batch_validation_messages(
     conn: sqlite3.Connection,
     import_job_id: str | None,
@@ -5399,14 +5389,21 @@ def export_second_batch_summary(
     """Write a machine-readable second-batch export/verification summary."""
 
     output = resolve_project_path(output_path)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    resolved_import_job_id = import_job_id or _latest_import_job_id_or_none(conn)
+    resolved_import_job_id = import_job_id or latest_approved_import_job_id(conn)
+    job = import_job_detail(conn, resolved_import_job_id)
+    cleanup = (
+        job.get("summary", {})
+        .get("import_lifecycle", {})
+        .get("intermediate_cleanup", {})
+    )
     item_counts = _item_counts_for_types(conn, SECOND_BATCH_ITEM_TYPES)
     relation_counts = _relation_counts_for_types(conn, SECOND_BATCH_RELATION_TYPES)
     validations = _second_batch_validation_messages(conn, resolved_import_job_id)
     payload = {
         "generated_at": conn.execute("SELECT datetime('now') AS now").fetchone()["now"],
         "import_job_id": resolved_import_job_id,
+        "job_status": job["status"],
+        "intermediate_detail_purged": cleanup.get("status") == "completed",
         "items_by_type": item_counts,
         "relations_by_type": relation_counts,
         "stats": {
@@ -5423,5 +5420,6 @@ def export_second_batch_summary(
             relation_type for relation_type, count in relation_counts.items() if count == 0
         ],
     }
+    output.parent.mkdir(parents=True, exist_ok=True)
     _write_json(output, payload)
     return {"files": [str(output)], "stats": payload["stats"]}

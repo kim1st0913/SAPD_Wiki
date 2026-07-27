@@ -16,6 +16,7 @@ class ApproveSummary:
     relations_created: int
     relations_deleted: int
     source_references_created: int
+    source_references_reused: int
     warnings: list[str]
 
     def to_dict(self) -> dict[str, Any]:
@@ -27,8 +28,15 @@ class ApproveSummary:
             "relations_created": self.relations_created,
             "relations_deleted": self.relations_deleted,
             "source_references_created": self.source_references_created,
+            "source_references_reused": self.source_references_reused,
             "warnings": self.warnings,
         }
+
+
+class ImportApprovalError(ValueError):
+    def __init__(self, code: str, message: str) -> None:
+        self.code = code
+        super().__init__(f"{code}: {message}")
 
 
 def _loads(value: str | None, default: Any) -> Any:
@@ -152,9 +160,41 @@ def _write_source_refs(
     source_file_id: str,
     source_hash: str,
     source_refs: list[dict[str, Any]],
-) -> int:
-    count = 0
+) -> tuple[int, int]:
+    created = 0
+    reused = 0
     for source in source_refs[:20]:
+        values = (
+            target_type,
+            target_id,
+            source_file_id,
+            source.get("source_sheet"),
+            source.get("source_row"),
+            source.get("source_column"),
+            source.get("source_cell"),
+            source.get("raw_value"),
+            source_hash,
+        )
+        existing = conn.execute(
+            """
+            SELECT id
+            FROM source_references
+            WHERE target_type = ?
+              AND target_id = ?
+              AND source_file_id = ?
+              AND source_sheet IS ?
+              AND source_row IS ?
+              AND source_column IS ?
+              AND source_cell IS ?
+              AND raw_value IS ?
+              AND source_hash = ?
+            LIMIT 1
+            """,
+            values,
+        ).fetchone()
+        if existing:
+            reused += 1
+            continue
         conn.execute(
             """
             INSERT INTO source_references (
@@ -165,19 +205,11 @@ def _write_source_refs(
             """,
             (
                 str(uuid.uuid4()),
-                target_type,
-                target_id,
-                source_file_id,
-                source.get("source_sheet"),
-                source.get("source_row"),
-                source.get("source_column"),
-                source.get("source_cell"),
-                source.get("raw_value"),
-                source_hash,
+                *values,
             ),
         )
-        count += 1
-    return count
+        created += 1
+    return created, reused
 
 
 def _record_review_decision(
@@ -388,7 +420,10 @@ def _delete_stale_relations(
     return count
 
 
-def approve_import(conn: sqlite3.Connection, import_job_id: str) -> ApproveSummary:
+def _approve_import_locked(
+    conn: sqlite3.Connection,
+    import_job_id: str,
+) -> ApproveSummary:
     job = conn.execute(
         """
         SELECT import_jobs.*, source_files.file_hash, source_files.file_path AS source_file_path
@@ -399,12 +434,28 @@ def approve_import(conn: sqlite3.Connection, import_job_id: str) -> ApproveSumma
         (import_job_id,),
     ).fetchone()
     if not job:
-        raise ValueError(f"Import job not found: {import_job_id}")
+        raise ImportApprovalError(
+            "IMPORT_JOB_NOT_FOUND",
+            f"Import job not found: {import_job_id}",
+        )
+    status = job["status"]
+    if status != "reviewing":
+        if status == "approved":
+            code = "IMPORT_ALREADY_APPROVED"
+        elif status in {"pending", "parsed"}:
+            code = "IMPORT_NOT_STAGED"
+        else:
+            code = "IMPORT_JOB_CLOSED"
+        raise ImportApprovalError(
+            code,
+            f"Import job {import_job_id} cannot be approved from status={status}",
+        )
 
     item_map: dict[str, str] = {}
     items_created = 0
     items_updated = 0
     source_refs_created = 0
+    source_refs_reused = 0
     warnings: list[str] = []
     current_item_keys: set[str] = set()
     current_item_types: set[str] = set()
@@ -476,7 +527,7 @@ def approve_import(conn: sqlite3.Connection, import_job_id: str) -> ApproveSumma
         current_item_keys.add(item_key)
         current_item_types.add(row["type"])
         source_refs = _loads(row["source_reference_json"], [])
-        source_refs_created += _write_source_refs(
+        created, reused = _write_source_refs(
             conn,
             target_type="item",
             target_id=item_id,
@@ -484,6 +535,8 @@ def approve_import(conn: sqlite3.Connection, import_job_id: str) -> ApproveSumma
             source_hash=job["file_hash"],
             source_refs=source_refs,
         )
+        source_refs_created += created
+        source_refs_reused += reused
         conn.execute(
             """
             INSERT INTO change_logs (id, target_type, target_id, change_type, after_json, import_job_id)
@@ -581,7 +634,7 @@ def approve_import(conn: sqlite3.Connection, import_job_id: str) -> ApproveSumma
                 (str(uuid.uuid4()), relation_id, _dumps({"staging_relation_id": row["id"]}), import_job_id),
             )
         source_refs = _loads(row["source_reference_json"], [])
-        source_refs_created += _write_source_refs(
+        created, reused = _write_source_refs(
             conn,
             target_type="relation",
             target_id=relation_id,
@@ -589,6 +642,8 @@ def approve_import(conn: sqlite3.Connection, import_job_id: str) -> ApproveSumma
             source_hash=job["file_hash"],
             source_refs=source_refs,
         )
+        source_refs_created += created
+        source_refs_reused += reused
         _record_review_decision(
             conn,
             import_job_id=import_job_id,
@@ -619,15 +674,13 @@ def approve_import(conn: sqlite3.Connection, import_job_id: str) -> ApproveSumma
             source_sheets=source_sheets,
         )
 
-    conn.execute(
-        """
-        UPDATE import_jobs
-        SET status = 'approved', finished_at = datetime('now')
-        WHERE id = ?
-        """,
-        (import_job_id,),
-    )
-    return ApproveSummary(
+    violations = conn.execute("PRAGMA foreign_key_check").fetchall()
+    if violations:
+        raise ValueError(
+            f"IMPORT_APPROVAL_FOREIGN_KEY_VIOLATION: {len(violations)} violation(s)"
+        )
+
+    summary = ApproveSummary(
         import_job_id=import_job_id,
         items_created=items_created,
         items_updated=items_updated,
@@ -635,5 +688,32 @@ def approve_import(conn: sqlite3.Connection, import_job_id: str) -> ApproveSumma
         relations_created=relations_created,
         relations_deleted=relations_deleted,
         source_references_created=source_refs_created,
+        source_references_reused=source_refs_reused,
         warnings=warnings,
     )
+    job_summary = _loads(job["summary_json"], {})
+    job_summary["approval_summary"] = summary.to_dict()
+    conn.execute(
+        """
+        UPDATE import_jobs
+        SET status = 'approved', finished_at = datetime('now'), summary_json = ?
+        WHERE id = ?
+        """,
+        (_dumps(job_summary), import_job_id),
+    )
+    return summary
+
+
+def approve_import(conn: sqlite3.Connection, import_job_id: str) -> ApproveSummary:
+    if conn.in_transaction:
+        raise RuntimeError(
+            "IMPORT_TRANSACTION_NOT_CLEAN: approve_import requires a clean connection"
+        )
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        summary = _approve_import_locked(conn, import_job_id)
+        conn.commit()
+        return summary
+    except Exception:
+        conn.rollback()
+        raise

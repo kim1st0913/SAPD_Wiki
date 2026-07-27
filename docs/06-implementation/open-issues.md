@@ -4,7 +4,7 @@
 
 ## 治理入口
 
-- 当前未关闭问题数：7
+- 当前未关闭问题数：6
 - 已关闭归档问题数：194
 - 全量索引：`docs/06-implementation/open-issues-index.md`
 - 已关闭问题归档：`docs/05-archive/open-issues-history/2026-06.md`、`docs/05-archive/open-issues-history/2026-07.md`
@@ -25,7 +25,6 @@
 | 编号 | 状态 | 标题 |
 |---|---|---|
 | OI-199 | 部分完成 / Codex Web 验证通过，跨平台待完成 | 本地 MCP 正式知识访问已接入，真实客户端与跨平台验证仍待完成 |
-| OI-198 | 待实现 / 契约已确认 | 导入审批缺少幂等门禁、中间数据终结和 approved 默认导出契约 |
 | OI-197 | 待业务确认 / 映射门禁阻断 | 成熟度评分依据与当前能力字典尚未全量映射 |
 | OI-192 | 已修复 / 待用户验收 | 成熟度评分工作台服务、评分定义与主动作契约未按截图落地 |
 | OI-191 | 已修复 / 待用户验收 | 全局共享标题区视觉 token 偏离旧 DMG 基线 |
@@ -67,22 +66,6 @@
 - 关闭条件：目标 Codex 版本在 macOS/Windows 完成 HTTPS、发现、注册、PKCE、resource/audience、刷新、撤销、升级/回滚/卸载和负向安全矩阵；真实 CurrentUser 信任与密钥保管验证通过；MCP 始终不创建、打开或修改用户库。G 阶段不阻塞当前交付关闭，但触发条件满足后必须新建升级执行门禁并完成双时代回归，不能直接替换现有稳定协议。
 - 修复说明：新增正式基础知识库访问合同与 scope `sapd.base.knowledge.read`；Sidecar 改为只读打开正式基础库并通过 5 个固定工具返回全部业务对象内容、关系和脱敏来源证据。旧 synthetic 公开摘要合同保留为历史测试基线。系统设置明确显示“基础知识库全部业务内容，包括完整标准正文”，并继续排除用户数据、源文件本体、本地路径、系统配置与凭据、日志和非受控 SQL。
 - 验证结果：2026-07-26 隔离 MCP 完整套件 `170/170` 通过，覆盖 5 个只读工具、OAuth 注册/授权/刷新/复用/撤销、等价授权重试合并、超时与停服；同一 `client_id + redirect_uri + scopes + resource + policy_version` 的并发授权重试只展示一个请求，一次允许或拒绝同步完成该组等待流程，不同客户端或访问边界仍独立处理。重新授权后，指定真实 Codex 会话 `019f94f6-98aa-78e3-b2a5-f7a67ede0c29` 已完成五工具有效数据矩阵：搜索1条、对象1个、关系5条、脱敏来源证据8条、版本 `base-1c9d7c70574585df`，控制库记录连续5条 `TOOL_CALL / OK`，5173 客户端最近使用和最近3条工具审计自动刷新。真实连接同时发现 Sidecar 门禁把 canonical `2025-11-25` 误作唯一允许版本；修复后保持 canonical 版本不变，接受 MCP SDK 正式支持版本并继续拒绝未知版本。系统设置前端合同通过；正式基础库只读，真实用户库未修改。Windows、App/DMG 和目标客户端版本矩阵仍未验证。
-
-## OI-198：导入审批缺少幂等门禁、中间数据终结和 approved 默认导出契约
-
-- 状态：待实现 / 契约已确认
-- 严重性：高
-- 类型：ETL / SQLite / 来源追踪 / 导入导出 / 数据治理
-- 对象或页面：`approve_import`、`source_references`、`import_jobs`、`staging_items`、`staging_relations`、`review_decisions`、导入摘要导出命令。
-- 现象：清理后主库副本 smoke 证明新导入链路可以正常 staging 和 approve，但同一 job 第二次 approve 仍会再次追加来源引用和变更日志；approved job 的 staging / review 不会在业务验收后按 job 终结；默认 `export-second-batch-summary` 会按所有状态的结束时间选择 rejected job。
-- 影响：重复操作会持续放大来源追踪和变更日志，长期导入会重新累积 staging / review；默认导出可能把失败或拒绝任务当成正式导入结果，降低来源审计可信度并重复制造数据库清理任务。
-- 建单理由：涉及正式 SQLite 写入、来源证据唯一性、导入状态机、导出选择器和长期审计边界，不能作为一次性文档说明关闭。
-- 当前处理：用户已确认四项契约方向，权威文档为 `docs/03-import-etl/import-approval-idempotency-and-retention-contract.md`。契约要求 approve 只能从 reviewing 原子进入；来源引用按完整证据键幂等复用；新增默认 dry-run、显式 apply 的按 job finalize 命令；未指定 job ID 的正式导出只选择最新 approved 任务。当前只完成文档，代码、schema / migration 和测试均未修改。
-- 需要确认：无需额外业务判断；实施时不得顺带清理现存 65,824 条重复来源引用，不得改变对象匹配、旧对象停用、Sheet 解析或用户库边界。
-- 验收入口：`docs/03-import-etl/import-approval-idempotency-and-retention-contract.md` 第 4 至第 10 节。
-- 关闭条件：重复 approve 与并发 approve 无二次写入；同证据来源引用只复用不新增；`finalize-import` dry-run / apply / 重复执行 / 错误状态矩阵通过；默认导出忽略 rejected / failed / reviewing / parsed / pending；临时库全链路、数据边界和受保护基线检查通过。
-- 修复说明：本轮仅补齐契约、索引、治理发现和问题追踪，不修改 ETL / CLI / schema、正式 SQLite、源 Excel、正式 JSON、用户库或 DMG。
-- 验证结果：2026-07-19 临时库 smoke 中，第一次 approve 新增来源引用 `651`、变更日志 `162`；第二次 approve 再次新增相同数量，确认当前状态门禁和来源幂等缺口。默认 second-batch 导出选择了 rejected job `3e828d78-98dc-48c3-95e0-56383b55714a`。这些证据只用于确定契约，不计为实现通过。
 
 ## OI-197：成熟度评分依据与当前能力字典尚未全量映射
 

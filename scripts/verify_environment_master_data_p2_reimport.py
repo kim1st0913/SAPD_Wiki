@@ -229,6 +229,7 @@ def import_once(
             summary_json=json.dumps(payload, ensure_ascii=False),
         )
         mismatches = stage_match_mismatches(connection, import_job_id)
+        connection.commit()
         approve_summary = approve_import(connection, import_job_id)
         return {
             "import_job_id": import_job_id,

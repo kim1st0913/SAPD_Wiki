@@ -16,8 +16,9 @@ class MigrationResult:
 def connect(db_path: str | Path = DEFAULT_DB_PATH) -> sqlite3.Connection:
     resolved = resolve_project_path(db_path)
     resolved.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(resolved)
+    conn = sqlite3.connect(resolved, timeout=30.0)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA busy_timeout = 30000")
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
 
@@ -67,4 +68,3 @@ def run_migrations(
             )
             results.append(MigrationResult(path=migration, applied=True))
     return results
-

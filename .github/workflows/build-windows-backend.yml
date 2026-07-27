@@ -47,7 +47,10 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}\src
         run: |
-          python -m unittest tests.mcp_integration.test_bundle_mcp_runtime tests.mcp_sidecar.test_dev_supervisor
+          python -m unittest `
+            tests.mcp_integration.test_bundle_mcp_runtime `
+            tests.mcp_sidecar.test_dev_supervisor.DevSupervisorTests.test_frozen_runtime_reenters_backend_for_sidecar `
+            tests.mcp_sidecar.test_dev_supervisor.DevSupervisorTests.test_source_runtime_uses_python_module_entrypoint
 
       - name: Package native Windows backend
         shell: pwsh

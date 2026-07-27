@@ -131,6 +131,30 @@ def _current_windows_sid() -> str:
 
     kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
     advapi32 = ctypes.WinDLL("advapi32", use_last_error=True)
+    advapi32.OpenProcessToken.argtypes = (
+        wintypes.HANDLE,
+        wintypes.DWORD,
+        ctypes.POINTER(wintypes.HANDLE),
+    )
+    advapi32.OpenProcessToken.restype = wintypes.BOOL
+    advapi32.GetTokenInformation.argtypes = (
+        wintypes.HANDLE,
+        ctypes.c_uint,
+        ctypes.c_void_p,
+        wintypes.DWORD,
+        ctypes.POINTER(wintypes.DWORD),
+    )
+    advapi32.GetTokenInformation.restype = wintypes.BOOL
+    advapi32.ConvertSidToStringSidW.argtypes = (
+        ctypes.c_void_p,
+        ctypes.POINTER(wintypes.LPWSTR),
+    )
+    advapi32.ConvertSidToStringSidW.restype = wintypes.BOOL
+    kernel32.GetCurrentProcess.restype = wintypes.HANDLE
+    kernel32.LocalFree.argtypes = (ctypes.c_void_p,)
+    kernel32.LocalFree.restype = ctypes.c_void_p
+    kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
+    kernel32.CloseHandle.restype = wintypes.BOOL
     token = wintypes.HANDLE()
     if not advapi32.OpenProcessToken(
         kernel32.GetCurrentProcess(),
@@ -147,7 +171,11 @@ def _current_windows_sid() -> str:
             0,
             ctypes.byref(required),
         )
-        if required.value <= 0 or required.value > 64 * 1024:
+        if (
+            ctypes.get_last_error() != 122
+            or required.value <= 0
+            or required.value > 64 * 1024
+        ):
             raise _unsafe()
         buffer = ctypes.create_string_buffer(required.value)
         if not advapi32.GetTokenInformation(

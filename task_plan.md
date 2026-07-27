@@ -10,6 +10,14 @@
 - 快速状态入口：`CURRENT_STATE.md`
 - 完整历史计划归档：`docs/05-archive/context-slimming-2026-05-15/task_plan-full-before-slimming.md`
 
+## 2026-07-27 阶段收口
+
+- 源码 checkpoint：`62e682d`；计划同步：`f683df7`。
+- Windows 长期分支：`origin/codex/windows-electron=f683df7`，已与当时 `main` 快进一致；保留不删除。
+- OI-198：`complete / verified / archived`。
+- 知识内容增量发布：工程链路已实现，真实基线 release `65f9425b4e3550513f127ea57abe2094eb65e01f389a00fc62ad463cf44c5257` 已双次幂等构建并通过 verify，状态停在 `gated`；正式 apply、runtime restart、MCP五工具和 accept 需在下一次明确发布窗口执行。
+- OI-197：15项业务裁定清单已形成，等待用户逐项选择；在裁定前不写字典、评分规则、源Excel或正式数据。
+
 ## 今晚执行主线：基础知识与内容统一查询（2026-07-26）
 
 - 状态：`t6_complete`

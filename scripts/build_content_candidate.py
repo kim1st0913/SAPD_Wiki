@@ -1162,8 +1162,23 @@ def reset_and_import_query_content(
     connection: sqlite3.Connection,
     manifest: dict[str, Any],
     review_manifest: dict[str, Any],
+    *,
+    base_database_sha256: str | None = None,
+    release_id: str | None = None,
 ) -> None:
     timestamp = manifest["frozen_at"]
+    manual_bindings = [
+        dict(row)
+        for row in connection.execute(
+            """
+            SELECT *
+            FROM content_bindings
+            WHERE confidence='manual'
+               OR json_extract(metadata_json, '$.managed_by')='manual'
+            ORDER BY id
+            """
+        ).fetchall()
+    ]
     with connection:
         connection.execute("DELETE FROM content_source_evidence")
         connection.execute("DELETE FROM content_bindings")
@@ -1177,16 +1192,30 @@ def reset_and_import_query_content(
                 review_manifest,
                 timestamp,
             )
+        for binding in manual_bindings:
+            columns = list(binding)
+            connection.execute(
+                f"""
+                INSERT INTO content_bindings ({", ".join(columns)})
+                VALUES ({", ".join("?" for _ in columns)})
+                """,
+                tuple(binding[column] for column in columns),
+            )
         meta = {
             "schema_version": CONTENT_SCHEMA_VERSION,
             "manifest_id": manifest["manifest_id"],
             "manifest_version": manifest["manifest_version"],
             "ocr_review_id": review_manifest["review_id"],
             "ocr_review_version": review_manifest["review_version"],
-            "base_database_sha256": manifest["database_targets"][
-                "formal_query_database_sha256_before"
-            ],
+            "base_database_sha256": (
+                base_database_sha256
+                or manifest["database_targets"][
+                    "formal_query_database_sha256_before"
+                ]
+            ),
         }
+        if release_id:
+            meta["content_release_id"] = release_id
         for key, value in meta.items():
             connection.execute(
                 """
@@ -1317,8 +1346,12 @@ def collection_logical_name(
 ) -> str:
     pattern = collection["logical_file_name_pattern"]
     if "{page:03d}" in pattern:
-        match = re.search(r"(\d+)", path.stem)
-        page = int(match.group(1)) if match else ordinal
+        match = re.search(r"(?:^|[_-])(\d+)$", path.stem)
+        if match is None:
+            raise ValueError(
+                f"派生页文件名缺少末尾页码：{collection['collection_id']} {path.name}"
+            )
+        page = int(match.group(1))
         return pattern.replace("{page:03d}", f"{page:03d}")
     if "{region}" in pattern:
         return pattern.replace("{region}", poster_region_slug(path))
@@ -1328,6 +1361,8 @@ def collection_logical_name(
 def reset_and_import_assets(
     connection: sqlite3.Connection,
     manifest: dict[str, Any],
+    *,
+    release_id: str | None = None,
 ) -> None:
     timestamp = manifest["frozen_at"]
     document_refs = {
@@ -1370,7 +1405,14 @@ def reset_and_import_assets(
                 logical_name = collection_logical_name(collection, source_path, ordinal)
                 file_hash = sha256_file(source_path)
                 if "{page:03d}" in collection["logical_file_name_pattern"]:
-                    owner_ref = f"{document_ref}:page:{ordinal:03d}"
+                    page_match = re.search(r"(?:^|[_-])(\d+)$", source_path.stem)
+                    if page_match is None:
+                        raise ValueError(
+                            "派生页文件名缺少末尾页码："
+                            f"{collection['collection_id']} {source_path.name}"
+                        )
+                    page_number = int(page_match.group(1))
+                    owner_ref = f"{document_ref}:page:{page_number:03d}"
                     role = "page-preview"
                 else:
                     region = poster_region_slug(source_path)
@@ -1398,6 +1440,8 @@ def reset_and_import_assets(
             "manifest_id": manifest["manifest_id"],
             "manifest_version": manifest["manifest_version"],
         }
+        if release_id:
+            meta["content_release_id"] = release_id
         for key, value in meta.items():
             connection.execute(
                 """
@@ -1473,6 +1517,8 @@ def query_snapshot(connection: sqlite3.Connection) -> dict[str, Any]:
 def quality_gates(
     query_connection: sqlite3.Connection,
     asset_connection: sqlite3.Connection,
+    *,
+    enforce_frozen_counts: bool = True,
 ) -> dict[str, Any]:
     fragment_types = {
         row[0]: row[1]
@@ -1497,6 +1543,38 @@ def quality_gates(
            OR target_ref NOT IN (SELECT stable_ref FROM refs)
         """
     ).fetchone()[0]
+    dangling_bindings = query_connection.execute(
+        """
+        WITH content_refs AS (
+          SELECT stable_ref FROM content_documents
+          UNION
+          SELECT stable_ref FROM content_fragments
+        )
+        SELECT COUNT(*)
+        FROM content_bindings AS binding
+        WHERE binding.content_ref NOT IN (SELECT stable_ref FROM content_refs)
+           OR binding.knowledge_ref NOT IN (
+             SELECT stable_ref FROM knowledge_items WHERE stable_ref IS NOT NULL
+           )
+        """
+    ).fetchone()[0]
+    query_refs = {
+        row[0]
+        for row in query_connection.execute(
+            """
+            SELECT stable_ref FROM content_documents
+            UNION
+            SELECT stable_ref FROM content_fragments
+            """
+        )
+    }
+    dangling_asset_owners = sum(
+        1
+        for row in asset_connection.execute(
+            "SELECT owner_ref FROM document_assets"
+        )
+        if row[0] not in query_refs
+    )
     poster_ocr = query_connection.execute(
         """
         SELECT COUNT(*)
@@ -1547,26 +1625,41 @@ def quality_gates(
         "pptx_slide": 80,
         "manual_catalog": 7,
     }
-    expected_counts_match = all(
-        fragment_types.get(fragment_type) == count
-        for fragment_type, count in expected.items()
+    expected_counts_match = (
+        all(
+            fragment_types.get(fragment_type) == count
+            for fragment_type, count in expected.items()
+        )
+        if enforce_frozen_counts
+        else True
+    )
+    reviewed_ocr_match = (
+        reviewed_ocr == 2
+        if enforce_frozen_counts
+        else True
     )
     return {
         "expectedCountsMatch": expected_counts_match,
+        "frozenCountsEnforced": enforce_frozen_counts,
         "expectedFragmentCounts": expected,
         "actualFragmentCounts": fragment_types,
         "pendingOcrCount": pending_ocr,
         "reviewedOcrCount": reviewed_ocr,
+        "reviewedOcrCountAccepted": reviewed_ocr_match,
         "posterOcrCount": poster_ocr,
         "danglingRelationEndpoints": dangling_endpoints,
+        "danglingContentBindings": dangling_bindings,
+        "danglingAssetOwners": dangling_asset_owners,
         "unsafeHtmlTerms": unsafe_html_terms,
         "badLogicalFileNames": bad_logical_names,
         "pass": (
             expected_counts_match
             and pending_ocr == 0
-            and reviewed_ocr == 2
+            and reviewed_ocr_match
             and poster_ocr == 0
             and dangling_endpoints == 0
+            and dangling_bindings == 0
+            and dangling_asset_owners == 0
             and unsafe_html_terms == 0
             and bad_logical_names == 0
         ),
@@ -1689,24 +1782,46 @@ def prepare_databases(
     manifest: dict[str, Any],
     query_schema_path: Path,
     asset_schema_path: Path,
+    *,
+    formal_db: Path | None = None,
+    candidate_query: Path | None = None,
+    candidate_asset: Path | None = None,
+    expected_base_hash: str | None = None,
 ) -> tuple[Path, Path, sqlite3.Connection, sqlite3.Connection]:
     targets = manifest["database_targets"]
-    formal_db = (ROOT / targets["formal_query_database"]).resolve()
-    candidate_query = require_bounded_output(ROOT / targets["candidate_query_database"])
-    candidate_asset = require_bounded_output(ROOT / targets["candidate_asset_database"])
+    formal_db = (
+        formal_db
+        or (ROOT / targets["formal_query_database"]).resolve()
+    )
+    candidate_query = require_bounded_output(
+        candidate_query
+        or ROOT / targets["candidate_query_database"]
+    )
+    candidate_asset = require_bounded_output(
+        candidate_asset
+        or ROOT / targets["candidate_asset_database"]
+    )
     candidate_query.parent.mkdir(parents=True, exist_ok=True)
     candidate_asset.parent.mkdir(parents=True, exist_ok=True)
     if candidate_query == formal_db:
         raise ValueError("候选查询库不得等于正式查询库")
-    if not candidate_query.exists():
-        sqlite_backup(formal_db, candidate_query)
+    candidate_query.unlink(missing_ok=True)
+    candidate_asset.unlink(missing_ok=True)
+    sqlite_backup(formal_db, candidate_query)
     query_connection = connect_database(candidate_query)
     query_connection.executescript(query_schema_path.read_text(encoding="utf-8"))
     existing_base_hash = query_connection.execute(
         "SELECT value FROM content_schema_meta WHERE key='base_database_sha256'"
     ).fetchone()
-    expected_base_hash = targets["formal_query_database_sha256_before"]
-    if existing_base_hash and existing_base_hash[0] != expected_base_hash:
+    expected_base_hash = (
+        expected_base_hash
+        or targets["formal_query_database_sha256_before"]
+    )
+    if (
+        existing_base_hash
+        and existing_base_hash[0] != expected_base_hash
+        and sha256_file(formal_db) != expected_base_hash
+    ):
         raise ValueError("候选查询库记录的基础库哈希与T0清单不一致")
 
     asset_connection = connect_database(candidate_asset)
@@ -1731,11 +1846,21 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         or not review_manifest.get("policy", {}).get("poster_ocr_forbidden")
     ):
         raise ValueError("OCR复核清单必须已批准且继续禁止Poster OCR")
-    formal_db = (ROOT / manifest["database_targets"]["formal_query_database"]).resolve()
+    formal_db = (
+        Path(args.formal_database).resolve()
+        if getattr(args, "formal_database", None)
+        else (
+            ROOT
+            / manifest["database_targets"]["formal_query_database"]
+        ).resolve()
+    )
     formal_hash_before = sha256_file(formal_db)
-    expected_formal_hash = manifest["database_targets"][
-        "formal_query_database_sha256_before"
-    ]
+    expected_formal_hash = (
+        getattr(args, "parent_query_sha256", None)
+        or manifest["database_targets"][
+            "formal_query_database_sha256_before"
+        ]
+    )
     if formal_hash_before != expected_formal_hash:
         raise ValueError(
             f"正式基础库hash与T0清单不符：expected={expected_formal_hash} "
@@ -1746,19 +1871,43 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         if sources_before[f"document:{document['document_id']}"] != document["sha256"]:
             raise ValueError(f"正式源hash不符：{document['document_id']}")
 
+    candidate_query_override = (
+        Path(args.candidate_query).resolve()
+        if getattr(args, "candidate_query", None)
+        else None
+    )
+    candidate_asset_override = (
+        Path(args.candidate_asset).resolve()
+        if getattr(args, "candidate_asset", None)
+        else None
+    )
     (
         candidate_query,
         candidate_asset,
         query_connection,
         asset_connection,
-    ) = prepare_databases(manifest, query_schema_path, asset_schema_path)
+    ) = prepare_databases(
+        manifest,
+        query_schema_path,
+        asset_schema_path,
+        formal_db=formal_db,
+        candidate_query=candidate_query_override,
+        candidate_asset=candidate_asset_override,
+        expected_base_hash=expected_formal_hash,
+    )
     try:
         reset_and_import_query_content(
             query_connection,
             manifest,
             review_manifest,
+            base_database_sha256=formal_hash_before,
+            release_id=getattr(args, "release_id", None),
         )
-        reset_and_import_assets(asset_connection, manifest)
+        reset_and_import_assets(
+            asset_connection,
+            manifest,
+            release_id=getattr(args, "release_id", None),
+        )
         first_query = query_snapshot(query_connection)
         first_asset = asset_snapshot(asset_connection)
         sync_runtime_digests(
@@ -1771,14 +1920,28 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         first = {
             "query": first_query,
             "asset": first_asset,
-            "quality": quality_gates(query_connection, asset_connection),
+            "quality": quality_gates(
+                query_connection,
+                asset_connection,
+                enforce_frozen_counts=not getattr(
+                    args,
+                    "dynamic_expectations",
+                    False,
+                ),
+            ),
         }
         reset_and_import_query_content(
             query_connection,
             manifest,
             review_manifest,
+            base_database_sha256=formal_hash_before,
+            release_id=getattr(args, "release_id", None),
         )
-        reset_and_import_assets(asset_connection, manifest)
+        reset_and_import_assets(
+            asset_connection,
+            manifest,
+            release_id=getattr(args, "release_id", None),
+        )
         second_query = query_snapshot(query_connection)
         second_asset = asset_snapshot(asset_connection)
         runtime_digests = sync_runtime_digests(
@@ -1791,7 +1954,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         second = {
             "query": second_query,
             "asset": second_asset,
-            "quality": quality_gates(query_connection, asset_connection),
+            "quality": quality_gates(
+                query_connection,
+                asset_connection,
+                enforce_frozen_counts=not getattr(
+                    args,
+                    "dynamic_expectations",
+                    False,
+                ),
+            ),
         }
         query_connection.execute(
             "INSERT INTO content_fragments_fts(content_fragments_fts) VALUES('integrity-check')"
@@ -1825,6 +1996,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "result": "pass" if not issues else "fail",
         "manifestId": manifest["manifest_id"],
         "manifestVersion": manifest["manifest_version"],
+        "releaseId": getattr(args, "release_id", None),
         "querySchemaVersion": CONTENT_SCHEMA_VERSION,
         "assetSchemaVersion": ASSET_SCHEMA_VERSION,
         "ocrReviewId": review_manifest["review_id"],
@@ -1835,6 +2007,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "sha256Before": formal_hash_before,
             "sha256After": formal_hash_after,
             "unchanged": formal_hash_before == formal_hash_after,
+        },
+        "candidateDatabaseHashes": {
+            "query": sha256_file(candidate_query),
+            "asset": sha256_file(candidate_asset),
         },
         "userDatabaseAccess": "not_accessed",
         "sourceAssetsUnchanged": sources_before == sources_after,
@@ -1874,6 +2050,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--asset-schema", default=str(DEFAULT_ASSET_SCHEMA))
     parser.add_argument("--ocr-review", default=str(DEFAULT_OCR_REVIEW))
     parser.add_argument("--report")
+    parser.add_argument("--formal-database")
+    parser.add_argument("--candidate-query")
+    parser.add_argument("--candidate-asset")
+    parser.add_argument("--parent-query-sha256")
+    parser.add_argument("--release-id")
+    parser.add_argument("--dynamic-expectations", action="store_true")
     return parser.parse_args()
 
 

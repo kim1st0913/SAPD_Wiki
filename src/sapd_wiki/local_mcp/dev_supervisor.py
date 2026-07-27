@@ -238,6 +238,11 @@ class DevSidecarSupervisor:
     def process(self) -> subprocess.Popen[bytes] | None:
         return self._process
 
+    @property
+    def runtime_id(self) -> str:
+        """Non-secret persistent identity for release-bound MCP evidence."""
+        return self._runtime_id
+
     def _write_runtime_secret(self, name: str) -> None:
         path = self.runtime_root / name
         if path.exists():

@@ -8,6 +8,7 @@ import hashlib
 import json
 import urllib.parse
 import urllib.request
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -63,6 +64,22 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     real_user = args.real_user.resolve(strict=True)
     apply_report = json.loads(
         args.apply_report.resolve(strict=True).read_text(encoding="utf-8")
+    )
+    release_state = (
+        json.loads(
+            args.release_state.resolve(strict=True).read_text(encoding="utf-8")
+        )
+        if args.release_state
+        else None
+    )
+    mcp_five_tools = (
+        json.loads(
+            args.mcp_five_tools_evidence.resolve(strict=True).read_text(
+                encoding="utf-8"
+            )
+        )
+        if args.mcp_five_tools_evidence
+        else None
     )
     before = {
         "formalQuery": sha256_file(formal_query),
@@ -175,9 +192,21 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     issues: list[str] = []
     if before != after:
         issues.append("formal query, asset, or real user database changed during reads")
-    if before["formalQuery"] != apply_report["after"]["formal_query"]["sha256"]:
+    expected_query_hash = (
+        apply_report.get("after", {})
+        .get("formal_query", {})
+        .get("sha256")
+        or apply_report.get("formal_query", {}).get("sha256")
+    )
+    expected_asset_hash = (
+        apply_report.get("after", {})
+        .get("formal_asset", {})
+        .get("sha256")
+        or apply_report.get("formal_asset", {}).get("sha256")
+    )
+    if before["formalQuery"] != expected_query_hash:
         issues.append("formal query hash differs from T6 apply report")
-    if before["formalAsset"] != apply_report["after"]["formal_asset"]["sha256"]:
+    if before["formalAsset"] != expected_asset_hash:
         issues.append("formal asset hash differs from T6 apply report")
     if not search.get("data", {}).get("items"):
         issues.append("formal search returned no representative result")
@@ -191,10 +220,94 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         issues.append("stable runtime does not expose the formal asset database")
     if mcp_state not in {"ready", "running", "started"}:
         issues.append(f"MCP stable runtime is not ready: {mcp_state!r}")
+    if release_state:
+        release_id = release_state.get("release_id")
+        candidate = release_state.get("build", {}).get("candidate", {})
+        expected_tools = {
+            "search_knowledge",
+            "get_knowledge_object",
+            "get_related_knowledge",
+            "get_source_evidence",
+            "get_knowledge_version",
+        }
+        tool_results = (
+            mcp_five_tools.get("tool_results", {})
+            if isinstance(mcp_five_tools, dict)
+            else {}
+        )
+        expected_runtime_id = (
+            mcp_status.get("runtime_id")
+            or health_runtime.get("runtime_id")
+        )
+        authorized_client_ids = {
+            client.get("client_id")
+            for client in mcp_clients
+            if client.get("client_id")
+            and client.get("status") not in {"disabled", "revoked"}
+            and client.get("authorization_status")
+            not in {"denied", "revoked", "disabled"}
+        }
+        try:
+            observed_at = datetime.fromisoformat(
+                str(mcp_five_tools.get("observed_at")).replace("Z", "+00:00")
+            )
+            release_updated_at = datetime.fromisoformat(
+                str(release_state.get("updated_at")).replace("Z", "+00:00")
+            )
+            time_valid = (
+                observed_at.tzinfo is not None
+                and observed_at >= release_updated_at
+                and observed_at <= datetime.now(timezone.utc)
+            )
+        except (TypeError, ValueError):
+            time_valid = False
+        if (
+            release_state.get("status") not in {"applied", "accepted"}
+            or apply_report.get("release_id") != release_id
+            or apply_report.get("result") != "pass"
+            or before["formalQuery"] != candidate.get("query_sha256")
+            or before["formalAsset"] != candidate.get("asset_sha256")
+        ):
+            issues.append("release state, apply report, and formal databases disagree")
+        if (
+            not isinstance(mcp_five_tools, dict)
+            or mcp_five_tools.get("schema_version")
+            != "content-release-mcp-five-tools-v1"
+            or mcp_five_tools.get("result") != "pass"
+            or mcp_five_tools.get("release_id") != release_id
+            or mcp_five_tools.get("query_sha256")
+            != candidate.get("query_sha256")
+            or mcp_five_tools.get("asset_sha256")
+            != candidate.get("asset_sha256")
+            or not mcp_five_tools.get("runtime_id")
+            or not mcp_five_tools.get("client_id")
+            or not mcp_five_tools.get("observed_at")
+            or mcp_five_tools.get("runtime_id") != expected_runtime_id
+            or mcp_five_tools.get("client_id") not in authorized_client_ids
+            or not time_valid
+            or set(tool_results) != expected_tools
+            or any(
+                not isinstance(result, dict)
+                or result.get("result") != "pass"
+                or not (
+                    result.get("result_count") is not None
+                    or result.get("digest")
+                )
+                for result in tool_results.values()
+            )
+        ):
+            issues.append(
+                "formal MCP five-tool evidence is missing or not release-bound"
+            )
 
     report = {
         "schemaVersion": "base-content-unified-query-t6-runtime-audit-v1",
         "result": "pass" if not issues else "fail",
+        "release_id": (
+            release_state.get("release_id")
+            if release_state
+            else apply_report.get("release_id")
+        ),
         "baseUrl": args.base_url,
         "databaseBoundary": {
             "before": before,
@@ -211,6 +324,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 "content_asset_database"
             ),
             "userDatabase": health_runtime.get("user_database"),
+            "runtimeId": (
+                mcp_status.get("runtime_id")
+                or health_runtime.get("runtime_id")
+            ),
         },
         "knowledge": {
             "searchItems": len(search.get("data", {}).get("items", [])),
@@ -224,7 +341,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "authorizationState": mcp_status.get("authorization_state"),
             "knowledgeState": mcp_status.get("knowledge_state"),
             "registeredClients": len(mcp_clients),
+            "authorizedClientIds": sorted(
+                client.get("client_id")
+                for client in mcp_clients
+                if client.get("client_id")
+                and client.get("status") not in {"disabled", "revoked"}
+                and client.get("authorization_status")
+                not in {"denied", "revoked", "disabled"}
+            ),
         },
+        "mcpFiveTools": mcp_five_tools,
         "issues": issues,
     }
     args.report.parent.mkdir(parents=True, exist_ok=True)
@@ -257,6 +383,8 @@ def main() -> int:
         default=ROOT / "data/user/sapd_wiki_user.sqlite3",
     )
     parser.add_argument("--apply-report", type=Path, required=True)
+    parser.add_argument("--release-state", type=Path)
+    parser.add_argument("--mcp-five-tools-evidence", type=Path)
     parser.add_argument("--report", type=Path, required=True)
     args = parser.parse_args()
     report = run(args)

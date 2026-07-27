@@ -1,0 +1,24 @@
+{
+  "schema_version": "content-release-manifest-v2",
+  "manifest_id": "sapd-content-incremental-release-v2",
+  "manifest_version": "2.0.0",
+  "status": "approved",
+  "content_manifest": "config/content-source-manifest.v1.json",
+  "ocr_review": "config/content-ocr-review.v1.json",
+  "query_schema": "config/sql/content-query-schema-v1.sql",
+  "asset_schema": "config/sql/content-asset-schema-v1.sql",
+  "approval": {
+    "status": "approved",
+    "approved_inputs_only": true,
+    "approved_import_jobs": []
+  },
+  "policy": {
+    "build_mode": "full-expected-snapshot-from-current-parent",
+    "stable_ref_removal_default": "block",
+    "parser_or_format_change_default": "block",
+    "manual_content_bindings": "preserve",
+    "poster_ocr_forbidden": true,
+    "formal_apply_requires_dynamic_confirmation": true,
+    "real_user_database_write": "forbidden"
+  }
+}

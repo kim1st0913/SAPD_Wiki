@@ -2437,7 +2437,7 @@ def user_db_connection() -> sqlite3.Connection:
     return connection
 
 
-def runtime_health_payload() -> dict[str, Any]:
+def runtime_health_payload(*, mcp_runtime_id: str | None = None) -> dict[str, Any]:
     schema_version = None
     user_ready = _EPHEMERAL_USER_DB_KEEPER is not None if USER_STATE_EPHEMERAL else USER_DB_PATH.exists()
     if USER_STATE_EPHEMERAL:
@@ -2458,6 +2458,7 @@ def runtime_health_payload() -> dict[str, Any]:
         "mode": "local-api",
         "runtime": {
             "label": RUNTIME_LABEL,
+            "runtime_id": mcp_runtime_id,
             "base_database": {
                 "path": _display_runtime_path(BASE_DB_PATH),
                 "exists": BASE_DB_PATH.exists(),
@@ -4577,7 +4578,14 @@ class SapdWikiRequestHandler(SimpleHTTPRequestHandler):
                 self._send_json(content_asset_list_response(query))
                 return
             if path == "/api/v1/health":
-                payload = runtime_health_payload()
+                supervisor = getattr(self.server, "sapd_mcp_supervisor", None)
+                payload = runtime_health_payload(
+                    mcp_runtime_id=(
+                        supervisor.runtime_id
+                        if supervisor is not None
+                        else None
+                    )
+                )
                 payload["auth"]["session_token"] = self._session_token()
                 self._send_json(create_envelope(payload))
                 return

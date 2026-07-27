@@ -29,6 +29,10 @@ from .exports import (
 )
 from .excel_reader import inspect_workbook, workbook_summary_to_dict
 from .loader import approve_import
+from .import_lifecycle import (
+    finalize_import,
+    require_project_database_write_permission,
+)
 from .candidates import ParseResult, ValidationMessage
 from .parsers import (
     SECOND_BATCH_SHEETS,
@@ -291,7 +295,10 @@ def cmd_stage_excel(args: argparse.Namespace) -> int:
 
 
 def cmd_approve_import(args: argparse.Namespace) -> int:
-    db_path = resolve_project_path(args.db)
+    db_path = require_project_database_write_permission(
+        args.db,
+        allowed=args.allow_project_db_write,
+    )
     run_migrations(db_path)
     with connect(db_path) as conn:
         summary = approve_import(conn, args.import_job_id)
@@ -305,12 +312,33 @@ def cmd_approve_import(args: argparse.Namespace) -> int:
         print(f"relations_created: {summary.relations_created}")
         print(f"relations_deleted: {summary.relations_deleted}")
         print(f"source_references_created: {summary.source_references_created}")
+        print(f"source_references_reused: {summary.source_references_reused}")
         if summary.warnings:
             print("warnings:")
             for warning in summary.warnings[:30]:
                 print(f"  - {warning}")
         else:
             print("warnings: none")
+    return 0
+
+
+def cmd_finalize_import(args: argparse.Namespace) -> int:
+    db_path = resolve_project_path(args.db).resolve()
+    if (
+        args.apply
+        and db_path == DEFAULT_DB_PATH.resolve()
+        and not args.allow_project_db_write
+    ):
+        raise ValueError(
+            "--allow-project-db-write is required for the real project database"
+        )
+    result = finalize_import(
+        db_path,
+        args.import_job_id,
+        apply=args.apply,
+        output_root=args.output_root,
+    )
+    print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 
 
@@ -582,6 +610,7 @@ def _stage_and_approve_bootstrap_sheet_set(
             print("存在阻断级校验问题，已停止审批入库。可修正源文件后重跑。")
             return None
 
+        conn.commit()
         approve_summary = approve_import(conn, import_job_id)
         print(
             "审批入库: "
@@ -940,8 +969,35 @@ def build_parser() -> argparse.ArgumentParser:
         help="Approve staged records for an import job and load them into formal tables.",
     )
     approve.add_argument("import_job_id", help="Import job id to approve.")
+    approve.add_argument(
+        "--allow-project-db-write",
+        action="store_true",
+        help="Required for approval writes to the real project database.",
+    )
     approve.add_argument("--json", action="store_true", help="Print JSON summary.")
     approve.set_defaults(func=cmd_approve_import)
+
+    finalize = subparsers.add_parser(
+        "finalize-import",
+        help="Dry-run or apply per-job staging/review cleanup after acceptance.",
+    )
+    finalize.add_argument("import_job_id", help="Import job id to finalize.")
+    finalize.add_argument(
+        "--apply",
+        action="store_true",
+        help="Apply cleanup. Omit for read-only dry-run.",
+    )
+    finalize.add_argument(
+        "--allow-project-db-write",
+        action="store_true",
+        help="Required with --apply for the real project database.",
+    )
+    finalize.add_argument(
+        "--output-root",
+        default=None,
+        help="Recovery package root. Defaults to controlled worker-verify storage.",
+    )
+    finalize.set_defaults(func=cmd_finalize_import)
 
     summary = subparsers.add_parser("summary", help="Show table and object counts.")
     summary.add_argument("--json", action="store_true", help="Print JSON summary.")
@@ -1163,7 +1219,10 @@ def build_parser() -> argparse.ArgumentParser:
         "export-second-batch-summary",
         help="Export second-batch verification summary JSON.",
     )
-    second_batch_summary.add_argument("--import-job-id", help="Import job id. Defaults to latest import job.")
+    second_batch_summary.add_argument(
+        "--import-job-id",
+        help="Import job id. Defaults to latest approved import job.",
+    )
     second_batch_summary.add_argument(
         "--output",
         default="data/exports/second-batch-summary-latest/second-batch-summary.json",

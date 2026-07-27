@@ -176,10 +176,10 @@ try {
   Assert-Equal ([string]$Health.data.status) "ok" "Installed runtime health status mismatch."
   Assert-True ([string]$Health.data.runtime.runtime_id -match "^[A-Za-z0-9._:-]{8,128}$") "Installed MCP runtime identity is missing."
   Assert-True ($null -ne $McpPanel) "Installed MCP control plane is unreachable."
-  Assert-Equal ([string]$McpPanel.data.certificate.trust_backend) "windows_current_user_root" "Installed MCP trust backend mismatch."
-  Assert-Equal ([string]$McpPanel.data.certificate.secret_backend) "windows_dpapi_current_user" "Installed MCP secret backend mismatch."
+  Assert-Equal ([string]$McpPanel.certificate.trust_backend) "windows_current_user_root" "Installed MCP trust backend mismatch."
+  Assert-Equal ([string]$McpPanel.certificate.secret_backend) "windows_dpapi_current_user" "Installed MCP secret backend mismatch."
   Assert-True (
-    @("not_configured", "valid", "expiring", "renewal_required") -contains [string]$McpPanel.data.certificate.state
+    @("not_configured", "valid", "expiring", "renewal_required") -contains [string]$McpPanel.certificate.state
   ) "Installed MCP certificate state is invalid."
 } finally {
   if ($null -ne $AppProcess -and -not $AppProcess.HasExited) {

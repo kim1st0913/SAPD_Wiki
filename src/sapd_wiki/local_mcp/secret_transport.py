@@ -643,7 +643,12 @@ def receive_one_shot_secret(
         if os.name != "nt" and principal_source is None:
             raise _unsafe()
         try:
-            connection = multiprocessing.connection.Connection(
+            connection_type = (
+                multiprocessing.connection.PipeConnection
+                if os.name == "nt"
+                else multiprocessing.connection.Connection
+            )
+            connection = connection_type(
                 inherited_endpoint,
                 readable=True,
                 writable=True,

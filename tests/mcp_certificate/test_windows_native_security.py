@@ -18,6 +18,7 @@ from sapd_wiki.local_mcp.platform_secrets import (
     WindowsDpapiCurrentUserProvider,
 )
 from sapd_wiki.local_mcp.path_security import (
+    atomic_write_secure,
     ensure_secure_directory,
     windows_fixed_mcp_root,
 )
@@ -177,8 +178,7 @@ class WindowsNativeSecurityTests(unittest.TestCase):
         )
         first_blob = next((self.root / "binding").glob("*.dpapi")).read_bytes()
         other_path = provider._blob_path(other_reference)
-        other_path.write_bytes(first_blob)
-        os.chmod(other_path, 0o600)
+        atomic_write_secure(other_path, first_blob)
         with self.assertRaises(SecretCustodyError) as raised:
             provider.get_secret(other_reference)
         self.assertEqual(raised.exception.code, "SECRET_UNPROTECT_FAILED")

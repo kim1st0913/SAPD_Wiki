@@ -168,13 +168,25 @@ class WindowsRealSecretTransportTests(unittest.TestCase):
         )
         args_text = repr(process.args)
         channel.close_child_copy()
-        attestation = channel.deliver(
-            child_pid=process.pid,
-            generation_id=GENERATION,
-            certificate_path=self.certificate,
-            encrypted_private_key_path=self.private_key,
-            secret_loader=lambda: PASSPHRASE,
-        )
+        try:
+            attestation = channel.deliver(
+                child_pid=process.pid,
+                generation_id=GENERATION,
+                certificate_path=self.certificate,
+                encrypted_private_key_path=self.private_key,
+                secret_loader=lambda: PASSPHRASE,
+            )
+        except Exception as exc:
+            try:
+                stdout, stderr = process.communicate(timeout=10)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                stdout, stderr = process.communicate(timeout=10)
+            self.fail(
+                "Windows child secret delivery failed: "
+                f"{type(exc).__name__}; returncode={process.returncode}; "
+                f"stdout={stdout[:1000]!r}; stderr={stderr[:4000]!r}"
+            )
         stdout, stderr = process.communicate(timeout=10)
         self.assertEqual(process.returncode, 0, stderr)
         self.assertEqual(stdout.strip(), "windows-pipe-consumed-once")

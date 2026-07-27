@@ -805,10 +805,10 @@
 
   function certificateFailureMessage(code) {
     return {
-      CERTIFICATE_TRUST_CONFIRMATION_TIMEOUT: "等待 macOS 系统确认超时。请重新操作，并在 2 分钟内于系统提示中选择允许。",
-      CERTIFICATE_TRUST_USER_DENIED: "macOS 未允许写入当前用户信任。请重新操作，并在系统提示中选择允许。",
+      CERTIFICATE_TRUST_CONFIRMATION_TIMEOUT: "等待系统确认超时。请重新操作，并在 2 分钟内于系统提示中选择允许。",
+      CERTIFICATE_TRUST_USER_DENIED: "系统未允许写入当前用户信任。请重新操作，并在系统提示中选择允许。",
       CERTIFICATE_TRUST_VERIFY_FAILED: "证书已写入，但 127.0.0.1 安全连接校验未通过；系统已自动回滚。",
-      SECRET_WRITE_FAILED: "证书密钥未能保存到当前用户钥匙串；系统已自动回滚。",
+      SECRET_WRITE_FAILED: "证书密钥未能保存到当前用户安全存储；系统已自动回滚。",
     }[text(code).trim()] || "";
   }
 
@@ -836,7 +836,7 @@
           </ul>
           <p>${certificate.trust_backend === "fake_current_user_trust"
             ? "当前为 Web 隔离验证，不会修改真实系统证书库。"
-            : "确认后将修改当前用户的本机信任设置；macOS 可能弹出系统确认，请在 2 分钟内选择允许。不会写入系统级或其他用户证书库。"}</p>
+            : "确认后将修改当前用户的本机信任设置；操作系统可能弹出确认提示，请在 2 分钟内选择允许。不会写入系统级或其他用户证书库。"}</p>
           <div class="system-settings-actions">
             <button type="button" data-mcp-action="close-certificate-preview" autofocus>取消</button>
             <button class="is-primary" type="button" data-mcp-action="confirm-certificate">${escapeHtml(button)}</button>

@@ -7,6 +7,12 @@ import stat
 from pathlib import Path
 from types import TracebackType
 
+from .path_security import (
+    PathSecurityError,
+    ensure_secure_directory,
+    protect_regular_file,
+)
+
 
 class ProfileLockError(RuntimeError):
     def __init__(self, code: str) -> None:
@@ -26,8 +32,12 @@ class ProfileWriterLock:
     def acquire(self) -> None:
         if self._descriptor is not None:
             raise ProfileLockError("CERTIFICATE_PROFILE_BUSY")
-        self.path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-        os.chmod(self.path.parent, 0o700)
+        try:
+            ensure_secure_directory(self.path.parent)
+        except (OSError, PathSecurityError) as exc:
+            raise ProfileLockError(
+                "CERTIFICATE_PROFILE_LOCK_UNSAFE"
+            ) from exc
         descriptor = os.open(
             self.path,
             os.O_RDWR | os.O_CREAT,
@@ -35,7 +45,14 @@ class ProfileWriterLock:
         )
         try:
             info = os.fstat(descriptor)
-            if (
+            if os.name == "nt":
+                try:
+                    protect_regular_file(self.path)
+                except (OSError, PathSecurityError) as exc:
+                    raise ProfileLockError(
+                        "CERTIFICATE_PROFILE_LOCK_UNSAFE"
+                    ) from exc
+            elif (
                 not stat.S_ISREG(info.st_mode)
                 or info.st_nlink != 1
                 or info.st_mode & 0o077

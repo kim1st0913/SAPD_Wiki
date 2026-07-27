@@ -1,6 +1,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const http = require("node:http");
+const crypto = require("node:crypto");
 const { spawn, execFileSync } = require("node:child_process");
 const {
   app,
@@ -10,6 +11,11 @@ const {
   Menu,
   shell,
 } = require("electron");
+const {
+  MCP_NATIVE_IPC_CHANNELS,
+  createMcpNativeController,
+  sanitizeRuntimeStatus,
+} = require("./mcp-native.cjs");
 const {
   defaultSettingsForParent,
   isValidSettings,
@@ -31,6 +37,9 @@ let backendProcess = null;
 let runtimeRoot = null;
 let currentSettings = null;
 let isQuitting = false;
+let backendUrl = "";
+let backendRuntimeStatus = sanitizeRuntimeStatus({ state: "idle" });
+let mcpNativeConfirmationCapability = "";
 
 function appDataRoot() {
   const localAppData = process.env.LOCALAPPDATA || app.getPath("appData");
@@ -42,6 +51,43 @@ app.setPath("userData", appDataRoot());
 function settingsFilePath() {
   return path.join(app.getPath("userData"), "settings.json");
 }
+
+function publishBackendRuntimeStatus(state, code = "") {
+  backendRuntimeStatus = sanitizeRuntimeStatus({ state, code });
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send(
+      MCP_NATIVE_IPC_CHANNELS.runtimeStatusChanged,
+      backendRuntimeStatus,
+    );
+  }
+  return backendRuntimeStatus;
+}
+
+function confirmNativeCertificateAction(preview) {
+  const actionLabels = {
+    certificate_provision: "建立 Windows 本机安全连接？",
+    certificate_rotate: "更新 Windows 本机安全证书？",
+    certificate_repair_trust: "修复 Windows 本机安全连接？",
+  };
+  const response = dialog.showMessageBoxSync(mainWindow, {
+    type: "warning",
+    title: "SAPD Wiki 本机安全连接",
+    message: actionLabels[preview.action] || "确认 Windows 本机证书操作？",
+    detail: "此操作只会修改当前 Windows 用户的 SAPD Wiki 私有安全存储与当前用户证书信任，不会写入 LocalMachine，也不会影响其他用户。",
+    buttons: ["取消", "确认执行"],
+    defaultId: 0,
+    cancelId: 0,
+    noLink: true,
+  });
+  return response === 1;
+}
+
+const mcpNativeController = createMcpNativeController({
+  getBaseUrl: () => backendUrl,
+  getRuntimeStatus: () => backendRuntimeStatus,
+  getNativeCapability: () => mcpNativeConfirmationCapability,
+  confirmNativeAction: confirmNativeCertificateAction,
+});
 
 function loadSettings() {
   try {
@@ -265,8 +311,23 @@ async function waitForBackend(processHandle) {
     }
     try {
       const state = JSON.parse(readText(statePath));
-      if (state.url) {
-        await requestJson(`${state.url.replace(/\/$/, "")}/api/v1/health`);
+      const candidateUrl = new URL(String(state.url || ""));
+      if (
+        Number(state.pid) === processHandle.pid
+        && path.normalize(String(state.bundle_root || "")) === path.normalize(runtimeRoot)
+        && candidateUrl.protocol === "http:"
+        && candidateUrl.hostname === "127.0.0.1"
+        && candidateUrl.port
+        && candidateUrl.pathname === "/"
+        && !candidateUrl.username
+        && !candidateUrl.password
+        && !candidateUrl.search
+        && !candidateUrl.hash
+      ) {
+        const health = await requestJson(`${candidateUrl.origin}/api/v1/health`);
+        if (health?.data?.status !== "ok") {
+          throw new Error("backend health contract mismatch");
+        }
         return state.url;
       }
     } catch {
@@ -285,22 +346,48 @@ function startBackend() {
   const logPath = path.join(runtimeRoot, "logs", "backend-wrapper-console.log");
   const output = fs.openSync(logPath, "a");
   fs.writeSync(output, `\n--- wrapper start ${new Date().toISOString()} ---\n`);
-  backendProcess = spawn(executable, ["--bundle-root", runtimeRoot, "--no-browser"], {
+  publishBackendRuntimeStatus("starting");
+  mcpNativeConfirmationCapability = crypto.randomBytes(32).toString("base64url");
+  backendProcess = spawn(executable, [
+    "--bundle-root",
+    runtimeRoot,
+    "--no-browser",
+    "--electron-bootstrap-stdin",
+  ], {
     cwd: runtimeRoot,
     windowsHide: true,
-    stdio: ["ignore", output, output],
+    stdio: ["pipe", output, output],
   });
+  backendProcess.stdin.end(`${JSON.stringify({
+    contract: "sapd-electron-bootstrap-v1",
+    native_confirmation_capability: mcpNativeConfirmationCapability,
+  })}\n`);
   backendProcess.on("exit", (code, signal) => {
     writeLog("backend-process exited", `code=${code} signal=${signal || "none"}`);
+    backendUrl = "";
+    mcpNativeConfirmationCapability = "";
+    publishBackendRuntimeStatus(
+      isQuitting ? "stopped" : "error",
+      isQuitting ? "" : "BACKEND_EXITED",
+    );
   });
   backendProcess.on("error", (error) => {
     writeLog("backend-process error", `error=${error.message}`);
+    backendUrl = "";
+    mcpNativeConfirmationCapability = "";
+    publishBackendRuntimeStatus("error", "BACKEND_SPAWN_FAILED");
   });
   return backendProcess;
 }
 
 function stopBackend() {
-  if (!backendProcess || backendProcess.exitCode !== null) return;
+  backendUrl = "";
+  mcpNativeConfirmationCapability = "";
+  if (!backendProcess || backendProcess.exitCode !== null) {
+    publishBackendRuntimeStatus("stopped");
+    return;
+  }
+  publishBackendRuntimeStatus("stopping");
   const pid = backendProcess.pid;
   try {
     if (process.platform === "win32" && pid) {
@@ -312,11 +399,13 @@ function stopBackend() {
     writeLog("backend-process stop warning", `error=${error.message}`);
   }
   backendProcess = null;
+  publishBackendRuntimeStatus("stopped");
 }
 
 function showRuntimeError(error) {
   const logPath = logFilePath();
   writeLog("startup failed", `error=${error.message}`);
+  publishBackendRuntimeStatus("error", "BACKEND_STARTUP_FAILED");
   const response = dialog.showMessageBoxSync({
     type: "error",
     title: `${APP_NAME} 启动失败`,
@@ -377,10 +466,10 @@ function settingsSnapshot(extra = {}) {
   };
 }
 
-function assertTrustedSettingsSender(event) {
+function assertTrustedDesktopSender(event) {
   const senderURL = event.senderFrame?.url || "";
   if (event.senderFrame !== event.sender.mainFrame || !/^http:\/\/127\.0\.0\.1:\d+(?:\/|$)/.test(senderURL)) {
-    throw new Error("Settings bridge rejected an untrusted renderer.");
+    throw new Error("Desktop bridge rejected an untrusted renderer.");
   }
 }
 
@@ -462,22 +551,36 @@ function createApplicationMenu() {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
-function registerSettingsIPC() {
+function registerDesktopIPC() {
   ipcMain.handle(SETTINGS_IPC_CHANNELS.get, (event) => {
-    assertTrustedSettingsSender(event);
+    assertTrustedDesktopSender(event);
     return settingsSnapshot();
   });
   ipcMain.handle(SETTINGS_IPC_CHANNELS.chooseDataRoot, (event) => {
-    assertTrustedSettingsSender(event);
+    assertTrustedDesktopSender(event);
     return chooseSettingsDirectory("dataRoot");
   });
   ipcMain.handle(SETTINGS_IPC_CHANNELS.chooseImportDirectory, (event) => {
-    assertTrustedSettingsSender(event);
+    assertTrustedDesktopSender(event);
     return chooseSettingsDirectory("importDirectory");
   });
   ipcMain.handle(SETTINGS_IPC_CHANNELS.chooseDownloadDirectory, (event) => {
-    assertTrustedSettingsSender(event);
+    assertTrustedDesktopSender(event);
     return chooseSettingsDirectory("downloadDirectory");
+  });
+  ipcMain.handle(MCP_NATIVE_IPC_CHANNELS.getRuntimeStatus, (event) => {
+    mcpNativeController.assertTrustedRenderer(
+      event.senderFrame?.url,
+      event.senderFrame === event.sender.mainFrame,
+    );
+    return mcpNativeController.getRuntimeStatus();
+  });
+  ipcMain.handle(MCP_NATIVE_IPC_CHANNELS.confirmCertificate, (event, payload) => {
+    mcpNativeController.assertTrustedRenderer(
+      event.senderFrame?.url,
+      event.senderFrame === event.sender.mainFrame,
+    );
+    return mcpNativeController.confirmCertificate(payload);
   });
 }
 
@@ -521,6 +624,8 @@ async function launch() {
     const processHandle = startBackend();
     const url = await waitForBackend(processHandle);
     writeLog("backend ready", `url=${url}`);
+    backendUrl = url.replace(/\/$/, "");
+    publishBackendRuntimeStatus("ready");
     await mainWindow.loadURL(url);
   } catch (error) {
     if (error.code === "SETTINGS_CANCELLED") {
@@ -542,7 +647,7 @@ const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
   app.quit();
 } else {
-  registerSettingsIPC();
+  registerDesktopIPC();
   app.on("second-instance", () => {
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();

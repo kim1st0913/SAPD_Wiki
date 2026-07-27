@@ -35,13 +35,28 @@ from .platform_secrets import (
     FakeMacOSDataProtectionKeychainProvider,
     FakeWindowsDpapiCurrentUserProvider,
     MacOSWebDevKeychainSecretProvider,
+    WindowsDpapiCurrentUserProvider,
 )
 from .macos_current_user_trust import MacOSCurrentUserTrustAdapter
-from .secret_transport import ParentSecretChannel
+from .path_security import (
+    PathSecurityError,
+    assert_secure_regular_file,
+    ensure_secure_directory,
+    protect_regular_file,
+)
+from .secret_transport import (
+    ParentSecretChannel,
+    WindowsParentSecretChannel,
+    create_parent_secret_channel,
+)
 from .tls import (
     KEY_PASSPHRASE_IPC_UNSAFE,
     SecretProvider,
     TLSIdentityError,
+)
+from .windows_current_user_trust import (
+    WindowsCurrentUserRootTrustAdapter,
+    WindowsWinCryptCurrentUserRootBridge,
 )
 
 
@@ -160,7 +175,10 @@ class DevSidecarSupervisor:
         certificate_trust_adapter: CurrentUserTrustAdapter | None = None,
         platform_integration_enabled: bool = False,
         auto_restore_enabled: bool = False,
-        secret_channel_factory: Callable[[], ParentSecretChannel] = ParentSecretChannel,
+        certificate_profile: str = "dev",
+        secret_channel_factory: Callable[
+            [], ParentSecretChannel | WindowsParentSecretChannel
+        ] | None = None,
     ) -> None:
         if not 1024 <= configured_port <= 65535:
             raise ValueError("configured_port must be between 1024 and 65535")
@@ -173,11 +191,17 @@ class DevSidecarSupervisor:
         if runtime_root is None:
             runtime_root = Path(tempfile.mkdtemp(prefix="sapd-mcp-web-"))
         candidate = Path(runtime_root)
-        if not candidate.is_absolute() or candidate.is_symlink():
-            raise ValueError("runtime_root must be an explicit absolute non-symlink path")
-        candidate.mkdir(mode=0o700, parents=True, exist_ok=True)
-        self.runtime_root = candidate.resolve(strict=True)
-        os.chmod(self.runtime_root, 0o700)
+        try:
+            self.runtime_root = ensure_secure_directory(
+                candidate,
+                require_fixed_windows_mcp_root=(
+                    platform_integration_enabled and os.name == "nt"
+                ),
+            )
+        except (OSError, PathSecurityError) as exc:
+            raise ValueError(
+                "runtime_root must be a protected absolute MCP path"
+            ) from exc
         self._cleanup_on_close = cleanup_on_close
         self._auto_restore_enabled = bool(auto_restore_enabled)
         self._startup_timeout_seconds = startup_timeout_seconds
@@ -216,7 +240,12 @@ class DevSidecarSupervisor:
         self._write_runtime_secret("verifier-key.bin")
         self._write_runtime_secret("audit-period-key.bin")
         self._write_runtime_secret("cursor-key.bin")
-        verifier_key = (self.runtime_root / "verifier-key.bin").read_bytes()
+        verifier_path = self.runtime_root / "verifier-key.bin"
+        try:
+            assert_secure_regular_file(verifier_path)
+        except PathSecurityError as exc:
+            raise ValueError("runtime secret permissions are unsafe") from exc
+        verifier_key = verifier_path.read_bytes()
         self._store = ControlStore(
             self.runtime_root / "control" / "control.sqlite3",
             verifier_key=verifier_key,
@@ -250,6 +279,16 @@ class DevSidecarSupervisor:
             if certificate_identity_root is not None
             else self.runtime_root / "managed-certificate-dev"
         )
+        if platform_integration_enabled and os.name == "nt":
+            try:
+                identity_candidate = ensure_secure_directory(
+                    identity_candidate,
+                    require_fixed_windows_mcp_root=True,
+                )
+            except (OSError, PathSecurityError) as exc:
+                raise ValueError(
+                    "certificate_identity_root must be a protected MCP path"
+                ) from exc
         fake_device_binding = sha256(
             str(identity_candidate.absolute()).encode("utf-8")
         ).hexdigest()
@@ -261,6 +300,12 @@ class DevSidecarSupervisor:
                 )
                 if platform_integration_enabled and os.name != "nt"
                 else
+                WindowsDpapiCurrentUserProvider(
+                    identity_candidate / "dpapi-secrets",
+                    mutation_enabled=True,
+                )
+                if platform_integration_enabled and os.name == "nt"
+                else
                 FakeWindowsDpapiCurrentUserProvider(
                     device_binding=fake_device_binding
                 )
@@ -270,11 +315,13 @@ class DevSidecarSupervisor:
                 )
             )
         )
-        self._secret_channel_factory = secret_channel_factory
+        self._secret_channel_factory = (
+            secret_channel_factory or create_parent_secret_channel
+        )
         self._certificate_identity = CertificateIdentityStore(
             identity_candidate,
             secret_provider=self._certificate_secret_provider,
-            profile="dev",
+            profile=certificate_profile,
         )
         if certificate_trust_adapter is not None:
             self._certificate_trust = certificate_trust_adapter
@@ -287,9 +334,14 @@ class DevSidecarSupervisor:
                     for item in self._certificate_identity.list_generation_manifests()
                 },
             )
-        elif platform_integration_enabled:
-            raise ValueError(
-                "Windows platform integration is delivered and validated in D2"
+        elif platform_integration_enabled and os.name == "nt":
+            self._certificate_trust = WindowsCurrentUserRootTrustAdapter(
+                bridge=WindowsWinCryptCurrentUserRootBridge(),
+                mutation_enabled=True,
+                managed_fingerprints=lambda: {
+                    item.ca_fingerprint_sha256
+                    for item in self._certificate_identity.list_generation_manifests()
+                },
             )
         else:
             self._certificate_trust = FakeCurrentUserTrustAdapter()
@@ -332,20 +384,32 @@ class DevSidecarSupervisor:
     def _write_runtime_secret(self, name: str) -> None:
         path = self.runtime_root / name
         if path.exists():
-            if path.is_symlink() or path.stat().st_mode & 0o077:
-                raise ValueError("runtime secret permissions are unsafe")
+            try:
+                assert_secure_regular_file(path)
+            except PathSecurityError as exc:
+                raise ValueError(
+                    "runtime secret permissions are unsafe"
+                ) from exc
             return
         descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         try:
             os.write(descriptor, secrets.token_bytes(48))
         finally:
             os.close(descriptor)
+        try:
+            protect_regular_file(path)
+        except PathSecurityError as exc:
+            raise ValueError("runtime secret permissions are unsafe") from exc
 
     def _runtime_identifier(self, name: str, *, prefix: str) -> str:
         path = self.runtime_root / name
         if path.exists():
-            if path.is_symlink() or path.stat().st_mode & 0o077:
-                raise ValueError("runtime identifier permissions are unsafe")
+            try:
+                assert_secure_regular_file(path)
+            except PathSecurityError as exc:
+                raise ValueError(
+                    "runtime identifier permissions are unsafe"
+                ) from exc
             value = path.read_text(encoding="ascii").strip()
             if not value.startswith(prefix) or not 8 <= len(value) <= 160:
                 raise ValueError("runtime identifier is invalid")
@@ -356,6 +420,10 @@ class DevSidecarSupervisor:
             os.write(descriptor, value.encode("ascii"))
         finally:
             os.close(descriptor)
+        try:
+            protect_regular_file(path)
+        except PathSecurityError as exc:
+            raise ValueError("runtime identifier permissions are unsafe") from exc
         return value
 
     def _persist_runtime_preferences(self) -> None:
@@ -894,8 +962,15 @@ class DevSidecarSupervisor:
             self._state_version += 1
             log_path = self.runtime_root / "sidecar.log"
             self._log_handle = open(log_path, "ab", buffering=0)
-            os.chmod(log_path, 0o600)
-            secret_channel: ParentSecretChannel | None = None
+            try:
+                protect_regular_file(log_path)
+            except PathSecurityError as exc:
+                self._log_handle.close()
+                self._log_handle = None
+                raise ValueError("sidecar log permissions are unsafe") from exc
+            secret_channel: (
+                ParentSecretChannel | WindowsParentSecretChannel | None
+            ) = None
             try:
                 manifest = self._certificate_identity.load_manifest()
                 if manifest is None:
@@ -913,8 +988,10 @@ class DevSidecarSupervisor:
                         str(self._configured_port),
                         "--authorization-timeout-seconds",
                         str(self._authorization_timeout_seconds),
-                        "--secret-channel-fd",
-                        str(secret_channel.child_fd),
+                        "--secret-channel-kind",
+                        secret_channel.endpoint_kind,
+                        "--secret-channel-endpoint",
+                        str(secret_channel.child_endpoint),
                         "--instance-id",
                         self._instance_id,
                         "--runtime-id",
@@ -923,13 +1000,14 @@ class DevSidecarSupervisor:
                 )
                 if self._base_database is not None:
                     command.extend(["--base-db", str(self._base_database)])
+                popen_kwargs = secret_channel.popen_kwargs()
                 self._process = subprocess.Popen(
                     command,
                     stdin=subprocess.DEVNULL,
                     stdout=self._log_handle,
                     stderr=self._log_handle,
                     close_fds=True,
-                    pass_fds=(secret_channel.child_fd,),
+                    **popen_kwargs,
                 )
                 secret_channel.close_child_copy()
                 secret_channel.deliver(
@@ -1193,7 +1271,7 @@ class DevSidecarSupervisor:
                 "expires_at": _iso(expires_at),
                 "effects": effects[action],
                 "action": action,
-                "profile": "dev",
+                "profile": self._certificate_identity.profile,
                 "expected_ca_fingerprint_sha256": certificate.get(
                     "ca_fingerprint_sha256"
                 ),

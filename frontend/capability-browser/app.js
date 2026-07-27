@@ -12249,18 +12249,19 @@ async function waitForMcpCertificateOperation(operationId) {
 
 function mcpCertificateFailureMessage(code) {
   return {
-    CERTIFICATE_TRUST_CONFIRMATION_TIMEOUT: "等待 macOS 系统确认超时。请重新操作，并在 2 分钟内于系统提示中选择允许。",
-    CERTIFICATE_TRUST_USER_DENIED: "macOS 未允许写入当前用户信任。请重新操作，并在系统提示中选择允许。",
+    CERTIFICATE_TRUST_CONFIRMATION_TIMEOUT: "等待系统确认超时。请重新操作，并在 2 分钟内于系统提示中选择允许。",
+    CERTIFICATE_TRUST_USER_DENIED: "系统未允许写入当前用户信任。请重新操作，并在系统提示中选择允许。",
     CERTIFICATE_TRUST_VERIFY_FAILED: "127.0.0.1 安全连接校验未通过，系统已自动回滚。",
-    SECRET_WRITE_FAILED: "证书密钥未能保存到当前用户钥匙串，系统已自动回滚。",
+    SECRET_WRITE_FAILED: "证书密钥未能保存到当前用户安全存储，系统已自动回滚。",
   }[text(code).trim()] || "";
 }
 
 async function confirmMcpCertificateAction() {
   if (state.mcpPendingAction || !state.mcpCertificatePreview?.confirmation_id) return;
   const dataClient = window.sapdDataClient;
+  const nativeConfirm = window.sapdDesktop?.confirmMcpCertificate;
   const payload = mcpMutationPayload("certificate-confirm");
-  if (!payload || typeof dataClient?.confirmMcpCertificateAction !== "function") {
+  if (!payload || (!nativeConfirm && typeof dataClient?.confirmMcpCertificateAction !== "function")) {
     state.mcpControlNotice = { tone: "error", message: "当前运行环境未提供证书确认能力。" };
     renderSettings();
     return;
@@ -12270,12 +12271,11 @@ async function confirmMcpCertificateAction() {
   state.mcpControlNotice = { tone: "info", message: "正在建立本机安全连接…" };
   renderSettings();
   try {
-    const envelope = await dataClient.confirmMcpCertificateAction({
-      ...payload,
-      confirmationId: preview.confirmation_id,
-    });
+    const response = nativeConfirm
+      ? await nativeConfirm({ confirmationId: preview.confirmation_id, expectedStateVersion: payload.expectedStateVersion })
+      : (await dataClient.confirmMcpCertificateAction({ ...payload, confirmationId: preview.confirmation_id }))?.data;
     state.mcpCertificatePreview = null;
-    const operationId = text(envelope?.data?.operation_id).trim();
+    const operationId = text(response?.operation_id).trim();
     const refreshed = operationId
       ? await waitForMcpCertificateOperation(operationId)
       : await loadMcpControlPanel({ force: true });

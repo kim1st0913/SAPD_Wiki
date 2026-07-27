@@ -234,6 +234,7 @@ def build_dev_control_api(
     expected_origin: str,
     session_token: str,
     supervisor: DevSidecarSupervisor,
+    native_confirmation_capability: str | None = None,
 ) -> ControlApi:
     """Create the real Web-dev control surface over an owned Sidecar process."""
 
@@ -248,4 +249,14 @@ def build_dev_control_api(
             session_token,
         ),
         allow_web_reset=True,
+        native_confirmation_verifier=(
+            (
+                lambda supplied: secrets.compare_digest(
+                    supplied,
+                    native_confirmation_capability,
+                )
+            )
+            if native_confirmation_capability is not None
+            else None
+        ),
     )

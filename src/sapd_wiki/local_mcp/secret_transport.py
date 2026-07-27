@@ -9,15 +9,18 @@ the environment, a named socket, or a regular file.
 from __future__ import annotations
 
 import base64
+import ctypes
 import json
+import multiprocessing.connection
 import os
 import re
 import secrets
 import socket
 import stat
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
+from typing import Any, Callable, Protocol
 
 from .tls import (
     KEY_PASSPHRASE_IPC_UNSAFE,
@@ -52,7 +55,7 @@ def _require_closed_object(
     return value
 
 
-def _send_frame(channel: socket.socket, payload: dict[str, object]) -> None:
+def _send_frame(channel: _FrameStream, payload: dict[str, object]) -> None:
     try:
         encoded = json.dumps(
             payload,
@@ -71,7 +74,7 @@ def _send_frame(channel: socket.socket, payload: dict[str, object]) -> None:
         raise _unsafe() from exc
 
 
-def _recv_exact(channel: socket.socket, size: int) -> bytes:
+def _recv_exact(channel: _FrameStream, size: int) -> bytes:
     chunks: list[bytes] = []
     remaining = size
     while remaining:
@@ -86,7 +89,7 @@ def _recv_exact(channel: socket.socket, size: int) -> bytes:
     return b"".join(chunks)
 
 
-def _recv_frame(channel: socket.socket) -> dict[str, object]:
+def _recv_frame(channel: _FrameStream) -> dict[str, object]:
     size = int.from_bytes(_recv_exact(channel, 4), "big")
     if not 1 <= size <= MAX_FRAME_BYTES:
         raise _unsafe()
@@ -107,6 +110,73 @@ def _current_uid() -> int:
     if uid != euid or uid < 0:
         raise _unsafe()
     return uid
+
+
+def _current_windows_sid() -> str:
+    if os.name != "nt":
+        raise _unsafe()
+    from ctypes import wintypes
+
+    TOKEN_QUERY = 0x0008
+    TOKEN_USER = 1
+
+    class SID_AND_ATTRIBUTES(ctypes.Structure):
+        _fields_ = [
+            ("Sid", wintypes.LPVOID),
+            ("Attributes", wintypes.DWORD),
+        ]
+
+    class TOKEN_USER_VALUE(ctypes.Structure):
+        _fields_ = [("User", SID_AND_ATTRIBUTES)]
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    advapi32 = ctypes.WinDLL("advapi32", use_last_error=True)
+    token = wintypes.HANDLE()
+    if not advapi32.OpenProcessToken(
+        kernel32.GetCurrentProcess(),
+        TOKEN_QUERY,
+        ctypes.byref(token),
+    ):
+        raise _unsafe()
+    try:
+        required = wintypes.DWORD()
+        advapi32.GetTokenInformation(
+            token,
+            TOKEN_USER,
+            None,
+            0,
+            ctypes.byref(required),
+        )
+        if required.value <= 0 or required.value > 64 * 1024:
+            raise _unsafe()
+        buffer = ctypes.create_string_buffer(required.value)
+        if not advapi32.GetTokenInformation(
+            token,
+            TOKEN_USER,
+            buffer,
+            required,
+            ctypes.byref(required),
+        ):
+            raise _unsafe()
+        token_user = ctypes.cast(
+            buffer,
+            ctypes.POINTER(TOKEN_USER_VALUE),
+        ).contents
+        value = wintypes.LPWSTR()
+        if not advapi32.ConvertSidToStringSidW(
+            token_user.User.Sid,
+            ctypes.byref(value),
+        ):
+            raise _unsafe()
+        try:
+            sid = str(value.value or "")
+        finally:
+            kernel32.LocalFree(value)
+    finally:
+        kernel32.CloseHandle(token)
+    if not re.fullmatch(r"S-\d(?:-\d+)+", sid):
+        raise _unsafe()
+    return sid
 
 
 def _validate_unnamed_local_socket(channel: socket.socket) -> None:
@@ -130,6 +200,14 @@ def _validate_private_identity_file(path_value: object) -> Path:
     path = Path(path_value)
     if not path.is_absolute() or path.is_symlink():
         raise _unsafe()
+    if os.name == "nt":
+        try:
+            from .path_security import PathSecurityError, assert_secure_regular_file
+
+            assert_secure_regular_file(path)
+            return path.resolve(strict=True)
+        except (OSError, PathSecurityError) as exc:
+            raise _unsafe() from exc
     try:
         info = path.stat()
     except OSError as exc:
@@ -137,6 +215,152 @@ def _validate_private_identity_file(path_value: object) -> Path:
     if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or info.st_mode & 0o077:
         raise _unsafe()
     return path.resolve(strict=True)
+
+
+class _FrameStream(Protocol):
+    def sendall(self, value: bytes) -> None: ...
+
+    def recv(self, size: int) -> bytes: ...
+
+    def close(self) -> None: ...
+
+
+class _PipeFrameStream:
+    """Present a connected multiprocessing Pipe handle as a bounded byte stream."""
+
+    def __init__(
+        self,
+        connection: multiprocessing.connection.Connection,
+        *,
+        timeout_seconds: float,
+    ) -> None:
+        self._connection = connection
+        self._timeout_seconds = timeout_seconds
+        self._buffer = bytearray()
+
+    def sendall(self, value: bytes) -> None:
+        try:
+            self._connection.send_bytes(value)
+        except (EOFError, OSError) as exc:
+            raise _unsafe() from exc
+
+    def recv(self, size: int) -> bytes:
+        if not self._buffer:
+            try:
+                if not self._connection.poll(self._timeout_seconds):
+                    raise _unsafe()
+                packet = self._connection.recv_bytes(MAX_FRAME_BYTES + 4)
+            except (EOFError, OSError) as exc:
+                raise _unsafe() from exc
+            self._buffer.extend(packet)
+        value = bytes(self._buffer[:size])
+        del self._buffer[:size]
+        return value
+
+    def close(self) -> None:
+        self._connection.close()
+
+
+def _deliver_one_shot(
+    channel: _FrameStream,
+    *,
+    nonce: str,
+    used: bool,
+    child_pid: int,
+    generation_id: str,
+    certificate_path: Path,
+    encrypted_private_key_path: Path,
+    secret_loader: Callable[[], bytes | None],
+    principal_source: Callable[[], object],
+) -> SecretTransportAttestation:
+    if used:
+        raise _unsafe()
+    generation = _require_token(generation_id)
+    if not isinstance(child_pid, int) or child_pid <= 1:
+        raise _unsafe()
+    principal = principal_source()
+    if not isinstance(principal, (int, str)):
+        raise _unsafe()
+    parent_pid = os.getpid()
+    _send_frame(
+        channel,
+        {
+            "message_type": "challenge",
+            "protocol_version": PROTOCOL_VERSION,
+            "nonce": nonce,
+            "generation_id": generation,
+            "parent_pid": parent_pid,
+            "owner_uid": principal,
+        },
+    )
+    hello = _require_closed_object(
+        _recv_frame(channel),
+        required=frozenset(
+            {
+                "message_type",
+                "protocol_version",
+                "nonce",
+                "generation_id",
+                "parent_pid",
+                "child_pid",
+                "child_uid",
+            }
+        ),
+    )
+    if (
+        hello["message_type"] != "hello"
+        or hello["protocol_version"] != PROTOCOL_VERSION
+        or hello["nonce"] != nonce
+        or hello["generation_id"] != generation
+        or hello["parent_pid"] != parent_pid
+        or hello["child_pid"] != child_pid
+        or hello["child_uid"] != principal
+    ):
+        raise _unsafe()
+    secret_value = secret_loader()
+    if not isinstance(secret_value, bytes) or len(secret_value) < 32:
+        raise TLSIdentityError("KEY_PASSPHRASE_UNAVAILABLE")
+    passphrase = bytearray(secret_value)
+    try:
+        _send_frame(
+            channel,
+            {
+                "message_type": "secret",
+                "protocol_version": PROTOCOL_VERSION,
+                "nonce": nonce,
+                "generation_id": generation,
+                "parent_pid": parent_pid,
+                "child_pid": child_pid,
+                "owner_uid": principal,
+                "certificate_path": str(certificate_path),
+                "encrypted_private_key_path": str(encrypted_private_key_path),
+                "passphrase_base64": base64.b64encode(passphrase).decode("ascii"),
+            },
+        )
+    finally:
+        for index in range(len(passphrase)):
+            passphrase[index] = 0
+    acknowledgement = _require_closed_object(
+        _recv_frame(channel),
+        required=frozenset(
+            {
+                "message_type",
+                "protocol_version",
+                "nonce",
+                "generation_id",
+                "child_pid",
+            }
+        ),
+    )
+    if (
+        acknowledgement["message_type"] != "consumed"
+        or acknowledgement["protocol_version"] != PROTOCOL_VERSION
+        or acknowledgement["nonce"] != nonce
+        or acknowledgement["generation_id"] != generation
+        or acknowledgement["child_pid"] != child_pid
+    ):
+        raise _unsafe()
+    return SecretTransportAttestation.one_shot_local_channel()
 
 
 @dataclass(slots=True)
@@ -201,6 +425,17 @@ class ParentSecretChannel:
             raise _unsafe()
         return self._child.fileno()
 
+    @property
+    def endpoint_kind(self) -> str:
+        return "posix-fd"
+
+    @property
+    def child_endpoint(self) -> int:
+        return self.child_fd
+
+    def popen_kwargs(self) -> dict[str, Any]:
+        return {"pass_fds": (self.child_fd,)}
+
     def close_child_copy(self) -> None:
         if self._child is not None:
             self._child.close()
@@ -218,93 +453,18 @@ class ParentSecretChannel:
         if self._used or self._parent is None or self._child is not None:
             raise _unsafe()
         self._used = True
-        generation = _require_token(generation_id)
-        if not isinstance(child_pid, int) or child_pid <= 1:
-            raise _unsafe()
-        uid = _current_uid()
-        parent_pid = os.getpid()
         try:
-            _send_frame(
+            return _deliver_one_shot(
                 self._parent,
-                {
-                    "message_type": "challenge",
-                    "protocol_version": PROTOCOL_VERSION,
-                    "nonce": self._nonce,
-                    "generation_id": generation,
-                    "parent_pid": parent_pid,
-                    "owner_uid": uid,
-                },
+                nonce=self._nonce,
+                used=False,
+                child_pid=child_pid,
+                generation_id=generation_id,
+                certificate_path=certificate_path,
+                encrypted_private_key_path=encrypted_private_key_path,
+                secret_loader=secret_loader,
+                principal_source=_current_uid,
             )
-            hello = _require_closed_object(
-                _recv_frame(self._parent),
-                required=frozenset(
-                    {
-                        "message_type",
-                        "protocol_version",
-                        "nonce",
-                        "generation_id",
-                        "parent_pid",
-                        "child_pid",
-                        "child_uid",
-                    }
-                ),
-            )
-            if (
-                hello["message_type"] != "hello"
-                or hello["protocol_version"] != PROTOCOL_VERSION
-                or hello["nonce"] != self._nonce
-                or hello["generation_id"] != generation
-                or hello["parent_pid"] != parent_pid
-                or hello["child_pid"] != child_pid
-                or hello["child_uid"] != uid
-            ):
-                raise _unsafe()
-            secret_value = secret_loader()
-            if not isinstance(secret_value, bytes) or len(secret_value) < 32:
-                raise TLSIdentityError("KEY_PASSPHRASE_UNAVAILABLE")
-            passphrase = bytearray(secret_value)
-            try:
-                _send_frame(
-                    self._parent,
-                    {
-                        "message_type": "secret",
-                        "protocol_version": PROTOCOL_VERSION,
-                        "nonce": self._nonce,
-                        "generation_id": generation,
-                        "parent_pid": parent_pid,
-                        "child_pid": child_pid,
-                        "owner_uid": uid,
-                        "certificate_path": str(certificate_path),
-                        "encrypted_private_key_path": str(
-                            encrypted_private_key_path
-                        ),
-                        "passphrase_base64": base64.b64encode(passphrase).decode("ascii"),
-                    },
-                )
-            finally:
-                for index in range(len(passphrase)):
-                    passphrase[index] = 0
-            acknowledgement = _require_closed_object(
-                _recv_frame(self._parent),
-                required=frozenset(
-                    {
-                        "message_type",
-                        "protocol_version",
-                        "nonce",
-                        "generation_id",
-                        "child_pid",
-                    }
-                ),
-            )
-            if (
-                acknowledgement["message_type"] != "consumed"
-                or acknowledgement["protocol_version"] != PROTOCOL_VERSION
-                or acknowledgement["nonce"] != self._nonce
-                or acknowledgement["generation_id"] != generation
-                or acknowledgement["child_pid"] != child_pid
-            ):
-                raise _unsafe()
-            return SecretTransportAttestation.one_shot_local_channel()
         except TLSIdentityError:
             raise
         except Exception as exc:
@@ -319,23 +479,158 @@ class ParentSecretChannel:
             self._parent = None
 
 
-def receive_one_shot_secret(
-    inherited_fd: int,
-    *,
-    timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS,
-) -> ReceivedSecret:
-    """Consume one parent delivery from an inherited unnamed local socket."""
+class WindowsParentSecretChannel:
+    """One connected Pipe endpoint inherited by exactly one Windows child."""
 
-    if os.name != "posix" or not isinstance(inherited_fd, int) or inherited_fd <= 2:
+    def __init__(
+        self,
+        *,
+        timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS,
+        nonce_source: Callable[[int], bytes] = secrets.token_bytes,
+        principal_source: Callable[[], object] = _current_windows_sid,
+        pipe_factory: Callable[..., tuple[Any, Any]] = (
+            multiprocessing.connection.Pipe
+        ),
+    ) -> None:
+        if os.name != "nt" and principal_source is _current_windows_sid:
+            raise _unsafe()
+        parent, child = pipe_factory(duplex=True)
+        try:
+            nonce = nonce_source(32)
+            if not isinstance(nonce, bytes) or len(nonce) != 32:
+                raise _unsafe()
+            self._parent = _PipeFrameStream(
+                parent,
+                timeout_seconds=timeout_seconds,
+            )
+            self._child = child
+            self._nonce = (
+                base64.urlsafe_b64encode(nonce).decode("ascii").rstrip("=")
+            )
+            self._principal_source = principal_source
+            self._used = False
+            if os.name == "nt":
+                os.set_handle_inheritable(self.child_endpoint, True)
+        except Exception:
+            parent.close()
+            child.close()
+            raise
+
+    @property
+    def endpoint_kind(self) -> str:
+        return "windows-handle"
+
+    @property
+    def child_endpoint(self) -> int:
+        if self._child is None:
+            raise _unsafe()
+        return int(self._child.fileno())
+
+    def popen_kwargs(self) -> dict[str, Any]:
+        if os.name != "nt":
+            return {}
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.lpAttributeList = {
+            "handle_list": [self.child_endpoint],
+        }
+        return {"startupinfo": startupinfo}
+
+    def close_child_copy(self) -> None:
+        if self._child is not None:
+            self._child.close()
+            self._child = None
+
+    def deliver(
+        self,
+        *,
+        child_pid: int,
+        generation_id: str,
+        certificate_path: Path,
+        encrypted_private_key_path: Path,
+        secret_loader: Callable[[], bytes | None],
+    ) -> SecretTransportAttestation:
+        if self._used or self._parent is None or self._child is not None:
+            raise _unsafe()
+        self._used = True
+        try:
+            return _deliver_one_shot(
+                self._parent,
+                nonce=self._nonce,
+                used=False,
+                child_pid=child_pid,
+                generation_id=generation_id,
+                certificate_path=certificate_path,
+                encrypted_private_key_path=encrypted_private_key_path,
+                secret_loader=secret_loader,
+                principal_source=self._principal_source,
+            )
+        except TLSIdentityError:
+            raise
+        except Exception as exc:
+            raise _unsafe() from exc
+        finally:
+            self.close()
+
+    def close(self) -> None:
+        self.close_child_copy()
+        if self._parent is not None:
+            self._parent.close()
+            self._parent = None
+
+
+def create_parent_secret_channel() -> ParentSecretChannel | WindowsParentSecretChannel:
+    if os.name == "nt":
+        return WindowsParentSecretChannel()
+    return ParentSecretChannel()
+
+
+def receive_one_shot_secret(
+    inherited_endpoint: int,
+    *,
+    channel_kind: str | None = None,
+    timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS,
+    principal_source: Callable[[], object] | None = None,
+    parent_pid_source: Callable[[], int] = os.getppid,
+    child_pid_source: Callable[[], int] = os.getpid,
+) -> ReceivedSecret:
+    """Consume one delivery from the single endpoint inherited by this child."""
+
+    if not isinstance(inherited_endpoint, int) or inherited_endpoint <= 2:
         raise _unsafe()
-    try:
-        channel = socket.socket(fileno=inherited_fd)
-    except OSError as exc:
-        raise _unsafe() from exc
-    channel.settimeout(timeout_seconds)
+    kind = channel_kind or (
+        "windows-handle" if os.name == "nt" else "posix-fd"
+    )
+    if kind == "posix-fd":
+        if os.name != "posix":
+            raise _unsafe()
+        try:
+            socket_channel = socket.socket(fileno=inherited_endpoint)
+        except OSError as exc:
+            raise _unsafe() from exc
+        socket_channel.settimeout(timeout_seconds)
+        _validate_unnamed_local_socket(socket_channel)
+        channel: _FrameStream = socket_channel
+        identity_source = principal_source or _current_uid
+    elif kind == "windows-handle":
+        if os.name != "nt" and principal_source is None:
+            raise _unsafe()
+        try:
+            connection = multiprocessing.connection.Connection(
+                inherited_endpoint,
+                readable=True,
+                writable=True,
+            )
+        except (OSError, ValueError) as exc:
+            raise _unsafe() from exc
+        channel = _PipeFrameStream(
+            connection,
+            timeout_seconds=timeout_seconds,
+        )
+        identity_source = principal_source or _current_windows_sid
+    else:
+        raise _unsafe()
     passphrase = bytearray()
     try:
-        _validate_unnamed_local_socket(channel)
         challenge = _require_closed_object(
             _recv_frame(channel),
             required=frozenset(
@@ -351,14 +646,16 @@ def receive_one_shot_secret(
         )
         nonce = _require_token(challenge["nonce"])
         generation = _require_token(challenge["generation_id"])
-        uid = _current_uid()
-        parent_pid = os.getppid()
-        child_pid = os.getpid()
+        principal = identity_source()
+        if not isinstance(principal, (int, str)):
+            raise _unsafe()
+        parent_pid = parent_pid_source()
+        child_pid = child_pid_source()
         if (
             challenge["message_type"] != "challenge"
             or challenge["protocol_version"] != PROTOCOL_VERSION
             or challenge["parent_pid"] != parent_pid
-            or challenge["owner_uid"] != uid
+            or challenge["owner_uid"] != principal
         ):
             raise _unsafe()
         _send_frame(
@@ -370,7 +667,7 @@ def receive_one_shot_secret(
                 "generation_id": generation,
                 "parent_pid": parent_pid,
                 "child_pid": child_pid,
-                "child_uid": uid,
+                "child_uid": principal,
             },
         )
         secret = _require_closed_object(
@@ -397,7 +694,7 @@ def receive_one_shot_secret(
             or secret["generation_id"] != generation
             or secret["parent_pid"] != parent_pid
             or secret["child_pid"] != child_pid
-            or secret["owner_uid"] != uid
+            or secret["owner_uid"] != principal
         ):
             raise _unsafe()
         try:

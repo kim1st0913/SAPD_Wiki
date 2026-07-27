@@ -23,6 +23,7 @@
     "files": [
       "main.cjs",
       "preload.cjs",
+      "mcp-native.cjs",
       "settings.cjs",
       "package.json"
     ],
@@ -49,7 +50,7 @@
     "nsis": {
       "oneClick": false,
       "perMachine": false,
-      "allowElevation": true,
+      "allowElevation": false,
       "allowToChangeInstallationDirectory": true,
       "deleteAppDataOnUninstall": false,
       "createDesktopShortcut": true,

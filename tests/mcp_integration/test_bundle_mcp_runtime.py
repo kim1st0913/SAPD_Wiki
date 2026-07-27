@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import importlib.util
+import io
 import json
 import sys
 import threading
 import unittest
 import urllib.request
+from unittest import mock
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 
@@ -102,6 +104,43 @@ class BundleMcpRuntimeTests(unittest.TestCase):
             server.shutdown()
             server.server_close()
             thread.join(timeout=5)
+
+    def test_electron_bootstrap_is_closed_bounded_and_not_environment_based(self) -> None:
+        capability = "A" * 43
+        stream = io.TextIOWrapper(
+            io.BytesIO(
+                json.dumps(
+                    {
+                        "contract": "sapd-electron-bootstrap-v1",
+                        "native_confirmation_capability": capability,
+                    }
+                ).encode("utf-8")
+                + b"\n"
+            ),
+            encoding="utf-8",
+        )
+        with mock.patch.object(sys, "stdin", stream):
+            self.assertEqual(
+                self.bundle_server.read_electron_bootstrap(),
+                capability,
+            )
+
+        duplicate = io.TextIOWrapper(
+            io.BytesIO(
+                (
+                    '{"contract":"sapd-electron-bootstrap-v1",'
+                    '"native_confirmation_capability":"'
+                    + capability
+                    + '","native_confirmation_capability":"'
+                    + capability
+                    + '"}\n'
+                ).encode("utf-8")
+            ),
+            encoding="utf-8",
+        )
+        with mock.patch.object(sys, "stdin", duplicate):
+            with self.assertRaisesRegex(ValueError, "duplicate bootstrap key"):
+                self.bundle_server.read_electron_bootstrap()
 
 
 if __name__ == "__main__":

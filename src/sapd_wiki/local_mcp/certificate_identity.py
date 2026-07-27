@@ -8,11 +8,9 @@ from __future__ import annotations
 
 import ipaddress
 import json
-import os
 import re
 import secrets
 import shutil
-import stat
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime, timedelta
 from hashlib import sha256
@@ -26,6 +24,12 @@ from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
 
 from .tls import SecretProvider
 from .certificate_trust import ManagedTrustTarget, target_from_pem
+from .path_security import (
+    PathSecurityError,
+    assert_secure_regular_file,
+    atomic_write_secure,
+    ensure_secure_directory,
+)
 
 
 MANIFEST_SCHEMA_VERSION = 1
@@ -117,39 +121,26 @@ def _name(common_name: str) -> x509.Name:
 
 
 def _ensure_secure_directory(path: Path) -> Path:
-    candidate = Path(path)
-    if not candidate.is_absolute() or candidate.is_symlink():
-        raise CertificateIdentityError("IDENTITY_ROOT_UNSAFE")
-    candidate.mkdir(mode=0o700, parents=True, exist_ok=True)
-    resolved = candidate.resolve(strict=True)
-    info = resolved.stat()
-    if not stat.S_ISDIR(info.st_mode) or info.st_mode & 0o077:
-        raise CertificateIdentityError("IDENTITY_ROOT_UNSAFE")
-    os.chmod(resolved, 0o700)
-    return resolved
+    try:
+        return ensure_secure_directory(path)
+    except (OSError, PathSecurityError) as exc:
+        raise CertificateIdentityError("IDENTITY_ROOT_UNSAFE") from exc
 
 
 def _assert_secure_regular_file(path: Path) -> None:
-    if path.is_symlink():
-        raise CertificateIdentityError("IDENTITY_FILE_UNSAFE")
     try:
-        info = path.stat()
-    except FileNotFoundError as exc:
-        raise CertificateIdentityError("IDENTITY_FILE_MISSING") from exc
-    if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or info.st_mode & 0o077:
+        assert_secure_regular_file(path)
+    except PathSecurityError as exc:
+        if exc.code == "PATH_FILE_MISSING":
+            raise CertificateIdentityError("IDENTITY_FILE_MISSING") from exc
         raise CertificateIdentityError("IDENTITY_FILE_UNSAFE")
 
 
 def _atomic_write(path: Path, payload: bytes) -> None:
-    temporary = path.with_name(f".{path.name}.{secrets.token_urlsafe(8)}.tmp")
-    descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     try:
-        os.write(descriptor, payload)
-        os.fsync(descriptor)
-    finally:
-        os.close(descriptor)
-    os.replace(temporary, path)
-    os.chmod(path, 0o600)
+        atomic_write_secure(path, payload)
+    except (OSError, PathSecurityError) as exc:
+        raise CertificateIdentityError("IDENTITY_FILE_UNSAFE") from exc
 
 
 class CertificateIdentityStore:
@@ -184,6 +175,8 @@ class CertificateIdentityStore:
         return resolved
 
     def load_manifest(self) -> CertificateIdentityManifest | None:
+        if self.manifest_path.is_symlink():
+            raise CertificateIdentityError("IDENTITY_FILE_UNSAFE")
         if not self.manifest_path.exists():
             return None
         return self._load_manifest_path(self.manifest_path)
@@ -378,8 +371,7 @@ class CertificateIdentityStore:
 
         generation_id = secrets.token_urlsafe(24)
         generation_root = self.generations_root / generation_id
-        generation_root.mkdir(mode=0o700)
-        os.chmod(generation_root, 0o700)
+        _ensure_secure_directory(generation_root)
         created_at = self._clock().astimezone(UTC)
         not_before = created_at - timedelta(minutes=5)
         ca_not_after = created_at + timedelta(days=CA_VALIDITY_DAYS)
@@ -633,8 +625,7 @@ class CertificateIdentityStore:
                 continue
             self.secret_provider.delete_secret(manifest.passphrase_reference)
         shutil.rmtree(self.generations_root)
-        self.generations_root.mkdir(mode=0o700)
-        os.chmod(self.generations_root, 0o700)
+        self.generations_root = _ensure_secure_directory(self.generations_root)
         return True
 
     def public_state(

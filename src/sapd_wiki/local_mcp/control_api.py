@@ -14,6 +14,7 @@ from .control_models import (
     ControlError,
     assert_safe_response,
     require_closed_object,
+    validate_native_capability,
 )
 from .control_service import ControlService
 
@@ -66,6 +67,7 @@ class ControlApi:
         expected_origin: str,
         session_verifier: SessionVerifier,
         allow_web_reset: bool = False,
+        native_confirmation_verifier: SessionVerifier | None = None,
     ) -> None:
         if not expected_host or not expected_origin or not callable(session_verifier):
             raise ValueError("expected_host, expected_origin and session_verifier are required")
@@ -74,6 +76,7 @@ class ControlApi:
         self._expected_origin = expected_origin
         self._session_verifier = session_verifier
         self._allow_web_reset = bool(allow_web_reset)
+        self._native_confirmation_verifier = native_confirmation_verifier
 
     def dispatch(
         self,
@@ -222,6 +225,12 @@ class ControlApi:
                 payload,
                 required=_COMMON_MUTATION_FIELDS | frozenset({"confirmation_id"}),
             )
+            if self._native_confirmation_verifier is not None:
+                native_capability = validate_native_capability(
+                    headers.get(NATIVE_CONFIRMATION_HEADER.casefold(), "")
+                )
+                if not self._native_confirmation_verifier(native_capability):
+                    raise ControlError("NATIVE_CONFIRMATION_INVALID", status=403)
             return self._service.confirm_certificate_action(
                 confirmation_id=source["confirmation_id"],
                 request_id=source["request_id"],

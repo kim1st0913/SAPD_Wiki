@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
 import secrets
 from dataclasses import asdict, dataclass, replace
 from datetime import UTC, datetime, timedelta
@@ -19,6 +18,12 @@ from .certificate_trust import (
     CertificateTrustError,
     CurrentUserTrustAdapter,
     ManagedTrustTarget,
+)
+from .path_security import (
+    PathSecurityError,
+    assert_secure_regular_file,
+    atomic_write_secure,
+    ensure_secure_directory,
 )
 from .profile_lock import ProfileLockError, ProfileWriterLock
 from .tls import (
@@ -97,15 +102,10 @@ def _parse_iso(value: str) -> datetime:
 
 
 def _atomic_write(path: Path, payload: bytes) -> None:
-    temporary = path.with_name(f".{path.name}.{secrets.token_urlsafe(8)}.tmp")
-    descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     try:
-        os.write(descriptor, payload)
-        os.fsync(descriptor)
-    finally:
-        os.close(descriptor)
-    os.replace(temporary, path)
-    os.chmod(path, 0o600)
+        atomic_write_secure(path, payload)
+    except (OSError, PathSecurityError) as exc:
+        raise CertificateLifecycleError("CERTIFICATE_JOURNAL_UNSAFE") from exc
 
 
 @dataclass(frozen=True, slots=True)
@@ -136,13 +136,16 @@ class CertificateOperationStore:
             raise CertificateLifecycleError("CERTIFICATE_JOURNAL_UNSAFE")
 
     def load(self) -> CertificateOperationJournal | None:
-        if not self.path.exists():
-            return None
         if self.path.is_symlink():
             raise CertificateLifecycleError("CERTIFICATE_JOURNAL_UNSAFE")
-        info = self.path.stat()
-        if info.st_nlink != 1 or info.st_mode & 0o077:
-            raise CertificateLifecycleError("CERTIFICATE_JOURNAL_UNSAFE")
+        if not self.path.exists():
+            return None
+        try:
+            assert_secure_regular_file(self.path)
+        except PathSecurityError as exc:
+            raise CertificateLifecycleError(
+                "CERTIFICATE_JOURNAL_UNSAFE"
+            ) from exc
         try:
             raw = json.loads(self.path.read_text(encoding="utf-8"))
         except (OSError, UnicodeError, json.JSONDecodeError) as exc:
@@ -190,8 +193,12 @@ class CertificateOperationStore:
         self,
         journal: CertificateOperationJournal,
     ) -> CertificateOperationJournal:
-        self.path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-        os.chmod(self.path.parent, 0o700)
+        try:
+            ensure_secure_directory(self.path.parent)
+        except (OSError, PathSecurityError) as exc:
+            raise CertificateLifecycleError(
+                "CERTIFICATE_JOURNAL_UNSAFE"
+            ) from exc
         _atomic_write(
             self.path,
             json.dumps(

@@ -87,6 +87,9 @@ projection_api = load_projection_api_module()
 
 API_PREFIX = "/api/v1/"
 AUTH_HEADER = "X-SAPD-Session-Token"
+ELECTRON_BOOTSTRAP_CONTRACT = "sapd-electron-bootstrap-v1"
+ELECTRON_BOOTSTRAP_MAX_BYTES = 1024
+NATIVE_CONFIRMATION_CAPABILITY_RE = re.compile(r"^[A-Za-z0-9_-]{32,128}$")
 USER_SCHEMA_VERSION = "user_schema_0.3"
 BASE_ITEM_TABLE_CANDIDATES = [
     "knowledge_items",
@@ -2399,7 +2402,71 @@ def perform_startup_check(bundle_root: Path, logger: RuntimeLogger) -> dict[str,
     return result
 
 
-def run_server(bundle_root: Path, no_browser: bool = False) -> int:
+def _closed_json_pairs(items: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in items:
+        if key in result:
+            raise ValueError("duplicate bootstrap key")
+        result[key] = value
+    return result
+
+
+def read_electron_bootstrap() -> str:
+    """Read one closed, bounded secret bootstrap from inherited stdin."""
+
+    raw = bytearray(sys.stdin.buffer.readline(ELECTRON_BOOTSTRAP_MAX_BYTES + 1))
+    try:
+        if (
+            not raw
+            or len(raw) > ELECTRON_BOOTSTRAP_MAX_BYTES
+            or raw[-1:] != b"\n"
+        ):
+            raise ValueError("Electron bootstrap is invalid")
+        if sys.stdin.buffer.read(1):
+            raise ValueError("Electron bootstrap must contain exactly one line")
+        try:
+            payload = json.loads(
+                bytes(raw).decode("utf-8"),
+                object_pairs_hook=_closed_json_pairs,
+            )
+        except (UnicodeError, json.JSONDecodeError) as exc:
+            raise ValueError("Electron bootstrap is invalid") from exc
+        if not isinstance(payload, dict) or set(payload) != {
+            "contract",
+            "native_confirmation_capability",
+        }:
+            raise ValueError("Electron bootstrap schema is invalid")
+        if payload["contract"] != ELECTRON_BOOTSTRAP_CONTRACT:
+            raise ValueError("Electron bootstrap contract is unsupported")
+        capability = payload["native_confirmation_capability"]
+        if (
+            not isinstance(capability, str)
+            or not NATIVE_CONFIRMATION_CAPABILITY_RE.fullmatch(capability)
+        ):
+            raise ValueError("Electron native confirmation capability is invalid")
+        return capability
+    finally:
+        for index in range(len(raw)):
+            raw[index] = 0
+        raw.clear()
+
+
+def windows_packaged_mcp_roots() -> tuple[Path, Path]:
+    if os.name != "nt":
+        raise ValueError("Windows MCP roots are only available on Windows")
+    local_app_data = os.environ.get("LOCALAPPDATA", "").strip()
+    if not local_app_data:
+        raise ValueError("LOCALAPPDATA is required for Windows MCP Runtime")
+    owner_root = Path(local_app_data) / "SAPD Wiki" / "LocalMCP"
+    return owner_root / "Runtime" / "app", owner_root / "Certificates" / "app"
+
+
+def run_server(
+    bundle_root: Path,
+    no_browser: bool = False,
+    *,
+    native_confirmation_capability: str | None = None,
+) -> int:
     root = bundle_root.resolve()
     log_path = root / "logs" / "runtime.log"
     logger = RuntimeLogger(log_path)
@@ -2421,6 +2488,7 @@ def run_server(bundle_root: Path, no_browser: bool = False) -> int:
         "host": host,
         "port": port,
         "url": f"http://{host}:{port}/",
+        "pid": os.getpid(),
         "platform": runtime.manifest.get("platform"),
         "bundle_root": str(root),
         "base_database": str(runtime.base_db.relative_to(root)),
@@ -2439,9 +2507,16 @@ def run_server(bundle_root: Path, no_browser: bool = False) -> int:
                 error=projection_api_import_error,
             )
             return 2
-        mcp_root = runtime.root / "data" / "mcp"
-        mcp_runtime_root = mcp_root / "runtime"
-        certificate_identity_root = mcp_root / "certificates"
+        if os.name == "nt":
+            mcp_runtime_root, certificate_identity_root = (
+                windows_packaged_mcp_roots()
+            )
+            certificate_profile = "app"
+        else:
+            mcp_root = runtime.root / "data" / "mcp"
+            mcp_runtime_root = mcp_root / "runtime"
+            certificate_identity_root = mcp_root / "certificates"
+            certificate_profile = "dev"
         mcp_port = int(runtime.config.get("mcp_port", 28775))
         mcp_supervisor = projection_api.DevSidecarSupervisor(
             configured_port=mcp_port,
@@ -2452,12 +2527,14 @@ def run_server(bundle_root: Path, no_browser: bool = False) -> int:
             certificate_identity_root=certificate_identity_root,
             platform_integration_enabled=True,
             auto_restore_enabled=True,
+            certificate_profile=certificate_profile,
         )
         mcp_control_api = projection_api.build_dev_control_api(
             expected_host=f"{host}:{port}",
             expected_origin=f"http://{host}:{port}",
             session_token=session_token,
             supervisor=mcp_supervisor,
+            native_confirmation_capability=native_confirmation_capability,
         )
     handler = build_handler(
         runtime,
@@ -2509,9 +2586,19 @@ def main() -> int:
     parser.add_argument("--check-only", action="store_true", help="Run runtime checks and exit.")
     parser.add_argument("--export-diagnostics", action="store_true", help="Export diagnostics and exit.")
     parser.add_argument("--export-user-notes", action="store_true", help="Export user notes and exit.")
+    parser.add_argument(
+        "--electron-bootstrap-stdin",
+        action="store_true",
+        help="Read the Electron native confirmation bootstrap from inherited stdin.",
+    )
     args = parser.parse_args()
 
     root = args.bundle_root.resolve()
+    native_confirmation_capability = (
+        read_electron_bootstrap()
+        if args.electron_bootstrap_stdin
+        else None
+    )
     logger = RuntimeLogger(root / "logs" / "runtime.log")
     if args.export_diagnostics:
         output = export_diagnostics(root)
@@ -2531,7 +2618,11 @@ def main() -> int:
         result = perform_startup_check(root, logger)
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0 if result["ok"] else 1
-    return run_server(root, no_browser=args.no_browser)
+    return run_server(
+        root,
+        no_browser=args.no_browser,
+        native_confirmation_capability=native_confirmation_capability,
+    )
 
 
 if __name__ == "__main__":

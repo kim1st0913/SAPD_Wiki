@@ -19,7 +19,9 @@ from sapd_wiki.local_mcp.dev_supervisor import (
     _project_grouped_audit_events,
     _sidecar_command_prefix,
 )
-from sapd_wiki.local_mcp.secret_transport import ParentSecretChannel
+from sapd_wiki.local_mcp.secret_transport import (
+    create_parent_secret_channel,
+)
 from sapd_wiki.local_mcp.tls import (
     InMemorySecretProvider,
     KEY_PASSPHRASE_IPC_UNSAFE,
@@ -63,7 +65,27 @@ def wait_for_service_state(
     return snapshot
 
 
-class UnsafeSecretChannel(ParentSecretChannel):
+class UnsafeSecretChannel:
+    def __init__(self) -> None:
+        self._delegate = create_parent_secret_channel()
+
+    @property
+    def endpoint_kind(self):
+        return self._delegate.endpoint_kind
+
+    @property
+    def child_endpoint(self):
+        return self._delegate.child_endpoint
+
+    def popen_kwargs(self):
+        return self._delegate.popen_kwargs()
+
+    def close_child_copy(self):
+        self._delegate.close_child_copy()
+
+    def close(self):
+        self._delegate.close()
+
     def deliver(self, **_kwargs: object):
         self.close()
         raise TLSIdentityError(KEY_PASSPHRASE_IPC_UNSAFE)

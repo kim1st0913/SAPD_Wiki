@@ -410,6 +410,65 @@ class ControlApiTests(unittest.TestCase):
             confirmed.body["operation_id"], "certificate-operation-api-0001"
         )
 
+    def test_native_certificate_confirmation_requires_exact_main_capability(self) -> None:
+        api = ControlApi(
+            ControlService(self.gateway),
+            expected_host=HOST,
+            expected_origin=ORIGIN,
+            session_verifier=lambda supplied: secrets.compare_digest(
+                supplied, SESSION
+            ),
+            native_confirmation_verifier=lambda supplied: secrets.compare_digest(
+                supplied, NATIVE_CAPABILITY
+            ),
+        )
+        prepared = api.dispatch(
+            "POST",
+            "/api/v1/mcp/certificate/actions/prepare",
+            self.headers(mutation=True),
+            {
+                "request_id": "certificate-native-prepare-0001",
+                "expected_state_version": 0,
+                "action": "certificate_provision",
+            },
+        )
+        body = {
+            "request_id": "certificate-native-confirm-0001",
+            "expected_state_version": prepared.body["state_version"],
+            "confirmation_id": prepared.body["certificate_confirmation"][
+                "confirmation_id"
+            ],
+        }
+        missing = api.dispatch(
+            "POST",
+            "/api/v1/mcp/certificate/actions/confirm",
+            self.headers(mutation=True),
+            body,
+        )
+        self.assertEqual(missing.status, 428)
+        self.assertEqual(
+            missing.body["error"]["code"], "DESKTOP_CAPABILITY_REQUIRED"
+        )
+        wrong_headers = self.headers(mutation=True)
+        wrong_headers[NATIVE_CONFIRMATION_HEADER] = "D" * 48
+        wrong = api.dispatch(
+            "POST",
+            "/api/v1/mcp/certificate/actions/confirm",
+            wrong_headers,
+            body,
+        )
+        self.assertEqual(wrong.status, 403)
+        self.assertEqual(
+            wrong.body["error"]["code"], "NATIVE_CONFIRMATION_INVALID"
+        )
+        accepted = api.dispatch(
+            "POST",
+            "/api/v1/mcp/certificate/actions/confirm",
+            self.headers(mutation=True, native=True),
+            body,
+        )
+        self.assertEqual(accepted.status, 200)
+
     def test_host_origin_and_session_are_exactly_checked(self) -> None:
         cases = [
             ({"Host": "localhost:5173", "Origin": ORIGIN, SESSION_HEADER: SESSION}, 403, "INVALID_HOST"),

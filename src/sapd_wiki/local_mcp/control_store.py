@@ -3,7 +3,6 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
-import os
 import secrets
 import sqlite3
 import threading
@@ -11,6 +10,13 @@ import time
 from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
+
+from .path_security import (
+    PathSecurityError,
+    assert_secure_regular_file,
+    ensure_secure_directory,
+    protect_regular_file,
+)
 
 
 SCHEMA_VERSION = 1
@@ -58,7 +64,16 @@ class ControlStore:
         self.audit_max_events = int(audit_max_events)
         self.audit_max_bytes = int(audit_max_bytes)
         self._lock = threading.RLock()
-        self.path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            ensure_secure_directory(self.path.parent)
+            if self.path.is_symlink():
+                raise PathSecurityError("PATH_FILE_UNSAFE")
+            if self.path.exists():
+                assert_secure_regular_file(self.path)
+        except (OSError, PathSecurityError) as exc:
+            raise ControlStoreError(
+                "CONTROL_STORE_PERMISSIONS_UNSAFE"
+            ) from exc
         self._connection = sqlite3.connect(
             self.path,
             isolation_level=None,
@@ -66,11 +81,15 @@ class ControlStore:
         )
         self._connection.row_factory = sqlite3.Row
         try:
-            os.chmod(self.path, 0o600)
-        except OSError as exc:
+            protect_regular_file(self.path)
+        except (OSError, PathSecurityError) as exc:
             self._connection.close()
             raise ControlStoreError("CONTROL_STORE_PERMISSIONS_UNSAFE") from exc
-        self._initialize()
+        try:
+            self._initialize()
+        except Exception:
+            self._connection.close()
+            raise
         self.prune_audit()
 
     def _initialize(self) -> None:

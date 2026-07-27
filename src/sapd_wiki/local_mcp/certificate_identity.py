@@ -156,7 +156,11 @@ class CertificateIdentityStore:
     ) -> None:
         if not _PROFILE_RE.fullmatch(profile):
             raise ValueError("profile must be a lowercase stable identifier")
-        self.root = _ensure_secure_directory(root)
+        secured_root = _ensure_secure_directory(root)
+        try:
+            self.root = secured_root.resolve(strict=True)
+        except OSError as exc:
+            raise CertificateIdentityError("IDENTITY_ROOT_UNSAFE") from exc
         self.secret_provider = secret_provider
         self.profile = profile
         self._clock = clock

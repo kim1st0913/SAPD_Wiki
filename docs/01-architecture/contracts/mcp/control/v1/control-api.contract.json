@@ -810,6 +810,19 @@
           "type": "string",
           "maxLength": 64
         },
+        "first_occurred_at": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "last_occurred_at": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "occurrence_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        },
         "event_type": {
           "type": "string",
           "maxLength": 128

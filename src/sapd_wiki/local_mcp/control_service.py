@@ -1074,13 +1074,40 @@ class ControlService:
                         "duration_ms",
                     }
                 ),
+                optional=frozenset(
+                    {
+                        "first_occurred_at",
+                        "last_occurred_at",
+                        "occurrence_count",
+                    }
+                ),
                 error_code="SNAPSHOT_INVALID",
             )
             returned_count = event["returned_count"]
             duration_ms = event["duration_ms"]
+            occurred_at = require_string(
+                event["occurred_at"],
+                minimum=1,
+                maximum=64,
+            )
             recent_events.append(
                 {
-                    "occurred_at": require_string(event["occurred_at"], minimum=1, maximum=64),
+                    "occurred_at": occurred_at,
+                    "first_occurred_at": require_string(
+                        event.get("first_occurred_at", occurred_at),
+                        minimum=1,
+                        maximum=64,
+                    ),
+                    "last_occurred_at": require_string(
+                        event.get("last_occurred_at", occurred_at),
+                        minimum=1,
+                        maximum=64,
+                    ),
+                    "occurrence_count": require_int(
+                        event.get("occurrence_count", 1),
+                        minimum=1,
+                        maximum=10,
+                    ),
                     "event_type": require_string(event["event_type"], minimum=1, maximum=128),
                     "client_id": require_nullable_string(event["client_id"], maximum=128),
                     "tool_name": require_nullable_string(event["tool_name"], maximum=128),

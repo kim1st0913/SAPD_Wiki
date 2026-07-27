@@ -12,6 +12,7 @@ from mcp.server.auth.provider import RegistrationError
 from mcp.shared.auth import OAuthClientInformationFull
 
 from sapd_wiki.local_mcp.auth import (
+    ACCESS_TOKEN_TTL_SECONDS,
     LocalOAuthProvider,
     OAuthProviderConfig,
     SCOPE,
@@ -66,6 +67,10 @@ def client_registration(client_id: str) -> OAuthClientInformationFull:
 
 
 class AuthHTTPTests(unittest.TestCase):
+    def test_default_access_token_ttl_is_one_hour(self) -> None:
+        self.assertEqual(ACCESS_TOKEN_TTL_SECONDS, 60 * 60)
+        self.assertEqual(self.provider.config.access_token_ttl_seconds, 60 * 60)
+
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory(prefix="sapd-mcp-auth-")
         self.root = Path(self.temp.name)
@@ -167,6 +172,7 @@ class AuthHTTPTests(unittest.TestCase):
                     verifier=verifier,
                 )
                 self.assertNotIn(".", issued["access_token"])
+                self.assertEqual(issued["expires_in"], 60 * 60)
                 refreshed = await client.post(
                     "/oauth/token",
                     data={
@@ -178,6 +184,7 @@ class AuthHTTPTests(unittest.TestCase):
                 )
                 self.assertEqual(refreshed.status_code, 200, refreshed.text)
                 replacement = refreshed.json()
+                self.assertEqual(replacement["expires_in"], 60 * 60)
                 self.assertNotEqual(
                     replacement["refresh_token"], issued["refresh_token"]
                 )

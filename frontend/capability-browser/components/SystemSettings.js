@@ -94,6 +94,8 @@
   function auditEventPresentation(event = {}, clients = []) {
     const eventType = text(event.event_type).trim();
     const toolName = text(event.tool_name).trim();
+    const occurrenceCount = Math.max(1, Number.parseInt(event.occurrence_count, 10) || 1);
+    const isGrouped = occurrenceCount > 1;
     const client = clients.find((item) => item?.client_id === event.client_id);
     const toolLabels = {
       search_knowledge: "搜索知识库",
@@ -141,10 +143,10 @@
     const toolDetails = [
       event.returned_count === null || event.returned_count === undefined
         ? ""
-        : `返回 ${Number(event.returned_count) || 0} 条`,
+        : `${isGrouped ? "累计返回" : "返回"} ${Number(event.returned_count) || 0} 条`,
       event.duration_ms === null || event.duration_ms === undefined
         ? ""
-        : `用时 ${Number(event.duration_ms) || 0} 毫秒`,
+        : `${isGrouped ? "累计用时" : "用时"} ${Number(event.duration_ms) || 0} 毫秒`,
     ].filter(Boolean);
     const details = {
       CLIENT_REGISTERED: "客户端已完成动态注册，等待用户确认",
@@ -158,10 +160,14 @@
       REFRESH_REUSE: "检测到重复使用旧凭据，相关凭据已撤销",
       TOOL_CALL: toolDetails.length ? toolDetails.join(" · ") : "已完成一次只读知识访问",
     };
+    const label = labels[eventType] || "本机安全状态变更";
+    const detail = eventType === "TOKEN_REFRESHED" && isGrouped
+      ? `已合并显示 ${occurrenceCount} 次安全续期`
+      : details[eventType] || "已记录一项本机安全状态变化";
     return {
-      label: labels[eventType] || "本机安全状态变更",
+      label: isGrouped ? `${label}（${occurrenceCount} 次）` : label,
       client: client?.display_name || text(event.client_id).trim() || "本机服务",
-      detail: details[eventType] || "已记录一项本机安全状态变化",
+      detail,
       result: result[0],
       tone: result[1],
     };
@@ -635,7 +641,7 @@
         <div class="system-settings-audit-events" aria-label="最近审计事件">
           <div class="system-settings-audit-events-heading">
             <strong>最近记录</strong>
-            <span>每页 10 条 · 最多查看最近 ${escapeHtml(displayLimit)} 条</span>
+            <span>每页读取 10 条原始记录 · 自动合并相似成功事件</span>
           </div>
           ${recentEvents.length
             ? `<div class="system-settings-audit-columns" aria-hidden="true">
@@ -648,8 +654,13 @@
           ${recentEvents.length
             ? `<ol>${recentEvents.map((event) => {
                 const view = auditEventPresentation(event, clients);
+                const firstOccurredAt = text(event.first_occurred_at).trim();
+                const lastOccurredAt = text(event.last_occurred_at).trim();
+                const timeTitle = firstOccurredAt && lastOccurredAt && firstOccurredAt !== lastOccurredAt
+                  ? `${formatDateTime(firstOccurredAt)} 至 ${formatDateTime(lastOccurredAt)}`
+                  : "";
                 return `<li>
-                  <time datetime="${escapeHtml(event.occurred_at)}">${escapeHtml(formatDateTime(event.occurred_at))}</time>
+                  <time datetime="${escapeHtml(event.occurred_at)}"${timeTitle ? ` title="${escapeHtml(timeTitle)}"` : ""}>${escapeHtml(formatDateTime(event.occurred_at))}</time>
                   <span class="system-settings-audit-event-copy">
                     <strong>${escapeHtml(view.label)}</strong>
                     <small>${escapeHtml(view.client)}</small>
@@ -660,7 +671,7 @@
               }).join("")}</ol>`
             : '<div class="system-settings-audit-empty">暂无审计记录。客户端完成授权或调用知识工具后，将在这里显示操作时间、对象和结果。</div>'}
           <nav class="system-settings-audit-pagination" aria-label="审计记录分页">
-            <span>显示 ${escapeHtml(pageStart)}–${escapeHtml(pageEnd)}，最近 ${escapeHtml(displayedEventCount)} 条${eventCount > displayedEventCount ? `（共存储 ${escapeHtml(eventCount)} 条）` : ""}</span>
+            <span>原始记录 ${escapeHtml(pageStart)}–${escapeHtml(pageEnd)}，本页合并为 ${escapeHtml(recentEvents.length)} 组${eventCount > displayedEventCount ? `（共存储 ${escapeHtml(eventCount)} 条）` : ""}</span>
             <div>
               <button type="button" data-mcp-audit-page="${escapeHtml(page - 1)}" ${page <= 1 ? "disabled" : ""}>上一页</button>
               <b>第 ${escapeHtml(page)} / ${escapeHtml(pageCount)} 页</b>
@@ -669,7 +680,7 @@
           </nav>
         </div>
         <div class="system-settings-audit-footer">
-          <p class="system-settings-panel-note">记录客户端、操作类型、返回数量、耗时和处理结果；不保存用户问题、搜索词或知识正文。记录保存在独立 MCP 控制库，不进入收藏、批注等用户业务数据库；达到 ${escapeHtml(retentionDays)} 天、${escapeHtml(maxEvents.toLocaleString("zh-CN"))} 条或 ${escapeHtml(maxMegabytes)}MB 任一上限时，自动删除最旧记录。页面只查询最近 ${escapeHtml(displayLimit)} 条。</p>
+          <p class="system-settings-panel-note">记录客户端、操作类型、返回数量、耗时和处理结果；不保存用户问题、搜索词或知识正文。连续的成功续期和同工具调用只在界面合并，底层审计仍逐条保留；授权、撤销、失败和异常事件不合并。记录保存在独立 MCP 控制库，不进入收藏、批注等用户业务数据库；达到 ${escapeHtml(retentionDays)} 天、${escapeHtml(maxEvents.toLocaleString("zh-CN"))} 条或 ${escapeHtml(maxMegabytes)}MB 任一上限时，自动删除最旧记录。页面只查询最近 ${escapeHtml(displayLimit)} 条。</p>
           <button type="button" data-mcp-request-confirmation="clear-audit" ${clearDisabled ? "disabled" : ""}>清除审计记录</button>
         </div>
       </section>
@@ -700,7 +711,7 @@
             <dl>
               <div><dt>存储位置</dt><dd>独立 MCP 控制库，不进入用户业务数据库</dd></div>
               <div><dt>三重上限</dt><dd>${escapeHtml(retentionDays)} 天、${escapeHtml(maxEvents)} 条或 ${escapeHtml(maxMegabytes)}MB</dd></div>
-              <div><dt>页面范围</dt><dd>只查询最近 ${escapeHtml(displayLimit)} 条，每页 10 条</dd></div>
+              <div><dt>页面范围</dt><dd>只查询最近 ${escapeHtml(displayLimit)} 条，每页读取 10 条并合并相似事件</dd></div>
             </dl>
           </article>
         </section>

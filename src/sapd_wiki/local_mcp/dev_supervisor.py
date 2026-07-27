@@ -48,12 +48,88 @@ from .tls import (
 RESERVED_STABLE_PREVIEW_PORT = 5173
 AUTOMATIC_RESTART_BACKOFF_SECONDS = (1.0, 2.0, 5.0, 10.0, 30.0)
 AUDIT_DISPLAY_LIMIT = 30
+AUDIT_GROUP_WINDOW_SECONDS = 24 * 60 * 60
+AUDIT_GROUPABLE_EVENT_TYPES = frozenset({"TOKEN_REFRESHED", "TOOL_CALL"})
 
 
 def _iso(value: float | None) -> str | None:
     if value is None:
         return None
     return datetime.fromtimestamp(value, UTC).isoformat().replace("+00:00", "Z")
+
+
+def _sum_nullable(left: int | None, right: int | None) -> int | None:
+    if left is None or right is None:
+        return None
+    return int(left) + int(right)
+
+
+def _audit_group_key(item: Mapping[str, Any]) -> tuple[str, str, str, str | None] | None:
+    event_type = str(item["event_type"])
+    if event_type not in AUDIT_GROUPABLE_EVENT_TYPES or item["result_code"] != "OK":
+        return None
+    return (
+        event_type,
+        str(item["client_id"] or ""),
+        str(item["result_code"]),
+        str(item["tool_name"] or "") if event_type == "TOOL_CALL" else None,
+    )
+
+
+def _project_grouped_audit_events(
+    events: list[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    """Merge low-risk repeat events without collapsing any security boundary."""
+
+    groups: list[dict[str, Any]] = []
+    active_groups: dict[
+        tuple[str, str, str, str | None],
+        dict[str, Any],
+    ] = {}
+    for item in events:
+        occurred_at = float(item["occurred_at"])
+        projected = {
+            "occurred_at": _iso(occurred_at),
+            "first_occurred_at": _iso(occurred_at),
+            "last_occurred_at": _iso(occurred_at),
+            "occurrence_count": 1,
+            "event_type": item["event_type"],
+            "client_id": item["client_id"],
+            "tool_name": item["tool_name"],
+            "result_code": item["result_code"],
+            "returned_count": item["returned_count"],
+            "duration_ms": item["duration_ms"],
+            "_group_key": _audit_group_key(item),
+            "_latest_epoch": occurred_at,
+        }
+        group_key = projected["_group_key"]
+        previous = active_groups.get(group_key) if group_key is not None else None
+        can_merge = (
+            previous is not None
+            and float(previous["_latest_epoch"]) - occurred_at
+            <= AUDIT_GROUP_WINDOW_SECONDS
+        )
+        if not can_merge:
+            groups.append(projected)
+            if group_key is None:
+                active_groups.clear()
+            else:
+                active_groups[group_key] = projected
+            continue
+        previous["first_occurred_at"] = projected["first_occurred_at"]
+        previous["occurrence_count"] = int(previous["occurrence_count"]) + 1
+        previous["returned_count"] = _sum_nullable(
+            previous["returned_count"],
+            projected["returned_count"],
+        )
+        previous["duration_ms"] = _sum_nullable(
+            previous["duration_ms"],
+            projected["duration_ms"],
+        )
+    for group in groups:
+        group.pop("_group_key", None)
+        group.pop("_latest_epoch", None)
+    return groups
 
 
 class DevSidecarSupervisor:
@@ -711,18 +787,9 @@ class DevSidecarSupervisor:
                     "page": 1,
                     "page_size": 10,
                     "page_count": max(1, (displayed_audit_count + 9) // 10),
-                    "recent_events": [
-                        {
-                            "occurred_at": _iso(item["occurred_at"]),
-                            "event_type": item["event_type"],
-                            "client_id": item["client_id"],
-                            "tool_name": item["tool_name"],
-                            "result_code": item["result_code"],
-                            "returned_count": item["returned_count"],
-                            "duration_ms": item["duration_ms"],
-                        }
-                        for item in audit_events[:10]
-                    ],
+                    "recent_events": _project_grouped_audit_events(
+                        audit_events[:10]
+                    ),
                 },
                 "diagnostics": self._diagnostics(),
             }
@@ -752,18 +819,7 @@ class DevSidecarSupervisor:
                 "page": safe_page,
                 "page_size": safe_page_size,
                 "page_count": page_count,
-                "recent_events": [
-                    {
-                        "occurred_at": _iso(item["occurred_at"]),
-                        "event_type": item["event_type"],
-                        "client_id": item["client_id"],
-                        "tool_name": item["tool_name"],
-                        "result_code": item["result_code"],
-                        "returned_count": item["returned_count"],
-                        "duration_ms": item["duration_ms"],
-                    }
-                    for item in events
-                ],
+                "recent_events": _project_grouped_audit_events(events),
             }
 
     @staticmethod

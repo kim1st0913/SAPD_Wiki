@@ -35,7 +35,7 @@ from .control_store import ControlStore
 
 
 SCOPE = "sapd.base.knowledge.read"
-ACCESS_TOKEN_TTL_SECONDS = 600
+ACCESS_TOKEN_TTL_SECONDS = 60 * 60
 AUTHORIZATION_CODE_TTL_SECONDS = 120
 REFRESH_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60
 _CLIENT_ID = re.compile(r"^[A-Za-z0-9_.:-]{1,128}$")

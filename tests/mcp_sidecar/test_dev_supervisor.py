@@ -13,7 +13,10 @@ from unittest.mock import patch
 
 from sapd_wiki.local_mcp.control_models import GatewayActionError
 from sapd_wiki.local_mcp.certificate_trust import FakeCurrentUserTrustAdapter
-from sapd_wiki.local_mcp.dev_supervisor import DevSidecarSupervisor
+from sapd_wiki.local_mcp.dev_supervisor import (
+    DevSidecarSupervisor,
+    _project_grouped_audit_events,
+)
 from sapd_wiki.local_mcp.secret_transport import ParentSecretChannel
 from sapd_wiki.local_mcp.tls import (
     InMemorySecretProvider,
@@ -91,6 +94,75 @@ class VolatileVerifiedAtTrust(FakeCurrentUserTrustAdapter):
 
 
 class DevSupervisorTests(unittest.TestCase):
+    def test_audit_projection_groups_successes_without_hiding_failures(self) -> None:
+        events = [
+            {
+                "occurred_at": 200_000.0,
+                "event_type": "TOKEN_REFRESHED",
+                "client_id": "client-a",
+                "tool_name": None,
+                "result_code": "OK",
+                "returned_count": None,
+                "duration_ms": None,
+            },
+            {
+                "occurred_at": 199_000.0,
+                "event_type": "TOOL_CALL",
+                "client_id": "client-a",
+                "tool_name": "search_knowledge",
+                "result_code": "OK",
+                "returned_count": 3,
+                "duration_ms": 12,
+            },
+            {
+                "occurred_at": 196_400.0,
+                "event_type": "TOKEN_REFRESHED",
+                "client_id": "client-a",
+                "tool_name": None,
+                "result_code": "OK",
+                "returned_count": None,
+                "duration_ms": None,
+            },
+            {
+                "occurred_at": 190_000.0,
+                "event_type": "TOOL_CALL",
+                "client_id": "client-a",
+                "tool_name": "search_knowledge",
+                "result_code": "OK",
+                "returned_count": 2,
+                "duration_ms": 8,
+            },
+            {
+                "occurred_at": 188_000.0,
+                "event_type": "TOOL_CALL",
+                "client_id": "client-a",
+                "tool_name": "search_knowledge",
+                "result_code": "RATE_LIMITED",
+                "returned_count": 0,
+                "duration_ms": 5,
+            },
+            {
+                "occurred_at": 187_000.0,
+                "event_type": "TOOL_CALL",
+                "client_id": "client-a",
+                "tool_name": "search_knowledge",
+                "result_code": "OK",
+                "returned_count": 1,
+                "duration_ms": 4,
+            },
+        ]
+
+        projected = _project_grouped_audit_events(events)
+
+        self.assertEqual(len(projected), 4)
+        self.assertEqual(projected[0]["occurrence_count"], 2)
+        self.assertEqual(projected[1]["occurrence_count"], 2)
+        self.assertEqual(projected[1]["returned_count"], 5)
+        self.assertEqual(projected[1]["duration_ms"], 20)
+        self.assertEqual(projected[2]["occurrence_count"], 1)
+        self.assertEqual(projected[2]["result_code"], "RATE_LIMITED")
+        self.assertEqual(projected[3]["occurrence_count"], 1)
+
     def test_real_https_process_starts_stops_and_cleans_owned_root(self) -> None:
         port = free_port()
         supervisor = DevSidecarSupervisor(configured_port=port)

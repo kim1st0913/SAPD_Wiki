@@ -20,7 +20,7 @@ assert.match(index, /id="settingsWorkspace"/);
 assert.match(index, /system-settings\.css\?v=/);
 assert.match(index, /components\/SystemSettings\.js\?v=/);
 assert.match(index, /system-settings\.css\?v=apple-shell-settings-20260726-21-privacy-audit-tab/);
-assert.match(index, /components\/SystemSettings\.js\?v=apple-shell-settings-20260726-21-privacy-audit-tab/);
+assert.match(index, /components\/SystemSettings\.js\?v=apple-shell-settings-20260727-22-audit-event-groups/);
 assert.match(index, /app\.js\?v=[^"]*apple-shell-settings-20260725-8-scroll-retention/);
 assert.doesNotMatch(index, /AiIntegrationSettings|ai-integration-settings\.css/);
 assert.ok(index.indexOf("components/SystemSettings.js") < index.indexOf("./app.js"), "settings component must load before app.js");
@@ -149,7 +149,7 @@ const aiHtml = component.render({
     audit: {
       enabled: true,
       state: "ready",
-      event_count: 3,
+      event_count: 4,
       last_event_at: "2026-07-25T00:25:22Z",
       retention_days: 30,
       max_events: 100,
@@ -159,7 +159,7 @@ const aiHtml = component.render({
       page_size: 10,
       page_count: 1,
       recent_events: [
-        { occurred_at: "2026-07-25T00:25:22Z", event_type: "TOOL_CALL", client_id: "client-12345678", tool_name: "search_knowledge", result_code: "OK", returned_count: 3, duration_ms: 12 },
+        { occurred_at: "2026-07-25T00:25:22Z", first_occurred_at: "2026-07-25T00:20:22Z", last_occurred_at: "2026-07-25T00:25:22Z", occurrence_count: 2, event_type: "TOOL_CALL", client_id: "client-12345678", tool_name: "search_knowledge", result_code: "OK", returned_count: 5, duration_ms: 20 },
         { occurred_at: "2026-07-25T00:24:22Z", event_type: "TOKEN_ISSUED", client_id: "client-12345678", tool_name: null, result_code: "OK", returned_count: null, duration_ms: null },
         { occurred_at: "2026-07-25T00:23:22Z", event_type: "CLIENT_REGISTERED", client_id: "client-12345678", tool_name: null, result_code: "DCR_UNVERIFIED", returned_count: null, duration_ms: null },
       ],
@@ -176,7 +176,7 @@ const privacyAuditHtml = component.render({
     audit: {
       enabled: true,
       state: "ready",
-      event_count: 3,
+      event_count: 4,
       last_event_at: "2026-07-25T00:25:22Z",
       retention_days: 30,
       max_events: 100,
@@ -186,7 +186,7 @@ const privacyAuditHtml = component.render({
       page_size: 10,
       page_count: 1,
       recent_events: [
-        { occurred_at: "2026-07-25T00:25:22Z", event_type: "TOOL_CALL", client_id: "client-12345678", tool_name: "search_knowledge", result_code: "OK", returned_count: 3, duration_ms: 12 },
+        { occurred_at: "2026-07-25T00:25:22Z", first_occurred_at: "2026-07-25T00:20:22Z", last_occurred_at: "2026-07-25T00:25:22Z", occurrence_count: 2, event_type: "TOOL_CALL", client_id: "client-12345678", tool_name: "search_knowledge", result_code: "OK", returned_count: 5, duration_ms: 20 },
         { occurred_at: "2026-07-25T00:24:22Z", event_type: "TOKEN_ISSUED", client_id: "client-12345678", tool_name: null, result_code: "OK", returned_count: null, duration_ms: null },
         { occurred_at: "2026-07-25T00:23:22Z", event_type: "CLIENT_REGISTERED", client_id: "client-12345678", tool_name: null, result_code: "DCR_UNVERIFIED", returned_count: null, duration_ms: null },
       ],
@@ -215,7 +215,7 @@ assert.doesNotMatch(aiHtml, /system-settings-ai-primary|system-settings-ai-secon
 assert.match(aiHtml, /class="system-settings-client-empty"[\s\S]*启动 MCP 服务[\s\S]*复制连接配置并添加到客户端[\s\S]*返回本页确认授权请求/);
 assert.equal((privacyAuditHtml.match(/<time datetime=/g) || []).length, 3, "audit page must render the available events");
 assert.match(privacyAuditHtml, /最近记录/);
-for (const auditLabel of ["隐私边界", "存储与自动清理", "独立 MCP 控制库", "30 天、100 条或 20MB", "只查询最近 30 条，每页 10 条", "搜索知识库", "返回 3 条", "用时 12 毫秒", "已为授权客户端签发短期访问凭据", "客户端已完成动态注册，等待用户确认", "发布方未验证", "不保存用户问题、搜索词或知识正文"]) {
+for (const auditLabel of ["隐私边界", "存储与自动清理", "独立 MCP 控制库", "30 天、100 条或 20MB", "只查询最近 30 条，每页读取 10 条并合并相似事件", "搜索知识库（2 次）", "累计返回 5 条", "累计用时 20 毫秒", "本页合并为 3 组", "底层审计仍逐条保留", "授权、撤销、失败和异常事件不合并", "已为授权客户端签发短期访问凭据", "客户端已完成动态注册，等待用户确认", "发布方未验证", "不保存用户问题、搜索词或知识正文"]) {
   assert.match(privacyAuditHtml, new RegExp(auditLabel));
 }
 assert.doesNotMatch(privacyAuditHtml, /未记录查询正文|DCR_UNVERIFIED|search_knowledge/);

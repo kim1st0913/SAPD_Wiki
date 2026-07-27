@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib
 import importlib.util
 import json
 import mimetypes
@@ -1787,6 +1788,9 @@ def configure_projection_api(runtime: BundleRuntime) -> None:
             user_db=runtime.user_db.resolve(),
             data_root=frontend_data_root,
             export_dir=runtime.export_dir.resolve(),
+            import_dir=runtime.import_dir.resolve(),
+            app_data_root=runtime.root.parent.resolve(),
+            app_version=str(runtime.manifest.get("app_version") or "0.3.0"),
             runtime_label="bundle",
         )
     else:
@@ -1797,7 +1801,12 @@ def configure_projection_api(runtime: BundleRuntime) -> None:
     runtime.logger.write("info", "projection api configured", frontend_data_root=str(frontend_data_root))
 
 
-def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: str) -> type[BaseHTTPRequestHandler]:
+def build_handler(
+    runtime: BundleRuntime,
+    state: dict[str, Any],
+    session_token: str,
+    mcp_control_api: Any | None = None,
+) -> type[BaseHTTPRequestHandler]:
     class LocalHandler(BaseHTTPRequestHandler):
         server_version = "SAPDWikiZIPAlpha/0.1"
 
@@ -1944,9 +1953,71 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
                 return []
             return [unquote(part) for part in request_path.strip("/").split("/")]
 
+        def handle_mcp_control(
+            self,
+            method: str,
+            parsed: Any,
+        ) -> None:
+            if mcp_control_api is None:
+                self.send_json(
+                    503,
+                    {
+                        "contract_version": "sapd-mcp-control-v1",
+                        "error": {
+                            "code": "SUPERVISOR_UNAVAILABLE",
+                            "message": "The MCP supervisor is unavailable.",
+                            "retryable": True,
+                            "current_state_version": None,
+                        },
+                    },
+                )
+                return
+            try:
+                length = int(self.headers.get("Content-Length", "0") or "0")
+            except ValueError:
+                length = -1
+            body_limit = int(
+                getattr(projection_api, "MCP_CONTROL_BODY_LIMIT", 8192)
+            )
+            if length < 0 or length > body_limit:
+                self.send_json(
+                    413 if length > body_limit else 400,
+                    {
+                        "contract_version": "sapd-mcp-control-v1",
+                        "error": {
+                            "code": "INVALID_REQUEST",
+                            "message": (
+                                "The MCP control request body is invalid "
+                                "or too large."
+                            ),
+                            "retryable": False,
+                            "current_state_version": None,
+                        },
+                    },
+                )
+                return
+            body = self.rfile.read(length) if length else None
+            response = mcp_control_api.dispatch(
+                method,
+                parsed.path,
+                {name: value for name, value in self.headers.items()},
+                body,
+                parse_qs(parsed.query),
+            )
+            encoded = response.json_bytes()
+            self.send_response(response.status)
+            for name, value in response.headers.items():
+                self.send_header(name, value)
+            self.send_header("Content-Length", str(len(encoded)))
+            self.end_headers()
+            self.wfile.write(encoded)
+
         def do_GET(self) -> None:
             parsed = urlparse(self.path)
             try:
+                if parsed.path.startswith("/api/v1/mcp/"):
+                    self.handle_mcp_control("GET", parsed)
+                    return
                 if (
                     parsed.path == "/api/v1/content/assets/by-owner"
                     and projection_api is not None
@@ -2161,6 +2232,9 @@ def build_handler(runtime: BundleRuntime, state: dict[str, Any], session_token: 
         def do_POST(self) -> None:
             parsed = urlparse(self.path)
             try:
+                if parsed.path.startswith("/api/v1/mcp/"):
+                    self.handle_mcp_control("POST", parsed)
+                    return
                 workspace_parts = self.user_workspace_parts(parsed.path)
                 is_workspace_create = workspace_parts == ["api", "v1", "user", "workspaces"]
                 is_workspace_item_create = len(workspace_parts) == 6 and workspace_parts[:4] == ["api", "v1", "user", "workspaces"] and workspace_parts[5] == "items"
@@ -2355,7 +2429,42 @@ def run_server(bundle_root: Path, no_browser: bool = False) -> int:
         "export_directory": str(runtime.export_dir),
     }
     write_state(root, state)
-    handler = build_handler(runtime, state, session_token)
+    mcp_supervisor = None
+    mcp_control_api = None
+    if bool(runtime.config.get("mcp_platform_integration", False)):
+        if projection_api is None:
+            logger.write(
+                "error",
+                "MCP projection runtime unavailable",
+                error=projection_api_import_error,
+            )
+            return 2
+        mcp_root = runtime.root / "data" / "mcp"
+        mcp_runtime_root = mcp_root / "runtime"
+        certificate_identity_root = mcp_root / "certificates"
+        mcp_port = int(runtime.config.get("mcp_port", 28775))
+        mcp_supervisor = projection_api.DevSidecarSupervisor(
+            configured_port=mcp_port,
+            runtime_root=mcp_runtime_root,
+            cleanup_on_close=False,
+            python_executable=Path(sys.executable),
+            base_database=runtime.base_db.resolve(),
+            certificate_identity_root=certificate_identity_root,
+            platform_integration_enabled=True,
+            auto_restore_enabled=True,
+        )
+        mcp_control_api = projection_api.build_dev_control_api(
+            expected_host=f"{host}:{port}",
+            expected_origin=f"http://{host}:{port}",
+            session_token=session_token,
+            supervisor=mcp_supervisor,
+        )
+    handler = build_handler(
+        runtime,
+        state,
+        session_token,
+        mcp_control_api=mcp_control_api,
+    )
     server = ThreadingHTTPServer((host, port), handler)
     logger.write("info", "local server listening", url=state["url"])
 
@@ -2373,12 +2482,27 @@ def run_server(bundle_root: Path, no_browser: bool = False) -> int:
     try:
         server.serve_forever()
     finally:
+        if mcp_supervisor is not None:
+            mcp_supervisor.close()
         logger.write("info", "local server stopped")
         server.server_close()
     return 0
 
 
 def main() -> int:
+    if len(sys.argv) > 1 and sys.argv[1] == "--mcp-sidecar":
+        sys.argv = [sys.argv[0], *sys.argv[2:]]
+        package_name = str(getattr(projection_api, "__package__", "")).strip()
+        if not package_name:
+            raise RuntimeError(
+                "bundled MCP sidecar package is unavailable: "
+                + projection_api_import_error
+            )
+        sidecar = importlib.import_module(
+            f"{package_name}.local_mcp.dev_sidecar"
+        )
+        return int(sidecar.main())
+
     parser = argparse.ArgumentParser(description="Run SAPD Wiki ZIP alpha local backend.")
     parser.add_argument("--bundle-root", type=Path, default=Path.cwd())
     parser.add_argument("--no-browser", action="store_true", help="Do not open the default browser.")

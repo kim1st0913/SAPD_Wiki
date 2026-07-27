@@ -58,7 +58,14 @@ def ensure_pyinstaller() -> None:
 
 def ensure_runtime_dependencies() -> None:
     result = subprocess.run(
-        [sys.executable, "-c", "import openpyxl"],
+        [
+            sys.executable,
+            "-c",
+            (
+                "import cryptography, mcp, openpyxl, rfc8785, typer, uvicorn; "
+                "print('runtime dependencies ready')"
+            ),
+        ],
         check=False,
         text=True,
         stdout=subprocess.PIPE,
@@ -66,9 +73,11 @@ def ensure_runtime_dependencies() -> None:
     )
     if result.returncode != 0:
         raise RuntimeError(
-            "openpyxl is required for maturity XLSX import/export. "
+            "The maturity and local MCP runtime dependencies are required. "
             "Install project runtime dependencies first, for example: "
-            "python -m pip install 'openpyxl>=3.1.0'"
+            "python -m pip install 'openpyxl>=3.1.0' "
+            "'cryptography==49.0.0' 'mcp[cli]==1.28.1' "
+            "'rfc8785==0.1.4' 'uvicorn==0.51.0'"
         )
 
 

@@ -4,6 +4,7 @@ import http.client
 import os
 import socket
 import ssl
+import sys
 import tempfile
 import time
 import unittest
@@ -16,6 +17,7 @@ from sapd_wiki.local_mcp.certificate_trust import FakeCurrentUserTrustAdapter
 from sapd_wiki.local_mcp.dev_supervisor import (
     DevSidecarSupervisor,
     _project_grouped_audit_events,
+    _sidecar_command_prefix,
 )
 from sapd_wiki.local_mcp.secret_transport import ParentSecretChannel
 from sapd_wiki.local_mcp.tls import (
@@ -94,6 +96,24 @@ class VolatileVerifiedAtTrust(FakeCurrentUserTrustAdapter):
 
 
 class DevSupervisorTests(unittest.TestCase):
+    def test_frozen_runtime_reenters_backend_for_sidecar(self) -> None:
+        with patch.object(sys, "frozen", True, create=True):
+            self.assertEqual(
+                _sidecar_command_prefix("/tmp/SAPD-Wiki-Backend"),
+                ["/tmp/SAPD-Wiki-Backend", "--mcp-sidecar"],
+            )
+
+    def test_source_runtime_uses_python_module_entrypoint(self) -> None:
+        with patch.object(sys, "frozen", False, create=True):
+            self.assertEqual(
+                _sidecar_command_prefix("/tmp/python"),
+                [
+                    "/tmp/python",
+                    "-m",
+                    "sapd_wiki.local_mcp.dev_sidecar",
+                ],
+            )
+
     def test_audit_projection_groups_successes_without_hiding_failures(self) -> None:
         events = [
             {

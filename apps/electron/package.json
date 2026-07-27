@@ -1,6 +1,6 @@
 {
   "name": "sapd-wiki-windows-client",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "SAPD Wiki Windows desktop client shell",
   "author": "SAPD Wiki",
   "main": "main.cjs",

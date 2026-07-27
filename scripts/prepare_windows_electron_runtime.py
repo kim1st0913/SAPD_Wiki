@@ -157,9 +157,13 @@ def main() -> int:
     parser.add_argument("--backend-artifact", type=Path, required=True, help="Downloaded GitHub Actions ZIP or extracted artifact directory.")
     parser.add_argument("--frontend-dist", type=Path, default=DEFAULT_FRONTEND)
     parser.add_argument("--base-db", type=Path, default=DEFAULT_BASE_DB)
-    parser.add_argument("--content-asset-db", type=Path)
+    parser.add_argument(
+        "--content-asset-db",
+        type=Path,
+        default=DEFAULT_CONTENT_ASSET_DB,
+    )
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT)
-    parser.add_argument("--app-version", default="0.2.0")
+    parser.add_argument("--app-version", default="0.3.0")
     args = parser.parse_args()
     if not args.frontend_dist.is_dir():
         raise FileNotFoundError(f"frontend directory does not exist: {args.frontend_dist}")

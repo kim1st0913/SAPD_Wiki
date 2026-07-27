@@ -40,7 +40,14 @@ jobs:
         shell: pwsh
         run: |
           python -m pip install --upgrade pip
-          python -m pip install pyinstaller "openpyxl>=3.1.0"
+          python -m pip install pyinstaller "openpyxl>=3.1.0" "cryptography==49.0.0" "mcp[cli]==1.28.1" "rfc8785==0.1.4" "uvicorn==0.51.0"
+
+      - name: Verify bundled MCP runtime
+        shell: pwsh
+        env:
+          PYTHONPATH: ${{ github.workspace }}\src
+        run: |
+          python -m unittest tests.mcp_integration.test_bundle_mcp_runtime tests.mcp_sidecar.test_dev_supervisor
 
       - name: Package native Windows backend
         shell: pwsh
@@ -61,6 +68,11 @@ jobs:
           & $backendExe --help
           if ($LASTEXITCODE -ne 0) {
             throw "Backend --help smoke check failed with exit code $LASTEXITCODE"
+          }
+
+          & $backendExe --mcp-sidecar --help
+          if ($LASTEXITCODE -ne 0) {
+            throw "Bundled MCP sidecar smoke check failed with exit code $LASTEXITCODE"
           }
 
           New-Item -ItemType Directory -Force -Path $artifactRoot | Out-Null

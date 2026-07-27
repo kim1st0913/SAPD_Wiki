@@ -39,7 +39,7 @@ npm run package:win
 2. 用 `scripts/build_zip_bundle.py` 生成干净的 Windows Runtime。
 3. 从当前 `frontend/capability-browser` 和 `data/database/sapd_wiki.sqlite3` 复制前端、基础库和空用户库模板。
 4. 计算 Runtime 指纹。
-5. 用 Electron Builder 生成 `dist/SAPD-Wiki-Setup-0.2.0-win-x64.exe`。
+5. 用 Electron Builder 生成 `dist/SAPD-Wiki-Setup-0.3.0-win-x64.exe`。
 
 ## 只生成目录包
 

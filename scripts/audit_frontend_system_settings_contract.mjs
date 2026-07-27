@@ -16,7 +16,7 @@ const dataClient = read("frontend/capability-browser/dataClient.js");
 const settingsSource = read("frontend/capability-browser/components/SystemSettings.js");
 const settingsCss = read("frontend/capability-browser/system-settings.css");
 
-assert.match(index, /id="settingsWorkspace"/);
+assert.equal(index.match(/id="settingsWorkspace"/g)?.length, 1, "settings workspace id must be unique");
 assert.match(index, /system-settings\.css\?v=/);
 assert.match(index, /components\/SystemSettings\.js\?v=/);
 assert.match(index, /system-settings\.css\?v=apple-shell-settings-20260726-21-privacy-audit-tab/);

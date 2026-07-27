@@ -132,6 +132,16 @@ def _project_grouped_audit_events(
     return groups
 
 
+def _sidecar_command_prefix(python_executable: str) -> list[str]:
+    if getattr(sys, "frozen", False):
+        return [python_executable, "--mcp-sidecar"]
+    return [
+        python_executable,
+        "-m",
+        "sapd_wiki.local_mcp.dev_sidecar",
+    ]
+
+
 class DevSidecarSupervisor:
     """Own exactly one child process and never terminates an unowned listener."""
 
@@ -894,10 +904,9 @@ class DevSidecarSupervisor:
                     manifest
                 )
                 secret_channel = self._secret_channel_factory()
-                command = [
-                        self._python_executable,
-                        "-m",
-                        "sapd_wiki.local_mcp.dev_sidecar",
+                command = _sidecar_command_prefix(self._python_executable)
+                command.extend(
+                    [
                         "--runtime-root",
                         str(self.runtime_root),
                         "--port",
@@ -911,6 +920,7 @@ class DevSidecarSupervisor:
                         "--runtime-id",
                         self._runtime_id,
                     ]
+                )
                 if self._base_database is not None:
                     command.extend(["--base-db", str(self._base_database)])
                 self._process = subprocess.Popen(

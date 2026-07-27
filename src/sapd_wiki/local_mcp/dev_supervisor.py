@@ -202,6 +202,9 @@ class DevSidecarSupervisor:
             raise ValueError(
                 "runtime_root must be a protected absolute MCP path"
             ) from exc
+        self._require_fixed_windows_runtime_root = bool(
+            platform_integration_enabled and os.name == "nt"
+        )
         self._cleanup_on_close = cleanup_on_close
         self._auto_restore_enabled = bool(auto_restore_enabled)
         self._startup_timeout_seconds = startup_timeout_seconds
@@ -1000,6 +1003,8 @@ class DevSidecarSupervisor:
                 )
                 if self._base_database is not None:
                     command.extend(["--base-db", str(self._base_database)])
+                if self._require_fixed_windows_runtime_root:
+                    command.append("--require-fixed-windows-runtime-root")
                 popen_kwargs = secret_channel.popen_kwargs()
                 self._process = subprocess.Popen(
                     command,

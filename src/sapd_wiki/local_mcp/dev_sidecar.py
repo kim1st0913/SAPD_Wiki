@@ -28,12 +28,16 @@ from .tls import create_server_ssl_context_from_passphrase
 RUNTIME_IDENTIFIER_PATTERN = re.compile(r"^[A-Za-z0-9._:-]{8,160}$")
 
 
-def _isolated_root(value: str) -> Path:
+def _isolated_root(
+    value: str,
+    *,
+    require_fixed_windows_runtime_root: bool,
+) -> Path:
     candidate = Path(value)
     try:
         return assert_secure_directory(
             candidate,
-            require_fixed_windows_mcp_root=os.name == "nt",
+            require_fixed_windows_mcp_root=require_fixed_windows_runtime_root,
         )
     except (OSError, PathSecurityError) as exc:
         raise ValueError(
@@ -70,9 +74,13 @@ def run_dev_sidecar(
     secret_channel_kind: str | None,
     instance_id: str,
     runtime_id: str,
+    require_fixed_windows_runtime_root: bool,
     authorization_timeout_seconds: int = 120,
 ) -> None:
-    root = _isolated_root(str(runtime_root))
+    root = _isolated_root(
+        str(runtime_root),
+        require_fixed_windows_runtime_root=require_fixed_windows_runtime_root,
+    )
     if base_database is None:
         fixture_root = root / "base-fixture"
         fixture_root = ensure_secure_directory(fixture_root)
@@ -153,6 +161,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--instance-id", required=True)
     parser.add_argument("--runtime-id", required=True)
     parser.add_argument(
+        "--require-fixed-windows-runtime-root",
+        action="store_true",
+    )
+    parser.add_argument(
         "--authorization-timeout-seconds",
         type=int,
         default=120,
@@ -167,6 +179,9 @@ def main(argv: list[str] | None = None) -> int:
         secret_channel_kind=args.secret_channel_kind,
         instance_id=args.instance_id,
         runtime_id=args.runtime_id,
+        require_fixed_windows_runtime_root=(
+            args.require_fixed_windows_runtime_root
+        ),
         authorization_timeout_seconds=args.authorization_timeout_seconds,
     )
     return 0

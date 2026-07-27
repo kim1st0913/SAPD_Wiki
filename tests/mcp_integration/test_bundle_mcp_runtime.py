@@ -24,6 +24,10 @@ class _Logger:
 class _Runtime:
     logger = _Logger()
 
+    @staticmethod
+    def license_status() -> dict[str, object]:
+        return {"state": "open"}
+
 
 class _ControlResponse:
     status = 200
@@ -104,6 +108,47 @@ class BundleMcpRuntimeTests(unittest.TestCase):
             server.shutdown()
             server.server_close()
             thread.join(timeout=5)
+
+    def test_bundle_health_preserves_legacy_fields_and_projects_runtime_data(
+        self,
+    ) -> None:
+        state = {"port": 0}
+        with mock.patch.object(self.bundle_server, "projection_api", None):
+            server = ThreadingHTTPServer(
+                ("127.0.0.1", 0),
+                self.bundle_server.build_handler(
+                    _Runtime(),
+                    state,
+                    "bundle-health-session",
+                    mcp_runtime_id="runtime-windows-health-test",
+                ),
+            )
+            state["port"] = int(server.server_address[1])
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            try:
+                url = (
+                    f"http://127.0.0.1:{server.server_address[1]}"
+                    "/api/v1/health"
+                )
+                with urllib.request.urlopen(url, timeout=5) as response:
+                    payload = json.loads(response.read())
+                self.assertTrue(payload["ok"])
+                self.assertEqual(payload["data"]["status"], "ok")
+                self.assertEqual(
+                    payload["data"]["runtime"]["runtime_id"],
+                    "runtime-windows-health-test",
+                )
+                self.assertEqual(
+                    payload["data"]["auth"]["session_token"],
+                    "bundle-health-session",
+                )
+                self.assertEqual(payload["auth"], payload["data"]["auth"])
+                self.assertEqual(payload["license"], payload["data"]["license"])
+            finally:
+                server.shutdown()
+                server.server_close()
+                thread.join(timeout=5)
 
     def test_electron_bootstrap_is_closed_bounded_and_not_environment_based(self) -> None:
         capability = "A" * 43

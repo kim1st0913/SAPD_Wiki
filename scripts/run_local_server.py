@@ -1809,6 +1809,7 @@ def build_handler(
     state: dict[str, Any],
     session_token: str,
     mcp_control_api: Any | None = None,
+    mcp_runtime_id: str | None = None,
 ) -> type[BaseHTTPRequestHandler]:
     class LocalHandler(BaseHTTPRequestHandler):
         server_version = "SAPDWikiZIPAlpha/0.1"
@@ -2039,17 +2040,39 @@ def build_handler(
                     if not is_allowed_host_header(self.headers.get("Host", ""), port):
                         self.send_json(403, {"ok": False, "error": "invalid Host header"})
                         return
+                    auth = {
+                        "writes_require_token": True,
+                        "header": AUTH_HEADER,
+                        "session_token": session_token,
+                    }
+                    license_status = runtime.license_status()
+                    if projection_api is not None and hasattr(
+                        projection_api,
+                        "runtime_health_payload",
+                    ):
+                        health_data = projection_api.runtime_health_payload(
+                            mcp_runtime_id=mcp_runtime_id,
+                        )
+                        health_data["auth"] = {
+                            **dict(health_data.get("auth") or {}),
+                            **auth,
+                        }
+                        health_data["license"] = license_status
+                    else:
+                        health_data = {
+                            "status": "ok",
+                            "runtime": {"runtime_id": mcp_runtime_id},
+                            "auth": auth,
+                            "license": license_status,
+                        }
                     self.send_json(
                         200,
                         {
                             "ok": True,
+                            "data": health_data,
                             "state": state,
-                            "auth": {
-                                "writes_require_token": True,
-                                "header": AUTH_HEADER,
-                                "session_token": session_token,
-                            },
-                            "license": runtime.license_status(),
+                            "auth": auth,
+                            "license": license_status,
                         },
                     )
                     return
@@ -2541,6 +2564,11 @@ def run_server(
         state,
         session_token,
         mcp_control_api=mcp_control_api,
+        mcp_runtime_id=(
+            mcp_supervisor.runtime_id
+            if mcp_supervisor is not None
+            else None
+        ),
     )
     server = ThreadingHTTPServer((host, port), handler)
     logger.write("info", "local server listening", url=state["url"])

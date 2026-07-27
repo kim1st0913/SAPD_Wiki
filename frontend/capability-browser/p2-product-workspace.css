@@ -621,14 +621,14 @@
 }
 
 .dashboard-knowledge-panel .dashboard-p2-panel-head {
-  min-height: 54px;
-  padding-block: 11px 10px;
+  min-height: 46px;
+  padding-block: 7px 6px;
 }
 
 .dashboard-knowledge-stats {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  grid-auto-rows: 68px;
+  grid-auto-rows: 64px;
   gap: 1px;
   padding: 1px;
   background: oklch(0.9 0.018 255);
@@ -640,8 +640,8 @@
   display: grid;
   align-content: space-between;
   min-width: 0;
-  min-height: 68px;
-  padding: 7px 13px;
+  min-height: 64px;
+  padding: 6px 11px;
   border: 0;
   background: var(--stat-bg);
   color: inherit;
@@ -651,27 +651,6 @@
 }
 
 .dashboard-knowledge-stat.is-link { cursor: pointer; }
-
-.dashboard-knowledge-stat[data-dashboard-stat="capabilities"],
-.dashboard-knowledge-stat[data-dashboard-stat="services"] {
-  grid-column: span 2;
-  grid-row: span 2;
-}
-
-.dashboard-knowledge-stat[data-dashboard-stat="focuses"],
-.dashboard-knowledge-stat[data-dashboard-stat="technical"] {
-  grid-column: span 2;
-}
-
-.dashboard-knowledge-stat[data-dashboard-stat="standards"],
-.dashboard-knowledge-stat[data-dashboard-stat="environment-master"] {
-  grid-column: span 3;
-}
-
-.dashboard-knowledge-stat[data-dashboard-stat="capabilities"] strong,
-.dashboard-knowledge-stat[data-dashboard-stat="services"] strong {
-  font-size: clamp(28px, 2.3vw, 36px);
-}
 
 .dashboard-knowledge-stat.is-link:hover,
 .dashboard-knowledge-stat.is-link:focus-visible {
@@ -700,7 +679,7 @@
   align-self: end;
   margin: 2px 0 1px;
   color: var(--stat-color);
-  font-size: clamp(20px, 1.6vw, 26px);
+  font-size: clamp(19px, 1.45vw, 24px);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.045em;
   line-height: 1.05;
@@ -895,6 +874,7 @@
 
 @media (max-width: 1180px) {
   .dashboard-p2-action-grid { grid-template-columns: minmax(0, 1fr); }
+  .dashboard-knowledge-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .dashboard-stat-mosaic-secondary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dashboard-navigation-stats { grid-column: 1 / -1; }
   .app-shell-integrated .content-workspace.maturity-guide-workspace { grid-template-columns: 220px minmax(0, 1fr); }

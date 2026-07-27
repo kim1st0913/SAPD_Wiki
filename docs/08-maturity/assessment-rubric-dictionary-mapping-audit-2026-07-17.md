@@ -119,6 +119,28 @@ current L0 → current L1 → current L2 → current focus_code
 | `T-AD.SV-02` | 对安全架构和网络防护策略进行评估验证 | 对网络防护策略进行有效性验证 | `ARS-016` | `REVIEW_FOCUS_TITLE_MISMATCH` |
 | `M-SE.SE-02` | 持续开展管理体系有效性检查与整改 | 定期开展网络攻防演习，并对演练结果进行评价 | `ARS-029` | `REVIEW_FOCUS_TITLE_MISMATCH` |
 
+### 6.1 用户业务裁定记录
+
+以下15项只能由用户作业务裁定。工程侧不得把候选 rubric set 自动生效，也不得因同属一个 L2 自动继承。用户可直接回复“序号 + 选择 + 说明”；裁定完成前保持 `PENDING_USER_DECISION`。
+
+| 序号 | 类型 | 当前关注点 | 候选 rubric set | 可选业务决定 | 用户裁定 | 业务说明 |
+|---:|---|---|---|---|---|---|
+| 1 | 名称语义复核 | `T-AS.AD-01` 遵循安全设计原则对网络安全架构进行设计和管控 | `ARS-001` | 沿用候选 / 拒绝并新建专用 rubric | `PENDING_USER_DECISION` | — |
+| 2 | 名称语义复核 | `T-AS.AD-02` 实施网络安全架构的冗余设计 | `ARS-001` | 沿用候选 / 拒绝并新建专用 rubric | `PENDING_USER_DECISION` | — |
+| 3 | 名称语义复核 | `T-AS.AD-03` 确保系统、应用的可靠性与可恢复性 | `ARS-001` | 沿用候选 / 拒绝并新建专用 rubric | `PENDING_USER_DECISION` | — |
+| 4 | 名称语义复核 | `T-AS.CG-01` 确保信息传输或是存储状态下不被未授权的访问或泄露 | `ARS-008` | 沿用候选 / 拒绝并新建专用 rubric | `PENDING_USER_DECISION` | — |
+| 5 | 名称语义复核 | `T-AS.CG-02` 确保在信息交互过程中主体和客体可信且不被非法篡改或删除 | `ARS-008` | 沿用候选 / 拒绝并新建专用 rubric | `PENDING_USER_DECISION` | — |
+| 6 | 名称语义复核 | `T-AD.SV-01` 实现网络安全策略可视化（全局网络安全策略集合管理） | `ARS-016` | 沿用候选 / 拒绝并新建专用 rubric | `PENDING_USER_DECISION` | — |
+| 7 | 名称语义复核 | `T-AD.SV-02` 对安全架构和网络防护策略进行评估验证 | `ARS-016` | 沿用候选 / 拒绝并新建专用 rubric | `PENDING_USER_DECISION` | — |
+| 8 | 名称语义复核 | `M-SE.SE-02` 持续开展管理体系有效性检查与整改 | `ARS-029` | 沿用候选 / 拒绝并新建专用 rubric | `PENDING_USER_DECISION` | — |
+| 9 | 无源 rubric | `T-AS.AM-02` 实现主机、终端等信息化资产的安全管理 | `ARS-002` | 继承候选 / 新建专用 rubric | `PENDING_USER_DECISION` | — |
+| 10 | 无源 rubric | `T-AS.DS-06` 持续管理可复用的开发安全资源 | `ARS-006` | 继承候选 / 新建专用 rubric | `PENDING_USER_DECISION` | — |
+| 11 | 无源 rubric | `T-AS.DG-03` 确保数据的可靠性与可恢复性 | `ARS-009` | 继承候选 / 新建专用 rubric | `PENDING_USER_DECISION` | — |
+| 12 | 无源 rubric | `T-PD.TP-05` 对仅允许预定义的程序或行为进行控制 | `ARS-012` | 继承候选 / 新建专用 rubric | `PENDING_USER_DECISION` | — |
+| 13 | 无源 rubric | `T-AD.SV-03` 开展攻防演练和沙盘推演 | `ARS-016` | 继承候选 / 新建专用 rubric | `PENDING_USER_DECISION` | — |
+| 14 | 无源 rubric | `M-PS.HS-02` 建立组织的网络安全专家团队 | `ARS-031` | 继承候选 / 新建专用 rubric | `PENDING_USER_DECISION` | — |
+| 15 | 无源 rubric | `M-PS.HS-03` 建设组织的红蓝军团队/紫军 | `ARS-031` | 继承候选 / 新建专用 rubric | `PENDING_USER_DECISION` | — |
+
 ## 7. 91 个当前关注点映射总表
 
 | L0 | L1 | L2 | 当前关注点 | 粒度 | 当前服务关系 | 当前评估点 | rubric set | 源行 | 映射状态 |

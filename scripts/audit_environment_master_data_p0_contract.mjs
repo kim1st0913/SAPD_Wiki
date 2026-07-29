@@ -20,8 +20,8 @@ const decisionSchema = readJson(decisionSchemaPath);
 const dictionaryFixture = readJson(dictionaryFixturePath);
 const decisionFixture = readJson(decisionFixturePath);
 const apiFieldContract = readText("docs/01-architecture/api-field-contract.md");
-const packageInventory = readText("docs/01-architecture/api-offline-package-contract-inventory.md");
-const implementationPlan = readText("docs/06-implementation/environment-master-data-dictionary-plan-2026-07-25.md");
+const packageInventory = readText("docs/05-archive/architecture-retired-2026-07/api-offline-package-contract-inventory.md");
+const implementationPlan = readText("docs/05-archive/implementation-completed-2026-07/environment-master-data-dictionary-plan-2026-07-25.md");
 const taskPlan = readText("task_plan.md");
 const scriptsReadme = readText("scripts/README.md");
 
@@ -152,8 +152,8 @@ assert.ok(decisionFixture.entries.some((entry) => blockingValues.has(entry.decis
 assert.ok(apiFieldContract.includes("### 8.3 `GET /api/v1/environments/dictionary`"));
 assert.ok(apiFieldContract.includes("environment-dictionary-v1"));
 assert.ok(packageInventory.includes("| `/api/v1/environments/dictionary` |"));
-assert.ok(implementationPlan.includes("状态：`p3_completed_p4_not_started`"));
-assert.ok(taskPlan.includes("- 状态：`p3_completed_p4_not_started`"));
+assert.ok(implementationPlan.includes("状态：`p8_web_completed_app_dmg_uat_pending`"));
+assert.ok(taskPlan.includes("信息化环境主数据 P0—P8 已完成 Web 验收"));
 assert.ok(scriptsReadme.includes("`audit_environment_master_data_p0_contract.mjs`"));
 
 console.log(

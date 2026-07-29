@@ -39,9 +39,6 @@ build/
 # Local Codex skill runtime links
 .agents/skills/
 
-# Independent local Sites projects
-/sites/project-progress-monitor/
-
 # Tauri / Rust build artifacts
 target/
 

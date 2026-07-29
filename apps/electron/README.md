@@ -1,53 +1,44 @@
 # SAPD Wiki Windows Electron 客户端
 
-这是 Windows 客户端独立支线，不修改当前 Web 主线，也不把用户数据库放进安装包。
+这是 Windows Electron 客户端源码。当前正式 Windows 安装器由私有 GitHub
+`windows-2022` Runner 从公开 `main` 的精确提交构建，不把正式数据库、用户数据库
+或安装器放进公开仓。
 
 ## 交付链路
 
 ```text
-GitHub Windows CI
-  -> SAPD-Wiki-Backend-win-x64-<revision>.zip
-  -> Mac 本地组装干净 Runtime
-  -> Electron Builder 生成 Windows NSIS Setup.exe
+公开 SAPD_Wiki/main 精确 SHA
+  + 私有不可变 Delivery Data Release
+  -> 私有 GitHub Windows Runner
+  -> PyInstaller backend + Electron Runtime + NSIS Setup.exe
+  -> 私有 Internal Prerelease
+  -> Windows 10/11 UAT
+  -> 私有正式 Release
 ```
 
-本机是 macOS 也可以执行最后两步。Windows 环境只负责生成 PyInstaller 后端，不负责 Electron 安装器的日常组装。
+日常生产打包不再使用 `codex/windows-electron` 分支，也不在 Mac 上下载 backend
+后手工组装。完整当前流程见
+`docs/09-delivery/desktop-packaging-runbook.md`。
 
-## 第一次准备
+## 本地命令的用途
 
-在仓库根目录执行：
+本目录仍保留 Electron 单元测试和诊断命令：
 
 ```bash
 cd apps/electron
 npm install
+npm test
 ```
 
-不需要把下载的 ZIP 放进 Git。`*.zip` 和 `apps/electron/.build/` 都是本地构建输入或产物。
-
-## 组装并生成安装器
-
-把下载的 GitHub Artifact 路径传给环境变量。示例：
+`npm run package:win` 和 `npm run package:win:dir` 只用于维护者诊断旧的本地组装
+边界，不是当前生产发布入口。它们仍要求显式提供 Windows backend Artifact：
 
 ```bash
 export SAPD_WIKI_WINDOWS_BACKEND_ARTIFACT="$HOME/Downloads/SAPD-Wiki-Backend-win-x64-8b46b837965cc88c9dc5480f5537a67e237ac11a.zip"
 npm run package:win
 ```
 
-命令会依次完成：
-
-1. 校验 ZIP 内同时存在 `SAPD-Wiki-Backend.exe` 和 `_internal/`。
-2. 用 `scripts/build_zip_bundle.py` 生成干净的 Windows Runtime。
-3. 从当前 `frontend/capability-browser` 和 `data/database/sapd_wiki.sqlite3` 复制前端、基础库和空用户库模板。
-4. 计算 Runtime 指纹。
-5. 用 Electron Builder 生成 `dist/SAPD-Wiki-Setup-0.3.0-win-x64.exe`。
-
-## 只生成目录包
-
-用于检查安装内容，不制作安装器：
-
-```bash
-npm run package:win:dir
-```
+不得把下载的 ZIP、`.build/`、`dist/`、SQLite、Delivery Data 或安装器提交到公开 Git。
 
 ## 安装、数据目录与设置
 
@@ -66,11 +57,11 @@ D:\Work\SAPDWiki\
 
 可通过 Windows “设置 > 应用 > 已安装的应用”或开始菜单卸载 SAPD Wiki。卸载默认保留用户选择的 `SAPDWiki` 数据目录和路径设置，避免误删用户库；完全重置需由用户备份后手工删除。
 
-完整流程见 `docs/09-delivery/windows-electron-build-guide.md`。
+当前完整流程见 `docs/09-delivery/desktop-packaging-runbook.md`。
 
 ## 当前边界
 
 - 当前只生成 Windows x64 NSIS 安装器。
 - 当前未配置 Windows 代码签名，内测用户可能看到 SmartScreen 提示。
-- Electron 安装器不携带 GitHub Artifact ZIP、不携带开发机真实用户数据库、不携带 `data/exports/`。
+- Electron 安装器不携带真实用户数据库、`data/exports/` 或恢复包。
 - 安装器生成后仍需在真实 Windows 10/11 机器上做启动、写入、退出和卸载保留数据验收。

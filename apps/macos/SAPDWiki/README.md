@@ -24,11 +24,11 @@ apps/macos/SAPDWiki/.build/backend-work/backend/mac-arm64/SAPD-Wiki-Backend
 
 同目录下的 `_internal/` 是 PyInstaller `onedir` 运行依赖，打包进 `.app` 后会放在 Runtime 根目录。不要只复制单个 `SAPD-Wiki-Backend` 文件，否则后端无法启动。
 
-如果本地没有 PyInstaller，先准备支线专用 venv：
+如果本地没有 PyInstaller 或 MCP 依赖，先准备支线专用 venv：
 
 ```bash
 python3 -m venv apps/macos/SAPDWiki/.build/pyinstaller-venv
-apps/macos/SAPDWiki/.build/pyinstaller-venv/bin/python -m pip install pyinstaller 'openpyxl>=3.1.0'
+apps/macos/SAPDWiki/.build/pyinstaller-venv/bin/python -m pip install pyinstaller 'openpyxl>=3.1.0' 'cryptography==49.0.0' 'mcp[cli]==1.28.1' 'rfc8785==0.1.4' 'uvicorn==0.51.0'
 ```
 
 产物：
@@ -54,6 +54,14 @@ apps/macos/SAPDWiki/script/build_and_run.sh
 ## 打 DMG
 
 ```bash
+apps/macos/SAPDWiki/script/package_dmg.sh
+```
+
+只生成无授权版：
+
+```bash
+SAPD_WIKI_DMG_VARIANT=no-license \
+SAPD_WIKI_APP_VERSION=0.3.0 \
 apps/macos/SAPDWiki/script/package_dmg.sh
 ```
 
@@ -91,6 +99,7 @@ SAPDWiki/
 - `export` 是用户交付文件目录；报告、评分表、模板、Issue 和诊断包按类别保存。
 - `Runtime` 是系统内部目录，用于数据库、报告历史和日志；正常操作不要求用户进入该目录。
 - “系统设置”可分别查看或更改本地工作目录、默认导入文件夹和导出文件夹，并可在 Finder 中打开对应位置。
+- “系统设置 > AI功能集成”管理本机 MCP Sidecar、HTTPS 证书、客户端只读授权与审计。MCP 控制状态保存在 `Runtime/data/mcp`，不写入用户 SQLite。
 
 为避免内置后端 `SAPD-Wiki-Backend` 在该目录下被 Gatekeeper 再次单独拦截，wrapper 会在启动后端前递归清理复制后 Runtime 的 `com.apple.quarantine` 属性。打包脚本也会显式签名 Runtime 内的 Mach-O 文件，再签外层 `.app`。
 

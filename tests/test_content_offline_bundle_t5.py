@@ -129,6 +129,7 @@ class ContentOfflineBundleT5Tests(unittest.TestCase):
             config["content_asset_database"],
             "data/base/sapd_content_assets.sqlite3",
         )
+        self.assertTrue(config["mcp_platform_integration"])
         self.assertFalse(
             (
                 bundle

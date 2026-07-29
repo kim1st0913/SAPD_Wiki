@@ -6,7 +6,7 @@ import WebKit
 
 private let bundleIdentifier = "com.sapd.wiki.macos"
 private let appDisplayName = "SAPD Wiki"
-private let fallbackDisplayVersion = "0.2.0"
+private let fallbackDisplayVersion = "0.3.0"
 private let wrapperLogName = "app-wrapper.log"
 private let runtimeFingerprintName = ".sapd-runtime-fingerprint"
 
@@ -696,6 +696,7 @@ final class RuntimeInstaller {
     }
 }
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandlerWithReply {
     private var window: NSWindow?
     private var webView: WKWebView?
@@ -1113,7 +1114,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     func userContentController(
         _ userContentController: WKUserContentController,
         didReceive message: WKScriptMessage,
-        replyHandler: @escaping (Any?, String?) -> Void
+        replyHandler: @escaping @MainActor @Sendable (Any?, String?) -> Void
     ) {
         guard isTrustedSettingsMessage(message) else {
             replyHandler(nil, "Settings bridge rejected an untrusted renderer.")
@@ -1189,7 +1190,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         }
     }
 
-    func webView(_ webView: WKWebView, runOpenPanelWith parameters: WKOpenPanelParameters, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping ([URL]?) -> Void) {
+    func webView(_ webView: WKWebView, runOpenPanelWith parameters: WKOpenPanelParameters, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping @MainActor @Sendable ([URL]?) -> Void) {
         let current = settings ?? AppSettingsStore.load() ?? AppSettingsStore.defaultSettings()
         let panel = NSOpenPanel()
         panel.title = "选择要导入的文件"

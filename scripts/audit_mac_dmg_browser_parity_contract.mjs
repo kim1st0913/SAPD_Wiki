@@ -161,7 +161,6 @@ add(checks, "dmg_resigns_staged_app_after_readme_mutation", packageDmg.includes(
 add(checks, "dmg_created_with_hdiutil", packageDmg.includes("hdiutil create"), {
   file: files.packageDmg,
 });
-
 add(checks, "bundle_copies_frontend_base_and_creates_empty_user_db", [
   "copy_tree(args.frontend_dist.resolve()",
   "sapd_wiki_base.sqlite3",
@@ -181,6 +180,37 @@ add(checks, "backend_collects_unified_query_runtime_and_contract", [
   '"cryptography"',
 ].every((item) => packageBackend.includes(item)), {
   file: files.packageBackend,
+});
+add(checks, "bundle_runtime_wires_persistent_mcp_control_and_frozen_sidecar", [
+  '"mcp_platform_integration": True',
+  '"mcp_port": 28775',
+].every((item) => buildZipBundle.includes(item)) && [
+  'runtime.config.get("mcp_platform_integration", False)',
+  'mcp_root = runtime.root / "data" / "mcp"',
+  "projection_api.DevSidecarSupervisor(",
+  "projection_api.build_dev_control_api(",
+  'parsed.path.startswith("/api/v1/mcp/")',
+  "mcp_supervisor.close()",
+  '"--mcp-sidecar"',
+].every((item) => bundleServer.includes(item)) && [
+  "_sidecar_command_prefix",
+  '"--mcp-sidecar"',
+].every((item) => read("src/sapd_wiki/local_mcp/dev_supervisor.py").includes(item)), {
+  files: [files.bundleServer, "src/sapd_wiki/local_mcp/dev_supervisor.py"],
+});
+add(checks, "dmg_readme_documents_mcp_configuration", [
+  "## MCP 配置说明",
+  "Streamable HTTP",
+  "Bearer Token：留空",
+  "Headers：留空",
+  "search_knowledge",
+  "get_knowledge_object",
+  "get_related_knowledge",
+  "get_evidence",
+  "get_knowledge_version",
+  "Runtime/data/mcp",
+].every((item) => packageDmg.includes(item)), {
+  file: files.packageDmg,
 });
 add(checks, "bundle_includes_controlled_maturity_report_seed", [
   "SAPD_WIKI_MATURITY_REPORT_SEED",

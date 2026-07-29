@@ -5,8 +5,8 @@ MODE="${1:-run}"
 APP_NAME="SAPD Wiki"
 EXECUTABLE_NAME="SAPDWiki"
 BUNDLE_ID="com.sapd.wiki.macos"
-BUNDLE_VERSION="${SAPD_WIKI_BUNDLE_VERSION:-0.2.0}"
-DISPLAY_VERSION="${SAPD_WIKI_DISPLAY_VERSION:-${SAPD_WIKI_APP_VERSION:-0.2.0}}"
+BUNDLE_VERSION="${SAPD_WIKI_BUNDLE_VERSION:-0.3.0}"
+DISPLAY_VERSION="${SAPD_WIKI_DISPLAY_VERSION:-${SAPD_WIKI_APP_VERSION:-0.3.0}}"
 LICENSE_MODE="${SAPD_WIKI_LICENSE_MODE:-license}"
 MIN_SYSTEM_VERSION="13.0"
 
@@ -34,7 +34,6 @@ if [[ "$(uname -m)" == "arm64" ]]; then
 else
   PLATFORM="mac-x64"
 fi
-
 runtime_bundle_name_version() {
   case "$DISPLAY_VERSION" in
     v*|V*) printf '%s\n' "$DISPLAY_VERSION" ;;
@@ -127,7 +126,7 @@ find_external_backend_binary() {
     "$REPO_ROOT/dist/zip-alpha/dist/$PLATFORM/SAPD-Wiki-Backend"
     "/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/sapd wiki bundle/package-work/backend/$PLATFORM/SAPD-Wiki-Backend"
     "/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/sapd wiki bundle/package-work/dist/$PLATFORM/SAPD-Wiki-Backend"
-    "/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/sapd wiki bundle/SAPD-Wiki-v0.2.0-$PLATFORM/SAPD-Wiki-Backend"
+    "/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/sapd wiki bundle/SAPD-Wiki-v0.3.0-$PLATFORM/SAPD-Wiki-Backend"
   )
 
   local candidate

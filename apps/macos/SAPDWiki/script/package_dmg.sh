@@ -7,7 +7,7 @@ REPO_ROOT="$(cd "$APP_ROOT/../../.." && pwd)"
 DIST_DIR="$APP_ROOT/dist"
 APP_NAME="SAPD Wiki"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
-APP_VERSION="${SAPD_WIKI_APP_VERSION:-0.2.0}"
+APP_VERSION="${SAPD_WIKI_APP_VERSION:-0.3.0}"
 export SAPD_WIKI_DISPLAY_VERSION="${SAPD_WIKI_DISPLAY_VERSION:-$APP_VERSION}"
 BUILD_STAMP="${SAPD_WIKI_BUILD_STAMP:-$(date -u +%Y%m%d-%H%M%SZ)}"
 ARCH="$(uname -m)"
@@ -59,6 +59,14 @@ write_readme() {
 
 ## Changelog
 
+### 0.3.0
+
+- 升级为 0.3.0 macOS 测试包；本次交付只生成无授权版，不显示授权窗口或 30 天倒计时。
+- Runtime 同步当前最新前端、后端、正式基础查询库、内容资产库和成熟度评估测试数据。
+- 新增本机 MCP Sidecar，可在“系统设置 > AI功能集成”中建立本机 HTTPS 连接、启动服务、确认客户端只读授权并查看审计。
+- MCP 提供 \`search_knowledge\`、\`get_knowledge_object\`、\`get_related_knowledge\`、\`get_evidence\`、\`get_knowledge_version\` 五个只读工具。
+- MCP 不读取用户批注、Issue、收藏、用户 SQLite、源文件、本地路径、密钥或不受限 SQL；授权与审计使用独立控制库。
+
 ### 0.2.0
 
 - 升级为 0.2.0 双版本测试包，授权版与无授权版使用同一构建时间戳。
@@ -106,6 +114,31 @@ write_readme() {
 4. 如果该目录已经存在，App 会保留用户已有报告，不用包内测试报告覆盖。
 5. 成熟度项目的本机编辑仍保存在 App 的浏览器本地存储中，不写入用户 SQLite。
 
+## MCP 配置说明
+
+### 首次启用
+
+1. 保持 SAPD Wiki App 正在运行，打开系统菜单“SAPD Wiki > 系统设置...”，进入“AI功能集成”。
+2. 按页面提示建立本机安全连接。首次建立或轮换证书时，macOS 可能要求确认当前用户证书信任。
+3. 点击“启动 MCP”，等待页面状态变为已就绪。端口只能在 MCP 停止时修改。
+4. 点击“复制连接配置”。客户端配置应为：
+   - 名称：\`SAPD Wiki\`
+   - 类型：\`流式 HTTP\`（Streamable HTTP）
+   - URL：使用设置页显示的完整 \`https://127.0.0.1:<端口>/mcp\`
+   - Bearer Token：留空
+   - Headers：留空
+5. 在支持远程 MCP / Streamable HTTP 的客户端中添加该配置，并发起 OAuth 登录。不要手工生成或粘贴 Token。
+6. 客户端发起授权后，返回 SAPD Wiki 的“AI功能集成”页面，核对客户端名称、回调地址和只读范围，然后点击允许。
+7. 授权完成后，客户端应能看到五个只读工具：\`search_knowledge\`、\`get_knowledge_object\`、\`get_related_knowledge\`、\`get_evidence\`、\`get_knowledge_version\`。
+
+### MCP 数据与排障
+
+- MCP 地址只监听本机 \`127.0.0.1\`，SAPD Wiki App 退出后 MCP 服务也会停止。
+- MCP 控制库位于 \`<所选父级保存位置>/SAPDWiki/Runtime/data/mcp/runtime/control/control.sqlite3\`，与用户数据库分离；不要手工修改或发送该目录。
+- 本机证书材料位于 \`Runtime/data/mcp/certificates\`，私密材料由当前用户 Keychain 保护，不应复制到其他电脑。
+- 如果连接失败，先确认 App 与 MCP 均在运行，再在设置页执行连接检查；修改端口、修复证书或撤销客户端后，重启对应 MCP 客户端。
+- Access Token 默认有效 1 小时；Refresh Token 默认有效 30 天并执行轮换与复用检测。客户端应通过 OAuth 自动刷新，不应保存明文 Token。
+
 README
 
   if [[ "$variant" == "license" ]]; then
@@ -125,7 +158,7 @@ README
 
 1. 当前包为无授权版，不显示授权输入窗口。
 2. 当前包不启用 30 天试用倒计时，适合内部无授权测试。
-3. 请不要和授权版混发；对外测试优先使用 \`license\` 包。
+3. 本次 0.3.0 交付只生成该无授权变体，请按 DMG 文件名和版本号核对测试包。
 
 README
   fi
@@ -168,6 +201,13 @@ write_runtime_readme() {
 
 ## Changelog
 
+### 0.3.0
+
+- 升级为 0.3.0 Runtime；本次 macOS 交付只生成无授权版。
+- 同步当前最新前端、后端、正式基础查询库、内容资产库和成熟度评估测试数据。
+- Runtime 新增可持久化的本机 MCP Sidecar、HTTPS 证书生命周期、OAuth 客户端授权和独立审计控制库。
+- MCP 只公开五个基础知识只读工具，不访问用户数据库、源文件、本地路径、密钥或不受限 SQL。
+
 ### 0.2.0
 
 - 升级为 0.2.0 双版本测试 Runtime。
@@ -207,6 +247,15 @@ write_runtime_readme() {
 3. 首次初始化会复制这些报告；目标报告目录已存在时不覆盖。
 4. 用户 SQLite 仍为空库模板，成熟度测试报告与批注、Issue 等用户数据保持分离。
 
+## MCP 配置说明
+
+1. 在 App 的“系统设置 > AI功能集成”中建立本机安全连接并启动 MCP。
+2. 使用设置页“复制连接配置”得到实际地址；客户端类型选择 Streamable HTTP，URL 为 \`https://127.0.0.1:<端口>/mcp\`，Bearer Token 与 Headers 均留空。
+3. 客户端发起 OAuth 后，返回 App 设置页确认只读授权。授权完成后应出现 \`search_knowledge\`、\`get_knowledge_object\`、\`get_related_knowledge\`、\`get_evidence\`、\`get_knowledge_version\` 五个工具。
+4. MCP 控制状态位于 \`data/mcp/runtime\`，证书材料位于 \`data/mcp/certificates\`；它们与 \`data/user/sapd_wiki_user.sqlite3\` 分离，升级 Runtime 时保留。
+5. MCP 仅监听本机 \`127.0.0.1\`。连接失败时，先确认 App 与 MCP 正在运行，再检查证书、端口和客户端授权状态。
+6. 不要手工配置 Bearer Token，不要发送 \`data/mcp\` 目录。Access Token 默认 1 小时，Refresh Token 默认 30 天并自动轮换。
+
 README
 
   if [[ "$variant" == "license" ]]; then
@@ -226,7 +275,7 @@ README
 
 1. 当前包为无授权版，不显示授权输入窗口。
 2. 当前包不启用 30 天试用倒计时，适合内部无授权测试。
-3. 请不要和授权版混发；对外测试优先使用 \`license\` 包。
+3. 本次 0.3.0 交付只生成该无授权变体，请按 DMG 文件名和版本号核对测试包。
 
 README
   fi

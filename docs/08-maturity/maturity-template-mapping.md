@@ -1,5 +1,7 @@
 # 成熟度模板字段映射设计
 
+> 状态：`contract / current template mapping`
+
 本文档定义新版 `sample 评分表.xlsx` 字段到 maturity 标准字段的映射关系，并提出后续正式模板建议。
 
 补充说明：新增 `data/raw-samples/maturity/评估表v2.md` 是 Markdown 格式的 L2 能力评价基准，字段映射见本文件第 2.3 节和 `config/maturity/field-mapping.evaluation-table-v2.yaml`。

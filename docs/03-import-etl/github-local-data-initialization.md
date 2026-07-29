@@ -232,6 +232,8 @@ python scripts/check_github_data_boundary.py
 
 本工具服务的是“开发者从 GitHub 拉代码后，在本机重建数据”的场景。
 
-它不是顾问端产品的一键初始化。顾问端一键初始化应复制发布包内的种子库和资源包，不要求顾问提供原始 Excel、执行 ETL 或安装 Python / Node。顾问端交付边界见 `docs/01-architecture/consultant-delivery-model.md`。
+它不是桌面应用安装流程。macOS DMG 和 Windows `Setup.exe` 使用已经批准的基础库、
+内容资产库和前端资源，不要求普通用户提供原始 Excel、执行 ETL 或安装 Python /
+Node。桌面交付边界见 `docs/09-delivery/desktop-packaging-runbook.md`。
 
 指南 PDF 转 PNG、发布种子库打包、资源 manifest 和 hash 校验仍属于后续发布构建任务；当前脚本先固化主 Excel 到 SQLite / 前端数据包的可重复初始化流程。

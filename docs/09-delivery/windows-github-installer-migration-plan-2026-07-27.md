@@ -1,10 +1,12 @@
 # Windows GitHub Installer 迁移计划
 
-> 状态：`in progress / W3 Windows MCP D2 active`
+> 状态：`W0-W5 complete / W6 real Windows UAT pending / W7 formal promotion pending`
 >
 > 日期：2026-07-27
 >
 > 目标产物：Windows x64 NSIS `Setup.exe`
+>
+> 当前日常操作入口：[`desktop-packaging-runbook.md`](desktop-packaging-runbook.md)
 
 ## 1. 冻结决策
 
@@ -12,7 +14,8 @@
 
 - macOS 继续在正式 Mac 主工作区本地构建、验证和生成 DMG。
 - macOS 不迁移到 GitHub Actions，也不改用远端 Delivery Data。
-- Windows 源码以 `main` 为唯一事实源；`codex/windows-electron` 保留但不再承担生产构建触发职责。
+- Windows 源码以 `main` 为唯一事实源；已完全并入 `main` 的
+  `codex/windows-electron` 本地和远端分支已删除。
 - Windows 的 PyInstaller 后端、Electron Runtime 和 NSIS 安装器全部在 GitHub `windows-2022` Runner 构建。
 - 正式基础库、内容资产库、真实用户库、恢复包、原始资料和生成安装包不得进入公开源码仓库。
 
@@ -40,7 +43,8 @@ Windows 10/11 人工 UAT
 显式批准后晋级为私有 Release
 ```
 
-私有交付仓名称是建议值，可在实施 W0 时由用户指定；一旦确定，workflow、token 和文档必须使用精确仓库身份，不允许运行时猜测。
+私有交付仓已经固定为 `kim1st0913/SAPD_Wiki_Delivery_Private`。workflow、
+token 和文档必须使用该精确仓库身份，不允许运行时猜测。
 
 ## 3. 为什么不用公开仓直接打最终安装器
 
@@ -96,8 +100,9 @@ SAPD-Wiki-Windows-Delivery-Data-<release-id>.zip
 
 - 读取私有 Delivery Data Release；
 - 读取私有配置；
-- 上传私有 Actions Artifact；
-- 默认不自动创建 Release，不覆盖已有资产。
+- 在隔离 job 之间传递短期 Actions Artifact；
+- 发布新的不可变 Internal Prerelease；
+- 不覆盖已有 Release 或同名资产。
 
 PR 只运行无秘密的源码和配置检查。来自 fork 的代码永远不能接触 dispatch token 或 Delivery Data。
 
@@ -155,6 +160,7 @@ PR 只运行无秘密的源码和配置检查。来自 fork 的代码永远不�
     - `SAPD-Wiki-Setup-<version>-win-x64.exe`
     - `windows-installer-build-info.json`
     - `SHA256SUMS.txt`
+    - `windows-runner-uat.json`
 
 任一数据、来源、版本或内容门禁失败时不得上传安装器。
 
@@ -164,10 +170,10 @@ PR 只运行无秘密的源码和配置检查。来自 fork 的代码永远不�
 |---|---|---|---|
 | W0 决策与恢复点 | 确认私有交付仓身份、管理员、触发方式、Artifact 保留期；导出当前 workflow 和分支 refs | 精确目标仓与权限矩阵确认；现有 backend-only workflow 可恢复 | `complete` |
 | W1 数据包工具 | 实现 Windows Delivery Data 的只读 build/verify 工具和 manifest schema | 双次构建逻辑内容一致；正式双库 hash 未变；真实用户库未读取或写入 | `complete` |
-| W2 私有交付仓 | 建立私有仓、环境保护、Delivery Data Release 规则和最小权限 | 公开匿名访问不能读取数据或安装器；secret 不出现在日志 | `in progress` |
-| W3 私有构建器 | 在私有仓实现 Windows backend → Runtime → NSIS → Artifact 全链路；完成 Windows MCP D2 平台接线 | 固定源码 SHA 和数据 release 可重复生成安装器；DPAPI CurrentUser、CurrentUser Root、Windows 安全 IPC、固定受保护 Runtime 和 Electron 控制面全部通过 | `in progress` |
-| W4 main watcher | 私有仓定时检查公开 `main` 相关路径并选择精确 SHA | 相关 push 在下一轮询周期触发一次；无关文档/macOS 变化不触发；公开仓无 secret | `pending` |
-| W5 并行试运行 | 保留旧 backend-only workflow，连续完成至少两次新链路构建 | 相同输入的 Runtime 指纹一致；安装器 manifest 可追溯；无公开数据泄漏 | `pending` |
+| W2 私有交付仓 | 建立私有仓、环境保护、Delivery Data Release 规则和最小权限 | 公开匿名访问不能读取数据或安装器；secret 不出现在日志 | `complete` |
+| W3 私有构建器 | 在私有仓实现 Windows backend → Runtime → NSIS → Artifact 全链路；完成 Windows MCP D2 平台接线 | 固定源码 SHA 和数据 release 可重复生成安装器；DPAPI CurrentUser、CurrentUser Root、Windows 安全 IPC、固定受保护 Runtime 和 Electron 控制面全部通过 | `complete` |
+| W4 main watcher | 私有仓定时检查公开 `main` 相关路径并选择精确 SHA | 相关 push 在下一轮询周期触发一次；无关文档/macOS 变化不触发；公开仓无 secret | `complete` |
+| W5 并行试运行 | 连续完成至少两次新链路构建并比较不可变候选 | 相同输入的 Runtime 指纹一致；安装器 manifest 可追溯；无公开数据泄漏 | `complete` |
 | W6 Windows UAT | 在真实 Windows 10/11 安装、启动、搜索、MCP、导入导出、退出和卸载 | UAT 清单全绿；用户目录保留；进程清理；SmartScreen 状态记录 | `pending` |
 | W7 切换与收口 | 新链路成为唯一 Windows 生产构建；旧 workflow 改为诊断或退役 | main 自动链路稳定；恢复手册、当前状态和交付指南同步 | `pending` |
 
@@ -206,14 +212,14 @@ W0—W4 属于迁移实现；W5—W7 属于发布切换。未完成 W6 前，CI 
 
 ## 10. 回退方案
 
-在 W6 完成前保留现有 backend-only workflow：
+新链路失败时：
 
-- 新链路失败时，停止公开 dispatch workflow 或撤销其 secret。
-- 私有 Delivery Data Release 和已生成 Artifact 保持不可变，不删除、不覆盖。
-- 恢复旧流程：GitHub 只生成 backend ZIP，Mac 本地手工组装 Windows Setup。
-- 回退不修改正式数据库、不恢复数据备份、不改变 macOS DMG 链路。
-
-W7 后如需回退，恢复已归档的 backend-only workflow 文件，并把新 workflow 保持为人工触发诊断模式；不得通过将数据库移回公开仓来规避私有交付层。
+- 停用或暂停私有 watcher，不触发新的候选；
+- 保留不可变 Delivery Data Release、Internal Prerelease 和构建证据；
+- 继续使用上一份已验收安装包，不覆盖、不删除；
+- 修复后用精确源码 SHA 和精确 data release ID 重新运行私有 workflow；
+- 不恢复已退役的 backend-only + Mac 手工组装生产流程；
+- 不修改正式数据库、不改变 macOS DMG 链路，也不得把数据库移回公开仓。
 
 ## 11. 明确不做
 
@@ -222,7 +228,7 @@ W7 后如需回退，恢复已归档的 backend-only workflow 文件，并把新
 - 不自动发布公开 GitHub Release。
 - 不在本阶段实施 Windows 代码签名、证书采购或 SmartScreen 信誉建设。
 - 不修改 ETL、知识内容、评分规则、源 Excel 或正式用户库。
-- 不删除 `codex/windows-electron` 远端分支。
+- 不恢复或重新建立已经退役的 `codex/windows-electron` 生产分支。
 
 ## 12. 已冻结的用户决策
 
@@ -238,6 +244,8 @@ W7 后如需回退，恢复已归档的 backend-only workflow 文件，并把新
 - W1 已生成 `windows-data-20260727-r1`：归档 SHA-256 为 `1f90ec0645f9bb811dff0f27b8047eaa681f6e0a9bd41d521ed9fce05011433b`，基础库/内容资产库 SHA-256 分别为 `30d14679c7d8b7743fba129af38afde7b943bcdd707ff7b8a57bce5146f54c9e` / `adaa19bf1fb641eb6e54da74b33b3f0510126ed9208d0d97ed565398db05bce6`；正式输入构包前后未变，真实用户库未包含。
 - W1/W3 来源与 Runtime 定向测试当前为 `8/8 PASS`；包含 ZIP 路径/重复/额外成员门禁、分片重组、Delivery manifest 与双库校验、backend provenance、构建机绝对路径排除和相同 backend+data 的 Runtime fingerprint 一致性。
 - 私有仓 `kim1st0913/SAPD_Wiki_Delivery_Private` 已创建；Actions 已限制为 GitHub-owned + full SHA、默认只读 token、30天日志/Artifact，并启用 immutable releases。
-- Delivery Data 草稿 Release 曾用于上传探针；当前连接的大文件并发上传会异步留下 `starter` / `uploaded` 混合状态。该未发布草稿已整体删除，私有仓没有半套数据资产；本地正式 ZIP、分片和哈希清单完整保留，待产品范围裁定后重新干净发布。
-- W3 审查发现当前 Windows Runtime 正常启动会在 HTTP listener 前被 MCP D2 fail closed：真实 DPAPI CurrentUser、CurrentUser Root WinCrypt bridge、Windows secret transport、受保护 DACL/reparse 门禁和 Electron native confirmation 尚未实现。
-- 用户已明确裁定 Windows `0.3.0` 必须包含 MCP；W3 正式扩展为完整 Windows MCP D2 实现，任何关闭平台集成的候选均不得上传或进入 W6/W7。
+- Delivery Data `windows-data-20260727-r1` 已作为不可变私有 Release 发布；真实用户库未包含。
+- Windows MCP D2、DPAPI CurrentUser、只读 CurrentUser Root、Windows secret transport、受保护 Runtime、Electron native confirmation 和完整 MCP runtime 的 Runner 门禁已通过。
+- 两次独立同输入构建 `30273664928` / `30273682743` 成功；比较运行 `30275164610` 已确认源码、数据、Runtime、backend 和双库 hash 一致。
+- 当前推荐候选为 `internal-windows-0.3.0-48edc6009ffd-windows-data-20260727-r1-run30273682743-1`，安装器 SHA-256 为 `15df979db8621d4794806eb5cbad35c94737c76df67621b262a6640c880eb222`。
+- W6 仍必须在真实 Windows 10 / 11 上完成交互 UAT；通过前不得执行正式 `windows-v*` 晋级。

@@ -28,7 +28,9 @@ data/database/sapd_wiki.sqlite3
 
 打包成桌面应用后，不应把数据库写在安装目录里，而应写入应用数据目录。
 
-顾问端第一期交付形态以 `docs/01-architecture/consultant-delivery-model.md` 为准：用户收到压缩包，解压后首次打开应用，通过“一键初始化”自动部署预置数据库和页面资源，然后直接使用。顾问用户不需要安装开发依赖、选择数据库、执行迁移、运行 ETL 或自行导入原始资料。
+桌面交付以 `docs/09-delivery/desktop-packaging-runbook.md` 为准：macOS 使用 DMG，
+Windows 使用私有 Runner 生成的 `Setup.exe`。普通用户不需要安装开发依赖、选择数据库、
+执行迁移、运行 ETL 或自行导入原始资料。
 
 建议逻辑路径：
 
@@ -39,7 +41,7 @@ data/database/sapd_wiki.sqlite3
 <app_data_dir>/SAPD_Wiki/backups/
 ```
 
-具体 `<app_data_dir>` 由 Tauri 在不同操作系统上解析。
+具体 `<app_data_dir>` 由 macOS Swift 壳或 Windows Electron 壳按当前用户解析。
 
 发布包内置的数据库建议作为只读种子库保存，例如：
 
@@ -55,7 +57,7 @@ resources/database/sapd_wiki.seed.sqlite3
 
 后续应用读取和可能产生的用户偏好、导出、备份都写入应用数据目录，不写入安装目录。
 
-顾问端压缩包不应包含：
+桌面安装包不应包含：
 
 - 开发备份库；
 - `data/raw-samples/` 中的真实样例资料；

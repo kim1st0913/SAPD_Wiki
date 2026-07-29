@@ -4,31 +4,29 @@
 
 ## 摘要
 
-- 生成日期：2026-07-22
-- 问题总数：201
-- 当前未关闭问题数：6
-- 已关闭归档问题数：194
+- 生成日期：2026-06-01
+- 问题总数：197
+- 当前未关闭问题数：5
+- 已关闭归档问题数：192
 - 当前入口：`docs/06-implementation/open-issues.md`
-- 已关闭归档：`docs/05-archive/open-issues-history/2026-06.md`、`docs/05-archive/open-issues-history/2026-07.md`
+- 已关闭归档：`docs/05-archive/open-issues-history/2026-06.md`
 
 ## 状态分布
 
 | 状态 | 数量 |
 |---|---:|
-| 执行中 / G0 | 1 |
+| (空) | 1 |
 | 部分完成 | 1 |
+| 部分完成 / Web 与 Windows 构建链路通过，安装态矩阵待完成 | 1 |
+| 待业务确认 / 映射门禁阻断 | 1 |
 | 业务接受 | 6 |
-| 已关闭 | 54 |
-| 已关闭 / 自动验收通过 | 3 |
-| 已关闭 / 用户验收通过 | 2 |
+| 已关闭 | 56 |
+| 已关闭 / 自动验收通过 | 1 |
+| 已规划 / 待用户明确启动，不进入当前开发 | 1 |
 | 已回退 | 1 |
 | 已修复 | 127 |
-| 已修复 / 待用户验收 | 2 |
 | 已修复，后续可继续优化 | 1 |
-| 长期保留 / 按需继续修复 | 1 |
-| 待业务确认 / 映射门禁阻断 | 1 |
-| 待实现 / 契约已确认 | 1 |
-| 评审通过 / 待用户确认计划 | 1 |
+| 暂不修复 / 已回退 | 1 |
 
 ## 重复编号
 
@@ -224,7 +222,7 @@
 | OI-144 | 已关闭 | 全局搜索与页面内搜索状态串线 | 前端 / 交互 / 状态管理 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-137 | 已关闭 | 信息化环境首页需导入 draw.io 第三页实例底图 | 前端 / 设计 / Draw.io 导入 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-170 | 已关闭 | LC-DT 加工/使用阶段双表模块/措施集合差异 | 数据 / 原始 Excel / LC-DT / 待业务确认 | docs/05-archive/open-issues-history/2026-06.md |
-| OI-161 | 已关闭 | 工作台 ISSUE清单入口与列表项点击失效 | 前端 / 工作台 / Issue / 交互 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-161 | 已关闭 | 工作台 Issue 清单入口与列表项点击失效 | 前端 / 工作台 / Issue / 交互 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-156 | 已关闭 | 全局批注定位 / 高亮性能退化导致页面假死 | 前端 / 批注 / 性能 / 定位 / 高亮 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-150 | 已关闭 | 全局批注值定位缺少运行时索引导致定位慢 | 前端 / 批注 / 性能 / 定位索引 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-145 | 已关闭 | 本地 API Host/token 边界未统一拦截 | 安全 / 本地 API / 用户数据 | docs/05-archive/open-issues-history/2026-06.md |
@@ -234,14 +232,10 @@
 | OI-135 | 已关闭 | 用户库治理与兼容表迁移清理 | 数据 / 前端 / Delivery Bundle / 治理 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-157 | 已关闭 / 自动验收通过 | 打包测试反馈需要单独导出用户批注 | Delivery Bundle / 用户数据 / 批注 / 诊断 | docs/05-archive/open-issues-history/2026-06.md |
 | OI-190 | 业务接受 | macOS DMG 外部分发签名公证、安装与更新机制待确认 | macOS 交付 / 签名公证 / 安装更新机制 | docs/05-archive/open-issues-history/2026-06.md |
-| OI-193 | 已关闭 / 自动验收通过 | `viewModels.js` 行数超过前端治理基线但来源未说明 | 前端 / 治理门禁 / 变更边界 | docs/05-archive/open-issues-history/2026-07.md |
-| OI-194 | 已关闭 / 自动验收通过 | 生命周期宽表双轴滚动、上下文覆盖与模块字典引用回归 | 前端布局 / ViewModel / 字典引用 / 防回归审计 | docs/05-archive/open-issues-history/2026-07.md |
-| OI-195 | 已关闭 / 用户验收通过 | P1-3 生命周期纵向滚动卡顿、提示残留与空值不统一 | 前端 / 性能 / 生命周期工作台 / 防回归审计 | docs/05-archive/open-issues-history/2026-07.md |
-| OI-196 | 已关闭 / 用户验收通过 | P1-2 / P1-4 / P1-5 前端验收结论与真实交互契约不一致 | 前端 / shared runtime / 本地 API / 产品设计 / 防回归审计 | docs/05-archive/open-issues-history/2026-07.md |
-| OI-192 | 已修复 / 待用户验收 | 成熟度评分工作台服务、评分定义与主动作契约未按截图落地 | 前端 / 成熟度评分 / 产品设计 / 防回归审计 | docs/06-implementation/open-issues.md |
-| OI-191 | 已修复 / 待用户验收 | 全局共享标题区视觉 token 偏离旧 DMG 基线 | 前端 / 共享 App Shell / 设计 / 审计 | docs/06-implementation/open-issues.md |
-| OI-138 | 长期保留 / 按需继续修复 | 关注点关系图谱标签与节点 / 连线碰撞 | 前端 / 图谱布局 / 设计 | docs/06-implementation/open-issues.md |
-| OI-128 | 部分完成 | USER-WRITE-UI-1：批注 / 工作台用户写入入口 | 前端 / 用户数据 / Delivery Bundle | docs/06-implementation/open-issues.md |
+| OI-192 | 已关闭 | 成熟度评分工作台服务、评分定义与主动作契约未按截图落地 | 前端 / 成熟度评分 / 产品设计 / 防回归审计 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-191 | 已关闭 | 全局共享标题区视觉 token 偏离旧 DMG 基线 | 前端 / 共享 App Shell / 设计 / 审计 | docs/05-archive/open-issues-history/2026-06.md |
+| OI-199 | 部分完成 / Web 与 Windows 构建链路通过，安装态矩阵待完成 | 本地 MCP 正式知识访问已接入，安装态与客户端矩阵仍待完成 | 架构 / 本地 API / OAuth / TLS / 数据授权 / 审计 / macOS / Windows | docs/06-implementation/open-issues.md |
+| OI-200 | 已规划 / 待用户明确启动，不进入当前开发 | MCP 2026-07-28 双时代协议与 Web/App 前端分流 | 架构 / MCP 协议 / OAuth / shared runtime / Web / App / 客户端兼容 / 打包 | docs/06-implementation/open-issues.md |
 | OI-197 | 待业务确认 / 映射门禁阻断 | 成熟度评分依据与当前能力字典尚未全量映射 | 数据 / 成熟度 / 当前字典 / 源 Excel / 业务确认 | docs/06-implementation/open-issues.md |
-| OI-198 | 已关闭 / 自动验收通过 | 导入审批缺少幂等门禁、中间数据终结和 approved 默认导出契约 | ETL / SQLite / 来源追踪 / 导入导出 / 数据治理 | docs/05-archive/open-issues-history/2026-07.md |
-| OI-199 | 部分完成 / Codex Web 验证通过，跨平台待完成 | 本地 MCP 已完成当前 Codex 五工具闭环；Windows、App/DMG、客户端矩阵与触发式双时代协议升级待后续门禁 | 架构 / 本地 API / OAuth / TLS / 数据授权 / 审计 | docs/06-implementation/open-issues.md |
+| OI-138 | 暂不修复 / 已回退 | 关注点关系图谱标签与节点 / 连线碰撞 | 前端 / 图谱布局 / 设计 | docs/06-implementation/open-issues.md |
+| OI-128 | 部分完成 | USER-WRITE-UI-1：批注 / 工作台用户写入入口 | 前端 / 用户数据 / Delivery Bundle | docs/06-implementation/open-issues.md |

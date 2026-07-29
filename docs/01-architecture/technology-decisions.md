@@ -1,42 +1,60 @@
-# 技术选型记录
+# SAPD Wiki 技术决策
 
-本文档集中记录当前技术选型，避免在多个文档中各自维护不同版本。
+> 状态：`active / current technology decisions`
+>
+> 更新日期：2026-07-28
 
-## V1 默认选型
+本页只记录仍然有效的技术选择。早期 React、Tauri、ZIP alpha 和顾问端一键初始化设想
+不再是当前实现依据。
 
-| 层次 | 选型 | 原因 |
+## 当前运行架构
+
+| 层次 | 当前选择 | 边界 |
 |---|---|---|
-| 前端 | React + TypeScript | 生态成熟，适合逐步扩展知识库页面 |
-| 桌面壳 | Tauri | 适合轻量本地桌面交付 |
-| 本地数据库 | SQLite | 单机可靠、易备份、易迁移 |
-| 全文检索 | SQLite FTS5 | V1 足够，减少额外组件 |
-| ETL | Python 或 Node.js | 适合处理 Excel、DOCX、PPT、Markdown 等文件 |
-| 文件存储 | 本地 data 目录 | 保留原始文件和预览文件 |
-| 导出 | CSV、JSON、Excel、Markdown、HTML、ZIP | 覆盖常见知识复用和备份需求 |
+| 共享前端 | 原生 HTML、CSS、JavaScript ES modules | Web、macOS、Windows 共用；业务数据只经 `dataClient` / `/api/v1/*` |
+| 后端 | Python 3.11+ 本地 API、ETL 和导出 | 负责清洗、关系、评分、投影和数据门禁 |
+| 基础知识库 | SQLite + FTS5 | 只读运行，受控发布替换 |
+| 内容资产 | 独立 SQLite 资产库 | 内容寻址、hash 校验，不混入用户库 |
+| 用户状态 | 独立 SQLite 用户库 | 批注、数据篮和工作台；升级不得覆盖 |
+| macOS 壳 | SwiftPM + Swift / WKWebView | 正式 Mac 主工作区本地生成 DMG |
+| Windows 壳 | Electron + NSIS | 私有 `windows-2022` Runner 生成 `Setup.exe` |
+| MCP | Python MCP SDK、HTTPS、OAuth、CurrentUser Runtime | 只读基础知识访问；loopback 监听 |
 
-## V1 顾问端交付决策
+## 数据与前端决策
 
-第一期面向咨询顾问的交付形态不是开发环境，也不是让顾问自行导入数据的工具。
+- 前端不得读取原始 Excel、直接查询 SQLite 或重做 ETL / 评分逻辑。
+- `public/data/*.json` 是后端生成的离线兼容包或 API fallback，不是新的业务权威源。
+- 基础库、内容资产库和用户库分离；真实用户库永远不进入安装包或 GitHub。
+- 新知识通过审批、候选构建、质量门禁、正式 apply、runtime restart 和 MCP 验收发布。
+- 当前字段合同见 `api-field-contract.md`，数据包职责见
+  `frontend-json-data-package-inventory.md`。
 
-| 决策 | 当前结论 |
-|---|---|
-| 交付方式 | 压缩包交付，用户解压后打开应用 |
-| 首次使用 | 应用内提供“一键初始化”，自动部署预置数据库和资源 |
-| 数据来源 | 由内部维护流程提前完成 ETL、审批、校验和发布构建 |
-| 顾问端数据库 | 初始化后使用 `<app_data_dir>/SAPD_Wiki/database/sapd_wiki.sqlite3` |
-| 程序包内置数据 | 使用发布种子库和资源包，例如 `resources/database/sapd_wiki.seed.sqlite3` |
-| 登录需求 | V1 不做登录、注册、账号和权限体系 |
-| 顾问端导入 | V1 不提供顾问自行导入 Excel / PDF / PPT / DOCX 的入口 |
-| 开发依赖 | 顾问无需安装 Python、Node.js、SQLite CLI 或其他开发工具 |
+## 桌面交付决策
 
-详细交付模型见 `docs/01-architecture/consultant-delivery-model.md`。
+### macOS
 
-## 后续可选增强
+- 不迁移到 GitHub Runner；在正式 Mac 主工作区本地打 DMG。
+- 正式外部分发需要签名、notarization 和实包 UAT。
+- Web 5173 验收不能替代 WKWebView / DMG 验收。
 
-| 能力 | 建议阶段 | 说明 |
-|---|---|---|
-| DuckDB | V2/V3 | 用于更复杂分析查询 |
-| Draw.io 深度解析 | V2 | 节点、连线和关系抽取 |
-| PPT 深度解析 | V2 | 页级、备注、图形元素结构化 |
-| 知识图谱 | V2/V3 | 在关系数据稳定后引入 |
-| RAG/AI 问答 | V3 | 在结构化和来源追踪稳定后引入 |
+### Windows
+
+- 公开 `main` 是源码事实源；私有 Delivery Data 保存正式数据输入。
+- 私有 Windows Runner 按精确源码 SHA 生成 backend、Electron Runtime 和 NSIS
+  `Setup.exe`，校验后上传私有 Internal Release。
+- 旧 `codex/windows-electron` 分支、backend-only 和 Mac 手工组装流程已经退役。
+
+当前操作手册：`docs/09-delivery/desktop-packaging-runbook.md`。
+
+## 安全决策
+
+- MCP 只监听本机回环地址，使用 TLS、OAuth 和受控 CurrentUser 证书 / 信任。
+- MCP 不开放用户库、源文件、本机路径、凭据、写入或客户端 SQL。
+- 导入、测试和打包不得写真实用户库，除非用户明确批准写入和恢复范围。
+- GitHub 只保存代码、文档、配置和脱敏 fixture；数据边界由
+  `scripts/check_github_data_boundary.py` 审计。
+
+## 维护规则
+
+技术选型变化时，应先更新本页和对应合同，再修改代码与交付流程。已退役方案移入
+`docs/05-archive/`，不得在多个当前文档中并行维护不同答案。

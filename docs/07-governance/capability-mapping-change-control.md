@@ -6,7 +6,7 @@
 
 ## 当前阻塞入口
 
-- 工程 review：`docs/06-implementation/project-blocker-review-2026-05-30.md`
+- 历史工程 review：`docs/05-archive/implementation-completed-2026-07/project-blocker-review-2026-05-30.md`
 - 统一问题项：`docs/06-implementation/open-issues.md` 中 `OI-122`
 - 数据加载专项问题项：`docs/06-implementation/open-issues.md` 中 `OI-132`
 - 审计脚本：`node scripts/audit_frontend_governance.mjs`

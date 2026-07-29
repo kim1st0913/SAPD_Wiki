@@ -1,5 +1,7 @@
 # 成熟度模块领域模型
 
+> 状态：`contract / current domain model`
+
 本文档基于第一轮样本分析，定义 maturity 模块的领域对象和对象关系。本文档只描述业务领域模型，不修改主工程核心 schema。
 
 ## 1. 领域边界

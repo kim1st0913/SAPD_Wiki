@@ -1,5 +1,7 @@
 # 成熟度模块数据模型
 
+> 状态：`contract / current logical data model`
+
 本文档定义第一轮样本驱动后的 maturity 数据表草案。当前只做逻辑建模，不新增迁移，不修改主工程核心 schema。
 
 业务逻辑来源：

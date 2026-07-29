@@ -279,6 +279,12 @@ App 与 Sidecar 分进程时，口令不得通过 argv、环境变量、普通�
 
 证书状态和 MCP 运行状态是两个独立维度，不得用“已启动”代替“证书有效”。
 
+安全存储的临时不可访问必须与密钥条目不存在区分：前者使用
+`error / CERTIFICATE_SECRET_STORE_UNAVAILABLE`，不得终止已经完成一次性口令消费且
+TLS 仍健康的 Sidecar；用户解锁后可以重新启动。只有平台安全存储明确返回条目
+不存在、设备绑定永久失效或密钥材料不可解密时，才进入 `key_unavailable` 并要求重新
+建立安全连接。
+
 状态投影还必须包含稳定的 `reason_code`、当前 `operation_id` 和恢复动作。`cleanup_pending`、`client_restart_required`、`old_generation_retained_until` 是附加标志，不另造含义模糊的主状态；只要 active generation 已验证且未过期，清理待完成本身不阻止 MCP 启动。
 
 ### 4.2 首次启用
@@ -618,7 +624,7 @@ certificate_reset
 ### 8.1 macOS 约束
 
 - 使用 `kSecTrustSettingsDomainUser`；不写 admin/system domain；
-- `SecTrustSettingsSetTrustSettings` 必须传入限定 SSL 用途的 trust settings，不得传 `NULL` 形成“无论用途始终信任”；
+- 本机 CA 使用 `SecTrustSettingsSetTrustSettings(..., nil)` 写入 CurrentUser 根信任，以满足 Chrome 的根信任读取行为；风险由 CA critical `nameConstraints=127.0.0.1/32`、leaf SAN、loopback-only 监听、精确 SHA-256 指纹和 SSL/root 双重验证共同约束，禁止用于其他地址；
 - 每次新增、替换或删除当前用户 trust settings 都按系统行为准备登录凭据确认，并且只在已登录 GUI 会话执行；
 - App 使用 Security Framework 验证记录指纹对应的证书和 SSL policy，不以 Keychain 中存在同名项目代替“已信任”；
 - Keychain 口令项使用 Data Protection Keychain、非同步、ThisDeviceOnly，并由 App/受信任 Sidecar 的最小访问组读取。
@@ -779,7 +785,7 @@ C0 实施、CurrentUser 信任写入和真实 Codex 配置仍需用户单独授�
 - `frontend/capability-browser/components/SystemSettings.js`
 - `sapd-wiki-local-mcp-requirements-and-prd-v0.5.md`
 - `docs/06-implementation/local-mcp-certificate-productization-and-client-validation-plan-v0.4.md`
-- `docs/01-architecture/hardening/local-mcp-certificate-trust-2026-07-24/hardening.md`
+- `docs/05-archive/architecture-hardening-evidence-2026-07/local-mcp-certificate-trust-2026-07-24/hardening.md`
 - Apple Security Framework Trust Settings：<https://developer.apple.com/documentation/security/sectrustsettingssettrustsettings%28_%3A_%3A_%3A%29>
 - Apple Keychain accessibility：<https://developer.apple.com/documentation/security/restricting-keychain-item-accessibility>
 - Windows CurrentUser Certificate Store：<https://learn.microsoft.com/en-us/windows-hardware/drivers/install/local-machine-and-current-user-certificate-stores>

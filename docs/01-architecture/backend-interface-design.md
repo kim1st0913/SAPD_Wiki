@@ -101,7 +101,8 @@ SQLite
 
 ### 3.3 技术选型说明
 
-当前已使用 Python 标准库实现轻量本地 API，避免新增外部依赖。后续如果切换为 FastAPI、Node.js 或 Tauri 后端命令，接口语义仍应保持与本文档一致。
+当前使用 Python 本地 API。后续即使更换 Web 框架或桌面桥接实现，接口语义仍应保持
+与本文档一致。
 
 ### 3.4 当前本地 API 过渡模式
 
@@ -130,33 +131,17 @@ python scripts/sapd_wiki.py serve --host 127.0.0.1 --port 5173
 
 ### 3.5 打包交付模式
 
-桌面交付阶段以顾问端压缩包为目标形态。详细交付模型见 `docs/01-architecture/consultant-delivery-model.md`。
+桌面交付采用两条受控链路：macOS 在正式 Mac 主工作区本地生成 DMG；Windows 在私有
+GitHub Runner 上按公开 `main` 精确 SHA 和批准 Delivery Data 生成 NSIS `Setup.exe`。
 
-顾问用户不是开发人员，第一期不要求也不允许用户自行安装依赖、执行 ETL、选择数据库或导入原始资料。内部维护流程先完成数据导入、审批、校验、SQLite 种子库整理、页面数据包生成和资源校验；顾问端只负责一键初始化和使用。
+安装包携带只读基础知识库、内容资产库、前端资源和空用户库模板。首次启动把用户状态
+写入当前用户应用数据目录，不回写安装目录，也不允许真实用户数据库进入安装包。
 
-桌面交付阶段推荐结构：
+普通用户不安装开发依赖、不执行 ETL、不选择数据库，也不自行导入原始资料。导入与
+数据更新属于内部审批和增量发布流程。当前操作与验收入口为：
 
-```text
-SAPD_Wiki_Consultant_Package.zip
-├─ Tauri 应用
-├─ 前端静态资源
-├─ 本地 API 或 Tauri command 数据读取层
-├─ resources/database/sapd_wiki.seed.sqlite3
-├─ resources/data-packages/
-├─ resources/previews/
-└─ manifest.json
-```
-
-首次打开后由应用提供“一键初始化”：
-
-```text
-resources/database/sapd_wiki.seed.sqlite3
-→ <app_data_dir>/SAPD_Wiki/database/sapd_wiki.sqlite3
-```
-
-初始化还应复制或登记页面数据包、预览资源和 manifest。初始化完成后，用户再次打开应用应直接进入知识库工作台。
-
-第一期不做登录、注册、账号体系和权限分层；也不在顾问端提供 Excel / PDF / PPT / DOCX 导入入口。导入与数据更新属于内部维护和发布构建流程。
+- `docs/09-delivery/desktop-packaging-runbook.md`
+- `docs/09-delivery/release-acceptance-matrix-0.1.md`
 
 ## 4. 后端逻辑模块
 

@@ -6,14 +6,14 @@
 
 - 避免不同页面继续共用职责混杂的大包；
 - 明确哪些 JSON 是正式页面契约，哪些只是 legacy fallback；
-- 支撑顾问端压缩包发布时决定哪些数据包应随包发布；
-- 为后续 API 契约、Tauri 一键初始化和发布 manifest 提供数据清单。
+- 支撑 macOS DMG 和 Windows Setup 发布时决定哪些数据包应随包发布；
+- 为 API 契约、桌面 Runtime 和发布 manifest 提供数据清单。
 
 ## 1. 当前原则
 
 - 新页面优先使用页面级 workbench 数据包或 `/api/v1/*` 契约。
 - `public/data/*.json` 只作为后端生成的离线兼容包或 API 不可用时的 fallback。
-- 顾问端发布包不应包含已确认无用的 legacy 大包。
+- 桌面发布包不应包含已确认无用的 legacy 大包。
 - 含 `sheet`、`row`、`column`、`raw_value` 等来源追踪字段的数据包可以保留在数据层，但员工端主展示区不得直接展示这些字段。
 - 大型共享索引不应藏在某个页面包中，应迁入 `shared-lookups.json` 或独立共享包。
 
@@ -99,11 +99,11 @@ frontend/capability-browser/public/data/shared-lookups.json
 2. 已让 `capability-workbench.json`、`lifecycle-workbench.json` 和 `/api/v1/capabilities/workspace-projection` 改为读取 `shared-lookups.json` 或同源共享索引；
 3. 已在前端 `dataClient` 新增 `sharedLookups` 路径；
 4. 已删除 `management-knowledge.json` 中的 `assets`，并移除 management / lifecycle 顶层重复 `service_module_index`；
-5. 顾问端发布包不再包含 `management-knowledge.json`。
+5. 桌面发布包不再包含 `management-knowledge.json`。
 
 ## 8. 维护规则
 
 - 新增、删除或拆分任何 `public/data/*.json` 时，必须同步更新本文档。
 - 如果某个 JSON 是 legacy fallback，必须写明退役条件。
 - 如果某个页面直接依赖某个 JSON，必须写明页面入口和字段边界。
-- 发布顾问端压缩包前，应按本文档生成发布 manifest，不应靠人工记忆判断要带哪些文件。
+- 发布 DMG 或 Setup 前，应按本文档生成发布 manifest，不应靠人工记忆判断要带哪些文件。

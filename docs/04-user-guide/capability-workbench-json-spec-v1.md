@@ -1,8 +1,11 @@
 # capability-workbench.json 实现规格 V1
 
+> 状态：`contract / implemented`
+
 本文档定义 `capability-workbench.json` 的目标数据契约、字段迁移规则、`dataClient` 兼容策略和后续代码实施验收标准。
 
-本轮只做实现规格设计，不修改前端代码、不修改现有 JSON、不修改 ETL、不修改数据库 schema、不重新导入数据、不运行 npm、不启动前端。
+本文最初冻结实现规格；当前数据包、`dataClient` 和 ViewModel 已实现。后续变更仍须保持
+本合同的对象与关系粒度。
 
 ## 1. 页面定位
 

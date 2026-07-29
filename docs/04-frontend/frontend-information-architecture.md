@@ -1,6 +1,9 @@
 # SAPD Wiki 前端信息架构方案
 
-本文档是 Frontend Design Owner 对 SAPD Wiki 下一轮前端重构的信息架构方案。它承接 `frontend-redesign-brief.md`、前端优化建议和 `OI-018` 至 `OI-022` 的修正方向，只定义页面、视图模式、交互结构和数据契约，不涉及本轮代码实现。
+> 状态：`contract / current information architecture`
+
+本文档定义当前页面、视图模式、交互结构和数据契约。早期重构任务书已归档；具体页面
+实现仍以 `frontend/design-handoff/implementation-specs/` 为准。
 
 前后端分离后的字段级数据契约以 `docs/01-architecture/api-field-contract.md` 为准；本文档只定义前端页面结构、信息组织和交互方式。
 

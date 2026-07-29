@@ -2,11 +2,13 @@
 
 本文件定义多来源文件如何进入知识库。它是开发前必须先稳定的规则文件。
 
-当前具体映射规则草案见：
+当前具体合同见：
 
-- `docs/03-import-etl/mapping-rules-draft.md`：第一批 5 个核心 Excel Sheet 的对象、字段和关系映射规则。
-- `docs/03-import-etl/remaining-21-sheets-modeling.md`：剩余 21 个 Excel Sheet 的分组、对象、关系和批次草案。
-- `docs/03-import-etl/excel-import-mvp-design.md`：Excel 导入 MVP 的模块、流程和验收标准。
+- `docs/03-import-etl/mapping-rules.md`：核心 Excel Sheet 的对象、字段和关系映射基线。
+- `docs/03-import-etl/completed-sheet-business-confirmation.md`：已实现 Sheet 的业务含义、
+  主键、粒度和关系确认。
+- `docs/03-import-etl/import-approval-idempotency-and-retention-contract.md`：审批状态、
+  幂等、清理和默认导出合同。
 
 ## 1. 导入原则
 

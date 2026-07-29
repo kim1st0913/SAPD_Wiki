@@ -18,7 +18,7 @@
 - 独立 worktree：`/private/tmp/SAPD_Wiki-local-mcp-m0t`
 - PRD：`docs/01-architecture/sapd-wiki-local-mcp-requirements-and-prd-v0.5.md`
 - PRD SHA-256：`c1661b9950458c3b5adb94fde889623107a2b39c84ace22f2865b9cd6121cf21`
-- 执行计划：`docs/06-implementation/local-mcp-m0t-t0-t2-execution-plan.md`
+- 历史执行计划：`docs/05-archive/implementation-completed-2026-07/local-mcp-m0t-t0-t2-execution-plan.md`
 - 获批执行计划快照 SHA-256：`099fbda9acbef55481cc4920c2139b6f335b7cb74f9c4c0e2692f667a064601c`
 
 PRD 已作为 M0 评审基线通过。它不能单独扩大本审批记录的授权范围；实现必须同时满足执行计划和本记录。

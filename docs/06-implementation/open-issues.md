@@ -4,10 +4,10 @@
 
 ## 治理入口
 
-- 当前未关闭问题数：6
-- 已关闭归档问题数：194
+- 当前未关闭问题数：5
+- 已关闭归档问题数：192
 - 全量索引：`docs/06-implementation/open-issues-index.md`
-- 已关闭问题归档：`docs/05-archive/open-issues-history/2026-06.md`、`docs/05-archive/open-issues-history/2026-07.md`
+- 已关闭问题归档：`docs/05-archive/open-issues-history/2026-06.md`
 - 重复编号待治理：`OI-044`、`OI-092`，索引中使用 `OI-xxx#n` 区分历史条目。
 
 ## 建单门槛
@@ -24,10 +24,9 @@
 
 | 编号 | 状态 | 标题 |
 |---|---|---|
-| OI-199 | 部分完成 / Codex Web 验证通过，跨平台待完成 | 本地 MCP 正式知识访问已接入，真实客户端与跨平台验证仍待完成 |
+| OI-199 | 部分完成 / Web 与 Windows 构建链路通过，安装态矩阵待完成 | 本地 MCP 正式知识访问已接入，安装态与客户端矩阵仍待完成 |
+| OI-200 | 已规划 / 待用户明确启动，不进入当前开发 | MCP 2026-07-28 双时代协议与 Web/App 前端分流 |
 | OI-197 | 待业务确认 / 映射门禁阻断 | 成熟度评分依据与当前能力字典尚未全量映射 |
-| OI-192 | 已修复 / 待用户验收 | 成熟度评分工作台服务、评分定义与主动作契约未按截图落地 |
-| OI-191 | 已修复 / 待用户验收 | 全局共享标题区视觉 token 偏离旧 DMG 基线 |
 | OI-138 | 暂不修复 / 已回退 | 关注点关系图谱标签与节点 / 连线碰撞 |
 | OI-128 | 部分完成 | USER-WRITE-UI-1：批注 / 工作台用户写入入口 |
 
@@ -51,22 +50,39 @@
 
 ## 当前问题详情
 
-## OI-199：本地 MCP 正式知识访问已接入，真实客户端与跨平台验证仍待完成
+## OI-199：本地 MCP 正式知识访问已接入，安装态与客户端矩阵仍待完成
 
-- 状态：部分完成 / Codex Web 验证通过，跨平台待完成
+- 状态：部分完成 / Web 与 Windows 构建链路通过，安装态矩阵待完成
 - 严重性：高
 - 类型：架构 / 本地 API / OAuth / TLS / 数据授权 / 审计 / macOS / Windows
 - 对象或页面：本地 MCP Sidecar、正式基础库只读 Runtime、Codex MCP 配置、系统设置 AI 集成页、独立 MCP 控制面、macOS / Windows CurrentUser 信任。
-- 现象：正式知识访问、OAuth/Streamable HTTP、固定 5 个 Tool、Web 控制面和隔离 Sidecar 已实现；macOS Web 开发入口已完成真实 CurrentUser 证书、Keychain 密钥、系统信任、MCP 启停和一个当前 Codex CLI 版本的五工具真实闭环，但尚未完成目标 Codex 版本矩阵、Windows DPAPI / CurrentUser 信任、App Runtime 和打包验证。
-- 影响：知识查询功能可以进入本机 Web 开发验证，但在真实客户端与平台验证完成前，不能宣称跨版本 Codex、macOS/Windows 安装包或系统信任交付完成。
+- 现象：正式知识访问、OAuth/Streamable HTTP、固定 5 个 Tool、Web 控制面和隔离 Sidecar 已实现；macOS Web 开发入口已完成真实 CurrentUser 证书、Keychain 密钥、系统信任、MCP 启停和一个当前 Codex CLI 版本的五工具真实闭环。Windows 私有 Runner 已能生成包含 MCP backend 的完整 `Setup.exe`，但尚未完成真实 Windows 10/11 安装后的 DPAPI / CurrentUser 信任矩阵、当前源码 macOS DMG、目标客户端版本矩阵和双时代协议升级门禁。
+- 影响：知识查询功能和 Windows 可重复构建链路已经可用，但在真实安装态与客户端矩阵完成前，不能宣称跨版本 Codex 或 macOS / Windows MCP 实包交付全部通过。
 - 建单理由：涉及跨平台 App、OAuth/TLS、本地 API、正式基础数据、来源许可、审计和用户隐私，且本轮只完成设计合同，无法自动关闭。
-- 当前处理：用户已明确裁定正式基础知识库全部业务内容可由 AI 调用，不再以 `public_summary / ai_summary` 作为二次门禁。正式 `MCP-BASE-KNOWLEDGE-ACCESS-v1`、只读 Runtime、固定参数化查询、系统设置说明和 Web Sidecar 已统一落地；macOS 服务只发送服务器 leaf。真实 Chrome 验证证明 hostname-scoped CurrentUser trust settings 不被 Chrome 证书验证器接受，现已改为 Chrome 可识别的 CurrentUser 根信任，同时强制 CA critical `nameConstraints=127.0.0.1/32`、leaf SAN 和 loopback 监听，并同时检查 SSL 链与基础根信任；旧条目会显示“信任缺失”并通过“修复安全连接”迁移。该变更不写入系统级或 LocalMachine 信任，也不允许 CA 用于其他地址。
-- 需要确认：后续仍需用户单独授权 Windows 实机、App/DMG、目标客户端版本矩阵及对应 CurrentUser 信任、Keychain/DPAPI 和打包范围；当前 Web/macOS 开发验证不自动扩大这些授权。MCP `2026-07-28` 已列为触发式 G 阶段：只有其成为官方稳定规范、Python MCP SDK 正式支持、目标客户端具备验证条件且现有矩阵形成回归基线后，才另行授权 Legacy `2025-11-25` / Modern `2026-07-28` 双时代实现；当前不切换 canonical 版本。
+- 当前处理：用户已明确裁定正式基础知识库全部业务内容可由 AI 调用，不再以 `public_summary / ai_summary` 作为二次门禁。正式 `MCP-BASE-KNOWLEDGE-ACCESS-v1`、只读 Runtime、固定参数化查询、系统设置说明和 Web Sidecar 已统一落地；macOS 服务只发送服务器 leaf。真实 Chrome 验证证明 hostname-scoped CurrentUser trust settings 不被 Chrome 证书验证器接受，现已改为 Chrome 可识别的 CurrentUser 根信任，同时强制 CA critical `nameConstraints=127.0.0.1/32`、leaf SAN 和 loopback 监听，并同时检查 SSL 链与基础根信任；旧条目会显示“信任缺失”并通过“修复安全连接”迁移。该变更不写入系统级或 LocalMachine 信任，也不允许 CA 用于其他地址。2026-07-28 用户通过交互式 `security unlock-keychain` 恢复 Web 证书生成，确认 `/usr/bin/security` 方案存在后台安全会话依赖。随后按用户要求回退 Swift / Python Native Security Broker、Data Protection Keychain、桌面 `app` profile 强制门禁及因本事件扩展的签名 / 公证实现，恢复 0.3.0 的 `/usr/bin/security` 登录钥匙串路径；当前只保留 `36 / 51` 临时错误分类、明确解锁提示、运行中 Sidecar 保持和解锁后手动重试。App MCP `28776` 的既有运行态已确认监听、授权和 Token 签发，但没有用当前最新源码重新打包，也未完成最新实包五工具调用审计。
+- 需要确认：用户要求新包时，需从同一当前源码重建 license / no-license 双 staging，并在最新 macOS 实包内完成首次建证、完全退出重开、锁屏 / 解锁后的明确恢复路径、App MCP `28776` 的 OAuth、五工具和 `TOOL_CALL` 审计；不能用现有安装包或 Web `28775` 代替。正式外部分发的 Developer ID、notarization、stapling 和 Gatekeeper 作为独立发布任务另行授权。还需在真实 Windows 10/11 和目标客户端版本上完成 CurrentUser 信任、Keychain / DPAPI、OAuth 和五工具矩阵。MCP `2026-07-28` 的双时代升级由 OI-200 单独管理，未获用户启动授权前不改变当前 canonical 版本。
 - 验收入口：`/settings/ai-integration`、`docs/01-architecture/contracts/mcp/base-knowledge/v1/`、`tests/mcp/test_base_query_service.py`、`tests/mcp_e2e/test_web_dev_mcp_e2e.py`。
-- 关闭条件：目标 Codex 版本在 macOS/Windows 完成 HTTPS、发现、注册、PKCE、resource/audience、刷新、撤销、升级/回滚/卸载和负向安全矩阵；真实 CurrentUser 信任与密钥保管验证通过；MCP 始终不创建、打开或修改用户库。G 阶段不阻塞当前交付关闭，但触发条件满足后必须新建升级执行门禁并完成双时代回归，不能直接替换现有稳定协议。
+- 关闭条件：目标 Codex 版本在 macOS/Windows 最新实包中完成 HTTPS、发现、注册、PKCE、resource/audience、五工具调用、刷新、撤销、升级/回滚/卸载和负向安全矩阵；macOS 登录钥匙串临时不可访问时不误判为密钥永久丢失，不删除或重建健康证书，解锁后按明确路径恢复；真实 CurrentUser 信任与密钥保管验证通过；MCP 始终不创建、打开或修改用户库。OI-200 不阻塞当前 Legacy 交付关闭，且不得直接替换现有稳定协议。
 - 修复说明：新增正式基础知识库访问合同与 scope `sapd.base.knowledge.read`；Sidecar 改为只读打开正式基础库并通过 5 个固定工具返回全部业务对象内容、关系和脱敏来源证据。旧 synthetic 公开摘要合同保留为历史测试基线。系统设置明确显示“基础知识库全部业务内容，包括完整标准正文”，并继续排除用户数据、源文件本体、本地路径、系统配置与凭据、日志和非受控 SQL。
-- 验证结果：2026-07-26 隔离 MCP 完整套件 `170/170` 通过，覆盖 5 个只读工具、OAuth 注册/授权/刷新/复用/撤销、等价授权重试合并、超时与停服；同一 `client_id + redirect_uri + scopes + resource + policy_version` 的并发授权重试只展示一个请求，一次允许或拒绝同步完成该组等待流程，不同客户端或访问边界仍独立处理。重新授权后，指定真实 Codex 会话 `019f94f6-98aa-78e3-b2a5-f7a67ede0c29` 已完成五工具有效数据矩阵：搜索1条、对象1个、关系5条、脱敏来源证据8条、版本 `base-1c9d7c70574585df`，控制库记录连续5条 `TOOL_CALL / OK`，5173 客户端最近使用和最近3条工具审计自动刷新。真实连接同时发现 Sidecar 门禁把 canonical `2025-11-25` 误作唯一允许版本；修复后保持 canonical 版本不变，接受 MCP SDK 正式支持版本并继续拒绝未知版本。系统设置前端合同通过；正式基础库只读，真实用户库未修改。Windows、App/DMG 和目标客户端版本矩阵仍未验证。
+- 验证结果：2026-07-26 隔离 MCP 完整套件 `170/170` 通过，覆盖 5 个只读工具、OAuth 注册/授权/刷新/复用/撤销、等价授权重试合并、超时与停服；同一 `client_id + redirect_uri + scopes + resource + policy_version` 的并发授权重试只展示一个请求，一次允许或拒绝同步完成该组等待流程，不同客户端或访问边界仍独立处理。重新授权后，指定真实 Codex 会话 `019f94f6-98aa-78e3-b2a5-f7a67ede0c29` 已完成 Web `28775` 五工具有效数据矩阵：搜索1条、对象1个、关系5条、脱敏来源证据8条、版本 `base-1c9d7c70574585df`，控制库记录连续5条 `TOOL_CALL / OK`。Windows `Setup.exe` 私有 Runner 构建和上传链路通过。2026-07-28 回退后的 MCP 完整套件 `218 PASS / 5 SKIP`、证书 / Sidecar 专项 `33/33`、前端 AI 集成合同和 SwiftPM 编译通过；正式基础库只读，真实用户库未修改。回退前 Native Broker 的构建与启动结果只是历史中间证据，不代表当前源码或当前交付方案。App `28776` 仅确认既有运行态监听、授权和 Token 签发；最新源码 DMG、实包五工具与 `TOOL_CALL` 审计、锁屏 / 解锁恢复路径、Windows 安装态和目标客户端版本矩阵仍未验证。
+## OI-200：MCP 2026-07-28 双时代协议与 Web/App 前端分流
 
+- 状态：已规划 / 待用户明确启动，不进入当前开发
+- 严重性：中
+- 类型：架构 / MCP 协议 / OAuth / shared runtime / Web / App / 客户端兼容 / 打包
+- 对象或页面：`src/sapd_wiki/local_mcp/transport.py`、五工具注册与 OAuth、`/settings/ai-integration`、Web MCP `28775`、App MCP `28776`、Codex、WorkBuddy / `mcp-remote`、macOS / Windows 打包运行时。
+- 现象：当前服务固定以 MCP `2025-11-25` 为 canonical 版本并依赖 Python MCP SDK v1；MCP `2026-07-28` 和 Python SDK v2 已正式发布，但当前 WorkBuddy 链路中的 `mcp-remote 0.1.38` 仍使用旧版 `initialize` 流程，Codex 对新版协议的实际协商和 OAuth UI 兼容矩阵尚未形成发布证据。直接替换旧协议或拆分多套开发环境都会扩大当前稳定链路风险。
+- 影响：若维持旧协议，现有客户端可继续工作，但未来只支持 `2026-07-28` 的客户端可能无法连接；若直接切为 modern-only，则 WorkBuddy 和旧 Codex 会中断。Web 与 App 共用前端代码，但必须分别控制各自后端和 Sidecar，不能因协议升级发生端口、证书、授权或控制状态串线。
+- 建单理由：涉及协议、OAuth、安全、Web/App 共享前端、客户端矩阵、打包与回退边界，需跨版本长期验证；用户明确要求先保留计划，只有后续再次明确要求开发时才执行。
+- 当前处理：采用“一套代码、一个依赖环境、两个产品端口、每个端口一个双协议服务”的方案；不建立额外虚拟环境、长期 Sidecar、协议专用端口或并行代码分支。`28775` 始终属于 Web，`28776` 始终属于 App；同一 `/mcp` 端点按客户端自动协商 Legacy `2025-11-25` 或 Modern `2026-07-28`。开发顺序固定为：先在当前 SDK 下增加不改变行为的协议适配层；随后在同一依赖环境中一次性升级 SDK，但仍以 legacy profile 验证旧链；再仅在 Web `28775` 启用 dual 作为先行门禁；最后经打包与客户端矩阵通过后才在 App `28776` 启用 dual。不得把协议选择作为普通用户开关。
+- 前端分流：继续复用同一前端 bundle 和相对 `/api/v1/*` 数据入口，由后端控制快照以向后兼容的可选字段返回 `runtime_surface=web|desktop_app`、`protocol_profile=legacy|dual` 和 `supported_protocol_versions`。Web 页面只显示、复制和控制 `28775`，建议配置名 `sapd_wiki_web`；App 页面只显示、复制和控制 `28776`，建议配置名 `sapd_wiki_app`。WorkBuddy 正式引导只由 App 当前 Runtime 生成 `28776` URL 与 CA 路径；Web 只提供当前 `28775` 的开发测试配置，不推测或跨控 App。客户端第一次成功调用后可记录最近协议版本和连接方式，但 OAuth 授权不按协议重复创建。
+- 不变边界：继续保留 DCR、旧 `initialize`、五个只读工具、现有 `/mcp` URL、OAuth scope、控制库、token/refresh token、证书、Keychain / DPAPI、端口分工和用户数据边界；不得为协议升级重新生成证书、清空授权、修改真实用户数据库或停止另一运行面的 Sidecar。现代协议能力只允许增量加入，不得删除 Legacy 直到目标客户端矩阵明确允许。
+- 需要确认：只有用户后续明确提出“开始 OI-200”后才允许升级 SDK、增加 dual profile 或修改前端协议呈现；在此之前保持当前 canonical `2025-11-25` 和运行行为不变。
+- 验收入口：Legacy `initialize → tools/list → tools/call`；Modern `server/discover → tools/list → tools/call`；`/settings/ai-integration`；Codex 直连；WorkBuddy → `mcp-remote` → App `28776`；Web `28775` / App `28776` 并行进程、控制状态、OAuth、证书与审计隔离矩阵。
+- 关闭条件：`28775` 与 `28776` 均在同一端点稳定支持双时代协议；WorkBuddy 旧链和目标 Codex 版本通过 OAuth、五工具、刷新、撤销、重启和负向安全矩阵；Web/App 前端只控制各自运行面；macOS / Windows 安装态通过；legacy 回退不改 URL、证书、授权或用户数据。只有目标客户端不再需要 Legacy 且用户另行批准，才可讨论移除旧协议。
+- 回退方案：第一层把内部 `protocol_profile` 从 `dual` 恢复为 `legacy`，不改变 URL、证书和授权；第二层保留当前 `mcp==1.28.1` 依赖锁与 0.3.0 App 构建产物，在 SDK v2 本身回归时恢复已记录的依赖与适配层变更。回退不得删除控制库、token、Keychain 条目或用户数据。
+- 修复说明：本 Issue 仅固化后续开发方案和边界，当前未升级 MCP SDK、未实现 modern 协议、未修改前端、未改变运行中的 `28775` / `28776`。
+- 验证结果：计划建立时确认当前 `mcp-remote 0.1.38` 内置 `@modelcontextprotocol/sdk 1.25.3`，仍以 `2025-11-25 + initialize` 工作；当前代码依赖锁为 `mcp==1.28.1`。阶段 0 的 OAuth discovery issuer 精确匹配作为独立小修复实施，不视为 OI-200 已启动。
 ## OI-197：成熟度评分依据与当前能力字典尚未全量映射
 
 - 状态：待业务确认 / 映射门禁阻断
@@ -82,38 +98,6 @@
 - 关闭条件：91 个关注点、160 条服务关系和 185 个评估点全部唯一绑定 rubric set，父 L2 和名称语义复核完成，映射门禁为 `PASS`；随后重新按当前字典生成问题分类。
 - 修复说明：本轮只完成只读对比与设计门禁，不修改运行代码、当前字典、源 Excel、正式 JSON / SQLite、模板、评分数据、用户库、ETL 或 DMG。
 - 验证结果：当前 maturity 基础模板校验错误 / 警告为 `0 / 0`；能力 / 关注点 / 服务编码重复为 `0 / 0 / 0`；源关注点孤立数和父 L2 冲突均为 `0`。工程字典和源 Excel 哈希保持不变。
-
-## OI-192：成熟度评分工作台服务、评分定义与主动作契约未按截图落地
-
-- 状态：已修复 / 待用户验收
-- 严重性：中
-- 类型：前端 / 成熟度评分 / 产品设计 / 防回归审计
-- 对象或页面：`工作台 → 成熟度评估` 首页、项目内“评分检查 / 评估结果 / 报告快照”和模板管理，固定入口 `/workbench/maturity`。
-- 现象：用户连续复验成熟度工作台后指出完成提示固定在右上角并跨路由残留，不适用 / 无证据仍被误解为阻塞；模板管理藏在“更多”且缺少默认 / 自定义模板导入导出闭环；首页缺少模板资产区；返回项目列表后残留项目提示；报告快照没有面向汇报的 HTML 版式和文字补充区。第二十四至第二十七轮复验又指出评分上下文锁定、四维列内部滚动或评分表单内部滚动都会破坏完整打分任务；窄屏摘要仍可能挤压；项目概览过空；T / G / M 名称与分数分离；完整评估报告与 Markdown / HTML 双出口表达不清。
-- 影响：问题同时覆盖项目状态、模板资产、结果诊断与报告交付四条核心路径，影响 Web 和后续 DMG App 共享前端；若继续按单个截图打补丁，会再次出现跨路由状态泄漏、模板基准被覆盖、结果阅读顺序漂移和导出格式扩散。
-- 建单理由：属于用户重复拒绝的多组件 shared runtime 契约问题，需要同步三份成熟度文档并扩展专项审计和多视口浏览器验收。
-- 当前处理：第三十一轮按用户最新截图只收口 L2 摘要列宽与组内对齐。中宽成熟度 / 四维均值 / 评估点改为约 `0.90 : 1.60 : 0.65`，评估点内部恢复适用性 / 进度两个等宽子格；当前 / 目标、四维、适用性和进度均在自身子格水平居中。成熟度等级 / 连续分数与四维均值共享 `28px` 主读数 token，并覆盖旧 `align-self:end`，使值组与“维度名称 + 均值”组合块垂直中心差不超过 `3px`。第三十轮四维单行和 `480px` 回流、第二十八轮 current / target 双单元、第二十七轮外层单滚动及后续业务契约保持。
-- 需要确认：请用户只在固定项目的“评分执行”确认评估点区域已明显窄于四维区域；当前 / 目标、四维、适用性和进度各自在子格内居中；成熟度等级 / 分数与“组织与角色 + 均值”字号一致、位于同一视觉中线。
-- 验收入口：`http://127.0.0.1:5173/#/workbench/maturity/demo-project-001`。保持“评分执行”，查看顶部 `T-AS.AD 网络安全体系架构管控能力` 的 L2 汇总；预期评估点更紧凑、六类读数组居中、当前 / 目标与四维主读数均为 `28px`，页面无横向滚动。
-- 关闭条件：用户确认上述五组人工验收通过；DMG App 证据在下次发布矩阵补充，不以 5173 Web 结论替代。
-- 修复说明：第三十一轮只修改成熟度 CSS、缓存版本和专项审计；同步成熟度前端规格、业务设计、全局优化计划、发现、进度和状态入口。未修改评分 / 聚合、`MaturityAssessmentWorkbench.js` 业务输出、源 Excel、SQLite、正式 public/data JSON、字典 / 标准 / 生命周期基线、用户库、Draw.io 原图或 DMG。
-- 验证结果：第三十一轮专项审计 `222/222`、JS / Python 语法、maturity HTTP/API smoke、GitHub 数据边界、定向 diff-check 与 5173 stable 通过。应用内 Browser `1600×900` 实测评估点 / 四维宽度 `210 / 503.68px`、每个子格标签中心偏差不超过 `0.5px`、成熟度 / 四维主读数均为 `28px`、垂直中心差 `2.5px`、页面横向溢出和 console warning / error 为 `0`；`T-AS.AD / T-AS.AM / G-SP.SM` 三个 L2 与项目概览负向对照通过，`1280×720 / 540×900` 回流无溢出。治理检查仅命中其他活动改动的 `app.js=12772 > 12758`，本轮未抬阈值；未启动系统 Chrome，未重建 DMG App。
-
-## OI-191：全局共享标题区视觉 token 偏离旧 DMG 基线
-
-- 状态：已修复 / 待用户验收
-- 严重性：中
-- 类型：前端 / 共享 App Shell / 设计 / 审计
-- 对象或页面：所有使用 `.app-page-header` 的 Web 与 DMG App 共享前端路由，代表入口为 `/`、`/capability-mapping`、`/workbench/maturity/demo-project-001`。
-- 现象：用户对照当前程序与旧 DMG 后指出标题字号、说明字号、左侧留白和三层间距不一致；上次修正后仍不舒适。
-- 影响：共享 token 同时影响全工程页面；单页补丁会继续造成标题区在不同页面漂移，Web 与下次 DMG App 都会继承错误节奏。
-- 建单理由：影响多个页面与 Web / App 共享运行面，属于重复出现的全局视觉契约问题，并扩展了自动审计。
-- 当前处理：以用户旧 DMG 截图和已挂载 `0.1.7` 运行前端为视觉真值，把共享标题恢复为页头 `96px`、标题 `24px / 1.13`、说明 `12px / 1.45`、页头内边距 `12px 18px`、文本组间距 `5px`、标题与标签间距 `7px`；参数写入 P0-2 配置与审计，业务页不得局部覆写。
-- 需要确认：用户在固定入口对照旧 DMG，确认标题大小、左侧留白和面包屑 / 标题 / 说明节奏是否恢复舒适。
-- 验收入口：`http://127.0.0.1:5173/#/`；可再抽查“安全能力映射”和“工作台 → 成熟度评估”。预期三页标题参数一致，视觉接近旧 DMG。
-- 关闭条件：用户确认 5173 标题区可验收；DMG App 证据在下次发布矩阵补充，不以当前 Web 结论替代。
-- 修复说明：修改共享 `styles.css` token、P0-2 契约配置和审计脚本，并递增样式缓存版本；同步全局设计基线、成熟度三文档、计划、发现、状态和 Design QA。未修改页面文案、业务数据、评分、聚合、API、SQLite、正式 JSON、源 Excel、用户库或 DMG。
-- 验证结果：P0-2 v4 静态与 5173 runtime 审计通过；应用内浏览器在 1280×720 对照旧 DMG，三条代表路由计算样式一致且无页面横向溢出、主区禁显字段命中 0；未启动系统 Chrome，未重建 DMG App。
 ## OI-138：关注点关系图谱标签与节点 / 连线碰撞
 
 - 状态：暂不修复 / 已回退

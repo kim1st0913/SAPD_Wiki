@@ -89,7 +89,8 @@
 - 还没有统一的 base/user read model 合并策略。
 - 还没有用户库备份、恢复、迁移失败回滚和测试数据清理策略。
 - 2026-07-06 已正式迁移当前 2 条旧 `base:<type>:<uuid>` 引用：`数据分析层` 从 `base:information_object:418bd2f6-ff6e-431e-b2ef-059df3cdd2ae` 迁到 `base:information_object:information_object:hash:9055299c885b70a0`，覆盖 `user_notes.target_ref` 和 `user_change_logs.target_ref` 各 1 条，并写入 `user_target_ref_migrations.applied=2`。
-- `docs/09-delivery/user-database-minimum-schema.md` 与当前代码版本存在口径差异，后续应在 `user_schema_0.3` 迁移设计确认后同步。
+- `docs/05-archive/delivery-retired-2026-07/user-database-minimum-schema.md` 是历史 ZIP alpha
+  最小模板，不再代表当前用户库合同。
 - `user-workspace-v1-to-v4-design.md` 与当前 backlog 中关于 V3 / V4 的表述存在轻微顺序差异，后续以本设计中的“先 schema / read model，后 UI”的顺序为准。
 
 ## 3. 长期对象引用规范
@@ -565,9 +566,9 @@ scripts/audit_stable_key_contract.mjs
 |---|---|---|---|
 | 1 | 新增 user DB 治理契约审计 | 已完成 | `scripts/audit_user_db_governance_contract.mjs` |
 | 2 | 新增 stable key 契约审计 | 已完成 | `scripts/audit_stable_key_contract.mjs` |
-| 3 | 生成当前用户库兼容报告 | 已完成 | `docs/06-implementation/user-db-compatibility-report-2026-06-06.md` |
+| 3 | 生成当前用户库兼容报告 | 已完成 | `docs/05-archive/implementation-completed-2026-07/user-db-compatibility-report-2026-06-06.md` |
 | 4 | 设计 `user_schema_0.3` migration dry-run | 已完成 | `scripts/plan_user_schema_0_3_migration.mjs`，只读输出 0.3 表创建、legacy favorite note 候选和 target_ref 风险分类 |
-| 5 | 设计基础库 `stable_key` / `base_id_redirects` migration | 已完成 | `docs/06-implementation/base-stable-key-and-redirect-migration-design-2026-06-06.md` |
+| 5 | 设计基础库 `stable_key` / `base_id_redirects` migration | 已完成 | `docs/05-archive/implementation-completed-2026-07/base-stable-key-and-redirect-migration-design-2026-06-06.md` |
 | 6 | 临时库 migration smoke | 已完成 | `scripts/smoke_db_migration_contracts.mjs` 只对 `/private/tmp` 复制库执行，真实基础库 / 用户库不写 |
 | 7 | 正式迁移脚本三段式 | 已完成 | `scripts/migrate_db_contracts.mjs` 默认 dry-run；`--apply` 才写目标库；项目真实库还需 `--confirm-project-db-write` 并自动备份 |
 | 8 | OI-135 真实库 apply | 已完成 | `data/exports/worker-verify/oi-135-formal-apply/20260706T063552Z/oi135-formal-apply-report.md`，正式基础库替换、用户库 target_ref 迁移、备份与回退路径 |

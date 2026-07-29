@@ -1,132 +1,116 @@
-# 文档导航
+# SAPD Wiki 文档导航
 
-本文档是 `docs/` 的总入口。原则是：先按场景找入口，不从目录树逐个翻。
+> 状态：`active / primary documentation index`
+>
+> 更新日期：2026-07-28
 
-## 日常读取规则
+从场景进入，不按目录逐个阅读。历史文件只用于追溯，不能覆盖当前合同和代码。
 
-默认只读：
+## 先看什么
 
-1. `../CURRENT_STATE.md`
-2. `../progress.md`
-3. 本轮任务直接相关的 1-3 个文档
+日常恢复只读：
 
-不要默认读取 `05-archive/`、长历史、导出包记录或大型数据说明。需要追溯时再按索引进入。
+1. [`CURRENT_STATE.md`](../CURRENT_STATE.md)
+2. [`task_plan.md`](../task_plan.md)
+3. 本轮直接相关的 1—3 份专题文档
 
-## 新增文档规则
+需要最近执行证据时再看 [`progress.md`](../progress.md)；需要长期决策时看
+[`findings.md`](../findings.md)。
 
-当前文档已经偏重，默认不为小修、小 bug、一次性排查或临时方案新增文档。
+文档状态、归档和新增规则见
+[`DOCUMENT_GOVERNANCE.md`](DOCUMENT_GOVERNANCE.md)。
 
-新增文档前先判断：
+## 按场景进入
 
-- 能否写入现有入口；
-- 是否是跨模块稳定契约、用户交付说明、数据 / 安全 / 审计边界；
-- 是否需要长期维护；
-- 是否有清晰索引和退役条件。
+### 项目现状和路线
 
-不满足上述条件时，只更新 `progress.md`、必要时更新 `CURRENT_STATE.md` 或相关现有文档。
+- [`CURRENT_STATE.md`](../CURRENT_STATE.md)：当前实现、风险和恢复入口
+- [`task_plan.md`](../task_plan.md)：未完成主线和下一步
+- [`00-overview/project-vision.md`](00-overview/project-vision.md)：当前产品定位、业务版图和产品原则
+- [`00-overview/project-roadmap.md`](00-overview/project-roadmap.md)：面向用户的路线说明
+- [`06-implementation/open-issues.md`](06-implementation/open-issues.md)：仍未关闭的问题
 
-## 只想了解项目现状
+### 架构、API 和 MCP
 
-优先看：
+- [`01-architecture/architecture.md`](01-architecture/architecture.md)
+- [`01-architecture/api-field-contract.md`](01-architecture/api-field-contract.md)
+- [`01-architecture/sapd-wiki-local-mcp-requirements-and-prd-v0.5.md`](01-architecture/sapd-wiki-local-mcp-requirements-and-prd-v0.5.md)
+- [`01-architecture/sapd-wiki-local-mcp-certificate-and-trust-management-design-v1.md`](01-architecture/sapd-wiki-local-mcp-certificate-and-trust-management-design-v1.md)
+- [`01-architecture/contracts/mcp/`](01-architecture/contracts/mcp/)
 
-1. `../CURRENT_STATE.md`
-2. `../progress.md`
-3. `00-overview/project-roadmap.md`
-4. `06-implementation/open-issues.md`
+### 数据、导入和 ETL
 
-## 要理解顾问端交付方式
+- [`02-data-model/data-model.md`](02-data-model/data-model.md)
+- [`03-import-etl/README.md`](03-import-etl/README.md)
+- [`03-import-etl/import-rules.md`](03-import-etl/import-rules.md)
+- [`03-import-etl/mapping-rules.md`](03-import-etl/mapping-rules.md)
+- [`03-import-etl/import-approval-idempotency-and-retention-contract.md`](03-import-etl/import-approval-idempotency-and-retention-contract.md)
+- [`03-import-etl/completed-sheet-business-confirmation.md`](03-import-etl/completed-sheet-business-confirmation.md)
+- [`03-import-etl/github-local-data-initialization.md`](03-import-etl/github-local-data-initialization.md)
+- [`07-governance/data-governance.md`](07-governance/data-governance.md)
 
-优先看：
+### 前端和用户状态
 
-1. `01-architecture/consultant-delivery-model.md`
-2. `06-implementation/local-data-layout.md`
-3. `03-import-etl/github-local-data-initialization.md`
-4. `09-delivery/mac-dmg-browser-parity-contract.md`
+- [`04-frontend/frontend-information-architecture.md`](04-frontend/frontend-information-architecture.md)
+- [`04-user-guide/user-guide.md`](04-user-guide/user-guide.md)
+- [`06-implementation/frontend-global-design-baseline-2026-05-30.md`](06-implementation/frontend-global-design-baseline-2026-05-30.md)
+- [`06-implementation/local-data-layout.md`](06-implementation/local-data-layout.md)
+- [`06-implementation/user-database-governance-and-stable-key-design.md`](06-implementation/user-database-governance-and-stable-key-design.md)
+- [`frontend/design-handoff/implementation-specs/`](../frontend/design-handoff/implementation-specs/)
 
-## 要做本地 MCP
+页面代码只能直接采用 `implementation-specs/` 中标记为 active /
+implementation-source 的规格。Stitch 输出、截图和旧 brief 只是参考。
 
-优先看：
+### 成熟度
 
-1. `01-architecture/sapd-wiki-local-mcp-requirements-and-prd-v0.5.md`
-2. `06-implementation/local-mcp-m0t-t0-t2-execution-plan.md`
-3. `07-governance/approvals/local-mcp-m0t-t0-t2-approval-2026-07-23.md`
-4. `01-architecture/contracts/mcp/`（T0 开始后生成）
+- [`08-maturity/requirements.md`](08-maturity/requirements.md)
+- [`08-maturity/maturity-domain-model.md`](08-maturity/maturity-domain-model.md)
+- [`08-maturity/maturity-data-model.md`](08-maturity/maturity-data-model.md)
+- [`08-maturity/maturity-template-mapping.md`](08-maturity/maturity-template-mapping.md)
+- [`08-maturity/assessment-rubric-dictionary-mapping-audit-2026-07-17.md`](08-maturity/assessment-rubric-dictionary-mapping-audit-2026-07-17.md)
+- [`08-maturity/assessment-rubric-source-appendix-2026-07-17.md`](08-maturity/assessment-rubric-source-appendix-2026-07-17.md)
 
-当前仅授权隔离的 G0 与 T0–T2。不得据此进入 T3、D0、M1、真实数据、用户数据、App integration 或 packaging。
+当前 OI-197 的 15 项业务裁定未完成前，不得把候选 Rubric 写入正式字典或评分规则。
 
-## 要做测试、回归或发布前验收
+### 测试和治理
 
-优先看：
+- [`07-governance/governance-index.md`](07-governance/governance-index.md)
+- [`07-governance/project-test-workflow-and-case-matrix.md`](07-governance/project-test-workflow-and-case-matrix.md)
+- [`scripts/README.md`](../scripts/README.md)
+- [`06-implementation/open-issues.md`](06-implementation/open-issues.md)
 
-1. `07-governance/project-test-workflow-and-case-matrix.md`
-2. `../scripts/README.md`
-3. `09-delivery/mac-dmg-browser-parity-contract.md`
+### macOS / Windows 打包和发布
 
-## 要从 GitHub 拉代码并初始化本地数据
+- [`09-delivery/desktop-packaging-runbook.md`](09-delivery/desktop-packaging-runbook.md)
+- [`09-delivery/mac-dmg-browser-parity-contract.md`](09-delivery/mac-dmg-browser-parity-contract.md)
+- [`09-delivery/release-acceptance-matrix-0.1.md`](09-delivery/release-acceptance-matrix-0.1.md)
+- [`09-delivery/windows-github-installer-migration-plan-2026-07-27.md`](09-delivery/windows-github-installer-migration-plan-2026-07-27.md)
 
-优先看：
+Windows 当前使用公开 `main` 精确 SHA + 私有 Delivery Data + 私有 Windows Runner；
+macOS 继续在正式 Mac 主工作区本地生成 DMG。历史 DMG 仅代表其构建快照，新包必须
+从当前源码重建并通过实包门禁。
 
-1. `03-import-etl/github-local-data-initialization.md`
-2. `../scripts/README.md`
-3. `07-governance/data-governance.md`
+## 历史材料
 
-## 要做导入、ETL 或 Sheet 建模
+历史和退役材料统一从 [`05-archive/README.md`](05-archive/README.md) 进入。
 
-优先看：
+以下内容不得作为当前执行依据：
 
-1. `03-import-etl/README.md`
-2. `03-import-etl/import-rules.md`
-3. `03-import-etl/completed-sheet-business-confirmation.md`
-4. `02-data-model/data-model.md`
+- 已删除分支和旧 worktree 流程；
+- Windows backend-only + Mac 手工组装安装器流程；
+- ZIP alpha 试发流程；
+- 已停用的固定执行线 / task ID 台账；
+- 已完成阶段计划、旧截图和被替代设计稿。
 
-## 要做本地 MCP、AI 集成或授权设计
+## 新增文档前
 
-优先看：
+优先更新现有入口。只有跨模块合同、数据 / 安全 / 发布边界、长期操作手册或用户
+独立交付物才新增文档。
 
-1. `01-architecture/sapd-wiki-local-mcp-requirements-and-prd-v0.5.md`
-2. `06-implementation/local-mcp-m0t-t0-t2-execution-plan.md`
-3. `06-implementation/user-database-governance-and-stable-key-design.md`
-4. `09-delivery/base-manifest-contract.md`
-5. `09-delivery/mac-dmg-browser-parity-contract.md`
+新文档必须包含：
 
-当前只允许 MCP 的 `M0-T` 隔离技术验证与四份合同冻结；`D0` 内容工作须另行取得数据变更授权。只有 `M0-T=PASS + D0-Pilot=PASS` 才可评审 M1 计划，真实数据仍须等待 `D0-Release=PASS`。该设计文档不能直接授权 M1 代码、正式数据开放、用户数据访问或打包发布。
-
-## 要做前端页面或数据契约
-
-优先看：
-
-1. `01-architecture/backend-interface-design.md`
-2. `01-architecture/api-field-contract.md`
-3. `01-architecture/frontend-json-data-package-inventory.md`
-4. `04-frontend/frontend-information-architecture.md`
-
-## 要查设计文档或继续前端设计
-
-优先看：
-
-1. `04-frontend/frontend-information-architecture.md`
-2. `04-frontend/frontend-redesign-brief.md`
-3. `06-implementation/frontend-global-design-baseline-2026-05-30.md`
-4. `06-implementation/frontend-display-design-principles-2026-05-30.md`
-5. `../frontend/design-handoff/README.md`
-6. `../frontend/design-handoff/implementation-specs/`
-
-设计文档按用途分层，不从文件名相似度随便选：
-
-- `frontend/design-handoff/implementation-specs/` 是页面实现规格入口，只有这里的 active spec 可以作为代码实现依据。
-- `frontend/design-handoff/stitch-*` 是 Stitch / Product Design 原始交接或参考材料，不能直接作为代码实现依据，必须先转成 implementation spec。
-- `docs/06-implementation/*design*`、`*baseline*`、`*contract*` 只承载跨页面稳定设计规则、全局交互契约或已经验收的专题设计结论。
-- `docs/04-frontend/` 只保留当前信息架构和前端设计 brief，不继续堆页面级细节。
-- `docs/09-delivery/` 只放交付、打包、首次启动、诊断和用户交付体验，不放普通前端页面设计。
-
-小 UI 调整、文案、单页局部样式和一次性截图反馈默认不新增设计文档；直接修改代码并在 `progress.md` 和任务完成反馈里说明验收入口。
-
-## 要查历史
-
-优先看：
-
-1. `05-archive/progress-history/2026-05.md`
-2. `05-archive/findings-history/2026-05.md`
-3. `05-archive/document-retirement-2026-05/README.md`
-
-历史归档只在需要追溯过程时读取，不作为日常开工入口。
+- 状态；
+- 目标读者；
+- 权威来源；
+- 验收或维护方式；
+- 完成、替代或退役后的归档条件。

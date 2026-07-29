@@ -1050,7 +1050,7 @@ M1 可继续使用 fixture 或隔离候选资产；在 `D0-Release PASS` 前不�
 - `apps/macos/SAPDWiki/Sources/SAPDWiki/main.swift`
 - `apps/electron/main.cjs`
 - `docs/06-implementation/user-database-governance-and-stable-key-design.md`
-- `docs/09-delivery/base-manifest-contract.md`
+- `docs/05-archive/delivery-retired-2026-07/base-manifest-contract.md`（历史 ZIP alpha 合同）
 
 ### 外部规范
 

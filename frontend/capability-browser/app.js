@@ -2827,6 +2827,8 @@ function announceAppStatus(message) {
   }, 0);
 }
 const WORKSPACE_STATE_STORAGE_KEY = "sapd:workspace-state:v1";
+const WORKSPACE_STATE_PERSIST_DELAY_MS = 120;
+let workspaceStatePersistTimer = 0;
 const MODELING_LANGUAGE_GUIDE_ROUTE = "/guides/security-architecture-modeling-language";
 const MATURITY_MODEL_GUIDE_ROUTE = "/guides/maturity-model-usage";
 const MATURITY_MODEL_GUIDE_DOCUMENT_PATH = "/assets/guides/maturity-model-usage.html?embed=1&v=p1-6-guide-navigation-20260721-1&density=p2-3-guide-density-20260716-2";
@@ -3058,6 +3060,22 @@ function persistWorkspaceState() {
   } catch {
     // Ignore localStorage failures in file/private browsing contexts.
   }
+}
+
+function scheduleWorkspaceStatePersist() {
+  if (workspaceStatePersistTimer) window.clearTimeout(workspaceStatePersistTimer);
+  workspaceStatePersistTimer = window.setTimeout(() => {
+    workspaceStatePersistTimer = 0;
+    persistWorkspaceState();
+  }, WORKSPACE_STATE_PERSIST_DELAY_MS);
+}
+
+function flushWorkspaceStatePersist() {
+  if (workspaceStatePersistTimer) {
+    window.clearTimeout(workspaceStatePersistTimer);
+    workspaceStatePersistTimer = 0;
+  }
+  persistWorkspaceState();
 }
 
 function applyWorkspaceState(snapshot) {
@@ -7290,11 +7308,11 @@ function activateContentSlideStep(slideStep, event = null) {
   if (slideStep.disabled || slideStep.getAttribute("aria-disabled") === "true") return true;
   slideStep.blur?.();
   changeContentSlide(Number(slideStep.dataset.contentSlideStep || 0), "active");
-  window.setTimeout(persistWorkspaceState, 0);
+  scheduleWorkspaceStatePersist();
   return true;
 }
 
-function activateContentSlideThumb(slideThumb, event = null) { if (!slideThumb) return false; event?.preventDefault?.(); event?.stopPropagation?.(); const nextIndex = Number(slideThumb.dataset.contentSlideIndex || 0); if (!Number.isFinite(nextIndex)) return true; selectContentSlide(nextIndex, "preserve"); window.setTimeout(persistWorkspaceState, 0); return true; }
+function activateContentSlideThumb(slideThumb, event = null) { if (!slideThumb) return false; event?.preventDefault?.(); event?.stopPropagation?.(); const nextIndex = Number(slideThumb.dataset.contentSlideIndex || 0); if (!Number.isFinite(nextIndex)) return true; selectContentSlide(nextIndex, "preserve"); scheduleWorkspaceStatePersist(); return true; }
 
 function scaledDrawioSize(size = DRAWIO_LEGEND_DEFAULT_SIZE, maxWidth = 96, maxHeight = 58) {
   const width = Number(size[0]) || DRAWIO_LEGEND_DEFAULT_SIZE[0];
@@ -12077,7 +12095,15 @@ function systemSettingsModel(health = {}, desktop = {}) {
       text(desktop.currentVersion).trim()
       || text(health.app_version || health.version).trim()
       || "开发环境",
+    userHome:
+      text(desktop.userHome).trim()
+      || text(settingsPaths.user_home).trim(),
     dataRoot,
+    runtimeRoot:
+      text(desktop.runtimeRoot).trim()
+      || text(settingsPaths.runtime_root).trim()
+      || settingsPath(runtime.runtime_root)
+      || (dataRoot ? `${dataRoot}/Runtime` : ""),
     importDirectory:
       text(desktop.importDirectory).trim()
       || text(settingsPaths.import_directory).trim()
@@ -12128,21 +12154,37 @@ async function chooseSettingsPath(action) {
   }
 }
 
-async function copySettingsText(value, successMessage) {
+async function copySettingsText(value, successMessage, { inlineStatusSelector = "" } = {}) {
   const normalized = text(value).trim();
+  const inlineStatus = inlineStatusSelector
+    ? document.querySelector(inlineStatusSelector)
+    : null;
+  const announceInline = (tone, message) => {
+    if (!inlineStatus) return false;
+    inlineStatus.className = `system-settings-workbuddy-copy-status is-${tone}`;
+    inlineStatus.textContent = message;
+    return true;
+  };
   if (!normalized) {
-    state.mcpControlNotice = { tone: "error", message: "当前没有可复制的内容。" };
-    renderSettings();
+    if (!announceInline("error", "当前没有可复制的内容。")) {
+      state.mcpControlNotice = { tone: "error", message: "当前没有可复制的内容。" };
+      renderSettings();
+    }
     return;
   }
   try {
     if (typeof navigator.clipboard?.writeText !== "function") throw new Error("clipboard unavailable");
     await navigator.clipboard.writeText(normalized);
-    state.mcpControlNotice = { tone: "success", message: successMessage };
+    if (!announceInline("success", successMessage)) {
+      state.mcpControlNotice = { tone: "success", message: successMessage };
+      renderSettings();
+    }
   } catch (error) {
-    state.mcpControlNotice = { tone: "error", message: "复制失败，请手动选择页面中的内容。" };
+    if (!announceInline("error", "复制失败，请手动选择页面中的内容。")) {
+      state.mcpControlNotice = { tone: "error", message: "复制失败，请手动选择页面中的内容。" };
+      renderSettings();
+    }
   }
-  renderSettings();
 }
 
 async function loadSettingsRuntimeHealth({ force = false } = {}) {
@@ -12796,14 +12838,18 @@ function bindEvents() {
     if (copyWorkbuddy) {
       event.preventDefault();
       const configuration = document.querySelector("[data-workbuddy-json]")?.textContent || "";
-      copySettingsText(configuration, "WorkBuddy JSON 已复制。");
+      copySettingsText(configuration, "WorkBuddy JSON 模板已复制。", {
+        inlineStatusSelector: "[data-workbuddy-copy-status]",
+      });
       return;
     }
     const copyWorkbuddyPrompt = event.target?.closest?.("[data-mcp-copy-workbuddy-prompt]");
     if (copyWorkbuddyPrompt) {
       event.preventDefault();
       const prompt = document.querySelector("[data-workbuddy-prompt]")?.textContent || "";
-      copySettingsText(prompt, "WorkBuddy 配置提示词已复制。");
+      copySettingsText(prompt, "WorkBuddy 配置提示词已复制。", {
+        inlineStatusSelector: "[data-workbuddy-copy-status]",
+      });
       return;
     }
     const auditPage = event.target?.closest?.("[data-mcp-audit-page]");
@@ -13430,7 +13476,6 @@ function bindEvents() {
   renderCapabilities();
   announceCapabilitySelection(state.selectedCapabilityId);
   });
-  $("capabilityFocusHeader")?.addEventListener("click", () => {});
   $("capabilityViewControls")?.addEventListener("keydown", (event) => {
     const activeTab = event.target?.closest?.(".relation-view-tab[role='tab']");
     if (!activeTab) return;
@@ -13694,9 +13739,6 @@ function bindEvents() {
     event.preventDefault();
     changeContentSlide(event.key === "ArrowDown" ? 1 : -1, "active");
   });
-  document.querySelectorAll("[data-lifecycle-kind]").forEach((button) => {
-    button.addEventListener("click", () => {});
-  });
   document.addEventListener("click", (event) => {
     const pageSearchStep = event.target.closest("[data-page-search-step]");
     if (pageSearchStep) {
@@ -13879,16 +13921,6 @@ function bindEvents() {
       requestAnnotationContextSwitch(switchContentPage, contentPage.textContent.trim() || "安全指南页面");
       return;
     }
-    const slideStep = event.target.closest("[data-content-slide-step]");
-    if (slideStep) {
-      activateContentSlideStep(slideStep, event);
-      return;
-    }
-    const slideThumb = event.target.closest("[data-content-slide-index]");
-    if (slideThumb) {
-      activateContentSlideThumb(slideThumb, event);
-      return;
-    }
     const content = event.target.closest("[data-content-id]");
     if (content) {
       state.selectedContentId = content.dataset.contentId;
@@ -13901,12 +13933,9 @@ function bindEvents() {
     if (!stage) return;
     if (stage.contains(document.activeElement)) document.activeElement.blur?.();
   }, true);
-  document.addEventListener("click", () => {
-    window.setTimeout(persistWorkspaceState, 0);
-  });
-  document.addEventListener("keydown", () => {
-    window.setTimeout(persistWorkspaceState, 0);
-  });
+  document.addEventListener("click", scheduleWorkspaceStatePersist);
+  document.addEventListener("keydown", scheduleWorkspaceStatePersist);
+  window.addEventListener("pagehide", flushWorkspaceStatePersist);
   document.addEventListener("keydown", (event) => {
     if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "k") return;
     event.preventDefault();

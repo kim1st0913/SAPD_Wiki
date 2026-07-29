@@ -19,9 +19,9 @@ const settingsCss = read("frontend/capability-browser/system-settings.css");
 assert.equal(index.match(/id="settingsWorkspace"/g)?.length, 1, "settings workspace id must be unique");
 assert.match(index, /system-settings\.css\?v=/);
 assert.match(index, /components\/SystemSettings\.js\?v=/);
-assert.match(index, /system-settings\.css\?v=apple-shell-settings-20260726-21-privacy-audit-tab/);
-assert.match(index, /components\/SystemSettings\.js\?v=apple-shell-settings-20260727-22-audit-event-groups/);
-assert.match(index, /app\.js\?v=[^"]*apple-shell-settings-20260725-8-scroll-retention/);
+assert.match(index, /system-settings\.css\?v=apple-shell-settings-20260726-21-privacy-audit-tab-workbuddy-guide-20260729-1/);
+assert.match(index, /components\/SystemSettings\.js\?v=apple-shell-settings-20260727-22-audit-event-groups-workbuddy-guide-20260729-1/);
+assert.match(index, /app\.js\?v=[^"]*workbuddy-guide-20260729-1/);
 assert.doesNotMatch(index, /AiIntegrationSettings|ai-integration-settings\.css/);
 assert.ok(index.indexOf("components/SystemSettings.js") < index.indexOf("./app.js"), "settings component must load before app.js");
 
@@ -70,6 +70,10 @@ assert.match(app, /currentSection\.replaceWith\(nextSection\)/);
 assert.match(app, /function settingsActiveEditor\(section, activeElement\)/);
 assert.match(app, /matchingButtons\[0\]\.focus\(\{ preventScroll: true \}\)/);
 assert.match(app, /renderSettings\(\{ silent \}\)/);
+assert.match(app, /text\(settingsPaths\.user_home\)\.trim\(\)/);
+assert.match(app, /text\(settingsPaths\.runtime_root\)\.trim\(\)/);
+assert.match(app, /inlineStatusSelector:\s*"\[data-workbuddy-copy-status\]"/);
+assert.match(app, /announceInline\("success", successMessage\)/);
 assert.match(app, /visibleStateChanged/);
 assert.match(app, /data-mcp-audit-page/);
 assert.match(app, /const auditPage = auditPayload\?\.data;/);
@@ -97,6 +101,7 @@ vm.runInContext(settingsSource, context, { filename: "SystemSettings.js" });
 const component = context.window.sapdComponents.SystemSettings;
 const certificate = (state = "not_configured", overrides = {}) => ({
   state,
+  profile: "dev",
   reason_code: null,
   subject: "127.0.0.1",
   san: ["127.0.0.1"],
@@ -442,7 +447,9 @@ assert.doesNotMatch(certificateDialogHtml, /<input|<select|<textarea/);
 const workbuddyGuideHtml = component.render({
   route: "/settings/ai-integration",
   system: {
+    userHome: "/Users/tester",
     dataRoot: "/Users/tester/Library/Application Support/SAPDWiki",
+    runtimeRoot: "/Users/tester/Library/Application Support/SAPDWiki/Runtime",
     importDirectory: "/Users/tester/Documents/SAPDWiki/import",
     downloadDirectory: "/Users/tester/Documents/SAPDWiki/export",
   },
@@ -463,17 +470,22 @@ const workbuddyGuideHtml = component.render({
   },
   workbuddyGuide: true,
 });
-for (const label of ["WorkBuddy 配置引导", "按以下 4 步完成 WorkBuddy 配置", "1. 生成连接证书", "2. 核对 JSON", "3. 复制配置提示词", "4. 重启并授权", "mcpServers", "stdio", "/opt/homebrew/bin/npx", "mcp-remote@0.1.38", "http-only", "3334", "https://127.0.0.1:28775/mcp", "NODE_EXTRA_CA_CERTS", "/Users/tester/.workbuddy/certs/sapd-wiki-app-ca.pem", "MCP_REMOTE_CONFIG_DIR", "已完成。WorkBuddy 只会复制 CA 证书，不会接触服务端私钥", "先在 SAPD Wiki 的“安全连接证书”中生成", "active-manifest.json", "ca_relative_path", "只把上一步的 ca.pem 复制", "不含服务器私钥", "server_key_relative_path", "不要关闭 TLS 校验", "AA:BB:CC:DD", "返回本页确认 OAuth 只读授权", "复制 JSON", "复制配置提示词", "创建带时间戳的备份", "保留其他所有 MCP 配置", "不要替我批准 OAuth"]) {
+for (const label of ["WorkBuddy 配置引导", "按以下 4 步完成 WorkBuddy 配置", "1. 生成连接证书", "2. 核对 JSON 模板", "3. 复制配置提示词", "4. 重启并授权", "mcpServers", "stdio", "/opt/homebrew/bin", "/usr/local/bin", "mcp-remote@0.1.38", "http-only", "https://127.0.0.1:28775/mcp", "NODE_EXTRA_CA_CERTS", "/Users/tester/.workbuddy/certs/sapd-wiki-app-ca.pem", "MCP_REMOTE_CONFIG_DIR", "PATH", "已完成。WorkBuddy 只会复制 CA 证书，不会接触服务端私钥", "读取 SAPD Wiki 当前证书清单", "active-manifest.json", "ca_relative_path", "ca_fingerprint_sha256", "server_key_relative_path", "不要关闭 TLS 校验", "AA:BB:CC:DD", "__NPX_ABSOLUTE_PATH__", "__NODE_BIN__", "最终文件中不得保留占位符或使用 ~", "如果出现 OAuth 地址或等待授权状态", "不要删除已有 token", "返回本页确认 OAuth 只读授权", "复制 JSON 模板", "复制配置提示词", "创建带时间戳的备份", "保留其他所有 MCP 配置", "不要替我批准 OAuth"]) {
   assert.match(workbuddyGuideHtml, new RegExp(label));
 }
 assert.match(workbuddyGuideHtml, /\/Users\/tester\/Library\/Application Support\/SAPD Wiki\/LocalMCP\/Certificates\/dev\/active-manifest\.json/);
+assert.doesNotMatch(workbuddyGuideHtml, /\/Users\/tester\/Library\/Application Support\/SAPDWiki\/Runtime\/data\/mcp\/certificates\/active-manifest\.json/);
+assert.match(workbuddyGuideHtml, /\/Users\/tester\/\.workbuddy\/binaries\/node\/versions\/\*\/bin/);
+assert.match(workbuddyGuideHtml, /&quot;PATH&quot;:\s*&quot;__NODE_BIN__:\/opt\/homebrew\/bin:\/usr\/local\/bin:\/usr\/bin:\/bin:\/usr\/sbin:\/sbin&quot;/);
+assert.doesNotMatch(workbuddyGuideHtml, /&quot;3334&quot;/);
 assert.match(workbuddyGuideHtml, /data-mcp-action="close-workbuddy-guide"/);
 assert.match(workbuddyGuideHtml, /data-mcp-copy-workbuddy/);
 assert.match(workbuddyGuideHtml, /data-mcp-copy-workbuddy-prompt/);
 assert.doesNotMatch(workbuddyGuideHtml, /class="is-primary"[^>]*data-mcp-copy-workbuddy(?:-prompt)?/);
 assert.match(workbuddyGuideHtml, /data-workbuddy-prompt/);
+assert.match(workbuddyGuideHtml, /data-workbuddy-copy-status/);
 assert.equal((workbuddyGuideHtml.match(/<details class="system-settings-workbuddy-copy-section">/g) || []).length, 2);
-assert.match(workbuddyGuideHtml, /<summary><span><strong>2\. 核对 JSON<\/strong><small>确认端口和 CA 路径<\/small><\/span><\/summary>/);
+assert.match(workbuddyGuideHtml, /<summary><span><strong>2\. 核对 JSON 模板<\/strong><small>确认端口和 CA 路径；Node 路径由提示词自动填写<\/small><\/span><\/summary>/);
 assert.match(workbuddyGuideHtml, /<summary><span><strong>3\. 复制配置提示词<\/strong><small>交给 WorkBuddy 自动完成配置<\/small><\/span><\/summary>/);
 assert.doesNotMatch(workbuddyGuideHtml, /<details class="system-settings-workbuddy-copy-section" open>/);
 assert.match(settingsCss, /\.system-settings-workbuddy-copy-section summary::after\s*\{[^}]*content:\s*"展开"/s);
@@ -482,7 +494,8 @@ assert.match(settingsCss, /\.system-settings-dialog\s*\{[^}]*background:\s*var\(
 assert.match(settingsCss, /\.system-settings-dialog button\s*\{[^}]*background:\s*var\(--panel,\s*#fff\)/s);
 assert.match(settingsCss, /\.system-settings-workbuddy-copy-section\s*\{[^}]*background:\s*var\(--surface-quiet,\s*#f4f7fb\)/s);
 assert.match(settingsCss, /\.system-settings-workbuddy-copy-section summary > span\s*\{[^}]*display:\s*grid/s);
-assert.match(settingsCss, /\.system-settings-workbuddy-certificate,\s*[\s\S]*\.system-settings-workbuddy-next\s*\{[^}]*grid-template-columns:\s*88px minmax\(0,\s*1fr\)/s);
+assert.match(settingsCss, /\.system-settings-workbuddy-certificate,\s*[\s\S]*\.system-settings-workbuddy-step,\s*[\s\S]*\.system-settings-workbuddy-next\s*\{[^}]*grid-template-columns:\s*88px minmax\(0,\s*1fr\)/s);
+assert.match(settingsCss, /\.system-settings-workbuddy-copy-status\.is-success\s*\{[^}]*color:\s*var\(--sapd-state-success/s);
 
 const workbuddyCertificateRequiredHtml = component.render({
   route: "/settings/ai-integration",
@@ -504,11 +517,19 @@ const workbuddyCertificateRequiredHtml = component.render({
 assert.match(workbuddyCertificateRequiredHtml, /1\. 生成连接证书/);
 assert.match(workbuddyCertificateRequiredHtml, /关闭本窗口，在“安全连接证书”中完成生成后再继续/);
 assert.doesNotMatch(workbuddyCertificateRequiredHtml, /已完成。WorkBuddy 只会复制 CA 证书/);
+assert.match(workbuddyCertificateRequiredHtml, /2\. 核对 JSON 模板/);
+assert.match(workbuddyCertificateRequiredHtml, /3\. 复制配置提示词/);
+assert.match(workbuddyCertificateRequiredHtml, /data-mcp-copy-workbuddy disabled/);
+assert.match(workbuddyCertificateRequiredHtml, /data-mcp-copy-workbuddy-prompt disabled/);
+assert.doesNotMatch(workbuddyCertificateRequiredHtml, /data-workbuddy-json/);
+assert.doesNotMatch(workbuddyCertificateRequiredHtml, /data-workbuddy-prompt/);
 
 const workbuddyAppGuideHtml = component.render({
   route: "/settings/ai-integration",
   system: {
+    userHome: "/Users/tester",
     dataRoot: "/Users/tester/Library/Application Support/SAPDWiki",
+    runtimeRoot: "/Users/tester/Library/Application Support/SAPDWiki/Runtime",
   },
   mcp: {
     contract_version: "sapd-mcp-control-v1",
@@ -519,7 +540,7 @@ const workbuddyAppGuideHtml = component.render({
       canonical_resource: "https://127.0.0.1:28776/mcp",
       control_capabilities: {},
     },
-    certificate: certificate("valid"),
+    certificate: certificate("valid", { profile: "app" }),
     clients: [],
     diagnostics: { overall_state: "ready", last_checked_at: null, checks: [] },
   },
@@ -527,6 +548,7 @@ const workbuddyAppGuideHtml = component.render({
 });
 assert.match(workbuddyAppGuideHtml, /https:\/\/127\.0\.0\.1:28776\/mcp/);
 assert.match(workbuddyAppGuideHtml, /\/Users\/tester\/Library\/Application Support\/SAPDWiki\/Runtime\/data\/mcp\/certificates\/active-manifest\.json/);
+assert.doesNotMatch(workbuddyAppGuideHtml, /\/Users\/tester\/Library\/Application Support\/SAPD Wiki\/LocalMCP\/Certificates\/dev\/active-manifest\.json/);
 assert.match(workbuddyAppGuideHtml, /App 保存位置\/Runtime\/data\/mcp\/certificates/);
 assert.doesNotMatch(workbuddyAppGuideHtml, /相对于/);
 assert.doesNotMatch(workbuddyAppGuideHtml, /应用私有安全目录（不可修改）/);

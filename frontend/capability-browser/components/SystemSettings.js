@@ -873,76 +873,147 @@
       ? `https://127.0.0.1:${configuredPort}/mcp`
       : text(guide.canonicalResource).trim();
     const dataRoot = text(guide.system?.dataRoot).trim();
+    const runtimeRoot = text(guide.system?.runtimeRoot).trim()
+      || (dataRoot ? `${dataRoot}/Runtime` : "");
     const systemPaths = [
+      guide.system?.userHome,
       dataRoot,
+      runtimeRoot,
       guide.system?.importDirectory,
       guide.system?.downloadDirectory,
     ].map((value) => text(value).trim());
-    const userHome = systemPaths
+    const userHome = text(guide.system?.userHome).trim() || systemPaths
       .map((value) => value.match(/^\/Users\/[^/]+/)?.[0] || "")
       .find(Boolean) || "";
     const certificateReady = text(guide.certificate?.state).trim() === "valid";
-    const releaseChannel = text(guide.releaseChannel).trim();
-    const certificateRoot = releaseChannel === "dev"
-      ? (userHome ? `${userHome}/Library/Application Support/SAPD Wiki/LocalMCP/Certificates/dev` : "")
-      : (dataRoot ? `${dataRoot}/Runtime/data/mcp/certificates` : "");
-    const certificateManifestPath = certificateRoot
-      ? `${certificateRoot}/active-manifest.json`
+    const certificateProfile = text(guide.certificate?.profile).trim();
+    const appCertificateManifest = runtimeRoot
+      ? `${runtimeRoot}/data/mcp/certificates/active-manifest.json`
       : "";
+    const webCertificateManifest = userHome
+      ? `${userHome}/Library/Application Support/SAPD Wiki/LocalMCP/Certificates/dev/active-manifest.json`
+      : "";
+    const profileCertificateManifest = certificateProfile === "app"
+      ? appCertificateManifest
+      : certificateProfile === "dev"
+        ? webCertificateManifest
+        : "";
+    const certificateManifestCandidates = [...new Set(
+      (profileCertificateManifest
+        ? [profileCertificateManifest]
+        : [appCertificateManifest, webCertificateManifest])
+        .filter(Boolean),
+    )];
     const workbuddyCaPath = userHome
       ? `${userHome}/.workbuddy/certs/sapd-wiki-app-ca.pem`
       : "";
     const expectedCaFingerprint = text(guide.certificate?.ca_fingerprint_sha256).trim();
-    const workbuddyConfig = canonicalResource && userHome
+    const buildWorkbuddyServer = (command, pathValue) => ({
+      type: "stdio",
+      command,
+      args: [
+        "-y",
+        "mcp-remote@0.1.38",
+        canonicalResource,
+        "--host",
+        "127.0.0.1",
+        "--transport",
+        "http-only",
+        "--auth-timeout",
+        "300",
+      ],
+      env: {
+        NODE_EXTRA_CA_CERTS: workbuddyCaPath,
+        NO_PROXY: "127.0.0.1,localhost",
+        MCP_REMOTE_CONFIG_DIR: `${userHome}/.workbuddy/mcp-auth/sapd-wiki`,
+        PATH: pathValue,
+      },
+      disabled: false,
+    });
+    const canConfigureWorkbuddy = certificateReady
+      && canonicalResource
+      && userHome
+      && certificateManifestCandidates.length;
+    const workbuddyConfig = canConfigureWorkbuddy
       ? JSON.stringify({
           mcpServers: {
-            "SAPD Wiki": {
-              type: "stdio",
-              command: "/opt/homebrew/bin/npx",
-              args: [
-                "-y",
-                "mcp-remote@0.1.38",
-                canonicalResource,
-                "3334",
-                "--host",
-                "127.0.0.1",
-                "--transport",
-                "http-only",
-                "--auth-timeout",
-                "300",
-              ],
-              env: {
-                NODE_EXTRA_CA_CERTS: workbuddyCaPath,
-                NO_PROXY: "127.0.0.1,localhost",
-                MCP_REMOTE_CONFIG_DIR: `${userHome}/.workbuddy/mcp-auth/sapd-wiki`,
-              },
-              disabled: false,
-            },
+            "SAPD Wiki": buildWorkbuddyServer(
+              "__NPX_ABSOLUTE_PATH__",
+              "__NODE_BIN__:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+            ),
           },
         }, null, 2)
       : "";
-    const workbuddyPrompt = workbuddyConfig && certificateManifestPath
+    const manifestCandidateList = certificateManifestCandidates
+      .map((value, index) => `${index + 1}. ${value}`)
+      .join("\n");
+    const manifestSelectionInstruction = certificateManifestCandidates.length === 1
+      ? `读取 SAPD Wiki 当前证书清单：
+${certificateManifestCandidates[0]}
+
+要求清单是有效 JSON，并包含 ca_relative_path 和 ca_fingerprint_sha256。`
+      : `SAPD Wiki 未返回明确的证书 profile。只检查以下候选，不要全盘搜索：
+${manifestCandidateList}
+
+读取存在且有效的 active-manifest.json，要求包含 ca_relative_path 和 ca_fingerprint_sha256。`;
+    const workbuddyPrompt = workbuddyConfig
       ? `请帮我在本机完成 SAPD Wiki 的 WorkBuddy MCP 配置。
 
-前提：我已经先在 SAPD Wiki 的“安全连接证书”中生成了连接证书。你不要生成、更新或重置证书。
+SAPD Wiki 当前页面已经确定：
+- MCP 地址：${canonicalResource}
+- WorkBuddy 配置文件：${userHome}/.workbuddy/mcp.json
+- CA 导出位置：${workbuddyCaPath}
+${expectedCaFingerprint ? `- 当前 CA 指纹：${expectedCaFingerprint}` : "- 当前 CA 指纹：页面未返回，请从有效清单读取"}
 
-请按顺序完成：
-1. 读取当前有效证书清单：
-   ${certificateManifestPath}
-   如果文件不存在、JSON 无效或没有 ca_relative_path，请停止并告诉我先回到 SAPD Wiki 生成连接证书。
-2. 以 ${certificateRoot} 为根目录解析 ca_relative_path，并确认解析后的文件仍在该目录内。这个 ca.pem 是 CA 证书，用于让 WorkBuddy 信任 SAPD Wiki，不含服务器私钥。
-3. 创建 ${userHome}/.workbuddy/certs（如不存在），只把上一步的 ca.pem 复制到：
-   ${workbuddyCaPath}
-   不要读取、复制或导出 server_key_relative_path、任何 .key 文件、口令或 Keychain 内容。不要关闭 TLS 校验。${expectedCaFingerprint ? `
-4. 校验复制前后的证书 SHA-256 一致，并确认 CA 指纹为 ${expectedCaFingerprint}。` : `
-4. 校验复制前后的证书 SHA-256 一致，并确认目标文件是可解析的 PEM 证书。`}
-5. 检查 /opt/homebrew/bin/npx 可执行；确保 ${userHome}/.workbuddy/mcp-auth/sapd-wiki 存在。
-6. 为 ${userHome}/.workbuddy/mcp.json 创建带时间戳的备份；如果原文件不存在，按 {"mcpServers":{}} 初始化。
-7. 只合并或更新 mcpServers["SAPD Wiki"]，保留其他所有 MCP 配置，不要覆盖整个文件。写入后验证 JSON 有效，并核对 NODE_EXTRA_CA_CERTS 正好指向 ${workbuddyCaPath}。
-8. 完成后报告 CA 来源、CA 导出位置、配置备份位置和验证结果，并提醒我重启 WorkBuddy。不要替我批准 OAuth；首次连接后由我回到 SAPD Wiki 确认只读授权。
+安全边界：
+- 不要生成、更新或重置 SAPD Wiki 证书。
+- 不要读取、复制或导出 server_key_relative_path、任何 .key 文件、口令或 Keychain 内容。
+- 不要关闭 TLS 校验；NODE_EXTRA_CA_CERTS 只用于增加本机 CA 信任。
+- 不要替我批准 OAuth，也不要删除已有 token 或未确认归属的 lockfile。
 
-目标配置：
-${workbuddyConfig}`
+请按顺序执行：
+
+1. 选择当前 CA 清单
+${manifestSelectionInstruction}
+${expectedCaFingerprint
+  ? `将清单中的 CA 指纹与页面提供的 ${expectedCaFingerprint} 比较，忽略大小写与冒号格式差异；不一致时停止。`
+  : "如果存在多个有效候选，停止并列出路径，不要自行猜测。"}
+
+2. 导出并校验 CA
+以选中清单的父目录为根解析 ca_relative_path，确认解析结果仍在该目录内且是普通 PEM 证书。创建 ${userHome}/.workbuddy/certs，只复制该 ca.pem 到 ${workbuddyCaPath}。
+校验源文件与目标文件 SHA-256 一致，用 openssl x509 读取目标证书并核对清单中的 CA 指纹；目标文件不得包含 PRIVATE KEY。
+
+3. 检测 WorkBuddy 可用的 Node 与 npx
+不要假设 /opt/homebrew/bin/npx 一定存在。按顺序检查：
+- ${userHome}/.workbuddy/binaries/node/versions/*/bin：从版本目录中选择同时具有可执行 node 和 npx 的最高版本。
+- /opt/homebrew/bin：要求 node 和 npx 都可执行。
+- /usr/local/bin：要求 node 和 npx 都可执行。
+
+记录 npx 的绝对路径 NPX_ABSOLUTE_PATH 和其所在目录 NODE_BIN。使用 PATH="NODE_BIN:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin" 执行 npx --version；失败时停止并报告，不要继续写配置。
+
+4. 备份并合并配置
+确保 ${userHome}/.workbuddy/mcp-auth/sapd-wiki 存在。为 ${userHome}/.workbuddy/mcp.json 创建带时间戳的备份；原文件不存在时按 {"mcpServers":{}} 初始化。
+将下方模板中的 __NPX_ABSOLUTE_PATH__ 和 __NODE_BIN__ 替换为刚才检测到的绝对路径。最终文件中不得保留占位符或使用 ~。只合并或更新 mcpServers["SAPD Wiki"]，保留其他所有 MCP 配置。
+
+目标配置模板：
+${workbuddyConfig}
+
+5. 验证最终配置
+验证 JSON 有效，并逐项核对：
+- command 是已验证的 npx 绝对路径；
+- env.PATH 以对应 NODE_BIN 开头；
+- NODE_EXTRA_CA_CERTS 正好等于 ${workbuddyCaPath}；
+- MCP 地址正好等于 ${canonicalResource}；
+- 配置中没有 __NPX_ABSOLUTE_PATH__、__NODE_BIN__ 或以 ~ 开头的路径。
+
+6. 模拟 WorkBuddy 启动
+使用最终配置的 command、args 和完整 env，在有限超时内启动 mcp-remote，并通过非空 stdin 发起 MCP initialize。只停止本次测试启动的进程。
+- 如果进程立即退出，分别报告 Node/PATH、npm 下载、TLS/CA 或端口占用错误，不要只写“Connection closed”。
+- 如果出现 OAuth 地址或等待授权状态，说明 Node、stdio 和 TLS 启动链路已通过；不要替我授权，也不要把“尚未授权”误判为启动失败。
+- 如果已有 token，则要求收到 initialize 响应。
+
+7. 报告结果
+报告实际使用的清单与 CA 路径、CA 指纹、npx 路径、NODE_BIN、写入的 PATH、配置备份位置和启动验证结果。提醒我重启 WorkBuddy；首次连接后由我回到 SAPD Wiki 确认 OAuth 只读授权。`
       : "";
     return `
       <div class="system-settings-dialog-backdrop" data-mcp-dialog>
@@ -958,21 +1029,29 @@ ${workbuddyConfig}`
           </div>
           ${workbuddyConfig
             ? `<details class="system-settings-workbuddy-copy-section">
-                <summary><span><strong>2. 核对 JSON</strong><small>确认端口和 CA 路径</small></span></summary>
+                <summary><span><strong>2. 核对 JSON 模板</strong><small>确认端口和 CA 路径；Node 路径由提示词自动填写</small></span></summary>
                 <pre class="system-settings-workbuddy-json" data-workbuddy-json tabindex="0"><code>${escapeHtml(workbuddyConfig)}</code></pre>
               </details>
               <details class="system-settings-workbuddy-copy-section">
                 <summary><span><strong>3. 复制配置提示词</strong><small>交给 WorkBuddy 自动完成配置</small></span></summary>
                 <pre class="system-settings-workbuddy-prompt" data-workbuddy-prompt tabindex="0">${escapeHtml(workbuddyPrompt)}</pre>
               </details>`
-            : '<p class="system-settings-callout is-warning">正在读取当前用户的 WorkBuddy 稳定目录，请刷新状态后再复制 JSON。</p>'}
+            : `<div class="system-settings-workbuddy-step is-disabled" aria-disabled="true">
+                <strong>2. 核对 JSON 模板</strong>
+                <span>${certificateReady ? "正在读取本机配置路径，请刷新状态后重试。" : "生成连接证书后开放。"}</span>
+              </div>
+              <div class="system-settings-workbuddy-step is-disabled" aria-disabled="true">
+                <strong>3. 复制配置提示词</strong>
+                <span>${certificateReady ? "正在读取本机配置路径，请刷新状态后重试。" : "生成连接证书后开放。"}</span>
+              </div>`}
           <div class="system-settings-workbuddy-next">
             <strong>4. 重启并授权</strong>
             <span>重启 WorkBuddy。首次连接后，返回本页确认 OAuth 只读授权。</span>
           </div>
+          <div class="system-settings-workbuddy-copy-status" data-workbuddy-copy-status role="status" aria-live="polite"></div>
           <div class="system-settings-actions">
             <button type="button" data-mcp-action="close-workbuddy-guide" autofocus>关闭</button>
-            <button type="button" data-mcp-copy-workbuddy ${workbuddyConfig ? "" : "disabled"}>复制 JSON</button>
+            <button type="button" data-mcp-copy-workbuddy ${workbuddyConfig ? "" : "disabled"}>复制 JSON 模板</button>
             <button type="button" data-mcp-copy-workbuddy-prompt ${workbuddyPrompt ? "" : "disabled"}>复制配置提示词</button>
           </div>
         </section>
@@ -1080,7 +1159,6 @@ ${workbuddyConfig}`
           ? renderWorkbuddyGuide({
               canonicalResource: model.mcp?.settings?.canonical_resource || model.mcp?.canonical_resource,
               configuredPort: model.mcp?.settings?.configured_port || model.mcp?.configured_port,
-              releaseChannel: model.mcp?.settings?.release_channel,
               certificate: model.mcp?.certificate,
               system: model.system,
             })

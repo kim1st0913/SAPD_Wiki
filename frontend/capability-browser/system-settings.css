@@ -1595,6 +1595,7 @@
 }
 
 .app-shell-integrated .system-settings-workbuddy-certificate,
+.app-shell-integrated .system-settings-workbuddy-step,
 .app-shell-integrated .system-settings-workbuddy-next {
   display: grid;
   grid-template-columns: 88px minmax(0, 1fr);
@@ -1610,9 +1611,14 @@
 }
 
 .app-shell-integrated .system-settings-workbuddy-certificate strong,
+.app-shell-integrated .system-settings-workbuddy-step strong,
 .app-shell-integrated .system-settings-workbuddy-next strong {
   color: var(--shell-text, var(--ink));
   white-space: nowrap;
+}
+
+.app-shell-integrated .system-settings-workbuddy-step.is-disabled {
+  opacity: 0.68;
 }
 
 .app-shell-integrated .system-settings-workbuddy-certificate.is-ready strong {
@@ -1628,6 +1634,24 @@
   border-top: 1px solid var(--sapd-shell-divider, var(--line));
   border-radius: 0;
   background: transparent;
+}
+
+.app-shell-integrated .system-settings-workbuddy-copy-status {
+  min-height: 20px;
+  margin-top: 10px;
+  color: var(--shell-muted, var(--muted));
+  font-size: var(--sapd-shell-type-meta, 12px);
+  font-weight: 620;
+  line-height: 1.5;
+  text-align: right;
+}
+
+.app-shell-integrated .system-settings-workbuddy-copy-status.is-success {
+  color: var(--sapd-state-success, var(--success));
+}
+
+.app-shell-integrated .system-settings-workbuddy-copy-status.is-error {
+  color: var(--danger);
 }
 
 .app-shell-integrated .system-settings-dialog .system-settings-reset-effects {
@@ -2144,6 +2168,7 @@
   }
 
   .app-shell-integrated .system-settings-workbuddy-certificate,
+  .app-shell-integrated .system-settings-workbuddy-step,
   .app-shell-integrated .system-settings-workbuddy-next {
     grid-template-columns: minmax(0, 1fr);
     gap: 4px;

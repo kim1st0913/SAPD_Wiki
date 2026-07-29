@@ -10318,10 +10318,6 @@ button.source-sheet-row.active,
 }
 
 @media (max-width: 1180px) {
-  .app-shell.app-shell-integrated {
-    --app-sidebar-width: 76px;
-  }
-
   .app-shell-integrated .app-sidebar .brand > div:not(.brand-mark),
   .app-shell-integrated .app-sidebar .module-tab span:not(.nav-symbol),
   .app-shell-integrated .app-sidebar .module-tab small,
@@ -13333,9 +13329,6 @@ summary:focus-visible {
     gap: 12px;
   }
 
-  .app-shell-integrated .capability-workspace {
-    grid-template-columns: 320px 6px minmax(0, 1fr);
-  }
 }
 
 @media (max-width: 1500px) {
@@ -13987,10 +13980,6 @@ summary:focus-visible {
 }
 
 @media (min-width: 1800px) {
-  .app-shell-integrated .capability-workspace {
-    grid-template-columns: 320px 6px minmax(0, 1fr);
-  }
-
   .app-shell-integrated .capability-focus-summary .focus-overview-compact {
     grid-template-columns: minmax(0, 1fr) minmax(400px, 520px);
   }
@@ -14646,12 +14635,6 @@ summary:focus-visible {
 .app-shell-integrated .relation-board-v2 > .canvas-zone {
   height: 100%;
   max-height: 100%;
-}
-
-@media (min-width: 1800px) {
-  .app-shell-integrated .capability-workspace {
-    grid-template-columns: 320px 6px minmax(0, 1fr);
-  }
 }
 
 /* F3-IMPL-P1 Security Capability Mapping relationship workbench */

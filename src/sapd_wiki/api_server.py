@@ -2521,6 +2521,7 @@ def runtime_health_payload(*, mcp_runtime_id: str | None = None) -> dict[str, An
                 "import_directory": str(USER_IMPORT_DIR),
                 "download_directory": str(USER_EXPORT_DIR),
                 "runtime_root": str(APP_DATA_ROOT / "Runtime"),
+                "user_home": str(Path.home().resolve()),
             },
         },
         "auth": {

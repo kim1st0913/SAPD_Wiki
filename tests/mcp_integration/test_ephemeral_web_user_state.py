@@ -16,6 +16,10 @@ class EphemeralWebUserStateTests(unittest.TestCase):
             payload["runtime"]["runtime_id"],
             "runtime-release-test",
         )
+        self.assertEqual(
+            payload["runtime"]["settings_paths"]["user_home"],
+            str(Path.home().resolve()),
+        )
 
     def test_schema_check_does_not_rewrite_unchanged_user_metadata(self) -> None:
         original_user_db = api_server.USER_DB_PATH

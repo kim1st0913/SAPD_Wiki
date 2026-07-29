@@ -19,6 +19,7 @@ from sapd_wiki.local_mcp.dev_supervisor import (
     _project_grouped_audit_events,
     _sidecar_command_prefix,
 )
+from sapd_wiki.local_mcp.platform_secrets import SecretCustodyError
 from sapd_wiki.local_mcp.secret_transport import (
     create_parent_secret_channel,
 )
@@ -91,6 +92,12 @@ class UnsafeSecretChannel:
         raise TLSIdentityError(KEY_PASSPHRASE_IPC_UNSAFE)
 
 
+class LockedSecretProvider(InMemorySecretProvider):
+    def put_secret(self, reference: str, secret: bytes) -> None:
+        del reference, secret
+        raise SecretCustodyError("SECRET_STORE_UNAVAILABLE")
+
+
 class RecordingSecretProvider(InMemorySecretProvider):
     def __init__(self) -> None:
         super().__init__()
@@ -101,6 +108,17 @@ class RecordingSecretProvider(InMemorySecretProvider):
         self.last_reference = reference
         self.last_secret = bytes(secret)
         super().put_secret(reference, secret)
+
+
+class ToggleSecretProvider(InMemorySecretProvider):
+    def __init__(self) -> None:
+        super().__init__()
+        self.temporarily_unavailable = False
+
+    def get_secret(self, reference: str) -> bytes | None:
+        if self.temporarily_unavailable:
+            raise SecretCustodyError("SECRET_STORE_UNAVAILABLE")
+        return super().get_secret(reference)
 
 
 class VolatileVerifiedAtTrust(FakeCurrentUserTrustAdapter):
@@ -399,6 +417,45 @@ class DevSupervisorTests(unittest.TestCase):
             finally:
                 restarted.close()
 
+    def test_certificate_provision_surfaces_locked_keychain_as_retryable(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            supervisor = DevSidecarSupervisor(
+                configured_port=28776,
+                runtime_root=Path(temporary) / "runtime",
+                certificate_identity_root=Path(temporary) / "identity",
+                certificate_secret_provider=LockedSecretProvider(),
+                certificate_trust_adapter=FakeCurrentUserTrustAdapter(),
+                cleanup_on_close=False,
+            )
+            try:
+                prepared = supervisor.prepare_certificate_action(
+                    action="certificate_provision",
+                    request_id="request-certificate-locked-prepare",
+                    expected_state_version=0,
+                )
+                with self.assertRaises(GatewayActionError):
+                    supervisor.confirm_certificate_action(
+                        confirmation_id=prepared["confirmation_id"],
+                        request_id="request-certificate-locked-confirm",
+                        expected_state_version=prepared["state_version"],
+                    )
+                snapshot = supervisor.read_snapshot()
+                self.assertEqual(
+                    snapshot["status"]["recoverable_error"],
+                    {
+                        "code": "SECRET_STORE_UNAVAILABLE",
+                        "recovery_action": "unlock_keychain",
+                    },
+                )
+                self.assertEqual(
+                    snapshot["certificate"]["state"],
+                    "not_configured",
+                )
+            finally:
+                supervisor.close()
+
     def test_trust_observation_timestamp_does_not_churn_state_version(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             supervisor = DevSidecarSupervisor(
@@ -525,6 +582,91 @@ class DevSupervisorTests(unittest.TestCase):
                 "CERTIFICATE_RUNTIME_INVALID",
             )
             self.assertIsNone(supervisor.process)
+        finally:
+            supervisor.close()
+
+    def test_running_service_survives_temporary_secret_store_unavailability(
+        self,
+    ) -> None:
+        port = free_port()
+        provider = ToggleSecretProvider()
+        supervisor = DevSidecarSupervisor(
+            configured_port=port,
+            certificate_secret_provider=provider,
+        )
+        try:
+            provision_certificate(supervisor)
+            supervisor.start_service(
+                request_id="request-start-before-keychain-lock",
+                expected_state_version=supervisor.read_snapshot()[
+                    "state_version"
+                ],
+            )
+            process = supervisor.process
+            self.assertIsNotNone(process)
+            original_pid = process.pid
+
+            provider.temporarily_unavailable = True
+            unavailable = supervisor.read_snapshot()
+            self.assertEqual(
+                unavailable["certificate"]["reason_code"],
+                "CERTIFICATE_SECRET_STORE_UNAVAILABLE",
+            )
+            self.assertEqual(
+                unavailable["status"]["service_state"],
+                "ready",
+            )
+            self.assertIsNotNone(supervisor.process)
+            self.assertEqual(supervisor.process.pid, original_pid)
+            self.assertIsNone(supervisor.process.poll())
+
+            provider.temporarily_unavailable = False
+            recovered = supervisor.read_snapshot()
+            self.assertEqual(recovered["certificate"]["state"], "valid")
+            self.assertEqual(recovered["status"]["service_state"], "ready")
+            self.assertEqual(supervisor.process.pid, original_pid)
+        finally:
+            supervisor.close()
+
+    def test_stopped_service_can_be_retried_after_secret_store_recovers(
+        self,
+    ) -> None:
+        port = free_port()
+        provider = ToggleSecretProvider()
+        supervisor = DevSidecarSupervisor(
+            configured_port=port,
+            certificate_secret_provider=provider,
+            auto_restore_enabled=True,
+        )
+        try:
+            provision_certificate(supervisor)
+            provider.temporarily_unavailable = True
+            with self.assertRaises(GatewayActionError):
+                supervisor.start_service(
+                    request_id="request-start-while-keychain-locked",
+                    expected_state_version=supervisor.read_snapshot()[
+                        "state_version"
+                    ],
+                )
+            unavailable = supervisor.read_snapshot()
+            self.assertEqual(
+                unavailable["status"]["recoverable_error"]["code"],
+                "KEY_STORE_TEMPORARILY_UNAVAILABLE",
+            )
+            self.assertIsNone(supervisor.process)
+
+            provider.temporarily_unavailable = False
+            supervisor.start_service(
+                request_id="request-start-after-keychain-unlock",
+                expected_state_version=supervisor.read_snapshot()[
+                    "state_version"
+                ],
+            )
+            recovered = supervisor.read_snapshot()
+            self.assertEqual(recovered["certificate"]["state"], "valid")
+            self.assertEqual(recovered["status"]["service_state"], "ready")
+            self.assertIsNotNone(supervisor.process)
+            self.assertIsNone(supervisor.process.poll())
         finally:
             supervisor.close()
 

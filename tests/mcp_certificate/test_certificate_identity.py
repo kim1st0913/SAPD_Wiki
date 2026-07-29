@@ -18,7 +18,19 @@ from sapd_wiki.local_mcp.certificate_identity import (
 from sapd_wiki.local_mcp.tls import InMemorySecretProvider
 from sapd_wiki.local_mcp.platform_secrets import (
     FakeMacOSDataProtectionKeychainProvider,
+    SecretCustodyError,
 )
+
+
+class ToggleSecretProvider(InMemorySecretProvider):
+    def __init__(self) -> None:
+        super().__init__()
+        self.temporarily_unavailable = False
+
+    def get_secret(self, reference: str) -> bytes | None:
+        if self.temporarily_unavailable:
+            raise SecretCustodyError("SECRET_STORE_UNAVAILABLE")
+        return super().get_secret(reference)
 
 
 class CertificateIdentityTests(unittest.TestCase):
@@ -223,6 +235,33 @@ class CertificateIdentityTests(unittest.TestCase):
         state = store.public_state(trust_installed=True)
         self.assertEqual(state["state"], "key_unavailable")
         self.assertEqual(state["next_action"], "certificate_reset")
+
+    def test_temporary_secret_store_failure_is_not_projected_as_missing_key(
+        self,
+    ) -> None:
+        provider = ToggleSecretProvider()
+        store = CertificateIdentityStore(
+            Path(self.temporary.name) / "temporarily-locked-identity",
+            secret_provider=provider,
+        )
+        store.provision(install_id="install-temporary-keychain-lock-01")
+
+        provider.temporarily_unavailable = True
+        unavailable = store.public_state(trust_installed=True)
+        self.assertEqual(unavailable["state"], "error")
+        self.assertEqual(
+            unavailable["reason_code"],
+            "CERTIFICATE_SECRET_STORE_UNAVAILABLE",
+        )
+        self.assertEqual(
+            unavailable["next_action"],
+            "certificate_view_details",
+        )
+
+        provider.temporarily_unavailable = False
+        recovered = store.public_state(trust_installed=True)
+        self.assertEqual(recovered["state"], "valid")
+        self.assertIsNone(recovered["reason_code"])
 
 
 if __name__ == "__main__":

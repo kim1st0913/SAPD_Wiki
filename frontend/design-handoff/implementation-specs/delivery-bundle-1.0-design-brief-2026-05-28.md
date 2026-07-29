@@ -2,7 +2,13 @@
 
 本文档用于设计团队内部沟通 SAPD Wiki 打包交付方案。它不是开发实现说明，也不是安装器技术文档，而是把“预构建数据库交付版”的用户体验、页面状态、信息层级和设计产出说清楚。
 
-架构评估入口见 `docs/01-architecture/delivery-bundle-1.0-prebuilt-database.md`；正式工程设计见 `docs/09-delivery/delivery-bundle-1.0-prebuilt-database.md`。
+> 状态：`historical / superseded delivery design brief`
+>
+> 当前桌面打包和交付入口为 `docs/09-delivery/desktop-packaging-runbook.md`。早期架构评估
+> 已归档到
+> `docs/05-archive/architecture-retired-2026-07/delivery-bundle-1.0-prebuilt-database.md`；
+> 旧工程设计位于
+> `docs/05-archive/delivery-retired-2026-07/delivery-bundle-1.0-prebuilt-database.md`。
 
 ## 1. 一句话定义
 

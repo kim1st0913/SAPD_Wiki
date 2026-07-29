@@ -271,6 +271,7 @@
       start_service: "请先启动 MCP 服务",
       retry_service: "请重新启动 MCP 服务",
       change_port: "请修改本地端口后重试",
+      unlock_keychain: "请解锁 macOS“登录”钥匙串后重试",
     }[text(action).trim()] || (action ? "请按页面提示处理后重试" : "无需操作");
   }
 
@@ -340,6 +341,15 @@
 
   function certificatePresentation(certificate = {}) {
     const state = text(certificate.state).trim() || "not_configured";
+    const reason = text(certificate.reason_code).trim();
+    if (state === "error" && reason === "CERTIFICATE_SECRET_STORE_UNAVAILABLE") {
+      return {
+        state,
+        label: "安全存储暂不可用",
+        tone: "warning",
+        message: "当前用户安全存储暂时无法读取；已运行的 MCP 会保持服务，请解锁后重新启动。",
+      };
+    }
     const presentations = {
       not_configured: { label: "尚未建立", tone: "idle", message: "首次启用时，由 SAPD Wiki 自动生成仅用于 127.0.0.1 的本机安全证书。" },
       valid: { label: "连接安全", tone: "ready", message: "证书与当前用户信任状态正常。" },
@@ -397,6 +407,12 @@
     };
   }
 
+  function certificateStoragePresentation(mcp = {}) {
+    return text(mcp.settings?.release_channel).trim() === "dev"
+      ? "~/Library/Application Support/SAPD Wiki/LocalMCP/Certificates/dev"
+      : "App 保存位置/Runtime/data/mcp/certificates";
+  }
+
   function renderCertificate(mcp, pendingAction) {
     const certificate = mcp.certificate || {};
     const capabilities = mcp.settings?.control_capabilities || {};
@@ -406,6 +422,7 @@
     const disabled = Boolean(pendingAction) || operationPending;
     const isFakeTrust = certificate.trust_backend === "fake_current_user_trust";
     const backend = certificateBackendLabel(certificate);
+    const certificateStorage = certificateStoragePresentation(mcp);
     const needsRecovery = presentation.state === "recovery_required";
     return `
       <section id="aiCertificatePanel" class="system-settings-panel system-settings-certificate" data-certificate-state="${escapeHtml(presentation.state)}" aria-labelledby="aiCertificateTitle" tabindex="-1">
@@ -421,7 +438,10 @@
           <div><dt>连接对象</dt><dd>${escapeHtml(certificate.subject || "127.0.0.1")}</dd></div>
           <div><dt>信任范围</dt><dd>当前用户</dd></div>
           <div><dt>有效期至</dt><dd>${escapeHtml(formatDate(certificate.valid_until))}</dd></div>
-          <div><dt>证书存储</dt><dd>应用私有安全目录（不可修改）</dd></div>
+          <div>
+            <dt>证书目录</dt>
+            <dd class="system-settings-certificate-storage"><code>${escapeHtml(certificateStorage)}</code></dd>
+          </div>
         </dl>
         ${isFakeTrust ? '<p class="system-settings-callout is-warning">当前为 Web 隔离验证，不会修改 macOS 或 Windows 系统信任库。进入真实客户端验证前，需另行启用当前用户平台集成。</p>' : ""}
         ${certificate.operation ? `<p class="system-settings-callout is-warning" role="status" aria-live="polite">${escapeHtml(certificateOperationPresentation(certificate.operation))}</p>` : ""}
@@ -597,7 +617,7 @@
               </div>
               <ol aria-label="客户端授权步骤">
                 <li><b>1</b><span>启动 MCP 服务</span></li>
-                <li><b>2</b><span>复制连接配置并添加到客户端</span></li>
+                <li><b>2</b><span>复制 HTTP Stream 地址或打开 WorkBuddy 配置引导</span></li>
                 <li><b>3</b><span>返回本页确认授权请求</span></li>
               </ol>
             </div>`}
@@ -808,6 +828,7 @@
       CERTIFICATE_TRUST_CONFIRMATION_TIMEOUT: "等待系统确认超时。请重新操作，并在 2 分钟内于系统提示中选择允许。",
       CERTIFICATE_TRUST_USER_DENIED: "系统未允许写入当前用户信任。请重新操作，并在系统提示中选择允许。",
       CERTIFICATE_TRUST_VERIFY_FAILED: "证书已写入，但 127.0.0.1 安全连接校验未通过；系统已自动回滚。",
+      SECRET_STORE_UNAVAILABLE: "macOS“登录”钥匙串当前锁定或无法验证；请在“钥匙串访问”中解锁“登录”钥匙串后重试，不要再次重置。",
       SECRET_WRITE_FAILED: "证书密钥未能保存到当前用户安全存储；系统已自动回滚。",
     }[text(code).trim()] || "";
   }
@@ -840,6 +861,119 @@
           <div class="system-settings-actions">
             <button type="button" data-mcp-action="close-certificate-preview" autofocus>取消</button>
             <button class="is-primary" type="button" data-mcp-action="confirm-certificate">${escapeHtml(button)}</button>
+          </div>
+        </section>
+      </div>
+    `;
+  }
+
+  function renderWorkbuddyGuide(guide = {}) {
+    const configuredPort = Number(guide.configuredPort) || "";
+    const canonicalResource = configuredPort
+      ? `https://127.0.0.1:${configuredPort}/mcp`
+      : text(guide.canonicalResource).trim();
+    const dataRoot = text(guide.system?.dataRoot).trim();
+    const systemPaths = [
+      dataRoot,
+      guide.system?.importDirectory,
+      guide.system?.downloadDirectory,
+    ].map((value) => text(value).trim());
+    const userHome = systemPaths
+      .map((value) => value.match(/^\/Users\/[^/]+/)?.[0] || "")
+      .find(Boolean) || "";
+    const certificateReady = text(guide.certificate?.state).trim() === "valid";
+    const releaseChannel = text(guide.releaseChannel).trim();
+    const certificateRoot = releaseChannel === "dev"
+      ? (userHome ? `${userHome}/Library/Application Support/SAPD Wiki/LocalMCP/Certificates/dev` : "")
+      : (dataRoot ? `${dataRoot}/Runtime/data/mcp/certificates` : "");
+    const certificateManifestPath = certificateRoot
+      ? `${certificateRoot}/active-manifest.json`
+      : "";
+    const workbuddyCaPath = userHome
+      ? `${userHome}/.workbuddy/certs/sapd-wiki-app-ca.pem`
+      : "";
+    const expectedCaFingerprint = text(guide.certificate?.ca_fingerprint_sha256).trim();
+    const workbuddyConfig = canonicalResource && userHome
+      ? JSON.stringify({
+          mcpServers: {
+            "SAPD Wiki": {
+              type: "stdio",
+              command: "/opt/homebrew/bin/npx",
+              args: [
+                "-y",
+                "mcp-remote@0.1.38",
+                canonicalResource,
+                "3334",
+                "--host",
+                "127.0.0.1",
+                "--transport",
+                "http-only",
+                "--auth-timeout",
+                "300",
+              ],
+              env: {
+                NODE_EXTRA_CA_CERTS: workbuddyCaPath,
+                NO_PROXY: "127.0.0.1,localhost",
+                MCP_REMOTE_CONFIG_DIR: `${userHome}/.workbuddy/mcp-auth/sapd-wiki`,
+              },
+              disabled: false,
+            },
+          },
+        }, null, 2)
+      : "";
+    const workbuddyPrompt = workbuddyConfig && certificateManifestPath
+      ? `请帮我在本机完成 SAPD Wiki 的 WorkBuddy MCP 配置。
+
+前提：我已经先在 SAPD Wiki 的“安全连接证书”中生成了连接证书。你不要生成、更新或重置证书。
+
+请按顺序完成：
+1. 读取当前有效证书清单：
+   ${certificateManifestPath}
+   如果文件不存在、JSON 无效或没有 ca_relative_path，请停止并告诉我先回到 SAPD Wiki 生成连接证书。
+2. 以 ${certificateRoot} 为根目录解析 ca_relative_path，并确认解析后的文件仍在该目录内。这个 ca.pem 是 CA 证书，用于让 WorkBuddy 信任 SAPD Wiki，不含服务器私钥。
+3. 创建 ${userHome}/.workbuddy/certs（如不存在），只把上一步的 ca.pem 复制到：
+   ${workbuddyCaPath}
+   不要读取、复制或导出 server_key_relative_path、任何 .key 文件、口令或 Keychain 内容。不要关闭 TLS 校验。${expectedCaFingerprint ? `
+4. 校验复制前后的证书 SHA-256 一致，并确认 CA 指纹为 ${expectedCaFingerprint}。` : `
+4. 校验复制前后的证书 SHA-256 一致，并确认目标文件是可解析的 PEM 证书。`}
+5. 检查 /opt/homebrew/bin/npx 可执行；确保 ${userHome}/.workbuddy/mcp-auth/sapd-wiki 存在。
+6. 为 ${userHome}/.workbuddy/mcp.json 创建带时间戳的备份；如果原文件不存在，按 {"mcpServers":{}} 初始化。
+7. 只合并或更新 mcpServers["SAPD Wiki"]，保留其他所有 MCP 配置，不要覆盖整个文件。写入后验证 JSON 有效，并核对 NODE_EXTRA_CA_CERTS 正好指向 ${workbuddyCaPath}。
+8. 完成后报告 CA 来源、CA 导出位置、配置备份位置和验证结果，并提醒我重启 WorkBuddy。不要替我批准 OAuth；首次连接后由我回到 SAPD Wiki 确认只读授权。
+
+目标配置：
+${workbuddyConfig}`
+      : "";
+    return `
+      <div class="system-settings-dialog-backdrop" data-mcp-dialog>
+        <section class="system-settings-dialog system-settings-workbuddy-dialog" role="dialog" aria-modal="true" aria-labelledby="mcpWorkbuddyTitle" aria-describedby="mcpWorkbuddyDescription">
+          <span>WORKBUDDY SETUP</span>
+          <h2 id="mcpWorkbuddyTitle">WorkBuddy 配置引导</h2>
+          <p id="mcpWorkbuddyDescription">按以下 4 步完成 WorkBuddy 配置。</p>
+          <div class="system-settings-workbuddy-certificate is-${certificateReady ? "ready" : "warning"}">
+            <strong>1. 生成连接证书</strong>
+            <span>${certificateReady
+              ? "已完成。WorkBuddy 只会复制 CA 证书，不会接触服务端私钥。"
+              : "关闭本窗口，在“安全连接证书”中完成生成后再继续。"}</span>
+          </div>
+          ${workbuddyConfig
+            ? `<details class="system-settings-workbuddy-copy-section">
+                <summary><span><strong>2. 核对 JSON</strong><small>确认端口和 CA 路径</small></span></summary>
+                <pre class="system-settings-workbuddy-json" data-workbuddy-json tabindex="0"><code>${escapeHtml(workbuddyConfig)}</code></pre>
+              </details>
+              <details class="system-settings-workbuddy-copy-section">
+                <summary><span><strong>3. 复制配置提示词</strong><small>交给 WorkBuddy 自动完成配置</small></span></summary>
+                <pre class="system-settings-workbuddy-prompt" data-workbuddy-prompt tabindex="0">${escapeHtml(workbuddyPrompt)}</pre>
+              </details>`
+            : '<p class="system-settings-callout is-warning">正在读取当前用户的 WorkBuddy 稳定目录，请刷新状态后再复制 JSON。</p>'}
+          <div class="system-settings-workbuddy-next">
+            <strong>4. 重启并授权</strong>
+            <span>重启 WorkBuddy。首次连接后，返回本页确认 OAuth 只读授权。</span>
+          </div>
+          <div class="system-settings-actions">
+            <button type="button" data-mcp-action="close-workbuddy-guide" autofocus>关闭</button>
+            <button type="button" data-mcp-copy-workbuddy ${workbuddyConfig ? "" : "disabled"}>复制 JSON</button>
+            <button type="button" data-mcp-copy-workbuddy-prompt ${workbuddyPrompt ? "" : "disabled"}>复制配置提示词</button>
           </div>
         </section>
       </div>
@@ -904,8 +1038,8 @@
             <div class="system-settings-runtime-footer">
               <div class="system-settings-actions system-settings-runtime-actions">
                 <button class="is-primary" type="button" data-mcp-settings-action="${escapeHtml(serviceAction)}" ${serviceDisabled ? "disabled" : ""}>${escapeHtml(model.pendingAction || transitioning ? "处理中…" : serviceAction === "stop" ? "停止 MCP" : serviceAction === "retry" ? "重试启动" : "启动 MCP")}</button>
-                <button type="button" data-mcp-copy-config="${escapeHtml(canonicalResource)}" ${canonicalResource ? "" : "disabled"}>复制连接配置</button>
-                <button type="button" data-mcp-copy-url="${escapeHtml(canonicalResource)}" ${canonicalResource ? "" : "disabled"}>复制 MCP 地址</button>
+                <button type="button" data-mcp-copy-url="${escapeHtml(canonicalResource)}" ${canonicalResource ? "" : "disabled"}>复制 HTTP Stream 地址</button>
+                <button type="button" data-mcp-workbuddy-guide="${escapeHtml(canonicalResource)}">WorkBuddy 配置引导</button>
               </div>
             </div>
           </section>
@@ -942,11 +1076,19 @@
                 ? renderPrivacyAudit(model)
                 : renderAi(model)}
         </div>
-        ${model.certificatePreview
-          ? renderCertificatePreview(model.certificatePreview, model.mcp?.certificate)
-          : model.resetPreview
-            ? renderResetPreview(model.resetPreview)
-            : renderConfirmation(model.confirmation)}
+        ${model.workbuddyGuide
+          ? renderWorkbuddyGuide({
+              canonicalResource: model.mcp?.settings?.canonical_resource || model.mcp?.canonical_resource,
+              configuredPort: model.mcp?.settings?.configured_port || model.mcp?.configured_port,
+              releaseChannel: model.mcp?.settings?.release_channel,
+              certificate: model.mcp?.certificate,
+              system: model.system,
+            })
+          : model.certificatePreview
+            ? renderCertificatePreview(model.certificatePreview, model.mcp?.certificate)
+            : model.resetPreview
+              ? renderResetPreview(model.resetPreview)
+              : renderConfirmation(model.confirmation)}
       </section>
     `;
   }

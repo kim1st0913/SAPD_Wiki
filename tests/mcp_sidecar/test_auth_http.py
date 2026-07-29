@@ -156,10 +156,18 @@ class AuthHTTPTests(unittest.TestCase):
                     resource.json()["resource"],
                     "https://127.0.0.1:28775/mcp",
                 )
+                self.assertEqual(
+                    resource.json()["authorization_servers"],
+                    ["https://127.0.0.1:28775"],
+                )
                 metadata = await client.get(
                     "/.well-known/oauth-authorization-server"
                 )
                 self.assertEqual(metadata.status_code, 200)
+                self.assertEqual(
+                    resource.json()["authorization_servers"],
+                    [metadata.json()["issuer"]],
+                )
                 self.assertEqual(
                     metadata.json()["code_challenge_methods_supported"],
                     ["S256"],

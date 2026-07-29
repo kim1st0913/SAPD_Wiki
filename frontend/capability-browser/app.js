@@ -52,6 +52,7 @@ const state = {
   mcpConfirmation: null,
   mcpResetPreview: null,
   mcpCertificatePreview: null,
+  mcpWorkbuddyGuide: false,
   settingsRuntimeHealth: null,
   settingsRuntimeHealthLoading: false,
   settingsRuntimeHealthLoaded: false,
@@ -7172,14 +7173,114 @@ function clampSlideIndex(slides) {
   return Math.max(0, Math.min(index, count - 1));
 }
 
+let contentSlideImageRequestToken = 0;
+const contentSlideImageCache = new Map();
+const CONTENT_SLIDE_IMAGE_CACHE_LIMIT = 5;
+
+function preloadContentSlideImage(slide) {
+  const src = text(slide?.image).trim();
+  if (!src) return Promise.resolve(null);
+  if (contentSlideImageCache.has(src)) return contentSlideImageCache.get(src);
+  const request = new Promise((resolve) => {
+    const image = new Image();
+    image.loading = "eager";
+    image.decoding = "async";
+    image.alt = text(slide?.title);
+    const finish = () => resolve(image);
+    image.addEventListener("load", async () => {
+      try {
+        await image.decode?.();
+      } catch {
+        // A completed image is still safe to present when decode() is unavailable or rejects.
+      }
+      finish();
+    }, { once: true });
+    image.addEventListener("error", finish, { once: true });
+    image.src = src;
+    if (image.complete) finish();
+  });
+  contentSlideImageCache.set(src, request);
+  while (contentSlideImageCache.size > CONTENT_SLIDE_IMAGE_CACHE_LIMIT) {
+    contentSlideImageCache.delete(contentSlideImageCache.keys().next().value);
+  }
+  return request;
+}
+
+function warmAdjacentContentSlides(slides, activeIndex) {
+  [activeIndex - 1, activeIndex + 1]
+    .filter((index) => index >= 0 && index < slides.length)
+    .forEach((index) => preloadContentSlideImage(slides[index]));
+}
+
+function updateContentSlideChrome(row, slides, nextIndex, scrollMode) {
+  const player = document.querySelector(".guide-slide-player");
+  const stage = player?.querySelector(".guide-slide-stage");
+  if (!player || !stage || player.dataset.guideId !== text(row?.id)) return null;
+  const slide = slides[nextIndex];
+  const target = contentSlideUserTarget(row, slide, nextIndex);
+  const slideWidth = Math.max(1, Number(slide.width || row?.slide_width || 16));
+  const slideHeight = Math.max(1, Number(slide.height || row?.slide_height || 9));
+  stage.setAttribute("aria-label", `${row.title || "指南"}第 ${slide.pageNumber} 页`);
+  stage.style.setProperty("--guide-slide-aspect", `${slideWidth} / ${slideHeight}`);
+  stage.style.setProperty("--guide-slide-ratio", (slideWidth / slideHeight).toFixed(6));
+  applyAnnotationTargetDataset(stage, target, { title: target?.title });
+  player.querySelector(".guide-slide-page").textContent = `第 ${slide.pageNumber} / ${slides.length} 页`;
+  const previous = player.querySelector('[data-content-slide-step="-1"]');
+  const next = player.querySelector('[data-content-slide-step="1"]');
+  if (previous) previous.disabled = nextIndex <= 0;
+  if (next) next.disabled = nextIndex >= slides.length - 1;
+
+  const rail = $("contentNavList");
+  rail?.querySelectorAll("[data-content-slide-index]").forEach((thumb) => {
+    thumb.classList.toggle("active", Number(thumb.dataset.contentSlideIndex) === nextIndex);
+  });
+  requestAnimationFrame(() => {
+    if (!rail) return;
+    if (scrollMode === "active") {
+      rail.querySelector(".guide-thumb.active")?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    }
+  });
+  setCurrentAnnotationTarget(target, { pageTitle: row.title });
+  return stage;
+}
+
+function selectContentSlide(nextIndex, scrollMode = "active") {
+  const selected = contentRows().find((row) => row.id === state.selectedContentId);
+  const slides = contentSlides(selected);
+  if (!slides.length) return;
+  const clampedIndex = Math.max(0, Math.min(Number(nextIndex) || 0, slides.length - 1));
+  state.selectedContentSlideIndex = clampedIndex;
+  state.contentSlideScrollMode = scrollMode;
+  const stage = updateContentSlideChrome(selected, slides, clampedIndex, scrollMode);
+  if (!stage) {
+    renderContent();
+    return;
+  }
+
+  const requestToken = ++contentSlideImageRequestToken;
+  preloadContentSlideImage(slides[clampedIndex]).then((loadedImage) => {
+    if (
+      requestToken !== contentSlideImageRequestToken ||
+      state.selectedContentId !== selected.id ||
+      clampSlideIndex(slides) !== clampedIndex
+    ) return;
+    const currentImage = stage.querySelector("img");
+    if (loadedImage?.naturalWidth > 0) {
+      loadedImage.alt = text(slides[clampedIndex].title);
+      currentImage?.replaceWith(loadedImage);
+    } else if (currentImage) {
+      currentImage.src = text(slides[clampedIndex].image);
+      currentImage.alt = text(slides[clampedIndex].title);
+    }
+    warmAdjacentContentSlides(slides, clampedIndex);
+  });
+}
+
 function changeContentSlide(delta, scrollMode = "active") {
   const selected = contentRows().find((row) => row.id === state.selectedContentId);
   const slides = contentSlides(selected);
   if (!slides.length) return;
-  const nextIndex = clampSlideIndex(slides) + delta;
-  state.selectedContentSlideIndex = Math.max(0, Math.min(nextIndex, slides.length - 1));
-  state.contentSlideScrollMode = scrollMode;
-  renderContent();
+  selectContentSlide(clampSlideIndex(slides) + delta, scrollMode);
 }
 
 function activateContentSlideStep(slideStep, event = null) {
@@ -7193,7 +7294,7 @@ function activateContentSlideStep(slideStep, event = null) {
   return true;
 }
 
-function activateContentSlideThumb(slideThumb, event = null) { if (!slideThumb) return false; event?.preventDefault?.(); event?.stopPropagation?.(); const nextIndex = Number(slideThumb.dataset.contentSlideIndex || 0); if (!Number.isFinite(nextIndex)) return true; state.selectedContentSlideIndex = Math.max(0, nextIndex); state.contentSlideScrollMode = "preserve"; renderContent(); window.setTimeout(persistWorkspaceState, 0); return true; }
+function activateContentSlideThumb(slideThumb, event = null) { if (!slideThumb) return false; event?.preventDefault?.(); event?.stopPropagation?.(); const nextIndex = Number(slideThumb.dataset.contentSlideIndex || 0); if (!Number.isFinite(nextIndex)) return true; selectContentSlide(nextIndex, "preserve"); window.setTimeout(persistWorkspaceState, 0); return true; }
 
 function scaledDrawioSize(size = DRAWIO_LEGEND_DEFAULT_SIZE, maxWidth = 96, maxHeight = 58) {
   const width = Number(size[0]) || DRAWIO_LEGEND_DEFAULT_SIZE[0];
@@ -7489,6 +7590,7 @@ function renderModelingPosterImage(target, imageClass = "", loading = "lazy") {
       width="${escapeHtml(target.width || ARCHIMATE_POSTER_OVERVIEW_SIZE.width)}"
       height="${escapeHtml(target.height || ARCHIMATE_POSTER_OVERVIEW_SIZE.height)}"
     />
+    ${target.id === "full" ? '<span class="modeling-poster-redaction" aria-hidden="true"></span>' : ""}
   `;
 }
 
@@ -7497,6 +7599,7 @@ function renderModelingPosterLightbox() {
   const target = getModelingPosterTarget(state.modelingPosterLightboxTarget);
   const zoom = Number(state.modelingPosterLightboxZoom || 1);
   const zoomWidth = Math.round(Number(target.width || ARCHIMATE_POSTER_OVERVIEW_SIZE.width) * zoom);
+  const posterRatio = Number(target.width || ARCHIMATE_POSTER_OVERVIEW_SIZE.width) / Number(target.height || ARCHIMATE_POSTER_OVERVIEW_SIZE.height);
   const isFit = zoom <= 1;
   return `
     <section class="modeling-poster-lightbox" data-modeling-poster-lightbox role="dialog" aria-modal="true" aria-label="${escapeHtml(target.title)} 图片预览">
@@ -7511,15 +7614,20 @@ function renderModelingPosterLightbox() {
           <span aria-hidden="true">×</span>
         </button>
         <div class="modeling-poster-lightbox-scroll">
-          <img
-            class="modeling-poster-lightbox-image ${isFit ? "is-fit" : "is-zoomed"}"
-            src="${escapeHtml(target.image)}"
-            alt="${escapeHtml(target.title)}"
-            width="${escapeHtml(target.width || ARCHIMATE_POSTER_OVERVIEW_SIZE.width)}"
-            height="${escapeHtml(target.height || ARCHIMATE_POSTER_OVERVIEW_SIZE.height)}"
-            style="--poster-zoom-width:${escapeHtml(zoomWidth)}px"
-            decoding="async"
-          />
+          <div
+            class="modeling-poster-lightbox-canvas ${isFit ? "is-fit" : "is-zoomed"}"
+            style="--poster-zoom-width:${escapeHtml(zoomWidth)}px;--poster-ratio:${escapeHtml(posterRatio.toFixed(6))};--poster-aspect-ratio:${escapeHtml(target.width || ARCHIMATE_POSTER_OVERVIEW_SIZE.width)} / ${escapeHtml(target.height || ARCHIMATE_POSTER_OVERVIEW_SIZE.height)}"
+          >
+            <img
+              class="modeling-poster-lightbox-image ${isFit ? "is-fit" : "is-zoomed"}"
+              src="${escapeHtml(target.image)}"
+              alt="${escapeHtml(target.title)}"
+              width="${escapeHtml(target.width || ARCHIMATE_POSTER_OVERVIEW_SIZE.width)}"
+              height="${escapeHtml(target.height || ARCHIMATE_POSTER_OVERVIEW_SIZE.height)}"
+              decoding="async"
+            />
+            ${target.id === "full" ? '<span class="modeling-poster-redaction" aria-hidden="true"></span>' : ""}
+          </div>
         </div>
       </div>
     </section>
@@ -11579,6 +11687,7 @@ function renderContent() {
     }`,
   );
   if (isSlideDeck) {
+    warmAdjacentContentSlides(selectedSlides, activeSlideIndex);
     requestAnimationFrame(() => {
       const rail = $("contentNavList");
       if (!rail) return;
@@ -11941,6 +12050,7 @@ function renderSettings({ silent = false } = {}) {
     confirmation: state.mcpConfirmation,
     resetPreview: state.mcpResetPreview,
     certificatePreview: state.mcpCertificatePreview,
+    workbuddyGuide: state.mcpWorkbuddyGuide,
   });
   if (silent && syncSettingsSilently(html)) return;
   const scrollSnapshot = settingsScrollSnapshot();
@@ -12252,6 +12362,7 @@ function mcpCertificateFailureMessage(code) {
     CERTIFICATE_TRUST_CONFIRMATION_TIMEOUT: "等待系统确认超时。请重新操作，并在 2 分钟内于系统提示中选择允许。",
     CERTIFICATE_TRUST_USER_DENIED: "系统未允许写入当前用户信任。请重新操作，并在系统提示中选择允许。",
     CERTIFICATE_TRUST_VERIFY_FAILED: "127.0.0.1 安全连接校验未通过，系统已自动回滚。",
+    SECRET_STORE_UNAVAILABLE: "macOS“登录”钥匙串当前锁定或无法验证；请在“钥匙串访问”中解锁“登录”钥匙串后重试，不要再次重置。",
     SECRET_WRITE_FAILED: "证书密钥未能保存到当前用户安全存储，系统已自动回滚。",
   }[text(code).trim()] || "";
 }
@@ -12463,9 +12574,11 @@ function closeMcpOverlay() {
   const confirmation = state.mcpConfirmation;
   const hadResetPreview = Boolean(state.mcpResetPreview);
   const hadCertificatePreview = Boolean(state.mcpCertificatePreview);
+  const hadWorkbuddyGuide = state.mcpWorkbuddyGuide;
   state.mcpConfirmation = null;
   state.mcpResetPreview = null;
   state.mcpCertificatePreview = null;
+  state.mcpWorkbuddyGuide = false;
   renderSettings();
   window.requestAnimationFrame(() => {
     let target = null;
@@ -12478,6 +12591,8 @@ function closeMcpOverlay() {
       target = document.querySelector('[data-mcp-action="prepare-reset"]');
     } else if (hadCertificatePreview) {
       target = document.querySelector("[data-mcp-certificate-action]");
+    } else if (hadWorkbuddyGuide) {
+      target = document.querySelector("[data-mcp-workbuddy-guide]");
     }
     target?.focus({ preventScroll: true });
   });
@@ -12666,14 +12781,29 @@ function bindEvents() {
     const copyUrl = event.target?.closest?.("[data-mcp-copy-url]");
     if (copyUrl) {
       event.preventDefault();
-      copySettingsText(copyUrl.dataset.mcpCopyUrl, "MCP 地址已复制。");
+      copySettingsText(copyUrl.dataset.mcpCopyUrl, "HTTP Stream 地址已复制。");
       return;
     }
-    const copyConfig = event.target?.closest?.("[data-mcp-copy-config]");
-    if (copyConfig) {
+    const workbuddyGuide = event.target?.closest?.("[data-mcp-workbuddy-guide]");
+    if (workbuddyGuide) {
       event.preventDefault();
-      const resource = text(copyConfig.dataset.mcpCopyConfig).trim();
-      copySettingsText(`名称：SAPD Wiki\n类型：流式 HTTP\nURL：${resource}\nBearer Token：留空\nHeaders：留空`, "MCP 连接配置已复制。");
+      state.mcpWorkbuddyGuide = true;
+      renderSettings();
+      focusMcpDialog();
+      return;
+    }
+    const copyWorkbuddy = event.target?.closest?.("[data-mcp-copy-workbuddy]");
+    if (copyWorkbuddy) {
+      event.preventDefault();
+      const configuration = document.querySelector("[data-workbuddy-json]")?.textContent || "";
+      copySettingsText(configuration, "WorkBuddy JSON 已复制。");
+      return;
+    }
+    const copyWorkbuddyPrompt = event.target?.closest?.("[data-mcp-copy-workbuddy-prompt]");
+    if (copyWorkbuddyPrompt) {
+      event.preventDefault();
+      const prompt = document.querySelector("[data-workbuddy-prompt]")?.textContent || "";
+      copySettingsText(prompt, "WorkBuddy 配置提示词已复制。");
       return;
     }
     const auditPage = event.target?.closest?.("[data-mcp-audit-page]");
@@ -12727,7 +12857,7 @@ function bindEvents() {
       loadSettingsRuntimeHealth({ force: true });
       return;
     }
-    if (action === "cancel-confirmation" || action === "close-reset-preview" || action === "close-certificate-preview") {
+    if (action === "cancel-confirmation" || action === "close-reset-preview" || action === "close-certificate-preview" || action === "close-workbuddy-guide") {
       closeMcpOverlay();
       return;
     }
@@ -12814,7 +12944,7 @@ function bindEvents() {
       return;
     }
     if (event.key !== "Escape") return;
-    if (state.mcpConfirmation || state.mcpResetPreview || state.mcpCertificatePreview) {
+    if (state.mcpConfirmation || state.mcpResetPreview || state.mcpCertificatePreview || state.mcpWorkbuddyGuide) {
       event.preventDefault();
       closeMcpOverlay();
       return;

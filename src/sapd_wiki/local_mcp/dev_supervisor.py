@@ -35,6 +35,7 @@ from .platform_secrets import (
     FakeMacOSDataProtectionKeychainProvider,
     FakeWindowsDpapiCurrentUserProvider,
     MacOSWebDevKeychainSecretProvider,
+    SecretCustodyError,
     WindowsDpapiCurrentUserProvider,
 )
 from .macos_current_user_trust import MacOSCurrentUserTrustAdapter
@@ -65,6 +66,8 @@ AUTOMATIC_RESTART_BACKOFF_SECONDS = (1.0, 2.0, 5.0, 10.0, 30.0)
 AUDIT_DISPLAY_LIMIT = 30
 AUDIT_GROUP_WINDOW_SECONDS = 24 * 60 * 60
 AUDIT_GROUPABLE_EVENT_TYPES = frozenset({"TOKEN_REFRESHED", "TOOL_CALL"})
+CERTIFICATE_SECRET_STORE_UNAVAILABLE = "CERTIFICATE_SECRET_STORE_UNAVAILABLE"
+KEY_STORE_TEMPORARILY_UNAVAILABLE = "KEY_STORE_TEMPORARILY_UNAVAILABLE"
 
 
 def _iso(value: float | None) -> str | None:
@@ -701,6 +704,16 @@ class DevSidecarSupervisor:
         certificate = self._certificate_projection()
         if certificate["state"] in {"valid", "expiring", "renewal_required"}:
             return
+        if (
+            certificate["state"] == "error"
+            and certificate["reason_code"]
+            == CERTIFICATE_SECRET_STORE_UNAVAILABLE
+        ):
+            # A running TLS process already consumed the passphrase through the
+            # authenticated one-shot channel.  Locking the user's key store
+            # must not terminate that healthy process; the next monitor pass
+            # will verify the store again after the user session is unlocked.
+            return
         self._terminate_owned_process()
         self._cleanup_tls()
         self._desired_state = "enabled"
@@ -734,7 +747,11 @@ class DevSidecarSupervisor:
             if self._recoverable_error is not None
             else None
         )
-        if error_code not in {None, "SIDECAR_EXITED", "SIDECAR_START_FAILED"}:
+        if error_code not in {
+            None,
+            "SIDECAR_EXITED",
+            "SIDECAR_START_FAILED",
+        }:
             self._next_reconnect_at = None
             return
         self._next_reconnect_at = None
@@ -749,7 +766,10 @@ class DevSidecarSupervisor:
                 if self._recoverable_error is not None
                 else None
             )
-            if current_code in {"SIDECAR_EXITED", "SIDECAR_START_FAILED"}:
+            if current_code in {
+                "SIDECAR_EXITED",
+                "SIDECAR_START_FAILED",
+            }:
                 self._schedule_automatic_restart()
 
     def _diagnostics(self) -> dict[str, Any]:
@@ -927,16 +947,25 @@ class DevSidecarSupervisor:
                 "expiring",
                 "renewal_required",
             }:
+                secret_store_unavailable = (
+                    certificate["state"] == "error"
+                    and certificate["reason_code"]
+                    == CERTIFICATE_SECRET_STORE_UNAVAILABLE
+                )
                 self._desired_state = "enabled"
                 self._service_state = "error"
                 self._recoverable_error = {
                     "code": (
-                        "KEY_PASSPHRASE_UNAVAILABLE"
+                        KEY_STORE_TEMPORARILY_UNAVAILABLE
+                        if secret_store_unavailable
+                        else "KEY_PASSPHRASE_UNAVAILABLE"
                         if certificate["state"] == "key_unavailable"
                         else "CERTIFICATE_NOT_READY"
                     ),
                     "recovery_action": (
-                        "reset_certificate"
+                        "retry_service"
+                        if secret_store_unavailable
+                        else "reset_certificate"
                         if certificate["state"] == "key_unavailable"
                         else "configure_certificate"
                     ),
@@ -1336,16 +1365,22 @@ class DevSidecarSupervisor:
                 CertificateTrustError,
                 CertificateIdentityError,
                 CertificateLifecycleError,
+                SecretCustodyError,
                 TLSIdentityError,
             ) as exc:
                 self._prepared_certificate_actions.pop(confirmation_id, None)
+                error_code = getattr(
+                    exc,
+                    "code",
+                    "CERTIFICATE_OPERATION_FAILED",
+                )
                 self._recoverable_error = {
-                    "code": getattr(
-                        exc,
-                        "code",
-                        "CERTIFICATE_OPERATION_FAILED",
+                    "code": error_code,
+                    "recovery_action": (
+                        "unlock_keychain"
+                        if error_code == "SECRET_STORE_UNAVAILABLE"
+                        else "configure_certificate"
                     ),
-                    "recovery_action": "configure_certificate",
                 }
                 self._state_version += 1
                 raise GatewayActionError("ACTION_REJECTED") from exc

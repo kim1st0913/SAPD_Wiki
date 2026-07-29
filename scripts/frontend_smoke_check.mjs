@@ -501,6 +501,7 @@ async function main() {
         const rail = document.querySelector('#contentNavList');
         if (rail) rail.scrollTop = Math.floor((rail.scrollHeight - rail.clientHeight) * 0.45);
         const beforeClickScrollTop = rail?.scrollTop || 0;
+        const stageBeforeClick = document.querySelector('.guide-slide-stage');
         document.querySelector('[data-content-slide-index="20"]')?.click();
         await waitFrame();
         const afterClickScrollTop = rail?.scrollTop || 0;
@@ -515,6 +516,7 @@ async function main() {
           beforeClickScrollTop,
           afterClickScrollTop,
           clickScrollPreserved: beforeClickScrollTop > 0 && Math.abs(afterClickScrollTop - beforeClickScrollTop) <= 2,
+          stagePreservedAfterClick: stageBeforeClick === document.querySelector('.guide-slide-stage'),
           afterClickPage,
           afterKeyPage: document.querySelector('.guide-slide-page')?.textContent || '',
           overlayOpacityBeforeHover: styleValue('.guide-slide-controls', 'opacity'),
@@ -1099,6 +1101,7 @@ async function main() {
       (pageName === "content" &&
         guideExpectation &&
         (!metrics.guideInteractionProbe?.clickScrollPreserved ||
+          !metrics.guideInteractionProbe?.stagePreservedAfterClick ||
           metrics.guideInteractionProbe?.afterClickPage !== expectedGuidePage21 ||
           metrics.guideInteractionProbe?.afterKeyPage !== expectedGuidePage22 ||
           metrics.guideInteractionProbe?.afterPointerClickPage !== expectedGuidePage23 ||

@@ -30,6 +30,7 @@ from .path_security import (
     atomic_write_secure,
     ensure_secure_directory,
 )
+from .platform_secrets import is_transient_secret_custody_error
 
 
 MANIFEST_SCHEMA_VERSION = 1
@@ -701,6 +702,8 @@ class CertificateIdentityStore:
         valid_from = _parse_iso(manifest.valid_from)
         valid_until = _parse_iso(manifest.valid_until)
         remaining_days = max(0, (valid_until.date() - now.date()).days)
+        secret_available: bool | None = None
+        secret_store_temporarily_unavailable = False
         if forced_state is not None:
             state, reason, next_action = (
                 forced_state,
@@ -740,15 +743,31 @@ class CertificateIdentityStore:
                     )
                     is not None
                 )
-            except Exception:
-                secret_available = False
+            except Exception as exc:
+                if is_transient_secret_custody_error(exc):
+                    secret_store_temporarily_unavailable = True
+                else:
+                    secret_available = False
         if (
             forced_state is None
             and now >= valid_from
             and now < valid_until
             and not trust_conflict
             and trust_installed
-            and not secret_available
+            and secret_store_temporarily_unavailable
+        ):
+            state, reason, next_action = (
+                "error",
+                "CERTIFICATE_SECRET_STORE_UNAVAILABLE",
+                "certificate_view_details",
+            )
+        elif (
+            forced_state is None
+            and now >= valid_from
+            and now < valid_until
+            and not trust_conflict
+            and trust_installed
+            and secret_available is False
         ):
             state, reason, next_action = (
                 "key_unavailable",

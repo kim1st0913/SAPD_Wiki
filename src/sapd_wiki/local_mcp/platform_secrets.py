@@ -39,6 +39,22 @@ class SecretCustodyError(RuntimeError):
         self.code = code
 
 
+TRANSIENT_SECRET_CUSTODY_CODES = frozenset(
+    {
+        "SECRET_BACKEND_UNAVAILABLE",
+        "SECRET_STORE_UNAVAILABLE",
+    }
+)
+KEYCHAIN_TEMPORARY_FAILURE_RETURN_CODES = frozenset({36, 51})
+
+
+def is_transient_secret_custody_error(error: BaseException) -> bool:
+    return (
+        isinstance(error, SecretCustodyError)
+        and error.code in TRANSIENT_SECRET_CUSTODY_CODES
+    )
+
+
 class FakeBoundPlatformSecretProvider:
     """In-memory provider with install/profile/generation/device binding."""
 
@@ -448,8 +464,8 @@ class MacOSWebDevKeychainSecretProvider:
     """Persistent Web-dev custody using the current user's login Keychain.
 
     Secret bytes travel through a private child stdin pipe, never argv,
-    environment variables or an ordinary file.  The signed macOS App replaces
-    this development adapter with Data Protection Keychain in D1.
+    environment variables or an ordinary file.  The current macOS 0.3.0 path
+    uses this adapter until a separately authorized native integration exists.
     """
 
     backend = "macos_web_dev_keychain"
@@ -536,6 +552,8 @@ class MacOSWebDevKeychainSecretProvider:
             input_bytes=prompt_value,
         )
         if result.returncode != 0:
+            if result.returncode in KEYCHAIN_TEMPORARY_FAILURE_RETURN_CODES:
+                raise SecretCustodyError("SECRET_STORE_UNAVAILABLE")
             raise SecretCustodyError("SECRET_WRITE_FAILED")
 
     def delete_secret(self, reference: str) -> None:
@@ -554,4 +572,6 @@ class MacOSWebDevKeychainSecretProvider:
             )
         )
         if result.returncode not in {0, 44}:
+            if result.returncode in KEYCHAIN_TEMPORARY_FAILURE_RETURN_CODES:
+                raise SecretCustodyError("SECRET_STORE_UNAVAILABLE")
             raise SecretCustodyError("SECRET_DELETE_FAILED")

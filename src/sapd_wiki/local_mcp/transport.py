@@ -259,6 +259,18 @@ def _remap_oauth_routes(
 ) -> None:
     """mcp 1.28.1 uses root OAuth paths; the frozen contract uses /oauth/*."""
 
+    async def protected_resource_metadata(_request: object) -> JSONResponse:
+        issuer = provider.config.issuer_url.rstrip("/")
+        return JSONResponse(
+            {
+                "resource": provider.config.resource_url,
+                "authorization_servers": [issuer],
+                "scopes_supported": [SCOPE],
+                "bearer_methods_supported": ["header"],
+            },
+            headers={"Cache-Control": "public, max-age=3600"},
+        )
+
     async def metadata(_request: object) -> JSONResponse:
         issuer = provider.config.issuer_url.rstrip("/")
         payload: dict[str, Any] = {
@@ -451,7 +463,15 @@ def _remap_oauth_routes(
         path = getattr(route, "path", None)
         if path == "/.well-known/oauth-authorization-server":
             continue
-        if path in path_map:
+        if path == "/.well-known/oauth-protected-resource/mcp":
+            routes.append(
+                Route(
+                    path,
+                    endpoint=protected_resource_metadata,
+                    methods=route.methods,
+                )
+            )
+        elif path in path_map:
             endpoint = {
                 "/revoke": revoke,
                 "/token": token,

@@ -87,6 +87,10 @@ assert.doesNotMatch(dataClient, /getMcpUiState|\/api\/v1\/mcp\/ui-state/);
 assert.match(dataClient, /Number\(extra\.configured_port\) === 5173/);
 assert.match(settingsCss, /\.app-shell-integrated \.topbar\s*\{\s*overflow:\s*visible;/s);
 assert.match(settingsCss, /\.mcp-status-monitor:hover \.mcp-status-popover/);
+assert.match(settingsSource, /macos_web_dev_keychain:\s*"macOS 登录钥匙串（开发环境）"/);
+assert.match(settingsSource, /unlock_keychain:\s*"请解锁 macOS“登录”钥匙串后重试"/);
+assert.match(settingsSource, /SECRET_STORE_UNAVAILABLE:[^,\n]*钥匙串当前锁定或无法验证/);
+assert.match(app, /SECRET_STORE_UNAVAILABLE:[^,\n]*钥匙串当前锁定或无法验证/);
 
 const context = vm.createContext({ window: { sapdComponents: {} } });
 vm.runInContext(settingsSource, context, { filename: "SystemSettings.js" });
@@ -193,7 +197,7 @@ const privacyAuditHtml = component.render({
     },
   },
 });
-for (const label of ["AI 集成概况", "本机服务", "知识访问", "连接检查", "尚未检查", "立即检查", "需要您的确认", "查看授权请求", "Authentication complete", "待确认授权", "动态注册", "只读访问基础知识库", "允许只读访问", "查看技术信息", "MCP 连接配置", "本地端口", "服务地址", "基础知识库全部业务内容，包括完整标准正文", "5 个只读知识工具", "用户数据、源文件本体、本地路径、系统配置与凭据、日志和非受控 SQL", "AI 可以检索和使用基础知识库中的全部知识内容。知识内容仅用于查询、分析和引用，不能改变系统权限或指挥系统执行操作。", "安全连接证书", "应用私有安全目录（不可修改）", "建立本机安全连接", "客户端授权", "拒绝", "复制连接配置", "隐私与审计", "维护操作", "重置 AI 集成"]) {
+for (const label of ["AI 集成概况", "本机服务", "知识访问", "连接检查", "尚未检查", "立即检查", "需要您的确认", "查看授权请求", "Authentication complete", "待确认授权", "动态注册", "只读访问基础知识库", "允许只读访问", "查看技术信息", "MCP 连接配置", "本地端口", "服务地址", "基础知识库全部业务内容，包括完整标准正文", "5 个只读知识工具", "用户数据、源文件本体、本地路径、系统配置与凭据、日志和非受控 SQL", "AI 可以检索和使用基础知识库中的全部知识内容。知识内容仅用于查询、分析和引用，不能改变系统权限或指挥系统执行操作。", "安全连接证书", "证书目录", "~/Library/Application Support/SAPD Wiki/LocalMCP/Certificates/dev", "建立本机安全连接", "客户端授权", "拒绝", "复制 HTTP Stream 地址", "WorkBuddy 配置引导", "隐私与审计", "维护操作", "重置 AI 集成"]) {
   assert.match(aiHtml, new RegExp(label));
 }
 assert.equal((aiHtml.match(/<dt(?: id="aiKnowledgeAccessTitle")?>(本机服务|客户端授权|连接检查|知识访问)<\/dt>/g) || []).length, 4, "overview must contain three compact states and one knowledge cell");
@@ -212,7 +216,9 @@ assert.match(privacyAuditHtml, /data-settings-page="privacy-audit"/);
 assert.match(privacyAuditHtml, /data-settings-section="audit-policy"/);
 assert.match(privacyAuditHtml, /data-settings-section="audit"/);
 assert.doesNotMatch(aiHtml, /system-settings-ai-primary|system-settings-ai-secondary/);
-assert.match(aiHtml, /class="system-settings-client-empty"[\s\S]*启动 MCP 服务[\s\S]*复制连接配置并添加到客户端[\s\S]*返回本页确认授权请求/);
+assert.match(aiHtml, /class="system-settings-client-empty"[\s\S]*启动 MCP 服务[\s\S]*复制 HTTP Stream 地址或打开 WorkBuddy 配置引导[\s\S]*返回本页确认授权请求/);
+assert.match(aiHtml, /data-mcp-copy-url="https:\/\/127\.0\.0\.1:28775\/mcp"[^>]*>复制 HTTP Stream 地址<\/button>\s*<button[^>]*data-mcp-workbuddy-guide="https:\/\/127\.0\.0\.1:28775\/mcp"[^>]*>WorkBuddy 配置引导<\/button>/);
+assert.doesNotMatch(aiHtml, /复制连接配置|复制 MCP 地址|data-mcp-copy-config/);
 assert.equal((privacyAuditHtml.match(/<time datetime=/g) || []).length, 3, "audit page must render the available events");
 assert.match(privacyAuditHtml, /最近记录/);
 for (const auditLabel of ["隐私边界", "存储与自动清理", "独立 MCP 控制库", "30 天、100 条或 20MB", "只查询最近 30 条，每页读取 10 条并合并相似事件", "搜索知识库（2 次）", "累计返回 5 条", "累计用时 20 毫秒", "本页合并为 3 组", "底层审计仍逐条保留", "授权、撤销、失败和异常事件不合并", "已为授权客户端签发短期访问凭据", "客户端已完成动态注册，等待用户确认", "发布方未验证", "不保存用户问题、搜索词或知识正文"]) {
@@ -358,6 +364,29 @@ for (const selector of [
 }
 assert.match(recoveryHtml, /修复安全连接/);
 
+const temporarilyLockedHtml = component.render({
+  route: "/settings/ai-integration",
+  mcp: {
+    contract_version: "sapd-mcp-control-v1",
+    status: { service_state: "ready" },
+    settings: {
+      control_capabilities: {
+        certificate_view_details: true,
+        web_reset_confirmation: true,
+      },
+    },
+    certificate: certificate("error", {
+      reason_code: "CERTIFICATE_SECRET_STORE_UNAVAILABLE",
+      next_action: "certificate_view_details",
+    }),
+    clients: [],
+    diagnostics: { overall_state: "ready", last_checked_at: null, checks: [] },
+  },
+});
+assert.match(temporarilyLockedHtml, /安全存储暂不可用/);
+assert.match(temporarilyLockedHtml, /已运行的 MCP 会保持服务，请解锁后重新启动/);
+assert.doesNotMatch(temporarilyLockedHtml, /重置 AI 集成并重新初始化/);
+
 const rotatingHtml = component.render({
   route: "/settings/ai-integration",
   mcp: {
@@ -409,6 +438,103 @@ for (const label of ["不需要填写姓名、组织、邮箱、路径或有效�
 }
 const certificateDialogHtml = previewHtml.slice(previewHtml.indexOf('data-mcp-dialog'));
 assert.doesNotMatch(certificateDialogHtml, /<input|<select|<textarea/);
+
+const workbuddyGuideHtml = component.render({
+  route: "/settings/ai-integration",
+  system: {
+    dataRoot: "/Users/tester/Library/Application Support/SAPDWiki",
+    importDirectory: "/Users/tester/Documents/SAPDWiki/import",
+    downloadDirectory: "/Users/tester/Documents/SAPDWiki/export",
+  },
+  mcp: {
+    contract_version: "sapd-mcp-control-v1",
+    status: { service_state: "ready" },
+    settings: {
+      release_channel: "dev",
+      configured_port: 28775,
+      canonical_resource: "https://127.0.0.1:28775/mcp",
+      control_capabilities: {},
+    },
+    certificate: certificate("valid", {
+      ca_fingerprint_sha256: "AA:BB:CC:DD",
+    }),
+    clients: [],
+    diagnostics: { overall_state: "ready", last_checked_at: null, checks: [] },
+  },
+  workbuddyGuide: true,
+});
+for (const label of ["WorkBuddy 配置引导", "按以下 4 步完成 WorkBuddy 配置", "1. 生成连接证书", "2. 核对 JSON", "3. 复制配置提示词", "4. 重启并授权", "mcpServers", "stdio", "/opt/homebrew/bin/npx", "mcp-remote@0.1.38", "http-only", "3334", "https://127.0.0.1:28775/mcp", "NODE_EXTRA_CA_CERTS", "/Users/tester/.workbuddy/certs/sapd-wiki-app-ca.pem", "MCP_REMOTE_CONFIG_DIR", "已完成。WorkBuddy 只会复制 CA 证书，不会接触服务端私钥", "先在 SAPD Wiki 的“安全连接证书”中生成", "active-manifest.json", "ca_relative_path", "只把上一步的 ca.pem 复制", "不含服务器私钥", "server_key_relative_path", "不要关闭 TLS 校验", "AA:BB:CC:DD", "返回本页确认 OAuth 只读授权", "复制 JSON", "复制配置提示词", "创建带时间戳的备份", "保留其他所有 MCP 配置", "不要替我批准 OAuth"]) {
+  assert.match(workbuddyGuideHtml, new RegExp(label));
+}
+assert.match(workbuddyGuideHtml, /\/Users\/tester\/Library\/Application Support\/SAPD Wiki\/LocalMCP\/Certificates\/dev\/active-manifest\.json/);
+assert.match(workbuddyGuideHtml, /data-mcp-action="close-workbuddy-guide"/);
+assert.match(workbuddyGuideHtml, /data-mcp-copy-workbuddy/);
+assert.match(workbuddyGuideHtml, /data-mcp-copy-workbuddy-prompt/);
+assert.doesNotMatch(workbuddyGuideHtml, /class="is-primary"[^>]*data-mcp-copy-workbuddy(?:-prompt)?/);
+assert.match(workbuddyGuideHtml, /data-workbuddy-prompt/);
+assert.equal((workbuddyGuideHtml.match(/<details class="system-settings-workbuddy-copy-section">/g) || []).length, 2);
+assert.match(workbuddyGuideHtml, /<summary><span><strong>2\. 核对 JSON<\/strong><small>确认端口和 CA 路径<\/small><\/span><\/summary>/);
+assert.match(workbuddyGuideHtml, /<summary><span><strong>3\. 复制配置提示词<\/strong><small>交给 WorkBuddy 自动完成配置<\/small><\/span><\/summary>/);
+assert.doesNotMatch(workbuddyGuideHtml, /<details class="system-settings-workbuddy-copy-section" open>/);
+assert.match(settingsCss, /\.system-settings-workbuddy-copy-section summary::after\s*\{[^}]*content:\s*"展开"/s);
+assert.match(settingsCss, /\.system-settings-workbuddy-copy-section\[open\] summary::after\s*\{[^}]*content:\s*"收起"/s);
+assert.match(settingsCss, /\.system-settings-dialog\s*\{[^}]*background:\s*var\(--panel,\s*#fff\)/s);
+assert.match(settingsCss, /\.system-settings-dialog button\s*\{[^}]*background:\s*var\(--panel,\s*#fff\)/s);
+assert.match(settingsCss, /\.system-settings-workbuddy-copy-section\s*\{[^}]*background:\s*var\(--surface-quiet,\s*#f4f7fb\)/s);
+assert.match(settingsCss, /\.system-settings-workbuddy-copy-section summary > span\s*\{[^}]*display:\s*grid/s);
+assert.match(settingsCss, /\.system-settings-workbuddy-certificate,\s*[\s\S]*\.system-settings-workbuddy-next\s*\{[^}]*grid-template-columns:\s*88px minmax\(0,\s*1fr\)/s);
+
+const workbuddyCertificateRequiredHtml = component.render({
+  route: "/settings/ai-integration",
+  system: { dataRoot: "/Users/tester/Library/Application Support/SAPDWiki" },
+  mcp: {
+    contract_version: "sapd-mcp-control-v1",
+    status: { service_state: "stopped" },
+    settings: {
+      configured_port: 28775,
+      canonical_resource: "https://127.0.0.1:28775/mcp",
+      control_capabilities: {},
+    },
+    certificate: certificate("not_configured"),
+    clients: [],
+    diagnostics: { overall_state: "unknown", last_checked_at: null, checks: [] },
+  },
+  workbuddyGuide: true,
+});
+assert.match(workbuddyCertificateRequiredHtml, /1\. 生成连接证书/);
+assert.match(workbuddyCertificateRequiredHtml, /关闭本窗口，在“安全连接证书”中完成生成后再继续/);
+assert.doesNotMatch(workbuddyCertificateRequiredHtml, /已完成。WorkBuddy 只会复制 CA 证书/);
+
+const workbuddyAppGuideHtml = component.render({
+  route: "/settings/ai-integration",
+  system: {
+    dataRoot: "/Users/tester/Library/Application Support/SAPDWiki",
+  },
+  mcp: {
+    contract_version: "sapd-mcp-control-v1",
+    status: { service_state: "ready" },
+    settings: {
+      release_channel: "stable",
+      configured_port: 28776,
+      canonical_resource: "https://127.0.0.1:28776/mcp",
+      control_capabilities: {},
+    },
+    certificate: certificate("valid"),
+    clients: [],
+    diagnostics: { overall_state: "ready", last_checked_at: null, checks: [] },
+  },
+  workbuddyGuide: true,
+});
+assert.match(workbuddyAppGuideHtml, /https:\/\/127\.0\.0\.1:28776\/mcp/);
+assert.match(workbuddyAppGuideHtml, /\/Users\/tester\/Library\/Application Support\/SAPDWiki\/Runtime\/data\/mcp\/certificates\/active-manifest\.json/);
+assert.match(workbuddyAppGuideHtml, /App 保存位置\/Runtime\/data\/mcp\/certificates/);
+assert.doesNotMatch(workbuddyAppGuideHtml, /相对于/);
+assert.doesNotMatch(workbuddyAppGuideHtml, /应用私有安全目录（不可修改）/);
+assert.match(settingsCss, /\.system-settings-certificate-storage code\s*\{[^}]*font-size:\s*var\(--sapd-shell-type-caption,\s*11px\)[^}]*overflow-wrap:\s*anywhere/s);
+assert.doesNotMatch(workbuddyGuideHtml, /Web 开发通道|28775 请继续保留给 Web|28776 对应地址/);
+assert.doesNotMatch(workbuddyAppGuideHtml, /Web 开发通道|28775 请继续保留给 Web|28776 对应地址/);
+assert.match(workbuddyAppGuideHtml, /复制 JSON/);
+assert.match(workbuddyAppGuideHtml, /复制配置提示词/);
 
 const sentinelHtml = component.render({
   route: "/settings/ai-integration",

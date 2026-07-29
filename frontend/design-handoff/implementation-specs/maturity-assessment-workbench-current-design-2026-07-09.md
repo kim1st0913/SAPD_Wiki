@@ -372,6 +372,6 @@ V1 采用：
 | `docs/08-maturity/requirements.md` | 成熟度模块需求与边界 |
 | `docs/08-maturity/maturity-domain-model.md` | 成熟度领域模型 |
 | `docs/08-maturity/maturity-data-model.md` | maturity 专用数据模型 |
-| `docs/08-maturity/scoring-rules.md` | 评分规则 |
+| `docs/08-maturity/requirements.md` | V2.1 当前评分与聚合合同 |
 | `docs/08-maturity/maturity-template-mapping.md` | 模板字段映射 |
-| `docs/08-maturity/mainline-consistency-check.md` | 与主工程权威能力数据的一致性核对 |
+| `docs/05-archive/maturity-retired-2026-07/mainline-consistency-check.md` | 历史一致性核对证据 |

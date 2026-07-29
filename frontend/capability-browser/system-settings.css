@@ -749,6 +749,21 @@
   font-weight: 680;
 }
 
+.app-shell-integrated .system-settings-certificate-storage {
+  display: block;
+}
+
+.app-shell-integrated .system-settings-certificate-storage code {
+  display: block;
+  min-width: 0;
+  color: var(--shell-text, var(--ink));
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: var(--sapd-shell-type-caption, 11px);
+  font-weight: 620;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
 .app-shell-integrated .system-settings-certificate-details {
   margin: 0 18px 14px;
   padding-top: 4px;
@@ -1472,8 +1487,12 @@
   padding: 22px;
   border: 1px solid var(--sapd-shell-divider, var(--line));
   border-radius: var(--sapd-shell-radius-surface, 10px);
-  background: var(--shell-surface, var(--panel));
+  background: var(--panel, #fff);
   box-shadow: var(--shell-shadow-overlay, 0 16px 36px color-mix(in oklch, var(--ink) 16%, transparent));
+}
+
+.app-shell-integrated .system-settings-dialog button {
+  background: var(--panel, #fff);
 }
 
 .app-shell-integrated .system-settings-dialog > span {
@@ -1498,6 +1517,121 @@
 .app-shell-integrated .system-settings-dialog .system-settings-actions {
   justify-content: flex-end;
   padding: 20px 0 0;
+}
+
+.app-shell-integrated .system-settings-workbuddy-copy-section {
+  margin: 16px 0 0;
+  border: 1px solid var(--sapd-shell-divider, var(--line));
+  border-radius: var(--sapd-shell-radius-control, 7px);
+  background: var(--surface-quiet, #f4f7fb);
+  overflow: hidden;
+}
+
+.app-shell-integrated .system-settings-workbuddy-copy-section summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.app-shell-integrated .system-settings-workbuddy-copy-section summary::-webkit-details-marker {
+  display: none;
+}
+
+.app-shell-integrated .system-settings-workbuddy-copy-section summary > span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.app-shell-integrated .system-settings-workbuddy-copy-section summary strong {
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.app-shell-integrated .system-settings-workbuddy-copy-section summary small {
+  color: var(--shell-muted, var(--muted));
+  font-size: var(--sapd-shell-type-meta, 12px);
+  line-height: 1.4;
+}
+
+.app-shell-integrated .system-settings-workbuddy-copy-section summary::after {
+  flex: 0 0 auto;
+  color: var(--shell-primary, var(--accent));
+  content: "展开";
+  font-size: var(--sapd-shell-type-meta, 12px);
+  font-weight: 720;
+}
+
+.app-shell-integrated .system-settings-workbuddy-copy-section[open] summary {
+  border-bottom: 1px solid var(--sapd-shell-divider, var(--line));
+}
+
+.app-shell-integrated .system-settings-workbuddy-copy-section[open] summary::after {
+  content: "收起";
+}
+
+.app-shell-integrated .system-settings-workbuddy-json,
+.app-shell-integrated .system-settings-workbuddy-prompt {
+  max-height: 280px;
+  margin: 0;
+  padding: 14px;
+  overflow: auto;
+  border: 0;
+  background: transparent;
+  color: var(--shell-text, var(--ink));
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre;
+}
+
+.app-shell-integrated .system-settings-workbuddy-prompt {
+  max-height: 220px;
+  white-space: pre-wrap;
+}
+
+.app-shell-integrated .system-settings-workbuddy-certificate,
+.app-shell-integrated .system-settings-workbuddy-next {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 8px;
+  margin: 16px 0 0;
+  padding: 12px 14px;
+  border-radius: var(--sapd-shell-radius-control, 7px);
+  background: var(--surface-quiet, #f4f7fb);
+  align-items: baseline;
+  color: var(--shell-muted, var(--muted));
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.app-shell-integrated .system-settings-workbuddy-certificate strong,
+.app-shell-integrated .system-settings-workbuddy-next strong {
+  color: var(--shell-text, var(--ink));
+  white-space: nowrap;
+}
+
+.app-shell-integrated .system-settings-workbuddy-certificate.is-ready strong {
+  color: var(--sapd-state-success, var(--success));
+}
+
+.app-shell-integrated .system-settings-workbuddy-certificate.is-warning strong {
+  color: var(--sapd-state-warning, var(--warning));
+}
+
+.app-shell-integrated .system-settings-workbuddy-next {
+  padding: 14px 0 0;
+  border-top: 1px solid var(--sapd-shell-divider, var(--line));
+  border-radius: 0;
+  background: transparent;
+}
+
+.app-shell-integrated .system-settings-dialog .system-settings-reset-effects {
+  background: var(--surface-quiet, #f4f7fb);
 }
 
 .app-shell-integrated .system-settings-reset-effects {
@@ -2007,6 +2141,12 @@
   .app-shell-integrated .system-settings-dialog {
     max-height: calc(100dvh - 24px);
     padding: 18px;
+  }
+
+  .app-shell-integrated .system-settings-workbuddy-certificate,
+  .app-shell-integrated .system-settings-workbuddy-next {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
   }
 }
 

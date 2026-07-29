@@ -20,7 +20,9 @@
 
 兼容路由：`/knowledge/technical-modules`、`/knowledge/technical-measures`、`/knowledge/work-items`、`/knowledge/processes`、`/knowledge/role-references` 可继续映射到对应 section，但不作为主导航二级入口。
 
-页面类型在 `docs/00-overview/frontend-menu-and-page-type-definition-v1.md` 中定义为 `knowledge-directory`，目标是目录检索、表格浏览、标签筛选、详情抽屉、来源证据和对象间关联；不适合做成长文档页、卡片墙或默认复杂关系图。
+本页类型为 `knowledge-directory`，目标是目录检索、表格浏览、标签筛选、详情抽屉、
+来源证据和对象间关联；不适合做成长文档页、卡片墙或默认复杂关系图。当前导航归属以
+`AppShell.js` 和前端信息架构为准。
 
 ## 2. 关键原则
 

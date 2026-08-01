@@ -336,7 +336,7 @@ def main() -> int:
         default=DEFAULT_CONTENT_ASSET_DB,
     )
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT)
-    parser.add_argument("--app-version", default="0.3.0")
+    parser.add_argument("--app-version", default="0.4.0")
     parser.add_argument("--source-revision")
     parser.add_argument("--delivery-data-manifest", type=Path)
     args = parser.parse_args()

@@ -193,19 +193,20 @@ class PrepareWindowsElectronRuntimeTests(unittest.TestCase):
 
     def test_windows_runtime_contains_current_user_readme_and_changelog(self) -> None:
         args = self._args(self.root / "runtime-readme")
-        args.app_version = "0.3.5"
+        args.app_version = "0.4.0"
         runtime = build_runtime(args, args.backend, args.output)
         readme = (runtime / "README-FIRST.md").read_text(encoding="utf-8")
         changelog = (runtime / "CHANGELOG.md").read_text(encoding="utf-8")
 
-        self.assertIn("# SAPD Wiki 0.3.5 Windows 使用说明", readme)
+        self.assertIn("# SAPD Wiki 0.4.0 Windows 使用说明", readme)
+        self.assertIn("### 0.4.0", readme)
         self.assertIn("### 0.3.5", readme)
         self.assertIn("### 0.3.0（macOS）", readme)
         self.assertIn("### 0.1.6（macOS）", readme)
         self.assertIn("批注一键导出", readme)
         self.assertIn("系统设置 > AI功能集成", readme)
         self.assertNotIn("macOS DMG", readme)
-        self.assertIn("## 0.3.5", changelog)
+        self.assertIn("## 0.4.0", changelog)
 
 
 if __name__ == "__main__":

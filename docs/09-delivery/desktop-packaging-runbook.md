@@ -226,12 +226,25 @@ apps/macos/SAPDWiki/dist/license/
 apps/macos/SAPDWiki/dist/no-license/
 ```
 
+每个 DMG 的 staging 根目录必须包含：
+
+```text
+SAPD Wiki.app
+Applications -> /Applications
+README-FIRST.md
+```
+
+用户打开 DMG 后，将 `SAPD Wiki.app` 拖到 `Applications` 图标完成安装，再从
+macOS“应用程序”启动。该拖拽只安装 App，不改变首次初始化、Runtime、import、
+export 或用户数据库的位置。
+
 ### 5.4 macOS 实包校验
 
 打包完成后至少确认：
 
 - `hdiutil verify` 通过；
 - DMG 可只读挂载；
+- 镜像内 `Applications` 是指向 `/Applications` 的符号链接，App 可拖动安装；
 - `.app`、Runtime backend、前端和两座只读数据库存在；
 - 包内数据库 SHA-256 与正式输入一致；
 - 包内用户库业务表为空；

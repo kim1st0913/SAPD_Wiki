@@ -59,6 +59,13 @@ D:\Work\SAPDWiki\
 
 当前完整流程见 `docs/09-delivery/desktop-packaging-runbook.md`。
 
+## Changelog
+
+Windows 用户可读版本记录维护在 `apps/electron/CHANGELOG.md`。生产构建会把它和
+`README-FIRST.md` 一起写入安装包 Runtime；首次启动后可在用户选择的数据目录
+`SAPDWiki/Runtime/` 中查看。私有 Internal Prerelease 还应把同一份
+`CHANGELOG.md` 作为独立资产发布，方便安装前阅读。
+
 ## 当前边界
 
 - 当前只生成 Windows x64 NSIS 安装器。

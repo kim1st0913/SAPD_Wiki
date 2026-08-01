@@ -251,6 +251,7 @@ function prepareRuntime(settings) {
       "data/base",
       "diagnostics",
       "README-FIRST.md",
+      "CHANGELOG.md",
       "start-windows.bat",
       "stop-windows.bat",
     ]) {

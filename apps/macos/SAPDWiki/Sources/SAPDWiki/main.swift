@@ -6,7 +6,7 @@ import WebKit
 
 private let bundleIdentifier = "com.sapd.wiki.macos"
 private let appDisplayName = "SAPD Wiki"
-private let fallbackDisplayVersion = "0.3.0"
+private let fallbackDisplayVersion = "0.3.5"
 private let wrapperLogName = "app-wrapper.log"
 private let runtimeFingerprintName = ".sapd-runtime-fingerprint"
 

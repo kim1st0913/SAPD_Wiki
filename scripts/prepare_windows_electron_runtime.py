@@ -227,6 +227,7 @@ def write_runtime_fingerprint(runtime_root: Path) -> str:
         runtime_root / BACKEND_NAME,
         runtime_root / "_internal",
         runtime_root / "README-FIRST.md",
+        runtime_root / "CHANGELOG.md",
         runtime_root / "start-windows.bat",
         runtime_root / "stop-windows.bat",
         runtime_root / "app" / "frontend-dist",

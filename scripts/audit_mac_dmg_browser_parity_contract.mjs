@@ -158,6 +158,12 @@ add(checks, "dmg_uses_build_and_run_build_per_variant", packageDmg.includes('SAP
 add(checks, "dmg_resigns_staged_app_after_readme_mutation", packageDmg.includes("write_runtime_readme") && packageDmg.includes("resign_staged_app"), {
   file: files.packageDmg,
 });
+add(checks, "dmg_staging_includes_applications_install_shortcut", [
+  'ln -s /Applications "$staging_dir/Applications"',
+  "拖到镜像内的 \\`Applications\\` 图标完成安装",
+].every((item) => packageDmg.includes(item)), {
+  file: files.packageDmg,
+});
 add(checks, "dmg_created_with_hdiutil", packageDmg.includes("hdiutil create"), {
   file: files.packageDmg,
 });

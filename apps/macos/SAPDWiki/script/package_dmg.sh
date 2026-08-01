@@ -7,7 +7,7 @@ REPO_ROOT="$(cd "$APP_ROOT/../../.." && pwd)"
 DIST_DIR="$APP_ROOT/dist"
 APP_NAME="SAPD Wiki"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
-APP_VERSION="${SAPD_WIKI_APP_VERSION:-0.3.0}"
+APP_VERSION="${SAPD_WIKI_APP_VERSION:-0.3.5}"
 export SAPD_WIKI_DISPLAY_VERSION="${SAPD_WIKI_DISPLAY_VERSION:-$APP_VERSION}"
 BUILD_STAMP="${SAPD_WIKI_BUILD_STAMP:-$(date -u +%Y%m%d-%H%M%SZ)}"
 ARCH="$(uname -m)"
@@ -50,7 +50,13 @@ write_readme() {
   local staging_dir="$1"
   local variant="$2"
   local title
+  local mode_summary
   title="$(variant_title "$variant")"
+  if [[ "$variant" == "license" ]]; then
+    mode_summary="授权版保留现有授权窗口和 30 天试用流程。"
+  else
+    mode_summary="无授权版不显示授权窗口或 30 天倒计时。"
+  fi
 
   cat >"$staging_dir/README-FIRST.md" <<README
 # SAPD Wiki ${APP_VERSION} macOS 使用说明（${title}）
@@ -58,6 +64,14 @@ write_readme() {
 本 DMG 用于 SAPD Wiki macOS 内测交付。当前版本：${APP_VERSION}。当前包类型：${title}。
 
 ## Changelog
+
+### 0.3.5
+
+- 升级为 0.3.5 macOS ${title}测试包，同步当前最新前端、后端、正式基础查询库、内容资产库和成熟度评估测试数据。
+- 优化“系统设置 > AI功能集成”的 MCP Runtime 控制与状态呈现。
+- 恢复 macOS 登录钥匙串安全存储路径；钥匙串暂时不可访问时提示用户解锁，不再误判为证书永久失效。
+- ${mode_summary}
+- 当前仍为 ad-hoc signing、未 notarize 的内测包，不启用自动更新。
 
 ### 0.3.0
 
@@ -92,9 +106,10 @@ write_readme() {
 
 ## 安装与启动
 
-1. 可以把 \`SAPD Wiki.app\` 拖到“应用程序”，也可以直接从 DMG 中双击运行。
-2. 首次打开如果 macOS 提示无法验证开发者，请到“系统设置 > 隐私与安全性”中允许打开。
-3. App 会启动本地 SAPD Wiki 后端，并在内置窗口中打开工作台。
+1. 打开 DMG 后，将 \`SAPD Wiki.app\` 拖到镜像内的 \`Applications\` 图标完成安装。
+2. 安装完成后请从 macOS“应用程序”中启动 SAPD Wiki，不要长期直接从 DMG 运行。
+3. 首次打开如果 macOS 提示无法验证开发者，请到“系统设置 > 隐私与安全性”中允许打开。
+4. App 会启动本地 SAPD Wiki 后端，并在内置窗口中打开工作台。
 
 ## 首次初始化注意事项
 
@@ -158,7 +173,7 @@ README
 
 1. 当前包为无授权版，不显示授权输入窗口。
 2. 当前包不启用 30 天试用倒计时，适合内部无授权测试。
-3. 本次 0.3.0 交付只生成该无授权变体，请按 DMG 文件名和版本号核对测试包。
+3. 本次 ${APP_VERSION} 无授权变体请按 DMG 文件名和版本号核对测试包。
 
 README
   fi
@@ -191,7 +206,13 @@ write_runtime_readme() {
   local variant="$2"
   local runtime_readme="$staging_dir/$APP_NAME.app/Contents/Resources/Runtime/README-FIRST.md"
   local title
+  local mode_summary
   title="$(variant_title "$variant")"
+  if [[ "$variant" == "license" ]]; then
+    mode_summary="授权版保留现有授权窗口和 30 天试用流程。"
+  else
+    mode_summary="无授权版不显示授权窗口或 30 天倒计时。"
+  fi
 
   cat >"$runtime_readme" <<README
 # SAPD Wiki ${APP_VERSION} Runtime 使用说明（${title}）
@@ -200,6 +221,13 @@ write_runtime_readme() {
 当前版本：${APP_VERSION}。当前包类型：${title}。
 
 ## Changelog
+
+### 0.3.5
+
+- 升级为 0.3.5 Runtime，同步当前最新前端、后端、正式基础查询库、内容资产库和成熟度评估测试数据。
+- 优化 MCP Runtime 控制与状态投影，继续使用本机 HTTPS、OAuth 只读授权和独立审计控制库。
+- macOS 安全存储继续使用登录钥匙串；暂时不可访问时提示用户解锁，不删除或重建健康证书。
+- ${mode_summary}
 
 ### 0.3.0
 
@@ -275,7 +303,7 @@ README
 
 1. 当前包为无授权版，不显示授权输入窗口。
 2. 当前包不启用 30 天试用倒计时，适合内部无授权测试。
-3. 本次 0.3.0 交付只生成该无授权变体，请按 DMG 文件名和版本号核对测试包。
+3. 本次 ${APP_VERSION} 无授权变体请按 DMG 文件名和版本号核对测试包。
 
 README
   fi
@@ -327,6 +355,7 @@ build_variant() {
   rm -rf "$staging_dir"
   mkdir -p "$staging_dir" "$output_dir"
   cp -R "$APP_BUNDLE" "$staging_dir/"
+  ln -s /Applications "$staging_dir/Applications"
   if command -v xattr >/dev/null 2>&1; then
     xattr -cr "$staging_dir/$APP_NAME.app" >/dev/null 2>&1 || true
   fi

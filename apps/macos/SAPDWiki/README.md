@@ -61,7 +61,7 @@ apps/macos/SAPDWiki/script/package_dmg.sh
 
 ```bash
 SAPD_WIKI_DMG_VARIANT=no-license \
-SAPD_WIKI_APP_VERSION=0.3.0 \
+SAPD_WIKI_APP_VERSION=0.3.5 \
 apps/macos/SAPDWiki/script/package_dmg.sh
 ```
 
@@ -71,6 +71,10 @@ apps/macos/SAPDWiki/script/package_dmg.sh
 apps/macos/SAPDWiki/dist/license/SAPD-Wiki-<version>-license-<timestamp>-mac-arm64.dmg
 apps/macos/SAPDWiki/dist/no-license/SAPD-Wiki-<version>-no-license-<timestamp>-mac-arm64.dmg
 ```
+
+从下一次构建开始，DMG 根目录会同时包含 `SAPD Wiki.app` 和指向
+`/Applications` 的 `Applications` 图标。用户将 App 拖到该图标即可完成安装，
+随后从 macOS“应用程序”启动。
 
 ## 内测分发与 Gatekeeper
 

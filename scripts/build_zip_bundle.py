@@ -22,6 +22,8 @@ from create_user_db import initialize_user_db
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SCRIPT_DIR.parent
+WINDOWS_CHANGELOG = REPO_ROOT / "apps" / "electron" / "CHANGELOG.md"
 SUPPORTED_PLATFORMS = {"win-x64", "mac-arm64", "mac-x64"}
 DEFAULT_BUNDLE_ROOT = Path(
     os.environ.get(
@@ -328,7 +330,87 @@ fi
 """
 
 
+def windows_changelog_content(app_version: str) -> str:
+    changelog = WINDOWS_CHANGELOG.read_text(encoding="utf-8")
+    marker = f"## {app_version}"
+    start = changelog.find(marker)
+    if start < 0:
+        raise ValueError(
+            f"Windows changelog has no section for app version {app_version}"
+        )
+    section = changelog[start:]
+    return "\n".join(
+        f"#{line}" if line.startswith("## ") else line
+        for line in section.splitlines()
+    ).strip()
+
+
+def windows_readme_content(app_version: str, placeholder: bool = False) -> str:
+    placeholder_note = (
+        "\n> 注意：本 Runtime 由 `--allow-placeholder` 生成，只能用于目录结构验证，不能作为真实运行包分发。\n"
+        if placeholder
+        else ""
+    )
+    return f"""# SAPD Wiki {app_version} Windows 使用说明
+
+本 Runtime 随 SAPD Wiki Windows NSIS 安装程序交付。当前版本：{app_version}。
+{placeholder_note}
+## Changelog
+
+{windows_changelog_content(app_version)}
+
+## 安装与首次启动
+
+1. 运行 `SAPD-Wiki-Setup-{app_version}-win-x64.exe`，按安装向导选择程序安装位置。
+2. 首次启动会要求选择数据父目录，应用会在其下创建 `SAPDWiki` 文件夹。
+3. 如果选择 `D:\\Work`，实际目录为 `D:\\Work\\SAPDWiki`。
+4. App 会启动本地后端，并在桌面窗口中打开 SAPD Wiki 工作台。
+
+## 数据与文件位置
+
+- Runtime：`<数据父目录>\\SAPDWiki\\Runtime`
+- 文件上传路径：`<数据父目录>\\SAPDWiki\\import`
+- 文件下载路径：`<数据父目录>\\SAPDWiki\\export`
+- 用户数据库：`<数据父目录>\\SAPDWiki\\Runtime\\data\\user\\sapd_wiki_user.sqlite3`
+- 日志目录：`<数据父目录>\\SAPDWiki\\Runtime\\logs`
+- 路径设置：`%LOCALAPPDATA%\\SAPD Wiki\\settings.json`
+
+可从 App 菜单打开“系统设置”，分别修改工作目录、文件上传路径和文件下载路径；修改后按界面提示重启。应用不会自动移动或覆盖旧目录中的用户数据。
+
+## MCP 服务
+
+1. 在“系统设置 > AI功能集成”中建立或修复本机安全连接。
+2. 启动 MCP 服务后，可以查看服务状态、客户端授权和审计信息。
+3. MCP 只提供 `search_knowledge`、`get_knowledge_object`、`get_related_knowledge`、`get_evidence` 和 `get_knowledge_version` 五个基础知识只读工具。
+4. MCP 不读取用户批注、Issue、收藏、用户 SQLite、源文件、本地路径、密钥或不受限 SQL。
+
+## 批注与诊断导出
+
+- 首页“批注一键导出”会在文件下载路径生成便于阅读的 Markdown 文件。
+- 如需诊断信息，可运行 `diagnostics\\export-diagnostics.bat`。
+- 诊断包默认不包含用户批注全文或 SQLite 数据库内容。
+
+## 卸载与升级
+
+1. 可从 Windows“设置 > 应用 > 已安装的应用”或开始菜单卸载 SAPD Wiki。
+2. 卸载默认保留用户选择的 `SAPDWiki` 数据目录和路径设置，避免误删用户库。
+3. 安装新版时继续选择原数据目录即可复用已有用户数据。
+4. 完全重置前应先备份，再手工删除数据目录和 `%LOCALAPPDATA%\\SAPD Wiki\\settings.json`。
+
+## 当前内测边界
+
+- 用户不需要安装 Python、Node.js 或 Docker。
+- 当前只生成 Windows x64 NSIS 安装程序。
+- 当前未配置 Windows 代码签名，可能出现“未知发布者”或 SmartScreen 提示。
+- 安装包不携带真实用户数据库、个人历史记录、恢复包或开发机导出文件。
+- 正式发布前仍需在真实 Windows 10 和 Windows 11 机器上完成启动、写入、MCP、退出和卸载保留数据验收。
+"""
+
+
 def readme_content(platform_name: str, app_version: str, placeholder: bool = False) -> str:
+    if platform_name.startswith("win"):
+        return windows_readme_content(app_version, placeholder=placeholder)
+
     start_file = "start-windows.bat" if platform_name.startswith("win") else "start-macos.command"
     security_note = (
         "\n- Windows alpha 如遇安全软件拦截，请记录软件名称和提示截图。"
@@ -565,6 +647,8 @@ def build_bundle(args: argparse.Namespace) -> Path:
         bundle_root / "README-FIRST.md",
         readme_content(args.platform, args.app_version, placeholder=bool(args.allow_placeholder and not args.backend_binary)),
     )
+    if args.platform.startswith("win"):
+        shutil.copy2(WINDOWS_CHANGELOG, bundle_root / "CHANGELOG.md")
     if args.platform.startswith("win"):
         write_text(bundle_root / "start-windows.bat", windows_start_script().replace("\n", "\r\n"))
         write_text(bundle_root / "stop-windows.bat", windows_stop_script().replace("\n", "\r\n"))

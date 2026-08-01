@@ -15,7 +15,6 @@ const files = {
   macosWrapper: "apps/macos/SAPDWiki/Sources/SAPDWiki/main.swift",
   design: "docs/06-implementation/user-database-governance-and-stable-key-design.md",
   openIssues: "docs/06-implementation/open-issues.md",
-  taskPlan: "task_plan.md",
 };
 
 const currentTables = [
@@ -261,7 +260,10 @@ function main() {
   const openIssues = readProjectFile(files.openIssues);
   const openIssuesHistory = readProjectFile("docs/05-archive/open-issues-history/2026-06.md");
   const issueLedger = `${openIssues}\n${openIssuesHistory}`;
-  const taskPlan = readProjectFile(files.taskPlan);
+  const completedMigrationEvidence =
+    /适用范围：[\s\S]*DB-11[\s\S]*DB-2/.test(design) &&
+    /本轮已完成[\s\S]*真实库 apply/.test(design) &&
+    /\|\s*8\s*\|\s*OI-135 真实库 apply\s*\|\s*已完成\s*\|/.test(design);
 
   addCheck(checks, "current_schema_version_is_0_3", createUserDb.includes('DEFAULT_SCHEMA_VERSION = "user_schema_0.3"'));
   addCheck(checks, "current_tables_declared", includesAll(createUserDb, currentTables), {
@@ -329,13 +331,13 @@ function main() {
   );
   addCheck(
     checks,
-    "db_11_plan_status_synced",
-    /DB-11[\s\S]*P0 (设计完成 \/ 待确认|审计脚本完成 \/ migration dry-run 待启动|migration dry-run 完成 \/ 临时库 smoke 待启动|临时库 smoke 通过 \/ 真实迁移待确认|正式迁移脚本完成 \/ 真实库 apply 待显式确认|正式迁移脚本完成 \/ 数据篮最小 API 已完成 \/ 真实库 apply 待显式确认|正式迁移脚本完成 \/ 工作台总览和数据篮最小 API 已完成 \/ 真实库 apply 待显式确认|正式迁移脚本完成 \/ 工作台总览、数据篮和导出最小闭环已完成 \/ stable_ref 重复待治理 \/ 真实库 apply 待显式确认|正式迁移脚本完成 \/ 工作台总览、数据篮和导出最小闭环已完成 \/ 基础库 clean candidate 完成 \/ 用户库 legacy target_ref 待治理 \/ 真实库 apply 待显式确认|正式迁移脚本完成 \/ 工作台总览、数据篮和导出最小闭环已完成 \/ 基础库 clean candidate 完成 \/ 用户库 target_ref 迁移 dry-run 通过 \/ 真实库 apply 待显式确认|真实库 apply 已完成 \/ 自动验证通过 \/ 待用户确认关闭|已关闭 \/ 自动验证通过)/.test(taskPlan),
+    "db_11_completion_evidence_present",
+    completedMigrationEvidence,
   );
   addCheck(
     checks,
-    "db_2_plan_status_synced",
-    /DB-2[\s\S]*P0 (设计完成 \/ 待确认|审计脚本完成 \/ migration 设计待启动|migration 设计完成 \/ 临时库 smoke 待启动|临时库 smoke 通过 \/ 真实迁移待确认|正式迁移脚本完成 \/ 真实库 apply 待显式确认|正式迁移脚本完成 \/ stable_ref 重复待治理 \/ 真实库 apply 待显式确认|正式迁移脚本完成 \/ 基础库 clean candidate 完成 \/ 用户库 legacy target_ref 待治理 \/ 真实库 apply 待显式确认|正式迁移脚本完成 \/ 基础库 clean candidate 完成 \/ 用户库 target_ref 迁移 dry-run 通过 \/ 真实库 apply 待显式确认|真实库 apply 已完成 \/ 自动验证通过)/.test(taskPlan),
+    "db_2_completion_evidence_present",
+    completedMigrationEvidence,
   );
 
   if (args.db) {

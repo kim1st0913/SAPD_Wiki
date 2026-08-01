@@ -136,6 +136,56 @@ GENERIC_DIMENSION_RUBRIC = (
         },
     },
 )
+CUSTOM_GENERIC_RUBRIC_VERSION = "sapd-maturity-custom-generic-rubric-v3-2026-07-30"
+CUSTOM_GENERIC_LEVEL_DESCRIPTIONS = {
+    "L1": "已开展相关活动，但依赖个人经验或临时安排，范围、方法与证据不稳定。",
+    "L2": "已明确责任、范围和计划并跟踪重点任务，但跨团队标准和执行一致性不足。",
+    "L3": "职责、流程、支撑机制和记录已正式定义，并在适用范围一致执行，例外与变更受控。",
+    "L4": "能力稳定运行，结果可跨周期比较，并依据批准目标或控制边界识别偏差、纠正并验证效果。",
+    "L5": "基于稳定的 L4 证据、趋势、根因或外部变化持续改进，比较前后效果并固化有效做法。",
+}
+CUSTOM_GENERIC_DIMENSION_RUBRIC = (
+    {
+        "dimensionCode": "organization",
+        "levels": {
+            "L1": "相关人员临时承担职责，责任、审批与协作边界不清，实践依赖个人。",
+            "L2": "已指定负责人并按计划协调重点任务；授权、资源和问责仍局部。",
+            "L3": "执行、审批和监督职责已正式定义，职责分离和协作机制稳定运行。",
+            "L4": "监督、偏差处置和升级责任明确；管理者复核结果并推动纠偏。",
+            "L5": "依据趋势、根因和环境变化调整职责、能力与资源，并验证改进收益。",
+        },
+    },
+    {
+        "dimensionCode": "process",
+        "levels": {
+            "L1": "活动主要依经验处理，范围、步骤、验收和例外要求不统一。",
+            "L2": "已按计划开展并跟踪状态；跨团队做法、例外和变更尚未统一。",
+            "L3": "活动已纳入正式制度，适用范围、步骤、验收、例外和变更统一执行。",
+            "L4": "活动按批准目标和控制边界稳定运行；偏差须分析原因、纠正并复测。",
+            "L5": "针对趋势、根因和环境变化验证新方法，并将有效改进固化到制度和流程。",
+        },
+    },
+    {
+        "dimensionCode": "tool",
+        "levels": {
+            "L1": "支撑工具仅局部或临时使用，覆盖、配置和效果不稳定。",
+            "L2": "已有工具支撑重点对象；接入、配置和运维方式仍有差异。",
+            "L3": "支撑机制覆盖主要对象，权限、配置、变更、审计和回退统一受控。",
+            "L4": "支撑机制持续呈现关键状态、异常和变更，支持偏差定位与复测。",
+            "L5": "依据验证结果优化规则、配置或联动，保留改进前后效果和回退证据。",
+        },
+    },
+    {
+        "dimensionCode": "data",
+        "levels": {
+            "L1": "记录零散或口径不一，难以持续证明能力达到预期结果。",
+            "L2": "已记录对象、状态和结果；字段、质量、留存和汇聚尚未统一。",
+            "L3": "形成统一台账，来源、口径、质量、责任和留存规则明确。",
+            "L4": "记录可跨周期比较并追溯对象、责任和结果，支持偏差分析与纠偏验证。",
+            "L5": "关联趋势、根因和改进结果，验证能力效果是否提升并沉淀知识。",
+        },
+    },
+)
 
 
 def _list(value: Any) -> list[Any]:
@@ -189,6 +239,51 @@ def _rubric_entries_for_item(item_id: str) -> list[dict[str, Any]]:
         for dimension in GENERIC_DIMENSION_RUBRIC
         for level in MATURITY_LEVELS
     ]
+
+
+def _custom_generic_rubric_entries_for_item(item_id: str) -> list[dict[str, Any]]:
+    return [
+        {
+            "scoreItemId": item_id,
+            "dimensionCode": dimension["dimensionCode"],
+            "level": level["id"],
+            "levelName": level["name"],
+            "criteria": dimension["levels"][level["id"]],
+            "sourceType": "CUSTOM_GENERIC_FALLBACK",
+            "sourceVersion": CUSTOM_GENERIC_RUBRIC_VERSION,
+        }
+        for dimension in CUSTOM_GENERIC_DIMENSION_RUBRIC
+        for level in MATURITY_LEVELS
+    ]
+
+
+def _custom_generic_rubric_reference() -> dict[str, Any]:
+    return {
+        "version": CUSTOM_GENERIC_RUBRIC_VERSION,
+        "levelDescriptions": [
+            {
+                "level": level["id"],
+                "levelName": level["name"],
+                "description": CUSTOM_GENERIC_LEVEL_DESCRIPTIONS[level["id"]],
+            }
+            for level in MATURITY_LEVELS
+        ],
+        "dimensions": [
+            {
+                "dimensionCode": dimension["dimensionCode"],
+                "dimensionName": ELEMENT_LABELS[dimension["dimensionCode"]],
+                "levels": [
+                    {
+                        "level": level["id"],
+                        "levelName": level["name"],
+                        "criteria": dimension["levels"][level["id"]],
+                    }
+                    for level in MATURITY_LEVELS
+                ],
+            }
+            for dimension in CUSTOM_GENERIC_DIMENSION_RUBRIC
+        ],
+    }
 
 
 def maturity_level_index(value: Any) -> float | None:
@@ -245,8 +340,39 @@ def _scope_code_for_service(service: dict[str, Any]) -> str:
     return code.split("&", 1)[0] if "&" in code else "ALL"
 
 
+def _capability_kind_token(*values: Any) -> str:
+    for value in values:
+        normalized = _text(value).upper()
+        prefix = re.match(r"^([TGM])(?:$|[-._\s])", normalized)
+        suffix = re.search(r"(?:^|\s)([TGM])$", normalized)
+        kind = (prefix or suffix)
+        if kind:
+            return kind.group(1)
+    return ""
+
+
+def _template_capability_kind(capability: dict[str, Any], category_by_id: dict[str, dict[str, Any]]) -> str:
+    l1 = category_by_id.get(_text(capability.get("categoryId")), {})
+    l0 = category_by_id.get(_text(l1.get("parentId")), {})
+    return _capability_kind_token(
+        l0.get("code"),
+        l0.get("name"),
+        l1.get("code"),
+        l1.get("name"),
+        capability.get("code"),
+        capability.get("name"),
+    ) or "T"
+
+
+def _required_service_role(capability: dict[str, Any], category_by_id: dict[str, dict[str, Any]]) -> str:
+    return "PLATFORM_EVIDENCE_REFERENCE" if _template_capability_kind(capability, category_by_id) in {"G", "M"} else "ASSESSMENT_POINT"
+
+
 def build_maturity_base_template(capability_workbench: dict[str, Any]) -> dict[str, Any]:
     navigator = _list(_dict(capability_workbench.get("navigator")).get("tree"))
+    category_objects = _object_map(capability_workbench, "capability_category")
+    domain_objects = _object_map(capability_workbench, "capability_domain")
+    capability_objects = _object_map(capability_workbench, "capability")
     focus_objects = _object_map(capability_workbench, "capability_focus")
     service_objects = _object_map(capability_workbench, "security_technical_service")
     scope_objects = _object_map(capability_workbench, "scope_type")
@@ -275,12 +401,13 @@ def build_maturity_base_template(capability_workbench: dict[str, Any]) -> dict[s
             continue
         top_source_id = _text(top.get("id"))
         top_id = f"category:{top_source_id}"
+        top_object = category_objects.get(top_source_id, {})
         categories.append(
             {
                 "id": top_id,
                 "code": _text(top.get("code")) or _text(top.get("name")).rsplit(" ", 1)[-1],
                 "name": _text(top.get("name")) or "未命名能力分类",
-                "description": "",
+                "description": _text(top_object.get("description") or top.get("description")),
                 "level": 1,
                 "capabilityLevel": "L0",
                 "parentId": None,
@@ -301,12 +428,13 @@ def build_maturity_base_template(capability_workbench: dict[str, Any]) -> dict[s
                 continue
             domain_source_id = _text(domain.get("id"))
             domain_id = f"domain:{domain_source_id}"
+            domain_object = domain_objects.get(domain_source_id, {})
             categories.append(
                 {
                     "id": domain_id,
                     "code": _text(domain.get("code")),
                     "name": _text(domain.get("name")) or "未命名能力域",
-                    "description": "",
+                    "description": _text(domain_object.get("description") or domain.get("description")),
                     "level": 2,
                     "capabilityLevel": "L1",
                     "parentId": top_id,
@@ -327,11 +455,12 @@ def build_maturity_base_template(capability_workbench: dict[str, Any]) -> dict[s
                     continue
                 capability_source_id = _text(capability.get("id"))
                 capability_id = f"capability:{capability_source_id}"
+                capability_object = capability_objects.get(capability_source_id, {})
                 capability_record = {
                     "id": capability_id,
                     "code": _text(capability.get("code")),
                     "name": _text(capability.get("name")) or "未命名安全能力",
-                    "description": "",
+                    "description": _text(capability_object.get("description") or capability.get("description")),
                     "capabilityLevel": "L2",
                     "categoryId": domain_id,
                     "topCategoryId": top_id,
@@ -402,6 +531,7 @@ def build_maturity_base_template(capability_workbench: dict[str, Any]) -> dict[s
                             "id": service_id,
                             "code": _text(service.get("code")),
                             "name": _text(service.get("name")) or "未命名安全技术服务",
+                            "description": _text(service.get("description")),
                             "scopeCode": scope_code,
                             "scopeName": _text(scope.get("name")) or scope_code,
                             "dictionaryRef": service_source_id,
@@ -567,6 +697,33 @@ def validate_maturity_template(template: dict[str, Any]) -> dict[str, Any]:
         for duplicate_id in sorted(duplicate_ids(rows)):
             errors.append({"code": "duplicate_id", "objectId": duplicate_id, "message": f"{object_type} 存在重复 ID。"})
 
+    identity_rows = [
+        *((item, "category") for item in categories),
+        *((item, "capability") for item in capabilities if item.get("included") is not False),
+        *((item, "focus") for item in focuses if item.get("included") is not False),
+        *((item, "service") for item in services),
+    ]
+    for field in ("name", "code"):
+        grouped: dict[str, list[tuple[dict[str, Any], str]]] = defaultdict(list)
+        for item, object_type in identity_rows:
+            value = _text(item.get(field))
+            if value:
+                grouped[value.casefold()].append((item, object_type))
+        for duplicate_rows in grouped.values():
+            if len(duplicate_rows) < 2:
+                continue
+            value = _text(duplicate_rows[0][0].get(field))
+            for item, object_type in duplicate_rows:
+                object_id = _text(item.get("id"))
+                label = "名称" if field == "name" else "编号"
+                errors.append({
+                    "code": f"duplicate_{field}",
+                    "objectId": object_id,
+                    "field": field,
+                    "value": value,
+                    "message": f"{object_type} 的节点{label}“{value}”在当前模板中不唯一。",
+                })
+
     category_by_id = {_text(item.get("id")): item for item in categories if _text(item.get("id"))}
     capability_by_id = {_text(item.get("id")): item for item in capabilities if _text(item.get("id"))}
     focus_by_id = {_text(item.get("id")): item for item in focuses if _text(item.get("id"))}
@@ -635,6 +792,18 @@ def validate_maturity_template(template: dict[str, Any]) -> dict[str, Any]:
             errors.append({"code": "focus_service_mapping_reference_invalid", "objectId": mapping_id, "message": "关注点服务映射必须引用有效关注点、作用域和服务。"})
         if service_role not in SERVICE_ROLES:
             errors.append({"code": "service_role_invalid", "objectId": mapping_id, "message": "服务角色必须为 ASSESSMENT_POINT 或 PLATFORM_EVIDENCE_REFERENCE。"})
+        focus = focus_by_id.get(focus_id, {})
+        capability = capability_by_id.get(_text(focus.get("capabilityId")), {})
+        if focus and capability and service_role in SERVICE_ROLES:
+            required_role = _required_service_role(capability, category_by_id)
+            if service_role != required_role:
+                capability_kind = _template_capability_kind(capability, category_by_id)
+                required_label = "独立服务评估点" if required_role == "ASSESSMENT_POINT" else "平台工具参考"
+                errors.append({
+                    "code": "service_role_capability_kind_conflict",
+                    "objectId": mapping_id,
+                    "message": f"{capability_kind} 类能力下的安全技术服务必须作为{required_label}，服务角色不可手工选择。",
+                })
         mapping_key = (focus_id, scope_code, service_id, service_role)
         if mapping_key in mapping_keys:
             errors.append({"code": "focus_service_mapping_duplicate", "objectId": mapping_id, "message": "关注点、作用域、服务和服务角色组合必须唯一。"})
@@ -711,17 +880,27 @@ def validate_maturity_template(template: dict[str, Any]) -> dict[str, Any]:
         warnings.append({"code": "custom_template_without_custom_capability", "objectId": _text(template.get("id")), "message": "当前自定义模板尚未新增模板内能力，仅调整了基础模板。"})
 
     validation_basis = {
+        "template": (
+            _text(template.get("id")),
+            _text(template.get("name")),
+            _text(template.get("description")),
+            _text(template.get("rubricVersion")),
+        ),
         "categories": [
-            (_text(item.get("id")), _text(item.get("name")), _text(item.get("parentId")), _float(item.get("weight"), 1.0))
+            (_text(item.get("id")), _text(item.get("name")), _text(item.get("description")), _text(item.get("parentId")), _float(item.get("weight"), 1.0))
             for item in categories
         ],
         "capabilities": [
-            (_text(item.get("id")), _text(item.get("name")), _text(item.get("categoryId")), item.get("included") is not False)
+            (_text(item.get("id")), _text(item.get("name")), _text(item.get("description")), _text(item.get("categoryId")), item.get("included") is not False)
             for item in capabilities
         ],
         "focuses": [
-            (_text(item.get("id")), _text(item.get("name")), _text(item.get("capabilityId")), _text(item.get("itemType")))
+            (_text(item.get("id")), _text(item.get("name")), _text(item.get("description")), _text(item.get("capabilityId")), _text(item.get("itemType")))
             for item in focuses
+        ],
+        "services": [
+            (_text(item.get("id")), _text(item.get("name")), _text(item.get("description")), _text(item.get("scopeCode")))
+            for item in services
         ],
         "focusServiceMappings": [
             (_text(item.get("id")), _text(item.get("focusId")), _text(item.get("scopeCode")), _text(item.get("serviceId")), _text(item.get("serviceRole")))
@@ -1582,6 +1761,7 @@ def build_maturity_workspace(
         "levels": list(MATURITY_LEVELS),
         "evidenceLevels": list(EVIDENCE_LEVELS),
         "projectStatuses": [{"id": key, "name": value} for key, value in PROJECT_STATUS_LABELS.items()],
+        "customGenericRubric": _custom_generic_rubric_reference(),
         "template": template,
         "projects": projects,
         "projectDetails": project_details,
@@ -2098,23 +2278,32 @@ def _custom_template_from_business_rows(metadata: dict[str, str], rows: list[dic
             capability_by_key[l2_key] = capability
         capability = capability_by_key[l2_key]
         focus_key = (*l2_key, row["focusNo"], row["focus"])
+        service_names = _business_service_names(row["services"])
+        capability_kind = _capability_kind_token(row["l0"], row["l1"], row["l2"]) or "T"
+        granularity = "关注点" if capability_kind in {"G", "M"} or not service_names else "安全技术服务"
+        if row["granularity"] != granularity:
+            row_errors.append({
+                "row": row["row"],
+                "code": "granularity_capability_kind_conflict",
+                "message": f"{capability_kind} 类能力的评分粒度由系统固定为“{granularity}”，不可手工选择。",
+            })
+            continue
         previous_mode = focus_modes.get(focus_key)
-        if previous_mode and previous_mode != row["granularity"]:
+        if previous_mode and previous_mode != granularity:
             row_errors.append({"row": row["row"], "code": "focus_granularity_conflict", "message": "同一关注点不能同时按关注点和安全技术服务评分。"})
             continue
-        focus_modes[focus_key] = row["granularity"]
+        focus_modes[focus_key] = granularity
         if focus_key not in focus_by_key:
             focus_id = f"custom:focus:{_stable_hash(focus_key, 16)}"
             focus = {
                 "id": focus_id, "code": row["focusNo"], "name": row["focus"], "description": "", "capabilityId": capability["id"], "weight": 1,
-                "sortOrder": len(focuses), "included": True, "isCustom": True, "isCritical": False, "itemType": "SERVICE" if row["granularity"] == "安全技术服务" else "FOCUS",
+                "sortOrder": len(focuses), "included": True, "isCustom": True, "isCritical": False, "itemType": "SERVICE" if granularity == "安全技术服务" else "FOCUS",
                 "targetLevel": "L3", "sourceType": "WORKBOOK_IMPORT", "serviceMappingIds": [], "platformEvidenceServiceIds": [], "scoreItemIds": [],
             }
             focuses.append(focus)
             focus_by_key[focus_key] = focus
             capability["focusIds"].append(focus_id)
         focus = focus_by_key[focus_key]
-        service_names = _business_service_names(row["services"])
         for service_name in service_names:
             if service_name not in service_by_name:
                 service = {
@@ -2124,13 +2313,13 @@ def _custom_template_from_business_rows(metadata: dict[str, str], rows: list[dic
                 services.append(service)
                 service_by_name[service_name] = service
             service = service_by_name[service_name]
-            item_key = (*focus_key, row["granularity"], service_name)
+            item_key = (*focus_key, granularity, service_name)
             if item_key in seen_items:
-                if row["granularity"] == "安全技术服务":
+                if granularity == "安全技术服务":
                     row_errors.append({"row": row["row"], "code": "assessment_point_duplicate", "message": "同一关注点下的安全技术服务评估点重复。"})
                 continue
             seen_items.add(item_key)
-            role = "ASSESSMENT_POINT" if row["granularity"] == "安全技术服务" else "PLATFORM_EVIDENCE_REFERENCE"
+            role = "ASSESSMENT_POINT" if granularity == "安全技术服务" else "PLATFORM_EVIDENCE_REFERENCE"
             mapping_id = f"custom:mapping:{_stable_hash((focus['id'], service['id'], role), 16)}"
             mapping = {"id": mapping_id, "focusId": focus["id"], "scopeCode": "ALL", "scopeName": "全部作用域", "serviceId": service["id"], "serviceRole": role, "weight": 1, "sortOrder": len(mappings), "sourceType": "WORKBOOK_IMPORT"}
             mappings.append(mapping)
@@ -2139,7 +2328,7 @@ def _custom_template_from_business_rows(metadata: dict[str, str], rows: list[dic
                 focus["platformEvidenceServiceIds"].append(service["id"])
             else:
                 item_id = f"custom:score:{_stable_hash((focus['id'], service['id']), 16)}"
-                score_items.append({"id": item_id, "itemType": "SERVICE", "capabilityId": capability["id"], "focusId": focus["id"], "serviceId": service["id"], "scopeCode": "ALL", "scopeName": "全部作用域", "weight": 1, "sortOrder": len(score_items), "required": True, "elementWeights": {key: 0.25 for key in ELEMENT_KEYS}, "rubricEntries": _rubric_entries_for_item(item_id), "sourceType": "WORKBOOK_IMPORT", "serviceRole": "ASSESSMENT_POINT", "sourceMappingId": mapping_id})
+                score_items.append({"id": item_id, "itemType": "SERVICE", "capabilityId": capability["id"], "focusId": focus["id"], "serviceId": service["id"], "scopeCode": "ALL", "scopeName": "全部作用域", "weight": 1, "sortOrder": len(score_items), "required": True, "elementWeights": {key: 0.25 for key in ELEMENT_KEYS}, "rubricEntries": _custom_generic_rubric_entries_for_item(item_id), "sourceType": "WORKBOOK_IMPORT", "serviceRole": "ASSESSMENT_POINT", "sourceMappingId": mapping_id})
                 focus["scoreItemIds"].append(item_id)
 
     for focus_key, focus in focus_by_key.items():
@@ -2147,7 +2336,7 @@ def _custom_template_from_business_rows(metadata: dict[str, str], rows: list[dic
             continue
         item_id = f"custom:score:{_stable_hash((focus['id'], 'overall'), 16)}"
         capability = capability_by_key[focus_key[:3]]
-        score_items.append({"id": item_id, "itemType": "FOCUS", "capabilityId": capability["id"], "focusId": focus["id"], "serviceId": None, "scopeCode": None, "scopeName": None, "weight": 1, "sortOrder": len(score_items), "required": True, "elementWeights": {key: 0.25 for key in ELEMENT_KEYS}, "rubricEntries": _rubric_entries_for_item(item_id), "sourceType": "WORKBOOK_IMPORT", "serviceRole": None, "platformEvidenceServiceIds": list(focus["platformEvidenceServiceIds"])})
+        score_items.append({"id": item_id, "itemType": "FOCUS", "capabilityId": capability["id"], "focusId": focus["id"], "serviceId": None, "scopeCode": None, "scopeName": None, "weight": 1, "sortOrder": len(score_items), "required": True, "elementWeights": {key: 0.25 for key in ELEMENT_KEYS}, "rubricEntries": _custom_generic_rubric_entries_for_item(item_id), "sourceType": "WORKBOOK_IMPORT", "serviceRole": None, "platformEvidenceServiceIds": list(focus["platformEvidenceServiceIds"])})
         focus["scoreItemIds"].append(item_id)
 
     template_name = metadata.get("模板名称") or "导入的自定义成熟度模板"
@@ -2155,7 +2344,7 @@ def _custom_template_from_business_rows(metadata: dict[str, str], rows: list[dic
     template = {
         "id": f"custom-template-import-{_stable_hash(structure_basis, 16)}", "snapshotId": f"custom-template-snapshot-{_stable_hash(structure_basis, 20)}",
         "name": template_name, "version": metadata.get("模板版本") or "V2.1", "type": "custom", "status": "validated", "readOnly": False,
-        "structureMutable": True, "weightMutable": True, "description": metadata.get("模板说明") or "由业务 XLSX 导入的自定义成熟度模板。", "rubricVersion": RUBRIC_VERSION,
+        "structureMutable": True, "weightMutable": True, "description": metadata.get("模板说明") or "由业务 XLSX 导入的自定义成熟度模板。", "rubricVersion": CUSTOM_GENERIC_RUBRIC_VERSION,
         "categories": categories, "capabilities": capabilities, "focuses": focuses, "services": services, "focusServiceMappings": mappings,
         "scopes": [{"id": "scope:ALL", "code": "ALL", "name": "全部作用域", "sourceType": "WORKBOOK_IMPORT", "isCustom": True}],
         "scoreItems": score_items, "criticalRules": [], "elementWeights": {key: 0.25 for key in ELEMENT_KEYS},
@@ -2223,6 +2412,10 @@ def _legacy_export_maturity_score_exchange(payload: dict[str, Any]) -> dict[str,
 
     structure_hash = _template_structure_hash(template)
     assessment_items_hash = _stable_hash(assessment_items, 32)
+    uses_custom_generic_rubric = _text(template.get("type")).lower() == "custom"
+    rubric_version = CUSTOM_GENERIC_RUBRIC_VERSION if uses_custom_generic_rubric else RUBRIC_VERSION
+    rubric_dimensions = CUSTOM_GENERIC_DIMENSION_RUBRIC if uses_custom_generic_rubric else GENERIC_DIMENSION_RUBRIC
+    level_descriptions = CUSTOM_GENERIC_LEVEL_DESCRIPTIONS if uses_custom_generic_rubric else {}
     package = {
         "schemaVersion": SCORE_EXCHANGE_SCHEMA,
         "fileInfo": {
@@ -2238,7 +2431,15 @@ def _legacy_export_maturity_score_exchange(payload: dict[str, Any]) -> dict[str,
         "assessmentItems": assessment_items,
         "scoreInput": score_input,
         "rubricReference": {
-            "version": _text(template.get("rubricVersion") or RUBRIC_VERSION),
+            "version": rubric_version,
+            "levelDescriptions": [
+                {
+                    "level": level["id"],
+                    "levelName": level["name"],
+                    "description": level_descriptions.get(level["id"], ""),
+                }
+                for level in MATURITY_LEVELS
+            ],
             "dimensions": [
                 {
                     "dimensionCode": dimension["dimensionCode"],
@@ -2252,7 +2453,7 @@ def _legacy_export_maturity_score_exchange(payload: dict[str, Any]) -> dict[str,
                         for level in MATURITY_LEVELS
                     ],
                 }
-                for dimension in GENERIC_DIMENSION_RUBRIC
+                for dimension in rubric_dimensions
             ],
         },
     }

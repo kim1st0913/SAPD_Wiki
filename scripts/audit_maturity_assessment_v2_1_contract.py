@@ -123,6 +123,29 @@ def main() -> int:
     require(base["name"] == "SAPD标准能力成熟度模板", "the default template must expose its canonical SAPD maturity name")
     require(base["stats"] == expected_stats, f"unexpected V2.1 stats: {base['stats']}")
     require(validate_maturity_template(base)["valid"], "V2.1 fixed template must validate")
+    require(
+        all(item.get("description", "").strip() for item in base["categories"])
+        and all(item.get("description", "").strip() for item in base["capabilities"])
+        and all(item.get("description", "").strip() for item in base["focuses"]),
+        "standard categories, capabilities and focuses must project their knowledge definitions into the maturity template",
+    )
+    definition_changed = copy.deepcopy(base)
+    definition_changed["focuses"][0]["description"] = "契约审计：模板内定义修改"
+    definition_validation = validate_maturity_template(definition_changed)
+    require(
+        definition_validation["valid"]
+        and definition_validation["snapshotId"] != validate_maturity_template(base)["snapshotId"],
+        "a template-local definition edit must participate in validation identity without mutating the standard baseline",
+    )
+    duplicate_identity = copy.deepcopy(base)
+    duplicate_identity["focuses"][1]["name"] = duplicate_identity["focuses"][0]["name"]
+    duplicate_identity["services"][1]["code"] = duplicate_identity["services"][0]["code"].lower()
+    duplicate_identity_errors = validate_maturity_template(duplicate_identity)["errors"]
+    require(
+        any(error["code"] == "duplicate_name" and error.get("field") == "name" for error in duplicate_identity_errors)
+        and any(error["code"] == "duplicate_code" and error.get("field") == "code" for error in duplicate_identity_errors),
+        "template validation must reject case-insensitive duplicate node names and codes",
+    )
     require(all(len(item.get("rubricEntries", [])) == 20 for item in base["scoreItems"]), "every score item must expose four dimensions by five maturity levels")
     require(all("scopeCodes" not in detail["project"] for detail in workspace["projectDetails"].values()), "projects must not carry project scope selections")
     require(all(detail["project"].get("assessmentObjectType") == "ENTERPRISE_ORGANIZATION" for detail in workspace["projectDetails"].values()), "assessment object must be the enterprise organization")
@@ -161,6 +184,29 @@ def main() -> int:
             require(len(rows) == 1 and rows[0]["itemType"] == "FOCUS", "governance and management focuses must remain one FOCUS point")
             require(all(item["serviceRole"] == "PLATFORM_EVIDENCE_REFERENCE" for item in mappings), "governance and management services must be platform evidence references")
             require(not any(item.get("serviceId") in {mapping["serviceId"] for mapping in mappings} for item in rows), "platform evidence references must not become score items")
+
+    technical_role_conflict = copy.deepcopy(base)
+    technical_mapping = next(
+        mapping
+        for mapping in technical_role_conflict["focusServiceMappings"]
+        if capability_by_id[focus_by_id[mapping["focusId"]]["capabilityId"]]["code"].startswith("T-")
+    )
+    technical_mapping["serviceRole"] = "PLATFORM_EVIDENCE_REFERENCE"
+    require(
+        any(error["code"] == "service_role_capability_kind_conflict" for error in validate_maturity_template(technical_role_conflict)["errors"]),
+        "T capability services must be rejected when changed to platform references",
+    )
+    management_role_conflict = copy.deepcopy(base)
+    management_mapping = next(
+        mapping
+        for mapping in management_role_conflict["focusServiceMappings"]
+        if capability_by_id[focus_by_id[mapping["focusId"]]["capabilityId"]]["code"].startswith(("G-", "M-"))
+    )
+    management_mapping["serviceRole"] = "ASSESSMENT_POINT"
+    require(
+        any(error["code"] == "service_role_capability_kind_conflict" for error in validate_maturity_template(management_role_conflict)["errors"]),
+        "G/M capability services must be rejected when changed to assessment points",
+    )
 
     template = minimal_template()
     template["rubricVersion"] = base["rubricVersion"]
@@ -459,7 +505,7 @@ def main() -> int:
     require("评估对象类型" not in component and "ENTERPRISE_ORGANIZATION" in component and "客户所属行业" in component and "企业规模" in component, "project creation must use the V2.1 enterprise customer fields")
     require("标准模板结构只读" in component and "PLATFORM_EVIDENCE_REFERENCE" in component, "fixed-template lock and platform evidence role must be visible")
     require("maturity-v1-scoring-layout" not in component and "maturity-v3-scoring-workspace" in component and "data-maturity-capability-jump" in component, "scoring must use the selected L2/focus/point workspace")
-    require('model.activeTab === "scoring" ? ""' not in component and "maturity-v5-project-context" not in component and "maturityShellHeaderActions" in app_shell and all(token in component for token in ("syncMaturityShellHeader", 'if (pageTitle) pageTitle.textContent = detail ? detail.project.name', "最近更新")) and 'model.activeTab === "report" ? " 评估报告" : ""' not in component, "all concrete maturity project tabs must keep one shared project identity and header geometry without report-only title or description variants")
+    require('model.activeTab === "scoring" ? ""' not in component and "maturity-v5-project-context" not in component and "maturityShellHeaderActions" in app_shell and all(token in component for token in ("syncMaturityShellHeader", 'detail?.project?.templateWorkspace ? detail.template.name : detail ? detail.project.name', "最近更新")) and 'model.activeTab === "report" ? " 评估报告" : ""' not in component, "all concrete maturity project tabs must keep one shared project identity and header geometry without report-only title or description variants")
     require('<header class="maturity-v1-page-header">' not in component and '<header class="maturity-v1-project-header">' not in component and '["workbenchWorkspace", "main-only"]' in app_shell, "maturity list and project pages must share the main-only Apple Shell layout")
     require('details class="maturity-v3-scoring-tools"' not in scoring_block and "更多" not in scoring_block and "scoringTools" not in component and all(token in overview_block for token in ("export-score-exchange", "trigger-score-import")) and all(token in project_search_block for token in ("page-search-control", "data-maturity-project-search")), "the scoring App Shell must remove the redundant More popover while keeping score exchange on overview and shared project search in the tab rail")
     require("scorePanelCollapsed" not in component and 'data-maturity-action="toggle-score-panel"' not in inspector_block and '<header class="maturity-v3-score-form-header">' not in inspector_block, "the active score form must remove the redundant header and collapse control")
@@ -647,7 +693,8 @@ def main() -> int:
     require(all(token in scoring_block for token in ("directFocusAssessment", 'sourceMode === "DIRECT"', '${directFocusAssessment ? ""', "maturity-v4-focus-applicability")) and 'filter((item) => item.focusId === focusId);' in component and "关注点自身" in scoring_block, "a direct FOCUS assessment must use the title-owned applicability control and must not render a one-item pseudo service tab")
     require(all(token in maturity_py for token in ("invalid_na_reason_count", 'is_complete = True if not is_applicable', "scored_item_count == applicable_item_count", "target_below_current_count == 0")) and "and invalid_na_reason_count == 0" not in maturity_py and all(token in review_tab_block for token in ("不适用说明、评估说明和证据材料均为可选", "不阻塞完成评估")), "not-applicable reasons and evidence must remain informational while applicable completion and target-floor conflicts own the completion gate")
     require(all(token in frontend_spec for token in ("第二十三轮结果分组、评分上下文与检查门禁裁定", "成熟度热力表 → 总体优先级 → 维度优先级", "不适用与无证据不阻塞")) and all(token in global_plan for token in ("FE-R136", "FE-R137", "FE-R138", "FE-R139")) and all(token in business_spec for token in ("0.1.35", "按问题类型分组折叠", "不适用说明为可选")), "all three maturity documents must synchronize result section ownership, stable scoring context, directory position and the revised completion gate")
-    require(all(token in project_list_block for token in ("项目进展", "renderTemplateManager()")) and all(token in template_manager_block for token in ("模板管理", "全部模板", "自定义模板", "导入任务", "trigger-global-template-import", "export-global-template", "导入自定义模板")) and "模板管理将在正式持久化阶段开放" not in component, "the maturity homepage must visibly own project progress and a standalone custom-template import/export manager")
+    require(all(token in project_list_block for token in ("项目进展", "renderTemplateManager()")) and all(token in template_manager_block for token in ("模板管理", "全部模板", "自定义模板", "导入任务", "new-template", "trigger-global-template-import", "export-global-template", "新增模板", "导入自定义模板", "项目模板只有校验发布后才进入资产列表")) and "模板管理将在正式持久化阶段开放" not in component, "the maturity homepage must visibly own project progress and a standalone custom-template create/import/export manager")
+    require(all(token in component for token in ("function createStandaloneTemplateWorkspace()", "templateWorkspace: true", "hiddenFromProjectList: true", "publishedFromProjectId", "publishedFromProjectName", 'detail.template.status !== "validated"', "模板管理新增", "项目：")), "standalone templates must reuse the project graph editor while validated project templates publish into template management with project provenance")
     require(all(token in component for token in ("templateLibraryRecords", "templateImportHistory", "importTemplateToLibrary", "workbookExchange", "workbookBlob", "scoreImportIssues", "上传评分文件", "SCORE_FILE_IMPORTED", "评分标题和评分列")) and all(token in maturity_py for token in ("MATURITY_INFO_SHEET", "MATURITY_ASSESSMENT_SHEET", "standard_template_import_forbidden", "template_contains_scores", "custom_template_metadata_required", "containsCustomerInformation", "_merged_value_map")), "business XLSX exchange must separate custom-template structure from project scoring, record score imports, and preserve merged-cell relationships")
     require(all(token in complete_assessment_block for token in ("requestMaturityCalculation", "completedProject", "completedEntries", 'model.activeTab = "results"', "不适用与无证据项未作为阻断项")) and all(token in component for token in ("toastRoute", "normalizedRoute", "model.toastRoute !== nextRoute")), "completion must calculate and validate a cloned formal candidate before committing project status")
     require(all(token in component for token in ("function renderLevelScore", 'label = "成熟度指数"', '${escapeHtml(label)} / 5.00')) and "目标指数" not in result_summary_block and all(token in styles for token in (".maturity-v22-maturity-summary .maturity-v24-level-score", ".maturity-v25-target-maturity > div")) and capability_radar_block.index("maturity-v20-capability-radar") < capability_radar_block.index("maturity-v21-dimension-radar-row"), "execution and result level/index readouts must keep distinct visual roles without redundant result suffix text")
@@ -658,6 +705,7 @@ def main() -> int:
     require(all(token in component for token in ("FORMAL_RESULT_TAB_IDS", "renderFormalAssessmentBlocked", "formalAssessmentReady(detail)", "评估尚未正式完成")) and all(token in maturity_py for token in ("assessment_incomplete", "assessment_must_be_completed_before_report_generation")), "incomplete assessments must not expose result/report tabs or generate report artifacts")
     require("na_reason_missing" not in maturity_py and "summary.get(\"invalidNaReasonCount\") == 0" not in maturity_py and "summary.get(\"confirmedCount\") == summary.get(\"applicableItemCount\")" not in maturity_py, "optional not-applicable reasons and evidence must not re-enter completion through import or report gates")
     require(all(token in frontend_spec for token in ("第二十四轮首页、模板资产、结果层级与报告快照裁定", "项目进展", "Markdown 与自包含 HTML")) and all(token in global_plan for token in ("FE-R140", "FE-R141", "FE-R142", "FE-R143", "FE-R144", "FE-R145")) and all(token in business_spec for token in ("0.1.36", "始终创建新的 `CUSTOM` 副本", "汇报型报告快照")), "all three maturity documents must synchronize round 24 feedback, template, result and report contracts")
+    require(all(token in frontend_spec for token in ("第四十四轮节点定义与共享模板资产闭环", "项目模板发布前不存在于模板管理", "节点定义（可选）")) and all(token in global_plan for token in ("FE-R211", "FE-R212", "FE-R213", "FE-R214")) and all(token in business_spec for token in ("0.1.53 节点定义与共享模板资产闭环", "项目内自定义模板只有通过复核校验并发布后", "不展示“在右侧完成”")), "all three maturity documents must synchronize node-definition editing, compact inspector and shared-template publication contracts")
     require(all(token in frontend_spec for token in ("第二十五轮评分滚动、结果雷达与目标摘要裁定", "客户评估结果", "评分明细清单")) and all(token in global_plan for token in ("FE-R146", "FE-R147", "FE-R148", "FE-R149")) and all(token in business_spec for token in ("0.1.38", "只有组织与角色、制度与流程、平台与工具、数据与信息四维打分区域上下滚动", "目标成熟度")), "all three maturity documents must synchronize round 25 score-scroll ownership, nested radar layout, compact target summary and result tab names")
     require("function displayTemplateName(detail)" in component and 'detail?.project?.templateType === "base"' in component and component.count("SAPD标准能力成熟度模板") >= 1, "base projects must use the canonical current default-template display name without mutating project records")
     require("maturity-v26-home-grid" in project_list_block and "知识快照" not in overview_block and all(token in styles for token in ("grid-template-columns: minmax(0, 1.85fr) minmax(470px, 1fr)", "grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr)", "@media (max-width: 1680px)")), "the maturity homepage must use a safe wide two-column workspace and project overview must allocate project/progress at two-to-one without exposing the knowledge snapshot")
@@ -685,7 +733,7 @@ def main() -> int:
 
     print(json.dumps({
         "result": "pass",
-        "checks": 232,
+        "checks": 236,
         "baseStats": base["stats"],
         "fourDimensionIndex": result["summary"]["currentIndex"],
         "targetAchievementRate": result["summary"]["targetAchievementRate"],

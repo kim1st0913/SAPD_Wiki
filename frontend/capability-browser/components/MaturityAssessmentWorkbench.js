@@ -37,6 +37,9 @@
     L4: "量化控制",
     L5: "持续优化",
   };
+  const CUSTOM_TEMPLATE_RUBRIC_RESOLUTION_POLICY = "LATEST_BY_ASSESSMENT_POINT_ORIGIN";
+  const BASE_KNOWLEDGE_RUBRIC_POLICY = "BASE_KNOWLEDGE_LATEST";
+  const CUSTOM_GENERIC_RUBRIC_POLICY = "CUSTOM_GENERIC_LATEST";
   const RADAR_SHORT_LABELS = {
     "T-AS.AD": "体系架构",
     "T-AS.AM": "资产管理",
@@ -82,6 +85,7 @@
   const PROJECT_STATUS_NAMES = {
     draft: "草稿",
     template_configuring: "模板配置中",
+    template_ready: "模板已保存",
     scoring: "评分中",
     score_review: "评分检查中",
     completed: "评估完成",
@@ -132,6 +136,39 @@
     selectedScoreViewLevel: "",
     selectedScoreViewId: "",
     selectedTemplateCapabilityId: "",
+    selectedTemplateNodeType: "",
+    selectedTemplateNodeId: "",
+    templateContextMenu: null,
+    templateCanvasContextMenu: null,
+    templateLooseComposer: null,
+    templateInlineCreate: null,
+    templateInlineErrors: {},
+    templateHistoryProjectId: "",
+    templateHistorySnapshot: null,
+    templateUndoStack: [],
+    templateRedoStack: [],
+    templateHistoryRestoring: false,
+    templateDragState: null,
+    templateMouseDrag: null,
+    templateMindmapPointerDrag: null,
+    templateMindmapGesture: null,
+    templateMindmapGestureTimer: 0,
+    templateMindmapPanX: 18,
+    templateMindmapPanY: 10,
+    templateMindmapZoom: 0.5,
+    templateMindmapLayoutCache: null,
+    templateDerivedCacheKey: "",
+    templateMindmapViewProjectId: "",
+    templateMindmapPendingCenter: false,
+    templateOutlineOpen: false,
+    templateInspectorOpen: false,
+    templateInspectorSaveMessage: "",
+    templateCollapseProjectId: "",
+    collapsedTemplateNodeKeys: [],
+    collapsedTemplateNodeKeySetSource: null,
+    collapsedTemplateNodeKeySet: new Set(),
+    workspaceBackgroundRefreshPromise: null,
+    suppressTemplateClick: false,
     projectObjectSearch: "",
     projectObjectSearchIndex: 0,
     projectHistoryPage: 0,
@@ -139,8 +176,12 @@
     projectInfoDraft: {},
     projectInfoErrors: {},
     unlockConfirmProjectId: "",
+    projectDeleteCandidateId: "",
+    projectDeleteStep: 0,
+    templateDeleteCandidateId: "",
+    templateDeleteStep: 0,
     listSearch: "",
-    listStatus: "active",
+    listStatus: "all",
     listTemplateType: "all",
     listOwner: "all",
     listIndustry: "all",
@@ -296,7 +337,11 @@
   function rememberedProjectTab(route = model.route) {
     const projectId = projectIdFromRoute(route);
     const candidate = projectId ? text(projectTabStore()[projectId]) : "";
-    return PROJECT_TAB_IDS.has(candidate) ? candidate : "scoring";
+    const detail = projectId ? model.details[projectId] : null;
+    if (detail?.project?.templateWorkspace) return "template";
+    if (detail?.project?.templateType === "custom" && detail.project.status === "template_configuring" && (!candidate || candidate === "scoring")) return "template";
+    if (PROJECT_TAB_IDS.has(candidate)) return candidate;
+    return "scoring";
   }
 
   function rememberProjectTab(tab = model.activeTab, projectId = projectIdFromRoute()) {
@@ -331,6 +376,46 @@
     };
   }
 
+  function compactTemplateForLocalStorage(template, baseTemplate = model.workspace?.template) {
+    if (!template || template.type !== "custom") return template || null;
+    const compact = clone(template);
+    const baseItems = new Map(list(baseTemplate?.scoreItems).map((item) => [item.id, item]));
+    compact.scoreItems = list(compact.scoreItems).map((item) => {
+      const explicitCustom = item.rubricSourcePolicy === CUSTOM_GENERIC_RUBRIC_POLICY || templateRecordIsCustom(item);
+      const base = explicitCustom ? null : baseItems.get(item.rubricSourceRef || item.rubricStorageRef || item.id);
+      const stored = { ...item };
+      if (base) {
+        stored.rubricStorageRef = base.id;
+        stored.rubricSourcePolicy = BASE_KNOWLEDGE_RUBRIC_POLICY;
+        stored.rubricSourceRef = base.id;
+      } else if (explicitCustom) {
+        stored.rubricStoragePolicy = CUSTOM_GENERIC_RUBRIC_POLICY;
+        stored.rubricSourcePolicy = CUSTOM_GENERIC_RUBRIC_POLICY;
+        stored.rubricSourceRef = "custom-generic";
+      } else {
+        return item;
+      }
+      delete stored.rubricEntries;
+      return stored;
+    });
+    return compact;
+  }
+
+  function compactMaturityStoreForRetry(store) {
+    Object.values(store.projects || {}).forEach((stored) => {
+      if (!stored || typeof stored !== "object") return;
+      if (stored.template?.type === "custom") stored.template = compactTemplateForLocalStorage(stored.template);
+      if (stored.report?.id) stored.report = reportPersistenceReceipt(stored.report);
+      stored.exchangeBatches = list(stored.exchangeBatches).slice(-8);
+      stored.scoreImportIssues = list(stored.scoreImportIssues).slice(-80);
+    });
+    store.templateLibrary = list(store.templateLibrary).map((item) => {
+      if (item?.template) return { ...item, template: compactTemplateForLocalStorage(item.template) };
+      return compactTemplateForLocalStorage(item);
+    });
+    return store;
+  }
+
   function persistDetail(detail) {
     if (!detail?.project?.id) return false;
     const store = safeStore();
@@ -339,7 +424,7 @@
     const persistedDetail = {
       project: detail.project,
       scoreEntries: detail.scoreEntries,
-      template: detail.template?.type === "custom" ? detail.template : null,
+      template: detail.template?.type === "custom" ? compactTemplateForLocalStorage(detail.template) : null,
       result: detail.result || null,
       resultStale: Boolean(detail.resultStale),
       localSaveState: detail.localSaveState || "saved",
@@ -359,12 +444,82 @@
     };
     store.projects[detail.project.id] = persistedDetail;
     if (writeStore(store)) return true;
-    if (!persistedDetail.report?.id) return false;
-    store.projects[detail.project.id] = {
-      ...persistedDetail,
-      report: reportPersistenceReceipt(persistedDetail.report),
-    };
-    return writeStore(store);
+    return writeStore(compactMaturityStoreForRetry(store));
+  }
+
+  function clearRememberedProjectTab(projectId) {
+    if (!projectId) return;
+    const tabs = projectTabStore();
+    delete tabs[projectId];
+    for (const storage of [window.localStorage, window.sessionStorage]) {
+      try {
+        storage?.setItem(TAB_STORAGE_KEY, JSON.stringify(tabs));
+      } catch {
+        // Project deletion has already been persisted; stale tab state is harmless.
+      }
+    }
+  }
+
+  function deleteProjectFromLocalWorkspace(detail) {
+    if (!detail?.project?.id) return false;
+    const projectId = detail.project.id;
+    const deletedAt = nowLabel();
+    const store = safeStore();
+    store.version = "2.1";
+    store.projects = store.projects && typeof store.projects === "object" ? store.projects : {};
+    delete store.projects[projectId];
+    store.deletedProjectIds = list(store.deletedProjectIds).filter((item) => text(item?.id || item) !== projectId);
+    store.deletedProjectIds.push({ id: projectId, deletedAt });
+    if (detail.template?.type === "custom" && detail.template?.id) {
+      store.templateLibrary = list(store.templateLibrary).filter((item) => (item?.template || item)?.id !== detail.template.id);
+      store.templateLibrary.push({
+        template: compactTemplateForLocalStorage(detail.template),
+        importedAt: deletedAt,
+        sourceTemplateType: "custom",
+        librarySourceType: "RETAINED_PROJECT",
+        sourceProjectId: projectId,
+        sourceProjectName: detail.project.name || "",
+        sourceProjectDeletedAt: deletedAt,
+      });
+    }
+    if (!writeStore(store)) {
+      showToast("项目删除未保存，请检查本地存储空间后重试", "error");
+      return false;
+    }
+    delete model.details[projectId];
+    clearRememberedProjectTab(projectId);
+    if (model.expandedProjectId === projectId) model.expandedProjectId = "";
+    model.projectDeleteCandidateId = "";
+    model.projectDeleteStep = 0;
+    model.projectListPage = 1;
+    model.templateManagerPage = 1;
+    showToast(detail.template?.type === "custom" ? "项目已删除；项目模板已保留到模板管理" : "项目已删除；标准模板未受影响", "success");
+    return true;
+  }
+
+  function deleteTemplateFromLocalWorkspace(record) {
+    if (!record?.template?.id || ["default", "project"].includes(record.source)) return false;
+    const templateId = record.template.id;
+    const store = safeStore();
+    store.templateLibrary = list(store.templateLibrary).filter((item) => (item?.template || item)?.id !== templateId);
+    if (record.source === "created" && record.editDetailId) {
+      store.projects = store.projects && typeof store.projects === "object" ? store.projects : {};
+      delete store.projects[record.editDetailId];
+    }
+    if (!writeStore(store)) {
+      showToast("模板删除未保存，请检查本地存储空间后重试", "error");
+      return false;
+    }
+    if (record.source === "created" && record.editDetailId) {
+      delete model.details[record.editDetailId];
+      clearRememberedProjectTab(record.editDetailId);
+    }
+    if (model.createDraft.templateLibraryId === templateId) model.createDraft.templateLibraryId = "";
+    model.templateDeleteCandidateId = "";
+    model.templateDeleteStep = 0;
+    model.templateManagerPage = 1;
+    showToast("模板已从模板管理删除；已有项目副本保持不变", "success");
+    return true;
   }
 
   function clearStoredDemo() {
@@ -375,20 +530,132 @@
     }
   }
 
+  function templateStructureIsUninitialized(template) {
+    return ["categories", "capabilities", "focuses", "scoreItems"].every((key) => list(template?.[key]).length === 0);
+  }
+
+  function bindScoreItemToBaseKnowledgeRubric(item, base) {
+    const entries = list(base?.rubricEntries).map((entry) => ({ ...clone(entry), scoreItemId: item.id }));
+    item.rubricEntries = entries;
+    item.rubricSourcePolicy = BASE_KNOWLEDGE_RUBRIC_POLICY;
+    item.rubricSourceRef = base.id;
+    item.rubricSourceVersion = text(entries.find((entry) => entry.sourceVersion)?.sourceVersion || base?.rubricVersion);
+    delete item.rubricStorageRef;
+    delete item.rubricStoragePolicy;
+    return item;
+  }
+
+  function bindScoreItemToCurrentGenericRubric(item) {
+    const reference = customGenericRubricReference();
+    item.rubricEntries = customGenericRubricEntries(item.id);
+    item.rubricSourcePolicy = CUSTOM_GENERIC_RUBRIC_POLICY;
+    item.rubricSourceRef = "custom-generic";
+    item.rubricSourceVersion = text(reference.version);
+    delete item.rubricStorageRef;
+    delete item.rubricStoragePolicy;
+    return item;
+  }
+
+  function refreshCustomTemplateRubrics(template, baseTemplate) {
+    if (!template || template.type !== "custom") return template;
+    const baseItems = new Map(list(baseTemplate?.scoreItems).map((item) => [item.id, item]));
+    list(template.scoreItems).forEach((item) => {
+      const explicitCustom = item.rubricSourcePolicy === CUSTOM_GENERIC_RUBRIC_POLICY
+        || item.rubricStoragePolicy === CUSTOM_GENERIC_RUBRIC_POLICY
+        || templateRecordIsCustom(item);
+      const base = explicitCustom ? null : baseItems.get(item.rubricSourceRef || item.rubricStorageRef || item.id);
+      if (base) bindScoreItemToBaseKnowledgeRubric(item, base);
+      else if (explicitCustom) bindScoreItemToCurrentGenericRubric(item);
+      else {
+        delete item.rubricStorageRef;
+        delete item.rubricStoragePolicy;
+      }
+    });
+    template.rubricResolutionPolicy = CUSTOM_TEMPLATE_RUBRIC_RESOLUTION_POLICY;
+    template.baseKnowledgeRubricVersion = text(baseTemplate?.rubricVersion);
+    template.customGenericRubricVersion = text(customGenericRubricReference().version);
+    return template;
+  }
+
+  function hydrateStandardTemplateDefinitions(template, baseTemplate) {
+    if (!template || !baseTemplate) return template;
+    ["categories", "capabilities", "focuses", "services"].forEach((collection) => {
+      const baseById = new Map(list(baseTemplate[collection]).map((item) => [item.id, item]));
+      list(template[collection]).forEach((item) => {
+        const base = baseById.get(item.id);
+        const standardElement = !templateRecordIsCustom(item);
+        if (base && standardElement && !item.definitionOverridden && !text(item.description).trim()) {
+          item.description = text(base.description);
+        }
+      });
+    });
+    return refreshCustomTemplateRubrics(template, baseTemplate);
+  }
+
+  function hydrateProjectTemplate(project, candidateTemplate, baseTemplate) {
+    const candidate = clone(candidateTemplate || baseTemplate || {});
+    const expectsCustom = project?.templateType === "custom" || candidate?.type === "custom";
+    const needsBaseStructure = expectsCustom && (candidate?.type !== "custom" || templateStructureIsUninitialized(candidate));
+    if (!needsBaseStructure) return { template: hydrateStandardTemplateDefinitions(candidate, baseTemplate), repaired: false };
+    const source = clone(templateStructureIsUninitialized(candidate) ? baseTemplate || {} : candidate);
+    const customMeta = candidate?.type === "custom" ? candidate : {};
+    const projectTemplateName = text(project?.templateName);
+    const name = text(customMeta.name)
+      || (projectTemplateName && projectTemplateName !== "自定义模板待配置" ? projectTemplateName : `${text(project?.name) || "未命名项目"} 自定义模板`);
+    return {
+      repaired: true,
+      template: hydrateStandardTemplateDefinitions({
+        ...source,
+        id: text(customMeta.id || project?.templateId) || uid("custom-template"),
+        snapshotId: text(customMeta.snapshotId || project?.templateSnapshotId) || uid("draft-template"),
+        name,
+        type: "custom",
+        status: text(customMeta.status) || "draft",
+        readOnly: false,
+        structureMutable: true,
+        weightMutable: true,
+        sourceTemplateId: text(customMeta.sourceTemplateId || baseTemplate?.id),
+        sourceTemplateSnapshotId: text(customMeta.sourceTemplateSnapshotId || baseTemplate?.snapshotId),
+        description: text(customMeta.description) || "默认带出当前基础模板形成的项目专属自定义模板。",
+        looseNodes: clone(list(customMeta.looseNodes)),
+      }, baseTemplate),
+    };
+  }
+
+  function alignRepairedTemplateEntries(entries, template) {
+    const existing = new Map(normalizeScoreEntries(clone(entries || [])).map((entry) => [entry.scoreItemId, entry]));
+    return createBlankEntries(template).map((blank) => existing.get(blank.scoreItemId) || blank);
+  }
+
   function hydrateWorkspace(workspace) {
+    const localStore = safeStore();
+    const deletedProjectIds = new Set(list(localStore.deletedProjectIds).map((item) => text(item?.id || item)).filter(Boolean));
     const details = {};
     Object.entries(workspace?.projectDetails || {}).forEach(([id, detail]) => {
+      if (deletedProjectIds.has(id)) return;
+      const project = clone(detail.project || {});
+      const resolvedTemplate = hydrateProjectTemplate(project, detail.template || workspace.template, workspace.template);
+      if (resolvedTemplate.repaired) {
+        project.templateId = resolvedTemplate.template.id;
+        project.templateName = resolvedTemplate.template.name;
+        project.templateType = "custom";
+        project.templateSnapshotId = resolvedTemplate.template.snapshotId;
+      }
       details[id] = {
         ...clone(detail),
-        scoreEntries: normalizeScoreEntries(clone(detail.scoreEntries || [])),
-        template: clone(detail.template || workspace.template),
+        project,
+        scoreEntries: resolvedTemplate.repaired
+          ? alignRepairedTemplateEntries(detail.scoreEntries, resolvedTemplate.template)
+          : normalizeScoreEntries(clone(detail.scoreEntries || [])),
+        template: resolvedTemplate.template,
         reportV2Conclusions: clone(detail.reportV2Conclusions || defaultReportV2Conclusions()),
         reportV2Dirty: Boolean(detail.reportV2Dirty),
         calculationRevision: 0,
       };
     });
-    const storedProjects = safeStore().projects || {};
+    const storedProjects = localStore.projects || {};
     Object.entries(storedProjects).forEach(([id, stored]) => {
+      if (deletedProjectIds.has(id)) return;
       if (!stored?.project) return;
       const existing = details[id] || {};
       const storedProject = clone(stored.project);
@@ -403,11 +670,20 @@
         return;
       }
       if (LOCKED_ASSESSMENT_STATUSES.has(storedProject.status)) storedProject.readOnly = true;
+      const resolvedTemplate = hydrateProjectTemplate(storedProject, stored.template || existing.template || workspace.template, workspace.template);
+      if (resolvedTemplate.repaired) {
+        storedProject.templateId = resolvedTemplate.template.id;
+        storedProject.templateName = resolvedTemplate.template.name;
+        storedProject.templateType = "custom";
+        storedProject.templateSnapshotId = resolvedTemplate.template.snapshotId;
+      }
       details[id] = {
         ...existing,
         project: storedProject,
-        template: clone(stored.template || existing.template || workspace.template),
-        scoreEntries: normalizeScoreEntries(clone(stored.scoreEntries || existing.scoreEntries || [])),
+        template: resolvedTemplate.template,
+        scoreEntries: resolvedTemplate.repaired
+          ? alignRepairedTemplateEntries(stored.scoreEntries || existing.scoreEntries, resolvedTemplate.template)
+          : normalizeScoreEntries(clone(stored.scoreEntries || existing.scoreEntries || [])),
         result: clone(stored.result || existing.result || null),
         resultStale: Boolean(stored.resultStale),
         localSaveState: stored.localSaveState || "saved",
@@ -429,6 +705,13 @@
       };
     });
     model.details = details;
+    Object.values(details).forEach((detail) => {
+      if (detail?.template?.type !== "custom") return;
+      const corrected = enforceTemplateServiceRoles(detail);
+      if (!corrected) return;
+      detail.validation = null;
+      detail.resultStale = true;
+    });
   }
 
   function formalAssessmentReady(detail) {
@@ -492,10 +775,18 @@
     return id ? model.details[id] || null : null;
   }
 
-  function projectList() {
+  function detailList() {
     return Object.values(model.details)
       .filter((detail) => detail?.project?.id)
       .sort((left, right) => text(right.project.updatedAt).localeCompare(text(left.project.updatedAt), "zh-Hans-CN", { numeric: true }));
+  }
+
+  function projectList() {
+    return detailList().filter((detail) => !detail.project.templateWorkspace);
+  }
+
+  function templateWorkspaceList() {
+    return detailList().filter((detail) => detail.project.templateWorkspace);
   }
 
   function dashboardSnapshot(limit = 3) {
@@ -620,50 +911,193 @@
     return { categories, capabilities, focuses, scoreItems, focusServiceMappings, serviceIds };
   }
 
-  function projectObjectSearchResults(detail) {
-    const query = text(model.projectObjectSearch).trim().toLowerCase();
-    if (!query) return [];
-    const active = activeTemplateData(detail?.template);
-    const focusById = new Map(active.focuses.map((item) => [item.id, item]));
-    const categoryRows = byTemplateOrder(active.categories)
-      .filter((item) => ["L0", "L1"].includes(categoryCapabilityLevel(item)))
-      .map((item) => ({ type: categoryCapabilityLevel(item), id: item.id, code: item.code, name: item.name }));
-    const capabilityRows = byTemplateOrder(active.capabilities)
-      .map((item) => ({ type: "L2", id: item.id, code: item.code, name: item.name }));
-    const focusRows = byTemplateOrder(active.focuses)
-      .map((item) => ({ type: "FOCUS", id: item.id, code: item.code, name: item.name, capabilityId: item.capabilityId }));
-    const serviceById = new Map(list(detail?.template?.services).filter((item) => active.serviceIds.has(item.id)).map((item) => [item.id, item]));
-    const serviceContexts = new Map();
-    byTemplateOrder(active.scoreItems).forEach((item) => {
-      if (item.itemType !== "SERVICE" || !item.serviceId || serviceContexts.has(item.serviceId)) return;
-      serviceContexts.set(item.serviceId, { focusId: item.focusId, scoreItemId: item.id });
-    });
-    byTemplateOrder(active.focusServiceMappings).forEach((item) => {
-      if (!item.serviceId || serviceContexts.has(item.serviceId)) return;
-      serviceContexts.set(item.serviceId, { focusId: item.focusId, scoreItemId: "" });
-    });
-    const serviceRows = byTemplateOrder([...serviceById.values()]).map((item) => {
-      const context = serviceContexts.get(item.id) || {};
-      const focus = focusById.get(context.focusId) || {};
-      return { type: "SERVICE", id: item.id, code: item.code, name: item.name, focusId: context.focusId, scoreItemId: context.scoreItemId, context: `${focus.code || ""} ${focus.name || ""}`.trim() };
-    });
-    return [...categoryRows, ...capabilityRows, ...focusRows, ...serviceRows]
-      .filter((item) => [item.code, item.name, item.context].join(" ").toLowerCase().includes(query))
-      .slice(0, 10);
+  function normalizeProjectObjectSearchValue(value) {
+    return text(value)
+      .normalize("NFKC")
+      .toLowerCase()
+      .replace(/[\s·•/\\_.，,。:：;；()（）\[\]{}\-—–]+/g, " ")
+      .trim();
   }
 
-  function renderProjectObjectSearch(detail) {
+  function projectObjectSearchDocument(...values) {
+    return normalizeProjectObjectSearchValue(values.filter(Boolean).join(" "));
+  }
+
+  function projectObjectSearchResults(detail) {
+    const query = normalizeProjectObjectSearchValue(model.projectObjectSearch);
+    const queryTerms = query.split(" ").filter(Boolean);
+    if (!queryTerms.length) return [];
+    const active = activeTemplateData(detail?.template);
+    const focusById = new Map(active.focuses.map((item) => [item.id, item]));
+    const categoryById = new Map(active.categories.map((item) => [item.id, item]));
+    const capabilityById = new Map(active.capabilities.map((item) => [item.id, item]));
+    const baseTemplate = model.workspace?.template || {};
+    const identityIndex = (rows) => {
+      const index = new Map();
+      list(rows).forEach((item) => {
+        if (item.id) index.set(`id:${item.id}`, item);
+        if (item.code) index.set(`code:${item.code}`, item);
+      });
+      return index;
+    };
+    const baseCategoryIndex = identityIndex(baseTemplate.categories);
+    const baseCapabilityIndex = identityIndex(baseTemplate.capabilities);
+    const baseFocusIndex = identityIndex(baseTemplate.focuses);
+    const baseServiceIndex = identityIndex(baseTemplate.services);
+    const baseRecord = (index, item) => index.get(`id:${item?.id || ""}`) || index.get(`code:${item?.code || ""}`) || {};
+    const inheritedRecordSearchText = (index, item) => {
+      const inherited = baseRecord(index, item);
+      return [inherited.code, inherited.name, inherited.title, inherited.description, inherited.definition].filter(Boolean).join(" ");
+    };
+    const scoreItemsByFocus = new Map();
+    const scoreItemsByMapping = new Map();
+    const scoreItemsByFocusService = new Map();
+    const appendGrouped = (groups, key, item) => {
+      if (!key) return;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(item);
+    };
+    active.scoreItems.forEach((item) => {
+      appendGrouped(scoreItemsByFocus, item.focusId, item);
+      appendGrouped(scoreItemsByMapping, item.sourceMappingId, item);
+      appendGrouped(scoreItemsByFocusService, item.focusId && item.serviceId ? `${item.focusId}:${item.serviceId}` : "", item);
+    });
+    const scoreItemSearchText = (items) => list(items).map((item) => [
+      item.code,
+      item.name,
+      item.title,
+      item.description,
+      item.requirement,
+      item.question,
+      item.scopeCode,
+      item.scopeName,
+      item.serviceName,
+    ].filter(Boolean).join(" ")).join(" ");
+    const categoryPath = (category) => {
+      const parent = categoryById.get(category?.parentId);
+      return [parent?.code, parent?.name, category?.code, category?.name].filter(Boolean).join(" / ");
+    };
+    const capabilityPath = (capability) => {
+      const category = categoryById.get(capability?.categoryId);
+      return [categoryPath(category), capability?.code, capability?.name].filter(Boolean).join(" / ");
+    };
+    const categoryRows = byTemplateOrder(active.categories)
+      .filter((item) => ["L0", "L1"].includes(categoryCapabilityLevel(item)))
+      .map((item) => ({
+        type: categoryCapabilityLevel(item),
+        id: item.id,
+        code: item.code,
+        name: item.name,
+        context: categoryPath(item),
+        primarySearchText: projectObjectSearchDocument(item.code, item.name, item.title),
+        directSearchText: projectObjectSearchDocument(item.code, item.name, item.title, item.description, item.definition, inheritedRecordSearchText(baseCategoryIndex, item), categoryPath(item)),
+        searchText: projectObjectSearchDocument(item.code, item.name, item.title, item.description, item.definition, inheritedRecordSearchText(baseCategoryIndex, item), categoryPath(item)),
+      }));
+    const capabilityRows = byTemplateOrder(active.capabilities)
+      .map((item) => ({
+        type: "L2",
+        id: item.id,
+        code: item.code,
+        name: item.name,
+        context: capabilityPath(item),
+        primarySearchText: projectObjectSearchDocument(item.code, item.name, item.title),
+        directSearchText: projectObjectSearchDocument(item.code, item.name, item.title, item.description, item.definition, inheritedRecordSearchText(baseCapabilityIndex, item), capabilityPath(item)),
+        searchText: projectObjectSearchDocument(item.code, item.name, item.title, item.description, item.definition, inheritedRecordSearchText(baseCapabilityIndex, item), capabilityPath(item)),
+      }));
+    const focusRows = byTemplateOrder(active.focuses)
+      .map((item) => {
+        const capability = capabilityById.get(item.capabilityId);
+        const context = [capabilityPath(capability), item.code, item.name].filter(Boolean).join(" / ");
+        return {
+          type: "FOCUS",
+          id: item.id,
+          code: item.code,
+          name: item.name,
+          capabilityId: item.capabilityId,
+          context,
+          primarySearchText: projectObjectSearchDocument(item.code, item.name, item.title),
+          directSearchText: projectObjectSearchDocument(item.code, item.name, item.title, item.description, item.definition, inheritedRecordSearchText(baseFocusIndex, item), context),
+          searchText: projectObjectSearchDocument(item.code, item.name, item.title, item.description, item.definition, inheritedRecordSearchText(baseFocusIndex, item), context, scoreItemSearchText(scoreItemsByFocus.get(item.id))),
+        };
+      });
+    const serviceById = new Map(list(detail?.template?.services).filter((item) => active.serviceIds.has(item.id)).map((item) => [item.id, item]));
+    const serviceRows = byTemplateOrder(active.focusServiceMappings).map((mapping) => {
+      const item = serviceById.get(mapping.serviceId) || {};
+      const focus = focusById.get(mapping.focusId) || {};
+      const capability = capabilityById.get(focus.capabilityId);
+      const scoreItems = scoreItemsByMapping.get(mapping.id) || scoreItemsByFocusService.get(`${mapping.focusId}:${mapping.serviceId}`) || [];
+      const context = [capabilityPath(capability), focus.code, focus.name, mapping.scopeCode, mapping.scopeName].filter(Boolean).join(" / ");
+      return {
+        type: "SERVICE",
+        id: mapping.id,
+        code: item.code,
+        name: item.name,
+        focusId: mapping.focusId,
+        scoreItemId: scoreItems[0]?.id || "",
+        context,
+        primarySearchText: projectObjectSearchDocument(item.code, item.name, item.title),
+        directSearchText: projectObjectSearchDocument(item.code, item.name, item.title, item.description, item.definition, inheritedRecordSearchText(baseServiceIndex, item), mapping.scopeCode, mapping.scopeName, context),
+        searchText: projectObjectSearchDocument(item.code, item.name, item.title, item.description, item.definition, inheritedRecordSearchText(baseServiceIndex, item), mapping.scopeCode, mapping.scopeName, context, scoreItemSearchText(scoreItems)),
+      };
+    });
+    const rank = (item) => {
+      const primary = item.primarySearchText || "";
+      if (primary === query) return 0;
+      if (primary.startsWith(query)) return 1;
+      if (primary.includes(query) || queryTerms.every((term) => primary.includes(term))) return 2;
+      if (queryTerms.every((term) => item.directSearchText.includes(term))) return 3;
+      return 4;
+    };
+    return [...categoryRows, ...capabilityRows, ...focusRows, ...serviceRows]
+      .filter((item) => queryTerms.every((term) => item.searchText.includes(term)))
+      .map((item, index) => ({ item, index, rank: rank(item) }))
+      .sort((left, right) => left.rank - right.rank || left.index - right.index)
+      .slice(0, 80)
+      .map(({ item }) => item);
+  }
+
+  function renderProjectObjectSearchResultList(rows, activeIndex, query) {
+    if (!query) return "";
+    const typeNames = { L0: "L0", L1: "L1", L2: "L2", FOCUS: "关注点", SERVICE: "安全技术服务" };
+    return `<div class="maturity-v21-project-search-results" role="listbox" aria-label="当前模板搜索结果">${rows.map((item, index) => `<button id="maturityProjectSearchResult${index}" class="${index === activeIndex ? "is-active" : ""}" type="button" role="option" aria-selected="${index === activeIndex}" data-project-search-index="${index}" data-maturity-action="open-project-object-result" data-object-type="${escapeHtml(item.type)}" data-object-id="${escapeHtml(item.id)}" data-focus-id="${escapeHtml(item.focusId || "")}" data-score-item-id="${escapeHtml(item.scoreItemId || "")}"><span>${escapeHtml(typeNames[item.type] || item.type)}</span><strong>${escapeHtml(item.code || "自定义")} ${escapeHtml(item.name || "未命名")}</strong>${item.context ? `<small>${escapeHtml(item.context)}</small>` : ""}</button>`).join("") || `<div class="maturity-v21-project-search-empty">当前模板没有匹配的业务对象</div>`}</div>`;
+  }
+
+  function projectObjectSearchState(detail) {
     const rows = projectObjectSearchResults(detail);
     const query = text(model.projectObjectSearch).trim();
     const activeIndex = rows.length ? Math.max(0, Math.min(rows.length - 1, Number(model.projectObjectSearchIndex || 0))) : 0;
-    const typeNames = { L0: "L0", L1: "L1", L2: "L2", FOCUS: "关注点", SERVICE: "安全技术服务" };
+    return { rows, query, activeIndex };
+  }
+
+  function renderProjectObjectSearch(detail) {
+    const { rows, query, activeIndex } = projectObjectSearchState(detail);
     return `<div class="maturity-v21-project-search page-search-control" role="search" aria-label="当前评估模板对象搜索">
       <label class="page-search-input-shell"><span class="capability-search-icon" aria-hidden="true">⌕</span><input type="search" value="${escapeHtml(model.projectObjectSearch)}" placeholder="搜索 L0 / L1 / L2 / 关注点 / 安全技术服务" data-maturity-project-search autocomplete="off" aria-label="搜索当前评估模板业务对象" aria-activedescendant="${rows.length ? `maturityProjectSearchResult${activeIndex}` : ""}" /></label>
       <span class="page-search-match-status" aria-live="polite">${query ? `${rows.length ? activeIndex + 1 : 0} / ${rows.length}` : ""}</span>
       <button class="page-search-step" type="button" data-maturity-action="step-project-search" data-search-step="-1" aria-label="上一个匹配" title="上一个匹配" ${rows.length ? "" : "disabled"}>‹</button>
       <button class="page-search-step" type="button" data-maturity-action="step-project-search" data-search-step="1" aria-label="下一个匹配" title="下一个匹配" ${rows.length ? "" : "disabled"}>›</button>
-      ${query ? `<div class="maturity-v21-project-search-results" role="listbox" aria-label="当前模板搜索结果">${rows.map((item, index) => `<button id="maturityProjectSearchResult${index}" class="${index === activeIndex ? "is-active" : ""}" type="button" role="option" aria-selected="${index === activeIndex}" data-project-search-index="${index}" data-maturity-action="open-project-object-result" data-object-type="${escapeHtml(item.type)}" data-object-id="${escapeHtml(item.id)}" data-focus-id="${escapeHtml(item.focusId || "")}" data-score-item-id="${escapeHtml(item.scoreItemId || "")}"><span>${escapeHtml(typeNames[item.type] || item.type)}</span><strong>${escapeHtml(item.code || "自定义")} ${escapeHtml(item.name || "未命名")}</strong>${item.context ? `<small>${escapeHtml(item.context)}</small>` : ""}</button>`).join("") || `<div class="maturity-v21-project-search-empty">当前模板没有匹配的业务对象</div>`}</div>` : ""}
+      ${renderProjectObjectSearchResultList(rows, activeIndex, query)}
     </div>`;
+  }
+
+  function updateProjectObjectSearchUi(detail, sourceInput = null) {
+    const input = sourceInput || model.root?.querySelector("[data-maturity-project-search]");
+    const search = input?.closest(".maturity-v21-project-search");
+    if (!input || !search) return false;
+    const { rows, query, activeIndex } = projectObjectSearchState(detail);
+    model.projectObjectSearchIndex = activeIndex;
+    input.setAttribute("aria-activedescendant", rows.length ? `maturityProjectSearchResult${activeIndex}` : "");
+    const status = search.querySelector(".page-search-match-status");
+    if (status) status.textContent = query ? `${rows.length ? activeIndex + 1 : 0} / ${rows.length}` : "";
+    search.querySelectorAll('[data-maturity-action="step-project-search"]').forEach((button) => {
+      button.disabled = !rows.length;
+    });
+    const currentResults = search.querySelector(".maturity-v21-project-search-results");
+    const nextResults = renderProjectObjectSearchResultList(rows, activeIndex, query);
+    if (currentResults && nextResults) currentResults.outerHTML = nextResults;
+    else if (currentResults) currentResults.remove();
+    else if (nextResults) search.insertAdjacentHTML("beforeend", nextResults);
+    return true;
   }
 
   function templateStats(template) {
@@ -747,20 +1181,53 @@
   function templateLibraryRecords() {
     const baseTemplate = model.workspace?.template;
     const records = [];
-    if (baseTemplate?.id) records.push({ template: baseTemplate, source: "default", sourceProjectId: "", importedAt: "" });
+    if (baseTemplate?.id) records.push({ template: baseTemplate, source: "default", sourceProjectId: "", editDetailId: "", importedAt: "" });
     projectList().forEach((detail) => {
+      if (detail.template?.type !== "custom" || !detail.template?.id || detail.template.status !== "validated") return;
+      records.push({ template: detail.template, source: "project", sourceProjectId: detail.project.id, editDetailId: detail.project.id, importedAt: detail.template.publishedAt || detail.project.updatedAt || "" });
+    });
+    templateWorkspaceList().forEach((detail) => {
       if (detail.template?.type !== "custom" || !detail.template?.id) return;
-      records.push({ template: detail.template, source: "project", sourceProjectId: detail.project.id, importedAt: detail.project.updatedAt || "" });
+      records.push({ template: detail.template, source: "created", sourceProjectId: "", editDetailId: detail.project.id, importedAt: detail.template.publishedAt || detail.project.updatedAt || "" });
     });
     list(safeStore().templateLibrary).forEach((item) => {
-      const template = item?.template || item;
-      if (template?.id) records.push({ template, source: "import", sourceProjectId: "", importedAt: item?.importedAt || "" });
+      const template = hydrateStandardTemplateDefinitions(clone(item?.template || item), baseTemplate);
+      if (!template?.id) return;
+      const librarySourceType = text(item?.librarySourceType || template?.librarySourceType).toUpperCase();
+      const retainedProject = librarySourceType === "RETAINED_PROJECT";
+      const copiedTemplate = librarySourceType === "TEMPLATE_COPY" || Boolean(item?.copiedFromTemplateId);
+      records.push({
+        template,
+        source: retainedProject ? "project-retained" : copiedTemplate ? "copy" : "import",
+        sourceProjectId: retainedProject ? text(item?.sourceProjectId) : "",
+        sourceProjectName: retainedProject ? text(item?.sourceProjectName) : "",
+        sourceProjectDeletedAt: retainedProject ? text(item?.sourceProjectDeletedAt) : "",
+        editDetailId: "",
+        importedAt: item?.importedAt || "",
+      });
     });
     const unique = new Map();
     records.forEach((item) => {
       if (!unique.has(item.template.id)) unique.set(item.template.id, item);
     });
-    return [...unique.values()];
+    const sourcePriority = { default: 0, project: 1, created: 2, "project-retained": 3, copy: 4, import: 5 };
+    return [...unique.values()].sort((left, right) => {
+      const priority = (sourcePriority[left.source] ?? 9) - (sourcePriority[right.source] ?? 9);
+      if (priority) return priority;
+      return text(right.importedAt).localeCompare(text(left.importedAt), "zh-Hans-CN", { numeric: true })
+        || text(left.template?.name).localeCompare(text(right.template?.name), "zh-Hans-CN", { numeric: true });
+    });
+  }
+
+  function templateLibrarySourceLabel(record) {
+    if (!record) return "模板管理";
+    if (record.source === "default") return "知识库稳定模板";
+    if (record.source === "created") return "模板管理新增";
+    if (record.source === "copy") return "模板复制";
+    if (record.source === "import") return "XLSX 导入";
+    if (record.source === "project-retained") return `原项目（已删除）：${record.sourceProjectName || record.template?.publishedFromProjectName || "本地项目"}`;
+    const project = record.sourceProjectId ? model.details[record.sourceProjectId]?.project : null;
+    return `项目：${project?.name || record.template?.publishedFromProjectName || "本地项目"}`;
   }
 
   function templateImportHistory() {
@@ -796,6 +1263,28 @@
     </footer>`;
   }
 
+  function renderTemplateManagerActions(record) {
+    const templateId = escapeHtml(record.template.id);
+    let primaryAction = "";
+    let copyAction = "";
+    if (record.source === "project") {
+      primaryAction = `<button class="maturity-v1-button is-primary" type="button" data-maturity-action="open-source-project-template" data-project-id="${escapeHtml(record.sourceProjectId)}">进入项目优化</button>`;
+      copyAction = `<button class="maturity-v1-button is-secondary" type="button" data-maturity-action="copy-template-to-manager" data-template-id="${templateId}" title="创建副本并调整">创建副本</button>`;
+    } else if (record.source === "created") {
+      primaryAction = `<button class="maturity-v1-button is-primary" type="button" data-maturity-action="manage-template-project" data-project-id="${escapeHtml(record.editDetailId)}">继续优化</button>`;
+    } else if (record.template.type === "custom") {
+      primaryAction = `<button class="maturity-v1-button is-secondary" type="button" data-maturity-action="copy-template-to-manager" data-template-id="${templateId}" title="创建副本并调整">创建副本</button>`;
+    }
+    const deleteAction = record.source === "default"
+      ? ""
+      : `<button class="maturity-v1-button maturity-v53-delete-button" type="button" data-maturity-action="request-template-delete" data-template-id="${templateId}">删除</button>`;
+    const exportAction = `<button class="maturity-v1-button is-secondary maturity-v28-export-button" type="button" data-maturity-action="export-global-template" data-template-id="${templateId}">导出</button>`;
+    return `<div class="maturity-v53-template-action-stack">
+      ${primaryAction || deleteAction ? `<div class="maturity-v54-template-main-actions">${primaryAction}${copyAction ? "" : exportAction}${deleteAction}</div>` : ""}
+      ${copyAction || (!primaryAction && !deleteAction) ? `<div class="maturity-v54-template-support-actions">${copyAction}${exportAction}</div>` : ""}
+    </div>`;
+  }
+
   function renderTemplateManager() {
     const records = templateLibraryRecords();
     const filtered = model.templateManagerView === "custom" ? records.filter((item) => item.template.type === "custom") : records;
@@ -804,11 +1293,11 @@
     const pagination = paginatedRows(templateRows, model.templateManagerPage, model.templateManagerPageSize);
     model.templateManagerPage = pagination.page;
     return `<section class="maturity-v24-home-section maturity-v24-template-manager" aria-labelledby="maturityTemplateManagerTitle">
-      <header><div><span>模板资产</span><h2 id="maturityTemplateManagerTitle">模板管理</h2><p>标准模板保持只读；自定义模板必须保留评分标题和评分列，但所有评分数据单元格必须为空。</p></div><div><button class="maturity-v1-button is-secondary maturity-v28-import-button" type="button" data-maturity-action="trigger-global-template-import">导入自定义模板</button><input type="file" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx" hidden data-maturity-template-library-file /></div></header>
+      <header><div><span>模板资产</span><h2 id="maturityTemplateManagerTitle">模板管理</h2><p>模板管理自建内容可在这里继续优化；项目来源模板只能回到原项目修改，也可创建独立副本。</p></div><div class="maturity-v51-template-manager-actions"><button class="maturity-v1-button is-primary" type="button" data-maturity-action="new-template">新增模板</button><button class="maturity-v1-button is-secondary maturity-v28-import-button" type="button" data-maturity-action="trigger-global-template-import">导入自定义模板</button><input type="file" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx" hidden data-maturity-template-library-file /></div></header>
       <nav class="maturity-v24-template-views" aria-label="模板管理视图">
         ${[["all", "全部模板", records.length], ["custom", "自定义模板", records.filter((item) => item.template.type === "custom").length], ["history", "导入任务", history.length]].map(([value, label, count]) => `<button class="${model.templateManagerView === value ? "is-active" : ""}" type="button" data-maturity-action="set-template-view" data-template-view="${value}" aria-label="${label}，${count} 项" aria-pressed="${model.templateManagerView === value}">${label}</button>`).join("")}
       </nav>
-      ${model.templateManagerView === "history" ? `<div class="maturity-v24-template-table"><table class="maturity-v28-template-table is-history"><thead><tr><th>任务</th><th>来源类型</th><th>状态</th><th>结果</th></tr></thead><tbody>${history.length ? pagination.rows.map((item) => `<tr><td><strong>${escapeHtml(item.id)}</strong><small>${escapeHtml(item.importedAt || item.createdAt || "本地受控任务")}</small></td><td>自定义模板</td><td><span class="maturity-v1-status ${item.status === "success" ? "is-good" : "is-warn"}">${escapeHtml(item.status === "success" ? "成功" : item.status || "待确认")}</span></td><td>${Number(item.successCount || (item.status === "success" ? 1 : 0))} 成功 / ${Number(item.failureCount || 0)} 失败</td></tr>`).join("") : `<tr><td colspan="4"><div class="maturity-v1-table-empty"><strong>暂无模板导入任务</strong><span>导入自定义业务模板后，这里会保留本地受控记录。</span></div></td></tr>`}</tbody></table></div>` : `<div class="maturity-v24-template-table"><table class="maturity-v28-template-table"><thead><tr><th>模板</th><th>类型 / 版本</th><th>结构</th><th>来源</th><th>操作</th></tr></thead><tbody>${filtered.length ? pagination.rows.map((item) => { const stats = templateStats(item.template); const project = item.sourceProjectId ? model.details[item.sourceProjectId]?.project : null; return `<tr><td><strong>${escapeHtml(item.template.name || "未命名模板")}</strong></td><td><span class="maturity-v2-template-kind">${item.template.type === "base" ? "标准" : "自定义"}</span><small>${escapeHtml(item.template.version || "V2.1")}</small></td><td><strong>${stats.capabilities} L2 · ${stats.focuses} 关注点</strong><small>${stats.scoreItems} 个评估点</small></td><td>${item.source === "default" ? "知识库稳定模板" : item.source === "project" ? `项目：${escapeHtml(project?.name || "本地项目")}` : "历史导入副本"}</td><td><div class="maturity-v24-template-actions"><button class="maturity-v1-button is-secondary maturity-v28-export-button" type="button" data-maturity-action="export-global-template" data-template-id="${escapeHtml(item.template.id)}">导出 XLSX</button></div></td></tr>`; }).join("") : `<tr><td colspan="5"><div class="maturity-v1-table-empty"><strong>暂无自定义模板</strong><span>可以导入自定义业务模板，或在新建项目时创建自定义模板。</span></div></td></tr>`}</tbody></table></div>`}
+      ${model.templateManagerView === "history" ? `<div class="maturity-v24-template-table"><table class="maturity-v28-template-table is-history"><thead><tr><th>任务</th><th>来源类型</th><th>状态</th><th>结果</th></tr></thead><tbody>${history.length ? pagination.rows.map((item) => `<tr><td><strong>${escapeHtml(item.id)}</strong><small>${escapeHtml(item.importedAt || item.createdAt || "本地受控任务")}</small></td><td>自定义模板</td><td><span class="maturity-v1-status ${item.status === "success" ? "is-good" : "is-warn"}">${escapeHtml(item.status === "success" ? "成功" : item.status || "待确认")}</span></td><td>${Number(item.successCount || (item.status === "success" ? 1 : 0))} 成功 / ${Number(item.failureCount || 0)} 失败</td></tr>`).join("") : `<tr><td colspan="4"><div class="maturity-v1-table-empty"><strong>暂无模板导入任务</strong><span>导入自定义业务模板后，这里会保留本地受控记录。</span></div></td></tr>`}</tbody></table></div>` : `<div class="maturity-v24-template-table"><table class="maturity-v28-template-table"><thead><tr><th>模板</th><th>类型 / 状态</th><th>结构</th><th>来源</th><th>操作</th></tr></thead><tbody>${filtered.length ? pagination.rows.map((item) => { const stats = templateStats(item.template); const templateReady = item.template.type === "base" || item.template.status === "validated"; const sourceLabel = templateLibrarySourceLabel(item); return `<tr><td><strong>${escapeHtml(item.template.name || "未命名模板")}</strong><small>${escapeHtml(item.template.description || "暂无模板说明")}</small></td><td><div class="maturity-v55-template-state"><div><span class="maturity-v2-template-kind">${item.template.type === "base" ? "标准" : "自定义"}</span><span class="maturity-v1-status ${templateReady ? "is-good" : "is-warn"}">${templateReady ? "已校验" : "草稿"}</span></div><small>${escapeHtml(item.template.version || "V2.1")}</small></div></td><td><strong>${stats.capabilities} L2 · ${stats.focuses} 关注点</strong><small>${stats.scoreItems} 个评估点</small></td><td><strong>${escapeHtml(sourceLabel)}</strong><small>${escapeHtml(item.importedAt || "当前稳定版本")}</small></td><td><div class="maturity-v24-template-actions">${renderTemplateManagerActions(item)}</div></td></tr>`; }).join("") : `<tr><td colspan="5"><div class="maturity-v1-table-empty"><strong>暂无自定义模板</strong><span>点击“新增模板”进入图谱工作台，或导入已有 XLSX 模板。</span></div></td></tr>`}</tbody></table></div>`}
       ${renderWorkspacePagination("templates", pagination)}
     </section>`;
   }
@@ -827,6 +1316,48 @@
     if (restoreTabFocus) {
       window.setTimeout(() => model.root?.querySelector(`[data-maturity-action="set-template-view"][data-template-view="${model.templateManagerView}"]`)?.focus(), 0);
     }
+  }
+
+  function renderProjectDeleteConfirmation() {
+    const detail = model.projectDeleteCandidateId ? model.details[model.projectDeleteCandidateId] : null;
+    if (!detail?.project || model.projectDeleteStep < 1) return "";
+    const project = detail.project;
+    const retainTemplate = detail.template?.type === "custom";
+    const secondStep = model.projectDeleteStep >= 2;
+    return `<div class="maturity-v1-modal-backdrop maturity-v53-delete-layer" data-maturity-delete-layer>
+      <aside class="maturity-v1-modal maturity-v53-delete-modal" role="dialog" aria-modal="true" aria-labelledby="maturityProjectDeleteTitle">
+        <header><div><span>第 ${secondStep ? "2" : "1"} / 2 次确认</span><h3 id="maturityProjectDeleteTitle">${secondStep ? "最后确认删除项目" : "删除评估项目？"}</h3></div><button class="maturity-v1-icon-button" type="button" data-maturity-action="cancel-project-delete" aria-label="取消删除项目">×</button></header>
+        <div class="maturity-v53-delete-body">
+          <div class="maturity-v53-delete-object"><span>待删除项目</span><strong>${escapeHtml(project.name || "未命名项目")}</strong><small>${escapeHtml(project.organization || "企业组织未填写")} · ${escapeHtml(PROJECT_STATUS_NAMES[project.status] || project.status || "状态未知")}</small></div>
+          ${secondStep
+            ? `<p><strong>这是最后一次确认。</strong>删除后项目将从本机评估项目管理中移除，刷新页面也不会恢复；已生成的外部报告文件不在此次本地删除范围内。</p>`
+            : `<p>本次操作删除本机保存的项目、评分与项目内配置。为避免模板资产随项目丢失，项目中的自定义模板会默认保留到模板管理。</p>`}
+          <ul><li>项目删除后不可从本页面恢复</li><li>${retainTemplate ? "自定义模板保留，并标记为“原项目已删除”" : "标准模板属于知识库基线，不受项目删除影响"}</li><li>保留模板可在项目删除后单独删除</li></ul>
+        </div>
+        <footer><button class="maturity-v1-button is-secondary" type="button" data-maturity-action="cancel-project-delete">取消</button><button class="maturity-v1-button is-primary is-danger" type="button" data-maturity-action="${secondStep ? "confirm-project-delete" : "continue-project-delete"}">${secondStep ? "确认永久删除项目" : "继续删除"}</button></footer>
+      </aside>
+    </div>`;
+  }
+
+  function renderTemplateDeleteConfirmation() {
+    const record = model.templateDeleteCandidateId
+      ? templateLibraryRecords().find((item) => item.template.id === model.templateDeleteCandidateId)
+      : null;
+    if (!record || ["default", "project"].includes(record.source) || model.templateDeleteStep < 1) return "";
+    const secondStep = model.templateDeleteStep >= 2;
+    return `<div class="maturity-v1-modal-backdrop maturity-v53-delete-layer" data-maturity-template-delete-layer>
+      <aside class="maturity-v1-modal maturity-v53-delete-modal" role="dialog" aria-modal="true" aria-labelledby="maturityTemplateDeleteTitle">
+        <header><div><span>第 ${secondStep ? "2" : "1"} / 2 次确认</span><h3 id="maturityTemplateDeleteTitle">${secondStep ? "最后确认删除模板" : "删除模板资产？"}</h3></div><button class="maturity-v1-icon-button" type="button" data-maturity-action="cancel-template-delete" aria-label="取消删除模板">×</button></header>
+        <div class="maturity-v53-delete-body">
+          <div class="maturity-v53-delete-object"><span>待删除模板</span><strong>${escapeHtml(record.template.name || "未命名模板")}</strong><small>${escapeHtml(templateLibrarySourceLabel(record))}</small></div>
+          ${secondStep
+            ? `<p><strong>这是最后一次确认。</strong>删除后模板会从本机模板管理中永久移除，刷新页面也不会恢复。</p>`
+            : `<p>删除后该模板不再出现在模板管理，也不能作为新评估项目的来源。已经基于它创建的项目副本不受影响。</p>`}
+          <ul><li>模板删除后不可从本页面恢复</li><li>已有评估项目及其模板副本保持不变</li></ul>
+        </div>
+        <footer><button class="maturity-v1-button is-secondary" type="button" data-maturity-action="cancel-template-delete">取消</button><button class="maturity-v1-button is-primary is-danger" type="button" data-maturity-action="${secondStep ? "confirm-template-delete" : "continue-template-delete"}">${secondStep ? "确认永久删除模板" : "继续删除"}</button></footer>
+      </aside>
+    </div>`;
   }
 
   function normalizedRoute(route = model.route) {
@@ -962,8 +1493,8 @@
       <section class="maturity-v1-page maturity-v1-list-page" aria-label="成熟度评估项目列表">
         ${renderFeedback()}
         <div class="maturity-v26-home-grid">
-          <section class="maturity-v26-project-hub" aria-label="项目进展">
-        <header class="maturity-v24-home-heading"><div><span>当前工作</span><h2>项目进展</h2><p>查看评估阶段、评分完成度和下一步动作。</p></div><dl><div><dt>进行中</dt><dd>${viewCounts.active}</dd></div><div><dt>已完成</dt><dd>${viewCounts.completed}</dd></div></dl></header>
+          <section class="maturity-v26-project-hub" aria-label="评估项目管理">
+        <header class="maturity-v24-home-heading"><div><span>当前工作</span><h2>评估项目管理</h2><p>查看评估阶段、评分完成度，并管理项目生命周期。</p></div><div class="maturity-v52-project-heading-actions"><dl><div><dt>进行中</dt><dd>${viewCounts.active}</dd></div><div><dt>已完成</dt><dd>${viewCounts.completed}</dd></div></dl><button id="maturityNewProjectButton" class="maturity-v1-button is-primary" type="button" data-maturity-action="new-project">新建评估项目</button></div></header>
         <div class="maturity-v2-list-views" role="tablist" aria-label="项目状态视图">
           ${[["active", "进行中"], ["completed", "已完成"], ["all", "全部"]].map(([value, label]) => `<button class="${model.listStatus === value ? "is-active" : ""}" type="button" role="tab" aria-label="${label}，${viewCounts[value]} 项" aria-selected="${model.listStatus === value}" data-maturity-action="set-list-view" data-list-view="${value}">${label}<span aria-hidden="true">${viewCounts[value]}</span></button>`).join("")}
         </div>
@@ -981,7 +1512,7 @@
         <div class="maturity-v1-project-layout">
           <section class="maturity-v1-table-wrap" aria-label="评估项目表">
             <table class="maturity-v1-table maturity-v1-project-table maturity-v28-project-table">
-              <thead><tr><th>客户</th><th>状态</th><th>采用模板</th><th>完成度</th><th>操作</th></tr></thead>
+              <thead><tr><th>项目 / 客户</th><th>状态</th><th>采用模板</th><th>完成度</th><th>操作</th></tr></thead>
               <tbody>
                 ${filtered.length ? pagination.rows.map((detail) => {
                   const project = detail.project;
@@ -989,14 +1520,15 @@
                   const completedItems = Math.max(0, Number(summary.applicableItemCount || 0) - Number(summary.notScoredCount || 0));
                   const totalItems = Number(summary.applicableItemCount || activeTemplateData(detail.template).scoreItems.length || 0);
                   const expanded = model.expandedProjectId === project.id;
+                  const [primaryLabel, primaryTab] = projectPrimaryAction(project);
                   return `<tr class="maturity-v2-project-row maturity-v28-project-row ${expanded ? "is-expanded" : ""}" data-maturity-action="toggle-project-preview" data-project-id="${escapeHtml(project.id)}" tabindex="0" aria-label="${escapeHtml(project.organization || project.name)}，展开项目摘要" aria-expanded="${expanded}">
-                    <td><strong class="notranslate" translate="no" data-maturity-literal="organization">${escapeHtml(project.organization || "客户未填写")}</strong></td>
+                    <td><div class="maturity-v54-project-identity"><strong>${escapeHtml(project.name || "未命名项目")}</strong><small class="notranslate" translate="no" data-maturity-literal="organization">${escapeHtml(project.organization || "客户未填写")}</small></div></td>
                     <td><span class="maturity-v1-status ${statusTone(project.status)}">${escapeHtml(PROJECT_STATUS_NAMES[project.status] || project.status)}</span></td>
                     <td><strong>${escapeHtml(displayTemplateName(detail))}</strong><span class="maturity-v2-template-kind">${project.templateType === "custom" ? "自定义" : project.templateType === "base" ? "固定" : "待选择"}</span></td>
                     <td><div class="maturity-v28-completion"><span class="maturity-v1-progress"><i style="width:${percent(summary.completionRate)}%"></i></span><strong>${percent(summary.completionRate).toFixed(0)}%</strong><small>${completedItems} / ${totalItems || "-"}</small></div></td>
-                    <td><button class="maturity-v1-button is-primary maturity-v2-row-primary" type="button" data-maturity-action="open-project-tab" data-project-id="${escapeHtml(project.id)}" data-project-tab="overview">进入项目</button></td>
+                    <td><div class="maturity-v53-project-row-actions"><button class="maturity-v1-button is-primary maturity-v2-row-primary" type="button" data-maturity-action="open-project-tab" data-project-id="${escapeHtml(project.id)}" data-project-tab="${escapeHtml(primaryTab)}">${escapeHtml(primaryLabel)}</button><button class="maturity-v1-button maturity-v53-project-delete" type="button" data-maturity-action="request-project-delete" data-project-id="${escapeHtml(project.id)}">删除</button></div></td>
                   </tr>${expanded ? `<tr class="maturity-v2-project-preview maturity-v28-project-preview"><td colspan="5"><div><dl><div><dt>项目负责人</dt><dd class="maturity-v28-literal-value notranslate" translate="no" data-maturity-literal="project-owner" data-value="${escapeHtml(project.owner || "未填写")}" aria-label="${escapeHtml(project.owner || "未填写")}"></dd></div><div><dt>评估人员</dt><dd class="maturity-v28-literal-value notranslate" translate="no" data-maturity-literal="assessors" data-value="${escapeHtml(list(project.assessors).join("、") || "未填写")}" aria-label="${escapeHtml(list(project.assessors).join("、") || "未填写")}"></dd></div><div><dt>阻塞项</dt><dd>${Number(summary.reviewPendingCount || 0)}</dd></div><div><dt>不适用项</dt><dd>${Number(summary.notApplicableCount || 0)}</dd></div><div><dt>最近更新</dt><dd>${escapeHtml(project.updatedAt || "-")}</dd></div></dl></div></td></tr>` : ""}`;
-                }).join("") : `<tr><td colspan="5"><div class="maturity-v1-table-empty"><strong>${projects.length ? "当前筛选下没有评估项目" : "从企业组织项目开始"}</strong><span>${projects.length ? "调整筛选条件，或清空筛选后继续。" : "创建项目后选择固定或自定义模板，进入四维评分。"}</span><button class="maturity-v1-button is-primary" type="button" data-maturity-action="${projects.length ? "clear-list-filters" : "new-project"}">${projects.length ? "清空筛选" : "新建评估项目"}</button></div></td></tr>`}
+                }).join("") : `<tr><td colspan="5"><div class="maturity-v1-table-empty"><strong>${projects.length ? "当前筛选下没有评估项目" : "从企业组织项目开始"}</strong><span>${projects.length ? "调整筛选条件，或清空筛选后继续。" : "使用评估项目管理标题区的按钮创建项目，再选择固定或自定义模板。"}</span>${projects.length ? `<button class="maturity-v1-button is-primary" type="button" data-maturity-action="clear-list-filters">清空筛选</button>` : ""}</div></td></tr>`}
               </tbody>
             </table>
           </section>
@@ -1006,6 +1538,8 @@
           ${renderTemplateManager()}
         </div>
         ${renderCreateWizard()}
+        ${renderProjectDeleteConfirmation()}
+        ${renderTemplateDeleteConfirmation()}
       </section>
     `;
   }
@@ -1022,8 +1556,10 @@
     const error = (field) => model.createErrors?.[field] ? `<small id="maturityCreateError-${field}" class="maturity-v2-field-error">${escapeHtml(model.createErrors[field])}</small>` : "";
     const fieldAttrs = (field) => `data-create-field="${field}"${model.createErrors?.[field] ? ` aria-invalid="true" aria-describedby="maturityCreateError-${field}"` : ""}`;
     const baseStats = templateStats(model.workspace?.template || {});
-    const reusableTemplates = templateLibraryRecords().filter((item) => item.template.type === "custom");
-    const selectedLibraryTemplate = templateLibraryRecords().find((item) => item.template.id === draft.templateLibraryId)?.template;
+    const libraryRecords = templateLibraryRecords();
+    const reusableTemplates = libraryRecords.filter((item) => item.template.type === "custom");
+    const selectedLibraryRecord = libraryRecords.find((item) => item.template.id === draft.templateLibraryId);
+    const selectedLibraryTemplate = selectedLibraryRecord?.template;
     return `
       <div class="maturity-v1-modal-backdrop maturity-v2-create-layer" data-maturity-create-layer data-shell-workflow-overlay="maturity-project-create">
         <button class="maturity-v2-create-scrim" type="button" data-maturity-action="close-create" aria-label="关闭新建评估项目浮层"></button>
@@ -1050,23 +1586,23 @@
                 <button class="${draft.templateType === "base" ? "is-selected" : ""}" type="button" data-maturity-action="choose-template" data-template-type="base" role="radio" aria-checked="${draft.templateType === "base"}">
                   <div><strong>固定知识库模板</strong><span class="maturity-v2-readonly-badge">只读结构</span></div><span>按知识快照中的真实关注点、作用域与服务关系生成评估点。</span><small>V2.1 · ${baseStats.topCategories} 个能力 L0 / ${baseStats.domains} 个能力 L1 / ${baseStats.capabilities} 个能力 L2 / ${baseStats.focuses} 个关注点 / ${baseStats.scoreItems} 个评估点</small>
                 </button>
-                <button class="${draft.templateType === "custom" && !draft.templateLibraryId ? "is-selected" : ""}" type="button" data-maturity-action="choose-template" data-template-type="custom" role="radio" aria-checked="${draft.templateType === "custom" && !draft.templateLibraryId}">
-                  <div><strong>从固定模板复制为新自定义模板</strong><span class="maturity-v2-template-kind">需配置</span></div><span>创建后进入模板配置，可重组能力 L0 / L1 / L2、关注点、作用域和服务角色。</span><small>所有变化只保存在项目模板，不修改主工程字典。</small>
+                <button class="${draft.templateType === "custom" ? "is-selected" : ""}" type="button" data-maturity-action="choose-template" data-template-type="custom" role="radio" aria-checked="${draft.templateType === "custom"}">
+                  <div><strong>自定义模板</strong><span class="maturity-v2-template-kind">创建项目副本</span></div><span>从模板管理选择来源，创建项目专属副本后进入图谱工作台继续调整。</span><small>修改只写入新项目副本，不会覆盖标准模板或已保存的来源模板。</small>
                 </button>
-                ${reusableTemplates.map((item) => { const stats = templateStats(item.template); const selected = draft.templateLibraryId === item.template.id; return `<button class="${selected ? "is-selected" : ""}" type="button" data-maturity-action="choose-template" data-template-type="custom" data-template-id="${escapeHtml(item.template.id)}" role="radio" aria-checked="${selected}"><div><strong>${escapeHtml(item.template.name)}</strong><span class="maturity-v2-template-kind">自定义副本</span></div><span>从模板中心复制到新项目后继续调整，原模板保持不变。</span><small>${stats.capabilities} 个 L2 / ${stats.focuses} 个关注点 / ${stats.scoreItems} 个评估点</small></button>`; }).join("")}
               </div>
+              ${draft.templateType === "custom" ? `<section class="maturity-v52-template-source-picker" aria-label="选择自定义模板来源"><label><span>来源模板</span><select data-create-template-library-id aria-describedby="maturityCustomTemplateSourceHint"><option value="${escapeHtml(model.workspace?.template?.id || "")}"${draft.templateLibraryId === model.workspace?.template?.id ? " selected" : ""}>基于固定知识库模板新建</option>${reusableTemplates.map((item) => `<option value="${escapeHtml(item.template.id)}"${draft.templateLibraryId === item.template.id ? " selected" : ""}>${escapeHtml(item.template.name)} · ${item.template.status === "validated" ? "已校验" : "草稿"} · ${escapeHtml(templateLibrarySourceLabel(item))}</option>`).join("")}</select></label><div id="maturityCustomTemplateSourceHint"><strong>${escapeHtml(selectedLibraryTemplate?.name || model.workspace?.template?.name || "固定知识库模板")}</strong><span>${escapeHtml(selectedLibraryRecord ? templateLibrarySourceLabel(selectedLibraryRecord) : "知识库稳定模板")} · 创建后生成新模板 ID，来源保持不变。</span></div></section>` : ""}
               ${error("templateType")}
             ` : ""}
             ${model.createStep === 3 ? `
               <div class="maturity-v1-confirm-grid">
                 <section><div class="maturity-v2-confirm-heading"><strong>客户与项目</strong><button type="button" data-maturity-action="create-edit-step" data-step="1">修改</button></div><dl><div><dt>项目</dt><dd class="notranslate" translate="no" data-maturity-literal="project-name">${escapeHtml(draft.name)}</dd></div><div><dt>客户企业组织</dt><dd class="notranslate" translate="no" data-maturity-literal="organization">${escapeHtml(draft.organization)}</dd></div><div><dt>所属行业 / 规模</dt><dd>${escapeHtml(draft.industry)} / ${escapeHtml(draft.companySize)}</dd></div><div><dt>项目负责人</dt><dd class="notranslate" translate="no" data-maturity-literal="project-owner">${escapeHtml(draft.owner)}</dd></div><div><dt>评估对象</dt><dd>企业组织</dd></div></dl></section>
-                <section><div class="maturity-v2-confirm-heading"><strong>评估模板</strong><button type="button" data-maturity-action="create-edit-step" data-step="2">修改</button></div><div class="maturity-v1-confirm-template"><span>模板</span><strong>${draft.templateType === "custom" ? escapeHtml(selectedLibraryTemplate?.name || "新自定义能力模板") : "当前知识库基础能力体系模板"}</strong><p>${draft.templateType === "custom" ? "创建时生成项目专属副本；进入模板配置继续调整，不覆盖模板中心原件。" : "固定模板结构只读；作用域和服务均来自字典真实映射。"}</p></div></section>
+                <section><div class="maturity-v2-confirm-heading"><strong>评估模板</strong><button type="button" data-maturity-action="create-edit-step" data-step="2">修改</button></div><div class="maturity-v1-confirm-template"><span>模板</span><strong>${draft.templateType === "custom" ? escapeHtml(selectedLibraryTemplate?.name || model.workspace?.template?.name || "新自定义能力模板") : "当前知识库基础能力体系模板"}</strong><p>${draft.templateType === "custom" ? `创建项目专属副本后进入模板配置；${escapeHtml(selectedLibraryRecord ? templateLibrarySourceLabel(selectedLibraryRecord) : "知识库稳定模板")}原件保持不变。` : "固定模板结构只读；作用域和服务均来自字典真实映射。"}</p></div></section>
               </div>
             ` : ""}
           </div>
           <footer>
             <button class="maturity-v1-button is-secondary" type="button" data-maturity-action="${model.createStep === 1 ? "close-create" : "create-back"}">${model.createStep === 1 ? "取消" : "返回"}</button>
-            <button class="maturity-v1-button is-primary" type="button" data-maturity-action="${model.createStep === 3 ? "create-project" : "create-next"}" ${model.createStep === 2 && !draft.templateType ? "disabled" : ""}>${model.createStep === 1 ? "下一步：选择模板" : model.createStep === 2 ? "下一步：确认信息" : "创建并进入项目"}</button>
+            <button class="maturity-v1-button is-primary" type="button" data-maturity-action="${model.createStep === 3 ? "create-project" : "create-next"}" ${model.createStep === 2 && !draft.templateType ? "disabled" : ""}>${model.createStep === 1 ? "下一步：选择模板" : model.createStep === 2 ? "下一步：确认信息" : draft.templateType === "custom" ? "创建并进入评估模板" : "创建并进入评分执行"}</button>
           </footer>
         </aside>
       </div>
@@ -1076,21 +1612,23 @@
   function renderProject(detail) {
     const project = detail.project;
     const summary = summaryOf(detail);
-    const tabs = [
-      ["overview", "项目概览"],
-      ["template", "评估模板"],
-      ["scoring", "评分执行"],
-      ["review", "评分检查"],
-      ["results", "评估结果"],
-      ["report", "评估报告"],
-      ["report-v2", "评估报告 V2"],
-    ];
+    const tabs = project.templateWorkspace
+      ? [["template", "评估模板"]]
+      : [
+          ["overview", "项目概览"],
+          ["template", "评估模板"],
+          ["scoring", "评分执行"],
+          ["review", "评分检查"],
+          ["results", "评估结果"],
+          ["report", "评估报告"],
+          ["report-v2", "评估报告 V2"],
+        ];
     const formalReady = formalAssessmentReady(detail);
     return `
-      <section class="maturity-v1-page maturity-v1-project-page" aria-label="成熟度评估项目">
+      <section class="maturity-v1-page maturity-v1-project-page ${project.templateWorkspace || model.activeTab === "template" ? "is-template-workspace" : ""}" aria-label="${project.templateWorkspace ? "评估模板设计工作区" : "成熟度评估项目"}">
         <div class="maturity-v6-project-sticky-header" aria-label="当前项目与项目步骤">
           <div class="maturity-v21-project-tab-row">
-            <nav class="maturity-v1-tabs" aria-label="成熟度评估项目步骤">
+            <nav class="maturity-v1-tabs" aria-label="${project.templateWorkspace ? "评估模板工作区" : "成熟度评估项目步骤"}">
               ${tabs.map(([id, label]) => { const blocked = FORMAL_RESULT_TAB_IDS.has(id) && !formalReady; return `<button class="${model.activeTab === id ? "is-active" : ""}" type="button" data-maturity-tab="${id}" ${blocked ? 'disabled aria-disabled="true" title="完成全部适用评估点并正式完成评估后开放"' : ""}><span>${escapeHtml(label)}</span>${id === "scoring" && summary.notScoredCount ? `<b>${summary.notScoredCount}</b>` : ""}</button>`; }).join("")}
             </nav>
             ${["report", "report-v2"].includes(model.activeTab) ? "" : renderProjectObjectSearch(detail)}
@@ -1250,20 +1788,21 @@
     const template = detail.template;
     const stats = templateStats(template);
     const isCustom = template?.type === "custom";
+    if (isCustom) return renderCustomTemplateEditor(detail);
     return `
       <section class="maturity-v1-section maturity-v1-template-summary">
         <div class="maturity-v1-panel-heading">
-          <div><span>${isCustom ? "自定义能力模板" : "基础能力体系模板"}</span><h3>${escapeHtml(template?.name || "未选择模板")}</h3></div>
+          <div><span>基础能力体系模板</span><h3>${escapeHtml(template?.name || "未选择模板")}</h3></div>
           <div class="maturity-v1-toolbar">
-            ${!isCustom ? `<button class="maturity-v1-button is-secondary" type="button" data-maturity-action="clone-custom-template">复制为自定义模板</button>` : ""}
-            ${isCustom ? `<button class="maturity-v1-button is-secondary" type="button" data-maturity-action="export-template">导出自定义模板</button><button class="maturity-v1-button is-secondary" type="button" data-maturity-action="trigger-template-import">导入自定义模板</button><input type="file" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx" hidden data-maturity-template-file /><button class="maturity-v1-button is-primary" type="button" data-maturity-action="validate-template">校验并发布</button>` : `<span class="maturity-v2-readonly-badge">标准模板结构只读</span>`}
+            <button class="maturity-v1-button is-secondary" type="button" data-maturity-action="clone-custom-template">复制为自定义模板</button>
+            <span class="maturity-v2-readonly-badge">标准模板结构只读</span>
           </div>
         </div>
         <div class="maturity-v1-template-stats"><div><span>能力 L0</span><strong>${stats.topCategories || 0}</strong></div><div><span>能力 L1</span><strong>${stats.domains || 0}</strong></div><div><span>能力 L2</span><strong>${stats.capabilities || 0}</strong></div><div><span>关注点</span><strong>${stats.focuses || 0}</strong></div><div><span>安全技术服务</span><strong>${stats.services || 0}</strong></div><div><span>评估点</span><strong>${stats.scoreItems || 0}</strong></div></div>
         ${renderValidation(detail.validation, stats, template?.status)}
         ${renderExchangeBatches(detail)}
       </section>
-      ${isCustom ? renderCustomTemplateEditor(detail) : renderBaseTemplateDirectory(template)}
+      ${renderBaseTemplateDirectory(template)}
     `;
   }
 
@@ -1294,68 +1833,1292 @@
     return list(template?.categories).filter((category) => categoryCapabilityLevel(category) === "L1").map((category) => `<option value="${escapeHtml(category.id)}"${category.id === selected ? " selected" : ""}>${escapeHtml(category.code || "")} ${escapeHtml(category.name)}</option>`).join("");
   }
 
-  function renderCustomTemplateEditor(detail) {
-    const template = detail.template;
-    const categories = list(template.categories);
-    const capabilities = list(template.capabilities);
-    const selectedCapability = capabilities.find((item) => item.id === model.selectedTemplateCapabilityId) || capabilities.find((item) => item.included !== false) || capabilities[0];
-    if (selectedCapability && !model.selectedTemplateCapabilityId) model.selectedTemplateCapabilityId = selectedCapability.id;
-    return `
-      <div class="maturity-v1-template-editor">
-        <aside class="maturity-v1-template-categories">
-          <div class="maturity-v1-panel-heading"><div><span>能力结构</span><h3>L0（可选）/ L1</h3></div></div>
-          <div class="maturity-v1-category-list maturity-v2-node-editor">${categories.map((category) => `<div class="${categoryCapabilityLevel(category) === "L1" ? "is-child" : ""}"><span>${escapeHtml(category.code || "")}</span><input value="${escapeHtml(category.name)}" data-template-category-field="name" data-category-id="${escapeHtml(category.id)}" aria-label="修改 ${escapeHtml(category.name)}" /><select data-template-category-field="parentId" data-category-id="${escapeHtml(category.id)}" ${categoryCapabilityLevel(category) === "L0" ? "disabled" : ""}><option value="">顶级 L1</option>${categories.filter((item) => categoryCapabilityLevel(item) === "L0").map((item) => `<option value="${escapeHtml(item.id)}"${category.parentId === item.id ? " selected" : ""}>归属 ${escapeHtml(item.name)}</option>`).join("")}</select><small>${categoryCapabilityLevel(category)}</small><button class="maturity-v1-icon-button" type="button" data-maturity-action="remove-category" data-category-id="${escapeHtml(category.id)}" aria-label="从模板移除 ${escapeHtml(category.name)}">×</button></div>`).join("")}</div>
-          <div class="maturity-v1-inline-form">
-            <label><span>分类名称</span><input id="maturityCustomCategoryName" placeholder="输入分类名称" /></label>
-            <label><span>能力层级</span><select id="maturityCustomCategoryLevel"><option value="L0">能力 L0（可选）</option><option value="L1">能力 L1</option></select></label>
-            <label><span>L1 所属 L0</span><select id="maturityCustomCategoryParent"><option value="">无，作为顶级 L1</option>${categories.filter((item) => categoryCapabilityLevel(item) === "L0").map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}</option>`).join("")}</select></label>
-            <button class="maturity-v1-button is-secondary is-full" type="button" data-maturity-action="add-category">新增能力节点</button>
-          </div>
-          <div class="maturity-v1-inline-form maturity-v2-custom-scope-form">
-            <label><span>模板内作用域编码</span><input id="maturityCustomScopeCode" placeholder="例如 CUST-SCOPE" /></label>
-            <label><span>作用域名称</span><input id="maturityCustomScopeName" placeholder="业务专题作用域" /></label>
-            <button class="maturity-v1-button is-secondary is-full" type="button" data-maturity-action="add-custom-scope">新增模板内作用域</button>
-            <small>${list(template.scopes).map((scope) => escapeHtml(scope.code)).join("、")}</small>
-          </div>
-        </aside>
-        <section class="maturity-v1-template-capabilities">
-          <div class="maturity-v1-panel-heading"><div><span>能力配置</span><h3>已有能力与模板覆盖</h3></div><span>${capabilities.filter((item) => item.included !== false).length} 个纳入评估</span></div>
-          <div class="maturity-v1-table-wrap"><table class="maturity-v1-table maturity-v1-config-table"><thead><tr><th>纳入</th><th>编码</th><th>能力 L2 展示名称</th><th>所属能力 L1</th><th>变更</th><th>关键项</th></tr></thead><tbody>${capabilities.map((capability) => `<tr class="${capability.id === selectedCapability?.id ? "is-selected" : ""}" data-maturity-action="select-template-capability" data-capability-id="${escapeHtml(capability.id)}"><td><input type="checkbox" aria-label="纳入 ${escapeHtml(capability.name)}" ${capability.included !== false ? "checked" : ""} data-template-capability-field="included" data-capability-id="${escapeHtml(capability.id)}" /></td><td><span class="maturity-v1-code">${escapeHtml(capability.code || "自定义")}</span></td><td><input value="${escapeHtml(capability.name)}" data-template-capability-field="name" data-capability-id="${escapeHtml(capability.id)}" /></td><td><select data-template-capability-field="categoryId" data-capability-id="${escapeHtml(capability.id)}">${categoryOptions(template, capability.categoryId)}</select></td><td><span class="maturity-v1-row-status is-muted">${escapeHtml(capability.changeAction || "UNCHANGED")}</span></td><td><input type="checkbox" aria-label="设为关键能力" ${capability.isCritical ? "checked" : ""} data-template-capability-field="isCritical" data-capability-id="${escapeHtml(capability.id)}" /></td></tr>`).join("")}</tbody></table></div>
-          <div class="maturity-v1-inline-form is-horizontal">
-            <label><span>新增模板内能力</span><input id="maturityCustomCapabilityName" placeholder="能力名称" /></label>
-            <label><span>所属能力 L1</span><select id="maturityCustomCapabilityCategory">${categoryOptions(template, categories.find((item) => categoryCapabilityLevel(item) === "L1")?.id)}</select></label>
-            <button class="maturity-v1-button is-secondary" type="button" data-maturity-action="add-custom-capability">新增能力 L2</button>
-          </div>
-        </section>
-        <aside class="maturity-v1-template-inspector">
-          ${renderTemplateCapabilityInspector(detail, selectedCapability)}
-        </aside>
-      </div>
-    `;
+  function templateNodeRecord(detail, type, id) {
+    const template = detail?.template || {};
+    if (type === "TEMPLATE" && template.id === id) return { type, id, node: template };
+    if (type === "DRAFT") {
+      const node = list(template.looseNodes).find((item) => item.id === id);
+      return node ? { type, id, node } : null;
+    }
+    if (["L0", "L1"].includes(type)) {
+      const node = list(template.categories).find((item) => item.id === id && categoryCapabilityLevel(item) === type);
+      return node ? { type, id, node } : null;
+    }
+    if (type === "L2") {
+      const node = list(template.capabilities).find((item) => item.id === id && item.included !== false);
+      return node ? { type, id, node } : null;
+    }
+    if (type === "FOCUS") {
+      const node = list(template.focuses).find((item) => item.id === id && item.included !== false);
+      return node ? { type, id, node } : null;
+    }
+    if (type === "SERVICE") {
+      const mapping = list(template.focusServiceMappings).find((item) => item.id === id);
+      const node = list(template.services).find((item) => item.id === mapping?.serviceId);
+      return mapping && node ? { type, id, node, mapping } : null;
+    }
+    return null;
   }
 
-  function renderTemplateCapabilityInspector(detail, capability) {
-    if (!capability) return `<div class="maturity-v1-table-empty">选择一个能力查看关注点和评估点。</div>`;
+  function selectedTemplateNode(detail) {
+    let selected = templateNodeRecord(detail, model.selectedTemplateNodeType, model.selectedTemplateNodeId);
+    if (!selected && model.selectedTemplateCapabilityId) selected = templateNodeRecord(detail, "L2", model.selectedTemplateCapabilityId);
+    if (!selected && detail?.template?.id) selected = templateNodeRecord(detail, "TEMPLATE", detail.template.id);
+    if (!selected) {
+      const firstCapability = byTemplateOrder(list(detail?.template?.capabilities).filter((item) => item.included !== false))[0];
+      if (firstCapability) selected = templateNodeRecord(detail, "L2", firstCapability.id);
+    }
+    if (!selected) {
+      const firstCategory = byTemplateOrder(list(detail?.template?.categories))[0];
+      if (firstCategory) selected = templateNodeRecord(detail, categoryCapabilityLevel(firstCategory), firstCategory.id);
+    }
+    if (selected) {
+      model.selectedTemplateNodeType = selected.type;
+      model.selectedTemplateNodeId = selected.id;
+      if (selected.type === "L2") model.selectedTemplateCapabilityId = selected.id;
+      if (selected.type === "FOCUS") model.selectedTemplateCapabilityId = selected.node.capabilityId;
+      if (selected.type === "SERVICE") {
+        const focus = list(detail.template.focuses).find((item) => item.id === selected.mapping.focusId);
+        if (focus) model.selectedTemplateCapabilityId = focus.capabilityId;
+      }
+    }
+    return selected;
+  }
+
+  function templateSelectionContext(detail, selected = selectedTemplateNode(detail)) {
+    const template = detail.template;
+    const categories = byTemplateOrder(list(template.categories));
+    const capabilities = byTemplateOrder(list(template.capabilities).filter((item) => item.included !== false));
+    const focuses = byTemplateOrder(list(template.focuses).filter((item) => item.included !== false));
+    let capability = null;
+    let focus = null;
+    let explicitL0 = null;
+    let explicitL1 = null;
+    const partialHierarchySelection = ["L0", "L1"].includes(selected?.type);
+    if (selected?.type === "L2") capability = selected.node;
+    if (selected?.type === "FOCUS") {
+      focus = selected.node;
+      capability = capabilities.find((item) => item.id === focus.capabilityId) || null;
+    }
+    if (selected?.type === "SERVICE") {
+      focus = focuses.find((item) => item.id === selected.mapping.focusId) || null;
+      capability = capabilities.find((item) => item.id === focus?.capabilityId) || null;
+    }
+    if (selected?.type === "L1") {
+      explicitL1 = selected.node;
+      explicitL0 = categories.find((item) => item.id === selected.node.parentId) || null;
+      capability = capabilities.find((item) => item.categoryId === selected.id) || null;
+    }
+    if (selected?.type === "L0") {
+      explicitL0 = selected.node;
+      const childL1Rows = categories.filter((item) => categoryCapabilityLevel(item) === "L1" && item.parentId === selected.id);
+      const l1Ids = new Set(childL1Rows.map((item) => item.id));
+      capability = capabilities.find((item) => l1Ids.has(item.categoryId)) || null;
+      explicitL1 = childL1Rows.find((item) => item.id === capability?.categoryId) || childL1Rows[0] || null;
+    }
+    if (!partialHierarchySelection) capability = capability || capabilities.find((item) => item.id === model.selectedTemplateCapabilityId) || capabilities[0] || null;
+    const capabilityFocuses = focuses.filter((item) => item.capabilityId === capability?.id);
+    focus = focus && focus.capabilityId === capability?.id ? focus : capabilityFocuses[0] || null;
+    const l1 = explicitL1 || categories.find((item) => item.id === capability?.categoryId) || null;
+    const l0 = explicitL0 || categories.find((item) => item.id === l1?.parentId) || null;
+    const mappings = byTemplateOrder(list(template.focusServiceMappings).filter((item) => item.focusId === focus?.id));
+    return { categories, capabilities, focuses, capability, capabilityFocuses, focus, l0, l1, mappings };
+  }
+
+  function templateNodeLabel(type, node) {
+    const names = { TEMPLATE: "自定义模板", DRAFT: "自由节点", L0: "能力 L0", L1: "能力 L1", L2: "能力 L2", FOCUS: "关注点", SERVICE: "安全技术服务" };
+    return `${names[type] || type} ${node?.code || ""} ${node?.name || "未命名"}`.trim();
+  }
+
+  function normalizeTemplateIdentity(value, { code = false } = {}) {
+    const normalized = text(value).trim().normalize?.("NFKC") || text(value).trim();
+    return code ? normalized.toLocaleUpperCase("en-US") : normalized.toLocaleLowerCase("zh-CN");
+  }
+
+  function templateIdentityRecords(template) {
+    return [
+      ...list(template?.looseNodes).map((node) => ({ type: "DRAFT", id: node.id, node })),
+      ...list(template?.categories).map((node) => ({ type: categoryCapabilityLevel(node), id: node.id, node })),
+      ...list(template?.capabilities).filter((node) => node.included !== false).map((node) => ({ type: "L2", id: node.id, node })),
+      ...list(template?.focuses).filter((node) => node.included !== false).map((node) => ({ type: "FOCUS", id: node.id, node })),
+      ...list(template?.services).map((node) => ({ type: "SERVICE", id: node.id, node })),
+    ];
+  }
+
+  function validateTemplateNodeIdentity(template, { id = "", name = "", code = "" } = {}) {
+    const errors = {};
+    const normalizedName = normalizeTemplateIdentity(name);
+    const normalizedCode = normalizeTemplateIdentity(code, { code: true });
+    if (!normalizedName) errors.name = "请输入节点名称";
+    if (!normalizedCode) errors.code = "请输入节点编号";
+    const records = templateIdentityRecords(template).filter((record) => record.id !== id);
+    const nameConflict = normalizedName
+      ? records.find((record) => normalizeTemplateIdentity(record.node?.name) === normalizedName)
+      : null;
+    const codeConflict = normalizedCode
+      ? records.find((record) => normalizeTemplateIdentity(record.node?.code, { code: true }) === normalizedCode)
+      : null;
+    if (nameConflict) errors.name = `名称已被“${nameConflict.node.name}”（${nameConflict.node.code || templateTypeName(nameConflict.type)}）使用`;
+    if (codeConflict) errors.code = `编号已被“${codeConflict.node.name}”使用`;
+    return errors;
+  }
+
+  function nextUniqueTemplateNodeCode(template, type, reserved = new Set()) {
+    const prefixes = { L0: "CUST-L0", L1: "CUST-L1", L2: "CUST-CAP", FOCUS: "CUST-F", SERVICE: "CUST-SVC" };
+    const prefix = prefixes[type] || "CUST-NODE";
+    const used = new Set([
+      ...templateIdentityRecords(template).map((record) => normalizeTemplateIdentity(record.node?.code, { code: true })),
+      ...[...reserved].map((value) => normalizeTemplateIdentity(value, { code: true })),
+    ]);
+    let index = 1;
+    while (used.has(normalizeTemplateIdentity(`${prefix}-${index}`, { code: true }))) index += 1;
+    return `${prefix}-${index}`;
+  }
+
+  function nextUniqueTemplateNodeName(template, baseName, reserved = new Set()) {
+    const used = new Set([
+      ...templateIdentityRecords(template).map((record) => normalizeTemplateIdentity(record.node?.name)),
+      ...[...reserved].map((value) => normalizeTemplateIdentity(value)),
+    ]);
+    const base = text(baseName).trim() || "未命名节点";
+    if (!used.has(normalizeTemplateIdentity(base))) return base;
+    let index = 2;
+    while (used.has(normalizeTemplateIdentity(`${base} ${index}`))) index += 1;
+    return `${base} ${index}`;
+  }
+
+  function renderTemplateDirectoryNode(type, node, { depth = 0, children = "" } = {}) {
+    const selected = model.selectedTemplateNodeType === type && model.selectedTemplateNodeId === node.id;
+    const expandable = Boolean(children);
+    return `<div class="maturity-v40-directory-branch" style="--template-tree-depth:${depth}">
+      <div class="maturity-v4-directory-node maturity-v40-directory-node ${selected ? "is-selected" : ""}" data-template-node-type="${type}" data-template-node-id="${escapeHtml(node.id)}" data-template-drop-type="${type}" data-template-drop-id="${escapeHtml(node.id)}" data-template-draggable="true" title="拖动调整位置；右键打开编辑菜单">
+        <span class="maturity-v4-directory-toggle ${expandable ? "" : "is-placeholder"}" aria-hidden="true">${expandable ? "⌄" : ""}</span>
+        <button type="button" data-maturity-action="select-template-node" data-template-node-type="${type}" data-template-node-id="${escapeHtml(node.id)}" aria-current="${selected ? "true" : "false"}">
+          <span class="maturity-v40-node-level is-${type.toLowerCase()}">${escapeHtml(type === "FOCUS" ? "F" : type)}</span>
+          <span><strong>${escapeHtml(node.name || "未命名")}</strong><small>${escapeHtml(node.code || "自定义对象")}</small></span>
+        </button>
+        <span class="maturity-v40-node-grip" aria-hidden="true">⠿</span>
+      </div>
+      ${children ? `<div class="maturity-v4-directory-children">${children}</div>` : ""}
+    </div>`;
+  }
+
+  function renderTemplateDirectory(detail) {
+    const template = detail.template;
+    const categories = byTemplateOrder(list(template.categories));
+    const capabilities = byTemplateOrder(list(template.capabilities).filter((item) => item.included !== false));
+    const focuses = byTemplateOrder(list(template.focuses).filter((item) => item.included !== false));
+    const renderL2 = (capability, depth) => renderTemplateDirectoryNode("L2", capability, {
+      depth,
+      children: focuses.filter((focus) => focus.capabilityId === capability.id).map((focus) => renderTemplateDirectoryNode("FOCUS", focus, { depth: depth + 1 })).join(""),
+    });
+    const renderL1 = (category, depth) => renderTemplateDirectoryNode("L1", category, {
+      depth,
+      children: capabilities.filter((capability) => capability.categoryId === category.id).map((capability) => renderL2(capability, depth + 1)).join(""),
+    });
+    const l0Rows = categories.filter((item) => categoryCapabilityLevel(item) === "L0");
+    const rootL1Rows = categories.filter((item) => categoryCapabilityLevel(item) === "L1" && !item.parentId);
+    return `<aside class="maturity-v40-template-directory shell-directory-pane shell-directory-pane-has-meta" aria-label="评估模板目录">
+      <header class="pane-head shell-directory-head">
+        <div class="shell-directory-copy"><span class="shell-directory-title">评估模板目录</span><small class="shell-directory-meta">L0 / L1 / L2 / 关注点</small></div>
+        <span class="shell-directory-action" aria-label="目录节点可拖动">拖动排序</span>
+      </header>
+      <div class="maturity-v40-directory-help"><span aria-hidden="true">⌘</span><p>单击定位，拖动到同级重排或拖到父级移动；右键打开编辑菜单。</p></div>
+      <div class="shell-directory-tree maturity-v40-directory-tree">
+        ${l0Rows.map((l0) => renderTemplateDirectoryNode("L0", l0, {
+          depth: 0,
+          children: categories.filter((l1) => categoryCapabilityLevel(l1) === "L1" && l1.parentId === l0.id).map((l1) => renderL1(l1, 1)).join(""),
+        })).join("")}
+        ${rootL1Rows.map((l1) => renderL1(l1, 0)).join("")}
+      </div>
+    </aside>`;
+  }
+
+  function renderTemplateCanvasNode(type, node, { selected = false, note = "", mapping = null } = {}) {
+    const dragId = mapping?.id || node.id;
+    const dropType = mapping ? "SERVICE" : type;
+    const role = mapping?.serviceRole === "PLATFORM_EVIDENCE_REFERENCE" ? "平台工具参考" : type === "SERVICE" ? "独立评估点" : note;
+    return `<button class="maturity-v40-canvas-node is-${type.toLowerCase()} ${selected ? "is-selected" : ""}" type="button" data-maturity-action="select-template-node" data-template-node-type="${dropType}" data-template-node-id="${escapeHtml(dragId)}" data-template-drop-type="${dropType}" data-template-drop-id="${escapeHtml(dragId)}" data-template-draggable="true" title="拖动调整位置；右键编辑">
+      <span class="maturity-v40-node-level is-${type.toLowerCase()}">${escapeHtml(type === "FOCUS" ? "F" : type === "SERVICE" ? "S" : type)}</span>
+      <span><strong>${escapeHtml(node.name || "未命名")}</strong><small>${escapeHtml(node.code || "自定义对象")}${role ? ` · ${escapeHtml(role)}` : ""}</small></span>
+      <i aria-hidden="true">⠿</i>
+    </button>`;
+  }
+
+  function renderTemplateCanvas(detail, selected) {
+    const template = detail.template;
+    const context = templateSelectionContext(detail, selected);
+    if (!context.capability) return `<section class="maturity-v40-template-canvas"><div class="maturity-v1-table-empty"><strong>先创建或选择一个能力 L2</strong><span>评估模板至少需要一个可用能力，才能配置关注点与安全技术服务。</span></div></section>`;
+    const selectedFocusId = selected?.type === "FOCUS" ? selected.id : selected?.type === "SERVICE" ? selected.mapping.focusId : context.focus?.id;
+    const selectedFocus = context.capabilityFocuses.find((item) => item.id === selectedFocusId) || context.focus;
+    const mappings = byTemplateOrder(list(template.focusServiceMappings).filter((item) => item.focusId === selectedFocus?.id));
+    const serviceById = new Map(list(template.services).map((item) => [item.id, item]));
+    return `<section class="maturity-v40-template-canvas" aria-label="评估模板可视化编辑画布">
+      <header><div><span>可视化结构</span><h3>${escapeHtml(context.capability.code || "自定义")} ${escapeHtml(context.capability.name)}</h3></div><div class="maturity-v40-canvas-legend"><span><i class="is-blue"></i>能力</span><span><i class="is-lavender"></i>关注点</span><span><i class="is-sage"></i>安全技术服务</span></div></header>
+      <div class="maturity-v40-flow-canvas">
+        <section class="maturity-v40-flow-lane is-hierarchy" aria-label="能力层级链">
+          <header><span>01</span><strong>能力层级</strong><small>当前路径</small></header>
+          <div class="maturity-v40-hierarchy-chain">
+            ${context.l0 ? renderTemplateCanvasNode("L0", context.l0, { selected: selected?.type === "L0" && selected.id === context.l0.id }) : ""}
+            ${context.l0 ? `<span class="maturity-v40-flow-arrow" aria-hidden="true">→</span>` : ""}
+            ${context.l1 ? renderTemplateCanvasNode("L1", context.l1, { selected: selected?.type === "L1" && selected.id === context.l1.id }) : ""}
+            ${context.l1 ? `<span class="maturity-v40-flow-arrow" aria-hidden="true">→</span>` : ""}
+            ${renderTemplateCanvasNode("L2", context.capability, { selected: selected?.type === "L2" && selected.id === context.capability.id })}
+          </div>
+        </section>
+        <div class="maturity-v40-flow-columns">
+          <section class="maturity-v40-flow-lane is-focus" data-template-drop-type="L2" data-template-drop-id="${escapeHtml(context.capability.id)}">
+            <header><span>02</span><strong>关注点</strong><small>${context.capabilityFocuses.length} 项 · 可拖动</small></header>
+            <div>${context.capabilityFocuses.map((focus) => renderTemplateCanvasNode("FOCUS", focus, { selected: focus.id === selectedFocus?.id, note: `${list(template.scoreItems).filter((item) => item.focusId === focus.id).length} 个评估点` })).join("") || `<div class="maturity-v40-drop-empty">拖入关注点，或右键新增</div>`}</div>
+          </section>
+          <span class="maturity-v40-flow-arrow is-column" aria-hidden="true">→</span>
+          <section class="maturity-v40-flow-lane is-service" data-template-drop-type="FOCUS" data-template-drop-id="${escapeHtml(selectedFocus?.id || "")}">
+            <header><span>03</span><strong>安全技术服务</strong><small>${mappings.length} 项 · ${escapeHtml(selectedFocus?.name || "未选择关注点")}</small></header>
+            <div>${mappings.map((mapping) => {
+              const service = serviceById.get(mapping.serviceId) || { id: mapping.serviceId, name: "服务信息待补充", code: mapping.serviceId };
+              return renderTemplateCanvasNode("SERVICE", service, { selected: selected?.type === "SERVICE" && selected.id === mapping.id, mapping });
+            }).join("") || `<div class="maturity-v40-drop-empty">拖入服务，或右键添加服务关系</div>`}</div>
+          </section>
+        </div>
+      </div>
+    </section>`;
+  }
+
+  const TEMPLATE_MINDMAP_POSITIONS = {
+    root: { x: 58, width: 210 },
+    l0: { x: 346, width: 196 },
+    l1: { x: 624, width: 226 },
+    l2: { x: 934, width: 236 },
+    focus: { x: 1260, width: 270 },
+    service: { x: 1620, width: 250 },
+  };
+  const TEMPLATE_INLINE_CREATE_GAP = 118;
+
+  function templateQuickChildType(type) {
+    return ({ TEMPLATE: "L0", L0: "L1", L1: "L2", L2: "FOCUS", FOCUS: "SERVICE" })[type] || "";
+  }
+
+  function templateTypeName(type) {
+    return ({ TEMPLATE: "自定义模板", L0: "能力 L0", L1: "能力 L1", L2: "能力 L2", FOCUS: "关注点", SERVICE: "安全技术服务" })[type] || type;
+  }
+
+  function templateCapabilityKindToken(...values) {
+    for (const value of values) {
+      const normalized = text(value).trim().toUpperCase();
+      const prefix = normalized.match(/^([TGM])(?:$|[-._\s])/);
+      const suffix = normalized.match(/(?:^|\s)([TGM])$/);
+      const kind = prefix?.[1] || suffix?.[1];
+      if (kind) return kind;
+    }
+    return "";
+  }
+
+  function templateCapabilityKind(template, capabilityOrId) {
+    const capability = typeof capabilityOrId === "string"
+      ? list(template.capabilities).find((item) => item.id === capabilityOrId)
+      : capabilityOrId;
+    if (!capability) return "T";
+    const l1 = list(template.categories).find((item) => item.id === capability.categoryId);
+    const l0 = list(template.categories).find((item) => item.id === l1?.parentId);
+    return templateCapabilityKindToken(
+      l0?.code,
+      l0?.name,
+      l1?.code,
+      l1?.name,
+      capability.code,
+      capability.name,
+    ) || "T";
+  }
+
+  function requiredTemplateServiceRole(template, capabilityOrId) {
+    return ["G", "M"].includes(templateCapabilityKind(template, capabilityOrId))
+      ? "PLATFORM_EVIDENCE_REFERENCE"
+      : "ASSESSMENT_POINT";
+  }
+
+  function requiredTemplateServiceRoleForFocus(template, focusOrId) {
+    const focus = typeof focusOrId === "string"
+      ? list(template.focuses).find((item) => item.id === focusOrId)
+      : focusOrId;
+    return requiredTemplateServiceRole(template, focus?.capabilityId);
+  }
+
+  function templateServiceRoleLabel(role) {
+    return role === "PLATFORM_EVIDENCE_REFERENCE" ? "平台工具参考" : "独立服务评估点";
+  }
+
+  const TEMPLATE_ELEMENT_ORIGINS = {
+    standard: {
+      label: "标准元素",
+      shortLabel: "标准",
+      description: "来自当前基础模板，内容、位置和下级结构均未调整。",
+    },
+    modified: {
+      label: "标准修改元素",
+      shortLabel: "标准修改",
+      description: "基于标准元素调整了属性、位置，或增加、移除、移动了下级节点。",
+    },
+    custom: {
+      label: "模板自建元素",
+      shortLabel: "新增",
+      description: "在当前模板中新建或导入，只影响此模板，不会覆盖知识库标准。",
+    },
+  };
+
+  function templateRecordIsCustom(record) {
+    return Boolean(
+      record
+      && (
+        record.isCustom
+        || ["CUSTOM", "WORKBOOK_IMPORT"].includes(record.sourceType)
+        || record.changeAction === "ADDED"
+      )
+    );
+  }
+
+  function templateRecordIsChanged(record) {
+    return Boolean(record && record.changeAction && record.changeAction !== "UNCHANGED");
+  }
+
+  function templateStructureRecords(template) {
+    if (model.templateStructureRecordsCache?.template === template) return model.templateStructureRecordsCache.records;
+    const records = [
+      ...list(template.categories).map((node) => ({ type: categoryCapabilityLevel(node), node })),
+      ...list(template.capabilities).map((node) => ({ type: "L2", node })),
+      ...list(template.focuses).map((node) => ({ type: "FOCUS", node })),
+      ...list(template.focusServiceMappings).map((mapping) => ({
+        type: "SERVICE",
+        mapping,
+        node: list(template.services).find((service) => service.id === mapping.serviceId) || null,
+      })),
+    ];
+    model.templateStructureRecordsCache = { template, records };
+    return records;
+  }
+
+  function templateDirectChildRecords(detail, type, id) {
+    const template = detail.template;
+    if (type === "TEMPLATE") {
+      const l0Ids = new Set(list(template.categories).filter((item) => categoryCapabilityLevel(item) === "L0").map((item) => item.id));
+      return templateStructureRecords(template).filter((record) => (
+        (record.type === "L0")
+        || (record.type === "L1" && (!record.node.parentId || !l0Ids.has(record.node.parentId)))
+      ));
+    }
+    if (type === "L0") {
+      return list(template.categories)
+        .filter((item) => categoryCapabilityLevel(item) === "L1" && item.parentId === id)
+        .map((node) => ({ type: "L1", node }));
+    }
+    if (type === "L1") {
+      return list(template.capabilities)
+        .filter((item) => item.included !== false && item.categoryId === id)
+        .map((node) => ({ type: "L2", node }));
+    }
+    if (type === "L2") {
+      return list(template.focuses)
+        .filter((item) => item.included !== false && item.capabilityId === id)
+        .map((node) => ({ type: "FOCUS", node }));
+    }
+    if (type === "FOCUS") {
+      return list(template.focusServiceMappings)
+        .filter((mapping) => mapping.focusId === id)
+        .map((mapping) => ({
+          type: "SERVICE",
+          mapping,
+          node: list(template.services).find((service) => service.id === mapping.serviceId) || null,
+        }));
+    }
+    return [];
+  }
+
+  function transientTemplateRemovalWasCancelled(template, entry) {
+    if (entry?.changeAction !== "REMOVED") return false;
+    const sourceType = text(entry.sourceType || entry.snapshot?.sourceType).toLocaleUpperCase("en-US");
+    if (sourceType !== "CUSTOM" && entry.snapshot?.changeAction !== "ADDED" && !entry.snapshot?.isCustom) return false;
+    return !templateStructureRecords(template).some((record) => (record.mapping?.id || record.node?.id) === entry.objectId);
+  }
+
+  function removeTransientTemplateChangeLog(template, record) {
+    if (!record || (text(record.sourceType).toLocaleUpperCase("en-US") !== "CUSTOM" && record.changeAction !== "ADDED" && !record.isCustom)) return false;
+    template.changeLog = list(template.changeLog).filter((entry) => entry.objectId !== record.id);
+    return true;
+  }
+
+  function restoreStandardRecordChangeAction(type, node) {
+    if (!node || text(node.sourceType).toLocaleUpperCase("en-US") === "CUSTOM" || node.isCustom) return false;
+    const base = model.workspace?.template || {};
+    const collections = { L0: "categories", L1: "categories", L2: "capabilities", FOCUS: "focuses", SERVICE: "services" };
+    const fieldsByType = {
+      L0: ["name", "code", "description", "parentId"],
+      L1: ["name", "code", "description", "parentId"],
+      L2: ["name", "code", "description", "categoryId", "isCritical", "included"],
+      FOCUS: ["name", "code", "description", "capabilityId", "isCritical", "included"],
+      SERVICE: ["name", "code", "description"],
+    };
+    const baseline = list(base[collections[type]]).find((item) => item.id === node.id);
+    if (!baseline) return false;
+    const matches = list(fieldsByType[type]).every((field) => JSON.stringify(node[field] ?? null) === JSON.stringify(baseline[field] ?? null));
+    if (!matches) return false;
+    node.changeAction = "";
+    return true;
+  }
+
+  function templateNodeHasChangedStructure(detail, type, id, visited = new Set()) {
+    const key = `${type}:${id}`;
+    const cache = model.templateStructureChangeCache || (model.templateStructureChangeCache = new Map());
+    if (cache.has(key)) return cache.get(key);
+    if (visited.has(key)) return false;
+    visited.add(key);
+    const template = detail.template;
+    const relationChanged = templateStructureRecords(template).some((record) => {
+      const relation = record.mapping || record.node;
+      return templateRecordIsChanged(relation)
+        && [relation?.originalParentId, relation?.currentParentId].includes(id);
+    });
+    const removedChild = list(template.changeLog).some((entry) => (
+      entry.changeAction === "REMOVED"
+      && [entry.originalParentId, entry.currentParentId].includes(id)
+      && !transientTemplateRemovalWasCancelled(template, entry)
+    ));
+    if (relationChanged || removedChild) {
+      cache.set(key, true);
+      return true;
+    }
+    const changed = templateDirectChildRecords(detail, type, id).some((child) => {
+      if (templateRecordIsCustom(child.node) || templateRecordIsCustom(child.mapping)) return true;
+      if (templateRecordIsChanged(child.node) || templateRecordIsChanged(child.mapping)) return true;
+      return templateNodeHasChangedStructure(detail, child.type, child.mapping?.id || child.node?.id, visited);
+    });
+    cache.set(key, changed);
+    return changed;
+  }
+
+  function templateElementOrigin(detail, type, node, mapping = null) {
+    const cacheKey = `${type}:${mapping?.id || node?.id || ""}`;
+    const cache = model.templateElementOriginCache || (model.templateElementOriginCache = new Map());
+    if (cache.has(cacheKey)) return cache.get(cacheKey);
+    const origin = ["TEMPLATE", "DRAFT"].includes(type) || templateRecordIsCustom(node) || templateRecordIsCustom(mapping)
+      ? { key: "custom", ...TEMPLATE_ELEMENT_ORIGINS.custom }
+      : (
+      templateRecordIsChanged(node)
+      || templateRecordIsChanged(mapping)
+      || templateNodeHasChangedStructure(detail, type, mapping?.id || node?.id)
+      )
+        ? { key: "modified", ...TEMPLATE_ELEMENT_ORIGINS.modified }
+        : { key: "standard", ...TEMPLATE_ELEMENT_ORIGINS.standard };
+    cache.set(cacheKey, origin);
+    return origin;
+  }
+
+  function templateCollapseKey(type, id) {
+    return `${type}:${id}`;
+  }
+
+  function collapsedTemplateNodeKeySet() {
+    if (model.collapsedTemplateNodeKeySetSource !== model.collapsedTemplateNodeKeys) {
+      model.collapsedTemplateNodeKeySetSource = model.collapsedTemplateNodeKeys;
+      model.collapsedTemplateNodeKeySet = new Set(list(model.collapsedTemplateNodeKeys));
+    }
+    return model.collapsedTemplateNodeKeySet;
+  }
+
+  function templateNodeIsCollapsed(type, id) {
+    return collapsedTemplateNodeKeySet().has(templateCollapseKey(type, id));
+  }
+
+  function setTemplateNodeCollapsed(type, id, collapsed) {
+    const key = templateCollapseKey(type, id);
+    const keys = new Set(collapsedTemplateNodeKeySet());
+    if (collapsed) keys.add(key);
+    else keys.delete(key);
+    model.collapsedTemplateNodeKeys = [...keys];
+  }
+
+  function defaultCollapsedTemplateNodeKeys(detail) {
     const template = detail.template;
     const capabilities = list(template.capabilities).filter((item) => item.included !== false);
-    const focuses = list(template.focuses).filter((item) => item.capabilityId === capability.id);
-    const scoreItems = list(template.scoreItems);
+    const focuses = list(template.focuses).filter((item) => item.included !== false);
+    const l1WithChildren = new Set(capabilities.map((item) => item.categoryId).filter(Boolean));
+    const l2WithChildren = new Set(focuses.map((item) => item.capabilityId).filter(Boolean));
+    const focusWithChildren = new Set(list(template.focusServiceMappings).map((item) => item.focusId).filter(Boolean));
+    return [
+      ...[...l1WithChildren].map((id) => templateCollapseKey("L1", id)),
+      ...[...l2WithChildren].map((id) => templateCollapseKey("L2", id)),
+      ...[...focusWithChildren].map((id) => templateCollapseKey("FOCUS", id)),
+    ];
+  }
+
+  function allCollapsibleTemplateNodeKeys(detail) {
+    const template = detail.template;
+    const categories = list(template.categories);
+    const capabilities = list(template.capabilities).filter((item) => item.included !== false);
+    const focuses = list(template.focuses).filter((item) => item.included !== false);
+    const mappings = list(template.focusServiceMappings);
+    const l0Ids = new Set(categories.filter((item) => categoryCapabilityLevel(item) === "L0").map((item) => item.id));
+    const l1Ids = new Set(categories.filter((item) => categoryCapabilityLevel(item) === "L1").map((item) => item.id));
+    const l0WithChildren = new Set(categories.filter((item) => l1Ids.has(item.id) && l0Ids.has(item.parentId)).map((item) => item.parentId));
+    const l1WithChildren = new Set(capabilities.map((item) => item.categoryId).filter((id) => l1Ids.has(id)));
+    const l2WithChildren = new Set(focuses.map((item) => item.capabilityId).filter(Boolean));
+    const focusWithChildren = new Set(mappings.map((item) => item.focusId).filter(Boolean));
+    const hasRootChildren = categories.length > 0 || capabilities.length > 0 || list(template.looseNodes).length > 0;
+    return [
+      ...(hasRootChildren ? [templateCollapseKey("TEMPLATE", template.id)] : []),
+      ...[...l0WithChildren].map((id) => templateCollapseKey("L0", id)),
+      ...[...l1WithChildren].map((id) => templateCollapseKey("L1", id)),
+      ...[...l2WithChildren].map((id) => templateCollapseKey("L2", id)),
+      ...[...focusWithChildren].map((id) => templateCollapseKey("FOCUS", id)),
+    ];
+  }
+
+  function setTemplateCollapsePreset(detail, preset) {
+    model.collapsedTemplateNodeKeys = preset === "L1" ? defaultCollapsedTemplateNodeKeys(detail) : [];
+  }
+
+  function expandTemplateAncestors(detail, record) {
+    if (!record) return;
+    const template = detail.template;
+    const keys = new Set(list(model.collapsedTemplateNodeKeys));
+    const expand = (type, id) => {
+      if (id) keys.delete(templateCollapseKey(type, id));
+    };
+    expand("TEMPLATE", template.id);
+    let focus = null;
+    let capability = null;
+    let l1 = null;
+    if (record.type === "SERVICE") focus = list(template.focuses).find((item) => item.id === record.mapping?.focusId);
+    if (record.type === "FOCUS") focus = record.node;
+    if (record.type === "L2") capability = record.node;
+    if (focus) {
+      expand("FOCUS", focus.id);
+      capability = list(template.capabilities).find((item) => item.id === focus.capabilityId);
+    }
+    if (capability) {
+      expand("L2", capability.id);
+      l1 = list(template.categories).find((item) => item.id === capability.categoryId);
+    }
+    if (record.type === "L1") l1 = record.node;
+    if (l1) {
+      expand("L1", l1.id);
+      expand("L0", l1.parentId);
+    }
+    if (record.type === "L0") expand("L0", record.id);
+    model.collapsedTemplateNodeKeys = [...keys];
+  }
+
+  function renderTemplateCollapseButton(type, id, { x, y, width, childCount = 0, expanded = false }) {
+    if (!childCount) return "";
+    const actionName = expanded ? "收起" : "展开";
+    return `<button class="maturity-v42-node-toggle is-${type.toLowerCase()} ${expanded ? "is-expanded" : ""}" type="button"
+      style="left:${Math.round(x + width - 12)}px;top:${Math.round(y + 13)}px"
+      data-maturity-action="toggle-template-node-collapse"
+      data-template-node-type="${type}"
+      data-template-node-id="${escapeHtml(id)}"
+      aria-expanded="${expanded ? "true" : "false"}"
+      aria-label="${actionName}${escapeHtml(templateTypeName(type))}下的 ${childCount} 个直接下级"
+      title="${actionName}下级节点">
+      <span aria-hidden="true">›</span>
+    </button>`;
+  }
+
+  function renderTemplateInlineNode() {
+    const inline = model.templateInlineCreate;
+    if (!inline) return "";
+    return `<div class="maturity-v42-inline-node is-${inline.nodeType.toLowerCase()}"
+      style="left:${Math.round(inline.to.x)}px;top:${Math.round(inline.to.y)}px;width:${Math.round(inline.to.width)}px"
+      data-template-inline-create>
+      <span class="maturity-v41-node-badge">${escapeHtml(templateTypeName(inline.nodeType))}</span>
+      <span><strong>${escapeHtml(inline.name || `新增${templateTypeName(inline.nodeType)}`)}</strong><small>${escapeHtml(inline.relationLabel)}</small></span>
+      <span class="maturity-v50-inline-pending">待确认</span>
+    </div>`;
+  }
+
+  function renderTemplateMindmapNode(detail, type, node, { x, y, width, selected = false, mapping = null, note = "", childCount = 0, expanded = false }) {
+    const dragId = mapping?.id || node.id;
+    const dropType = mapping ? "SERVICE" : type;
+    const draftType = type === "DRAFT" ? node.nodeType || "FOCUS" : type;
+    const badge = type === "DRAFT" ? `待吸附 · ${draftType}` : type === "FOCUS" ? "关注点" : type === "SERVICE" ? "服务" : type;
+    const role = mapping?.serviceRole === "PLATFORM_EVIDENCE_REFERENCE" ? "平台工具参考" : note;
+    const origin = templateElementOrigin(detail, type, node, mapping);
+    const nodeButton = `<button class="maturity-v41-mindmap-node is-${type.toLowerCase()} is-origin-${origin.key} ${selected ? "is-selected" : ""}" type="button"
+      style="left:${Math.round(x)}px;top:${Math.round(y)}px;width:${Math.round(width)}px"
+      data-maturity-action="select-template-node"
+      data-template-node-type="${dropType}"
+      data-template-node-id="${escapeHtml(dragId)}"
+      data-template-drop-type="${dropType}"
+      data-template-drop-id="${escapeHtml(dragId)}"
+      data-template-origin-label="${escapeHtml(origin.shortLabel)}"
+      data-template-draggable="true"
+      title="${escapeHtml(origin.label)}：${escapeHtml(origin.description)} ${type === "DRAFT" ? "先编辑节点类型，再拖到合法父级完成吸附。" : "拖动节点调整顺序或归属；右键编辑、复制。"}">
+      <span class="maturity-v41-node-badge">${escapeHtml(badge)}</span>
+      <span><strong>${escapeHtml(node.name || "未命名")}</strong><small>${escapeHtml(node.code || "自定义对象")}${role ? ` · ${escapeHtml(role)}` : ""}</small></span>
+      <i aria-hidden="true">⠿</i>
+    </button>`;
+    return `${nodeButton}${renderTemplateCollapseButton(dropType, dragId, { x, y, width, childCount, expanded })}`;
+  }
+
+  function renderTemplateMindmapConnector(from, to, tone = "ability", provisional = false) {
+    const startX = from.x + from.width;
+    const startY = from.y + 26;
+    const endX = to.x;
+    const endY = to.y + 26;
+    const bend = Math.max(42, (endX - startX) * 0.48);
+    return `<path class="is-${tone}${provisional ? " is-provisional" : ""}" d="M ${startX} ${startY} C ${startX + bend} ${startY}, ${endX - bend} ${endY}, ${endX} ${endY}" />`;
+  }
+
+  function templateMindmapLayout(detail, selected) {
+    const template = detail.template;
+    const inlineCreate = model.templateInlineCreate?.projectId === detail.project.id ? model.templateInlineCreate : null;
+    const cacheKey = [
+      detail.project.id,
+      Number(detail.templateRenderRevision || 0),
+      list(model.collapsedTemplateNodeKeys).join("|"),
+      inlineCreate ? `${inlineCreate.parentType}:${inlineCreate.parentId}:${inlineCreate.nodeType}` : "",
+    ].join("::");
+    if (model.templateMindmapLayoutCache?.key === cacheKey) return model.templateMindmapLayoutCache.layout;
+    const context = templateSelectionContext(detail, null);
+    const categories = context.categories;
+    const capabilities = context.capabilities;
+    const focuses = context.focuses;
+    const serviceById = new Map(list(template.services).map((item) => [item.id, item]));
+    const positions = TEMPLATE_MINDMAP_POSITIONS;
+    let cursorY = 76;
+    const l0Layouts = [];
+    const l1Layouts = [];
+    const l2Layouts = [];
+    const focusLayouts = [];
+    const nodeLayouts = new Map();
+    const l0Rows = categories.filter((item) => categoryCapabilityLevel(item) === "L0");
+    const l1Rows = categories.filter((item) => categoryCapabilityLevel(item) === "L1");
+    const l0Ids = new Set(l0Rows.map((item) => item.id));
+    const l1Ids = new Set(l1Rows.map((item) => item.id));
+    const groupBy = (rows, keyOf) => rows.reduce((groups, item) => {
+      const key = keyOf(item) || "";
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(item);
+      return groups;
+    }, new Map());
+    const l1ByParent = groupBy(l1Rows, (item) => item.parentId);
+    const l2ByParent = groupBy(capabilities, (item) => item.categoryId);
+    const focusByParent = groupBy(focuses, (item) => item.capabilityId);
+    const mappingsByFocus = groupBy(byTemplateOrder(list(template.focusServiceMappings)), (item) => item.focusId);
+    const childL1Rows = (l0Id) => l1ByParent.get(l0Id) || [];
+    const childL2Rows = (l1Id) => l2ByParent.get(l1Id) || [];
+    const childFocusRows = (l2Id) => focusByParent.get(l2Id) || [];
+    const collapsed = (type, id) => templateNodeIsCollapsed(type, id);
+    const reservesInlineGap = (parentType, parentId, nodeType) => Boolean(
+      inlineCreate
+      && inlineCreate.parentType === parentType
+      && inlineCreate.parentId === parentId
+      && inlineCreate.nodeType === nodeType
+    );
+    const midpointY = (rows, fallbackY) => rows.length
+      ? ((rows[0].y + 26) + (rows[rows.length - 1].y + 26)) / 2 - 26
+      : fallbackY;
+    const registerLayout = (type, id, layout) => {
+      nodeLayouts.set(`${type}:${id}`, layout);
+      return layout;
+    };
+
+    const allocateFocus = (focus, parentId) => {
+      const mappings = mappingsByFocus.get(focus.id) || [];
+      const expanded = mappings.length > 0 && !collapsed("FOCUS", focus.id);
+      const visibleMappings = expanded ? mappings : [];
+      const groupHeight = Math.max(58, Math.max(1, visibleMappings.length) * 58);
+      const services = visibleMappings.map((mapping, index) => ({
+        mapping,
+        service: serviceById.get(mapping.serviceId) || { id: mapping.serviceId, name: "服务信息待补充", code: mapping.serviceId },
+        x: positions.service.x,
+        y: cursorY + index * 58,
+        width: positions.service.width,
+      }));
+      const layout = {
+        focus,
+        parentId,
+        mappings,
+        childCount: mappings.length,
+        expanded,
+        services,
+        x: positions.focus.x,
+        y: cursorY + Math.max(0, (groupHeight - 52) / 2),
+        width: positions.focus.width,
+      };
+      focusLayouts.push(layout);
+      registerLayout("FOCUS", focus.id, layout);
+      services.forEach((serviceLayout) => registerLayout("SERVICE", serviceLayout.mapping.id, serviceLayout));
+      cursorY += groupHeight + 14;
+      if (reservesInlineGap("FOCUS", focus.id, "SERVICE")) cursorY += TEMPLATE_INLINE_CREATE_GAP;
+      return layout;
+    };
+
+    const allocateL2 = (capability, parentId) => {
+      const startY = cursorY;
+      const childRows = childFocusRows(capability.id);
+      const expanded = childRows.length > 0 && !collapsed("L2", capability.id);
+      const children = expanded ? childRows.map((focus) => allocateFocus(focus, capability.id)) : [];
+      if (!children.length) cursorY += 66;
+      const layout = {
+        node: capability,
+        parentId,
+        childCount: childRows.length,
+        expanded,
+        x: positions.l2.x,
+        y: midpointY(children, startY),
+        width: positions.l2.width,
+      };
+      l2Layouts.push(layout);
+      registerLayout("L2", capability.id, layout);
+      cursorY += 20;
+      if (reservesInlineGap("L2", capability.id, "FOCUS")) cursorY += TEMPLATE_INLINE_CREATE_GAP;
+      return layout;
+    };
+
+    const allocateL1 = (category, parentId = "") => {
+      const startY = cursorY;
+      const childRows = childL2Rows(category.id);
+      const expanded = childRows.length > 0 && !collapsed("L1", category.id);
+      const children = expanded ? childRows.map((capability) => allocateL2(capability, category.id)) : [];
+      if (!children.length) cursorY += 66;
+      const layout = {
+        node: category,
+        parentId,
+        childCount: childRows.length,
+        expanded,
+        x: positions.l1.x,
+        y: midpointY(children, startY),
+        width: positions.l1.width,
+      };
+      l1Layouts.push(layout);
+      registerLayout("L1", category.id, layout);
+      cursorY += 26;
+      if (reservesInlineGap("L1", category.id, "L2")) cursorY += TEMPLATE_INLINE_CREATE_GAP;
+      return layout;
+    };
+
+    const allocateL0 = (category) => {
+      const startY = cursorY;
+      const childRows = childL1Rows(category.id);
+      const expanded = childRows.length > 0 && !collapsed("L0", category.id);
+      const children = expanded ? childRows.map((l1) => allocateL1(l1, category.id)) : [];
+      if (!children.length) cursorY += 66;
+      const layout = {
+        node: category,
+        parentId: template.id,
+        childCount: childRows.length,
+        expanded,
+        x: positions.l0.x,
+        y: midpointY(children, startY),
+        width: positions.l0.width,
+      };
+      l0Layouts.push(layout);
+      registerLayout("L0", category.id, layout);
+      cursorY += 34;
+      if (reservesInlineGap("L0", category.id, "L1")) cursorY += TEMPLATE_INLINE_CREATE_GAP;
+      return layout;
+    };
+
+    const rootL1Rows = l1Rows.filter((item) => !item.parentId || !l0Ids.has(item.parentId));
+    const orphanCapabilityRows = capabilities.filter((item) => !l1Ids.has(item.categoryId));
+    const rootChildCount = l0Rows.length + rootL1Rows.length + orphanCapabilityRows.length;
+    const rootExpanded = rootChildCount > 0 && !collapsed("TEMPLATE", template.id);
+    const topLevelLayouts = [];
+    if (rootExpanded) {
+      topLevelLayouts.push(...l0Rows.map(allocateL0));
+      rootL1Rows.forEach((l1) => topLevelLayouts.push(allocateL1(l1, template.id)));
+      orphanCapabilityRows.forEach((capability) => topLevelLayouts.push(allocateL2(capability, template.id)));
+    }
+    if (
+      reservesInlineGap("TEMPLATE", template.id, "L0")
+      || reservesInlineGap("TEMPLATE", template.id, "L1")
+    ) cursorY += TEMPLATE_INLINE_CREATE_GAP;
+    const stageHeight = Math.max(720, cursorY + 64);
+    const root = registerLayout("TEMPLATE", template.id, {
+      ...positions.root,
+      y: midpointY(topLevelLayouts, stageHeight / 2 - 26),
+      childCount: rootChildCount,
+      expanded: rootExpanded,
+    });
+    const layout = {
+      context,
+      positions,
+      root,
+      l0Layouts,
+      l1Layouts,
+      l2Layouts,
+      focusLayouts,
+      nodeLayouts,
+      stageHeight,
+      stageWidth: 1940,
+    };
+    model.templateMindmapLayoutCache = { key: cacheKey, layout };
+    return layout;
+  }
+
+  function positionTemplateMindmapViewport(detail, selected, { fit = false } = {}) {
+    const viewport = model.root?.querySelector("[data-template-mindmap-viewport]");
+    const stage = viewport?.querySelector("[data-template-mindmap-stage]");
+    if (!viewport || !stage || !detail) return false;
+    const layout = templateMindmapLayout(detail, selected);
+    const rect = viewport.getBoundingClientRect();
+    if (!rect.width || !rect.height) return false;
+    const toolbarHeight = viewport.querySelector(".maturity-v41-mindmap-toolbar")?.getBoundingClientRect().height || 58;
+    const toolbarInset = Math.min(rect.height * 0.32, Math.max(78, toolbarHeight + 24));
+    const usableHeight = Math.max(180, rect.height - toolbarInset);
+    const zoom = fit
+      ? Math.max(0.05, Math.min(0.82, Math.min((rect.width - 52) / layout.stageWidth, (usableHeight - 36) / layout.stageHeight)))
+      : Math.max(0.05, Math.min(1.3, Number(model.templateMindmapZoom || 0.5)));
+    const target = templateLayoutNode(layout, selected?.type || "TEMPLATE", selected?.id || detail.template.id) || layout.root;
+    model.templateMindmapZoom = Math.round(zoom * 100) / 100;
+    if (fit) {
+      model.templateMindmapPanX = Math.round((rect.width - layout.stageWidth * model.templateMindmapZoom) / 2);
+      model.templateMindmapPanY = Math.round(toolbarInset + (usableHeight - layout.stageHeight * model.templateMindmapZoom) / 2);
+    } else {
+      const anchorX = target === layout.root
+        ? 34 + target.width * model.templateMindmapZoom / 2
+        : rect.width * 0.58;
+      model.templateMindmapPanX = Math.round(anchorX - (target.x + target.width / 2) * model.templateMindmapZoom);
+      model.templateMindmapPanY = Math.round(toolbarInset + usableHeight / 2 - (target.y + 26) * model.templateMindmapZoom);
+    }
+    stage.style.transform = `translate(${model.templateMindmapPanX}px, ${model.templateMindmapPanY}px) scale(${model.templateMindmapZoom})`;
+    const output = model.root?.querySelector(".maturity-v41-mindmap-tools output");
+    if (output) output.textContent = `${Math.round(model.templateMindmapZoom * 100)}%`;
+    return true;
+  }
+
+  function renderTemplateMindmap(detail, selected) {
+    const layout = templateMindmapLayout(detail, selected);
+    const {
+      context,
+      root,
+      l0Layouts,
+      l1Layouts,
+      l2Layouts,
+      focusLayouts,
+      stageHeight,
+      stageWidth,
+    } = layout;
+    const scoreItemCountByFocus = list(detail.template.scoreItems).reduce((counts, item) => {
+      counts.set(item.focusId, Number(counts.get(item.focusId) || 0) + 1);
+      return counts;
+    }, new Map());
+    const connectors = [];
+    l0Layouts.forEach((item) => connectors.push(renderTemplateMindmapConnector(root, item, "root")));
+    l1Layouts.forEach((item) => {
+      const parent = item.parentId === detail.template.id ? root : templateLayoutNode(layout, "L0", item.parentId);
+      if (parent) connectors.push(renderTemplateMindmapConnector(parent, item, parent === root ? "root" : "ability"));
+    });
+    l2Layouts.forEach((item) => {
+      const parent = item.parentId === detail.template.id ? root : templateLayoutNode(layout, "L1", item.parentId);
+      if (parent) connectors.push(renderTemplateMindmapConnector(parent, item, parent === root ? "root" : "ability"));
+    });
+    focusLayouts.forEach((focusLayout) => {
+      const parent = templateLayoutNode(layout, "L2", focusLayout.parentId);
+      if (parent) connectors.push(renderTemplateMindmapConnector(parent, focusLayout, "focus"));
+      focusLayout.services.forEach((serviceLayout) => connectors.push(renderTemplateMindmapConnector(focusLayout, serviceLayout, "service")));
+    });
+    const inline = model.templateInlineCreate?.projectId === detail.project.id ? model.templateInlineCreate : null;
+    if (inline) connectors.push(renderTemplateMindmapConnector(inline.from, inline.to, inline.tone, true));
+    const focusNodes = focusLayouts.map((focusLayout) => {
+      const itemCount = Number(scoreItemCountByFocus.get(focusLayout.focus.id) || 0);
+      const node = renderTemplateMindmapNode(detail, "FOCUS", focusLayout.focus, {
+        ...focusLayout,
+        selected: selected?.type === "FOCUS" && selected.id === focusLayout.focus.id,
+        note: focusLayout.mappings.length ? `${itemCount} 个评估点 · ${focusLayout.expanded ? "服务已展开" : `${focusLayout.mappings.length} 项服务已收起`}` : `${itemCount} 个评估点`,
+      });
+      const serviceNodes = focusLayout.services.map((serviceLayout) => renderTemplateMindmapNode(detail, "SERVICE", serviceLayout.service, {
+        ...serviceLayout,
+        selected: selected?.type === "SERVICE" && selected.id === serviceLayout.mapping.id,
+        mapping: serviceLayout.mapping,
+        note: serviceLayout.mapping.scopeCode || "",
+      })).join("");
+      return `${node}${serviceNodes}`;
+    }).join("");
+    const l0Nodes = l0Layouts.map((item) => renderTemplateMindmapNode(detail, "L0", item.node, {
+      ...item,
+      selected: selected?.type === "L0" && selected.id === item.node.id,
+      note: `${item.childCount} 个 L1`,
+    })).join("");
+    const l1Nodes = l1Layouts.map((item) => renderTemplateMindmapNode(detail, "L1", item.node, {
+      ...item,
+      selected: selected?.type === "L1" && selected.id === item.node.id,
+      note: `${item.childCount} 个 L2`,
+    })).join("");
+    const l2Nodes = l2Layouts.map((item) => renderTemplateMindmapNode(detail, "L2", item.node, {
+      ...item,
+      selected: selected?.type === "L2" && selected.id === item.node.id,
+      note: `${item.childCount} 个关注点`,
+    })).join("");
+    const looseNodes = list(detail.template.looseNodes).map((node) => renderTemplateMindmapNode(detail, "DRAFT", node, {
+      x: Number(node.x || 420),
+      y: Number(node.y || 140),
+      width: 238,
+      selected: selected?.type === "DRAFT" && selected.id === node.id,
+      note: "拖到任意合法层级吸附",
+    })).join("");
+    const renderedStageHeight = Math.max(stageHeight, Number(inline?.to?.y || 0) + 110);
+    return `<div class="maturity-v41-mindmap-stage" data-template-mindmap-stage
+      data-template-layout-mode="full-tree"
+      style="width:${stageWidth}px;height:${renderedStageHeight}px;transform:translate(${Number(model.templateMindmapPanX || 0)}px, ${Number(model.templateMindmapPanY || 0)}px) scale(${Number(model.templateMindmapZoom || 0.5)})">
+      <svg class="maturity-v41-mindmap-links" width="${stageWidth}" height="${renderedStageHeight}" viewBox="0 0 ${stageWidth} ${renderedStageHeight}" aria-hidden="true">${connectors.join("")}</svg>
+      <button class="maturity-v41-mindmap-root is-origin-custom ${selected?.type === "TEMPLATE" ? "is-selected" : ""}" type="button"
+        style="left:${root.x}px;top:${root.y}px;width:${root.width}px"
+        data-maturity-action="select-template-node"
+        data-template-node-type="TEMPLATE"
+        data-template-node-id="${escapeHtml(detail.template.id)}"
+        data-template-drop-type="TEMPLATE"
+        data-template-drop-id="${escapeHtml(detail.template.id)}"
+        data-template-origin-label="${escapeHtml(TEMPLATE_ELEMENT_ORIGINS.custom.shortLabel)}"
+        title="基础模板副本；右键编辑或复制完整模板">
+        <span>自定义评估模板</span><strong>${escapeHtml(detail.template.name || "未命名模板")}</strong>
+        <small>${context.capabilities.length} 个 L2 · ${context.focuses.length} 个关注点</small>
+      </button>
+      ${renderTemplateCollapseButton("TEMPLATE", detail.template.id, root)}
+      ${l0Nodes}
+      ${l1Nodes}
+      ${l2Nodes}
+      ${focusNodes}
+      ${looseNodes}
+      ${inline ? renderTemplateInlineNode() : ""}
+    </div>`;
+  }
+
+  function customGenericRubricReference() {
+    return model.workspace?.customGenericRubric || {};
+  }
+
+  function renderTemplateInlineCreateInspector(detail, inline) {
+    const errors = model.templateInlineErrors || {};
+    const isService = inline.nodeType === "SERVICE";
+    const focus = isService ? list(detail.template.focuses).find((item) => item.id === inline.parentId) : null;
+    const capability = focus ? list(detail.template.capabilities).find((item) => item.id === focus.capabilityId) : null;
+    const role = capability ? requiredTemplateServiceRole(detail.template, capability) : "";
+    const kind = capability ? templateCapabilityKind(detail.template, capability) : "";
+    const field = (name, label, value, input) => {
+      const error = errors[name];
+      const describedBy = error ? `maturityTemplateInline${name[0].toUpperCase()}${name.slice(1)}Error` : "";
+      return `<label class="${error ? "is-invalid" : ""}"><span>${escapeHtml(label)} <b>必填</b></span>${input({
+        value,
+        invalid: error ? "true" : "false",
+        describedBy,
+      })}${error ? `<small id="${describedBy}" class="maturity-v50-field-error">${escapeHtml(error)}</small>` : ""}</label>`;
+    };
+    const nameField = field("name", "节点名称", inline.name || "", ({ value, invalid, describedBy }) => `<input id="maturityTemplateInlineName" value="${escapeHtml(value)}" placeholder="输入${escapeHtml(templateTypeName(inline.nodeType))}名称" autocomplete="off" aria-invalid="${invalid}"${describedBy ? ` aria-describedby="${describedBy}"` : ""} />`);
+    const codeField = field("code", "节点编号", inline.code || "", ({ value, invalid, describedBy }) => `<input id="maturityTemplateInlineCode" value="${escapeHtml(value)}" placeholder="例如 ${escapeHtml(nextUniqueTemplateNodeCode(detail.template, inline.nodeType))}" autocomplete="off" aria-invalid="${invalid}"${describedBy ? ` aria-describedby="${describedBy}"` : ""} />`);
+    const definitionField = `<label class="maturity-v51-definition-field"><span>节点定义 <b>可选</b></span><textarea id="maturityTemplateInlineDescription" rows="5" placeholder="说明该节点的业务范围、目标和边界">${escapeHtml(inline.description || "")}</textarea><small>定义随当前自定义模板保存，不会覆盖知识库标准。</small></label>`;
+    const scopeField = !isService ? "" : field("scopeCode", "服务作用域", inline.scopeCode || "", ({ value, invalid, describedBy }) => `<select id="maturityTemplateInlineScope" aria-invalid="${invalid}"${describedBy ? ` aria-describedby="${describedBy}"` : ""}><option value="">请选择作用域</option>${list(detail.template.scopes).map((scope) => `<option value="${escapeHtml(scope.code)}"${scope.code === value ? " selected" : ""}>${escapeHtml(scope.code)} ${escapeHtml(scope.name)}</option>`).join("")}</select>`);
+    return `<div class="maturity-v40-inspector-content maturity-v50-create-inspector">
+      <header><div><span>新增${escapeHtml(templateTypeName(inline.nodeType))}</span><h3>${escapeHtml(inline.name || "未确认节点")}</h3></div><span class="maturity-v50-draft-status">待确认</span></header>
+      <p>确认前仅作为画布草稿，不会写入模板结构，也不会改变上级节点状态。</p>
+      <div class="maturity-v40-inspector-fields">${nameField}${codeField}${definitionField}${scopeField}${isService ? `<div class="maturity-v49-readonly-role"><span>服务角色（系统判定）</span><strong>${escapeHtml(templateServiceRoleLabel(role))}</strong><small>${kind === "T" ? "安全技术能力 T：服务作为独立评估点" : `${kind || "G/M"} 类治理/管理能力：服务仅作平台工具参考`}</small></div>` : ""}</div>
+      <footer class="maturity-v50-inspector-actions"><button type="button" data-maturity-action="cancel-template-inline-create">取消</button><button class="is-primary" type="button" data-maturity-action="commit-template-inline-create" aria-label="确定新增节点">确认新增</button></footer>
+    </div>`;
+  }
+
+  function saveTemplateNodeProperties(detail) {
+    const selected = selectedTemplateNode(detail);
+    const panel = model.root?.querySelector(".maturity-v40-template-inspector");
+    if (!selected || !panel || detail?.project?.readOnly) return false;
+    const record = selected.node;
+    const control = (selector) => panel.querySelector(selector);
+    const valueOf = (selector, fallback = "") => control(selector)?.value ?? fallback;
+    const status = panel.querySelector(".maturity-v52-node-save-status");
+    const fail = (message, target = null) => {
+      if (status) {
+        status.textContent = message;
+        status.classList.remove("is-saved");
+        status.classList.add("is-error");
+      }
+      target?.setAttribute("aria-invalid", "true");
+      target?.focus();
+      return false;
+    };
+
+    if (selected.type === "TEMPLATE") {
+      const nameControl = control('[data-template-root-field="name"]');
+      const name = text(nameControl?.value).trim();
+      if (!name) return fail("请输入模板名称", nameControl);
+      detail.template.name = name;
+      detail.template.description = valueOf('[data-template-root-field="description"]');
+      detail.project.templateName = name;
+      if (detail.project.templateWorkspace) detail.project.name = name;
+    } else {
+      const fieldMap = {
+        DRAFT: { field: "templateLooseField", id: "looseId" },
+        L0: { field: "templateCategoryField", id: "categoryId" },
+        L1: { field: "templateCategoryField", id: "categoryId" },
+        L2: { field: "templateCapabilityField", id: "capabilityId" },
+        FOCUS: { field: "templateFocusField", id: "focusId" },
+        SERVICE: { field: "templateServiceField", id: "serviceId" },
+      };
+      const attributes = fieldMap[selected.type];
+      if (!attributes) return false;
+      const selector = (field) => `[data-${attributes.field.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}="${field}"]`;
+      const nameControl = control(selector("name"));
+      const codeControl = control(selector("code"));
+      const name = text(nameControl?.value).trim();
+      const code = text(codeControl?.value).trim();
+      const errors = validateTemplateNodeIdentity(detail.template, { id: record.id, name, code });
+      if (errors.name) return fail(errors.name, nameControl);
+      if (errors.code) return fail(errors.code, codeControl);
+      const scopeControl = selected.type === "SERVICE" ? control('[data-template-mapping-field="scopeCode"]') : null;
+      const scopeCode = selected.type === "SERVICE" ? text(scopeControl?.value).trim() : "";
+      if (selected.type === "SERVICE" && !scopeCode) return fail("请选择服务作用域", scopeControl);
+      nameControl?.removeAttribute("aria-invalid");
+      codeControl?.removeAttribute("aria-invalid");
+      record.name = name;
+      record.code = code;
+      record.description = valueOf(selector("description"));
+      const collection = ["L0", "L1"].includes(selected.type)
+        ? "categories"
+        : selected.type === "L2"
+          ? "capabilities"
+          : selected.type === "FOCUS"
+            ? "focuses"
+            : selected.type === "SERVICE"
+              ? "services"
+              : "";
+      const baseRecord = collection ? list(model.workspace?.template?.[collection]).find((item) => item.id === record.id) : null;
+      record.definitionOverridden = baseRecord
+        ? text(record.description) !== text(baseRecord.description)
+        : Boolean(text(record.description).trim());
+      if (selected.type === "DRAFT") {
+        record.nodeType = valueOf(selector("nodeType"), record.nodeType || "FOCUS");
+      } else {
+        record.changeAction = record.changeAction === "ADDED" ? "ADDED" : "MODIFIED";
+      }
+      if (selected.type === "SERVICE") {
+        const scope = list(detail.template.scopes).find((item) => item.code === scopeCode) || {};
+        selected.mapping.scopeCode = scopeCode;
+        selected.mapping.scopeName = scope.name || scopeCode;
+        selected.mapping.changeAction = selected.mapping.changeAction === "ADDED" ? "ADDED" : "MODIFIED";
+        record.scopeCode = scopeCode;
+        record.scopeName = scope.name || scopeCode;
+        list(detail.template.scoreItems).filter((item) => item.sourceMappingId === selected.mapping.id).forEach((item) => {
+          item.scopeCode = scopeCode;
+          item.scopeName = scope.name || scopeCode;
+        });
+      }
+    }
+
+    markTemplateDirty(detail);
+    if (detail.localSaveState === "error") {
+      model.templateInspectorSaveMessage = "保存失败，请重试";
+      model.templateInspectorOpen = true;
+      render();
+      window.setTimeout(() => model.root?.querySelector('[data-maturity-action="confirm-template-node-properties"]')?.focus(), 0);
+      return false;
+    }
+    model.templateInspectorSaveMessage = "";
+    model.templateInspectorOpen = false;
+    model.toast = "节点属性已保存，详情栏已关闭";
+    model.toastTone = "success";
+    model.toastRoute = normalizedRoute();
+    render();
+    return true;
+  }
+
+  function renderTemplateNodeInspector(detail, selected) {
+    if (model.templateInlineCreate?.projectId === detail?.project?.id) return renderTemplateInlineCreateInspector(detail, model.templateInlineCreate);
+    if (!selected) return `<div class="maturity-v1-table-empty">选择目录或画布节点后编辑属性。</div>`;
+    const template = detail.template;
+    const typeNames = { TEMPLATE: "自定义模板", DRAFT: "自由节点", L0: "能力 L0", L1: "能力 L1", L2: "能力 L2", FOCUS: "关注点", SERVICE: "安全技术服务" };
+    const record = selected.node;
+    const origin = templateElementOrigin(detail, selected.type, record, selected.mapping);
+    const serviceFocus = selected.type === "SERVICE"
+      ? list(template.focuses).find((item) => item.id === selected.mapping.focusId)
+      : null;
+    const serviceCapability = serviceFocus
+      ? list(template.capabilities).find((item) => item.id === serviceFocus.capabilityId)
+      : null;
+    const serviceCapabilityKind = serviceCapability ? templateCapabilityKind(template, serviceCapability) : "";
+    const serviceRole = serviceFocus ? requiredTemplateServiceRoleForFocus(template, serviceFocus) : "";
+    const baseCollection = ["L0", "L1"].includes(selected.type)
+      ? "categories"
+      : selected.type === "L2"
+        ? "capabilities"
+        : selected.type === "FOCUS"
+          ? "focuses"
+          : selected.type === "SERVICE"
+            ? "services"
+            : "";
+    const baseRecord = baseCollection ? list(model.workspace?.template?.[baseCollection]).find((item) => item.id === record.id) : null;
+    const inheritedDefinition = !templateRecordIsCustom(record) && !record.definitionOverridden ? text(baseRecord?.description) : "";
+    const definitionValue = text(record.description) || inheritedDefinition;
+    const definitionField = (attribute, idAttribute, id) => `<label class="maturity-v51-definition-field"><span>定义 <b>可选</b></span><textarea rows="5" ${attribute}="description" ${idAttribute}="${escapeHtml(id)}" placeholder="说明该节点的业务范围、目标和边界">${escapeHtml(definitionValue)}</textarea><small>${baseRecord ? "已带出知识库标准定义；修改只保存在当前模板，并标记为“标准修改”。" : "定义为非必填，只保存在当前自定义模板中。"}</small></label>`;
+    const fields = selected.type === "TEMPLATE"
+      ? `<label><span>模板名称</span><input value="${escapeHtml(record.name)}" data-template-root-field="name" /></label><label><span>模板说明</span><textarea rows="4" data-template-root-field="description">${escapeHtml(record.description || "")}</textarea></label><p class="maturity-v41-base-source-note">默认来源：基础模板 ${escapeHtml(record.sourceTemplateId || model.workspace?.template?.id || "")}</p>`
+      : selected.type === "DRAFT"
+        ? `<label><span>节点名称</span><input value="${escapeHtml(record.name)}" data-template-loose-field="name" data-loose-id="${escapeHtml(record.id)}" /></label><label><span>节点编号</span><input value="${escapeHtml(record.code || "")}" data-template-loose-field="code" data-loose-id="${escapeHtml(record.id)}" /></label>${definitionField("data-template-loose-field", "data-loose-id", record.id)}<label><span>节点类型</span><select data-template-loose-field="nodeType" data-loose-id="${escapeHtml(record.id)}">${[["L0", "能力 L0"], ["L1", "能力 L1"], ["L2", "能力 L2"], ["FOCUS", "关注点"], ["SERVICE", "安全技术服务"]].map(([value, label]) => `<option value="${value}"${record.nodeType === value ? " selected" : ""}>${label}</option>`).join("")}</select></label><p class="maturity-v41-base-source-note">编辑完成后，将节点拖到任意合法父级；蓝色吸附态出现时松开即可加入模板树。</p>`
+        : ["L0", "L1"].includes(selected.type)
+          ? `<label><span>名称</span><input value="${escapeHtml(record.name)}" data-template-category-field="name" data-category-id="${escapeHtml(record.id)}" /></label><label><span>编号</span><input value="${escapeHtml(record.code || "")}" data-template-category-field="code" data-category-id="${escapeHtml(record.id)}" /></label>${definitionField("data-template-category-field", "data-category-id", record.id)}`
+          : selected.type === "L2"
+            ? `<label><span>名称</span><input value="${escapeHtml(record.name)}" data-template-capability-field="name" data-capability-id="${escapeHtml(record.id)}" /></label><label><span>编号</span><input value="${escapeHtml(record.code || "")}" data-template-capability-field="code" data-capability-id="${escapeHtml(record.id)}" /></label>${definitionField("data-template-capability-field", "data-capability-id", record.id)}`
+            : selected.type === "FOCUS"
+              ? `<label><span>名称</span><input value="${escapeHtml(record.name)}" data-template-focus-field="name" data-focus-id="${escapeHtml(record.id)}" /></label><label><span>编号</span><input value="${escapeHtml(record.code || "")}" data-template-focus-field="code" data-focus-id="${escapeHtml(record.id)}" /></label>${definitionField("data-template-focus-field", "data-focus-id", record.id)}`
+              : `<label><span>服务名称</span><input value="${escapeHtml(record.name)}" data-template-service-field="name" data-service-id="${escapeHtml(record.id)}" /></label><label><span>服务编号</span><input value="${escapeHtml(record.code || "")}" data-template-service-field="code" data-service-id="${escapeHtml(record.id)}" /></label>${definitionField("data-template-service-field", "data-service-id", record.id)}<label><span>服务作用域</span><select data-template-mapping-field="scopeCode" data-mapping-id="${escapeHtml(selected.mapping.id)}">${list(template.scopes).map((scope) => `<option value="${escapeHtml(scope.code)}"${scope.code === selected.mapping.scopeCode ? " selected" : ""}>${escapeHtml(scope.code)} ${escapeHtml(scope.name)}</option>`).join("")}</select></label><div class="maturity-v49-readonly-role"><span>服务角色（系统判定）</span><strong>${escapeHtml(templateServiceRoleLabel(serviceRole))}</strong><small>${serviceCapabilityKind === "T" ? "安全技术能力 T：服务作为独立评估点" : `${serviceCapabilityKind || "G/M"} 类治理/管理能力：服务仅作平台工具参考`}</small></div>`;
+    return `<div class="maturity-v40-inspector-content" data-template-properties-form>
+      <header><div><span>${escapeHtml(typeNames[selected.type] || selected.type)}</span><h3>${escapeHtml(record.name || "未命名")}</h3></div><span class="maturity-v48-origin-status is-${origin.key}" title="${escapeHtml(origin.description)}">${escapeHtml(origin.label)}</span></header>
+      <p class="maturity-v54-inspector-scope"><strong>仅修改当前模板</strong><span>不会覆盖主工程字典。</span><small class="maturity-v48-origin-description">${escapeHtml(origin.description)}</small></p>
+      <div class="maturity-v40-inspector-fields"><div class="maturity-v54-inspector-section-title"><strong>节点属性</strong><span>名称与编号必填，定义可选</span></div>${fields}</div>
+      <footer class="maturity-v50-inspector-actions maturity-v52-node-confirm-actions"><span class="maturity-v52-node-save-status ${model.templateInspectorSaveMessage ? model.templateInspectorSaveMessage.startsWith("保存失败") ? "is-error" : "is-saved" : ""}" role="status">${escapeHtml(model.templateInspectorSaveMessage || "修改后点击保存")}</span><button class="is-primary" type="button" data-maturity-action="confirm-template-node-properties">保存修改</button></footer>
+    </div>`;
+  }
+
+  function renderTemplateContextMenu(detail) {
+    const menu = model.templateContextMenu;
+    const record = menu ? templateNodeRecord(detail, menu.type, menu.id) : null;
+    if (!menu || !record) return "";
+    const canAddChild = ["TEMPLATE", "L0", "L1", "L2", "FOCUS"].includes(record.type);
+    const canAddSibling = !["TEMPLATE", "DRAFT"].includes(record.type);
+    const childCount = record.type === "TEMPLATE"
+      ? list(detail.template.categories).filter((item) => categoryCapabilityLevel(item) === "L0" || (categoryCapabilityLevel(item) === "L1" && !item.parentId)).length
+      : record.type === "L0"
+        ? list(detail.template.categories).filter((item) => categoryCapabilityLevel(item) === "L1" && item.parentId === record.id).length
+        : record.type === "L1"
+          ? list(detail.template.capabilities).filter((item) => item.included !== false && item.categoryId === record.id).length
+          : record.type === "L2"
+            ? list(detail.template.focuses).filter((item) => item.included !== false && item.capabilityId === record.id).length
+            : record.type === "FOCUS"
+              ? list(detail.template.focusServiceMappings).filter((item) => item.focusId === record.id).length
+              : 0;
+    const expanded = childCount > 0 && !templateNodeIsCollapsed(record.type, record.id);
+    const canMove = !["TEMPLATE", "DRAFT"].includes(record.type);
+    const canRemove = record.type !== "TEMPLATE";
+    return `<div class="maturity-v40-context-menu" role="menu" aria-label="${escapeHtml(templateNodeLabel(record.type, record.node))} 操作" style="left:${Math.max(12, Number(menu.x || 0))}px;top:${Math.max(12, Number(menu.y || 0))}px">
+      <header><span>${escapeHtml(record.type === "TEMPLATE" ? "自定义模板" : record.type === "DRAFT" ? "自由节点" : record.type === "FOCUS" ? "关注点" : record.type === "SERVICE" ? "安全技术服务" : record.type)}</span><strong>${escapeHtml(record.node.name || "未命名")}</strong></header>
+      <button type="button" role="menuitem" data-maturity-action="edit-template-node">编辑属性<span>↵</span></button>
+      ${record.type === "TEMPLATE" ? `<button type="button" role="menuitem" data-maturity-action="begin-template-inline-child" data-template-parent-type="TEMPLATE" data-template-parent-id="${escapeHtml(record.id)}" data-template-child-type="L0">新增能力 L0<span>＋</span></button><button type="button" role="menuitem" data-maturity-action="begin-template-inline-child" data-template-parent-type="TEMPLATE" data-template-parent-id="${escapeHtml(record.id)}" data-template-child-type="L1">新增根级能力 L1<span>＋</span></button>` : canAddChild ? `<button type="button" role="menuitem" data-maturity-action="add-template-child">新增下级<span>＋</span></button>` : ""}
+      ${canAddSibling ? `<button type="button" role="menuitem" data-maturity-action="add-template-sibling">新增同级<span>⇥</span></button>` : ""}
+      ${childCount ? `<button type="button" role="menuitem" data-maturity-action="toggle-template-node-collapse" data-template-node-type="${record.type}" data-template-node-id="${escapeHtml(record.id)}">${expanded ? "收起" : "展开"}全部下级<span>${childCount}</span></button>` : ""}
+      <button type="button" role="menuitem" data-maturity-action="copy-template-subtree">${record.type === "TEMPLATE" ? "复制完整模板" : record.type === "DRAFT" ? "复制自由节点" : "复制节点及全部下级"}<span>⌘D</span></button>
+      ${canMove ? `<button type="button" role="menuitem" data-maturity-action="move-template-node" data-direction="-1">上移<span>⌃</span></button><button type="button" role="menuitem" data-maturity-action="move-template-node" data-direction="1">下移<span>⌄</span></button>` : ""}
+      ${canRemove ? `<button class="is-danger" type="button" role="menuitem" data-maturity-action="remove-template-node">${record.type === "DRAFT" ? "移除自由节点" : "从模板移除"}<span>⌫</span></button>` : ""}
+    </div>`;
+  }
+
+  function renderTemplateCanvasContextMenu() {
+    const menu = model.templateCanvasContextMenu;
+    if (!menu) return "";
+    return `<div class="maturity-v40-context-menu maturity-v41-canvas-context-menu" role="menu" aria-label="画布空白位置操作" style="left:${Math.max(12, Number(menu.x || 0))}px;top:${Math.max(12, Number(menu.y || 0))}px">
+      <header><span>画布操作</span><strong>在此处创建自由节点</strong></header>
+      <button type="button" role="menuitem" data-maturity-action="start-add-loose-node">新增自由节点<span>＋</span></button>
+    </div>`;
+  }
+
+  function renderTemplateLooseComposer(detail) {
+    const composer = model.templateLooseComposer;
+    if (!composer) return "";
+    return `<section class="maturity-v41-loose-composer" aria-label="新增自由节点" style="left:${Math.max(14, Number(composer.x || 0))}px;top:${Math.max(14, Number(composer.y || 0))}px" data-template-loose-composer>
+      <header><span>自由节点</span><strong>先定义类型，再拖动吸附</strong></header>
+      <label><span>节点名称</span><input id="maturityLooseNodeName" value="新建节点" autocomplete="off" /></label>
+      <label><span>节点编号</span><input id="maturityLooseNodeCode" value="${escapeHtml(nextUniqueTemplateNodeCode(detail.template, "FOCUS"))}" autocomplete="off" /></label>
+      <label><span>节点定义（可选）</span><textarea id="maturityLooseNodeDescription" rows="4" placeholder="说明业务范围、目标和边界"></textarea></label>
+      <label><span>节点类型</span><select id="maturityLooseNodeType"><option value="L0">能力 L0</option><option value="L1">能力 L1</option><option value="L2">能力 L2</option><option value="FOCUS" selected>关注点</option><option value="SERVICE">安全技术服务</option></select></label>
+      <label><span>服务作用域（安全技术服务必填）</span><select id="maturityLooseNodeScope"><option value="">请选择作用域</option>${list(detail.template.scopes).map((scope) => `<option value="${escapeHtml(scope.code)}">${escapeHtml(scope.code)} ${escapeHtml(scope.name)}</option>`).join("")}</select></label>
+      <footer><button type="button" data-maturity-action="cancel-add-loose-node">取消</button><button class="is-primary" type="button" data-maturity-action="create-loose-node">放到画布</button></footer>
+    </section>`;
+  }
+
+  function templateSelectionTitle(selected) {
+    return selected?.type === "TEMPLATE"
+      ? "模板结构"
+      : `${selected?.node?.code || "自定义"} ${selected?.node?.name || "评估模板"}`;
+  }
+
+  function updateTemplateSelectionUi(detail, selected) {
+    if (!model.root || !detail || !selected) return false;
+    model.root.querySelectorAll('[data-maturity-action="select-template-node"].is-selected').forEach((node) => node.classList.remove("is-selected"));
+    model.root.querySelectorAll('[data-maturity-action="select-template-node"]').forEach((node) => {
+      if (node.dataset.templateNodeType === selected.type && node.dataset.templateNodeId === selected.id) node.classList.add("is-selected");
+    });
+    const title = model.root.querySelector(".maturity-v41-mindmap-title h3");
+    if (title) title.textContent = templateSelectionTitle(selected);
+    const panel = model.root.querySelector(".maturity-v41-floating-panel.is-inspector");
+    const content = panel?.querySelector(".maturity-v40-inspector-content");
+    if (panel && content && model.templateInspectorOpen) content.outerHTML = renderTemplateNodeInspector(detail, selected);
+    model.root.querySelector(".maturity-v40-context-menu")?.remove();
+    model.root.querySelector(".maturity-v41-canvas-context-menu")?.remove();
+    return true;
+  }
+
+  function renderCustomTemplateEditor(detail) {
+    if (model.templateMindmapViewProjectId !== detail.project.id) {
+      model.templateMindmapViewProjectId = detail.project.id;
+      model.templateCollapseProjectId = detail.project.id;
+      model.collapsedTemplateNodeKeys = defaultCollapsedTemplateNodeKeys(detail);
+      model.templateMindmapPendingCenter = true;
+      model.selectedTemplateCapabilityId = "";
+      model.selectedTemplateNodeType = "";
+      model.selectedTemplateNodeId = "";
+      model.templateMindmapPanX = 18;
+      model.templateMindmapPanY = 10;
+      model.templateMindmapZoom = 0.5;
+    }
+    ensureTemplateHistory(detail);
+    ensureTemplateDerivedCaches(detail);
+    const selected = selectedTemplateNode(detail);
+    const stats = templateStats(detail.template);
+    const zoom = Math.round(Number(model.templateMindmapZoom || 0.5) * 100);
+    const collapsibleKeys = allCollapsibleTemplateNodeKeys(detail);
+    const collapsedKeys = new Set(list(model.collapsedTemplateNodeKeys));
+    const defaultCollapsedKeys = new Set(defaultCollapsedTemplateNodeKeys(detail));
+    const collapsedToL1 = collapsibleKeys.every((key) => collapsedKeys.has(key) === defaultCollapsedKeys.has(key));
+    const canCollapseAll = !collapsedToL1;
+    const canExpandAll = collapsibleKeys.some((key) => collapsedKeys.has(key));
+    const status = detail.validation?.valid || detail.template.status === "validated" ? "模板已校验" : list(detail.validation?.errors).length ? `${list(detail.validation.errors).length} 个校验问题` : "模板待校验";
+    const selectedTitle = templateSelectionTitle(selected);
+    const validationPanel = detail.validation && !detail.validation.valid ? renderValidation(detail.validation, stats, detail.template.status) : "";
+    const exchangePanel = renderExchangeBatches(detail);
     return `
-      <div class="maturity-v1-panel-heading"><div><span>能力详情</span><h3>${escapeHtml(capability.name)}</h3></div><span>${focuses.length} 个关注点</span></div>
-      <p class="maturity-v1-inspector-copy">${escapeHtml(capability.description || "模板内展示信息；主工程对象不会被修改。")}</p>
-      <div class="maturity-v1-focus-config-list">${focuses.map((focus) => {
-        const rows = scoreItems.filter((item) => item.focusId === focus.id);
-        const references = list(template.focusServiceMappings).filter((mapping) => mapping.focusId === focus.id && mapping.serviceRole === "PLATFORM_EVIDENCE_REFERENCE").length;
-        return `<div><span class="maturity-v2-focus-code">${escapeHtml(focus.code || "自定义关注点")}</span><input value="${escapeHtml(focus.name)}" data-template-focus-field="name" data-focus-id="${escapeHtml(focus.id)}" aria-label="修改关注点名称" /><select data-template-focus-field="capabilityId" data-focus-id="${escapeHtml(focus.id)}">${capabilities.map((item) => `<option value="${escapeHtml(item.id)}"${item.id === focus.capabilityId ? " selected" : ""}>${escapeHtml(item.code || "自定义")} ${escapeHtml(item.name)}</option>`).join("")}</select><span>${focus.itemType === "SERVICE" ? `服务评估点 · ${rows.length} 项` : "关注点评估点"}${references ? ` · ${references} 个平台工具参考` : ""}</span><span class="maturity-v2-focus-actions"><button class="maturity-v1-link-button" type="button" data-maturity-action="add-custom-service" data-focus-id="${escapeHtml(focus.id)}">添加服务关系</button><button class="maturity-v1-link-button" type="button" data-maturity-action="remove-custom-focus" data-focus-id="${escapeHtml(focus.id)}">从模板移除</button></span></div>`;
-      }).join("")}</div>
-      <div class="maturity-v1-inline-form">
-        <label><span>新增模板内关注点</span><input id="maturityCustomFocusName" placeholder="关注点名称" /></label>
-        <label><span>评估点类型</span><select id="maturityCustomFocusMode"><option value="FOCUS">关注点评估点</option><option value="SERVICE">服务评估点</option></select></label>
-        <label><span>自定义服务名称</span><input id="maturityCustomServiceName" placeholder="服务评估点需要" /></label>
-        <label><span>服务作用域</span><select id="maturityCustomServiceScope">${list(template.scopes).map((scope) => `<option value="${escapeHtml(scope.code)}">${escapeHtml(scope.code)} ${escapeHtml(scope.name)}</option>`).join("")}</select></label>
-        <label><span>新增服务角色</span><select id="maturityCustomServiceRole"><option value="ASSESSMENT_POINT">独立服务评估点</option><option value="PLATFORM_EVIDENCE_REFERENCE">平台工具参考</option></select></label>
-        <button class="maturity-v1-button is-secondary is-full" type="button" data-maturity-action="add-custom-focus" data-capability-id="${escapeHtml(capability.id)}">新增关注点</button>
-      </div>
+      <section class="maturity-v1-template-editor maturity-v41-mindmap-workbench" data-template-visual-editor>
+        <header class="maturity-v47-template-shell-header">
+          <div class="maturity-v47-template-identity">
+            <span>自定义能力模板</span>
+            <h3>${escapeHtml(detail.template?.name || "未命名模板")}</h3>
+          </div>
+          <div class="maturity-v47-template-actions">
+            <button class="maturity-v1-button is-secondary" type="button" data-maturity-action="export-template">导出自定义模板</button>
+            <button class="maturity-v1-button is-secondary" type="button" data-maturity-action="trigger-template-import">导入自定义模板</button>
+            <input type="file" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx" hidden data-maturity-template-file />
+            <button class="maturity-v1-button is-primary" type="button" data-maturity-action="validate-template">校验并保存</button>
+          </div>
+          ${validationPanel || exchangePanel ? `<div class="maturity-v47-template-status">${validationPanel}${exchangePanel}</div>` : ""}
+        </header>
+        <div class="maturity-v41-mindmap-viewport ${model.templateMindmapPointerDrag?.active ? "is-panning" : ""}" data-template-mindmap-viewport aria-label="评估模板脑图画布">
+          <div class="maturity-v41-mindmap-toolbar">
+            <div class="maturity-v41-mindmap-title">
+              <span>完整模板脑图 · 默认收起到 L1 · ${escapeHtml(status)}</span>
+              <h3>${escapeHtml(selectedTitle)}</h3>
+            </div>
+            <div class="maturity-v41-mindmap-legend" aria-label="节点与来源图例">
+              <span><i class="is-ability"></i>能力</span><span><i class="is-focus"></i>关注点</span><span><i class="is-service"></i>安全技术服务</span>
+              <span class="maturity-v48-origin-key is-standard"><i></i>标准元素</span>
+              <span class="maturity-v48-origin-key is-modified"><i></i>标准修改</span>
+              <span class="maturity-v48-origin-key is-custom"><i></i>模板自建</span>
+            </div>
+            <div class="maturity-v41-mindmap-tools" aria-label="脑图画布工具">
+              <button class="maturity-v47-undo-step" type="button" data-maturity-action="undo-template-change" aria-label="撤销上一步模板编辑" title="撤销上一步（⌘Z）" ${model.templateUndoStack.length ? "" : "disabled"}><span aria-hidden="true">↶</span>撤销上一步</button>
+              <button type="button" data-maturity-action="redo-template-change" aria-label="重做模板编辑" title="重做（⇧⌘Z）" ${model.templateRedoStack.length ? "" : "disabled"}>↷ 重做</button>
+              <span class="maturity-v41-tool-divider"></span>
+              <button type="button" data-maturity-action="collapse-all-template-nodes" aria-label="全部收起到 L1" title="恢复默认视图：收起到 L1" ${canCollapseAll ? "" : "disabled"}>全部收起</button>
+              <button type="button" data-maturity-action="expand-all-template-nodes" aria-label="全部展开模板节点" title="全部展开模板节点" ${canExpandAll ? "" : "disabled"}>全部展开</button>
+              <span class="maturity-v41-tool-divider"></span>
+              <button type="button" data-maturity-action="zoom-template-mindmap" data-zoom-step="-0.1" aria-label="缩小脑图">−</button>
+              <output aria-label="当前缩放比例">${zoom}%</output>
+              <button type="button" data-maturity-action="zoom-template-mindmap" data-zoom-step="0.1" aria-label="放大脑图">＋</button>
+              <button type="button" data-maturity-action="center-template-mindmap" title="完整模板适配到当前画布">适配全图</button>
+              <span class="maturity-v41-tool-divider"></span>
+              <button type="button" data-maturity-action="toggle-template-inspector" aria-pressed="${model.templateInspectorOpen ? "true" : "false"}">属性</button>
+            </div>
+          </div>
+          ${renderTemplateMindmap(detail, selected)}
+          <div class="maturity-v41-canvas-hint"><span>空白处拖动 / 双指平移 / 捏合缩放</span><span>顶部搜索可定位并展开节点</span><span>右键新增；拖动节点会带上全部下级</span></div>
+          ${model.templateInspectorOpen ? `<aside class="maturity-v41-floating-panel is-inspector maturity-v1-template-inspector maturity-v40-template-inspector ${model.templateInlineCreate?.projectId === detail.project.id ? "is-creating-node" : ""}" aria-label="模板对象属性"><button class="maturity-v41-panel-close" type="button" data-maturity-action="toggle-template-inspector" aria-label="关闭模板对象属性">×</button>${renderTemplateNodeInspector(detail, selected)}</aside>` : ""}
+        </div>
+        ${renderTemplateContextMenu(detail)}
+        ${renderTemplateCanvasContextMenu()}
+        ${renderTemplateLooseComposer(detail)}
+      </section>
     `;
   }
 
@@ -2323,9 +4086,19 @@
     return DIMENSIONS.every(([dimension]) => rubricRows(item, dimension).length === LEVELS.length);
   }
 
-  function inheritedRubricEntries(template, scoreItemId) {
-    const source = list(template?.scoreItems).find((item) => rubricIsComplete(item));
-    return clone(list(source?.rubricEntries)).map((entry) => ({ ...entry, scoreItemId }));
+  function customGenericRubricEntries(scoreItemId) {
+    const reference = customGenericRubricReference();
+    return list(reference.dimensions).flatMap((dimension) =>
+      list(dimension.levels).map((entry) => ({
+        scoreItemId,
+        dimensionCode: dimension.dimensionCode,
+        level: entry.level,
+        levelName: entry.levelName || LEVEL_NAMES[entry.level],
+        criteria: entry.criteria,
+        sourceType: "CUSTOM_GENERIC_FALLBACK",
+        sourceVersion: reference.version,
+      })),
+    );
   }
 
   function renderRubricMissing(item, dimension) {
@@ -3574,16 +5347,22 @@
     if (!slot) return;
     const pageTitle = document.querySelector("#appPageTitle");
     const pageDescription = document.querySelector("#appPageHeader .page-header-copy > p");
-    if (pageTitle) pageTitle.textContent = detail ? detail.project.name : "SAPD 成熟度评估";
+    if (pageTitle) pageTitle.textContent = detail?.project?.templateWorkspace ? detail.template.name : detail ? detail.project.name : "SAPD 成熟度评估";
     if (pageDescription) {
-      pageDescription.textContent = detail
+      pageDescription.textContent = detail?.project?.templateWorkspace
+        ? `模板资产工作区 · 基于 ${detail.template.sourceTemplateId || model.workspace?.template?.name || "标准模板"} · 最近更新 ${detail.project.updatedAt || "-"}`
+        : detail
         ? `${detail.project.organization} · ${displayTemplateName(detail)} · 最近更新 ${detail.project.updatedAt || "-"}`
         : "管理成熟度评估项目、模板、评分、结果和评估报告。";
     }
     const scoringStatus = detail && model.activeTab === "scoring" ? model.root.querySelector(".maturity-v3-page-status") || slot.querySelector(".maturity-v3-page-status") : null;
     slot.replaceChildren();
     if (!detail) {
-      slot.innerHTML = `<div class="maturity-v2-page-actions"><button id="maturityNewProjectButton" class="maturity-v1-button is-primary" type="button" data-maturity-action="new-project">新建评估项目</button></div>`;
+      slot.hidden = true;
+      return;
+    } else if (detail.project.templateWorkspace) {
+      const saved = detail.template.status === "validated";
+      slot.innerHTML = `<span class="maturity-v5-shell-project-state"><span class="maturity-v1-status ${saved ? "is-good" : "is-warn"}">${saved ? "模板已保存" : "模板草稿"}</span></span><button class="maturity-v1-button is-secondary" type="button" data-maturity-action="return-template-manager">返回模板管理</button>`;
     } else if (model.activeTab === "scoring") {
       if (scoringStatus) slot.append(scoringStatus);
     } else if (FORMAL_RESULT_TAB_IDS.has(model.activeTab) && !formalAssessmentReady(detail)) {
@@ -3640,6 +5419,10 @@
       syncMaturityShellHeader(detail);
       syncFixedScoreContextPosition();
       if (detail) drawMaturityRadar(detail);
+      if (detail && model.activeTab === "template" && model.templateMindmapPendingCenter) {
+        const rootSelection = templateNodeRecord(detail, "TEMPLATE", detail.template.id);
+        if (positionTemplateMindmapViewport(detail, rootSelection)) model.templateMindmapPendingCenter = false;
+      }
     });
     window.setTimeout(() => syncMaturityShellHeader(detail), 0);
     model.lastRenderContext = renderContext;
@@ -3667,13 +5450,13 @@
         if (!workspace || workspace.dataState !== "ready") throw new Error(workspace?.notice || "成熟度评估 API 当前不可用。请确认 5173 服务已重启到最新代码。");
         model.workspace = workspace;
         hydrateWorkspace(workspace);
-        await refreshHydratedAssessments();
-        await restorePersistedReports();
         model.loaded = true;
         model.loading = false;
+        model.activeTab = rememberedProjectTab(model.route);
         const detail = activeDetail();
         if (detail && FORMAL_RESULT_TAB_IDS.has(model.activeTab) && !formalAssessmentReady(detail)) model.activeTab = "review";
         render();
+        scheduleHydratedWorkspaceRefresh(workspace);
         return workspace;
       } catch (error) {
         model.loading = false;
@@ -3705,7 +5488,13 @@
   }
 
   async function refreshHydratedAssessments() {
-    const candidates = Object.values(model.details).filter((detail) => detail?.project?.id && detail.locallyStored);
+    const candidates = Object.values(model.details).filter((detail) => (
+      detail?.project?.id
+      && detail.locallyStored
+      && !detail.project.templateWorkspace
+      && detail.project.status !== "template_configuring"
+      && (detail.resultStale || detail.dirty || !detail.result?.ok)
+    ));
     await Promise.all(candidates.map(async (detail) => {
       try {
         const result = await requestMaturityCalculation(detail);
@@ -3717,11 +5506,32 @@
           detail.reportNarrativeDirty = true;
         }
         persistDetail(detail);
-      } catch {
+      } catch (error) {
         detail.resultStale = true;
-        detail.localSaveState = "error";
+        detail.calculationRefreshError = error?.message || "后台试算暂不可用";
       }
     }));
+  }
+
+  function scheduleHydratedWorkspaceRefresh(workspace) {
+    const run = async () => {
+      if (model.workspace !== workspace || model.workspaceBackgroundRefreshPromise) return;
+      model.workspaceBackgroundRefreshPromise = (async () => {
+        try {
+          await refreshHydratedAssessments();
+          await restorePersistedReports();
+          if (model.workspace !== workspace || !model.root || model.loading) return;
+          if (model.activeTab !== "template") render();
+        } catch {
+          // Background refresh must never block or replace the already usable workspace.
+        }
+      })().finally(() => {
+        model.workspaceBackgroundRefreshPromise = null;
+      });
+      await model.workspaceBackgroundRefreshPromise;
+    };
+    if (window.requestIdleCallback) window.requestIdleCallback(() => run(), { timeout: 900 });
+    else window.setTimeout(() => run(), 40);
   }
 
   function touchDetail(detail, { invalidateResult = false, invalidateReport = false } = {}) {
@@ -3743,11 +5553,115 @@
     detail.calculationRevision = Number(detail.calculationRevision || 0) + 1;
   }
 
+  function templateHistoryPayload(detail) {
+    return clone({
+      template: detail.template,
+      scoreEntries: detail.scoreEntries,
+      validation: detail.validation || null,
+      project: {
+        status: detail.project.status,
+        statusLabel: detail.project.statusLabel,
+        templateId: detail.project.templateId,
+        templateName: detail.project.templateName,
+        templateSnapshotId: detail.project.templateSnapshotId,
+        updatedAt: detail.project.updatedAt,
+      },
+    });
+  }
+
+  function bumpTemplateRenderRevision(detail) {
+    if (!detail) return;
+    detail.templateRenderRevision = Number(detail.templateRenderRevision || 0) + 1;
+    model.templateMindmapLayoutCache = null;
+    model.templateDerivedCacheKey = "";
+  }
+
+  function ensureTemplateDerivedCaches(detail) {
+    const cacheKey = `${detail?.project?.id || ""}:${Number(detail?.templateRenderRevision || 0)}`;
+    if (model.templateDerivedCacheKey === cacheKey) return;
+    model.templateDerivedCacheKey = cacheKey;
+    model.templateStructureRecordsCache = null;
+    model.templateStructureChangeCache = new Map();
+    model.templateElementOriginCache = new Map();
+  }
+
+  function ensureTemplateHistory(detail) {
+    if (!detail?.project?.id) return;
+    if (model.templateHistoryProjectId === detail.project.id && model.templateHistorySnapshot) return;
+    model.templateHistoryProjectId = detail.project.id;
+    model.templateHistorySnapshot = templateHistoryPayload(detail);
+    model.templateUndoStack = [];
+    model.templateRedoStack = [];
+    model.templateHistoryRestoring = false;
+  }
+
+  function recordTemplateHistory(detail) {
+    if (model.templateHistoryRestoring) return;
+    ensureTemplateHistory(detail);
+    if (model.templateHistorySnapshot) {
+      model.templateUndoStack.push(model.templateHistorySnapshot);
+      model.templateUndoStack = model.templateUndoStack.slice(-15);
+    }
+    model.templateHistorySnapshot = templateHistoryPayload(detail);
+    model.templateRedoStack = [];
+  }
+
+  function restoreTemplateHistory(detail, payload) {
+    if (!detail || !payload) return;
+    model.templateHistoryRestoring = true;
+    detail.template = clone(payload.template);
+    detail.scoreEntries = clone(payload.scoreEntries);
+    detail.validation = clone(payload.validation);
+    detail.project = { ...detail.project, ...clone(payload.project) };
+    detail.result = null;
+    detail.resultStale = true;
+    detail.report = null;
+    detail.dirty = true;
+    detail.lastSavedAt = nowLabel();
+    detail.localSaveState = "saved";
+    bumpTemplateRenderRevision(detail);
+    if (!persistDetail(detail)) detail.localSaveState = "error";
+    model.templateHistorySnapshot = templateHistoryPayload(detail);
+    model.templateHistoryRestoring = false;
+    model.templateContextMenu = null;
+    model.templateCanvasContextMenu = null;
+    model.templateInlineCreate = null;
+    model.templateInlineErrors = {};
+  }
+
+  function undoTemplateChange(detail) {
+    ensureTemplateHistory(detail);
+    const previous = model.templateUndoStack.pop();
+    if (!previous) {
+      showToast("当前没有可撤销的模板操作", "info");
+      return;
+    }
+    model.templateRedoStack.push(templateHistoryPayload(detail));
+    restoreTemplateHistory(detail, previous);
+    render();
+    showToast("已撤销上一步模板操作", "success");
+  }
+
+  function redoTemplateChange(detail) {
+    ensureTemplateHistory(detail);
+    const next = model.templateRedoStack.pop();
+    if (!next) {
+      showToast("当前没有可重做的模板操作", "info");
+      return;
+    }
+    model.templateUndoStack.push(templateHistoryPayload(detail));
+    restoreTemplateHistory(detail, next);
+    render();
+    showToast("已重做模板操作", "success");
+  }
+
   function markTemplateDirty(detail) {
     detail.template.status = "draft";
     detail.project.status = "template_configuring";
     detail.validation = null;
+    bumpTemplateRenderRevision(detail);
     touchDetail(detail, { invalidateResult: true, invalidateReport: true });
+    recordTemplateHistory(detail);
   }
 
   function refreshScoringCalculatedState(detail) {
@@ -4041,10 +5955,114 @@
     return list(template.scoreItems).map((item) => ({ scoreItemId: item.id, isApplicable: true, elements: {}, dimensionNotes: {}, reviewElements: {}, targetElements: {}, targetDimensionNotes: {}, targetLevel: "", targetReason: "", targetConfirmed: false, evidenceLevel: "E0", evidenceSummary: "", note: "", naReason: "", status: "not_scored" }));
   }
 
+  function nextStandaloneTemplateName(sourceName = "") {
+    const used = new Set(templateLibraryRecords().map((item) => text(item.template?.name).trim().toLocaleLowerCase("zh-Hans-CN")));
+    const preferredBase = text(sourceName).trim() ? `${text(sourceName).trim()} 副本` : "新建自定义模板";
+    let index = 1;
+    while (used.has((index === 1 ? preferredBase : `${preferredBase} ${index}`).toLocaleLowerCase("zh-Hans-CN"))) index += 1;
+    return index === 1 ? preferredBase : `${preferredBase} ${index}`;
+  }
+
+  function createStandaloneTemplateWorkspace(sourceTemplate = null, sourceRecord = null) {
+    const stableTemplate = model.workspace?.template || {};
+    const baseTemplate = clone(sourceTemplate || stableTemplate);
+    if (!baseTemplate?.id || !stableTemplate?.id) {
+      showToast("基础模板尚未加载，暂时无法新增模板", "error");
+      return;
+    }
+    const workspaceId = uid("template-workspace");
+    const copied = Boolean(sourceTemplate);
+    const templateName = nextStandaloneTemplateName(copied ? baseTemplate.name : "");
+    const template = {
+      ...baseTemplate,
+      id: uid("custom-template"),
+      snapshotId: uid("draft-template"),
+      name: templateName,
+      type: "custom",
+      status: "draft",
+      readOnly: false,
+      structureMutable: true,
+      weightMutable: true,
+      sourceTemplateId: baseTemplate.id,
+      sourceTemplateSnapshotId: baseTemplate.snapshotId,
+      description: copied ? text(baseTemplate.description) || "从模板管理复制形成的可复用自定义模板。" : "从 SAPD 标准能力成熟度模板复制形成的可复用自定义模板。",
+      looseNodes: clone(list(baseTemplate.looseNodes)),
+      librarySourceType: "TEMPLATE_MANAGER",
+      copiedFromSourceType: sourceRecord?.source || (copied ? "TEMPLATE_LIBRARY" : "STANDARD"),
+      copiedFromProjectId: sourceRecord?.sourceProjectId || "",
+    };
+    delete template.publishedAt;
+    delete template.publishedFromProjectId;
+    delete template.publishedFromProjectName;
+    hydrateStandardTemplateDefinitions(template, stableTemplate);
+    const project = {
+      id: workspaceId,
+      name: templateName,
+      organization: "模板管理",
+      assessmentObjectType: "ENTERPRISE_ORGANIZATION",
+      status: "template_configuring",
+      statusLabel: PROJECT_STATUS_NAMES.template_configuring,
+      templateId: template.id,
+      templateName: template.name,
+      templateType: "custom",
+      templateSnapshotId: template.snapshotId,
+      knowledgeSnapshotId: model.workspace?.dictionarySnapshot?.id || baseTemplate.snapshotId,
+      algorithmVersion: "sapd-maturity-v2.1.0",
+      updatedAt: nowLabel(),
+      mode: "controlled_demo",
+      readOnly: false,
+      templateWorkspace: true,
+      hiddenFromProjectList: true,
+    };
+    const detail = {
+      project,
+      template,
+      scoreEntries: createBlankEntries(template),
+      result: null,
+      report: null,
+      reportNarrative: defaultReportNarrative(),
+      reportNarrativeDirty: false,
+      reportV2Conclusions: defaultReportV2Conclusions(),
+      reportV2Dirty: false,
+      improvementRoadmap: [],
+      exchangeBatches: [],
+      scoreImportIssues: [],
+      scoreImportNotice: null,
+      locallyStored: true,
+    };
+    model.details[workspaceId] = detail;
+    persistDetail(detail);
+    model.activeTab = "template";
+    model.selectedTemplateCapabilityId = "";
+    model.selectedTemplateNodeType = "TEMPLATE";
+    model.selectedTemplateNodeId = template.id;
+    model.templateContextMenu = null;
+    model.templateCanvasContextMenu = null;
+    model.templateLooseComposer = null;
+    model.templateInlineCreate = null;
+    model.templateInlineErrors = {};
+    model.templateHistoryProjectId = "";
+    model.templateHistorySnapshot = null;
+    model.templateUndoStack = [];
+    model.templateRedoStack = [];
+    model.templateMindmapPanX = 18;
+    model.templateMindmapPanY = 10;
+    model.templateMindmapZoom = 0.5;
+    model.templateMindmapViewProjectId = "";
+    model.templateMindmapPendingCenter = false;
+    model.templateOutlineOpen = false;
+    model.templateInspectorOpen = true;
+    model.templateCollapseProjectId = "";
+    model.collapsedTemplateNodeKeys = [];
+    rememberProjectTab("template", workspaceId);
+    model.navigate?.(`/workbench/maturity/${encodeURIComponent(workspaceId)}`);
+    showToast(copied ? "已创建独立模板副本，来源模板保持不变" : "已基于标准模板创建模板草稿", "success");
+  }
+
   function createProject() {
     const draft = model.createDraft;
-    if (!draft.templateType) {
-      model.createErrors = { templateType: "请选择评估模板" };
+    if (!draft.templateType || (draft.templateType === "custom" && !draft.templateLibraryId)) {
+      model.createErrors = { templateType: draft.templateType === "custom" ? "请选择自定义模板来源" : "请选择评估模板" };
       model.createStep = 2;
       render();
       return;
@@ -4066,9 +6084,17 @@
           weightMutable: true,
           sourceTemplateId: libraryTemplate?.id || baseTemplate.id,
           sourceTemplateSnapshotId: baseTemplate.snapshotId,
-          description: "加载固定知识库模板后形成的自定义能力自由组合模板。",
+          description: libraryTemplate?.type === "custom"
+            ? `从“${libraryTemplate.name}”复制形成的项目专属自定义模板。`
+            : "加载固定知识库模板后形成的项目专属自定义模板。",
+          looseNodes: clone(list(baseTemplate.looseNodes)),
+          librarySourceType: "PROJECT_DRAFT",
+          publishedAt: undefined,
+          publishedFromProjectId: undefined,
+          publishedFromProjectName: undefined,
         }
       : baseTemplate;
+    if (isCustom) hydrateStandardTemplateDefinitions(template, model.workspace?.template);
     const project = {
       id: projectId,
       name: draft.name,
@@ -4115,11 +6141,33 @@
     model.selectedScoreItemId = "";
     model.selectedScoreViewLevel = "";
     model.selectedScoreViewId = "";
+    model.selectedTemplateCapabilityId = "";
+    model.selectedTemplateNodeType = "";
+    model.selectedTemplateNodeId = "";
+    model.templateContextMenu = null;
+    model.templateCanvasContextMenu = null;
+    model.templateLooseComposer = null;
+    model.templateInlineCreate = null;
+    model.templateInlineErrors = {};
+    model.templateHistoryProjectId = "";
+    model.templateHistorySnapshot = null;
+    model.templateUndoStack = [];
+    model.templateRedoStack = [];
+    model.templateMindmapPanX = 18;
+    model.templateMindmapPanY = 10;
+    model.templateMindmapZoom = 0.5;
+    model.templateMindmapViewProjectId = "";
+    model.templateMindmapPendingCenter = false;
+    model.templateOutlineOpen = false;
+    model.templateInspectorOpen = false;
+    model.templateCollapseProjectId = "";
+    model.collapsedTemplateNodeKeys = [];
+    rememberProjectTab(model.activeTab, projectId);
     model.navigate?.(`/workbench/maturity/${encodeURIComponent(projectId)}`);
   }
 
   function cloneAsCustom(detail) {
-    detail.template = {
+    detail.template = refreshCustomTemplateRubrics({
       ...clone(detail.template),
       id: uid("custom-template"),
       snapshotId: uid("draft-template"),
@@ -4131,7 +6179,7 @@
       weightMutable: true,
       sourceTemplateId: detail.template.id,
       sourceTemplateSnapshotId: detail.template.snapshotId,
-    };
+    }, model.workspace?.template);
     detail.project.templateId = detail.template.id;
     detail.project.templateName = detail.template.name;
     detail.project.templateType = "custom";
@@ -4145,12 +6193,14 @@
     const capabilityLevel = text(document.getElementById("maturityCustomCategoryLevel")?.value).trim() || "L1";
     const level = capabilityLevel === "L0" ? 1 : 2;
     const parentId = capabilityLevel === "L1" ? text(document.getElementById("maturityCustomCategoryParent")?.value).trim() : "";
-    if (!name) {
-      showToast("请填写能力节点名称", "error");
+    const code = nextUniqueTemplateNodeCode(detail.template, capabilityLevel);
+    const identityErrors = validateTemplateNodeIdentity(detail.template, { name, code });
+    if (Object.keys(identityErrors).length) {
+      showToast(identityErrors.name || identityErrors.code, "error");
       return;
     }
     const id = uid("custom-category");
-    detail.template.categories.push({ id, code: `C${detail.template.categories.length + 1}`, name, description: "", level, capabilityLevel, parentId: parentId || null, weight: 1, sortOrder: detail.template.categories.length, includedInOverall: true, isCustom: true, sourceType: "CUSTOM", changeAction: "ADDED", originalParentId: null, currentParentId: parentId || null, changeReason: "模板内新增能力节点" });
+    detail.template.categories.push({ id, code, name, description: "", level, capabilityLevel, parentId: parentId || null, weight: 1, sortOrder: detail.template.categories.length, includedInOverall: true, isCustom: true, sourceType: "CUSTOM", changeAction: "ADDED", originalParentId: null, currentParentId: parentId || null, changeReason: "模板内新增能力节点" });
     markTemplateDirty(detail);
     render();
   }
@@ -4169,8 +6219,11 @@
         item.changeAction = item.changeAction === "ADDED" ? "ADDED" : "MOVED";
       });
     }
-    detail.template.changeLog = list(detail.template.changeLog);
-    detail.template.changeLog.push({ objectType: categoryCapabilityLevel(category), objectId: category.id, sourceType: category.sourceType || "DICTIONARY", changeAction: "REMOVED", originalParentId: category.originalParentId || category.parentId || null, currentParentId: null, changedAt: nowLabel(), snapshot: clone(category) });
+    const transient = removeTransientTemplateChangeLog(detail.template, category);
+    if (!transient) {
+      detail.template.changeLog = list(detail.template.changeLog);
+      detail.template.changeLog.push({ objectType: categoryCapabilityLevel(category), objectId: category.id, sourceType: category.sourceType || "DICTIONARY", changeAction: "REMOVED", originalParentId: category.originalParentId || category.parentId || null, currentParentId: null, changedAt: nowLabel(), snapshot: clone(category) });
+    }
     detail.template.categories = list(detail.template.categories).filter((item) => item.id !== categoryId);
     markTemplateDirty(detail);
     render();
@@ -4193,11 +6246,13 @@
     render();
   }
 
-  function addScoreItemForFocus(template, capability, focus, itemType, serviceName = "", scopeCode = "ALL", serviceRole = "ASSESSMENT_POINT") {
+  function addScoreItemForFocus(template, capability, focus, itemType, serviceName = "", scopeCode = "ALL", serviceRole = "ASSESSMENT_POINT", serviceCode = "") {
     if (itemType === "SERVICE") {
+      serviceRole = requiredTemplateServiceRole(template, capability);
+      focus.itemType = serviceRole === "ASSESSMENT_POINT" ? "SERVICE" : "FOCUS";
       const scope = list(template.scopes).find((item) => item.code === scopeCode) || { code: scopeCode, name: scopeCode };
       const serviceId = uid("custom-service");
-      template.services.push({ id: serviceId, code: `CUST-SVC-${template.services.length + 1}`, name: serviceName || "自定义安全技术服务", scopeCode: scope.code, scopeName: scope.name, sourceType: "CUSTOM", changeAction: "ADDED", isCustom: true });
+      template.services.push({ id: serviceId, code: serviceCode || nextUniqueTemplateNodeCode(template, "SERVICE"), name: serviceName || "自定义安全技术服务", scopeCode: scope.code, scopeName: scope.name, sourceType: "CUSTOM", changeAction: "ADDED", isCustom: true });
       const mappingId = uid("custom-mapping");
       template.focusServiceMappings = list(template.focusServiceMappings);
       template.focusServiceMappings.push({ id: mappingId, focusId: focus.id, scopeCode: scope.code, scopeName: scope.name, serviceId, serviceRole, weight: 1, sortOrder: list(focus.serviceMappingIds).length, sourceType: "CUSTOM", changeAction: "ADDED", originalParentId: null, currentParentId: focus.id, changeReason: "模板内新增服务关系" });
@@ -4209,26 +6264,303 @@
         return;
       }
       const itemId = uid("custom-score");
-      template.scoreItems.push({ id: itemId, itemType: "SERVICE", capabilityId: capability.id, focusId: focus.id, serviceId, scopeCode: scope.code, scopeName: scope.name, weight: 1, sortOrder: 0, required: true, sourceType: "CUSTOM", serviceRole: "ASSESSMENT_POINT", sourceMappingId: mappingId, elementWeights: { organization: 0.25, process: 0.25, tool: 0.25, data: 0.25 }, rubricEntries: inheritedRubricEntries(template, itemId) });
+      template.scoreItems.push(bindScoreItemToCurrentGenericRubric({ id: itemId, itemType: "SERVICE", capabilityId: capability.id, focusId: focus.id, serviceId, scopeCode: scope.code, scopeName: scope.name, weight: 1, sortOrder: 0, required: true, sourceType: "CUSTOM", serviceRole: "ASSESSMENT_POINT", sourceMappingId: mappingId, elementWeights: { organization: 0.25, process: 0.25, tool: 0.25, data: 0.25 } }));
       focus.scoreItemIds.push(itemId);
       return;
     }
     const itemId = uid("custom-score");
-    template.scoreItems.push({ id: itemId, itemType: "FOCUS", capabilityId: capability.id, focusId: focus.id, serviceId: null, scopeCode: null, scopeName: null, weight: 1, sortOrder: 0, required: true, sourceType: "CUSTOM", serviceRole: null, platformEvidenceServiceIds: list(focus.platformEvidenceServiceIds), elementWeights: { organization: 0.25, process: 0.25, tool: 0.25, data: 0.25 }, rubricEntries: inheritedRubricEntries(template, itemId) });
+    template.scoreItems.push(bindScoreItemToCurrentGenericRubric({ id: itemId, itemType: "FOCUS", capabilityId: capability.id, focusId: focus.id, serviceId: null, scopeCode: null, scopeName: null, weight: 1, sortOrder: 0, required: true, sourceType: "CUSTOM", serviceRole: null, platformEvidenceServiceIds: list(focus.platformEvidenceServiceIds), elementWeights: { organization: 0.25, process: 0.25, tool: 0.25, data: 0.25 } }));
     focus.scoreItemIds.push(itemId);
+  }
+
+  function captureFocusAssessmentBaseline(detail, focus) {
+    if (!detail || !focus || focus.templateAdditionBaseline) return;
+    const assessmentMappings = list(detail.template.focusServiceMappings).filter((mapping) => mapping.focusId === focus.id && mapping.serviceRole === "ASSESSMENT_POINT");
+    if (assessmentMappings.length) return;
+    const scoreItems = list(detail.template.scoreItems).filter((item) => item.focusId === focus.id && item.itemType === "FOCUS");
+    if (!scoreItems.length) return;
+    const scoreItemIds = new Set(scoreItems.map((item) => item.id));
+    focus.templateAdditionBaseline = {
+      itemType: focus.itemType || "FOCUS",
+      scoreItems: clone(scoreItems),
+      scoreEntries: clone(list(detail.scoreEntries).filter((entry) => scoreItemIds.has(entry.scoreItemId))),
+      scoreItemIds: clone(list(focus.scoreItemIds)),
+    };
+  }
+
+  function restoreFocusAssessmentBaseline(detail, focus) {
+    const baseline = focus?.templateAdditionBaseline;
+    if (!detail || !focus || !baseline) return false;
+    const baselineIds = new Set(list(baseline.scoreItems).map((item) => item.id));
+    const currentFocusItemIds = new Set(list(detail.template.scoreItems).filter((item) => item.focusId === focus.id).map((item) => item.id));
+    detail.template.scoreItems = [
+      ...list(detail.template.scoreItems).filter((item) => !currentFocusItemIds.has(item.id)),
+      ...clone(list(baseline.scoreItems)),
+    ];
+    detail.scoreEntries = [
+      ...list(detail.scoreEntries).filter((entry) => !currentFocusItemIds.has(entry.scoreItemId) && !baselineIds.has(entry.scoreItemId)),
+      ...clone(list(baseline.scoreEntries)),
+    ];
+    focus.itemType = baseline.itemType || "FOCUS";
+    focus.scoreItemIds = clone(list(baseline.scoreItemIds));
+    delete focus.templateAdditionBaseline;
+    return true;
+  }
+
+  function templateLayoutNode(layout, type, id) {
+    if (!layout) return null;
+    return layout.nodeLayouts?.get(`${type}:${id}`) || null;
+  }
+
+  function templateInlineTarget(layout, parentType, parentId, nodeType) {
+    const from = templateLayoutNode(layout, parentType, parentId);
+    if (!from) return null;
+    const key = nodeType.toLowerCase();
+    const position = layout.positions[key];
+    if (!position) return null;
+    let y = from.y;
+    const parentMatches = (item) => item.parentId === parentId;
+    const layoutRows = nodeType === "L0"
+      ? layout.l0Layouts
+      : nodeType === "L1"
+        ? layout.l1Layouts.filter(parentMatches)
+        : nodeType === "L2"
+          ? layout.l2Layouts.filter(parentMatches)
+          : [];
+    if (layoutRows.length) y = layoutRows[layoutRows.length - 1].y + 86;
+    if (nodeType === "FOCUS") {
+      const rows = layout.focusLayouts.filter((item) => item.parentId === parentId);
+      const last = rows[rows.length - 1];
+      y = last ? last.y + 86 : from.y;
+    }
+    if (nodeType === "SERVICE") {
+      const focusLayout = layout.focusLayouts.find((item) => item.focus.id === parentId);
+      const last = focusLayout?.services?.[focusLayout.services.length - 1];
+      y = last ? last.y + 58 : from.y;
+    }
+    return {
+      from,
+      to: { x: position.x, y, width: position.width },
+      tone: nodeType === "FOCUS" ? "focus" : nodeType === "SERVICE" ? "service" : parentType === "TEMPLATE" ? "root" : "ability",
+    };
+  }
+
+  function templateChildIsValid(parentType, nodeType) {
+    return (parentType === "TEMPLATE" && ["L0", "L1"].includes(nodeType))
+      || (parentType === "L0" && nodeType === "L1")
+      || (parentType === "L1" && nodeType === "L2")
+      || (parentType === "L2" && nodeType === "FOCUS")
+      || (parentType === "FOCUS" && nodeType === "SERVICE");
+  }
+
+  function beginTemplateInlineCreate(detail, parentType, parentId, nodeType) {
+    if (!detail || !templateChildIsValid(parentType, nodeType)) {
+      showToast("当前节点不允许新增该类型下级", "error");
+      return;
+    }
+    const parent = templateNodeRecord(detail, parentType, parentId);
+    if (!parent) return;
+    setTemplateNodeCollapsed(parentType, parentId, false);
+    model.selectedTemplateNodeType = parentType;
+    model.selectedTemplateNodeId = parentId;
+    const layout = templateMindmapLayout(detail, parent);
+    const target = templateInlineTarget(layout, parentType, parentId, nodeType);
+    if (!target) {
+      showToast("当前分支暂时无法定位新增节点", "error");
+      return;
+    }
+    model.templateContextMenu = null;
+    model.templateCanvasContextMenu = null;
+    model.templateLooseComposer = null;
+    model.templateInlineErrors = {};
+    model.templateInlineCreate = {
+      projectId: detail.project.id,
+      parentType,
+      parentId,
+      nodeType,
+      name: "",
+      code: nextUniqueTemplateNodeCode(detail.template, nodeType),
+      description: "",
+      scopeCode: "",
+      ...target,
+      relationLabel: `${templateTypeName(parentType)} → ${templateTypeName(nodeType)}`,
+    };
+    model.templateInspectorOpen = true;
+    render();
+    window.setTimeout(() => document.getElementById("maturityTemplateInlineName")?.focus(), 0);
+  }
+
+  function templateSiblingParent(detail, record) {
+    if (!record || ["TEMPLATE", "DRAFT"].includes(record.type)) return null;
+    if (record.type === "L0") return { parentType: "TEMPLATE", parentId: detail.template.id, nodeType: "L0" };
+    if (record.type === "L1") return { parentType: record.node.parentId ? "L0" : "TEMPLATE", parentId: record.node.parentId || detail.template.id, nodeType: "L1" };
+    if (record.type === "L2") return { parentType: "L1", parentId: record.node.categoryId, nodeType: "L2" };
+    if (record.type === "FOCUS") return { parentType: "L2", parentId: record.node.capabilityId, nodeType: "FOCUS" };
+    return { parentType: "FOCUS", parentId: record.mapping.focusId, nodeType: "SERVICE" };
+  }
+
+  function createTemplateChildRecord(detail, parentType, parentId, nodeType, name, code, scopeCode = "", description = "") {
+    const template = detail.template;
+    if (!templateChildIsValid(parentType, nodeType)) return null;
+    if (nodeType === "L0" || nodeType === "L1") {
+      const category = {
+        id: uid("custom-category"),
+        code,
+        name,
+        description,
+        capabilityLevel: nodeType,
+        level: nodeType === "L0" ? 1 : 2,
+        parentId: nodeType === "L1" && parentType === "L0" ? parentId : null,
+        weight: 1,
+        sortOrder: list(template.categories).length,
+        includedInOverall: true,
+        sourceType: "CUSTOM",
+        changeAction: "ADDED",
+        isCustom: true,
+        originalParentId: null,
+        currentParentId: nodeType === "L1" && parentType === "L0" ? parentId : null,
+        changeReason: "能力图谱快捷新增",
+      };
+      template.categories = list(template.categories);
+      template.categories.push(category);
+      return { type: nodeType, id: category.id, node: category };
+    }
+    if (nodeType === "L2") {
+      const category = list(template.categories).find((item) => item.id === parentId);
+      if (!category) return null;
+      const capability = {
+        id: uid("custom-capability"),
+        code,
+        name,
+        description,
+        capabilityLevel: "L2",
+        categoryId: category.id,
+        topCategoryId: category.parentId || null,
+        weight: 1,
+        sortOrder: list(template.capabilities).length,
+        included: true,
+        isCustom: true,
+        isCritical: false,
+        businessImportance: 3,
+        riskUrgency: 3,
+        sourceType: "CUSTOM",
+        changeAction: "ADDED",
+        originalParentId: null,
+        currentParentId: category.id,
+        changeReason: "能力图谱快捷新增",
+        focusIds: [],
+      };
+      template.capabilities = list(template.capabilities);
+      template.capabilities.push(capability);
+      return { type: "L2", id: capability.id, node: capability };
+    }
+    if (nodeType === "FOCUS") {
+      const capability = list(template.capabilities).find((item) => item.id === parentId);
+      if (!capability) return null;
+      const focus = {
+        id: uid("custom-focus"),
+        code,
+        name,
+        description,
+        capabilityId: capability.id,
+        weight: 1,
+        sortOrder: list(capability.focusIds).length,
+        included: true,
+        isCustom: true,
+        isCritical: false,
+        itemType: "FOCUS",
+        sourceType: "CUSTOM",
+        changeAction: "ADDED",
+        originalParentId: null,
+        currentParentId: capability.id,
+        changeReason: "能力图谱快捷新增",
+        serviceMappingIds: [],
+        platformEvidenceServiceIds: [],
+        scoreItemIds: [],
+      };
+      const before = new Set(list(template.scoreItems).map((item) => item.id));
+      addScoreItemForFocus(template, capability, focus, "FOCUS");
+      capability.focusIds = list(capability.focusIds);
+      capability.focusIds.push(focus.id);
+      template.focuses = list(template.focuses);
+      template.focuses.push(focus);
+      detail.scoreEntries.push(...createBlankEntries({ scoreItems: list(template.scoreItems).filter((item) => !before.has(item.id)) }));
+      return { type: "FOCUS", id: focus.id, node: focus };
+    }
+    const focus = list(template.focuses).find((item) => item.id === parentId);
+    const capability = list(template.capabilities).find((item) => item.id === focus?.capabilityId);
+    if (!focus || !capability) return null;
+    const beforeMappings = new Set(list(template.focusServiceMappings).map((item) => item.id));
+    const beforeScores = new Set(list(template.scoreItems).map((item) => item.id));
+    captureFocusAssessmentBaseline(detail, focus);
+    addScoreItemForFocus(template, capability, focus, "SERVICE", name, scopeCode, "ASSESSMENT_POINT", code);
+    syncFocusAssessmentMode(detail, focus.id);
+    const mapping = list(template.focusServiceMappings).find((item) => !beforeMappings.has(item.id));
+    const service = mapping ? list(template.services).find((item) => item.id === mapping.serviceId) : null;
+    if (service) service.description = description;
+    detail.scoreEntries.push(...createBlankEntries({ scoreItems: list(template.scoreItems).filter((item) => !beforeScores.has(item.id)) }));
+    setTemplateNodeCollapsed("FOCUS", focus.id, false);
+    return mapping ? { type: "SERVICE", id: mapping.id, node: list(template.services).find((item) => item.id === mapping.serviceId), mapping } : null;
+  }
+
+  function commitTemplateInlineCreate(detail) {
+    const inline = model.templateInlineCreate;
+    const name = text(document.getElementById("maturityTemplateInlineName")?.value).trim();
+    const code = text(document.getElementById("maturityTemplateInlineCode")?.value).trim();
+    const description = text(document.getElementById("maturityTemplateInlineDescription")?.value).trim();
+    const scopeCode = inline?.nodeType === "SERVICE" ? text(document.getElementById("maturityTemplateInlineScope")?.value).trim() : "";
+    if (!inline || inline.projectId !== detail?.project?.id) return;
+    inline.name = name;
+    inline.code = code;
+    inline.description = description;
+    inline.scopeCode = scopeCode;
+    const errors = validateTemplateNodeIdentity(detail.template, { name, code });
+    if (inline.nodeType === "SERVICE" && !scopeCode) errors.scopeCode = "请选择服务作用域";
+    if (inline.nodeType === "SERVICE" && scopeCode && !list(detail.template.scopes).some((scope) => scope.code === scopeCode)) errors.scopeCode = "所选服务作用域已不可用，请重新选择";
+    if (Object.keys(errors).length) {
+      model.templateInlineErrors = errors;
+      render();
+      window.setTimeout(() => model.root?.querySelector(".maturity-v50-create-inspector [aria-invalid='true']")?.focus(), 0);
+      showToast("请修正新增节点信息后再确认", "error");
+      return;
+    }
+    const created = createTemplateChildRecord(detail, inline.parentType, inline.parentId, inline.nodeType, name, code, scopeCode, description);
+    if (!created) {
+      showToast("新增节点失败，请检查父级是否仍然有效", "error");
+      return;
+    }
+    model.templateInlineCreate = null;
+    model.templateInlineErrors = {};
+    model.templateInspectorOpen = false;
+    model.templateInspectorSaveMessage = "";
+    setTemplateNodeCollapsed(inline.parentType, inline.parentId, false);
+    model.selectedTemplateNodeType = created.type;
+    model.selectedTemplateNodeId = created.id;
+    if (created.type === "L2") model.selectedTemplateCapabilityId = created.id;
+    if (created.type === "FOCUS") model.selectedTemplateCapabilityId = created.node.capabilityId;
+    if (created.type === "SERVICE") {
+      const focus = list(detail.template.focuses).find((item) => item.id === created.mapping.focusId);
+      if (focus) model.selectedTemplateCapabilityId = focus.capabilityId;
+    }
+    normalizeTemplateSortOrders(detail.template);
+    markTemplateDirty(detail);
+    render();
+    showToast(`${templateTypeName(created.type)}“${name}”已创建并建立关系`, "success");
   }
 
   function addCustomCapability(detail) {
     const template = detail.template;
     const name = text(document.getElementById("maturityCustomCapabilityName")?.value).trim();
     const categoryId = text(document.getElementById("maturityCustomCapabilityCategory")?.value).trim();
-    if (!name || !categoryId) {
+    const code = nextUniqueTemplateNodeCode(template, "L2");
+    const identityErrors = validateTemplateNodeIdentity(template, { name, code });
+    if (!categoryId || Object.keys(identityErrors).length) {
       showToast("请填写能力名称并选择分类", "error");
       return;
     }
     const category = list(template.categories).find((item) => item.id === categoryId) || {};
-    const capability = { id: uid("custom-capability"), code: `CUST.CAP-${template.capabilities.filter((item) => item.isCustom).length + 1}`, name, description: "模板内新增能力 L2。", capabilityLevel: "L2", categoryId, topCategoryId: category.parentId || null, weight: 1, sortOrder: template.capabilities.length, included: true, isCustom: true, isCritical: false, businessImportance: 3, riskUrgency: 3, sourceType: "CUSTOM", changeAction: "ADDED", originalParentId: null, currentParentId: categoryId, changeReason: "模板内新增能力 L2", focusIds: [] };
-    const focus = { id: uid("custom-focus"), code: `${capability.code}-01`, name: `${name}整体评估`, description: "模板内新增关注点。", capabilityId: capability.id, weight: 1, sortOrder: 0, included: true, isCustom: true, isCritical: false, itemType: "FOCUS", sourceType: "CUSTOM", changeAction: "ADDED", originalParentId: null, currentParentId: capability.id, changeReason: "随新增能力创建", serviceMappingIds: [], platformEvidenceServiceIds: [], scoreItemIds: [] };
+    const capability = { id: uid("custom-capability"), code, name, description: "模板内新增能力 L2。", capabilityLevel: "L2", categoryId, topCategoryId: category.parentId || null, weight: 1, sortOrder: template.capabilities.length, included: true, isCustom: true, isCritical: false, businessImportance: 3, riskUrgency: 3, sourceType: "CUSTOM", changeAction: "ADDED", originalParentId: null, currentParentId: categoryId, changeReason: "模板内新增能力 L2", focusIds: [] };
+    const focus = { id: uid("custom-focus"), code: nextUniqueTemplateNodeCode(template, "FOCUS"), name: nextUniqueTemplateNodeName(template, `${name}整体评估`), description: "模板内新增关注点。", capabilityId: capability.id, weight: 1, sortOrder: 0, included: true, isCustom: true, isCritical: false, itemType: "FOCUS", sourceType: "CUSTOM", changeAction: "ADDED", originalParentId: null, currentParentId: capability.id, changeReason: "随新增能力创建", serviceMappingIds: [], platformEvidenceServiceIds: [], scoreItemIds: [] };
     addScoreItemForFocus(template, capability, focus, "FOCUS");
     capability.focusIds.push(focus.id);
     template.capabilities.push(capability);
@@ -4246,12 +6578,14 @@
     const mode = text(document.getElementById("maturityCustomFocusMode")?.value).trim() || "FOCUS";
     const serviceName = text(document.getElementById("maturityCustomServiceName")?.value).trim();
     const serviceScope = text(document.getElementById("maturityCustomServiceScope")?.value).trim() || "ALL";
-    const serviceRole = text(document.getElementById("maturityCustomServiceRole")?.value).trim() || "ASSESSMENT_POINT";
-    if (!capability || !name) {
-      showToast("请先选择能力并填写关注点名称", "error");
+    const serviceRole = requiredTemplateServiceRole(template, capability);
+    const code = nextUniqueTemplateNodeCode(template, "FOCUS");
+    const identityErrors = validateTemplateNodeIdentity(template, { name, code });
+    if (!capability || Object.keys(identityErrors).length) {
+      showToast(identityErrors.name || identityErrors.code || "请先选择能力并填写关注点名称", "error");
       return;
     }
-    const focus = { id: uid("custom-focus"), code: `${capability.code || "CUST"}-${String(list(template.focuses).filter((item) => item.capabilityId === capability.id).length + 1).padStart(2, "0")}`, name, description: "模板内新增关注点。", capabilityId: capability.id, weight: 1, sortOrder: capability.focusIds.length, included: true, isCustom: true, isCritical: false, itemType: mode, sourceType: "CUSTOM", changeAction: "ADDED", originalParentId: null, currentParentId: capability.id, changeReason: "模板内新增关注点", serviceMappingIds: [], platformEvidenceServiceIds: [], scoreItemIds: [] };
+    const focus = { id: uid("custom-focus"), code, name, description: "模板内新增关注点。", capabilityId: capability.id, weight: 1, sortOrder: capability.focusIds.length, included: true, isCustom: true, isCritical: false, itemType: mode, sourceType: "CUSTOM", changeAction: "ADDED", originalParentId: null, currentParentId: capability.id, changeReason: "模板内新增关注点", serviceMappingIds: [], platformEvidenceServiceIds: [], scoreItemIds: [] };
     if (mode === "SERVICE") addScoreItemForFocus(template, capability, focus, "SERVICE", serviceName, serviceScope, serviceRole);
     if (!focus.scoreItemIds.length) addScoreItemForFocus(template, capability, focus, "FOCUS");
     capability.focusIds.push(focus.id);
@@ -4267,8 +6601,11 @@
     const itemIds = new Set(list(detail.template.scoreItems).filter((item) => item.focusId === focusId).map((item) => item.id));
     const removedMappings = list(detail.template.focusServiceMappings).filter((item) => item.focusId === focusId);
     const removedServiceIds = new Set(removedMappings.map((item) => item.serviceId).filter(Boolean));
-    detail.template.changeLog = list(detail.template.changeLog);
-    detail.template.changeLog.push({ objectType: "FOCUS", objectId: focus.id, sourceType: focus.sourceType || "DICTIONARY", changeAction: "REMOVED", originalParentId: focus.originalParentId || focus.capabilityId, currentParentId: null, changedAt: nowLabel(), snapshot: clone(focus) });
+    const transient = removeTransientTemplateChangeLog(detail.template, focus);
+    if (!transient) {
+      detail.template.changeLog = list(detail.template.changeLog);
+      detail.template.changeLog.push({ objectType: "FOCUS", objectId: focus.id, sourceType: focus.sourceType || "DICTIONARY", changeAction: "REMOVED", originalParentId: focus.originalParentId || focus.capabilityId, currentParentId: null, changedAt: nowLabel(), snapshot: clone(focus) });
+    }
     detail.template.focuses = list(detail.template.focuses).filter((item) => item.id !== focusId);
     detail.template.focusServiceMappings = list(detail.template.focusServiceMappings).filter((item) => item.focusId !== focusId);
     detail.template.scoreItems = list(detail.template.scoreItems).filter((item) => item.focusId !== focusId);
@@ -4287,24 +6624,661 @@
     const capability = list(template.capabilities).find((item) => item.id === focus?.capabilityId);
     const serviceName = text(document.getElementById("maturityCustomServiceName")?.value).trim();
     const serviceScope = text(document.getElementById("maturityCustomServiceScope")?.value).trim() || "ALL";
-    const serviceRole = text(document.getElementById("maturityCustomServiceRole")?.value).trim() || "ASSESSMENT_POINT";
+    const serviceRole = requiredTemplateServiceRole(template, capability);
     if (!focus || !capability || !serviceName) {
       showToast("请在下方填写自定义服务名称后再添加", "error");
       return;
     }
-    if (serviceRole === "ASSESSMENT_POINT" && focus.itemType === "FOCUS") {
-      const replacedIds = new Set(list(template.scoreItems).filter((item) => item.focusId === focus.id).map((item) => item.id));
-      template.scoreItems = list(template.scoreItems).filter((item) => item.focusId !== focus.id);
-      detail.scoreEntries = list(detail.scoreEntries).filter((entry) => !replacedIds.has(entry.scoreItemId));
-      focus.scoreItemIds = [];
-      focus.itemType = "SERVICE";
+    const identityErrors = validateTemplateNodeIdentity(template, {
+      name: serviceName,
+      code: nextUniqueTemplateNodeCode(template, "SERVICE"),
+    });
+    if (Object.keys(identityErrors).length) {
+      showToast(identityErrors.name || identityErrors.code, "error");
+      return;
     }
+    captureFocusAssessmentBaseline(detail, focus);
     const before = new Set(list(template.scoreItems).map((item) => item.id));
     addScoreItemForFocus(template, capability, focus, "SERVICE", serviceName, serviceScope, serviceRole);
+    syncFocusAssessmentMode(detail, focus.id);
     detail.scoreEntries.push(...createBlankEntries({ scoreItems: list(template.scoreItems).filter((item) => !before.has(item.id)) }));
-    focus.changeAction = focus.changeAction === "ADDED" ? "ADDED" : "MODIFIED";
+    setTemplateNodeCollapsed("FOCUS", focus.id, false);
     markTemplateDirty(detail);
     render();
+    showToast(`已添加安全技术服务：${serviceName}`, "success");
+  }
+
+  function copyTemplateSubtree(detail, record = selectedTemplateNode(detail)) {
+    if (!detail || !record) return;
+    const template = detail.template;
+    model.templateContextMenu = null;
+    if (record.type === "TEMPLATE") {
+      const copied = {
+        ...clone(template),
+        id: uid("custom-template-copy"),
+        snapshotId: uid("draft-template-copy"),
+        name: `${template.name || "自定义模板"} 副本`,
+        status: "draft",
+        sourceTemplateId: template.id,
+        sourceTemplateSnapshotId: template.snapshotId,
+      };
+      const store = safeStore();
+      store.templateLibrary = list(store.templateLibrary);
+      store.templateLibrary.push({ template: compactTemplateForLocalStorage(copied), importedAt: nowLabel(), sourceTemplateType: "custom", librarySourceType: "TEMPLATE_COPY", copiedFromTemplateId: template.id });
+      writeStore(store);
+      showToast("已复制完整模板及全部下级内容，可在模板管理中创建项目副本", "success");
+      render();
+      return;
+    }
+    if (record.type === "DRAFT") {
+      template.looseNodes = list(template.looseNodes);
+      const copied = { ...clone(record.node), id: uid("loose-node"), name: `${record.node.name || "自由节点"} 副本`, x: Number(record.node.x || 420) + 34, y: Number(record.node.y || 140) + 34 };
+      template.looseNodes.push(copied);
+      model.selectedTemplateNodeType = "DRAFT";
+      model.selectedTemplateNodeId = copied.id;
+      markTemplateDirty(detail);
+      render();
+      showToast("自由节点已复制", "success");
+      return;
+    }
+
+    const categoryIds = new Set();
+    const capabilityIds = new Set();
+    const focusIds = new Set();
+    const mappingIds = new Set();
+    if (record.type === "L0") {
+      categoryIds.add(record.id);
+      list(template.categories).filter((item) => item.parentId === record.id).forEach((item) => categoryIds.add(item.id));
+    }
+    if (record.type === "L1") categoryIds.add(record.id);
+    if (["L0", "L1"].includes(record.type)) {
+      list(template.capabilities).filter((item) => item.included !== false && categoryIds.has(item.categoryId)).forEach((item) => capabilityIds.add(item.id));
+    }
+    if (record.type === "L2") capabilityIds.add(record.id);
+    if (["L0", "L1", "L2"].includes(record.type)) {
+      list(template.focuses).filter((item) => item.included !== false && capabilityIds.has(item.capabilityId)).forEach((item) => focusIds.add(item.id));
+    }
+    if (record.type === "FOCUS") focusIds.add(record.id);
+    if (["L0", "L1", "L2", "FOCUS"].includes(record.type)) {
+      list(template.focusServiceMappings).filter((item) => focusIds.has(item.focusId)).forEach((item) => mappingIds.add(item.id));
+    }
+    if (record.type === "SERVICE") mappingIds.add(record.id);
+
+    const includedMappings = list(template.focusServiceMappings).filter((item) => mappingIds.has(item.id));
+    const serviceIds = new Set(includedMappings.map((item) => item.serviceId).filter(Boolean));
+    const includedScoreItems = list(template.scoreItems).filter((item) => focusIds.has(item.focusId) || mappingIds.has(item.sourceMappingId));
+    const categoryMap = new Map([...categoryIds].map((id) => [id, uid("custom-category-copy")]));
+    const capabilityMap = new Map([...capabilityIds].map((id) => [id, uid("custom-capability-copy")]));
+    const focusMap = new Map([...focusIds].map((id) => [id, uid("custom-focus-copy")]));
+    const mappingMap = new Map([...mappingIds].map((id) => [id, uid("custom-mapping-copy")]));
+    const serviceMap = new Map([...serviceIds].map((id) => [id, uid("custom-service-copy")]));
+    const scoreMap = new Map(includedScoreItems.map((item) => [item.id, uid("custom-score-copy")]));
+    const reservedCopyNames = new Set();
+    const reservedCopyCodes = new Set();
+    const withCopyState = (item, rootType, rootId) => ({
+      ...clone(item),
+      name: item.name,
+      sourceType: "CUSTOM",
+      changeAction: "ADDED",
+      isCustom: true,
+      originalParentId: null,
+      changeReason: "复制节点及全部下级",
+    });
+    const withUniqueCopyIdentity = (item, type) => {
+      item.name = nextUniqueTemplateNodeName(template, `${item.name || "未命名"} 副本`, reservedCopyNames);
+      item.code = nextUniqueTemplateNodeCode(template, type, reservedCopyCodes);
+      reservedCopyNames.add(item.name);
+      reservedCopyCodes.add(item.code);
+      return item;
+    };
+
+    const newCategories = list(template.categories).filter((item) => categoryIds.has(item.id)).map((item) => {
+      const copied = withUniqueCopyIdentity(withCopyState(item, record.type, record.id), categoryCapabilityLevel(item));
+      copied.id = categoryMap.get(item.id);
+      copied.parentId = categoryMap.get(item.parentId) || item.parentId || null;
+      copied.currentParentId = copied.parentId;
+      return copied;
+    });
+    const newCapabilities = list(template.capabilities).filter((item) => capabilityIds.has(item.id)).map((item) => {
+      const copied = withUniqueCopyIdentity(withCopyState(item, record.type, record.id), "L2");
+      copied.id = capabilityMap.get(item.id);
+      copied.categoryId = categoryMap.get(item.categoryId) || item.categoryId;
+      copied.topCategoryId = categoryMap.get(item.topCategoryId) || item.topCategoryId || null;
+      copied.currentParentId = copied.categoryId;
+      copied.focusIds = list(item.focusIds).map((id) => focusMap.get(id)).filter(Boolean);
+      return copied;
+    });
+    const newFocuses = list(template.focuses).filter((item) => focusIds.has(item.id)).map((item) => {
+      const copied = withUniqueCopyIdentity(withCopyState(item, record.type, record.id), "FOCUS");
+      copied.id = focusMap.get(item.id);
+      copied.capabilityId = capabilityMap.get(item.capabilityId) || item.capabilityId;
+      copied.currentParentId = copied.capabilityId;
+      copied.serviceMappingIds = list(item.serviceMappingIds).map((id) => mappingMap.get(id)).filter(Boolean);
+      copied.platformEvidenceServiceIds = list(item.platformEvidenceServiceIds).map((id) => serviceMap.get(id)).filter(Boolean);
+      copied.scoreItemIds = list(item.scoreItemIds).map((id) => scoreMap.get(id)).filter(Boolean);
+      return copied;
+    });
+    const newServices = list(template.services).filter((item) => serviceIds.has(item.id)).map((item) => {
+      const copied = withUniqueCopyIdentity(withCopyState(item, record.type, record.node.id), "SERVICE");
+      copied.id = serviceMap.get(item.id);
+      return copied;
+    });
+    const newMappings = includedMappings.map((item) => {
+      const copied = withCopyState(item, record.type, record.id);
+      copied.id = mappingMap.get(item.id);
+      copied.focusId = focusMap.get(item.focusId) || item.focusId;
+      copied.serviceId = serviceMap.get(item.serviceId) || item.serviceId;
+      copied.currentParentId = copied.focusId;
+      return copied;
+    });
+    const newScoreItems = includedScoreItems.map((item) => {
+      const copied = withCopyState(item, "", "");
+      copied.id = scoreMap.get(item.id);
+      copied.capabilityId = capabilityMap.get(item.capabilityId) || item.capabilityId;
+      copied.focusId = focusMap.get(item.focusId) || item.focusId;
+      copied.serviceId = serviceMap.get(item.serviceId) || item.serviceId || null;
+      copied.sourceMappingId = mappingMap.get(item.sourceMappingId) || item.sourceMappingId || null;
+      copied.platformEvidenceServiceIds = list(item.platformEvidenceServiceIds).map((id) => serviceMap.get(id) || id);
+      return bindScoreItemToCurrentGenericRubric(copied);
+    });
+
+    template.categories = [...list(template.categories), ...newCategories];
+    template.capabilities = [...list(template.capabilities), ...newCapabilities];
+    template.focuses = [...list(template.focuses), ...newFocuses];
+    template.services = [...list(template.services), ...newServices];
+    template.focusServiceMappings = [...list(template.focusServiceMappings), ...newMappings];
+    template.scoreItems = [...list(template.scoreItems), ...newScoreItems];
+    if (record.type === "FOCUS") {
+      const capability = list(template.capabilities).find((item) => item.id === record.node.capabilityId);
+      if (capability) capability.focusIds = [...new Set([...list(capability.focusIds), ...newFocuses.map((item) => item.id)])];
+    }
+    if (record.type === "SERVICE") {
+      const focus = list(template.focuses).find((item) => item.id === record.mapping.focusId);
+      if (focus) {
+        focus.serviceMappingIds = [...new Set([...list(focus.serviceMappingIds), ...newMappings.map((item) => item.id)])];
+        focus.scoreItemIds = [...new Set([...list(focus.scoreItemIds), ...newScoreItems.map((item) => item.id)])];
+        const referenceServiceIds = newMappings.filter((item) => item.serviceRole === "PLATFORM_EVIDENCE_REFERENCE").map((item) => item.serviceId);
+        focus.platformEvidenceServiceIds = [...new Set([...list(focus.platformEvidenceServiceIds), ...referenceServiceIds])];
+      }
+    }
+    detail.scoreEntries.push(...createBlankEntries({ scoreItems: newScoreItems }));
+    normalizeTemplateSortOrders(template);
+    const copiedId = categoryMap.get(record.id) || capabilityMap.get(record.id) || focusMap.get(record.id) || mappingMap.get(record.id);
+    model.selectedTemplateNodeType = record.type;
+    model.selectedTemplateNodeId = copiedId;
+    if (record.type === "L2") model.selectedTemplateCapabilityId = copiedId;
+    markTemplateDirty(detail);
+    render();
+    showToast(`已复制${templateNodeLabel(record.type, record.node)}及全部下级内容`, "success");
+  }
+
+  function createLooseTemplateNode(detail) {
+    const composer = model.templateLooseComposer;
+    const name = text(document.getElementById("maturityLooseNodeName")?.value).trim();
+    const code = text(document.getElementById("maturityLooseNodeCode")?.value).trim();
+    const description = text(document.getElementById("maturityLooseNodeDescription")?.value).trim();
+    const nodeType = text(document.getElementById("maturityLooseNodeType")?.value).trim();
+    const scopeCode = text(document.getElementById("maturityLooseNodeScope")?.value).trim();
+    if (!composer || !["L0", "L1", "L2", "FOCUS", "SERVICE"].includes(nodeType)) {
+      showToast("请选择有效节点类型", "error");
+      return;
+    }
+    const identityErrors = validateTemplateNodeIdentity(detail.template, { name, code });
+    if (Object.keys(identityErrors).length) {
+      showToast(identityErrors.name || identityErrors.code, "error");
+      return;
+    }
+    if (nodeType === "SERVICE" && !list(detail.template.scopes).some((scope) => scope.code === scopeCode)) {
+      showToast("新增安全技术服务时必须选择有效作用域", "error");
+      return;
+    }
+    detail.template.looseNodes = list(detail.template.looseNodes);
+    const node = { id: uid("loose-node"), name, code, scopeCode, description, nodeType, x: composer.stageX, y: composer.stageY, sourceType: "CUSTOM", changeAction: "ADDED", isCustom: true };
+    detail.template.looseNodes.push(node);
+    model.templateLooseComposer = null;
+    model.selectedTemplateNodeType = "DRAFT";
+    model.selectedTemplateNodeId = node.id;
+    model.templateInspectorOpen = true;
+    markTemplateDirty(detail);
+    render();
+    showToast("自由节点已放到画布，请拖到合法父级完成吸附", "success");
+  }
+
+  function materializeLooseTemplateNode(detail, source, targetType, targetId) {
+    const template = detail.template;
+    const nodeType = source.node.nodeType;
+    const target = templateNodeRecord(detail, targetType, targetId);
+    const valid = (nodeType === "L0" && targetType === "TEMPLATE")
+      || (nodeType === "L1" && ["TEMPLATE", "L0"].includes(targetType))
+      || (nodeType === "L2" && targetType === "L1")
+      || (nodeType === "FOCUS" && targetType === "L2")
+      || (nodeType === "SERVICE" && targetType === "FOCUS");
+    if (!target || !valid) {
+      showToast("该节点类型不能吸附到这里，请拖到合法父级", "error");
+      return false;
+    }
+    const identityErrors = validateTemplateNodeIdentity(template, {
+      id: source.id,
+      name: source.node.name,
+      code: source.node.code,
+    });
+    if (Object.keys(identityErrors).length) {
+      showToast(identityErrors.name || identityErrors.code, "error");
+      return false;
+    }
+    if (nodeType === "SERVICE" && !list(template.scopes).some((scope) => scope.code === source.node.scopeCode)) {
+      showToast("请先在属性中为安全技术服务选择有效作用域", "error");
+      return false;
+    }
+    let createdId = "";
+    if (nodeType === "L0" || nodeType === "L1") {
+      const category = {
+        id: uid("custom-category"),
+        code: source.node.code,
+        name: source.node.name,
+        description: source.node.description || "",
+        capabilityLevel: nodeType,
+        level: nodeType === "L0" ? 1 : 2,
+        parentId: nodeType === "L1" && targetType === "L0" ? target.id : null,
+        sortOrder: list(template.categories).length,
+        sourceType: "CUSTOM",
+        changeAction: "ADDED",
+        isCustom: true,
+        originalParentId: null,
+        currentParentId: nodeType === "L1" && targetType === "L0" ? target.id : null,
+      };
+      template.categories.push(category);
+      createdId = category.id;
+    } else if (nodeType === "L2") {
+      const category = target.node;
+      const capability = { id: uid("custom-capability"), code: source.node.code, name: source.node.name, description: source.node.description || "", capabilityLevel: "L2", categoryId: category.id, topCategoryId: category.parentId || null, weight: 1, sortOrder: list(template.capabilities).length, included: true, isCustom: true, isCritical: false, businessImportance: 3, riskUrgency: 3, sourceType: "CUSTOM", changeAction: "ADDED", originalParentId: null, currentParentId: category.id, changeReason: "自由节点吸附", focusIds: [] };
+      template.capabilities.push(capability);
+      createdId = capability.id;
+      model.selectedTemplateCapabilityId = capability.id;
+    } else if (nodeType === "FOCUS") {
+      const capability = target.node;
+      const focus = { id: uid("custom-focus"), code: source.node.code, name: source.node.name, description: source.node.description || "", capabilityId: capability.id, weight: 1, sortOrder: list(capability.focusIds).length, included: true, isCustom: true, isCritical: false, itemType: "FOCUS", sourceType: "CUSTOM", changeAction: "ADDED", originalParentId: null, currentParentId: capability.id, changeReason: "自由节点吸附", serviceMappingIds: [], platformEvidenceServiceIds: [], scoreItemIds: [] };
+      const before = new Set(list(template.scoreItems).map((item) => item.id));
+      addScoreItemForFocus(template, capability, focus, "FOCUS");
+      capability.focusIds = list(capability.focusIds);
+      capability.focusIds.push(focus.id);
+      template.focuses.push(focus);
+      detail.scoreEntries.push(...createBlankEntries({ scoreItems: list(template.scoreItems).filter((item) => !before.has(item.id)) }));
+      createdId = focus.id;
+      model.selectedTemplateCapabilityId = capability.id;
+    } else if (nodeType === "SERVICE") {
+      const focus = target.node;
+      const capability = list(template.capabilities).find((item) => item.id === focus.capabilityId);
+      const beforeMappings = new Set(list(template.focusServiceMappings).map((item) => item.id));
+      const beforeScores = new Set(list(template.scoreItems).map((item) => item.id));
+      captureFocusAssessmentBaseline(detail, focus);
+      addScoreItemForFocus(template, capability, focus, "SERVICE", source.node.name, source.node.scopeCode, "ASSESSMENT_POINT", source.node.code);
+      syncFocusAssessmentMode(detail, focus.id);
+      const mapping = list(template.focusServiceMappings).find((item) => !beforeMappings.has(item.id));
+      const service = mapping ? list(template.services).find((item) => item.id === mapping.serviceId) : null;
+      if (service) service.description = source.node.description || "";
+      detail.scoreEntries.push(...createBlankEntries({ scoreItems: list(template.scoreItems).filter((item) => !beforeScores.has(item.id)) }));
+      createdId = mapping?.id || "";
+      setTemplateNodeCollapsed("FOCUS", focus.id, false);
+      model.selectedTemplateCapabilityId = focus.capabilityId;
+    }
+    template.looseNodes = list(template.looseNodes).filter((item) => item.id !== source.id);
+    normalizeTemplateSortOrders(template);
+    model.selectedTemplateNodeType = nodeType;
+    model.selectedTemplateNodeId = createdId;
+    markTemplateDirty(detail);
+    render();
+    showToast(`${source.node.name} 已吸附为${templateNodeLabel(nodeType, { name: "" }).trim()}`, "success");
+    return true;
+  }
+
+  function moveArrayItemBefore(rows, sourceId, targetId) {
+    const sourceIndex = rows.findIndex((item) => item.id === sourceId);
+    if (sourceIndex < 0) return false;
+    const [source] = rows.splice(sourceIndex, 1);
+    const targetIndex = targetId ? rows.findIndex((item) => item.id === targetId) : rows.length;
+    rows.splice(targetIndex < 0 ? rows.length : targetIndex, 0, source);
+    return true;
+  }
+
+  function normalizeTemplateSortOrders(template) {
+    const normalizeGroups = (rows, parentKey) => {
+      const counts = new Map();
+      rows.forEach((item) => {
+        const key = text(parentKey(item));
+        const order = counts.get(key) || 0;
+        item.sortOrder = order;
+        counts.set(key, order + 1);
+      });
+    };
+    normalizeGroups(list(template.categories).filter((item) => categoryCapabilityLevel(item) === "L0"), () => "L0");
+    normalizeGroups(list(template.categories).filter((item) => categoryCapabilityLevel(item) === "L1"), (item) => item.parentId || "ROOT");
+    normalizeGroups(list(template.capabilities), (item) => item.categoryId || "ROOT");
+    normalizeGroups(list(template.focuses), (item) => item.capabilityId || "ROOT");
+    normalizeGroups(list(template.focusServiceMappings), (item) => item.focusId || "ROOT");
+  }
+
+  function ensureServiceScoreItemForMapping(detail, mapping) {
+    const template = detail.template;
+    if (mapping.serviceRole !== "ASSESSMENT_POINT") return null;
+    const existing = list(template.scoreItems).find((item) => item.sourceMappingId === mapping.id);
+    if (existing) return existing;
+    const focus = list(template.focuses).find((item) => item.id === mapping.focusId);
+    const capability = list(template.capabilities).find((item) => item.id === focus?.capabilityId);
+    if (!focus || !capability) return null;
+    const itemId = uid("custom-score");
+    const item = bindScoreItemToCurrentGenericRubric({
+      id: itemId,
+      itemType: "SERVICE",
+      capabilityId: capability.id,
+      focusId: focus.id,
+      serviceId: mapping.serviceId,
+      scopeCode: mapping.scopeCode,
+      scopeName: mapping.scopeName,
+      weight: 1,
+      sortOrder: list(template.scoreItems).filter((row) => row.focusId === focus.id).length,
+      required: true,
+      sourceType: "CUSTOM",
+      serviceRole: "ASSESSMENT_POINT",
+      sourceMappingId: mapping.id,
+      elementWeights: { organization: 0.25, process: 0.25, tool: 0.25, data: 0.25 },
+    });
+    template.scoreItems.push(item);
+    detail.scoreEntries.push(...createBlankEntries({ scoreItems: [item] }));
+    focus.scoreItemIds = list(focus.scoreItemIds);
+    if (!focus.scoreItemIds.includes(item.id)) focus.scoreItemIds.push(item.id);
+    return item;
+  }
+
+  function syncFocusAssessmentMode(detail, focusId) {
+    const template = detail.template;
+    const focus = list(template.focuses).find((item) => item.id === focusId);
+    const capability = list(template.capabilities).find((item) => item.id === focus?.capabilityId);
+    if (!focus || !capability) return;
+    const mappings = list(template.focusServiceMappings).filter((item) => item.focusId === focus.id);
+    const assessmentMappings = mappings.filter((item) => item.serviceRole === "ASSESSMENT_POINT");
+    const directItems = list(template.scoreItems).filter((item) => item.focusId === focus.id && item.itemType === "FOCUS");
+    if (assessmentMappings.length) {
+      const removedIds = new Set(directItems.map((item) => item.id));
+      template.scoreItems = list(template.scoreItems).filter((item) => !removedIds.has(item.id));
+      detail.scoreEntries = list(detail.scoreEntries).filter((entry) => !removedIds.has(entry.scoreItemId));
+      focus.scoreItemIds = list(focus.scoreItemIds).filter((id) => !removedIds.has(id));
+      focus.itemType = "SERVICE";
+      assessmentMappings.forEach((mapping) => ensureServiceScoreItemForMapping(detail, mapping));
+      return;
+    }
+    const serviceItemIds = new Set(list(template.scoreItems).filter((item) => item.focusId === focus.id && item.itemType === "SERVICE").map((item) => item.id));
+    template.scoreItems = list(template.scoreItems).filter((item) => !serviceItemIds.has(item.id));
+    detail.scoreEntries = list(detail.scoreEntries).filter((entry) => !serviceItemIds.has(entry.scoreItemId));
+    focus.scoreItemIds = list(focus.scoreItemIds).filter((id) => !serviceItemIds.has(id));
+    if (restoreFocusAssessmentBaseline(detail, focus)) return;
+    focus.itemType = "FOCUS";
+    if (!directItems.length) {
+      const itemId = uid("custom-score");
+      const item = bindScoreItemToCurrentGenericRubric({ id: itemId, itemType: "FOCUS", capabilityId: capability.id, focusId: focus.id, serviceId: null, scopeCode: null, scopeName: null, weight: 1, sortOrder: 0, required: true, sourceType: "CUSTOM", serviceRole: null, platformEvidenceServiceIds: mappings.filter((item) => item.serviceRole === "PLATFORM_EVIDENCE_REFERENCE").map((item) => item.serviceId), elementWeights: { organization: 0.25, process: 0.25, tool: 0.25, data: 0.25 } });
+      template.scoreItems.push(item);
+      detail.scoreEntries.push(...createBlankEntries({ scoreItems: [item] }));
+      focus.scoreItemIds.push(item.id);
+    }
+  }
+
+  function moveTemplateNode(detail, sourceType, sourceId, targetType, targetId) {
+    const template = detail.template;
+    const source = templateNodeRecord(detail, sourceType, sourceId);
+    const target = templateNodeRecord(detail, targetType, targetId);
+    if (!source || !target || (sourceType === targetType && sourceId === targetId)) return false;
+    if (sourceType === "DRAFT") return materializeLooseTemplateNode(detail, source, targetType, targetId);
+    const affectedFocusIds = new Set();
+    if (sourceType === "SERVICE") affectedFocusIds.add(source.mapping.focusId);
+    let moved = false;
+    if (sourceType === "L0" && targetType === "L0") {
+      moved = moveArrayItemBefore(template.categories, sourceId, targetId);
+    } else if (sourceType === "L1" && ["L0", "L1"].includes(targetType)) {
+      source.node.parentId = targetType === "L0" ? target.id : target.node.parentId || null;
+      source.node.currentParentId = source.node.parentId;
+      source.node.changeAction = source.node.changeAction === "ADDED" ? "ADDED" : "MOVED";
+      moved = targetType === "L1" ? moveArrayItemBefore(template.categories, sourceId, targetId) : true;
+    } else if (sourceType === "L2" && ["L1", "L2"].includes(targetType)) {
+      const categoryId = targetType === "L1" ? target.id : target.node.categoryId;
+      const category = list(template.categories).find((item) => item.id === categoryId);
+      source.node.categoryId = categoryId;
+      source.node.topCategoryId = category?.parentId || null;
+      source.node.currentParentId = categoryId;
+      source.node.changeAction = source.node.changeAction === "ADDED" ? "ADDED" : "MOVED";
+      moved = targetType === "L2" ? moveArrayItemBefore(template.capabilities, sourceId, targetId) : true;
+    } else if (sourceType === "FOCUS" && ["L2", "FOCUS"].includes(targetType)) {
+      const nextCapabilityId = targetType === "L2" ? target.id : target.node.capabilityId;
+      const previousCapabilityId = source.node.capabilityId;
+      const previous = list(template.capabilities).find((item) => item.id === previousCapabilityId);
+      const current = list(template.capabilities).find((item) => item.id === nextCapabilityId);
+      source.node.capabilityId = nextCapabilityId;
+      source.node.currentParentId = nextCapabilityId;
+      source.node.changeAction = source.node.changeAction === "ADDED" ? "ADDED" : "MOVED";
+      if (previous) previous.focusIds = list(previous.focusIds).filter((id) => id !== source.id);
+      if (current && !list(current.focusIds).includes(source.id)) current.focusIds.push(source.id);
+      list(template.scoreItems).filter((item) => item.focusId === source.id).forEach((item) => { item.capabilityId = nextCapabilityId; });
+      moved = targetType === "FOCUS" ? moveArrayItemBefore(template.focuses, sourceId, targetId) : true;
+    } else if (sourceType === "SERVICE" && ["FOCUS", "SERVICE"].includes(targetType)) {
+      const nextFocusId = targetType === "FOCUS" ? target.id : target.mapping.focusId;
+      const previousFocusId = source.mapping.focusId;
+      const previous = list(template.focuses).find((item) => item.id === previousFocusId);
+      const current = list(template.focuses).find((item) => item.id === nextFocusId);
+      source.mapping.focusId = nextFocusId;
+      source.mapping.currentParentId = nextFocusId;
+      source.mapping.changeAction = source.mapping.changeAction === "ADDED" ? "ADDED" : "MOVED";
+      if (previous) previous.serviceMappingIds = list(previous.serviceMappingIds).filter((id) => id !== source.id);
+      if (current && !list(current.serviceMappingIds).includes(source.id)) current.serviceMappingIds.push(source.id);
+      list(template.scoreItems).filter((item) => item.sourceMappingId === source.id).forEach((item) => {
+        item.focusId = nextFocusId;
+        item.capabilityId = current?.capabilityId || item.capabilityId;
+      });
+      moved = targetType === "SERVICE" ? moveArrayItemBefore(template.focusServiceMappings, sourceId, targetId) : true;
+      affectedFocusIds.add(previousFocusId);
+      affectedFocusIds.add(nextFocusId);
+    }
+    if (!moved) {
+      showToast("该节点不能移动到目标位置", "error");
+      return false;
+    }
+    if (sourceType === "L1") {
+      const capabilityIds = new Set(list(template.capabilities).filter((item) => item.categoryId === source.id).map((item) => item.id));
+      list(template.focuses).filter((item) => capabilityIds.has(item.capabilityId)).forEach((item) => affectedFocusIds.add(item.id));
+    } else if (sourceType === "L2") {
+      list(template.focuses).filter((item) => item.capabilityId === source.id).forEach((item) => affectedFocusIds.add(item.id));
+    } else if (sourceType === "FOCUS") {
+      affectedFocusIds.add(source.id);
+    }
+    enforceTemplateServiceRoles(detail, affectedFocusIds);
+    normalizeTemplateSortOrders(template);
+    model.selectedTemplateNodeType = sourceType;
+    model.selectedTemplateNodeId = sourceId;
+    expandTemplateAncestors(detail, source);
+    markTemplateDirty(detail);
+    render();
+    animateTemplateNodeDrop(sourceType, sourceId);
+    showToast(`${templateNodeLabel(sourceType, source.node)} 已移动，全部下级随节点保留`, "success");
+    return true;
+  }
+
+  function siblingTemplateNodes(detail, record) {
+    const template = detail.template;
+    if (["TEMPLATE", "DRAFT"].includes(record.type)) return [];
+    if (record.type === "L0") return byTemplateOrder(list(template.categories).filter((item) => categoryCapabilityLevel(item) === "L0")).map((node) => ({ type: "L0", id: node.id }));
+    if (record.type === "L1") return byTemplateOrder(list(template.categories).filter((item) => categoryCapabilityLevel(item) === "L1" && (item.parentId || "") === (record.node.parentId || ""))).map((node) => ({ type: "L1", id: node.id }));
+    if (record.type === "L2") return byTemplateOrder(list(template.capabilities).filter((item) => item.included !== false && item.categoryId === record.node.categoryId)).map((node) => ({ type: "L2", id: node.id }));
+    if (record.type === "FOCUS") return byTemplateOrder(list(template.focuses).filter((item) => item.included !== false && item.capabilityId === record.node.capabilityId)).map((node) => ({ type: "FOCUS", id: node.id }));
+    return byTemplateOrder(list(template.focusServiceMappings).filter((item) => item.focusId === record.mapping.focusId)).map((mapping) => ({ type: "SERVICE", id: mapping.id }));
+  }
+
+  function moveSelectedTemplateNode(detail, direction) {
+    const selected = selectedTemplateNode(detail);
+    if (!selected) return;
+    const siblings = siblingTemplateNodes(detail, selected);
+    const index = siblings.findIndex((item) => item.id === selected.id);
+    const target = siblings[index + (Number(direction) < 0 ? -1 : 1)];
+    model.templateContextMenu = null;
+    if (!target) {
+      showToast(Number(direction) < 0 ? "已经位于当前层级最前" : "已经位于当前层级最后", "info");
+      return;
+    }
+    moveTemplateNode(detail, selected.type, selected.id, target.type, target.id);
+  }
+
+  function removeServiceMapping(detail, mappingId) {
+    const template = detail.template;
+    const mapping = list(template.focusServiceMappings).find((item) => item.id === mappingId);
+    if (!mapping) return;
+    const focusId = mapping.focusId;
+    const transient = removeTransientTemplateChangeLog(template, mapping);
+    if (!transient) {
+      template.changeLog = list(template.changeLog);
+      template.changeLog.push({
+        objectType: "SERVICE",
+        objectId: mapping.id,
+        sourceType: mapping.sourceType || "DICTIONARY",
+        changeAction: "REMOVED",
+        originalParentId: mapping.originalParentId || focusId,
+        currentParentId: null,
+        changedAt: nowLabel(),
+        snapshot: clone(mapping),
+      });
+    }
+    const scoreItemIds = new Set(list(template.scoreItems).filter((item) => item.sourceMappingId === mappingId).map((item) => item.id));
+    template.focusServiceMappings = list(template.focusServiceMappings).filter((item) => item.id !== mappingId);
+    template.scoreItems = list(template.scoreItems).filter((item) => !scoreItemIds.has(item.id));
+    detail.scoreEntries = list(detail.scoreEntries).filter((entry) => !scoreItemIds.has(entry.scoreItemId));
+    const focus = list(template.focuses).find((item) => item.id === focusId);
+    if (focus) {
+      focus.serviceMappingIds = list(focus.serviceMappingIds).filter((id) => id !== mappingId);
+      focus.platformEvidenceServiceIds = list(focus.platformEvidenceServiceIds).filter((id) => id !== mapping.serviceId);
+      focus.scoreItemIds = list(focus.scoreItemIds).filter((id) => !scoreItemIds.has(id));
+    }
+    if (!list(template.focusServiceMappings).some((item) => item.serviceId === mapping.serviceId)) {
+      template.services = list(template.services).filter((item) => item.id !== mapping.serviceId);
+    }
+    syncFocusAssessmentMode(detail, focusId);
+    if (transient) restoreStandardRecordChangeAction("FOCUS", focus);
+  }
+
+  function removeTemplateCapability(detail, capabilityId) {
+    const template = detail.template;
+    const capability = list(template.capabilities).find((item) => item.id === capabilityId);
+    if (!capability) return;
+    const focusIds = new Set(list(template.focuses).filter((item) => item.capabilityId === capabilityId).map((item) => item.id));
+    const mappings = list(template.focusServiceMappings).filter((item) => focusIds.has(item.focusId));
+    const removedMappingIds = new Set(mappings.map((item) => item.id));
+    const removedServiceIds = new Set(mappings.map((item) => item.serviceId).filter(Boolean));
+    const removedScoreItemIds = new Set(list(template.scoreItems).filter((item) => item.capabilityId === capabilityId || focusIds.has(item.focusId)).map((item) => item.id));
+    const transient = removeTransientTemplateChangeLog(template, capability);
+    if (!transient) {
+      template.changeLog = list(template.changeLog);
+      template.changeLog.push({
+        objectType: "L2",
+        objectId: capability.id,
+        sourceType: capability.sourceType || "DICTIONARY",
+        changeAction: "REMOVED",
+        originalParentId: capability.originalParentId || capability.categoryId || null,
+        currentParentId: null,
+        changedAt: nowLabel(),
+        snapshot: clone(capability),
+      });
+      capability.included = false;
+      capability.changeAction = "REMOVED";
+      capability.currentParentId = null;
+      capability.focusIds = [];
+    } else {
+      template.capabilities = list(template.capabilities).filter((item) => item.id !== capabilityId);
+    }
+    template.focuses = list(template.focuses).filter((item) => !focusIds.has(item.id));
+    template.focusServiceMappings = list(template.focusServiceMappings).filter((item) => !removedMappingIds.has(item.id));
+    template.scoreItems = list(template.scoreItems).filter((item) => !removedScoreItemIds.has(item.id));
+    detail.scoreEntries = list(detail.scoreEntries).filter((entry) => !removedScoreItemIds.has(entry.scoreItemId));
+    const remainingServiceIds = new Set(list(template.focusServiceMappings).map((item) => item.serviceId).filter(Boolean));
+    template.services = list(template.services).filter((item) => !removedServiceIds.has(item.id) || remainingServiceIds.has(item.id));
+    normalizeTemplateSortOrders(template);
+    markTemplateDirty(detail);
+    render();
+  }
+
+  function removeSelectedTemplateNode(detail) {
+    const selected = selectedTemplateNode(detail);
+    if (!selected) return;
+    model.templateContextMenu = null;
+    if (selected.type === "TEMPLATE") return;
+    if (selected.type === "DRAFT") {
+      detail.template.looseNodes = list(detail.template.looseNodes).filter((item) => item.id !== selected.id);
+      model.selectedTemplateNodeType = "";
+      model.selectedTemplateNodeId = "";
+      markTemplateDirty(detail);
+      render();
+      showToast("自由节点已移除", "success");
+      return;
+    }
+    if (selected.type === "L0" && list(detail.template.categories).some((item) => item.parentId === selected.id)) {
+      showToast("请先把该 L0 下的能力 L1 移动到其他 L0 或根目录", "error");
+      return;
+    }
+    if (selected.type === "L1" && list(detail.template.capabilities).some((item) => item.included !== false && item.categoryId === selected.id)) {
+      showToast("请先把该 L1 下的能力 L2 移动到其他 L1", "error");
+      return;
+    }
+    model.selectedTemplateNodeType = "";
+    model.selectedTemplateNodeId = "";
+    if (["L0", "L1"].includes(selected.type)) removeCustomCategory(detail, selected.id);
+    if (selected.type === "L2") removeTemplateCapability(detail, selected.id);
+    if (selected.type === "FOCUS") removeCustomFocus(detail, selected.id);
+    if (selected.type === "SERVICE") {
+      removeServiceMapping(detail, selected.id);
+      markTemplateDirty(detail);
+      render();
+    }
+  }
+
+  function updateTemplateServiceMappingRole(detail, mapping, role) {
+    const template = detail.template;
+    const focus = list(template.focuses).find((item) => item.id === mapping.focusId);
+    if (!focus) return "";
+    role = requiredTemplateServiceRoleForFocus(template, focus);
+    mapping.serviceRole = role;
+    mapping.changeAction = mapping.changeAction === "ADDED" ? "ADDED" : "MODIFIED";
+    if (role === "ASSESSMENT_POINT") {
+      focus.platformEvidenceServiceIds = list(focus.platformEvidenceServiceIds).filter((id) => id !== mapping.serviceId);
+      ensureServiceScoreItemForMapping(detail, mapping);
+    } else {
+      const removedIds = new Set(list(template.scoreItems).filter((item) => item.sourceMappingId === mapping.id).map((item) => item.id));
+      template.scoreItems = list(template.scoreItems).filter((item) => !removedIds.has(item.id));
+      detail.scoreEntries = list(detail.scoreEntries).filter((entry) => !removedIds.has(entry.scoreItemId));
+      focus.scoreItemIds = list(focus.scoreItemIds).filter((id) => !removedIds.has(id));
+      focus.platformEvidenceServiceIds = list(focus.platformEvidenceServiceIds);
+      if (!focus.platformEvidenceServiceIds.includes(mapping.serviceId)) focus.platformEvidenceServiceIds.push(mapping.serviceId);
+    }
+    syncFocusAssessmentMode(detail, focus.id);
+    return role;
+  }
+
+  function enforceTemplateServiceRolesForFocus(detail, focusId) {
+    const template = detail.template;
+    const focus = list(template.focuses).find((item) => item.id === focusId);
+    if (!focus) return 0;
+    const requiredRole = requiredTemplateServiceRoleForFocus(template, focus);
+    let corrected = 0;
+    list(template.focusServiceMappings).filter((item) => item.focusId === focus.id).forEach((mapping) => {
+      if (mapping.serviceRole === requiredRole) return;
+      updateTemplateServiceMappingRole(detail, mapping, requiredRole);
+      corrected += 1;
+    });
+    syncFocusAssessmentMode(detail, focus.id);
+    return corrected;
+  }
+
+  function enforceTemplateServiceRoles(detail, focusIds = null) {
+    const targets = focusIds
+      ? [...focusIds].filter(Boolean)
+      : list(detail?.template?.focuses).map((item) => item.id);
+    return [...new Set(targets)].reduce(
+      (total, focusId) => total + enforceTemplateServiceRolesForFocus(detail, focusId),
+      0,
+    );
   }
 
   async function validateTemplate(detail) {
@@ -4315,10 +7289,22 @@
     if (validation?.valid) {
       detail.template.status = "validated";
       if (validation.snapshotId) detail.template.snapshotId = validation.snapshotId;
+      detail.template.publishedAt = nowLabel();
       detail.project.templateSnapshotId = detail.template.snapshotId;
-      if (detail.project.status === "template_configuring") detail.project.status = "scoring";
+      if (detail.project.templateWorkspace) {
+        detail.template.librarySourceType = "TEMPLATE_MANAGER";
+        detail.project.status = "template_ready";
+        detail.project.statusLabel = PROJECT_STATUS_NAMES.template_ready;
+      } else {
+        detail.template.librarySourceType = "PROJECT";
+        detail.template.publishedFromProjectId = detail.project.id;
+        detail.template.publishedFromProjectName = detail.project.name;
+        if (detail.project.status === "template_configuring") detail.project.status = "scoring";
+        detail.project.statusLabel = PROJECT_STATUS_NAMES[detail.project.status] || detail.project.status;
+      }
       touchDetail(detail, { invalidateResult: true, invalidateReport: true });
-      showToast("模板校验通过，可以进入评分", "success");
+      render();
+      showToast(detail.project.templateWorkspace ? "模板校验通过，已保存到首页模板管理" : "模板校验通过，已保存；模板管理已同步项目来源", "success");
       return;
     }
     render();
@@ -4358,7 +7344,8 @@
       if (!imported?.ok) throw new Error(list(imported?.rowErrors)[0]?.message || "导入模板校验未通过");
       const store = safeStore();
       store.templateLibrary = list(store.templateLibrary).filter((item) => (item?.template || item)?.id !== imported.template.id);
-      store.templateLibrary.push({ template: imported.template, importedAt: nowLabel(), sourceTemplateType: imported.sourceTemplateType || "custom" });
+      const hydratedTemplate = hydrateStandardTemplateDefinitions({ ...imported.template, type: "custom" }, model.workspace?.template);
+      store.templateLibrary.push({ template: compactTemplateForLocalStorage(hydratedTemplate), importedAt: nowLabel(), sourceTemplateType: imported.sourceTemplateType || "custom", librarySourceType: "XLSX_IMPORT" });
       store.templateImportBatches = list(store.templateImportBatches);
       store.templateImportBatches.push({ ...imported.batch, importedAt: nowLabel(), sourceTemplateType: imported.sourceTemplateType || "custom" });
       writeStore(store);
@@ -4375,7 +7362,7 @@
       const response = await window.sapdDataClient?.importMaturityTemplateExchange?.(exchange);
       const imported = unwrap(response);
       if (!imported?.ok) throw new Error(list(imported?.rowErrors)[0]?.message || "导入模板校验未通过");
-      detail.template = { ...imported.template, type: "custom", status: "validated" };
+      detail.template = hydrateStandardTemplateDefinitions({ ...imported.template, type: "custom", status: "validated" }, model.workspace?.template);
       detail.project.templateId = detail.template.id || uid("custom-template");
       detail.project.templateName = detail.template.name || "导入的自定义模板";
       detail.project.templateType = "custom";
@@ -4850,6 +7837,11 @@
   }
 
   function handleClick(event) {
+    if (model.suppressTemplateClick && event.target.closest?.("[data-template-node-type][data-template-node-id]")) {
+      event.preventDefault();
+      model.suppressTemplateClick = false;
+      return;
+    }
     const actionTarget = event.target.closest("[data-maturity-action]");
     const tabTarget = event.target.closest("[data-maturity-tab]");
     if (tabTarget) {
@@ -4867,6 +7859,12 @@
       render();
       return;
     }
+    if (!actionTarget && (model.templateContextMenu || model.templateCanvasContextMenu)) {
+      model.templateContextMenu = null;
+      model.templateCanvasContextMenu = null;
+      render();
+      return;
+    }
     const levelTarget = event.target.closest("[data-maturity-score-level]");
     if (levelTarget) {
       const detail = activeDetail();
@@ -4876,6 +7874,104 @@
     if (!actionTarget) return;
     const action = actionTarget.dataset.maturityAction;
     const detail = activeDetail();
+    if (action === "select-template-node" && detail) {
+      const selectedFromOutline = Boolean(actionTarget.closest(".maturity-v41-floating-panel.is-outline"));
+      model.selectedTemplateNodeType = actionTarget.dataset.templateNodeType || "";
+      model.selectedTemplateNodeId = actionTarget.dataset.templateNodeId || "";
+      const selected = selectedTemplateNode(detail);
+      if (selected?.type === "L2") model.selectedTemplateCapabilityId = selected.id;
+      if (selectedFromOutline) expandTemplateAncestors(detail, selected);
+      if (selectedFromOutline && Number(model.templateMindmapZoom || 0.5) < 0.35) model.templateMindmapZoom = 0.5;
+      model.templateContextMenu = null;
+      model.templateCanvasContextMenu = null;
+      model.templateInspectorSaveMessage = "";
+      if (selectedFromOutline) {
+        render();
+        window.requestAnimationFrame(() => positionTemplateMindmapViewport(detail, selected));
+      } else if (!updateTemplateSelectionUi(detail, selected)) {
+        render();
+      }
+      return;
+    }
+    if (action === "toggle-template-node-collapse" && detail) {
+      const nodeType = actionTarget.dataset.templateNodeType || "";
+      const nodeId = actionTarget.dataset.templateNodeId || "";
+      if (!templateNodeRecord(detail, nodeType, nodeId)) return;
+      const beforeLayout = templateMindmapLayout(detail, selectedTemplateNode(detail));
+      const beforeNode = templateLayoutNode(beforeLayout, nodeType, nodeId);
+      setTemplateNodeCollapsed(nodeType, nodeId, !templateNodeIsCollapsed(nodeType, nodeId));
+      const afterLayout = templateMindmapLayout(detail, selectedTemplateNode(detail));
+      const afterNode = templateLayoutNode(afterLayout, nodeType, nodeId);
+      if (beforeNode && afterNode) {
+        const zoom = Number(model.templateMindmapZoom || 0.5);
+        model.templateMindmapPanX += (beforeNode.x - afterNode.x) * zoom;
+        model.templateMindmapPanY += (beforeNode.y - afterNode.y) * zoom;
+      }
+      model.templateContextMenu = null;
+      model.templateCanvasContextMenu = null;
+      render();
+      return;
+    }
+    if (["collapse-all-template-nodes", "expand-all-template-nodes"].includes(action) && detail) {
+      const shouldCollapse = action === "collapse-all-template-nodes";
+      setTemplateCollapsePreset(detail, shouldCollapse ? "L1" : "EXPANDED");
+      if (shouldCollapse) {
+        model.selectedTemplateNodeType = "TEMPLATE";
+        model.selectedTemplateNodeId = detail.template.id;
+      }
+      model.templateContextMenu = null;
+      model.templateCanvasContextMenu = null;
+      render();
+      window.requestAnimationFrame(() => positionTemplateMindmapViewport(
+        detail,
+        { type: "TEMPLATE", id: detail.template.id },
+        { fit: true },
+      ));
+      return;
+    }
+    if (action === "toggle-template-outline") {
+      model.templateOutlineOpen = !model.templateOutlineOpen;
+      render();
+      return;
+    }
+    if (action === "toggle-template-inspector") {
+      if (model.templateInspectorOpen && model.templateInlineCreate) {
+        model.templateInlineCreate = null;
+        model.templateInlineErrors = {};
+        model.templateInspectorOpen = false;
+        render();
+        showToast("已取消未确认的新增节点", "info");
+        return;
+      }
+      model.templateInspectorOpen = !model.templateInspectorOpen;
+      model.templateInspectorSaveMessage = "";
+      render();
+      return;
+    }
+    if (action === "confirm-template-node-properties" && detail) {
+      saveTemplateNodeProperties(detail);
+      return;
+    }
+    if (action === "zoom-template-mindmap") {
+      const nextZoom = Number(model.templateMindmapZoom || 0.5) + Number(actionTarget.dataset.zoomStep || 0);
+      const viewport = model.root?.querySelector("[data-template-mindmap-viewport]");
+      const rect = viewport?.getBoundingClientRect();
+      if (!zoomTemplateMindmapAt(
+        viewport,
+        nextZoom,
+        rect ? rect.left + rect.width / 2 : undefined,
+        rect ? rect.top + rect.height / 2 : undefined,
+      )) {
+        model.templateMindmapZoom = Math.max(0.05, Math.min(1.3, Math.round(nextZoom * 100) / 100));
+        render();
+      }
+      return;
+    }
+    if (action === "center-template-mindmap") {
+      positionTemplateMindmapViewport(detail, selectedTemplateNode(detail), { fit: true });
+      render();
+      return;
+    }
     if (action === "edit-project-info" && detail) { openProjectInfoEditor(detail); return; }
     if (action === "cancel-project-info-edit") { closeProjectInfoEditor(); return; }
     if (action === "save-project-info" && detail) { saveProjectInfo(detail); return; }
@@ -4897,6 +7993,76 @@
     if (action === "dismiss-feedback") { model.toast = ""; model.toastRoute = ""; render(); return; }
     if (action === "retry-load") loadWorkspace({ force: true });
     if (action === "new-project") openCreateWizard();
+    if (action === "new-template") createStandaloneTemplateWorkspace();
+    if (action === "request-project-delete") {
+      const candidate = model.details[actionTarget.dataset.projectId || ""];
+      if (!candidate?.project || candidate.project.templateWorkspace) return;
+      model.projectDeleteCandidateId = candidate.project.id;
+      model.projectDeleteStep = 1;
+      render();
+      window.setTimeout(() => model.root?.querySelector('[data-maturity-action="continue-project-delete"]')?.focus(), 0);
+      return;
+    }
+    if (action === "continue-project-delete") {
+      if (!model.projectDeleteCandidateId) return;
+      model.projectDeleteStep = 2;
+      render();
+      window.setTimeout(() => model.root?.querySelector('[data-maturity-action="confirm-project-delete"]')?.focus(), 0);
+      return;
+    }
+    if (action === "cancel-project-delete") {
+      model.projectDeleteCandidateId = "";
+      model.projectDeleteStep = 0;
+      render();
+      return;
+    }
+    if (action === "confirm-project-delete") {
+      const candidate = model.details[model.projectDeleteCandidateId];
+      if (model.projectDeleteStep >= 2 && candidate) deleteProjectFromLocalWorkspace(candidate);
+      return;
+    }
+    if (action === "request-template-delete") {
+      const record = templateLibraryRecords().find((item) => item.template.id === actionTarget.dataset.templateId);
+      if (!record) return;
+      if (record.source === "default") {
+        showToast("标准模板是知识库基线，不能删除", "error");
+        return;
+      }
+      if (record.source === "project") {
+        const projectName = model.details[record.sourceProjectId]?.project?.name || record.template.publishedFromProjectName || "当前项目";
+        showToast(`该模板仍由项目“${projectName}”使用，请先删除项目；项目删除后模板会保留并可单独删除`, "error");
+        return;
+      }
+      model.templateDeleteCandidateId = record.template.id;
+      model.templateDeleteStep = 1;
+      render();
+      window.setTimeout(() => model.root?.querySelector('[data-maturity-action="continue-template-delete"]')?.focus(), 0);
+      return;
+    }
+    if (action === "continue-template-delete") {
+      if (!model.templateDeleteCandidateId) return;
+      model.templateDeleteStep = 2;
+      render();
+      window.setTimeout(() => model.root?.querySelector('[data-maturity-action="confirm-template-delete"]')?.focus(), 0);
+      return;
+    }
+    if (action === "cancel-template-delete") {
+      model.templateDeleteCandidateId = "";
+      model.templateDeleteStep = 0;
+      render();
+      return;
+    }
+    if (action === "confirm-template-delete") {
+      const record = templateLibraryRecords().find((item) => item.template.id === model.templateDeleteCandidateId);
+      if (model.templateDeleteStep >= 2 && record) deleteTemplateFromLocalWorkspace(record);
+      return;
+    }
+    if (action === "return-template-manager") {
+      model.templateManagerView = "custom";
+      model.templateManagerPage = 1;
+      model.navigate?.("/workbench/maturity");
+      return;
+    }
     if (action === "close-create") closeCreateWizard();
     if (action === "save-create-draft") saveCreateDraft();
     if (action === "resume-draft") openCreateWizard(model.details[actionTarget.dataset.projectId]);
@@ -4931,13 +8097,15 @@
       const record = templateLibraryRecords().find((item) => item.template.id === actionTarget.dataset.templateId);
       if (record) exportTemplateRecord(record.template, record.sourceProjectId ? model.details[record.sourceProjectId] : null);
     }
-    if (action === "use-library-template") {
+    if (action === "copy-template-to-manager") {
       const record = templateLibraryRecords().find((item) => item.template.id === actionTarget.dataset.templateId);
-      if (record) openCreateWizard(null, record.template);
+      if (record) createStandaloneTemplateWorkspace(record.template, record);
     }
-    if (action === "manage-template-project") {
+    if (["manage-template-project", "open-source-project-template"].includes(action)) {
       model.activeTab = "template";
-      model.navigate?.(`/workbench/maturity/${encodeURIComponent(actionTarget.dataset.projectId || "")}`);
+      const projectId = actionTarget.dataset.projectId || "";
+      rememberProjectTab("template", projectId);
+      model.navigate?.(`/workbench/maturity/${encodeURIComponent(projectId)}`);
     }
     if (action === "set-results-view") { model.resultsView = actionTarget.dataset.resultsView || "customer"; render(); }
     if (action === "open-review-tab") { model.activeTab = "review"; model.projectObjectSearch = ""; render(); }
@@ -4947,8 +8115,8 @@
         window.setTimeout(() => model.root.querySelector('[aria-invalid="true"]')?.focus(), 0);
         return;
       }
-      if (model.createStep === 2 && !model.createDraft.templateType) {
-        model.createErrors = { templateType: "请选择评估模板" };
+      if (model.createStep === 2 && (!model.createDraft.templateType || (model.createDraft.templateType === "custom" && !model.createDraft.templateLibraryId))) {
+        model.createErrors = { templateType: model.createDraft.templateType === "custom" ? "请选择自定义模板来源" : "请选择评估模板" };
         render();
         return;
       }
@@ -4962,7 +8130,7 @@
     }
     if (action === "choose-template") {
       model.createDraft.templateType = actionTarget.dataset.templateType || "base";
-      model.createDraft.templateLibraryId = actionTarget.dataset.templateId || (model.createDraft.templateType === "base" ? model.workspace?.template?.id || "" : "");
+      model.createDraft.templateLibraryId = model.workspace?.template?.id || "";
       model.createErrors = {};
       render();
     }
@@ -5042,11 +8210,11 @@
       if (!rows.length) return;
       const delta = Number(actionTarget.dataset.searchStep || 0) < 0 ? -1 : 1;
       model.projectObjectSearchIndex = (Number(model.projectObjectSearchIndex || 0) + delta + rows.length) % rows.length;
-      render();
-      window.setTimeout(() => model.root?.querySelector("[data-maturity-project-search]")?.focus(), 0);
+      updateProjectObjectSearchUi(detail);
+      model.root?.querySelector("[data-maturity-project-search]")?.focus();
       return;
     }
-    const lockedActions = new Set(["clone-custom-template", "add-category", "remove-category", "add-custom-scope", "add-custom-capability", "add-custom-focus", "add-custom-service", "remove-custom-focus", "validate-template", "trigger-template-import", "trigger-score-import", "complete-assessment"]);
+    const lockedActions = new Set(["clone-custom-template", "add-category", "remove-category", "add-custom-scope", "add-custom-capability", "add-custom-focus", "add-custom-service", "remove-custom-focus", "move-template-node", "remove-template-node", "copy-template-subtree", "create-loose-node", "begin-template-inline-child", "add-template-child", "add-template-sibling", "commit-template-inline-create", "undo-template-change", "redo-template-change", "validate-template", "trigger-template-import", "trigger-score-import", "complete-assessment"]);
     if (detail.project.readOnly && lockedActions.has(action)) {
       showToast("正式报告项目已锁定；请新建项目或复制模板后继续评估", "error");
       return;
@@ -5101,6 +8269,23 @@
       const objectId = actionTarget.dataset.objectId || "";
       const scoreItemId = actionTarget.dataset.scoreItemId || "";
       const focusId = actionTarget.dataset.focusId || "";
+      if (model.activeTab === "template") {
+        const selected = templateNodeRecord(detail, objectType, objectId);
+        if (!selected) {
+          showToast("该对象当前不在模板画布中", "info");
+          return;
+        }
+        model.selectedTemplateNodeType = selected.type;
+        model.selectedTemplateNodeId = selected.id;
+        model.templateInspectorOpen = true;
+        model.projectObjectSearch = "";
+        model.projectObjectSearchIndex = 0;
+        expandTemplateAncestors(detail, selected);
+        if (Number(model.templateMindmapZoom || 0.5) < 0.35) model.templateMindmapZoom = 0.5;
+        render();
+        window.requestAnimationFrame(() => positionTemplateMindmapViewport(detail, selected));
+        return;
+      }
       if (scoringNavigationBlocked(detail, scoreItemId)) return;
       model.activeTab = "scoring";
       model.projectObjectSearch = "";
@@ -5268,6 +8453,53 @@
     if (action === "add-custom-focus") addCustomFocus(detail, actionTarget.dataset.capabilityId);
     if (action === "add-custom-service") addCustomServiceToFocus(detail, actionTarget.dataset.focusId);
     if (action === "remove-custom-focus") removeCustomFocus(detail, actionTarget.dataset.focusId);
+    if (action === "start-add-loose-node") {
+      const menu = model.templateCanvasContextMenu;
+      model.templateCanvasContextMenu = null;
+      model.templateLooseComposer = menu ? { ...menu, x: Math.min(window.innerWidth - 310, menu.x), y: Math.min(window.innerHeight - 286, menu.y) } : null;
+      render();
+      window.setTimeout(() => document.getElementById("maturityLooseNodeName")?.select(), 0);
+    }
+    if (action === "cancel-add-loose-node") {
+      model.templateLooseComposer = null;
+      render();
+    }
+    if (action === "create-loose-node") createLooseTemplateNode(detail);
+    if (action === "edit-template-node") {
+      model.templateContextMenu = null;
+      model.templateInspectorOpen = true;
+      model.templateInspectorSaveMessage = "";
+      render();
+      window.setTimeout(() => model.root?.querySelector(".maturity-v40-inspector-fields input:not([type='checkbox']), .maturity-v40-inspector-fields select")?.focus(), 0);
+    }
+    if (action === "begin-template-inline-child") {
+      beginTemplateInlineCreate(
+        detail,
+        actionTarget.dataset.templateParentType || "",
+        actionTarget.dataset.templateParentId || "",
+        actionTarget.dataset.templateChildType || "",
+      );
+    }
+    if (action === "cancel-template-inline-create") {
+      model.templateInlineCreate = null;
+      model.templateInlineErrors = {};
+      render();
+    }
+    if (action === "commit-template-inline-create") commitTemplateInlineCreate(detail);
+    if (action === "copy-template-subtree") copyTemplateSubtree(detail);
+    if (action === "add-template-child") {
+      const selected = selectedTemplateNode(detail);
+      const childType = templateQuickChildType(selected?.type);
+      if (selected && childType) beginTemplateInlineCreate(detail, selected.type, selected.id, childType);
+    }
+    if (action === "add-template-sibling") {
+      const sibling = templateSiblingParent(detail, selectedTemplateNode(detail));
+      if (sibling) beginTemplateInlineCreate(detail, sibling.parentType, sibling.parentId, sibling.nodeType);
+    }
+    if (action === "undo-template-change") undoTemplateChange(detail);
+    if (action === "redo-template-change") redoTemplateChange(detail);
+    if (action === "move-template-node") moveSelectedTemplateNode(detail, actionTarget.dataset.direction);
+    if (action === "remove-template-node") removeSelectedTemplateNode(detail);
     if (action === "validate-template") validateTemplate(detail);
     if (action === "export-template") exportTemplate(detail);
     if (action === "trigger-template-import") model.root.querySelector("[data-maturity-template-file]")?.click();
@@ -5328,6 +8560,12 @@
       delete model.createErrors[event.target.dataset.createField];
       return;
     }
+    if (event.target.matches("[data-create-template-library-id]")) {
+      model.createDraft.templateLibraryId = event.target.value;
+      delete model.createErrors.templateType;
+      render();
+      return;
+    }
     if (event.target.matches("[data-maturity-template-library-file]") && event.target.files?.[0]) {
       importTemplateToLibrary(event.target.files[0]);
       event.target.value = "";
@@ -5357,9 +8595,18 @@
       render();
       return;
     }
-    if (detail.project.readOnly && event.target.matches("[data-template-capability-field], [data-template-category-field], [data-template-focus-field], [data-maturity-template-file], [data-maturity-score-file]")) {
+    if (detail.project.readOnly && event.target.matches("[data-template-root-field], [data-template-loose-field], [data-template-capability-field], [data-template-category-field], [data-template-focus-field], [data-template-service-field], [data-template-mapping-field], [data-maturity-template-file], [data-maturity-score-file]")) {
       render();
       showToast("正式报告项目已锁定；模板不能继续修改", "error");
+      return;
+    }
+    if (event.target.matches("[data-template-root-field], [data-template-loose-field], [data-template-capability-field], [data-template-category-field], [data-template-focus-field], [data-template-service-field], [data-template-mapping-field]")) {
+      const saveStatus = model.root?.querySelector(".maturity-v52-node-save-status");
+      if (saveStatus) {
+        saveStatus.textContent = "有未保存修改";
+        saveStatus.classList.remove("is-saved", "is-error");
+      }
+      model.templateInspectorSaveMessage = "";
       return;
     }
     if (event.target.matches("[data-focus-applicability-toggle]")) {
@@ -5463,52 +8710,6 @@
       updateScoreEntry(detail, event.target.dataset.scoreItemId, { targetDimensionNotes: entry.targetDimensionNotes, targetReason: entry.targetReason });
       return;
     }
-    if (event.target.matches("[data-template-capability-field]")) {
-      const capability = list(detail.template.capabilities).find((item) => item.id === event.target.dataset.capabilityId);
-      if (!capability) return;
-      const field = event.target.dataset.templateCapabilityField;
-      capability[field] = event.target.type === "checkbox" ? event.target.checked : event.target.value;
-      capability.changeAction = capability.changeAction === "ADDED" ? "ADDED" : field === "included" && capability.included === false ? "REMOVED" : field === "categoryId" ? "MOVED" : "MODIFIED";
-      if (field === "categoryId") {
-        const category = list(detail.template.categories).find((item) => item.id === event.target.value) || {};
-        capability.currentParentId = event.target.value;
-        capability.topCategoryId = category.parentId || null;
-      }
-      markTemplateDirty(detail);
-      render();
-      scheduleCalculation(detail);
-      return;
-    }
-    if (event.target.matches("[data-template-category-field]")) {
-      const category = list(detail.template.categories).find((item) => item.id === event.target.dataset.categoryId);
-      if (!category) return;
-      const field = event.target.dataset.templateCategoryField;
-      category[field] = event.target.value || null;
-      category.currentParentId = category.parentId || null;
-      category.changeAction = category.changeAction === "ADDED" ? "ADDED" : field === "parentId" ? "MOVED" : "MODIFIED";
-      markTemplateDirty(detail);
-      render();
-      return;
-    }
-    if (event.target.matches("[data-template-focus-field]")) {
-      const focus = list(detail.template.focuses).find((item) => item.id === event.target.dataset.focusId);
-      if (!focus) return;
-      const field = event.target.dataset.templateFocusField;
-      const previousCapabilityId = focus.capabilityId;
-      focus[field] = event.target.value;
-      focus.currentParentId = focus.capabilityId;
-      focus.changeAction = focus.changeAction === "ADDED" ? "ADDED" : field === "capabilityId" ? "MOVED" : "MODIFIED";
-      if (field === "capabilityId" && previousCapabilityId !== focus.capabilityId) {
-        const previous = list(detail.template.capabilities).find((item) => item.id === previousCapabilityId);
-        const current = list(detail.template.capabilities).find((item) => item.id === focus.capabilityId);
-        if (previous) previous.focusIds = list(previous.focusIds).filter((id) => id !== focus.id);
-        if (current && !list(current.focusIds).includes(focus.id)) current.focusIds.push(focus.id);
-        list(detail.template.scoreItems).filter((item) => item.focusId === focus.id).forEach((item) => { item.capabilityId = focus.capabilityId; });
-      }
-      markTemplateDirty(detail);
-      render();
-      return;
-    }
     if (event.target.matches("[data-maturity-template-file]") && event.target.files?.[0]) importTemplate(detail, event.target.files[0]);
     if (event.target.matches("[data-maturity-score-file]") && event.target.files?.[0]) importScoreExchange(detail, event.target.files[0]);
   }
@@ -5565,6 +8766,15 @@
   }
 
   function handleInput(event) {
+    if (event.target.matches("[data-template-root-field], [data-template-loose-field], [data-template-capability-field], [data-template-category-field], [data-template-focus-field], [data-template-service-field], [data-template-mapping-field]")) {
+      const saveStatus = model.root?.querySelector(".maturity-v52-node-save-status");
+      if (saveStatus) {
+        saveStatus.textContent = "有未保存修改";
+        saveStatus.classList.remove("is-saved", "is-error");
+      }
+      model.templateInspectorSaveMessage = "";
+      return;
+    }
     if (event.target.matches("[data-maturity-focus-batch-slider]")) {
       const minimumValue = Math.max(1, Math.min(5, Number(event.target.dataset.maturityMinLevel || 1)));
       const maximumValue = Math.max(minimumValue, Math.min(5, Number(event.target.dataset.maturityMaxLevel || 5)));
@@ -5622,8 +8832,7 @@
     if (event.target.matches("[data-maturity-project-search]")) {
       model.projectObjectSearch = event.target.value;
       model.projectObjectSearchIndex = 0;
-      render();
-      window.setTimeout(() => { const input = model.root.querySelector("[data-maturity-project-search]"); input?.focus(); input?.setSelectionRange?.(model.projectObjectSearch.length, model.projectObjectSearch.length); }, 0);
+      if (!event.isComposing) updateProjectObjectSearchUi(activeDetail(), event.target);
       return;
     }
     if (event.target.matches("[data-maturity-score-search]")) {
@@ -5681,7 +8890,488 @@
     }
   }
 
+  function handleCompositionEnd(event) {
+    if (!event.target.matches?.("[data-maturity-project-search]")) return;
+    model.projectObjectSearch = event.target.value;
+    model.projectObjectSearchIndex = 0;
+    updateProjectObjectSearchUi(activeDetail(), event.target);
+  }
+
+  function clearTemplateDropTargets() {
+    model.root?.querySelectorAll(".is-template-drop-target, .is-template-parent-drop-target").forEach((node) => {
+      node.classList.remove("is-template-drop-target", "is-template-parent-drop-target");
+    });
+  }
+
+  function clearTemplateDropCandidates() {
+    model.root?.querySelectorAll(".is-template-drop-candidate").forEach((node) => node.classList.remove("is-template-drop-candidate"));
+  }
+
+  function templateDropMagnetPoint(state, dropTarget, clientX, clientY) {
+    const pointer = { x: clientX + 16, y: clientY + 14 };
+    if (!dropTarget) return pointer;
+    const rect = dropTarget.getBoundingClientRect();
+    const isParentTarget = templateQuickChildType(dropTarget.dataset.templateDropType || "") === (state.visualType || state.type);
+    const ghostWidth = Math.min(250, Math.max(180, window.innerWidth - 32));
+    const ghostHeight = 62;
+    let dockX;
+    let dockY;
+    if (isParentTarget) {
+      dockX = rect.right + ghostWidth + 20 <= window.innerWidth ? rect.right + 18 : rect.left - ghostWidth - 18;
+      dockY = rect.top + rect.height / 2 - ghostHeight / 2;
+    } else {
+      dockX = rect.left;
+      dockY = rect.bottom + 12;
+    }
+    dockX = Math.max(12, Math.min(window.innerWidth - ghostWidth - 12, dockX));
+    dockY = Math.max(12, Math.min(window.innerHeight - ghostHeight - 12, dockY));
+    const strength = isParentTarget ? 0.72 : 0.58;
+    return {
+      x: pointer.x + (dockX - pointer.x) * strength,
+      y: pointer.y + (dockY - pointer.y) * strength,
+      isParentTarget,
+    };
+  }
+
+  function renderTemplateDragGhost(state, clientX, clientY, dropTarget = null) {
+    if (!state.ghost) {
+      const ghost = document.createElement("div");
+      ghost.className = `maturity-v44-drag-ghost is-${state.type.toLowerCase()}`;
+      ghost.setAttribute("aria-hidden", "true");
+      const card = document.createElement("div");
+      const badge = document.createElement("span");
+      const title = document.createElement("strong");
+      const hint = document.createElement("small");
+      card.className = "maturity-v44-drag-ghost-card";
+      badge.className = "maturity-v44-drag-ghost-badge";
+      badge.textContent = state.source?.querySelector(".maturity-v41-node-badge")?.textContent?.trim() || templateTypeName(state.type);
+      title.textContent = state.source?.querySelector("strong")?.textContent?.trim()
+        || state.source?.textContent?.replace(/\s+/g, " ").trim()
+        || templateTypeName(state.type);
+      hint.textContent = "移动节点及全部下级";
+      card.append(badge, title, hint);
+      ghost.append(card);
+      document.body.appendChild(ghost);
+      document.body.classList.add("is-template-node-dragging");
+      state.ghost = ghost;
+      state.ghostHint = hint;
+      model.root?.querySelector("[data-template-visual-editor]")?.classList.add("is-template-drag-active");
+    }
+    const magnet = templateDropMagnetPoint(state, dropTarget, clientX, clientY);
+    const targetName = dropTarget?.querySelector("strong")?.textContent?.trim() || templateTypeName(dropTarget?.dataset.templateDropType || "");
+    state.ghost.style.setProperty("--maturity-drag-x", `${Math.round(magnet.x)}px`);
+    state.ghost.style.setProperty("--maturity-drag-y", `${Math.round(magnet.y)}px`);
+    state.ghost.classList.toggle("is-over-target", Boolean(dropTarget));
+    state.ghost.classList.toggle("is-parent-snap", Boolean(dropTarget && magnet.isParentTarget));
+    if (state.ghostHint) {
+      state.ghostHint.textContent = dropTarget
+        ? magnet.isParentTarget
+          ? `松开吸附到「${targetName}」下级`
+          : "松开调整至此位置"
+        : "移动节点及全部下级";
+    }
+  }
+
+  function animateTemplateNodeDrop(type, id) {
+    window.requestAnimationFrame(() => {
+      const node = Array.from(model.root?.querySelectorAll("[data-template-node-type][data-template-node-id]") || [])
+        .find((candidate) => candidate.dataset.templateNodeType === type && candidate.dataset.templateNodeId === id);
+      if (!node) return;
+      node.classList.add("is-template-drop-settling");
+      node.addEventListener("animationend", () => node.classList.remove("is-template-drop-settling"), { once: true });
+    });
+  }
+
+  function markTemplateDropCandidates(detail, state) {
+    clearTemplateDropCandidates();
+    model.root?.querySelectorAll("[data-template-drop-type][data-template-drop-id]").forEach((candidate) => {
+      if (templateDropIsValid(detail, state.type, state.id, candidate.dataset.templateDropType || "", candidate.dataset.templateDropId || "")) {
+        candidate.classList.add("is-template-drop-candidate");
+      }
+    });
+  }
+
+  function templateDropTargetAt(detail, state, clientX, clientY) {
+    const direct = document.elementFromPoint(clientX, clientY)?.closest?.("[data-template-drop-type][data-template-drop-id]");
+    if (direct && templateDropIsValid(detail, state.type, state.id, direct.dataset.templateDropType || "", direct.dataset.templateDropId || "")) return direct;
+    let nearest = null;
+    let nearestDistance = 88;
+    model.root?.querySelectorAll(".is-template-drop-candidate").forEach((candidate) => {
+      const rect = candidate.getBoundingClientRect();
+      if (!rect.width || !rect.height || rect.bottom < 0 || rect.top > window.innerHeight || rect.right < 0 || rect.left > window.innerWidth) return;
+      const distanceX = Math.max(rect.left - clientX, 0, clientX - rect.right);
+      const distanceY = Math.max(rect.top - clientY, 0, clientY - rect.bottom);
+      const distance = Math.hypot(distanceX, distanceY);
+      if (distance < nearestDistance) {
+        nearest = candidate;
+        nearestDistance = distance;
+      }
+    });
+    return nearest;
+  }
+
+  function panTemplateCanvasNearPointer(clientX, clientY) {
+    const viewport = model.root?.querySelector("[data-template-mindmap-viewport]");
+    const stage = viewport?.querySelector("[data-template-mindmap-stage]");
+    if (!viewport || !stage) return;
+    const rect = viewport.getBoundingClientRect();
+    if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) return;
+    const edge = 52;
+    const deltaX = clientX < rect.left + edge ? 14 : clientX > rect.right - edge ? -14 : 0;
+    const deltaY = clientY < rect.top + edge ? 14 : clientY > rect.bottom - edge ? -14 : 0;
+    if (!deltaX && !deltaY) return;
+    model.templateMindmapPanX += deltaX;
+    model.templateMindmapPanY += deltaY;
+    stage.style.transform = `translate(${model.templateMindmapPanX}px, ${model.templateMindmapPanY}px) scale(${Number(model.templateMindmapZoom || 0.5)})`;
+  }
+
+  function clearTemplateMouseDrag(state) {
+    state?.ghost?.remove();
+    if (state) state.ghost = null;
+    if (state) state.ghostHint = null;
+    document.body.classList.remove("is-template-node-dragging");
+    clearTemplateDropTargets();
+    clearTemplateDropCandidates();
+    model.root?.querySelectorAll(".is-template-dragging").forEach((node) => node.classList.remove("is-template-dragging"));
+    model.root?.querySelector("[data-template-visual-editor]")?.classList.remove("is-template-drag-active");
+    model.templateDragState = null;
+  }
+
+  function templateDropIsValid(detail, sourceType, sourceId, targetType, targetId) {
+    if (!detail || !sourceType || !targetType || (sourceType === targetType && sourceId === targetId)) return false;
+    if (sourceType === "DRAFT") {
+      const nodeType = templateNodeRecord(detail, "DRAFT", sourceId)?.node?.nodeType;
+      return (nodeType === "L0" && targetType === "TEMPLATE")
+        || (nodeType === "L1" && ["TEMPLATE", "L0"].includes(targetType))
+        || (nodeType === "L2" && targetType === "L1")
+        || (nodeType === "FOCUS" && targetType === "L2")
+        || (nodeType === "SERVICE" && targetType === "FOCUS");
+    }
+    return (sourceType === "L0" && targetType === "L0")
+      || (sourceType === "L1" && ["L0", "L1"].includes(targetType))
+      || (sourceType === "L2" && ["L1", "L2"].includes(targetType))
+      || (sourceType === "FOCUS" && ["L2", "FOCUS"].includes(targetType))
+      || (sourceType === "SERVICE" && ["FOCUS", "SERVICE"].includes(targetType));
+  }
+
+  function handleTemplateContextMenu(event) {
+    const target = event.target.closest?.("[data-template-node-type][data-template-node-id]");
+    const detail = activeDetail();
+    if (!detail || detail.project.readOnly || model.activeTab !== "template") return;
+    if (!target) {
+      const viewport = event.target.closest?.("[data-template-mindmap-viewport]");
+      if (!viewport || event.target.closest?.(".maturity-v41-floating-panel")) return;
+      event.preventDefault();
+      const rect = viewport.getBoundingClientRect();
+      const zoom = Number(model.templateMindmapZoom || 0.5);
+      const layout = templateMindmapLayout(detail, selectedTemplateNode(detail));
+      model.templateContextMenu = null;
+      model.templateCanvasContextMenu = {
+        x: Math.min(window.innerWidth - 238, event.clientX),
+        y: Math.min(window.innerHeight - 160, event.clientY),
+        stageX: Math.max(24, Math.min(layout.stageWidth - 260, (event.clientX - rect.left - Number(model.templateMindmapPanX || 0)) / zoom)),
+        stageY: Math.max(64, Math.min(layout.stageHeight - 100, (event.clientY - rect.top - Number(model.templateMindmapPanY || 0)) / zoom)),
+      };
+      render();
+      window.setTimeout(() => model.root?.querySelector(".maturity-v41-canvas-context-menu button")?.focus(), 0);
+      return;
+    }
+    event.preventDefault();
+    model.selectedTemplateNodeType = target.dataset.templateNodeType || "";
+    model.selectedTemplateNodeId = target.dataset.templateNodeId || "";
+    model.templateContextMenu = {
+      type: model.selectedTemplateNodeType,
+      id: model.selectedTemplateNodeId,
+      x: Math.min(window.innerWidth - 238, event.clientX),
+      y: Math.min(window.innerHeight - 264, event.clientY),
+    };
+    model.templateCanvasContextMenu = null;
+    model.templateLooseComposer = null;
+    selectedTemplateNode(detail);
+    render();
+    window.setTimeout(() => model.root?.querySelector(".maturity-v40-context-menu button")?.focus(), 0);
+  }
+
+  function handleTemplateMouseDown(event) {
+    const target = event.target.closest?.("[data-template-node-type][data-template-node-id][data-template-draggable='true']");
+    const detail = activeDetail();
+    if (event.button !== 0 || !target || !detail || detail.project.readOnly || model.activeTab !== "template") return;
+    event.preventDefault();
+    clearTemplateTextSelection();
+    const preventSelection = (selectEvent) => selectEvent.preventDefault();
+    const state = {
+      type: target.dataset.templateNodeType || "",
+      id: target.dataset.templateNodeId || "",
+      visualType: target.dataset.templateNodeType === "DRAFT"
+        ? templateNodeRecord(detail, "DRAFT", target.dataset.templateNodeId || "")?.node?.nodeType || "DRAFT"
+        : target.dataset.templateNodeType || "",
+      startX: event.clientX,
+      startY: event.clientY,
+      active: false,
+      source: target,
+      preventSelection,
+    };
+    model.templateMouseDrag = state;
+    document.addEventListener("selectstart", preventSelection);
+    const move = (moveEvent) => {
+      if (model.templateMouseDrag !== state) return;
+      if (!state.active && Math.hypot(moveEvent.clientX - state.startX, moveEvent.clientY - state.startY) < 7) return;
+      const active = activeDetail();
+      if (!active) return;
+      if (!state.active) {
+        markTemplateDropCandidates(active, state);
+        state.source?.classList.add("is-template-dragging");
+      }
+      state.active = true;
+      model.templateDragState = { type: state.type, id: state.id };
+      moveEvent.preventDefault();
+      clearTemplateTextSelection();
+      panTemplateCanvasNearPointer(moveEvent.clientX, moveEvent.clientY);
+      clearTemplateDropTargets();
+      const dropTarget = templateDropTargetAt(active, state, moveEvent.clientX, moveEvent.clientY);
+      if (dropTarget) {
+        dropTarget.classList.add("is-template-drop-target");
+        if (templateQuickChildType(dropTarget.dataset.templateDropType || "") === state.visualType) {
+          dropTarget.classList.add("is-template-parent-drop-target");
+        }
+      }
+      renderTemplateDragGhost(state, moveEvent.clientX, moveEvent.clientY, dropTarget);
+    };
+    const finish = (upEvent) => {
+      document.removeEventListener("mousemove", move);
+      document.removeEventListener("mouseup", finish);
+      document.removeEventListener("selectstart", preventSelection);
+      if (model.templateMouseDrag !== state) return;
+      model.templateMouseDrag = null;
+      if (!state.active) {
+        clearTemplateMouseDrag(state);
+        return;
+      }
+      upEvent.preventDefault();
+      const active = activeDetail();
+      const dropTarget = active ? templateDropTargetAt(active, state, upEvent.clientX, upEvent.clientY) : null;
+      clearTemplateMouseDrag(state);
+      model.suppressTemplateClick = true;
+      window.setTimeout(() => { model.suppressTemplateClick = false; }, 0);
+      if (dropTarget && active && templateDropIsValid(active, state.type, state.id, dropTarget.dataset.templateDropType || "", dropTarget.dataset.templateDropId || "")) {
+        moveTemplateNode(active, state.type, state.id, dropTarget.dataset.templateDropType || "", dropTarget.dataset.templateDropId || "");
+      } else {
+        showToast("未命中合法父级，节点保持原位", "info");
+      }
+    };
+    state.cancel = () => {
+      document.removeEventListener("mousemove", move);
+      document.removeEventListener("mouseup", finish);
+      document.removeEventListener("selectstart", preventSelection);
+      if (model.templateMouseDrag === state) model.templateMouseDrag = null;
+      clearTemplateMouseDrag(state);
+    };
+    document.addEventListener("mousemove", move);
+    document.addEventListener("mouseup", finish, { once: true });
+  }
+
+  function clearTemplateTextSelection() {
+    const selection = window.getSelection?.();
+    if (selection?.rangeCount) selection.removeAllRanges();
+  }
+
+  function handleTemplateSelectStart(event) {
+    if (event.target.closest?.("input, textarea, [contenteditable='true']")) return;
+    if (model.templateMouseDrag || event.target.closest?.("[data-template-mindmap-stage]")) event.preventDefault();
+  }
+
+  function applyTemplateMindmapTransform(viewport) {
+    const stage = viewport?.querySelector("[data-template-mindmap-stage]");
+    if (!stage) return false;
+    stage.style.transform = `translate(${Math.round(model.templateMindmapPanX)}px, ${Math.round(model.templateMindmapPanY)}px) scale(${Number(model.templateMindmapZoom || 0.5)})`;
+    const output = model.root?.querySelector(".maturity-v41-mindmap-tools output");
+    if (output) output.textContent = `${Math.round(Number(model.templateMindmapZoom || 0.5) * 100)}%`;
+    return true;
+  }
+
+  function zoomTemplateMindmapAt(viewport, nextZoom, clientX, clientY) {
+    if (!viewport) return false;
+    const rect = viewport.getBoundingClientRect();
+    if (!rect.width || !rect.height) return false;
+    const previousZoom = Math.max(0.05, Number(model.templateMindmapZoom || 0.5));
+    const zoom = Math.max(0.05, Math.min(1.3, Math.round(Number(nextZoom || previousZoom) * 1000) / 1000));
+    const anchorX = Number.isFinite(clientX) ? clientX - rect.left : rect.width / 2;
+    const anchorY = Number.isFinite(clientY) ? clientY - rect.top : rect.height / 2;
+    const stageX = (anchorX - Number(model.templateMindmapPanX || 0)) / previousZoom;
+    const stageY = (anchorY - Number(model.templateMindmapPanY || 0)) / previousZoom;
+    model.templateMindmapZoom = zoom;
+    model.templateMindmapPanX = anchorX - stageX * zoom;
+    model.templateMindmapPanY = anchorY - stageY * zoom;
+    return applyTemplateMindmapTransform(viewport);
+  }
+
+  function markTemplateGestureActive(viewport) {
+    viewport?.classList.add("is-gesture-zooming");
+    window.clearTimeout(model.templateMindmapGestureTimer);
+    model.templateMindmapGestureTimer = window.setTimeout(() => viewport?.classList.remove("is-gesture-zooming"), 180);
+  }
+
+  function handleTemplateMindmapWheel(event) {
+    const viewport = event.target.closest?.("[data-template-mindmap-viewport]");
+    if (!viewport || model.activeTab !== "template" || event.target.closest?.(".maturity-v41-floating-panel, .maturity-v40-context-menu, .maturity-v41-loose-composer")) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (model.templateMindmapGesture) return;
+    const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? Math.max(viewport.clientHeight, 1) : 1;
+    if (event.ctrlKey || event.metaKey) {
+      const delta = Number(event.deltaY || 0) * unit;
+      const factor = Math.exp(-delta * 0.008);
+      zoomTemplateMindmapAt(viewport, Number(model.templateMindmapZoom || 0.5) * factor, event.clientX, event.clientY);
+      markTemplateGestureActive(viewport);
+      return;
+    }
+    model.templateMindmapPanX -= Number(event.deltaX || 0) * unit;
+    model.templateMindmapPanY -= Number(event.deltaY || 0) * unit;
+    applyTemplateMindmapTransform(viewport);
+  }
+
+  function handleTemplateGestureStart(event) {
+    const viewport = event.target.closest?.("[data-template-mindmap-viewport]");
+    if (!viewport || model.activeTab !== "template" || event.target.closest?.(".maturity-v41-floating-panel, .maturity-v40-context-menu, .maturity-v41-loose-composer")) return;
+    event.preventDefault();
+    model.templateMindmapGesture = {
+      viewport,
+      startZoom: Number(model.templateMindmapZoom || 0.5),
+      clientX: Number.isFinite(event.clientX) ? event.clientX : undefined,
+      clientY: Number.isFinite(event.clientY) ? event.clientY : undefined,
+    };
+    markTemplateGestureActive(viewport);
+  }
+
+  function handleTemplateGestureChange(event) {
+    const state = model.templateMindmapGesture;
+    if (!state) return;
+    event.preventDefault();
+    zoomTemplateMindmapAt(
+      state.viewport,
+      state.startZoom * Math.max(0.1, Number(event.scale || 1)),
+      Number.isFinite(event.clientX) ? event.clientX : state.clientX,
+      Number.isFinite(event.clientY) ? event.clientY : state.clientY,
+    );
+    markTemplateGestureActive(state.viewport);
+  }
+
+  function handleTemplateGestureEnd(event) {
+    const state = model.templateMindmapGesture;
+    if (!state) return;
+    event.preventDefault();
+    markTemplateGestureActive(state.viewport);
+    model.templateMindmapGesture = null;
+  }
+
+  function handleTemplateMindmapPointerDown(event) {
+    const viewport = event.target.closest?.("[data-template-mindmap-viewport]");
+    if (event.button !== 0 || !viewport || event.target.closest?.("button, input, select, textarea, [data-template-node-type], .maturity-v41-floating-panel")) return;
+    model.templateMindmapPointerDrag = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: Number(model.templateMindmapPanX || 0),
+      originY: Number(model.templateMindmapPanY || 0),
+      active: true,
+      viewport,
+    };
+    viewport.classList.add("is-panning");
+    viewport.setPointerCapture?.(event.pointerId);
+    event.preventDefault();
+  }
+
+  function handleTemplateMindmapPointerMove(event) {
+    const state = model.templateMindmapPointerDrag;
+    if (!state || state.pointerId !== event.pointerId) return;
+    model.templateMindmapPanX = state.originX + event.clientX - state.startX;
+    model.templateMindmapPanY = state.originY + event.clientY - state.startY;
+    applyTemplateMindmapTransform(state.viewport);
+    event.preventDefault();
+  }
+
+  function handleTemplateMindmapPointerUp(event) {
+    const state = model.templateMindmapPointerDrag;
+    if (!state || state.pointerId !== event.pointerId) return;
+    state.viewport.releasePointerCapture?.(event.pointerId);
+    state.viewport.classList.remove("is-panning");
+    model.templateMindmapPointerDrag = null;
+    event.preventDefault();
+  }
+
   function handleKeydown(event) {
+    if ((model.projectDeleteCandidateId || model.templateDeleteCandidateId) && event.key === "Escape") {
+      event.preventDefault();
+      model.projectDeleteCandidateId = "";
+      model.projectDeleteStep = 0;
+      model.templateDeleteCandidateId = "";
+      model.templateDeleteStep = 0;
+      render();
+      return;
+    }
+    if (model.templateMouseDrag?.active && event.key === "Escape") {
+      event.preventDefault();
+      model.templateMouseDrag.cancel?.();
+      showToast("已取消移动，节点保持原位", "info");
+      return;
+    }
+    if (event.target.matches?.("#maturityTemplateInlineName, #maturityTemplateInlineCode") && ["Enter", "Escape"].includes(event.key)) {
+      event.preventDefault();
+      if (event.key === "Enter") commitTemplateInlineCreate(activeDetail());
+      else {
+        model.templateInlineCreate = null;
+        model.templateInlineErrors = {};
+        render();
+      }
+      return;
+    }
+    const shortcutKey = event.key.toLowerCase();
+    const shortcutModifier = event.metaKey || event.ctrlKey;
+    const isEditableTarget = Boolean(event.target.closest?.("input, textarea, select, [contenteditable='true']"));
+    if (model.activeTab === "template" && shortcutModifier && !isEditableTarget && ["+", "=", "-", "0"].includes(shortcutKey)) {
+      const detail = activeDetail();
+      const viewport = model.root?.querySelector("[data-template-mindmap-viewport]");
+      if (!detail || !viewport) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (shortcutKey === "0") {
+        positionTemplateMindmapViewport(detail, selectedTemplateNode(detail), { fit: true });
+      } else {
+        const rect = viewport.getBoundingClientRect();
+        const step = shortcutKey === "-" ? -0.1 : 0.1;
+        zoomTemplateMindmapAt(
+          viewport,
+          Number(model.templateMindmapZoom || 0.5) + step,
+          rect.left + rect.width / 2,
+          rect.top + rect.height / 2,
+        );
+      }
+      return;
+    }
+    if (model.activeTab === "template" && shortcutModifier && !isEditableTarget && shortcutKey === "z") {
+      event.preventDefault();
+      if (event.shiftKey) redoTemplateChange(activeDetail());
+      else undoTemplateChange(activeDetail());
+      return;
+    }
+    if (model.activeTab === "template" && shortcutModifier && !isEditableTarget && shortcutKey === "d") {
+      event.preventDefault();
+      const detail = activeDetail();
+      if (detail?.project?.readOnly) {
+        showToast("正式报告项目已锁定，不能复制模板节点", "error");
+        return;
+      }
+      copyTemplateSubtree(detail);
+      return;
+    }
+    if ((model.templateContextMenu || model.templateCanvasContextMenu || model.templateLooseComposer) && event.key === "Escape") {
+      event.preventDefault();
+      model.templateContextMenu = null;
+      model.templateCanvasContextMenu = null;
+      model.templateLooseComposer = null;
+      render();
+      return;
+    }
     const directoryResizer = event.target.closest?.("[data-maturity-score-directory-resizer]");
     if (directoryResizer && ["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) {
       const detail = activeDetail();
@@ -5706,13 +9396,15 @@
       return;
     }
     if (event.target.matches?.("[data-maturity-project-search]") && ["ArrowUp", "ArrowDown", "Enter", "Escape"].includes(event.key)) {
+      if (event.isComposing || event.keyCode === 229) return;
       const detail = activeDetail();
       const rows = projectObjectSearchResults(detail);
       if (event.key === ["Escape"][0]) {
         event.preventDefault();
         model.projectObjectSearch = "";
         model.projectObjectSearchIndex = 0;
-        render();
+        event.target.value = "";
+        updateProjectObjectSearchUi(detail, event.target);
         return;
       }
       if (!rows.length) return;
@@ -5722,8 +9414,7 @@
         return;
       }
       model.projectObjectSearchIndex = (Number(model.projectObjectSearchIndex || 0) + (event.key === "ArrowUp" ? -1 : 1) + rows.length) % rows.length;
-      render();
-      window.setTimeout(() => model.root?.querySelector("[data-maturity-project-search]")?.focus(), 0);
+      updateProjectObjectSearchUi(detail, event.target);
       return;
     }
     const scoreLevel = event.target.closest?.("[data-maturity-score-level]");
@@ -5820,7 +9511,19 @@
     root.addEventListener("click", handleClick);
     root.addEventListener("change", handleChange);
     root.addEventListener("input", handleInput);
+    root.addEventListener("compositionend", handleCompositionEnd);
     root.addEventListener("keydown", handleKeydown);
+    root.addEventListener("contextmenu", handleTemplateContextMenu);
+    root.addEventListener("mousedown", handleTemplateMouseDown);
+    root.addEventListener("selectstart", handleTemplateSelectStart);
+    root.addEventListener("wheel", handleTemplateMindmapWheel, { passive: false });
+    root.addEventListener("gesturestart", handleTemplateGestureStart, { passive: false });
+    root.addEventListener("gesturechange", handleTemplateGestureChange, { passive: false });
+    root.addEventListener("gestureend", handleTemplateGestureEnd, { passive: false });
+    root.addEventListener("pointerdown", handleTemplateMindmapPointerDown);
+    root.addEventListener("pointermove", handleTemplateMindmapPointerMove);
+    root.addEventListener("pointerup", handleTemplateMindmapPointerUp);
+    root.addEventListener("pointercancel", handleTemplateMindmapPointerUp);
     root.addEventListener("pointerdown", beginScoreDirectoryResize);
     if (!model.scoreContextResizeBound) {
       window.addEventListener("resize", syncFixedScoreContextPosition, { passive: true });

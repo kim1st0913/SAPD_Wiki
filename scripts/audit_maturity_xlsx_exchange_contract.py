@@ -85,6 +85,13 @@ def main() -> int:
 
     converted_custom = import_maturity_template_exchange({"exchange": mutate(standard_export["package"], convert_standard_to_custom)})
     require(converted_custom["ok"], "standard workbook must become importable after selecting custom type and filling a new name and description")
+    converted_item = converted_custom["template"]["scoreItems"][0]
+    require(
+        converted_custom["template"]["rubricVersion"] == "sapd-maturity-custom-generic-rubric-v3-2026-07-30"
+        and len(converted_item["rubricEntries"]) == 20
+        and {entry["sourceType"] for entry in converted_item["rubricEntries"]} == {"CUSTOM_GENERIC_FALLBACK"},
+        "custom workbook import must create the versioned four-dimension by five-level generic rubric",
+    )
 
     custom_template = copy.deepcopy(template)
     custom_template.update({"type": "custom", "readOnly": False, "structureMutable": True, "weightMutable": True, "name": "业务自定义模板", "description": "由业务人员维护的成熟度评估模板。"})
@@ -150,7 +157,7 @@ def main() -> int:
     dimension_error = next((error for error in dimension_target_result["rowErrors"] if error.get("code") == "target_below_current"), {})
     require("组织与角色（当前 L4，目标 L3）" in dimension_error.get("message", ""), "score import must reject a same-dimension target regression even when the weighted target is not lower")
 
-    print(json.dumps({"result": "pass", "checks": 22, "rows": template["stats"]["scoreItems"]}, ensure_ascii=False))
+    print(json.dumps({"result": "pass", "checks": 23, "rows": template["stats"]["scoreItems"]}, ensure_ascii=False))
     return 0
 
 

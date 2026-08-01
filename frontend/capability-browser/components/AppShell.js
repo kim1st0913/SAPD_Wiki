@@ -356,6 +356,7 @@
 
   function backRouteFor(route) {
     const normalized = normalizeRoute(route);
+    if (normalized.startsWith("/workbench/maturity/")) return "/workbench/maturity";
     return normalized === "/" ? "" : "/";
   }
 

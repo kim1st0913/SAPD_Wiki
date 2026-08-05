@@ -65,6 +65,15 @@ Assert-Equal ([string]$RuntimeMetadata.deliveryData.releaseId) $DeliveryReleaseI
 Assert-Equal ([string]$RuntimeMetadata.platform) "win-x64" "Runtime platform mismatch."
 Assert-True ([string]$RuntimeMetadata.runtimeFingerprint -match "^[0-9a-f]{64}$") "Runtime fingerprint is invalid."
 
+python scripts\verify_windows_runtime.py `
+  --runtime-root $RuntimeTemplate `
+  --expected-app-version $AppVersion `
+  --expected-source-revision $SourceSha `
+  --expected-delivery-release-id $DeliveryReleaseId
+if ($LASTEXITCODE -ne 0) {
+  throw "Windows Runtime behavioral verification failed with exit code $LASTEXITCODE."
+}
+
 $AppConfigPath = Join-Path $RuntimeTemplate "config\app-config.json"
 $AppConfig = Get-Content -LiteralPath $AppConfigPath -Raw | ConvertFrom-Json
 Assert-True ($AppConfig.mcp_platform_integration -eq $true) "Windows package must include MCP platform integration."
@@ -91,6 +100,16 @@ foreach ($RequiredPath in @(
   ".sapd-runtime-fingerprint"
 )) {
   Assert-True (Test-Path -LiteralPath (Join-Path $RuntimeTemplate $RequiredPath)) "Runtime member is missing: $RequiredPath"
+}
+
+$UnpackedRuntime = Join-Path $UnpackedRoot "resources\runtime-template"
+python scripts\verify_windows_runtime.py `
+  --runtime-root $UnpackedRuntime `
+  --expected-app-version $AppVersion `
+  --expected-source-revision $SourceSha `
+  --expected-delivery-release-id $DeliveryReleaseId
+if ($LASTEXITCODE -ne 0) {
+  throw "Packaged Windows Runtime behavioral verification failed with exit code $LASTEXITCODE."
 }
 
 foreach ($RequiredPath in @(

@@ -1,7 +1,93 @@
 #!/usr/bin/env node
 import { spawn } from "node:child_process";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const DEFAULT_URL = "http://127.0.0.1:5173";
+let activeChild = null;
+let shutdownSignal = "";
+let shutdownEscalationTimer = null;
+let shutdownProcessGroupId = 0;
+
+function signalPosixProcessGroup(processGroupId, signal) {
+  if (process.platform === "win32" || !processGroupId) return false;
+  try {
+    process.kill(-processGroupId, signal);
+    return true;
+  } catch (error) {
+    if (error?.code === "ESRCH") return true;
+    return false;
+  }
+}
+
+function posixProcessGroupExists(processGroupId) {
+  if (process.platform === "win32" || !processGroupId) return false;
+  try {
+    process.kill(-processGroupId, 0);
+    return true;
+  } catch (error) {
+    return error?.code !== "ESRCH";
+  }
+}
+
+function waitForPosixProcessGroupExit(processGroupId, timeoutMs) {
+  if (!posixProcessGroupExists(processGroupId)) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    const started = Date.now();
+    const poll = () => {
+      if (!posixProcessGroupExists(processGroupId)) {
+        resolve(true);
+        return;
+      }
+      if (Date.now() - started >= timeoutMs) {
+        resolve(false);
+        return;
+      }
+      setTimeout(poll, 25);
+    };
+    poll();
+  });
+}
+
+async function cleanupExitedChildTree(processGroupId) {
+  if (process.platform === "win32" || !posixProcessGroupExists(processGroupId)) return;
+  signalPosixProcessGroup(processGroupId, "SIGTERM");
+  if (await waitForPosixProcessGroupExit(processGroupId, 750)) return;
+  signalPosixProcessGroup(processGroupId, "SIGKILL");
+  if (!(await waitForPosixProcessGroupExit(processGroupId, 750))) {
+    throw new Error(`process group ${processGroupId} survived child exit cleanup`);
+  }
+}
+
+function signalChildTree(child, signal) {
+  if (signalPosixProcessGroup(child?.pid || shutdownProcessGroupId, signal)) return;
+  if (!child || child.exitCode != null || child.signalCode != null) return;
+  child.kill(signal);
+}
+
+function clearShutdownEscalation() {
+  if (!shutdownEscalationTimer) return;
+  clearTimeout(shutdownEscalationTimer);
+  shutdownEscalationTimer = null;
+}
+
+function forwardShutdownSignal(signal) {
+  if (shutdownSignal) {
+    signalChildTree(activeChild, "SIGKILL");
+    clearShutdownEscalation();
+    return;
+  }
+  shutdownSignal = signal;
+  shutdownProcessGroupId = activeChild?.pid || 0;
+  signalChildTree(activeChild, signal);
+  shutdownEscalationTimer = setTimeout(() => {
+    signalChildTree(activeChild, "SIGKILL");
+    shutdownEscalationTimer = null;
+  }, 3000);
+}
+
+process.on("SIGINT", () => forwardShutdownSignal("SIGINT"));
+process.on("SIGTERM", () => forwardShutdownSignal("SIGTERM"));
 
 function hasFlag(name) {
   return process.argv.includes(name);
@@ -47,8 +133,10 @@ const suites = {
         "scripts/create_user_db.py",
         "scripts/export_diagnostics.py",
         "scripts/package_backend_pyinstaller.py",
+        "scripts/run_python_resource_warning_gate.py",
       ]),
       command("static:test-runner", "项目测试套件编排脚本语法检查", "node", ["--check", "scripts/run_project_test_suite.mjs"]),
+      command("static:document-governance", "当前权威文档入口与 Open Issue 计数一致性检查", "node", ["scripts/audit_document_governance.mjs"]),
       command("static:reserved-preview-port", "5173 stable 保留端口与 synthetic 负向门禁", ".venv-local-mcp-web/bin/python", [
         "-m",
         "unittest",
@@ -71,6 +159,7 @@ const suites = {
       command("static:p1-5-review-search-audit", "P1-5 Issue 与全局搜索门禁脚本语法检查", "node", ["--check", "scripts/audit_frontend_p1_5_review_search_contract.mjs"]),
       command("static:p1-6-guide-reading-audit", "P1-6 指南阅读门禁脚本语法检查", "node", ["--check", "scripts/audit_frontend_p1_6_guide_reading_contract.mjs"]),
       command("static:p2-product-workspace-audit", "P2 工作台、目录和指南门禁脚本语法检查", "node", ["--check", "scripts/audit_frontend_p2_product_workspace_contract.mjs"]),
+      command("static:maturity-p2-regressions", "成熟度 P2 回归门禁脚本语法检查", "node", ["--check", "scripts/audit_maturity_p2_regressions.mjs"]),
     ],
   },
   boundaries: {
@@ -91,6 +180,14 @@ const suites = {
       command("data:lcdt-policy", "LC-DT 策略矩阵行级投影审计", "python3", ["scripts/audit_lcdt_policy_projection_contract.py"]),
       command("data:module-services", "安全技术模块-服务关系审计", "python3", ["scripts/audit_maintenance_module_services_integrity.py"]),
       command("data:measure-catalog", "安全技术措施目录契约审计", "python3", ["scripts/audit_maintenance_measure_catalog_contract.py"]),
+      command("data:multi-source-reference", "来源证据归属与完整证据键去重回归", ".venv-local-mcp-web/bin/python", [
+        "-m", "unittest", "tests.test_multi_source_reference_ownership",
+      ], { env: { PYTHONPATH: "src" } }),
+      command("data:database-resource-safety", "数据库迁移原子性与连接初始化资源回归", ".venv-local-mcp-web/bin/python", [
+        "scripts/run_python_resource_warning_gate.py",
+        "tests.test_db_migrations",
+        "tests.test_connection_setup_safety",
+      ], { env: { PYTHONPATH: "src" } }),
     ],
   },
   frontend: {
@@ -134,6 +231,7 @@ const suites = {
       command("frontend:search-state", "搜索历史和状态隔离审计", "node", ["scripts/audit_search_state_isolation.mjs"]),
       command("frontend:environment-search", "信息化环境搜索契约审计", "node", ["scripts/audit_environment_search_contract.mjs"]),
       command("frontend:maturity-v2.1", "成熟度评估 V2.1 企业项目、固定模板、目标聚合与文件交换审计", ".venv-local-mcp-web/bin/python", ["scripts/audit_maturity_assessment_v2_1_contract.py"]),
+      command("frontend:maturity-p2-regressions", "成熟度持久化、首页滚动与删除弹窗焦点回归", "node", ["scripts/audit_maturity_p2_regressions.mjs"]),
     ],
   },
   runtime: {
@@ -218,14 +316,71 @@ const suites = {
         "scripts/create_user_db.py",
         "scripts/export_diagnostics.py",
         "scripts/package_backend_pyinstaller.py",
+        "scripts/build_zip_bundle.py",
+        "scripts/prepare_windows_electron_runtime.py",
+        "scripts/verify_windows_runtime.py",
+        "scripts/windows_delivery_data.py",
+        "scripts/verify_mac_dmg_artifacts.py",
       ]),
+      command("delivery:mac-shell-syntax", "macOS 构建与 DMG 脚本语法检查", "bash", [
+        "-n",
+        "apps/macos/SAPDWiki/script/build_and_run.sh",
+        "apps/macos/SAPDWiki/script/package_dmg.sh",
+      ]),
+      command("delivery:windows-contracts", "Windows Runtime、交付数据与安装器合同测试", "python3", [
+        "-m", "unittest",
+        "tests.test_prepare_windows_electron_runtime",
+        "tests.test_verify_windows_runtime",
+        "tests.test_windows_delivery_data",
+        "tests.test_verify_windows_installer_contract",
+      ]),
+      command("delivery:user-state-regressions", "报告 manifest、隔离用户态与 Issue 导出鉴权回归", ".venv-local-mcp-web/bin/python", [
+        "-m", "unittest",
+        "tests.mcp_integration.test_ephemeral_web_user_state",
+        "tests.mcp_integration.test_user_notes_export_security",
+      ], { env: { PYTHONPATH: "src" } }),
+      command("delivery:bundle-artifact-regressions", "离线前端包边界与 macOS 产物验收行为回归", "python3", [
+        "-m", "unittest",
+        "tests.test_content_offline_bundle_t5",
+        "tests.test_delivery_release_control",
+        "tests.test_verify_mac_dmg_artifacts",
+      ], { env: { PYTHONPATH: "scripts" } }),
+    ],
+  },
+  "core-regressions": {
+    description: "内容候选、内容发布、导入审批与 Electron 壳层回归",
+    commands: [
+      command("core-regressions:content-import", "内容候选、内容发布与导入审批生命周期回归", ".venv-local-mcp-web/bin/python", [
+        "scripts/run_python_resource_warning_gate.py",
+        "tests.test_content_candidate_t1",
+        "tests.test_content_release_pipeline",
+        "tests.test_import_approval_lifecycle",
+      ], { env: { PYTHONPATH: "src" } }),
+      command("core-regressions:electron", "Electron 桌面壳层 Node 回归", "npm", ["--prefix", "apps/electron", "test"]),
     ],
   },
   "dmg-build": {
     description: "真实 macOS DMG 构建；必须显式传 --include-dmg-build",
     commands: [
       command("dmg-build:package", "强制重建 backend 并生成 license / no-license 双 DMG", "apps/macos/SAPDWiki/script/package_dmg.sh", [], {
-        env: { SAPD_WIKI_REBUILD_BACKEND: "1" },
+        env: (ctx) => ({
+          SAPD_WIKI_REBUILD_BACKEND: "1",
+          SAPD_WIKI_ALLOW_EXTERNAL_BACKEND: "0",
+          SAPD_WIKI_DMG_VARIANT: "all",
+          SAPD_WIKI_BUILD_STAMP: ctx.releaseBuildStamp,
+        }),
+        requires: "--include-dmg-build",
+      }),
+    ],
+  },
+  "artifact-validation": {
+    description: "真实 DMG 构建后的产物完整性与当前源码一致性验收",
+    commands: [
+      command("artifact-validation:dmg", "双变体 DMG 文件、版本、Runtime 与镜像校验", "python3", ["scripts/verify_mac_dmg_artifacts.py"], {
+        env: (ctx) => ({ SAPD_WIKI_BUILD_STAMP: ctx.releaseBuildStamp }),
+        requires: "--include-dmg-build",
+      }),
+      command("artifact-validation:current-source", "双变体 staging 必须存在且前端等于当前源码", "node", ["scripts/audit_mac_dmg_browser_parity_contract.mjs", "--strict-current-source"], {
         requires: "--include-dmg-build",
       }),
     ],
@@ -236,8 +391,8 @@ const groups = {
   quick: ["static", "boundaries", "delivery"],
   "pre-commit": ["static", "boundaries", "data", "frontend", "delivery"],
   "pre-dmg": ["static", "boundaries", "data", "frontend", "runtime", "user", "delivery"],
-  full: ["static", "boundaries", "data", "frontend", "runtime", "user", "delivery"],
-  "release-full": ["static", "boundaries", "data", "frontend", "runtime", "user", "delivery", "dmg-build"],
+  full: ["static", "boundaries", "data", "frontend", "runtime", "mcp", "user", "delivery", "core-regressions"],
+  "release-full": ["static", "boundaries", "data", "frontend", "runtime", "mcp", "user", "delivery", "core-regressions", "dmg-build", "artifact-validation"],
 };
 
 function usage() {
@@ -256,6 +411,7 @@ Flags:
   --url <url>                 Runtime smoke base URL. Default: ${DEFAULT_URL}
   --allow-system-chrome       Pass through to frontend_smoke_check. Default is disabled.
   --include-dmg-build         Allow real DMG build commands.
+  --build-stamp <stamp>       Reuse an existing YYYYMMDD-HHMMSSZ release build stamp.
   --dry-run                   Print commands without running.
   --list                      List suites and groups.
 `);
@@ -296,9 +452,14 @@ function argsFor(entry, ctx) {
   return typeof entry.args === "function" ? entry.args(ctx) : entry.args;
 }
 
+function envFor(entry, ctx) {
+  return typeof entry.env === "function" ? entry.env(ctx) : (entry.env || {});
+}
+
 function printable(entry, ctx) {
   const args = argsFor(entry, ctx);
-  const prefix = entry.env ? Object.entries(entry.env).map(([key, value]) => `${key}=${value}`).join(" ") + " " : "";
+  const environment = envFor(entry, ctx);
+  const prefix = Object.keys(environment).length ? Object.entries(environment).map(([key, value]) => `${key}=${value}`).join(" ") + " " : "";
   return `${prefix}${entry.bin}${args.length ? ` ${args.map((arg) => (String(arg).includes(" ") ? JSON.stringify(arg) : arg)).join(" ")}` : ""}`;
 }
 
@@ -311,15 +472,60 @@ function run(entry, ctx) {
     const args = argsFor(entry, ctx);
     const child = spawn(entry.bin, args, {
       cwd: process.cwd(),
-      env: { ...process.env, ...(entry.env || {}) },
+      env: { ...process.env, ...envFor(entry, ctx) },
       stdio: "inherit",
+      detached: process.platform !== "win32",
     });
-    child.on("error", reject);
-    child.on("exit", (code, signal) => {
-      if (code === 0) resolve();
-      else reject(new Error(`${entry.id} failed with ${signal || code}`));
+    const processGroupId = process.platform === "win32" ? 0 : child.pid || 0;
+    let settled = false;
+    const settle = (callback) => {
+      if (settled) return;
+      settled = true;
+      callback();
+    };
+    activeChild = child;
+    if (shutdownSignal) {
+      shutdownProcessGroupId = child.pid || 0;
+      signalChildTree(child, shutdownSignal);
+    }
+    child.on("error", (error) => {
+      if (activeChild === child) {
+        activeChild = null;
+        if (!shutdownSignal || !posixProcessGroupExists(shutdownProcessGroupId)) clearShutdownEscalation();
+      }
+      settle(() => reject(error));
+    });
+    child.on("exit", async (code, signal) => {
+      if (activeChild === child) {
+        activeChild = null;
+        if (!shutdownSignal || !posixProcessGroupExists(shutdownProcessGroupId)) clearShutdownEscalation();
+      }
+      try {
+        await cleanupExitedChildTree(processGroupId);
+      } catch (error) {
+        settle(() => reject(error));
+        return;
+      }
+      if (shutdownSignal && !posixProcessGroupExists(shutdownProcessGroupId)) clearShutdownEscalation();
+      if (code === 0) settle(resolve);
+      else settle(() => reject(new Error(`${entry.id} failed with ${signal || code}`)));
     });
   });
+}
+
+export { run as runCommand };
+
+function releaseBuildStampFor(selectedSuites) {
+  const supplied = argValue("--build-stamp", String(process.env.SAPD_WIKI_BUILD_STAMP || "").trim());
+  if (supplied && !/^\d{8}-\d{6}Z$/.test(supplied)) {
+    throw new Error("--build-stamp / SAPD_WIKI_BUILD_STAMP must use YYYYMMDD-HHMMSSZ");
+  }
+  if (supplied) return supplied;
+  const includesBuild = selectedSuites.includes("dmg-build");
+  if (selectedSuites.includes("artifact-validation") && !includesBuild) {
+    throw new Error("standalone artifact-validation requires --build-stamp or SAPD_WIKI_BUILD_STAMP from the completed build");
+  }
+  return new Date().toISOString().replaceAll("-", "").replaceAll(":", "").replace(/\.\d{3}Z$/, "Z").replace("T", "-");
 }
 
 async function main() {
@@ -332,33 +538,46 @@ async function main() {
     return;
   }
 
+  const requested = hasFlag("--full") ? ["full"] : argValues("--suite");
+  const selectedSuites = expandSelection(requested.length ? requested : ["quick"]);
   const ctx = {
     url: argValue("--url", DEFAULT_URL),
     allowSystemChrome: hasFlag("--allow-system-chrome"),
     includeDmgBuild: hasFlag("--include-dmg-build"),
     dryRun: hasFlag("--dry-run"),
+    releaseBuildStamp: releaseBuildStampFor(selectedSuites),
   };
-  const requested = hasFlag("--full") ? ["full"] : argValues("--suite");
-  const selectedSuites = expandSelection(requested.length ? requested : ["quick"]);
 
   console.log(`selected_suites=${selectedSuites.join(",")}`);
+  let plannedCount = 0;
   for (const suiteName of selectedSuites) {
     const suite = suites[suiteName];
     console.log(`\n## suite=${suiteName} ${suite.description}`);
     for (const entry of suite.commands) {
+      plannedCount += 1;
       console.log(`command=${entry.id}`);
       console.log(`description=${entry.description}`);
       console.log(`run=${printable(entry, ctx)}`);
       if (!ctx.dryRun) {
         await run(entry, ctx);
+        if (shutdownSignal) throw new Error(`interrupted by ${shutdownSignal}`);
       }
     }
   }
-  console.log("\nresult=pass");
+  console.log(ctx.dryRun ? `\nresult=dry-run planned=${plannedCount} executed=0` : `\nresult=pass executed=${plannedCount}`);
 }
 
-main().catch((error) => {
+function handleMainError(error) {
+  if (shutdownSignal) {
+    console.error(`result=interrupted signal=${shutdownSignal}`);
+    process.exitCode = shutdownSignal === "SIGINT" ? 130 : 143;
+    return;
+  }
   console.error(`result=fail`);
   console.error(error.message);
-  process.exit(1);
-});
+  process.exitCode = 1;
+}
+
+if (path.resolve(process.argv[1] || "") === fileURLToPath(import.meta.url)) {
+  main().catch(handleMainError);
+}

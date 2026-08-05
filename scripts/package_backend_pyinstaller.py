@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Package the ZIP alpha backend with PyInstaller.
+"""Package the SAPD Wiki desktop backend with PyInstaller.
 
 PyInstaller is not a cross-platform cross-compiler. Run this script on the
 target platform:
@@ -12,12 +12,19 @@ target platform:
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 import os
 import platform
 import shutil
 import subprocess
 import sys
 from pathlib import Path
+
+try:
+    from verify_windows_runtime import backend_tree_summary
+except ModuleNotFoundError:
+    from scripts.verify_windows_runtime import backend_tree_summary
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -83,6 +90,31 @@ def ensure_runtime_dependencies() -> None:
 
 def add_data_arg(source: Path, destination: str) -> str:
     return f"{source}{os.pathsep}{destination}"
+
+
+def write_windows_build_info(final_dir: Path, source_revision: str) -> Path:
+    normalized_revision = source_revision.strip().lower()
+    if len(normalized_revision) != 40 or any(
+        character not in "0123456789abcdef" for character in normalized_revision
+    ):
+        raise ValueError("Windows backend packaging requires a full source revision")
+    final_binary = final_dir / binary_name("win-x64")
+    tree_hash, file_count = backend_tree_summary(final_dir)
+    build_info = {
+        "schemaVersion": "sapd-windows-backend-artifact-v1",
+        "sourceRevision": normalized_revision,
+        "platform": "win-x64",
+        "executable": final_binary.name,
+        "executableSha256": hashlib.sha256(final_binary.read_bytes()).hexdigest(),
+        "backendTreeSha256": tree_hash,
+        "fileCount": file_count,
+    }
+    path = final_dir / "build-info.json"
+    path.write_text(
+        json.dumps(build_info, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return path
 
 
 def package_backend(args: argparse.Namespace) -> Path:
@@ -183,13 +215,16 @@ def package_backend(args: argparse.Namespace) -> Path:
     final_binary = final_dir / binary_name(target_platform)
     if not target_platform.startswith("win"):
         final_binary.chmod(final_binary.stat().st_mode | 0o755)
+    else:
+        write_windows_build_info(final_dir, str(args.source_revision or ""))
     return final_binary
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Package SAPD Wiki ZIP alpha backend with PyInstaller.")
+    parser = argparse.ArgumentParser(description="Package the SAPD Wiki desktop backend with PyInstaller.")
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--platform", choices=["mac-arm64", "mac-x64", "win-x64"])
+    parser.add_argument("--source-revision")
     parser.add_argument(
         "--require-native",
         action="store_true",

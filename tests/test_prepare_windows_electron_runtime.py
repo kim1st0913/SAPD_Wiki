@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sqlite3
 import tempfile
@@ -14,6 +15,7 @@ from scripts.prepare_windows_electron_runtime import (
     build_runtime,
     load_delivery_manifest,
 )
+from scripts.package_backend_pyinstaller import write_windows_build_info
 from scripts.windows_delivery_data import (
     SCHEMA_VERSION,
     database_summary,
@@ -38,6 +40,20 @@ class PrepareWindowsElectronRuntimeTests(unittest.TestCase):
         (self.frontend / "index.html").write_text(
             "<!doctype html><title>SAPD Wiki</title>\n", encoding="utf-8"
         )
+        (self.frontend / "app.js").write_text(
+            "\n".join(
+                (
+                    'const guide = "/assets/guides/maturity-model-usage.html?embed=1&view=test";',
+                    "const ARCHIMATE_POSTER_PDF_PATH = `${ARCHIMATE_POSTER_ASSET_BASE}/archimate-poster-v3.2-zh.pdf`;",
+                )
+            ),
+            encoding="utf-8",
+        )
+        (self.frontend / "components").mkdir()
+        (self.frontend / "components" / "AppShell.js").write_text(
+            'const guide = { href: "./assets/guides/maturity-model-usage.html" };\n',
+            encoding="utf-8",
+        )
         self.backend_root.mkdir()
         (self.backend_root / "_internal").mkdir()
         (self.backend_root / "_internal" / "runtime.txt").write_text(
@@ -51,6 +67,7 @@ class PrepareWindowsElectronRuntimeTests(unittest.TestCase):
             "platform": "win-x64",
             "executable": BACKEND_NAME,
             "executableSha256": sha256_file(backend),
+            "backendTreeSha256": self._backend_tree_sha256(self.backend_root),
             "fileCount": 2,
             "builtAtUtc": "2026-07-27T00:00:00Z",
         }
@@ -88,6 +105,19 @@ class PrepareWindowsElectronRuntimeTests(unittest.TestCase):
         self.delivery_manifest_path.write_text(
             json.dumps(self.delivery_manifest), encoding="utf-8"
         )
+
+    @staticmethod
+    def _backend_tree_sha256(root: Path) -> str:
+        digest = hashlib.sha256()
+        controlled = [root / BACKEND_NAME, *sorted((root / "_internal").rglob("*"))]
+        for path in controlled:
+            if not path.is_file():
+                continue
+            digest.update(path.relative_to(root).as_posix().encode("utf-8"))
+            digest.update(b"\0")
+            digest.update(path.read_bytes())
+            digest.update(b"\0")
+        return digest.hexdigest()
 
     def tearDown(self) -> None:
         self.temporary.cleanup()
@@ -189,6 +219,33 @@ class PrepareWindowsElectronRuntimeTests(unittest.TestCase):
         self.assertEqual(
             (first / ".sapd-runtime-fingerprint").read_text(encoding="utf-8"),
             (second / ".sapd-runtime-fingerprint").read_text(encoding="utf-8"),
+        )
+
+    def test_backend_provenance_rejects_tampered_internal_tree(self) -> None:
+        (self.backend_root / "_internal" / "runtime.txt").write_text(
+            "tampered\n", encoding="utf-8"
+        )
+        with self.assertRaisesRegex(ValueError, "dependency tree hash mismatch"):
+            backend_source(
+                self.backend_root,
+                self.root / "unused-extract-tampered",
+                expected_source_revision=self.source_revision,
+            )
+
+    def test_backend_build_info_binds_executable_and_internal_to_revision(self) -> None:
+        (self.backend_root / "build-info.json").unlink()
+        build_info_path = write_windows_build_info(
+            self.backend_root, self.source_revision
+        )
+        build_info = json.loads(build_info_path.read_text(encoding="utf-8"))
+        self.assertEqual(build_info["sourceRevision"], self.source_revision)
+        self.assertEqual(
+            build_info["backendTreeSha256"], self._backend_tree_sha256(self.backend_root)
+        )
+        backend_source(
+            self.backend_root,
+            self.root / "unused-extract-generated",
+            expected_source_revision=self.source_revision,
         )
 
     def test_windows_runtime_contains_current_user_readme_and_changelog(self) -> None:

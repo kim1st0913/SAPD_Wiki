@@ -61,7 +61,7 @@ apps/macos/SAPDWiki/script/package_dmg.sh
 
 ```bash
 SAPD_WIKI_DMG_VARIANT=no-license \
-SAPD_WIKI_APP_VERSION=0.3.5 \
+SAPD_WIKI_APP_VERSION=0.4.0 \
 apps/macos/SAPDWiki/script/package_dmg.sh
 ```
 

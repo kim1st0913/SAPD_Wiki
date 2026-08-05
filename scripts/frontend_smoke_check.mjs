@@ -35,6 +35,13 @@ const PLACEHOLDER_ROUTES = new Set([
   "/standards/others",
 ]);
 
+const DEFAULT_REQUEST_TIMEOUT_MS = 3000;
+const MAX_REQUEST_TIMEOUT_MS = 30000;
+const requestedTimeoutMs = Number(process.env.SAPD_WIKI_SMOKE_REQUEST_TIMEOUT_MS || DEFAULT_REQUEST_TIMEOUT_MS);
+const REQUEST_TIMEOUT_MS = Number.isFinite(requestedTimeoutMs) && requestedTimeoutMs > 0
+  ? Math.min(Math.max(requestedTimeoutMs, 100), MAX_REQUEST_TIMEOUT_MS)
+  : DEFAULT_REQUEST_TIMEOUT_MS;
+
 function argValue(name, fallback = "") {
   const index = process.argv.indexOf(name);
   return index >= 0 && process.argv[index + 1] ? process.argv[index + 1] : fallback;
@@ -48,8 +55,15 @@ function hasFlag(name) {
   return process.argv.includes(name);
 }
 
+function fetchWithTimeout(url, options = {}) {
+  return fetch(url, {
+    ...options,
+    signal: options.signal || AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  });
+}
+
 async function fetchJson(url) {
-  const response = await fetch(url);
+  const response = await fetchWithTimeout(url);
   if (!response.ok) throw new Error(`${url} returned ${response.status}`);
   return response.json();
 }
@@ -57,7 +71,7 @@ async function fetchJson(url) {
 async function fetchStatus(url) {
   const started = Date.now();
   try {
-    const response = await fetch(url, { cache: "no-store" });
+    const response = await fetchWithTimeout(url, { cache: "no-store" });
     await response.arrayBuffer();
     return {
       ok: response.ok,
@@ -77,7 +91,7 @@ async function fetchStatus(url) {
 async function postJsonStatus(url, token, body, validate = () => true) {
   const started = Date.now();
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithTimeout(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -107,7 +121,7 @@ async function postJsonStatus(url, token, body, validate = () => true) {
 async function fetchTextStatus(url) {
   const started = Date.now();
   try {
-    const response = await fetch(url, { cache: "no-store" });
+    const response = await fetchWithTimeout(url, { cache: "no-store" });
     const text = await response.text();
     return {
       ok: response.ok,
@@ -121,6 +135,29 @@ async function fetchTextStatus(url) {
       status: 0,
       timeMs: Date.now() - started,
       text: "",
+      error: error.message,
+    };
+  }
+}
+
+async function fetchJsonStatus(url, validate = () => true) {
+  const started = Date.now();
+  try {
+    const response = await fetchWithTimeout(url, { cache: "no-store" });
+    const payload = await response.json();
+    const data = payload?.data || payload;
+    return {
+      ok: response.ok && validate(data),
+      status: response.status,
+      timeMs: Date.now() - started,
+      dataState: data?.data_state || data?.dataState,
+      error: data?.error || data?.message,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      status: 0,
+      timeMs: Date.now() - started,
       error: error.message,
     };
   }
@@ -146,14 +183,51 @@ async function lightweightHttpSmoke({ pageName, baseUrl, route, reason }) {
     health: await fetchStatus(healthUrl),
   };
   if (pageName === "capability" || pageName === "capabilities" || route === "/capability-mapping") {
-    checks.capabilityInitial = await fetchStatus(initialUrl);
+    checks.capabilityInitial = await fetchJsonStatus(
+      initialUrl,
+      (data) =>
+        data?.data_state === "ready" &&
+        Array.isArray(data?.navigator?.tree) &&
+        data.navigator.tree.length > 0 &&
+        data?.compatibility?.mode === "initial_projection",
+    );
+  }
+  if (pageName === "search" || route.startsWith("/search")) {
+    checks.searchIndex = await fetchJsonStatus(
+      new URL("/api/v1/search-index?q=M-PM.PR-00&limit=1", rootUrl).toString(),
+      (data) => data?.data_state === "ready" && data?.package_type === "runtime-search-index" && Array.isArray(data?.results) && data.results.length > 0,
+    );
+  }
+  if (pageName === "environment" || route === "/environment-mapping") {
+    checks.environmentWorkbench = await fetchJsonStatus(
+      new URL("/api/v1/data-packages/environment-workbench", rootUrl).toString(),
+      (data) => Number(data?.meta?.stats?.information_environment) > 0 && Array.isArray(data?.navigator?.tree),
+    );
+  }
+  if (pageName === "lifecycle" || pageName === "dev-lifecycle" || route === "/dev-lifecycle") {
+    checks.lifecycleWorkbench = await fetchJsonStatus(
+      new URL("/api/v1/data-packages/lifecycle-workbench", rootUrl).toString(),
+      (data) => Number(data?.meta?.stats?.lifecycle_stage) > 0 && Array.isArray(data?.navigator?.tree),
+    );
+  }
+  if (pageName === "standards" || route.startsWith("/standards/")) {
+    checks.standardsIndex = await fetchJsonStatus(
+      new URL("/api/v1/data-packages/standards-index", rootUrl).toString(),
+      (data) =>
+        data?.data_state === "ready" &&
+        data?.package_type === "standards-index" &&
+        Array.isArray(data?.frameworks) &&
+        data.frameworks.length > 0 &&
+        (!route.startsWith("/standards/") || data.frameworks.some((framework) => framework?.route === route)),
+    );
   }
   if (pageName === "maturity" || route.startsWith("/workbench/maturity")) {
     const maturityUrl = new URL("/api/v1/maturity/workspace", rootUrl).toString();
     const healthPayload = await fetchJson(healthUrl);
     const healthData = healthPayload?.data || healthPayload;
     const sessionToken = healthData?.auth?.session_token || "";
-    const workspaceResponse = await fetch(maturityUrl, { cache: "no-store" });
+    const userStatePersistent = healthData?.runtime?.user_database?.persistent;
+    const workspaceResponse = await fetchWithTimeout(maturityUrl, { cache: "no-store" });
     const workspacePayload = await workspaceResponse.json();
     const workspaceData = workspacePayload?.data || workspacePayload;
     const template = workspaceData?.template || {};
@@ -212,22 +286,28 @@ async function lightweightHttpSmoke({ pageName, baseUrl, route, reason }) {
       { project: { ...(detail?.project || {}), status: "scoring", readOnly: false }, template: detail?.template || template, scoreEntries: conflictingEntries },
       (data) => data?.ok === true && data?.summary?.statisticsReady === false && data?.summary?.targetBelowCurrentCount > 0 && data?.summary?.resultAvailability === "incomplete",
     );
-    checks.maturityReport = await postJsonStatus(
-      new URL("/api/v1/maturity/report", rootUrl).toString(),
-      sessionToken,
-      { project: detail?.project, template: detail?.template || template, scoreEntries: completedEntries },
-      (data) =>
-        data?.ok === true &&
-        data?.formal === true &&
-        data?.status === "snapshot" &&
-        data?.dataState === "ready" &&
-        typeof data?.markdown === "string" &&
-        data.markdown.length > 0 &&
-        typeof data?.html === "string" &&
-        data.html.length > 0 &&
-        String(data?.fileNames?.markdown || "").endsWith(".md") &&
-        String(data?.fileNames?.html || "").endsWith(".html"),
-    );
+    checks.maturityUserStateBoundary = {
+      ok: typeof userStatePersistent === "boolean",
+      persistent: userStatePersistent,
+    };
+    if (userStatePersistent === false) {
+      checks.maturityReport = await postJsonStatus(
+        new URL("/api/v1/maturity/report", rootUrl).toString(),
+        sessionToken,
+        { project: { ...(detail?.project || {}), status: "scoring", readOnly: false }, template: detail?.template || template, scoreEntries: completedEntries },
+        (data) =>
+          data?.ok === false &&
+          data?.dataState === "assessment_incomplete" &&
+          data?.error === "assessment_must_be_completed_before_report_generation" &&
+          !Object.hasOwn(data || {}, "persistence"),
+      );
+    } else {
+      checks.maturityReport = {
+        ok: userStatePersistent === true,
+        skipped: true,
+        reason: "Report gate write probe is allowed only when runtime.user_database.persistent is false.",
+      };
+    }
     checks.maturityScoreExport = await postJsonStatus(
       new URL("/api/v1/maturity/score/export", rootUrl).toString(),
       sessionToken,

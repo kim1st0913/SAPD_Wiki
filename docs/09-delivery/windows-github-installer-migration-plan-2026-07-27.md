@@ -1,6 +1,6 @@
 # Windows GitHub Installer 迁移计划
 
-> 状态：`W0-W5 complete / W6 real Windows UAT pending / W7 formal promotion pending`
+> 状态：`W0-W3 + W5 complete / W4 watcher repair pending / W6 real Windows UAT pending / W7 formal promotion pending`
 >
 > 日期：2026-07-27
 >
@@ -108,19 +108,26 @@ PR 只运行无秘密的源码和配置检查。来自 fork 的代码永远不�
 
 ## 6. main 自动触发范围
 
-私有仓 watcher 每10分钟读取公开 `main`，与私有状态中的 `last_scanned_sha` 比较路径；只有下列路径变化才调用同仓 builder：
+私有仓 watcher 每10分钟读取公开 `main`，与最近成功构建的公开 SHA 比较路径；只有下列路径变化才调用同仓 builder：
 
-- `.github/workflows/build-windows-backend.yml`
 - `apps/electron/**`
 - `frontend/capability-browser/**`
 - `scripts/build_zip_bundle.py`
+- `scripts/check_bundle_runtime.py`
+- `scripts/check_github_data_boundary.py`
 - `scripts/create_user_db.py`
 - `scripts/prepare_windows_electron_runtime.py`
 - `scripts/package_backend_pyinstaller.py`
 - `scripts/package_backend_windows.ps1`
 - `scripts/run_local_server.py`
+- `scripts/verify_windows_installer.ps1`
+- `scripts/windows_delivery_data.py`
 - `src/sapd_wiki/**`
 - Windows/MCP 相关定向测试与依赖锁文件
+
+公开仓原 `.github/workflows/build-windows-backend.yml` 属于已退役 backend-only
+链路，现归档于 `docs/05-archive/delivery-retired-2026-07/workflows/`。生产 workflow
+只存在于私有交付仓。
 
 以下变化不触发 Windows 安装器：
 
@@ -172,12 +179,14 @@ PR 只运行无秘密的源码和配置检查。来自 fork 的代码永远不�
 | W1 数据包工具 | 实现 Windows Delivery Data 的只读 build/verify 工具和 manifest schema | 双次构建逻辑内容一致；正式双库 hash 未变；真实用户库未读取或写入 | `complete` |
 | W2 私有交付仓 | 建立私有仓、环境保护、Delivery Data Release 规则和最小权限 | 公开匿名访问不能读取数据或安装器；secret 不出现在日志 | `complete` |
 | W3 私有构建器 | 在私有仓实现 Windows backend → Runtime → NSIS → Artifact 全链路；完成 Windows MCP D2 平台接线 | 固定源码 SHA 和数据 release 可重复生成安装器；DPAPI CurrentUser、CurrentUser Root、Windows 安全 IPC、固定受保护 Runtime 和 Electron 控制面全部通过 | `complete` |
-| W4 main watcher | 私有仓定时检查公开 `main` 相关路径并选择精确 SHA | 相关 push 在下一轮询周期触发一次；无关文档/macOS 变化不触发；公开仓无 secret | `complete` |
+| W4 main watcher | 私有仓定时检查公开 `main` 相关路径并选择精确 SHA | watcher 传递必填 `app_version`，相关 push 在下一轮询周期触发一次；无关文档/macOS 变化不触发；公开仓无 secret | `repair_pending`：历史实现已完成，当前输入合同回归待修复和成功运行取证 |
 | W5 并行试运行 | 连续完成至少两次新链路构建并比较不可变候选 | 相同输入的 Runtime 指纹一致；安装器 manifest 可追溯；无公开数据泄漏 | `complete` |
 | W6 Windows UAT | 在真实 Windows 10/11 安装、启动、搜索、MCP、导入导出、退出和卸载 | UAT 清单全绿；用户目录保留；进程清理；SmartScreen 状态记录 | `pending` |
 | W7 切换与收口 | 新链路成为唯一 Windows 生产构建；旧 workflow 改为诊断或退役 | main 自动链路稳定；恢复手册、当前状态和交付指南同步 | `pending` |
 
-W0—W4 属于迁移实现；W5—W7 属于发布切换。未完成 W6 前，CI 生成的安装器只能标记为 `internal testing`。
+W0—W4 属于迁移实现；W5—W7 属于发布切换。W4 曾完成迁移实现，但当前 watcher 未传
+必填 `app_version`，因此恢复为待修复状态；在私有 workflow 修复并取得成功运行证据前，
+不得宣称自动触发健康。未完成 W6 前，CI 生成的安装器只能标记为 `internal testing`。
 
 ## 9. 验收矩阵
 

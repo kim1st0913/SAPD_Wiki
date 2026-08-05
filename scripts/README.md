@@ -33,7 +33,7 @@
 | `audit_environment_master_data_p7_1_contract.mjs` | 验收77条主数据定义、29/29/67关联使用、环境摘要与展开计数一致、精确路由、保护边界和恢复证据 | `data/exports/worker-verify/plan-env-md/p7-1-*/` |
 | `audit_maturity_assessment_v2_1_contract.py` | 审计成熟度 V2.1 的企业组织项目、固定模板只读、服务角色、四维评分、目标达成率、可选证据、文件交换、L2 结果和报告契约 | `PLAN-MAT-WS`、`docs/08-maturity/` |
 | `dev_server_guard.py` | 本地预览服务守护；默认守护当前工作区固定预览入口，不承担数据接入策略切换 | `CURRENT_STATE.md` |
-| `frontend_smoke_check.mjs` | 前端页面轻量 HTTP/API smoke 检查；默认不启动系统 Google Chrome | `CURRENT_STATE.md` |
+| `frontend_smoke_check.mjs` | 前端页面轻量 HTTP/API smoke 检查；无 Chrome 模式验证页面对应业务资源，持久用户态不调用成熟度报告写端点 | `CURRENT_STATE.md` |
 | `audit_frontend_governance.mjs` | 前端高风险文件治理审计，防止安全能力映射相关 CSS / 核心文件继续无意识膨胀 | `docs/07-governance/capability-mapping-change-control.md` |
 | `audit_frontend_p0_1_correctness_boundary_contract.mjs` | P0-1 正确性与安全边界统一门禁：核对四级当前对象、Draw.io 原图不可变、语义色分层、代表键盘 / 动态播报与主区禁显字段 | `frontend/design-handoff/implementation-specs/frontend-global-optimization-plan-2026-07-11.md` |
 | `audit_frontend_p0_2_apple_shell_layout_contract.mjs` | P0-2 Apple Shell 与共享布局基座门禁：核对 1440×1024 主区高度、唯一页面标题、单业务域导航、当前项滚入、常驻辅助层上限、共享字号 / 圆角 token，以及能力、环境、专项知识、内容四类目录的单一外轮廓 | `frontend/design-handoff/implementation-specs/frontend-global-optimization-plan-2026-07-11.md` |
@@ -66,10 +66,13 @@
 | `package_backend_pyinstaller.py` | 使用 PyInstaller 生成当前平台后端运行组件 | `docs/09-delivery/desktop-packaging-runbook.md` |
 | `package_backend_windows.ps1` | Windows x64 后端打包底层入口；生产 Setup 由私有 Runner 编排 | `docs/09-delivery/desktop-packaging-runbook.md` |
 | `build_zip_bundle.py` | 组装受控 Runtime；ZIP alpha 发布路径已退役 | `docs/09-delivery/desktop-packaging-runbook.md` |
-| `create_alpha_release.py` | 历史 ZIP alpha release 工具，不是当前生产入口 | `docs/05-archive/delivery-retired-2026-07/` |
-| `create_update_package.py` | 历史 ZIP alpha update 工具，不是当前生产入口 | `docs/05-archive/delivery-retired-2026-07/` |
 | `prune_database_backups.py` | 本地 SQLite 备份保留脚本；默认 dry-run，只保留最新 5 个 `.sqlite3`，传 `--apply` 后删除更早备份 | `docs/07-governance/data-governance.md` |
-| `start-windows.bat` / `start-macos.command` / `stop-windows.bat` / `stop-macos.command` | 历史 ZIP alpha 启停模板 | `docs/05-archive/delivery-retired-2026-07/` |
+
+当前桌面打包目录与 GitHub workflow owner 的唯一地图见 `docs/09-delivery/packaging-directory-map.md`。为保持私有 Windows workflow 的精确路径合同，仍在使用的生产打包脚本暂不下沉到子目录。
+
+## 退役打包工具
+
+旧 ZIP alpha 的 release / update 工具和静态启停模板已移到 `scripts/retired/zip-alpha/`。这些文件只用于历史复核，不得作为当前 Windows 或 macOS 生产打包入口。
 
 ## 专题脚本
 
@@ -85,6 +88,6 @@
 
 - 能被多人长期复用的脚本，放在“长期工具”表。
 - 只服务于某次导入、校验、翻译、修表或数据修复的脚本，放在“专题脚本”表。
-- 不要把真实原始资料路径、个人桌面路径或敏感文件名硬编码成唯一入口；需要默认路径时，应提供命令行参数覆盖。ZIP bundle 中间打包目录固定为 `/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/sapd wiki bundle/package-work`，仍可通过 `--output-dir` 或 `SAPD_WIKI_BUNDLE_OUTPUT_DIR` 覆盖；正式分发产物只保留在 `/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/sapd wiki bundle/dist/releases/0.1.0-alpha/`，可通过 `--release-dir` 或 `SAPD_WIKI_RELEASE_DIR` 覆盖。
+- 不要把真实原始资料路径、个人桌面路径或敏感文件名硬编码成唯一入口；需要默认路径时，应提供命令行参数覆盖。Runtime 组装默认输出到已忽略的 `dist/runtime-work/`，也可通过 `--output-dir`、`SAPD_WIKI_BUNDLE_OUTPUT_DIR` 或 `SAPD_WIKI_BUNDLE_ROOT` 覆盖。
 - 新脚本如果会生成数据，应默认输出到已忽略的本地目录，例如 `data/processed/`、`data/exports/` 或 `frontend/capability-browser/public/data/`。
 - 新脚本如果用于提交前或 CI 检查，应尽量不依赖本地原始数据。

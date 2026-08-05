@@ -6,7 +6,7 @@ import WebKit
 
 private let bundleIdentifier = "com.sapd.wiki.macos"
 private let appDisplayName = "SAPD Wiki"
-private let fallbackDisplayVersion = "0.3.5"
+private let fallbackDisplayVersion = "0.4.0"
 private let wrapperLogName = "app-wrapper.log"
 private let runtimeFingerprintName = ".sapd-runtime-fingerprint"
 
@@ -497,12 +497,16 @@ final class RuntimeInstaller {
         guard fileManager.fileExists(atPath: sourceRuntime.path) else {
             throw RuntimeError("Bundled runtime is missing at \(sourceRuntime.path).")
         }
+        try RuntimeIntegrity.validateRequiredContentAssetDatabase(root: sourceRuntime)
 
         AppWrapperLogger.write("prepare-runtime start source=\(sourceRuntime.path)")
+        try RuntimeIntegrity.rejectSymbolicLinksInWritePath(settings.dataRoot)
+        let runtimeRoot = settings.dataRoot.appendingPathComponent("Runtime", isDirectory: true)
+        try RuntimeIntegrity.rejectSymbolicLinksInWritePath(runtimeRoot)
         try fileManager.createDirectory(at: settings.dataRoot, withIntermediateDirectories: true)
         try fileManager.createDirectory(at: settings.downloadDirectory, withIntermediateDirectories: true)
-        let runtimeRoot = settings.dataRoot.appendingPathComponent("Runtime", isDirectory: true)
         try fileManager.createDirectory(at: runtimeRoot, withIntermediateDirectories: true)
+        try RuntimeIntegrity.rejectSymbolicLinksInWritePath(runtimeRoot)
 
         if runtimeIsCurrent(sourceRoot: sourceRuntime, targetRoot: runtimeRoot) {
             AppWrapperLogger.write("prepare-runtime reuse-current-runtime")
@@ -562,6 +566,7 @@ final class RuntimeInstaller {
         guard fileManager.fileExists(atPath: source.path) else {
             throw RuntimeError("Required runtime resource is missing: \(relativePath)")
         }
+        try RuntimeIntegrity.rejectSymbolicLinksInWritePath(target)
         if fileManager.fileExists(atPath: target.path) {
             try fileManager.removeItem(at: target)
         }
@@ -575,6 +580,7 @@ final class RuntimeInstaller {
             return
         }
         let target = targetRoot.appendingPathComponent(relativePath)
+        try RuntimeIntegrity.rejectSymbolicLinksInWritePath(target)
         if fileManager.fileExists(atPath: target.path) {
             try fileManager.removeItem(at: target)
         }
@@ -619,6 +625,7 @@ final class RuntimeInstaller {
         guard fileManager.fileExists(atPath: sourceBase.path) else {
             throw RuntimeError("Runtime base data is missing.")
         }
+        try RuntimeIntegrity.rejectSymbolicLinksInWritePath(targetBase)
         if fileManager.fileExists(atPath: targetBase.path) {
             try fileManager.removeItem(at: targetBase)
         }
@@ -628,6 +635,7 @@ final class RuntimeInstaller {
 
     private func writeRuntimePreferences(to runtimeRoot: URL) throws {
         let configURL = runtimeRoot.appendingPathComponent("config/app-config.json")
+        try RuntimeIntegrity.rejectSymbolicLinksInWritePath(configURL)
         guard fileManager.fileExists(atPath: configURL.path) else {
             throw RuntimeError("Runtime config is missing at \(configURL.path).")
         }
@@ -651,6 +659,7 @@ final class RuntimeInstaller {
     private func seedUserDataIfNeeded(from sourceRoot: URL, to targetRoot: URL) throws {
         let sourceUser = sourceRoot.appendingPathComponent("data/user", isDirectory: true)
         let targetUser = targetRoot.appendingPathComponent("data/user", isDirectory: true)
+        try RuntimeIntegrity.rejectSymbolicLinksInWritePath(targetUser)
         try fileManager.createDirectory(at: targetUser, withIntermediateDirectories: true)
         let sourceDB = sourceUser.appendingPathComponent("sapd_wiki_user.sqlite3")
         let targetDB = targetUser.appendingPathComponent("sapd_wiki_user.sqlite3")
@@ -685,6 +694,7 @@ final class RuntimeInstaller {
         }
 
         let targetReports = targetRoot.appendingPathComponent("data/user/maturity-reports", isDirectory: true)
+        try RuntimeIntegrity.rejectSymbolicLinksInWritePath(targetReports)
         guard !fileManager.fileExists(atPath: targetReports.path) else {
             AppWrapperLogger.write("prepare-runtime maturity-report-seed-preserved path=\(targetReports.path)")
             return

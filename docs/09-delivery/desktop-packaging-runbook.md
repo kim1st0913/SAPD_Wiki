@@ -2,7 +2,7 @@
 
 > 状态：`active / current source of truth`
 >
-> 更新日期：2026-07-27
+> 更新日期：2026-08-03
 >
 > 适用产物：macOS ARM64 DMG、Windows x64 NSIS `Setup.exe`
 
@@ -47,6 +47,10 @@ macOS 不迁移到 GitHub Runner。DMG 继续在正式 Mac 主工作区本地构
 | 用户数据库 | 不包含真实用户库；Runner 创建空模板 | 不包含真实用户库；构建时创建空模板 |
 | 正式发布前 | Windows 10 / 11 实机 UAT | DMG 挂载、App Runtime、证书和目标客户端 UAT |
 
+目录、脚本、GitHub workflow 和本地产物的 owner 统一见
+`docs/09-delivery/packaging-directory-map.md`。本地 `.build/`、`dist/archive/`
+以及归档 workflow 都不是当前发布入口。
+
 ## 3. 共同数据规则
 
 所有桌面包都必须携带同一类受控只读数据：
@@ -87,9 +91,16 @@ macOS 不迁移到 GitHub Runner。DMG 继续在正式 Mac 主工作区本地构
 
 ## 4. Windows 打包流程
 
-### 4.1 自动入口
+### 4.1 自动入口（当前修复前仅允许手工 dispatch）
 
-私有仓 workflow 每 10 分钟检查一次公开仓 `main`。Electron、前端、Python backend、MCP、Windows 打包脚本或相关测试发生变化时，自动触发 Windows 构建；纯文档或 macOS-only 修改不触发。
+设计上，私有仓 workflow 每 10 分钟检查一次公开仓 `main`。Electron、前端、Python backend、MCP、Windows 打包脚本或相关测试发生变化时应自动触发 Windows 构建；纯文档或 macOS-only 修改不触发。
+
+当前私有仓生产 workflow 为 `watch-public-main.yml`、`windows-installer.yml`、
+`compare-windows-builds.yml` 和 `promote-windows-installer.yml`。公开仓原
+`build-windows-backend.yml` 已随 backend-only / Mac 手工组装链路退役，归档在
+`docs/05-archive/delivery-retired-2026-07/workflows/`，不得从 GitHub Actions 手工运行。
+
+2026-08-03 静态核对发现 watcher 尚未向 builder 传递必填 `app_version`。在私有仓修复并取得成功运行证据前，不得宣称自动触发健康；手工 dispatch 必须显式传入精确版本号。
 
 需要注意：GitHub watcher 看不到 Mac 上尚未发布的数据。用户说“我要打最新的包”时，Agent 必须先完成数据新鲜度检查，不能只等待 watcher。
 

@@ -11,8 +11,8 @@
 | 快速自检 | `node scripts/run_project_test_suite.mjs --suite quick` | 否 | 开工前、轻量修改后确认基础边界 |
 | 提交前 | `node scripts/run_project_test_suite.mjs --suite pre-commit` | 否 | 代码 / 文档 / 契约修改进入 checkpoint 前 |
 | 打包前 | `node scripts/run_project_test_suite.mjs --suite pre-dmg --url http://127.0.0.1:5173` | 否 | 确认 5173、数据边界、用户库和交付契约可进入打包 |
-| 完整工程回归 | `node scripts/run_project_test_suite.mjs --full --url http://127.0.0.1:5173` | 否 | 覆盖当前工程主要自动验证，不生成新产物 |
-| 发布完整链路 | `node scripts/run_project_test_suite.mjs --suite release-full --include-dmg-build --url http://127.0.0.1:5173` | 是 | 真实构建双 DMG；构建后还必须执行本文的 DMG 产物验收 |
+| 完整工程回归 | `node scripts/run_project_test_suite.mjs --full --url http://127.0.0.1:5173` | 否 | 覆盖当前工程主要自动验证（含 MCP 套件），不生成新产物 |
+| 发布完整链路 | `node scripts/run_project_test_suite.mjs --suite release-full --include-dmg-build --url http://127.0.0.1:5173` | 是 | 先执行含 MCP 的完整回归，再真实构建双 DMG；构建后还必须执行本文的 DMG 产物验收 |
 
 默认不启动系统 Chrome；只有用户明确批准真实浏览器回归时，才追加 `--allow-system-chrome`。
 
@@ -38,9 +38,20 @@
 | `data` | 是 | 字典引用、搜索索引质量、能力映射、LC-DT 策略矩阵、模块 / 措施目录审计 |
 | `frontend` | 是 | 前端治理、按需加载、路由刷新、滚动 owner、搜索状态、全局搜索锚点审计 |
 | `runtime` | 是 | 5173 服务状态、内容 smoke、搜索 / 能力 / 环境 / 生命周期 / 标准页 smoke |
+| `mcp` | 是 | MCP Core、策略签名、证书、控制面、Sidecar、OAuth/TLS、E2E 与系统设置合同 |
 | `user` | 是 | 用户库治理、批注锚点、批注完整性、迁移临时库、数据篮 / 导出 API smoke |
-| `delivery` | 是 | DMG / 5173 一致性契约和 Runtime helper 检查，不构建 DMG |
+| `delivery` | 是 | DMG / 5173 一致性、报告 manifest / 导出鉴权、离线前端包和产物验收行为回归，不构建 DMG |
+| `core-regressions` | 是 | 内容候选、内容发布、导入审批生命周期及 Electron 桌面壳层回归；包含在 `full` / `release-full` |
 | `dmg-build` | 是，但需显式授权 | `SAPD_WIKI_REBUILD_BACKEND=1 apps/macos/SAPDWiki/script/package_dmg.sh` |
+| `artifact-validation` | 是，但需先完成本轮 DMG 构建 | 使用同一 `SAPD_WIKI_BUILD_STAMP` 验证本轮双 DMG、挂载内容、签名、版本 / 平台 / 架构、当前源码 backend、严格空用户库、Runtime 构建标记、关键文件 hash 和 `--check-only` |
+
+独立复验已有构建产物时，必须显式复用构建时间戳：
+
+```bash
+node scripts/run_project_test_suite.mjs --suite artifact-validation --include-dmg-build --build-stamp YYYYMMDD-HHMMSSZ
+```
+
+也可通过 `SAPD_WIKI_BUILD_STAMP` 传入；只有同时包含 `dmg-build` 的链路才自动生成新时间戳。
 
 查询可用套件：
 
@@ -72,23 +83,30 @@ node scripts/run_project_test_suite.mjs --suite pre-dmg --dry-run
 | TC-012 | 搜索历史 | 搜索框、局部搜索或工作台搜索变化 | 不同业务域搜索历史隔离，删除 / 清空只影响当前域 | `node scripts/audit_search_state_isolation.mjs` |
 | TC-013 | 滚动与按钮 | 工作台、表格、三栏布局、底部操作区变化 | 页面外层高度明确，面板是本地滚动 owner，按钮可触达 | `node scripts/audit_frontend_scroll_contract.mjs` |
 | TC-014 | 5173 服务 | 前端 / 后端 / 数据改动后 | 5173 只允许默认 `stable` Runtime，首页和工作区投影正常；fixture、dev、ephemeral、自定义数据路径和显式测试 MCP Runtime 必须使用非 5173 端口，且被拒绝的 restart 不得停止现有 stable 服务 | `python3 scripts/dev_server_guard.py --status` + `PYTHONPATH=src python3 -m unittest tests.mcp_integration.test_reserved_preview_port` |
-| TC-015 | 5173 内容 smoke | 打包前、数据改动后 | 核心数据包和 API `dataState` 为 `ready` | `node scripts/frontend_content_smoke_check.mjs --url http://127.0.0.1:5173` |
-| TC-016 | 页面 smoke | 页面代码或路由变化 | 搜索、能力、环境、LC、标准页 HTTP/API 正常 | `node scripts/run_project_test_suite.mjs --suite runtime --url http://127.0.0.1:5173` |
+| TC-015 | 5173 内容 smoke | 打包前、数据改动后 | 核心数据包和 API `dataState` 为 `ready`；持久用户态不得调用成熟度报告写端点，报告拒绝门禁仅在 `USER_STATE_EPHEMERAL` / 临时 Runtime 验证 | `node scripts/frontend_content_smoke_check.mjs --url http://127.0.0.1:5173` + `frontend_smoke_check.mjs --page maturity` |
+| TC-016 | 页面 smoke | 页面代码或路由变化 | 搜索、能力、环境、LC、标准页除页面壳和 health 外，必须验证各自真实业务 API / 数据资源；只有 shell + health 的假服务必须失败 | `node scripts/run_project_test_suite.mjs --suite runtime --url http://127.0.0.1:5173` |
 | TC-017 | 批注锚点 | 批注、选区、高亮、页面锚点变化 | 批注能绑定稳定锚点，不泄露调试字段 | `node scripts/audit_user_annotation_contract.mjs` |
 | TC-018 | 用户库 schema | 用户库、导出、打包 Runtime 变化 | 新用户库为 `user_schema_0.3`；真实用户库不被静默覆盖 | `node scripts/audit_user_db_governance_contract.mjs` |
 | TC-019 | 用户写入 API | 数据篮、导出、工作台用户态变化 | 临时 Runtime 上创建、预览、导出、下载、删除闭环通过 | `node scripts/smoke_user_data_basket_api.mjs` |
 | TC-020 | 打包一致性 | 任意 DMG 前 | DMG 与 5173 同源构建输入；允许差异进入白名单 | `node scripts/audit_mac_dmg_browser_parity_contract.mjs` |
-| TC-021 | backend 构建输入 | 后端源码或 helper 变化 | helper 变化会触发 PyInstaller backend 重建，不复用旧 backend | `node scripts/audit_mac_dmg_browser_parity_contract.mjs` |
-| TC-022 | DMG 构建 | 发布完整链路 | 生成 `license` / `no-license` 双 DMG，版本和时间戳一致 | `SAPD_WIKI_REBUILD_BACKEND=1 apps/macos/SAPDWiki/script/package_dmg.sh` |
-| TC-023 | DMG 校验 | DMG 生成后 | 两个 DMG 均可挂载 / 校验 | `hdiutil verify <dmg>` |
-| TC-024 | App 签名 | DMG 生成后 | staging `.app` codesign 验证通过 | `codesign --verify --deep --strict <staging-app>` |
+| TC-021 | backend 构建输入 | 后端源码或 helper 变化 | helper 变化会触发 PyInstaller backend 重建；产物验收前后源码 hash 必须仍等于 backend source stamp | `node scripts/audit_mac_dmg_browser_parity_contract.mjs` + `artifact-validation:dmg` |
+| TC-022 | DMG 构建 | 发布完整链路 | 禁止 external backend fallback，强制生成同一 build stamp 的 `license` / `no-license` 双 DMG；同一轮双变体只构建一次当前源码 backend | `release-full` 的 `dmg-build:package` |
+| TC-023 | DMG 校验 | DMG 生成后 | 只接受本轮版本、架构和 build stamp 的两个 DMG；均通过校验并可只读挂载；Runtime manifest 版本 / 平台与 App Mach-O 架构一致 | `artifact-validation:dmg` |
+| TC-024 | App 签名 | DMG 生成后 | DMG 挂载后的 `.app` 通过 codesign 验证 | `artifact-validation:dmg` 内执行 `codesign --verify --deep --strict` |
 | TC-025 | 授权变体 | DMG 生成后 | `license` 包启用授权；`no-license` 包不弹授权 | `plutil` 查 `SAPDWikiLicenseMode` + 人工打开验证 |
-| TC-026 | 包内用户库 | DMG 生成后 | 包内 `sapd_wiki_user.sqlite3` 为空且 schema 为 `user_schema_0.3` | `sqlite3 <user-db> "select value from user_meta where key='schema_version';"` |
-| TC-027 | Runtime 健康 | DMG Runtime 复制到临时目录后 | `--check-only` 通过；API smoke 能访问核心路径 | 从 staging App 复制 `Runtime` 到 `/private/tmp` 后执行 backend check |
+| TC-026 | 包内用户库 | DMG 生成后 | 包内 `sapd_wiki_user.sqlite3` 只含权威 `user_schema_0.3` 表和初始化元数据；全部业务表为空，不允许额外私有表 | `artifact-validation:dmg` 内执行只读 SQLite 全 schema / 全表检查 |
+| TC-027 | Runtime 健康 | DMG Runtime 复制到临时目录后 | Runtime 构建标记合法且双变体一致；不在启动时重算签名后的全树；`--check-only` 通过；API smoke 能访问核心路径 | `artifact-validation:dmg` + 临时 Runtime backend check |
 | TC-028 | 首次启动体验 | 人工 UAT | 用户选择父级保存位置后创建 `SAPDWiki/import`、分类 `SAPDWiki/export` 和内部 `SAPDWiki/Runtime`；设置页可查看并在 Finder 中打开 | 打开 DMG 内 App，按首次启动流程验证 |
 | TC-029 | 授权体验 | 人工 UAT | 授权版可跳过试用 / 输入 `Passc0de` 激活；无授权版不显示授权窗口 | 人工打开两个变体 |
 | TC-030 | 导出体验 | 人工 UAT | 评估报告、评分表、模板、Issue 和诊断包写入设置的导出根目录及对应分类子目录，前端显示真实完成路径 | 在 DMG App 中逐类执行导出 |
-| TC-031 | MCP Web 闭环 | MCP Web 控制面、Sidecar、OAuth 或 5173 生命周期变化 | Web 只管理自有 loopback Sidecar；5173 与 Sidecar 端口隔离；SIGTERM / restart 会停止子进程并释放临时 TLS/密钥；正式数据和用户库无副作用 | `node scripts/run_project_test_suite.mjs --suite mcp` |
+| TC-031 | MCP Web 闭环 | MCP Web 控制面、Sidecar、OAuth 或 5173 生命周期变化 | Web 只管理自有 loopback Sidecar；5173 与 Sidecar 端口隔离；SIGTERM / restart 会停止子进程并释放临时 TLS/密钥；正式数据和用户库无副作用；`full` / `release-full` 不得跳过本套件 | `node scripts/run_project_test_suite.mjs --suite mcp`（也包含在 `full` / `release-full`） |
+| TC-032 | 报告与导出回归 | manifest、用户状态或 Issue 导出变化 | 多线程及多进程报告索引不丢记录；JSON 或 schema / project / artifact 语义损坏均不覆盖；保存先鉴权且单次读取快照；普通下载不要求 Token | `delivery:user-state-regressions` |
+| TC-033 | 成熟度本地交互 | 成熟度首页、持久化、滚动或删除弹窗变化 | 受控 demo 不进入首页摘要；跨项目 debounce 不丢内容；失败后成功可恢复；删除弹窗隔离全局 Shell、约束焦点并在关闭后恢复 | `frontend:maturity-p2-regressions` |
+| TC-034 | 前端打包树一致性 | frontend-dist 或打包投影变化 | manifest 同时记录完整源码树和打包运行树摘要；任一组件漂移均使 strict current source 失败 | `delivery:bundle-artifact-regressions` + `audit_mac_dmg_browser_parity_contract.mjs --strict-current-source` |
+| TC-035 | 多来源证据 | 来源导出、组合或 Workbench evidence 变化 | `source_file_id + source_hash + sheet + row + column + cell + raw_value` 全链路去重；不同文件相同可见单元格不得合并 | `data:multi-source-reference` |
+| TC-036 | 数据库迁移与连接资源 | migration 或数据库连接初始化 helper 变化 | 单个 migration 的 DDL、DML 与记录原子提交，失败不残留部分结构；连接 setup 失败必须关闭已分配句柄 | `data:database-resource-safety` |
+| TC-037 | 完整矩阵覆盖 | 内容候选 / 发布、导入审批或 Electron 变化，及完整回归 | `full` / `release-full` 各执行一次内容候选、内容发布、导入审批与 Electron 测试，不得漏测或重复执行；内容 / 导入 SQLite `ResourceWarning` 按错误处理 | `core-regressions:content-import` + `core-regressions:electron` |
+| TC-038 | runner 资源收尾 | 测试命令启动后台后代进程 | 直接子进程成功、失败或被中断后，POSIX 进程组均被收尾，不残留端口、锁或 Sidecar | `tests.test_delivery_release_control.DeliveryReleaseControlTests.test_runner_cleans_descendants_after_direct_child_exit` |
 
 ## 搜索专项用例
 
@@ -124,7 +142,7 @@ node scripts/run_project_test_suite.mjs --suite pre-dmg --url http://127.0.0.1:5
 构建双 DMG：
 
 ```bash
-SAPD_WIKI_REBUILD_BACKEND=1 apps/macos/SAPDWiki/script/package_dmg.sh
+SAPD_WIKI_REBUILD_BACKEND=1 SAPD_WIKI_ALLOW_EXTERNAL_BACKEND=0 SAPD_WIKI_DMG_VARIANT=all SAPD_WIKI_BUILD_STAMP=<本轮时间戳> apps/macos/SAPDWiki/script/package_dmg.sh
 ```
 
 构建后必须记录：
@@ -132,10 +150,12 @@ SAPD_WIKI_REBUILD_BACKEND=1 apps/macos/SAPDWiki/script/package_dmg.sh
 - 授权版 DMG 路径、大小、SHA-256；
 - 无授权版 DMG 路径、大小、SHA-256；
 - `Info.plist` 中 `CFBundleShortVersionString`、`SAPDWikiDisplayVersion`、`SAPDWikiLicenseMode`；
-- 包内用户库 `user_notes=0` 和 `schema_version=user_schema_0.3`；
-- 两个 DMG 的 `hdiutil verify`；
-- 两个 staging App 的 `codesign --verify --deep --strict`；
-- Runtime `--check-only` 和必要 API smoke；
+- 包内用户库只含权威 `user_schema_0.3` schema 和初始化元数据，全部业务表为空且无额外表；
+- 两个 DMG 必须与本轮 `SAPD_WIKI_BUILD_STAMP`、版本和当前架构精确匹配，并通过 `hdiutil verify`；
+- 挂载后的两个 App 必须通过 `codesign --verify --deep --strict`，并核对 `CFBundleShortVersionString`、`SAPDWikiDisplayVersion`、`SAPDWikiLicenseMode`；
+- 挂载后的 Runtime manifest 必须匹配本轮版本 / 平台，App executable 必须支持目标架构；
+- 挂载后的 Runtime 必须匹配本轮当前源码 backend，验收前后 source stamp 均匹配，复制到临时目录后通过 `--check-only`；
+- 每个 Runtime 的构建指纹标记必须合法且两个变体一致；App executable、当前源码 backend、前端树、基础库和内容资产库继续分别核对 hash，不对签名后的 Runtime 执行启动全树重算；
 - 授权版 / 无授权版人工 UAT 差异。
 
 验收失败时不得发布 DMG。5173 通过不能替代 DMG Runtime 通过；DMG 可打开也不能替代数据 / 用户库 / 授权模式验收。

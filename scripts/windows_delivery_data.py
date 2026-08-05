@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import shutil
 import sqlite3
@@ -500,34 +501,55 @@ def join_archive_parts(parts_manifest: Path, *, output_dir: Path) -> Path:
     parts = manifest.get("parts")
     if not isinstance(parts, list) or not parts:
         raise ValueError("delivery-data parts manifest has no parts")
+    archive_name = manifest.get("archiveName")
+    if (
+        not isinstance(archive_name, str)
+        or not archive_name
+        or archive_name in {".", ".."}
+        or "/" in archive_name
+        or "\\" in archive_name
+        or Path(archive_name).name != archive_name
+    ):
+        raise ValueError("unsafe archive name in delivery-data parts manifest")
     output_dir.mkdir(parents=True, exist_ok=True)
-    archive_path = output_dir / str(manifest["archiveName"])
+    archive_path = output_dir / archive_name
     if archive_path.exists():
         raise FileExistsError(f"joined archive already exists: {archive_path}")
-    with archive_path.open("xb") as output:
-        for index, item in enumerate(parts, start=1):
-            expected_name = f"{manifest['archiveName']}.part-{index:04d}"
-            if not isinstance(item, dict) or item.get("name") != expected_name:
-                raise ValueError("delivery-data part order or name mismatch")
-            part_path = parts_manifest.parent / expected_name
-            if not part_path.is_file():
-                raise FileNotFoundError(f"delivery-data part is missing: {part_path}")
-            if part_path.stat().st_size != int(item.get("bytes", -1)):
-                raise ValueError(f"delivery-data part size mismatch: {expected_name}")
-            if sha256_file(part_path) != item.get("sha256"):
-                raise ValueError(f"delivery-data part hash mismatch: {expected_name}")
-            with part_path.open("rb") as source:
-                shutil.copyfileobj(source, output, length=1024 * 1024)
-    if archive_path.stat().st_size != int(manifest.get("archiveBytes", -1)):
-        archive_path.unlink(missing_ok=True)
-        raise ValueError("joined delivery-data archive size mismatch")
-    if sha256_file(archive_path) != manifest.get("archiveSha256"):
-        archive_path.unlink(missing_ok=True)
-        raise ValueError("joined delivery-data archive hash mismatch")
-    verify_archive(
-        archive_path,
-        expected_release_id=str(manifest.get("releaseId", "")),
+    temporary = tempfile.NamedTemporaryFile(
+        mode="wb", prefix=f".{archive_name}.", suffix=".tmp", dir=output_dir, delete=False
     )
+    temporary_path = Path(temporary.name)
+    try:
+        with temporary as output:
+            for index, item in enumerate(parts, start=1):
+                expected_name = f"{archive_name}.part-{index:04d}"
+                if not isinstance(item, dict) or item.get("name") != expected_name:
+                    raise ValueError("delivery-data part order or name mismatch")
+                part_path = (parts_manifest.parent / expected_name).resolve()
+                if parts_manifest.parent not in part_path.parents:
+                    raise ValueError("unsafe delivery-data part path")
+                if not part_path.is_file():
+                    raise FileNotFoundError(f"delivery-data part is missing: {part_path}")
+                if part_path.stat().st_size != int(item.get("bytes", -1)):
+                    raise ValueError(f"delivery-data part size mismatch: {expected_name}")
+                if sha256_file(part_path) != item.get("sha256"):
+                    raise ValueError(f"delivery-data part hash mismatch: {expected_name}")
+                with part_path.open("rb") as source:
+                    shutil.copyfileobj(source, output, length=1024 * 1024)
+        if temporary_path.stat().st_size != int(manifest.get("archiveBytes", -1)):
+            raise ValueError("joined delivery-data archive size mismatch")
+        if sha256_file(temporary_path) != manifest.get("archiveSha256"):
+            raise ValueError("joined delivery-data archive hash mismatch")
+        verify_archive(
+            temporary_path,
+            expected_release_id=str(manifest.get("releaseId", "")),
+        )
+        if os.name == "nt":
+            os.rename(temporary_path, archive_path)
+        else:
+            os.link(temporary_path, archive_path)
+    finally:
+        temporary_path.unlink(missing_ok=True)
     return archive_path
 
 

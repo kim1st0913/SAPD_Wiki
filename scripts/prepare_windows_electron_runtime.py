@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import shutil
 import subprocess
@@ -22,6 +21,7 @@ try:
         validate_release_id,
         validate_revision,
     )
+    from verify_windows_runtime import backend_tree_summary, runtime_tree_sha256
 except ModuleNotFoundError:
     from scripts.windows_delivery_data import (
         SCHEMA_VERSION as DELIVERY_DATA_SCHEMA_VERSION,
@@ -30,6 +30,7 @@ except ModuleNotFoundError:
         validate_release_id,
         validate_revision,
     )
+    from scripts.verify_windows_runtime import backend_tree_summary, runtime_tree_sha256
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -126,7 +127,10 @@ def backend_source(
     elif expected_source_revision is not None:
         raise ValueError("backend build-info.json is required for a CI runtime")
     backend_hash = sha256_file(backend)
+    backend_tree_hash, backend_file_count = backend_tree_summary(backend.parent)
     metadata["backendSha256"] = backend_hash
+    metadata["backendTreeSha256"] = backend_tree_hash
+    metadata["backendFileCount"] = backend_file_count
     if expected_source_revision is not None:
         if ci_build_info.get("schemaVersion") != "sapd-windows-backend-artifact-v1":
             raise ValueError("unsupported Windows backend build-info schema")
@@ -138,6 +142,8 @@ def backend_source(
             raise ValueError("Windows backend executable name mismatch")
         if ci_build_info.get("executableSha256") != backend_hash:
             raise ValueError("Windows backend executable hash mismatch")
+        if ci_build_info.get("backendTreeSha256") != backend_tree_hash:
+            raise ValueError("Windows backend dependency tree hash mismatch")
     return backend, metadata
 
 
@@ -223,32 +229,7 @@ def normalize_base_manifest(
 
 
 def write_runtime_fingerprint(runtime_root: Path) -> str:
-    include_roots = [
-        runtime_root / BACKEND_NAME,
-        runtime_root / "_internal",
-        runtime_root / "README-FIRST.md",
-        runtime_root / "CHANGELOG.md",
-        runtime_root / "start-windows.bat",
-        runtime_root / "stop-windows.bat",
-        runtime_root / "app" / "frontend-dist",
-        runtime_root / "config",
-        runtime_root / "data" / "base",
-        runtime_root / "diagnostics",
-    ]
-    files: list[Path] = []
-    for item in include_roots:
-        if item.is_file():
-            files.append(item)
-        elif item.is_dir():
-            files.extend(path for path in item.rglob("*") if path.is_file())
-
-    digest = hashlib.sha256()
-    for path in sorted(files):
-        digest.update(path.relative_to(runtime_root).as_posix().encode("utf-8"))
-        digest.update(b"\0")
-        digest.update(path.read_bytes())
-        digest.update(b"\0")
-    fingerprint = digest.hexdigest()
+    fingerprint = runtime_tree_sha256(runtime_root)
     (runtime_root / ".sapd-runtime-fingerprint").write_text(fingerprint + "\n", encoding="utf-8")
     return fingerprint
 

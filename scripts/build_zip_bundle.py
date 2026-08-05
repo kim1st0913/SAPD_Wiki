@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-"""Build a SAPD Wiki ZIP alpha bundle directory.
+"""Assemble a controlled SAPD Wiki desktop Runtime directory.
 
 It expects caller-provided frontend assets, a platform-native backend binary,
-and a base database. It does not run ETL.
+and approved read-only databases. It does not run ETL. ZIP output remains
+available for compatibility, but production packaging consumes the directory.
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import shutil
@@ -26,18 +28,57 @@ REPO_ROOT = SCRIPT_DIR.parent
 WINDOWS_CHANGELOG = REPO_ROOT / "apps" / "electron" / "CHANGELOG.md"
 SUPPORTED_PLATFORMS = {"win-x64", "mac-arm64", "mac-x64"}
 DEFAULT_BUNDLE_ROOT = Path(
-    os.environ.get(
-        "SAPD_WIKI_BUNDLE_ROOT",
-        "/Users/kim1st/Documents/kim note/04_workspace/analysis/research/知识库工程/sapd wiki bundle",
-    )
+    os.environ.get("SAPD_WIKI_BUNDLE_ROOT", str(REPO_ROOT / "dist" / "runtime-work"))
 )
 DEFAULT_OUTPUT_DIR = Path(os.environ.get("SAPD_WIKI_BUNDLE_OUTPUT_DIR", str(DEFAULT_BUNDLE_ROOT / "package-work")))
+FRONTEND_SOURCE_ARTIFACT_SUFFIXES = {".drawio", ".pptx"}
 
 
 def copy_tree(source: Path, target: Path) -> None:
     if target.exists():
         shutil.rmtree(target)
     shutil.copytree(source, target)
+
+
+def reject_symbolic_links(root: Path) -> None:
+    if root.is_symlink():
+        raise ValueError(f"frontend-dist must not be a symbolic link: {root}")
+    for path in root.rglob("*"):
+        if path.is_symlink():
+            raise ValueError(
+                "frontend-dist must not contain symbolic links: "
+                f"{path.relative_to(root).as_posix()}"
+            )
+
+
+def tree_sha256(root: Path, *, excluded_suffixes: set[str] | None = None) -> tuple[str, int]:
+    reject_symbolic_links(root)
+    excluded = {suffix.casefold() for suffix in (excluded_suffixes or set())}
+    digest = hashlib.sha256()
+    files = [
+        path
+        for path in root.rglob("*")
+        if path.is_file() and path.suffix.casefold() not in excluded
+    ]
+    for path in sorted(files, key=lambda item: item.relative_to(root).as_posix()):
+        relative = path.relative_to(root).as_posix()
+        digest.update(relative.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+    return digest.hexdigest(), len(files)
+
+
+def exclude_frontend_source_artifacts(frontend_root: Path) -> list[str]:
+    """Remove editable source artifacts that must be served from the asset DB."""
+
+    excluded: list[str] = []
+    for path in sorted(frontend_root.rglob("*")):
+        if not path.is_file() or path.suffix.casefold() not in FRONTEND_SOURCE_ARTIFACT_SUFFIXES:
+            continue
+        excluded.append(path.relative_to(frontend_root).as_posix())
+        path.unlink()
+    return excluded
 
 
 def content_asset_owner_url(owner_ref: str) -> str:
@@ -80,10 +121,16 @@ def prepare_frontend_asset_runtime(
     }
     for path, replacements in rewrites.items():
         if not path.is_file():
-            continue
+            raise FileNotFoundError(f"required frontend asset rewrite owner is missing: {path}")
         content = path.read_text(encoding="utf-8")
         for old, new in replacements:
-            content = content.replace(old, new)
+            match_count = content.count(old)
+            if match_count != 1:
+                raise ValueError(
+                    f"frontend asset rewrite expected one match in {path}: "
+                    f"found {match_count} for {old!r}"
+                )
+            content = content.replace(old, new, 1)
         path.write_text(content, encoding="utf-8")
 
     with sqlite3.connect(
@@ -128,10 +175,90 @@ def prepare_frontend_asset_runtime(
     return removed
 
 
+def _validated_maturity_report_seed_artifact(
+    source: Path,
+    project_source: Path,
+    project_id: str,
+    artifact_id: str,
+) -> tuple[dict[str, object], dict[str, object], Path]:
+    selection = f"{project_id}={artifact_id}"
+    manifest_path = project_source / "manifest.json"
+    artifact_source = project_source / "artifacts" / artifact_id
+    for candidate in (source, project_source, project_source / "artifacts", artifact_source, manifest_path):
+        if candidate.is_symlink():
+            raise ValueError(f"maturity report seed path must not be a symbolic link: {candidate}")
+        try:
+            candidate.resolve().relative_to(source.resolve())
+        except ValueError as error:
+            raise ValueError(f"maturity report seed path escapes source root: {candidate}") from error
+    if not manifest_path.is_file() or not artifact_source.is_dir():
+        raise ValueError(f"maturity report seed artifact does not exist: {selection}")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if (
+        not isinstance(manifest, dict)
+        or manifest.get("schemaVersion") != "sapd-maturity-report-artifact-v1"
+        or manifest.get("projectId") != project_id
+        or not isinstance(manifest.get("artifacts"), list)
+    ):
+        raise ValueError(f"maturity report seed manifest identity is invalid: {selection}")
+    artifacts = [
+        item
+        for item in manifest["artifacts"]
+        if isinstance(item, dict) and str(item.get("artifactId") or "") == artifact_id
+    ]
+    if len(artifacts) != 1:
+        raise ValueError(f"maturity report seed manifest does not identify exactly one artifact: {selection}")
+    entry = artifacts[0]
+    report_id = str(entry.get("reportId") or "")
+    relative_parts = Path(str(entry.get("relativePath") or "")).parts
+    if (
+        entry.get("schemaVersion") != "sapd-maturity-report-artifact-v1"
+        or entry.get("projectId") != project_id
+        or not report_id
+        or len(relative_parts) < 3
+        or relative_parts[-3:] != (project_source.name, "artifacts", artifact_id)
+    ):
+        raise ValueError(f"maturity report seed manifest artifact identity is invalid: {selection}")
+    report_files = [artifact_source / name for name in ("report.json", "report.html", "report.md")]
+    for report_file in report_files:
+        if report_file.is_symlink():
+            raise ValueError(f"maturity report seed path must not be a symbolic link: {report_file}")
+        if not report_file.is_file():
+            raise ValueError(f"maturity report seed artifact is incomplete: {selection}")
+    report = json.loads(report_files[0].read_text(encoding="utf-8"))
+    persistence = report.get("persistence") if isinstance(report, dict) and isinstance(report.get("persistence"), dict) else {}
+    if (
+        report.get("id") != report_id
+        or persistence.get("schemaVersion") != "sapd-maturity-report-artifact-v1"
+        or persistence.get("projectId") != project_id
+        or persistence.get("reportId") != report_id
+        or persistence.get("artifactId") != artifact_id
+        or persistence.get("relativePath") != entry.get("relativePath")
+    ):
+        raise ValueError(f"maturity report seed report identity is invalid: {selection}")
+    return manifest, entry, artifact_source
+
+
 def copy_maturity_report_seed(source: Path, target: Path, selections: list[str]) -> None:
     """Copy either the whole seed or an explicit project/artifact allow-list."""
 
+    if source.is_symlink() or any(path.is_symlink() for path in source.rglob("*")):
+        raise ValueError(f"maturity report seed must not contain symbolic links: {source}")
     if not selections:
+        for project_source in (path for path in source.iterdir() if path.is_dir()):
+            manifest_path = project_source / "manifest.json"
+            if not manifest_path.is_file():
+                raise ValueError(f"maturity report seed project manifest is missing: {project_source}")
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            project_id = str(manifest.get("projectId") or "") if isinstance(manifest, dict) else ""
+            artifacts = manifest.get("artifacts") if isinstance(manifest, dict) else None
+            if not project_id or not isinstance(artifacts, list):
+                raise ValueError(f"maturity report seed manifest identity is invalid: {manifest_path}")
+            for entry in artifacts:
+                artifact_id = str(entry.get("artifactId") or "") if isinstance(entry, dict) else ""
+                if not artifact_id:
+                    raise ValueError(f"maturity report seed manifest artifact identity is invalid: {manifest_path}")
+                _validated_maturity_report_seed_artifact(source, project_source, project_id, artifact_id)
         copy_tree(source, target)
         return
     if target.exists():
@@ -142,28 +269,17 @@ def copy_maturity_report_seed(source: Path, target: Path, selections: list[str])
         project_id = project_id.strip()
         artifact_id = artifact_id.strip()
         if not separator or not project_id or not artifact_id:
-            raise ValueError(
-                "--maturity-report-seed-artifact must use PROJECT_ID=ARTIFACT_ID"
-            )
+            raise ValueError("--maturity-report-seed-artifact must use PROJECT_ID=ARTIFACT_ID")
         project_source = source / project_id
-        manifest_path = project_source / "manifest.json"
-        artifact_source = project_source / "artifacts" / artifact_id
-        if not manifest_path.is_file() or not artifact_source.is_dir():
-            raise ValueError(f"maturity report seed artifact does not exist: {selection}")
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        artifacts = [
-            item
-            for item in manifest.get("artifacts", [])
-            if isinstance(item, dict) and str(item.get("artifactId") or "") == artifact_id
-        ]
-        if len(artifacts) != 1:
-            raise ValueError(f"maturity report seed manifest does not identify exactly one artifact: {selection}")
+        manifest, entry, artifact_source = _validated_maturity_report_seed_artifact(
+            source, project_source, project_id, artifact_id
+        )
         project_target = target / project_id
         copy_tree(artifact_source, project_target / "artifacts" / artifact_id)
         filtered_manifest = {
-            "schemaVersion": manifest.get("schemaVersion") or "sapd-maturity-report-artifact-v1",
+            "schemaVersion": manifest["schemaVersion"],
             "projectId": project_id,
-            "artifacts": artifacts,
+            "artifacts": [entry],
         }
         write_text(project_target / "manifest.json", json.dumps(filtered_manifest, ensure_ascii=False, indent=2) + "\n")
 
@@ -529,13 +645,31 @@ def build_bundle(args: argparse.Namespace) -> Path:
     (bundle_root / "diagnostics").mkdir(parents=True)
 
     removed_frontend_originals: list[str] = []
+    excluded_frontend_sources: list[str] = []
+    frontend_source_sha256 = ""
+    frontend_source_file_count = 0
+    frontend_runtime_sha256 = ""
+    frontend_runtime_file_count = 0
     if args.frontend_dist:
-        copy_tree(args.frontend_dist.resolve(), bundle_root / "app" / "frontend-dist")
+        frontend_input = args.frontend_dist.expanduser()
+        reject_symbolic_links(frontend_input)
+        frontend_source = frontend_input.resolve()
+        frontend_source_sha256, frontend_source_file_count = tree_sha256(
+            frontend_source,
+            excluded_suffixes=FRONTEND_SOURCE_ARTIFACT_SUFFIXES,
+        )
+        copy_tree(frontend_source, bundle_root / "app" / "frontend-dist")
+        excluded_frontend_sources = exclude_frontend_source_artifacts(
+            bundle_root / "app" / "frontend-dist"
+        )
         if args.content_asset_db:
             removed_frontend_originals = prepare_frontend_asset_runtime(
                 bundle_root / "app" / "frontend-dist",
                 args.content_asset_db.resolve(),
             )
+        frontend_runtime_sha256, frontend_runtime_file_count = tree_sha256(
+            bundle_root / "app" / "frontend-dist"
+        )
     if args.backend_binary:
         backend_target = bundle_root / backend_name(args.platform)
         shutil.copy2(args.backend_binary.resolve(), backend_target)
@@ -598,11 +732,18 @@ def build_bundle(args: argparse.Namespace) -> Path:
             "file": "sapd_wiki_user.sqlite3",
             "schema_version": args.user_schema_version,
         },
-        "frontend": {"version": args.app_version},
+        "frontend": {
+            "version": args.app_version,
+            "source_sha256": frontend_source_sha256,
+            "source_file_count": frontend_source_file_count,
+            "runtime_sha256": frontend_runtime_sha256,
+            "runtime_file_count": frontend_runtime_file_count,
+        },
         "backend": {"version": args.app_version},
         "package": {
             "placeholder_backend": bool(args.allow_placeholder and not args.backend_binary),
             "frontend_original_assets_removed": removed_frontend_originals,
+            "frontend_source_artifacts_excluded": excluded_frontend_sources,
         },
     }
     write_text(bundle_root / "data" / "base" / "base-manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
@@ -682,7 +823,7 @@ def build_bundle(args: argparse.Namespace) -> Path:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Build a minimal SAPD Wiki ZIP alpha bundle directory.")
+    parser = argparse.ArgumentParser(description="Assemble a controlled SAPD Wiki desktop Runtime directory.")
     parser.add_argument(
         "--output-dir",
         type=Path,

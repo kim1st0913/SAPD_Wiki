@@ -4,16 +4,90 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 REPO_ROOT="$(cd "$APP_ROOT/../../.." && pwd)"
-DIST_DIR="$APP_ROOT/dist"
+DIST_DIR="${SAPD_WIKI_DIST_DIR:-$APP_ROOT/dist}"
 APP_NAME="SAPD Wiki"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
-APP_VERSION="${SAPD_WIKI_APP_VERSION:-0.3.5}"
+APP_VERSION="${SAPD_WIKI_APP_VERSION:-0.4.0}"
 export SAPD_WIKI_DISPLAY_VERSION="${SAPD_WIKI_DISPLAY_VERSION:-$APP_VERSION}"
 BUILD_STAMP="${SAPD_WIKI_BUILD_STAMP:-$(date -u +%Y%m%d-%H%M%SZ)}"
 ARCH="$(uname -m)"
 DMG_VARIANT="${SAPD_WIKI_DMG_VARIANT:-all}"
 MATURITY_REPORT_SEED="${SAPD_WIKI_MATURITY_REPORT_SEED:-$REPO_ROOT/data/user/maturity-reports}"
 export SAPD_WIKI_MATURITY_REPORT_SEED="$MATURITY_REPORT_SEED"
+BACKEND_BUILT_THIS_RUN=0
+PACKAGE_LOCK_FILE="${SAPD_WIKI_PACKAGE_LOCK_DIR:-$APP_ROOT/.build/package-dmg.lock}"
+PACKAGE_LOCK_STALE_SECONDS="${SAPD_WIKI_PACKAGE_LOCK_STALE_SECONDS:-21600}"
+PACKAGE_CHILD_PID=""
+
+prepare_package_lock_file() {
+  local modified_at
+  local now
+  local age
+  if [[ ! -d "$PACKAGE_LOCK_FILE" ]]; then
+    return 0
+  fi
+  if find "$PACKAGE_LOCK_FILE" -mindepth 1 -print -quit | grep -q .; then
+    echo "legacy package lock directory is not empty; refusing recovery: $PACKAGE_LOCK_FILE" >&2
+    exit 1
+  fi
+  modified_at="$(stat -f %m "$PACKAGE_LOCK_FILE" 2>/dev/null || stat -c %Y "$PACKAGE_LOCK_FILE")"
+  now="$(date +%s)"
+  age=$((now - modified_at))
+  if (( age < PACKAGE_LOCK_STALE_SECONDS )); then
+    echo "legacy package lock directory lacks sufficient stale-time evidence: $PACKAGE_LOCK_FILE" >&2
+    exit 1
+  fi
+  rmdir "$PACKAGE_LOCK_FILE"
+  echo "recovered stale legacy package lock directory: $PACKAGE_LOCK_FILE" >&2
+}
+
+terminate_process_tree() {
+  local parent_pid="$1"
+  local child_pid
+  local child_pids
+  if ! kill -STOP "$parent_pid" 2>/dev/null; then
+    return 0
+  fi
+  child_pids="$(pgrep -P "$parent_pid" 2>/dev/null || true)"
+  for child_pid in $child_pids; do
+    terminate_process_tree "$child_pid"
+  done
+  kill -TERM "$parent_pid" 2>/dev/null || true
+  kill -CONT "$parent_pid" 2>/dev/null || true
+}
+
+terminate_package() {
+  local exit_code="$1"
+  trap - INT TERM
+  if [[ -n "$PACKAGE_CHILD_PID" ]] && kill -0 "$PACKAGE_CHILD_PID" 2>/dev/null; then
+    terminate_process_tree "$PACKAGE_CHILD_PID"
+    wait "$PACKAGE_CHILD_PID" 2>/dev/null || true
+  fi
+  exit "$exit_code"
+}
+
+run_package_command() {
+  local status
+  "$@" &
+  PACKAGE_CHILD_PID=$!
+  if wait "$PACKAGE_CHILD_PID"; then
+    status=0
+  else
+    status=$?
+  fi
+  PACKAGE_CHILD_PID=""
+  return "$status"
+}
+
+if [[ "${SAPD_WIKI_INTERNAL_PACKAGE_LOCK_HELD:-0}" != "1" ]]; then
+  prepare_package_lock_file
+  mkdir -p "$(dirname "$PACKAGE_LOCK_FILE")"
+  exec lockf -t 0 -k "$PACKAGE_LOCK_FILE" env \
+    SAPD_WIKI_INTERNAL_PACKAGE_LOCK_HELD=1 \
+    "$0" "$@"
+fi
+trap 'terminate_package 130' INT
+trap 'terminate_package 143' TERM
 
 if [[ ! -d "$MATURITY_REPORT_SEED" ]]; then
   echo "maturity report seed does not exist: $MATURITY_REPORT_SEED" >&2
@@ -64,6 +138,16 @@ write_readme() {
 本 DMG 用于 SAPD Wiki macOS 内测交付。当前版本：${APP_VERSION}。当前包类型：${title}。
 
 ## Changelog
+
+### 0.4.0
+
+- 升级为 0.4.0 macOS ${title}测试包，同步当前最新前端、后端、正式基础查询库、内容资产库和成熟度评估测试数据。
+- 成熟度评估新增自定义模板脑图工作台，支持分层展开、节点编辑、复制、移动、撤销 / 重做、模板导入导出和项目选模。
+- 自定义评估点按来源加载当前对象专用或通用四维评分依据；服务评估点与平台工具参考继续执行固定角色规则。
+- DMG 新增指向系统 \`/Applications\` 的安装入口，可将 \`SAPD Wiki.app\` 拖入“应用程序”完成安装。
+- MCP 新 Runtime 默认端口保持 \`28775\`，已有本地控制库的端口与运行偏好优先加载。
+- ${mode_summary}
+- 当前仍为 ad-hoc signing、未 notarize 的内测包，不启用自动更新。
 
 ### 0.3.5
 
@@ -222,6 +306,14 @@ write_runtime_readme() {
 
 ## Changelog
 
+### 0.4.0
+
+- 升级为 0.4.0 Runtime，同步当前最新前端、后端、正式双库和成熟度评估测试数据。
+- Runtime 包含自定义成熟度模板脑图编辑、模板 / 项目管理、评分依据来源跟随和 XLSX 交换能力。
+- MCP 新 Runtime 默认端口保持 \`28775\`；已有 \`data/mcp/runtime/control/control.sqlite3\` 持久配置优先加载。
+- 用户 SQLite 继续使用干净 \`user_schema_0.3\` 模板，不携带开发机批注、Issue、收藏或其他个人数据。
+- ${mode_summary}
+
 ### 0.3.5
 
 - 升级为 0.3.5 Runtime，同步当前最新前端、后端、正式基础查询库、内容资产库和成熟度评估测试数据。
@@ -344,13 +436,27 @@ build_variant() {
   local staging_dir
   local dmg_path
   local title
+  local rebuild_backend
   license_mode="$(license_mode_for_variant "$variant")"
   output_dir="$DIST_DIR/$variant"
   staging_dir="$DIST_DIR/dmg-staging-$variant"
   dmg_path="$output_dir/SAPD-Wiki-${APP_VERSION}-${variant}-${BUILD_STAMP}-mac-${ARCH}.dmg"
   title="$(variant_title "$variant")"
+  rebuild_backend="${SAPD_WIKI_REBUILD_BACKEND:-auto}"
+  if [[ "$BACKEND_BUILT_THIS_RUN" == "1" ]]; then
+    rebuild_backend=0
+  fi
+  if [[ -e "$dmg_path" || -L "$dmg_path" ]]; then
+    echo "refusing to overwrite existing historical DMG: $dmg_path" >&2
+    return 1
+  fi
 
-  SAPD_WIKI_LICENSE_MODE="$license_mode" "$SCRIPT_DIR/build_and_run.sh" build
+  run_package_command env \
+    "SAPD_WIKI_LICENSE_MODE=$license_mode" \
+    "SAPD_WIKI_REBUILD_BACKEND=$rebuild_backend" \
+    SAPD_WIKI_INTERNAL_PACKAGE_LOCK_HELD=1 \
+    "$SCRIPT_DIR/build_and_run.sh" build
+  BACKEND_BUILT_THIS_RUN=1
 
   rm -rf "$staging_dir"
   mkdir -p "$staging_dir" "$output_dir"
@@ -364,18 +470,35 @@ build_variant() {
   write_runtime_readme "$staging_dir" "$variant"
   resign_staged_app "$staging_dir/$APP_NAME.app"
 
-  rm -f "$dmg_path"
-  hdiutil create \
+  run_package_command hdiutil create \
     -volname "SAPD Wiki ${APP_VERSION} ${title}" \
     -srcfolder "$staging_dir" \
-    -ov \
     -format UDZO \
     "$dmg_path" >/dev/null
 
   printf 'dmg_%s=%s\n' "${variant//-/_}" "$dmg_path"
 }
 
-case "$(normalize_variant "$DMG_VARIANT")" in
+assert_variant_output_available() {
+  local variant="$1"
+  local dmg_path="$DIST_DIR/$variant/SAPD-Wiki-${APP_VERSION}-${variant}-${BUILD_STAMP}-mac-${ARCH}.dmg"
+  if [[ -e "$dmg_path" || -L "$dmg_path" ]]; then
+    echo "refusing to overwrite existing historical DMG: $dmg_path" >&2
+    return 1
+  fi
+}
+
+NORMALIZED_DMG_VARIANT="$(normalize_variant "$DMG_VARIANT")"
+case "$NORMALIZED_DMG_VARIANT" in
+  all)
+    assert_variant_output_available "license"
+    assert_variant_output_available "no-license"
+    ;;
+  license) assert_variant_output_available "license" ;;
+  no-license) assert_variant_output_available "no-license" ;;
+esac
+
+case "$NORMALIZED_DMG_VARIANT" in
   all)
     build_variant "license"
     build_variant "no-license"

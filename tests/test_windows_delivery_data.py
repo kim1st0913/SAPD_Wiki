@@ -189,6 +189,50 @@ class WindowsDeliveryDataTests(unittest.TestCase):
             archive.read_bytes(),
         )
 
+    def test_join_rejects_manifest_output_path_traversal(self) -> None:
+        archive = self.build()
+        manifest_path = split_archive(
+            archive, output_dir=self.root / "parts-traversal", part_bytes=8 * 1024 * 1024
+        )
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["archiveName"] = "../escaped.zip"
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "unsafe archive name"):
+            join_archive_parts(manifest_path, output_dir=self.root / "joined-traversal")
+        self.assertFalse((self.root / "escaped.zip").exists())
+
+    def test_join_rejects_manifest_chunk_path_traversal(self) -> None:
+        archive = self.build()
+        manifest_path = split_archive(
+            archive, output_dir=self.root / "parts-chunk-path", part_bytes=8 * 1024 * 1024
+        )
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["parts"][0]["name"] = "../escaped.part"
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "part order or name mismatch"):
+            join_archive_parts(manifest_path, output_dir=self.root / "joined-chunk-path")
+        self.assertFalse((self.root / "escaped.part").exists())
+
+    def test_join_failure_cleans_temporary_and_preserves_existing_output(self) -> None:
+        archive = self.build()
+        manifest_path = split_archive(
+            archive, output_dir=self.root / "parts-failure", part_bytes=8 * 1024 * 1024
+        )
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        part = manifest_path.parent / manifest["parts"][-1]["name"]
+        part.write_bytes(part.read_bytes() + b"tamper")
+        output_dir = self.root / "joined-failure"
+        output_dir.mkdir()
+        existing = output_dir / manifest["archiveName"]
+        existing.write_bytes(b"preserve")
+        with self.assertRaises(FileExistsError):
+            join_archive_parts(manifest_path, output_dir=output_dir)
+        self.assertEqual(existing.read_bytes(), b"preserve")
+        existing.unlink()
+        with self.assertRaisesRegex(ValueError, "part size mismatch"):
+            join_archive_parts(manifest_path, output_dir=output_dir)
+        self.assertEqual(list(output_dir.iterdir()), [])
+
 
 if __name__ == "__main__":
     unittest.main()

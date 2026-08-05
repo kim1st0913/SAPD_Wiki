@@ -5,15 +5,15 @@ MODE="${1:-run}"
 APP_NAME="SAPD Wiki"
 EXECUTABLE_NAME="SAPDWiki"
 BUNDLE_ID="com.sapd.wiki.macos"
-BUNDLE_VERSION="${SAPD_WIKI_BUNDLE_VERSION:-0.3.5}"
-DISPLAY_VERSION="${SAPD_WIKI_DISPLAY_VERSION:-${SAPD_WIKI_APP_VERSION:-0.3.5}}"
+DISPLAY_VERSION="${SAPD_WIKI_DISPLAY_VERSION:-${SAPD_WIKI_APP_VERSION:-0.4.0}}"
+BUNDLE_VERSION="${SAPD_WIKI_BUNDLE_VERSION:-$DISPLAY_VERSION}"
 LICENSE_MODE="${SAPD_WIKI_LICENSE_MODE:-license}"
 MIN_SYSTEM_VERSION="13.0"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 REPO_ROOT="$(cd "$APP_ROOT/../../.." && pwd)"
-DIST_DIR="$APP_ROOT/dist"
+DIST_DIR="${SAPD_WIKI_DIST_DIR:-$APP_ROOT/dist}"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
 APP_CONTENTS="$APP_BUNDLE/Contents"
 APP_MACOS="$APP_CONTENTS/MacOS"
@@ -24,6 +24,87 @@ RUNTIME_WORK="$APP_ROOT/.build/runtime-work"
 BACKEND_WORK="$APP_ROOT/.build/backend-work"
 BACKEND_SOURCE_STAMP="$BACKEND_WORK/backend-source.sha256"
 CODE_SIGN_IDENTITY="${SAPD_WIKI_CODESIGN_IDENTITY:--}"
+PACKAGE_LOCK_FILE="${SAPD_WIKI_PACKAGE_LOCK_DIR:-$APP_ROOT/.build/package-dmg.lock}"
+PACKAGE_LOCK_STALE_SECONDS="${SAPD_WIKI_PACKAGE_LOCK_STALE_SECONDS:-21600}"
+BUILD_CHILD_PID=""
+
+prepare_package_lock_file() {
+  local modified_at
+  local now
+  local age
+  if [[ ! -d "$PACKAGE_LOCK_FILE" ]]; then
+    return 0
+  fi
+  if find "$PACKAGE_LOCK_FILE" -mindepth 1 -print -quit | grep -q .; then
+    echo "legacy package lock directory is not empty; refusing recovery: $PACKAGE_LOCK_FILE" >&2
+    exit 1
+  fi
+  modified_at="$(stat -f %m "$PACKAGE_LOCK_FILE" 2>/dev/null || stat -c %Y "$PACKAGE_LOCK_FILE")"
+  now="$(date +%s)"
+  age=$((now - modified_at))
+  if (( age < PACKAGE_LOCK_STALE_SECONDS )); then
+    echo "legacy package lock directory lacks sufficient stale-time evidence: $PACKAGE_LOCK_FILE" >&2
+    exit 1
+  fi
+  rmdir "$PACKAGE_LOCK_FILE"
+  echo "recovered stale legacy package lock directory: $PACKAGE_LOCK_FILE" >&2
+}
+
+terminate_process_tree() {
+  local parent_pid="$1"
+  local child_pid
+  local child_pids
+  if ! kill -STOP "$parent_pid" 2>/dev/null; then
+    return 0
+  fi
+  child_pids="$(pgrep -P "$parent_pid" 2>/dev/null || true)"
+  for child_pid in $child_pids; do
+    terminate_process_tree "$child_pid"
+  done
+  kill -TERM "$parent_pid" 2>/dev/null || true
+  kill -CONT "$parent_pid" 2>/dev/null || true
+}
+
+terminate_build() {
+  local exit_code="$1"
+  trap - INT TERM
+  if [[ -n "$BUILD_CHILD_PID" ]] && kill -0 "$BUILD_CHILD_PID" 2>/dev/null; then
+    terminate_process_tree "$BUILD_CHILD_PID"
+    wait "$BUILD_CHILD_PID" 2>/dev/null || true
+  fi
+  exit "$exit_code"
+}
+
+run_build_command() {
+  local status
+  "$@" &
+  BUILD_CHILD_PID=$!
+  if wait "$BUILD_CHILD_PID"; then
+    status=0
+  else
+    status=$?
+  fi
+  BUILD_CHILD_PID=""
+  return "$status"
+}
+
+acquire_package_lock() {
+  if [[ "${SAPD_WIKI_INTERNAL_PACKAGE_LOCK_HELD:-0}" == "1" ]]; then
+    if [[ ! -f "$PACKAGE_LOCK_FILE" ]]; then
+      echo "internal package lock handoff is invalid: $PACKAGE_LOCK_FILE" >&2
+      exit 1
+    fi
+    return 0
+  fi
+  prepare_package_lock_file
+  mkdir -p "$(dirname "$PACKAGE_LOCK_FILE")"
+  exec lockf -t 0 -k "$PACKAGE_LOCK_FILE" env \
+    SAPD_WIKI_INTERNAL_PACKAGE_LOCK_HELD=1 \
+    "$0" "$@"
+}
+
+trap 'terminate_build 130' INT
+trap 'terminate_build 143' TERM
 
 export CLANG_MODULE_CACHE_PATH="${CLANG_MODULE_CACHE_PATH:-$APP_ROOT/.build/module-cache}"
 export SWIFTPM_HOME="${SWIFTPM_HOME:-$APP_ROOT/.build/swiftpm-cache}"
@@ -68,6 +149,7 @@ paths = [
     root / "scripts" / "package_backend_pyinstaller.py",
 ]
 paths.extend(sorted((root / "src" / "sapd_wiki").rglob("*.py")))
+paths.extend(sorted((root / "docs" / "01-architecture" / "contracts" / "mcp").rglob("*.json")))
 digest = hashlib.sha256()
 for path in paths:
     if not path.exists():
@@ -126,7 +208,6 @@ find_external_backend_binary() {
     "$REPO_ROOT/dist/zip-alpha/dist/$PLATFORM/SAPD-Wiki-Backend"
     "/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/sapd wiki bundle/package-work/backend/$PLATFORM/SAPD-Wiki-Backend"
     "/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/sapd wiki bundle/package-work/dist/$PLATFORM/SAPD-Wiki-Backend"
-    "/Users/kim1st/Documents/kim note/04_workspace/research/知识库工程/sapd wiki bundle/SAPD-Wiki-v0.3.0-$PLATFORM/SAPD-Wiki-Backend"
   )
 
   local candidate
@@ -174,6 +255,11 @@ if [[ ! -f "$BASE_DB" ]]; then
   exit 1
 fi
 
+if [[ ! -f "$CONTENT_ASSET_DB" ]]; then
+  echo "required content asset database does not exist: $CONTENT_ASSET_DB" >&2
+  exit 1
+fi
+
 kill_existing_app() {
   local runtime_backend="$HOME/Library/Application Support/SAPD Wiki/Runtime/SAPD-Wiki-Backend"
   pkill -x "$EXECUTABLE_NAME" >/dev/null 2>&1 || true
@@ -194,11 +280,9 @@ build_runtime() {
     --app-version "$DISPLAY_VERSION" \
     --frontend-dist "$FRONTEND_DIST" \
     --backend-binary "$BACKEND_BINARY" \
-    --base-db "$BASE_DB"
+    --base-db "$BASE_DB" \
+    --content-asset-db "$CONTENT_ASSET_DB"
   )
-  if [[ -f "$CONTENT_ASSET_DB" ]]; then
-    bundle_args+=(--content-asset-db "$CONTENT_ASSET_DB")
-  fi
   if [[ -d "$MATURITY_REPORT_SEED" ]]; then
     bundle_args+=(
       --maturity-report-seed "$MATURITY_REPORT_SEED"
@@ -212,6 +296,7 @@ write_runtime_fingerprint() {
   local runtime_bundle="$1"
   "$PYTHON_BIN" - "$runtime_bundle" <<'PY'
 import hashlib
+import json
 import sys
 from pathlib import Path
 
@@ -219,13 +304,11 @@ root = Path(sys.argv[1])
 include_roots = [
     root / "SAPD-Wiki-Backend",
     root / "_internal",
-    root / "README-FIRST.md",
     root / "start-macos.command",
     root / "stop-macos.command",
     root / "app" / "frontend-dist",
     root / "config",
     root / "data" / "base",
-    root / "data" / "user" / "maturity-reports",
     root / "diagnostics",
 ]
 paths = []
@@ -239,7 +322,17 @@ for path in sorted(paths):
     rel = path.relative_to(root).as_posix()
     digest.update(rel.encode("utf-8"))
     digest.update(b"\0")
-    digest.update(path.read_bytes())
+    if rel == "data/base/base-manifest.json":
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+        manifest.pop("build_time", None)
+        digest.update(json.dumps(manifest, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8"))
+    elif rel == "config/app-config.json":
+        config = json.loads(path.read_text(encoding="utf-8"))
+        for key in ("app_data_root", "download_dir", "import_dir", "runtime_root", "user_database_path", "license"):
+            config.pop(key, None)
+        digest.update(json.dumps(config, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8"))
+    else:
+        digest.update(path.read_bytes())
     digest.update(b"\0")
 (root / ".sapd-runtime-fingerprint").write_text(digest.hexdigest() + "\n", encoding="utf-8")
 print(f"runtime_fingerprint={digest.hexdigest()}")
@@ -316,6 +409,7 @@ sign_macho_tree() {
 }
 
 stage_app_bundle() {
+  acquire_package_lock
   swift build --package-path "$APP_ROOT"
   local build_bin_dir
   build_bin_dir="$(swift build --package-path "$APP_ROOT" --show-bin-path)"
@@ -342,7 +436,6 @@ stage_app_bundle() {
   if command -v xattr >/dev/null 2>&1; then
     xattr -cr "$APP_BUNDLE" >/dev/null 2>&1 || true
   fi
-
   if command -v codesign >/dev/null 2>&1; then
     sign_macho_tree "$APP_RESOURCES/Runtime" || {
       echo "warning: nested runtime codesign failed; continuing with existing signatures" >&2
@@ -365,32 +458,32 @@ open_app() {
 case "$MODE" in
   run|--run)
     kill_existing_app
-    stage_app_bundle
+    run_build_command "$SCRIPT_DIR/build_and_run.sh" --internal-stage
     open_app
     ;;
   --build-only|build)
-    stage_app_bundle
+    run_build_command "$SCRIPT_DIR/build_and_run.sh" --internal-stage
     ;;
   --debug|debug)
     kill_existing_app
-    stage_app_bundle
-    lldb -- "$APP_BINARY"
+    run_build_command "$SCRIPT_DIR/build_and_run.sh" --internal-stage
+    run_build_command lldb -- "$APP_BINARY"
     ;;
   --logs|logs)
     kill_existing_app
-    stage_app_bundle
+    run_build_command "$SCRIPT_DIR/build_and_run.sh" --internal-stage
     open_app
-    /usr/bin/log stream --info --style compact --predicate "process == \"$EXECUTABLE_NAME\""
+    run_build_command /usr/bin/log stream --info --style compact --predicate "process == \"$EXECUTABLE_NAME\""
     ;;
   --telemetry|telemetry)
     kill_existing_app
-    stage_app_bundle
+    run_build_command "$SCRIPT_DIR/build_and_run.sh" --internal-stage
     open_app
-    /usr/bin/log stream --info --style compact --predicate "subsystem == \"$BUNDLE_ID\""
+    run_build_command /usr/bin/log stream --info --style compact --predicate "subsystem == \"$BUNDLE_ID\""
     ;;
   --verify|verify)
     kill_existing_app
-    stage_app_bundle
+    run_build_command "$SCRIPT_DIR/build_and_run.sh" --internal-stage
     open_app
     sleep 3
     pgrep -x "$EXECUTABLE_NAME" >/dev/null
@@ -401,7 +494,10 @@ case "$MODE" in
     echo "stop=ok"
     ;;
   --package|package|--dmg|dmg)
-    "$SCRIPT_DIR/package_dmg.sh"
+    run_build_command "$SCRIPT_DIR/package_dmg.sh"
+    ;;
+  --internal-stage)
+    stage_app_bundle
     ;;
   *)
     echo "usage: $0 [run|build|--debug|--logs|--telemetry|--verify|--package]" >&2
